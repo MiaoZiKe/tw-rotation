@@ -821,3 +821,204 @@ def test_collect_index_minute_records_days(monkeypatch):
     got = run_daily.collect_index_minute()
     assert len(got) == 3
     assert run_daily.RESULT["index_minute_days"] == {"FUT": ["2026-09-25"]}
+
+
+# ================================================================== 期交所每筆成交 → 台指期 1 分 K（2026-09-26）
+# ⚠ fixture 是**依期交所公告的欄位名稱與社群文件描述自製的**，不是實抓（容器連不到外網）：
+#   tests/fixtures/taifex_Daily_2026_09_25.csv（cp950；成交日期寫「歸屬日」的版本）。
+# 第一次 Actions 實際下載之後，若格式不同，log 會印出回應前 200 字，照那段改 parser 與這個 fixture。
+
+import io as _io  # noqa: E402
+import zipfile as _zipfile  # noqa: E402
+
+from pipeline.sources import taifex  # noqa: E402
+
+TAIFEX_FIX = Path(__file__).resolve().parent / "fixtures" / "taifex_Daily_2026_09_25.csv"
+
+
+def _zip_of(text_bytes: bytes, name: str = "Daily_2026_09_25.csv") -> bytes:
+    buf = _io.BytesIO()
+    with _zipfile.ZipFile(buf, "w") as z:
+        z.writestr(name, text_bytes)
+    return buf.getvalue()
+
+
+def _csv(rows, head=True) -> bytes:
+    lines = ["成交日期,商品代號,到期月份(週別),成交時間,成交價格,成交數量(B+S),近月價格,遠月價格,開盤集合競價"] if head else []
+    lines += [f"{d},{p:<7},{m:<11},{t},{px},{q},-,-," for d, p, m, t, px, q in rows]
+    return ("\n".join(lines) + "\n").encode("cp950")
+
+
+def test_taifex_parse_fixture_zip_only_tx():
+    t = taifex.parse_ticks(_zip_of(TAIFEX_FIX.read_bytes()), file_id="2026-09-25")
+    assert not t.empty
+    assert set(t["month"]) == {"202610", "202611", "202610/202611", "202610W1"}   # MTX 已濾掉
+    assert 45959 in set(t["time"])                                                # 前導 0 被吃掉也認得
+    assert (t["file"] == "2026-09-25").all()
+    assert t["qty"].sum() == 20 + 4 + 6 + 2 + 2 + 4 + 100 + 8 + 2 + 2 + 40 + 10 + 10 + 6 + 2
+
+
+def test_taifex_parse_bad_header_logs_head(caplog):
+    caplog.set_level("WARNING")
+    bad = "<html><body>系統維護中</body></html>".encode("cp950")
+    assert taifex.parse_ticks(bad, file_id="x").empty
+    assert "系統維護中" in caplog.text                                             # 回應前 200 字進 log
+
+
+def test_taifex_parse_bad_values_over_threshold_rejects(caplog):
+    caplog.set_level("WARNING")
+    rows = [("20260925", "TX", "202610", "08:45:00", "23000", "2")] * 10          # 時間格式變了
+    assert taifex.parse_ticks(_csv(rows), file_id="y").empty
+    assert "格式變了" in caplog.text
+
+
+def test_taifex_night_attr_convention_wall_time():
+    """成交日期寫歸屬日（晚上、凌晨同一天）→ 晚上那段是前一個交易日、凌晨是隔一個日曆日。"""
+    t = taifex.parse_ticks(TAIFEX_FIX.read_bytes(), file_id="2026-09-25")
+    w = taifex.attach_wall_time(t, known_days=["2026-09-24"])
+    night = w[w["session"] == "night"]
+    assert str(night["wall"].min()) == "2026-09-24 15:00:00"
+    assert str(night[night["time"] == 45959]["wall"].iloc[0]) == "2026-09-25 04:59:59"
+    assert set(night["open_day"]) == {"20260924"}
+    assert not (w["time"] == 53000).any()                                          # 時段外丟掉
+    day = w[w["session"] == "day"]
+    assert str(day["wall"].min()) == "2026-09-25 08:45:00"
+
+
+def test_taifex_night_attr_without_prev_day_is_dropped():
+    """找不到前一個交易日就不收（寫錯的時間進只增不改的湖就洗不掉）。"""
+    t = taifex.parse_ticks(TAIFEX_FIX.read_bytes(), file_id="2026-09-25")
+    w = taifex.attach_wall_time(t, known_days=[])
+    assert (w["session"] == "night").sum() == 0
+    assert (w["session"] == "day").sum() > 0
+
+
+def test_taifex_night_weekend_attr_goes_back_to_friday():
+    """週一的檔：夜盤歸屬週一，晚上那段是週五、凌晨那段是週六。"""
+    rows = [("20260928", "TX", "202610", "150000", "23000", "2"),
+            ("20260928", "TX", "202610", "010000", "23010", "2"),
+            ("20260928", "TX", "202610", "084500", "23020", "2")]
+    t = taifex.parse_ticks(_csv(rows), file_id="2026-09-28")
+    w = taifex.attach_wall_time(t, known_days=["20260925"])
+    got = sorted(str(x) for x in w["wall"])
+    assert got == ["2026-09-25 15:00:00", "2026-09-26 01:00:00", "2026-09-28 08:45:00"]
+
+
+def test_taifex_night_calendar_convention_detected():
+    """成交日期寫日曆日（凌晨比晚上晚一天）→ 直接用，不需要交易日曆。"""
+    rows = [("20260924", "TX", "202610", "150000", "23000", "2"),
+            ("20260925", "TX", "202610", "030000", "23010", "2"),
+            ("20260925", "TX", "202610", "084500", "23020", "2")]
+    t = taifex.parse_ticks(_csv(rows), file_id="2026-09-25")
+    w = taifex.attach_wall_time(t, known_days=[])
+    got = sorted(str(x) for x in w["wall"])
+    assert got == ["2026-09-24 15:00:00", "2026-09-25 03:00:00", "2026-09-25 08:45:00"]
+    assert set(w.loc[w["session"] == "night", "open_day"]) == {"20260924"}
+
+
+def test_taifex_ticks_to_1m_near_month_and_ohlc():
+    t = taifex.parse_ticks(TAIFEX_FIX.read_bytes(), file_id="2026-09-25")
+    bars = taifex.ticks_to_1m(taifex.attach_wall_time(t, known_days=["20260924"]), divisor=2.0)
+    assert set(bars["src"]) == {"taifex"} and set(bars["interval"]) == {"1m"}
+    n = bars[bars["symbol"] == "FUT_N"].set_index("ts")
+    b = n.loc["2026-09-24T15:00:00+08:00"]
+    # 近月 202610：15:00:00 23000×20、15:00:12 23005×4、15:00:59 22995×6（週契約 15:00:01 不算）
+    assert (b["open"], b["high"], b["low"], b["close"], b["volume"]) == (23000, 23005, 22995, 22995, 15.0)
+    assert "2026-09-24T15:02:00+08:00" not in n.index                              # 次月那筆不混進來
+    assert "2026-09-24T15:03:00+08:00" not in n.index                              # 價差單丟掉
+    assert "2026-09-25T05:00:00+08:00" in n.index
+    d = bars[bars["symbol"] == "FUT"].set_index("ts")
+    b = d.loc["2026-09-25T08:45:00+08:00"]
+    assert (b["open"], b["high"], b["low"], b["close"], b["volume"]) == (23200, 23210, 23190, 23190, 30.0)
+    assert "2026-09-25T09:00:00+08:00" not in d.index                              # 次月
+
+
+def test_taifex_rollover_picks_each_session_own_near_month():
+    """換月：結算日前一盤 202609 量大、下一盤 202610 量大 → 各盤各自選，不混月份。"""
+    rows = [("20260915", "TX", "202609", "090000", "22000", "100"),
+            ("20260915", "TX", "202610", "090000", "22100", "10"),
+            ("20260916", "TX", "202609", "090000", "22050", "10"),
+            ("20260916", "TX", "202610", "090000", "22150", "100")]
+    t = taifex.parse_ticks(_csv(rows), file_id="mix")
+    bars = taifex.ticks_to_1m(taifex.attach_wall_time(t), divisor=2.0).set_index("ts")
+    assert bars.loc["2026-09-15T09:00:00+08:00", "close"] == 22000
+    assert bars.loc["2026-09-16T09:00:00+08:00", "close"] == 22150
+
+
+def test_taifex_vol_divisor_checks_against_official():
+    assert taifex.vol_divisor({}, {}) == 2.0
+    assert taifex.vol_divisor({"20260925": 200.0}, {"20260925": 100.0}) == 2.0
+    assert taifex.vol_divisor({"20260925": 101.0}, {"20260925": 100.0}) == 1.0
+    assert taifex.vol_divisor({"20260925": 500.0}, {"20260925": 100.0}) == 2.0     # 都不像 → 預設
+
+
+def test_taifex_minute_bars_incremental_and_idempotent(tmp_path, monkeypatch):
+    from datetime import datetime, timezone
+    from pipeline.util import store
+    monkeypatch.setattr(config, "DATA", tmp_path)
+    monkeypatch.setattr(config, "STATE", tmp_path / "_state")
+    calls = []
+
+    def fake_fetch(day):
+        calls.append(day)
+        if day == "2026-09-25":
+            return 200, _zip_of(TAIFEX_FIX.read_bytes())
+        return 404, None
+
+    monkeypatch.setattr(taifex, "fetch_day", fake_fetch)
+    now = datetime(2026, 9, 26, 12, 0, tzinfo=timezone.utc)                       # 週六
+    a = taifex.minute_bars(known_days=["20260924"], now=now, max_files=5)
+    assert not a.empty and set(a["symbol"]) == {"FUT", "FUT_N"}
+    st = taifex.load_state()
+    assert "2026-09-25" in st["done"]
+    assert "2026-09-21" in st["absent"] or "2026-09-22" in st["absent"]           # 舊的 404 記成假日
+    assert "2026-09-25" not in st["absent"]
+    n1 = store.append("index_intraday", a)
+    assert n1 == len(a)
+    calls.clear()
+    taifex.minute_bars(known_days=["20260924"], now=now, max_files=5)
+    assert "2026-09-25" not in calls                                              # 處理過的不再下載
+    assert not any(d in calls for d in st["absent"])                              # 假日也不再試
+    assert store.append("index_intraday", a) == 0                                 # 重跑不多一列
+
+
+def test_taifex_fetch_non_zip_is_treated_as_missing(monkeypatch):
+    monkeypatch.setattr(http, "get_bytes",
+                        lambda *a, **k: (200, "<html>查無資料</html>".encode("cp950"), "text/html", "u"))
+    assert taifex.fetch_day("2026-09-25") == (404, None)
+    monkeypatch.setattr(http, "get_bytes", lambda *a, **k: None)
+    assert taifex.fetch_day("2026-09-25") == (0, None)
+
+
+def test_mis_fut_does_not_overwrite_taifex_days(tmp_path, monkeypatch):
+    from pipeline import run_daily
+    from pipeline.util import store
+    monkeypatch.setattr(config, "DATA", tmp_path)
+    store.append("index_intraday", pd.DataFrame([
+        {"ts": "2026-09-25T08:45:00+08:00", "symbol": "FUT", "interval": "1m", "open": 1, "high": 1,
+         "low": 1, "close": 1, "volume": 1, "src": "taifex"}]))
+    mis_df = pd.DataFrame([
+        {"ts": "2026-09-25T08:46:00+08:00", "symbol": "FUT", "interval": "1m", "close": 2, "src": "mis"},
+        {"ts": "2026-09-25T09:01:00+08:00", "symbol": "OTC", "interval": "1m", "close": 3, "src": "mis"},
+        {"ts": "2026-09-26T08:46:00+08:00", "symbol": "FUT", "interval": "1m", "close": 4, "src": "mis"}])
+    out = run_daily.drop_days_with_taifex(mis_df)
+    assert list(out["ts"]) == ["2026-09-25T09:01:00+08:00", "2026-09-26T08:46:00+08:00"]
+
+
+def test_build_prefers_taifex_over_mis_same_day():
+    from pipeline.compute import intraday_bars as ib
+    rows = []
+    for m, c in ((45, 100.0), (46, 101.0)):
+        rows.append({"ts": f"2026-09-25T08:{m}:00+08:00", "symbol": "FUT", "interval": "1m",
+                     "open": c, "high": c + 5, "low": c - 5, "close": c, "volume": 10.0, "src": "taifex"})
+    rows.append({"ts": "2026-09-25T08:47:00+08:00", "symbol": "FUT", "interval": "1m",
+                 "open": 999.0, "high": 999.0, "low": 999.0, "close": 999.0, "volume": 1.0, "src": "mis"})
+    rows.append({"ts": "2026-09-24T09:00:00+08:00", "symbol": "FUT", "interval": "1m",
+                 "open": 90.0, "high": 90.0, "low": 90.0, "close": 90.0, "volume": 1.0, "src": "mis"})
+    out = ib.build(pd.DataFrame(rows))["FUT"]
+    h4 = {ib._day_str(b[0] - 9 * 3600): b for b in out["H4"]}
+    assert h4["2026-09-25"][4] == 101.0 and h4["2026-09-25"][2] == 106.0          # mis 的 999 沒混進來
+    s = out["src"]
+    assert s["m1_first"] == "2026-09-24" and s["m1_days"] == 2
+    assert s["taifex_first"] == "2026-09-25" and s["taifex_days"] == 1
+    assert s["mis_days"] == 1

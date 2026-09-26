@@ -1298,7 +1298,7 @@
    "sha1": "fdb062a81995c067abba90ecbde20b43d9f64b84"
   },
   "1533": {
-   "status": "ok",
+   "status": "generic",
    "domain": "www.more.com.tw",
    "fetched": "2026-09-26",
    "src": "site:conventional",
@@ -1747,6 +1747,72 @@
    ],
    "sha1": "c7176393e15ff20517ecfb6a85ee9c7d15f3cadf"
   },
+  "1709": {
+   "status": "ok",
+   "domain": "www.fucc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.fucc.com.tw&sz=64",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "33373d8696a5814ced500fbe30a2e18464474860"
+  },
+  "1710": {
+   "status": "robots",
+   "domain": "www.oucc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.oucc.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "1711": {
+   "status": "ok",
+   "domain": "www.ecic.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ecic.com/wp-content/uploads/2018/11/icon_ec.png",
+   "orig": [
+    68,
+    68
+   ],
+   "sha1": "a4d84401761e973ef7b7216d33a4aa27cc1bf3af"
+  },
+  "1712": {
+   "status": "ok",
+   "domain": "www.sinon.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.sinon.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "8781c3bc3eb4ae482c3a419b9f7c6ef72f87ffb5"
+  },
+  "1713": {
+   "status": "ok",
+   "domain": "www.ccwi.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ccwi.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "b86edc1864734cb0476077289e5ff01c9f08beab"
+  },
+  "1714": {
+   "status": "ok",
+   "domain": "www.htgroup.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.htgroup.com.tw/upload/tw/common/apple-icon-144x144px.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "59261168856cb761d5e436850bf9629fc0773eb0"
+  },
   "1717": {
    "status": "ok",
    "domain": "www.eternal-group.com",
@@ -1758,6 +1824,276 @@
     32
    ],
    "sha1": "23a04e8409b4323fc88c44427f412fcc3c53374c"
+  },
+  "1718": {
+   "status": "ok",
+   "domain": "www.cmfc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.cmfc.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "c72601e59c78d2a0a52055d9e075604229ec55be"
+  },
+  "1720": {
+   "status": "ok",
+   "domain": "www.standard.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.standard.com.tw/styles/images/web-icon.ico",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "8eea42cbb350264a4f2f30d62b2010c5986aae77"
+  },
+  "1721": {
+   "status": "ok",
+   "domain": "www.sunko.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.sunko.com.tw&sz=64",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "494e93196f6efdd01b0ab50e09fdf9a62ab787f6"
+  },
+  "1722": {
+   "status": "too_small",
+   "domain": "www.taifer.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.taifer.com.tw/images/favicon.ico"
+  },
+  "1723": {
+   "status": "too_small",
+   "domain": "www.cscc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.cscc.com.tw/images/favicon.ico"
+  },
+  "1725": {
+   "status": "ok",
+   "domain": "www.yuanjen.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.yuanjen.com&sz=64",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "6753d7fd438a149ca3456a51754fa385530a8d10"
+  },
+  "1726": {
+   "status": "too_small",
+   "domain": "www.rainbowpaint.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "26x26 https://www.google.com/s2/favicons?domain=www.rainbowpaint.com.tw&sz=64"
+  },
+  "1727": {
+   "status": "none",
+   "domain": "www.chciw.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 500 https://www.chciw.com.tw/apple-touch-icon.png"
+  },
+  "1730": {
+   "status": "ok",
+   "domain": "www.farcent.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.farcent.com.tw/static/zh-Hant/styles/images/static/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "5e76d4e85b4c6d120011239c3a6bd08f763a4338"
+  },
+  "1731": {
+   "status": "none",
+   "domain": "www.maywufa.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.maywufa.com.tw/apple-touch-icon.png"
+  },
+  "1732": {
+   "status": "ok",
+   "domain": "www.maobao.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.maobao.com.tw/images/icon/favicon.jpg",
+   "orig": [
+    214,
+    214
+   ],
+   "sha1": "37746f06528bcff884a23d28afa2f9d28bebd044"
+  },
+  "1733": {
+   "status": "ok",
+   "domain": "www.apexbio.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.apexbio.com.tw/image/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "c9e920452f8d7c0de2dd5b388a28d71da1f05dc3"
+  },
+  "1734": {
+   "status": "ok",
+   "domain": "www.sinphar.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.sinphar.com/images/common/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "a1ca7d025597acd420c0226f3ee561b6a21eba35"
+  },
+  "1735": {
+   "status": "ok",
+   "domain": "www.twemc.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.twemc.com/images/project/278/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "f6663a6cbfb9461d298bad23cfd56a7791e4c1ae"
+  },
+  "1736": {
+   "status": "ok",
+   "domain": "www.johnsonhealthtech.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.johnsonhealthtech.com:443/assets/favicons/favicon-32x32.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "8b820a3bc65ad58209dcebca047fe9b6583cc494"
+  },
+  "1737": {
+   "status": "too_small",
+   "domain": "www.tybio.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.tybio.com.tw/assets/img/favicon.ico"
+  },
+  "1742": {
+   "status": "ok",
+   "domain": "www.wax.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.wax.com.tw/images/common/app_icon/apple-touch-icon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "618c02b69ad887b9956e849b5f3178d980e7483a"
+  },
+  "1752": {
+   "status": "ok",
+   "domain": "www.nangkuang.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.nangkuang.com.tw/upload/favicon.png",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "86ee575af4888b4bbd926949d08c3f636a658119"
+  },
+  "1760": {
+   "status": "ok",
+   "domain": "www.pbf.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.pbf.com.tw/wp-content/uploads/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "ac34a2e2e8aedad23f306f4c4aee2c99e5652983"
+  },
+  "1762": {
+   "status": "none",
+   "domain": "www.ccsb.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.ccsb.com.tw/apple-touch-icon.png"
+  },
+  "1773": {
+   "status": "too_small",
+   "domain": "www.shinychem.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "21x18 https://www.shinychem.com.tw/app_shinychem/views/web/img_SysManage/1767924581.png"
+  },
+  "1776": {
+   "status": "robots",
+   "domain": "www.headway.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.headway.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "1777": {
+   "status": "ok",
+   "domain": "www.syn-tech.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.syn-tech.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "4bfc6a8366109e691f213a7085e584267fe3d5bc"
+  },
+  "1780": {
+   "status": "ok",
+   "domain": "www.altratene.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.altratene.com/Allied global logo-直式.png",
+   "orig": [
+    734,
+    507
+   ],
+   "sha1": "85f1c4abcf7667e97c75a4460d62800878210afa"
+  },
+  "1781": {
+   "status": "ok",
+   "domain": "www.healthandlife.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.healthandlife.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "c328df0689b9202df30bd6d294d5556a75542a48"
+  },
+  "1783": {
+   "status": "ok",
+   "domain": "www.mbi.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://mbi-bio.com/wp-content/uploads/favicon.png",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "10972df1bdaaf2ca223700af2d08d7e7856b9cac"
+  },
+  "1784": {
+   "status": "ok",
+   "domain": "www.bionetcorp.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.bionetcorp.com/images/favicon.ico",
+   "orig": [
+    281,
+    272
+   ],
+   "sha1": "6b376c9008737d38fc305ece2a97ba70784cbfb8"
   },
   "1785": {
    "status": "ok",
@@ -1771,11 +2107,425 @@
    ],
    "sha1": "73d352e7d9c715c4aace0c99849fdb5490fc630f"
   },
+  "1786": {
+   "status": "ok",
+   "domain": "www.scivision.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.scivision.com.tw/cms/upload/banner/images/1700621369545.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "71458e74778e75ac3ce49356bb8f3e07805ecbfe"
+  },
+  "1788": {
+   "status": "ok",
+   "domain": "www.hiclearance.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "http://www.hiclearance.com.tw/images/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "46ad59b93a2dab7894b5341e7fc9e4de38bac999"
+  },
+  "1789": {
+   "status": "ok",
+   "domain": "www.scinopharm.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.scinopharm.com/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "b8224244c10ded870c07fe3fb83436eef654bef7"
+  },
+  "1795": {
+   "status": "robots",
+   "domain": "www.lotuspharm.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.lotuspharm.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "1796": {
+   "status": "ok",
+   "domain": "www.geneferm.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.geneferm.com/images/ico/apple-touch-icon-144-precomposed.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "3763ec18436648c1212fa97eb6915d8cda6cc299"
+  },
+  "1799": {
+   "status": "too_small",
+   "domain": "www.easywellbio.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.easywellbio.com/en/favicon.ico"
+  },
+  "1802": {
+   "status": "none",
+   "domain": "www.taiwanglass.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 403 https://www.taiwanglass.com/apple-touch-icon.png"
+  },
+  "1805": {
+   "status": "ok",
+   "domain": "blgroup.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://blgroup.com.tw/wp-content/themes/2022-blgroup/src/images/ios_icon_2022.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "c2ed821c3541c97936cb4d3b93e65a7056c11e2f"
+  },
+  "1806": {
+   "status": "ok",
+   "domain": "group.champion.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://group.champion.com.tw/styles/images/web-icon.ico",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "13bcafe59867e34b2375fa2f793bb7b1bc7a6301"
+  },
+  "1808": {
+   "status": "ok",
+   "domain": "www.runlong.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.runlong.com.tw/img/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "995ee2bbab8e18cf53b3bc55e8b83e1f33334485"
+  },
+  "1809": {
+   "status": "ok",
+   "domain": "www.china-glaze.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.china-glaze.com.tw/wp-content/uploads/2022/12/logo-1.png",
+   "orig": [
+    1080,
+    1080
+   ],
+   "sha1": "3b8be899d8c29be90a071a563f20254c8f865751"
+  },
+  "1810": {
+   "status": "ok",
+   "domain": "www.hcg.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.hcg.com.tw/favicon.ico?t=1",
+   "orig": [
+    241,
+    241
+   ],
+   "sha1": "663f377b029c10d2e5c9ab0e7845bfc0239f506f"
+  },
+  "1813": {
+   "status": "none",
+   "domain": "www.gialens.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.gialens.com.tw/apple-touch-icon.png"
+  },
   "1815": {
    "status": "none",
    "domain": "www.ffg.com.tw",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.ffg.com.tw/apple-touch-icon.png"
+  },
+  "1817": {
+   "status": "too_small",
+   "domain": "www.caesar.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.caesar.com.tw/static/styles/images/favicon.ico"
+  },
+  "1903": {
+   "status": "ok",
+   "domain": "www.shihlin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.shihlin.com.tw/shihlin.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "693201bae811b7134198d49e94ce24ddcd67594b"
+  },
+  "1904": {
+   "status": "ok",
+   "domain": "www.clc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.clc.com.tw/styles/images/common/apple-touch-icon.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "517b6199a49e6b0d25949f487e2b6f8202a8f5d7"
+  },
+  "1905": {
+   "status": "ok",
+   "domain": "www.chp.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.chp.com.tw/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "9f4e823402f20683b23daa02b9f2835aa9f3aa6e"
+  },
+  "1906": {
+   "status": "none",
+   "domain": "www.baolongintl.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.baolongintl.com/apple-touch-icon.png"
+  },
+  "1907": {
+   "status": "too_small",
+   "domain": "www.yfy.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.yfy.com/images/favicon.ico"
+  },
+  "1909": {
+   "status": "ok",
+   "domain": "www.longchenpaper.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.longchenpaper.com&sz=64",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "66de9e314ec7ccb909e8560a327dd5b77961add3"
+  },
+  "2002": {
+   "status": "robots",
+   "domain": "www.csc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.csc.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2006": {
+   "status": "generic",
+   "domain": "www.tunghosteel.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.tunghosteel.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "4cc17acf317825a6e9f40d28712ec3af511e80a3"
+  },
+  "2007": {
+   "status": "none",
+   "domain": "www.yheco.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.yheco.com.tw&sz=64"
+  },
+  "2008": {
+   "status": "none",
+   "domain": "www.khc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.khc.com.tw/apple-touch-icon.png"
+  },
+  "2009": {
+   "status": "none",
+   "domain": "www.fcht.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.fcht.com.tw/apple-touch-icon.png"
+  },
+  "2010": {
+   "status": "ok",
+   "domain": "www.cysco.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.cysco.com.tw/default/system/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "b4d5190069fb784996f3c6be4376e804e5716894"
+  },
+  "2012": {
+   "status": "none",
+   "domain": "www.chunyu.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.chunyu.com.tw&sz=64"
+  },
+  "2013": {
+   "status": "robots",
+   "domain": "www.cssc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.cssc.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2014": {
+   "status": "ok",
+   "domain": "www.chsteel.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.chsteel.com.tw/images/logo.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "bbe6debbce90a1b76fa4f9e0d503cdcabc4bdd33"
+  },
+  "2015": {
+   "status": "robots",
+   "domain": "www.fenghsin.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.fenghsin.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2017": {
+   "status": "ok",
+   "domain": "www.quintain.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://cdn1-next.cybassets.com/media/W1siZiIsIjMyNDgzL2F0dGFjaGVkX3Bob3Rvcy8xNzQzOTMxMDkyX1FTLmpwZy5qcGVnIl1d.jpeg?convert=false&sha=42bf24e68f16ab47",
+   "orig": [
+    1000,
+    1000
+   ],
+   "sha1": "a24b1dc6c88b8c94cf02d92ad5e85bd8fe83dd1c"
+  },
+  "2020": {
+   "status": "ok",
+   "domain": "www.mayer.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.mayer.com.tw/data/10000/images/favicon.png",
+   "orig": [
+    600,
+    600
+   ],
+   "sha1": "71e21b77146dfc8456aa5b0f6641f66951feb29b"
+  },
+  "2022": {
+   "status": "too_small",
+   "domain": "www.tycons.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.tycons.com.tw/site/themes/default/cht/images/favicon.ico"
+  },
+  "2023": {
+   "status": "too_small",
+   "domain": "www.yiehphui.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.yiehphui.com.tw/favicon.ico"
+  },
+  "2024": {
+   "status": "none",
+   "domain": "www.chihlien.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.chihlien.com.tw/apple-touch-icon.png"
+  },
+  "2025": {
+   "status": "ok",
+   "domain": "www.csssc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.csssc.com.tw/icon/favicon.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "472182b0e19e57384c9ea443733d1b5861bf85a9"
+  },
+  "2027": {
+   "status": "too_small",
+   "domain": "www.tachen.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.tachen.com.tw/favicon.ico"
+  },
+  "2028": {
+   "status": "none",
+   "domain": "www.weichih.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.weichih.com.tw/favicon.ico"
+  },
+  "2029": {
+   "status": "robots",
+   "domain": "www.shengyusteel.com",
+   "fetched": "2026-09-26",
+   "detail": "https://www.shengyusteel.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2030": {
+   "status": "too_small",
+   "domain": "www.froch.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.froch.com&sz=64"
+  },
+  "2031": {
+   "status": "too_small",
+   "domain": "www.hkssteel.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.hkssteel.com.tw/images/favicon.ico"
+  },
+  "2032": {
+   "status": "ok",
+   "domain": "www.sinkang.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.sinkang.com.tw/default/system/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "1e3509b08fb9a8486a73a697d911d8df2420715f"
+  },
+  "2033": {
+   "status": "none",
+   "domain": "www.ctworld.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.ctworld.com.tw/apple-touch-icon.png"
+  },
+  "2034": {
+   "status": "ok",
+   "domain": "www.ycinox.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ycinox.com/images/project/620/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "a3b82f14dd44ad6724e03bde6b32bed1bb4a922e"
+  },
+  "2035": {
+   "status": "generic",
+   "domain": "www.tangeng.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.tangeng.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "4cc17acf317825a6e9f40d28712ec3af511e80a3"
+  },
+  "2038": {
+   "status": "ok",
+   "domain": "www.haikwang.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.haikwang.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "fe6f181de70ee36bd8c53cb2778fab1ad2bd2777"
   },
   "2049": {
    "status": "ok",
@@ -1807,17 +2557,437 @@
    "fetched": "2026-09-26",
    "detail": "HTTP 403 http://www.fcm.com.tw/apple-touch-icon.png"
   },
+  "2062": {
+   "status": "ok",
+   "domain": "www.sunspring.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.sunspring.com.tw/app_script/DisplayCut.ashx?file=favicon.png&rootDir=./&w=310&h=310&bgColor=White",
+   "orig": [
+    310,
+    310
+   ],
+   "sha1": "0413d0a66e45883c4a7a27a6eba993314d30c7df"
+  },
+  "2063": {
+   "status": "ok",
+   "domain": "www.shehkai.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.shehkai.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "4e4de2c932c5a570212b3ae1be05d2557faaaa99"
+  },
+  "2064": {
+   "status": "none",
+   "domain": "www.camelliametal.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.camelliametal.com/apple-touch-icon.png"
+  },
+  "2065": {
+   "status": "none",
+   "domain": "www.shehfung.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.shehfung.com/apple-touch-icon.png"
+  },
+  "2066": {
+   "status": "ok",
+   "domain": "www.sumeeko.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.sumeeko.com/wp-content/uploads/2021/10/company05.png?fit=180%2C180",
+   "orig": [
+    511,
+    511
+   ],
+   "sha1": "c32b1a5f3a4cdf7ebe5f01b1a4728a6476af306f"
+  },
+  "2067": {
+   "status": "none",
+   "domain": "www.cysteel.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.cysteel.com.tw/images/phone_img.png"
+  },
+  "2069": {
+   "status": "ok",
+   "domain": "www.yuenchang.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.yuenchang.com.tw/files/images/web-icon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "5ddddbc50040c3051a7a3102dbb8ad8b307c6ef7"
+  },
+  "2070": {
+   "status": "ok",
+   "domain": "www.ccm3s.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ccm3s.com/touch-icon-ipad-retina.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "65938cd9e04ccb0b8293c888883d8150458ab7e8"
+  },
   "2072": {
    "status": "none",
    "domain": "www.cwptw.com",
    "fetched": "2026-09-26",
    "detail": "回的是 HTML 不是圖 https://www.cwptw.com/apple-touch-icon.png"
   },
+  "2073": {
+   "status": "ok",
+   "domain": "www.ssmc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ssmc.com.tw/proimages/logos.png",
+   "orig": [
+    81,
+    80
+   ],
+   "sha1": "251241f4327a4648be8672249c11b5235a3bebaf"
+  },
+  "2101": {
+   "status": "ok",
+   "domain": "www.nankang-tyre.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.nankang-tyre.com/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "9bd1b30dc8cea7d58a2002d3f2b57887b9acf598"
+  },
+  "2102": {
+   "status": "too_small",
+   "domain": "federalcorporation.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://federalcorporation.com.tw/favicon.ico"
+  },
+  "2103": {
+   "status": "too_small",
+   "domain": "www.tsrc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.tsrc.com.tw/app/themes/theme/assets/imgs/favicon.ico"
+  },
+  "2104": {
+   "status": "ok",
+   "domain": "www.csrcgroup.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.csrcgroup.com/img/logo.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "e85ee24fc564ad9fe486828863451899bf6a4845"
+  },
+  "2105": {
+   "status": "ok",
+   "domain": "www.cst.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.cst.com.tw/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "7f002cd9d11f406d33befca2a38d0e08ec3e710e"
+  },
+  "2106": {
+   "status": "ok",
+   "domain": "www.kendatire.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.kendatire.com/favicon/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "473e8ece8526abb1e9566d6208f6c77ed0ec2146"
+  },
+  "2107": {
+   "status": "too_small",
+   "domain": "www.frg.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "14x17 http://www.frg.com.tw/favicon.ico"
+  },
+  "2108": {
+   "status": "none",
+   "domain": "www.nantex.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.nantex.com.tw&sz=64"
+  },
+  "2109": {
+   "status": "ok",
+   "domain": "www.duro.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.duro.com.tw/img/base/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "7b94b7c856345799192a2211462c7625cd5cba21"
+  },
+  "2114": {
+   "status": "ok",
+   "domain": "www.hyc-king.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.hyc-king.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "4549713d134e1f5b1601c6a157abf16a16025d81"
+  },
+  "2115": {
+   "status": "none",
+   "domain": "www.luhai.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.luhai.com.tw/apple-touch-icon.png"
+  },
+  "2201": {
+   "status": "none",
+   "domain": "www.yulon-motor.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.yulon-motor.com.tw/apple-touch-icon.png"
+  },
+  "2204": {
+   "status": "ok",
+   "domain": "www.china-motor.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.china-motor.com.tw/icon_cmc.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "4356dad4dc2d371ad48722726fbe1e3dbcf46511"
+  },
+  "2206": {
+   "status": "ok",
+   "domain": "www.sanyang.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.sanyang.com.tw/default/system/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "6de5713527112840930807737f6b92be5d0136b4"
+  },
+  "2207": {
+   "status": "ok",
+   "domain": "www.hotaimotor.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.hotaimotor.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "ad2121cd84d743fe4e21c4a2594bcaf21ec0a71e"
+  },
   "2208": {
    "status": "none",
    "domain": "www.csbcnet.com.tw",
    "fetched": "2026-09-26",
    "detail": "回的是 HTML 不是圖 https://www.csbcnet.com.tw/apple-touch-icon.png"
+  },
+  "2211": {
+   "status": "ok",
+   "domain": "www.evergreennet.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.evergreennet.com/templates/default/images/favicon.png",
+   "orig": [
+    225,
+    225
+   ],
+   "sha1": "ef203b8838675b11655d6ab6639ff83775161f23"
+  },
+  "2221": {
+   "status": "ok",
+   "domain": "www.yhmco.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.yhmco.com.tw/images/favicon.png",
+   "orig": [
+    62,
+    60
+   ],
+   "sha1": "a16f8622daf30c9925784e8bdc1dfcc50435e9fb"
+  },
+  "2227": {
+   "status": "ok",
+   "domain": "www.nissan.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://new.nissan.com.tw/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "6cc63fc30abeed20b6dadf39d71fa23df70e1379"
+  },
+  "2228": {
+   "status": "too_small",
+   "domain": "www.irf.biz",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.irf.biz/favicon.ico"
+  },
+  "2230": {
+   "status": "ok",
+   "domain": "www.ctico.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ctico.com.tw/favicon.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "7b0b402e98081f6c12d68a09ff7174f16760dff9"
+  },
+  "2231": {
+   "status": "none",
+   "domain": "www.cubelec.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.cubelec.com&sz=64"
+  },
+  "2233": {
+   "status": "ok",
+   "domain": "www.turvo.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.turvo.com.tw/templates/03/images/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "3c5ae3f61805038d16191ffbc95472a5f23a58a9"
+  },
+  "2235": {
+   "status": "ok",
+   "domain": "www.tiy-motor.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.tiy-motor.com/default/system/favicon.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "c32d79242d711924c06557e9b087373b89bf0d1b"
+  },
+  "2236": {
+   "status": "none",
+   "domain": "www.patec-intl.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://patec-intl.com/apple-touch-icon.png"
+  },
+  "2237": {
+   "status": "ok",
+   "domain": "www.racev.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.racev.com/images/touch-icon-144.jpg",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "f9ada51274e36cd087fe4dd8613b7c3e844e85bd"
+  },
+  "2239": {
+   "status": "none",
+   "domain": "www.engley.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.engley.com.tw/apple-touch-icon.png"
+  },
+  "2241": {
+   "status": "too_small",
+   "domain": "www.amulaire.com",
+   "fetched": "2026-09-26",
+   "detail": "26x26 https://www.amulaire.com/frontend/images/favicon.ico"
+  },
+  "2243": {
+   "status": "ok",
+   "domain": "www.horngshiue.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "http://www.horngshiue.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "f80de479b455969ac7c49e0cecd5abb1c1659794"
+  },
+  "2247": {
+   "status": "ok",
+   "domain": "www.pgum.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.pgum.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "87a5d458ec7300d934b506d8aa8b51ac581af724"
+  },
+  "2248": {
+   "status": "ok",
+   "domain": "hs-elan.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "http://hs-elan.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "645b71bcf3064b36509c240ada3fea0a9a355e8f"
+  },
+  "2250": {
+   "status": "ok",
+   "domain": "www.ikka.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ikka.com.tw/templates/03/images/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "77e24eacdb3fc9c740cee40ec64b44b451f823fe"
+  },
+  "2254": {
+   "status": "ok",
+   "domain": "www.coplus.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.coplus.com.tw/cdn/shop/files/coplus-favicon.png?crop=center&height=32&v=1732865799&width=32",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "001e883f8addf83487682fd685fb2f610d09dabc"
+  },
+  "2258": {
+   "status": "ok",
+   "domain": "www.foxtronev.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www-assets.cloud.foxtronev.com/images/meta/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "0241703bd7049d6f2905a689cb1427726afe3d32"
   },
   "2301": {
    "status": "ok",
@@ -1831,11 +3001,29 @@
    ],
    "sha1": "a8f01cfb81de304d2b044ea5bdb5e501361d4661"
   },
+  "2302": {
+   "status": "ok",
+   "domain": "www.rectron.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.rectron.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "7f31885c051938a9e2cf36be30542574ca120dc1"
+  },
   "2303": {
    "status": "too_small",
    "domain": "www.umc.com",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.umc.com/favicon.ico"
+  },
+  "2305": {
+   "status": "too_small",
+   "domain": "microtek.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://microtek.com/dist/images/microtek_logo.ico"
   },
   "2308": {
    "status": "ok",
@@ -1867,6 +3055,24 @@
    ],
    "sha1": "55c9551ea2953f9d8821be4127ee0bf4728a6261"
   },
+  "2314": {
+   "status": "none",
+   "domain": "www.mtigroup.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.mtigroup.com&sz=64"
+  },
+  "2316": {
+   "status": "ok",
+   "domain": "www.wus.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.wus.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "6a150d7e3036bfc1daf15e0612e7727f07b1b79d"
+  },
   "2317": {
    "status": "ok",
    "domain": "www.honhai.com",
@@ -1878,6 +3084,24 @@
     64
    ],
    "sha1": "5ae90a1170f32c2d8f457f1c51045d8338b1c12f"
+  },
+  "2321": {
+   "status": "too_small",
+   "domain": "www.tecom.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.tecom.com.tw/wp-content/uploads/2023/03/favicon.png"
+  },
+  "2323": {
+   "status": "ok",
+   "domain": "www.cmcnet.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.cmcnet.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "f05f9f239a4f1efa0fc0781563865f5615654b0e"
   },
   "2324": {
    "status": "ok",
@@ -1933,6 +3157,12 @@
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.tsmc.com/themes/custom/bootstrap_sass/images/favicon.ico"
   },
+  "2331": {
+   "status": "robots",
+   "domain": "www.ecs.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.ecs.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
   "2332": {
    "status": "ok",
    "domain": "company.dlink.com",
@@ -1950,6 +3180,24 @@
    "domain": "www.macronix.com",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.macronix.com/_layouts/15/images/z_mxic.ico"
+  },
+  "2338": {
+   "status": "none",
+   "domain": "www.tmcnet.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.tmcnet.com.tw&sz=64"
+  },
+  "2340": {
+   "status": "ok",
+   "domain": "www.tascsemi.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.tascsemi.com/wp-content/uploads/2022/06/cropped-TASC512-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "ba970623de6b8c6bdbc03536da7dbb09a15b136b"
   },
   "2342": {
    "status": "ok",
@@ -1993,6 +3241,24 @@
    "fetched": "2026-09-26",
    "detail": "回的是 HTML 不是圖 https://www.synnex-grp.com/apple-touch-icon.png"
   },
+  "2348": {
+   "status": "none",
+   "domain": "www.hiyes-group.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.hiyes-group.com.tw/apple-touch-icon.png"
+  },
+  "2349": {
+   "status": "ok",
+   "domain": "www.ritek.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ritek.com/apple-touch-icon.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "689d47c720a321767275335360984d56eea331a8"
+  },
   "2351": {
    "status": "none",
    "domain": "www.sdi.com.tw",
@@ -2034,6 +3300,12 @@
     64
    ],
    "sha1": "730e108f52586914e8d830967cda481ba2353a90"
+  },
+  "2355": {
+   "status": "none",
+   "domain": "www.chinpoon.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.chinpoon.com/apple-touch-icon.png"
   },
   "2356": {
    "status": "ok",
@@ -2077,6 +3349,48 @@
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.chromaate.com/favicon.ico"
   },
+  "2362": {
+   "status": "ok",
+   "domain": "www.clevo.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.clevo.com.tw/img/favicon.png",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "8db04e23bf7f467614e6e39569f464f9342d2a98"
+  },
+  "2363": {
+   "status": "ok",
+   "domain": "www.sis.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.sis.com/Assets/images/ico/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "ae92cc7873f43fb31851713e4e3b1f1796dca00a"
+  },
+  "2364": {
+   "status": "ok",
+   "domain": "www.twinhead.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.twinhead.com.tw/favicon.ico",
+   "orig": [
+    80,
+    80
+   ],
+   "sha1": "c29155f602850556372afb51272d8d8a3419708e"
+  },
+  "2365": {
+   "status": "none",
+   "domain": "www.geniusnet.com",
+   "fetched": "2026-09-26",
+   "detail": "回的是 HTML 不是圖 https://www.geniusnet.com/upload/apple-icon-192x192px.png"
+  },
   "2367": {
    "status": "none",
    "domain": "www.pcbut.com.tw",
@@ -2094,6 +3408,36 @@
     32
    ],
    "sha1": "bca0a274e109e21429916d7647d6ac7f27dce8f3"
+  },
+  "2369": {
+   "status": "none",
+   "domain": "www.lingsen.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.lingsen.com.tw/apple-touch-icon.png"
+  },
+  "2371": {
+   "status": "robots",
+   "domain": "www.tatung.com",
+   "fetched": "2026-09-26",
+   "detail": "https://www.tatung.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2373": {
+   "status": "too_small",
+   "domain": "www.aurora.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.aurora.com.tw/default/system/favicon.ico"
+  },
+  "2374": {
+   "status": "ok",
+   "domain": "www.abilitycorp.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.abilitytw.com/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBkdz09IiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--c8189c34cfd479229972a7032b36248a36050c82/favicon_en.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "8e1d607f2efe973d4f44d9aa1839ec74fd1fd0ae"
   },
   "2375": {
    "status": "none",
@@ -2125,6 +3469,18 @@
    "fetched": "2026-09-26",
    "detail": "16x16 https://wwwfile.realtek.com/favicon.ico"
   },
+  "2380": {
+   "status": "ok",
+   "domain": "www.avision.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.avision.com/tw/wp-content/uploads/sites/2/2021/09/logo縮圖.png",
+   "orig": [
+    74,
+    71
+   ],
+   "sha1": "5445b4e9847249481d04457add45ce063c1ff345"
+  },
   "2382": {
    "status": "too_small",
    "domain": "www.quantatw.com",
@@ -2137,6 +3493,24 @@
    "fetched": "2026-09-26",
    "detail": "28x10 https://www.emctw.com/favicon.ico"
   },
+  "2385": {
+   "status": "too_small",
+   "domain": "www.chicony.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.chicony.com/assets/img/favicon.ico"
+  },
+  "2387": {
+   "status": "ok",
+   "domain": "www.sunrex.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.sunrex.com.tw/images/favicon/apple-icon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "f94e0470f3a78eb5fa4c10fe43faedbca63035c1"
+  },
   "2388": {
    "status": "ok",
    "domain": "www.via.com.tw",
@@ -2148,6 +3522,24 @@
     350
    ],
    "sha1": "a23cdd8f7d40b6099950dde9aaccbc6831ae9de6"
+  },
+  "2390": {
+   "status": "none",
+   "domain": "www.everspring.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.everspring.com&sz=64"
+  },
+  "2392": {
+   "status": "ok",
+   "domain": "www.foxlink.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.foxlink.com/web/wp-content/uploads/2017/02/touchicon_foxlink.png",
+   "orig": [
+    114,
+    114
+   ],
+   "sha1": "4d57e2f1d64857fada7068fbd279b524d737eece"
   },
   "2393": {
    "status": "none",
@@ -2167,6 +3559,18 @@
    ],
    "sha1": "7054abdbe4a36ec7fa7b8785f848c14719bcfed0"
   },
+  "2397": {
+   "status": "ok",
+   "domain": "www.dfi.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.dfi.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "2317823fccdd1aae60bfad63391289cd4e0796d0"
+  },
   "2399": {
    "status": "ok",
    "domain": "www.biostar.com.tw",
@@ -2179,14 +3583,62 @@
    ],
    "sha1": "5284bfc20d28a6ea7720edf38228aaff8a69af6e"
   },
+  "2401": {
+   "status": "ok",
+   "domain": "www.sunplus.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.sunplus.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "32101981dc362e4395c01fe39021a6c2b06cf45a"
+  },
+  "2402": {
+   "status": "ok",
+   "domain": "www.ichia.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ichia.com/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "f4a97c6c57a05bd0ebb9eff79dd886df13b1813d"
+  },
   "2404": {
    "status": "none",
    "domain": "www.uisco.com.tw",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.uisco.com.tw/apple-touch-icon.png"
   },
-  "2408": {
+  "2405": {
    "status": "ok",
+   "domain": "www.shuttle.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://tw.shuttle.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "3ca299a419fbfd62f296979f33c78b7108fcb7ad"
+  },
+  "2406": {
+   "status": "ok",
+   "domain": "www.gigastorage.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.gigastorage.com.tw/templates/main/images/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "f77e1c1944cd99bb875987f7ebf8e46776b0f5a8"
+  },
+  "2408": {
+   "status": "generic",
    "domain": "www.nanya.com",
    "fetched": "2026-09-26",
    "src": "site:conventional",
@@ -2221,11 +3673,107 @@
    ],
    "sha1": "937cd1deffdf1e4731d0efa8d6373d38154bb526"
   },
+  "2413": {
+   "status": "none",
+   "domain": "www.umec.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.umec.com.tw/apple-touch-icon.png"
+  },
+  "2414": {
+   "status": "ok",
+   "domain": "www.unitech.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.unitech.com.tw/images/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "5e404bafdecc6143872e4e7e14c00a5090ed7553"
+  },
+  "2415": {
+   "status": "none",
+   "domain": "www.cxtechnology.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.cxtechnology.com/apple-touch-icon.png"
+  },
+  "2417": {
+   "status": "ok",
+   "domain": "www.avermedia.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.avermedia.com/files/large/02c12acfb325023c46ffa1618a83cc5f.png",
+   "orig": [
+    500,
+    500
+   ],
+   "sha1": "c4222bcb0f909e0a50972bdc584e6e692b0c59eb"
+  },
+  "2419": {
+   "status": "ok",
+   "domain": "www.hitrontech.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://hitrontech.com/wp-content/uploads/2020/07/cropped-favicon-hitron-2-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "a12ed399daebab95780d1097e3081af0e4507183"
+  },
+  "2420": {
+   "status": "ok",
+   "domain": "www.zippy.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.zippy.com/en/assets/brand/favicon_72x72.png",
+   "orig": [
+    72,
+    72
+   ],
+   "sha1": "b6e8cecbc3075a16a0db561c2331010e82e8b5f8"
+  },
   "2421": {
    "status": "none",
    "domain": "www.sunon.com",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.sunon.com/apple-touch-icon.png"
+  },
+  "2423": {
+   "status": "too_small",
+   "domain": "www.gwinstek.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.gwinstek.com/favicon.ico"
+  },
+  "2424": {
+   "status": "ok",
+   "domain": "www.lhsat.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.lhsat.com/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "a84b2e9491bda4ef9b661bf39adc30b3e7c8aed1"
+  },
+  "2425": {
+   "status": "none",
+   "domain": "www.chaintech.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.chaintech.com.tw/apple-touch-icon.png"
+  },
+  "2426": {
+   "status": "none",
+   "domain": "www.tyntek.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.tyntek.com.tw&sz=64"
+  },
+  "2427": {
+   "status": "too_small",
+   "domain": "www.mds.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.mds.com.tw/favicon.ico"
   },
   "2428": {
    "status": "ok",
@@ -2239,6 +3787,72 @@
    ],
    "sha1": "5012e1cbf0302fd841c63b999262c61d2937a5a2"
   },
+  "2429": {
+   "status": "ok",
+   "domain": "www.abonmax.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.abonmax.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "19f4d957e461fcd4a57907271edde8da43195eb6"
+  },
+  "2430": {
+   "status": "ok",
+   "domain": "www.tk3c.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "http://www.tk3c.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "2047ceae1ab19d0690227ea7aaa166e8354b28e4"
+  },
+  "2431": {
+   "status": "ok",
+   "domain": "www.lienchang.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://lce.com.tw/apple-touch-icon.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "23698b6707b10609504cb3127b5cbd876ace9543"
+  },
+  "2432": {
+   "status": "too_small",
+   "domain": "www.acergadget.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.acergadget.com/wp-content/uploads/2024/05/favicon-agt.png"
+  },
+  "2433": {
+   "status": "ok",
+   "domain": "www.eosasc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.eosasc.com.tw/default/system/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "3db934e4de632aebe28bf6f8086b053c5438e380"
+  },
+  "2434": {
+   "status": "ok",
+   "domain": "www.mospec.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.mospec.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "7a69a7e14b7399f46694d5512117e175b404b2cd"
+  },
   "2436": {
    "status": "ok",
    "domain": "www.weltrend.com.tw",
@@ -2250,6 +3864,18 @@
     120
    ],
    "sha1": "91a73fe258eb60c6b738dd96a69ea65ea38aa686"
+  },
+  "2438": {
+   "status": "ok",
+   "domain": "www.enlightcorp.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.enlightcorp.com.tw/media/templates/site/cadiis/images/favicon.ico",
+   "orig": [
+    100,
+    100
+   ],
+   "sha1": "c7e968b635364655ab3db47d5b9a984010758e16"
   },
   "2439": {
    "status": "ok",
@@ -2263,11 +3889,35 @@
    ],
    "sha1": "c397c30afbde5e9a79cbfa91e3808752a4804a73"
   },
+  "2440": {
+   "status": "too_small",
+   "domain": "www.spaces.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.spaces.com.tw/favicon.ico"
+  },
   "2441": {
    "status": "too_small",
    "domain": "www.greatek.com.tw",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.greatek.com.tw/favicon.ico"
+  },
+  "2442": {
+   "status": "too_small",
+   "domain": "www.jean.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.jean.com.tw/assets/images/favicon.ico"
+  },
+  "2444": {
+   "status": "ok",
+   "domain": "www.abocom.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://resource.iyp.tw/crop/180x180/static.iyp.tw/38812/system/favicon_J7PyP.jpg",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "53c969f2ee5b4882cf2402ec4a9c85727ba3b81d"
   },
   "2449": {
    "status": "ok",
@@ -2281,6 +3931,12 @@
    ],
    "sha1": "9995faec36092870eaa7cb58e89b5f1347bc6ecb"
   },
+  "2450": {
+   "status": "too_small",
+   "domain": "www.senao.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.senao.com.tw/cdn/shop/files/favicon.png?crop=center&height=32&v=1718776084&width=32"
+  },
   "2451": {
    "status": "ok",
    "domain": "www.transcend-info.com",
@@ -2292,6 +3948,18 @@
     48
    ],
    "sha1": "fa726de3bf7e22f0bae15e21eb4cd7cb24043c1f"
+  },
+  "2453": {
+   "status": "ok",
+   "domain": "www.syscom.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.syscom.com.tw&sz=64",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "5f8ca1330138f02a743ade949695e68ae7a4138d"
   },
   "2454": {
    "status": "ok",
@@ -2310,6 +3978,60 @@
    "domain": "www.vpec.com.tw",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 http://www.vpec.com.tw/apple-touch-icon.png"
+  },
+  "2457": {
+   "status": "ok",
+   "domain": "www.phihongtech.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.phihongtech.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "df386ea1d434db672bee923f00bb1c7fa6a704ec"
+  },
+  "2458": {
+   "status": "robots",
+   "domain": "www.emc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.emc.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2459": {
+   "status": "none",
+   "domain": "www.audix.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.audix.com/apple-touch-icon.png"
+  },
+  "2460": {
+   "status": "ok",
+   "domain": "www.gem.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "http://www.gem.com.tw/static/web/styles/images/web-icon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "e23e82ca937c7c1ffc494f761d792f186267061f"
+  },
+  "2461": {
+   "status": "ok",
+   "domain": "www.klasergroup.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.klasergroup.com/wp-content/uploads/2024/10/favicon-300x300.png",
+   "orig": [
+    300,
+    300
+   ],
+   "sha1": "eaea0c1f9bcab8c5fc1e5013ab4a31b074ec99cb"
+  },
+  "2462": {
+   "status": "none",
+   "domain": "www.linetek.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.linetek.com.tw/apple-touch-icon.png"
   },
   "2464": {
    "status": "ok",
@@ -2335,6 +4057,18 @@
    ],
    "sha1": "5d46123699c7b293bdb270a805ff70d604149bd5"
   },
+  "2466": {
+   "status": "ok",
+   "domain": "www.cosmo-inc.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.cosmo-inc.com/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "bbaa019e4516c4b96d5b0885aa6759dd03134d1b"
+  },
   "2467": {
    "status": "ok",
    "domain": "www.csun.com.tw",
@@ -2346,6 +4080,24 @@
     32
    ],
    "sha1": "c39bd16371b4ec142dc39691566ee095626b9db3"
+  },
+  "2468": {
+   "status": "ok",
+   "domain": "www.fis.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.fis.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "c7a292de63e8192d734e95a6c3feb2324cb45b0f"
+  },
+  "2471": {
+   "status": "too_small",
+   "domain": "www.ares.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "24x24 https://www.ares.com.tw/img/favicon.png"
   },
   "2472": {
    "status": "ok",
@@ -2371,6 +4123,18 @@
    ],
    "sha1": "2566850fdc4e9ba6610a3fa74a5974d176ba4b5b"
   },
+  "2476": {
+   "status": "none",
+   "domain": "www.gs.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.gs.com.tw/apple-touch-icon.png"
+  },
+  "2477": {
+   "status": "none",
+   "domain": "www.meiloon.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.meiloon.com.tw/apple-touch-icon.png"
+  },
   "2478": {
    "status": "ok",
    "domain": "www.tai.com.tw",
@@ -2383,11 +4147,47 @@
    ],
    "sha1": "7ef3a652d13a3aa1198f2625da641e41d097df93"
   },
+  "2480": {
+   "status": "ok",
+   "domain": "www.sti.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.sti.com.tw/o/sti-website-theme/images/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "d34e335ceae29d727168d3e1520e7ba839a2c0dd"
+  },
   "2481": {
    "status": "too_small",
    "domain": "www.panjit.com.tw",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.panjit.com.tw/assets/img/favicon.ico"
+  },
+  "2482": {
+   "status": "ok",
+   "domain": "uicpaymentsinc.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=uicpaymentsinc.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "ae4d65f8db1570ee0aa61d339d3110cf2c5ef4b6"
+  },
+  "2483": {
+   "status": "ok",
+   "domain": "www.ece.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ece.com.tw/templates/cadiis/favicon.ico",
+   "orig": [
+    253,
+    215
+   ],
+   "sha1": "e0c8f06e5fb612a67a68127e1a5b1a22f1a02817"
   },
   "2484": {
    "status": "ok",
@@ -2401,6 +4201,12 @@
    ],
    "sha1": "aea2691e33a9ada9e377a9d1de29a6693f849685"
   },
+  "2485": {
+   "status": "too_small",
+   "domain": "www.zinwell.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.zinwell.com.tw/images/zfavicon.png"
+  },
   "2486": {
    "status": "ok",
    "domain": "www.i-chiun.com.tw",
@@ -2413,11 +4219,413 @@
    ],
    "sha1": "38506df7fa85086fc6ae88b557260c6a47b0336b"
   },
+  "2488": {
+   "status": "none",
+   "domain": "www.hanpin.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.hanpin.com.tw/apple-touch-icon.png"
+  },
+  "2489": {
+   "status": "ok",
+   "domain": "www.amtran.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.amtran.com.tw/images/apple-touch-icon-114x114.png",
+   "orig": [
+    114,
+    114
+   ],
+   "sha1": "fbb3d4c24aa1e4c98d776d9903dff775d6354ca4"
+  },
+  "2491": {
+   "status": "ok",
+   "domain": "www.focl.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.focl.com.tw/upload/tw/common/apple-icon-144x144px.png",
+   "orig": [
+    144,
+    145
+   ],
+   "sha1": "61dcafa8b43b866e7b888e288f969017cca66040"
+  },
   "2492": {
    "status": "none",
    "domain": "www.passivecomponent.com",
    "fetched": "2026-09-26",
    "detail": "cannot identify image file <_io.BytesIO object at 0x7fee380f1080> https://www.passivecomponent.com/favicon.ico"
+  },
+  "2493": {
+   "status": "ok",
+   "domain": "www.ampoc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ampoc.com.tw/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "807c7411879961037d564cd97fa95b745c49e679"
+  },
+  "2495": {
+   "status": "ok",
+   "domain": "www.infortrend.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.infortrend.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "acc4b21e1ecbcd081c6b3148b8529e2183e04840"
+  },
+  "2496": {
+   "status": "ok",
+   "domain": "www.chenliedu2496.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.chenliedu2496.com/icon.png?140d51b4b91a1736",
+   "orig": [
+    110,
+    110
+   ],
+   "sha1": "26dc72fe2e5b3e4fdcf98e123b12156dfb503dad"
+  },
+  "2497": {
+   "status": "ok",
+   "domain": "www.e-lead.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "http://www.e-lead.com.tw/themes/gavias_tico/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "9c9c93b2ad687a3ff5afd9bbc2f9f4954c6de5dc"
+  },
+  "2498": {
+   "status": "too_small",
+   "domain": "www.htc.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.htc.com/static/images/htc/favicon.ico"
+  },
+  "2501": {
+   "status": "ok",
+   "domain": "www.cathay-red.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.cathay-red.com.tw/Styles/images/static/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "2a4b93e4a666d10db0669d03613671498c1eed5a"
+  },
+  "2504": {
+   "status": "none",
+   "domain": "www.gdc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.gdc.com.tw&sz=64"
+  },
+  "2505": {
+   "status": "ok",
+   "domain": "www.kycc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.kycc.com.tw/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "67fed74f828f3b5ec46493d918a0285c0f0cb33c"
+  },
+  "2506": {
+   "status": "ok",
+   "domain": "www.pacific-group.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.pacific-group.com.tw/wp-content/uploads/2017/04/favicon_144.png",
+   "orig": [
+    140,
+    134
+   ],
+   "sha1": "e45899e26799fcd8a4fb17aed36659114cfb8cad"
+  },
+  "2509": {
+   "status": "ok",
+   "domain": "www.gtg.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.gtg.com.tw/app_script/DisplayCut.ashx?file=favicon.png&rootDir=./&w=310&h=310&bgColor=White",
+   "orig": [
+    310,
+    310
+   ],
+   "sha1": "9e9c6e1b3273dca50da86d04da1d7a30c235cc05"
+  },
+  "2511": {
+   "status": "ok",
+   "domain": "www.prince.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.prince.com.tw/images/LOGO_ICON.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "fd9ee6e0dbd8edfc44c3c3f457873fbbf25ff0c6"
+  },
+  "2514": {
+   "status": "robots",
+   "domain": "www.longbon.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.longbon.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2515": {
+   "status": "ok",
+   "domain": "www.bes.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.bes.com.tw/images/icon@32.png",
+   "orig": [
+    32,
+    18
+   ],
+   "sha1": "c9a16f9a092589771b534554a7d52deb31fc397d"
+  },
+  "2516": {
+   "status": "ok",
+   "domain": "www.newasia.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.newasia.com.tw/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "c160fc2a61ee9279ee1c7991915f3c4193c9a7cc"
+  },
+  "2520": {
+   "status": "ok",
+   "domain": "www.kindom.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.kindom.com.tw/file/2018/07/favicon.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "f4fa25646fcbc8b5d2ccef2b722d3c2193c66b60"
+  },
+  "2524": {
+   "status": "ok",
+   "domain": "www.kingtown.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.kingtown.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "a04f805c7456573c3fa3557c6d8ea8ffc827fe2a"
+  },
+  "2527": {
+   "status": "robots",
+   "domain": "www.asehcc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.asehcc.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2528": {
+   "status": "ok",
+   "domain": "crowell.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://crowell.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "8b4f0748d2661a3c901c363b5b106ea3644ad8f9"
+  },
+  "2530": {
+   "status": "ok",
+   "domain": "www.delpha.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.delpha.com.tw/images/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "9c74fe3587663a8c95c17f7751241d081f5f352a"
+  },
+  "2534": {
+   "status": "ok",
+   "domain": "www.hsc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.hsc.com.tw/apple-touch-icon.png",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "5ec71eb8a2ff358f9a82352ed8d80db7dfacb29f"
+  },
+  "2535": {
+   "status": "ok",
+   "domain": "www.dacin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.dacin.com.tw/images/touch-icon/touch-icon-ipad-retina.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "35e4058aff1b7953b559f5a1d812f15107cd8a66"
+  },
+  "2536": {
+   "status": "ok",
+   "domain": "www.hong-pu.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.hong-pu.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "f2366e537c7744e9c8c313532092cb475edf9295"
+  },
+  "2537": {
+   "status": "ok",
+   "domain": "www.5v.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.5v.com.tw/img/favicon.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "f70132adfb222e5f550d7397be5d1b6b0ba1f977"
+  },
+  "2538": {
+   "status": "ok",
+   "domain": "www.keetai.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://custom-images.strikinglycdn.com/res/hrscywv4p/image/upload/c_limit,fl_lossy,h_64,w_64,q_auto/2469612/887868_289108.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "39151f9bd0659631539d097357628df8998edc43"
+  },
+  "2539": {
+   "status": "ok",
+   "domain": "www.sakurad.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.sakurad.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "25d7fa894e76ef57f3420950c05723d1c0353c8c"
+  },
+  "2540": {
+   "status": "ok",
+   "domain": "www.isanlin.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.isanlin.com/images/webico.png?v=2",
+   "orig": [
+    100,
+    100
+   ],
+   "sha1": "9a988bc20df794cae5900d1fa9f19a170eb4d83a"
+  },
+  "2542": {
+   "status": "ok",
+   "domain": "www.highwealth.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.highwealth.com.tw/img/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "caaaf63d24cbe4d810697ccf853d015deafff517"
+  },
+  "2543": {
+   "status": "ok",
+   "domain": "www.hcgc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.hcgc.com.tw/asset/types/main/img/icon-512x512.png",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "2172cde8fbf4400d26ab0c446d63055d6a29d3dc"
+  },
+  "2545": {
+   "status": "ok",
+   "domain": "www.hhe.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.hhe.com.tw/Content/styles/images/web-icon.ico",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "ea4d10a6d277e25c83f56f58e1b35a1291c3d3fa"
+  },
+  "2546": {
+   "status": "too_small",
+   "domain": "www.kedge.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.kedge.com.tw/wp-content/uploads/2018/05/16x16.png"
+  },
+  "2547": {
+   "status": "ok",
+   "domain": "www.radium.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.radium.com.tw&sz=64",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "1df73dceb8826becd7a7415d465d0fd2e8c84b21"
+  },
+  "2548": {
+   "status": "ok",
+   "domain": "www.huaku.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.huaku.com.tw/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "178bde36f823134bc22ce14310e2b6e7496af089"
+  },
+  "2596": {
+   "status": "none",
+   "domain": "www.realycorp.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.realycorp.com.tw/apple-touch-icon.png"
+  },
+  "2597": {
+   "status": "ok",
+   "domain": "www.rtc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.rtc.com.tw/wp-content/uploads/2025/10/cropped-512x512-1-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "ee45fb88133a6f4313244425e897b913f4864b8f"
   },
   "2601": {
    "status": "ok",
@@ -2539,11 +4747,29 @@
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.cctcorp.com.tw&sz=64"
   },
+  "2614": {
+   "status": "too_small",
+   "domain": "www.emic.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.emic.com.tw/dist/images/16x16.ico"
+  },
   "2615": {
    "status": "robots",
    "domain": "tw.wanhai.com",
    "fetched": "2026-09-26",
    "detail": "http://tw.wanhai.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2616": {
+   "status": "ok",
+   "domain": "www.slc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.slc.com.tw/styles/images/web-icon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "7eaaa8e5ef6185208a5bfb94acd71db68248a942"
   },
   "2617": {
    "status": "none",
@@ -2605,6 +4831,12 @@
    ],
    "sha1": "1f56dd369f4e1d8e7a3f81407e9b63e13146ab00"
   },
+  "2640": {
+   "status": "none",
+   "domain": "www.taiwantaxi.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.taiwantaxi.com.tw&sz=64"
+  },
   "2641": {
    "status": "ok",
    "domain": "www.franbo.com.tw",
@@ -2647,6 +4879,342 @@
    ],
    "sha1": "5ced258507690687f448bcd7a49429bc06a3634f"
   },
+  "2701": {
+   "status": "ok",
+   "domain": "www.wanhwa.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://irp.cdn-website.com/fc0d3b1c/site_favicon_16_1735627424288.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "1ef95b9b43849e8eaf68d277bcb862cfa11a17a4"
+  },
+  "2702": {
+   "status": "ok",
+   "domain": "www.hotelhg.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.hotelhg.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "b7165a5823ca9c6267acaccf85879c46835c5fda"
+  },
+  "2704": {
+   "status": "too_small",
+   "domain": "www.ambassador-hotels.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.ambassador-hotels.com/img/favicon.ico"
+  },
+  "2705": {
+   "status": "ok",
+   "domain": "www.leofoo.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.leofoo.com.tw/asset/types/main/img/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "a871ce577ff636b22c06bc8a7ae2a7b1bd46b793"
+  },
+  "2706": {
+   "status": "ok",
+   "domain": "twfirsthotel.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://irp.cdn-website.com/bf707fe2/site_favicon_16_1735639104977.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "b6ed7a8282bdd6c3d34e27caafde7fed2da54ce8"
+  },
+  "2707": {
+   "status": "ok",
+   "domain": "www.silkshotelgroup.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.silkshotelgroup.com/assets/favicon.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "fb886fe2f2be50cf3091b1d9e5be1c1eefc26106"
+  },
+  "2712": {
+   "status": "ok",
+   "domain": "www.farglory-hotel.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.farglory-hotel.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "35b10e246f5f50990ce7fd2c7d339d59f65066ab"
+  },
+  "2718": {
+   "status": "ok",
+   "domain": "www.allmindholdings.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.allmindholdings.com.tw/icons/favicon-32x32.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "94bc08f74be99fe85bc88b360be3b477619019d8"
+  },
+  "2719": {
+   "status": "ok",
+   "domain": "www.startravel.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.startravel.com.tw/material-alias/logo/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "50be75f723006c122faa0c1fbf63c871f3ea6d67"
+  },
+  "2722": {
+   "status": "ok",
+   "domain": "www.chateau-hotels.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.chateau-hotels.com.tw/images/touch-icon/touch-icon-ipad-retina.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "e4f3dbe749856452f4127c2fe918e9064df2228b"
+  },
+  "2723": {
+   "status": "ok",
+   "domain": "www.85cafe.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.85cafe.com/img/favicon.png",
+   "orig": [
+    477,
+    477
+   ],
+   "sha1": "f66ce19d4c32a25a5e6cc0cecdcfdcbee3e1268d"
+  },
+  "2724": {
+   "status": "ok",
+   "domain": "www.aagd.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.aagd.com.tw/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "90a7f7632ba6ea5c994c4fecb7f0483fa2beb4f1"
+  },
+  "2726": {
+   "status": "ok",
+   "domain": "www.yummy-town.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "http://33761238.s21i.faiusr.com/5/ABUIABAFGAAg9orIxwYo5oOb_QYwQDg2.ico",
+   "orig": [
+    64,
+    54
+   ],
+   "sha1": "1798be37557bee8553876752fd557aee4fb0a9e8"
+  },
+  "2727": {
+   "status": "none",
+   "domain": "www.wowprime.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 521 http://www.wowprime.com/apple-touch-icon.png"
+  },
+  "2729": {
+   "status": "ok",
+   "domain": "www.ttfb.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ttfb.com/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "4129394549efc6ac9fc99c6f333f2b355a65ea0b"
+  },
+  "2731": {
+   "status": "ok",
+   "domain": "www.liontravel.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://static.liontech.com.tw/ConsoleAPData/PublicationStatic/lion_tw_b2c/Content/images/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "887b97c8599ac9a23ef05d1dec558a6c9881c9fa"
+  },
+  "2732": {
+   "status": "ok",
+   "domain": "www.lakaffagroup.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.lakaffagroup.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "9e41b79716a793e4455cc0064055e31389ca64a0"
+  },
+  "2734": {
+   "status": "ok",
+   "domain": "www.ezfly.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://img.ezfly.com/ims/I000/014/702.gif",
+   "orig": [
+    480,
+    480
+   ],
+   "sha1": "2da796bf5d6708e4451b405d3c887acfddb65c44"
+  },
+  "2736": {
+   "status": "ok",
+   "domain": "www.hoyaresort.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.hoyaresort.com.tw:443/wp-content/uploads/2018/12/favicon.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "4ceb1796f348f239abf61a089b38163cbdc9f044"
+  },
+  "2739": {
+   "status": "ok",
+   "domain": "www.mhh-group.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "http://www.mhh-group.com/apple-touch-icon.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "a6aba650f0bfcfc2a9027d734b082ffdbb08e2a7"
+  },
+  "2740": {
+   "status": "none",
+   "domain": "www.mr-onion.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.mr-onion.com&sz=64"
+  },
+  "2743": {
+   "status": "ok",
+   "domain": "www.travel4u.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://img.travel4u.com.tw/company/favicon/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "eada5e0263c20306e0262917ebc75007bf907974"
+  },
+  "2745": {
+   "status": "ok",
+   "domain": "www.lifetour.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://static.lifetour.info/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "7a1d61c5ba7a22501da5730ed2c2541905a98f8b"
+  },
+  "2748": {
+   "status": "ok",
+   "domain": "www.fdc-i.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.fdc-i.com/wp-content/uploads/2020/06/FDC-logo雲品藍.png",
+   "orig": [
+    328,
+    313
+   ],
+   "sha1": "6bae6064351e2177cee1f1e091e98acb01260473"
+  },
+  "2751": {
+   "status": "ok",
+   "domain": "www.kingza.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.kingza.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "c883a1c9002998e9f31b648bcbb2c0788ab51a06"
+  },
+  "2752": {
+   "status": "too_small",
+   "domain": "www.tofuglobal.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.tofuglobal.com/favicon.ico"
+  },
+  "2753": {
+   "status": "robots",
+   "domain": "www.8way.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.8way.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2754": {
+   "status": "ok",
+   "domain": "investor.kurasushi.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=investor.kurasushi.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "09606626e659348d84227364bc9e4daa20ac65c5"
+  },
+  "2755": {
+   "status": "none",
+   "domain": "www.youngqin.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.youngqin.com.tw&sz=64"
+  },
+  "2756": {
+   "status": "ok",
+   "domain": "www.1992lianfa.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.1992lianfa.com/images/common/app_icon/apple-touch-icon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "1341a680e73055df7cea9e2d2ec4e429bbd51210"
+  },
+  "2762": {
+   "status": "ok",
+   "domain": "investor.worldgymtaiwan.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://investor.worldgymtaiwan.com/static/web/img/base/touch-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "c266664945af15a2c6c7c57fd74ae391317f2f49"
+  },
   "2801": {
    "status": "none",
    "domain": "www.bankchb.com",
@@ -2658,6 +5226,30 @@
    "domain": "www.tcbbank.com.tw",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.tcbbank.com.tw/images/favicon.ico"
+  },
+  "2816": {
+   "status": "none",
+   "domain": "www.wwunion.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.wwunion.com/apple-touch-icon.png"
+  },
+  "2820": {
+   "status": "none",
+   "domain": "www.cbf.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.cbf.com.tw/apple-touch-icon.png"
+  },
+  "2832": {
+   "status": "ok",
+   "domain": "www.tfmi.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.tfmi.com.tw/styles/images/web-icon.ico?v=aznoJuoKo78FDv8tvQRQe44YZigqjkX6a_Sfd0kbZRI",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "6cdfe0a00d4b727406bf89d4bb51666c47c56f1d"
   },
   "2834": {
    "status": "ok",
@@ -2694,6 +5286,42 @@
     32
    ],
    "sha1": "23990f21083577df9a88db323f830125b45e6018"
+  },
+  "2849": {
+   "status": "none",
+   "domain": "www.entiebank.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "回的是 HTML 不是圖 https://www.entiebank.com.tw/apple-touch-icon.png"
+  },
+  "2850": {
+   "status": "blank",
+   "domain": "www.skinsurance.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "32x32 https://www.skinsurance.com.tw/ski/images/favicon.ico"
+  },
+  "2851": {
+   "status": "none",
+   "domain": "www.centralre.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.centralre.com&sz=64"
+  },
+  "2852": {
+   "status": "too_small",
+   "domain": "www.firstins.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "30x30 http://www.firstins.com.tw/frontend/images/favicon.ico"
+  },
+  "2855": {
+   "status": "ok",
+   "domain": "www.pscnet.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.pscnet.com.tw/pscnetStock/resources/front/images/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "1f9b4c90fe16d2ea972638869e68ac2e7111fa77"
   },
   "2880": {
    "status": "ok",
@@ -2785,6 +5413,18 @@
    ],
    "sha1": "5f8d16ae8eadb9b963dd3b34757d3eba6d47ed58"
   },
+  "2889": {
+   "status": "ok",
+   "domain": "www.ibf.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ibf.com.tw/Image/favicon/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "2b984fc6fd96bfb5a55ad029914dd879a206642c"
+  },
   "2890": {
    "status": "too_small",
    "domain": "www.sinopac.com",
@@ -2821,6 +5461,222 @@
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.google.com/s2/favicons?domain=www.o-bank.com&sz=64"
   },
+  "2901": {
+   "status": "too_small",
+   "domain": "www.shinshinltd.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://static.parastorage.com/client/pfavico.ico"
+  },
+  "2903": {
+   "status": "robots",
+   "domain": "www.feds.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.feds.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2904": {
+   "status": "ok",
+   "domain": "www.pocs.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.pocs.com.tw/templates/03/images/ico_logo.ico",
+   "orig": [
+    91,
+    91
+   ],
+   "sha1": "3e13e2e17b379387aa516c2109c8ff77217799c7"
+  },
+  "2905": {
+   "status": "too_small",
+   "domain": "www.mercuries.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.mercuries.com.tw/default/system/favicon.ico"
+  },
+  "2906": {
+   "status": "ok",
+   "domain": "www.collins.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.collins.com.tw/theme/collins.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "7453815fcfb33cfaf65e8e527e7b4be822b61772"
+  },
+  "2908": {
+   "status": "robots",
+   "domain": "www.testritegroup.com",
+   "fetched": "2026-09-26",
+   "detail": "https://www.testritegroup.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2910": {
+   "status": "none",
+   "domain": "www.tonlin.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.tonlin.com.tw/apple-touch-icon.png"
+  },
+  "2911": {
+   "status": "none",
+   "domain": "www.enphants.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.enphants.com&sz=64"
+  },
+  "2912": {
+   "status": "too_small",
+   "domain": "www.7-11.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.7-11.com.tw/favicon.ico"
+  },
+  "2913": {
+   "status": "ok",
+   "domain": "www.ttch.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ttch.com.tw/rsrc/img/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "230736fe860da5b9116ec52b42f359a5befef878"
+  },
+  "2915": {
+   "status": "too_small",
+   "domain": "w8.ruentex.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://w8.ruentex.com.tw/wp-content/uploads/2025/04/16.png"
+  },
+  "2916": {
+   "status": "ok",
+   "domain": "www.munsin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.munsin.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "852b2afe4c780189ba54cf1d53c09d4d52c9f01d"
+  },
+  "2923": {
+   "status": "ok",
+   "domain": "www.sinohorizon.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.sinohorizon.tw/static/web/styles/images/152x152.webp",
+   "orig": [
+    80,
+    120
+   ],
+   "sha1": "ca1e18a811600fc293da628eeaa21c40b483377e"
+  },
+  "2924": {
+   "status": "robots",
+   "domain": "www.ggalactica.com",
+   "fetched": "2026-09-26",
+   "detail": "http://www.ggalactica.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "2926": {
+   "status": "none",
+   "domain": "www.eslitespectrum.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.eslitespectrum.com/apple-touch-icon.png"
+  },
+  "2929": {
+   "status": "none",
+   "domain": "www.topbi.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.topbi.com.tw&sz=64"
+  },
+  "2937": {
+   "status": "ok",
+   "domain": "www.gseven.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.gseven.com.tw/upload/banner/images/1548820244150.png",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "e212f5ff84efa85ea8a9f98be480313d3c77c075"
+  },
+  "2938": {
+   "status": "too_small",
+   "domain": "www.beddingworld.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.beddingworld.com.tw/favicon.ico"
+  },
+  "2939": {
+   "status": "ok",
+   "domain": "www.vitafoss.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.vitafoss.com/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "9cf4626eeddd590cdc3d4afb1ec2567da84f3248"
+  },
+  "2941": {
+   "status": "too_small",
+   "domain": "www.life8.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "20x20 https://www.life8.com.tw/Source/images/zh-cht/icons/favicon.png"
+  },
+  "2945": {
+   "status": "ok",
+   "domain": "www.simplemartretail.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.simplemartretail.com/wp-content/themes/simplemart/favicon.png",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "622fa2ca67db82cf998cba62f21c7f236e5334fa"
+  },
+  "2947": {
+   "status": "ok",
+   "domain": "www.ald.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ald.com.tw/wp-content/uploads/2020/02/cropped-MKT-1060203-振宇五金newlogo-180x180.jpg",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "9477e2412ca6f53c8344752d4f4e9649fa0bdb39"
+  },
+  "2948": {
+   "status": "too_small",
+   "domain": "www.bausen.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://bausen.com/storage/2023/10/16.png"
+  },
+  "2949": {
+   "status": "ok",
+   "domain": "www.hhgalaxy.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.hhgalaxy.com/wp-content/uploads/2024/03/cropped-logo_favicon-1-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "d155d70caf0ea4b1ebf4b59bb8819f9756c02113"
+  },
+  "3002": {
+   "status": "ok",
+   "domain": "www.ahoku.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ahoku.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "cd87650a9283b2a940b61056cbdb035825f88482"
+  },
   "3003": {
    "status": "ok",
    "domain": "www.ksterminals.com.tw",
@@ -2832,6 +5688,18 @@
     180
    ],
    "sha1": "e131ac1faa89e003fda312f84540e14c5d86fa21"
+  },
+  "3004": {
+   "status": "ok",
+   "domain": "www.nafco.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.nafco.com.tw/wp-content/uploads/2024/12/cropped-NAFCO-removebg-preview_background-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "bbb21634bb0843270ad973c3ea84f23bc8014607"
   },
   "3005": {
    "status": "ok",
@@ -2875,6 +5743,18 @@
    ],
    "sha1": "1c711d4f1f18f789824dc9d45fc8601a21a5ebbb"
   },
+  "3011": {
+   "status": "ok",
+   "domain": "www.jh.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.jh.com.tw/default/system/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "e5d4b17aa443a2419a9734fb0fba9f30a40571f7"
+  },
   "3013": {
    "status": "ok",
    "domain": "www.uneec.com",
@@ -2899,6 +5779,12 @@
    ],
    "sha1": "a29fec3a00ecccb03af39a4f54858e0beefa198c"
   },
+  "3015": {
+   "status": "too_small",
+   "domain": "www.fsp-group.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.fsp-group.com/favicon.ico"
+  },
   "3016": {
    "status": "ok",
    "domain": "www.epi.episil.com",
@@ -2917,6 +5803,18 @@
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.avc.co/favicon.ico"
   },
+  "3018": {
+   "status": "ok",
+   "domain": "www.lmgte.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "http://www.tkte1.com/archive/image/edcontent1/170119_Logo_1.png",
+   "orig": [
+    104,
+    100
+   ],
+   "sha1": "e64d21e82fdf271ad9cd198b0001fd1197652f6d"
+  },
   "3019": {
    "status": "ok",
    "domain": "www.asia-optical.com",
@@ -2928,6 +5826,12 @@
     32
    ],
    "sha1": "c408cc5211103ea641e055427a29201e812a1acd"
+  },
+  "3021": {
+   "status": "none",
+   "domain": "www.welltend.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.welltend.com.tw&sz=64"
   },
   "3022": {
    "status": "ok",
@@ -2953,6 +5857,24 @@
    ],
    "sha1": "566900f677fdf4f71415fb7fd3903e0d3ea53d4a"
   },
+  "3024": {
+   "status": "too_small",
+   "domain": "www.action.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.action.com.tw/favicon.ico"
+  },
+  "3025": {
+   "status": "ok",
+   "domain": "www.looptelecom.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.looptelecom.com&sz=64",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "c0231d4088c3f25368e37e3310aa3885331289df"
+  },
   "3026": {
    "status": "ok",
    "domain": "www.holystone.com.tw",
@@ -2964,6 +5886,18 @@
     128
    ],
    "sha1": "f061ae27aeff2cdc3c92e4f489ff4b6f1e332981"
+  },
+  "3027": {
+   "status": "ok",
+   "domain": "www.billion.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://irp-cdn.multiscreensite.com/cd85d6ad/dms3rep/multi/_BILLION-LOGO-57_57.jpg",
+   "orig": [
+    57,
+    57
+   ],
+   "sha1": "ed5c8080ac0c3f268aa71c66367da14578808e99"
   },
   "3028": {
    "status": "ok",
@@ -2977,6 +5911,18 @@
    ],
    "sha1": "ce6ccf3281356099ef1bd1c557e2350991a7f7ee"
   },
+  "3029": {
+   "status": "ok",
+   "domain": "www.zerone.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.zerone.com.tw/assets/images/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "5f9f8a261f48159e85dace5486f78df2ee3f9626"
+  },
   "3030": {
    "status": "ok",
    "domain": "www.tri.com.tw",
@@ -2988,6 +5934,24 @@
     64
    ],
    "sha1": "eba8c4541dbb5255247ef2c73c2673fedf998f91"
+  },
+  "3031": {
+   "status": "ok",
+   "domain": "www.brtled.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.brtled.com/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "36e6bad750a11c3fd7842b6a1ddd4e8feb57cb92"
+  },
+  "3032": {
+   "status": "too_small",
+   "domain": "www.hec-group.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.hec-group.com.tw/favicon.ico"
   },
   "3033": {
    "status": "too_small",
@@ -3025,6 +5989,30 @@
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.unimicron.com&sz=64"
   },
+  "3038": {
+   "status": "ok",
+   "domain": "www.edtc.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.edtc.com/wp-content/uploads/2023/12/cropped-cropped-Favicon.png-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "e74c2cd0dc5e32a5d90745b67c3d076f397f7ac0"
+  },
+  "3040": {
+   "status": "none",
+   "domain": "www.gv.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.gv.com.tw/apple-touch-icon.png"
+  },
+  "3041": {
+   "status": "too_small",
+   "domain": "www.alitech.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.alitech.com&sz=64"
+  },
   "3042": {
    "status": "ok",
    "domain": "www.txccorp.com",
@@ -3036,6 +6024,12 @@
     152
    ],
    "sha1": "1dd16a2c160f8f212f7c435c54d23dbb4b86899d"
+  },
+  "3043": {
+   "status": "too_small",
+   "domain": "www.upspowercom.com",
+   "fetched": "2026-09-26",
+   "detail": "17x17 https://www.upspowercom.com/pcm-img/favicon.png"
   },
   "3044": {
    "status": "ok",
@@ -3061,6 +6055,18 @@
    ],
    "sha1": "fc49d46ed4c8f41ed4f72394648dc62b82139458"
   },
+  "3046": {
+   "status": "too_small",
+   "domain": "www.aopen.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.aopen.com&sz=64"
+  },
+  "3047": {
+   "status": "robots",
+   "domain": "www.edimax.com",
+   "fetched": "2026-09-26",
+   "detail": "https://www.edimax.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
   "3048": {
    "status": "ok",
    "domain": "www.edomtech.com",
@@ -3072,6 +6078,66 @@
     152
    ],
    "sha1": "978d161b7d47ad3b19bf9c38b034c1cf37acf3d7"
+  },
+  "3049": {
+   "status": "ok",
+   "domain": "www.hannstouch.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.hannstouch.com/assets/favicon/android-chrome-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "29ecadcf9dc4cc41deb265e3f86e95162cc06809"
+  },
+  "3050": {
+   "status": "ok",
+   "domain": "www.utechmedia.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://utechmedia.com.tw/wp-content/uploads/2018/10/logo.jpg",
+   "orig": [
+    64,
+    67
+   ],
+   "sha1": "469c75004b17716b5a1b6a9e3ee1ddb047d7b008"
+  },
+  "3051": {
+   "status": "ok",
+   "domain": "www.optimax.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.optimax.com.tw&sz=64",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "ebfc8cbe73b305c42071865f50f8097113706525"
+  },
+  "3052": {
+   "status": "ok",
+   "domain": "www.apexgrp.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.apexgrp.com.tw/web/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "86824844f1c0ca6553cbfd8a27f337e1a4d253dc"
+  },
+  "3054": {
+   "status": "ok",
+   "domain": "www.liwanli.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.liwanli.com.tw/tw/wp-content/uploads/favicon.png",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "c12444c3587a7d56c664cb026830bcfb049cf5f0"
   },
   "3055": {
    "status": "ok",
@@ -3085,6 +6151,42 @@
    ],
    "sha1": "3353cb0c4bff1cf940a7086350f6e4e78addc383"
   },
+  "3056": {
+   "status": "ok",
+   "domain": "www.fuhua-inno.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.fuhua-inno.com.tw/images/touch-icon-144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "db615560cae1374c0aa255c2f1a9ea40a35db94f"
+  },
+  "3057": {
+   "status": "ok",
+   "domain": "www.promise.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.promise.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "baac8388287c5a086ef6e5c270575fd58a98d41b"
+  },
+  "3058": {
+   "status": "ok",
+   "domain": "www.lei.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.lei.com.tw/favicon.ico",
+   "orig": [
+    79,
+    80
+   ],
+   "sha1": "d6b598683f19cedb1985d79951059e244e03169e"
+  },
   "3059": {
    "status": "ok",
    "domain": "www.altek.com.tw",
@@ -3097,11 +6199,107 @@
    ],
    "sha1": "41a1e641447aeca032d52f646253f36b11b88179"
   },
+  "3060": {
+   "status": "ok",
+   "domain": "www.minaik.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.minaik.com.tw/images/touch-icon-144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "27a52509a8411e42894b645d4269185e7f26434d"
+  },
+  "3062": {
+   "status": "none",
+   "domain": "www.cybertan.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "回的是 HTML 不是圖 https://www.cybertan.com.tw/"
+  },
+  "3064": {
+   "status": "ok",
+   "domain": "www.astrocorp.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.astrocorp.com.tw/images/favicon.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "402ab2f37392cc6922417307f840c1c545df759f"
+  },
+  "3066": {
+   "status": "too_small",
+   "domain": "www.oasistek.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.oasistek.com/favicon.ico"
+  },
+  "3067": {
+   "status": "ok",
+   "domain": "www.twphonic.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.twphonic.com/images/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "beb555d6cc5859409ee9caeb8019dc60ac272f0a"
+  },
+  "3071": {
+   "status": "too_small",
+   "domain": "www.adda.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.adda.com.tw&sz=64"
+  },
+  "3073": {
+   "status": "too_small",
+   "domain": "www.tpenergy.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "15x19 https://www.google.com/s2/favicons?domain=www.tpenergy.com.tw&sz=64"
+  },
+  "3078": {
+   "status": "ok",
+   "domain": "www.cwt.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.cwt.com.tw/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "475cf032be7bc32cd20d1ee504021fc83ab52ff6"
+  },
   "3081": {
    "status": "too_small",
    "domain": "www.lmoc.com.tw",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.lmoc.com.tw/site/themes/default/cht/images/favicon.ico"
+  },
+  "3083": {
+   "status": "too_small",
+   "domain": "www.chinesegamer.net",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.chinesegamer.net/images/chinesegamer.ico"
+  },
+  "3085": {
+   "status": "ok",
+   "domain": "www.newretail.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.newretail.com.tw/wp-content/uploads/2023/05/sim_5_clr-600x600.png",
+   "orig": [
+    600,
+    600
+   ],
+   "sha1": "3c4a9b6a9969c316ffd22647751736ffd28528f0"
+  },
+  "3086": {
+   "status": "too_small",
+   "domain": "www.wayi.net",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.wayi.net/favicon.ico"
   },
   "3088": {
    "status": "ok",
@@ -3127,6 +6325,18 @@
    ],
    "sha1": "57d5f0da8a8856076f92b7f4309e95a4b6cf4ecc"
   },
+  "3092": {
+   "status": "too_small",
+   "domain": "www.hotron-ind.com",
+   "fetched": "2026-09-26",
+   "detail": "31x31 https://www.hotron-ind.com/resources/_img/favicon.ico"
+  },
+  "3093": {
+   "status": "none",
+   "domain": "www.tkk.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 500 https://www.tkk.com.tw/apple-touch-icon.png"
+  },
   "3094": {
    "status": "ok",
    "domain": "www.davicom.com.tw",
@@ -3139,11 +6349,83 @@
    ],
    "sha1": "75d71114431b4ffd3c90336372c91d6a12949c6c"
   },
+  "3095": {
+   "status": "too_small",
+   "domain": "www.chicheng.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.chicheng.com.tw/favicon.ico"
+  },
   "3105": {
    "status": "too_small",
    "domain": "www.winfoundry.com",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.winfoundry.com/favicon.ico"
+  },
+  "3114": {
+   "status": "ok",
+   "domain": "www.howteh.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.howteh.com.tw/assets/ico/apple-touch-icon-144-precomposed.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "80b159e9f761f9563a96162926def445ea6e99d3"
+  },
+  "3115": {
+   "status": "ok",
+   "domain": "www.tscl.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.tscl.com.tw/assets/images/logo_icon.png",
+   "orig": [
+    290,
+    290
+   ],
+   "sha1": "32d4ced70f1e10bcd640c2d34f188858498adda0"
+  },
+  "3118": {
+   "status": "ok",
+   "domain": "www.level.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.level.com.tw/images/favicon.ico",
+   "orig": [
+    65,
+    64
+   ],
+   "sha1": "7475292a6024d7f9a8884478f509fe9804ca81ce"
+  },
+  "3122": {
+   "status": "ok",
+   "domain": "www.megawin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.megawin.com.tw/static/web/styles/static/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "2e797cd5603ef27f59195ba0ee83879bcaa6a9f0"
+  },
+  "3128": {
+   "status": "ok",
+   "domain": "www.hisharp.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.hisharp.com/apple-touch-icon.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "5e51f3928ebf6a76b46cd237a611c0d6f5a6a5f8"
+  },
+  "3130": {
+   "status": "too_small",
+   "domain": "corp.104.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://corp.104.com.tw/favicon.ico"
   },
   "3131": {
    "status": "ok",
@@ -3157,17 +6439,71 @@
    ],
    "sha1": "cf207d4574884683da687d6f349905ec205a642d"
   },
+  "3135": {
+   "status": "robots",
+   "domain": "www.goldkey.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.goldkey.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3138": {
+   "status": "ok",
+   "domain": "www.auden.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.auden.com.tw/wp-content/uploads/2018/12/cropped-log-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "29bf01593d486437e384c57c7418d4b86c1a6576"
+  },
   "3141": {
    "status": "none",
    "domain": "www.ultrachip.com",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 http://www.ultrachip.com/apple-touch-icon.png"
   },
+  "3147": {
+   "status": "none",
+   "domain": "www.jetwell.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.jetwell.com.tw/apple-touch-icon.png"
+  },
   "3149": {
    "status": "none",
    "domain": "www.gtoc.com.tw",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.gtoc.com.tw/apple-touch-icon.png"
+  },
+  "3150": {
+   "status": "ok",
+   "domain": "www.syncomm.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.syncomm.com.tw/favicon.jpg?t=1",
+   "orig": [
+    40,
+    40
+   ],
+   "sha1": "4852930db57f614b6393d3fc0dbacc7baffa6f30"
+  },
+  "3152": {
+   "status": "ok",
+   "domain": "www.acxc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.acxc.com.tw/styles/images/index/index-logo.png",
+   "orig": [
+    110,
+    61
+   ],
+   "sha1": "8ed0e922b65077928eb2cd412a347d3ac8f0a73b"
+  },
+  "3158": {
+   "status": "none",
+   "domain": "www.sysjust.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.sysjust.com.tw/apple-touch-icon.png"
   },
   "3162": {
    "status": "ok",
@@ -3193,11 +6529,83 @@
    ],
    "sha1": "d25f0a5d4b116d113a67290e583744d1654ca833"
   },
+  "3164": {
+   "status": "too_small",
+   "domain": "www.genmont.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.genmont.com.tw/favicon.ico"
+  },
   "3167": {
    "status": "robots",
    "domain": "www.taliang.com",
    "fetched": "2026-09-26",
    "detail": "https://www.taliang.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3168": {
+   "status": "ok",
+   "domain": "www.dataimagecorp.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.dataimagecorp.com/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "fa50668aa318d4ae524a6e745ddd0bb38a3fdd1c"
+  },
+  "3169": {
+   "status": "too_small",
+   "domain": "www.asix.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "24x24 https://www.asix.com.tw/favicon.ico"
+  },
+  "3171": {
+   "status": "ok",
+   "domain": "www.ycdist.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.ycdist.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "3819df3de7eae9a1f0f370f8f7f4ba71058cda9e"
+  },
+  "3176": {
+   "status": "ok",
+   "domain": "www.medigen.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.medigen.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "38bf81ee4304400e2b8de6341f3db0993f373241"
+  },
+  "3178": {
+   "status": "ok",
+   "domain": "www.gongin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.gongin.com.tw/img/logo.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "a70c7b5b2ab452a6955a0d10529a61fdb5625a16"
+  },
+  "3188": {
+   "status": "ok",
+   "domain": "www.gltd.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.gltd.com.tw/wp-content/uploads/2024/07/cropped-logo-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "d09092b12911ae049cffb2a622f51d1195275dc8"
   },
   "3189": {
    "status": "ok",
@@ -3210,6 +6618,42 @@
     48
    ],
    "sha1": "952ea319dc7b1bdd6b1b9dd68a73112580a2b72d"
+  },
+  "3191": {
+   "status": "too_small",
+   "domain": "www.holdjinn.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.gstatic.com/images/branding/productlogos/sites_2026/v3/ico/sites_2026_16dp.ico"
+  },
+  "3205": {
+   "status": "too_small",
+   "domain": "www.naturalbiokey.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 http://www.naturalbiokey.com/images/icon.png"
+  },
+  "3206": {
+   "status": "ok",
+   "domain": "www.kingstate.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.kingstate.com.tw/images/favicon.png",
+   "orig": [
+    50,
+    50
+   ],
+   "sha1": "3d9afa7101807c350021fdada05a3204a929122a"
+  },
+  "3207": {
+   "status": "ok",
+   "domain": "www.top-nation.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.top-nation.com/app_script/DisplayCut.ashx?file=202406181453224.png&rootDir=upload/admin/&w=310&h=310&bgColor=White",
+   "orig": [
+    310,
+    310
+   ],
+   "sha1": "79cdfbc315984aa4cbfe872090d2d0d69c2ba64b"
   },
   "3209": {
    "status": "ok",
@@ -3235,11 +6679,77 @@
    ],
    "sha1": "f605bd5e358be888d3118bf8d020fb6a508c3e88"
   },
+  "3213": {
+   "status": "none",
+   "domain": "www.crete.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.crete.com.tw/apple-touch-icon.png"
+  },
+  "3217": {
+   "status": "ok",
+   "domain": "argosytw.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://argosytw.com/wp-content/uploads/2025/06/cropped-fav-icon_512x512-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "b3f3db468785f0f4a3c3630c137fb897305d2263"
+  },
+  "3218": {
+   "status": "ok",
+   "domain": "www.uvb.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.uvb.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "3b3421d7f631f24e769b936147900adef2bd6dbb"
+  },
+  "3219": {
+   "status": "ok",
+   "domain": "www.aether-tek.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.aether-tek.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "cfeea3f74c4c921f1e8d9d0b703a8de268afbf20"
+  },
   "3221": {
    "status": "none",
    "domain": "www.taisaw.com",
    "fetched": "2026-09-26",
    "detail": "HTTP 500 http://www.taisaw.com/apple-touch-icon.png"
+  },
+  "3224": {
+   "status": "ok",
+   "domain": "www.metatech.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.metatech.com.tw/image/icon/metatech.ico",
+   "orig": [
+    32,
+    16
+   ],
+   "sha1": "a25247d6633aaa90f66de11d042439fae87fe113"
+  },
+  "3226": {
+   "status": "ok",
+   "domain": "www.lfa.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.lfa.com.tw/wp-content/uploads/2025/01/LFA-logo-2025.png",
+   "orig": [
+    416,
+    333
+   ],
+   "sha1": "d6fbbc908f7644285f8bac437c8e3e6be0f2d8b4"
   },
   "3227": {
    "status": "robots",
@@ -3247,11 +6757,59 @@
    "fetched": "2026-09-26",
    "detail": "http://www.pixart.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
   },
+  "3228": {
+   "status": "ok",
+   "domain": "www.rdc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.rdc.com.tw/favicon.ico?t=1",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "84cf4db6dce3e99f3b01eecabfe181a65cd49ee3"
+  },
+  "3229": {
+   "status": "ok",
+   "domain": "www.cheer-time.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "http://www.cheer-time.com.tw/templates/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "46e8abd8f9fd8dfb4369e08a7282158557712a95"
+  },
+  "3230": {
+   "status": "ok",
+   "domain": "www.jmg.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://jmg.com.tw/wp-content/uploads/2024/09/cropped-Favicon-1-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "26c0622274a4f8175d47053f21762f4413a02e1d"
+  },
   "3231": {
    "status": "robots",
    "domain": "www.wistron.com",
    "fetched": "2026-09-26",
    "detail": "https://www.wistron.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3232": {
+   "status": "ok",
+   "domain": "www.sentronic.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.sentronic.com.tw/assets/img/sentronic-favicons.png",
+   "orig": [
+    695,
+    695
+   ],
+   "sha1": "4e572a9171e8fcda7f3b8365f2b0dd825610d2b3"
   },
   "3234": {
    "status": "ok",
@@ -3277,6 +6835,42 @@
    ],
    "sha1": "77166bf65799b7f801e914b59010c2c4e09fcd3c"
   },
+  "3252": {
+   "status": "ok",
+   "domain": "www.haiwan.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "http://www.haiwan.tw/images/favicon.ico",
+   "orig": [
+    54,
+    56
+   ],
+   "sha1": "dd9a8c7e97452388fec59bde41cdb476e49ca65a"
+  },
+  "3257": {
+   "status": "ok",
+   "domain": "www.championmicro.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.championmicro.com.tw/Uploads/images/favicon.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "26d9b4ec93b5a9ef5e4a8aba4b8c56adaba3f11d"
+  },
+  "3259": {
+   "status": "ok",
+   "domain": "www.3system.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.3system.com.tw/uploads/others/images/3s-favicon.png",
+   "orig": [
+    33,
+    32
+   ],
+   "sha1": "75dda8031cef951f4b92934d3ade249954f38419"
+  },
   "3260": {
    "status": "ok",
    "domain": "www.adata.com",
@@ -3301,6 +6895,60 @@
    "fetched": "2026-09-26",
    "detail": "https://www.winstek.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
   },
+  "3266": {
+   "status": "too_small",
+   "domain": "www.sunty.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "24x25 http://www.sunty.com.tw/images\\organization\\logo.ico"
+  },
+  "3268": {
+   "status": "robots",
+   "domain": "www.higherway.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.higherway.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3272": {
+   "status": "ok",
+   "domain": "www.goodway.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.goodway.com.tw/favicon.ico",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "b274e0a045989b35802acf344c0c93711f1ae153"
+  },
+  "3276": {
+   "status": "none",
+   "domain": "www.tht-pcb.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.tht-pcb.com.tw/apple-touch-icon.png"
+  },
+  "3284": {
+   "status": "too_small",
+   "domain": "www.ctptop.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.ctptop.com.tw/images/project/80/favicon.ico"
+  },
+  "3285": {
+   "status": "too_small",
+   "domain": "www.microtips.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.microtips.com.tw&sz=64"
+  },
+  "3287": {
+   "status": "none",
+   "domain": "www.kworld.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.kworld.com.tw&sz=64"
+  },
+  "3288": {
+   "status": "robots",
+   "domain": "www.siti.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.siti.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
   "3289": {
    "status": "ok",
    "domain": "www.istgroup.com",
@@ -3313,11 +6961,155 @@
    ],
    "sha1": "e2cb37aa7bd5557e440e79b16d22405220026175"
   },
+  "3290": {
+   "status": "ok",
+   "domain": "www.donpon.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.donpon.com/favicon.ico",
+   "orig": [
+    120,
+    120
+   ],
+   "sha1": "6ac0c036a762298a2767caaef53e94b56ce40ece"
+  },
+  "3293": {
+   "status": "ok",
+   "domain": "www.igs.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.igs.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "6592cc7ad3338cd885f2ad0a9cfea44bae79d4b0"
+  },
+  "3294": {
+   "status": "none",
+   "domain": "www.megaforce.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "回的是 HTML 不是圖 https://www.megaforce.com.tw/apple-touch-icon.png"
+  },
+  "3296": {
+   "status": "too_small",
+   "domain": "www.power-tech.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.power-tech.com.tw&sz=64"
+  },
+  "3297": {
+   "status": "ok",
+   "domain": "www.hunt.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.hunt.com.tw/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "12422993e50604882f391d2e3fd50da38b57565b"
+  },
+  "3303": {
+   "status": "ok",
+   "domain": "www.univacco.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.univacco.com.tw/themes/univacco/images/touch-icon-ipad-retina.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "a734e97340833b050b1a011bd72bd053fab80d02"
+  },
+  "3305": {
+   "status": "none",
+   "domain": "www.shenmao.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.shenmao.com/apple-touch-icon.png"
+  },
+  "3306": {
+   "status": "ok",
+   "domain": "www.royaltek.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.royaltek.com/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "8a13b11698043a7856c501b7b3defd3c75b419fc"
+  },
+  "3308": {
+   "status": "none",
+   "domain": "www.bestec.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.bestec.com.tw/apple-touch-icon.png"
+  },
+  "3310": {
+   "status": "ok",
+   "domain": "www.chialin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.chialin.com.tw/0622.png",
+   "orig": [
+    159,
+    159
+   ],
+   "sha1": "fab3f8456003048cafb6b7a7a52fb853dd8b8e83"
+  },
   "3311": {
    "status": "none",
    "domain": "www.silitech.com",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.silitech.com/apple-touch-icon.png"
+  },
+  "3312": {
+   "status": "ok",
+   "domain": "www.gmitec.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.gmitec.com/wp-content/uploads/freshframework/ff_fresh_favicon/favicon_152x152--2022_05_26__05_23_40.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "5f4ea1509b91679b4085c909f19bb3c9fd9be270"
+  },
+  "3313": {
+   "status": "ok",
+   "domain": "www.fce.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.fce.com.tw/favicon.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "59a37c56a2dff63f4f51b0d47ec64e3b92b16da3"
+  },
+  "3317": {
+   "status": "none",
+   "domain": "www.niko-sem.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.niko-sem.com/apple-touch-icon.png"
+  },
+  "3321": {
+   "status": "ok",
+   "domain": "www.uniflex.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.uniflex.com.tw/images/apple-touch-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "040727fcbaacdde4c6480c1be7ced92a940b025e"
+  },
+  "3322": {
+   "status": "none",
+   "domain": "www.jem.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.jem.com.tw/apple-touch-icon.png"
   },
   "3323": {
    "status": "ok",
@@ -3343,6 +7135,24 @@
    ],
    "sha1": "2471ae3a18453d17cc27880cfb616ca211c3ba0b"
   },
+  "3325": {
+   "status": "ok",
+   "domain": "www.casing.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.casing.com.tw/static/images/apple-touch-icon.png?v=20240918",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "3debd96a8b58c98a8c548e07f73e0bfd87d6531f"
+  },
+  "3332": {
+   "status": "too_small",
+   "domain": "www.cincon.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.cincon.com/images/icon/favor.ico"
+  },
   "3338": {
    "status": "ok",
    "domain": "www.taisol.com",
@@ -3354,6 +7164,42 @@
     180
    ],
    "sha1": "19b0a2352d8b8875807ac53ca5481cad6b9c3520"
+  },
+  "3339": {
+   "status": "ok",
+   "domain": "www.tekcore.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.tekcore.com.tw/assets/images/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "2feb8757795f9306b11d67b926e36bebda53d50b"
+  },
+  "3346": {
+   "status": "ok",
+   "domain": "www.lastertech.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.lastertech.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "5736bcf2e8333b81487761329b18e907797a8c3c"
+  },
+  "3349": {
+   "status": "ok",
+   "domain": "www.dexin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.dexin.com.tw/web/images/icon@2.png",
+   "orig": [
+    114,
+    114
+   ],
+   "sha1": "5cf0ccd03db7c607be3390ea1062c482b656b219"
   },
   "3354": {
    "status": "ok",
@@ -3367,11 +7213,29 @@
    ],
    "sha1": "7af3fe5d20c7454c5e0ad07b360b24715c566401"
   },
+  "3356": {
+   "status": "ok",
+   "domain": "www.geovision.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.geovision.com.tw/images/common/Icon@2.png",
+   "orig": [
+    114,
+    114
+   ],
+   "sha1": "21cbf2ca59e4e15608453c12d1720d52ec38c05a"
+  },
   "3357": {
    "status": "too_small",
    "domain": "www.tai-tech.com.tw",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.tai-tech.com.tw/images/project/454/favicon.ico"
+  },
+  "3360": {
+   "status": "too_small",
+   "domain": "www.sunnic.com",
+   "fetched": "2026-09-26",
+   "detail": "29x30 https://www.sunnic.com/tw/upload_files/fonlego-rwd/website/尚立icon.png"
   },
   "3362": {
    "status": "none",
@@ -3391,6 +7255,30 @@
    ],
    "sha1": "ed200510fe26e199e4d10100565c7dc20b3a9aa9"
   },
+  "3372": {
+   "status": "ok",
+   "domain": "www.ticp.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.ticp.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "9c65fc11d14d743cde1dab4a03a5f94c6ecf26e3"
+  },
+  "3373": {
+   "status": "ok",
+   "domain": "www.radiantek.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.radiantek.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "60e3c783532422c1d182ded873a9ae7587b778e0"
+  },
   "3374": {
    "status": "none",
    "domain": "www.xintec.com.tw",
@@ -3409,6 +7297,12 @@
    ],
    "sha1": "068d80dabd86b27a63d206b92de4626dd156451f"
   },
+  "3379": {
+   "status": "too_small",
+   "domain": "www.taibeco.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.taibeco.com.tw/themes/custom/tbc_bs_sass/favicon.ico"
+  },
   "3380": {
    "status": "ok",
    "domain": "www.alphanetworks.com",
@@ -3420,6 +7314,24 @@
     250
    ],
    "sha1": "208b0625815c0a03c396d0fff96f0e5b5528f645"
+  },
+  "3388": {
+   "status": "too_small",
+   "domain": "www.topcocorp.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.topcocorp.com/favicon.ico"
+  },
+  "3390": {
+   "status": "ok",
+   "domain": "www.sunflex.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.sunflex.com.tw/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "ec7666e9c8b67214d84057849b8cebfa0b7a7105"
   },
   "3402": {
    "status": "ok",
@@ -3451,6 +7363,60 @@
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.foxsemicon.com.tw&sz=64"
   },
+  "3416": {
+   "status": "ok",
+   "domain": "www.winmate.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.winmate.com.tw/images/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "06fd841548ed1b88f2726468f357ca2b9d2dbe84"
+  },
+  "3419": {
+   "status": "ok",
+   "domain": "www.whayu.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.whayu.com/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "6ac464d03d8c1ae5aae3205e4d3a25b0865e6f4e"
+  },
+  "3430": {
+   "status": "ok",
+   "domain": "www.chitec.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.chitec.com/favicon.ico?1790429757",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "396a85aa9806e64b1a9f318717b9a596ce3ae241"
+  },
+  "3432": {
+   "status": "ok",
+   "domain": "www.taitwun.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.taitwun.com/wp-content/uploads/2025/08/cropped-favicon-taiwun-150x150-1.webp",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "7e6c08b0df255cf8913f3b84647dd86caa606317"
+  },
+  "3434": {
+   "status": "robots",
+   "domain": "www.acula.com",
+   "fetched": "2026-09-26",
+   "detail": "http://www.acula.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
   "3437": {
    "status": "ok",
    "domain": "www.aot.com.tw",
@@ -3463,6 +7429,24 @@
    ],
    "sha1": "ab9d97a2d5fafe68112422810fbffecc516cfce0"
   },
+  "3438": {
+   "status": "too_small",
+   "domain": "www.aat-ic.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 http://www.aat-ic.com/favicon.ico"
+  },
+  "3441": {
+   "status": "ok",
+   "domain": "www.t-unique.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://cdn1-next.cybassets.com/media/W1siZiIsIjI2NzQzL2F0dGFjaGVkX3Bob3Rvcy8xNjk1MDE3MDg5X2xnLnBuZy5wbmciXV0.png?convert=false&sha=d51f78dcdd61fe3d",
+   "orig": [
+    235,
+    81
+   ],
+   "sha1": "1e73d637c2a64e67e701099c37b9ddf53a4ce84a"
+  },
   "3443": {
    "status": "ok",
    "domain": "www.guc-asic.com",
@@ -3474,6 +7458,24 @@
     48
    ],
    "sha1": "2299a88b6cee0d78997c9c94a2b56b77e806fb40"
+  },
+  "3444": {
+   "status": "ok",
+   "domain": "www.niching.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.niching.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "80810a033d489b5049b3f7bed158ecc39abc48e0"
+  },
+  "3447": {
+   "status": "none",
+   "domain": "www.xavi.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.xavi.com.tw&sz=64"
   },
   "3450": {
    "status": "ok",
@@ -3498,6 +7500,42 @@
     144
    ],
    "sha1": "fd1928bbda5d7dae480c35613fd063a35704eff5"
+  },
+  "3465": {
+   "status": "ok",
+   "domain": "www.naeaudio.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://naeaudio.com/wp-content/uploads/2020/11/cropped-進泰K-01-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "4e0eb214862b049c6e95a32c943207bef445e377"
+  },
+  "3466": {
+   "status": "ok",
+   "domain": "www.skardin.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.skardin.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "d1bb9c71f075bcffd9c59018fe4c08942a1e3cf5"
+  },
+  "3467": {
+   "status": "ok",
+   "domain": "www.forcera.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.forcera.com.tw/Uploads/Shop/1180c1f3-37a0-4e1a-979c-7c4321913574.jpg",
+   "orig": [
+    500,
+    500
+   ],
+   "sha1": "2dc12461892f5f0900c1a2cd27dfa8d4e0472157"
   },
   "3479": {
    "status": "ok",
@@ -3529,11 +7567,65 @@
    ],
    "sha1": "134954cfadb633b20cfa7538d90eae1abbf91fde"
   },
+  "3484": {
+   "status": "ok",
+   "domain": "www.solteam.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.solteam.com.tw/images/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "d96ad5ab900922a86eaf2f5dbcef480cd36f64b9"
+  },
+  "3485": {
+   "status": "ok",
+   "domain": "www.efm.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.efm.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "ba3c77ac22aa981fd27d0b0310b1e8f2f2aa7503"
+  },
+  "3489": {
+   "status": "none",
+   "domain": "www.sunbrothers.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.sunbrothers.com.tw&sz=64"
+  },
+  "3490": {
+   "status": "ok",
+   "domain": "www.singlewell.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.singlewell.com.tw/wp-content/uploads/2026/04/singlewell-favicon-300x300.png",
+   "orig": [
+    300,
+    300
+   ],
+   "sha1": "d240ab51fa1e7703b80e3420567b2c4261d84bee"
+  },
   "3491": {
    "status": "too_small",
    "domain": "www.umt-tw.com",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.umt-tw.com/img/favicon.ico"
+  },
+  "3492": {
+   "status": "too_small",
+   "domain": "www.actt.co",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.actt.co/template/new/home/assets/img/favicon.ico"
+  },
+  "3494": {
+   "status": "too_small",
+   "domain": "www.hiti.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.hiti.com/favicon.ico"
   },
   "3498": {
    "status": "robots",
@@ -3541,11 +7633,59 @@
    "fetched": "2026-09-26",
    "detail": "https://www.usuntek.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
   },
+  "3499": {
+   "status": "ok",
+   "domain": "www.globalsat.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.globalsat.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "7167432cc806de85c11b88b53154a139a51f2d1b"
+  },
+  "3501": {
+   "status": "too_small",
+   "domain": "www.wellshin.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.wellshin.com.tw/images/logo.ico"
+  },
   "3504": {
    "status": "too_small",
    "domain": "www.youngoptics.com",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.youngoptics.com/default/system/favicon.ico"
+  },
+  "3508": {
+   "status": "too_small",
+   "domain": "www.waystech.net",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.waystech.net/favicon.ico"
+  },
+  "3511": {
+   "status": "ok",
+   "domain": "www.simulatechnology.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://simulatechnology.com/wp-content/uploads/cropped-favicon-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "293c12dbf7d40b32d63bc0a17d98b2f5aa410a2c"
+  },
+  "3512": {
+   "status": "ok",
+   "domain": "www.hldc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.hldc.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "79fc96259213855170b96d95198139326b80b6d2"
   },
   "3515": {
    "status": "ok",
@@ -3559,6 +7699,72 @@
    ],
    "sha1": "1b11f60ac07d473d58dd3b84542ff03639955dc9"
   },
+  "3516": {
+   "status": "ok",
+   "domain": "www.adotek.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.adotek.com.tw/app_script/DisplayCut.ashx?file=202507141813104.png&rootDir=upload/admin/&w=310&h=310&bgColor=White",
+   "orig": [
+    310,
+    310
+   ],
+   "sha1": "b58029fe2fe59364bbb8a4e5132154c0f27491eb"
+  },
+  "3518": {
+   "status": "ok",
+   "domain": "www.pttech.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.pttech.com.tw/wp-content/uploads/2025/12/cropped-favicon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "9c7f73d73efe9ef28c7f51ba36e2fe26f8875b41"
+  },
+  "3520": {
+   "status": "too_small",
+   "domain": "www.jve-tech.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.jve-tech.com/favicon.ico"
+  },
+  "3521": {
+   "status": "ok",
+   "domain": "www.datavan.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://datavan.com.tw/images/favicon.png",
+   "orig": [
+    50,
+    50
+   ],
+   "sha1": "366c6ddea0b782554a405a42f343ce61865d07c0"
+  },
+  "3522": {
+   "status": "ok",
+   "domain": "www.toplusglobal.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://toplusglobal.com/wp-content/uploads/2024/06/favicon.png",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "8d5bf77ba7cb133629d4ef59b11e646193608972"
+  },
+  "3523": {
+   "status": "ok",
+   "domain": "www.efun.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://lh7-us.googleusercontent.com/sitesv-images-rt/AMxu72vCScCdGVE2vOAHi6xVrX9h1ie89L2BWJHcff0Dt83eQ9XCUI8ZiaH5HUxR7p-f7q_PXWUCdMV-vX1cl3JRe5MDSCC-tK-od4UcnAd3PvM62MCqA9b8czf0bb34yBh2OMUkOzSrWEVSY37r22KstOysSopEDGFMn3Pa04pbm0h3bWb2SkVlfhqRP0WoL3G-DTE4gZRfr0c-KzE_NBv0jAw",
+   "orig": [
+    263,
+    263
+   ],
+   "sha1": "796c73f78d810b3d0f704cee710d7e1963fd0f81"
+  },
   "3526": {
    "status": "ok",
    "domain": "www.alltopconnector.com",
@@ -3571,6 +7777,24 @@
    ],
    "sha1": "63cc40f450524506ee855d08a5f4458489f45241"
   },
+  "3527": {
+   "status": "too_small",
+   "domain": "www.mblock.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.mblock.com.tw/assets/img/favicon.ico"
+  },
+  "3528": {
+   "status": "ok",
+   "domain": "www.macnica.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.macnica.com/etc.clientlibs/globalportal/clientlibs/clientlib-react/resources/logo192.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "cc5ebaf3906c761ab0fcbf7e90a96ec8555eb83f"
+  },
   "3529": {
    "status": "ok",
    "domain": "www.ememory.com.tw",
@@ -3582,6 +7806,18 @@
     128
    ],
    "sha1": "f44a07908a08621e597ab60974c79c743df242ff"
+  },
+  "3530": {
+   "status": "robots",
+   "domain": "www.soinc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.soinc.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3531": {
+   "status": "too_small",
+   "domain": "www.shianyih.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.shianyih.com.tw/favicon.ico"
   },
   "3532": {
    "status": "ok",
@@ -3607,6 +7843,54 @@
    ],
    "sha1": "215e5ab0e0a1a37ab54e26713f3d7825185eae5c"
   },
+  "3535": {
+   "status": "ok",
+   "domain": "www.favite.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.favite.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "61f7142dc3cf1fd8f0e42b570c1a64acc9ad8542"
+  },
+  "3537": {
+   "status": "none",
+   "domain": "www.podak.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.podak.com.tw/apple-touch-icon.png"
+  },
+  "3540": {
+   "status": "none",
+   "domain": "www.thermaltake.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.thermaltake.com/media/favicon/stores/1/favicon_2_.ico"
+  },
+  "3541": {
+   "status": "ok",
+   "domain": "www.cypress.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.cypress.com.tw/Content/favicon-192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "3274abd727891cd83986813507204bf1bc8fed94"
+  },
+  "3543": {
+   "status": "ok",
+   "domain": "www.jochu.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.jochu.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "12cc98b9efa5a81543b91483d9878ee59c2cb380"
+  },
   "3545": {
    "status": "ok",
    "domain": "www.focaltech-electronics.com",
@@ -3619,11 +7903,89 @@
    ],
    "sha1": "2d4a86831c0e836c030f34499604e9ba17e18637"
   },
+  "3546": {
+   "status": "ok",
+   "domain": "www.uj.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.uj.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "e5cc50b89a39b1d1faa278dd0fcc8f21098abb65"
+  },
+  "3548": {
+   "status": "ok",
+   "domain": "www.jarlly.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.jarlly.com/uploads/6c95fa73-89ee-4c82-986c-07c250610b88-jarlly-icon.png",
+   "orig": [
+    38,
+    38
+   ],
+   "sha1": "89184c6e57b6602797887545df11ef0b2e842356"
+  },
+  "3550": {
+   "status": "ok",
+   "domain": "www.copartner.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.copartner.com.tw/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "ab35bc9770086c56d13dde14f73118197ca1f6b0"
+  },
   "3551": {
    "status": "none",
    "domain": "www.sht.com.tw",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.sht.com.tw/apple-touch-icon.png"
+  },
+  "3552": {
+   "status": "none",
+   "domain": "www.tungthih.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.tungthih.com.tw/apple-touch-icon.png"
+  },
+  "3555": {
+   "status": "ok",
+   "domain": "www.i-baas.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.i-baas.com/wp-content/uploads/2025/10/cropped-icon-20251015-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "6308c33502895321839d359a31fd18362f4dbeb4"
+  },
+  "3556": {
+   "status": "none",
+   "domain": "www.eeti.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.eeti.com/apple-touch-icon.png"
+  },
+  "3557": {
+   "status": "robots",
+   "domain": "www.jiaweils.com",
+   "fetched": "2026-09-26",
+   "detail": "https://www.jiaweils.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3558": {
+   "status": "ok",
+   "domain": "www.senaonetworks.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.senaonetworks.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "be26a9c1cb522a34ae75029b64730b65ca852173"
   },
   "3563": {
    "status": "ok",
@@ -3636,6 +7998,36 @@
     152
    ],
    "sha1": "bd72e55e673a4ac929d160b5f693cc65ea6241c2"
+  },
+  "3564": {
+   "status": "ok",
+   "domain": "www.aewin.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.aewin.com/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "8b0f9108f61215099e8298789c6ddcc02cc3037d"
+  },
+  "3567": {
+   "status": "ok",
+   "domain": "www.etrendtech.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.etrendtech.tw/images/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "1be431e84ac6579618fed02c4033f326d0ff8961"
+  },
+  "3570": {
+   "status": "none",
+   "domain": "www.oitc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.oitc.com.tw&sz=64"
   },
   "3576": {
    "status": "ok",
@@ -3673,6 +8065,18 @@
    ],
    "sha1": "615fca8bc5fd96c9535eae577a8073a4dd0d52a5"
   },
+  "3581": {
+   "status": "ok",
+   "domain": "www.zenvoce.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.zenvoce.com/images/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "cb0bd2755bb7e1e564029ebf9d372ed4d28150eb"
+  },
   "3583": {
    "status": "too_small",
    "domain": "www.scientech.com.tw",
@@ -3691,6 +8095,30 @@
    ],
    "sha1": "c433116fe34215ace8dd4be1e58e9168c07eeb4c"
   },
+  "3588": {
+   "status": "ok",
+   "domain": "www.leadtrend.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.leadtrend.com.tw/templates/cadiis/favicon.ico",
+   "orig": [
+    80,
+    80
+   ],
+   "sha1": "92d590fae931a04638dcb64b9e8d1be2c273e131"
+  },
+  "3591": {
+   "status": "ok",
+   "domain": "www.edison-opto.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.edison-opto.com.tw/images/favicon/apple-icon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "64f4dbdc67931be63f858fbef39759fd683737c7"
+  },
   "3592": {
    "status": "ok",
    "domain": "www.rad-ic.com",
@@ -3702,6 +8130,30 @@
     48
    ],
    "sha1": "aebf85aff28c718e0e0719a236cc7ea899b55a93"
+  },
+  "3593": {
+   "status": "ok",
+   "domain": "www.logah.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.logah.com/wp-content/uploads/1656944426.jpg",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "cce0b05a0d981d0c16b326636b90be5abd7c2c1e"
+  },
+  "3594": {
+   "status": "ok",
+   "domain": "www.arbor-technology.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.arbor-technology.com/frontend/images/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "f5fc763c0c470a776175edd080a13d58b69cadde"
   },
   "3596": {
    "status": "ok",
@@ -3715,11 +8167,89 @@
    ],
    "sha1": "eefe6065b1e51a3f8652e81274324e4ce5bb770b"
   },
+  "3597": {
+   "status": "ok",
+   "domain": "www.avertronics.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.avertronics.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "53c73eb698e0a0aba76cd890e0b632bd531b3e6f"
+  },
   "3605": {
    "status": "too_small",
    "domain": "www.acesconn.com",
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.acesconn.com/images/favicon.ico"
+  },
+  "3607": {
+   "status": "ok",
+   "domain": "www.coxongroup.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "http://www.coxongroup.com/wp-content/uploads/2016/08/cropped-icom-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "93f9d4cf58418aa09ad0ef09b51be0b717a06933"
+  },
+  "3609": {
+   "status": "too_small",
+   "domain": "www.31hep.com",
+   "fetched": "2026-09-26",
+   "detail": "31x31 https://www.31hep.com/images/favicon.png"
+  },
+  "3611": {
+   "status": "ok",
+   "domain": "www.tscprinters.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://usca.tscprinters.com/sites/usca.tscprinters.com/files/favicon.png",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "1f4eb7d87a8e033c426f6d0b146e3390cf59f1ad"
+  },
+  "3615": {
+   "status": "too_small",
+   "domain": "www.aimcore.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.aimcore.com.tw/favicon.ico"
+  },
+  "3617": {
+   "status": "ok",
+   "domain": "www.cyberpower.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.cyberpowersystems.com/wp-content/uploads/2017/05/favi.png",
+   "orig": [
+    75,
+    75
+   ],
+   "sha1": "b6cc5d4c4a83f013d999db01682c3747f5c037ef"
+  },
+  "3622": {
+   "status": "robots",
+   "domain": "www.yfo.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.yfo.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3623": {
+   "status": "ok",
+   "domain": "www.transtouch.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.transtouch.com.tw/ttiLogo.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "3ce178e510c0b3560e6d7c9ee42313b4fe1485d0"
   },
   "3624": {
    "status": "ok",
@@ -3733,11 +8263,89 @@
    ],
    "sha1": "d94b0d325bd76ffd739a4c6dc14c8ea2e38a9346"
   },
+  "3625": {
+   "status": "ok",
+   "domain": "www.c-techone.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "http://www.c-techone.com/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "e6d8c11515bf1db6d00792f564d20d5aa1545031"
+  },
+  "3628": {
+   "status": "too_small",
+   "domain": "www.ablerex.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 http://www.ablerex.com.tw/images/ablerexicon.ico"
+  },
+  "3629": {
+   "status": "ok",
+   "domain": "www.gravitytw.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://gravitytw.com/assets/images/icon.ico",
+   "orig": [
+    32,
+    15
+   ],
+   "sha1": "7420af5692a2baaed4fe6c123073612779b4ec52"
+  },
+  "3630": {
+   "status": "ok",
+   "domain": "www.newmax.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.newmax.com.tw/img/favicon.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "7819fb94f3d6f311ec37f541447105b419d37d00"
+  },
+  "3631": {
+   "status": "none",
+   "domain": "www.chernan.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.chernan.com/apple-touch-icon.png"
+  },
+  "3632": {
+   "status": "too_small",
+   "domain": "www.papagoinc.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.papagoinc.com&sz=64"
+  },
   "3645": {
    "status": "none",
    "domain": "www.taimide.com.tw",
    "fetched": "2026-09-26",
    "detail": "HTTP 404 https://www.taimide.com.tw/images/favicon.ico"
+  },
+  "3646": {
+   "status": "ok",
+   "domain": "www.ant-precision.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://static.wixstatic.com/media/b7b065_f5fa24bbf8f942e4b88d5f927fff58c3%7Emv2.jpg/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/b7b065_f5fa24bbf8f942e4b88d5f927fff58c3%7Emv2.jpg",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "b7c5eff456965ac1122ea148402eef54f1622e36"
+  },
+  "3652": {
+   "status": "ok",
+   "domain": "www.ute.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ute.com/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "736a9d59f28d848490cea915499fc536cdf412bb"
   },
   "3653": {
    "status": "ok",
@@ -3763,6 +8371,24 @@
    ],
    "sha1": "5a1e58e035ce2f3578b5ecb6f93e8cf75877efbc"
   },
+  "3663": {
+   "status": "none",
+   "domain": "www.e-ttmc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.e-ttmc.com.tw/favicon.ico"
+  },
+  "3664": {
+   "status": "ok",
+   "domain": "www.arraynetworks.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.arraynetworks.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "0d6eda31856871476d6a0e7cf71d913f8840a347"
+  },
   "3665": {
    "status": "ok",
    "domain": "www.bizlinktech.com",
@@ -3774,6 +8400,30 @@
     64
    ],
    "sha1": "cdc5fe0e09ff36d5e3c25781716ac10b91834f9a"
+  },
+  "3666": {
+   "status": "none",
+   "domain": "www.optivtech.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.optivtech.com/apple-touch-icon.png"
+  },
+  "3669": {
+   "status": "robots",
+   "domain": "www.aver.com",
+   "fetched": "2026-09-26",
+   "detail": "https://www.aver.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3672": {
+   "status": "ok",
+   "domain": "www.ctsystem.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ctsystem.com/wp-content/uploads/cropped-CTS_logo-512x512-1-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "ac80ceb037cc8d29bbd85dc2e8995aa5bb0184a0"
   },
   "3673": {
    "status": "ok",
@@ -3793,6 +8443,18 @@
    "fetched": "2026-09-26",
    "detail": "回的是 HTML 不是圖 https://www.eris.com.tw/apple-touch-icon.png"
   },
+  "3679": {
+   "status": "generic",
+   "domain": "www.nishoku.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.nishoku.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "4cc17acf317825a6e9f40d28712ec3af511e80a3"
+  },
   "3680": {
    "status": "ok",
    "domain": "www.gudeng.com",
@@ -3804,6 +8466,48 @@
     128
    ],
    "sha1": "25cf462f44337cf5eb0f39ca331bc0f2b91c1c1e"
+  },
+  "3684": {
+   "status": "ok",
+   "domain": "www.grand-tek.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.grand-tek.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "15f18d8c205b3a665119ba00ddb014ab6c62e083"
+  },
+  "3685": {
+   "status": "ok",
+   "domain": "www.tradetools.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.tradetools.com.tw/images/favicon/favicon.png",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "f606161780d3bf58cfcbc0b5a446499b35aa71da"
+  },
+  "3686": {
+   "status": "none",
+   "domain": "www.danentech.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.danentech.com/apple-touch-icon.png"
+  },
+  "3687": {
+   "status": "robots",
+   "domain": "www.macrowell.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.macrowell.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3689": {
+   "status": "too_small",
+   "domain": "www.ude-corp.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.ude-corp.com/archive/system/company/favicon.ico"
   },
   "3691": {
    "status": "ok",
@@ -3829,6 +8533,24 @@
    ],
    "sha1": "72293d5124e9112de0a3604a1850e2402ad1fc98"
   },
+  "3694": {
+   "status": "too_small",
+   "domain": "www.azurewave.com",
+   "fetched": "2026-09-26",
+   "detail": "28x30 https://www.azurewave.com/favicon.ico"
+  },
+  "3701": {
+   "status": "ok",
+   "domain": "www.ficg.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ficg.com.tw/wp-content/uploads/2023/09/logo2026.png",
+   "orig": [
+    242,
+    114
+   ],
+   "sha1": "c86b4e0c5b43ef34c539a9b189d03211af7756b7"
+  },
   "3702": {
    "status": "ok",
    "domain": "www.wpgholdings.com",
@@ -3841,11 +8563,35 @@
    ],
    "sha1": "a5bf96bb0e25bdebca563286031c59421e41112b"
   },
+  "3703": {
+   "status": "ok",
+   "domain": "www.continental-holdings.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.continental-holdings.com/app/uploads/2020/09/cropped-chc-logo-square-2-7-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "8c5f4bbcf5fe6f9bede3bac2db235de77857bcae"
+  },
   "3704": {
    "status": "robots",
    "domain": "www.zyxelgroup.com",
    "fetched": "2026-09-26",
    "detail": "http://www.zyxelgroup.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3705": {
+   "status": "ok",
+   "domain": "www.yungshingroup.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.yungshingroup.com/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    145,
+    145
+   ],
+   "sha1": "791e85d8af74d05d4731bb6d2825c7171e1b4b41"
   },
   "3706": {
    "status": "too_small",
@@ -3877,6 +8623,24 @@
    ],
    "sha1": "1682b45c41c2c33acb94942827d17859ae517d95"
   },
+  "3709": {
+   "status": "robots",
+   "domain": "www.trigoldholdings.com",
+   "fetched": "2026-09-26",
+   "detail": "https://www.trigoldholdings.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "3710": {
+   "status": "ok",
+   "domain": "www.acon-holding.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.acon-holding.com/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "12bc336e3eed5c87cd5d1b0d2702ab2327352413"
+  },
   "3711": {
    "status": "ok",
    "domain": "www.aseglobal.com",
@@ -3888,6 +8652,24 @@
     256
    ],
    "sha1": "b1743469ab8d61ca7b610f6851e22c79642814d7"
+  },
+  "3712": {
+   "status": "too_small",
+   "domain": "www.fit-holding.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.fit-holding.com/storage/2024/02/favicon_foxlink.png"
+  },
+  "3713": {
+   "status": "ok",
+   "domain": "www.hsinjing-holding.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.hsinjing-holding.com.tw/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "8f0878b309e23d853c2d7da4f192af7778ea1be7"
   },
   "3714": {
    "status": "none",
@@ -3901,6 +8683,864 @@
    "fetched": "2026-09-26",
    "detail": "16x16 https://www.dynaholding.com/resources/images/favicon.png"
   },
+  "3716": {
+   "status": "ok",
+   "domain": "www.cenra.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.cenra.com/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "6850da9df58ae77aa3579ceb4f249afc10f76e40"
+  },
+  "3717": {
+   "status": "ok",
+   "domain": "www.eoi.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.eoi.com.tw/Images/Home/favicon-eoi-logo.ico",
+   "orig": [
+    36,
+    32
+   ],
+   "sha1": "ae7930c6229c3924707718b3e5d68da8462c62bc"
+  },
+  "3718": {
+   "status": "robots",
+   "domain": "www.coreintelligence.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.coreintelligence.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "4102": {
+   "status": "too_small",
+   "domain": "www.yungzip.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.yungzip.com/language/en/images/favicon.ico"
+  },
+  "4104": {
+   "status": "ok",
+   "domain": "www.excelsiormedical.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.excelsiormedical.com.tw/wp-content/uploads/2023/01/icon.png",
+   "orig": [
+    98,
+    86
+   ],
+   "sha1": "55fb16af8b06d5757201c069d1ae6e4cf9280b70"
+  },
+  "4105": {
+   "status": "too_small",
+   "domain": "www.tty.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.tty.com.tw/rwd1181/store/f1/shortcut.ico"
+  },
+  "4106": {
+   "status": "ok",
+   "domain": "tw.wellell.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://us.wellell.com/frontend/images/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "241221c0b93148f73d242e22cca170405c83fc93"
+  },
+  "4107": {
+   "status": "ok",
+   "domain": "www.bioteq.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.bioteq.com.tw/frontend/images/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "efdbe89876267a1e46ec7bd08365085a28a3f060"
+  },
+  "4108": {
+   "status": "ok",
+   "domain": "www.phytohealth.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.phytohealth.com.tw/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "37179018e45b22ef282eb2843f5c02714f597776"
+  },
+  "4109": {
+   "status": "ok",
+   "domain": "www.jiajiebio.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://static.wixstatic.com/media/3d99ff_d1e0b0bb71424efa87ee207b38820184%7Emv2.png/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/3d99ff_d1e0b0bb71424efa87ee207b38820184%7Emv2.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "eed4f86bc3cdabb45af2bdfcfe98f93f3a51a1ea"
+  },
+  "4111": {
+   "status": "ok",
+   "domain": "www.cscp.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.cscp.com.tw/data/10000/images/favicon.png",
+   "orig": [
+    520,
+    520
+   ],
+   "sha1": "f98ecae84e8f7118166de6416f22d79d28413539"
+  },
+  "4113": {
+   "status": "ok",
+   "domain": "kh.vvvvv.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "http://kh.vvvvv.com.tw/kh/images/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "7d7a4b227d1efe05404edbb819fb5565a9fef6f0"
+  },
+  "4114": {
+   "status": "none",
+   "domain": "www.synmosa.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.synmosa.com.tw/apple-touch-icon.png"
+  },
+  "4116": {
+   "status": "too_small",
+   "domain": "www.benqmedicaltech.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.benqmedicaltech.com/Scripts/favicon.ico"
+  },
+  "4119": {
+   "status": "too_small",
+   "domain": "www.sci-pharmtech.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.sci-pharmtech.com.tw/default/system/favicon.ico"
+  },
+  "4120": {
+   "status": "too_small",
+   "domain": "www.oep.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.oepgroup.com/favicon.ico"
+  },
+  "4121": {
+   "status": "ok",
+   "domain": "www.rossmax.com",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.rossmax.com&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "3fa22c181eb55621a702748910feac29d10bed97"
+  },
+  "4123": {
+   "status": "too_small",
+   "domain": "www.centerlab.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.centerlab.com.tw/ridea/images/frontend/pc/tw/favicon.ico"
+  },
+  "4126": {
+   "status": "ok",
+   "domain": "www.pahsco.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.pahsco.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "6cb0f7cd76b73fead72eab0afacdedf965df190f"
+  },
+  "4127": {
+   "status": "robots",
+   "domain": "www.tlb.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.tlb.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "4128": {
+   "status": "ok",
+   "domain": "twmicrobio.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.twmicrobio.com/wp-content/uploads/2024/08/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "8b2d446e64ea84aa3e1e9422f6d45796949f1c47"
+  },
+  "4129": {
+   "status": "ok",
+   "domain": "tw.unitedorthopedic.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://tw.unitedorthopedic.com/wp-content/uploads/2020/02/fav-icon.png",
+   "orig": [
+    56,
+    56
+   ],
+   "sha1": "001dce0222513980186f743fe5949657fb09aa0d"
+  },
+  "4131": {
+   "status": "ok",
+   "domain": "www.neocore.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.neocore.com.tw/wp-content/uploads/cropped-logo-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "f5a3e1c6bf2928f7409104e29c9f2d5b3b46e286"
+  },
+  "4133": {
+   "status": "robots",
+   "domain": "www.abnova.com",
+   "fetched": "2026-09-26",
+   "detail": "http://www.abnova.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "4137": {
+   "status": "none",
+   "domain": "www.chlitinaholding.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.chlitinaholding.com/apple-touch-icon.png"
+  },
+  "4138": {
+   "status": "ok",
+   "domain": "www.dmttw.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.dmttw.com.tw/wp-content/uploads/2017/12/favicon.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "ecfc737207714a2f1f71bc779f95ad2960fe0339"
+  },
+  "4139": {
+   "status": "ok",
+   "domain": "mk-healthcare.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://mk-healthcare.com/img/fav_icon.png",
+   "orig": [
+    171,
+    172
+   ],
+   "sha1": "e1d402e6941c163ea4138b91a5e03580edf6ac51"
+  },
+  "4142": {
+   "status": "ok",
+   "domain": "www.adimmune.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.adimmune.com.tw/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    123
+   ],
+   "sha1": "736eb17df97c9505dc60d9925fcda9aa181b1372"
+  },
+  "4147": {
+   "status": "too_small",
+   "domain": "www.taimedbiologics.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.taimedbiologics.com/favicon.ico"
+  },
+  "4148": {
+   "status": "ok",
+   "domain": "www.allcosmos.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://allcosmos.com/images/0_cosmos/logo/fav.png",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "08dbec991d8980647924bbafd7a05a9e6f702b42"
+  },
+  "4153": {
+   "status": "ok",
+   "domain": "www.diva.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.diva.com.tw/en/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "678105ba383b0b8b06592969a24c79f05bf5ab62"
+  },
+  "4154": {
+   "status": "too_small",
+   "domain": "www.raku-tec.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://static.parastorage.com/client/pfavico.ico"
+  },
+  "4155": {
+   "status": "none",
+   "domain": "www.okbiotech.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.okbiotech.com/apple-touch-icon.png"
+  },
+  "4157": {
+   "status": "ok",
+   "domain": "www.taigenbiotech.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.taigenbiotech.com/assets/img/apple-touch-icon-144x144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "3e39bc6f29876c5524c1735770ab1d183e8ac37d"
+  },
+  "4160": {
+   "status": "ok",
+   "domain": "www.gga.asia",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.gga.asia/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "58b7f55c2a85cb0d902703579db5d874d4694c10"
+  },
+  "4161": {
+   "status": "ok",
+   "domain": "www.bioptik.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.bioptik.com.tw/images/favicon/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "99d8e1393c2b8e879e4bc9742b40635acee45dad"
+  },
+  "4162": {
+   "status": "too_small",
+   "domain": "www.pharmaengine.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.pharmaengine.com/SRC/images/favicon/favicon.ico"
+  },
+  "4163": {
+   "status": "ok",
+   "domain": "www.intai.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.intai.com.tw/images/app_icon/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "f8ea4b384a9f00cf9c573f416067dfc564a32767"
+  },
+  "4164": {
+   "status": "ok",
+   "domain": "www.chcg.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.chcg.com/wp-content/uploads/2020/08/cropped-favicon-1-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "5fbd963bf0bee91eb59d83609bec9208f564156f"
+  },
+  "4166": {
+   "status": "ok",
+   "domain": "academy.oppharma.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://cdn-general.cybassets.com/media/W1siZiIsIjMxNTQ4L2F0dGFjaGVkX3Bob3Rvcy8xNzMzOTgyOTM2X-acquWRveWQjeioreioiCAoMikucG5nLnBuZyJdXQ.png?convert=false&sha=ac4a6767b5f259e7",
+   "orig": [
+    237,
+    237
+   ],
+   "sha1": "154affe5ab06133568631f065296fe8bcdef44a1"
+  },
+  "4167": {
+   "status": "ok",
+   "domain": "www.saviorlifetec.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.saviorlifetec.com.tw/favicon.ico?favicon.e3ef9724.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "07cceff711198c7b3c278635e45691faf059d4b1"
+  },
+  "4168": {
+   "status": "ok",
+   "domain": "www.glyconex.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.glyconex.com.tw&sz=64",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "9c69683391f5395377b8b73750c0e1f94a24bfc4"
+  },
+  "4169": {
+   "status": "ok",
+   "domain": "www.tcmbio.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.tcmbio.com/tw/images/favicon-50.png",
+   "orig": [
+    50,
+    50
+   ],
+   "sha1": "cbabba09b86d0cdc3c12fb7becea0f14b4a03758"
+  },
+  "4171": {
+   "status": "none",
+   "domain": "www.genereach.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.genereach.com/images/eng/ico/apple-touch-icon-144-precomposed.png"
+  },
+  "4173": {
+   "status": "ok",
+   "domain": "www.arich.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.arich.com.tw/images/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "804e485722012edfa9b6abc7a773ee97f3218f7a"
+  },
+  "4174": {
+   "status": "ok",
+   "domain": "www.obipharma.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.obipharma.com/favicon/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "3f6b64ddbef8a726120de49e0163462a7ba77d9d"
+  },
+  "4175": {
+   "status": "ok",
+   "domain": "www.medfirst.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://img.91app.com/webapi/images/t/512/512/ShopIcon/41218/0/09262133",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "a497b36bcb90a010b1048520997c45d71949c1d0"
+  },
+  "4178": {
+   "status": "ok",
+   "domain": "stemcytebio.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://stemcytebio.com/wp-content/uploads/2023/04/cropped-stemcyte-favicon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "0118c2ece50d62173906d105d2f2a752573602e6"
+  },
+  "4183": {
+   "status": "too_small",
+   "domain": "www.epsbio.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://static.parastorage.com/client/pfavico.ico"
+  },
+  "4188": {
+   "status": "ok",
+   "domain": "www.amcad.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://static.wixstatic.com/media/3bb26a_b10416ea86864e07a2b3f71386f6829a%7Emv2.png/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/3bb26a_b10416ea86864e07a2b3f71386f6829a%7Emv2.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "9ba5e9ba606799e759dca62b8c2b911bb4aaa7cc"
+  },
+  "4190": {
+   "status": "ok",
+   "domain": "www.jourdeness.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.jourdeness.com/jourdeness.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "9d5f43e26f4b3ead8600631fec9be04c1b5e2349"
+  },
+  "4192": {
+   "status": "ok",
+   "domain": "www.syncorebio.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.syncorebio.com/wp-content/uploads/2018/09/logo-copy_144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "38b3ae17c0f7e74bd6497fa7dfca791c2fe0500d"
+  },
+  "4195": {
+   "status": "ok",
+   "domain": "www.genomics.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.genomics.com.tw/dist/assets/img/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "1598069ce03126e01e401bef1b20e7e7cc1ccda6"
+  },
+  "4198": {
+   "status": "ok",
+   "domain": "www.swissray.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.sns-healthcare.com/favicon.ico?favicon.1fgvbj4hs-zf-.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "31fba45fdd60fe8841c5a40df623604ba3c82423"
+  },
+  "4205": {
+   "status": "too_small",
+   "domain": "www.herngyih.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.herngyih.com.tw&sz=64"
+  },
+  "4207": {
+   "status": "ok",
+   "domain": "www.fructose.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.fructose.com.tw/frontdesk/img/icon/apple-icon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "35350b46fff0941ebb30858ec7dc7c8975d62d9b"
+  },
+  "4303": {
+   "status": "ok",
+   "domain": "www.hsinli.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.hsinli.com.tw/favicon.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "15c0d5106244a428d6ec9bc69b5e62db90e40e86"
+  },
+  "4304": {
+   "status": "ok",
+   "domain": "www.sunvic.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.sunvic.com.tw/icon/apple-icon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "39b31b100209e83b2cdd7ee576e56154acd71922"
+  },
+  "4305": {
+   "status": "ok",
+   "domain": "www.shihkuen.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.shihkuen.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "5839ed9f49146390f83b1c6894589f2bb48f007c"
+  },
+  "4306": {
+   "status": "none",
+   "domain": "www.ycgroup.tw",
+   "fetched": "2026-09-26",
+   "detail": "回的是 HTML 不是圖 https://www.ycgroup.tw/touch-icon-ipad-retina.png"
+  },
+  "4401": {
+   "status": "none",
+   "domain": "www.tloong.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.tloong.com.tw&sz=64"
+  },
+  "4402": {
+   "status": "ok",
+   "domain": "j-d.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://j-d.com.tw/SRC/tw/images/favicon/apple-icon-114x114.png",
+   "orig": [
+    114,
+    114
+   ],
+   "sha1": "a44d7dc410648604e211dd74505cbbe5a9f205a0"
+  },
+  "4406": {
+   "status": "ok",
+   "domain": "www.hsinsin.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.hsinsin.com.tw/templates/hsinsin_1/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "3dc967cce43356c205a7d95d8908173763c49e04"
+  },
+  "4413": {
+   "status": "ok",
+   "domain": "www.estga.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://lh7-us.googleusercontent.com/sitesv-images-rt/AMxu72tRaFO2Ebmwf0Tp2SeZbpN8v_gC4S1Hj1fRjQPxo61geU9fCh0dorUbRm1JpIySmoK5E_7zuWjUqTCIdJ65tCSosKllVFQkNux7YyrovJJzS8vkd0kWPjNN04sieIyLkmRlgrB1Z5ssHm8Yk21D2P2I1uJHRRg8LwdT6heVIUzt5mXdF2EFNx2NHtNyDNN5q92uhy4ULIRRXDg4zcGwWvY",
+   "orig": [
+    68,
+    68
+   ],
+   "sha1": "fc713e1efc32266c523e5c2104f44e191c80bb81"
+  },
+  "4414": {
+   "status": "ok",
+   "domain": "www.roohsing.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.roohsing.com.tw/zh-tw/assets/images/common_ico/apple-touch-icon-144-precomposed.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "d683e9e36e8984ad18a07fd207813c3a94772210"
+  },
+  "4416": {
+   "status": "ok",
+   "domain": "www.sumwon.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.sumwon.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "3f30a1e7b646f1a94030e872560d791cedba9c08"
+  },
+  "4417": {
+   "status": "ok",
+   "domain": "www.king-net.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.king-net.com.tw/images/logo_36.png",
+   "orig": [
+    36,
+    32
+   ],
+   "sha1": "3b97a03549fc396f5a65cc8b0d11412d64700520"
+  },
+  "4419": {
+   "status": "none",
+   "domain": "www.tsgkh.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.tsgkh.com.tw/apple-touch-icon.png"
+  },
+  "4420": {
+   "status": "none",
+   "domain": "www.kwangming.com",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.kwangming.com/apple-touch-icon.png"
+  },
+  "4426": {
+   "status": "too_small",
+   "domain": "www.li-cheng.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.li-cheng.com.tw/resources/_img/favicon.ico"
+  },
+  "4430": {
+   "status": "ok",
+   "domain": "www.yaoi.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "http://www.yaoi.com.tw/images/apple-touch-icon.png",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "9829265b87dbb84b83e6cf84598ad1ca38f1dece"
+  },
+  "4432": {
+   "status": "ok",
+   "domain": "www.haksport.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.haksport.com/wp-content/uploads/2025/11/logoIcon.png",
+   "orig": [
+    160,
+    150
+   ],
+   "sha1": "a913bc34bc17bc35655626ddc93e9e1e8c979c15"
+  },
+  "4433": {
+   "status": "ok",
+   "domain": "www.singtex.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.singtex.com/wp-content/uploads/2021/07/cropped-S_logo-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "feaf8af6854719cfaecb056794c826ab8399782e"
+  },
+  "4438": {
+   "status": "ok",
+   "domain": "www.qve.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.qve.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "ba249755e7be98292aa4179e249d3fc477326571"
+  },
+  "4439": {
+   "status": "ok",
+   "domain": "www.tstco.com.hk",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.tstco.com.hk&sz=64",
+   "orig": [
+    56,
+    56
+   ],
+   "sha1": "0db9425e6fbfeda64027d35cbbbe0dd867d2c55d"
+  },
+  "4440": {
+   "status": "ok",
+   "domain": "www.yishin-textile.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.yishin-textile.com.tw/apple-touch-icon.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "30cdabd8f9da4a2d288f2f1707cd367933fb7e83"
+  },
+  "4441": {
+   "status": "ok",
+   "domain": "www.greatg.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.greatg.com.tw/images/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "9eadf1ce6f4f12acf76762a02f263761da2d85a5"
+  },
+  "4442": {
+   "status": "ok",
+   "domain": "www.jb-group.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://static.wixstatic.com/media/13a8fe_f383fe1057734ae081664e6de3497131%7Emv2.png/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/13a8fe_f383fe1057734ae081664e6de3497131%7Emv2.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "03f38cf4eb879206e153a14327da5c44f21c73c0"
+  },
+  "4502": {
+   "status": "ok",
+   "domain": "www.rostawheels.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.rostawheels.com.tw/assets/img/favicon.png",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "986b109c28fe0c3d2bfb375be19f87b032cdd12c"
+  },
+  "4503": {
+   "status": "robots",
+   "domain": "www.alona.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "https://www.alona.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "4506": {
+   "status": "too_small",
+   "domain": "www.gfc.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.gfc.com.tw&sz=64"
+  },
+  "4510": {
+   "status": "ok",
+   "domain": "www.kafo.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.kafo.com.tw/assets/img/ico/apple-touch-icon-144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "b6a031ca08015027d329f0a68db6114d7fd3623a"
+  },
+  "4513": {
+   "status": "ok",
+   "domain": "www.chevaliertw.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.chevaliertw.com/frontend/images/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "db6da25c380cfd93d5bc9a50ffef9521986cf891"
+  },
+  "4523": {
+   "status": "ok",
+   "domain": "www.everbrite.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.everbrite.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "bbdaa79667d71e2ba22c572e0eb45894ae7fb986"
+  },
   "4526": {
    "status": "ok",
    "domain": "www.tongtai.com.tw",
@@ -3913,6 +9553,102 @@
    ],
    "sha1": "24ea95611b4e14e28986fa168ee7ee167ae97f33"
   },
+  "4527": {
+   "status": "ok",
+   "domain": "www.kuenling.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.kuenling.com.tw/touch-icon-ipad-retina.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "2312c6d4c027533df5d621860dd84c4e97ba6a4f"
+  },
+  "4528": {
+   "status": "ok",
+   "domain": "www.ch-forging.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.ch-forging.com.tw/upload/files/1/logo/logo_fa.png",
+   "orig": [
+    100,
+    100
+   ],
+   "sha1": "d18824e8bd0fcb1931fa37e6926aa07d70ca6330"
+  },
+  "4529": {
+   "status": "none",
+   "domain": "www.eptech.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 https://www.eptech.tw/apple-touch-icon.png"
+  },
+  "4530": {
+   "status": "ok",
+   "domain": "www.honyigroup.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.twes.com.tw/favicon/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "ada756c93b1e1157f1e1209e04377812e51a8acc"
+  },
+  "4532": {
+   "status": "ok",
+   "domain": "www.rechi.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.rechi.com/styles/images/icon.png",
+   "orig": [
+    46,
+    45
+   ],
+   "sha1": "b487357d7cb32561e1056821c1ef633759e6686d"
+  },
+  "4533": {
+   "status": "too_small",
+   "domain": "www.seyi.com",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.seyi.com/favicon.ico"
+  },
+  "4534": {
+   "status": "ok",
+   "domain": "www.trinity-ptc.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.trinity-ptc.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "bda30cd0a6168542a69305c8d65029bda94cc4c0"
+  },
+  "4535": {
+   "status": "too_small",
+   "domain": "www.fineblanking.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "16x16 https://www.fineblanking.com.tw/ShareFile/images/hi.ico"
+  },
+  "4536": {
+   "status": "robots",
+   "domain": "www.topkey.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "http://www.topkey.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  "4538": {
+   "status": "ok",
+   "domain": "www.wsmc.com.tw",
+   "fetched": "2026-09-26",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.wsmc.com.tw&sz=64",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "35c4a86506324a4fcf9ab74ed6f2d9ba793d2931"
+  },
   "4540": {
    "status": "ok",
    "domain": "www.tbimotion.com.tw",
@@ -3924,6 +9660,138 @@
     32
    ],
    "sha1": "a4bc048ac6006b100012c21b607b2b1c82fb33f5"
+  },
+  "4541": {
+   "status": "ok",
+   "domain": "www.maicl.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.maicl.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "d4bd5df7aec39e93370f1b7d793e3a877a30cd97"
+  },
+  "4542": {
+   "status": "ok",
+   "domain": "www.asianeotech.com",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.asianeotech.com/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "sha1": "dcee940e1161d628f590d67ec66244215d2d6f7f"
+  },
+  "4543": {
+   "status": "none",
+   "domain": "www.manzai.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 403 http://www.manzai.com.tw/site/themes/default/cht/images/"
+  },
+  "4545": {
+   "status": "too_small",
+   "domain": "www.mapi.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "26x26 https://www.mapi.com.tw/frontend/images/favicon.ico"
+  },
+  "4549": {
+   "status": "ok",
+   "domain": "www.fine-tek.com",
+   "fetched": "2026-09-26",
+   "src": "site:apple-touch-icon",
+   "url": "https://www.fine-tek.com/asset/www/images/favicon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "3c578d125ad702f8c307978f7ee311caf4007aa0"
+  },
+  "4550": {
+   "status": "none",
+   "domain": "www.changjia.com.tw",
+   "fetched": "2026-09-26",
+   "detail": "HTTP 404 http://www.changjia.com.tw/apple-touch-icon.png"
+  },
+  "4551": {
+   "status": "ok",
+   "domain": "www.global.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://global.com.tw/wp-content/uploads/2026/06/logo.png",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "c394fcc26c50044d4d3a027cc9d5d75d0aa2996f"
+  },
+  "4552": {
+   "status": "ok",
+   "domain": "www.lidaholdings.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "http://www.lidaholdings.com/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "a312175fc95c3f44e6941b2f0dd646a3122bc7d3"
+  },
+  "4554": {
+   "status": "ok",
+   "domain": "www.orange-electronic.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.orange-electronic.com/favicon.ico",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "e29f7cad3bd6dba70f7acbcd26f2ed0468a26b71"
+  },
+  "4555": {
+   "status": "ok",
+   "domain": "www.chelic.com",
+   "fetched": "2026-09-26",
+   "src": "site:conventional",
+   "url": "https://www.chelic.com/favicon.ico",
+   "orig": [
+    207,
+    230
+   ],
+   "sha1": "61c7856e84fa0e981911da939ad2f9757c49812c"
+  },
+  "4556": {
+   "status": "ok",
+   "domain": "www.filtrafine.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.filtrafine.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "d0bc9d1c30e412204db4469038360b29ef2c7cc9"
+  },
+  "4557": {
+   "status": "too_small",
+   "domain": "www.yusin.com",
+   "fetched": "2026-09-26",
+   "detail": "20x20 https://www.yusin.com/resources/_img/favicon.ico"
+  },
+  "4558": {
+   "status": "ok",
+   "domain": "www.alformer.com.tw",
+   "fetched": "2026-09-26",
+   "src": "site:icon",
+   "url": "https://www.alformer.com.tw/favicon.ico",
+   "orig": [
+    32,
+    32
+   ],
+   "sha1": "a2863d4620ea5d3186f83b6262734a78dff82b7c"
   },
   "4576": {
    "status": "too_small",
@@ -6074,5 +11942,5 @@
    "detail": "回的是 HTML 不是圖 https://www.century.com.tw/apple-touch-icon.png"
   }
  },
- "updated_at": "2026-09-26T12:31:16.044955+00:00"
+ "updated_at": "2026-09-26T13:37:52.314813+00:00"
 }
