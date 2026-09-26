@@ -14115,6 +14115,8 @@ SECTIONS = {
     "剖析圖2D3D分段鈕":    lambda pg, b, base, code: t_dg_2d3d(pg, base),
     # ★ 2026-09-26 Andy：「幫我檢查所有有這樣過多小數點的問題修正」—— 全站提示框／圖內文字／畫布／頁面文字的長小數普查
     "小數點普查":          lambda pg, b, base, code: t_decimal_audit(b, base, code),
+    # ★ 2026-09-26 Andy：搜尋加「近期搜尋紀錄」、熱門股票、名稱旁公司 Logo（個股頁標題也要）（⚠ 一律 --workers 1）
+    "搜尋近期熱門Logo":    lambda pg, b, base, code: t_search_recent_logo(pg, b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -31864,6 +31866,221 @@ def t_decimal_audit(b, base, code):
        not [x for x in cv if not any(re.search(a, x) for a in _DEC_ALLOW)], cv[:8])
     ok("小數點普查／手機：真的掃到圖", mn >= 6, mn)
     m.close()
+
+
+# ===================================================================== 搜尋：近期搜尋／熱門股票／公司 Logo（2026-09-26）
+# Andy 2026-09-26：「搜尋功能需要添『近期搜尋紀錄』、熱門股票，並且需要在名稱旁邊附上公司 Logo，包含查個個股也要附上 Logo」。
+# 每一步都驗「畫面／localStorage 真的因此改變了」：
+#   清空 → 聚焦看到熱門 10 筆與「還沒有搜尋紀錄」→ 搜尋 2330 進個股 → 回來聚焦近期第一筆是 2330
+#   → × 刪單筆、「清除」全刪（localStorage 跟著變、下拉不收）→ 鍵盤上下 Enter 進得去、Esc 關
+#   → 個股頁標題有 Logo → logos.json 回一筆圖時真的是 <img>、圖 404 時退回字母頭像、logos.json 404 也不報錯 → 390 不溢出。
+SG_STATE = """() => { const s = document.getElementById('sugg'); const r = s.getBoundingClientRect();
+    const rows = [...s.querySelectorAll('.sgrow[data-c]')];
+    const hotHd = document.getElementById('sgHotHd');
+    const hot = hotHd ? rows.filter(x => hotHd.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING) : [];
+    const rec = rows.filter(x => !hot.includes(x));
+    let ls = null; try { ls = localStorage.getItem('tw.search.recent'); } catch (e) {}
+    return { open: s.style.display !== 'none' && r.height > 0, mode: s.dataset.mode || '',
+      l: Math.round(r.left), r: Math.round(r.right), vw: innerWidth, sw: document.documentElement.scrollWidth,
+      rec: rec.map(x => x.dataset.c), hot: hot.map(x => x.dataset.c),
+      hotChg: hot.map(x => { const c = x.querySelector('.chg'); return c ? [c.textContent.trim(), c.className] : null; }),
+      empty: !!document.getElementById('sgEmpty'), clr: !!document.getElementById('sgClr'),
+      dels: s.querySelectorAll('.sgdel').length,
+      logos: rows.filter(x => x.querySelector('.slogo')).length, n: rows.length,
+      act: rows.findIndex(x => x.classList.contains('on')),
+      aad: document.getElementById('q').getAttribute('aria-activedescendant') || '',
+      minFs: Math.min(99, ...[...s.querySelectorAll('.sgrow span, .sghd span, .sghd small, .sgempty, .sgclr')]
+        .filter(e => e.getClientRects().length).map(e => parseFloat(getComputedStyle(e).fontSize))),
+      ls }; }"""
+# 期望的熱門：全市場索引裡成交值前 10 的普通股（4 碼、不是 0 開頭）—— 跟產品同一個口徑，從頁面自己的資料算
+SG_HOT_EXPECT = """() => (App.L.all || []).filter(s => /^[1-9]\\d{3}$/.test(String(s.code)) && +s.turnover > 0)
+    .sort((a, b) => b.turnover - a.turnover).slice(0, 10).map(s => s.code)"""
+SG_TITLE_LOGO = """() => { const h = document.querySelector('#stockPage h2'); if (!h) return null;
+    const lg = h.querySelector('.slogo'); if (!lg) return { has: false, text: h.innerText };
+    const img = lg.querySelector('img'); const r = lg.getBoundingClientRect();
+    return { has: true, img: !!img, loaded: !!(img && img.complete && img.naturalWidth > 0),
+      src: img ? img.getAttribute('src') : '', lazy: img ? img.getAttribute('loading') : '',
+      letter: getComputedStyle(lg, '::before').content, w: Math.round(r.width), h: Math.round(r.height),
+      edge: getComputedStyle(lg, '::after').boxShadow, text: h.innerText.trim(), cls: lg.className }; }"""
+_PNG_1x1 = __import__("base64").b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
+
+
+def _sg_focus(pg):
+    """聚焦搜尋框（先點頁面別處讓它失焦，確保 focus 事件真的觸發）。"""
+    pg.evaluate("() => { const q = document.getElementById('q'); q.blur(); q.value = ''; }")
+    pg.click("#q"); pg.wait_for_timeout(350)
+    return pg.evaluate(SG_STATE)
+
+
+def t_search_recent_logo(pg, b, base):
+    T = "[搜尋0926]"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.search.recent'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0", 8000)
+
+    # ---------------------------------------------------------------- ① 清空之後聚焦：熱門 10 筆＋「還沒有搜尋紀錄」
+    s = _sg_focus(pg)
+    if not ok(f"{T} 聚焦（還沒打字）就打開下拉", s["open"] and s["mode"] == "panel", s):
+        return
+    ok(f"{T} 沒有紀錄時：近期段顯示「還沒有搜尋紀錄」、沒有 × 也沒有「清除」",
+       s["empty"] and not s["rec"] and s["dels"] == 0 and not s["clr"], s)
+    exp = pg.evaluate(SG_HOT_EXPECT)
+    ok(f"★ {T} 熱門股票 10 筆＝成交值前 10 的普通股（照順序）", len(s["hot"]) == 10 and s["hot"] == exp, {"畫面": s["hot"], "期望": exp})
+    ok(f"{T} 熱門裡沒有 ETF／權證（全部 4 碼、不是 0 開頭）", all(len(c) == 4 and c[0] != "0" for c in s["hot"]), s["hot"])
+    bad = [x for x in s["hotChg"] if not x or not (
+        (x[0].startswith("+") and "up" in x[1]) or (x[0].startswith("-") and "down" in x[1]) or
+        (not x[0].startswith(("+", "-")) and ("flat" in x[1] or x[0] == "—")))]
+    ok(f"{T} 每筆熱門都有漲跌幅，而且紅漲綠跌（+ → up、- → down）", not bad, bad[:3] or s["hotChg"][:3])
+    ok(f"{T} 每一列名稱左邊都有 Logo 元素", s["n"] > 0 and s["logos"] == s["n"], s)
+    ok(f"{T} 下拉整塊在畫面內、字 ≥ 11px", s["l"] >= 0 and s["r"] <= s["vw"] and s["minFs"] >= 11, s)
+
+    # ---------------------------------------------------------------- ② 搜尋 2330 → 點進個股 → 記成近期第一筆
+    pg.type("#q", "2330", delay=40); pg.wait_for_timeout(400)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} 打字之後換成搜尋結果（不是近期／熱門）", s["mode"] == "hits" and "2330" in s["rec"], s)
+    ok(f"{T} 搜尋結果每一列也有 Logo", s["n"] > 0 and s["logos"] == s["n"], s)
+    click(pg, '#sugg .sgrow[data-c="2330"]', 1500)
+    ok(f"{T} 點搜尋結果進到 #stock/2330", pg.evaluate("location.hash") == "#stock/2330", pg.evaluate("location.hash"))
+    ls = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.search.recent') || 'null'); } catch (e) { return 'ERR'; } }")
+    ok(f"★ {T} localStorage tw.search.recent 真的寫進 2330", isinstance(ls, list) and ls[:1] == ["2330"], ls)
+    ok(f"{T} 進了個股頁之後下拉收起來", not pg.evaluate(SG_STATE)["open"])
+
+    # ---------------------------------------------------------------- ③ 個股頁標題有 Logo（本機沒有 logos.json → 字母頭像）
+    wait_until(pg, "() => !!document.querySelector('#stockPage h2 .slogo')", 8000)
+    t = pg.evaluate(SG_TITLE_LOGO)
+    if ok(f"★ {T} 個股頁標題有 Logo 元素（圖或字母頭像）", bool(t) and t["has"], t):
+        ok(f"{T} 標題 Logo 是 32px", t["w"] == 32 and t["h"] == 32, t)
+        ok(f"{T} 標題文字沒有被多塞一個字（字母頭像用 ::before 畫）", t["text"].startswith("台積電"), t["text"])
+        if not t["img"]:
+            ok(f"{T} 沒有圖時是字母頭像：「台」", t["letter"] in ('"台"', "'台'"), t["letter"])
+
+    # ---------------------------------------------------------------- ④ 回總覽聚焦：近期第一筆是 2330；再進 2454（直接開網址也算）
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1200)
+    s = _sg_focus(pg)
+    ok(f"★ {T} 回來聚焦：近期第一筆是 2330、有「清除」", s["rec"][:1] == ["2330"] and s["clr"] and not s["empty"], s)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    pg.evaluate("() => { location.hash = '#stock/2454'; }"); pg.wait_for_timeout(1500)
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1200)
+    s = _sg_focus(pg)
+    ok(f"{T} 直接開 #stock/2454 也記一筆，而且最新的在上面", s["rec"][:2] == ["2454", "2330"], s["rec"])
+
+    # ---------------------------------------------------------------- ⑤ × 刪單筆、「清除」全刪（下拉不收、localStorage 跟著變）
+    click(pg, '#sugg .sgdel[data-del="2454"]', 350)
+    s = pg.evaluate(SG_STATE)
+    ok(f"★ {T} 按 2454 的 × → 只剩 2330，下拉還開著", s["open"] and s["rec"] == ["2330"], s)
+    ok(f"{T} × 之後 localStorage 也只剩 2330", s["ls"] == '["2330"]', s["ls"])
+    click(pg, "#sgClr", 350)
+    s = pg.evaluate(SG_STATE)
+    ok(f"★ {T} 按「清除」→ 近期全空、顯示「還沒有搜尋紀錄」，熱門還在", s["open"] and not s["rec"] and s["empty"] and len(s["hot"]) == 10, s)
+    ok(f"{T} 清除之後 localStorage 是空陣列", s["ls"] == "[]", s["ls"])
+
+    # ---------------------------------------------------------------- ⑥ 鍵盤：上下移動、Enter 進、Esc 關
+    pg.keyboard.press("ArrowDown"); pg.keyboard.press("ArrowDown"); pg.wait_for_timeout(150)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} ↓↓ → 第二列被選起來（aria-activedescendant 跟著）", s["act"] == 1 and s["aad"].startswith("sgo"), s)
+    pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(120)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} ↑ → 回到第一列", s["act"] == 0, s)
+    pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(120)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} 第一列再 ↑ → 繞到最後一列", s["act"] == s["n"] - 1, s)
+    pg.keyboard.press("ArrowDown"); pg.wait_for_timeout(120)       # 最後一列再 ↓ → 繞回第一列
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} 最後一列再 ↓ → 繞回第一列", s["act"] == 0, s)
+    want = s["hot"][0]
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(1500)
+    ok(f"★ {T} Enter → 進到選起來那一檔（{want}）", pg.evaluate("location.hash") == f"#stock/{want}", pg.evaluate("location.hash"))
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1200)
+    s = _sg_focus(pg)
+    ok(f"{T} 剛用鍵盤進的那一檔也記進近期第一筆", s["rec"][:1] == [want], s["rec"])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    ok(f"{T} Esc 收起下拉", not pg.evaluate(SG_STATE)["open"])
+    pg.keyboard.press("ArrowDown"); pg.wait_for_timeout(250)
+    ok(f"{T} Esc 之後按 ↓ 再打開", pg.evaluate(SG_STATE)["open"])
+    pg.keyboard.type("2330"); pg.wait_for_timeout(300)
+    pg.keyboard.press("ArrowDown"); pg.keyboard.press("Enter"); pg.wait_for_timeout(1500)
+    ok(f"{T} 打 2330 → ↓ → Enter 進得去", pg.evaluate("location.hash") == "#stock/2330", pg.evaluate("location.hash"))
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1000)
+    _sg_focus(pg)
+    pg.mouse.click(900, 30); pg.wait_for_timeout(400)      # 頂欄分頁與搜尋框之間的空白
+    ok(f"{T} 點下拉外面就關", not pg.evaluate(SG_STATE)["open"])
+
+    # ---------------------------------------------------------------- ⑦ Logo 圖：logos.json 回一筆 2330 → <img>；圖 404 → 字母頭像；logos.json 404 → 不報錯
+    def logo_page(json_body, png_ok, w=1440):
+        kw = {"viewport": {"width": w, "height": 900 if w > 500 else 844}}
+        if w < 500:
+            kw.update(is_mobile=True, has_touch=True, device_scale_factor=2)
+        p2 = b.new_page(**kw)
+        errs = []
+        p2.on("pageerror", lambda e: errs.append(str(e)))
+        p2.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        if json_body is None:
+            p2.route("**/data/logos.json*", lambda r: r.fulfill(status=404, body="not found"))
+        else:
+            p2.route("**/data/logos.json*", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                             body=__import__("json").dumps(json_body)))
+        p2.route("**/data/logos/*.png*", lambda r: r.fulfill(status=200, content_type="image/png", body=_PNG_1x1)
+                 if png_ok else r.fulfill(status=404, body="not found"))
+        p2.add_init_script("try { localStorage.setItem('tw.live.on', '0'); localStorage.removeItem('tw.search.recent'); } catch (e) {}")
+        p2.goto(f"{base}#stock/2330", wait_until="networkidle")
+        wait_until(p2, "() => !!document.querySelector('#stockPage h2 .slogo')", 8000)
+        p2.wait_for_timeout(600)
+        return p2, errs
+
+    p2, errs = logo_page({"2330": "data/logos/2330.png"}, True)
+    t = p2.evaluate(SG_TITLE_LOGO)
+    ok(f"★ {T} logos.json 有 2330 → 個股頁標題是 <img>，而且真的載入了", bool(t) and t["img"] and t["loaded"], t)
+    ok(f"{T} Logo <img> 帶 loading=lazy、路徑照 logos.json", bool(t) and t["lazy"] == "lazy" and t["src"] == "data/logos/2330.png", t)
+    ok(f"{T} Logo 外框有一圈淡框（白底 Logo 在淺色主題看得到邊）", bool(t) and t["edge"] not in ("", "none"), t and t["edge"])
+    p2.evaluate("() => { location.hash = '#overview'; }"); p2.wait_for_timeout(1000)
+    p2.click("#q"); p2.wait_for_timeout(300); p2.keyboard.type("2330"); p2.wait_for_timeout(400)
+    ok(f"{T} 搜尋列裡 2330 那一列也是 <img>",
+       p2.evaluate("() => !!document.querySelector('#sugg .sgrow[data-c=\"2330\"] .slogo img')"))
+    ok(f"{T} 沒有圖的代號仍是字母頭像（2330 以外的列沒有 <img>）",
+       p2.evaluate("() => [...document.querySelectorAll('#sugg .sgrow[data-c]:not([data-c=\"2330\"]) .slogo')].every(e => !e.querySelector('img') && getComputedStyle(e, '::before').content.length >= 3)"))
+    ok(f"{T} （有圖）整段沒有 pageerror", not errs, errs[:2])
+    p2.close()
+
+    p2, errs = logo_page({"2330": "data/logos/2330.png"}, False)
+    wait_until(p2, "() => !document.querySelector('#stockPage h2 .slogo img')", 4000)
+    t = p2.evaluate(SG_TITLE_LOGO)
+    ok(f"★ {T} 圖 404 → 退回字母頭像（沒有破圖、看得到「台」）",
+       bool(t) and t["has"] and not t["img"] and "hasimg" not in t["cls"] and t["letter"] in ('"台"', "'台'"), t)
+    ok(f"{T} （圖 404）沒有 pageerror", not errs, errs[:2])
+    p2.close()
+
+    p2, errs = logo_page(None, True)
+    t = p2.evaluate(SG_TITLE_LOGO)
+    ok(f"{T} logos.json 不存在（404）→ 字母頭像、頁面照常", bool(t) and t["has"] and not t["img"] and t["letter"] in ('"台"', "'台'"), t)
+    ok(f"{T} （logos.json 404）沒有 pageerror", not errs, errs[:2])
+    p2.close()
+
+    # ---------------------------------------------------------------- ⑧ 手機 390：搜尋鈕 → 近期／熱門；個股頁 Logo；不溢出
+    m, errs = logo_page(None, True, w=390)
+    m.evaluate("() => { location.hash = '#overview'; }"); m.wait_for_timeout(1500)
+    if ok(f"{T} 390：有手機搜尋鈕（前置條件）", m.evaluate("() => { const e = document.getElementById('mSearchBtn'); return !!e && e.getClientRects().length > 0; }")):
+        m.tap("#mSearchBtn"); m.wait_for_timeout(500)
+        s = m.evaluate(SG_STATE)
+        ok(f"★ {T} 390：點搜尋鈕就看到近期（剛進過 2330）與熱門 10 筆", s["open"] and s["rec"][:1] == ["2330"] and len(s["hot"]) == 10, s)
+        ok(f"★ {T} 390：下拉在螢幕內、沒有橫向捲軸", s["l"] >= 0 and s["r"] <= s["vw"] and s["sw"] <= s["vw"] + 1, s)
+        ok(f"{T} 390：下拉裡的字 ≥ 11px", s["minFs"] >= 11, s["minFs"])
+        over = m.evaluate("""() => [...document.querySelectorAll('#sugg .sgrow')].filter(r => r.scrollWidth > r.clientWidth + 1).map(r => r.dataset.c)""")
+        ok(f"{T} 390：每一列都沒有被撐出框（長族群名用省略號）", not over, over[:4])
+        m.tap('#sugg .sgrow[data-c]'); m.wait_for_timeout(1500)
+        ok(f"{T} 390：點一列進個股頁", m.evaluate("location.hash").startswith("#stock/"), m.evaluate("location.hash"))
+        t = m.evaluate(SG_TITLE_LOGO)
+        ok(f"{T} 390：個股頁標題有 Logo", bool(t) and t["has"], t)
+        ok(f"{T} 390：個股頁沒有橫向捲軸", m.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+    ok(f"{T} 390：整段沒有 pageerror", not errs, errs[:2])
+    m.close()
+
+    # 收尾：不要把紀錄留給後面的段落
+    pg.evaluate("() => { try { localStorage.removeItem('tw.search.recent'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

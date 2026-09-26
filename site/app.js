@@ -10494,11 +10494,23 @@
   }
   function logoMapLoad() {
     if (_logoP) return _logoP;
-    _logoP = load('logos', { fallback: {} }).then(m => {
-      LOGOS = (m && typeof m === 'object' && !Array.isArray(m)) ? m : {};
-      logoUpgrade();
-      return LOGOS;
-    }, () => { LOGOS = {}; return LOGOS; });
+    /* 不走共用的 load()：它遇到 404 直接 throw、**不讀回應本體**，而這個檔在管線產出之前一定是 404 ——
+       本體沒讀完的請求在瀏覽器裡一直掛著（實測 Playwright 等 networkidle 等到逾時，驗收整輪卡死）。
+       這裡不管成功失敗都把本體讀完再判斷。版本鍵跟 load() 同一個（meta.generated_at），部署一次換一次。*/
+    const ver = (D.meta && D.meta.generated_at) || '';
+    _logoP = fetch(`data/logos.json?v=${ver}`, ver ? {} : { cache: 'no-store' })
+      .then(async r => {
+        const t = await r.text();
+        if (!r.ok) return {};
+        try { return JSON.parse(t); } catch (e) { return {}; }
+      })
+      .catch(() => ({}))
+      .then(m => {
+        LOGOS = (m && typeof m === 'object' && !Array.isArray(m)) ? m : {};
+        D.logos = LOGOS;
+        logoUpgrade();
+        return LOGOS;
+      });
     return _logoP;
   }
   /* 圖載入失敗 → 退回字母頭像。error 不冒泡，所以掛在 document 的 capture 階段一次接住全部，
