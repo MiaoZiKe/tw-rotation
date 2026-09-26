@@ -1661,6 +1661,19 @@ tbody tr:last-child td{border-bottom:0}
 .indrow .ibody .frow{flex-wrap:wrap}
 .indrow .ibody input[type=number]{width:62px}
 .indrow .ibody .plab{font-size:12px;color:var(--ink-3);min-width:0}
+/* 週期區（2026-09-26 晚）：一直攤開的一排勾選晶片；勾起來＝青色框。最後一顆勾不掉（.last 用虛線框暗示）。*/
+.indrow.tfrow .isw{cursor:default}
+.indrow.tfrow .isw:hover{background:transparent}
+.indrow.tfrow .isum{white-space:normal}
+.indrow .tfbody{padding-top:0}
+.tfchk{display:flex;flex-wrap:wrap;gap:6px}
+.tfchk .tfc{display:inline-flex;align-items:center;gap:5px;padding:4px 9px 4px 7px;border:1px solid var(--line-2);border-radius:7px;
+  font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none;min-height:28px}
+.tfchk .tfc input{accent-color:var(--cyan);width:14px;height:14px;margin:0;cursor:pointer}
+.tfchk .tfc.on{border-color:var(--cyan);color:var(--ink)}
+.tfchk .tfc.last{border-style:dashed;cursor:not-allowed}
+.tfchk .tfc:hover{background:var(--panel-3)}
+.indrow .tfnote{margin-top:6px}
 .indpop .ifoot{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 4px 0;border-top:1px solid var(--line)}
 @media (max-width:640px){.cfgpop.indpop{width:calc(100vw - 20px)}.indrow .ibody{padding-left:8px}}
 /* 基本資料的題材／族群連結：以前黏成「#AI 伺服器#高階 PCB」一串，看不出哪裡斷 */
@@ -4018,7 +4031,7 @@ h3 .howbtn.pop{font-family:inherit}
           <div class="howtxt" id="how-themeov" hidden></div>
           <div class="zwrap" id="ovThemeWrap"><div id="ovTheme" class="chart"></div></div></div>
       </div>
-      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>足跡輪盤 <button class="howbtn pop" data-how="rotm" aria-label="足跡輪盤怎麼看">?</button></h3></div>
+      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>資金輪盤 <button class="howbtn pop" data-how="rotm" aria-label="資金輪盤怎麼看">?</button></h3></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
         <div class="hpanel" id="ovRotPanel" hidden></div>
@@ -4111,13 +4124,12 @@ h3 .howbtn.pop{font-family:inherit}
                窄畫面自動換行（見 .rottime）。
                ★ 2026-09-24（Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前…至多30天」）：
                  雙把手區間桿再收成**單一拉Bar「N 天前」**（`dayBar`，1～30）。點永遠停在最新一天，
-                 N 只決定 ▶ 回放從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。
-               ★ 2026-09-26（Andy：「腳印功能拿掉」）：輪盤不再畫腳印，title 裡「輪盤的腳印」改成回放的講法；
-                 #rotTools 只剩「水波」「掃描」兩個勾選框（「顯示腳印」拿掉）。
-               ★ 2026-09-26 稍晚（Andy 更正：「資金輪動 是單純去除腳印，但軌跡要留下」）：軌跡線恢復（一律畫、沒有開關），
-                 title 補回「輪盤身後的線」也是這一段；腳印符號仍然不畫。 -->
+                 N 只決定腳印從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。
+               ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：同日稍早三次改動（預設只畫圓圈 → 腳印整個拿掉 →
+                 只恢復軌跡線）一起退回 09-25 晚的樣子：軌跡＋腳印都畫，#rotTools 的「顯示腳印」勾選框回來、預設勾選；
+                 title 也回到「輪盤的腳印」的講法。 -->
           <div class="rottime" id="flowRotTime">
-            <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤上每個點身後的線與右邊的排行都是這一段；▶ 讓輪盤從那一天一步一步走回最新"></div>
+            <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
             <div class="rottools" id="rotTools"></div>
           </div>
           <!-- ★ 2026-09-25（Andy）：①「放大」從右欄（排行標題列）搬到輪盤欄右上角 —— 它放大的是輪盤，
@@ -4127,7 +4139,7 @@ h3 .howbtn.pop{font-family:inherit}
                改前：點了開 openZoom 的足跡輪盤放大視窗（拉Bar／篩選／即時鈕各一份）。改後：卡片上的輪盤本身就是完整版
                （2026-09-25 起高＝欄寬×0.8、四張象限卡推到盤外），篩選、時間軸、即時都在卡片上，放大視窗沒有多給東西。
                其他卡的「放大／展開」（資金熱力圖、大盤三張圖、法人、河流圖…）不動。 -->
-          <div class="row spread rotchead"><h4 class="subh">足跡輪盤 <small id="rotSub"></small></h4></div>
+          <div class="row spread rotchead"><h4 class="subh">資金輪盤 <small id="rotSub"></small></h4></div>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
                盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。

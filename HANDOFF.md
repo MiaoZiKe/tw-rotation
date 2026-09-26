@@ -3076,3 +3076,30 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - Andy「縮放功能呢？沒有設置到」：熱門題材掛 wheelZoom（#ovThemeWrap 加 .zwrap 讓圖例排在縮放框外，否則放大時圖例被裁、卡片縮 42px）；點擊走 zoomClick。
 - Andy「將出現的資訊移動到下方或上方，依據當前點擊的圓圈位置決定」：總覽輪盤族群面板改貼輪盤圓外（點上半 → 輪盤下方；點下半 → 輪盤上方），仍 absolute 不推版面，出畫面才捲。
 - 這批驗了：總覽修正0926b（新增 ②b 滾輪縮放、③ 面板在圓外）／總覽 0、_preview 綠。
+
+### 09-26 晚 足跡輪盤改名「資金輪盤」（rename-wheel）
+- 全站可見文字／aria-label／title／「?」氣泡改名；程式識別字與 _uitest 段落名保留；新增 `no_old_wheel_name()` 掃 1440／390 七個分頁不得出現舊名。
+- 這批驗了：分支 足跡輪盤系列／時鐘v2（既有 2）／資金流向／總覽／總覽右欄／手機／手機v3／說明精簡（既有 3）；合併後 足跡輪盤／總覽／總覽修正0926b／手機 0、_preview 綠。
+
+### 09-26 晚 台指期多日分 K 改用期交所開放資料（taifex-tpex-intraday）
+- `pipeline/sources/taifex.py`：下載前 30 交易日逐筆 zip，TX 近月合成 1 分 K（日／夜盤，夜盤歸屬由資料判斷），taifex＞mis；增量進度 `data/_state/taifex_ticks.json`；run_daily 非 price 輪執行。DECISIONS #265。
+- 第一次生效：週日 09-27 台北 10:00 news 輪（GitHub 常延遲）；看 log「期交所逐筆 → 1 分 K：N 根」。格式未實測（fixture 依文件自製）。
+- 這批驗了：pytest 654 passed；重算 payload；新-大盤三張圖／大盤三張圖／總覽 0；_preview 綠。
+
+### 09-26 晚 資金輪動退回有腳印版本（rot-feet-restore）
+- Andy「先退回到有腳印那版本」：腳印＋軌跡恢復成 09-25 的長相，「腳印」開關預設勾選；卡片名稱沿用「資金輪盤」（改名理由原本是「拿掉腳印」，現在腳印回來了，名字是否改回待 Andy 決定）。
+- 這批驗了：足跡輪盤／足跡輪盤全部腳印／足跡輪盤只留圓圈／資金流向／總覽／總覽修正0926b 0、_preview 綠。
+
+### 09-26 晚 個股 K 線設定：週期設置＋拿掉兩指標＋下拉定位（stock-tf-settings）
+- 「指標 ▾」多一區「週期」勾選：預設 1時／4時／日／週／月，存 `tw.kcfg.tfOn`；週期列與四週期同看只列勾起來的；最後一顆鎖住；取消目前週期自動切日線。
+- 預設指標只開均線＋成交量（已有存檔者照舊）；拿掉「MACD 背離」「停損／目標」兩列並丟掉舊存檔的 macdDiv／lines（chart.js 沒改，大盤頁背離照畫 —— 副作用：以前在個股頁關掉背離的人，大盤頁背離會回來）。
+- 下拉跑掉的根因：position:fixed 只在開啟時算一次座標，捲動後面板釘在原處 → 開著時捲動／改大小／進場動畫結束都重貼按鈕，按鈕捲出畫面就關。
+- 縮放掃描白名單加 `ovThemeWrap`（Andy「縮放功能呢?沒有設置到」要的熱門題材滾輪縮放）。
+- 這批驗了：個股指標下拉0926／個股／縮放掃描／K線縮放／個股分K非交易時段 0、_preview 綠。
+
+### 09-26 晚 Logo 取圖第二版（logo-quality）
+- 官網候選加上 apple-touch-icon／manifest／mask-icon／像 Logo 的 og:image／頁首 logo 圖（含 SVG，cairosvg≥2.7 畫）；比「縮進 64 框後的短邊」取最大；非正方形補透明邊不裁切；s2 改 sz=128 且只在官網 <48 才問。
+- 轉址自己一跳一跳跟（最多 5 跳、同公司網域才跟、每跳重讀 robots）；404／連不上改試 http 與 www／非 www；robots 仍嚴格遵守（403 也當禁止，沒放寬）。
+- 索引記 `strategy=2`；第 1 版 too_small／none（165 家）下一輪最先重試，好圖不重抓不覆寫。backfill.yml 多一步確認 libcairo（裝不起來不擋，只跳過 SVG）。
+- 救回率未實測（容器連不到公司官網），看下一輪 `data/_state/logo_progress.json` 的 counts 與 `svg` 欄。
+- 這批驗了：pytest 704 passed、4 skipped（合併前在 main＋logo-quality 上跑）；純管線／工作流改動，沒動 site/ 與 build_payload，前端關卡未跑。
