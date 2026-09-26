@@ -3085,3 +3085,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - `pipeline/sources/taifex.py`：下載前 30 交易日逐筆 zip，TX 近月合成 1 分 K（日／夜盤，夜盤歸屬由資料判斷），taifex＞mis；增量進度 `data/_state/taifex_ticks.json`；run_daily 非 price 輪執行。DECISIONS #265。
 - 第一次生效：週日 09-27 台北 10:00 news 輪（GitHub 常延遲）；看 log「期交所逐筆 → 1 分 K：N 根」。格式未實測（fixture 依文件自製）。
 - 這批驗了：pytest 654 passed；重算 payload；新-大盤三張圖／大盤三張圖／總覽 0；_preview 綠。
+
+### 09-26 晚 資金輪動退回有腳印版本（rot-feet-restore）
+- Andy「先退回到有腳印那版本」：腳印＋軌跡恢復成 09-25 的長相，「腳印」開關預設勾選；卡片名稱沿用「資金輪盤」（改名理由原本是「拿掉腳印」，現在腳印回來了，名字是否改回待 Andy 決定）。
+- 這批驗了：足跡輪盤／足跡輪盤全部腳印／足跡輪盤只留圓圈／資金流向／總覽／總覽修正0926b 0、_preview 綠。
