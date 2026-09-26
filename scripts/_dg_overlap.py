@@ -331,6 +331,17 @@ AUDIT3D_JS = r"""(opt) => {
     const ov = (a.width + b.width) / 2 - Math.hypot((a.left + a.right - b.left - b.right) / 2, (a.top + a.bottom - b.top - b.bottom) / 2);
     if (ov > TOL) issues.push({ kind: '3D 編號鈕互蓋', sec: '3D', a: '編號 ' + nums[i].el.textContent, b: '編號 ' + nums[j].el.textContent, px: +ov.toFixed(1), rect: R(union(a, b)) });
   }
+  // 2026-09-26 起「拖曳／重設視角」那組鈕浮在 3D 畫面框內右上角（#dg3dCtl）：卡片與編號鈕都不准壓到它
+  const ctl = document.querySelector('#dg3dCtl');
+  if (ctl && vis(ctl)) {
+    [...ctl.querySelectorAll('button')].filter(vis).forEach((bt) => {
+      const br = bt.getBoundingClientRect();
+      cards.forEach((c) => { const I = inter(c.r, br);
+        if (I && I.width > TOL && I.height > TOL) issues.push({ kind: '3D 說明卡蓋到視角鈕', sec: '3D', a: cdesc(c.el), b: '鈕 ' + clip(bt.textContent, 10), px: +Math.min(I.width, I.height).toFixed(1), rect: R(union(c.r, br)) }); });
+      nums.forEach((n) => { const I = inter(n.r, br);
+        if (I && I.width > TOL && I.height > TOL) issues.push({ kind: '3D 編號鈕蓋到視角鈕', sec: '3D', a: '編號 ' + n.el.textContent, b: '鈕 ' + clip(bt.textContent, 10), px: +Math.min(I.width, I.height).toFixed(1), rect: R(union(n.r, br)) }); });
+    });
+  }
   const cvr = cv ? cv.getBoundingClientRect() : null;
   return { issues, nums: nums.length, cards: cards.map(c => ({ d: cdesc(c.el), r: { left: c.r.left, top: c.r.top, right: c.r.right, bottom: c.r.bottom } })),
            canvas: cvr ? { left: cvr.left, top: cvr.top, width: cvr.width, height: cvr.height } : null, sx, sy };
