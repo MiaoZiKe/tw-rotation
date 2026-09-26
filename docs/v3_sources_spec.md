@@ -280,3 +280,24 @@ Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源，�
   `src` 多給 `first／last／mis_first／mis_days`，前端寫「櫃買分 K 自 YYYY-MM-DD 起累積（N 天）」。
 - 限制：過去的補不回來；櫃買、台指期從第一個抓到的交易日開始長。夜盤沒有多日分 K。
 - 測試：`tests/test_sources_v3.py` 的 `test_mis_chart_*`、`test_build_*`（假回應，不打真 API）。
+
+## 9. 公司 Logo（2026-09-26）
+
+完整的來源選擇、條款查證、商標風險與**關閉方式**在 `docs/logo_sources.md`；這裡只記規格。
+
+- 來源：主＝公司官網（`<link rel="apple-touch-icon">`／`<link rel="icon">` → `/apple-touch-icon.png` → `/favicon.ico`），
+  備援＝`https://www.google.com/s2/favicons?domain=<網域>&sz=64`。官網 robots.txt 不允許就兩個都不用。
+- 網址：上市用 `company_info.website`；上櫃／興櫃用新表 `company_website`（key `["code"]`，欄位 `code, website, market, src, asof`），
+  端點候選在 `config.COMPANY_WEBSITE_ENDPOINTS`（證交所 OpenAPI `t187ap03_O`／`t187ap03_R` 與櫃買 OpenAPI `mopsfin_t187ap03_O`，
+  **都還沒實測**），30 天重抓一次。`asof` 取回應的「出表日期」，沒給才用抓取日（不是交易日，欄名刻意不叫 date）。
+- 存放：`data/logos/<code>.png`（64×64 PNG）、`data/logos/_index.json`、`data/_state/logo_progress.json`。
+  PNG 不是 Parquet，重抓時圖變了才換檔；被判成預設圖的刪檔。
+- 判「沒有」：原圖長邊 < 32px（`too_small`）、全透明或白底黑底都單色（`blank`）、同一張圖 ≥ 3 個不同網域（`generic`）、
+  robots 禁止（`robots`）、兩個來源都沒有（`none`）、連線失敗（`error`）。
+- 增量：沒抓過的先（族群成分股優先）→ 網域換了 → 到期（`ok` 90 天、其他 30 天）。每輪 ≤ 300 家、≤ 15 分鐘、6 條執行緒；同網域一輪抓一次。
+- 排程：`run_backfill` 在 FinMind 健檢**之前**跑 `backfill_logos()`；`--datasets logos` 只跑這一步。
+  `backfill.yml` 守門：計畫補齊但 `logo_progress.json` 沒補完或到期 → 改跑 `--datasets logos`。
+- 輸出：`build_payload.export_logos()` → `site/data/logos.json`（`{"2330": "data/logos/2330.png"}`，只列有圖的，沒有就 `{}`）
+  ＋`site/data/logos/<code>.png`。每次先清掉舊的 `site/data/logos/`。`config.LOGOS_ENABLED` 關掉時輸出 `{}`。
+- 依賴：`requirements.txt` 加 `Pillow>=10.0`（官方 manylinux wheel 免編譯；只有 Logo 步驟用到，延後載入）。
+- 測試：`tests/test_logos.py`（網路全部 mock）。

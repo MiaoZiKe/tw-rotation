@@ -616,6 +616,53 @@ def _backfill_otc_kbar(flag: dict, have: pd.DataFrame, days: int) -> bool:
     return not todo
 
 
+# ------------------------------------------------------------------ 公司 Logo（2026-09-26）
+
+COMPANY_WEBSITE_REFRESH_DAYS = 30   # 上櫃／興櫃網址清單多久重抓一次（公司很少換網址）
+
+
+def backfill_logos(prog: dict, limit: int | None = None, today: date | None = None) -> dict:
+    """公司 Logo 的增量抓取（細節見 sources/logos.py 與 docs/logo_sources.md）。
+
+    為什麼放在回補、而不是每日管線：
+    - Logo 很少換，一天抓三次毫無意義；回補每小時一輪，剛好適合「每輪 300 家、慢慢補齊」。
+    - 不吃 FinMind 額度，所以放在 FinMind 健檢**之前**跑 —— token 掛掉不該連 Logo 都停。
+    - 補齊之後 `logo_progress.json` 會記下一次到期日，`backfill.yml` 的排程守門看它決定要不要放行，
+      所以不會因為 plan:default 補齊了就永遠輪不到（2026-09-25 index_intraday 踩過一樣的坑）。
+    失敗一律吞掉、記 log，不影響後面的回補步驟。
+    """
+    from .groups import loader as _loader
+    from .sources import logos
+
+    if not config.LOGOS_ENABLED:
+        log.info("LOGOS_ENABLED 關閉，跳過 Logo")
+        return logos.run(0)
+
+    # ① 上櫃／興櫃網址（company_info 只有上市的網址）：30 天重抓一次，存進 company_website
+    today = today or datetime.now(TAIPEI).date()
+    flag = (prog.get("complete") or {}).get("company_website") or {}
+    last = _parse_ts(flag.get("at"))
+    if last is None or (today - last.astimezone(TAIPEI).date()).days >= COMPANY_WEBSITE_REFRESH_DAYS:
+        try:
+            df = logos.company_websites()
+            n = store.append("company_website", df) if not df.empty else 0
+            prog.setdefault("complete", {})["company_website"] = {
+                "done": not df.empty, "at": _now().isoformat(), "rows": int(len(df)), "new": int(n),
+                # 抓不到也記時間：不然櫃買擋雲端 IP 的日子，每一輪都會重打一次
+            }
+            _save_progress(prog)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("上櫃／興櫃網址抓取失敗（Logo 只能先用上市的網址）：%s", exc)
+
+    # ② Logo 本身（族群成分股優先）
+    try:
+        m = _loader.membership()
+        prio = list(dict.fromkeys(m["code"].astype(str).tolist())) if not m.empty else []
+    except Exception:  # noqa: BLE001
+        prio = []
+    return logos.run(limit, today=today, priority=prio)
+
+
 def finmind_reachable(prog: dict) -> bool:
     """花 1 次額度確認「整把 token 還通不通」。
 
@@ -752,7 +799,8 @@ def main() -> int:
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--datasets", default=None,
                       help="price / inst / per / revenue / financial / balance / "
-                           "dividend / divresult / margin / holding，可用 + 串接（預設 price+inst）")
+                           "dividend / divresult / margin / holding，可用 + 串接（預設 price+inst）；"
+                           "logos ＝ 只抓公司 Logo")
     mode.add_argument("--plan", default=None, choices=sorted(PLANS),
                       help="改跑預設回補計畫（依序多步驟，忽略 --start；與 --datasets 二擇一）")
     ap.add_argument("--start", default=config.BACKFILL_START)
@@ -763,6 +811,16 @@ def main() -> int:
 
     limit_raw = (args.limit or "").strip()
     limit = int(limit_raw) if limit_raw.isdigit() and int(limit_raw) > 0 else None
+
+    # 公司 Logo：不吃 FinMind 額度，放在 FinMind 健檢之前，token 掛掉也照樣補。
+    # `--datasets logos` ＝ 只跑這一步（手動觸發用）；`--limit` 在這裡不套用（Logo 有自己的每輪上限）。
+    if args.plan or args.datasets == "logos":
+        try:
+            backfill_logos(_progress())
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Logo 步驟失敗（不影響其他步驟）：%s", exc)
+        if args.datasets == "logos":
+            return 0
 
     if args.plan:
         summary = run_plan(args.plan, limit)

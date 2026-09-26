@@ -11,6 +11,9 @@ name: 歷史回補
 # 計畫的 done 旗標帶年月：跨月後月更新那一步的 tag 變了，排程會自動再跑一輪。
 #
 # 排程刻意避開 UTC 09:20 / 10:20：每日管線 10:30 也要用 FinMind 額度。
+#
+# 2026-09-26 加公司 Logo：每輪最多 300 家、15 分鐘（不吃 FinMind 額度），`data/logos/` 一起 commit。
+# 計畫補齊後排程若發現 Logo 還沒補完或到期，改跑 `--datasets logos` 那一步就好。
 
 on:
   schedule:
@@ -28,7 +31,7 @@ on:
       datasets:
         description: "要補的資料集（plan＝跑 default 計畫）"
         type: choice
-        options: [plan, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
+        options: [plan, logos, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
         default: plan
 
 permissions:
@@ -90,7 +93,19 @@ jobs:
                   if not (isinstance(ii, dict) and ii.get("done")):
                       done = False
               skip = done
+          # 公司 Logo（2026-09-26）：計畫補齊之後也要讓 Logo 繼續補／到期重抓。
+          # 只有 Logo 還有事做時，這一輪改跑 `--datasets logos`（不碰 FinMind，幾分鐘就結束）。
+          logos_only = False
+          if skip and key == "plan:default":
+              lp = pathlib.Path("data/_state/logo_progress.json")
+              today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+              st = json.loads(lp.read_text()) if lp.exists() else {}
+              if st.get("skipped") != "disabled":
+                  nd = st.get("next_due")
+                  if not st.get("done") or (nd and nd <= today):
+                      skip, logos_only = False, True
           print(f"skip={'true' if skip else 'false'}")
+          print(f"logos_only={'true' if logos_only else 'false'}")
           print(f"key={key}")
           PY
           echo "資料集 $DATASETS → 是否跳過：$(grep skip= $GITHUB_OUTPUT | tail -1)"
@@ -109,8 +124,11 @@ jobs:
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
           BACKFILL_START: ${{ env.START_DATE }}
+          LOGOS_ONLY: ${{ steps.guard.outputs.logos_only }}
         run: |
-          if [ "$DATASETS" = "plan" ]; then
+          if [ "$LOGOS_ONLY" = "true" ]; then
+            python -m pipeline.run_backfill --datasets logos
+          elif [ "$DATASETS" = "plan" ]; then
             python -m pipeline.run_backfill --limit "$LIMIT" --plan default
           else
             python -m pipeline.run_backfill --limit "$LIMIT" --datasets "$DATASETS"
