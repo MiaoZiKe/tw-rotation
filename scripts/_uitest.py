@@ -15960,7 +15960,9 @@ def t_stock_ai_0926(pg, base, code):
     pg.set_viewport_size({"width": 390, "height": 844})
     pg.goto(f"{base}#overview", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); } catch (e) {} }")
-    pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    # 手機分段列是個股頁畫完之後才重建的；接在別段後面跑時會先看到上一頁（總覽）的分段 —— 等它換成個股頁的
+    wait_until(pg, "() => [...document.querySelectorAll('.mpager button')].some(b => b.textContent.trim() === 'AI 分析')", 8000)
     m0 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 手機沒記過 → 預設收起", not m0["open"] and m0["ls"] is None, m0)
     ok("[AI分析 390] 右上那一行結論在手機上直接看得到（沒被收進「詳細」）", m0["lineVis"] and m0["stance"], m0["lineTxt"][:80])
