@@ -4236,3 +4236,10 @@ Andy：總覽「漲跌家數」長條圖「需要分 上市 上櫃 全部」。
   `updown.json` 的 `check` 驗「每一級 全部＝上市＋上櫃＋other」，other 的家數寫在「?」裡，不准默默消失。
 - **不吃盤中即時**：live.js 從來沒有更新這張圖，三組都是盤後 `stocks.json`；「?」寫明。
 - 分段鈕選擇記在 `tw.udMkt`；清單開著時切市場＝同一級原地換成新市場的股票（不是關掉）。
+
+## #264 公司 Logo：官網圖示為主、Google s2 備援，進資料湖；可一鍵關閉（CEO，2026-09-26）
+- 需求：Andy「搜尋功能…在名稱旁邊附上公司 Logo，包含查個個股也要附上 Logo」。
+- 來源擴充（白名單新增，只用於抓圖示，不抓任何行情資料）：①各公司官網首頁宣告的 apple-touch-icon／icon（網址取自 company_info／上櫃網址表）②備援 Google `s2/favicons`。官網 robots 不准時連備援也不用。DuckDuckGo 不用（只有 16/32px）。細節與條款查證：`docs/logo_sources.md`。
+- 存放：`data/logos/<code>.png`（64×64，只縮放不改圖）＋`data/logos/_index.json`，由回補工作流增量抓（每輪 ≤300 家、有圖 90 天重抓、沒抓到 30 天）；build_payload 只讀湖、輸出 `site/data/logos.json`。
+- 風險（寫在前面）：repo 是 public，圖檔進 git 歷史刪不掉；商標屬各公司，本站僅作指示性識別（商標法第 36 條）；Google s2 非官方服務可能變動。關閉：`config.LOGOS_ENABLED="0"`，或單一公司在索引標 `removed`。
+- 前端：沒有圖或圖載入失敗 → 字母頭像（8 色、避開紅綠）；搜尋下拉＋個股頁標題顯示。

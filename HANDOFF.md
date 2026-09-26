@@ -3054,3 +3054,9 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-26 資金輪動恢復軌跡線（rot-trails-back）
 - Andy 更正「資金輪動是單純去除腳印，但軌跡要留下」：反向套回 016a331 的尾巴折線（弧長補點、N 天前→最新、非焦點 0.35、補間延伸、滑過亮暗），不含任何腳印符號／markPoint、不恢復開關；總覽小輪盤與手機雷達仍只有圓點。
 - 這批驗了：分支 13 段（既有紅對照 main：時鐘v2 ③ 2、足跡輪盤既有功能 #9、新-輪動時鐘 .hh 中途爆掉）；合併後 足跡輪盤／足跡輪盤全部腳印／足跡輪盤只留圓圈／資金流向／總覽 0、_preview 綠。
+
+### 09-26 搜尋近期／熱門＋公司 Logo（search-recent-logo＋logo-pipeline）
+- 搜尋框聚焦未輸入：「近期搜尋」（tw.search.recent，最多 8，可刪單筆／清除；路由進個股也記）＋「熱門股票」（最近交易日成交值前 10 普通股）；鍵盤上下／Enter／Esc。Logo：搜尋列 20px、個股頁標題 32px；無圖或載入失敗 → 字母頭像（8 色避開紅綠）。
+- Logo 管線：官網 apple-touch-icon／icon 為主、Google s2 備援；回補工作流增量抓進 `data/logos/`（每輪 ≤300 家），build_payload 輸出 `site/data/logos.json`；`config.LOGOS_ENABLED` 可關；DECISIONS #264；新增 Pillow。第一次抓在合併後下一個整點 20 分的回補排程，約 4～9 輪抓完；回補只 commit data/，Logo 要等下一次部署才看得到。
+- 這批驗了：pytest 639 passed；重算 payload（logos.json＝{}）；搜尋近期熱門Logo／個股／手機 0；_preview 綠。
+- 待處理：頁尾加「Logo 商標權屬各公司，本站僅用於識別」一句；上櫃／興櫃網址端點未實測（拿不到則只有上市有 Logo）。
