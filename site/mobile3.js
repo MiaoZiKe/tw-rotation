@@ -381,7 +381,7 @@
     }
     g += `<g class="mrscan" style="transform-origin:${c}px ${c}px"><path d="${arc(0, 45, R)}" fill="url(#${uid}-scan)"/><path d="M${c},${c}L${c + R},${c}" stroke="${cyan}" stroke-opacity=".35" stroke-width="1"/></g>`;
     /* ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：佔比前 3 名身後那串小腳印（最近 8 天）拿掉，盤上只剩圓點。
-       手機這張沒有「顯示腳印」開關，所以直接不畫（桌機有開關、預設關，見 app.js 的 tw.rot.feet）。*/
+       手機這張從來沒有「顯示腳印」開關，所以直接不畫；2026-09-26 起桌機也整個拿掉（Andy：「腳印功能拿掉」）。*/
     const pts = [];
     shown.forEach(p => {
       const [x, y] = xy(p.x, p.y), col = stc(p.quadrant), r = Math.max(4, Math.min(11, 3 + Math.sqrt(p.share) * 2.2));
