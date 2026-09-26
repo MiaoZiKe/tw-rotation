@@ -8939,7 +8939,9 @@ def t_zoom_sweep(pg, base, code):
     #   改前總覽只有資金熱力圖一顆 `heatZoom` → 改後總覽「熱門題材」卡多一顆 `ovThemeZoom`（同一支 openZoom）。
     #   這是 Andy 開口要的，依 DECISIONS #185「白名單只能因為他開口而變長」加上。
     #   ⚠ 白名單是子字串比對而且分大小寫：`themeZoom` 比不到 `ovThemeZoom`（T 大寫），所以要明寫。
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "ovThemeZoom", "trustWrap", "peWrap")
+    # ★ 2026-09-26 晚 改前→改後（Andy 原話：「縮放功能呢?沒有設置到」—— 指總覽熱門題材要跟資金熱力圖一樣能滾輪縮放）：
+    #   改前熱門題材只有「放大 ⤢」鈕 → 改後題材圖外框 `ovThemeWrap` 掛 wheelZoom（.zwrap）。Andy 開口要的，依 #185 加上。
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "ovThemeZoom", "ovThemeWrap", "trustWrap", "peWrap")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
