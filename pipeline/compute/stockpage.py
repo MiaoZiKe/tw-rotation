@@ -375,10 +375,10 @@ def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
         r_all = r_all.drop_duplicates("date", keep="last")
     if not e_all.empty:
         e = e_all.copy()
-        # 同一個所屬年度裡，季配息的四季要依除權息日（沒有就用公告日）由新到舊排 —— 以前只照 period 字串排
+        # 同一個所屬年度裡先照期間（第4季 > 第1季、後半年 > 前半年）由新到舊，同期間的現金／股票再照除權息日（沒有就公告日）排
         key = e["ex_date"].where(e["ex_date"].map(_is_date), e.get("announce_date")) if "ex_date" in e.columns else ""
         e["_k"] = pd.Series(key, index=e.index).astype(str)
-        e = e.sort_values(["fiscal_year", "_k", "period"], ascending=[False, False, False]) \
+        e = e.sort_values(["fiscal_year", "period", "_k"], ascending=[False, False, False]) \
             if "fiscal_year" in e.columns else e
         out["events"] = [{
             "period": r.get("period"), "kind": r.get("kind"), "amount": _r(r.get("amount"), 4),

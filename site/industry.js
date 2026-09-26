@@ -5105,6 +5105,7 @@
         const TOP = 6, BOT = 26, CELL = (H - TOP - BOT) / 3;
         const last = inWin[inWin.length - 1], first = inWin[0], lastPrev = last ? prevOf(last) : null;
         const rangeTxt = CHIP_WINS.find(w => w.v === win).t;
+        const gap = ((hEl && hEl.clientWidth) || 600) < 420 ? ' ' : '  ';   // 390 窄畫面：散戶那行最後的「−0.30pp」會被切掉，間距收成一格
         /* ★ 2026-09-26（前一版）：三條線共用一根 Y 軸時，每週 ±0.05pp 在 0～100% 的刻度上不到 1px。
            維持**三格小圖各自一根 Y 軸**（scale，不從 0 起）；X 軸改成跟其他三張同一條逐交易日的類別軸，
            只有集保公布日有點，其他天是空值（connectNulls 只畫連線，不補每日假值）。 */
@@ -5121,7 +5122,7 @@
                 d: { color: L.c, fontSize: 13 }, n: { color: A.CH.ink, fontSize: 12.5, fontWeight: 700 }, v: { color: A.CH.ink, fontSize: 12.5, fontFamily: A.NUM_FONT },
                 l: { color: A.CH.ink3, fontSize: 11.5 }, up: { color: A.CH.up, fontSize: 12, fontFamily: A.NUM_FONT },
                 dn: { color: A.CH.down, fontSize: 12, fontFamily: A.NUM_FONT }, fl: { color: A.CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT } } },
-              text: last ? `{d|●} {n|${L.name}} {v|${A.fmt.n(last[L.k], 2)}%}  {l|週} {${ppCls(w)}|${pp(w)}}  {l|${rangeTxt}} {${ppCls(m)}|${pp(m)}}`
+              text: last ? `{d|●} {n|${L.name}} {v|${A.fmt.n(last[L.k], 2)}%}${gap}{l|週} {${ppCls(w)}|${pp(w)}}${gap}{l|${rangeTxt.replace(" ", "")}} {${ppCls(m)}|${pp(m)}}`
                 : `{d|●} {n|${L.name}} {l|這個區間沒有集保公布日}` }; }),
           grid: LINES.map((L, i) => ({ left: 52, right: 30, top: TOP + i * CELL + 34, height: CELL - 44 })),
           xAxis: LINES.map((L, i) => xCat({ gridIndex: i, boundaryGap: false, splitLine: { show: false },

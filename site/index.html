@@ -2189,6 +2189,11 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .ntag.mops{color:var(--amber)} .ntag.news{color:var(--cyan)} .ntag.broker{color:var(--violet)}
 #stockNews .nwarn{flex:none;font-size:12px;color:var(--ink-3);white-space:nowrap}
 #stockNews #newsEmpty[hidden]{display:none}
+/* 重大訊息那一列是 <details>：瀏覽器預設的 ▶ 會自己佔一行（summary 裡是區塊元素），改成標題列尾端的 ▾／▴ */
+#stockNews details.nrow>summary{list-style:none}
+#stockNews details.nrow>summary::-webkit-details-marker{display:none}
+#stockNews details.nrow>summary .nhead::after{content:"▾";flex:none;color:var(--ink-3);font-size:12px}
+#stockNews details.nrow[open]>summary .nhead::after{content:"▴"}
 #stockTab .chipBar #chipRange{margin:0}
 .close{border:0;background:transparent;color:var(--ink-3);font-size:20px;cursor:pointer}
 
