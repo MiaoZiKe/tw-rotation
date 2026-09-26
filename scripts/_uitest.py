@@ -3401,6 +3401,71 @@ def t_new_market3(pg, base):
     o3 = pg.evaluate(HOUR, "OTC")
     ok("★ 櫃買只累積 3 天、選 4 小時 → 照畫 3 根 4 小時（不退回日 K），卡片寫「櫃買分 K 自 2026-09-22 起累積（3 天）」",
        o3 and o3["tf"] == "240m" and o3["n"] == 3 and "自 2026-09-22 起累積（3 天）" in o3["fb"], o3)
+
+    # --- ★ 2026-09-26：台指期多了期交所逐筆合成的 1 分 K（前 30 個交易日、含夜盤 FUT_N）。
+    #   ① 日盤：短句的起始日讀 m1_first（不分來源），不是 mis_first —— 否則台指期會寫成「自 09-26 起（1 天）」，
+    #      把期交所補回來的 30 天藏起來。
+    #   ② 夜盤：湖裡有 FUT_N 時，1 小時要真的接湖（根數 > 今晚那幾根），短句寫「夜盤分 K 自 … 起（N 晚）」，
+    #      不再寫「夜盤多日分 K 未累積，只含今晚」。湖裡沒有 FUT_N 時才寫那句。
+    def fake_intra_tx(with_night=True):
+        def h(route):
+            import calendar, datetime as _dt
+            h1, h4, nh1, nh4, d, n = [], [], [], [], _dt.date(2026, 8, 14), 0
+            while n < 30:
+                if d.weekday() < 5:
+                    for hr in range(9, 14):
+                        h1.append([calendar.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0)), 45100, 45110, 45090, 45105, 900])
+                    h4.append([calendar.timegm((d.year, d.month, d.day, 9, 0, 0, 0, 0, 0)), 45100, 45150, 45050, 45120, 4500])
+                    for hr in (15, 16, 17, 18, 19, 20, 21, 22, 23):
+                        nh1.append([calendar.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0)), 45200, 45210, 45190, 45205, 300])
+                    nh4.append([calendar.timegm((d.year, d.month, d.day, 15, 0, 0, 0, 0, 0)), 45200, 45260, 45150, 45220, 2700])
+                    n += 1
+                d += _dt.timedelta(days=1)
+            out = {"FUT": {"H1": h1, "H4": h4, "src": {"days": 30, "first": "2026-08-14",
+                                                       "mis_first": "2026-09-25", "mis_days": 2,
+                                                       "m1_first": "2026-08-14", "m1_days": 30,
+                                                       "taifex_first": "2026-08-14", "taifex_days": 30}}}
+            if with_night:
+                out["FUT_N"] = {"H1": nh1, "H4": nh4, "src": {"days": 30, "first": "2026-08-14",
+                                                              "m1_first": "2026-08-14", "m1_days": 30,
+                                                              "taifex_first": "2026-08-14", "taifex_days": 30}}
+            route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+        return h
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra_tx(True))
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1")
+    wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m' && k.data.length > 50; }", 8000)
+    pg.wait_for_timeout(300)
+    tx = pg.evaluate(HOUR, "FUT")
+    ok("★ [期交所逐筆] 台指期日盤短句讀 m1_first：「台指期分 K 自 2026-08-14 起累積（30 天）」（不是 mis 的 09-25）",
+       tx and tx["fb"].startswith("台指期分 K 自 2026-08-14 起累積（30 天）"), tx)
+    ok("★ [期交所逐筆] 台指期日盤 1 小時真的畫出 30 天（≥ 150 根）", tx and tx["n"] >= 150, tx)
+    fresh(sess="night")
+    wait_until(pg, "() => window.Market3.shown === 'night'", 6000)
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1")
+    got_n = wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m' && k.data.length > 100; }", 8000)
+    pg.wait_for_timeout(300)
+    txn = pg.evaluate(HOUR, "FUT")
+    ok("★ [期交所逐筆] 夜盤 1 小時接上湖裡的 FUT_N（根數 > 100，不再只有今晚）", bool(got_n) and txn and txn["n"] > 100, txn)
+    ok("★ [期交所逐筆] 夜盤 1 小時的 K 棒都落在夜盤時段（15 點以後或 5 點以前）",
+       txn and all(hh >= 15 or hh < 5 for hh in txn["hours"]), txn)
+    ok("★ [期交所逐筆] 夜盤短句「夜盤分 K 自 2026-08-14 起（30 晚）」",
+       txn and "夜盤分 K 自 2026-08-14 起（30 晚）" in txn["fb"] and "未累積" not in txn["fb"], txn)
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra_tx(False))
+    fresh(sess="night")
+    wait_until(pg, "() => window.Market3.shown === 'night'", 6000)
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1")
+    wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m'; }", 8000)
+    pg.wait_for_timeout(300)
+    txz = pg.evaluate(HOUR, "FUT")
+    changed("湖裡拿掉 FUT_N → 夜盤 1 小時根數真的變少", txn and txn["n"], txz and txz["n"])
+    ok("★ [期交所逐筆] 湖裡沒有 FUT_N → 夜盤短句寫「夜盤多日分 K 未累積，只含今晚」",
+       txz and "夜盤多日分 K 未累積，只含今晚" in txz["fb"], txz)
     pg.unroute("**/data/index_intraday.json*")
     pg.route("**/data/index_intraday.json*", fake_intra)
     fresh(sess="day")

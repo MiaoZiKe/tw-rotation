@@ -281,6 +281,22 @@ Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源，�
 - 限制：過去的補不回來；櫃買、台指期從第一個抓到的交易日開始長。夜盤沒有多日分 K。
 - 測試：`tests/test_sources_v3.py` 的 `test_mis_chart_*`、`test_build_*`（假回應，不打真 API）。
 
+### 8.1 台指期 1 分 K：期交所每筆成交（2026-09-26，分支 `claude/taifex-tpex-intraday`，待白名單拍板）
+
+查證與授權：`docs/source_whitelist_taifex_tpex.md`（政府資料開放平臺 資料集 20668，政府資料開放授權條款－第 1 版）。
+
+- 來源：`config.TAIFEX_TICKS_CSV`（`Daily_YYYY_MM_DD.zip`，期交所只留前 30 個交易日）；只收 `TX`。
+- 函式：`taifex.parse_ticks()`（找表頭欄名；認不得／壞值 >5% 整檔不收，log 印前 200 字）、
+  `taifex.attach_wall_time()`（夜盤成交日期寫「歸屬日」或「日曆日」由資料判斷，見文件）、
+  `taifex.ticks_to_1m()`（每盤近月＝量最大的單一月份；價差單丟、週契約不選）、`taifex.vol_divisor()`（B+S 除數跟 FinMind 日 K 核對）、
+  `taifex.minute_bars()`（下載＋增量）；`run_daily.collect_taifex_minute()` 包成 `step("taifex.futures_minute")`，**15:30 那輪不跑**。
+- 表：`index_intraday`，`symbol` FUT（日盤）／FUT_N（夜盤），`interval="1m"`，`src="taifex"`；`ts`＝真正的台北牆鐘、分鐘開始。
+- 增量：`data/_state/taifex_ticks.json`（`done` 已收的檔、`absent` 404 的日子）；交易日取檔內成交日期。
+- 優先順序：同一盤 taifex ＞ mis。寫入時 `run_daily.drop_days_with_taifex()` 不讓 mis 蓋回來；`intraday_bars.build` 以
+  `INTERVAL_RANK×10＋SRC_RANK` 挑、不混。`src` 多 `m1_first／m1_days／taifex_first／taifex_days`。
+- 測試：`tests/test_sources_v3.py` 的 `test_taifex_*`、`test_mis_fut_does_not_overwrite_taifex_days`、
+  `test_build_prefers_taifex_over_mis_same_day`（fixture 依文件格式自製，非實抓）。
+
 ## 9. 公司 Logo（2026-09-26）
 
 完整的來源選擇、條款查證、商標風險與**關閉方式**在 `docs/logo_sources.md`；這裡只記規格。

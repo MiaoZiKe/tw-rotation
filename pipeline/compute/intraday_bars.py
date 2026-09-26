@@ -83,6 +83,10 @@ def synth(bars: pd.DataFrame, tf: str) -> list[list]:
 # 1m ＝ 證交所 mis 分時（2026-09-26 起每天盤後自己存）：真實逐分鐘量、跟今天走勢圖同一個來源，一律優先；
 # 15m／60m ＝ Yahoo（加權才有，指數量是 0）。認不得的 interval 排最後。
 INTERVAL_RANK = {"1m": 0, "15m": 1, "60m": 2}
+# 同是 1m 時再比來源（2026-09-26）：期交所逐筆合成（taifex，真實盤中高低、含夜盤）＞ 證交所分時（mis，
+# 由分鐘收盤合成）。同一盤兩個都有時只用 taifex，不混 —— 兩者時間戳慣例不同（mis 標分鐘結束、taifex 標開始），
+# 混在一起會出現同一分鐘兩根。排名＝INTERVAL_RANK × 10 ＋ SRC_RANK。
+SRC_RANK = {"taifex": 0, "mis": 1}
 
 
 def bucket(bars: pd.DataFrame, secs: int) -> list[list]:
@@ -119,7 +123,8 @@ def _day_str(day_key: int) -> str:
 def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
     """資料湖 `index_intraday` → {symbol: {"H1": [...], "H4": [...], "M15": [...], "src": {...}}}。
 
-    每一個「盤」只挑一種顆粒：有 1 分（mis）用 1 分，否則 15 分，否則 60 分（INTERVAL_RANK）。
+    每一個「盤」只挑一種顆粒：有 1 分用 1 分（期交所逐筆 taifex ＞ 證交所分時 mis），否則 15 分，否則 60 分
+    （INTERVAL_RANK、SRC_RANK）。
     ★ 2026-09-26：三個指數同一套邏輯 —— 加權的 Yahoo 歷史保留，同一天兩個來源都有時以 mis 為準
       （真實量、跟今天走勢圖同口徑）；櫃買、台指期從第一個存到的交易日開始累積。
     `src` 額外給 first／last（有分 K 的第一天、最後一天）與 mis_first／mis_days（mis 1 分 K 從哪天起、幾天），
@@ -139,7 +144,10 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
     df["t"] = df["t"].astype("int64")
     df["day"] = df["t"].map(trade_day_of)
     df["iv"] = df["interval"].astype(str) if "interval" in df.columns else "60m"
-    df["rank"] = df["iv"].map(INTERVAL_RANK).fillna(9).astype(int)
+    src = df["src"].astype(str) if "src" in df.columns else pd.Series("", index=df.index)
+    df["srcv"] = src
+    df["rank"] = (df["iv"].map(INTERVAL_RANK).fillna(9).astype(int) * 10
+                  + src.map(SRC_RANK).fillna(5).astype(int))
     cols = ["t", "open", "high", "low", "close", "volume"]
     for sym, g in df.groupby("symbol"):
         best = g.groupby("day")["rank"].transform("min")
@@ -158,7 +166,9 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
         if not r1.empty:
             parts += bucket(r1[cols], 900)
         m15 = sorted(parts, key=lambda b: b[0])
-        mis_days = sorted(set(r1["day"]))
+        m1_days = sorted(set(r1["day"]))
+        mis_days = sorted(set(r1.loc[r1["srcv"] == "mis", "day"]))
+        tx_days = sorted(set(r1.loc[r1["srcv"] == "taifex", "day"]))
         all_days = sorted(set(use["day"]))
         out[str(sym)] = {"H1": h1, "H4": h4, "M15": m15[-tail:],
                          "src": {"rows": int(len(use)),
@@ -167,7 +177,12 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
                                  "first": _day_str(all_days[0]) if all_days else None,
                                  "last": _day_str(all_days[-1]) if all_days else None,
                                  "mis_first": _day_str(mis_days[0]) if mis_days else None,
-                                 "mis_days": len(mis_days)}}
+                                 "mis_days": len(mis_days),
+                                 # 1 分 K（不分來源）從哪天起、幾天：前端「分 K 自 … 起（N 天）」讀這兩個
+                                 "m1_first": _day_str(m1_days[0]) if m1_days else None,
+                                 "m1_days": len(m1_days),
+                                 "taifex_first": _day_str(tx_days[0]) if tx_days else None,
+                                 "taifex_days": len(tx_days)}}
     return out
 
 
