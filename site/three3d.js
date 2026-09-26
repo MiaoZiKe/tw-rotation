@@ -977,39 +977,39 @@
       camera: [64, 56, 118], target: [0, 8, 0], fit: 1.02, hk: 0.5,
       parts: [
         { seg: 'motion_axis', part: 'mc_base', name: '底座（鋁擠型）', note: '★ 斷面有空腔：同樣重量下拿到比較高的斷面剛性 —— 實心方塊不是鋁擠型。上緣的 T 型槽是軌道與感測器鎖上去的地方',
-          kind: 'mcbase', box: [122, 11, 46], at: [0, -6, 0], ex: [0, -14, 0], codes: [] },
+          kind: 'mcbase', box: [122, 11, 46], at: [0, -6, 0], ex: [0, -14, 0], mount: [-74, -61], axisY: 15, mountR: 10.5, codes: [] },
         { seg: 'motion_axis', part: 'mc_enc', name: '編碼器（回授的起點）', note: '★ 裡面那片刻了一圈等距刻線的碼盤就是它的全部意義 ——「會轉」跟「知道自己轉到哪」是兩件事。它裝在馬達的尾端（遠離螺桿那一側），把位置送回驅動器與控制器',
-          kind: 'mcenc', box: [13, 17, 17], at: [-70, 9, 0], ex: [-42, 4, 0],
+          kind: 'mcenc', box: [13, 17, 17], at: [-107, 9, 0], ex: [-16, 4, 0],
           codes: ['4576'], chipnote: '4576 大銀微系統的產品線含「位置量測系統」（官網分絕對式與增量式兩種，走磁性原理），那就是編碼器這一類（信心：中，來源為公司官網 hiwinmikro.tw/zh/product/positioning-measurement-system）。⚠ 兩個保留寫在這裡不藏起來：① 官網具名的是**線性**位置量測系統，本圖畫的是裝在馬達尾端的**旋轉**編碼器，不是同一支型號；② 「編碼器自有技術」各家講法對不起來（有的說自主技術、有的說磁化技術來自德國／與以色列 Mega-Fabs 合作），所以這裡只主張「產品線有這一類」，不主張「全自研」。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_motor', name: '伺服馬達', note: '方殼、外殼有散熱肋、前面一片法蘭鎖到機構上、軸從法蘭伸出去。★ 沒有尾端那顆編碼器就只是一般感應馬達。本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）',
-          kind: 'mcmotor', box: [40, 20, 20], at: [-44, 9, 0], ex: [-24, 4, 0],
+          kind: 'mcmotor', box: [40, 20, 20], at: [-83.6, 9, 0], ex: [-9, 4, 0],
           codes: ['4576'], chipnote: '4576 大銀微系統（線性馬達與傳動，信心：verified）。★ 本圖畫的是旋轉馬達＋螺桿，直接驅動的線性馬達是另一種架構、本圖未畫。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_coupling', name: '聯軸器', note: '★ 馬達與螺桿之間一定要有它。直接畫成一根連續的軸就是錯 —— 那表示兩根軸完全同心且剛性連接，實務上做不到，也沒有可更換的犧牲件。中間那一段撓性溝就是它的識別特徵',
-          kind: 'mccoup', box: [20, 13, 13], at: [-21, 9, 0], ex: [-12, 4, 0],
+          kind: 'mccoup', box: [20, 13, 13], at: [-56.8, 9, 0], ex: [-3, 12, 0],
           codes: ['4540'], chipnote: '4540 全球傳動（TBI MOTION）的產品線含聯軸器：官網有「聯軸器」產品分類頁，底下就是撓性聯軸器 SRJ（信心：高，來源為公司官網 tbimotion.com.tw/en/category/coupling 與 /en/product/flexible-coupling-srj，另有台灣智慧機械官方網站的供應商頁列出同一批產品）。★ 本圖畫的正是撓性聯軸器 —— 中間那段撓性溝。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_bearing', name: '軸承座（固定端／支撐端）', note: '螺桿兩端各一個：★ 一端固定（吃軸向力）、一端支撐（只導引，讓螺桿受熱可以伸長）—— 兩端都畫成固定端，螺桿熱起來就被自己頂彎。剖面看得到內外環與夾在中間的一圈滾珠',
-          kind: 'mcbrg', box: [12, 20, 20], at: [0, 9, 0], n: 2, gap: 76, axis: 'x', ex: [0, 17, 0],
+          kind: 'mcbrg', box: [12, 20, 20], at: [0, 9, 0], pair: 76, sr: 6.5, anchor: [-38, 8, 0], ex: [0, 17, 0],
           codes: ['4540'], chipnote: '4540 全球傳動（TBI MOTION）的產品線含螺桿支撐座：官網拆成 Fixed Side（固定座 BK／EK）與 Floated Side（支撐座 BF／EF）兩個分類，另有「SUPPORT UNIT of BALL SCREW」的型錄（信心：高，來源為公司官網 tbimotion.com.tw 的產品分類與目錄下載頁）。★ 那正是本圖講的「一端固定吃軸向力、一端支撐讓螺桿伸長」。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_screw', name: '滾珠螺桿・螺桿軸', note: '把馬達的「轉」變成工作台的「直線走」。★ 表面的溝槽剖面是圓弧（哥德弧或單圓弧），不是 V 形三角 —— V 形那是鎖緊用的螺絲，走的是滑動摩擦、裡面沒有鋼珠。兩端的軸頸比較細且有階級，那是要裝軸承的地方',
           kind: 'mcscrew', box: [86, 13, 13], at: [0, 9, 0], ex: [0, 3, 0],
           codes: ['2049', '4540'], chipnote: '2049 上銀（滾珠螺桿與線性滑軌）、4540 全球傳動（線性傳動）。終端不同：上銀多在工具機、全球傳動在產業機械（信心：中，來源為產業媒體整理）。兩檔都不在 supply_chain.yaml 裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_nut', name: '滾珠螺桿・螺帽（含法蘭）', note: '套在螺桿上的金屬套筒，長度約螺桿全長的六分之一。★ 用半管切開而不是切方塊：壁厚看得見，才看得出鋼珠與回流通道真的在這個套筒的裡面。外側的法蘭是它鎖到工作台上的那一片',
-          kind: 'mcnut', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 3, 0],
+          kind: 'mcnut', box: [22, 17, 17], at: [16, 9, 0], sr: 6.5, ex: [2, 3, 0],
           codes: ['2049', '4540'], chipnote: '同螺桿軸：2049 上銀、4540 全球傳動。兩檔都不在 supply_chain.yaml 裡' },
         { seg: 'motion_axis', part: 'mc_ball', name: '鋼珠（兩點接觸）', note: '★ 每一顆都同時碰到螺桿溝與螺帽溝 —— 浮在中間就不傳力。鋼珠把滑動摩擦換成滾動摩擦，這是滾珠螺桿跟一般螺桿唯一的差別',
-          kind: 'mcballs', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 13, 0],
+          kind: 'mcballs', box: [22, 17, 17], at: [16, 9, 0], sr: 6.5, ex: [2, 15, 0],
           codes: [], chipnote: '鋼珠（鋼球）這一件，查不到台股的具名對應' },
         { seg: 'motion_axis', part: 'mc_return', name: '循環器（鋼珠回流通道）', note: '★ 這張圖的紅線零件：鋼珠滾到螺帽的一端之後，從這條 U 形通道繞回另一端，重新進入溝槽 —— 是一個閉合的迴圈。沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿',
-          kind: 'mcreturn', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 21, 0],
+          kind: 'mcreturn', box: [22, 17, 17], at: [16, 9, 0], sr: 6.5, ex: [2, 25, 0],
           codes: [], chipnote: '循環器是螺桿廠自己做的零件，查不到獨立供應的台股對應' },
         { seg: 'motion_axis', part: 'mc_rail', name: '線性滑軌・軌道 ×2', note: '凸出來的一條，兩側有圓弧溝。★ 一定是兩條平行軌，而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的',
           kind: 'mcrail', box: [110, 8, 13], at: [0, 2, 0], n: 2, gap: 30, axis: 'z', ex: [0, -6, 0],
           codes: ['2049', '1597'], chipnote: '2049 上銀（滾珠螺桿與線性滑軌）、1597 直得（線性滑軌）。兩檔都不在 supply_chain.yaml 裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_block', name: '線性滑軌・滑塊 ×2', note: '★ ㄇ 字形，從上方罩下來、包住軌道的兩側。畫成「一個方塊放在軌道上面」就是錯的 —— 那樣的東西吃不了側向力也吃不了拉拔力，而滑軌存在的理由就是吃這兩種力。滑軌不出力，只負責「別歪掉」與承重',
-          kind: 'mcblock', box: [26, 11, 21], at: [26, 5, 0], n: 2, gap: 30, axis: 'z', ex: [26, 13, 0],
+          kind: 'mcblock', box: [26, 11, 21], at: [26, 5, 0], n: 2, gap: 30, axis: 'z', ex: [34, 10, 0],
           codes: ['2049', '1597'], chipnote: '同軌道：2049 上銀、1597 直得。兩檔都不在 supply_chain.yaml 裡' },
         { seg: 'motion_axis', part: 'mc_table', name: '工作台（滑座）', note: '★ 同時鎖在螺帽與滑塊上：螺帽推它走、滑塊撐住它不歪 —— 兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方',
-          kind: 'mctable', box: [52, 9, 44], at: [22, 14, 0], ex: [22, 30, 0], codes: [] },
+          kind: 'mctable', box: [52, 9, 44], at: [22, 14, 0], ex: [34, 32, 0], codes: [] },
       ],
       /* ---- C6 運轉動畫：**螺桿轉，螺帽就走**。
          這是整張圖的機構原理，而且兩件事必須**綁在一起**才算對：
@@ -1028,15 +1028,16 @@
       spins: [
         { part: 'mc_screw', axis: 'x', speed: 0.26, sync: 'feed' },
         { part: 'mc_coupling', axis: 'x', speed: 0.26, sync: 'feed' },
-        { part: 'mc_ball', axis: 'x', speed: 0.34, sync: 'feed' },
+        /* mc_ball 不在這裡：2026-09-26 起鋼珠分成「螺旋那一段」與「回流管裡那一段」，
+           只有螺旋那一段跟著螺桿轉（mcBalls 裡自己掛 spin、同樣 sync 'feed'）—— 回流管是鎖在螺帽上的，不會轉。*/
         /* ⚠ 馬達與編碼器**刻意不轉**：會轉的是它們裡面的轉子與碼盤，
            外殼是鎖在底座上的。把整顆馬達轉起來在物理上是錯的
            （而且這兩顆的幾何是外殼，轉起來只會看起來像鬆脫了）。*/
       ],
       /* 控制訊號的方向：編碼器把位置回授給控制器、控制器驅動馬達（所以這條是反向的）*/
       flows: [
-        { kind: 'sig', part: 'mc_enc', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[-78, 9, 12], [-70, 12, 12], [-52, 14, 12]] },
-        { kind: 'pwr', part: 'mc_motor', r: 0.34, per: 10, speed: 0.45, pts: [[-44, 22, 12], [-44, 14, 6], [-44, 9, 0]] },
+        { kind: 'sig', part: 'mc_enc', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[-110, 20, 0], [-104, 28, 6], [-90, 30, 10]] },
+        { kind: 'pwr', part: 'mc_motor', r: 0.34, per: 10, speed: 0.45, pts: [[-94, 32, 8], [-94, 26, 3], [-94, 21, 0]] },
       ],
       pulses: [{ parts: ['mc_enc', 'mc_motor', 'mc_coupling', 'mc_screw', 'mc_nut', 'mc_table'], period: 3.2, kind: 'sig' }],
     },
@@ -1059,47 +1060,47 @@
       camera: [78, 62, 130], target: [0, 40, 0], fit: 0.84, hk: 0.5,
       parts: [
         { seg: 'machine_tool', part: 'mt_bed', name: '床身（鑄件）', note: '★ 上面是平的、下面有縱橫肋 —— 鑄件的識別特徵，畫成一塊實心方塊就看不出來。所有切削力最後都由它承受。重、運費高、又要時效，所以在地供應比較划算，這是台廠自己做的一段',
-          kind: 'mtbed', box: [120, 16, 72], at: [0, -4, 0], ex: [0, -20, 0],
+          kind: 'mtbed', box: [120, 16, 80], at: [0, -4, 4], ex: [0, -22, 0], yrail: [-6, 30],
           codes: [], chipnote: '整機與鑄件在台股：4526 東台精機、1583 程泰機械、1528 恩德科技。鑄件的供應分工查不到具名來源，不編。三檔都不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'machine_tool', part: 'mt_col', name: '立柱（鑄件，與床身一體）', note: '站在床身後緣的方柱，正面是兩條軌道的貼合面與一排鎖付孔。★ 它跟床身通常是**一體的鑄件** —— 分成兩塊各自站著的話，剛性就不是一體的了',
-          kind: 'mtcol', box: [30, 96, 56], at: [0, 48, -30], ex: [0, 48, -54], codes: [] },
+          kind: 'mtcol', box: [32, 100, 30], at: [0, 54, -21], ex: [0, 4, -40], zmot: [0, 20], codes: [] },
         { seg: 'machine_tool', part: 'mt_rail', name: '線性滑軌・軌道（立柱上兩條）', note: '★ 跟「工業自動化」那張圖是**同一種零件**：滑軌不出力，只負責「別歪掉」與承重。這一段是台廠自己就很強的一段',
-          kind: 'mtraily', box: [9, 74, 11], at: [0, 50, -14], n: 2, gap: 22, axis: 'x', ex: [0, 50, -34],
+          kind: 'mtraily', box: [9, 80, 5], at: [0, 56, -3.5], n: 2, gap: 22, axis: 'x', ex: [0, 4, -26],
           codes: [], chipnote: '線性滑軌在台股：2049 上銀、1597 直得。兩檔屬於「工業自動化」族群、不在這一格，也都不在 supply_chain.yaml 裡' },
         { seg: 'machine_tool', part: 'mt_z', name: 'Z 軸：滾珠螺桿（立柱上）', note: '★ 跟 X 軸**完全同一支零件**，只是立起來 —— 那正是這張圖想講的：三根軸用的是同一批零件。它是三根軸裡唯一要對抗重力的那一根',
-          kind: 'mtscrewy', box: [9, 76, 9], at: [0, 50, -22], ex: [24, 50, -34],
+          kind: 'mtscrewy', box: [9, 80, 9], at: [0, 58, -1], ex: [0, 4, -12],
           codes: [], chipnote: '滾珠螺桿在台股：2049 上銀、4540 全球傳動。兩檔屬於「工業自動化」族群，不在這一格，也都不在 supply_chain.yaml 裡' },
         { seg: 'machine_tool', part: 'mt_saddle', name: '鞍座（Y 軸滑座）', note: '★ 上下**兩組互相垂直的導引面**是它的識別特徵：下面接 Y 向、上面接 X 向。少掉這一層，三根軸就疊不起來 —— 這件事只有轉過來看才看得出來',
-          kind: 'mtsaddle', box: [76, 12, 54], at: [0, 10, 6], ex: [0, 4, 30], codes: [] },
+          kind: 'mtsaddle', box: [70, 20, 32], at: [0, 14, 14], ex: [0, -4, 34], xmoty: 8, codes: [] },
         { seg: 'machine_tool', part: 'mt_x', name: 'X 軸：滾珠螺桿（工作台下方）', note: '把馬達的「轉」變成工作台的「直線走」。★ 螺桿轉一圈，工作台前進一個導程 —— 所以這裡的轉速是用工作台這一幀真正的速度算出來的，折返的瞬間螺桿也真的跟著反轉',
-          kind: 'mcscrew', box: [94, 9, 9], at: [0, 6, 22], ex: [0, -8, 38], codes: [] },
+          kind: 'mcscrew', box: [94, 7, 7], at: [0, 22, 14], ex: [0, -10, 54], codes: [] },
         { seg: 'machine_tool', part: 'mt_table', name: '工作台（X 軸）', note: '★ 上面一定有 **T 型槽**：工件、虎鉗與夾治具靠它鎖上去。沒有 T 型槽的平板不是工作台',
-          kind: 'mttable', box: [88, 10, 46], at: [0, 21, 6], ex: [0, 32, 30], codes: [] },
+          kind: 'mttable', box: [88, 14, 40], at: [0, 27, 14], ex: [0, 14, 40], codes: [] },
         { seg: 'machine_tool', part: 'mt_work', name: '工件（被加工的那一塊）', note: '★ 綜合加工機是「刀轉、工件夾著不動」—— 工件跟著工作台走位，但它自己不轉。車床剛好相反（工件轉、刀不轉），那是兩種機器唯一的分界',
-          kind: 'mtwork', box: [32, 16, 26], at: [0, 34, -4], ex: [0, 50, 30], codes: [] },
+          kind: 'mtwork', box: [32, 12, 26], at: [0, 40, 16], ex: [0, 30, 42], pocket: [0, 6], codes: [] },
         { seg: 'machine_tool', part: 'mt_head', name: '主軸頭（Z 軸）', note: '★ 背面那兩塊滑塊是「它掛在立柱軌道上」的證據 —— 沒有的話它看起來是浮著的。它是整台機器上最重的一個移動件，重量與剛性同時決定加工精度與加減速能力',
-          kind: 'mthead', box: [42, 32, 42], at: [0, 58, -4], ex: [0, 78, -4], codes: [] },
+          kind: 'mthead', box: [36, 32, 30], at: [0, 80, 20], ex: [0, 20, 6], spz: 2, railTop: -21, nutZ: -21, tip: [0, -36, 2], codes: [] },
         { seg: 'machine_tool', part: 'mt_spmot', name: '主軸馬達', note: '★ 跟三顆進給馬達**同一支幾何**（方殼、散熱肋、前法蘭、伸出去的軸）。圖上畫的是外掛式；高階機種會把馬達直接做進主軸裡（內藏式），那種在外觀上看不到這一顆',
-          kind: 'mtmoty', box: [22, 28, 22], at: [0, 86, -4], ex: [0, 96, -4],
+          kind: 'mtmoty', box: [22, 24, 22], at: [0, 108, 22], ex: [0, 38, 6],
           codes: [], chipnote: '伺服馬達在台股：4576 大銀微系統。這一檔屬於「工業自動化」族群，不在這一格，也不在 supply_chain.yaml 裡' },
         { seg: 'machine_tool', part: 'mt_spindle', name: '主軸（錐孔朝下）', note: '★ 下端是一個**錐孔**（刀柄靠錐面定位，不是靠螺絲鎖）—— 畫成平底就看不出它怎麼夾刀。它的轉速與剛性決定這台機器的加工上限；高階主軸多為外購',
-          kind: 'mtspindle', box: [16, 36, 16], at: [0, 64, -4], ex: [0, 78, 18],
+          kind: 'mtspindle', box: [16, 34, 16], at: [0, 75, 22], ex: [0, 20, 36],
           codes: [], chipnote: '主軸這一件查不到台股的具名對應（高階品多為日、德、瑞士製）—— 查不到就寫查不到，不編一個對應' },
         { seg: 'machine_tool', part: 'mt_bear', name: '主軸軸承（前後兩組）', note: '外環、內環與夾在中間的一圈滾珠。它決定主軸能轉多快、能吃多大的切削力，也是主軸壽命的瓶頸',
-          kind: 'mtbear', box: [20, 9, 20], at: [0, 64, -4], n: 2, gap: 18, axis: 'y', ex: [0, 64, 30], codes: [] },
+          kind: 'mtbear', box: [20, 9, 20], at: [0, 74, 22], n: 2, gap: 20, axis: 'y', ex: [16, 34, 40], codes: [] },
         { seg: 'machine_tool', part: 'mt_tool', name: '刀柄與刀具', note: '★ 刀柄是**錐形**的，中段那一圈溝就是換刀機械手抓的地方。下面那支銑刀的兩條螺旋刃是它「會切削」的識別特徵 —— 畫成一根圓棒就成了鑽孔用的麻花鑽都不是',
-          kind: 'mttool', box: [14, 30, 14], at: [0, 52, -4], ex: [0, 30, 30],
+          kind: 'mttool', box: [12, 24, 12], at: [0, 55, 22], ex: [0, 2, 56],
           codes: [], chipnote: '刀具在台股：1528 恩德科技的營業項目含刀具。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'machine_tool', part: 'mt_mag', name: '刀庫（圓盤式）', note: '★ 識別特徵是「**一圈刀套**繞著圓盤排列」，每個刀套裡插著一支上粗下尖的錐柄 —— 畫成一排方塊就不是刀庫。圓盤轉位把要的那一把轉到換刀位置。把數依機種而異，圖上畫 10 個是示意',
-          kind: 'mtmag', box: [16, 52, 52], at: [-68, 58, -4], ex: [-78, 58, -4],
+          kind: 'mtmag', box: [16, 52, 52], at: [-45, 84, 22], ex: [-24, 8, 0], dropX: -3, bracket: [29, -34],
           codes: [], chipnote: '刀庫與換刀機構的台股供應分工查不到具名來源。整機廠自製與向專業機構件廠採購兩種都有 —— 查不到就寫查不到' },
         { seg: 'machine_tool', part: 'mt_atc', name: '換刀機械手（雙臂式 ATC）', note: '★ **兩端對稱**：一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，擺過去就同時換完 —— 單臂的畫法解釋不了「為什麼一次可以換兩把」，也解釋不了換刀為什麼可以那麼快',
-          kind: 'mtatc', box: [50, 12, 12], at: [-34, 40, 6], ex: [-48, 26, 30], codes: [] },
+          kind: 'mtatc', box: [52, 8, 10], at: [-24, 56.3, 22], ex: [-12, -10, 30], codes: [] },
         { seg: 'machine_tool', part: 'mt_cnc', name: '★ 控制器櫃：CNC 控制器 ＋ 四台驅動器（整櫃外購）', note: '★ 這一櫃是整張圖的重點：它讀程式、算路徑，把每一軸每一毫秒該走到哪算出來。台灣生產的高階工具機**皆搭配進口 CNC 控制器**（日本發那科、德國西門子、海德漢）；國產的新代、寶元在中階與多軸逐步推廣。驅動器通常跟控制器同一家成套供應 —— 換一家等於整套控制架構要重調。材質跟機體不同，正是因為這一格不是同一群人做的',
-          kind: 'mtcab', box: [26, 74, 34], at: [82, 36, -4], ex: [86, 36, -4],
+          kind: 'mtcab', box: [26, 74, 34], at: [82, 36, -4], ex: [18, 0, 0],
           codes: [], chipnote: '控制器在台股：7750 新代科技（不在「CNC 工具機」族群、也不在 supply_chain.yaml 裡）。這張圖畫的整機廠四檔都不做控制器 —— 這就是「台廠做得了整機、關鍵件還是要買」' },
         { seg: 'machine_tool', part: 'mt_conv', name: '排屑機', note: '一條斜著往外走的鏈板輸送帶。它不影響精度，但它決定這台機器能不能連續跑而不用有人去清 —— 切屑堆在機內會頂到工件，也會把熱悶在加工區裡',
-          kind: 'mtconv', box: [42, 12, 28], at: [-78, 0, 28], ex: [-84, -8, 42], codes: [] },
+          kind: 'mtconv', box: [42, 12, 28], at: [-78, 0, 28], ex: [-10, -8, 16], codes: [] },
       ],
       /* ⚠ 2026-09-23 退版：這台機器原本有一整組動作宣告（三軸進給 moves、主軸與刀庫 spins、
          換刀機械手 swings、切屑 carries）。Andy 試過之後說「動畫效果加上去後沒那麼好」，
@@ -1107,8 +1108,8 @@
       /* 控制訊號：控制器 → 驅動器 → 馬達（主鏈）；編碼器 → 控制器（回授，dir −1）。
          有這條回授才叫數值控制 —— 環不閉的話它只是一台會動的機器。*/
       flows: [
-        { kind: 'sig', part: 'mt_cnc', r: 0.34, per: 10, speed: 0.5, pts: [[70, 52, -4], [40, 66, -14], [8, 72, -22]] },
-        { kind: 'sig', part: 'mt_z', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[8, 88, -22], [44, 74, -14], [70, 56, -4]] },
+        { kind: 'sig', part: 'mt_cnc', r: 0.34, per: 10, speed: 0.5, pts: [[70, 58, -4], [42, 100, -6], [7, 116, -1]] },
+        { kind: 'sig', part: 'mt_z', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[6, 124, 2], [46, 106, 2], [70, 64, 0]] },
       ],
       // 脈衝只留控制器那一顆，而且壓到 0.5（Andy：要精密儀器不是電競 RGB）
       pulses: [{ parts: ['mt_cnc'], period: 4.2, kind: 'sig', sharp: 6 }],
@@ -6447,238 +6448,561 @@
        馬達 → 聯軸器 → 軸承座 → 螺桿＋螺帽 → 滑軌＋滑塊 → 工作台。
        所以每一件都要看得出它接的是誰（軸、法蘭、鎖付孔、法蘭盤都不能省）。*/
 
-    /* 底座（鋁擠型）：★ 斷面有空腔 —— 同樣重量下拿到比較高的斷面剛性。
-       實心方塊不是鋁擠型，上緣的 T 型槽也是它的識別特徵（軌道與感測器鎖在裡面）。*/
+    /* ================================================================ 2026-09-26 第二批細緻化（D 組：傳動件）
+       Andy：「把細節部分描繪更多，更貼近當前產品，而非看起來就是個長方塊」。
+       依據（查證來源與信心度）寫在 docs/diagram_specs/motion_control.md 的 §3D-細節；
+       零件清單、編號、卡片文字都沒動，動的是每一件的幾何。
+       ★ 下面四支小工具**只給 motion_axis／machine_tool 兩張用**（平行作業規則：不改共用件），
+         建議之後合併進共用：mcHelix（順著螺旋走的網格）、mcSweepHalf（沿平面路徑的半剖管）、
+         mcProfX（2D 斷面沿 x 擠出）、mcMerge（同材質併成一個 draw call）。*/
+
+    // 同一種材質的一堆 geometry 併成一個 mesh（一次 draw call）
+    function mcMerge(geos, m) { return new T.Mesh(mergeGeos(geos), m); }
+    // 平移／旋轉後的 geometry（mergeGeos 要吃已經擺好位置的幾何）
+    function mcAt(g, x, y, z, rx, ry, rz) {
+      if (rx) g.rotateX(rx); if (ry) g.rotateY(ry); if (rz) g.rotateZ(rz);
+      g.translate(x || 0, y || 0, z || 0); return g;
+    }
+    const mcCylX = (r, l, seg) => new T.CylinderGeometry(r, r, l, seg || 16).rotateZ(Math.PI / 2);
+    const mcCylZ = (r, l, seg) => new T.CylinderGeometry(r, r, l, seg || 16).rotateX(Math.PI / 2);
+    // 半剖圓筒（軸沿 x、保留 z < 0）：跟 halfTubeX 同一種切法，但回傳 geometry 好併
+    function mcHalfX(ro, ri, len) { return halfBore(ro, ri, len).rotateZ(-Math.PI / 2).rotateY(Math.PI / 2); }
+    // 半剖圓柱的外皮（不含端面與切面），軸沿 x、保留 z < 0
+    const mcSkinX = (r, len, seg) => new T.CylinderGeometry(r, r, len, seg || 24, 1, true, Math.PI / 2, Math.PI).rotateZ(-Math.PI / 2);
+    /* 2D 斷面沿 x 擠出：pts 是斷面輪廓（[z, y]），holes 是挖空（每個一串 [z, y]）。
+       ★ 鋁擠型、滑軌、T 型槽工作台的識別特徵全部在**斷面**上，所以用擠出，不用拼方塊。*/
+    function mcProfX(pts, len, holes) {
+      const s = new T.Shape(pts.map(([z, y]) => new T.Vector2(z, y)));
+      (holes || []).forEach(h => s.holes.push(new T.Path(h.map(([z, y]) => new T.Vector2(z, y)))));
+      const g = new T.ExtrudeGeometry(s, { depth: len, bevelEnabled: false, curveSegments: 4 });
+      g.translate(0, 0, -len / 2);
+      g.rotateY(Math.PI / 2);          // 擠出方向 z → x；斷面的 z 變成 −z（斷面都左右對稱，沒差）
+      return g;
+    }
+    // 圓角矩形的一圈點（給 mcProfX 的挖空用）
+    function mcRRect(cz, cy, w, h, r, n) {
+      const out = []; n = n || 3;
+      [[w / 2 - r, h / 2 - r, 0], [-w / 2 + r, h / 2 - r, 1], [-w / 2 + r, -h / 2 + r, 2], [w / 2 - r, -h / 2 + r, 3]].forEach(([x, y, q]) => {
+        for (let i = 0; i <= n; i++) { const a = (q + i / n) * Math.PI / 2; out.push([cz + x + Math.cos(a) * r, cy + y + Math.sin(a) * r]); }
+      });
+      return out;
+    }
+    const mcCirc = (cz, cy, r, n) => Array.from({ length: n || 10 }, (_, i) => { const a = -i / (n || 10) * Math.PI * 2; return [cz + Math.cos(a) * r, cy + Math.sin(a) * r]; });
+
+    /* ---- 滾珠螺桿的尺寸：全部由螺桿半徑 R 推出，所以同一支幾何放大縮小（單軸模組、CNC 的 X／Z 軸）都對得起來。
+       Rp 節圓（鋼珠中心）、rb 鋼珠半徑、rg 溝的圓弧半徑（比鋼珠大 4%，哥德弧的近似）、lead 導程，
+       lo ＝ 溝口離節圓的徑向距離：螺桿溝口在 Rp − lo、螺帽溝口在 Rp + lo —— 鋼珠同時碰到兩邊（兩點接觸）。
+       比例參考常見的 1605 規格（外徑 16、導程 5、鋼珠 3.175）：導程／外徑 ≈ 0.39（實物 0.31）、鋼珠／導程 ≈ 0.61（實物 0.64）
+       —— 導程刻意放大一點，不然在畫面上溝會細到看不出是圓弧。*/
+    function bsDims(R) {
+      const Rp = R * 0.8, rb = R * 0.17, rg = rb * 1.04, lead = R * 0.56, lo = rb * 0.45;
+      return { R, Rp, rb, rg, lead, lo, hw: Math.sqrt(rg * rg - lo * lo), sLand: Rp - lo, nLand: Rp + lo };
+    }
+    // 一個導程內的軸向剖面：[u, 相對節圓的徑向偏移]。sgn −1 ＝ 螺桿（溝往內凹）、+1 ＝ 螺帽（溝往外凹）。溝心在 u = 0.5。
+    function bsProf(d, sgn, n) {
+      const out = [[0, sgn * d.lo]];
+      for (let i = 0; i <= n; i++) {
+        const s = -d.hw + 2 * d.hw * i / n;
+        out.push([0.5 + s / d.lead, sgn * Math.sqrt(Math.max(0, d.rg * d.rg - s * s))]);
+      }
+      return out;
+    }
+    // 相位：溝的起點對齊到世界座標 x = 0，螺桿、螺帽、鋼珠三件分開建也對得上
+    const bsPh = (p, d) => ((p.at ? p.at[0] : 0) / d.lead);
+    /* 螺旋溝曲面：軸沿 x、半徑 r0 ＋ prof 的偏移。★ 網格線**順著螺旋走**：同一個取樣點在相鄰角度上
+       正好差 lead × Δθ／2π，所以一個導程只要 10 個取樣就把圓弧溝畫乾淨，不必把整根軸細切成幾萬面。
+       θ 從 +z 起算往 +y 轉（y = r sinθ、z = r cosθ）。t0～t1 不滿一圈就是半剖（螺帽內壁）。*/
+    function mcHelix(o) {
+      const { r0, prof, lead, x0, x1 } = o;
+      const ph = o.ph || 0, t0 = o.t0 || 0, t1 = o.t1 == null ? Math.PI * 2 : o.t1, nt = o.nt || 28;
+      const TAU = Math.PI * 2, full = Math.abs(t1 - t0 - TAU) < 1e-6, K = prof.length, S = o.starts || 1;
+      // 多頭螺旋（銑刀的兩條刃）：剖面每 1／S 個導程重複一次
+      const nA = Math.floor((x0 / lead + ph - t1 / TAU) * S) - 1, nB = Math.ceil((x1 / lead + ph - t0 / TAU) * S) + 1;
+      const M = (nB - nA) * K, pos = [], idx = [];
+      for (let j = 0; j <= nt; j++) {
+        const th = t0 + (t1 - t0) * j / nt, s = Math.sin(th), c = Math.cos(th);
+        for (let m = 0; m < M; m++) {
+          const pk = prof[m % K], n = nA + Math.floor(m / K);
+          const x = Math.min(x1, Math.max(x0, ((n + pk[0]) / S - ph + th / TAU) * lead)), r = r0 + pk[1];
+          pos.push(x, r * s, r * c);
+        }
+      }
+      // 滿一圈時最後一欄接回第一欄（同一個點差一個導程 ＝ 往後 K 個取樣），法線才不會有接縫
+      const at = (m, j) => (full && j === nt && m + K * S < M) ? m + K * S : j * M + m;
+      for (let j = 0; j < nt; j++) for (let m = 0; m < M - 1; m++) {
+        const a = at(m, j), b = at(m + 1, j), c = at(m + 1, j + 1), dd = at(m, j + 1);
+        if (o.inward) idx.push(a, c, b, a, dd, c); else idx.push(a, b, c, a, c, dd);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+      g.computeVertexNormals();
+      return g;
+    }
+    // 螺旋溝在某個固定角度 th 上的那一條剖面線（半剖的切面要沿著它收邊）
+    function mcHelixLine(o, th) {
+      const { r0, prof, lead, x0, x1 } = o, ph = o.ph || 0, K = prof.length, TAU = Math.PI * 2;
+      const out = [];
+      const nA = Math.floor(x0 / lead + ph - th / TAU) - 1, nB = Math.ceil(x1 / lead + ph - th / TAU) + 1;
+      for (let n = nA; n < nB; n++) for (let k = 0; k < K; k++) {
+        const x = (n + prof[k][0] - ph + th / TAU) * lead;
+        if (x < x0 || x > x1) continue;
+        out.push([x, r0 + prof[k][1]]);
+      }
+      out.unshift([x0, out.length ? out[0][1] : r0]); out.push([x1, out.length ? out[out.length - 1][1] : r0]);
+      return out;
+    }
+    // 切面（z = 0）上的一條帶：內緣沿 line（[x, r]）、外緣半徑 ro；sy ＝ +1 上半、−1 下半。法線朝 +z（鏡頭那一側）
+    function mcCutStrip(line, ro, sy) {
+      const pos = [];
+      for (let i = 0; i < line.length - 1; i++) {
+        const [xa, ra] = line[i], [xb, rb] = line[i + 1];
+        const A = [xa, ra * sy, 0], B = [xb, rb * sy, 0], C = [xb, ro * sy, 0], D = [xa, ro * sy, 0];
+        if (sy > 0) pos.push(...A, ...B, ...C, ...A, ...C, ...D); else pos.push(...A, ...C, ...B, ...A, ...D, ...C);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+      return g;
+    }
+    // 半圓環端面（軸沿 x、保留 z < 0），sx ＝ +1 朝 +x、−1 朝 −x
+    function mcHalfRing(ri, ro, x, sx, seg) {
+      const g = new T.RingGeometry(ri, ro, seg || 16, 1, sx > 0 ? -Math.PI / 2 : Math.PI / 2, Math.PI);
+      g.rotateY(sx > 0 ? Math.PI / 2 : -Math.PI / 2); g.translate(x, 0, 0); return g;
+    }
+    /* 沿一條平面路徑（z = zc 的平面）掃出**半剖**的管：只留 z < zc 那一半，切面剛好落在平面上 ——
+       鋼珠回流管就是這樣剖開才看得到裡面一顆一顆的鋼珠。ro／ri 外徑／內徑，n 沿路徑取樣數。*/
+    function mcSweepHalf(curve, ro, ri, n, zc) {
+      const pos = [], idx = [], strip = [], S = 8;
+      const P = curve.getSpacedPoints(n), Tn = P.map((_, i) => curve.getTangentAt(i / n));
+      const ring = (i, r) => {
+        const t = Tn[i], N = new T.Vector3(-t.y, t.x, 0).normalize();
+        const out = [];
+        for (let k = 0; k <= S; k++) { const a = Math.PI + Math.PI * k / S;
+          out.push([P[i].x + (Math.cos(a) * N.x) * r, P[i].y + (Math.cos(a) * N.y) * r, (zc || 0) + Math.sin(a) * r]); }
+        return out;
+      };
+      [[ro, false], [ri, true]].forEach(([r, inv]) => {
+        const base = pos.length / 3;
+        for (let i = 0; i <= n; i++) ring(i, r).forEach(v => pos.push(v[0], v[1], v[2]));
+        for (let i = 0; i < n; i++) for (let k = 0; k < S; k++) {
+          const a = base + i * (S + 1) + k, b = a + S + 1;
+          if (inv) idx.push(a, b, a + 1, a + 1, b, b + 1); else idx.push(a, a + 1, b, a + 1, b + 1, b);
+        }
+      });
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+      g.computeVertexNormals();
+      // 兩條切面帶（z = zc 上、壁厚看得見）
+      for (let i = 0; i < n; i++) {
+        const t0 = Tn[i], t1 = Tn[i + 1];
+        const N0 = new T.Vector3(-t0.y, t0.x, 0).normalize(), N1 = new T.Vector3(-t1.y, t1.x, 0).normalize();
+        [1, -1].forEach(sg => {
+          const q = (P, N, r) => [P.x + N.x * r * sg, P.y + N.y * r * sg, (zc || 0) + 0.015];
+          const A = q(P[i], N0, ri), B = q(P[i + 1], N1, ri), C = q(P[i + 1], N1, ro), D = q(P[i], N0, ro);
+          strip.push(...A, ...B, ...C, ...A, ...C, ...D);
+        });
+      }
+      for (let i = 0; i < strip.length; i += 9) {        // 繞向朝 −z 的那幾片翻過來（切面一律朝 +z、鏡頭那一側）
+        const ux = strip[i + 3] - strip[i], uy = strip[i + 4] - strip[i + 1], vx = strip[i + 6] - strip[i], vy = strip[i + 7] - strip[i + 1];
+        if (ux * vy - uy * vx < 0) for (let k = 0; k < 3; k++) { const t = strip[i + 3 + k]; strip[i + 3 + k] = strip[i + 6 + k]; strip[i + 6 + k] = t; }
+      }
+      const sg = new T.BufferGeometry();
+      sg.setAttribute('position', new T.Float32BufferAttribute(strip, 3));
+      sg.setAttribute('normal', new T.Float32BufferAttribute(strip.map((_, i) => (i % 3 === 2 ? 1 : 0)), 3));
+      return mergeGeos([g, sg]);
+    }
+    /* 外循環的回流管路徑（螺帽的局部座標）：兩張嘴都落在節圓的最頂端（θ = π/2）、相隔整整兩圈，
+       管子從一張嘴往上翻、越過螺帽頂、從另一張嘴下去 —— 鋼珠走兩圈螺旋再從管子繞回來，是一個**閉合的迴圈**。
+       螺帽、鋼珠、回流管三支都用這一條，嘴的位置才對得上溝。*/
+    function bsReturn(d, ph, Ro) {
+      const TAU = Math.PI * 2, L = d.lead;
+      const na = Math.round(-1 - 0.75 + ph);
+      const xa = (na + 0.75 - ph) * L, xb = xa + 2 * L, rt = d.rb * 1.32, top = Ro + rt * 1.25;
+      const pts = [[xa, d.Rp], [xa - L * 0.22, Ro * 0.94], [xa + L * 0.12, top], [(xa + xb) / 2, top + rt * 0.08],
+        [xb - L * 0.12, top], [xb + L * 0.22, Ro * 0.94], [xb, d.Rp]];
+      return { xa, xb, rt, top, curve: new T.CatmullRomCurve3(pts.map(([x, y]) => new T.Vector3(x, y, 0))), turns: 2, TAU };
+    }
+
+    /* 底座（鋁擠型）：★ 斷面有空腔 —— 同樣重量下拿到比較高的斷面剛性。實心方塊不是鋁擠型。
+       2026-09-26 細緻化：以前是六塊板拼成的「日」字。現在是一個**真的擠型斷面**沿 x 擠出：
+       頂面兩條、左右各一條 T 型槽（窄口寬底，T 型螺帽塞得進去、拔不出來），
+       中間三個圓角空腔 ＋ 兩個攻牙用的圓孔（端蓋鎖在這裡）。從 +x 那一端看得到整個斷面。*/
     function mcBase(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const t = h * 0.22;
-      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0], [w, t, d, 0, h / 2 - t / 2, 0],
-        [w, h, t, 0, 0, -d / 2 + t / 2], [w, h, t, 0, 0, d / 2 - t / 2],
-        [w, h, t, 0, 0, -d / 6], [w, h, t, 0, 0, d / 6]], K.mat(-0.12, { rough: 0.5 })));
-      g.add(mboxes([[w, t * 0.5, t * 0.9, 0, h / 2 - t * 1.1, -d * 0.34],
-        [w, t * 0.5, t * 0.9, 0, h / 2 - t * 1.1, d * 0.34]], K.mat(-0.5, { rough: 0.82 })));
+      const X = d / 2, Y = h / 2, a = h * 0.19, b = h * 0.38, s1 = h * 0.13, s2 = h * 0.38;
+      const pts = [[-X, -Y], [X, -Y]];
+      // 右側 T 型槽（由下往上走）
+      pts.push([X, -a / 2], [X - s1, -a / 2], [X - s1, -b / 2], [X - s2, -b / 2], [X - s2, b / 2], [X - s1, b / 2], [X - s1, a / 2], [X, a / 2]);
+      pts.push([X, Y]);
+      // 頂面兩條 T 型槽（由右往左走）
+      [d * 0.12, -d * 0.12].forEach(cx => {
+        pts.push([cx + a / 2, Y], [cx + a / 2, Y - s1], [cx + b / 2, Y - s1], [cx + b / 2, Y - s2],
+          [cx - b / 2, Y - s2], [cx - b / 2, Y - s1], [cx - a / 2, Y - s1], [cx - a / 2, Y]);
+      });
+      pts.push([-X, Y]);
+      // 左側 T 型槽（由上往下走）
+      pts.push([-X, a / 2], [-X + s1, a / 2], [-X + s1, b / 2], [-X + s2, b / 2], [-X + s2, -b / 2], [-X + s1, -b / 2], [-X + s1, -a / 2], [-X, -a / 2]);
+      const holes = [mcRRect(0, -h * 0.08, d * 0.1, h * 0.5, h * 0.08), mcRRect(d * 0.27, -h * 0.05, d * 0.15, h * 0.52, h * 0.1),
+        mcRRect(-d * 0.27, -h * 0.05, d * 0.15, h * 0.52, h * 0.1), mcCirc(d * 0.165, -h * 0.26, h * 0.1), mcCirc(-d * 0.165, -h * 0.26, h * 0.1)];
+      const alu = K.mat(-0.12, { rough: 0.5 });
+      g.add(new T.Mesh(mcProfX(pts, w, holes), alu));
+      /* 馬達座（聯軸器座）：底座 −x 端外面那一截。馬達的方法蘭鎖在它的外側那一片、聯軸器就在它裡面 ——
+         正面（z > 0）開著，跟整張圖同一個切面，看得到聯軸器。沒有它的話馬達是懸在半空中的。*/
+      if (p.mount) {
+        const [x0, x1] = p.mount, ay = p.axisY, Rm = p.mountR || 10.5, t = 1.3, L = x1 - x0, cx = (x0 + x1) / 2;
+        const frame = (x, hole, y0, y1) => [[t, y1 - (ay + hole), 2 * Rm, x, (y1 + ay + hole) / 2, 0], [t, (ay - hole) - y0, 2 * Rm, x, (ay - hole + y0) / 2, 0],
+          [t, 2 * hole, Rm - hole, x, ay, -(Rm + hole) / 2], [t, 2 * hole, Rm - hole, x, ay, (Rm + hole) / 2]];
+        g.add(mboxes([[L, t, 2 * Rm, cx, ay + Rm - t / 2, 0], [L, t, 2 * Rm, cx, ay - Rm + t / 2, 0], [L, 2 * Rm, t, cx, ay, -Rm + t / 2]]
+          .concat(frame(x0 + t / 2, Rm * 0.66, ay - Rm, ay + Rm), frame(x1 - t / 2, Rm * 0.6, -h / 2, ay + Rm)), alu));
+      }
       return g;
     }
 
-    /* 伺服馬達：方殼 ＋ 散熱肋 ＋ 前法蘭與四顆鎖付孔 ＋ 伸出去的軸 ＋ 出線接頭。
+    /* 伺服馬達：方殼 ＋ 散熱肋 ＋ 前法蘭（四個穿孔 ＋ 止口）＋ 伸出去的軸（有鍵）＋ 兩顆出線接頭。
        ★ 有軸才看得出它是「出力」的那一端；有法蘭才看得出它是被鎖在機構上的。
+       2026-09-26 細緻化：法蘭從圓盤改成**方法蘭**（伺服馬達是用法蘭的方框規格來分級的），
+       前面多一圈**止口**（定位用的凸環，跟機構的孔配合，所以軸心才對得準）；軸上加**鍵**；
+       出線改成兩顆圓形接頭：大的是動力線、小的是編碼器線 —— 一顆馬達兩條線，一條給電、一條回報位置。
        本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）。*/
     function mcMotor(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(h, d) / 2;
       const m = K.mat(-0.1, { rough: 0.38 });
-      g.add(put(rbox(w * 0.6, R * 1.86, R * 1.86, R * 0.18, m), -w * 0.08, 0, 0));
-      const fins = [];
-      for (let i = 0; i < 7; i++) {
-        fins.push([w * 0.56, R * 0.1, R * 0.12, -w * 0.08, R * 0.95, (-3 + i) * R * 0.5]);
-        fins.push([w * 0.56, R * 0.1, R * 0.12, -w * 0.08, -R * 0.95, (-3 + i) * R * 0.5]);
+      const dark = K.mat(-0.7, { rough: 0.8, metal: 0.15 });
+      const st = K.mat(0.3, { rough: 0.22, metal: 0.95 });
+      const L = w * 0.56, cx = -w * 0.1, fx = cx + L / 2 + w * 0.035;
+      // 外殼、散熱肋（四面各四條、沿軸向）、後蓋、方法蘭：同一個材質併成一次（一台 CNC 上有五顆馬達，draw call 要省）
+      const body = [rboxGeo(L, R * 1.8, R * 1.8, R * 0.24).translate(cx, 0, 0),
+        mcAt(mcCylX(R * 0.82, w * 0.05, 20), cx - L / 2 - w * 0.02, 0, 0),
+        rboxGeo(w * 0.07, R * 2.1, R * 2.1, R * 0.16).translate(fx, 0, 0)];
+      for (let i = 0; i < 4; i++) {
+        const o = (-1.5 + i) * R * 0.38;
+        [[R * 0.1, R * 0.09, 0, R * 0.93, o], [R * 0.1, R * 0.09, 0, -R * 0.93, o], [R * 0.09, R * 0.1, 0, o, R * 0.93], [R * 0.09, R * 0.1, 0, o, -R * 0.93]]
+          .forEach(([bh, bd, , y, z]) => body.push(new T.BoxGeometry(L * 0.86, bh, bd).translate(cx, y, z)));
       }
-      g.add(mboxes(fins, K.mat(0.12, { rough: 0.44 })));
-      g.add(put(cylX(R * 1.02, w * 0.08, m, 20), w * 0.26, 0, 0));
-      g.add(instOf(new T.CylinderGeometry(R * 0.11, R * 0.11, w * 0.12, 8),
-        K.mat(-0.6, { rough: 0.9, metal: 0.1 }),
-        [[w * 0.26, R * 0.66, R * 0.66, 0, 0, Math.PI / 2], [w * 0.26, R * 0.66, -R * 0.66, 0, 0, Math.PI / 2],
-          [w * 0.26, -R * 0.66, R * 0.66, 0, 0, Math.PI / 2], [w * 0.26, -R * 0.66, -R * 0.66, 0, 0, Math.PI / 2]]));
-      g.add(put(cylX(R * 0.2, w * 0.3, K.mat(0.3, { rough: 0.22, metal: 0.95 }), 14), w * 0.42, 0, 0));
-      g.add(put(box(w * 0.1, R * 0.4, R * 0.4, K.mat(-0.46, { rough: 0.7, metal: 0.2 })), -w * 0.1, R * 1.04, 0));
+      g.add(mcMerge(body, m));
+      // 四個穿孔（深色）＋ 兩顆接頭本體（大的動力線、小的編碼器線）
+      const dk = [];
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sy, sz]) => dk.push(mcAt(mcCylX(R * 0.12, w * 0.075, 8), fx, sy * R * 0.78, sz * R * 0.78)));
+      dk.push(mcAt(new T.CylinderGeometry(R * 0.26, R * 0.26, R * 0.36, 14), cx - L * 0.28, R * 1.08, 0));
+      dk.push(mcAt(new T.CylinderGeometry(R * 0.18, R * 0.18, R * 0.3, 12), cx - L * 0.05, R * 1.06, 0));
+      dk.push(mcAt(new T.BoxGeometry(R * 0.6, R * 0.12, R * 0.6), cx - L * 0.28, R * 0.93, 0));
+      dk.push(mcAt(new T.BoxGeometry(R * 0.44, R * 0.12, R * 0.44), cx - L * 0.05, R * 0.93, 0));
+      g.add(mcMerge(dk, dark));
+      // 止口、軸、鍵、接頭的鎖緊螺帽（亮金屬）
+      g.add(mcMerge([mcAt(mcCylX(R * 0.7, w * 0.03, 24), fx + w * 0.05, 0, 0),
+        mcAt(mcCylX(R * 0.2, w * 0.3, 16), fx + w * 0.2, 0, 0),
+        mcAt(new T.BoxGeometry(w * 0.16, R * 0.08, R * 0.1), fx + w * 0.24, R * 0.2, 0),
+        mcAt(new T.CylinderGeometry(R * 0.3, R * 0.3, R * 0.12, 12), cx - L * 0.28, R * 1.28, 0),
+        mcAt(new T.CylinderGeometry(R * 0.22, R * 0.22, R * 0.1, 12), cx - L * 0.05, R * 1.24, 0)], st));
       return g;
     }
 
     /* 編碼器：★ 裡面那片刻了一圈等距刻線的碼盤就是它的全部意義 ——
        「會轉」跟「知道自己轉到哪」是兩件事，而差別只有這片盤。
-       外罩切掉朝鏡頭那一半才看得到它。裝在馬達的**尾端**（遠離螺桿那一側）。*/
+       2026-09-26 細緻化：外罩改成**圓罩**半剖（伺服馬達尾端那一顆是圓的）；碼盤跟馬達軸**同心**（以前偏到後面去了）；
+       外圈 72 條等距刻線 ＋ 內圈一條原點刻線；讀取頭是一個**ㄈ字形的叉**跨在碼盤邊緣上（一邊發光、一邊收光），
+       插在後面那片電路板上；罩子頂上一顆出線接頭。
+       依據：伺服馬達的位置偵測器裝在馬達的後軸側（Oriental Motor 技術頁）。*/
     function mcEnc(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(h, d) / 2;
-      g.add(mboxes(halfSlab(w * 0.9, R * 1.8, R * 1.8), K.mat(-0.2, { rough: 0.64, metal: 0.2 })));
-      g.add(halfFace(K, w * 0.9, R * 1.8, R * 1.8, 0, -0.2));
-      g.add(put(cylX(R * 0.78, w * 0.06, K.mat(0.42, { rough: 0.2, metal: 0.5 }), 22), 0, 0, -R * 0.45));
+      const shell = K.mat(-0.2, { rough: 0.6, metal: 0.25 });
+      g.add(mcMerge([mcHalfX(R * 0.98, R * 0.88, w * 0.9), mcHalfX(R * 0.98, 0, w * 0.06).translate(-w * 0.45, 0, 0)], shell));
+      // 碼盤（同心）＋ 輪轂
+      g.add(mcMerge([mcCylX(R * 0.74, w * 0.035, 32), mcAt(mcCylX(R * 0.2, w * 0.2, 14), 0, 0, 0)],
+        K.mat(0.42, { rough: 0.2, metal: 0.6 })));
       const slots = [];
-      for (let i = 0; i < 20; i++) {
-        const a = i / 20 * Math.PI * 2;
-        slots.push([0, Math.sin(a) * R * 0.6, -R * 0.45 + Math.cos(a) * R * 0.6, a, 0, 0]);
-      }
-      g.add(instOf(new T.BoxGeometry(w * 0.09, R * 0.24, R * 0.09),
-        K.mat(-0.76, { rough: 0.95, metal: 0.02 }), slots));
-      // 讀取頭：隔著碼盤讀那些刻線的那一小塊板子
-      g.add(put(box(w * 0.22, R * 0.3, R * 0.26,
-        K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 })), -w * 0.24, R * 0.66, -R * 0.45));
+      for (let i = 0; i < 72; i++) { const a = i / 72 * Math.PI * 2; slots.push([0, Math.sin(a) * R * 0.64, Math.cos(a) * R * 0.64, a, 0, 0]); }
+      g.add(instOf(new T.BoxGeometry(w * 0.045, R * 0.14, R * 0.018), K.mat(-0.8, { rough: 0.95, metal: 0.02 }), slots));
+      // 原點刻線（內圈只有一條）＋ 讀取頭的叉（跨在碼盤頂端邊緣）＋ 接頭：同一個深色材質
+      const dk = [mcAt(new T.BoxGeometry(w * 0.045, R * 0.1, R * 0.05), 0, R * 0.42, 0),
+        mcAt(new T.BoxGeometry(w * 0.07, R * 0.3, R * 0.22), -w * 0.06, R * 0.64, 0),
+        mcAt(new T.BoxGeometry(w * 0.07, R * 0.3, R * 0.22), w * 0.06, R * 0.64, 0),
+        mcAt(new T.BoxGeometry(w * 0.19, R * 0.1, R * 0.22), 0, R * 0.8, 0),
+        mcAt(new T.CylinderGeometry(R * 0.2, R * 0.2, R * 0.3, 12), -w * 0.1, R * 1.1, 0)];
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.8, metal: 0.12 })));
+      // 電路板（讀取頭插在上面）
+      const pcb = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 });
+      g.add(mcMerge([mcAt(new T.BoxGeometry(w * 0.05, R * 1.5, R * 1.3), -w * 0.26, R * 0.05, -R * 0.1),
+        mcAt(new T.BoxGeometry(w * 0.05, R * 0.12, R * 0.22), -w * 0.18, R * 0.72, 0)], pcb));
       return g;
     }
 
-    /* 聯軸器：★ 中段那條螺旋切槽是它的識別特徵 ——
-       沒有它就是一根硬軸，吃不了兩根軸之間必然存在的偏心與角度誤差，
-       也沒有一個可更換的犧牲件。兩端各一顆夾緊螺絲。*/
+    /* 聯軸器（撓性・一體式樑型）：★ 中段那條螺旋切槽是它的識別特徵 ——
+       沒有它就是一根硬軸，吃不了兩根軸之間必然存在的偏心與角度誤差，也沒有一個可更換的犧牲件。
+       2026-09-26 細緻化：切槽從 22 塊小方塊改成**真的一條螺旋槽**（深到看得見裡面的暗色內孔）；
+       兩端的輪轂改成**夾緊式**：軸向一道開縫 ＋ 一根切向的內六角螺絲把開縫夾緊（伺服用聯軸器偏好夾緊式，不傷軸）。
+       依據：Ruland／Machine Design 的伺服聯軸器分類（beam：一體成形、螺旋切槽；clamp style 優於 set screw）。*/
     function mcCoup(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
+      const R = Math.min(h, d) / 2, Ro = R * 0.95;
       const m = K.mat(0.06, { rough: 0.3, metal: 0.9 });
-      g.add(put(cylX(R, w * 0.3, m, 18), -w * 0.34, 0, 0));
-      g.add(put(cylX(R, w * 0.3, m, 18), w * 0.34, 0, 0));
-      g.add(put(cylX(R * 0.94, w * 0.4, K.mat(-0.1, { rough: 0.34, metal: 0.88 }), 18), 0, 0, 0));
-      const cuts = [], n = 22;
-      for (let i = 0; i < n; i++) {
-        const t = i / n, a = t * Math.PI * 5;
-        cuts.push([(-0.5 + t) * w * 0.38, Math.sin(a) * R * 0.86, Math.cos(a) * R * 0.86, a, 0, 0]);
-      }
-      g.add(instOf(new T.BoxGeometry(w * 0.024, R * 0.3, R * 0.24),
-        K.mat(-0.8, { rough: 0.95, metal: 0.04 }), cuts));
-      g.add(instOf(new T.CylinderGeometry(R * 0.16, R * 0.16, R * 0.5, 8),
-        K.mat(-0.4, { rough: 0.5, metal: 0.82 }), [[-w * 0.34, R * 0.8, 0], [w * 0.34, R * 0.8, 0]]));
+      const hub = w * 0.29, mid = w * 0.96 - 2 * hub;
+      const lead = mid / 2.6;
+      const prof = [[0, 0], [0.4, 0], [0.42, -R * 0.5], [0.58, -R * 0.5], [0.6, 0]];
+      g.add(mcMerge([mcHelix({ r0: Ro, prof, lead, x0: -mid / 2, x1: mid / 2, nt: 24 }),
+        mcAt(mcCylX(Ro, hub, 24), -mid / 2 - hub / 2, 0, 0), mcAt(mcCylX(Ro, hub, 24), mid / 2 + hub / 2, 0, 0)], m));
+      const dark = K.mat(-0.8, { rough: 0.95, metal: 0.04 });
+      // 暗色內孔（螺旋槽底下看得到的那一圈）＋ 兩端的軸孔 ＋ 夾緊開縫
+      const dk = [mcCylX(R * 0.6, mid * 0.98, 16)];
+      [-1, 1].forEach(s => {
+        const hx = s * (mid / 2 + hub / 2);
+        dk.push(mcAt(mcCylX(R * 0.34, 0.02, 14), s * (w * 0.48 + 0.01), 0, 0));
+        dk.push(mcAt(new T.BoxGeometry(hub * 0.98, R * 0.5, R * 0.08), hx, R * 0.74, 0));
+      });
+      g.add(mcMerge(dk, dark));
+      // 切向夾緊螺絲（頭朝 +z，鏡頭這一側）
+      const sc = [];
+      [-1, 1].forEach(s => sc.push(mcAt(mcCylZ(R * 0.2, R * 0.34, 12), s * (mid / 2 + hub / 2), R * 0.55, Ro * 0.86)));
+      g.add(mcMerge(sc, K.mat(-0.3, { rough: 0.4, metal: 0.85 })));
       return g;
     }
 
-    /* 軸承座：座體半剖，裡面看得到內外環與夾在中間的一圈滾珠。
-       ★ 沒有滾珠的「軸承」只是一個襯套（滑動摩擦），撐不住螺桿的軸向力。
-       螺桿兩端各一個：一端固定（吃軸向力）、一端支撐（讓螺桿受熱可以伸長）。*/
+    /* 軸承座（固定端＋支撐端，一次建兩個）：★ 一端固定（吃軸向力）、一端支撐（只導引，讓螺桿受熱可以伸長）。
+       2026-09-26 細緻化：以前兩端是同一支幾何複製兩份，看不出「固定」跟「支撐」差在哪。現在分開畫：
+         固定端（馬達側）：**兩顆斜角滾珠軸承背對背** ＋ 外側一顆**鎖緊螺帽**（有四個扳手槽）把內環壓緊；
+         支撐端：**一顆深溝滾珠軸承** ＋ 外側一圈**扣環** —— 內環不被壓死，螺桿熱脹時可以滑。
+       座體是方塊開一個圓孔、半剖（切掉 z > 0），孔裡的內外環也一起剖開，看得到滾珠夾在中間。
+       依據：THK／MISUMI 的螺桿支撐單元型錄（固定側斜角軸承＋鎖緊螺帽、支撐側深溝軸承＋扣環）。
+       ⚠ 兩個座的中心距由場景的 `pair` 給（以前是 n:2／gap）。*/
     function mcBrg(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      g.add(mboxes(halfSlab(w, h, d), K.mat(-0.16, { rough: 0.46 })));
-      g.add(halfFace(K, w, h, d, 0, -0.16));
-      const st = K.mat(0.26, { rough: 0.2, metal: 0.95 });
-      g.add(put(cylX(R * 0.72, w * 0.62, st, 20), 0, 0, -d * 0.24));
-      g.add(put(cylX(R * 0.34, w * 0.7, K.mat(0.08, { rough: 0.24, metal: 0.95 }), 16), 0, 0, -d * 0.24));
-      const balls = [];
-      for (let i = 0; i < 12; i++) {
-        const a = i / 12 * Math.PI * 2;
-        balls.push([0, Math.sin(a) * R * 0.53, -d * 0.24 + Math.cos(a) * R * 0.53]);
-      }
-      g.add(instOf(new T.SphereGeometry(R * 0.17, 8, 6), st, balls));
+      const R = Math.min(h, d) / 2, gap = p.pair || 0;
+      const jr = bsDims(p.sr || R * 0.65).sLand * 0.78;            // 螺桿軸頸半徑（內環內徑）
+      const bore = R * 0.8, oi = R * 0.66, ii = jr * 1.32, bc = (oi + ii) / 2, br = (oi - ii) * 0.46;
+      const housing = K.mat(-0.16, { rough: 0.46 }), st = K.mat(0.26, { rough: 0.2, metal: 0.95 });
+      const hs = [], rings = [], balls = [], dk = [];
+      [-1, 1].forEach(side => {
+        const cx = side * gap / 2, fixed = side < 0;
+        // 座體：方塊挖圓孔、只留 z < 0；下半多一塊底座
+        const pts = [[0, -h / 2], [-d / 2, -h / 2], [-d / 2, h * 0.36], [0, h * 0.36], [0, bore]];
+        for (let i = 1; i < 12; i++) { const a = Math.PI / 2 + Math.PI * i / 12; pts.push([Math.cos(a) * bore, Math.sin(a) * bore]); }
+        pts.push([0, -bore]);
+        hs.push(mcAt(mcProfX(pts.map(([z, y]) => [-z, y]), w), cx, 0, 0));
+        // 軸承：固定端兩顆（背對背）、支撐端一顆
+        const bw = fixed ? w * 0.38 : w * 0.5, xs = fixed ? [-bw / 2, bw / 2] : [0];
+        xs.forEach(bx => {
+          rings.push(mcAt(mcHalfX(bore, oi, bw * 0.96), cx + bx, 0, 0), mcAt(mcHalfX(ii, jr, bw * 0.96), cx + bx, 0, 0));
+          for (let i = 0; i < 14; i++) { const a = Math.PI / 2 + i / 13 * Math.PI; balls.push([cx + bx, Math.sin(a) * bc, Math.cos(a) * bc]); }
+        });
+        if (fixed) {
+          // 鎖緊螺帽（外側）＋ 四個扳手槽
+          const nx = cx - w / 2 - w * 0.12;
+          rings.push(mcAt(mcHalfX(ii * 1.18, jr, w * 0.22), nx, 0, 0));
+          [0.62, 0.87, 1.13, 1.38].forEach(t => { const a = t * Math.PI; dk.push(mcAt(new T.BoxGeometry(w * 0.23, ii * 0.2, ii * 0.2), nx, Math.sin(a) * ii * 1.12, Math.cos(a) * ii * 1.12)); });
+        } else {
+          // 扣環（外側一圈薄環）
+          rings.push(mcAt(mcHalfX(ii * 0.98, jr, w * 0.05), cx + w / 2 + w * 0.04, 0, 0));
+        }
+        // 底座的兩個鎖付孔（垂直）
+        dk.push(mcAt(new T.CylinderGeometry(R * 0.14, R * 0.14, h * 0.2, 10), cx, -h * 0.4, -d * 0.32));
+      });
+      g.add(mcMerge(hs, housing));
+      g.add(mcMerge(rings, st));
+      g.add(instOf(new T.SphereGeometry(br, 10, 7), K.mat(0.34, { rough: 0.14, metal: 0.96 }), balls));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
       return g;
     }
 
     /* 滾珠螺桿・螺桿軸：★ 溝槽剖面是**圓弧**（哥德弧／單圓弧），不是 V 形三角 ——
        V 形那是鎖緊用的螺絲，走的是滑動摩擦、裡面沒有鋼珠。
-       兩端的軸頸比較細而且有階級（那是要裝軸承的地方）。*/
+       兩端的軸頸比較細而且有階級（那是要裝軸承的地方）。
+       2026-09-26 細緻化：以前是一根光軸外面纏一條細管（看起來像彈簧套在棒子上）。
+       現在是**一整面真的螺旋溝**：溝的軸向剖面是圓弧、溝與溝之間留平的牙頂，導程 ≈ 0.36 倍外徑；
+       溝的相位對齊世界座標，所以螺帽內壁的溝與鋼珠跟它對得上。
+       兩端軸頸各兩階：馬達側最外面那一階有鍵槽（接聯軸器），另一端有扣環槽（接支撐端）。
+       CNC 那張的 X／Z 軸也用這一支（同一批零件，那正是兩張圖的接縫）。*/
     function mcScrew(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
+      const R = Math.min(h, d) / 2, D = bsDims(R);
       const st = K.mat(0.2, { rough: 0.2, metal: 0.95 });
-      g.add(cylX(R * 0.82, w, st, 20));
-      const turns = 9, seg = turns * 12, pts = [];
-      for (let i = 0; i <= seg; i++) {
-        const t = i / seg, a = t * turns * Math.PI * 2;
-        pts.push(new T.Vector3((-0.5 + t) * w * 0.96, Math.sin(a) * R * 0.86, Math.cos(a) * R * 0.86));
-      }
-      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), seg, R * 0.13, 6, false),
-        K.mat(-0.3, { rough: 0.3, metal: 0.9 })));
-      g.add(put(cylX(R * 0.5, w * 0.1, st, 14), -w * 0.53, 0, 0));
-      g.add(put(cylX(R * 0.5, w * 0.1, st, 14), w * 0.53, 0, 0));
+      const x0 = -w * 0.4, x1 = w * 0.4, j1 = D.sLand * 0.78, j2 = D.sLand * 0.6;
+      /* 細的螺桿（CNC 那張的 X／Z 軸，畫面上只有幾十像素寬）每圈少取樣：C6-6 棘輪要每張場景 ≤ ai_server 的 1.15 倍三角形 */
+      const fine = R > 5;
+      const geos = [mcHelix({ r0: D.Rp, prof: bsProf(D, -1, fine ? 8 : 5), lead: D.lead, x0, x1, ph: bsPh(p, D), nt: fine ? 28 : 11 }),
+        mcAt(new T.CircleGeometry(D.sLand, 24), x0, 0, 0, 0, -Math.PI / 2), mcAt(new T.CircleGeometry(D.sLand, 24), x1, 0, 0, 0, Math.PI / 2),
+        mcAt(mcCylX(j1, w * 0.143, 18), -w * 0.4715, 0, 0), mcAt(mcCylX(j2, w * 0.067, 16), -w * 0.5765, 0, 0),
+        mcAt(mcCylX(j1, w * 0.125, 18), w * 0.4625, 0, 0), mcAt(mcCylX(j2, w * 0.035, 16), w * 0.5425, 0, 0)];
+      g.add(mcMerge(geos, st));
+      // 鍵槽與扣環槽（深色）
+      g.add(mcMerge([mcAt(new T.BoxGeometry(w * 0.045, j2 * 0.3, j2 * 0.5), -w * 0.58, j2 * 0.86, 0),
+        mcAt(mcCylX(j1 * 0.92, w * 0.008, 16), w * 0.518, 0, 0)], K.mat(-0.6, { rough: 0.6, metal: 0.6 })));
       return g;
     }
 
     /* 滾珠螺桿・螺帽：★ 用半管切開（不是切方塊）——
        壁厚看得見，才看得出「鋼珠與回流通道真的在這個套筒的**裡面**」。
-       外側的法蘭是它鎖到工作台上的那一片：沒有法蘭就看不出它是推東西的那一端。*/
+       外側的法蘭是它鎖到工作台上的那一片：沒有法蘭就看不出它是推東西的那一端。
+       2026-09-26 細緻化：內壁從光滑改成**跟螺桿對得上的螺旋圓弧溝**（切面上看得到一排半圓缺口）；
+       法蘭上加鎖付孔；兩端各一片刮刷器（擋切屑進螺帽的黑色環）。
+       ⚠ 螺帽內溝的尺寸要跟螺桿一致，所以吃場景給的 `sr`（螺桿半徑），不是自己的外徑。*/
     function mcNut(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      g.add(halfTubeX(R, R * 0.62, w * 0.8, K.mat(-0.08, { rough: 0.42 })));
-      const fl = halfTubeX(R * 1.46, R * 0.62, w * 0.16, K.mat(-0.2, { rough: 0.46 }));
-      fl.position.x = -w * 0.44;
-      g.add(fl);
-      // 內壁的圓弧溝：跟螺桿上那一條對得起來，鋼珠才夾得住（兩點接觸）
-      g.add(halfTubeX(R * 0.72, R * 0.6, w * 0.8, K.mat(-0.5, { rough: 0.55, metal: 0.65 })));
+      const R = Math.min(h, d) / 2, D = bsDims(p.sr || R * 0.765), ph = bsPh(p, D);
+      const len = w * 0.8, body = K.mat(-0.08, { rough: 0.42 });
+      const hel = { r0: D.Rp, prof: bsProf(D, 1, 6), lead: D.lead, x0: -len / 2, x1: len / 2, ph };
+      const geos = [mcHelix(Object.assign({ t0: Math.PI / 2, t1: Math.PI * 1.5, nt: 16, inward: true }, hel)),
+        mcSkinX(R, len, 24),
+        mcCutStrip(mcHelixLine(hel, Math.PI / 2), R, 1), mcCutStrip(mcHelixLine(hel, Math.PI * 1.5), R, -1),
+        mcHalfRing(D.nLand, R, len / 2, 1, 18), mcHalfRing(D.nLand, R, -len / 2, -1, 18)];
+      g.add(mcMerge(geos, body));
+      // 法蘭（−x 端）＋ 三個鎖付孔
+      const fl = K.mat(-0.2, { rough: 0.46 });
+      g.add(mcMerge([mcAt(mcHalfX(R * 1.46, R * 0.999, w * 0.16), -w * 0.44, 0, 0)], fl));
+      const dk = [];
+      [2 / 3, 1, 4 / 3].forEach(t => { const a = t * Math.PI; dk.push(mcAt(mcCylX(R * 0.1, w * 0.17, 8), -w * 0.44, Math.sin(a) * R * 1.23, Math.cos(a) * R * 1.23)); });
+      // 刮刷器（兩端）
+      [-1, 1].forEach(s => dk.push(mcAt(mcHalfX(R * 0.9, D.sLand * 1.01, w * 0.04), s * (len / 2 + w * 0.02) + (s < 0 ? -w * 0.12 : 0), 0, 0)));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.08 })));
       return g;
     }
 
     /* 鋼珠：★ 每一顆都同時碰到螺桿溝與螺帽溝 —— 浮在中間就不傳力。
-       只畫剖面看得到的那半圈（z < 0），另外幾顆畫在回流通道裡 ——
-       因為鋼珠是一個**閉合的迴圈**，不是一條有頭有尾的鏈。*/
+       2026-09-26 細緻化：以前是隨便排的 12 顆 ＋ 回流道裡 6 顆，位置跟溝對不上。
+       現在鋼珠中心**落在節圓上、順著溝走**（跟螺桿與螺帽用同一組尺寸與相位），
+       走完兩圈就進回流管、在管子裡排成一列繞回起點 —— 數得出來是一個**閉合的迴圈**。
+       螺旋那一段會跟著螺桿轉（動態模式），管子裡那一段不跟著轉（管子鎖在螺帽上）。*/
     function mcBalls(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      const at = [], n = 30;
-      for (let i = 0; i < n; i++) {
-        const t = i / (n - 1), a = -Math.PI / 2 + t * Math.PI * 4.5;
-        const z = Math.cos(a) * R * 0.66;
-        if (z > 0) continue;
-        at.push([(-0.34 + t * 0.68) * w * 0.8, Math.sin(a) * R * 0.66, z]);
+      const R = Math.min(h, d) / 2, D = bsDims(p.sr || R * 0.765), ph = bsPh(p, D);
+      const ret = bsReturn(D, ph, R);
+      const TAU = Math.PI * 2, geo = new T.SphereGeometry(D.rb * 0.98, 10, 7);
+      const mat = K.mat(0.34, { rough: 0.14, metal: 0.96 });
+      const perRad = Math.hypot(D.Rp, D.lead / TAU), step = D.rb * 2.06 / perRad;
+      const hel = [], tube = [];
+      for (let th = step * 0.5; th < ret.turns * TAU - step * 0.25; th += step) {
+        const a = Math.PI / 2 + th;
+        hel.push([ret.xa + th / TAU * D.lead, Math.sin(a) * D.Rp, Math.cos(a) * D.Rp]);
       }
-      for (let i = 0; i < 6; i++) at.push([(-0.3 + i * 0.12) * w * 0.8, R * 0.92, -R * 0.3]);
-      g.add(instOf(new T.SphereGeometry(R * 0.11, 8, 6),
-        K.mat(0.34, { rough: 0.14, metal: 0.96 }), at));
+      const Lc = ret.curve.getLength(), n = Math.floor(Lc / (D.rb * 2.06));
+      for (let i = 1; i < n; i++) { const v = ret.curve.getPointAt(i / n); tube.push([v.x, v.y, v.z]); }
+      const hm = instOf(geo, mat, hel);
+      hm.userData.spin = { axis: 'x', speed: 0.34, base: 0.34, sync: 'feed' };
+      g.add(hm);
+      g.add(instOf(geo, mat, tube));
       return g;
     }
 
-    /* 循環器（鋼珠回流通道）：★ 這張圖的紅線零件 ——
-       鋼珠沿溝槽滾到螺帽的一端之後，從這條 U 形通道繞回另一端重新進入溝槽。
-       沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿。*/
+    /* 循環器（外循環・回流管）：★ 這張圖的紅線零件 ——
+       鋼珠沿溝槽滾到一端之後，從這條管子繞回另一端重新進入溝槽。
+       沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿。
+       2026-09-26 細緻化：管子**沿切面剖開**（z = 0 那一面剛好切過管子的中心線），
+       看得到管壁厚度與裡面一顆一顆的鋼珠；兩張嘴落在溝上、相隔兩圈；
+       頂上一片壓板 ＋ 兩顆螺絲把管子鎖在螺帽上（外循環「管子露在螺帽外面」的識別特徵）。
+       依據：外循環／內循環／端蓋循環三種（全球傳動、Thomson、MISUMI 技術頁）；外循環是最一般的方式。*/
     function mcReturn(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      const pts = [[-w * 0.34, R * 0.5, -R * 0.4], [-w * 0.38, R * 0.92, -R * 0.3],
-        [0, R * 1.02, -R * 0.3], [w * 0.38, R * 0.92, -R * 0.3], [w * 0.34, R * 0.5, -R * 0.4]];
-      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(a => new T.Vector3(a[0], a[1], a[2]))),
-        26, R * 0.17, 7, false),
-        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.6, metal: 0.12 })));
-      // 兩張嘴：通道跟溝槽接起來的進出口
-      g.add(instOf(new T.CylinderGeometry(R * 0.2, R * 0.2, R * 0.22, 10),
-        K.mat(-0.3, { rough: 0.55, metal: 0.3 }),
-        [[-w * 0.34, R * 0.46, -R * 0.4], [w * 0.34, R * 0.46, -R * 0.4]]));
+      const R = Math.min(h, d) / 2, D = bsDims(p.sr || R * 0.765), ph = bsPh(p, D);
+      const ret = bsReturn(D, ph, R);
+      g.add(new T.Mesh(mcSweepHalf(ret.curve, ret.rt, D.rb * 1.06, 40, 0),
+        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.5, metal: 0.4 })));
+      // 壓板（只畫 z < 0 那一半，跟管子同一個切面）＋ 兩顆螺絲
+      const py = ret.top + ret.rt * 1.16, pw = (ret.xb - ret.xa) * 0.5;
+      g.add(mcMerge([mcAt(new T.BoxGeometry(pw, ret.rt * 0.34, ret.rt * 2.6), (ret.xa + ret.xb) / 2, py, -ret.rt * 1.3),
+        mcAt(new T.CylinderGeometry(ret.rt * 0.34, ret.rt * 0.34, ret.rt * 0.3, 10), (ret.xa + ret.xb) / 2 - pw * 0.34, py + ret.rt * 0.3, -ret.rt * 1.7),
+        mcAt(new T.CylinderGeometry(ret.rt * 0.34, ret.rt * 0.34, ret.rt * 0.3, 10), (ret.xa + ret.xb) / 2 + pw * 0.34, py + ret.rt * 0.3, -ret.rt * 1.7)],
+      K.mat(-0.3, { rough: 0.5, metal: 0.8 })));
       return g;
     }
 
-    /* 線性滑軌・軌道：下寬上窄的一條，**兩側各有一道圓弧溝**（滾珠就滾在那兩道溝裡）。
-       ★ 一定是兩條平行軌、而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，
-       工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的，不是放上去的。*/
+    /* 線性滑軌・軌道：★ 一定是兩條平行軌、而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，
+       工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的，不是放上去的。
+       2026-09-26 細緻化：以前是上窄下寬兩塊方塊 ＋ 兩根細圓棒當溝。現在是**真的軌道斷面**沿長度擠出：
+       四道圓弧溝（上面兩道在頂角、斜 45°，側面各一道）—— 四列鋼珠、四個方向等負荷就是從這四道溝來的；
+       頂面是一排**沉頭孔**，孔裡看得到內六角螺絲的頭。
+       依據：上銀 HG 系列技術手冊（四列圓弧溝、45° 接觸）、全球傳動線軌構造說明。*/
     function mcRail(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(mboxes([[w, h * 0.42, d, 0, -h * 0.29, 0], [w, h * 0.6, d * 0.7, 0, h * 0.2, 0]],
-        K.mat(0.08, { rough: 0.26, metal: 0.92 })));
-      g.add(instOf(new T.CylinderGeometry(h * 0.12, h * 0.12, w, 8),
-        K.mat(-0.36, { rough: 0.4, metal: 0.8 }),
-        [[0, h * 0.2, -d * 0.35, 0, 0, Math.PI / 2], [0, h * 0.2, d * 0.35, 0, 0, Math.PI / 2]]));
-      const n = 5, holes = [];
-      for (let i = 0; i < n; i++) holes.push([(-(n - 1) / 2 + i) * (w / n), h * 0.46, 0]);
-      g.add(instOf(new T.CylinderGeometry(d * 0.12, d * 0.12, h * 0.34, 10),
-        K.mat(-0.72, { rough: 0.9, metal: 0.1 }), holes));
+      const X = d / 2, Y = h / 2, rr = h * 0.12, rs = h * 0.1, ys = -h * 0.02, nk = h * 0.06;
+      const Xt = X - nk * 0.3;                   // 頂面比底面略窄一點（軌道斷面上窄下寬）
+      const pts = [[-X * 0.96, -Y], [X * 0.96, -Y], [X, -Y + h * 0.04], [X, ys - rs]];
+      // 右側：側面那一道圓弧溝（往內凹的半圓）
+      for (let i = 1; i < 6; i++) { const a = -Math.PI / 2 + Math.PI * i / 6; pts.push([X - Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([X, ys + rs]);
+      // 右上頂角：45° 的圓弧溝（以頂角為圓心的四分之一圓，往內凹）
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 - Math.PI / 2 * i / 5; pts.push([Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      // 左上頂角
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 * i / 5; pts.push([-Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      // 左側：側面那一道圓弧溝
+      pts.push([-X, ys + rs]);
+      for (let i = 1; i < 6; i++) { const a = Math.PI / 2 - Math.PI * i / 6; pts.push([-X + Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([-X, ys - rs], [-X, -Y + h * 0.04]);
+      g.add(new T.Mesh(mcProfX(pts, w), K.mat(0.08, { rough: 0.26, metal: 0.92 })));
+      // 沉頭孔 ＋ 螺絲頭：孔距約 2.3 倍軌寬
+      const n = Math.max(3, Math.round(w / (d * 2.3))), at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), Y + 0.004, 0]);
+      const hole = mergeGeos([new T.CylinderGeometry(d * 0.2, d * 0.2, 0.02, 14), mcAt(new T.CylinderGeometry(d * 0.07, d * 0.07, 0.04, 6), 0, -h * 0.05, 0)]);
+      g.add(instOf(hole, K.mat(-0.72, { rough: 0.9, metal: 0.1 }), at));
+      g.add(instOf(new T.CylinderGeometry(d * 0.155, d * 0.155, h * 0.04, 14).translate(0, -h * 0.06, 0), K.mat(-0.2, { rough: 0.4, metal: 0.8 }), at));
       return g;
     }
 
     /* 線性滑軌・滑塊：★ ㄇ 字形，從上方罩下來包住軌道的**兩側**。
        畫成「一個方塊放在軌道上面」是錯的 —— 那樣的東西吃不了側向力也吃不了拉拔力，
-       而滑軌存在的理由就是吃這兩種力。兩端的端蓋是滑塊內部滾珠循環的轉彎處。*/
+       而滑軌存在的理由就是吃這兩種力。
+       2026-09-26 細緻化：本體改成真的 ㄇ 字斷面擠出（內側有對著軌道的溝）；
+       兩端各一片**塑膠端蓋**（鋼珠在這裡轉彎、循環回去）＋ 一片黑色**刮油片**；
+       一端裝**注油嘴**；頂面四個攻牙孔（工作台鎖在這裡）；
+       四列鋼珠夾在滑塊與軌道的四道溝之間（上兩列在頂角、側面各一列）。
+       依據：上銀／全球傳動線軌構造（滑塊、端蓋、保持器、注油嘴、刮油片）。
+       ⚠ 鋼珠列的位置照本場景的軌道尺寸算（軌道頂面在滑塊局部 y ≈ +0.09h、半寬 ≈ 0.31d）。*/
     function mcBlock(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(mboxes([[w, h * 0.42, d, 0, h * 0.29, 0],
-        [w, h * 0.6, d * 0.22, 0, -h * 0.2, -d * 0.39], [w, h * 0.6, d * 0.22, 0, -h * 0.2, d * 0.39]],
-        K.mat(-0.12, { rough: 0.44 })));
-      const at = [], n = 7;
-      for (let i = 0; i < n; i++) {
-        const x = (-(n - 1) / 2 + i) * (w / n);
-        at.push([x, -h * 0.02, -d * 0.3]); at.push([x, -h * 0.02, d * 0.3]);
-      }
-      g.add(instOf(new T.SphereGeometry(h * 0.1, 8, 6), K.mat(0.3, { rough: 0.15, metal: 0.95 }), at));
-      g.add(mboxes([[w * 0.08, h * 0.9, d * 0.96, -w * 0.46, 0, 0], [w * 0.08, h * 0.9, d * 0.96, w * 0.46, 0, 0]],
-        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      const X = d / 2, Y = h / 2, ci = d * 0.33, cy = h * 0.12, L = w * 0.72;
+      const prof = [[-X, -Y], [-ci, -Y], [-ci, cy], [ci, cy], [ci, -Y], [X, -Y], [X, Y], [-X, Y]];
+      g.add(new T.Mesh(mcProfX(prof, L), K.mat(-0.12, { rough: 0.44 })));
+      // 端蓋（塑膠）：同一個斷面、稍短
+      const cap = mergeGeos([mcAt(mcProfX(prof.map(([z, y]) => [z * 0.97, y * 0.97]), w * 0.08), -L / 2 - w * 0.04, 0, 0),
+        mcAt(mcProfX(prof.map(([z, y]) => [z * 0.97, y * 0.97]), w * 0.08), L / 2 + w * 0.04, 0, 0)]);
+      g.add(new T.Mesh(cap, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      // 刮油片（黑色）＋ 頂面四個攻牙孔
+      const dk = [mcAt(mcProfX(prof, w * 0.025), -L / 2 - w * 0.093, 0, 0), mcAt(mcProfX(prof, w * 0.025), L / 2 + w * 0.093, 0, 0)];
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => dk.push(mcAt(new T.CylinderGeometry(d * 0.06, d * 0.06, 0.03, 10), sx * L * 0.3, Y + 0.01, sz * d * 0.34)));
+      g.add(mcMerge(dk, K.mat(-0.75, { rough: 0.9, metal: 0.05 })));
+      // 注油嘴（+x 端）：六角座 ＋ 圓頭
+      g.add(mcMerge([mcAt(new T.CylinderGeometry(h * 0.1, h * 0.1, w * 0.05, 6), L / 2 + w * 0.13, h * 0.3, 0, 0, 0, Math.PI / 2),
+        mcAt(new T.SphereGeometry(h * 0.07, 8, 6), L / 2 + w * 0.17, h * 0.3, 0)], K.mat(0.2, { rough: 0.3, metal: 0.9 })));
+      // 四列鋼珠
+      const rb = h * 0.065, at = [], nb = Math.floor(L / (rb * 2.1));
+      [[h * 0.09, d * 0.305], [-h * 0.24, d * 0.315]].forEach(([y, z]) => [-1, 1].forEach(s => {
+        for (let i = 0; i < nb; i++) at.push([(-(nb - 1) / 2 + i) * rb * 2.1, y, s * z]);
+      }));
+      g.add(instOf(new T.SphereGeometry(rb, 8, 6), K.mat(0.3, { rough: 0.15, metal: 0.95 }), at));
       return g;
     }
 
     /* 工作台（滑座）：★ 同時鎖在螺帽與滑塊上 —— 螺帽推它走、滑塊撐住它不歪，
-       兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方。*/
+       兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方。
+       2026-09-26 細緻化：T 型槽從「三條深色長條貼在頂面」改成**真的 T 字斷面**沿 x 擠出（窄口、寬底）；
+       底下四塊墊（鎖在兩個滑塊上）＋ 一座螺帽座（鎖螺帽法蘭），頂面四角各一個沉頭孔。*/
     function mcTable(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h * 0.45, d, K.mat(0.1, { rough: 0.5 })));
-      g.add(mboxes([[w * 0.36, h * 0.55, d * 0.2, 0, -h * 0.5, -d * 0.36],
-        [w * 0.36, h * 0.55, d * 0.2, 0, -h * 0.5, d * 0.36],
-        [w * 0.22, h * 0.55, d * 0.3, -w * 0.3, -h * 0.5, 0]], K.mat(-0.1, { rough: 0.55 })));
-      const sl = [], n = 3;
-      for (let i = 0; i < n; i++) sl.push([w * 0.94, h * 0.2, d * 0.07, 0, h * 0.18, (-(n - 1) / 2 + i) * d * 0.3]);
-      g.add(mboxes(sl, K.mat(-0.5, { rough: 0.8 })));
+      const t = h * 0.5, X = d / 2, a = d * 0.045, b = d * 0.1, s1 = t * 0.3, s2 = t * 0.78;
+      const pts = [[-X, -t / 2], [X, -t / 2], [X, t / 2]];
+      [0.3, 0, -0.3].forEach(k => { const cx = k * d;
+        pts.push([cx + a / 2, t / 2], [cx + a / 2, t / 2 - s1], [cx + b / 2, t / 2 - s1], [cx + b / 2, t / 2 - s2],
+          [cx - b / 2, t / 2 - s2], [cx - b / 2, t / 2 - s1], [cx - a / 2, t / 2 - s1], [cx - a / 2, t / 2]); });
+      pts.push([-X, t / 2]);
+      g.add(put(new T.Mesh(mcProfX(pts, w), K.mat(0.1, { rough: 0.5 })), 0, h * 0.2, 0));
+      const pads = [];
+      [-1, 1].forEach(sz => [-1, 1].forEach(sx => pads.push([w * 0.2, h * 0.3, d * 0.22, w * 0.12 + sx * w * 0.14, -h * 0.2, sz * d * 0.34])));
+      pads.push([w * 0.34, h * 0.5, d * 0.3, -w * 0.115, -h * 0.3, 0]);
+      g.add(mboxes(pads, K.mat(-0.1, { rough: 0.55 })));
+      const hl = [];
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => hl.push(mcAt(new T.CylinderGeometry(d * 0.035, d * 0.035, 0.03, 10), sx * w * 0.42, h * 0.2 + t / 2 + 0.01, sz * d * 0.43)));
+      g.add(mcMerge(hl, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
       return g;
     }
 
@@ -7672,226 +7996,510 @@
 
     /* ================================================================ CNC 工具機（2026-09-23，族群 `machine_tool`）
        2D 是 `site/dg/machine_tool.js`，`part` 沿用它的 `data-part`（mt_*）。
-       ★ 這一組是**多出來的詞**，上面既有的 builder 一支都沒有動。
-       ★ 三根進給軸的零件（滾珠螺桿、線性滑軌、伺服馬達、軸承）**直接沿用
-         `mcscrew`／`mcrail`／`mcmotor`／`mcbrg`** —— 那不是偷懶，是因為
+       ★ 三根進給軸的零件（滾珠螺桿、線性滑軌、伺服馬達）**直接沿用** mcScrew／mcRail／mcMotor ——
          加工機的三根軸用的就是同一批零件（那正是這兩張圖的接縫）。
-         重畫一份只會變成兩份要一起改的幾何。
        ⚠ 一張圖一個主色（#244）：整台機器走鑄鐵／鋼的銀灰，層與層之間靠 K.mat 的 k（明暗）分；
-         只有控制器櫃走 emc（深色模封灰）、工件走 alu —— 那兩件本來就不是鑄件。*/
+         只有控制器櫃走 emc（深色模封灰）、工件走 alu —— 那兩件本來就不是鑄件。
 
-    /* 床身：上面是平的（軌道與鞍座鎖在上面），下面有縱橫肋（鑄件的識別特徵），
-       左前角開一個排屑的斜槽。★ 畫成一塊實心方塊就看不出它是鑄件。*/
+       ★ 2026-09-26 第二批細緻化（D 組）：Andy「更貼近當前產品，而非看起來就是個長方塊」。
+         依據與來源寫在 docs/diagram_specs/machine_tool.md 的 §3D-細節。這一輪做了兩件事：
+         ① **收攏狀態下的組裝關係改對**：以前立柱的軌道埋在立柱裡面、主軸頭插進立柱、鞍座直接坐在床身上沒有滑軌。
+            現在由下往上是：床身 → Y 向滑軌 → 鞍座（底下四顆滑塊）→ X 向滑軌 → 工作台（底下四顆滑塊）→ 工件；
+            立柱正面兩條 Z 向滑軌 → 主軸頭背面四顆滑塊。每一層都「坐在上一層的滑軌上」。
+         ② 每一件補上真正的識別特徵（見各支的註解）：鑄件的肋與鑄孔、伸縮護罩、三顆進給馬達、
+            BT 刀柄（拉釘／7:24 錐度／V 形夾持槽／驅動鍵槽）、刀庫的倒刀刀套、換刀臂的 C 形爪、
+            主軸鼻端的驅動鍵與錐孔、冷卻液噴管與水箱、控制櫃裡的驅動器與線槽。
+         ★ 滑軌、滑塊這種一台機器上重複很多次的件，一律把同一個零件裡的幾顆**併成一個 draw call**。*/
+
+    /* 滑軌的幾何（標準姿勢：長度沿 x、頂面朝 +y、寬沿 z）。本體擠出 ＋ 沉頭孔 ＋ 螺絲頭，三種材質各一份。*/
+    function mcRailGeos(w, h, d) {
+      const X = d / 2, Y = h / 2, rr = h * 0.12, rs = h * 0.1, ys = -h * 0.02, Xt = X - h * 0.018;
+      const pts = [[-X * 0.96, -Y], [X * 0.96, -Y], [X, -Y + h * 0.04], [X, ys - rs]];
+      for (let i = 1; i < 6; i++) { const a = -Math.PI / 2 + Math.PI * i / 6; pts.push([X - Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([X, ys + rs]);
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 - Math.PI / 2 * i / 5; pts.push([Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 * i / 5; pts.push([-Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      pts.push([-X, ys + rs]);
+      for (let i = 1; i < 6; i++) { const a = Math.PI / 2 - Math.PI * i / 6; pts.push([-X + Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([-X, ys - rs], [-X, -Y + h * 0.04]);
+      const n = Math.max(3, Math.round(w / (d * 2.3))), holes = [], caps = [];
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w / n);
+        holes.push(mcAt(new T.CylinderGeometry(d * 0.2, d * 0.2, 0.02, 12, 1, true), x, Y + 0.004, 0), mcAt(new T.CircleGeometry(d * 0.2, 12).rotateX(-Math.PI / 2), x, Y + 0.014, 0),
+          mcAt(new T.CylinderGeometry(d * 0.07, d * 0.07, 0.04, 6), x, Y - h * 0.05, 0));
+        caps.push(mcAt(new T.CylinderGeometry(d * 0.155, d * 0.155, h * 0.04, 10), x, Y - h * 0.06, 0));
+      }
+      return { body: mcProfX(pts, w), dark: mergeGeos(holes), cap: mergeGeos(caps) };
+    }
+    // 把標準姿勢的幾何轉到 rot 指定的方向：'x' 不動、'z' 長度改沿 z、'yz' 長度沿 y 且頂面朝 +z（立柱正面那種）
+    function mcOrient(g, rot) {
+      if (rot === 'z') g.rotateY(-Math.PI / 2);
+      else if (rot === 'yz') { g.rotateZ(Math.PI / 2); g.rotateY(Math.PI / 2); }
+      return g;
+    }
+    // 一組滑軌（同一個零件裡的幾條併成一次）：items ＝ 每條的中心 [x, y, z]
+    function mcRailSet(K, items, w, h, d, rot) {
+      const b = [], k = [], c = [], q = mcRailGeos(w, h, d);
+      [q.body, q.dark, q.cap].forEach(geo => mcOrient(geo, rot));
+      items.forEach(([x, y, z]) => { [[q.body, b], [q.dark, k], [q.cap, c]].forEach(([geo, arr]) => arr.push(geo.clone().translate(x, y, z))); });
+      [q.body, q.dark, q.cap].forEach(geo => geo.dispose());
+      const g = new T.Group();
+      g.add(mcMerge(b.concat(c), K.mat(0.08, { rough: 0.26, metal: 0.92 })));   // 螺絲頭跟軌道同材質（它在深色的沉頭孔裡，靠高低差就看得出來）
+      g.add(mcMerge(k, K.mat(-0.72, { rough: 0.9, metal: 0.1 })));
+      return g;
+    }
+    /* 一組滑塊（ㄇ 字斷面 ＋ 兩端塑膠端蓋 ＋ 黑色刮油片）。尺寸 L 長、H 高、W 寬（標準姿勢同滑軌）。
+       CNC 那張的滑塊都被工作台、鞍座、主軸頭蓋住，所以不畫鋼珠（看不到的東西不花三角形）。*/
+    function mcBlockSet(K, items, L, H, W, rot) {
+      const X = W / 2, Y = H / 2, ci = W * 0.33, cy = -H * 0.05;
+      const prof = [[-X, -Y], [-ci, -Y], [-ci, cy], [ci, cy], [ci, -Y], [X, -Y], [X, Y], [-X, Y]];
+      // 斷面擠出只做一次（三角化比複製貴得多），每一顆用 clone 擺位置
+      const B0 = mcOrient(mcProfX(prof, L * 0.74), rot);
+      const C0 = mcOrient(mergeGeos([-1, 1].map(s => mcProfX(prof.map(([pz, py]) => [pz * 0.97, py * 0.97]), L * 0.09).translate(s * L * 0.415, 0, 0))), rot);
+      const S0 = mcOrient(mergeGeos([-1, 1].map(s => mcProfX(prof, L * 0.03).translate(s * L * 0.475, 0, 0))), rot);
+      const b = [], c = [], k = [];
+      items.forEach(([x, y, z]) => { b.push(B0.clone().translate(x, y, z)); c.push(C0.clone().translate(x, y, z)); k.push(S0.clone().translate(x, y, z)); });
+      [B0, C0, S0].forEach(q => q.dispose());
+      const g = new T.Group();
+      g.add(mcMerge(b, K.mat(-0.12, { rough: 0.44 })));
+      g.add(mcMerge(c.concat(k), K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      return g;
+    }
+    // 一顆進給馬達（沿用 mcMotor），軸朝 dir：'-x'／'+x'／'-y'／'-z'
+    function mtFeedMotor(K, len, R, dir, x, y, z) {
+      const m = mcMotor({ box: [len, R * 2, R * 2] }, K);
+      if (dir === '-x') m.rotation.y = Math.PI;
+      else if (dir === '-y') m.rotation.z = -Math.PI / 2;
+      else if (dir === '-z') m.rotation.y = Math.PI / 2;
+      m.position.set(x, y, z);
+      return m;
+    }
+
+    /* 床身：★ 上面是平的（滑軌鎖在上面），下面有縱橫肋 —— 鑄件的識別特徵。
+       2026-09-26 細緻化：頂面兩條 **Y 向滑軌**（鞍座就坐在它上面，以前鞍座直接貼著床身）；
+       鞍座前方一組**伸縮護罩**（三節鋼板一節套一節，擋切屑與切削液進滑軌）；兩側**斜板**把切屑與切削液導到排屑機；
+       正面與側面有**鑄孔**（鑄造時取砂芯留下的窗，看得到裡面的肋）；底下六顆調平腳；正面中間一顆 Y 軸進給馬達。*/
     function mtBed(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const t = h * 0.3;
-      g.add(box(w, t, d, K.mat(0.06, { rough: 0.5 })));                       // 頂面
-      const ribs = [[w, t * 0.8, d * 0.1, 0, -h * 0.4, -d * 0.4],
-        [w, t * 0.8, d * 0.1, 0, -h * 0.4, d * 0.4]];
-      for (let i = 0; i < 5; i++) ribs.push([w * 0.05, t * 0.8, d * 0.86, (-2 + i) * w * 0.2, -h * 0.4, 0]);
+      const cast = K.mat(0.06, { rough: 0.5 });
+      g.add(put(rbox(w, h * 0.3, d, h * 0.06, cast), 0, h * 0.35, 0));
+      const ribs = [[w, h * 0.72, d * 0.05, 0, -h * 0.14, -d * 0.475], [w, h * 0.72, d * 0.05, 0, -h * 0.14, d * 0.475],
+        [w * 0.04, h * 0.72, d, -w * 0.48, -h * 0.14, 0], [w * 0.04, h * 0.72, d, w * 0.48, -h * 0.14, 0]];
+      for (let i = 0; i < 5; i++) ribs.push([w * 0.03, h * 0.66, d * 0.92, (-2 + i) * w * 0.19, -h * 0.17, 0]);
+      for (let i = 0; i < 2; i++) ribs.push([w * 0.94, h * 0.66, d * 0.03, 0, -h * 0.17, (i ? 1 : -1) * d * 0.18]);
       g.add(mboxes(ribs, K.mat(-0.16, { rough: 0.6 })));
-      g.add(put(box(w * 0.2, t * 0.5, d * 0.5, K.mat(-0.42, { rough: 0.72 })), -w * 0.38, -h * 0.1, d * 0.2));
+      // 鑄孔（正面三個、兩側各兩個）＋ 調平腳：同一個深色
+      const dk = [];
+      [-0.3, 0, 0.3].forEach(k => dk.push(mcAt(new T.BoxGeometry(w * 0.16, h * 0.34, 0.1), k * w, -h * 0.16, d * 0.5 + 0.02)));
+      [-1, 1].forEach(s => [-0.22, 0.22].forEach(k => dk.push(mcAt(new T.BoxGeometry(0.1, h * 0.34, d * 0.22), s * (w * 0.5 + 0.02), -h * 0.16, k * d))));
+      [-0.42, 0, 0.42].forEach(kx => [-0.42, 0.42].forEach(kz => dk.push(mcAt(new T.CylinderGeometry(h * 0.1, h * 0.12, h * 0.1, 10), kx * w, -h * 0.55, kz * d))));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
+      // Y 向滑軌（沿 z）：鞍座底下的四顆滑塊就坐在這兩條上
+      const top = h / 2, rz0 = p.yrail || [-d * 0.1, d * 0.38];
+      const rl = rz0[1] - rz0[0], rzc = (rz0[0] + rz0[1]) / 2;
+      g.add(mcRailSet(K, [[-w * 0.217, top + 1.8, rzc], [w * 0.217, top + 1.8, rzc]], rl, 3.6, 6, 'z'));
+      // 伸縮護罩（鞍座前面到床身前緣，三節一節比一節低一點）＋ 兩側導屑斜板：薄鋼板
+      const sheet = K.mat(0.18, { rough: 0.36, metal: 0.72 });
+      const cz0 = rz0[1] - 3, cz1 = d * 0.5, seg = (cz1 - cz0) / 3, cv = [];
+      for (let i = 0; i < 3; i++) {
+        const yT = top + 6.4 - i * 0.5, z = cz0 + seg * (i + 0.5);
+        cv.push([w * 0.6 - i * 1.2, 0.35, seg * 1.08, 0, yT, z], [0.35, yT - top, seg * 1.08, -(w * 0.3 - i * 0.6), top + (yT - top) / 2, z],
+          [0.35, yT - top, seg * 1.08, w * 0.3 - i * 0.6, top + (yT - top) / 2, z]);
+      }
+      const sl = cv.map(([a, b, c, x, y, z]) => chamferGeo(a, b, c).translate(x, y, z));
+      [-1, 1].forEach(s => { const bx = new T.BoxGeometry(w * 0.19, 0.35, d * 0.9); bx.rotateZ(s * 0.22); bx.translate(s * w * 0.4, top + 1.6, 0); sl.push(bx); });
+      g.add(mcMerge(sl, sheet));
+      // Y 軸進給馬達（正面中間、軸朝 −z 伸進床身）
+      g.add(mtFeedMotor(K, 18, 5, '-z', 0, top - 1.5, d * 0.5 + 9));
       return g;
     }
 
-    /* 立柱：站在床身後緣的一根方柱，正面有兩條軌道的貼合面與一排鎖付孔。
-       ★ 它跟床身通常是一體的鑄件，所以這裡的明暗只差一階（不要畫成兩種材質）。*/
+    /* 立柱：站在床身後緣的方柱，★ 跟床身通常是一體的鑄件，所以明暗只差一階。
+       2026-09-26 細緻化：正面兩條**加工過的軌道座面**（亮一階，滑軌鎖在上面）；
+       兩側各三個**鑄孔**（看得到裡面的肋）＋ 底部兩側**三角補強肋**（立柱下寬上窄、抗扭）；
+       頂上一塊馬達座、一顆 **Z 軸進給馬達**軸朝下接 Z 軸螺桿。*/
     function mtCol(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, Math.min(w, d) * 0.08, K.mat(0.02, { rough: 0.5 })));
-      g.add(mboxes([[w * 0.86, h * 0.9, d * 0.08, 0, 0, d * 0.5],
-        [w * 0.2, h * 0.86, d * 0.1, -w * 0.3, 0, -d * 0.5],
-        [w * 0.2, h * 0.86, d * 0.1, w * 0.3, 0, -d * 0.5]], K.mat(-0.2, { rough: 0.58 })));
-      const holes = [];
-      for (let i = 0; i < 6; i++) holes.push([0, (-2.5 + i) * h * 0.15, d * 0.56]);
-      g.add(instOf(new T.CylinderGeometry(w * 0.05, w * 0.05, d * 0.06, 8),
-        K.mat(-0.6, { rough: 0.85, metal: 0.2 }), holes.map(a => [a[0], a[1], a[2], Math.PI / 2, 0, 0])));
+      const cast = K.mat(0.02, { rough: 0.5 });
+      const castG = [rboxGeo(w, h, d, Math.min(w, d) * 0.08), chamferGeo(w * 1.3, h * 0.1, d * 1.02).translate(0, -h * 0.45, 0)];
+      // 三角補強肋（底部兩側）
+      const gus = [];
+      [-1, 1].forEach(s => gus.push(mcAt(new T.ExtrudeGeometry(new T.Shape([new T.Vector2(-d * 0.5, 0), new T.Vector2(d * 0.5, 0), new T.Vector2(d * 0.3, h * 0.26)]),
+        { depth: w * 0.1, bevelEnabled: false }).rotateY(Math.PI / 2), s * (w * 0.5) - (s > 0 ? 0 : w * 0.1), -h * 0.4, 0)));
+      g.add(mcMerge(castG.concat(gus), cast));
+      // 正面軌道座面（亮一階）＋ 頂部馬達座
+      g.add(mboxes([[w * 0.3, h * 0.84, 0.6, -w * 0.34, h * 0.02, d * 0.5 + 0.3], [w * 0.3, h * 0.84, 0.6, w * 0.34, h * 0.02, d * 0.5 + 0.3],
+        [w * 0.5, 1.6, (p.zmot ? p.zmot[1] : d * 0.5 + 5) + 5 + d / 2 + 1, 0, h * 0.5 + 0.8, ((p.zmot ? p.zmot[1] : d * 0.5 + 5) + 5 - d / 2 - 1) / 2]], K.mat(0.2, { rough: 0.32, metal: 0.85 })));
+      // 兩側鑄孔
+      const dk = [];
+      [-1, 1].forEach(s => [-0.28, 0.02, 0.3].forEach(k => dk.push(mcAt(new T.BoxGeometry(0.1, h * 0.16, d * 0.46), s * (w * 0.5 + 0.02), k * h, 0))));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
+      // Z 軸進給馬達：軸朝下，對準 Z 軸螺桿（在立柱正面外 p.zmot 的位置）
+      const zm = p.zmot || [0, d * 0.5 + 5];
+      g.add(mtFeedMotor(K, 18, 5.2, '-y', zm[0], h * 0.5 + 1.6 + 9, zm[1]));
       return g;
     }
 
-    /* 鞍座：夾在床身與工作台之間的那一層 —— 上下**兩組互相垂直的導引面**是它的識別特徵
-       （下面接 Y 向、上面接 X 向）。少掉這一層，三根軸就疊不起來。*/
+    /* 鞍座：夾在床身與工作台之間 —— 上下**兩組互相垂直的導引**是它的識別特徵（下面走 Y、上面走 X）。
+       2026-09-26 細緻化：以前上下各兩條亮色長條。現在底下是**四顆 Y 向滑塊**（包住床身上那兩條滑軌），
+       頂上是**兩條 X 向滑軌**（工作台的滑塊坐在上面），一端掛一顆 **X 軸進給馬達**。*/
     function mtSaddle(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h * 0.7, d, h * 0.12, K.mat(-0.06, { rough: 0.52 })));
-      g.add(mboxes([[w * 0.9, h * 0.3, d * 0.12, 0, h * 0.45, -d * 0.36],
-        [w * 0.9, h * 0.3, d * 0.12, 0, h * 0.45, d * 0.36]], K.mat(0.14, { rough: 0.3, metal: 0.9 })));
-      g.add(mboxes([[w * 0.14, h * 0.3, d * 0.9, -w * 0.34, -h * 0.45, 0],
-        [w * 0.14, h * 0.3, d * 0.9, w * 0.34, -h * 0.45, 0]], K.mat(0.14, { rough: 0.3, metal: 0.9 })));
+      const bodyY = h * 0.05, bh = h * 0.5;
+      g.add(put(rbox(w, bh, d, 1.2, K.mat(-0.06, { rough: 0.52 })), 0, bodyY, 0));
+      g.add(mboxes([[w * 0.8, bh * 0.4, d * 0.2, 0, bodyY - bh * 0.62, 0]], K.mat(-0.2, { rough: 0.6 })));
+      // 底下四顆 Y 向滑塊（沿 z）
+      const by = bodyY - bh / 2 - 2.13;
+      g.add(mcBlockSet(K, [[-w * 0.371, by, -d * 0.28], [-w * 0.371, by, d * 0.28], [w * 0.371, by, -d * 0.28], [w * 0.371, by, d * 0.28]], 12, 5.4, 10, 'z'));
+      // 頂上兩條 X 向滑軌
+      const ty = bodyY + bh / 2 + 1.8;
+      g.add(mcRailSet(K, [[0, ty, -d * 0.344], [0, ty, d * 0.344]], w * 0.94, 3.6, 6, 'x'));
+      // X 軸進給馬達（+x 端，軸朝 −x、跟 X 軸螺桿同心）＋ 馬達座
+      g.add(mboxes([[1.4, bh * 1.2, d * 0.34, w / 2 + 12, bodyY + bh * 0.3, 0]], K.mat(0.1, { rough: 0.4 })));
+      g.add(mtFeedMotor(K, 18, 4.5, '-x', w / 2 + 18, p.xmoty != null ? p.xmoty : ty, 0));
       return g;
     }
 
-    /* 工作台：★ 上面一定有 **T 型槽**（工件與虎鉗靠它鎖上去）——
-       沒有 T 型槽的平板不是工作台。槽是沿 X 開的、彼此平行。*/
+    /* 工作台：★ 上面一定有 **T 型槽**（工件與虎鉗靠它鎖上去）—— 沒有 T 型槽的平板不是工作台。
+       2026-09-26 細緻化：T 型槽改成**真的 T 字斷面**沿 x 擠出（窄口寬底）；
+       底下四顆 **X 向滑塊**（坐在鞍座頂上那兩條滑軌上）＋ 中間一座**螺帽座**（X 軸螺帽鎖在這裡）；
+       兩端各一道**集水溝**（切削液從這裡流走）。*/
     function mtTable(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h * 0.6, d, h * 0.1, K.mat(0.12, { rough: 0.44 })));
-      const n = 3, sl = [];
-      for (let i = 0; i < n; i++) sl.push([w * 0.96, h * 0.3, d * 0.09, 0, h * 0.24, (-(n - 1) / 2 + i) * d * 0.28]);
-      g.add(mboxes(sl, K.mat(-0.5, { rough: 0.82 })));
+      const t = h * 0.57, pyc = h / 2 - t / 2, X = d / 2, a = d * 0.05, b = d * 0.1, s1 = t * 0.28, s2 = t * 0.72;
+      const pts = [[-X, -t / 2], [X, -t / 2], [X, t / 2]];
+      [0.28, 0, -0.28].forEach(k => { const cx = k * d;
+        pts.push([cx + a / 2, t / 2], [cx + a / 2, t / 2 - s1], [cx + b / 2, t / 2 - s1], [cx + b / 2, t / 2 - s2],
+          [cx - b / 2, t / 2 - s2], [cx - b / 2, t / 2 - s1], [cx - a / 2, t / 2 - s1], [cx - a / 2, t / 2]); });
+      pts.push([-X, t / 2]);
+      g.add(put(new T.Mesh(mcProfX(pts, w), K.mat(0.12, { rough: 0.44 })), 0, pyc, 0));
+      // 集水溝（兩端）
+      g.add(mboxes([[1.2, t * 0.5, d, -w / 2 - 0.6, pyc + t * 0.2, 0], [1.2, t * 0.5, d, w / 2 + 0.6, pyc + t * 0.2, 0]], K.mat(-0.3, { rough: 0.6 })));
+      // 底下四顆 X 向滑塊 ＋ 螺帽座（含一顆沿 x 的螺帽）
+      const by = pyc - t / 2 - 2.13;
+      g.add(mcBlockSet(K, [[-w * 0.23, by, -d * 0.275], [w * 0.23, by, -d * 0.275], [-w * 0.23, by, d * 0.275], [w * 0.23, by, d * 0.275]], 12, 5.4, 10, 'x'));
+      g.add(mboxes([[w * 0.14, 3, d * 0.2, 0, pyc - t / 2 - 1.5, 0]], K.mat(-0.1, { rough: 0.55 })));
+      g.add(mcMerge([mcAt(mcCylX(3.9, w * 0.12, 18), 0, pyc - t / 2 - 4, 0), mcAt(mcCylX(5.4, 1.2, 18), -w * 0.066, pyc - t / 2 - 4, 0)],
+        K.mat(-0.02, { rough: 0.4, metal: 0.85 })));
       return g;
     }
 
-    /* 工件：一塊被銑出一個階梯與一個凹穴的方料 —— 看得出「已經被加工過」才叫工件。*/
+    /* 工件：看得出「已經被加工過」才叫工件 —— 一個銑出來的階梯、一個凹穴（刀正在裡面）、三個鑽孔；
+       2026-09-26 細緻化：兩側各一組**壓板**（壓板 ＋ T 型螺栓 ＋ 螺帽 ＋ 墊塊）把它壓在工作台上 ——
+       綜合加工機「刀轉、工件夾著不動」，夾著的那個動作就是這兩組壓板。*/
     function mtWork(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const m = K.mat(0.18, { rough: 0.34 });
-      g.add(mboxes([[w, h * 0.6, d, 0, -h * 0.2, 0],
-        [w * 0.62, h * 0.4, d, -w * 0.19, h * 0.3, 0],
-        [w * 0.16, h * 0.4, d * 0.34, w * 0.3, h * 0.3, -d * 0.3],
-        [w * 0.16, h * 0.4, d * 0.34, w * 0.3, h * 0.3, d * 0.3]], m));
+      const pk = p.pocket || [0, d * 0.25];               // 凹穴中心（x, z），對準主軸
+      const pw = w * 0.36, pd = d * 0.4, pz0 = pk[1] - pd / 2, pz1 = pk[1] + pd / 2;
+      const bx = (x0, x1, y0, y1, z0, z1) => [x1 - x0, y1 - y0, z1 - z0, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
+      const xs = -w * 0.22, px0 = pk[0] - pw / 2, px1 = pk[0] + pw / 2, y0 = h * 0.05, y1 = h / 2;
+      g.add(mboxes([bx(-w / 2, w / 2, -h / 2, y0, -d / 2, d / 2),              // 底層（左邊那一階就是它的頂面）
+        bx(xs, w / 2, y0, y1, -d / 2, pz0), bx(xs, w / 2, y0, y1, pz1, d / 2),   // 凹穴前後
+        bx(xs, px0, y0, y1, pz0, pz1), bx(px1, w / 2, y0, y1, pz0, pz1)], m));  // 凹穴左右
+      // 凹穴底（深一階）＋ 三個鑽孔（在左邊那一階上）
+      const dk = [mcAt(new T.BoxGeometry(pw, 0.05, pd), pk[0], h * 0.055, pk[1])];
+      [-0.3, 0, 0.3].forEach(k => dk.push(mcAt(new T.CylinderGeometry(h * 0.09, h * 0.09, 0.05, 10), -w * 0.36, h * 0.055, k * d)));
+      g.add(mcMerge(dk, K.mat(-0.45, { rough: 0.5, metal: 0.6 })));
+      // 兩組壓板
+      const st = [], bolt = [];
+      [-1, 1].forEach(s => {
+        const bx = s * (w / 2 + 3.2);
+        st.push([7.6, 1.3, 3.6, s * (w / 2 + 1.2), h / 2 + 0.65, -d * 0.08], [2.2, h + 1.3, 3.6, s * (w / 2 + 5.4), 0.65, -d * 0.08]);
+        bolt.push(mcAt(new T.CylinderGeometry(0.55, 0.55, h + 5, 10), bx, 1.5, -d * 0.08),
+          mcAt(new T.CylinderGeometry(1.15, 1.15, 1.1, 6), bx, h / 2 + 1.9, -d * 0.08));
+      });
+      const stm = K.mat(-0.1, { color: K.css('--dg-steel', '#9aa6b4'), rough: 0.36, metal: 0.88 });
+      g.add(mboxes(st, stm));
+      g.add(mcMerge(bolt, K.mat(-0.4, { color: K.css('--dg-steel-2', '#6b7683'), rough: 0.4, metal: 0.9 })));
       return g;
     }
 
-    /* 主軸頭：掛在立柱軌道上的箱體 ＋ 背面兩塊滑塊 ＋ 前面的主軸孔法蘭。
-       ★ 背面那兩塊滑塊是「它掛在軌道上」的證據 —— 沒有的話它看起來是浮著的。*/
+    /* 主軸頭：★ 背面的滑塊是「它掛在立柱軌道上」的證據 —— 沒有的話它看起來是浮著的。
+       2026-09-26 細緻化：背面四顆 **Z 向滑塊**（包住立柱正面那兩條滑軌）＋ 一座 Z 軸螺帽座；
+       下方一段圓形的主軸座（主軸從這裡伸出來）；主軸鼻端一圈**冷卻液環**與兩支**節式噴管**
+       （一節一節的塑膠管，可以扳方向，對準刀尖）—— 切削液從這裡噴到刀具上；頂上一塊馬達座。*/
     function mtHead(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, Math.min(w, d) * 0.1, K.mat(-0.04, { rough: 0.42 })));
-      g.add(mboxes([[w * 0.2, h * 0.7, d * 0.14, -w * 0.26, 0, -d * 0.55],
-        [w * 0.2, h * 0.7, d * 0.14, w * 0.26, 0, -d * 0.55]], K.mat(0.1, { rough: 0.3, metal: 0.9 })));
-      g.add(put(cyl(w * 0.3, h * 0.16, K.mat(0.16, { rough: 0.3, metal: 0.9 }), 20), 0, -h * 0.54, 0));
+      const sz = p.spz != null ? p.spz : d * 0.07;          // 主軸中心的 z（局部）
+      const cast = K.mat(-0.04, { rough: 0.42 });
+      // 立柱滑軌的頂面在局部 z = rt；滑塊包住它 → 滑塊頂上是背板 → 背板前面才是箱體
+      const rt = p.railTop != null ? p.railTop : -d / 2 - 6, bz = rt + 0.35, back = bz + 3.5 + 2;
+      g.add(mcMerge([rboxGeo(w, h * 0.78, d / 2 - back, Math.min(w, d) * 0.1).translate(0, h * 0.11, (back + d / 2) / 2),
+        chamferGeo(w * 0.86, h * 0.9, 2).translate(0, 0, back - 1), new T.CylinderGeometry(9.2, 9.2, h * 0.24, 28).translate(0, -h * 0.38, sz)], cast));
+      // 背面四顆 Z 向滑塊（長度沿 y、頂面朝 +z）＋ 螺帽座
+      g.add(mcBlockSet(K, [[-11, h * 0.24, bz], [-11, -h * 0.24, bz], [11, h * 0.24, bz], [11, -h * 0.24, bz]], 12, 7, 11, 'yz'));
+      const nz = p.nutZ != null ? p.nutZ : rt;                 // Z 軸螺桿的中心（局部 z）
+      g.add(mcMerge([chamferGeo(8, 9, back - 2 - nz).translate(0, 0, (back - 2 + nz) / 2),
+        new T.CylinderGeometry(5, 5, 10, 18).translate(0, 0, nz), new T.CylinderGeometry(6.4, 6.4, 1.4, 18).translate(0, 5, nz)],
+        K.mat(-0.02, { rough: 0.4, metal: 0.85 })));
+      // 頂上馬達座
+      g.add(mboxes([[w * 0.56, 1.8, w * 0.56, 0, h / 2 + 0.9, sz]], K.mat(0.14, { rough: 0.32, metal: 0.8 })));
+      // 冷卻液環（主軸鼻端）＋ 兩支節式噴管
+      const cool = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), rough: 0.5, metal: 0.1 });
+      const ry = -h / 2 - 1.2;
+      const segs = [], ringG = new T.TorusGeometry(9.6, 0.9, 8, 28); ringG.rotateX(Math.PI / 2); ringG.translate(0, ry, sz);
+      const tip = p.tip || [0, -h / 2 - 20, sz];
+      const unit = mergeGeos([new T.SphereGeometry(0.85, 7, 4), new T.CylinderGeometry(0.55, 0.8, 1.2, 7).translate(0, 0.7, 0)]);
+      const up = new T.Vector3(0, 1, 0), q = new T.Quaternion(), e = new T.Euler();
+      [-1, 1].forEach(s => {
+        const c = new T.CatmullRomCurve3([new T.Vector3(s * 8.4, ry - 0.6, sz + 3.6), new T.Vector3(s * 9.6, ry - 5, sz + 5.4),
+          new T.Vector3(s * 6.2, ry - 10.5, sz + 4.4), new T.Vector3(tip[0] + s * 2.2, tip[1] + 3, tip[2] + 2)]);
+        const n = 11;
+        for (let i = 0; i < n; i++) { const u = i / (n - 1), v = c.getPointAt(u), tg = c.getTangentAt(u);
+          q.setFromUnitVectors(up, tg.normalize()); e.setFromQuaternion(q); segs.push([v.x, v.y, v.z, e.x, e.y, e.z]); }
+      });
+      g.add(new T.Mesh(ringG, cool));
+      g.add(instOf(unit, cool, segs));
       return g;
     }
 
-    /* 主軸：一根被前後兩組軸承夾住的軸，★ 下端是**錐孔**（刀柄靠錐面定位）。
-       錐孔朝下，所以這裡用一個倒過來的圓台把口畫出來 —— 畫成平底就看不出它怎麼夾刀。*/
+    /* 主軸：★ 下端是**錐孔**（刀柄靠錐面定位，不是靠螺絲鎖）。
+       2026-09-26 細緻化：鼻端端面有兩顆**驅動鍵**（卡進刀柄法蘭上的鍵槽，扭力是靠它傳的，不是靠錐面摩擦）；
+       錐孔畫成暗色的倒圓錐（刀柄拿掉時從底下看得到）；軸心一根**拉桿**、頂上一疊**碟形彈簧**
+       （平常靠彈簧把刀柄拉緊、換刀時才被頂開）；外面一節主軸套筒與前端鎖緊螺帽。
+       依據：BT 刀柄規格（MAS 403、7:24 錐度、拉釘 ＋ 拉桿夾緊、法蘭上兩個驅動鍵槽）。*/
     function mtSpindle(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
       const st = K.mat(0.22, { rough: 0.2, metal: 0.95 });
-      g.add(cyl(R * 0.62, h * 0.8, st, 20));
-      g.add(put(new T.Mesh(new T.CylinderGeometry(R, R * 0.6, h * 0.24, 20), K.mat(0.08, { rough: 0.26, metal: 0.92 })), 0, -h * 0.42, 0));
-      g.add(put(cyl(R * 0.82, h * 0.06, K.mat(-0.2, { rough: 0.4, metal: 0.85 }), 18), 0, h * 0.3, 0));
+      g.add(mcMerge([new T.CylinderGeometry(R * 0.5, R * 0.5, h * 0.9, 20).translate(0, h * 0.05, 0),
+        new T.CylinderGeometry(R * 0.92, R * 0.92, h * 0.12, 28).translate(0, -h * 0.44, 0),
+        new T.CylinderGeometry(R * 0.72, R * 0.92, h * 0.04, 28).translate(0, -h * 0.36, 0)], st));
+      // 主軸套筒（半透明感不用，直接一節較暗的套筒）＋ 前端鎖緊螺帽
+      g.add(mcMerge([new T.CylinderGeometry(R * 0.98, R * 0.98, h * 0.5, 28, 1, true).translate(0, h * 0.02, 0),
+        new T.CylinderGeometry(R * 0.8, R * 0.8, h * 0.05, 20).translate(0, -h * 0.3, 0)], K.mat(-0.2, { rough: 0.4, metal: 0.85 })));
+      // 驅動鍵（兩顆）＋ 暗色錐孔 ＋ 碟形彈簧與拉桿
+      g.add(mcMerge([new T.CylinderGeometry(R * 0.28, R * 0.6, h * 0.2, 20).translate(0, -h * 0.4, 0),
+        new T.CylinderGeometry(R * 0.6, R * 0.6, 0.02, 20).translate(0, -h * 0.5 - 0.01, 0)], K.mat(-0.85, { rough: 0.9, metal: 0.1 })));
+      g.add(mboxes([[R * 0.3, h * 0.05, R * 0.36, -R * 0.74, -h * 0.51, 0], [R * 0.3, h * 0.05, R * 0.36, R * 0.74, -h * 0.51, 0]], K.mat(0.3, { rough: 0.24, metal: 0.95 })));
+      const sp = [];
+      for (let i = 0; i < 6; i++) sp.push(new T.CylinderGeometry(R * (i % 2 ? 0.58 : 0.66), R * (i % 2 ? 0.66 : 0.58), h * 0.025, 18).translate(0, h * 0.37 + i * h * 0.026, 0));
+      sp.push(new T.CylinderGeometry(R * 0.2, R * 0.2, h * 0.16, 12).translate(0, h * 0.46, 0));
+      g.add(mcMerge(sp, K.mat(-0.3, { rough: 0.36, metal: 0.9 })));
       return g;
     }
 
-    /* 刀柄 ＋ 刀具：★ 刀柄是**錐形**的（靠錐面定位，不是靠螺絲鎖），
-       中段那一圈溝是換刀機械手抓的地方；下面接一支有螺旋刃的銑刀。*/
+    /* 刀柄 ＋ 刀具：★ 刀柄是**錐形**的（7:24，靠錐面定位），中段那一圈溝是換刀機械手抓的地方。
+       2026-09-26 細緻化（照 BT40 的結構）：由上到下 —— **拉釘**（拉桿抓的那一顆頭）→ 7:24 **錐柄** →
+       **法蘭**（中間一道 **V 形槽**給換刀臂抓，上緣兩個**驅動鍵槽**卡主軸的驅動鍵）→ 夾頭本體 → **夾頭螺帽** →
+       銑刀：柄 ＋ 兩條**螺旋刃**（30° 螺旋角，刃溝是真的一條螺旋溝，不是纏上去的管子）。
+       依據：BT 刀柄規格（MAS 403：7:24 錐度、V-flange、兩個 drive keyway、公制拉釘）。*/
+    function mtToolGeo(s, flutes, lo) {
+      const Rf = 5.7 * s, Rt = 4.0 * s, rt = 2.3 * s, S = lo ? 0.5 : 1, n = (k) => Math.max(8, Math.round(k * S));
+      const hold = [
+        new T.CylinderGeometry(0.75 * s, 0.75 * s, 2.2 * s, n(12)).translate(0, 16 * s, 0),       // 拉釘頸
+        new T.SphereGeometry(1.25 * s, n(12), lo ? 5 : 8).translate(0, 17.4 * s, 0),                        // 拉釘頭
+        new T.CylinderGeometry(1.3 * s, 1.3 * s, 1.2 * s, n(12)).translate(0, 14.6 * s, 0),
+        new T.CylinderGeometry(rt, Rt, 11 * s, n(20)).translate(0, 8.5 * s, 0),                     // 7:24 錐柄
+        new T.CylinderGeometry(Rf, Rf, 0.8 * s, n(28)).translate(0, 2.6 * s, 0),                    // 法蘭上緣
+        new T.CylinderGeometry(Rf, Rf * 0.84, 0.7 * s, n(28)).translate(0, 1.85 * s, 0),            // V 形槽上斜面
+        new T.CylinderGeometry(Rf * 0.84, Rf, 0.7 * s, n(28)).translate(0, 1.15 * s, 0),            // V 形槽下斜面
+        new T.CylinderGeometry(Rf, Rf, 0.8 * s, n(28)).translate(0, 0.4 * s, 0),                    // 法蘭下緣
+        new T.CylinderGeometry(3.3 * s, 4.3 * s, 3.4 * s, n(22)).translate(0, -1.7 * s, 0),         // 夾頭本體
+        new T.CylinderGeometry(3.7 * s, 3.7 * s, 2.4 * s, n(16)).translate(0, -4.6 * s, 0)];        // 夾頭螺帽
+      const cut = [new T.CylinderGeometry(1.6 * s, 1.6 * s, 2.4 * s, n(16)).translate(0, -7 * s, 0)];
+      if (flutes) {
+        const Rc = 1.6 * s, lead = Math.PI * 2 * Rc * 1.73;
+        const prof = [[0, 0], [0.12, 0], [0.22, -Rc * 0.42], [0.5, -Rc * 0.66], [0.74, -Rc * 0.36], [0.86, -Rc * 0.04]];
+        cut.push(mcHelix({ r0: Rc, prof, lead, x0: -2.1 * s, x1: 2.1 * s, nt: 20, starts: 2 }).rotateZ(-Math.PI / 2).translate(0, -10.3 * s, 0),
+          new T.CircleGeometry(Rc, 16).rotateX(Math.PI / 2).translate(0, -12.4 * s, 0));
+      } else cut.push(new T.CylinderGeometry(1.5 * s, 1.2 * s, 4.2 * s, n(12)).translate(0, -10.3 * s, 0));
+      return { hold, cut, slots: [new T.BoxGeometry(1.4 * s, 0.9 * s, 1.6 * s).translate(Rf - 0.5 * s, 2.6 * s, 0), new T.BoxGeometry(1.4 * s, 0.9 * s, 1.6 * s).translate(-Rf + 0.5 * s, 2.6 * s, 0)] };
+    }
     function mtTool(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(w, d) / 2;
-      g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.82, R * 0.5, h * 0.42, 18), K.mat(0.04, { rough: 0.32, metal: 0.88 })), 0, h * 0.26, 0));
-      g.add(put(cyl(R * 0.62, h * 0.1, K.mat(-0.3, { rough: 0.46, metal: 0.8 }), 18), 0, h * 0.46, 0));   // 抓取溝
-      g.add(put(cyl(R * 0.38, h * 0.5, K.mat(-0.1, { rough: 0.28, metal: 0.9 }), 16), 0, -h * 0.2, 0));
-      // 螺旋刃：兩條沿刀身纏上去的溝
-      const seg = 40, fl = K.mat(-0.42, { rough: 0.36, metal: 0.85 });
-      [0, Math.PI].forEach(ph => {
-        const pts = [];
-        for (let i = 0; i <= seg; i++) {
-          const t = i / seg, a = ph + t * Math.PI * 2.4;
-          pts.push(new T.Vector3(Math.cos(a) * R * 0.38, (-0.45 + t * 0.5) * h, Math.sin(a) * R * 0.38));
-        }
-        g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), seg, R * 0.09, 5, false), fl));
-      });
+      const s = Math.min(w, d) / 12, q = mtToolGeo(s, true), y0 = p.gauge != null ? p.gauge : 0;
+      g.add(mcMerge(q.hold.map(x => x.translate(0, y0, 0)), K.mat(0.04, { rough: 0.32, metal: 0.88 })));
+      g.add(mcMerge(q.cut.map(x => x.translate(0, y0, 0)), K.mat(-0.28, { rough: 0.3, metal: 0.82 })));
+      g.add(mcMerge(q.slots.map(x => x.translate(0, y0, 0)), K.mat(-0.75, { rough: 0.9, metal: 0.1 })));
       return g;
     }
 
-    /* 刀庫（圓盤式）：★ 識別特徵是「**一圈刀套**繞著圓盤排列」，
-       而且每個刀套裡插著一支上粗下尖的錐柄。畫成一排方塊就不是刀庫。
-       圓盤立起來（軸沿 x），所以它轉起來在畫面上就是「刀套一格一格轉過去」。*/
+    /* 刀庫（圓盤式・刀臂式）：★ 識別特徵是「一圈刀套繞著圓盤排列」，每個刀套裡插著一支刀柄。
+       2026-09-26 細緻化：刀套改成圓筒、每支刀柄都是跟主軸上那支同一個形狀（法蘭、夾頭、刀具）；
+       **最下面那一個刀套倒下 90°**（刀子從水平轉成垂直、跟主軸平行）—— 那是刀臂式刀庫的換刀位置，
+       換刀臂就在那裡同時抓新刀、抓舊刀；背後一個驅動箱（馬達＋分度機構）、一支托架鎖到立柱側面。
+       依據：刀臂式刀庫的換刀流程（刀套轉 90° 讓刀具朝下、雙臂抓刀後轉 180° 對調）。*/
     function mtMag(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      g.add(put(cylX(R * 0.9, w * 0.28, K.mat(-0.08, { rough: 0.5 }), 28), 0, 0, 0));
-      g.add(cylX(R * 0.26, w * 0.9, K.mat(0.12, { rough: 0.3, metal: 0.9 }), 16));
-      const n = 10, pk = [], tp = [];
+      const R = Math.min(h, d) / 2, rp = R * 0.8, n = 10, s = 0.84, mouth = w * 0.08 - w * 0.18;
+      g.add(put(cylX(R * 0.9, w * 0.14, K.mat(-0.08, { rough: 0.5 }), 36), w * 0.28, 0, 0));
+      g.add(put(cylX(R * 0.24, w * 0.5, K.mat(0.12, { rough: 0.3, metal: 0.9 }), 18), w * 0.4, 0, 0));
+      const pots = [], tools = [];
       for (let i = 0; i < n; i++) {
-        const a = i / n * Math.PI * 2;
-        pk.push([w * 0.2, Math.sin(a) * R * 0.66, Math.cos(a) * R * 0.66, 0, 0, 0]);
-        tp.push([w * 0.34, Math.sin(a) * R * 0.66, Math.cos(a) * R * 0.66, 0, 0, Math.PI / 2]);
+        const a = Math.PI + (i / n) * Math.PI * 2;          // i = 0 在最下面（換刀位置）
+        const y = Math.cos(a) * rp, z = Math.sin(a) * rp;
+        if (i === 0) continue;
+        pots.push([w * 0.08, y, z, 0, 0, Math.PI / 2]);
+        tools.push([mouth - 3 * s, y, z, 0, 0, -Math.PI / 2]);
       }
-      g.add(instOf(new T.BoxGeometry(w * 0.22, R * 0.26, R * 0.26), K.mat(-0.3, { rough: 0.56 }), pk));
-      g.add(instOf(new T.CylinderGeometry(R * 0.13, R * 0.08, w * 0.3, 10),
-        K.mat(0.1, { rough: 0.3, metal: 0.9 }), tp));
+      // 倒下的那一個（換刀位置）：刀套與刀柄都轉成垂直、刀尖朝下 —— 跟其他九個同一個實例（不多花 draw call）
+      const px = p.dropX != null ? p.dropX : -3, pc = -rp - 3, pb = pc - w * 0.18;
+      pots.push([px, pc, 0]); tools.push([px, pb - 3 * s, 0]);
+      const potG = new T.CylinderGeometry(5.4 * s * 1.08, 5.4 * s * 1.08, w * 0.36, 12);
+      const pm = K.mat(-0.3, { rough: 0.56 });
+      g.add(instOf(potG, pm, pots));
+      const q = mtToolGeo(s, false, true), hold = mergeGeos(q.hold.concat(q.cut));
+      const tm = K.mat(0.1, { rough: 0.3, metal: 0.9 });
+      g.add(instOf(hold, tm, tools));
+      // 驅動箱 ＋ 馬達 ＋ 托架（鎖到立柱側面）
+      const br = p.bracket || [w * 1.8, -R * 0.9];
+      g.add(mboxes([[w * 0.3, R * 0.5, R * 0.5, w * 0.55, 0, 0], [3, 5, -br[1], w * 0.55, 0, br[1] / 2],
+        [br[0] - w * 0.55, 5, 3, (br[0] + w * 0.55) / 2, 0, br[1]]], K.mat(-0.16, { rough: 0.5 })));
+      g.add(put(cylX(R * 0.14, w * 0.5, K.mat(-0.4, { rough: 0.6, metal: 0.5 }), 14), w * 0.95, R * 0.12, 0));
       return g;
     }
 
-    /* 換刀機械手（雙臂式 ATC）：★ **兩端對稱**的一支臂，兩端各有一個 V 形爪。
-       一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，擺過去就同時換完 ——
-       單臂畫法解釋不了「一次換兩把」。*/
+    /* 換刀機械手（雙臂式 ATC）：★ **兩端對稱**的一支臂，兩端各一個爪。
+       一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，轉 180° 就同時換完 —— 單臂畫法解釋不了「一次換兩把」。
+       2026-09-26 細緻化：兩端改成 **C 形爪**（張口方向相反 —— 臂一轉，兩個爪同時扣進兩支刀柄的 V 形槽），
+       爪口各一顆彈簧鎖銷；中間是輪轂與上方的凸輪箱（換刀的「下降、轉、上升」都由它帶動）。*/
     function mtAtc(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h * 0.6, d * 0.6, h * 0.16, K.mat(-0.02, { rough: 0.44 })));
-      g.add(cyl(h * 0.6, h * 1.1, K.mat(0.1, { rough: 0.3, metal: 0.9 }), 16));
-      const claw = [], jaw = [];
-      [-1, 1].forEach(sgn => {
-        claw.push([w * 0.46 * sgn, 0, 0]);
-        jaw.push([w * 0.46 * sgn, 0, d * 0.42], [w * 0.46 * sgn, 0, -d * 0.42]);
+      const reach = w * 0.46, ri = 5.7 * 0.84 * 1.0, ro = ri + 1.6, th = 2.2;
+      const arm = K.mat(-0.02, { rough: 0.44 });
+      const bar = new T.ExtrudeGeometry(new T.Shape([new T.Vector2(-reach + ri, -2.2), new T.Vector2(-3, -3.2), new T.Vector2(3, -3.2),
+        new T.Vector2(reach - ri, -2.2), new T.Vector2(reach - ri, 2.2), new T.Vector2(3, 3.2), new T.Vector2(-3, 3.2), new T.Vector2(-reach + ri, 2.2)]),
+      { depth: th, bevelEnabled: false });
+      bar.rotateX(-Math.PI / 2); bar.translate(0, -th / 2, 0);
+      const claws = [];
+      [[-1, -Math.PI / 2], [1, Math.PI / 2]].forEach(([sx, open]) => {
+        const s = new T.Shape(), a0 = open + 0.95, a1 = open - 0.95 + Math.PI * 2;
+        s.absarc(0, 0, ro, a0, a1, false); s.absarc(0, 0, ri, a1, a0, true);
+        const cg = new T.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 18 });
+        cg.rotateX(-Math.PI / 2); cg.translate(sx * reach, -th / 2, 0); claws.push(cg);
       });
-      g.add(instOf(new T.CylinderGeometry(h * 0.62, h * 0.62, h * 0.7, 14), K.mat(0.14, { rough: 0.3, metal: 0.9 }), claw));
-      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.5, d * 0.36), K.mat(-0.24, { rough: 0.5 }), jaw));
+      g.add(mcMerge([bar].concat(claws), arm));
+      g.add(mcMerge([new T.CylinderGeometry(3.4, 3.4, h * 1.4, 18).translate(0, h * 0.3, 0)], K.mat(0.1, { rough: 0.3, metal: 0.9 })));
+      g.add(mboxes([[9, 7, 10, 0, h * 1.3, 0]], K.mat(-0.12, { rough: 0.5 })));
+      const pins = [];
+      [[-1, 1], [1, -1]].forEach(([sx, sz]) => pins.push([1.2, th * 1.1, 1.8, sx * reach, 0, sz * ri * 0.72]));
+      g.add(mboxes(pins, K.mat(-0.6, { rough: 0.7, metal: 0.4 })));
       return g;
     }
 
     /* 控制器櫃：★ 這一格是整張圖的重點 —— **它是外購的**。
-       上面是操作面板（一片螢幕 ＋ 手輪 ＋ 一排按鍵），中間是控制器，下面是四台並排的驅動器。
+       2026-09-26 細緻化：上半是操作面板（螢幕、一排排按鍵、手輪、急停鈕）；
+       下半的門拿掉，看得到裡面：一台 **CNC 控制器**（有散熱孔的盒子）、**四台並排的伺服驅動器**
+       （每台前面一排散熱鰭片與接線端子 —— X／Y／Z 三軸 ＋ 主軸）、上下兩條開槽的**線槽**；側面一排百葉散熱窗。
        用不同的材質族（emc）跟機體分開，一眼看得出「這一櫃跟旁邊那台機器不是同一群人做的」。*/
     function mtCab(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, Math.min(w, d) * 0.08, K.mat(-0.1, { rough: 0.56 })));
-      g.add(put(box(w * 0.82, h * 0.16, d * 0.06, K.mat(0.3, { rough: 0.2, metal: 0.3,
-        color: K.css('--dg-m-cool', '#4FC3E8') })), 0, h * 0.34, d * 0.53));                 // 面板螢幕
-      g.add(put(cyl(w * 0.1, d * 0.06, K.mat(0.16, { rough: 0.3, metal: 0.9 }), 14, 0), w * 0.28, h * 0.18, d * 0.55)
-        .rotateX(Math.PI / 2));                                                              // 手輪
+      const F = d / 2;
+      g.add(rbox(w, h, d, Math.min(w, d) * 0.06, K.mat(-0.1, { rough: 0.56 })));
+      // 操作面板：螢幕（不自體發光）＋ 按鍵 ＋ 手輪 ＋ 急停
+      g.add(put(box(w * 0.78, h * 0.17, 0.4, K.mat(0.2, { rough: 0.16, metal: 0.3, color: K.css('--dg-m-cool', '#4FC3E8') })), 0, h * 0.33, F + 0.2));
       const keys = [];
-      for (let i = 0; i < 4; i++) keys.push([(-1.5 + i) * w * 0.18, h * 0.18, d * 0.54]);
-      g.add(instOf(new T.BoxGeometry(w * 0.12, h * 0.04, d * 0.04), K.mat(-0.4, { rough: 0.7 }), keys));
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) keys.push([(-2.5 + c) * w * 0.12, h * 0.19 - r * h * 0.035, F + 0.25]);
+      g.add(instOf(new T.BoxGeometry(w * 0.09, h * 0.025, 0.5), K.mat(-0.45, { rough: 0.7 }), keys));
+      g.add(mcMerge([mcCylZ(w * 0.12, 0.8, 22).translate(w * 0.24, h * 0.04, F + 0.4), mcCylZ(w * 0.03, 1.6, 10).translate(w * 0.3, h * 0.06, F + 1)],
+        K.mat(0.16, { rough: 0.3, metal: 0.9 })));
+      g.add(mcMerge([mcCylZ(w * 0.07, 1.2, 16).translate(-w * 0.28, h * 0.04, F + 0.6)], K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.5, metal: 0.1 })));
+      // 下半：門拿掉，裡面的東西（背板亮一階，讓裡面的件看得清楚）
+      const iy0 = -h * 0.44, iy1 = -h * 0.02, ih = iy1 - iy0;
+      g.add(put(box(w * 0.9, ih, 0.3, K.mat(0.24, { rough: 0.6, metal: 0.2 })), 0, (iy0 + iy1) / 2, F + 0.15));
+      g.add(mboxes([[w * 0.94, 0.8, 1.4, 0, iy1 + 0.4, F + 0.7], [w * 0.94, 0.8, 1.4, 0, iy0 - 0.4, F + 0.7],
+        [0.8, ih, 1.4, -w * 0.47, (iy0 + iy1) / 2, F + 0.7], [0.8, ih, 1.4, w * 0.47, (iy0 + iy1) / 2, F + 0.7],
+        [w * 1.04, h * 0.04, d * 1.04, 0, -h / 2 + h * 0.02, 0]], K.mat(-0.3, { rough: 0.7 })));
+      // 線槽（上下兩條、開槽）
+      const duct = K.mat(0.3, { rough: 0.7, metal: 0.05, color: K.css('--dg-m-rack', '#B8C2CC') });
+      g.add(mboxes([[w * 0.84, h * 0.035, 1.6, 0, iy1 - h * 0.04, F + 1.1], [w * 0.84, h * 0.035, 1.6, 0, iy0 + h * 0.04, F + 1.1]], duct));
+      // CNC 控制器（左上）＋ 四台驅動器（並排）
+      const box2 = [[w * 0.3, ih * 0.3, 2.6, -w * 0.25, iy1 - ih * 0.3, F + 1.6]];
       const dr = [];
-      for (let i = 0; i < 4; i++) dr.push([(-1.5 + i) * w * 0.22, -h * 0.24, d * 0.1]);
-      g.add(instOf(new T.BoxGeometry(w * 0.18, h * 0.36, d * 0.7), K.mat(0.06, { rough: 0.5 }), dr));
+      for (let i = 0; i < 4; i++) dr.push([w * 0.15, ih * 0.5, 3, (-1.5 + i) * w * 0.19, iy0 + ih * 0.38, F + 1.8]);
+      g.add(mboxes(box2.concat(dr), K.mat(0.05, { rough: 0.5 })));
+      const fins = [], dk = [];
+      for (let i = 0; i < 4; i++) for (let k = 0; k < 5; k++) fins.push([(-1.5 + i) * w * 0.19 + (-2 + k) * w * 0.026, iy0 + ih * 0.3, F + 3.5]);
+      g.add(instOf(new T.BoxGeometry(w * 0.012, ih * 0.26, 0.6), K.mat(0.3, { rough: 0.3, metal: 0.8 }), fins));
+      for (let i = 0; i < 4; i++) dk.push(mcAt(new T.BoxGeometry(w * 0.12, ih * 0.06, 0.4), (-1.5 + i) * w * 0.19, iy0 + ih * 0.58, F + 3.4));
+      for (let k = 0; k < 6; k++) dk.push(mcAt(new T.BoxGeometry(w * 0.02, ih * 0.14, 0.3), -w * 0.37 + k * w * 0.045, iy1 - ih * 0.3, F + 3));
+      for (let k = 0; k < 8; k++) dk.push(mcAt(new T.BoxGeometry(0.3, h * 0.012, d * 0.6), w / 2 + 0.1, h * 0.06 + k * h * 0.03, 0));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
       return g;
     }
 
-    /* 排屑機：一條斜著往外走的鏈板輸送帶 ＋ 出屑口。
-       它不影響精度，但它決定這台機器能不能連續跑而不用有人去清。*/
+    /* 排屑機（鏈板式）：一條先平走、再斜著往上爬的鏈板輸送帶 ＋ 出屑口。
+       2026-09-26 細緻化：鏈板一片一片（片與片之間有鉸鏈銷、每隔幾片一塊擋屑板），順著「平段 → 斜段」的路徑排；
+       兩側側板、斜段頂上的罩板、頂端的出屑斜槽與驅動馬達；平段底下是**切削液水箱**
+       （切屑被鏈板帶走、切削液漏下去回到水箱，幫浦再把它打回噴嘴 —— 水面用冷水色）。*/
     function mtConv(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h * 0.5, d, K.mat(-0.16, { rough: 0.56 })));
-      const n = 7, pl = [];
-      for (let i = 0; i < n; i++) pl.push([(-(n - 1) / 2 + i) * (w * 0.92 / n), h * 0.34, 0]);
-      g.add(instOf(new T.BoxGeometry(w * 0.92 / n * 0.8, h * 0.14, d * 0.86),
-        K.mat(0.12, { rough: 0.34, metal: 0.9 }), pl));
-      g.add(put(box(w * 0.22, h * 0.9, d * 0.7, K.mat(-0.34, { rough: 0.6 })), -w * 0.42, h * 0.3, 0));
+      const X = w / 2, yb = -h * 0.2, xk = -w * 0.12, xt = -X * 0.86, yt = h * 0.62;
+      const path = new T.CatmullRomCurve3([new T.Vector3(X * 0.95, yb, 0), new T.Vector3(xk + w * 0.1, yb, 0), new T.Vector3(xk - w * 0.02, yb + h * 0.06, 0),
+        new T.Vector3(xt, yt, 0)], false, 'catmullrom', 0.2);
+      // 側板（x-y 平面上的輪廓、沿 z 擠出一點厚度）
+      const sp = new T.Shape([new T.Vector2(X, yb - h * 0.3), new T.Vector2(X, yb + h * 0.2), new T.Vector2(xk + w * 0.04, yb + h * 0.2),
+        new T.Vector2(xt - w * 0.04, yt + h * 0.3), new T.Vector2(-X, yt + h * 0.3), new T.Vector2(-X, yt - h * 0.2), new T.Vector2(xk - w * 0.08, yb - h * 0.3)]);
+      const side = [];
+      [-1, 1].forEach(s => side.push(new T.ExtrudeGeometry(sp, { depth: 0.6, bevelEnabled: false }).translate(0, 0, s * d * 0.47 - 0.3)));
+      const hood = new T.BoxGeometry(Math.hypot(xk - xt, yt - yb) * 0.8, 0.4, d * 0.94);
+      hood.rotateZ(-Math.atan2(yt - yb, xk - xt)); hood.translate((xk + xt) / 2 - 1, (yb + yt) / 2 + h * 0.34, 0);
+      const chute = new T.BoxGeometry(w * 0.14, 0.4, d * 0.7); chute.rotateZ(0.9); chute.translate(-X - w * 0.03, yt - h * 0.05, 0);
+      g.add(mcMerge(side.concat([hood, chute]), K.mat(-0.16, { rough: 0.56 })));
+      // 鏈板 ＋ 鉸鏈銷 ＋ 擋屑板
+      const L = path.getLength(), n = Math.floor(L / 1.7), pl = [], pins = [], cl = [];
+      for (let i = 0; i < n; i++) {
+        const u = (i + 0.5) / n, v = path.getPointAt(u), t = path.getTangentAt(u), a = Math.atan2(t.y, t.x);
+        pl.push([v.x, v.y, v.z, 0, 0, a]);
+        pins.push([v.x + Math.cos(a) * 0.82, v.y + Math.sin(a) * 0.82, 0, Math.PI / 2, 0, 0]);
+        if (i % 6 === 3) cl.push([v.x - Math.sin(a) * 0.6, v.y + Math.cos(a) * 0.6, 0, 0, 0, a]);
+      }
+      const plate = K.mat(0.12, { rough: 0.34, metal: 0.9 });
+      g.add(instOf(new T.BoxGeometry(1.55, 0.3, d * 0.86), plate, pl));
+      g.add(instOf(new T.CylinderGeometry(0.26, 0.26, d * 0.9, 6), K.mat(-0.3, { rough: 0.4, metal: 0.9 }), pins));
+      g.add(instOf(new T.BoxGeometry(0.3, 1.2, d * 0.84), plate, cl));
+      // 驅動馬達（頂端側面）
+      // 切削液水箱（平段底下）＋ 水面 ＋ 幫浦
+      const tx = (X + xk) / 2 + w * 0.04, tw = X - xk + w * 0.02, ty = yb - h * 0.62;
+      g.add(mboxes([[tw, 0.4, d * 1.05, tx, ty - h * 0.28, 0], [tw, h * 0.56, 0.4, tx, ty, d * 0.52], [tw, h * 0.56, 0.4, tx, ty, -d * 0.52],
+        [0.4, h * 0.56, d * 1.05, tx + tw / 2, ty, 0], [0.4, h * 0.56, d * 1.05, tx - tw / 2, ty, 0]], K.mat(-0.02, { rough: 0.5, metal: 0.6 })));
+      g.add(put(new T.Mesh(new T.BoxGeometry(tw * 0.97, 0.08, d * 1.0), K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), rough: 0.12, metal: 0.1 })), tx, ty + h * 0.12, 0));
+      g.add(mcMerge([new T.CylinderGeometry(1.4, 1.4, 3, 14).translate(tx + tw * 0.34, ty + h * 0.5, -d * 0.36),
+        mcCylZ(1.6, 3.2, 14).translate(xt + 1, yt + 1.4, d * 0.5 + 1.6)], K.mat(-0.4, { rough: 0.6, metal: 0.5 })));
       return g;
     }
 
-    /* 立起來的伺服馬達：跟「工業自動化」那張的 `mcMotor` **同一支幾何**，只是軸朝下。
-       主軸馬達與三顆進給馬達都用它 —— 那正是這兩張圖的接縫。*/
+    /* 立起來的伺服馬達（主軸馬達）：跟「工業自動化」那張的 `mcMotor` **同一支幾何**，只是軸朝下。*/
     function mtMotY(p, K) {
       const [w, h, d] = p.box;
       const m = mcMotor({ box: [h, w, d] }, K);
       m.rotation.z = -Math.PI / 2;
       const g = new T.Group(); g.add(m); return g;
     }
-    /* 主軸軸承（立著的那一組）：外環 ＋ 內環 ＋ 夾在中間的一圈滾珠。
-       ★ 不沿用 `mcBrg`：那一支是躺著的半剖軸承座（軸沿 x），
-         立起來會變成「被削掉一邊的罐頭」躺在錯的方向。這裡要的是整圈都看得到。*/
+    /* 主軸軸承（立著的那一組）：★ 主軸用的是**斜角滾珠軸承**、而且成對使用 ——
+       2026-09-26 細緻化：一組兩顆疊在一起，每一顆都是外環 ＋ 內環（旋轉斷面，溝是圓弧）＋ 一圈滾珠 ＋ 保持器；
+       外環的溝偏向一側（斜角軸承吃軸向力的方向就是從這個偏移來的）。*/
     function mtBear(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(w, d) / 2;
-      const st = K.mat(0.24, { rough: 0.2, metal: 0.95 });
-      g.add(new T.Mesh(new T.CylinderGeometry(R, R, h * 0.9, 24, 1, true), K.mat(-0.1, { rough: 0.34, metal: 0.9 })));
-      g.add(cyl(R * 0.44, h * 0.9, st, 18));
-      const balls = [];
-      for (let i = 0; i < 12; i++) {
-        const a = i / 12 * Math.PI * 2;
-        balls.push([Math.cos(a) * R * 0.72, 0, Math.sin(a) * R * 0.72]);
-      }
-      g.add(instOf(new T.SphereGeometry(R * 0.2, 8, 6), st, balls));
+      const R = Math.min(w, d) / 2, bw = h * 0.46;
+      const st = K.mat(0.24, { rough: 0.2, metal: 0.95 }), rings = [], balls = [], cage = [];
+      const oro = R * 0.95, ori = R * 0.76, iro = R * 0.56, iri = R * 0.44, bc = (ori + iro) / 2, br = (ori - iro) * 0.44;
+      [-1, 1].forEach(k => {
+        const y = k * bw / 2;
+        const outer = [[ori, -bw * 0.46], [oro, -bw * 0.46], [oro, bw * 0.46], [ori, bw * 0.46], [ori, bw * 0.2], [ori + br * 0.35, 0], [ori, -bw * 0.1]];
+        const inner = [[iri, -bw * 0.46], [iro, -bw * 0.46], [iro, -bw * 0.2], [iro - br * 0.35, 0], [iro, bw * 0.1], [iro, bw * 0.46], [iri, bw * 0.46]];
+        [outer, inner].forEach(pr => { const lg = new T.LatheGeometry(pr.concat([pr[0]]).map(([r, yy]) => new T.Vector2(r, yy)), 24); lg.translate(0, y, 0); rings.push(lg); });
+        for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; balls.push([Math.cos(a) * bc, y, Math.sin(a) * bc]); }
+        cage.push(new T.CylinderGeometry(bc + br * 0.3, bc + br * 0.3, bw * 0.3, 24, 1, true).translate(0, y + bw * 0.2, 0));
+      });
+      g.add(mcMerge(rings, st));
+      g.add(instOf(new T.SphereGeometry(br, 7, 4), st, balls));
+      g.add(mcMerge(cage, K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.6, metal: 0.1 })));
       return g;
     }
 
@@ -7903,12 +8511,12 @@
       s.rotation.z = Math.PI / 2;
       const g = new T.Group(); g.add(s); return g;
     }
-    // 立柱上的線性滑軌：同樣直接沿用 `mcRail`，轉成垂直
+    /* 立柱上的線性滑軌：同樣沿用滑軌的斷面（mcRailGeos），轉成垂直、**頂面朝 +z**（朝主軸頭）。
+       2026-09-26 更正：以前是整支 mcRail 繞 z 轉 90°，軌道的頂面變成朝側面 —— 滑塊就不可能從正面包住它。
+       box ＝ [寬（x）, 長（y）, 高（z）]。*/
     function mtRailY(p, K) {
       const [w, h, d] = p.box;
-      const r = mcRail({ box: [h, w, d] }, K);
-      r.rotation.z = Math.PI / 2;
-      const g = new T.Group(); g.add(r); return g;
+      return mcRailSet(K, [[0, 0, 0]], h, d, w, 'yz');
     }
 
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
