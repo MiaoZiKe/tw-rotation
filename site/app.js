@@ -3122,6 +3122,30 @@
     if (!opts || opts.scroll !== false) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  /* ★ 2026-09-26（Andy：「足跡輪盤點擊族群會影響到旁邊的版面，處理這問題」）：
+     總覽足跡輪盤點族群後的成分股面板（#ovRotPanel）改成**浮在輪盤上的覆蓋卡**，不再插進文件流。
+     以前它是輪盤正下方的一個區塊：一打開就把「昨日資金去向」往下推 100 多 px、整欄變高，
+     右欄一變高，左右兩欄等高的格線又把左欄（資金熱力圖／熱門題材）一起撐高 —— 點一下整頁在跳。
+     三種做法比過：
+       · 預留固定高度：沒點的時候輪盤下面永遠空一塊 120px，而且面板內容比預留的高時照樣跳。
+       · 推到卡片外（fixed 浮動視窗）：離開輪盤、看不出是哪一顆點的面板，捲頁還要跟著算位置。
+       · ★ 蓋在輪盤自己的上半或下半（採用）：position:absolute 掛在卡片上，完全不佔版面，所以
+         其他卡片的 top／高度一個像素都不會動；位置挑「沒有剛剛那顆點」的那一半 —— 點下半部的族群，
+         面板就貼輪盤上緣，點上半部就貼下緣，剛點的那顆永遠看得到。蓋住的只是輪盤的另一半，
+         點外面／Esc／再點一次同一顆就收（dismissable，跟全站其他就地面板同一套）。
+     手機（≤820）的輪盤是 mobile3.js 另一份雷達＋焦點條，不走這支。*/
+  function ovRotPlace(box, chartEl, clickY) {
+    const card = box.offsetParent; if (!card) return;
+    const wrap = chartEl && chartEl.parentNode;
+    const cr = card.getBoundingClientRect(), wr = (wrap || chartEl).getBoundingClientRect();
+    const h = box.offsetHeight, pad = 8;
+    const lower = clickY != null && clickY > wr.height / 2;     // 點在輪盤下半 → 面板貼上緣
+    let top = lower ? (wr.top - cr.top + pad) : (wr.bottom - cr.top - h - pad);
+    top = Math.max(wr.top - cr.top + pad, Math.min(top, wr.bottom - cr.top - h - pad));
+    box.style.top = Math.round(top) + 'px';
+    box.dataset.at = lower ? 'top' : 'bottom';                   // 驗收用：這次貼在哪一半
+  }
+
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
      舊的退路 —— 用漲跌幅 ÷3 換算到同一把尺上，等於舊版 `chgColor(chg, 3)` 的飽和點），
@@ -3195,7 +3219,11 @@
     };
     const setOpen = (on) => { st.open = on; pan.hidden = !on; dd.classList.toggle('open', on); btn.setAttribute('aria-expanded', String(on)); fit(); };
     btn.onclick = (ev) => { ev.stopPropagation(); setOpen(pan.hidden); if (!pan.hidden) dismissable(pan, () => setOpen(false), { also: [dd] }); };
-    dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setOpen(false); btn.focus(); } };
+    /* Esc 只在「清單開著」時由這裡吃掉（關清單、焦點還給按鈕）。
+       ★ 2026-09-26：以前不管開沒開都 stopPropagation —— 放大視窗裡關完清單、焦點停在按鈕上，
+       再按 Esc 永遠到不了 openZoom 的監聽，放大視窗就關不掉（驗收「總覽修正0926b」抓到的）。
+       清單已經收著時讓 Esc 照常往上傳：放大視窗、其他就地面板照各自的規則關。*/
+    dd.onkeydown = (ev) => { if (ev.key === 'Escape' && !pan.hidden) { ev.stopPropagation(); setOpen(false); btn.focus(); } };
     $$('.ddopt', pan).forEach(o => o.onclick = () => { st.open = false; cfg.onPick(o.dataset[k]); });
     if (cfg.align === 'right') { pan.style.left = 'auto'; pan.style.right = '0'; }
     return dd;
@@ -5532,7 +5560,12 @@
          #rankPanel／#sankeyPanel，總覽根本沒有那兩塊 —— 提示框寫「點一下看成分股」，點了卻什麼都沒發生。
          總覽（compact）改走熱力圖那一套 `heatPanel`，畫進輪盤正下方的 #ovRotPanel（原地展開，點外面／Esc 關）。*/
       if (compact && id === 'rotClockMini' && $('#ovRotPanel')) {
+        const box = $('#ovRotPanel');
+        // 再點一次同一個族群點＝收起來（dismissable 的「點外面」會被 heatPanel 重畫蓋掉，所以這裡自己判斷）
+        if (!box.hidden && box.dataset.gid === r.gid) { box.hidden = true; return; }
         heatPanel('ovRotPanel', r.gid, r.name, r.share != null ? `佔比 ${fmt.n(r.share, 1)}%` : '', { scroll: false });
+        box.dataset.gid = r.gid;
+        ovRotPlace(box, el, q.event && q.event.offsetY);
         return;
       }
       drillOpen(r.gid, r.name);

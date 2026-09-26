@@ -798,6 +798,16 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   #ovRotPanel .ms a .c{display:none}
   #ovRotPanel .ms a .g{margin-left:0;font-size:11px}
 }
+/* ★ 2026-09-26（Andy：「足跡輪盤點擊族群會影響到旁邊的版面」）：#ovRotPanel 改成浮在輪盤上的覆蓋卡 ——
+   absolute 掛在 #ovRotCard 上、不佔版面，打開／收起時「昨日資金去向」與左欄卡片一個像素都不動。
+   top 由 app.js ovRotPlace() 算（貼輪盤上緣或下緣，避開剛點的那顆）。底色用不透明的 --panel-2＋陰影，
+   看得出是一張蓋上去的卡，不會跟底下的輪盤線條混在一起。*/
+#ovRotCard{position:relative}
+#ovRotPanel{position:absolute;left:14px;right:14px;z-index:6;margin-top:0;background:var(--panel-2);
+  box-shadow:0 10px 28px rgba(0,0,0,.45)}
+/* 641～820 還是桌機那一份輪盤（手機雷達是 ≤640），但沒吃到上面 ≥821 的緊湊樣式 —— 清單上限收到約四行，
+   不然一張浮卡就把整個輪盤蓋滿。*/
+@media (max-width:820px){ #ovRotPanel .ms{max-height:120px} }
 .hpanel .ms a.sub .c{flex:none}
 .hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 .hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}
