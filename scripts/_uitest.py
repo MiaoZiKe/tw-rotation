@@ -27259,38 +27259,31 @@ def t_mobile_oneview(b, base, code):
     #      而這一列是釘住的 —— 我親手驗過：捲到工具列滑進它底下（重疊 25.6px）時，
     #      右緣真的看得到「5 秒」那顆晶片透出來（上一批的註解早就寫了，我差點又踩一次）。
     #      所以這裡同時驗兩件事：① 右緣有看得出來的淡出 ② 那是**蓋片**不是 mask。
+    # ★ 2026-09-27 手機個股券商式：#skPx 在手機藏起來（現價改住頂部報價列 #mbQuote，本益比等數字進「指標」「財務」分頁），
+    #   釘住的橫捲列換成分頁列 #mbTabs。同一組要求照驗：藏了內容看得出來、真的滑得動、到底提示收掉、滑完還是釘住。
+    #   ⚠ 淡出用 mask 是可以的：mask 掛在 .mbtabs（沒有底色）上，底色在外層 .mbtabwrap（不透明）——
+    #     捲過去的內容透不過來（跟 #skPx 當年「mask 掛在釘住的列本身」不一樣），這裡驗外層真的有不透明底色。
     m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3200)
-    SK = """() => { const e = document.getElementById('skPx'); if (!e) return null;
-        const cs = getComputedStyle(e), af = getComputedStyle(e, '::after');
-        const kids = [...e.children];
-        const last = kids.length ? kids[kids.length - 1].getBoundingClientRect() : null;
+    SK = """() => { const e = document.getElementById('mbTabs'), h = document.getElementById('mbHead'); if (!e || !h) return null;
+        const cs = getComputedStyle(e), wbg = getComputedStyle(e.parentElement).backgroundColor;
+        const kids = [...e.children], last = kids.length ? kids[kids.length - 1].getBoundingClientRect() : null;
         return { sw: e.scrollWidth, cw: e.clientWidth, sl: Math.round(e.scrollLeft),
-                 mask: (cs.webkitMaskImage || cs.maskImage || 'none') !== 'none',
-                 hsc: e.classList.contains('hsc'), end: e.classList.contains('sk-end'),
-                 pos: cs.position,
-                 cover: (af.backgroundImage || 'none').indexOf('gradient') >= 0,
-                 coverW: Math.round(parseFloat(af.width) || 0),
-                 tip: !!(e.nextElementSibling && e.nextElementSibling.classList
-                         && e.nextElementSibling.classList.contains('swipetip')),
-                 lastT: last ? Math.round(last.left) : null, lastR: last ? Math.round(last.right) : null,
-                 vw: innerWidth }; }"""
+                 mask: (cs.webkitMaskImage || cs.maskImage || 'none') !== 'none', end: e.classList.contains('end'),
+                 wrapBg: wbg, opaque: /^rgb\(/.test(wbg) || (/rgba\(.*,\s*1\)$/.test(wbg)),
+                 pos: getComputedStyle(h).position,
+                 lastT: last ? Math.round(last.left) : null, lastR: last ? Math.round(last.right) : null, vw: innerWidth }; }"""
     k0 = m.evaluate(SK)
-    ok("[390px 個股] 價格列藏了內容時，右緣真的有淡出（看得出可以左右滑）",
-       k0 and k0["sw"] > k0["cw"] + 4 and k0["cover"] and k0["coverW"] >= 20 and not k0["end"], k0)
-    ok("[390px 個股] 而且那塊淡出是**不透明的蓋片**、不是 mask"
-       "（mask 會讓釘住的列半透明 —— 實測底下工具列的「5 秒」會透出來）",
-       k0 and not k0["mask"] and not k0["hsc"], k0)
-    ok("[390px 個股] 但**不准**在它後面插一行「左右滑看更多」（釘住的東西越高，留給圖的越少）",
-       k0 and not k0["tip"], k0)
-    # 真的把它滑到底，最後一顆要完整進得了畫面
-    m.evaluate("() => { const e = document.getElementById('skPx'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
+    ok("[390px 個股] 分頁列藏了內容時，右緣真的有淡出（看得出可以左右滑）",
+       k0 and k0["sw"] > k0["cw"] + 4 and k0["mask"] and not k0["end"], k0)
+    ok("[390px 個股] 淡出底下是不透明的底色（捲過去的內容不會透出來）", k0 and k0["opaque"], k0)
+    m.evaluate("() => { const e = document.getElementById('mbTabs'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
     m.wait_for_timeout(600)
     k1 = m.evaluate(SK)
-    changed("[390px 個股] 真的滑得動（scrollLeft 變了，不是裝飾）", k0["sl"], k1["sl"], str(k1))
-    ok("[390px 個股] 滑到底之後最後一顆（分 K 完整）整顆在畫面內",
+    changed("[390px 個股] 真的滑得動（scrollLeft 變了，不是裝飾）", k0 and k0["sl"], k1 and k1["sl"], str(k1))
+    ok("[390px 個股] 滑到底之後最後一顆分頁整顆在畫面內",
        k1 and k1["lastR"] is not None and k1["lastR"] <= k1["vw"] and k1["lastT"] >= 0, k1)
-    ok("[390px 個股] 滑到底之後蓋片收掉了（「已經到底了還在淡」是假提示）", k1 and k1["end"], k1)
-    ok("[390px 個股] 滑動之後它還是釘住的（蓋片沒有把 sticky 弄掉）", k1 and k1["pos"] == "sticky", k1)
+    ok("[390px 個股] 滑到底之後淡出收掉了（「已經到底了還在淡」是假提示）", k1 and k1["end"] and not k1["mask"], k1)
+    ok("[390px 個股] 滑動之後報價列＋分頁列還是釘住的", k1 and k1["pos"] == "sticky", k1)
 
     # ④ K 線圖例：一個數字不准被折成兩半。
     #    實測（修之前）：「MA60 2,400.83」那個 span 的邊界框是 244.3×33.8 —— 橫跨兩行，
