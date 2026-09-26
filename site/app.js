@@ -5337,7 +5337,7 @@
                點排行長條或清單時 highlightClock 會把被點的那一條打開，也就是「它變焦點」。
              · ★ 2026-09-25：卡片與放大視窗的非焦點改成 `baseOp: ROT_REST_OP`（淡腳印，見 restDim）；
                只有總覽小時鐘（compact）的非焦點還是 0。*/
-        ...top.map(r => {
+        ...top.map((r, i) => {
           const col = STAGE[r.stage].color;
           const tf = r._tf;
           const op = trailOp(r);
@@ -5350,6 +5350,10 @@
                以前是 'circle' ＋ symbolSize 0 —— 16 條 × 48 點＝768 個看不見的圓也要每次重畫，
                補間每一幀都要 setOption，實測這一項讓每一幀的成本約翻倍（2026-09-24）。*/
             type: 'line', coordinateSystem: 'polar', silent: true, symbol: 'none', showSymbol: true, showAllSymbol: true,
+            /* rotTrail＝這條是 top 裡第幾列的軌跡（1 起算）。2026-09-26 晚退回有腳印版時補上：
+               這一版的補間與 highlightClock 仍照索引／gid 認人，這個旗標只給驗收的「尖端量尺」照 series 配對
+               （非焦點 z 1.5、焦點 z 2 之後，顯示列表順序跟點的順序對不上，靠順序配對會配錯人）。*/
+            rotTrail: i + 1,
             gid: r.gid,                                   // 給 highlightClock 認人用（圖四點長條時只亮這一族群）
             baseOp: op,                                   // highlightClock 還原時回到這個值（不是一律 1）
             rest: dim,                                    // highlightClock：滑到它時腳印換成焦點那一版（el._rotDeco），滑開換回來
