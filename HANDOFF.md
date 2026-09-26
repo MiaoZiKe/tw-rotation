@@ -3060,3 +3060,9 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - Logo 管線：官網 apple-touch-icon／icon 為主、Google s2 備援；回補工作流增量抓進 `data/logos/`（每輪 ≤300 家），build_payload 輸出 `site/data/logos.json`；`config.LOGOS_ENABLED` 可關；DECISIONS #264；新增 Pillow。第一次抓在合併後下一個整點 20 分的回補排程，約 4～9 輪抓完；回補只 commit data/，Logo 要等下一次部署才看得到。
 - 這批驗了：pytest 639 passed；重算 payload（logos.json＝{}）；搜尋近期熱門Logo／個股／手機 0；_preview 綠。
 - 待處理：頁尾加「Logo 商標權屬各公司，本站僅用於識別」一句；上櫃／興櫃網址端點未實測（拿不到則只有上市有 Logo）。
+
+### 09-26 3D 視角鈕進畫布＋總覽三件（dg3d-tools-move＋ov-fix-0926b）
+- 3D：「拖曳」「重設視角」移進 3D 畫布右上角（#dg3dCtl，掛進 #prod3d 避免游標離開畫布就收爆炸圖）；在畫布上點兩下＝重設視角（同一支 resetView，重設後清選取）；右欄卡片從鈕下緣往下排。手機 ≤640 按鈕仍隱藏（mobile v3 規則），只能雙擊。
+- 總覽：量柱不見的可重現根因＝個股頁「指標 ▾」關掉成交量寫進共用 `tw.kcfg.vol=false`，總覽照吃又沒有開關 → market3 `loadCfg` 一律開量、不吃個股設定（推論，待 Andy 確認）；熱門題材加「放大 ⤢」（#ovThemeZoom，放大內同一顆題材下拉同步，白名單加上）；ddSingle 只在清單開著時吃 Esc；足跡輪盤族群面板改成貼著點的覆蓋卡，不推版面。
+- 這批驗了：分支各自全套；合併後 3D視角鈕與點兩下重設／剖析圖2D3D分段鈕／3D收合再展開／桌機零差異／產業鏈導覽／總覽修正0926b／總覽／縮放掃描／搜尋近期熱門Logo 0、_preview 綠。
+- 待查：資料湖 `index_ohlc` 的 FUT_N 最後一列日期 2026-09-29（未來日期，可能是夜盤歸屬次一交易日的標法）。
