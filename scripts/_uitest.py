@@ -8243,8 +8243,11 @@ def t_batch6_n9(pg, base):
         # 下限從 500 改成 300：mesh 數不是「細節多寡」的指標 —— 2026-09-22 把陣列類收成
         # InstancedMesh 之後，機櫃**更細**但 mesh 只剩 476。真正在驗「走線還在」的是
         # flowVisible == 0（粒子收起來）加上場景仍然有幾百顆物件。
+        # ★ 2026-09-26（3D 細緻化）：下限 300 → 200。為了守住 CEO 訂的「每張 ≤ 300 draw call」，
+        #   HBM 的六層、晶片旁的十顆被動元件、七片扇葉、電池牆、光模組埠都各自併成一個 mesh，
+        #   機櫃的 mesh 數從 380 掉到 280 上下 —— 零件一顆都沒少、畫面更細，跟上一次 500 → 300 是同一個理由。
         ok("靜止時粒子收起來，走線本身還在（圖九 2-1）",
-           s2["flowVisible"] == 0 and s2["meshes"] > 300, s2["flowVisible"])
+           s2["flowVisible"] == 0 and s2["meshes"] > 200, {"flowVisible": s2["flowVisible"], "meshes": s2["meshes"]})
         pg.eval_on_selector("#dgAnim", "b => b.click()")
         pg.wait_for_timeout(700)
 
@@ -22900,7 +22903,7 @@ B24_ROUTES = {
     #   倒角方塊一顆 44 個三角形（原本 12）、MLCC 36 層電極、MOV 多面體晶粒、PPTC 碳黑鏈都是刻意加的細節；
     #   draw call 上限沒有放寬（大部分場景的 draw call 反而變少了）。逐張數字見「3D細緻化效能」段落。
     "晶圓代工":     ("industry/semiconductor/dg/foundry", 95, 13000, 1200, 7),
-    "矽晶圓":       ("industry/semiconductor/dg/silicon_wafer", 60, 9000, 2000, 9),
+    "矽晶圓":       ("industry/semiconductor/dg/silicon_wafer", 60, 23000, 2000, 9),   # 2026-09-26：晶圓疊每片改成帶 notch 的倒角圓片
     "HBM":          ("industry/semiconductor/dg/hbm", 120, 36000, 14000, 8),
     "第三代半導體": ("industry/semiconductor/dg/wide_bandgap", 70, 13000, 300, 13),
 }
@@ -25148,8 +25151,10 @@ B28_KINDS = ["pnframe", "pnfilm", "pnlgp", "pnledbar", "pnprism", "pnpol", "pngl
 B28_LAYERS = {"cppoly", "reslay", "restrim", "resglass", "resback"}
 
 # 陣列類一律要收成 InstancedMesh，不然光是導光板的 96 顆網點就是 96 個 draw call。
+# ★ 2026-09-26（3D 細緻化）：`indwind` 拿掉 —— 繞組從「64 塊小方塊排成環」（陣列）改成**一條連續的扁銅帶螺旋**，
+#   整條本來就是一個 mesh、一個 draw call，已經不是陣列了；這條棘輪要擋的「一顆一個 draw call」不會發生。
 B28_ARRAYS = {"pnlgp", "pntft", "pnlc", "pncf", "mcballs", "mcbrg", "mcblock",
-              "cpcarbon", "cpgrain", "acpore", "indwind", "xtallid"}
+              "cpcarbon", "cpgrain", "acpore", "xtallid"}
 
 # 每張卡片：編號圓點／中英雙語／台股不留白／最小字級，外加「codes: [] 的那幾顆真的是 0 個晶片」
 _B28_CARDS = """() => { const host = document.getElementById('prod3d');
