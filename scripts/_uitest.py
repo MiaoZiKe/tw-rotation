@@ -5227,20 +5227,32 @@ def _rot_trail_days(pg):
 #   · 大圈＝帶 shape.symbolType 的 path，scaleX＝symbolSize（尾巴自己那顆小圈圈是 6，
 #     scatter 的 z=5，尾巴自己那顆小圈圈 z=2，所以用 z>=5 把兩者分開）
 # 量之前一定要先篩到**只剩一個族群**，不然 16 條尾巴配 16 顆大圈會有配對歧義。
+# ★ 2026-09-26 稍晚（claude/rot-trails-back）改前→改後：
+#   改前：tips＝顯示列表裡所有 ec-polyline 的尖端、dots＝所有「z ≥ 5、scaleX ≥ 4」的 symbol，**照顯示列表順序**配對。
+#   改後：照 series 認人配對 —— 每一條軌跡 series 帶 rotTrail（＝它是 top 裡第幾列），尖端讀那條 series 的 view._polyline，
+#     大圈讀「族群」scatter 同一列的圖元位置、半徑讀 row.sz / 2。
+#   理由：軌跡恢復時量到「靜止時 16 條尖端離自家大圈 70～357px、大圈半徑 2.2px」—— 不是線沒黏住（單一族群那條是綠的），
+#     是配對錯人：09-25 起非焦點的線 z＝1.5、焦點 z＝2，顯示列表先依 z 排序，線的順序就跟點的順序對不上；
+#     桌機 v2 的點又多了發光核心與白外圈，「scaleX ≥ 4」會撈到不是大圈的 symbol。
 _ROT_TIP_JS = """(cid) => {
   const el = document.getElementById(cid);
   const c = el && window.echarts && echarts.getInstanceByDom(el);
   if (!c) return null;
   const g = (e, x, y) => (e.transformCoordToGlobal ? e.transformCoordToGlobal(x, y) : [x, y]);
+  const model = c.getModel();
+  const grp = model.getSeriesByName('族群')[0]; if (!grp) return null;
+  const gd = grp.getData();
   const tips = [], dots = [];
-  (c.getZr().storage.getDisplayList(true) || []).forEach(e => {
-    if (!e || e.ignore) return;
-    if (e.type === 'ec-polyline' && e.shape && e.shape.points && e.shape.points.length >= 4) {
-      const p = e.shape.points, n = p.length;
-      tips.push(g(e, p[n - 2], p[n - 1]));
-    } else if (e.shape && e.shape.symbolType && (e.scaleX || 0) >= 4 && (e.z || 0) >= 5) {
-      dots.push(g(e, 0, 0).concat([e.scaleX]));
-    }
+  model.getSeries().forEach(sm => {
+    const k = sm.option && sm.option.rotTrail; if (!k || sm.subType !== 'line') return;
+    if (k - 1 >= gd.count()) return;                      // 個股的尾巴（大圈在「個股」series）不在這把尺的範圍
+    const v = c.getViewOfSeriesModel(sm), poly = v && v._polyline;
+    const p = poly && !poly.ignore && poly.shape && poly.shape.points; if (!p || p.length < 4) return;
+    const n = p.length;
+    const d = gd.getItemGraphicEl(k - 1); const raw = gd.getRawDataItem(k - 1);
+    if (!d || !raw || !raw.row) return;
+    tips.push(g(poly, p[n - 2], p[n - 1]));
+    dots.push(g(d, 0, 0).concat([raw.row.sz]));
   });
   return { tips, dots };
 }"""
@@ -5258,9 +5270,8 @@ def _rot_tip_gap(pg, cid="rotClock"):
 def _rot_tip_gaps_all(pg, cid="rotClock"):
     """**每一個**族群的「尾巴尖端 vs 它自己的大圈」距離（回 (距離清單, 最小半徑)）。
 
-    配對靠順序：zrender 的顯示列表裡尾巴（line series）與大圈（scatter 的 symbol）
-    都照 series／data 的順序排，而這兩份順序在 renderRotClock 裡本來就是同一份 `top`。
-    這個假設每次量之前都會被「靜止時全部為 0」那一條驗一次 —— 配錯人的話它就會紅。
+    配對靠 series 的 rotTrail（＝top 裡第幾列）對「族群」scatter 的同一列（2026-09-26 起；改前靠顯示列表順序，
+    非焦點 z 1.5／焦點 z 2 之後順序對不上）。這個配對每次量之前都會被「靜止時全部為 0」那一條驗一次 —— 配錯人的話它就會紅。
     """
     r = pg.evaluate(_ROT_TIP_JS, cid)
     if not r or not r["tips"] or len(r["tips"]) != len(r["dots"]):
