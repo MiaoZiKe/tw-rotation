@@ -958,7 +958,9 @@
     if (opts && opts.wrap) bh = Math.max(PB_H, Math.max.apply(null, steps.map((s) => 10 + wrap(s.t, w - (s.no != null ? 30 : 12) - 8, 17).length * 17 + wrap(s.s, w - (s.no != null ? 30 : 12) - 8).length * 16)));
     return (rows - 1) * (bh + (PB_ROW - PB_H)) + bh;
   }
-  const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
+  /* ★ 2026-09-26 覆蓋普查：卡片寬原本用「字數 × 13」估，閱讀模式（字級約 16～17）字就伸出卡片 16px；
+     改成照最壞字寬估（全形 1 em、半形 0.6 em，em 取 17.5）。*/
+  const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${Math.ceil([...text].reduce((a, c) => a + EM(c), 0) * 17.5) + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
   /* 爆炸拆解的間距：層與層之間要有「呼吸空間」（Andy 2026-09-22 的參考圖）。
        explode(n, {y0, h, gap}) → 2D 垂直拆解：回第 i 層的 y（由上往下），h 是每層高、gap 是呼吸空間
        explodeZ(heights, gap)  → 2.5D 垂直拆解：回每一層底面的 z（由下往上），heights 是每層厚度
@@ -1229,7 +1231,7 @@
         + [0, 1, 2, 3, 4].map(k => `<rect class="cavity" x="${x + 4}" y="${420 + k * 10}" width="16" height="6" rx="1"/>`).join('');
     }).join('');
 
-    return `<svg class="dg dgm dgag rs" viewBox="0 0 ${CW} 620" width="100%" style="display:block">${STYLE}${AG_VARS}
+    return `<svg class="dg dgm dgag rs" viewBox="0 0 ${CW} 660" width="100%" style="display:block">${STYLE}${AG_VARS}
       <defs>${fx.glowDefs({ r: 3.5, soft: 3 })}
         <linearGradient id="agCool" gradientUnits="userSpaceOnUse" x1="${SX}" y1="0" x2="${SX + SW}" y2="0"><stop offset="0" stop-color="var(--dg-ag-cool)"/><stop offset="1" stop-color="var(--dg-ag-cool-2)"/></linearGradient>
         <linearGradient id="agPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-ag-pcb)"/><stop offset="1" stop-color="var(--dg-ag-pcb-2)"/></linearGradient>
@@ -1258,7 +1260,10 @@
       </g>
       <g data-seg="power" data-part="ag_psu">
         <rect class="box part" x="${TRX}" y="344" width="${TRW}" height="42" rx="3"/>${psu}
-        <text class="sub" x="${RX + 6}" y="402">電源櫃 PSU ×6（交流進、直流匯流排出）</text>
+        <text class="sub" x="${RX + 6}" y="402">電源櫃 PSU ×6</text>
+        <!-- ★ 2026-09-26 覆蓋普查：原本這一行後面還接「（交流進、直流匯流排出）」，整行比機櫃（168 寬）寬 100 多，
+             右半截伸出機櫃、壓在機櫃邊上；PSU 框與 CDU 框之間只有一行的高度，沒有地方斷行。
+             括號裡那句跟 3 號卡片的說明（交流進、機櫃內直流匯流排出）一字不差，所以畫布上只留名稱，說明留在卡片。 -->
       </g>
       <g data-seg="thermal" data-part="ag_cdu">${cdu}
         <rect class="hair" x="${TRX}" y="412" width="${TRW}" height="50" rx="3" fill="none"/>
@@ -1309,8 +1314,10 @@
       <text class="hd" x="${RX}" y="512">④ 從晶片到交付</text>
       ${processBar(RX, 524, [{ seg: 'foundry', t: 'GPU 晶粒', s: '晶圓代工' }, { seg: 'adv_pkg', t: 'CoWoS 封裝', s: '＋ HBM' }, { seg: 'abf_pcb', t: '模組上板', s: 'PCB ／ 載板' }, { seg: 'assembly', t: '托盤 → 機櫃', s: '系統組裝' }, { seg: 'hyperscaler', t: '交付 CSP', s: '資料中心' }], 118)}
       ${chainLink('semiconductor', RX, 572, '← 看半導體鏈：晶片怎麼來')}
-      <text class="cap" x="244" y="584">示意圖，非實物比例｜托盤內的零件數量、層數與厚度比例均為示意；</text>
-      <text class="cap" x="244" y="602">機櫃配置（托盤數、供電與冷卻做法）依機種而異。</text>
+      <!-- ★ 2026-09-26 覆蓋普查：這兩行原本從 x 244 起筆、排在「看半導體鏈」那顆鈕的右邊 —— 閱讀模式鈕變寬就壓到鈕上，
+           字也伸出畫布。改排到鈕的下面、從左緣起筆，畫布加高 44。 -->
+      <text class="cap" x="${RX}" y="622">示意圖，非實物比例｜托盤內的零件數量、層數與厚度比例均為示意；</text>
+      <text class="cap" x="${RX}" y="640">機櫃配置（托盤數、供電與冷卻做法）依機種而異。</text>
     </svg>`;
   }
 
@@ -1650,7 +1657,7 @@
 
       <!-- ================= ④ 尺寸代號、這一格有誰、資料來源（預設收合） ================= -->
       ${fold('mc4', '④ 尺寸代號有兩套、這一格是哪幾家、資料來源與免責', '三種尺寸的實體比例尺、EIA 與公制對照、成分名單與 2026 產業變數', `
-        <text class="hd" x="16" y="1432">③ 尺寸代號有兩套，別記混</text>
+        <text class="hd" x="16" y="1420">③ 尺寸代號有兩套，別記混</text>   <!-- ★ 2026-09-26 覆蓋普查：原本基線 1432、下緣壓到 1430 起的 0402 晶片 → 往上 12 -->
         <!-- 尺寸尺是附註級：單色 --dg-mute、不穿主角的陶瓷材質（上一輪降權的結論，維持） -->
         <g transform="translate(0,1074)">
           ${chip(22, 79, 40, 396)}${chip(114, 48, 24, 396)}${chip(174, 32, 16, 396)}
