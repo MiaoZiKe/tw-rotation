@@ -16,6 +16,8 @@
      B 骨架：底部一列五顆＋「更多」、頂欄 52px（搜尋收成一顆鈕）
      C 總覽＋資金流向：大盤三張合一張、足跡輪盤新雷達＋焦點條、資金去向長條、法人長條、篩選抽屜
      D 剖析圖：在 diagrams.js 的 DG.mobileNums（這支只提供共用的抽屜與推開算法）
+     E 其他頁：熱力圖點方塊、市場明細分段、週期統計設定抽屜
+     F 個股頁（券商 App 式，2026-09-27）：固定報價列＋橫捲分頁列＋分段鈕＋柱狀圖＋每日表
    ============================================================================ */
 (function () {
   'use strict';
@@ -786,6 +788,613 @@
     }
   }
   hooks.push({ on: eOn, off: () => { unMarketSeg(); unSeasonCtl(); } });
+
+
+  /* ====================================================================== F 個股頁（券商 App 式）
+     Andy 2026-09-27：「依據我提供的手機頁面，將手機版也設計類似這樣」（華邦電 2344，某券商 App 十張截圖）。
+     資訊架構照截圖：
+       · 頂部固定報價列：◀ 名稱／市場別徽章＋代號　大字現價　漲跌／漲跌幅 ▶（左右切同族群上一檔／下一檔）
+       · 下接一條可橫向捲動的分頁列（只有這一條可以橫捲，整頁不准）
+       · 每個分頁：分段鈕 → 關鍵數字（貼著圖）→ 柱狀圖（可收合）→ 每日表（新到舊）；時間窗預設一季（60 交易日）
+     ⚠ 券商 App 的「主力」頁是**券商分點**資料 —— CLAUDE.md 第 7 條禁止爬分點。這裡改叫「大戶」，
+       用集保千張大戶週增減＋法人合計當替代口徑，頁面上直接寫明「替代口徑：集保大戶＋法人，非券商分點」。
+     ⚠ 沒有合規來源的分頁（相關 ETF、權證、董監持股）與分段（當沖、借券賣）**不顯示**，不放空殼
+       （CEO 2026-09-27 轉 Andy：「沒來源的分頁先不顯示，不要放空殼」）—— 欄位一到（見 skExtra）就自動長出來。
+     做法（跟 C 段同一個原則：桌機一個像素都不動）：
+       · 報價列＋分頁列（#mbHead）與分頁內容（#mbBody）是**插在 #stockPage 前面的兄弟節點**，只在 ≤640 插；
+         不插在 #stockPage 裡面：industry.js 換股時會整個重寫 #stockPage，插在裡面會被洗掉。
+         也不包成一層：sticky 只在父元素的盒子裡有效，#v-industry 才蓋得住整張 K 線卡。
+       · K 線分頁直接沿用 industry.js 畫好的 #skChartCard（週期列、指標、即時分 K 全部照舊），只藏掉它的標題列；
+         其他分頁的內容由這裡畫，資料讀同一份 `data/stock/<代號>.json`（App.load 的快取，不會多抓一次）。
+       · AI 分析分頁直接呼叫 StockAI.mount（積木 stock.mtf 的渲染），不重寫它的內容；離開這一頁就清掉，避免重複 id。
+       · 桌機回來（或離開個股頁）一律拆乾淨：skOff()。*/
+  const SK_TABS = [
+    { t: 'k', n: 'K線' }, { t: 'ai', n: 'AI 分析' }, { t: 'tag', n: '指標' }, { t: 'inst', n: '法人' }, { t: 'big', n: '大戶' },
+    { t: 'margin', n: '資券' }, { t: 'news', n: '新聞' }, { t: 'rev', n: '營收' }, { t: 'fin', n: '財務' }, { t: 'profit', n: '獲利' },
+    { t: 'basic', n: '基本資料' }, { t: 'div', n: '除權息' }, { t: 'full', n: '完整版' },
+  ];
+  const SK_WIN = 60;                      // 一季 ≈ 60 個交易日（截圖是 7/02～9/24）
+  const SK = { code: null, pg: null, wait: null, tries: 0, card: null, ro: null };
+  const skApp = () => window.App;
+  const skTab = () => { const t = LS.get('sk.tab', 'k'); return SK_TABS.some(x => x.t === t) ? t : 'k'; };
+  const skSeg = (t, d) => LS.get('sk.seg.' + t, d);
+  const int = (v) => v == null || !isFinite(v) ? '—' : Math.round(v).toLocaleString('en-US');
+  const sInt = (v) => v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + int(v);
+  const sFix = (v, d) => v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + (+v).toFixed(d);
+  const uc = (v) => v > 0 ? 'up' : v < 0 ? 'dn' : 'fl';
+  const md = (d) => String(d || '').slice(5).replace('-', '/');
+  const lot = (v) => v == null ? null : v / 1000;           // 法人原始單位是「股」→ 張
+
+  function skCode() { const h = location.hash.replace('#', '').split('/'); return h[0] === 'stock' ? (h[1] || '') : ''; }
+
+  /* ---- 生命週期：等 industry.js 把個股頁畫完（#skChartCard 帶著這一檔的代號）才接手 ----
+     apply() 在換頁 60ms 後就跑，而 renderStock 要等 JSON 回來 —— 所以輪詢，最多 8 秒；
+     簡版個股頁（沒有個股 JSON、沒有 #skChartCard）等不到就放手，維持原本的手機版。*/
+  function skOn(v) {
+    if (v !== 'stock') { skOff(); return; }
+    const code = skCode();
+    if (!code) { skOff(); return; }
+    clearTimeout(SK.wait);
+    const ready = () => {
+      const card = document.getElementById('skChartCard');
+      const id = document.querySelector('#skIdent .mono');
+      return card && id && id.textContent.trim() === code ? card : null;
+    };
+    const card = ready();
+    if (!card) {
+      if (SK.code !== code) SK.tries = 0;
+      if (++SK.tries > 40) { skOff(); return; }
+      SK.wait = setTimeout(() => { if (isM() && skCode() === code) skOn('stock'); }, 200);
+      return;
+    }
+    SK.tries = 0;
+    /* 已經接手過這一檔：只有 industry.js 重畫過個股頁（K 線卡換了一個節點）才重套一次分頁。
+       ⚠ 不要每次都 skPaint：apply() 在手機上**每一次 resize 都會跑**，而 K 線分頁會發 resize 叫圖表重排 ——
+         兩個互叫就是每 260ms 一輪的無窮迴圈。*/
+    if (SK.code === code && SK.pg && document.getElementById('mbHead')) {
+      document.body.classList.add('mbon');
+      if (SK.card !== card) { SK.card = card; skPaint(); }
+      return;
+    }
+    const A = skApp();
+    if (!A || !A.load) return;
+    A.load('stock/' + code, { fallback: null }).then(pg => {
+      if (!pg || !isM() || skCode() !== code) return;
+      SK.code = code; SK.pg = pg; SK.card = card;
+      skBuild(pg);
+    });
+  }
+  function skOff() {
+    clearTimeout(SK.wait);
+    ['mbHead', 'mbBody'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+    document.body.classList.remove('mbon');
+    delete document.body.dataset.mbt;
+    if (SK.ro) { try { SK.ro.disconnect(); } catch (e) { /* 略 */ } SK.ro = null; }
+    SK.code = null; SK.pg = null; SK.card = null;
+  }
+  hooks.push({ on: skOn, off: skOff });
+
+  /* ---- 報價列＋分頁列 ---- */
+  function skBuild(pg) {
+    const A = skApp(), m = pg.meta || {}, s = pg.summary || {};
+    const st = document.getElementById('stockPage');
+    if (!st) return;
+    let head = document.getElementById('mbHead'), body = document.getElementById('mbBody');
+    if (!head) { head = document.createElement('div'); head.id = 'mbHead'; head.className = 'mbhead'; st.before(head); }
+    if (!body) { body = document.createElement('div'); body.id = 'mbBody'; body.className = 'mbbody'; st.before(body); }
+    const mk = m.market === 'TPEX' ? ['櫃', '上櫃'] : m.market === 'TWSE' ? ['市', '上市'] : ['興', m.market || ''];
+    head.innerHTML = `<div class="mbq" id="mbQuote">
+        <button type="button" class="mbarrow" id="mbPrev" aria-label="上一檔" disabled>◀</button>
+        <div class="mbid"><b class="mbname">${esc(m.name || '')}</b><span class="mbcode"><i class="mbmkt" title="${esc(mk[1])}">${mk[0]}</i><span class="num">${esc(m.code || '')}</span></span></div>
+        <div class="mbpx num" id="mbPx" data-live="close" data-lc="${esc(m.code)}">${A.fmt.n(s.close)}</div>
+        <div class="mbchg"><span class="num" id="mbDelta"></span><span class="num" id="mbPct" data-live="chg" data-lc="${esc(m.code)}">${A.fmt.pct(s.chg_pct, 2)}</span></div>
+        <button type="button" class="mbarrow" id="mbNext" aria-label="下一檔" disabled>▶</button></div>
+      <div class="mbtabwrap"><button type="button" class="mball" id="mbAll" aria-label="全部分頁">☰</button>
+        <nav class="mbtabs" id="mbTabs" role="tablist">${SK_TABS.map(x => `<button type="button" role="tab" data-t="${x.t}">${x.n}</button>`).join('')}</nav></div>`;
+    skQuoteColor();
+    skNeighbours(pg);
+    const tabs = document.getElementById('mbTabs');
+    tabs.onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) skGo(b.dataset.t); };
+    tabs.addEventListener('scroll', () => tabs.classList.toggle('end', tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 4), { passive: true });
+    document.getElementById('mbAll').onclick = skAllSheet;
+    document.body.classList.add('mbon');
+    /* 表頭釘在報價列＋分頁列正下方：高度用量的（字型載入前後會差幾 px），寫進 --mbtop */
+    const setTop = () => { const h = head.getBoundingClientRect().height; document.body.style.setProperty('--mbtop', (52 + h) + 'px'); };
+    setTop();
+    if (window.ResizeObserver) { if (SK.ro) SK.ro.disconnect(); SK.ro = new ResizeObserver(setTop); SK.ro.observe(head); }
+    skPaint();
+  }
+  /* 即時層（live.js）只改 [data-live] 的字與漲跌幅的 class；現價的顏色與「▼1.00」這個漲跌點數由這裡跟著算 */
+  function skQuoteColor() {
+    const px = document.getElementById('mbPx'), pc = document.getElementById('mbPct'), dl = document.getElementById('mbDelta');
+    if (!px || !pc || !dl) return;
+    const p = parseFloat(String(px.textContent).replace(/,/g, '')), r = parseFloat(String(pc.textContent).replace(/[+%,]/g, ''));
+    const c = isFinite(r) ? uc(r) : 'fl';
+    [px, dl].forEach(e => { e.classList.remove('up', 'dn', 'fl'); e.classList.add(c); });
+    pc.classList.remove('up', 'dn', 'fl', 'down', 'flat'); pc.classList.add(c === 'dn' ? 'down' : c === 'up' ? 'up' : 'flat');
+    if (isFinite(p) && isFinite(r) && r > -100) {
+      const d = p - p / (1 + r / 100);
+      dl.textContent = (d > 0.0049 ? '▲' : d < -0.0049 ? '▼' : '') + Math.abs(d).toFixed(2);
+    } else dl.textContent = '—';
+  }
+  window.addEventListener('tw:quotes', () => { if (document.getElementById('mbHead')) skQuoteColor(); });
+  /* 同族群的上一檔／下一檔：groups_detail 的成員順序（成交值大到小），頭尾相接；只算有個股頁的 */
+  function skNeighbours(pg) {
+    const A = skApp(), gid = pg.meta && pg.meta.group_id;
+    if (!gid) return;
+    A.load('groups_detail').then(gd => {
+      const g = gd && gd[gid];
+      const mem = ((g && g.members) || []).filter(x => x.has_page !== false);
+      const i = mem.findIndex(x => x.code === pg.meta.code);
+      if (i < 0 || mem.length < 2) return;
+      const prev = mem[(i - 1 + mem.length) % mem.length], next = mem[(i + 1) % mem.length];
+      const set = (id, x, w) => { const b = document.getElementById(id); if (!b) return;
+        b.disabled = false; b.dataset.code = x.code; b.setAttribute('aria-label', `${w}：${x.name} ${x.code}`); b.title = `${w}：${x.name}`;
+        b.onclick = () => { location.hash = '#stock/' + x.code; }; };
+      set('mbPrev', prev, '上一檔'); set('mbNext', next, '下一檔');
+      const q = document.getElementById('mbQuote'); if (q) q.dataset.pos = `${i + 1}/${mem.length}`;
+    });
+  }
+  function skAllSheet() {
+    const cur = skTab();
+    const sh = openSheet(`<div class="mshhead"><b>全部分頁</b></div><div class="mballgrid">${SK_TABS.map(x =>
+      `<button type="button" data-t="${x.t}" class="${x.t === cur ? 'on' : ''}">${x.n}</button>`).join('')}</div>`, { kind: 'sktabs' });
+    sh.querySelector('.mballgrid').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; closeSheet(); skGo(b.dataset.t); };
+  }
+  function skGo(t) {
+    LS.set('sk.tab', t);
+    skPaint();
+    /* K 線卡／完整版的圖剛從 display:none 回來：叫圖表重排一次（只在使用者切分頁時發，見 skOn 的註解）*/
+    if (t === 'k' || t === 'full') setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
+    /* 換分頁回到頂端（報價列下方）：不然從很長的新聞清單切到 K 線，會停在半截 */
+    window.scrollTo({ top: 0 });
+  }
+
+  /* ---- 畫目前的分頁 ---- */
+  function skPaint() {
+    const pg = SK.pg; if (!pg) return;
+    const t = skTab();
+    document.body.dataset.mbt = t;
+    const tabs = document.getElementById('mbTabs');
+    if (tabs) {
+      $$('button[data-t]', tabs).forEach(b => { const on = b.dataset.t === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      const b = $('button.on', tabs);
+      if (b) tabs.scrollLeft = Math.max(0, b.offsetLeft - (tabs.clientWidth - b.offsetWidth) / 2);
+    }
+    const body = document.getElementById('mbBody'); if (!body) return;
+    body.dataset.tab = t;
+    /* K 線與「完整版」用的是 industry.js 畫好的節點：順手把（藏起來的）第二版分段列切到對應那一段，
+       它掛的 .mp-off 才不會跟這裡打架（K 線卡在「K 線」段、#stockTabs／#stockTab 在「財報籌碼」段）。*/
+    const want = t === 'k' ? 'K 線' : t === 'full' ? '財報籌碼' : null;
+    if (want) { const pb = $$('#v-industry > .mpager button').find(x => x.textContent.trim() === want); if (pb && !pb.classList.contains('on')) pb.click(); }
+    if (t === 'k') { body.innerHTML = ''; return; }
+    if (t === 'full') {
+      body.innerHTML = '<div class="mbfoot" style="margin:0 0 8px">完整版＝桌機的個股分頁（總覽、營收、獲利、除權息、籌碼、基本資料、公告／新聞），含技術面訊號、本益比河流、歷年月報酬等上面各頁沒有的內容。</div>';
+      return;
+    }
+    const fn = { ai: skAi, tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, fin: skFin, profit: skProfit, basic: skBasic, div: skDiv, news: skNews }[t];
+    try { fn(pg, body); } catch (e) { console.warn('[m3 個股]', e); body.innerHTML = '<div class="mbempty">這一頁畫不出來（資料格式不對），其他分頁照常。</div>'; }
+  }
+
+  /* ---- 共用：分段鈕、關鍵數字、柱狀圖、每日表 ---- */
+  function segBar(t, segs, cur) {
+    return `<div class="mbseg" role="tablist" data-tab="${t}">${segs.map(s => `<button type="button" role="tab" data-s="${s[0]}" class="${s[0] === cur ? 'on' : ''}" aria-selected="${s[0] === cur}">${s[1]}</button>`).join('')}</div>`;
+  }
+  function wireSeg(body, t) {
+    const bar = $('.mbseg', body); if (!bar) return;
+    bar.onclick = (e) => { const b = e.target.closest('button[data-s]'); if (!b || b.classList.contains('on')) return; LS.set('sk.seg.' + t, b.dataset.s); skPaint(); };
+  }
+  const kpi = (items) => `<div class="mbkpi">${items.filter(Boolean).map(x => `<span>${x[0]} <b class="num ${x[2] || ''}">${x[1]}</b></span>`).join('')}</div>`;
+  const legend = (items) => `<div class="mblegend">${items.map(x => `<span><i style="background:${x[1]}${x[2] ? ';height:3px' : ''}"></i>${x[0]}</span>`).join('')}</div>`;
+  function chartBox(inner) {
+    const fold = LS.get('sk.fold', '0') === '1';
+    return `<div class="mbchartbox${fold ? ' fold' : ''}" id="mbChartBox">${inner}<div class="mbchart" id="mbChart"></div>
+      <button type="button" class="mbfold" id="mbFold" aria-expanded="${!fold}">${fold ? '展開圖 ﹀' : '收合圖 ︿'}</button></div>`;
+  }
+  function wireFold(body, draw) {
+    const b = $('#mbFold', body), box = $('#mbChartBox', body); if (!b || !box) return;
+    b.onclick = () => { const f = !box.classList.contains('fold'); box.classList.toggle('fold', f); LS.set('sk.fold', f ? '1' : '0');
+      b.textContent = f ? '展開圖 ﹀' : '收合圖 ︿'; b.setAttribute('aria-expanded', String(!f)); if (!f && draw) setTimeout(draw, 30); };
+  }
+  /* 柱狀圖（ECharts，App.chart）。o.bars：[{name, data, color?}]（沒給 color 就紅正綠負）；o.lines：右軸的折線 */
+  function barChart(o) {
+    const A = skApp(), CH = A.CH, el = document.getElementById('mbChart');
+    if (!el || $('#mbChartBox.fold')) return;
+    const n = o.x.length;
+    const pick = (i) => n <= 8 || i === 0 || i === n - 1 || i === Math.floor((n - 1) / 2);
+    const signed = (arr) => arr.map(v => ({ value: v, itemStyle: { color: v > 0 ? CH.up : v < 0 ? CH.down : CH.ink3 } }));
+    const yfmt = o.yfmt || ((v) => { const a = Math.abs(v); return a >= 1e4 ? (v / 1e4).toFixed(a >= 1e5 ? 0 : 1) + '萬' : String(Math.round(v)); });
+    const hasR = (o.lines || []).length > 0;
+    const series = (o.bars || []).map((b, k) => ({ name: b.name, type: 'bar', barMaxWidth: 14, barGap: '15%',
+      data: b.color ? b.data : signed(b.data), itemStyle: b.color ? { color: b.color } : undefined, z: 2 + k,
+      /* 柱頂不標數字：App.chart 的 softenOption 會替 ≤ 一定根數的長條自動補標籤，60 根、12 根雙柱標上去會疊成一片；
+         數字在圖上方的關鍵數字列與下方的每日表，點一根看提示框 */
+      label: { show: false } }))
+      .concat((o.lines || []).map(L => ({ name: L.name, type: 'line', yAxisIndex: hasR && !L.left ? 1 : 0, data: L.data, showSymbol: n <= 16,
+        symbolSize: 5, connectNulls: true, smooth: false, lineStyle: { color: L.color, width: 2 }, itemStyle: { color: L.color },
+        areaStyle: L.area ? { color: L.color, opacity: 0.18 } : undefined, label: { show: false }, z: 5 })));
+    A.chart(el, {
+      animation: false,
+      grid: { left: 50, right: hasR ? 44 : 12, top: 12, bottom: 24 },
+      tooltip: { ...A.tip, trigger: 'axis', confine: true, axisPointer: { type: o.linesOnly ? 'line' : 'shadow' },
+        formatter: (ps) => `<b>${o.full ? o.full[ps[0].dataIndex] : ps[0].axisValue}</b>` + ps.map(p => {
+          const v = p.value && typeof p.value === 'object' ? p.value.value : p.value;
+          const f = p.seriesType === 'line' && hasR ? (o.y2tip || o.y2fmt || yfmt) : (o.ytip || yfmt);
+          return `<br>${p.marker}${p.seriesName} ${v == null ? '—' : f(v)}`; }).join('') },
+      xAxis: { ...A.axisStyle, type: 'category', data: o.x, boundaryGap: !o.linesOnly,
+        axisLabel: { color: CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT, interval: (i) => pick(i), hideOverlap: true, formatter: (v, i) => pick(i) ? v : '' },
+        axisTick: { show: false } },
+      yAxis: [{ ...A.axisStyle, type: 'value', scale: !!o.scale, splitNumber: 4, axisLabel: { color: CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT, formatter: yfmt } }]
+        .concat(hasR ? [{ ...A.axisStyle, type: 'value', scale: true, splitNumber: 4, splitLine: { show: false },
+          axisLabel: { color: CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT, formatter: o.y2fmt || yfmt } }] : []),
+      series,
+    }, { notMerge: true });
+  }
+  /* 每日表：cols＝[{h, f(row)→[文字, class]}]；rows 已經是新到舊。sel＝目前分段對應的欄（加底色） */
+  function table(cols, rows, sel, cap) {
+    return `<div class="mbtblwrap"><table class="mbtbl">${cap ? `<caption>${cap}</caption>` : ''}<thead><tr>${cols.map((c, i) => `<th class="${i === sel ? 'sel' : ''}">${c.h}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr>${cols.map((c, i) => { const v = c.f(r); return `<td class="${(v[1] || '')}${i === sel ? ' sel' : ''}">${v[0]}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
+  const empty = (msg) => `<div class="mbempty">${msg}</div>`;
+
+  /* ---- AI 分析：直接用積木 stock.mtf 的渲染（StockAI.mount），手機一律攤開內文 ---- */
+  function skAi(pg, body) {
+    if (!window.StockAI) { body.innerHTML = empty('AI 分析積木沒有載入。'); return; }
+    body.innerHTML = '<div class="card mbai" id="mbAi"></div>';
+    const host = document.getElementById('mbAi');
+    window.StockAI.mount(pg, host, skApp().fmt);
+    const b = host.querySelector('#aiBody'); if (b) b.hidden = false;
+  }
+
+  /* ---- 指標：一列一個標籤（產業鏈／族群／題材／指標），點了進去 ----
+     指標列先用現有 payload 在前端判斷（月營收、三率、法人連買、集保、均線、量比、估值）；
+     finance-quant 補的後端標籤欄位（pg.tags）一到就改用它 —— 規則只留一份在後端。*/
+  function skTags(pg) {
+    if (Array.isArray(pg.tags) && pg.tags.length) {
+      return pg.tags.map(x => ({ k: x.type || x.kind || '指標', n: x.name || x.label || '', tone: x.tone || 0, go: x.tab || null, href: x.href || null }));
+    }
+    const L = window.Link || {}, m = pg.meta || {}, s = pg.summary || {}, f = pg.fundamental || {};
+    const out = [];
+    const cid = L.gchain && L.gchain[m.group_id];
+    if (cid && L.chains && L.chains[cid]) out.push({ k: '產業鏈', n: L.chains[cid], href: '#industry/' + cid });
+    (m.groups || []).forEach(gn => { const gid = (L.gid && L.gid[gn]) || m.group_id; out.push({ k: '族群', n: gn, href: '#industry/group/' + encodeURIComponent(gid) }); });
+    ((L.ctheme && L.ctheme[m.code]) || []).forEach(t => out.push({ k: '題材', n: t.name, href: '#heatmap/theme/' + encodeURIComponent(t.id) }));
+    const R = (n, tone, go) => out.push({ k: '指標', n, tone, go });
+    const mo = (pg.revenue && pg.revenue.monthly) || [];
+    const y3 = mo.slice(-3).map(r => r[2]);
+    if (y3.length === 3 && y3.every(v => v != null && v > 20)) R('連三月營收年增 > 20%', 1, 'rev');
+    if (f.rev_record_high) R('月營收創新高', 1, 'rev');
+    if (f.rev_streak >= 3) R(`月營收連續 ${f.rev_streak} 個月年增`, 1, 'rev');
+    const q4 = ((pg.profit && pg.profit.quarters) || []).slice(-4);
+    if (q4.length === 4) {
+      if (q4.filter(r => r[2] != null && r[2] > 30).length >= 3) R('近四季有三季毛利率 > 30%', 1, 'profit');
+      if (q4.filter(r => r[3] != null && r[3] > 10).length >= 3) R('近四季有三季營益率 > 10%', 1, 'profit');
+      if (q4.filter(r => r[5] != null && r[5] < 0).length >= 2) R('近四季有兩季以上虧損', -1, 'profit');
+    }
+    if (f.roe != null && f.roe >= 15) R(`股東權益報酬率 ${(+f.roe).toFixed(1)}%（≥ 15%）`, 1, 'profit');
+    if (f.vs_median != null && !f.thin_sample && f.vs_median < -10) R('本益比低於同族群中位 10% 以上', 1, null);
+    const iv = ((pg.inst_v3 && pg.inst_v3.daily) || []).filter(r => r[1] != null || r[2] != null);
+    const streak = (k) => { let n = 0, sg = 0; for (let i = iv.length - 1; i >= 0; i--) { const v = iv[i][k]; const g = v > 0 ? 1 : v < 0 ? -1 : 0; if (!g) break; if (!sg) sg = g; if (g !== sg) break; n++; } return n * sg; };
+    const fs = streak(1), ts = streak(2);
+    if (Math.abs(fs) >= 3) R(`外資連 ${Math.abs(fs)} 日${fs > 0 ? '買超' : '賣超'}`, Math.sign(fs), 'inst');
+    if (Math.abs(ts) >= 3) R(`投信連 ${Math.abs(ts)} 日${ts > 0 ? '買超' : '賣超'}`, Math.sign(ts), 'inst');
+    const ho = pg.holders || [];
+    if (ho.length >= 2 && ho[ho.length - 1][1] != null && ho[ho.length - 2][1] != null) {
+      const d = ho[ho.length - 1][1] - ho[ho.length - 2][1];
+      if (Math.abs(d) >= 0.005) R(`千張大戶持股週${d > 0 ? '增' : '減'} ${Math.abs(d).toFixed(2)} 個百分點`, Math.sign(d), 'big');
+    }
+    if (s.ma_align === 1) R('均線多頭排列', 1, 'k'); else if (s.ma_align === -1) R('均線空頭排列', -1, 'k');
+    if (s.bias20 != null) R(s.bias20 >= 0 ? '站上 20 日均線' : '跌破 20 日均線', s.bias20 >= 0 ? 1 : -1, 'k');
+    if (s.vol_ratio != null && s.vol_ratio >= 1.5) R(`量比 ${(+s.vol_ratio).toFixed(1)} 倍（放量）`, 0, 'k');
+    else if (s.vol_ratio != null && s.vol_ratio <= 0.5) R(`量比 ${(+s.vol_ratio).toFixed(1)} 倍（量縮）`, 0, 'k');
+    const dv = pg.dividends || {};
+    if (dv.yield_ttm != null && dv.yield_ttm >= 4) R(`殖利率 ${(+dv.yield_ttm).toFixed(1)}%（≥ 4%）`, 1, null);
+    return out;
+  }
+  function skTagTab(pg, body) {
+    const tags = skTags(pg);
+    const nInd = tags.filter(x => x.k === '指標').length;
+    body.innerHTML = `<div class="mbtaghead"><b>符合 ${nInd} 項指標</b><span>資料時間：${esc(pg.as_of || '—')}</span></div>
+      <ul class="mbtags">${tags.map((x, i) => `<li><button type="button" data-i="${i}"><i class="mbtagk">${esc(x.k)}</i><span class="${x.tone > 0 ? 'up' : x.tone < 0 ? 'dn' : ''}">${esc(x.n)}</span><em aria-hidden="true">›</em></button></li>`).join('')}</ul>
+      <div class="mbfoot">指標列依本站資料規則判斷（月營收、財報三率、法人、集保、均線、量比），非投資建議；點一列看對應的圖與表。</div>`;
+    $('.mbtags', body).onclick = (e) => {
+      const b = e.target.closest('button[data-i]'); if (!b) return;
+      const x = tags[+b.dataset.i];
+      if (x.href) location.hash = x.href; else if (x.go) skGo(x.go);
+    };
+  }
+
+  /* ---- 法人：外資｜投信｜自營商｜合計；柱＝每日買賣超（張），表＝每日四欄 ---- */
+  function skInst(pg, body) {
+    const all = ((pg.inst_v3 && pg.inst_v3.daily) || []).filter(r => r[1] != null || r[2] != null || r[3] != null);
+    if (!all.length) { body.innerHTML = empty('這一檔的法人資料還在回補，下一次盤後更新就會出現。'); return; }
+    const rows = all.slice(-SK_WIN).map(r => ({ d: r[0], f: lot(r[1]), t: lot(r[2]), p: lot(r[3]), s: lot((r[1] || 0) + (r[2] || 0) + (r[3] || 0)) }));
+    const SEG = [['f', '外資'], ['t', '投信'], ['p', '自營商'], ['s', '合計']];
+    const seg = SEG.some(x => x[0] === skSeg('inst', 'f')) ? skSeg('inst', 'f') : 'f';
+    const nm = SEG.find(x => x[0] === seg)[1];
+    const sum = (n) => rows.slice(-n).reduce((a, r) => a + (r[seg] || 0), 0);
+    const last = rows[rows.length - 1];
+    body.innerHTML = segBar('inst', SEG, seg)
+      + chartBox(kpi([[`${md(last.d)} ${nm}`, sInt(last[seg]), uc(last[seg])], ['5 日', sInt(sum(5)), uc(sum(5))], ['20 日', sInt(sum(20)), uc(sum(20))], [`${rows.length} 日`, sInt(sum(rows.length)), uc(sum(rows.length))]]))
+      + table([{ h: '日期', f: r => [md(r.d)] }, { h: '外資', f: r => [sInt(r.f), uc(r.f)] }, { h: '投信', f: r => [sInt(r.t), uc(r.t)] },
+        { h: '自營商', f: r => [sInt(r.p), uc(r.p)] }, { h: '合計', f: r => [sInt(r.s), uc(r.s)] }], rows.slice().reverse(), SEG.findIndex(x => x[0] === seg) + 1, '單位：張；紅＝買超、綠＝賣超')
+      + `<div class="mbfoot">資料到 ${esc(last.d)}；法人資料比價量晚一個交易日。</div>`;
+    const draw = () => barChart({ x: rows.map(r => md(r.d)), full: rows.map(r => r.d), bars: [{ name: nm, data: rows.map(r => r[seg] == null ? null : Math.round(r[seg])) }], ytip: (v) => sInt(v) + ' 張' });
+    wireSeg(body, 'inst'); wireFold(body, draw); draw();
+  }
+
+  /* ---- 大戶（取代券商 App 的「主力」）：集保千張大戶＋法人合計 ----
+     · 持股比例：千張大戶 % 的面積圖（每週一點），表＝大戶／散戶 % 與股東人數，▲▼ 標週增減
+     · 週增減：柱＝千張大戶週增減（百分點），線＝同一週法人合計（張）；表＝逐週
+     集保每週只有一筆、而且湖裡只有 2026-09-04 起的資料（歷史週資料沒有免費來源），畫面直接寫累積幾週。*/
+  function skBig(pg, body) {
+    const ho = (pg.holders || []).filter(r => r[1] != null);
+    const note = '<div class="mbalt"><b>替代口徑：集保大戶＋法人，非券商分點</b>券商 App 的「主力」是券商分點資料，本站不抓（使用條款），改用集保千張大戶週增減＋三大法人合計。</div>';
+    if (!ho.length) { body.innerHTML = note + empty('這一檔還沒有集保資料（每週更新一次）。'); return; }
+    const iv = ((pg.inst_v3 && pg.inst_v3.daily) || []);
+    const weekInst = (i) => { const hi = ho[i][0], lo = i > 0 ? ho[i - 1][0] : null;
+      const xs = iv.filter(r => r[0] <= hi && (lo ? r[0] > lo : true)).slice(lo ? 0 : -5);
+      return xs.length ? lot(xs.reduce((a, r) => a + (r[1] || 0) + (r[2] || 0) + (r[3] || 0), 0)) : null; };
+    const W = ho.map((r, i) => { const p = i > 0 ? ho[i - 1] : null;
+      return { d: r[0], big: r[1], mid: r[2], ret: r[3], n: r[4], dBig: p && p[1] != null ? r[1] - p[1] : null, dRet: p && p[3] != null && r[3] != null ? r[3] - p[3] : null,
+        dN: p && p[4] != null && r[4] != null ? r[4] - p[4] : null, inst: weekInst(i) }; });
+    const SEG = [['pct', '持股比例'], ['chg', '週增減＋法人']];
+    const seg = skSeg('big', 'pct') === 'chg' ? 'chg' : 'pct';
+    const last = W[W.length - 1];
+    const tri = (v, d) => v == null ? '' : v > 0 ? '▲' : v < 0 ? '▼' : '';
+    const cov = `集保每週更新一次，自 ${esc(ho[0][0])} 起累積 ${ho.length} 週（歷史週資料沒有免費來源，只能往後累積）`;
+    const A = skApp(), CH = A.CH;
+    if (seg === 'pct') {
+      body.innerHTML = segBar('big', SEG, seg) + note
+        + chartBox(kpi([[`${md(last.d)} 千張大戶`, (+last.big).toFixed(2) + '%'], ['週增減', sFix(last.dBig, 2) + ' pp', uc(last.dBig)], ['散戶 ≤10 張', last.ret != null ? (+last.ret).toFixed(2) + '%' : '—'], ['股東', last.n != null ? int(last.n) + ' 人' : '—']]))
+        + table([{ h: '日期', f: r => [md(r.d)] }, { h: '千張大戶', f: r => [tri(r.dBig) + (+r.big).toFixed(2), uc(r.dBig)] },
+          { h: '散戶 ≤10 張', f: r => [r.ret == null ? '—' : tri(r.dRet) + (+r.ret).toFixed(2), uc(r.dRet)] },
+          { h: '股東人數', f: r => [r.n == null ? '—' : int(r.n)] }], W.slice().reverse(), 1, '單位：%；▲▼＝比上一週')
+        + `<div class="mbfoot">${cov}</div>`;
+      const draw = () => barChart({ x: W.map(r => md(r.d)), full: W.map(r => r.d), linesOnly: true, scale: true, bars: [],
+        lines: [{ name: '千張大戶', data: W.map(r => r.big), color: CH.cyan, area: true, left: true }], yfmt: (v) => (+v).toFixed(1) + '%', ytip: (v) => (+v).toFixed(2) + '%' });
+      wireSeg(body, 'big'); wireFold(body, draw); draw();
+    } else {
+      const X = W.slice(1);
+      body.innerHTML = segBar('big', SEG, seg) + note
+        + chartBox(kpi([[`${md(last.d)} 大戶週增減`, sFix(last.dBig, 2) + ' pp', uc(last.dBig)], ['同週法人合計', sInt(last.inst) + ' 張', uc(last.inst)], ['股東週增減', sInt(last.dN) + ' 人', uc(-(last.dN || 0))]])
+          + legend([['大戶週增減（pp，左軸）', CH.up], ['法人合計（張，右軸）', CH.amber, 1]]))
+        + table([{ h: '週（公布日）', f: r => [md(r.d)] }, { h: '大戶增減', f: r => [r.dBig == null ? '—' : sFix(r.dBig, 2), uc(r.dBig)] },
+          { h: '法人合計', f: r => [sInt(r.inst), uc(r.inst)] }, { h: '股東增減', f: r => [sInt(r.dN), uc(-(r.dN || 0))] }], W.slice().reverse(), 1, '大戶增減單位：百分點；法人：張（該週合計）；股東增減：紅＝變少（籌碼集中）')
+        + `<div class="mbfoot">${cov}。第一週沒有上一週可比。</div>`;
+      const draw = () => X.length ? barChart({ x: X.map(r => md(r.d)), full: X.map(r => r.d), bars: [{ name: '大戶週增減', data: X.map(r => r.dBig == null ? null : +r.dBig.toFixed(3)) }],
+        lines: [{ name: '法人合計', data: X.map(r => r.inst == null ? null : Math.round(r.inst)), color: CH.amber }],
+        yfmt: (v) => (+v).toFixed(2), ytip: (v) => sFix(v, 2) + ' pp', y2tip: (v) => sInt(v) + ' 張' }) : null;
+      wireSeg(body, 'big'); wireFold(body, draw); draw();
+    }
+  }
+
+  /* ---- 資券：融資｜融券（＋當沖｜借券賣：欄位到了才出現）----
+     margin 每列＝[日期, 融資餘額, 融券餘額, 融資增減, 融券增減]（張）。
+     當沖／借券賣出：finance-quant 在補（分支 claude/stock-data-audit），欄位名稱未定 —— skExtra 先認幾個候選名，
+     每列格式 [日期, 張數, …]；認不到就不顯示那個分段（不放空殼）。*/
+  function skExtra(pg, names) {
+    for (const k of names) { const v = pg[k]; if (Array.isArray(v) && v.length) return v; if (v && Array.isArray(v.daily) && v.daily.length) return v.daily; }
+    return null;
+  }
+  function skMargin(pg, body) {
+    const mg = (pg.margin || []).filter(r => r[1] != null);
+    if (!mg.length) { body.innerHTML = empty('這一檔沒有融資融券資料（可能不是信用交易標的）。'); return; }
+    const dt = skExtra(pg, ['daytrade', 'day_trade', 'daytrading']), sb = skExtra(pg, ['sbl', 'lending', 'sbl_sell', 'lend_sell']);
+    const dtm = new Map((dt || []).map(r => [String(r[0]).slice(0, 10), r[1]])), sbm = new Map((sb || []).map(r => [String(r[0]).slice(0, 10), r[1]]));
+    const rows = mg.slice(-SK_WIN).map(r => ({ d: r[0], mb: r[1], sb: r[2], mc: r[3], sc: r[4], dt: dt ? dtm.get(r[0]) : undefined, sl: sb ? sbm.get(r[0]) : undefined }));
+    const SEG = [['m', '融資']].concat(dt ? [['dt', '當沖']] : []).concat([['s', '融券']]).concat(sb ? [['sl', '借券賣']] : []);
+    const seg = SEG.some(x => x[0] === skSeg('margin', 'm')) ? skSeg('margin', 'm') : 'm';
+    const key = { m: 'mc', s: 'sc', dt: 'dt', sl: 'sl' }[seg];
+    const nm = SEG.find(x => x[0] === seg)[1];
+    const last = rows[rows.length - 1];
+    const sum = (k, n) => rows.slice(-n).reduce((a, r) => a + (r[k] || 0), 0);
+    const ratio = last.mb ? last.sb / last.mb * 100 : null;
+    const k = seg === 'm' ? [[`${md(last.d)} 融資增減`, sInt(last.mc), uc(last.mc)], ['融資餘額', int(last.mb) + ' 張'], ['5 日', sInt(sum('mc', 5)), uc(sum('mc', 5))], ['使用率 · 資券比', ratio != null ? ratio.toFixed(1) + '%' : '—']]
+      : seg === 's' ? [[`${md(last.d)} 融券增減`, sInt(last.sc), uc(last.sc)], ['融券餘額', int(last.sb) + ' 張'], ['5 日', sInt(sum('sc', 5)), uc(sum('sc', 5))], ['資券比', ratio != null ? ratio.toFixed(1) + '%' : '—']]
+        : [[`${md(last.d)} ${nm}`, int(last[key]) + ' 張'], ['5 日平均', int(sum(key, 5) / 5) + ' 張']];
+    const cols = [{ h: '日期', f: r => [md(r.d)] }, { h: '融資', f: r => [sInt(r.mc), uc(r.mc)] }]
+      .concat(dt ? [{ h: '當沖', f: r => [r.dt == null ? '—' : int(r.dt)] }] : [])
+      .concat([{ h: '融券', f: r => [sInt(r.sc), uc(r.sc)] }])
+      .concat(sb ? [{ h: '借券賣', f: r => [r.sl == null ? '—' : int(r.sl)] }] : [{ h: '資餘', f: r => [int(r.mb)] }, { h: '券餘', f: r => [int(r.sb)] }]);
+    const sel = cols.findIndex(c => c.h === ({ m: '融資', s: '融券', dt: '當沖', sl: '借券賣' })[seg]);
+    body.innerHTML = segBar('margin', SEG, seg) + chartBox(kpi(k))
+      + table(cols, rows.slice().reverse(), sel, '單位：張；融資／融券欄＝當日增減（紅＝增加、綠＝減少），資餘／券餘＝餘額')
+      + `<div class="mbfoot">資料到 ${esc(last.d)}。</div>`;
+    const signedSeg = seg === 'm' || seg === 's';
+    const draw = () => barChart({ x: rows.map(r => md(r.d)), full: rows.map(r => r.d),
+      bars: [{ name: nm + (signedSeg ? '增減' : ''), data: rows.map(r => r[key] == null ? null : r[key]), color: signedSeg ? null : skApp().CH.violet }], ytip: (v) => (signedSeg ? sInt(v) : int(v)) + ' 張' });
+    wireSeg(body, 'margin'); wireFold(body, draw); draw();
+  }
+
+  /* ---- 營收：月走勢｜年度走勢（照截圖：當月＋去年同期並排柱，MoM、YoY 兩條線，左軸百萬、右軸 %）----
+     revenue.monthly 每列＝[年月, 營收(元), YoY%, MoM%, 累計, 累計 YoY%]；revenue.yearly＝[{year, months, revenue, by_month}] */
+  function skRev(pg, body) {
+    const rv = pg.revenue || {}, mo = rv.monthly || [];
+    if (!mo.length) { body.innerHTML = empty('尚無月營收歷史（回補進行中）。'); return; }
+    const A = skApp(), CH = A.CH;
+    const SEG = [['m', '月走勢'], ['y', '年度走勢']];
+    const seg = skSeg('rev', 'm') === 'y' ? 'y' : 'm';
+    const mil = (v) => v == null ? null : v / 1e6;
+    const byYm = new Map(mo.map(r => [r[0], r]));
+    const prevYm = (ym) => (+ym.slice(0, 4) - 1) + ym.slice(4);
+    const lastY = CH.cyan, prevC = light() ? '#a9c8e8' : '#c9e6ff';
+    if (seg === 'm') {
+      const X = mo.slice(-12).map(r => ({ ym: r[0], v: mil(r[1]), yoy: r[2], mom: r[3], ly: byYm.has(prevYm(r[0])) ? mil(byYm.get(prevYm(r[0]))[1]) : (r[1] != null && r[2] != null && r[2] > -100 ? mil(r[1] / (1 + r[2] / 100)) : null) }));
+      const last = X[X.length - 1];
+      const rows = mo.slice(-36).reverse();
+      body.innerHTML = segBar('rev', SEG, seg)
+        + chartBox(kpi([[`${last.ym.replace('-', '/')} 營收`, int(last.v) + ' 百萬'], ['YoY', sFix(last.yoy, 1) + '%', uc(last.yoy)], ['MoM', sFix(last.mom, 1) + '%', uc(last.mom)]])
+          + legend([['當月', lastY], ['去年同期', prevC], ['MoM(%)', CH.violet, 1], ['YoY(%)', CH.up, 1]]))
+        + table([{ h: '年/月', f: r => [r[0].replace('-', '/')] }, { h: '月營收（百萬）', f: r => [r[1] == null ? '—' : (r[1] / 1e6).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })] },
+          { h: 'YoY（%）', f: r => [sFix(r[2], 2), uc(r[2])] }, { h: 'MoM（%）', f: r => [sFix(r[3], 2), uc(r[3])] }], rows, -1)
+        + `<div class="mbfoot">圖：近 12 個月；表：近 ${rows.length} 個月。</div>`;
+      const draw = () => barChart({ x: X.map(r => r.ym.slice(2).replace('-', '/')), full: X.map(r => r.ym),
+        bars: [{ name: '當月', data: X.map(r => r.v == null ? null : Math.round(r.v)), color: lastY }, { name: '去年同期', data: X.map(r => r.ly == null ? null : Math.round(r.ly)), color: prevC }],
+        lines: [{ name: 'MoM(%)', data: X.map(r => r.mom), color: CH.violet }, { name: 'YoY(%)', data: X.map(r => r.yoy), color: CH.up }],
+        yfmt: (v) => { const a = Math.abs(v); return a >= 1e4 ? (v / 1e3).toFixed(0) + 'k' : String(Math.round(v)); }, ytip: (v) => int(v) + ' 百萬', y2fmt: (v) => Math.round(v) + '%', y2tip: (v) => sFix(v, 1) + '%' });
+      wireSeg(body, 'rev'); wireFold(body, draw); draw();
+    } else {
+      const ys = (rv.yearly || []).filter(y => y.revenue != null);
+      if (!ys.length) { body.innerHTML = segBar('rev', SEG, seg) + empty('年度營收還在回補。'); wireSeg(body, 'rev'); return; }
+      /* 年增率用「同月份」比：今年只到 8 月就跟去年 1～8 月比，不跟去年全年比（不然每年年中都會看起來大衰退）*/
+      const Y = ys.map((y, i) => { const p = ys.find(z => z.year === y.year - 1);
+        let base = null;
+        if (p && p.by_month && y.by_month) { const ks = Object.keys(y.by_month); const s = ks.reduce((a, k) => a + (p.by_month[k] || 0), 0); if (ks.every(k => p.by_month[k] != null)) base = s; }
+        else if (p && p.months === 12 && y.months === 12) base = p.revenue;
+        return { y: y.year, m: y.months, v: mil(y.revenue), yoy: base ? (y.revenue / base - 1) * 100 : null }; });
+      const last = Y[Y.length - 1];
+      body.innerHTML = segBar('rev', SEG, seg)
+        + chartBox(kpi([[`${last.y}${last.m < 12 ? `（1–${last.m} 月）` : ''}`, int(last.v) + ' 百萬'], ['同期 YoY', sFix(last.yoy, 1) + '%', uc(last.yoy)]])
+          + legend([['年營收', lastY], ['YoY(%)，同月份比', CH.up, 1]]))
+        + table([{ h: '年', f: r => [r.y + (r.m < 12 ? `<small>（${r.m} 個月）</small>` : '')] }, { h: '營收（百萬）', f: r => [int(r.v)] }, { h: 'YoY（%）', f: r => [sFix(r.yoy, 2), uc(r.yoy)] }], Y.slice().reverse(), -1)
+        + '<div class="mbfoot">未滿 12 個月的年度，YoY 跟前一年同月份比。</div>';
+      const draw = () => barChart({ x: Y.map(r => String(r.y)), bars: [{ name: '年營收', data: Y.map(r => r.v == null ? null : Math.round(r.v)), color: lastY }],
+        lines: [{ name: 'YoY(%)', data: Y.map(r => r.yoy == null ? null : +r.yoy.toFixed(1)), color: CH.up }],
+        yfmt: (v) => { const a = Math.abs(v); return a >= 1e4 ? (v / 1e3).toFixed(0) + 'k' : String(Math.round(v)); }, ytip: (v) => int(v) + ' 百萬', y2fmt: (v) => Math.round(v) + '%', y2tip: (v) => sFix(v, 1) + '%' });
+      wireSeg(body, 'rev'); wireFold(body, draw); draw();
+    }
+  }
+
+  /* ---- 獲利（照截圖）：季 EPS 柱＋毛利率、淨利率兩條線（雙軸）；表＝季、毛利率、淨利率、EPS、累計 EPS ----
+     profit.quarters 每列＝[季, 營收, 毛利率, 營益率, 淨利率, EPS, 累計 EPS, EPS 年增, 稅後淨利] */
+  function skProfit(pg, body) {
+    const q = ((pg.profit && pg.profit.quarters) || []);
+    if (!q.length) { body.innerHTML = empty('尚無季報資料（回補進行中）。'); return; }
+    const A = skApp(), CH = A.CH, f = pg.fundamental || {};
+    const X = q.slice(-20), last = X[X.length - 1];
+    const epsC = light() ? '#3b82c4' : '#4aa8f0';
+    body.innerHTML = chartBox(kpi([[`${last[0]} EPS`, last[5] != null ? (+last[5]).toFixed(2) + ' 元' : '—', uc(last[5])], ['累計', last[6] != null ? (+last[6]).toFixed(2) + ' 元' : '—'],
+        ['近四季', f.ttm_eps != null ? (+f.ttm_eps).toFixed(2) + ' 元' : '—'], ['毛利率', last[2] != null ? (+last[2]).toFixed(1) + '%' : '—']])
+        + legend([['EPS（元，左軸）', epsC], ['毛利率（%，右軸）', CH.cyan, 1], ['淨利率（%，右軸）', CH.up, 1]]))
+      + table([{ h: '季', f: r => [r[0]] }, { h: '毛利率（%）', f: r => [r[2] == null ? '—' : (+r[2]).toFixed(2)] }, { h: '淨利率（%）', f: r => [r[4] == null ? '—' : (+r[4]).toFixed(2), r[4] < 0 ? 'dn' : ''] },
+        { h: 'EPS', f: r => [r[5] == null ? '—' : (+r[5]).toFixed(2), r[5] < 0 ? 'dn' : ''] }, { h: '累計 EPS', f: r => [r[6] == null ? '—' : (+r[6]).toFixed(2), r[6] < 0 ? 'dn' : ''] }], q.slice().reverse(), 3)
+      + `<div class="mbfoot">圖：近 ${X.length} 季；累計 EPS＝當年度第 1 季起累加。財報到 ${esc(f.latest_period || last[0])}。</div>`;
+    const draw = () => barChart({ x: X.map(r => r[0]), bars: [{ name: 'EPS', data: X.map(r => r[5]), color: epsC }],
+      lines: [{ name: '毛利率', data: X.map(r => r[2]), color: CH.cyan }, { name: '淨利率', data: X.map(r => r[4]), color: CH.up }],
+      yfmt: (v) => (+v).toFixed(1), ytip: (v) => (+v).toFixed(2) + ' 元', y2fmt: (v) => Math.round(v) + '', y2tip: (v) => (+v).toFixed(2) + '%' });
+    wireFold(body, draw); draw();
+  }
+
+  /* ---- 財務：本益比｜營收與淨利（每季）----
+     pe_history 每筆＝{period, ttm_eps, pe, pe_high, pe_low}（該季財報公布後那段期間的本益比與區間高低） */
+  function skFin(pg, body) {
+    const A = skApp(), CH = A.CH;
+    const pe = (pg.pe_history || []).filter(r => r.pe != null);
+    const q = ((pg.profit && pg.profit.quarters) || []);
+    const SEG = [['pe', '本益比'], ['ni', '營收與淨利']];
+    let seg = skSeg('fin', 'pe') === 'ni' ? 'ni' : 'pe';
+    if (!pe.length && q.length) seg = 'ni';
+    if (!pe.length && !q.length) { body.innerHTML = empty('尚無財報資料（回補進行中）。'); return; }
+    const segs = SEG.filter(s => s[0] === 'pe' ? pe.length : q.length);
+    const f = pg.fundamental || {};
+    if (seg === 'pe') {
+      const last = pe[pe.length - 1];
+      body.innerHTML = (segs.length > 1 ? segBar('fin', segs, seg) : '')
+        + chartBox(kpi([['目前本益比', f.pe ? (+f.pe).toFixed(1) : '—'], ['同族群中位', f.group_median != null ? (+f.group_median).toFixed(1) : '—'], ['股價淨值比', f.pb != null ? (+f.pb).toFixed(2) : '—'], ['近四季 EPS', f.ttm_eps != null ? (+f.ttm_eps).toFixed(2) : '—']])
+          + legend([['本益比（期間平均）', CH.cyan, 1], ['期間最高', CH.up, 1], ['期間最低', CH.down, 1]]))
+        + table([{ h: '財報季', f: r => [r.period] }, { h: '近四季 EPS', f: r => [r.ttm_eps == null ? '—' : (+r.ttm_eps).toFixed(2), r.ttm_eps < 0 ? 'dn' : ''] },
+          { h: '本益比', f: r => [(+r.pe).toFixed(1)] }, { h: '高', f: r => [r.pe_high == null ? '—' : (+r.pe_high).toFixed(1)] }, { h: '低', f: r => [r.pe_low == null ? '—' : (+r.pe_low).toFixed(1)] }], pe.slice().reverse(), 2)
+        + `<div class="mbfoot">每一季＝該季財報公布後到下一季公布前這段期間的本益比（股價 ÷ 近四季 EPS）；最新一季 ${esc(last.period)}。</div>`;
+      const draw = () => barChart({ x: pe.map(r => r.period), linesOnly: true, bars: [], scale: true,
+        lines: [{ name: '本益比', data: pe.map(r => r.pe), color: CH.cyan, left: true }, { name: '最高', data: pe.map(r => r.pe_high), color: CH.up, left: true }, { name: '最低', data: pe.map(r => r.pe_low), color: CH.down, left: true }],
+        yfmt: (v) => Math.round(v) + '', ytip: (v) => (+v).toFixed(1) + ' 倍' });
+      wireSeg(body, 'fin'); wireFold(body, draw); draw();
+    } else {
+      const X = q.slice(-12), last = X[X.length - 1];
+      const revC = light() ? '#3b82c4' : '#4aa8f0';
+      body.innerHTML = (segs.length > 1 ? segBar('fin', segs, seg) : '')
+        + chartBox(kpi([[`${last[0]} 營收`, last[1] != null ? (last[1] / 1e8).toFixed(1) + ' 億' : '—'], ['稅後淨利', last[8] != null ? (last[8] / 1e8).toFixed(1) + ' 億' : '—', uc(last[8])], ['營益率', last[3] != null ? (+last[3]).toFixed(1) + '%' : '—'], ['ROE', f.roe != null ? (+f.roe).toFixed(1) + '%' : '—']])
+          + legend([['營收（億，左軸）', revC], ['稅後淨利（億，右軸）', CH.amber, 1]]))
+        + table([{ h: '季', f: r => [r[0]] }, { h: '營收（億）', f: r => [r[1] == null ? '—' : (r[1] / 1e8).toFixed(1)] }, { h: '淨利（億）', f: r => [r[8] == null ? '—' : (r[8] / 1e8).toFixed(1), r[8] < 0 ? 'dn' : ''] },
+          { h: '營益率（%）', f: r => [r[3] == null ? '—' : (+r[3]).toFixed(1), r[3] < 0 ? 'dn' : ''] }], q.slice(-16).reverse(), 1)
+        + '<div class="mbfoot">圖：近 12 季；表：近 16 季。</div>';
+      const draw = () => barChart({ x: X.map(r => r[0].slice(2)), full: X.map(r => r[0]), bars: [{ name: '營收', data: X.map(r => r[1] == null ? null : +(r[1] / 1e8).toFixed(1)), color: revC }],
+        lines: [{ name: '稅後淨利', data: X.map(r => r[8] == null ? null : +(r[8] / 1e8).toFixed(1)), color: CH.amber }],
+        yfmt: (v) => Math.round(v) + '', ytip: (v) => (+v).toFixed(1) + ' 億', y2fmt: (v) => Math.round(v) + '', y2tip: (v) => (+v).toFixed(1) + ' 億' });
+      wireSeg(body, 'fin'); wireFold(body, draw); draw();
+    }
+  }
+
+  /* ---- 基本資料：一列一項（名稱在左、值在右），族群／題材可以點 ---- */
+  function skBasic(pg, body) {
+    const b = pg.basics || {}, f = pg.fundamental || {}, m = pg.meta || {}, L = window.Link || {}, A = skApp();
+    const cid = L.gchain && L.gchain[m.group_id];
+    const lk = (href, txt) => `<a href="${href}">${esc(txt)}</a>`;
+    const rows = [['公司全名', esc(b.full_name || m.name || '—')], ['市場', esc(({ TWSE: '上市', TPEX: '上櫃' })[b.market || m.market] || b.market || '—')],
+      ['產業別', esc(b.industry || '—')], ['上市日', esc(b.listed_date || '—')], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : '—'],
+      ['董事長', esc(b.chairman || '—')], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : '—'],
+      ['股價淨值比', f.pb != null ? (+f.pb).toFixed(2) : '—'], ['股價營收比', f.ps != null ? (+f.ps).toFixed(2) : '—'],
+      ['產業鏈', cid && L.chains && L.chains[cid] ? lk('#industry/' + cid, L.chains[cid]) : '—'],
+      ['族群', (m.groups || []).map(gn => lk('#industry/group/' + encodeURIComponent((L.gid && L.gid[gn]) || m.group_id), gn)).join('、') || '—'],
+      ['題材', ((L.ctheme && L.ctheme[m.code]) || []).map(t => lk('#heatmap/theme/' + encodeURIComponent(t.id), t.name)).join('、') || '—'],
+      ['網站', b.website ? `<a href="${esc(/^https?:/i.test(b.website) ? b.website : 'https://' + b.website)}" target="_blank" rel="noopener">${esc(b.website)}</a>` : '—']];
+    body.innerHTML = `<dl class="mbkv">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`;
+  }
+
+  /* ---- 除權息：股利政策｜現金股利｜股票股利（紀念品、股息再投入不做）----
+     年度＝除權息日所在的年（dividends.by_year）；殖利率＝現金股利 ÷ 除息前一日收盤（dividends.results 的 before_price，原始價）。
+     finance-quant 若補了每年的 yield 欄位就改用它（by_year[i].yield）。每列點一下展開當年每一次除權息的明細。*/
+  function skDiv(pg, body) {
+    const A = skApp(), CH = A.CH, dv = pg.dividends || {};
+    const by = (dv.by_year || []).filter(y => y.n > 0 || y.cash > 0 || y.stock > 0);
+    const res = new Map((dv.results || []).map(r => [String(r.date).slice(0, 10), r]));
+    const up = dv.upcoming || [];
+    if (!by.length && !up.length) { body.innerHTML = empty('這一檔近年沒有除權息紀錄。'); return; }
+    const Y = by.map(y => {
+      const it = y.items || [];
+      const xi = it.find(x => x.kind === '息'), qi = it.find(x => x.kind === '權');
+      let yl = y.yield != null ? +y.yield : null;
+      if (yl == null && y.cash > 0) { const s = it.filter(x => x.kind === '息' && x.cash > 0).reduce((a, x) => { const r = res.get(String(x.date).slice(0, 10)); return r && r.before_price ? a + x.cash / r.before_price * 100 : a; }, 0); yl = s || null; }
+      return { y: y.year, cash: y.cash || 0, stock: y.stock || 0, xd: xi ? xi.date : null, qd: qi ? qi.date : null, yl, part: y.partial, it };
+    });
+    const SEG = [['all', '股利政策'], ['cash', '現金股利'], ['stock', '股票股利']];
+    const seg = SEG.some(s => s[0] === skSeg('div', 'all')) ? skSeg('div', 'all') : 'all';
+    const cashC = light() ? '#3b82c4' : '#4aa8f0', stockC = CH.amber;
+    const last = Y[Y.length - 1];
+    const hasYl = Y.some(r => r.yl != null);
+    const upTxt = up.length ? up.slice(0, 2).map(u => `${esc(u.period || '')} ${u.kind === 'stock' ? '股票' : '現金'} ${(+u.amount || 0).toFixed(2)} 元（${u.ex_date ? esc(u.ex_date) + ' 除' + (u.kind === 'stock' ? '權' : '息') : '除權息日未定'}）`).join('；') : '';
+    const k = [['近四次現金股利', dv.cash_ttm != null ? (+dv.cash_ttm).toFixed(2) + ' 元' : '—'], ['殖利率', dv.yield_ttm != null ? (+dv.yield_ttm).toFixed(2) + '%' : '—']];
+    const lg = seg === 'all' ? [['現金股利', cashC], ['股票股利', stockC]] : seg === 'cash' ? [['現金股利', cashC]] : [['股票股利', stockC]];
+    if (hasYl && seg !== 'stock') lg.push(['殖利率（%，右軸）', CH.up, 1]);
+    body.innerHTML = segBar('div', SEG, seg)
+      + '<div class="mbwarn">＊除權息資訊以公開資訊觀測站公告為主＊</div>'
+      + (upTxt ? `<div class="mbfoot" style="margin-top:0">已公告、尚未除權息：${upTxt}</div>` : '')
+      + chartBox(kpi(k) + legend(lg))
+      + `<div class="mbtblwrap"><table class="mbtbl mbdiv"><thead><tr><th>年度</th><th>除權日<br>除息日</th><th class="${seg !== 'all' ? 'sel' : ''}">股票股利<br>現金股利</th>${hasYl ? '<th>殖利率</th>' : ''}<th aria-label="展開"></th></tr></thead><tbody>`
+      + Y.slice().reverse().map((r, i) => `<tr class="mbdrow" data-i="${i}" tabindex="0" aria-expanded="false"><td>${r.y}${r.part ? '<br><small>今年</small>' : ''}</td><td>${r.qd ? md(r.qd) : '—'}<br>${r.xd ? md(r.xd) : '—'}</td>`
+        + `<td class="${seg !== 'all' ? 'sel' : ''}">${r.stock ? (+r.stock).toFixed(3) : '0'}<br>${r.cash ? (+r.cash).toFixed(3) : '0'}</td>${hasYl ? `<td>${r.yl != null ? r.yl.toFixed(2) + '%' : '—'}</td>` : ''}<td class="mbx">﹀</td></tr>`
+        + `<tr class="mbdet" hidden><td colspan="${hasYl ? 5 : 4}">${r.it.map(x => { const rr = res.get(String(x.date).slice(0, 10));
+          return `<div>${esc(x.date)} 除${esc(x.kind)}${x.period ? '（' + esc(x.period) + '）' : ''}：${x.kind === '息' ? '現金 ' + (x.cash != null ? (+x.cash).toFixed(3) : '—') + ' 元' : '股票 ' + (x.stock != null ? (+x.stock).toFixed(3) : '—') + ' 元'}`
+            + (rr ? `；前一日收盤 ${rr.before_price ?? '—'}、參考價 ${rr.reference_price ?? '—'}${rr.fill_days != null ? `、${rr.fill_days} 天填${esc(x.kind)}` : '、尚未填' + esc(x.kind)}` : '') + '</div>'; }).join('') || '無明細'}</td></tr>`).join('')
+      + '</tbody></table></div>'
+      + `<div class="mbfoot">年度＝除權息日所在年；${hasYl ? '殖利率＝當年現金股利 ÷ 除息前一日收盤（原始價）。' : ''}點一列看明細。</div>`;
+    $$('.mbdrow', body).forEach(tr => { const tg = () => { const d = tr.nextElementSibling, o = d.hidden; d.hidden = !o; tr.setAttribute('aria-expanded', String(o)); tr.querySelector('.mbx').textContent = o ? '︿' : '﹀'; };
+      tr.onclick = tg; tr.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tg(); } }; });
+    const draw = () => barChart({ x: Y.map(r => String(r.y)),
+      bars: (seg !== 'stock' ? [{ name: '現金股利', data: Y.map(r => r.cash), color: cashC }] : []).concat(seg !== 'cash' ? [{ name: '股票股利', data: Y.map(r => r.stock), color: stockC }] : []),
+      lines: hasYl && seg !== 'stock' ? [{ name: '殖利率', data: Y.map(r => r.yl == null ? 0 : +r.yl.toFixed(2)), color: CH.up }] : [],
+      yfmt: (v) => (+v).toFixed(1), ytip: (v) => (+v).toFixed(3) + ' 元', y2fmt: (v) => (+v).toFixed(0), y2tip: (v) => (+v).toFixed(2) + '%' });
+    wireSeg(body, 'div'); wireFold(body, draw); draw();
+  }
+
+  /* ---- 新聞：一列＝日期時間＋兩行內的標題＋ ›；重大訊息點開看全文（抽屜），新聞點開原文（新分頁）---- */
+  function skNews(pg, body) {
+    const it = [].concat((pg.material_news || []).map((r, i) => ({ d: r.date, tm: r.time || '', t: r.subject, src: '重大訊息', mi: i })),
+      (pg.news || []).map(r => ({ d: r.date, tm: r.time || '', t: r.title, src: ({ cnyes: '鉅亨', moneydj: 'MoneyDJ', yahoo: 'Yahoo' })[r.source] || r.source || '', url: r.url })))
+      .filter(x => x.t).sort((a, b) => (b.d + b.tm).localeCompare(a.d + a.tm));
+    if (!it.length) { body.innerHTML = empty('近期沒有這一檔的新聞與重大訊息。'); return; }
+    body.innerHTML = `<ul class="mbnews">${it.map((x, i) => {
+      const when = String(x.d || '').replace(/-/g, '/') + (x.tm ? ' ' + x.tm : '');
+      const inner = `<span class="mbnt"><i class="num">${esc(when)}</i><em class="${x.mi != null ? 'mat' : ''}">${esc(x.src)}</em></span><b>${esc(x.t)}</b><s aria-hidden="true">›</s>`;
+      return `<li>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${inner}</a>` : `<button type="button" data-i="${i}">${inner}</button>`}</li>`; }).join('')}</ul>
+      <div class="mbfoot">新聞點開是原文網站（新分頁）；重大訊息點開看公告全文。</div>`;
+    $('.mbnews', body).onclick = (e) => {
+      const b = e.target.closest('button[data-i]'); if (!b) return;
+      const x = it[+b.dataset.i], r = (pg.material_news || [])[x.mi]; if (!r) return;
+      openSheet(`<div class="mshhead"><b>${esc(r.subject)}</b></div><div class="mbmat"><i>${esc(r.date)} ${esc(r.time || '')}　${esc(r.clause || '')}</i><pre>${esc(r.detail || '')}</pre></div>`, { kind: 'news' });
+    };
+  }
 
   window.M3 = {
     isM, openSheet, closeSheet, tileSheet, spread, overlaps, leaders, esc, LS, NAV_H,
