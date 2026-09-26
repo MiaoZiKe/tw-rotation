@@ -3170,7 +3170,12 @@
        `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
        也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
     const empty = nEdge0 ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>';
-    const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" data-fold="all">全部收合</button><button type="button" data-fold="none">全部展開</button><span class="sub">收合＝每個環節只留個股標籤；點環節標題右邊的 ▸／▾ 單獨切換</span></div>` : '';
+    /* ★ 2026-09-26 晚（Andy：「收合 展開合併」）：「全部收合」「全部展開」兩顆鈕合併成**一顆切換鈕**。
+       兩顆並排時永遠有一顆是「按了沒反應」的（已經全收了還能按全收），使用者要先讀懂現在是哪個狀態才知道該按哪顆。
+       現在鈕上只寫「按下去會發生的那件事」：全部展開中 → 「全部收合」；只要有任何一個環節收著 → 「全部展開」。
+       data-fold 跟著寫「按下去要變成什麼」（all＝全收、none＝全展），tw.chainFold 的存法一個字都沒改。*/
+    const anyFolded = segs.some(s => (pos[s.id] && pos[s.id].list.length) && isFolded(s.id));
+    const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" class="foldtg" data-fold="${anyFolded ? 'none' : 'all'}" title="${anyFolded ? '把每個環節都展開成一檔一張卡' : '把每個環節都收成個股標籤'}">${anyFolded ? '全部展開' : '全部收合'}</button><span class="sub">收合＝只留個股標籤；▸／▾ 可單獨切換</span></div>` : '';
     host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
@@ -3205,6 +3210,7 @@
     const redraw = () => { drawChainMap(host, sc, chainId, im, handlers); if (handlers && handlers.onFold) handlers.onFold(); };
     $$('.segfold', host).forEach(n => n.onclick = (ev) => { ev.stopPropagation();
       const st2 = chainFoldGet(chainId); st2.seg[n.dataset.seg] = n.dataset.folded !== '1'; chainFoldSet(chainId, st2); redraw(); });
+    // 切換鈕：data-fold 就是「按下去要變成的狀態」（畫的時候依目前狀態寫好），清掉逐環節的例外
     $$('.foldbar button', host).forEach(b => b.onclick = () => { chainFoldSet(chainId, { def: b.dataset.fold === 'all', seg: {} }); redraw(); });
     $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
     /* 把目前這檔的卡片捲進視野 —— 但**只捲關聯圖自己那個框**，不准動到整頁。
