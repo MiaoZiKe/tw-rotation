@@ -219,7 +219,7 @@
       /* 手機是分段導覽（app.js miaPager）：卡片在「AI 分析」那一段，沒切過去時整塊是藏著的（.mp-off），
          直接 scrollIntoView 什麼都看不到 —— 先按那一段的分頁鈕。*/
       if (host.classList.contains('mp-off')) {
-        const tab = [...document.querySelectorAll('.mpager button')].find(b => b.textContent.trim() === 'AI 分析');
+        const tab = [...document.querySelectorAll('main .view.on .mpager button, .mpager button')].find(b => b.textContent.trim() === 'AI 分析');
         if (tab) tab.click();
       }
       // 頂欄是 sticky 的（手機還有分段列），直接 scrollIntoView 會讓卡片標題躲在頂欄底下 —— 扣掉頂欄高度再捲

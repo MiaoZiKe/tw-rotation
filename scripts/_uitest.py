@@ -15960,14 +15960,19 @@ def t_stock_ai_0926(pg, base, code):
     pg.set_viewport_size({"width": 390, "height": 844})
     pg.goto(f"{base}#overview", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); } catch (e) {} }")
+    # 總覽的非同步重畫要先跑完：高負載時它會比接著打開的個股頁晚完成，把畫面切回總覽（實測假紅 1/3）
+    wait_until(pg, "() => { const v = document.querySelector('main .view.on'); return !!v && v.id === 'v-overview' && !!v.querySelector('.mpager button'); }", 15000)
+    pg.wait_for_timeout(600)
     pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(1200)
     # 手機分段列是個股頁畫完之後才重建的；接在別段後面跑時會先看到上一頁（總覽）的分段 —— 等它換成個股頁的
-    wait_until(pg, "() => [...document.querySelectorAll('.mpager button')].some(b => b.textContent.trim() === 'AI 分析')", 8000)
+    wait_until(pg, "() => !!document.getElementById('aiCard') && [...document.querySelectorAll('main .view.on .mpager button')].some(b => b.textContent.trim() === 'AI 分析')", 20000)
     m0 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 手機沒記過 → 預設收起", not m0["open"] and m0["ls"] is None, m0)
     ok("[AI分析 390] 右上那一行結論在手機上直接看得到（沒被收進「詳細」）", m0["lineVis"] and m0["stance"], m0["lineTxt"][:80])
-    tabs = pg.evaluate("() => [...document.querySelectorAll('.mpager button')].map(b => b.textContent.trim())")
-    ok("[AI分析 390] 手機分段列有「AI 分析」那一段", "AI 分析" in tabs, tabs)
+    # 只看目前這一頁（.view.on）的分段列：切頁之後，總覽那一頁的分段列還留在 DOM 裡（藏著）
+    tabs = pg.evaluate("() => [...document.querySelectorAll('main .view.on .mpager button')].map(b => b.textContent.trim())")
+    ok("[AI分析 390] 手機分段列有「AI 分析」那一段", "AI 分析" in tabs,
+       [tabs, pg.evaluate("() => [location.hash, (document.querySelector('main .view.on') || {}).id, [...document.querySelectorAll('main .view.on')].length, !!document.getElementById('aiCard')]")])
     click(pg, "#aiJump", 900)
     m1 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 按「展開分析 ▾」→ 真的切到「AI 分析」那一段、卡片打開", m1["open"] and m1["mpOff"] is False, m1)
