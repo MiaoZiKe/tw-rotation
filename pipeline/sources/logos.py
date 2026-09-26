@@ -639,7 +639,7 @@ def normalize_image(data: bytes, *, photo_check: bool | str = False,
     photo_check：是照片就擋（True＝寬鬆、"strict"＝嚴格，見 is_photo）；aspect：限定寬／高範圍（沒寫 logo 的 og:image 用）。
     """
     Image = _pil()
-    head = data[:1024].lstrip().lower()
+    head = data[:1024].lstrip(b"\xef\xbb\xbf \t\r\n").lower()     # 有的 SVG 前面帶 UTF-8 BOM
     if head[:1] == b"<":
         if b"<svg" not in data[:8192].lower():
             raise LogoReject("none", "回的是 HTML 不是圖")

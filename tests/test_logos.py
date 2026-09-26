@@ -952,6 +952,13 @@ def test_svg_header_logo_rendered_keeping_aspect(monkeypatch):
 
 
 @svg_ok
+def test_svg_with_bom_and_xml_prolog_is_rendered():
+    data = b'\xef\xbb\xbf<?xml version="1.0" encoding="UTF-8"?>\n' + _svg(100, 100)
+    png, orig = lg.normalize_image(data)
+    assert orig == (256, 256) and png
+
+
+@svg_ok
 def test_svg_too_big_or_broken_is_rejected(monkeypatch):
     monkeypatch.setattr(config, "LOGO_SVG_MAX_BYTES", 50)
     with pytest.raises(lg.LogoReject) as e:
