@@ -588,21 +588,34 @@ def is_blank(img) -> bool:
     return max(spans) < 10
 
 
-PHOTO_COLORS = 1000     # 縮成 64×64、每色 5 bit 之後還有超過這麼多種顏色 ＝ 照片（Logo 通常只有幾十到幾百種）
+# 照片判定的門檻（2026-09-26 用資料湖裡第一輪抓到的 214 張 Logo 校過：5 bit 色數最高 514，
+# 只有 1 張（3289 宜特，JPEG 壓縮雜訊）到 1,566，但它前 8 種顏色仍佔 42%）
+PHOTO_COLORS_STRICT = 600    # 嚴格：色數超過這個就算照片（沒有任何 logo 字樣的 og:image 用）
+PHOTO_COLORS_LENIENT = 1200  # 寬鬆：色數超過這個「而且」前 8 種顏色佔不到 35% 才算照片
+PHOTO_TOP8_SHARE = 0.35      # （路徑含 logo 的 og:image、頁首 logo 圖用 —— 已經有「它是 Logo」的強訊號）
 
 
-def is_photo(img) -> bool:
+def is_photo(img, strict: bool = False) -> bool:
     """og:image 與頁首圖用：是照片就不是 Logo。
 
-    做法：貼到白底、縮成 64×64（BOX 取平均），每個色版只留 5 bit，數有幾種顏色。
-    Logo 是幾塊平塗色加反鋸齒邊，數量有限；照片的漸層與雜訊會把 4,096 格塞滿各種顏色。
+    做法：貼到白底、NEAREST 取樣成 64×64（不取平均 —— 取平均會把照片的細節抹成一片灰），
+    每個色版只留 5 bit，數有幾種顏色；再用 4 bit 看「前 8 種顏色佔多少格」。
+    Logo 是幾塊平塗色加反鋸齒邊：色數有限、而且少數幾種顏色就佔掉大半；照片兩樣都相反。
+    strict 只看色數（沒有 logo 字樣的 og:image 是最容易抓錯的來源，寧可不收）；
+    寬鬆模式兩個條件都要成立，免得 JPEG 壓縮雜訊把真正的 Logo 誤判成照片。
     """
     Image = _pil()
     rgba = img.convert("RGBA")
     canvas = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
     canvas.alpha_composite(rgba)
-    small = canvas.convert("RGB").resize((64, 64), Image.BOX)
-    return len({(r >> 3, g >> 3, b >> 3) for r, g, b in small.getdata()}) > PHOTO_COLORS
+    small = canvas.convert("RGB").resize((64, 64), Image.NEAREST)
+    n5 = len(small.point(lambda v: v & 0xF8).getcolors(maxcolors=64 * 64 + 1) or [])
+    if strict:
+        return n5 > PHOTO_COLORS_STRICT
+    if n5 <= PHOTO_COLORS_LENIENT:
+        return False
+    c4 = sorted(small.point(lambda v: v & 0xF0).getcolors(maxcolors=64 * 64 + 1) or [], reverse=True)
+    return sum(n for n, _ in c4[:8]) / (64 * 64) < PHOTO_TOP8_SHARE
 
 
 def effective_px(w: int, h: int) -> float:
@@ -616,14 +629,14 @@ def effective_px(w: int, h: int) -> float:
     return min(max(w, h), config.LOGO_PX) * min(w, h) / max(w, h)
 
 
-def normalize_image(data: bytes, *, photo_check: bool = False,
+def normalize_image(data: bytes, *, photo_check: bool | str = False,
                     aspect: tuple[float, float] | None = None) -> tuple[bytes, tuple[int, int]]:
     """任何 Pillow 讀得懂的圖（ICO／PNG／JPEG／GIF／WebP／BMP）或 SVG → 64×64 透明底 PNG。
 
     ICO 內含多種尺寸時 Pillow 預設開最大的那張。等比縮到 64 以內再置中貼到透明畫布，
     不裁切、不拉伸、不改色 —— 只縮放，這是「指稱性使用、不修改圖形」的技術面保證。
     非正方形（橫長字標）就上下補透明邊；長寬比超過 LOGO_MAX_ASPECT 的判太小（縮完只剩一條線）。
-    photo_check：是照片就擋（og:image、頁首圖用）；aspect：限定寬／高範圍（沒寫 logo 的 og:image 用）。
+    photo_check：是照片就擋（True＝寬鬆、"strict"＝嚴格，見 is_photo）；aspect：限定寬／高範圍（沒寫 logo 的 og:image 用）。
     """
     Image = _pil()
     head = data[:1024].lstrip().lower()
@@ -653,7 +666,7 @@ def normalize_image(data: bytes, *, photo_check: bool = False,
     rgba = img.convert("RGBA")
     if is_blank(rgba):
         raise LogoReject("blank", f"{w}x{h}")
-    if photo_check and is_photo(rgba):
+    if photo_check and is_photo(rgba, strict=photo_check == "strict"):
         raise LogoReject("not_logo", f"看起來是照片 {w}x{h}")
     px = config.LOGO_PX
     scale = px / max(w, h)
@@ -741,8 +754,10 @@ def _try_image(url: str, kind: str = "icon", logo_named: bool = True) -> tuple[b
     # 以「內容」判斷，不信 Content-Type（有的站圖檔也標 text/html）：
     # 很多站對不存在的 /favicon.ico 回 200 ＋ 首頁 HTML（軟 404）；SVG 也是 < 開頭，由 normalize_image 分辨
     try:
-        return normalize_image(body, photo_check=kind in ("og-image", "header-img"),
-                               aspect=None if (kind != "og-image" or logo_named) else OG_ASPECT)
+        bare_og = kind == "og-image" and not logo_named     # 沒有任何 logo 字樣的 og:image：最嚴
+        return normalize_image(body,
+                               photo_check="strict" if bare_og else kind in ("og-image", "header-img"),
+                               aspect=OG_ASPECT if bare_og else None)
     except LogoReject as rej:
         rej.detail = f"{rej.detail} {url}".strip()
         return rej
@@ -891,8 +906,8 @@ def _fetch_logo(website, host: str) -> dict:
                 best = cand
 
     extra = {}
-    if final_host and base_domain(final_host) != base_domain(host):
-        extra["site"] = final_host
+    if final_host and final_host != host:
+        extra["site"] = final_host      # 連 www ↔ 非 www 也記：下一個人查「為什麼圖是從這裡來的」才對得上
     if best is not None:
         src = "google_s2" if best["kind"] == "google_s2" else f"site:{best['kind']}"
         return {"status": "ok", "domain": host, "src": src, "url": best["url"],

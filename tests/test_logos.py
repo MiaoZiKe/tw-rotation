@@ -57,7 +57,8 @@ def _web(routes: dict, calls: list | None = None):
             return (404, b"", "text/html", url)
         if hit == "down":
             return None
-        return (hit[0], hit[1], hit[2], url)
+        # 第 4 欄：轉址測試用（allow_redirects=False 時 get_bytes 在這一欄放 Location 的下一跳）
+        return (hit[0], hit[1], hit[2], hit[3] if len(hit) > 3 else url)
     return fake
 
 
@@ -523,3 +524,549 @@ def test_backfill_logos_only_mode_skips_finmind(sandbox, monkeypatch):
         raise AssertionError("30 天內不該重抓網址清單")
     monkeypatch.setattr(lg, "company_websites", no_refetch)
     run_backfill.backfill_logos(run_backfill._progress())
+
+
+# ================================================================== 第二版取圖策略（2026-09-26）
+# 第一輪 300 家：台積電、聯電、瑞昱、聯詠、廣達、緯穎被判「太小」（只有 16px favicon），
+# 欣興、旺宏、南亞電路板被判「找不到」。下面每一個測試對應一種救回來的路。
+
+X = "https://www.x.com.tw/"
+S2 = config.LOGO_GOOGLE_S2.format(domain="www.x.com.tw")
+
+
+def _tiny_ico():
+    return _png((16, 16), fmt="ICO", sizes=[(16, 16)])
+
+
+def _noise(size=(400, 300)) -> bytes:
+    """隨機雜訊 ＝ 色彩極多的「照片」。"""
+    import os
+    from PIL import Image
+    img = Image.frombytes("RGB", size, os.urandom(size[0] * size[1] * 3))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _svg(w=200, h=100) -> bytes:
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}">'
+            f'<rect x="10" y="10" width="{w // 2}" height="{h // 2}" fill="#c33"/></svg>').encode()
+
+
+def _alpha_rows(png: bytes):
+    """每一列的最大不透明度：用來驗「上下補透明邊、沒有被拉伸」。"""
+    from PIL import Image
+    img = Image.open(io.BytesIO(png)).convert("RGBA")
+    a = img.getchannel("A")
+    return [max(a.getpixel((x, y)) for x in range(img.width)) for y in range(img.height)]
+
+
+def test_s2_url_asks_for_128():
+    assert "sz=128" in config.LOGO_GOOGLE_S2
+
+
+def test_multiple_icon_candidates_pick_largest_not_first(monkeypatch):
+    """宣告跟實際不一樣時，照實際尺寸取最大：apple-touch 其實只有 50px，宣告 32 的那個其實是 120px。"""
+    html = b'''<link rel="apple-touch-icon" href="/apple.png">
+               <link rel="icon" sizes="16x16" href="/f16.png">
+               <link rel="icon" sizes="32x32" href="/f32.png">'''
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"),
+        X + "apple.png": (200, _png((50, 50)), "image/png"),
+        X + "f16.png": (200, _png((16, 16)), "image/png"),
+        X + "f32.png": (200, _png((120, 120)), "image/png"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["url"] == X + "f32.png" and got["orig"] == [120, 120]
+    assert S2 not in calls                        # 官網已經有 ≥48px 的，不必問 Google
+
+
+def test_early_stop_on_big_square_official_icon(monkeypatch):
+    """找到 ≥64px 的正方形官方圖示就停，不再下載其他候選（對官網客氣一點）。"""
+    html = b'<link rel="apple-touch-icon" sizes="180x180" href="/a.png"><link rel="icon" href="/f.ico">'
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"), X + "a.png": (200, _png(), "image/png"),
+    }, calls))
+    assert lg.fetch_logo("www.x.com.tw")["src"] == "site:apple-touch-icon"
+    assert X + "f.ico" not in calls and X + "favicon.ico" not in calls
+
+
+def test_scan_page_collects_all_icon_kinds():
+    html = """<head>
+      <link rel="icon" href="/f.ico">
+      <link rel="icon" sizes="any" type="image/svg+xml" href="/i.svg">
+      <link rel="mask-icon" href="/pin.svg" color="#c00">
+      <link rel="apple-touch-icon" href="/apple.png">
+      <link rel="manifest" href="/site.webmanifest">
+      <meta property="og:image" content="/img/og-logo.png">
+      <meta property="og:image:width" content="600"><meta property="og:image:height" content="300">
+    </head>"""
+    sc = lg.scan_page(html, X)
+    kinds = {c["url"]: (c["kind"], c["px"], c["svg"]) for c in sc["icons"]}
+    assert kinds[X + "f.ico"] == ("icon", 0, False)
+    assert kinds[X + "i.svg"] == ("icon", 512, True)            # sizes="any" 的 SVG 當 512
+    assert kinds[X + "pin.svg"] == ("mask-icon", 0, True)
+    assert kinds[X + "apple.png"] == ("apple-touch-icon", 180, False)   # 沒寫 sizes 照慣例當 180
+    assert sc["manifest"] == X + "site.webmanifest"
+    assert sc["og"] == {"url": X + "img/og-logo.png", "w": 600, "h": 300}
+
+
+def test_plan_candidates_order():
+    sc = {"icons": [{"url": X + "f16.ico", "kind": "icon", "px": 16, "svg": False},
+                    {"url": X + "pin.svg", "kind": "mask-icon", "px": 0, "svg": True},
+                    {"url": X + "i.svg", "kind": "icon", "px": 512, "svg": True},
+                    {"url": X + "a.png", "kind": "apple-touch-icon", "px": 180, "svg": False}],
+          "imgs": [{"url": X + "logo.png", "kind": "header-img", "px": 0, "svg": False}],
+          "og": {"url": X + "og-logo.png", "w": None, "h": None}}
+    man = [{"url": X + "m512.png", "kind": "manifest", "px": 512, "svg": False}]
+    kinds = [c["url"].rsplit("/", 1)[1] for c in lg.plan_candidates(sc, X, man)]
+    assert kinds == ["m512.png", "a.png", "i.svg", "apple-touch-icon.png", "logo.png", "og-logo.png",
+                     "f16.ico", "favicon.ico", "pin.svg"]
+
+
+def test_manifest_icons_parse_largest_relative_and_skip_monochrome():
+    raw = json.dumps({"icons": [
+        {"src": "icons/192.png", "sizes": "192x192", "type": "image/png"},
+        {"src": "icons/512.png", "sizes": "512x512", "type": "image/png"},
+        {"src": "icons/mono.png", "sizes": "1024x1024", "purpose": "monochrome"},
+        {"src": "icons/48.png", "sizes": "48x48"},
+        "垃圾",
+    ]}).encode()
+    got = lg.parse_manifest_icons(raw, "https://www.x.com.tw/static/manifest.json")
+    assert [g["url"] for g in got] == ["https://www.x.com.tw/static/icons/512.png",
+                                       "https://www.x.com.tw/static/icons/192.png"]
+    assert all(g["kind"] == "manifest" for g in got)
+    assert lg.parse_manifest_icons(b"{not json", X) == []
+    assert lg.parse_manifest_icons(b'{"icons": "x"}', X) == []
+
+
+def test_fetch_logo_uses_manifest_icon_when_only_16px_favicon(monkeypatch):
+    html = b'<link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json">'
+    man = json.dumps({"icons": [{"src": "/m192.png", "sizes": "192x192"},
+                                {"src": "/m512.png", "sizes": "512x512"}]}).encode()
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"),
+        X + "favicon.ico": (200, _tiny_ico(), "image/x-icon"),
+        X + "manifest.json": (200, man, "application/manifest+json"),
+        X + "m192.png": (200, _png((192, 192)), "image/png"),
+        X + "m512.png": (200, _png((512, 512)), "image/png"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:manifest" and got["url"] == X + "m512.png"
+
+
+def test_manifest_blocked_by_robots_is_not_fetched(monkeypatch):
+    html = b'<link rel="manifest" href="/private/manifest.json">'
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X + "robots.txt": (200, b"User-agent: *\nDisallow: /private/\n", "text/plain"),
+        X: (200, html, "text/html"),
+    }, calls))
+    lg.fetch_logo("www.x.com.tw")
+    assert X + "private/manifest.json" not in calls
+
+
+@pytest.mark.parametrize("og,ok", [
+    ({"url": X + "images/logo_share.jpg", "w": 1200, "h": 200}, True),   # 路徑含 logo：收（下載後仍擋照片）
+    ({"url": X + "share.jpg", "w": 1200, "h": 630}, True),               # 1.9:1 在 1:1～4:1 內：下載後再判
+    ({"url": X + "share.jpg", "w": 1200, "h": 200}, False),              # 6:1 橫幅：連下載都省了
+    ({"url": X + "share.jpg", "w": 300, "h": 600}, False),               # 直式：不像 Logo
+    ({"url": X + "share.jpg", "w": None, "h": None}, True),              # 沒宣告：下載後再判
+    (None, False),
+])
+def test_og_candidate_judgement(og, ok):
+    got = lg.og_candidate(og)
+    assert (got is not None) == ok
+    if got:
+        assert got["kind"] == "og-image" and got["logo_named"] == ("logo" in og["url"])
+
+
+def test_og_image_photo_is_rejected(monkeypatch):
+    """og:image 是活動照片（色彩極多）：不當 Logo；只剩 16px favicon 與 16px s2 → 太小。"""
+    html = b'<meta property="og:image" content="/share.png"><link rel="icon" href="/favicon.ico">'
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"),
+        X + "share.png": (200, _noise(), "image/png"),
+        X + "favicon.ico": (200, _tiny_ico(), "image/x-icon"),
+        S2: (200, _png((16, 16)), "image/png"),
+    }))
+    assert lg.fetch_logo("www.x.com.tw")["status"] == "too_small"
+
+
+def test_og_image_without_logo_name_checks_real_aspect(monkeypatch):
+    """沒宣告寬高、路徑也沒有 logo：下載後長寬比 4.5:1 → 不收。"""
+    html = b'<meta property="og:image" content="/banner.png">'
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"),
+        X + "banner.png": (200, _png((450, 100)), "image/png"),
+    }))
+    assert lg.fetch_logo("www.x.com.tw")["status"] == "none"
+
+
+def test_og_image_flat_logo_is_used_when_nothing_else(monkeypatch):
+    html = b'<meta property="og:image" content="/assets/og.png"><link rel="icon" href="/favicon.ico">'
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"),
+        X + "assets/og.png": (200, _png((400, 200), bg=(255, 255, 255, 255)), "image/png"),
+        X + "favicon.ico": (200, _tiny_ico(), "image/x-icon"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:og-image" and got["orig"] == [400, 200]
+
+
+def test_scan_page_header_logo_img_rules():
+    html = """<body>
+      <header class="site-header"><a class="navbar-brand" href="/">
+        <img src="/img/brand.png" srcset="/img/brand.png 1x, /img/brand@2x.png 2x" alt="某某科技"></a></header>
+      <div class="banner"><img src="/img/hero.jpg" alt="新廠房"></div>
+      <section class="partners"><img src="/img/partner-logo-intel.png" alt="Intel logo"></section>
+      <img src="/img/iso-logo.png">
+      <footer><img src="/img/logo-footer-white.png" alt="logo"></footer>
+      <div class="logo-wrap"><img src="/img/second.png"></div>
+    </body>"""
+    urls = [c["url"] for c in lg.scan_page(html, X)["imgs"]]
+    assert urls[0] == X + "img/brand@2x.png"                  # 頁首＋navbar-brand，srcset 取最大
+    assert X + "img/second.png" in urls                       # 包在 class 含 logo 的元素裡
+    assert not any(k in u for u in urls for k in ("hero", "partner", "iso", "footer"))
+    assert len(urls) <= 2
+
+
+def test_scan_page_lazy_img_and_unclosed_tags():
+    html = '<div id="header"><div><span><img class="logo lazy" data-src="/l.png" src="data:image/gif;base64,R0">'
+    assert [c["url"] for c in lg.scan_page(html, X)["imgs"]] == [X + "l.png"]
+
+
+def test_fetch_logo_header_img_rescues_16px_site_and_pads_not_crops(monkeypatch):
+    """台積電那一型：只宣告 16px favicon，但頁首有 Logo 圖 → 用頁首圖，橫長的上下補透明邊。"""
+    html = b'''<link rel="icon" href="/favicon.ico">
+               <header><div class="logo"><a href="/"><img src="/images/logo.png" alt="X"></a></div></header>'''
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"),
+        X + "favicon.ico": (200, _tiny_ico(), "image/x-icon"),
+        X + "images/logo.png": (200, _png((300, 100), fg=(20, 60, 160, 255)), "image/png"),
+        S2: (200, _png((16, 16)), "image/png"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:header-img" and got["orig"] == [300, 100]
+    rows = _alpha_rows(got["png"])
+    assert len(rows) == 64 and rows[0] == 0 and rows[-1] == 0 and max(rows[28:36]) > 0
+
+
+def test_square_icon_beats_wide_wordmark():
+    """「最大」看縮進方框後的有效尺寸：64px 正方形圖示 > 300×100 字標 > 32px 圖示 > …"""
+    assert lg.effective_px(180, 180) == 64
+    assert lg.effective_px(32, 32) == 32
+    assert round(lg.effective_px(300, 100)) == 21
+    sq = {"eff": lg.effective_px(64, 64), "kind": "icon", "orig": (64, 64)}
+    wide = {"eff": lg.effective_px(1200, 400), "kind": "header-img", "orig": (1200, 400)}
+    assert lg._score(sq) > lg._score(wide)
+    big_og = {"eff": 64, "kind": "og-image", "orig": (1200, 1200)}
+    assert lg._score(sq) > lg._score(big_og)                  # 一樣大時官方圖示優先
+
+
+def test_normalize_pads_tall_and_rejects_too_wide():
+    from PIL import Image
+    png, orig = lg.normalize_image(_png((100, 300)))
+    img = Image.open(io.BytesIO(png))
+    assert img.size == (64, 64) and orig == (100, 300)
+    assert img.getpixel((1, 32))[3] == 0 and img.getpixel((62, 32))[3] == 0   # 左右補透明邊
+    with pytest.raises(lg.LogoReject) as e:
+        lg.normalize_image(_png((600, 100)))                    # 6:1 橫條
+    assert e.value.reason == "too_wide"
+
+
+def test_is_photo():
+    from PIL import Image
+    for strict in (False, True):
+        assert lg.is_photo(Image.open(io.BytesIO(_noise())), strict=strict)
+        assert not lg.is_photo(Image.open(io.BytesIO(_png((300, 100)))), strict=strict)
+
+
+def test_jpeg_noisy_logo_is_not_photo_in_lenient_mode():
+    """色數很多（壓縮雜訊）但平塗底色仍佔大半：寬鬆模式（頁首圖）不算照片，嚴格模式（裸 og:image）算。
+
+    對應實例：3289 宜特的 Logo 是 JPEG，5 bit 色數 1,566，但前 8 種顏色佔 42%。
+    """
+    import os
+    from PIL import Image
+    img = Image.new("RGB", (64, 64), (255, 255, 255))
+    noise = Image.frombytes("RGB", (64, 26), os.urandom(64 * 26 * 3))   # 下方 40% 是雜訊
+    img.paste(noise, (0, 38))
+    assert not lg.is_photo(img)
+    assert lg.is_photo(img, strict=True)
+
+
+def test_s2_128_still_16px_is_too_small(monkeypatch):
+    """Google 對只有小圖的網站就算要 128 也回 16px：照實際尺寸判太小，不收。"""
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<link rel="icon" href="/favicon.ico">', "text/html"),
+        X + "favicon.ico": (200, _tiny_ico(), "image/x-icon"),
+        S2: (200, _png((16, 16)), "image/png"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "too_small"
+    assert S2 in calls and "sz=128" in S2
+
+
+def test_s2_used_when_site_best_is_small(monkeypatch):
+    """官網最好的只有 32px，Google 有 128px → 取 Google 的（比較之後取大）。"""
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<link rel="icon" href="/f32.png">', "text/html"),
+        X + "f32.png": (200, _png((32, 32)), "image/png"),
+        S2: (200, _png((128, 128)), "image/png"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "google_s2" and got["orig"] == [128, 128]
+
+
+@pytest.mark.parametrize("a,b,same", [
+    ("www.aoet.com.tw", "www.aoet.com", True),        # 同品牌換頂級網域
+    ("www.x.com.tw", "x.com.tw", True),
+    ("www.x.com.tw", "ir.x.com.tw", True),
+    ("tw.msi.com", "www.msi.com", True),
+    ("www.x.com.tw", "x.wixsite.com", False),         # 架站商
+    ("www.gbm.com.tw", "www.hannstar.com", False),    # 別的品牌（集團母公司）
+    ("www.avc.co", "avc.co", True),
+    (None, "a.com", False),
+])
+def test_same_company(a, b, same):
+    assert lg.same_company(a, b) == same
+
+
+A = "https://www.acme.com.tw/"      # 轉址測試用品牌長一點（same_company 要求品牌段 ≥ 3 個字）
+
+
+def test_homepage_redirect_same_company_followed_and_recorded(monkeypatch):
+    """首頁 301 到同公司另一個網域：跟過去、讀新網域的 robots，並把新網域記在 site。"""
+    Y = "https://www.acme.com/"
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        A: (301, b"", "text/html", Y),
+        Y: (200, b'<link rel="apple-touch-icon" href="/a.png">', "text/html"),
+        Y + "a.png": (200, _png(), "image/png"),
+    }, calls))
+    got = lg.fetch_logo("www.acme.com.tw")
+    assert got["status"] == "ok" and got["url"] == Y + "a.png" and got["site"] == "www.acme.com"
+    assert Y + "robots.txt" in calls
+
+
+def test_homepage_redirect_to_other_company_not_followed(monkeypatch):
+    calls = []
+    park = "https://parked.example-host.com/"
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (302, b"", "text/html", park),
+        "http://www.x.com.tw/": (302, b"", "text/html", park),
+        "https://x.com.tw/": (302, b"", "text/html", park),
+        S2: (200, _png((128, 128)), "image/png"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert park not in calls and park + "robots.txt" not in calls
+    assert got["src"] == "google_s2" and "site" not in got
+
+
+def test_homepage_redirect_target_robots_respected(monkeypatch):
+    Y = "https://www.acme.com/"
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        A: (301, b"", "text/html", Y),
+        Y + "robots.txt": (200, b"User-agent: *\nDisallow: /\n", "text/plain"),
+    }, calls))
+    got = lg.fetch_logo("www.acme.com.tw")
+    assert got["status"] == "robots" and Y not in calls
+    assert not any("google.com/s2" in u for u in calls)
+
+
+def test_redirect_loop_gives_up(monkeypatch):
+    Y = "https://www.x.com.tw/a"
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (302, b"", "text/html", Y), Y: (302, b"", "text/html", X),
+        "http://www.x.com.tw/": (302, b"", "text/html", Y),
+        "https://x.com.tw/": (302, b"", "text/html", Y),
+    }))
+    assert lg.fetch_logo("www.x.com.tw")["status"] in ("none", "error")
+
+
+def test_robots_detail_says_403_vs_disallow(monkeypatch):
+    monkeypatch.setattr(http, "get_bytes", _web({X + "robots.txt": (403, b"", "text/html")}))
+    assert "403" in lg.fetch_logo("www.x.com.tw")["detail"]
+
+
+def test_homepage_404_tries_bare_domain(monkeypatch):
+    """欣興那一型：申報 www.x.com.tw 但首頁 404 → 改試 https://x.com.tw/。"""
+    B = "https://x.com.tw/"
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (404, b"not found", "text/html"),
+        "http://www.x.com.tw/": (404, b"not found", "text/html"),
+        B: (200, b'<link rel="apple-touch-icon" href="/a.png">', "text/html"),
+        B + "a.png": (200, _png(), "image/png"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["url"] == B + "a.png" and got["site"] == "x.com.tw"
+
+
+def test_homepage_404_on_bare_domain_tries_www(monkeypatch):
+    W = "https://www.y.com.tw/"
+    monkeypatch.setattr(http, "get_bytes", _web({
+        W: (200, b'<link rel="apple-touch-icon" href="/a.png">', "text/html"),
+        W + "a.png": (200, _png(), "image/png"),
+    }))
+    got = lg.fetch_logo("y.com.tw")
+    assert got["status"] == "ok" and got["url"] == W + "a.png"
+
+
+def test_homepage_candidates_www_toggle():
+    assert lg.homepage_candidates("x.com.tw", "x.com.tw") == [
+        "https://x.com.tw/", "http://x.com.tw/", "https://www.x.com.tw/"]
+    assert lg.homepage_candidates("http://www.x.com", "www.x.com") == [
+        "http://www.x.com/", "https://www.x.com/", "https://x.com/"]
+    assert lg.homepage_candidates("ir.x.com.tw", "ir.x.com.tw") == [
+        "https://ir.x.com.tw/", "http://ir.x.com.tw/"]              # 子網域不亂加 www
+
+
+def test_homepage_403_does_not_hammer_alternatives(monkeypatch):
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({X: (403, b"denied", "text/html")}, calls))
+    lg.fetch_logo("www.x.com.tw")
+    assert "https://x.com.tw/" not in calls and "http://www.x.com.tw/" not in calls
+
+
+svg_ok = pytest.mark.skipif(not lg.svg_supported(), reason="沒有 cairosvg／libcairo")
+
+
+@svg_ok
+def test_svg_header_logo_rendered_keeping_aspect(monkeypatch):
+    html = b'<link rel="icon" href="/favicon.ico"><header><img class="logo" src="/logo.svg"></header>'
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"),
+        X + "favicon.ico": (200, _tiny_ico(), "image/x-icon"),
+        X + "logo.svg": (200, _svg(200, 100), "image/svg+xml"),
+        S2: (200, _png((16, 16)), "image/png"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:header-img" and got["orig"] == [256, 128]
+    rows = _alpha_rows(got["png"])
+    assert rows[0] == 0 and rows[-1] == 0                       # 2:1 → 上下補邊，不拉伸
+
+
+@svg_ok
+def test_svg_too_big_or_broken_is_rejected(monkeypatch):
+    monkeypatch.setattr(config, "LOGO_SVG_MAX_BYTES", 50)
+    with pytest.raises(lg.LogoReject) as e:
+        lg.normalize_image(_svg())
+    assert e.value.reason == "bad_image"
+    monkeypatch.setattr(config, "LOGO_SVG_MAX_BYTES", 500_000)
+    with pytest.raises(lg.LogoReject):
+        lg.normalize_image(b"<svg xmlns='http://www.w3.org/2000/svg'><rect")
+
+
+def test_svg_skipped_without_cairosvg(monkeypatch):
+    """沒有 cairosvg／libcairo 的環境：SVG 候選直接跳過（不下載），其他候選照常。"""
+    monkeypatch.setattr(lg, "svg_supported", lambda: False)
+    html = b'<link rel="icon" type="image/svg+xml" href="/i.svg"><link rel="apple-touch-icon" href="/a.png">'
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, html, "text/html"), X + "a.png": (200, _png((120, 120)), "image/png"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and X + "i.svg" not in calls
+
+
+def test_html_is_not_an_image():
+    with pytest.raises(lg.LogoReject) as e:
+        lg.normalize_image(b"<!doctype html><html><body>not an icon</body></html>")
+    assert e.value.reason == "none"
+
+
+def test_get_bytes_no_follow_returns_location(monkeypatch):
+    """allow_redirects=False：3xx 的第 4 欄是 Location 解析後的下一跳，內容是空的。"""
+    class R:
+        status_code = 301
+        headers = {"Location": "/tw/index.html", "Content-Type": "text/html"}
+        url = "https://www.x.com.tw/"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def iter_content(self, n):
+            return iter([b"moved"])
+
+    class S:
+        def get(self, url, **kw):
+            assert kw["allow_redirects"] is False
+            return R()
+    got = http.get_bytes("https://www.x.com.tw/", sess=S(), allow_redirects=False)
+    assert got == (301, b"", "text/html", "https://www.x.com.tw/tw/index.html")
+
+
+# ------------------------------------------------------------------ 策略升級：太小／找不到的立刻重試
+
+def test_retry_on_upgrade_rule():
+    v = config.LOGO_STRATEGY
+    assert lg.retry_on_upgrade({"status": "too_small"})
+    assert lg.retry_on_upgrade({"status": "none", "strategy": v - 1})
+    assert not lg.retry_on_upgrade({"status": "none", "strategy": v})
+    for st in ("ok", "robots", "blank", "generic", "error", "removed"):
+        assert not lg.retry_on_upgrade({"status": st})
+
+
+def test_run_retries_old_failures_first_and_keeps_good_logos(sandbox):
+    _seed_company([{"code": c, "name": c, "market": "TWSE", "industry": "x", "website": f"www.c{c}.com"}
+                   for c in ("2330", "2303", "3037", "3227", "1101", "9999")])
+    (config.DATA / "logos").mkdir(parents=True, exist_ok=True)
+    good = lg.normalize_image(_png(fg=(1, 2, 3, 255)))[0]
+    (config.DATA / "logos" / "1101.png").write_bytes(good)
+    (config.DATA / "logos" / "_index.json").write_text(json.dumps({"version": 1, "items": {
+        "2330": {"status": "too_small", "domain": "www.c2330.com", "fetched": "2026-09-25"},   # 昨天才判：照樣重試
+        "2303": {"status": "too_small", "domain": "www.c2303.com", "fetched": "2026-09-25"},
+        "3037": {"status": "none", "domain": "www.c3037.com", "fetched": "2026-09-25"},
+        "3227": {"status": "robots", "domain": "www.c3227.com", "fetched": "2026-09-25"},      # 對方不准：不重試
+        "1101": {"status": "ok", "domain": "www.c1101.com", "fetched": "2026-09-25", "sha1": lg.sha1(good)},
+    }}))
+    calls = []
+    colors = {f"www.c{c}.com": lg.normalize_image(_png(fg=(i * 40, 90, 200 - i * 30, 255)))[0]
+              for i, c in enumerate(("2330", "2303", "3037", "3227", "1101", "9999"))}
+    lg.run(limit=3, today=date(2026, 9, 26), fetcher=_ok_fetcher(calls, colors))
+    # 上限 3：三家重試的全部排在沒抓過的 9999 前面
+    assert sorted(calls) == ["www.c2303.com", "www.c2330.com", "www.c3037.com"]
+    idx = lg.read_index()["items"]
+    assert idx["2330"]["status"] == "ok" and idx["2330"]["strategy"] == config.LOGO_STRATEGY
+    assert (config.DATA / "logos" / "1101.png").read_bytes() == good      # 好圖沒被動
+    assert idx["1101"] == {"status": "ok", "domain": "www.c1101.com", "fetched": "2026-09-25",
+                           "sha1": lg.sha1(good)}
+    # 下一輪：重試過的不再重試，只剩沒抓過的
+    calls.clear()
+    lg.run(today=date(2026, 9, 26), fetcher=_ok_fetcher(calls, colors))
+    assert calls == ["www.c9999.com"]
+
+
+def test_run_retry_that_fails_again_waits_30_days(sandbox):
+    _seed_company([{"code": "2330", "name": "台積電", "market": "TWSE", "industry": "x", "website": "www.tsmc.com"}])
+    (config.DATA / "logos").mkdir(parents=True, exist_ok=True)
+    (config.DATA / "logos" / "_index.json").write_text(json.dumps({"version": 1, "items": {
+        "2330": {"status": "too_small", "domain": "www.tsmc.com", "fetched": "2026-09-25"}}}))
+    calls = []
+
+    def still_small(website, host):
+        calls.append(host)
+        return {"status": "too_small", "domain": host, "detail": "16x16"}
+    lg.run(today=date(2026, 9, 26), fetcher=still_small)
+    lg.run(today=date(2026, 9, 27), fetcher=still_small)
+    assert calls == ["www.tsmc.com"]                              # 第二輪不再重試（已是新策略的結論）
+    assert lg.read_index()["items"]["2330"]["strategy"] == config.LOGO_STRATEGY
+
+
+def test_run_records_redirect_site(sandbox):
+    _seed_company([{"code": "3362", "name": "先進光", "market": "TWSE", "industry": "x", "website": "www.aoet.com.tw"}])
+
+    def redirected(website, host):
+        return {"status": "ok", "domain": host, "site": "www.aoet.com", "src": "site:icon",
+                "url": "https://www.aoet.com/i.png", "png": lg.normalize_image(_png())[0], "orig": [180, 180]}
+    lg.run(today=date(2026, 9, 26), fetcher=redirected)
+    rec = lg.read_index()["items"]["3362"]
+    assert rec["domain"] == "www.aoet.com.tw" and rec["site"] == "www.aoet.com"
