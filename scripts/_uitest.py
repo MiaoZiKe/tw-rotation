@@ -28521,9 +28521,22 @@ CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
     fr: (window.App && window.App._rotFrame) || null, anim: o.animation }; }"""
 
 # 三圈底色：沿著每個象限的角度，在三圈的中線上取樣 canvas 像素，量「跟卡片底色差多少」（越外圈越濃）
-CLK_RINGS = r"""(cid) => { const el = document.getElementById(cid); const cv = el && el.querySelector('canvas'); if (!cv) return null;
+# ★ 2026-09-26 晚（退回有腳印版）改前→改後：
+#   改前：直接在 #rotClock 的畫布上取樣。
+#   改後：跟 CLK_SMOOTH 一樣，另開一張只留「象限底色」series 的隔離畫布取樣，量完就丟。
+#   理由：腳印與軌跡畫回來之後，族群名字膠囊（深色底）的位置跟著換，改善／領先兩個象限的「中圈」
+#     剛好壓了好幾顆膠囊，第 20 百分位被拉到接近卡片底色（實測深色 leading 中圈 66 → 13）。
+#     origin/main（沒有腳印）這條在深色主題也已經是紅的（中圈 32），同樣是膠囊壓在取樣線上 ——
+#     這條要驗的是「背景由內到外有層次」，量背景本身才對；點、腳印、膠囊的長相由 ①② 另外驗。
+CLK_RINGS = r"""(cid) => { const el0 = document.getElementById(cid); const c0 = el0 && echarts.getInstanceByDom(el0); if (!c0) return null;
+  const o = c0.getOption(); const bgS = o.series.filter(s => s.name === '象限底色'); if (bgS.length !== 1) return null;
+  const W = el0.clientWidth, H = el0.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+  const el = document.createElement('div'); el.style.cssText = `position:fixed;left:0;top:0;width:${W}px;height:${H}px;z-index:-1;pointer-events:none`;
+  document.body.appendChild(el);
+  const c1 = echarts.init(el, null, { devicePixelRatio: window.devicePixelRatio });
+  c1.setOption(Object.assign({}, o, { series: bgS, animation: false, tooltip: [], graphic: [] }));
+  const cv = el.querySelector('canvas');
   const g = cv.getContext('2d'); const k = cv.width / el.clientWidth;
-  const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
   const axisMax = 1.25 * 1.18 * 1.06, mids = [0.3125, 0.9375, (1.25 + axisMax) / 2];
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
   const hx = bg.replace('#', ''); const B = [0, 2, 4].map(i => parseInt(hx.slice(i, i + 2), 16));
@@ -28538,6 +28551,7 @@ CLK_RINGS = r"""(cid) => { const el = document.getElementById(cid); const cv = e
         /* 圖表的 canvas 底是透明的：getImageData 拿到的是「沒乘過 alpha 的色」，要自己疊在卡片底色上才是眼睛看到的 */
         ds.push([0, 1, 2].reduce((s2, i) => s2 + Math.abs(p[i] * al + B[i] * (1 - al) - B[i]), 0)); }
       return med(ds); }); });
+  c1.dispose(); el.remove();
   return out; }"""
 
 
