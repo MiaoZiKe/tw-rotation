@@ -22527,7 +22527,8 @@ DG3D_MODULES = {
 
 # 三個場景的效能上限（三角形／draw call）。L3_ROUTES 已經有一份，這裡只是把 draw call 也寫成表，
 # 讓「改前／改後」的對照表有一個固定的欄位。
-DG3D_PERF = {"ai_server": (40000, 680), "semiconductor": (40000, 240), "mlcc": (6000, 120)}
+# ★ 2026-09-26（3D 細緻化；CEO 訂全站上限 150,000 三角形／300 draw call）：三角形上限改成改後量到的 ×1.5（draw call 不放寬）
+DG3D_PERF = {"ai_server": (70000, 680), "semiconductor": (62000, 240), "mlcc": (6000, 120)}
 
 
 def _lab(rgb):

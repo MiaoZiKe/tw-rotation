@@ -1717,33 +1717,25 @@
             if (dgFloorOn > 0.5 && normalize(vDgN).y > 0.5) {
               vec2 fu = clamp(vDgL.xz / dgFloorSize + 0.5, 0.0, 1.0);
               diffuseColor.rgb *= texture2D(dgFloor, fu).rgb * 1.3;
-            }`)
-          .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+            }
             float dgH = 0.5;
             {
-              /* 只取「法線最朝向的那一軸」的投影（一次取樣，不是三次）：軟體渲染下每個像素少兩次貼圖取樣；
-                 倒角的斜面會落在其中一軸，看不出接縫。*/
+              /* 只取「法線最朝向的那一軸」的投影（一次取樣，不是三次）；倒角的斜面會落在其中一軸，看不出接縫。
+                 ★ 刻意**不做**導數式的法線擾動（dFdx／dFdy bump）：軟體渲染下那一段讓首次畫圖多了 10～40%，
+                   超過「不得比改之前慢 30%」的上限（同頁交錯實測）。改成「明暗＋粗糙度」一起微調 ——
+                   顆粒、髮絲紋、布紋一樣看得見（亮暗交錯），只是不再有逐像素的凹凸光影。*/
               vec3 an = abs(vDgN);
               vec3 q = vDgP * dgFreq;
               vec2 uv2 = an.x > an.y ? (an.x > an.z ? q.zy : q.xy) : (an.y > an.z ? q.xz : q.xy);
               dgH = dot(texture2D(dgNoise, uv2), dgMask);
-              roughnessFactor = clamp(roughnessFactor * (1.0 + (dgH - 0.5) * dgRK * dgMicroK), 0.03, 1.0);
+              diffuseColor.rgb *= 1.0 + (dgH - 0.5) * dgBK * 0.42 * dgMicroK;
             }`)
-          .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-            #if __VERSION__ >= 300 || defined( GL_OES_standard_derivatives )
-            if (dgBK > 0.0) {
-              vec3 dpx = dFdx(-vViewPosition), dpy = dFdy(-vViewPosition);
-              float hx = dFdx(dgH), hy = dFdy(dgH);
-              vec3 r1 = cross(dpy, normal), r2 = cross(normal, dpx);
-              float det = dot(dpx, r1);
-              vec3 gr = sign(det) * (hx * r1 + hy * r2) * dgBK * dgMicroK * 0.06;
-              normal = normalize(abs(det) * normal - gr);
-            }
-            #endif`)
+          .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+            roughnessFactor = clamp(roughnessFactor * (1.0 + (dgH - 0.5) * dgRK * dgMicroK), 0.03, 1.0);`)
           .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
             totalEmissiveRadiance += dgRimC * (dgRimK * dgRimOn) * pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);`);
     };
-    m.customProgramCacheKey = () => 'dgm2';
+    m.customProgramCacheKey = () => 'dgm3';
     m.userData.dgSpec = spec;
     if (bk > 0 || rk > 0) m.userData.micro = ch;
   }
@@ -1992,8 +1984,14 @@
           q.setFromUnitVectors(up, tg.clone().multiplyScalar(sgn)); e.setFromQuaternion(q);
           items.push([pt.x, pt.y, pt.z, e.x, e.y, e.z]);
         }
-        const cone = new T.ConeGeometry(Math.max(ar * 2.6, 0.22), alen, 10);
-        g.add(instOf(cone, tm, items));
+        /* 箭頭烘成一個一般 mesh（不用 InstancedMesh）：流線的發光材質本來只有非實例化的那一支 shader，
+           箭頭若用實例化，three 會為它多編一支「實例化版」—— 首次畫圖多付一支 shader 的錢。*/
+        const cones = items.map(([x, y, z, rx, ry, rz]) => {
+          const cg = new T.ConeGeometry(Math.max(ar * 2.6, 0.22), alen, 10);
+          const o3 = new T.Object3D(); o3.position.set(x, y, z); o3.rotation.set(rx, ry, rz); o3.updateMatrix();
+          cg.applyMatrix4(o3.matrix); return cg;
+        });
+        const am = new T.Mesh(mergeGeos(cones), tm); am.userData.arrows = items.length; g.add(am);
       }
       const per = spec.per || 10;
       const arr = new Float32Array(per * 3);
@@ -8587,7 +8585,7 @@
       root.traverse(x => {
         if (!x.isMesh || !x.material) return;
         let up = x, fl = false; while (up) { if (up.userData && up.userData.flowOf) { fl = true; break; } up = up.parent; }
-        if (fl) { if (x.isInstancedMesh) arrowN += x.count; return; }
+        if (fl) { if (x.userData && x.userData.arrows) arrowN += x.userData.arrows; return; }
         const u = x.material.userData || {};
         if (u.ao || u.glow || u.led) return;
         meshN++; if (u.micro) microN++;
