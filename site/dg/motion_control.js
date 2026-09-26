@@ -493,11 +493,16 @@
     g.push(T(24, y + 32, '三點組（過濾＋調壓＋給油）→ 電磁閥（決定氣往哪一腔走）→ 氣缸（活塞被推出去）。', 'sub'));
     g.push(T(24, y + 49, '沒有編碼器回授，所以停不到任意位置 —— 這就是它跟伺服電動軸的分界。', 'sub'));
     const AY = y + 66;
+    /* ★ 2026-09-26 覆蓋普查：三個零件底下的說明原本各一行（x=28／194／350），閱讀字級下前兩行伸進右邊那一格、
+       跟下一個說明互疊。改成照各自那一格的寬度斷行（最壞字寬），下面的台股列照最高那一欄往下推。*/
+    const LB = [D.para(28, AY + 60, '三點組：過濾／調壓／給油', 156, { lh: 17 }),
+      D.para(194, AY + 60, '電磁閥：切換氣要進哪一腔', 146, { lh: 17 }),
+      D.para(350, AY + 60, '氣缸：活塞被壓縮空氣推出去', 276, { lh: 17 })];
     // 三點組
     g.push(part('mc_air_frl', slab(28, AY, 120, 44, 'var(--dg-mc-case)', { r: 4 })
       + C(54, AY + 22, 9, 'var(--dg-steel)', 'part') + C(86, AY + 22, 9, 'var(--dg-steel)', 'part')
       + C(118, AY + 22, 9, 'var(--dg-oil)', 'part')
-      + `<g pointer-events="none">${T(28, AY + 60, '三點組：過濾／調壓／給油', 'sub')}</g>`));
+      + `<g pointer-events="none">${LB[0].svg}</g>`));
     g.push(LN(`M154,${AY + 22} L184,${AY + 22}`, 'var(--dg-accent-2d)', 2, 'mcairarr')
       + PA(`M190,${AY + 22} L182,${AY + 18} L182,${AY + 26} Z`, 'var(--dg-accent-2d)'));
     // 電磁閥
@@ -505,7 +510,7 @@
       + R(206, AY + 10, 40, 24, 'var(--dg-steel)', 'part', 2) + R(252, AY + 10, 40, 24, 'var(--dg-steel-2)', 'part', 2)
       + LN(`M210,${AY + 22} L242,${AY + 22}`, 'var(--dg-accent-2d)', 1.4)
       + LN(`M256,${AY + 14} L288,${AY + 30}`, 'var(--dg-accent-2d)', 1.4)
-      + `<g pointer-events="none">${T(194, AY + 60, '電磁閥：切換氣要進哪一腔', 'sub')}</g>`));
+      + `<g pointer-events="none">${LB[1].svg}</g>`));
     g.push(LN(`M310,${AY + 22} L340,${AY + 22}`, 'var(--dg-accent-2d)', 2, 'mcairarr')
       + PA(`M346,${AY + 22} L338,${AY + 18} L338,${AY + 26} Z`, 'var(--dg-accent-2d)'));
     // 氣缸
@@ -513,8 +518,8 @@
       + R(356, AY + 10, 268, 24, 'var(--dg-void)', 'part', 2)
       + R(444, AY + 8, 16, 28, 'var(--dg-steel)', 'part', 2)
       + R(460, AY + 18, 164, 8, 'var(--dg-steel-2)', 'part', 2)
-      + `<g pointer-events="none">${T(350, AY + 60, '氣缸：活塞被壓縮空氣推出去', 'sub')}</g>`));
-    let yb = AY + 72;
+      + `<g pointer-events="none">${LB[2].svg}</g>`));
+    let yb = AY + 55 + Math.max(...LB.map((r) => r.h));
     const one = txtRow('mc_air', yb, '台股：1590 亞德客-KY（氣動元件）',
       '★ 沒有畫在主圖上：它跟伺服電動軸是兩條並行的路。本圖不寫任何氣壓、缸徑與行程數字（查不到共通值）。');
     g.push(one.svg); yb += one.h;

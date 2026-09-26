@@ -166,10 +166,12 @@
         + `<path class="thin" d="M${x + 4},314 H${x + 12} M${x + 8},311 V319"/>`);
     }
     // 其餘運算托盤（同一條路徑，簡化畫）
-    const miniTray = (y) => `<g>${fx.glass(TRX, y, TRW, 24, { fill: GL.steel, rx: 4 })}
-      ${[0, 1, 2, 3, 4, 5].map(j => `<rect x="${TRX + 8 + j * 9}" y="${y + 7}" width="6" height="10" rx="1.5" fill="var(--dg-psu-off)"/>`).join('')}
-      <rect x="${TRX + 70}" y="${y + 6}" width="22" height="12" rx="2" fill="var(--dg-psu-die)"/>
-      <text class="sub" x="${TRX + 102}" y="${y + 16}">其餘托盤（同一條路徑）</text></g>`;
+    /* ★ 2026-09-26 覆蓋普查：原本一條 24 高的長條、字排一行，「其餘托盤（同一條路徑）」右端伸出長條（連科技模式都伸出去）
+       → 長條加高到 36、字拆成兩行；兩條長條改從 y 24／64 起，仍在主托盤（y 104）之上。*/
+    const miniTray = (y) => `<g>${fx.glass(TRX, y, TRW, 36, { fill: GL.steel, rx: 4 })}
+      ${[0, 1, 2, 3, 4, 5].map(j => `<rect x="${TRX + 8 + j * 9}" y="${y + 13}" width="6" height="10" rx="1.5" fill="var(--dg-psu-off)"/>`).join('')}
+      <rect x="${TRX + 70}" y="${y + 12}" width="22" height="12" rx="2" fill="var(--dg-psu-die)"/>
+      <text class="sub" x="${TRX + 102}" y="${y + 16}">其餘托盤</text><text class="sub" x="${TRX + 102}" y="${y + 32}">（同一條路徑）</text></g>`;
 
     // ---------------------------------------------------------------- ③ 兩欄架構對照（章節裡）
     const AC1 = 16, AC2 = 330, ACW = 294;                    // 左欄（現行）／右欄（800 VDC）
@@ -285,8 +287,8 @@
         <rect class="pull" x="262" y="36" width="34" height="64" rx="3"/>
         ${psuUnit(262, 36, 3, true)}
       </g>
-      <text class="sub" x="${SHX}" y="124">N＋1：壞一顆不用關機</text>
-      <text class="sub" x="${SHX}" y="142">拉出一顆拆開看（示意）</text>
+      <text class="sub" x="${SHX}" y="128">N＋1：壞一顆不用關機</text>   <!-- ★ 2026-09-26：原本 124，字頂壓到電源架的厚度邊 -->
+      <text class="sub" x="${SHX}" y="146">拉出一顆拆開看（示意）</text>
       <path class="pull" d="M287,106 V150" marker-end="url(#psuArG)"/>
 
       <!-- 拉出來的那一顆：由上往下拆成 上蓋 → 主板 → 底殼（垂直爆炸拆解，層與層之間留呼吸空間） -->
@@ -319,12 +321,12 @@
 
       <!-- 電源線組 power whip：從匯流排接到托盤（§6-V5），一樣掛 connector -->
       <g data-seg="${C}" data-part="psu_whip">
-        ${[42, 78, 128].map(y => `<path class="part" d="M${BBX + BBW},${y} H${TRX}" stroke-width="7" stroke-linecap="round" fill="none"/>`).join('')}
-        ${[42, 78].map(y => `<path d="M${BBX + BBW},${y} H${TRX}" stroke="var(--dg-pwr)" stroke-width="1.6" fill="none" opacity=".7"/>`).join('')}
+        ${[42, 82, 128].map(y => `<path class="part" d="M${BBX + BBW},${y} H${TRX}" stroke-width="7" stroke-linecap="round" fill="none"/>`).join('')}
+        ${[42, 82].map(y => `<path d="M${BBX + BBW},${y} H${TRX}" stroke="var(--dg-pwr)" stroke-width="1.6" fill="none" opacity=".7"/>`).join('')}
       </g>
 
       <!-- 其餘托盤（簡化）＋ 主托盤（展開） -->
-      ${miniTray(30)}${miniTray(66)}
+      ${miniTray(24)}${miniTray(64)}
       ${fx.glass(TRX, 104, TRW, 104, { fill: GL.steel, rx: 6 })}
       <text class="sub" x="${TRX + 8}" y="120">運算托盤（展開）</text>
 
@@ -340,8 +342,11 @@
         ${fx.glass(548, 128, 64, 50, { fill: GL.si, cls: 'part', rx: 4, t: 2 })}
         ${dieCells.join('')}
       </g>
-      <text class="sub" x="388" y="200">多相：一排電感輪流工作</text>
-      <text class="tag" x="548" y="200">約 1 V 以下</text>
+      <!-- ★ 2026-09-26 覆蓋普查：「約 1 V 以下」原本從 548 起筆，右端伸出托盤（x 620）；改成靠右對齊收在托盤內，
+           左邊那行「多相…」拆兩行讓出位置。 -->
+      <text class="sub" x="388" y="190">多相：一排電感</text>
+      <text class="sub" x="388" y="205">輪流工作</text>
+      <text class="tag" x="614" y="200" text-anchor="end">約 1 V 以下</text>
 
       <!-- 直流主路徑（電力橘的發光光束，整張圖唯一發光的線）：電源架 → 匯流排 → 第三條 power whip → VRM → 晶片；
            另一段從匯流排上的直流節點分到超級電容與 BBU（§6-P5：兩者接在同一個節點）。端點光點＝電流到達的地方。-->
@@ -387,7 +392,7 @@
     title: '匯流排 busbar：厚銅排不是電線', sub: '電壓越低電流越大，銅越粗' })}
       ${extRow({ side: 'r', no: 5, seg: C, part: 'psu_whip', color: COL.cu, ax: 367, ay: 128,
     title: 'power whip：匯流排接到托盤', sub: '粗線束；連接器廠做的' })}
-      ${extRow({ side: 'r', no: 6, seg: P, part: 'psu_vrm', color: COL.pwr, ax: 388, ay: 172,
+      ${extRow({ side: 'r', no: 6, seg: P, part: 'psu_vrm', color: COL.pwr, ax: 388, ay: 160,
     title: '板上降壓 VRM：多相', sub: '一排電感並聯輪流工作' })}
       ${extRow({ side: 'r', no: 7, seg: P, part: 'psu_die', color: COL.pwr, ax: 602, ay: 138,
     title: '終點：GPU／ASIC 核心', sub: '約 1 V 以下、電流很大' })}
@@ -464,9 +469,10 @@
            <rect class="gold" x="${278 + j * 13}" y="1462" width="7" height="14" rx="1"/>`).join('')}
         <path class="thin" d="M270,1456 H456"/>
       </g>
-      <text class="sub" x="270" y="1504">上下兩排鍍金接點（示意，數量非實物）</text>
-      <text class="sub" x="270" y="1522">推進去就接上 —— 熱插拔的前提</text>
-      <text class="sub" x="270" y="1540">主機也從這裡讀電壓、電流與告警</text>
+      <!-- ★ 2026-09-26 覆蓋普查：右欄三行原本到 y 1540，跟左欄從 y 1548 起、往右伸到 x 304 的那一行疊在一起 → 右欄行距收到 16、整組上提 -->
+      <text class="sub" x="270" y="1497">上下兩排鍍金接點（示意，數量非實物）</text>
+      <text class="sub" x="270" y="1513">推進去就接上 —— 熱插拔的前提</text>
+      <text class="sub" x="270" y="1529">主機也從這裡讀電壓、電流與告警</text>
 
       <!-- ⚠ 條件那三行**一定要包在同一個群組裡**（§6-N2：效率百分比只准出現在效率表裡） -->
       <g data-seg="${P}" data-part="psu_eff">

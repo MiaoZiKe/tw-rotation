@@ -319,7 +319,6 @@
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
           <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
             title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每分鐘更新（盤中暫定值）">即時</button></span>
-          <button class="howbtn" data-how="gp" type="button">怎麼看 ?</button>
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
@@ -424,9 +423,38 @@
     backBtn.onclick = () => {
       drill = null; hi = null;
       if (live) { q = null; liveTick(); }
-      paint();
+      keepPlace(paint);
       if (ctx.onBack) ctx.onBack();
     };
+    /* ★ 2026-09-26 晚（Andy：「點擊後出現位置跑掉，請處理」——全市場分頁點「族群漲跌幅」長條進到某族群個股之後，
+       整頁往左偏、左邊被切掉，標題只剩半截、分頁「全市場」的「全」不見）。
+       本機四種寬度（1440／1100／800／390）、開關事件抽屜、顯示真捲軸、盤中即時開關都重現不出 scrollX≠0，
+       所以不押寶在單一機制上，改成「換層級前後由這支把位置顧好」—— 不管是誰把頁面往旁邊帶，這裡都會拉回來：
+         ① 水平：整頁（window）與這塊的每一層祖先裡，**使用者本來就捲不動**（overflow-x hidden／clip）卻被捲了的，
+            scrollLeft 一律歸零。≤820px 時 body 是 overflow-x:hidden，會傳給整個視窗 —— 那種被程式捲走的頁面
+            沒有捲軸可以拉回來，就是「左邊被切掉而且回不來」的樣子。使用者自己能捲的框（overflow:auto）不動。
+         ② 垂直：個股層級的長條比族群層級矮（18 條 → 5 條），頁面一變短，瀏覽器會把捲動位置往上夾，
+            原本看得到的標題列（「← 回到族群」就在上面）可能被夾到頂欄底下。只有「點之前看得到、點之後被蓋住」時才補捲回原位。
+         ECharts 的 resize 在下一幀才發生（ResizeObserver），所以下一幀再檢查一次水平。*/
+    function keepPlace(fn) {
+      const head = host.querySelector('.gphead');
+      const t0 = head ? head.getBoundingClientRect().top : null;
+      fn();
+      const fixX = () => {
+        if (window.scrollX) window.scrollTo({ left: 0, top: window.scrollY, behavior: 'instant' });
+        for (let a = host.parentElement; a; a = a.parentElement) {
+          if (!a.scrollLeft) continue;
+          const ox = getComputedStyle(a).overflowX;
+          if (ox === 'hidden' || ox === 'clip' || ox === 'visible' || a === document.body || a === document.documentElement) a.scrollLeft = 0;
+        }
+      };
+      fixX();
+      if (head && t0 != null) {
+        const t1 = head.getBoundingClientRect().top;
+        if (t0 >= 64 && t1 < 64) window.scrollBy({ top: t1 - t0, behavior: 'instant' });
+      }
+      requestAnimationFrame(fixX);
+    }
 
     // ---------------------------------------------------------------- 資料 → 兩張圖
     function build() {
@@ -586,7 +614,7 @@
          反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
       const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
       if (pi) {
-        const ph2 = parseFloat(pieEl.style.height) || pieEl.clientHeight;
+        const ph2 = pieEl.clientHeight || parseFloat(pieEl.style.height);   // 跟 paint 同一個口徑：真正的高度
         const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
         const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
         pi.setOption({
@@ -611,7 +639,7 @@
       if (drill) { if (d.code) A.goStock(d.code); return; }
       drill = d.group; hi = null;
       if (live) { q = null; liveTick(); }
-      paint();
+      keepPlace(paint);        // 換層級前後把整頁的水平／垂直位置顧好（見 keepPlace）
       if (ctx.onGroup) ctx.onGroup(d.gid);      // 產業鏈頁：順手把選取狀態換成這個族群（剖析圖與關聯圖都吃它）
     }
 
@@ -639,14 +667,20 @@
       const pieH = stacked ? Math.min(Math.max(220, h - legH), Math.max(240, Math.round(pw * 0.86))) : Math.max(220, h - legH);
       barEl.style.height = h + 'px'; pieEl.style.height = pieH + 'px';
       backBtn.hidden = !drill;
+      /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
+         改前：右上工具列一顆「怎麼看 ?」膠囊鈕，點了在卡片裡就地展開一整塊說明（把兩張圖往下推）。
+         改後：標題文字右側一顆小圓「?」（.howbtn.pop），點了走 app.js howPop 的置中彈窗（點背景／Esc 關）。
+         鈕寫在標題樣板裡，因為 #gpTitle 每次重畫都整段換 innerHTML；彈窗標題取標題的第一段字。*/
+      const gpQ = '<button class="howbtn pop" data-how="gp" type="button" aria-label="這張圖怎麼看">?</button>';
       $('#gpTitle', host).innerHTML = drill
-        ? `${A.fmt.esc(drill.name)}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
-        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
+        ? `${A.fmt.esc(drill.name)}${gpQ}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
+        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比${gpQ}　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
       /* ★ 2026-09-24 說明精簡：同一份內容改成「一句問題 → 條列 → 最下面一行小字」，住在「怎麼看 ?」裡。*/
       const gpFine = '甜甜圈其餘併成「其他」，中心寫前五大合計；滑過任一邊，另一邊對應的那一塊同步標起來，下方那行寫出它的數字。'
         + '按「即時」＝盤中暫定值，每分鐘更新：成交值是<b>估算</b>的（即時端點沒有每檔的累積成交金額，用「最新價 × 累積張數」推算，和輪動時鐘的即時同一個口徑），'
         + '漲跌幅是這批個股的成交值加權；抓不到報價的仍用收盤值，所以占比只能當「相對大小」看。';
-      $('#gpHint', host).innerHTML = drill
+      // 彈窗開著時 #gpHint 被搬到 body 底下的 #howPop，host 裡找不到 —— 退回全域找，不然即時每分鐘重畫會丟例外
+      ($('#gpHint', host) || document.getElementById('gpHint') || {}).innerHTML = drill
         ? A.howHTML('這張圖回答：這個族群裡今天是誰在漲、量能集中在哪幾檔。', [
           '左邊長條由高到低，紅漲綠跌',
           '右邊甜甜圈只標成交值前五大',
@@ -737,7 +771,11 @@
            · 標籤**不再用引線拉到圓外**，改成圖下方兩欄的圖例（HTML，#gpLegend），名字不會跟引線搶位置
            · 滑到扇區：外擴 4px（emphasis.scaleSize），動畫 200ms
          W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。*/
-      const ph = parseFloat(pieEl.style.height) || h;
+      /* ★ 2026-09-26 晚：圓心要用**容器真正的高度**，不能用上面寫進 style 的那個值。
+         .gpgrid .chart 有 min-height:360px（窄畫面 320），個股層級只有 5 檔時 style 算出來是 236px，
+         容器實際卻是 360px —— 以前拿 236 的一半（118）當圓心，外半徑卻依 360 算，甜甜圈的上半截被切掉、整個偏上。
+         讀 clientHeight 會逼一次排版，但上面剛改過高度，這一次本來就躲不掉。*/
+      const ph = pieEl.clientHeight || parseFloat(pieEl.style.height) || h;
       const cy = Math.round(ph * 0.5);
       A.chart(pieEl, {
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
@@ -761,6 +799,8 @@
       paintLegend();
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
+      /* 兩張圖的容器剛改過高度：當場對齊一次，不等下一幀的 ResizeObserver —— 不然這一幀甜甜圈的外半徑還是舊高度算的 */
+      [[bi, barEl], [pi, pieEl]].forEach(([c, e]) => { if (c && e.clientHeight > 0 && (c.getHeight() !== e.clientHeight || c.getWidth() !== e.clientWidth)) c.resize(); });
       /* ⚠ 滑鼠**整個離開圖表**時 ECharts 發的是 `globalout`，不是 `mouseout`
          —— 只接 mouseout 的話，把滑鼠移到圖外面高亮會卡住不收（實測：描邊一直停在 3）。*/
       [[bi, 'bar'], [pi, 'pie']].forEach(([c]) => {
@@ -1041,8 +1081,11 @@
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">
         <!-- ★ 2026-09-24 說明精簡：頁首那段「同一套顏色、點了會怎樣」(#nbIntro) 搬進「怎麼看 ?」，頁首只留鏈名。 -->
-        <div class="row spread nbhead" data-howsec><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          ${hasSlots || hasMap ? '<button class="howbtn" data-how="nb" type="button">怎麼看 ?</button>' : ''}</div>
+        <div class="row spread nbhead" data-howsec><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}${hasSlots || hasMap ? '<button class="howbtn pop" data-how="nb" type="button" aria-label="這一頁怎麼看">?</button>' : ''}</h2></div>
+          ${/* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
+                 nb／dg／rel 三顆（加上族群總覽的 gp）改前是右側「怎麼看 ?」膠囊＋就地展開；
+                 改後是標題文字右側的小圓「?」（.howbtn.pop），點了走 app.js howPop 的置中彈窗。
+                 #how-xx 盒子留在卡片裡（howPop 關的時候搬回原位，驗收與 #nbIntro／#dgQ／#relHint 的寫入照 id 找得到）。*/ ''}
           ${/* ★ 2026-09-24（審查 R3）：這段說明以前還在講退版前的「關聯圖大圓點／個股小點」，
                  而且沒有關聯圖的鏈（傳產、基礎建設）也照樣講關聯圖與色標。改成照這一頁真的有什麼來講：
                  有剖析圖 × 有關聯圖三種組合各一份，不提畫面上沒有的東西。*/ ''}
@@ -1079,7 +1122,7 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small><button class="howbtn pop" data-how="dg" data-ttl="產品剖析圖" type="button" aria-label="產品剖析圖怎麼看">?</button></div><span class="row" id="dgTools" style="gap:6px"><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
             '點零件：看它是誰做的（供應商）',
@@ -1100,8 +1143,8 @@
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div class="dg3dbox"><div id="prod3d" class="dg3d" hidden></div><div class="dg3dctl" id="dg3dCtl" role="group" aria-label="3D 視角操作" hidden><button type="button" class="pill" id="dgDrag" title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</button><button type="button" class="pill" id="dgReset" title="回到一開始的視角（也可以在 3D 畫面上點兩下）">重設視角</button></div></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
         </div>
         ${hasMap ? `<div class="relsec" id="relSec" data-howsec>
-          <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
-            <span class="row" style="gap:6px"><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span><button class="howbtn" data-how="rel" type="button">怎麼看 ?</button></span></div>
+          <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖<button class="howbtn pop" data-how="rel" type="button" aria-label="供應鏈關聯圖怎麼看">?</button></h4>
+            <span class="row" style="gap:6px"><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <div class="howtxt" id="how-rel" hidden><div id="relHint"></div></div>
           <!-- ★ 2026-09-24（Andy：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」，
                之後再補明確指示：上方的標籤改成下拉清單、下方那片環節字卡全部拿掉）。桌機（大於 820px）才動：
@@ -1203,6 +1246,8 @@
       const listOn = (partHi || partSel) ? (segFilter ? [segFilter] : []) : segsOn;
       $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', listOn.includes(c.dataset.seg)));
       { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
+      /* 說明卡浮在圖上（2026-09-26 晚）：開關狀態定了之後，依被點的那一格決定貼左還是貼右（見 placeRelCol） */
+      placeRelCol(el);
       /* 退版之後「選起來」的視覺回到分層圖的公司卡與環節卡清單上，
          由 highlightSegments 一次做完（它同時處理剖析圖、分層圖、環節卡）。*/
       /* 環節詳情 `#segBox` ＝ Andy 說的「點擊後才會跳出的下拉清單」：
@@ -1222,7 +1267,7 @@
        選到沒有圖的族群＝收起圖、換回圖別選單，所以那句文案永遠不會出現，留著只是噪音。
        改成永遠寫「這張圖回答什麼問題」—— 每張圖都要能回答一個具體問題，而且要寫在旁邊。*/
     function paintDgTitle() {
-      const t = $('#dgTitle', el), q = $('#dgQ', el);
+      const t = $('#dgTitle', el), q = $('#dgQ', el) || document.getElementById('dgQ');   // 「?」開著時 #dgQ 在 #howPop 裡
       if (t) {
         /* 說明精簡：圖名＋誠實標示留在畫面；「點零件看供應商／原尺寸可左右滑」搬進「怎麼看 ?」 */
         t.textContent = dgId
@@ -1231,6 +1276,8 @@
              選單移除之後要改成指**上方的分頁列**，不然會叫使用者去看一個不存在的東西。*/
           : `共 ${dgOpts.length} 張剖析圖，在上方分頁選一張`;
       }
+      // 「?」彈窗的標題＝這張圖的名字（跟總覽一樣：彈窗標題＝卡片／區塊名稱）
+      { const qb = $('.howbtn[data-how="dg"]', el); if (qb) qb.dataset.ttl = dgId ? DS.name(dgId) : '產品剖析圖'; }
       if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b class="howq">這張圖回答：${A.fmt.esc(DS.q(dgId))}</b>` : '';
     }
     /* 「族群總覽」與「剖析圖」兩種模式的顯示切換。
@@ -1251,9 +1298,10 @@
          上方分頁列本來就列著每一張圖，這句沒有新資訊，所以沒選圖時整列收起來。*/
       const sh = $('.dgsechead', el);
       if (sh) sh.style.display = on ? '' : 'none';     // .row 有 display:flex，hidden 屬性蓋不過它
-      /* 說明精簡：「怎麼看 ?」的鈕住在 #dgTools 裡，回族群總覽時鈕被藏起來 —— 盒子也要一起收，不然會留一段舊圖的說明 */
+      /* 說明精簡：「?」住在圖名旁（.dgsechead），回族群總覽時整列收起來 —— 盒子也要一起收，不然會留一段舊圖的說明。
+         ★ 2026-09-26 改成跳出式「?」：鈕上的字固定是「?」，不再改回「怎麼看 ?」。*/
       if (!on) { const hb = $('#how-dg', el), hbtn = $('.howbtn[data-how="dg"]', el);
-        if (hb) hb.hidden = true; if (hbtn) { hbtn.classList.remove('on'); hbtn.textContent = '怎麼看 ?'; } }
+        if (hb) hb.hidden = true; if (hbtn) { hbtn.classList.remove('on'); hbtn.setAttribute('aria-expanded', 'false'); } }
       // 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它
       const gp = $('#gpSec', el);
       if (gp) gp.hidden = on;
@@ -1407,7 +1455,7 @@
           onFold: () => syncHighlight({ quiet: true, noscroll: true }),
           onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
         });
-        const hint = $('#relHint', el);
+        const hint = $('#relHint', el) || document.getElementById('relHint');   // 「?」彈窗開著時盒子在 #howPop 裡
         if (hint) hint.innerHTML = HINT.layer(`這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
@@ -1434,6 +1482,7 @@
            .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
         const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
+        placeRelCol(el);        // 圖收起來 → 卡片回到文件流（清掉浮動座標）；展開 → 重新貼回圖上
       };
       if (foldRel) foldRel.onclick = () => {
         relOpen = !relOpen;
@@ -1469,6 +1518,10 @@
       let ro = null;
       if (window.ResizeObserver && mapHost) { ro = new ResizeObserver(reflow); ro.observe(mapHost); }
       window.addEventListener('resize', reflow);
+      /* 圖在窄畫面會左右滑（SVG 有 min-width）：滑了之後被點的那一欄在畫面上的位置變了，說明卡要跟著重新挑邊，
+         不然滑過去就變成蓋在那一欄上面。一幀最多算一次。*/
+      if (mapHost) { let pq = false; mapHost.addEventListener('scroll', () => {
+        if (pq) return; pq = true; requestAnimationFrame(() => { pq = false; if (mapHost.isConnected) placeRelCol(el); }); }, { passive: true }); }
     }
     if (hasSlots && sc) {
       /* 手機（<640px）預設把剖析圖收起來。
@@ -2713,6 +2766,70 @@
   }
   /* 關聯圖是不是桌機的「下拉＋圖（＋右欄）」版面。手機（≤820px）照舊是一排色標。*/
   const relListMode = () => { try { return window.matchMedia('(min-width:821px)').matches; } catch (e) { return false; } };
+  /* ★ 2026-09-26 晚（Andy：「點選族群（環節）時，不會動到關聯圖版面，例如我點最右邊的族群，資訊會顯示在左側，同理顯示右側」）：
+     關聯圖的說明卡（.relcol：選中環節的族群清單＋公司資訊欄）浮在圖上，這支決定它貼哪裡。
+     規則：
+       ① 被點的環節（那一欄的標題列）中心在圖框右半邊 → 卡片貼圖框**左緣**；在左半邊 → 貼**右緣**。
+          環節欄寬 136～200px，卡片 260～320px，圖框至少 800px，所以「放到另一半」一定不會蓋到那一欄。
+       ② 垂直對齊被點的東西（點公司 → 那張公司卡；點環節 → 環節標題），再夾進圖框的可視範圍裡；
+          卡片高度上限＝圖框高度（最多 560px 或視窗高減 120），內容多就在卡片裡自己捲。
+       ③ 圖框太窄、兩邊都擺不下（821～900px、或圖本身在左右滑）→ 改放在那一欄的**上方或下方**：
+          先試那一格整欄（標題＋底下的公司）的下面，不夠再試標題上面，都不夠就放到圖框下緣之外。
+          寬度一律夾在圖框內，所以不會撐出橫向捲軸。
+     量的是畫面座標（getBoundingClientRect）再換成 .relmain 的座標 —— SVG 有 viewBox 縮放，直接讀 SVG 座標會差一個比例。
+     驗收用：data-side＝left／right／below／above／under（貼哪裡）、data-seg＝以哪一格為準。*/
+  function placeRelCol(root) {
+    const rm = root && root.querySelector('#relMain'); if (!rm) return;
+    const col = rm.querySelector('.relcol'), stick = rm.querySelector('.relstick'); if (!col || !stick) return;
+    const reset = () => { col.style.left = ''; col.style.top = ''; col.style.width = ''; stick.style.removeProperty('--rc-h');
+      delete col.dataset.side; delete col.dataset.seg; };
+    const map = rm.querySelector('#chainMap');
+    const coBox = document.getElementById('coBox');
+    const open = rm.classList.contains('hassel') || !!(coBox && rm.contains(coBox));
+    if (!relListMode() || rm.classList.contains('mapfold') || !open || !map || map.hidden) { reset(); return; }
+    const R = rm.getBoundingClientRect(), M = map.getBoundingClientRect();
+    if (!(R.width > 0) || !(M.width > 0)) { reset(); return; }
+    // 以誰為準：開著公司資訊欄 → 那家公司（與它的環節）；否則 → 右欄亮著的那一格
+    const coEl = coBox && coBox.dataset.co ? map.querySelector(`.co[data-id="${coBox.dataset.co}"]`) : null;
+    const seg = (coEl && coEl.dataset.segment) || ((rm.querySelector('#relList .rlseg.on') || { dataset: {} }).dataset.seg);
+    const tEl = seg ? map.querySelector(`.segtitle[data-seg="${seg}"]`) : null;
+    const T = tEl ? tEl.getBoundingClientRect() : (coEl ? coEl.getBoundingClientRect() : null);
+    const pad = 8, gap = 10;
+    // 圖框的可視範圍（扣掉圖自己的捲軸），換成 .relmain 的座標
+    const fL = M.left - R.left + pad, fR = M.left - R.left + map.clientWidth - pad;
+    const fT = M.top - R.top + pad, fB = M.top - R.top + map.clientHeight - pad;
+    const w = Math.round(Math.max(200, Math.min(fR - fL, Math.max(260, Math.min(320, R.width * 0.26)))));
+    const maxH = Math.round(Math.max(180, Math.min(fB - fT, 560, window.innerHeight - 120)));
+    col.style.width = w + 'px';
+    stick.style.setProperty('--rc-h', maxH + 'px');
+    const h = col.offsetHeight || 200;
+    col.dataset.seg = seg || '';
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    if (!T) { col.style.left = Math.round(fR - w) + 'px'; col.style.top = Math.round(fT) + 'px'; col.dataset.side = 'right'; return; }
+    const sL = T.left - R.left, sR = T.right - R.left, mid = (sL + sR) / 2;
+    const ar = (coEl || tEl).getBoundingClientRect();
+    const aTop = ar.top - R.top - 4;
+    const yIn = Math.round(clamp(aTop, fT, Math.max(fT, fB - h)));
+    const fitsL = fL + w <= sL - gap, fitsR = fR - w >= sR + gap;
+    const want = mid > (fL + fR) / 2 ? 'left' : 'right';
+    const side = want === 'left' ? (fitsL ? 'left' : (fitsR ? 'right' : null)) : (fitsR ? 'right' : (fitsL ? 'left' : null));
+    if (side) {
+      col.style.left = Math.round(side === 'left' ? fL : fR - w) + 'px';
+      col.style.top = yIn + 'px';
+      col.dataset.side = side;
+      return;
+    }
+    // ③ 兩邊都擺不下：放在那一欄的上方或下方（整欄＝標題＋它底下的公司卡／標籤）
+    let segB = T.bottom;
+    map.querySelectorAll(`.co[data-segment="${seg}"]`).forEach(c => { const r = c.getBoundingClientRect(); if (r.height > 0) segB = Math.max(segB, r.bottom); });
+    const x = Math.round(clamp(mid - w / 2, fL, Math.max(fL, fR - w)));
+    const below = segB - R.top + gap, above = T.top - R.top - gap - h;
+    let y, where;
+    if (below + h <= fB) { y = below; where = 'below'; }
+    else if (above >= fT) { y = above; where = 'above'; }
+    else { y = M.top - R.top + map.offsetHeight + gap; where = 'under'; }   // 圖框下緣之外（仍是覆蓋層，不推版面）
+    col.style.left = x + 'px'; col.style.top = Math.round(y) + 'px'; col.dataset.side = where;
+  }
   /* 下拉的開合。點外面、按 Esc、選好一格都會收起來；只在第一次掛全站的監聽器（換鏈不會一路疊上去）。*/
   let segDDWired = false;
   function wireSegDD(root) {
@@ -3059,9 +3176,21 @@
     const inChain = new Set(cos.map(c => c.id)), deg = {};
     sc.edges.forEach(e => { if (e.rel === 'competes' || !inChain.has(e.from) || !inChain.has(e.to)) return;
       deg[e.from] = (deg[e.from] || 0) + 1; deg[e.to] = (deg[e.to] || 0) + 1; });
+    /* ★ 2026-09-26（批次6-圖十 1500px 紅燈）：環節標題改成「量過放得下才整段印」。
+       ▸／▾ 收合鈕佔色塊最右邊 24px，而標題從 +19 一路印到底 —— 欄數多的鏈（ai_server 1500px 時
+       fitCols 把欄寬收到 154）「IC 載板（ABF / BT）」這種長標題就直接壓在 ▾ 上。
+       可用寬度＝欄寬 − 19（圓點）− 右側留白（有收合鈕 26、沒有 4）；放不下就切字加「…」。
+       完整名稱不另外塞 <title>：滑過標題本來就會出 wireSegTip 的說明框，第一行就是全名，
+       再加原生 tooltip 會兩個框疊在一起。字寬用 12px（.seg-title 的字級）＋ .06em 字距真的量。*/
+    const ctx12 = (() => { try { const c = document.createElement('canvas').getContext('2d');
+      c.font = `12px ${(cs0 && cs0.fontFamily) || 'sans-serif'}`; return c; } catch (e) { return null; } })();
+    const titleW = (t) => { let w1 = 0; for (const ch of t) w1 += (ctx12 ? ctx12.measureText(ch).width : (/[\u0000-ÿ]/.test(ch) ? 7 : 12)) + 0.72; return w1; };
+    const fitTitle = (t, maxW) => { t = String(t || ''); if (titleW(t) <= maxW) return t;
+      let a = [...t]; while (a.length > 1 && titleW(a.join('') + '…') > maxW) a.pop(); return a.join('').trimEnd() + '…'; };
     let nodes = '';
     segs.forEach(s => { const p = pos[s.id]; if (!p) return; const col = segColor(s.id);
-      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(s.name)}</text></g>`;
+      const tMax = colW - 19 - (foldOn && p.list.length ? 26 : 4);
+      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax))}</text></g>`;
       /* 沒有台股的環節：有 note 就講 note，不要一律寫「台股無直接對應」。
          2026-09-19 踩到：三家設備商搬去 pkg_equipment 之後，「先進封裝 CoWoS/SoIC」變成空的，
          但 CoWoS 明明是台積電自己做的 —— 寫「台股無直接對應」是錯的。*/
@@ -3148,7 +3277,13 @@
         const x1 = a.x, x2 = b.x + b.w, ly = nextLane(x1 - gapMid, x2 + gapMid, ay, by);
         d = corner([[x1, ay], [x1 - gapMid, ay], [x1 - gapMid, ly], [x2 + gapMid, ly], [x2 + gapMid, by], [x2, by]]);
       } else {
-        const x1 = a.x + a.w, xo = x1 + 24;
+        /* ★ 2026-09-26（批次6-圖十 800／1500px 紅燈，main 既有）：同一欄的回頭線以前寫死往右繞 24px。
+           那是欄距固定 30px 時代的數字；fitCols（C5）之後欄多或畫面窄時欄距會收到下限 18px，
+           24px 的繞線就伸進**隔壁欄的卡片裡 6px**，整段豎線從那一欄的公司身上穿過去 ——
+           ai_server 的「金居→NVIDIA 穿過味之素」、半導體的「帆宣→AMAT 穿過群聯」全是這一條。
+           改成依實際欄距算：離隔壁欄至少留 8px、離圖的右邊界（最右欄時是 padX）至少留 4px，
+           上限仍是 24（寬的時候長相跟以前一樣），下限 6（線才看得出是往外繞一圈）。*/
+        const x1 = a.x + a.w, xo = x1 + Math.max(6, Math.min(24, colGap - 8, padX - 4));
         d = corner([[x1, ay], [xo, ay], [xo, by], [x1, by]]);
       }
       /* 兩種灰線分開：
@@ -3170,7 +3305,12 @@
        `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
        也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
     const empty = nEdge0 ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>';
-    const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" data-fold="all">全部收合</button><button type="button" data-fold="none">全部展開</button><span class="sub">收合＝每個環節只留個股標籤；點環節標題右邊的 ▸／▾ 單獨切換</span></div>` : '';
+    /* ★ 2026-09-26 晚（Andy：「收合 展開合併」）：「全部收合」「全部展開」兩顆鈕合併成**一顆切換鈕**。
+       兩顆並排時永遠有一顆是「按了沒反應」的（已經全收了還能按全收），使用者要先讀懂現在是哪個狀態才知道該按哪顆。
+       現在鈕上只寫「按下去會發生的那件事」：全部展開中 → 「全部收合」；只要有任何一個環節收著 → 「全部展開」。
+       data-fold 跟著寫「按下去要變成什麼」（all＝全收、none＝全展），tw.chainFold 的存法一個字都沒改。*/
+    const anyFolded = segs.some(s => (pos[s.id] && pos[s.id].list.length) && isFolded(s.id));
+    const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" class="foldtg" data-fold="${anyFolded ? 'none' : 'all'}" title="${anyFolded ? '把每個環節都展開成一檔一張卡' : '把每個環節都收成個股標籤'}">${anyFolded ? '全部展開' : '全部收合'}</button><span class="sub">收合＝只留個股標籤；▸／▾ 可單獨切換</span></div>` : '';
     host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
@@ -3205,6 +3345,7 @@
     const redraw = () => { drawChainMap(host, sc, chainId, im, handlers); if (handlers && handlers.onFold) handlers.onFold(); };
     $$('.segfold', host).forEach(n => n.onclick = (ev) => { ev.stopPropagation();
       const st2 = chainFoldGet(chainId); st2.seg[n.dataset.seg] = n.dataset.folded !== '1'; chainFoldSet(chainId, st2); redraw(); });
+    // 切換鈕：data-fold 就是「按下去要變成的狀態」（畫的時候依目前狀態寫好），清掉逐環節的例外
     $$('.foldbar button', host).forEach(b => b.onclick = () => { chainFoldSet(chainId, { def: b.dataset.fold === 'all', seg: {} }); redraw(); });
     $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
     /* 把目前這檔的卡片捲進視野 —— 但**只捲關聯圖自己那個框**，不准動到整頁。
@@ -3522,11 +3663,10 @@
     $('#indChain').innerHTML = '';      // 產業鏈位置卡不在個股頁掛了（見 renderStock 開頭）
     // 個股主體
     const el = $('#stockPage');
-    const v = pg.verdict || {}; const gradeCls = v.grade || 'W';
     const groupLinks = (m.groups || []).map(gn => A.L.groupByName(gn)).join(' ');
     const themeLinks = A.L.themesOf(m.code);
     const TIER = { full: ['分 K 完整', 'cyan', '15 分／1 小時／4 小時分 K 每日盤後由 Yahoo 補入'],
-                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線與多週期判讀都正常'],
+                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線正常；AI 分析的 1 小時／4 小時會寫無資料'],
                    thin: ['資料回補中', 'amber', '歷史價量還在回補，目前只有最近幾天的日線'] };
     const tier = TIER[(m.tier || 'daily')] || TIER.daily;
     /* 週期列（tfButtons）在這裡就要畫，所以設定要先讀進來 —— 以前 state.cfg 到 setupChart 才讀，
@@ -3540,7 +3680,7 @@
           <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
             <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
-          <div class="verdict" id="skVerdict" data-readout style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
+          ${window.StockAI ? window.StockAI.line(pg) : ''}
         </div>
         <div class="toolbar" id="skTools" style="margin-top:14px">
           <div class="seg" id="tfSeg">${tfButtons()}</div>
@@ -3573,11 +3713,14 @@
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
         <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每日盤後）</div>
       </div>
-      <div class="card" style="margin-top:var(--gap-card)" id="mtfCard"></div>
+      <!-- ★ 2026-09-26（Andy：「觀望部分需要標示 AI 分析…與多週期合併」）：右上判讀卡（#skVerdict）與
+           「多週期判讀」卡（#mtfCard）合成這一張可收合的「AI 分析」卡（site/blocks/stock_ai.js，積木 stock.mtf）；
+           右上只留一行結論＋四面向標籤（#skAiLine）。那支檔沒載入時兩塊都不畫。-->
+      ${window.StockAI ? '<div class="card" style="margin-top:var(--gap-card)" id="aiCard"></div>' : ''}
       <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '公告 / 新聞']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div id="stockTab"></div>`;
     setupChart(pg);
-    renderMtf(pg);
+    if (window.StockAI) window.StockAI.mount(pg, $('#aiCard'), A.fmt);
     $$('#stockTabs button').forEach(b => b.onclick = () => { $$('#stockTabs button').forEach(x => x.classList.toggle('on', x === b)); state.tab = b.dataset.t; renderTab(pg, state.tab); });
     renderTab(pg, state.tab);
   }
@@ -4440,24 +4583,8 @@
       buildMtfGrid(pg);
     });
   }
-  function renderMtf(pg) {
-    const el = $('#mtfCard'); const sm = pg.mtf && pg.mtf.summary; if (!sm || !sm.headline) { el.innerHTML = '<h3>多週期判讀</h3><div class="empty">資料不足</div>'; return; }
-    const lv = sm.key_levels || {};
-    const row = (z, kind) => `<div class="k" style="border-left:3px solid ${kind === 'support' ? '#2ee59d' : '#ff4d6d'}"><div class="l">${A.fmt.esc(z.label)} ${kind === 'support' ? '需求區' : '供給區'}</div><div class="v" style="font-size:15px">${z.low} – ${z.high}</div><div class="l">距現價 ${A.fmt.pct(z.dist_pct)} · 分數 ${z.score}</div></div>`;
-    /* ★ 2026-09-24 說明精簡：副標縮成一句，完整讀法搬進「怎麼看 ?」 */
-    el.innerHTML = `<div class="row spread"><h3>多週期判讀 ${hq('mtf', '多週期判讀')}</h3></div>
-      <div class="howtxt" id="how-mtf" hidden>${A.howHTML('這張卡回答：各週期方向一不一致、該在哪裡進場。', [
-        '大週期（週線、日線）定方向',
-        '小週期（4 小時、1 小時、15 分）找進場',
-        '每個週期一顆燈：多／空／盤整',
-        '支撐＝需求區、壓力＝供給區，由近到遠',
-        '距現價＝那一區離現在價格多遠',
-      ], '分 K 還沒取得時，小週期暫以日線代替（判讀裡會寫出來）。')}</div>
-      <div class="lights">${(sm.tf_used || []).map(tf => { const t = sm.per_tf[tf]; return `<span class="light ${t.trend > 0 ? 'pos' : t.trend < 0 ? 'neg' : ''}">${({ '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' })[tf]} ${t.trend > 0 ? '多' : t.trend < 0 ? '空' : '盤整'}</span>`; }).join('')}</div>
-      <div class="verdict" data-readout style="margin:10px 0"><h3 style="font-size:16px">${A.fmt.esc(sm.headline)}</h3><ul>${(sm.script || []).map(x => `<li>${A.fmt.esc(x)}</li>`).join('')}</ul></div>
-      <div class="grid g2"><div><h4>支撐（由近到遠）</h4><div class="kvs" style="margin-top:6px">${(lv.support || []).map(z => row(z, 'support')).join('') || '<div class="note">沒有通過門檻的需求區</div>'}</div></div><div><h4>壓力（由近到遠）</h4><div class="kvs" style="margin-top:6px">${(lv.resistance || []).map(z => row(z, 'resistance')).join('') || '<div class="note">上方沒有通過門檻的供給區</div>'}</div></div></div>
-      ${pg.verdict && pg.verdict.weekly_note ? `<div class="note" data-readout style="margin-top:8px">${A.fmt.esc(pg.verdict.weekly_note)}</div>` : ''}`;
-  }
+  /* renderMtf（「多週期判讀」卡）2026-09-26 拿掉：合進 site/blocks/stock_ai.js 的「AI 分析」卡。
+     支撐／壓力區、各週期多空都還在，搬到那張卡的技術面裡（只到週線，月線不列）。*/
 
   // ---------------------------------------------------------------- 個股分頁
   function renderTab(pg, tab) {
@@ -5004,27 +5131,112 @@
     } });
     paint();
   }
+  /* ★ 2026-09-26（Andy：「為什麼只有一筆，幫我找找其他筆數據，沒有配就顯示空值，但需要標示年份」）
+     證據：3026 禾伸堂的除權息結果（官方）2016～2026 每年都有，股利公告卻只有 114 年一筆 ——
+     回補把「每日管線先寫進的那一筆今年公告」當成「已經補過」，2016 起的歷史整個被跳過（662 檔同病，
+     run_backfill.already_covered 已修，下一輪回補補齊）。以前年度圖只拿公告畫，所以只剩一根。
+     現在改吃管線算好的 `by_year`（口徑在 stockpage.div_year_bars）：
+       · 年度＝除權息日所在的西元年，近 10 年起（不早於 2016 回補起點與上市年），每年一根
+       · 沒配息的年份 0 高度、x 軸照樣標年份、柱頂寫「未配」
+       · 現金（琥珀）與股票（紫）堆疊；同一年多次配息加總，提示框逐次列出
+       · 含權又對不到公告的那一次金額不猜，柱頂寫「待補」、提示框講原因 */
+  function divBars(dv, rs) {
+    if ((dv.by_year || []).length) return dv.by_year;
+    // 舊版 payload（還沒重算）退路：用除權息紀錄的年份，至少不會只剩一根
+    const by = {};
+    rs.forEach(r => { const y = +String(r.date).slice(0, 4); const b = by[y] || (by[y] = { year: y, cash: 0, stock: 0, n: 0, unknown: 0, items: [] });
+      b.n++; b.cash += r.cash_dividend || 0; b.stock += r.stock_dividend || 0; if (r.dividend == null) b.unknown++;
+      b.items.push({ date: r.date, kind: r.kind, cash: r.cash_dividend, stock: r.stock_dividend }); });
+    const ys = Object.keys(by).map(Number).sort((a, b) => a - b);
+    if (!ys.length) return [];
+    const out = [];
+    for (let y = ys[0]; y <= ys[ys.length - 1]; y++) out.push(by[y] || { year: y, cash: 0, stock: 0, n: 0, unknown: 0, items: [] });
+    return out;
+  }
   function tabDividend(pg, el) {
     const dv = pg.dividends || {}; const ev = dv.events || [], rs = dv.results || [];
     if (!ev.length && !rs.length) { el.innerHTML = '<div class="card"><div class="empty">尚無除權息資料（回補進行中；ETF 暫不抓）</div></div>'; return; }
-    const byYear = {}; ev.filter(e => e.kind === 'cash').forEach(e => { const y = e.fiscal_year || (e.period || '').slice(0, 4); byYear[y] = (byYear[y] || 0) + (e.amount || 0); });
-    const years = Object.keys(byYear).sort();
-    el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">近四次現金股利</div><div class="v">${dv.cash_ttm != null ? A.fmt.n(dv.cash_ttm) + ' 元' : '—'}</div></div><div class="k"><div class="l">殖利率</div><div class="v">${dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—'}</div></div><div class="k"><div class="l">最近除息</div><div class="v" style="font-size:15px">${rs[0] ? rs[0].date : '—'}</div></div><div class="k"><div class="l">最近填息</div><div class="v">${rs[0] ? (rs[0].fill_days === -1 ? '一年未填' : rs[0].fill_days != null ? rs[0].fill_days + ' 天' : '進行中') : '—'}</div></div></div>
-      <div class="grid g2"><div class="card"><h3>各年度現金股利 ${hq('skdiv', '各年度現金股利')}</h3>${hbox('skdiv', ['柱＝那一年度配的現金股利合計', '年度＝股利所屬年度，不是發放年', '連年穩定或往上＝配息能力好'])}<div id="divBar" class="chart"></div></div>
-      <div class="card"><h3>除權息紀錄 ${hq('skfill', '除權息紀錄')}</h3>${hbox('skfill', ['每一列＝一次除權或除息', '填息天數＝除息後第一次收回除息前收盤', '天數越短＝市場越認同', '「未填」＝到今天還沒填回'])}<div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody>${rs.map(r => `<tr><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num">${r.fill_days === -1 ? '<span class="down">未填</span>' : r.fill_days != null ? r.fill_days + ' 天' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>
-      <div class="card" style="margin-top:var(--gap-card)"><h3>股利公告</h3><div class="tw" style="max-height:320px"><table><thead><tr><th class="l">所屬期間</th><th class="l">類別</th><th>金額（元/股）</th><th class="l">公告日</th><th class="l">除權息日</th><th class="l">發放日</th></tr></thead><tbody>${ev.map(e => `<tr><td class="l">${A.fmt.esc(e.period)}</td><td class="l">${e.kind === 'cash' ? '現金' : '股票'}</td><td class="num">${A.fmt.n(e.amount, 3)}</td><td class="l mono">${e.announce_date || '—'}</td><td class="l mono">${e.ex_date || '—'}</td><td class="l mono">${e.payment_date || '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
-    /* ★ 2026-09-25（審查 R5）：① 字族以前只寫 'JetBrains Mono'，沒裝的電腦退回襯線體 → 用全站 NUM_FONT；
-       ② 數值以前直接印 4.036／22.999／144.392，小數位一格一個樣 → 一律最多 2 位（股利公告表才看到 3 位）；
-       ③ 標籤色以前寫死近白 #e8eeff，淺色主題印在白底上看不見 → 跟主題走。*/
+    const bars = divBars(dv, rs);
+    const cov = dv.coverage || {};
     const MF = A.NUM_FONT || 'JetBrains Mono, monospace';
     const d2 = (v) => { const x = Math.round(v * 100) / 100; return x.toFixed(Number.isInteger(x) ? 0 : 2); };
-    if (years.length) A.chart('divBar', { tooltip: { ...A.tip, valueFormatter: (v) => d2(v) + ' 元' }, grid: { left: 50, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: years, axisLabel: { color: A.CH.ink3, fontFamily: MF } }, yAxis: { ...A.axisStyle, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) } }, series: [{ type: 'bar', data: years.map(y => +byYear[y].toFixed(2)), itemStyle: { color: '#ffb454', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', color: A.CH.ink2, fontFamily: MF, fontSize: 12, formatter: (q) => d2(q.value) }, barWidth: '55%' }] }); else A.empty('divBar');
+    const yrsWith = bars.filter(b => b.n > 0).length;
+    const divSub = bars.length ? `${bars[0].year}～${bars[bars.length - 1].year}，${yrsWith} 年有配` : '';
+    /* 股利公告的資料限制要講出來：公告的年數比除權息紀錄少 → 是資料湖還沒補齊，不是這一檔只配過一次 */
+    const recYears = new Set(rs.map(r => String(r.date).slice(0, 4))).size;
+    const evShort = cov.events_n != null && (cov.events_years || 0) < recYears;
+    const evNote = evShort
+      ? `股利公告目前只收到 ${cov.events_n} 筆（最早公告 ${cov.events_first || '—'}），比除權息紀錄的 ${recYears} 年少 ——`
+        + ' 歷年公告由 FinMind 股利政策表（2016 年起）回補中，補齊後這張表與上方年度圖的現金／股票拆分會自動補上；'
+        + '每日另由證交所 OpenAPI 收當年度的新公告。'
+      : `資料來源：證交所 OpenAPI（每日，當年度公告）＋ FinMind 股利政策表（2016 年起回補）；共 ${ev.length} 筆。`;
+    const up = dv.upcoming || [];
+    const upTxt = up.length ? '已公告、尚未除權息：' + up.slice(0, 3).map(u => `${A.fmt.esc(u.period || '')} ${u.kind === 'stock' ? '股票' : '現金'} ${d2(u.amount || 0)} 元`
+      + (u.ex_date ? `（${u.ex_date} 除${u.kind === 'stock' ? '權' : '息'}）` : '（除權息日未定）')).join('；') : '';
+    el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">近四次現金股利</div><div class="v">${dv.cash_ttm != null ? A.fmt.n(dv.cash_ttm) + ' 元' : '—'}</div></div><div class="k"><div class="l">殖利率</div><div class="v">${dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—'}</div></div><div class="k"><div class="l">最近除息</div><div class="v" style="font-size:15px">${rs[0] ? rs[0].date : '—'}</div></div><div class="k"><div class="l">最近填息</div><div class="v">${rs[0] ? (rs[0].fill_days === -1 ? '一年未填' : rs[0].fill_days != null ? rs[0].fill_days + ' 天' : '進行中') : '—'}</div></div></div>
+      <div class="grid g2"><div class="card"><h3>各年度股利 <small data-readout id="divSub">${divSub}</small> ${hq('skdiv', '各年度股利')}</h3>${hbox('skdiv', ['每年一根：琥珀＝現金股利、紫＝股票股利（元／股，當時公告的金額）', '年度＝除權息日所在的年份（實際配發那一年），跟右邊紀錄表對得上', '同一年配好幾次（季配、半年配）加總，滑過看每一次', '柱頂「未配」＝那一年沒有除權息；「待補」＝有除權息但股利公告還沒回補到、金額不猜', '最右邊是今年，還沒過完'], '2016 年以前資料湖沒有回補，上市以前的年份也不畫 —— 那些是「不知道」，不是「沒配」。')}<div id="divBar" class="chart"></div>${upTxt ? `<div class="note" data-readout style="margin-top:6px">${upTxt}</div>` : ''}</div>
+      <div class="card"><h3>除權息紀錄 ${hq('skfill', '除權息紀錄')}</h3>${hbox('skfill', ['每一列＝一次除權或除息', '填息天數＝除息後第一次收回除息前收盤', '天數越短＝市場越認同', '「未填」＝到今天還沒填回'])}<div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody id="divRec">${rs.map(r => `<tr><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num">${r.fill_days === -1 ? '<span class="down">未填</span>' : r.fill_days != null ? r.fill_days + ' 天' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>
+      <div class="card" style="margin-top:var(--gap-card)"><h3>股利公告 <small data-readout>${ev.length} 筆</small></h3><div class="note divEvNote" data-readout${evShort ? ' data-warn' : ''} style="margin:4px 0 8px">${evNote}</div><div class="tw" style="max-height:320px"><table><thead><tr><th class="l">所屬期間</th><th class="l">類別</th><th>金額（元/股）</th><th class="l">公告日</th><th class="l">除權息日</th><th class="l">發放日</th></tr></thead><tbody id="divEv">${ev.map(e => `<tr><td class="l">${A.fmt.esc(e.period)}</td><td class="l">${e.kind === 'cash' ? '現金' : '股票'}</td><td class="num">${d2(e.amount || 0)}</td><td class="l mono">${e.announce_date || '—'}</td><td class="l mono">${e.ex_date || '—'}</td><td class="l mono">${e.payment_date || '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div>`;
+    /* ★ 2026-09-25（審查 R5）：① 字族用全站 NUM_FONT；② 數值一律最多 2 位；③ 標籤色跟主題走。*/
+    if (!bars.length) { A.empty('divBar'); return; }
+    const yrs = bars.map(b => String(b.year));
+    const top = (b) => b.n === 0 ? '未配' : (b.cash || 0) + (b.stock || 0) > 0 ? d2((b.cash || 0) + (b.stock || 0)) : b.unknown ? '待補' : '0';
+    const narrowDiv = (($('#divBar') || {}).clientWidth || 600) < 420;
+    const kindTxt = (k) => ({ '息': '除息', '權': '除權', '權息': '除權息' })[k] || (k || '');
+    A.chart('divBar', {
+      tooltip: { ...A.tip, trigger: 'axis', axisPointer: { type: 'shadow' },
+        formatter: (ps) => { const b = bars[ps[0].dataIndex]; if (!b) return '';
+          let h = `<b>${b.year} 年</b>${b.partial ? '（今年，還沒過完）' : ''}`;
+          if (!b.n) return h + '<br>這一年沒有除權息';
+          h += `<br>現金 ${d2(b.cash || 0)} 元・股票 ${d2(b.stock || 0)} 元（共 ${b.n} 次）`;
+          h += (b.items || []).map(it => `<br>· ${String(it.date).slice(5)} ${kindTxt(it.kind)}`
+            + (it.cash == null || it.stock == null ? '：金額待股利公告回補（含權，不猜）'
+              : `：現金 ${d2(it.cash || 0)}${it.stock ? '・股票 ' + d2(it.stock) : ''}`)
+            + (it.period ? `（${A.fmt.esc(it.period)}）` : '')).join('');
+          return h; } },
+      legend: { top: 0, right: 0, textStyle: { color: A.CH.ink2 }, data: ['現金股利', '股票股利'] },
+      grid: { left: 44, right: 12, top: 30, bottom: 30 },
+      xAxis: { ...A.axisStyle, type: 'category', data: yrs,
+        axisLabel: { color: A.CH.ink3, fontFamily: MF, interval: 0, fontSize: narrowDiv ? 10.5 : 12,
+          formatter: (v) => narrowDiv ? "'" + String(v).slice(2) : v } },
+      yAxis: { ...A.axisStyle, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) } },
+      series: [
+        { name: '現金股利', type: 'bar', stack: 'd', barWidth: '55%', data: bars.map(b => +(b.cash || 0).toFixed(2)),
+          itemStyle: { color: A.CH.amber }, label: { show: false, fontFamily: MF, formatter: (q) => d2(q.value) } },
+        { name: '股票股利', type: 'bar', stack: 'd', barWidth: '55%', data: bars.map(b => +(b.stock || 0).toFixed(2)),
+          itemStyle: { color: A.CH.violet, borderRadius: [3, 3, 0, 0] } },
+        /* 柱頂標籤：堆疊最上層一根 0 高度的柱子專門掛字（合計／未配／待補），不佔高度、不進圖例 */
+        { name: '合計', type: 'bar', stack: 'd', barWidth: '55%', data: bars.map(() => 0), silent: true, tooltip: { show: false },
+          itemStyle: { color: 'transparent' },
+          label: { show: true, position: 'top', fontFamily: MF, fontSize: narrowDiv ? 10.5 : 12,
+            color: A.CH.ink2, formatter: (q) => top(bars[q.dataIndex]) } },
+      ],
+    }, { notMerge: true });
   }
   /* 籌碼頁：資料不夠就不要畫一張空圖。
      Andy：「若是籌碼下方無法抓取到數據，就把他替換其他方式，或是直接刪除」。
      規則：≥3 個點才畫線圖；只有 1~2 個點就改成把「現在的數字」直接列出來；
      一個點都沒有的那張卡片整張不出現。 */
   const CHIP_MIN = 3;
+  /* ★ 2026-09-26（Andy：「這邊的時間週期都需要 4 週最少，然後都呈現每日狀況」）
+     以前四張圖各畫各的：三大法人 120 天、融資融券 250 天、集保只有幾週的時間軸 —— 起訖日對不起來。
+     現在四張共用**同一條逐交易日的日期軸**（這一檔的日 K 日期 ∪ 法人／融資券／集保的日期），
+     預設「近 4 週」＝最近 20 個交易日，上方一組共用區間切「4 週｜3 個月｜6 個月｜1 年」（記 tw.chipWin），四張一起換。
+     法人、融資券是日資料，逐日畫；集保是**每週**資料，點落在實際公布日，兩點之間只連線、不補假的每日值；
+     視窗內沒有資料的日子留空（柱子不畫、線斷開）。 */
+  const CHIP_WINS = [{ v: 20, t: '4 週' }, { v: 63, t: '3 個月' }, { v: 126, t: '6 個月' }, { v: 250, t: '1 年' }];
+  function chipWinGet() {
+    let v = 20;
+    try { const r = localStorage.getItem('tw.chipWin'); if (r !== null && CHIP_WINS.some(w => String(w.v) === r)) v = +r; } catch (e) { /* 私密視窗 */ }
+    return v;
+  }
+  function chipDates(pg, n) {
+    const iv = (pg.inst_v3 || {}).daily || [], mg = pg.margin || [], ho = pg.holders || [];
+    const set = new Set();
+    const add = (d) => { const s = String(d || '').slice(0, 10); if (/^\d{4}-\d{2}-\d{2}$/.test(s)) set.add(s); };
+    (pg.daily || []).forEach(b => add(b[0])); iv.forEach(r => add(r[0])); mg.forEach(r => add(r[0])); ho.forEach(r => add(r[0]));
+    return [...set].sort().slice(-n);
+  }
   function tabChips(pg, el) {
     const iv = (pg.inst_v3 || {}).daily || [], mg = pg.margin || [], ho = pg.holders || [];
     const cards = [];
@@ -5034,53 +5246,44 @@
     const MAIN_FINE = '主力（券商分點家數差）需付費資料，尚未提供；以千張大戶週變化與法人連續買賣作替代。';
     let hn = 0;
     const help = (title, sub, items) => { const key = 'skc' + (hn++);
-      return [hq(key, title), hbox(key, items || [sub, '滑過圖看每天的數字', '點上方圖例可以關掉某一條'], hn === 1 ? MAIN_FINE : '')]; };
-    /* o.extra：圖下方的讀數行（data-readout，例如集保「自 X 起累積 N 週」）；o.style：圖的高度（集保三條分三格，要比 260 高）；
-       o.items：自訂「?」條列（集保兩張沒有圖例，預設那句「點上方圖例關掉某一條」不適用） */
+      return [hq(key, title), hbox(key, items || [sub, '滑過圖看每天的數字', '點上方圖例可以關掉某一條', '上方切 4 週／3 個月／6 個月／1 年，四張圖一起換'], hn === 1 ? MAIN_FINE : '')]; };
     const card = (id, title, sub, o = {}) => { const [b, x] = help(title, sub, o.items);
-      cards.push(`<div class="card"><h3>${title} ${b}</h3>${x}<div id="${id}" class="chart"${o.style ? ` style="${o.style}"` : ''}></div>${o.extra || ''}</div>`); };
+      cards.push(`<div class="card"><h3>${title} ${b}</h3>${x}<div id="${id}" class="chart chipChart"${o.style ? ` style="${o.style}"` : ''}></div>${o.extra || ''}</div>`); };
     const numCard = (title, sub, kvs, why) => { const [b, x] = help(title, '回補天數不夠，先直接列最新數字');
       cards.push(`<div class="card"><h3>${title} <small data-readout>${sub}</small> ${b}</h3>${x}
       <div class="kvs" style="margin-top:10px">${kvs}</div><div class="note" style="margin-top:8px">${why}</div></div>`); };
     const k = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
 
-    if (iv.length >= CHIP_MIN) card('instChart', '三大法人', '每日買賣超（張）與累計');
+    if (iv.length >= CHIP_MIN) card('instChart', '三大法人', '每日買賣超（張）與區間累計（視窗第一天起算）');
     else if (iv.length) { const r = iv[iv.length - 1];
       numCard('三大法人', `最新一筆 ${r[0]}`,
         k('外資', A.fmt.lot(r[1] / 1000), A.fmt.cls(r[1])) + k('投信', A.fmt.lot(r[2] / 1000), A.fmt.cls(r[2]))
         + k('自營', A.fmt.lot(r[3] / 1000), A.fmt.cls(r[3])),
         `法人歷史只回補到 ${iv.length} 天，畫成走勢圖看不出東西，先直接列數字；回補滿 ${CHIP_MIN} 天以上就會變成走勢圖。`); }
 
-    if (mg.length >= CHIP_MIN) card('marginChart', '融資融券', '餘額（張）');
+    if (mg.length >= CHIP_MIN) card('marginChart', '融資融券', '每日餘額（張）');
     else if (mg.length) { const r = mg[mg.length - 1];
       numCard('融資融券', `最新一筆 ${r[0]}`,
         k('融資餘額', A.fmt.lot(r[1])) + k('融券餘額', A.fmt.lot(r[2])),
         `融資券歷史只回補到 ${mg.length} 天，兩個點連起來是一條假的斜線，先直接列數字。`); }
 
-    /* ★ 2026-09-26（Andy：「大戶／散戶持股資訊為何這麼少，幫我調整過去 30 天」「股東人數改成加數差」）
-       證據：集保股權分散表（opendata.tdcc.com.tw id=1-5）**每次只給最新一週**，歷史只能靠每週往後累積；
-       能補歷史的 FinMind TaiwanStockHoldingSharesPer 被帳號等級擋（HTTP 400「Your level is register」，
-       見 data/_state/backfill_progress.json 的 unavailable.holding）。所以資料湖從 2026-09-04 起才有，
-       少不是前端截斷的，是真的只有這幾週 —— 卡片上直接寫「自 X 起累積 N 週」。
-       視窗固定「最新一週往回 30 天」：湖裡日後累積得更長也只畫這 30 天，點與點的間距照真實日期排。 */
-    const HO_DAYS = 30, DAY = 864e5;
-    const hoTs = (d) => Date.parse(String(d).slice(0, 10) + 'T00:00:00Z');
-    const hoEnd = ho.length ? hoTs(ho[ho.length - 1][0]) : 0;
-    const hoStart = hoEnd - HO_DAYS * DAY;
-    const ho30 = ho.filter(r => hoTs(r[0]) >= hoStart);
+    /* 集保股權分散表（opendata.tdcc.com.tw id=1-5）**每次只給最新一週**，歷史只能靠每週往後累積；
+       能補歷史的 FinMind TaiwanStockHoldingSharesPer 被帳號等級擋（HTTP 400「Your level is register」）。
+       所以資料湖從 2026-09-04 起才有 —— 卡片上直接寫「集保每週更新，自 X 起累積 N 週」。 */
     const hoNote = ho.length
-      ? `<div class="note hoNote" data-readout style="margin-top:6px">集保每週更新一次，自 ${ho[0][0]} 起累積 ${ho.length} 週`
-        + (ho30.length < ho.length ? `；圖上畫最近 30 天的 ${ho30.length} 週` : '')
+      ? `<div class="note hoNote" data-readout style="margin-top:6px">集保每週更新一次（點＝實際公布日，點與點之間不是每日資料），自 ${ho[0][0]} 起累積 ${ho.length} 週`
         + '（歷史週資料沒有免費來源，只能每週往後累積）</div>'
       : '';
-    if (ho30.length >= CHIP_MIN) {
+    if (ho.length >= CHIP_MIN) {
       card('holderChart', '大戶 / 散戶持股', '', { style: 'min-height:380px', extra: hoNote, items: [
         '三格各自一條：千張大戶（≥1000 張）、400–1000 張、散戶（≤10 張）',
+        '集保每週更新一次：點落在實際公布日，兩點之間只是連線、沒有每日資料',
         '每格 Y 軸各自縮放、不從 0 起 —— 看的是方向，不是三條誰高',
         '大戶往上＋散戶往下＝籌碼往大戶集中；反過來＝大戶在出貨',
-        '每格左上寫最新比例、週變化與 30 天變化（pp＝百分點），滑過看每週數字'] });
-      card('holderCount', '股東人數 週增減', '', { style: 'min-height:380px', items: [
-        '每根柱＝這一週比上一週多或少了幾個股東',
+        '每格左上寫最新比例、週變化與這個區間的變化（pp＝百分點）'] });
+      card('holderCount', '股東人數 週增減', '', { style: 'min-height:380px',
+        extra: '<div class="note hoNote2" data-readout style="margin-top:6px">集保每週更新一次：柱子只出現在公布日</div>', items: [
+        '每根柱＝這一週比上一週多或少了幾個股東（集保每週更新）',
         '紅柱＝股東變多（籌碼往散戶分散）、綠柱＝股東變少（籌碼集中）',
         '搭配左邊：股東變少＋千張大戶上升＝籌碼集中',
         '第一週沒有上一週可比，所以沒有柱子；滑過看當週總人數'] });
@@ -5094,99 +5297,138 @@
       el.innerHTML = `<div class="card"><div class="empty">這一檔的籌碼資料（法人、融資券、集保）還在回補，下一次盤後更新就會出現。</div></div>`;
       return;
     }
-    el.innerHTML = cards.map((c, i) => (i % 2 === 0 ? `<div class="grid g2"${i ? ' style="margin-top:var(--gap-card)"' : ''}>` : '') + c + (i % 2 === 1 || i === cards.length - 1 ? '</div>' : '')).join('')
-;
+    let win = chipWinGet();
+    const bar = `<div class="row chipBar" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <div class="seg" id="chipWin" role="group" aria-label="籌碼圖區間">${CHIP_WINS.map(w => `<button type="button" data-v="${w.v}">${w.t}</button>`).join('')}</div>
+        <span class="note" id="chipRange" data-readout></span></div>`;
+    el.innerHTML = bar + cards.map((c, i) => (i % 2 === 0 ? `<div class="grid g2"${i ? ' style="margin-top:var(--gap-card)"' : ''}>` : '') + c + (i % 2 === 1 || i === cards.length - 1 ? '</div>' : '')).join('');
 
-    if (iv.length >= CHIP_MIN) A.chart('instChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.lot(p.value / 1000)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 66, right: 78, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: iv.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
-      series: [{ name: '外資', type: 'bar', stack: 'i', data: iv.map(r => r[1]), itemStyle: { color: '#3ee0ff' } }, { name: '投信', type: 'bar', stack: 'i', data: iv.map(r => r[2]), itemStyle: { color: '#ffb454' } }, { name: '自營', type: 'bar', stack: 'i', data: iv.map(r => r[3]), itemStyle: { color: '#8b7bff' } }, { name: '累計', type: 'line', yAxisIndex: 1, data: iv.map(r => r[4]), showSymbol: false, lineStyle: { color: '#ff8fab', width: 2 } }] });
-    /* 融資／融券餘額的單位是張：提示框用跟上面籌碼快照同一個 fmt.lot（2026-09-26 小數點普查補單位）*/
-    if (mg.length >= CHIP_MIN) A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis', valueFormatter: (v) => A.fmt.lot(v) }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: mg.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, scale: true }, { ...A.axisStyle, scale: true, splitLine: { show: false } }],
-      series: [{ name: '融資餘額', type: 'line', data: mg.map(r => r[1]), showSymbol: false, areaStyle: { color: 'rgba(255,77,109,.12)' }, lineStyle: { color: '#ff4d6d', width: 2 } }, { name: '融券餘額', type: 'line', yAxisIndex: 1, data: mg.map(r => r[2]), showSymbol: false, lineStyle: { color: '#2ee59d', width: 1.5 } }] });
-    if (ho30.length >= CHIP_MIN) {
-      /* ★ 2026-09-26：三條線以前共用一根 Y 軸 —— 千張大戶 85%、400–1000 張 2.8%、散戶 5.9%，
-         刻度只好拉成 0～100%，每週 ±0.05pp 的變化在圖上不到 1px，三條都是水平直線，等於沒回答任何問題。
-         改成**三格小圖各自一根 Y 軸**（scale，不從 0 起）：每一格的上下就是那一條自己這 30 天的高低。
-         X 軸是真的日期（時間軸），刻度只打在有資料的那幾週，週與週的間距照實際天數。
-         （R5-4 的 MM-DD 規則保留：同一個月的幾週不會全寫成同一個月。） */
-      const hoDay = (v) => { const d = new Date(v); return String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); };
-      const ticks = ho30.map(r => hoTs(r[0]));
-      const xMin = hoStart, xMax = hoEnd + 2 * DAY;          // 右邊多留兩天，最後一點的數字標籤才不會被切掉
-      const prevOf = (r) => { const i = ho.indexOf(r); return i > 0 ? ho[i - 1] : null; };
-      const pp = (v) => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(2) + 'pp';
-      const ppCls = (v) => v == null ? 'fl' : v > 0 ? 'up' : v < 0 ? 'dn' : 'fl';
-      const LINES = [{ k: 1, name: '千張大戶', c: '#ff4d6d' }, { k: 2, name: '400–1000 張', c: '#ffb454' }, { k: 3, name: '散戶 ≤10 張', c: '#2ee59d' }];
-      const hEl = document.getElementById('holderChart');
-      const H = Math.max(360, (hEl && hEl.clientHeight) || 380);
-      const TOP = 6, BOT = 26, CELL = (H - TOP - BOT) / 3;
-      const last = ho30[ho30.length - 1], lastPrev = prevOf(last), first = ho30[0];
-      const xAx = (i) => ({ ...A.axisStyle, type: 'time', gridIndex: i, min: xMin, max: xMax,
-        splitLine: { show: false }, axisTick: { show: i === 2, customValues: ticks },
-        axisLabel: { show: i === 2, color: A.CH.ink3, fontFamily: A.NUM_FONT, customValues: ticks, formatter: hoDay, hideOverlap: true } });
-      A.chart('holderChart', {
-        axisPointer: { link: [{ xAxisIndex: 'all' }] },
-        tooltip: { ...A.tip, trigger: 'axis', axisPointer: { type: 'line' },
-          formatter: (ps) => { const r = ho30[ps[0].dataIndex]; if (!r) return ''; const p = prevOf(r);
-            return `<b>${r[0]}</b>` + LINES.map(L => `<br><span style="color:${L.c}">●</span> ${L.name} ${A.fmt.n(r[L.k], 2)}%`
-              + `　週 ${p && p[L.k] != null ? pp(r[L.k] - p[L.k]) : '—（第一週）'}`).join(''); } },
-        /* 每格左上：色點＋名稱＋最新比例＋週變化＋30 天變化（紅＝比例上升、綠＝下降；只是方向色）。
-           名稱用正文色、線色只給前面的圓點 —— 淺色主題下琥珀／薄荷綠的字在白底上對比不夠。 */
-        title: LINES.map((L, i) => { const w = lastPrev && lastPrev[L.k] != null ? last[L.k] - lastPrev[L.k] : null;
-          const m = first[L.k] != null && ho30.length > 1 ? last[L.k] - first[L.k] : null;
-          return { left: 52, top: TOP + i * CELL, padding: 0, textStyle: { rich: {
-              d: { color: L.c, fontSize: 13 }, n: { color: A.CH.ink, fontSize: 12.5, fontWeight: 700 }, v: { color: A.CH.ink, fontSize: 12.5, fontFamily: A.NUM_FONT },
-              l: { color: A.CH.ink3, fontSize: 11.5 }, up: { color: A.CH.up, fontSize: 12, fontFamily: A.NUM_FONT },
-              dn: { color: A.CH.down, fontSize: 12, fontFamily: A.NUM_FONT }, fl: { color: A.CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT } } },
-            text: `{d|●} {n|${L.name}} {v|${A.fmt.n(last[L.k], 2)}%}  {l|週} {${ppCls(w)}|${pp(w)}}  {l|30天} {${ppCls(m)}|${pp(m)}}` }; }),
-        grid: LINES.map((L, i) => ({ left: 52, right: 30, top: TOP + i * CELL + 34, height: CELL - 44 })),
-        xAxis: LINES.map((L, i) => xAx(i)),
-        yAxis: LINES.map((L, i) => ({ ...A.axisStyle, type: 'value', gridIndex: i, scale: true, splitNumber: 2,
-          axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, fontSize: 11, formatter: (v) => +v.toFixed(2) + '%' } })),
-        series: LINES.map((L, i) => ({ name: L.name, type: 'line', xAxisIndex: i, yAxisIndex: i,
-          data: ho30.map(r => [hoTs(r[0]), r[L.k]]), showSymbol: true, symbolSize: 7, connectNulls: true,
-          lineStyle: { color: L.c, width: 2 }, itemStyle: { color: L.c },
-          label: { show: true, position: 'top', distance: 4, color: A.CH.ink2, fontSize: 11.5, fontFamily: A.NUM_FONT,
-            formatter: (q) => A.fmt.n(q.value[1], 2) + '%' } })),
-      }, { notMerge: true });
+    const imap = new Map(iv.map(r => [String(r[0]).slice(0, 10), r]));
+    const mmap = new Map(mg.map(r => [String(r[0]).slice(0, 10), r]));
+    const hmap = new Map(ho.map(r => [String(r[0]).slice(0, 10), r]));
+    const prevOf = (r) => { const i = ho.indexOf(r); return i > 0 ? ho[i - 1] : null; };
+    const pp = (v) => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(2) + 'pp';
+    const ppCls = (v) => v == null ? 'fl' : v > 0 ? 'up' : v < 0 ? 'dn' : 'fl';
+    const dTxt = (v, full) => { const sg = v > 0 ? '+' : v < 0 ? '−' : '±', a = Math.abs(v);
+      if (a >= 1e4) return sg + (a / 1e4).toFixed(1) + (full ? ' 萬人' : '萬');
+      return sg + Math.round(a).toLocaleString('en-US') + (full ? ' 人' : ''); };
 
-      /* 股東人數：以前是一條「總人數」折線，Y 軸從 301 萬到 306 萬，看不出這週是多了還是少了幾個人。
-         改成**每週增減**的長條（跟上一週比），紅＝增加、綠＝減少（台股紅漲綠跌：數字變大用紅）。
-         上一週若在 30 天視窗外、但湖裡有，照樣拿來比；整個湖的第一週沒有上一週 → 不畫那根。 */
-      const cEl = document.getElementById('holderCount');
-      const narrow = ((cEl && cEl.clientWidth) || 600) < 420;
-      const dTxt = (v, full) => { const sg = v > 0 ? '+' : v < 0 ? '−' : '±', a = Math.abs(v);
-        if (a >= 1e4) return sg + (a / 1e4).toFixed(1) + (full ? ' 萬人' : '萬');
-        return sg + Math.round(a).toLocaleString('en-US') + (full ? ' 人' : ''); };
-      const bars = ho30.map(r => { const p = prevOf(r);
-        const d = p && r[4] != null && p[4] != null ? r[4] - p[4] : null;
-        return { r, d }; });
-      const barAxis = (() => {
-        const vs = bars.map(b => b.d).filter(v => v != null);
-        const lo = Math.min(0, ...vs), hi = Math.max(0, ...vs), s = Math.max(hi - lo, 1);
-        const a = lo < 0 ? lo - s * 0.15 : 0, z = hi > 0 ? hi + s * 0.15 : 0;
-        const raw = (z - a) / 5, e10 = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / e10;
-        const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e10;
-        return { min: Math.floor(a / step) * step, max: Math.ceil(z / step) * step, interval: step };
-      })();
-      A.chart('holderCount', {
-        tooltip: { ...A.tip, trigger: 'axis', axisPointer: { type: 'shadow' },
-          formatter: (ps) => { const b = bars[ps[0].dataIndex]; if (!b) return '';
-            return `<b>${b.r[0]}</b><br>總股東 ${b.r[4] != null ? Math.round(b.r[4]).toLocaleString('en-US') + ' 人' : '—'}`
-              + `<br>比上週 ${b.d != null ? dTxt(b.d, true) : '—（第一週，沒有上一週可比）'}`; } },
-        grid: { left: 58, right: 30, top: 24, bottom: 26 },
-        xAxis: { ...A.axisStyle, type: 'time', min: xMin, max: xMax, splitLine: { show: false },
-          axisTick: { customValues: ticks }, axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, customValues: ticks, formatter: hoDay, hideOverlap: true } },
-        /* 上下各留兩成空間：負值柱的數字寫在柱子下方，貼到圖底會壓到 X 軸的日期（1440 實測「−3.9 萬人」疊在「09-11」上）。
-           刻度間距自己算成 1／2／5×10ⁿ，上下限對齊間距 —— 只用函式撐開上下限的話，最底下會多一格「−5.0 萬」貼著「−4.0 萬」。 */
-        yAxis: { ...A.axisStyle, type: 'value', ...barAxis,
-          axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, fontSize: 11, formatter: (v) => v === 0 ? '0' : dTxt(v, false) } },
-        series: [{ name: '股東人數增減', type: 'bar', barMaxWidth: 26,
-          data: bars.map(b => ({ value: [hoTs(b.r[0]), b.d],
-            itemStyle: { color: b.d > 0 ? A.CH.up : b.d < 0 ? A.CH.down : A.CH.ink3, borderRadius: b.d < 0 ? [0, 0, 3, 3] : [3, 3, 0, 0] },
-            label: { position: b.d < 0 ? 'bottom' : 'top' } })),
-          label: { show: true, color: A.CH.ink2, fontSize: 11.5, fontFamily: A.NUM_FONT, distance: 4,
-            formatter: (q) => q.value[1] == null ? '' : dTxt(q.value[1], !narrow) } }],
-      }, { notMerge: true });
-    }
+    const draw = () => {
+      const dates = chipDates(pg, win);
+      const long = win > 126;
+      /* 刻度：4 週～6 個月寫 MM-DD；1 年會跨年，寫 YY/MM/DD（R5-4：不可以好幾個點寫成同一個日期） */
+      const dayLbl = (v) => long ? String(v).slice(2).replace(/-/g, '/') : String(v).slice(5);
+      const xCat = (extra) => Object.assign({ ...A.axisStyle, type: 'category', data: dates, boundaryGap: true,
+        axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: dayLbl, hideOverlap: true } }, extra || {});
+      const nTrade = dates.length;
+      const rg = $('#chipRange', el);
+      if (rg) rg.textContent = nTrade ? `${dates[0]} ～ ${dates[nTrade - 1]}，${nTrade} 個交易日` : '';
+      el.dataset.win = String(win);
+      $$('#chipWin button', el).forEach(b => b.classList.toggle('on', +b.dataset.v === win));
+      const showLbl = win <= 63;              // 3 個月以內才在點／柱上標數字，1 年標上去會疊成一片
+
+      if (iv.length >= CHIP_MIN) {
+        let s = 0;
+        const cum = dates.map(d => { const r = imap.get(d); if (!r) return null; s += (r[1] || 0) + (r[2] || 0) + (r[3] || 0); return s; });
+        const col = (i) => dates.map(d => { const r = imap.get(d); return r ? r[i] : null; });
+        A.chart('instChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue; const r = imap.get(d);
+            if (!r) return `<b>${d}</b><br>這天沒有法人資料`;
+            return `<b>${d}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : A.fmt.lot(p.value / 1000)}`).join('<br>'); } },
+          legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 66, right: 78, top: 30, bottom: 30 },
+          xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
+          series: [{ name: '外資', type: 'bar', stack: 'i', data: col(1), itemStyle: { color: '#3ee0ff' } }, { name: '投信', type: 'bar', stack: 'i', data: col(2), itemStyle: { color: '#ffb454' } }, { name: '自營', type: 'bar', stack: 'i', data: col(3), itemStyle: { color: '#8b7bff' } },
+            { name: '區間累計', type: 'line', yAxisIndex: 1, data: cum, showSymbol: false, connectNulls: false, lineStyle: { color: '#ff8fab', width: 2 }, itemStyle: { color: '#ff8fab' } }] }, { notMerge: true });
+      }
+      /* 融資／融券餘額的單位是張：提示框用跟上面籌碼快照同一個 fmt.lot（2026-09-26 小數點普查補單位）*/
+      if (mg.length >= CHIP_MIN) {
+        const col = (i) => dates.map(d => { const r = mmap.get(d); return r ? r[i] : null; });
+        A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue;
+            if (!mmap.get(d)) return `<b>${d}</b><br>這天沒有融資券資料`;
+            return `<b>${d}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : A.fmt.lot(p.value)}`).join('<br>'); } },
+          legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 },
+          xAxis: xCat({ boundaryGap: false }), yAxis: [{ ...A.axisStyle, scale: true }, { ...A.axisStyle, scale: true, splitLine: { show: false } }],
+          series: [{ name: '融資餘額', type: 'line', data: col(1), showSymbol: nTrade <= 30, symbolSize: 4, connectNulls: false, areaStyle: { color: 'rgba(255,77,109,.12)' }, lineStyle: { color: '#ff4d6d', width: 2 }, itemStyle: { color: '#ff4d6d' } },
+            { name: '融券餘額', type: 'line', yAxisIndex: 1, data: col(2), showSymbol: nTrade <= 30, symbolSize: 4, connectNulls: false, lineStyle: { color: '#2ee59d', width: 1.5 }, itemStyle: { color: '#2ee59d' } }] }, { notMerge: true });
+      }
+      if (ho.length >= CHIP_MIN) {
+        const inWin = dates.filter(d => hmap.has(d)).map(d => hmap.get(d));
+        const LINES = [{ k: 1, name: '千張大戶', c: '#ff4d6d' }, { k: 2, name: '400–1000 張', c: '#ffb454' }, { k: 3, name: '散戶 ≤10 張', c: '#2ee59d' }];
+        const hEl = document.getElementById('holderChart');
+        const H = Math.max(360, (hEl && hEl.clientHeight) || 380);
+        const TOP = 6, BOT = 26, CELL = (H - TOP - BOT) / 3;
+        const last = inWin[inWin.length - 1], first = inWin[0], lastPrev = last ? prevOf(last) : null;
+        const rangeTxt = CHIP_WINS.find(w => w.v === win).t;
+        const gap = ((hEl && hEl.clientWidth) || 600) < 420 ? ' ' : '  ';   // 390 窄畫面：散戶那行最後的「−0.30pp」會被切掉，間距收成一格
+        /* ★ 2026-09-26（前一版）：三條線共用一根 Y 軸時，每週 ±0.05pp 在 0～100% 的刻度上不到 1px。
+           維持**三格小圖各自一根 Y 軸**（scale，不從 0 起）；X 軸改成跟其他三張同一條逐交易日的類別軸，
+           只有集保公布日有點，其他天是空值（connectNulls 只畫連線，不補每日假值）。 */
+        A.chart('holderChart', {
+          axisPointer: { link: [{ xAxisIndex: 'all' }] },
+          tooltip: { ...A.tip, trigger: 'axis', axisPointer: { type: 'line' },
+            formatter: (ps) => { const d = ps[0].axisValue; const r = hmap.get(d);
+              if (!r) return `<b>${d}</b><br>這天不是集保公布日（集保每週更新一次）`; const p = prevOf(r);
+              return `<b>${r[0]}</b>` + LINES.map(L => `<br><span style="color:${L.c}">●</span> ${L.name} ${A.fmt.n(r[L.k], 2)}%`
+                + `　週 ${p && p[L.k] != null ? pp(r[L.k] - p[L.k]) : '—（第一週）'}`).join(''); } },
+          title: LINES.map((L, i) => { const w = last && lastPrev && lastPrev[L.k] != null ? last[L.k] - lastPrev[L.k] : null;
+            const m = last && first && first !== last && first[L.k] != null ? last[L.k] - first[L.k] : null;
+            return { left: 52, top: TOP + i * CELL, padding: 0, textStyle: { rich: {
+                d: { color: L.c, fontSize: 13 }, n: { color: A.CH.ink, fontSize: 12.5, fontWeight: 700 }, v: { color: A.CH.ink, fontSize: 12.5, fontFamily: A.NUM_FONT },
+                l: { color: A.CH.ink3, fontSize: 11.5 }, up: { color: A.CH.up, fontSize: 12, fontFamily: A.NUM_FONT },
+                dn: { color: A.CH.down, fontSize: 12, fontFamily: A.NUM_FONT }, fl: { color: A.CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT } } },
+              text: last ? `{d|●} {n|${L.name}} {v|${A.fmt.n(last[L.k], 2)}%}${gap}{l|週} {${ppCls(w)}|${pp(w)}}${gap}{l|${rangeTxt.replace(" ", "")}} {${ppCls(m)}|${pp(m)}}`
+                : `{d|●} {n|${L.name}} {l|這個區間沒有集保公布日}` }; }),
+          grid: LINES.map((L, i) => ({ left: 52, right: 30, top: TOP + i * CELL + 34, height: CELL - 44 })),
+          xAxis: LINES.map((L, i) => xCat({ gridIndex: i, boundaryGap: false, splitLine: { show: false },
+            axisTick: { show: i === 2 }, axisLabel: { show: i === 2, color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: dayLbl, hideOverlap: true } })),
+          yAxis: LINES.map((L, i) => ({ ...A.axisStyle, type: 'value', gridIndex: i, scale: true, splitNumber: 2,
+            axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, fontSize: 11, formatter: (v) => +v.toFixed(2) + '%' } })),
+          series: LINES.map((L, i) => ({ name: L.name, type: 'line', xAxisIndex: i, yAxisIndex: i,
+            data: dates.map(d => { const r = hmap.get(d); return r ? r[L.k] : null; }), showSymbol: true, symbolSize: 7, connectNulls: true,
+            lineStyle: { color: L.c, width: 2 }, itemStyle: { color: L.c },
+            label: { show: showLbl, position: 'top', distance: 4, color: A.CH.ink2, fontSize: 11.5, fontFamily: A.NUM_FONT,
+              formatter: (q) => q.value == null ? '' : A.fmt.n(q.value, 2) + '%' } })),
+        }, { notMerge: true });
+
+        /* 股東人數：每週增減的長條（跟上一週比），紅＝增加、綠＝減少（台股紅漲綠跌：數字變大用紅）。
+           上一週若在視窗外、但湖裡有，照樣拿來比；整個湖的第一週沒有上一週 → 不畫那根。 */
+        const cEl = document.getElementById('holderCount');
+        const narrow = ((cEl && cEl.clientWidth) || 600) < 420;
+        const bars = dates.map(d => { const r = hmap.get(d); if (!r) return { d, r: null, v: null };
+          const p = prevOf(r); return { d, r, v: p && r[4] != null && p[4] != null ? r[4] - p[4] : null }; });
+        const barAxis = (() => {
+          const vs = bars.map(b => b.v).filter(v => v != null);
+          const lo = Math.min(0, ...vs), hi = Math.max(0, ...vs), s = Math.max(hi - lo, 1);
+          const a = lo < 0 ? lo - s * 0.15 : 0, z = hi > 0 ? hi + s * 0.15 : 0;
+          const raw = (z - a) / 5 || 1, e10 = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / e10;
+          const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e10;
+          return { min: Math.floor(a / step) * step, max: Math.ceil(z / step) * step, interval: step };
+        })();
+        A.chart('holderCount', {
+          tooltip: { ...A.tip, trigger: 'axis', axisPointer: { type: 'shadow' },
+            formatter: (ps) => { const b = bars[ps[0].dataIndex]; if (!b) return '';
+              if (!b.r) return `<b>${b.d}</b><br>這天不是集保公布日（集保每週更新一次）`;
+              return `<b>${b.r[0]}</b><br>總股東 ${b.r[4] != null ? Math.round(b.r[4]).toLocaleString('en-US') + ' 人' : '—'}`
+                + `<br>比上週 ${b.v != null ? dTxt(b.v, true) : '—（第一週，沒有上一週可比）'}`; } },
+          grid: { left: 58, right: 30, top: 24, bottom: 26 },
+          xAxis: xCat({ axisTick: { alignWithLabel: true } }),
+          /* 上下各留兩成空間：負值柱的數字寫在柱子下方，貼到圖底會壓到 X 軸的日期。刻度間距自己算成 1／2／5×10ⁿ。 */
+          yAxis: { ...A.axisStyle, type: 'value', ...barAxis,
+            axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, fontSize: 11, formatter: (v) => v === 0 ? '0' : dTxt(v, false) } },
+          series: [{ name: '股東人數增減', type: 'bar', barMaxWidth: 26, barMinWidth: 3, barGap: '-100%',
+            data: bars.map(b => ({ value: b.v,
+              itemStyle: { color: b.v > 0 ? A.CH.up : b.v < 0 ? A.CH.down : A.CH.ink3, borderRadius: b.v < 0 ? [0, 0, 3, 3] : [3, 3, 0, 0] },
+              label: { position: b.v < 0 ? 'bottom' : 'top' } })),
+            label: { show: showLbl, color: A.CH.ink2, fontSize: 11.5, fontFamily: A.NUM_FONT, distance: 4,
+              formatter: (q) => q.value == null ? '' : dTxt(q.value, !narrow) } }],
+        }, { notMerge: true });
+      }
+    };
+    $$('#chipWin button', el).forEach(b => b.onclick = () => {
+      win = +b.dataset.v;
+      try { localStorage.setItem('tw.chipWin', String(win)); } catch (e) { /* 忽略 */ }
+      draw();
+    });
+    draw();
   }
   function tabBasics(pg, el) {
     const b = pg.basics || {}; const f = pg.fundamental || {};
@@ -5320,31 +5562,65 @@
       return reCode.test(t) || (nm.length >= 2 && t.indexOf(nm) >= 0);
     });
   }
+  /* ★ 2026-09-26（Andy：「這邊跟相關新聞、券商觀點（新聞引述）、重大訊息合併，並標註屬於哪種新聞」）
+     以前三張卡（重大訊息、相關新聞、券商觀點）各自一塊，要上下捲著比對時間。改成**一張時間排序的列表**，
+     每一列前面一個類型標籤（琥珀＝重大訊息、青＝新聞、紫＝券商觀點；不用紅綠，紅綠在這個站是漲跌），
+     上方分段鈕篩「全部｜重大訊息｜新聞｜券商觀點」。
+     · 可信度的差別照樣看得出來：重大訊息是公司自己在公開資訊觀測站的公告（M4 事件面否決靠它），
+       新聞是媒體寫的，券商觀點是新聞引述、**不是本站預估**（那一列標籤旁永遠寫著，法遵 🔴）。
+     · 券商那一列的字串只從積木出口 BrokerViews.view(rows, 'feed') 拿（欄位只在積木的 pick() 決定）；
+       積木被關掉時這一類就是空的，其他照常。
+     · 相關新聞仍先過 newsAbout（標題或內文真的提到這檔才列）。 */
+  const NEWS_TYPES = [{ v: 'all', t: '全部' }, { v: 'mops', t: '重大訊息' }, { v: 'news', t: '新聞' }, { v: 'broker', t: '券商觀點' }];
+  const NEWS_EMPTY = { all: '近期沒有這檔的重大訊息、相關新聞或券商觀點', mops: '近期沒有這檔的重大訊息公告',
+    news: '近期無相關新聞', broker: '近 60 天沒有引述到目標價的新聞' };
   function tabNews(pg, el) {
-    // bv（券商觀點）只負責交給積木 `broker.views`（site/blocks/broker_views.js），這裡不拆它的欄位
-    const news = newsAbout(pg.news, pg.meta.code, pg.meta.name), bv = pg.broker_views || [], mn = pg.material_news || [];
-    /* ★ 2026-09-19：重大訊息擺在最上面，而且跟「新聞」分開一張卡。
-       兩者的可信度完全不同 —— 新聞是媒體寫的，重大訊息是**公司自己公告的**，
-       減資、解散、訴訟、重大處分、財報更正都在這裡。
-       M4 事件面要否決一筆進場，靠的是公告不是報導，混在一起會讓那個判斷失去意義。
-       來源一定要寫出來，而且要能點回公開資訊觀測站看全文（我們只存前 800 字）。 */
-    const mnHtml = mn.length
-      ? mn.map(m => `<details class="ev" style="padding-left:0;padding-right:0">
-          <summary style="cursor:pointer"><b>${A.fmt.esc(m.subject || '')}</b>
-            <div class="m"><span class="mono">${A.fmt.esc(m.date || '')}${m.time ? ' ' + A.fmt.esc(m.time) : ''}</span>
-              ${m.clause ? `<span class="cat">${A.fmt.esc(m.clause)}</span>` : ''}
-              ${m.occurred && m.occurred !== m.date ? `<span>事實發生日 ${A.fmt.esc(m.occurred)}</span>` : ''}</div>
-          </summary>
-          <div class="note" style="white-space:pre-wrap;margin-top:6px">${A.fmt.esc(m.detail || '')}</div>
-        </details>`).join('')
-      : '<div class="empty">近期沒有這檔的重大訊息公告</div>';
-    el.innerHTML = `<div class="card" style="margin-bottom:16px"><div class="row spread">
-        <h3>重大訊息 ${hq('skmops', '重大訊息')}</h3>
+    const esc = A.fmt.esc;
+    const news = newsAbout(pg.news, pg.meta.code, pg.meta.name), mn = pg.material_news || [];
+    const bv = window.BrokerViews ? window.BrokerViews.view(pg.broker_views || [], 'feed') : [];
+    const ORD = { mops: 0, news: 1, broker: 2 };
+    const items = [
+      ...mn.map(m => ({ t: 'mops', date: String(m.date || ''), time: String(m.time || ''), m })),
+      ...news.map(n => ({ t: 'news', date: String(n.date || ''), time: String(n.time || ''), n })),
+      ...bv.map(b => ({ t: 'broker', date: String(b.date || ''), time: '', b })),
+    ].sort((a, b) => (b.date.localeCompare(a.date)) || (b.time.localeCompare(a.time)) || (ORD[a.t] - ORD[b.t]));
+    const TAG = { mops: '重大訊息', news: '新聞', broker: '券商觀點' };
+    const tag = (t) => `<span class="ntag ${t}">${TAG[t]}</span>`;
+    const row = (it) => {
+      if (it.t === 'mops') { const m = it.m;
+        return `<details class="ev nrow" data-type="mops"><summary style="cursor:pointer"><div class="nhead">${tag('mops')}<b>${esc(m.subject || '')}</b></div>
+            <div class="m"><span class="mono">${esc(m.date || '')}${m.time ? ' ' + esc(m.time) : ''}</span>
+              ${m.clause ? `<span class="cat">${esc(m.clause)}</span>` : ''}
+              ${m.occurred && m.occurred !== m.date ? `<span>事實發生日 ${esc(m.occurred)}</span>` : ''}<span>公開資訊觀測站</span></div>
+          </summary><div class="note" style="white-space:pre-wrap;margin-top:6px">${esc(m.detail || '')}</div></details>`; }
+      if (it.t === 'news') { const n = it.n;
+        return `<div class="ev nrow" data-type="news"><div class="nhead">${tag('news')}<a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></div>
+          <div class="m"><span class="mono">${esc(n.date || '')}</span>${n.category ? `<span class="cat">${esc(n.category)}</span>` : ''}<span>${esc(n.source || '')}</span></div></div>`; }
+      const b = it.b;
+      return `<div class="ev nrow" data-type="broker"><div class="nhead">${tag('broker')}<small class="nwarn" data-warn title="券商看法是新聞引述，不是本站的預估或建議">不是本站預估</small><a href="${esc(b.url || '#')}" target="_blank" rel="noopener">${esc(b.title)}</a></div>
+        <div class="m"><span class="mono">${esc(b.date || '')}</span><span>${esc(b.source || '新聞引述')}</span></div></div>`;
+    };
+    const cnt = { all: items.length, mops: mn.length, news: news.length, broker: bv.length };
+    el.innerHTML = `<div class="card" id="stockNews"><div class="row spread" style="gap:10px;flex-wrap:wrap">
+        <h3>公告 / 新聞 ${hq('sknews', '公告 / 新聞')}</h3>
         <a class="pill" href="https://mops.twse.com.tw/mops/web/t05st01" target="_blank" rel="noopener">公開資訊觀測站 ↗</a></div>
-      ${hbox('skmops', ['公司自己在公開資訊觀測站發的公告', '不是媒體報導', '點一則展開摘要', '只存摘要前 800 字，全文請到觀測站'])}
-      ${mnHtml}</div>
-      <div class="grid g2"><div class="card" id="stockNews"><h3>相關新聞 ${hq('sknews', '相關新聞')}</h3>${hbox('sknews', [`只列標題或內文提到${A.fmt.esc(pg.meta.name || '')}的`, '點標題開原文（新分頁）'])}${news.length ? news.map(n => `<div class="ev" style="padding-left:0;padding-right:0"><a href="${A.fmt.esc(n.url)}" target="_blank" rel="noopener">${A.fmt.esc(n.title)}</a><div class="m"><span class="mono">${n.date}</span><span class="cat">${A.fmt.esc(n.category || '')}</span><span>${A.fmt.esc(n.source || '')}</span></div></div>`).join('') : '<div class="empty isnews">近期無相關新聞</div>'}</div>
-      ${window.BrokerViews ? window.BrokerViews.view(bv, 'card', A.fmt) : ''}</div>`;
+      ${hbox('sknews', ['一張列表、依時間由新到舊；每列前面的標籤說明是哪一種',
+        '重大訊息＝公司自己在公開資訊觀測站發的公告（不是媒體報導），點一則展開摘要；只存前 800 字，全文請到觀測站',
+        `新聞＝媒體報導，只列標題或內文提到${esc(pg.meta.name || '')}的，點標題開原文（新分頁）`,
+        '券商觀點＝新聞引述的券商目標價，不是本站預估',
+        '上方分段鈕可以只看其中一種'])}
+      <div class="seg" id="newsSeg" role="group" aria-label="新聞類型" style="margin:8px 0 4px">${NEWS_TYPES.map(x => `<button type="button" data-v="${x.v}"${x.v === 'all' ? ' class="on"' : ''}>${x.t} <span class="mono">${cnt[x.v]}</span></button>`).join('')}</div>
+      <div id="newsList">${items.map(row).join('')}</div>
+      <div class="empty" id="newsEmpty"${items.length ? ' hidden' : ''}>${NEWS_EMPTY.all}</div></div>`;
+    const apply = (v) => {
+      $$('#newsSeg button', el).forEach(b => b.classList.toggle('on', b.dataset.v === v));
+      let shown = 0;
+      $$('#newsList .nrow', el).forEach(r => { const on = v === 'all' || r.dataset.type === v; r.hidden = !on; if (on) shown++; });
+      const em = $('#newsEmpty', el);
+      if (em) { em.hidden = shown > 0; em.textContent = NEWS_EMPTY[v]; em.classList.toggle('isnews', v === 'news'); }
+    };
+    $$('#newsSeg button', el).forEach(b => b.onclick = () => apply(b.dataset.v));
+    apply('all');
   }
 
   // _dbg 只給 scripts/_preview.py 驗證用（檢查圖表與繪圖狀態），正式頁面不會呼叫

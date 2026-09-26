@@ -240,3 +240,90 @@ def test_zone_low_price_still_gets_workable_width():
     for z in demand + supply:
         assert z.high > z.low
         assert z.width_pct >= 0
+
+
+# ------------------------------------------------------------------ AI 分析卡用的逐條條件（2026-09-26）
+# Andy：「觀望部分需要說明原因」。checks 只是把 evaluate 已經算好的布林值攤開＋補數字，
+# 這一組測試擋三件事：判定不能因此改變、逐條結果要跟判定對得上、文字要帶數字而且不寫指示用語。
+
+_FORBID = ("買進", "賣出", "建議", "不要接", "追進", "抬轎", "出不掉")
+
+
+def _pullback_df():
+    legs, px = [], 100.0
+    for _ in range(8):
+        up = np.linspace(px, px * 1.08, 15)[1:]; legs.append(up); px = up[-1]
+        dn = np.linspace(px, px * 0.97, 6)[1:]; legs.append(dn); px = dn[-1]
+    c = np.concatenate(legs)
+    last_pull = np.linspace(c[-1], c[-1] * 0.965, 8)[1:]
+    c = np.r_[c, last_pull, last_pull[-1] * np.array([0.998, 1.003, 1.007])]
+    vol = np.r_[np.full(len(c) - 3, 1.2e7), np.full(3, 1.7e7)]
+    return ind.compute_all(_frame(c, vol=vol, noise=0.003, seed=4))
+
+
+def test_checks_do_not_change_verdict():
+    """with_checks 只多一個鍵，其餘整包一模一樣（golden 釘住的就是不帶 checks 的那一包）。"""
+    import json
+    for seed in (3, 5, 12, 21):
+        df = ind.compute_all(_random_walk(seed=seed))
+        a = T.evaluate(df, avg_turnover=5e8)
+        b = T.evaluate(df, avg_turnover=5e8, with_checks=True)
+        assert "checks" not in a and "checks" in b
+        b.pop("checks")
+        assert json.dumps(a, default=str, sort_keys=True) == json.dumps(b, default=str, sort_keys=True)
+
+
+def test_checks_count_matches_rule_engine():
+    """逐條 ok 的條數 ＝ evaluate 裡 met_a／met_b；A 級時 A 條件全部成立。"""
+    cases = [ind.compute_all(_random_walk(seed=s)) for s in (3, 7, 12, 21, 33)] + [_pullback_df()]
+    for df in cases:
+        r = T.evaluate(df, avg_turnover=5e8, with_checks=True)
+        ck = r["checks"]
+        assert len(ck["a"]) == ck["n_a"] == 6 and len(ck["b"]) == ck["n_b"] == 5
+        assert sum(c["ok"] for c in ck["a"]) == ck["met_a"]
+        assert sum(c["ok"] for c in ck["b"]) == ck["met_b"]
+        if r["grade"] == "A":
+            assert all(c["ok"] for c in ck["a"]) and ck["risk"]["a"]["ok"]
+        if r["verdict"] == "觀望":
+            # 觀望＝A、B 都沒過：要嘛有條件沒成立，要嘛停損距離超過上限
+            assert not all(c["ok"] for c in ck["a"]) or not ck["risk"]["a"]["ok"]
+    r = T.evaluate(_pullback_df(), avg_turnover=5e8, with_checks=True)
+    assert r["grade"] == "A" and r["checks"]["met_a"] == 6
+
+
+def test_checks_text_has_numbers_and_no_advice_words():
+    for seed in (3, 5, 12):
+        df = ind.compute_all(_random_walk(seed=seed))
+        ck = T.evaluate(df, avg_turnover=1e7, with_checks=True)["checks"]   # 1e7 → 一定觸發流動性排除
+        texts = [c["text"] for c in ck["a"] + ck["b"]] + [ck["risk"]["a"]["text"], ck["risk"]["b"]["text"]] \
+            + ck["exclusions"] + [ck["bear"]["text"]]
+        for t in texts:
+            assert any(ch.isdigit() for ch in t), f"每一條依據都要帶數字：{t}"
+            assert not any(w in t for w in _FORBID), f"不准出現指示用語：{t}"
+            assert "nan" not in t.lower()
+        assert any("3,000 萬" in x for x in ck["exclusions"])
+
+
+def test_checks_have_no_future_function():
+    """第 k 天的逐條條件只能用 ≤ k 的資料：同一段歷史、兩種完全不同的「未來」，第 k 天的結果必須一樣。
+    （線上就是這樣算的：每天用「到今天為止」的日線重算一次 compute_all → evaluate。）"""
+    raw = _random_walk(n=320, seed=21)
+    alt = raw.copy()
+    alt.loc[260:, ["open", "high", "low", "close"]] *= 0.7          # 第 260 根之後換成暴跌的未來
+    for k in (200, 240, 260):
+        a = T.evaluate(ind.compute_all(raw.iloc[:k].reset_index(drop=True)), avg_turnover=5e8, with_checks=True)
+        b = T.evaluate(ind.compute_all(alt.iloc[:k].reset_index(drop=True)), avg_turnover=5e8, with_checks=True)
+        assert a["checks"] == b["checks"] and a["verdict"] == b["verdict"], f"第 {k} 天的條件被未來資料改掉了"
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "已知限制（2026-09-26 記錄，未修）：compute_all 的 swing_high／swing_low 欄位標在分形的「中心那根」，"
+    "要等右邊 2 根走完才成立。線上每天用到今天為止的資料重算，最後 2 根本來就不會被標，所以線上判定沒有前視；"
+    "但若把『整段算好的指標表』切片回測，第 k 天會看到第 k+1、k+2 根才確認的擺動點。"
+    "market_structure 的 trend／BOS／CHoCH 已經延遲 lookback 根納入，不受影響。"
+    "要修得同時改 indicators.py 與 chart.js 的 KInd（口徑要一致）並重做 perf golden，另案處理。"))
+def test_swing_columns_are_lookahead_when_sliced():
+    raw = _random_walk(n=320, seed=21)
+    full = ind.compute_all(raw)
+    cut = ind.compute_all(raw.iloc[:260].reset_index(drop=True))
+    assert (full["swing_low"].iloc[:260].to_numpy() == cut["swing_low"].to_numpy()).all()

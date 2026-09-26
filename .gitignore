@@ -56,3 +56,6 @@ docs/_dgpages/
 
 # 風格系統的對照樣板截圖（art-director 2026-09-22）。跟 docs/_show/ 同一條規矩：本機產物，不進 public repo。
 docs/_style/
+
+# 剖析圖覆蓋普查（scripts/_dg_overlap.py）的報告與放大截圖：本機產物，不進 public repo。
+docs/_dg_overlap*/

@@ -7958,6 +7958,23 @@
       const kids = [...below.children].sort((a, b) => (+a.dataset.dgno) - (+b.dataset.dgno));
       kids.forEach(k => below.appendChild(k));
     }
+    /* ★ 2026-09-26（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」，scripts/_dg_overlap.py 量到的）：
+       「只留右欄」（r，視窗 960～1279）時，右欄卡片壓在模型右半邊上 —— 1100 寬實測 5 張圖全中
+       （先進封裝的 Underfill／中介層卡片壓掉 1833 個零件像素）。
+       根因：取景（fitCamera）已經照「剩下的寬度」＝ W − 欄寬 把模型縮好，但模型仍然擺在**畫布正中央**，
+       右半邊就伸進右欄底下半個欄寬。兩欄（lr）左右對稱，所以一直沒事。
+       修法只動投影、不動相機的位置與轉軸：把畫面的取景窗往右挪半個欄寬（setViewOffset），
+       模型就落在「右欄左邊那一塊」的正中央。轉動、平移、重設視角、點零件（Raycaster 用的是同一個投影矩陣）都不受影響；
+       其他模式清掉位移，跟以前一模一樣。卡片版面（環繞圖）本身一行都沒改。*/
+    let viewDx = 0;
+    function shiftForCols(w, h, cw, m) {
+      const dx = m === 'r' ? Math.round(cw / 2) : 0;
+      const v = camera.view && camera.view.enabled ? camera.view : null;
+      if (dx === viewDx && (dx === 0 || (v && v.fullWidth === w && v.fullHeight === h))) return;
+      viewDx = dx;
+      if (dx) camera.setViewOffset(w, h, dx, 0, w, h); else camera.clearViewOffset();
+      markDirty();
+    }
     function layoutLabels() {
       /* 容器被收起來（寬 0）時不排：W() 會退到 320 的下限、mode() 判成 below，
          卡片會被搬進底下那一排、引線照 320 寬算 —— 展開那一刻就是一堆疊在一起的卡片。
@@ -7965,6 +7982,7 @@
       if (!el.clientWidth) return;
       const w = W(), h = H(), cw = colW(), m = mode();
       const modeChanged = applyMode(m);
+      shiftForCols(w, h, cw, m);
       // 引線那張 SVG 要蓋住整個容器（below 模式時容器比畫布高）
       const hostH = Math.max(h, el.clientHeight || h);
       if (lead.__w !== w || lead.__h !== hostH) {

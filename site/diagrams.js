@@ -501,6 +501,29 @@
       const ox = hr.left, oy = hr.top;
       lead.setAttribute('width', grid.clientWidth); lead.setAttribute('height', grid.clientHeight);
       const cr = canvas.getBoundingClientRect();
+      /* ★ 2026-09-26（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」，scripts/_dg_overlap.py 量到的）：
+         引線最後一段是「沿著錨點的高度橫著走到錨點」—— 卡片全在右欄（今日事件抽屜開著的兩欄版面）時，
+         錨點在畫布左半邊的那幾條會橫越整張畫布，一路從標籤、說明的字中間劃過去，讀起來像一道刪除線。
+         改成：這一段遇到畫布裡的字就斷開（字的左右各留 3px），線看起來是從字的後面穿過去 ——
+         地圖標籤的做法。引線的走法、端點、顏色一個都沒變；只在「會壓到字」的那幾段留白。*/
+      const txt = [];
+      svg.querySelectorAll('text').forEach((t) => {
+        const r = t.getBoundingClientRect(); if (!r.width || !r.height) return;
+        const pad = r.height * 0.07;
+        // 別的錨點的號碼也算（引線從隔壁編號圓點中間穿過去一樣會把號碼劃掉）；只有自己那一顆不算 —— 線本來就停在它的圓外
+        txt.push({ el: t, l: r.left - ox - 3, r: r.right - ox + 3, t: r.top - oy + pad, b: r.bottom - oy - pad });
+      });
+      const hseg = (x0, x1, y, own) => {                    // 從 x0 橫走到 x1（y 固定），碰到字就斷開
+        const lo = Math.min(x0, x1), hi = Math.max(x0, x1);
+        const gaps = txt.filter((q) => !own.contains(q.el) && y > q.t && y < q.b && q.r > lo && q.l < hi).map((q) => [Math.max(lo, q.l), Math.min(hi, q.r)]).sort((m, n) => m[0] - n[0]);
+        if (!gaps.length) return ` H${x1.toFixed(1)}`;
+        const segs = []; let cur = lo;
+        gaps.forEach(([g0, g1]) => { if (g0 > cur) segs.push([cur, g0]); cur = Math.max(cur, g1); });
+        if (cur < hi) segs.push([cur, hi]);
+        const ordered = x1 >= x0 ? segs : segs.map(([m, n]) => [n, m]).reverse();
+        // 第一段接在前一筆（V 到錨點高度）的尾巴上；其餘每一段各自 M 起筆
+        return ordered.map(([m, n], i) => (i === 0 && Math.abs(m - x0) < 0.5 ? ` H${n.toFixed(1)}` : ` M${m.toFixed(1)},${y.toFixed(1)} H${n.toFixed(1)}`)).join('');
+      };
       let out = '';
       pairs.forEach(({ card, anc }) => {
         ['sel', 'sel-part', 'dim'].forEach((k) => anc.classList.toggle(k, card.classList.contains(k)));
@@ -516,8 +539,8 @@
         const cy = (nr ? nr.top + nr.height / 2 : c.top + c.height / 2) - oy;
         const acx = a.left + a.width / 2 - ox, acy = a.top + a.height / 2 - oy, ar = a.width / 2 + 1;
         let d = null;
-        if (c.right <= cr.left + 2) d = `M${(c.right - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.left - ox - 8).toFixed(1)} V${acy.toFixed(1)} H${(acx - ar).toFixed(1)}`;
-        else if (c.left >= cr.right - 2) d = `M${(c.left - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.right - ox + 8).toFixed(1)} V${acy.toFixed(1)} H${(acx + ar).toFixed(1)}`;
+        if (c.right <= cr.left + 2) d = `M${(c.right - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.left - ox - 8).toFixed(1)} V${acy.toFixed(1)}` + hseg(cr.left - ox - 8, acx - ar, acy, anc);
+        else if (c.left >= cr.right - 2) d = `M${(c.left - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.right - ox + 8).toFixed(1)} V${acy.toFixed(1)}` + hseg(cr.right - ox + 8, acx + ar, acy, anc);
         if (!d) return;                                   // 卡片在畫布下面（單欄）：靠編號對照，不畫引線
         const cls = (card.classList.contains('sel-part') ? 'sel-part' : card.classList.contains('sel') ? 'sel' : '') + (card.classList.contains('dim') ? ' dim' : '');
         out += `<path d="${d}" class="${cls}"${cc ? ` style="--c:${cc}"` : ''}/>`;
@@ -566,11 +589,19 @@
      這是共用機制，沒有動任何一張圖的幾何；科技模式下量出來 0 行需要壓。*/
   function fitTexts(svg) {
     const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0; if (!vb) return;
-    const lim = vb - 4;
+    const sr = svg.getBoundingClientRect();
+    if (!sr.width) return;
+    const k0 = sr.width / vb;                               // 畫布座標 → 螢幕 px
+    /* ★ 2026-09-26 覆蓋普查（scripts/_dg_overlap.py）：以前只管「伸出畫布右緣」，
+       但更常見的是**伸出自己那一格的框**（rect.frame）—— 閱讀模式字大一階、1100 寬時字級再放大一點，
+       照 12px 排的整行說明就頂到框線上、壓在框外。這裡把「所屬的框」也當成右界，一樣只准壓 ≤ 12%。
+       所屬的框＝字的起點落在裡面的最小那個 frame（跟普查腳本「文字超出所屬格子」同一條定義）。
+       量的是螢幕座標，所以段落的 translate、scale 都自動算進去。*/
+    const frames = [].slice.call(svg.querySelectorAll('rect.frame,rect.row')).map((f) => ({ f, r: f.getBoundingClientRect() })).filter((x) => x.r.width > 0);
     svg.querySelectorAll('text').forEach((t) => {
       if (t.hasAttribute('textLength')) { t.removeAttribute('textLength'); t.removeAttribute('lengthAdjust'); }
-      let b, m; try { b = t.getBBox(); m = t.getCTM(); } catch (e) { return; }
-      if (!b || !b.width || !m) return;
+      let b, tr; try { b = t.getBBox(); tr = t.getBoundingClientRect(); } catch (e) { return; }
+      if (!b || !b.width || !tr || !tr.width) return;
       let want;
       const row = t.parentNode && t.parentNode.closest ? t.parentNode.closest('.lrow') : null;
       const card = row ? row.querySelector('rect.bg') : null;
@@ -580,17 +611,25 @@
         if (b.x + b.width <= cr) return;
         want = cr - b.x;
       } else {
-        const sx = m.a || 1;                                 // 局部座標到畫布座標的縮放（只有 translate 時是 1）
-        const left = m.a * b.x + m.c * b.y + m.e, right = left + b.width * sx;
-        if (right <= lim) return;
-        want = (lim - left) / sx;
+        const anchor = getComputedStyle(t).textAnchor;
+        const kk = anchor === 'middle' ? 0.5 : (anchor === 'end' ? 0 : 1);   // 壓短之後右緣往左退多少（靠右對齊的字壓了也不會退）
+        if (!kk) return;
+        let lim = sr.right - 4 * k0;
+        const cy = (tr.top + tr.bottom) / 2, x0 = tr.left + 2;
+        let own = null;
+        frames.forEach((x) => { const r = x.r; if (x0 < r.left || x0 > r.right || cy < r.top || cy > r.bottom) return; if (x.f.contains(t)) return;
+          if (!own || r.width * r.height < own.width * own.height) own = r; });
+        if (own) lim = Math.min(lim, own.right - 6 * k0);
+        if (tr.right <= lim) return;
+        const per = tr.width / b.width;                     // 局部座標 1 單位 ＝ 幾 px
+        want = b.width - (tr.right - lim) / kk / per;
       }
       if (want / b.width < 0.88) return;
       t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
       t.setAttribute('textLength', want.toFixed(1));
     });
   }
-  window.addEventListener('tw:dgpal', () => { document.querySelectorAll('svg.dg').forEach(fitTexts); });
+  window.addEventListener('tw:dgpal', () => { document.querySelectorAll('svg.dg').forEach((s) => { fitTexts(s); if (s.__dgRefitHints) s.__dgRefitHints(); }); });
 
   /* 一條章節列佔掉的垂直空間（框 36 ＋ 列距 6）。
      2026-09-22 從 46 收到 42：一張圖最多四條，省下來的 16px 直接變成畫布高度的餘裕，
@@ -617,6 +656,14 @@
   }
 
   function wireFolds(svg) {
+    /* ★ 2026-09-26 覆蓋普查：字級在圖插進 DOM 之後才定案（v2 容器查詢、配色模式），
+       插進去當下量的「壓多少」會偏小。每張圖掛一次「稍後再量」：下一幀、350ms、字型到齊。*/
+    if (!svg.__dgLateFit) {
+      svg.__dgLateFit = true;
+      const late = () => { if (svg.isConnected) { fitTexts(svg); if (svg.__dgRefitHints) svg.__dgRefitHints(); } };
+      requestAnimationFrame(late); setTimeout(late, 350);
+      try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(late); } catch (e) { /* 忽略 */ }
+    }
     if (svg.dataset.dgFold === '1') { fitTexts(svg); return; }   // 同一張圖被 stamp 兩次不要重複綁，但字要重量
     const all = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold],g.dgbody[data-fold]'));
     if (!all.length) { fitTexts(svg); return; }
@@ -678,6 +725,43 @@
     const W = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || 980;
     const PAD = 10;               // 最後一條章節列底下留的空白
     const open = new Set();                           // 預設全部收合
+    /* 收合時寫「裡面有什麼」，展開時寫「怎麼收回去」—— 兩種狀態都看得出還能做什麼 */
+    function fitHint(r) {
+      const on = open.has(r.id);
+      const hi = r.el.querySelector('.fhint');
+      if (!hi) return;
+      const full = on ? '－ 收合這一段' : ('＋ 展開：' + (r.el.getAttribute('data-hint') || ''));
+      hi.textContent = full;
+      /* ★ 2026-09-26 覆蓋普查：先把上一輪藏起來的提示顯示回來再量 ——
+         display:none 的字 getBBox 量到 0，會被當成「一直撞」而整個藏掉。*/
+      hi.setAttribute('display', 'inline');
+      /* ★ 提示文字自己讓路（art-director 2026-09-22）。
+         標題靠左、提示靠右，兩邊都是變動長度的中文 —— 只要有人把標題寫長一點
+         就會撞在一起，而且是**畫面上兩行字疊在一起**那種最難看的錯。
+         2026-09-22 第一版就撞了兩張（載板 27px、伺服器電源 452px）。
+         與其訂一條「標題不准超過幾個字」的隱形規矩（沒有人會記得，也沒有東西會擋），
+         不如讓它在執行期自己量：撞到就把提示從尾巴砍掉、補上刪節號，
+         砍到剩六個字還是撞就整個藏起來（標題本來就講得完整）。*/
+      const tt = r.el.querySelector('.hd');
+      if (!tt) return;
+      let txt = full, guard = 0;
+      const hit = () => { try { const a = tt.getBBox(), b = hi.getBBox(); return a.x + a.width + 12 > b.x; } catch (e) { return false; } };
+      while (hit() && txt.length > 6 && guard++ < 60) { txt = txt.slice(0, -3) + '…'; hi.textContent = txt; }
+      hi.setAttribute('display', hit() ? 'none' : 'inline');
+      // 砍短了就把全文掛成 tooltip（v2 的 660 寬畫布幾乎每一條都會砍）
+      let tt2 = r.el.querySelector(':scope > title');
+      if (!tt2) { tt2 = document.createElementNS('http://www.w3.org/2000/svg', 'title'); r.el.appendChild(tt2); }
+      tt2.textContent = full;
+    }
+    /* ★ 2026-09-26（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」，scripts/_dg_overlap.py 量到的）：
+       第一次 paint() 量標題寬的時候，字級還不是最後的字級（v2 版面的容器查詢、配色模式的字級
+       在圖插進 DOM 之後才定案），量到的標題比實際窄 18～30px —— 提示沒砍夠，
+       **三張圖的每一條章節列都是「標題壓在提示上」**（第三代半導體三條全中）。
+       追根因的時間上限到了，改走不依賴時機的做法：版面有機會變的時候都再量一次
+       （下一幀、300ms 補排、字型到齊、切配色、容器寬度變了）。量一次只是幾次 getBBox。*/
+    const refitHints = () => { if (svg.isConnected) bars.forEach(fitHint); };
+    svg.__dgRefitHints = refitHints;               // 「稍後再量」（wireFolds 開頭）與切配色都會叫它
+    if (window.ResizeObserver) { try { new ResizeObserver(() => { refitHints(); fitTexts(svg); }).observe(svg.parentNode && svg.parentNode.nodeType === 1 ? svg.parentNode : svg); } catch (e) { /* 忽略 */ } }
     function paint() {
       let cur = base;
       rows.forEach((r) => {
@@ -692,31 +776,9 @@
         // 章節列寬度跟著畫布寬（v2 的畫布可以是 660 而不是 980；fold()／foldBar() 畫的是 948）
         const fb = r.el.querySelector('.fbar'); if (fb) fb.setAttribute('width', W - 32);
         const hx = r.el.querySelector('.fhint'); if (hx) hx.setAttribute('x', W - 32);
-        const sg = r.el.querySelector('.fsign'), hi = r.el.querySelector('.fhint');
+        const sg = r.el.querySelector('.fsign');
         if (sg) sg.textContent = on ? '－' : '＋';
-        // 收合時寫「裡面有什麼」，展開時寫「怎麼收回去」—— 兩種狀態都看得出還能做什麼
-        if (hi) {
-          const full = on ? '－ 收合這一段' : ('＋ 展開：' + (r.el.getAttribute('data-hint') || ''));
-          hi.textContent = full;
-          /* ★ 提示文字自己讓路（art-director 2026-09-22）。
-             標題靠左、提示靠右，兩邊都是變動長度的中文 —— 只要有人把標題寫長一點
-             就會撞在一起，而且是**畫面上兩行字疊在一起**那種最難看的錯。
-             2026-09-22 第一版就撞了兩張（載板 27px、伺服器電源 452px）。
-             與其訂一條「標題不准超過幾個字」的隱形規矩（沒有人會記得，也沒有東西會擋），
-             不如讓它在執行期自己量：撞到就把提示從尾巴砍掉、補上刪節號，
-             砍到剩六個字還是撞就整個藏起來（標題本來就講得完整）。*/
-          const tt = r.el.querySelector('.hd');
-          if (tt) {
-            let txt = full, guard = 0;
-            const hit = () => { try { const a = tt.getBBox(), b = hi.getBBox(); return a.x + a.width + 12 > b.x; } catch (e) { return false; } };
-            while (hit() && txt.length > 6 && guard++ < 60) { txt = txt.slice(0, -3) + '…'; hi.textContent = txt; }
-            hi.setAttribute('display', hit() ? 'none' : 'inline');
-            // 砍短了就把全文掛成 tooltip（v2 的 660 寬畫布幾乎每一條都會砍）
-            let tt2 = r.el.querySelector(':scope > title');
-            if (!tt2) { tt2 = document.createElementNS('http://www.w3.org/2000/svg', 'title'); r.el.appendChild(tt2); }
-            tt2.textContent = full;
-          }
-        }
+        fitHint(r);
       });
       svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Math.round(cur + PAD));
       fitTexts(svg);                                  // 剛展開的段落也要量一次
@@ -861,7 +923,14 @@
      列與列之間用一條往下折的流動線接起來，光點沿著同一條折線跑。*/
   function processBar(x, y, steps, w, opts) {
     w = w || 150; const gap = 12, cols = (opts && opts.cols) || steps.length;
-    const pos = steps.map((s, i) => ({ bx: x + (i % cols) * (w + gap), by: y + Math.floor(i / cols) * PB_ROW }));
+    /* ★ 2026-09-26 覆蓋普查：opts.wrap＝格子裡的標題與說明照最壞字寬斷行（格子跟著加高、每一格等高）。
+       只有傳了 wrap 的圖才走這條；沒傳的一律照舊（40 高、一行標題一行說明），既有的圖一格都不會動。*/
+    const wrapOn = !!(opts && opts.wrap);
+    const WT = wrapOn ? steps.map((s) => wrap(s.t, w - (s.no != null ? 30 : 12) - 8, 17)) : null;
+    const WS = wrapOn ? steps.map((s) => wrap(s.s, w - (s.no != null ? 30 : 12) - 8)) : null;
+    const BH = wrapOn ? Math.max(PB_H, Math.max.apply(null, steps.map((s, i) => 10 + WT[i].length * 17 + WS[i].length * 16))) : PB_H;
+    const ROW = wrapOn ? BH + (PB_ROW - PB_H) : PB_ROW;
+    const pos = steps.map((s, i) => ({ bx: x + (i % cols) * (w + gap), by: y + Math.floor(i / cols) * ROW }));
     let dot = '';
     const boxes = steps.map((s, i) => {
       const { bx, by } = pos[i], num = s.no != null, tx = bx + (num ? 30 : 12);
@@ -871,14 +940,27 @@
       if (i < steps.length - 1) {
         const nx = pos[i + 1];
         if (nx.by === by) link = `M${bx + w},${by + PB_MID} L${nx.bx},${by + PB_MID}`;
-        else { link = `M${bx + w},${by + PB_MID} h6 V${by + PB_H + 9} H${nx.bx - 6} V${nx.by + PB_MID} h6`; dot += ` L${bx + w + 6},${by + PB_MID} L${bx + w + 6},${by + PB_H + 9} L${nx.bx - 6},${by + PB_H + 9} L${nx.bx - 6},${nx.by + PB_MID}`; }
+        else { link = `M${bx + w},${by + PB_MID} h6 V${by + BH + 9} H${nx.bx - 6} V${nx.by + PB_MID} h6`; dot += ` L${bx + w + 6},${by + PB_MID} L${bx + w + 6},${by + BH + 9} L${nx.bx - 6},${by + BH + 9} L${nx.bx - 6},${nx.by + PB_MID}`; }
       }
-      return `<g class="step lrow" data-seg="${s.seg}"><rect class="part bg card" x="${bx}" y="${by}" width="${w}" height="${PB_H}" rx="7"/>${no}<text class="lbl" x="${tx}" y="${by + 16}">${s.t}</text><text class="sub" x="${tx}" y="${by + 32}">${s.s}</text></g>`
+      const txt = wrapOn
+        ? WT[i].map((l, k) => `<text class="lbl" x="${tx}" y="${by + 16 + k * 17}">${l}</text>`).join('')
+          + WS[i].map((l, k) => `<text class="sub" x="${tx}" y="${by + 16 + WT[i].length * 17 + k * 16}">${l}</text>`).join('')
+        : `<text class="lbl" x="${tx}" y="${by + 16}">${s.t}</text><text class="sub" x="${tx}" y="${by + 32}">${s.s}</text>`;
+      return `<g class="step lrow" data-seg="${s.seg}"><rect class="part bg card" x="${bx}" y="${by}" width="${w}" height="${BH}" rx="7"/>${no}${txt}</g>`
         + (link ? `<path class="flow fast" d="${link}" fill="none" stroke="var(--dg-accent)" stroke-width="var(--dg-flow-w,2)"/>` : '');
     }).join('');
     return `<g>${boxes}<circle r="3" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="${steps.length > cols ? 8 : 6}s" repeatCount="indefinite" path="${dot}"/></circle></g>`;
   }
-  const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
+  // 流程列總高（最後一列的下緣 − 起點 y）：wrap 版格高會變，後面接著排的東西用它算位置
+  function processBarHeight(steps, w, opts) {
+    w = w || 150; const cols = (opts && opts.cols) || steps.length, rows = Math.ceil(steps.length / cols);
+    let bh = PB_H;
+    if (opts && opts.wrap) bh = Math.max(PB_H, Math.max.apply(null, steps.map((s) => 10 + wrap(s.t, w - (s.no != null ? 30 : 12) - 8, 17).length * 17 + wrap(s.s, w - (s.no != null ? 30 : 12) - 8).length * 16)));
+    return (rows - 1) * (bh + (PB_ROW - PB_H)) + bh;
+  }
+  /* ★ 2026-09-26 覆蓋普查：卡片寬原本用「字數 × 13」估，閱讀模式（字級約 16～17）字就伸出卡片 16px；
+     改成照最壞字寬估（全形 1 em、半形 0.6 em，em 取 17.5）。*/
+  const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${Math.ceil([...text].reduce((a, c) => a + EM(c), 0) * 17.5) + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
   /* 爆炸拆解的間距：層與層之間要有「呼吸空間」（Andy 2026-09-22 的參考圖）。
        explode(n, {y0, h, gap}) → 2D 垂直拆解：回第 i 層的 y（由上往下），h 是每層高、gap 是呼吸空間
        explodeZ(heights, gap)  → 2.5D 垂直拆解：回每一層底面的 z（由下往上），heights 是每層厚度
@@ -1149,7 +1231,7 @@
         + [0, 1, 2, 3, 4].map(k => `<rect class="cavity" x="${x + 4}" y="${420 + k * 10}" width="16" height="6" rx="1"/>`).join('');
     }).join('');
 
-    return `<svg class="dg dgm dgag rs" viewBox="0 0 ${CW} 620" width="100%" style="display:block">${STYLE}${AG_VARS}
+    return `<svg class="dg dgm dgag rs" viewBox="0 0 ${CW} 660" width="100%" style="display:block">${STYLE}${AG_VARS}
       <defs>${fx.glowDefs({ r: 3.5, soft: 3 })}
         <linearGradient id="agCool" gradientUnits="userSpaceOnUse" x1="${SX}" y1="0" x2="${SX + SW}" y2="0"><stop offset="0" stop-color="var(--dg-ag-cool)"/><stop offset="1" stop-color="var(--dg-ag-cool-2)"/></linearGradient>
         <linearGradient id="agPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-ag-pcb)"/><stop offset="1" stop-color="var(--dg-ag-pcb-2)"/></linearGradient>
@@ -1178,7 +1260,10 @@
       </g>
       <g data-seg="power" data-part="ag_psu">
         <rect class="box part" x="${TRX}" y="344" width="${TRW}" height="42" rx="3"/>${psu}
-        <text class="sub" x="${RX + 6}" y="402">電源櫃 PSU ×6（交流進、直流匯流排出）</text>
+        <text class="sub" x="${RX + 6}" y="402">電源櫃 PSU ×6</text>
+        <!-- ★ 2026-09-26 覆蓋普查：原本這一行後面還接「（交流進、直流匯流排出）」，整行比機櫃（168 寬）寬 100 多，
+             右半截伸出機櫃、壓在機櫃邊上；PSU 框與 CDU 框之間只有一行的高度，沒有地方斷行。
+             括號裡那句跟 3 號卡片的說明（交流進、機櫃內直流匯流排出）一字不差，所以畫布上只留名稱，說明留在卡片。 -->
       </g>
       <g data-seg="thermal" data-part="ag_cdu">${cdu}
         <rect class="hair" x="${TRX}" y="412" width="${TRW}" height="50" rx="3" fill="none"/>
@@ -1229,8 +1314,10 @@
       <text class="hd" x="${RX}" y="512">④ 從晶片到交付</text>
       ${processBar(RX, 524, [{ seg: 'foundry', t: 'GPU 晶粒', s: '晶圓代工' }, { seg: 'adv_pkg', t: 'CoWoS 封裝', s: '＋ HBM' }, { seg: 'abf_pcb', t: '模組上板', s: 'PCB ／ 載板' }, { seg: 'assembly', t: '托盤 → 機櫃', s: '系統組裝' }, { seg: 'hyperscaler', t: '交付 CSP', s: '資料中心' }], 118)}
       ${chainLink('semiconductor', RX, 572, '← 看半導體鏈：晶片怎麼來')}
-      <text class="cap" x="244" y="584">示意圖，非實物比例｜托盤內的零件數量、層數與厚度比例均為示意；</text>
-      <text class="cap" x="244" y="602">機櫃配置（托盤數、供電與冷卻做法）依機種而異。</text>
+      <!-- ★ 2026-09-26 覆蓋普查：這兩行原本從 x 244 起筆、排在「看半導體鏈」那顆鈕的右邊 —— 閱讀模式鈕變寬就壓到鈕上，
+           字也伸出畫布。改排到鈕的下面、從左緣起筆，畫布加高 44。 -->
+      <text class="cap" x="${RX}" y="622">示意圖，非實物比例｜托盤內的零件數量、層數與厚度比例均為示意；</text>
+      <text class="cap" x="${RX}" y="640">機櫃配置（托盤數、供電與冷卻做法）依機種而異。</text>
     </svg>`;
   }
 
@@ -1570,7 +1657,7 @@
 
       <!-- ================= ④ 尺寸代號、這一格有誰、資料來源（預設收合） ================= -->
       ${fold('mc4', '④ 尺寸代號有兩套、這一格是哪幾家、資料來源與免責', '三種尺寸的實體比例尺、EIA 與公制對照、成分名單與 2026 產業變數', `
-        <text class="hd" x="16" y="1432">③ 尺寸代號有兩套，別記混</text>
+        <text class="hd" x="16" y="1420">③ 尺寸代號有兩套，別記混</text>   <!-- ★ 2026-09-26 覆蓋普查：原本基線 1432、下緣壓到 1430 起的 0402 晶片 → 往上 12 -->
         <!-- 尺寸尺是附註級：單色 --dg-mute、不穿主角的陶瓷材質（上一輪降權的結論，維持） -->
         <g transform="translate(0,1074)">
           ${chip(22, 79, 40, 396)}${chip(114, 48, 24, 396)}${chip(174, 32, 16, 396)}
@@ -1717,7 +1804,63 @@
      新的查找一律走 window.DiagramSlots，不要在別的地方再維護第二份名單。*/
   window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
-  window.DG = { fillChips, STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+  /* ================================================================ 說明文字自動斷行（2026-09-26 覆蓋普查）
+     SVG 的 <text> 不會自己換行。十幾張圖的說明是照「12px、980 寬」的舊畫布一整句寫在一行裡，
+     搬進 660 寬之後，閱讀模式（字大一階）＋ 1100 寬（v2 把畫布縮到 598px、字級反過來放大補回 13px 以上）
+     一行就伸出框、伸出畫布，最多伸出 300px（scripts/_dg_overlap.py 量到的）。
+     這兩支只做一件事：**照最壞情況的字寬估一行放得下幾個字，在標點處斷開**，字級一個都不動（12px 下限照守）。
+       wrap(str, maxW, fs)  → 斷好的字串陣列（maxW＝畫布座標的可用寬；fs＝估寬用的字級，預設 16 ＝ 最壞情況）
+       para(x, y, items, maxW, o) → { svg, n, h }：items 是一段或多段（字串陣列），每段各自斷行；
+          o.cls（預設 sub）、o.lh（行距，預設 18）、o.style、o.indent（續行開頭補的字，預設不補；條列式可以傳 '　 '）、o.gap（段與段多空的 px）
+     估寬：全形字 1 em、半形英數 0.6 em、空白 0.3 em —— 寧可估寬一點（多斷一行），不要估窄（伸出框）。
+     斷點：優先斷在全形標點之後；英數字詞（CoWoS、0.1425%、SFF-TA-1016）不從中間切開。*/
+  const EM = (ch) => (/[⺀-鿿豈-﫿︰-﹏＀-｠　-〿‐-‧←-⇿■-➿]/.test(ch) ? 1 : (ch === ' ' ? 0.3 : 0.6));
+  function wrap(str, maxW, fs) {
+    const lim = maxW / (fs || 16);
+    const out = []; let cur = '', w = 0, lastBreak = -1, wAtBreak = 0;
+    const PUNC = /[，、；：。）」』】！？—,;:)]/;
+    const toks = String(str).match(/[A-Za-z0-9.%\/\-+_#&~]+|\s|./gu) || [];
+    toks.forEach((t) => {
+      const tw = [...t].reduce((a, c) => a + EM(c), 0);
+      // 收尾的標點（，。、）」）不准跑到下一行開頭：寧可這一行多吃半個字寬
+      const closer = /^[，、；：。）」』】！？,.;:)…]$/.test(t);
+      if (w + tw > lim && cur.trim() && !(closer && w + tw <= lim + 1.05)) {
+        if (lastBreak > 0 && wAtBreak > lim * 0.55) {       // 往回找最近的標點斷
+          out.push(cur.slice(0, lastBreak)); cur = cur.slice(lastBreak).replace(/^\s+/, ''); w = [...cur].reduce((a, c) => a + EM(c), 0);
+        } else {
+          // 開括號不放在行尾附近（「（證」這種斷法讀起來像打錯字）：括號後面不到三個字就斷，就把括號一起帶到下一行
+          const m = cur.match(/[（「『【(][^）」』】)]{0,3}$/); const carry = m && m.index > 0 ? m[0] : '';
+          out.push(cur.slice(0, cur.length - carry.length).replace(/\s+$/, '')); cur = carry; w = [...carry].reduce((a, c) => a + EM(c), 0);
+          if (t === ' ') return;
+        }
+        lastBreak = -1; wAtBreak = 0;
+      }
+      cur += t; w += tw;
+      if (PUNC.test(t) || t === ' ') { lastBreak = cur.length; wAtBreak = w; }
+    });
+    if (cur.trim()) out.push(cur);
+    return out;
+  }
+  function para(x, y, items, maxW, o) {
+    o = o || {};
+    const lh = o.lh || 18, cls = o.cls || 'sub', ind = o.indent || '';
+    const esc = (t) => String(t).replace(/&(?!amp;|lt;|gt;|quot;|#)/g, '&amp;').replace(/</g, '&lt;');
+    let n = 0, yy = y, svg = '';
+    (Array.isArray(items) ? items : [items]).forEach((it, k) => {
+      if (k && o.gap) yy += o.gap;
+      const st = typeof it === 'object' && it ? it : { t: it };
+      const indW = ind ? [...ind].reduce((a, c) => a + EM(c), 0) * (o.fs || 16) : 0;
+      const first = wrap(st.t, maxW, o.fs);
+      const lines = first.length > 1 ? [first[0]].concat(wrap(first.slice(1).join(''), maxW - indW, o.fs).map((l) => ind + l)) : first;
+      lines.forEach((l) => {
+        const style = st.style || o.style;
+        svg += `<text class="${st.cls || cls}" x="${x}" y="${yy}"${style ? ` style="${style}"` : ''}>${esc(l)}</text>`;
+        yy += lh; n++;
+      });
+    });
+    return { svg, n, h: yy - y, y: yy };
+  }
+  window.DG = { wrap, para, processBarHeight, fillChips, STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 
   // ===== 2.5D 材質（玻璃／發光／光束）=====
   /* Andy 2026-09-22 晚的參考圖（docs/diagram_refs/2d_panel_dark_light.webp）翻成三支可重用的 helper。
@@ -1920,8 +2063,8 @@
       const x = r.left + r.width / 2 - base.left + host.scrollLeft, y = r.top + r.height / 2 - base.top + host.scrollTop;
       return { i, x, y, x0: x, y0: y, c: it.color };
     }).filter(Boolean);
-    window.M3.spread(P, MIN);
     const W = host.scrollWidth, H = host.scrollHeight;
+    window.M3.spread(P, MIN, { x0: 15, y0: 15, x1: W - 15, y1: H - 15 });   // 邊界一起傳進去：推完夾、夾完再推（夾回去不會又疊上）
     /* 推開之後可能被推出畫面邊緣：夾回容器內（留 15px，編號鈕半徑 14）—— 不夾的話被推出去的鈕會撐出假的捲動寬 */
     P.forEach(q => { q.x = Math.max(15, Math.min(W - 15, q.x)); q.y = Math.max(15, Math.min(H - 15, q.y)); });
     const ov = window.M3.overlaps(P, MIN);
@@ -2006,8 +2149,7 @@
         const base = h3.getBoundingClientRect();
         const P = ctx.items.map((it, i) => { const q = view.pointOf(it.part); if (!q) return null;
           const x = q.x - base.left, y = q.y - base.top; return { i, x, y, x0: x, y0: y, c: it.color, back: !q.front }; }).filter(Boolean);
-        window.M3.spread(P, MIN);
-        P.forEach(q => { q.x = Math.max(15, Math.min(base.width - 15, q.x)); q.y = Math.max(15, Math.min(base.height - 15, q.y)); });
+        window.M3.spread(P, MIN, { x0: 15, y0: 15, x1: base.width - 15, y1: base.height - 15 });
         layer.innerHTML = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
         layer.dataset.overlap = window.M3.overlaps(P, MIN); layer.dataset.n = P.length; h3.dataset.mn = ctx.items.length;
       }

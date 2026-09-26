@@ -451,7 +451,9 @@
       <text class="cap" x="12" y="1610">零件顏色＝環節色。點零件只會「亮」不會篩成分股（要篩請點下方的環節色標或族群卡片）。</text>
       <text class="cap" x="12" y="1628">這張圖涵蓋兩個環節：面板 TFT-LCD、面板材料 玻璃基板。</text>
       <text class="cap" x="12" y="1646">驅動 IC 的晶片屬半導體鏈的「顯示驅動 IC」族群（3034 聯詠等），圖上只畫它貼在面板端子區的位置。</text>
-      <text class="cap" x="12" y="1664">資料來源與信心度見 docs/diagram_specs/panel_stack.md；本輪補查的來源（含每一條的網址）列在 site/dg/panel.js 檔頭。</text>`)}
+      <!-- ★ 2026-09-26 覆蓋普查：這一行原本伸出畫布 105～127px → 拆兩行 -->
+      <text class="cap" x="12" y="1664">資料來源與信心度見 docs/diagram_specs/panel_stack.md；</text>
+      <text class="cap" x="12" y="1682">本輪補查的來源（含每一條的網址）列在 site/dg/panel.js 檔頭。</text>`)}
     </svg>`;
   }
 

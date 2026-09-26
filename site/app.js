@@ -1833,7 +1833,7 @@
     if (!view) return;
     const groups = MIA_PAGER[key];
     if (!groups || !mIsM()) { miaClearPager(view); return; }
-    // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #mtfCard）
+    // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #aiCard）
     const found = groups.map(g => ({ s: g.s || 0, n: g.n,
         els: g.sel.map(x => view.querySelector(x) || document.querySelector(x)).filter(Boolean) }))
       .filter(g => g.els.length);
@@ -2092,9 +2092,12 @@
   /* 產業鏈頁的兩段長說明：`#nbIntro` 量到 146px、`#relHint` 208px，
      加起來 354px ＝ 半個手機畫面在講「怎麼看」。收起來，入口留在原地。
      （Andy：「不要太多文字…以圖為主」；判準：收起來可以，刪掉不行。）*/
+  /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』」）：改前手機在頁首與關聯圖標題下各插一顆
+     「這一頁怎麼看 ▾」「關聯圖怎麼看 ▾」收合鈕；改後兩段說明都住在標題旁的「?」彈窗裡（#how-nb／#how-rel），
+     本來就不佔版面，收合鈕拿掉。⚠ 還要把 .mf-off 拔掉：它會把彈窗裡的 #nbIntro／#relHint 藏起來 → 「?」打開是空的。*/
   function miaChain() {
-    miaFold('#nbIntro', '這一頁怎麼看', ['#nbIntro'], 'mfChainIntro');
-    miaFold('#relHead', '關聯圖怎麼看', ['#relHint'], 'mfRelHint');
+    ['mfChainIntro', 'mfRelHint'].forEach(id => { const b = document.getElementById(id); if (b) b.remove(); });
+    ['nbIntro', 'relHint'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('mf-off'); });
   }
 
   /* 資金流向「資金輪動」那張卡：量到 1368px，其中篩選列 101px ＋ 時間列 132px
@@ -2124,7 +2127,9 @@
         px._miaHome.insertBefore(px, px._miaNext); px._miaHome = null; px._miaNext = null;
       }
     }
-    miaFold('#skIdent h2', '詳細（產業鏈 / 族群 / 評級）', ['#skMeta', '#skVerdict'], 'mfStockMeta');
+    /* 2026-09-26：右上判讀卡（#skVerdict）換成一行的「AI 分析」結論（#skAiLine）—— 只有一行，
+       手機也直接露出來（一眼看到結論是這一行存在的理由），不再收進「詳細」。*/
+    miaFold('#skIdent h2', '詳細（產業鏈 / 族群）', ['#skMeta'], 'mfStockMeta');
     miaFold('#chartWrap', '怎麼操作這張圖 / 資料到哪一天', ['#skChartCard .skhelp'], 'mfStockHelp');
     // `.skhelp` 是兩個節點，querySelector 只抓得到第一個 —— 補第二個
     if (mIsM()) { document.querySelectorAll('#skChartCard .skhelp').forEach(el => {
@@ -6900,6 +6905,9 @@
       document.body.append(back, pop);
       back.addEventListener('click', () => { if (howPop.close) howPop.close(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && howPop.close) howPop.close(); });
+      /* ★ 2026-09-26：換頁（上一頁／貼網址／點連結）時說明一律收掉。產業鏈頁的「?」改成跳出式之後，
+         開著說明按上一頁，頁面整段重畫、浮層卻還蓋在新頁面上（背景變暗、什麼都點不到）。*/
+      window.addEventListener('hashchange', () => { if (howPop.close) howPop.close(); });
     }
     const wasSame = howPop.cur === box && !box.hidden;
     if (howPop.close) howPop.close();
@@ -6908,7 +6916,8 @@
     if (src != null) (box.querySelector('.howbody') || box).innerHTML = typeof src === 'function' ? src() : src;
     const home = document.createComment('howhome');
     box.parentNode.insertBefore(home, box);
-    const h = btn.closest('h3, h4, h5');
+    // ★ 2026-09-26 加 h2：產業鏈頁首的「?」（nb）住在鏈名 h2 裡，彈窗標題要讀得到鏈名
+    const h = btn.closest('h2, h3, h4, h5');
     // 標題：鈕上有 data-ttl 就用它（K 線工具列那顆不在標題裡），否則取所在標題的第一段字
     const ttl = btn.dataset.ttl || (h ? ((h.childNodes[0] && h.childNodes[0].textContent) || '').trim() : '');
     pop.innerHTML = `<div class="hp-h"><b>${fmt.esc(ttl || '說明')}</b></div>`;

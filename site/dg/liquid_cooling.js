@@ -162,7 +162,10 @@
     const MS_X = 368, MR_X = 512, MY0 = 102, MY1 = 240;          // 供水／回水分歧管（垂直主幹）
     const CP = { x: 396, w: 74, h: 20, ys: [112, 146, 180, 214] };
     const CDU = { x: 552, y: 110, w: 118, h: 160 };
-    const PHE = { x: 600, y: 138, w: 56, h: 70 };
+    /* ★ 2026-09-26 覆蓋普查：「板式熱交換器」六個字比 CDU 框裡剩下的寬度還長 —— 放在 PHE 上方同一行會跟「CDU」互疊、
+       放右邊會伸出框。PHE 往下挪 14、高度收 8（示意方塊，片數不變），標籤排在「CDU」下一行、靠右對齊收在框裡；
+       一次側兩條水管跟著 PHE 的上下緣走。*/
+    const PHE = { x: 600, y: 152, w: 56, h: 62 };
     const PUMP = { x: 640, y: 242, r: 14 };
     const BND = 676;                                             // 這條線右邊是機房基礎設施（§6-M6）
     /* 快接頭 QD：對插的兩半、端面是平的（§6-M1）。一定成對出現（一進一出，§6-L2）。
@@ -206,9 +209,9 @@
     const PHE2PUMP = `M${PHE.x + PHE.w - 8},${PHE.y + PHE.h}V${PUMP.y - PUMP.r - 10}H${PUMP.x}V${PUMP.y - PUMP.r}`;
     /* 一次側（設施側 FWS）：**比二次側粗**、第三種顏色、只碰到板式熱交換器（§6-L8／L4）。
        它穿過 x=676 那條虛線 —— 虛線右邊就是機房基礎設施，不在這條產業鏈上（§6-M6）。*/
-    const primary = fx.beam(`M${CW},150H${PHE.x + PHE.w}`, { color: 'var(--dg-fws)', w: 6, glow: false, flow: true })
-      + `<path d="M${PHE.x + PHE.w + 10},145l-8,5l8,5Z" fill="var(--dg-fws)"/>`
-      + fx.beam(`M${PHE.x + PHE.w},198H${CW}`, { color: 'var(--dg-fws-2)', w: 6, glow: false, flow: true })
+    const primary = fx.beam(`M${CW},${PHE.y + 8}H${PHE.x + PHE.w}`, { color: 'var(--dg-fws)', w: 6, glow: false, flow: true })
+      + `<path d="M${PHE.x + PHE.w + 10},${PHE.y + 3}l-8,5l8,5Z" fill="var(--dg-fws)"/>`
+      + fx.beam(`M${PHE.x + PHE.w},${PHE.y + PHE.h - 12}H${CW}`, { color: 'var(--dg-fws-2)', w: 6, glow: false, flow: true })
       + `<path d="M${CW - 8},193l8,5l-8,5Z" fill="var(--dg-fws-2)"/>`;
     const loop = `<text class="fine" x="${MS_X - 14}" y="80" style="fill:var(--dg-cold)">供水</text>`
       + `<text class="fine" x="${MR_X - 16}" y="80" style="fill:var(--dg-hot)">回水</text>`
@@ -225,7 +228,7 @@
         + `<text class="lbl" x="${CDU.x + 8}" y="${CDU.y + 16}">CDU</text>` + pump
         + fx.beam(PHE2PUMP, { color: 'var(--dg-cold)', w: 2.6, glow: false, flow: true })
         + `<text class="fine" x="${PUMP.x - 34}" y="${PUMP.y + 4}">泵</text>`)
-      + P('phe', phe + `<text class="fine" x="${PHE.x - 6}" y="${PHE.y - 6}">板式熱交換器</text>`)
+      + P('phe', phe + `<text class="fine" x="${PHE.x + PHE.w}" y="${PHE.y - 8}" text-anchor="end">板式熱交換器</text>`)   /* ★ 2026-09-26：原本從左邊起筆、右端伸出 CDU 框 → 靠右對齊收進框裡 */
       + primary
       + `<path d="M${BND},${CDU.y + 4}V${CDU.y + CDU.h}" stroke="var(--dg-mute)" stroke-width="1.6" stroke-dasharray="6 5" fill="none"/>`
       + `<text class="fine" x="618" y="288" style="fill:var(--dg-mute)">機房側 →</text>`
@@ -288,10 +291,10 @@
         + `<rect x="${x}" y="${y + 22}" width="96" height="16" rx="8" fill="var(--dg-cu)"/>`
         + `<path class="flow" d="M${x + 8},${y + 30}H${x + 88}" stroke="var(--dg-hot)" stroke-width="2.6" fill="none"/>`
         + `<circle cx="${x + 8}" cy="${y + 30}" r="5" fill="var(--dg-hot)"/>`
-        + `<text class="fine" x="${x}" y="${y + 60}">熱管：搬到遠處</text>`
+        + `<text class="fine" x="${x}" y="${y + 1}">熱管：搬到遠處</text>`   /* ★ 2026-09-26：兩個標籤原本在圖的正下方（y+60），壓到面那一圈的橢圓底 → 移到圖的正上方 */
         + `<ellipse cx="${x + 210}" cy="${y + 30}" rx="60" ry="28" fill="var(--dg-cu)" opacity=".5"/>${rings}`
         + `<circle cx="${x + 210}" cy="${y + 30}" r="5" fill="var(--dg-hot)"/>`
-        + `<text class="fine" x="${x + 160}" y="${y + 60}">VC：就地攤平</text>`
+        + `<text class="fine" x="${x + 160}" y="${y + 1}">VC：就地攤平</text>`
         + cellText(3, ['AI 晶片的熱是「高熱通量的點」，', '所以要先攤平，再交給下一關帶走。', '同樣厚度下 VC 攤平能力較好']));
     })();
 
@@ -364,12 +367,13 @@
       ${card({ part: 'manifold', no: 8, side: 'r', ax: MS_X, ay: 98, color: C.cold, title: '分歧管（manifold）', sub: '一根主幹 ＋ 多個等距分支，藍＝供水、橘＝回水；是並聯不是串聯' })}
       ${card({ part: 'cdu', no: 9, side: 'r', ax: PUMP.x + PUMP.r, ay: PUMP.y, color: C.cool, title: 'CDU（冷卻液分配單元）', sub: '泵 ＋ 板式熱交換器 ＋ 過濾 ＋ 控制，四個口；泵在機櫃側這一環' })}
       ${card({ part: 'phe', no: 10, side: 'r', ax: PHE.x + PHE.w, ay: PHE.y + PHE.h / 2 + 1, color: C.cool, title: '板式熱交換器：兩邊的水不相通', sub: '機櫃側 TCS 與機房側 FWS 只交換熱、不交換液體 —— 機房的水髒了也流不進 GPU' })}
-      ${card({ seg: null, no: 11, side: 'r', ax: BND - 10, ay: 150, color: C.fws, title: '這條線的右邊是機房基礎設施', sub: '一次側（設施水）的管比二次側粗、用第三種顏色，往冷卻水塔／冰水主機去 —— 不在這條產業鏈上，所以不掛環節、不列台股' })}
+      ${card({ seg: null, no: 11, side: 'r', ax: BND - 10, ay: PHE.y + 8, color: C.fws, title: '這條線的右邊是機房基礎設施', sub: '一次側（設施水）的管比二次側粗、用第三種顏色，往冷卻水塔／冰水主機去 —— 不在這條產業鏈上，所以不掛環節、不列台股' })}
       ${card({ seg: null, warn: true, note: true, order: 99, side: 'r', title: '點零件篩到的是「供應鏈環節」，不是整個族群', sub: '散熱這一格目前收錄六家；族群「液冷散熱」5 檔裡做快接頭的富世達 6805 不在環節裡，點快接頭列不出它。' })}
 
       <!-- ================= ② 兩相元件剖面（預設收合；座標由 wireFolds 量） ================= -->
       ${fold('lc2', '② 「均熱片」與「均熱板 VC」是兩種東西 —— 一個實心、一個是真空腔', '實心 IHS、真空腔 VC、熱管三個剖面，以及「線 vs 面」的熱擴散對照', `
-        <text class="hd" x="16" y="466">「均熱片」與「均熱板 VC」是兩種東西 —— 一個實心、一個是真空腔；熱管是同一個物理、換成管子</text>
+        <text class="hd" x="16" y="446">「均熱片」與「均熱板 VC」是兩種東西 —— 一個實心、一個是真空腔；</text>
+        <text class="hd" x="16" y="466">熱管是同一個物理、換成管子</text>   <!-- ★ 2026-09-26：原本一行伸出畫布 94px → 兩行 -->
         ${ihsCell}${vcCell}${hpCell}${dimCell}`)}
 
       <!-- ================= ③ 三種做法對照 ＋ 為什麼一定要走到液冷 ================= -->
@@ -409,7 +413,10 @@
           '兩相冷板何時放量：來源只說「目前導入少」，',
           '沒有可引用的時程。',
         ], 'unknown')}
-        <text class="cap" x="16" y="1448">熱交給誰、再交給誰（五格）　★ 接點（格 3）一定在 CDU（格 4）之前；格 4 與格 5 之間那條虛線是產業鏈的邊界</text>
+        <!-- ★ 2026-09-26：這一行原本伸出畫布 86px → 拆兩行，下面的流程列與註腳整段往下推 18 -->
+        <text class="cap" x="16" y="1448">熱交給誰、再交給誰（五格）</text>
+        <text class="cap" x="16" y="1466">★ 接點（格 3）一定在 CDU（格 4）之前；格 4 與格 5 之間那條虛線是產業鏈的邊界</text>
+        <g transform="translate(0,18)">
         ${pbar(16, 1456, [
           { seg: SEG, t: '晶片端', s: 'die → TIM1 → 蓋板／VC' },
           { seg: SEG, t: '冷板', s: 'TIM2 → 冷板 → 流道' },
@@ -419,7 +426,8 @@
         <path d="M222,1508V1562" stroke="var(--dg-mute)" stroke-width="2" stroke-dasharray="6 5" fill="none"/>
         <text class="fine" x="16" y="1580" style="fill:var(--dg-mute)">左邊是這條產業鏈上的東西</text>
         <text class="fine" x="228" y="1580" style="fill:var(--dg-mute)">右邊是機房基礎設施</text>
-        <text class="cap" x="16" y="1606">資料來源與信心度見 docs/diagram_specs/liquid_cooling.md。</text>`)}
+        <text class="cap" x="16" y="1606">資料來源與信心度見 docs/diagram_specs/liquid_cooling.md。</text>
+        </g>`)}
     </svg>`;
   }
 

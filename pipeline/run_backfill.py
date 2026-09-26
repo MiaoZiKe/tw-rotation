@@ -189,11 +189,20 @@ def already_covered(table: str, code: str, start: str, respect_time: bool = True
     sub = df[df["code"] == code]
     if sub.empty:
         return False
-    # 各表的時間欄位不同：日表 date、月表 ym、季表 period_end
-    col = next((c for c in ("date", "ym", "period_end") if c in sub.columns), None)
+    # 各表的時間欄位不同：日表 date、月表 ym、季表 period_end、股利公告 announce_date。
+    # ★ 2026-09-26（Andy：「除權息為什麼只有一筆」）：dividend_events 以前被當成「沒有時間維度的表，
+    #   有資料就算補過」。但每日管線（twse.dividend_events，證交所 OpenAPI 只給當年度公告）比回補先跑，
+    #   先寫進一筆今年的公告 → 回補看到「有資料」就跳過 2016 起的歷史，而且**不寫 done 鍵**，
+    #   所以永遠不會再補。實測 683 檔（除權息結果有 ≥4 年、公告卻 ≤2 年）裡 662 檔是這樣被跳掉的，
+    #   3026 禾伸堂只剩 114 年一筆。改用公告日判斷「最早補到哪」，跟其他表同一套規則。
+    col = next((c for c in ("date", "ym", "period_end", "announce_date") if c in sub.columns), None)
     if col is None:
         return True          # 沒有時間維度的表，有資料就算補過
-    earliest = str(sub[col].min())
+    vals = sub[col].dropna().astype(str)
+    vals = vals[vals.str.len() > 0]
+    if vals.empty:
+        return False
+    earliest = str(vals.min())
     return earliest <= start[:len(earliest)]
 
 

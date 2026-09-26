@@ -91,8 +91,12 @@
 
   /* ---- 編號層：互相擋到的編號往外推（最多 8 輪），推開的拉一條細引線回原點 ----
      2D、3D 共用（diagrams.js 的 DG.mobileNums 與 3D 那一支都用這一份）。回傳推完之後還重疊的對數。*/
-  function spread(P, MIN) {
-    for (let k = 0; k < 8; k++) {
+  /* ★ 2026-09-26 覆蓋普查（scripts/_dg_overlap.py）：3D 的層狀剖面（第三代半導體）十幾個編號排成一直欄，
+     原本最多推 8 輪 —— 一整排互相擠的時候推不開（實測 09／10 還疊 6.5px）；呼叫端推完之後又把跑出畫面的鈕夾回邊界，
+     夾回去就又疊上了。改成：最多推 40 輪，而且可以傳邊界 B（{x0,y0,x1,y1}），每一輪推完就夾一次，夾完再推。*/
+  function spread(P, MIN, B) {
+    const clamp = () => { if (!B) return; P.forEach((q) => { q.x = Math.max(B.x0, Math.min(B.x1, q.x)); q.y = Math.max(B.y0, Math.min(B.y1, q.y)); }); };
+    for (let k = 0; k < 40; k++) {
       let moved = false;
       for (let a = 0; a < P.length; a++) for (let b = a + 1; b < P.length; b++) {
         const dx = P[b].x - P[a].x, dy = P[b].y - P[a].y, d = Math.hypot(dx, dy);
@@ -101,6 +105,7 @@
           P[a].x -= ux * push; P[a].y -= uy * push; P[b].x += ux * push; P[b].y += uy * push; moved = true;
         }
       }
+      clamp();
       if (!moved) break;
     }
     return overlaps(P, MIN);
@@ -542,8 +547,10 @@
        不寫進 localStorage：它是「這一眼要看哪一段」的暫時聚焦，不是篩選條件（篩選在抽屜裡，那個才會記住）。*/
     let chain = LS.get('flow.chain', ''), pk = LS.get('flow.period', periods[0] && periods[0].key), sel = null, quad = null, quadNew = false;
     if (!periods.some(p => p.key === pk)) pk = periods[0] && periods[0].key;
-    box.innerHTML = `<div class="mhead"><h3>資金輪動</h3><span class="sp"></span><button type="button" class="mfilt" id="mFlowFilt"></button>`
-      + `<button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></div>`
+    /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
+       改前「?」排在這一列最右邊（篩選鈕後面）→ 改後跟總覽一樣住在標題「資金輪動」文字的右側，彈窗標題才讀得到卡片名稱。*/
+    box.innerHTML = `<div class="mhead"><h3>資金輪動<button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3>`
+      + `<span class="sp"></span><button type="button" class="mfilt" id="mFlowFilt"></button></div>`
       + `<div class="mrhost" id="mRadarFlow"></div><div class="mfhost"></div>`
       + `<div class="mhead sm"><h3>資金排行</h3><small id="mRankSub"></small><span class="sp"></span></div><ul class="mrank" id="mRank"></ul>`;
     const draw = () => {
