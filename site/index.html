@@ -575,12 +575,47 @@ small{font-size:12.5px}
   color:var(--ink);border-radius:9px;font-size:14px}
 .search input:focus{outline:0;border-color:var(--cyan);box-shadow:var(--glow)}
 .search::before{content:"⌕";position:absolute;left:12px;top:6px;color:var(--ink-3);font-size:16px}
-.sugg{position:absolute;top:42px;left:0;right:0;background:var(--panel);border:1px solid var(--line-2);
-  box-shadow:var(--shadow);z-index:50;max-height:320px;overflow:auto;display:none;border-radius:9px}
-.sugg div{padding:9px 12px;cursor:pointer;font-size:14px;display:flex;gap:10px}
-.sugg div:hover{background:var(--panel-2)}
-.sugg .code{font-family:var(--mono);font-weight:600;color:var(--cyan)}
-.sugg .g{margin-left:auto;font-size:12px;color:var(--ink-3)}
+/* 搜尋下拉（2026-09-26 加「近期搜尋／熱門股票」與 Logo）：
+   ① 桌機的輸入框只有 220px，放不下「Logo＋代號＋名稱＋成交值＋漲跌」—— 下拉改成貼齊輸入框**右緣**、至少 340px 寬
+     （搜尋框在頂欄最右邊，往左長才不會出畫面）；再用 max-width 保證窄畫面不會長出畫面。
+   ② 高度上限 min(70vh,560px)：18 列（8 近期＋10 熱門）放不下時在清單裡捲，不把整頁撐長。*/
+.sugg{position:absolute;top:42px;left:auto;right:0;width:max(100%,340px);max-width:calc(100vw - 16px);
+  background:var(--panel);border:1px solid var(--line-2);
+  box-shadow:var(--shadow);z-index:50;max-height:min(70vh,560px);overflow:auto;display:none;border-radius:9px;
+  overscroll-behavior:contain}
+.sugg .sgrow{padding:8px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:8px;min-width:0}
+.sugg .sgrow:hover,.sugg .sgrow.on{background:var(--panel-2)}
+.sugg .sgrow.on{box-shadow:inset 3px 0 0 var(--cyan)}
+.sugg .code{font-family:var(--mono);font-weight:600;color:var(--cyan);flex:none}
+.sugg .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.sugg .g{margin-left:auto;font-size:12px;color:var(--ink-3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+.sugg .tv{margin-left:auto;font-size:12px;color:var(--ink-3);font-family:var(--mono);flex:none}
+.sugg .chg{font-family:var(--mono);font-size:13px;font-weight:600;min-width:62px;text-align:right;flex:none}
+.sugg .sghd{display:flex;align-items:center;gap:8px;padding:10px 12px 4px;font-size:12px;font-weight:700;
+  color:var(--ink-3);letter-spacing:.04em;cursor:default}
+.sugg .sghd + .sgrow{margin-top:2px}
+.sugg .sgrow + .sghd{border-top:1px solid var(--line);margin-top:4px}
+.sugg .sghd small{font-weight:400;font-size:12px;letter-spacing:0;margin-left:auto}
+.sugg .sgclr{margin-left:auto;border:0;background:transparent;color:var(--cyan);font-size:12px;cursor:pointer;
+  padding:2px 6px;border-radius:6px}
+.sugg .sgclr:hover{background:var(--panel-3)}
+.sugg .sgdel{flex:none;width:24px;height:24px;margin-left:4px;border:0;border-radius:6px;background:transparent;
+  color:var(--ink-3);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.sugg .sgdel:hover{background:var(--panel-3);color:var(--ink)}
+.sugg .g + .sgdel{margin-left:4px}
+.sugg .nm + .sgdel{margin-left:auto}
+.sugg .sgempty{margin:0;padding:6px 12px 10px;font-size:13px;color:var(--ink-3);line-height:1.5}
+/* 公司 Logo（2026-09-26）：圓角方形；沒有圖／圖壞掉時是字母頭像（字由 ::before 畫，不進 DOM 文字）。
+   ::after 疊一圈 1px 淡框在圖的**上面** —— 白底 Logo 在淺色主題才看得到邊。
+   圖本身墊白底：多數公司 Logo 是照白底設計的，透明 PNG 疊在深色底上會糊掉。*/
+.slogo{--lz:20px;position:relative;display:inline-grid;place-items:center;flex:none;width:var(--lz);height:var(--lz);
+  border-radius:calc(var(--lz) * .26);background:var(--lg,#4d5b73);overflow:hidden;vertical-align:middle}
+.slogo::before{content:attr(data-l);color:#fff;font-weight:700;font-size:calc(var(--lz) * .56);line-height:1;
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+.slogo::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px var(--line-2);pointer-events:none}
+.slogo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;
+  padding:calc(var(--lz) * .08);box-sizing:border-box}
+.slogo.sklogo{margin-right:10px;vertical-align:-6px}
 .evbtn{border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);padding:7px 12px;
   border-radius:9px;cursor:pointer;font-size:14px;white-space:nowrap}
 .evbtn.theme{padding:7px 10px;font-size:15px;line-height:1}
@@ -798,6 +833,16 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   #ovRotPanel .ms a .c{display:none}
   #ovRotPanel .ms a .g{margin-left:0;font-size:11px}
 }
+/* ★ 2026-09-26（Andy：「足跡輪盤點擊族群會影響到旁邊的版面」）：#ovRotPanel 改成浮在輪盤上的覆蓋卡 ——
+   absolute 掛在 #ovRotCard 上、不佔版面，打開／收起時「昨日資金去向」與左欄卡片一個像素都不動。
+   top 由 app.js ovRotPlace() 算（貼著剛點的那顆放在它上方或下方，不蓋到它）。底色用不透明的 --panel-2＋陰影，
+   看得出是一張蓋上去的卡，不會跟底下的輪盤線條混在一起。*/
+#ovRotCard{position:relative}
+#ovRotPanel{position:absolute;left:14px;right:14px;z-index:6;margin-top:0;background:var(--panel-2);
+  box-shadow:0 10px 28px rgba(0,0,0,.45)}
+/* 641～820 還是桌機那一份輪盤（手機雷達是 ≤640），但沒吃到上面 ≥821 的緊湊樣式 —— 清單上限收到約四行，
+   不然一張浮卡就把整個輪盤蓋滿。*/
+@media (max-width:820px){ #ovRotPanel .ms{max-height:120px} }
 .hpanel .ms a.sub .c{flex:none}
 .hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 .hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}
@@ -1616,6 +1661,19 @@ tbody tr:last-child td{border-bottom:0}
 .indrow .ibody .frow{flex-wrap:wrap}
 .indrow .ibody input[type=number]{width:62px}
 .indrow .ibody .plab{font-size:12px;color:var(--ink-3);min-width:0}
+/* 週期區（2026-09-26 晚）：一直攤開的一排勾選晶片；勾起來＝青色框。最後一顆勾不掉（.last 用虛線框暗示）。*/
+.indrow.tfrow .isw{cursor:default}
+.indrow.tfrow .isw:hover{background:transparent}
+.indrow.tfrow .isum{white-space:normal}
+.indrow .tfbody{padding-top:0}
+.tfchk{display:flex;flex-wrap:wrap;gap:6px}
+.tfchk .tfc{display:inline-flex;align-items:center;gap:5px;padding:4px 9px 4px 7px;border:1px solid var(--line-2);border-radius:7px;
+  font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none;min-height:28px}
+.tfchk .tfc input{accent-color:var(--cyan);width:14px;height:14px;margin:0;cursor:pointer}
+.tfchk .tfc.on{border-color:var(--cyan);color:var(--ink)}
+.tfchk .tfc.last{border-style:dashed;cursor:not-allowed}
+.tfchk .tfc:hover{background:var(--panel-3)}
+.indrow .tfnote{margin-top:6px}
 .indpop .ifoot{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 4px 0;border-top:1px solid var(--line)}
 @media (max-width:640px){.cfgpop.indpop{width:calc(100vw - 20px)}.indrow .ibody{padding-left:8px}}
 /* 基本資料的題材／族群連結：以前黏成「#AI 伺服器#高階 PCB」一串，看不出哪裡斷 */
@@ -2805,6 +2863,24 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    作者樣式蓋掉了 [hidden] 的 UA 預設，industry.js 設的 hidden 從來沒生效過。2D 時畫面上掛著兩顆只對 3D 有用的鈕，
    也是「看不出現在是 2D 還是 3D」的一部分。設定列裡凡是 hidden 的一律真的藏起來。*/
 #dgTools>[hidden]{display:none!important}
+/* ★ 2026-09-26（Andy：「拖曳、重設視角，移動到下面」）：兩顆從設定列搬進 3D 畫面框內的右上角，浮在畫布上。
+   · .dg3dbox 只是定位用的外框（#prod3d 會被 innerHTML 清空，鈕不能住在它裡面，見 industry.js 樣板的註解）。
+   · 半透明底＋模糊：底下是 3D 背景的漸層，實色塊會像一塊補丁；全透明在淺色主題又讀不到字。
+     顏色走全站 token（--panel／--line-2／--ink-2），深淺主題各自跟著換，不另外寫一份淺色版。
+   · 右欄卡片由 three3d.js 從這組鈕的下緣開始排（reserveTR），所以不會壓到卡片；
+     窄畫面（卡片搬到畫布底下）時右上角本來就是空的背景。
+   · [hidden] 一定要 !important：.pill 是 inline-flex，外層只要漏一次，2D 時就會掛著兩顆沒用的鈕。*/
+.dg3dbox{position:relative}
+.dg3dctl{position:absolute;top:8px;right:8px;z-index:6;display:flex;gap:6px;align-items:center;
+  padding:4px;border-radius:999px;background:color-mix(in srgb,var(--panel) 62%,transparent);
+  border:1px solid color-mix(in srgb,var(--line-2) 70%,transparent);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.dg3dctl[hidden]{display:none!important}
+.dg3dctl .pill{cursor:pointer;font-size:12.5px;line-height:1.35;
+  background:color-mix(in srgb,var(--panel-3) 78%,transparent)}
+.dg3dctl .pill:hover{color:var(--ink);border-color:var(--cyan)}
+.dg3dctl .pill.cyan{background:rgba(62,224,255,.16)}   /* 「拖曳：平移」時亮青色，上面那條半透明底不能把它蓋掉 */
+.dg3dctl .pill:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 /* 窄畫面：設定列自己換到下一行、排成可左右捲的一列，不准把標題擠到溢出 */
 @media (max-width:800px){
   .dgsechead{flex-wrap:wrap}
@@ -3022,7 +3098,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 :where(a,button,summary,label,
   .tab,.tabnav,.pill,.chip,.tile,.card,.evbtn,.btn,.iconbtn,.howbtn,.segchip,.grade,
   .seg>button,.seg button,.nbsw>button,.nbsw>a,.chainsw button,.chainchips button,
-  .relsw button,.facets button,.morepop button,.sugg div,.dlv-go,.dtool,.dcol,
+  .relsw button,.facets button,.morepop button,.sugg .sgrow,.dlv-go,.dtool,.dcol,
   .stage li,.hpanel .ms a,th,tbody tr,.ev,.rq){
   transition:background-color var(--dur-fast) var(--ease),
              border-color var(--dur-fast) var(--ease),
@@ -3949,11 +4025,13 @@ h3 .howbtn.pop{font-family:inherit}
         <!-- ★ 2026-09-26（Andy：「篩選位置同步在左上」）：題材下拉從標題列右側搬到標題旁（跟資金熱力圖的產業鏈下拉同一種排法），
              資料日期留在右側。 -->
         <div class="card" id="ovThemeCard"><div class="row spread"><div class="row heathead"><h3>熱門題材 <button class="howbtn pop" data-how="themeov" aria-label="熱門題材怎麼看">?</button></h3>
-          <span id="ovThemeCtl"></span></div><span id="ovThemeDate"></span></div>
+          <span id="ovThemeCtl"></span></div>
+          <!-- ★ 2026-09-26（Andy：「熱門題材，需要跟資金熱力圖一樣有放大功能」）：日期旁「放大 ⤢」，排法同 #heatZoom -->
+          <div class="row" style="gap:8px"><span id="ovThemeDate"></span><button class="btn small" id="ovThemeZoom">放大 ⤢</button></div></div>
           <div class="howtxt" id="how-themeov" hidden></div>
-          <div id="ovThemeWrap"><div id="ovTheme" class="chart"></div></div></div>
+          <div class="zwrap" id="ovThemeWrap"><div id="ovTheme" class="chart"></div></div></div>
       </div>
-      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>足跡輪盤 <button class="howbtn pop" data-how="rotm" aria-label="足跡輪盤怎麼看">?</button></h3></div>
+      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>資金輪盤 <button class="howbtn pop" data-how="rotm" aria-label="資金輪盤怎麼看">?</button></h3></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
         <div class="hpanel" id="ovRotPanel" hidden></div>
@@ -4046,11 +4124,12 @@ h3 .howbtn.pop{font-family:inherit}
                窄畫面自動換行（見 .rottime）。
                ★ 2026-09-24（Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前…至多30天」）：
                  雙把手區間桿再收成**單一拉Bar「N 天前」**（`dayBar`，1～30）。點永遠停在最新一天，
-                 N 只決定 ▶ 回放從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。
-               ★ 2026-09-26（Andy：「腳印功能拿掉」）：輪盤不再畫腳印，title 裡「輪盤的腳印」改成回放的講法；
-                 #rotTools 只剩「水波」「掃描」兩個勾選框（「顯示腳印」拿掉）。 -->
+                 N 只決定腳印從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。
+               ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：同日稍早三次改動（預設只畫圓圈 → 腳印整個拿掉 →
+                 只恢復軌跡線）一起退回 09-25 晚的樣子：軌跡＋腳印都畫，#rotTools 的「顯示腳印」勾選框回來、預設勾選；
+                 title 也回到「輪盤的腳印」的講法。 -->
           <div class="rottime" id="flowRotTime">
-            <div id="rotBack" title="看幾天前到最新（1～30 天）：右邊的排行比的是這一段；▶ 讓輪盤從那一天一步一步走回最新"></div>
+            <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
             <div class="rottools" id="rotTools"></div>
           </div>
           <!-- ★ 2026-09-25（Andy）：①「放大」從右欄（排行標題列）搬到輪盤欄右上角 —— 它放大的是輪盤，
@@ -4060,7 +4139,7 @@ h3 .howbtn.pop{font-family:inherit}
                改前：點了開 openZoom 的足跡輪盤放大視窗（拉Bar／篩選／即時鈕各一份）。改後：卡片上的輪盤本身就是完整版
                （2026-09-25 起高＝欄寬×0.8、四張象限卡推到盤外），篩選、時間軸、即時都在卡片上，放大視窗沒有多給東西。
                其他卡的「放大／展開」（資金熱力圖、大盤三張圖、法人、河流圖…）不動。 -->
-          <div class="row spread rotchead"><h4 class="subh">足跡輪盤 <small id="rotSub"></small></h4></div>
+          <div class="row spread rotchead"><h4 class="subh">資金輪盤 <small id="rotSub"></small></h4></div>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
                盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。

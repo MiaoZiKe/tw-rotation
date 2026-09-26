@@ -1281,7 +1281,7 @@
      ── 這四個控制項一個都沒掉（Andy 指定）──
        「最新」＝右把手拉到底時 `.val` 就寫「最新」；`▶ 播放`＝這支自己的播放鈕；
        `即時` 由 `rlvMountBtn()` 照舊掛在同一個容器（`#rotBack`）上；
-       `☑ 顯示軌跡` 仍然在旁邊的 `#rotTools`（它是開關不是時間，硬併進來反而讀不懂；2026-09-26 整個拿掉）。
+       `☑ 顯示軌跡` 仍然在旁邊的 `#rotTools`（它是開關不是時間，硬併進來反而讀不懂）。
 
      ── 刻意付出的代價（寫出來，不要讓下一個人以為是 bug）──
        合併前「截止 30 天前 ＋ 最近 30 天」可以看到 60 天前；現在兩個把手在同一根 0～30 的軸上，
@@ -1437,9 +1437,9 @@
      上面那支雙把手的 spanBar（D1）因此退場：它的兩個把手是「截止日」與「起點」，
      使用者得自己把「最近 20 天 · 截止 5 天前」換算成一段日期 —— Andy 要的是一個數字就講完。
      現在只有一個值：**N 天前**（1～30）。
-       · 輪盤：點停在**最新**那一天（2026-09-26 起不畫腳印）
+       · 輪盤：點停在**最新**那一天，腳印畫「N 天前 → 最新」那一段
        · 排行：比的也是「N 天前 → 最新」（副標寫成 M/D ～ M/D）
-       · ▶ 播放＝回放：點從 N 天前出發、一天一天走回最新，走到最新就停。
+       · ▶ 播放＝回放：點從 N 天前出發、一天一天走回最新（腳印跟著一步一步長出來），走到最新就停。
          播到一半按 ⏸ 就停在那一天（那時象限卡與展開面板也是那一天的）。
          播放時拉Bar 本身不動 —— 動的是「回放到哪一天」（frame），寫在數字旁邊。
      onDays(N)：拖拉Bar／按 − ＋；onFrame(f)：回放的那一天是 f 天前（0＝最新）。*/
@@ -2233,6 +2233,9 @@
       return;
     }
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
+    /* 近期搜尋（2026-09-26）：進個股頁就記一筆 —— 不管是從搜尋點進來、從別的圖點進來、還是直接貼網址。
+       只記全市場索引裡找得到的代號（打錯的代號會走「找不到代號」，不該留在紀錄裡）。*/
+    if (head === 'stock' && rest[0] && L.cname[rest[0]]) recentPush(rest[0]);
     $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
        放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
@@ -3032,9 +3035,12 @@
          一直空著的那一圈還給盤面。容器高度同步 300 → 360（見 index.html），
          不然 82% 只是「在同樣小的框裡畫大一點」。
        · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金去向分流圖」（D7）。*/
-    /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：改前這裡傳 trail: ROT.trail（跟資金流向頁的「顯示腳印」勾選框走）；
-       腳印功能整個刪除之後小輪盤一樣只有圓點，沒有參數可傳。*/
-    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true });
+    /* ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：偏好預設改回**開**，所以沒動過開關的人在這裡看到的
+       就是 09-25 的樣子（只畫焦點族群的腳印與軌跡，非焦點在小時鐘上照舊藏起來）；勾掉之後兩張一起只剩圓圈。
+       ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：總覽小輪盤跟著同一個「顯示腳印」偏好（ROT.trail）。
+       改前：這裡沒傳 trail，renderRotClock 的 `opts.trail !== false` 把它當成開 —— 焦點族群身後永遠拖著腳印，
+       連資金流向頁把開關勾掉都關不掉這一張。改後：資金流向頁沒勾 → 這裡也只有圓圈；勾了 → 兩張一致。*/
+    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: ROT.trail });
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
     // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
     whenNear($('#ovFlow'), () => renderOvFlow(sd));
@@ -3122,6 +3128,37 @@
     if (!opts || opts.scroll !== false) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  /* ★ 2026-09-26（Andy：「足跡輪盤點擊族群會影響到旁邊的版面，處理這問題」）：
+     總覽足跡輪盤點族群後的成分股面板（#ovRotPanel）改成**浮在輪盤上的覆蓋卡**，不再插進文件流。
+     以前它是輪盤正下方的一個區塊：一打開就把「昨日資金去向」往下推 100 多 px、整欄變高，
+     右欄一變高，左右兩欄等高的格線又把左欄（資金熱力圖／熱門題材）一起撐高 —— 點一下整頁在跳。
+     三種做法比過：
+       · 預留固定高度：沒點的時候輪盤下面永遠空一塊 120px，而且面板內容比預留的高時照樣跳。
+       · 推到卡片外（fixed 浮動視窗）：離開輪盤、看不出是哪一顆點的面板，捲頁還要跟著算位置。
+       · ★ 蓋在輪盤自己的上半或下半（採用）：position:absolute 掛在卡片上，完全不佔版面，所以
+         其他卡片的 top／高度一個像素都不會動；位置貼著剛點的那顆 —— 點下半部的族群，面板放在那顆上方，
+         點上半部就放在下方（夾在輪盤範圍內），剛點的那顆永遠看得到、面板也就在視線旁邊。蓋住的只是輪盤的一部分，
+         點外面／Esc／再點一次同一顆就收（dismissable，跟全站其他就地面板同一套）。
+     手機（≤820）的輪盤是 mobile3.js 另一份雷達＋焦點條，不走這支。*/
+  /* ★ 2026-09-26 晚（Andy：「將出現的資訊移動到下方或上方，依據當前點擊的圓圈位置決定」）：
+     面板不再蓋在輪盤中間，改貼在**輪盤圓外**——點在下半部的族群，面板放在輪盤上緣之上（蓋住標題列那一帶）；
+     點在上半部，面板放在輪盤下緣之下（蓋在「昨日資金去向」上方那一帶）。仍是 absolute 覆蓋，不推版面；
+     放完若整張跑出畫面，就平滑捲到剛好看得到（block:'nearest'，已經看得到就不動）。*/
+  function ovRotPlace(box, chartEl, clickY) {
+    const card = box.offsetParent; if (!card) return;
+    const wrap = chartEl && chartEl.parentNode;
+    const cr = card.getBoundingClientRect(), wr = (wrap || chartEl).getBoundingClientRect();
+    const h = box.offsetHeight, gap = 6;
+    const lower = clickY != null && clickY > wr.height / 2;     // 點在輪盤下半 → 面板放在輪盤上方
+    const top = lower ? (wr.top - cr.top - h - gap) : (wr.bottom - cr.top + gap);
+    box.style.top = Math.round(top) + 'px';
+    box.dataset.at = lower ? 'top' : 'bottom';                   // 驗收用：這次貼在哪一邊（輪盤上方／下方）
+    requestAnimationFrame(() => {
+      const r = box.getBoundingClientRect();
+      if (r.top < 60 || r.bottom > window.innerHeight) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
      舊的退路 —— 用漲跌幅 ÷3 換算到同一把尺上，等於舊版 `chgColor(chg, 3)` 的飽和點），
@@ -3195,7 +3232,11 @@
     };
     const setOpen = (on) => { st.open = on; pan.hidden = !on; dd.classList.toggle('open', on); btn.setAttribute('aria-expanded', String(on)); fit(); };
     btn.onclick = (ev) => { ev.stopPropagation(); setOpen(pan.hidden); if (!pan.hidden) dismissable(pan, () => setOpen(false), { also: [dd] }); };
-    dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setOpen(false); btn.focus(); } };
+    /* Esc 只在「清單開著」時由這裡吃掉（關清單、焦點還給按鈕）。
+       ★ 2026-09-26：以前不管開沒開都 stopPropagation —— 放大視窗裡關完清單、焦點停在按鈕上，
+       再按 Esc 永遠到不了 openZoom 的監聽，放大視窗就關不掉（驗收「總覽修正0926b」抓到的）。
+       清單已經收著時讓 Esc 照常往上傳：放大視窗、其他就地面板照各自的規則關。*/
+    dd.onkeydown = (ev) => { if (ev.key === 'Escape' && !pan.hidden) { ev.stopPropagation(); setOpen(false); btn.focus(); } };
     $$('.ddopt', pan).forEach(o => o.onclick = () => { st.open = false; cfg.onPick(o.dataset[k]); });
     if (cfg.align === 'right') { pan.style.left = 'auto'; pan.style.right = '0'; }
     return dd;
@@ -3383,7 +3424,7 @@
        · 象限卡沿 45° 對角線往外推，推到「卡片最靠圓心的那個角」離盤緣 ≥ 6px 為止（ROT_CHIP_W×H 是量過的卡片外框）
        · 容器太窄、卡片會被推出容器時，半徑一次縮 4px 再算，直到卡片放得進容器（例如象限面板打開、時鐘變窄）
      手機（≤820px）照舊 84%＋卡片壓在盤緣（Andy：手機先暫停）；總覽小時鐘 66%。
-     盤的半徑、名字排版的障礙物、掃描光束、水波全部讀這一支，所以永遠對得上。*/
+     盤的半徑、名字排版的障礙物、掃描光束、水波、腳印間距全部讀這一支，所以永遠對得上。*/
   const ROT_MINI_PAD = 18, ROT_PAD = 14, ROT_CHIP_W = 104, ROT_CHIP_H = 34, ROT_CHIP_GAP = 6;
   const ROT_ANG = { leading: 45, improving: 135, lagging: 225, weakening: 315 };
   const rotChipD = (R) => {                            // 象限卡中心離圓心多遠（沿 45°）
@@ -3972,7 +4013,7 @@
      做法：每次重畫先把「目標」完整畫好（標籤排版、highlight 都照舊算），再從「畫面上此刻的樣子」
      用 requestAnimationFrame 一幀一幀內插過去：
        · 點：極座標內插，角度走短的那一邊（350° → 10° 不會繞一大圈）
-       · （2026-09-26 起沒有軌跡與腳印了 —— Andy：「腳印功能拿掉」；原本這裡還逐點搬 48 點折線與腳印）
+       · 軌跡：48 個取樣點逐點內插（點數固定，所以逐點一定對得上）；腳印依內插後的路重新擺（精確弧長位置）
        · 名字膠囊：位置＝點此刻的像素 ＋「相對點的偏移」由舊到新內插 —— 膠囊永遠貼著點走
        · 換段色環、即時箭頭與漣漪：都讀同一個 _pt
      時間：單次移動 400ms easeInOutCubic；**接續中的移動**（回放每 420ms 一天、拖拉Bar、即時連續更新）
@@ -3997,22 +4038,22 @@
   }
   function rotTween(el, id, c, a) {
     const top = a.top;
-    const target = { shape: a.shape, p: top.map(r => r.p) };
+    const target = { shape: a.shape, p: top.map(r => r.p), pts: top.map(r => (r._tf && r._tf.pts) || []) };
     const prevT = el._twTarget, disp = el._twDisp, run = el._twT;
     const near = (x, y) => x && y && Math.abs(x[0] - y[0]) < 1e-6 && Math.abs(((y[1] - x[1]) % 360 + 540) % 360 - 180) < 1e-4;
-    // 改前（有腳印時）還要比「每條軌跡的頭尾」；2026-09-26 腳印拿掉，只比點的位置
-    const same = !!(prevT && prevT.shape === target.shape && target.p.every((p, i) => near(prevT.p[i], p)));
+    const same = !!(prevT && prevT.shape === target.shape && target.p.every((p, i) => near(prevT.p[i], p))
+      && target.pts.every((q, i) => { const o = prevT.pts[i] || []; return o.length === q.length && (!q.length || (near(o[0], q[0]) && near(o[o.length - 1], q[q.length - 1]))); }));
     el._twTarget = target;
     const iLive = a.series.findIndex(s => s.name === '即時位移');
     const iEff = a.series.findIndex(s => s.type === 'effectScatter');
     const iRing = a.series.findIndex(s => s.name === '換段色環');
     const iGrp = a.series.findIndex(s => s.name === '族群');
     /* ★ 每一幀**直接搬 zrender 圖元**，不走 setOption。
-       第一版是每一幀 setOption（換 scatter 的 data），量出來一次 setOption 要跑完 ECharts 整條管線
+       第一版是每一幀 setOption（換 scatter／軌跡的 data），量出來一次 setOption 要跑完 ECharts 整條管線
        （22 個 series 全部重算、重建圖元），本機無頭瀏覽器每幀 25～240ms ＝ 4～10 fps，比原本還卡。
-       改成：目標那一版照常 setOption 畫好一次（標籤排版、highlight 都由 ECharts 算），
-       補間期間只改「位置」—— 點與即時漣漪的 x/y、名字膠囊與引線、換段色環的圓心。
-       一幀只剩幾十個屬性賦值 ＋ 一次重繪，最後一幀剛好落在 ECharts 畫好的目標上。
+       改成：目標那一版照常 setOption 畫好一次（標籤排版、highlight、腳印位置都由 ECharts 算），
+       補間期間只改「位置」—— 點與即時漣漪的 x/y、名字膠囊與引線、換段色環的圓心、軌跡折線的點、
+       腳印的 x/y 與轉角。一幀只剩幾十個屬性賦值 ＋ 一次重繪，最後一幀剛好落在 ECharts 畫好的目標上。
        ECharts 中途自己重畫（滑鼠 hover 的 highlightClock、容器縮放）會把圖元放回目標位置 ——
        下一幀照樣被搬回補間位置，所以不會卡住，最多閃一幀。*/
     const nG = top.filter(r => !r.isStock).length;
@@ -4047,16 +4088,51 @@
       F0 = F; E = e; curLbl = {};
       top.forEach((r, i) => {
         r._pt = rotLerpP(F.p[i], r.p, e);
+        const f = F.pts[i], t = target.pts[i];
+        r._ptsCur = (f && f.length === t.length && t.length) ? t.map((q, k) => rotLerpP(f[k], q, e)) : t;
       });
       const model = c.getModel();
       const pc = model && model.getComponent('polar');
       const cs = pc && pc.coordinateSystem; if (!cs) return false;
       const P = (q) => cs.dataToPoint(q);
+      const hi = el._hiGid || null;
       a.series.forEach((s, si) => {
         const sm = model.getSeriesByIndex(si); if (!sm) return;
         const d = sm.getData(); const n0 = d.count();
-        /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：改前這裡先處理 `si < top.length` 那幾條尾巴（搬 48 點折線、腳印的位置與轉角）。
-           尾巴 series 整批刪除之後，其餘 series 一律照 name／type 認，不再依賴索引順序。*/
+        if (si < top.length) {
+          const r = top[si];
+          // 看不見的軌跡（總覽小時鐘的非焦點；桌機卡片 2026-09-25 起非焦點也畫淡腳印，baseOp 不是 0）只搬折線、不搬腳印：
+          // 折線很便宜（48 點），而且滑到它時 highlightClock 會把整條打開 —— 尖端要跟點在一起
+          const hidden = s.baseOp === 0 && hi !== r.gid;
+          const pts = r._ptsCur; if (!pts || pts.length < 2) return;
+          const px = pts.map(P), n = px.length;
+          const view = c.getViewOfSeriesModel(sm), poly = view && view._polyline;
+          if (poly && poly.shape && poly.shape.points && poly.shape.points.length === n * 2) {
+            const arr = new Float32Array(n * 2);
+            px.forEach((q, k) => { arr[2 * k] = q[0]; arr[2 * k + 1] = q[1]; });
+            poly.setShape('points', arr);
+          }
+          if (hidden) return;
+          // 腳印：照目標那一版的「弧長比例」（trailDeco 記在 fu）擺到此刻這條路上，腳尖跟著路轉
+          const cum = [0];
+          for (let k = 1; k < n; k++) cum.push(cum[k - 1] + Math.hypot(px[k][0] - px[k - 1][0], px[k][1] - px[k - 1][1]));
+          const total = cum[n - 1];
+          for (let k = 0; k < n0; k++) {
+            const raw = d.getRawDataItem(k); if (!raw || raw.fu == null) continue;
+            const g = d.getItemGraphicEl(k); if (!g) continue;
+            const want = raw.fu * total; let j = 1;
+            while (j < n - 1 && cum[j] < want) j++;
+            const seg = cum[j] - cum[j - 1] || 1, u = Math.max(0, Math.min(1, (want - cum[j - 1]) / seg));
+            moveTo(g, px[j - 1][0] + (px[j][0] - px[j - 1][0]) * u, px[j - 1][1] + (px[j][1] - px[j - 1][1]) * u);
+            const A = px[Math.max(0, j - 3)], B = px[Math.min(n - 1, j + 2)];
+            const ch = g.childAt && g.childAt(0);
+            if (ch && Math.hypot(B[0] - A[0], B[1] - A[1]) > 0.5) {
+              // ECharts：子路徑 rotation ＝ symbolRotate（度→弧度）；symbolRotate ＝ 前進方向（y 朝上）− 90°
+              ch.rotation = (Math.atan2(-(B[1] - A[1]), B[0] - A[0]) * 180 / Math.PI - 90) * Math.PI / 180; ch.markRedraw();
+            }
+          }
+          return;
+        }
         if (si === iLive) {                  // 即時箭頭：補間中先藏起來，到位才出現（它的兩端是「收盤 → 現在」，移動中畫會亂指）
           for (let j = 0; j < n0; j++) { const g = d.getItemGraphicEl(j); if (g && g.ignore !== (e < 1)) { g.ignore = e < 1; g.markRedraw(); } }
           return;
@@ -4086,14 +4162,14 @@
         }
       });
       try { c.getZr().refreshImmediately(); } catch (err) { /* 下一幀照樣會畫 */ }
-      el._twDisp = { p: top.map(r => r._pt), lbl: e < 1 ? { ...(rotLbl[id] || {}), ...curLbl } : (rotLbl[id] || {}) };
+      el._twDisp = { p: top.map(r => r._pt), pts: top.map(r => r._ptsCur), lbl: e < 1 ? { ...(rotLbl[id] || {}), ...curLbl } : (rotLbl[id] || {}) };
       return true;
     };
     const settle = () => {                 // 不補間：畫面＝目標
       if (el._twRaf) { cancelAnimationFrame(el._twRaf); el._twRaf = 0; }
       el._twT = null; rotLblCur[id] = null;
-      top.forEach(r => { r._pt = r.p; });
-      el._twDisp = { p: target.p, lbl: rotLbl[id] || {} };
+      top.forEach(r => { r._pt = r.p; r._ptsCur = (r._tf && r._tf.pts) || []; });
+      el._twDisp = { p: target.p, pts: target.pts, lbl: rotLbl[id] || {} };
     };
     // 目標沒變、補間還在跑（例如即時那一輪重畫了同一個位置）：接著跑，只把畫筆換成這一輪的
     if (same && run && el._twRaf) { run.paint = paint; paint(run.t0 == null ? 0 : run.ease(Math.min(1, (performance.now() - run.t0) / run.dur)), run.from); return; }
@@ -4131,13 +4207,19 @@
      規格：docs/design_system_v2.md §3.2。Andy：「輪動階段、資金去向 優化圖表，需要更生動點」。
      「生動」在這裡的定義是**三秒內讀得出誰在哪一段、誰剛換段**，不是加特效：
        ① 象限底色分三圈（離圓心越遠＝跟大盤差越多，變成看得見的層次）
-       ② 焦點族群（佔比前 3 ＋ 最近 5 個交易日換過段的，最多 6 個）名字用粗體深字，其餘的點退到 70%
-       ③ （已移除）軌跡／腳印：2026-09-26 Andy「腳印功能拿掉」，盤上只剩圓點
+       ② 焦點族群（佔比前 3 ＋ 最近 5 個交易日換過段的，最多 6 個）畫實的軌跡、名字用粗體深字
+          （2026-09-25 起非焦點也畫，淡、小、疏 —— ROT_REST_*），
+          其餘退到 70%；「全部」模式就是原本的畫法（入口在「顯示軌跡」旁邊）
+       ③ 軌跡由舊到新漸強（15% → 90%）、最新一段畫方向箭頭、每 5 個交易日一顆小點（點距大＝跑得快）
        ④ 剛換段的族群外圈一圈 2px 階段色環（靜態，不閃；取代原本的 shadowBlur 發光）
        ⑤ 容器窄於 560px 改「編號模式」：圖上只寫編號，名字列在圖下方依象限分組的清單
           （2026-09-24 以前 390px 會把 13 個名字擠成左緣一直排，壓在圓盤上）。*/
   const ROT_FOCUS_MAX = 6;             // 焦點族群上限
-  // （2026-09-26：非焦點腳印的 ROT_REST_OP／SZ／GAP 隨腳印功能一起刪除）
+  /* 非焦點族群的腳印（2026-09-25，Andy：「為何不是每個點都有軌跡」）：
+     不透明度 .35（深淺兩種主題下都還讀得出顏色屬於哪一段，但明顯退在焦點後面）、腳印縮成 78%。*/
+  const ROT_REST_OP = 0.35;
+  const ROT_REST_SZ = 0.78;
+  const ROT_REST_GAP = 2;              // 非焦點腳印的間距倍數（每兩步畫一步）
   const ROT_NUM_W = 560;               // 容器窄於這個寬度 → 編號模式
   /* 象限底色的徑向漸層（2026-09-24 取代第 5 批的三圈硬邊色塊）：[深色, 淺色] × [圓心, 半圈虛線, 外圈虛線, 盤緣]。
      中間兩個錨點取第 5 批三圈的中間值，讀起來的「深淺」跟三圈版一致，只是變成平順過渡。*/
@@ -4148,7 +4230,7 @@
      所以這一版的新長相**只在桌機（視窗 > 820px）**：手機照舊是上一版（水滴點、細刻度、鞋印），版面與編號模式都不動。
      參考檔取的是**長相**：象限色塊濃一點（它是 .42～.45 的深色調，換算到我們的階段色約等於 .22 的平塗）、
      三圈虛線、十字軸、盤緣 72 刻羅盤刻度、深底＋象限色框的膠囊徽章、淡淡的旋轉掃描、掃到的點冒一圈聲納、
-     前掌＋腳跟的幾何小腳印（2026-09-26 刪除）、點＝發光核心＋1px 白外圈、名字寫成點右側的小膠囊。
+     前掌＋腳跟的幾何小腳印、點＝發光核心＋1px 白外圈、名字寫成點右側的小膠囊。
      它的版面（頂列、全螢幕 canvas、底部說明）不搬 —— 我們的篩選、時間軸、即時、面板、放大全部照舊。
      象限底色仍然保留「離圓心越遠越濃」的徑向漸層（Andy 同一天稍早要的「分層需要漸層」），
      只是整體拉到參考檔的濃度：圓心 .12 → 盤緣 .27（淺色主題 .07 → .18，淺底上同樣的 α 會顯得重很多）。*/
@@ -4448,7 +4530,8 @@
   /* opts（2026-09-18 Andy 圖二、2026-09-20 Andy A4／E1～E3）：
        pick   Set|null  只看這幾個族群（篩選）；null＝全部
        frame  int       **看哪一天**：大圈移到「第 frame 天前」那一天的座標；0＝今天
-       （span／trail／tmode 三個參數 2026-09-26 隨腳印功能一起刪除：盤上不再畫走過的路）
+       span   int       軌跡要畫幾天（預設＝back）
+       trail  bool      軌跡開關（false＝線還在但資料清空，A4 第 7 條「軌跡可以開啟關閉」）
        chips  bool      要不要在圖下方掛族群晶片列（**只有卡片上的時鐘要**）
        expose bool      要不要把這張圖的量測值寫到 window.App（驗收用；只有卡片那張寫）
 
@@ -4819,7 +4902,7 @@
           was: null, moved: v.stage0 !== stageOf(v.x, v.y) };
       });
     }
-    if (!top0.length) return empty(id, '足跡輪盤需要至少 20 個交易日');
+    if (!top0.length) return empty(id, '資金輪盤需要至少 20 個交易日');
     /* 兩個軸的尺度差很多：相對強弱常常差好幾點，動能只差零點幾。
        直接拿原始值算角度，所有族群會擠在水平線上（＝兩段的交界），根本看不出在哪一段。
        所以各自除以自己的最大偏離量再算角度 —— 正負號沒動，四段的歸屬完全不變，
@@ -4891,9 +4974,126 @@
     const top = pts.filter(r => !r.isStock).concat(pts.filter(r => r.isStock));
     const nG = top.filter(r => !r.isStock).length;
     const maxR = CLOCK_MAXR;
-    /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：原本這裡是軌跡的補點／重取樣（unwrap、densify、resample、TRAIL_PTS）
-       與「走過的那一段路」（trailFull、trailDays、span）—— 只給尾巴與腳印用，整段刪除。
-       回放仍然靠 rotAtFrame 取「第 frame 天前」的座標（後端的 rrg.points[].trail 照舊要讀），點由 rotTween 平滑搬過去。*/
+    /* 在極座標上補點，讓線**貼著圓弧走**（Andy 2026-09-18：
+       「他的線需要沿著圓圈變化，而不是一個斷點直線跑過去」）。
+       ECharts 的 line series 就算掛在 polar 上，兩點之間仍然是在螢幕上連一條直線 ——
+       角度差一大，那條線就直接橫跨過圓心，看起來像「跳過去」而不是「轉過去」。
+       所以自己在角度與半徑上各補中間點；角度一律走較短的那一邊，
+       不然從 350° 到 10° 會沿著圓繞一大圈回去。*/
+    /* ★ 2026-09-20（E1，Andy：「軌跡線不能比圓圈還動的快」）：
+       補點的過程**全程用不取模的連續角度**，最後一步才取模還給 ECharts。
+       以前每補一個點就 `% 360`，於是 350°→10° 之間會出現 -340 的數值跳躍；
+       接下來要照弧長重取樣，那一段會被算成「繞了大半圈」，整條尾巴就歪掉。*/
+    const unwrap = (pts) => {
+      let cur = pts.length ? pts[0][1] : 0;
+      return pts.map(([r, a], i) => {
+        if (i === 0) return [r, cur];
+        let d = a - cur;
+        d = ((d % 360) + 540) % 360 - 180;      // 收進 (-180, 180]＝一律走短的那一邊
+        cur += d;
+        return [r, cur];
+      });
+    };
+    const densify = (pts) => {
+      const out = [];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [r0, a0] = pts[i], [r1, a1] = pts[i + 1];
+        const d = a1 - a0;                       // 已經是連續角度，不用再挑邊
+        const n = Math.max(2, Math.min(24, Math.round(Math.abs(d) / 6) + 2));
+        for (let k = 0; k < n; k++) { const u = k / n; out.push([r0 + (r1 - r0) * u, a0 + d * u]); }
+      }
+      if (pts.length) out.push(pts[pts.length - 1]);
+      return out;
+    };
+    /* ★ E1 的解法本體：把整條路**重取樣成固定點數**。
+       Andy 看到的現象是「尾巴比圓圈動得快」，量出來的根因是點數會變：
+       時間軸每前進一天，trail() 回傳的點數就多一段（span=5 是 259 點、span=10 是 519 點）。
+       ECharts 做 merge 更新時只有「新舊都存在的索引」會補間，
+       新長出來的那一段沒有對應的舊位置 —— 所以尾巴的尖端是**瞬移**過去的，
+       而大圈是用 animationDurationUpdate(420ms, linear) 慢慢滑過去的。
+       兩者的位置來源（atFrame）其實一模一樣，差別完全在「一個瞬移、一個補間」。
+       固定成 48 點之後，每一個索引在前後兩幀都有對應，整條線就跟大圈同一個
+       duration/easing 一起滑，尖端永遠貼著大圈。
+       取樣依據是**弧長**不是天數：轉得急的那一段弧長本來就長，會自動分到比較多點，
+       圓弧的形狀才不會被 48 點拉成直線。*/
+    const TRAIL_PTS = 48;
+    const resample = (dense, n) => {
+      const out = [];
+      const xy = dense.map(([r, a]) => { const t = a * Math.PI / 180; return [r * Math.cos(t), r * Math.sin(t)]; });
+      const cum = [0];
+      for (let i = 1; i < xy.length; i++) {
+        const dx = xy[i][0] - xy[i - 1][0], dy = xy[i][1] - xy[i - 1][1];
+        cum.push(cum[i - 1] + Math.sqrt(dx * dx + dy * dy));
+      }
+      const total = cum[cum.length - 1];
+      /* 整條路還縮在一個點上（軌跡剛站上起點）：48 個點全部重疊 ——
+         這正好就是「還沒走出軌跡」該有的樣子，不要特別處理成「只畫一個點」，
+         那會讓點數又變成會動的量，E1 的病根就回來了。*/
+      if (!(total > 1e-9)) {
+        for (let k = 0; k < n; k++) out.push(dense[dense.length - 1]);
+        return out;
+      }
+      let j = 1;
+      for (let k = 0; k < n; k++) {
+        const want = total * k / (n - 1);
+        while (j < cum.length - 1 && cum[j] < want) j++;
+        const seg = cum[j] - cum[j - 1] || 1;
+        const u = Math.max(0, Math.min(1, (want - cum[j - 1]) / seg));
+        out.push([dense[j - 1][0] + (dense[j][0] - dense[j - 1][0]) * u,
+          dense[j - 1][1] + (dense[j][1] - dense[j - 1][1]) * u]);
+      }
+      // 兩端要「完全」落在原來的端點上：尖端差幾個像素就是 Andy 會看到的脫節
+      out[0] = dense[0]; out[n - 1] = dense[dense.length - 1];
+      return out;
+    };
+    /* 尾巴：**已經走過**的那一段路（Andy 2026-09-20：「只有經過才留下軌跡，
+       不是馬上所有軌跡都先印出來」）。
+
+       以前是一開始就把整整 span 天的路全部印出來、大圈在上面滑 ——
+       看起來像「路本來就在那裡」，不是「牠自己走出來的」。現在改成漸進式：
+         起點  = max(0, 目前位置 - span)          ← 所以 span 的語意仍然是「軌跡畫幾天」
+         終點  = 大圈現在站的位置（可小數，最後補一小段殘段）
+       主卡片的 span 固定 30、而 trail 只存 31 天，所以起點永遠是最舊那一天，
+       時間軸刷到「前 30 天」時只剩起點一個點，往「今天」刷才一天一天長出來 ——
+       這就是他要的那個效果。放大視窗的 span 是可調的，語意自然變成「跟在後面的尾巴多長」。
+
+       路標仍然畫滿每一天（不再像 2026-09-18 那版只挑 6 個）：後端把 RS 平滑掉之後
+       一日步長只有盤面半徑的 0.053，畫滿才看得到「一天走一小步」。
+       上限 40 個路標純粹是防呆。*/
+    const span = opts.span != null ? opts.span : back;
+    const trailOn = opts.trail !== false;
+    // 這條軌跡實際走過幾天（＝終點索引 − 起點索引）。固定點數之後「幾個點」不再有鑑別度，
+    // 驗收改量這個值：刷到最舊那一天是 0，往今天刷才一天一天長出來。
+    const trailDays = (r) => {
+      const t = r.trail || [];
+      if (!t.length || !trailOn) return 0;
+      const end = atFrame(t, frame);
+      if (!end) return 0;
+      return Math.max(0, end[3] - Math.max(0, Math.floor(end[3]) - span));
+    };
+    /* 回傳 { pts: 48 個 [半徑, 角度], marks: 每 5 個交易日那一天的 [半徑, 角度] }。
+       marks 是設計系統 v2 §3.2-3 的「每 5 個交易日一顆小點」（點距大＝跑得快），從大圈往回數，
+       大圈自己那一天不算（它已經有大圈了）。*/
+    const trailFull = (r) => {
+      const t = r.trail || [];
+      if (!t.length || !trailOn) return { pts: [], marks: [] };
+      const end = atFrame(t, frame);
+      if (!end) return { pts: [], marks: [] };
+      const iEnd = end[3];
+      const i0 = Math.max(0, Math.floor(iEnd) - span);
+      const way = [];
+      for (let i = i0; i <= Math.floor(iEnd); i++) way.push([t[i][1], t[i][2]]);
+      if (Math.floor(iEnd) < iEnd - 1e-9) way.push([end[1], end[2]]);   // 走到一半的殘段
+      const step = Math.max(1, Math.ceil((way.length - 1) / 40));
+      const picked = way.filter((_, i) => i % step === 0);
+      if (picked[picked.length - 1] !== way[way.length - 1]) picked.push(way[way.length - 1]);
+      const dense = densify(unwrap(picked.map(w => pos(w[0], w[1]))));
+      const marks = [];
+      for (let i = Math.floor(iEnd) - 5; i >= i0; i -= 5) marks.push(pos(t[i][1], t[i][2]));
+      // 最後一步才取模：ECharts 的 angleAxis 是 0~360，連續角度餵進去會被畫到盤外
+      // days＝這一段實際走了幾天（桌機的腳印「約每 2 天一步」用它算間距）
+      return { pts: resample(dense, TRAIL_PTS).map(p => [p[0], ((p[1] % 360) + 360) % 360]), marks, days: way.length - 1 };
+    };
     /* A4 第 6 條（Andy：「越外圈顏色越深」）。
        做法是把族群色**往面板底色調淡**，離圓心越近調得越淡、越外圈越接近原色。
        為什麼不是反過來把外圈「調黑」：深色主題的底本來就是黑的，
@@ -4914,6 +5114,8 @@
     const lt = theme() === 'light';
     let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* 舊瀏覽器 */ }
     const v2 = rotDesk();                // 桌機＝參考檔的長相（見 ROT_GRAD_V2 上面那段）；手機照舊
+    // 軌跡畫哪幾個：focus（預設，只畫焦點族群）｜all（原本的畫法）｜off
+    const tmode = !trailOn ? 'off' : (opts.tmode === 'all' ? 'all' : 'focus');
     /* ★ 2026-09-24（Andy：「由於族群比較多 怕彼此之間會覆蓋到對方，所以圓圈幫我再縮小」）：
        族群 9～26px → **6～14px**（仍然依成交值佔比，最大的族群 ≈ 14px）、個股 8～17 → 5～10px。
        改前改後的重疊對數量過（兩顆圓心距離 < 兩個半徑相加），寫在交付回報與 _uitest「足跡輪盤」段。*/
@@ -4921,7 +5123,7 @@
     const stockSize = (r) => Math.max(5, Math.min(10, 4.5 + Math.sqrt(Math.max(0, r.share || 0)) * .8));
     /* 焦點族群：成交值佔比前 3 ＋ 最近 5 個交易日換過段的（依佔比），合計最多 6 個。
        ★ 用 `scope`（還沒被「看哪一天」換掉的今天那一份）算，所以刷時間軸、開即時時焦點**不會換人** ——
-         換人的話粗體名字會一個一個忽隱忽現，看起來像壞掉。篩選到只剩 ≤6 個族群時全部都是焦點。
+         換人的話軌跡會一條一條忽隱忽現，看起來像壞掉。篩選到只剩 ≤6 個族群時全部都是焦點。
          使用者自己點開的個股一律當焦點（那是他自己要看的）。*/
     const focus = new Set();
     {
@@ -4933,6 +5135,17 @@
       }
     }
     const isF = (r) => !!r.isStock || focus.has(r.gid);
+    const shownTrail = (r) => tmode === 'all' || (tmode === 'focus' && isF(r));
+    /* ★ 2026-09-25（Andy 截圖問：「為何不是每個點都有軌跡」）：焦點模式改成**每一顆族群點都有腳印**。
+       2026-09-24 那一版只畫焦點（佔比前 3 ＋ 最近換段，最多 6 個），其餘十顆點「看起來沒有歷史」——
+       使用者會以為那幾個族群沒資料，而不是「被藏起來」。所以：
+         · 焦點族群照舊（實、亮、原尺寸）
+         · 非焦點族群的腳印退到背景：整條 opacity ROT_REST_OP、腳印 ×ROT_REST_SZ、底下那條細線更細
+         · 滑到／點到某一顆點（highlightClock）→ 它的腳印拉到 1、尺寸換回焦點尺寸，其他壓暗 —— 跟以前「它變焦點」同一個動作
+         · 「顯示腳印」勾選框照舊控制全部（tmode 'off'）
+       總覽小時鐘（compact，300px 高、10 顆點）不跟：那張太小，十串淡腳印只會變成一片灰霧，仍然只畫焦點。*/
+    const restDim = tmode === 'focus' && !compact;
+    const trailOp = (r) => (shownTrail(r) ? 1 : (restDim && !r.isStock ? ROT_REST_OP : 0));
     // 編號模式（容器 < 560px）：圖上只寫編號，名字在圖下方清單
     const numMode = !compact && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
     rotNum[id] = numMode;
@@ -4941,14 +5154,110 @@
       r.dotCol = r.isStock ? null : depthColor(r);
       r.num = i + 1;
     });
-    /* 名字排版與水波要知道「一個半徑單位是幾 px」：polar 的半徑百分比是以 min(寬,高)/2 為基準。*/
+    /* 軌跡上的方向箭頭要放在**大圈的邊緣外面**（大圈直徑 9～26px，放在圈裡就被蓋掉了），
+       所以要知道「一個半徑單位是幾 px」：polar 的半徑百分比是以 min(寬,高)/2 為基準。*/
     const axisMax = maxR * (1 + CLOCK_TAIL) * 1.06;
     const Rpx = rotGeo(el.clientWidth || 0, el.clientHeight || 0, compact).R;
     const pxU = Rpx > 0 ? Rpx / axisMax : 0;
+    const toXY = (p) => { const t = p[1] * Math.PI / 180; return [p[0] * Math.cos(t), p[0] * Math.sin(t)]; };
+    // （2026-09-24：原本的 trailGrad「線由舊到新漸強」隨著線改成腳印一起退場；漸強改寫在每個腳印自己的顏色上）
+    /* ★ 2026-09-24 軌跡改成**小腳印**（Andy：「軌跡線 改成小小的腳印如圖一」，圖一是紙上畫的一串小腳印）。
+       還是同一條 line series、同樣 48 個點（E1「尾巴跟大圈同一個補間」、highlightClock 認 gid、驗收數條數全部照舊），
+       只是**線本身不畫**（寬 0），改在路上每隔約 11px 放一個腳印符號：
+         · 左右腳交錯（最靠近點的那一步是右腳），腳尖朝移動方向（依前後兩點在畫面上的方向轉）
+         · 越舊越淡、越新越清楚（透明度 18% → 95%，寫在每個腳印自己的顏色上；
+           整條的亮／暗仍然由 series 的 opacity 管 —— highlightClock 壓暗別人、焦點以外看不見，都照舊）
+         · 腳印長約 10px、寬約 5px、腳尖外撇 12°；離點太近（點的半徑 ＋ 3px 內）不放，最新那一步就是點本身
+         · 個股（空心圓）的腳印淡一階，一眼分得出是族群還是個股
+       符號是 path://（ECharts 內建的向量路徑，不是圖片檔）。path 的外框會被 ECharts 撐滿 symbolSize，
+       所以在框的兩個角各放一個零面積的點，把「左腳偏左、右腳偏右」的位移保留下來（不然兩隻腳會疊在同一條線上）。*/
+    /* 一隻鞋印（腳尖朝上）：前掌寬、腳弓收窄、腳跟圓 —— 像 👣 那種剪影，縮到 10px 還認得出是腳。
+       mirror＝左腳（左右翻過來，腳弓朝另一側）。*/
+    const FOOT = (x, mirror) => {
+      // 寬 1.35 倍、腳尖往外撇 12°（真的腳印左右腳是外八的，撇開之後一左一右才看得出是「一步一步」）
+      const sp = (mirror ? 12 : -12) * Math.PI / 180, cs = Math.cos(sp), sn = Math.sin(sp);
+      const P = (vx, vy) => { const u = (mirror ? -vx : vx) * 1.35, w = vy - 9.3;
+        return `${+(x + u * cs - w * sn).toFixed(2)},${+(10 + u * sn + w * cs).toFixed(2)}`; };
+      return `M0,0L0.01,0M24,20L24.01,20`
+        + `M${P(-3, 4)}C${P(-3.5, 0)} ${P(3.5, 0)} ${P(3.2, 4.5)}`
+        + `C${P(3, 7.5)} ${P(1.8, 9)} ${P(1.9, 11)}`
+        + `C${P(2.1, 13)} ${P(3, 14.5)} ${P(2.4, 16.5)}`
+        + `C${P(1.8, 18.6)} ${P(-2.6, 18.6)} ${P(-2.8, 16.2)}`
+        + `C${P(-3, 14)} ${P(-2.2, 12.5)} ${P(-2.4, 10.5)}`
+        + `C${P(-2.6, 8.5)} ${P(-2.8, 7)} ${P(-3, 4)}Z`;
+    };
+    const FOOT_L0 = 'path://' + FOOT(6.5, true), FOOT_R0 = 'path://' + FOOT(17.5, false);
+    /* 桌機：參考檔的幾何小腳印 —— 前掌一個橢圓（長 6.4、寬 3.6）＋ 腳跟一個小橢圓（長 3.6、寬 2.8），
+       左右腳各往外偏 2.2（一左一右走在路的兩側）。一樣是腳尖朝上畫、用 symbolRotate 轉到前進方向。
+       橢圓用四段三次貝茲近似（k＝0.5523），外框角落放兩個零面積的點把 13×13 的框撐住，左右偏移才不會被 ECharts 撐掉。*/
+    const ELL = (x, y, rx, ry) => { const k = 0.5523, f = (v) => +v.toFixed(2);
+      return `M${f(x + rx)},${f(y)}C${f(x + rx)},${f(y + k * ry)} ${f(x + k * rx)},${f(y + ry)} ${f(x)},${f(y + ry)}`
+        + `C${f(x - k * rx)},${f(y + ry)} ${f(x - rx)},${f(y + k * ry)} ${f(x - rx)},${f(y)}`
+        + `C${f(x - rx)},${f(y - k * ry)} ${f(x - k * rx)},${f(y - ry)} ${f(x)},${f(y - ry)}`
+        + `C${f(x + k * rx)},${f(y - ry)} ${f(x + rx)},${f(y - k * ry)} ${f(x + rx)},${f(y)}Z`; };
+    const FOOT2 = (lat) => 'path://M-6.5,-6.5L-6.49,-6.5M6.5,6.5L6.49,6.5'
+      + ELL(lat, -2.8, 1.8, 3.2) + ELL(lat, 2.5, 1.4, 1.8);
+    const FOOT_L = v2 ? FOOT2(-2.2) : FOOT_L0, FOOT_R = v2 ? FOOT2(2.2) : FOOT_R0;
+    const FOOT_GAP = 13;                 // 相鄰兩個腳印在畫面上相隔幾 px（手機；桌機見 trailDeco 裡的 gap）
+    const trailDeco = (r, tf, col, dim) => {
+      const pts = tf.pts, n = pts.length;
+      if (!n) return [];
+      const out = pts.slice();
+      if (!(pxU > 0) || n < 3) return out;
+      const xy = pts.map(toXY).map(([x, y]) => [x * pxU, y * pxU]);
+      const cum = [0];
+      for (let k = 1; k < n; k++) cum.push(cum[k - 1] + Math.hypot(xy[k][0] - xy[k - 1][0], xy[k][1] - xy[k - 1][1]));
+      const total = cum[n - 1];
+      if (total < 4) return out;         // 幾乎沒走：沒有腳印可畫
+      const skip = r.sz / 2 + 3;         // 點本身蓋住的那一段不放
+      /* 桌機照參考檔：大約「每 2 天一步」—— 這段期間走了 N 天就放 N/2 個腳印，平均攤在走過的路上；
+         但相鄰兩個至少隔 9px（路很短的族群擠成一團時，腳印會疊成一坨，那比少畫幾個更難讀）。
+         透明度 .15 → .85、越新越大一點（參考檔的 age 規則）。手機照舊：每 13px 一個、.18 → .95。*/
+      const days = Math.max(2, Math.round(tf.days || 20));
+      /* 退到背景（dim）的腳印間距 ×ROT_REST_GAP（桌機＝約每 4 天一步）：
+         ① 十串淡腳印全部照焦點的密度畫，盤面會變成一片灰點，焦點那幾串反而讀不出來；
+         ② 回放每一幀要搬的腳印圖元少一半（量測寫在交付回報，2026-09-25）。*/
+      const gap = (v2 ? Math.max(9, (total - skip) / Math.max(1, Math.floor(days / 2))) : FOOT_GAP) * (dim ? ROT_REST_GAP : 1);
+      /* 退到背景的（dim）自己的漸強起點高一點（.35 → 1），乘上整條 ROT_REST_OP 之後實際約 .12 → .35：
+         照焦點的 .15 → .85 再乘 .35，最舊那幾步只剩 5%，截圖上等於沒畫（2026-09-25 自己截圖看過）。*/
+      const hiA = r.isStock ? .6 : (dim ? 1 : (v2 ? .85 : .95)), loA = r.isStock ? .12 : (dim ? .35 : (v2 ? .15 : .18));
+      let foot = 0;
+      // ⚠ 下限寫 -0.01 不是 0：gap 剛好整除時最後一步的 want 會是 -1e-13，浮點誤差讓最舊那一步忽隱忽現（補間時看得到）
+      for (let want0 = total - skip; want0 >= -0.01; want0 -= gap) {
+        const want = Math.max(0, want0);
+        let k = n - 1; while (k > 0 && cum[k] > want) k--;
+        if (!Array.isArray(out[k])) continue;     // 同一個點已經放過腳印（路很短時會撞到）
+        /* ★ 2026-09-24（Andy：「移動時點會卡頓跳動」）：腳印放在**弧長的精確位置**（k → k+1 那一段上內插），
+           不再吸附到 48 個取樣點之一。吸附的話補間中每一幀腳印都在取樣點之間跳格（一格 3～6px），
+           看起來就是一抖一抖的。內插點落在原本那條折線上，所以細線的形狀不變。*/
+        let val = pts[k];
+        if (k < n - 1 && cum[k + 1] > cum[k]) {
+          const u2 = (want - cum[k]) / (cum[k + 1] - cum[k]);
+          const X = xy[k][0] + (xy[k + 1][0] - xy[k][0]) * u2, Y = xy[k][1] + (xy[k + 1][1] - xy[k][1]) * u2;
+          let a2 = Math.atan2(Y, X) * 180 / Math.PI; if (a2 < 0) a2 += 360;
+          val = [Math.hypot(X, Y) / pxU, a2];
+        }
+        const a = xy[Math.max(0, k - 2)], b = xy[Math.min(n - 1, k + 2)];
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.5) continue;
+        const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+        const u = total > 0 ? cum[k] / total : 1;  // 0＝最舊、1＝最新
+        const fsz = v2 ? +(13 * (0.76 + 0.3 * u)).toFixed(1) : null;   // 桌機：越新越大（9.9 → 13.8px 的框，腳本身約 8～11px）
+        // 退到背景（dim）的腳印縮成 ROT_REST_SZ 倍；滑到它時 highlightClock 換成焦點那一版（原尺寸、原密度）
+        const szF = v2 ? [fsz, fsz] : [14, 12];
+        out[k] = { value: val, symbol: foot % 2 ? FOOT_L : FOOT_R, symbolSize: dim ? szF.map(v => +(v * ROT_REST_SZ).toFixed(1)) : szF, symbolKeepAspect: true,
+          // 腳印的路徑是腳尖朝上畫的；ECharts 的 symbolRotate 正值＝逆時針，所以轉 (方向 − 90°)
+          symbolRotate: ang - 90, foot: foot % 2 ? 'L' : 'R', fu: total > 0 ? want / total : 1,   // fu＝弧長比例（補間搬腳印用）
+          itemStyle: { color: hexA(col, loA + (hiA - loA) * u), borderWidth: 0 } };
+        foot++;
+      }
+      return out;
+    };
     // 剛換段的族群（看「最新」那一天、或即時模式下盤中跨過象限）：外圈一圈 2px 階段色環
     const movedArr = top.slice(0, nG).filter(r => r.moved);
-    // 補間（rotTween）用：`_pt`＝此刻畫面上的位置（補間中是中間值，平常就等於目標 p）
-    top.forEach(r => { r._pt = r.p; });
+    /* 補間（rotTween，2026-09-24）要知道每個族群「目標」的軌跡點，所以先算好掛在列上；
+       `_pt`＝此刻畫面上的位置（補間中是中間值，平常就等於目標 p）。*/
+    top.forEach(r => { r._tf = trailFull(r); r._pt = r.p; });
+    const rotDeco = el._rotDeco = {};       // 非焦點腳印的兩個版本（背景版 D ／ 焦點版 F），給 highlightClock 換
     const o = {
       tooltip: {
         ...tip, trigger: 'item', formatter: (q) => {
@@ -5018,11 +5327,44 @@
         splitLine: { show: false },
         splitNumber: 2, interval: maxR / 2 },
       series: [
-        /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：每個族群一條的「尾巴／腳印」line series 整批刪除。
-           改前：這裡先放 top.length 條 line series（48 點折線＋path:// 腳印），後面才是即時箭頭、底色、點…；
-           「顯示腳印」勾選框（tw.rot.feet）決定資料是不是清空。
-           改後：盤上只剩圓點（＋即時箭頭、換段色環、底色與細線）。series 的數量從此固定、不再隨族群數變，
-           rotTween／highlightClock 也都改成照 name／type 認 series（不再有「前 top.length 條是尾巴」這條約定）。*/
+        // 尾巴：這幾天走過的路
+        /* ★ 設計系統 v2 第 5 批：每個族群仍然是**一條** line series、48 個點（E1 的補間、
+           highlightClock 認 gid、驗收數「幾條尾巴」全部照舊）。改的是長相：
+             · 顏色由舊到新漸強（焦點 15% → 90%；「全部」模式的非焦點 8% → 60%）
+             · 焦點 2.4px、非焦點 1.4px；個股仍是細虛線（一眼分得出族群與個股）
+             · 最新那一段畫方向箭頭、每 5 個交易日一顆小點（trailDeco）
+             · 焦點模式下非焦點的尾巴 `baseOp:0`（資料還在、看不見）——
+               點排行長條或清單時 highlightClock 會把被點的那一條打開，也就是「它變焦點」。
+             · ★ 2026-09-25：卡片與放大視窗的非焦點改成 `baseOp: ROT_REST_OP`（淡腳印，見 restDim）；
+               只有總覽小時鐘（compact）的非焦點還是 0。*/
+        ...top.map((r, i) => {
+          const col = STAGE[r.stage].color;
+          const tf = r._tf;
+          const op = trailOp(r);
+          const dim = op > 0 && op < 1;           // 非焦點、退到背景的那幾條
+          const data = trailDeco(r, tf, col, dim);
+          // 焦點那一版（原尺寸、原密度）只在滑到它時才算（highlightClock 讀 el._rotDeco），平常不花這份錢
+          if (dim) rotDeco[r.gid] = { D: data, F: () => trailDeco(r, tf, col, false) };
+          return {
+            /* symbol 'none'：只有腳印那幾個資料點自己帶 symbol（trailDeco），其餘 40 幾個點不建圖元。
+               以前是 'circle' ＋ symbolSize 0 —— 16 條 × 48 點＝768 個看不見的圓也要每次重畫，
+               補間每一幀都要 setOption，實測這一項讓每一幀的成本約翻倍（2026-09-24）。*/
+            type: 'line', coordinateSystem: 'polar', silent: true, symbol: 'none', showSymbol: true, showAllSymbol: true,
+            /* rotTrail＝這條是 top 裡第幾列的軌跡（1 起算）。2026-09-26 晚退回有腳印版時補上：
+               這一版的補間與 highlightClock 仍照索引／gid 認人，這個旗標只給驗收的「尖端量尺」照 series 配對
+               （非焦點 z 1.5、焦點 z 2 之後，顯示列表順序跟點的順序對不上，靠順序配對會配錯人）。*/
+            rotTrail: i + 1,
+            gid: r.gid,                                   // 給 highlightClock 認人用（圖四點長條時只亮這一族群）
+            baseOp: op,                                   // highlightClock 還原時回到這個值（不是一律 1）
+            rest: dim,                                    // highlightClock：滑到它時腳印換成焦點那一版（el._rotDeco），滑開換回來
+            symbolSize: 0, data, z: dim ? 1.5 : 2,        // 背景腳印壓在焦點腳印底下
+            itemStyle: { color: hexA(col, .9), opacity: op },
+            /* 手機：線本身不畫（寬 0），路徑只由腳印表示。
+               桌機：照參考檔在腳印底下留一條 1.2px、25% 的極淡細線 —— 腳印是「一步一步」，細線把步與步串成一條路，
+               族群多的時候比較看得出哪一串腳印屬於哪一顆點。opacity 仍然留著，highlightClock 與驗收都讀它。*/
+            lineStyle: { color: hexA(col, v2 ? .25 : .5), width: v2 ? (dim ? .8 : 1.2) : 0, opacity: op },
+          };
+        }),
         /* ★ 盤中即時的主角：那條「上一個收盤 → 現在」的箭頭。
 
            為什麼用 `custom` 而不是 line＋`symbol:'arrow'`：
@@ -5325,10 +5667,10 @@
     /* ★ 2026-09-24（Andy：「移動時點會卡頓跳動」）：卡片與放大視窗的時鐘改由自己的 rAF 補間（rotTween，見下面）。
        ECharts 內建的 merge 補間有三個對不齊的地方，量出來就是他看到的「卡頓跳動」：
          ① 名字膠囊的位置由 labelLayout 查表，表是用「目標」座標算的 —— 點還在路上，名字已經瞬移到終點
-         ② 腳印是 line series 上的個別資料點，換一天就換一批索引 —— 舊的消失、新的冒出來，一格一格跳（2026-09-26 腳印已刪除）
+         ② 腳印是 line series 上的個別資料點，換一天就換一批索引 —— 舊的消失、新的冒出來，一格一格跳
          ③ 每次重畫後 relayout 會再 setOption 一次，把還在跑的補間從中途重新開始
-       所以內建補間關掉（durationUpdate 0＝瞬間到位），每一幀由 rotTween 把「點、名字、換段色環、即時箭頭」
-       一起放到同一個中間位置。總覽小時鐘（compact）沒有名字，照舊用內建的。*/
+       所以內建補間關掉（durationUpdate 0＝瞬間到位），每一幀由 rotTween 把「點、軌跡、腳印、名字、換段色環、即時箭頭」
+       一起放到同一個中間位置。總覽小時鐘（compact）沒有名字與腳印，照舊用內建的。*/
     if (!compact) o.animationDurationUpdate = 0;
     /* 使用者要求減少動態（prefers-reduced-motion）：補間整個關掉，播放變成一天一跳。
        ⚠ 420ms 的播放補間不受「動效 ≤ 240ms」那條限制 —— 那是 Andy 2026-09-20 指定的「資料的播放速度」，
@@ -5417,11 +5759,18 @@
         dx: +r.live.dx.toFixed(4), dy: +r.live.dy.toFixed(4),
         tdx: +r.live.tdx.toFixed(4), tdy: +r.live.tdy.toFixed(4),
         jump: r.live.stage0 !== r.live.stage }));
-      /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：改前這裡還攤 span／trail／trailDays／trailPts／tmode／shown／rest／restOp
-         （腳印長度、看得到的尾巴條數）給驗收量。腳印整個拿掉之後那些量沒有對象了，一併刪掉 ——
-         驗收改成直接讀 ECharts 的 option：盤上沒有任何 line series、沒有 path:// 符號。*/
-      window.App._rotFrame = { frame, date: frameDate,
-        focus: [...focus], num: numMode, rings: movedArr.length };
+      window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn,
+        /* ★ 2026-09-20（E1）：軌跡改成固定 48 點之後，「畫了幾個點」變成常數、
+           再也量不出任何東西。驗收改量**軌跡實際走過幾天**（所有族群加總）——
+           刷到最舊那一天是 0，往今天刷會一天一天長出來，語意跟漸進式軌跡一致。*/
+        trailDays: +top.reduce((a, r) => a + trailDays(r), 0).toFixed(2),
+        trailPts: TRAIL_PTS,                  // 固定值，只是讓人知道一條尾巴幾個點
+        /* v2 第 5 批：焦點族群、軌跡模式、實際「看得到」的尾巴條數、編號模式、換段色環數 ——
+           驗收量的是**畫上去的**狀態（看得到的尾巴＝baseOp 1 而且有資料），不是我心裡想的。*/
+        tmode, focus: [...focus], num: numMode, rings: movedArr.length,
+        shown: top.filter(r => shownTrail(r) && trailDays(r) > 0).length,
+        // 2026-09-25：非焦點也畫（淡）之後，「盤上有腳印的族群」＝ shown ＋ rest
+        rest: top.filter(r => !shownTrail(r) && trailOp(r) > 0 && trailDays(r) > 0).length, restOp: ROT_REST_OP };
     }
     if (c && !compact) {
       /* ★ 2026-09-20：標籤排版必須**跟著容器大小重算**。
@@ -5447,7 +5796,7 @@
         o.polar = { ...o.polar, radius: Math.max(10, G2.R) };
         try { c.setOption({ polar: o.polar, series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
       };
-      // patch：只改這張圖的某幾個選項再重畫，之後的重畫沿用改過的（09-26 以前總覽小輪盤用它跟「顯示腳印」開關換 trail）
+      // patch：只改這張圖的某幾個選項再重畫（例：總覽小輪盤跟著「顯示腳印」開關換 trail），之後的重畫沿用改過的
       el._rotRedraw = (patch) => { if (patch) Object.assign(opts, patch); return renderRotClock(rows, back, id, compact, opts); };
       // 名字已經在 setOption 前排好（lblPre）就不必再畫第二次；沒排成（容器還是 0×0）才走舊路
       if (!lblPre) relayout();
@@ -5520,7 +5869,8 @@
       el._miniRO.observe(el.parentNode || el);
     }
     if (c && !compact) rotTween(el, id, c, {
-      shape, sameShape, reduce, top, liveArr, movedArr, series: o.series });
+      shape, sameShape, reduce, top, liveArr, movedArr, series: o.series,
+      deco: (r, pts) => trailDeco(r, { pts, days: r._tf.days }, STAGE[r.stage].color) });
     /* ★ 2026-09-21（Andy 的兩階段）：點族群**不再跳頁**，改成原地展開成分股。
        他的規矩是「點擊優先在原地展開，不要動不動就把人帶離當前頁面」——
        真的要進族群頁的話，展開的面板標題右邊有「進族群頁 →」。
@@ -5532,7 +5882,12 @@
          #rankPanel／#sankeyPanel，總覽根本沒有那兩塊 —— 提示框寫「點一下看成分股」，點了卻什麼都沒發生。
          總覽（compact）改走熱力圖那一套 `heatPanel`，畫進輪盤正下方的 #ovRotPanel（原地展開，點外面／Esc 關）。*/
       if (compact && id === 'rotClockMini' && $('#ovRotPanel')) {
+        const box = $('#ovRotPanel');
+        // 再點一次同一個族群點＝收起來（dismissable 的「點外面」會被 heatPanel 重畫蓋掉，所以這裡自己判斷）
+        if (!box.hidden && box.dataset.gid === r.gid) { box.hidden = true; return; }
         heatPanel('ovRotPanel', r.gid, r.name, r.share != null ? `佔比 ${fmt.n(r.share, 1)}%` : '', { scroll: false });
+        box.dataset.gid = r.gid;
+        ovRotPlace(box, el, q.event && q.event.offsetY);
         return;
       }
       drillOpen(r.gid, r.name);
@@ -5556,11 +5911,11 @@
   function renderRotation(rrg, back, ids) {
     const rows = rotRows(rrg, back);
     if (!rows.length) {
-      if (ids.clock) empty(ids.clock, '足跡輪盤需要至少 20 個交易日');
+      if (ids.clock) empty(ids.clock, '資金輪盤需要至少 20 個交易日');
       return;
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
-      { pick: ids.pick, frame: ids.frame,
+      { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail, tmode: ids.tmode,
         // 象限卡只長在資金流向頁那張時鐘上（總覽小圖太小、放大視窗是另一份 DOM）
         quads: !!ids.quads,
         // 量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
@@ -5811,30 +6166,17 @@
        · 位置固定、不能拖（roam:false，DECISIONS #61／#67）。
      以前是 8 張文字小卡塞在 615px 的捲動框裡（審查 R1：第 4 張被切一半，看起來像壞掉）。*/
   const OVT = { sel: '', open: false, focus: null };
-  function renderOvThemes(th) {
-    const host = $('#ovTheme'); if (!host) return;
-    if (!th || !th.themes || !th.themes.length) { const c = $('#ovThemeCtl'); if (c) c.innerHTML = ''; return empty('ovTheme', '尚無題材資料'); }
+  const OVTZ = { open: false };     // 放大視窗那顆題材下拉的開合（跟卡片上那顆各自記，值 OVT.sel 共用）
+  /* 題材熱力圖的資料與提示框（卡片與放大視窗共用 —— 兩邊畫出來的一定是同一張圖，跟 heatOption 同一個道理）。
+     sel＝目前選的題材 id（'' ＝ 題材層）。回傳 null 代表這一層沒有東西可畫。*/
+  function ovThemeModel(th, sel, focus) {
     const themes = th.themes.slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-    const cur = themes.find(t => t.id === OVT.sel) || null;
-    if (!cur) OVT.sel = '';
-    // ---- 下拉（.rotdd 那一套外觀；開合自己管，不跟資金輪動卡的 rotMenu 共用狀態）
-    /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
-       Andy 要的是「跟熱門題材一樣」，兩份各寫一套遲早會長得不一樣（字級、Esc、點外面關）。
-       輸出的 DOM 與抽出前相同（#ovThemeDD、.ddbtn b、.ddopt[data-t]、面板往左長），既有驗收不用改。*/
-    const ctl = $('#ovThemeCtl');
-    // ★ 2026-09-26（Andy：「篩選位置同步在左上」）：下拉搬到標題旁（面板改往右長，超出才自動往左），日期另放右側 #ovThemeDate
-    const tdp = $('#ovThemeDate'); if (tdp) tdp.innerHTML = hmDate(th.date);
-    if (ctl) ddSingle(ctl, { id: 'ovThemeDD', key: 't', st: OVT, label: '題材：', aria: '題材',
-      title: '選一個題材，圖上就換成它的成分股', curText: cur ? cur.name : '全部',
-      opts: [{ v: '', text: `全部題材（${themes.length}）`, on: !cur }].concat(themes.map(t =>
-        ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(cur && cur.id === t.id) }))),
-      onPick: (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); } });
-    host.style.height = '300px';
+    const cur = themes.find(t => t.id === sel) || null;
     let data, kind, valOf, tipOf;
     if (!cur) {
       kind = 'heat';
       data = themes.map(t => ({ name: t.name, value: t.turnover || 0, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7, n: t.n,
-        ...hmItem(hmBin(t.heat, 'heat'), 'heat', OVT.focus) }));
+        ...hmItem(hmBin(t.heat, 'heat'), 'heat', focus) }));
       valOf = (d) => (d && d.id ? '熱度 ' + d.heat : '');
       tipOf = (p) => { const d = p.data || {};
         return hmTip(p.name, `${d.n || 0} 檔`, [
@@ -5847,7 +6189,7 @@
       kind = 'chg';
       const ms = (cur.members || []).filter(m => m && m.code);
       data = ms.map(m => ({ name: m.name || L.cname[m.code] || m.code, value: Math.max(m.turnover || 0, 1), id: m.code, code: m.code, chg: m.chg_pct,
-        ...hmItem(hmBin(m.chg_pct, 'chg'), 'chg', OVT.focus) }));
+        ...hmItem(hmBin(m.chg_pct, 'chg'), 'chg', focus) }));
       valOf = (d) => (d && d.code ? fmt.pct(d.chg) : '');
       tipOf = (p) => { const d = p.data || {};
         return hmTip(p.name, d.code, [
@@ -5855,23 +6197,73 @@
           { k: '成交值', v: fmt.yi(p.value) },
         ], '點一下進個股頁'); };
     }
-    if (!data.length) return empty('ovTheme', '這個題材目前沒有成分股資料');
-    host.classList.remove('isempty');
     const HS = hmSeries(false);
-    const c = chart('ovTheme', {
+    const option = {
       tooltip: { ...hmTipOpt(), formatter: tipOf },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false },
         top: 0, left: 0, width: '100%', height: '100%', visibleMin: 40,
         ...HS, label: { ...HS.label, formatter: () => '' }, data }],
-    }, { notMerge: true });
-    hmRelabel(c, valOf);
-    hmLegend('ovTheme', kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
-    host.dataset.level = cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
-    if (c) c.off('click').on('click', p => {
+    };
+    return { themes, cur, data, kind, valOf, option };
+  }
+  /* 題材下拉（卡片與放大視窗各一顆，外觀、選項、行為完全一樣；值都寫進 OVT.sel）。*/
+  function ovThemeDD(box, th, M, id, st, onPick) {
+    if (!box) return;
+    ddSingle(box, { id, key: 't', st, label: '題材：', aria: '題材',
+      title: '選一個題材，圖上就換成它的成分股', curText: M.cur ? M.cur.name : '全部',
+      opts: [{ v: '', text: `全部題材（${M.themes.length}）`, on: !M.cur }].concat(M.themes.map(t =>
+        ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(M.cur && M.cur.id === t.id) }))),
+      onPick });
+  }
+  function renderOvThemes(th) {
+    const host = $('#ovTheme'); if (!host) return;
+    if (!th || !th.themes || !th.themes.length) { const c = $('#ovThemeCtl'); if (c) c.innerHTML = ''; return empty('ovTheme', '尚無題材資料'); }
+    const M = ovThemeModel(th, OVT.sel, OVT.focus);
+    if (!M.cur) OVT.sel = '';
+    // ---- 下拉（.rotdd 那一套外觀；開合自己管，不跟資金輪動卡的 rotMenu 共用狀態）
+    /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
+       Andy 要的是「跟熱門題材一樣」，兩份各寫一套遲早會長得不一樣（字級、Esc、點外面關）。
+       輸出的 DOM 與抽出前相同（#ovThemeDD、.ddbtn b、.ddopt[data-t]、面板往左長），既有驗收不用改。*/
+    // ★ 2026-09-26（Andy：「篩選位置同步在左上」）：下拉搬到標題旁（面板改往右長，超出才自動往左），日期另放右側 #ovThemeDate
+    const tdp = $('#ovThemeDate'); if (tdp) tdp.innerHTML = hmDate(th.date);
+    ovThemeDD($('#ovThemeCtl'), th, M, 'ovThemeDD', OVT, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); });
+    host.style.height = '300px';
+    /* ★ 2026-09-26（Andy：「熱門題材，需要跟資金熱力圖一樣有放大功能」）：日期旁「放大 ⤢」，
+       跟 #heatZoom 同一支 openZoom（全螢幕、點背景／✕／Esc 關、位置固定不能拖）。
+       放大視窗標題旁也有一顆同樣的題材下拉，選了**兩邊一起換**（值寫回 OVT.sel、卡片同步重畫），
+       關掉放大之後卡片停在剛剛看的那個題材 —— 不會出現「放大裡看半導體、關掉回到全部」的落差。
+       放大裡點題材方塊＝原地換成分股；點成分股先關放大再進個股頁（不留一層全螢幕罩在個股頁上）。*/
+    const zb = $('#ovThemeZoom');
+    if (zb) zb.onclick = () => openZoom('熱門題材', (body, chipBox, close) => {
+      const draw = () => {
+        const Z = ovThemeModel(th, OVT.sel, null);
+        ovThemeDD(chipBox, th, Z, 'ovThemeZoomDD', OVTZ, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); draw(); });
+        if (!Z.data.length) { const i = echarts.getInstanceByDom(body); if (i) i.dispose(); body.innerHTML = '<div class="empty">這個題材目前沒有成分股資料</div>'; return; }
+        const bc = chart(body, Z.option, { notMerge: true });
+        hmRelabel(bc, Z.valOf);
+        body.dataset.level = Z.cur ? 'members' : 'themes';     // 驗收用：放大視窗現在是題材層還是成分股層
+        if (bc) bc.off('click').on('click', p => {
+          const d = p.data || {};
+          if (d.code) { close(); goStock(d.code); return; }
+          if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); draw(); }
+        });
+      };
+      draw();
+    });
+    if (!M.data.length) return empty('ovTheme', '這個題材目前沒有成分股資料');
+    host.classList.remove('isempty');
+    const c = chart('ovTheme', M.option, { notMerge: true });
+    hmRelabel(c, M.valOf);
+    hmLegend('ovTheme', M.kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
+    host.dataset.level = M.cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
+    /* ★ 2026-09-26（Andy：「縮放功能呢？沒有設置到」）：跟資金熱力圖同一套滾輪縮放（wheelZoom：滾輪放大、拖曳移動、
+       雙擊或按「還原」回 1×）；點擊交給 zoomClick，拖曳結束那一下不會誤觸進題材／個股。*/
+    wheelZoom($('#ovThemeWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#ovTheme')); if (i) i.resize(); } });
+    if (c) c.off('click').on('click', p => zoomClick($('#ovThemeWrap'), () => {
       const d = p.data || {};
       if (d.code) { goStock(d.code); return; }
       if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); }
-    });
+    }));
   }
 
   // ---- 候選名單：綜合／籌碼／技術／基本面四種切法 ----------------------------
@@ -6323,13 +6715,15 @@
        Andy 的標準是「每張圖都要能回答一個具體問題，而且說明要寫到『所以我該怎麼用』」。*/
     /* ★ 2026-09-24（Andy：「說明內容需要在簡短方便閱讀」）：足跡輪盤的說明從 30 幾行改成條列短句。
        拿掉的只有「怎麼操作」的長篇解說（畫面上的鈕自己會說話）；**讀法與誠實界線一條都沒少**：
-       四段的意思、兩圈虛線、即時的慣性／今天推的、權重是估的、大盤是代理值，都還在。
-       ★ 2026-09-26（Andy：「腳印功能拿掉」）：「預設只畫圓點；勾『顯示腳印』才畫…」那一句刪掉，色環那句併到上一條。*/
-    rot: `<b>錢往哪個族群跑（右：排行），那個族群跑到循環的哪一段（左：足跡輪盤）。</b>
+       四段的意思、兩圈虛線、腳印、即時的慣性／今天推的、權重是估的、大盤是代理值，都還在。
+       ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：腳印與軌跡恢復，標題沿用改名後的「資金輪盤」。*/
+    rot: `<b>錢往哪個族群跑（右：排行），那個族群跑到循環的哪一段（左：資金輪盤）。</b>
       <ul><li><b>四段</b>：落後 → 改善 → 領先 → 轉弱，順時針輪一圈。<em>改善</em>＝剛有錢進來、最早布局；
         <em>領先</em>＝主流、回檔找買點；<em>轉弱</em>＝動能在掉、設停利；<em>落後</em>＝別急著抄底。</li>
       <li><b>一顆點＝一個族群</b>：越大＝成交值佔比越高；離圓心越遠＝跟大盤差越多。
-        兩圈虛線＝今天最大偏離的一半／今天偏離最大的那個族群；外圈多一圈色環＝最近 5 天剛換段。</li>
+        兩圈虛線＝今天最大偏離的一半／今天偏離最大的那個族群。</li>
+      <li><b>小腳印</b>＝這幾天走過的路，越新越清楚，腳尖朝前進的方向。每顆點都有，佔比前 3 ＋ 最近換段的較清楚、
+        其他淡；滑到哪顆就提亮哪顆。外圈多一圈色環＝最近 5 天剛換段。</li>
       <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段；<em>▶</em> 從那一天一步一步走回最新。</li>
       <li><b>篩選</b>：上面兩個下拉（先挑產業鏈、再勾族群，可複選）與「只看前 10 大」，排行與輪盤一起篩。</li>
       <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出；點長條看成分股。</li>
@@ -6346,7 +6740,7 @@
       return `<b>族群跑到強弱循環的哪一段。</b>
       <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝剛進場、領先＝主流、轉弱＝設停利、落後＝別抄底。</li>
       <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。點一顆看成分股。</li>
-      <li>完整版（回放、即時）在「資金流向」分頁。</li></ul>`;
+      <li>完整版（腳印、回放、即時）在「資金流向」分頁。</li></ul>`;
     },
     /* ★ 2026-09-25（Andy：「昨日資金去向」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
        以前這段寫在足跡輪盤的「?」下半與提示框最後兩行，現在自己一顆。副標是讀數，所以照舊每次打開讀 #ovFlowSub。*/
@@ -6355,7 +6749,7 @@
       <ul><li>最左小圓圈＝<em>加權指數</em>（起點）→ 產業鏈 → 族群。</li>
       <li>線越粗＝流過的成交值越大；光點只是流向示意，左上角可關動態。</li>
       <li>每一層的 % 都是「佔它上一層」的比重。</li>
-      <li>滑到線或名字看成交值；想看成分股，點上面足跡輪盤的族群點。</li></ul>`;
+      <li>滑到線或名字看成交值；想看成分股，點上面資金輪盤的族群點。</li></ul>`;
     },
     /* ★ 2026-09-24（Andy：「所有內容已經有說明就把表上補充文字拿掉，說明內容需要簡短方便閱讀」）：
        以下每一段都改成同一個格式（howHTML）：一句「這張圖回答什麼」→ 最多 5 條、每條 ≤30 字的讀法 →
@@ -6734,9 +7128,12 @@
       renderRotation(f3 && f3.rrg, ROT_BOARD_WIN,
         { clock: 'rotClock', quads: true,
           pick: rotPickSet(), frame: frame || 0,
-          /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：改前這裡還傳 span（腳印畫「N 天前 → 現在」幾天）、
-             trail（「顯示腳印」勾選框）、tmode。腳印拿掉之後「N 天前」只決定排行的區間與 ▶ 回放的起點。*/
-          expose: true });
+          /* 軌跡固定畫滿 30 天：拉Bar 是「看哪一天」，不是「畫多長」（A4 第 7 條）。
+             span＝30 而後端只存 31 天，所以軌跡的起點永遠是最舊那一天 ——
+             配上漸進式軌跡，刷到「前 30 天」就只剩起點一個點，往今天刷才一路長出來
+             （Andy 2026-09-20：「只有經過才留下軌跡」）。*/
+          // ★ 2026-09-24：腳印畫「N 天前 → 現在這一步」；回放時起點固定在 N 天前，所以長度＝N − 回放到的那一天
+          span: Math.max(0, ROT.days - (frame || 0)), trail: ROT.trail, tmode: 'focus', expose: true });
       // 排行選了誰，時鐘就跟著只亮誰（圖四點長條的連動）
       if (rankSel) highlightClock(rankSel);
     };
@@ -6799,6 +7196,7 @@
     rotSyncCard = () => {
       if (rotBackBar) { try { rotBackBar.set(ROT.days); if (rotFrame > 0) rotBackBar.seek(rotFrame); } catch (e) { /* 忽略 */ } }
       flowState.back = rotFrame;
+      $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
       wireRotFilter(); drawRot(rotFrame); drawPeriod();
     };
     wireRotFilter(f3);
@@ -6856,7 +7254,7 @@
     /* 「即時」鈕要等 playBar 建好才掛得上去（playBar 會把 `#rotBack` 的 innerHTML 換掉）。
        換主題／換頁回來時這裡會再跑一次，`rlvMountBtn()` 內部會把「亮起來」的樣子補回去。*/
     rlvMountBtn();
-    wireRotTools();
+    wireRotTrailToggle(() => drawRot(rotFrame));
     drawRot(rotFrame);
     /* ★ 2026-09-25 效能（perf-2）：輪盤畫完先讓瀏覽器畫一幀、喘口氣，再畫排行與下面那幾張。
        首次開資金流向時輪盤＋排行在同一個任務裡（實測 722ms，4 倍降速 2.3 秒），這段整頁點不動。
@@ -7065,7 +7463,7 @@
       const onClock = highlightClock(gid);
       drillOpen(gid, g.group_name,
         `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`
-        + (onClock ? '' : '　·　這個族群不在左邊足跡輪盤的前 16 名內，所以輪盤沒有變化'),
+        + (onClock ? '' : '　·　這個族群不在左邊資金輪盤的前 16 名內，所以輪盤沒有變化'),
         'rankPanel');
     });
     lastRankRows = rows;
@@ -7367,21 +7765,39 @@
        勾了個股就把**它所屬的族群**留在圖上（單位仍然是族群，圖沒有被改成個股圖）。
        做成 (b)「勾族群再下鑽個股」的話，這兩張圖會變成第三個成分股清單 ——
        成分股在排行卡下方的面板與輪動階段看板裡各有一份了，再加一份只是重複。*/
-  // （ROT_SPAN＝軌跡固定畫 30 天：2026-09-26 隨腳印功能一起刪除，沒有人讀它了）
+  const ROT_SPAN = 30;             // 軌跡固定畫 30 天（拉Bar 現在是「看哪一天」）
   /* ★ 2026-09-21 Andy 拍板下限 1 -> 0：「看哪一天」要看得到**最新那一天**。
      原本是 A4 第 3 條（2026-09-20）的「前一天 ～ 前三十天」，下限 1。
      兩張卡合併之後排行也跟著這支走，於是「最新」只到前一天（09-17），
      而頁首明明寫著資料更新到 09-18 —— 圖跟字對不起來。
      0 ＝ 資料裡的最後一個交易日（rrg.trail 與 share_daily 的最後一筆）。*/
   const ROT_MIN_BACK = 0;          // 0＝最新一天 ～ 前三十天（Andy 2026-09-21）
-  const ROT = { chain: '', groups: null, topOnly: false };   // 2026-09-21：個股篩選移除，stocks 一併拿掉
-  /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：腳印（軌跡）功能整個刪除，盤上只剩圓點。
-     改前：ROT.trail ＋「顯示腳印」勾選框（tw.rot.feet，09-26 稍早改成預設關）＋ ROT.tmode（焦點／全部）。
-     改後：沒有開關、沒有任何會畫腳印的路徑。以前存下的 tw.rot.feet 不再讀，**順手清掉**
-     （這個 key 只有腳印在用；留著的話 localStorage 裡永遠躺著一個沒有人讀的值，下一個人會以為還有功能）。
-     tw.rot.tmode（09-24 就不讀了）也一起清。*/
-  try { localStorage.removeItem('tw.rot.feet'); localStorage.removeItem('tw.rot.tmode'); } catch (e) { /* 私密視窗：本來就沒有 */ }
-  // 「N 天前」（1～30）：排行的區間與 ▶ 回放的起點，記在這台瀏覽器
+  const ROT = { chain: '', groups: null, trail: true, topOnly: false };   // 2026-09-21：個股篩選移除，stocks 一併拿掉
+  /* v2 第 5 批：軌跡畫哪幾個族群 —— 'focus'（預設：佔比前 3 ＋ 最近換段，最多 6 個）｜'all'（原本的畫法）。
+     「關」仍然是那個勾選框（ROT.trail），兩個合起來就是規格 §3.2-2 的三段：關｜焦點｜全部。
+     記在這台瀏覽器（per-viewer 的偏好），讀寫不到就用預設。*/
+  /* ★ 2026-09-24（Andy：「把顯示軌跡 旁邊的 焦點 全部拿掉，沒必要」）：「焦點｜全部」那組鈕拿掉，
+     一律只畫焦點族群的腳印（佔比前 3 ＋ 最近換段，最多 6 個；滑到／點到哪一個就多畫哪一個）。
+     理由：輪盤上 16 顆點、每顆 N 天的腳印全部畫出來會把盤面蓋滿 —— Andy 同一段話還要把圓點縮小，就是嫌擠。
+     以前存過「全部」的（tw.rot.tmode）不再讀，也不刪（刪了對其他分頁沒有好處）。
+     ★ 2026-09-25（Andy：「為何不是每個點都有軌跡」）：'focus' 的意思改成「焦點實、其他淡」——
+       非焦點族群也畫腳印，只是退到背景（ROT_REST_OP／ROT_REST_SZ／ROT_REST_GAP，理由在 renderRotClock 的 restDim）。
+       鈕仍然不加回來：要不要看全部的答案已經是「全部都看得到」，淡與實由焦點規則決定。*/
+  ROT.tmode = 'focus';
+  /* ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：腳印預設**關**，盤上只畫族群點（圓圈）。
+     改前：ROT.trail 寫死 true、沒有記憶 —— 每次開頁都是十幾串腳印拖在點後面。
+     改後：「顯示腳印」勾選框留著（有選項就讓使用者自己切），但預設不勾；勾了記在這台瀏覽器。
+     key 用**新的** `tw.rot.feet`（'1'＝開）：以前沒有存過這個偏好，換一個全新的 key 等於保證
+     「之前開過／關過的人」一律先看到只有圓圈，要看腳印自己再勾一次。
+     回放／補間照舊由 rotTween 搬點的位置（它不依賴腳印），所以關掉腳印之後點一樣是平滑滑過去。
+     ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：退回 09-25 晚「每個族群點都有腳印」的外觀 ——
+       改前（同日稍早三次改動）：預設只畫圓圈 → 腳印與軌跡整個刪掉 → 只恢復軌跡線、不畫腳印符號。
+       改後：軌跡＋腳印符號都畫、非焦點淡化（ROT_REST_*）、滑過提亮，「顯示腳印」勾選框回來而且**預設勾選**。
+       key 沿用 `tw.rot.feet`：只有 '0'（使用者自己在這台瀏覽器勾掉過）才關，沒有值或 '1' 都是開 ——
+       尊重使用者自己做過的選擇，但沒選過的人一律回到有腳印的樣子。*/
+  ROT.trail = true;
+  try { if (localStorage.getItem('tw.rot.feet') === '0') ROT.trail = false; } catch (e) { /* 私密視窗：用預設（開） */ }
+  // 「N 天前」（1～30）：輪盤腳印與排行共用的那一段長度，記在這台瀏覽器
   ROT.days = 20;
   try { const v = +localStorage.getItem('tw.rot.days'); if (v >= 1 && v <= 30) ROT.days = Math.round(v); } catch (e) { /* 私密視窗 */ }
   // 水波開關（說明在 rotRipple 上面那段）：預設開，記在這台瀏覽器
@@ -7651,20 +8067,41 @@
     } catch (e) { /* 忽略壞掉的值 */ }
   })();
 
-  /* 輪盤工具列（#rotTools）：「水波」「掃描」兩個勾選框。
-     ★ 2026-09-26（Andy：「腳印功能拿掉」）：改前第一個是「顯示腳印」（.rot-trail，key tw.rot.feet），
-       這支也因此叫 wireRotTrailToggle。腳印整個刪掉之後開關一起拿掉、改名 wireRotTools。
-     ★ class 不用 id：以前卡片與放大視窗各有一份工具列，同一個 id 出現兩次 getElementById 只抓得到第一個。*/
-  function wireRotTools(boxId) {
+  /* A4 第 7 條的後半：「新增軌跡是可以開啟關閉」。
+     關掉之後線還在（series 數量不變，highlightClock 認 gid 的那段就不用改），
+     只是資料清空 —— 所以「軌跡有沒有關掉」量的是**點數**，不是 series 數。*/
+  function wireRotTrailToggle(redraw, boxId) {
     const box = $('#' + (boxId || 'rotTools')); if (!box) return;
-    box.innerHTML = '<label class="rotchk" title="點移動時（回放、即時更新）在出發的位置泛起水波紋；靜止時不會冒"><input type="checkbox" class="rot-ripple"'
+    /* ★ class 不用 id：卡片與放大視窗各有一個軌跡開關，
+       同一個 id 出現兩次的話 getElementById 只會抓到第一個，另一個就變成按了沒反應
+       （這正是 Andy 說的「放大之後的功能都沒反應」那一類的坑）。*/
+    /* ★ 2026-09-24（Andy：「把顯示軌跡 旁邊的 焦點 全部拿掉，沒必要」「所有內容 已經有說明 就把表上補充文字拿掉」）：
+       只剩兩個勾選框 —— 「顯示腳印」（原「顯示軌跡」，軌跡改畫成小腳印）與「水波」。
+       「焦點｜全部」那組鈕、以及旁邊那一長句「大圈＝你選的那一天；線＝牠已經走過的那一段…」都拿掉，
+       讀法寫在「怎麼看 ?」裡。class 沿用 .rot-trail（卡片與放大視窗各一份，驗收也認它）。*/
+    box.innerHTML = '<label class="rotchk" title="沿路畫出這段期間走過的小腳印：越新越清楚，最新那一步就是現在的點"><input type="checkbox" class="rot-trail"'
+      + (ROT.trail ? ' checked' : '') + '>顯示腳印</label>'
+      + '<label class="rotchk" title="點移動時（回放、即時更新）在出發的位置泛起水波紋；靜止時不會冒"><input type="checkbox" class="rot-ripple"'
       + (ROT.ripple ? ' checked' : '') + '>水波</label>'
       /* 掃描：淡淡的雷達光束繞盤一圈、掃到的點冒一圈聲納（桌機才有；手機這一版不動，CSS 在 ≤820px 把它藏起來）*/
       + '<label class="rotchk rot-scanlbl" title="淡淡的雷達掃描光束繞著盤轉，掃到的族群冒一圈聲納；系統開了「減少動態效果」時不會轉"><input type="checkbox" class="rot-scan"'
       + (ROT.scan ? ' checked' : '') + '>掃描</label>';
+    // 兩邊（卡片／放大視窗）的狀態要一致，所以一律同步全部的 .rot-trail／.rot-ripple
     const sync = () => {
+      $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
       $$('.rot-ripple').forEach(x => { x.checked = ROT.ripple; });
       $$('.rot-scan').forEach(x => { x.checked = ROT.scan; });
+    };
+    const c = $('.rot-trail', box);
+    if (c) c.onchange = () => {
+      ROT.trail = c.checked; sync(); redraw();
+      try { localStorage.setItem('tw.rot.feet', ROT.trail ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
+      /* 總覽小輪盤讀同一個偏好，但它畫在另一個分頁（此刻藏著、寬高是 0，當場重畫會算錯半徑）。
+         標成「沒畫過」，下次切回總覽時 route() 會整頁重畫一次（換主題也是走這條路）；
+         總覽正開著（從總覽按「放大」進來的）就當場帶新的 trail 重畫那一張。*/
+      const ov = document.getElementById('v-overview'), mini = document.getElementById('rotClockMini');
+      if (ov && ov.classList.contains('on') && mini && mini._rotRedraw) mini._rotRedraw({ trail: ROT.trail });   // 從總覽開的放大視窗：當場跟上
+      else delete rendered.overview;
     };
     const rp = $('.rot-ripple', box);
     if (rp) rp.onchange = () => {
@@ -7694,7 +8131,7 @@
        階段一　圖上是族群（＝原本的樣子；篩選／播放／看哪一天／軌跡／放大／族群晶片全部沒動）
        階段二　點族群（時鐘上的點、資金去向的節點、排行的長條、下方的族群晶片都算）
                → 在圖旁邊列出它的成分股，依成交值排序
-       階段三　點成分股 → 那一檔**畫到圖上**：時鐘多一顆空心圓（2026-09-26 起不畫虛線軌跡）、
+       階段三　點成分股 → 那一檔**畫到圖上**：時鐘多一顆空心圓＋虛線軌跡、
                資金去向在它所屬的族群底下多一個葉節點。再點一次拿掉。
        回到階段一　麵包屑的「全部族群」、點面板以外的地方（2026-09-24 起取代「收起 ✕」）、或按 ESC。
 
@@ -8087,8 +8524,9 @@
 
   /* 排行選了哪個族群（null＝沒選）。輪動時鐘用它決定誰亮誰暗。*/
   let rankSel = null;
-  /* 只亮某一個族群：其餘的點壓到 0.18 透明度。
-     用 setOption 就地改（notMerge 預設 false），不重建圖表 —— 重建的話整張會閃一下。*/
+  /* 只亮某一個族群：其餘的點與尾巴壓到 0.18 透明度。
+     用 setOption 就地改（notMerge 預設 false），不重建圖表 ——
+     重建的話尾巴會整個重畫一次，看起來像閃了一下。*/
   /* ★ 2026-09-21：`gid` 不在時鐘上時**什麼都不要做**。
      這是合併成一張卡之後才浮出來的既有 bug：時鐘為了看得清楚只畫前 16 個族群，
      而排行是依「佔比變化」排的 —— 變化最大的那一個未必在成交值前 16 名裡。
@@ -8097,7 +8535,8 @@
      現在先確認它真的畫在上面，不在就原樣不動，並回傳 false 讓呼叫端去說明。*/
   /* ★ 2026-09-24 設計系統 v2 第 5 批：
        · 第二個參數＝哪一張時鐘（預設卡片那張 #rotClock；放大視窗的編號清單傳 'zoomBody'）
-       · 「還原」回到每顆點自己的 baseOp，不是一律 1 —— 非焦點的點是 70%。
+       · 「還原」回到每條尾巴／每顆點自己的 baseOp，不是一律 1 ——
+         焦點模式下非焦點的尾巴本來就是看不見的（baseOp 0）、非焦點的點是 70%。
        · 被點的那一個**一律拉到 1**，就算它原本不是焦點（規格 §3.2-2「它變焦點」）。
        · 換段色環跟著亮暗（custom series 的第三個值）。 */
   function highlightClock(gid, elId) {
@@ -8106,15 +8545,26 @@
     if (!c) return false;
     const o = c.getOption(); if (!o || !o.series) return false;
     if (gid) {
-      // 改前還認「尾巴 series 的 gid」；2026-09-26 尾巴刪除之後，每個族群只剩 scatter 上那一顆點
-      const on = (o.series || []).some(sr => sr.type === 'scatter' && (sr.data || []).some(d => d && d.row && d.row.gid === gid));
+      const on = (o.series || []).some(sr => sr.gid === gid
+        || (sr.type === 'scatter' && (sr.data || []).some(d => d && d.row && d.row.gid === gid)));
       if (!on) return false;                     // 不在時鐘上：不要把整張圖壓暗
     }
     if (el._hiGid === (gid || null)) return true;   // 同一個已經亮著（滑鼠在同一顆點上移動）就不要重畫
+    const prevHi = el._hiGid || null;
     el._hiGid = gid || null;
     const series = o.series.map(sr => {
-      /* ★ 2026-09-26（Andy：「腳印功能拿掉」）：改前這裡先處理 type 'line' 的尾巴（亮／暗、退到背景的腳印換成焦點版）。
-         尾巴整批刪除，只剩點與換段色環要跟著亮暗。*/
+      const own = sr.gid;                         // renderRotClock 幫每條尾巴都標了 gid
+      if (sr.type === 'line') {
+        const base = sr.baseOp == null ? 1 : sr.baseOp;
+        const op = !gid ? base : (own === gid ? 1 : Math.min(base, 0.12));
+        /* 2026-09-25：退到背景的腳印（rest）被滑到／點到 → 換成焦點那一版（原尺寸、原密度）；原本亮著的那一條換回背景版。
+           只換「狀態真的變了」的那一兩條的 data（其他十幾條只改 opacity），不然每滑一顆點就要重建全部腳印。*/
+        const dk = sr.rest && el._rotDeco && el._rotDeco[own];
+        if (dk && (own === gid || own === prevHi)) {
+          return { lineStyle: { opacity: op }, itemStyle: { opacity: op }, data: own === gid ? dk.F() : dk.D };
+        }
+        return { lineStyle: { opacity: op }, itemStyle: { opacity: op } };
+      }
       if (sr.type === 'scatter') {
         // 寬畫面沒寫名字的點：滑到／點到它時把名字寫出來（其他點都壓暗了，不會撞成一團）
         // （規則抽成 rotHiItem：足跡輪盤補間每一幀也套同一套，移動中被點亮的族群不會被洗掉）
@@ -10443,7 +10893,117 @@
     });
   }
 
+  // ---------------------------------------------------------------- 公司 Logo（2026-09-26）
+  /* Andy 2026-09-26：「名稱旁邊附上公司 Logo，包含查個個股也要附上 Logo」。
+     圖檔由管線產出：`data/logos.json`（{代號: 相對路徑}，只列有圖的代號）＋ `data/logos/<代號>.png`。
+     這邊的原則是**永遠有東西可看、永遠不報錯**：
+       · 沒有 logos.json（管線還沒產、或 404）→ 全部走字母頭像，不丟例外。
+       · 該代號沒有圖、或圖載入失敗（onerror）→ 同一格退回字母頭像，不留破圖示。
+     字母頭像的字用 CSS `::before { content: attr(data-l) }` 畫，**不是文字節點** ——
+     個股頁標題、搜尋列的 textContent 會被別的程式與驗收拿去比對（例如「台積電 2330」），
+     多塞一個「台」字進 DOM 會讓那些比對全部錯位。
+     底色 8 色刻意避開紅與綠（紅漲綠跌），白字在每一色上的對比都 ≥ 4.5，深淺主題共用同一組。*/
+  const LOGO_BG = ['#3558c9', '#5b45c7', '#8a3fb0', '#1b6f99', '#9a5b12', '#4d5b73', '#7a5a3a', '#2f4f8f'];
+  let LOGOS = null, _logoP = null;
+  const _logoBad = new Set();            // 這一輪載入失敗過的代號：重畫時不再重試，直接給字母頭像
+  function logoSrc(code) {
+    if (!LOGOS || _logoBad.has(code)) return '';
+    const s = LOGOS[code];
+    // 只收站內相對路徑（管線產出的就是 data/logos/xxxx.png）；其他形狀一律當作沒有圖
+    return (typeof s === 'string' && /^[\w./-]+\.(png|webp|jpg|jpeg|svg)$/i.test(s) && !s.includes('..')) ? s : '';
+  }
+  function logoLetter(code, name) {
+    const s = String(name || '').replace(/[\s*＊\-_.()（）]/g, '');
+    const ch = s ? Array.from(s)[0] : String(code || '?').charAt(0);
+    return /[a-z]/.test(ch) ? ch.toUpperCase() : ch;
+  }
+  function logoColor(code) {
+    let h = 7;
+    for (const ch of String(code || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return LOGO_BG[h % LOGO_BG.length];
+  }
+  const logoImg = (src, sz) => `<img src="${fmt.esc(src)}" alt="" loading="lazy" decoding="async" width="${sz}" height="${sz}">`;
+  /* size：搜尋列 20、個股頁標題 32。cls 給呼叫端加定位用的 class。*/
+  function logoHTML(code, name, size, cls) {
+    const c = String(code || ''), sz = size || 20;
+    const src = logoSrc(c);
+    return `<span class="slogo${src ? ' hasimg' : ''}${cls ? ' ' + cls : ''}" data-logo="${fmt.esc(c)}" data-l="${fmt.esc(logoLetter(c, name || L.cname[c]))}"`
+      + ` style="--lg:${logoColor(c)};--lz:${sz}px" aria-hidden="true">${src ? logoImg(src, sz) : ''}</span>`;
+  }
+  /* logos.json 比畫面晚到時：把已經畫好的字母頭像補上圖（個股頁標題常常比它先畫完）。*/
+  function logoUpgrade(root) {
+    $$('.slogo[data-logo]:not(.hasimg)', root).forEach(el => {
+      const src = logoSrc(el.dataset.logo);
+      if (!src) return;
+      el.classList.add('hasimg');
+      el.insertAdjacentHTML('beforeend', logoImg(src, parseInt(el.style.getPropertyValue('--lz'), 10) || 20));
+    });
+  }
+  function logoMapLoad() {
+    if (_logoP) return _logoP;
+    /* 不走共用的 load()：它遇到 404 直接 throw、**不讀回應本體**，而這個檔在管線產出之前一定是 404 ——
+       本體沒讀完的請求在瀏覽器裡一直掛著（實測 Playwright 等 networkidle 等到逾時，驗收整輪卡死）。
+       這裡不管成功失敗都把本體讀完再判斷。版本鍵跟 load() 同一個（meta.generated_at），部署一次換一次。*/
+    const ver = (D.meta && D.meta.generated_at) || '';
+    _logoP = fetch(`data/logos.json?v=${ver}`, ver ? {} : { cache: 'no-store' })
+      .then(async r => {
+        const t = await r.text();
+        if (!r.ok) return {};
+        try { return JSON.parse(t); } catch (e) { return {}; }
+      })
+      .catch(() => ({}))
+      .then(m => {
+        LOGOS = (m && typeof m === 'object' && !Array.isArray(m)) ? m : {};
+        D.logos = LOGOS;
+        logoUpgrade();
+        return LOGOS;
+      });
+    return _logoP;
+  }
+  /* 圖載入失敗 → 退回字母頭像。error 不冒泡，所以掛在 document 的 capture 階段一次接住全部，
+     不必在每一張 <img> 上寫 onerror（也不用 inline 事件屬性）。*/
+  document.addEventListener('error', (e) => {
+    const t = e.target;
+    if (!t || t.tagName !== 'IMG') return;
+    const box = t.parentNode;
+    if (!box || !box.classList || !box.classList.contains('slogo')) return;
+    _logoBad.add(box.dataset.logo);
+    box.classList.remove('hasimg');
+    t.remove();
+  }, true);
+
+  // ---------------------------------------------------------------- 近期搜尋紀錄
+  /* 「從搜尋結果點進個股、或直接開 #stock/<code>」都算一筆 —— 所以記錄點放在路由（route），不放在搜尋框。
+     只存代號（名稱每次從全市場索引查，改名也跟得上）。localStorage 不能用（無痕、被封鎖）時退回這一輪的記憶體。*/
+  const RECENT_KEY = 'tw.search.recent', RECENT_MAX = 8;
+  let _recentMem = [];
+  const recentOk = (a) => (Array.isArray(a) ? a : []).filter(c => typeof c === 'string' && /^[0-9A-Z]{4,6}$/.test(c)).slice(0, RECENT_MAX);
+  function recentGet() {
+    try {
+      const raw = localStorage.getItem(RECENT_KEY);
+      if (raw !== null) return recentOk(JSON.parse(raw));
+    } catch (e) { /* 讀不到就用記憶體那份 */ }
+    return _recentMem.slice();
+  }
+  function recentSet(a) {
+    _recentMem = recentOk(a);
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(_recentMem)); } catch (e) { /* 寫不進去就只留在記憶體 */ }
+  }
+  function recentPush(code) {
+    if (!code) return;
+    const a = recentGet().filter(c => c !== code);
+    a.unshift(code);
+    recentSet(a);
+  }
+
   // ---------------------------------------------------------------- 搜尋
+  /* 2026-09-26（Andy：「搜尋功能需要添近期搜尋紀錄、熱門股票」）：
+     聚焦但還沒打字 → 下拉顯示「近期搜尋」＋「熱門股票」；打字 → 照舊比對代號／簡稱。
+     熱門的口徑選「最近一個交易日成交值前 10（普通股）」，不混漲跌幅：
+       成交值＝錢實際在哪裡，跟這個網站「錢往哪裡跑」的主軸同一件事；
+       把漲跌幅加權進來會讓小型股漲停擠進前 10，那是「漲最多」不是「最熱」，而且權重怎麼配說不清楚。
+     ETF（00 開頭）與權證／特別股（不是 4 碼數字）排除 —— 使用者要找的是公司。
+     手機（mobile3.js）用的是同一顆 #q 與同一個 #sugg，所以這裡改一次兩邊都有。*/
   async function initSearch() {
     const idx = {};
     (L.all || []).forEach(c => { idx[c.code] = c.name || c.code; });
@@ -10454,11 +11014,107 @@
     }
     const list = Object.entries(idx);
     const q = $('#q'), sg = $('#sugg');
-    q.addEventListener('input', () => { const v = q.value.trim().toLowerCase(); if (!v) { sg.style.display = 'none'; return; } const hits = list.filter(([c, n]) => c.startsWith(v) || (n || '').toLowerCase().includes(v)).slice(0, 12); sg.innerHTML = hits.map(([c, n]) => `<div data-c="${c}"><span class="code">${c}</span>${fmt.esc(n)}<span class="g">${fmt.esc(L.gname[L.cgroup[c]] || '')}</span></div>`).join(''); sg.style.display = hits.length ? 'block' : 'none'; $$('div', sg).forEach(d => d.onclick = () => { sg.style.display = 'none'; q.value = ''; goStock(d.dataset.c); }); });
-    q.addEventListener('keydown', e => { if (e.key === 'Enter') { const v = q.value.trim(); const hit = list.find(([c]) => c === v) || list.find(([c, n]) => (n || '') === v); if (hit) { sg.style.display = 'none'; q.value = ''; goStock(hit[0]); } } });
-    document.addEventListener('click', e => { if (!e.target.closest('.search')) sg.style.display = 'none'; });
+    if (!q || !sg) return;
+    q.setAttribute('role', 'combobox'); q.setAttribute('aria-controls', 'sugg');
+    q.setAttribute('aria-expanded', 'false'); q.setAttribute('aria-autocomplete', 'list');
+    sg.setAttribute('role', 'listbox'); sg.setAttribute('aria-label', '搜尋建議');
+    let hot = null;
+    const hotList = () => {
+      if (hot) return hot;
+      hot = (L.all || []).filter(s => /^[1-9]\d{3}$/.test(String(s.code)) && +s.turnover > 0)
+        .sort((a, b) => b.turnover - a.turnover).slice(0, 10);
+      return hot;
+    };
+    let act = -1, nid = 0;
+    const rows = () => $$('[data-c]', sg);
+    const isOpen = () => sg.style.display !== 'none' && sg.style.display !== '';
+    const row = (code, name, right, del) => {
+      const n = name || L.cname[code] || '';
+      return `<div class="sgrow" role="option" aria-selected="false" id="sgo${++nid}" data-c="${fmt.esc(code)}">${logoHTML(code, n, 20)}`
+        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>${right || ''}`
+        + (del ? `<button type="button" class="sgdel" data-del="${fmt.esc(code)}" aria-label="從近期搜尋移除 ${fmt.esc(n)}" title="從近期搜尋移除">×</button>` : '')
+        + '</div>';
+    };
+    const grp = (code) => `<span class="g">${fmt.esc(L.gname[L.cgroup[code]] || '')}</span>`;
+    const open = (html, mode) => {
+      sg.innerHTML = html; sg.dataset.mode = mode; act = -1;
+      q.removeAttribute('aria-activedescendant');
+      sg.style.display = html ? 'block' : 'none';
+      q.setAttribute('aria-expanded', html ? 'true' : 'false');
+      if (html) logoMapLoad();
+    };
+    const close = () => { sg.style.display = 'none'; act = -1; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); };
+    const panel = () => {
+      const rec = recentGet().filter(c => idx[c] || L.cname[c]);
+      let h = `<div class="sghd"><span>近期搜尋</span>`
+        + (rec.length ? `<button type="button" class="sgclr" id="sgClr" title="清除全部近期搜尋">清除</button>` : '') + '</div>';
+      h += rec.length ? rec.map(c => row(c, idx[c] || L.cname[c], grp(c), true)).join('')
+        : '<p class="sgempty" id="sgEmpty">還沒有搜尋紀錄 —— 進過的個股會記在這裡（最多 8 筆）。</p>';
+      const hs = hotList();
+      if (hs.length) {
+        const dd = (D.meta && D.meta.data_date) || '';
+        h += `<div class="sghd" id="sgHotHd"><span>熱門股票</span><small title="最近一個交易日成交值最大的 10 檔普通股（不含 ETF、權證）">成交值前 10${dd ? ' · ' + fmt.esc(String(dd).slice(5)) : ''}</small></div>`
+          + hs.map(s => row(s.code, s.name, `<span class="tv">${fmt.yi(s.turnover)}</span><span class="chg ${fmt.cls(s.chg_pct)}">${fmt.pct(s.chg_pct, 2)}</span>`)).join('');
+      }
+      open(h, 'panel');
+    };
+    const search = () => {
+      const v = q.value.trim().toLowerCase();
+      if (!v) { panel(); return; }
+      const hits = list.filter(([c, n]) => c.startsWith(v) || (n || '').toLowerCase().includes(v)).slice(0, 12);
+      open(hits.map(([c, n]) => row(c, n, grp(c))).join(''), 'hits');
+    };
+    const setAct = (i) => {
+      const r = rows();
+      if (!r.length) { act = -1; return; }
+      act = (i + r.length) % r.length;
+      r.forEach((x, j) => { const on = j === act; x.classList.toggle('on', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      q.setAttribute('aria-activedescendant', r[act].id);
+      r[act].scrollIntoView({ block: 'nearest' });
+    };
+    const go = (code) => { close(); q.value = ''; q.blur(); goStock(code); };
+    q.addEventListener('input', search);
+    q.addEventListener('focus', () => { if (!isOpen()) search(); });
+    q.addEventListener('click', () => { if (!isOpen()) search(); });   // Esc 關掉之後再點一下框（焦點沒離開，focus 不會再觸發）
+    q.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen()) { search(); setAct(e.key === 'ArrowUp' ? -1 : 0); return; }
+        setAct(act < 0 ? (e.key === 'ArrowDown' ? 0 : -1) : act + (e.key === 'ArrowDown' ? 1 : -1));
+        return;
+      }
+      if (e.key === 'Escape') { if (isOpen()) { e.preventDefault(); close(); } return; }
+      if (e.key !== 'Enter') return;
+      const r = rows();
+      if (isOpen() && act >= 0 && r[act]) { e.preventDefault(); go(r[act].dataset.c); return; }
+      const v = q.value.trim();
+      if (!v) return;
+      const hit = list.find(([c]) => c === v) || list.find(([c, n]) => (n || '') === v);
+      if (hit) { go(hit[0]); return; }
+      if (isOpen() && sg.dataset.mode === 'hits' && r[0]) go(r[0].dataset.c);   // 沒有完全符合就進第一筆建議
+    });
+    // 按在清單上不要讓輸入框失焦：鍵盤還要能接著上下選
+    sg.addEventListener('mousedown', e => { e.preventDefault(); });
+    sg.addEventListener('click', e => {
+      const del = e.target.closest('.sgdel');
+      if (del) {
+        /* stopPropagation：重畫之後被點的 × 已經不在 DOM 裡，下面那支「點 .search 外面就關」會把它當成點外面 */
+        e.stopPropagation();
+        recentSet(recentGet().filter(c => c !== del.dataset.del));
+        panel(); q.focus();
+        return;
+      }
+      if (e.target.closest('#sgClr')) { e.stopPropagation(); recentSet([]); panel(); q.focus(); return; }
+      const r = e.target.closest('[data-c]');
+      if (r) go(r.dataset.c);
+    });
+    /* 手機（mobile3.js）的「⌕」鈕在 .search 外面：它的 onclick 先把焦點放進框（→ 下拉打開），
+       同一個 click 冒泡到 document 又會被當成「點外面」關掉 —— 所以那顆鈕也算裡面。*/
+    const INSIDE = '.search, #mSearchBtn';
+    window.addEventListener('hashchange', close);     // 換頁（例如點了圖上的股票）下拉就收，不留在新頁面上
+    document.addEventListener('click', e => { if (!e.target.closest(INSIDE)) close(); });
     // 2026-09-24：建議清單也吃 Esc（外面點一下本來就會關）
-    dismissable(sg, () => { sg.style.display = 'none'; }, { ignore: ['.search'],
+    dismissable(sg, close, { ignore: ['.search', '#mSearchBtn'],
       isOpen: () => sg.style.display !== 'none' && sg.getClientRects().length > 0 });
   }
 
@@ -10606,6 +11262,8 @@
       rotFrameNow: () => rotFrame,
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
+      logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
+      logoUpgrade, logoMapLoad, recentGet,
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置
@@ -10719,6 +11377,7 @@
         stocks: [...DRILL.stocks], sel: sankeySel }) };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
+    logoMapLoad();              // Logo 對照表不擋開站：沒到之前一律字母頭像，到了再把畫好的補上圖
     await Promise.all([renderEvents(), initSearch()]);
     await route();
     // 盤中即時層。放在 route() 之後：畫面上先有代號，Live 才知道要抓哪些。

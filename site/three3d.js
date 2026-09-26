@@ -7231,13 +7231,20 @@
     let lastCw = -1;
     /* 一欄由上往下擺：先各自貼著自己零件的高度，擠到的往下推；
        推到超出底部就再由下往上收一次。收完最上面那個還是負的＝這一欄塞不下。*/
-    function pack(list, h) {
-      let y = 4;
+    function pack(list, h, top) {
+      let y = Math.max(4, top || 0);
       list.forEach(it => { it.ty = Math.max(y, Math.min(h - it.hh - 4, it.sy - it.hh / 2)); y = it.ty + it.hh + GAP; });
       let yb = h - 4;
       for (let i = list.length - 1; i >= 0; i--) { const it = list[i]; it.ty = Math.min(it.ty, yb - it.hh); yb = it.ty - GAP; }
-      return !list.length || list[0].ty >= 2;
+      return !list.length || list[0].ty >= Math.max(2, (top || 0) - 2);
     }
+    /* ★ 2026-09-26：industry.js 把「拖曳：轉動／重設視角」那組鈕浮在畫面框內右上角（#dg3dCtl），
+       正好蓋在右欄最上面。右欄的卡片改成從那組鈕的下緣開始排（reserveTR 回傳要讓出的高度，px）。
+       給的是函式不是數字：鈕的高度跟著字級、主題、寬度變，每次排版時現量。
+       左欄不受影響；沒傳（題材頁那種沒有這組鈕的場景）就是 0，行為跟以前一模一樣。*/
+    // 只在欄寬／模式變了才重量（見 layoutLabels 的快取那段）：每幀量一次 getBoundingClientRect 會逼瀏覽器重排
+    let topRv = 0;
+    const topR = () => { try { return typeof o.reserveTR === 'function' ? (+o.reserveTR() || 0) : (+o.reserveTR || 0); } catch (e) { return 0; } };
     let lastMode = '';
     /* 塞不下兩欄、被排到底下那一排的卡片是**黏的**（stickyBelow）：
        自轉時零件的投影點每幀都在動，塞得下／塞不下的判定會跟著翻來覆去，
@@ -7351,6 +7358,7 @@
         // 第二階（2026-09-24）：只留「編號＋標題」
         items.forEach(it => { it.p.el.classList.add('compact', 'mini'); it.p.hhM = it.p.el.offsetHeight || 24; it.p.el.classList.remove('compact', 'mini'); });
         lastCw = cw;
+        topRv = topR();
         stickyBelow = new Set(); compactSide = { L: false, R: false };
       }
       items.forEach(it => { it.p.el.classList.remove('hid'); it.hh = it.p.hh || 42; });
@@ -7395,9 +7403,10 @@
            同一時間最多一張展開，跟 2D 收合模式同一個規則。底下那一排（below，窄畫面）不在這個範圍。*/
         let lv = Math.max(1, +compactSide[side] || 0);
         useLevel(lv);
-        if (lv < 2 && !pack(list, h)) { lv = 2; useLevel(lv); }
+        const top = side === 'R' ? topRv : 0;
+        if (lv < 2 && !pack(list, h, top)) { lv = 2; useLevel(lv); }
         compactSide[side] = lv;
-        while (list.length && !pack(list, h)) {
+        while (list.length && !pack(list, h, top)) {
           let worst = 0; list.forEach((it, i) => { if (it.rank > list[worst].rank) worst = i; });
           const ev = list.splice(worst, 1)[0];
           ev.p.el.classList.remove('compact', 'mini');

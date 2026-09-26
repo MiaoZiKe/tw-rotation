@@ -1,0 +1,663 @@
+{
+ "enabled": true,
+ "at": "2026-09-26T13:34:54.766465+00:00",
+ "done": false,
+ "pending": 785,
+ "attempted": 300,
+ "counts": {
+  "ok": 193,
+  "too_small": 56,
+  "none": 35,
+  "robots": 16
+ },
+ "generic": 1,
+ "sites": 1985,
+ "have": 782,
+ "next_due": "2026-10-26",
+ "seconds": 177.5,
+ "deadline_hit": false,
+ "failures": [
+  {
+   "code": "3032",
+   "status": "too_small",
+   "domain": "www.hec-group.com.tw",
+   "detail": "16x16 https://www.hec-group.com.tw/favicon.ico"
+  },
+  {
+   "code": "3040",
+   "status": "none",
+   "domain": "www.gv.com.tw",
+   "detail": "HTTP 404 https://www.gv.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3046",
+   "status": "too_small",
+   "domain": "www.aopen.com",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.aopen.com&sz=64"
+  },
+  {
+   "code": "3047",
+   "status": "robots",
+   "domain": "www.edimax.com",
+   "detail": "https://www.edimax.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3043",
+   "status": "too_small",
+   "domain": "www.upspowercom.com",
+   "detail": "17x17 https://www.upspowercom.com/pcm-img/favicon.png"
+  },
+  {
+   "code": "3062",
+   "status": "none",
+   "domain": "www.cybertan.com.tw",
+   "detail": "回的是 HTML 不是圖 https://www.cybertan.com.tw/"
+  },
+  {
+   "code": "3066",
+   "status": "too_small",
+   "domain": "www.oasistek.com",
+   "detail": "16x16 https://www.oasistek.com/favicon.ico"
+  },
+  {
+   "code": "3073",
+   "status": "too_small",
+   "domain": "www.tpenergy.com.tw",
+   "detail": "15x19 https://www.google.com/s2/favicons?domain=www.tpenergy.com.tw&sz=64"
+  },
+  {
+   "code": "3071",
+   "status": "too_small",
+   "domain": "www.adda.com.tw",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.adda.com.tw&sz=64"
+  },
+  {
+   "code": "3083",
+   "status": "too_small",
+   "domain": "www.chinesegamer.net",
+   "detail": "16x16 https://www.chinesegamer.net/images/chinesegamer.ico"
+  },
+  {
+   "code": "3086",
+   "status": "too_small",
+   "domain": "www.wayi.net",
+   "detail": "16x16 https://www.wayi.net/favicon.ico"
+  },
+  {
+   "code": "3095",
+   "status": "too_small",
+   "domain": "www.chicheng.com.tw",
+   "detail": "16x16 https://www.chicheng.com.tw/favicon.ico"
+  },
+  {
+   "code": "3093",
+   "status": "none",
+   "domain": "www.tkk.com.tw",
+   "detail": "HTTP 500 https://www.tkk.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3092",
+   "status": "too_small",
+   "domain": "www.hotron-ind.com",
+   "detail": "31x31 https://www.hotron-ind.com/resources/_img/favicon.ico"
+  },
+  {
+   "code": "3135",
+   "status": "robots",
+   "domain": "www.goldkey.com.tw",
+   "detail": "https://www.goldkey.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3147",
+   "status": "none",
+   "domain": "www.jetwell.com.tw",
+   "detail": "HTTP 404 https://www.jetwell.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3130",
+   "status": "too_small",
+   "domain": "corp.104.com.tw",
+   "detail": "16x16 https://corp.104.com.tw/favicon.ico"
+  },
+  {
+   "code": "3158",
+   "status": "none",
+   "domain": "www.sysjust.com.tw",
+   "detail": "HTTP 404 https://www.sysjust.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3164",
+   "status": "too_small",
+   "domain": "www.genmont.com.tw",
+   "detail": "16x16 https://www.genmont.com.tw/favicon.ico"
+  },
+  {
+   "code": "3191",
+   "status": "too_small",
+   "domain": "www.holdjinn.com.tw",
+   "detail": "16x16 https://www.gstatic.com/images/branding/productlogos/sites_2026/v3/ico/sites_2026_16dp.ico"
+  },
+  {
+   "code": "3205",
+   "status": "too_small",
+   "domain": "www.naturalbiokey.com",
+   "detail": "16x16 http://www.naturalbiokey.com/images/icon.png"
+  },
+  {
+   "code": "3169",
+   "status": "too_small",
+   "domain": "www.asix.com.tw",
+   "detail": "24x24 https://www.asix.com.tw/favicon.ico"
+  },
+  {
+   "code": "3213",
+   "status": "none",
+   "domain": "www.crete.com.tw",
+   "detail": "HTTP 404 http://www.crete.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3041",
+   "status": "too_small",
+   "domain": "www.alitech.com",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.alitech.com&sz=64"
+  },
+  {
+   "code": "3268",
+   "status": "robots",
+   "domain": "www.higherway.com.tw",
+   "detail": "https://www.higherway.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3266",
+   "status": "too_small",
+   "domain": "www.sunty.com.tw",
+   "detail": "24x25 http://www.sunty.com.tw/images\\organization\\logo.ico"
+  },
+  {
+   "code": "3287",
+   "status": "none",
+   "domain": "www.kworld.com.tw",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.kworld.com.tw&sz=64"
+  },
+  {
+   "code": "3288",
+   "status": "robots",
+   "domain": "www.siti.com.tw",
+   "detail": "http://www.siti.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3284",
+   "status": "too_small",
+   "domain": "www.ctptop.com.tw",
+   "detail": "16x16 https://www.ctptop.com.tw/images/project/80/favicon.ico"
+  },
+  {
+   "code": "3294",
+   "status": "none",
+   "domain": "www.megaforce.com.tw",
+   "detail": "回的是 HTML 不是圖 https://www.megaforce.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3296",
+   "status": "too_small",
+   "domain": "www.power-tech.com.tw",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.power-tech.com.tw&sz=64"
+  },
+  {
+   "code": "3305",
+   "status": "none",
+   "domain": "www.shenmao.com",
+   "detail": "HTTP 404 https://www.shenmao.com/apple-touch-icon.png"
+  },
+  {
+   "code": "3308",
+   "status": "none",
+   "domain": "www.bestec.com.tw",
+   "detail": "HTTP 404 http://www.bestec.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3317",
+   "status": "none",
+   "domain": "www.niko-sem.com",
+   "detail": "HTTP 404 https://www.niko-sem.com/apple-touch-icon.png"
+  },
+  {
+   "code": "3276",
+   "status": "none",
+   "domain": "www.tht-pcb.com.tw",
+   "detail": "HTTP 404 https://www.tht-pcb.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3322",
+   "status": "none",
+   "domain": "www.jem.com.tw",
+   "detail": "HTTP 404 https://www.jem.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3332",
+   "status": "too_small",
+   "domain": "www.cincon.com.tw",
+   "detail": "16x16 https://www.cincon.com/images/icon/favor.ico"
+  },
+  {
+   "code": "3360",
+   "status": "too_small",
+   "domain": "www.sunnic.com",
+   "detail": "29x30 https://www.sunnic.com/tw/upload_files/fonlego-rwd/website/尚立icon.png"
+  },
+  {
+   "code": "3388",
+   "status": "too_small",
+   "domain": "www.topcocorp.com",
+   "detail": "16x16 https://www.topcocorp.com/favicon.ico"
+  },
+  {
+   "code": "3379",
+   "status": "too_small",
+   "domain": "www.taibeco.com",
+   "detail": "16x16 https://www.taibeco.com.tw/themes/custom/tbc_bs_sass/favicon.ico"
+  },
+  {
+   "code": "3434",
+   "status": "robots",
+   "domain": "www.acula.com",
+   "detail": "http://www.acula.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3438",
+   "status": "too_small",
+   "domain": "www.aat-ic.com",
+   "detail": "16x16 http://www.aat-ic.com/favicon.ico"
+  },
+  {
+   "code": "3285",
+   "status": "too_small",
+   "domain": "www.microtips.com.tw",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.microtips.com.tw&sz=64"
+  },
+  {
+   "code": "3492",
+   "status": "too_small",
+   "domain": "www.actt.co",
+   "detail": "16x16 https://www.actt.co/template/new/home/assets/img/favicon.ico"
+  },
+  {
+   "code": "3501",
+   "status": "too_small",
+   "domain": "www.wellshin.com.tw",
+   "detail": "16x16 https://www.wellshin.com.tw/images/logo.ico"
+  },
+  {
+   "code": "3494",
+   "status": "too_small",
+   "domain": "www.hiti.com",
+   "detail": "16x16 https://www.hiti.com/favicon.ico"
+  },
+  {
+   "code": "3508",
+   "status": "too_small",
+   "domain": "www.waystech.net",
+   "detail": "16x16 https://www.waystech.net/favicon.ico"
+  },
+  {
+   "code": "3520",
+   "status": "too_small",
+   "domain": "www.jve-tech.com",
+   "detail": "16x16 https://www.jve-tech.com/favicon.ico"
+  },
+  {
+   "code": "3527",
+   "status": "too_small",
+   "domain": "www.mblock.com.tw",
+   "detail": "16x16 https://www.mblock.com.tw/assets/img/favicon.ico"
+  },
+  {
+   "code": "3530",
+   "status": "robots",
+   "domain": "www.soinc.com.tw",
+   "detail": "https://www.soinc.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3540",
+   "status": "none",
+   "domain": "www.thermaltake.com",
+   "detail": "HTTP 404 https://www.thermaltake.com/media/favicon/stores/1/favicon_2_.ico"
+  },
+  {
+   "code": "3537",
+   "status": "none",
+   "domain": "www.podak.com.tw",
+   "detail": "HTTP 404 https://www.podak.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3531",
+   "status": "too_small",
+   "domain": "www.shianyih.com.tw",
+   "detail": "16x16 https://www.shianyih.com.tw/favicon.ico"
+  },
+  {
+   "code": "3552",
+   "status": "none",
+   "domain": "www.tungthih.com.tw",
+   "detail": "HTTP 404 https://www.tungthih.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "3557",
+   "status": "robots",
+   "domain": "www.jiaweils.com",
+   "detail": "https://www.jiaweils.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3556",
+   "status": "none",
+   "domain": "www.eeti.com",
+   "detail": "HTTP 404 https://www.eeti.com/apple-touch-icon.png"
+  },
+  {
+   "code": "3489",
+   "status": "none",
+   "domain": "www.sunbrothers.com.tw",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.sunbrothers.com.tw&sz=64"
+  },
+  {
+   "code": "3447",
+   "status": "none",
+   "domain": "www.xavi.com.tw",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.xavi.com.tw&sz=64"
+  },
+  {
+   "code": "3609",
+   "status": "too_small",
+   "domain": "www.31hep.com",
+   "detail": "31x31 https://www.31hep.com/images/favicon.png"
+  },
+  {
+   "code": "3622",
+   "status": "robots",
+   "domain": "www.yfo.com.tw",
+   "detail": "https://www.yfo.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3615",
+   "status": "too_small",
+   "domain": "www.aimcore.com.tw",
+   "detail": "16x16 https://www.aimcore.com.tw/favicon.ico"
+  },
+  {
+   "code": "3628",
+   "status": "too_small",
+   "domain": "www.ablerex.com.tw",
+   "detail": "16x16 http://www.ablerex.com.tw/images/ablerexicon.ico"
+  },
+  {
+   "code": "3631",
+   "status": "none",
+   "domain": "www.chernan.com",
+   "detail": "HTTP 404 http://www.chernan.com/apple-touch-icon.png"
+  },
+  {
+   "code": "3663",
+   "status": "none",
+   "domain": "www.e-ttmc.com.tw",
+   "detail": "HTTP 404 https://www.e-ttmc.com.tw/favicon.ico"
+  },
+  {
+   "code": "3570",
+   "status": "none",
+   "domain": "www.oitc.com.tw",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.oitc.com.tw&sz=64"
+  },
+  {
+   "code": "3669",
+   "status": "robots",
+   "domain": "www.aver.com",
+   "detail": "https://www.aver.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3687",
+   "status": "robots",
+   "domain": "www.macrowell.com.tw",
+   "detail": "http://www.macrowell.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3686",
+   "status": "none",
+   "domain": "www.danentech.com",
+   "detail": "HTTP 404 http://www.danentech.com/apple-touch-icon.png"
+  },
+  {
+   "code": "3694",
+   "status": "too_small",
+   "domain": "www.azurewave.com",
+   "detail": "28x30 https://www.azurewave.com/favicon.ico"
+  },
+  {
+   "code": "3632",
+   "status": "too_small",
+   "domain": "www.papagoinc.com",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.papagoinc.com&sz=64"
+  },
+  {
+   "code": "3709",
+   "status": "robots",
+   "domain": "www.trigoldholdings.com",
+   "detail": "https://www.trigoldholdings.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3689",
+   "status": "too_small",
+   "domain": "www.ude-corp.com",
+   "detail": "16x16 https://www.ude-corp.com/archive/system/company/favicon.ico"
+  },
+  {
+   "code": "3666",
+   "status": "none",
+   "domain": "www.optivtech.com",
+   "detail": "HTTP 404 http://www.optivtech.com/apple-touch-icon.png"
+  },
+  {
+   "code": "3718",
+   "status": "robots",
+   "domain": "www.coreintelligence.com.tw",
+   "detail": "https://www.coreintelligence.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "3712",
+   "status": "too_small",
+   "domain": "www.fit-holding.com",
+   "detail": "16x16 https://www.fit-holding.com/storage/2024/02/favicon_foxlink.png"
+  },
+  {
+   "code": "4105",
+   "status": "too_small",
+   "domain": "www.tty.com.tw",
+   "detail": "16x16 https://www.tty.com.tw/rwd1181/store/f1/shortcut.ico"
+  },
+  {
+   "code": "4102",
+   "status": "too_small",
+   "domain": "www.yungzip.com",
+   "detail": "16x16 https://www.yungzip.com/language/en/images/favicon.ico"
+  },
+  {
+   "code": "4114",
+   "status": "none",
+   "domain": "www.synmosa.com.tw",
+   "detail": "HTTP 404 http://www.synmosa.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "4116",
+   "status": "too_small",
+   "domain": "www.benqmedicaltech.com",
+   "detail": "16x16 https://www.benqmedicaltech.com/Scripts/favicon.ico"
+  },
+  {
+   "code": "4119",
+   "status": "too_small",
+   "domain": "www.sci-pharmtech.com.tw",
+   "detail": "16x16 https://www.sci-pharmtech.com.tw/default/system/favicon.ico"
+  },
+  {
+   "code": "4127",
+   "status": "robots",
+   "domain": "www.tlb.com.tw",
+   "detail": "https://www.tlb.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "4123",
+   "status": "too_small",
+   "domain": "www.centerlab.com.tw",
+   "detail": "16x16 https://www.centerlab.com.tw/ridea/images/frontend/pc/tw/favicon.ico"
+  },
+  {
+   "code": "4133",
+   "status": "robots",
+   "domain": "www.abnova.com",
+   "detail": "http://www.abnova.com/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "4120",
+   "status": "too_small",
+   "domain": "www.oep.com.tw",
+   "detail": "16x16 https://www.oepgroup.com/favicon.ico"
+  },
+  {
+   "code": "4137",
+   "status": "none",
+   "domain": "www.chlitinaholding.com",
+   "detail": "HTTP 404 http://www.chlitinaholding.com/apple-touch-icon.png"
+  },
+  {
+   "code": "4154",
+   "status": "too_small",
+   "domain": "www.raku-tec.com.tw",
+   "detail": "16x16 https://static.parastorage.com/client/pfavico.ico"
+  },
+  {
+   "code": "4147",
+   "status": "too_small",
+   "domain": "www.taimedbiologics.com",
+   "detail": "16x16 https://www.taimedbiologics.com/favicon.ico"
+  },
+  {
+   "code": "4155",
+   "status": "none",
+   "domain": "www.okbiotech.com",
+   "detail": "HTTP 404 https://www.okbiotech.com/apple-touch-icon.png"
+  },
+  {
+   "code": "4171",
+   "status": "none",
+   "domain": "www.genereach.com",
+   "detail": "HTTP 404 https://www.genereach.com/images/eng/ico/apple-touch-icon-144-precomposed.png"
+  },
+  {
+   "code": "4183",
+   "status": "too_small",
+   "domain": "www.epsbio.com.tw",
+   "detail": "16x16 https://static.parastorage.com/client/pfavico.ico"
+  },
+  {
+   "code": "4162",
+   "status": "too_small",
+   "domain": "www.pharmaengine.com",
+   "detail": "16x16 https://www.pharmaengine.com/SRC/images/favicon/favicon.ico"
+  },
+  {
+   "code": "4401",
+   "status": "none",
+   "domain": "www.tloong.com.tw",
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.tloong.com.tw&sz=64"
+  },
+  {
+   "code": "4205",
+   "status": "too_small",
+   "domain": "www.herngyih.com.tw",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.herngyih.com.tw&sz=64"
+  },
+  {
+   "code": "4306",
+   "status": "none",
+   "domain": "www.ycgroup.tw",
+   "detail": "回的是 HTML 不是圖 https://www.ycgroup.tw/touch-icon-ipad-retina.png"
+  },
+  {
+   "code": "4419",
+   "status": "none",
+   "domain": "www.tsgkh.com.tw",
+   "detail": "HTTP 404 https://www.tsgkh.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "4426",
+   "status": "too_small",
+   "domain": "www.li-cheng.com.tw",
+   "detail": "16x16 https://www.li-cheng.com.tw/resources/_img/favicon.ico"
+  },
+  {
+   "code": "4420",
+   "status": "none",
+   "domain": "www.kwangming.com",
+   "detail": "HTTP 404 http://www.kwangming.com/apple-touch-icon.png"
+  },
+  {
+   "code": "4503",
+   "status": "robots",
+   "domain": "www.alona.com.tw",
+   "detail": "https://www.alona.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "4506",
+   "status": "too_small",
+   "domain": "www.gfc.com.tw",
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.gfc.com.tw&sz=64"
+  },
+  {
+   "code": "4529",
+   "status": "none",
+   "domain": "www.eptech.tw",
+   "detail": "HTTP 404 https://www.eptech.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "4536",
+   "status": "robots",
+   "domain": "www.topkey.com.tw",
+   "detail": "http://www.topkey.com.tw/robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"
+  },
+  {
+   "code": "4533",
+   "status": "too_small",
+   "domain": "www.seyi.com",
+   "detail": "16x16 https://www.seyi.com/favicon.ico"
+  },
+  {
+   "code": "4543",
+   "status": "none",
+   "domain": "www.manzai.com.tw",
+   "detail": "HTTP 403 http://www.manzai.com.tw/site/themes/default/cht/images/"
+  },
+  {
+   "code": "4535",
+   "status": "too_small",
+   "domain": "www.fineblanking.com.tw",
+   "detail": "16x16 https://www.fineblanking.com.tw/ShareFile/images/hi.ico"
+  },
+  {
+   "code": "4545",
+   "status": "too_small",
+   "domain": "www.mapi.com.tw",
+   "detail": "26x26 https://www.mapi.com.tw/frontend/images/favicon.ico"
+  },
+  {
+   "code": "4550",
+   "status": "none",
+   "domain": "www.changjia.com.tw",
+   "detail": "HTTP 404 http://www.changjia.com.tw/apple-touch-icon.png"
+  },
+  {
+   "code": "4557",
+   "status": "too_small",
+   "domain": "www.yusin.com",
+   "detail": "20x20 https://www.yusin.com/resources/_img/favicon.ico"
+  }
+ ]
+}

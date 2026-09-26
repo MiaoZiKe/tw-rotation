@@ -13,6 +13,7 @@ import re
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urljoin
 
 import requests
 
@@ -240,3 +241,49 @@ def finmind_get(dataset: str, *, data_id: str | None = None,
                     dataset, data_id, payload.get("status"), payload.get("msg"))
         return None
     return payload.get("data") or []
+
+
+# ------------------------------------------------------------------ 二進位（Logo 圖檔）
+
+def get_bytes(url: str, *, headers: dict | None = None, timeout: int = 10,
+              max_bytes: int = 2_000_000, retries: int = 1,
+              sess: requests.Session | None = None,
+              allow_redirects: bool = True) -> tuple[int, bytes, str, str] | None:
+    """抓二進位內容（圖檔、首頁 HTML 原文），回 (狀態碼, 內容, Content-Type, 轉址後的最終網址)；
+    連線失敗回 None。最終網址是給解析 <link href="相對路徑"> 用的（官網常把首頁轉到 /tw/index.html）。
+
+    為什麼不用上面的 get()：
+    - get() 只回 JSON 或解碼後的文字，圖檔需要原始位元組。
+    - Logo 的來源是各家公司官網，**狀態碼本身就是訊號**（Google s2 找不到 Logo 時回 404
+      並附一張地球圖示），所以這裡把 4xx 也原樣交回去，由呼叫端判定「沒有」，不要只給 None。
+    - 預設只重試 1 次、逾時 10 秒：官網動輒掛掉或很慢，一輪要跑幾百家，
+      照 get() 的 3 次＋30 秒，一家壞站就能卡住 90 秒。
+    - max_bytes：有些官網把首頁做成幾十 MB 的單頁，只讀前 2 MB，找 <link rel=icon> 綽綽有餘。
+    - sess：多執行緒抓 Logo 時每條執行緒自己帶一個 Session（requests 不保證 Session 跨執行緒安全）。
+    - allow_redirects=False：呼叫端要自己一跳一跳地跟轉址（Logo 要先確認「轉到的是不是同一家公司的網域」、
+      再讀那個網域的 robots.txt，才能決定要不要抓）。這時 3xx 回應的第 4 欄放的是
+      **Location 解析成絕對網址後的下一跳**（沒有 Location 就是原網址），而不是「最終網址」。
+    """
+    s = sess or session()
+    last_err = ""
+    for attempt in range(max(1, retries)):
+        try:
+            with s.get(url, headers=headers, timeout=timeout, stream=True,
+                       allow_redirects=allow_redirects) as r:
+                if not allow_redirects and 300 <= r.status_code < 400:
+                    loc = r.headers.get("Location") or ""
+                    return (r.status_code, b"", r.headers.get("Content-Type", ""),
+                            urljoin(url, loc) if loc else url)
+                buf = bytearray()
+                for chunk in r.iter_content(64 * 1024):
+                    buf.extend(chunk)
+                    if len(buf) >= max_bytes:
+                        break
+                return (r.status_code, bytes(buf[:max_bytes]),
+                        r.headers.get("Content-Type", ""), str(r.url or url))
+        except requests.RequestException as exc:
+            last_err = str(exc)[:200]
+        if attempt < retries - 1:
+            time.sleep(1 + random.uniform(0, 0.5))
+    log.info("%s 連線失敗：%s", url, last_err)
+    return None

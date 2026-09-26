@@ -1616,12 +1616,10 @@ def t_flow(pg, base):
         seenb[v] = pg.evaluate("""() => ({ v: +document.querySelector('#rotBack input.days').value,
             lab: (document.querySelector('#rotBack .val')||{}).textContent,
             move: (document.getElementById('rotMove')||{}).innerText || '',
-            sub: (document.getElementById('rankSub')||{}).textContent || '' })""")
+            sub: (document.getElementById('rankSub')||{}).textContent || '',
+            span: ((window.App && window.App._rotFrame) || {}).span })""")
         ok(f"拉到 {v}：讀數寫「{v} 天前」（旁邊備註改成幾天前）", (seenb[v]["lab"] or "").startswith(f"{v} 天前"), seenb[v]["lab"])
-        # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：拉到 v → 輪盤的腳印真的畫 v 天（_rotFrame.span == v）
-        #   改後：「N 天前」只管排行區間與回放起點，輪盤上不論拉到幾天都沒有腳印
-        _ft = _rot_feet(pg)
-        ok(f"拉到 {v}：輪盤上沒有任何腳印／尾巴（只有圓點）", _rot_nofeet(_ft), _ft)
+        ok(f"拉到 {v}：輪盤的腳印真的畫 {v} 天（span）", seenb[v]["span"] == v, seenb[v])
         ok(f"拉到 {v} 天，`#rotMove` 那一排仍然不存在（D2 移除之後不准被誰加回來）",
            not (seenb[v]["move"] or "").strip(), seenb[v]["move"][:40])
     ok("拉不同天數，排行副標的起始日真的跟著變（M/D ～ M/D）",
@@ -1641,22 +1639,23 @@ def t_flow(pg, base):
         if (!el) return null; const c = echarts.getInstanceByDom(el); if (!c) return { canvas: !!el.querySelector('canvas'), pts: 0 };
         const o = c.getOption(); const sc = o.series.filter(s => s.type === 'scatter')[0];
         return { canvas: !!el.querySelector('canvas'), pts: sc ? sc.data.length : 0,
-                 lines: o.series.filter(s => s.type === 'line').length,
+                 trails: o.series.filter(s => s.type === 'line').length,
                  labels: (o.angleAxis[0].axisLabel ? 'fn' : 'none'),
                  stages: (sc ? sc.data : []).map(d => d.row && d.row.stage).filter(Boolean) }; }""")
     ok("輪動時鐘有畫出來", bool(clk) and clk["canvas"], clk)
     ok("輪動時鐘上有族群的點", bool(clk) and clk["pts"] >= 4, clk)
-    # ★ 2026-09-26 改前：每個族群都有一條走過的尾巴（line series 條數＝點數）→ 改後：腳印功能拿掉，一條都沒有
-    ok("盤上沒有任何尾巴／腳印（line series 0 條）", bool(clk) and clk["lines"] == 0, clk)
+    ok("每個族群都有一條走過的尾巴", bool(clk) and clk["trails"] == clk["pts"], clk)
     ok("時鐘上的點分佈在四個階段裡", bool(clk) and set(clk["stages"]) <= {"leading", "improving", "weakening", "lagging"}, clk and clk["stages"][:6])
     rot_seek(pg, 5, 900)
     h0 = canvas_hash(pg, "#rotClock")
     rot_seek(pg, 20, 1100)
-    # ★ 2026-09-26 改前：「拉到 20 天，輪動時鐘的尾巴真的重畫」＋「尾巴是弧線（最長一條 ≥ 8 點）」
-    #   改後：沒有尾巴了；回放到 20 天前是**點**換了位置，所以畫面一樣要變，而且變了之後也沒有冒出尾巴
-    changed("回放到 20 天前，輪動時鐘的點真的移動（畫面重畫）", h0, canvas_hash(pg, "#rotClock"))
-    _ft = _rot_feet(pg)
-    ok("回放到 20 天前也沒有冒出任何尾巴／腳印", _rot_nofeet(_ft), _ft)
+    changed("拉到 20 天，輪動時鐘的尾巴真的重畫", h0, canvas_hash(pg, "#rotClock"))
+    # 尾巴要**沿著圓弧**走（Andy 2026-09-18：「不是一個斷點直線跑過去」）。
+    # 判準：一條尾巴的點數要遠多於 2（兩點＝直線），而且不是只有起訖兩端。
+    seg = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+        if (!c) return 0; const ls = c.getOption().series.filter(s => s.type === 'line');
+        return Math.max(0, ...ls.map(s => (s.data || []).length)); }""")
+    ok("輪動時鐘的尾巴是弧線（補過中間點）不是兩點直線", seg >= 8, f"最長的一條尾巴有 {seg} 個點")
     rot_seek(pg, 5, 900)
     # 用真的滑鼠點時鐘上的點（算出那顆點的螢幕座標再點下去），要進得去族群頁
     scroll_to(pg, "rotClockWrap")
@@ -3393,6 +3392,71 @@ def t_new_market3(pg, base):
     o3 = pg.evaluate(HOUR, "OTC")
     ok("★ 櫃買只累積 3 天、選 4 小時 → 照畫 3 根 4 小時（不退回日 K），卡片寫「櫃買分 K 自 2026-09-22 起累積（3 天）」",
        o3 and o3["tf"] == "240m" and o3["n"] == 3 and "自 2026-09-22 起累積（3 天）" in o3["fb"], o3)
+
+    # --- ★ 2026-09-26：台指期多了期交所逐筆合成的 1 分 K（前 30 個交易日、含夜盤 FUT_N）。
+    #   ① 日盤：短句的起始日讀 m1_first（不分來源），不是 mis_first —— 否則台指期會寫成「自 09-26 起（1 天）」，
+    #      把期交所補回來的 30 天藏起來。
+    #   ② 夜盤：湖裡有 FUT_N 時，1 小時要真的接湖（根數 > 今晚那幾根），短句寫「夜盤分 K 自 … 起（N 晚）」，
+    #      不再寫「夜盤多日分 K 未累積，只含今晚」。湖裡沒有 FUT_N 時才寫那句。
+    def fake_intra_tx(with_night=True):
+        def h(route):
+            import calendar, datetime as _dt
+            h1, h4, nh1, nh4, d, n = [], [], [], [], _dt.date(2026, 8, 14), 0
+            while n < 30:
+                if d.weekday() < 5:
+                    for hr in range(9, 14):
+                        h1.append([calendar.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0)), 45100, 45110, 45090, 45105, 900])
+                    h4.append([calendar.timegm((d.year, d.month, d.day, 9, 0, 0, 0, 0, 0)), 45100, 45150, 45050, 45120, 4500])
+                    for hr in (15, 16, 17, 18, 19, 20, 21, 22, 23):
+                        nh1.append([calendar.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0)), 45200, 45210, 45190, 45205, 300])
+                    nh4.append([calendar.timegm((d.year, d.month, d.day, 15, 0, 0, 0, 0, 0)), 45200, 45260, 45150, 45220, 2700])
+                    n += 1
+                d += _dt.timedelta(days=1)
+            out = {"FUT": {"H1": h1, "H4": h4, "src": {"days": 30, "first": "2026-08-14",
+                                                       "mis_first": "2026-09-25", "mis_days": 2,
+                                                       "m1_first": "2026-08-14", "m1_days": 30,
+                                                       "taifex_first": "2026-08-14", "taifex_days": 30}}}
+            if with_night:
+                out["FUT_N"] = {"H1": nh1, "H4": nh4, "src": {"days": 30, "first": "2026-08-14",
+                                                              "m1_first": "2026-08-14", "m1_days": 30,
+                                                              "taifex_first": "2026-08-14", "taifex_days": 30}}
+            route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+        return h
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra_tx(True))
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1")
+    wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m' && k.data.length > 50; }", 8000)
+    pg.wait_for_timeout(300)
+    tx = pg.evaluate(HOUR, "FUT")
+    ok("★ [期交所逐筆] 台指期日盤短句讀 m1_first：「台指期分 K 自 2026-08-14 起累積（30 天）」（不是 mis 的 09-25）",
+       tx and tx["fb"].startswith("台指期分 K 自 2026-08-14 起累積（30 天）"), tx)
+    ok("★ [期交所逐筆] 台指期日盤 1 小時真的畫出 30 天（≥ 150 根）", tx and tx["n"] >= 150, tx)
+    fresh(sess="night")
+    wait_until(pg, "() => window.Market3.shown === 'night'", 6000)
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1")
+    got_n = wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m' && k.data.length > 100; }", 8000)
+    pg.wait_for_timeout(300)
+    txn = pg.evaluate(HOUR, "FUT")
+    ok("★ [期交所逐筆] 夜盤 1 小時接上湖裡的 FUT_N（根數 > 100，不再只有今晚）", bool(got_n) and txn and txn["n"] > 100, txn)
+    ok("★ [期交所逐筆] 夜盤 1 小時的 K 棒都落在夜盤時段（15 點以後或 5 點以前）",
+       txn and all(hh >= 15 or hh < 5 for hh in txn["hours"]), txn)
+    ok("★ [期交所逐筆] 夜盤短句「夜盤分 K 自 2026-08-14 起（30 晚）」",
+       txn and "夜盤分 K 自 2026-08-14 起（30 晚）" in txn["fb"] and "未累積" not in txn["fb"], txn)
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra_tx(False))
+    fresh(sess="night")
+    wait_until(pg, "() => window.Market3.shown === 'night'", 6000)
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1")
+    wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m'; }", 8000)
+    pg.wait_for_timeout(300)
+    txz = pg.evaluate(HOUR, "FUT")
+    changed("湖裡拿掉 FUT_N → 夜盤 1 小時根數真的變少", txn and txn["n"], txz and txz["n"])
+    ok("★ [期交所逐筆] 湖裡沒有 FUT_N → 夜盤短句寫「夜盤多日分 K 未累積，只含今晚」",
+       txz and "夜盤多日分 K 未累積，只含今晚" in txz["fb"], txz)
     pg.unroute("**/data/index_intraday.json*")
     pg.route("**/data/index_intraday.json*", fake_intra)
     fresh(sess="day")
@@ -5128,8 +5192,9 @@ def t_new_layout(pg, base):
         if not ok(f"[{w}px] 找得到時鐘／排行那一列（F3）", bool(f) and len(f["ks"]) == 2, f):
             continue
         clock, rank = f["ks"][0], f["ks"][1]
-        ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",  # 2026-09-24 輪動時鐘改名足跡輪盤
-           clock["h3"].startswith(("輪動", "足跡輪盤")) and rank["h3"].startswith("資金"), f["ks"])
+        # 2026-09-24 輪動時鐘改名足跡輪盤；★ 2026-09-26 改前→改後：足跡輪盤 → 資金輪盤（腳印拿掉，名字對不上內容）
+        ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",
+           clock["h3"].startswith(("輪動", "資金輪盤")) and rank["h3"].startswith("資金"), f["ks"])
         if w > 1100:
             # ★ 2026-09-24 夜（Andy：「排行區至少占卡片寬 40%」）：2:1 → 1.45:1（排行 ≈ 41%）
             ok(f"[{w}px] 欄寬是 1.45:1（排行 ≥ 40%，2026-09-24 夜由 2:1 改）",
@@ -5188,41 +5253,89 @@ def _rot_pts(pg):
                        ".map(p => ({ gid: p.gid, code: p.code, stock: !!p.stock }))") or []
 
 
-# ★ 2026-09-26（Andy：「腳印功能拿掉」）：改前這裡是 _rot_trail_pts（尾巴點數）、_rot_trail_days（走過幾天）、
-#   _ROT_TIP_JS／_rot_tip_gap(s_all)（尾巴尖端黏不黏在大圈上，E1）。腳印與尾巴整個刪除，那些量尺沒有對象了；
-#   改成一支「盤上到底有沒有任何腳印／尾巴」的量尺，讀的是**畫上去的東西**：
-#     · ECharts option：line series 條數、任何 series 或資料點帶 path:// 符號（腳印的形狀）的數量
-#     · zrender 顯示列表：ec-polyline（line series 畫出來的折線）有幾條 —— option 騙不了這一層
-#     · 點（scatter 的資料點）數要 > 0，不然「0 個腳印」可能只是整張圖沒畫
-_ROT_FEET_JS = """(cid) => {
+def _rot_trail_pts(pg, cid="rotClock"):
+    """所有尾巴加起來畫了幾個點（軌跡開關量的是這個，不是 series 數量 ——
+    series 一直在，關掉只是把資料清空，highlightClock 認 gid 的那段才不用跟著改）。
+
+    ★ 2026-09-20（E1）之後這個數字是**固定的**（每條尾巴 48 點），
+      所以它只剩下「有沒有畫」這一個用途；「軌跡長到哪裡」請改用 _rot_trail_days()。
+    """
+    return pg.evaluate("""(cid) => { const el = document.getElementById(cid);
+        const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return -1;
+        return (c.getOption().series || []).filter(s => s.type === 'line')
+                 .reduce((a, s) => a + ((s.data || []).length), 0); }""", cid)
+
+
+def _rot_trail_days(pg):
+    """所有族群的軌跡「實際走過幾天」加總（app.js 的 window.App._rotFrame.trailDays）。
+
+    E1 把軌跡重取樣成固定 48 點之後，點數不再會動 —— 一條永遠不會變的指標
+    不管紅綠都沒有資訊（DECISIONS #199／#206 同一個教訓）。
+    漸進式軌跡（「只有經過才留下軌跡」）真正要量的本來就是「走過幾天」。
+    """
+    v = pg.evaluate("() => { const f = window.App && window.App._rotFrame; return f ? f.trailDays : null; }")
+    return -1 if v is None else v
+
+
+# E1（Andy 2026-09-20：「軌跡線不能比圓圈還動的快」）的量尺。
+# 讀的是 zrender **當下畫出來的**元素，不是 getOption()（那回的是動畫的目標值，
+# 動畫中途永遠量不到中間狀態）：
+#   · 尾巴＝ec-polyline，shape.points 是攤平的 [x0,y0,x1,y1,…]，最後兩個就是尖端
+#   · 大圈＝帶 shape.symbolType 的 path，scaleX＝symbolSize（尾巴自己那顆小圈圈是 6，
+#     scatter 的 z=5，尾巴自己那顆小圈圈 z=2，所以用 z>=5 把兩者分開）
+# 量之前一定要先篩到**只剩一個族群**，不然 16 條尾巴配 16 顆大圈會有配對歧義。
+# ★ 2026-09-26 稍晚（claude/rot-trails-back）改前→改後：
+#   改前：tips＝顯示列表裡所有 ec-polyline 的尖端、dots＝所有「z ≥ 5、scaleX ≥ 4」的 symbol，**照顯示列表順序**配對。
+#   改後：照 series 認人配對 —— 每一條軌跡 series 帶 rotTrail（＝它是 top 裡第幾列），尖端讀那條 series 的 view._polyline，
+#     大圈讀「族群」scatter 同一列的圖元位置、半徑讀 row.sz / 2。
+#   理由：軌跡恢復時量到「靜止時 16 條尖端離自家大圈 70～357px、大圈半徑 2.2px」—— 不是線沒黏住（單一族群那條是綠的），
+#     是配對錯人：09-25 起非焦點的線 z＝1.5、焦點 z＝2，顯示列表先依 z 排序，線的順序就跟點的順序對不上；
+#     桌機 v2 的點又多了發光核心與白外圈，「scaleX ≥ 4」會撈到不是大圈的 symbol。
+#   ★ 2026-09-26 晚（退回有腳印版）：09-25 那版的軌跡 series 原本沒有 rotTrail，退回時在 app.js 補上同一個旗標，這把尺照用。
+_ROT_TIP_JS = """(cid) => {
   const el = document.getElementById(cid);
   const c = el && window.echarts && echarts.getInstanceByDom(el);
   if (!c) return null;
-  const ss = c.getOption().series || [];
-  const isFoot = (v) => typeof v === 'string' && v.indexOf('path://') === 0;
-  let feet = 0;
-  ss.forEach(s => { if (isFoot(s.symbol)) feet++; (s.data || []).forEach(d => { if (d && isFoot(d.symbol)) feet++; }); });
-  const poly = (c.getZr().storage.getDisplayList(true) || []).filter(e => e && !e.ignore && e.type === 'ec-polyline').length;
-  return { lines: ss.filter(s => s.type === 'line').length, feet, poly,
-           dots: ss.filter(s => s.type === 'scatter').reduce((a, s) => a + (s.data || []).length, 0) };
+  const g = (e, x, y) => (e.transformCoordToGlobal ? e.transformCoordToGlobal(x, y) : [x, y]);
+  const model = c.getModel();
+  const grp = model.getSeriesByName('族群')[0]; if (!grp) return null;
+  const gd = grp.getData();
+  const tips = [], dots = [];
+  model.getSeries().forEach(sm => {
+    const k = sm.option && sm.option.rotTrail; if (!k || sm.subType !== 'line') return;
+    if (k - 1 >= gd.count()) return;                      // 個股的尾巴（大圈在「個股」series）不在這把尺的範圍
+    const v = c.getViewOfSeriesModel(sm), poly = v && v._polyline;
+    const p = poly && !poly.ignore && poly.shape && poly.shape.points; if (!p || p.length < 4) return;
+    const n = p.length;
+    const d = gd.getItemGraphicEl(k - 1); const raw = gd.getRawDataItem(k - 1);
+    if (!d || !raw || !raw.row) return;
+    tips.push(g(poly, p[n - 2], p[n - 1]));
+    dots.push(g(d, 0, 0).concat([raw.row.sz]));
+  });
+  return { tips, dots };
 }"""
 
 
-def _rot_feet(pg, cid="rotClock"):
-    """盤上的腳印／尾巴量測（見 _ROT_FEET_JS）；圖不在回 None。"""
-    return pg.evaluate(_ROT_FEET_JS, cid)
+def _rot_tip_gap(pg, cid="rotClock"):
+    """軌跡尖端與大圈中心的像素距離（回 (距離, 大圈半徑)）；量不到就回 (None, None)。"""
+    r = pg.evaluate(_ROT_TIP_JS, cid)
+    if not r or len(r["tips"]) != 1 or len(r["dots"]) != 1:
+        return None, None
+    (lx, ly), (dx, dy, sc) = r["tips"][0], r["dots"][0]
+    return ((lx - dx) ** 2 + (ly - dy) ** 2) ** 0.5, sc / 2.0
 
 
-def _rot_nofeet(st) -> bool:
-    """有畫點、而且沒有任何 line series／腳印符號／折線。"""
-    return bool(st) and st["dots"] > 0 and st["lines"] == 0 and st["feet"] == 0 and st["poly"] == 0
+def _rot_tip_gaps_all(pg, cid="rotClock"):
+    """**每一個**族群的「尾巴尖端 vs 它自己的大圈」距離（回 (距離清單, 最小半徑)）。
 
-
-# 「顯示腳印」開關與它的 localStorage 真的不在了（卡片工具列、整頁、偏好）
-_ROT_NOTOGGLE_JS = """() => ({ trail: document.querySelectorAll('.rot-trail').length,
-  words: /腳印|軌跡/.test((document.getElementById('rotTools') || {}).textContent || ''),
-  boxes: [...document.querySelectorAll('#rotTools input[type=checkbox]')].map(i => i.className),
-  ls: (() => { try { return localStorage.getItem('tw.rot.feet'); } catch (e) { return 'ERR'; } })() })"""
+    配對靠 series 的 rotTrail（＝top 裡第幾列）對「族群」scatter 的同一列（2026-09-26 起；改前靠顯示列表順序，
+    非焦點 z 1.5／焦點 z 2 之後順序對不上）。這個配對每次量之前都會被「靜止時全部為 0」那一條驗一次 —— 配錯人的話它就會紅。
+    """
+    r = pg.evaluate(_ROT_TIP_JS, cid)
+    if not r or not r["tips"] or len(r["tips"]) != len(r["dots"]):
+        return None, None
+    ds = [((t[0] - d[0]) ** 2 + (t[1] - d[1]) ** 2) ** 0.5 for t, d in zip(r["tips"], r["dots"])]
+    return ds, min(d[2] for d in r["dots"]) / 2.0
 
 
 def t_new_clock(pg, base):
@@ -5254,22 +5367,20 @@ def t_new_clock(pg, base):
     ok("拉Bar 旁邊有播放鈕（A4-5）", bar["play"] == 1, bar)
     rot_span(pg, 12, 1200)
     v0 = pg.evaluate("() => +document.querySelector('#rotBack input.days').value")
-    s0 = text(pg, "#rankSub")
+    h0 = canvas_hash(pg, "#rotClock")
     pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[0].click()")   # −
     pg.wait_for_timeout(1500)
     v1 = pg.evaluate("() => +document.querySelector('#rotBack input.days').value")
     ok("按 − 少看一天（N 天前 12 → 11）", v1 == v0 - 1, f"{v0} → {v1}")
-    # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：按 − 之後輪盤的腳印短了一天（_rotFrame.span）、輪盤畫面重畫。
-    #   改後：輪盤沒有腳印，「N 天前」改變的是排行的區間 —— 量排行副標的起始日真的變了，輪盤上仍然沒有腳印。
-    s1 = text(pg, "#rankSub")
-    changed("按 − 之後排行副標的起始日真的跟著變（A4-1）", s0, s1)
-    _ft = _rot_feet(pg)
-    ok("按 − 之後輪盤上仍然沒有任何腳印（只有圓點）", _rot_nofeet(_ft), _ft)
+    ok("按 − 之後輪盤的腳印真的短了一天（span）", pg.evaluate("() => (window.App._rotFrame || {}).span") == v1,
+       pg.evaluate("() => (window.App._rotFrame || {}).span"))
+    changed("按 − 之後輪盤真的重畫（A4-1）", h0, canvas_hash(pg, "#rotClock"))
+    h1 = canvas_hash(pg, "#rotClock")
     pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[1].click()")   # ＋
     pg.wait_for_timeout(1500)
     v2 = pg.evaluate("() => +document.querySelector('#rotBack input.days').value")
     ok("按 ＋ 多看一天（11 → 12）", v2 == v1 + 1, f"{v1} → {v2}")
-    ok("按 ＋ 之後排行副標回到 12 天那一段（A4-1）", text(pg, "#rankSub") == s0, [s0, text(pg, "#rankSub")])
+    changed("按 ＋ 之後輪盤真的重畫（A4-1）", h1, canvas_hash(pg, "#rotClock"))
     # 後面幾條要回放到 28 天前，先把「N 天前」拉滿 30
     rot_span(pg, 30, 1200)
 
@@ -5312,19 +5423,31 @@ def t_new_clock(pg, base):
        bool(tw) and tw.get("tweens", 0) >= 1 and tw.get("last") and 330 <= tw["last"]["ms"] <= 900, tw)
 
     # -------------------------------------------- 2026-09-20「只有經過才留下軌跡」漸進式軌跡
-    # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：刷到最舊那一天走過 0 天、往今天刷一天一天長出來、每條固定 48 點。
-    #   改後：盤上沒有軌跡可以長 —— 刷到任何一天都只有圓點，而且點數不變（刷時間軸不會多出或少掉族群）。
+    # Andy：「只有經過才留下軌跡，不是馬上所有軌跡都先印出來」。
+    # 量的是**畫上去的軌跡點數**：時間軸刷到最舊那一天＝站在起點，每個族群只該有一個點；
+    # 往「今天」刷才一天一天長出來。這一條就是驗「不是一開始就整條印好」。
+    # ★ 2026-09-20（E1）量的改成「軌跡實際走過幾天」：
+    #   固定點數是為了讓尾巴和大圈用同一個補間一起走（見下面那一段的像素量測），
+    #   代價是「畫了幾個點」變成常數、再也量不出東西。要守的事情完全沒變。
     rot_seek(pg, 30, 1800)
     n_grp = len(_rot_scatter(pg) or [])
-    seen_ft = {}
-    for _d in (30, 20, 10, 1):
-        rot_seek(pg, _d, 1400)
-        seen_ft[_d] = _rot_feet(pg)
+    d30 = _rot_trail_days(pg)
+    rot_seek(pg, 20, 1800)
+    d20 = _rot_trail_days(pg)
+    rot_seek(pg, 10, 1800)
+    d10 = _rot_trail_days(pg)
+    rot_seek(pg, 1, 1800)
+    d01 = _rot_trail_days(pg)
+    t01 = _rot_trail_pts(pg)
     if ok("讀得到時鐘上的族群數", n_grp > 3, n_grp):
-        ok("刷到 30／20／10／1 天前，盤上都沒有任何腳印／尾巴",
-           all(_rot_nofeet(v) for v in seen_ft.values()), seen_ft)
-        ok("刷時間軸時點數不變（每一天都是同一批族群）",
-           all(v and v["dots"] == n_grp for v in seen_ft.values()), {k: v and v["dots"] for k, v in seen_ft.items()})
+        ok("刷到最舊那一天，軌跡還沒走出去（走過 0 天）",
+           0 <= d30 <= 1, f"{n_grp} 個族群，軌跡卻已經走了 {d30} 天（應該 ≈ 0）")
+        ok("往「今天」刷，軌跡真的一天一天長出來（走過的天數單調變多）",
+           d30 < d20 < d10 < d01, f"前30天 {d30} → 20 {d20} → 10 {d10} → 1 {d01}")
+        ok("走到接近今天時軌跡已經很長（每個族群都走了 20 天以上）",
+           d01 > n_grp * 20, f"{n_grp} 個族群共走了 {d01} 天")
+        ok("每條軌跡都是固定點數（E1：點數會變就沒有補間，尾巴會比大圈快）",
+           t01 == n_grp * 48, f"{n_grp} 個族群 × 48 點 = {n_grp * 48}，實際 {t01}")
 
     # ------------------------------------------- 2026-09-20「平均速率、絲滑」等速移動
     # Andy：「每天的移動都需要平均速率，絲滑呈現，而非段點段點式移動」。
@@ -5376,16 +5499,18 @@ def t_new_clock(pg, base):
        bool(_tw) and _tw.get("last") and 330 <= _tw["last"]["ms"] <= 900, _tw)
 
     # ---------------------------------------------------------- A4-7 軌跡開關
-    # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：預設有畫軌跡、#rotTools 第一個勾選框關掉點數歸零、再開回來。
-    #   改後：開關整個拿掉 —— 工具列只剩「水波」「掃描」，整頁找不到 .rot-trail，舊偏好 tw.rot.feet 被清掉。
     rot_seek(pg, 8, 1600)
-    _tg = pg.evaluate(_ROT_NOTOGGLE_JS)
-    ok("「顯示腳印」勾選框真的不在了（整頁 0 個 .rot-trail、工具列沒有「腳印／軌跡」字樣）",
-       _tg["trail"] == 0 and not _tg["words"], _tg)
-    ok("工具列只剩水波、掃描兩個勾選框", sorted(_tg["boxes"]) == ["rot-ripple", "rot-scan"], _tg["boxes"])
-    ok("舊偏好 tw.rot.feet 不在 localStorage 裡", _tg["ls"] is None, _tg["ls"])
-    _ft = _rot_feet(pg)
-    ok("回放到 8 天前，盤上沒有任何腳印／尾巴", _rot_nofeet(_ft), _ft)
+    n_on = _rot_trail_pts(pg)
+    ok("預設有畫軌跡（A4-7）", n_on > 20, n_on)
+    ok("軌跡開關真的存在（A4-7）", pg.evaluate("() => !!document.querySelector('#rotTools input[type=checkbox]')"))
+    pg.eval_on_selector("#rotTools input[type=checkbox]", "e => e.click()")
+    pg.wait_for_timeout(1200)
+    n_off = _rot_trail_pts(pg)
+    ok("關掉之後軌跡的點數真的歸零（A4-7）", n_off == 0, f"{n_on} → {n_off}")
+    pg.eval_on_selector("#rotTools input[type=checkbox]", "e => e.click()")
+    pg.wait_for_timeout(1200)
+    n_back = _rot_trail_pts(pg)
+    ok("再打開軌跡真的回來（A4-7）", n_back > 20, f"{n_off} → {n_back}")
 
     # ---------------------------------------------------------- A4-5 播放
     rot_seek(pg, 24, 1200)
@@ -5543,22 +5668,65 @@ def t_new_clock(pg, base):
            step["max"] <= 0.45, f"最大 {step['max']:.4f}（舊算法 0.8898）")
 
     # ------------------------------------------------ E1 軌跡尖端有沒有黏在大圈上（像素量）
-    # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：篩到一個族群、再用 16 個族群，播放中每 60ms 量「尾巴尖端 vs 大圈」的像素距離。
-    #   改後：沒有尾巴，E1 的量法沒有對象了。改驗「播放中的每一幀都沒有冒出任何折線或腳印」——
-    #   rotTween 以前會搬尾巴的折線，刪掉那一段之後最容易出錯的是「某一幀又把舊的折線畫回來」。
-    rot_seek(pg, 20, 1600)
-    pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
-    samp = []
-    for _ in range(20):
-        pg.wait_for_timeout(80)
-        _ft = _rot_feet(pg)
-        if _ft:
-            samp.append(_ft)
-    pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
-    pg.wait_for_timeout(400)
-    if ok("播放期間量到一整串樣本", len(samp) >= 15, len(samp)):
-        bad = [x for x in samp if not _rot_nofeet(x)]
-        ok("播放中的每一幀都沒有折線或腳印（只有點在走）", not bad, bad[:3])
+    # Andy 2026-09-20：「軌跡線不能比圓圈還動的快」。
+    # 根因是舊版 trail() 的點數會隨天數變多，ECharts merge 時新長出來的那一段沒有舊位置
+    # 可以補間 —— 尖端是**瞬移**的，大圈卻用 420ms 慢慢滑，所以看起來尾巴跑在前面。
+    # 量法：篩到只剩一個族群（配對才沒有歧義），播放中每 ~60ms 量一次
+    #       「尾巴最後一點」與「那顆大圈」的像素距離，整段的最大值要小於一個點的半徑。
+    # ★ 2026-09-23 W6：晶片列 → 兩層下拉（第一層產業鏈、第二層族群複選）
+    _g1 = (rot_dd_groups(pg) or [None])[0]
+    ok("在下拉裡勾得到一個族群（E1 的前提：配對才沒有歧義）",
+       bool(_g1) and rot_dd_toggle(pg, _g1, wait=1400), _g1)
+    gap0, rad = _rot_tip_gap(pg)
+    if ok("篩到一個族群之後量得到「尾巴尖端」與「大圈」的像素座標（E1）",
+          gap0 is not None, {"gap": gap0, "r": rad}):
+        ok("靜止時尖端就貼在大圈上（E1）", gap0 <= max(1.0, rad * 0.25), f"{gap0:.2f}px（大圈半徑 {rad:.1f}px）")
+        rot_seek(pg, 30, 1600)
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        gaps = []
+        for _ in range(40):
+            pg.wait_for_timeout(60)
+            g, _r = _rot_tip_gap(pg)
+            if g is not None:
+                gaps.append(g)
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        pg.wait_for_timeout(400)
+        if ok("播放期間真的量到了一整串樣本（E1）", len(gaps) >= 20, len(gaps)):
+            mx = max(gaps)
+            mid = sorted(gaps)[len(gaps) // 2]
+            ok("播放中軌跡尖端一直貼著大圈（最大距離 < 一個點的半徑）（E1）",
+               mx < rad, f"最大 {mx:.2f}px / 中位 {mid:.2f}px（大圈半徑 {rad:.1f}px；"
+                         f"修好之前量到的是最大 8.25px / 中位 3.77px）")
+    # 收拾：把剛剛為了量測選起來的族群取消掉，後面的條件才是從「全部族群」開始
+    for _g in rot_dd_on(pg)[:4]:
+        rot_dd_toggle(pg, _g, wait=800)
+
+    # 同一件事在「16 個族群一起播」的情況再量一次（一個族群跑得動，不代表 16 個也跟得上）。
+    # 配對靠順序，而順序對不對由下面「靜止時全部為 0」那一條當場驗。
+    rot_seek(pg, 20, 1700)
+    g_rest, rad_all = _rot_tip_gaps_all(pg)
+    if ok("全部族群時也量得到每條尾巴與它自己的大圈（E1）",
+          bool(g_rest) and rad_all, {"n": len(g_rest or []), "r": rad_all}):
+        ok("靜止時每一條尾巴的尖端都**完全**落在自己的大圈上（E1，同時證明配對沒配錯人）",
+           max(g_rest) < 0.5, [round(x, 2) for x in g_rest])
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        allg = []
+        for _ in range(26):
+            pg.wait_for_timeout(60)
+            ds, _r = _rot_tip_gaps_all(pg)
+            if ds:
+                allg.extend(ds)
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        pg.wait_for_timeout(400)
+        if ok("16 個族群一起播時量到一整串樣本（E1）", len(allg) >= 200, len(allg)):
+            allg.sort()
+            p75 = allg[int(len(allg) * 0.75)]
+            p95 = allg[int(len(allg) * 0.95)]
+            ok("播放中四分之三以上的尾巴尖端貼在自己的大圈上（E1）",
+               p75 <= rad_all, f"p75={p75:.1f}px（大圈半徑 {rad_all:.1f}px；修好之前 p75≈17px）")
+            ok("跑最快的那幾個族群也不會脫節太遠（E1，p95 < 3 個半徑）",
+               p95 <= rad_all * 3, f"p95={p95:.1f}px、最大 {allg[-1]:.1f}px"
+                                   f"（修好之前最大 87px，而且會一路累積）")
 
     # ---------------------------------------------------------- E3 族群選取只剩一處
     # Andy 2026-09-20：「篩選族群功能覆蓋下方的族群選取功能」。
@@ -6124,16 +6292,13 @@ def t_rotmerge(pg, base):
         # ---------------------------------------------------------- ② 一支「N 天前」決定兩張圖的那一段
         # ★ 2026-09-24（Andy：「旁邊的排行檢端改成 "幾月幾號~今天日期"」）：
         #   改前：排行結尾跟著「看哪一天」、副標「起～訖（N 個交易日）· 和前 N 個交易日相比 · 截止日跟著…」
-        #   改後：排行一律結尾在最新一天、副標只寫「M/D ～ M/D」；拉Bar 改的是「N 天前」＝排行的起點（09-26 起不再有腳印）
+        #   改後：排行一律結尾在最新一天、副標只寫「M/D ～ M/D」；拉Bar 改的是「N 天前」＝排行的起點、也是腳印的長度
         rot_span(pg, 8, 1400)
-        s0 = text(pg, "#rankSub")
+        s0, sp0 = text(pg, "#rankSub"), pg.evaluate("() => (window.App._rotFrame || {}).span")
         rot_span(pg, 22, 1400)
-        s1 = text(pg, "#rankSub")
+        s1, sp1 = text(pg, "#rankSub"), pg.evaluate("() => (window.App._rotFrame || {}).span")
         changed(tag + "拖「N 天前」，排行副標的起始日真的變了", s0, s1)
-        # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：同一個動作，輪盤的腳印長度也跟著變（_rotFrame.span 8 → 22）
-        #   改後：輪盤沒有腳印 —— 拉到 22 天前，盤上仍然只有圓點
-        _ft = _rot_feet(pg)
-        ok(tag + "同一個動作之後，輪盤上仍然沒有任何腳印（只有圓點）", _rot_nofeet(_ft), _ft)
+        ok(tag + "同一個動作，輪盤的腳印長度也跟著變（8 → 22 天）", sp0 == 8 and sp1 == 22, [sp0, sp1])
         ok(tag + "排行副標只寫「M/D ～ M/D」（其他補充字拿掉了）",
            bool(re.fullmatch(r"\d{1,2}/\d{1,2} ～ \d{1,2}/\d{1,2}", (s1 or "").strip())), s1)
         # 排行那一段的結尾＝最新一天（不是回放到的那一天）
@@ -6629,8 +6794,10 @@ def t_stock(pg, base, code):
     # --- 時間週期：按鈕上要先標清楚哪些這檔沒有（Andy：「1 日以下都不見」）
     tfstate = pg.evaluate("""() => [...document.querySelectorAll('#tfSeg button')].map(b => ({
         tf: b.dataset.tf, off: b.classList.contains('off'), title: b.title }))""")
-    ok("週期鈕依序是 5秒／1分／5分（即時）＋ 15分／1時／4時／日／週／月",
-       [t["tf"] for t in tfstate][:9] == ["5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"], tfstate)
+    # ★ 2026-09-26 晚改前：九個週期全排（5秒～月）→ 改後：預設只排勾起來的 1時／4時／日／週／月（「週期設置」），
+    #   其他要在「指標 ▾」的週期區勾了才出現（那條路在「個股指標下拉0926」段實際點過）
+    ok("週期鈕依序是 1時／4時／日／週／月（09-26 晚起預設只排這五個）",
+       [t["tf"] for t in tfstate] == ["60m", "240m", "1d", "1w", "1M"], tfstate)
     ok("日線一定是有資料的（沒有被劃掉）", not next(t for t in tfstate if t["tf"] == "1d")["off"], tfstate)
     for t in tfstate:
         if t["off"]:
@@ -6695,8 +6862,10 @@ def t_stock(pg, base, code):
     ok("「⚙ 設定」鈕拿掉了（內容都搬進指標下拉）", count(pg, "#cfgBtn") == 0)
     ind_open(pg)
     rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
-    ok("指標下拉清單有這些列（整體、均線、BOLL、成交量、KD、MACD、背離、RSI、停損目標、本益比河流）",
-       all(k in rows for k in ("base", "ma", "boll", "vol", "kd", "macd", "macdDiv", "rsi", "lines", "peRiver")), rows)
+    # ★ 2026-09-26 晚改前：清單含「MACD 背離」「停損目標」→ 改後：兩列拿掉（Andy「MACD & 停損／目標背離先拿掉」），多一區「週期」
+    ok("指標下拉清單有這些列（整體、週期、均線、BOLL、成交量、KD、MACD、RSI、本益比河流）",
+       all(k in rows for k in ("base", "tf", "ma", "boll", "vol", "kd", "macd", "rsi", "peRiver")), rows)
+    ok("★ 指標下拉裡沒有「MACD 背離」「停損／目標」（09-26 晚拿掉）", "macdDiv" not in rows and "lines" not in rows, rows)
     ok("★ 指標下拉裡沒有「SMC 區間」「BOS/CHoCH」", "smc" not in rows and "marks" not in rows, rows)
     for k in ("kd", "macd", "rsi", "vol", "boll", "peRiver"):
         if k not in rows:
@@ -6970,21 +7139,19 @@ def t_stock(pg, base, code):
         return e.offsetLeft >= 0 && e.offsetLeft + e.offsetWidth <= h.clientWidth + 1; }""")
     ok("游標靠右邊時資訊框不會被切掉（自動翻到左側）", fit)
 
-    # 2) MACD 背離（★ 2026-09-26 改前：工具列晶片 → 改後：指標下拉的「MACD 背離」那一列）
+    # 2) MACD 背離
+    # ★ 2026-09-26 晚改前：指標下拉有「MACD 背離」一列、預設開、點了關得掉
+    #   → 改後：整列拿掉（Andy「MACD & 停損／目標背離先拿掉」）；打開 MACD 也不畫背離
     ind_open(pg)
     chips = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(c => c.dataset.k)")
-    ok("指標清單有「MACD 背離」", "macdDiv" in chips, chips)
-    on0 = ind_on(pg, "macdDiv")
+    ok("★ 指標清單沒有「MACD 背離」（09-26 晚拿掉）", "macdDiv" not in chips, chips)
+    mac0 = ind_on(pg, "macd")
+    if not mac0:
+        ind_toggle(pg, "macd", 1200)
     dv = pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }")
-    ok("背離預設是開的", on0)
-    ok("背離有算出來（或誠實回 0，不是壞掉）", dv >= 0, dv)
-    h0 = canvas_hash(pg, "#lwc")
-    ind_toggle(pg, "macdDiv", 1200)
-    ok("點一下真的關掉", ind_on(pg, "macdDiv") is False)
-    ok("關掉之後背離就不算了", pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }") == 0)
-    changed("關掉背離之後圖真的重畫", h0, canvas_hash(pg, "#lwc"))
-    ind_toggle(pg, "macdDiv", 1200)
-    ok("再點一下開回來", ind_on(pg, "macdDiv") is True)
+    ok("★ 打開 MACD 也不畫背離（主圖背離 0 組）", dv == 0, dv)
+    if not mac0:
+        ind_toggle(pg, "macd", 900)
     ind_close(pg)
 
     # 3) ★ 按住 Shift 拉線 = 水平
@@ -7400,7 +7567,8 @@ def t_batch2(pg, base):
         #     · 點到的族群**不在**時鐘上 → 時鐘**原樣不動**（不准整張灰掉），
         #       而且面板的說明要**明講**一句，不能讓使用者以為自己點壞了
         note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
-        offclock = "不在左邊足跡輪盤" in note   # 2026-09-24 改名：時鐘 → 足跡輪盤
+        # 2026-09-24 改名：時鐘 → 足跡輪盤；★ 2026-09-26 改前→改後：面板那句改成「不在左邊資金輪盤」
+        offclock = "不在左邊資金輪盤" in note
         if offclock:
             ok("點到時鐘上沒有的族群時，時鐘不准整張灰掉",
                bool(dim) and dim["hi"] > 0.9, dim)
@@ -7798,7 +7966,9 @@ def t_batch6_n1(pg, base):
        bool(pol) and pol[1] > 3.0, pol)           # π ≈ 3.1416；舊版是 1.555
     ok("3D 也可以轉到上面（N1 360 度）", bool(pol) and pol[0] < 0.1, pol)
     ok("有「拖曳：轉動／平移」切換鈕（N1「游標抓取移動」）",
-       pg.evaluate("() => { const b = document.getElementById('dgDrag'); return !!b && !b.hidden; }"))
+       # ★ 2026-09-26 改前→改後：改前看 #dgDrag.hidden；改後藏的是外層 #dg3dCtl（.pill 會蓋掉自己的 [hidden]），
+       #   #dgDrag 自己的 hidden 永遠是 false —— 看屬性等於什麼都沒驗，改量「真的有框」。
+       pg.evaluate("() => { const b = document.getElementById('dgDrag'); return !!b && b.getClientRects().length > 0; }"))
     m0 = pg.evaluate("() => window.Rack3D.current.dragMode()")
     click(pg, "#dgDrag", 800)
     m1 = pg.evaluate("() => window.Rack3D.current.dragMode()")
@@ -8765,7 +8935,13 @@ def t_zoom_sweep(pg, base, code):
     #   所以拿掉，讓白名單忠實反映畫面上真的存在的縮放入口。
     # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：改前白名單有資金流向頁的 `rotZoomBtn` → 改後那顆拿掉，
     #   白名單同步拿掉它（白名單只反映畫面上真的存在、而且 Andy 要的縮放入口）。另外在資金流向頁正面驗它不在。
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap")
+    # ★ 2026-09-26 改前→改後（Andy 原話：「熱門題材，需要跟資金熱力圖一樣有放大功能」）：
+    #   改前總覽只有資金熱力圖一顆 `heatZoom` → 改後總覽「熱門題材」卡多一顆 `ovThemeZoom`（同一支 openZoom）。
+    #   這是 Andy 開口要的，依 DECISIONS #185「白名單只能因為他開口而變長」加上。
+    #   ⚠ 白名單是子字串比對而且分大小寫：`themeZoom` 比不到 `ovThemeZoom`（T 大寫），所以要明寫。
+    # ★ 2026-09-26 晚 改前→改後（Andy 原話：「縮放功能呢?沒有設置到」—— 指總覽熱門題材要跟資金熱力圖一樣能滾輪縮放）：
+    #   改前熱門題材只有「放大 ⤢」鈕 → 改後題材圖外框 `ovThemeWrap` 掛 wheelZoom（.zwrap）。Andy 開口要的，依 #185 加上。
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "ovThemeZoom", "ovThemeWrap", "trustWrap", "peWrap")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
@@ -9582,6 +9758,11 @@ def t_market3(pg, base):
     pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.live.proxy'].forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
 
+# ★ 2026-09-26 晚：個股週期列預設只排 1時／4時／日／週／月（「週期設置」），5秒／1分／5分／15分 要勾了才出現。
+#   驗即時分 K 的段落是要點那幾顆鈕的，所以進頁面前先在 tw.kcfg.tfOn 把九個都勾起來；收拾時一併刪掉。
+TF_ALL_ON_JS = "c.tfOn = ['5s','1m','5m','15m','60m','240m','1d','1w','1M'];"
+
+
 def t_livek(pg, base, code):
     """個股的即時分 K（livek.js）與四週期可切換。
 
@@ -9619,7 +9800,7 @@ def t_livek(pg, base, code):
 
     pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
                 " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k));"
-                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; " + TF_ALL_ON_JS +
                 " localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch(e){} }")
     pg.route("**/quote?*", fake_quote)
     pg.route("**/y?*", fake_y)
@@ -9723,7 +9904,7 @@ def t_livek(pg, base, code):
     pg.unroute("**/quote?*")
     pg.unroute("**/y?*")
     pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy');"
-                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; delete c.tfOn;"
                 " localStorage.setItem('tw.kcfg', JSON.stringify(c));"
                 " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
@@ -9816,7 +9997,7 @@ def t_livek_offhours(pg, base, code):
     def reset_ls(extra=""):
         pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
                     " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k));"
-                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; " + TF_ALL_ON_JS +
                     " localStorage.setItem('tw.kcfg', JSON.stringify(c)); " + extra + " } catch(e){} }")
 
     def goto():
@@ -9978,7 +10159,7 @@ def t_livek_offhours(pg, base, code):
         pg.unroute("**/quote?*")
         pg.unroute("**/y?*")
         pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy');"
-                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; delete c.tfOn;"
                     " localStorage.setItem('tw.kcfg', JSON.stringify(c));"
                     " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
@@ -12433,7 +12614,7 @@ def t_rel_list(pg, base):
 # ===================================================================== 2026-09-24 夜：市場寬度／足跡輪盤補間／排行貼頂／篩選列左上角
 # Andy 的四件（只做桌機；800px 驗「沒壞」）：
 #   ①（市場寬度卡：Andy 後來改成交給另一支 agent 整張換掉，這一批不動它）
-#   ② 足跡輪盤移動改成 rAF 平滑補間（~400ms ease，reduced-motion 直接到位），名字膠囊跟著點走（腳印 2026-09-26 已整個拿掉）
+#   ② 足跡輪盤移動改成 rAF 平滑補間（~400ms ease，reduced-motion 直接到位），腳印與名字膠囊跟著點走
 #   ③ 資金流向排行貼齊卡片頂端、填滿卡片高度，兩顆鈕在卡片標題列右側
 #   ④ 全站篩選列（產業鏈／族群兩顆下拉）一律在卡片標題下方左上角
 # 每一條都是真的操作之後量數字，不是看元素在不在。
@@ -12500,16 +12681,20 @@ def t_rot_tween(pg, b, base):
         ok("② 名字膠囊在補間中也有中間位置", len(lm) >= 1, len(lm))
     else:
         notes.append("足跡輪盤補間：這一顆點起點沒有寫名字，名字膠囊那兩條沒量到")
-    # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：量最新那一個腳印在補間中出現 ≥ 3 個不同位置（腳印跟著點走）。
-    #   改後：沒有腳印 —— 改驗補間的每一幀都沒有冒出折線或腳印（rotTween 以前會搬那些圖元，刪掉之後不能留下殘影）。
-    fp = pg.evaluate("""async (js) => {
-      const f0 = eval(js); window.App.rotReplay(0);
+    # 腳印：補間中位置也是連續的（取一條看得見的軌跡，量腳印第一顆的位置有中間值）
+    fp = pg.evaluate("""async () => {
+      const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+      const pick = () => { const ser = c.getModel().getSeries().filter(s => s.subType === 'line');
+        for (const s of ser) { const d = s.getData(); for (let i = d.count() - 1; i >= 0; i--) {
+          const raw = d.getRawDataItem(i); if (raw && raw.foot) { const g = d.getItemGraphicEl(i); if (g) return { sid: s.componentIndex, x: g.x, y: g.y }; } } }
+        return null; };
+      const a = pick(); window.App.rotReplay(0);
       const out = []; const t0 = performance.now();
-      await new Promise(res => { const f = () => { const v = f0('rotClock'); if (v) out.push(v); if (performance.now() - t0 < 900) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
-      return out; }""", _ROT_FEET_JS)
-    if ok("② 補間期間量得到每一幀的盤面內容", len(fp or []) >= 3, len(fp or [])):
-        bad = [x for x in fp if not _rot_nofeet(x)]
-        ok("② 補間的每一幀都沒有腳印或折線（只有點在走）", not bad, bad[:3])
+      await new Promise(res => { const f = () => { const p = pick(); if (p) out.push(p); if (performance.now() - t0 < 900) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+      return { a, out }; }""")
+    if fp and fp["a"] and fp["out"]:
+        uniq = {(round(p["x"], 1), round(p["y"], 1)) for p in fp["out"]}
+        ok("② 腳印也跟著補間移動（最新那一個腳印在補間中出現 ≥ 3 個不同位置）", len(uniq) >= 3, len(uniq))
     # ▶ 回放：連續播 1.5 秒，點每一幀都在動、沒有大跳格
     pg.evaluate("() => window.App.rotReplay(0)"); pg.wait_for_timeout(700)
     pl = pg.evaluate("""async () => {
@@ -13195,6 +13380,7 @@ def t_r5(pg, base, code):
 
     # ---------------------------------------------------------------- 6. 即時分 K 抓不到：中文＋退回有資料的週期
     pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); " + TF_ALL_ON_JS + " localStorage.setItem('tw.kcfg', JSON.stringify(c));"
                 " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
     pg.route("**/quote?*", lambda route: route.abort())
     pg.route("**/y?*", lambda route: route.abort())
@@ -14065,10 +14251,8 @@ SECTIONS = {
     # ★ 2026-09-24 夜（Andy 四件）：市場寬度比例、足跡輪盤平滑補間、排行貼頂、篩選列左上角
     "足跡輪盤補間":        lambda pg, b, base, code: t_rot_tween(pg, b, base),
     # ★ 2026-09-25（claude/rot-all-trails）：每一顆族群點都有腳印，非焦點淡、小，滑到提亮
-    # ★ 2026-09-26（claude/no-footprints，Andy：「腳印功能拿掉」）：段名保留，內容改驗每一顆點都沒有腳印、滑過亮的是點
     "足跡輪盤全部腳印":    lambda pg, b, base, code: t_rot_all_trails(pg, b, base),
     # ★ 2026-09-26（claude/wheel-dots-howto）：足跡輪盤預設只畫圓圈（腳印開關預設關、手機不畫），乾淨頁面驗預設
-    # ★ 2026-09-26 稍晚（claude/no-footprints）：開關也拿掉；段名保留，改驗舊的 tw.rot.feet 被清掉、「?」沒有腳印
     "足跡輪盤只留圓圈":    lambda pg, b, base, code: t_rot_dots_only(pg, b, base),
     "排行貼頂":            lambda pg, b, base, code: t_rank_top(pg, b, base),
     "篩選列左上角":        lambda pg, b, base, code: t_filter_topleft(pg, b, base),
@@ -14113,11 +14297,17 @@ SECTIONS = {
     "關聯圖說明卡點背景收回": lambda pg, b, base, code: t_rel_dismiss(pg, base),
     # ★ 2026-09-26 Andy：「切回 2D 時，顯示 2D，不要都 3D」—— 剖析圖 2D｜3D 分段鈕、記住最後選的模式（⚠ 一律 --workers 1）
     "剖析圖2D3D分段鈕":    lambda pg, b, base, code: t_dg_2d3d(pg, base),
+    # ★ 2026-09-26 Andy：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」（⚠ 一律 --workers 1）
+    "3D視角鈕與點兩下重設": lambda pg, b, base, code: t_dg3d_ctl(pg, base),
     # ★ 2026-09-26 Andy：「幫我檢查所有有這樣過多小數點的問題修正」—— 全站提示框／圖內文字／畫布／頁面文字的長小數普查
     "小數點普查":          lambda pg, b, base, code: t_decimal_audit(b, base, code),
     # ★ 2026-09-26 Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」—— 所有剖析圖 × 1440／800 × 2D 全段落展開＋3D，
     #   文字被蓋／文字蓋圖／文字互疊／文字超出格子／卡片互蓋／3D 卡片蓋到零件，0 個才算過（量測在 scripts/_dg_overlap.py，⚠ 一律 --workers 1）
     "剖析圖覆蓋普查":      lambda pg, b, base, code: t_dg_overlap(b, base),
+    # ★ 2026-09-26 Andy：搜尋加「近期搜尋紀錄」、熱門股票、名稱旁公司 Logo（個股頁標題也要）（⚠ 一律 --workers 1）
+    "搜尋近期熱門Logo":    lambda pg, b, base, code: t_search_recent_logo(pg, b, base),
+    # ★ 2026-09-26 Andy 總覽三件：大盤三張圖量副圖不見、熱門題材要能放大、足跡輪盤點族群不能推動版面（⚠ 一律 --workers 1）
+    "總覽修正0926b":       lambda pg, b, base, code: t_ov_fix_0926b(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -15672,18 +15862,42 @@ def t_stock_0926(pg, base, code):
     rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
     ok("[0926-①] 最上面一列是「整體」（線寬／K 棒寬度）", bool(rows) and rows[0] == "base", rows)
     ok("[0926-③] 清單裡沒有 SMC 區間、BOS/CHoCH", "smc" not in rows and "marks" not in rows, rows)
-    # 關 KD → KD 副圖真的消失
+    # ---- 09-26 晚：清空設定之後的預設（週期列只有 1時／4時／日／週／月、指標只開均線＋成交量）
+    tfs0 = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+    ok("★ [0926晚-週期] 清空設定 → 週期列只有 1時／4時／日／週／月", tfs0 == ["60m", "240m", "1d", "1w", "1M"], tfs0)
+    ok("[0926晚-週期] 清空設定 → 選中的是日線", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日", text(pg, "#tfSeg button.on"))
+    on_rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow input.ion')].filter(c => c.checked).map(c => c.dataset.k)")
+    ok("★ [0926晚-預設] 清空設定 → 指標只開均線＋成交量", sorted(on_rows) == ["ma", "vol"], on_rows)
+    pd = pg.evaluate(DBG)["paneH"] or {}
+    ok("[0926晚-預設] 圖上也只有主圖＋成交量兩格（沒有 KD／MACD／RSI 副圖）", sorted(pd) == ["main", "vol"], pd)
+    ok("★ [0926晚-拿掉] 清單裡沒有「MACD 背離」「停損／目標」", "macdDiv" not in rows and "lines" not in rows
+       and "背離" not in text(pg, "#cfgPop") and "停損" not in text(pg, "#cfgPop"), rows)
+    ok("[0926晚-週期] 週期區在「整體」下面、指標上面", rows[:1] == ["base"] and pg.evaluate(
+        "() => { const r = [...document.querySelectorAll('#cfgPop .indrow')].map(x => x.dataset.k); return r[1] === 'tf'; }"))
+    tfc = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .tfc input')].map(c => [c.dataset.tf, c.checked])")
+    ok("[0926晚-週期] 週期區九個勾選（5秒～月），勾起來的正好是預設五個",
+       [t for t, _ in tfc] == ["5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
+       and [t for t, c in tfc if c] == ["60m", "240m", "1d", "1w", "1M"], tfc)
+    # ★ 2026-09-26 晚改：預設只開均線＋成交量，KD 預設關 —— 先打開（副圖多一格），再關（副圖少一格）
+    pa = pg.evaluate(DBG)["paneH"] or {}
+    ok("[0926-①] KD 預設是關的、沒有 KD 副圖（前提，09-26 晚改的預設）", ind_on(pg, "kd") is False and "kd" not in pa, pa)
+    ind_toggle(pg, "kd", 900)
     p0 = pg.evaluate(DBG)["paneH"] or {}
+    ok("★ [0926-①] 在清單裡把 KD 打開 → KD 副圖真的出現（副圖多一格）", "kd" in p0 and len(p0) == len(pa) + 1, f"{pa} → {p0}")
     h0 = canvas_hash(pg, "#lwc")
-    ok("[0926-①] KD 預設是開的、而且有自己的副圖（前提）", ind_on(pg, "kd") is True and "kd" in p0, p0)
+    btn_kd = text(pg, "#indBtn")
+    ok("[0926-①] 打開 KD → 按鈕上的「已開 N」多一個", btn_kd != btn0, f"{btn0} → {btn_kd}")
     ind_toggle(pg, "kd", 900)
     p1 = pg.evaluate(DBG)["paneH"] or {}
     ok("[0926-①] 在清單裡把 KD 關掉 → 勾選框真的取消", ind_on(pg, "kd") is False)
     ok("★ [0926-①] 關 KD → KD 副圖真的消失（副圖少一格）", "kd" not in p1 and len(p1) == len(p0) - 1, f"{p0} → {p1}")
     changed("[0926-①] 關 KD 之後 K 線圖真的重畫", h0, canvas_hash(pg, "#lwc"))
-    ok("[0926-①] 按鈕上的「已開 N」跟著少一個", text(pg, "#indBtn") != btn0, f"{btn0} → {text(pg, '#indBtn')}")
+    ok("[0926-①] 按鈕上的「已開 N」跟著少一個", text(pg, "#indBtn") != btn_kd, f"{btn_kd} → {text(pg, '#indBtn')}")
     ok("[0926-①] 清單還開著（在裡面點不會把自己關掉）", pg.evaluate(IND_POP_OPEN))
-    # 展開 MACD 改參數 → 圖真的變
+    # 展開 MACD 改參數 → 圖真的變（MACD 09-26 晚起預設關，先打開）
+    ok("[0926-①] MACD 預設是關的（09-26 晚改的預設）", ind_on(pg, "macd") is False)
+    ind_toggle(pg, "macd", 900)
+    ok("[0926-①] 打開 MACD → MACD 副圖出現", "macd" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
     ok("[0926-①] MACD 那一列按 ▸ → 就地展開", ind_expand(pg, "macd"))
     ok("[0926-①] 展開後有快線／慢線／訊號三格參數＋顏色線寬透明度",
        count(pg, '#cfgPop .indrow[data-k="macd"] .prow input[data-p]') == 3
@@ -15874,6 +16088,165 @@ def t_stock_0926(pg, base, code):
             if (!b || !l) return null; const r = b.getBoundingClientRect(), lr = l.getBoundingClientRect();
             return { in: r.left >= lr.left && r.right <= lr.right && r.top >= lr.top && r.bottom <= lr.bottom, w: r.width }; }""")
         ok(f"[0926-{vw}px] 重設縮放鈕在圖裡面、沒被切掉", bool(fgn) and fgn["in"] and fgn["w"] >= 20, fgn)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+    t_stock_0926_tf(pg, base, code)
+
+
+# 下拉面板與「指標 ▾」按鈕的相對位置（面板上緣−按鈕下緣、兩者左緣差、面板是否開著）
+IND_POP_GEO = """() => { const p = document.getElementById('cfgPop'), b = document.getElementById('indBtn');
+    if (!p || !b) return null; const r = p.getBoundingClientRect(), q = b.getBoundingClientRect();
+    return { open: !p.hidden && p.dataset.kind === 'ind' && r.width > 0, gap: Math.round((r.top - q.bottom) * 10) / 10,
+             dl: Math.round((r.left - q.left) * 10) / 10, dr: Math.round((r.right - q.right) * 10) / 10,
+             top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight, vw: innerWidth,
+             oy: getComputedStyle(p).overflowY, sh: p.scrollHeight, ch: p.clientHeight, btnBottom: Math.round(q.bottom) }; }"""
+
+
+def t_stock_0926_tf(pg, base, code):
+    """個股 K 線「指標 ▾」09-26 晚三件（Andy）的真人操作驗收：
+      ⑤ 週期設置：在下拉的「週期」區勾 15 分 → 週期列真的多一顆、重新整理記住；取消目前週期 → 自動切走（優先日）；
+         最後一個勾不掉；四週期同看的每格下拉只列勾起來的週期
+      ⑥ 拿掉 MACD 背離、停損／目標：舊存檔寫著 macdDiv／lines:true，主圖照樣沒有背離、沒有價位線
+      ⑦ 下拉位置：面板貼在按鈕正下方（上緣在按鈕下緣下 0～12px、左緣差 ≤ 4px），捲頁之後仍貼著或已關閉（1440／800）"""
+    DBG = "() => window.Industry._dbg()"
+    TFS = "() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)"
+    KCFG = "() => { try { return JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); } catch (e) { return {}; } }"
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    if not ok("[0926晚] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
+        return
+
+    def tf_click(tf, wait=900):
+        ind_open(pg)
+        click(pg, f'#cfgPop .tfc[data-tf="{tf}"]', wait)
+
+    # ---------------------------------------------------------------- ⑤ 勾 15 分 → 週期列出現、重新整理記住
+    tf_click("15m")
+    ok("★ [0926晚-週期] 在週期區勾 15 分 → 週期列真的多出「15分」", "15m" in pg.evaluate(TFS), pg.evaluate(TFS))
+    ok("[0926晚-週期] 15 分排在 5 分之後、1 時之前（照原本順序，不是加在最後）", pg.evaluate(TFS)[:2] == ["15m", "60m"], pg.evaluate(TFS))
+    ok("[0926晚-週期] 勾選寫進 tw.kcfg.tfOn", "15m" in (pg.evaluate(KCFG).get("tfOn") or []), pg.evaluate(KCFG).get("tfOn"))
+    ok("[0926晚-週期] 下拉還開著（勾週期不會把面板關掉）", pg.evaluate(IND_POP_OPEN))
+    ok("[0926晚-週期] 週期區的摘要跟著變（多了 15分）", "15分" in text(pg, "#tfSum"), text(pg, "#tfSum"))
+    click(pg, '#tfSeg button[data-tf="15m"]', 900)
+    ok("[0926晚-週期] 新出現的「15分」按得下去（選中、圖切到 15 分）", pg.evaluate(DBG)["tf"] == "15m")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+    ok("★ [0926晚-週期] 重新整理後週期列還有「15分」", "15m" in pg.evaluate(TFS), pg.evaluate(TFS))
+    ok("[0926晚-週期] 重新整理後下拉裡 15 分仍是勾的",
+       pg.evaluate("() => { const c = document.querySelector('#cfgPop .tfc[data-tf=\"15m\"] input'); return c ? c.checked : null; }") is True
+       if ind_open(pg) else False)
+    # ---------------------------------------------------------------- ⑤ 取消目前的週期 → 自動切走
+    ind_close(pg)
+    click(pg, '#tfSeg button[data-tf="1w"]', 900)
+    ok("[0926晚-週期] 先選週線（前提）", pg.evaluate(DBG)["tf"] == "1w")
+    h0 = canvas_hash(pg, "#lwc")
+    tf_click("1w", 1200)
+    ok("★ [0926晚-週期] 取消目前的週期（週）→ 自動切到日線", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日",
+       [pg.evaluate(DBG)["tf"], text(pg, "#tfSeg button.on")])
+    ok("[0926晚-週期] 週期列上「週」真的不見了", "1w" not in pg.evaluate(TFS), pg.evaluate(TFS))
+    changed("[0926晚-週期] 切走之後 K 線真的重畫（週線 → 日線）", h0, canvas_hash(pg, "#lwc"))
+    tf_click("1d", 1200)
+    tfs_now = pg.evaluate(TFS)
+    ok("★ [0926晚-週期] 再取消日線（沒有日線可退）→ 切到剩下的第一個", pg.evaluate(DBG)["tf"] == tfs_now[0] and "1d" not in tfs_now,
+       [pg.evaluate(DBG)["tf"], tfs_now])
+    tf_click("1d", 900); tf_click("1w", 900); tf_click("15m", 900)
+    ok("[0926晚-週期] 勾回日／週、取消 15 分 → 回到預設五個", pg.evaluate(TFS) == ["60m", "240m", "1d", "1w", "1M"], pg.evaluate(TFS))
+    click(pg, '#tfSeg button[data-tf="1d"]', 900)
+    ind_close(pg)
+    # ---------------------------------------------------------------- ⑤ 四週期同看的每格下拉只列勾起來的
+    click(pg, "#mtfBtn", 2400)
+    opts = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
+    ok("★ [0926晚-週期] 四週期同看：每一格的週期下拉只列勾起來的五個", bool(opts) and len(opts) == 4
+       and all(o == ["60m", "240m", "1d", "1w", "1M"] for o in opts), opts)
+    tf_click("15m", 2000)
+    opts2 = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
+    ok("[0926晚-週期] 四週期模式下勾 15 分 → 四格下拉都多了 15 分", bool(opts2) and all("15m" in o for o in opts2), opts2)
+    tf_click("15m", 2000)
+    ind_close(pg)
+    click(pg, "#mtfBtn", 1600)
+    # ---------------------------------------------------------------- ⑤ 最後一個勾不掉
+    pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.tfOn = ['1d']; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ok("[0926晚-週期] 只勾日線時週期列只剩一顆「日」（前提）", pg.evaluate(TFS) == ["1d"], pg.evaluate(TFS))
+    ind_open(pg)
+    ok("[0926晚-週期] 唯一勾著的那一顆是鎖住的（disabled）",
+       pg.evaluate("() => document.querySelector('#cfgPop .tfc[data-tf=\"1d\"] input').disabled") is True)
+    pg.click('#cfgPop .tfc[data-tf="1d"]', force=True); pg.wait_for_timeout(500)
+    ok("★ [0926晚-週期] 硬點最後一顆 → 週期列照樣有「日」（至少保留一個）", pg.evaluate(TFS) == ["1d"], pg.evaluate(TFS))
+    ind_close(pg)
+
+    # ---------------------------------------------------------------- ⑥ 舊設定 macdDiv／lines:true 也不畫
+    pg.evaluate("""() => { localStorage.setItem('tw.kcfg', JSON.stringify({ macd: { f: 12, s: 26, g: 9 }, macdDiv: true, lines: true,
+        smc: true, marks: true, ma: [5, 20], vol: true })); }""")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1000)
+    wait_until(pg, "() => /MACD\\(/.test((document.querySelector('#lwc .pane-labels') || {}).innerText || '')", 8000)
+    d = pg.evaluate(DBG)
+    ok("[0926晚-拿掉] 舊存檔的 MACD 照樣畫出來（前提：MACD 本身保留）", "macd" in (d.get("paneH") or {}), d.get("paneH"))
+    # 同一份 K 棒用 KInd.divergence 自己算一次：證明「沒畫」不是因為這檔本來就沒有背離
+    raw = pg.evaluate("""() => { const kc = window.KChart.last; if (!kc || !kc.data) return -1; const c = kc.data.map(x => x.close);
+        const m = window.KInd.macd(c, 12, 26, 9); const dv = window.KInd.divergence(c, kc.data.map(x => x.high), kc.data.map(x => x.low), m.dif);
+        return dv.top.length + dv.bottom.length; }""")
+    div = d.get("div") or {}
+    ok("★ [0926晚-拿掉] 舊存檔寫著 macdDiv:true，主圖照樣沒有背離（算得出來的背離有 N 組，圖上 0 組）",
+       (div.get("top", 0) + div.get("bottom", 0)) == 0 and not d.get("divLabels"), {"這檔算得出來": raw, "圖上": div})
+    ok("★ [0926晚-拿掉] 舊存檔寫著 lines:true，主圖照樣沒有停損／目標價位線", d.get("priceLines") == 0, d.get("priceLines"))
+    ok("[0926晚-拿掉] 圖例上沒有「停損」「目標」「背離」字樣",
+       not re.search("停損|目標|背離", pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''")))
+    ind_open(pg)
+    ok("[0926晚-拿掉] 舊存檔的人打開清單也沒有那兩列", count(pg, '#cfgPop .indrow[data-k="macdDiv"], #cfgPop .indrow[data-k="lines"]') == 0)
+    ind_toggle(pg, "ma", 700); ind_toggle(pg, "ma", 700)       # 隨便改一下讓它存檔
+    cf = pg.evaluate(KCFG)
+    ok("[0926晚-拿掉] 存檔之後 tw.kcfg 裡的 macdDiv／lines 鍵被清掉", "macdDiv" not in cf and "lines" not in cf and "smc" not in cf, sorted(cf))
+    ok("[0926晚-預設] 已有存檔的人不被強制改（存檔開著 MACD → 仍然開著）", cf.get("macd") is not None and ind_on(pg, "macd") is True)
+    ind_close(pg)
+    click(pg, "#mtfBtn", 2400)
+    mini = pg.evaluate(DBG).get("mini") or []
+    ok("[0926晚-拿掉] 四週期小圖也沒有背離與價位線（小圖只畫均線／BOLL／量）",
+       bool(mini) and pg.evaluate("() => (window.Industry._dbg().mini || []).every(m => m.markers === 0)"), mini)
+    click(pg, "#mtfBtn", 1600)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+
+    # ---------------------------------------------------------------- ⑦ 下拉位置：貼著按鈕、捲頁跟著或關閉
+    for vw in (1440, 1024, 800):
+        pg.set_viewport_size({"width": vw, "height": 900})
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2000)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(200)
+        click(pg, "#indBtn", 600)
+        g = pg.evaluate(IND_POP_GEO)
+        ok(f"★ [0926晚-位置 {vw}px] 打開 → 面板上緣在按鈕下緣下方 0～12px", bool(g) and g["open"] and 0 <= g["gap"] <= 12, g)
+        ok(f"★ [0926晚-位置 {vw}px] 面板左緣對齊按鈕（差 ≤ 4px）", bool(g) and abs(g["dl"]) <= 4, g)
+        ok(f"[0926晚-位置 {vw}px] 面板沒有超出視窗下緣；內容比較長時自己捲", bool(g) and g["bottom"] <= g["vh"] + 1
+           and (g["sh"] <= g["ch"] + 1 or g["oy"] in ("auto", "scroll")), g)
+        # 捲頁（滾輪捲一小段 → 按鈕還在畫面裡 → 面板要跟著）
+        pg.mouse.move(vw - 30, 880)
+        pg.mouse.wheel(0, 120); pg.wait_for_timeout(500)
+        g2 = pg.evaluate(IND_POP_GEO)
+        ok(f"★ [0926晚-位置 {vw}px] 捲頁一小段 → 面板仍貼著按鈕（或已關閉），不會留在原地浮在圖上",
+           bool(g2) and (not g2["open"] or (0 <= g2["gap"] <= 12 and abs(g2["dl"] - g["dl"]) <= 1)), {"捲前": g, "捲後": g2})
+        # 捲很多（按鈕被捲到頂欄底下）→ 關掉
+        pg.mouse.wheel(0, 900); pg.wait_for_timeout(600)
+        g3 = pg.evaluate(IND_POP_GEO)
+        ok(f"[0926晚-位置 {vw}px] 捲到按鈕看不見 → 面板關掉或仍貼著（不會浮在 K 線中央）",
+           bool(g3) and (not g3["open"] or 0 <= g3["gap"] <= 12), g3)
+        ok(f"[0926晚-位置 {vw}px] 關掉之後按鈕標成收合", bool(g3) and (g3["open"] or pg.get_attribute("#indBtn", "aria-expanded") == "false"))
+        # 改視窗大小 → 跟著按鈕
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        ind_open(pg)
+        pg.set_viewport_size({"width": vw - 60, "height": 880}); pg.wait_for_timeout(600)
+        g4 = pg.evaluate(IND_POP_GEO)
+        ok(f"[0926晚-位置 {vw}px] 改視窗大小 → 面板重新貼到按鈕下方", bool(g4) and (not g4["open"] or (0 <= g4["gap"] <= 12
+           and (abs(g4["dl"]) <= 4 or abs(g4["dr"]) <= 4 or g4["dl"] < 0))), g4)
+        ind_close(pg)
+    # 390：面板夾在畫面裡（左右各留 10px），上緣仍貼著按鈕
+    pg.set_viewport_size({"width": 390, "height": 844})
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ind_open(pg)
+    g = pg.evaluate(IND_POP_GEO)
+    ok("[0926晚-位置 390px] 手機：面板上緣貼著按鈕（0～12px）、整塊在畫面左右裡", bool(g) and g["open"] and 0 <= g["gap"] <= 12
+       and pg.evaluate("() => { const r = document.getElementById('cfgPop').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }"), g)
+    small = pg.evaluate("""() => [...document.querySelectorAll('#cfgPop .tfc')].map(e => parseFloat(getComputedStyle(e).fontSize)).filter(f => f < 11)""")
+    ok("[0926晚-位置 390px] 週期勾選晶片的字 ≥ 11px", not small, small)
+    ind_close(pg)
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
 
@@ -16299,9 +16672,11 @@ def t_wrap_r2(pg, base, code):
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
-# ★ 2026-09-26（Andy：「腳印功能拿掉」）：FEET_PRESET 刪除。
-#   改前：09-26 稍早腳印改成預設關，這裡替既有的幾十段驗收預寫 tw.rot.feet='1'（＝勾過「顯示腳印」）。
-#   改後：腳印與開關整個拿掉，沒有任何偏好要預寫；那些段落裡驗腳印的斷言改成驗「沒有任何腳印、沒有開關」。
+# ★ 2026-09-26 晚改前→改後（Andy：「先退回到有腳印那版本」）：
+#   改前：「顯示腳印」預設關，所以這裡有一條 FEET_PRESET 替每一段預寫 tw.rot.feet='1'（＝勾過腳印），
+#     讓既有幾十段驗腳印本身的段落（時鐘v2、足跡輪盤全部腳印、補間…）照舊看得到腳印。
+#   改後：預設改回**勾選**，沒有值就是開 —— 預寫等於多餘，而且會蓋掉「預設」本身，所以拿掉。
+#     每一段看到的就是真人第一次開頁的樣子；預設是不是開，由「足跡輪盤只留圓圈」那一段用原版 new_page 驗。
 
 
 def _preset_consent() -> None:
@@ -18193,7 +18568,7 @@ def t_rot_live(pg, base):
         pg.wait_for_timeout(1200)
         v1 = pg.evaluate("() => +document.querySelector('#rotBack input.days').value")
         if ok(f"滑鼠真的把拉Bar 拖動了（{box['v']} → {v1}）", v1 != box["v"], {"前": box["v"], "後": v1}):
-            ok("拖「N 天前」→ 即時**不退出**（點還是停在最新一天，只是排行區間變了；09-26 起沒有腳印）",
+            ok("拖「N 天前」→ 即時**不退出**（點還是停在最新一天，只是腳印長度變了）",
                pg.evaluate("() => window.App.rotLive().on"))
             ok("排行副標的結尾寫**今天**（即時模式；Andy：「幾月幾號~今天日期」）",
                pg.evaluate("""() => { const d = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
@@ -25874,7 +26249,7 @@ def t_desktop_untouched(pg, base, code):
     # 桌機的剖析圖：預設展開，3D 設定列一顆都不能少
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3200)
-    t = pg.evaluate("""() => { const ids = ['dg3d','dgDrag','dgReset','dgAnim','dgFold'];
+    t = pg.evaluate("""() => { const ids = ['dg3d','dgDrag','dgReset','dgAnim','dgFold','dg3dCtl'];
         const out = {}; ids.forEach(i => { const e = document.getElementById(i);
           out[i] = e ? getComputedStyle(e).display : 'missing'; out[i + 'H'] = !!(e && e.hidden); });
         out.fold = (document.getElementById('dgFold') || {}).textContent;
@@ -25889,7 +26264,11 @@ def t_desktop_untouched(pg, base, code):
     #         2D｜3D、動畫、收合三顆一定在；拖曳／重設只准因為自己的 hidden（＝現在是 2D）而不見，不准被手機規則藏掉。
     ok("[1440px] 桌機的 3D 設定列：2D｜3D、動畫、收合在；拖曳／重設只在 2D 時才藏（手機規則沒外洩）",
        all(t[i] != "none" for i in ("dg3d", "dgAnim", "dgFold"))
-       and all(t[i] != "none" or t[i + "H"] for i in ("dgDrag", "dgReset")), t)
+       and (t["dg3dCtl"] != "none" or t["dg3dCtlH"]) and t["dgDrag"] != "none" and t["dgReset"] != "none", t)
+    # ★ 2026-09-26 再改（Andy：「拖曳、重設視角，移動到下面」）：
+    #   改前：「拖曳」「重設」住在設定列裡，2D 時靠各自的 hidden 藏。
+    #   改後：兩顆搬進 3D 畫面框內的 #dg3dCtl，2D 時藏的是這一組（t["dg3dCtlH"]）；兩顆自己不設 hidden，
+    #         所以它們自己的 display 一定不是 none —— 是 none 就代表手機規則（body.m3on）外洩到桌機了。
     # ★ 手機 v3：像素比對只涵蓋「初始畫面」（2026-09-24 踩過），所以「點了才出現」的東西另外驗
     d = pg.evaluate("""() => ({ more: !!document.getElementById('mTabMore'), sbtn: !!document.getElementById('mSearchBtn'),
         keep: document.querySelectorAll('.m3keep, .mnumlayer, .mdgbar, #mM3Sw').length,
@@ -28390,10 +28769,6 @@ CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
     feet: vis.map(s => (s.data || []).filter(d => d && !Array.isArray(d) && String(d.symbol || '').startsWith('path://'))
       .map(d => ({ f: d.foot, rot: d.symbolRotate, sz: d.symbolSize,
                    a: +((String((d.itemStyle || {}).color || '').match(/,([\d.]+)\)$/) || [])[1] || 1) }))),
-    /* 2026-09-26（腳印功能拿掉）：全部 series 的 path:// 符號數、zrender 上 line series 畫出來的折線數 —— 兩個都要是 0 */
-    feetAll: ss.reduce((a, s) => a + (String(s.symbol || '').startsWith('path://') ? 1 : 0)
-      + (s.data || []).filter(d => d && !Array.isArray(d) && String(d.symbol || '').startsWith('path://')).length, 0),
-    poly: (c.getZr().storage.getDisplayList(true) || []).filter(e => e && !e.ignore && e.type === 'ec-polyline').length,
     lineW: Math.max(0, ...lines.map(s => ((s.lineStyle || {}).width) || 0)),
     lineA: Math.max(0, ...vis.map(s => +((String((s.lineStyle || {}).color || '').match(/,([\d.]+)\)$/) || [])[1] || 1))),
     ringN: ring ? (ring.data || []).length : -1, movedN: moved ? (moved.data || []).length : -1,
@@ -28409,9 +28784,22 @@ CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
     fr: (window.App && window.App._rotFrame) || null, anim: o.animation }; }"""
 
 # 三圈底色：沿著每個象限的角度，在三圈的中線上取樣 canvas 像素，量「跟卡片底色差多少」（越外圈越濃）
-CLK_RINGS = r"""(cid) => { const el = document.getElementById(cid); const cv = el && el.querySelector('canvas'); if (!cv) return null;
+# ★ 2026-09-26 晚（退回有腳印版）改前→改後：
+#   改前：直接在 #rotClock 的畫布上取樣。
+#   改後：跟 CLK_SMOOTH 一樣，另開一張只留「象限底色」series 的隔離畫布取樣，量完就丟。
+#   理由：腳印與軌跡畫回來之後，族群名字膠囊（深色底）的位置跟著換，改善／領先兩個象限的「中圈」
+#     剛好壓了好幾顆膠囊，第 20 百分位被拉到接近卡片底色（實測深色 leading 中圈 66 → 13）。
+#     origin/main（沒有腳印）這條在深色主題也已經是紅的（中圈 32），同樣是膠囊壓在取樣線上 ——
+#     這條要驗的是「背景由內到外有層次」，量背景本身才對；點、腳印、膠囊的長相由 ①② 另外驗。
+CLK_RINGS = r"""(cid) => { const el0 = document.getElementById(cid); const c0 = el0 && echarts.getInstanceByDom(el0); if (!c0) return null;
+  const o = c0.getOption(); const bgS = o.series.filter(s => s.name === '象限底色'); if (bgS.length !== 1) return null;
+  const W = el0.clientWidth, H = el0.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+  const el = document.createElement('div'); el.style.cssText = `position:fixed;left:0;top:0;width:${W}px;height:${H}px;z-index:-1;pointer-events:none`;
+  document.body.appendChild(el);
+  const c1 = echarts.init(el, null, { devicePixelRatio: window.devicePixelRatio });
+  c1.setOption(Object.assign({}, o, { series: bgS, animation: false, tooltip: [], graphic: [] }));
+  const cv = el.querySelector('canvas');
   const g = cv.getContext('2d'); const k = cv.width / el.clientWidth;
-  const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
   const axisMax = 1.25 * 1.18 * 1.06, mids = [0.3125, 0.9375, (1.25 + axisMax) / 2];
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
   const hx = bg.replace('#', ''); const B = [0, 2, 4].map(i => parseInt(hx.slice(i, i + 2), 16));
@@ -28426,6 +28814,7 @@ CLK_RINGS = r"""(cid) => { const el = document.getElementById(cid); const cv = e
         /* 圖表的 canvas 底是透明的：getImageData 拿到的是「沒乘過 alpha 的色」，要自己疊在卡片底色上才是眼睛看到的 */
         ds.push([0, 1, 2].reduce((s2, i) => s2 + Math.abs(p[i] * al + B[i] * (1 - al) - B[i]), 0)); }
       return med(ds); }); });
+  c1.dispose(); el.remove();
   return out; }"""
 
 
@@ -28499,22 +28888,42 @@ def t_clock_v2(pg, b, base):
         if not ok(f"[{th}] 讀得到輪動時鐘的狀態", bool(s) and s["n"] > 6 and s["fr"], s and {k: s[k] for k in ("n", "lines")}):
             continue
         fr = s["fr"]
-        # ① 焦點族群：最多 6 個（2026-09-26 起焦點只決定「名字粗體、點不退到 70%」，不再有軌跡）
-        # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：軌跡預設「焦點」模式（_rotFrame.tmode）、實的軌跡 ≤ 6 條只有焦點、
-        #   非焦點也有淡軌跡（opacity .3～.4）、每個族群各一條 line series。
-        #   改後：_rotFrame 不再攤 tmode／trail，盤上 0 條 line series、0 個腳印、zrender 上 0 條折線。
-        ok(f"[{th}] ① _rotFrame 不再有軌跡相關欄位（tmode／trail／trailDays／shown／rest）",
-           not any(k in fr for k in ("tmode", "trail", "trailDays", "shown", "rest", "span")), sorted(fr.keys()))
+        # ① 焦點族群：預設模式 focus，最多 6 個，只有焦點畫軌跡
+        ok(f"[{th}] ① 軌跡預設是「焦點」模式", fr.get("tmode") == "focus", fr.get("tmode"))
         ok(f"[{th}] ① 焦點族群 1～6 個（佔比前 3 ＋ 最近換段）", 1 <= len(fr.get("focus") or []) <= 6, fr.get("focus"))
-        ok(f"[{th}] ① 盤上沒有任何 line series（改前每個族群各一條尾巴）", s["lines"] == 0, s["lines"])
+        # ★ 2026-09-25（Andy：「為何不是每個點都有軌跡」）：
+        #   改前：看得到的軌跡 ≤ 6 條、只有焦點族群有（非焦點 opacity 0）
+        #   改後：每一條都看得到；**實、亮（opacity 1）的**仍然 ≤ 6 條而且只有焦點，其餘退到背景（opacity < 1）
+        ok(f"[{th}] ① 實、亮的軌跡（opacity 1）≤ 6 條、而且只有焦點族群有",
+           0 < s["solid"] <= 6 and set(s["solidGids"]) <= set(fr["focus"]), {"實": s["solid"], "焦點": fr["focus"]})
+        ok(f"[{th}] ① 非焦點族群也有軌跡（看得到的 ＝ 全部族群；非焦點的 opacity 介於 0.3～0.4）",
+           s["vis"] == s["n"] and all(0.3 <= o <= 0.4 for o, g in zip(s["visOp"], s["visGids"]) if g not in fr["focus"]),
+           {"看得到": s["vis"], "族群": s["n"], "不透明度": s["visOp"]})
+        ok(f"[{th}] ① 每個族群仍然各有一條 line series", s["lines"] == s["n"], s)
         ok(f"[{th}] ① 焦點族群的名字是粗體（其餘一般字重）", 0 < s["focusBold"] < s["n"], s["focusBold"])
         ok(f"[{th}] ① 族群名稱字級 ≥ 12px", s["lblFs"] >= 12, s["lblFs"])
-        # ② ★ 2026-09-24 改成小腳印、2026-09-26 整個拿掉：
-        #   改前：一串左右交錯、腳尖朝前進方向、越舊越淡的小腳印，底下一條 1.2px、25% 的細線
-        #   改後：沒有腳印、沒有細線、也沒有更早的三角箭頭與每 5 天小點
-        ok(f"[{th}] ② 盤上一個腳印都沒有（全部 series 的 path:// 符號 0 個、zrender 折線 0 條）",
-           s["feetAll"] == 0 and s["poly"] == 0, {"腳印": s["feetAll"], "折線": s["poly"]})
-        ok(f"[{th}] ② 舊的「三角箭頭」「每 5 天小點」也都不在", s["arrows"] == 0 and s["marks"] == 0,
+        # ② ★ 2026-09-24（Andy：「軌跡線 改成小小的腳印」）：
+        #   改前：一條漸強的線（.15 → .90）＋ 最新一段三角箭頭 ＋ 每 5 天一顆小點
+        #   改後：線不畫（寬 0），改成一串左右交錯、腳尖朝前進方向、越舊越淡的小腳印
+        # 2026-09-25：腳印的逐項長相只量焦點那幾條（非焦點的腳印刻意縮小、變疏，另外在「足跡輪盤全部腳印」段驗）
+        #   改前：feet＝看得到的全部（那時看得到＝焦點）→ 改後：feet＝opacity 1 的那幾條
+        feet = [f for f, o in zip(s["feet"], s["visOp"]) if f and o >= 1]
+        allf = [x for f in feet for x in f]
+        # ★ 2026-09-24 晚（Andy 參考檔）：桌機在腳印底下留一條極淡的細線（1.2px、25%），把一步一步串成一條路。
+        #   改前（同一天稍早）：寬 0 → 改後（桌機）：≤ 1.2px、α ≤ .3；手機仍然是 0（這一段跑在 1440）
+        ok(f"[{th}] ② 腳印底下只有一條極淡的細線（≤ 1.2px、透明度 ≤ .3；主角是腳印）",
+           0 < s["lineW"] <= 1.2 and s["lineA"] <= .3, [s["lineW"], s["lineA"]])
+        ok(f"[{th}] ② 看得到的每一條軌跡都畫出了腳印（每條 ≥ 2 個）",
+           len(feet) == s["solid"] and all(len(f) >= 2 for f in feet), [len(f) for f in s["feet"]])
+        ok(f"[{th}] ② 左右腳交錯（相鄰兩個腳印一左一右）",
+           all(all(f[i]["f"] != f[i + 1]["f"] for i in range(len(f) - 1)) for f in feet), [[x["f"] for x in f][:6] for f in feet][:2])
+        ok(f"[{th}] ② 腳尖朝前進方向（每個腳印都有依路徑轉向，不是全部同一個角度）",
+           len({round(x["rot"] or 0) for x in allf}) >= 3, sorted({round(x["rot"] or 0) for x in allf})[:8])
+        ok(f"[{th}] ② 越舊越淡、越新越清楚（每一條最舊的比最新的淡）",
+           all(f[0]["a"] < f[-1]["a"] for f in feet if len(f) >= 2), [(f[0]["a"], f[-1]["a"]) for f in feet][:3])
+        ok(f"[{th}] ② 腳印的框約 10～14px、越新越大（參考檔：前掌＋腳跟兩個橢圓，腳本身約 8～11px）",
+           all(isinstance(x["sz"], list) and max(x["sz"]) <= 14 and min(x["sz"]) >= 6 for x in allf), allf[:2])
+        ok(f"[{th}] ② 舊的「三角箭頭」「每 5 天小點」都不在了（改成腳印，不是疊在一起）", s["arrows"] == 0 and s["marks"] == 0,
            {"箭頭": s["arrows"], "小點": s["marks"]})
         # ③ 象限底色三圈（像素量：越外圈跟卡片底差越多）
         # ★ 2026-09-24（Andy：「輪動時鐘分層需要漸層 並且需搭配細線描繪」）：12 塊硬邊扇形 → 4 塊徑向漸層＋細線
@@ -28548,40 +28957,43 @@ def t_clock_v2(pg, b, base):
         ok(f"[{th}] ⑤ 象限卡的「+N 本週新進」格式正確、而且不超過那一段的族群數",
            all((not x["nw"]) or (x["nw"].startswith("+") and 0 < int(x["nw"][1:]) <= x["n"]) for x in nw), nw)
         if th == "dark":
-            # ⑥ ★ 2026-09-24（Andy：「把顯示軌跡 旁邊的 焦點 全部拿掉，沒必要」）：「焦點｜全部」那組鈕拿掉。
-            # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：勾選框叫「顯示腳印」，關掉 → 一個腳印都不剩、再打開 → 回來。
-            #   改後：勾選框整個拿掉 —— 工具列只剩水波、掃描，沒有任何字樣提到腳印或軌跡。
+            # ⑥ ★ 2026-09-24（Andy：「把顯示軌跡 旁邊的 焦點 全部拿掉，沒必要」）：
+            #   改前：「焦點｜全部」兩顆鈕（全部＝16 條軌跡）→ 改後：只剩「顯示腳印」勾選框，預設只畫焦點的腳印
             tools = pg.evaluate("""() => ({ tmode: document.querySelectorAll('#rotTools .rot-tmode, #rotTools [data-m]').length,
                 label: [...document.querySelectorAll('#rotTools label')].map(l => l.textContent.trim()),
-                trail: document.querySelectorAll('.rot-trail').length,
                 long: /已經走過|大圈＝你選的那一天/.test(document.getElementById('rotTools').textContent) })""")
             ok("⑥ 「焦點｜全部」那組鈕真的不在了", tools["tmode"] == 0, tools)
-            ok("⑥ 「顯示腳印」（原「顯示軌跡」）勾選框整個拿掉，工具列只剩水波、掃描",
-               tools["trail"] == 0 and tools["label"] == ["水波", "掃描"], tools)
+            ok("⑥ 勾選框改名「顯示腳印」（原「顯示軌跡」）", "顯示腳印" in tools["label"] and "顯示軌跡" not in tools["label"], tools["label"])
             ok("⑥ 旁邊那一長句補充說明拿掉了（讀法在「怎麼看 ?」裡）", not tools["long"], tools)
-            # ⑦ 滑到一顆**非焦點**的點 → 它亮起來（點 opacity 1）、其他點壓暗；滑開 → 還原
-            #   改前：量它的**軌跡**提亮到 1、其他軌跡壓到 ≤ 0.12 → 改後：沒有軌跡，量**點**本身（highlightClock 的 rotHiItem）
+            # 「顯示腳印」真的關得掉、開得回來
+            pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(900)
+            s2 = pg.evaluate(CLK_STATE, "rotClock")
+            ok("⑥ 關掉「顯示腳印」→ 一個腳印都不剩", s2 and sum(len(f) for f in s2["feet"]) == 0, s2 and [len(f) for f in s2["feet"]])
+            pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
+            s3 = pg.evaluate(CLK_STATE, "rotClock")
+            # 改前：再打開只回來焦點那幾條（vis ≤ 6）→ 改後（2026-09-25）：全部回來，實的仍 ≤ 6
+            ok("⑥ 再打開 → 腳印回來（每個族群都有、實的仍只有焦點 ≤ 6）",
+               s3 and s3["vis"] == s3["n"] and 0 < s3["solid"] <= 6 and sum(len(f) for f in s3["feet"]) > 0, s3 and [s3["vis"], s3["solid"]])
+            # ⑦ 滑到一顆**非焦點**的點 → 它的軌跡出現、其他壓暗；滑開 → 還原
             tgt = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
                 const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter');
                 const f = new Set((window.App._rotFrame || {}).focus || []);
                 const d = o.series[si].data.find(x => x.row && !f.has(x.row.gid)); if (!d) return null;
                 const p = c.convertToPixel({ seriesIndex: si }, d.value); const r = el.getBoundingClientRect();
                 return { gid: d.row.gid, x: r.left + p[0], y: r.top + p[1] }; }""")
-            DOT_OP = """(gid) => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-                const sc = c.getOption().series.filter(s => s.type === 'scatter')[0];
-                const op = (d) => ((d.itemStyle || {}).opacity == null ? 1 : d.itemStyle.opacity);
-                const me = sc.data.find(d => d.row && d.row.gid === gid), others = sc.data.filter(d => !(d.row && d.row.gid === gid));
-                return { me: me ? op(me) : null, maxOther: Math.max(0, ...others.map(op)),
-                         restored: sc.data.every(d => Math.abs(op(d) - (d.baseOp == null ? 1 : d.baseOp)) < 1e-6) }; }"""
             if ok("⑦ 找得到一顆非焦點的點（下一條要滑過去）", bool(tgt), tgt):
                 pg.mouse.move(tgt["x"], tgt["y"]); pg.wait_for_timeout(700)
-                hv = pg.evaluate(DOT_OP, tgt["gid"])
-                ok("⑦ 滑到非焦點的點：它亮起來（opacity 1）、其他點壓到 ≤ 0.18", hv["me"] == 1 and hv["maxOther"] <= 0.18, hv)
+                hv = pg.evaluate("""(gid) => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+                    const ls = c.getOption().series.filter(s => s.type === 'line');
+                    const me = ls.find(s => s.gid === gid); const others = ls.filter(s => s.gid !== gid);
+                    return { me: me ? me.lineStyle.opacity : null, maxOther: Math.max(0, ...others.map(s => s.lineStyle.opacity)) }; }""", tgt["gid"])
+                # 改前「它的軌跡出現」→ 改後（2026-09-25）「它的軌跡提亮」：本來就在（淡），滑到才拉到 1
+                ok("⑦ 滑到非焦點的點：它的軌跡提亮（opacity 1）、其他軌跡壓到 ≤ 0.12", hv["me"] == 1 and hv["maxOther"] <= 0.12, hv)
                 pg.mouse.move(5, 5); pg.wait_for_timeout(700)
-                s4 = pg.evaluate(DOT_OP, tgt["gid"])
-                ok("⑦ 滑開之後還原（每顆點回到自己的 baseOp：焦點 1、其他 0.7）", s4["restored"], s4)
-                s5 = pg.evaluate(CLK_STATE, "rotClock")
-                ok("⑦ 滑過、滑開之後盤上仍然沒有腳印", s5 and s5["feetAll"] == 0 and s5["lines"] == 0, s5 and [s5["feetAll"], s5["lines"]])
+                s4 = pg.evaluate(CLK_STATE, "rotClock")
+                # 改前：滑開 → 非焦點又看不見（vis ≤ 6）→ 改後：滑開 → 非焦點退回淡（實的 ≤ 6、全部仍看得到）
+                ok("⑦ 滑開之後還原（實的只剩焦點 ≤ 6，非焦點退回淡腳印）", s4 and 0 < s4["solid"] <= 6 and s4["vis"] == s4["n"],
+                   s4 and [s4["solid"], s4["vis"]])
             # ⑧ 編號模式的判準跟容器寬度一致（1440 不是編號模式）
             ok("⑧ 1440px 的卡片不是編號模式（容器 ≥ 560px）", (s["fr"] or {}).get("num") is False, s["fr"].get("num"))
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.removeItem('tw.rot.tmode'); } catch (e) {} }")
@@ -29240,18 +29652,63 @@ def t_ripple(pg, b, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+
+# ★ 2026-09-26（Andy：卡片名稱「足跡輪盤」要改名 —— 腳印已拿掉，名字對不上內容；CEO 定名「資金輪盤」）：
+#   全站使用者看得到的地方都不准再出現「足跡輪盤」：可見文字（innerText）、aria-label／title、「?」說明的內文，
+#   桌機 1440 與手機 390 各掃一次（手機的雷達是 mobile3.js 另一份，aria-label 與載入中字樣是它自己寫的）。
+#   說明內文要**真的按開**才會填進去（HOW 是點了才 innerHTML），所以總覽按 rotm、資金流向按 rot，讀跳出來的氣泡。
+OLD_WHEEL = "足跡輪盤"
+OLD_WHEEL_JS = """(old) => { const hit = [];
+  const t = document.body.innerText || ''; if (t.includes(old)) hit.push('innerText: ' + t.split('\\n').filter(l => l.includes(old)).slice(0, 3).join(' | '));
+  document.querySelectorAll('[aria-label],[title]').forEach(e => {
+    ['aria-label', 'title'].forEach(a => { const v = e.getAttribute(a) || ''; if (v.includes(old)) hit.push(a + ': ' + (e.id || e.className) + ' → ' + v); }); });
+  const tt = document.title || ''; if (tt.includes(old)) hit.push('document.title: ' + tt);
+  return hit; }"""
+def no_old_wheel_name(pg, base):
+    vp = pg.viewport_size
+    hits = []
+    try:
+        for w, h in ((1440, 950), (390, 844)):
+            pg.set_viewport_size({"width": w, "height": h})
+            for r, how in (("overview", "rotm"), ("flow", "rot"), ("industry", None), ("themes", None),
+                           ("season", None), ("market/updown", None), ("heatmap", None)):
+                pg.goto(f"{base}#{r}", wait_until="networkidle"); pg.wait_for_timeout(1600)
+                if how:
+                    # 說明氣泡：按開 → 讀 → 按 Esc 關；按不到（手機那顆在別的分段）就略過，不當成通過
+                    btn = pg.locator(f'.howbtn[data-how="{how}"]:visible').first
+                    if btn.count():
+                        btn.click(); pg.wait_for_timeout(400)
+                        box = pg.evaluate(f"() => ((document.getElementById('howPop')||{{}}).innerText || '') + ' ' + ((document.getElementById('how-{how}')||{{}}).innerText || '')")  # 氣泡標題＋內文
+                        if OLD_WHEEL in box: hits.append(f"[{w}] #{r} 「?」{how}：{box[:80]}")
+                        pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+                hits += [f"[{w}] #{r} {x}" for x in pg.evaluate(OLD_WHEEL_JS, OLD_WHEEL)]
+            # 反面也要驗：新名字真的上去了（不是整個標題被拿掉才「找不到舊名字」）
+            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
+            nw = pg.evaluate("""() => ({ h3: ((document.querySelector('#ovRotHead h3') || {}).childNodes || [{}])[0].textContent || '',
+                aria: (document.querySelector('#ovRotHead .howbtn') || {getAttribute: () => ''}).getAttribute('aria-label') || '',
+                m: (document.querySelector('#mRadarOv svg') || {getAttribute: () => null}).getAttribute('aria-label') })""")
+            ok(f"[{w}] 總覽右欄卡片標題＝「資金輪盤」、「?」的 aria-label＝「資金輪盤怎麼看」",
+               nw["h3"].strip() == "資金輪盤" and nw["aria"] == "資金輪盤怎麼看", nw)
+            if w <= 640:
+                ok(f"[{w}] 手機雷達的 aria-label＝「資金輪盤」", nw["m"] == "資金輪盤", nw)
+    finally:
+        if vp: pg.set_viewport_size(vp)
+    ok("★ 全站可見文字（含 aria-label／title／「?」說明）不再出現「足跡輪盤」（2026-09-26 改名資金輪盤）", not hits, hits[:6])
+
 # ===================================================================== 足跡輪盤（2026-09-24）
 # Andy：「輪動時鐘 改成 足跡輪盤，要有點像是雷達的樣貌，並且軌跡線 改成小小的腳印…圓圈幫我再縮小／
 #        時間軸拉Bar 只需要留一個…把顯示軌跡 旁邊的 焦點 全部拿掉…」。
 # 腳印的長相、焦點鈕不在了在「時鐘v2」段；即時的短狀態字在「輪動時鐘即時」段；排行副標在「資金輪動合併」段。
-# 這一段驗：改名、雷達刻度、圓點縮小（量重疊對數）、拉Bar 改天數 → 排行區間真的變（2026-09-26 起盤上沒有腳印）。
+# 這一段驗：改名、雷達刻度、圓點縮小（量重疊對數）、拉Bar 改天數 → 腳印段數真的變。
 FP_OVERLAP = """() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el); const o = c.getOption();
   const si = o.series.findIndex(s => s.type === 'scatter'); const d = o.series[si].data;
   const pts = d.map(x => { const p = c.convertToPixel({ seriesIndex: si }, x.value); return { x: p[0], y: p[1], r: x.row.sz / 2, sz: x.row.sz }; });
   let n = 0; for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++)
     if (Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y) < pts[i].r + pts[j].r) n++;
   return { dots: pts.length, pairs: n, minSz: Math.min(...pts.map(p => p.sz)), maxSz: Math.max(...pts.map(p => p.sz)) }; }"""
-# （FP_FEET＝看得到的腳印數：2026-09-26 腳印功能拿掉，改用 _rot_feet／_rot_nofeet 量「一個都沒有」）
+FP_FEET = """() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+  return c.getOption().series.filter(s => s.type === 'line' && ((s.lineStyle || {}).opacity || 0) > 0)
+    .reduce((a, s) => a + (s.data || []).filter(d => d && !Array.isArray(d) && String(d.symbol || '').startsWith('path://')).length, 0); }"""
 
 
 def t_footprint(pg, b, base):
@@ -29261,7 +29718,14 @@ def t_footprint(pg, b, base):
     # ① 改名
     nm = pg.evaluate("""() => ({ h4: (document.querySelector('#flowRotCard h4.subh')||{}).textContent || '',
         page: document.getElementById('v-flow').innerText })""")
-    ok("① 卡片裡那張圖改名「足跡輪盤」", nm["h4"].startswith("足跡輪盤"), nm["h4"])
+    # ★ 2026-09-26 改前→改後：改前「改名『足跡輪盤』」→ 改後「資金輪盤」（Andy：腳印已拿掉，名字對不上內容；CEO 定名）
+    ok("① 卡片裡那張圖改名「資金輪盤」", nm["h4"].startswith("資金輪盤"), nm["h4"])
+    no_old_wheel_name(pg, base)
+    # 上面那支會把頁面帶去七個分頁、切 390 再切回來；後面②③量的是資金流向頁 1440 的盤面，所以回到跟開頭同一個狀態
+    #（不重置的話 ③ 會在錯的版面上量到 109 對重疊 —— 那是量測假象，不是畫面）
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    reset_rot(pg, base, 2600)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(500)
     ok("① 資金流向頁上看不到「輪動時鐘」四個字了", "輪動時鐘" not in nm["page"], [ln for ln in nm["page"].splitlines() if "輪動時鐘" in ln][:3])
     # ★ 2026-09-26 改前→改後：改前「放大視窗的標題也是足跡輪盤」→ 改後放大鈕與放大視窗拿掉（Andy「放大功能取消」）
     ok("① 足跡輪盤沒有放大鈕了（2026-09-26 拿掉）", pg.evaluate("() => !document.getElementById('rotZoomBtn')"))
@@ -29285,14 +29749,12 @@ def t_footprint(pg, b, base):
     ov = pg.evaluate(FP_OVERLAP)
     ok("③ 族群圓點縮成 6～14px（改前 9～26px）", ov["minSz"] >= 6 and ov["maxSz"] <= 14, ov)
     ok("③ [1440] 預設 16 個族群的圓點重疊 ≤ 5 對（改前 8 對）", ov["pairs"] <= 5, ov)
-    # ④ 拉Bar 改天數 → 排行標題日期真的變
-    # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：拉Bar 5 → 25 天前，腳印真的變多（走的路變長）。
-    #   改後：不論拉到幾天，盤上都沒有腳印；「N 天前」只改排行的區間（下一條）與回放起點。
+    # ④ 拉Bar 改天數 → 腳印段數真的變、排行標題日期真的變
     rot_span(pg, 5, 1300)
-    f5, s5 = _rot_feet(pg), text(pg, "#rankSub")
+    f5, s5 = pg.evaluate(FP_FEET), text(pg, "#rankSub")
     rot_span(pg, 25, 1300)
-    f25, s25 = _rot_feet(pg), text(pg, "#rankSub")
-    ok("④ 拉Bar 5 天前、25 天前，盤上都沒有任何腳印（只有圓點）", _rot_nofeet(f5) and _rot_nofeet(f25), [f5, f25])
+    f25, s25 = pg.evaluate(FP_FEET), text(pg, "#rankSub")
+    ok("④ 拉Bar 從 5 天前拉到 25 天前，腳印真的變多（走的路變長）", f25 > f5 > 0, [f5, f25])
     changed("④ 同一個動作，排行標題的起始日真的跟著變", s5, s25)
     ok("④ 讀數寫「25 天前」", (text(pg, "#rotBack .val") or "").startswith("25 天前"), text(pg, "#rotBack .val"))
     rot_span(pg, 20, 900)
@@ -29486,11 +29948,10 @@ def t_rot_keep(pg, b, base):
     ok("4 再按一次 → 退回盤後、狀態字收掉", pg.evaluate("() => !window.App.rotLive().on && document.getElementById('rotLiveTag').hidden"))
     pg.goto("about:blank"); reset_rot(pg, base, 2400); scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
     # 5 顯示腳印開關
-    # ★ 2026-09-26（Andy：「腳印功能拿掉」）改前：「顯示腳印」關掉 → 腳印歸零；打開 → 回來。
-    #   改後：這一項不再是既有功能 —— 驗開關真的不在、盤上真的沒有腳印（不是藏起來）。
-    _tg = pg.evaluate(_ROT_NOTOGGLE_JS)
-    _ft = _rot_feet(pg)
-    ok("5 「顯示腳印」開關已拿掉（2026-09-26），盤上也沒有任何腳印", _tg["trail"] == 0 and _rot_nofeet(_ft), [_tg, _ft])
+    feet = lambda: sum(len(f) for f in (pg.evaluate(CLK_STATE, "rotClock") or {"feet": []})["feet"])
+    k0 = feet(); pg.click("#rotTools input.rot-trail"); pg.wait_for_timeout(900); k1 = feet()
+    pg.click("#rotTools input.rot-trail"); pg.wait_for_timeout(900)
+    ok("5 「顯示腳印」關掉 → 腳印歸零；打開 → 回來", k0 > 0 and k1 == 0 and feet() > 0, [k0, k1])
     # 6 點族群 → 成分股面板；點外面收掉
     pt = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
         const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter'); const d = o.series[si].data[0];
@@ -29520,7 +29981,7 @@ def t_rot_keep(pg, b, base):
     note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
     ok("9 點右邊排行的長條 → 成分股在原地展開", pg.evaluate("() => !document.getElementById('rankPanel').hidden"))
     # 排行依「佔比變化」排、盤上只畫佔比前 16 —— 點到的族群不一定在盤上（同批次2 的兩種正確行為）
-    if "不在左邊足跡輪盤" in note:
+    if "不在左邊資金輪盤" in note:   # ★ 2026-09-26 改前→改後：「不在左邊足跡輪盤」→「不在左邊資金輪盤」
         ok("9 點到盤上沒有的族群 → 盤不准整張灰掉，面板明講原因", max(x if x is not None else 1 for x in op1) > .9, op1[:6])
     else:
         ok("9 點右邊排行的長條 → 盤上只亮那一個、其他壓暗（連動）",
@@ -29532,142 +29993,156 @@ def t_rot_keep(pg, b, base):
     ok("10 滑到族群點 → 跳出提示框（名字＋強弱＋動能）", pt["name"] in tip, tip)
     pg.mouse.move(5, 5); pg.wait_for_timeout(400)
     # 11 水波／掃描開關都在
-    # ★ 2026-09-26 改前：顯示腳印、水波、掃描三個勾選框都在 → 改後：顯示腳印拿掉，剩水波、掃描兩個
-    ok("11 工具列：水波、掃描兩個勾選框都在（顯示腳印已拿掉）",
-       pg.evaluate("() => ['rot-ripple','rot-scan'].every(c => !!document.querySelector('#rotTools input.' + c)) && !document.querySelector('#rotTools input.rot-trail')"))
+    ok("11 工具列：顯示腳印、水波、掃描三個勾選框都在",
+       pg.evaluate("() => ['rot-trail','rot-ripple','rot-scan'].every(c => !!document.querySelector('#rotTools input.' + c))"))
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 
-# ===================================================================== 足跡輪盤：每一個族群點都有腳印（2026-09-25）→ 2026-09-26 腳印拿掉
-# 改前（09-25，Andy 截圖問「為何不是每個點都有軌跡」）：焦點族群的腳印實、亮，非焦點退到背景（opacity .35、×0.78、間距 ×2），
-#   滑到／點到那一顆就換成焦點樣式；「顯示腳印」照舊關全部。這一段逐顆找腳印序列、量淡與實、滑過提亮、勾掉歸零、回放跟著走。
-# 改後（09-26，Andy：「腳印功能拿掉」）：沒有腳印可以量 —— 段名保留（DECISIONS／HANDOFF 引用過），內容改成：
-#   ① 深淺兩種主題下，盤上**每一顆**族群點都沒有對應的 line series、腳印或折線（不是「只有焦點沒有」）
-#   ② 焦點與非焦點的差別仍然在**點**上（非焦點點退到 0.7、名字一般字重）
-#   ③ 滑過一顆非焦點的點 → 那顆點亮到 1、其他壓到 ≤ 0.18；滑開還原（以前是它的腳印提亮）
-#   ④ 「顯示腳印」勾選框不在、點工具列任何一個勾選框都不會把腳印叫回來
-#   ⑤ 回放：非焦點的點照樣逐幀補間（≥ 5 個不同位置），每一幀都沒有腳印；量幀率寫進 notes
-#   ⑥ 總覽小輪盤也沒有任何 line series
+# ===================================================================== 足跡輪盤：每一個族群點都有腳印（2026-09-25）
+# Andy 截圖問「為何不是每個點都有軌跡」。改法：焦點族群照舊（實、亮），非焦點的腳印退到背景
+# （整條 opacity .35、腳印 ×0.78、間距 ×2），滑到／點到那一顆點就換成焦點樣式；「顯示腳印」照舊關全部。
+# 這一段真的操作：對盤上**每一顆**族群點找它的腳印序列、滑過一顆非焦點點看它提亮、勾掉「顯示腳印」看全部歸零、
+# 按 ▶ 看非焦點的腳印也跟著補間走（沿用 rotTween 只搬位置），並量回放幀率寫進 notes。
 ALLTR = r"""(cid) => { const el = document.getElementById(cid); const c = el && window.echarts && echarts.getInstanceByDom(el);
   if (!c) return null;
   const o = c.getOption(); const ss = o.series || [];
   const sc = ss.find(s => s.type === 'scatter' && s.name === '族群'); if (!sc) return null;
+  const alpha = (col) => { const m = String(col || '').match(/,([\d.]+)\)$/); return m ? +m[1] : 1; };
   const focus = new Set(((window.App && window.App._rotFrame) || {}).focus || []);
-  const isFoot = (v) => typeof v === 'string' && v.indexOf('path://') === 0;
   const rows = sc.data.map(d => {
-    const gid = d.row.gid;
-    const own = ss.filter(s => s.type === 'line' && s.gid === gid);
-    return { gid, name: d.row.name, focus: focus.has(gid), line: own.length,
-      feet: own.reduce((a, s) => a + (s.data || []).filter(x => x && isFoot(x.symbol)).length, 0),
-      op: (d.itemStyle || {}).opacity == null ? 1 : d.itemStyle.opacity, base: d.baseOp == null ? 1 : d.baseOp,
-      bold: (d.label || {}).fontWeight === 700 };
+    const gid = d.row.gid; const li = ss.findIndex(s => s.type === 'line' && s.gid === gid); const ln = ss[li];
+    if (!ln) return { gid, name: d.row.name, line: false };
+    const op = (ln.lineStyle || {}).opacity == null ? 1 : ln.lineStyle.opacity;
+    const feet = (ln.data || []).filter(x => x && !Array.isArray(x) && String(x.symbol || '').startsWith('path://'));
+    // 軌跡在畫面上的長度（px）：太短的族群（幾乎沒動）本來就放不下腳印，要分得出「沒畫」跟「沒得畫」
+    const px = (ln.data || []).map(x => c.convertToPixel({ seriesIndex: li }, Array.isArray(x) ? x : x.value)).filter(Boolean);
+    let len = 0; for (let i = 1; i < px.length; i++) len += Math.hypot(px[i][0] - px[i - 1][0], px[i][1] - px[i - 1][1]);
+    return { gid, name: d.row.name, line: true, focus: focus.has(gid), op, n: feet.length, len: Math.round(len),
+      sz: Math.max(0, ...feet.map(x => Math.max(...[].concat(x.symbolSize || 0)))),
+      a: Math.max(0, ...feet.map(x => alpha((x.itemStyle || {}).color))) };
   });
-  const poly = (c.getZr().storage.getDisplayList(true) || []).filter(e => e && !e.ignore && e.type === 'ec-polyline').length;
-  return { rows, dots: sc.data.length, lines: ss.filter(s => s.type === 'line').length, poly }; }"""
+  return { rows, dots: sc.data.length }; }"""
 
 
-# ===================================================================== 足跡輪盤只留圓圈（2026-09-26）→ 同日稍晚腳印整個拿掉
-# 改前（09-26 稍早，Andy：「足跡輪盤只需要留下圓圈即可」）：「顯示腳印」勾選框留著、預設關（key tw.rot.feet，'1'＝開），
-#   這一段用乾淨頁面驗預設只有圓圈、勾了長出來、記進 localStorage、總覽跟著。
-# 改後（09-26 稍晚，Andy：「腳印功能拿掉」）：開關與腳印整個刪除。段名保留，內容改成：
-#   · 模擬「以前勾過顯示腳印」的使用者（預寫 tw.rot.feet='1'）→ 開頁之後那個舊值被**清掉**、盤上仍然只有圓圈、沒有開關
-#   · 按 ▶ 回放量點的逐幀位置（沒有腳印也要平滑）、回放中也沒有冒出腳印
-#   · 「?」（資金流向 rot、總覽 rotm）真的按開，說明裡沒有「腳印」「顯示腳印」
-#   · 總覽小輪盤（同樣預寫舊值）、手機兩張雷達：0 個腳印
-#   · 手機「?」點開量沒有附註段（與腳印無關，照舊保留）
+# ===================================================================== 足跡輪盤只留圓圈（2026-09-26；當晚改驗「有腳印」）
+# ★ 2026-09-26 晚改前→改後（Andy：「先退回到有腳印那版本」）：
+#   改前：這一段驗「足跡輪盤只需要留下圓圈即可」—— 乾淨開頁「顯示腳印」不勾、盤上 0 個腳印、手機雷達 0 個腳印。
+#   改後：退回 09-25 晚的樣子 —— 乾淨開頁**預設勾選**、每顆點身後有軌跡＋腳印、總覽小輪盤有焦點腳印、手機雷達有腳印；
+#     勾掉記成 tw.rot.feet='0'，重新整理之後仍然尊重（桌機卡片、總覽小輪盤、手機雷達三張都不畫）；勾回來記 '1'。
+#   段落名稱不改（CEO 的段落清單與歷史紀錄都用這個名字），內容改驗新行為。
+# ⚠ 這一段刻意用 Browser._tw_raw_new_page（原版）開乾淨頁面 —— 量的是「完全沒動過設定的人」看到什麼。
+#   （改前其他段落都被 FEET_PRESET 預寫成「勾過腳印」；預設改回開之後那條預寫已經拿掉，這裡仍用原版以免將來又加回預寫。）
+# 真的操作：乾淨開頁 → 量腳印與軌跡都在、圓點照畫 → 按 ▶ 回放量點的逐幀位置（平滑、腳印跟著）
+#   → 總覽小輪盤有焦點腳印 → 勾掉「顯示腳印」看腳印歸零、記進 localStorage → 重新整理還是關的 → 總覽也只剩圓圈
+#   → 手機雷達：沒有值時畫腳印、'0' 時不畫 → 勾回來記 '1' → 手機「?」點開量沒有附註段（附註拿掉那部分保留）。
 # 手機：這一頁看得到的每一顆「?」的 key（去重）
 MOB_HOWKEYS = r"""() => [...new Set([...document.querySelectorAll('.howbtn[data-how]')]
   .filter(b => b.getClientRects().length && b.offsetParent).map(b => b.dataset.how))]"""
 MOB_HOWCLICK = r"""(k) => { const b = [...document.querySelectorAll('.howbtn[data-how="' + k + '"]')].find(x => x.getClientRects().length && x.offsetParent);
   if (!b) return false; b.scrollIntoView({block: 'center', behavior: 'instant'}); b.click(); return true; }"""
-# 以前勾過「顯示腳印」的人：開頁前 localStorage 裡就有 tw.rot.feet='1'（也順手放一個 09-24 就不讀的 tw.rot.tmode）
-OLD_FEET = "try{localStorage.setItem('tw.rot.feet','1');localStorage.setItem('tw.rot.tmode','all');}catch(e){}"
+# 手機雷達：圓點數與腳印數（mobile3.js 的小腳印是 g.mrfoot，每個由前掌＋腳跟兩個 ellipse 組成）
+MOB_RADAR_FEET = r"""(box) => { const s = document.querySelector(box + ' svg'); if (!s) return null;
+  return { dots: s.querySelectorAll('g[data-g]').length, feet: s.querySelectorAll('g.mrfoot').length }; }"""
 
 
 def t_rot_dots_only(pg, b, base):
     raw = getattr(type(b), "_tw_raw_new_page", None)
 
-    def fresh(w, h, mobile=False, old=False):
+    def fresh(w, h, mobile=False):
         kw = dict(viewport={"width": w, "height": h})
         if mobile:
             kw.update(device_scale_factor=2, is_mobile=True, has_touch=True)
         p = raw(b, **kw) if raw else b.new_page(**kw)
-        p.add_init_script(CONSENT_PRESET)          # 只預寫同意條款與導覽
+        p.add_init_script(CONSENT_PRESET)          # 只預寫同意條款與導覽（不寫 tw.rot.feet）
         p.on("pageerror", lambda e: fails.append(f"足跡輪盤只留圓圈 pageerror: {e}"))
-        if old:
-            # 只在第一次載入之前寫（add_init_script 每次載入都會跑，那樣量不到「清掉之後重新整理還是乾淨的」）
-            p.goto(base.rsplit("/", 1)[0] + "/legal.js")   # 同源的靜態檔（不跑 app）：先拿到這個 origin 的 localStorage 再寫舊值
-            p.evaluate(f"() => {{ {OLD_FEET} }}")
         return p
 
-    no_feet = lambda st: bool(st) and st["lines"] == 0 and st["feetAll"] == 0 and st["poly"] == 0
-    LS = "() => { try { return [localStorage.getItem('tw.rot.feet'), localStorage.getItem('tw.rot.tmode')]; } catch (e) { return ['ERR', 'ERR']; } }"
-    d = fresh(1440, 950, old=True)
+    feet_n = lambda st: sum(len(f) for f in (st or {}).get("feet") or [])
+    chk_js = "() => { const c = document.querySelector('#rotTools input.rot-trail'); return c ? c.checked : null; }"
+    d = fresh(1440, 950)
     try:
-        ok("前提：開頁前 localStorage 裡真的有舊的 tw.rot.feet='1'（模擬以前勾過「顯示腳印」的人）", d.evaluate(LS)[0] == "1", d.evaluate(LS))
         d.goto(f"{base}#flow", wait_until="networkidle"); d.wait_for_timeout(2800)
         scroll_to(d, "rotClockWrap"); d.wait_for_timeout(700)
-        ok("★ 舊值被忽略並清掉（tw.rot.feet、tw.rot.tmode 都不在 localStorage 了）", d.evaluate(LS) == [None, None], d.evaluate(LS))
-        tg = d.evaluate(_ROT_NOTOGGLE_JS)
-        ok("★ 「顯示腳印」開關不在（整頁 0 個 .rot-trail、工具列沒有「腳印／軌跡」）", tg["trail"] == 0 and not tg["words"], tg)
+        ok("乾淨的瀏覽器沒有 tw.rot.feet（量的是真正的預設）",
+           d.evaluate("() => { try { return localStorage.getItem('tw.rot.feet'); } catch (e) { return 'ERR'; } }") is None)
+        chk = d.evaluate(chk_js)
+        # 改前（09-26 稍早）：開關預設不勾 → 改後（09-26 晚，Andy 要求退回）：預設勾選
+        ok("★「顯示腳印」開關回來了，而且預設**勾選**", chk is True, chk)
         st = d.evaluate(CLK_STATE, "rotClock")
-        # 改前（09-26 稍早）：預設 0 個腳印，但勾了就長出來 → 改後：沒有任何路徑畫得出腳印
-        ok("★ 盤上一個腳印都沒有（line series 0、path:// 0、zrender 折線 0）", no_feet(st),
-           st and {"line": st["lines"], "腳印": st["feetAll"], "折線": st["poly"]})
+        ok("★ 預設盤上有腳印、也有看得到的軌跡線（改前：0 個腳印）", bool(st) and st["vis"] > 0 and feet_n(st) > 0,
+           st and {"看得到的軌跡": st["vis"], "腳印": feet_n(st)})
         ok("族群點（圓圈）照舊畫（> 6 顆）", bool(st) and st["n"] > 6, st and st["n"])
         ok("象限底色、刻度照舊", bool(st) and st["ringN"] > 0 and st["thinN"] > 0, st and [st["ringN"], st["thinN"]])
-        ok("_rotFrame 不再回報腳印相關欄位（trail／trailDays／span）",
-           bool(st) and st["fr"] and not any(k in st["fr"] for k in ("trail", "trailDays", "span")), st and st["fr"])
-        # 沒有腳印時，回放／補間照舊平滑（點由 rotTween 搬，不靠腳印）
+        ok("回報給驗收的狀態也是「腳印開」（_rotFrame.trail true、走過 > 0 天）",
+           bool(st) and st["fr"] and st["fr"]["trail"] is True and st["fr"].get("trailDays", 0) > 0, st and st["fr"])
+        # 回放／補間：點平滑滑過去，腳印一路都在
         r = d.evaluate(TW_SAMPLE, [12, 900])
         out = r["out"]
-        if ok("沒有腳印：回放到 12 天前量得到點的逐幀位置", len(out) >= 3 and r["a"], {"n": len(out)}):
+        if ok("回放到 12 天前量得到點的逐幀位置", len(out) >= 3 and r["a"], {"n": len(out)}):
             A, B = r["a"], out[-1]
             D = ((B["x"] - A["x"]) ** 2 + (B["y"] - A["y"]) ** 2) ** 0.5
             mids = [q for q in out if 0.03 * D < ((q["x"] - A["x"]) ** 2 + (q["y"] - A["y"]) ** 2) ** 0.5 < 0.97 * D]
-            ok("★ 沒有腳印：點仍然平滑滑過去（補間中出現 ≥ 1 個中間位置）", D >= 3 and len(mids) >= 1,
+            ok("★ 回放：點平滑滑過去（補間中出現 ≥ 1 個中間位置）", D >= 3 and len(mids) >= 1,
                {"距離": round(D, 1), "中間幀": len(mids)})
             dist = [((q["x"] - B["x"]) ** 2 + (q["y"] - B["y"]) ** 2) ** 0.5 for q in out]
-            ok("沒有腳印：位置一路往終點走（沒有往回跳）",
+            ok("回放：位置一路往終點走（沒有往回跳）",
                not [i for i in range(1, len(dist)) if dist[i] > dist[i - 1] + 0.5])
-        st = d.evaluate(CLK_STATE, "rotClock")
-        ok("回放中也沒有冒出腳印", no_feet(st), st and [st["lines"], st["feetAll"], st["poly"]])
         d.evaluate("() => window.App.rotReplay(0)"); d.wait_for_timeout(900)
-        # 工具列上剩下的勾選框（水波、掃描）每一個都真的按一次：按完盤上仍然沒有腳印（沒有哪個開關偷偷接到舊路徑）
-        for cls in ("rot-ripple", "rot-scan"):
-            d.eval_on_selector(f"#rotTools input.{cls}", "e => e.click()"); d.wait_for_timeout(700)
-            st = d.evaluate(CLK_STATE, "rotClock")
-            ok(f"按「{ '水波' if cls == 'rot-ripple' else '掃描' }」之後盤上仍然沒有腳印", no_feet(st), st and [st["lines"], st["feetAll"]])
-            d.eval_on_selector(f"#rotTools input.{cls}", "e => e.click()"); d.wait_for_timeout(500)
-        # 「?」說明：真的按開讀內容 —— 腳印那一句刪掉了，色環與其他讀法還在
-        note = how_text(d, "rot")
-        ok("★ 資金流向「?」說明裡沒有「腳印」「顯示腳印」", len(note) > 200 and "腳印" not in note, note[:160])
-        ok("資金流向「?」說明的換段色環那句還在（刪腳印時沒有連帶砍掉）", "色環" in note and "換段" in note, note[:300])
-        d.reload(wait_until="networkidle"); d.wait_for_timeout(2400)
-        ok("重新整理之後舊值不會回來（localStorage 仍然沒有 tw.rot.feet）", d.evaluate(LS)[0] is None, d.evaluate(LS))
-        # 總覽小輪盤：以前是跟著同一個偏好走 → 改後沒有偏好，一律只有圓圈
-        d.evaluate(f"() => {{ {OLD_FEET} }}")          # 再塞一次舊值，直接從總覽進來
-        d.goto(f"{base}#overview", wait_until="networkidle"); d.reload(wait_until="networkidle"); d.wait_for_timeout(2800)
-        scroll_to(d, "rotClockMini"); d.wait_for_timeout(700)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("回放結束後腳印仍在", feet_n(st) > 0 and st["vis"] > 0, st and [st["vis"], feet_n(st)])
+        # 總覽小輪盤：預設也有腳印（09-25 的行為：只畫焦點族群的）
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
         ms = d.evaluate(CLK_STATE, "rotClockMini")
-        ok("★ 直接從總覽進來（帶著舊值）：小輪盤只有圓圈（0 個腳印、0 條 line series）", bool(ms) and ms["n"] > 0 and no_feet(ms),
-           ms and [ms["n"], ms["lines"], ms["feetAll"]])
-        ok("直接從總覽進來也會把舊值清掉", d.evaluate(LS) == [None, None], d.evaluate(LS))
-        note_m = how_text(d, "rotm")
-        ok("★ 總覽小輪盤「?」說明裡沒有「腳印」", len(note_m) > 30 and "腳印" not in note_m, note_m[:120])
+        ok("★ 總覽小輪盤預設也畫腳印（焦點族群）", bool(ms) and ms["n"] > 0 and feet_n(ms) > 0, ms and [ms["n"], feet_n(ms)])
+        # 勾掉「顯示腳印」→ 卡片只剩圓圈、記成 '0'
+        d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
+        ok("沒有足跡輪盤的放大鈕（2026-09-26 拿掉，這次不退）", d.evaluate("() => !document.getElementById('rotZoomBtn')"))
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1200)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("★ 勾掉「顯示腳印」→ 卡片只剩圓圈（0 腳印、0 條看得到的軌跡）", feet_n(st) == 0 and st["vis"] == 0 and st["n"] > 6,
+           st and [st["vis"], feet_n(st), st["n"]])
+        ok("勾掉之後記成 '0'", d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "0")
+        # 重新整理：'0' 仍然被尊重（使用者自己關的）
+        d.reload(wait_until="networkidle"); d.wait_for_timeout(2600)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(600)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("★ 重新整理之後仍然是關的（勾選框不勾、0 個腳印）—— 使用者自己關的要記住",
+           d.evaluate(chk_js) is False and feet_n(st) == 0 and st["vis"] == 0, st and [d.evaluate(chk_js), feet_n(st)])
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
+        ms = d.evaluate(CLK_STATE, "rotClockMini")
+        ok("關著時總覽小輪盤也只剩圓圈（兩張一致）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0,
+           ms and [ms["vis"], feet_n(ms)])
+        # 勾回來 → 記 '1'、腳印回來；回總覽也跟上
+        d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1200)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("勾回來 → 腳印與軌跡回來、記成 '1'",
+           feet_n(st) > 0 and st["vis"] > 0 and d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "1",
+           st and [st["vis"], feet_n(st)])
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
+        ms = d.evaluate(CLK_STATE, "rotClockMini")
+        ok("勾回來之後回到總覽，小輪盤的腳印也回來（不是停在舊的那一張）", bool(ms) and feet_n(ms) > 0, ms and feet_n(ms))
     finally:
         d.close()
-    # 手機 390：兩張雷達都沒有腳印（mobile3.js 本來就不畫）；「?」點開沒有附註段
+    # 手機 390：沒有值 → 兩張雷達都畫腳印；'0'（桌機勾掉過）→ 不畫；「?」點開沒有附註段
     m = fresh(390, 844, mobile=True)
     try:
         for route, box in (("flow", "#mRadarFlow"), ("overview", "#mRadarOv")):
             m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2600)
-            r = m.evaluate(f"""() => {{ const s = document.querySelector('{box} svg'); if (!s) return null;
-                return {{ dots: s.querySelectorAll('g[data-g]').length, feet: s.querySelectorAll('ellipse').length,
-                          trail: document.querySelectorAll('.rot-trail').length }}; }}""")
-            ok(f"★ 手機 {route} 雷達：圓點照畫、腳印 0 個、沒有「顯示腳印」開關",
-               bool(r) and r["dots"] > 3 and r["feet"] == 0 and r["trail"] == 0, r)
+            r = m.evaluate(MOB_RADAR_FEET, box)
+            ok(f"★ 手機 {route} 雷達：圓點照畫、佔比前 3 名身後有小腳印（改前：0 個）",
+               bool(r) and r["dots"] > 3 and r["feet"] > 0, r)
+        m.evaluate("() => localStorage.setItem('tw.rot.feet', '0')")
+        m.goto(f"{base}#flow", wait_until="networkidle"); m.reload(wait_until="networkidle"); m.wait_for_timeout(2600)
+        r = m.evaluate(MOB_RADAR_FEET, "#mRadarFlow")
+        ok("手機雷達尊重桌機勾掉的偏好（tw.rot.feet='0' → 0 個腳印、圓點照畫）", bool(r) and r["dots"] > 3 and r["feet"] == 0, r)
+        m.evaluate("() => localStorage.removeItem('tw.rot.feet')")
         # 手機：總覽與資金流向看得到的每一顆「?」都真的按開，量沒有附註段（手機一律是跳出式，點背景／Esc 關）
         for route in ("overview", "flow"):
             m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2400)
@@ -29694,24 +30169,35 @@ def t_rot_all_trails(pg, b, base):
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
         scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(700)
         st = pg.evaluate(ALLTR, "rotClock")
-        if not ok(f"[{th}] 讀得到盤上每一顆族群點", bool(st) and st["dots"] > 6, st and st["dots"]):
+        if not ok(f"[{th}] 讀得到盤上每一顆族群點與它的腳印", bool(st) and st["dots"] > 6, st and st["dots"]):
             continue
         rows = st["rows"]
-        foc = [r for r in rows if r["focus"]]
-        rest = [r for r in rows if not r["focus"]]
-        # ① 改前：每一顆族群點都有自己的腳印序列 → 改後：每一顆都沒有
-        has = [(r["name"], r["line"], r["feet"]) for r in rows if r["line"] or r["feet"]]
-        ok(f"[{th}] ① 盤上每一顆族群點都沒有自己的尾巴或腳印（逐顆檢查 {len(rows)} 顆）", not has and len(rows) == st["dots"], has[:5])
-        ok(f"[{th}] ① 整張圖 0 條 line series、zrender 上 0 條折線", st["lines"] == 0 and st["poly"] == 0, [st["lines"], st["poly"]])
-        # ② 改前：非焦點腳印比焦點淡、小 → 改後：焦點與非焦點的差別只剩點本身（非焦點點 0.7、焦點名字粗體）
-        if ok(f"[{th}] ② 焦點與非焦點都有（才比得出差別）", bool(foc) and bool(rest), [len(foc), len(rest)]):
-            ok(f"[{th}] ② 焦點的點 opacity 1、非焦點 0.7", all(r["op"] == 1 for r in foc) and all(abs(r["op"] - 0.7) < 1e-6 for r in rest),
+        foc = [r for r in rows if r.get("focus")]
+        rest = [r for r in rows if r.get("line") and not r.get("focus")]
+        # ① 每一顆族群點都有自己的腳印序列（改前：只有焦點 ≤ 6 顆有）
+        nofeet = [r for r in rows if not (r.get("line") and r["op"] > 0 and (r["n"] >= 1 or r["len"] < 12))]
+        ok(f"[{th}] ① 盤上每一顆族群點都有對應的腳印序列（看得到、至少 1 個腳印；軌跡 < 12px 的幾乎沒動，不算）",
+           not nofeet and len(rows) == st["dots"], {"缺": [(r["name"], r.get("n"), r.get("len")) for r in nofeet], "點數": st["dots"]})
+        ok(f"[{th}] ① 真的有非焦點族群被畫出來（非焦點 {len(rest)} 條、其中有腳印的 ≥ 一半）",
+           len(rest) >= 1 and sum(1 for r in rest if r["n"] >= 1) * 2 >= len(rest), [(r["name"], r["n"]) for r in rest])
+        # ② 非焦點比焦點淡、小
+        if ok(f"[{th}] ② 焦點與非焦點都有（才比得出淡與實）", bool(foc) and bool(rest), [len(foc), len(rest)]):
+            ok(f"[{th}] ② 焦點整條 opacity 1、非焦點 0.3～0.4",
+               all(r["op"] == 1 for r in foc) and all(0.3 <= r["op"] <= 0.4 for r in rest),
                {"焦點": [r["op"] for r in foc], "非焦點": sorted({r["op"] for r in rest})})
+            fa = max((r["op"] * r["a"] for r in foc if r["n"]), default=0)
+            ra = max((r["op"] * r["a"] for r in rest if r["n"]), default=0)
+            ok(f"[{th}] ② 非焦點腳印實際不透明度 < 焦點（整條 × 腳印自己的，最亮那一個比）", 0 < ra < fa,
+               {"非焦點": round(ra, 3), "焦點": round(fa, 3)})
+            fs = max((r["sz"] for r in foc if r["n"]), default=0)
+            rs = max((r["sz"] for r in rest if r["n"]), default=0)
+            ok(f"[{th}] ② 非焦點腳印比焦點小（最大那一個比）", 0 < rs < fs, {"非焦點": rs, "焦點": fs})
         if th != "dark":
             continue
-        # ③ 滑過一顆非焦點的點 → 那顆點亮到 1、其他壓暗；滑開還原（改前：量它的腳印提亮、換成焦點尺寸與密度）
+        # ③ 滑過一顆非焦點的點 → 它的腳印提亮到焦點樣式（opacity 1、原尺寸、原密度），其他壓暗；滑開還原
+        cand = sorted([r for r in rest if r["n"] >= 1], key=lambda r: -r["len"])
         tgt = None
-        for r in rest:
+        for r in cand:
             tgt = pg.evaluate("""(gid) => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
                 const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && s.name === '族群');
                 const d = o.series[si].data.find(x => x.row && x.row.gid === gid); if (!d) return null;
@@ -29723,52 +30209,64 @@ def t_rot_all_trails(pg, b, base):
                 if pg.evaluate("() => document.getElementById('rotClock')._hovGid") == r["gid"]:
                     break
             tgt = None
-        if ok("③ 找得到一顆可以滑到的非焦點點", bool(tgt), [r["name"] for r in rest][:5]):
+        if ok("③ 找得到一顆可以滑到的非焦點點（有腳印）", bool(tgt), [r["name"] for r in cand][:5]):
+            r0 = next(r for r in rows if r["gid"] == tgt["gid"])
             h = pg.evaluate(ALLTR, "rotClock")
             me = next(r for r in h["rows"] if r["gid"] == tgt["gid"])
-            others = [r for r in h["rows"] if r["gid"] != tgt["gid"]]
-            ok("③ 滑過非焦點的點 → 那顆點亮起來（opacity 從 0.7 變 1）", me["op"] == 1, me)
-            ok("③ 其他族群的點壓到 ≤ 0.18（包括焦點）", max(r["op"] for r in others) <= 0.18, max(r["op"] for r in others))
-            ok("③ 滑過時也沒有冒出任何腳印（改前這一步會換出它的焦點版腳印）", h["lines"] == 0 and h["poly"] == 0, [h["lines"], h["poly"]])
+            others = [r for r in h["rows"] if r["gid"] != tgt["gid"] and r.get("line")]
+            ok("③ 滑過非焦點的點 → 它的腳印提亮（opacity 從 0.3～0.4 變 1）", r0["op"] < 1 and me["op"] == 1, [r0["op"], me["op"]])
+            ok("③ 滑過之後它的腳印換成焦點尺寸與密度（變大、不變少）", me["sz"] > r0["sz"] and me["n"] >= r0["n"],
+               {"前": [r0["sz"], r0["n"]], "後": [me["sz"], me["n"]]})
+            ok("③ 其他族群的腳印壓到 ≤ 0.12（包括焦點）", max(r["op"] for r in others) <= 0.12, max(r["op"] for r in others))
             pg.mouse.move(5, 5); pg.wait_for_timeout(800)
             h2 = pg.evaluate(ALLTR, "rotClock")
-            ok("③ 滑開 → 每顆點回到自己的樣子（焦點 1、非焦點 0.7）", all(abs(r["op"] - r["base"]) < 1e-6 for r in h2["rows"]),
-               [(r["name"], r["op"], r["base"]) for r in h2["rows"] if abs(r["op"] - r["base"]) >= 1e-6][:5])
-        # ④ 改前：勾掉「顯示腳印」全部歸零、勾回來全部回來 → 改後：沒有這個勾選框
-        tg = pg.evaluate(_ROT_NOTOGGLE_JS)
-        ok("④ 「顯示腳印」勾選框不在（工具列只剩水波、掃描）", tg["trail"] == 0 and sorted(tg["boxes"]) == ["rot-ripple", "rot-scan"], tg)
-        # ⑤ 回放：非焦點的**點**跟著補間走（rotTween 只搬位置，不是每一步重建）、每一幀都沒有腳印 ＋ 量幀率
-        pl = pg.evaluate("""async (fj) => {
-          const feetOf = eval(fj);
+            me2 = next(r for r in h2["rows"] if r["gid"] == tgt["gid"])
+            ok("③ 滑開 → 它退回淡、小（opacity、尺寸、個數都回到滑過前）",
+               me2["op"] == r0["op"] and me2["sz"] == r0["sz"] and me2["n"] == r0["n"],
+               {"前": [r0["op"], r0["sz"], r0["n"]], "滑開": [me2["op"], me2["sz"], me2["n"]]})
+            ok("③ 滑開 → 焦點的腳印也回到 1", all(r["op"] == 1 for r in h2["rows"] if r.get("focus")),
+               [r["op"] for r in h2["rows"] if r.get("focus")])
+        # ④ 關掉「顯示腳印」→ 全部歸零（焦點與非焦點都是）；打開 → 全部回來
+        pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1000)
+        off = pg.evaluate(ALLTR, "rotClock")
+        ok("④ 勾掉「顯示腳印」→ 每一條的 opacity 都是 0、一個腳印都不剩",
+           bool(off) and all(r["op"] == 0 and r["n"] == 0 for r in off["rows"] if r.get("line")),
+           off and [(r["name"], r["op"], r["n"]) for r in off["rows"] if r.get("op") or r.get("n")][:5])
+        pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
+        on = pg.evaluate(ALLTR, "rotClock")
+        ok("④ 勾回來 → 非焦點的淡腳印也回來",
+           bool(on) and sum(1 for r in on["rows"] if r.get("line") and 0 < r["op"] < 1 and r["n"]) >= 1,
+           on and [(r["name"], r["op"], r["n"]) for r in on["rows"]][:6])
+        # ⑤ 回放：非焦點的腳印也跟著補間走（rotTween 只搬位置，不是每一步重建）＋ 量幀率
+        pl = pg.evaluate("""async () => {
           const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
           const f = new Set((window.App._rotFrame || {}).focus || []);
-          const top = (el._rotHov && el._rotHov.top) || [];
-          const k = top.findIndex(r => !r.isStock && !f.has(r.gid));
-          const pick = () => { const d = c.getModel().getSeriesByName('族群')[0].getData(); const g = k >= 0 ? d.getItemGraphicEl(k) : null;
-            return g ? [Math.round(g.x * 10) / 10, Math.round(g.y * 10) / 10] : null; };
+          const pick = () => { for (const s of c.getModel().getSeries().filter(s => s.subType === 'line')) {
+              const o = s.option; if (!o || f.has(o.gid) || !(o.lineStyle && o.lineStyle.opacity > 0 && o.lineStyle.opacity < 1)) continue;
+              const d = s.getData(); for (let i = d.count() - 1; i >= 0; i--) { const raw = d.getRawDataItem(i);
+                if (raw && raw.foot) { const g = d.getItemGraphicEl(i); if (g) return [Math.round(g.x * 10) / 10, Math.round(g.y * 10) / 10]; } } }
+            return null; };
           window.App.rotReplay(12); await new Promise(r => setTimeout(r, 900));
           const st0 = window.App.rotTween();
           const btn = document.querySelector('#rotBack .pb.play'); btn.click();
-          const ps = []; let n = 0; const gaps = []; const t0 = performance.now(); let last = t0; let bad = 0, seen = 0;
+          const ps = []; let n = 0; const gaps = []; const t0 = performance.now(); let last = t0;
           await new Promise(res => { const g = (t) => { n++; gaps.push(t - last); last = t; const p = pick(); if (p) ps.push(p.join(','));
-            if (n % 6 === 0) { const v = feetOf('rotClock'); seen++; if (!v || v.lines || v.feet || v.poly) bad++; }
             if (t - t0 < 2500) requestAnimationFrame(g); else res(); }; requestAnimationFrame(g); });
           btn.click();
           const st1 = window.App.rotTween();
-          return { k, uniq: new Set(ps).size, n: ps.length, fps: +(n * 1000 / (performance.now() - t0)).toFixed(1), maxGap: Math.round(Math.max(...gaps)),
-            tweens: st1.tweens - st0.tweens, paintMs: st1.last && st1.last.paintMs, bad, seen }; }""", _ROT_FEET_JS)
-        notes.append(f"足跡輪盤（無腳印）：回放 2.5 秒 {pl['fps']} fps、最長一幀 {pl['maxGap']}ms、補間 {pl['tweens']} 次、"
+          return { uniq: new Set(ps).size, n: ps.length, fps: +(n * 1000 / (performance.now() - t0)).toFixed(1), maxGap: Math.round(Math.max(...gaps)),
+            tweens: st1.tweens - st0.tweens, paintMs: st1.last && st1.last.paintMs }; }""")
+        notes.append(f"足跡輪盤全部腳印：回放 2.5 秒 {pl['fps']} fps、最長一幀 {pl['maxGap']}ms、補間 {pl['tweens']} 次、"
                      f"每幀搬圖元 {pl['paintMs']}ms（容器軟體繪圖）")
-        ok("⑤ 回放中非焦點的點跟著補間走（同一顆點在 2.5 秒裡出現 ≥ 5 個不同位置）", pl["k"] >= 0 and pl["uniq"] >= 5, pl)
+        ok("⑤ 回放中非焦點的腳印也跟著補間走（同一個腳印在 2.5 秒裡出現 ≥ 5 個不同位置）", pl["uniq"] >= 5, pl)
         ok("⑤ 回放真的走補間（rotTween 次數增加），不是每一步整張重建", pl["tweens"] >= 2, pl)
-        ok("⑤ 回放中抽查的每一幀都沒有腳印或折線", pl["seen"] >= 5 and pl["bad"] == 0, pl)
         pg.evaluate("() => window.App.rotReplay(0)"); pg.wait_for_timeout(600)
-        # ⑥ 總覽小時鐘：改前「不畫淡腳印（每一條不是 0 就是 1）」→ 改後一條 line series 都沒有
+        # ⑥ 總覽小時鐘（compact）不跟：仍然只有焦點的腳印，沒有淡的
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
-        mini = pg.evaluate(ALLTR, "rotClockMini")
+        mini = pg.evaluate("""() => { const el = document.getElementById('rotClockMini'); const c = el && echarts.getInstanceByDom(el);
+            if (!c) return null; return c.getOption().series.filter(s => s.type === 'line').map(s => (s.lineStyle || {}).opacity); }""")
         if mini is not None:
-            ok("⑥ 總覽小時鐘也沒有任何尾巴／腳印（0 條 line series、0 條折線）", mini["lines"] == 0 and mini["poly"] == 0 and mini["dots"] > 0,
-               [mini["lines"], mini["poly"], mini["dots"]])
+            ok("⑥ 總覽小時鐘不畫淡腳印（每一條不是 0 就是 1）", all(o in (0, 1) for o in mini), mini)
         else:
             notes.append("足跡輪盤全部腳印 ⑥：總覽頁沒有小時鐘（rotClockMini），略過")
     pg.set_viewport_size({"width": 1500, "height": 1000})
@@ -31460,6 +31958,177 @@ def t_dg_2d3d(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
+
+# ===================================================================== 2026-09-26：3D 視角鈕搬進畫面框 ＋ 點兩下重設視角
+DG3DCTL_M = """() => { const c = document.getElementById('dg3dCtl'), t = document.getElementById('dgTools');
+  const cv = document.querySelector('#prod3d canvas');
+  const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const R = (e) => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+  const cr = vis(c) ? R(c) : null, vr = cv ? R(cv) : null, tr = t ? R(t) : null;
+  // 看得到的卡片有沒有壓到這組鈕（窄畫面卡片在畫布底下，自然不會碰到）
+  const hit = cr ? [...document.querySelectorAll('#prod3d .lbl3d')].filter(e => vis(e) && !e.classList.contains('hid')).filter(e => {
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.left < cr.r - 1 && r.right > cr.l + 1 && r.top < cr.b - 1 && r.bottom > cr.t + 1; })
+    .map(e => (e.innerText || '').trim().slice(0, 10)) : [];
+  const tools = t ? [...t.children].filter(vis).map(e => (e.innerText || '').replace(/\\s+/g, '').trim()) : [];
+  return { exists: !!c, shown: vis(c), drag: vis(document.getElementById('dgDrag')), reset: vis(document.getElementById('dgReset')),
+    inTools: !!(t && t.querySelector('#dgDrag, #dgReset, #dg3dCtl')), inHost: !!(c && c.closest('#prod3d')),
+    ctl: cr, cv: vr, tools, toolsB: tr ? tr.b : null, hit,
+    title: (document.getElementById('dgReset') || {}).title || '',
+    // 單一環節的圖（晶圓代工整張都是 foundry）每張卡片本來就帶 .sel（環節層級的亮），要看的是「零件層級」的選取
+    sel: document.querySelectorAll('#prod3d .lbl3d.sel-part').length, haspart: !!document.querySelector('#prod3d.haspart'),
+    card: (() => { const b = document.getElementById('partCard'); return !!b && !b.hidden && b.getClientRects().length > 0; })(),
+    canvas: document.querySelectorAll('#prod3d canvas').length,
+    mode: (document.getElementById('dg3d') || { dataset: {} }).dataset.mode || '' }; }"""
+
+
+def _cam_same(c0, c1):
+    """重設之後相機跟一開始比：方向（單位向量內積）＋ 距離（±5%）。比法跟 check_3d 的「重設視角」同一套。"""
+    def _u(v):
+        m = sum(x * x for x in v) ** 0.5 or 1.0
+        return [x / m for x in v], m
+    u0, m0 = _u(c0); u1, m1 = _u(c1)
+    return sum(a * b for a, b in zip(u0, u1)) > 0.999 and abs(m1 - m0) / m0 < 0.05
+
+
+def _cam_moved(c0, c1):
+    return max(abs(a - b) for a, b in zip(c0, c1)) > 3
+
+
+def _dg3d_drag(pg, cv, dx=240, dy=50):
+    """在畫布中間真的按住拖一段（起點避開右上角那組鈕）。"""
+    cx, cy = cv["l"] + cv["w"] * 0.45, cv["t"] + cv["h"] * 0.55
+    pg.mouse.move(cx, cy); pg.mouse.down()
+    pg.mouse.move(cx + dx, cy + dy, steps=14)
+    pg.mouse.up(); pg.wait_for_timeout(700)
+
+
+def t_dg3d_ctl(pg, base):
+    """Andy 2026-09-26：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」。
+    真的操作：2D 時兩顆看不到 → 切 3D → 兩顆在 3D 畫布框內右上角（量 bbox：在畫布裡、在設定列下方、沒壓到卡片）
+    → 設定列只剩「怎麼看?｜2D 3D｜動畫｜收合圖」→ 游標移到鈕上爆炸圖不會收回 → 拖曳轉動相機真的變了
+    → 在零件上點兩下：相機回預設、而且沒有留下選取／零件小卡 → 在背景點兩下也回預設
+    → 按「重設視角」同樣回預設 → 「拖曳」鈕照樣切得到平移 → 切 2D 兩顆不見 → 再切 3D、換圖，兩顆都回到畫面框裡
+    （換圖／切換會清空 #prod3d，鈕不能被一起清掉）。
+    1440 與 800 各走一次（800 卡片搬到畫布底下，鈕照樣在畫布右上）。"""
+    pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    keep = pg.evaluate("() => { try { return ['tw.dg3d','tw.dgOpen','tw.side','tw.dganim'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null,null]; } }")
+    for width in (1440, 800):
+        T = f"[3D視角鈕 {width}]"
+        pg.set_viewport_size({"width": width, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+        # 動畫關：場景不自轉，「相機回到預設」才比得準；從 2D 開始，先驗「2D 時看不到」
+        pg.evaluate("() => { try { localStorage.setItem('tw.dg3d','0'); localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.side','0'); localStorage.setItem('tw.dganim','0'); } catch (e) {} }")
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/foundry", wait_until="networkidle")
+        if not wait_until(pg, "() => { const s = document.getElementById('dg3d'); return !!s && !s.hidden; }", 8000):
+            ok(f"{T} 晶圓代工分頁有 2D｜3D 分段鈕", False, pg.evaluate(DG3DCTL_M)); continue
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
+            notes.append(f"{T} 這個環境不支援 WebGL，3D 視角鈕沒有驗"); continue
+        m0 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 2D 時「拖曳」「重設視角」都看不到", m0["exists"] and not m0["shown"] and not m0["drag"] and not m0["reset"], m0)
+        ok(f"{T} 設定列裡已經沒有「拖曳」「重設視角」", not m0["inTools"], m0["tools"])
+        # 切 3D
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 400)
+        wait_until(pg, "() => document.querySelectorAll('#prod3d canvas').length === 1 && !!(window.Rack3D && window.Rack3D.current)", 12000)
+        pg.mouse.move(4, 4); pg.wait_for_timeout(1500)
+        m1 = pg.evaluate(DG3DCTL_M)
+        if not m1["ctl"] or not m1["cv"]:
+            ok(f"{T} 切 3D 之後兩顆出現", False, m1); continue
+        c, v = m1["ctl"], m1["cv"]
+        ok(f"{T} 切 3D：兩顆出現、住在 3D 畫面框裡（不在設定列）",
+           m1["shown"] and m1["drag"] and m1["reset"] and m1["inHost"] and not m1["inTools"], m1)
+        ok(f"{T} 那組鈕整個在 3D 畫布的範圍內",
+           c["l"] >= v["l"] - 0.5 and c["r"] <= v["r"] + 0.5 and c["t"] >= v["t"] - 0.5 and c["b"] <= v["b"] + 0.5, {"ctl": c, "canvas": v})
+        ok(f"{T} 那組鈕在畫布的右上角（離右緣、上緣都 ≤ 24px）",
+           v["r"] - c["r"] <= 24 and c["t"] - v["t"] <= 24, {"右距": round(v["r"] - c["r"], 1), "上距": round(c["t"] - v["t"], 1)})
+        ok(f"{T} 那組鈕在設定列下方（不跟設定列同一排）",
+           m1["toolsB"] is not None and c["t"] >= m1["toolsB"] - 0.5, {"ctlTop": c["t"], "toolsBottom": m1["toolsB"]})
+        ok(f"{T} 右欄卡片沒有壓到那組鈕", not m1["hit"], m1["hit"])
+        ok(f"{T} 設定列剩「怎麼看?｜2D 3D｜動畫｜收合圖」",
+           len(m1["tools"]) == 4 and "怎麼看" in m1["tools"][0] and "2D" in m1["tools"][1] and "3D" in m1["tools"][1]
+           and "動畫" in m1["tools"][2] and "收合" in m1["tools"][3], m1["tools"])
+        ok(f"{T} 「重設視角」的提示寫了「也可以在 3D 畫面上點兩下」", "點兩下" in m1["title"], m1["title"])
+        ok(f"{T} 3D 說明寫了「點兩下回到預設視角」", "點兩下" in text(pg, "#dg3dNote"), text(pg, "#dg3dNote")[-60:])
+        # 游標從畫布移到鈕上：爆炸圖不可以收回去（鈕住在 #prod3d 裡，沒有「離開」3D 畫面）
+        pg.mouse.move(v["l"] + v["w"] * 0.45, v["t"] + v["h"] * 0.55); pg.wait_for_timeout(300)
+        _dg3d_settle(pg, 1, 4000)
+        rb = pg.evaluate("() => { const r = document.getElementById('dgReset').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
+        pg.mouse.move(rb["x"], rb["y"], steps=6); pg.wait_for_timeout(900)
+        ex = pg.evaluate("() => window.Rack3D.current.explode()")
+        ok(f"{T} 游標移到「重設視角」上，3D 爆炸圖不會收回去", ex > 0.99, ex)
+        pg.mouse.move(4, 4); _dg3d_settle(pg, 0, 4000)
+        cam0 = pg.evaluate("() => window.Rack3D.current.cam()")
+        # ① 拖曳轉動
+        _dg3d_drag(pg, v)
+        cam1 = pg.evaluate("() => window.Rack3D.current.cam()")
+        ok(f"{T} 在畫布上拖曳，相機真的轉了", _cam_moved(cam0, cam1), f"{cam0} → {cam1}")
+        # ② 在零件上點兩下 → 回預設，而且不留選取（第一下會選起來，要被清掉）
+        seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
+        pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg) if seg else None
+        if pt:
+            tgt = pg.evaluate("(p) => { const e = document.elementFromPoint(p.x, p.y); return e ? e.tagName : ''; }", pt)
+            pg.mouse.dblclick(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+            cam2 = pg.evaluate("() => window.Rack3D.current.cam()")
+            m2 = pg.evaluate(DG3DCTL_M)
+            ok(f"{T} 在零件上點兩下：相機回到預設", _cam_same(cam0, cam2), f"{cam0} → {cam1} → {cam2}（點的是 {tgt}）")
+            ok(f"{T} 在零件上點兩下：不留下選取、零件小卡收掉", m2["sel"] == 0 and not m2["haspart"] and not m2["card"],
+               {"sel": m2["sel"], "haspart": m2["haspart"], "card": m2["card"], "seg": seg})
+            # 反證：同一個零件**單擊**一次要真的選得起來 —— 不然上面那條「沒有選取」可能只是點不到零件的假綠。
+            # 相機剛回到預設，零件在螢幕上的位置變了，座標要重新問一次。
+            pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg) or pt
+            pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+            m2b = pg.evaluate(DG3DCTL_M)
+            ok(f"{T} 反證：同一個零件單擊一次會選起來", m2b["sel"] > 0 and m2b["haspart"], {"sel": m2b["sel"], "haspart": m2b["haspart"], "card": m2b["card"]})
+            pg.mouse.dblclick(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+            m2c = pg.evaluate(DG3DCTL_M)
+            ok(f"{T} 已經選著零件時再點兩下：選取清掉、小卡收掉", m2c["sel"] == 0 and not m2c["card"], {"sel": m2c["sel"], "card": m2c["card"]})
+        else:
+            ok(f"{T} 找得到一個點得到的零件（點兩下用）", False, seg)
+        # ③ 再轉一次，在背景點兩下也回預設（找一個 elementFromPoint 是 canvas 的點）
+        _dg3d_drag(pg, v, -200, -40)
+        cam3 = pg.evaluate("() => window.Rack3D.current.cam()")
+        ok(f"{T} 第二次拖曳相機又轉了", _cam_moved(cam0, cam3), f"{cam0} → {cam3}")
+        bg = pg.evaluate("""(v) => { for (let fy = 0.92; fy > 0.1; fy -= 0.06) for (let fx = 0.5; fx < 0.9; fx += 0.08) {
+            const x = v.l + v.w * fx, y = v.t + v.h * fy, e = document.elementFromPoint(x, y);
+            if (e && e.tagName === 'CANVAS') return { x, y }; } return null; }""", v)
+        ok(f"{T} 畫布上找得到背景點（點兩下用）", bool(bg), bg)
+        if bg:
+            pg.mouse.dblclick(bg["x"], bg["y"]); pg.wait_for_timeout(900)
+            cam4 = pg.evaluate("() => window.Rack3D.current.cam()")
+            ok(f"{T} 在畫布背景點兩下：相機回到預設", _cam_same(cam0, cam4), f"{cam3} → {cam4}")
+        # ④ 按「重設視角」同樣回預設
+        _dg3d_drag(pg, v, 180, 70)
+        cam5 = pg.evaluate("() => window.Rack3D.current.cam()")
+        _dg3d_toolbar_click(pg, "#dgReset", 900)
+        cam6 = pg.evaluate("() => window.Rack3D.current.cam()")
+        ok(f"{T} 按「重設視角」：相機回到預設（跟點兩下同一個結果）",
+           _cam_moved(cam0, cam5) and _cam_same(cam0, cam6), f"{cam5} → {cam6}")
+        # ⑤ 「拖曳：轉動」鈕搬家之後照樣能切平移
+        _dg3d_toolbar_click(pg, "#dgDrag", 600)
+        dm = pg.evaluate("() => window.Rack3D.current.dragMode()")
+        ok(f"{T} 畫面框裡的「拖曳」鈕照樣能切到平移", dm == "pan" and "平移" in text(pg, "#dgDrag"), [dm, text(pg, "#dgDrag")])
+        _dg3d_toolbar_click(pg, "#dgDrag", 600)
+        # ⑥ 切 2D → 兩顆不見；再切 3D → 回到畫面框裡
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='2d']", 900)
+        m7 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 切 2D：兩顆不見（元素還在、只是收起來）",
+           m7["exists"] and not m7["shown"] and not m7["drag"] and not m7["reset"] and m7["canvas"] == 0, m7)
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 400)
+        wait_until(pg, "() => document.querySelectorAll('#prod3d canvas').length === 1 && !!(window.Rack3D && window.Rack3D.current)", 12000)
+        pg.wait_for_timeout(600)
+        m8 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 再切 3D：兩顆回到 3D 畫面框裡", m8["shown"] and m8["inHost"] and m8["reset"], m8)
+        # 換一張圖（清空 #prod3d 的另一條路）→ 鈕仍然在
+        _dg3d_toolbar_click(pg, "#dgPick .segchip[data-dgid='hbm']", 400)
+        wait_until(pg, "() => location.hash.endsWith('/hbm') && document.querySelectorAll('#prod3d canvas').length === 1", 12000)
+        pg.mouse.move(4, 4); pg.wait_for_timeout(1200)
+        m9 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 換到 HBM 分頁（3D）：兩顆仍在畫面框裡、沒壓到卡片",
+           m9["shown"] and m9["inHost"] and m9["reset"] and not m9["hit"], m9)
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='2d']", 900)
+    pg.evaluate("(v) => { try { ['tw.dg3d','tw.dgOpen','tw.side','tw.dganim'].forEach((k, i) => v[i] == null ? localStorage.removeItem(k) : localStorage.setItem(k, v[i])); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
 # ===================================================================== 2026-09-26 Andy 三件
 # ① 「將我把這內容放進來，並且排版一下」：總覽頂端的 KPI 橫條（#hero）搬進大盤三張圖的工具列（#m3Kpis，「?」右邊）。
 # ② 「放大功能取消」：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）與它開的放大視窗拿掉。
@@ -31630,7 +32299,8 @@ def t_kpi_footer_0926(pg, b, base):
         txt: [...document.querySelectorAll('#flowRotCard button, #flowRotCard .btn')].filter(e => /放大/.test(e.textContent || '') && e.offsetParent !== null).map(e => e.textContent.trim()),
         head: ((document.querySelector('#flowRotCard .rotchead') || {}).innerText || '').trim() })""")
     ok("★ 資金輪動卡、足跡輪盤右上方的「⤢ 放大」不存在了", not zb["btn"] and not zb["txt"], zb)
-    ok("足跡輪盤標題列只剩標題與日期區間", zb["head"].startswith("足跡輪盤") and "放大" not in zb["head"], zb["head"])
+    # ★ 2026-09-26 改前→改後：標題「足跡輪盤」→「資金輪盤」
+    ok("資金輪盤標題列只剩標題與日期區間", zb["head"].startswith("資金輪盤") and "放大" not in zb["head"], zb["head"])
     # 真的在輪盤欄右上角那一帶點一下：不會打開任何放大罩
     pt = pg.evaluate("""() => { const h = document.querySelector('#flowRotCard .rotchead'); if (!h) return null;
         const r = h.getBoundingClientRect(); return { x: r.right - 20, y: r.top + r.height / 2 }; }""")
@@ -31914,6 +32584,476 @@ def t_dg_overlap(b, base):
         ok(f"覆蓋普查：文字被蓋／蓋圖／互疊／超出格子／卡片互蓋／3D 卡片蓋到零件 0 處（實際 {len(rest)} 處）", not rest, rest[:15])
     finally:
         pg.close()
+
+
+# ===================================================================== 搜尋：近期搜尋／熱門股票／公司 Logo（2026-09-26）
+# Andy 2026-09-26：「搜尋功能需要添『近期搜尋紀錄』、熱門股票，並且需要在名稱旁邊附上公司 Logo，包含查個個股也要附上 Logo」。
+# 每一步都驗「畫面／localStorage 真的因此改變了」：
+#   清空 → 聚焦看到熱門 10 筆與「還沒有搜尋紀錄」→ 搜尋 2330 進個股 → 回來聚焦近期第一筆是 2330
+#   → × 刪單筆、「清除」全刪（localStorage 跟著變、下拉不收）→ 鍵盤上下 Enter 進得去、Esc 關
+#   → 個股頁標題有 Logo → logos.json 回一筆圖時真的是 <img>、圖 404 時退回字母頭像、logos.json 404 也不報錯 → 390 不溢出。
+SG_STATE = """() => { const s = document.getElementById('sugg'); const r = s.getBoundingClientRect();
+    const rows = [...s.querySelectorAll('.sgrow[data-c]')];
+    const hotHd = document.getElementById('sgHotHd');
+    const hot = hotHd ? rows.filter(x => hotHd.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING) : [];
+    const rec = rows.filter(x => !hot.includes(x));
+    let ls = null; try { ls = localStorage.getItem('tw.search.recent'); } catch (e) {}
+    return { open: s.style.display !== 'none' && r.height > 0, mode: s.dataset.mode || '',
+      l: Math.round(r.left), r: Math.round(r.right), vw: innerWidth, sw: document.documentElement.scrollWidth,
+      rec: rec.map(x => x.dataset.c), hot: hot.map(x => x.dataset.c),
+      hotChg: hot.map(x => { const c = x.querySelector('.chg'); return c ? [c.textContent.trim(), c.className] : null; }),
+      empty: !!document.getElementById('sgEmpty'), clr: !!document.getElementById('sgClr'),
+      dels: s.querySelectorAll('.sgdel').length,
+      logos: rows.filter(x => x.querySelector('.slogo')).length, n: rows.length,
+      act: rows.findIndex(x => x.classList.contains('on')),
+      aad: document.getElementById('q').getAttribute('aria-activedescendant') || '',
+      minFs: Math.min(99, ...[...s.querySelectorAll('.sgrow span, .sghd span, .sghd small, .sgempty, .sgclr')]
+        .filter(e => e.getClientRects().length).map(e => parseFloat(getComputedStyle(e).fontSize))),
+      ls }; }"""
+# 期望的熱門：全市場索引裡成交值前 10 的普通股（4 碼、不是 0 開頭）—— 跟產品同一個口徑，從頁面自己的資料算
+SG_HOT_EXPECT = """() => (App.L.all || []).filter(s => /^[1-9]\\d{3}$/.test(String(s.code)) && +s.turnover > 0)
+    .sort((a, b) => b.turnover - a.turnover).slice(0, 10).map(s => s.code)"""
+SG_TITLE_LOGO = """() => { const h = document.querySelector('#stockPage h2'); if (!h) return null;
+    const lg = h.querySelector('.slogo'); if (!lg) return { has: false, text: h.innerText };
+    const img = lg.querySelector('img'); const r = lg.getBoundingClientRect();
+    return { has: true, img: !!img, loaded: !!(img && img.complete && img.naturalWidth > 0),
+      src: img ? img.getAttribute('src') : '', lazy: img ? img.getAttribute('loading') : '',
+      letter: getComputedStyle(lg, '::before').content, w: Math.round(r.width), h: Math.round(r.height),
+      edge: getComputedStyle(lg, '::after').boxShadow, text: h.innerText.trim(), cls: lg.className }; }"""
+_PNG_1x1 = __import__("base64").b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
+
+
+def _sg_focus(pg):
+    """聚焦搜尋框（先點頁面別處讓它失焦，確保 focus 事件真的觸發）。"""
+    pg.evaluate("() => { const q = document.getElementById('q'); q.blur(); q.value = ''; }")
+    pg.click("#q"); pg.wait_for_timeout(350)
+    return pg.evaluate(SG_STATE)
+
+
+def t_search_recent_logo(pg, b, base):
+    T = "[搜尋0926]"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.search.recent'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0", 8000)
+
+    # ---------------------------------------------------------------- ① 清空之後聚焦：熱門 10 筆＋「還沒有搜尋紀錄」
+    s = _sg_focus(pg)
+    if not ok(f"{T} 聚焦（還沒打字）就打開下拉", s["open"] and s["mode"] == "panel", s):
+        return
+    ok(f"{T} 沒有紀錄時：近期段顯示「還沒有搜尋紀錄」、沒有 × 也沒有「清除」",
+       s["empty"] and not s["rec"] and s["dels"] == 0 and not s["clr"], s)
+    exp = pg.evaluate(SG_HOT_EXPECT)
+    ok(f"★ {T} 熱門股票 10 筆＝成交值前 10 的普通股（照順序）", len(s["hot"]) == 10 and s["hot"] == exp, {"畫面": s["hot"], "期望": exp})
+    ok(f"{T} 熱門裡沒有 ETF／權證（全部 4 碼、不是 0 開頭）", all(len(c) == 4 and c[0] != "0" for c in s["hot"]), s["hot"])
+    bad = [x for x in s["hotChg"] if not x or not (
+        (x[0].startswith("+") and "up" in x[1]) or (x[0].startswith("-") and "down" in x[1]) or
+        (not x[0].startswith(("+", "-")) and ("flat" in x[1] or x[0] == "—")))]
+    ok(f"{T} 每筆熱門都有漲跌幅，而且紅漲綠跌（+ → up、- → down）", not bad, bad[:3] or s["hotChg"][:3])
+    ok(f"{T} 每一列名稱左邊都有 Logo 元素", s["n"] > 0 and s["logos"] == s["n"], s)
+    ok(f"{T} 下拉整塊在畫面內、字 ≥ 11px", s["l"] >= 0 and s["r"] <= s["vw"] and s["minFs"] >= 11, s)
+
+    # ---------------------------------------------------------------- ② 搜尋 2330 → 點進個股 → 記成近期第一筆
+    pg.type("#q", "2330", delay=40); pg.wait_for_timeout(400)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} 打字之後換成搜尋結果（不是近期／熱門）", s["mode"] == "hits" and "2330" in s["rec"], s)
+    ok(f"{T} 搜尋結果每一列也有 Logo", s["n"] > 0 and s["logos"] == s["n"], s)
+    click(pg, '#sugg .sgrow[data-c="2330"]', 1500)
+    ok(f"{T} 點搜尋結果進到 #stock/2330", pg.evaluate("location.hash") == "#stock/2330", pg.evaluate("location.hash"))
+    ls = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.search.recent') || 'null'); } catch (e) { return 'ERR'; } }")
+    ok(f"★ {T} localStorage tw.search.recent 真的寫進 2330", isinstance(ls, list) and ls[:1] == ["2330"], ls)
+    ok(f"{T} 進了個股頁之後下拉收起來", not pg.evaluate(SG_STATE)["open"])
+
+    # ---------------------------------------------------------------- ③ 個股頁標題有 Logo（本機沒有 logos.json → 字母頭像）
+    wait_until(pg, "() => !!document.querySelector('#stockPage h2 .slogo')", 8000)
+    t = pg.evaluate(SG_TITLE_LOGO)
+    if ok(f"★ {T} 個股頁標題有 Logo 元素（圖或字母頭像）", bool(t) and t["has"], t):
+        ok(f"{T} 標題 Logo 是 32px", t["w"] == 32 and t["h"] == 32, t)
+        ok(f"{T} 標題文字沒有被多塞一個字（字母頭像用 ::before 畫）", t["text"].startswith("台積電"), t["text"])
+        if not t["img"]:
+            ok(f"{T} 沒有圖時是字母頭像：「台」", t["letter"] in ('"台"', "'台'"), t["letter"])
+
+    # ---------------------------------------------------------------- ④ 回總覽聚焦：近期第一筆是 2330；再進 2454（直接開網址也算）
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1200)
+    s = _sg_focus(pg)
+    ok(f"★ {T} 回來聚焦：近期第一筆是 2330、有「清除」", s["rec"][:1] == ["2330"] and s["clr"] and not s["empty"], s)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    pg.evaluate("() => { location.hash = '#stock/2454'; }"); pg.wait_for_timeout(1500)
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1200)
+    s = _sg_focus(pg)
+    ok(f"{T} 直接開 #stock/2454 也記一筆，而且最新的在上面", s["rec"][:2] == ["2454", "2330"], s["rec"])
+
+    # ---------------------------------------------------------------- ⑤ × 刪單筆、「清除」全刪（下拉不收、localStorage 跟著變）
+    click(pg, '#sugg .sgdel[data-del="2454"]', 350)
+    s = pg.evaluate(SG_STATE)
+    ok(f"★ {T} 按 2454 的 × → 只剩 2330，下拉還開著", s["open"] and s["rec"] == ["2330"], s)
+    ok(f"{T} × 之後 localStorage 也只剩 2330", s["ls"] == '["2330"]', s["ls"])
+    click(pg, "#sgClr", 350)
+    s = pg.evaluate(SG_STATE)
+    ok(f"★ {T} 按「清除」→ 近期全空、顯示「還沒有搜尋紀錄」，熱門還在", s["open"] and not s["rec"] and s["empty"] and len(s["hot"]) == 10, s)
+    ok(f"{T} 清除之後 localStorage 是空陣列", s["ls"] == "[]", s["ls"])
+
+    # ---------------------------------------------------------------- ⑥ 鍵盤：上下移動、Enter 進、Esc 關
+    pg.keyboard.press("ArrowDown"); pg.keyboard.press("ArrowDown"); pg.wait_for_timeout(150)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} ↓↓ → 第二列被選起來（aria-activedescendant 跟著）", s["act"] == 1 and s["aad"].startswith("sgo"), s)
+    pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(120)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} ↑ → 回到第一列", s["act"] == 0, s)
+    pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(120)
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} 第一列再 ↑ → 繞到最後一列", s["act"] == s["n"] - 1, s)
+    pg.keyboard.press("ArrowDown"); pg.wait_for_timeout(120)       # 最後一列再 ↓ → 繞回第一列
+    s = pg.evaluate(SG_STATE)
+    ok(f"{T} 最後一列再 ↓ → 繞回第一列", s["act"] == 0, s)
+    want = s["hot"][0]
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(1500)
+    ok(f"★ {T} Enter → 進到選起來那一檔（{want}）", pg.evaluate("location.hash") == f"#stock/{want}", pg.evaluate("location.hash"))
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1200)
+    s = _sg_focus(pg)
+    ok(f"{T} 剛用鍵盤進的那一檔也記進近期第一筆", s["rec"][:1] == [want], s["rec"])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    ok(f"{T} Esc 收起下拉", not pg.evaluate(SG_STATE)["open"])
+    pg.keyboard.press("ArrowDown"); pg.wait_for_timeout(250)
+    ok(f"{T} Esc 之後按 ↓ 再打開", pg.evaluate(SG_STATE)["open"])
+    pg.keyboard.type("2330"); pg.wait_for_timeout(300)
+    pg.keyboard.press("ArrowDown"); pg.keyboard.press("Enter"); pg.wait_for_timeout(1500)
+    ok(f"{T} 打 2330 → ↓ → Enter 進得去", pg.evaluate("location.hash") == "#stock/2330", pg.evaluate("location.hash"))
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1000)
+    _sg_focus(pg)
+    pg.mouse.click(900, 30); pg.wait_for_timeout(400)      # 頂欄分頁與搜尋框之間的空白
+    ok(f"{T} 點下拉外面就關", not pg.evaluate(SG_STATE)["open"])
+
+    # ---------------------------------------------------------------- ⑦ Logo 圖：logos.json 回一筆 2330 → <img>；圖 404 → 字母頭像；logos.json 404 → 不報錯
+    def logo_page(json_body, png_ok, w=1440):
+        kw = {"viewport": {"width": w, "height": 900 if w > 500 else 844}}
+        if w < 500:
+            kw.update(is_mobile=True, has_touch=True, device_scale_factor=2)
+        p2 = b.new_page(**kw)
+        errs = []
+        p2.on("pageerror", lambda e: errs.append(str(e)))
+        p2.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        if json_body is None:
+            p2.route("**/data/logos.json*", lambda r: r.fulfill(status=404, body="not found"))
+        else:
+            p2.route("**/data/logos.json*", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                             body=__import__("json").dumps(json_body)))
+        p2.route("**/data/logos/*.png*", lambda r: r.fulfill(status=200, content_type="image/png", body=_PNG_1x1)
+                 if png_ok else r.fulfill(status=404, body="not found"))
+        p2.add_init_script("try { localStorage.setItem('tw.live.on', '0'); localStorage.removeItem('tw.search.recent'); } catch (e) {}")
+        p2.goto(f"{base}#stock/2330", wait_until="networkidle")
+        wait_until(p2, "() => !!document.querySelector('#stockPage h2 .slogo')", 8000)
+        p2.wait_for_timeout(600)
+        return p2, errs
+
+    p2, errs = logo_page({"2330": "data/logos/2330.png"}, True)
+    t = p2.evaluate(SG_TITLE_LOGO)
+    ok(f"★ {T} logos.json 有 2330 → 個股頁標題是 <img>，而且真的載入了", bool(t) and t["img"] and t["loaded"], t)
+    ok(f"{T} Logo <img> 帶 loading=lazy、路徑照 logos.json", bool(t) and t["lazy"] == "lazy" and t["src"] == "data/logos/2330.png", t)
+    ok(f"{T} Logo 外框有一圈淡框（白底 Logo 在淺色主題看得到邊）", bool(t) and t["edge"] not in ("", "none"), t and t["edge"])
+    p2.evaluate("() => { location.hash = '#overview'; }"); p2.wait_for_timeout(1000)
+    p2.click("#q"); p2.wait_for_timeout(300); p2.keyboard.type("2330"); p2.wait_for_timeout(400)
+    ok(f"{T} 搜尋列裡 2330 那一列也是 <img>",
+       p2.evaluate("() => !!document.querySelector('#sugg .sgrow[data-c=\"2330\"] .slogo img')"))
+    ok(f"{T} 沒有圖的代號仍是字母頭像（2330 以外的列沒有 <img>）",
+       p2.evaluate("() => [...document.querySelectorAll('#sugg .sgrow[data-c]:not([data-c=\"2330\"]) .slogo')].every(e => !e.querySelector('img') && getComputedStyle(e, '::before').content.length >= 3)"))
+    ok(f"{T} （有圖）整段沒有 pageerror", not errs, errs[:2])
+    p2.close()
+
+    p2, errs = logo_page({"2330": "data/logos/2330.png"}, False)
+    wait_until(p2, "() => !document.querySelector('#stockPage h2 .slogo img')", 4000)
+    t = p2.evaluate(SG_TITLE_LOGO)
+    ok(f"★ {T} 圖 404 → 退回字母頭像（沒有破圖、看得到「台」）",
+       bool(t) and t["has"] and not t["img"] and "hasimg" not in t["cls"] and t["letter"] in ('"台"', "'台'"), t)
+    ok(f"{T} （圖 404）沒有 pageerror", not errs, errs[:2])
+    p2.close()
+
+    p2, errs = logo_page(None, True)
+    t = p2.evaluate(SG_TITLE_LOGO)
+    ok(f"{T} logos.json 不存在（404）→ 字母頭像、頁面照常", bool(t) and t["has"] and not t["img"] and t["letter"] in ('"台"', "'台'"), t)
+    ok(f"{T} （logos.json 404）沒有 pageerror", not errs, errs[:2])
+    p2.close()
+
+    # ---------------------------------------------------------------- ⑧ 手機 390：搜尋鈕 → 近期／熱門；個股頁 Logo；不溢出
+    m, errs = logo_page(None, True, w=390)
+    m.evaluate("() => { location.hash = '#overview'; }"); m.wait_for_timeout(1500)
+    if ok(f"{T} 390：有手機搜尋鈕（前置條件）", m.evaluate("() => { const e = document.getElementById('mSearchBtn'); return !!e && e.getClientRects().length > 0; }")):
+        m.tap("#mSearchBtn"); m.wait_for_timeout(500)
+        s = m.evaluate(SG_STATE)
+        ok(f"★ {T} 390：點搜尋鈕就看到近期（剛進過 2330）與熱門 10 筆", s["open"] and s["rec"][:1] == ["2330"] and len(s["hot"]) == 10, s)
+        ok(f"★ {T} 390：下拉在螢幕內、沒有橫向捲軸", s["l"] >= 0 and s["r"] <= s["vw"] and s["sw"] <= s["vw"] + 1, s)
+        ok(f"{T} 390：下拉裡的字 ≥ 11px", s["minFs"] >= 11, s["minFs"])
+        over = m.evaluate("""() => [...document.querySelectorAll('#sugg .sgrow')].filter(r => r.scrollWidth > r.clientWidth + 1).map(r => r.dataset.c)""")
+        ok(f"{T} 390：每一列都沒有被撐出框（長族群名用省略號）", not over, over[:4])
+        m.tap('#sugg .sgrow[data-c]'); m.wait_for_timeout(1500)
+        ok(f"{T} 390：點一列進個股頁", m.evaluate("location.hash").startswith("#stock/"), m.evaluate("location.hash"))
+        t = m.evaluate(SG_TITLE_LOGO)
+        ok(f"{T} 390：個股頁標題有 Logo", bool(t) and t["has"], t)
+        ok(f"{T} 390：個股頁沒有橫向捲軸", m.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+    ok(f"{T} 390：整段沒有 pageerror", not errs, errs[:2])
+    m.close()
+
+    # 收尾：不要把紀錄留給後面的段落
+    pg.evaluate("() => { try { localStorage.removeItem('tw.search.recent'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+def t_ov_fix_0926b(b, base, code):
+    """總覽三件（Andy 2026-09-26）的真人操作驗收：
+      ① 「底下成交量不見了」—— 先在個股頁「指標 ▾」把成交量點掉（這就是唯一重現得出來的條件：tw.kcfg 兩頁共用），
+         再回總覽：日 K 與 1／5／15／30 分、1H、4H、週、月，三張 K 線都要有量副圖、量柱根數 > 0；走勢圖也要有量。
+         最後回個股頁把成交量打開，個股頁量副圖要回來（個股頁不能因此壞掉）。
+      ② 「熱門題材，需要跟資金熱力圖一樣有放大功能」—— 放大開得出、放大裡的題材下拉可切而且卡片同步、Esc 先關下拉再關放大、✕ 關得掉。
+      ③ 「足跡輪盤點擊族群會影響到旁邊的版面」—— 點族群前後，「昨日資金去向」與左欄兩張卡的 top／高度變化 ≤ 1px；
+         面板內容對、蓋在輪盤範圍內、不蓋到剛點的那顆；再點一次／Esc／點外面都收得起來。"""
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+    # ★ 自己開一個擋掉 Service Worker 的環境：sw.js 註冊之後，頁面的 fetch 先經過 SW，
+    #   Playwright 的 page.route 就攔不到假的即時代理（實測三張圖全報「Failed to fetch」退回日 K，走勢圖驗不到）。
+    ctx = b.new_context(viewport={"width": 1440, "height": 950}, service_workers="block")
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append("【總覽修正0926b】pageerror: " + str(e).replace(chr(10), " / ")
+                                              + " || STACK: " + ((getattr(e, "stack", "") or "").replace(chr(10), " / ")[:400]) + " || URL: " + pg.url))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        _ov_fix_0926b_body(pg, base, code)
+    finally:
+        ctx.close()
+
+
+def _ov_fix_0926b_body(pg, base, code):
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+
+    def fake_chart(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        i = (q.get("id") or ["TSE"])[0].upper()
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(_fake_chart(i)))
+
+    def fake_y(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        sym, iv = (q.get("symbol") or [""])[0], (q.get("interval") or ["1d"])[0]
+        if sym != "^TWII":
+            route.fulfill(status=404, content_type="application/json", body='{"chart":{"result":null}}'); return
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(_fake_yahoo(sym, iv, 400)))
+
+    pg.route("**/chart?*", fake_chart)
+    pg.route("**/y?*", fake_y)
+    pg.route("**/fut?*", lambda r: r.fulfill(status=200, content_type="application/json",
+                                             body='{"RtCode":"0","RtData":{"QuoteList":[]}}'))
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    # 等 boot 跑完（window.App 掛好）才換 hash：還沒掛好就換到 #stock 會踩到 industry.js 的 A.load（那是測試自己造成的時序，不是產品問題）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.evaluate("""() => { try { ['tw.kcfg','tw.m3.mode','tw.m3.tf','tw.m3.big','tw.m3.fut'].forEach(k => localStorage.removeItem(k));
+        localStorage.setItem('tw.live.proxy','https://fake-worker.test'); localStorage.setItem('tw.theme','dark'); } catch (e) {} }""")
+
+    # ================================================================ ① 成交量副圖
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    DBG = "() => window.Industry._dbg()"
+    if ok("[0926b-①] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
+        ok("[0926b-①] 個股頁預設有成交量副圖（前提）", "vol" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
+        ind_toggle(pg, "vol", 900)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        kv = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.kcfg') || '{}').vol; } catch (e) { return 'err'; } }")
+        ok("[0926b-①] 在個股頁把成交量點掉 → tw.kcfg 真的存成 vol:false（重現 Andy 的條件）", kv is False, kv)
+        ok("[0926b-①] 個股頁的量副圖真的關掉了", "vol" not in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
+
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    # 走勢圖：三張都有量柱（ECharts 的 bar series，點數 > 0）
+    LN = """() => ['TSE','OTC','FUT'].map(id => { const el = document.getElementById('m3c-' + id);
+        const i = el && el.dataset.kind === 'line' && window.echarts && echarts.getInstanceByDom(el); if (!i) return 0;
+        const s = (i.getOption().series || []).find(s => s.type === 'bar'); return s ? (s.data || []).filter(v => v != null).length : 0; })"""
+    wait_until(pg, "() => (" + LN + ")().every(n => n > 0) ? 1 : 0", 8000)
+    ln = pg.evaluate(LN)
+    ok("[0926b-①] 走勢圖三張都有量柱", all(n > 0 for n in ln), (ln, pg.evaluate("""() => ({ mode: window.Market3.state.mode, h: location.hash,
+        k: ['TSE','OTC','FUT'].map(id => { const el = document.getElementById('m3c-' + id); const i = el && echarts.getInstanceByDom(el);
+        return [el && el.dataset.kind, el && el.dataset.fallback, i ? (i.getOption().series || []).map(s => s.type + ':' + (s.data || []).length) : null]; }),
+        err: JSON.stringify(window.Market3.state.err), px: localStorage.getItem('tw.live.proxy') })""")))
+    click(pg, "#m3Mode button[data-m='k']", 1200)
+    VOL = """(tf) => ['TSE','OTC','FUT'].map(id => { const k = window.Market3.state.kcharts[id];
+        if (!k) return { id, ok: false, why: '沒有圖' };
+        const vs = k.panes && k.panes.vol && k.panes.vol[0];
+        let n = 0; try { n = vs ? vs.data().filter(p => p.value > 0).length : 0; } catch (e) { n = -1; }
+        let h = 0; try { const ps = k.chart.panes(); h = k.paneIndex.vol != null && ps[k.paneIndex.vol] ? Math.round(ps[k.paneIndex.vol].getHeight()) : 0; } catch (e) {}
+        return { id, ok: !!(k.paneIndex && k.paneIndex.vol != null) && n > 0 && h >= 25, key: String(k._m3key || '').split('|').slice(1, 3).join('|'), bars: (k.data || []).length, volBars: n, volH: h }; })"""
+    for tf, lab in (("D", "日 K"), ("1", "1 分"), ("5", "5 分"), ("15", "15 分"), ("30", "30 分"),
+                    ("H1", "1 小時"), ("H4", "4 小時"), ("W", "週 K"), ("M", "月 K")):
+        pg.select_option("#m3Tf", tf)
+        wait_until(pg, "(tf) => ['TSE','OTC','FUT'].every(id => { const k = window.Market3.state.kcharts[id]; return k && String(k._m3key).split('|')[1] === tf; })".replace("(tf) =>", "() =>").replace("=== tf", f"=== '{tf}'"), 6000)
+        pg.wait_for_timeout(500)
+        r = pg.evaluate(VOL, tf)
+        ok(f"★ [0926b-①] {lab}：三張 K 線都有量副圖、量柱 > 0（個股頁關掉成交量也一樣）", all(x["ok"] for x in r), r)
+    pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(1500)
+    # 個股頁把成交量打開回來 → 個股頁的量副圖要回來（個股頁不能因為這次修改壞掉）
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    if count(pg, "#lwc canvas") > 0:
+        ind_toggle(pg, "vol", 900)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        ok("[0926b-①] 個股頁把成交量打開 → 量副圖回來", "vol" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
+    pg.evaluate("() => { try { ['tw.kcfg','tw.m3.mode','tw.m3.tf'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+
+    # ================================================================ ② 熱門題材放大
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.eval_on_selector("#ovThemeCard", "el => el.scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(400)
+    zb = pg.evaluate("""() => { const b = document.getElementById('ovThemeZoom'), d = document.getElementById('ovThemeDate');
+        if (!b) return null; const r = b.getBoundingClientRect(), c = document.getElementById('ovThemeCard').getBoundingClientRect();
+        return { txt: b.textContent.trim(), vis: r.width > 0 && r.height > 0, right: c.right - r.right, top: r.top - c.top,
+                 sameRow: d ? Math.abs((d.getBoundingClientRect().top + d.getBoundingClientRect().height / 2) - (r.top + r.height / 2)) < 12 : false }; }""")
+    if ok("[0926b-②] 熱門題材卡右上角有「放大 ⤢」", bool(zb) and zb["vis"] and "放大" in zb["txt"], zb):
+        ok("[0926b-②] 放大鈕跟日期同一列、在卡片右上", zb["sameRow"] and zb["right"] < 40 and zb["top"] < 50, zb)
+        n_themes = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('ovTheme')); return i ? i.getOption().series[0].data.length : 0; }")
+        click(pg, "#ovThemeZoom", 900)
+        Z = """() => { const ov = document.getElementById('zoomOv'), b = document.getElementById('zoomBody');
+            const i = b && echarts.getInstanceByDom(b); const r = ov ? ov.getBoundingClientRect() : {};
+            return { open: !!ov && !ov.hidden, title: (document.getElementById('zoomTitle') || {}).textContent || '',
+                     n: i ? (i.getOption().series[0].data || []).length : 0, level: b ? b.dataset.level : '',
+                     full: r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.9,
+                     dd: !!document.querySelector('#zoomOv #ovThemeZoomDD'), ddTxt: ((document.querySelector('#ovThemeZoomDD .ddbtn b') || {}).textContent || '') }; }"""
+        z0 = pg.evaluate(Z)
+        ok("★ [0926b-②] 按「放大」→ 全螢幕放大視窗打開、標題是熱門題材", z0["open"] and z0["full"] and "熱門題材" in z0["title"], z0)
+        ok("[0926b-②] 放大視窗畫的是同一張題材熱力圖（方塊數跟卡片一樣）", z0["n"] == n_themes and n_themes > 0 and z0["level"] == "themes", (z0, n_themes))
+        ok("[0926b-②] 放大視窗裡也有同一顆題材下拉", z0["dd"] and z0["ddTxt"] == "全部", z0)
+        h0 = canvas_hash(pg, "#zoomBody")
+        click(pg, "#ovThemeZoomDD .ddbtn", 400)
+        opts = pg.evaluate("() => [...document.querySelectorAll('#ovThemeZoomDD .ddpanel:not([hidden]) .ddopt')].map(o => [o.dataset.t, o.textContent.trim()])")
+        if ok("[0926b-②] 放大視窗裡的下拉打得開、列得出題材", len(opts) >= 3, len(opts)):
+            tid, tname = opts[1][0], opts[1][1].split("熱度")[0].strip()
+            click(pg, f'#ovThemeZoomDD .ddopt[data-t="{tid}"]', 900)
+            z1 = pg.evaluate(Z)
+            ok("★ [0926b-②] 在放大裡選題材 → 放大視窗換成那個題材的成分股", z1["level"] == "members" and z1["ddTxt"] == tname, z1)
+            changed("[0926b-②] 放大視窗的圖真的換了", h0, canvas_hash(pg, "#zoomBody"))
+            card = pg.evaluate("() => ({ level: document.getElementById('ovTheme').dataset.level, dd: (document.querySelector('#ovThemeDD .ddbtn b') || {}).textContent || '' })")
+            ok("★ [0926b-②] 卡片同步換成同一個題材（兩顆下拉同步）", card["level"] == "members" and card["dd"] == tname, card)
+            # Esc：下拉開著時先關下拉，放大視窗還在；再按一次才關放大
+            click(pg, "#ovThemeZoomDD .ddbtn", 350)
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+            st = pg.evaluate("() => ({ dd: document.querySelector('#ovThemeZoomDD .ddpanel').hidden, ov: document.getElementById('zoomOv').hidden })")
+            ok("[0926b-②] 下拉開著按 Esc → 只關下拉、放大視窗還在", st["dd"] and not st["ov"], st)
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+            ok("★ [0926b-②] 再按 Esc → 放大視窗關掉", pg.evaluate("() => document.getElementById('zoomOv').hidden"))
+            ok("[0926b-②] 關掉後卡片停在剛剛選的題材", pg.evaluate("() => document.getElementById('ovTheme').dataset.level") == "members")
+            # 再開：從卡片目前的題材開始；在放大裡選「全部」→ 兩邊回題材層；✕ 關
+            click(pg, "#ovThemeZoom", 900)
+            ok("[0926b-②] 再打開放大 → 從卡片目前的題材開始", pg.evaluate(Z)["level"] == "members")
+            # 點成分股方塊 → 先關放大、再進個股頁
+            tile = pg.evaluate("""() => { const b = document.getElementById('zoomBody'), i = echarts.getInstanceByDom(b); if (!i) return null;
+                const d = i.getModel().getSeriesByIndex(0).getData(); let best = null;
+                for (let k = 0; k < d.count(); k++) { const l = d.getItemLayout(k), it = d.getRawDataItem(k);
+                  if (l && it && it.code && (!best || l.width * l.height > best.a)) best = { a: l.width * l.height, x: l.x + l.width / 2, y: l.y + l.height / 2, code: it.code }; }
+                if (!best) return null; const r = b.getBoundingClientRect(); return { x: r.left + best.x, y: r.top + best.y, code: best.code }; }""")
+            click(pg, "#ovThemeZoomDD .ddbtn", 350)
+            click(pg, '#ovThemeZoomDD .ddopt[data-t=""]', 900)
+            z2 = pg.evaluate(Z)
+            ok("[0926b-②] 放大裡選「全部題材」→ 回到題材層，卡片也回去", z2["level"] == "themes" and z2["ddTxt"] == "全部"
+               and pg.evaluate("() => document.getElementById('ovTheme').dataset.level") == "themes", z2)
+            click(pg, "#zoomClose", 400)
+            ok("[0926b-②] 按 ✕ → 放大視窗關掉", pg.evaluate("() => document.getElementById('zoomOv').hidden"))
+            ok("[0926b-②] 放大關掉後頁面可以捲動（body overflow 還原）", pg.evaluate("() => document.body.style.overflow") == "")
+            if tile:
+                # tile 是在成分股層量到的；重新進成分股層再點
+                # 關放大之後 html 的 scroll-behavior:smooth 還在滑，先把卡片瞬間捲到中間再點（不然「element is not stable」）
+                pg.eval_on_selector("#ovThemeCard", "el => el.scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(500)
+                click(pg, "#ovThemeZoom", 900)
+                click(pg, "#ovThemeZoomDD .ddbtn", 350); click(pg, f'#ovThemeZoomDD .ddopt[data-t="{tid}"]', 900)
+                pg.mouse.click(tile["x"], tile["y"]); pg.wait_for_timeout(1200)
+                ok("★ [0926b-②] 放大裡點成分股 → 放大關掉、進那一檔的個股頁",
+                   pg.evaluate("() => document.getElementById('zoomOv').hidden") and pg.evaluate("() => location.hash") == f"#stock/{tile['code']}",
+                   pg.evaluate("() => location.hash"))
+
+    # ================================================================ ②b 熱門題材滾輪縮放（Andy 2026-09-26：「縮放功能呢？沒有設置到」）
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.evaluate("document.getElementById('ovThemeWrap').scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(700)
+    TZK = """() => { const b = document.getElementById('ovThemeWrap'); const pane = b && b.querySelector('.zpane');
+        const card = b && b.closest('.card');
+        return { zw: !!b && b.classList.contains('zwrap'), zoomed: !!b && b.classList.contains('zoomed'), sw: pane ? pane.scrollWidth : 0,
+                 badge: b ? ((b.querySelector('.zbadge') || {}).textContent || '') : '', cardH: card ? Math.round(card.getBoundingClientRect().height) : 0 }; }"""
+    t0 = pg.evaluate(TZK)
+    ok("[0926b-②b] 熱門題材掛上滾輪縮放框、預設原始大小", t0["zw"] and not t0["zoomed"], t0)
+    r = pg.evaluate("() => { const b = document.getElementById('ovThemeWrap').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    pg.mouse.move(r["x"] + r["w"] * .5, r["y"] + r["h"] * .5)
+    for _ in range(4):
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(160)
+    pg.wait_for_timeout(500)
+    t1 = pg.evaluate(TZK)
+    ok("★ [0926b-②b] 熱門題材往上滾真的放大、卡片高度不變、徽章寫倍率",
+       t1["zoomed"] and t1["sw"] > t0["sw"] and t1["cardH"] == t0["cardH"] and "×" in t1["badge"], f"{t0} → {t1}")
+    pg.mouse.dblclick(r["x"] + r["w"] * .5, r["y"] + r["h"] * .5); pg.wait_for_timeout(600)
+    ok("[0926b-②b] 雙擊回到原始大小", not pg.evaluate(TZK)["zoomed"], pg.evaluate(TZK))
+
+    # ================================================================ ③ 足跡輪盤面板不跳版面
+    MEAS = """() => { const g = (id) => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect();
+          return { top: Math.round((r.top + scrollY) * 10) / 10, h: Math.round(r.height * 10) / 10 }; };
+        return { flowHead: g('ovFlowHead'), flowWrap: g('ovFlowWrap'), rotCard: g('ovRotCard'), heatCard: g('ovHeatCard'),
+                 themeCard: g('ovThemeCard'), left: g('ovLeft'), low: (() => { const e = document.querySelector('.ovlow'); if (!e) return null;
+                 const r = e.getBoundingClientRect(); return { top: Math.round((r.top + scrollY) * 10) / 10, h: Math.round(r.height * 10) / 10 }; })() }; }"""
+    DOT = """(pick) => { const e = document.getElementById('rotClockMini'), c = echarts.getInstanceByDom(e); if (!c) return null;
+        const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && (s.data || []).some(d => d && d.row && d.row.gid && !d.row.isStock));
+        if (si < 0) return null; const r = e.getBoundingClientRect();
+        const ds = o.series[si].data.filter(d => d && d.row && d.row.gid && !d.row.isStock).map(d => { const p = c.convertToPixel({seriesIndex: si}, d.value);
+          return { x: r.left + p[0], y: r.top + p[1], oy: p[1], gid: d.row.gid, name: d.row.name, H: r.height }; })
+          .filter(d => d.y > 70 && d.y < innerHeight - 10);
+        if (!ds.length) return null;
+        ds.sort((a, b) => a.oy - b.oy);
+        return pick === 'low' ? ds[ds.length - 1] : ds[0]; }"""
+    PANEL = """() => { const b = document.getElementById('ovRotPanel'); if (!b || b.hidden) return { open: false };
+        const r = b.getBoundingClientRect(), w = document.getElementById('rotClockMiniWrap').getBoundingClientRect();
+        return { open: true, name: ((b.querySelector('.hh b') || {}).textContent || '').trim(), link: (b.querySelector('a.pill') || {}).getAttribute ? b.querySelector('a.pill').getAttribute('href') : '',
+                 n: b.querySelectorAll('.ms a').length, pos: getComputedStyle(b).position, at: b.dataset.at || '',
+                 inWheel: r.top >= w.top - 1 && r.bottom <= w.bottom + 1, inView: r.top >= 0 && r.bottom <= innerHeight,
+                 above: r.bottom <= w.top + 1, below: r.top >= w.bottom - 1,
+                 l: r.left, r: r.right, t: r.top, b: r.bottom }; }"""
+
+    def diff(a, b):
+        out = {}
+        for k in a:
+            if a[k] is None or b.get(k) is None:
+                continue
+            for f in ("top", "h"):
+                dv = abs(a[k][f] - b[k][f])
+                if dv > 1:
+                    out[f"{k}.{f}"] = (a[k][f], b[k][f])
+        return out
+
+    for w in (1440, 1024):
+        tag = f"[0926b-③ {w}]"
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "rotClockMini"); pg.wait_for_timeout(700)
+        if not ok(f"{tag} 桌機輪盤畫得出來（前提）", pg.evaluate("() => !!echarts.getInstanceByDom(document.getElementById('rotClockMini'))")):
+            continue
+        for pick in ("high", "low"):
+            m0 = pg.evaluate(MEAS)
+            d = pg.evaluate(DOT, pick)
+            if not ok(f"{tag} 算得出輪盤上{'上' if pick == 'high' else '下'}半部一顆族群點", bool(d), d):
+                continue
+            pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(1400)
+            p = pg.evaluate(PANEL)
+            m1 = pg.evaluate(MEAS)
+            if ok(f"{tag} 點「{d['name']}」→ 面板打開", p["open"], p):
+                ok(f"{tag} 面板標題是剛點的族群、有「進族群頁 →」與成分股",
+                   p["name"] == d["name"] and p["link"] == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
+                ok(f"★ {tag} 面板打開後「昨日資金去向」與左欄卡片的 top／高度都沒動（≤ 1px）", not diff(m0, m1), diff(m0, m1))
+                # 改前：面板落在輪盤範圍內、貼著剛點的那顆 → 改後（Andy 2026-09-26 晚：「將出現的資訊移動到下方或上方，
+                #   依據當前點擊的圓圈位置決定」）：面板在輪盤圓外 —— 點上半部放輪盤下方、點下半部放輪盤上方；放完捲到看得到。
+                ok(f"{tag} 面板是覆蓋卡（absolute）、放在輪盤{'下方' if pick == 'high' else '上方'}（不蓋輪盤）",
+                   p["pos"] == "absolute" and (p["below"] if pick == "high" else p["above"]) and p["at"] == ("bottom" if pick == "high" else "top"), p)
+                ok(f"{tag} 面板整張在畫面內（放完會捲到看得到）", p["inView"], p)
+            # 收起來的三種方式
+            if pick == "high":
+                pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(700)
+                ok(f"★ {tag} 再點一次同一顆 → 面板收起來", not pg.evaluate(PANEL)["open"])
+                pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(700)
+                ok(f"{tag} 第三次點 → 又打開（收／開可以來回）", pg.evaluate(PANEL)["open"])
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+                ok(f"{tag} 按 Esc → 面板收起來", not pg.evaluate(PANEL)["open"])
+            else:
+                pg.click("#ovFlowHead", position={"x": 4, "y": 6}); pg.wait_for_timeout(600)
+                ok(f"{tag} 點面板外面 → 面板收起來", not pg.evaluate(PANEL)["open"])
+            m2 = pg.evaluate(MEAS)
+            ok(f"{tag} 收起來之後版面也沒動（≤ 1px）", not diff(m0, m2), diff(m0, m2))
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
