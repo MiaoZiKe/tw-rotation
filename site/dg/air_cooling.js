@@ -160,13 +160,16 @@
     /* 風扇牆：一排 ≥3 顆、其中一顆標成備援（§6-W1），一定畫在鰭片**之前**（§6-A1）。*/
     const wall = FANS.ys.map((cy, i) => `<g class="fxg" style="--fxc:var(--dg-frame)"><circle class="fxb part" cx="${FANS.x}" cy="${cy}" r="${FANS.r}"/><circle class="fxs" cx="${FANS.x}" cy="${cy}" r="${FANS.r}"/><circle class="fxe" cx="${FANS.x}" cy="${cy}" r="${FANS.r}"/></g>`
       + rotor(FANS.x, cy, 5, 15, 7, 1, true, 2 + i * 0.25)).join('')
-      + `<text class="fine" x="${FANS.x - 34}" y="${FANS.ys[3] + FANS.r + 8}" style="fill:var(--dg-warn)">備援（N+1）</text>`;
+      /* ★ 2026-09-26 覆蓋普查：原本基線在最下面那顆風扇底緣 +8，閱讀模式字一大，字頂就伸進風扇圓裡 → 再往下 8 */
+      + `<text class="fine" x="${FANS.x - 34}" y="${FANS.ys[3] + FANS.r + 16}" style="fill:var(--dg-warn)">備援（N+1）</text>`;
     const finStack = (x, n, gap, y0, h) => { const a = []; for (let i = 0; i < n; i++) a.push(fx.glass(x + i * gap, y0, Math.max(3, gap - 4), h, { fill: 'var(--dg-alu)', rx: 1, iso: { dx: 3, dy: -2 } })); return a.join(''); };
     const FIN = { y: 88, h: 90 };
     const air = P('rack', `<rect class="part" x="${RK.x}" y="${RK.y}" width="${RK.w}" height="${RK.h}" rx="8" fill="none" opacity=".5"/>`
       + [0, 1, 2, 3, 4, 5, 6].map(i => `<circle cx="${RK.x + 6}" cy="${RK.y + 26 + i * 26}" r="3" fill="var(--dg-void)"/>`).join('')
-      + `<text class="fine" x="${RK.x + 8}" y="${RK.y - 6}" style="fill:var(--dg-cold)">進氣（前面板）</text>`
-      + `<text class="fine" x="${RK.x + RK.w - 60}" y="${RK.y - 6}" style="fill:var(--dg-hot)">排氣（後）</text>`
+      /* ★ 2026-09-26 覆蓋普查：這兩行原本基線在機殼上緣 −6，但最上面那顆風扇（cy 60、r 18）頂到 y 42，
+         「進氣（前面板）」被風扇圓蓋掉下半截 → 提到風扇頂之上；「排氣（後）」改靠右對齊，閱讀模式不再伸出畫布。*/
+      + `<text class="fine" x="${RK.x + 8}" y="${FANS.ys[0] - FANS.r - 3}" style="fill:var(--dg-cold)">進氣（前面板）</text>`
+      + `<text class="fine" x="${RK.x + RK.w}" y="${FANS.ys[0] - FANS.r - 3}" text-anchor="end" style="fill:var(--dg-hot)">排氣（後）</text>`
       + `<text class="fine" x="${RK.x + 8}" y="${RK.y + RK.h - 6}" style="fill:var(--dg-ink-3)">機殼／托盤（襯景）</text>`, SEG_A)
       + P('fan_wall', wall)
       /* 導風罩：把氣流「圍」成一條路的薄殼（§6-W2），不是一塊擋板 —— 所以畫成收口的漏斗輪廓 */
@@ -324,8 +327,9 @@
       <text class="cap ext" x="0" y="0">示意圖，非實物比例｜扇葉片數、鰭片數與軸承比例均為示意；P-Q 曲線為示意，座標軸不標數值。</text>
 
       <!-- ================= §1 主畫面（永遠看得到）：爆炸拆解 ＋ 氣流路徑 ＋ P-Q ================= -->
-      <text class="hd" x="30" y="24">① 一顆風扇沿轉軸拆開</text>
-      <text class="hd" x="${RK.x}" y="24">② 一股氣流走完全程</text>
+      <!-- ★ 2026-09-26 覆蓋普查：兩個小標題往上提 6，讓出位置給②的「進氣／排氣」（夾在標題與最上面那顆風扇之間） -->
+      <text class="hd" x="30" y="18">① 一顆風扇沿轉軸拆開</text>
+      <text class="hd" x="${RK.x}" y="18">② 一股氣流走完全程</text>
       <text class="hd" x="${RK.x}" y="292">③ 風壓—風量（P-Q）：交點才是工作點</text>
       ${fan}
       ${air}
@@ -360,7 +364,9 @@
 
       <!-- ================= ④ 結論框 ＋ 誰做哪一塊 ＋ 沒有回答的事 ＋ 流程列 ================= -->
       ${fold('air4', '④ 跟家用風扇差在哪、這張圖上誰做哪一塊、五格流程列', '靜壓 vs 風量的結論、九檔各自的主體產品、刻意不寫的數字、進氣到排氣的五格', `
-        ${noteBox(16, 1290, 324, 206, '伺服器風扇跟家用風扇差在哪', [
+        <!-- ★ 2026-09-26 覆蓋普查：右框十行字，最後一行（基線 y+208）壓在 206 高的框底線上 → 兩框一起加高到 224，
+             下面的框、流程列跟著下移；最長那行圖說（閱讀模式伸出畫布 156px）在標點處拆成三行。 -->
+        ${noteBox(16, 1290, 324, 224, '伺服器風扇跟家用風扇差在哪', [
           '家用風扇前面沒有東西擋，所以比的是風量；',
           '伺服器風扇要穿過密排鰭片與擠滿零件的機殼，',
           '比的是靜壓。',
@@ -371,7 +377,7 @@
           '　 機殼代號不該被指派一個通用的風量或靜壓',
           '　 目標，兩台 1U 的工作點可以完全不同。',
         ], 'vs_home')}
-        ${noteBox(340, 1290, 324, 206, '這張圖上誰做哪一塊（寫「主體是」）', [
+        ${noteBox(340, 1290, 324, 224, '這張圖上誰做哪一塊（寫「主體是」）', [
           '風扇／鰭片／熱管／VC／氣冷模組 → 散熱環節。',
           '建準 2421＝伺服器風扇；雙鴻 3324＝氣冷模組',
           '與均熱片、奇鋐 3017＝散熱模組（氣冷、水冷',
@@ -383,7 +389,7 @@
           '　 離心扇、熱管、均溫板）、元山 6275（風扇馬',
           '　 達與模組）不在散熱環節裡，點零件列不出。',
         ], 'who')}
-        ${noteBox(16, 1508, 648, 152, '這張圖沒有回答的事', [
+        ${noteBox(16, 1526, 648, 152, '這張圖沒有回答的事', [
           '任何一顆風扇的轉速、風量、靜壓、噪音值：那是型號層級的東西，而且查到的來源',
           '多半是風扇廠與 PC 零件站的部落格 —— 一個都不寫。',
           '軸承壽命的小時數：查到的數字散得很開，而且 FDB 竟然低於滾珠，與同一批來源的',
@@ -391,14 +397,16 @@
           '各家市占率、良率、單價：查不到可引用的公開數字，不編。',
           '鰭距的具體數值：查不到通用值，只畫疏／密對照。',
         ], 'unknown')}
-        <text class="cap" x="16" y="1686">一條氣流走完全程（五格）　★ 風扇（格 2）一定在鰭片（格 4）之前；格 4 才是熱真正交給空氣的地方，風扇只是把空氣推過來</text>
-        ${pbar(16, 1694, [
+        <text class="cap" x="16" y="1704">一條氣流走完全程（五格）</text>
+        <text class="cap" x="16" y="1722">★ 風扇（格 2）一定在鰭片（格 4）之前；格 4 才是熱真正交給空氣的地方，</text>
+        <text class="cap" x="16" y="1740">　 風扇只是把空氣推過來</text>
+        ${pbar(16, 1748, [
           { seg: SEG_A, t: '進氣', s: '前面板濾網／開孔' },
           { seg: SEG, t: '推動', s: '風扇牆（N+1）' },
           { seg: SEG, t: '導引', s: '導風罩／風道' },
           { seg: SEG, t: '交換', s: '鰭片 ＋ 熱管／VC' },
           { seg: SEG_A, t: '排氣', s: '後方出風' }], 200, { cols: 3 })}
-        <text class="cap" x="16" y="1812">資料來源與信心度見 docs/diagram_specs/air_cooling.md。</text>`)}
+        <text class="cap" x="16" y="1866">資料來源與信心度見 docs/diagram_specs/air_cooling.md。</text>`)}
     </svg>`;
   }
 

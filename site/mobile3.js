@@ -91,8 +91,12 @@
 
   /* ---- 編號層：互相擋到的編號往外推（最多 8 輪），推開的拉一條細引線回原點 ----
      2D、3D 共用（diagrams.js 的 DG.mobileNums 與 3D 那一支都用這一份）。回傳推完之後還重疊的對數。*/
-  function spread(P, MIN) {
-    for (let k = 0; k < 8; k++) {
+  /* ★ 2026-09-26 覆蓋普查（scripts/_dg_overlap.py）：3D 的層狀剖面（第三代半導體）十幾個編號排成一直欄，
+     原本最多推 8 輪 —— 一整排互相擠的時候推不開（實測 09／10 還疊 6.5px）；呼叫端推完之後又把跑出畫面的鈕夾回邊界，
+     夾回去就又疊上了。改成：最多推 40 輪，而且可以傳邊界 B（{x0,y0,x1,y1}），每一輪推完就夾一次，夾完再推。*/
+  function spread(P, MIN, B) {
+    const clamp = () => { if (!B) return; P.forEach((q) => { q.x = Math.max(B.x0, Math.min(B.x1, q.x)); q.y = Math.max(B.y0, Math.min(B.y1, q.y)); }); };
+    for (let k = 0; k < 40; k++) {
       let moved = false;
       for (let a = 0; a < P.length; a++) for (let b = a + 1; b < P.length; b++) {
         const dx = P[b].x - P[a].x, dy = P[b].y - P[a].y, d = Math.hypot(dx, dy);
@@ -101,6 +105,7 @@
           P[a].x -= ux * push; P[a].y -= uy * push; P[b].x += ux * push; P[b].y += uy * push; moved = true;
         }
       }
+      clamp();
       if (!moved) break;
     }
     return overlaps(P, MIN);

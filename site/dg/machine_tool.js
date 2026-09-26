@@ -338,7 +338,8 @@
       + LN('M330,148 V236', 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
       + T(322, 196, 'Z', 'lbl', 'end', 'fill:var(--dg-accent-2d)')
       + LN('M258,352 l40,22', 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
-      + T(250, 350, 'Y', 'lbl', 'end', 'fill:var(--dg-accent-2d)')
+      /* ★ 2026-09-26 覆蓋普查：原本放在箭頭左上端（250,350），壓在鞍座與滑軌的邊上、又被 2 號編號蓋住 → 移到箭頭右下端、整個字落在床身正面上（1 號編號跟著右移，引線才不會橫劃過這個字）*/
+      + T(304, 384, 'Y', 'lbl', null, 'fill:var(--dg-accent-2d)')
       + `</g>`;
   }
 
@@ -354,27 +355,34 @@
     ['鑄件（床身、立柱）', 'own', '台廠自製為主', '重、運費高、又要時效 —— 在地供應本來就比較划算，也是中部聚落的底子。'],
     ['整機組裝與精度校正', 'own', '★ 台廠的主場', '組裝、刮花、幾何精度校正與試切 —— 整機廠的價值就在這裡。'],
   ];
+  /* ★ 2026-09-26 覆蓋普查：每一列的說明原本一整句寫在一行（最長伸出畫布 234px）→ 照最壞字寬斷行，列高跟著行數長。
+     第一行「零件｜外購／自製｜一句話」也拆開：一句話移到第二行開頭，不再跟標籤擠同一行。*/
   function foldBuy(y0) {
-    const rowH = 54, h = 40 + BUY.length * rowH + 64;
+    const IN = 604 - 30;
+    const P = BUY.map((r) => D.para(0, 0, r[3], IN, { lh: 17 }));
+    const rh = P.map((q) => 64 + q.h - 17 + 8);                   // 標題列 ＋ 一句話 ＋ 說明（最少一行）＋ 列距
+    const ry = []; let acc = y0 + 40; rh.forEach((hh) => { ry.push(acc); acc += hh; });
+    const rowsH = acc - (y0 + 40);
+    const h = 40 + rowsH + 64;
     const tag = { buy: '外購', mix: '混合', own: '自製' };
     const col = { buy: 'var(--dg-warn)', mix: 'var(--dg-accent-2d)', own: 'var(--dg-steel-2)' };
     const rows = BUY.map((r, i) => {
-      const y = y0 + 40 + i * rowH;
+      const y = ry[i], hh = rh[i] - 8;
       return `<g data-part="mt_buy${i}">`
-        + `<rect class="part frame" x="28" y="${y}" width="604" height="${rowH - 8}" rx="6"/>`
-        + R(28, y, 5, rowH - 8, col[r[1]], null, 2)
-        + T(46, y + 19, r[0], 'lbl')
-        + R(196, y + 7, 46, 17, 'var(--dg-frame-f)', null, 4)
-        + T(219, y + 20, tag[r[1]], 'sub', 'middle', `fill:${col[r[1]]}`)
-        + T(256, y + 19, r[2], 'sub', null, `fill:${col[r[1]]}`)
-        + T(46, y + 37, r[3], 'sub')
+        + `<rect class="part frame" x="28" y="${y}" width="604" height="${hh}" rx="6"/>`
+        + R(28, y, 5, hh, col[r[1]], null, 2)
+        + T(46, y + 20, r[0], 'lbl')
+        + R(228, y + 7, 46, 18, 'var(--dg-frame-f)', null, 4)
+        + T(251, y + 21, tag[r[1]], 'sub', 'middle', `fill:${col[r[1]]}`)
+        + T(46, y + 40, r[2], 'sub', null, `fill:${col[r[1]]}`)
+        + D.para(46, y + 58, r[3], IN, { lh: 17 }).svg
         + `</g>`;
     }).join('');
+    const tail = D.para(28, y0 + 40 + rowsH + 22, [{ t: '★ 這一段不寫任何成本占比、市占率與金額 —— 公開說法只有單一來源，寫上去就是把線索當成事實。' },
+      { t: '★「混合」＝同一件零件在不同機種上，本土與進口都有；不是指同一台機器上兩者並用。' }], 604, { style: 'fill:var(--dg-warn)' });
     const svg = T(28, y0 + 22, '同一台機器上，台廠站在哪幾格', 'hd')
-      + rows
-      + T(28, y0 + 40 + BUY.length * rowH + 22, '★ 這一段不寫任何成本占比、市占率與金額 —— 公開說法只有單一來源，寫上去就是把線索當成事實。', 'sub', null, 'fill:var(--dg-warn)')
-      + T(28, y0 + 40 + BUY.length * rowH + 42, '★「混合」＝同一件零件在不同機種上，本土與進口都有；不是指同一台機器上兩者並用。', 'sub', null, 'fill:var(--dg-warn)');
-    return { h, svg };
+      + rows + tail.svg;
+    return { h: 40 + rowsH + 22 + tail.h + 8, svg };
   }
 
   /* ================================================================ ② 加工中心機 vs 車床 ＋ 這一格四檔（預設收合）
@@ -387,14 +395,24 @@
     ['6603 富強鑫', '★ 做的是**塑膠射出成型機**（多色與單色），不是切削工具機 —— 它是把塑料射進模具，不切削金屬。族群名叫「CNC 工具機」，但這一檔不在這張圖畫的那種機器裡。'],
   ];
   function foldKinds(y0) {
-    const cy = y0 + 96, h = 250 + CO.length * 46 + 30;
+    const cy = y0 + 116;   // ★ 2026-09-26：原本 96，主軸頂端頂到格標題「…刀在轉」的尾巴 → 兩格的圖一起往下 20
+    /* ★ 2026-09-26 覆蓋普查：兩格底下那一句與四檔的說明原本各是一整行（伸出格子 7～313px）→ 照最壞字寬斷行、格高跟著長 */
+    const CIN = 296 - 28, RIN = 604 - 30;
+    const cmpM = D.para(0, 0, '刀具裝在主軸上旋轉，工作台帶著工件沿 X／Y 走位', CIN, { lh: 17 });
+    const cmpL = D.para(0, 0, '工件夾在主軸上旋轉，刀具沿工件的軸向與徑向進給', CIN, { lh: 17 });
+    const CH2 = 168 + Math.max(cmpM.h, cmpL.h) - 17;
+    const CP = CO.map((r) => D.para(0, 0, r[1].replace(/\*\*/g, ''), RIN, { lh: 17 }));
+    const rH = CP.map((q) => 40 + q.h - 17 + 6);
+    const rY = []; let acc = y0 + 86 + CH2 + 10; rH.forEach((hh) => { rY.push(acc); acc += hh; });
+    const endN = D.para(0, 0, '★ 族群名不等於產品事實：6603 富強鑫在「CNC 工具機」族群裡，做的卻是射出成型機。照抄族群名就會畫錯一整張圖。', 604);
+    const h = acc - y0 + 22 + endN.h + 8;
     // 左：加工中心機（刀轉、工件不動）｜右：車床（工件轉、刀不動）
     /* ⚠ 兩格都**不可以用 rotate 把長方形轉起來**（正視圖裡那是歪掉的棒子，不是在轉）：
        銑削那格用「刀刃上會往下跑的斜虛線 ＋ 鼻端的透視圓環」表示刀在轉；
        車床那格用「夾頭是正面的圓、繞中心轉」表示工件在轉 —— 圓轉起來才是對的。*/
     const mring = `M226,${cy - 22} a14,5 0 1,0 28,0 a14,5 0 1,0 -28,0`;
     const mc = `<g data-part="mt_cmp_mill">`
-      + `<rect class="part frame" x="28" y="${y0 + 40}" width="296" height="150" rx="7"/>`
+      + `<rect class="part frame" x="28" y="${y0 + 40}" width="296" height="${CH2}" rx="7"/>`
       + T(42, y0 + 62, '綜合加工機（銑削）：刀在轉', 'lbl')
       + R(186, cy + 4, 108, 26, 'var(--dg-mc-cam)', null, 2)
       + T(240, cy + 46, '工件（夾著不動）', 'sub', 'middle')
@@ -405,44 +423,47 @@
       + LN(`M236,${cy - 8} L244,${cy}`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
       + LN(mring, 'var(--dg-accent-2d)', 1.2, ' opacity=".7"')
       + `<circle r="2.8" fill="var(--dg-flow-dot)"><animateMotion dur="1.1s" repeatCount="indefinite" path="${mring}"/></circle>`
-      + T(42, y0 + 178, '刀具裝在主軸上旋轉，工作台帶著工件沿 X／Y 走位', 'sub')
+      + D.para(42, y0 + 196, '刀具裝在主軸上旋轉，工作台帶著工件沿 X／Y 走位', CIN, { lh: 17 }).svg
       + `</g>`;
     const jaw = [0, 1, 2].map((j) => `<g transform="rotate(${j * 120})">`
       + R(-5, -24, 10, 12, 'var(--dg-steel-2)', null, 2) + '</g>').join('');
     const lt = `<g data-part="mt_cmp_lathe">`
-      + `<rect class="part frame" x="336" y="${y0 + 40}" width="296" height="150" rx="7"/>`
+      + `<rect class="part frame" x="336" y="${y0 + 40}" width="296" height="${CH2}" rx="7"/>`
       + T(350, y0 + 62, '車床：工件在轉', 'lbl')
       + R(350, cy - 30, 30, 60, 'var(--dg-mc-case)', null, 3)
       + `<g transform="translate(396,${cy})"><g class="spin mtmid">`
       + C(0, 0, 26, 'var(--dg-mc-disc)') + C(0, 0, 9, 'var(--dg-frame-f)') + jaw
       + `</g></g>`
-      + T(396, cy + 44, '夾頭（正面：在轉）', 'sub', 'middle')
+      + T(350, y0 + 82, '夾頭（正面：在轉）', 'sub')   /* ★ 原本在夾頭正下方置中，左端伸出格子 → 移到夾頭上方、靠左對齊 */
       + R(422, cy - 13, 106, 26, 'var(--dg-mc-cam)', null, 2)
       + [0, 1, 2, 3, 4].map((j) => LN(`M${430 + j * 20},${cy - 13} l10,26`, 'var(--dg-mute)', 1.2, ' class="flow"')).join('')
       + PA(`M478,${cy + 22} L492,${cy + 38} L464,${cy + 38}Z`, 'var(--dg-steel-2)')
-      + T(500, cy + 36, '刀（不轉，沿軸走）', 'sub')
-      + T(350, y0 + 178, '工件夾在主軸上旋轉，刀具沿工件的軸向與徑向進給', 'sub')
+      + T(478, cy + 58, '刀（不轉，沿軸走）', 'sub', 'middle')   /* ★ 原本從 x 500 起筆，右端伸出格子 → 移到刀的正下方置中 */
+      + D.para(350, y0 + 196, '工件夾在主軸上旋轉，刀具沿工件的軸向與徑向進給', CIN, { lh: 17 }).svg
       + `</g>`;
     const rows = CO.map((r, i) => {
-      const y = y0 + 236 + i * 46;
+      const y = rY[i], hh = rH[i] - 6;
       return `<g data-part="mt_co${i}">`
-        + `<rect class="part frame" x="28" y="${y}" width="604" height="40" rx="6"/>`
-        + R(28, y, 5, 40, i === 3 ? 'var(--dg-warn)' : 'var(--dg-steel-2)', null, 2)
+        + `<rect class="part frame" x="28" y="${y}" width="604" height="${hh}" rx="6"/>`
+        + R(28, y, 5, hh, i === 3 ? 'var(--dg-warn)' : 'var(--dg-steel-2)', null, 2)
         + T(46, y + 17, r[0], 'lbl')
-        + T(46, y + 33, r[1].replace(/\*\*/g, ''), 'sub')
+        + D.para(46, y + 34, r[1].replace(/\*\*/g, ''), RIN, { lh: 17 }).svg
         + `</g>`;
     }).join('');
     const svg = T(28, y0 + 22, '兩種機器的分界只有一句話：誰在轉', 'hd')
       + mc + lt
-      + T(28, y0 + 218, '這一格（CNC 工具機族群）的四檔各自做什麼', 'hd')
+      + T(28, y0 + 64 + CH2, '這一格（CNC 工具機族群）的四檔各自做什麼', 'hd')
       + rows
-      + T(28, y0 + 236 + CO.length * 46 + 22, '★ 族群名不等於產品事實：6603 富強鑫在「CNC 工具機」族群裡，做的卻是射出成型機。照抄族群名就會畫錯一整張圖。', 'sub', null, 'fill:var(--dg-warn)');
+      + D.para(28, acc + 22, '★ 族群名不等於產品事實：6603 富強鑫在「CNC 工具機」族群裡，做的卻是射出成型機。照抄族群名就會畫錯一整張圖。', 604, { style: 'fill:var(--dg-warn)' }).svg;
     return { h, svg };
   }
 
   /* ================================================================ 主圖 */
   function machineTool() {
-    const S1 = 448;
+    /* ★ 2026-09-26 覆蓋普查：§1 的標題與誠實性副標各是一整行，在 660 寬裡伸出框 22～43px（閱讀模式更多）。
+       兩行各拆成兩行 —— 多出來的 40px 由整台機器（連同錨點）一起往下平移 DY1，機器本身的相對位置一筆都沒動。*/
+    const DY1 = 40;
+    const S1 = 448 + DY1;
     const w1 = foldBuy(S1 + 46);
     const S2 = S1 + 46 + w1.h;
     const w2 = foldKinds(S2 + 46);
@@ -477,9 +498,12 @@
       <text class="cap ext" x="0" y="0">綜合加工機是台廠金屬切削工具機的出口第一大機種。這張圖把一台立式綜合加工機攤開：左邊是刀庫與換刀機械手，中間是床身 → 鞍座 → 工作台 → 工件，以及從立柱伸出來的主軸頭 → 主軸 → 刀柄，右邊是外購的控制器櫃。三根軸（X 工作台、Y 鞍座、Z 主軸頭）各自是一組伺服馬達加滾珠螺桿加線性滑軌 —— 那一根軸拆開的樣子在「工業自動化」那張圖。虛線框起來的那一格是外購的，點卡片零件會亮、點零件卡片會亮；下面兩段預設收起來，按標題列就打得開。</text>
 
       <!-- ================= §1 整機（永遠看得到） ================= -->
-      ${frame(16, 16, 628, 416)}
-      ${T(28, 40, '① 一台立式綜合加工機：刀庫 → 換刀機械手 → 主軸 ｜ 床身 → 鞍座 → 工作台 ｜ 控制器櫃（外購）', 'hd')}
-      ${T(28, 58, '示意圖，非實物比例；刀庫把數、主軸轉速、精度等級一律不標（那些是某一機種的型錄數字，不是通例）', 'sub', null, 'fill:var(--dg-warn)')}
+      ${frame(16, 16, 628, 416 + DY1)}
+      ${T(28, 40, '① 一台立式綜合加工機：刀庫 → 換刀機械手 → 主軸 ｜', 'hd')}
+      ${T(28, 60, '床身 → 鞍座 → 工作台 ｜ 控制器櫃（外購）', 'hd')}
+      ${T(28, 80, '示意圖，非實物比例；刀庫把數、主軸轉速、精度等級一律不標', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(28, 98, '（那些是某一機種的型錄數字，不是通例）', 'sub', null, 'fill:var(--dg-warn)')}
+      <g transform="translate(0,${DY1})">
       ${body()}
       ${axes()}
       ${magazine()}
@@ -490,16 +514,17 @@
       ${wires()}
       ${axisMarks()}
       ${T(MAGX, 246, '刀庫（圓盤式）', 'sub', 'middle')}
-      ${T(150, 352, '換刀機械手（雙臂）', 'sub', 'middle')}
-      ${T(CBX + CBW / 2, 336, '控制器櫃：整櫃外購', 'sub', 'middle', 'fill:var(--dg-warn)')}
+      ${T(128, 352, '換刀機械手（雙臂）', 'sub', 'middle')}   <!-- ★ 原本置中在 150，右端壓到床身斜邊 -->
+      ${T(CBX + CBW / 2, 336, '控制器櫃：', 'sub', 'middle', 'fill:var(--dg-warn)')}
+      ${T(CBX + CBW / 2, 354, '整櫃外購', 'sub', 'middle', 'fill:var(--dg-warn)')}   <!-- ★ 原本一行，左端壓進立柱、右端伸出畫布 -->
       ${T(104, 386, '排屑機', 'sub', 'middle')}
 
       <!-- ================= 說明卡片（HTML）：左欄機體與換刀、右欄主軸與控制 ================= -->
-      ${card({ side: 'l', no: 1, part: 'mt_bed', color: COL.iron, ax: 300, ay: 366, title: '床身（鑄件）', sub: ['整台機器的地基：所有切削力最後都由它承受', '★ 重、運費高、又要時效 —— 這是台廠自己做的一段'] })}
+      ${card({ side: 'l', no: 1, part: 'mt_bed', color: COL.iron, ax: 332, ay: 366, title: '床身（鑄件）', sub: ['整台機器的地基：所有切削力最後都由它承受', '★ 重、運費高、又要時效 —— 這是台廠自己做的一段'] })}
       ${card({ side: 'l', no: 20, part: 'mt_col', color: COL.iron, ax: 516, ay: 320, title: '立柱（鑄件，與床身一體）', sub: ['主軸頭掛在它正面的兩條滑軌上', '★ 它跟床身通常是一體的鑄件 —— 分成兩塊，剛性就不是一體的了'] })}
       ${card({ side: 'l', no: 2, part: 'mt_saddle', color: COL.case, ax: 250, ay: 332, title: '鞍座（Y 軸滑座）', sub: '夾在床身與工作台之間，帶著工作台往畫面裡外走' })}
       ${card({ side: 'l', no: 3, part: 'mt_table', color: COL.alu, ax: 268, ay: 310, title: '工作台（X 軸）', sub: ['上面那幾道是 T 型槽 —— 工件與虎鉗靠它鎖上去', '沒有 T 型槽的平板不是工作台'] })}
-      ${card({ side: 'l', no: 4, part: 'mt_work', color: COL.steel, ax: 400, ay: 286, title: '工件（被加工的那一塊）', sub: '★ 綜合加工機是「刀轉、工件不動」；車床剛好相反（見下面第 ② 段）' })}
+      ${card({ side: 'l', no: 4, part: 'mt_work', color: COL.steel, ax: 400, ay: 294, title: '工件（被加工的那一塊）', sub: '★ 綜合加工機是「刀轉、工件不動」；車床剛好相反（見下面第 ② 段）' })}
       ${card({ side: 'l', no: 5, part: 'mt_mag', color: COL.disc, ax: 92, ay: 176, title: '刀庫（圓盤式）', sub: ['一圈刀套繞著圓盤排列，轉位找到要的那一把', '★ 把數依機種而異，圖上畫 10 個是示意'] })}
       ${card({ side: 'l', no: 6, part: 'mt_atc', color: COL.steel, ax: 186, ay: 268, title: '換刀機械手（雙臂式 ATC）', sub: ['★ 兩端對稱：一端抓主軸上的舊刀、一端抓刀庫的新刀', '轉半圈就同時換完 —— 單臂畫法解釋不了「一次換兩把」'] })}
       ${card({ side: 'l', no: 7, part: 'mt_conv', color: COL.chip, ax: 172, ay: 374, title: '排屑機', sub: '把切屑從加工區運出去。切屑堆在機內會頂到工件、也會把熱悶在裡面' })}
@@ -530,6 +555,7 @@
           '「CNC 工具機」目前不在供應鏈資料的環節裡，所以下方的「環節色標」篩不到它；公司對應寫在卡片、零件小卡與下面第 ② 段。',
           '★ 6603 富強鑫做的是射出成型機，不是切削工具機 —— 它不在這張圖畫的那種機器裡。'] })}
 
+      </g>
       <!-- ================= ① 自製 vs 外購（預設收合） ================= -->
       ${D.foldBar('mt1', S1, '① 同一台機器上，台廠站在哪幾格',
     '七件零件逐條：哪些非買不可、哪些是台廠的主場、哪些兩者都有')}

@@ -84,47 +84,57 @@
      由上往下＝由外到內。每一層是一塊玻璃板，右端掛「產品／服務」標記 ——
      這張圖的主命題就在這個標記上：**同一條縱深上，有些層賣的是盒子，有些層賣的是人。** */
   const LX = 24, LW = 262;                      // 左欄的左緣與寬
+  const PX = LX + LW + 14;                      // 攻擊路徑的 x（四層右緣外側，★ 2026-09-26 從 x 190 移出來）
+  // ★ 1 號與 7 號編號放在「攻擊面與第一層之間」「第一、二層之間」的縫裡：引線從左邊橫著進來，走縫就不會劃過任何一行字
   const LAYERS = [
-    { id: 'cs_net', y: 118, t: '網路邊界', s: '防火牆／WAF／DDoS 清洗', k: '產品', col: C.net },
-    { id: 'cs_edr', y: 166, t: '端點', s: '防毒／EDR 端點偵測', k: '產品', col: C.edr },
-    { id: 'cs_idp', y: 214, t: '身分與存取', s: '多因子驗證／特權帳號管理', k: '產品', col: C.idp },
-    { id: 'cs_data', y: 262, t: '應用與資料', s: '弱點掃描／加密／備份', k: '產品＋服務', col: C.data },
+    { id: 'cs_net', y: 116, t: '網路邊界', s: '防火牆／WAF／DDoS 清洗', k: '產品', col: C.net },
+    { id: 'cs_edr', y: 164, t: '端點', s: '防毒／EDR 端點偵測', k: '產品', col: C.edr },
+    { id: 'cs_idp', y: 212, t: '身分與存取', s: '多因子驗證／特權帳號管理', k: '產品', col: C.idp },
+    { id: 'cs_data', y: 260, t: '應用與資料', s: '弱點掃描／加密／備份', k: '產品＋服務', col: C.data },
   ];
-  const LH = 36;
+  /* ★ 2026-09-26 覆蓋普查（scripts/_dg_overlap.py）：這一欄原本 36 高、標題與說明各佔 14px，閱讀模式兩行字疊在一起；
+     攻擊路徑那條紅虛線畫在 x 190，正好從每一層的說明中間穿過去（還把字蓋掉）。改成：
+       · 每一層加高到 44，標題一行、說明一行，「產品／服務」小格移到標題那一行的右端（寬度照字長）
+       · 攻擊路徑移到四層的右緣外側（x 300，跟往 SOC 的光束同一段），叉叉照樣落在每一層的高度上，最後漏向右邊的 SOC
+       · 攻擊面三格加高、字照格寬斷行；核心資產那塊加寬到裝得下說明
+     每一層的內容、順序、顏色一個都沒改。*/
+  const LH = 44;
 
+  const tagW = (k) => Math.max(52, k.length * 16 + 12);   // 小格寬度照字數（「產品＋服務」五個字）
   function defense() {
     const g = [];
     // 攻擊面：三種常見的進入點（示意，不指名任何工具或事件）
     const th = ['網路釣魚', '對外服務漏洞', '供應鏈與委外'];
     g.push(part('cs_surface', th.map((t, i) => {
       const x = LX + i * 88;
-      return fx.glass(x, 68, 82, 28, { fill: C.threat, cls: 'part', rx: 6 })
-        + T(x + 41, 86, t, 'sub', 'middle', 'fill:var(--dg-ink)');
+      const ls = D.wrap(t, 74);
+      return fx.glass(x, 66, 82, 40, { fill: C.threat, cls: 'part', rx: 6 })
+        + ls.map((l, k) => T(x + 41, 66 + 20 + (k - (ls.length - 1) / 2) * 16 + 5, l, 'sub', 'middle', 'fill:var(--dg-ink)')).join('');
     }).join('') + T(LX, 60, '攻擊面（從哪裡進來）', 'hd')));
 
     // 四層防護板
     LAYERS.forEach((L) => {
       g.push(part(L.id, fx.glass(LX, L.y, LW, LH, { fill: L.col, cls: 'part', rx: 5 })
-        + T(LX + 12, L.y + 16, L.t, 'lbl')
-        + T(LX + 12, L.y + 30, L.s, 'sub', null, 'fill:var(--dg-ink)')
-        + R(LX + LW - 68, L.y + 8, 60, 20, 'var(--dg-step-f)', 'part', 4)
-        + T(LX + LW - 38, L.y + 22, L.k, 'sub', 'middle', `fill:${L.col}`)));
+        + T(LX + 12, L.y + 19, L.t, 'lbl')
+        + T(LX + 12, L.y + 37, L.s, 'sub', null, 'fill:var(--dg-ink)')
+        + R(LX + LW - 8 - tagW(L.k), L.y + 5, tagW(L.k), 19, 'var(--dg-step-f)', 'part', 4)
+        + T(LX + LW - 8 - tagW(L.k) / 2, L.y + 19, L.k, 'sub', 'middle', `fill:${L.col}`)));
     });
 
     // 核心資產（要守的東西）
-    g.push(part('cs_asset', fx.glass(LX + 46, 314, 170, 40, { fill: C.asset, cls: 'part', rx: 6 })
-      + T(LX + 131, 331, '核心系統與個資', 'lbl', 'middle')
-      + T(LX + 131, 347, '政府：民眾資料｜金融：帳務', 'sub', 'middle', 'fill:var(--dg-ink)')));
+    g.push(part('cs_asset', fx.glass(LX + 20, 318, 230, 42, { fill: C.asset, cls: 'part', rx: 6 })
+      + T(LX + 135, 335, '核心系統與個資', 'lbl', 'middle')
+      + T(LX + 135, 353, '政府：民眾資料｜金融：帳務', 'sub', 'middle', 'fill:var(--dg-ink)')));
 
     /* 攻擊路徑：一條往下的紅虛線，在前三層各被擋掉一次（小叉），
        第四層旁邊留一條「漏過去」的細線接到右邊的 SOC —— 沒有一層擋得住全部，
        這就是為什麼一定要有監控與應變（§① 到 §② 的橋）。*/
-    const stop = (y) => `<g><circle cx="${LX + LW - 96}" cy="${y}" r="7" fill="var(--dg-frame-f)" stroke="${C.threat}" stroke-width="1.4"/>`
-      + LN(`M${LX + LW - 100},${y - 4}l8,8M${LX + LW - 92},${y - 4}l-8,8`, C.threat, 1.6) + `</g>`;
-    g.push(part('cs_path', LN(`M${LX + LW - 96},100 V${LAYERS[3].y + LH + 6}`, C.threat, 2, ' stroke-dasharray="6 5" class="flow"')
+    const stop = (y) => `<g><circle cx="${PX}" cy="${y}" r="7" fill="var(--dg-frame-f)" stroke="${C.threat}" stroke-width="1.4"/>`
+      + LN(`M${PX - 4},${y - 4}l8,8M${PX + 4},${y - 4}l-8,8`, C.threat, 1.6) + `</g>`;
+    g.push(part('cs_path', LN(`M${PX},100 V${LAYERS[3].y + LH + 6}`, C.threat, 2, ' stroke-dasharray="6 5" class="flow"')
       + LAYERS.slice(0, 3).map(L => stop(L.y + LH / 2)).join('')
-      + LN(`M${LX + LW - 96},${LAYERS[3].y + LH + 6} h26`, C.threat, 2, ' class="flow fast"')
-      + `<path d="M${LX + LW - 66},${LAYERS[3].y + LH + 6} l-10,-5 v10Z" fill="${C.threat}"/>`
+      + LN(`M${PX},${LAYERS[3].y + LH + 6} h14`, C.threat, 2, ' class="flow fast"')
+      + `<path d="M${PX + 24},${LAYERS[3].y + LH + 6} l-10,-5 v10Z" fill="${C.threat}"/>`
 ));
     return g.join('');
   }
@@ -140,16 +150,16 @@
   ];
 
   function soc() {
-    const g = [frame(SX, 60, SW, 294), T(SX + 14, 80, '資安監控中心（SOC）：擋不住的在這裡被看見', 'hd')];
+    const g = [frame(SX, 60, SW, 300), T(SX + 14, 82, '資安監控中心（SOC）：', 'hd'), T(SX + 14, 102, '擋不住的在這裡被看見', 'hd')];   // ★ 原本一行伸出框 45px → 兩行
     // 左邊四層的日誌往右送進 SOC（一條共用光暈的多光束＝一個濾鏡元素）
     g.push(fx.beams(LAYERS.map(L => ({ d: `M${LX + LW},${L.y + LH / 2} H${SX}`, color: C.soc, w: 1.6 })), { flow: true }));
     STEPS.forEach((s, i) => {
-      const y = 94 + i * 62;
+      const y = 112 + i * 60;
       g.push(part(s.id, R(SX + 14, y, SW - 28, 52, 'var(--dg-step-f)', 'part', 7)
         + T(SX + 26, y + 20, s.t, 'lbl')
         + T(SX + 26, y + 38, s.s, 'sub')
         + T(SX + SW - 52, y + 20, s.k, 'sub', 'end', `fill:${/人/.test(s.k) ? C.people : C.mute}`)));
-      if (i < STEPS.length - 1) g.push(LN(`M${SX + SW / 2},${y + 52} v10`, C.soc, 2, ' class="flow"'));
+      if (i < STEPS.length - 1) g.push(LN(`M${SX + SW / 2},${y + 52} v8`, C.soc, 2, ' class="flow"'));
     });
     return g.join('');
   }
@@ -180,66 +190,52 @@
 
   /* ================================================================ 章節 ①：為什麼客戶是政府與金融 */
   function areaWhy() {
-    const y0 = 520;
+    const y0 = 520, IN = 300 - 28;
+    const warn = (t) => ({ t, style: /^★/.test(t) ? `fill:${C.warn}` : '' });
+    // ★ 2026-09-26 覆蓋普查：兩格原本照 12px 寫死斷行，閱讀模式伸出格子 → 整段交給 D.para 照最壞字寬重斷，格高照內容
+    const L1 = ['《資通安全管理法》要求公務機關委外辦理資通系統建置、維運或資通服務時，要選任適當的受託者並監督其資安機制。',
+      '國家資通安全會報技術服務中心辦理「資安服務廠商評鑑」，分類包含 SOC 服務 —— 評鑑過的名單就是機關委外的參考。',
+      '★ 所以預算跟著法規與年度編列走，不完全跟著景氣走。'].map(warn);
+    const L2 = ['金管會推動金融資安聯防，設有 F-ISAC（金融資安資訊分享與分析中心），把攻擊情資在同業之間分享。',
+      '金融機構本身有資安人力與稽核要求，委外監控是把 7×24 的值班交出去。',
+      '★ 這一段不寫任何金額與市占：查不到可引用的公開數字，不編。'].map(warn);
+    const BH = Math.max(184, 48 + Math.max(D.para(0, 0, L1, IN).h, D.para(0, 0, L2, IN).h) + 4);
     const box = (i, t, lines, id) => {
       const x = 16 + i * 316;
-      return part(id, frame(x, y0, 300, 184) + T(x + 14, y0 + 24, t, 'lbl')
-        + lines.map((s, k) => T(x + 14, y0 + 48 + k * 18, s, 'sub', null, /^★/.test(s) ? `fill:${C.warn}` : '')).join(''));
+      return part(id, frame(x, y0, 300, BH) + T(x + 14, y0 + 24, t, 'lbl') + D.para(x + 14, y0 + 48, lines, IN).svg);
     };
     return T(16, y0 - 12, '資安的採購有一大塊不是「想買」，是「規定要買」', 'hd')
-      + box(0, '政府：法遵驅動的採購', [
-        '《資通安全管理法》要求公務機關委外辦理',
-        '資通系統建置、維運或資通服務時，',
-        '要選任適當的受託者並監督其資安機制。',
-        '國家資通安全會報技術服務中心辦理',
-        '「資安服務廠商評鑑」，分類包含 SOC 服務 ——',
-        '評鑑過的名單就是機關委外的參考。',
-        '★ 所以預算跟著法規與年度編列走，',
-        '　 不完全跟著景氣走。',
-      ], 'cs_gov')
-      + box(1, '金融：主管機關與聯防機制', [
-        '金管會推動金融資安聯防，設有 F-ISAC',
-        '（金融資安資訊分享與分析中心），',
-        '把攻擊情資在同業之間分享。',
-        '金融機構本身有資安人力與稽核要求，',
-        '委外監控是把 7×24 的值班交出去。',
-        '★ 這一段不寫任何金額與市占：',
-        '　 查不到可引用的公開數字，不編。',
-      ], 'cs_fin')
-      + T(16, y0 + 206, '示意圖，非實物比例｜防護層只畫四層代表縱深的概念，實際分層依各家架構而異；攻擊路徑為示意，不對應任何真實事件。', 'cap');
+      + box(0, '政府：法遵驅動的採購', L1, 'cs_gov')
+      + box(1, '金融：主管機關與聯防機制', L2, 'cs_fin')
+      + D.para(16, y0 + BH + 22, '示意圖，非實物比例｜防護層只畫四層代表縱深的概念，實際分層依各家架構而異；攻擊路徑為示意，不對應任何真實事件。', 628, { cls: 'cap' }).svg;
   }
 
   /* ================================================================ 章節 ②：兩檔台股與這張圖沒回答的事 */
   function areaWho() {
-    const y0 = 800;
+    const y0 = 800, IN = 300 - 28;
+    // ★ 2026-09-26 覆蓋普查：兩格與下面一框原本照 12px 寫死斷行，閱讀模式伸出格子／畫布 → 照最壞字寬重斷，格高照內容
+    const L1 = [{ t: '提供 7×24 的 SOC 資安委外監控、事件分析與通報（公司服務頁）。客戶以政府為主，其次金融與製造。' }, { t: '★ 收入偏「服務」那一欄。', style: `fill:${C.warn}` }];
+    const L2 = [{ t: '中華電信集團的資安子公司，提供資安監控與防護服務。' }, { t: '★ 各家的收入結構百分比查不到可引用的公開數字，不寫。', style: `fill:${C.warn}` }];
+    const CH = Math.max(150, 66 + Math.max(D.para(0, 0, L1, IN).h, D.para(0, 0, L2, IN).h));
     const co = (i, code, name, lines) => {
       const x = 16 + i * 316;
-      return part('cs_co_' + code, frame(x, y0, 300, 150)
-        + R(x, y0, 4, 150, C.soc)
+      return part('cs_co_' + code, frame(x, y0, 300, CH)
+        + R(x, y0, 4, CH, C.soc)
         + T(x + 14, y0 + 24, name, 'lbl')
         + T(x + 14, y0 + 42, code, 'sub', null, `fill:${C.soc}`)
-        + lines.map((s, k) => T(x + 14, y0 + 66 + k * 18, s, 'sub')).join(''));
+        + D.para(x + 14, y0 + 66, lines, IN).svg);
     };
+    const NO = ['市占率、合約金額、各家產品與服務的收入占比 —— 查不到可引用的公開出處，一個數字都不寫。',
+      '「政府占安碁營收六到七成」只見於投資分析平台的單一來源，沒有公司自己的說法可以對照，所以畫面上只寫定性的「以政府與金融為主」。',
+      '資安產品的技術優劣、各家工具的比較：這張圖講的是錢從哪裡來，不做產品評比。',
+      '各家在四層防護與 SOC 各段的分工細節：畫面上的分層是資安的通用概念，不是在說某一家做哪幾層。'];
+    const fy = y0 + CH + 16, np = D.para(30, fy + 46, NO, 628 - 28);
     return T(16, y0 - 12, '這張圖上誰做哪一塊（依公司自己的說法與 groups.yaml）', 'hd')
-      + co(0, '6690', '安碁資訊', [
-        '提供 7×24 的 SOC 資安委外監控、',
-        '事件分析與通報（公司服務頁）。',
-        '客戶以政府為主，其次金融與製造。',
-        '★ 收入偏「服務」那一欄。',
-      ])
-      + co(1, '7765', '中華資安', [
-        '中華電信集團的資安子公司，',
-        '提供資安監控與防護服務。',
-        '★ 各家的收入結構百分比查不到',
-        '　 可引用的公開數字，不寫。',
-      ])
-      + frame(16, y0 + 166, 628, 122)
-      + T(30, y0 + 190, '這張圖沒有回答的事', 'lbl')
-      + ['市占率、合約金額、各家產品與服務的收入占比 —— 查不到可引用的公開出處，一個數字都不寫。',
-        '「政府占安碁營收六到七成」只見於投資分析平台的單一來源，沒有公司自己的說法可以對照，所以畫面上只寫定性的「以政府與金融為主」。',
-        '資安產品的技術優劣、各家工具的比較：這張圖講的是錢從哪裡來，不做產品評比。',
-        '各家在四層防護與 SOC 各段的分工細節：畫面上的分層是資安的通用概念，不是在說某一家做哪幾層。'].map((s, i) =>
-          T(30, y0 + 212 + i * 18, s, 'sub')).join('');
+      + co(0, '6690', '安碁資訊', L1)
+      + co(1, '7765', '中華資安', L2)
+      + frame(16, fy, 628, 46 + np.h)
+      + T(30, fy + 24, '這張圖沒有回答的事', 'lbl')
+      + np.svg;
   }
 
   function cyberSecurity() {
@@ -271,17 +267,17 @@
       ${revenue()}
 
       <!-- ================= 說明卡片（HTML；左欄＝縱深防禦，右欄＝SOC 與收入） ================= -->
-      ${card({ part: 'cs_surface', no: 1, side: 'l', color: C.threat, ax: 292, ay: 82, title: '攻擊面：從哪裡進來', sub: ['釣魚信、對外服務的漏洞、以及委外與供應鏈 —— 三條都是示意，不對應任何真實事件。', '攻擊面越大，要守的層數越多；這就是資安預算長大的原因。'] })}
-      ${card({ part: 'cs_net', no: 2, side: 'l', color: C.net, ax: 14, ay: LAYERS[0].y + 18, title: '網路邊界：賣的是盒子', sub: ['防火牆、WAF、DDoS 清洗。台廠這一層多半是代理國外原廠的產品 —— 代理是過手，毛利薄。'] })}
-      ${card({ part: 'cs_edr', no: 3, side: 'l', color: C.edr, ax: 14, ay: LAYERS[1].y + 18, title: '端點：防毒與 EDR', sub: ['每一台電腦與伺服器上的那一支程式。授權按台數與年份收，續約是穩定收入。'] })}
-      ${card({ part: 'cs_idp', no: 4, side: 'l', color: C.idp, ax: 14, ay: LAYERS[2].y + 18, title: '身分與存取：誰可以進來', sub: ['多因子驗證與特權帳號管理。近年攻擊多半不是「打破牆」，是「拿到鑰匙」。'] })}
-      ${card({ part: 'cs_data', no: 5, side: 'l', color: C.data, ax: 14, ay: LAYERS[3].y + 18, title: '應用與資料：產品 ＋ 服務混著賣', sub: ['弱點掃描、加密、備份與還原。掃描報告要有人讀、修補要有人跟 —— 這一層開始出現人力服務。'] })}
-      ${card({ part: 'cs_asset', no: 6, side: 'l', color: C.asset, ax: 60, ay: 334, title: '要守的東西：核心系統與個資', sub: ['政府守的是民眾資料與公共服務，金融守的是帳務與客戶資料 —— 兩者出事的代價都不是錢可以了結的，所以採購的理由是法遵不是效率。'] })}
-      ${card({ part: 'cs_path', no: 7, side: 'l', color: C.threat, ax: LX + LW - 96, ay: 107, title: '沒有一層擋得住全部', sub: ['前三層擋掉大部分，總有一條會漏過去。★ 承認這件事，才有 SOC 存在的理由 —— 資安的目標不是「零事件」，是「早點發現、快點收拾」。'] })}
-      ${card({ part: 'cs_log', no: 8, side: 'r', color: C.soc, ax: SX + SW - 14, ay: 120, title: '① 日誌收集：機器做的', sub: ['四層設備的事件全部送進來。這一段是設備與平台，不太吃人力。'] })}
-      ${card({ part: 'cs_corr', no: 9, side: 'r', color: C.soc, ax: SX + SW - 14, ay: 182, title: '② 關聯分析：規則與經驗', sub: ['把分散在不同設備的事件串成一次攻擊。規則寫得好不好，就是各家 SOC 的差別。'] })}
-      ${card({ part: 'cs_alert', no: 10, side: 'r', color: C.people, ax: SX + SW - 14, ay: 244, title: '③ 告警與研判：★ 這裡開始是人', sub: ['7×24 有人值班，判斷這是誤報還是真的。機器一天丟出幾千筆，要有人讀。', '這一格就是「委外」兩個字的實體 —— 客戶自己養不起三班制，所以交出去。'] })}
-      ${card({ part: 'cs_ir', no: 11, side: 'r', color: C.people, ax: SX + SW - 14, ay: 306, title: '④ 通報與應變：★ 也是人', sub: ['通知客戶、協助隔離與復原、出事後報告。按月或按年收費、逐月認列，合約到期才會不見。'] })}
+      ${card({ part: 'cs_surface', no: 1, side: 'l', color: C.threat, ax: 290, ay: 111, title: '攻擊面：從哪裡進來', sub: ['釣魚信、對外服務的漏洞、以及委外與供應鏈 —— 三條都是示意，不對應任何真實事件。', '攻擊面越大，要守的層數越多；這就是資安預算長大的原因。'] })}
+      ${card({ part: 'cs_net', no: 2, side: 'l', color: C.net, ax: 14, ay: LAYERS[0].y + 22, title: '網路邊界：賣的是盒子', sub: ['防火牆、WAF、DDoS 清洗。台廠這一層多半是代理國外原廠的產品 —— 代理是過手，毛利薄。'] })}
+      ${card({ part: 'cs_edr', no: 3, side: 'l', color: C.edr, ax: 14, ay: LAYERS[1].y + 22, title: '端點：防毒與 EDR', sub: ['每一台電腦與伺服器上的那一支程式。授權按台數與年份收，續約是穩定收入。'] })}
+      ${card({ part: 'cs_idp', no: 4, side: 'l', color: C.idp, ax: 14, ay: LAYERS[2].y + 22, title: '身分與存取：誰可以進來', sub: ['多因子驗證與特權帳號管理。近年攻擊多半不是「打破牆」，是「拿到鑰匙」。'] })}
+      ${card({ part: 'cs_data', no: 5, side: 'l', color: C.data, ax: 14, ay: LAYERS[3].y + 22, title: '應用與資料：產品 ＋ 服務混著賣', sub: ['弱點掃描、加密、備份與還原。掃描報告要有人讀、修補要有人跟 —— 這一層開始出現人力服務。'] })}
+      ${card({ part: 'cs_asset', no: 6, side: 'l', color: C.asset, ax: 54, ay: 322, title: '要守的東西：核心系統與個資', sub: ['政府守的是民眾資料與公共服務，金融守的是帳務與客戶資料 —— 兩者出事的代價都不是錢可以了結的，所以採購的理由是法遵不是效率。'] })}
+      ${card({ part: 'cs_path', no: 7, side: 'l', color: C.threat, ax: PX, ay: 162, title: '沒有一層擋得住全部', sub: ['前三層擋掉大部分，總有一條會漏過去。★ 承認這件事，才有 SOC 存在的理由 —— 資安的目標不是「零事件」，是「早點發現、快點收拾」。'] })}
+      ${card({ part: 'cs_log', no: 8, side: 'r', color: C.soc, ax: SX + SW - 14, ay: 138, title: '① 日誌收集：機器做的', sub: ['四層設備的事件全部送進來。這一段是設備與平台，不太吃人力。'] })}
+      ${card({ part: 'cs_corr', no: 9, side: 'r', color: C.soc, ax: SX + SW - 14, ay: 198, title: '② 關聯分析：規則與經驗', sub: ['把分散在不同設備的事件串成一次攻擊。規則寫得好不好，就是各家 SOC 的差別。'] })}
+      ${card({ part: 'cs_alert', no: 10, side: 'r', color: C.people, ax: SX + SW - 14, ay: 258, title: '③ 告警與研判：★ 這裡開始是人', sub: ['7×24 有人值班，判斷這是誤報還是真的。機器一天丟出幾千筆，要有人讀。', '這一格就是「委外」兩個字的實體 —— 客戶自己養不起三班制，所以交出去。'] })}
+      ${card({ part: 'cs_ir', no: 11, side: 'r', color: C.people, ax: SX + SW - 14, ay: 318, title: '④ 通報與應變：★ 也是人', sub: ['通知客戶、協助隔離與復原、出事後報告。按月或按年收費、逐月認列，合約到期才會不見。'] })}
       ${card({ part: 'cs_rev_prod', no: 12, side: 'l', order: 12, color: C.net, ax: 10, ay: 440, title: '產品授權：規模可以長，毛利看是不是自有', sub: ['自有產品的毛利高；代理國外原廠的那一段是過手，毛利薄 —— 同樣叫「產品收入」，兩者差很多。'] })}
       ${card({ part: 'cs_rev_svc', no: 13, side: 'r', order: 13, color: C.people, ax: 222, ay: 440, title: '委外服務：最穩，但要養人', sub: ['按月／按年收、逐月認列，續約率就是它的護城河。代價是人力成本跟著客戶數走，不像軟體可以無限複製。'] })}
       ${card({ part: 'cs_rev_proj', no: 14, side: 'r', order: 14, color: C.mute, ax: 434, ay: 440, title: '專案建置：看案子，季度落差大', sub: ['按人天報價、驗收才認列，所以單季營收會被幾個大案的驗收時點左右。'] })}

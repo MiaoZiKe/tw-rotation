@@ -14607,6 +14607,9 @@ SECTIONS = {
     "3D視角鈕與點兩下重設": lambda pg, b, base, code: t_dg3d_ctl(pg, base),
     # ★ 2026-09-26 Andy：「幫我檢查所有有這樣過多小數點的問題修正」—— 全站提示框／圖內文字／畫布／頁面文字的長小數普查
     "小數點普查":          lambda pg, b, base, code: t_decimal_audit(b, base, code),
+    # ★ 2026-09-26 Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」—— 所有剖析圖 × 1440／800 × 2D 全段落展開＋3D，
+    #   文字被蓋／文字蓋圖／文字互疊／文字超出格子／卡片互蓋／3D 卡片蓋到零件，0 個才算過（量測在 scripts/_dg_overlap.py，⚠ 一律 --workers 1）
+    "剖析圖覆蓋普查":      lambda pg, b, base, code: t_dg_overlap(b, base),
     # ★ 2026-09-26 Andy：搜尋加「近期搜尋紀錄」、熱門股票、名稱旁公司 Logo（個股頁標題也要）（⚠ 一律 --workers 1）
     "搜尋近期熱門Logo":    lambda pg, b, base, code: t_search_recent_logo(pg, b, base),
     # ★ 2026-09-26 Andy 總覽三件：大盤三張圖量副圖不見、熱門題材要能放大、足跡輪盤點族群不能推動版面（⚠ 一律 --workers 1）
@@ -33332,6 +33335,53 @@ def t_decimal_audit(b, base, code):
        not [x for x in cv if not any(re.search(a, x) for a in _DEC_ALLOW)], cv[:8])
     ok("小數點普查／手機：真的掃到圖", mn >= 6, mn)
     m.close()
+
+
+# ★ 2026-09-26 剖析圖覆蓋普查（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」）
+#   量測本體在 scripts/_dg_overlap.py（單獨跑可以量 4 種寬度 × 2 種配色、附放大截圖），
+#   這裡呼叫同一套 audit()：1440（抽屜開，預設）、1440c（抽屜關，三欄）、800 × 2D（收合＋全部段落展開）＋ 3D。
+#   只看「元素存在」不算：① 先故意疊一行字在零件上，量測要抓得到（量測本身有效）
+#   ② 真的點開每一個章節列（viewBox 變高＝畫面真的變了）③ 然後清單要是空的。
+def t_dg_overlap(b, base):
+    sys.path.insert(0, str(ROOT))
+    import importlib
+    ov = importlib.import_module("scripts._dg_overlap")
+    pg = b.new_page(viewport={"width": 1440, "height": 950})
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        # ① 量測本身有效：在第三代半導體主畫面的 SiC 剖面上疊一行字，要被抓成「文字被圖形蓋住／跨在邊緣」
+        pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+        pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dgOpen', '1'); } catch (e) {} }")
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/wide_bandgap", wait_until="networkidle")
+        wait_until(pg, "() => !!document.querySelector('#prodDiagram svg.dg')", 8000); pg.wait_for_timeout(800)
+        r0 = pg.evaluate(ov.AUDIT2D_JS, {"host": "#prodDiagram", "tol": ov.TOL})
+        planted = pg.evaluate("""() => { const svg = document.querySelector('#prodDiagram svg.dg'); const g = svg.querySelector('[data-part="wbg_sic_sub"]');
+          if (!g) return false; const b = g.getBBox(); const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', b.x - 30); t.setAttribute('y', b.y + b.height / 2); t.setAttribute('class', 'sub'); t.textContent = '故意疊上去的測試字串 PLANTED';
+          g.parentNode.insertBefore(t, g); return true; }""")
+        r1 = pg.evaluate(ov.AUDIT2D_JS, {"host": "#prodDiagram", "tol": ov.TOL})
+        hit = [x for x in r1.get("issues", []) if "PLANTED" in x.get("a", "")]
+        ok("覆蓋普查：量測本身有效（故意疊在 SiC 基板上的字被抓到）", planted and bool(hit),
+           {"planted": planted, "before": len(r0.get("issues", [])), "after": len(r1.get("issues", [])), "hit": hit[:2]})
+        # ② 章節列真的點得開：展開前後 viewBox 高度要變
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/wide_bandgap", wait_until="networkidle")
+        wait_until(pg, "() => !!document.querySelector('#prodDiagram svg.dg')", 8000); pg.wait_for_timeout(800)
+        h0 = pg.evaluate("() => document.querySelector('#prodDiagram svg.dg').viewBox.baseVal.height")
+        n = pg.evaluate(ov.EXPAND_FOLDS_JS, "#prodDiagram"); pg.wait_for_timeout(400)
+        h1 = pg.evaluate("() => document.querySelector('#prodDiagram svg.dg').viewBox.baseVal.height")
+        ok("覆蓋普查：全部段落展開＝章節列真的點開（viewBox 變高）", n >= 3 and h1 > h0 + 300, {"章節": n, "前": h0, "後": h1})
+        # ③ 普查：清單要是空的
+        logs: list[str] = []
+        found = ov.audit(pg, base, widths=("1440", "1440c", "800"), modes=("2d", "3d"), pals=("tech",), shots=None, log=logs.append)
+        measured = [x for x in logs if "問題" in x]
+        ok("覆蓋普查：真的量到 40 張以上的圖 × 3 種版面", len(measured) >= 120, len(measured))
+        broken = [f"{x['dg']}/{x['mode']}/{x['w']}：{x['kind']}" for x in found if x["kind"] in ("畫不出來", "3D 畫不出來", "量測失敗")]
+        ok("覆蓋普查：每一張圖都畫得出來（2D 與 3D）", not broken, broken[:10])
+        rest = [f"{x['dg']}/{x['mode']}/{x['w']}｜{x['sec']}｜{x['kind']}｜{x['a']} × {x['b']}｜{x['px']}px"
+                for x in found if x["kind"] not in ("畫不出來", "3D 畫不出來", "量測失敗")]
+        ok(f"覆蓋普查：文字被蓋／蓋圖／互疊／超出格子／卡片互蓋／3D 卡片蓋到零件 0 處（實際 {len(rest)} 處）", not rest, rest[:15])
+    finally:
+        pg.close()
 
 
 # ===================================================================== 搜尋：近期搜尋／熱門股票／公司 Logo（2026-09-26）

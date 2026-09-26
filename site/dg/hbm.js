@@ -188,12 +188,15 @@
     g.push(part('hb_gpu', fx.glass(BLK.gx, S.dieT, BLK.gw, S.dieB - S.dieT, { fill: C.die, cls: 'part gblk', rx: 2 })
       + T(BLK.gx + BLK.gw / 2, S.dieT + 34, 'GPU', 'lbl', 'middle')));
     // 俯視小格（Y3）：GPU 在中間、HBM 在兩側，數量對稱
-    const tv = 480;
-    g.push(part('hb_topview', R(tv, 40, 136, 110, 'var(--dg-frame-f)', '', 6)
-      + R(tv + 54, 58, 28, 74, C.die, 'part tvg', 2)
-      + [0, 1].map((i) => R(tv + 12, 60 + i * 36, 26, 30, C.si, 'part tvh', 2)).join('')
-      + [0, 1].map((i) => R(tv + 98, 60 + i * 36, 26, 30, C.si, 'part tvh', 2)).join('')
-      + T(tv + 68, 166, '俯視：GPU 在中間、HBM 在兩側', 'cap', 'middle')));
+    /* ★ 2026-09-26 覆蓋普查：整格上移 10、圖說拆兩行 —— 原本一行圖說（y 166）比小格寬，
+       左邊伸進右欄說明、右邊伸出畫布；拆兩行後第二行也要收在 HBM 方塊頂（y 182）之上。*/
+    const tv = 480, ty = 30;
+    g.push(part('hb_topview', R(tv, ty, 136, 110, 'var(--dg-frame-f)', '', 6)
+      + R(tv + 54, ty + 18, 28, 74, C.die, 'part tvg', 2)
+      + [0, 1].map((i) => R(tv + 12, ty + 20 + i * 36, 26, 30, C.si, 'part tvh', 2)).join('')
+      + [0, 1].map((i) => R(tv + 98, ty + 20 + i * 36, 26, 30, C.si, 'part tvh', 2)).join('')
+      + T(tv + 68, ty + 125, '俯視：GPU 在中間、', 'cap', 'middle')
+      + T(tv + 68, ty + 142, 'HBM 在兩側', 'cap', 'middle')));
     return g.join('');
   }
 
@@ -248,14 +251,15 @@
   const BAND = [
     {
       id: 'hb_band1', seg: 'hbm', mark: 'none', t: '① HBM 顆粒（core die）',
-      who: '台股沒有廠商做。實際上是 SK hynix（韓）、Micron（美）、Samsung（韓）。',
-      s: 'DRAM 晶粒本體。這一層台股是空的 —— 那正是這張圖要講的事，不是漏畫。',
+      who: '台股沒有廠商做。',
+      s: ['實際上是 SK hynix（韓）、Micron（美）、Samsung（韓）。',
+        'DRAM 晶粒本體。這一層台股是空的 —— 那正是這張圖要講的事，不是漏畫。'],
     },
     {
       id: 'hb_band2', seg: 'foundry', mark: 'has', t: '② base die（邏輯晶粒）',
       who: '2330 台積電代工。',
-      s: ['SK hynix 的 HBM4 base die 採台積電 12 奈米邏輯製程（來源：產業媒體，2026）。',
-        '這是做那顆邏輯晶粒，不是做記憶體顆粒。'],
+      s: ['SK hynix 的 HBM4 base die 採台積電 12 奈米邏輯製程',
+        '（來源：產業媒體，2026）。這是做那顆邏輯晶粒，不是做記憶體顆粒。'],
     },
     {
       id: 'hb_band3', seg: 'hbm', mark: 'none', t: '③ 堆疊與封裝',
@@ -270,7 +274,8 @@
     {
       id: 'hb_band5', seg: '', mark: 'weak', t: '⑤ 製程設備',
       who: '2467 志聖（HBM 製程用烘烤設備）。',
-      s: '⚠ 單一來源、投資媒體的概念股整理，信心中低；志聖不在供應鏈資料裡，所以小卡列不出它。',
+      s: ['⚠ 單一來源、投資媒體的概念股整理，信心中低；',
+        '志聖不在供應鏈資料裡，所以小卡列不出它。'],
     },
   ];
   const MARK = {
@@ -284,14 +289,17 @@
     if (kind === 'weak') return R(x - 7, y - 6, 14, 13, m.c, 'mk mk-weak', 2);
     return `<circle class="mk mk-has" cx="${x}" cy="${y}" r="7" fill="${m.c}"/>`;
   }
-  const BAND_Y = 646, BAND_STEP = 90;   // 一列 82 高（三～四行）＋ 8 的列距
+  /* ★ 2026-09-26 覆蓋普查：一列原本 82 高，第二行說明的基線在 y+78，閱讀模式字一大就壓到底邊；
+     而且有三列的說明是一整句寫在一行裡，在 628 寬的列裡伸出去 10px 以上。
+     → 一列加高到 96（四行制：標題／是誰／兩行說明），長句在標點處斷成兩行，字一個都沒刪。*/
+  const BAND_Y = 646, BAND_H = 96, BAND_STEP = 104;
   function areaD() {
     const rows = BAND.map((o, i) => {
       const y = BAND_Y + i * BAND_STEP;
       /* ⚠ 底色那塊**刻意不掛 `part`**：`.dg [data-seg].sel .part` 會替它加一圈發光描邊，
          五條橫帶一起發光就是 Andy 講的「螢光感太重」。*/
       return part(o.id,
-        R(16, y, 628, 82, 'var(--dg-step-f)', 'row', 7)
+        R(16, y, 628, BAND_H, 'var(--dg-step-f)', 'row', 7)
         + stamp(38, y + 22, o.mark)
         + T(52, y + 26, MARK[o.mark].t, 'cap', null, 'fill:' + MARK[o.mark].c)
         + T(120, y + 22, o.t, 'lbl')
@@ -299,11 +307,14 @@
         + (Array.isArray(o.s) ? o.s : [o.s]).map((t, j) => T(120, y + 62 + j * 16, t, 'sub')).join(''), o.seg || null);
     }).join('');
     return `<g>${T(16, 630, '台股在這條鏈上到底站在哪裡（★ 這張圖最重要的一段）', 'hd')}${rows}
-      <rect class="frame" x="16" y="1122" width="628" height="100" rx="9"/>
-      ${T(30, 1146, '同族群的另外兩檔，為什麼不畫在上面任何一段', 'hd')}
-      ${T(30, 1168, '2408 南亞科在供應鏈資料裡屬 DRAM／NOR 環節，其註記明寫「明確表示看淡 HBM、改押地端 AI 記憶體」；', 'sub')}
-      ${T(30, 1186, '　 它的「UWIO 客製化記憶體堆疊」與 HBM 的關係本圖未查證，所以圖上不把它畫在任何一段。', 'sub')}
-      ${T(30, 1204, '6239 力成的 tech 欄明寫「記憶體封測（非 HBM 本體）」，所以第 ③ 段（堆疊與封裝）也不列它。', 'sub')}</g>`;
+      <!-- ★ 2026-09-26 覆蓋普查：這三行照舊畫布寫的，閱讀模式伸出框 83px、伸出畫布 69px → 斷成六行、框加高 -->
+      <rect class="frame" x="16" y="1182" width="628" height="154" rx="9"/>
+      ${T(30, 1206, '同族群的另外兩檔，為什麼不畫在上面任何一段', 'hd')}
+      ${T(30, 1228, '2408 南亞科在供應鏈資料裡屬 DRAM／NOR 環節，', 'sub')}
+      ${T(30, 1246, '　 其註記明寫「明確表示看淡 HBM、改押地端 AI 記憶體」；它的「UWIO 客製化', 'sub')}
+      ${T(30, 1264, '　 記憶體堆疊」與 HBM 的關係本圖未查證，所以圖上不把它畫在任何一段。', 'sub')}
+      ${T(30, 1286, '6239 力成的 tech 欄明寫「記憶體封測（非 HBM 本體）」，', 'sub')}
+      ${T(30, 1304, '　 所以第 ③ 段（堆疊與封裝）也不列它。', 'sub')}</g>`;
   }
 
   /* ================================================================ 整張圖 */
@@ -329,20 +340,24 @@
       <!-- ================= §1 兩個命題並排（永遠看得到） ================= -->
       ${T(24, 52, '① HBM 那一疊裡面是什麼', 'hd')}
       ${T(306, 52, '② HBM 被放在哪裡', 'hd')}
-      ${T(306, 78, '★ HBM 站在 GPU 旁邊，不是', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(306, 96, '　 疊在 GPU 上面。', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(306, 116, '由下到上：載板 → 中介層 →', 'sub')}
-      ${T(306, 134, '晶粒；中介層裡那些細密繞線', 'sub')}
-      ${T(306, 152, '就是它存在的理由。', 'sub')}
+      <!-- ★ 2026-09-26 覆蓋普查：右上這五行跟右上角的俯視小格（x 480 起）搶同一塊 —— 字一長就鑽到小格底下
+           （閱讀模式三行被蓋 9～13px）。只留兩行警語在小格左邊，「由下到上…」搬到系統剖面底下（見下方圖說）。 -->
+      ${T(306, 78, '★ HBM 站在 GPU 旁邊，', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(306, 96, '不是疊在 GPU 上面。', 'sub', null, 'fill:var(--dg-warn)')}
       <!-- 柔陰影：整疊與系統剖面各一塊影子，全部包成一個群組（一次 feGaussianBlur） -->
       ${fx.shadows([[SX, TOP, SW, G.bottom - TOP], [SYS.subL, SYS.subT, SYS.subR - SYS.subL, SYS.subB - SYS.subT],
       [SYS.intL, SYS.intT, SYS.intR - SYS.intL, SYS.intB - SYS.intT]]
       .map(([x, y, w, h]) => `<rect x="${x + 3}" y="${y + 6}" width="${w}" height="${h}" rx="4"/>`).join(''))}
       ${hbmStack()}
       ${system()}
-      ${T(24, 300, '本圖畫 ' + N_CORE + ' 層 core die 示意（實際依世代而定）；', 'cap')}
-      ${T(24, 318, (N_CORE + 1) + ' 層晶粒就有 ' + N_CORE + ' 排微凸塊，且與 TSV 上下對齊。', 'cap')}
-      ${T(306, 314, '左右兩塊是 HBM、中間是運算晶粒 —— 三者一起站在中介層上。', 'cap')}
+      <!-- ★ 2026-09-26 覆蓋普查：左右兩段圖說原本各一整句，左邊那句伸進右邊那句（互疊 9px）→ 各自收在自己那半邊、斷行 -->
+      ${T(24, 304, '本圖畫 ' + N_CORE + ' 層 core die 示意', 'cap')}
+      ${T(24, 322, '（實際依世代而定）；' + (N_CORE + 1) + ' 層晶粒就有', 'cap')}
+      ${T(24, 340, N_CORE + ' 排微凸塊，且與 TSV 上下對齊。', 'cap')}
+      ${T(306, 314, '左右兩塊是 HBM、中間是運算晶粒', 'cap')}
+      ${T(306, 332, '—— 三者一起站在中介層上。', 'cap')}
+      ${T(306, 350, '由下到上：載板 → 中介層 → 晶粒；', 'cap')}
+      ${T(306, 368, '中介層裡那些細密繞線就是它存在的理由。', 'cap')}
 
       <!-- ================= 說明卡片（HTML，左欄＝那一疊；右欄＝封裝裡的位置） ================= -->
       ${card({ seg: 'hbm', part: 'hb_core', no: 1, side: 'l', color: C.si, ax: 40, ay: G.cores[2] + 10, title: 'core die（DRAM 晶粒）', sub: ['一層一層疊上去的記憶體晶粒。本圖畫 ' + N_CORE + ' 層示意；實際層數依世代而定。'] })}
@@ -356,7 +371,7 @@
       ${card({ seg: 'adv_pkg', part: 'hb_sub', no: 9, side: 'r', color: C.pcb, ax: SYS.subR - 6, ay: (SYS.subT + SYS.subB) / 2, title: '載板（package substrate）', sub: ['整包封裝最底下那一層。本格不畫補強環、模封與載板的內部層數 —— 那是「CoWoS 2.5D 封裝剖面」與「IC 載板」那兩張的範圍。'] })}
       ${card({ seg: 'hbm', part: 'hb_hbm_pkg', no: 10, side: 'r', color: C.si, ax: BLK.h2 + BLK.bw - 6, ay: SYS.dieT + 20, title: 'HBM 堆疊（站在中介層上）', sub: ['★ HBM 是站在 GPU 旁邊，不是疊在 GPU 上面 —— 疊上去是完全不同的封裝架構。'] })}
       ${card({ part: 'hb_gpu', no: 11, side: 'r', color: C.die, ax: BLK.gx + BLK.gw - 6, ay: SYS.dieB - 14, title: '運算晶粒（GPU／ASIC）', sub: ['HBM 站在它旁邊。它本身是 IC 設計與晶圓代工的產物，見「晶圓代工」那張。'] })}
-      ${card({ part: 'hb_topview', no: 12, side: 'r', color: C.mute, ax: 610, ay: 95, title: '俯視小格', sub: ['從上往下看：中央是運算晶粒，兩側各一排 HBM，數量對稱 —— 這一格就是把「並排」講死。'] })}
+      ${card({ part: 'hb_topview', no: 12, side: 'r', color: C.mute, ax: 610, ay: 85, title: '俯視小格', sub: ['從上往下看：中央是運算晶粒，兩側各一排 HBM，數量對稱 —— 這一格就是把「並排」講死。'] })}
       ${note({ side: 'r', order: 0, warn: true, title: '★ 誰做的（結論）', lines: ['台股沒有 HBM 顆粒廠（實際上是 SK hynix／Micron／Samsung）；唯一具名的位置是 base die —— SK hynix 的 HBM4 base die 採 2330 台積電 12 奈米邏輯製程（來源：產業媒體，2026）。逐段的章與名單見下面第 ③ 段。'] })}
       ${note({ side: 'r', order: 98, title: '示意圖，非實物比例', lines: ['層厚、孔徑與凸塊尺寸均為誇張放大；堆疊層數為示意，實際層數依世代而定。', '本圖講「HBM 那一疊裡面是什麼」；HBM 被放進封裝的完整樣子見「IC 封裝剖析」那張。'] })}
       ${note({ side: 'l', order: 99, title: '為什麼點零件列出來的是外商', lines: ['供應鏈資料的「HBM」環節底下只有外商，所以點零件列出來的是外商，這是刻意的 —— 台股在那一層是空的，而那正是這張圖要講的事。'] })}

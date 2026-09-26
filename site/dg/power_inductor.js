@@ -267,6 +267,13 @@
   }
 
   /* ================================================================ 整張圖 */
+  const ISAT_HD = D.para(0, 0, '電感的規格要看兩個電流，不是一個', 278, { cls: 'hd', fs: 18.5, lh: 21 });
+  const ISAT_P = D.para(352, 732 + ISAT_HD.h - 21 + 20, [
+    { t: '飽和電流 Isat ＝ 電感值掉到規定幅度（常見 10%／20%／30%）時的電流。' },
+    { t: '溫升電流 Irms ＝ 讓零件溫度升高一個規定值（功率電感常用 40°C，常見值）的直流電流。' },
+    { t: '★ 兩個數字通常不一樣，小的那一個才是天花板。', style: 'fill:var(--dg-warn)' },
+    { t: '來源：磁性元件原廠應用手冊（門檻與溫升基準各家不同）', cls: 'cap' }], 278, { lh: 17 });
+  const ISAT_H = (ISAT_P.y - 708) + 2;
   function passiveRLC() {
     const rowsA = [
       { id: 'ind_body', ax: 66, ay: 338, t: '金屬磁粉壓製的本體', s1: '磁芯與外殼是同一塊，繞組直接', s2: '壓在粉裡；比鐵氧體更耐大電流' },
@@ -280,12 +287,12 @@
       { id: 'res_substrate', seg: SEG_R, ax: 390, ay: 366, t: '氧化鋁陶瓷基板', s1: '整顆零件的底，也是散熱的路；', s2: '上面的每一層都印在它身上' },
       { id: 'res_film', seg: SEG_R, ax: 410, ay: 333, t: '電阻膜（釕系厚膜）', s1: '網印上去再燒結，兩端壓在電極', s2: '上（是重疊，不是頭碰頭對接）' },
       { id: 'res_trim', seg: SEG_R, ax: 500, ay: 328, t: '雷射修整溝 ← 它的身分證', s1: '印出來的阻值不會剛好，量完用', s2: '雷射切一道溝，把阻值往上修' },
-      { id: 'res_glass', seg: SEG_R, ax: 404, ay: 318, t: '玻璃保護層', s1: '修完才蓋上去，所以那道溝在它', s2: '底下 —— 溝露在最外面就是畫錯' },
+      { id: 'res_glass', seg: SEG_R, ax: 444, ay: 318,   /* ★ 2026-09-26：原本 404，跟 9 號（410,333）只差 16px，兩顆編號疊在一起 → 沿玻璃層右移 */ t: '玻璃保護層', s1: '修完才蓋上去，所以那道溝在它', s2: '底下 —— 溝露在最外面就是畫錯' },
       { id: 'res_term3', seg: SEG_R, ax: 364, ay: 350, t: '端電極三層（Cu／Ni／Sn）', s1: '由內到外；Ni 擋焊料侵蝕、Sn 幫', s2: '助焊接。原理見 MLCC 那張' },
       { id: 'shunt_alloy', seg: SEG_R, ax: 390, ay: 470, t: '另一種做法：合金檢流電阻', s1: '整片金屬合金當電阻體，沒有陶', s2: '瓷基板；四個接點分開走電流與量壓' },
     ];
     const rowsC = [
-      { id: 'xtal_blank', ax: 736, ay: 381, t: '石英晶片（AT 切薄片）', s1: '從人工培養的石英上依特定角度', s2: '切下來；AT 切約 35°15′（US6629342）' },
+      { id: 'xtal_blank', ax: 752, ay: 383,   /* ★ 2026-09-26：原本 736，跟 16 號（727,392）疊在一起 → 沿石英片右移（仍在電極外側的裸晶片上） */ t: '石英晶片（AT 切薄片）', s1: '從人工培養的石英上依特定角度', s2: '切下來；AT 切約 35°15′（US6629342）' },
       { id: 'xtal_elec', ax: 784, ay: 374, t: '激發電極（上下對齊）', s1: '上下兩面各一片，中央對齊；靠它', s2: '把電壓變成機械振動' },
       { id: 'xtal_mount', ax: 727, ay: 392, t: '只靠同一端的兩點架著', s1: '四周都不能碰到東西 —— 碰到就', s2: '振不動。支撐點數量為示意' },
       { id: 'xtal_cavity', ax: 760, ay: 358, t: '密封的空腔（裡面是空的）', s1: '封不住，頻率就跟著環境跑掉；', s2: '這一格填的是畫布底色，不是材料' },
@@ -315,7 +322,7 @@
         ax: o.ax, ay: o.ay, title: r.t, sub: [r.s1, r.s2].filter(Boolean) });
     }).join('');
 
-    return `<svg class="dg dgm rs dgrlc" viewBox="0 0 ${CW} 878" width="100%" style="display:block">${D.STYLE}
+    return `<svg class="dg dgm rs dgrlc" viewBox="0 0 ${CW} ${Math.max(878, Math.ceil(708 + ISAT_H + 16))}" width="100%" style="display:block">${D.STYLE}
       <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>      <style>
         /* ⚠ 這一段是 SVG 裡的 style，瀏覽器把它當標記解析 —— 連註解裡都不准出現角括號
            （DECISIONS #231：寫一個像標籤的東西進去，整張樣式表會變成 0 條規則）。
@@ -371,15 +378,11 @@
       <g transform="translate(${DXC},${DYC})">${drawC()}</g>
 
       ${ruler(338, 576)}
-      <rect class="frame" x="338" y="708" width="306" height="154" rx="9"/>
-      <text class="hd" x="352" y="732">電感的規格要看兩個電流，不是一個</text>
-      <text class="sub" x="352" y="752">飽和電流 Isat ＝ 電感值掉到規定幅度</text>
-      <text class="sub" x="352" y="769">（常見 10%／20%／30%）時的電流。</text>
-      <text class="sub" x="352" y="786">溫升電流 Irms ＝ 讓零件溫度升高一個</text>
-      <text class="sub" x="352" y="803">規定值（功率電感常用 40°C，常見值）</text>
-      <text class="sub" x="352" y="820">的直流電流。</text>
-      <text class="sub" x="352" y="838" style="fill:var(--dg-warn)">★ 兩個數字通常不一樣，小的那一個才是天花板。</text>
-      <text class="cap" x="352" y="854">來源：磁性元件原廠應用手冊（門檻與溫升基準各家不同）</text>
+      <!-- ★ 2026-09-26 覆蓋普查（scripts/_dg_overlap.py）：這一框原本照 12px 寫死斷行，最後兩行在 306 寬的框裡
+           閱讀模式伸出框 73px、伸出畫布 58px。改成交給 D.para 照最壞字寬斷行，框高照內容長；字一個都沒刪。 -->
+      <rect class="frame" x="338" y="708" width="306" height="${ISAT_H}" rx="9"/>
+      ${D.para(352, 732, '電感的規格要看兩個電流，不是一個', 278, { cls: 'hd', fs: 18.5, lh: 21 }).svg}
+      ${ISAT_P.svg}
 
       <!-- ================= 說明卡片（HTML）：左欄＝舞台＋欄 A＋欄 C，右欄＝欄 B ＋ 結論 =================
            每一張卡片的 data-part 都跟畫布上的零件**同一個字串**（改造前後逐字比對過），

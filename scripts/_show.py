@@ -35,8 +35,10 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SITE = ROOT / "site"
-OUT = ROOT / "docs" / "_show"
+# ★ 2026-09-26 覆蓋普查：要拍「修改前」的對照圖，得能指向另一份網站快照（例如舊版 commit 的 site/）；
+#   輸出資料夾也要能分開，不然拍「修改後」時會把「修改前」清掉。兩個都沒設就跟以前一樣。
+SITE = Path(os.environ.get("TW_SHOW_SITE") or (ROOT / "site"))
+OUT = Path(os.environ.get("TW_SHOW_OUT") or (ROOT / "docs" / "_show"))
 PORT = int(os.environ.get("TW_SHOW_PORT", "8767"))
 
 
@@ -92,6 +94,8 @@ def main() -> int:
     ap.add_argument("--zoom", type=float, default=1, help="裝置縮放；要看細節就開 2~3")
     ap.add_argument("--full", action="store_true", help="整頁截圖（版面問題用這個）")
     ap.add_argument("--tag", default="", help="檔名前綴，方便一次比較好幾版")
+    ap.add_argument("--expand-folds", action="store_true",
+                    help="截圖前把剖析圖所有收合段落展開（覆蓋普查的前後對照要看展開後的段落）")
     ap.add_argument("--ls", default="",
                     help="進頁面前先寫好的 localStorage，逗號分隔的 key=value，"
                          "例如 tw.side=0,tw.theme=light。"
@@ -132,6 +136,10 @@ def main() -> int:
                         pg.wait_for_timeout(900)
                     except Exception as exc:  # noqa: BLE001
                         errs.append(f"點不到 {sel}：{str(exc)[:80]}")
+                if args.expand_folds:
+                    pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold[data-fold], #themeDiagram g.dgfold[data-fold]')"
+                                ".forEach(g => g.dispatchEvent(new MouseEvent('click', { bubbles: true })))")
+                    pg.wait_for_timeout(900)
                 name = f"{args.tag + '-' if args.tag else ''}{args.view.replace('/', '_')}-{w}.png"
                 path = OUT / name
                 if args.sel:
