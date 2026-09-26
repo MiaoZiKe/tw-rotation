@@ -3525,7 +3525,7 @@
     const groupLinks = (m.groups || []).map(gn => A.L.groupByName(gn)).join(' ');
     const themeLinks = A.L.themesOf(m.code);
     const TIER = { full: ['分 K 完整', 'cyan', '15 分／1 小時／4 小時分 K 每日盤後由 Yahoo 補入'],
-                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線與多週期判讀都正常'],
+                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線正常；AI 分析的 1 小時／4 小時會寫無資料'],
                    thin: ['資料回補中', 'amber', '歷史價量還在回補，目前只有最近幾天的日線'] };
     const tier = TIER[(m.tier || 'daily')] || TIER.daily;
     el.innerHTML = `
