@@ -3894,8 +3894,12 @@ def t_new_industry(pg, base):
                return { right: rs.left >= rg.right - 2, below: rs.top >= rg.bottom - 2,
                         h: Math.round(rs.height), side: s.classList.contains('relside') }; }""")
         if vw > 1100:
-            ok(f"{vw}px 資訊欄是排在關聯圖旁邊的（不是擠在圖下面）",
-               bool(beside) and beside["right"] and beside["side"], beside)
+            # ★ 2026-09-26 晚改前→改後（Andy：「點選族群（環節）時，不會動到關聯圖版面」）：
+            #   改前：資訊欄排在關聯圖右邊的第二欄（會把圖擠窄重排）。
+            #   改後：資訊欄住在浮在圖上的說明卡裡，不蓋到剛點的日月光投控那一格。
+            ov = pg.evaluate(OV_CARD, seg3711)
+            ok(f"{vw}px 資訊欄浮在關聯圖上（不是擠在圖下面），而且沒有蓋到剛點的那一格",
+               bool(beside) and beside["side"] and bool(ov) and ov["pos"] == "absolute" and ov["overMap"] and ov["covers"] == 0, {"beside": beside, "ov": ov})
         else:
             ok(f"{vw}px 窄畫面資訊欄掉到圖下面，但仍然看得到內容",
                bool(beside) and beside["below"] and beside["h"] > 80, beside)
@@ -8100,7 +8104,11 @@ def t_relpanel(pg, base):
         ok("每一條推論都附了佐證連結（事實不強迫附）", gs["src"] == gs["n"], gs)
     else:
         fails.append("金像電的下游應該有推論標記，卻一條都沒有")
-    ok("寬螢幕時面板在圖的旁邊，不是擠在下面", st["side"] and st["beside"], st)
+    # ★ 2026-09-26 晚改前→改後：「面板在圖的旁邊（圖右緣之外）」→「面板浮在圖上、不蓋到台積電那一格」
+    #   （Andy：「點選族群（環節）時，不會動到關聯圖版面」—— 說明卡改成浮在關聯圖上的覆蓋層）
+    ovp = pg.evaluate(OV_CARD, "foundry")
+    ok("寬螢幕時面板浮在關聯圖上（不是擠在下面），而且沒有蓋到被點的晶圓代工那一格",
+       st["beside"] and bool(ovp) and ovp["pos"] == "absolute" and ovp["overMap"] and ovp["covers"] == 0, {"st": st, "ov": ovp})
 
     # ---- 真的按 highlight：圖上的線要變
     # 2026-09-25：先把滑鼠移開圖 —— _cg_open_stock 用真滑鼠點公司，游標若還停在節點上，
@@ -12420,8 +12428,11 @@ def t_rel_list(pg, base):
         pg.keyboard.press("Escape")
         pg.wait_for_timeout(250)
         ok(f"{L} 右欄長出來、只列這一格（{s1['onSec']}）", s1["colVis"] and s1["onSec"] == [seg], s1)
-        ok(f"{L} 右欄在圖的右邊、與圖等高（差 ≤ 3px）",
-           s1["col"]["l"] >= s1["map"]["r"] - 2 and abs(s1["col"]["h"] - s1["map"]["h"]) <= 3, s1)
+        # ★ 2026-09-26 晚改前→改後（Andy：「點選族群（環節）時，不會動到關聯圖版面」）：
+        #   改前：「右欄在圖的右邊、與圖等高（差 ≤ 3px）」—— 選一格會把圖擠窄重排。
+        #   改後：說明卡浮在圖上（在圖框的左右範圍內），圖的寬度跟選之前一樣。
+        ok(f"{L} 說明卡浮在圖上（在圖框左右範圍內），圖的寬度沒被擠窄（{s0['map']['w']} → {s1['map']['w']}）",
+           s1["col"]["l"] >= s1["map"]["l"] - 1 and s1["col"]["l"] < s1["map"]["r"] and abs(s1["map"]["w"] - s0["map"]["w"]) <= 1, s1)
         ok(f"{L} 右欄列得出族群與個股（{s1['groups']} 個族群、{s1['rows']} 檔）",
            s1["groups"] >= 1 and s1["rows"] >= 1, s1)
         rows = pg.evaluate("""() => [...document.querySelectorAll('#relList .rlseg.on .rlco')].map(a => ({
@@ -12498,10 +12509,11 @@ def t_rel_list(pg, base):
         cb = pg.evaluate("""() => { const b = document.getElementById('coBox'), m = document.getElementById('chainMap');
             if (!b) return null; const r = b.getBoundingClientRect(), mr = m.getBoundingClientRect();
             const l = document.getElementById('relList').getBoundingClientRect();
-            return { inStick: !!b.closest('.relstick'), right: r.left >= mr.right - 2, h: Math.round(r.height),
+            return { inStick: !!b.closest('.relstick'), right: r.left >= mr.left - 1 && r.right <= mr.right + 1, h: Math.round(r.height),
                      listH: Math.round(l.height), above: r.bottom <= l.top + 2,
                      rows: [...document.querySelectorAll('#relList .rlseg.on .rlco')].length }; }""")
-        if ok(f"{L} 點圖上的公司卡（{code0}）→ 資訊欄開在圖的右邊", bool(cb) and cb["inStick"] and cb["right"], cb):
+        # 2026-09-26 晚改前→改後：「資訊欄開在圖的右邊」→「資訊欄住在浮動說明卡裡、浮在圖框範圍內」（right 這個鍵改量「在圖框內」）
+        if ok(f"{L} 點圖上的公司卡（{code0}）→ 資訊欄開在浮動說明卡裡（浮在圖框範圍內）", bool(cb) and cb["inStick"] and cb["right"], cb):
             ok(f"{L} 資訊欄開著時，它那一格的族群清單還看得到（疊在下面）",
                cb["listH"] >= 100 and cb["above"] and cb["rows"] > 0, cb)
             sel2 = pg.evaluate("() => (document.querySelector('#segChips .segchip.sel') || {dataset:{}}).dataset.seg")
@@ -12520,7 +12532,9 @@ def t_rel_list(pg, base):
            f1["map"]["hidden"] and f1["list"]["h"] >= 100 and f1["rows"] > 0, f1)
         click(pg, "#relFold", 1400)
         f2 = pg.evaluate(RL_STATE)
-        ok(f"{L} 再展開 → 右欄回到與圖等高", not f2["map"]["hidden"] and abs(f2["col"]["h"] - f2["map"]["h"]) <= 3, f2)
+        # 2026-09-26 晚改前→改後：「再展開 → 右欄回到與圖等高」→「再展開 → 說明卡回到浮在圖上（不超出圖框底）」
+        ok(f"{L} 再展開 → 說明卡回到浮在圖上（頂在圖框內、不超出圖框底）", not f2["map"]["hidden"] and f2["colVis"]
+           and f2["col"]["t"] >= f2["map"]["t"] - 1 and f2["col"]["t"] + f2["col"]["h"] <= f2["map"]["t"] + f2["map"]["h"] + 1, f2)
 
         # ---- ★ 2026-09-26 改前→改後（Andy：「刪除流向圖」）：
         #   改前：按「流向圖」→ 下拉與右欄照樣在、滑過環節方塊有寬說明框，再切回分層圖。
@@ -14303,6 +14317,10 @@ SECTIONS = {
     "剖析圖卡片收回":      lambda pg, b, base, code: t_dgcollapse(pg, base),
     # ★ 2026-09-26 Andy：「點擊背景後說明欄會消失」—— 關聯圖右欄說明卡／公司資訊欄／環節詳情點背景、Esc 收回並取消高亮
     "關聯圖說明卡點背景收回": lambda pg, b, base, code: t_rel_dismiss(pg, base),
+    # ★ 2026-09-26 晚 Andy：「收合 展開合併」＋「點選環節時不會動到關聯圖版面，點右邊資訊顯示在左側」
+    "關聯圖切換鈕與浮動卡": lambda pg, b, base, code: t_chainmap_overlay(pg, base),
+    # ★ 2026-09-26 晚 Andy：「點擊後出現位置跑掉」—— 全市場族群長條下鑽／回到族群不准橫向偏移
+    "全市場族群下鑽不偏移": lambda pg, b, base, code: t_gp_drill_pos(pg, base),
     # ★ 2026-09-26 Andy：「切回 2D 時，顯示 2D，不要都 3D」—— 剖析圖 2D｜3D 分段鈕、記住最後選的模式（⚠ 一律 --workers 1）
     "剖析圖2D3D分段鈕":    lambda pg, b, base, code: t_dg_2d3d(pg, base),
     # ★ 2026-09-26 Andy：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」（⚠ 一律 --workers 1）
@@ -23645,8 +23663,12 @@ def t_b25_tags(pg, base):
             if ok(f"[{cname} {w}px] 點個股標籤之後資訊欄真的出現，而且寫的是這一檔（{codes[0]}）",
                   bool(s1) and s1["h"] > 60 and codes[0] in s1["txt"], s1):
                 if w >= 1100:
-                    ok(f"[{cname} {w}px] 資訊欄排在圖的**右邊**（Andy：「右側會顯示對應訊息」）",
-                       s1["side"] and s1["left"] > s1["mapLeft"] + 100, s1)
+                    # ★ 2026-09-26 晚改前→改後：「資訊欄排在圖的右邊」→「資訊欄浮在圖上、貼在被點那一格的另一邊、不蓋到它」
+                    #   （Andy：「點最右邊的族群，資訊會顯示在左側，同理顯示右側」）
+                    segc = pg.evaluate(f"() => (document.querySelector('#chainMap .co[data-code=\"{codes[0]}\"]') || {{dataset:{{}}}}).dataset.segment || null")
+                    ovt = pg.evaluate(OV_CARD, segc)
+                    ok(f"[{cname} {w}px] 資訊欄浮在圖上、而且沒有蓋到被點的那一格（Andy：「點右邊的資訊顯示在左側」）",
+                       s1["side"] and bool(ovt) and ovt["pos"] == "absolute" and ovt["overMap"] and ovt["covers"] == 0, {"s1": s1, "ov": ovt})
                 else:
                     ok(f"[{cname} {w}px] 窄畫面資訊欄掉到圖的**下方**（並排會把圖擠到看不清）",
                        s1["top"] > s1["mapTop"], s1)
@@ -31635,6 +31657,209 @@ def t_rel_dismiss(pg, base):
             s10 = pg.evaluate(REL_ST)
             ok(f"{T} 下拉選的那一格，點背景一樣收", bool(pt) and not s10["on"] and s10["dim"] == 0, {**s10, "blank": pt})
     pg.evaluate("(v) => { try { ['tw.relOpen','tw.relView','tw.side'].forEach((k, i) => v[i] == null ? localStorage.removeItem(k) : localStorage.setItem(k, v[i])); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
+# ===================================================================== 2026-09-26 晚：關聯圖切換鈕＋浮動說明卡
+# Andy 原話：①「收合 展開合併」；②「幫我設計當點選族群（環節）時，不會動到關聯圖版面，
+#   例如我點最右邊的族群，資訊會顯示在左側，同理顯示右側」。
+# 改前：「全部收合」「全部展開」兩顆鈕並排；點環節 → 格線切成「圖｜右欄」兩欄，圖的容器縮窄、整張重排。
+# 改後：一顆切換鈕（文字＝按下去會發生的事）；說明卡浮在圖上（position:absolute），圖的寬度與每一個節點的位置不動，
+#   被點的環節在右半邊 → 卡片貼左、左半邊 → 貼右，卡片不蓋被點的那一格；點背景收起。
+# 每一條都是真的點，再量畫面變了什麼（或該不變的真的沒變）。
+OV_GEOM = """() => { const m = document.getElementById('chainMap'); if (!m) return null; const mr = m.getBoundingClientRect();
+  const rel = (e) => { const r = e.getBoundingClientRect(); return [Math.round((r.left - mr.left) * 10) / 10, Math.round((r.top - mr.top) * 10) / 10]; };
+  return { w: Math.round(mr.width * 10) / 10, h: Math.round(mr.height * 10) / 10, l: mr.left, r: mr.right, t: mr.top, b: mr.bottom,
+    nodes: [...m.querySelectorAll('.segtitle, .co')].map(e => (e.dataset.seg || e.dataset.id) + '@' + rel(e).join(',')),
+    docW: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, sx: scrollX }; }"""
+# 說明卡現在在哪、有沒有蓋到 sel 指的那一塊（被點的環節標題＋它底下的公司）
+OV_CARD = """(seg) => { const c = document.querySelector('#relMain .relcol'), m = document.getElementById('chainMap');
+  if (!c || !m) return null; const cr = c.getBoundingClientRect(), mr = m.getBoundingClientRect();
+  const vis = cr.width > 1 && cr.height > 1 && getComputedStyle(c).display !== 'none';
+  const hit = (a, b) => a.right > b.left + 1 && a.left < b.right - 1 && a.bottom > b.top + 1 && a.top < b.bottom - 1;
+  const own = seg ? [...m.querySelectorAll(`.segtitle[data-seg="${seg}"], .co[data-segment="${seg}"]`)] : [];
+  const t = seg ? m.querySelector(`.segtitle[data-seg="${seg}"]`) : null, tr = t ? t.getBoundingClientRect() : null;
+  return { vis, pos: getComputedStyle(c).position, side: c.dataset.side || '', seg: c.dataset.seg || '',
+    card: [cr.left, cr.top, cr.right, cr.bottom].map(Math.round), map: [mr.left, mr.top, mr.right, mr.bottom].map(Math.round),
+    inFrameX: cr.left >= mr.left - 1 && cr.right <= mr.right + 1, overMap: hit(cr, mr),
+    cardMid: (cr.left + cr.right) / 2, segMid: tr ? (tr.left + tr.right) / 2 : null, mapMid: (mr.left + mr.right) / 2,
+    covers: own.filter(e => hit(cr, e.getBoundingClientRect())).length, own: own.length,
+    onSec: [...document.querySelectorAll('#relList .rlseg.on')].filter(x => x.getClientRects().length).map(x => x.dataset.seg) }; }"""
+FT_STATE = """() => { const m = document.getElementById('chainMap'); const bs = m ? [...m.querySelectorAll('.foldbar button')] : [];
+  let ls = null; try { ls = localStorage.getItem('tw.chainFold'); } catch (e) {}
+  return { n: bs.length, txt: bs.map(b => b.textContent.trim()), fold: bs.map(b => b.dataset.fold),
+    cards: m ? m.querySelectorAll('.co:not(.chip)').length : 0, chips: m ? m.querySelectorAll('.co.chip').length : 0,
+    folded: m ? [...m.querySelectorAll('.segfold')].filter(f => f.dataset.folded === '1').length : 0,
+    folds: m ? m.querySelectorAll('.segfold').length : 0, ls }; }"""
+
+
+def _ov_moved(a, b):
+    """兩次 OV_GEOM 之間，節點（相對圖框）的最大位移（px）。節點集合不一樣就回 999。"""
+    pa = dict(x.split("@") for x in a["nodes"])
+    pb = dict(x.split("@") for x in b["nodes"])
+    if set(pa) != set(pb):
+        return 999
+    mx = 0.0
+    for k, v in pa.items():
+        x1, y1 = map(float, v.split(","))
+        x2, y2 = map(float, pb[k].split(","))
+        mx = max(mx, abs(x1 - x2), abs(y1 - y2))
+    return mx
+
+
+def t_chainmap_overlay(pg, base):
+    """① 收合／展開合併成一顆切換鈕；② 點環節／公司的說明卡浮在圖上、不動關聯圖版面（1440／1100／860）。"""
+    pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    keep = pg.evaluate("() => { try { return ['tw.chainFold','tw.relOpen','tw.side'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null]; } }")
+    # ---------------- ① 一顆切換鈕
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.chainFold'); localStorage.setItem('tw.relOpen','1'); localStorage.setItem('tw.side','0'); } catch (e) {} }")
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+    pg.evaluate("() => { const r = document.getElementById('relSec'); if (r) r.scrollIntoView({ block: 'start', behavior: 'instant' }); }")
+    if not wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 10", 10000):
+        ok("[切換鈕] 關聯圖畫得出來", False, "10 秒內沒有公司節點"); return
+    pg.wait_for_timeout(400)
+    f0 = pg.evaluate(FT_STATE)
+    ok("[切換鈕] 改前兩顆（全部收合＋全部展開）→ 改後只剩一顆", f0["n"] == 1, f0)
+    ok("[切換鈕] 預設全部收合時，鈕上寫「全部展開」（按下去會發生的事）", f0["txt"] == ["全部展開"] and f0["chips"] > 20 and f0["cards"] == 0, f0)
+    click(pg, "#chainMap .foldbar button", 800)
+    f1 = pg.evaluate(FT_STATE)
+    ok("[切換鈕] 按一下 → 真的全部展開（標籤全變大卡、張數不變）", f1["chips"] == 0 and f1["cards"] == f0["chips"] and f1["folded"] == 0, {"前": f0, "後": f1})
+    ok("[切換鈕] 全部展開之後，同一顆鈕的字換成「全部收合」、而且還是只有一顆", f1["n"] == 1 and f1["txt"] == ["全部收合"], f1)
+    ok("[切換鈕] 狀態真的寫進 localStorage（tw.chainFold 的 def=false）", bool(f1["ls"]) and '"def":false' in f1["ls"], f1["ls"])
+    # 只收一個環節 → 「有任何收合」＝鈕要寫「全部展開」
+    seg = pg.evaluate("() => { const f = document.querySelector('#chainMap .segfold'); return f ? f.dataset.seg : null; }")
+    if ok("[切換鈕] 找得到單一環節的 ▾", bool(seg), seg):
+        click(pg, f'#chainMap .segfold[data-seg="{seg}"]', 800)
+        f2 = pg.evaluate(FT_STATE)
+        ok(f"[切換鈕] 只收合一個環節（{seg}）→ 鈕上改寫「全部展開」", f2["folded"] == 1 and f2["txt"] == ["全部展開"], f2)
+        click(pg, "#chainMap .foldbar button", 800)
+        f3 = pg.evaluate(FT_STATE)
+        ok("[切換鈕] 這時按下去 → 全部展開（那一格也展開了），鈕又寫回「全部收合」",
+           f3["folded"] == 0 and f3["chips"] == 0 and f3["txt"] == ["全部收合"], f3)
+    click(pg, "#chainMap .foldbar button", 800)
+    f4 = pg.evaluate(FT_STATE)
+    ok("[切換鈕] 再按一下 → 真的全部收合（全是個股標籤），鈕寫「全部展開」",
+       f4["cards"] == 0 and f4["chips"] == f0["chips"] and f4["folded"] == f4["folds"] and f4["txt"] == ["全部展開"], f4)
+    ok("[切換鈕] 說明文字還在（收合＝只留個股標籤；▸／▾ 單獨切換）",
+       pg.evaluate("() => { const s = document.querySelector('#chainMap .foldbar .sub'); return !!s && s.textContent.includes('個股標籤') && s.textContent.includes('▸'); }"))
+
+    # ---------------- ② 浮動說明卡
+    for w in (1440, 1100, 860):
+        T = f"[浮動卡 {w}]"
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+        pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
+        pg.evaluate("() => { const r = document.getElementById('relSec'); if (r) r.scrollIntoView({ block: 'start', behavior: 'instant' }); }")
+        if not wait_until(pg, "() => document.querySelectorAll('#chainMap .segtitle').length > 3", 10000):
+            ok(f"{T} 關聯圖畫得出來", False); continue
+        pg.wait_for_timeout(500)
+        g0 = pg.evaluate(OV_GEOM)
+        # 挑最右邊與最左邊、而且有台股的環節（標題中心在圖框的右半／左半）
+        segs = pg.evaluate("""() => { const m = document.getElementById('chainMap'), mr = m.getBoundingClientRect(), mid = (mr.left + mr.right) / 2;
+            return [...m.querySelectorAll('.segtitle')].filter(t => m.querySelector(`.co[data-segment="${t.dataset.seg}"][data-code]:not([data-code=""])`))
+              .map(t => { const r = t.getBoundingClientRect(); return { seg: t.dataset.seg, c: (r.left + r.right) / 2 - mid }; }); }""")
+        rs = sorted([s for s in segs if s["c"] > 0], key=lambda s: -s["c"])
+        ls_ = sorted([s for s in segs if s["c"] < 0], key=lambda s: s["c"])
+        if not ok(f"{T} 圖的左右兩半都找得到有台股的環節", bool(rs) and bool(ls_), segs):
+            continue
+        for label, s, want in (("最右邊", rs[0]["seg"], "left"), ("最左邊", ls_[0]["seg"], "right")):
+            click(pg, f"#chainMap .segtitle[data-seg='{s}']", 800)
+            g1 = pg.evaluate(OV_GEOM)
+            c1 = pg.evaluate(OV_CARD, s)
+            if not ok(f"{T} 點{label}的環節（{s}）→ 說明卡出現、列的是這一格", bool(c1) and c1["vis"] and c1["onSec"] == [s], c1):
+                continue
+            ok(f"{T} 點{label}的環節 → 說明卡浮在圖上（absolute、在圖框的左右範圍內）",
+               c1["pos"] == "absolute" and c1["overMap"] and c1["inFrameX"], c1)
+            ok(f"{T} 點{label}的環節 → 卡片貼在圖框{'左' if want == 'left' else '右'}側",
+               c1["side"] == want and ((c1["cardMid"] < c1["mapMid"]) if want == "left" else (c1["cardMid"] > c1["mapMid"])), c1)
+            ok(f"{T} 點{label}的環節 → 卡片沒有蓋到被點的那一格（標題＋底下 {c1['own']} 個節點，蓋到 {c1['covers']} 個）",
+               c1["covers"] == 0 and c1["own"] > 1, c1)
+            ok(f"{T} 點{label}的環節 → 關聯圖寬度沒變（{g0['w']} → {g1['w']}）", abs(g1["w"] - g0["w"]) <= 1, {"前": g0["w"], "後": g1["w"]})
+            mv = _ov_moved(g0, g1)
+            ok(f"{T} 點{label}的環節 → 每一個環節與公司節點（相對圖框）的位置都沒動（最大位移 {mv}px ≤ 1）", mv <= 1, mv)
+            ok(f"{T} 點{label}的環節 → 整頁沒有橫向捲軸、scrollX＝0", g1["docW"] <= g1["cw"] and g1["sx"] == 0, g1 and {k: g1[k] for k in ("docW", "cw", "sx")})
+            # 點卡片本身不收（dismissable 的例外）；點背景收
+            click(pg, "#relList .rlseg.on .rlsh b", 500)
+            ok(f"{T} 點說明卡本身不會收掉", pg.evaluate(OV_CARD, s)["vis"])
+            pt = _rel_blank_click(pg)
+            c2 = pg.evaluate(OV_CARD, s)
+            if ok(f"{T} 關聯圖上找得到空白背景可以點", bool(pt), pt):
+                ok(f"{T} 點背景 → 說明卡收起來、高亮取消", not c2["vis"] and not c2["onSec"]
+                   and pg.evaluate("() => document.querySelectorAll('#chainMap .co.dim').length") == 0, c2)
+            g2 = pg.evaluate(OV_GEOM)
+            ok(f"{T} 收起來之後圖的寬度與節點位置一樣沒動", abs(g2["w"] - g0["w"]) <= 1 and _ov_moved(g0, g2) <= 1, _ov_moved(g0, g2))
+            pg.evaluate("() => { const r = document.getElementById('relSec'); if (r) r.scrollIntoView({ block: 'start', behavior: 'instant' }); }")
+            pg.wait_for_timeout(300)
+            g0 = pg.evaluate(OV_GEOM)          # 捲動過 → 以新的位置為基準（位置是相對圖框量的，捲動本來就不影響）
+        # 點右半邊的一家公司 → 公司資訊欄也浮在圖上、貼左、不蓋那張公司卡
+        code = pg.evaluate(f"""() => {{ const c = document.querySelector('#chainMap .co[data-segment="{rs[0]['seg']}"][data-code]:not([data-code=""])'); return c ? c.dataset.code : null; }}""")
+        if code:
+            pg.evaluate("() => { const b = document.getElementById('coBox'); if (b) b.remove(); }")
+            click(pg, f"#chainMap .co[data-code='{code}']", 900)
+            g3 = pg.evaluate(OV_GEOM)
+            c3 = pg.evaluate(OV_CARD, rs[0]["seg"])
+            box = pg.evaluate("() => { const b = document.getElementById('coBox'); return b ? { inStick: !!b.closest('.relstick'), h: Math.round(b.getBoundingClientRect().height) } : null; }")
+            ok(f"{T} 點右半邊的公司（{code}）→ 資訊欄出現、住在浮動卡裡", bool(box) and box["inStick"] and box["h"] > 60, box)
+            ok(f"{T} 點右半邊的公司 → 浮動卡貼左、不蓋到那一格（含那張公司卡）", c3["side"] == "left" and c3["covers"] == 0 and c3["overMap"], c3)
+            ok(f"{T} 點公司 → 關聯圖寬度與節點位置沒動", abs(g3["w"] - g0["w"]) <= 1 and _ov_moved(g0, g3) <= 1, {"w": [g0["w"], g3["w"]], "mv": _ov_moved(g0, g3)})
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+            ok(f"{T} 按 Esc → 資訊欄與浮動卡一起收", not pg.evaluate(OV_CARD, None)["vis"] and not pg.evaluate("() => !!document.getElementById('coBox')"))
+    pg.evaluate("(v) => { try { ['tw.chainFold','tw.relOpen','tw.side'].forEach((k, i) => v[i] == null ? localStorage.removeItem(k) : localStorage.setItem(k, v[i])); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
+# ===================================================================== 2026-09-26 晚：全市場族群下鑽不偏移
+# Andy 原話：「點擊後出現位置跑掉，請處理」—— 產業地圖「全市場」分頁點「族群漲跌幅」長條進到某族群個股之後，
+#   整頁往左偏、左邊被切掉（標題只剩半截、分頁「全市場」的「全」不見）。
+# 驗：四種寬度點進去、再按「← 回到族群」，scrollX 必須是 0、documentElement.scrollWidth ≤ clientWidth、
+#   標題與第一個分頁的左緣都在畫面內；另外甜甜圈的圓心要在容器正中（改前：5 檔時上半截被切掉）。
+GP_POS = """() => { const d = document.documentElement, t = document.getElementById('gpTitle'), tab = document.querySelector('#chainSwitch button');
+  const pe = document.getElementById('gpPie'), pi = window.echarts && pe && echarts.getInstanceByDom(pe);
+  let cy = null; try { const o = pi.getOption(); cy = o.series[0].center[1]; } catch (e) {}
+  return { sx: scrollX, sw: d.scrollWidth, cw: d.clientWidth, bsl: document.body.scrollLeft,
+    titleL: t ? Math.round(t.getBoundingClientRect().left) : null, title: t ? t.innerText : '',
+    tabL: tab ? Math.round(tab.getBoundingClientRect().left) : null,
+    back: !!document.querySelector('#gpBack:not([hidden])'),
+    pieH: pe ? pe.clientHeight : 0, instH: pi ? pi.getHeight() : 0, cy }; }"""
+
+
+def t_gp_drill_pos(pg, base):
+    for w in (1440, 1100, 800, 390):
+        T = f"[族群下鑽 {w}]"
+        pg.set_viewport_size({"width": w, "height": 900})
+        pg.goto("about:blank"); pg.goto(f"{base}#industry", wait_until="networkidle")
+        if not wait_until(pg, "() => { const e = document.getElementById('gpBar'); return !!(window.echarts && e && echarts.getInstanceByDom(e)); }", 8000):
+            ok(f"{T} 族群漲跌幅長條畫得出來", False); continue
+        pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
+        pg.evaluate("document.getElementById('gpBar').scrollIntoView({block:'center', behavior:'instant'})")
+        pg.wait_for_timeout(600)
+        p0 = pg.evaluate(GP_POS)
+        ok(f"{T} 點之前：沒有橫向捲軸、scrollX＝0", p0["sx"] == 0 and p0["sw"] <= p0["cw"], p0)
+        # 真的用滑鼠點一條長條（優先 HPC 與網通 IC，Andy 回報的就是它）
+        pt = pg.evaluate("""() => { const el = document.getElementById('gpBar'), c = echarts.getInstanceByDom(el), o = c.getOption(), r = el.getBoundingClientRect();
+            const d = o.series[0].data; let k = d.findIndex(x => (x && x.name) === 'HPC 與網通 IC'); if (k < 0) k = 0;
+            const v = typeof d[k] === 'object' ? d[k].value : d[k];
+            const e = c.convertToPixel({ seriesIndex: 0 }, [v, k]), z = c.convertToPixel({ seriesIndex: 0 }, [0, k]);
+            return { x: r.left + (e[0] + z[0]) / 2, y: r.top + e[1], name: d[k].name }; }""")
+        pg.mouse.move(pt["x"], pt["y"]); pg.wait_for_timeout(200)
+        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1300)
+        p1 = pg.evaluate(GP_POS)
+        if not ok(f"{T} 點「{pt['name']}」長條 → 真的換成這個族群的個股（標題換了、出現「← 回到族群」）",
+                  p1["back"] and "這個族群的個股" in p1["title"] and pt["name"] in p1["title"], p1):
+            continue
+        ok(f"{T} 點進去之後 scrollX＝0、body 沒被捲走、沒有橫向捲軸（scrollWidth {p1['sw']} ≤ clientWidth {p1['cw']}）",
+           p1["sx"] == 0 and p1["bsl"] == 0 and p1["sw"] <= p1["cw"], p1)
+        ok(f"{T} 點進去之後標題與「全市場」分頁的左緣都在畫面內（沒有被切掉）",
+           p1["titleL"] is not None and p1["titleL"] >= 0 and (p1["tabL"] is None or p1["tabL"] >= 0), p1)
+        ok(f"{T} 甜甜圈的圓心在容器正中（圓心 {p1['cy']}、容器高 {p1['pieH']}；改前 5 檔時圓心偏上、上半截被切掉）",
+           p1["cy"] is not None and abs(float(p1["cy"]) - p1["pieH"] / 2) <= 2 and abs(p1["instH"] - p1["pieH"]) <= 1, p1)
+        click(pg, "#gpBack", 1200)
+        p2 = pg.evaluate(GP_POS)
+        ok(f"{T} 按「← 回到族群」→ 回到族群層級", not p2["back"] and "族群漲幅與占比" in p2["title"], p2)
+        ok(f"{T} 回到族群之後 scrollX＝0、沒有橫向捲軸、標題與分頁沒被切掉",
+           p2["sx"] == 0 and p2["bsl"] == 0 and p2["sw"] <= p2["cw"] and p2["titleL"] >= 0 and (p2["tabL"] is None or p2["tabL"] >= 0), p2)
+        ok(f"{T} 回到族群之後甜甜圈圓心也在正中", p2["cy"] is not None and abs(float(p2["cy"]) - p2["pieH"] / 2) <= 2, p2)
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
