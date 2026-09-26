@@ -605,9 +605,11 @@
 | 石英支撐 | 導電膠改成圓頂的一團＋底下鍍金墊 |
 | 石英片 | 邊緣研磨斜角（bevel），仍半透明 |
 
-⚠ **卡片與幾何的一處落差（待卡片負責人複查）**：`ind_wind` 的卡片寫「斷面是長方形（高 > 寬）」。
-查到的立繞定義是「扁平線的**短邊在內外周**、沿軸螺旋疊起」＝**徑向寬、軸向薄**（R1）。
-若卡片的「高」指沿軸方向，那句話跟立繞相反。本輪只改幾何（照查到的定義），卡片文字不在修改範圍。
+✔ **卡片與幾何的落差已收掉（2026-09-26 第二批查證）**：`ind_wind` 的 3D 卡片原本寫「斷面是長方形（高 > 寬）」，
+跟立繞的定義**相反** —— 立繞是扁平線的**長邊沿徑向、短邊朝內外周**（＝徑向寬、軸向薄，R1、R3），
+長邊平行於軸（寬面朝外）的那種叫**平繞（flatwise）**。已改成「斷面是橫躺的長方形（徑向寬、軸向薄）」；
+2D 卡片（`site/dg/power_inductor.js`）本來就寫「剖面是橫躺的長方形」，跟這個一致，沒動。
+卡片最後一句「一段一段拼成的環」也一併改成「一條連續的銅帶繞上去，兩端折到底面當端子」—— 第一批已經把幾何改成連續銅帶，舊句子跟畫面對不上。
 
 ⚠ Andy 的例子提到「石英音叉晶片形狀」：那是 32.768 kHz 的音叉型；本圖卡片寫的是 **AT 切**（MHz 級厚度剪切片），
 所以石英片維持長方片＋斜角，不畫成音叉 —— 畫成音叉就跟卡片矛盾。
@@ -617,4 +619,5 @@
 | 代號 | 事實 | 信心 | 來源 |
 |---|---|---|---|
 | R1 | 立繞：扁平線短邊在內外周、沿繞線軸螺旋疊起；線圈末端折彎與磁粉一起壓製成底部電極；金屬磁粉＋黏結劑模壓 | 中 | <https://product.tdk.com/en/techlibrary/productoverview/inductors_spm.html>、<https://www.codacainductor.com/Application-Note_2649> |
+| R3 | 立繞（edgewise）：扁平線**長邊沿徑向**、繞成螺旋；增加圈數不會加大線圈直徑。對照：平繞（flatwise）是寬面朝外、跟圓線繞法類似。三份獨立文件講法一致 | 高（兩份專利＋一家線圈廠技術文，彼此獨立） | <https://patents.google.com/patent/US20110273257A1/en>（摘要：long side of the cross section extends in the radial direction）、<https://patents.google.com/patent/US6007015A/en>（摘要：longer side made vertical to the axial line of the coil）、<https://www.kukcoils.com/world-of-induction/myths-facts-edgewise-windings>（摘要：flat wire 也可以 wound on the wide side，那不是 edgewise） |
 | R2 | SMD 石英：氧化鋁陶瓷底座、石英片、貴金屬電極、Ni+Au 焊墊、導電膠（Ag）支撐、金屬蓋縫焊密封 | 中 | <https://www.diodes.com/datasheet/download/FHQ.pdf>、<https://www.ctscorp.com/Files/Product-Marketing-Documents/Application-Notes/Passive-Components/Frequency-Control-Products/Crystals/CTS-Passive-Components-Frequency-Control-Crystal-Basics-Application-Note.pdf> |
