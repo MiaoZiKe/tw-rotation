@@ -203,6 +203,21 @@ def test_fetch_logo_robots_disallow_skips_google_too(monkeypatch):
     assert calls == ["https://www.x.com.tw/robots.txt"]          # 不准拿 Google 繞 robots
 
 
+def test_fetch_logo_robots_blocks_icon_directory_only(monkeypatch):
+    """robots 只擋 /images/：那個目錄的圖示不抓，改用 /favicon.ico。"""
+    calls = []
+    html = b'<link rel="apple-touch-icon" href="/images/apple.png">'
+    monkeypatch.setattr(http, "get_bytes", _web({
+        "https://www.x.com.tw/robots.txt": (200, b"User-agent: *\nDisallow: /images/\n", "text/plain"),
+        "https://www.x.com.tw/": (200, html, "text/html"),
+        "https://www.x.com.tw/images/apple.png": (200, _png(), "image/png"),
+        "https://www.x.com.tw/favicon.ico": (200, _png((48, 48), fmt="ICO", sizes=[(48, 48)]), "image/x-icon"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["url"] == "https://www.x.com.tw/favicon.ico"
+    assert "https://www.x.com.tw/images/apple.png" not in calls
+
+
 def test_fetch_logo_site_down_uses_google(monkeypatch):
     s2 = config.LOGO_GOOGLE_S2.format(domain="www.x.com.tw")
     monkeypatch.setattr(http, "get_bytes", _web({

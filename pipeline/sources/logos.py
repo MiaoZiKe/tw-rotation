@@ -300,25 +300,31 @@ def _get(url: str, **kw):
     return http.get_bytes(url, sess=_sess(), **kw)
 
 
-def robots_allows(root: str, page: str) -> bool:
-    """官網的 robots.txt 允不允許一般爬蟲（*）抓首頁。
+def robots_rules(root: str):
+    """讀官網的 robots.txt，回一個「這個網址能不能抓」的判斷函式。
 
-    robots.txt 抓不到（404／連線失敗）＝ 沒有限制；401／403 依 robotparser 的慣例視為全站禁止。
+    robots.txt 抓不到（404／連線失敗／內容不是規則）＝ 沒有限制；
+    401／403 依 robotparser 的慣例視為全站禁止。一律以一般爬蟲（*）的規則判斷。
+    首頁與每一個圖示網址都要過這一關（有的站只擋 /images/ 之類的目錄）。
     """
     res = _get(urljoin(root, "/robots.txt"), timeout=6, max_bytes=200_000)
     if res is None:
-        return True
+        return lambda url: True
     status, body, _ctype, _final = res
-    rp = RobotFileParser()
     if status in (401, 403):
-        return False
+        return lambda url: False
     if status != 200:
-        return True
+        return lambda url: True
+    rp = RobotFileParser()
     try:
         rp.parse(body.decode("utf-8", errors="replace").splitlines())
     except Exception:  # noqa: BLE001
-        return True
-    return rp.can_fetch("*", page)
+        return lambda url: True
+    return lambda url: rp.can_fetch("*", url)
+
+
+def robots_allows(root: str, page: str) -> bool:
+    return robots_rules(root)(page)
 
 
 def _try_image(url: str) -> tuple[bytes, tuple[int, int]] | LogoReject:
@@ -373,7 +379,8 @@ def _fetch_logo(website, host: str) -> dict:
     site_ok = False
     for home in homepage_candidates(website, host):
         root = home
-        if not robots_allows(root, home):
+        allowed = robots_rules(root)
+        if not allowed(home):
             return {"status": "robots", "domain": host,
                     "detail": f"{root}robots.txt 不允許抓首頁 —— 尊重它，也不走 Google 備援"}
         res = _get(home, timeout=10, max_bytes=2_000_000)
@@ -390,6 +397,7 @@ def _fetch_logo(website, host: str) -> dict:
             u = urljoin(origin, path)
             if all(c["url"] != u for c in cands):
                 cands.append({"url": u, "kind": "conventional", "px": 0})
+        cands = [c for c in cands if urlparse(c["url"]).netloc != urlparse(home).netloc or allowed(c["url"])]
         for c in cands[:5]:
             got = _try_image(c["url"])
             if isinstance(got, LogoReject):
