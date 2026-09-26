@@ -527,6 +527,8 @@ def select_todo(sites: pd.DataFrame, idx: dict, today: date, limit: int,
         row = {"code": code, "website": r.website, "domain": host}
         if rec is None:
             fresh.append(row)
+        elif rec.get("status") == "removed":
+            continue          # 人工下架的（見 docs/logo_sources.md「只移除某一家」），永遠不重抓
         elif base_domain(rec.get("domain")) != base_domain(host):
             changed.append(row)
         elif _due(rec, today):
@@ -663,7 +665,7 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
 
     write_index(idx)
     left = select_todo(sites, idx, today, 10 ** 9, priority)
-    dues = [d for d in (next_due(r) for r in items.values()) if d]
+    dues = [d for d in (next_due(r) for r in items.values() if r.get("status") != "removed") if d]
     summary.update(
         done=not left, pending=len(left), attempted=len(results),
         counts=counts, generic=n_generic, sites=len(sites),

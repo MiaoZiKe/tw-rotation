@@ -357,6 +357,17 @@ def test_run_disabled_does_not_fetch(sandbox, monkeypatch):
     assert st["skipped"] == "disabled"                     # backfill.yml 守門看這個不放行
 
 
+def test_removed_status_is_never_refetched(sandbox):
+    _seed_company([{"code": "2330", "name": "台積電", "market": "TWSE", "industry": "x",
+                    "website": "www.tsmc.com"}])
+    (config.DATA / "logos").mkdir(parents=True, exist_ok=True)
+    (config.DATA / "logos" / "_index.json").write_text(json.dumps({"items": {
+        "2330": {"status": "removed", "domain": "www.tsmc.com", "fetched": "2020-01-01"}}}))
+    calls = []
+    s = lg.run(today=date(2026, 9, 26), fetcher=_ok_fetcher(calls))
+    assert calls == [] and s["done"] is True and s["next_due"] is None
+
+
 def test_run_never_raises_on_broken_fetcher(sandbox):
     _seed_company([{"code": "2330", "name": "台積電", "market": "TWSE", "industry": "x",
                     "website": "www.tsmc.com"}])
