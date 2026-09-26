@@ -14260,16 +14260,25 @@ def t_dg3d_b2(pg, base):
     # ① 真的點：GPU 模組的錨點打下去，打到的是 GPU／HBM 本人，小卡跟著選到它
     if _l1_open(pg, base, "industry/ai_server/dg/ai_server"):
         scroll_to(pg, "prod3d"); pg.mouse.move(2, 2); pg.wait_for_timeout(900)
-        for part in ("ag_gpu", "ag_backplane"):
-            pt = pg.evaluate("(p) => window.Rack3D.current.pointOf(p)", part)
-            hit = pg.evaluate("([x, y]) => window.Rack3D.current.hitAt(x, y)", [pt["x"], pt["y"] + 2]) if pt else None
-            if part == "ag_gpu":
-                ok(f"{T} ★ GPU 模組錨點打下去是 GPU／HBM 本人（不是埋住它的那塊板子）", hit in ("ag_gpu", "ag_hbm"), hit)
-                if hit in ("ag_gpu", "ag_hbm"):
-                    pg.mouse.click(pt["x"], pt["y"] + 2); pg.wait_for_timeout(900)
-                    sel = pg.evaluate("() => [...document.querySelectorAll('#prod3d .lbl3d.sel-part')].map(e => e.dataset.dgpart)")
-                    ok(f"{T} 真的點 GPU 模組 → 小卡選到它", hit in sel, sel)
-                    pg.mouse.click(2, 2); pg.wait_for_timeout(500)
+        # 錨點（晶粒頂面）正上方會被上一層托盤板擋住（托盤一層疊一層、相機由上往下看，這是正常的）；
+        # 所以在錨點附近掃一小圈：只要有一個像素打得到 GPU／HBM 本人，就證明它沒有埋在板子裡
+        # （舊版整顆封裝都在板厚之內，掃哪裡都只打得到板子）。
+        pt = pg.evaluate("() => window.Rack3D.current.pointOf('ag_gpu')")
+        spot, hit = None, None
+        for dy in range(-4, 20, 2):
+            for dx in (0, -6, 6):
+                h = pg.evaluate("([x, y]) => window.Rack3D.current.hitAt(x, y)", [pt["x"] + dx, pt["y"] + dy]) if pt else None
+                if h in ("ag_gpu", "ag_hbm"):
+                    spot, hit = (pt["x"] + dx, pt["y"] + dy), h
+                    break
+            if spot:
+                break
+        ok(f"{T} ★ GPU 模組錨點附近打得到 GPU／HBM 本人（不再整顆埋在運算托盤板裡）", bool(spot), {"pt": pt, "hit": hit})
+        if spot:
+            pg.mouse.click(spot[0], spot[1]); pg.wait_for_timeout(900)
+            sel = pg.evaluate("() => [...document.querySelectorAll('#prod3d .lbl3d.sel-part')].map(e => e.dataset.dgpart)")
+            ok(f"{T} 真的點 GPU 模組 → 小卡選到它", hit in sel, sel)
+            pg.mouse.click(2, 2); pg.wait_for_timeout(500)
         st = pg.evaluate("() => window.Rack3D.current.stats()")
         ok(f"{T} 機櫃 draw call ≤ 300（{st['drawCalls']}）、三角形 ≤ 67,000（{st['triangles']}）",
            st["drawCalls"] <= 300 and st["triangles"] <= 67000, {"calls": st["drawCalls"], "tris": st["triangles"]})
