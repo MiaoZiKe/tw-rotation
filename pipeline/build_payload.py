@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shutil
 import time
 from datetime import datetime, timezone
 
@@ -19,6 +20,7 @@ from .compute import flow, fundamental, mtf, rrg, scoring, season, stockpage, te
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
+from .sources import logos as logos_src
 from .util import store
 from .util.roc import is_tradable_security, norm_industry
 
@@ -95,6 +97,41 @@ def _write(name: str, payload) -> None:
     log.info("寫出 %s（%.1f KB）", path.name, path.stat().st_size / 1024)
 
 
+def export_logos() -> dict:
+    """把資料湖的公司 Logo 複製到 site/data/logos/，並寫 site/data/logos.json（{代號: 相對路徑}）。
+
+    - 只列「真的有圖」的代號：狀態 ok、檔案存在、不是預設圖（見 sources/logos.usable_codes）。
+      前端查不到代號就退回字母頭像，所以這裡**寧缺勿濫**。
+    - 只讀資料湖、不抓網路（DECISIONS #155：build_payload 對湖裡的東西只准讀）。
+    - 每次先把舊的 site/data/logos/ 整個清掉再複製：本機 site/data 不會被清空，
+      Pages 快取命中時也會沿用舊目錄 —— 不清的話，被判成預設圖或整批關掉的 Logo 會一直掛在網站上。
+    - `config.LOGOS_ENABLED` 關掉 → 輸出空的 `{}`、不複製任何圖（整批關閉的開關，見 docs/logo_sources.md）。
+    - 本機一張 Logo 都沒有時輸出 `{}`，不報錯。
+    """
+    out_dir = config.SITE_DATA / "logos"
+    shutil.rmtree(out_dir, ignore_errors=True)
+    mapping: dict[str, str] = {}
+    if config.LOGOS_ENABLED:
+        try:
+            usable = logos_src.usable_codes(logos_src.read_index())
+        except Exception as exc:  # noqa: BLE001 —— Logo 是裝飾，壞了不能拖垮整份 payload
+            log.warning("Logo 索引讀取失敗，這次不輸出 Logo：%s", exc)
+            usable = {}
+        if usable:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        for code, fname in sorted(usable.items()):
+            try:
+                shutil.copyfile(logos_src.logo_dir() / fname, out_dir / fname)
+            except OSError as exc:
+                log.warning("Logo %s 複製失敗：%s", code, exc)
+                continue
+            mapping[code] = f"data/logos/{fname}"
+    else:
+        log.info("LOGOS_ENABLED 關閉：logos.json 輸出空物件，前端全部退回字母頭像")
+    _write("logos", mapping)
+    return mapping
+
+
 def last_complete_date(price: pd.DataFrame, *, primary: str = "TWSE",
                        ratio: float = 0.6, lookback: int = 10) -> str:
     """回傳「主市場（上市）資料到齊」的最後一個交易日（字串）。
@@ -124,6 +161,7 @@ def build() -> None:
         log.warning("資料湖還沒有行情資料，只產出空的 meta")
         _write("meta", {"status": "empty", "generated_at":
                         datetime.now(timezone.utc).isoformat()})
+        export_logos()
         return
 
     company = store.read("company_info")
@@ -530,6 +568,7 @@ def build() -> None:
     # 交付清單（Andy 2026-09-23：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
     # 且如實完成」）。原話逐字放到網站上，他自己就驗得了 —— 不必相信我在對話裡列的清單。
     _write("delivery", delivery_log.build(config.ROOT))
+    export_logos()
     _write("meta", meta_payload(latest, history_days))
     lap("meta")
     lap.report()
