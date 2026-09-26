@@ -119,6 +119,16 @@ jobs:
       - if: steps.guard.outputs.skip != 'true'
         run: pip install -r requirements.txt
 
+      # Logo 第二版用 cairosvg 畫 SVG 版的頁首 Logo，它執行時要系統的 libcairo。
+      # ubuntu 執行環境通常已經有（Chrome 的相依），已裝好時這一步幾秒就結束；
+      # 裝不起來也不擋（|| true）—— 程式偵測不到 libcairo 會自動跳過 SVG，其他候選照常。
+      - name: 確認 libcairo（Logo 的 SVG 用）
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          if ldconfig -p | grep -q 'libcairo.so.2'; then echo "libcairo 已存在"
+          else sudo apt-get install -y --no-install-recommends libcairo2 || echo "libcairo 裝不起來，這輪 Logo 會跳過 SVG"; fi
+          python -c "import cairosvg; print('cairosvg 可用', cairosvg.__version__)" || echo "cairosvg 不可用，Logo 會跳過 SVG"
+
       - name: 回補
         if: steps.guard.outputs.skip != 'true'
         env:

@@ -1,6 +1,6 @@
 """個股頁下方分頁 2026-09-26（Andy）：除權息年度圖、籌碼共用日期軸、股利公告回補被跳過。
 
-口徑見 DECISIONS #265 與 pipeline/compute/stockpage.py 的 div_year_bars docstring。
+口徑見 DECISIONS #266 與 pipeline/compute/stockpage.py 的 div_year_bars docstring。
 每一條都附邊界：空資料、只有公告沒有結果、含權對不到公告、上市前／回補起點前的年份。
 """
 from __future__ import annotations

@@ -62,6 +62,8 @@ def _run(monkeypatch, phase, tmp_path):
     #   只是以前只有一個測試跑 full，還撐得過去。
     monkeypatch.setattr(run_daily, "collect_intraday_60m", rec("yahoo.intraday_60m"))
     monkeypatch.setattr(run_daily, "refresh_financials", rec("finmind.financial_refresh"))
+    # ★ 2026-09-26：期交所逐筆也要 mock —— 沒 mock 的話會對窗內約 30 個日期各試下載一次（每次重試兩輪）。
+    monkeypatch.setattr(run_daily, "collect_taifex_minute", rec("taifex.futures_minute"))
     monkeypatch.setattr(run_daily.config, "STATE", tmp_path)
     monkeypatch.setattr(run_daily.store, "table_summary", lambda: pd.DataFrame())
     monkeypatch.setattr(run_daily.loader, "health", lambda: {})
@@ -144,3 +146,12 @@ def test_price與full模式仍然靠交易日判斷成敗(monkeypatch, tmp_path)
     for phase in ("price", "full"):
         _, rc = _run(monkeypatch, phase, tmp_path)
         assert rc == 0, f"phase={phase} 有抓到價量，應該成功"
+
+
+def test_期交所逐筆只在傍晚與週末那幾輪抓(monkeypatch, tmp_path):
+    """15:30 那輪（phase price）當天的逐筆檔多半還沒出，打了只會多記一次 404；full 與 news 要抓。"""
+    called, _ = _run(monkeypatch, "price", tmp_path)
+    assert "taifex.futures_minute" not in called
+    for ph in ("full", "news"):
+        called, _ = _run(monkeypatch, ph, tmp_path)
+        assert "taifex.futures_minute" in called, f"phase={ph} 應該要抓期交所逐筆"

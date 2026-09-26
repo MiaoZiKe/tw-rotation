@@ -258,7 +258,7 @@ def div_year_bars(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFra
                   code: str, asof: str | None) -> tuple[list, list]:
     """年度股利長條（每年一根）＋已公告、尚未除權息的清單。回傳 (bars, upcoming)。
 
-    口徑（金融專家 2026-09-26，DECISIONS #265）：
+    口徑（金融專家 2026-09-26，DECISIONS #266）：
     - **年度＝除權息日所在的西元年**（實際配發那一年，坊間「股利發放年度」同一口徑），
       不是股利所屬年度。理由：①官方除權息結果（dividend_results）2016 年起每一檔都補齊了，
       股利公告（dividend_events）卻有 600 多檔的歷史被回補跳過（見 run_backfill.already_covered），
