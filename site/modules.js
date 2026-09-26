@@ -183,13 +183,13 @@
       ],
       "tests": ["個股", "K線縮放", "個股即時分K", "個股分K非交易時段", "個股R5", "個股指標下拉0926"] },
 
-    { "id": "stock.mtf", "name": "多週期 SMC 判讀", "question": "③", "ask": "日／週／月多個週期的結構指向同一個方向嗎",
+    { "id": "stock.mtf", "name": "AI 分析（多週期＋籌碼＋基本＋消息，規則式）", "question": "③", "ask": "1 小時到週線的結構、籌碼、基本面、消息各自偏哪邊，為什麼是觀望",
       "tier": "只准免費", "law": "🔴",
       "at": [
-        { "page": "stock", "seg": "判讀", "ord": 20, "selector": ["#mtfCard"],
-          "note": "簡版個股頁沒有 #mtfCard —— 抓不到的選擇器會被略過，只剩一段就不畫分段列。" }
+        { "page": "stock", "seg": "AI 分析", "ord": 20, "selector": ["#aiCard"],
+          "note": "2026-09-26 右上判讀卡（#skVerdict）＋多週期判讀卡（#mtfCard）合成一張可收合的 #aiCard，程式在 site/blocks/stock_ai.js，內容由 pipeline/compute/analysis.py 規則產生（不是語言模型）。簡版個股頁沒有 #aiCard —— 抓不到的選擇器會被略過，只剩一段就不畫分段列。" }
       ],
-      "tests": ["個股"] },
+      "tests": ["個股", "個股AI分析0926"] },
 
     { "id": "stock.signal", "name": "技術面訊號卡", "question": "③", "ask": "均線／結構／RSI／KD／MACD／乖離／BOS／CHoCH／假跌破 現在各是什麼狀態",
       "tier": "只准免費", "law": "🔴",

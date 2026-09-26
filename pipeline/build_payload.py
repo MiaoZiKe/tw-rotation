@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, delivery_log, indicators
-from .compute import flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -857,7 +857,9 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         last = ind.iloc[-1]
         tech = indicators.technical_score(last)
         avg_turnover = float(pd.to_numeric(g["turnover"].tail(20), errors="coerce").mean())
-        verdict = technical.evaluate(ind, avg_turnover=avg_turnover)
+        # with_checks：多帶 A／B 條件逐條的成立與數字，給個股頁「AI 分析」卡講觀望的原因
+        #（判定結果不變；checks 只進 analysis，不重複寫進 page["verdict"]）
+        verdict = technical.evaluate(ind, avg_turnover=avg_turnover, with_checks=True)
 
         breadth["n"] += 1
         # 每個統計都順手記下「是哪幾檔」，總覽上方的數字才點得開（Andy：漲跌停要能對應哪些股票）
@@ -993,7 +995,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                 "sweep_high": _clean(tail[tail["sweep_high"].fillna(False)]["date"].tolist()),
                 "limit_up": _clean(tail[tail["limit_up"].fillna(False)]["date"].tolist()),
             },
-            "verdict": _clean(verdict),
+            "verdict": _clean({k_: v_ for k_, v_ in verdict.items() if k_ != "checks"}),
             "summary": row,
             "fundamental": fx or None,
             # inst_code 上面已經切好了（同一份、同樣的排序與 tail(60)），不要再掃一次全表
@@ -1004,6 +1006,17 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "material_news": mops_by_code.get(code, []),
             "broker_views": broker_by_code.get(code, [])[:6],
         }
+        # 「AI 分析」卡（規則式自動判讀，不是語言模型）：四個面向都用上面剛組好的同一份資料，
+        # 不再讀湖、不再抓任何東西。失敗就不給這一欄，前端會顯示「資料不足」而不是整頁壞掉。
+        try:
+            _vol20 = pd.to_numeric(g["volume"].tail(20), errors="coerce").mean() if "volume" in g else None
+            page["analysis"] = _clean(analysis.build(
+                verdict=verdict, mtf_res=page["mtf"], inst_v3=page["inst_v3"], margin=page["margin"],
+                holders=page["holders"], fundamental=page["fundamental"], revenue=page["revenue"],
+                profit=page["profit"], news=page["news"], material_news=page["material_news"],
+                as_of=latest, code=code, name=row["name"], avg_vol20=_vol20))
+        except Exception as exc:  # noqa: BLE001
+            log.debug("%s AI 分析失敗：%s", code, exc)
         # 整頁過一次 _clean：任何漏網的 NaN 都會讓瀏覽器 JSON.parse 直接失敗
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False),
                                                 encoding="utf-8")

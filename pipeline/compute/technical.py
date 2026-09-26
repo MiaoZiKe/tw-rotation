@@ -309,8 +309,13 @@ def weekly_structure(df: pd.DataFrame) -> dict:
 
 # ------------------------------------------------------------------ 規則引擎
 
-def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
-    """輸入含指標的日線（compute_all 的輸出），回傳判定結果。"""
+def evaluate(df: pd.DataFrame, avg_turnover: float | None = None, *, with_checks: bool = False) -> dict:
+    """輸入含指標的日線（compute_all 的輸出），回傳判定結果。
+
+    `with_checks=True` 時多回一個 `checks`：A／B 兩套條件**逐條**的成立與否＋實際數字
+    （見 `_checks` 的說明）。預設關著，是因為 tests/test_perf_golden.py 釘住了整包輸出，
+    多一個鍵就會亮 —— 而這個鍵只是把「本來就算好的中間值」攤開，不影響任何一個判定。
+    """
     if df.empty or len(df) < 60:
         return {"verdict": "資料不足", "grade": None, "reasons": ["歷史不足 60 根，無法判定"],
                 "stop": None, "tp1": None, "tp2": None, "rr": None, "risk_pct": None,
@@ -327,21 +332,30 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
 
     # ---------------- Step 0 硬性排除
     exclusions = []
+    # excl_desc：同一條排除條件的「描述式」版本（帶數字、不用「不要接」這類指示語），
+    # 只給 with_checks 的 AI 分析卡用；exclusions 本身的文字被 golden 釘住，不改。
+    excl_desc: list[str] = []
     if avg_turnover is not None and avg_turnover < MIN_TURNOVER:
         exclusions.append("日均成交值不到 3,000 萬，流動性不足、出不掉")
+        excl_desc.append(f"近 20 日均成交值 {avg_turnover / 1e4:,.0f} 萬，低於 3,000 萬流動性門檻")
     if bool(last.get("limit_up")):
         exclusions.append("今天漲停鎖死，不是自由成交的價格")
+        excl_desc.append("今日漲停鎖住，收盤價不是自由成交的價格")
     if last.get("trend") == -1 and last.get("ma_align") == -1 and \
             pd.notna(last.get("ma60")) and close < last["ma60"]:
         exclusions.append("空頭結構、均線空頭排列、又在季線之下 —— 三個都在，不要接")
+        excl_desc.append(f"日線空頭結構、均線空頭排列、收盤 {close:,.2f} 低於 MA60 {float(last['ma60']):,.2f}，三項同時成立")
     b20 = last.get("bias20")
     if pd.notna(b20) and b20 > 15:
         exclusions.append(f"20 日乖離 {b20:.0f}%，短線過熱，追進去是幫別人抬轎")
+        excl_desc.append(f"20 日乖離 {b20:.1f}%，高於 15% 過熱門檻")
     ap = last.get("atr_pct")
     if pd.notna(ap) and ap > 8:
         exclusions.append(f"日波動 {ap:.1f}% 太大，合理的停損放不下")
+        excl_desc.append(f"日波動（ATR／價）{ap:.1f}%，高於 8%，合理停損距離放不下")
     if bool(last.get("sweep_high")) and pd.notna(last.get("osc")) and last["osc"] < 0:
         exclusions.append("剛掃過上方流動性又收回來、動能轉弱，典型誘多")
+        excl_desc.append(f"剛掃過前高又收回、MACD 柱 {float(last['osc']):.2f} 為負（誘多型態）")
 
     # ---------------- 停損 / 目標（先算，A/B 判定要用 RR）
     stop_candidates = []
@@ -420,6 +434,7 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
         rr_b = (tp1 - close) / (close - stop_breakout)
 
     a_conditions = [trend_up, above_ma60, in_demand, zone_ok, trigger, rr >= 1.8]
+    a_rr, a_risk, a_stop = rr, risk_pct, stop          # 給 _checks 用：B 級成立時下面會改寫這三個
     b_conditions = [bos_up, vol_ok, breakout, bias_ok_b, rr_b >= 2.0]
 
     reasons: list[str] = []
@@ -488,7 +503,21 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
                  f"到 {tp1:.1f} 約 {rr:.1f} 倍風報比") if np.isfinite(rr) else None
     invalid = "跌破停損" if grade else None
 
-    return {
+    checks = None
+    if with_checks:
+        # ⚠ 這裡用的 rr_a／risk_a 是「回檔承接」那一套的原值：上面 B 級成立時會把
+        #   stop／risk_pct／rr 換成突破停損的版本，所以要在換之前另外留一份（見下方 a_rr）。
+        checks = _checks(
+            close=close, last=last, demand=demand, atr_val=atr_val,
+            trend_up=trend_up, choch_up=choch_up, above_ma60=above_ma60, in_demand=in_demand,
+            zone_ok=zone_ok, kd_cross_low=kd_cross_low, osc_turn=osc_turn, sweep_low=sweep_low,
+            prev_osc=(float(df["osc"].iloc[-2]) if len(df) > 1 and pd.notna(df["osc"].iloc[-2]) else None),
+            rr_a=a_rr, risk_a=a_risk, stop_a=a_stop, bos_up=bos_up, vol_ratio=vol_ratio,
+            breakout=breakout, prev_high=prev_high, b20=b20, rr_b=rr_b, risk_b=risk_b,
+            stop_b=stop_breakout, excl_desc=excl_desc, ap=ap,
+            met_a=sum(bool(x) for x in a_conditions), met_b=sum(bool(x) for x in b_conditions))
+
+    out = {
         "verdict": verdict, "grade": grade, "reasons": reasons[:3],
         "risk_text": risk_text, "invalidation": invalid, "weekly_note": weekly_note,
         "stop": round(float(stop), 2), "tp1": round(float(tp1), 2), "tp2": round(float(tp2), 2),
@@ -510,3 +539,119 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
             "atr_pct": (round(float(ap), 2) if pd.notna(ap) else None),
         },
     }
+    if checks is not None:
+        out["checks"] = checks
+    return out
+
+
+# ------------------------------------------------------------------ 逐條條件（給「AI 分析」卡）
+
+def _num(x, nd: int = 1) -> str:
+    """數字 → 字串（千分位、固定小數）。NaN／None 回「—」，不讓判讀文字出現 nan。"""
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return "—"
+    return f"{v:,.{nd}f}" if np.isfinite(v) else "—"
+
+
+def _px(x) -> str:
+    """價格 → 字串：最多兩位小數、去掉尾巴的 0（810.0 → 810、687.85 → 687.85）。
+    停損 687.85 用一位小數會印成 687.8／687.9（看浮點誤差），跟卡片上的停損價對不上。"""
+    s = _num(x, 2)
+    return s.rstrip("0").rstrip(".") if "." in s else s
+
+
+def _f2(x):
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return round(v, 2) if np.isfinite(v) else None
+
+
+def _checks(*, close, last, demand, atr_val, trend_up, choch_up, above_ma60, in_demand, zone_ok,
+            kd_cross_low, osc_turn, sweep_low, prev_osc, rr_a, risk_a, stop_a, bos_up, vol_ratio,
+            breakout, prev_high, b20, rr_b, risk_b, stop_b, excl_desc, ap, met_a, met_b) -> dict:
+    """把 evaluate 的 A／B 兩套條件逐條攤開：每條 {key, name, ok, text}，text 一定帶實際數字。
+
+    為什麼要有這個（Andy 2026-09-26：「觀望部分需要說明原因」）：
+    以前觀望只寫「多空條件都不完整、沒有明顯優勢」—— 到底是哪幾條不完整、差多少，看的人無從得知。
+    這裡**不另外判定任何東西**：每一條的 ok 就是 evaluate 裡那個布林值本身（同一個變數傳進來），
+    只是補上「為什麼是這個結果」的數字。所以這份清單跟判定結果不可能對不上 ——
+    tests/test_technical_rules.py 有一條在驗「ok 的條數＝met_a／met_b」。
+
+    文字一律描述式（「目前…」「需…」），不寫買進／賣出這類指示用語（證券投顧法風險）。
+    """
+    ma20, ma60 = last.get("ma20"), last.get("ma60")
+    k, d = last.get("k"), last.get("d")
+    z = demand[0] if demand else None
+    trig = bool(kd_cross_low or osc_turn or sweep_low)
+
+    def item(key, name, ok, text):
+        return {"key": key, "name": name, "ok": bool(ok), "text": text}
+
+    trend_now = int(last.get("trend") or 0)
+    trend_word = {1: "多頭", -1: "空頭"}.get(trend_now, "盤整")
+    if choch_up:
+        trend_tail = "，近 20 根出現 CHoCH 翻多"
+    elif trend_now == 1:
+        trend_tail = "（近 20 根沒有新的 CHoCH，沿用既有多頭結構）"
+    else:
+        trend_tail = "，近 20 根沒有 CHoCH 翻多"
+    if sweep_low:
+        trig_text = "假跌破後收回"
+    elif kd_cross_low:
+        trig_text = f"KD 低檔金叉（K {_num(k)}／D {_num(d)}）"
+    elif osc_turn:
+        trig_text = f"MACD 柱由 {_num(prev_osc, 2)} 翻正為 {_num(last.get('osc'), 2)}"
+    else:
+        trig_text = (f"KD K {_num(k)}／D {_num(d)}（需 K＞D 且 K＜50）；"
+                     f"MACD 柱 {_num(last.get('osc'), 2)}（前一根 {_num(prev_osc, 2)}，需由負翻正）；沒有假跌破")
+    a = [
+        item("trend", "日線多頭結構", trend_up, f"日線結構{trend_word}{trend_tail}"),
+        item("ma60", "站上季線且 MA20＞MA60", above_ma60,
+             f"收盤 {_px(close)}、MA20 {_px(ma20)}、MA60 {_px(ma60)}"
+             + ("" if above_ma60 else "（需收盤＞MA60 且 MA20＞MA60）")),
+        item("in_demand", "價格回到需求區", in_demand,
+             (f"最近需求區 {_px(z.low)}–{_px(z.high)}，現價 {_px(close)}"
+              f"（距區間上緣 {_num((close / z.high - 1) * 100)}%）") if z else
+             "日線下方沒有通過門檻（≥2 個來源交集）的需求區"),
+        item("zone", "需求區多源交集", zone_ok,
+             f"需求區分數 {_num(z.score)}（門檻 {ZONE_MIN_SCORE:.1f}），來源 {'、'.join(z.sources[:3])}"
+             if z else f"沒有可用的需求區（需 ≥ 2 個來源、分數 ≥ {ZONE_MIN_SCORE:.1f}）"),
+        item("trigger", "出現確認訊號", trig, trig_text),
+        item("rr", "風報比 ≥ 1.8", np.isfinite(rr_a) and rr_a >= 1.8,
+             f"風報比 {_num(rr_a)}（停損 {_px(stop_a)}，門檻 1.8）"),
+    ]
+    b = [
+        item("bos", "近 5 根向上突破結構", bos_up,
+             "近 5 根出現向上 BOS／CHoCH" if bos_up else "近 5 根沒有向上 BOS／CHoCH"),
+        item("vol", "量比 ≥ 1.5", pd.notna(vol_ratio) and vol_ratio >= 1.5,
+             f"量比 {_num(vol_ratio, 2)}（需 ≥ 1.5）"),
+        item("breakout", "收盤站上前波高點", breakout,
+             f"收盤 {_px(close)}，近 60 根前波高點 {_px(prev_high)}"),
+        item("bias", "20 日乖離 ≤ 8%", pd.notna(b20) and b20 <= 8,
+             f"20 日乖離 {_num(b20, 2)}%（需 ≤ 8%）"),
+        item("rr_b", "突破停損下風報比 ≥ 2", np.isfinite(rr_b) and rr_b >= 2.0,
+             f"風報比 {_num(rr_b)}（門檻 2.0）"),
+    ]
+    risk = {
+        "a": {"ok": bool(np.isfinite(risk_a) and risk_a <= MAX_RISK_PCT), "pct": _f2(risk_a),
+              "stop": _f2(stop_a), "max": MAX_RISK_PCT,
+              "text": f"回檔型態的停損 {_px(stop_a)}，距現價 {_num(risk_a)}%（上限 {MAX_RISK_PCT:.0f}%）"
+                      + (f"；日波動 {_num(ap)}%" if pd.notna(ap) else "")},
+        "b": {"ok": bool(np.isfinite(risk_b) and risk_b <= MAX_RISK_PCT), "pct": _f2(risk_b),
+              "stop": _f2(stop_b), "max": MAX_RISK_PCT,
+              "text": (f"突破停損 {_px(stop_b)}，距現價 {_num(risk_b)}%（上限 {MAX_RISK_PCT:.0f}%）"
+                       if stop_b is not None else
+                       f"沒有被突破的前高可放停損，沿用 {_num(risk_b)}%（上限 {MAX_RISK_PCT:.0f}%）")},
+    }
+    # 「三個方向都向下」那一條（evaluate 裡 elif 的同一個算式，只用在說明文字，不參與判定）
+    osc = last.get("osc")
+    bear_ok = bool(trend_now == -1 and pd.notna(osc) and osc < 0 and pd.notna(k) and pd.notna(d) and k < d)
+    bear = {"ok": bear_ok,
+            "text": f"日線結構{trend_word}、MACD 柱 {_num(osc, 2)}、K {_num(k)}／D {_num(d)}"
+                    + ("（三項同時向下）" if bear_ok else "")}
+    return {"a": a, "b": b, "risk": risk, "bear": bear, "met_a": int(met_a), "met_b": int(met_b),
+            "n_a": len(a), "n_b": len(b), "exclusions": list(excl_desc), "atr": _f2(atr_val)}
