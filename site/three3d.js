@@ -106,20 +106,20 @@
         { seg: 'switch', part: 'ag_nvswitch', name: 'NVSwitch 托盤', note: 'NVLink 交換晶片，9 台夾在運算托盤之間',
           kind: 'tray', box: [44, 2.2, 30], at: [0, 62, 1], n: 3, gap: 6, axis: 'y', role: 'sig', ex: [0, 0, 7] },
         { seg: 'adv_pkg', part: 'ag_gpu', name: '運算托盤 · GPU 模組', note: 'CoWoS-L 封裝：邏輯晶粒（SoIC 堆疊）＋ HBM 放在中介層上',
-          kind: 'gpu', box: [9, 2.6, 9], at: [0, 34, 2], n: 4, gap: 10, axis: 'x', role: 'gpu', ex: [0, 0, 11] },
+          kind: 'aggpu', box: [9, 2.2, 9], at: [0, 36.7, 2], n: 4, gap: 10, axis: 'x', role: 'gpu', ex: [0, 0, 11] },
         { seg: 'foundry', part: 'ag_cpu', name: 'CPU（Grace / x86）', note: '與 GPU 同板 C2C 連接，負責排程與資料搬運',
-          kind: 'chip', box: [7, 2, 7], at: [0, 34, -11], n: 2, gap: 34, axis: 'x', ex: [0, 0, 11] },
+          kind: 'chip', box: [7, 2, 7], at: [0, 36.6, -11], n: 2, gap: 34, axis: 'x', ex: [0, 0, 11] },
         { seg: 'hbm', part: 'ag_hbm', name: 'HBM4 記憶體', note: '12–16 層 DRAM 用 TSV 打通；base die 改用邏輯製程、由晶圓代工做',
-          kind: 'hbm', box: [3, 3.2, 3], at: [0, 34.4, 9], n: 4, gap: 10, axis: 'x', ex: [0, 0, 11] },
+          kind: 'aghbm', box: [9, 2.2, 9], at: [0, 36.7, 2], n: 4, gap: 10, axis: 'x', ex: [0, 0, 11], anchor: [3.2, 0.5, 0.7] },
         /* 運算托盤：六塊板子整排像抽屜一樣**半拉出**（+z 11，托盤深 32 的三分之一），
            板上的 GPU／CPU／HBM／CCL 跟著同一個位移走，拉出來之後晶片才看得見。*/
         { seg: 'hdi_pcb', part: 'ag_pcb', name: '主機板 高階 PCB', note: '托盤底板，50 層以上 MLB／30 層以上 UBB（金像電）；IC 載板是另一個環節（欣興/南電/景碩），供應商完全不同',
-          kind: 'pcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y', ex: [0, 0, 11] },
+          kind: 'agpcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y', ex: [0, 0, 11] },
         /* CCL 的卡片色走紅銅（v3 badge 08 橙）：它就是「銅箔」貼在基板上；剖面本身照舊是銅／介電交疊。*/
         { seg: 'ccl', part: 'ag_ccl', name: 'CCL 銅箔基板', note: 'M8/M9 以上超低損耗板材，Df ≤ 0.002 @10GHz；PCB 的原料',
           kind: 'laminate', box: [46, 0.9, 32], at: [0, 29.9, 0], role: 'cu', ex: [0, 0, 11] },
         { seg: 'thermal', part: 'ag_cdu', alias: ['ag_coldplate'], name: '液冷冷板 / CDU', note: '冷板貼晶片 → UQD 快接頭 → manifold 分歧管 → CDU → 機房一次側',
-          kind: 'cdu', box: [4.5, 64, 4.5], at: [31, 38, 0], role: 'cool', ex: [6, 0, 0] },
+          kind: 'agcdu', box: [4.5, 64, 4.5], at: [31, 38, 0], role: 'cool', ex: [6, 0, 0] },
         /* 快接頭走亮橙（v3 §2：亮橙＝電力／快接頭） */
         { seg: 'thermal', part: 'ag_uqd', name: 'UQD 快接頭 / manifold', note: '漏液是 2026 年最被盯的品質風險；OCP 有規格',
           kind: 'uqd', box: [4, 3, 4], at: [24, 20, 12], n: 3, gap: 14, axis: 'y', role: 'pwr', ex: [5, 0, 0] },
@@ -129,7 +129,7 @@
         { seg: 'thermal', part: 'ag_fan', name: '後門風扇模組', note: '液冷之外仍要帶走記憶體與電源的熱；風扇牆掛在後門',
           kind: 'fan', box: [13, 13, 5], at: [0, 24, 19], n: 3, gap: 15, axis: 'x', role: 'air', ex: [0, 0, 9] },
         { seg: 'power', part: 'ag_psu', name: '電源櫃 PSU', note: '今天是 415V AC 進 PSU → 機櫃內 DC busbar；800V HVDC 是下一世代',
-          kind: 'psu', box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y', role: 'pwr', ex: [0, -2, 9] },
+          kind: 'agshelf', box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y', role: 'pwr', ex: [0, -2, 9] },
         { seg: 'power', part: 'ag_bbu', name: 'BBU 電池 / 超級電容', note: '掉電到柴發接手之間撐住；超電處理 GPU 毫秒級功率突波',
           kind: 'battery', box: [18, 4, 26], at: [0, 4, 0], role: 'pwr', ex: [0, -7, 0] },
         { seg: 'optical', part: 'ag_optic', name: '光模組 / CPO', note: '800G–1.6T 前面板可插拔；CPO 把光引擎搬到交換 ASIC 旁',
@@ -187,7 +187,7 @@
         { seg: 'abf_pcb', part: 'icp_sub', name: 'ABF 載板', note: 'core ＋ 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板。表面看得到蛇行等長的走線',
           kind: 'substrate', box: [44, 3, 34], at: [0, 1.5, 0] },
         { seg: 'abf_pcb', part: 'icp_bga', name: 'BGA 錫球', note: '載板背面那一整片球，接到主機板；全圖最大的接點',
-          kind: 'balls', box: [2, 1.6, 2], at: [0, -0.4, -12], n: 6, gap: 7.2, axis: 'x', ex: [0, -3, 0] },
+          kind: 'balls', field: [40, 30], pitch: 2.4, hole: [[0, 6, 15.5, 3.4]], box: [2, 1.6, 2], at: [0, -0.4, 0], ex: [0, -3, 0] },
         /* ★ 2026-09-22 新增：正面去耦電容。晶粒瞬間抽電時來不及等主機板，
            就近由載板上的電容頂著 —— 這是「板子上真的有被動元件」最基本的一件事。
            `mlccchip` 的識別特徵是端電極包住端部五個面，轉到背面看得到。*/
@@ -212,7 +212,7 @@
         { seg: 'adv_pkg', part: 'icp_soic', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，銅墊直接對銅墊，中間沒有任何凸塊',
           kind: 'die', box: [12, 1.8, 12], at: [0, 9.5, 0], codes: ['2330', '3711'], ex: [0, 15, 0] },
         { seg: 'hbm', part: 'icp_hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）；貼著晶粒放，線越短越省電',
-          kind: 'hbm', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x', ex: [0, 12, 0] },
+          kind: 'hbmstk', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x', ex: [0, 12, 0] },
         { seg: 'adv_pkg', part: 'icp_uf', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；側面會爬出一圈圓角。膠的材料以日商為主',
           kind: 'ufill', box: [34, 0.8, 24], at: [0, 5.9, 0], ghost: true, mat: 'glass', codes: ['2330', '3711'], ex: [0, 9, 0] },
         { seg: 'adv_pkg', part: 'icp_stiff', name: 'Stiffener 補強環', note: '圍在載板邊緣的一圈金屬框，大尺寸封裝防翹曲',
@@ -659,16 +659,16 @@
           kind: 'pshelf', box: [30, 34, 46], at: [-54, 6, 0], ex: [-18, 0, 0] },
         { seg: 'power', part: 'psu_unit', name: 'PSU 外罩：上蓋、側板、前面板', note: 'CRPS（通用冗餘電源）把**尺寸、連接器與管理介面**標準化，所以不同家的可以互換、可以熱插拔。前面板有把手（抽得出來）與風扇開孔，後端是卡緣不是電線',
           kind: 'pshell', box: [30, 16, 44], at: [0, 4, 0], ex: [0, 20, 0] },
-        { seg: 'power', part: 'psu_board', name: 'PSU 主板：PFC → LLC → 同步整流 → 輸出', note: '四級由後往前排開，而且**每一級的元件形狀不同**：① PFC 是兩顆大電解電容加一個扼流圈（整顆 PSU 裡最大的東西）② LLC 是一顆有繞線窗口的變壓器 ③ 同步整流是輸出側一整排扁平封裝（低壓大電流所以要並聯）④ 輸出是一條厚銅排往卡緣去',
+        { seg: 'power', part: 'psu_board', name: 'PSU 主板：PFC → LLC → 同步整流 → 輸出', note: '四級**由前（交流插座與風扇那一端）往後（卡緣）**沿長邊排開，而且**每一級的元件形狀不同**：① PFC 是兩顆大電解電容加一個扼流圈（整顆 PSU 裡最大的東西）② LLC 是一顆有繞線窗口的變壓器 ③ 同步整流是輸出側一整排扁平封裝（低壓大電流所以要並聯）④ 輸出是一條厚銅排往卡緣去',
           kind: 'pboard', box: [28, 12, 42], at: [0, -2, 0], ex: [0, -8, 0] },
         { seg: 'power', part: 'psu_cardedge', name: '卡緣連接器（card-edge）', note: '★ CRPS 的後端是**上下兩排鍍金接點**，不是一束電線 —— 畫成電線就認不出是伺服器 PSU。它同時走電力與管理訊號（主機讀得到電壓、電流、溫度與告警）',
           kind: 'pcardedge', box: [20, 3.4, 4], at: [0, -2, -23], ex: [0, 0, -20] },
         { seg: 'connector', part: 'psu_busbar', name: '直流匯流排（busbar）', note: '★ **厚銅排，不是圓線**，而且明顯比任何訊號線粗一個量級 —— 幾百安培靠的是截面積。鎖固孔說明它是**鎖**上去的不是焊的。正負兩條中間隔一片絕緣',
           kind: 'pbusbar', box: [10, 46, 8], at: [34, 6, 0], ex: [12, 0, 0] },
         { seg: 'connector', part: 'psu_whip', name: '電源線組（power whip）', note: '從匯流排的分接點拉到每一台運算托盤。股數與線徑對到的是電流容量 —— 電源線束跟訊號線束粗細差很多',
-          kind: 'cable', box: [24, 6, 6], at: [50, -8, 0], ex: [6, -12, 0] },
+          kind: 'pswhip', box: [24, 6, 6], at: [50, -8, 0], ex: [6, -12, 0] },
         { seg: 'power', part: 'psu_vrm', name: '板上降壓 DC-DC／VRM（多相）', note: '★ 畫成**一排等距的電感**才對：一顆電感就是一相，多相輪流出力，電流才分得開、紋波才壓得下去。畫成一顆方塊就看不出「多相」這件事。它一定**緊鄰晶片** —— 電流大、壓降走不遠',
-          kind: 'pvrm', box: [28, 6, 16], at: [68, 3, 12], ex: [12, 8, 0] },
+          kind: 'psvrm', box: [28, 6, 16], at: [68, 3, 12], ex: [12, 8, 0] },
         { seg: 'power', part: 'psu_die', name: 'GPU／ASIC 核心（受電端）', note: '整條供電路徑的終點：電壓降到零點幾伏特、電流上到幾百安培。★ 這一顆是**熱源與受電端，不是電源零件** —— 它由晶圓代工做，不是電源供應商做，所以底下不列電源台股',
           kind: 'die', box: [18, 4, 18], at: [68, 4, -14], ex: [12, 14, 0], codes: [] },
         { seg: 'power', part: 'psu_bbu', name: 'BBU 電池備援模組', note: '★ 掛在**直流側、機櫃裡面**（畫到交流側就變成 UPS 了，那是這張圖最致命的錯）。撐的是「掉電到柴油發電機接手」之間那一段。看得到電芯、看得到串聯的連片、看得到一正一負兩根極柱',
@@ -685,10 +685,13 @@
          用 bidir 讓它每 6 秒換一次方向，那正是 BBU 在做的事。
          狀態燈由 `led` 材質自己呼吸（既有機制）。*/
       flows: [
-        { kind: 'pwr', part: 'psu_whip', r: 0.7, per: 10, speed: 0.34, pts: [[62, -8, 0], [48, -6, 0], [30, -2, 0], [14, -2, 0]] },
-        { kind: 'pwr', part: 'psu_board', r: 0.6, per: 12, speed: 0.4, pts: [[-13, -2, 0], [0, -1, 0], [13, -2, 0], [22, 2, 0]] },
+        /* ★ 2026-09-26 第二批（B 組）修方向：電源線組是**從匯流排拉到托盤**的直流（卡片就是這樣寫的），
+           舊版的粒子從 x 62 往 14 跑、等於把它畫成交流進線 —— 反了。主板那一條改成沿長邊（z）由前往後：
+           交流從前面板的插座進來、直流從後端的卡緣出去。*/
+        { kind: 'pwr', part: 'psu_whip', r: 0.7, per: 10, speed: 0.34, pts: [[36, -8, 0], [44, -6, 0], [54, -9, 0], [62, -8, 0]] },
+        { kind: 'pwr', part: 'psu_board', r: 0.6, per: 12, speed: 0.4, pts: [[0, -2, 20], [-4, 0, 9], [3, 0, -2], [0, -1, -12], [0, -2.5, -20]] },
         { kind: 'pwr', part: 'psu_busbar', r: 0.75, per: 14, speed: 0.3, pts: [[34, -14, 0], [34, 0, 0], [34, 14, 0], [34, 26, 0]] },
-        { kind: 'pwr', part: 'psu_vrm', r: 0.5, per: 14, speed: 0.5, pts: [[34, 20, 0], [50, 12, 8], [64, 5, 12], [68, 4, 12]] },
+        { kind: 'pwr', part: 'psu_vrm', r: 0.5, per: 14, speed: 0.5, pts: [[62, -6, 2], [64, -1, 8], [66, 3, 12], [68, 4, 12]] },
         { kind: 'pwr', part: 'psu_die', r: 0.4, per: 16, speed: 0.6, pts: [[68, 3, 4], [68, 4, -4], [68, 4, -13]] },
         /* BBU：平時充電、掉電放電 —— 同一條線每 6 秒換一次方向 */
         { kind: 'pwr', part: 'psu_bbu', r: 0.5, per: 10, speed: 0.22, bidir: 6,
@@ -781,7 +784,7 @@
           kind: 'fframe', box: [46, 46, 13], at: [-48, 2, 0], ex: [0, 0, -24] },
         { seg: 'thermal', part: 'blade', name: '前轉子：扇葉（有攻角）', note: '★ 扇葉**一定從輪轂長出來**，不可以懸空。每一片都有攻角 —— 平的葉片推不動空氣，只會攪。攻角、片數與外徑決定它的風量與風壓',
           kind: 'frotor', box: [39, 39, 11], at: [-48, 2, 3], ex: [0, 0, 38] },
-        { seg: 'thermal', part: 'hub', name: '輪轂（hub）', note: '一個開口朝後的**杯狀件** —— 馬達與軸承裝在它裡面。畫成實心圓柱就沒地方放馬達了。杯壁內側那一圈方塊是**轉子磁鐵**：外轉子馬達就是把磁鐵貼在輪轂內壁上',
+        { seg: 'thermal', part: 'hub', name: '輪轂（hub）', note: '一個開口朝後的**杯狀件** —— 馬達與軸承裝在它裡面。畫成實心圓柱就沒地方放馬達了。杯壁內側那一圈是**轉子磁鐵**（一整圈環形磁鐵、充磁成 N／S 交替，黏在鋼製轉子軛上）：外轉子馬達就是把磁鐵貼在輪轂內壁上',
           kind: 'fhub', box: [18, 18, 11], at: [-48, 2, 3], ex: [0, 0, 26] },
         { seg: 'thermal', part: 'motor', name: '馬達（定子線圈 ＋ 轉子磁鐵）', note: '★ **馬達一定在輪轂裡**，不在扇框上。定子是鐵芯的齒加上繞在齒上的銅線圈，在內；轉子磁鐵貼在輪轂內壁，在外；中間那一圈空隙是氣隙。底下那一小塊板上有霍爾元件 —— 轉速回授就是從那裡出去的',
           kind: 'fmotor', box: [15, 15, 10], at: [-48, 2, 0], ex: [0, 0, 14] },
@@ -796,7 +799,7 @@
         { seg: 'assembly', part: 'shroud', name: '導風罩（air shroud／duct）', note: '它本身不散熱，但沒有它風會從鰭片旁邊溜掉。出風那一端收窄，氣流才會被逼著穿過鰭片。★ 氣流方向**全程單向、由前到後**，圖上不准出現往回吹的箭頭',
           kind: 'fshroud', box: [48, 20, 34], at: [36, 0, 2], ex: [0, 14, 26] },
         { seg: 'thermal', part: 'fin', name: '散熱鰭片組（heat sink fin stack）', note: '★ **這一格才是熱真正交給空氣的地方；風扇只是把空氣推過來。** 很多人以為「風扇在散熱」，其實風扇只負責換掉鰭片表面那層被加熱的空氣。鰭片的總表面積就是它的本事',
-          kind: 'heatsink', box: [38, 17, 32], at: [36, -14, 0], ex: [0, -8, 0] },
+          kind: 'acsink', box: [38, 17, 32], at: [36, -14, 0], ex: [0, -8, 0] },
         { seg: 'thermal', part: 'heatpipe', name: '熱管（heat pipe）', note: '把熱從晶片底座**橫著**搬到鰭片裡面去 —— 光靠鋁底板傳，遠端的鰭片根本吃不到熱。★ 熱的方向（晶片 → 底座 → 熱管 → 鰭片）跟氣流方向是**垂直交會**的，不是同一條線',
           kind: 'heatpipe', box: [38, 7, 28], at: [36, -26, 0], ex: [0, -20, 0] },
         { seg: 'thermal', part: 'vc', name: '均熱板 VC（當底座）', note: '晶片越大，熱越不可能只靠一塊銅底板攤開。VC 用兩相流把熱先**攤成一個面**再交給熱管與鰭片 —— 熱管是線、VC 是面，這就是兩者的分工',
@@ -974,39 +977,39 @@
       camera: [64, 56, 118], target: [0, 8, 0], fit: 1.02, hk: 0.5,
       parts: [
         { seg: 'motion_axis', part: 'mc_base', name: '底座（鋁擠型）', note: '★ 斷面有空腔：同樣重量下拿到比較高的斷面剛性 —— 實心方塊不是鋁擠型。上緣的 T 型槽是軌道與感測器鎖上去的地方',
-          kind: 'mcbase', box: [122, 11, 46], at: [0, -6, 0], ex: [0, -14, 0], codes: [] },
+          kind: 'mcbase', box: [122, 11, 46], at: [0, -6, 0], ex: [0, -14, 0], mount: [-74, -61], axisY: 15, mountR: 10.5, codes: [] },
         { seg: 'motion_axis', part: 'mc_enc', name: '編碼器（回授的起點）', note: '★ 裡面那片刻了一圈等距刻線的碼盤就是它的全部意義 ——「會轉」跟「知道自己轉到哪」是兩件事。它裝在馬達的尾端（遠離螺桿那一側），把位置送回驅動器與控制器',
-          kind: 'mcenc', box: [13, 17, 17], at: [-70, 9, 0], ex: [-42, 4, 0],
+          kind: 'mcenc', box: [13, 17, 17], at: [-107, 9, 0], ex: [-16, 4, 0],
           codes: ['4576'], chipnote: '4576 大銀微系統的產品線含「位置量測系統」（官網分絕對式與增量式兩種，走磁性原理），那就是編碼器這一類（信心：中，來源為公司官網 hiwinmikro.tw/zh/product/positioning-measurement-system）。⚠ 兩個保留寫在這裡不藏起來：① 官網具名的是**線性**位置量測系統，本圖畫的是裝在馬達尾端的**旋轉**編碼器，不是同一支型號；② 「編碼器自有技術」各家講法對不起來（有的說自主技術、有的說磁化技術來自德國／與以色列 Mega-Fabs 合作），所以這裡只主張「產品線有這一類」，不主張「全自研」。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_motor', name: '伺服馬達', note: '方殼、外殼有散熱肋、前面一片法蘭鎖到機構上、軸從法蘭伸出去。★ 沒有尾端那顆編碼器就只是一般感應馬達。本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）',
-          kind: 'mcmotor', box: [40, 20, 20], at: [-44, 9, 0], ex: [-24, 4, 0],
+          kind: 'mcmotor', box: [40, 20, 20], at: [-83.6, 9, 0], ex: [-9, 4, 0],
           codes: ['4576'], chipnote: '4576 大銀微系統（線性馬達與傳動，信心：verified）。★ 本圖畫的是旋轉馬達＋螺桿，直接驅動的線性馬達是另一種架構、本圖未畫。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_coupling', name: '聯軸器', note: '★ 馬達與螺桿之間一定要有它。直接畫成一根連續的軸就是錯 —— 那表示兩根軸完全同心且剛性連接，實務上做不到，也沒有可更換的犧牲件。中間那一段撓性溝就是它的識別特徵',
-          kind: 'mccoup', box: [20, 13, 13], at: [-21, 9, 0], ex: [-12, 4, 0],
+          kind: 'mccoup', box: [20, 13, 13], at: [-56.8, 9, 0], ex: [-3, 12, 0],
           codes: ['4540'], chipnote: '4540 全球傳動（TBI MOTION）的產品線含聯軸器：官網有「聯軸器」產品分類頁，底下就是撓性聯軸器 SRJ（信心：高，來源為公司官網 tbimotion.com.tw/en/category/coupling 與 /en/product/flexible-coupling-srj，另有台灣智慧機械官方網站的供應商頁列出同一批產品）。★ 本圖畫的正是撓性聯軸器 —— 中間那段撓性溝。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_bearing', name: '軸承座（固定端／支撐端）', note: '螺桿兩端各一個：★ 一端固定（吃軸向力）、一端支撐（只導引，讓螺桿受熱可以伸長）—— 兩端都畫成固定端，螺桿熱起來就被自己頂彎。剖面看得到內外環與夾在中間的一圈滾珠',
-          kind: 'mcbrg', box: [12, 20, 20], at: [0, 9, 0], n: 2, gap: 76, axis: 'x', ex: [0, 17, 0],
+          kind: 'mcbrg', box: [12, 20, 20], at: [0, 9, 0], pair: 76, sr: 6.5, anchor: [-38, 8, 0], ex: [0, 17, 0],
           codes: ['4540'], chipnote: '4540 全球傳動（TBI MOTION）的產品線含螺桿支撐座：官網拆成 Fixed Side（固定座 BK／EK）與 Floated Side（支撐座 BF／EF）兩個分類，另有「SUPPORT UNIT of BALL SCREW」的型錄（信心：高，來源為公司官網 tbimotion.com.tw 的產品分類與目錄下載頁）。★ 那正是本圖講的「一端固定吃軸向力、一端支撐讓螺桿伸長」。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_screw', name: '滾珠螺桿・螺桿軸', note: '把馬達的「轉」變成工作台的「直線走」。★ 表面的溝槽剖面是圓弧（哥德弧或單圓弧），不是 V 形三角 —— V 形那是鎖緊用的螺絲，走的是滑動摩擦、裡面沒有鋼珠。兩端的軸頸比較細且有階級，那是要裝軸承的地方',
           kind: 'mcscrew', box: [86, 13, 13], at: [0, 9, 0], ex: [0, 3, 0],
           codes: ['2049', '4540'], chipnote: '2049 上銀（滾珠螺桿與線性滑軌）、4540 全球傳動（線性傳動）。終端不同：上銀多在工具機、全球傳動在產業機械（信心：中，來源為產業媒體整理）。兩檔都不在 supply_chain.yaml 裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_nut', name: '滾珠螺桿・螺帽（含法蘭）', note: '套在螺桿上的金屬套筒，長度約螺桿全長的六分之一。★ 用半管切開而不是切方塊：壁厚看得見，才看得出鋼珠與回流通道真的在這個套筒的裡面。外側的法蘭是它鎖到工作台上的那一片',
-          kind: 'mcnut', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 3, 0],
+          kind: 'mcnut', box: [22, 17, 17], at: [16, 9, 0], sr: 6.5, ex: [2, 3, 0],
           codes: ['2049', '4540'], chipnote: '同螺桿軸：2049 上銀、4540 全球傳動。兩檔都不在 supply_chain.yaml 裡' },
         { seg: 'motion_axis', part: 'mc_ball', name: '鋼珠（兩點接觸）', note: '★ 每一顆都同時碰到螺桿溝與螺帽溝 —— 浮在中間就不傳力。鋼珠把滑動摩擦換成滾動摩擦，這是滾珠螺桿跟一般螺桿唯一的差別',
-          kind: 'mcballs', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 13, 0],
+          kind: 'mcballs', box: [22, 17, 17], at: [16, 9, 0], sr: 6.5, ex: [2, 15, 0],
           codes: [], chipnote: '鋼珠（鋼球）這一件，查不到台股的具名對應' },
         { seg: 'motion_axis', part: 'mc_return', name: '循環器（鋼珠回流通道）', note: '★ 這張圖的紅線零件：鋼珠滾到螺帽的一端之後，從這條 U 形通道繞回另一端，重新進入溝槽 —— 是一個閉合的迴圈。沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿',
-          kind: 'mcreturn', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 21, 0],
+          kind: 'mcreturn', box: [22, 17, 17], at: [16, 9, 0], sr: 6.5, ex: [2, 25, 0],
           codes: [], chipnote: '循環器是螺桿廠自己做的零件，查不到獨立供應的台股對應' },
         { seg: 'motion_axis', part: 'mc_rail', name: '線性滑軌・軌道 ×2', note: '凸出來的一條，兩側有圓弧溝。★ 一定是兩條平行軌，而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的',
           kind: 'mcrail', box: [110, 8, 13], at: [0, 2, 0], n: 2, gap: 30, axis: 'z', ex: [0, -6, 0],
           codes: ['2049', '1597'], chipnote: '2049 上銀（滾珠螺桿與線性滑軌）、1597 直得（線性滑軌）。兩檔都不在 supply_chain.yaml 裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_block', name: '線性滑軌・滑塊 ×2', note: '★ ㄇ 字形，從上方罩下來、包住軌道的兩側。畫成「一個方塊放在軌道上面」就是錯的 —— 那樣的東西吃不了側向力也吃不了拉拔力，而滑軌存在的理由就是吃這兩種力。滑軌不出力，只負責「別歪掉」與承重',
-          kind: 'mcblock', box: [26, 11, 21], at: [26, 5, 0], n: 2, gap: 30, axis: 'z', ex: [26, 13, 0],
+          kind: 'mcblock', box: [26, 11, 21], at: [26, 5, 0], n: 2, gap: 30, axis: 'z', ex: [34, 10, 0],
           codes: ['2049', '1597'], chipnote: '同軌道：2049 上銀、1597 直得。兩檔都不在 supply_chain.yaml 裡' },
         { seg: 'motion_axis', part: 'mc_table', name: '工作台（滑座）', note: '★ 同時鎖在螺帽與滑塊上：螺帽推它走、滑塊撐住它不歪 —— 兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方',
-          kind: 'mctable', box: [52, 9, 44], at: [22, 14, 0], ex: [22, 30, 0], codes: [] },
+          kind: 'mctable', box: [52, 9, 44], at: [22, 14, 0], ex: [34, 32, 0], codes: [] },
       ],
       /* ---- C6 運轉動畫：**螺桿轉，螺帽就走**。
          這是整張圖的機構原理，而且兩件事必須**綁在一起**才算對：
@@ -1025,15 +1028,16 @@
       spins: [
         { part: 'mc_screw', axis: 'x', speed: 0.26, sync: 'feed' },
         { part: 'mc_coupling', axis: 'x', speed: 0.26, sync: 'feed' },
-        { part: 'mc_ball', axis: 'x', speed: 0.34, sync: 'feed' },
+        /* mc_ball 不在這裡：2026-09-26 起鋼珠分成「螺旋那一段」與「回流管裡那一段」，
+           只有螺旋那一段跟著螺桿轉（mcBalls 裡自己掛 spin、同樣 sync 'feed'）—— 回流管是鎖在螺帽上的，不會轉。*/
         /* ⚠ 馬達與編碼器**刻意不轉**：會轉的是它們裡面的轉子與碼盤，
            外殼是鎖在底座上的。把整顆馬達轉起來在物理上是錯的
            （而且這兩顆的幾何是外殼，轉起來只會看起來像鬆脫了）。*/
       ],
       /* 控制訊號的方向：編碼器把位置回授給控制器、控制器驅動馬達（所以這條是反向的）*/
       flows: [
-        { kind: 'sig', part: 'mc_enc', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[-78, 9, 12], [-70, 12, 12], [-52, 14, 12]] },
-        { kind: 'pwr', part: 'mc_motor', r: 0.34, per: 10, speed: 0.45, pts: [[-44, 22, 12], [-44, 14, 6], [-44, 9, 0]] },
+        { kind: 'sig', part: 'mc_enc', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[-110, 20, 0], [-104, 28, 6], [-90, 30, 10]] },
+        { kind: 'pwr', part: 'mc_motor', r: 0.34, per: 10, speed: 0.45, pts: [[-94, 32, 8], [-94, 26, 3], [-94, 21, 0]] },
       ],
       pulses: [{ parts: ['mc_enc', 'mc_motor', 'mc_coupling', 'mc_screw', 'mc_nut', 'mc_table'], period: 3.2, kind: 'sig' }],
     },
@@ -1056,47 +1060,47 @@
       camera: [78, 62, 130], target: [0, 40, 0], fit: 0.84, hk: 0.5,
       parts: [
         { seg: 'machine_tool', part: 'mt_bed', name: '床身（鑄件）', note: '★ 上面是平的、下面有縱橫肋 —— 鑄件的識別特徵，畫成一塊實心方塊就看不出來。所有切削力最後都由它承受。重、運費高、又要時效，所以在地供應比較划算，這是台廠自己做的一段',
-          kind: 'mtbed', box: [120, 16, 72], at: [0, -4, 0], ex: [0, -20, 0],
+          kind: 'mtbed', box: [120, 16, 80], at: [0, -4, 4], ex: [0, -22, 0], yrail: [-6, 30],
           codes: [], chipnote: '整機與鑄件在台股：4526 東台精機、1583 程泰機械、1528 恩德科技。鑄件的供應分工查不到具名來源，不編。三檔都不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'machine_tool', part: 'mt_col', name: '立柱（鑄件，與床身一體）', note: '站在床身後緣的方柱，正面是兩條軌道的貼合面與一排鎖付孔。★ 它跟床身通常是**一體的鑄件** —— 分成兩塊各自站著的話，剛性就不是一體的了',
-          kind: 'mtcol', box: [30, 96, 56], at: [0, 48, -30], ex: [0, 48, -54], codes: [] },
+          kind: 'mtcol', box: [32, 100, 30], at: [0, 54, -21], ex: [0, 4, -40], zmot: [0, 20], codes: [] },
         { seg: 'machine_tool', part: 'mt_rail', name: '線性滑軌・軌道（立柱上兩條）', note: '★ 跟「工業自動化」那張圖是**同一種零件**：滑軌不出力，只負責「別歪掉」與承重。這一段是台廠自己就很強的一段',
-          kind: 'mtraily', box: [9, 74, 11], at: [0, 50, -14], n: 2, gap: 22, axis: 'x', ex: [0, 50, -34],
+          kind: 'mtraily', box: [9, 80, 5], at: [0, 56, -3.5], n: 2, gap: 22, axis: 'x', ex: [0, 4, -26],
           codes: [], chipnote: '線性滑軌在台股：2049 上銀、1597 直得。兩檔屬於「工業自動化」族群、不在這一格，也都不在 supply_chain.yaml 裡' },
         { seg: 'machine_tool', part: 'mt_z', name: 'Z 軸：滾珠螺桿（立柱上）', note: '★ 跟 X 軸**完全同一支零件**，只是立起來 —— 那正是這張圖想講的：三根軸用的是同一批零件。它是三根軸裡唯一要對抗重力的那一根',
-          kind: 'mtscrewy', box: [9, 76, 9], at: [0, 50, -22], ex: [24, 50, -34],
+          kind: 'mtscrewy', box: [9, 80, 9], at: [0, 58, -1], ex: [0, 4, -12],
           codes: [], chipnote: '滾珠螺桿在台股：2049 上銀、4540 全球傳動。兩檔屬於「工業自動化」族群，不在這一格，也都不在 supply_chain.yaml 裡' },
         { seg: 'machine_tool', part: 'mt_saddle', name: '鞍座（Y 軸滑座）', note: '★ 上下**兩組互相垂直的導引面**是它的識別特徵：下面接 Y 向、上面接 X 向。少掉這一層，三根軸就疊不起來 —— 這件事只有轉過來看才看得出來',
-          kind: 'mtsaddle', box: [76, 12, 54], at: [0, 10, 6], ex: [0, 4, 30], codes: [] },
+          kind: 'mtsaddle', box: [70, 20, 32], at: [0, 14, 14], ex: [0, -4, 34], xmoty: 8, codes: [] },
         { seg: 'machine_tool', part: 'mt_x', name: 'X 軸：滾珠螺桿（工作台下方）', note: '把馬達的「轉」變成工作台的「直線走」。★ 螺桿轉一圈，工作台前進一個導程 —— 所以這裡的轉速是用工作台這一幀真正的速度算出來的，折返的瞬間螺桿也真的跟著反轉',
-          kind: 'mcscrew', box: [94, 9, 9], at: [0, 6, 22], ex: [0, -8, 38], codes: [] },
+          kind: 'mcscrew', box: [94, 7, 7], at: [0, 22, 14], ex: [0, -10, 54], codes: [] },
         { seg: 'machine_tool', part: 'mt_table', name: '工作台（X 軸）', note: '★ 上面一定有 **T 型槽**：工件、虎鉗與夾治具靠它鎖上去。沒有 T 型槽的平板不是工作台',
-          kind: 'mttable', box: [88, 10, 46], at: [0, 21, 6], ex: [0, 32, 30], codes: [] },
+          kind: 'mttable', box: [88, 14, 40], at: [0, 27, 14], ex: [0, 14, 40], codes: [] },
         { seg: 'machine_tool', part: 'mt_work', name: '工件（被加工的那一塊）', note: '★ 綜合加工機是「刀轉、工件夾著不動」—— 工件跟著工作台走位，但它自己不轉。車床剛好相反（工件轉、刀不轉），那是兩種機器唯一的分界',
-          kind: 'mtwork', box: [32, 16, 26], at: [0, 34, -4], ex: [0, 50, 30], codes: [] },
+          kind: 'mtwork', box: [32, 12, 26], at: [0, 40, 16], ex: [0, 30, 42], pocket: [0, 6], codes: [] },
         { seg: 'machine_tool', part: 'mt_head', name: '主軸頭（Z 軸）', note: '★ 背面那兩塊滑塊是「它掛在立柱軌道上」的證據 —— 沒有的話它看起來是浮著的。它是整台機器上最重的一個移動件，重量與剛性同時決定加工精度與加減速能力',
-          kind: 'mthead', box: [42, 32, 42], at: [0, 58, -4], ex: [0, 78, -4], codes: [] },
+          kind: 'mthead', box: [36, 32, 30], at: [0, 80, 20], ex: [0, 20, 6], spz: 2, railTop: -21, nutZ: -21, tip: [0, -36, 2], codes: [] },
         { seg: 'machine_tool', part: 'mt_spmot', name: '主軸馬達', note: '★ 跟三顆進給馬達**同一支幾何**（方殼、散熱肋、前法蘭、伸出去的軸）。圖上畫的是外掛式；高階機種會把馬達直接做進主軸裡（內藏式），那種在外觀上看不到這一顆',
-          kind: 'mtmoty', box: [22, 28, 22], at: [0, 86, -4], ex: [0, 96, -4],
+          kind: 'mtmoty', box: [22, 24, 22], at: [0, 108, 22], ex: [0, 38, 6],
           codes: [], chipnote: '伺服馬達在台股：4576 大銀微系統。這一檔屬於「工業自動化」族群，不在這一格，也不在 supply_chain.yaml 裡' },
         { seg: 'machine_tool', part: 'mt_spindle', name: '主軸（錐孔朝下）', note: '★ 下端是一個**錐孔**（刀柄靠錐面定位，不是靠螺絲鎖）—— 畫成平底就看不出它怎麼夾刀。它的轉速與剛性決定這台機器的加工上限；高階主軸多為外購',
-          kind: 'mtspindle', box: [16, 36, 16], at: [0, 64, -4], ex: [0, 78, 18],
+          kind: 'mtspindle', box: [16, 34, 16], at: [0, 75, 22], ex: [0, 20, 36],
           codes: [], chipnote: '主軸這一件查不到台股的具名對應（高階品多為日、德、瑞士製）—— 查不到就寫查不到，不編一個對應' },
         { seg: 'machine_tool', part: 'mt_bear', name: '主軸軸承（前後兩組）', note: '外環、內環與夾在中間的一圈滾珠。它決定主軸能轉多快、能吃多大的切削力，也是主軸壽命的瓶頸',
-          kind: 'mtbear', box: [20, 9, 20], at: [0, 64, -4], n: 2, gap: 18, axis: 'y', ex: [0, 64, 30], codes: [] },
+          kind: 'mtbear', box: [20, 9, 20], at: [0, 74, 22], n: 2, gap: 20, axis: 'y', ex: [16, 34, 40], codes: [] },
         { seg: 'machine_tool', part: 'mt_tool', name: '刀柄與刀具', note: '★ 刀柄是**錐形**的，中段那一圈溝就是換刀機械手抓的地方。下面那支銑刀的兩條螺旋刃是它「會切削」的識別特徵 —— 畫成一根圓棒就成了鑽孔用的麻花鑽都不是',
-          kind: 'mttool', box: [14, 30, 14], at: [0, 52, -4], ex: [0, 30, 30],
+          kind: 'mttool', box: [12, 24, 12], at: [0, 55, 22], ex: [0, 2, 56],
           codes: [], chipnote: '刀具在台股：1528 恩德科技的營業項目含刀具。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'machine_tool', part: 'mt_mag', name: '刀庫（圓盤式）', note: '★ 識別特徵是「**一圈刀套**繞著圓盤排列」，每個刀套裡插著一支上粗下尖的錐柄 —— 畫成一排方塊就不是刀庫。圓盤轉位把要的那一把轉到換刀位置。把數依機種而異，圖上畫 10 個是示意',
-          kind: 'mtmag', box: [16, 52, 52], at: [-68, 58, -4], ex: [-78, 58, -4],
+          kind: 'mtmag', box: [16, 52, 52], at: [-45, 84, 22], ex: [-24, 8, 0], dropX: -3, bracket: [29, -34],
           codes: [], chipnote: '刀庫與換刀機構的台股供應分工查不到具名來源。整機廠自製與向專業機構件廠採購兩種都有 —— 查不到就寫查不到' },
         { seg: 'machine_tool', part: 'mt_atc', name: '換刀機械手（雙臂式 ATC）', note: '★ **兩端對稱**：一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，擺過去就同時換完 —— 單臂的畫法解釋不了「為什麼一次可以換兩把」，也解釋不了換刀為什麼可以那麼快',
-          kind: 'mtatc', box: [50, 12, 12], at: [-34, 40, 6], ex: [-48, 26, 30], codes: [] },
+          kind: 'mtatc', box: [52, 8, 10], at: [-24, 56.3, 22], ex: [-12, -10, 30], codes: [] },
         { seg: 'machine_tool', part: 'mt_cnc', name: '★ 控制器櫃：CNC 控制器 ＋ 四台驅動器（整櫃外購）', note: '★ 這一櫃是整張圖的重點：它讀程式、算路徑，把每一軸每一毫秒該走到哪算出來。台灣生產的高階工具機**皆搭配進口 CNC 控制器**（日本發那科、德國西門子、海德漢）；國產的新代、寶元在中階與多軸逐步推廣。驅動器通常跟控制器同一家成套供應 —— 換一家等於整套控制架構要重調。材質跟機體不同，正是因為這一格不是同一群人做的',
-          kind: 'mtcab', box: [26, 74, 34], at: [82, 36, -4], ex: [86, 36, -4],
+          kind: 'mtcab', box: [26, 74, 34], at: [82, 36, -4], ex: [18, 0, 0],
           codes: [], chipnote: '控制器在台股：7750 新代科技（不在「CNC 工具機」族群、也不在 supply_chain.yaml 裡）。這張圖畫的整機廠四檔都不做控制器 —— 這就是「台廠做得了整機、關鍵件還是要買」' },
         { seg: 'machine_tool', part: 'mt_conv', name: '排屑機', note: '一條斜著往外走的鏈板輸送帶。它不影響精度，但它決定這台機器能不能連續跑而不用有人去清 —— 切屑堆在機內會頂到工件，也會把熱悶在加工區裡',
-          kind: 'mtconv', box: [42, 12, 28], at: [-78, 0, 28], ex: [-84, -8, 42], codes: [] },
+          kind: 'mtconv', box: [42, 12, 28], at: [-78, 0, 28], ex: [-10, -8, 16], codes: [] },
       ],
       /* ⚠ 2026-09-23 退版：這台機器原本有一整組動作宣告（三軸進給 moves、主軸與刀庫 spins、
          換刀機械手 swings、切屑 carries）。Andy 試過之後說「動畫效果加上去後沒那麼好」，
@@ -1104,8 +1108,8 @@
       /* 控制訊號：控制器 → 驅動器 → 馬達（主鏈）；編碼器 → 控制器（回授，dir −1）。
          有這條回授才叫數值控制 —— 環不閉的話它只是一台會動的機器。*/
       flows: [
-        { kind: 'sig', part: 'mt_cnc', r: 0.34, per: 10, speed: 0.5, pts: [[70, 52, -4], [40, 66, -14], [8, 72, -22]] },
-        { kind: 'sig', part: 'mt_z', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[8, 88, -22], [44, 74, -14], [70, 56, -4]] },
+        { kind: 'sig', part: 'mt_cnc', r: 0.34, per: 10, speed: 0.5, pts: [[70, 58, -4], [42, 100, -6], [7, 116, -1]] },
+        { kind: 'sig', part: 'mt_z', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[6, 124, 2], [46, 106, 2], [70, 64, 0]] },
       ],
       // 脈衝只留控制器那一顆，而且壓到 0.5（Andy：要精密儀器不是電競 RGB）
       pulses: [{ parts: ['mt_cnc'], period: 4.2, kind: 'sig', sharp: 6 }],
@@ -1471,6 +1475,8 @@
     abfcore: 'organic', abfbu: 'organic', abftrace: 'cu', abfvia: 'cu',
     abfsr: 'organic', abfpad: 'cu', abfbga: 'sn',
     pcblay: 'pcb', pcbtrc: 'cu', pcbmask: 'pcb', pcbenig: 'cu', pcbvia: 'cu',
+    /* 2026-09-26 第二批（B 組）：AI 伺服器機櫃、電源、液冷、氣冷四張自己的詞（不動共用件）*/
+    aggpu: 'cer', aghbm: 'si', agpcb: 'pcb', agshelf: 'metal', agcdu: 'metal', psvrm: 'pcb', pswhip: 'emc', acsink: 'alu',
     pshelf: 'metal', pshell: 'metal', pboard: 'pcb', pcardedge: 'pcb',
     pbusbar: 'cu', pvrm: 'pcb', pbbu: 'plastic', pscap: 'alu',
     timlay: 'organic', ihslid: 'cu', cplate: 'cu', cpfin: 'cu', cpport: 'metal',
@@ -2231,43 +2237,80 @@
       return mesh;
     }
 
-    // 背板：板子 ＋ 一排排高速連接器
+    /* NVLink 背板 —— ★ 2026-09-26 第二批（B 組）改畫成**銅纜卡匣**（規格書 docs/diagram_specs/ai_server.md §3D-細節 A2）。
+       以前是「一塊 PCB ＋ 蛇行走線 ＋ 15 個連接器」，那是錯的：NVL72 機櫃後方是**四個直立的纜線卡匣**，
+       裡面是五千多條被動銅纜，托盤推進去時背後的連接器直接咬合卡匣前緣那一排插座。
+       所以現在畫：四個鈑金框 ＋ 每個框裡一束直立的黑色銅纜 ＋ 每一層托盤高度一個插座（面朝托盤、前緣一條金色接點）。
+       電流粒子沿四束纜線上下跑（訊號在托盤與交換托盤之間來回，所以用直立的路徑）。
+       draw call 跟舊版一樣是 5 個（框／纜線／插座／接點／粒子），全部是 mboxes 或 InstancedMesh。*/
     function backplane(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.15)));
-      const cm = K.mat(0.25, { metal: 0.55, rough: 0.35 });
-      /* 圖九 2-1：連接器不只是一個方塊，要看得出裡面成排的端子。
-         ★ 2026-09-22：15 個連接器 × 4 個 Mesh ＝ 60 個 draw call → 收成 2 個 InstancedMesh。
-           畫出來的東西一個像素都沒變，省下來的是 58 個 draw call。*/
-      const body = [], term = [];
-      for (let r = -1; r <= 1; r++) for (let c = -2; c <= 2; c++) {
-        body.push([c * w * 0.18, r * h * 0.26, d * 0.35]);
-        for (let k = -1; k <= 1; k++) term.push([c * w * 0.18 + k * w * 0.026, r * h * 0.26, d * 0.62]);
+      const nC = 4, cw = w / nC, fw = cw * 0.86;
+      const steel = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.38 });
+      const fr = [], t = 0.5;
+      const cxs = [];
+      for (let i = 0; i < nC; i++) {
+        const cx = (-(nC - 1) / 2 + i) * cw; cxs.push(cx);
+        fr.push([t, h, d, cx - fw / 2 + t / 2, 0, 0], [t, h, d, cx + fw / 2 - t / 2, 0, 0],   // 兩側導軌
+          [fw, t * 1.4, d, cx, h / 2 - t * 0.7, 0], [fw, t * 1.4, d, cx, -h / 2 + t * 0.7, 0], // 上下蓋
+          [fw, h * 0.98, 0.18, cx, 0, -d / 2 + 0.09]);                                          // 背板（鈑金）
       }
-      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.14, d * 0.9), cm, body));
-      g.add(instOf(new T.BoxGeometry(w * 0.01, h * 0.07, d * 0.5), K.mat(0.55, { metal: 0.8, rough: 0.25 }), term));
-      // 背板是直立的：走線鋪在 x–y 平面上，所以先把走線層轉 90° 再貼上去
-      const tl = traceLayer(K, w, h, 0, { pairs: 4, cycles: 6, dir: 1 });
-      tl.group.rotation.x = -Math.PI / 2; tl.group.position.z = d * 0.52;
-      g.add(tl.group);
-      g.userData.flows = tl.flows.map(f => ({ ...f, rotX: -Math.PI / 2, offZ: d * 0.52 }));
+      g.add(mboxes(fr, steel));
+      // 銅纜：每個卡匣一束直立的黑色纜線（兩排、每排 11 條）。真的有五千多條 —— 這裡是示意密度
+      const cab = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.82, metal: 0.06 });
+      const cl = [];
+      cxs.forEach(cx => { for (let k = 0; k < 11; k++) for (let r = 0; r < 2; r++)
+        cl.push([cx - fw * 0.4 + k * fw * 0.08, 0, -d * 0.18 + r * d * 0.22]); });
+      g.add(instOf(new T.CylinderGeometry(d * 0.1, d * 0.1, h * 0.95, 5, 1, true), cab, cl));
+      // 插座：每一層托盤高度一個，面朝托盤（+z）；前緣一條金色接點＝托盤推進去時咬合的那一排
+      const hs = [], au = [], rows = 13;
+      cxs.forEach(cx => { for (let r = 0; r < rows; r++) {
+        const y = -h / 2 + h * (r + 0.5) / rows;
+        hs.push([cx, y, d * 0.32]); au.push([cx, y, d * 0.5 + 0.06]);
+      } });
+      g.add(instOf(new T.BoxGeometry(fw * 0.62, h / rows * 0.44, d * 0.5), K.mat(-0.2, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 }), hs));
+      g.add(instOf(new T.BoxGeometry(fw * 0.5, h / rows * 0.16, 0.08), K.mat(0.2, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.24 }), au));
+      // 電流粒子：沿四束纜線直立地跑（交換托盤在中段，運算托盤在上下 —— 訊號是上下來回的）
+      const paths = cxs.map(cx => [new T.Vector3(cx, -h * 0.46, d * 0.1), new T.Vector3(cx, h * 0.46, d * 0.1)]);
+      const per = 8, arr = new Float32Array(paths.length * per * 3);
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(arr, 3));
+      const pm = K.reg(new T.PointsMaterial({ size: 0.9, color: K.col(0.78), transparent: true, opacity: 0.92, depthWrite: false, sizeAttenuation: true }));
+      const pt = new T.Points(geo, pm);
+      pt.userData.flow = { paths, per, t: 0, dir: 1, speed: 0.2 };
+      g.add(pt);
       return g;
     }
 
-    // 托盤／NVSwitch：有厚度的圓角底板（有角色就是那個角色的半透明色）＋ 中間一顆晶片 ＋ 散熱鰭片 ＋ 底下 AO
+    /* NVSwitch 托盤 —— ★ 2026-09-26 第二批（B 組，§3D-細節 A3）：
+       每一台交換托盤裡是**兩顆** NVLink Switch 晶片（共 144 埠），不是一顆；而且跟運算托盤一樣是**液冷**的，
+       晶片上壓的是銅冷板、不是鋁鰭片。後緣一排插座咬合銅纜卡匣，前面板只有管理埠。
+       四個 mesh（鈑金／AO／晶片與插座／冷板與水管），跟舊版一樣。*/
     function tray(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      // 托盤是鈑金件：銀灰金屬實體（規格書一-4）。以前是角色色半透明，整排托盤被染成同一個藍
+      // 托盤是鈑金件：銀灰金屬實體（規格書一-4）
       g.add(rbox(w, h * 0.7, d, h * 0.25, K.mat(-0.18, { metal: 0.8, rough: 0.4 })));
       g.add(aoPad(K, w, d, -h * 0.35 - 0.9));
-      // 托盤中央那顆是交換／控制晶片：石墨灰模封（不是跟鈑金同色的一塊凸起）
-      g.add(put(box(w * 0.26, h * 0.7, d * 0.4, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.18, rough: 0.6 })), 0, h * 0.5, 0));
-      const fin = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.42 });
-      const at = [];
-      for (let i = -5; i <= 5; i++) at.push([i * w * 0.028, h * 0.8, 0]);
-      g.add(instOf(new T.BoxGeometry(w * 0.012, h * 1.1, d * 0.38), fin, at));
+      const top = h * 0.35;
+      // 兩顆交換晶片（封裝載板比冷板大一圈，看得出下面是一顆晶片）＋ 後緣插座 ＋ 前面板管理埠：同一種石墨灰
+      const gr = [];
+      [-1, 1].forEach(s => gr.push([w * 0.2, h * 0.16, d * 0.3, s * w * 0.2, top + h * 0.08, -d * 0.02]));
+      for (let i = 0; i < 6; i++) gr.push([w * 0.11, h * 0.5, d * 0.05, (-2.5 + i) * w * 0.15, top + h * 0.25, -d / 2 + d * 0.04]);
+      [-1, 1].forEach(s => gr.push([w * 0.05, h * 0.3, d * 0.04, s * w * 0.4, top + h * 0.15, d / 2 - d * 0.03]));
+      g.add(mboxes(gr, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.18, rough: 0.6 })));
+      // 銅冷板 ×2 ＋ 串起來的進出水管（接到後緣的快接頭）
+      const cu = K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), metal: 0.9, rough: 0.24 });
+      const cg = [];
+      [-1, 1].forEach(s => { const b = new T.BoxGeometry(w * 0.13, h * 0.2, d * 0.2); b.translate(s * w * 0.2, top + h * 0.26, -d * 0.02); cg.push(b); });
+      [-0.03, 0.03].forEach(dz => {
+        const c = new T.CatmullRomCurve3([new T.Vector3(-w * 0.2, top + h * 0.4, dz * d - d * 0.02), new T.Vector3(0, top + h * 0.5, dz * d - d * 0.02),
+          new T.Vector3(w * 0.2, top + h * 0.4, dz * d - d * 0.02), new T.Vector3(w * 0.3, top + h * 0.4, -d * 0.3), new T.Vector3(w * 0.3, top + h * 0.3, -d * 0.48)]);
+        cg.push(new T.TubeGeometry(c, 16, h * 0.07, 5, false));
+      });
+      // 右緣一對快接頭：跟運算托盤一樣接到機櫃側立柱那一層的分支
+      [-0.9, 0.9].forEach(z => { const q = new T.CylinderGeometry(0.45, 0.45, 1.8, 10); q.rotateZ(Math.PI / 2); q.translate(w / 2 + 0.4, top, z); cg.push(q); });
+      g.add(new T.Mesh(mergeGeos(cg), cu));
       return g;
     }
 
@@ -2406,21 +2449,30 @@
     function cdu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      /* 液冷是規格書一-3 准許透明的三種之一：青綠半透明、粗糙度低、**有厚度**
-         （外殼半透明 ＋ 內層較飽和的水體，轉過去看得出「裡面有水」而不是一片色紙）。*/
+      /* 液冷是規格書一-3 准許透明的三種之一：青綠半透明外殼、**有厚度**。
+         ★ 2026-09-26 第二批（B 組，§3D-細節 L5）：這一支現在只有液冷這張在用（機櫃那張改用 agcdu），所以把裡面畫成真的 CDU：
+           ① **兩顆泵**（馬達＋蝸殼，一用一備）② 一個**儲液槽**（半透明，看得到水位）③ 一支**濾芯**（CDU 標配約 50 µm 的過濾）
+           ④ 控制盒與面板（流量、溫度、壓力都在這裡管）⑤ 裡面的供水（冷）與回水（熱）管 ——
+           板式熱交換器是另一個零件（下面那一顆），兩個迴路只在那裡交換熱。*/
       g.add(rbox(w, h, d, w * 0.22, K.mat(0, { color: K.css('--dg-m-cool', '#2FB8A6'), cool: true })));
-      g.add(put(rbox(w * 0.62, h * 0.94, d * 0.62, w * 0.14,
-        K.mat(0, { color: K.css('--dg-fl-cold', '#2FD9C4'), op: 0.78, rough: 0.2, metal: 0.05 })), 0, 0, 0));
-      const pump = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 });
-      [-0.3, 0.1].forEach(fy => g.add(put(cyl(w * 0.42, h * 0.1, pump), 0, fy * h, 0)));
-      // v3：冷水管螢光藍、熱水管發光紅（3D 自己的 token，閱讀模式是粉彩版，不發光）
+      const stL = [];
+      [-0.34, -0.1].forEach(fy => {
+        const m1 = new T.CylinderGeometry(w * 0.16, w * 0.16, w * 0.46, 14); m1.rotateZ(Math.PI / 2); m1.translate(-w * 0.12, fy * h, -d * 0.1); stL.push(m1);   // 馬達
+        const v1 = new T.CylinderGeometry(w * 0.24, w * 0.24, w * 0.14, 16); v1.rotateZ(Math.PI / 2); v1.translate(w * 0.2, fy * h, -d * 0.1); stL.push(v1);     // 蝸殼
+      });
+      { const f = new T.CylinderGeometry(w * 0.1, w * 0.1, h * 0.16, 12); f.translate(w * 0.24, h * 0.06, d * 0.22); stL.push(f); }                              // 濾芯
+      g.add(new T.Mesh(mergeGeos(stL), K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 })));
+      g.add(put(rbox(w * 0.7, h * 0.2, d * 0.6, w * 0.08, K.mat(0, { color: K.css('--dg-fl-cold', '#2FD9C4'), op: 0.78, rough: 0.2, metal: 0.05 })), 0, h * 0.3, -d * 0.05));   // 儲液槽
+      g.add(put(box(w * 0.5, h * 0.14, d * 0.12, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 })), 0, h * 0.08, d * 0.42));     // 控制盒
+      g.add(put(box(w * 0.34, h * 0.06, d * 0.03, K.mat(0, { led: true })), 0, h * 0.1, d * 0.49));                                                               // 面板
+      // v3：冷水管螢光藍、熱水管發光紅 —— 裡面的直立管 ＋ 外面的進出管，各併成一個 mesh
       const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
       const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), glow: true, metal: 0.2, rough: 0.4 });
-      [[0.42, 1, cold], [-0.42, -1, hot]].forEach(([fy, sx, m]) => {
-        const t = put(cyl(w * 0.22, d * 2.4, m, 10), sx * w * 0.2, fy * h, -d * 1.0);
-        t.rotation.x = Math.PI / 2; g.add(t);
+      [[0.42, 1, cold, -0.3], [-0.42, -1, hot, 0.3]].forEach(([fy, sx, m, iz]) => {
+        const a = new T.CylinderGeometry(w * 0.07, w * 0.07, h * 0.8, 8); a.translate(-w * 0.34, 0, iz * d);
+        const b = new T.CylinderGeometry(w * 0.22, w * 0.22, d * 2.4, 10); b.rotateX(Math.PI / 2); b.translate(sx * w * 0.2, fy * h, -d * 1.0);
+        g.add(new T.Mesh(mergeGeos([a, b]), m));
       });
-      g.add(put(box(w * 0.5, h * 0.03, d * 0.5, K.mat(0, { led: true })), 0, h * 0.46, d * 0.52));
       return g;
     }
 
@@ -2429,15 +2481,31 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       /* 快接頭（UQD）是**銅合金**件（規格書一-4 的「銅件／接頭／快接頭」），
-         不是銀灰鈑金 —— 圖上看得出它跟機櫃柱子不是同一種東西，才對得上不同的供應商。*/
-      const cuM = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 });
-      const body = put(cyl(w * 0.46, h * 1.15, cuM), 0, 0, 0);
-      body.rotation.z = Math.PI / 2; g.add(body);
-      const ring = put(cyl(w * 0.55, h * 0.3, K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.85, rough: 0.25 })), w * 0.3, 0, 0);
-      ring.rotation.z = Math.PI / 2; g.add(ring);
-      // 軟管是橡膠：深灰、完全不金屬（跟銅接頭的對比就是「金屬 vs 非金屬」）
-      const hose = put(cyl(w * 0.24, d * 2.2, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.85, metal: 0.05 })), -w * 0.9, 0, 0);
-      hose.rotation.z = Math.PI / 2; g.add(hose);
+         不是銀灰鈑金 —— 圖上看得出它跟機櫃柱子不是同一種東西，才對得上不同的供應商。
+         ★ 2026-09-26 第二批（B 組，§3D-細節 L6）：補上真的 UQD 看得到的三樣 ——
+           ① 握持用的**滾花套筒**（一圈縱向細肋，拉它才鬆得開）② 開口端的**閥面**：外圈密封面＋中央一顆彈簧閥芯
+           （兩半一分開，閥芯各自彈回去關住＝「不滴漏」）③ 尾端的**倒鉤接頭**（軟管套在上面）。
+           三種材質各併成一個 mesh（銅／鋼／橡膠），draw call 跟舊版一樣是 3 個。*/
+      const cuL = [], stL = [], rbL = [];
+      const r = w * 0.46;
+      const cx = (rad, len, x, seg) => { const c = new T.CylinderGeometry(rad, rad, len, seg || 14); c.rotateZ(Math.PI / 2); c.translate(x, 0, 0); return c; };
+      cuL.push(cx(r, h * 1.15, 0));                                                           // 本體
+      cuL.push(cx(r * 0.42, w * 0.5, -w * 0.78, 10));                                          // 倒鉤接頭
+      for (let i = 0; i < 3; i++) { const c = new T.CylinderGeometry(r * 0.42, r * 0.56, w * 0.08, 10); c.rotateZ(Math.PI / 2); c.translate(-w * 0.6 - i * w * 0.12, 0, 0); cuL.push(c); }
+      stL.push(cx(r * 1.2, h * 0.34, w * 0.3, 16));                                            // 套筒
+      for (let i = 0; i < 12; i++) {                                                           // 滾花：縱向細肋
+        const a = i * Math.PI / 6, b = new T.BoxGeometry(h * 0.32, r * 0.08, r * 0.14);
+        b.translate(w * 0.3, Math.cos(a) * r * 1.22, Math.sin(a) * r * 1.22); stL.push(b);
+      }
+      const face = h * 0.575 + w * 0.02;
+      stL.push(cx(r * 0.36, w * 0.06, face + w * 0.02, 12));                                   // 中央閥芯
+      { const ring = new T.TorusGeometry(r * 0.66, r * 0.12, 5, 16); ring.rotateY(Math.PI / 2); ring.translate(face, 0, 0); stL.push(ring); }   // 閥面外圈的密封面
+      g.add(new T.Mesh(mergeGeos(cuL), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 })));
+      g.add(new T.Mesh(mergeGeos(stL), K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.85, rough: 0.25 })));
+      /* 橡膠軟管。⚠ 驗收用「體積最大的那顆 mesh」代表模組顏色（t_dg3d_pbr 的「銅件」＝ag_uqd），
+         所以軟管不可以跟閥面那一圈併在一起（併了外接盒會橫跨整顆接頭、比銅本體還大）。*/
+      const hose = new T.CylinderGeometry(w * 0.26, w * 0.26, d * 1.6, 10); hose.rotateZ(Math.PI / 2); hose.translate(-w * 0.62 - d * 0.8, 0, 0); rbL.push(hose);
+      g.add(new T.Mesh(mergeGeos(rbL), K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.85, metal: 0.05 })));
       return g;
     }
 
@@ -2554,10 +2622,15 @@
     function optic(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d * 0.86, K.mat(0.05, { metal: 0.82, rough: 0.34 })));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 A6）：800G／1.6T OSFP 的上蓋**本身就是一片鰭片散熱器**
+         （OSFP 跟 QSFP-DD 最好認的差別），所以本體頂面補一排縱向鰭片，跟本體併成一個 mesh；
+         LC 埠與拉環同一種深色、併成一個 mesh —— 8 顆模組省 8 個 draw call，拿去給鰭片用。*/
+      const bodyL = [[w, h * 0.72, d * 0.86, 0, -h * 0.14, 0]];
+      for (let i = 0; i < 5; i++) bodyL.push([w * 0.1, h * 0.3, d * 0.7, (-2 + i) * w * 0.2, h * 0.36, -d * 0.04]);
+      g.add(mboxes(bodyL, K.mat(0.05, { metal: 0.82, rough: 0.34 })));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
-      g.add(mboxes([-1, 1].map(s => [w * 0.3, h * 0.45, d * 0.1, s * w * 0.22, 0, d * 0.44]), port));
-      g.add(put(box(w * 0.7, h * 0.16, d * 0.2, K.mat(0.35, { metal: 0.3, rough: 0.55 })), 0, -h * 0.5, d * 0.52));
+      g.add(mboxes([-1, 1].map(s => [w * 0.3, h * 0.45, d * 0.1, s * w * 0.22, -h * 0.1, d * 0.44])
+        .concat([[w * 0.7, h * 0.16, d * 0.2, 0, -h * 0.5, d * 0.52]]), port));
       // 圖九 2-1：可插拔光模組後端的金手指 —— 成排、鍍金、前緣倒角
       g.add(fingers(K, w * 0.86, h * 0.1, d * 0.12, 7, -h * 0.28, -d * 0.44));
       g.add(put(box(w * 0.18, h * 0.12, d * 0.03, K.mat(0, { led: true })), 0, h * 0.4, d * 0.45));
@@ -2597,6 +2670,173 @@
       return g;
     }
 
+    /* ================================================================ AI 伺服器機櫃專用（2026-09-26 第二批，B 組）
+       規格書 docs/diagram_specs/ai_server.md §3D-細節。這幾支**只有 ai_server 用**：
+       原本的 gpu／hbm／pcb／psu／cdu 是跟 CoWoS 剖面、交換器板卡、液冷那幾張共用的，
+       平行作業的規則是「不准改共用件」，所以另開 ag* 這組詞（建議之後合併進共用）。
+       小陣列一律用 InstancedMesh ＋ 平的 BoxGeometry（12 個三角形），不用倒角 —— 機櫃的三角形棘輪是 67,000。*/
+    const agGeo = (w, h, d, x, y, z) => { const b = new T.BoxGeometry(w, h, d); b.translate(x || 0, y || 0, z || 0); return b; };
+    /* 有厚度的圓環（沿 z）：外徑 ro、內徑 ri、長 len。用 ExtrudeGeometry 做成**封閉實體**，
+       內外壁與兩端面都在 —— 不必靠雙面材質（雙面會讓 three 多編一支 shader）。風扇輪轂、軸承內外環、磁鐵環都用它。*/
+    const agRing = (ro, ri, len, seg) => {
+      const s = new T.Shape(); s.absarc(0, 0, ro, 0, Math.PI * 2, false);
+      const hole = new T.Path(); hole.absarc(0, 0, ri, 0, Math.PI * 2, true); s.holes.push(hole);
+      const g = new T.ExtrudeGeometry(s, { depth: len, bevelEnabled: false, curveSegments: Math.max(8, Math.round((seg || 20) / 2)) });
+      g.translate(0, 0, -len / 2); return g;
+    };
+
+    /* GPU 模組（B200 式）：深藍載板 ＋ 中介層 ＋ **兩顆**光罩尺寸的運算晶粒（中間留一道縫＝晶粒對晶粒的高速介面）。
+       HBM 是另一個零件（ag_hbm），站在同一片中介層上、晶粒左右各一排四顆 —— 兩個零件同一個位置、同一個爆炸位移。
+       box 高 2.2：底面剛好坐在運算托盤板面（y 35.6）上，以前 y 34 會被板子吃掉半截（A 組交接的結構錯誤 1）。*/
+    const AGPKG = (h) => ({ sub: -h / 2 + h * 0.14, subH: h * 0.28, ipY: -h / 2 + h * 0.28 + h * 0.07, ipH: h * 0.14,
+      top: -h / 2 + h * 0.42 });                       // top ＝ 中介層頂面（晶粒與 HBM 的底）
+    function agGpu(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box, L = AGPKG(h);
+      g.add(put(box(w, L.subH, d, K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.35, rough: 0.45 })), 0, L.sub, 0));
+      g.add(put(box(w * 0.86, L.ipH, d * 0.8, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.3, rough: 0.5 })), 0, L.ipY, 0));
+      // 補強環（stiffener）：載板外圈一圈金屬框，大尺寸有機載板靠它壓住翹曲（CoWoS 剖面那張也有這一件）
+      const sy = L.sub + L.subH / 2 + h * 0.05, sr = w * 0.035;
+      g.add(mboxes([[w * 0.97, h * 0.1, sr, 0, sy, -d * 0.47], [w * 0.97, h * 0.1, sr, 0, sy, d * 0.47],
+        [sr, h * 0.1, d * 0.9, -w * 0.47, sy, 0], [sr, h * 0.1, d * 0.9, w * 0.47, sy, 0]], K.mat(0.2, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.3 })));
+      // 兩顆晶粒：同一個幾何實例化兩次，頂面各自吃到一張版圖（floor 貼圖是依局部座標取樣的）
+      const dw = w * 0.25, dd = d * 0.56, dh = h * 0.3;
+      const ft = floorTex();
+      const dm = K.mat(0.3, { color: K.css('--dg-si', '#33488a'), metal: 0.36, rough: 0.33, floor: ft ? { tex: ft, sx: dw, sz: dd } : null });
+      g.add(instOf(new T.BoxGeometry(dw, dh, dd), dm, [[-dw / 2 - w * 0.012, L.top + dh / 2, 0], [dw / 2 + w * 0.012, L.top + dh / 2, 0]]));
+      return g;
+    }
+    /* HBM：每顆 GPU 八疊（晶粒左右各一排四疊）。每一疊＝底層邏輯晶粒 ＋ 四段 DRAM（層縫壓暗）——
+       真的是 8～12 層，這個尺寸畫不出來，四段是示意（副標已寫「示意圖，非實物比例」）。
+       DRAM 段與層縫各併成一個幾何：一顆 GPU 的八疊只要 2 個 draw call。*/
+    function agHbm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box, L = AGPKG(h);
+      const sw = w * 0.13, sd = d * 0.12, sh = h * 0.3, n = 4;
+      const dram = [], seam = [];
+      [-1, 1].forEach(s => { for (let i = 0; i < 4; i++) {
+        const x = s * w * 0.36, z = (-1.5 + i) * d * 0.15;
+        dram.push(agGeo(sw, sh * 0.22, sd, x, L.top + sh * 0.11, z));                       // 底層邏輯晶粒
+        for (let k = 0; k < n; k++) {
+          const y0 = L.top + sh * 0.22 + k * sh * 0.78 / n;
+          dram.push(agGeo(sw * 0.96, sh * 0.78 / n * 0.8, sd * 0.96, x, y0 + sh * 0.78 / n * 0.4, z));
+          seam.push(agGeo(sw * 0.9, sh * 0.78 / n * 0.2, sd * 0.9, x, y0 + sh * 0.78 / n * 0.9, z));
+        }
+      } });
+      g.add(new T.Mesh(mergeGeos(dram), K.mat(0.05, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.5, metal: 0.25 })));
+      g.add(new T.Mesh(mergeGeos(seam), K.mat(-0.5, { rough: 0.85 })));
+      return g;
+    }
+
+    /* 運算托盤主機板（Bianca 式）：以前沿用共用的 `pcb`，那一支畫了**三條插槽**＋前緣金手指 ——
+       但這塊板上的 CPU 記憶體（LPDDR5X）是**直接焊在板上**的，沒有 DIMM 插槽；
+       對外的是**後緣的 NVLink 盲插連接器**（推進去咬合銅纜卡匣）與**前緣的網卡籠架與 E1.S 硬碟**（冷通道那一側）。
+       GPU 腳位前方一排電感＝多相供電（電流太大、壓降走不遠，所以緊貼 GPU）。
+       六個 mesh：板／AO／石墨灰小件（一個 InstancedMesh）／金屬件（一個）／走線／走線上的電流。*/
+    function agPcb(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(-0.25, { rough: 0.72, metal: 0.08 })));
+      g.add(aoPad(K, w, d, -h / 2 - 1.2));
+      const y0 = h / 2;
+      // 石墨灰小件：LPDDR5X（每顆 CPU 左右各四顆）、GPU 前方的供電電感、前緣網卡晶片
+      const sm = [];
+      [-17, 17].forEach(cx => [-1, 1].forEach(s => { for (let i = 0; i < 4; i++)
+        sm.push([cx + s * 4.9, y0 + 0.22, -13.5 + i * 1.7, 0, 0, 0, 1.4, 0.44, 1.3]); }));
+      [-15, -5, 5, 15].forEach(cx => { for (let i = 0; i < 6; i++)
+        sm.push([cx - 3.4 + i * 1.36, y0 + 0.36, 8.1, 0, 0, 0, 1.0, 0.72, 0.9]); });
+      [-18, -10, 10, 18].forEach(cx => sm.push([cx, y0 + 0.2, 12.2, 0, 0, 0, 2.2, 0.4, 2.2]));
+      g.add(instOf(new T.BoxGeometry(1, 1, 1), K.mat(0.1, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.55, metal: 0.18 }), sm));
+      // 金屬件：前緣網卡籠架 ×4、E1.S 硬碟架 ×4、後緣 NVLink 盲插連接器 ×4
+      const mt = [];
+      for (let i = 0; i < 4; i++) mt.push([3.4, 1.1, 2.6, -20.2 + i * 3.9, y0 + 0.55, d / 2 - 1.3]);
+      for (let i = 0; i < 4; i++) mt.push([2.2, 0.9, 3.6, 6.4 + i * 4.2, y0 + 0.45, d / 2 - 1.8]);
+      /* ⚠ 這一組金屬件的外接盒不可以比板子大：驗收用「體積最大的那顆 mesh」代表這個模組的顏色（t_dg3d_pbr），
+         金屬件散佈整塊板、高度一超過板厚，PCB 模組就會被量成銀灰色。所以全部壓在 1.1 以內。*/
+      [-16.5, -5.5, 5.5, 16.5].forEach(x => mt.push([7, 1.0, 1.4, x, y0 + 0.5, -d / 2 + 0.7]));
+      g.add(mboxes(mt, K.mat(0.15, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.36 })));
+      // 右緣一對液冷快接頭（冷在前、熱在後）：托盤推進去時對上機櫃側立柱那一層的分支（每台托盤各自拿水、各自回水）
+      const qg = [];
+      [-0.9, 0.9].forEach(z => {
+        const c = new T.CylinderGeometry(0.45, 0.45, 1.8, 10); c.rotateZ(Math.PI / 2); c.translate(w / 2 + 0.4, y0 + 0.5, z); qg.push(c);
+        const r = new T.CylinderGeometry(0.58, 0.58, 0.5, 10); r.rotateZ(Math.PI / 2); r.translate(w / 2 + 1.1, y0 + 0.5, z); qg.push(r);
+        const t = new T.CylinderGeometry(0.22, 0.22, 4, 6); t.rotateZ(Math.PI / 2); t.translate(w / 2 - 2.2, y0 + 0.5, z); qg.push(t);
+      });
+      g.add(new T.Mesh(mergeGeos(qg), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 })));
+      // 板面的蛇行等長差動對：訊號由 GPU 往後緣的 NVLink 連接器（-z）
+      const tl = traceLayer(K, w, d, h * 0.55, { pairs: 4, cycles: 5, dir: -1 });
+      g.add(tl.group);
+      return g;
+    }
+
+    /* 電源櫃（1U power shelf）：六顆熱插拔 PSU 並排（5＋1 冗餘）＋ 左邊一格電源管理控制器（PMC）。
+       前面板看得到每一顆的風扇孔、把手、狀態燈；後面是**夾在機櫃直流匯流排上的銅夾**（50V 直流，不是一束電線）。
+       舊版用共用的 `psu`（一顆大 PSU 的外殼），看不出「一台電源櫃裡有六顆」這件事。*/
+    function agShelf(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h, d, h * 0.18, K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.4, rough: 0.5 })));
+      g.add(aoPad(K, w, d, -h / 2 - 0.8));
+      const pmcW = w * 0.1, bw = (w * 0.96 - pmcW) / 6, x0 = -w * 0.48 + pmcW;
+      const fz = d / 2 + 0.06;
+      const face = [], fan = [], ring = [], led = [], met = [];
+      for (let i = 0; i < 6; i++) {
+        const cx = x0 + bw * (i + 0.5);
+        face.push([bw * 0.92, h * 0.84, 0.3, cx, 0, fz]);
+        fan.push([cx - bw * 0.1, h * 0.04, fz + 0.18, Math.PI / 2, 0, 0]);
+        ring.push([cx - bw * 0.1, h * 0.04, fz + 0.2]);
+        met.push([bw * 0.14, h * 0.62, 0.36, cx + bw * 0.33, 0, fz + 0.2]);                  // 把手
+        led.push([cx + bw * 0.33, h * 0.36, fz + 0.4]);
+      }
+      met.push([pmcW * 0.8, h * 0.74, 0.34, -w * 0.48 + pmcW / 2, 0, fz + 0.1]);             // 管理控制器
+      g.add(mboxes(face, K.mat(-0.28, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.35, rough: 0.55 })));
+      const fr = Math.min(bw * 0.34, h * 0.36);
+      g.add(instOf(new T.CylinderGeometry(fr, fr, 0.08, 14), K.mat(-0.6, { rough: 0.9, metal: 0.05 }), fan));
+      g.add(instOf(new T.TorusGeometry(fr * 0.62, fr * 0.07, 3, 14), K.mat(0.2, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 }), ring));
+      g.add(mboxes(met, K.mat(0.25, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.38 })));
+      g.add(instOf(new T.BoxGeometry(bw * 0.12, h * 0.1, 0.06), K.mat(0, { led: true }), led));
+      // 後面：夾住機櫃直流匯流排的兩片銅夾（正負各一），厚 —— 幾百安培靠截面積
+      g.add(mboxes([[w * 0.12, h * 0.5, d * 0.08, -w * 0.08, 0, -d / 2 - d * 0.04], [w * 0.12, h * 0.5, d * 0.08, w * 0.08, 0, -d / 2 - d * 0.04]],
+        K.mat(0.4, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.28 })));
+      return g;
+    }
+
+    /* 液冷立柱（機櫃側）：半透明外殼裡是**供水／回水兩根直立主管**（冷、熱分開），
+       面向機櫃那一側每一層托盤高度有一對分支 ＋ 快接頭（每台托盤各自拿水、各自回水＝並聯），
+       底部兩顆泵（備援）。舊版是一根青色柱子加兩顆泵，看不出「一冷一熱、每層一對接頭」。*/
+    function agCdu(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h, d, w * 0.22, K.mat(0, { color: K.css('--dg-m-cool', '#2FB8A6'), cool: true })));
+      const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
+      const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), glow: true, metal: 0.2, rough: 0.4 });
+      const pr = w * 0.13;
+      [[-1, cold], [1, hot]].forEach(([s, m]) => g.add(put(cyl(pr, h * 0.9, m, 10), 0, h * 0.03, s * d * 0.2)));
+      // 分支：朝機櫃（-x）伸出去，每層一對（冷在前、熱在後）
+      /* 九層分支對準九台托盤的高度（六塊運算托盤板 y 11～51、三台交換托盤 y 56／62／68），收攏時剛好對上托盤右緣的快接頭 */
+      const lv = [11, 19, 27, 35, 43, 51, 56, 62, 68].map(y => y - p.at[1]).filter(y => Math.abs(y) < h / 2 - 1);
+      const bc = [], bh = [], qd = [];
+      for (let i = 0; i < lv.length; i++) {
+        const y = lv[i];
+        bc.push([-w * 0.45, y, -d * 0.2, 0, 0, Math.PI / 2]); bh.push([-w * 0.45, y, d * 0.2, 0, 0, Math.PI / 2]);
+        qd.push([-w * 0.85, y, -d * 0.2, 0, 0, Math.PI / 2], [-w * 0.85, y, d * 0.2, 0, 0, Math.PI / 2]);
+      }
+      const bg = new T.CylinderGeometry(pr * 0.5, pr * 0.5, w * 0.9, 6, 1, true);
+      g.add(instOf(bg, cold, bc)); g.add(instOf(bg.clone(), hot, bh));
+      g.add(instOf(new T.CylinderGeometry(pr * 0.85, pr * 0.85, w * 0.26, 8), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 }), qd));
+      // 兩顆泵（備援）＋ 一支濾芯：同一種金屬，併成一個 mesh
+      const pm = [];
+      [-0.42, -0.3].forEach(fy => { const c = new T.CylinderGeometry(w * 0.4, w * 0.4, h * 0.08, 14); c.translate(0, fy * h, 0); pm.push(c); });
+      { const c = new T.CylinderGeometry(w * 0.18, w * 0.18, h * 0.12, 10); c.translate(w * 0.1, -h * 0.17, 0); pm.push(c); }
+      g.add(new T.Mesh(mergeGeos(pm), K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 })));
+      [[0.42, 1, cold], [-0.42, -1, hot]].forEach(([fy, sx, m]) => {
+        const t = put(cyl(w * 0.22, d * 2.4, m, 10), sx * w * 0.2, fy * h, -d * 1.0);
+        t.rotation.x = Math.PI / 2; g.add(t);
+      });
+      g.add(put(box(w * 0.5, h * 0.03, d * 0.5, K.mat(0, { led: true })), 0, h * 0.46, d * 0.52));
+      return g;
+    }
+
     /* ABF 載板：core ＋ 上下增層 ＋ 表面的細線路
        ★ 2026-09-22：補上**雷射盲孔（微孔）**與第二層增層。
          載板跟硬板在圖上唯一分得開的地方就是孔形：載板是一層一層疊上去、
@@ -2629,6 +2869,18 @@
       // 改成 5×5、球徑對得上間距（球會微微相鄰但不重疊）。
       const g = new T.Group();
       const [w, h] = p.box;
+      if (p.field) {
+        /* ★ 2026-09-26 細緻化第二批（CoWoS）：卡片寫「載板背面那一整片球」、LSC 那一格寫「夾在 BGA 球陣列中間、那一塊的錫球要讓位」——
+           以前畫的是 z = −12 那一條的六小叢，兩句話在圖上都不成立。現在：**整片背面鋪滿**，
+           背面去耦電容那一塊（p.hole）**空出來**。迴焊後略扁（y 壓扁）。球距、球數是示意。*/
+        const [fw, fd] = p.field, pit = p.pitch || 2.4, r = Math.min(pit * 0.3, h * 0.4);
+        const nx = Math.floor(fw / pit), nz = Math.floor(fd / pit);
+        const out = gridXZ(nx, nz, pit, pit, 0).filter(a => !(p.hole || []).some(([cx, cz, hw, hd]) =>
+          Math.abs(a[0] - cx) < hw / 2 + r && Math.abs(a[2] - cz) < hd / 2 + r));
+        const bg = new T.SphereGeometry(r, 8, 6); bg.scale(1, 0.82, 1);
+        g.add(instOf(bg, K.mat(0.35, { metal: 0.6, rough: 0.35 }), out));
+        return g;
+      }
       g.add(ballGrid(K, w * 0.62, Math.min(w, h) * 0.3, 5, 0));
       return g;
     }
@@ -2811,14 +3063,29 @@
     }
 
     // 探針卡：基板 ＋ 一叢探針
+    /* ★ 2026-09-26 細緻化第二批（規格 ic_package.md §3D-細節）：以前是一塊方板 ＋ 5×5 根針。
+       垂直式探針卡實際是四層由上往下疊：**PCB（大圓盤，接測試機）→ 補強框（金屬，壓住 PCB 的平整度）
+       → 空間轉換板（多層陶瓷或多層有機板，把 PCB 的粗間距轉成晶片的細間距）→ 探針頭（夾著一整片垂直探針）**，
+       針尖朝下對準晶圓上的墊。
+       依據（WebSearch 摘要，信心中）：垂直式探針卡由 PCB、空間轉換板（ST）、探針頭與補強框等機構件組成；
+       ST 為多層有機（MLO，BT／玻纖環氧）或多層陶瓷（MLC）；補強框可把 PCB 平整度改善約 10 倍；ST 底部間距約 30–300 µm。
+       尺寸比例、針數是示意。*/
     function probe(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.15, { rough: 0.7 })));
+      const R = Math.min(w, d) / 2;
+      g.add(put(cyl(R, h * 0.28, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 }), 28), 0, h * 0.2, 0));
+      // 補強框：十字 ＋ 外圈（金屬），壓在 PCB 上面
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.34 });
+      g.add(mboxes([[R * 1.3, h * 0.24, R * 0.16, 0, h * 0.46, 0], [R * 0.16, h * 0.24, R * 1.3, 0, h * 0.46, 0],
+        [R * 0.9, h * 0.24, R * 0.14, 0, h * 0.46, R * 0.62], [R * 0.9, h * 0.24, R * 0.14, 0, h * 0.46, -R * 0.62],
+        [R * 0.14, h * 0.24, R * 0.9, R * 0.62, h * 0.46, 0], [R * 0.14, h * 0.24, R * 0.9, -R * 0.62, h * 0.46, 0]], st));
+      // 空間轉換板（陶瓷，方）＋ 探針頭（深色，較小）
+      g.add(put(box(R * 0.8, h * 0.22, R * 0.8, K.mat(0.1, { rough: 0.55 })), 0, -h * 0.05, 0));
+      g.add(put(box(R * 0.56, h * 0.26, R * 0.56, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.1 })), 0, -h * 0.29, 0));
+      // 垂直探針：7×7，細、針尖朝下
       const pin = K.mat(0.45, { metal: 0.8, rough: 0.25 });
-      const pins = [];
-      for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) pins.push([i * w * 0.16, -h * 0.9, j * d * 0.16]);
-      g.add(instOf(new T.CylinderGeometry(w * 0.012, w * 0.012, h * 1.6, 6), pin, pins));
+      g.add(instOf(new T.CylinderGeometry(R * 0.012, R * 0.006, h * 0.7, 5, 1, true), pin, gridXZ(7, 7, R * 0.07, R * 0.07, -h * 0.72)));
       return g;
     }
 
@@ -3013,6 +3280,32 @@
       return g;
     }
 
+    /* HBM 堆疊（CoWoS 那張專用；AI 機櫃那張的 `hbm` 共用件沒動）。
+       ★ 2026-09-26 細緻化第二批：卡片寫「12–16 層 DRAM ＋ TSV ＋ base die」，以前畫的是 6 片一樣厚的板子。
+       現在：最底下一片**顏色不同、比較厚的 base die**（邏輯晶粒）→ 12 片**薄**的核心晶粒、每兩片之間一道深色填縫
+       → 最上面一片**比較厚的頂層晶粒**（研磨後要撐住整疊，頂層不必再打 TSV）。頂面沒有凸塊。
+       依據：`hbm_stack.md` §3D-細節（核心晶粒約 30–50 µm、以 TSV 與微凸塊接到 base die；兩家填縫做法不同所以不寫材料名）。
+       層數固定畫 12（卡片寫 12–16），厚度比例是示意。*/
+    function hbmStk(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const n = p.layers || 12, hb = h * 0.14, ht = h * 0.1, gap = h * 0.018;
+      const hc = (h - hb - ht - gap * (n + 1)) / n;
+      g.add(put(box(w, hb, d, K.mat(-0.3, { rough: 0.34, metal: 0.36 })), 0, -h / 2 + hb / 2, 0));
+      const dies = [], gaps = [];
+      let y = -h / 2 + hb;
+      for (let i = 0; i <= n; i++) {
+        gaps.push([w * 0.985, gap, d * 0.985, 0, y + gap / 2, 0]);
+        y += gap;
+        const t = i < n ? hc : ht;
+        dies.push([w * 0.99, t, d * 0.99, 0, y + t / 2, 0]);
+        y += t;
+      }
+      g.add(mboxes(dies, K.mat(0.12, { rough: 0.32, metal: 0.34 })));
+      g.add(mboxes(gaps, K.mat(-0.5, { rough: 0.85, metal: 0.05 })));
+      return g;
+    }
+
     /* 補強環（stiffener ring）：圍著載板四邊的一整圈金屬框（2026-09-26 第二批：以前是前後兩根條子，看起來像兩根導軌）。
        底下那一條深色細線是把它黏到載板上的膠。兩件式散熱蓋就是「先黏補強環、再把上蓋黏在環上」
        （WebSearch 摘要：兩件式散熱蓋的補強環以導熱介面材料黏在載板上，可大幅降低烘烤時的翹曲；專利摘要：上蓋黏在補強環上）。*/
@@ -3168,14 +3461,21 @@
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.7, rough: 0.32 });
       const wick = K.mat(0, { color: K.css('--dg-wick', '#8f6a45'), rough: 0.88, metal: 0.12 });
       const vap = K.mat(0, { color: K.css('--dg-vap', '#24324a'), rough: 0.8, metal: 0.05 });
-      g.add(put(box(w, h * 0.2, d, cu), 0, -h * 0.4, 0));                       // 下銅板
-      g.add(put(box(w * 0.96, h * 0.12, d * 0.96, wick), 0, -h * 0.24, 0));     // 燒結銅粉毛細層
-      g.add(put(box(w * 0.96, h * 0.34, d * 0.96, vap), 0, h * 0.02, 0));       // 蒸氣腔（真空）
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 V1）：
+         ① **上蓋板底下也有一層毛細**（上下兩面都燒結銅粉：下面是蒸發端、上面是冷凝端，液體沿支撐柱流回來）
+         ② 一側的**封口注液管**（抽真空、注入少量工作流體之後壓扁焊死 —— 每一片 VC 都有這個小尾巴）
+         ③ 四周一圈**焊邊**（上下兩片是焊起來的，所以邊緣比腔體寬一圈）
+         上下銅板、焊邊與注液管併成一個 mesh；上下毛細一個 mesh；支撐柱仍是 InstancedMesh。*/
+      const cuL = [agGeo(w, h * 0.2, d, 0, -h * 0.4, 0), agGeo(w, h * 0.2, d * 0.52, 0, h * 0.3, -d * 0.24),
+        agGeo(w * 1.03, h * 0.08, d * 0.03, 0, -h * 0.28, d * 0.5)];
+      { const tube = new T.CylinderGeometry(h * 0.08, h * 0.12, w * 0.1, 8); tube.rotateZ(Math.PI / 2); tube.translate(w * 0.54, -h * 0.28, d * 0.2); tube.scale(1, 0.6, 1); cuL.push(tube); }
+      g.add(new T.Mesh(mergeGeos(cuL), cu));
+      g.add(new T.Mesh(mergeGeos([agGeo(w * 0.96, h * 0.12, d * 0.96, 0, -h * 0.24, 0),       // 下毛細（蒸發端）
+        agGeo(w * 0.96, h * 0.08, d * 0.5, 0, h * 0.16, -d * 0.24)]), wick));                  // 上毛細（冷凝端，只在蓋著的那一半看得到）
+      g.add(put(box(w * 0.96, h * 0.3, d * 0.96, vap), 0, -h * 0.02, 0));                     // 蒸氣腔（真空）
       // 支撐柱：把上下板撐開，不然大氣壓會把腔體壓扁
       g.add(instOf(new T.CylinderGeometry(Math.min(w, d) * 0.028, Math.min(w, d) * 0.028, h * 0.34, 8), cu,
         gridXZ(5, 4, w * 0.19, d * 0.22, h * 0.02)));
-      // 上銅板只蓋一半 —— 剖開才看得到裡面，這張圖要講的就是裡面
-      g.add(put(box(w, h * 0.2, d * 0.52, cu), 0, h * 0.3, -d * 0.24));
       return g;
     }
 
@@ -3194,9 +3494,11 @@
         new T.Vector3(-w * 0.48, 0, d * 0.3), new T.Vector3(-w * 0.1, 0, d * 0.32),
         new T.Vector3(w * 0.18, 0, d * 0.05), new T.Vector3(w * 0.3, 0, -d * 0.24),
         new T.Vector3(w * 0.48, 0, -d * 0.3)]);
-      const tube = new T.Mesh(new T.TubeGeometry(curve, 30, r, 10, false), cu);
-      tube.scale.y = 0.5;                        // 壓扁：熱管貼上晶片那一段一定是扁的
-      g.add(tube);
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 V2）：冷凝端補上**壓扁焊死的封口尾巴**（抽真空注液後封起來的地方），
+         跟管身併成同一個幾何（壓扁改成烘進幾何，不再靠 mesh 的 scale）。*/
+      const tg = new T.TubeGeometry(curve, 30, r, 10, false); tg.scale(1, 0.5, 1);
+      const tail = new T.CylinderGeometry(r * 0.35, r, r * 1.6, 8); tail.rotateZ(-Math.PI / 2); tail.scale(1, 0.35, 1); tail.translate(w * 0.48 + r * 0.8, 0, -d * 0.3);
+      g.add(new T.Mesh(mergeGeos([tg, tail]), cu));
       // 切開的那一端：管壁毛細（環）＋ 中央蒸氣道。三層剖面＝它不是一根實心銅棒
       const end = put(cyl(r * 0.78, r * 0.34, wick, 14), -w * 0.49, 0, d * 0.3);
       end.rotation.z = Math.PI / 2; end.scale.z = 0.5; g.add(end);
@@ -4228,6 +4530,8 @@
       return s * (ABF.core / 2 + ABF.bu * (k - 0.5));
     }
     const abfTop = () => ABF.core / 2 + ABF.bu * ABF.n;        // 最上層增層的上表面
+    // 2026-09-26 第二批：微孔與疊孔的 x（abfVia 與 abfTrace 的墊共用，合攏時孔一定坐在墊上）
+    const abfViaX = (w) => [0, 1, 2, 3, 4, 5].map(i => (-3.4 + i * 1.25) * (w * 0.1)).concat([-w * 0.3, w * 0.3]);
 
     /* 核心層 core：半剖的厚板 ＋ 剖面上的玻纖織紋 ＋ 兩面覆銅。
        織紋畫在**剖面上**才對：經紗被切斷 → 一排小圓；緯紗順著切面 → 一條長帶。
@@ -4238,11 +4542,29 @@
       g.add(mboxes(halfSlab(w, h, d), K.mat(-0.34, { rough: 0.7, metal: 0.06 })));
       g.add(halfFace(K, w, h, d, 0, -0.34));
       const fz = Math.max(0.06, Math.min(w, d) * 0.004) * 2.4;      // 剖面板的前方一點點
-      const wv = K.mat(0.26, { color: K.css('--dg-pp', '#8a8355'), rough: 0.82, metal: 0.04 });
-      const cir = [];
-      for (let i = 0; i < 11; i++) cir.push([(-5 + i) * (w / 12), h * 0.16, fz, Math.PI / 2, 0, 0]);
-      g.add(instOf(new T.CylinderGeometry(h * 0.1, h * 0.1, fz, 8), wv, cir));      // 經紗（被切斷）
-      g.add(mboxes([[w * 0.96, h * 0.12, fz, 0, -h * 0.2, fz / 2]], wv));           // 緯紗（順著切面）
+      const wv = K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.7, metal: 0.04 });   // 玻纖（E-glass）本身是白的；剖面上要跟深色樹脂分得開
+      /* ★ 2026-09-26 細緻化第二批（規格 abf_substrate.md §3D-細節）：織紋從「一排圓 ＋ 一條直帶」改成真的**織造玻纖布**的剖面：
+           · 兩層布（上下各一層；core 由浸了樹脂的玻纖布壓成）
+           · 經紗被切斷 → 一排**扁橢圓的紗束**（紗是一束細絲，壓合後是扁的，不是圓棒）
+           · 緯紗順著切面走 → 一條**上下穿梭的波浪帶**：從一束經紗上面越過、再從下一束底下鑽過（平織），
+             交叉點最厚（兩股紗）、紗與紗之間只剩樹脂 —— 這就是「織紋」兩個字的意思，一條直帶講不出來。
+         依據（WebSearch 摘要，信心中）：IPC 技術文件：玻纖布經緯交錯處是兩股紗厚（knuckle）、紗間是 0 股；
+         專利摘要：紗束剖面可為圓或橢圓／扁平；FC-BGA 核心是玻纖布補強的 BT 或環氧樹脂（CCL）。層數、紗數是示意。*/
+      const nb = 12, pit = w * 0.96 / nb, bh = h * 0.11;
+      const warp = [], weft = [];
+      [[h * 0.2, 0], [-h * 0.2, 0.5]].forEach(([y0, ph]) => {
+        for (let i = 0; i < nb; i++) warp.push([-w * 0.48 + (i + 0.5 + ph * 0.5) * pit, y0, fz, Math.PI / 2, 0, 0, 1, 1, 0.42]);
+        const N = nb * 8, pos = [], idx = [], A = bh * 0.95, t = bh * 0.34;
+        for (let k = 0; k <= N; k++) {
+          const x = -w * 0.48 + k * (w * 0.96 / N), yy = y0 + A * Math.cos(Math.PI * ((x + w * 0.48) / pit - 0.5 - ph * 0.5));
+          pos.push(x, yy - t, fz * 1.02, x, yy + t, fz * 1.02);
+          if (k) idx.push(2 * k - 2, 2 * k, 2 * k + 1, 2 * k - 2, 2 * k + 1, 2 * k - 1);
+        }
+        const wg = new T.BufferGeometry(); wg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); wg.setIndex(idx); wg.computeVertexNormals();
+        weft.push(wg);
+      });
+      g.add(instOf(new T.CylinderGeometry(bh * 1.25, bh * 1.25, fz, 10), wv, warp));   // 經紗（被切斷的扁橢圓紗束）
+      g.add(new T.Mesh(mergeGeos(weft), wv));                                            // 緯紗（上下穿梭）
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.8, rough: 0.3 });
       g.add(mboxes([[w, h * 0.08, d / 2, 0, h * 0.46, -d / 4],
         [w, h * 0.08, d / 2, 0, -h * 0.46, -d / 4]], cu));                          // core 兩面的線路
@@ -4280,13 +4602,24 @@
       const g = new T.Group();
       const [w, , d] = p.box;
       const cu = K.mat(0, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
-      const tw = w * 0.012, at = [];
+      /* ★ 2026-09-26 細緻化第二批：每一層銅不再是 15 條等距的細線 —— 微孔落下去的地方一定有一顆**目標墊（target pad）**、
+         微孔起頭的地方有一顆**捕捉墊（capture pad）**，墊明顯比細線寬（要吃得下雷射對位誤差與電鍍變異）。
+         墊的 x 跟 abfVia 用同一支 abfViaX()，合攏時每一顆微孔都正好坐在墊上 —— 「孔對不準銅就導不通」就是這張圖的主題。
+         細線避開墊的位置。依據（WebSearch 摘要，兩家以上板廠設計指南一致）：捕捉墊在微孔起頭那一層、目標墊在落點那一層，
+         墊要大到吃得下對位、雷射位置與電鍍變異。墊寬是示意。*/
+      const tw = w * 0.012, at = [], pads = [];
+      const vx = abfViaX(w), pw = w * 0.04;
       for (let s = -ABF.n; s <= ABF.n; s++) {
         if (!s) continue;
         const y = abfY(s) - (s > 0 ? 1 : -1) * ABF.bu * 0.4;
-        for (let i = 0; i < 15; i++) at.push([(-7 + i) * (w / 17), y, -d / 4]);
+        for (let i = 0; i < 15; i++) {
+          const x = (-7 + i) * (w / 17);
+          if (vx.every(v => Math.abs(v - x) > pw * 0.9)) at.push([x, y, -d / 4]);
+        }
+        vx.forEach(x => pads.push([x, y, -d / 4]));
       }
       g.add(instOf(new T.BoxGeometry(tw, ABF.bu * 0.16, d / 2 * 0.98), cu, at));
+      g.add(instOf(new T.BoxGeometry(pw, ABF.bu * 0.17, d / 2 * 0.98), cu, pads));
       return g;
     }
 
@@ -4319,7 +4652,7 @@
         for (let s = -ABF.n; s <= ABF.n; s++) {
           if (!s) continue;
           const y = abfY(s);
-          for (let i = 0; i < 6; i++) (s > 0 ? up : dn).push([(-3.4 + i * 1.25) * (w * 0.1), y, fz]);
+          abfViaX(w).slice(0, 6).forEach(x => (s > 0 ? up : dn).push([x, y, fz]));
         }
         // 上半：上寬下窄（窄端朝下＝朝 core）；下半：上窄下寬（窄端朝上＝朝 core）
         g.add(instOf(halfTube(r * 2.2, r, ABF.bu * 0.9, 8), cu, up));
@@ -4328,7 +4661,7 @@
         const r = w * 0.016;
         const upAt = [], dnAt = [], mid = [];
         [-1, 1].forEach(sg => {
-          const x = sg * w * 0.3;
+          const x = abfViaX(w)[sg > 0 ? 7 : 6];
           for (let k = 1; k <= 2; k++) {
             const y = abfY(sg > 0 ? k : -k);
             (sg > 0 ? upAt : dnAt).push([x, y, fz]);
@@ -4393,6 +4726,10 @@
         at.push([(-2 + i) * (w / 5), 0, (-1.5 + j) * (d / 4), 0, 0, 0, 1, Math.max(0.5, h / (r * 2)) * 0.6, 1]);
       }
       g.add(instOf(new T.SphereGeometry(r, 10, 7), sn, at));
+      /* 2026-09-26 第二批：每一顆球頂上一片銅墊（球是焊在載板背面的墊上，不是黏在介電層上）。*/
+      const sy = Math.max(0.5, h / (r * 2)) * 0.6;
+      g.add(instOf(new T.CylinderGeometry(r * 0.78, r * 0.78, r * 0.16, 12), K.mat(0, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 }),
+        at.map(a => [a[0], r * sy * 0.92, a[2]])));
       return g;
     }
 
@@ -4676,100 +5013,162 @@
        3D 這張把「一顆 PSU 拆開」當主角：電源架拉出一顆 → 外罩掀起來 → 主板上四級由後往前排開。*/
 
     /* 電源架（power shelf）：一排 PSU 槽位，其中一格**空著**——
-       那一格就是 N+1 冗餘的畫面證據（少一顆還撐得住）。*/
+       那一格就是 N+1 冗餘的畫面證據（少一顆還撐得住），也正是中間那顆 PSU 被抽出來的地方。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P1）：每顆裝著的 PSU 前面板補上**風扇格柵、把手**；
+         空槽看得到兩條**導軌**與最裡面的**卡緣插座**（PSU 推進去就是插在這裡，所以它不需要任何電線）。
+       ⚠ 實機的 AI 機櫃電源櫃是「1U、六顆並排」（見 ai_server 那張的電源櫃）；這裡為了跟拆出來那一顆同一個比例，畫成三格直疊，是示意。*/
     function psuShelf(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.38 });
       const t = h * 0.05;
-      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
-        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
-        [w, h, t, 0, 0, -d / 2 + t / 2]], st));                       // 框
       const slotH = h / 3.4, pw = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.42, rough: 0.5 });
       const at = [];
       for (let i = 0; i < 3; i++) at.push([0, (i - 1) * (h / 3.2), d * 0.04]);
+      const ey = at[1][1], fz = d * 0.04 + d * 0.45;            // 空槽的高度、裝著的 PSU 前面板位置
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2],
+        // 空槽的兩條導軌（PSU 就是沿著它滑進去的）
+        [w * 0.05, slotH * 0.08, d * 0.86, -w * 0.42, ey - slotH * 0.34, d * 0.02], [w * 0.05, slotH * 0.08, d * 0.86, w * 0.42, ey - slotH * 0.34, d * 0.02]], st));
       // 中間那一格刻意留空：N+1 —— 一顆失效時另外兩顆接手
       g.add(instOf(new T.BoxGeometry(w * 0.9, slotH * 0.74, d * 0.9), pw, [at[0], at[2]]));
-      g.add(put(box(w * 0.9, slotH * 0.74, d * 0.9,
-        K.mat(-0.55, { rough: 0.9, metal: 0.08 })), at[1][0], at[1][1], at[1][2]));   // 空槽（暗）
+      const dark = K.mat(-0.55, { rough: 0.9, metal: 0.08 });
+      g.add(put(box(w * 0.9, slotH * 0.74, d * 0.9, dark), at[1][0], at[1][1], at[1][2] - d * 0.03));   // 空槽（暗）
+      // 前面板：風扇孔（暗）＋ 格柵與把手（金屬）
+      const fr = slotH * 0.28, fx = w * 0.18;
+      g.add(instOf(new T.CylinderGeometry(fr, fr, 0.2, 16), dark, [at[0], at[2]].map(a => [fx, a[1], fz + 0.1, Math.PI / 2, 0, 0])));
+      const gm = [];
+      [at[0], at[2]].forEach(a => {
+        [0.92, 0.55].forEach(k => { const r = new T.TorusGeometry(fr * k, fr * 0.06, 3, 18); r.translate(fx, a[1], fz + 0.25); gm.push(r); });
+        [0, 1].forEach(j => { const s = new T.BoxGeometry(fr * 1.8, fr * 0.07, 0.12); s.rotateZ(j * Math.PI / 2); s.translate(fx, a[1], fz + 0.25); gm.push(s); });
+        gm.push(agGeo(w * 0.22, slotH * 0.1, 0.5, -w * 0.28, a[1], fz + 0.35));                   // 把手
+      });
+      g.add(new T.Mesh(mergeGeos(gm), K.mat(0.2, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.36 })));
+      // 空槽最裡面的卡緣插座（石墨灰）＋ 插槽口那一條金色接點
+      g.add(put(box(w * 0.5, slotH * 0.3, d * 0.06, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 })), 0, ey, -d / 2 + t + d * 0.03));
+      g.add(put(box(w * 0.4, slotH * 0.05, 0.1, K.mat(0.2, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.24 })), 0, ey, -d / 2 + t + d * 0.065));
       // 每一顆的前面板指示燈
       g.add(instOf(new T.BoxGeometry(w * 0.05, slotH * 0.12, d * 0.02), K.mat(0, { led: true }),
-        [[w * 0.38, at[0][1], d / 2 + 0.05], [w * 0.38, at[2][1], d / 2 + 0.05]]));
+        [[w * 0.38, at[0][1], fz + 0.05], [w * 0.38, at[2][1], fz + 0.05]]));
       g.add(aoPad(K, w, d, -h / 2 - 0.8));
       return g;
     }
 
-    /* PSU 外罩：上蓋 ＋ 兩側板 ＋ 前面板（把手、風扇開孔）。
-       它是一個倒 ㄇ 字的鈑金罩 —— 合攏時看起來是一顆完整的 CRPS，
-       爆炸時整個往上掀，底下的主板與四級才露出來。*/
+    /* PSU 外罩：上蓋 ＋ 兩側板 ＋ 前面板。它是一個倒 ㄇ 字的鈑金罩 —— 合攏時看起來是一顆完整的 CRPS，
+       爆炸時整個往上掀，底下的主板才露出來。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P2）：前面板從「一格圓孔陣列」改成真的零件：
+         **一顆風扇**（格柵＋看得到後面的彎刀扇葉）、**交流電源插座**（C20 式，三根銅腳）、把手與卡榫、狀態燈。
+         CRPS 前面就是這四樣 —— 交流從這裡進來，所以主板上的 EMI 濾波器就擺在這一端。*/
     function psuShell(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const st = K.mat(0.05, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.84, rough: 0.34 });
-      const t = h * 0.08;
+      const t = h * 0.08, fz = d / 2;
       g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0],
-        [t, h * 0.92, d, -w / 2 + t / 2, t * 0.4, 0], [t, h * 0.92, d, w / 2 - t / 2, t * 0.4, 0]], st));
-      // 前面板：把手 ＋ 風扇開孔（CRPS 是熱插拔的，把手是它「抽得出來」的證據）
-      g.add(put(box(w * 0.98, h * 0.9, t, st), 0, t * 0.4, d / 2 - t / 2));
-      g.add(put(box(w * 0.3, h * 0.16, t * 1.6, K.mat(0.3, { metal: 0.6, rough: 0.35 })), -w * 0.28, 0, d / 2 + t * 0.4));
-      const hole = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
-      const hl = [];
-      for (let i = -2; i <= 2; i++) for (let j = -1; j <= 1; j++) {
-        hl.push([w * 0.2 + i * w * 0.07, j * h * 0.2, d / 2, Math.PI / 2, 0, 0]);
-      }
-      g.add(instOf(new T.CylinderGeometry(w * 0.024, w * 0.024, t * 2.4, 6, 1, true), hole, hl));
-      g.add(put(box(w * 0.04, h * 0.12, t * 1.4, K.mat(0, { led: true })), w * 0.44, -h * 0.28, d / 2 + t * 0.4));
+        [t, h * 0.92, d, -w / 2 + t / 2, t * 0.4, 0], [t, h * 0.92, d, w / 2 - t / 2, t * 0.4, 0],
+        [w * 0.98, h * 0.9, t, 0, t * 0.4, fz - t / 2]], st));
+      const fx = w * 0.2, fy = t * 0.4, fr = h * 0.33;
+      const dark = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
+      // 暗的：風扇開孔 ＋ 交流插座的凹槽
+      const dk = [new T.CylinderGeometry(fr, fr, t * 1.2, 20)];
+      dk[0].rotateX(Math.PI / 2); dk[0].translate(fx, fy, fz - t * 0.35);
+      dk.push(agGeo(w * 0.13, h * 0.22, t * 1.3, -w * 0.07, fy, fz - t * 0.3));
+      g.add(new T.Mesh(mergeGeos(dk), dark));
+      // 扇葉：從格柵看進去（七片彎刀形，跟氣冷那張同一支幾何）
+      const bl = rotorBlades(7, fr * 0.26, fr * 0.9, fr * 0.46, t * 0.35, 0.5, 1);
+      bl.translate(fx, fy, fz - t * 1.1);
+      g.add(new T.Mesh(bl, K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 })));
+      // 金屬：格柵（兩圈＋四根輻條＋輪轂蓋）、把手、卡榫、插座的三根腳
+      const gm = [];
+      [0.96, 0.62].forEach(k => { const r = new T.TorusGeometry(fr * k, fr * 0.045, 3, 22); r.translate(fx, fy, fz + t * 0.15); gm.push(r); });
+      for (let j = 0; j < 4; j++) { const s = new T.BoxGeometry(fr * 1.9, fr * 0.05, t * 0.3); s.rotateZ(j * Math.PI / 4); s.translate(fx, fy, fz + t * 0.15); gm.push(s); }
+      { const c = new T.CylinderGeometry(fr * 0.24, fr * 0.24, t * 0.4, 14); c.rotateX(Math.PI / 2); c.translate(fx, fy, fz + t * 0.15); gm.push(c); }
+      gm.push(agGeo(w * 0.05, h * 0.5, t * 1.6, -w * 0.38, fy, fz + t * 0.5), agGeo(w * 0.05, h * 0.5, t * 1.6, -w * 0.26, fy, fz + t * 0.5),
+        agGeo(w * 0.17, h * 0.06, t * 1.6, -w * 0.32, fy + h * 0.25, fz + t * 1.0));        // 把手（ㄇ字）
+      gm.push(agGeo(w * 0.04, h * 0.16, t * 0.8, -w * 0.44, fy - h * 0.3, fz + t * 0.3));    // 卡榫
+      [[-0.03, 0.04], [0.03, 0.04], [0, -0.05]].forEach(([dx, dy]) => gm.push(agGeo(w * 0.012, h * 0.06, t * 0.8, -w * 0.07 + dx * w, fy + dy * h, fz)));
+      g.add(new T.Mesh(mergeGeos(gm), K.mat(0.3, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.35 })));
+      g.add(put(box(w * 0.04, h * 0.12, t * 1.4, K.mat(0, { led: true })), w * 0.44, -h * 0.28, fz + t * 0.4));
       return g;
     }
 
-    /* PSU 主板：底殼 ＋ 板子 ＋ **四級由後往前**排開 —— 這是整張圖的主軸。
-         ① PFC（功率因數校正）：大電感 ＋ 大電解電容（整顆 PSU 裡最大的那幾顆）
-         ② LLC 諧振轉換：變壓器（一顆有繞線的大方塊）＋ 諧振電感
-         ③ 同步整流：輸出側一排低壓大電流的功率元件
-         ④ 輸出：厚銅排 → 卡緣
-       ⚠ 每一級的**元件形狀刻意不同**：電容是圓柱、變壓器是有窗口的方塊、整流是一排扁平封裝。
-         全部畫成一樣的小方塊，讀者就看不出這是四個不同的級。*/
+    /* PSU 主板：底殼 ＋ 板子 ＋ 功率級**由前往後**排開 —— 交流從前面板的插座進來，直流從後端的卡緣出去，
+       所以元件就照電走的順序沿著 PSU 的長邊（z）排：
+         ⓪ EMI 濾波器（前端，插座旁）：兩顆共模扼流圈（環形、繞滿銅線）＋ X 電容
+         ① PFC（功率因數校正）：一顆大環形升壓電感 ＋ 功率開關鎖在一片直立的鋁散熱片上
+            ＋ 兩顆大電解電容（PFC 的輸出，整顆 PSU 裡最高的東西）
+         ② LLC 諧振轉換：一顆看得到**繞線窗口**的變壓器（E 形磁芯夾著銅繞組）＋ 諧振電感 ＋ 一小片數位控制卡（直立）
+         ③ 同步整流：輸出側一整排扁平的功率 MOSFET（低壓大電流，所以要並聯）＋ 一排輸出電容
+         ④ 輸出：兩條厚銅排往卡緣去
+       ⚠ 每一級的元件形狀刻意不同（環形／直立鰭片／高圓柱／有窗口的方塊／一排扁平）——
+         全部畫成一樣的小方塊，讀者就看不出這是不同的級。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P3）：以前四級沿 x 排、沒有 EMI 濾波器也沒有散熱片；
+         依材質併成 6 個 mesh（舊版 10 個）。*/
     function psuBoard(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const tray = K.mat(-0.1, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.42 });
       g.add(put(box(w, h * 0.12, d, tray), 0, -h * 0.44, 0));                        // 底殼
-      g.add(put(box(w * 0.94, h * 0.1, d * 0.94,
-        K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, -h * 0.3, 0));  // 板
-      const y0 = -h * 0.25;
-      // ① PFC：大電解電容（圓柱，立著）＋ 扼流圈
-      const alu = K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.72, rough: 0.4 });
-      g.add(instOf(new T.CylinderGeometry(w * 0.075, w * 0.075, h * 0.62, 12), alu,
-        [[-w * 0.3, y0 + h * 0.31, -d * 0.3], [-w * 0.3, y0 + h * 0.31, -d * 0.12]]));
-      g.add(put(box(w * 0.16, h * 0.34, d * 0.16,
-        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.66, metal: 0.14 })), -w * 0.3, y0 + h * 0.17, d * 0.08));
-      // ② LLC：變壓器 —— 有繞線窗口的方塊（跟電容、跟整流都不是同一個形狀）
-      const fer = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.16 });
-      const cuw = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 });
-      g.add(put(box(w * 0.22, h * 0.5, d * 0.3, fer), 0, y0 + h * 0.25, -d * 0.1));
-      g.add(put(box(w * 0.24, h * 0.2, d * 0.2, cuw), 0, y0 + h * 0.25, -d * 0.1));   // 繞線
-      g.add(put(box(w * 0.1, h * 0.26, d * 0.12, fer), 0, y0 + h * 0.13, d * 0.2));   // 諧振電感
-      // ③ 同步整流：輸出側一排扁平的功率元件（低壓大電流，所以是一整排並聯）
-      const pkg = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.55, metal: 0.2 });
-      const rec = [];
-      for (let i = 0; i < 7; i++) rec.push([w * 0.2 + 0, y0 + h * 0.08, (-3 + i) * d * 0.11]);
-      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.16, d * 0.06), pkg, rec));
-      // ④ 輸出：厚銅排往卡緣去（比板上任何一條線都粗一個量級）
-      g.add(put(box(w * 0.3, h * 0.08, d * 0.06, cuw), w * 0.3, y0 + h * 0.04, d * 0.34));
-      g.add(put(box(w * 0.06, h * 0.08, d * 0.7, cuw), w * 0.42, y0 + h * 0.04, 0));
+      const y0 = -h * 0.25;                                                            // 板面
+      const pcbL = [agGeo(w * 0.94, h * 0.1, d * 0.94, 0, -h * 0.3, 0),
+        agGeo(w * 0.02, h * 0.34, d * 0.16, -w * 0.4, y0 + h * 0.17, -d * 0.16)];     // 板 ＋ 直立的數位控制卡
+      g.add(new T.Mesh(mergeGeos(pcbL), K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })));
+      const cuL = [], feL = [], alL = [], capL = [];
+      const tor = (R, r, x, y, z, flat) => { const q = new T.TorusGeometry(R, r, 8, 20); if (flat) q.rotateX(Math.PI / 2); q.translate(x, y, z); return q; };
+      // ⓪ EMI：兩顆共模扼流圈（直立環形）＋ 兩顆 X 電容
+      [-0.3, -0.1].forEach(fx => cuL.push(tor(w * 0.06, w * 0.026, fx * w, y0 + w * 0.088, d * 0.38)));
+      [0.12, 0.28].forEach(fx => capL.push(agGeo(w * 0.1, h * 0.14, w * 0.045, fx * w, y0 + h * 0.07, d * 0.38)));
+      // ① PFC：大環形升壓電感（平放）＋ 直立鋁散熱片（背後一排鰭）＋ 鎖在上面的三顆功率開關
+      cuL.push(tor(w * 0.1, w * 0.042, -w * 0.24, y0 + w * 0.042, d * 0.2, true));
+      alL.push(agGeo(w * 0.36, h * 0.44, d * 0.012, w * 0.2, y0 + h * 0.22, d * 0.26));
+      for (let i = 0; i < 7; i++) alL.push(agGeo(w * 0.012, h * 0.4, d * 0.06, w * 0.04 + i * w * 0.053, y0 + h * 0.2, d * 0.225));
+      for (let i = 0; i < 3; i++) feL.push(agGeo(w * 0.06, h * 0.18, d * 0.012, w * 0.08 + i * w * 0.12, y0 + h * 0.2, d * 0.272));
+      // 兩顆大電解電容（PFC 的輸出／直流鏈）：整顆 PSU 裡最高的東西
+      [-0.26, -0.06].forEach(fx => { const c = new T.CylinderGeometry(w * 0.075, w * 0.075, h * 0.62, 16); c.translate(fx * w, y0 + h * 0.31, d * 0.02); alL.push(c); });
+      // ② LLC：變壓器（E 形磁芯的上下軛＋兩側腳，中間的銅繞組前後凸出來＝看得到繞線窗口）＋ 諧振電感
+      const tx = w * 0.18, tz = -d * 0.14, th = h * 0.4, tw2 = w * 0.26, td = d * 0.1;
+      feL.push(agGeo(tw2, th * 0.2, td, tx, y0 + th * 0.9, tz), agGeo(tw2, th * 0.2, td, tx, y0 + th * 0.1, tz),
+        agGeo(tw2 * 0.16, th * 0.6, td, tx - tw2 * 0.42, y0 + th * 0.5, tz), agGeo(tw2 * 0.16, th * 0.6, td, tx + tw2 * 0.42, y0 + th * 0.5, tz));
+      cuL.push(agGeo(tw2 * 0.56, th * 0.58, td * 1.5, tx, y0 + th * 0.5, tz));
+      feL.push(agGeo(w * 0.12, h * 0.24, d * 0.07, -w * 0.18, y0 + h * 0.12, tz));
+      cuL.push(agGeo(w * 0.13, h * 0.1, d * 0.05, -w * 0.18, y0 + h * 0.12, tz));
+      // ③ 同步整流：一整排扁平 MOSFET ＋ 一排輸出電容
+      for (let i = 0; i < 7; i++) feL.push(agGeo(w * 0.08, h * 0.05, d * 0.04, (-3 + i) * w * 0.12, y0 + h * 0.025, -d * 0.33));
+      for (let i = 0; i < 6; i++) { const c = new T.CylinderGeometry(w * 0.025, w * 0.025, h * 0.16, 10); c.translate((-2.5 + i) * w * 0.13, y0 + h * 0.08, -d * 0.4); alL.push(c); }
+      // ④ 輸出：兩條厚銅排往卡緣去（比板上任何一條線都粗一個量級）
+      cuL.push(agGeo(w * 0.7, h * 0.07, d * 0.03, 0, y0 + h * 0.035, -d * 0.44), agGeo(w * 0.7, h * 0.07, d * 0.03, 0, y0 + h * 0.11, -d * 0.455));
+      g.add(new T.Mesh(mergeGeos(cuL), K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 })));
+      g.add(new T.Mesh(mergeGeos(feL), K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.16 })));
+      g.add(new T.Mesh(mergeGeos(alL), K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.72, rough: 0.4 })));
+      g.add(new T.Mesh(mergeGeos(capL), K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.55, metal: 0.05 })));
       return g;
     }
 
-    /* 卡緣連接器（card-edge）：CRPS 的後端是**一排鍍金接點**，不是一束電線。
-       畫成電線就認不出是 CRPS 型的伺服器 PSU（規格書 §6-S2）。*/
+    /* 卡緣連接器（card-edge）：CRPS 的後端是**板子上下兩面各一排鍍金接點**，不是一束電線。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P4）：接點分兩種 —— 兩端是**寬的電源接點**（大電流），
+         中間是**窄的訊號接點**（電壓、電流、溫度、告警的管理訊號）；而且有幾根**刻意短一截**，
+         熱插拔時長的先接觸（地與電源先通）、短的最後（「我已經插好了」的偵測訊號）。
+         板子上有一道防呆缺口，插反插不進去。上下兩面 50 個接點收成一個 InstancedMesh。*/
     function psuCardEdge(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const pl = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 });
-      g.add(box(w, h, d, pl));
-      // 上下兩排金手指（CRPS 是 2 排）—— 排數就是它跟一般單排卡緣的差別
-      g.add(put(fingers(K, w * 0.9, h * 0.22, d * 0.8, 13, h * 0.3, 0), 0, 0, 0));
-      g.add(put(fingers(K, w * 0.9, h * 0.22, d * 0.8, 13, -h * 0.3, 0), 0, 0, 0));
+      const th = h * 0.36, kx = w * 0.16, kw = w * 0.03;
+      g.add(mboxes([[w / 2 + kx - kw / 2, th, d, -w / 4 + kx / 2 - kw / 4, 0, 0],
+        [w / 2 - kx - kw / 2, th, d, w / 4 + kx / 2 + kw / 4, 0, 0],
+        [kw * 1.1, th, d * 0.6, kx, 0, d * 0.2]], pl));                                // 防呆缺口（前緣挖掉一小段）
+      const pads = [];
+      const put1 = (x, pw, len, sy) => pads.push([x, sy * (th / 2 + 0.03), -d / 2 + len / 2 + d * 0.04, 0, 0, 0, pw, 0.05, len]);
+      [-1, 1].forEach(sy => {
+        for (let i = 0; i < 4; i++) { put1(-w * 0.46 + i * w * 0.055, w * 0.042, d * 0.7, sy); put1(w * 0.46 - i * w * 0.055, w * 0.042, d * 0.7, sy); }
+        for (let i = 0; i < 17; i++) {
+          const x = -w * 0.23 + i * w * 0.028;
+          if (Math.abs(x - kx) < kw) continue;
+          put1(x, w * 0.014, i % 5 === 2 ? d * 0.45 : d * 0.62, sy);                       // 每五根有一根短一截（最後接觸）
+        }
+      });
+      g.add(instOf(new T.BoxGeometry(1, 1, 1), K.mat(0.62, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.22 }), pads));
       return g;
     }
 
@@ -4780,8 +5179,17 @@
       const [w, h, d] = p.box;
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.28 });
       const ins = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.82, metal: 0.06 });
-      [-1, 1].forEach(s => g.add(put(box(w * 0.34, h, d, cu), s * w * 0.32, 0, 0)));   // 正負兩條
-      g.add(put(box(w * 0.2, h * 0.9, d * 0.66, ins), 0, 0, -d * 0.14));              // 中間絕緣隔板（往後縮，正面看得到兩條銅排）
+      g.add(mboxes([-1, 1].map(s => [w * 0.34, h, d, s * w * 0.32, 0, 0]), cu));       // 正負兩條（併成一個 mesh）
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 P5）：中間的絕緣隔板之外，補上**絕緣支座**與**鎖在機櫃上的鈑金支架**——
+         銅排是靠一段一段絕緣支座固定在機櫃背柱上的（不是懸空，也不是直接碰到鈑金）。*/
+      const insL = [[w * 0.2, h * 0.9, d * 0.66, 0, 0, -d * 0.14]];                     // 中間絕緣隔板（往後縮，正面看得到兩條銅排）
+      const brL = [];
+      [-0.42, 0, 0.42].forEach(fy => {
+        insL.push([w * 0.96, h * 0.04, d * 0.3, 0, fy * h, -d * 0.62]);                   // 絕緣支座（兩條銅排都夾住）
+        brL.push([w * 1.2, h * 0.05, d * 0.14, 0, fy * h, -d * 0.84], [w * 0.1, h * 0.05, d * 0.5, w * 0.62, fy * h, -d * 0.62]);
+      });
+      g.add(mboxes(insL, ins));
+      g.add(mboxes(brL, K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.38 })));
       // 分接點：每一層托盤從這裡接一組出去（成對，正負各一）
       const tap = [];
       for (let i = 0; i < 4; i++) [-1, 1].forEach(s => tap.push([s * w * 0.32, (-1.5 + i) * h * 0.22, d * 0.62]));
@@ -4863,6 +5271,69 @@
       return g;
     }
 
+    /* 板上降壓 VRM（電源那一張專用；共用的 `pvrm` 交換器板卡那張也在用，不動它）。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P6）：一相＝**一顆功率級（DrMOS，扁平 QFN）＋ 一顆電感**，八相等距排開；
+         靠晶片那一側是一整排**輸出 MLCC**（瞬間電流由它先頂），另一側是輸入的高分子電容，角落一顆多相控制器。
+         以前只有「一排電感＋一排電容」，看不出每一相是由「開關＋電感」組成的。*/
+    function psVrm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.16, d, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, -h * 0.42, 0));
+      const yb = -h * 0.26, n = 8, pitch = w / n;
+      const gr = [];
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * pitch;
+        gr.push([x, yb + h * 0.26, -d * 0.12, 0, 0, 0, pitch * 0.66, h * 0.52, d * 0.26]);   // 電感（一相一顆）
+        gr.push([x, yb + h * 0.04, d * 0.13, 0, 0, 0, pitch * 0.5, h * 0.08, d * 0.14]);     // 功率級 DrMOS（扁平）
+      }
+      gr.push([w * 0.38, yb + h * 0.04, d * 0.38, 0, 0, 0, w * 0.08, h * 0.08, w * 0.08]);     // 多相控制器
+      g.add(instOf(new T.BoxGeometry(1, 1, 1), K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.16 }), gr));
+      const ml = [];
+      for (let r = 0; r < 2; r++) for (let i = 0; i < 18; i++) ml.push([(-8.5 + i) * w * 0.05, yb + h * 0.04, -d * (0.34 + r * 0.08)]);
+      g.add(instOf(new T.BoxGeometry(w * 0.03, h * 0.08, d * 0.04), K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.55, metal: 0.05 }), ml));
+      const pc = [];
+      for (let i = 0; i < 6; i++) pc.push([(-2.5 + i) * w * 0.1, yb + h * 0.13, d * 0.36]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.022, w * 0.022, h * 0.26, 10), K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.72, rough: 0.4 }), pc));
+      // 電感底下那一排厚銅：相電流就是從這裡灌進晶片底下的
+      g.add(put(box(w * 0.94, h * 0.06, d * 0.5, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.3 })), 0, yb - h * 0.03, -d * 0.16));
+      return g;
+    }
+
+    /* 電源線組（power whip，電源那一張專用；共用的 `cable` 交換器那張也在用）。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P7）：從匯流排分接點拉到托盤的是**一正一負兩條粗線**，
+         匯流排那一端是**壓接的銅環形端子**（鎖在分接點的螺絲上），托盤那一端是一顆有卡榫的電源連接器；
+         正極套一段暖橘熱縮套管分極性。以前是四條細線加一個方塊端子，看起來像訊號線。*/
+    function psWhip(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = h * 0.13, cab = [];
+      const ends = [];
+      [-1, 1].forEach(s => {
+        const z = s * d * 0.18;
+        const c = new T.CatmullRomCurve3([new T.Vector3(-w * 0.42, 0, z), new T.Vector3(-w * 0.15, h * 0.2, z * 1.3),
+          new T.Vector3(w * 0.15, -h * 0.18, z * 1.3), new T.Vector3(w * 0.42, 0, z)]);
+        cab.push(new T.TubeGeometry(c, 20, r, 8, false));
+        ends.push(z);
+      });
+      g.add(new T.Mesh(mergeGeos(cab), K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.78, metal: 0.05 })));
+      // 匯流排端：壓接筒 ＋ 扁平的環形端子（中間一個鎖螺絲的孔）
+      const lug = [];
+      ends.forEach(z => {
+        const b = new T.CylinderGeometry(r * 1.15, r * 1.15, w * 0.06, 10); b.rotateZ(Math.PI / 2); b.translate(-w * 0.44, 0, z); lug.push(b);
+        lug.push(agGeo(w * 0.04, r * 0.5, r * 2.4, -w * 0.49, 0, z));
+        const ring = new T.TorusGeometry(r * 0.75, r * 0.4, 6, 12); ring.rotateY(Math.PI / 2); ring.translate(-w * 0.52, 0, z); lug.push(ring);
+      });
+      g.add(new T.Mesh(mergeGeos(lug), K.mat(0.2, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.28 })));
+      // 托盤端：有卡榫的電源連接器（兩線進同一顆）
+      g.add(mboxes([[w * 0.12, h * 0.7, d * 0.75, w * 0.47, 0, 0], [w * 0.05, h * 0.16, d * 0.3, w * 0.47, h * 0.42, 0]],
+        K.mat(0, { color: K.css('--dg-frame', '#1a2540'), rough: 0.7, metal: 0.1 })));
+      // 正極的熱縮套管（暖橘）＋ 兩道束線帶
+      g.add(put(cyl(r * 1.12, w * 0.08, K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.6, metal: 0.1 }), 10), -w * 0.34, h * 0.07, ends[1] * 1.08).rotateZ(Math.PI / 2));
+      g.add(mboxes([[w * 0.03, h * 0.36, d * 0.62, -w * 0.12, h * 0.18, 0], [w * 0.03, h * 0.36, d * 0.62, w * 0.2, -h * 0.16, 0]],
+        K.mat(0, { color: K.css('--dg-mute', '#78859f'), rough: 0.8, metal: 0.06 })));
+      return g;
+    }
+
     /* ---------------------------------------------------------------- 液冷：冷板、均熱板 VC 與熱管
        規格書 docs/diagram_specs/liquid_cooling.md §3-A 的硬規則：
          · **每兩個固體之間都要有 TIM**，而且 TIM 畫得**比它上下的任何金屬層都薄**；
@@ -4901,16 +5372,27 @@
       const [w, h, d] = p.box;
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.3 });
       const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.8, rough: 0.32 });
-      g.add(put(box(w, h * 0.24, d, cu), 0, -h * 0.38, 0));                             // 底板（貼 TIM2 那一面）
-      // 四周的側牆：水被關在裡面才流得成流道
+      // 底板（貼 TIM2 那一面）＋ 四周的側牆：水被關在裡面才流得成流道 —— 同一塊銅、併成一個 mesh
       const t = w * 0.045;
-      g.add(mboxes([[w, h * 0.5, t, 0, 0, -d / 2 + t / 2], [w, h * 0.5, t, 0, 0, d / 2 - t / 2],
+      g.add(mboxes([[w, h * 0.24, d, 0, -h * 0.38, 0],
+        [w, h * 0.5, t, 0, 0, -d / 2 + t / 2], [w, h * 0.5, t, 0, 0, d / 2 - t / 2],
         [t, h * 0.5, d, -w / 2 + t / 2, 0, 0], [t, h * 0.5, d, w / 2 - t / 2, 0, 0]], cu));
       g.add(put(box(w, h * 0.16, d * 0.46, st), 0, h * 0.33, -d * 0.27));                // 蓋板只蓋一半
-      // 鎖附的四顆彈簧螺絲：冷板是**壓**在晶片上的，壓力不夠熱就過不去
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L1）：
+         ① 側牆頂上一圈 **O 形環密封墊**（深色）—— 蓋板是鎖上去壓住它才不漏水，蓋板掀開的那一半看得到它
+         ② 四顆鎖附螺絲改成「螺絲＋**彈簧**＋頭」：冷板是**用彈簧的力量壓**在晶片上的，壓力不夠 TIM 壓不薄，熱就過不去 */
+      const gk = t * 0.5, gy = h * 0.255;
+      g.add(mboxes([[w - t, h * 0.04, gk, 0, gy, -d / 2 + t / 2], [w - t, h * 0.04, gk, 0, gy, d / 2 - t / 2],
+        [gk, h * 0.04, d - t, -w / 2 + t / 2, gy, 0], [gk, h * 0.04, d - t, w / 2 - t / 2, gy, 0]],
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.9, metal: 0.04 })));
       const scr = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.8, rough: 0.3 });
-      g.add(instOf(new T.CylinderGeometry(w * 0.035, w * 0.035, h * 0.9, 8), scr,
-        gridXZ(2, 2, w * 0.88, d * 0.88, h * 0.1)));
+      const sg = [new T.CylinderGeometry(w * 0.02, w * 0.02, h * 0.9, 8), new T.CylinderGeometry(w * 0.05, w * 0.05, h * 0.07, 6)];
+      sg[1].translate(0, h * 0.48, 0);
+      const spots = gridXZ(2, 2, w * 0.88, d * 0.88, h * 0.1);
+      g.add(instOf(mergeGeos(sg), scr, spots));
+      const coils = [];
+      spots.forEach(s => { for (let k = 0; k < 3; k++) coils.push([s[0], h * (0.46 + k * 0.045), s[2], Math.PI / 2, 0, 0]); });
+      g.add(instOf(new T.TorusGeometry(w * 0.036, w * 0.007, 4, 12), scr, coils));
       return g;
     }
 
@@ -4920,12 +5402,17 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const cu = K.mat(0.12, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
-      const n = 22, at = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L2）：鏟齒（skived）鰭片是**一整塊銅用刀鏟起來**的 ——
+         所以鰭片更薄更密（22 → 36 片），根部跟底板是同一塊（底下補一片鰭片根座），
+         頂端帶一點**被鏟起時的捲邊**。捲邊跟鰭片烘成同一個幾何，36 片仍是一個 InstancedMesh。*/
+      const n = 36, ft = w / n * 0.34, at = [];
       for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), 0, 0]);
-      g.add(instOf(new T.BoxGeometry(w / n * 0.4, h, d * 0.86), cu, at));
-      // 進出水的集流區：鰭片兩端各留一條沒有鰭片的走道，水才分得均勻
+      const fin = new T.BoxGeometry(ft, h, d * 0.86);
+      const curl = new T.BoxGeometry(ft * 2.2, h * 0.08, d * 0.86); curl.translate(ft * 0.5, h * 0.48, 0);
+      g.add(instOf(mergeGeos([fin, curl]), cu, at));
+      // 鰭片根座 ＋ 進出水的集流區：鰭片兩端各留一條沒有鰭片的走道，水才分得均勻
       g.add(mboxes([[w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, -d * 0.45],
-        [w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, d * 0.45]], cu));
+        [w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, d * 0.45], [w * 0.98, h * 0.12, d * 0.86, 0, -h * 0.5, 0]], cu));
       return g;
     }
 
@@ -4937,10 +5424,21 @@
       const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.45, rough: 0.38 });
       const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.45, rough: 0.38 });
       const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.82, rough: 0.3 });
-      [[-1, cold], [1, hot]].forEach(([s, m]) => {
-        g.add(put(cyl(Math.min(w, d) * 0.3, h * 0.9, m, 14), 0, 0, s * d * 0.3));         // 管
-        g.add(put(cyl(Math.min(w, d) * 0.42, h * 0.16, st, 14), 0, -h * 0.4, s * d * 0.3)); // 接口座
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L3）：一個接口＝接口座 → **六角螺帽**（鎖進蓋板）→ **倒鉤管接頭**（三道倒鉤）
+         → 套在上面的軟管（冷／熱色）→ **束管夾**。以前只有一根色管加一個圓座，看起來像插在上面的吸管。
+         金屬件兩個接口併成一個 mesh；冷熱兩根軟管各一個 —— 3 個 draw call（舊版 4 個）。*/
+      const R = Math.min(w, d) * 0.3, sL = [];
+      [-1, 1].forEach(s => {
+        const z = s * d * 0.3;
+        const add = (geo, y) => { geo.translate(0, y, z); sL.push(geo); };
+        add(new T.CylinderGeometry(R * 1.4, R * 1.4, h * 0.16, 14), -h * 0.4);            // 接口座
+        add(new T.CylinderGeometry(R * 1.1, R * 1.1, h * 0.1, 6), -h * 0.27);             // 六角螺帽
+        add(new T.CylinderGeometry(R * 0.5, R * 0.5, h * 0.3, 10), -h * 0.08);            // 管接頭
+        for (let i = 0; i < 3; i++) add(new T.CylinderGeometry(R * 0.5, R * 0.72, h * 0.05, 10), -h * 0.2 + i * h * 0.08);  // 倒鉤
+        const clamp = new T.TorusGeometry(R * 0.86, R * 0.12, 4, 14); clamp.rotateX(Math.PI / 2); add(clamp, h * 0.12);   // 束管夾
       });
+      g.add(new T.Mesh(mergeGeos(sL), st));
+      [[-1, cold], [1, hot]].forEach(([s, m]) => g.add(put(cyl(R * 0.78, h * 0.55, m, 14), 0, h * 0.2, s * d * 0.3)));    // 軟管
       return g;
     }
 
@@ -4952,16 +5450,28 @@
       const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.4, rough: 0.4 });
       const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.4, rough: 0.4 });
       const r = Math.min(w, d) * 0.16;
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L4）：主管與分支併成一個 mesh（每種顏色一個）；
+         每一個分支口補上**快接頭的母座**（銅）、每根主管上下補**端蓋**、頂端一顆**排氣閥**
+         （充水時把空氣放掉，不然氣泡會卡在冷板裡）。*/
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.4 });
+      const stL = [], qd = [];
       [[-1, cold], [1, hot]].forEach(([s, m]) => {
-        g.add(put(cyl(r, h, m, 14), s * w * 0.28, 0, 0));                                 // 主管（直立）
-        const br = [];
-        for (let i = 0; i < 4; i++) br.push([s * w * 0.28, (-1.5 + i) * h * 0.22, d * 0.26, Math.PI / 2, 0, 0]);
-        g.add(instOf(new T.CylinderGeometry(r * 0.5, r * 0.5, d * 0.52, 10), m, br));      // 分支（並聯）
+        const x = s * w * 0.28, L = [new T.CylinderGeometry(r, r, h, 14)];
+        L[0].translate(x, 0, 0);
+        for (let i = 0; i < 4; i++) {
+          const y = (-1.5 + i) * h * 0.22, b = new T.CylinderGeometry(r * 0.5, r * 0.5, d * 0.52, 10);
+          b.rotateX(Math.PI / 2); b.translate(x, y, d * 0.26); L.push(b);
+          qd.push([x, y, d * 0.55, Math.PI / 2, 0, 0]);
+        }
+        g.add(new T.Mesh(mergeGeos(L), m));
+        [-1, 1].forEach(e => { const c = new T.CylinderGeometry(r * 1.18, r * 1.18, h * 0.03, 14); c.translate(x, e * h * 0.5, 0); stL.push(c); });
+        const v = new T.CylinderGeometry(r * 0.3, r * 0.3, h * 0.06, 8); v.translate(x, h * 0.54, 0); stL.push(v);
+        const vk = new T.BoxGeometry(r * 1.1, h * 0.012, r * 0.3); vk.translate(x, h * 0.575, 0); stL.push(vk);
       });
       // 兩根管之間的固定夾：它們是兩條獨立的管路，不是同一條
-      g.add(instOf(new T.BoxGeometry(w * 0.7, h * 0.05, d * 0.14),
-        K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.4 }),
-        [[0, h * 0.4, 0], [0, -h * 0.4, 0]]));
+      [h * 0.4, -h * 0.4].forEach(y => stL.push(agGeo(w * 0.7, h * 0.05, d * 0.14, 0, y, 0)));
+      g.add(new T.Mesh(mergeGeos(stL), st));
+      g.add(instOf(new T.CylinderGeometry(r * 0.72, r * 0.72, d * 0.14, 10), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 }), qd));
       return g;
     }
 
@@ -4974,14 +5484,27 @@
       const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.5, rough: 0.34 });
       const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.5, rough: 0.34 });
       const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.84, rough: 0.3 });
-      const n = 9, pit = h / (n + 1), c = [], t = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L7）：硬焊式板式熱交換器（CDU 裡最常見的那一種）——
+         ① 板片的邊緣是**人字形波紋**壓出來的，疊起來從側面看是一條條斜紋（這裡畫在朝外那一面）
+         ② 前端板上**四個接管**：兩個冷（機房側進出）、兩個熱（機櫃側進出），對角配置 ——
+            一眼就看得出「兩個迴路各有自己的一進一出」，水不相通。
+         同色的板片與接管併成一個 mesh；端板與波紋一個 mesh：3 個 draw call（舊版 4 個）。*/
+      const n = 9, pit = h / (n + 1), cL = [], hL = [], sL = [];
       for (let i = 0; i < n; i++) {
         const y = -h / 2 + pit * (i + 1);
-        (i % 2 ? t : c).push([0, y, 0]);
+        (i % 2 ? hL : cL).push(agGeo(w * 0.9, pit * 0.42, d * 0.9, 0, y, 0));
+        for (let k = 0; k < 5; k++) {                                                       // 人字形波紋（側面一排 V）
+          const x = (-2 + k) * w * 0.17;
+          [-1, 1].forEach(sg => { const v = new T.BoxGeometry(w * 0.1, pit * 0.12, 0.08); v.rotateZ(sg * 0.6); v.translate(x + sg * w * 0.04, y, d * 0.455); sL.push(v); });
+        }
       }
-      g.add(instOf(new T.BoxGeometry(w * 0.9, pit * 0.42, d * 0.9), cold, c));   // 一次側（設施水）走的縫
-      g.add(instOf(new T.BoxGeometry(w * 0.9, pit * 0.42, d * 0.9), hot, t));    // 二次側（機櫃水）走的縫
-      [-1, 1].forEach(s => g.add(put(box(w, pit * 0.7, d, st), 0, s * h * 0.47, 0)));   // 上下端板
+      [-1, 1].forEach(s => sL.push(agGeo(w, pit * 0.7, d, 0, s * h * 0.47, 0)));               // 上下端板
+      [[-1, -1, cL], [1, 1, cL], [-1, 1, hL], [1, -1, hL]].forEach(([sx, sz, L]) => {          // 四個接管（對角）
+        const c = new T.CylinderGeometry(w * 0.07, w * 0.07, h * 0.14, 12); c.translate(sx * w * 0.32, h * 0.54, sz * d * 0.3); L.push(c);
+      });
+      g.add(new T.Mesh(mergeGeos(cL), cold));   // 一次側（設施水）
+      g.add(new T.Mesh(mergeGeos(hL), hot));    // 二次側（機櫃水）
+      g.add(new T.Mesh(mergeGeos(sL), st));
       return g;
     }
 
@@ -5001,15 +5524,22 @@
       const [w, h, d] = p.box;
       const r = Math.min(w, h) / 2;
       const fm = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.45, rough: 0.55 });
-      g.add(rbox(w, h, d * 0.86, Math.min(w, h) * 0.09, fm, r * 0.82));
-      // 四角鎖孔：風扇是**鎖**在機殼上的，這是它跟一顆自由葉輪的差別
-      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
-      const at = [];
-      [-1, 1].forEach(sx => [-1, 1].forEach(sy => at.push([sx * w * 0.42, sy * h * 0.42, 0, Math.PI / 2, 0, 0])));
-      g.add(instOf(new T.CylinderGeometry(w * 0.035, w * 0.035, d, 8, 1, true), hl, at));
-      // 四根支撐臂：馬達是靠這幾根撐在框中央的（不然輪轂是浮著的）
-      g.add(instOf(new T.BoxGeometry(r * 1.4, h * 0.05, d * 0.12), K.mat(-0.15, { metal: 0.4, rough: 0.6 }),
-        [0, 1, 2, 3].map(i => [0, 0, -d * 0.3, 0, 0, i * Math.PI / 4])));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F1）：以前中央是八根對穿的細棍子，馬達根本沒地方坐。改成：
+         ① 後側中央一個**馬達座**（定子與軸承管就鎖在這上面）② **四根支撐臂**從馬達座斜伸到框的四角方向
+         ③ 其中一根上有一道**走線槽**（四條線從馬達的驅動板沿著它出去）④ 進風口一圈**導流唇**（喇叭口，風才吸得順）。
+         框、馬達座、支撐臂、導流唇是同一種塑膠，併成一個 mesh；鎖孔與走線槽一個 mesh。*/
+      const fr = [rboxGeo(w, h, d * 0.86, Math.min(w, h) * 0.09, r * 0.82)];
+      { const s = new T.CylinderGeometry(r * 0.36, r * 0.36, d * 0.14, 20); s.rotateX(Math.PI / 2); s.translate(0, 0, -d * 0.36); fr.push(s); }
+      for (let i = 0; i < 4; i++) {
+        const a = Math.PI / 4 + i * Math.PI / 2, b = new T.BoxGeometry(r * 0.5, r * 0.08, d * 0.14);
+        b.rotateX(0.25); b.translate(r * 0.59, 0, 0); b.rotateZ(a); b.translate(0, 0, -d * 0.36); fr.push(b);
+      }
+      { const lip = new T.TorusGeometry(r * 0.83, d * 0.05, 4, 32); lip.translate(0, 0, d * 0.43); fr.push(lip); }
+      g.add(new T.Mesh(mergeGeos(fr), fm));
+      const dk = [];
+      [-1, 1].forEach(sx => [-1, 1].forEach(sy => { const c = new T.CylinderGeometry(w * 0.035, w * 0.035, d, 8, 1, true); c.rotateX(Math.PI / 2); c.translate(sx * w * 0.42, sy * h * 0.42, 0); dk.push(c); }));
+      { const ch = new T.BoxGeometry(r * 0.44, r * 0.035, d * 0.05); ch.translate(r * 0.6, 0, 0); ch.rotateZ(-Math.PI / 4 - Math.PI / 2); ch.translate(0, 0, -d * 0.28); dk.push(ch); }
+      g.add(new T.Mesh(mergeGeos(dk), K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 })));
       return g;
     }
 
@@ -5023,8 +5553,10 @@
       const rev = !!p.rev, sg = rev ? -1 : 1;
       const rotor = new T.Group();
       const bm = K.mat(rev ? -0.12 : 0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
-      // 2026-09-26：彎刀形葉片（見 rotorBlades）；反轉那一組攻角與後掠都反過來
-      rotor.add(new T.Mesh(rotorBlades(7, r * 0.26, r * 0.92, r * 0.46, d * 0.14, 0.5 * sg, sg), twoSided(K, bm)));
+      /* 2026-09-26：彎刀形葉片（見 rotorBlades）；反轉那一組攻角與後掠都反過來。
+         ★ 第二批（B 組）：拿掉雙面材質 —— 葉片是擠出來的**封閉實體**，正面就看得到每一面；
+           雙面材質會讓 three 多編一支 shader（首次畫圖變慢的主因之一，A 組實測）。*/
+      rotor.add(new T.Mesh(rotorBlades(7, r * 0.26, r * 0.92, r * 0.46, d * 0.14, 0.5 * sg, sg), bm));
       // 葉根：葉片是**從輪轂長出來**的，所以根部要有一圈實體把它們連起來
       const root = cyl(r * 0.3, d * 0.6, K.mat(-0.2, { metal: 0.3, rough: 0.6 }), 16);
       root.rotation.x = Math.PI / 2; rotor.add(root);
@@ -5040,17 +5572,23 @@
       const [w, h, d] = p.box;
       const r = Math.min(w, h) / 2;
       const hm = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.38 });
-      const wall = twoSided(K, K.mat(-0.06, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 }));
-      const cap = put(cyl(r, d * 0.14, hm, 20), 0, 0, d * 0.42);
-      cap.rotation.x = Math.PI / 2; g.add(cap);                                         // 前蓋
-      const side = put(new T.Mesh(new T.CylinderGeometry(r, r, d * 0.84, 20, 1, true), wall), 0, 0, 0);
-      side.rotation.x = Math.PI / 2; g.add(side);                                        // 杯壁（開口朝後）
-      // 轉子磁鐵：貼在**輪轂內壁**上的一圈（外轉子馬達就是這樣裝的）
-      const mag = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.58, metal: 0.3 });
-      const at = [];
-      for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.86, Math.sin(i * Math.PI / 4) * r * 0.86,
-        -d * 0.08, 0, 0, i * Math.PI / 4]);
-      g.add(instOf(new T.BoxGeometry(r * 0.2, r * 0.5, d * 0.5), mag, at));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F2）：外轉子馬達的輪轂是三層同心的杯子 ——
+         塑膠杯（扇葉長在它外面）→ 貼在內側的**鋼製轉子軛**（導磁）→ 黏在軛上的**一整圈環形磁鐵**
+         （以前畫成八塊分開的方塊；實際是一個環，只是被充磁成 N／S 交替的八極 —— 那八條細線就是極界）。
+         杯底中央一個軸座，轉軸就壓在這裡（所以軸跟著輪轂一起轉，軸承在下面的軸承管裡）。
+         杯壁改成有厚度的環（封閉實體）—— 不再需要雙面材質。*/
+      const cap = new T.CylinderGeometry(r, r, d * 0.14, 24); cap.rotateX(Math.PI / 2); cap.translate(0, 0, d * 0.42);
+      const wall = agRing(r, r * 0.92, d * 0.84, 28);
+      g.add(new T.Mesh(mergeGeos([cap, wall]), hm));
+      const stL = [agRing(r * 0.92, r * 0.86, d * 0.7, 28)];
+      const boss = new T.CylinderGeometry(r * 0.14, r * 0.14, d * 0.5, 10); boss.rotateX(Math.PI / 2); boss.translate(0, 0, d * 0.12); stL.push(boss);
+      for (let i = 0; i < 8; i++) {                                                         // 八極的極界
+        const a = i * Math.PI / 4, b = new T.BoxGeometry(r * 0.03, r * 0.02, d * 0.5);
+        b.translate(Math.cos(a) * r * 0.735, Math.sin(a) * r * 0.735, -d * 0.08); b.rotateZ(0); stL.push(b);
+      }
+      g.add(new T.Mesh(mergeGeos(stL), K.mat(-0.1, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.82, rough: 0.34 })));
+      const mg = agRing(r * 0.86, r * 0.74, d * 0.5, 28); mg.translate(0, 0, -d * 0.08);
+      g.add(new T.Mesh(mg, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.58, metal: 0.3 })));
       return g;
     }
 
@@ -5063,17 +5601,30 @@
       const r = Math.min(w, h) / 2;
       const fe = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.8, rough: 0.34 });
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 });
-      const teeth = [], coils = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F3）：
+         ① 定子鐵芯是**一片一片矽鋼片疊起來**的（每一個齒看得到四片疊層的縫）＋ 齒尖的**極靴**（比齒寬，磁力線才攤得開）
+         ② 中央的**軸承管**（黃銅）—— 軸承裝在管裡、管子立在馬達座上
+         ③ 驅動板是圓的、上面看得到**霍爾元件**（轉速回授就是從它來的）與驅動 IC。*/
+      const feL = [agRing(r * 0.36, r * 0.24, d * 0.6, 20)];                                   // 背軛
+      const cuL = [];
       for (let i = 0; i < 6; i++) {
         const a = i * Math.PI / 3;
-        teeth.push([Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, 0, 0, 0, a]);
-        coils.push([Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, 0, 0, 0, a]);
+        for (let k = 0; k < 4; k++) {                                                       // 四片疊層（中間留縫）
+          const b = new T.BoxGeometry(r * 0.46, r * 0.24, d * 0.13);
+          b.translate(r * 0.58, 0, -d * 0.24 + k * d * 0.16); b.rotateZ(a); feL.push(b);
+        }
+        const shoe = new T.BoxGeometry(r * 0.1, r * 0.6, d * 0.6); shoe.translate(r * 0.86, 0, 0); shoe.rotateZ(a); feL.push(shoe);   // 極靴
+        const coil = new T.BoxGeometry(r * 0.36, r * 0.46, d * 0.74); coil.translate(r * 0.58, 0, 0); coil.rotateZ(a); cuL.push(coil);  // 繞在齒上的線圈
       }
-      g.add(instOf(new T.BoxGeometry(r * 0.8, r * 0.28, d * 0.6), fe, teeth));           // 鐵芯的齒
-      g.add(instOf(new T.BoxGeometry(r * 0.42, r * 0.52, d * 0.68), cu, coils));         // 繞在齒上的線圈
-      const yoke = put(cyl(r * 0.34, d * 0.62, fe, 16), 0, 0, 0); yoke.rotation.x = Math.PI / 2; g.add(yoke);
-      // 驅動板：霍爾元件在這上面，轉速回授就是從這裡出去的
-      g.add(put(box(r * 1.7, r * 1.7, d * 0.1, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, 0, -d * 0.4));
+      const tube = new T.CylinderGeometry(r * 0.2, r * 0.2, d * 0.95, 14); tube.rotateX(Math.PI / 2); cuL.push(tube);            // 軸承管（黃銅）
+      g.add(new T.Mesh(mergeGeos(feL), fe));
+      g.add(new T.Mesh(mergeGeos(cuL), cu));
+      const pcb = new T.CylinderGeometry(r * 0.95, r * 0.95, d * 0.1, 24); pcb.rotateX(Math.PI / 2); pcb.translate(0, 0, -d * 0.4);
+      g.add(new T.Mesh(pcb, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })));
+      g.add(new T.Mesh(mergeGeos([agGeo(r * 0.12, r * 0.08, d * 0.1, r * 0.66, r * 0.3, -d * 0.31),      // 霍爾元件（貼在齒縫下）
+        agGeo(r * 0.3, r * 0.3, d * 0.08, -r * 0.55, -r * 0.4, -d * 0.32),                                   // 驅動 IC
+        agGeo(r * 0.1, r * 0.05, d * 0.06, -r * 0.2, -r * 0.7, -d * 0.33), agGeo(r * 0.1, r * 0.05, d * 0.06, r * 0.1, -r * 0.72, -d * 0.33)]),
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 })));
       return g;
     }
 
@@ -5087,14 +5638,19 @@
       const st = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.86, rough: 0.24 });
       const sh = K.mat(0.18, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.88, rough: 0.2 });
       const shaft = put(cyl(r * 0.32, d, sh, 14), 0, 0, 0); shaft.rotation.x = Math.PI / 2; g.add(shaft);  // 軸
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F4）：一顆滾珠軸承＝**外環＋內環＋鋼珠＋保持架**，前後各一顆。
+         以前只有外環跟鋼珠（鋼珠浮在軸外面），內環與保持架都沒有。環改成有厚度的封閉實體，不用雙面材質。*/
+      const races = [], cage = [], at = [];
       [-1, 1].forEach(s => {
-        const ring = put(new T.Mesh(new T.CylinderGeometry(r, r * 0.92, d * 0.2, 18, 1, true),
-          twoSided(K, st)), 0, 0, s * d * 0.3);
-        ring.rotation.x = Math.PI / 2; g.add(ring);                                      // 外環
-        const at = [];
-        for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.64, Math.sin(i * Math.PI / 4) * r * 0.64, s * d * 0.3]);
-        g.add(instOf(new T.SphereGeometry(r * 0.22, 8, 6), st, at));                     // 鋼珠（看得到才是滾珠軸承）
+        const z = s * d * 0.3;
+        const o = agRing(r, r * 0.8, d * 0.2, 22); o.translate(0, 0, z); races.push(o);
+        const i2 = agRing(r * 0.5, r * 0.33, d * 0.2, 18); i2.translate(0, 0, z); races.push(i2);
+        const c = agRing(r * 0.7, r * 0.58, d * 0.06, 18); c.translate(0, 0, z + d * 0.06); cage.push(c);
+        for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.64, Math.sin(i * Math.PI / 4) * r * 0.64, z]);
       });
+      g.add(new T.Mesh(mergeGeos(races), st));
+      g.add(instOf(new T.SphereGeometry(r * 0.15, 8, 6), st, at));                            // 鋼珠（看得到才是滾珠軸承）
+      g.add(new T.Mesh(mergeGeos(cage), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.7, rough: 0.4 })));   // 保持架（黃銅）
       return g;
     }
 
@@ -5105,7 +5661,10 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const hs = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.7, metal: 0.1 });
-      g.add(put(box(w * 0.5, h, d * 0.3, hs), w * 0.24, 0, 0));                          // 接頭外殼
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F5）：接頭補上**卡榫**與**四個端子孔**（一眼數得出四線）。*/
+      g.add(mboxes([[w * 0.5, h, d * 0.3, w * 0.24, 0, 0], [w * 0.3, h * 0.18, d * 0.12, w * 0.24, h * 0.56, d * 0.06]], hs));   // 外殼＋卡榫
+      g.add(mboxes([0, 1, 2, 3].map(i => [w * 0.07, h * 0.14, d * 0.04, w * 0.24, (i - 1.5) * h * 0.2, d * 0.15]),
+        K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 })));
       const cols = ['--dg-el', '--dg-edge', '--dg-fl-sig', '--dg-fl-pwr'];
       cols.forEach((cv, i) => {
         const m = K.mat(0, { color: K.css(cv, '#4e5866'), rough: 0.8, metal: 0.08 });
@@ -5126,30 +5685,43 @@
       const n = 4, cw = w / n;
       const r = Math.min(cw, h) * 0.44;
       const fm = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.45, rough: 0.55 });
-      g.add(put(box(w, h, d * 0.2, fm), 0, 0, -d * 0.4));                                // 背板
-      const hub = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.4 });
-      const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
-      const rings = [], hubs = [], blades = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F6）：以前是「一片實心背板＋四個圓環」—— 背板把風整個擋住了。改成：
+         ① 每一顆一個**方形扇框**（中間挖圓孔，風才過得去）＋ 上下兩條**托架軌**（整排可以一起抽出來換）
+         ② 前面每顆一片**護網**（三圈同心鐵線＋四根輻條 —— 伺服器風扇牆一定有，手才不會伸進去）
+         ③ 葉片從方塊換成跟單顆風扇同一支的**彎刀形葉片**，仍是一個 InstancedMesh、仍然每幀轉。*/
+      const fr = [];
+      // 圓孔一定要落在圓角矩形的內框裡（ExtrudeGeometry 的洞超出外形就三角化失敗）
+      const holeR = cw * 0.48 - cw * 0.06 - 0.25;
       for (let i = 0; i < n; i++) {
         const x = (-(n - 1) / 2 + i) * cw;
-        rings.push([x, 0, 0]);
+        const f = rboxGeo(cw * 0.96, cw * 0.96, d * 0.5, cw * 0.06, holeR); f.translate(x, 0, 0); fr.push(f);
+      }
+      [-1, 1].forEach(s => fr.push(agGeo(w, h * 0.12, d * 0.6, 0, s * (cw * 0.48 + h * 0.06), 0)));
+      g.add(new T.Mesh(mergeGeos(fr), fm));
+      const hub = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.4 });
+      const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
+      const hubs = [], blades = [], items = [], gr = [];
+      const r0 = r * 0.3;
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * cw;
         hubs.push([x, 0, 0, Math.PI / 2, 0, 0]);
         for (let j = 0; j < 7; j++) {
           const a = j * Math.PI * 2 / 7;
-          blades.push([x + Math.cos(a) * r * 0.58, Math.sin(a) * r * 0.58, 0, 0, 0.44, a + Math.PI / 2]);
+          blades.push([x + Math.cos(a) * r0, Math.sin(a) * r0, 0, 0, 0, a + Math.PI / 2]);
+          items.push({ cx: x, cz: 0, r: r0, a0: a, ry: 0 });
         }
+        [0.95, 0.66, 0.38].forEach(k => { const t = new T.TorusGeometry(r * k, r * 0.02, 3, 20); t.translate(x, 0, d * 0.34); gr.push(t); });
+        [0, 1].forEach(k => { const s = new T.BoxGeometry(r * 1.9, r * 0.03, r * 0.03); s.rotateZ(k * Math.PI / 2 + Math.PI / 4); s.translate(x, 0, d * 0.34); gr.push(s); });
       }
-      g.add(instOf(new T.TorusGeometry(r, r * 0.09, 6, 16), fm, rings));                 // 每一顆的框
       g.add(instOf(new T.CylinderGeometry(r * 0.28, r * 0.28, d * 0.5, 12), hub, hubs));
-      /* C6：風扇牆的葉片**真的在轉**。
-         它是一個 InstancedMesh（4 顆風扇 × 7 片 ＝ 28 個實例、1 個 draw call），
-         所以不能像單顆風扇那樣「轉一個 Group」—— 改成每幀重算 instanceMatrix。
-         28 次矩陣組合 × 30fps ＝ 840 次／秒，可以忽略；
-         換成 4 個 Group 會多 3 個 draw call，而且葉片的幾何要複製 4 份。*/
-      const bi = instOf(new T.BoxGeometry(r * 0.66, r * 0.34, d * 0.14), bm, blades);
-      bi.userData.ispin = { speed: 2.1, t: 0, items: blades.map((b, i) => ({
-        cx: (-(n - 1) / 2 + Math.floor(i / 7)) * cw, cz: 0, r: r * 0.58,
-        a0: (i % 7) * Math.PI * 2 / 7, ry: 0.44 })) };
+      g.add(new T.Mesh(mergeGeos(gr), K.mat(0.25, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.75, rough: 0.35 })));
+      /* C6：風扇牆的葉片**真的在轉**（每幀重算 instanceMatrix，見 stepISpins）。
+         stepISpins 把每一片放在「離轉軸 r、旋轉 a＋90°」的位置 —— 所以葉片幾何預先轉成「沿局部 −y 往外長、葉根在原點」，
+         轉了之後剛好沿半徑往外（葉根貼著輪轂）。*/
+      const bg = rotorBlades(1, r0, holeR * 0.94, r * 0.42, d * 0.1, 0.5, 1);
+      bg.translate(-r0, 0, 0); bg.rotateZ(-Math.PI / 2);
+      const bi = instOf(bg, bm, blades);
+      bi.userData.ispin = { speed: 2.1, t: 0, items };
       g.add(bi);
       return g;
     }
@@ -5159,13 +5731,50 @@
     function fanShroud(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const pl = twoSided(K, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.16, rough: 0.66, op: 0.72 }));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F7）：拿掉雙面材質（牆板都是封閉的方塊，正面就看得到兩側）；
+         補上**進風端的法蘭**（貼著風扇牆的那一圈）與頂蓋上**三條加強肋**（大片塑膠不加肋會被風壓吹得抖）。*/
+      const pl = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.16, rough: 0.66, op: 0.72 });
       const t = h * 0.07;
-      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0],
-        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]], pl));
-      // 收口：出風那一端收窄，氣流才會被逼著穿過鰭片而不是繞過去
-      g.add(mboxes([[w * 0.2, h * 0.9, t * 1.4, -w * 0.38, 0, -d / 2 + t],
-        [w * 0.2, h * 0.9, t * 1.4, w * 0.38, 0, -d / 2 + t]], pl));
+      const L = [[w, t, d, 0, h / 2 - t / 2, 0], [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
+        // 收口：出風那一端收窄，氣流才會被逼著穿過鰭片而不是繞過去
+        [w * 0.2, h * 0.9, t * 1.4, -w * 0.38, 0, -d / 2 + t], [w * 0.2, h * 0.9, t * 1.4, w * 0.38, 0, -d / 2 + t],
+        // 進風端法蘭
+        [w * 1.06, t * 0.8, t * 0.8, 0, h / 2 + t * 0.2, d / 2 - t * 0.4], [t * 0.8, h * 1.02, t * 0.8, -w * 0.53, 0, d / 2 - t * 0.4], [t * 0.8, h * 1.02, t * 0.8, w * 0.53, 0, d / 2 - t * 0.4]];
+      [-0.3, 0, 0.3].forEach(fz => L.push([w * 0.96, t * 0.9, t * 0.7, 0, h / 2 + t * 0.4, fz * d]));
+      g.add(mboxes(L, pl));
+      return g;
+    }
+
+    function acSink(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const al = K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.55, rough: 0.42 });
+      const al2 = K.mat(0, { color: K.css('--dg-alu-2', '#75849a'), metal: 0.5, rough: 0.46 });
+      g.add(put(box(w, h * 0.16, d, al2), 0, -h * 0.42, 0));                                // 底板
+      /* 氣冷這一張專用的鰭片組（共用的 `heatsink` 交換器那張也在用，不動它）。
+         ★ 2026-09-26 第二批（B 組，§3D-細節 F8）：
+         ① **扣合式鰭片**（zipper fin）：每一片上下緣都折一道邊，一片扣一片 —— 從上面看是一條條整齊的折邊，不是一排薄刀片
+         ② **熱管的冷凝段橫穿過整疊鰭片**，兩端露出來（熱就是從這幾根管子交給每一片鰭片的；下面那個 U 形熱管零件是它的蒸發段）
+         ③ 四角的**彈簧螺絲**（散熱器是用彈簧力壓在晶片上的）。*/
+      const n = Math.max(18, Math.round(w / (h * 0.1)));
+      const ft = w / n * 0.2, at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), h * 0.08, 0]);
+      const fin = new T.BoxGeometry(ft, h * 0.84, d * 0.96);
+      const top = new T.BoxGeometry(w / n * 0.92, ft, d * 0.96); top.translate(w / n * 0.4, h * 0.42, 0);
+      const bot = new T.BoxGeometry(w / n * 0.92, ft, d * 0.96); bot.translate(w / n * 0.4, -h * 0.42, 0);
+      g.add(instOf(mergeGeos([fin, top, bot]), al, at));
+      const cu = [];
+      [[-0.28, 0.25], [0, -0.1], [0.28, 0.25], [-0.14, 0.02], [0.14, 0.02]].forEach(([fz, fy]) => {
+        const c = new T.CylinderGeometry(h * 0.055, h * 0.055, w * 1.05, 10); c.rotateZ(Math.PI / 2); c.translate(0, fy * h, fz * d); cu.push(c);
+      });
+      g.add(new T.Mesh(mergeGeos(cu), K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.72, rough: 0.3 })));
+      const sc = [];
+      [-1, 1].forEach(sx => [-1, 1].forEach(sz => {
+        const s = new T.CylinderGeometry(h * 0.035, h * 0.035, h * 0.3, 8); s.translate(sx * w * 0.47, -h * 0.28, sz * d * 0.44); sc.push(s);
+        const hd = new T.CylinderGeometry(h * 0.07, h * 0.07, h * 0.05, 6); hd.translate(sx * w * 0.47, -h * 0.12, sz * d * 0.44); sc.push(hd);
+        for (let k = 0; k < 3; k++) { const c = new T.TorusGeometry(h * 0.055, h * 0.012, 4, 10); c.rotateX(Math.PI / 2); c.translate(sx * w * 0.47, -h * (0.3 - k * 0.05), sz * d * 0.44); sc.push(c); }
+      }));
+      g.add(new T.Mesh(mergeGeos(sc), K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.8, rough: 0.3 })));
       return g;
     }
 
@@ -5839,238 +6448,561 @@
        馬達 → 聯軸器 → 軸承座 → 螺桿＋螺帽 → 滑軌＋滑塊 → 工作台。
        所以每一件都要看得出它接的是誰（軸、法蘭、鎖付孔、法蘭盤都不能省）。*/
 
-    /* 底座（鋁擠型）：★ 斷面有空腔 —— 同樣重量下拿到比較高的斷面剛性。
-       實心方塊不是鋁擠型，上緣的 T 型槽也是它的識別特徵（軌道與感測器鎖在裡面）。*/
+    /* ================================================================ 2026-09-26 第二批細緻化（D 組：傳動件）
+       Andy：「把細節部分描繪更多，更貼近當前產品，而非看起來就是個長方塊」。
+       依據（查證來源與信心度）寫在 docs/diagram_specs/motion_control.md 的 §3D-細節；
+       零件清單、編號、卡片文字都沒動，動的是每一件的幾何。
+       ★ 下面四支小工具**只給 motion_axis／machine_tool 兩張用**（平行作業規則：不改共用件），
+         建議之後合併進共用：mcHelix（順著螺旋走的網格）、mcSweepHalf（沿平面路徑的半剖管）、
+         mcProfX（2D 斷面沿 x 擠出）、mcMerge（同材質併成一個 draw call）。*/
+
+    // 同一種材質的一堆 geometry 併成一個 mesh（一次 draw call）
+    function mcMerge(geos, m) { return new T.Mesh(mergeGeos(geos), m); }
+    // 平移／旋轉後的 geometry（mergeGeos 要吃已經擺好位置的幾何）
+    function mcAt(g, x, y, z, rx, ry, rz) {
+      if (rx) g.rotateX(rx); if (ry) g.rotateY(ry); if (rz) g.rotateZ(rz);
+      g.translate(x || 0, y || 0, z || 0); return g;
+    }
+    const mcCylX = (r, l, seg) => new T.CylinderGeometry(r, r, l, seg || 16).rotateZ(Math.PI / 2);
+    const mcCylZ = (r, l, seg) => new T.CylinderGeometry(r, r, l, seg || 16).rotateX(Math.PI / 2);
+    // 半剖圓筒（軸沿 x、保留 z < 0）：跟 halfTubeX 同一種切法，但回傳 geometry 好併
+    function mcHalfX(ro, ri, len) { return halfBore(ro, ri, len).rotateZ(-Math.PI / 2).rotateY(Math.PI / 2); }
+    // 半剖圓柱的外皮（不含端面與切面），軸沿 x、保留 z < 0
+    const mcSkinX = (r, len, seg) => new T.CylinderGeometry(r, r, len, seg || 24, 1, true, Math.PI / 2, Math.PI).rotateZ(-Math.PI / 2);
+    /* 2D 斷面沿 x 擠出：pts 是斷面輪廓（[z, y]），holes 是挖空（每個一串 [z, y]）。
+       ★ 鋁擠型、滑軌、T 型槽工作台的識別特徵全部在**斷面**上，所以用擠出，不用拼方塊。*/
+    function mcProfX(pts, len, holes) {
+      const s = new T.Shape(pts.map(([z, y]) => new T.Vector2(z, y)));
+      (holes || []).forEach(h => s.holes.push(new T.Path(h.map(([z, y]) => new T.Vector2(z, y)))));
+      const g = new T.ExtrudeGeometry(s, { depth: len, bevelEnabled: false, curveSegments: 4 });
+      g.translate(0, 0, -len / 2);
+      g.rotateY(Math.PI / 2);          // 擠出方向 z → x；斷面的 z 變成 −z（斷面都左右對稱，沒差）
+      return g;
+    }
+    // 圓角矩形的一圈點（給 mcProfX 的挖空用）
+    function mcRRect(cz, cy, w, h, r, n) {
+      const out = []; n = n || 3;
+      [[w / 2 - r, h / 2 - r, 0], [-w / 2 + r, h / 2 - r, 1], [-w / 2 + r, -h / 2 + r, 2], [w / 2 - r, -h / 2 + r, 3]].forEach(([x, y, q]) => {
+        for (let i = 0; i <= n; i++) { const a = (q + i / n) * Math.PI / 2; out.push([cz + x + Math.cos(a) * r, cy + y + Math.sin(a) * r]); }
+      });
+      return out;
+    }
+    const mcCirc = (cz, cy, r, n) => Array.from({ length: n || 10 }, (_, i) => { const a = -i / (n || 10) * Math.PI * 2; return [cz + Math.cos(a) * r, cy + Math.sin(a) * r]; });
+
+    /* ---- 滾珠螺桿的尺寸：全部由螺桿半徑 R 推出，所以同一支幾何放大縮小（單軸模組、CNC 的 X／Z 軸）都對得起來。
+       Rp 節圓（鋼珠中心）、rb 鋼珠半徑、rg 溝的圓弧半徑（比鋼珠大 4%，哥德弧的近似）、lead 導程，
+       lo ＝ 溝口離節圓的徑向距離：螺桿溝口在 Rp − lo、螺帽溝口在 Rp + lo —— 鋼珠同時碰到兩邊（兩點接觸）。
+       比例參考常見的 1605 規格（外徑 16、導程 5、鋼珠 3.175）：導程／外徑 ≈ 0.39（實物 0.31）、鋼珠／導程 ≈ 0.61（實物 0.64）
+       —— 導程刻意放大一點，不然在畫面上溝會細到看不出是圓弧。*/
+    function bsDims(R) {
+      const Rp = R * 0.8, rb = R * 0.17, rg = rb * 1.04, lead = R * 0.56, lo = rb * 0.45;
+      return { R, Rp, rb, rg, lead, lo, hw: Math.sqrt(rg * rg - lo * lo), sLand: Rp - lo, nLand: Rp + lo };
+    }
+    // 一個導程內的軸向剖面：[u, 相對節圓的徑向偏移]。sgn −1 ＝ 螺桿（溝往內凹）、+1 ＝ 螺帽（溝往外凹）。溝心在 u = 0.5。
+    function bsProf(d, sgn, n) {
+      const out = [[0, sgn * d.lo]];
+      for (let i = 0; i <= n; i++) {
+        const s = -d.hw + 2 * d.hw * i / n;
+        out.push([0.5 + s / d.lead, sgn * Math.sqrt(Math.max(0, d.rg * d.rg - s * s))]);
+      }
+      return out;
+    }
+    // 相位：溝的起點對齊到世界座標 x = 0，螺桿、螺帽、鋼珠三件分開建也對得上
+    const bsPh = (p, d) => ((p.at ? p.at[0] : 0) / d.lead);
+    /* 螺旋溝曲面：軸沿 x、半徑 r0 ＋ prof 的偏移。★ 網格線**順著螺旋走**：同一個取樣點在相鄰角度上
+       正好差 lead × Δθ／2π，所以一個導程只要 10 個取樣就把圓弧溝畫乾淨，不必把整根軸細切成幾萬面。
+       θ 從 +z 起算往 +y 轉（y = r sinθ、z = r cosθ）。t0～t1 不滿一圈就是半剖（螺帽內壁）。*/
+    function mcHelix(o) {
+      const { r0, prof, lead, x0, x1 } = o;
+      const ph = o.ph || 0, t0 = o.t0 || 0, t1 = o.t1 == null ? Math.PI * 2 : o.t1, nt = o.nt || 28;
+      const TAU = Math.PI * 2, full = Math.abs(t1 - t0 - TAU) < 1e-6, K = prof.length, S = o.starts || 1;
+      // 多頭螺旋（銑刀的兩條刃）：剖面每 1／S 個導程重複一次
+      const nA = Math.floor((x0 / lead + ph - t1 / TAU) * S) - 1, nB = Math.ceil((x1 / lead + ph - t0 / TAU) * S) + 1;
+      const M = (nB - nA) * K, pos = [], idx = [];
+      for (let j = 0; j <= nt; j++) {
+        const th = t0 + (t1 - t0) * j / nt, s = Math.sin(th), c = Math.cos(th);
+        for (let m = 0; m < M; m++) {
+          const pk = prof[m % K], n = nA + Math.floor(m / K);
+          const x = Math.min(x1, Math.max(x0, ((n + pk[0]) / S - ph + th / TAU) * lead)), r = r0 + pk[1];
+          pos.push(x, r * s, r * c);
+        }
+      }
+      // 滿一圈時最後一欄接回第一欄（同一個點差一個導程 ＝ 往後 K 個取樣），法線才不會有接縫
+      const at = (m, j) => (full && j === nt && m + K * S < M) ? m + K * S : j * M + m;
+      for (let j = 0; j < nt; j++) for (let m = 0; m < M - 1; m++) {
+        const a = at(m, j), b = at(m + 1, j), c = at(m + 1, j + 1), dd = at(m, j + 1);
+        if (o.inward) idx.push(a, c, b, a, dd, c); else idx.push(a, b, c, a, c, dd);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+      g.computeVertexNormals();
+      return g;
+    }
+    // 螺旋溝在某個固定角度 th 上的那一條剖面線（半剖的切面要沿著它收邊）
+    function mcHelixLine(o, th) {
+      const { r0, prof, lead, x0, x1 } = o, ph = o.ph || 0, K = prof.length, TAU = Math.PI * 2;
+      const out = [];
+      const nA = Math.floor(x0 / lead + ph - th / TAU) - 1, nB = Math.ceil(x1 / lead + ph - th / TAU) + 1;
+      for (let n = nA; n < nB; n++) for (let k = 0; k < K; k++) {
+        const x = (n + prof[k][0] - ph + th / TAU) * lead;
+        if (x < x0 || x > x1) continue;
+        out.push([x, r0 + prof[k][1]]);
+      }
+      out.unshift([x0, out.length ? out[0][1] : r0]); out.push([x1, out.length ? out[out.length - 1][1] : r0]);
+      return out;
+    }
+    // 切面（z = 0）上的一條帶：內緣沿 line（[x, r]）、外緣半徑 ro；sy ＝ +1 上半、−1 下半。法線朝 +z（鏡頭那一側）
+    function mcCutStrip(line, ro, sy) {
+      const pos = [];
+      for (let i = 0; i < line.length - 1; i++) {
+        const [xa, ra] = line[i], [xb, rb] = line[i + 1];
+        const A = [xa, ra * sy, 0], B = [xb, rb * sy, 0], C = [xb, ro * sy, 0], D = [xa, ro * sy, 0];
+        if (sy > 0) pos.push(...A, ...B, ...C, ...A, ...C, ...D); else pos.push(...A, ...C, ...B, ...A, ...D, ...C);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+      return g;
+    }
+    // 半圓環端面（軸沿 x、保留 z < 0），sx ＝ +1 朝 +x、−1 朝 −x
+    function mcHalfRing(ri, ro, x, sx, seg) {
+      const g = new T.RingGeometry(ri, ro, seg || 16, 1, sx > 0 ? -Math.PI / 2 : Math.PI / 2, Math.PI);
+      g.rotateY(sx > 0 ? Math.PI / 2 : -Math.PI / 2); g.translate(x, 0, 0); return g;
+    }
+    /* 沿一條平面路徑（z = zc 的平面）掃出**半剖**的管：只留 z < zc 那一半，切面剛好落在平面上 ——
+       鋼珠回流管就是這樣剖開才看得到裡面一顆一顆的鋼珠。ro／ri 外徑／內徑，n 沿路徑取樣數。*/
+    function mcSweepHalf(curve, ro, ri, n, zc) {
+      const pos = [], idx = [], strip = [], S = 8;
+      const P = curve.getSpacedPoints(n), Tn = P.map((_, i) => curve.getTangentAt(i / n));
+      const ring = (i, r) => {
+        const t = Tn[i], N = new T.Vector3(-t.y, t.x, 0).normalize();
+        const out = [];
+        for (let k = 0; k <= S; k++) { const a = Math.PI + Math.PI * k / S;
+          out.push([P[i].x + (Math.cos(a) * N.x) * r, P[i].y + (Math.cos(a) * N.y) * r, (zc || 0) + Math.sin(a) * r]); }
+        return out;
+      };
+      [[ro, false], [ri, true]].forEach(([r, inv]) => {
+        const base = pos.length / 3;
+        for (let i = 0; i <= n; i++) ring(i, r).forEach(v => pos.push(v[0], v[1], v[2]));
+        for (let i = 0; i < n; i++) for (let k = 0; k < S; k++) {
+          const a = base + i * (S + 1) + k, b = a + S + 1;
+          if (inv) idx.push(a, b, a + 1, a + 1, b, b + 1); else idx.push(a, a + 1, b, a + 1, b + 1, b);
+        }
+      });
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+      g.computeVertexNormals();
+      // 兩條切面帶（z = zc 上、壁厚看得見）
+      for (let i = 0; i < n; i++) {
+        const t0 = Tn[i], t1 = Tn[i + 1];
+        const N0 = new T.Vector3(-t0.y, t0.x, 0).normalize(), N1 = new T.Vector3(-t1.y, t1.x, 0).normalize();
+        [1, -1].forEach(sg => {
+          const q = (P, N, r) => [P.x + N.x * r * sg, P.y + N.y * r * sg, (zc || 0) + 0.015];
+          const A = q(P[i], N0, ri), B = q(P[i + 1], N1, ri), C = q(P[i + 1], N1, ro), D = q(P[i], N0, ro);
+          strip.push(...A, ...B, ...C, ...A, ...C, ...D);
+        });
+      }
+      for (let i = 0; i < strip.length; i += 9) {        // 繞向朝 −z 的那幾片翻過來（切面一律朝 +z、鏡頭那一側）
+        const ux = strip[i + 3] - strip[i], uy = strip[i + 4] - strip[i + 1], vx = strip[i + 6] - strip[i], vy = strip[i + 7] - strip[i + 1];
+        if (ux * vy - uy * vx < 0) for (let k = 0; k < 3; k++) { const t = strip[i + 3 + k]; strip[i + 3 + k] = strip[i + 6 + k]; strip[i + 6 + k] = t; }
+      }
+      const sg = new T.BufferGeometry();
+      sg.setAttribute('position', new T.Float32BufferAttribute(strip, 3));
+      sg.setAttribute('normal', new T.Float32BufferAttribute(strip.map((_, i) => (i % 3 === 2 ? 1 : 0)), 3));
+      return mergeGeos([g, sg]);
+    }
+    /* 外循環的回流管路徑（螺帽的局部座標）：兩張嘴都落在節圓的最頂端（θ = π/2）、相隔整整兩圈，
+       管子從一張嘴往上翻、越過螺帽頂、從另一張嘴下去 —— 鋼珠走兩圈螺旋再從管子繞回來，是一個**閉合的迴圈**。
+       螺帽、鋼珠、回流管三支都用這一條，嘴的位置才對得上溝。*/
+    function bsReturn(d, ph, Ro) {
+      const TAU = Math.PI * 2, L = d.lead;
+      const na = Math.round(-1 - 0.75 + ph);
+      const xa = (na + 0.75 - ph) * L, xb = xa + 2 * L, rt = d.rb * 1.32, top = Ro + rt * 1.25;
+      const pts = [[xa, d.Rp], [xa - L * 0.22, Ro * 0.94], [xa + L * 0.12, top], [(xa + xb) / 2, top + rt * 0.08],
+        [xb - L * 0.12, top], [xb + L * 0.22, Ro * 0.94], [xb, d.Rp]];
+      return { xa, xb, rt, top, curve: new T.CatmullRomCurve3(pts.map(([x, y]) => new T.Vector3(x, y, 0))), turns: 2, TAU };
+    }
+
+    /* 底座（鋁擠型）：★ 斷面有空腔 —— 同樣重量下拿到比較高的斷面剛性。實心方塊不是鋁擠型。
+       2026-09-26 細緻化：以前是六塊板拼成的「日」字。現在是一個**真的擠型斷面**沿 x 擠出：
+       頂面兩條、左右各一條 T 型槽（窄口寬底，T 型螺帽塞得進去、拔不出來），
+       中間三個圓角空腔 ＋ 兩個攻牙用的圓孔（端蓋鎖在這裡）。從 +x 那一端看得到整個斷面。*/
     function mcBase(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const t = h * 0.22;
-      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0], [w, t, d, 0, h / 2 - t / 2, 0],
-        [w, h, t, 0, 0, -d / 2 + t / 2], [w, h, t, 0, 0, d / 2 - t / 2],
-        [w, h, t, 0, 0, -d / 6], [w, h, t, 0, 0, d / 6]], K.mat(-0.12, { rough: 0.5 })));
-      g.add(mboxes([[w, t * 0.5, t * 0.9, 0, h / 2 - t * 1.1, -d * 0.34],
-        [w, t * 0.5, t * 0.9, 0, h / 2 - t * 1.1, d * 0.34]], K.mat(-0.5, { rough: 0.82 })));
+      const X = d / 2, Y = h / 2, a = h * 0.19, b = h * 0.38, s1 = h * 0.13, s2 = h * 0.38;
+      const pts = [[-X, -Y], [X, -Y]];
+      // 右側 T 型槽（由下往上走）
+      pts.push([X, -a / 2], [X - s1, -a / 2], [X - s1, -b / 2], [X - s2, -b / 2], [X - s2, b / 2], [X - s1, b / 2], [X - s1, a / 2], [X, a / 2]);
+      pts.push([X, Y]);
+      // 頂面兩條 T 型槽（由右往左走）
+      [d * 0.12, -d * 0.12].forEach(cx => {
+        pts.push([cx + a / 2, Y], [cx + a / 2, Y - s1], [cx + b / 2, Y - s1], [cx + b / 2, Y - s2],
+          [cx - b / 2, Y - s2], [cx - b / 2, Y - s1], [cx - a / 2, Y - s1], [cx - a / 2, Y]);
+      });
+      pts.push([-X, Y]);
+      // 左側 T 型槽（由上往下走）
+      pts.push([-X, a / 2], [-X + s1, a / 2], [-X + s1, b / 2], [-X + s2, b / 2], [-X + s2, -b / 2], [-X + s1, -b / 2], [-X + s1, -a / 2], [-X, -a / 2]);
+      const holes = [mcRRect(0, -h * 0.08, d * 0.1, h * 0.5, h * 0.08), mcRRect(d * 0.27, -h * 0.05, d * 0.15, h * 0.52, h * 0.1),
+        mcRRect(-d * 0.27, -h * 0.05, d * 0.15, h * 0.52, h * 0.1), mcCirc(d * 0.165, -h * 0.26, h * 0.1), mcCirc(-d * 0.165, -h * 0.26, h * 0.1)];
+      const alu = K.mat(-0.12, { rough: 0.5 });
+      g.add(new T.Mesh(mcProfX(pts, w, holes), alu));
+      /* 馬達座（聯軸器座）：底座 −x 端外面那一截。馬達的方法蘭鎖在它的外側那一片、聯軸器就在它裡面 ——
+         正面（z > 0）開著，跟整張圖同一個切面，看得到聯軸器。沒有它的話馬達是懸在半空中的。*/
+      if (p.mount) {
+        const [x0, x1] = p.mount, ay = p.axisY, Rm = p.mountR || 10.5, t = 1.3, L = x1 - x0, cx = (x0 + x1) / 2;
+        const frame = (x, hole, y0, y1) => [[t, y1 - (ay + hole), 2 * Rm, x, (y1 + ay + hole) / 2, 0], [t, (ay - hole) - y0, 2 * Rm, x, (ay - hole + y0) / 2, 0],
+          [t, 2 * hole, Rm - hole, x, ay, -(Rm + hole) / 2], [t, 2 * hole, Rm - hole, x, ay, (Rm + hole) / 2]];
+        g.add(mboxes([[L, t, 2 * Rm, cx, ay + Rm - t / 2, 0], [L, t, 2 * Rm, cx, ay - Rm + t / 2, 0], [L, 2 * Rm, t, cx, ay, -Rm + t / 2]]
+          .concat(frame(x0 + t / 2, Rm * 0.66, ay - Rm, ay + Rm), frame(x1 - t / 2, Rm * 0.6, -h / 2, ay + Rm)), alu));
+      }
       return g;
     }
 
-    /* 伺服馬達：方殼 ＋ 散熱肋 ＋ 前法蘭與四顆鎖付孔 ＋ 伸出去的軸 ＋ 出線接頭。
+    /* 伺服馬達：方殼 ＋ 散熱肋 ＋ 前法蘭（四個穿孔 ＋ 止口）＋ 伸出去的軸（有鍵）＋ 兩顆出線接頭。
        ★ 有軸才看得出它是「出力」的那一端；有法蘭才看得出它是被鎖在機構上的。
+       2026-09-26 細緻化：法蘭從圓盤改成**方法蘭**（伺服馬達是用法蘭的方框規格來分級的），
+       前面多一圈**止口**（定位用的凸環，跟機構的孔配合，所以軸心才對得準）；軸上加**鍵**；
+       出線改成兩顆圓形接頭：大的是動力線、小的是編碼器線 —— 一顆馬達兩條線，一條給電、一條回報位置。
        本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）。*/
     function mcMotor(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(h, d) / 2;
       const m = K.mat(-0.1, { rough: 0.38 });
-      g.add(put(rbox(w * 0.6, R * 1.86, R * 1.86, R * 0.18, m), -w * 0.08, 0, 0));
-      const fins = [];
-      for (let i = 0; i < 7; i++) {
-        fins.push([w * 0.56, R * 0.1, R * 0.12, -w * 0.08, R * 0.95, (-3 + i) * R * 0.5]);
-        fins.push([w * 0.56, R * 0.1, R * 0.12, -w * 0.08, -R * 0.95, (-3 + i) * R * 0.5]);
+      const dark = K.mat(-0.7, { rough: 0.8, metal: 0.15 });
+      const st = K.mat(0.3, { rough: 0.22, metal: 0.95 });
+      const L = w * 0.56, cx = -w * 0.1, fx = cx + L / 2 + w * 0.035;
+      // 外殼、散熱肋（四面各四條、沿軸向）、後蓋、方法蘭：同一個材質併成一次（一台 CNC 上有五顆馬達，draw call 要省）
+      const body = [rboxGeo(L, R * 1.8, R * 1.8, R * 0.24).translate(cx, 0, 0),
+        mcAt(mcCylX(R * 0.82, w * 0.05, 20), cx - L / 2 - w * 0.02, 0, 0),
+        rboxGeo(w * 0.07, R * 2.1, R * 2.1, R * 0.16).translate(fx, 0, 0)];
+      for (let i = 0; i < 4; i++) {
+        const o = (-1.5 + i) * R * 0.38;
+        [[R * 0.1, R * 0.09, 0, R * 0.93, o], [R * 0.1, R * 0.09, 0, -R * 0.93, o], [R * 0.09, R * 0.1, 0, o, R * 0.93], [R * 0.09, R * 0.1, 0, o, -R * 0.93]]
+          .forEach(([bh, bd, , y, z]) => body.push(new T.BoxGeometry(L * 0.86, bh, bd).translate(cx, y, z)));
       }
-      g.add(mboxes(fins, K.mat(0.12, { rough: 0.44 })));
-      g.add(put(cylX(R * 1.02, w * 0.08, m, 20), w * 0.26, 0, 0));
-      g.add(instOf(new T.CylinderGeometry(R * 0.11, R * 0.11, w * 0.12, 8),
-        K.mat(-0.6, { rough: 0.9, metal: 0.1 }),
-        [[w * 0.26, R * 0.66, R * 0.66, 0, 0, Math.PI / 2], [w * 0.26, R * 0.66, -R * 0.66, 0, 0, Math.PI / 2],
-          [w * 0.26, -R * 0.66, R * 0.66, 0, 0, Math.PI / 2], [w * 0.26, -R * 0.66, -R * 0.66, 0, 0, Math.PI / 2]]));
-      g.add(put(cylX(R * 0.2, w * 0.3, K.mat(0.3, { rough: 0.22, metal: 0.95 }), 14), w * 0.42, 0, 0));
-      g.add(put(box(w * 0.1, R * 0.4, R * 0.4, K.mat(-0.46, { rough: 0.7, metal: 0.2 })), -w * 0.1, R * 1.04, 0));
+      g.add(mcMerge(body, m));
+      // 四個穿孔（深色）＋ 兩顆接頭本體（大的動力線、小的編碼器線）
+      const dk = [];
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sy, sz]) => dk.push(mcAt(mcCylX(R * 0.12, w * 0.075, 8), fx, sy * R * 0.78, sz * R * 0.78)));
+      dk.push(mcAt(new T.CylinderGeometry(R * 0.26, R * 0.26, R * 0.36, 14), cx - L * 0.28, R * 1.08, 0));
+      dk.push(mcAt(new T.CylinderGeometry(R * 0.18, R * 0.18, R * 0.3, 12), cx - L * 0.05, R * 1.06, 0));
+      dk.push(mcAt(new T.BoxGeometry(R * 0.6, R * 0.12, R * 0.6), cx - L * 0.28, R * 0.93, 0));
+      dk.push(mcAt(new T.BoxGeometry(R * 0.44, R * 0.12, R * 0.44), cx - L * 0.05, R * 0.93, 0));
+      g.add(mcMerge(dk, dark));
+      // 止口、軸、鍵、接頭的鎖緊螺帽（亮金屬）
+      g.add(mcMerge([mcAt(mcCylX(R * 0.7, w * 0.03, 24), fx + w * 0.05, 0, 0),
+        mcAt(mcCylX(R * 0.2, w * 0.3, 16), fx + w * 0.2, 0, 0),
+        mcAt(new T.BoxGeometry(w * 0.16, R * 0.08, R * 0.1), fx + w * 0.24, R * 0.2, 0),
+        mcAt(new T.CylinderGeometry(R * 0.3, R * 0.3, R * 0.12, 12), cx - L * 0.28, R * 1.28, 0),
+        mcAt(new T.CylinderGeometry(R * 0.22, R * 0.22, R * 0.1, 12), cx - L * 0.05, R * 1.24, 0)], st));
       return g;
     }
 
     /* 編碼器：★ 裡面那片刻了一圈等距刻線的碼盤就是它的全部意義 ——
        「會轉」跟「知道自己轉到哪」是兩件事，而差別只有這片盤。
-       外罩切掉朝鏡頭那一半才看得到它。裝在馬達的**尾端**（遠離螺桿那一側）。*/
+       2026-09-26 細緻化：外罩改成**圓罩**半剖（伺服馬達尾端那一顆是圓的）；碼盤跟馬達軸**同心**（以前偏到後面去了）；
+       外圈 72 條等距刻線 ＋ 內圈一條原點刻線；讀取頭是一個**ㄈ字形的叉**跨在碼盤邊緣上（一邊發光、一邊收光），
+       插在後面那片電路板上；罩子頂上一顆出線接頭。
+       依據：伺服馬達的位置偵測器裝在馬達的後軸側（Oriental Motor 技術頁）。*/
     function mcEnc(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(h, d) / 2;
-      g.add(mboxes(halfSlab(w * 0.9, R * 1.8, R * 1.8), K.mat(-0.2, { rough: 0.64, metal: 0.2 })));
-      g.add(halfFace(K, w * 0.9, R * 1.8, R * 1.8, 0, -0.2));
-      g.add(put(cylX(R * 0.78, w * 0.06, K.mat(0.42, { rough: 0.2, metal: 0.5 }), 22), 0, 0, -R * 0.45));
+      const shell = K.mat(-0.2, { rough: 0.6, metal: 0.25 });
+      g.add(mcMerge([mcHalfX(R * 0.98, R * 0.88, w * 0.9), mcHalfX(R * 0.98, 0, w * 0.06).translate(-w * 0.45, 0, 0)], shell));
+      // 碼盤（同心）＋ 輪轂
+      g.add(mcMerge([mcCylX(R * 0.74, w * 0.035, 32), mcAt(mcCylX(R * 0.2, w * 0.2, 14), 0, 0, 0)],
+        K.mat(0.42, { rough: 0.2, metal: 0.6 })));
       const slots = [];
-      for (let i = 0; i < 20; i++) {
-        const a = i / 20 * Math.PI * 2;
-        slots.push([0, Math.sin(a) * R * 0.6, -R * 0.45 + Math.cos(a) * R * 0.6, a, 0, 0]);
-      }
-      g.add(instOf(new T.BoxGeometry(w * 0.09, R * 0.24, R * 0.09),
-        K.mat(-0.76, { rough: 0.95, metal: 0.02 }), slots));
-      // 讀取頭：隔著碼盤讀那些刻線的那一小塊板子
-      g.add(put(box(w * 0.22, R * 0.3, R * 0.26,
-        K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 })), -w * 0.24, R * 0.66, -R * 0.45));
+      for (let i = 0; i < 72; i++) { const a = i / 72 * Math.PI * 2; slots.push([0, Math.sin(a) * R * 0.64, Math.cos(a) * R * 0.64, a, 0, 0]); }
+      g.add(instOf(new T.BoxGeometry(w * 0.045, R * 0.14, R * 0.018), K.mat(-0.8, { rough: 0.95, metal: 0.02 }), slots));
+      // 原點刻線（內圈只有一條）＋ 讀取頭的叉（跨在碼盤頂端邊緣）＋ 接頭：同一個深色材質
+      const dk = [mcAt(new T.BoxGeometry(w * 0.045, R * 0.1, R * 0.05), 0, R * 0.42, 0),
+        mcAt(new T.BoxGeometry(w * 0.07, R * 0.3, R * 0.22), -w * 0.06, R * 0.64, 0),
+        mcAt(new T.BoxGeometry(w * 0.07, R * 0.3, R * 0.22), w * 0.06, R * 0.64, 0),
+        mcAt(new T.BoxGeometry(w * 0.19, R * 0.1, R * 0.22), 0, R * 0.8, 0),
+        mcAt(new T.CylinderGeometry(R * 0.2, R * 0.2, R * 0.3, 12), -w * 0.1, R * 1.1, 0)];
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.8, metal: 0.12 })));
+      // 電路板（讀取頭插在上面）
+      const pcb = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 });
+      g.add(mcMerge([mcAt(new T.BoxGeometry(w * 0.05, R * 1.5, R * 1.3), -w * 0.26, R * 0.05, -R * 0.1),
+        mcAt(new T.BoxGeometry(w * 0.05, R * 0.12, R * 0.22), -w * 0.18, R * 0.72, 0)], pcb));
       return g;
     }
 
-    /* 聯軸器：★ 中段那條螺旋切槽是它的識別特徵 ——
-       沒有它就是一根硬軸，吃不了兩根軸之間必然存在的偏心與角度誤差，
-       也沒有一個可更換的犧牲件。兩端各一顆夾緊螺絲。*/
+    /* 聯軸器（撓性・一體式樑型）：★ 中段那條螺旋切槽是它的識別特徵 ——
+       沒有它就是一根硬軸，吃不了兩根軸之間必然存在的偏心與角度誤差，也沒有一個可更換的犧牲件。
+       2026-09-26 細緻化：切槽從 22 塊小方塊改成**真的一條螺旋槽**（深到看得見裡面的暗色內孔）；
+       兩端的輪轂改成**夾緊式**：軸向一道開縫 ＋ 一根切向的內六角螺絲把開縫夾緊（伺服用聯軸器偏好夾緊式，不傷軸）。
+       依據：Ruland／Machine Design 的伺服聯軸器分類（beam：一體成形、螺旋切槽；clamp style 優於 set screw）。*/
     function mcCoup(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
+      const R = Math.min(h, d) / 2, Ro = R * 0.95;
       const m = K.mat(0.06, { rough: 0.3, metal: 0.9 });
-      g.add(put(cylX(R, w * 0.3, m, 18), -w * 0.34, 0, 0));
-      g.add(put(cylX(R, w * 0.3, m, 18), w * 0.34, 0, 0));
-      g.add(put(cylX(R * 0.94, w * 0.4, K.mat(-0.1, { rough: 0.34, metal: 0.88 }), 18), 0, 0, 0));
-      const cuts = [], n = 22;
-      for (let i = 0; i < n; i++) {
-        const t = i / n, a = t * Math.PI * 5;
-        cuts.push([(-0.5 + t) * w * 0.38, Math.sin(a) * R * 0.86, Math.cos(a) * R * 0.86, a, 0, 0]);
-      }
-      g.add(instOf(new T.BoxGeometry(w * 0.024, R * 0.3, R * 0.24),
-        K.mat(-0.8, { rough: 0.95, metal: 0.04 }), cuts));
-      g.add(instOf(new T.CylinderGeometry(R * 0.16, R * 0.16, R * 0.5, 8),
-        K.mat(-0.4, { rough: 0.5, metal: 0.82 }), [[-w * 0.34, R * 0.8, 0], [w * 0.34, R * 0.8, 0]]));
+      const hub = w * 0.29, mid = w * 0.96 - 2 * hub;
+      const lead = mid / 2.6;
+      const prof = [[0, 0], [0.4, 0], [0.42, -R * 0.5], [0.58, -R * 0.5], [0.6, 0]];
+      g.add(mcMerge([mcHelix({ r0: Ro, prof, lead, x0: -mid / 2, x1: mid / 2, nt: 24 }),
+        mcAt(mcCylX(Ro, hub, 24), -mid / 2 - hub / 2, 0, 0), mcAt(mcCylX(Ro, hub, 24), mid / 2 + hub / 2, 0, 0)], m));
+      const dark = K.mat(-0.8, { rough: 0.95, metal: 0.04 });
+      // 暗色內孔（螺旋槽底下看得到的那一圈）＋ 兩端的軸孔 ＋ 夾緊開縫
+      const dk = [mcCylX(R * 0.6, mid * 0.98, 16)];
+      [-1, 1].forEach(s => {
+        const hx = s * (mid / 2 + hub / 2);
+        dk.push(mcAt(mcCylX(R * 0.34, 0.02, 14), s * (w * 0.48 + 0.01), 0, 0));
+        dk.push(mcAt(new T.BoxGeometry(hub * 0.98, R * 0.5, R * 0.08), hx, R * 0.74, 0));
+      });
+      g.add(mcMerge(dk, dark));
+      // 切向夾緊螺絲（頭朝 +z，鏡頭這一側）
+      const sc = [];
+      [-1, 1].forEach(s => sc.push(mcAt(mcCylZ(R * 0.2, R * 0.34, 12), s * (mid / 2 + hub / 2), R * 0.55, Ro * 0.86)));
+      g.add(mcMerge(sc, K.mat(-0.3, { rough: 0.4, metal: 0.85 })));
       return g;
     }
 
-    /* 軸承座：座體半剖，裡面看得到內外環與夾在中間的一圈滾珠。
-       ★ 沒有滾珠的「軸承」只是一個襯套（滑動摩擦），撐不住螺桿的軸向力。
-       螺桿兩端各一個：一端固定（吃軸向力）、一端支撐（讓螺桿受熱可以伸長）。*/
+    /* 軸承座（固定端＋支撐端，一次建兩個）：★ 一端固定（吃軸向力）、一端支撐（只導引，讓螺桿受熱可以伸長）。
+       2026-09-26 細緻化：以前兩端是同一支幾何複製兩份，看不出「固定」跟「支撐」差在哪。現在分開畫：
+         固定端（馬達側）：**兩顆斜角滾珠軸承背對背** ＋ 外側一顆**鎖緊螺帽**（有四個扳手槽）把內環壓緊；
+         支撐端：**一顆深溝滾珠軸承** ＋ 外側一圈**扣環** —— 內環不被壓死，螺桿熱脹時可以滑。
+       座體是方塊開一個圓孔、半剖（切掉 z > 0），孔裡的內外環也一起剖開，看得到滾珠夾在中間。
+       依據：THK／MISUMI 的螺桿支撐單元型錄（固定側斜角軸承＋鎖緊螺帽、支撐側深溝軸承＋扣環）。
+       ⚠ 兩個座的中心距由場景的 `pair` 給（以前是 n:2／gap）。*/
     function mcBrg(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      g.add(mboxes(halfSlab(w, h, d), K.mat(-0.16, { rough: 0.46 })));
-      g.add(halfFace(K, w, h, d, 0, -0.16));
-      const st = K.mat(0.26, { rough: 0.2, metal: 0.95 });
-      g.add(put(cylX(R * 0.72, w * 0.62, st, 20), 0, 0, -d * 0.24));
-      g.add(put(cylX(R * 0.34, w * 0.7, K.mat(0.08, { rough: 0.24, metal: 0.95 }), 16), 0, 0, -d * 0.24));
-      const balls = [];
-      for (let i = 0; i < 12; i++) {
-        const a = i / 12 * Math.PI * 2;
-        balls.push([0, Math.sin(a) * R * 0.53, -d * 0.24 + Math.cos(a) * R * 0.53]);
-      }
-      g.add(instOf(new T.SphereGeometry(R * 0.17, 8, 6), st, balls));
+      const R = Math.min(h, d) / 2, gap = p.pair || 0;
+      const jr = bsDims(p.sr || R * 0.65).sLand * 0.78;            // 螺桿軸頸半徑（內環內徑）
+      const bore = R * 0.8, oi = R * 0.66, ii = jr * 1.32, bc = (oi + ii) / 2, br = (oi - ii) * 0.46;
+      const housing = K.mat(-0.16, { rough: 0.46 }), st = K.mat(0.26, { rough: 0.2, metal: 0.95 });
+      const hs = [], rings = [], balls = [], dk = [];
+      [-1, 1].forEach(side => {
+        const cx = side * gap / 2, fixed = side < 0;
+        // 座體：方塊挖圓孔、只留 z < 0；下半多一塊底座
+        const pts = [[0, -h / 2], [-d / 2, -h / 2], [-d / 2, h * 0.36], [0, h * 0.36], [0, bore]];
+        for (let i = 1; i < 12; i++) { const a = Math.PI / 2 + Math.PI * i / 12; pts.push([Math.cos(a) * bore, Math.sin(a) * bore]); }
+        pts.push([0, -bore]);
+        hs.push(mcAt(mcProfX(pts.map(([z, y]) => [-z, y]), w), cx, 0, 0));
+        // 軸承：固定端兩顆（背對背）、支撐端一顆
+        const bw = fixed ? w * 0.38 : w * 0.5, xs = fixed ? [-bw / 2, bw / 2] : [0];
+        xs.forEach(bx => {
+          rings.push(mcAt(mcHalfX(bore, oi, bw * 0.96), cx + bx, 0, 0), mcAt(mcHalfX(ii, jr, bw * 0.96), cx + bx, 0, 0));
+          for (let i = 0; i < 14; i++) { const a = Math.PI / 2 + i / 13 * Math.PI; balls.push([cx + bx, Math.sin(a) * bc, Math.cos(a) * bc]); }
+        });
+        if (fixed) {
+          // 鎖緊螺帽（外側）＋ 四個扳手槽
+          const nx = cx - w / 2 - w * 0.12;
+          rings.push(mcAt(mcHalfX(ii * 1.18, jr, w * 0.22), nx, 0, 0));
+          [0.62, 0.87, 1.13, 1.38].forEach(t => { const a = t * Math.PI; dk.push(mcAt(new T.BoxGeometry(w * 0.23, ii * 0.2, ii * 0.2), nx, Math.sin(a) * ii * 1.12, Math.cos(a) * ii * 1.12)); });
+        } else {
+          // 扣環（外側一圈薄環）
+          rings.push(mcAt(mcHalfX(ii * 0.98, jr, w * 0.05), cx + w / 2 + w * 0.04, 0, 0));
+        }
+        // 底座的兩個鎖付孔（垂直）
+        dk.push(mcAt(new T.CylinderGeometry(R * 0.14, R * 0.14, h * 0.2, 10), cx, -h * 0.4, -d * 0.32));
+      });
+      g.add(mcMerge(hs, housing));
+      g.add(mcMerge(rings, st));
+      g.add(instOf(new T.SphereGeometry(br, 10, 7), K.mat(0.34, { rough: 0.14, metal: 0.96 }), balls));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
       return g;
     }
 
     /* 滾珠螺桿・螺桿軸：★ 溝槽剖面是**圓弧**（哥德弧／單圓弧），不是 V 形三角 ——
        V 形那是鎖緊用的螺絲，走的是滑動摩擦、裡面沒有鋼珠。
-       兩端的軸頸比較細而且有階級（那是要裝軸承的地方）。*/
+       兩端的軸頸比較細而且有階級（那是要裝軸承的地方）。
+       2026-09-26 細緻化：以前是一根光軸外面纏一條細管（看起來像彈簧套在棒子上）。
+       現在是**一整面真的螺旋溝**：溝的軸向剖面是圓弧、溝與溝之間留平的牙頂，導程 ≈ 0.36 倍外徑；
+       溝的相位對齊世界座標，所以螺帽內壁的溝與鋼珠跟它對得上。
+       兩端軸頸各兩階：馬達側最外面那一階有鍵槽（接聯軸器），另一端有扣環槽（接支撐端）。
+       CNC 那張的 X／Z 軸也用這一支（同一批零件，那正是兩張圖的接縫）。*/
     function mcScrew(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
+      const R = Math.min(h, d) / 2, D = bsDims(R);
       const st = K.mat(0.2, { rough: 0.2, metal: 0.95 });
-      g.add(cylX(R * 0.82, w, st, 20));
-      const turns = 9, seg = turns * 12, pts = [];
-      for (let i = 0; i <= seg; i++) {
-        const t = i / seg, a = t * turns * Math.PI * 2;
-        pts.push(new T.Vector3((-0.5 + t) * w * 0.96, Math.sin(a) * R * 0.86, Math.cos(a) * R * 0.86));
-      }
-      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), seg, R * 0.13, 6, false),
-        K.mat(-0.3, { rough: 0.3, metal: 0.9 })));
-      g.add(put(cylX(R * 0.5, w * 0.1, st, 14), -w * 0.53, 0, 0));
-      g.add(put(cylX(R * 0.5, w * 0.1, st, 14), w * 0.53, 0, 0));
+      const x0 = -w * 0.4, x1 = w * 0.4, j1 = D.sLand * 0.78, j2 = D.sLand * 0.6;
+      /* 細的螺桿（CNC 那張的 X／Z 軸，畫面上只有幾十像素寬）每圈少取樣：C6-6 棘輪要每張場景 ≤ ai_server 的 1.15 倍三角形 */
+      const fine = R > 5;
+      const geos = [mcHelix({ r0: D.Rp, prof: bsProf(D, -1, fine ? 8 : 5), lead: D.lead, x0, x1, ph: bsPh(p, D), nt: fine ? 28 : 11 }),
+        mcAt(new T.CircleGeometry(D.sLand, 24), x0, 0, 0, 0, -Math.PI / 2), mcAt(new T.CircleGeometry(D.sLand, 24), x1, 0, 0, 0, Math.PI / 2),
+        mcAt(mcCylX(j1, w * 0.143, 18), -w * 0.4715, 0, 0), mcAt(mcCylX(j2, w * 0.067, 16), -w * 0.5765, 0, 0),
+        mcAt(mcCylX(j1, w * 0.125, 18), w * 0.4625, 0, 0), mcAt(mcCylX(j2, w * 0.035, 16), w * 0.5425, 0, 0)];
+      g.add(mcMerge(geos, st));
+      // 鍵槽與扣環槽（深色）
+      g.add(mcMerge([mcAt(new T.BoxGeometry(w * 0.045, j2 * 0.3, j2 * 0.5), -w * 0.58, j2 * 0.86, 0),
+        mcAt(mcCylX(j1 * 0.92, w * 0.008, 16), w * 0.518, 0, 0)], K.mat(-0.6, { rough: 0.6, metal: 0.6 })));
       return g;
     }
 
     /* 滾珠螺桿・螺帽：★ 用半管切開（不是切方塊）——
        壁厚看得見，才看得出「鋼珠與回流通道真的在這個套筒的**裡面**」。
-       外側的法蘭是它鎖到工作台上的那一片：沒有法蘭就看不出它是推東西的那一端。*/
+       外側的法蘭是它鎖到工作台上的那一片：沒有法蘭就看不出它是推東西的那一端。
+       2026-09-26 細緻化：內壁從光滑改成**跟螺桿對得上的螺旋圓弧溝**（切面上看得到一排半圓缺口）；
+       法蘭上加鎖付孔；兩端各一片刮刷器（擋切屑進螺帽的黑色環）。
+       ⚠ 螺帽內溝的尺寸要跟螺桿一致，所以吃場景給的 `sr`（螺桿半徑），不是自己的外徑。*/
     function mcNut(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      g.add(halfTubeX(R, R * 0.62, w * 0.8, K.mat(-0.08, { rough: 0.42 })));
-      const fl = halfTubeX(R * 1.46, R * 0.62, w * 0.16, K.mat(-0.2, { rough: 0.46 }));
-      fl.position.x = -w * 0.44;
-      g.add(fl);
-      // 內壁的圓弧溝：跟螺桿上那一條對得起來，鋼珠才夾得住（兩點接觸）
-      g.add(halfTubeX(R * 0.72, R * 0.6, w * 0.8, K.mat(-0.5, { rough: 0.55, metal: 0.65 })));
+      const R = Math.min(h, d) / 2, D = bsDims(p.sr || R * 0.765), ph = bsPh(p, D);
+      const len = w * 0.8, body = K.mat(-0.08, { rough: 0.42 });
+      const hel = { r0: D.Rp, prof: bsProf(D, 1, 6), lead: D.lead, x0: -len / 2, x1: len / 2, ph };
+      const geos = [mcHelix(Object.assign({ t0: Math.PI / 2, t1: Math.PI * 1.5, nt: 16, inward: true }, hel)),
+        mcSkinX(R, len, 24),
+        mcCutStrip(mcHelixLine(hel, Math.PI / 2), R, 1), mcCutStrip(mcHelixLine(hel, Math.PI * 1.5), R, -1),
+        mcHalfRing(D.nLand, R, len / 2, 1, 18), mcHalfRing(D.nLand, R, -len / 2, -1, 18)];
+      g.add(mcMerge(geos, body));
+      // 法蘭（−x 端）＋ 三個鎖付孔
+      const fl = K.mat(-0.2, { rough: 0.46 });
+      g.add(mcMerge([mcAt(mcHalfX(R * 1.46, R * 0.999, w * 0.16), -w * 0.44, 0, 0)], fl));
+      const dk = [];
+      [2 / 3, 1, 4 / 3].forEach(t => { const a = t * Math.PI; dk.push(mcAt(mcCylX(R * 0.1, w * 0.17, 8), -w * 0.44, Math.sin(a) * R * 1.23, Math.cos(a) * R * 1.23)); });
+      // 刮刷器（兩端）
+      [-1, 1].forEach(s => dk.push(mcAt(mcHalfX(R * 0.9, D.sLand * 1.01, w * 0.04), s * (len / 2 + w * 0.02) + (s < 0 ? -w * 0.12 : 0), 0, 0)));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.08 })));
       return g;
     }
 
     /* 鋼珠：★ 每一顆都同時碰到螺桿溝與螺帽溝 —— 浮在中間就不傳力。
-       只畫剖面看得到的那半圈（z < 0），另外幾顆畫在回流通道裡 ——
-       因為鋼珠是一個**閉合的迴圈**，不是一條有頭有尾的鏈。*/
+       2026-09-26 細緻化：以前是隨便排的 12 顆 ＋ 回流道裡 6 顆，位置跟溝對不上。
+       現在鋼珠中心**落在節圓上、順著溝走**（跟螺桿與螺帽用同一組尺寸與相位），
+       走完兩圈就進回流管、在管子裡排成一列繞回起點 —— 數得出來是一個**閉合的迴圈**。
+       螺旋那一段會跟著螺桿轉（動態模式），管子裡那一段不跟著轉（管子鎖在螺帽上）。*/
     function mcBalls(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      const at = [], n = 30;
-      for (let i = 0; i < n; i++) {
-        const t = i / (n - 1), a = -Math.PI / 2 + t * Math.PI * 4.5;
-        const z = Math.cos(a) * R * 0.66;
-        if (z > 0) continue;
-        at.push([(-0.34 + t * 0.68) * w * 0.8, Math.sin(a) * R * 0.66, z]);
+      const R = Math.min(h, d) / 2, D = bsDims(p.sr || R * 0.765), ph = bsPh(p, D);
+      const ret = bsReturn(D, ph, R);
+      const TAU = Math.PI * 2, geo = new T.SphereGeometry(D.rb * 0.98, 10, 7);
+      const mat = K.mat(0.34, { rough: 0.14, metal: 0.96 });
+      const perRad = Math.hypot(D.Rp, D.lead / TAU), step = D.rb * 2.06 / perRad;
+      const hel = [], tube = [];
+      for (let th = step * 0.5; th < ret.turns * TAU - step * 0.25; th += step) {
+        const a = Math.PI / 2 + th;
+        hel.push([ret.xa + th / TAU * D.lead, Math.sin(a) * D.Rp, Math.cos(a) * D.Rp]);
       }
-      for (let i = 0; i < 6; i++) at.push([(-0.3 + i * 0.12) * w * 0.8, R * 0.92, -R * 0.3]);
-      g.add(instOf(new T.SphereGeometry(R * 0.11, 8, 6),
-        K.mat(0.34, { rough: 0.14, metal: 0.96 }), at));
+      const Lc = ret.curve.getLength(), n = Math.floor(Lc / (D.rb * 2.06));
+      for (let i = 1; i < n; i++) { const v = ret.curve.getPointAt(i / n); tube.push([v.x, v.y, v.z]); }
+      const hm = instOf(geo, mat, hel);
+      hm.userData.spin = { axis: 'x', speed: 0.34, base: 0.34, sync: 'feed' };
+      g.add(hm);
+      g.add(instOf(geo, mat, tube));
       return g;
     }
 
-    /* 循環器（鋼珠回流通道）：★ 這張圖的紅線零件 ——
-       鋼珠沿溝槽滾到螺帽的一端之後，從這條 U 形通道繞回另一端重新進入溝槽。
-       沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿。*/
+    /* 循環器（外循環・回流管）：★ 這張圖的紅線零件 ——
+       鋼珠沿溝槽滾到一端之後，從這條管子繞回另一端重新進入溝槽。
+       沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿。
+       2026-09-26 細緻化：管子**沿切面剖開**（z = 0 那一面剛好切過管子的中心線），
+       看得到管壁厚度與裡面一顆一顆的鋼珠；兩張嘴落在溝上、相隔兩圈；
+       頂上一片壓板 ＋ 兩顆螺絲把管子鎖在螺帽上（外循環「管子露在螺帽外面」的識別特徵）。
+       依據：外循環／內循環／端蓋循環三種（全球傳動、Thomson、MISUMI 技術頁）；外循環是最一般的方式。*/
     function mcReturn(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      const pts = [[-w * 0.34, R * 0.5, -R * 0.4], [-w * 0.38, R * 0.92, -R * 0.3],
-        [0, R * 1.02, -R * 0.3], [w * 0.38, R * 0.92, -R * 0.3], [w * 0.34, R * 0.5, -R * 0.4]];
-      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(a => new T.Vector3(a[0], a[1], a[2]))),
-        26, R * 0.17, 7, false),
-        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.6, metal: 0.12 })));
-      // 兩張嘴：通道跟溝槽接起來的進出口
-      g.add(instOf(new T.CylinderGeometry(R * 0.2, R * 0.2, R * 0.22, 10),
-        K.mat(-0.3, { rough: 0.55, metal: 0.3 }),
-        [[-w * 0.34, R * 0.46, -R * 0.4], [w * 0.34, R * 0.46, -R * 0.4]]));
+      const R = Math.min(h, d) / 2, D = bsDims(p.sr || R * 0.765), ph = bsPh(p, D);
+      const ret = bsReturn(D, ph, R);
+      g.add(new T.Mesh(mcSweepHalf(ret.curve, ret.rt, D.rb * 1.06, 40, 0),
+        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.5, metal: 0.4 })));
+      // 壓板（只畫 z < 0 那一半，跟管子同一個切面）＋ 兩顆螺絲
+      const py = ret.top + ret.rt * 1.16, pw = (ret.xb - ret.xa) * 0.5;
+      g.add(mcMerge([mcAt(new T.BoxGeometry(pw, ret.rt * 0.34, ret.rt * 2.6), (ret.xa + ret.xb) / 2, py, -ret.rt * 1.3),
+        mcAt(new T.CylinderGeometry(ret.rt * 0.34, ret.rt * 0.34, ret.rt * 0.3, 10), (ret.xa + ret.xb) / 2 - pw * 0.34, py + ret.rt * 0.3, -ret.rt * 1.7),
+        mcAt(new T.CylinderGeometry(ret.rt * 0.34, ret.rt * 0.34, ret.rt * 0.3, 10), (ret.xa + ret.xb) / 2 + pw * 0.34, py + ret.rt * 0.3, -ret.rt * 1.7)],
+      K.mat(-0.3, { rough: 0.5, metal: 0.8 })));
       return g;
     }
 
-    /* 線性滑軌・軌道：下寬上窄的一條，**兩側各有一道圓弧溝**（滾珠就滾在那兩道溝裡）。
-       ★ 一定是兩條平行軌、而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，
-       工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的，不是放上去的。*/
+    /* 線性滑軌・軌道：★ 一定是兩條平行軌、而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，
+       工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的，不是放上去的。
+       2026-09-26 細緻化：以前是上窄下寬兩塊方塊 ＋ 兩根細圓棒當溝。現在是**真的軌道斷面**沿長度擠出：
+       四道圓弧溝（上面兩道在頂角、斜 45°，側面各一道）—— 四列鋼珠、四個方向等負荷就是從這四道溝來的；
+       頂面是一排**沉頭孔**，孔裡看得到內六角螺絲的頭。
+       依據：上銀 HG 系列技術手冊（四列圓弧溝、45° 接觸）、全球傳動線軌構造說明。*/
     function mcRail(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(mboxes([[w, h * 0.42, d, 0, -h * 0.29, 0], [w, h * 0.6, d * 0.7, 0, h * 0.2, 0]],
-        K.mat(0.08, { rough: 0.26, metal: 0.92 })));
-      g.add(instOf(new T.CylinderGeometry(h * 0.12, h * 0.12, w, 8),
-        K.mat(-0.36, { rough: 0.4, metal: 0.8 }),
-        [[0, h * 0.2, -d * 0.35, 0, 0, Math.PI / 2], [0, h * 0.2, d * 0.35, 0, 0, Math.PI / 2]]));
-      const n = 5, holes = [];
-      for (let i = 0; i < n; i++) holes.push([(-(n - 1) / 2 + i) * (w / n), h * 0.46, 0]);
-      g.add(instOf(new T.CylinderGeometry(d * 0.12, d * 0.12, h * 0.34, 10),
-        K.mat(-0.72, { rough: 0.9, metal: 0.1 }), holes));
+      const X = d / 2, Y = h / 2, rr = h * 0.12, rs = h * 0.1, ys = -h * 0.02, nk = h * 0.06;
+      const Xt = X - nk * 0.3;                   // 頂面比底面略窄一點（軌道斷面上窄下寬）
+      const pts = [[-X * 0.96, -Y], [X * 0.96, -Y], [X, -Y + h * 0.04], [X, ys - rs]];
+      // 右側：側面那一道圓弧溝（往內凹的半圓）
+      for (let i = 1; i < 6; i++) { const a = -Math.PI / 2 + Math.PI * i / 6; pts.push([X - Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([X, ys + rs]);
+      // 右上頂角：45° 的圓弧溝（以頂角為圓心的四分之一圓，往內凹）
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 - Math.PI / 2 * i / 5; pts.push([Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      // 左上頂角
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 * i / 5; pts.push([-Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      // 左側：側面那一道圓弧溝
+      pts.push([-X, ys + rs]);
+      for (let i = 1; i < 6; i++) { const a = Math.PI / 2 - Math.PI * i / 6; pts.push([-X + Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([-X, ys - rs], [-X, -Y + h * 0.04]);
+      g.add(new T.Mesh(mcProfX(pts, w), K.mat(0.08, { rough: 0.26, metal: 0.92 })));
+      // 沉頭孔 ＋ 螺絲頭：孔距約 2.3 倍軌寬
+      const n = Math.max(3, Math.round(w / (d * 2.3))), at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), Y + 0.004, 0]);
+      const hole = mergeGeos([new T.CylinderGeometry(d * 0.2, d * 0.2, 0.02, 14), mcAt(new T.CylinderGeometry(d * 0.07, d * 0.07, 0.04, 6), 0, -h * 0.05, 0)]);
+      g.add(instOf(hole, K.mat(-0.72, { rough: 0.9, metal: 0.1 }), at));
+      g.add(instOf(new T.CylinderGeometry(d * 0.155, d * 0.155, h * 0.04, 14).translate(0, -h * 0.06, 0), K.mat(-0.2, { rough: 0.4, metal: 0.8 }), at));
       return g;
     }
 
     /* 線性滑軌・滑塊：★ ㄇ 字形，從上方罩下來包住軌道的**兩側**。
        畫成「一個方塊放在軌道上面」是錯的 —— 那樣的東西吃不了側向力也吃不了拉拔力，
-       而滑軌存在的理由就是吃這兩種力。兩端的端蓋是滑塊內部滾珠循環的轉彎處。*/
+       而滑軌存在的理由就是吃這兩種力。
+       2026-09-26 細緻化：本體改成真的 ㄇ 字斷面擠出（內側有對著軌道的溝）；
+       兩端各一片**塑膠端蓋**（鋼珠在這裡轉彎、循環回去）＋ 一片黑色**刮油片**；
+       一端裝**注油嘴**；頂面四個攻牙孔（工作台鎖在這裡）；
+       四列鋼珠夾在滑塊與軌道的四道溝之間（上兩列在頂角、側面各一列）。
+       依據：上銀／全球傳動線軌構造（滑塊、端蓋、保持器、注油嘴、刮油片）。
+       ⚠ 鋼珠列的位置照本場景的軌道尺寸算（軌道頂面在滑塊局部 y ≈ +0.09h、半寬 ≈ 0.31d）。*/
     function mcBlock(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(mboxes([[w, h * 0.42, d, 0, h * 0.29, 0],
-        [w, h * 0.6, d * 0.22, 0, -h * 0.2, -d * 0.39], [w, h * 0.6, d * 0.22, 0, -h * 0.2, d * 0.39]],
-        K.mat(-0.12, { rough: 0.44 })));
-      const at = [], n = 7;
-      for (let i = 0; i < n; i++) {
-        const x = (-(n - 1) / 2 + i) * (w / n);
-        at.push([x, -h * 0.02, -d * 0.3]); at.push([x, -h * 0.02, d * 0.3]);
-      }
-      g.add(instOf(new T.SphereGeometry(h * 0.1, 8, 6), K.mat(0.3, { rough: 0.15, metal: 0.95 }), at));
-      g.add(mboxes([[w * 0.08, h * 0.9, d * 0.96, -w * 0.46, 0, 0], [w * 0.08, h * 0.9, d * 0.96, w * 0.46, 0, 0]],
-        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      const X = d / 2, Y = h / 2, ci = d * 0.33, cy = h * 0.12, L = w * 0.72;
+      const prof = [[-X, -Y], [-ci, -Y], [-ci, cy], [ci, cy], [ci, -Y], [X, -Y], [X, Y], [-X, Y]];
+      g.add(new T.Mesh(mcProfX(prof, L), K.mat(-0.12, { rough: 0.44 })));
+      // 端蓋（塑膠）：同一個斷面、稍短
+      const cap = mergeGeos([mcAt(mcProfX(prof.map(([z, y]) => [z * 0.97, y * 0.97]), w * 0.08), -L / 2 - w * 0.04, 0, 0),
+        mcAt(mcProfX(prof.map(([z, y]) => [z * 0.97, y * 0.97]), w * 0.08), L / 2 + w * 0.04, 0, 0)]);
+      g.add(new T.Mesh(cap, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      // 刮油片（黑色）＋ 頂面四個攻牙孔
+      const dk = [mcAt(mcProfX(prof, w * 0.025), -L / 2 - w * 0.093, 0, 0), mcAt(mcProfX(prof, w * 0.025), L / 2 + w * 0.093, 0, 0)];
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => dk.push(mcAt(new T.CylinderGeometry(d * 0.06, d * 0.06, 0.03, 10), sx * L * 0.3, Y + 0.01, sz * d * 0.34)));
+      g.add(mcMerge(dk, K.mat(-0.75, { rough: 0.9, metal: 0.05 })));
+      // 注油嘴（+x 端）：六角座 ＋ 圓頭
+      g.add(mcMerge([mcAt(new T.CylinderGeometry(h * 0.1, h * 0.1, w * 0.05, 6), L / 2 + w * 0.13, h * 0.3, 0, 0, 0, Math.PI / 2),
+        mcAt(new T.SphereGeometry(h * 0.07, 8, 6), L / 2 + w * 0.17, h * 0.3, 0)], K.mat(0.2, { rough: 0.3, metal: 0.9 })));
+      // 四列鋼珠
+      const rb = h * 0.065, at = [], nb = Math.floor(L / (rb * 2.1));
+      [[h * 0.09, d * 0.305], [-h * 0.24, d * 0.315]].forEach(([y, z]) => [-1, 1].forEach(s => {
+        for (let i = 0; i < nb; i++) at.push([(-(nb - 1) / 2 + i) * rb * 2.1, y, s * z]);
+      }));
+      g.add(instOf(new T.SphereGeometry(rb, 8, 6), K.mat(0.3, { rough: 0.15, metal: 0.95 }), at));
       return g;
     }
 
     /* 工作台（滑座）：★ 同時鎖在螺帽與滑塊上 —— 螺帽推它走、滑塊撐住它不歪，
-       兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方。*/
+       兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方。
+       2026-09-26 細緻化：T 型槽從「三條深色長條貼在頂面」改成**真的 T 字斷面**沿 x 擠出（窄口、寬底）；
+       底下四塊墊（鎖在兩個滑塊上）＋ 一座螺帽座（鎖螺帽法蘭），頂面四角各一個沉頭孔。*/
     function mcTable(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h * 0.45, d, K.mat(0.1, { rough: 0.5 })));
-      g.add(mboxes([[w * 0.36, h * 0.55, d * 0.2, 0, -h * 0.5, -d * 0.36],
-        [w * 0.36, h * 0.55, d * 0.2, 0, -h * 0.5, d * 0.36],
-        [w * 0.22, h * 0.55, d * 0.3, -w * 0.3, -h * 0.5, 0]], K.mat(-0.1, { rough: 0.55 })));
-      const sl = [], n = 3;
-      for (let i = 0; i < n; i++) sl.push([w * 0.94, h * 0.2, d * 0.07, 0, h * 0.18, (-(n - 1) / 2 + i) * d * 0.3]);
-      g.add(mboxes(sl, K.mat(-0.5, { rough: 0.8 })));
+      const t = h * 0.5, X = d / 2, a = d * 0.045, b = d * 0.1, s1 = t * 0.3, s2 = t * 0.78;
+      const pts = [[-X, -t / 2], [X, -t / 2], [X, t / 2]];
+      [0.3, 0, -0.3].forEach(k => { const cx = k * d;
+        pts.push([cx + a / 2, t / 2], [cx + a / 2, t / 2 - s1], [cx + b / 2, t / 2 - s1], [cx + b / 2, t / 2 - s2],
+          [cx - b / 2, t / 2 - s2], [cx - b / 2, t / 2 - s1], [cx - a / 2, t / 2 - s1], [cx - a / 2, t / 2]); });
+      pts.push([-X, t / 2]);
+      g.add(put(new T.Mesh(mcProfX(pts, w), K.mat(0.1, { rough: 0.5 })), 0, h * 0.2, 0));
+      const pads = [];
+      [-1, 1].forEach(sz => [-1, 1].forEach(sx => pads.push([w * 0.2, h * 0.3, d * 0.22, w * 0.12 + sx * w * 0.14, -h * 0.2, sz * d * 0.34])));
+      pads.push([w * 0.34, h * 0.5, d * 0.3, -w * 0.115, -h * 0.3, 0]);
+      g.add(mboxes(pads, K.mat(-0.1, { rough: 0.55 })));
+      const hl = [];
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => hl.push(mcAt(new T.CylinderGeometry(d * 0.035, d * 0.035, 0.03, 10), sx * w * 0.42, h * 0.2 + t / 2 + 0.01, sz * d * 0.43)));
+      g.add(mcMerge(hl, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
       return g;
     }
 
@@ -7064,226 +7996,510 @@
 
     /* ================================================================ CNC 工具機（2026-09-23，族群 `machine_tool`）
        2D 是 `site/dg/machine_tool.js`，`part` 沿用它的 `data-part`（mt_*）。
-       ★ 這一組是**多出來的詞**，上面既有的 builder 一支都沒有動。
-       ★ 三根進給軸的零件（滾珠螺桿、線性滑軌、伺服馬達、軸承）**直接沿用
-         `mcscrew`／`mcrail`／`mcmotor`／`mcbrg`** —— 那不是偷懶，是因為
+       ★ 三根進給軸的零件（滾珠螺桿、線性滑軌、伺服馬達）**直接沿用** mcScrew／mcRail／mcMotor ——
          加工機的三根軸用的就是同一批零件（那正是這兩張圖的接縫）。
-         重畫一份只會變成兩份要一起改的幾何。
        ⚠ 一張圖一個主色（#244）：整台機器走鑄鐵／鋼的銀灰，層與層之間靠 K.mat 的 k（明暗）分；
-         只有控制器櫃走 emc（深色模封灰）、工件走 alu —— 那兩件本來就不是鑄件。*/
+         只有控制器櫃走 emc（深色模封灰）、工件走 alu —— 那兩件本來就不是鑄件。
 
-    /* 床身：上面是平的（軌道與鞍座鎖在上面），下面有縱橫肋（鑄件的識別特徵），
-       左前角開一個排屑的斜槽。★ 畫成一塊實心方塊就看不出它是鑄件。*/
+       ★ 2026-09-26 第二批細緻化（D 組）：Andy「更貼近當前產品，而非看起來就是個長方塊」。
+         依據與來源寫在 docs/diagram_specs/machine_tool.md 的 §3D-細節。這一輪做了兩件事：
+         ① **收攏狀態下的組裝關係改對**：以前立柱的軌道埋在立柱裡面、主軸頭插進立柱、鞍座直接坐在床身上沒有滑軌。
+            現在由下往上是：床身 → Y 向滑軌 → 鞍座（底下四顆滑塊）→ X 向滑軌 → 工作台（底下四顆滑塊）→ 工件；
+            立柱正面兩條 Z 向滑軌 → 主軸頭背面四顆滑塊。每一層都「坐在上一層的滑軌上」。
+         ② 每一件補上真正的識別特徵（見各支的註解）：鑄件的肋與鑄孔、伸縮護罩、三顆進給馬達、
+            BT 刀柄（拉釘／7:24 錐度／V 形夾持槽／驅動鍵槽）、刀庫的倒刀刀套、換刀臂的 C 形爪、
+            主軸鼻端的驅動鍵與錐孔、冷卻液噴管與水箱、控制櫃裡的驅動器與線槽。
+         ★ 滑軌、滑塊這種一台機器上重複很多次的件，一律把同一個零件裡的幾顆**併成一個 draw call**。*/
+
+    /* 滑軌的幾何（標準姿勢：長度沿 x、頂面朝 +y、寬沿 z）。本體擠出 ＋ 沉頭孔 ＋ 螺絲頭，三種材質各一份。*/
+    function mcRailGeos(w, h, d) {
+      const X = d / 2, Y = h / 2, rr = h * 0.12, rs = h * 0.1, ys = -h * 0.02, Xt = X - h * 0.018;
+      const pts = [[-X * 0.96, -Y], [X * 0.96, -Y], [X, -Y + h * 0.04], [X, ys - rs]];
+      for (let i = 1; i < 6; i++) { const a = -Math.PI / 2 + Math.PI * i / 6; pts.push([X - Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([X, ys + rs]);
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 - Math.PI / 2 * i / 5; pts.push([Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 * i / 5; pts.push([-Xt + Math.cos(a) * rr, Y + Math.sin(a) * rr]); }
+      pts.push([-X, ys + rs]);
+      for (let i = 1; i < 6; i++) { const a = Math.PI / 2 - Math.PI * i / 6; pts.push([-X + Math.cos(a) * rs, ys + Math.sin(a) * rs]); }
+      pts.push([-X, ys - rs], [-X, -Y + h * 0.04]);
+      const n = Math.max(3, Math.round(w / (d * 2.3))), holes = [], caps = [];
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w / n);
+        holes.push(mcAt(new T.CylinderGeometry(d * 0.2, d * 0.2, 0.02, 12, 1, true), x, Y + 0.004, 0), mcAt(new T.CircleGeometry(d * 0.2, 12).rotateX(-Math.PI / 2), x, Y + 0.014, 0),
+          mcAt(new T.CylinderGeometry(d * 0.07, d * 0.07, 0.04, 6), x, Y - h * 0.05, 0));
+        caps.push(mcAt(new T.CylinderGeometry(d * 0.155, d * 0.155, h * 0.04, 10), x, Y - h * 0.06, 0));
+      }
+      return { body: mcProfX(pts, w), dark: mergeGeos(holes), cap: mergeGeos(caps) };
+    }
+    // 把標準姿勢的幾何轉到 rot 指定的方向：'x' 不動、'z' 長度改沿 z、'yz' 長度沿 y 且頂面朝 +z（立柱正面那種）
+    function mcOrient(g, rot) {
+      if (rot === 'z') g.rotateY(-Math.PI / 2);
+      else if (rot === 'yz') { g.rotateZ(Math.PI / 2); g.rotateY(Math.PI / 2); }
+      return g;
+    }
+    // 一組滑軌（同一個零件裡的幾條併成一次）：items ＝ 每條的中心 [x, y, z]
+    function mcRailSet(K, items, w, h, d, rot) {
+      const b = [], k = [], c = [], q = mcRailGeos(w, h, d);
+      [q.body, q.dark, q.cap].forEach(geo => mcOrient(geo, rot));
+      items.forEach(([x, y, z]) => { [[q.body, b], [q.dark, k], [q.cap, c]].forEach(([geo, arr]) => arr.push(geo.clone().translate(x, y, z))); });
+      [q.body, q.dark, q.cap].forEach(geo => geo.dispose());
+      const g = new T.Group();
+      g.add(mcMerge(b.concat(c), K.mat(0.08, { rough: 0.26, metal: 0.92 })));   // 螺絲頭跟軌道同材質（它在深色的沉頭孔裡，靠高低差就看得出來）
+      g.add(mcMerge(k, K.mat(-0.72, { rough: 0.9, metal: 0.1 })));
+      return g;
+    }
+    /* 一組滑塊（ㄇ 字斷面 ＋ 兩端塑膠端蓋 ＋ 黑色刮油片）。尺寸 L 長、H 高、W 寬（標準姿勢同滑軌）。
+       CNC 那張的滑塊都被工作台、鞍座、主軸頭蓋住，所以不畫鋼珠（看不到的東西不花三角形）。*/
+    function mcBlockSet(K, items, L, H, W, rot) {
+      const X = W / 2, Y = H / 2, ci = W * 0.33, cy = -H * 0.05;
+      const prof = [[-X, -Y], [-ci, -Y], [-ci, cy], [ci, cy], [ci, -Y], [X, -Y], [X, Y], [-X, Y]];
+      // 斷面擠出只做一次（三角化比複製貴得多），每一顆用 clone 擺位置
+      const B0 = mcOrient(mcProfX(prof, L * 0.74), rot);
+      const C0 = mcOrient(mergeGeos([-1, 1].map(s => mcProfX(prof.map(([pz, py]) => [pz * 0.97, py * 0.97]), L * 0.09).translate(s * L * 0.415, 0, 0))), rot);
+      const S0 = mcOrient(mergeGeos([-1, 1].map(s => mcProfX(prof, L * 0.03).translate(s * L * 0.475, 0, 0))), rot);
+      const b = [], c = [], k = [];
+      items.forEach(([x, y, z]) => { b.push(B0.clone().translate(x, y, z)); c.push(C0.clone().translate(x, y, z)); k.push(S0.clone().translate(x, y, z)); });
+      [B0, C0, S0].forEach(q => q.dispose());
+      const g = new T.Group();
+      g.add(mcMerge(b, K.mat(-0.12, { rough: 0.44 })));
+      g.add(mcMerge(c.concat(k), K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      return g;
+    }
+    // 一顆進給馬達（沿用 mcMotor），軸朝 dir：'-x'／'+x'／'-y'／'-z'
+    function mtFeedMotor(K, len, R, dir, x, y, z) {
+      const m = mcMotor({ box: [len, R * 2, R * 2] }, K);
+      if (dir === '-x') m.rotation.y = Math.PI;
+      else if (dir === '-y') m.rotation.z = -Math.PI / 2;
+      else if (dir === '-z') m.rotation.y = Math.PI / 2;
+      m.position.set(x, y, z);
+      return m;
+    }
+
+    /* 床身：★ 上面是平的（滑軌鎖在上面），下面有縱橫肋 —— 鑄件的識別特徵。
+       2026-09-26 細緻化：頂面兩條 **Y 向滑軌**（鞍座就坐在它上面，以前鞍座直接貼著床身）；
+       鞍座前方一組**伸縮護罩**（三節鋼板一節套一節，擋切屑與切削液進滑軌）；兩側**斜板**把切屑與切削液導到排屑機；
+       正面與側面有**鑄孔**（鑄造時取砂芯留下的窗，看得到裡面的肋）；底下六顆調平腳；正面中間一顆 Y 軸進給馬達。*/
     function mtBed(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const t = h * 0.3;
-      g.add(box(w, t, d, K.mat(0.06, { rough: 0.5 })));                       // 頂面
-      const ribs = [[w, t * 0.8, d * 0.1, 0, -h * 0.4, -d * 0.4],
-        [w, t * 0.8, d * 0.1, 0, -h * 0.4, d * 0.4]];
-      for (let i = 0; i < 5; i++) ribs.push([w * 0.05, t * 0.8, d * 0.86, (-2 + i) * w * 0.2, -h * 0.4, 0]);
+      const cast = K.mat(0.06, { rough: 0.5 });
+      g.add(put(rbox(w, h * 0.3, d, h * 0.06, cast), 0, h * 0.35, 0));
+      const ribs = [[w, h * 0.72, d * 0.05, 0, -h * 0.14, -d * 0.475], [w, h * 0.72, d * 0.05, 0, -h * 0.14, d * 0.475],
+        [w * 0.04, h * 0.72, d, -w * 0.48, -h * 0.14, 0], [w * 0.04, h * 0.72, d, w * 0.48, -h * 0.14, 0]];
+      for (let i = 0; i < 5; i++) ribs.push([w * 0.03, h * 0.66, d * 0.92, (-2 + i) * w * 0.19, -h * 0.17, 0]);
+      for (let i = 0; i < 2; i++) ribs.push([w * 0.94, h * 0.66, d * 0.03, 0, -h * 0.17, (i ? 1 : -1) * d * 0.18]);
       g.add(mboxes(ribs, K.mat(-0.16, { rough: 0.6 })));
-      g.add(put(box(w * 0.2, t * 0.5, d * 0.5, K.mat(-0.42, { rough: 0.72 })), -w * 0.38, -h * 0.1, d * 0.2));
+      // 鑄孔（正面三個、兩側各兩個）＋ 調平腳：同一個深色
+      const dk = [];
+      [-0.3, 0, 0.3].forEach(k => dk.push(mcAt(new T.BoxGeometry(w * 0.16, h * 0.34, 0.1), k * w, -h * 0.16, d * 0.5 + 0.02)));
+      [-1, 1].forEach(s => [-0.22, 0.22].forEach(k => dk.push(mcAt(new T.BoxGeometry(0.1, h * 0.34, d * 0.22), s * (w * 0.5 + 0.02), -h * 0.16, k * d))));
+      [-0.42, 0, 0.42].forEach(kx => [-0.42, 0.42].forEach(kz => dk.push(mcAt(new T.CylinderGeometry(h * 0.1, h * 0.12, h * 0.1, 10), kx * w, -h * 0.55, kz * d))));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
+      // Y 向滑軌（沿 z）：鞍座底下的四顆滑塊就坐在這兩條上
+      const top = h / 2, rz0 = p.yrail || [-d * 0.1, d * 0.38];
+      const rl = rz0[1] - rz0[0], rzc = (rz0[0] + rz0[1]) / 2;
+      g.add(mcRailSet(K, [[-w * 0.217, top + 1.8, rzc], [w * 0.217, top + 1.8, rzc]], rl, 3.6, 6, 'z'));
+      // 伸縮護罩（鞍座前面到床身前緣，三節一節比一節低一點）＋ 兩側導屑斜板：薄鋼板
+      const sheet = K.mat(0.18, { rough: 0.36, metal: 0.72 });
+      const cz0 = rz0[1] - 3, cz1 = d * 0.5, seg = (cz1 - cz0) / 3, cv = [];
+      for (let i = 0; i < 3; i++) {
+        const yT = top + 6.4 - i * 0.5, z = cz0 + seg * (i + 0.5);
+        cv.push([w * 0.6 - i * 1.2, 0.35, seg * 1.08, 0, yT, z], [0.35, yT - top, seg * 1.08, -(w * 0.3 - i * 0.6), top + (yT - top) / 2, z],
+          [0.35, yT - top, seg * 1.08, w * 0.3 - i * 0.6, top + (yT - top) / 2, z]);
+      }
+      const sl = cv.map(([a, b, c, x, y, z]) => chamferGeo(a, b, c).translate(x, y, z));
+      [-1, 1].forEach(s => { const bx = new T.BoxGeometry(w * 0.19, 0.35, d * 0.9); bx.rotateZ(s * 0.22); bx.translate(s * w * 0.4, top + 1.6, 0); sl.push(bx); });
+      g.add(mcMerge(sl, sheet));
+      // Y 軸進給馬達（正面中間、軸朝 −z 伸進床身）
+      g.add(mtFeedMotor(K, 18, 5, '-z', 0, top - 1.5, d * 0.5 + 9));
       return g;
     }
 
-    /* 立柱：站在床身後緣的一根方柱，正面有兩條軌道的貼合面與一排鎖付孔。
-       ★ 它跟床身通常是一體的鑄件，所以這裡的明暗只差一階（不要畫成兩種材質）。*/
+    /* 立柱：站在床身後緣的方柱，★ 跟床身通常是一體的鑄件，所以明暗只差一階。
+       2026-09-26 細緻化：正面兩條**加工過的軌道座面**（亮一階，滑軌鎖在上面）；
+       兩側各三個**鑄孔**（看得到裡面的肋）＋ 底部兩側**三角補強肋**（立柱下寬上窄、抗扭）；
+       頂上一塊馬達座、一顆 **Z 軸進給馬達**軸朝下接 Z 軸螺桿。*/
     function mtCol(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, Math.min(w, d) * 0.08, K.mat(0.02, { rough: 0.5 })));
-      g.add(mboxes([[w * 0.86, h * 0.9, d * 0.08, 0, 0, d * 0.5],
-        [w * 0.2, h * 0.86, d * 0.1, -w * 0.3, 0, -d * 0.5],
-        [w * 0.2, h * 0.86, d * 0.1, w * 0.3, 0, -d * 0.5]], K.mat(-0.2, { rough: 0.58 })));
-      const holes = [];
-      for (let i = 0; i < 6; i++) holes.push([0, (-2.5 + i) * h * 0.15, d * 0.56]);
-      g.add(instOf(new T.CylinderGeometry(w * 0.05, w * 0.05, d * 0.06, 8),
-        K.mat(-0.6, { rough: 0.85, metal: 0.2 }), holes.map(a => [a[0], a[1], a[2], Math.PI / 2, 0, 0])));
+      const cast = K.mat(0.02, { rough: 0.5 });
+      const castG = [rboxGeo(w, h, d, Math.min(w, d) * 0.08), chamferGeo(w * 1.3, h * 0.1, d * 1.02).translate(0, -h * 0.45, 0)];
+      // 三角補強肋（底部兩側）
+      const gus = [];
+      [-1, 1].forEach(s => gus.push(mcAt(new T.ExtrudeGeometry(new T.Shape([new T.Vector2(-d * 0.5, 0), new T.Vector2(d * 0.5, 0), new T.Vector2(d * 0.3, h * 0.26)]),
+        { depth: w * 0.1, bevelEnabled: false }).rotateY(Math.PI / 2), s * (w * 0.5) - (s > 0 ? 0 : w * 0.1), -h * 0.4, 0)));
+      g.add(mcMerge(castG.concat(gus), cast));
+      // 正面軌道座面（亮一階）＋ 頂部馬達座
+      g.add(mboxes([[w * 0.3, h * 0.84, 0.6, -w * 0.34, h * 0.02, d * 0.5 + 0.3], [w * 0.3, h * 0.84, 0.6, w * 0.34, h * 0.02, d * 0.5 + 0.3],
+        [w * 0.5, 1.6, (p.zmot ? p.zmot[1] : d * 0.5 + 5) + 5 + d / 2 + 1, 0, h * 0.5 + 0.8, ((p.zmot ? p.zmot[1] : d * 0.5 + 5) + 5 - d / 2 - 1) / 2]], K.mat(0.2, { rough: 0.32, metal: 0.85 })));
+      // 兩側鑄孔
+      const dk = [];
+      [-1, 1].forEach(s => [-0.28, 0.02, 0.3].forEach(k => dk.push(mcAt(new T.BoxGeometry(0.1, h * 0.16, d * 0.46), s * (w * 0.5 + 0.02), k * h, 0))));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
+      // Z 軸進給馬達：軸朝下，對準 Z 軸螺桿（在立柱正面外 p.zmot 的位置）
+      const zm = p.zmot || [0, d * 0.5 + 5];
+      g.add(mtFeedMotor(K, 18, 5.2, '-y', zm[0], h * 0.5 + 1.6 + 9, zm[1]));
       return g;
     }
 
-    /* 鞍座：夾在床身與工作台之間的那一層 —— 上下**兩組互相垂直的導引面**是它的識別特徵
-       （下面接 Y 向、上面接 X 向）。少掉這一層，三根軸就疊不起來。*/
+    /* 鞍座：夾在床身與工作台之間 —— 上下**兩組互相垂直的導引**是它的識別特徵（下面走 Y、上面走 X）。
+       2026-09-26 細緻化：以前上下各兩條亮色長條。現在底下是**四顆 Y 向滑塊**（包住床身上那兩條滑軌），
+       頂上是**兩條 X 向滑軌**（工作台的滑塊坐在上面），一端掛一顆 **X 軸進給馬達**。*/
     function mtSaddle(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h * 0.7, d, h * 0.12, K.mat(-0.06, { rough: 0.52 })));
-      g.add(mboxes([[w * 0.9, h * 0.3, d * 0.12, 0, h * 0.45, -d * 0.36],
-        [w * 0.9, h * 0.3, d * 0.12, 0, h * 0.45, d * 0.36]], K.mat(0.14, { rough: 0.3, metal: 0.9 })));
-      g.add(mboxes([[w * 0.14, h * 0.3, d * 0.9, -w * 0.34, -h * 0.45, 0],
-        [w * 0.14, h * 0.3, d * 0.9, w * 0.34, -h * 0.45, 0]], K.mat(0.14, { rough: 0.3, metal: 0.9 })));
+      const bodyY = h * 0.05, bh = h * 0.5;
+      g.add(put(rbox(w, bh, d, 1.2, K.mat(-0.06, { rough: 0.52 })), 0, bodyY, 0));
+      g.add(mboxes([[w * 0.8, bh * 0.4, d * 0.2, 0, bodyY - bh * 0.62, 0]], K.mat(-0.2, { rough: 0.6 })));
+      // 底下四顆 Y 向滑塊（沿 z）
+      const by = bodyY - bh / 2 - 2.13;
+      g.add(mcBlockSet(K, [[-w * 0.371, by, -d * 0.28], [-w * 0.371, by, d * 0.28], [w * 0.371, by, -d * 0.28], [w * 0.371, by, d * 0.28]], 12, 5.4, 10, 'z'));
+      // 頂上兩條 X 向滑軌
+      const ty = bodyY + bh / 2 + 1.8;
+      g.add(mcRailSet(K, [[0, ty, -d * 0.344], [0, ty, d * 0.344]], w * 0.94, 3.6, 6, 'x'));
+      // X 軸進給馬達（+x 端，軸朝 −x、跟 X 軸螺桿同心）＋ 馬達座
+      g.add(mboxes([[1.4, bh * 1.2, d * 0.34, w / 2 + 12, bodyY + bh * 0.3, 0]], K.mat(0.1, { rough: 0.4 })));
+      g.add(mtFeedMotor(K, 18, 4.5, '-x', w / 2 + 18, p.xmoty != null ? p.xmoty : ty, 0));
       return g;
     }
 
-    /* 工作台：★ 上面一定有 **T 型槽**（工件與虎鉗靠它鎖上去）——
-       沒有 T 型槽的平板不是工作台。槽是沿 X 開的、彼此平行。*/
+    /* 工作台：★ 上面一定有 **T 型槽**（工件與虎鉗靠它鎖上去）—— 沒有 T 型槽的平板不是工作台。
+       2026-09-26 細緻化：T 型槽改成**真的 T 字斷面**沿 x 擠出（窄口寬底）；
+       底下四顆 **X 向滑塊**（坐在鞍座頂上那兩條滑軌上）＋ 中間一座**螺帽座**（X 軸螺帽鎖在這裡）；
+       兩端各一道**集水溝**（切削液從這裡流走）。*/
     function mtTable(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h * 0.6, d, h * 0.1, K.mat(0.12, { rough: 0.44 })));
-      const n = 3, sl = [];
-      for (let i = 0; i < n; i++) sl.push([w * 0.96, h * 0.3, d * 0.09, 0, h * 0.24, (-(n - 1) / 2 + i) * d * 0.28]);
-      g.add(mboxes(sl, K.mat(-0.5, { rough: 0.82 })));
+      const t = h * 0.57, pyc = h / 2 - t / 2, X = d / 2, a = d * 0.05, b = d * 0.1, s1 = t * 0.28, s2 = t * 0.72;
+      const pts = [[-X, -t / 2], [X, -t / 2], [X, t / 2]];
+      [0.28, 0, -0.28].forEach(k => { const cx = k * d;
+        pts.push([cx + a / 2, t / 2], [cx + a / 2, t / 2 - s1], [cx + b / 2, t / 2 - s1], [cx + b / 2, t / 2 - s2],
+          [cx - b / 2, t / 2 - s2], [cx - b / 2, t / 2 - s1], [cx - a / 2, t / 2 - s1], [cx - a / 2, t / 2]); });
+      pts.push([-X, t / 2]);
+      g.add(put(new T.Mesh(mcProfX(pts, w), K.mat(0.12, { rough: 0.44 })), 0, pyc, 0));
+      // 集水溝（兩端）
+      g.add(mboxes([[1.2, t * 0.5, d, -w / 2 - 0.6, pyc + t * 0.2, 0], [1.2, t * 0.5, d, w / 2 + 0.6, pyc + t * 0.2, 0]], K.mat(-0.3, { rough: 0.6 })));
+      // 底下四顆 X 向滑塊 ＋ 螺帽座（含一顆沿 x 的螺帽）
+      const by = pyc - t / 2 - 2.13;
+      g.add(mcBlockSet(K, [[-w * 0.23, by, -d * 0.275], [w * 0.23, by, -d * 0.275], [-w * 0.23, by, d * 0.275], [w * 0.23, by, d * 0.275]], 12, 5.4, 10, 'x'));
+      g.add(mboxes([[w * 0.14, 3, d * 0.2, 0, pyc - t / 2 - 1.5, 0]], K.mat(-0.1, { rough: 0.55 })));
+      g.add(mcMerge([mcAt(mcCylX(3.9, w * 0.12, 18), 0, pyc - t / 2 - 4, 0), mcAt(mcCylX(5.4, 1.2, 18), -w * 0.066, pyc - t / 2 - 4, 0)],
+        K.mat(-0.02, { rough: 0.4, metal: 0.85 })));
       return g;
     }
 
-    /* 工件：一塊被銑出一個階梯與一個凹穴的方料 —— 看得出「已經被加工過」才叫工件。*/
+    /* 工件：看得出「已經被加工過」才叫工件 —— 一個銑出來的階梯、一個凹穴（刀正在裡面）、三個鑽孔；
+       2026-09-26 細緻化：兩側各一組**壓板**（壓板 ＋ T 型螺栓 ＋ 螺帽 ＋ 墊塊）把它壓在工作台上 ——
+       綜合加工機「刀轉、工件夾著不動」，夾著的那個動作就是這兩組壓板。*/
     function mtWork(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const m = K.mat(0.18, { rough: 0.34 });
-      g.add(mboxes([[w, h * 0.6, d, 0, -h * 0.2, 0],
-        [w * 0.62, h * 0.4, d, -w * 0.19, h * 0.3, 0],
-        [w * 0.16, h * 0.4, d * 0.34, w * 0.3, h * 0.3, -d * 0.3],
-        [w * 0.16, h * 0.4, d * 0.34, w * 0.3, h * 0.3, d * 0.3]], m));
+      const pk = p.pocket || [0, d * 0.25];               // 凹穴中心（x, z），對準主軸
+      const pw = w * 0.36, pd = d * 0.4, pz0 = pk[1] - pd / 2, pz1 = pk[1] + pd / 2;
+      const bx = (x0, x1, y0, y1, z0, z1) => [x1 - x0, y1 - y0, z1 - z0, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
+      const xs = -w * 0.22, px0 = pk[0] - pw / 2, px1 = pk[0] + pw / 2, y0 = h * 0.05, y1 = h / 2;
+      g.add(mboxes([bx(-w / 2, w / 2, -h / 2, y0, -d / 2, d / 2),              // 底層（左邊那一階就是它的頂面）
+        bx(xs, w / 2, y0, y1, -d / 2, pz0), bx(xs, w / 2, y0, y1, pz1, d / 2),   // 凹穴前後
+        bx(xs, px0, y0, y1, pz0, pz1), bx(px1, w / 2, y0, y1, pz0, pz1)], m));  // 凹穴左右
+      // 凹穴底（深一階）＋ 三個鑽孔（在左邊那一階上）
+      const dk = [mcAt(new T.BoxGeometry(pw, 0.05, pd), pk[0], h * 0.055, pk[1])];
+      [-0.3, 0, 0.3].forEach(k => dk.push(mcAt(new T.CylinderGeometry(h * 0.09, h * 0.09, 0.05, 10), -w * 0.36, h * 0.055, k * d)));
+      g.add(mcMerge(dk, K.mat(-0.45, { rough: 0.5, metal: 0.6 })));
+      // 兩組壓板
+      const st = [], bolt = [];
+      [-1, 1].forEach(s => {
+        const bx = s * (w / 2 + 3.2);
+        st.push([7.6, 1.3, 3.6, s * (w / 2 + 1.2), h / 2 + 0.65, -d * 0.08], [2.2, h + 1.3, 3.6, s * (w / 2 + 5.4), 0.65, -d * 0.08]);
+        bolt.push(mcAt(new T.CylinderGeometry(0.55, 0.55, h + 5, 10), bx, 1.5, -d * 0.08),
+          mcAt(new T.CylinderGeometry(1.15, 1.15, 1.1, 6), bx, h / 2 + 1.9, -d * 0.08));
+      });
+      const stm = K.mat(-0.1, { color: K.css('--dg-steel', '#9aa6b4'), rough: 0.36, metal: 0.88 });
+      g.add(mboxes(st, stm));
+      g.add(mcMerge(bolt, K.mat(-0.4, { color: K.css('--dg-steel-2', '#6b7683'), rough: 0.4, metal: 0.9 })));
       return g;
     }
 
-    /* 主軸頭：掛在立柱軌道上的箱體 ＋ 背面兩塊滑塊 ＋ 前面的主軸孔法蘭。
-       ★ 背面那兩塊滑塊是「它掛在軌道上」的證據 —— 沒有的話它看起來是浮著的。*/
+    /* 主軸頭：★ 背面的滑塊是「它掛在立柱軌道上」的證據 —— 沒有的話它看起來是浮著的。
+       2026-09-26 細緻化：背面四顆 **Z 向滑塊**（包住立柱正面那兩條滑軌）＋ 一座 Z 軸螺帽座；
+       下方一段圓形的主軸座（主軸從這裡伸出來）；主軸鼻端一圈**冷卻液環**與兩支**節式噴管**
+       （一節一節的塑膠管，可以扳方向，對準刀尖）—— 切削液從這裡噴到刀具上；頂上一塊馬達座。*/
     function mtHead(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, Math.min(w, d) * 0.1, K.mat(-0.04, { rough: 0.42 })));
-      g.add(mboxes([[w * 0.2, h * 0.7, d * 0.14, -w * 0.26, 0, -d * 0.55],
-        [w * 0.2, h * 0.7, d * 0.14, w * 0.26, 0, -d * 0.55]], K.mat(0.1, { rough: 0.3, metal: 0.9 })));
-      g.add(put(cyl(w * 0.3, h * 0.16, K.mat(0.16, { rough: 0.3, metal: 0.9 }), 20), 0, -h * 0.54, 0));
+      const sz = p.spz != null ? p.spz : d * 0.07;          // 主軸中心的 z（局部）
+      const cast = K.mat(-0.04, { rough: 0.42 });
+      // 立柱滑軌的頂面在局部 z = rt；滑塊包住它 → 滑塊頂上是背板 → 背板前面才是箱體
+      const rt = p.railTop != null ? p.railTop : -d / 2 - 6, bz = rt + 0.35, back = bz + 3.5 + 2;
+      g.add(mcMerge([rboxGeo(w, h * 0.78, d / 2 - back, Math.min(w, d) * 0.1).translate(0, h * 0.11, (back + d / 2) / 2),
+        chamferGeo(w * 0.86, h * 0.9, 2).translate(0, 0, back - 1), new T.CylinderGeometry(9.2, 9.2, h * 0.24, 28).translate(0, -h * 0.38, sz)], cast));
+      // 背面四顆 Z 向滑塊（長度沿 y、頂面朝 +z）＋ 螺帽座
+      g.add(mcBlockSet(K, [[-11, h * 0.24, bz], [-11, -h * 0.24, bz], [11, h * 0.24, bz], [11, -h * 0.24, bz]], 12, 7, 11, 'yz'));
+      const nz = p.nutZ != null ? p.nutZ : rt;                 // Z 軸螺桿的中心（局部 z）
+      g.add(mcMerge([chamferGeo(8, 9, back - 2 - nz).translate(0, 0, (back - 2 + nz) / 2),
+        new T.CylinderGeometry(5, 5, 10, 18).translate(0, 0, nz), new T.CylinderGeometry(6.4, 6.4, 1.4, 18).translate(0, 5, nz)],
+        K.mat(-0.02, { rough: 0.4, metal: 0.85 })));
+      // 頂上馬達座
+      g.add(mboxes([[w * 0.56, 1.8, w * 0.56, 0, h / 2 + 0.9, sz]], K.mat(0.14, { rough: 0.32, metal: 0.8 })));
+      // 冷卻液環（主軸鼻端）＋ 兩支節式噴管
+      const cool = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), rough: 0.5, metal: 0.1 });
+      const ry = -h / 2 - 1.2;
+      const segs = [], ringG = new T.TorusGeometry(9.6, 0.9, 8, 28); ringG.rotateX(Math.PI / 2); ringG.translate(0, ry, sz);
+      const tip = p.tip || [0, -h / 2 - 20, sz];
+      const unit = mergeGeos([new T.SphereGeometry(0.85, 7, 4), new T.CylinderGeometry(0.55, 0.8, 1.2, 7).translate(0, 0.7, 0)]);
+      const up = new T.Vector3(0, 1, 0), q = new T.Quaternion(), e = new T.Euler();
+      [-1, 1].forEach(s => {
+        const c = new T.CatmullRomCurve3([new T.Vector3(s * 8.4, ry - 0.6, sz + 3.6), new T.Vector3(s * 9.6, ry - 5, sz + 5.4),
+          new T.Vector3(s * 6.2, ry - 10.5, sz + 4.4), new T.Vector3(tip[0] + s * 2.2, tip[1] + 3, tip[2] + 2)]);
+        const n = 11;
+        for (let i = 0; i < n; i++) { const u = i / (n - 1), v = c.getPointAt(u), tg = c.getTangentAt(u);
+          q.setFromUnitVectors(up, tg.normalize()); e.setFromQuaternion(q); segs.push([v.x, v.y, v.z, e.x, e.y, e.z]); }
+      });
+      g.add(new T.Mesh(ringG, cool));
+      g.add(instOf(unit, cool, segs));
       return g;
     }
 
-    /* 主軸：一根被前後兩組軸承夾住的軸，★ 下端是**錐孔**（刀柄靠錐面定位）。
-       錐孔朝下，所以這裡用一個倒過來的圓台把口畫出來 —— 畫成平底就看不出它怎麼夾刀。*/
+    /* 主軸：★ 下端是**錐孔**（刀柄靠錐面定位，不是靠螺絲鎖）。
+       2026-09-26 細緻化：鼻端端面有兩顆**驅動鍵**（卡進刀柄法蘭上的鍵槽，扭力是靠它傳的，不是靠錐面摩擦）；
+       錐孔畫成暗色的倒圓錐（刀柄拿掉時從底下看得到）；軸心一根**拉桿**、頂上一疊**碟形彈簧**
+       （平常靠彈簧把刀柄拉緊、換刀時才被頂開）；外面一節主軸套筒與前端鎖緊螺帽。
+       依據：BT 刀柄規格（MAS 403、7:24 錐度、拉釘 ＋ 拉桿夾緊、法蘭上兩個驅動鍵槽）。*/
     function mtSpindle(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
       const st = K.mat(0.22, { rough: 0.2, metal: 0.95 });
-      g.add(cyl(R * 0.62, h * 0.8, st, 20));
-      g.add(put(new T.Mesh(new T.CylinderGeometry(R, R * 0.6, h * 0.24, 20), K.mat(0.08, { rough: 0.26, metal: 0.92 })), 0, -h * 0.42, 0));
-      g.add(put(cyl(R * 0.82, h * 0.06, K.mat(-0.2, { rough: 0.4, metal: 0.85 }), 18), 0, h * 0.3, 0));
+      g.add(mcMerge([new T.CylinderGeometry(R * 0.5, R * 0.5, h * 0.9, 20).translate(0, h * 0.05, 0),
+        new T.CylinderGeometry(R * 0.92, R * 0.92, h * 0.12, 28).translate(0, -h * 0.44, 0),
+        new T.CylinderGeometry(R * 0.72, R * 0.92, h * 0.04, 28).translate(0, -h * 0.36, 0)], st));
+      // 主軸套筒（半透明感不用，直接一節較暗的套筒）＋ 前端鎖緊螺帽
+      g.add(mcMerge([new T.CylinderGeometry(R * 0.98, R * 0.98, h * 0.5, 28, 1, true).translate(0, h * 0.02, 0),
+        new T.CylinderGeometry(R * 0.8, R * 0.8, h * 0.05, 20).translate(0, -h * 0.3, 0)], K.mat(-0.2, { rough: 0.4, metal: 0.85 })));
+      // 驅動鍵（兩顆）＋ 暗色錐孔 ＋ 碟形彈簧與拉桿
+      g.add(mcMerge([new T.CylinderGeometry(R * 0.28, R * 0.6, h * 0.2, 20).translate(0, -h * 0.4, 0),
+        new T.CylinderGeometry(R * 0.6, R * 0.6, 0.02, 20).translate(0, -h * 0.5 - 0.01, 0)], K.mat(-0.85, { rough: 0.9, metal: 0.1 })));
+      g.add(mboxes([[R * 0.3, h * 0.05, R * 0.36, -R * 0.74, -h * 0.51, 0], [R * 0.3, h * 0.05, R * 0.36, R * 0.74, -h * 0.51, 0]], K.mat(0.3, { rough: 0.24, metal: 0.95 })));
+      const sp = [];
+      for (let i = 0; i < 6; i++) sp.push(new T.CylinderGeometry(R * (i % 2 ? 0.58 : 0.66), R * (i % 2 ? 0.66 : 0.58), h * 0.025, 18).translate(0, h * 0.37 + i * h * 0.026, 0));
+      sp.push(new T.CylinderGeometry(R * 0.2, R * 0.2, h * 0.16, 12).translate(0, h * 0.46, 0));
+      g.add(mcMerge(sp, K.mat(-0.3, { rough: 0.36, metal: 0.9 })));
       return g;
     }
 
-    /* 刀柄 ＋ 刀具：★ 刀柄是**錐形**的（靠錐面定位，不是靠螺絲鎖），
-       中段那一圈溝是換刀機械手抓的地方；下面接一支有螺旋刃的銑刀。*/
+    /* 刀柄 ＋ 刀具：★ 刀柄是**錐形**的（7:24，靠錐面定位），中段那一圈溝是換刀機械手抓的地方。
+       2026-09-26 細緻化（照 BT40 的結構）：由上到下 —— **拉釘**（拉桿抓的那一顆頭）→ 7:24 **錐柄** →
+       **法蘭**（中間一道 **V 形槽**給換刀臂抓，上緣兩個**驅動鍵槽**卡主軸的驅動鍵）→ 夾頭本體 → **夾頭螺帽** →
+       銑刀：柄 ＋ 兩條**螺旋刃**（30° 螺旋角，刃溝是真的一條螺旋溝，不是纏上去的管子）。
+       依據：BT 刀柄規格（MAS 403：7:24 錐度、V-flange、兩個 drive keyway、公制拉釘）。*/
+    function mtToolGeo(s, flutes, lo) {
+      const Rf = 5.7 * s, Rt = 4.0 * s, rt = 2.3 * s, S = lo ? 0.5 : 1, n = (k) => Math.max(8, Math.round(k * S));
+      const hold = [
+        new T.CylinderGeometry(0.75 * s, 0.75 * s, 2.2 * s, n(12)).translate(0, 16 * s, 0),       // 拉釘頸
+        new T.SphereGeometry(1.25 * s, n(12), lo ? 5 : 8).translate(0, 17.4 * s, 0),                        // 拉釘頭
+        new T.CylinderGeometry(1.3 * s, 1.3 * s, 1.2 * s, n(12)).translate(0, 14.6 * s, 0),
+        new T.CylinderGeometry(rt, Rt, 11 * s, n(20)).translate(0, 8.5 * s, 0),                     // 7:24 錐柄
+        new T.CylinderGeometry(Rf, Rf, 0.8 * s, n(28)).translate(0, 2.6 * s, 0),                    // 法蘭上緣
+        new T.CylinderGeometry(Rf, Rf * 0.84, 0.7 * s, n(28)).translate(0, 1.85 * s, 0),            // V 形槽上斜面
+        new T.CylinderGeometry(Rf * 0.84, Rf, 0.7 * s, n(28)).translate(0, 1.15 * s, 0),            // V 形槽下斜面
+        new T.CylinderGeometry(Rf, Rf, 0.8 * s, n(28)).translate(0, 0.4 * s, 0),                    // 法蘭下緣
+        new T.CylinderGeometry(3.3 * s, 4.3 * s, 3.4 * s, n(22)).translate(0, -1.7 * s, 0),         // 夾頭本體
+        new T.CylinderGeometry(3.7 * s, 3.7 * s, 2.4 * s, n(16)).translate(0, -4.6 * s, 0)];        // 夾頭螺帽
+      const cut = [new T.CylinderGeometry(1.6 * s, 1.6 * s, 2.4 * s, n(16)).translate(0, -7 * s, 0)];
+      if (flutes) {
+        const Rc = 1.6 * s, lead = Math.PI * 2 * Rc * 1.73;
+        const prof = [[0, 0], [0.12, 0], [0.22, -Rc * 0.42], [0.5, -Rc * 0.66], [0.74, -Rc * 0.36], [0.86, -Rc * 0.04]];
+        cut.push(mcHelix({ r0: Rc, prof, lead, x0: -2.1 * s, x1: 2.1 * s, nt: 20, starts: 2 }).rotateZ(-Math.PI / 2).translate(0, -10.3 * s, 0),
+          new T.CircleGeometry(Rc, 16).rotateX(Math.PI / 2).translate(0, -12.4 * s, 0));
+      } else cut.push(new T.CylinderGeometry(1.5 * s, 1.2 * s, 4.2 * s, n(12)).translate(0, -10.3 * s, 0));
+      return { hold, cut, slots: [new T.BoxGeometry(1.4 * s, 0.9 * s, 1.6 * s).translate(Rf - 0.5 * s, 2.6 * s, 0), new T.BoxGeometry(1.4 * s, 0.9 * s, 1.6 * s).translate(-Rf + 0.5 * s, 2.6 * s, 0)] };
+    }
     function mtTool(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(w, d) / 2;
-      g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.82, R * 0.5, h * 0.42, 18), K.mat(0.04, { rough: 0.32, metal: 0.88 })), 0, h * 0.26, 0));
-      g.add(put(cyl(R * 0.62, h * 0.1, K.mat(-0.3, { rough: 0.46, metal: 0.8 }), 18), 0, h * 0.46, 0));   // 抓取溝
-      g.add(put(cyl(R * 0.38, h * 0.5, K.mat(-0.1, { rough: 0.28, metal: 0.9 }), 16), 0, -h * 0.2, 0));
-      // 螺旋刃：兩條沿刀身纏上去的溝
-      const seg = 40, fl = K.mat(-0.42, { rough: 0.36, metal: 0.85 });
-      [0, Math.PI].forEach(ph => {
-        const pts = [];
-        for (let i = 0; i <= seg; i++) {
-          const t = i / seg, a = ph + t * Math.PI * 2.4;
-          pts.push(new T.Vector3(Math.cos(a) * R * 0.38, (-0.45 + t * 0.5) * h, Math.sin(a) * R * 0.38));
-        }
-        g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), seg, R * 0.09, 5, false), fl));
-      });
+      const s = Math.min(w, d) / 12, q = mtToolGeo(s, true), y0 = p.gauge != null ? p.gauge : 0;
+      g.add(mcMerge(q.hold.map(x => x.translate(0, y0, 0)), K.mat(0.04, { rough: 0.32, metal: 0.88 })));
+      g.add(mcMerge(q.cut.map(x => x.translate(0, y0, 0)), K.mat(-0.28, { rough: 0.3, metal: 0.82 })));
+      g.add(mcMerge(q.slots.map(x => x.translate(0, y0, 0)), K.mat(-0.75, { rough: 0.9, metal: 0.1 })));
       return g;
     }
 
-    /* 刀庫（圓盤式）：★ 識別特徵是「**一圈刀套**繞著圓盤排列」，
-       而且每個刀套裡插著一支上粗下尖的錐柄。畫成一排方塊就不是刀庫。
-       圓盤立起來（軸沿 x），所以它轉起來在畫面上就是「刀套一格一格轉過去」。*/
+    /* 刀庫（圓盤式・刀臂式）：★ 識別特徵是「一圈刀套繞著圓盤排列」，每個刀套裡插著一支刀柄。
+       2026-09-26 細緻化：刀套改成圓筒、每支刀柄都是跟主軸上那支同一個形狀（法蘭、夾頭、刀具）；
+       **最下面那一個刀套倒下 90°**（刀子從水平轉成垂直、跟主軸平行）—— 那是刀臂式刀庫的換刀位置，
+       換刀臂就在那裡同時抓新刀、抓舊刀；背後一個驅動箱（馬達＋分度機構）、一支托架鎖到立柱側面。
+       依據：刀臂式刀庫的換刀流程（刀套轉 90° 讓刀具朝下、雙臂抓刀後轉 180° 對調）。*/
     function mtMag(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(h, d) / 2;
-      g.add(put(cylX(R * 0.9, w * 0.28, K.mat(-0.08, { rough: 0.5 }), 28), 0, 0, 0));
-      g.add(cylX(R * 0.26, w * 0.9, K.mat(0.12, { rough: 0.3, metal: 0.9 }), 16));
-      const n = 10, pk = [], tp = [];
+      const R = Math.min(h, d) / 2, rp = R * 0.8, n = 10, s = 0.84, mouth = w * 0.08 - w * 0.18;
+      g.add(put(cylX(R * 0.9, w * 0.14, K.mat(-0.08, { rough: 0.5 }), 36), w * 0.28, 0, 0));
+      g.add(put(cylX(R * 0.24, w * 0.5, K.mat(0.12, { rough: 0.3, metal: 0.9 }), 18), w * 0.4, 0, 0));
+      const pots = [], tools = [];
       for (let i = 0; i < n; i++) {
-        const a = i / n * Math.PI * 2;
-        pk.push([w * 0.2, Math.sin(a) * R * 0.66, Math.cos(a) * R * 0.66, 0, 0, 0]);
-        tp.push([w * 0.34, Math.sin(a) * R * 0.66, Math.cos(a) * R * 0.66, 0, 0, Math.PI / 2]);
+        const a = Math.PI + (i / n) * Math.PI * 2;          // i = 0 在最下面（換刀位置）
+        const y = Math.cos(a) * rp, z = Math.sin(a) * rp;
+        if (i === 0) continue;
+        pots.push([w * 0.08, y, z, 0, 0, Math.PI / 2]);
+        tools.push([mouth - 3 * s, y, z, 0, 0, -Math.PI / 2]);
       }
-      g.add(instOf(new T.BoxGeometry(w * 0.22, R * 0.26, R * 0.26), K.mat(-0.3, { rough: 0.56 }), pk));
-      g.add(instOf(new T.CylinderGeometry(R * 0.13, R * 0.08, w * 0.3, 10),
-        K.mat(0.1, { rough: 0.3, metal: 0.9 }), tp));
+      // 倒下的那一個（換刀位置）：刀套與刀柄都轉成垂直、刀尖朝下 —— 跟其他九個同一個實例（不多花 draw call）
+      const px = p.dropX != null ? p.dropX : -3, pc = -rp - 3, pb = pc - w * 0.18;
+      pots.push([px, pc, 0]); tools.push([px, pb - 3 * s, 0]);
+      const potG = new T.CylinderGeometry(5.4 * s * 1.08, 5.4 * s * 1.08, w * 0.36, 12);
+      const pm = K.mat(-0.3, { rough: 0.56 });
+      g.add(instOf(potG, pm, pots));
+      const q = mtToolGeo(s, false, true), hold = mergeGeos(q.hold.concat(q.cut));
+      const tm = K.mat(0.1, { rough: 0.3, metal: 0.9 });
+      g.add(instOf(hold, tm, tools));
+      // 驅動箱 ＋ 馬達 ＋ 托架（鎖到立柱側面）
+      const br = p.bracket || [w * 1.8, -R * 0.9];
+      g.add(mboxes([[w * 0.3, R * 0.5, R * 0.5, w * 0.55, 0, 0], [3, 5, -br[1], w * 0.55, 0, br[1] / 2],
+        [br[0] - w * 0.55, 5, 3, (br[0] + w * 0.55) / 2, 0, br[1]]], K.mat(-0.16, { rough: 0.5 })));
+      g.add(put(cylX(R * 0.14, w * 0.5, K.mat(-0.4, { rough: 0.6, metal: 0.5 }), 14), w * 0.95, R * 0.12, 0));
       return g;
     }
 
-    /* 換刀機械手（雙臂式 ATC）：★ **兩端對稱**的一支臂，兩端各有一個 V 形爪。
-       一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，擺過去就同時換完 ——
-       單臂畫法解釋不了「一次換兩把」。*/
+    /* 換刀機械手（雙臂式 ATC）：★ **兩端對稱**的一支臂，兩端各一個爪。
+       一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，轉 180° 就同時換完 —— 單臂畫法解釋不了「一次換兩把」。
+       2026-09-26 細緻化：兩端改成 **C 形爪**（張口方向相反 —— 臂一轉，兩個爪同時扣進兩支刀柄的 V 形槽），
+       爪口各一顆彈簧鎖銷；中間是輪轂與上方的凸輪箱（換刀的「下降、轉、上升」都由它帶動）。*/
     function mtAtc(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h * 0.6, d * 0.6, h * 0.16, K.mat(-0.02, { rough: 0.44 })));
-      g.add(cyl(h * 0.6, h * 1.1, K.mat(0.1, { rough: 0.3, metal: 0.9 }), 16));
-      const claw = [], jaw = [];
-      [-1, 1].forEach(sgn => {
-        claw.push([w * 0.46 * sgn, 0, 0]);
-        jaw.push([w * 0.46 * sgn, 0, d * 0.42], [w * 0.46 * sgn, 0, -d * 0.42]);
+      const reach = w * 0.46, ri = 5.7 * 0.84 * 1.0, ro = ri + 1.6, th = 2.2;
+      const arm = K.mat(-0.02, { rough: 0.44 });
+      const bar = new T.ExtrudeGeometry(new T.Shape([new T.Vector2(-reach + ri, -2.2), new T.Vector2(-3, -3.2), new T.Vector2(3, -3.2),
+        new T.Vector2(reach - ri, -2.2), new T.Vector2(reach - ri, 2.2), new T.Vector2(3, 3.2), new T.Vector2(-3, 3.2), new T.Vector2(-reach + ri, 2.2)]),
+      { depth: th, bevelEnabled: false });
+      bar.rotateX(-Math.PI / 2); bar.translate(0, -th / 2, 0);
+      const claws = [];
+      [[-1, -Math.PI / 2], [1, Math.PI / 2]].forEach(([sx, open]) => {
+        const s = new T.Shape(), a0 = open + 0.95, a1 = open - 0.95 + Math.PI * 2;
+        s.absarc(0, 0, ro, a0, a1, false); s.absarc(0, 0, ri, a1, a0, true);
+        const cg = new T.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 18 });
+        cg.rotateX(-Math.PI / 2); cg.translate(sx * reach, -th / 2, 0); claws.push(cg);
       });
-      g.add(instOf(new T.CylinderGeometry(h * 0.62, h * 0.62, h * 0.7, 14), K.mat(0.14, { rough: 0.3, metal: 0.9 }), claw));
-      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.5, d * 0.36), K.mat(-0.24, { rough: 0.5 }), jaw));
+      g.add(mcMerge([bar].concat(claws), arm));
+      g.add(mcMerge([new T.CylinderGeometry(3.4, 3.4, h * 1.4, 18).translate(0, h * 0.3, 0)], K.mat(0.1, { rough: 0.3, metal: 0.9 })));
+      g.add(mboxes([[9, 7, 10, 0, h * 1.3, 0]], K.mat(-0.12, { rough: 0.5 })));
+      const pins = [];
+      [[-1, 1], [1, -1]].forEach(([sx, sz]) => pins.push([1.2, th * 1.1, 1.8, sx * reach, 0, sz * ri * 0.72]));
+      g.add(mboxes(pins, K.mat(-0.6, { rough: 0.7, metal: 0.4 })));
       return g;
     }
 
     /* 控制器櫃：★ 這一格是整張圖的重點 —— **它是外購的**。
-       上面是操作面板（一片螢幕 ＋ 手輪 ＋ 一排按鍵），中間是控制器，下面是四台並排的驅動器。
+       2026-09-26 細緻化：上半是操作面板（螢幕、一排排按鍵、手輪、急停鈕）；
+       下半的門拿掉，看得到裡面：一台 **CNC 控制器**（有散熱孔的盒子）、**四台並排的伺服驅動器**
+       （每台前面一排散熱鰭片與接線端子 —— X／Y／Z 三軸 ＋ 主軸）、上下兩條開槽的**線槽**；側面一排百葉散熱窗。
        用不同的材質族（emc）跟機體分開，一眼看得出「這一櫃跟旁邊那台機器不是同一群人做的」。*/
     function mtCab(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, Math.min(w, d) * 0.08, K.mat(-0.1, { rough: 0.56 })));
-      g.add(put(box(w * 0.82, h * 0.16, d * 0.06, K.mat(0.3, { rough: 0.2, metal: 0.3,
-        color: K.css('--dg-m-cool', '#4FC3E8') })), 0, h * 0.34, d * 0.53));                 // 面板螢幕
-      g.add(put(cyl(w * 0.1, d * 0.06, K.mat(0.16, { rough: 0.3, metal: 0.9 }), 14, 0), w * 0.28, h * 0.18, d * 0.55)
-        .rotateX(Math.PI / 2));                                                              // 手輪
+      const F = d / 2;
+      g.add(rbox(w, h, d, Math.min(w, d) * 0.06, K.mat(-0.1, { rough: 0.56 })));
+      // 操作面板：螢幕（不自體發光）＋ 按鍵 ＋ 手輪 ＋ 急停
+      g.add(put(box(w * 0.78, h * 0.17, 0.4, K.mat(0.2, { rough: 0.16, metal: 0.3, color: K.css('--dg-m-cool', '#4FC3E8') })), 0, h * 0.33, F + 0.2));
       const keys = [];
-      for (let i = 0; i < 4; i++) keys.push([(-1.5 + i) * w * 0.18, h * 0.18, d * 0.54]);
-      g.add(instOf(new T.BoxGeometry(w * 0.12, h * 0.04, d * 0.04), K.mat(-0.4, { rough: 0.7 }), keys));
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) keys.push([(-2.5 + c) * w * 0.12, h * 0.19 - r * h * 0.035, F + 0.25]);
+      g.add(instOf(new T.BoxGeometry(w * 0.09, h * 0.025, 0.5), K.mat(-0.45, { rough: 0.7 }), keys));
+      g.add(mcMerge([mcCylZ(w * 0.12, 0.8, 22).translate(w * 0.24, h * 0.04, F + 0.4), mcCylZ(w * 0.03, 1.6, 10).translate(w * 0.3, h * 0.06, F + 1)],
+        K.mat(0.16, { rough: 0.3, metal: 0.9 })));
+      g.add(mcMerge([mcCylZ(w * 0.07, 1.2, 16).translate(-w * 0.28, h * 0.04, F + 0.6)], K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.5, metal: 0.1 })));
+      // 下半：門拿掉，裡面的東西（背板亮一階，讓裡面的件看得清楚）
+      const iy0 = -h * 0.44, iy1 = -h * 0.02, ih = iy1 - iy0;
+      g.add(put(box(w * 0.9, ih, 0.3, K.mat(0.24, { rough: 0.6, metal: 0.2 })), 0, (iy0 + iy1) / 2, F + 0.15));
+      g.add(mboxes([[w * 0.94, 0.8, 1.4, 0, iy1 + 0.4, F + 0.7], [w * 0.94, 0.8, 1.4, 0, iy0 - 0.4, F + 0.7],
+        [0.8, ih, 1.4, -w * 0.47, (iy0 + iy1) / 2, F + 0.7], [0.8, ih, 1.4, w * 0.47, (iy0 + iy1) / 2, F + 0.7],
+        [w * 1.04, h * 0.04, d * 1.04, 0, -h / 2 + h * 0.02, 0]], K.mat(-0.3, { rough: 0.7 })));
+      // 線槽（上下兩條、開槽）
+      const duct = K.mat(0.3, { rough: 0.7, metal: 0.05, color: K.css('--dg-m-rack', '#B8C2CC') });
+      g.add(mboxes([[w * 0.84, h * 0.035, 1.6, 0, iy1 - h * 0.04, F + 1.1], [w * 0.84, h * 0.035, 1.6, 0, iy0 + h * 0.04, F + 1.1]], duct));
+      // CNC 控制器（左上）＋ 四台驅動器（並排）
+      const box2 = [[w * 0.3, ih * 0.3, 2.6, -w * 0.25, iy1 - ih * 0.3, F + 1.6]];
       const dr = [];
-      for (let i = 0; i < 4; i++) dr.push([(-1.5 + i) * w * 0.22, -h * 0.24, d * 0.1]);
-      g.add(instOf(new T.BoxGeometry(w * 0.18, h * 0.36, d * 0.7), K.mat(0.06, { rough: 0.5 }), dr));
+      for (let i = 0; i < 4; i++) dr.push([w * 0.15, ih * 0.5, 3, (-1.5 + i) * w * 0.19, iy0 + ih * 0.38, F + 1.8]);
+      g.add(mboxes(box2.concat(dr), K.mat(0.05, { rough: 0.5 })));
+      const fins = [], dk = [];
+      for (let i = 0; i < 4; i++) for (let k = 0; k < 5; k++) fins.push([(-1.5 + i) * w * 0.19 + (-2 + k) * w * 0.026, iy0 + ih * 0.3, F + 3.5]);
+      g.add(instOf(new T.BoxGeometry(w * 0.012, ih * 0.26, 0.6), K.mat(0.3, { rough: 0.3, metal: 0.8 }), fins));
+      for (let i = 0; i < 4; i++) dk.push(mcAt(new T.BoxGeometry(w * 0.12, ih * 0.06, 0.4), (-1.5 + i) * w * 0.19, iy0 + ih * 0.58, F + 3.4));
+      for (let k = 0; k < 6; k++) dk.push(mcAt(new T.BoxGeometry(w * 0.02, ih * 0.14, 0.3), -w * 0.37 + k * w * 0.045, iy1 - ih * 0.3, F + 3));
+      for (let k = 0; k < 8; k++) dk.push(mcAt(new T.BoxGeometry(0.3, h * 0.012, d * 0.6), w / 2 + 0.1, h * 0.06 + k * h * 0.03, 0));
+      g.add(mcMerge(dk, K.mat(-0.7, { rough: 0.85, metal: 0.1 })));
       return g;
     }
 
-    /* 排屑機：一條斜著往外走的鏈板輸送帶 ＋ 出屑口。
-       它不影響精度，但它決定這台機器能不能連續跑而不用有人去清。*/
+    /* 排屑機（鏈板式）：一條先平走、再斜著往上爬的鏈板輸送帶 ＋ 出屑口。
+       2026-09-26 細緻化：鏈板一片一片（片與片之間有鉸鏈銷、每隔幾片一塊擋屑板），順著「平段 → 斜段」的路徑排；
+       兩側側板、斜段頂上的罩板、頂端的出屑斜槽與驅動馬達；平段底下是**切削液水箱**
+       （切屑被鏈板帶走、切削液漏下去回到水箱，幫浦再把它打回噴嘴 —— 水面用冷水色）。*/
     function mtConv(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h * 0.5, d, K.mat(-0.16, { rough: 0.56 })));
-      const n = 7, pl = [];
-      for (let i = 0; i < n; i++) pl.push([(-(n - 1) / 2 + i) * (w * 0.92 / n), h * 0.34, 0]);
-      g.add(instOf(new T.BoxGeometry(w * 0.92 / n * 0.8, h * 0.14, d * 0.86),
-        K.mat(0.12, { rough: 0.34, metal: 0.9 }), pl));
-      g.add(put(box(w * 0.22, h * 0.9, d * 0.7, K.mat(-0.34, { rough: 0.6 })), -w * 0.42, h * 0.3, 0));
+      const X = w / 2, yb = -h * 0.2, xk = -w * 0.12, xt = -X * 0.86, yt = h * 0.62;
+      const path = new T.CatmullRomCurve3([new T.Vector3(X * 0.95, yb, 0), new T.Vector3(xk + w * 0.1, yb, 0), new T.Vector3(xk - w * 0.02, yb + h * 0.06, 0),
+        new T.Vector3(xt, yt, 0)], false, 'catmullrom', 0.2);
+      // 側板（x-y 平面上的輪廓、沿 z 擠出一點厚度）
+      const sp = new T.Shape([new T.Vector2(X, yb - h * 0.3), new T.Vector2(X, yb + h * 0.2), new T.Vector2(xk + w * 0.04, yb + h * 0.2),
+        new T.Vector2(xt - w * 0.04, yt + h * 0.3), new T.Vector2(-X, yt + h * 0.3), new T.Vector2(-X, yt - h * 0.2), new T.Vector2(xk - w * 0.08, yb - h * 0.3)]);
+      const side = [];
+      [-1, 1].forEach(s => side.push(new T.ExtrudeGeometry(sp, { depth: 0.6, bevelEnabled: false }).translate(0, 0, s * d * 0.47 - 0.3)));
+      const hood = new T.BoxGeometry(Math.hypot(xk - xt, yt - yb) * 0.8, 0.4, d * 0.94);
+      hood.rotateZ(-Math.atan2(yt - yb, xk - xt)); hood.translate((xk + xt) / 2 - 1, (yb + yt) / 2 + h * 0.34, 0);
+      const chute = new T.BoxGeometry(w * 0.14, 0.4, d * 0.7); chute.rotateZ(0.9); chute.translate(-X - w * 0.03, yt - h * 0.05, 0);
+      g.add(mcMerge(side.concat([hood, chute]), K.mat(-0.16, { rough: 0.56 })));
+      // 鏈板 ＋ 鉸鏈銷 ＋ 擋屑板
+      const L = path.getLength(), n = Math.floor(L / 1.7), pl = [], pins = [], cl = [];
+      for (let i = 0; i < n; i++) {
+        const u = (i + 0.5) / n, v = path.getPointAt(u), t = path.getTangentAt(u), a = Math.atan2(t.y, t.x);
+        pl.push([v.x, v.y, v.z, 0, 0, a]);
+        pins.push([v.x + Math.cos(a) * 0.82, v.y + Math.sin(a) * 0.82, 0, Math.PI / 2, 0, 0]);
+        if (i % 6 === 3) cl.push([v.x - Math.sin(a) * 0.6, v.y + Math.cos(a) * 0.6, 0, 0, 0, a]);
+      }
+      const plate = K.mat(0.12, { rough: 0.34, metal: 0.9 });
+      g.add(instOf(new T.BoxGeometry(1.55, 0.3, d * 0.86), plate, pl));
+      g.add(instOf(new T.CylinderGeometry(0.26, 0.26, d * 0.9, 6), K.mat(-0.3, { rough: 0.4, metal: 0.9 }), pins));
+      g.add(instOf(new T.BoxGeometry(0.3, 1.2, d * 0.84), plate, cl));
+      // 驅動馬達（頂端側面）
+      // 切削液水箱（平段底下）＋ 水面 ＋ 幫浦
+      const tx = (X + xk) / 2 + w * 0.04, tw = X - xk + w * 0.02, ty = yb - h * 0.62;
+      g.add(mboxes([[tw, 0.4, d * 1.05, tx, ty - h * 0.28, 0], [tw, h * 0.56, 0.4, tx, ty, d * 0.52], [tw, h * 0.56, 0.4, tx, ty, -d * 0.52],
+        [0.4, h * 0.56, d * 1.05, tx + tw / 2, ty, 0], [0.4, h * 0.56, d * 1.05, tx - tw / 2, ty, 0]], K.mat(-0.02, { rough: 0.5, metal: 0.6 })));
+      g.add(put(new T.Mesh(new T.BoxGeometry(tw * 0.97, 0.08, d * 1.0), K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), rough: 0.12, metal: 0.1 })), tx, ty + h * 0.12, 0));
+      g.add(mcMerge([new T.CylinderGeometry(1.4, 1.4, 3, 14).translate(tx + tw * 0.34, ty + h * 0.5, -d * 0.36),
+        mcCylZ(1.6, 3.2, 14).translate(xt + 1, yt + 1.4, d * 0.5 + 1.6)], K.mat(-0.4, { rough: 0.6, metal: 0.5 })));
       return g;
     }
 
-    /* 立起來的伺服馬達：跟「工業自動化」那張的 `mcMotor` **同一支幾何**，只是軸朝下。
-       主軸馬達與三顆進給馬達都用它 —— 那正是這兩張圖的接縫。*/
+    /* 立起來的伺服馬達（主軸馬達）：跟「工業自動化」那張的 `mcMotor` **同一支幾何**，只是軸朝下。*/
     function mtMotY(p, K) {
       const [w, h, d] = p.box;
       const m = mcMotor({ box: [h, w, d] }, K);
       m.rotation.z = -Math.PI / 2;
       const g = new T.Group(); g.add(m); return g;
     }
-    /* 主軸軸承（立著的那一組）：外環 ＋ 內環 ＋ 夾在中間的一圈滾珠。
-       ★ 不沿用 `mcBrg`：那一支是躺著的半剖軸承座（軸沿 x），
-         立起來會變成「被削掉一邊的罐頭」躺在錯的方向。這裡要的是整圈都看得到。*/
+    /* 主軸軸承（立著的那一組）：★ 主軸用的是**斜角滾珠軸承**、而且成對使用 ——
+       2026-09-26 細緻化：一組兩顆疊在一起，每一顆都是外環 ＋ 內環（旋轉斷面，溝是圓弧）＋ 一圈滾珠 ＋ 保持器；
+       外環的溝偏向一側（斜角軸承吃軸向力的方向就是從這個偏移來的）。*/
     function mtBear(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const R = Math.min(w, d) / 2;
-      const st = K.mat(0.24, { rough: 0.2, metal: 0.95 });
-      g.add(new T.Mesh(new T.CylinderGeometry(R, R, h * 0.9, 24, 1, true), K.mat(-0.1, { rough: 0.34, metal: 0.9 })));
-      g.add(cyl(R * 0.44, h * 0.9, st, 18));
-      const balls = [];
-      for (let i = 0; i < 12; i++) {
-        const a = i / 12 * Math.PI * 2;
-        balls.push([Math.cos(a) * R * 0.72, 0, Math.sin(a) * R * 0.72]);
-      }
-      g.add(instOf(new T.SphereGeometry(R * 0.2, 8, 6), st, balls));
+      const R = Math.min(w, d) / 2, bw = h * 0.46;
+      const st = K.mat(0.24, { rough: 0.2, metal: 0.95 }), rings = [], balls = [], cage = [];
+      const oro = R * 0.95, ori = R * 0.76, iro = R * 0.56, iri = R * 0.44, bc = (ori + iro) / 2, br = (ori - iro) * 0.44;
+      [-1, 1].forEach(k => {
+        const y = k * bw / 2;
+        const outer = [[ori, -bw * 0.46], [oro, -bw * 0.46], [oro, bw * 0.46], [ori, bw * 0.46], [ori, bw * 0.2], [ori + br * 0.35, 0], [ori, -bw * 0.1]];
+        const inner = [[iri, -bw * 0.46], [iro, -bw * 0.46], [iro, -bw * 0.2], [iro - br * 0.35, 0], [iro, bw * 0.1], [iro, bw * 0.46], [iri, bw * 0.46]];
+        [outer, inner].forEach(pr => { const lg = new T.LatheGeometry(pr.concat([pr[0]]).map(([r, yy]) => new T.Vector2(r, yy)), 24); lg.translate(0, y, 0); rings.push(lg); });
+        for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; balls.push([Math.cos(a) * bc, y, Math.sin(a) * bc]); }
+        cage.push(new T.CylinderGeometry(bc + br * 0.3, bc + br * 0.3, bw * 0.3, 24, 1, true).translate(0, y + bw * 0.2, 0));
+      });
+      g.add(mcMerge(rings, st));
+      g.add(instOf(new T.SphereGeometry(br, 7, 4), st, balls));
+      g.add(mcMerge(cage, K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.6, metal: 0.1 })));
       return g;
     }
 
@@ -7295,12 +8511,12 @@
       s.rotation.z = Math.PI / 2;
       const g = new T.Group(); g.add(s); return g;
     }
-    // 立柱上的線性滑軌：同樣直接沿用 `mcRail`，轉成垂直
+    /* 立柱上的線性滑軌：同樣沿用滑軌的斷面（mcRailGeos），轉成垂直、**頂面朝 +z**（朝主軸頭）。
+       2026-09-26 更正：以前是整支 mcRail 繞 z 轉 90°，軌道的頂面變成朝側面 —— 滑塊就不可能從正面包住它。
+       box ＝ [寬（x）, 長（y）, 高（z）]。*/
     function mtRailY(p, K) {
       const [w, h, d] = p.box;
-      const r = mcRail({ box: [h, w, d] }, K);
-      r.rotation.z = Math.PI / 2;
-      const g = new T.Group(); g.add(r); return g;
+      return mcRailSet(K, [[0, 0, 0]], h, d, w, 'yz');
     }
 
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
@@ -7310,7 +8526,7 @@
       mlcc: mlccBody, mlccterm: mlccTerm, mlccpad: mlccPad, _lslab: lslab,
       /* ---- 第一層零件字彙（2026-09-22）。舊的 kind 一個都沒有拿掉：
          21 張既有場景照舊走原本那幾支，新的是**多出來的詞**，不是換掉。*/
-      interposer, bump: bumpField, bga: bgaPkg, stiffring: stiffRing, ufill: underfill,
+      interposer, bump: bumpField, bga: bgaPkg, stiffring: stiffRing, ufill: underfill, hbmstk: hbmStk,
       mlccchip: mlccChip, inductor, resistor, ecap,
       heatsink, vc: vaporChamber, heatpipe, coldplate,
       connector, cable, busbar,
@@ -7331,6 +8547,8 @@
       abfcore: abfCore, abfbu: abfBuildup, abftrace: abfTrace, abfvia: abfVia,
       abfsr: abfSr, abfpad: abfPad, abfbga: abfBga,
       pcblay: pcbLayer, pcbtrc: pcbTrace, pcbmask: pcbMask, pcbenig: pcbEnig, pcbvia: pcbVia,
+      /* 2026-09-26 第二批（B 組）：四張 AI 伺服器場景自己的詞 */
+      aggpu: agGpu, aghbm: agHbm, agpcb: agPcb, agshelf: agShelf, agcdu: agCdu, psvrm: psVrm, pswhip: psWhip, acsink: acSink,
       pshelf: psuShelf, pshell: psuShell, pboard: psuBoard, pcardedge: psuCardEdge,
       pbusbar: psuBusbar, pvrm: psuVrm, pbbu: psuBbu, pscap: psuScap,
       timlay: timLayer, ihslid: ihsLid, cplate: coldPlate, cpfin: cpFin, cpport: cpPort,

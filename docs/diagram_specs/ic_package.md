@@ -554,15 +554,19 @@
 | 散熱上蓋 + TIM | 四隻小腳 → **一整圈裙邊**落在補強環上（兩件式：先黏補強環、再黏上蓋）；上蓋正中央底下一片 TIM1 | E2、E3 |
 | Underfill / MUF | 平板 → 薄層 ＋ **從晶片邊緣爬出來的一圈斜坡（fillet）** | 卡片本來就寫「側面會爬出一圈圓角」 |
 | 中介層：有機重佈線 | 邊緣看得到內部三層金屬（層數示意） | 本規格 §3（RDL 是多層金屬） |
+| HBM4 堆疊 | 六片一樣厚的板子 → 最底下一片**顏色不同、較厚的 base die** ＋ **12 片薄核心晶粒**（每兩片之間一道深色填縫）＋ 最上面一片較厚的頂層晶粒。改用 CoWoS 專用的新 kind `hbmstk`（AI 機櫃那張的 `hbm` 共用件沒動） | 卡片本來就寫「12–16 層 DRAM ＋ base die」；`hbm_stack.md` §3D-細節 E1／E3 |
+| BGA 錫球 | 以前是 z = −12 那一條上的六小叢（卡片寫「一整片球」、LSC 寫「夾在球陣列中間、那一塊的錫球要讓位」，兩句在圖上都不成立）→ **整片背面鋪滿**、LSC 那一塊**空出來**；迴焊後略扁。零件由 6 份重複改成 1 份（`n` 6 → 1，編號與台股不變） | 卡片既有文字；球距示意 |
+| 探針卡／測試座 | 一塊方板 ＋ 5×5 根針 → 垂直式探針卡的四層：**圓形 PCB → 金屬補強框 → 空間轉換板（陶瓷）→ 探針頭**，底下 7×7 根針尖朝下 | E4 |
 
 | 代號 | 事實 | 信心 | 來源 |
 |---|---|---|---|
 | E1 | CoWoS 的接點分級：中介層↔載板用 150–200 µm 間距的 C4；晶粒／HBM↔中介層用 40–55 µm 間距的微凸塊 | 中高（三篇獨立摘要一致） | <https://semiengineering.com/scaling-bump-pitches-in-advanced-packaging/>、<https://sst.semiconductor-digest.com/2013/10/silicon-interposers-cowos-and-microbumps/>、<https://semiconductorx.com/packaging-cowos.html> |
 | E2 | 兩件式散熱蓋：補強環以導熱介面材料黏在載板上（大幅降低烘烤時的翹曲），上蓋再黏到補強環上；第一層 TIM 黏晶粒與上蓋 | 中（專利＋研究摘要） | <https://patents.google.com/patent/US20060091562A1/en>、<https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/9041192> |
+| E4 | 垂直式探針卡由 PCB、空間轉換板（ST）、探針頭與補強框等機構件組成；ST 是多層有機（MLO，BT／玻纖環氧）或多層陶瓷（MLC）；補強框可把 PCB 平整度改善約 10 倍；ST 底部間距約 30–300 µm | 中（研討會論文＋專利＋預印本摘要一致） | <https://www.swtest.org/swtw_library/2011proc/PDF/S06_03_Lee_Sadrabadi_SWTW2011.pdf>、<https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11209463>、<https://www.preprints.org/frontend/manuscript/bd88d18f8f89b2ccc5f8bad274527946/download_pub> |
 | E3 | 大尺寸封裝的翹曲設計變數：補強環 vs 上蓋、上蓋腳寬、上蓋厚度與腳寬比、TIM 厚度 | 中 | <https://www.researchgate.net/publication/337955121_Optimal_Lid_Design_Parameters_for_Reducing_Warpage_of_Flip-chip_Package> |
 
 **卡片文字改了一句**：散熱上蓋那一格原本寫「上蓋的腳踩在載板邊緣」—— 幾何改成兩件式之後，裙邊是踩在補強環上，
 改成「上蓋四周的裙邊踩在載板邊緣的補強環上（兩件式：先黏補強環、再黏上蓋）」。
 
 ⚠ 仍是示意：凸塊密度差、fillet 寬度、裙邊厚度、TIM 厚度、重佈線層數。
-新增的兩個 kind（`stiffring`、`ufill`）目前只有這張用；`bump` 的 `v:'c4'`／`keep` 與 `lid` 的 `drop`／`tim` 都是新欄位，沒給就跟以前一樣。
+新增的三個 kind（`stiffring`、`ufill`、`hbmstk`）目前只有這張用；`bump` 的 `v:'c4'`／`keep` 與 `lid` 的 `drop`／`tim` 都是新欄位，沒給就跟以前一樣。

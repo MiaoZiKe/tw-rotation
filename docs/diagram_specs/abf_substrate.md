@@ -556,3 +556,24 @@ C4 凸塊（9）、微凸塊（10）、BGA 錫球（11）、晶粒與中介層�
 | 2026-09-21 | pcb-substrate-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**四組來源打架已記錄並各自給了處理方式**：B1（線寬 18/18 vs 8/8 vs ＜10 µm → 畫面不寫載板線寬數字）、B2（封裝尺寸只有 blog 來源 → 不寫 mm）、B3／B4（CTE 與玻璃核心的量化數字來源太軟 → 只寫定性）、B5（供需缺口三個數字互相矛盾 → 完全不進畫面）。**六條查不到**列在 §C。**3D 的判斷與「什麼條件才回頭加」寫在 §0-A**，不重演 MLCC 的事後補簽。**跟兩張鄰居圖的分工寫在 §0-B**，並在 §2 與 §6-M6 列出「不准重複畫的五樣東西」。另外在 §7-D1 記了一條**既有文件的錯誤**：`pcb_stackup.md` §7-D1 對 `CHAIN_EXTRA` 的機制描述與程式碼不符 |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26 晚，細緻化第二批；3D 設計專責）
+
+> 3D 場景是 `SCENES.ic_substrate`（DECISIONS #250）。零件清單、編號、位置、爆炸位移、台股、卡片文字**都沒動**。
+> 主機板那一件用的是全站共用的 `pcb` kind（AI 伺服器機櫃也用），這一批**刻意沒碰**（平行作業規則：共用建造函式不動）。
+
+| 零件 | 補了什麼 | 依據 |
+|---|---|---|
+| 核心層 core | 剖面上的織紋從「一排圓 ＋ 一條直帶」改成**兩層平織玻纖布**：經紗被切斷成一排**扁橢圓紗束**；緯紗是一條**上下穿梭的波浪帶**（越過一束、鑽過下一束），兩層布的相位錯開半格 | E1、E2 |
+| 增層裡的細線路 | 每一層銅在微孔的位置多一顆**比細線寬的墊**（微孔落下去那一層是目標墊、起頭那一層是捕捉墊），細線避開墊；墊與微孔／疊孔共用同一支 `abfViaX()`，合攏時每一顆孔都坐在墊上 | E3；本規格 §3-B（孔對不準銅就導不通） |
+| BGA 錫球 | 每一顆球頂一片銅墊（球是焊在載板背面的墊上） | 本規格 §3（下表面是 BGA 球墊） |
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| E1 | 玻纖布經緯交錯處是兩股紗厚（knuckle），紗與紗之間是 0 股（只剩樹脂） | 中（IPC 技術文件摘要） | <https://www.electronics.org/system/files/technical_resource/E8&S06_03.pdf> |
+| E2 | 紗束剖面可以是圓或橢圓／扁平；FC-BGA 的核心是玻纖布補強的 BT 或環氧樹脂（CCL），上面再疊 ABF 增層 | 中（專利＋產業部落格摘要） | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8044499>、<https://polymerinnovationblog.com/polymers-in-electronic-packaging-semiconductor-substrates-for-flip-chip/> |
+| E3 | 微孔起頭那一層是捕捉墊、落點那一層是目標墊；墊要大到吃得下對位、雷射位置與電鍍變異 | 中（兩家板廠設計指南摘要一致） | <https://www.protoexpress.com/blog/how-to-design-reliable-microvias-in-your-pcbs/>、<https://proactivepcb.com/articles/pcb-design-dfm/hdi-pcb-microvia-design-rules/> |
+
+⚠ 仍是示意：布的層數、紗數、墊寬、線寬。

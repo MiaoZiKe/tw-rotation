@@ -528,3 +528,37 @@ P-Q 曲線為示意，座標軸不標數值
 | 2026-09-21 | ai-server-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**這張圖的來源品質是三張裡最弱的**（大量集中在風扇廠與 PC 零件站的部落格），所以多加了一條紅線 §6-N2：**畫面上一個風扇規格數字都不寫**。**來源打架三條已記錄並各自給了處理方式**：B3（軸承壽命小時數，FDB 的數字竟然低於滾珠、與同一批來源的定性結論矛盾 → 只寫排序不寫小時數）、B2（液冷帶走熱量的佔比，分母不一致 → 與 `liquid_cooling.md` 用同一套寫法）、B1（P-Q 曲線的靜壓數值只有風扇廠部落格一個來源且沒有對應風量 → 座標軸不標數值）。**六條查不到**已列在 §C，其中「1U/2U 沒有通用散熱目標值」這條**反而要正面寫進畫面**，因為它本身就是結論。**3D 的判斷寫在 §0 並額外列了一條「假的 3D 理由」**（「風扇會轉所以要 3D」——那是動畫需求不是 3D 需求），這是三張裡最需要防守的一張。**最嚴重的族群／環節落差在 §7-D3**：族群 9 檔、環節 6 家，缺的 4 家（超眾、泰碩、力致、元山）正好是這張圖的主角，而且補進去會頂到 `SC_ISO_MAX` 棘輪 —— 建議交給 Andy 校訂，本規格書不動 YAML |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26 第二批，B 組）
+
+3D 場景 `SCENES.air_cooling`。零件清單、編號、對應台股都沒動；**卡片文字只改一句**（輪轂：「杯壁內側那一圈**方塊**是轉子磁鐵」→「那一圈是轉子磁鐵（一整圈環形磁鐵、充磁成 N／S 交替，黏在鋼製轉子軛上）」，因為磁鐵從八塊方塊改成了一整圈）。
+鰭片組改用專用的 `acsink`（共用的 `heatsink` 交換器板卡也在用）。
+
+| 零件 | 補了什麼 | 依據 |
+|---|---|---|
+| 扇框 | 以前中央是八根對穿的細棍子、馬達沒地方坐。改成後側一個**馬達座**、**四根支撐臂**斜伸到四角方向、其中一根上一道**走線槽**、進風口一圈**導流唇** | F1 |
+| 前／後轉子 | 拿掉**雙面材質**（葉片是封閉實體，不需要；雙面材質會多編一支 shader，是首次畫圖變慢的主因之一）| A 組實測 |
+| 輪轂 | 三層同心：塑膠杯 → **鋼製轉子軛** → **一整圈環形磁鐵**（八條極界細線）；杯底中央一個**軸座**。杯壁改成有厚度的封閉環，不用雙面材質 | F2 |
+| 馬達（定子）| 每個齒看得到**四片矽鋼片疊層**、齒尖**極靴**、中央**黃銅軸承管**；驅動板改成圓的，上面有**霍爾元件**與驅動 IC | F2、F3 |
+| 軸承 | 前後各一顆：**外環＋內環＋鋼珠＋黃銅保持架**（以前只有外環與浮在軸外的鋼珠）| F3 |
+| 四線接頭 | 補**卡榫**與**四個端子孔**（一眼數得出四線）| F4 |
+| 風扇牆 | 以前是「一片實心背板＋四個圓環」（背板把風擋死了）。改成每顆一個**方形扇框**（中間挖圓孔）＋上下**托架軌**、前面每顆一片**護網**（三圈＋輻條）、葉片換成**彎刀形**（仍是一個 InstancedMesh、仍每幀轉）| — |
+| 導風罩 | 拿掉雙面材質；補**進風端法蘭**與頂蓋**三條加強肋** | — |
+| 散熱鰭片組 | **扣合式鰭片**（每片上下折邊）、**熱管冷凝段橫穿整疊鰭片**兩端露出、四角**彈簧螺絲** | F5 |
+| 均熱板／熱管 | 同液冷那一張（共用件）：上毛細、注液管、焊邊；熱管封口尾巴 | 見 liquid_cooling.md L6、L7 |
+
+**效能（改前 → 改後）**：draw call 57 → 54（上限 300；批次27 的 draw call 棘輪沒有放寬）、三角形 9,942 → 21,434（上限 150,000；批次27 的三角形上限改成改後 ×1.5）、首次畫圖（對 769a4e5 同頁交錯量）1.11 倍 → 1.03 倍（上限 1.3 倍）。三角形變多是刻意加的細節，draw call 反而變少（同材質併成一個 mesh）。
+
+> 證據等級：全部是 WebSearch 摘要，沒有讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| F1 | 風扇框以支撐臂撐住中央的馬達座；高階款在框上模鑄黃銅軸承座 | 中 | <https://www.mouser.com/pdfDocs/SanyoDenki_Brushless_DC_Axial_Cooling_Fans.pdf>、<https://onlinedocs.microchip.com/oxy/GUID-0607E6C7-3E40-4169-A33F-0462792573CC-en-US-7/GUID-33815389-480B-4236-87D0-A2B5AC79A782.html> |
+| F2 | 外轉子：**杯狀轉子軛**內圈黏一個**環形磁鐵**，軸壓在軸套裡隨轉子轉；定子＝線圈＋霍爾元件等裝在電路板上 | 中～高（兩篇專利摘要＋一份原廠說明一致）| <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7619337>、<https://patents.google.com/patent/US5095238?oq=brushless+dc+motor>、<https://www.mouser.com/pdfDocs/SanyoDenki_Brushless_DC_Axial_Cooling_Fans.pdf> |
+| F3 | 霍爾元件裝在定子側、回授轉子位置給驅動電路；徑向軸承支撐轉軸 | 中 | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7619337>、<https://www.allaboutcircuits.com/textbook/alternating-current/chpt-13/brushless-dc-motor/> |
+| F4 | 反轉雙轉子風扇：兩組葉輪反向旋轉；伺服器風扇有 PWM 控速與轉速回授（四線）| 高 | <https://products.sanyodenki.com/en/sanace/dc/counter-rotating-fan/>、<https://www.digikey.com/en/product-highlight/s/sanyo-denki/counter-rotating-fans> |
+| F5 | 伺服器散熱器：VC 底座或熱管焊在底座上，**沖壓鰭片以卡扣（zipper fin）互扣**成一疊；熱管穿過鰭片 | 中～高 | <https://www.boydcorp.com/thermal/two-phase-cooling/vapor-chambers/3d-vapor-chamber-assemblies.html>、<https://www.qats.com/cms/2019/05/01/thermal-performance-of-heat-sinks-with-heat-pipes-or-vapor-chambers-for-servers/> |
+
+⚠ 仍是示意：磁極數（八極）、齒數（六齒）、疊層片數（四片）、熱管穿過鰭片的根數與位置；軸承畫的是滾珠型（規格書 §3-B 的四型之一）。
