@@ -23,6 +23,9 @@ Andy：「版面看起來舒服，功能都很單一，一頁就知道這頁功�
 門檻是「比拉開時窄 10%」，新版 K 線寬 1040px 時週線自然範圍剛好是拉開時的 94% —— 斷言沒改，照實記在這）。
 合併 main 之前另跑：資金流向、產業、題材、季節性、市場明細、熱力圖v2、明亮主題、淺色主題、網頁版號、設定面板、手機 全 0。
 pytest 639 passed（只動 `site/**` 與 `_uitest.py`，照規矩可跳，仍跑了一輪）。沒跑：其餘二十幾段（批次2／3／7、新-版面等高、K線縮放…）。
+- **交給 Codex 設計（2026-09-26 晚，Andy：「我需要提供網頁給 codeX 設計」）**：說明書 `docs/codex_design_brief.md`
+  （分支規則：從本分支開 `codex/ui-design`、PR 合回本分支、絕不推 main；setup script 要先 `build_payload`；可改／不可改的檔案；硬規則；驗收段落）。
+  `_preview.py`／`_uitest.py`／`_show.py` 的 Chromium 路徑改成「有 /opt/pw-browsers/chromium 才用，沒有就用 Playwright 自己裝的」，Codex 環境才跑得起來。
 - **命名提案（2026-09-26 晚，Andy：「幫我想個親近點又好記住的名稱以及對應圖案」）**：四個方向，圖在 `docs/brand/`（四支 SVG ＋ 提案圖）。
   推薦〈輪輪〉（標語「看錢往哪輪」，圖案＝資金輪盤四象限＋笑臉），其餘〈錢往哪〉〈跟錢走〉〈錢脈〉。
   已套到新版分支的左上角、<title>、分頁小圖示（`site/icons/lunlun.svg`）；**沒動**：PNG 圖示組、manifest、法律頁的 site_name（`legal_config.js`，命名定案再改）。

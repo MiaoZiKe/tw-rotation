@@ -13,6 +13,9 @@
 from __future__ import annotations
 
 import os
+# 瀏覽器：Claude 的雲端容器有預裝的 Chromium（/opt/pw-browsers/chromium）；別的環境（例如 Codex、本機）
+# 沒有這個路徑，就交給 Playwright 用它自己 `playwright install chromium` 裝的那一顆。
+_CHROMIUM = '/opt/pw-browsers/chromium' if os.path.exists('/opt/pw-browsers/chromium') else None
 import argparse
 import json
 import math
@@ -16884,7 +16887,7 @@ def main() -> int:
     t0 = time.time()
 
     with sync_playwright() as p:
-        b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium", headless=not args.headed)
+        b = p.chromium.launch(executable_path=_CHROMIUM, headless=not args.headed)
         pg = b.new_page(viewport={"width": 1500, "height": 1000})
         pg.on("pageerror", lambda e: fails.append("pageerror: " + str(e).replace(chr(10), " / ") + " || STACK: " + ((getattr(e, "stack", "") or "").replace(chr(10), " / ")[:600]) + " || URL: " + pg.url))
         # 缺頁測試會故意讓一個個股頁回 404，那一筆不算問題

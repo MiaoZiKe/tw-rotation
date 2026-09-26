@@ -28,6 +28,9 @@ from __future__ import annotations
 
 import argparse
 import os
+# 瀏覽器：Claude 的雲端容器有預裝的 Chromium（/opt/pw-browsers/chromium）；別的環境（例如 Codex、本機）
+# 沒有這個路徑，就交給 Playwright 用它自己 `playwright install chromium` 裝的那一顆。
+_CHROMIUM = '/opt/pw-browsers/chromium' if os.path.exists('/opt/pw-browsers/chromium') else None
 import shutil
 import threading
 from functools import partial
@@ -115,7 +118,7 @@ def main() -> int:
     errs: list[str] = []
     try:
         with sync_playwright() as p:
-            b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
+            b = p.chromium.launch(executable_path=_CHROMIUM)
             for w in [int(x) for x in args.width.split(",") if x.strip()]:
                 pg = b.new_page(viewport={"width": w, "height": args.height},
                                 device_scale_factor=args.zoom)
