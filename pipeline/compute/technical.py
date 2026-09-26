@@ -596,7 +596,7 @@ def _checks(*, close, last, demand, atr_val, trend_up, choch_up, above_ma60, in_
     if choch_up:
         trend_tail = "，近 20 根出現 CHoCH 翻多"
     elif trend_now == 1:
-        trend_tail = ""
+        trend_tail = "（近 20 根沒有新的 CHoCH，沿用既有多頭結構）"
     else:
         trend_tail = "，近 20 根沒有 CHoCH 翻多"
     if sweep_low:
@@ -619,7 +619,7 @@ def _checks(*, close, last, demand, atr_val, trend_up, choch_up, above_ma60, in_
              "日線下方沒有通過門檻（≥2 個來源交集）的需求區"),
         item("zone", "需求區多源交集", zone_ok,
              f"需求區分數 {_num(z.score)}（門檻 {ZONE_MIN_SCORE:.1f}），來源 {'、'.join(z.sources[:3])}"
-             if z else "沒有可用的需求區"),
+             if z else f"沒有可用的需求區（需 ≥ 2 個來源、分數 ≥ {ZONE_MIN_SCORE:.1f}）"),
         item("trigger", "出現確認訊號", trig, trig_text),
         item("rr", "風報比 ≥ 1.8", np.isfinite(rr_a) and rr_a >= 1.8,
              f"風報比 {_num(rr_a)}（停損 {_px(stop_a)}，門檻 1.8）"),
@@ -639,7 +639,7 @@ def _checks(*, close, last, demand, atr_val, trend_up, choch_up, above_ma60, in_
     risk = {
         "a": {"ok": bool(np.isfinite(risk_a) and risk_a <= MAX_RISK_PCT), "pct": _f2(risk_a),
               "stop": _f2(stop_a), "max": MAX_RISK_PCT,
-              "text": f"回檔承接的停損 {_px(stop_a)}，距現價 {_num(risk_a)}%（上限 {MAX_RISK_PCT:.0f}%）"
+              "text": f"回檔型態的停損 {_px(stop_a)}，距現價 {_num(risk_a)}%（上限 {MAX_RISK_PCT:.0f}%）"
                       + (f"；日波動 {_num(ap)}%" if pd.notna(ap) else "")},
         "b": {"ok": bool(np.isfinite(risk_b) and risk_b <= MAX_RISK_PCT), "pct": _f2(risk_b),
               "stop": _f2(stop_b), "max": MAX_RISK_PCT,

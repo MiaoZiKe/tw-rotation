@@ -138,7 +138,7 @@ def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
     risk_a = (ck.get("risk") or {}).get("a") or {}
     if grade in ("A", "B"):
         stance = "可留意"
-        reasons.append("回檔承接條件全部成立（A 級）" if grade == "A" else "突破條件全部成立（B 級）")
+        reasons.append("回檔型態的條件全部成立（A 級）" if grade == "A" else "突破型態的條件全部成立（B 級）")
         if v.get("weekly_note"):
             reasons.append(v["weekly_note"])
     elif vword.startswith("觀望（逆勢"):
@@ -154,13 +154,16 @@ def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
         stance = "觀望"
     if stance != "可留意" and ck:
         fa = [c for c in ck.get("a", []) if not c["ok"]]
+        # 沒有需求區時「價格回到需求區」與「需求區多源交集」講的是同一件事，只留前一條
+        if any(c["key"] == "in_demand" for c in fa) and not (v.get("demand") or []):
+            fa = [c for c in fa if c["key"] != "zone"]
         fb = [c for c in ck.get("b", []) if not c["ok"]]
-        reasons.append(f"回檔承接（A）{ck.get('n_a', 6)} 條中 {ck.get('met_a', 0)} 條成立；未成立："
+        reasons.append(f"回檔型態（A）{ck.get('n_a', 6)} 條中 {ck.get('met_a', 0)} 條成立；未成立："
                        + "；".join(f"{c['name']}——{c['text']}" for c in fa[:3]) if fa else
-                       f"回檔承接（A）{ck.get('n_a', 6)} 條都成立")
-        reasons.append(f"突破追進（B）{ck.get('n_b', 5)} 條中 {ck.get('met_b', 0)} 條成立；未成立："
+                       f"回檔型態（A）{ck.get('n_a', 6)} 條都成立")
+        reasons.append(f"突破型態（B）{ck.get('n_b', 5)} 條中 {ck.get('met_b', 0)} 條成立；未成立："
                        + "；".join(f"{c['name']}——{c['text']}" for c in fb[:3]) if fb else
-                       f"突破追進（B）{ck.get('n_b', 5)} 條都成立")
+                       f"突破型態（B）{ck.get('n_b', 5)} 條都成立")
         if risk_a and not risk_a.get("ok"):
             reasons.append(f"停損距離過大：{risk_a.get('text')}（規則不縮停損去湊風報比）")
     # 週期衝突：大週期與小週期方向相反，是「觀望」最常見、也最該講出來的原因
@@ -179,9 +182,9 @@ def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
         if ca.get("in_demand") and not ca["in_demand"]["ok"]:
             if dz:
                 ifs.append(f"若價格回到日線需求區 {_px(dz['low'])}–{_px(dz['high'])}，且出現 KD 低檔金叉、"
-                           "MACD 柱翻正或假跌破收回其中之一，回檔承接的位置與訊號條件才會補齊")
+                           "MACD 柱翻正或假跌破收回其中之一，回檔型態的位置與訊號條件才會補齊")
             else:
-                ifs.append("日線下方目前沒有通過門檻的需求區；若之後形成（至少兩個來源交集），回檔承接才有位置依據")
+                ifs.append("日線下方目前沒有通過門檻的需求區；若之後形成（至少兩個來源交集），回檔型態才有位置依據")
         elif ca.get("trigger") and not ca["trigger"]["ok"]:
             ifs.append("價格已在需求區內；若出現 KD 低檔金叉、MACD 柱翻正或假跌破收回其中之一，確認訊號條件才會成立")
         if cb.get("breakout") and not cb["breakout"]["ok"]:
@@ -462,7 +465,7 @@ def build(*, verdict: dict | None, mtf_res: dict | None, inst_v3: dict | None, m
     ck = (verdict or {}).get("checks") or {}
     ra = (ck.get("risk") or {}).get("a") or {}
     if tech["stance"] == "觀望" and ck:
-        brief = f"回檔承接 {ck.get('met_a', 0)}/{ck.get('n_a', 6)}、突破 {ck.get('met_b', 0)}/{ck.get('n_b', 5)} 條成立"
+        brief = f"回檔型態 {ck.get('met_a', 0)}/{ck.get('n_a', 6)}、突破型態 {ck.get('met_b', 0)}/{ck.get('n_b', 5)} 條成立"
         if ra and not ra.get("ok") and ra.get("pct") is not None:
             brief += f"；停損距離 {ra['pct']:.1f}% 超過 {ra.get('max', 8):.0f}%"
     elif tech["reasons"]:

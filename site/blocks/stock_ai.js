@@ -133,9 +133,9 @@
       <ul class="aiwhy" id="aiWhy">${(t.reasons || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul>
       ${t.ifs && t.ifs.length ? `<div class="aisub">若…則…（狀態會在什麼情況下改變）</div>${ul(t.ifs)}` : ''}
       ${t.plan ? `<div class="aisub">${esc(t.plan)}</div>` : ''}
-      ${ck ? `<details class="aick"><summary>逐條條件：回檔承接 ${ck.met_a}/${ck.n_a}・突破 ${ck.met_b}/${ck.n_b}</summary>
-        <div class="aisub">回檔承接（A）</div>${ckList(ck.a)}
-        <div class="aisub">突破追進（B）</div>${ckList(ck.b)}
+      ${ck ? `<details class="aick"><summary>逐條條件：回檔型態 ${ck.met_a}/${ck.n_a}・突破型態 ${ck.met_b}/${ck.n_b}</summary>
+        <div class="aisub">回檔型態（A）</div>${ckList(ck.a)}
+        <div class="aisub">突破型態（B）</div>${ckList(ck.b)}
         ${ck.risk && ck.risk.a ? `<div class="ck ${ck.risk.a.ok ? 'ok' : 'no'}"><span class="m">${ck.risk.a.ok ? '✓' : '✗'}</span><span><b>停損距離</b>：${esc(ck.risk.a.text)}</span></div>` : ''}
       </details>` : ''}
       <div class="aisub">支撐／壓力區（1 小時～週線，由近到遠）</div>
@@ -163,7 +163,7 @@
     const how = window.App && window.App.howHTML ? window.App.howHTML('這張卡：四個面向的規則式判讀。', [
       '「AI 分析」是寫死的規則算的，非語言模型',
       '技術：SMC 結構、均線、RSI、支撐壓力',
-      '狀態＝回檔承接／突破兩套條件是否成立',
+      '狀態＝回檔、突破兩套型態條件是否成立',
       '籌碼看法人融資集保；基本看估值營收 EPS',
       '消息只數公告新聞；四面向不加總、非建議',
     ]) : '';
