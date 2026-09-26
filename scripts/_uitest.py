@@ -8936,7 +8936,11 @@ def t_zoom_sweep(pg, base, code):
     #   所以拿掉，讓白名單忠實反映畫面上真的存在的縮放入口。
     # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：改前白名單有資金流向頁的 `rotZoomBtn` → 改後那顆拿掉，
     #   白名單同步拿掉它（白名單只反映畫面上真的存在、而且 Andy 要的縮放入口）。另外在資金流向頁正面驗它不在。
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap")
+    # ★ 2026-09-26 改前→改後（Andy 原話：「熱門題材，需要跟資金熱力圖一樣有放大功能」）：
+    #   改前總覽只有資金熱力圖一顆 `heatZoom` → 改後總覽「熱門題材」卡多一顆 `ovThemeZoom`（同一支 openZoom）。
+    #   這是 Andy 開口要的，依 DECISIONS #185「白名單只能因為他開口而變長」加上。
+    #   ⚠ 白名單是子字串比對而且分大小寫：`themeZoom` 比不到 `ovThemeZoom`（T 大寫），所以要明寫。
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "ovThemeZoom", "trustWrap", "peWrap")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
@@ -14307,6 +14311,8 @@ SECTIONS = {
     "小數點普查":          lambda pg, b, base, code: t_decimal_audit(b, base, code),
     # ★ 2026-09-26 Andy：搜尋加「近期搜尋紀錄」、熱門股票、名稱旁公司 Logo（個股頁標題也要）（⚠ 一律 --workers 1）
     "搜尋近期熱門Logo":    lambda pg, b, base, code: t_search_recent_logo(pg, b, base),
+    # ★ 2026-09-26 Andy 總覽三件：大盤三張圖量副圖不見、熱門題材要能放大、足跡輪盤點族群不能推動版面（⚠ 一律 --workers 1）
+    "總覽修正0926b":       lambda pg, b, base, code: t_ov_fix_0926b(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -32505,6 +32511,239 @@ def t_search_recent_logo(pg, b, base):
     # 收尾：不要把紀錄留給後面的段落
     pg.evaluate("() => { try { localStorage.removeItem('tw.search.recent'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1440, "height": 1000})
+def t_ov_fix_0926b(b, base, code):
+    """總覽三件（Andy 2026-09-26）的真人操作驗收：
+      ① 「底下成交量不見了」—— 先在個股頁「指標 ▾」把成交量點掉（這就是唯一重現得出來的條件：tw.kcfg 兩頁共用），
+         再回總覽：日 K 與 1／5／15／30 分、1H、4H、週、月，三張 K 線都要有量副圖、量柱根數 > 0；走勢圖也要有量。
+         最後回個股頁把成交量打開，個股頁量副圖要回來（個股頁不能因此壞掉）。
+      ② 「熱門題材，需要跟資金熱力圖一樣有放大功能」—— 放大開得出、放大裡的題材下拉可切而且卡片同步、Esc 先關下拉再關放大、✕ 關得掉。
+      ③ 「足跡輪盤點擊族群會影響到旁邊的版面」—— 點族群前後，「昨日資金去向」與左欄兩張卡的 top／高度變化 ≤ 1px；
+         面板內容對、蓋在輪盤範圍內、不蓋到剛點的那顆；再點一次／Esc／點外面都收得起來。"""
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+    # ★ 自己開一個擋掉 Service Worker 的環境：sw.js 註冊之後，頁面的 fetch 先經過 SW，
+    #   Playwright 的 page.route 就攔不到假的即時代理（實測三張圖全報「Failed to fetch」退回日 K，走勢圖驗不到）。
+    ctx = b.new_context(viewport={"width": 1440, "height": 950}, service_workers="block")
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append("【總覽修正0926b】pageerror: " + str(e).replace(chr(10), " / ")
+                                              + " || STACK: " + ((getattr(e, "stack", "") or "").replace(chr(10), " / ")[:400]) + " || URL: " + pg.url))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        _ov_fix_0926b_body(pg, base, code)
+    finally:
+        ctx.close()
+
+
+def _ov_fix_0926b_body(pg, base, code):
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+
+    def fake_chart(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        i = (q.get("id") or ["TSE"])[0].upper()
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(_fake_chart(i)))
+
+    def fake_y(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        sym, iv = (q.get("symbol") or [""])[0], (q.get("interval") or ["1d"])[0]
+        if sym != "^TWII":
+            route.fulfill(status=404, content_type="application/json", body='{"chart":{"result":null}}'); return
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(_fake_yahoo(sym, iv, 400)))
+
+    pg.route("**/chart?*", fake_chart)
+    pg.route("**/y?*", fake_y)
+    pg.route("**/fut?*", lambda r: r.fulfill(status=200, content_type="application/json",
+                                             body='{"RtCode":"0","RtData":{"QuoteList":[]}}'))
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    # 等 boot 跑完（window.App 掛好）才換 hash：還沒掛好就換到 #stock 會踩到 industry.js 的 A.load（那是測試自己造成的時序，不是產品問題）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.evaluate("""() => { try { ['tw.kcfg','tw.m3.mode','tw.m3.tf','tw.m3.big','tw.m3.fut'].forEach(k => localStorage.removeItem(k));
+        localStorage.setItem('tw.live.proxy','https://fake-worker.test'); localStorage.setItem('tw.theme','dark'); } catch (e) {} }""")
+
+    # ================================================================ ① 成交量副圖
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    DBG = "() => window.Industry._dbg()"
+    if ok("[0926b-①] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
+        ok("[0926b-①] 個股頁預設有成交量副圖（前提）", "vol" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
+        ind_toggle(pg, "vol", 900)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        kv = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.kcfg') || '{}').vol; } catch (e) { return 'err'; } }")
+        ok("[0926b-①] 在個股頁把成交量點掉 → tw.kcfg 真的存成 vol:false（重現 Andy 的條件）", kv is False, kv)
+        ok("[0926b-①] 個股頁的量副圖真的關掉了", "vol" not in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
+
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    # 走勢圖：三張都有量柱（ECharts 的 bar series，點數 > 0）
+    LN = """() => ['TSE','OTC','FUT'].map(id => { const el = document.getElementById('m3c-' + id);
+        const i = el && el.dataset.kind === 'line' && window.echarts && echarts.getInstanceByDom(el); if (!i) return 0;
+        const s = (i.getOption().series || []).find(s => s.type === 'bar'); return s ? (s.data || []).filter(v => v != null).length : 0; })"""
+    wait_until(pg, "() => (" + LN + ")().every(n => n > 0) ? 1 : 0", 8000)
+    ln = pg.evaluate(LN)
+    ok("[0926b-①] 走勢圖三張都有量柱", all(n > 0 for n in ln), (ln, pg.evaluate("""() => ({ mode: window.Market3.state.mode, h: location.hash,
+        k: ['TSE','OTC','FUT'].map(id => { const el = document.getElementById('m3c-' + id); const i = el && echarts.getInstanceByDom(el);
+        return [el && el.dataset.kind, el && el.dataset.fallback, i ? (i.getOption().series || []).map(s => s.type + ':' + (s.data || []).length) : null]; }),
+        err: JSON.stringify(window.Market3.state.err), px: localStorage.getItem('tw.live.proxy') })""")))
+    click(pg, "#m3Mode button[data-m='k']", 1200)
+    VOL = """(tf) => ['TSE','OTC','FUT'].map(id => { const k = window.Market3.state.kcharts[id];
+        if (!k) return { id, ok: false, why: '沒有圖' };
+        const vs = k.panes && k.panes.vol && k.panes.vol[0];
+        let n = 0; try { n = vs ? vs.data().filter(p => p.value > 0).length : 0; } catch (e) { n = -1; }
+        let h = 0; try { const ps = k.chart.panes(); h = k.paneIndex.vol != null && ps[k.paneIndex.vol] ? Math.round(ps[k.paneIndex.vol].getHeight()) : 0; } catch (e) {}
+        return { id, ok: !!(k.paneIndex && k.paneIndex.vol != null) && n > 0 && h >= 25, key: String(k._m3key || '').split('|').slice(1, 3).join('|'), bars: (k.data || []).length, volBars: n, volH: h }; })"""
+    for tf, lab in (("D", "日 K"), ("1", "1 分"), ("5", "5 分"), ("15", "15 分"), ("30", "30 分"),
+                    ("H1", "1 小時"), ("H4", "4 小時"), ("W", "週 K"), ("M", "月 K")):
+        pg.select_option("#m3Tf", tf)
+        wait_until(pg, "(tf) => ['TSE','OTC','FUT'].every(id => { const k = window.Market3.state.kcharts[id]; return k && String(k._m3key).split('|')[1] === tf; })".replace("(tf) =>", "() =>").replace("=== tf", f"=== '{tf}'"), 6000)
+        pg.wait_for_timeout(500)
+        r = pg.evaluate(VOL, tf)
+        ok(f"★ [0926b-①] {lab}：三張 K 線都有量副圖、量柱 > 0（個股頁關掉成交量也一樣）", all(x["ok"] for x in r), r)
+    pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(1500)
+    # 個股頁把成交量打開回來 → 個股頁的量副圖要回來（個股頁不能因為這次修改壞掉）
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    if count(pg, "#lwc canvas") > 0:
+        ind_toggle(pg, "vol", 900)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        ok("[0926b-①] 個股頁把成交量打開 → 量副圖回來", "vol" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
+    pg.evaluate("() => { try { ['tw.kcfg','tw.m3.mode','tw.m3.tf'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+
+    # ================================================================ ② 熱門題材放大
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.eval_on_selector("#ovThemeCard", "el => el.scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(400)
+    zb = pg.evaluate("""() => { const b = document.getElementById('ovThemeZoom'), d = document.getElementById('ovThemeDate');
+        if (!b) return null; const r = b.getBoundingClientRect(), c = document.getElementById('ovThemeCard').getBoundingClientRect();
+        return { txt: b.textContent.trim(), vis: r.width > 0 && r.height > 0, right: c.right - r.right, top: r.top - c.top,
+                 sameRow: d ? Math.abs((d.getBoundingClientRect().top + d.getBoundingClientRect().height / 2) - (r.top + r.height / 2)) < 12 : false }; }""")
+    if ok("[0926b-②] 熱門題材卡右上角有「放大 ⤢」", bool(zb) and zb["vis"] and "放大" in zb["txt"], zb):
+        ok("[0926b-②] 放大鈕跟日期同一列、在卡片右上", zb["sameRow"] and zb["right"] < 40 and zb["top"] < 50, zb)
+        n_themes = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('ovTheme')); return i ? i.getOption().series[0].data.length : 0; }")
+        click(pg, "#ovThemeZoom", 900)
+        Z = """() => { const ov = document.getElementById('zoomOv'), b = document.getElementById('zoomBody');
+            const i = b && echarts.getInstanceByDom(b); const r = ov ? ov.getBoundingClientRect() : {};
+            return { open: !!ov && !ov.hidden, title: (document.getElementById('zoomTitle') || {}).textContent || '',
+                     n: i ? (i.getOption().series[0].data || []).length : 0, level: b ? b.dataset.level : '',
+                     full: r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.9,
+                     dd: !!document.querySelector('#zoomOv #ovThemeZoomDD'), ddTxt: ((document.querySelector('#ovThemeZoomDD .ddbtn b') || {}).textContent || '') }; }"""
+        z0 = pg.evaluate(Z)
+        ok("★ [0926b-②] 按「放大」→ 全螢幕放大視窗打開、標題是熱門題材", z0["open"] and z0["full"] and "熱門題材" in z0["title"], z0)
+        ok("[0926b-②] 放大視窗畫的是同一張題材熱力圖（方塊數跟卡片一樣）", z0["n"] == n_themes and n_themes > 0 and z0["level"] == "themes", (z0, n_themes))
+        ok("[0926b-②] 放大視窗裡也有同一顆題材下拉", z0["dd"] and z0["ddTxt"] == "全部", z0)
+        h0 = canvas_hash(pg, "#zoomBody")
+        click(pg, "#ovThemeZoomDD .ddbtn", 400)
+        opts = pg.evaluate("() => [...document.querySelectorAll('#ovThemeZoomDD .ddpanel:not([hidden]) .ddopt')].map(o => [o.dataset.t, o.textContent.trim()])")
+        if ok("[0926b-②] 放大視窗裡的下拉打得開、列得出題材", len(opts) >= 3, len(opts)):
+            tid, tname = opts[1][0], opts[1][1].split("熱度")[0].strip()
+            click(pg, f'#ovThemeZoomDD .ddopt[data-t="{tid}"]', 900)
+            z1 = pg.evaluate(Z)
+            ok("★ [0926b-②] 在放大裡選題材 → 放大視窗換成那個題材的成分股", z1["level"] == "members" and z1["ddTxt"] == tname, z1)
+            changed("[0926b-②] 放大視窗的圖真的換了", h0, canvas_hash(pg, "#zoomBody"))
+            card = pg.evaluate("() => ({ level: document.getElementById('ovTheme').dataset.level, dd: (document.querySelector('#ovThemeDD .ddbtn b') || {}).textContent || '' })")
+            ok("★ [0926b-②] 卡片同步換成同一個題材（兩顆下拉同步）", card["level"] == "members" and card["dd"] == tname, card)
+            # Esc：下拉開著時先關下拉，放大視窗還在；再按一次才關放大
+            click(pg, "#ovThemeZoomDD .ddbtn", 350)
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+            st = pg.evaluate("() => ({ dd: document.querySelector('#ovThemeZoomDD .ddpanel').hidden, ov: document.getElementById('zoomOv').hidden })")
+            ok("[0926b-②] 下拉開著按 Esc → 只關下拉、放大視窗還在", st["dd"] and not st["ov"], st)
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+            ok("★ [0926b-②] 再按 Esc → 放大視窗關掉", pg.evaluate("() => document.getElementById('zoomOv').hidden"))
+            ok("[0926b-②] 關掉後卡片停在剛剛選的題材", pg.evaluate("() => document.getElementById('ovTheme').dataset.level") == "members")
+            # 再開：從卡片目前的題材開始；在放大裡選「全部」→ 兩邊回題材層；✕ 關
+            click(pg, "#ovThemeZoom", 900)
+            ok("[0926b-②] 再打開放大 → 從卡片目前的題材開始", pg.evaluate(Z)["level"] == "members")
+            # 點成分股方塊 → 先關放大、再進個股頁
+            tile = pg.evaluate("""() => { const b = document.getElementById('zoomBody'), i = echarts.getInstanceByDom(b); if (!i) return null;
+                const d = i.getModel().getSeriesByIndex(0).getData(); let best = null;
+                for (let k = 0; k < d.count(); k++) { const l = d.getItemLayout(k), it = d.getRawDataItem(k);
+                  if (l && it && it.code && (!best || l.width * l.height > best.a)) best = { a: l.width * l.height, x: l.x + l.width / 2, y: l.y + l.height / 2, code: it.code }; }
+                if (!best) return null; const r = b.getBoundingClientRect(); return { x: r.left + best.x, y: r.top + best.y, code: best.code }; }""")
+            click(pg, "#ovThemeZoomDD .ddbtn", 350)
+            click(pg, '#ovThemeZoomDD .ddopt[data-t=""]', 900)
+            z2 = pg.evaluate(Z)
+            ok("[0926b-②] 放大裡選「全部題材」→ 回到題材層，卡片也回去", z2["level"] == "themes" and z2["ddTxt"] == "全部"
+               and pg.evaluate("() => document.getElementById('ovTheme').dataset.level") == "themes", z2)
+            click(pg, "#zoomClose", 400)
+            ok("[0926b-②] 按 ✕ → 放大視窗關掉", pg.evaluate("() => document.getElementById('zoomOv').hidden"))
+            ok("[0926b-②] 放大關掉後頁面可以捲動（body overflow 還原）", pg.evaluate("() => document.body.style.overflow") == "")
+            if tile:
+                # tile 是在成分股層量到的；重新進成分股層再點
+                # 關放大之後 html 的 scroll-behavior:smooth 還在滑，先把卡片瞬間捲到中間再點（不然「element is not stable」）
+                pg.eval_on_selector("#ovThemeCard", "el => el.scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(500)
+                click(pg, "#ovThemeZoom", 900)
+                click(pg, "#ovThemeZoomDD .ddbtn", 350); click(pg, f'#ovThemeZoomDD .ddopt[data-t="{tid}"]', 900)
+                pg.mouse.click(tile["x"], tile["y"]); pg.wait_for_timeout(1200)
+                ok("★ [0926b-②] 放大裡點成分股 → 放大關掉、進那一檔的個股頁",
+                   pg.evaluate("() => document.getElementById('zoomOv').hidden") and pg.evaluate("() => location.hash") == f"#stock/{tile['code']}",
+                   pg.evaluate("() => location.hash"))
+
+    # ================================================================ ③ 足跡輪盤面板不跳版面
+    MEAS = """() => { const g = (id) => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect();
+          return { top: Math.round((r.top + scrollY) * 10) / 10, h: Math.round(r.height * 10) / 10 }; };
+        return { flowHead: g('ovFlowHead'), flowWrap: g('ovFlowWrap'), rotCard: g('ovRotCard'), heatCard: g('ovHeatCard'),
+                 themeCard: g('ovThemeCard'), left: g('ovLeft'), low: (() => { const e = document.querySelector('.ovlow'); if (!e) return null;
+                 const r = e.getBoundingClientRect(); return { top: Math.round((r.top + scrollY) * 10) / 10, h: Math.round(r.height * 10) / 10 }; })() }; }"""
+    DOT = """(pick) => { const e = document.getElementById('rotClockMini'), c = echarts.getInstanceByDom(e); if (!c) return null;
+        const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && (s.data || []).some(d => d && d.row && d.row.gid && !d.row.isStock));
+        if (si < 0) return null; const r = e.getBoundingClientRect();
+        const ds = o.series[si].data.filter(d => d && d.row && d.row.gid && !d.row.isStock).map(d => { const p = c.convertToPixel({seriesIndex: si}, d.value);
+          return { x: r.left + p[0], y: r.top + p[1], oy: p[1], gid: d.row.gid, name: d.row.name, H: r.height }; })
+          .filter(d => d.y > 70 && d.y < innerHeight - 10);
+        if (!ds.length) return null;
+        ds.sort((a, b) => a.oy - b.oy);
+        return pick === 'low' ? ds[ds.length - 1] : ds[0]; }"""
+    PANEL = """() => { const b = document.getElementById('ovRotPanel'); if (!b || b.hidden) return { open: false };
+        const r = b.getBoundingClientRect(), w = document.getElementById('rotClockMiniWrap').getBoundingClientRect();
+        return { open: true, name: ((b.querySelector('.hh b') || {}).textContent || '').trim(), link: (b.querySelector('a.pill') || {}).getAttribute ? b.querySelector('a.pill').getAttribute('href') : '',
+                 n: b.querySelectorAll('.ms a').length, pos: getComputedStyle(b).position, at: b.dataset.at || '',
+                 inWheel: r.top >= w.top - 1 && r.bottom <= w.bottom + 1, inView: r.top >= 0 && r.bottom <= innerHeight,
+                 l: r.left, r: r.right, t: r.top, b: r.bottom }; }"""
+
+    def diff(a, b):
+        out = {}
+        for k in a:
+            if a[k] is None or b.get(k) is None:
+                continue
+            for f in ("top", "h"):
+                dv = abs(a[k][f] - b[k][f])
+                if dv > 1:
+                    out[f"{k}.{f}"] = (a[k][f], b[k][f])
+        return out
+
+    for w in (1440, 1024):
+        tag = f"[0926b-③ {w}]"
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "rotClockMini"); pg.wait_for_timeout(700)
+        if not ok(f"{tag} 桌機輪盤畫得出來（前提）", pg.evaluate("() => !!echarts.getInstanceByDom(document.getElementById('rotClockMini'))")):
+            continue
+        for pick in ("high", "low"):
+            m0 = pg.evaluate(MEAS)
+            d = pg.evaluate(DOT, pick)
+            if not ok(f"{tag} 算得出輪盤上{'上' if pick == 'high' else '下'}半部一顆族群點", bool(d), d):
+                continue
+            pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(900)
+            p = pg.evaluate(PANEL)
+            m1 = pg.evaluate(MEAS)
+            if ok(f"{tag} 點「{d['name']}」→ 面板打開", p["open"], p):
+                ok(f"{tag} 面板標題是剛點的族群、有「進族群頁 →」與成分股",
+                   p["name"] == d["name"] and p["link"] == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
+                ok(f"★ {tag} 面板打開後「昨日資金去向」與左欄卡片的 top／高度都沒動（≤ 1px）", not diff(m0, m1), diff(m0, m1))
+                ok(f"{tag} 面板是浮在輪盤上的覆蓋卡（absolute）、完全落在輪盤範圍內", p["pos"] == "absolute" and p["inWheel"], p)
+                ok(f"{tag} 面板整張在畫面內（貼著剛點的那顆，不會跑到輪盤另一端的畫面外）", p["inView"], p)
+                covered = p["l"] <= d["x"] <= p["r"] and p["t"] <= d["y"] <= p["b"]
+                ok(f"{tag} 面板沒有蓋到剛點的那顆（點{'上' if pick == 'high' else '下'}半部 → 面板放在那顆的{'下' if pick == 'high' else '上'}方）",
+                   not covered and p["at"] == ("bottom" if pick == "high" else "top"), (p, d))
+            # 收起來的三種方式
+            if pick == "high":
+                pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(700)
+                ok(f"★ {tag} 再點一次同一顆 → 面板收起來", not pg.evaluate(PANEL)["open"])
+                pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(700)
+                ok(f"{tag} 第三次點 → 又打開（收／開可以來回）", pg.evaluate(PANEL)["open"])
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+                ok(f"{tag} 按 Esc → 面板收起來", not pg.evaluate(PANEL)["open"])
+            else:
+                pg.click("#ovFlowHead", position={"x": 4, "y": 6}); pg.wait_for_timeout(600)
+                ok(f"{tag} 點面板外面 → 面板收起來", not pg.evaluate(PANEL)["open"])
+            m2 = pg.evaluate(MEAS)
+            ok(f"{tag} 收起來之後版面也沒動（≤ 1px）", not diff(m0, m2), diff(m0, m2))
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 if __name__ == "__main__":

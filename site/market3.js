@@ -2209,6 +2209,17 @@
     } catch (e) { /* 忽略 */ }
     c = Object.assign({}, c);
     delete c.smc; delete c.marks; delete c.lines; delete c.tfs;
+    /* ★ 2026-09-26（Andy：「底下成交量不見了」）：成交量這一格**不吃個股頁的開關**。
+       根因：`tw.kcfg` 是兩頁共用的，個股頁「指標 ▾」下拉（59792cd 起整列就是開關）只要把「成交量」那列點掉，
+       存下去的 `vol:false` 就一路帶到這三張圖 —— 而總覽**沒有任何地方可以把它打開回來**，
+       使用者看到的就是「量副圖整個不見」。乾淨的瀏覽器（沒有 tw.kcfg）在每個寬度、每個週期都重現不出來，
+       唯一重現得出來的條件就是 `tw.kcfg.vol === false`（驗收段「大盤量副圖0926」照這條路實際點過）。
+       Andy 2026-09-25 的要求是「每個週期（1 分～季）都有成交量」，所以這裡一律開量、量均線沒設就用 20；
+       量柱樣式（顏色／透明度）也用這裡的預設 —— 個股頁把透明度拉到很低，這裡同樣會「看起來沒有量」。
+       只有「來源本身沒給量」（hasVol 判定）才收掉面板，那由 drawK 的 cfgOf 決定，不在這裡。*/
+    c.vol = true;
+    if (!(c.volma > 0)) c.volma = 20;
+    if (c.st && c.st.vol) { c.st = Object.assign({}, c.st); delete c.st.vol; }
     if (!expanded) { c.kd = null; c.macd = null; c.rsi = null; c.boll = null; }
     return c;
   }
