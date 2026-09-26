@@ -67,6 +67,7 @@
 #aiCard li{margin:2px 0}
 #aiCard .aitfs{display:grid;grid-template-columns:auto auto 1fr;gap:6px 10px;align-items:baseline;font-size:13.5px}
 #aiCard .aitfs .tfn{color:var(--ink-3);white-space:nowrap}
+#aiCard .aitfs .aitag{justify-self:start}
 #aiCard .aitfs .tfp{color:var(--ink-2);line-height:1.55}
 #aiCard .aisub{margin-top:10px;font-size:13px;color:var(--ink-3);font-weight:600}
 #aiCard .aigrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
@@ -82,7 +83,11 @@
 #aiCard .ainews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
 @media (max-width:1100px){ #aiCard .aigrid3{grid-template-columns:1fr} #aiCard .aigrid3 .aisec{margin-top:12px} }
 @media (max-width:640px){
-  .ailine{align-items:flex-start;max-width:none} .ailine .r1,.ailine .aitags{justify-content:flex-start}
+  .ailine{align-items:stretch;max-width:none;gap:4px;margin-top:6px}
+  .ailine .r1{flex-wrap:nowrap;justify-content:flex-start;align-items:flex-start}
+  .ailine .aibrief{flex:1 1 auto;min-width:0;font-size:12.5px}
+  .ailine .r1 .btn{flex:none;min-height:32px;padding:0 10px}
+  .ailine .aitags{justify-content:flex-start}
   #aiCard .aitfs{grid-template-columns:auto 1fr} #aiCard .aitfs .tfp{grid-column:1 / -1;margin:-2px 0 4px}
   #aiCard .ailv{grid-template-columns:1fr}
 }`;
@@ -213,7 +218,10 @@
         const tab = [...document.querySelectorAll('.mpager button')].find(b => b.textContent.trim() === 'AI 分析');
         if (tab) tab.click();
       }
-      try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { host.scrollIntoView(); }
+      // 頂欄是 sticky 的（手機還有分段列），直接 scrollIntoView 會讓卡片標題躲在頂欄底下 —— 扣掉頂欄高度再捲
+      const bar = document.querySelector('.topbar, header');
+      const off = (bar ? bar.getBoundingClientRect().height : 60) + 12;
+      window.scrollTo({ top: Math.max(0, host.getBoundingClientRect().top + window.scrollY - off), behavior: 'smooth' });
     };
     // 重大訊息沒有外部網址：點標題切到下方「公告 / 新聞」分頁（站內既有的那一頁，有觀測站連結與全文摘要）
     host.querySelectorAll('[data-aitab]').forEach(a => a.onclick = (e) => {

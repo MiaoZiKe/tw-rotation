@@ -15931,8 +15931,12 @@ def t_stock_ai_0926(pg, base, code):
     ok("★ [AI分析] 重新整理後仍是收合（真的記住）", not s2["open"] and s2["ls"] == "0", s2)
     # 右上「展開分析 ▾」：打開卡片並捲到眼前
     pg.evaluate("() => window.scrollTo(0, 0)")
-    click(pg, "#aiJump", 900)
-    s3 = pg.evaluate(AI_SNAP)
+    click(pg, "#aiJump", 600)
+    for _ in range(12):                      # 平滑捲動在高負載容器上要久一點，輪詢到停下來為止
+        s3 = pg.evaluate(AI_SNAP)
+        if s3["top"] is not None and -40 <= s3["top"] < 500:
+            break
+        pg.wait_for_timeout(250)
     ok("★ [AI分析] 按右上「展開分析 ▾」→ 卡片真的打開、捲到畫面裡", s3["open"] and s3["ls"] == "1" and s3["top"] is not None
        and -40 <= s3["top"] < 500, s3)
     # 「?」說明
