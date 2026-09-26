@@ -1114,11 +1114,15 @@
    *   · 整段歷史都是自己累積的（first ≥ mis_first，也就是櫃買、台指期）→「自 … 起累積（N 天）」
    *   · 加權有 Yahoo 兩年歷史 → 不囉嗦（回空字串）
    *   · 湖裡這個指數還一盤都沒有 →「多日分 K 尚未累積，只含今日」
-   *   · 台指期夜盤：管線只存證交所的日盤檔（期交所夜盤不在管線白名單）→「夜盤多日分 K 未累積，只含今晚」 */
+   *   · 台指期夜盤：2026-09-26 起期交所每筆成交合成 FUT_N 1 分 K（前 30 個交易日＋之後每天）→ 讀 FUT_N 的 src；
+   *     湖裡還沒有夜盤時才說「夜盤多日分 K 未累積，只含今晚」。
+   *  ★ 天數讀 m1_first／m1_days（1 分 K 不分來源：證交所分時＋期交所逐筆）；舊版 payload 沒有就退 mis_first／mis_days。 */
   function accumSay(x) {
-    if (isNight(x)) return '夜盤多日分 K 未累積，只含今晚';
-    const L = (state.lakeIntra || {})[x.id] || {}, o = L.src || {};
-    if (o.mis_first && (!o.first || o.first >= o.mis_first)) return `${x.short}分 K 自 ${o.mis_first} 起累積（${o.mis_days} 天）`;
+    const night = isNight(x);
+    const L = (state.lakeIntra || {})[lakeSym(x)] || {}, o = L.src || {};
+    const f1 = o.m1_first || o.mis_first, n1 = o.m1_days != null ? o.m1_days : o.mis_days;
+    if (night) return f1 ? `夜盤分 K 自 ${f1} 起（${n1} 晚）` : '夜盤多日分 K 未累積，只含今晚';
+    if (f1 && (!o.first || o.first >= f1)) return `${x.short}分 K 自 ${f1} 起累積（${n1} 天）`;
     // src 缺欄位（舊版 payload）時用實際的 4 小時根數當天數 —— 有畫出多日就不能說「尚未累積」
     const days = o.days != null ? o.days : (L.H4 || []).length;
     if (!days) return `${x.short}多日分 K 尚未累積，只含今日`;
@@ -1703,18 +1707,27 @@
       const s = o.src || {};
       const d4 = (o.H4 || []).length, d15 = new Set((o.M15 || []).map(b => sessKey(b[0], 'H4'))).size;
       if (!d4) return `${x.short}還沒累積（只有今天）`;
-      return `${x.short} ${d4} 個交易日（其中 ${d15} 天有 15 分 K${s.mis_first ? `；證交所分時自 ${s.mis_first} 起 ${s.mis_days} 天` : ''}）`;
+      const bits = [];
+      if (s.taifex_first) bits.push(`期交所逐筆自 ${s.taifex_first} 起 ${s.taifex_days} 天`);
+      if (s.mis_first) bits.push(`證交所分時自 ${s.mis_first} 起 ${s.mis_days} 天`);
+      return `${x.short} ${d4} 個交易日（其中 ${d15} 天有 15 分 K${bits.length ? '；' + bits.join('、') : ''}）`;
     }).join('、');
+    const nt = ((L.FUT_N || {}).src) || {};
+    const nightSay = nt.m1_first
+      ? `台指期夜盤的多日分 K＝期交所逐筆合成，自 ${nt.m1_first} 起 ${nt.m1_days} 晚。`
+      : '台指期夜盤的多日分 K 還沒有（只含今晚）。';
     const p = state.data.TSE ? volProfile(IDX[0], false) : null;
     const pw = !p ? '最近一個完整交易日的分時量分布'
       : p.src === 'today' ? `今天（${p.day}）整盤分時的量分布`
       : p.src === 'cache' ? `最近一個完整交易日（${p.day}）的分時量分布（今天還沒走完一盤）`
       : '台股常見的量分布（開盤與 13:25 收盤集合競價量大、午盤量小；這台瀏覽器還沒看過完整一盤的分時）';
     return '【來源】日／週／月／季＝資料湖日線（FinMind：加權 TAIEX、櫃買 TPEx、台指期 TX 近月），週月季由日線合成。'
-      + '1 小時／4 小時／15／30 分＝三個指數同一個來源：證交所當日分時檔（今天走勢圖那三個檔），每個交易日盤後存進資料湖自己累積，'
-      + '加權另外保留 Yahoo 的兩年歷史（同一天兩邊都有時以證交所為準）；櫃買、台指期從第一個存到的交易日開始累積，過去的補不回來。'
+      + '1 小時／4 小時／15／30 分＝證交所當日分時檔（今天走勢圖那三個檔），每個交易日盤後存進資料湖自己累積，'
+      + '加權另外保留 Yahoo 的兩年歷史（同一天兩邊都有時以證交所為準）；櫃買從第一個存到的交易日開始累積，過去的補不回來。'
+      + '台指期另有期交所公開的每筆成交（前 30 個交易日、含夜盤）合成近月 1 分 K，同一盤兩邊都有時以期交所逐筆為準（真實盤中高低與口數）。'
       + `依交易時段切（1 小時 09:00 起每小時、13:00 那根含到收盤；4 小時一盤一根；夜盤一晚一根），多日分 K：${per}。`
-      + '1／5 分只有今天；台指期夜盤的多日分 K 沒有累積（只含今晚）。'
+      + '1／5 分只有今天。' + nightSay
+      + '台指期逐筆資料來源：臺灣期貨交易所（政府資料開放平臺 資料集 20668，政府資料開放授權條款第 1 版）。'
       + '【量】證交所分時的 K 棒＝逐分鐘實量（台指期是口數）；日／週月季＝資料湖實量；4 小時一盤一根＝當天實際總量。'
       + `加權 Yahoo 那段歷史的 15／30 分與 1 小時：Yahoo 指數沒有量，改用「那天的實際總量 × ${pw}」估算，量柱畫灰色、游標看板標「估」；`
       + '那天的總量還沒進資料湖時用前 20 個交易日的中位數。日 K 少數缺量的日子用前後各 5 個交易日平均補，一樣標「估」（週月季標「含估」）。'
@@ -2297,11 +2310,12 @@
       /* ★ 2026-09-25：15／30 分改吃「資料湖的 15 分 K ＋ 今天的分時」（Andy：「已經有 15 分 K」）。
          以前 15 分只有今天的分時，湖裡加權那 60 天的 15 分 K 只被拿去合成 1H／4H、自己反而看不到。
          現在 15 分＝湖的 15 分 K 接今天（同一個 mergeLake 規則，今天那一盤以證交所分時為準），
-         30 分＝同一份 15 分 K 兩根併一根。1／5 分湖裡沒有，照舊只有今天。夜盤不接湖（湖裡沒有夜盤分 K）。*/
+         30 分＝同一份 15 分 K 兩根併一根。1／5 分湖裡沒有，照舊只有今天。夜盤接 FUT_N（期交所逐筆，2026-09-26 起）。*/
       const n = +state.tf;
       const today = (d && d.points && d.points.length) ? toBars(d.points, n, volUnit(x)) : [];
-      if ((n === 15 || n === 30) && !(d && d.night) && state.lakeIntra === undefined) loadLakeIntra();
-      const m15 = (n === 15 || n === 30) && !(d && d.night) ? (((state.lakeIntra || {})[x.id] || {}).M15 || []) : [];
+      // ★ 2026-09-26：夜盤也接湖（期交所逐筆合成的 FUT_N 15 分 K）；湖裡沒有夜盤時 M15 是空的，照舊只有今晚。
+      if ((n === 15 || n === 30) && state.lakeIntra === undefined) loadLakeIntra();
+      const m15 = (n === 15 || n === 30) ? (((state.lakeIntra || {})[(d && d.night) ? 'FUT_N' : x.id] || {}).M15 || []) : [];
       // ★ 2026-09-26：門檻 2 → 1，三個指數都接湖（櫃買、台指期的 15 分 K 由證交所分時每天累積）；
       //   只接到自己累積的那幾天時，跟 1H／4H 同一句短句講「自 … 起累積（N 天）」。
       if (m15.length >= 1) {
