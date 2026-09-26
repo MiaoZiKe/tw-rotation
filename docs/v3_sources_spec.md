@@ -301,16 +301,18 @@ Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源，�
 
 完整的來源選擇、條款查證、商標風險與**關閉方式**在 `docs/logo_sources.md`；這裡只記規格。
 
-- 來源：主＝公司官網（`<link rel="apple-touch-icon">`／`<link rel="icon">` → `/apple-touch-icon.png` → `/favicon.ico`），
-  備援＝`https://www.google.com/s2/favicons?domain=<網域>&sz=64`。官網 robots.txt 不允許就兩個都不用。
+- 來源（第二版，2026-09-26）：主＝公司官網首頁的**全部**候選 —— 所有 `<link rel="icon"／"apple-touch-icon"／"mask-icon">`、
+  manifest icons、像 Logo 的 `og:image`、頁首 logo `<img>`（SVG 用 cairosvg 算繪）、`/apple-touch-icon.png`、`/favicon.ico` ——
+  縮進 64×64 方框評有效尺寸（短邊）取最大；備援＝`https://www.google.com/s2/favicons?domain=<網域>&sz=128`（實際 < 32px 仍判太小）。
+  首頁轉址只跟同公司網域、每跳先過 robots；首頁 404 換 www／非 www。官網 robots.txt 不允許就兩個都不用。細節：`docs/logo_sources.md` §1.1。
 - 網址：上市用 `company_info.website`；上櫃／興櫃用新表 `company_website`（key `["code"]`，欄位 `code, website, market, src, asof`），
   端點候選在 `config.COMPANY_WEBSITE_ENDPOINTS`（證交所 OpenAPI `t187ap03_O`／`t187ap03_R` 與櫃買 OpenAPI `mopsfin_t187ap03_O`，
   **都還沒實測**），30 天重抓一次。`asof` 取回應的「出表日期」，沒給才用抓取日（不是交易日，欄名刻意不叫 date）。
 - 存放：`data/logos/<code>.png`（64×64 PNG）、`data/logos/_index.json`、`data/_state/logo_progress.json`。
   PNG 不是 Parquet，重抓時圖變了才換檔；被判成預設圖的刪檔。
-- 判「沒有」：原圖長邊 < 32px（`too_small`）、全透明或白底黑底都單色（`blank`）、同一張圖 ≥ 3 個不同網域（`generic`）、
+- 判「沒有」：原圖長邊 < 32px 或長寬比 > 5:1（`too_small`）、全透明或白底黑底都單色（`blank`）、同一張圖 ≥ 3 個不同網域（`generic`）、
   robots 禁止（`robots`）、兩個來源都沒有（`none`）、連線失敗（`error`）。
-- 增量：沒抓過的先（族群成分股優先）→ 網域換了 → 到期（`ok` 90 天、其他 30 天）。每輪 ≤ 300 家、≤ 15 分鐘、6 條執行緒；同網域一輪抓一次。
+- 增量：策略升級要重試的（索引 `strategy` 比 `config.LOGO_STRATEGY` 舊、狀態 `too_small`／`none`）→ 沒抓過的（族群成分股優先）→ 網域換了 → 到期（`ok` 90 天、其他 30 天）。每輪 ≤ 300 家、≤ 15 分鐘、6 條執行緒；同網域一輪抓一次。
 - 排程：`run_backfill` 在 FinMind 健檢**之前**跑 `backfill_logos()`；`--datasets logos` 只跑這一步。
   `backfill.yml` 守門：計畫補齊但 `logo_progress.json` 沒補完或到期 → 改跑 `--datasets logos`。
 - 輸出：`build_payload.export_logos()` → `site/data/logos.json`（`{"2330": "data/logos/2330.png"}`，只列有圖的，沒有就 `{}`）
