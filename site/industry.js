@@ -3176,9 +3176,21 @@
     const inChain = new Set(cos.map(c => c.id)), deg = {};
     sc.edges.forEach(e => { if (e.rel === 'competes' || !inChain.has(e.from) || !inChain.has(e.to)) return;
       deg[e.from] = (deg[e.from] || 0) + 1; deg[e.to] = (deg[e.to] || 0) + 1; });
+    /* ★ 2026-09-26（批次6-圖十 1500px 紅燈）：環節標題改成「量過放得下才整段印」。
+       ▸／▾ 收合鈕佔色塊最右邊 24px，而標題從 +19 一路印到底 —— 欄數多的鏈（ai_server 1500px 時
+       fitCols 把欄寬收到 154）「IC 載板（ABF / BT）」這種長標題就直接壓在 ▾ 上。
+       可用寬度＝欄寬 − 19（圓點）− 右側留白（有收合鈕 26、沒有 4）；放不下就切字加「…」。
+       完整名稱不另外塞 <title>：滑過標題本來就會出 wireSegTip 的說明框，第一行就是全名，
+       再加原生 tooltip 會兩個框疊在一起。字寬用 12px（.seg-title 的字級）＋ .06em 字距真的量。*/
+    const ctx12 = (() => { try { const c = document.createElement('canvas').getContext('2d');
+      c.font = `12px ${(cs0 && cs0.fontFamily) || 'sans-serif'}`; return c; } catch (e) { return null; } })();
+    const titleW = (t) => { let w1 = 0; for (const ch of t) w1 += (ctx12 ? ctx12.measureText(ch).width : (/[\u0000-ÿ]/.test(ch) ? 7 : 12)) + 0.72; return w1; };
+    const fitTitle = (t, maxW) => { t = String(t || ''); if (titleW(t) <= maxW) return t;
+      let a = [...t]; while (a.length > 1 && titleW(a.join('') + '…') > maxW) a.pop(); return a.join('').trimEnd() + '…'; };
     let nodes = '';
     segs.forEach(s => { const p = pos[s.id]; if (!p) return; const col = segColor(s.id);
-      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(s.name)}</text></g>`;
+      const tMax = colW - 19 - (foldOn && p.list.length ? 26 : 4);
+      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax))}</text></g>`;
       /* 沒有台股的環節：有 note 就講 note，不要一律寫「台股無直接對應」。
          2026-09-19 踩到：三家設備商搬去 pkg_equipment 之後，「先進封裝 CoWoS/SoIC」變成空的，
          但 CoWoS 明明是台積電自己做的 —— 寫「台股無直接對應」是錯的。*/
@@ -3265,7 +3277,13 @@
         const x1 = a.x, x2 = b.x + b.w, ly = nextLane(x1 - gapMid, x2 + gapMid, ay, by);
         d = corner([[x1, ay], [x1 - gapMid, ay], [x1 - gapMid, ly], [x2 + gapMid, ly], [x2 + gapMid, by], [x2, by]]);
       } else {
-        const x1 = a.x + a.w, xo = x1 + 24;
+        /* ★ 2026-09-26（批次6-圖十 800／1500px 紅燈，main 既有）：同一欄的回頭線以前寫死往右繞 24px。
+           那是欄距固定 30px 時代的數字；fitCols（C5）之後欄多或畫面窄時欄距會收到下限 18px，
+           24px 的繞線就伸進**隔壁欄的卡片裡 6px**，整段豎線從那一欄的公司身上穿過去 ——
+           ai_server 的「金居→NVIDIA 穿過味之素」、半導體的「帆宣→AMAT 穿過群聯」全是這一條。
+           改成依實際欄距算：離隔壁欄至少留 8px、離圖的右邊界（最右欄時是 padX）至少留 4px，
+           上限仍是 24（寬的時候長相跟以前一樣），下限 6（線才看得出是往外繞一圈）。*/
+        const x1 = a.x + a.w, xo = x1 + Math.max(6, Math.min(24, colGap - 8, padX - 4));
         d = corner([[x1, ay], [xo, ay], [xo, by], [x1, by]]);
       }
       /* 兩種灰線分開：
