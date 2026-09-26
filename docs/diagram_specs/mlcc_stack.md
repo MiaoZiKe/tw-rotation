@@ -328,3 +328,23 @@ Andy：「排版有點奇怪…需要更直觀且看起來更舒服，**可以�
 > 的檢查清單逐條對出來的結果**，逐條寫明過／不過與證據，不是「我覺得可以」。
 > ★ 這不等於雙審通過 —— 請 CEO 那一層真的派這兩個 agent 各跑一次，
 > 尤其是 art-director 的「四張截圖」那一條（深／淺 × 1440／800，檔案已經產在 `docs/_show/`）。
+
+
+---
+
+## §3D-細節（2026-09-26，3D 設計專責）
+
+| 零件 | 補了什麼 |
+|---|---|
+| 陶瓷本體與交錯電極 | 內電極 12 → **36 層**（仍是示意；副標同步改成「圖上 36 層為示意，實際 400～1000 層」），左接／右接各一個 InstancedMesh；陶瓷改成一整塊，剖面上看到的暗線就是鎳電極 |
+| 端電極 Cu → Ni → Sn | 三層各併成一個 mesh（順序不變） |
+| PCB 焊墊與焊錫 | 焊錫改成**彎月形焊腳**（從焊墊外緣凹著爬上端面約 1/3 高）；板邊看得到三層內層銅；整塊板往下挪，端電極底面剛好坐在焊墊上（以前會穿進焊墊） |
+
+效能：draw call 從 94 降到二十幾個（每一層兩塊板 → 每一種材質一個 mesh／InstancedMesh）。
+
+> 證據等級：全部是 **WebSearch 摘要**，沒有人讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| M1 | 內電極多用鎳，平均厚度約 ≤ 1.5～2 µm；介電為 BaTiO₃ 等；交替電極分別接到兩端的端電極 | 中 | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7727630> |
+| M2 | 端電極以銅燒附，再電鍍 Ni、Sn 以便表面黏著 | 中 | <https://patents.google.com/patent/US7345868B2/en>、<https://eureka.patsnap.com/article/how-multilayer-ceramic-capacitors-mlccs-are-manufactured-layer-by-layer> |

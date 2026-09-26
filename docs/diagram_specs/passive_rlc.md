@@ -589,3 +589,32 @@
 | 2026-09-21 | pcb-substrate-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**佈局決策寫在 §0-B**（共同舞台 ＋ 三欄等高等寬；並寫明否決「三張並排」與「排成流程」各自的理由）。**3D 的判斷與「什麼條件才回頭加」寫在 §0-A**。**跟 MLCC 那張的分工寫在 §0-C**，並列出四樣不准重複畫的東西（含「不准出現任何電容」）。**三條來源打架或不足已記錄**：B1（Isat 門檻 10/20/30% 的採用方式兩說）、B3（石英片兩點固定**查不到來源**，已標低信心並寫出退路）、B5（TCXO 穩定度數字口徑不一）。**六條查不到**列在 §C（含音叉型石英片、修整溝形狀、三種零件的 mm 尺寸）。**§7-D 記了這張圖最大的結構性問題**：主掛點 `power_inductor` 的三家、`crystal` 的三家、`resistor_protect` 的六家**全部不在 `supply_chain.yaml`**，所以主角（電感）不能掛 `data-seg`；已給畫面上的處理方式與給 Andy 的 YAML 建議（含棘輪 `SC_ISO_MAX` 的副作用警告） |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+
+---
+
+## §3D-細節（2026-09-26，3D 設計專責）
+
+| 零件 | 補了什麼 |
+|---|---|
+| 電感繞組 | 從 64 塊小方塊改成**一條連續的扁平銅帶**螺旋 4.5 圈（立繞：徑向寬、軸向薄，圈與圈之間有細縫），兩端折出去往下接到底面端子 |
+| 電感本體 | 粉粒從整齊方陣改成隨機撒滿剖面、避開繞組通道 |
+| 電感端子 | 兩端往上折一小段貼側面（L 形） |
+| 電阻端電極 | 三層改成**包覆式 C 形**（端面＋上下各壓一小段），外層包內層 |
+| 石英底座 | 凹穴內靠支撐端的台階、頂緣可伐合金封環、四角半圓導通槽 |
+| 石英支撐 | 導電膠改成圓頂的一團＋底下鍍金墊 |
+| 石英片 | 邊緣研磨斜角（bevel），仍半透明 |
+
+⚠ **卡片與幾何的一處落差（待卡片負責人複查）**：`ind_wind` 的卡片寫「斷面是長方形（高 > 寬）」。
+查到的立繞定義是「扁平線的**短邊在內外周**、沿軸螺旋疊起」＝**徑向寬、軸向薄**（R1）。
+若卡片的「高」指沿軸方向，那句話跟立繞相反。本輪只改幾何（照查到的定義），卡片文字不在修改範圍。
+
+⚠ Andy 的例子提到「石英音叉晶片形狀」：那是 32.768 kHz 的音叉型；本圖卡片寫的是 **AT 切**（MHz 級厚度剪切片），
+所以石英片維持長方片＋斜角，不畫成音叉 —— 畫成音叉就跟卡片矛盾。
+
+> 證據等級：全部是 **WebSearch 摘要**，沒有人讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| R1 | 立繞：扁平線短邊在內外周、沿繞線軸螺旋疊起；線圈末端折彎與磁粉一起壓製成底部電極；金屬磁粉＋黏結劑模壓 | 中 | <https://product.tdk.com/en/techlibrary/productoverview/inductors_spm.html>、<https://www.codacainductor.com/Application-Note_2649> |
+| R2 | SMD 石英：氧化鋁陶瓷底座、石英片、貴金屬電極、Ni+Au 焊墊、導電膠（Ag）支撐、金屬蓋縫焊密封 | 中 | <https://www.diodes.com/datasheet/download/FHQ.pdf>、<https://www.ctscorp.com/Files/Product-Marketing-Documents/Application-Notes/Passive-Components/Frequency-Control-Products/Crystals/CTS-Passive-Components-Frequency-Control-Crystal-Basics-Application-Note.pdf> |

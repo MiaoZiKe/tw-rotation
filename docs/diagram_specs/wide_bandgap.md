@@ -553,3 +553,31 @@
 | 2026-09-21 | semi-chain-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**三條來源打架已記錄並各自給了處理方式**：B1（電壓分工邊界，1200V GaN 已送樣使邊界移動 → 帶狀圖畫成重疊、不寫硬邊界）、B2（世界先進的 GaN 授權電壓範圍與量產年，兩個來源完全不同 → 畫面只寫方向不寫規格）、B3（AI 資料中心 800V 落地節奏，一邊說是關鍵窗口、一邊標題直接說「暫緩、回歸 54V」→ 只寫「說法不一」）。**八條查不到**已列在 §C，其中 **C7 是一個必須被看到的踩雷**：一次 WebSearch 的 AI 摘要把「穩懋／宏捷科」直接譯成「Transphorm／Power Integrations」，是摘要自己湊的，**不可採信**。**3D 的判斷寫在 §0 並列了「什麼條件才回頭加」**，而且寫明比較好的做法是另開一張「功率模組」圖 —— 不要重演 MLCC 的事後補簽。**最大的結構問題是 §7-D1**：`supply_chain.yaml` 的 semiconductor 鏈 14 格裡**沒有一格對應第三代半導體**，三個看起來像的候選（`foundry`／`semi_material`／`optical_epi`）掛上去都會在公開網站上產生錯誤宣稱，所以**這張圖一個 `data-seg` 都不掛**，並把新增環節的草案交給 Andy 校訂 |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+
+---
+
+## §3D-細節（2026-09-26，3D 設計專責）
+
+零件清單、編號、位置、爆炸位移、卡片文字**都沒動**。
+
+| 零件 | 補了什麼 |
+|---|---|
+| SiC 汲極金屬（背面） | 分成三層：Ti（貼 SiC）→ Ni → Ag（最外、焊接面） |
+| SiC p-body／n⁺ | 從「兩塊」改成**三個重複元胞**：每兩個 p-body 夾出 JFET 區、n⁺ 源極貼在 p-body 靠 JFET 側、p⁺ 接觸在 p-body 中央 |
+| SiC 閘極氧化層＋閘極 | 每個元胞一條：氧化層 → 多晶矽閘極 → 半透明 ILD 包起來（源極金屬才不會碰到閘極） |
+| SiC 源極金屬（正面） | 厚鋁蓋滿正面、接觸窗插到兩條閘極之間；右前角切出**獨立的閘極焊墊**；**焊線從正面打出去**（三條粗的接源極、一條細的接閘極）接到導線架引腳 |
+| GaN 緩衝層 | 多層過渡（AlN 成核層＋多層 AlGaN，層數示意） |
+| GaN 2DEG | 閘極正下方那一段變暗（p-GaN 在零偏壓下把它耗盡＝常關，跟卡片同一句話） |
+| GaN 三電極 | S/D 為兩層歐姆接觸金屬；電極之間 SiN 保護層（半透明）；**源極場板**蓋過閘極伸向汲極；閘極焊墊經穿過保護層的柱子接到閘極；**三條焊線全部從上表面打出去** |
+
+這組焊線就是這張圖要比的那件事的立體版：**SiC 背面沒有焊線（汲極靠整片背面金屬）、GaN 三個電極的焊線全在上面**。
+
+> 證據等級：全部是 **WebSearch 摘要**，沒有人讀過原文；網址留給下一個人去讀。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| W1 | SiC MOSFET 閘極與源極焊墊在正面、汲極在背面；正面為鋁基金屬化可打焊線；背面鍍 Ni 退火形成歐姆接觸 | 中 | <https://www.osti.gov/pages/servlets/purl/2440209>、<https://eepower.com/technical-articles/unlocking-the-potential-of-sic-mosfets-with-front-side-copper-metallization/> |
+| W2 | GaN HEMT 的源極連接場板形成在保護層上、蓋過閘極伸向汲極，降低閘極汲極側邊緣電場；SiN 為常見保護層；歐姆接觸為 Ti/Al 系金屬退火 | 中 | <https://pmc.ncbi.nlm.nih.gov/articles/PMC9143488/>、<https://arxiv.org/pdf/1908.00119>、<https://www.powerelectronicsnews.com/field-plate-optimization-in-gan-power-hemts/> |
+
+⚠ 元胞數（3）、焊線數、緩衝層層數都是示意；背面 Ti／Ni／Ag 是常見組合之一，不宣稱任何一家的實際堆疊。
