@@ -3154,3 +3154,10 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - D：電感卡片「高 > 寬」寫反（立繞＝徑向寬、軸向薄；兩份專利摘要＋技術文）已更正。
 - A 交接給 B 的線上既有錯誤：AI 伺服器 GPU／CPU／HBM 嵌進運算托盤板（上半截被吃掉），B 組修。
 - 這批驗了：剖析圖覆蓋普查／3D細緻化效能／3D收合再展開／3D視角鈕與點兩下重設／批次6-N1／批次6-圖九／剖析圖卡片收回 0、_preview 綠。
+
+### 09-27 清晨 Logo 第三版（logo-v3，DECISIONS #267）
+- Andy 截圖問「為何部分公司 Logo 還是沒有幫我新增」（長榮航 robots、聯電 16px 太小、南亞科預設圖、欣興官網連不到）。
+- 官網找不到 ≥48 時收最大的一張 ≥16px 當低解析（`lowres:true`，照原尺寸只補成正方形、不放大重採樣）；預設圖（跨網域同雜湊）拒收後繼續試頁首圖／manifest／s2，雜湊記在索引 `generic_sha1`；too_small／none／generic 共 353 家下一輪最先重試（strategy=3）。
+- 第二備援（DuckDuckGo 圖示服務等）**不加**：條款不明、等於請第三方繞過連不到的官網、增益小（評估在 docs/logo_sources.md §1.2；法遵意見由爬蟲專家依 legal-compliance 紀律自整理，未另派法遵）。s2 的 16px 仍不收（`LOGO_LOWRES_ALLOW_S2` 預設關）。robots 89 家照舊不救。
+- 預估救回約 80～173 家（77.7% → 約 82～86%），實數看回補後 logo_progress.json。
+- 這批驗了：pytest 749 passed、4 skipped、1 xfailed（合併後）；純管線，沒動 site/ 與 build_payload，前端關卡未跑。
