@@ -138,6 +138,11 @@ def parse_ticks(raw, product: str = "TX", file_id: str | None = None) -> pd.Data
     out, bad, total = [], 0, 0
     want = product.strip().upper()
     for i, rec in enumerate(rows):
+        # 檔案裡是全部期貨商品（一天上百萬列），先只看商品代號那一欄，不是要的就跳過，不逐欄 strip
+        if idx is not None:
+            j = idx["product"]
+            if len(rec) <= j or rec[j].strip().upper() != want:
+                continue
         cells = [c.strip() for c in rec]
         if not any(cells):
             continue
@@ -159,12 +164,10 @@ def parse_ticks(raw, product: str = "TX", file_id: str | None = None) -> pd.Data
             else:
                 log.warning("期交所逐筆 %s 表頭認不得、整檔不收（前 200 字）：%s", file_id, _head(text))
                 return empty
+        total += 1
         if len(cells) <= max(idx.values()):
             bad += 1
             continue
-        if cells[idx["product"]].upper() != want:
-            continue
-        total += 1
         d = cells[idx["date"]]
         t = _to_int_time(cells[idx["time"]])
         try:
@@ -257,26 +260,25 @@ def attach_wall_time(ticks: pd.DataFrame, known_days=None) -> pd.DataFrame:
         i = bisect.bisect_left(days_sorted, a)
         return days_sorted[i - 1] if i > 0 else None
 
-    walls, opens = [], []
-    for d, t, s, c in zip(df["date"], df["time"], df["session"], df["conv"]):
-        hh, mm, ss = t // 10000, (t // 100) % 100, t % 100
+    # 一天幾十萬筆，逐列建 Timestamp 太慢：同一個（日期, 時段, 寫法, 晚上/凌晨）的基準日都一樣，
+    # 先對「組合」算一次，再整欄拼字串交給 to_datetime。
+    df["eve"] = df["time"] >= NIGHT_FROM
+    combo: dict = {}
+    for d, s, c, eve in df[["date", "session", "conv", "eve"]].drop_duplicates().itertuples(index=False):
         if s == "day":
-            base, open_day = d, d
+            combo[(d, s, c, eve)] = (d, d)
         elif c == "cal":
-            base = d
-            open_day = d if t >= NIGHT_FROM else (pd.Timestamp(d) - pd.Timedelta(days=1)).strftime("%Y%m%d")
+            od = d if eve else (pd.Timestamp(d) - pd.Timedelta(days=1)).strftime("%Y%m%d")
+            combo[(d, s, c, eve)] = (d, od)
         else:
             e = _prev_day(d)
-            if e is None:
-                walls.append(None)
-                opens.append(None)
-                continue
-            open_day = e
-            base = e if t >= NIGHT_FROM else _next_cal(e)
-        walls.append(pd.Timestamp(f"{base} {hh:02d}:{mm:02d}:{ss:02d}"))
-        opens.append(open_day)
-    df["wall"] = walls
-    df["open_day"] = opens
+            combo[(d, s, c, eve)] = (None, None) if e is None else ((e if eve else _next_cal(e)), e)
+    keys = list(zip(df["date"], df["session"], df["conv"], df["eve"]))
+    base = pd.Series([combo[k][0] for k in keys], index=df.index)
+    df["open_day"] = [combo[k][1] for k in keys]
+    txt = base + " " + df["time"].astype(int).astype(str).str.zfill(6)
+    df["wall"] = pd.to_datetime(txt.where(base.notna()), format="%Y%m%d %H%M%S", errors="coerce")
+    df = df.drop(columns=["eve"])
     lost = int(df["wall"].isna().sum())
     if lost:
         log.warning("期交所逐筆：%d 筆夜盤找不到前一個交易日（成交日期寫歸屬日、資料裡沒有更早的日盤），不收", lost)
@@ -337,12 +339,13 @@ def ticks_to_1m(df: pd.DataFrame, divisor: float = 2.0) -> pd.DataFrame:
         g = g[g["month"] == near].sort_values(["wall", "seq"], kind="stable")
         g = g.assign(minute=g["wall"].dt.floor("min"))
         sym = "FUT_N" if sess == "night" else "FUT"
-        for mnt, b in g.groupby("minute", sort=True):
-            p = b["price"]
+        agg = g.groupby("minute", sort=True).agg(open=("price", "first"), high=("price", "max"),
+                                                 low=("price", "min"), close=("price", "last"),
+                                                 qty=("qty", "sum"))
+        for mnt, r in zip(agg.index, agg.itertuples(index=False)):
             rows.append({"ts": mnt.tz_localize(TZ).isoformat(), "symbol": sym, "interval": "1m",
-                         "open": float(p.iloc[0]), "high": float(p.max()), "low": float(p.min()),
-                         "close": float(p.iloc[-1]), "volume": float(b["qty"].sum()) / divisor,
-                         "src": SRC})
+                         "open": float(r.open), "high": float(r.high), "low": float(r.low),
+                         "close": float(r.close), "volume": float(r.qty) / divisor, "src": SRC})
     return pd.DataFrame(rows)
 
 

@@ -360,6 +360,8 @@ def drop_days_with_taifex(df: pd.DataFrame) -> pd.DataFrame:
     """
     if df is None or df.empty or "symbol" not in df.columns:
         return df if df is not None else pd.DataFrame()
+    if not (df["symbol"].astype(str) == "FUT").any():
+        return df
     try:
         have = store.read("index_intraday")
     except Exception:  # noqa: BLE001
