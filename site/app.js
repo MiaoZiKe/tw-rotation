@@ -2233,6 +2233,9 @@
       return;
     }
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
+    /* 近期搜尋（2026-09-26）：進個股頁就記一筆 —— 不管是從搜尋點進來、從別的圖點進來、還是直接貼網址。
+       只記全市場索引裡找得到的代號（打錯的代號會走「找不到代號」，不該留在紀錄裡）。*/
+    if (head === 'stock' && rest[0] && L.cname[rest[0]]) recentPush(rest[0]);
     $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
        放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
@@ -10443,7 +10446,105 @@
     });
   }
 
+  // ---------------------------------------------------------------- 公司 Logo（2026-09-26）
+  /* Andy 2026-09-26：「名稱旁邊附上公司 Logo，包含查個個股也要附上 Logo」。
+     圖檔由管線產出：`data/logos.json`（{代號: 相對路徑}，只列有圖的代號）＋ `data/logos/<代號>.png`。
+     這邊的原則是**永遠有東西可看、永遠不報錯**：
+       · 沒有 logos.json（管線還沒產、或 404）→ 全部走字母頭像，不丟例外。
+       · 該代號沒有圖、或圖載入失敗（onerror）→ 同一格退回字母頭像，不留破圖示。
+     字母頭像的字用 CSS `::before { content: attr(data-l) }` 畫，**不是文字節點** ——
+     個股頁標題、搜尋列的 textContent 會被別的程式與驗收拿去比對（例如「台積電 2330」），
+     多塞一個「台」字進 DOM 會讓那些比對全部錯位。
+     底色 8 色刻意避開紅與綠（紅漲綠跌），白字在每一色上的對比都 ≥ 4.5，深淺主題共用同一組。*/
+  const LOGO_BG = ['#3558c9', '#5b45c7', '#8a3fb0', '#1b6f99', '#9a5b12', '#4d5b73', '#7a5a3a', '#2f4f8f'];
+  let LOGOS = null, _logoP = null;
+  const _logoBad = new Set();            // 這一輪載入失敗過的代號：重畫時不再重試，直接給字母頭像
+  function logoSrc(code) {
+    if (!LOGOS || _logoBad.has(code)) return '';
+    const s = LOGOS[code];
+    // 只收站內相對路徑（管線產出的就是 data/logos/xxxx.png）；其他形狀一律當作沒有圖
+    return (typeof s === 'string' && /^[\w./-]+\.(png|webp|jpg|jpeg|svg)$/i.test(s) && !s.includes('..')) ? s : '';
+  }
+  function logoLetter(code, name) {
+    const s = String(name || '').replace(/[\s*＊\-_.()（）]/g, '');
+    const ch = s ? Array.from(s)[0] : String(code || '?').charAt(0);
+    return /[a-z]/.test(ch) ? ch.toUpperCase() : ch;
+  }
+  function logoColor(code) {
+    let h = 7;
+    for (const ch of String(code || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return LOGO_BG[h % LOGO_BG.length];
+  }
+  const logoImg = (src, sz) => `<img src="${fmt.esc(src)}" alt="" loading="lazy" decoding="async" width="${sz}" height="${sz}">`;
+  /* size：搜尋列 20、個股頁標題 32。cls 給呼叫端加定位用的 class。*/
+  function logoHTML(code, name, size, cls) {
+    const c = String(code || ''), sz = size || 20;
+    const src = logoSrc(c);
+    return `<span class="slogo${src ? ' hasimg' : ''}${cls ? ' ' + cls : ''}" data-logo="${fmt.esc(c)}" data-l="${fmt.esc(logoLetter(c, name || L.cname[c]))}"`
+      + ` style="--lg:${logoColor(c)};--lz:${sz}px" aria-hidden="true">${src ? logoImg(src, sz) : ''}</span>`;
+  }
+  /* logos.json 比畫面晚到時：把已經畫好的字母頭像補上圖（個股頁標題常常比它先畫完）。*/
+  function logoUpgrade(root) {
+    $$('.slogo[data-logo]:not(.hasimg)', root).forEach(el => {
+      const src = logoSrc(el.dataset.logo);
+      if (!src) return;
+      el.classList.add('hasimg');
+      el.insertAdjacentHTML('beforeend', logoImg(src, parseInt(el.style.getPropertyValue('--lz'), 10) || 20));
+    });
+  }
+  function logoMapLoad() {
+    if (_logoP) return _logoP;
+    _logoP = load('logos', { fallback: {} }).then(m => {
+      LOGOS = (m && typeof m === 'object' && !Array.isArray(m)) ? m : {};
+      logoUpgrade();
+      return LOGOS;
+    }, () => { LOGOS = {}; return LOGOS; });
+    return _logoP;
+  }
+  /* 圖載入失敗 → 退回字母頭像。error 不冒泡，所以掛在 document 的 capture 階段一次接住全部，
+     不必在每一張 <img> 上寫 onerror（也不用 inline 事件屬性）。*/
+  document.addEventListener('error', (e) => {
+    const t = e.target;
+    if (!t || t.tagName !== 'IMG') return;
+    const box = t.parentNode;
+    if (!box || !box.classList || !box.classList.contains('slogo')) return;
+    _logoBad.add(box.dataset.logo);
+    box.classList.remove('hasimg');
+    t.remove();
+  }, true);
+
+  // ---------------------------------------------------------------- 近期搜尋紀錄
+  /* 「從搜尋結果點進個股、或直接開 #stock/<code>」都算一筆 —— 所以記錄點放在路由（route），不放在搜尋框。
+     只存代號（名稱每次從全市場索引查，改名也跟得上）。localStorage 不能用（無痕、被封鎖）時退回這一輪的記憶體。*/
+  const RECENT_KEY = 'tw.search.recent', RECENT_MAX = 8;
+  let _recentMem = [];
+  const recentOk = (a) => (Array.isArray(a) ? a : []).filter(c => typeof c === 'string' && /^[0-9A-Z]{4,6}$/.test(c)).slice(0, RECENT_MAX);
+  function recentGet() {
+    try {
+      const raw = localStorage.getItem(RECENT_KEY);
+      if (raw !== null) return recentOk(JSON.parse(raw));
+    } catch (e) { /* 讀不到就用記憶體那份 */ }
+    return _recentMem.slice();
+  }
+  function recentSet(a) {
+    _recentMem = recentOk(a);
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(_recentMem)); } catch (e) { /* 寫不進去就只留在記憶體 */ }
+  }
+  function recentPush(code) {
+    if (!code) return;
+    const a = recentGet().filter(c => c !== code);
+    a.unshift(code);
+    recentSet(a);
+  }
+
   // ---------------------------------------------------------------- 搜尋
+  /* 2026-09-26（Andy：「搜尋功能需要添近期搜尋紀錄、熱門股票」）：
+     聚焦但還沒打字 → 下拉顯示「近期搜尋」＋「熱門股票」；打字 → 照舊比對代號／簡稱。
+     熱門的口徑選「最近一個交易日成交值前 10（普通股）」，不混漲跌幅：
+       成交值＝錢實際在哪裡，跟這個網站「錢往哪裡跑」的主軸同一件事；
+       把漲跌幅加權進來會讓小型股漲停擠進前 10，那是「漲最多」不是「最熱」，而且權重怎麼配說不清楚。
+     ETF（00 開頭）與權證／特別股（不是 4 碼數字）排除 —— 使用者要找的是公司。
+     手機（mobile3.js）用的是同一顆 #q 與同一個 #sugg，所以這裡改一次兩邊都有。*/
   async function initSearch() {
     const idx = {};
     (L.all || []).forEach(c => { idx[c.code] = c.name || c.code; });
@@ -10454,11 +10555,107 @@
     }
     const list = Object.entries(idx);
     const q = $('#q'), sg = $('#sugg');
-    q.addEventListener('input', () => { const v = q.value.trim().toLowerCase(); if (!v) { sg.style.display = 'none'; return; } const hits = list.filter(([c, n]) => c.startsWith(v) || (n || '').toLowerCase().includes(v)).slice(0, 12); sg.innerHTML = hits.map(([c, n]) => `<div data-c="${c}"><span class="code">${c}</span>${fmt.esc(n)}<span class="g">${fmt.esc(L.gname[L.cgroup[c]] || '')}</span></div>`).join(''); sg.style.display = hits.length ? 'block' : 'none'; $$('div', sg).forEach(d => d.onclick = () => { sg.style.display = 'none'; q.value = ''; goStock(d.dataset.c); }); });
-    q.addEventListener('keydown', e => { if (e.key === 'Enter') { const v = q.value.trim(); const hit = list.find(([c]) => c === v) || list.find(([c, n]) => (n || '') === v); if (hit) { sg.style.display = 'none'; q.value = ''; goStock(hit[0]); } } });
-    document.addEventListener('click', e => { if (!e.target.closest('.search')) sg.style.display = 'none'; });
+    if (!q || !sg) return;
+    q.setAttribute('role', 'combobox'); q.setAttribute('aria-controls', 'sugg');
+    q.setAttribute('aria-expanded', 'false'); q.setAttribute('aria-autocomplete', 'list');
+    sg.setAttribute('role', 'listbox'); sg.setAttribute('aria-label', '搜尋建議');
+    let hot = null;
+    const hotList = () => {
+      if (hot) return hot;
+      hot = (L.all || []).filter(s => /^[1-9]\d{3}$/.test(String(s.code)) && +s.turnover > 0)
+        .sort((a, b) => b.turnover - a.turnover).slice(0, 10);
+      return hot;
+    };
+    let act = -1, nid = 0;
+    const rows = () => $$('[data-c]', sg);
+    const isOpen = () => sg.style.display !== 'none' && sg.style.display !== '';
+    const row = (code, name, right, del) => {
+      const n = name || L.cname[code] || '';
+      return `<div class="sgrow" role="option" aria-selected="false" id="sgo${++nid}" data-c="${fmt.esc(code)}">${logoHTML(code, n, 20)}`
+        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>${right || ''}`
+        + (del ? `<button type="button" class="sgdel" data-del="${fmt.esc(code)}" aria-label="從近期搜尋移除 ${fmt.esc(n)}" title="從近期搜尋移除">×</button>` : '')
+        + '</div>';
+    };
+    const grp = (code) => `<span class="g">${fmt.esc(L.gname[L.cgroup[code]] || '')}</span>`;
+    const open = (html, mode) => {
+      sg.innerHTML = html; sg.dataset.mode = mode; act = -1;
+      q.removeAttribute('aria-activedescendant');
+      sg.style.display = html ? 'block' : 'none';
+      q.setAttribute('aria-expanded', html ? 'true' : 'false');
+      if (html) logoMapLoad();
+    };
+    const close = () => { sg.style.display = 'none'; act = -1; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); };
+    const panel = () => {
+      const rec = recentGet().filter(c => idx[c] || L.cname[c]);
+      let h = `<div class="sghd"><span>近期搜尋</span>`
+        + (rec.length ? `<button type="button" class="sgclr" id="sgClr" title="清除全部近期搜尋">清除</button>` : '') + '</div>';
+      h += rec.length ? rec.map(c => row(c, idx[c] || L.cname[c], grp(c), true)).join('')
+        : '<p class="sgempty" id="sgEmpty">還沒有搜尋紀錄 —— 進過的個股會記在這裡（最多 8 筆）。</p>';
+      const hs = hotList();
+      if (hs.length) {
+        const dd = (D.meta && D.meta.data_date) || '';
+        h += `<div class="sghd" id="sgHotHd"><span>熱門股票</span><small title="最近一個交易日成交值最大的 10 檔普通股（不含 ETF、權證）">成交值前 10${dd ? ' · ' + fmt.esc(String(dd).slice(5)) : ''}</small></div>`
+          + hs.map(s => row(s.code, s.name, `<span class="tv">${fmt.yi(s.turnover)}</span><span class="chg ${fmt.cls(s.chg_pct)}">${fmt.pct(s.chg_pct, 2)}</span>`)).join('');
+      }
+      open(h, 'panel');
+    };
+    const search = () => {
+      const v = q.value.trim().toLowerCase();
+      if (!v) { panel(); return; }
+      const hits = list.filter(([c, n]) => c.startsWith(v) || (n || '').toLowerCase().includes(v)).slice(0, 12);
+      open(hits.map(([c, n]) => row(c, n, grp(c))).join(''), 'hits');
+    };
+    const setAct = (i) => {
+      const r = rows();
+      if (!r.length) { act = -1; return; }
+      act = (i + r.length) % r.length;
+      r.forEach((x, j) => { const on = j === act; x.classList.toggle('on', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      q.setAttribute('aria-activedescendant', r[act].id);
+      r[act].scrollIntoView({ block: 'nearest' });
+    };
+    const go = (code) => { close(); q.value = ''; q.blur(); goStock(code); };
+    q.addEventListener('input', search);
+    q.addEventListener('focus', () => { if (!isOpen()) search(); });
+    q.addEventListener('click', () => { if (!isOpen()) search(); });   // Esc 關掉之後再點一下框（焦點沒離開，focus 不會再觸發）
+    q.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen()) { search(); setAct(e.key === 'ArrowUp' ? -1 : 0); return; }
+        setAct(act < 0 ? (e.key === 'ArrowDown' ? 0 : -1) : act + (e.key === 'ArrowDown' ? 1 : -1));
+        return;
+      }
+      if (e.key === 'Escape') { if (isOpen()) { e.preventDefault(); close(); } return; }
+      if (e.key !== 'Enter') return;
+      const r = rows();
+      if (isOpen() && act >= 0 && r[act]) { e.preventDefault(); go(r[act].dataset.c); return; }
+      const v = q.value.trim();
+      if (!v) return;
+      const hit = list.find(([c]) => c === v) || list.find(([c, n]) => (n || '') === v);
+      if (hit) { go(hit[0]); return; }
+      if (isOpen() && sg.dataset.mode === 'hits' && r[0]) go(r[0].dataset.c);   // 沒有完全符合就進第一筆建議
+    });
+    // 按在清單上不要讓輸入框失焦：鍵盤還要能接著上下選
+    sg.addEventListener('mousedown', e => { e.preventDefault(); });
+    sg.addEventListener('click', e => {
+      const del = e.target.closest('.sgdel');
+      if (del) {
+        /* stopPropagation：重畫之後被點的 × 已經不在 DOM 裡，下面那支「點 .search 外面就關」會把它當成點外面 */
+        e.stopPropagation();
+        recentSet(recentGet().filter(c => c !== del.dataset.del));
+        panel(); q.focus();
+        return;
+      }
+      if (e.target.closest('#sgClr')) { e.stopPropagation(); recentSet([]); panel(); q.focus(); return; }
+      const r = e.target.closest('[data-c]');
+      if (r) go(r.dataset.c);
+    });
+    /* 手機（mobile3.js）的「⌕」鈕在 .search 外面：它的 onclick 先把焦點放進框（→ 下拉打開），
+       同一個 click 冒泡到 document 又會被當成「點外面」關掉 —— 所以那顆鈕也算裡面。*/
+    const INSIDE = '.search, #mSearchBtn';
+    window.addEventListener('hashchange', close);     // 換頁（例如點了圖上的股票）下拉就收，不留在新頁面上
+    document.addEventListener('click', e => { if (!e.target.closest(INSIDE)) close(); });
     // 2026-09-24：建議清單也吃 Esc（外面點一下本來就會關）
-    dismissable(sg, () => { sg.style.display = 'none'; }, { ignore: ['.search'],
+    dismissable(sg, close, { ignore: ['.search', '#mSearchBtn'],
       isOpen: () => sg.style.display !== 'none' && sg.getClientRects().length > 0 });
   }
 
@@ -10606,6 +10803,8 @@
       rotFrameNow: () => rotFrame,
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
+      logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
+      logoUpgrade, logoMapLoad, recentGet,
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置
@@ -10719,6 +10918,7 @@
         stocks: [...DRILL.stocks], sel: sankeySel }) };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
+    logoMapLoad();              // Logo 對照表不擋開站：沒到之前一律字母頭像，到了再把畫好的補上圖
     await Promise.all([renderEvents(), initSearch()]);
     await route();
     // 盤中即時層。放在 route() 之後：畫面上先有代號，Live 才知道要抓哪些。
