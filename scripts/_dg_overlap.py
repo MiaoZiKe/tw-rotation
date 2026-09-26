@@ -469,6 +469,17 @@ def _silhouette_overlap(pg, info: dict, tol: float) -> list[dict]:
     H, W, _ = im.shape
     diff = np.abs(im - bg).sum(axis=2)
     mask = diff > 24
+    # ★ 模型底下那片「柔和接觸陰影」（three3d 的 radial sprite 圓盤、黑色、不透明度 ≤ .4）不是零件，
+    #   但在閱讀模式的淺底上它跟底色的差值有 26～31，會被當成零件 —— 卡片壓到陰影外圈就被判成「蓋到零件」
+    #   （2026-09-26 CNC 工具機／閱讀模式實測）。黑色半透明疊上去＝底色的每個色版乘上同一個 (1−a)，
+    #   所以「三個色版都變暗、而且變暗的比例一樣（差 < .03）、比例在 .58 以上」的像素就是陰影，從零件裡扣掉。
+    #   有顏色的零件三個比例不會一樣；灰色零件疊在略帶色調的底上也對不齊，所以不會被誤扣。
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = im / np.maximum(bg, 1)
+    darker = (im <= bg).all(axis=2)
+    rmin, rmax = ratio.min(axis=2), ratio.max(axis=2)
+    shadow = darker & (rmax - rmin < 0.03) & (rmin >= 0.58)
+    mask &= ~shadow
     # 陰影、反鋸齒邊這種細碎的東西：開運算去掉 3px 以下的點線
     m2 = mask.copy()
     m2[1:-1, 1:-1] = mask[1:-1, 1:-1] & mask[:-2, 1:-1] & mask[2:, 1:-1] & mask[1:-1, :-2] & mask[1:-1, 2:]
@@ -485,6 +496,9 @@ def _silhouette_overlap(pg, info: dict, tol: float) -> list[dict]:
             continue
         sub = mask[y0:y1, x0:x1]
         n = int(sub.sum())
+        if os.environ.get("DGOV_DEBUG") and n:
+            dd = diff[y0:y1, x0:x1]
+            print("   除錯", c["d"][:24], "差值 max", int(dd.max()), "p90", int(np.percentile(dd[sub], 90)), "p50", int(np.percentile(dd[sub], 50)))
         if n < 30:
             continue
         ys, xs = np.nonzero(sub)
