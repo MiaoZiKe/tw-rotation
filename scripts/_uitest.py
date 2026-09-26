@@ -32673,6 +32673,27 @@ def _ov_fix_0926b_body(pg, base, code):
                    pg.evaluate("() => document.getElementById('zoomOv').hidden") and pg.evaluate("() => location.hash") == f"#stock/{tile['code']}",
                    pg.evaluate("() => location.hash"))
 
+    # ================================================================ ②b 熱門題材滾輪縮放（Andy 2026-09-26：「縮放功能呢？沒有設置到」）
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.evaluate("document.getElementById('ovThemeWrap').scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(700)
+    TZK = """() => { const b = document.getElementById('ovThemeWrap'); const pane = b && b.querySelector('.zpane');
+        const card = b && b.closest('.card');
+        return { zw: !!b && b.classList.contains('zwrap'), zoomed: !!b && b.classList.contains('zoomed'), sw: pane ? pane.scrollWidth : 0,
+                 badge: b ? ((b.querySelector('.zbadge') || {}).textContent || '') : '', cardH: card ? Math.round(card.getBoundingClientRect().height) : 0 }; }"""
+    t0 = pg.evaluate(TZK)
+    ok("[0926b-②b] 熱門題材掛上滾輪縮放框、預設原始大小", t0["zw"] and not t0["zoomed"], t0)
+    r = pg.evaluate("() => { const b = document.getElementById('ovThemeWrap').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    pg.mouse.move(r["x"] + r["w"] * .5, r["y"] + r["h"] * .5)
+    for _ in range(4):
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(160)
+    pg.wait_for_timeout(500)
+    t1 = pg.evaluate(TZK)
+    ok("★ [0926b-②b] 熱門題材往上滾真的放大、卡片高度不變、徽章寫倍率",
+       t1["zoomed"] and t1["sw"] > t0["sw"] and t1["cardH"] == t0["cardH"] and "×" in t1["badge"], f"{t0} → {t1}")
+    pg.mouse.dblclick(r["x"] + r["w"] * .5, r["y"] + r["h"] * .5); pg.wait_for_timeout(600)
+    ok("[0926b-②b] 雙擊回到原始大小", not pg.evaluate(TZK)["zoomed"], pg.evaluate(TZK))
+
     # ================================================================ ③ 足跡輪盤面板不跳版面
     MEAS = """() => { const g = (id) => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect();
           return { top: Math.round((r.top + scrollY) * 10) / 10, h: Math.round(r.height * 10) / 10 }; };
@@ -32693,6 +32714,7 @@ def _ov_fix_0926b_body(pg, base, code):
         return { open: true, name: ((b.querySelector('.hh b') || {}).textContent || '').trim(), link: (b.querySelector('a.pill') || {}).getAttribute ? b.querySelector('a.pill').getAttribute('href') : '',
                  n: b.querySelectorAll('.ms a').length, pos: getComputedStyle(b).position, at: b.dataset.at || '',
                  inWheel: r.top >= w.top - 1 && r.bottom <= w.bottom + 1, inView: r.top >= 0 && r.bottom <= innerHeight,
+                 above: r.bottom <= w.top + 1, below: r.top >= w.bottom - 1,
                  l: r.left, r: r.right, t: r.top, b: r.bottom }; }"""
 
     def diff(a, b):
@@ -32718,18 +32740,18 @@ def _ov_fix_0926b_body(pg, base, code):
             d = pg.evaluate(DOT, pick)
             if not ok(f"{tag} 算得出輪盤上{'上' if pick == 'high' else '下'}半部一顆族群點", bool(d), d):
                 continue
-            pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(900)
+            pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(1400)
             p = pg.evaluate(PANEL)
             m1 = pg.evaluate(MEAS)
             if ok(f"{tag} 點「{d['name']}」→ 面板打開", p["open"], p):
                 ok(f"{tag} 面板標題是剛點的族群、有「進族群頁 →」與成分股",
                    p["name"] == d["name"] and p["link"] == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
                 ok(f"★ {tag} 面板打開後「昨日資金去向」與左欄卡片的 top／高度都沒動（≤ 1px）", not diff(m0, m1), diff(m0, m1))
-                ok(f"{tag} 面板是浮在輪盤上的覆蓋卡（absolute）、完全落在輪盤範圍內", p["pos"] == "absolute" and p["inWheel"], p)
-                ok(f"{tag} 面板整張在畫面內（貼著剛點的那顆，不會跑到輪盤另一端的畫面外）", p["inView"], p)
-                covered = p["l"] <= d["x"] <= p["r"] and p["t"] <= d["y"] <= p["b"]
-                ok(f"{tag} 面板沒有蓋到剛點的那顆（點{'上' if pick == 'high' else '下'}半部 → 面板放在那顆的{'下' if pick == 'high' else '上'}方）",
-                   not covered and p["at"] == ("bottom" if pick == "high" else "top"), (p, d))
+                # 改前：面板落在輪盤範圍內、貼著剛點的那顆 → 改後（Andy 2026-09-26 晚：「將出現的資訊移動到下方或上方，
+                #   依據當前點擊的圓圈位置決定」）：面板在輪盤圓外 —— 點上半部放輪盤下方、點下半部放輪盤上方；放完捲到看得到。
+                ok(f"{tag} 面板是覆蓋卡（absolute）、放在輪盤{'下方' if pick == 'high' else '上方'}（不蓋輪盤）",
+                   p["pos"] == "absolute" and (p["below"] if pick == "high" else p["above"]) and p["at"] == ("bottom" if pick == "high" else "top"), p)
+                ok(f"{tag} 面板整張在畫面內（放完會捲到看得到）", p["inView"], p)
             # 收起來的三種方式
             if pick == "high":
                 pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(700)

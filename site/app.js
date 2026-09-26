@@ -3137,20 +3137,23 @@
          點上半部就放在下方（夾在輪盤範圍內），剛點的那顆永遠看得到、面板也就在視線旁邊。蓋住的只是輪盤的一部分，
          點外面／Esc／再點一次同一顆就收（dismissable，跟全站其他就地面板同一套）。
      手機（≤820）的輪盤是 mobile3.js 另一份雷達＋焦點條，不走這支。*/
+  /* ★ 2026-09-26 晚（Andy：「將出現的資訊移動到下方或上方，依據當前點擊的圓圈位置決定」）：
+     面板不再蓋在輪盤中間，改貼在**輪盤圓外**——點在下半部的族群，面板放在輪盤上緣之上（蓋住標題列那一帶）；
+     點在上半部，面板放在輪盤下緣之下（蓋在「昨日資金去向」上方那一帶）。仍是 absolute 覆蓋，不推版面；
+     放完若整張跑出畫面，就平滑捲到剛好看得到（block:'nearest'，已經看得到就不動）。*/
   function ovRotPlace(box, chartEl, clickY) {
     const card = box.offsetParent; if (!card) return;
     const wrap = chartEl && chartEl.parentNode;
     const cr = card.getBoundingClientRect(), wr = (wrap || chartEl).getBoundingClientRect();
-    const h = box.offsetHeight, pad = 8, gap = 18;
-    const er = (chartEl || wrap).getBoundingClientRect();
-    const lower = clickY != null && clickY > wr.height / 2;     // 點在輪盤下半 → 面板放在那顆的上方
-    /* 貼著剛點的那顆放（下半部放它上面、上半部放它下面），不是貼輪盤的最上／最下緣：
-       1024 寬時輪盤有 520px 高，使用者捲到只看得到下半部時點了一顆，面板若跑去輪盤頂端就在畫面外了。*/
-    const dotTop = clickY != null ? er.top - cr.top + clickY : null;
-    let top = dotTop == null ? (wr.bottom - cr.top - h - pad) : lower ? (dotTop - gap - h) : (dotTop + gap);
-    top = Math.max(wr.top - cr.top + pad, Math.min(top, wr.bottom - cr.top - h - pad));
+    const h = box.offsetHeight, gap = 6;
+    const lower = clickY != null && clickY > wr.height / 2;     // 點在輪盤下半 → 面板放在輪盤上方
+    const top = lower ? (wr.top - cr.top - h - gap) : (wr.bottom - cr.top + gap);
     box.style.top = Math.round(top) + 'px';
-    box.dataset.at = lower ? 'top' : 'bottom';                   // 驗收用：這次貼在哪一半
+    box.dataset.at = lower ? 'top' : 'bottom';                   // 驗收用：這次貼在哪一邊（輪盤上方／下方）
+    requestAnimationFrame(() => {
+      const r = box.getBoundingClientRect();
+      if (r.top < 60 || r.bottom > window.innerHeight) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
@@ -6140,11 +6143,14 @@
     hmRelabel(c, M.valOf);
     hmLegend('ovTheme', M.kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
     host.dataset.level = M.cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
-    if (c) c.off('click').on('click', p => {
+    /* ★ 2026-09-26（Andy：「縮放功能呢？沒有設置到」）：跟資金熱力圖同一套滾輪縮放（wheelZoom：滾輪放大、拖曳移動、
+       雙擊或按「還原」回 1×）；點擊交給 zoomClick，拖曳結束那一下不會誤觸進題材／個股。*/
+    wheelZoom($('#ovThemeWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#ovTheme')); if (i) i.resize(); } });
+    if (c) c.off('click').on('click', p => zoomClick($('#ovThemeWrap'), () => {
       const d = p.data || {};
       if (d.code) { goStock(d.code); return; }
       if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); }
-    });
+    }));
   }
 
   // ---- 候選名單：綜合／籌碼／技術／基本面四種切法 ----------------------------
