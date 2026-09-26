@@ -265,13 +265,13 @@
      開關仍然是 app.js 的 setSide() 掛 .layout.noside；這裡只改「沒有 noside 時長什麼樣」。 */
   :root.ui2 aside#side{position:fixed;right:0;top:0;height:100vh;width:min(420px,92vw);z-index:70;
     display:block!important;border-left:1px solid var(--line);background:var(--bg-2);
-    box-shadow:-24px 0 48px -16px var(--drop);transform:none;visibility:visible;
-    transition:transform var(--dur-slow) var(--ease),visibility 0s linear 0s}
-  :root.ui2 .layout.noside aside#side{transform:translateX(100%);visibility:hidden;box-shadow:none;
-    transition:transform var(--dur-slow) var(--ease),visibility 0s linear var(--dur-slow)}
-  :root.ui2 .ui2-scrim{display:block;position:fixed;inset:0;z-index:65;background:rgba(5,8,14,.28);opacity:0;pointer-events:none;
-    transition:opacity var(--dur) var(--ease)}
-  :root.ui2 .layout:not(.noside)~.ui2-scrim{opacity:1;pointer-events:auto}
+    box-shadow:-24px 0 48px -16px var(--drop);transform:none;
+    transition:transform var(--dur-slow) var(--ease),display var(--dur-slow) allow-discrete}
+  /* 關著的時候真的 display:none（不只是移到畫面外）：不佔無障礙樹、Tab 也不會跑進去。
+     滑進滑出的動畫靠 @starting-style ＋ display 的 allow-discrete 轉場（Chromium 117+／Safari 17.4+；
+     不支援的瀏覽器只是沒有滑動動畫，開關照樣正常）。 */
+  :root.ui2 .layout.noside aside#side{display:none!important;transform:translateX(100%)}
+  @starting-style{ :root.ui2 .layout:not(.noside) aside#side{transform:translateX(100%)} }
 }
 @media (min-width:821px) and (prefers-reduced-motion:reduce){
   :root.ui2 body,:root.ui2 .topbar,:root.ui2 aside#side{transition:none!important}
@@ -284,7 +284,7 @@
      #ui2Jump  —— 「本頁功能」膠囊列：把這頁每一張卡片的標題列出來，點了捲過去；捲動時亮起目前那一張。
    手機（≤820px）這一批先不顯示：手機版每一頁都有算過的「一屏看完」高度預算，
    頁首多 90px 會把那些預算整個推掉（見 HANDOFF 待處理）。 */
-#ui2Head,#ui2Jump,.ui2-foot,.ui2-scrim{display:none}
+#ui2Head,#ui2Jump,.ui2-foot{display:none}
 @media (min-width:821px){
   /* 左右留白跟 main 對齊：main 是 max-width 1720 置中、左右內距 32 */
   :root.ui2{--ui2-gut:max(32px, calc((100% - 1720px) / 2 + 32px))}

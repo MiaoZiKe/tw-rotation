@@ -4624,8 +4624,14 @@
       if (popTrack !== T) return;
       if (!pop.isConnected || pop.hidden || !btn.isConnected) { untrackPop(); return; }
       const r = btn.getBoundingClientRect();
+      /* ★ 2026-09-26 新版介面（ui2）：桌機的 .topbar 變成左側直欄（高＝整個視窗），它不遮上方 ——
+         照舊拿它的下緣當「頂欄底」會等於視窗底，面板一打開就被判成「按鈕被頂欄蓋住」而立刻關掉。
+         所以只有「橫的」頂欄（高度不到半個視窗）才算；新版上方的遮擋改成黏頂的「本頁功能」列（#ui2Jump）。*/
       const bar = document.querySelector('.topbar');
-      const hb = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+      let hb = 0;
+      if (bar) { const br = bar.getBoundingClientRect(); if (br.height < innerHeight / 2) hb = Math.max(0, br.bottom); }
+      const jb = document.getElementById('ui2Jump');
+      if (jb && !jb.hidden && jb.offsetParent !== null) { const jr = jb.getBoundingClientRect(); if (jr.top <= 1) hb = Math.max(hb, jr.bottom); }
       if (!r.width || r.bottom <= hb + 2 || r.top >= innerHeight - 8) { closePop(pop); return; }
       placePop(pop, btn, true);
     };

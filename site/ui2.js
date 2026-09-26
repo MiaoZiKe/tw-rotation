@@ -205,17 +205,21 @@
   }
 
   /* ---------------- 今日事件：桌機改成浮層 ----------------
-     開關照舊是 app.js 的 setSide（掛 .layout.noside）；這裡只補兩件浮層該有的行為：
-     點背景（半透明遮罩）關、按 Esc 關。關的時候 remember=true —— 跟按「×」一樣記住「關著」。 */
-  function buildScrim() {
-    const lay = $('#layout'); if (!lay) return;
-    const s = document.createElement('div'); s.className = 'ui2-scrim'; s.setAttribute('aria-hidden', 'true');
-    lay.parentNode.insertBefore(s, lay.nextSibling);
-    s.addEventListener('click', () => { if (typeof window.twSetSide === 'function') window.twSetSide(false); });
+     開關照舊是 app.js 的 setSide（掛 .layout.noside）；這裡只補浮層該有的兩個關法：
+       · 點浮層外面任何地方就關 —— **但那一下照樣生效**（不用遮罩擋住）：
+         舊版事件欄開著時，其他按鈕一樣按得動；改成浮層之後不能變成「要先關浮層才按得到」。
+       · 按 Esc 關。
+     兩種都用 remember=false：不改寫存起來的偏好（舊版介面跟這裡共用同一份 localStorage）。 */
+  function wireDrawer() {
+    const isOpen = () => { const l = $('#layout'); return !!l && !l.classList.contains('noside'); };
+    const close = () => { if (typeof window.twSetSide === 'function') window.twSetSide(false, false); };
+    document.addEventListener('pointerdown', (e) => {
+      if (!DESK() || !isOpen()) return;
+      if (e.target.closest('#side, #evToggle')) return;
+      close();
+    }, true);
     document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || !DESK()) return;
-      const l = $('#layout');
-      if (l && !l.classList.contains('noside') && typeof window.twSetSide === 'function') window.twSetSide(false);
+      if (e.key === 'Escape' && DESK() && isOpen()) close();
     });
   }
 
@@ -238,7 +242,7 @@
   function init() {
     if (!build()) return;
     buildFoot();
-    buildScrim();
+    wireDrawer();
     applyNav();
     renderHead(); scanCards();
     const main = $('main');

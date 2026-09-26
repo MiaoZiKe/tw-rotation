@@ -978,6 +978,11 @@ def t_overview(pg, base):
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
 
     # --- 事件面板篩選：筆數要真的變
+    # ★ 2026-09-26 新版介面（<html class="ui2">）：桌機的今日事件從常駐欄改成浮層、一進站關著 ——
+    #   真人要先按「事件」才看得到分類鈕，這裡照做一次（篩選本身驗的東西一個字都沒改）。
+    ui2_ev = pg.evaluate("() => document.documentElement.classList.contains('ui2') && innerWidth > 820 && document.getElementById('layout').classList.contains('noside')")
+    if ui2_ev:
+        click(pg, "#evToggle", 500)
     cats = pg.evaluate("[...document.querySelectorAll('#evFilters button')].map(b => b.dataset.c)")
     if cats:
         counts = {}
@@ -988,6 +993,8 @@ def t_overview(pg, base):
         click(pg, f'#evFilters button[data-c="{cats[0]}"]', 250)
     else:
         notes.append("事件面板沒有分類鈕")
+    if ui2_ev:
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(350)
 
     # --- 搜尋框：真的打字 → 出建議 → 點建議 → 跳個股頁
     pg.fill("#q", "")
@@ -6639,25 +6646,38 @@ def t_stock(pg, base, code):
         aside: !!document.querySelector('aside') && getComputedStyle(document.querySelector('aside')).display !== 'none',
         saved: (() => { try { return localStorage.getItem('tw.kwide'); } catch (e) { return null; } })(),
         canvas: document.querySelectorAll('#lwc canvas').length })"""
-    d0 = pg.evaluate(S)
+    # ★ 2026-09-26 新版介面（<html class="ui2">，桌機）：今日事件不再佔一欄（改成按了才滑出的浮層），
+    #   所以 K 線**永遠拿到整個內容寬**，「寬版」剩下的效果是 K 線**變高**（body.kwide #lwc 的 clamp）。
+    #   新版底下改驗「高度真的變」、「事件浮層不會因為退出寬版就自己彈出來蓋住圖」；舊版外觀照舊驗寬度與事件欄。
+    UI2 = pg.evaluate("() => document.documentElement.classList.contains('ui2') && innerWidth > 820")
+    SH = "() => Math.round(document.getElementById('lwc').getBoundingClientRect().height)"
+    d0 = pg.evaluate(S); h0 = pg.evaluate(SH)
     ok("沒設定過時，個股頁預設就是寬版", d0["wide"] and not d0["aside"], d0)
     ok("預設寬版下 K 線圖有畫出來", d0["canvas"] > 0, d0)
     # 按一次 → 退出寬版：圖變窄、事件欄回來、選擇要存起來
     click(pg, "#wideBtn", 900)
-    d1 = pg.evaluate(S)
-    ok("按一次會退出寬版，K 線圖變窄", d1["w"] < d0["w"] - 100, f"{d0['w']} → {d1['w']}")
-    ok("退出寬版時右側事件欄回來", d1["aside"], d1)
+    d1 = pg.evaluate(S); h1 = pg.evaluate(SH)
+    if UI2:
+        ok("[UI2] 按一次退出寬版：K 線圖變矮（新版沒有事件欄可收，寬度本來就是整寬）", h1 < h0 - 20, f"{h0} → {h1}")
+        ok("[UI2] 退出寬版不會把事件浮層彈出來蓋住圖", not d1["aside"], d1)
+    else:
+        ok("按一次會退出寬版，K 線圖變窄", d1["w"] < d0["w"] - 100, f"{d0['w']} → {d1['w']}")
+        ok("退出寬版時右側事件欄回來", d1["aside"], d1)
     ok("退出寬版的選擇有存起來", d1["saved"] == "0", d1["saved"])
     ok("退出寬版後 K 線圖還在（沒有變空白）", d1["canvas"] > 0, d1)
     # 換頁再回來要記得「我關掉了」
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
-    ok("離開個股頁，事件欄一定在", pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display !== 'none'"))
+    if not UI2:
+        ok("離開個股頁，事件欄一定在", pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display !== 'none'"))
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
     ok("回個股頁記得「關掉寬版」的選擇", not pg.evaluate("() => document.body.classList.contains('kwide')"))
     # 再按一次 → 回到寬版
     click(pg, "#wideBtn", 900)
-    d2 = pg.evaluate(S)
-    ok("再按一次回到寬版，圖又變寬", d2["wide"] and d2["w"] > d1["w"] + 100, f"{d1['w']} → {d2['w']}")
+    d2 = pg.evaluate(S); h2 = pg.evaluate(SH)
+    if UI2:
+        ok("[UI2] 再按一次回到寬版：K 線圖又變高", d2["wide"] and h2 > h1 + 20, f"{h1} → {h2}")
+    else:
+        ok("再按一次回到寬版，圖又變寬", d2["wide"] and d2["w"] > d1["w"] + 100, f"{d1['w']} → {d2['w']}")
     ok("回到寬版時事件欄收起來", not d2["aside"], d2)
 
     # --- K 棒寬度可調，而且預設就要寬一點（Andy：「K棒長度需要可以調整，default先長一點」）
@@ -14115,15 +14135,24 @@ def t_ui2(pg, base):
 
     # 今日事件：預設關、按了從右邊滑出、內容寬度不變、點遮罩關、Esc 關
     pg.evaluate("() => window.scrollTo(0, 0)")
-    st = pg.evaluate("() => ({ cls: document.getElementById('layout').className, l: document.getElementById('side').getBoundingClientRect().left, mw: document.querySelector('main').getBoundingClientRect().width })")
-    ok("[UI2] 事件浮層一進站是關著的（在畫面外）", "noside" in st["cls"] and st["l"] >= VW - 1, st)
+    st = pg.evaluate("() => ({ cls: document.getElementById('layout').className, d: getComputedStyle(document.getElementById('side')).display, mw: document.querySelector('main').getBoundingClientRect().width })")
+    ok("[UI2] 事件浮層一進站是關著的（display:none）", "noside" in st["cls"] and st["d"] == "none", st)
     pg.click('#evToggle')
     op = wait_until(pg, f"() => {{ const r = document.getElementById('side').getBoundingClientRect(); return r.left < {VW} - 300 && Math.abs(r.right - {VW}) < 2 ? {{ l: r.left, mw: document.querySelector('main').getBoundingClientRect().width, n: document.querySelectorAll('#evList .ev').length }} : null; }}", 3000)
     ok("[UI2] 按「事件」：浮層從右邊滑出、裡面有新聞", bool(op) and op["n"] > 0, op)
     ok("[UI2] 事件浮層打開時內容寬度不變（蓋在上面，不擠內容）", bool(op) and abs(op["mw"] - st["mw"]) < 1, {"前": st["mw"], "後": op and op["mw"]})
     pg.mouse.click(400, 500)
-    cl = wait_until(pg, "() => document.getElementById('layout').classList.contains('noside') ? 1 : null", 2000)
-    ok("[UI2] 點浮層外面（遮罩）就關", bool(cl))
+    cl = wait_until(pg, "() => document.getElementById('layout').classList.contains('noside') && getComputedStyle(document.getElementById('side')).display === 'none' ? 1 : null", 2000)
+    ok("[UI2] 點浮層外面就關（而且真的 display:none）", bool(cl))
+    # 浮層開著時點別的按鈕：浮層關、**那一下照樣生效**（舊版事件欄開著時其他按鈕一樣按得動，不准變成要先關浮層）
+    pg.click('#evToggle'); wait_until(pg, "() => !document.getElementById('layout').classList.contains('noside') ? 1 : null", 2000)
+    pg.click('.tab[data-view="flow"]')
+    thru = wait_until(pg, "() => document.getElementById('layout').classList.contains('noside') && document.getElementById('v-flow').classList.contains('on') ? 1 : null", 3000)
+    ok("[UI2] 浮層開著時點「資金流向」：浮層關、也真的換頁（點擊沒被吃掉）", bool(thru))
+    # 按「事件」打開時 app.js 記成 '1'；外面點一下關掉用 remember=false，所以應該還是 '1'
+    ok("[UI2] 外面點一下關浮層不改寫存起來的偏好（舊版介面共用同一份）", pg.evaluate("() => localStorage.getItem('tw.side')") == "1",
+       pg.evaluate("() => localStorage.getItem('tw.side')"))
+    pg.click('.tab[data-view="overview"]'); wait_until(pg, "() => document.getElementById('v-overview').classList.contains('on') ? 1 : null", 3000)
     pg.click('#evToggle'); wait_until(pg, "() => !document.getElementById('layout').classList.contains('noside') ? 1 : null", 2000)
     pg.keyboard.press('Escape')
     ok("[UI2] 按 Esc 也關", bool(wait_until(pg, "() => document.getElementById('layout').classList.contains('noside') ? 1 : null", 2000)))
