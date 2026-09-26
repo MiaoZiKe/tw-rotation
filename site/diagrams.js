@@ -590,7 +590,7 @@
       t.setAttribute('textLength', want.toFixed(1));
     });
   }
-  window.addEventListener('tw:dgpal', () => { document.querySelectorAll('svg.dg').forEach(fitTexts); });
+  window.addEventListener('tw:dgpal', () => { document.querySelectorAll('svg.dg').forEach((s) => { fitTexts(s); if (s.__dgRefitHints) s.__dgRefitHints(); }); });
 
   /* 一條章節列佔掉的垂直空間（框 36 ＋ 列距 6）。
      2026-09-22 從 46 收到 42：一張圖最多四條，省下來的 16px 直接變成畫布高度的餘裕，
@@ -678,6 +678,45 @@
     const W = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || 980;
     const PAD = 10;               // 最後一條章節列底下留的空白
     const open = new Set();                           // 預設全部收合
+    /* 收合時寫「裡面有什麼」，展開時寫「怎麼收回去」—— 兩種狀態都看得出還能做什麼 */
+    function fitHint(r) {
+      const on = open.has(r.id);
+      const hi = r.el.querySelector('.fhint');
+      if (!hi) return;
+      const full = on ? '－ 收合這一段' : ('＋ 展開：' + (r.el.getAttribute('data-hint') || ''));
+      hi.textContent = full;
+      /* ★ 2026-09-26 覆蓋普查：先把上一輪藏起來的提示顯示回來再量 ——
+         display:none 的字 getBBox 量到 0，會被當成「一直撞」而整個藏掉。*/
+      hi.setAttribute('display', 'inline');
+      /* ★ 提示文字自己讓路（art-director 2026-09-22）。
+         標題靠左、提示靠右，兩邊都是變動長度的中文 —— 只要有人把標題寫長一點
+         就會撞在一起，而且是**畫面上兩行字疊在一起**那種最難看的錯。
+         2026-09-22 第一版就撞了兩張（載板 27px、伺服器電源 452px）。
+         與其訂一條「標題不准超過幾個字」的隱形規矩（沒有人會記得，也沒有東西會擋），
+         不如讓它在執行期自己量：撞到就把提示從尾巴砍掉、補上刪節號，
+         砍到剩六個字還是撞就整個藏起來（標題本來就講得完整）。*/
+      const tt = r.el.querySelector('.hd');
+      if (!tt) return;
+      let txt = full, guard = 0;
+      const hit = () => { try { const a = tt.getBBox(), b = hi.getBBox(); return a.x + a.width + 12 > b.x; } catch (e) { return false; } };
+      while (hit() && txt.length > 6 && guard++ < 60) { txt = txt.slice(0, -3) + '…'; hi.textContent = txt; }
+      hi.setAttribute('display', hit() ? 'none' : 'inline');
+      // 砍短了就把全文掛成 tooltip（v2 的 660 寬畫布幾乎每一條都會砍）
+      let tt2 = r.el.querySelector(':scope > title');
+      if (!tt2) { tt2 = document.createElementNS('http://www.w3.org/2000/svg', 'title'); r.el.appendChild(tt2); }
+      tt2.textContent = full;
+    }
+    /* ★ 2026-09-26（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」，scripts/_dg_overlap.py 量到的）：
+       第一次 paint() 量標題寬的時候，字級還不是最後的字級（v2 版面的容器查詢、配色模式的字級
+       在圖插進 DOM 之後才定案），量到的標題比實際窄 18～30px —— 提示沒砍夠，
+       **三張圖的每一條章節列都是「標題壓在提示上」**（第三代半導體三條全中）。
+       追根因的時間上限到了，改走不依賴時機的做法：版面有機會變的時候都再量一次
+       （下一幀、300ms 補排、字型到齊、切配色、容器寬度變了）。量一次只是幾次 getBBox。*/
+    const refitHints = () => { if (svg.isConnected) bars.forEach(fitHint); };
+    requestAnimationFrame(refitHints); setTimeout(refitHints, 350);
+    try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(refitHints); } catch (e) { /* 忽略 */ }
+    svg.__dgRefitHints = refitHints;
+    if (window.ResizeObserver) { try { new ResizeObserver(refitHints).observe(svg.parentNode && svg.parentNode.nodeType === 1 ? svg.parentNode : svg); } catch (e) { /* 忽略 */ } }
     function paint() {
       let cur = base;
       rows.forEach((r) => {
@@ -692,31 +731,9 @@
         // 章節列寬度跟著畫布寬（v2 的畫布可以是 660 而不是 980；fold()／foldBar() 畫的是 948）
         const fb = r.el.querySelector('.fbar'); if (fb) fb.setAttribute('width', W - 32);
         const hx = r.el.querySelector('.fhint'); if (hx) hx.setAttribute('x', W - 32);
-        const sg = r.el.querySelector('.fsign'), hi = r.el.querySelector('.fhint');
+        const sg = r.el.querySelector('.fsign');
         if (sg) sg.textContent = on ? '－' : '＋';
-        // 收合時寫「裡面有什麼」，展開時寫「怎麼收回去」—— 兩種狀態都看得出還能做什麼
-        if (hi) {
-          const full = on ? '－ 收合這一段' : ('＋ 展開：' + (r.el.getAttribute('data-hint') || ''));
-          hi.textContent = full;
-          /* ★ 提示文字自己讓路（art-director 2026-09-22）。
-             標題靠左、提示靠右，兩邊都是變動長度的中文 —— 只要有人把標題寫長一點
-             就會撞在一起，而且是**畫面上兩行字疊在一起**那種最難看的錯。
-             2026-09-22 第一版就撞了兩張（載板 27px、伺服器電源 452px）。
-             與其訂一條「標題不准超過幾個字」的隱形規矩（沒有人會記得，也沒有東西會擋），
-             不如讓它在執行期自己量：撞到就把提示從尾巴砍掉、補上刪節號，
-             砍到剩六個字還是撞就整個藏起來（標題本來就講得完整）。*/
-          const tt = r.el.querySelector('.hd');
-          if (tt) {
-            let txt = full, guard = 0;
-            const hit = () => { try { const a = tt.getBBox(), b = hi.getBBox(); return a.x + a.width + 12 > b.x; } catch (e) { return false; } };
-            while (hit() && txt.length > 6 && guard++ < 60) { txt = txt.slice(0, -3) + '…'; hi.textContent = txt; }
-            hi.setAttribute('display', hit() ? 'none' : 'inline');
-            // 砍短了就把全文掛成 tooltip（v2 的 660 寬畫布幾乎每一條都會砍）
-            let tt2 = r.el.querySelector(':scope > title');
-            if (!tt2) { tt2 = document.createElementNS('http://www.w3.org/2000/svg', 'title'); r.el.appendChild(tt2); }
-            tt2.textContent = full;
-          }
-        }
+        fitHint(r);
       });
       svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Math.round(cur + PAD));
       fitTexts(svg);                                  // 剛展開的段落也要量一次
