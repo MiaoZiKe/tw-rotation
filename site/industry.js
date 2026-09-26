@@ -1203,6 +1203,8 @@
       const listOn = (partHi || partSel) ? (segFilter ? [segFilter] : []) : segsOn;
       $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', listOn.includes(c.dataset.seg)));
       { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
+      /* 說明卡浮在圖上（2026-09-26 晚）：開關狀態定了之後，依被點的那一格決定貼左還是貼右（見 placeRelCol） */
+      placeRelCol(el);
       /* 退版之後「選起來」的視覺回到分層圖的公司卡與環節卡清單上，
          由 highlightSegments 一次做完（它同時處理剖析圖、分層圖、環節卡）。*/
       /* 環節詳情 `#segBox` ＝ Andy 說的「點擊後才會跳出的下拉清單」：
@@ -1434,6 +1436,7 @@
            .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
         const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
+        placeRelCol(el);        // 圖收起來 → 卡片回到文件流（清掉浮動座標）；展開 → 重新貼回圖上
       };
       if (foldRel) foldRel.onclick = () => {
         relOpen = !relOpen;
@@ -1469,6 +1472,10 @@
       let ro = null;
       if (window.ResizeObserver && mapHost) { ro = new ResizeObserver(reflow); ro.observe(mapHost); }
       window.addEventListener('resize', reflow);
+      /* 圖在窄畫面會左右滑（SVG 有 min-width）：滑了之後被點的那一欄在畫面上的位置變了，說明卡要跟著重新挑邊，
+         不然滑過去就變成蓋在那一欄上面。一幀最多算一次。*/
+      if (mapHost) { let pq = false; mapHost.addEventListener('scroll', () => {
+        if (pq) return; pq = true; requestAnimationFrame(() => { pq = false; if (mapHost.isConnected) placeRelCol(el); }); }, { passive: true }); }
     }
     if (hasSlots && sc) {
       /* 手機（<640px）預設把剖析圖收起來。
@@ -2713,6 +2720,70 @@
   }
   /* 關聯圖是不是桌機的「下拉＋圖（＋右欄）」版面。手機（≤820px）照舊是一排色標。*/
   const relListMode = () => { try { return window.matchMedia('(min-width:821px)').matches; } catch (e) { return false; } };
+  /* ★ 2026-09-26 晚（Andy：「點選族群（環節）時，不會動到關聯圖版面，例如我點最右邊的族群，資訊會顯示在左側，同理顯示右側」）：
+     關聯圖的說明卡（.relcol：選中環節的族群清單＋公司資訊欄）浮在圖上，這支決定它貼哪裡。
+     規則：
+       ① 被點的環節（那一欄的標題列）中心在圖框右半邊 → 卡片貼圖框**左緣**；在左半邊 → 貼**右緣**。
+          環節欄寬 136～200px，卡片 260～320px，圖框至少 800px，所以「放到另一半」一定不會蓋到那一欄。
+       ② 垂直對齊被點的東西（點公司 → 那張公司卡；點環節 → 環節標題），再夾進圖框的可視範圍裡；
+          卡片高度上限＝圖框高度（最多 560px 或視窗高減 120），內容多就在卡片裡自己捲。
+       ③ 圖框太窄、兩邊都擺不下（821～900px、或圖本身在左右滑）→ 改放在那一欄的**上方或下方**：
+          先試那一格整欄（標題＋底下的公司）的下面，不夠再試標題上面，都不夠就放到圖框下緣之外。
+          寬度一律夾在圖框內，所以不會撐出橫向捲軸。
+     量的是畫面座標（getBoundingClientRect）再換成 .relmain 的座標 —— SVG 有 viewBox 縮放，直接讀 SVG 座標會差一個比例。
+     驗收用：data-side＝left／right／below／above／under（貼哪裡）、data-seg＝以哪一格為準。*/
+  function placeRelCol(root) {
+    const rm = root && root.querySelector('#relMain'); if (!rm) return;
+    const col = rm.querySelector('.relcol'), stick = rm.querySelector('.relstick'); if (!col || !stick) return;
+    const reset = () => { col.style.left = ''; col.style.top = ''; col.style.width = ''; stick.style.removeProperty('--rc-h');
+      delete col.dataset.side; delete col.dataset.seg; };
+    const map = rm.querySelector('#chainMap');
+    const coBox = document.getElementById('coBox');
+    const open = rm.classList.contains('hassel') || !!(coBox && rm.contains(coBox));
+    if (!relListMode() || rm.classList.contains('mapfold') || !open || !map || map.hidden) { reset(); return; }
+    const R = rm.getBoundingClientRect(), M = map.getBoundingClientRect();
+    if (!(R.width > 0) || !(M.width > 0)) { reset(); return; }
+    // 以誰為準：開著公司資訊欄 → 那家公司（與它的環節）；否則 → 右欄亮著的那一格
+    const coEl = coBox && coBox.dataset.co ? map.querySelector(`.co[data-id="${coBox.dataset.co}"]`) : null;
+    const seg = (coEl && coEl.dataset.segment) || ((rm.querySelector('#relList .rlseg.on') || { dataset: {} }).dataset.seg);
+    const tEl = seg ? map.querySelector(`.segtitle[data-seg="${seg}"]`) : null;
+    const T = tEl ? tEl.getBoundingClientRect() : (coEl ? coEl.getBoundingClientRect() : null);
+    const pad = 8, gap = 10;
+    // 圖框的可視範圍（扣掉圖自己的捲軸），換成 .relmain 的座標
+    const fL = M.left - R.left + pad, fR = M.left - R.left + map.clientWidth - pad;
+    const fT = M.top - R.top + pad, fB = M.top - R.top + map.clientHeight - pad;
+    const w = Math.round(Math.max(200, Math.min(fR - fL, Math.max(260, Math.min(320, R.width * 0.26)))));
+    const maxH = Math.round(Math.max(180, Math.min(fB - fT, 560, window.innerHeight - 120)));
+    col.style.width = w + 'px';
+    stick.style.setProperty('--rc-h', maxH + 'px');
+    const h = col.offsetHeight || 200;
+    col.dataset.seg = seg || '';
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    if (!T) { col.style.left = Math.round(fR - w) + 'px'; col.style.top = Math.round(fT) + 'px'; col.dataset.side = 'right'; return; }
+    const sL = T.left - R.left, sR = T.right - R.left, mid = (sL + sR) / 2;
+    const ar = (coEl || tEl).getBoundingClientRect();
+    const aTop = ar.top - R.top - 4;
+    const yIn = Math.round(clamp(aTop, fT, Math.max(fT, fB - h)));
+    const fitsL = fL + w <= sL - gap, fitsR = fR - w >= sR + gap;
+    const want = mid > (fL + fR) / 2 ? 'left' : 'right';
+    const side = want === 'left' ? (fitsL ? 'left' : (fitsR ? 'right' : null)) : (fitsR ? 'right' : (fitsL ? 'left' : null));
+    if (side) {
+      col.style.left = Math.round(side === 'left' ? fL : fR - w) + 'px';
+      col.style.top = yIn + 'px';
+      col.dataset.side = side;
+      return;
+    }
+    // ③ 兩邊都擺不下：放在那一欄的上方或下方（整欄＝標題＋它底下的公司卡／標籤）
+    let segB = T.bottom;
+    map.querySelectorAll(`.co[data-segment="${seg}"]`).forEach(c => { const r = c.getBoundingClientRect(); if (r.height > 0) segB = Math.max(segB, r.bottom); });
+    const x = Math.round(clamp(mid - w / 2, fL, Math.max(fL, fR - w)));
+    const below = segB - R.top + gap, above = T.top - R.top - gap - h;
+    let y, where;
+    if (below + h <= fB) { y = below; where = 'below'; }
+    else if (above >= fT) { y = above; where = 'above'; }
+    else { y = M.top - R.top + map.offsetHeight + gap; where = 'under'; }   // 圖框下緣之外（仍是覆蓋層，不推版面）
+    col.style.left = x + 'px'; col.style.top = Math.round(y) + 'px'; col.dataset.side = where;
+  }
   /* 下拉的開合。點外面、按 Esc、選好一格都會收起來；只在第一次掛全站的監聽器（換鏈不會一路疊上去）。*/
   let segDDWired = false;
   function wireSegDD(root) {
