@@ -1980,7 +1980,7 @@
       }
       {
         const len = curve.getLength();
-        const ar = spec.line ? 0.5 : rr;
+        const ar = spec.line ? 0.32 : rr;
         const alen = Math.max(ar * 7, 0.9);
         const na = Math.max(2, Math.min(6, Math.round(len / Math.max(alen * 5, 6))));
         const items = [], up = new T.Vector3(0, 1, 0), q = new T.Quaternion(), e = new T.Euler();
@@ -2000,7 +2000,7 @@
       const geo = new T.BufferGeometry();
       geo.setAttribute('position', new T.BufferAttribute(arr, 3));
       const pm = K.reg(new T.PointsMaterial({
-        size: (spec.r || 0.5) * 2.6 + (spec.line ? 1.8 : 0.9), color: new T.Color(colHex), transparent: true, opacity: 0.9,
+        size: (spec.r || 0.5) * 2.6 + (spec.line ? 1.0 : 0.9), color: new T.Color(colHex), transparent: true, opacity: 0.9,
         depthWrite: false, sizeAttenuation: true, map: spriteTex() || null }));
       pm.userData = { dgvar: ROLE_TOKENS[spec.kind], flowPts: true };
       const pt = new T.Points(geo, pm);
@@ -2434,6 +2434,29 @@
       return g;
     }
 
+    /* 2026-09-26：扇葉從「七塊斜放的方塊」改成**彎刀形的葉片**（葉根窄、往外變寬、葉尖往後掠、邊緣倒圓），
+       每片有攻角，七片烘進同一個幾何（跟著轉子一起轉，一個 draw call）。
+       Andy：「看到風扇就要有扇片與輪轂」—— 方塊斜放看起來像玩具葉輪，彎刀形才是散熱風扇的樣子。*/
+    function rotorBlades(n, r0, r1, chord, thick, pitch, sweepSign) {
+      const geos = [];
+      const sw = chord * 0.55 * (sweepSign || 1);
+      for (let i = 0; i < n; i++) {
+        const s = new T.Shape();
+        s.moveTo(r0, -chord * 0.28);
+        s.quadraticCurveTo((r0 + r1) * 0.5, -chord * 0.55 + sw * 0.3, r1, sw - chord * 0.42);   // 前緣
+        s.quadraticCurveTo(r1 + chord * 0.12, sw, r1 - chord * 0.05, sw + chord * 0.4);         // 葉尖圓弧
+        s.quadraticCurveTo((r0 + r1) * 0.5, chord * 0.5 + sw * 0.4, r0, chord * 0.28);          // 後緣
+        s.lineTo(r0, -chord * 0.28);
+        const bg = new T.ExtrudeGeometry(s, { depth: thick * 0.4, bevelEnabled: true, bevelThickness: thick * 0.3,
+          bevelSize: thick * 0.3, bevelSegments: 1, curveSegments: 6, steps: 1 });
+        bg.translate(0, 0, -thick * 0.2);
+        bg.rotateX(pitch);                           // 攻角：繞徑向軸轉
+        bg.rotateZ(i * Math.PI * 2 / n);
+        geos.push(bg);
+      }
+      return mergeGeos(geos);
+    }
+
     /* 風扇：Andy 點名的例子 ——「風扇有扇片」。
        外框 ＋ 輪轂 ＋ 七片有角度的扇片，扇片掛在自己的 Group 上，setAnim(true) 時整組轉。*/
     function fan(p, K) {
@@ -2452,14 +2475,7 @@
          靠的是七片有攻角的實心葉片與輪轂，不是藍光。*/
       const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
       /* 2026-09-26：七片扇葉烘進同一個幾何（它們本來就跟著轉子一起轉）—— 一台風扇省 6 個 draw call。*/
-      const bl = [], tmp = new T.Object3D();
-      for (let i = 0; i < 7; i++) {
-        const bg = chamferGeo(r * 0.62, r * 0.36, d * 0.16);
-        tmp.position.set(Math.cos(i * Math.PI * 2 / 7) * r * 0.48, Math.sin(i * Math.PI * 2 / 7) * r * 0.48, 0);
-        tmp.rotation.set(0, 0.42, i * Math.PI * 2 / 7 + Math.PI / 2);     // 扇片的攻角：平的看起來像葉輪玩具
-        tmp.updateMatrix(); bg.applyMatrix4(tmp.matrix); bl.push(bg);
-      }
-      rotor.add(new T.Mesh(mergeGeos(bl), bm));
+      rotor.add(new T.Mesh(rotorBlades(7, r * 0.22, r * 0.8, r * 0.42, d * 0.12, 0.5, 1), twoSided(K, bm)));
       rotor.userData.spin = { axis: 'z', speed: 2.4 };
       g.add(rotor);
       /* v3 §3-11：向外旋轉出淡藍白的氣流波紋 —— 兩圈越往外越大、越淡的環（一個 InstancedMesh）。
@@ -3586,6 +3602,25 @@
       return g;
     }
 
+    /* 帶 V 形 notch、邊緣圓弧倒角的晶圓圓片（晶圓與「一疊晶圓」共用）。形狀的 +y（缺口）→ 世界的 −z。*/
+    function notchDiscGeo(R, h, segs) {
+      const bv = Math.min(h * 0.28, R * 0.03);
+      const s = new T.Shape();
+      const nw = R * 0.045, nd = R * 0.05, da = Math.asin(nw / R);
+      const N = segs || 120;
+      for (let i = 0; i <= N; i++) {
+        const a = Math.PI / 2 + da + (Math.PI * 2 - 2 * da) * i / N;
+        const x = Math.cos(a) * (R - bv), y = Math.sin(a) * (R - bv);
+        if (i) s.lineTo(x, y); else s.moveTo(x, y);
+      }
+      s.lineTo(0, R - bv - nd);                                         // V 形缺口的尖端
+      const dg = new T.ExtrudeGeometry(s, { depth: Math.max(0.02, h - 2 * bv), bevelEnabled: true, bevelThickness: bv,
+        bevelSize: bv, bevelSegments: 3, curveSegments: 4, steps: 1 });
+      dg.translate(0, 0, -(h - 2 * bv) / 2);
+      dg.rotateX(-Math.PI / 2);
+      return dg;
+    }
+
     /* 12 吋晶圓：圓片 ＋ notch ＋ 規則排列的晶粒。
        識別特徵有兩個，缺一個就不是晶圓：① 邊緣那一個方位缺口（notch）
        ② 邊緣那一圈**切不出完整晶粒**的格子（圖上顏色較暗的那些）。
@@ -3600,20 +3635,7 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
-      const bv = Math.min(h * 0.28, R * 0.03);
-      const s = new T.Shape();
-      const nw = R * 0.045, nd = R * 0.05, da = Math.asin(nw / R);
-      const N = 120;
-      for (let i = 0; i <= N; i++) {
-        const a = Math.PI / 2 + da + (Math.PI * 2 - 2 * da) * i / N;
-        const x = Math.cos(a) * (R - bv), y = Math.sin(a) * (R - bv);
-        if (i) s.lineTo(x, y); else s.moveTo(x, y);
-      }
-      s.lineTo(0, R - bv - nd);                                         // V 形缺口的尖端
-      const dg = new T.ExtrudeGeometry(s, { depth: Math.max(0.02, h - 2 * bv), bevelEnabled: true, bevelThickness: bv,
-        bevelSize: bv, bevelSegments: 3, curveSegments: 4, steps: 1 });
-      dg.translate(0, 0, -(h - 2 * bv) / 2);
-      dg.rotateX(-Math.PI / 2);                                         // 形狀的 +y（缺口）→ 世界的 −z
+      const dg = notchDiscGeo(R, h);
       g.add(new T.Mesh(dg, K.mat(p.mirror ? 0.3 : 0.18, { rough: p.mirror ? 0.08 : 0.3, metal: p.mirror ? 0.55 : 0.34 })));
       const n = p.dies || 0;
       if (n > 0) {
@@ -3757,14 +3779,11 @@
       const n = p.layers || 9;
       const t = h / (n * 1.9), pit = (h - t) / (n - 1);
       const m = K.mat(0.24, { rough: 0.2, metal: 0.46 });
-      const nm = K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 });
-      const at = [], nt = [];
-      for (let i = 0; i < n; i++) {
-        const y = -h / 2 + t / 2 + i * pit;
-        at.push([0, y, 0]); nt.push([0, y, -R + R * 0.02]);
-      }
-      g.add(instOf(new T.CylinderGeometry(R, R, t, 34), m, at));
-      g.add(instOf(new T.BoxGeometry(R * 0.1, t * 1.2, R * 0.1), nm, nt));
+      const at = [];
+      for (let i = 0; i < n; i++) at.push([0, -h / 2 + t / 2 + i * pit, 0]);
+      /* 2026-09-26：每一片都是真的帶 notch、邊緣倒角的圓片（跟晶圓那一支同一個形狀），
+         一疊切出來的 notch 自然對齊在同一個方位 —— 那道 notch 是整根晶碇上先磨好的溝。*/
+      g.add(instOf(notchDiscGeo(R, t, 64), m, at));
       return g;
     }
 
@@ -3855,7 +3874,7 @@
        （三個電極全在上表面）—— 這一組對比是這張圖最重要的視覺事實，
        而它只有把兩顆擺在一起、而且正反面都看得到，才成立。
        p.k 給明暗（同一顆元件內靠明暗分層，一張圖一個主色）、p.tint 給 token 名。*/
-/* ★ 2026-09-26 細緻化（規格 docs/diagram_specs/wide_bandgap.md §3D-細節）。零件、位置、爆炸位移一個都沒動：
+    /* ★ 2026-09-26 細緻化（規格 docs/diagram_specs/wide_bandgap.md §3D-細節）。零件、位置、爆炸位移一個都沒動：
          · SiC：p-body／n⁺ 源極不再是「兩塊」，而是**三個重複的元胞（cell）**——功率 MOSFET 本來就是成千上萬個一樣的小元胞並聯；
                 每個元胞：JFET 區上方一條閘極（氧化層＋多晶矽＋層間介電 ILD 包起來），兩條閘極之間是源極接觸窗；
                 正面是厚鋁源極，**焊線（bond wire）從正面打出去**，閘極有自己的小焊墊與較細的焊線；
@@ -4796,14 +4815,8 @@
       const rev = !!p.rev, sg = rev ? -1 : 1;
       const rotor = new T.Group();
       const bm = K.mat(rev ? -0.12 : 0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
-      for (let i = 0; i < 7; i++) {
-        const a = i * Math.PI * 2 / 7;
-        const b = box(r * 0.72, r * 0.4, d * 0.18, bm);
-        b.position.set(Math.cos(a) * r * 0.56, Math.sin(a) * r * 0.56, 0);
-        b.rotation.z = a + Math.PI / 2;
-        b.rotation.y = 0.46 * sg;                       // 攻角：平的看起來像葉輪玩具
-        rotor.add(b);
-      }
+      // 2026-09-26：彎刀形葉片（見 rotorBlades）；反轉那一組攻角與後掠都反過來
+      rotor.add(new T.Mesh(rotorBlades(7, r * 0.26, r * 0.92, r * 0.46, d * 0.14, 0.5 * sg, sg), twoSided(K, bm)));
       // 葉根：葉片是**從輪轂長出來**的，所以根部要有一圈實體把它們連起來
       const root = cyl(r * 0.3, d * 0.6, K.mat(-0.2, { metal: 0.3, rough: 0.6 }), 16);
       root.rotation.x = Math.PI / 2; rotor.add(root);
@@ -7021,6 +7034,9 @@
          進場一律 expT = 0（看起來是組裝好的成品），游標移進容器才補間到 1、移開再收回 0。*/
     let expT = 0;
     const explodable = [];
+    /* 2026-09-26：流線跟著它掛的那個零件一起拆開（以前流線是寫死的世界座標，零件一拆開它就懸在半空中，
+       看起來就是 Andy 說的「隨便拉的管線」）。收攏時位移是 0，跟以前一模一樣。*/
+    const flowGroups = [];
     /* ★ 按需渲染（#245）的兩個旗標宣告提前到這裡。
        爆炸補間（#246）在「建完場景、還沒進 tick()」的階段就會呼叫 markDirty()，
        留在原本 tick() 上面那一段（const 宣告）會踩到 TDZ，3D 直接退回平面圖。*/
@@ -7047,6 +7063,7 @@
     const applyExplode = (t) => {
       expT = Math.max(0, Math.min(1, t));
       explodable.forEach(place);
+      flowGroups.forEach(fg => { const e = fg.userData.ex; fg.position.set(e[0] * expT, e[1] * expT, e[2] * expT); });
       bumpShadow();     // 零件真的移動了 → 這一幀要重畫陰影貼圖（見 shadowMap.autoUpdate）
       markDirty();      // #245：補間的每一幀都要真的畫出來，不能被「沒變就不畫」擋掉
     };
@@ -7103,7 +7120,8 @@
          點別的環節時它會跟著零件一起淡出；粒子跟走線的電流走同一套 stepFlows。*/
       (spec.flows || []).filter(f => f.part === pkey).forEach(f => {
         const fg = B._flowPath(K, f);
-        fg.userData = { seg: p.seg, part: pkey, idx, flowOf: pkey };
+        fg.userData = { seg: p.seg, part: pkey, idx, flowOf: pkey, ex: p.ex || [0, 0, 0] };
+        if (p.ex) flowGroups.push(fg);
         fg.traverse(x => {
           if (x.isMesh) meshes.push(x);
           if (x.isPoints && x.userData && x.userData.flow) { flowPts.push(x); flowAll.push(x); flowSeen.add(x.geometry); }
