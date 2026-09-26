@@ -26,9 +26,24 @@
    沒選 DuckDuckGo（icons.duckduckgo.com/ip3）：它只回 16／32px 的 ICO、而且不看 <link rel=icon>，
    能拿到的東西是官網那條路的子集。
 
+第三版（2026-09-26 深夜，`LOGO_STRATEGY`＝3）：Andy 截圖問聯電、南亞科、欣興、長榮航為什麼還是字母頭像
+--------------------------------------------------------------------------------------------------
+- **小圖當後備**：官網找不到 ≥48px 的圖時，官網最大的那張只要 ≥16px 就收（索引 `status: ok`＋`lowres: true`）。
+  前端只顯示 20～32px，16px 官方 favicon 在那個尺寸幾乎是原生大小，比字母頭像好認。
+  **照原尺寸存**（16×16 就是 16×16，只補透明邊成正方形），不放大重採樣 —— 理由見 normalize_image()。
+  Google s2 的小圖不收（第三方來源仍要 ≥32px）。長寬比超過 5:1 的橫長字標照樣判太小。
+- **預設圖拒收後繼續往下找**：第二版是整輪抓完才發現「這張跟 14 個網域同一張」、刪檔判 generic，那家就沒圖；
+  而且那張 64px 預設 favicon 會讓「提早停」與「不必問 s2」成立，後面的頁首圖、s2 根本沒試。
+  第三版把已知預設圖的雜湊傳進 fetch_logo()，抓到就跳過、不提早停，繼續試頁首圖／manifest／og:image／s2。
+  已知雜湊記進索引 `generic_sha1`，那幾家換成真 Logo 之後也不會忘記那張是預設圖。
+- **找不到（none）沒有第二備援**：評估過 DuckDuckGo `icons.duckduckgo.com/ip3` 等公開 favicon 快取，不採用
+  （無公開條款、DuckDuckGo 一般條款據摘要限制自動化使用、而且等於透過第三方繞過官網對我們的阻擋；
+  細節見 docs/logo_sources.md §1.2 與 DECISIONS #267）。robots 不准的公司照舊不走任何備援。
+- 「太小／找不到／預設圖」三種在策略升級後最先重試；好圖不重抓、不覆寫。
+
 判定「沒有」的情況（寧可退回字母頭像，也不存假 Logo）
 ----------------------------------------------------
-- `too_small`：原圖長邊 < `config.LOGO_MIN_PX`（16px 放大到 64px 只是一團糊），
+- `too_small`：原圖長邊 < `config.LOGO_LOWRES_MIN_PX`（16，官網圖）／`config.LOGO_MIN_PX`（32，Google s2），
   或長寬比超過 `config.LOGO_MAX_ASPECT`（橫條字標縮進 64×64 只剩一條線）
 - `blank`：全透明，或在白底與黑底上看都是單一顏色（空白佔位圖）
 - `generic`：同一張圖（雜湊相同）出現在 ≥ `config.LOGO_GENERIC_DOMAINS` 個**不同網域** ——
@@ -40,7 +55,8 @@
 
 存放（DECISIONS #155：會重複用到的一律進資料湖，不准每次重抓）
 ------------------------------------------------------------
-- `data/logos/<code>.png`：統一 64×64 PNG（等比縮放、置中、透明補邊 —— 不裁切、不拉伸、不改色）
+- `data/logos/<code>.png`：64×64 PNG（等比縮放、置中、透明補邊 —— 不裁切、不拉伸、不改色）；
+  低解析（原圖長邊 < 48）照原尺寸存成正方形 PNG（例 16×16），不放大
 - `data/logos/_index.json`：代號 → 狀態、來源、網域、抓取日、雜湊、原圖尺寸
 - `data/_state/logo_progress.json`：每輪摘要、這輪的失敗清單、還有幾家待抓、下一次到期日
   （`backfill.yml` 的排程守門看這份決定要不要放行）
@@ -49,9 +65,9 @@ PNG 不是 Parquet：90 天重抓時如果圖真的變了會換掉舊檔（雜�
 
 增量
 ----
-策略升級（`config.LOGO_STRATEGY` 加一）後，舊策略判「太小／找不到」的最先重試；
+策略升級（`config.LOGO_STRATEGY` 加一）後，舊策略判「太小／找不到／預設圖」的最先重試；
 其次是沒抓過的（族群成分股優先，使用者最常看的先有圖），再來是抓到超過 90 天的、
-沒抓到超過 30 天的。已經抓到的好圖不因為策略升級而重抓。每輪最多 `config.LOGOS_PER_RUN` 家、最多 `config.LOGO_TIME_BUDGET_SEC` 秒。
+沒抓到（或只有低解析圖）超過 30 天的。已經抓到的好圖不因為策略升級而重抓。每輪最多 `config.LOGOS_PER_RUN` 家、最多 `config.LOGO_TIME_BUDGET_SEC` 秒。
 同一個網域一輪只抓一次（金控與子公司常共用官網）。
 """
 from __future__ import annotations
@@ -630,13 +646,21 @@ def effective_px(w: int, h: int) -> float:
 
 
 def normalize_image(data: bytes, *, photo_check: bool | str = False,
-                    aspect: tuple[float, float] | None = None) -> tuple[bytes, tuple[int, int]]:
-    """任何 Pillow 讀得懂的圖（ICO／PNG／JPEG／GIF／WebP／BMP）或 SVG → 64×64 透明底 PNG。
+                    aspect: tuple[float, float] | None = None,
+                    allow_lowres: bool = False) -> tuple[bytes, tuple[int, int]]:
+    """任何 Pillow 讀得懂的圖（ICO／PNG／JPEG／GIF／WebP／BMP）或 SVG → 透明底 PNG（通常 64×64）。
 
     ICO 內含多種尺寸時 Pillow 預設開最大的那張。等比縮到 64 以內再置中貼到透明畫布，
     不裁切、不拉伸、不改色 —— 只縮放，這是「指稱性使用、不修改圖形」的技術面保證。
     非正方形（橫長字標）就上下補透明邊；長寬比超過 LOGO_MAX_ASPECT 的判太小（縮完只剩一條線）。
     photo_check：是照片就擋（True＝寬鬆、"strict"＝嚴格，見 is_photo）；aspect：限定寬／高範圍（沒寫 logo 的 og:image 用）。
+
+    低解析（第三版）：原圖長邊 < LOGO_LOWRES_BELOW（48）的點陣圖**照原尺寸**存，只補透明邊成正方形
+    （16×16 就存 16×16、24×25 存 25×25），不放大重採樣 —— 放大只會做出「看起來是 64px、其實是 16px」的假解析度。
+    為什麼不是「置中貼到 64×64 畫布」：前端 `.slogo img` 用 width/height:100%＋object-fit:contain，
+    整張 PNG 會被縮放到 20～32px 的框裡；16px 圖示貼在 64 畫布中間，顯示出來只剩框的四分之一（約 5px），
+    比字母頭像還難認。照原尺寸存，放大交給瀏覽器顯示時做（跟分頁上的 favicon 一樣），湖裡存的就是原圖。
+    allow_lowres：長邊 16～31px 的圖要不要收（只有官網自己的圖可以；Google s2 等第三方仍要 ≥ LOGO_MIN_PX）。
     """
     Image = _pil()
     head = data[:1024].lstrip(b"\xef\xbb\xbf \t\r\n").lower()     # 有的 SVG 前面帶 UTF-8 BOM
@@ -657,7 +681,7 @@ def normalize_image(data: bytes, *, photo_check: bool | str = False,
     except Exception:  # noqa: BLE001
         pass
     w, h = img.size
-    if not vector and max(w, h) < config.LOGO_MIN_PX:
+    if not vector and max(w, h) < (config.LOGO_LOWRES_MIN_PX if allow_lowres else config.LOGO_MIN_PX):
         raise LogoReject("too_small", f"{w}x{h}")
     if min(w, h) <= 0 or max(w, h) / min(w, h) > config.LOGO_MAX_ASPECT:
         raise LogoReject("too_wide", f"{w}x{h}")
@@ -668,10 +692,14 @@ def normalize_image(data: bytes, *, photo_check: bool | str = False,
         raise LogoReject("blank", f"{w}x{h}")
     if photo_check and is_photo(rgba, strict=photo_check == "strict"):
         raise LogoReject("not_logo", f"看起來是照片 {w}x{h}")
-    px = config.LOGO_PX
-    scale = px / max(w, h)
-    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
-    resized = rgba.resize((nw, nh), Image.LANCZOS)
+    if not vector and max(w, h) < config.LOGO_LOWRES_BELOW:
+        px, resized = max(w, h), rgba          # 低解析：原尺寸，只補邊（見上方說明）
+        nw, nh = w, h
+    else:
+        px = config.LOGO_PX
+        scale = px / max(w, h)
+        nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
+        resized = rgba.resize((nw, nh), Image.LANCZOS)
     canvas = Image.new("RGBA", (px, px), (0, 0, 0, 0))
     canvas.paste(resized, ((px - nw) // 2, (px - nh) // 2), resized)
     buf = io.BytesIO()
@@ -750,6 +778,12 @@ _KIND_RANK = {"apple-touch-icon": 0, "manifest": 0, "icon": 1, "conventional": 1
               "header-img": 2, "og-image": 3, "mask-icon": 4}
 
 
+# 可以收「低解析」（16～31px）的候選：官網自己的圖。第三方快取（google_s2）不收 —— 它對找不到的網站
+# 會回 16px 預設地球，小圖從第三方來的可信度太低；而且它回的 16px 本來就是官網那張的複本，官網那條路已經試過了。
+# 要放寬見 config.LOGO_LOWRES_ALLOW_S2（預設關）。
+_LOWRES_KINDS = {"apple-touch-icon", "manifest", "icon", "conventional", "header-img", "og-image", "mask-icon"}
+
+
 def _try_image(url: str, kind: str = "icon", logo_named: bool = True) -> tuple[bytes, tuple[int, int]] | LogoReject:
     res = _get(url, timeout=8, max_bytes=2_000_000 if kind == "og-image" else 1_000_000)
     if res is None:
@@ -763,28 +797,33 @@ def _try_image(url: str, kind: str = "icon", logo_named: bool = True) -> tuple[b
         bare_og = kind == "og-image" and not logo_named     # 沒有任何 logo 字樣的 og:image：最嚴
         return normalize_image(body,
                                photo_check="strict" if bare_og else kind in ("og-image", "header-img"),
-                               aspect=OG_ASPECT if bare_og else None)
+                               aspect=OG_ASPECT if bare_og else None,
+                               allow_lowres=kind in _LOWRES_KINDS
+                               or (kind == "google_s2" and config.LOGO_LOWRES_ALLOW_S2))
     except LogoReject as rej:
         rej.detail = f"{rej.detail} {url}".strip()
         return rej
 
 
 # 失敗原因的「嚴重度」：多個候選都失敗時，回報最有資訊量的那一個
-_REASON_RANK = {"too_small": 6, "too_wide": 6, "blank": 5, "not_logo": 4, "bad_image": 3,
+_REASON_RANK = {"too_small": 6, "too_wide": 6, "generic": 5, "blank": 5, "not_logo": 4, "bad_image": 3,
                 "svg_unsupported": 3, "none": 2, "error": 1}
 
 
-def fetch_logo(website, host: str | None = None) -> dict:
-    """抓一家公司的 Logo。回 {status, src, png, orig, detail, domain[, site]}；status＝ok 時 png 有值。
+def fetch_logo(website, host: str | None = None, reject: set | frozenset | None = None) -> dict:
+    """抓一家公司的 Logo。回 {status, src, png, orig, detail, domain[, site][, lowres]}；status＝ok 時 png 有值。
 
     site：首頁轉址到同公司的另一個網域時，記下實際取圖的主機（例如 www.aoet.com.tw → www.aoet.com）。
+    lowres：官網找不到 ≥48px 的圖、收下的是 16～47px 的小圖（照原尺寸存，見 normalize_image）。
+    reject：已知預設圖的雜湊（第三版）。候選正規化後的雜湊在裡面 ＝ 那是預設圖，**跳過它繼續往下找**
+    （頁首圖、manifest、s2 …），不是直接判失敗 —— 第二版是整輪抓完才發現、刪檔判 generic，那家就沒圖了。
     絕不拋例外：任何意外都變成 status=error，一家壞掉不能拖垮一整輪。
     """
     host = host or extract_domain(website)
     if not host:
         return {"status": "no_website", "domain": None}
     try:
-        return _fetch_logo(website, host)
+        return _fetch_logo(website, host, frozenset(reject or ()))
     except LogoReject as rej:
         return {"status": "error", "domain": host, "detail": f"{rej.reason} {rej.detail}"[:200]}
     except Exception as exc:  # noqa: BLE001
@@ -820,7 +859,7 @@ def _open_home(url: str, host: str, rules) -> tuple:
     return ("down", f"首頁轉址超過 5 次 {url}")
 
 
-def _fetch_logo(website, host: str) -> dict:
+def _fetch_logo(website, host: str, reject: frozenset = frozenset()) -> dict:
     worst: LogoReject | None = None
 
     def keep(rej: LogoReject):
@@ -895,6 +934,11 @@ def _fetch_logo(website, host: str) -> dict:
             keep(got)
             continue
         png, orig = got
+        if sha1(png) in reject:
+            # 已知的預設圖（例：同一張 favicon.ico 出現在南亞科、中租、東和鋼鐵等 14 家不相干公司）：
+            # 不收，也**不提早停**，繼續試頁首圖、og:image、其他圖示，最後還有 s2
+            keep(LogoReject("generic", f"預設圖（跟其他網域同一張）{c['url']}"))
+            continue
         cand = {**c, "png": png, "orig": orig, "eff": effective_px(*orig)}
         if best is None or _score(cand) > _score(best):
             best = cand
@@ -907,6 +951,8 @@ def _fetch_logo(website, host: str) -> dict:
         got = _try_image(s2, "google_s2")
         if isinstance(got, LogoReject):
             keep(got)
+        elif sha1(got[0]) in reject:
+            keep(LogoReject("generic", f"預設圖（跟其他網域同一張）{s2}"))
         else:
             png, orig = got
             cand = {"url": s2, "kind": "google_s2", "png": png, "orig": orig, "eff": effective_px(*orig)}
@@ -918,12 +964,14 @@ def _fetch_logo(website, host: str) -> dict:
         extra["site"] = final_host      # 連 www ↔ 非 www 也記：下一個人查「為什麼圖是從這裡來的」才對得上
     if best is not None:
         src = "google_s2" if best["kind"] == "google_s2" else f"site:{best['kind']}"
+        if max(best["orig"]) < config.LOGO_LOWRES_BELOW and not best.get("svg"):
+            extra["lowres"] = True      # 找不到 ≥48px 的，收的是小圖（照原尺寸存）；30 天後再找找看有沒有更大的
         return {"status": "ok", "domain": host, "src": src, "url": best["url"],
                 "png": best["png"], "orig": list(best["orig"]), **extra}
     reason = worst.reason if worst else "none"
     if reason == "too_wide":
         reason = "too_small"
-    status = reason if reason in ("too_small", "blank", "error") else "none"
+    status = reason if reason in ("too_small", "blank", "error", "generic") else "none"
     if status == "error" and site_ok:
         status = "none"
     return {"status": status, "domain": host, "detail": (worst.detail if worst else "")[:200], **extra}
@@ -969,10 +1017,19 @@ def generic_hashes(items: dict, min_domains: int | None = None) -> set[str]:
     return {h for h, doms in by_hash.items() if len(doms) >= n}
 
 
+def known_generic(idx: dict) -> set[str]:
+    """已知預設圖的雜湊：這一輪從索引算出來的 ∪ 以前記下來的（`idx["generic_sha1"]`）。
+
+    第三版為什麼要另外記：判 generic 的那幾家重抓之後換成真正的 Logo，紀錄裡的舊雜湊就沒了；
+    只靠 generic_hashes() 現算，那張預設圖會「失憶」，下一家架在同一個架站商的公司又會把它收進來。
+    """
+    return generic_hashes(idx.get("items", {})) | {str(h) for h in idx.get("generic_sha1") or []}
+
+
 def usable_codes(idx: dict) -> dict[str, str]:
     """{代號: 檔名}：狀態 ok、檔案真的在、而且不是預設圖。build_payload 只輸出這些。"""
     items = idx.get("items", {})
-    bad = generic_hashes(items)
+    bad = known_generic(idx)
     out = {}
     for code, rec in items.items():
         if rec.get("status") != "ok" or rec.get("sha1") in bad:
@@ -1010,18 +1067,23 @@ def websites() -> pd.DataFrame:
     return df.drop_duplicates("code", keep="first").reset_index(drop=True)
 
 
-# 取圖策略升級時要「立刻重試」的失敗狀態：只有這兩種是「方法不夠好」造成的。
-# robots（對方不准）、blank／generic（圖本身不能用）、error（連線問題）換了方法也一樣，照 30 天規則。
-RETRY_ON_UPGRADE = ("too_small", "none")
+# 取圖策略升級時要「立刻重試」的失敗狀態：這幾種是「方法不夠好」造成的。
+# 第三版加 generic：第二版拒收預設圖後就直接判失敗，沒有往下找頁首圖、s2 —— 那是方法的問題，不是圖的問題。
+# robots（對方不准，DECISIONS #264：一律不走任何備援）、blank（圖本身空白）、error（連線問題）
+# 換了方法也一樣，照 30 天規則。
+RETRY_ON_UPGRADE = ("too_small", "none", "generic")
 
 
 def retry_on_upgrade(rec: dict) -> bool:
-    """這筆是用比 config.LOGO_STRATEGY 舊的策略判成「太小／找不到」的 → 下一輪立刻重試。
+    """這筆是用比 config.LOGO_STRATEGY 舊的策略判成「太小／找不到／預設圖」的 → 下一輪立刻重試。
 
     沒記 strategy 的舊紀錄一律當第 1 版。重試完會記上新版號，之後回到一般的 30 天規則，
-    不會每輪都重抓。抓到的好圖（ok）不在這裡 —— 策略升級不去動已經有的圖，只補沒有的。
+    不會每輪都重抓。抓到的好圖（ok）不在這裡 —— 策略升級不去動已經有的圖，只補沒有的；
+    唯一例外是「低解析」的 ok（第三版起才有）：它本來就是「先頂著用」，之後策略再升級時也一起重試。
+    重試失敗時 run() 會保留舊圖，不會把低解析的圖弄丟。
     """
-    if rec.get("status") not in RETRY_ON_UPGRADE:
+    lowres_ok = rec.get("status") == "ok" and rec.get("lowres")
+    if not lowres_ok and rec.get("status") not in RETRY_ON_UPGRADE:
         return False
     try:
         ver = int(rec.get("strategy") or 1)
@@ -1030,13 +1092,19 @@ def retry_on_upgrade(rec: dict) -> bool:
     return ver < config.LOGO_STRATEGY
 
 
+def _days(rec: dict) -> int:
+    """好圖 90 天重抓；沒抓到的、以及「低解析」的 ok 30 天再找一次（官網改版常常就有大圖了）。"""
+    if rec.get("status") == "ok" and not rec.get("lowres"):
+        return config.LOGO_REFRESH_DAYS
+    return config.LOGO_RETRY_DAYS
+
+
 def _due(rec: dict, today: date) -> bool:
     try:
         last = date.fromisoformat(str(rec.get("fetched"))[:10])
     except ValueError:
         return True
-    days = config.LOGO_REFRESH_DAYS if rec.get("status") == "ok" else config.LOGO_RETRY_DAYS
-    return (today - last).days >= days
+    return (today - last).days >= _days(rec)
 
 
 def next_due(rec: dict) -> str | None:
@@ -1044,13 +1112,14 @@ def next_due(rec: dict) -> str | None:
         last = date.fromisoformat(str(rec.get("fetched"))[:10])
     except ValueError:
         return None
-    days = config.LOGO_REFRESH_DAYS if rec.get("status") == "ok" else config.LOGO_RETRY_DAYS
-    return (last + timedelta(days=days)).isoformat()
+    return (last + timedelta(days=_days(rec))).isoformat()
 
 
 def select_todo(sites: pd.DataFrame, idx: dict, today: date, limit: int,
                 priority: list[str] | None = None) -> list[dict]:
     """這一輪要抓哪些：策略升級要重試的 → 沒抓過的 → 網域換了的 → 到期重抓的（最舊的先）。
+
+    第三版：策略升級要重試的包含「太小／找不到／預設圖」三種（見 RETRY_ON_UPGRADE）。
 
     沒抓過的裡面，`priority`（族群成分股）排前面 —— 使用者最常點的股票先有圖。
     策略升級要重試的（`retry_on_upgrade()`）排最前面：第一輪判「太小／找不到」的正是
@@ -1116,18 +1185,95 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
     limit = config.LOGOS_PER_RUN if limit is None else limit
     budget = config.LOGO_TIME_BUDGET_SEC if time_budget is None else time_budget
     fetcher = fetcher or fetch_logo
-    if fetcher is fetch_logo:
-        _pil()   # 沒有 Pillow 就整輪不跑（直接進 except 記進狀態檔），不要抓了幾百張卻存不了
-
     sites = websites()
     idx = read_index()
     items = idx.setdefault("items", {})
+    # 開抓前先記下已知的預設圖：判 generic 的那幾家這輪重抓成功後，舊紀錄的雜湊就沒了，結尾要併回去
+    reject = frozenset(known_generic(idx))
+    real = fetcher is fetch_logo
+    if real:
+        _pil()   # 沒有 Pillow 就整輪不跑（直接進 except 記進狀態檔），不要抓了幾百張卻存不了
     todo = select_todo(sites, idx, today, limit, priority)
     logo_dir().mkdir(parents=True, exist_ok=True)
     log.info("Logo：有網址 %d 家、已有紀錄 %d 家，這輪抓 %d 家（上限 %d、%d 秒）",
              len(sites), len(items), len(todo), limit, budget)
 
     t0 = time.time()
+    deadline = t0 + budget
+
+    def bound(rej):
+        # 已知的預設圖交給每一家：抓到它就跳過、繼續往下找（第三版），不是抓完才刪檔判失敗
+        if not real:
+            return fetcher
+        return lambda website, host: fetch_logo(website, host, reject=rej)
+
+    results, deadline_hit = _fetch_rows(todo, bound(reject), deadline)
+
+    counts: dict[str, int] = {}
+    failures: list[dict] = []
+    stamp = today.isoformat()
+    for code, res in results.items():
+        _record(items, code, res, stamp, counts, failures)
+
+    # 預設圖：同一張圖出現在太多網域 → 刪檔、標 generic；雜湊記進索引，之後抓到一律跳過（見 known_generic）
+    n_generic, bad, fresh_generic = 0, set(reject), []
+    for _pass in range(2):
+        bad |= known_generic(idx)
+        fresh_generic = []
+        for code, rec in items.items():
+            if rec.get("status") == "ok" and rec.get("sha1") in bad:
+                rec["status"] = "generic"
+                (logo_dir() / f"{code}.png").unlink(missing_ok=True)
+                n_generic += 1
+                if code in results:
+                    fresh_generic.append(code)
+        # 第二遍（第三版）：這輪才被判成預設圖的，用更新過的預設圖清單**當場再抓一次**，讓它往下找頁首圖、s2。
+        # 會發生在兩種情況：這輪才第一次湊滿 3 個網域的新預設圖；或舊紀錄的雜湊是舊版正規化算的
+        # （例：32px 預設圖第二版放大到 64 存，第三版照原尺寸存，雜湊不同，開抓前的清單認不出來）。
+        # 只做一次、只在時間還夠時做；沒做到的留給下一輪（狀態 generic、版號是新的 → 30 天後）。
+        if _pass or not real or not fresh_generic or time.time() >= deadline:
+            break
+        rows = [{"code": c, "website": _site_of(sites, c), "domain": items[c].get("domain")}
+                for c in fresh_generic]
+        rows = [r for r in rows if r["website"] is not None]
+        log.info("Logo：%d 家這輪才判成預設圖，用新的預設圖清單再抓一次", len(rows))
+        again, hit2 = _fetch_rows(rows, bound(frozenset(bad)), deadline)
+        deadline_hit = deadline_hit or hit2
+        for code, res in again.items():
+            counts["ok"] = counts.get("ok", 0) - (1 if results.get(code, {}).get("status") == "ok" else 0)
+            _record(items, code, res, stamp, counts, failures)
+            results[code] = res
+            n_generic -= 1
+    idx["generic_sha1"] = sorted(bad)
+    counts = {k: v for k, v in counts.items() if v > 0}
+    if n_generic:
+        log.info("Logo：%d 家的圖跟其他網域完全一樣（預設圖），已刪檔改標 generic", n_generic)
+
+    write_index(idx)
+    left = select_todo(sites, idx, today, 10 ** 9, priority)
+    dues = [d for d in (next_due(r) for r in items.values() if r.get("status") != "removed") if d]
+    summary.update(
+        done=not left, pending=len(left), attempted=len(results),
+        counts=counts, generic=n_generic, sites=len(sites),
+        have=sum(1 for r in items.values() if r.get("status") == "ok"),
+        next_due=min(dues) if dues else None,
+        seconds=round(time.time() - t0, 1), deadline_hit=deadline_hit,
+        strategy=config.LOGO_STRATEGY, svg=svg_supported(),   # svg=false ＝ 這輪沒有 libcairo，SVG 候選全被跳過
+        failures=failures[:200],
+    )
+    _write_state(summary)
+    log.info("Logo：這輪 %s，現在有圖 %d 家，還有 %d 家待抓（下一次到期 %s）",
+             counts, summary["have"], len(left), summary["next_due"])
+    return summary
+
+
+def _site_of(sites: pd.DataFrame, code: str):
+    hit = sites[sites["code"].map(clean_code) == code]
+    return None if hit.empty else hit.iloc[0]["website"]
+
+
+def _fetch_rows(todo: list[dict], fetcher, deadline: float) -> tuple[dict, bool]:
+    """並行抓一批（每個網域只抓一次，同網域的其他代號沿用結果）。回 ({代號: 結果}, 是否撞到時間上限)。"""
     by_domain: dict[str, dict] = {}
     results: dict[str, dict] = {}
     lock = threading.Lock()
@@ -1151,9 +1297,7 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
         seen.add(d)
 
     with ThreadPoolExecutor(max_workers=max(1, config.LOGO_WORKERS)) as ex:
-        futs = []
-        for row in firsts:
-            futs.append(ex.submit(one, row))
+        futs = [ex.submit(one, row) for row in firsts]
         for fu in as_completed(futs):
             if fu.cancelled():
                 continue
@@ -1163,69 +1307,43 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
                 log.warning("Logo：抓取執行緒拋出例外：%s", exc)
                 continue
             results[row["code"]] = res
-            if time.time() - t0 > budget and not deadline_hit:
+            if time.time() > deadline and not deadline_hit:
                 deadline_hit = True
-                log.warning("Logo：這輪已經 %.0f 秒，時間到，剩下的下一輪接續", time.time() - t0)
+                log.warning("Logo：這輪時間到，剩下的下一輪接續")
                 for f in futs:
                     f.cancel()
     for row in rest:
         d = base_domain(row["domain"])
         if d in by_domain:
             results[row["code"]] = dict(by_domain[d])
+    return results, deadline_hit
 
-    counts: dict[str, int] = {}
-    failures = []
-    stamp = today.isoformat()
-    for code, res in results.items():
-        st = res.get("status", "error")
-        if st == "no_website":
-            continue
-        old = items.get(code) or {}
-        rec = {"status": st, "domain": res.get("domain"), "fetched": stamp,
-               "strategy": config.LOGO_STRATEGY}
-        if res.get("site"):
-            rec["site"] = res["site"]      # 首頁轉到同公司的另一個網域：記下來，網域變了要看得到
-        if st == "ok":
-            rec.update(src=res.get("src"), url=res.get("url"), orig=res.get("orig"),
-                       sha1=_save_png(code, res["png"], old.get("sha1")))
-        else:
-            rec["detail"] = res.get("detail", "")
-            failures.append({"code": code, "status": st, "domain": res.get("domain"),
-                             "detail": res.get("detail", "")})
-            if old.get("status") == "ok" and (logo_dir() / f"{code}.png").exists():
-                # 之前抓到過、這次沒抓到（官網暫時掛掉）：保留舊圖，只延後下一次重抓
-                rec = {**old, "fetched": stamp, "last_fail": st, "strategy": config.LOGO_STRATEGY}
-                st = "kept"
-        items[code] = rec
-        counts[st] = counts.get(st, 0) + 1
 
-    # 預設圖：同一張圖出現在太多網域 → 刪檔、標 generic
-    bad = generic_hashes(items)
-    n_generic = 0
-    for code, rec in items.items():
-        if rec.get("status") == "ok" and rec.get("sha1") in bad:
-            rec["status"] = "generic"
-            (logo_dir() / f"{code}.png").unlink(missing_ok=True)
-            n_generic += 1
-    if n_generic:
-        log.info("Logo：%d 家的圖跟其他網域完全一樣（預設圖），已刪檔改標 generic", n_generic)
-
-    write_index(idx)
-    left = select_todo(sites, idx, today, 10 ** 9, priority)
-    dues = [d for d in (next_due(r) for r in items.values() if r.get("status") != "removed") if d]
-    summary.update(
-        done=not left, pending=len(left), attempted=len(results),
-        counts=counts, generic=n_generic, sites=len(sites),
-        have=sum(1 for r in items.values() if r.get("status") == "ok"),
-        next_due=min(dues) if dues else None,
-        seconds=round(time.time() - t0, 1), deadline_hit=deadline_hit,
-        strategy=config.LOGO_STRATEGY, svg=svg_supported(),   # svg=false ＝ 這輪沒有 libcairo，SVG 候選全被跳過
-        failures=failures[:200],
-    )
-    _write_state(summary)
-    log.info("Logo：這輪 %s，現在有圖 %d 家，還有 %d 家待抓（下一次到期 %s）",
-             counts, summary["have"], len(left), summary["next_due"])
-    return summary
+def _record(items: dict, code: str, res: dict, stamp: str, counts: dict, failures: list) -> None:
+    """把一家的抓取結果寫進索引（PNG 也在這裡存）。之前有圖、這次沒抓到的保留舊圖。"""
+    st = res.get("status", "error")
+    if st == "no_website":
+        return
+    old = items.get(code) or {}
+    rec = {"status": st, "domain": res.get("domain"), "fetched": stamp,
+           "strategy": config.LOGO_STRATEGY}
+    if res.get("site"):
+        rec["site"] = res["site"]      # 首頁轉到同公司的另一個網域：記下來，網域變了要看得到
+    if st == "ok":
+        rec.update(src=res.get("src"), url=res.get("url"), orig=res.get("orig"),
+                   sha1=_save_png(code, res["png"], old.get("sha1")))
+        if res.get("lowres"):
+            rec["lowres"] = True       # 前端不看這欄；給下一個人查「為什麼這家的圖糊」、給 30 天重找用
+    else:
+        rec["detail"] = res.get("detail", "")
+        failures.append({"code": code, "status": st, "domain": res.get("domain"),
+                         "detail": res.get("detail", "")})
+        if old.get("status") == "ok" and (logo_dir() / f"{code}.png").exists():
+            # 之前抓到過、這次沒抓到（官網暫時掛掉）：保留舊圖，只延後下一次重抓
+            rec = {**old, "fetched": stamp, "last_fail": st, "strategy": config.LOGO_STRATEGY}
+            st = "kept"
+    items[code] = rec
+    counts[st] = counts.get(st, 0) + 1
 
 
 def _write_state(summary: dict) -> None:
