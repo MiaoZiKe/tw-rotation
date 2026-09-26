@@ -76,8 +76,11 @@
 #aiCard .ailv{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 #aiCard .ailv .k{background:var(--panel-3);border-radius:9px;padding:6px 10px;margin-top:6px;font-size:13px}
 #aiCard .ailv .k b{font-family:var(--mono)}
-#aiCard details.aick{margin-top:8px;font-size:13px;color:var(--ink-2)}
-#aiCard details.aick summary{cursor:pointer;color:var(--ink-3)}
+/* 逐條條件用「按鈕＋hidden」而不是 <details>：收起來的 <details> 內容在 Chrome 仍量得到外框，
+   _preview 的文字重疊掃描會把它跟下面的支撐壓力區判成重疊（2026-09-26 實測）。*/
+#aiCard .aick{margin-top:8px;font-size:13px;color:var(--ink-2)}
+#aiCard .aickbtn{background:none;border:0;padding:2px 0;color:var(--ink-3);cursor:pointer;font:inherit}
+#aiCard .aickbtn:hover{color:var(--cyan)}
 #aiCard .ck{display:flex;gap:6px;margin:3px 0} #aiCard .ck .m{flex:none;width:14px;font-weight:700}
 #aiCard .ck.ok .m{color:var(--rise)} #aiCard .ck.no .m{color:var(--ink-3)}
 #aiCard .ainews a{color:var(--cyan)}
@@ -139,11 +142,11 @@
       <ul class="aiwhy" id="aiWhy">${(t.reasons || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul>
       ${t.ifs && t.ifs.length ? `<div class="aisub">若…則…（狀態會在什麼情況下改變）</div>${ul(t.ifs)}` : ''}
       ${t.plan ? `<div class="aisub">${esc(t.plan)}</div>` : ''}
-      ${ck ? `<details class="aick"><summary>逐條條件：回檔型態 ${ck.met_a}/${ck.n_a}・突破型態 ${ck.met_b}/${ck.n_b}</summary>
+      ${ck ? `<div class="aick"><button type="button" class="aickbtn" aria-expanded="false">▸ 逐條條件：回檔型態 ${ck.met_a}/${ck.n_a}・突破型態 ${ck.met_b}/${ck.n_b}</button><div class="aickbody" hidden>
         <div class="aisub">回檔型態（A）</div>${ckList(ck.a)}
         <div class="aisub">突破型態（B）</div>${ckList(ck.b)}
         ${ck.risk && ck.risk.a ? `<div class="ck ${ck.risk.a.ok ? 'ok' : 'no'}"><span class="m">${ck.risk.a.ok ? '✓' : '✗'}</span><span><b>停損距離</b>：${esc(ck.risk.a.text)}</span></div>` : ''}
-      </details>` : ''}
+      </div></div>` : ''}
       <div class="aisub">支撐／壓力區（1 小時～週線，由近到遠）</div>
       <div class="ailv"><div>${(lv.support || []).map(zrow).join('') || '<div class="k muted">下方沒有通過門檻的需求區</div>'}</div>
         <div>${(lv.resistance || []).map(zrow).join('') || '<div class="k muted">上方沒有通過門檻的供給區</div>'}</div></div>
@@ -223,6 +226,12 @@
       const bar = document.querySelector('.topbar, header');
       const off = (bar ? bar.getBoundingClientRect().height : 60) + 12;
       window.scrollTo({ top: Math.max(0, host.getBoundingClientRect().top + window.scrollY - off), behavior: 'smooth' });
+    };
+    const ckb = host.querySelector('.aickbtn');
+    if (ckb) ckb.onclick = () => {
+      const body = ckb.nextElementSibling; const open = body.hidden;
+      body.hidden = !open; ckb.setAttribute('aria-expanded', String(open));
+      ckb.textContent = (open ? '▾' : '▸') + ckb.textContent.slice(1);
     };
     // 重大訊息沒有外部網址：點標題切到下方「公告 / 新聞」分頁（站內既有的那一頁，有觀測站連結與全文摘要）
     host.querySelectorAll('[data-aitab]').forEach(a => a.onclick = (e) => {

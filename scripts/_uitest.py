@@ -15945,9 +15945,9 @@ def t_stock_ai_0926(pg, base, code):
     ok("[AI分析]「?」打開說明：寫清楚是寫死的規則、不是語言模型、非建議", bool(how) and how["open"] and "規則" in how["t"] and "非語言模型" in how["t"], how)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     # 逐條條件（details）真的展得開，11 條 A／B 都在
-    if count(pg, "#aiCard details.aick"):
-        click(pg, "#aiCard details.aick > summary", 300)
-        dd = pg.evaluate("() => { const d = document.querySelector('#aiCard details.aick'); return { open: d.open, n: d.querySelectorAll('.ck').length, ok: d.querySelectorAll('.ck.ok').length }; }")
+    if count(pg, "#aiCard .aickbtn"):
+        click(pg, "#aiCard .aickbtn", 300)
+        dd = pg.evaluate("() => { const d = document.querySelector('#aiCard .aickbody'); return { open: !d.hidden && d.getBoundingClientRect().height > 20, n: d.querySelectorAll('.ck').length, ok: d.querySelectorAll('.ck.ok').length }; }")
         ok("[AI分析] 點「逐條條件」→ 真的展開，A 六條＋B 五條＋停損距離都列出", dd["open"] and dd["n"] >= 11, dd)
     # 重大訊息標題 → 切到下方「公告 / 新聞」分頁
     if count(pg, "#aiCard [data-aitab]"):
