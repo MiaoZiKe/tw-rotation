@@ -3096,3 +3096,10 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 下拉跑掉的根因：position:fixed 只在開啟時算一次座標，捲動後面板釘在原處 → 開著時捲動／改大小／進場動畫結束都重貼按鈕，按鈕捲出畫面就關。
 - 縮放掃描白名單加 `ovThemeWrap`（Andy「縮放功能呢?沒有設置到」要的熱門題材滾輪縮放）。
 - 這批驗了：個股指標下拉0926／個股／縮放掃描／K線縮放／個股分K非交易時段 0、_preview 綠。
+
+### 09-26 晚 Logo 取圖第二版（logo-quality）
+- 官網候選加上 apple-touch-icon／manifest／mask-icon／像 Logo 的 og:image／頁首 logo 圖（含 SVG，cairosvg≥2.7 畫）；比「縮進 64 框後的短邊」取最大；非正方形補透明邊不裁切；s2 改 sz=128 且只在官網 <48 才問。
+- 轉址自己一跳一跳跟（最多 5 跳、同公司網域才跟、每跳重讀 robots）；404／連不上改試 http 與 www／非 www；robots 仍嚴格遵守（403 也當禁止，沒放寬）。
+- 索引記 `strategy=2`；第 1 版 too_small／none（165 家）下一輪最先重試，好圖不重抓不覆寫。backfill.yml 多一步確認 libcairo（裝不起來不擋，只跳過 SVG）。
+- 救回率未實測（容器連不到公司官網），看下一輪 `data/_state/logo_progress.json` 的 counts 與 `svg` 欄。
+- 這批驗了：pytest 704 passed、4 skipped（合併前在 main＋logo-quality 上跑）；純管線／工作流改動，沒動 site/ 與 build_payload，前端關卡未跑。
