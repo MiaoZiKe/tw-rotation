@@ -6128,8 +6128,10 @@
        Andy 要的是「跟熱門題材一樣」，兩份各寫一套遲早會長得不一樣（字級、Esc、點外面關）。
        輸出的 DOM 與抽出前相同（#ovThemeDD、.ddbtn b、.ddopt[data-t]、面板往左長），既有驗收不用改。*/
     const ctl = $('#ovThemeCtl');
-    if (ctl) ddSingle(ctl, { id: 'ovThemeDD', key: 't', st: OVT, label: '題材：', aria: '題材', align: 'right',
-      title: '選一個題材，圖上就換成它的成分股', curText: cur ? cur.name : '全部', tail: hmDate(th.date),
+    // ★ 2026-09-26（Andy：「篩選位置同步在左上」）：下拉搬到標題旁（面板改往右長，超出才自動往左），日期另放右側 #ovThemeDate
+    const tdp = $('#ovThemeDate'); if (tdp) tdp.innerHTML = hmDate(th.date);
+    if (ctl) ddSingle(ctl, { id: 'ovThemeDD', key: 't', st: OVT, label: '題材：', aria: '題材',
+      title: '選一個題材，圖上就換成它的成分股', curText: cur ? cur.name : '全部',
       opts: [{ v: '', text: `全部題材（${themes.length}）`, on: !cur }].concat(themes.map(t =>
         ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(cur && cur.id === t.id) }))),
       onPick: (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); } });
