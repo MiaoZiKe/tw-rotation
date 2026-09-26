@@ -5136,8 +5136,9 @@ def t_new_layout(pg, base):
         if not ok(f"[{w}px] 找得到時鐘／排行那一列（F3）", bool(f) and len(f["ks"]) == 2, f):
             continue
         clock, rank = f["ks"][0], f["ks"][1]
-        ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",  # 2026-09-24 輪動時鐘改名足跡輪盤
-           clock["h3"].startswith(("輪動", "足跡輪盤")) and rank["h3"].startswith("資金"), f["ks"])
+        # 2026-09-24 輪動時鐘改名足跡輪盤；★ 2026-09-26 改前→改後：足跡輪盤 → 資金輪盤（腳印拿掉，名字對不上內容）
+        ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",
+           clock["h3"].startswith(("輪動", "資金輪盤")) and rank["h3"].startswith("資金"), f["ks"])
         if w > 1100:
             # ★ 2026-09-24 夜（Andy：「排行區至少占卡片寬 40%」）：2:1 → 1.45:1（排行 ≈ 41%）
             ok(f"[{w}px] 欄寬是 1.45:1（排行 ≥ 40%，2026-09-24 夜由 2:1 改）",
@@ -7569,7 +7570,8 @@ def t_batch2(pg, base):
         #     · 點到的族群**不在**時鐘上 → 時鐘**原樣不動**（不准整張灰掉），
         #       而且面板的說明要**明講**一句，不能讓使用者以為自己點壞了
         note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
-        offclock = "不在左邊足跡輪盤" in note   # 2026-09-24 改名：時鐘 → 足跡輪盤
+        # 2026-09-24 改名：時鐘 → 足跡輪盤；★ 2026-09-26 改前→改後：面板那句改成「不在左邊資金輪盤」
+        offclock = "不在左邊資金輪盤" in note
         if offclock:
             ok("點到時鐘上沒有的族群時，時鐘不准整張灰掉",
                bool(dim) and dim["hi"] > 0.9, dim)
@@ -29455,6 +29457,49 @@ def t_ripple(pg, b, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+
+# ★ 2026-09-26（Andy：卡片名稱「足跡輪盤」要改名 —— 腳印已拿掉，名字對不上內容；CEO 定名「資金輪盤」）：
+#   全站使用者看得到的地方都不准再出現「足跡輪盤」：可見文字（innerText）、aria-label／title、「?」說明的內文，
+#   桌機 1440 與手機 390 各掃一次（手機的雷達是 mobile3.js 另一份，aria-label 與載入中字樣是它自己寫的）。
+#   說明內文要**真的按開**才會填進去（HOW 是點了才 innerHTML），所以總覽按 rotm、資金流向按 rot，讀跳出來的氣泡。
+OLD_WHEEL = "足跡輪盤"
+OLD_WHEEL_JS = """(old) => { const hit = [];
+  const t = document.body.innerText || ''; if (t.includes(old)) hit.push('innerText: ' + t.split('\\n').filter(l => l.includes(old)).slice(0, 3).join(' | '));
+  document.querySelectorAll('[aria-label],[title]').forEach(e => {
+    ['aria-label', 'title'].forEach(a => { const v = e.getAttribute(a) || ''; if (v.includes(old)) hit.push(a + ': ' + (e.id || e.className) + ' → ' + v); }); });
+  const tt = document.title || ''; if (tt.includes(old)) hit.push('document.title: ' + tt);
+  return hit; }"""
+def no_old_wheel_name(pg, base):
+    vp = pg.viewport_size
+    hits = []
+    try:
+        for w, h in ((1440, 950), (390, 844)):
+            pg.set_viewport_size({"width": w, "height": h})
+            for r, how in (("overview", "rotm"), ("flow", "rot"), ("industry", None), ("themes", None),
+                           ("season", None), ("market/updown", None), ("heatmap", None)):
+                pg.goto(f"{base}#{r}", wait_until="networkidle"); pg.wait_for_timeout(1600)
+                if how:
+                    # 說明氣泡：按開 → 讀 → 按 Esc 關；按不到（手機那顆在別的分段）就略過，不當成通過
+                    btn = pg.locator(f'.howbtn[data-how="{how}"]:visible').first
+                    if btn.count():
+                        btn.click(); pg.wait_for_timeout(400)
+                        box = pg.evaluate(f"() => ((document.getElementById('howPop')||{{}}).innerText || '') + ' ' + ((document.getElementById('how-{how}')||{{}}).innerText || '')")  # 氣泡標題＋內文
+                        if OLD_WHEEL in box: hits.append(f"[{w}] #{r} 「?」{how}：{box[:80]}")
+                        pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+                hits += [f"[{w}] #{r} {x}" for x in pg.evaluate(OLD_WHEEL_JS, OLD_WHEEL)]
+            # 反面也要驗：新名字真的上去了（不是整個標題被拿掉才「找不到舊名字」）
+            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
+            nw = pg.evaluate("""() => ({ h3: ((document.querySelector('#ovRotHead h3') || {}).childNodes || [{}])[0].textContent || '',
+                aria: (document.querySelector('#ovRotHead .howbtn') || {getAttribute: () => ''}).getAttribute('aria-label') || '',
+                m: (document.querySelector('#mRadarOv svg') || {getAttribute: () => null}).getAttribute('aria-label') })""")
+            ok(f"[{w}] 總覽右欄卡片標題＝「資金輪盤」、「?」的 aria-label＝「資金輪盤怎麼看」",
+               nw["h3"].strip() == "資金輪盤" and nw["aria"] == "資金輪盤怎麼看", nw)
+            if w <= 640:
+                ok(f"[{w}] 手機雷達的 aria-label＝「資金輪盤」", nw["m"] == "資金輪盤", nw)
+    finally:
+        if vp: pg.set_viewport_size(vp)
+    ok("★ 全站可見文字（含 aria-label／title／「?」說明）不再出現「足跡輪盤」（2026-09-26 改名資金輪盤）", not hits, hits[:6])
+
 # ===================================================================== 足跡輪盤（2026-09-24）
 # Andy：「輪動時鐘 改成 足跡輪盤，要有點像是雷達的樣貌，並且軌跡線 改成小小的腳印…圓圈幫我再縮小／
 #        時間軸拉Bar 只需要留一個…把顯示軌跡 旁邊的 焦點 全部拿掉…」。
@@ -29485,7 +29530,9 @@ def t_footprint(pg, b, base):
     # ① 改名
     nm = pg.evaluate("""() => ({ h4: (document.querySelector('#flowRotCard h4.subh')||{}).textContent || '',
         page: document.getElementById('v-flow').innerText })""")
-    ok("① 卡片裡那張圖改名「足跡輪盤」", nm["h4"].startswith("足跡輪盤"), nm["h4"])
+    # ★ 2026-09-26 改前→改後：改前「改名『足跡輪盤』」→ 改後「資金輪盤」（Andy：腳印已拿掉，名字對不上內容；CEO 定名）
+    ok("① 卡片裡那張圖改名「資金輪盤」", nm["h4"].startswith("資金輪盤"), nm["h4"])
+    no_old_wheel_name(pg, base)
     ok("① 資金流向頁上看不到「輪動時鐘」四個字了", "輪動時鐘" not in nm["page"], [ln for ln in nm["page"].splitlines() if "輪動時鐘" in ln][:3])
     # ★ 2026-09-26 改前→改後：改前「放大視窗的標題也是足跡輪盤」→ 改後放大鈕與放大視窗拿掉（Andy「放大功能取消」）
     ok("① 足跡輪盤沒有放大鈕了（2026-09-26 拿掉）", pg.evaluate("() => !document.getElementById('rotZoomBtn')"))
@@ -29746,7 +29793,7 @@ def t_rot_keep(pg, b, base):
     note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
     ok("9 點右邊排行的長條 → 成分股在原地展開", pg.evaluate("() => !document.getElementById('rankPanel').hidden"))
     # 排行依「佔比變化」排、盤上只畫佔比前 16 —— 點到的族群不一定在盤上（同批次2 的兩種正確行為）
-    if "不在左邊足跡輪盤" in note:
+    if "不在左邊資金輪盤" in note:   # ★ 2026-09-26 改前→改後：「不在左邊足跡輪盤」→「不在左邊資金輪盤」
         ok("9 點到盤上沒有的族群 → 盤不准整張灰掉，面板明講原因", max(x if x is not None else 1 for x in op1) > .9, op1[:6])
     else:
         ok("9 點右邊排行的長條 → 盤上只亮那一個、其他壓暗（連動）",
@@ -32060,7 +32107,8 @@ def t_kpi_footer_0926(pg, b, base):
         txt: [...document.querySelectorAll('#flowRotCard button, #flowRotCard .btn')].filter(e => /放大/.test(e.textContent || '') && e.offsetParent !== null).map(e => e.textContent.trim()),
         head: ((document.querySelector('#flowRotCard .rotchead') || {}).innerText || '').trim() })""")
     ok("★ 資金輪動卡、足跡輪盤右上方的「⤢ 放大」不存在了", not zb["btn"] and not zb["txt"], zb)
-    ok("足跡輪盤標題列只剩標題與日期區間", zb["head"].startswith("足跡輪盤") and "放大" not in zb["head"], zb["head"])
+    # ★ 2026-09-26 改前→改後：標題「足跡輪盤」→「資金輪盤」
+    ok("資金輪盤標題列只剩標題與日期區間", zb["head"].startswith("資金輪盤") and "放大" not in zb["head"], zb["head"])
     # 真的在輪盤欄右上角那一帶點一下：不會打開任何放大罩
     pt = pg.evaluate("""() => { const h = document.querySelector('#flowRotCard .rotchead'); if (!h) return null;
         const r = h.getBoundingClientRect(); return { x: r.right - 20, y: r.top + r.height / 2 }; }""")
