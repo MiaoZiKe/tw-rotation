@@ -308,5 +308,14 @@ LOGO_RETRY_DAYS = 30                   # 沒抓到的多久再試一次（官網
 LOGO_TIME_BUDGET_SEC = 900             # 一輪最多花 15 分鐘，時間到就收手、下一輪接續
 LOGO_WORKERS = 6                       # 同時抓幾家（每家都是不同網域；Google 備援一次最多 6 個並行）
 LOGO_GENERIC_DOMAINS = 3               # 同一張圖出現在 ≥ 這麼多個不同網域 ＝ 預設圖（地球、架站商圖示），不當 Logo
-# 備援：Google 的 favicon 服務（非官方、無文件、無 SLA；找不到時回 404＋16px 地球）
-LOGO_GOOGLE_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=64"
+# 備援：Google 的 favicon 服務（非官方、無文件、無 SLA；找不到時回 404＋16px 地球）。
+# 2026-09-26 第二版改要 sz=128：它對有大圖的網站會回 128px，對只有小圖的網站仍回 16px ——
+# 所以收不收仍看「實際回來的尺寸」（< LOGO_MIN_PX 一樣判太小），不看我們要了多大。
+LOGO_GOOGLE_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=128"
+# 取圖策略版本（2026-09-26 第二版：多候選取最大、manifest、og:image、頁首 logo 圖、SVG、跟轉址）。
+# 索引裡每筆會記抓的時候用的是第幾版；狀態是「太小／找不到」而且版本比這個舊的，下一輪立刻重試，
+# 不等 30 天 —— 策略變好了，舊結論就不算數。之後再改策略、想讓失敗的重來一次，把這個數字加一即可。
+LOGO_STRATEGY = 2
+LOGO_MAX_TRIES = 10                    # 每家最多下載幾個圖檔候選（找到 ≥64px 的正方形圖示就提早停）
+LOGO_MAX_ASPECT = 5.0                  # 長寬比超過 5:1 的橫條字標，縮進 64×64 只剩 12px 高，判「太小」（不裁切）
+LOGO_SVG_MAX_BYTES = 500_000           # SVG 超過這個大小不畫（防止病態檔案卡住整輪）
