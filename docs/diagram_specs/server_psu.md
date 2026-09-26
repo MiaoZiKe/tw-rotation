@@ -559,3 +559,34 @@ note 還特別寫「AI 伺服器這一塊做的是**電源傳輸**（Busbar／po
 | 2026-09-21 | ai-server-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**來源打架四條已記錄並各自給了處理方式**：B2（台達電 PSU 市占，YAML 已因查無出處拿掉「60%」，這次又撈到「70%」，同樣沒有可查證出處 → 一個百分比都不寫）、B3（BBU 撐多久，三個來源三個答案而且口徑不一致 → 時間軸不標秒數）、B4（800 V 省銅的兩組數字基準完全不同 → 只寫定性）、B5（匯流排是 48 V 還是 54 V → 寫成約 50–54 V 並註明各家寫法不同）；另有 B1（80 PLUS Titanium 的 95% 與 96% **不是打架、是條件不同** → 效率表一定要標條件，否則看起來像寫錯）。**六條查不到**已列在 §C。**3D 的判斷寫在 §0**：這是三張裡最不該做 3D 的一張 —— 它本質上是一張電力系統單線圖，單線圖的價值就在於把空間拿掉。**最大的落差在 §7-D4**：BBU 是 `groups.yaml` 的**另一個族群**，而 `supply_chain.yaml` 裡**一家 BBU 公司都沒有**，所以點 BBU 零件會篩到電源那一格的兩家 —— 這跟 MLCC 當初踩到的是同一種錯，已要求畫面上明講，並把「要不要再加一個 `bbu` slot key」的兩個選項與各自代價列出來交給 Andy 決定，本規格書不替導覽結構做決定、也不動 YAML |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26 第二批，B 組）
+
+3D 場景 `SCENES.server_psu`。零件清單、編號、對應台股都沒動；**卡片文字只改了一句**（主板那張：「四級由後往前排開」→「四級由前（交流插座與風扇那一端）往後（卡緣）沿長邊排開」，因為幾何真的照電走的方向重排了）。
+
+| 零件 | 補了什麼 | 依據 |
+|---|---|---|
+| 電源架 | 裝著的 PSU 前面板補**風扇格柵＋把手**；空槽裡看得到兩條**導軌**與最裡面的**卡緣插座**（推進去就插在這裡，所以 PSU 背後沒有任何電線） | P1、P2 |
+| PSU 外罩 | 前面板從「一格圓孔陣列」改成真的零件：**一顆風扇**（兩圈格柵＋四根輻條＋看得到後面的彎刀扇葉）、**交流插座**（C20 式凹槽＋三根腳）、ㄇ字把手與卡榫、狀態燈 | P2 |
+| PSU 主板 | 以前四級沿 x 排、沒有 EMI 濾波器也沒有散熱片。改成**沿長邊（z）由前往後照電走的順序排**：⓪ EMI（兩顆直立環形共模扼流圈＋X 電容，在插座那一端）→ ① PFC（平放的大環形升壓電感＋直立鋁散熱片與鎖在上面的三顆功率開關＋兩顆最高的大電解電容）→ ② LLC（看得到繞線窗口的 E 形磁芯變壓器＋諧振電感＋直立的數位控制卡）→ ③ 同步整流（一整排扁平 MOSFET＋一排輸出電容）→ ④ 兩條厚銅排到卡緣。依材質併成 6 個 mesh（舊版 10 個） | P3 |
+| 卡緣連接器 | 接點分**寬的電源接點**（兩端）與**窄的訊號接點**（中間）；每五根訊號有一根**短一截**（熱插拔時最後接觸）；板上一道**防呆缺口**。上下兩面 50 個接點收成一個 InstancedMesh | P4 |
+| 直流匯流排 | 補**絕緣支座**（夾住兩條銅排）與**鎖在機櫃背柱上的鈑金支架**；兩條銅排併成一個 mesh | P5 |
+| 板上降壓 VRM | 改用專用的 `psvrm`（共用的 `pvrm` 交換器板卡也在用）：一相＝**扁平功率級（DrMOS）＋電感**，八相等距；靠晶片那側兩排**輸出 MLCC**、另一側輸入高分子電容、角落一顆多相控制器 | P6 |
+| 電源線組 | 改用專用的 `pswhip`：**一正一負兩條粗線**、匯流排端是**壓接銅環形端子**、托盤端是有卡榫的電源連接器、正極一段暖橘熱縮套管 | — |
+
+**流線修正（結構錯誤）**：電源線組的粒子以前從 x 62 往 14 跑，等於把它畫成「交流進線進 PSU」—— 跟卡片寫的「從匯流排拉到托盤」相反。改成從匯流排往外跑；主板那一條改成沿 z 由前往後（交流從前面板進、直流從後端卡緣出）；VRM 那一條改成從線組末端接進來（以前從匯流排頂端直接拉過去，跟線組重複）。
+
+> 證據等級：全部是 WebSearch 摘要，沒有讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| P1 | AI 機櫃電源櫃：1U、六顆 5.5 kW 熱插拔 PSU（5＋1）＋ 電源管理控制器；ORv3 電源櫃是 6 槽 PSU＋1 槽 PMC | 高 | <https://www.se.com/us/en/product/SENVPS33KB2/apc-netshelter-power-shelf-33kw-50v-dc-rackmount-1u-gb200/>、<https://www.vertiv.com/en-us/products-catalog/critical-power/dc-power-systems/Vertiv-PowerDirect-3000-33kW-50-VDC-Power-Systems/>、<https://www.opencompute.org/documents/open-rack-v3-bbu-shelf-spec-rev1-1-pdf-1> |
+| P2 | CRPS：約 40 × 73.5 × 185 mm、1U；後端是鍍金**卡緣**（2×25、50 pin）插進背板插座，同時走電力、待機電源與管理訊號；可熱插拔 | 高 | <https://connectorselection.com/articles/crps-ocp-common-redundant-power-supply-connector-standard/>、<https://www.fsp-group.com/en/faq/crps.html> |
+| P3 | 伺服器 PSU 的功率級：無橋圖騰柱 PFC → LLC（一次側 MOSFET、變壓器）→ 同步整流；有大容量電容滿足掉電保持時間；風扇抽風散熱 | 中～高（Infineon 兩份參考設計應用筆記一致） | <https://www.infineon.com/assets/row/public/documents/24/42/infineon-2.7-kw-titanium-server-digital-power-supply-with-coolsic-650-v-and-xmc-mcus-applicationnotes-en.pdf>、<https://www.infineon.com/assets/row/public/documents/24/42/infineon-reference-design-ref-3k3w-3lfc-psu-applicationnotes-en.pdf> |
+| P4 | 卡緣接點「長短不一、依序接觸」是熱插拔連接器的通用做法 | **中**（摘要只講熱插拔與 2×25，沒有講到 CRPS 每一根的長短；畫面上的長短位置是示意） | 同 P2 |
+| P5 | ORv3 機櫃匯流排：48～50 V、BBU 接手時匯流排不低於 46 V | 中 | <https://www.opencompute.org/documents/open-rack-v3-bbu-shelf-spec-rev1-1-pdf-1>、<https://www.embedded.com/shelf-operation-of-an-ocp-orv3-smart-battery-backup-unit/> |
+| P6 | 多相 VRM＝控制器＋多顆 DrMOS 功率級與對應電感並聯；電感常疊在功率級上方或緊鄰 | 中 | <https://www.electronicdesign.com/technologies/power/article/21198922/integrated-drmos-power-stages-deliver-high-power-density-and-efficiency>、<https://www.chargerlab.com/bps-power-supply-solution-empowers-nvidia-graphics-cards/> |
+
+⚠ 仍是示意：電源架畫成三格直疊（實機是六顆並排的 1U 電源櫃 —— 那個樣子畫在 AI 伺服器機櫃那一張）；PSU 內部元件的相對大小、EMI 濾波器的顆數、卡緣接點的長短位置。

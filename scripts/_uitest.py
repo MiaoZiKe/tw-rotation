@@ -14223,6 +14223,61 @@ def t_dg3d_detail(pg, base):
             cdp.send("Emulation.setCPUThrottlingRate", {"rate": 1})
 
 
+# ★ 2026-09-26 3D 細緻化第二批（B 組：AI 伺服器機櫃／電源／液冷／氣冷，規格書 docs/diagram_specs/ai_server.md 等的 §3D-細節）。
+#   驗的是「結構真的改對了、而且使用者點得到」，不是「元素存在」：
+#     ① 機櫃的 GPU 模組以前埋在運算托盤板裡（y 34，板是 34.4～35.6）—— 現在它的錨點用**真的滑鼠點下去**，
+#        打到的要是 GPU／HBM 本人，不是那塊板子；點完小卡要跟著選到它
+#     ② B200／Rubin：GPU 模組是兩顆晶粒（一個實例化兩次）、HBM 八疊；NVLink 背板是四個銅纜卡匣（纜線是實例化的一束）
+#     ③ 電源線組的電流方向：從匯流排往托盤（x 由小到大），不是反過來當交流進線
+#     ④ 氣冷的輪轂／軸承不再用雙面材質（量 probe 的 mesh 數與三角形：環形磁鐵是一整圈，不是八塊）
+def t_dg3d_b2(pg, base):
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(base, wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d','1'); localStorage.setItem('tw.dganim','0'); } catch (e) {} }")
+    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
+        notes.append("這個環境不支援 WebGL，3D細緻化B組整段跳過")
+        return
+    T = "[3D細緻化B組]"
+    sc = pg.evaluate("""() => { const S = window.Rack3D.SCENES, p = (id, k) => S[id].parts.find(x => x.part === k);
+      const pcb = p('ai_server', 'ag_pcb'), g = p('ai_server', 'ag_gpu'), c = p('ai_server', 'ag_cpu'), h = p('ai_server', 'ag_hbm');
+      const tops = []; for (let i = 0; i < pcb.n; i++) tops.push(pcb.at[1] + (i - (pcb.n - 1) / 2) * pcb.gap + pcb.box[1] / 2);
+      const w = S.server_psu.flows.find(f => f.part === 'psu_whip');
+      return { tops, gpuBot: g.at[1] - g.box[1] / 2, cpuBot: c.at[1] - c.box[1] / 2, hbmBot: h.at[1] - h.box[1] / 2,
+               gpuKind: g.kind, hbmKind: h.kind, pcbKind: pcb.kind, whip: [w.pts[0][0], w.pts[w.pts.length - 1][0]] }; }""")
+    near = min(sc["tops"], key=lambda t: abs(t - sc["gpuBot"]))
+    ok(f"{T} ★ GPU／CPU／HBM 的底面坐在運算托盤板面上（板面 y {near}），不再埋進板子",
+       all(abs(v - near) < 0.05 for v in (sc["gpuBot"], sc["cpuBot"], sc["hbmBot"])), sc)
+    ok(f"{T} 電源線組的電流從匯流排往托盤跑（x {sc['whip'][0]} → {sc['whip'][1]}）", sc["whip"][0] < sc["whip"][1], sc["whip"])
+    pr = pg.evaluate("""async () => { const o = {}; for (const k of ['aggpu', 'aghbm', 'backplane', 'agpcb', 'fhub', 'fbear', 'acsink', 'psvrm'])
+        o[k] = await window.Rack3D.probe(k); return o; }""")
+    ok(f"{T} GPU 模組是兩顆晶粒（實例化 2 份）", bool(pr["aggpu"]) and pr["aggpu"]["instances"] >= 2, pr["aggpu"])
+    ok(f"{T} NVLink 背板是纜線卡匣（實例化的纜線 ≥ 80 條＋每層插座）", bool(pr["backplane"]) and pr["backplane"]["instances"] >= 80 + 52, pr["backplane"])
+    ok(f"{T} 主機板不再有插槽／金手指：六個 mesh 內（板／AO／小件／金屬件／走線／電流）", bool(pr["agpcb"]) and pr["agpcb"]["meshes"] <= 7, pr["agpcb"])
+    ok(f"{T} 輪轂＝塑膠杯＋鋼軛＋環形磁鐵三個 mesh（磁鐵不再是八塊）", bool(pr["fhub"]) and pr["fhub"]["meshes"] == 3 and pr["fhub"]["instanced"] == 0, pr["fhub"])
+    ok(f"{T} 軸承＝軸＋內外環＋鋼珠＋保持架", bool(pr["fbear"]) and pr["fbear"]["meshes"] == 4, pr["fbear"])
+    bad = [k for k, v in pr.items() if not v or v.get("error") or v["tris"] > L1_KIND_TRI_MAX]
+    ok(f"{T} 新的 kind 都建得起來、三角形沒失控", not bad, bad)
+    # ① 真的點：GPU 模組的錨點打下去，打到的是 GPU／HBM 本人，小卡跟著選到它
+    if _l1_open(pg, base, "industry/ai_server/dg/ai_server"):
+        scroll_to(pg, "prod3d"); pg.mouse.move(2, 2); pg.wait_for_timeout(900)
+        for part in ("ag_gpu", "ag_backplane"):
+            pt = pg.evaluate("(p) => window.Rack3D.current.pointOf(p)", part)
+            hit = pg.evaluate("([x, y]) => window.Rack3D.current.hitAt(x, y)", [pt["x"], pt["y"] + 2]) if pt else None
+            if part == "ag_gpu":
+                ok(f"{T} ★ GPU 模組錨點打下去是 GPU／HBM 本人（不是埋住它的那塊板子）", hit in ("ag_gpu", "ag_hbm"), hit)
+                if hit in ("ag_gpu", "ag_hbm"):
+                    pg.mouse.click(pt["x"], pt["y"] + 2); pg.wait_for_timeout(900)
+                    sel = pg.evaluate("() => [...document.querySelectorAll('#prod3d .lbl3d.sel-part')].map(e => e.dataset.dgpart)")
+                    ok(f"{T} 真的點 GPU 模組 → 小卡選到它", hit in sel, sel)
+                    pg.mouse.click(2, 2); pg.wait_for_timeout(500)
+        st = pg.evaluate("() => window.Rack3D.current.stats()")
+        ok(f"{T} 機櫃 draw call ≤ 300（{st['drawCalls']}）、三角形 ≤ 67,000（{st['triangles']}）",
+           st["drawCalls"] <= 300 and st["triangles"] <= 67000, {"calls": st["drawCalls"], "tris": st["triangles"]})
+    else:
+        fails.append(f"{T} 機櫃 3D 掛不起來")
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+
+
 # ===================================================================== 個股下方三分頁 0926（claude/stock-tabs-0926c）
 # Andy 2026-09-26 晚：①籌碼四張圖共用一條逐交易日的日期軸、預設近 4 週（≥ 20 交易日）、共用區間切換四張一起換，
 # 集保週資料點落在實際公布日 ②除權息年度圖每年一根（近 10 年或資料最早年起）、沒配息的年份照樣標年份，
@@ -14522,6 +14577,7 @@ SECTIONS = {
     "批次6-N1":            lambda pg, b, base, code: t_batch6_n1(pg, base),
     "批次6-圖十":          lambda pg, b, base, code: t_batch6_n3(pg, base),
     "批次6-圖九":          lambda pg, b, base, code: t_batch6_n9(pg, base),
+    "3D細緻化B組":         lambda pg, b, base, code: t_dg3d_b2(pg, base),
     "批次11-MLCC":         lambda pg, b, base, code: t_mlcc(pg, base),
     # 圖9 伺服器電源 PSU ＋ BBU（site/dg/server_psu.js）。三個真 seg，所以
     # 「三次篩出來的筆數彼此不同」這一條在這張圖驗得動（另外兩張散熱圖只有兩個 seg）。
@@ -23930,9 +23986,11 @@ B27_ROUTES = {
     #     一層就是一塊板，資訊量在「層的順序與厚薄關係」，不在多邊形數（#247 §三 同一條）。
     "IC載板":     ("industry/ai_server/dg/ic_substrate", 80, 18000, 3000, 11),
     "PCB硬板":    ("industry/ai_server/dg/pcb_rigid", 50, 11000, 1800, 13),
-    "電源PSU3D":  ("industry/ai_server/dg/server_psu", 150, 12000, 2000, 10),
-    "液冷":       ("industry/ai_server/dg/liquid_cooling", 130, 12000, 2000, 13),
-    "氣冷":       ("industry/ai_server/dg/air_cooling", 120, 14000, 2200, 12),
+    # ★ 2026-09-26 3D 細緻化第二批（B 組）：電源／液冷／氣冷三張的三角形上限改成「改後量到的 ×1.5」（CEO 訂全站 ≤ 150,000）。
+    #   PSU 主板的環形電感、扇葉、UQD 滾花、鏟齒鰭片、風扇牆的彎刀葉片都是刻意加的細節；**draw call 上限一個都沒放寬**（三張 draw call 都比改前少）。
+    "電源PSU3D":  ("industry/ai_server/dg/server_psu", 150, 24500, 2000, 10),
+    "液冷":       ("industry/ai_server/dg/liquid_cooling", 130, 25500, 2000, 13),
+    "氣冷":       ("industry/ai_server/dg/air_cooling", 120, 32500, 2200, 12),
     "網通板卡":   ("industry/ai_server/dg/switch_wireless", 210, 30000, 6000, 13),
 }
 
