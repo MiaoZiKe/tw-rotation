@@ -51,7 +51,9 @@ Andy 2026-09-26 要在**搜尋結果**與**個股頁名稱旁**顯示公司 Logo
 把向量檔依它自己的比例算繪成點陣圖，就是瀏覽器顯示它的方式，不改形狀、不改色、不裁切 ——
 第一版寫「縮放 SVG 等於重畫」太保守。相依評估：
 - 新增 `cairosvg>=2.7`（純 Python，連帶 cairocffi、cssselect2、tinycss2、defusedxml），**執行時需要系統的 libcairo**。
-  GitHub 的 ubuntu 執行環境因為裝了 Chrome 而有 libcairo（**沒實測過**）；沒有的話匯入會失敗，程式會**跳過 SVG**，其他候選照常，不會讓整輪失敗。
+  GitHub 的 ubuntu 執行環境應該因為裝了 Chrome 而有 libcairo（**沒實測過**，WebSearch 查不到明確說法），
+  所以 `backfill.yml` 加了一步「確認 libcairo」：沒有就 `apt-get install libcairo2`，裝不起來也不擋。
+  程式偵測不到的話會**跳過 SVG**，其他候選照常，不會讓整輪失敗；`logo_progress.json` 的 `svg` 欄記這輪能不能畫 SVG（`false` 就是沒有 libcairo）。
 - 2.7.0 修掉了 SVG 內嵌外部資源造成的 SSRF（CVE-2023-27586）；`unsafe=False`（預設）時不讀外部檔案、不解析 XML 實體。
   另加大小上限 `config.LOGO_SVG_MAX_BYTES`＝500 KB。
 - mask-icon（Safari 釘選分頁的單色剪影）照原樣算繪（黑色），**不套它宣告的顏色**（套色就是改圖），所以排最後。

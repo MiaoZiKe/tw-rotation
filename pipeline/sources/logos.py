@@ -1219,6 +1219,7 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
         have=sum(1 for r in items.values() if r.get("status") == "ok"),
         next_due=min(dues) if dues else None,
         seconds=round(time.time() - t0, 1), deadline_hit=deadline_hit,
+        strategy=config.LOGO_STRATEGY, svg=svg_supported(),   # svg=false ＝ 這輪沒有 libcairo，SVG 候選全被跳過
         failures=failures[:200],
     )
     _write_state(summary)
