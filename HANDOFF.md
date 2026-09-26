@@ -3123,3 +3123,11 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 公告／新聞：重大訊息、新聞、券商觀點合成一張依時間排序，類型標籤＋分段篩選（附筆數）。
 - 根因修正：`run_backfill.already_covered()` 把 dividend_events 當無時間表 → 每日管線先寫今年一筆就讓歷史回補永遠跳過（683 檔只有 ≤2 年公告）；改用 announce_date 判斷，下一輪回補約 660 檔自動補齊（FinMind 額度用完下一輪接續）。
 - 這批驗了：pytest 731 passed、4 skipped、1 xfailed；重算 payload；個股分頁0926／籌碼基本0926／個股R5／積木-券商觀點／收尾0925-說明改問號／個股／手機 0、_preview 綠。
+
+### 09-26 深夜 全部剖析圖說明文字覆蓋普查（dg-overlap-audit）
+- 新量測腳本 `scripts/_dg_overlap.py`：29 張 × 2D（收合／全展）與 3D × 6 版面 × 2 配色，修正前 4,054 處 → 修正後 0（無白名單）；新段落「剖析圖覆蓋普查」（約 20 分鐘，含負對照）。
+- 共用：diagrams.js `fitTexts` 照所屬框限寬（只壓字距 ≤12%，不縮字級）、新增 `D.wrap`／`D.para` 斷行、引線遇字斷開；three3d 右欄模式 `setViewOffset` 讓模型；mobile3 編號鈕推開夾邊界。逐張修 25 支 `site/dg/`＋ai_server／mlcc。
+- 判斷點：AI 伺服器 PSU 標籤刪掉括號說明（與 3 號卡重複、放不下）；CNC 3D 是量測把接觸陰影當零件，修量測不修圖。
+- 待處理：「批次6-圖十」關聯圖 800／1500px 連線穿過不相干卡片（main 既有），已派 agent（claude/rel-edge-800）。
+- 這批驗了：pytest 735 passed、1 xfailed；剖析圖覆蓋普查（分支上 0，合併後 site/scripts 與分支相同）；合併後 剖析圖卡片收回／3D收合再展開／3D視角鈕與點兩下重設／產業鏈導覽／批次6-N1／手機v3 0、_preview 綠。
+- Logo：第二版兩輪（第 5、6 輪）分別新抓 126／220，累計 1,126 家，剩 539；svg=true（雲端 libcairo 可用）。
