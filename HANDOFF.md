@@ -3103,3 +3103,10 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 索引記 `strategy=2`；第 1 版 too_small／none（165 家）下一輪最先重試，好圖不重抓不覆寫。backfill.yml 多一步確認 libcairo（裝不起來不擋，只跳過 SVG）。
 - 救回率未實測（容器連不到公司官網），看下一輪 `data/_state/logo_progress.json` 的 counts 與 `svg` 欄。
 - 這批驗了：pytest 704 passed、4 skipped（合併前在 main＋logo-quality 上跑）；純管線／工作流改動，沒動 site/ 與 build_payload，前端關卡未跑。
+
+### 09-26 晚 個股 AI 分析卡（stock-ai-analysis）
+- 右上判讀＋多週期判讀合成一張可收合「AI 分析」卡（K 線與分頁之間；右上只留一行結論＋四面向標籤＋展開鈕，狀態 `tw.aiOpen`）：技術（1H／4H／日／週，不含月）、籌碼、基本、消息四段，各自標籤不加總；觀望逐條列 A 六條／B 五條哪幾條沒成立、差多少、停損距離、大小週期衝突與「若…則…」。
+- 全部是 `pipeline/compute/analysis.py` 的規則式判讀（沒有語言模型），標題旁標「規則式自動判讀，非投資建議」；卡內一律描述式（「回檔型態／突破型態」），pytest 擋「買進、賣出、建議、追進、加碼、減碼」。
+- 法遵待看：公開站寫「AI 分析」仍可能被當成 AI 投資建議（Andy 指定此字樣，照用）；候選表／個股列表的 verdict 字串仍是指示語感，未改。
+- 已知：`compute_all` 擺動點標在分形中心那根 → 整段切片回測有前視（線上每日重算不受影響），xfail 記下待另開；月線 SR 寬度上限用現價 4% 算，遠離現價會超寬（卡片已不列月線）。
+- 這批驗了：pytest 725 passed、1 xfailed；重算 payload；個股AI分析0926／個股／個股指標下拉0926／手機／收尾0925-說明改問號 0、_preview 綠。
