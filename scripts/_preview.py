@@ -341,7 +341,7 @@ def main() -> int:
         code = args.code or "2330"          # 2026-09-24：總覽的候選表拿掉了，不再從它挑第一檔
         pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
         st = pg.evaluate("""() => ({ title: (document.querySelector('#stockPage h2')||{}).innerText, lwc: !!document.querySelector('#lwc canvas'), lwcCanvases: document.querySelectorAll('#lwc canvas').length,
-            indBtn: !!document.getElementById('indBtn'), /* 2026-09-26 指標晶片改成下拉 */ legend: (document.getElementById('legendOv')||{}).innerText, mtf: (document.getElementById('mtfCard')||{}).innerText.slice(0,120), chainCos: document.querySelectorAll('#chainMap .co').length, sel: document.querySelectorAll('#chainMap .co.sel').length })""")
+            indBtn: !!document.getElementById('indBtn'), /* 2026-09-26 指標晶片改成下拉 */ legend: (document.getElementById('legendOv')||{}).innerText, mtf: (document.getElementById('aiCard')||{}).innerText.slice(0,120) /* 2026-09-26 多週期判讀合進 AI 分析卡 */, chainCos: document.querySelectorAll('#chainMap .co').length, sel: document.querySelectorAll('#chainMap .co.sel').length })""")
         st["overlaps"] = pg.evaluate(OVERLAP_JS); state["stock"] = st
         pg.screenshot(path=str(out / "v3_stock.png"), full_page=True)
         # 切分頁與週期
