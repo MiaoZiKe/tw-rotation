@@ -14666,7 +14666,7 @@ def t_stock_quarter_audit0927(pg, base, code):
          " const st = document.getElementById('stockTab');" \
          " return { inst: g('instChart'), mg: g('marginChart'), win: st.dataset.win, iseg: st.dataset.instSeg, mseg: st.dataset.mgSeg," \
          " itr: document.querySelectorAll('#instTbl tbody tr').length, mtr: document.querySelectorAll('#mgTbl tbody tr').length," \
-         " mgEmpty: (document.querySelector('#marginChart .empty, #marginChart.isempty') || {}).textContent || '', hoIns: !!document.querySelector('.hoInsider')," \
+         " mgEmpty: (document.querySelector('#marginChart .empty, #marginChart.isempty') || {}).textContent || '', hoIns: (document.querySelector('.insNote') || {}).textContent || ''," \
          " ls: (() => { try { return [localStorage.getItem('tw.instSeg'), localStorage.getItem('tw.mgSeg')]; } catch (e) { return []; } })() }; }"
     a = pg.evaluate(CX) or {}
     ok(f"★【{tag}】籌碼預設 3 個月、法人預設外資、資券預設融資", a.get("win") == "63" and a.get("iseg") == "f" and a.get("mseg") == "m"
@@ -14692,7 +14692,37 @@ def t_stock_quarter_audit0927(pg, base, code):
         else:
             ok(f"★【{tag}】資券切「{nm}」→ 資料還沒回補：不畫假圖、寫出原因", b.get("mseg") == v and (nm in b.get("mgEmpty", "") or "信用交易" in b.get("mgEmpty", "")), b.get("mgEmpty"))
     ok(f"【{tag}】資券每日表有列（融資／當沖／融券／借券賣四欄）", (pg.evaluate(CX) or {}).get("mtr", 0) > 0)
-    ok(f"【{tag}】大戶表下方寫明內部人持股沒有合規來源", (pg.evaluate(CX) or {}).get("hoIns") is True)
+    il = (j.get("insider") or {}).get("latest")
+    hi = (pg.evaluate(CX) or {}).get("hoIns") or ""
+    ok(f"★【{tag}】大戶卡寫出董監持股（有資料給比例與申報年月；沒有就寫「尚無資料」）與散戶級距口徑",
+       ("董監持股" in hi) and ("1–3 級" in hi) and ((il is None and "尚無資料" in hi) or (il is not None and str(il.get("ym")) in hi)), hi)
+
+    # 主力（替代口徑：三大法人）：標題寫替代、柱＝法人合計、兩條集中度線、每日表、切區間 x 軸跟著變
+    mp = (j.get("main_proxy") or {}).get("daily") or []
+    MX = "() => { const c = echarts.getInstanceByDom(document.getElementById('mainChart')); const o = c && c.getOption();" \
+         " const h = document.getElementById('mainChart'); const card = h && h.closest('.card');" \
+         " return { names: o ? o.series.map(s => s.name) : [], n: o ? (o.xAxis[0].data || []).length : 0, x: o ? o.xAxis[0].data : []," \
+         " ttl: card ? (card.querySelector('h3') || {}).textContent : '', note: (document.querySelector('.mainNote') || {}).textContent || ''," \
+         " rows: document.querySelectorAll('#mainTbl tbody tr').length }; }"
+    if len(mp) >= 3:
+        m0 = pg.evaluate(MX) or {}
+        xin = set(m0.get("x") or [])
+        exp_rows = sum(1 for r in mp if r[0] in xin)
+        ok(f"★【{tag}】主力卡標題寫「替代」、柱＝法人買賣超＋5 日／20 日集中度兩條線",
+           "替代" in (m0.get("ttl") or "") and {"法人買賣超", "5 日集中", "20 日集中"} <= set(m0.get("names") or []) and "不爬分點" in (m0.get("note") or ""), m0)
+        ok(f"【{tag}】主力每日表列數＝視窗內有資料的天數（{exp_rows}）", m0.get("rows") == exp_rows, [m0.get("rows"), exp_rows])
+        last = mp[-1]
+        if last[3] is not None:
+            ok(f"【{tag}】主力 5 日集中度＝近 5 日法人買賣超 ÷ 近 5 日成交量（最新一列 {last[0]}）",
+               abs(sum(r[1] for r in mp[-5:]) / sum(r[2] for r in mp[-5:]) * 100 - last[3]) < 0.02, mp[-5:])
+        h0 = canvas_hash(pg, "#mainChart")
+        click(pg, '#chipWin button[data-v="250"]', 900)
+        m1 = pg.evaluate(MX) or {}
+        ok(f"★【{tag}】切「1 年」→ 主力圖 x 軸變長（{m0.get('n')} → {m1.get('n')}）", (m1.get("n") or 0) > (m0.get("n") or 0), [m0.get("n"), m1.get("n")])
+        changed(f"【{tag}】切「1 年」主力圖真的重畫", h0, canvas_hash(pg, "#mainChart"))
+        click(pg, '#chipWin button[data-v="63"]', 700)
+    else:
+        ok(f"【{tag}】主力替代資料不足 3 天 → 不畫主力卡", pg.evaluate("() => !document.getElementById('mainChart')"))
 
     # ---------------------------------------------------------------- ④ 指標分頁
     goto(c, "tags")
@@ -14718,6 +14748,11 @@ def t_stock_quarter_audit0927(pg, base, code):
     ok(f"★【{tag}】營收預設月走勢 12 個月：當月＋去年同期＋MoM＋YoY", a["view"] == "m" and a["n"] == min(12, len(mo))
        and {"當月營收", "去年同期", "MoM", "YoY"} <= set(a["names"]), a)
     ok(f"【{tag}】月營收明細第一列＝最新月份、單位百萬", mo and a["first"] == mo[-1][0].replace("-", "/"), a["first"])
+    hd = pg.evaluate("() => [...document.querySelectorAll('#revTbl thead th')].map(e => e.textContent)")
+    r1 = pg.evaluate("() => [...document.querySelectorAll('#revTbl tbody tr:first-child td')].map(e => e.textContent)")
+    ly = mo[-1][6] if mo and len(mo[-1]) >= 7 else None
+    ok(f"★【{tag}】月營收明細有「去年同期」欄、第一列＝去年同月營收（百萬）", "去年同期" in hd and len(r1) >= 3
+       and (r1[2] == "—" if ly is None else r1[2].replace(",", "") == str(round(ly / 1e6))), [hd, r1[:4], ly])
     click(pg, '#revWin button[data-v="36"]', 700)
     ok(f"【{tag}】切 36 個月 → x 軸 36 點", pg.evaluate(RX)["n"] == min(36, len(mo)))
     click(pg, '#revView button[data-v="y"]', 700)

@@ -317,3 +317,68 @@ def test_指標標籤只陳述事實_符合不符合都回傳():
     assert all(x["kind"] == "指標" for x in t.values())
     empty = stockpage.stock_tags(None, None, "T")
     assert empty["n_hit"] == 0 and all(x["hit"] is None for x in empty["items"])
+
+
+# ------------------------------------------------------------------ 11. 董監持股（t187ap11，每月）
+
+def test_董監持股明細彙總_同名只算一次_民國年月_經理人不算董監():
+    from pipeline.sources import mops
+    rows = [
+        {"資料年月": "11508", "公司代號": "2344", "職稱": "董事長", "姓名": "甲", "目前持股": "1,000,000", "設質股數": "100,000"},
+        {"資料年月": "11508", "公司代號": "2344", "職稱": "大股東", "姓名": "甲", "目前持股": "1,000,000", "設質股數": "0"},
+        {"資料年月": "11508", "公司代號": "2344", "職稱": "獨立董事", "姓名": "乙", "目前持股": "0"},
+        {"資料年月": "11508", "公司代號": "2344", "職稱": "監察人", "姓名": "丙", "目前持股": "500,000"},
+        {"資料年月": "11508", "公司代號": "2344", "職稱": "總經理", "姓名": "丁", "目前持股": "200,000"},
+        {"資料年月": "11508", "公司代號": "2344 ", "職稱 ": "董事", "姓名": "", "目前持股": "-"},   # 持股解析不出 → 丟掉
+        {"資料年月": "", "公司代號": "1101", "職稱": "董事", "姓名": "戊", "目前持股": "10"},          # 沒年月 → 丟掉
+    ]
+    d = mops.parse_insider(rows, "TWSE")
+    assert len(d) == 1
+    r = d.iloc[0]
+    assert r["ym"] == "2026-08" and r["code"] == "2344"
+    assert r["director_shares"] == 1_500_000, "甲兼大股東只算一次；總經理不是董監"
+    assert r["insider_shares"] == 1_700_000 and r["n_directors"] == 3
+    assert r["director_pledged"] == 100_000
+    assert mops.parse_insider([{"奇怪的鍵": 1}], "TWSE").empty
+    assert mops.parse_insider([], "TWSE").empty
+
+
+def test_董監持股比例用最近月底的集保總股數_太遠不除_超過100不給():
+    ih = pd.DataFrame([{"ym": "2026-08", "code": "T", "director_shares": 1.2e8, "insider_shares": 1.5e8,
+                        "director_pledged": 1.2e7, "n_directors": 9},
+                       {"ym": "2026-03", "code": "T", "director_shares": 1.0e8, "insider_shares": 1.0e8,
+                        "director_pledged": 0.0, "n_directors": 9},
+                       {"ym": "2026-09", "code": "T", "director_shares": 2.0e9, "insider_shares": 2.0e9,
+                        "director_pledged": 0.0, "n_directors": 9}])
+    sh = pd.DataFrame([{"date": "2026-09-04", "code": "T", "level": 17, "shares": 1.0e9},
+                       {"date": "2026-09-04", "code": "T", "level": 15, "shares": 6.0e8}])
+    x = stockpage.insider_series(ih, sh, "T")
+    m = {r["ym"]: r for r in x["monthly"]}
+    assert m["2026-08"]["director_pct"] == pytest.approx(12.0) and m["2026-08"]["insider_pct"] == pytest.approx(15.0)
+    assert m["2026-08"]["pledge_pct"] == pytest.approx(10.0) and m["2026-08"]["base_date"] == "2026-09-04"
+    assert m["2026-03"]["director_pct"] is None and m["2026-03"]["director_shares"] == 1.0e8, "分母離月底 > 45 天 → 只給股數"
+    assert m["2026-09"]["director_pct"] is None and m["2026-09"]["flag"] == "over100"
+    assert x["latest"]["ym"] == "2026-09"
+    assert stockpage.insider_series(None, sh, "T")["monthly"] == []
+    assert stockpage.insider_series(ih, None, "T")["monthly"][0]["director_pct"] is None, "沒有集保 → 沒有比例"
+
+
+# ------------------------------------------------------------------ 12. 主力替代口徑（三大法人）
+
+def test_主力替代集中度_N日法人買賣超除以N日成交量_缺一天就不給():
+    days = [f"2026-09-{d:02d}" for d in (1, 2, 3, 4, 7, 8, 9)]
+    price = pd.DataFrame({"code": "T", "date": days, "volume": [1000.0] * 7})
+    inst = pd.DataFrame({"code": "T", "date": [d for d in days if d != "2026-09-08"],
+                         "foreign_total": [100.0, -50.0, 30.0, 20.0, 10.0, 40.0],
+                         "trust": [0.0, 0.0, None, 0.0, 0.0, 0.0], "dealer": [0.0] * 6})
+    x = stockpage.main_proxy_series(inst, price, "T")
+    rows = {r[0]: r for r in x["daily"]}
+    assert rows["2026-09-07"][3] == pytest.approx((100 - 50 + 30 + 20 + 10) / 5000 * 100), "5 日集中＝Σ買賣超 ÷ Σ量"
+    assert rows["2026-09-03"][1] == 30, "只缺投信一欄 → 當 0，合計照算"
+    assert rows["2026-09-08"][1] is None and rows["2026-09-08"][3] is None, "那天沒有法人資料 → None"
+    assert rows["2026-09-09"][3] is None, "5 日窗內有缺天 → 不拿 4 天湊"
+    assert rows["2026-09-07"][4] is None, "不到 20 天 → 20 日集中度 None"
+    z = stockpage.main_proxy_series(inst, price.assign(volume=0.0), "T")
+    assert all(r[3] is None for r in z["daily"]), "量為 0 不除"
+    assert stockpage.main_proxy_series(None, price, "T")["daily"] == []
+    assert stockpage.main_proxy_series(inst, pd.DataFrame(), "T")["daily"] == []

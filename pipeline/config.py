@@ -73,6 +73,9 @@ TABLES: dict[str, list[str]] = {
     #   頁面照實寫「資料源未提供」。證交所官網 rwd 的同名報表（TWTB4U、TWT93U）依 DECISIONS 不碰。
     "daytrade_daily":     ["date", "code"],
     "sbl_daily":          ["date", "code"],
+    # v12（2026-09-27）：董監事持股（證交所 OpenAPI t187ap11_L／櫃買 mopsfin_t187ap11_O，每月一次）。
+    #   只存每家公司每月的合計（sources/mops.parse_insider），不存個人姓名。按年分割、一年約 2.4 萬列。
+    "insider_holding":    ["ym", "code"],
 }
 
 # 按「月」分割的表（其餘一律按年）。

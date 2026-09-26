@@ -249,7 +249,7 @@ def stock_tags(rev: pd.DataFrame | None, fin: pd.DataFrame | None, code: str) ->
 
     規則（月營收用資料湖全部月份、季資料用還原成單季的季損益）：
     - 連三月營收年增>20%：最近三個**連續**月份的 YoY 都 > 20%（YoY 用同月對同月）。
-    - 月營收創新高：最新一個月 ≥ 資料湖內這一檔所有更早月份（比較範圍寫在 detail，例如「2016-01 起 128 個月」）。
+    - 月營收創新高：最新一個月 > 資料湖內這一檔所有更早月份（比較範圍寫在 detail，例如「2016-01 起 128 個月」）。
     - 近一季營收創新高：最新一季單季營收 > 所有更早的季（同上，寫比較範圍）。
     - 近四季有三季營收年增>20%／營益率>10%／毛利率>30%：最近四個**連續**季，至少三季達標；缺季 → 不判斷。
     - 連續 N 個月營收年增：從最新月往回數 YoY > 0 的連續月數，N ≥ 3 才算符合（N 寫在標籤裡）。
@@ -273,7 +273,8 @@ def stock_tags(rev: pd.DataFrame | None, fin: pd.DataFrame | None, code: str) ->
                                             detail="、".join(f"{a[2:]} {b:+.1f}%" for a, b in zip(t3["ym"], t3["yoy"])))
             if len(g) >= 13:
                 last, prior = g.iloc[-1], g.iloc[:-1]
-                items["rev_high_m"].update(hit=bool(last["revenue"] >= prior["revenue"].max()),
+                # 嚴格大於：跟前高打平不算「創新高」（跟近一季創新高同一個判準）
+                items["rev_high_m"].update(hit=bool(last["revenue"] > prior["revenue"].max()),
                                            detail=f"{last['ym']} {last['revenue'] / 1e8:,.2f} 億；比較 {prior['ym'].iloc[0]} 起 {len(prior)} 個月"
                                                   f"（前高 {prior['revenue'].max() / 1e8:,.2f} 億）")
             n = 0
@@ -865,6 +866,109 @@ def holder_series(sh: pd.DataFrame, code: str, weeks: int = 104) -> list:
                      int(total) if total is not None and pd.notna(total) else None])
     rows.sort(key=lambda x: x[0])
     return rows[-weeks:]
+
+
+MAIN_PROXY_WINDOWS = (5, 20)
+
+
+def main_proxy_series(inst: pd.DataFrame | None, price: pd.DataFrame | None, code: str,
+                      days: int = CHIP_DAYS) -> dict:
+    """「主力」分頁的**替代口徑**（2026-09-27）：券商分點（主力買賣超、家數差）依 CLAUDE.md 第 7 條不爬，
+    改用三大法人合計當「主力」的代理，集中度照券商 App 的定義換成法人版本。
+
+    每日列：[date, 法人合計買賣超（股）, 成交股數, 5 日集中度 %, 20 日集中度 %]
+      N 日集中度 ＝ Σ(近 N 個交易日 法人合計買賣超) ÷ Σ(近 N 個交易日 成交股數) × 100
+      - 「近 N 個交易日」照 price_daily 的交易日算；其中任何一天缺法人資料或缺量 → 那天的集中度給 None
+        （不拿 N−1 天湊，也不把缺值當 0）。
+      - 分母 0（N 天都沒成交）→ None。
+      - 成交股數用**原始**價量表（還原不動量，但口徑跟當沖率同一份）。
+    這不是主力：法人只是市場參與者的一部分（外資、投信、自營商），券商分點裡的大戶、中實戶都不在裡面。
+    頁面標題一律寫「主力（替代口徑：三大法人）」。
+    """
+    cols = ["date", "inst_net", "volume", "conc5", "conc20"]
+    out = {"daily": [], "columns": cols, "proxy": "三大法人合計（外資＋投信＋自營商）"}
+    if inst is None or inst.empty or price is None or price.empty:
+        return out
+    gi = inst[inst["code"].astype(str) == str(code)].drop_duplicates("date", keep="last")
+    gp = price[price["code"].astype(str) == str(code)].drop_duplicates("date", keep="last")
+    if gi.empty or gp.empty or "volume" not in gp.columns:
+        return out
+    # 三欄全缺才算缺；只缺一欄（例如那天投信沒進出、來源給空）當 0 —— 跟 inst_series 的「合計」同口徑
+    three = pd.concat([pd.to_numeric(gi[c], errors="coerce") if c in gi.columns else pd.Series(np.nan, index=gi.index)
+                       for c in ("foreign_total", "trust", "dealer")], axis=1)
+    net_s = pd.Series(np.where(three.isna().all(axis=1), np.nan, three.fillna(0).sum(axis=1)),
+                      index=gi["date"].astype(str).to_numpy())
+    # 日期軸＝這一檔的交易日（價量表），不是法人表的日期：法人表缺一天，集中度那幾天就要是 None
+    vol_s = pd.Series(pd.to_numeric(gp["volume"], errors="coerce").to_numpy(), index=gp["date"].astype(str).to_numpy())
+    d = pd.DataFrame({"vol": vol_s}).sort_index()
+    d["net"] = net_s.reindex(d.index)
+    d = d[d.index >= net_s.index.min()]
+    if d.empty:
+        return out
+    for n in MAIN_PROXY_WINDOWS:
+        ok = d["net"].notna() & d["vol"].notna()
+        s_net = d["net"].rolling(n, min_periods=n).sum()
+        s_vol = d["vol"].rolling(n, min_periods=n).sum()
+        full = ok.astype(int).rolling(n, min_periods=n).sum() == n
+        with np.errstate(divide="ignore", invalid="ignore"):
+            d[f"c{n}"] = np.where(full & (s_vol > 0), s_net / s_vol * 100, np.nan)
+    t = d.tail(days)
+    out["daily"] = [[str(i), _r(r.net, 0), _r(r.vol, 0), _r(r.c5, 2), _r(r.c20, 2)] for i, r in zip(t.index, t.itertuples())]
+    return out
+
+
+INSIDER_BASE_MAX_DAYS = 45    # 分母（集保總股數）那一週離月底超過幾天就不拿來除
+
+
+def insider_series(ih: pd.DataFrame | None, sh: pd.DataFrame | None, code: str, months: int = 24) -> dict:
+    """董監持股（每月一列），給「大戶」卡的董監持股比例（2026-09-27）。
+
+    公式：董監持股比例 ＝ 董監「目前持股」合計 ÷ 集保總股數（level 17）× 100。
+      - 分子：sources/mops.parse_insider 彙總好的 director_shares（職稱含董事／監察人、同名只算一次）。
+      - 分母：集保股權分散表 level 17 的股數，取**離該月月底最近**的那一週；相差超過 INSIDER_BASE_MAX_DAYS 天
+        → 不給比例（股本可能已經變了，不拿遠處的股數硬除）。集保資料湖 2026-09-04 起才有，所以更早的月份多半沒有比例，
+        只給股數。
+      - 設質比例 ＝ 董監設質股數 ÷ 董監目前持股（董監持股 0 → None）。
+      - 比例 > 100% 一定是分子重複計算或分母錯，給 None 並標 flag＝"over100"，不把錯的數字畫上去。
+    回傳 {"monthly": [{ym, director_pct, insider_pct, director_shares, pledge_pct, n_directors, base_date}],
+          "latest": 最後一列或 None, "source": 說明字串}；沒有資料 → monthly 空清單。
+    """
+    out = {"monthly": [], "latest": None,
+           "source": "證交所 OpenAPI t187ap11_L／櫃買 mopsfin_t187ap11_O（董監事持股餘額明細，每月）"}
+    if ih is None or ih.empty or "code" not in ih.columns:
+        return out
+    g = ih[ih["code"].astype(str) == str(code)].drop_duplicates("ym", keep="last").sort_values("ym").tail(months)
+    if g.empty:
+        return out
+    base = pd.Series(dtype=float)
+    if sh is not None and not sh.empty and "level" in sh.columns:
+        t = sh[(sh["code"].astype(str) == str(code)) & (pd.to_numeric(sh["level"], errors="coerce") == TOTAL_LEVEL)]
+        if not t.empty and "shares" in t.columns:
+            base = pd.Series(pd.to_numeric(t["shares"], errors="coerce").to_numpy(),
+                             index=pd.to_datetime(t["date"].astype(str), errors="coerce")).dropna()
+            base = base[base > 0].sort_index()
+    rows = []
+    for r in g.itertuples():
+        me = pd.Timestamp(f"{r.ym}-01") + pd.offsets.MonthEnd(0)
+        den, bdate = None, None
+        if len(base):
+            i = int(np.argmin(np.abs((base.index - me).days)))
+            if abs((base.index[i] - me).days) <= INSIDER_BASE_MAX_DAYS:
+                den, bdate = float(base.iloc[i]), base.index[i].strftime("%Y-%m-%d")
+        ds, ins = _f(getattr(r, "director_shares", None)), _f(getattr(r, "insider_shares", None))
+        pl = _f(getattr(r, "director_pledged", None))
+        dp = ds / den * 100 if (ds is not None and den) else None
+        ip = ins / den * 100 if (ins is not None and den) else None
+        flag = None
+        if (dp is not None and dp > 100) or (ip is not None and ip > 100):
+            dp = ip = None
+            flag = "over100"
+        rows.append({"ym": r.ym, "director_pct": _r(dp, 2), "insider_pct": _r(ip, 2),
+                     "director_shares": _r(ds, 0), "pledge_pct": _r(pl / ds * 100, 2) if (pl is not None and ds) else None,
+                     "n_directors": int(getattr(r, "n_directors", 0) or 0), "base_date": bdate, "flag": flag})
+    out["monthly"] = rows
+    out["latest"] = rows[-1] if rows else None
+    return out
 
 
 # ------------------------------------------------------------------ 法人

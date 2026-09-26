@@ -390,6 +390,8 @@ def build() -> None:
         # ★ 2026-09-27：籌碼分頁的「當沖」「借券賣」（config.TABLES 的 daytrade_daily／sbl_daily，回補計畫補）
         "daytrade": store.read("daytrade_daily"),
         "sbl": store.read("sbl_daily"),
+        # ★ 2026-09-27：董監事持股（每月，sources/mops.insider_holdings）
+        "insider": store.read("insider_holding"),
     }
     cand_rows, breadth = candidates(price, valuation, company, inst, latest,
                                     names=names, markets=markets, fund=fund_rows,
@@ -849,6 +851,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     fin_by = _by_code(deep.get("financial"))
     mgn_by = _by_code(deep.get("margin"))
     shw_by = _by_code(deep.get("shareholding"))
+    ins_by = _by_code(deep.get("insider"))
     dve_by = _by_code(deep.get("dividend_events"))
     dvr_by = _by_code(deep.get("dividend_results"))
     com_by = _by_code(deep.get("company"))
@@ -1005,7 +1008,10 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             # ★ 2026-09-27「指標」分頁：事實條件標籤（stockpage.stock_tags，不做推介）
             "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
+            "insider": _clean(stockpage.insider_series(ins_by.get(code), shw_by.get(code), code)),
             "inst_v3": _clean(stockpage.inst_series(insth_by.get(code), code)),
+            # ★ 2026-09-27「主力」替代口徑（券商分點不爬，CLAUDE.md 第 7 條）：法人合計＋5／20 日集中度
+            "main_proxy": _clean(stockpage.main_proxy_series(insth_by.get(code), raw_by.get(code, g), code)),
             "basics": _clean(stockpage.basics(com_by.get(code, EMPTY), code)),
             # C5：1–12 月平均漲幅（最多 15 年）。給逐年的原始數字，前端自己切 1/3/5/自填年數。
             "month_season": _clean(stockpage.monthly_seasonality(g, code, 15)),
@@ -1149,6 +1155,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "margin_columns": stockpage.MARGIN_COLUMNS,
             "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
+            "insider": _clean(stockpage.insider_series(ins_by.get(code), shw_by.get(code), code)),
             "inst_v3": {}, "inst": [], "shareholding": _clean(sh_by_code.get(code, [])),
             "fundamental": fund_idx.get(code),
             "news": news_by_code.get(code, []), "broker_views": broker_by_code.get(code, [])[:6],

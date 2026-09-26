@@ -4660,7 +4660,7 @@
         <div class="seg" id="revWin" role="group" aria-label="幾個月"><button type="button" data-v="12">12 月</button><button type="button" data-v="24">24 月</button><button type="button" data-v="36">36 月</button></div></div></div>
         ${hbox('skrev', ['月走勢：當月（青）＋去年同期（灰）並排', '線＝MoM、YoY（右軸 %）', '年度走勢：每年合計＋年增率', '今年未滿 12 個月＝跟去年同期幾個月比', '右上切 12／24／36 個月'])}<div id="revBar" class="chart"></div></div>
       <div class="card"><div class="row spread"><h3>逐年同月比較 ${hq('skrevy', '逐年同月比較')}</h3>${hbox('skrevy', ['每條線＝一年，同月份疊在一起比', '最粗那條＝今年', '看哪幾個月固定比較高＝旺季', '右上切單月／累計'])}<div class="seg" id="revMode"><button data-v="m" class="on">單月</button><button data-v="c">累計</button></div></div><div id="revYear" class="chart"></div></div></div>
-      <div class="card" style="margin-top:var(--gap-card)"><h3>月營收明細 <small data-readout>單位：百萬元</small></h3><div class="tw" style="max-height:360px"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div>`;
+      <div class="card" style="margin-top:var(--gap-card)"><h3>月營收明細 <small data-readout>單位：百萬元</small></h3><div class="tw" style="max-height:360px"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div>`;
     /* ★ 2026-09-27（Andy 給的券商 App「營收：月走勢｜年度走勢」）：
        月走勢＝當月與去年同期兩組柱並排（去年同期取 payload 第 7 欄；舊 payload 沒有就從月份表自己對），MoM、YoY 兩條線吃右軸 %；
        年度走勢＝每年合計柱＋年增率線。今年還沒過完：年增率只跟「去年同樣那幾個月」比，x 軸寫「2026（1–8 月）」，
@@ -5397,8 +5397,16 @@
       ? `<div class="note hoNote" data-readout style="margin-top:6px">集保每週更新一次（點＝實際公布日，點與點之間不是每日資料），自 ${ho[0][0]} 起累積 ${ho.length} 週`
         + '（歷史週資料沒有免費來源，只能每週往後累積）</div>'
       : '';
+    /* ★ 2026-09-27（Andy 的券商 App「大戶」分頁有「內部人持股」「董監持股」）：董監持股＝證交所 OpenAPI t187ap11_L／
+       櫃買 mopsfin_t187ap11_O（董監事持股餘額明細，每月一次、只給最新一個月），÷ 集保總股數（stockpage.insider_series）。
+       2026-09-27 才開始每天抓，所以一開始多半是「尚無資料」—— 照實寫，不拿別的數字頂。
+       散戶口徑寫在同一行：本站＝集保 1–3 級（≤10 張，DECISIONS #20）；券商 App 的「散戶」常用更寬的級距，數字會對不上。*/
+    const insL = (pg.insider || {}).latest;
+    const insNote = `<div class="note insNote" data-readout style="margin-top:4px">${insL
+      ? `董監持股 <b class="mono">${insL.director_pct != null ? A.fmt.n(insL.director_pct, 2) + '%' : '—'}</b>（${A.fmt.esc(insL.ym)} 月底申報，董監 ${insL.n_directors} 人${insL.pledge_pct != null ? `，設質 ${A.fmt.n(insL.pledge_pct, 1)}%` : ''}${insL.flag === 'over100' ? '，比例超過 100% 判定為資料錯誤、不顯示' : ''}）`
+      : '董監持股：尚無資料（公開資訊觀測站每月申報、只公布最新一個月，本站 2026-09 起逐月累積）'}；散戶＝集保 1–3 級（≤10 張），券商 App 的散戶口徑可能較寬</div>`;
     if (ho.length >= CHIP_MIN) {
-      card('holderChart', '大戶 / 散戶持股', '', { style: 'min-height:380px', extra: hoNote + tblBox('hoTbl'), items: [
+      card('holderChart', '大戶 / 散戶持股', '', { style: 'min-height:380px', extra: hoNote + insNote + tblBox('hoTbl'), items: [
         '三格各自一條：千張大戶（≥1000 張）、400–1000 張、散戶（≤10 張）',
         '集保每週更新一次：點落在實際公布日，兩點之間只是連線、沒有每日資料',
         '每格 Y 軸各自縮放、不從 0 起 —— 看的是方向，不是三條誰高',
@@ -5414,7 +5422,15 @@
       numCard('集保股權分散', `最新一週 ${r[0]}`,
         k('千張大戶', A.fmt.n(r[1], 1) + '%') + k('400–1000 張', A.fmt.n(r[2], 1) + '%')
         + k('散戶 ≤10 張', A.fmt.n(r[3], 1) + '%') + k('股東人數', A.fmt.yi(r[4])),
-        `集保是每週一筆，目前只累積到 ${ho.length} 週；滿 ${CHIP_MIN} 週就會變成走勢圖，看得出籌碼是在集中還是分散。`); }
+        `集保是每週一筆，目前只累積到 ${ho.length} 週；滿 ${CHIP_MIN} 週就會變成走勢圖，看得出籌碼是在集中還是分散。` + insNote); }
+
+    /* ★ 2026-09-27「主力」替代口徑（Andy 的券商 App「主力：買賣超＋5 日／20 日集中度」）：
+       券商分點依 CLAUDE.md 第 7 條不爬，改用三大法人合計當代理；集中度＝N 日法人買賣超 ÷ N 日成交量（stockpage.main_proxy_series）。
+       標題直接寫「替代」，不讓人讀成真的主力。*/
+    const mp = (pg.main_proxy || {}).daily || [];
+    if (mp.length >= CHIP_MIN) card('mainChart', '主力（替代：三大法人）', '', {
+      extra: '<div class="note mainNote" data-readout style="margin-top:6px">替代口徑：券商分點主力沒有合規的免費來源（本站不爬分點），這裡以三大法人合計代替；集中度＝N 日法人買賣超 ÷ N 日成交量</div>' + tblBox('mainTbl'),
+      items: ['柱＝三大法人合計每日買賣超（張）', '藍線＝5 日集中度、橘線＝20 日集中度（右軸 %）', '集中度＝N 日法人買賣超 ÷ N 日成交量', '這是法人替代，不是券商分點主力', '下方表格＝每天的數字，新的在上'] });
 
     if (!cards.length) {
       el.innerHTML = `<div class="card"><div class="empty">這一檔的籌碼資料（法人、融資券、集保）還在回補，下一次盤後更新就會出現。</div></div>`;
@@ -5510,6 +5526,27 @@
           tb.innerHTML = `<table><thead><tr><th class="l">日期</th><th>融資</th><th>當沖</th><th>融券</th><th>借券賣</th></tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[3], true)}${num(r[5])}${num(r[4], true)}${num(r[7])}</tr>`).join('') || '<tr><td colspan="5" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。融資／融券＝當日增減；當沖＝當沖成交張數；借券賣＝當日借券賣出張數</div>`;
         }
       }
+      if (mp.length >= CHIP_MIN) {
+        const pm = new Map(mp.map(r => [String(r[0]).slice(0, 10), r]));
+        const colM = (i) => dates.map(d => { const r = pm.get(d); return r && r[i] != null ? r[i] : null; });
+        const net = colM(1);
+        const lotM = (v) => (v == null ? '—' : A.fmt.lot(v / 1000));
+        const pctM = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
+        A.chart('mainChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue; const r = pm.get(d);
+            if (!r) return `<b>${d}</b><br>這天沒有法人資料`;
+            return `<b>${d}</b><br>法人合計 ${lotM(r[1])}<br>5 日集中 ${pctM(r[3])}<br>20 日集中 ${pctM(r[4])}`; } },
+          legend: { textStyle: { color: A.CH.ink2 }, top: 0, data: ['法人買賣超', '5 日集中', '20 日集中'] }, grid: { left: 66, right: 56, top: 30, bottom: 30 },
+          xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, scale: true, splitLine: { show: false }, axisLabel: { formatter: v => v + '%' } }],
+          series: [{ name: '法人買賣超', type: 'bar', data: net.map(v => (v == null ? null : { value: v, itemStyle: { color: v >= 0 ? A.CH.up : A.CH.down } })), itemStyle: { color: A.CH.up } },
+            { name: '5 日集中', type: 'line', yAxisIndex: 1, data: colM(3), showSymbol: false, connectNulls: false, lineStyle: { color: '#4f8cff', width: 1.8 }, itemStyle: { color: '#4f8cff' } },
+            { name: '20 日集中', type: 'line', yAxisIndex: 1, data: colM(4), showSymbol: false, connectNulls: false, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
+        const mt = $('#mainTbl', el);
+        if (mt) {
+          const rows = dates.slice().reverse().map(d => [d, pm.get(d)]).filter(x => x[1]);
+          const c = (v, f) => `<td class="num ${A.fmt.cls(v)}">${f(v)}</td>`;
+          mt.innerHTML = `<table><thead><tr><th class="l">日期</th><th>法人買賣超（張）</th><th>5 日集中</th><th>20 日集中</th></tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${c(r[1], v => (v == null ? '—' : A.fmt.i(Math.round(v / 1000))))}${c(r[3], pctM)}${c(r[4], pctM)}</tr>`).join('') || '<tr><td colspan="4" class="l muted">這段期間沒有法人資料</td></tr>'}</tbody></table>`;
+        }
+      }
       if (ho.length >= CHIP_MIN) {
         const inWin = dates.filter(d => hmap.has(d)).map(d => hmap.get(d));
         const LINES = [{ k: 1, name: '千張大戶', c: '#ff4d6d' }, { k: 2, name: '400–1000 張', c: '#ffb454' }, { k: 3, name: '散戶 ≤10 張', c: '#2ee59d' }];
@@ -5551,7 +5588,7 @@
 
         /* ★ 2026-09-27（Andy 的券商 App「大戶持股分布」表）：每週一列，新的在上。
            級距定義：大戶＝集保 level 15（≥1,000 張）、中實戶＝12–14（400–1,000 張）、散戶＝1–3（≤10 張，DECISIONS #20）。
-           「內部人／董監持股」沒有經查證的白名單來源（證交所 OpenAPI 的董監持股資料集 ID 與欄位沒能查證），照實寫、不做。*/
+           董監持股是**每月**申報（t187ap11），不塞進每週的表，寫在圖下那一行（insNote）。*/
         const ht = $('#hoTbl', el);
         if (ht) {
           const hr = ho.slice().reverse();
