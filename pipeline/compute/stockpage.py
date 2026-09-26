@@ -24,6 +24,19 @@ MID_LEVELS = (12, 13, 14)      # 400–1,000 張
 RETAIL_LEVELS = (1, 2, 3)      # ≤ 10 張
 TOTAL_LEVEL = 17
 DIV_YEAR_DAYS = 320            # 殖利率：最後一次除息往回幾天內算「同一個配息年度」
+# ★ 2026-09-26（Andy：「籌碼這邊的時間週期都需要 4 週最少，然後都呈現每日狀況」）：
+#   籌碼分頁四張圖改成共用一條逐交易日的日期軸，上方切「4 週｜3 個月｜6 個月｜1 年」。
+#   「1 年」要畫得滿，法人與融資券就得各給約一年的交易日（台股一年約 245 天，留 15 天餘裕）。
+#   以前法人 120 天、融資券 250 天各給各的，四張圖的起訖日因此對不起來。
+CHIP_DAYS = 260
+# ★ 2026-09-26（Andy：「除權息為什麼只有一筆……沒有配就顯示空值，但需要標示年份」）：
+#   年度股利圖至少畫近 DIV_YEARS 年、每年一根；但不早於資料湖的回補起點
+#   （PLAN_DEFAULT 的股利與除權息結果都從 2016-01-01 補起 —— 更早的年份是「不知道」，不是「沒配」），
+#   也不早於這一檔有價量的第一年（上市前的年份不是「沒配」，是還不存在）。
+DIV_YEARS = 10
+DIV_COVER_YEAR = 2016
+EVENTS_MAX = 120               # 股利公告最多給幾筆（季配息 10 年 × 現金／股票 ≈ 80）
+RESULTS_MAX = 80               # 除權息紀錄最多給幾筆（2016 起季配息約 44 筆）
 
 
 def _f(x):
@@ -235,10 +248,111 @@ def pe_history(price: pd.DataFrame, fin: pd.DataFrame, code: str, years: int = 5
 
 # ------------------------------------------------------------------ 除權息
 
+def _is_date(s) -> bool:
+    """YYYY-MM-DD 才算有日期（公告的除權息日可能是 None／NaN／空字串／'NaT'）。"""
+    s = str(s or "")[:10]
+    return len(s) == 10 and s[4] == "-" and s[7] == "-" and s[:4].isdigit()
+
+
+def div_year_bars(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame | None,
+                  code: str, asof: str | None) -> tuple[list, list]:
+    """年度股利長條（每年一根）＋已公告、尚未除權息的清單。回傳 (bars, upcoming)。
+
+    口徑（金融專家 2026-09-26，DECISIONS #265）：
+    - **年度＝除權息日所在的西元年**（實際配發那一年，坊間「股利發放年度」同一口徑），
+      不是股利所屬年度。理由：①官方除權息結果（dividend_results）2016 年起每一檔都補齊了，
+      股利公告（dividend_events）卻有 600 多檔的歷史被回補跳過（見 run_backfill.already_covered），
+      用除權息日才有一份每檔都完整的日期；②跟「除權息紀錄」表的年份一一對得上；
+      ③季配息股同一個所屬年度的四次會跨兩個西元年發放，用所屬年度要等隔年最後一季公告才完整。
+    - 同一年多次除權息（季配、半年配）加總；`items` 逐次列出（前端提示框用）。
+    - 現金、股票分開：金額取自同一除權息日的股利公告（元／股，**當時公告的每股金額**，不換算成今天股數 ——
+      這張圖回答「那一年配了多少」，不是殖利率；殖利率另有換算，見 dividends()）。
+      對不到公告時：純「息」用官方結果的股利（除息價差本身就是現金股利）；
+      含「權」又對不到公告 → 那一次的金額留空不猜、`unknown` +1
+      （參考價反推只拿得到「配股率 × 價格」的混合值，拆不出現金與股票各多少）。
+    - 沒有任何除權息的年份照樣給一根：cash = stock = 0、n = 0（前端 0 高度、x 軸照樣標年份）。
+    - 年份範圍：end ＝ asof 的年份（沒給 asof 用資料最後一年）；
+      start ＝ max(min(資料最早年, end − DIV_YEARS + 1), DIV_COVER_YEAR, 這一檔價量第一年)。
+      —— 2016 之前是「資料湖沒補」，上市之前是「還不存在」，兩者都不是「沒配」，所以不畫。
+      end 那一年若還沒過完，標 `partial`（今年還沒結束，別拿去跟整年比）。
+    - 除權息日在 asof 之後、或還沒訂的公告不進長條，另列 `upcoming`。
+    """
+    asof_s = str(asof)[:10] if asof else None
+    paid: dict[str, dict[str, float]] = {}
+    period_of: dict[str, str] = {}
+    upcoming: list[dict] = []
+    if events is not None and not events.empty and "ex_date" in events.columns:
+        e = events[events["code"] == code] if "code" in events.columns else events
+        for _, r in e.iterrows():
+            amt = _f(r.get("amount"))
+            if amt is None:
+                continue
+            d = str(r.get("ex_date") or "")[:10]
+            kind = str(r.get("kind") or "")
+            if not _is_date(d) or (asof_s and d > asof_s):
+                upcoming.append({"period": r.get("period"), "kind": kind or None, "amount": _r(amt, 4),
+                                 "announce_date": r.get("announce_date") if _is_date(r.get("announce_date")) else None,
+                                 "ex_date": d if _is_date(d) else None})
+                continue
+            paid.setdefault(d, {}).setdefault(kind, 0.0)
+            paid[d][kind] += amt
+            period_of.setdefault(d, str(r.get("period") or ""))
+
+    items: dict[str, dict] = {}
+    if results is not None and not results.empty:
+        rs = results[results["code"] == code] if "code" in results.columns else results
+        for _, r in rs.iterrows():
+            d = str(r.get("date"))[:10]
+            if not _is_date(d) or (asof_s and d > asof_s):
+                continue
+            kind = str(r.get("kind") or "")
+            got = paid.get(d, {})
+            if "權" in kind:
+                cash = got.get("cash", None if "息" in kind else 0.0)
+                stock = got.get("stock")
+            else:
+                cash = got.get("cash", _f(r.get("dividend")))
+                stock = got.get("stock", 0.0)
+            items[d] = {"date": d, "kind": kind or None, "cash": cash, "stock": stock,
+                        "period": period_of.get(d) or None}
+    # 有公告、官方結果卻還沒進湖的除權息日（結果表偶爾晚幾天）：用公告補上，不讓那一次憑空消失
+    for d, got in paid.items():
+        if d not in items:
+            kind = ("權" if got.get("stock") else "") + ("息" if got.get("cash") else "")
+            items[d] = {"date": d, "kind": kind or None, "cash": got.get("cash", 0.0),
+                        "stock": got.get("stock", 0.0), "period": period_of.get(d) or None}
+    upcoming.sort(key=lambda x: (x.get("ex_date") or "9999-99-99", str(x.get("announce_date") or "")))
+
+    years_have = sorted({int(d[:4]) for d in items})
+    end = int(asof_s[:4]) if asof_s else (years_have[-1] if years_have else None)
+    if end is None:
+        return [], upcoming
+    start = min(years_have[0] if years_have else end, end - DIV_YEARS + 1)
+    start = max(start, DIV_COVER_YEAR)
+    if price is not None and not price.empty and "date" in price.columns:
+        px = price[price["code"] == code] if "code" in price.columns else price
+        if not px.empty:
+            start = max(start, int(str(px["date"].astype(str).min())[:4]))
+    start = min(start, end)
+    by: dict[int, list] = {}
+    for d, it in items.items():
+        by.setdefault(int(d[:4]), []).append(it)
+    bars = []
+    for y in range(start, end + 1):
+        its = sorted(by.get(y, []), key=lambda x: x["date"])
+        cash = sum(x["cash"] for x in its if x["cash"] is not None)
+        stock = sum(x["stock"] for x in its if x["stock"] is not None)
+        unknown = sum(1 for x in its if x["cash"] is None or x["stock"] is None)
+        bars.append({"year": y, "cash": _r(cash, 4), "stock": _r(stock, 4), "n": len(its), "unknown": unknown,
+                     "partial": bool(asof_s and y == end and asof_s[5:10] < "12-31"),
+                     "items": [{**x, "cash": _r(x["cash"], 4), "stock": _r(x["stock"], 4)} for x in its]})
+    return bars, upcoming
+
+
 def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
               code: str, close: float | None, shares: dict | None = None,
               asof: str | None = None) -> dict:
-    """股利公告 + 除權息結果（含填息天數）+ 近一年現金股利合計的殖利率。
+    """股利公告 + 除權息結果（含填息天數）+ 近一年現金股利合計的殖利率 + 年度股利長條。
 
     price 必須是**原始**收盤（填息是拿除權息前的真實收盤比）。
     - 殖利率 ＝ 最近一個配息年度的現金股利（換算到今天的股數）÷ 收盤；
@@ -248,88 +362,111 @@ def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
     - 除權息紀錄的「股利」只放股利：現金＋股票股利（元），取自 dividend_events 同一除權息日；
       以前放的是 dividend_results 的「前收盤 − 參考價」價差（6669 寫成 5,185）。
       對不到公告時：純除息用價差（除息價差就是現金股利），含權的留空（不猜）。
+    - ★ 2026-09-26：`by_year`／`upcoming` 見 div_year_bars。`events`／`results` 以前只給最近 24／12 筆 ——
+      季配息股 12 筆只有 3 年，「除權息紀錄」跟年度圖的年份對不起來；現在給資料湖裡全部
+      （上限 EVENTS_MAX／RESULTS_MAX）。`coverage` 寫明兩張表各自最早到哪天、各幾筆，
+      前端據此講清楚「股利公告只有幾筆」是資料湖的限制，不是這一檔只配過一次。
     """
-    out = {"events": [], "results": [], "cash_ttm": None, "yield_ttm": None}
-    if events is not None and not events.empty:
-        e = events[events["code"] == code].copy()
-        if not e.empty:
-            e = e.sort_values(["fiscal_year", "period"], ascending=[False, False]) \
-                if "fiscal_year" in e.columns else e
-            out["events"] = [{
-                "period": r.get("period"), "kind": r.get("kind"), "amount": _r(r.get("amount"), 4),
-                "announce_date": r.get("announce_date"), "ex_date": r.get("ex_date"),
-                "payment_date": r.get("payment_date"),
-                "fiscal_year": int(r["fiscal_year"]) if pd.notna(r.get("fiscal_year")) else None,
-            } for _, r in e.head(24).iterrows()]
-            cash = e[e["kind"] == "cash"].copy()
-            cash["ex_date"] = cash["ex_date"].astype(str)
-            cash = cash[cash["ex_date"].str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)].sort_values("ex_date")
-            if asof:
-                cash = cash[cash["ex_date"] <= str(asof)]      # 還沒除息的不算進「近一年已配」
-            if not cash.empty:
-                # 「最近一個配息年度」＝最後一次除息往回 320 天內（不是 365 天）：
-                # 年配息股每年除息日會前後漂移幾天，用 365 天會把去年那一筆也算進來
-                # （6669：2025-06-24 與 2026-06-22 只差 363 天，殖利率被多算一整年）。
-                # 季配息四次橫跨約 9 個月（≈275 天）、半年配兩次約 6 個月，都在 320 天內。
-                cutoff = (pd.Timestamp(cash["ex_date"].iloc[-1]) - pd.Timedelta(days=DIV_YEAR_DAYS)).date().isoformat()
-                recent = cash[cash["ex_date"] > cutoff]
-                amt = pd.to_numeric(recent["amount"], errors="coerce")
-                if shares:
-                    from .fundamental import share_growth
-                    amt = amt / np.asarray([share_growth(shares, code, d, asof, include_after=True)
-                                            for d in recent["ex_date"]], dtype=float)
-                ttm_cash = float(amt.sum())
-                out["cash_ttm"] = round(ttm_cash, 4)
-                if close:
-                    out["yield_ttm"] = round(ttm_cash / close * 100, 2)
-    if results is not None and not results.empty:
-        rs = results[results["code"] == code].copy()
+    out = {"events": [], "results": [], "cash_ttm": None, "yield_ttm": None,
+           "by_year": [], "upcoming": [], "coverage": {}}
+    e_all = events[events["code"] == code].copy() if events is not None and not events.empty else pd.DataFrame()
+    r_all = results[results["code"] == code].copy() if results is not None and not results.empty else pd.DataFrame()
+    if not r_all.empty:
+        r_all = r_all.drop_duplicates("date", keep="last")
+    if not e_all.empty:
+        e = e_all.copy()
+        # 同一個所屬年度裡，季配息的四季要依除權息日（沒有就用公告日）由新到舊排 —— 以前只照 period 字串排
+        key = e["ex_date"].where(e["ex_date"].map(_is_date), e.get("announce_date")) if "ex_date" in e.columns else ""
+        e["_k"] = pd.Series(key, index=e.index).astype(str)
+        e = e.sort_values(["fiscal_year", "_k", "period"], ascending=[False, False, False]) \
+            if "fiscal_year" in e.columns else e
+        out["events"] = [{
+            "period": r.get("period"), "kind": r.get("kind"), "amount": _r(r.get("amount"), 4),
+            "announce_date": r.get("announce_date"), "ex_date": r.get("ex_date"),
+            "payment_date": r.get("payment_date"),
+            "fiscal_year": int(r["fiscal_year"]) if pd.notna(r.get("fiscal_year")) else None,
+        } for _, r in e.head(EVENTS_MAX).iterrows()]
+        cash = e[e["kind"] == "cash"].copy()
+        cash["ex_date"] = cash["ex_date"].astype(str)
+        cash = cash[cash["ex_date"].str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)].sort_values("ex_date")
+        if asof:
+            cash = cash[cash["ex_date"] <= str(asof)]      # 還沒除息的不算進「近一年已配」
+        if not cash.empty:
+            # 「最近一個配息年度」＝最後一次除息往回 320 天內（不是 365 天）：
+            # 年配息股每年除息日會前後漂移幾天，用 365 天會把去年那一筆也算進來
+            # （6669：2025-06-24 與 2026-06-22 只差 363 天，殖利率被多算一整年）。
+            # 季配息四次橫跨約 9 個月（≈275 天）、半年配兩次約 6 個月，都在 320 天內。
+            cutoff = (pd.Timestamp(cash["ex_date"].iloc[-1]) - pd.Timedelta(days=DIV_YEAR_DAYS)).date().isoformat()
+            recent = cash[cash["ex_date"] > cutoff]
+            amt = pd.to_numeric(recent["amount"], errors="coerce")
+            if shares:
+                from .fundamental import share_growth
+                amt = amt / np.asarray([share_growth(shares, code, d, asof, include_after=True)
+                                        for d in recent["ex_date"]], dtype=float)
+            ttm_cash = float(amt.sum())
+            out["cash_ttm"] = round(ttm_cash, 4)
+            if close:
+                out["yield_ttm"] = round(ttm_cash / close * 100, 2)
+    if not r_all.empty:
         paid: dict[str, dict[str, float]] = {}
-        if events is not None and not events.empty and "ex_date" in events.columns:
-            ee = events[events["code"] == code]
-            for k, d, amt in zip(ee["kind"], ee["ex_date"].astype(str), pd.to_numeric(ee["amount"], errors="coerce")):
+        if not e_all.empty and "ex_date" in e_all.columns:
+            for k, d, amt in zip(e_all["kind"], e_all["ex_date"].astype(str),
+                                 pd.to_numeric(e_all["amount"], errors="coerce")):
                 if pd.notna(amt):
                     paid.setdefault(d, {}).setdefault(k, 0.0)
                     paid[d][k] += float(amt)
-        if not rs.empty:
-            px = price[price["code"] == code][["date", "close"]].copy() if price is not None else pd.DataFrame()
-            if not px.empty:
-                px["date"] = px["date"].astype(str)
-                px = px.sort_values("date")
-            rows = []
-            for _, r in rs.sort_values("date", ascending=False).head(12).iterrows():
-                d = str(r.get("date"))
-                before = _f(r.get("before_price"))
-                fill_days = None
-                if not px.empty and before:
-                    after = px[px["date"] >= d]
-                    closes = pd.to_numeric(after["close"], errors="coerce")
-                    hit = np.where(closes.values >= before)[0]
-                    if len(hit):
-                        fill_days = int(hit[0]) + 1
-                    elif len(after) >= 250:
-                        fill_days = -1        # 一年內沒填
-                pd_ = paid.get(d)
-                if pd_:
-                    cash_d, stock_d = pd_.get("cash"), pd_.get("stock")
-                    div = (cash_d or 0.0) + (stock_d or 0.0)
-                elif "權" not in str(r.get("kind") or ""):
-                    cash_d, stock_d, div = _f(r.get("dividend")), None, _f(r.get("dividend"))
-                else:
-                    cash_d = stock_d = div = None
-                gap = (before - _f(r.get("reference_price"))) if before and _f(r.get("reference_price")) else None
-                rows.append({"date": d, "kind": r.get("kind"), "dividend": _r(div, 4),
-                             "cash_dividend": _r(cash_d, 4), "stock_dividend": _r(stock_d, 4),
-                             "price_gap": _r(gap, 2),
-                             "before_price": before, "reference_price": _f(r.get("reference_price")),
-                             "fill_days": fill_days})
-            out["results"] = rows
+        px = price[price["code"] == code][["date", "close"]].copy() \
+            if price is not None and not price.empty else pd.DataFrame()
+        if not px.empty:
+            px["date"] = px["date"].astype(str)
+            px = px.sort_values("date")
+        rows = []
+        for _, r in r_all.sort_values("date", ascending=False).head(RESULTS_MAX).iterrows():
+            d = str(r.get("date"))
+            before = _f(r.get("before_price"))
+            fill_days = None
+            if not px.empty and before:
+                after = px[px["date"] >= d]
+                closes = pd.to_numeric(after["close"], errors="coerce")
+                hit = np.where(closes.values >= before)[0]
+                if len(hit):
+                    fill_days = int(hit[0]) + 1
+                elif len(after) >= 250:
+                    fill_days = -1        # 一年內沒填
+            pd_ = paid.get(d)
+            if pd_:
+                cash_d, stock_d = pd_.get("cash"), pd_.get("stock")
+                div = (cash_d or 0.0) + (stock_d or 0.0)
+            elif "權" not in str(r.get("kind") or ""):
+                cash_d, stock_d, div = _f(r.get("dividend")), None, _f(r.get("dividend"))
+            else:
+                cash_d = stock_d = div = None
+            gap = (before - _f(r.get("reference_price"))) if before and _f(r.get("reference_price")) else None
+            rows.append({"date": d, "kind": r.get("kind"), "dividend": _r(div, 4),
+                         "cash_dividend": _r(cash_d, 4), "stock_dividend": _r(stock_d, 4),
+                         "price_gap": _r(gap, 2),
+                         "before_price": before, "reference_price": _f(r.get("reference_price")),
+                         "fill_days": fill_days})
+        out["results"] = rows
+    if not e_all.empty or not r_all.empty:
+        out["by_year"], out["upcoming"] = div_year_bars(e_all, r_all, price, code, asof)
+        ann = (e_all["announce_date"].map(lambda v: str(v)[:10] if _is_date(v) else None).dropna()
+               if not e_all.empty and "announce_date" in e_all.columns else pd.Series(dtype=object))
+        out["coverage"] = {
+            "events_n": int(len(e_all)),
+            "events_first": ann.min() if len(ann) else None,
+            "events_years": int(e_all["fiscal_year"].dropna().nunique())
+            if not e_all.empty and "fiscal_year" in e_all.columns else 0,
+            "results_n": int(len(r_all)),
+            "results_first": str(r_all["date"].astype(str).min())[:10] if not r_all.empty else None,
+            "cover_from": DIV_COVER_YEAR,
+        }
     return out
 
 
 # ------------------------------------------------------------------ 資券
 
-def margin_series(margin: pd.DataFrame, code: str, days: int = 250) -> list:
+def margin_series(margin: pd.DataFrame, code: str, days: int = CHIP_DAYS) -> list:
     if margin is None or margin.empty:
         return []
     g = margin[margin["code"] == code].copy()
@@ -376,7 +513,7 @@ def holder_series(sh: pd.DataFrame, code: str, weeks: int = 104) -> list:
 
 # ------------------------------------------------------------------ 法人
 
-def inst_series(inst: pd.DataFrame, code: str, days: int = 120) -> dict:
+def inst_series(inst: pd.DataFrame, code: str, days: int = CHIP_DAYS) -> dict:
     if inst is None or inst.empty:
         return {"daily": [], "sum20": None, "sum60": None}
     g = inst[inst["code"] == code].drop_duplicates("date", keep="last").sort_values("date")
