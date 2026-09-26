@@ -319,7 +319,6 @@
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
           <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
             title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每分鐘更新（盤中暫定值）">即時</button></span>
-          <button class="howbtn" data-how="gp" type="button">怎麼看 ?</button>
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
@@ -639,14 +638,20 @@
       const pieH = stacked ? Math.min(Math.max(220, h - legH), Math.max(240, Math.round(pw * 0.86))) : Math.max(220, h - legH);
       barEl.style.height = h + 'px'; pieEl.style.height = pieH + 'px';
       backBtn.hidden = !drill;
+      /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
+         改前：右上工具列一顆「怎麼看 ?」膠囊鈕，點了在卡片裡就地展開一整塊說明（把兩張圖往下推）。
+         改後：標題文字右側一顆小圓「?」（.howbtn.pop），點了走 app.js howPop 的置中彈窗（點背景／Esc 關）。
+         鈕寫在標題樣板裡，因為 #gpTitle 每次重畫都整段換 innerHTML；彈窗標題取標題的第一段字。*/
+      const gpQ = '<button class="howbtn pop" data-how="gp" type="button" aria-label="這張圖怎麼看">?</button>';
       $('#gpTitle', host).innerHTML = drill
-        ? `${A.fmt.esc(drill.name)}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
-        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
+        ? `${A.fmt.esc(drill.name)}${gpQ}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
+        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比${gpQ}　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
       /* ★ 2026-09-24 說明精簡：同一份內容改成「一句問題 → 條列 → 最下面一行小字」，住在「怎麼看 ?」裡。*/
       const gpFine = '甜甜圈其餘併成「其他」，中心寫前五大合計；滑過任一邊，另一邊對應的那一塊同步標起來，下方那行寫出它的數字。'
         + '按「即時」＝盤中暫定值，每分鐘更新：成交值是<b>估算</b>的（即時端點沒有每檔的累積成交金額，用「最新價 × 累積張數」推算，和輪動時鐘的即時同一個口徑），'
         + '漲跌幅是這批個股的成交值加權；抓不到報價的仍用收盤值，所以占比只能當「相對大小」看。';
-      $('#gpHint', host).innerHTML = drill
+      // 彈窗開著時 #gpHint 被搬到 body 底下的 #howPop，host 裡找不到 —— 退回全域找，不然即時每分鐘重畫會丟例外
+      ($('#gpHint', host) || document.getElementById('gpHint') || {}).innerHTML = drill
         ? A.howHTML('這張圖回答：這個族群裡今天是誰在漲、量能集中在哪幾檔。', [
           '左邊長條由高到低，紅漲綠跌',
           '右邊甜甜圈只標成交值前五大',
@@ -1041,8 +1046,11 @@
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">
         <!-- ★ 2026-09-24 說明精簡：頁首那段「同一套顏色、點了會怎樣」(#nbIntro) 搬進「怎麼看 ?」，頁首只留鏈名。 -->
-        <div class="row spread nbhead" data-howsec><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          ${hasSlots || hasMap ? '<button class="howbtn" data-how="nb" type="button">怎麼看 ?</button>' : ''}</div>
+        <div class="row spread nbhead" data-howsec><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}${hasSlots || hasMap ? '<button class="howbtn pop" data-how="nb" type="button" aria-label="這一頁怎麼看">?</button>' : ''}</h2></div>
+          ${/* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
+                 nb／dg／rel 三顆（加上族群總覽的 gp）改前是右側「怎麼看 ?」膠囊＋就地展開；
+                 改後是標題文字右側的小圓「?」（.howbtn.pop），點了走 app.js howPop 的置中彈窗。
+                 #how-xx 盒子留在卡片裡（howPop 關的時候搬回原位，驗收與 #nbIntro／#dgQ／#relHint 的寫入照 id 找得到）。*/ ''}
           ${/* ★ 2026-09-24（審查 R3）：這段說明以前還在講退版前的「關聯圖大圓點／個股小點」，
                  而且沒有關聯圖的鏈（傳產、基礎建設）也照樣講關聯圖與色標。改成照這一頁真的有什麼來講：
                  有剖析圖 × 有關聯圖三種組合各一份，不提畫面上沒有的東西。*/ ''}
@@ -1079,7 +1087,7 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small><button class="howbtn pop" data-how="dg" data-ttl="產品剖析圖" type="button" aria-label="產品剖析圖怎麼看">?</button></div><span class="row" id="dgTools" style="gap:6px"><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
             '點零件：看它是誰做的（供應商）',
@@ -1100,8 +1108,8 @@
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div class="dg3dbox"><div id="prod3d" class="dg3d" hidden></div><div class="dg3dctl" id="dg3dCtl" role="group" aria-label="3D 視角操作" hidden><button type="button" class="pill" id="dgDrag" title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</button><button type="button" class="pill" id="dgReset" title="回到一開始的視角（也可以在 3D 畫面上點兩下）">重設視角</button></div></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
         </div>
         ${hasMap ? `<div class="relsec" id="relSec" data-howsec>
-          <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
-            <span class="row" style="gap:6px"><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span><button class="howbtn" data-how="rel" type="button">怎麼看 ?</button></span></div>
+          <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖<button class="howbtn pop" data-how="rel" type="button" aria-label="供應鏈關聯圖怎麼看">?</button></h4>
+            <span class="row" style="gap:6px"><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <div class="howtxt" id="how-rel" hidden><div id="relHint"></div></div>
           <!-- ★ 2026-09-24（Andy：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」，
                之後再補明確指示：上方的標籤改成下拉清單、下方那片環節字卡全部拿掉）。桌機（大於 820px）才動：
@@ -1222,7 +1230,7 @@
        選到沒有圖的族群＝收起圖、換回圖別選單，所以那句文案永遠不會出現，留著只是噪音。
        改成永遠寫「這張圖回答什麼問題」—— 每張圖都要能回答一個具體問題，而且要寫在旁邊。*/
     function paintDgTitle() {
-      const t = $('#dgTitle', el), q = $('#dgQ', el);
+      const t = $('#dgTitle', el), q = $('#dgQ', el) || document.getElementById('dgQ');   // 「?」開著時 #dgQ 在 #howPop 裡
       if (t) {
         /* 說明精簡：圖名＋誠實標示留在畫面；「點零件看供應商／原尺寸可左右滑」搬進「怎麼看 ?」 */
         t.textContent = dgId
@@ -1231,6 +1239,8 @@
              選單移除之後要改成指**上方的分頁列**，不然會叫使用者去看一個不存在的東西。*/
           : `共 ${dgOpts.length} 張剖析圖，在上方分頁選一張`;
       }
+      // 「?」彈窗的標題＝這張圖的名字（跟總覽一樣：彈窗標題＝卡片／區塊名稱）
+      { const qb = $('.howbtn[data-how="dg"]', el); if (qb) qb.dataset.ttl = dgId ? DS.name(dgId) : '產品剖析圖'; }
       if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b class="howq">這張圖回答：${A.fmt.esc(DS.q(dgId))}</b>` : '';
     }
     /* 「族群總覽」與「剖析圖」兩種模式的顯示切換。
@@ -1251,9 +1261,10 @@
          上方分頁列本來就列著每一張圖，這句沒有新資訊，所以沒選圖時整列收起來。*/
       const sh = $('.dgsechead', el);
       if (sh) sh.style.display = on ? '' : 'none';     // .row 有 display:flex，hidden 屬性蓋不過它
-      /* 說明精簡：「怎麼看 ?」的鈕住在 #dgTools 裡，回族群總覽時鈕被藏起來 —— 盒子也要一起收，不然會留一段舊圖的說明 */
+      /* 說明精簡：「?」住在圖名旁（.dgsechead），回族群總覽時整列收起來 —— 盒子也要一起收，不然會留一段舊圖的說明。
+         ★ 2026-09-26 改成跳出式「?」：鈕上的字固定是「?」，不再改回「怎麼看 ?」。*/
       if (!on) { const hb = $('#how-dg', el), hbtn = $('.howbtn[data-how="dg"]', el);
-        if (hb) hb.hidden = true; if (hbtn) { hbtn.classList.remove('on'); hbtn.textContent = '怎麼看 ?'; } }
+        if (hb) hb.hidden = true; if (hbtn) { hbtn.classList.remove('on'); hbtn.setAttribute('aria-expanded', 'false'); } }
       // 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它
       const gp = $('#gpSec', el);
       if (gp) gp.hidden = on;
@@ -1407,7 +1418,7 @@
           onFold: () => syncHighlight({ quiet: true, noscroll: true }),
           onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
         });
-        const hint = $('#relHint', el);
+        const hint = $('#relHint', el) || document.getElementById('relHint');   // 「?」彈窗開著時盒子在 #howPop 裡
         if (hint) hint.innerHTML = HINT.layer(`這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。

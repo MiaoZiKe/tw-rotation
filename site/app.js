@@ -2092,9 +2092,12 @@
   /* 產業鏈頁的兩段長說明：`#nbIntro` 量到 146px、`#relHint` 208px，
      加起來 354px ＝ 半個手機畫面在講「怎麼看」。收起來，入口留在原地。
      （Andy：「不要太多文字…以圖為主」；判準：收起來可以，刪掉不行。）*/
+  /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』」）：改前手機在頁首與關聯圖標題下各插一顆
+     「這一頁怎麼看 ▾」「關聯圖怎麼看 ▾」收合鈕；改後兩段說明都住在標題旁的「?」彈窗裡（#how-nb／#how-rel），
+     本來就不佔版面，收合鈕拿掉。⚠ 還要把 .mf-off 拔掉：它會把彈窗裡的 #nbIntro／#relHint 藏起來 → 「?」打開是空的。*/
   function miaChain() {
-    miaFold('#nbIntro', '這一頁怎麼看', ['#nbIntro'], 'mfChainIntro');
-    miaFold('#relHead', '關聯圖怎麼看', ['#relHint'], 'mfRelHint');
+    ['mfChainIntro', 'mfRelHint'].forEach(id => { const b = document.getElementById(id); if (b) b.remove(); });
+    ['nbIntro', 'relHint'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('mf-off'); });
   }
 
   /* 資金流向「資金輪動」那張卡：量到 1368px，其中篩選列 101px ＋ 時間列 132px
@@ -6796,7 +6799,8 @@
     if (src != null) (box.querySelector('.howbody') || box).innerHTML = typeof src === 'function' ? src() : src;
     const home = document.createComment('howhome');
     box.parentNode.insertBefore(home, box);
-    const h = btn.closest('h3, h4, h5');
+    // ★ 2026-09-26 加 h2：產業鏈頁首的「?」（nb）住在鏈名 h2 裡，彈窗標題要讀得到鏈名
+    const h = btn.closest('h2, h3, h4, h5');
     // 標題：鈕上有 data-ttl 就用它（K 線工具列那顆不在標題裡），否則取所在標題的第一段字
     const ttl = btn.dataset.ttl || (h ? ((h.childNodes[0] && h.childNodes[0].textContent) || '').trim() : '');
     pop.innerHTML = `<div class="hp-h"><b>${fmt.esc(ttl || '說明')}</b></div>`;
