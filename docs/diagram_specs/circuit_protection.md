@@ -446,3 +446,28 @@
 | 2026-09-22 | mechanical-engineer（規格書作者） | 待審 | 26 條硬規則、7 條紅線。**最關鍵的三條**：A1／A2（擋電壓的並聯、擋電流的串聯 —— 畫反的話這張圖第一句話就是假的）、A3（MOV 必須比 TVS 更靠外，這是「分層防護」的全部意義）、M1（MOV 必須畫出晶粒與晶界，畫成一塊均質陶瓷就不是 MOV）。**這張圖存在的理由寫在 §0-B**：`resistor_protect` 的 6 檔裡有 **4 檔**（興勤／佳邦／聚鼎／富致）的產品在既有 `passive_rlc` 那張圖上**一格都沒有**，所以不可以把這個族群直接指過去。**資料面最大的風險是 §7-D1**：唯一能掛的 `passive_comp` 環節裡**一家保護元件廠都沒有**，不寫 `cos` 就會列出做 MLCC 的公司 —— 所以 `cos` **一律寫空陣列**、走 `none:` 文字。**六條查不到**（C1–C6），其中 C5（GDT 台股對應）與 C6（聚鼎與富致的技術差異）要誠實留白 |
 | | art-director | | |
 | | tech-illustrator | | |
+
+
+---
+
+## §3D-細節（2026-09-26，3D 設計專責）
+
+| 零件 | 補了什麼 |
+|---|---|
+| PPTC 碳黑 | 從 9×6 整齊方陣改成 **7 條從下電極隨機游走到上電極的鏈**（每節 2～3 顆的聚集體）＋零星沒連上的聚集體 —— 滲流網路要看得出「有的通、有的沒通」 |
+| MOV 晶粒 | 從 8×5 方陣改成抖動的六角堆積、大小與拉長方向各異的多面體，後面墊暗色晶界相（富鉍相），多一層後排晶粒 |
+| MOV 晶界 | 路徑管徑減半，位壘標記改成薄圓片 |
+| MOV 電極 | 兩根徑向引線（上下電極各一根、中段插件折彎） |
+| NTC | 兩根引線從上下電極接出、繞到同一側往下、中段折彎（原本是兩根直棍子） |
+| TVS 接面 | 左右與背面蓋玻璃鈍化（GPP：台面蝕刻後填玻璃） |
+| TVS 電極 | **J 形扁平鍍錫引腳**：上下電極各拉一條出去、沿端面往下、折進本體底下（SMB／DO-214 類） |
+
+> 證據等級：全部是 **WebSearch 摘要**，沒有人讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| P1 | 商用 MOV 的 ZnO 晶粒約 5～30 µm；晶界富含 Bi₂O₃，ZnO／ZnO 晶界是非線性來源 | 中 | <https://www.intechopen.com/chapters/19130>、<https://www.sciencedirect.com/science/article/abs/pii/S0955221907000970> |
+| P2 | PPTC＝結晶性高分子＋高導電碳黑，聚集體距離夠近時形成三維滲流網路；電極為（鍍鎳）金屬箔 | 中 | <https://en.wikipedia.org/wiki/Resettable_fuse>、<https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10777340> |
+| P3 | SMB（DO-214AA）J-Bend：模封本體＋玻璃鈍化接面＋霧錫引腳；晶粒以軟焊或導電膠接在導線架上 | 中 | <https://www.littelfuse.com/assetdocs/tvs-diodes-smbj-series-datasheet?assetguid=ba555e99-a12d-4f72-a0b6-86b06c67171e>、<https://grokipedia.com/page/DO-214> |
+
+⚠ 鏈的條數、晶粒數量與大小仍是示意。

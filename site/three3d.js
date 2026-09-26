@@ -259,7 +259,7 @@
        兩邊看到的是同一個剖面。轉到背面就是完整、沒被切開的一顆。 */
     mlcc: {
       title: 'MLCC 積層陶瓷電容（切開近角）',
-      sub: '陶瓷疊層 ＋ 交錯指狀電極 ＋ 端電極 Cu → Ni → Sn；圖上 12 層為示意，實際 400～1000 層',
+      sub: '陶瓷疊層 ＋ 交錯指狀電極 ＋ 端電極 Cu → Ni → Sn；圖上 36 層為示意，實際 400～1000 層',
       camera: [64, 44, 72], target: [0, 18, 0], fit: 1, hk: 0.56,
       /* A5（mechanical-engineer 2026-09-21 複驗）：文字框底下那排台股改成列
          **「被動元件 MLCC」族群**（2327／2492／3026／6173），不是 passive_comp 環節。
@@ -337,7 +337,9 @@
          晶粒那一顆會小幅上下（move）：那是取放（pick and place）的動作。*/
       flows: [
         { kind: 'sig', part: 'fd_sub', r: 0.5, per: 14, speed: 0.22,
-          pts: [[-56, 4, -10], [-38, 4, -10], [-4, 4, -10], [30, 4, -10], [48, 3, 4], [58, 2.4, 24]] },
+          /* 2026-09-26：路徑改走在基板**前緣的表面上**（z = 3.5，三顆電晶體的前方），
+             以前 y = 4、z = −10 正好穿過三顆電晶體的本體 —— 穿模，而且大半段被擋住看不到。*/
+          pts: [[-54, 3.3, 3.5], [-38, 3.3, 3.5], [-4, 3.3, 3.5], [30, 3.3, 3.5], [45, 3.1, 5], [52, 2.8, 12], [58, 2.6, 22]] },
       ],
       pulses: [{ parts: ['fd_planar', 'fd_fin', 'fd_sheet', 'fd_gaa', 'fd_wafer', 'fd_die'], period: 4.2, kind: 'sig' }],
       /* 取放晶粒：小幅、慢、有停頓感（-cos 在兩端會減速）。振幅只有 2.2，不會跟旁邊的零件打架。*/
@@ -465,6 +467,7 @@
       parts: [
         { seg: 'wide_bandgap', part: 'wbg_sic_drain', name: 'SiC：汲極金屬（背面）', note: '在背面。電流從正面的源極穿過整片晶片到這裡 —— 三個電極畫在同一面就是 GaN HEMT，不是 SiC MOSFET',
           kind: 'wbglay', box: [40, 2.4, 32], at: [-32, 1.2, 0], tint: '--dg-m-rack', metal: 0.86, rough: 0.3, ex: [0, -9, 0],
+          strata: [[0.5, '--dg-sn', 0, 0.8, 0.26], [0.32, '--dg-ni', 0, 0.82, 0.3], [0.18, '--dg-m-graphite', 0, 0.7, 0.4]],   // 背面金屬由下而上 Ag／Ni／Ti（Ti 貼著 SiC）
           codes: ['3707'], chipnote: '做元件製造這一段的台股（背面金屬跟正面金屬是同一段製程，信心：中）' },
         { seg: 'wide_bandgap', part: 'wbg_sic_sub', name: 'SiC：n⁺ 基板', note: '機械支撐＋導電。這一片的品質決定上面能不能長出好磊晶 —— 微管與基面差排這類缺陷在長晶那一步就決定了，後面救不回來。它比漂移層厚得多',
           kind: 'wbglay', box: [40, 7, 32], at: [-32, 6.2, 0], k: -0.32, ex: [0, -4, 0] },
@@ -472,24 +475,25 @@
           kind: 'wbglay', box: [40, 5, 32], at: [-32, 12.2, 0], k: 0.08, ex: [0, 3, 0],
           codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中，來源為投資研究平台整理；不在供應鏈資料裡）' },
         { seg: 'wide_bandgap', part: 'wbg_sic_body', name: 'SiC：p-body 與 n⁺ 源極區', note: '通道就在 p-body 的表面；兩個 p-body 之間被夾成的那條窄路就是 JFET 區（只有平面閘才有）。★ n⁺ 源極區一定被 p-body 包住，碰到 n⁻ 漂移層就等於把元件短路掉了',
-          kind: 'wbgbody', box: [40, 3.4, 32], at: [-32, 16.4, 0], ex: [0, 8, 0],
+          kind: 'wbgbody', box: [40, 3.4, 32], at: [-32, 16.4, 0], ex: [0, 8, 0], cells: 3, cw: 40,
           codes: ['3707'], chipnote: '做元件製造這一段的台股（SiC／GaN 功率半導體晶圓代工，信心：中）' },
         { seg: 'wide_bandgap', part: 'wbg_sic_gox', name: 'SiC：閘極氧化層 ＋ 閘極', note: '氧化層夾在閘極與半導體之間，是全圖最薄的一層之一 —— ★ 沒有這一層就不叫 MOSFET（閘極直接碰到半導體那是 JFET 或 HEMT）。它同時是 SiC 的長期可靠度課題之一',
-          kind: 'wbggate', box: [16, 2.6, 32], at: [-32, 19.4, 0], ex: [0, 13, 0],
+          kind: 'wbggate', box: [16, 2.6, 32], at: [-32, 19.4, 0], ex: [0, 13, 0], cells: 3, cw: 40,
           codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
         { seg: 'wide_bandgap', part: 'wbg_sic_src', name: 'SiC：源極金屬（正面）', note: '蓋住正面大部分，靠接觸窗下去接到 n⁺ 源極與 p-body。它和閘極在同一面、和背面的汲極分屬兩側 —— 這就是「垂直元件」的定義',
-          kind: 'wbgtop', box: [40, 2.6, 32], at: [-32, 21.9, 0], ex: [0, 16.5, 0],
+          kind: 'wbgtop', box: [40, 2.6, 32], at: [-32, 21.9, 0], ex: [0, 16.5, 0], cells: 3, cw: 40, plugDown: 3.8,
           codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
         { seg: 'wide_bandgap', part: 'wbg_gan_sub', name: 'GaN：基板（Si 或 SiC）', note: 'GaN 功率元件多半長在 Si 或 SiC 基板上。Si 便宜且相容既有 CMOS 廠，但晶格失配大、緩衝層要厚；SiC 導熱好、失配小，但貴',
           kind: 'wbglay', box: [40, 7, 32], at: [32, 3.5, 0], k: -0.32, ex: [0, -8, 0] },
         { seg: 'wide_bandgap', part: 'wbg_gan_buf', name: 'GaN：緩衝層（AlN／AlGaN）', note: '厚薄由基板決定：長在 Si 上晶格差約 17%，要厚過渡；長在 SiC 上只差約 3.5%，可以薄很多。兩者畫成一樣厚就是把這件事抹掉了',
           kind: 'wbglay', box: [40, 3.6, 32], at: [32, 8.8, 0], k: -0.06, ex: [0, -3, 0],
+          strata: [[1.2, null, -0.2, 0.3, 0.5], [1, null, -0.02, 0.3, 0.46], [1, null, -0.14, 0.3, 0.5], [1, null, 0.04, 0.3, 0.46], [1, null, -0.08, 0.3, 0.5], [1, null, 0.1, 0.3, 0.46]],   // 漸變緩衝：AlN 成核層＋多層 AlGaN（示意層數）
           codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中，來源為投資研究平台整理）' },
         { seg: 'wide_bandgap', part: 'wbg_gan_ch', name: 'GaN：通道層', note: '2DEG 就長在它的上表面。它比上面的 AlGaN 阻障層厚',
           kind: 'wbglay', box: [40, 2.2, 32], at: [32, 11.7, 0], k: 0.22, ex: [0, 3, 0],
           codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中）' },
         { seg: 'wide_bandgap', part: 'wbg_2deg', name: 'GaN：二維電子氣（2DEG）', note: 'AlGaN 與 GaN 貼在一起，界面自己長出一層電子（極化誘發）。★ 它在界面的 GaN 那一側，不是在 AlGaN 裡、也不是在兩層正中央。電子跑得快，所以切換可以到 MHz 級',
-          kind: 'wbglay', box: [40, 0.6, 32], at: [32, 13.1, 0], tint: '--dg-m-trace', metal: 0.9, rough: 0.26, ex: [0, 7, 0] },
+          kind: 'wbglay', box: [40, 0.6, 32], at: [32, 13.1, 0], tint: '--dg-m-trace', metal: 0.9, rough: 0.26, ex: [0, 7, 0], dim: [-4, 4] },   // 閘極底下那一段被 p-GaN 耗盡（變暗）
         { seg: 'wide_bandgap', part: 'wbg_gan_bar', name: 'GaN：AlGaN 阻障層', note: '比底下的 GaN 通道層薄。它和 GaN 的界面就是 2DEG 的所在，三個電極都做在它的上表面',
           kind: 'wbglay', box: [40, 1.3, 32], at: [32, 14.05, 0], k: 0.5, ex: [0, 11, 0],
           codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中）' },
@@ -1142,13 +1146,13 @@
           kind: 'cpgb', box: [24, 15, 18], at: [14, 8, 0], ex: [0, 15, 0],
           codes: ['2428'], chipnote: '2428 興勤（壓敏電阻 MOV 與保護元件，不在 supply_chain.yaml 裡）' },
         { seg: 'passive_comp', part: 'cp_movel', name: 'MOV：電極 ×2（並聯到地）', note: '★ 在兩個相對的面（上下），不是同一面的兩端 —— 電流要垂直穿過整疊晶粒才會撞到那些晶界。★ 它是會消耗的：每吸收一次突波內部就退化一點，最後通常以短路收場；寄生電容大，不適合掛在高速資料線上',
-          kind: 'cpelec', box: [24, 19, 18], at: [14, 8, 0], ex: [0, 10, 0],
+          kind: 'cpelec', box: [24, 19, 18], at: [14, 8, 0], ex: [0, 10, 0], leads: 'radial',
           codes: ['2428'], chipnote: '2428 興勤（壓敏電阻 MOV，不在 supply_chain.yaml 裡）。「每擋一次就退化、最終短路」與「寄生電容大」來自同一篇比較型整理（單一來源），所以本圖不寫任何鉗位比、電壓值與 pF 數字' },
         { seg: 'passive_comp', part: 'cp_pn', name: 'TVS：PN 接面（P 區／空乏區／N 區）', note: '★ 兩種不同摻雜的半導體區、中間一條空乏區窄帶 —— 這是 TVS 的識別特徵，雪崩就發生在那條窄帶裡。畫成陶瓷晶粒就是畫成了 MOV（兩者的物理機制完全不同），畫成三明治薄膜就是畫成了晶片電阻',
           kind: 'cppn', box: [22, 13, 18], at: [42, 7, 0], ex: [0, 3, 0],
           codes: ['6284'], chipnote: '6284 佳邦（ESD／TVS 等過電壓保護元件）。佳邦不在 supply_chain.yaml 裡，所以直接指名' },
         { seg: 'passive_comp', part: 'cp_tvsel', name: 'TVS：金屬電極 ×2（並聯到地，最靠近 IC）', note: '上下各一片，把 PN 接面夾在中間。★ 它與 IC 之間不准再插別的元件：把電壓壓得比壓敏電阻更低、漂移更小 —— 這就是「分層」，靠外的第一道擋大能量、靠近 IC 的第二道把電壓壓下來。順序反過來就沒有意義',
-          kind: 'cpelec', box: [22, 17, 18], at: [42, 7, 0], ex: [0, 11, 0],
+          kind: 'cpelec', box: [22, 17, 18], at: [42, 7, 0], ex: [0, 11, 0], leads: 'jbend',
           codes: ['6284'], chipnote: '6284 佳邦（ESD／TVS 過電壓保護元件，不在 supply_chain.yaml 裡）' },
       ],
       /* ---- C6 運轉動畫：**保護元件平常不作用，出事才動作**。
@@ -1622,6 +1626,120 @@
     twinax: 'Flyover twinax cable', optic_module: 'Pluggable optical module',
   };
 
+  /* ================================================================ 微表面（2026-09-26，Andy：「光滑平面沒有材質」）
+     每一種材質族一種**表面手感**，全部程序化產生（不載任何外部圖檔、不走 CDN）：
+       金屬（鋼／鋁／錫）→ 髮絲紋（一個方向的細長刮痕）  銅 → 較弱的髮絲紋
+       陶瓷 → 細燒結顆粒  模封／有機樹脂／塑膠 → 填料顆粒  PCB → 玻纖布的經緯
+       矽 → 幾乎鏡面，只有極淡的起伏  玻璃 → 不加
+     做法：一張 128×128 的 RGBA 雜訊（R 顆粒、G 髮絲、B 布紋、A 大塊起伏），
+       在 shader 裡依**物件座標**做三向投影（triplanar）取樣 —— 不吃 uv，
+       所以合併過的幾何、車出來的旋轉體、倒角方塊都一樣密、不會有接縫或被拉長。
+       取出來的高度拿去做兩件事：① 用螢幕空間導數擾動法線（bump）② 微調粗糙度（刮痕比較亮）。
+     輪廓光：同一段 shader 補一道很弱的 Fresnel 邊光（科技模式提亮邊緣、閱讀模式反過來壓暗一點），
+       目的是讓疊在一起的層「分得開」，不是發光 —— 強度走 token（--dg-rim-k），預設只有 0.05。
+     成本：每個像素多 3 次貼圖取樣、0 個 draw call、0 個三角形。*/
+  const DGU = { noise: { value: null }, freq: { value: 0.06 }, rimK: { value: 0.05 }, rimC: { value: null }, microK: { value: 1 } };
+  const MICRO = {                   // 材質族 → [通道, bump 強度, 粗糙度起伏]
+    metal: ['g', 0.35, 0.55], alu: ['g', 0.3, 0.5], sn: ['g', 0.2, 0.35], cu: ['g', 0.25, 0.4],
+    cer: ['r', 0.28, 0.22], emc: ['r', 0.3, 0.22], organic: ['r', 0.3, 0.22], plastic: ['r', 0.25, 0.2],
+    pcb: ['b', 0.28, 0.2], si: ['a', 0.12, 0.12],
+  };
+  function microTex(THREE) {
+    if (DGU.noise.value) return DGU.noise.value;
+    const N = 128, data = new Uint8Array(N * N * 4);
+    // 可平鋪的值雜訊：格點取亂數、雙線性內插、邊界取模
+    let seed = 1337;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const lattice = (n) => { const a = []; for (let i = 0; i < n * n; i++) a.push(rnd()); return a; };
+    const vnoise = (lat, n, x, y) => {
+      const fx = x * n / N, fy = y * n / N, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+      const at = (i, j) => lat[((j % n + n) % n) * n + ((i % n + n) % n)];
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+      return (at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx) * (1 - sy) + (at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx) * sy;
+    };
+    const L64 = lattice(64), L32 = lattice(32), L8 = lattice(8), L4 = lattice(4), L128 = lattice(128), L16 = lattice(16);
+    const s0 = []; for (let j = 0; j < N; j++) s0.push(rnd());
+    // 相鄰三列平均：刮痕要有寬度，一列一個亂數的話在螢幕上會變成 2×2 的格狀雜點
+    const streak = s0.map((v, j) => (s0[(j + N - 1) % N] + v * 2 + s0[(j + 1) % N]) / 4);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const i = (y * N + x) * 4;
+      const grain = 0.6 * vnoise(L64, 64, x, y) + 0.4 * vnoise(L128, 128, x, y);            // 燒結／填料顆粒
+      // 髮絲紋：每一列一個亮度，沿 x 只有很慢的變化 → 一條一條沿 x 的細刮痕
+      const br = 0.62 * streak[y] + 0.38 * streak[(y + 1) % N] * vnoise(L8, 8, x, y) + 0.1 * vnoise(L16, 16, x, y);
+      // 玻纖布：經緯兩組正弦疊起來（8 × 8 束）
+      const wv = 0.5 + 0.25 * Math.sin(x / N * Math.PI * 2 * 8) * Math.sign(Math.sin(y / N * Math.PI * 2 * 4))
+        + 0.25 * Math.sin(y / N * Math.PI * 2 * 8) * Math.sign(Math.sin(x / N * Math.PI * 2 * 4));
+      const mott = 0.65 * vnoise(L4, 4, x, y) + 0.35 * vnoise(L32, 32, x, y);            // 大塊起伏
+      data[i] = Math.round(Math.min(1, grain) * 255); data[i + 1] = Math.round(Math.min(1, br) * 255);
+      data[i + 2] = Math.round(Math.max(0, Math.min(1, wv)) * 255); data[i + 3] = Math.round(mott * 255);
+    }
+    const t = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true;
+    t.needsUpdate = true;
+    DGU.noise.value = t;
+    if (!DGU.rimC.value) DGU.rimC.value = new THREE.Color('#ffffff');
+    return t;
+  }
+  /* 把微表面＋輪廓光掛到一顆 MeshStandardMaterial 上。spec＝MICRO 的一列；null＝只要輪廓光（玻璃）。*/
+  function microfy(THREE, m, spec, floor) {
+    microTex(THREE);
+    const ch = spec ? spec[0] : 'r', bk = spec ? spec[1] : 0, rk = spec ? spec[2] : 0, rimOn = spec && spec[3] != null ? spec[3] : 1;
+    /* ★ 通道與強度走**每顆材質自己的 uniform**，不走 #define：
+       用 define 的話每一種（通道 × 強度）組合都是一支新的 shader program，
+       軟體渲染下每編一支就要幾百毫秒 —— 第一版實測首次畫圖慢了 2～6 倍，全部是編 shader 的時間。
+       改成 uniform 之後全場只有一支 program（three 會共用），每顆材質只帶自己的數字。*/
+    const mask = { r: [1, 0, 0, 0], g: [0, 1, 0, 0], b: [0, 0, 1, 0], a: [0, 0, 0, 1] }[ch];
+    const U = { dgMask: { value: new THREE.Vector4(mask[0], mask[1], mask[2], mask[3]) }, dgBK: { value: bk }, dgRK: { value: rk }, dgRimOn: { value: rimOn },
+      /* 晶粒版圖也走這支 shader（不用 material.map）：map 會讓 three 另外編一支 program（USE_MAP），
+         這裡改成「頂面依局部座標取樣」—— 實例化的晶粒陣列也吃同一張、同一支 program。*/
+      dgFloor: { value: floor && floor.tex ? floor.tex : DGU.noise.value }, dgFloorOn: { value: floor && floor.tex ? 1 : 0 },
+      dgFloorSize: { value: new THREE.Vector2(floor ? floor.sx : 1, floor ? floor.sz : 1) } };
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.dgNoise = DGU.noise; sh.uniforms.dgFreq = DGU.freq; sh.uniforms.dgRimK = DGU.rimK;
+      sh.uniforms.dgRimC = DGU.rimC; sh.uniforms.dgMicroK = DGU.microK;
+      sh.uniforms.dgMask = U.dgMask; sh.uniforms.dgBK = U.dgBK; sh.uniforms.dgRK = U.dgRK; sh.uniforms.dgRimOn = U.dgRimOn;
+      sh.uniforms.dgFloor = U.dgFloor; sh.uniforms.dgFloorOn = U.dgFloorOn; sh.uniforms.dgFloorSize = U.dgFloorSize;
+      sh.vertexShader = 'varying vec3 vDgP;\nvarying vec3 vDgN;\nvarying vec3 vDgL;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+        `#include <begin_vertex>
+         vDgL = transformed;
+         vec4 dgp = vec4(transformed, 1.0); vec3 dgn = objectNormal;
+         #ifdef USE_INSTANCING
+           dgp = instanceMatrix * dgp; dgn = mat3(instanceMatrix) * dgn;
+         #endif
+         vDgP = dgp.xyz; vDgN = dgn;`);
+      sh.fragmentShader = 'uniform sampler2D dgNoise; uniform float dgFreq; uniform float dgRimK; uniform vec3 dgRimC; uniform float dgMicroK;\n'
+        + 'uniform vec4 dgMask; uniform float dgBK; uniform float dgRK; uniform float dgRimOn;\n'
+        + 'uniform sampler2D dgFloor; uniform float dgFloorOn; uniform vec2 dgFloorSize;\n'
+        + 'varying vec3 vDgP;\nvarying vec3 vDgN;\nvarying vec3 vDgL;\n'
+        + sh.fragmentShader
+          .replace('#include <color_fragment>', `#include <color_fragment>
+            if (dgFloorOn > 0.5 && normalize(vDgN).y > 0.5) {
+              vec2 fu = clamp(vDgL.xz / dgFloorSize + 0.5, 0.0, 1.0);
+              diffuseColor.rgb *= texture2D(dgFloor, fu).rgb * 1.3;
+            }
+            float dgH = 0.5;
+            {
+              /* 只取「法線最朝向的那一軸」的投影（一次取樣，不是三次）；倒角的斜面會落在其中一軸，看不出接縫。
+                 ★ 刻意**不做**導數式的法線擾動（dFdx／dFdy bump）：軟體渲染下那一段讓首次畫圖多了 10～40%，
+                   超過「不得比改之前慢 30%」的上限（同頁交錯實測）。改成「明暗＋粗糙度」一起微調 ——
+                   顆粒、髮絲紋、布紋一樣看得見（亮暗交錯），只是不再有逐像素的凹凸光影。*/
+              vec3 an = abs(vDgN);
+              vec3 q = vDgP * dgFreq;
+              vec2 uv2 = an.x > an.y ? (an.x > an.z ? q.zy : q.xy) : (an.y > an.z ? q.xz : q.xy);
+              dgH = dot(texture2D(dgNoise, uv2), dgMask);
+              diffuseColor.rgb *= 1.0 + (dgH - 0.5) * dgBK * 0.42 * dgMicroK;
+            }`)
+          .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+            roughnessFactor = clamp(roughnessFactor * (1.0 + (dgH - 0.5) * dgRK * dgMicroK), 0.03, 1.0);`)
+          .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+            totalEmissiveRadiance += dgRimC * (dgRimK * dgRimOn) * pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);`);
+    };
+    m.customProgramCacheKey = () => 'dgm3';
+    m.userData.dgSpec = spec;
+    if (bk > 0 || rk > 0) m.userData.micro = ch;
+  }
+
   function kit(THREE, fam, ghost, css, role) {
     const cache = {}, all = [];
     /* 這顆顏色字串是從哪一個 `--dg-*` 讀來的（cssv 登記、mat 取用）。
@@ -1648,7 +1766,7 @@
     const roleHex = role && ROLE_TOKENS[role] ? cssv(ROLE_TOKENS[role], '') : '';
     function mat(k, o) {
       o = o || {};
-      const key = `${k}|${o.color || ''}|${o.rough || ''}|${o.metal || ''}|${o.op || ''}|${o.led ? 1 : 0}|${o.glass ? 1 : 0}|${o.glow || 0}|${o.shell ? 1 : 0}|${o.cool ? 1 : 0}`;
+      const key = `${k}|${o.color || ''}|${o.rough || ''}|${o.metal || ''}|${o.op || ''}|${o.led ? 1 : 0}|${o.glass ? 1 : 0}|${o.glow || 0}|${o.shell ? 1 : 0}|${o.cool ? 1 : 0}|${o.map ? (o.map.name || 'map') : ''}|${o.floor ? o.floor.sx + 'x' + o.floor.sz : ''}`;
       if (cache[key]) return cache[key];
       /* ★ 2026-09-22（DECISIONS #244，規格書一-3「收透明」＋ 一-4「依模組配色」）：
          `shell:true` **不再等於半透明的角色色**。
@@ -1672,11 +1790,23 @@
         opacity: isCool ? 0.62 : (isGlass ? 0.3 : (ghost ? 0.14 : (o.op != null ? o.op : 1))),
       });
       m.envMapIntensity = 1;      // 實際值由 applyPal 依 --dg-env 套（兩種模式不同）
-      m.userData = { rough0: m.roughness, metal0: m.metalness };
+      /* 2026-09-26 微表面：金屬度高的一律走髮絲紋（金色走線、銅柱掛在矽的材質族底下也是金屬），
+         其餘照材質族；流線、指示燈、示意層不加（它們不是實物表面）。*/
+      /* ★ 全部的 MeshStandardMaterial 都走同一支加料過的 shader（流線、指示燈、液冷、示意層只是強度填 0）。
+         不這樣做的話，「有微表面」與「沒有微表面」的材質會各編一套 program（實例化／非實例化、透明／不透明各一），
+         program 數量直接翻倍 —— 軟體渲染下首次畫圖慢了一倍，實測全部是多編的那幾支 shader。*/
+      {
+        const plainK = !!(o.glow || o.led || ghost || isCool);
+        const spec = plainK ? ['r', 0, 0, 0] : (isGlass ? ['r', 0, 0, 1]
+          : (m.metalness >= 0.6 ? (fam === 'cu' ? MICRO.cu : (m.metalness >= 0.8 ? MICRO.metal : MICRO.sn)) : (MICRO[fam] || MICRO.plastic)));
+        microfy(THREE, m, spec, o.floor || null);
+      }
+      m.userData = Object.assign(m.userData || {}, { rough0: m.roughness, metal0: m.metalness });
       /* 透明件的排序（規格書一-3）：實體透明件（機櫃外殼板、液冷管線）**要** depthWrite，
          不然前後會疊成一片分不出來；只有發光點與引線才准關掉 depthWrite。*/
       if (isGlass) { m.userData.glass = true; m.depthWrite = true; }
       if (isCool) { m.userData.cool = true; m.depthWrite = true; }
+      if (o.map) m.map = o.map;     // （保留介面；晶粒版圖改走 o.floor，見 microfy）
       if (o.led) { m.emissive = new THREE.Color(o.color || cssv('--dg-led-c', '#86f3b4')); m.emissiveIntensity = 0.55; m.userData.led = true; }
       /* glow ＝ 流線（水路、光路、氣流、金色走線、接口燈）：科技模式微發光（--dg-flow-em × glowK），
          閱讀模式不發光只留顏色。glow 給數字就是那個倍率（走線用 .35，不然一片金光）。*/
@@ -1707,7 +1837,59 @@
   }
 
   function mkBuilders(T) {
-    const box = (w, h, d, m) => new T.Mesh(new T.BoxGeometry(w, h, d), m);
+    /* ★ 2026-09-26（Andy：「零件都是方塊、光滑平面沒有倒角」）：box() 一律改成**倒角方塊**。
+       真實零件（晶粒、陶瓷本體、鈑金、模封）的稜線都不是刀鋒 —— 有一道小斜面，
+       它在環境貼圖下會亮成一條細線，那一條線就是「這是被加工出來的東西」的第一個訊號。
+       做法：單段 45° 倒角，6 面 ＋ 12 條稜 ＋ 8 個角 ＝ 44 個三角形（原本 12 個），
+       三角形數只多一點點、draw call 完全不變。太薄的東西（最小邊 < 0.12）照舊用 BoxGeometry，
+       倒角小到看不見卻要付 3.7 倍的三角形。
+       倒角寬度 ＝ 最小邊的 9%、而且不超過最大邊的 1.6%（大塊板子不會變成圓麵包）。*/
+    const CH_MIN = 0.12;
+    function chamferGeo(w, h, d, rr) {
+      const a = w / 2, b = h / 2, c = d / 2;
+      const r = rr != null ? rr : Math.min(Math.min(w, h, d) * 0.09, Math.max(w, h, d) * 0.016);
+      if (Math.min(w, h, d) < CH_MIN || r < 0.015) return new T.BoxGeometry(w, h, d);
+      const V = (sx, sy, sz, f) => (f === 0 ? [sx * a, sy * (b - r), sz * (c - r)]
+        : f === 1 ? [sx * (a - r), sy * b, sz * (c - r)] : [sx * (a - r), sy * (b - r), sz * c]);
+      const tris = [];
+      const quad = (p, q, s, t) => { tris.push([p, q, s], [p, s, t]); };
+      const S = [-1, 1];
+      // 六個面
+      S.forEach(s => {
+        quad(V(s, -1, -1, 0), V(s, 1, -1, 0), V(s, 1, 1, 0), V(s, -1, 1, 0));
+        quad(V(-1, s, -1, 1), V(1, s, -1, 1), V(1, s, 1, 1), V(-1, s, 1, 1));
+        quad(V(-1, -1, s, 2), V(1, -1, s, 2), V(1, 1, s, 2), V(-1, 1, s, 2));
+      });
+      // 十二條稜（兩個面之間的斜面）
+      S.forEach(sx => S.forEach(sy => quad(V(sx, sy, -1, 0), V(sx, sy, 1, 0), V(sx, sy, 1, 1), V(sx, sy, -1, 1))));
+      S.forEach(sx => S.forEach(sz => quad(V(sx, -1, sz, 0), V(sx, 1, sz, 0), V(sx, 1, sz, 2), V(sx, -1, sz, 2))));
+      S.forEach(sy => S.forEach(sz => quad(V(-1, sy, sz, 1), V(1, sy, sz, 1), V(1, sy, sz, 2), V(-1, sy, sz, 2))));
+      // 八個角
+      S.forEach(sx => S.forEach(sy => S.forEach(sz => tris.push([V(sx, sy, sz, 0), V(sx, sy, sz, 1), V(sx, sy, sz, 2)]))));
+      const pos = [], nor = [], uv = [];
+      tris.forEach(([p, q, s]) => {
+        const ux = q[0] - p[0], uy = q[1] - p[1], uz = q[2] - p[2];
+        const vx = s[0] - p[0], vy = s[1] - p[1], vz = s[2] - p[2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        const cx = p[0] + q[0] + s[0], cy = p[1] + q[1] + s[1], cz = p[2] + q[2] + s[2];
+        let tri = [p, q, s];
+        if (nx * cx + ny * cy + nz * cz < 0) { tri = [p, s, q]; nx = -nx; ny = -ny; nz = -nz; }   // 凸體：法線一律朝外
+        const L = Math.hypot(nx, ny, nz) || 1; nx /= L; ny /= L; nz /= L;
+        const ax = Math.abs(nx), ay = Math.abs(ny), az = Math.abs(nz);
+        tri.forEach(v => {
+          pos.push(v[0], v[1], v[2]); nor.push(nx, ny, nz);
+          if (ax >= ay && ax >= az) uv.push(v[2] / d + 0.5, v[1] / h + 0.5);
+          else if (ay >= az) uv.push(v[0] / w + 0.5, v[2] / d + 0.5);
+          else uv.push(v[0] / w + 0.5, v[1] / h + 0.5);
+        });
+      });
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+      g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+      g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+      return g;
+    }
+    const box = (w, h, d, m) => new T.Mesh(chamferGeo(w, h, d), m);
     const cyl = (r, h, m, seg) => new T.Mesh(new T.CylinderGeometry(r, r, h, seg || 14), m);
     const ball = (r, m) => new T.Mesh(new T.SphereGeometry(r, 12, 9), m);
     const put = (o, x, y, z) => { o.position.set(x || 0, y || 0, z || 0); return o; };
@@ -1773,21 +1955,50 @@
       const curve = new T.CatmullRomCurve3(spec.pts.map(a => new T.Vector3(a[0], a[1], a[2])));
       const colHex = K.css(ROLE_TOKENS[spec.kind] || '--dg-fl-sig', '#4fa3ff');
       const paths = [curve.getPoints(40)];
+      /* ★ 2026-09-26（Andy：「連線是一條粗管子隨便彎」）：流線一律改成**細的路徑 ＋ 方向箭頭**。
+         以前管徑就是 spec.r（0.2～0.9），在小場景裡比零件本身還粗，看起來像一條水管插在元件上。
+         現在：管徑只剩 r 的三成（最細 0.06），沿路徑擺 2～6 個小圓錐當箭頭 ——
+         方向（dir／bidir）一眼看得出來，而且不再把底下的結構遮掉。
+         箭頭收成一個 InstancedMesh（一條流線只多 1 個 draw call）。*/
+      const rr = Math.max(0.06, (spec.r || 0.5) * 0.3);
+      const tm = K.mat(0, { color: colHex, glow: true, rough: 0.35, metal: 0.05, op: 0.9 });
       if (spec.line) {
         const lg = new T.BufferGeometry().setFromPoints(paths[0]);
         const lm = K.reg(new T.LineBasicMaterial({ color: new T.Color(colHex), transparent: true, opacity: 0.75 }));
         lm.userData = { dgvar: ROLE_TOKENS[spec.kind], flowLine: true };
         g.add(new T.Line(lg, lm));
       } else {
-        const tm = K.mat(0, { color: colHex, glow: true, rough: 0.35, metal: 0.05, op: 0.9 });
-        g.add(new T.Mesh(new T.TubeGeometry(curve, 48, spec.r || 0.5, 7, false), tm));
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 48, rr, 6, false), tm));
+      }
+      {
+        const len = curve.getLength();
+        const ar = spec.line ? 0.32 : rr;
+        const alen = Math.max(ar * 7, 0.9);
+        const na = Math.max(2, Math.min(6, Math.round(len / Math.max(alen * 5, 6))));
+        const items = [], up = new T.Vector3(0, 1, 0), q = new T.Quaternion(), e = new T.Euler();
+        for (let i = 0; i < na; i++) {
+          const u = (i + 0.5) / na;
+          const pt = curve.getPointAt(u), tg = curve.getTangentAt(u).normalize();
+          let sgn = spec.dir === -1 ? -1 : 1;
+          if (spec.bidir && i % 2) sgn = -sgn;             // 交流／充放電：箭頭一正一反，表示電流會換方向
+          q.setFromUnitVectors(up, tg.clone().multiplyScalar(sgn)); e.setFromQuaternion(q);
+          items.push([pt.x, pt.y, pt.z, e.x, e.y, e.z]);
+        }
+        /* 箭頭烘成一個一般 mesh（不用 InstancedMesh）：流線的發光材質本來只有非實例化的那一支 shader，
+           箭頭若用實例化，three 會為它多編一支「實例化版」—— 首次畫圖多付一支 shader 的錢。*/
+        const cones = items.map(([x, y, z, rx, ry, rz]) => {
+          const cg = new T.ConeGeometry(Math.max(ar * 2.6, 0.22), alen, 10);
+          const o3 = new T.Object3D(); o3.position.set(x, y, z); o3.rotation.set(rx, ry, rz); o3.updateMatrix();
+          cg.applyMatrix4(o3.matrix); return cg;
+        });
+        const am = new T.Mesh(mergeGeos(cones), tm); am.userData.arrows = items.length; g.add(am);
       }
       const per = spec.per || 10;
       const arr = new Float32Array(per * 3);
       const geo = new T.BufferGeometry();
       geo.setAttribute('position', new T.BufferAttribute(arr, 3));
       const pm = K.reg(new T.PointsMaterial({
-        size: (spec.r || 0.5) * 4.2 + (spec.line ? 2.2 : 1.2), color: new T.Color(colHex), transparent: true, opacity: 0.9,
+        size: (spec.r || 0.5) * 2.6 + (spec.line ? 1.0 : 0.9), color: new T.Color(colHex), transparent: true, opacity: 0.9,
         depthWrite: false, sizeAttenuation: true, map: spriteTex() || null }));
       pm.userData = { dgvar: ROLE_TOKENS[spec.kind], flowPts: true };
       const pt = new T.Points(geo, pm);
@@ -1909,15 +2120,13 @@
       /* ★ 2026-09-22：從「一根手指兩個 Mesh」改成兩個 InstancedMesh。
          外觀完全一樣，但 14 根手指從 28 個 draw call 變成 2 個 ——
          主機板 ×6 ＋ 光模組 ×8 都用到它，省下來的是三位數。*/
-      const at = [], at2 = [];
-      for (let i = 0; i < n; i++) {
-        const x = (-(n - 1) / 2 + i) * (w / n);
-        at.push([x, y, z]);
-        // 倒角：前緣壓一片更薄的，看起來就是「插得進去」的那種斜邊
-        at2.push([x, y - h * 0.3, z + d * 0.62]);
-      }
-      g.add(instOf(new T.BoxGeometry(w / n * 0.55, h, d), au, at));
-      g.add(instOf(new T.BoxGeometry(w / n * 0.55, h * 0.45, d * 0.35), au, at2));
+      const at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), y, z]);
+      /* 2026-09-26：手指本體＋前緣倒角那一片烘成同一個幾何再實例化（2 個 draw call → 1 個；
+         主機板 ×6、光模組 ×8 都用到它，機櫃省 14 個 draw call，守住 ≤ 300）。*/
+      const fb = new T.BoxGeometry(w / n * 0.55, h, d);
+      const tip = new T.BoxGeometry(w / n * 0.55, h * 0.45, d * 0.35); tip.translate(0, -h * 0.3, d * 0.62);   // 倒角：前緣壓一片更薄的
+      g.add(instOf(mergeGeos([fb, tip]), au, at));
       return g;
     }
 
@@ -2085,10 +2294,9 @@
       g.add(put(box(w, h * 0.35, d, K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.35, rough: 0.45 })), 0, -h * 0.32, 0));
       g.add(put(box(w * 0.66, h * 0.5, d * 0.66, K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 })), 0, h * 0.15, 0));
       const pas = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.12 });
-      for (let i = -2; i <= 2; i++) {
-        g.add(put(box(w * 0.06, h * 0.16, d * 0.09, pas), i * w * 0.13, -h * 0.06, d * 0.4));
-        g.add(put(box(w * 0.06, h * 0.16, d * 0.09, pas), i * w * 0.13, -h * 0.06, -d * 0.4));
-      }
+      const pl = [];   // 2026-09-26：十顆被動元件併成一個 mesh（10 個 draw call → 1 個）
+      for (let i = -2; i <= 2; i++) [-1, 1].forEach(sz => pl.push([w * 0.06, h * 0.16, d * 0.09, i * w * 0.13, -h * 0.06, sz * d * 0.4]));
+      g.add(mboxes(pl, pas));
       return g;
     }
 
@@ -2100,14 +2308,18 @@
       const n = 6, lay = h / (n + 2.2);
       g.add(put(box(w, lay * 1.3, d, K.mat(-0.35, { rough: 0.5 })), 0, -h / 2 + lay * 0.65, 0));   // base die
       const dram = K.mat(0.05), gapM = K.mat(-0.45, { rough: 0.85 });
+      /* 2026-09-26：六層 DRAM 與六道層縫各併成一個 mesh、四根 TSV 收成一個 InstancedMesh ——
+         機櫃裡有 4 顆，這一支從 17 個 draw call 降到 4 個（整台機櫃才守得住 300 的上限）。畫出來的東西不變。*/
+      const dl = [], gl2 = [];
       for (let i = 0; i < n; i++) {
         const y = -h / 2 + lay * 1.5 + i * lay;
-        g.add(put(box(w * 0.94, lay * 0.62, d * 0.94, dram), 0, y, 0));
-        g.add(put(box(w * 0.9, lay * 0.2, d * 0.9, gapM), 0, y + lay * 0.4, 0));
+        dl.push([w * 0.94, lay * 0.62, d * 0.94, 0, y, 0]);
+        gl2.push([w * 0.9, lay * 0.2, d * 0.9, 0, y + lay * 0.4, 0]);
       }
+      g.add(mboxes(dl, dram)); g.add(mboxes(gl2, gapM));
       const tsv = K.mat(0.45, { metal: 0.7, rough: 0.3 });
-      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) =>
-        g.add(put(cyl(Math.min(w, d) * 0.045, h * 0.86, tsv, 8), sx * w * 0.3, 0, sz * d * 0.3)));
+      g.add(instOf(new T.CylinderGeometry(Math.min(w, d) * 0.045, Math.min(w, d) * 0.045, h * 0.86, 8), tsv,
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => [sx * w * 0.3, 0, sz * d * 0.3])));
       return g;
     }
 
@@ -2218,6 +2430,29 @@
       return g;
     }
 
+    /* 2026-09-26：扇葉從「七塊斜放的方塊」改成**彎刀形的葉片**（葉根窄、往外變寬、葉尖往後掠、邊緣倒圓），
+       每片有攻角，七片烘進同一個幾何（跟著轉子一起轉，一個 draw call）。
+       Andy：「看到風扇就要有扇片與輪轂」—— 方塊斜放看起來像玩具葉輪，彎刀形才是散熱風扇的樣子。*/
+    function rotorBlades(n, r0, r1, chord, thick, pitch, sweepSign) {
+      const geos = [];
+      const sw = chord * 0.55 * (sweepSign || 1);
+      for (let i = 0; i < n; i++) {
+        const s = new T.Shape();
+        s.moveTo(r0, -chord * 0.28);
+        s.quadraticCurveTo((r0 + r1) * 0.5, -chord * 0.55 + sw * 0.3, r1, sw - chord * 0.42);   // 前緣
+        s.quadraticCurveTo(r1 + chord * 0.12, sw, r1 - chord * 0.05, sw + chord * 0.4);         // 葉尖圓弧
+        s.quadraticCurveTo((r0 + r1) * 0.5, chord * 0.5 + sw * 0.4, r0, chord * 0.28);          // 後緣
+        s.lineTo(r0, -chord * 0.28);
+        const bg = new T.ExtrudeGeometry(s, { depth: thick * 0.4, bevelEnabled: true, bevelThickness: thick * 0.3,
+          bevelSize: thick * 0.3, bevelSegments: 1, curveSegments: 6, steps: 1 });
+        bg.translate(0, 0, -thick * 0.2);
+        bg.rotateX(pitch);                           // 攻角：繞徑向軸轉
+        bg.rotateZ(i * Math.PI * 2 / n);
+        geos.push(bg);
+      }
+      return mergeGeos(geos);
+    }
+
     /* 風扇：Andy 點名的例子 ——「風扇有扇片」。
        外框 ＋ 輪轂 ＋ 七片有角度的扇片，扇片掛在自己的 Group 上，setAnim(true) 時整組轉。*/
     function fan(p, K) {
@@ -2235,13 +2470,8 @@
          「電競 RGB」是 Andy 點名要拿掉的那一件事；風扇之所以看得出是風扇，
          靠的是七片有攻角的實心葉片與輪轂，不是藍光。*/
       const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
-      for (let i = 0; i < 7; i++) {
-        const b = box(r * 0.62, r * 0.36, d * 0.16, bm);
-        b.position.set(Math.cos(i * Math.PI * 2 / 7) * r * 0.48, Math.sin(i * Math.PI * 2 / 7) * r * 0.48, 0);
-        b.rotation.z = i * Math.PI * 2 / 7 + Math.PI / 2;
-        b.rotation.y = 0.42;                      // 扇片的攻角：平的看起來像葉輪玩具
-        rotor.add(b);
-      }
+      /* 2026-09-26：七片扇葉烘進同一個幾何（它們本來就跟著轉子一起轉）—— 一台風扇省 6 個 draw call。*/
+      rotor.add(new T.Mesh(rotorBlades(7, r * 0.22, r * 0.8, r * 0.42, d * 0.12, 0.5, 1), twoSided(K, bm)));
       rotor.userData.spin = { axis: 'z', speed: 2.4 };
       g.add(rotor);
       /* v3 §3-11：向外旋轉出淡藍白的氣流波紋 —— 兩圈越往外越大、越淡的環（一個 InstancedMesh）。
@@ -2292,8 +2522,8 @@
       const shell = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.5, metal: 0.4 });
       g.add(put(rbox(w, h * 0.2, d, h * 0.08, shell), 0, -h * 0.4, 0));                       // 底盤（圓角托盤）
       g.add(aoPad(K, w, d, -h * 0.5 - 0.8));
-      [-1, 1].forEach(s => g.add(put(box(w * 0.04, h * 0.62, d, shell), s * (w / 2 - w * 0.02), -h * 0.06, 0)));
-      [-1, 1].forEach(s => g.add(put(box(w, h * 0.62, d * 0.03, shell), 0, -h * 0.06, s * (d / 2 - d * 0.015))));
+      g.add(mboxes([-1, 1].map(s => [w * 0.04, h * 0.62, d, s * (w / 2 - w * 0.02), -h * 0.06, 0])
+        .concat([-1, 1].map(s => [w, h * 0.62, d * 0.03, 0, -h * 0.06, s * (d / 2 - d * 0.015)])), shell));
       const cellM = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.45, rough: 0.42 });
       const cells3 = [];
       for (let i = -2; i <= 3; i++) for (let j = -1; j <= 1; j += 2) {
@@ -2304,9 +2534,8 @@
       g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.75, rough: 0.3 })), w * 0.4, h * 0.5, -d * 0.32));
       g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: K.css('--dg-el', '#4e5866'), metal: 0.55, rough: 0.5 })), w * 0.4, h * 0.5, d * 0.32));
       // 電量燈條：四格，這是 E2 之後整個場景唯一准發光的東西
-      for (let i = 0; i < 4; i++) {
-        g.add(put(box(w * 0.055, h * 0.16, d * 0.02, K.mat(0, { led: true })), (-0.2 + i * 0.075) * w, h * 0.06, d / 2 + 0.06));
-      }
+      g.add(instOf(new T.BoxGeometry(w * 0.055, h * 0.16, d * 0.02), K.mat(0, { led: true }),
+        [0, 1, 2, 3].map(i => [(-0.2 + i * 0.075) * w, h * 0.06, d / 2 + 0.06])));
       return g;
     }
 
@@ -2316,7 +2545,7 @@
       const [w, h, d] = p.box;
       g.add(box(w, h, d * 0.86, K.mat(0.05, { metal: 0.82, rough: 0.34 })));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
-      [-1, 1].forEach(s => g.add(put(box(w * 0.3, h * 0.45, d * 0.1, port), s * w * 0.22, 0, d * 0.44)));
+      g.add(mboxes([-1, 1].map(s => [w * 0.3, h * 0.45, d * 0.1, s * w * 0.22, 0, d * 0.44]), port));
       g.add(put(box(w * 0.7, h * 0.16, d * 0.2, K.mat(0.35, { metal: 0.3, rough: 0.55 })), 0, -h * 0.5, d * 0.52));
       // 圖九 2-1：可插拔光模組後端的金手指 —— 成排、鍍金、前緣倒角
       g.add(fingers(K, w * 0.86, h * 0.1, d * 0.12, 7, -h * 0.28, -d * 0.44));
@@ -2399,7 +2628,9 @@
       const [w, h, d] = p.box;
       g.add(box(w, h, d, K.mat(-0.1, { rough: 0.65 })));
       const tr = K.mat(0.4, { metal: 0.65, rough: 0.3 });
-      for (let i = -9; i <= 9; i++) g.add(put(box(w * 0.01, h * 0.12, d * 0.86, tr), i * w * 0.05, h * 0.52, 0));
+      // 2026-09-26：19 條重佈線併成一個 mesh（19 個 draw call → 1 個），外觀不變
+      const tl = []; for (let i = -9; i <= 9; i++) tl.push([w * 0.01, h * 0.12, d * 0.86, i * w * 0.05, h * 0.52, 0]);
+      g.add(mboxes(tl, tr));
       return g;
     }
 
@@ -2409,7 +2640,8 @@
       const [w, h, d] = p.box;
       g.add(box(w, h, d, K.mat(0.1, { rough: 0.35, metal: 0.3 })));
       const tr = K.mat(0.5, { metal: 0.7, rough: 0.25 });
-      for (let i = -2; i <= 2; i++) g.add(put(box(w * 0.86, h * 0.14, d * 0.03, tr), 0, h * 0.55, i * d * 0.16));
+      const bl = []; for (let i = -2; i <= 2; i++) bl.push([w * 0.86, h * 0.14, d * 0.03, 0, h * 0.55, i * d * 0.16]);
+      g.add(mboxes(bl, tr));      // 2026-09-26：五條併成一個 mesh
       return g;
     }
 
@@ -2419,30 +2651,26 @@
          金屬層紋理＝ 晶粒上表面是縱橫兩層的金屬佈線，不是一片平的鏡面。
          這兩件事就是「晶粒」跟「一塊藍色方塊」的差別，而且它們各自對到
          切割（DA／DB 設備）與後段金屬製程 —— 不同的環節、不同的公司。*/
+    /* 晶粒：矽本體 ＋ 頂面版圖 ＋ 封環 ＋ 切割道。
+       ★ 2026-09-26：以前頂面是 9 顆方塊＋兩組金屬線（5 個 draw call，看起來像樂高），
+         改成一張通用示意的版圖貼圖（核心／SRAM／I/O 墊）＋ 一圈金屬封環（seal ring）——
+         draw call 從 6 降到 4，而且一眼看得出是「一顆晶片」而不是一塊積木。*/
     function die(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(0.05, { rough: 0.32, metal: 0.35 })));
-      const blk = K.mat(0.3, { rough: 0.4, metal: 0.3 });
-      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
-        if (i === 0 && j === 0) continue;
-        g.add(put(box(w * 0.26, h * 0.1, d * 0.26, blk), i * w * 0.3, h * 0.53, j * d * 0.3));
-      }
-      g.add(put(box(w * 0.3, h * 0.12, d * 0.3, K.mat(0.45, { rough: 0.35, metal: 0.4 })), 0, h * 0.54, 0));
+      g.add(box(w, h * 0.94, d, K.mat(0.05, { rough: 0.32, metal: 0.35 })));
+      const lw = Math.min(w, d) * 0.035;
+      // 頂面版圖（切割道以內）
+      const ft = floorTex();
+      g.add(put(box(w - lw * 2.4, h * 0.06, d - lw * 2.4, K.mat(0.34, { rough: 0.34, metal: 0.36, floor: ft ? { tex: ft, sx: w - lw * 2.4, sz: d - lw * 2.4 } : null })), 0, h * 0.5, 0));
+      // 封環：切割道內側一圈金屬，擋住切割時的裂紋與濕氣
+      const sr = lw * 0.45, sy = h * 0.53;
+      g.add(mboxes([[w - lw * 2.2, h * 0.04, sr, 0, sy, -d / 2 + lw * 1.3], [w - lw * 2.2, h * 0.04, sr, 0, sy, d / 2 - lw * 1.3],
+        [sr, h * 0.04, d - lw * 2.2, -w / 2 + lw * 1.3, sy, 0], [sr, h * 0.04, d - lw * 2.2, w / 2 - lw * 1.3, sy, 0]], K.mat(0.55, { metal: 0.8, rough: 0.26 })));
       // 切割道：四周一圈沒有電路的空白，鋸片就走在這裡
       const lane = K.mat(-0.3, { rough: 0.5, metal: 0.18 });
-      const lw = Math.min(w, d) * 0.035;
       g.add(put(mboxes([[w, h * 0.08, lw, 0, 0, -d / 2 + lw / 2], [w, h * 0.08, lw, 0, 0, d / 2 - lw / 2],
-        [lw, h * 0.08, d, -w / 2 + lw / 2, 0, 0], [lw, h * 0.08, d, w / 2 - lw / 2, 0, 0]], lane), 0, h * 0.5, 0));
-      // 金屬層紋理：縱橫兩組細線（M1 走一個方向、M2 走另一個方向）
-      const mtl = K.mat(0.55, { metal: 0.72, rough: 0.26 });
-      const tw = Math.min(w, d) * 0.012, at = [];
-      // 蓋在功能區塊**上面**（頂層金屬就是走在最上層）—— 壓在底下會被區塊整片擋掉
-      for (let i = 0; i < 11; i++) at.push([(-5 + i) * w * 0.078, h * 0.605, 0]);
-      g.add(instOf(new T.BoxGeometry(tw, h * 0.03, d * 0.84), mtl, at));
-      const at2 = [];
-      for (let i = 0; i < 8; i++) at2.push([0, h * 0.63, (-3.5 + i) * d * 0.105]);
-      g.add(instOf(new T.BoxGeometry(w * 0.84, h * 0.03, tw), mtl, at2));
+        [lw, h * 0.08, d, -w / 2 + lw / 2, 0, 0], [lw, h * 0.08, d, w / 2 - lw / 2, 0, 0]], lane), 0, h * 0.47, 0));
       return g;
     }
 
@@ -2465,82 +2693,106 @@
       return out;
     }
 
+    /* lslab 的「規格版」：回傳 mboxes 吃的 [w, h, d, x, y, z] 陣列，不直接產生 mesh ——
+       同一種材質的幾十塊板可以併成一個 draw call（2026-09-26：MLCC 從 94 個 draw call 降到十幾個）。*/
+    function lspec(x0, x1, y0, y1, z0, z1, over) {
+      const o = over || 0, out = [];
+      const add = (ax0, ax1, az0, az1) => {
+        if (ax1 - ax0 < 0.02 || az1 - az0 < 0.02) return;
+        out.push([ax1 - ax0, y1 - y0, az1 - az0, (ax0 + ax1) / 2, (y0 + y1) / 2, (az0 + az1) / 2]);
+      };
+      add(x0, x1, z0, Math.min(z1, o));
+      add(x0, Math.min(x1, o), Math.max(z0, 0), z1);
+      return out;
+    }
+    /* ★ 2026-09-26 細緻化（Andy：「MLCC 內電極數十層交錯」；規格 docs/diagram_specs/mlcc_stack.md §3D-細節）：
+         · 內電極從 12 層改成 **36 層**（仍是示意；實際高容量品 400～1000 層），
+           左接／右接兩種各收成**一個 InstancedMesh** —— 層數變三倍、draw call 反而從 48 個降到 2 個。
+         · 陶瓷本體改成一整塊（層與層之間本來就是同一種燒結陶瓷，看得到的「層」是電極），
+           剖面上的每一條暗線就是一片鎳電極，一條接左、下一條接右，交錯得數得出來。
+         · 端電極三層（Cu → Ni → Sn）各併成一個 mesh，焊錫改成真的**彎月形焊腳**（從焊墊外緣爬上端面）。
+       依據（WebSearch 摘要，信心中）：內電極多用鎳、厚度約 ≤ 1.5～2 µm；端電極以銅燒附，再電鍍鎳、錫以便表面黏著。*/
     function mlccBody(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const cov = h * 0.11;          // 上下保護層（無電極素坯）
       const em = w * 0.14;           // 端部餘白：不准碰到對面的端電極
       const sm = d * 0.1;            // 側邊餘白：電極不到側面
-      const n = 12, pit = (h - cov * 2) / n, et = pit * 0.3;
-      /* B6：材質色跟 2D 那張用同一組 `--dg-*`，不再拿環節色去調淡 ——
-         以前 cer 是 K.mat(0.72)＝環節色 #ace3ec 調淡（冷灰白），
-         2D 卻是 #d3cbb7（暖米白 42°），同一顆電容切到 3D 就換材質。*/
+      const n = p.layers || 36, pit = (h - cov * 2) / n, et = pit * 0.36;
+      /* B6：材質色跟 2D 那張用同一組 `--dg-*`，不再拿環節色去調淡。*/
       const cer = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.88, metal: 0.03 });   // 陶瓷：暖米白霧面
       const cvm = K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.92, metal: 0.02 }); // 保護層：淡一階，一眼分得出來
-      const elm = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.32, metal: 0.78 });    // 內電極：暗鋼灰
-      const push = (a) => a.forEach(o => g.add(o));
-      push(lslab(-w / 2, w / 2, -h / 2, -h / 2 + cov, -d / 2, d / 2, cvm));
-      push(lslab(-w / 2, w / 2, h / 2 - cov, h / 2, -d / 2, d / 2, cvm));
+      const elm = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.32, metal: 0.78 });    // 內電極：暗鋼灰（鎳）
+      g.add(mboxes(lspec(-w / 2, w / 2, -h / 2, -h / 2 + cov, -d / 2, d / 2).concat(lspec(-w / 2, w / 2, h / 2 - cov, h / 2, -d / 2, d / 2)), cvm));
+      g.add(mboxes(lspec(-w / 2, w / 2, -h / 2 + cov, h / 2 - cov, -d / 2, d / 2), cer));
+      // ★ 交替：偶數層連左端、奇數層連右端。這一行就是規格書 §3-A 的硬規則
+      const elGeo = (ex0, ex1) => mergeGeos(lspec(ex0, ex1, -et / 2, et / 2, -d / 2 + sm, d / 2 - sm, 0.3)
+        .map(([bw, bh, bd, x, y, z]) => { const q = new T.BoxGeometry(bw, bh, bd); q.translate(x, y, z); return q; }));
+      const L = [], R = [];
       for (let i = 0; i < n; i++) {
-        const y0 = -h / 2 + cov + i * pit;
-        push(lslab(-w / 2, w / 2, y0, y0 + pit, -d / 2, d / 2, cer));
-        // ★ 交替：偶數層連左端、奇數層連右端。這一行就是規格書 §3-A 的硬規則
-        const ex0 = (i % 2) ? -w / 2 + em : -w / 2;
-        const ex1 = (i % 2) ? w / 2 : w / 2 - em;
-        const ey = y0 + (pit - et) / 2;
-        push(lslab(ex0, ex1, ey, ey + et, -d / 2 + sm, d / 2 - sm, elm, 0.3));
+        const y = -h / 2 + cov + i * pit + pit / 2;
+        (i % 2 ? R : L).push([0, y, 0]);
       }
+      g.add(instOf(elGeo(-w / 2, w / 2 - em), elm, L));
+      g.add(instOf(elGeo(-w / 2 + em, w / 2), elm, R));
       return g;
     }
 
     /* 端電極：由內到外 Cu → Ni → Sn，包住端部五個面的一段。
-       ★ 順序不准對調（Ni 畫到 Sn 外面是最常見的錯）。厚薄只表達關係，不標數字。*/
+       ★ 順序不准對調（Ni 畫到 Sn 外面是最常見的錯）。厚薄只表達關係，不標數字。
+       2026-09-26：每一種金屬的十幾塊板併成一個 mesh（3 個 draw call），外層錫的稜角比較圓（電鍍會把稜線包圓）。*/
     function mlccTerm(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const wl = w * 0.18, tw = h * 0.13, cw = w * 0.11;
-      const push = (a) => a.forEach(o => g.add(o));
-      /* ★ 2026-09-22（規格書一-1）：以前這裡把 metalness 壓在 0.45 以下，註解自己寫了原因 ——
-         「這個場景只有方向光、沒有環境貼圖，金屬度拉高就變成一塊黑」。
-         那是**症狀的補償**不是修正。環境貼圖補上之後上限解除：
-         Cu／Ni／Sn 三層現在是真的鍍層，轉一圈看得出三種不同的金屬光澤。*/
-      // B5／B6：Cu／Ni／Sn 三層也改讀 --dg-*，跟 2D 的端子剖面是同一組顏色
       const L3 = [[0, 0.62, K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 })],
         [0.62, 0.85, K.mat(0, { color: K.css('--dg-ni', '#a9b1b9'), metal: 0.82, rough: 0.26 })],
         [0.85, 1, K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.2 })]];
-      [-1, 1].forEach(sx => {
-        const wx0 = sx < 0 ? -w / 2 : w / 2 - wl, wx1 = sx < 0 ? -w / 2 + wl : w / 2;
-        L3.forEach(([a, b, m]) => {
+      L3.forEach(([a, b, m]) => {
+        let list = [];
+        [-1, 1].forEach(sx => {
+          const wx0 = sx < 0 ? -w / 2 : w / 2 - wl, wx1 = sx < 0 ? -w / 2 + wl : w / 2;
           const x0 = sx < 0 ? -w / 2 - cw * b : w / 2 + cw * a;
           const x1 = sx < 0 ? -w / 2 - cw * a : w / 2 + cw * b;
-          push(lslab(x0, x1, -h / 2 - tw, h / 2 + tw, -d / 2 - tw, d / 2 + tw, m));          // 端面
-          push(lslab(wx0, wx1, h / 2 + tw * a, h / 2 + tw * b, -d / 2 - tw, d / 2 + tw, m)); // 上面
-          push(lslab(wx0, wx1, -h / 2 - tw * b, -h / 2 - tw * a, -d / 2 - tw, d / 2 + tw, m)); // 下面
-          push(lslab(wx0, wx1, -h / 2, h / 2, d / 2 + tw * a, d / 2 + tw * b, m));            // 兩側
-          push(lslab(wx0, wx1, -h / 2, h / 2, -d / 2 - tw * b, -d / 2 - tw * a, m));
+          list = list.concat(lspec(x0, x1, -h / 2 - tw, h / 2 + tw, -d / 2 - tw, d / 2 + tw),          // 端面
+            lspec(wx0, wx1, h / 2 + tw * a, h / 2 + tw * b, -d / 2 - tw, d / 2 + tw),                 // 上面
+            lspec(wx0, wx1, -h / 2 - tw * b, -h / 2 - tw * a, -d / 2 - tw, d / 2 + tw),               // 下面
+            lspec(wx0, wx1, -h / 2, h / 2, d / 2 + tw * a, d / 2 + tw * b),                            // 兩側
+            lspec(wx0, wx1, -h / 2, h / 2, -d / 2 - tw * b, -d / 2 - tw * a));
         });
+        g.add(mboxes(list, m));
       });
       return g;
     }
 
-    // PCB 焊墊：板子 ＋ 兩塊銅墊 ＋ 焊錫圓角（圓角用壓扁的球，看得出是「爬上去」的）
+    /* PCB 焊墊：板子（含內層銅與防焊綠漆）＋ 兩塊銅墊 ＋ 彎月形焊腳。
+       2026-09-26：焊錫從「壓扁的球」改成**沿端電極爬上去的彎月面**（從焊墊外緣一路凹進端面），
+       那就是實際 reflow 之後看到的焊腳（fillet）形狀；板子邊緣看得到內層銅的細線。
+       板子整塊往下挪，讓端電極的底面剛好坐在焊墊上（以前會穿進焊墊裡）。*/
     function mlccPad(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(0, { rough: 0.55, metal: 0.05, color: K.css('--dg-m-pcb', '#0E3B32') })));
+      const yTop = h * 0.125;                                            // 板面（局部座標）
+      const pcbM = K.mat(0, { rough: 0.55, metal: 0.05, color: K.css('--dg-m-pcb', '#0E3B32') });
+      g.add(put(box(w, h, d, pcbM), 0, yTop - h / 2, 0));
+      // 內層銅：三片薄銅面，從板邊看得到三條細線
+      const cuIn = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.7, rough: 0.5 });
+      g.add(mboxes([0.25, 0.5, 0.75].map(f => [w * 1.002, h * 0.035, d * 1.002, 0, yTop - h * f, 0]), cuIn));
       /* 焊墊是**朝上的大平面**：metalness 拉到 .9 的話它整片鏡射上方那片大柔光板，
-         銅色被沖成白色（2026-09-22 截圖實測）。壓到 .72／rough .45 —— 還是金屬，
-         但看得出是銅。焊錫維持高反射（錫本來就亮）。*/
+         銅色被沖成白色（2026-09-22 截圖實測）。壓到 .72／rough .45 —— 還是金屬，但看得出是銅。*/
       const cu = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.72, rough: 0.45 });
       const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.28 });
-      /* ★ 2026-09-22：兩塊銅墊併成一個 mesh、兩個焊錫圓角收成一個 InstancedMesh ——
-         省下的 2 個 draw call是給模型底下那片接觸陰影用的（#238「柔和環境陰影」），
-         MLCC 場景的棘輪（93）才守得住。畫出來的東西一個像素都沒變。*/
-      g.add(mboxes([[w * 0.3, h * 0.6, d * 0.55, -w * 0.3, h * 0.7, 0], [w * 0.3, h * 0.6, d * 0.55, w * 0.3, h * 0.7, 0]], cu));
-      // 焊錫圓角：壓扁的球，看得出是「爬上端子側面」的那一圈，不是一顆大球
-      const r = w * 0.018;
-      g.add(instOf(new T.SphereGeometry(r, 12, 9), sn,
-        [[-w * 0.375, h * 0.98, 0, 0, 0, 0, 1.6, 1.8, 9], [w * 0.375, h * 0.98, 0, 0, 0, 0, 1.6, 1.8, 9]]));
+      const px0 = w * 0.16, px1 = w * 0.51, pt = h * 0.12;               // 焊墊從 x=16% 到 51%（外緣超出端電極一截，焊腳才爬得上去）
+      g.add(mboxes([[px1 - px0, pt, d * 0.62, -(px0 + px1) / 2, yTop + pt / 2, 0], [px1 - px0, pt, d * 0.62, (px0 + px1) / 2, yTop + pt / 2, 0]], cu));
+      // 彎月形焊腳：剖面 (x, y) 從焊墊外緣 (L, 0) 凹著爬到端面 (0, H)，沿 z 擠出
+      const L = w * 0.075, H = h * 3.4, s = new T.Shape();
+      s.moveTo(0, 0); s.lineTo(L, 0); s.quadraticCurveTo(L * 0.12, H * 0.12, 0, H); s.lineTo(0, 0);
+      const fg = new T.ExtrudeGeometry(s, { depth: d * 0.56, bevelEnabled: false, curveSegments: 10 });
+      fg.translate(0, 0, -d * 0.28);
+      const xe = p.termX || w * 0.44;                                    // 端電極外端面（跟 mlccTerm 的 w/2 + cw 對齊）
+      g.add(instOf(fg, sn, [[xe, yTop + pt, 0], [-xe, yTop + pt, 0, 0, Math.PI, 0]]));
+      // 焊錫薄層：端電極底下與焊墊之間
+      g.add(mboxes([[w * 0.2, h * 0.05, d * 0.56, -w * 0.38, yTop + pt + h * 0.025, 0], [w * 0.2, h * 0.05, d * 0.56, w * 0.38, yTop + pt + h * 0.025, 0]], sn));
       return g;
     }
 
@@ -2592,13 +2844,14 @@
     /* 形狀不一樣、但同一種材質 → 併成一個 geometry（也是一次 draw call）。
        vendor 沒有內建 BufferGeometryUtils（而且不准為了這個引新函式庫），所以自己併。*/
     function mergeGeos(geos) {
-      const pos = [], nor = [], idx = [];
+      const pos = [], nor = [], idx = [], uvs = [];
       let base = 0;
       geos.forEach(g => {
-        const gp = g.attributes.position, gn = g.attributes.normal;
+        const gp = g.attributes.position, gn = g.attributes.normal, gu = g.attributes.uv;
         for (let i = 0; i < gp.count; i++) {
           pos.push(gp.getX(i), gp.getY(i), gp.getZ(i));
           nor.push(gn ? gn.getX(i) : 0, gn ? gn.getY(i) : 1, gn ? gn.getZ(i) : 0);
+          uvs.push(gu ? gu.getX(i) : 0, gu ? gu.getY(i) : 0);   // 2026-09-26：保留 uv（晶粒版圖這類貼圖要用）
         }
         const gi = g.index;
         if (gi) { for (let i = 0; i < gi.count; i++) idx.push(base + gi.getX(i)); }
@@ -2609,13 +2862,14 @@
       const out = new T.BufferGeometry();
       out.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
       out.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+      out.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
       out.setIndex(idx);
       return out;
     }
     // 一堆尺寸不同的方塊併成一個 mesh。每一筆 [w, h, d, x, y, z]
     function mboxes(list, m) {
       return new T.Mesh(mergeGeos(list.map(([w, h, d, x, y, z]) => {
-        const g = new T.BoxGeometry(w, h, d); g.translate(x || 0, y || 0, z || 0); return g;
+        const g = chamferGeo(w, h, d); g.translate(x || 0, y || 0, z || 0); return g;
       })), m);
     }
     // nx × nz 的陣列座標（給 instOf 用）
@@ -3061,6 +3315,7 @@
       const c = m.clone();
       c.side = T.DoubleSide;
       c.userData = Object.assign({}, m.userData || {});
+      if (m.userData && m.userData.dgSpec) microfy(T, c, m.userData.dgSpec);   // clone 不會帶 onBeforeCompile，要補掛（不然又多編一支 shader）
       K.reg(c);
       return c;
     }
@@ -3095,6 +3350,82 @@
        金色薄片 ＝「閘極管得到的那一面」，數金片就是數 1／3／4。*/
     const FET_LG = 0.22;        // 閘極長度佔零件寬的比例（三顆共用，才比得出來）
 
+    /* ★ 2026-09-26 細緻化（Andy：「零件都是方塊…看不出是真實產品」，規格 docs/diagram_specs/foundry_process.md §3D-細節）。
+       三顆電晶體**零件清單、位置、爆炸位移完全沒動**，只把每一顆裡面補上真的會出現在 TEM 剖面上的東西：
+         · 平面：S/D 是**擴散在基板裡**（不是凸起的方塊）、上面一層矽化物；兩側 STI 隔離溝；
+                 閘極是 HKMG 三層（high-k → 功函數金屬 → 填充金屬）＋ 頂上的 SiN 蓋；間隙壁是圓弧外形；
+                 源汲上方的溝槽接觸（trench contact）與閘極接觸。
+         · FinFET：鰭是**上窄下寬、頂端圓弧**的梯形（蝕刻出來的樣子，不是長方體）；
+                 源汲是**菱形磊晶**（{111} 面長得慢，自然長成菱形，相鄰的鰭會併在一起）；
+                 閘極外圍有一圈 high-k 內襯（從閘極邊緣看得到一條淺色細線）。
+         · GAA：奈米片是**圓角的扁片**、源汲磊晶是有刻面的六角柱、閘極一樣有 high-k 內襯與 SiN 蓋。
+       依據（WebSearch 摘要，信心中）：FinFET 源汲磊晶因 {111} 面生長速率遠低於 (110) 而自限成菱形、
+       相鄰鰭的菱形會合併（USPTO 9437496、14nm FinFET SiGe S/D stress engineering 論文）。*/
+
+    /* 沿 x 擠出一個 (z, y) 剖面：鰭、菱形磊晶、間隙壁都用它（一次建好、給 instOf 重複用）。
+       pts 是剖面上的 [u, v]，u 會對到世界的 −z（剖面都是左右對稱的，所以正負無所謂）。*/
+    function prismX(pts, len, bevel) {
+      const s = new T.Shape();
+      pts.forEach(([u, v], i) => (i ? s.lineTo(u, v) : s.moveTo(u, v)));
+      const bv = bevel || 0;
+      const gg = new T.ExtrudeGeometry(s, { depth: Math.max(0.02, len - 2 * bv), bevelEnabled: bv > 0,
+        bevelThickness: bv, bevelSize: bv * 0.6, bevelSegments: 1, curveSegments: 6, steps: 1 });
+      gg.translate(0, 0, -(len - 2 * bv) / 2);
+      gg.rotateY(Math.PI / 2);
+      return gg;
+    }
+    /* 沿 z 擠出一個 (x, y) 剖面（間隙壁：圓弧外形沿著閘極走）。*/
+    function prismZ(shape, len) {
+      const gg = new T.ExtrudeGeometry(shape, { depth: len, bevelEnabled: false, curveSegments: 6, steps: 1 });
+      gg.translate(0, 0, -len / 2);
+      return gg;
+    }
+    // 間隙壁：內側貼著閘極的直牆、外側是一道圓弧（沉積後非等向蝕刻留下的形狀）。side = ±1 決定圓弧朝哪邊
+    function spacerShape(sw, sh, side) {
+      const s = new T.Shape();
+      s.moveTo(0, 0); s.lineTo(side * sw, 0);
+      s.quadraticCurveTo(side * sw, sh * 0.9, 0, sh);
+      s.lineTo(0, 0);
+      return s;
+    }
+    // 有刻面的六角剖面（寬 W、高 H，c＝斜面佔寬的比例）
+    function hexProf(W, H, c) {
+      const a = W / 2, b = H / 2, cx = W * c;
+      return [[-a + cx, -b], [a - cx, -b], [a, -b * 0.25], [a, b * 0.25], [a - cx, b], [-a + cx, b], [-a, b * 0.25], [-a, -b * 0.25]];
+    }
+    /* 晶粒版圖貼圖（灰階，全場共用一張）：四顆核心、一塊 SRAM 陣列（細條紋）、外圍 I/O 墊一圈、最外面封環。
+       ⚠ 這是**通用示意的版圖**，不照任何真實晶片畫（AGENTS.md 紅線：不畫任何真實公司的產品外觀）。*/
+    let _floorTex = null;
+    function floorTex() {
+      if (_floorTex !== null) return _floorTex || null;
+      try {
+        const N = 256, c = document.createElement('canvas'); c.width = c.height = N;
+        const x = c.getContext('2d');
+        x.fillStyle = '#9a9a9a'; x.fillRect(0, 0, N, N);
+        x.fillStyle = '#c8c8c8'; x.fillRect(4, 4, N - 8, N - 8);               // 封環內
+        x.fillStyle = '#8c8c8c';
+        for (let i = 0; i < 22; i++) { x.fillRect(14 + i * 10.6, 8, 6, 6); x.fillRect(14 + i * 10.6, N - 14, 6, 6);
+          x.fillRect(8, 14 + i * 10.6, 6, 6); x.fillRect(N - 14, 14 + i * 10.6, 6, 6); }   // I/O 墊
+        const core = (cx, cy, s) => {                                               // 一顆核心：外框＋內部格子
+          x.fillStyle = '#b0b0b0'; x.fillRect(cx, cy, s, s);
+          x.fillStyle = '#e4e4e4';
+          for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) x.fillRect(cx + 4 + i * (s - 8) / 4, cy + 4 + j * (s - 8) / 4, (s - 8) / 4 - 3, (s - 8) / 4 - 3);
+          x.fillStyle = '#7a7a7a'; x.fillRect(cx + s * 0.38, cy + s * 0.38, s * 0.24, s * 0.24);
+        };
+        core(26, 26, 62); core(96, 26, 62); core(26, 96, 62); core(96, 96, 62);
+        x.fillStyle = '#a4a4a4'; x.fillRect(168, 26, 62, 132);                        // SRAM：細條紋
+        x.fillStyle = '#d6d6d6'; for (let i = 0; i < 32; i++) x.fillRect(170, 28 + i * 4.1, 58, 2);
+        x.fillStyle = '#bdbdbd'; x.fillRect(26, 168, 204, 62);                        // 類比／介面區
+        x.fillStyle = '#8f8f8f'; for (let i = 0; i < 9; i++) x.fillRect(32 + i * 22, 176, 14, 46);
+        x.strokeStyle = '#6e6e6e'; x.lineWidth = 2; x.strokeRect(3, 3, N - 6, N - 6);   // 封環
+        _floorTex = new T.CanvasTexture(c);
+        _floorTex.name = 'dgfloor';
+        if (T.SRGBColorSpace) _floorTex.colorSpace = T.SRGBColorSpace;
+        _floorTex.anisotropy = 4;
+      } catch (e) { _floorTex = false; }
+      return _floorTex || null;
+    }
+
     function fetFaces(K, list) {
       // 金色面標：閘極管得到的面。用 instOf 收成一次 draw call
       const au = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 });
@@ -3102,28 +3433,54 @@
       list.forEach(([geo, at]) => g.add(instOf(geo, au, at)));
       return g;
     }
+    /* 三顆共用的材質組（同一組 token，三格才比得出來）。*/
+    function fetMats(K) {
+      return {
+        si: K.mat(-0.32, { rough: 0.46 }),
+        ch: K.mat(0.44, { rough: 0.34 }),
+        sd: K.mat(0.16, { rough: 0.5 }),
+        hk: K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.4, metal: 0.04 }),          // high-k（HfO₂）與內襯
+        sti: K.mat(0.2, { color: K.css('--dg-glass', '#8fb6c9'), rough: 0.55, metal: 0.02 }),     // STI 氧化物：半透明感的淺色
+        wf: K.mat(0, { color: K.css('--dg-m-graphite', '#2f3039'), metal: 0.8, rough: 0.34 }),   // 功函數金屬：暗一階
+        mt: K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 }),      // 填充金屬（W／Co）
+        cap: K.mat(0.12, { rough: 0.66, metal: 0.04 }),                                          // SiN 蓋（矽底色的淡灰藍，不搶閘極金屬）
+        sp: K.mat(0.3, { rough: 0.72, metal: 0.04 }),                                            // 間隙壁（同上，比蓋再淡一階）
+        sil: K.mat(0, { color: K.css('--dg-m-graphite', '#2f3039'), metal: 0.6, rough: 0.4 }),   // 矽化物（NiSi）
+        ct: K.mat(-0.1, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.42 }),   // 接觸（鎢／鈷）
+      };
+    }
+    // 間隙壁一對（圓弧外形），夾在閘極 x = ±gw/2 兩側，高 sh、沿 z 長 len，底面在 y0
+    function spacerPair(M, gw, sw, sh, len, y0) {
+      const g = new T.Group();
+      [-1, 1].forEach(s => { const m = new T.Mesh(prismZ(spacerShape(sw, sh, s), len), M.sp); m.position.set(s * gw / 2, y0, 0); g.add(m); });
+      return g;
+    }
 
     /* 平面電晶體：閘極只從正上方蓋下來，管得到的只有**上面這一面**。*/
     function fetPlanar(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const si = K.mat(-0.32, { rough: 0.46 });
-      const ch = K.mat(0.44, { rough: 0.34 });
-      const ox = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.4, metal: 0.04 });
-      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 });
-      const sp = K.mat(0, { color: K.css('--dg-abf', '#c3b9a4'), rough: 0.7, metal: 0.05 });
-      const sd = K.mat(0.16, { rough: 0.5 });
-      g.add(put(box(w, h * 0.52, d, si), 0, -h * 0.24, 0));                                   // 基板
-      g.add(put(box(w * 0.54, h * 0.07, d * 0.62, ch), 0, h * 0.06, 0));                      // 通道：表面下一條水平薄層
-      g.add(put(box(w * FET_LG, h * 0.05, d * 0.5, ox), 0, h * 0.125, 0));                    // 閘極介電層（只在閘極底下）
-      g.add(put(box(w * FET_LG, h * 0.26, d * 0.5, mt), 0, h * 0.28, 0));                     // 閘極：一塊蓋子，連ㄇ字都談不上
-      [-1, 1].forEach(s => {
-        g.add(put(box(w * 0.04, h * 0.22, d * 0.5, sp), s * (w * FET_LG / 2 + w * 0.02), h * 0.26, 0));   // 間隙壁
-        g.add(put(box(w * 0.2, h * 0.2, d * 0.66, sd), s * w * 0.37, h * 0.12, 0));                       // 源極／汲極
+      const M = fetMats(K);
+      const ys = h * 0.02;                                                               // 矽表面
+      const gw = w * FET_LG, gd = d * 0.66;
+      g.add(put(box(w, h * 0.52, d, M.si), 0, -h * 0.24, 0));                            // 基板
+      // STI 隔離溝：主動區兩側（z 方向）各一條，表面齊平 —— 平面電晶體就是被這兩條「圍」出來的
+      g.add(mboxes([[w * 0.998, h * 0.3, d * 0.13, 0, ys - h * 0.15 + 0.004, -d * 0.43], [w * 0.998, h * 0.3, d * 0.13, 0, ys - h * 0.15 + 0.004, d * 0.43]], M.sti));
+      // 源極／汲極：**擴散在基板表面下**的兩塊（不是凸起來的方塊），表面一層矽化物
+      g.add(mboxes([[w * 0.3, h * 0.12, d * 0.64, -w * 0.34, ys - h * 0.06 + 0.006, 0], [w * 0.3, h * 0.12, d * 0.64, w * 0.34, ys - h * 0.06 + 0.006, 0]], M.sd));
+      g.add(mboxes([[w * 0.24, h * 0.025, d * 0.54, -w * 0.35, ys + h * 0.0125 + 0.006, 0], [w * 0.24, h * 0.025, d * 0.54, w * 0.35, ys + h * 0.0125 + 0.006, 0]], M.sil));
+      g.add(put(box(w * 0.4, h * 0.05, d * 0.6, M.ch), 0, ys - h * 0.024 + 0.004, 0));      // 通道：表面下一條水平薄層
+      // HKMG：high-k（最薄）→ 功函數金屬 → 填充金屬 → SiN 蓋。由下往上，順序不准對調（規格書 §3-C G1）
+      let y = ys;
+      [[h * 0.03, M.hk, 1.0], [h * 0.05, M.wf, 0.98], [h * 0.2, M.mt, 0.96], [h * 0.045, M.cap, 1.0]].forEach(([th, m, k]) => {
+        g.add(put(box(gw * k, th, gd, m), 0, y + th / 2, 0)); y += th;
       });
+      g.add(spacerPair(M, gw, w * 0.05, y - ys, gd, ys));                                // 間隙壁：圓弧外形
+      // 溝槽接觸：從矽化物往上的兩條金屬牆 ＋ 閘極接觸（在閘極的一端往上拉）
+      g.add(mboxes([[w * 0.1, h * 0.36, d * 0.44, -w * 0.35, ys + h * 0.025 + h * 0.18, 0], [w * 0.1, h * 0.36, d * 0.44, w * 0.35, ys + h * 0.025 + h * 0.18, 0]], M.ct));
+      g.add(put(cyl(w * 0.03, h * 0.09, M.ct, 12), 0, y + h * 0.045, d * 0.24));
       // 金色面標放在閘極**前後**（閘極本身不透明，壓在底下就看不到了）
-      g.add(fetFaces(K, [[new T.BoxGeometry(w * FET_LG, h * 0.02, d * 0.05),
-        [[0, h * 0.1, d * 0.28], [0, h * 0.1, -d * 0.28]]]]));
+      g.add(fetFaces(K, [[new T.BoxGeometry(gw, h * 0.02, d * 0.05), [[0, ys + h * 0.012, gd / 2 + d * 0.03], [0, ys + h * 0.012, -gd / 2 - d * 0.03]]]]));
       return g;
     }
 
@@ -3132,30 +3489,50 @@
     function fetFin(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const si = K.mat(-0.32, { rough: 0.46 });
-      const fin = K.mat(0.44, { rough: 0.34 });
-      const sti = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.6, metal: 0.04 });
-      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 });
-      const sd = K.mat(0.16, { rough: 0.5 });
-      g.add(put(box(w, h * 0.4, d, si), 0, -h * 0.3, 0));
-      // 三片直立的鰭：鰭高刻意是鰭寬的數倍（畫面可辨識性的下限，不是實物比例的宣稱）
+      const M = fetMats(K);
+      M.fin = K.mat(0.44, { rough: 0.34 });
+      const gw = w * FET_LG;
+      g.add(put(box(w, h * 0.4, d, M.si), 0, -h * 0.3, 0));
+      // 三片直立的鰭：上窄下寬、頂端圓弧（鰭高刻意是鰭寬的數倍 —— 畫面可辨識性的下限，不是實物比例的宣稱）
       const fw = d * 0.09, fh = h * 0.56, fz = [-d * 0.2, 0, d * 0.2];
-      g.add(instOf(new T.BoxGeometry(w * 0.72, fh, fw), fin, fz.map(z => [0, h * 0.18, z])));
+      g.add(instOf(prismX(finShapePts(fw * 1.35, fw * 0.8, fh), w * 0.92), M.fin, fz.map(z => [0, -h * 0.1, z])));
       // STI：填在鰭與鰭之間的**下半段**，只淹到鰭的下部
-      g.add(put(box(w * 0.74, h * 0.2, d * 0.62, sti), 0, 0, 0));
+      g.add(put(box(w * 0.96, h * 0.2, d * 0.94, M.sti), 0, 0, 0));
       /* ㄇ 字形閘極：一條橫樑橫跨過三片鰭，四支腳插進鰭與鰭之間（以及最外側兩邊）。
-         橫樑＋四支腳併成一顆 mesh —— 它是一體成型的一塊金屬，不是五根棒子。*/
-      const legs = [[w * FET_LG, h * 0.14, d * 0.86, 0, h * 0.46, 0]];
-      [-0.3, -0.1, 0.1, 0.3].forEach(fz2 => legs.push([w * FET_LG, h * 0.3, d * 0.09, 0, h * 0.24, fz2 * d]));
-      g.add(mboxes(legs, mt));
-      [-1, 1].forEach(s => g.add(put(box(w * 0.2, h * 0.34, d * 0.6, sd), s * w * 0.38, h * 0.13, 0)));
-      /* 金色面標：中間那片鰭的頂面 ＋ 兩個側面，放在閘極前方看得到的地方。
+         橫樑＋四支腳併成一顆 mesh —— 它是一體成型的一塊金屬，不是五根棒子。
+         外面再包一層**稍寬一點**的 high-k 內襯：閘極邊緣會露出一條淺色細線，那就是 HKMG 的 high-k。*/
+      const legs = (gx, lw) => {
+        const a = [[gx, h * 0.14, d * 0.86, 0, h * 0.46, 0]];
+        [-0.3, -0.1, 0.1, 0.3].forEach(fz2 => a.push([gx, h * 0.3, lw, 0, h * 0.24, fz2 * d]));
+        return a;
+      };
+      // 內襯比金屬**窄一點、厚一點**：從外面看只在閘極與鰭的交界露出一條淺色細線（包住的話金屬就看不到了）
+      g.add(mboxes(legs(gw * 0.97, d * 0.112).map(a => (a[2] > d * 0.5 ? [a[0], a[1] + h * 0.012, a[2], a[3], a[4] - h * 0.006, a[5]] : a)), M.hk));
+      g.add(mboxes(legs(gw, d * 0.09), M.mt));
+      g.add(put(box(gw, h * 0.04, d * 0.86, M.cap), 0, h * 0.55, 0));                     // SiN 蓋
+      g.add(spacerPair(M, gw, w * 0.02, h * 0.49, d * 0.86, h * 0.08));
+      // 源汲：每片鰭上一顆**菱形磊晶**，寬到跟隔壁併在一起（{111} 面自限的形狀）
+      const ex0 = gw / 2 + w * 0.07, ex1 = w * 0.47, el = ex1 - ex0, ec = (ex0 + ex1) / 2;
+      const dia = prismX([[-d * 0.035, -h * 0.2], [d * 0.035, -h * 0.2], [d * 0.12, 0], [d * 0.035, h * 0.19], [-d * 0.035, h * 0.19], [-d * 0.12, 0]], el, w * 0.006);
+      const epis = [];
+      [-1, 1].forEach(s => fz.forEach(z => epis.push([s * ec, h * 0.36, z])));
+      g.add(instOf(dia, M.sd, epis));
+      // 溝槽接觸：橫跨三顆併起來的菱形上方
+      g.add(mboxes([[el * 0.6, h * 0.12, d * 0.66, -ec, h * 0.6, 0], [el * 0.6, h * 0.12, d * 0.66, ec, h * 0.6, 0]], M.ct));
+      /* 金色面標：中間那片鰭的頂面 ＋ 兩個側面，放在閘極與磊晶之間露出來的那一小段鰭上。
          頂面一片、側面兩片 ＝ 三片，數得出來。*/
+      const mx = gw / 2 + w * 0.045;
       g.add(fetFaces(K, [
-        [new T.BoxGeometry(w * 0.05, h * 0.02, fw), [[w * 0.2, h * 0.46, 0]]],
-        [new T.BoxGeometry(w * 0.05, fh * 0.6, h * 0.02), [[w * 0.2, h * 0.28, fw * 0.55], [w * 0.2, h * 0.28, -fw * 0.55]]],
+        [new T.BoxGeometry(w * 0.03, h * 0.02, fw * 0.8), [[mx, h * 0.465, 0]]],
+        [new T.BoxGeometry(w * 0.03, fh * 0.5, h * 0.02), [[mx, h * 0.28, fw * 0.55], [mx, h * 0.28, -fw * 0.55]]],
       ]));
       return g;
+    }
+    function finShapePts(bw, tw, fh) {        // 鰭剖面的點（prismX 吃點陣列）：梯形＋頂端半圓用 7 段折線近似
+      const pts = [[-bw / 2, 0], [bw / 2, 0], [tw / 2, fh - tw / 2]];
+      for (let i = 1; i < 8; i++) { const a = Math.PI * i / 8; pts.push([Math.cos(a) * tw / 2, fh - tw / 2 + Math.sin(a) * tw / 2]); }
+      pts.push([-tw / 2, fh - tw / 2]);
+      return pts;
     }
 
     /* GAA 的奈米片通道：2～4 片水平堆疊、彼此不相連；片寬遠大於片厚
@@ -3165,21 +3542,27 @@
     function nanoSheet(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const si = K.mat(-0.32, { rough: 0.46 });
+      const M = fetMats(K);
       const sh = K.mat(0.46, { rough: 0.32 });
-      const sd = K.mat(0.16, { rough: 0.5 });
-      const sp = K.mat(0, { color: K.css('--dg-abf', '#c3b9a4'), rough: 0.7, metal: 0.05 });
-      g.add(put(box(w, h * 0.34, d, si), 0, -h * 0.33, 0));
+      g.add(put(box(w, h * 0.34, d, M.si), 0, -h * 0.33, 0));
+      // 兩側 STI（片堆是站在一條被 STI 夾住的矽台上）
+      g.add(mboxes([[w * 0.96, h * 0.1, d * 0.2, 0, -h * 0.11, -d * 0.4], [w * 0.96, h * 0.1, d * 0.2, 0, -h * 0.11, d * 0.4]], M.sti));
       const st = h * 0.055, pit = h * 0.19, y0 = -h * 0.04;
       const at = [];
       for (let i = 0; i < 3; i++) at.push([0, y0 + i * pit, 0]);
-      g.add(instOf(new T.BoxGeometry(w * 0.62, st, d * 0.5), sh, at));
-      // 源／汲磊晶：把三片的端部**一起**接起來，不是一片接一個
-      [-1, 1].forEach(s => g.add(put(box(w * 0.18, pit * 2 + st * 2.6, d * 0.58, sd), s * w * 0.39, y0 + pit, 0)));
+      // 奈米片：圓角的扁片（寬約片厚的 8 倍）—— 沿 x 走，兩端插進源汲磊晶
+      const sg = rboxGeo(d * 0.5, st, w * 0.66, st * 0.42); sg.rotateY(Math.PI / 2);
+      g.add(instOf(sg, sh, at));
+      // 源／汲磊晶：有刻面的六角柱，把三片的端部**一起**接起來，不是一片接一個
+      const eH = pit * 2 + st * 2.6;
+      const epi = prismX(hexProf(d * 0.6, eH, 0.2), w * 0.18, w * 0.006);
+      g.add(instOf(epi, M.sd, [[-w * 0.39, y0 + pit, 0], [w * 0.39, y0 + pit, 0]]));
       // 內間隙壁：每一片的兩端，夾在閘極金屬與源汲磊晶之間（沒有它，閘極會跟源汲短路）
       const isp = [];
-      for (let i = 0; i < 3; i++) [-1, 1].forEach(s => isp.push([s * w * 0.28, y0 + i * pit, 0]));
-      g.add(instOf(new T.BoxGeometry(w * 0.035, pit - st * 0.2, d * 0.5), sp, isp));
+      for (let i = 0; i < 4; i++) [-1, 1].forEach(s => isp.push([s * w * 0.285, y0 - pit / 2 + i * pit, 0]));
+      g.add(instOf(new T.BoxGeometry(w * 0.035, pit - st * 1.1, d * 0.5), M.sp, isp));
+      // 溝槽接觸：站在兩顆磊晶上
+      g.add(mboxes([[w * 0.12, h * 0.12, d * 0.44, -w * 0.39, y0 + pit + eH / 2 + h * 0.06, 0], [w * 0.12, h * 0.12, d * 0.44, w * 0.39, y0 + pit + eH / 2 + h * 0.06, 0]], M.ct));
       return g;
     }
 
@@ -3190,15 +3573,22 @@
     function gaaGate(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 });
+      const M = fetMats(K);
       const st = h * 0.055, pit = h * 0.19, y0 = -h * 0.04;
       const gw = w * FET_LG;
-      const slabs = [];
-      // 四層水平金屬：最下面那片的**下方**也有一層（少了它就退回 FinFET）
-      for (let i = 0; i < 4; i++) slabs.push([gw, pit - st, d * 0.72, 0, y0 - pit / 2 + i * pit, 0]);
-      // 兩側的立牆把四層接起來：金屬是一塊，不是四片
-      [-1, 1].forEach(s => slabs.push([gw, pit * 3 + st, d * 0.1, 0, y0 + pit, s * d * 0.31]));
-      g.add(mboxes(slabs, mt));
+      const slabs = (gx, zk) => {
+        const a = [];
+        // 四層水平金屬：最下面那片的**下方**也有一層（少了它就退回 FinFET）
+        for (let i = 0; i < 4; i++) a.push([gx, pit - st, d * 0.72 * zk, 0, y0 - pit / 2 + i * pit, 0]);
+        // 兩側的立牆把四層接起來：金屬是一塊，不是四片
+        [-1, 1].forEach(s => a.push([gx, pit * 3 + st, d * 0.1 * zk, 0, y0 + pit, s * d * 0.31]));
+        return a;
+      };
+      // high-k 內襯：比金屬窄一點、厚一點 —— 夾在金屬與每一片奈米片之間，只在交界露出一條淺色細線
+      g.add(mboxes(slabs(gw * 0.97, 1).map((a, i) => (i < 4 ? [a[0], a[1] + st * 0.3, a[2], a[3], a[4], a[5]] : a)), M.hk));
+      g.add(mboxes(slabs(gw, 1), M.mt));
+      g.add(put(box(gw, h * 0.04, d * 0.74, M.cap), 0, y0 + pit * 3.5 + st * 0.5 - pit / 2 + h * 0.025, 0));   // SiN 蓋
+      g.add(put(cyl(w * 0.03, h * 0.09, M.ct, 12), 0, y0 + pit * 3 + h * 0.12, d * 0.22));   // 閘極接觸
       /* 金色面標：中間那片的**四面**（上、下、左、右），放在閘極前方看得到的位置。
          四片 —— 跟平面的 1 片、FinFET 的 3 片數得出來。*/
       g.add(fetFaces(K, [
@@ -3208,31 +3598,59 @@
       return g;
     }
 
+    /* 帶 V 形 notch、邊緣圓弧倒角的晶圓圓片（晶圓與「一疊晶圓」共用）。形狀的 +y（缺口）→ 世界的 −z。*/
+    function notchDiscGeo(R, h, segs) {
+      const bv = Math.min(h * 0.28, R * 0.03);
+      const s = new T.Shape();
+      const nw = R * 0.045, nd = R * 0.05, da = Math.asin(nw / R);
+      const N = segs || 120;
+      for (let i = 0; i <= N; i++) {
+        const a = Math.PI / 2 + da + (Math.PI * 2 - 2 * da) * i / N;
+        const x = Math.cos(a) * (R - bv), y = Math.sin(a) * (R - bv);
+        if (i) s.lineTo(x, y); else s.moveTo(x, y);
+      }
+      s.lineTo(0, R - bv - nd);                                         // V 形缺口的尖端
+      const dg = new T.ExtrudeGeometry(s, { depth: Math.max(0.02, h - 2 * bv), bevelEnabled: true, bevelThickness: bv,
+        bevelSize: bv, bevelSegments: 3, curveSegments: 4, steps: 1 });
+      dg.translate(0, 0, -(h - 2 * bv) / 2);
+      dg.rotateX(-Math.PI / 2);
+      return dg;
+    }
+
     /* 12 吋晶圓：圓片 ＋ notch ＋ 規則排列的晶粒。
        識別特徵有兩個，缺一個就不是晶圓：① 邊緣那一個方位缺口（notch）
        ② 邊緣那一圈**切不出完整晶粒**的格子（圖上顏色較暗的那些）。
+       ★ 2026-09-26 細緻化：
+         · 圓片改用「帶 V 形缺口的圓」擠出＋倒角 —— notch 是**真的缺一塊**（以前是一顆黑方塊貼在邊上），
+           邊緣是圓弧倒角（切片後要倒角，DECISIONS／規格書 A7）；
+         · 晶粒之間留**切割道**（實物約 50～100 µm，這裡誇張放大才看得見）；
+         · 每顆晶粒頂面貼通用示意的版圖（核心、SRAM、I/O 墊、封環）；
+         · notch 旁一排雷射刻號的小點。
        p.mirror：拋光片（鏡面，沒有晶粒）。p.dies：一邊幾格（示意，實際數量視晶粒大小而定）。*/
     function waferDisc(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
-      g.add(cyl(R, h, K.mat(p.mirror ? 0.3 : 0.18, { rough: p.mirror ? 0.08 : 0.3, metal: p.mirror ? 0.55 : 0.34 }), 48));
-      // notch：整根晶碇上刻一條軸向的溝，切完每一片自然都在同一個方位
-      g.add(put(box(R * 0.11, h * 1.3, R * 0.11, K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 })),
-        0, 0, -R + R * 0.02));
+      const dg = notchDiscGeo(R, h);
+      g.add(new T.Mesh(dg, K.mat(p.mirror ? 0.3 : 0.18, { rough: p.mirror ? 0.08 : 0.3, metal: p.mirror ? 0.55 : 0.34 })));
       const n = p.dies || 0;
       if (n > 0) {
         const px = (R * 2) / n, full = [], rim = [];
         for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
           const x = (-(n - 1) / 2 + i) * px, z = (-(n - 1) / 2 + j) * px;
           const corner = Math.hypot(Math.abs(x) + px / 2, Math.abs(z) + px / 2);
-          if (corner <= R * 0.97) full.push([x, h * 0.55, z]);
-          else if (Math.hypot(x, z) <= R * 0.9) rim.push([x, h * 0.55, z]);
+          if (corner <= R * 0.95) full.push([x, h * 0.5 + h * 0.06, z]);
+          else if (Math.hypot(x, z) <= R * 0.86) rim.push([x, h * 0.5 + h * 0.06, z]);
         }
-        const gd = px * 0.82, gh = h * 0.42;
-        g.add(instOf(new T.BoxGeometry(gd, gh, gd), K.mat(0.5, { rough: 0.3, metal: 0.4 }), full));
+        const gd = px * 0.86, gh = h * 0.12;                             // 0.14 的空隙＝切割道
+        const ft = floorTex();
+        g.add(instOf(new T.BoxGeometry(gd, gh, gd), K.mat(0.42, { rough: 0.3, metal: 0.4, floor: ft ? { tex: ft, sx: gd, sz: gd } : null }), full));
         // 邊緣那一圈：切不出完整晶粒，所以暗一階（晶圓越大，浪費掉的邊緣比例越小）
         if (rim.length) g.add(instOf(new T.BoxGeometry(gd, gh, gd), K.mat(-0.32, { rough: 0.6, metal: 0.16 }), rim));
+        // 雷射刻號：notch 旁邊一排小點（每片晶圓自己的身分證）
+        const dots = [];
+        for (let i = 0; i < 12; i++) dots.push([(-5.5 + i) * R * 0.022, h * 0.5 + 0.01, -R * 0.84]);
+        g.add(instOf(new T.CylinderGeometry(R * 0.007, R * 0.007, h * 0.05, 6), K.mat(-0.5, { rough: 0.8, metal: 0.1 }), dots));
       }
       return g;
     }
@@ -3357,14 +3775,11 @@
       const n = p.layers || 9;
       const t = h / (n * 1.9), pit = (h - t) / (n - 1);
       const m = K.mat(0.24, { rough: 0.2, metal: 0.46 });
-      const nm = K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 });
-      const at = [], nt = [];
-      for (let i = 0; i < n; i++) {
-        const y = -h / 2 + t / 2 + i * pit;
-        at.push([0, y, 0]); nt.push([0, y, -R + R * 0.02]);
-      }
-      g.add(instOf(new T.CylinderGeometry(R, R, t, 34), m, at));
-      g.add(instOf(new T.BoxGeometry(R * 0.1, t * 1.2, R * 0.1), nm, nt));
+      const at = [];
+      for (let i = 0; i < n; i++) at.push([0, -h / 2 + t / 2 + i * pit, 0]);
+      /* 2026-09-26：每一片都是真的帶 notch、邊緣倒角的圓片（跟晶圓那一支同一個形狀），
+         一疊切出來的 notch 自然對齊在同一個方位 —— 那道 notch 是整根晶碇上先磨好的溝。*/
+      g.add(instOf(notchDiscGeo(R, t, 64), m, at));
       return g;
     }
 
@@ -3455,58 +3870,154 @@
        （三個電極全在上表面）—— 這一組對比是這張圖最重要的視覺事實，
        而它只有把兩顆擺在一起、而且正反面都看得到，才成立。
        p.k 給明暗（同一顆元件內靠明暗分層，一張圖一個主色）、p.tint 給 token 名。*/
+    /* ★ 2026-09-26 細緻化（規格 docs/diagram_specs/wide_bandgap.md §3D-細節）。零件、位置、爆炸位移一個都沒動：
+         · SiC：p-body／n⁺ 源極不再是「兩塊」，而是**三個重複的元胞（cell）**——功率 MOSFET 本來就是成千上萬個一樣的小元胞並聯；
+                每個元胞：JFET 區上方一條閘極（氧化層＋多晶矽＋層間介電 ILD 包起來），兩條閘極之間是源極接觸窗；
+                正面是厚鋁源極，**焊線（bond wire）從正面打出去**，閘極有自己的小焊墊與較細的焊線；
+                背面汲極是 Ti／Ni／Ag 三層（背面金屬化，WebSearch：背面鍍 Ni 退火形成歐姆接觸）。
+         · GaN：緩衝層畫成多層過渡（AlGaN 漸變），閘極下方的 2DEG 被 p-GaN 耗盡（那一段變暗）；
+                源／汲是歐姆接觸金屬堆疊，電極之間是 SiN 保護層（半透明），源極拉出一片**場板**蓋過閘極伸向汲極；
+                **三條焊線都從上表面打出去** —— 跟 SiC「背面沒有焊線、汲極靠整片背面金屬」正好是這張圖要比的那件事。
+       依據（WebSearch 摘要，信心中）：SiC MOSFET 的閘極與源極焊墊在正面、汲極在背面，正面鋁金屬化可打焊線；
+       GaN HEMT 的源極連接場板形成在保護層上、蓋過閘極伸向汲極，降低閘極汲極側邊緣電場；SiN 為常見保護層。*/
+
+    /* 一組焊線併成一個 mesh：每一條是 [起點, 終點, 拱高]（世界座標是零件自己的座標）。
+       形狀：從焊點垂直拉起 → 拱頂 → 斜降到第二焊點（實際打線機的「頸部＋弧」）。兩端各一顆壓扁的焊點。*/
+    function bondWires(K, list, r, m) {
+      const geos = [];
+      list.forEach(([a, b, lift]) => {
+        const A = new T.Vector3(a[0], a[1], a[2]), Bv = new T.Vector3(b[0], b[1], b[2]);
+        const top = Math.max(A.y, Bv.y) + lift;
+        const pts = [A, new T.Vector3(A.x, A.y + lift * 0.55, A.z),
+          new T.Vector3(A.x + (Bv.x - A.x) * 0.3, top, A.z + (Bv.z - A.z) * 0.3),
+          new T.Vector3(A.x + (Bv.x - A.x) * 0.72, top - lift * 0.2, A.z + (Bv.z - A.z) * 0.72), Bv];
+        geos.push(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 28, r, 6, false));
+        [A, Bv].forEach(P => { const c = new T.CylinderGeometry(r * 1.9, r * 2.2, r * 1.1, 10); c.translate(P.x, P.y + r * 0.4, P.z); geos.push(c); });
+      });
+      return new T.Mesh(mergeGeos(geos), m);
+    }
+    const wireMat = (K) => K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.9, rough: 0.3 });
+    const leadMat = (K) => K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.85, rough: 0.34 });
+
     function wbgLayer(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const k = p.k == null ? 0 : p.k;
       const m = p.tint ? K.mat(0, { color: K.css(p.tint, ''), rough: p.rough, metal: p.metal })
         : K.mat(k, { rough: p.rough, metal: p.metal });
-      g.add(mboxes(halfSlab(w, h, d), m));
+      /* strata：一層裡面其實是好幾層（背面金屬 Ti／Ni／Ag、GaN 的漸變緩衝層）。
+         每一筆 [厚度比例, token 或 null, 明暗 k, 金屬度, 粗糙度]，由下往上。*/
+      if (p.strata) {
+        let y = -h / 2;
+        const tot = p.strata.reduce((a, s) => a + s[0], 0);
+        p.strata.forEach(([f, tok, kk, mt, rg]) => {
+          const th = h * f / tot;
+          const mm = tok ? K.mat(0, { color: K.css(tok, ''), metal: mt, rough: rg }) : K.mat(kk, { metal: mt, rough: rg });
+          g.add(mboxes(halfSlab(w, th, d, y + th / 2), mm));
+          y += th;
+        });
+      } else if (p.dim) {
+        // dim：[x0, x1] 這一段比較暗（GaN 的 2DEG 在 p-GaN 閘底下被耗盡）
+        const [x0, x1] = p.dim;
+        const off = K.mat(0, { color: K.css(p.tint || '--dg-m-trace', ''), metal: 0.15, rough: 0.85 });
+        g.add(mboxes([[x0 + w / 2, h, d / 2, (-w / 2 + x0) / 2, 0, -d / 4], [w / 2 - x1, h, d / 2, (x1 + w / 2) / 2, 0, -d / 4]], m));
+        g.add(mboxes([[x1 - x0, h * 0.7, d / 2, (x0 + x1) / 2, 0, -d / 4]], off));
+      } else {
+        g.add(mboxes(halfSlab(w, h, d), m));
+      }
       g.add(halfFace(K, w, h, d, 0, k));
       return g;
     }
 
-    /* p-body 與 n⁺ 源極區：兩個 p-body 把電流夾成一條窄路（JFET 區，只有平面閘才有）。
-       ★ n⁺ 源極區一定被 p-body 包住，不能直接碰到 n⁻ 漂移層 —— 碰到就等於把元件短路掉了。
-       兩個 n⁺ 做到 z = 0 的剖面上（不然它埋在 p-body 裡，從外面一個像素都看不到）。*/
+    /* SiC 元胞的排法（三支建造函式共用，才會對齊）：元胞寬 cw／n，JFET 區在每個元胞的中線，
+       p-body 在元胞與元胞之間。cw 是 SiC 那一疊的寬度（場景寫 `cw: 40`，沒寫就用自己的 box 寬）。*/
+    function sicCells(p) {
+      const cw = p.cw || p.box[0], n = p.cells || 3, pit = cw / n;
+      const jx = []; for (let i = 0; i < n; i++) jx.push((-(n - 1) / 2 + i) * pit);
+      return { cw, n, pit, jx };
+    }
+
+    /* p-body 與 n⁺ 源極區：★ n⁺ 源極區一定被 p-body 包住，不能直接碰到 n⁻ 漂移層 —— 碰到就等於把元件短路掉了。
+       兩個 p-body 之間夾出來的窄路就是 JFET 區（平面閘才有）。三個元胞重複。*/
     function wbgBody(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const blocks = [], nblocks = [];
-      [-1, 1].forEach(s => {
-        const cx = s * w * 0.3;
-        blocks.push([w * 0.34, h, d / 2, cx, 0, -d / 4]);
-        nblocks.push([w * 0.16, h * 0.4, d * 0.44, cx, h * 0.22, -d / 4 + d * 0.03]);
-      });
-      g.add(mboxes(blocks, K.mat(0.34, { rough: 0.44 })));
-      g.add(mboxes(nblocks, K.mat(0.66, { rough: 0.38 })));
+      const C = sicCells(p);
+      const jw = C.pit * 0.3;                                         // JFET 區寬
+      const pb = [], np = [], pp = [];
+      // p-body：JFET 與 JFET 之間（兩端各半個）
+      for (let i = 0; i <= C.n; i++) {
+        const x0 = i === 0 ? -w / 2 : C.jx[i - 1] + jw / 2, x1 = i === C.n ? w / 2 : C.jx[i] - jw / 2;
+        if (x1 - x0 < 0.05) continue;
+        pb.push([x1 - x0, h * 0.86, d / 2, (x0 + x1) / 2, h * 0.07, -d / 4]);
+        // n⁺ 源極：貼著 p-body 靠 JFET 那一側的表面（兩側各一條），做到 z = 0 剖面上
+        const nw = C.pit * 0.12;
+        if (i > 0) np.push([nw, h * 0.34, d * 0.46, x0 + nw / 2 + C.pit * 0.05, h * 0.33, -d / 4 + d * 0.02]);
+        if (i < C.n) np.push([nw, h * 0.34, d * 0.46, x1 - nw / 2 - C.pit * 0.05, h * 0.33, -d / 4 + d * 0.02]);
+        // p⁺ 接觸：p-body 中央（源極金屬從這裡同時接到 n⁺ 與 p-body）
+        if (x1 - x0 > C.pit * 0.4) pp.push([C.pit * 0.12, h * 0.3, d * 0.46, (x0 + x1) / 2, h * 0.35, -d / 4 + d * 0.02]);
+      }
+      g.add(mboxes(halfSlab(w, h * 0.98, d), K.mat(0.08, { rough: 0.46 })));        // 背景：n⁻（JFET 區就是它露出來的那幾條）
+      g.add(mboxes(pb, K.mat(0.34, { rough: 0.44 })));
+      g.add(mboxes(np, K.mat(0.66, { rough: 0.38 })));
+      if (pp.length) g.add(mboxes(pp, K.mat(-0.1, { rough: 0.5 })));
       g.add(halfFace(K, w, h, d, 0, 0.34));
       return g;
     }
 
     /* 閘極氧化層 ＋ 閘極：氧化層夾在閘極與半導體之間，是全圖最薄的一層之一 ——
-       ★ 沒有這一層就不叫 MOSFET（閘極直接碰到半導體那是 JFET 或 HEMT）。*/
+       ★ 沒有這一層就不叫 MOSFET（閘極直接碰到半導體那是 JFET 或 HEMT）。
+       每個元胞一條閘極，跨在 JFET 區上、兩端壓到 p-body 表面一點點（那一小段就是通道）；
+       外面包一層層間介電（ILD），源極金屬才不會碰到閘極。*/
     function wbgGate(p, K) {
       const g = new T.Group();
-      const [w, h, d] = p.box;
-      g.add(mboxes(halfSlab(w, h * 0.3, d, -h * 0.35),
-        K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.36, metal: 0.04 })));
-      g.add(mboxes(halfSlab(w * 0.96, h * 0.6, d * 0.96, h * 0.2),
-        K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 })));
+      const [, h, d] = p.box;
+      const C = sicCells(p);
+      const gw = C.pit * 0.54;
+      const ox = [], gt = [], ild = [];
+      C.jx.forEach(x => {
+        ox.push([gw * 1.06, h * 0.12, d / 2, x, -h * 0.44, -d / 4]);
+        gt.push([gw, h * 0.46, d / 2 * 0.98, x, -h * 0.15, -d / 4 - d * 0.005]);
+        ild.push([gw * 1.22, h * 0.78, d / 2 * 0.99, x, h * 0.0, -d / 4 - d * 0.0025]);
+      });
+      g.add(mboxes(ox, K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.36, metal: 0.04 })));
+      // ILD 半透明：看得到裡面那條閘極（實物是不透明的氧化物；這裡刻意透明才看得到它包住的東西）
+      g.add(mboxes(ild, K.mat(0.2, { glass: true, rough: 0.2 })));
+      g.add(mboxes(gt, K.mat(0, { color: K.css('--dg-m-graphite', '#2f3039'), metal: 0.55, rough: 0.38 })));   // 多晶矽閘極
       return g;
     }
 
-    /* 正面金屬（源極）：蓋住正面大部分，靠接觸窗下去接到 n⁺ 源極與 p-body。
-       它和閘極在同一面、和背面的汲極分屬兩側 —— 這就是「垂直元件」的定義。*/
+    /* 正面金屬（源極）：厚鋁蓋住正面大部分，靠接觸窗下去接到 n⁺ 源極與 p-body。
+       它和閘極在同一面、和背面的汲極分屬兩側 —— 這就是「垂直元件」的定義。
+       角落切出一塊獨立的**閘極焊墊**（跟源極金屬之間有一道溝），焊線從正面打出去：
+       三條粗的接源極、一條細的接閘極；背面一條都沒有。*/
     function wbgTop(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
+      const C = sicCells(p);
       const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.86, rough: 0.3 });
-      g.add(mboxes(halfSlab(w, h * 0.5, d, h * 0.25), mt));
-      const plugs = [];
-      [-1, 1].forEach(s => plugs.push([w * 0.14, h * 0.7, d * 0.4, s * w * 0.3, -h * 0.3, -d * 0.22]));
-      g.add(mboxes(plugs, mt));                        // 接觸窗：金屬不是浮在上面的一片板子
-      g.add(halfFace(K, w, h * 0.5, d, h * 0.25, 0));
+      const y0 = -h / 2, th = h, yc = y0 + th / 2;
+      // 閘極焊墊：右前角（靠剖面、看得到），四周留一道溝
+      const gx0 = w / 2 - 7, gx1 = w / 2 - 1.5, gz0 = -6.5, gz1 = -1.2, gap = 0.8, zc = gz0 - gap;
+      g.add(mboxes([
+        [w, th, d / 2 + zc, 0, yc, (-d / 2 + zc) / 2],                                 // 後半整片
+        [gx0 - gap + w / 2, th, -zc, (-w / 2 + gx0 - gap) / 2, yc, zc / 2],              // 焊墊左邊
+        [Math.max(0.3, w / 2 - gx1 - gap), th, -zc, (gx1 + gap + w / 2) / 2, yc, zc / 2], // 焊墊右邊
+        [gx1 - gx0 + gap * 2, th, -(gz1 + gap), (gx0 + gx1) / 2, yc, (gz1 + gap) / 2]], mt));  // 焊墊前面
+      const gp = { x0: gx0, x1: gx1, z0: gz0, z1: gz1 };
+      g.add(put(box(gx1 - gx0, th, gz1 - gz0, mt), (gx0 + gx1) / 2, yc, (gz0 + gz1) / 2));
+      // 接觸窗：兩條閘極之間往下插到 p⁺／n⁺（金屬不是浮在上面的一片板子）
+      const plugs = [], below = p.plugDown || 3.8;
+      C.jx.slice(0, -1).forEach((x, i) => plugs.push([C.pit * 0.28, below + y0, d * 0.44, (x + C.jx[i + 1]) / 2, (y0 - below) / 2, -d * 0.24]));
+      g.add(mboxes(plugs, mt));
+      g.add(halfFace(K, w, th, d, yc, 0));
+      // 焊線：往後（−z）打到導線架的引腳上
+      const top = y0 + th, lz = -d / 2 - 5.5, ly = top - 1.2;
+      const wires = [[-12, -8], [-2, -8], [8, -8]].map(([x, z]) => [[x, top, z], [x, ly + 0.5, lz], 5.2]);
+      g.add(bondWires(K, wires, 0.42, wireMat(K)));
+      g.add(bondWires(K, [[[(gp.x0 + gp.x1) / 2, top, (gp.z0 + gp.z1) / 2], [(gp.x0 + gp.x1) / 2 + 2, ly + 0.5, lz], 4]], 0.2, wireMat(K)));
+      // 導線架引腳：源極一條寬的、閘極一條窄的（分開，才看得出是兩個不同的電極）
+      g.add(mboxes([[30, 1, 5, -2, ly, lz], [4, 1, 5, (gp.x0 + gp.x1) / 2 + 2, ly, lz]], leadMat(K)));
       return g;
     }
 
@@ -3522,20 +4033,44 @@
     }
 
     /* 源極／閘極／汲極：★ 三個電極**全部做在同一個上表面**、背面一個都沒有 ——
-       這就是「橫向元件」。也正因為是橫向，它受表面崩潰限制，主流停在 650V 級。*/
+       這就是「橫向元件」。也正因為是橫向，它受表面崩潰限制，主流停在 650V 級。
+       補上的東西：歐姆接觸是兩層金屬（底下 Ti/Al、上面一層蓋），電極之間是 SiN 保護層（半透明），
+       源極拉出一片場板蓋過閘極伸向汲極，三條焊線都從上表面打出去。*/
     function wbgElec(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const pads = [];
+      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.86, rough: 0.3 });
+      const ti = K.mat(0, { color: K.css('--dg-m-graphite', '#2f3039'), metal: 0.7, rough: 0.4 });
+      const au = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.28 });
+      const yb = -h / 2;
       /* 每一筆是 [中心 x, 高, 寬, 底面離零件底面多高]。
          源極與汲極直接坐在 AlGaN 阻障層上（底面 0）；閘極**站在 p-GaN 上**，
          所以它的底面要抬高一層 p-GaN 的厚度 —— 閘極金屬直接碰到 AlGaN 就不是 p-GaN 閘了。*/
-      [[-w * 0.33, h * 0.46, w * 0.2, 0], [0, h * 0.54, w * 0.13, h * 0.46],
-        [w * 0.33, h * 0.46, w * 0.2, 0]].forEach(a => {
-        const cx = a[0], hh = a[1], ww = a[2], cy = a[3] + hh / 2 - h / 2;
-        pads.push([ww, hh, d / 2, cx, cy, -d / 4]);
+      const S = [-w * 0.33, h * 0.46, w * 0.2, 0], G = [0, h * 0.54, w * 0.13, h * 0.46], D = [w * 0.33, h * 0.46, w * 0.2, 0];
+      // 歐姆接觸（S、D）：下 40% 是 Ti/Al 合金層、上面是厚金屬
+      const lo = [], hi = [];
+      [S, D].forEach(([cx, hh, ww]) => {
+        lo.push([ww, hh * 0.4, d / 2, cx, yb + hh * 0.2, -d / 4]);
+        hi.push([ww, hh * 0.6, d / 2, cx, yb + hh * 0.7, -d / 4]);
       });
-      g.add(mboxes(pads, K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.86, rough: 0.3 })));
+      g.add(mboxes(lo, ti));
+      hi.push([G[2], G[1], d / 2, G[0], yb + G[3] + G[1] / 2, -d / 4]);            // 閘極金屬
+      g.add(mboxes(hi, mt));
+      // SiN 保護層：填在源極與汲極之間（半透明，看得到底下的閘極與 2DEG 那一層）
+      const px0 = S[0] + S[2] / 2, px1 = D[0] - D[2] / 2, pt = h * 1.12;
+      g.add(mboxes([[px1 - px0, pt, d / 2 * 0.99, (px0 + px1) / 2, yb + pt / 2, -d / 4 - d * 0.0025]], K.mat(0.3, { glass: true, rough: 0.2 })));
+      // 源極場板：從源極頂上接出來，站在保護層上，蓋過閘極、往汲極方向多伸出一段（z 只到 −11，後面留給閘極焊墊）
+      const fy = yb + pt + h * 0.07, fx0 = S[0] - S[2] * 0.25, fx1 = w * 0.16, fz0 = -11, fz1 = -0.3;
+      g.add(mboxes([[fx1 - fx0, h * 0.14, fz1 - fz0, (fx0 + fx1) / 2, fy, (fz0 + fz1) / 2],
+        [S[2] * 0.5, pt - S[1] + h * 0.07, fz1 - fz0, S[0], yb + S[1] + (pt - S[1]) / 2, (fz0 + fz1) / 2]], mt));
+      // 三個電極各一個焊墊（金）＋ 一條焊線，全部往後（−z）打到三支引腳 —— 背面一條都沒有
+      const top = fy + h * 0.07, lz = -d / 2 - 5.5, ly = top - 1.6;
+      const pads = [[S[0], top, -6], [G[0], yb + pt, -13.5], [D[0], yb + D[1], -8]];
+      g.add(mboxes(pads.map(([x, y, z], i) => [i === 1 ? 2.4 : 3.4, 0.25, i === 1 ? 2.4 : 3.4, x, y + 0.12, z]), au));
+      // 閘極焊墊底下一根穿過保護層的柱子，接到閘極金屬
+      g.add(mboxes([[1.4, pt - G[3] - G[1], 1.4, G[0], yb + G[3] + G[1] + (pt - G[3] - G[1]) / 2, -13.5]], mt));
+      g.add(bondWires(K, pads.map(([x, y, z], i) => [[x, y + 0.25, z], [x, ly + 0.5, lz], i === 1 ? 3.6 : 4.8]), 0.3, wireMat(K)));
+      g.add(mboxes(pads.map(([x]) => [3.8, 1, 5, x, ly, lz]), leadMat(K)));
       return g;
     }
 
@@ -4276,14 +4811,8 @@
       const rev = !!p.rev, sg = rev ? -1 : 1;
       const rotor = new T.Group();
       const bm = K.mat(rev ? -0.12 : 0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
-      for (let i = 0; i < 7; i++) {
-        const a = i * Math.PI * 2 / 7;
-        const b = box(r * 0.72, r * 0.4, d * 0.18, bm);
-        b.position.set(Math.cos(a) * r * 0.56, Math.sin(a) * r * 0.56, 0);
-        b.rotation.z = a + Math.PI / 2;
-        b.rotation.y = 0.46 * sg;                       // 攻角：平的看起來像葉輪玩具
-        rotor.add(b);
-      }
+      // 2026-09-26：彎刀形葉片（見 rotorBlades）；反轉那一組攻角與後掠都反過來
+      rotor.add(new T.Mesh(rotorBlades(7, r * 0.26, r * 0.92, r * 0.46, d * 0.14, 0.5 * sg, sg), twoSided(K, bm)));
       // 葉根：葉片是**從輪轂長出來**的，所以根部要有一圈實體把它們連起來
       const root = cyl(r * 0.3, d * 0.6, K.mat(-0.2, { metal: 0.3, rough: 0.6 }), 16);
       root.rotation.x = Math.PI / 2; rotor.add(root);
@@ -5084,19 +5613,32 @@
 
     /* 導電碳黑粒子：★ 它是一條一條**貫穿上下電極的鏈**，不是均勻的黑色。
        只畫「變紅」不畫「變厚＋斷鏈」就沒有解釋機制。膨脹的實際比例查不到，本圖不寫百分比。*/
+    /* 2026-09-26 細緻化：以前是 9×6 的整齊方陣（看起來像一盤彈珠，不是鏈）。
+       現在：7 條從下電極**隨機游走**到上電極的鏈，每一節是 2～3 顆黏在一起的一團（碳黑本來就是葡萄串狀的聚集體），
+       再撒一些沒有連上的零星聚集體 —— 「滲流網路」這件事要看得出「有的連通、有的沒有」。
+       依據（WebSearch 摘要）：PPTC 是結晶性高分子＋高導電碳黑，碳黑聚集體間距夠小時形成三維滲流網路。
+       亂數用固定種子（每次畫出來一樣，驗收才比得了）。*/
     function cpCarbon(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const at = [], nx = 9, ny = 6;
-      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
-        const jit = ((i * 7 + j * 13) % 5 - 2) * w * 0.012;
-        /* ⚠ z 一定要落在剖面**前方**（≈ 0），不是本體中心（−d/4）：
-           halfFace 那片切面貼在 z = 0 的前面，擺在後面就整批被它擋住，
-           畫了等於沒畫（第一版就是這樣，截圖上 PPTC 是一塊純色）。*/
-        at.push([(-(nx - 1) / 2 + i) * (w * 0.88 / nx) + jit,
-          (-(ny - 1) / 2 + j) * (h * 0.8 / ny), 0]);
+      let sd = 97; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+      const r = Math.min(w, h) * 0.034, at = [];
+      const blob = (x, y, z) => {                              // 一團聚集體：2～3 顆
+        const n = 2 + (rnd() < 0.5 ? 1 : 0);
+        for (let k = 0; k < n; k++) at.push([x + (rnd() - 0.5) * r * 1.6, y + (rnd() - 0.5) * r * 1.4, z + rnd() * r * 0.6]);
+      };
+      const nc = 7;
+      for (let c = 0; c < nc; c++) {
+        let x = (-(nc - 1) / 2 + c) * (w * 0.8 / nc) + (rnd() - 0.5) * w * 0.04;
+        const steps = 9;
+        for (let i = 0; i <= steps; i++) {
+          const y = -h * 0.42 + i * (h * 0.84 / steps);
+          blob(x, y, r * 0.2);
+          x += (rnd() - 0.5) * w * 0.05;
+        }
       }
-      g.add(instOf(new T.SphereGeometry(Math.min(w, h) * 0.038, 7, 5),
+      for (let i = 0; i < 16; i++) blob((rnd() - 0.5) * w * 0.86, (rnd() - 0.5) * h * 0.76, r * 0.2);   // 沒連上的零星聚集體
+      g.add(instOf(new T.SphereGeometry(r, 8, 6),
         K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.82, metal: 0.08 }), at));
       return g;
     }
@@ -5137,25 +5679,47 @@
       const mt = K.mat(0.3, { rough: 0.3, metal: 0.86 });
       g.add(mboxes(halfSlab(w * 0.94, h * 0.07, d * 0.94, h * 0.42)
         .concat(halfSlab(w * 0.94, h * 0.07, d * 0.94, -h * 0.42)), mt));
-      g.add(instOf(new T.CylinderGeometry(w * 0.03, w * 0.03, h * 0.8, 8), mt,
-        [[-w * 0.26, -h * 0.82, -d * 0.2], [w * 0.26, -h * 0.82, -d * 0.2]]));
+      // 2026-09-26：兩根引線從上下電極各自接出、繞到同一側往下，中段一道折彎（插件的 kink），不是兩根直棍子
+      const lg = [];
+      [[-w * 0.26, h * 0.42, 1], [w * 0.26, -h * 0.42, -1]].forEach(([x, y0, up]) => {
+        const pts = [new T.Vector3(x, y0, -d * 0.2)];
+        if (up > 0) pts.push(new T.Vector3(x - w * 0.2, y0, -d * 0.2), new T.Vector3(x - w * 0.2, -h * 0.3, -d * 0.2));
+        pts.push(new T.Vector3(x, -h * 0.62, -d * 0.2), new T.Vector3(x + w * 0.05, -h * 0.85, -d * 0.2), new T.Vector3(x, -h * 1.05, -d * 0.2), new T.Vector3(x, -h * 1.3, -d * 0.2));
+        lg.push(new T.TubeGeometry(new T.CatmullRomCurve3(pts, false, 'catmullrom', 0.2), 40, w * 0.03, 8, false));
+      });
+      g.add(new T.Mesh(mergeGeos(lg), mt));
       return g;
     }
 
     /* MOV 的 ZnO 晶粒：★ 一堆**大小不一的多邊形**，不是一塊均質陶瓷 ——
        畫成均質方塊就不是 MOV，那跟 NTC 長得一模一樣。
        晶粒的實際尺寸與數量查不到，圖上是示意。*/
+    /* 2026-09-26 細緻化：以前是 8×5 的整齊方陣（大小有變、位置沒變 —— 一眼就是程式排的）。
+       現在：抖動過的六角堆積、每顆大小與拉長方向都不同的多面體（低階 icosahedron），
+       後面墊一層暗色的晶界相（富鉍相），晶粒之間的縫看起來就是晶界。
+       依據（WebSearch 摘要，信心中）：商用 MOV 的 ZnO 晶粒約 5～30 µm，晶界富含 Bi₂O₃，
+       ZnO／ZnO 晶界才是非線性的來源。數量與大小仍是示意。*/
     function cpGrain(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const at = [], nx = 8, ny = 5;
-      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
-        const s = 0.62 + ((i * 5 + j * 11) % 7) / 7 * 0.7;
-        at.push([(-(nx - 1) / 2 + i) * (w * 0.9 / nx), (-(ny - 1) / 2 + j) * (h * 0.8 / ny), -d / 4 + d * 0.03,
-          (i % 3) * 0.7, (j % 3) * 0.7, 0, s, s, s]);
+      let sd = 211; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+      const at = [], nx = 10, ny = 7, pw = w * 0.92 / nx, ph = h * 0.86 / ny;
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        const x = (-(nx - 1) / 2 + i + (j % 2 ? 0.5 : 0) - 0.25) * pw + (rnd() - 0.5) * pw * 0.35;
+        const y = (-(ny - 1) / 2 + j) * ph + (rnd() - 0.5) * ph * 0.3;
+        if (Math.abs(x) > w * 0.47) continue;
+        const s = 0.75 + rnd() * 0.55;
+        at.push([x, y, -d * 0.02 - rnd() * d * 0.03, rnd() * 3, rnd() * 3, rnd() * 3, s * (0.9 + rnd() * 0.3), s, s * (0.9 + rnd() * 0.3)]);
       }
-      g.add(instOf(new T.DodecahedronGeometry(Math.min(w / nx, h / ny) * 0.66, 0),
-        K.mat(-0.04, { rough: 0.58, metal: 0.05 }), at));
+      // 第二層（在後面），剖面轉個角度時看得到晶粒是一整塊堆起來的，不是只有一層
+      for (let i = 0; i < 18; i++) {
+        const s = 0.8 + rnd() * 0.5;
+        at.push([(rnd() - 0.5) * w * 0.9, (rnd() - 0.5) * h * 0.82, -d * 0.12 - rnd() * d * 0.25, rnd() * 3, rnd() * 3, 0, s, s, s]);
+      }
+      g.add(instOf(new T.IcosahedronGeometry(Math.min(pw, ph) * 0.62, 0), K.mat(-0.04, { rough: 0.58, metal: 0.05 }), at));
+      // 晶界相：墊在晶粒後面的暗色基體（半剖的那一半）
+      g.add(mboxes(halfSlab(w * 0.96, h * 0.9, d * 0.96, 0).map(a => [a[0], a[1], a[2] * 0.9, a[3], a[4], a[5] - d * 0.03]),
+        K.mat(-0.55, { rough: 0.7, metal: 0.05 })));
       return g;
     }
 
@@ -5170,9 +5734,9 @@
         // z ≈ 0：這條路徑要跑在剖面上，埋進晶粒堆裡就看不到了
         pts.push(new T.Vector3(((i % 3) - 1) * w * 0.16, (-0.5 + i / (n - 1)) * h * 0.86, Math.min(w, h) * 0.02));
       }
-      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 30, Math.min(w, h) * 0.018, 6, false),
+      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 30, Math.min(w, h) * 0.009, 6, false),   // 2026-09-26：細一半（示意路徑，不是一條管子）
         K.mat(0, { color: K.css('--dg-fl-trace', '#FFD37A'), glow: 0.35, rough: 0.4, metal: 0.2 })));
-      g.add(instOf(new T.BoxGeometry(w * 0.09, h * 0.014, d * 0.1),
+      g.add(instOf(new T.CylinderGeometry(w * 0.03, w * 0.03, h * 0.012, 12),     // 每一道晶界一個薄圓片（位壘的位置）
         K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), rough: 0.5, metal: 0.1 }),
         pts.slice(1, n - 1).map(v => [v.x, v.y, v.z])));
       return g;
@@ -5181,13 +5745,39 @@
     /* 保護元件的金屬電極 ×2（MOV 與 TVS 共用）：
        ★ 在兩個**相對**的面（上下），不是同一面的兩端 ——
        電流要垂直穿過整疊晶粒／整個 PN 接面，才會撞到裡面那些界面。*/
+    /* 2026-09-26：引腳依元件型態分兩種（場景用 `leads:` 指定）：
+         'radial' ＝ 圓盤型壓敏電阻的兩根徑向引線：焊在上下電極、各自往上、中段一個折彎（插件用的 kink）；
+         'jbend'  ＝ 表面黏著的 TVS（DO-214／SMB 類）：扁平鍍錫引腳從上下電極各拉出去、沿端面往下、
+                    折進本體底下成 J 形（WebSearch：SMB J-Bend 為模封本體＋鍍錫引腳）。*/
     function cpElec(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const mt = K.mat(0.26, { rough: 0.3, metal: 0.88 });
       g.add(mboxes(halfSlab(w, h * 0.1, d, h * 0.45).concat(halfSlab(w, h * 0.1, d, -h * 0.45)), mt));
-      g.add(instOf(new T.CylinderGeometry(w * 0.028, w * 0.028, h * 0.8, 8), mt,
-        [[-w * 0.3, h * 0.9, -d * 0.2], [w * 0.3, h * 0.9, -d * 0.2]]));
+      if (p.leads === 'jbend') {
+        const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), rough: 0.34, metal: 0.62 });
+        const t = h * 0.05, lw = d * 0.3, z = -d * 0.22, out = w * 0.14, bot = -h * 0.62;
+        const L = [];
+        // 上電極 → 往 +x 出去 → 沿端面往下 → 折進底下
+        L.push([out + w * 0.1, t, lw, w / 2 + out / 2 - w * 0.05, h * 0.45, z]);
+        L.push([t, h * 0.45 - bot, lw, w / 2 + out, (h * 0.45 + bot) / 2, z]);
+        L.push([w * 0.2, t, lw, w / 2 + out - w * 0.1, bot, z]);
+        // 下電極 → 往 −x 出去 → 往下 → 折進底下
+        L.push([out + w * 0.1, t, lw, -w / 2 - out / 2 + w * 0.05, -h * 0.45, z]);
+        L.push([t, -h * 0.45 - bot, lw, -w / 2 - out, (-h * 0.45 + bot) / 2, z]);
+        L.push([w * 0.2, t, lw, -w / 2 - out + w * 0.1, bot, z]);
+        g.add(mboxes(L, sn));
+      } else {
+        const r = w * 0.028, geos = [];
+        [[-w * 0.3, h * 0.45], [w * 0.3, -h * 0.45]].forEach(([x, y0]) => {
+          const pts = [new T.Vector3(x, y0, -d * 0.2), new T.Vector3(x, h * 0.62, -d * 0.2), new T.Vector3(x + Math.sign(x) * w * 0.06, h * 0.8, -d * 0.2),
+            new T.Vector3(x, h * 0.98, -d * 0.2), new T.Vector3(x, h * 1.35, -d * 0.2)];
+          // 下電極那一根先沿本體外側繞上來
+          if (y0 < 0) pts.splice(1, 0, new T.Vector3(x + w * 0.24, y0, -d * 0.2), new T.Vector3(x + w * 0.24, h * 0.5, -d * 0.2));
+          geos.push(new T.TubeGeometry(new T.CatmullRomCurve3(pts, false, 'catmullrom', 0.2), 40, r, 8, false));
+        });
+        g.add(new T.Mesh(mergeGeos(geos), mt));
+      }
       return g;
     }
 
@@ -5206,6 +5796,12 @@
       g.add(halfFace(K, w, h * 0.42, d, -h * 0.24, -0.08));
       g.add(mboxes(halfSlab(w * 0.995, h * 0.1, d * 0.995, 0),
         K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), rough: 0.44, metal: 0.1 })));
+      /* 2026-09-26：接面露出晶片側壁的地方蓋一圈玻璃鈍化（glass passivated junction）——
+         晶片邊緣先蝕刻成斜的台面（mesa）、再填玻璃，雪崩才不會在側壁表面先發生。
+         畫在左右兩端與背面（前面是剖面）。*/
+      const gl = K.mat(0.3, { glass: true, rough: 0.12 });
+      g.add(mboxes([[w * 0.06, h * 0.5, d / 2, -w / 2 - w * 0.02, 0, -d / 4], [w * 0.06, h * 0.5, d / 2, w / 2 + w * 0.02, 0, -d / 4],
+        [w * 1.1, h * 0.5, d * 0.05, 0, 0, -d / 2 - d * 0.02]], gl));
       return g;
     }
 
@@ -5240,6 +5836,9 @@
     /* 捲芯：★ 四層（陽極箔／紙／陰極箔／紙）**一起**捲在一個輪上。
        縱剖面看到的是一圈一圈交替的帶；頂面那幾圈同心弧說明它是「捲」出來的，不是疊出來的。
        三層捲起來，上一圈的陽極會直接碰到下一圈的陰極 —— 短路。*/
+    /* 2026-09-26 細緻化：頂面從「同心圓」改成**真的螺旋**（同心圓說的是「一圈一圈疊的」，那正好不是捲）。
+       四條帶子（陽極箔／紙／陰極箔／紙）以同一個節距、錯開四分之一節距一起往外繞 5 圈；
+       縱剖面（z = 0）上看到的每一條直帶，就是螺旋穿過剖面的那一點，兩側交替、半徑每半圈加大一格。*/
     function acCore(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
@@ -5247,22 +5846,36 @@
       g.add(halfTubeY(R, 0, h, K.mat(-0.24, { rough: 0.6, metal: 0.2 })));
       const foil = K.mat(0.36, { rough: 0.3, metal: 0.82 });
       const paper = K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.8, metal: 0.03 });
+      const turns = 5, r0 = R * 0.2, pitch = (R * 0.93 - r0) / turns, rw = pitch * 0.2;
+      const rOf = (th, j) => r0 + pitch * th / (Math.PI * 2) + j * pitch / 4;
+      // 剖面上的直帶：θ = kπ 時螺旋穿過 z = 0
       const fb = [], pb = [];
-      for (let t = 0; t < 4; t++) for (let k = 0; k < 4; k++) {
-        const r = R * (0.24 + (t * 4 + k) * 0.045);
-        [-1, 1].forEach(s => (k % 2 ? pb : fb).push([s * r, 0, -R * 0.02]));
+      for (let k = 1; k <= turns * 2; k++) for (let j = 0; j < 4; j++) {
+        const r = rOf(k * Math.PI, j), x = (k % 2 ? -1 : 1) * r;
+        if (r > R * 0.95) continue;
+        (j % 2 ? pb : fb).push([x, 0, -R * 0.03]);
       }
-      g.add(instOf(new T.BoxGeometry(R * 0.03, h * 0.9, R * 0.03), foil, fb));
-      g.add(instOf(new T.BoxGeometry(R * 0.03, h * 0.9, R * 0.03), paper, pb));
-      const ev = [], od = [];
-      for (let i = 0; i < 6; i++) {
-        const r = R * (0.24 + i * 0.13);
-        const rg = new T.RingGeometry(r, r + R * 0.055, 14, 1, 0, Math.PI);
-        rg.rotateX(-Math.PI / 2); rg.translate(0, h * 0.502, 0);
-        (i % 2 ? od : ev).push(rg);
-      }
-      g.add(new T.Mesh(mergeGeos(ev), foil));
-      g.add(new T.Mesh(mergeGeos(od), paper));
+      g.add(instOf(new T.BoxGeometry(rw, h * 0.9, R * 0.06), foil, fb));
+      g.add(instOf(new T.BoxGeometry(rw, h * 0.9, R * 0.06), paper, pb));
+      // 頂面螺旋帶：只畫留下來的那一半（z ≤ 0，θ ∈ [π, 2π] 的每一圈）
+      const spiral = (j) => {
+        const pos = [], idx = []; let v = 0;
+        for (let t = 0; t < turns; t++) {
+          const a0 = Math.PI + t * Math.PI * 2, N = 20;
+          for (let i = 0; i <= N; i++) {
+            const th = a0 + Math.PI * i / N, r = rOf(th, j), c = Math.cos(th), sn = Math.sin(th);
+            if (r > R * 0.95) break;
+            pos.push(c * (r - rw / 2), h * 0.502, sn * (r - rw / 2), c * (r + rw / 2), h * 0.502, sn * (r + rw / 2));
+            if (i) idx.push(v - 2, v, v + 1, v - 2, v + 1, v - 1);
+            v += 2;
+          }
+        }
+        const gg = new T.BufferGeometry();
+        gg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); gg.setIndex(idx); gg.computeVertexNormals();
+        return gg;
+      };
+      g.add(new T.Mesh(mergeGeos([spiral(0), spiral(2)]), twoSided(K, foil)));
+      g.add(new T.Mesh(mergeGeos([spiral(1), spiral(3)]), twoSided(K, paper)));
       return g;
     }
 
@@ -5431,14 +6044,17 @@
       const [w, h, d] = p.box;
       g.add(mboxes(halfSlab(w, h, d), K.mat(-0.06, { rough: 0.74, metal: 0.18 })));
       g.add(halfFace(K, w, h, d, 0, -0.06));
-      const at = [], n = 10, ny = 5;
-      for (let i = 0; i < n; i++) for (let j = 0; j < ny; j++) {
-        const s = 0.6 + ((i * 3 + j) % 4) * 0.25;
-        // z ≈ 0：粉粒要長在剖面上（埋進本體裡就被 halfFace 擋住了，見 cpCarbon 那一條）
-        at.push([(-(n - 1) / 2 + i) * (w * 0.9 / n), (-(ny - 1) / 2 + j) * (h * 0.8 / ny), 0,
-          0, 0, 0, s, s, s]);
+      /* 2026-09-26：粉粒從 10×5 的整齊方陣改成**隨機撒滿剖面**的大小不一顆粒（壓製粉體本來就是亂的），
+         避開中間繞組經過的那一圈（那裡是銅，不是粉）。尺寸仍是示意。*/
+      let sd = 41; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+      const at = [], R = Math.min(w, d) / 2;
+      for (let i = 0; i < 170; i++) {
+        const x = (rnd() - 0.5) * w * 0.94, y = (rnd() - 0.5) * h * 0.9;
+        if (Math.abs(Math.abs(x) - R * 0.66) < R * 0.2 && Math.abs(y) < h * 0.36) continue;   // 繞組通道
+        const s = 0.5 + rnd() * 0.9;
+        at.push([x, y, 0, rnd() * 3, rnd() * 3, 0, s, s, s]);
       }
-      g.add(instOf(new T.DodecahedronGeometry(Math.min(w, h) * 0.026, 0),
+      g.add(instOf(new T.DodecahedronGeometry(Math.min(w, h) * 0.022, 0),
         K.mat(-0.3, { rough: 0.86, metal: 0.12 }), at));
       return g;
     }
@@ -5446,18 +6062,42 @@
     /* 扁平銅線繞組：★ 斷面是**長方形**（高 > 寬）—— 扁平線立繞，
        同樣空間塞進更多銅，直流電阻更低。畫成圓線就變成另一種做法了。
        一段一段拼成的環就是「繞」出來的，不是一顆環。*/
+    /* 2026-09-26 細緻化：以前是 64 塊小方塊排成四個環（看得出「一段一段」，看不出「一條線繞上去」）。
+       現在是**一條連續的扁平銅帶**沿螺旋往上繞 4.5 圈（立繞 edgewise：銅帶的寬面朝上下、窄邊朝內外，
+       一圈一圈像墊圈一樣往上疊，圈與圈之間有絕緣漆的細縫），兩端各折出去往下接到底面的端子。
+       依據（WebSearch 摘要，信心中）：立繞是扁平線「短邊在內外周」、沿繞線軸螺旋疊起；線圈末端折彎後
+       與磁粉一起壓製成底部電極。
+       ⚠ 卡片寫「斷面高 > 寬」：若「高」指的是沿軸方向，那跟立繞的定義相反（立繞是徑向寬、軸向薄）。
+          幾何照查到的定義畫（徑向寬），卡片文字不在這一輪的修改範圍，已記在回報裡請卡片負責人複查。*/
     function indWind(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
-      const turns = 4, seg = 16, at = [];
-      for (let t = 0; t < turns; t++) for (let i = 0; i < seg; i++) {
-        const a = (i + t * 0.25) / seg * Math.PI * 2;
-        at.push([Math.cos(a) * R * 0.66, (-(turns - 1) / 2 + t) * h * 0.2, Math.sin(a) * R * 0.66,
-          0, -a + Math.PI / 2, 0]);
+      const ri = R * 0.5, ro = R * 0.86;                    // 銅帶內徑／外徑（徑向寬）
+      const turns = 4.5, segs = 44, pitch = h * 0.19, th = pitch * 0.72;   // 軸向厚度 < 間距 → 圈與圈之間有縫
+      const y0 = -pitch * turns / 2;
+      const N = Math.round(turns * segs);
+      const pos = [], idx = [];
+      const ring = (a, y) => { const c = Math.cos(a), s2 = Math.sin(a);
+        return [[c * ri, y - th / 2, s2 * ri], [c * ro, y - th / 2, s2 * ro], [c * ro, y + th / 2, s2 * ro], [c * ri, y + th / 2, s2 * ri]]; };
+      for (let i = 0; i <= N; i++) {
+        const a = i / segs * Math.PI * 2, y = y0 + pitch * i / segs;
+        ring(a, y).forEach(v => pos.push(v[0], v[1], v[2]));
+        if (i) { const b0 = (i - 1) * 4, b1 = i * 4;
+          for (let k = 0; k < 4; k++) { const k2 = (k + 1) % 4; idx.push(b0 + k, b1 + k, b1 + k2, b0 + k, b1 + k2, b0 + k2); } }
       }
-      g.add(instOf(new T.BoxGeometry(R * 0.27, h * 0.17, R * 0.09),
-        K.mat(0.12, { rough: 0.3, metal: 0.92 }), at));
+      const e = (N) * 4; idx.push(0, 2, 1, 0, 3, 2, e, e + 1, e + 2, e, e + 2, e + 3);     // 兩端封口
+      const hg = new T.BufferGeometry();
+      hg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); hg.setIndex(idx);
+      const flat = hg.toNonIndexed(); flat.computeVertexNormals();                            // 方角銅帶要硬邊，不要被抹圓
+      const cu = K.mat(0.12, { rough: 0.3, metal: 0.92 });
+      g.add(new T.Mesh(flat, cu));
+      // 兩端的引出：起點（底、角度 0 → +x 方向）與終點（頂、4.5 圈 → −x 方向）各折出去、往下到底面
+      const lw = ro - ri, yTop = y0 + pitch * turns;
+      g.add(mboxes([[R * 0.3, th, lw, (ro + R * 0.15), y0, (ri + ro) / 2 * 0 ],
+        [th * 1.2, (y0 + h / 2) + th / 2, lw, ro + R * 0.3, (y0 - h / 2) / 2, 0],
+        [R * 0.3, th, lw, -(ro + R * 0.15), yTop, 0],
+        [th * 1.2, yTop + h / 2, lw, -(ro + R * 0.3), (yTop - h / 2) / 2, 0]], cu));
       return g;
     }
 
@@ -5487,6 +6127,9 @@
         K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), rough: 0.36, metal: 0.62 })));
       g.add(instOf(new T.BoxGeometry(w * 0.36, h * 0.5, d * 0.8),
         K.mat(0.2, { rough: 0.3, metal: 0.55 }), [[-w * 0.33, -h * 0.6, 0], [w * 0.33, -h * 0.6, 0]]));
+      // 2026-09-26：端子在兩端各往上折一小段貼著側面（L 形），焊錫才爬得上去、看得出是從繞組末端折出來的
+      g.add(mboxes([[w * 0.03, h * 2.2, d * 0.72, -w * 0.485, h * 1.1, 0], [w * 0.03, h * 2.2, d * 0.72, w * 0.485, h * 1.1, 0]],
+        K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), rough: 0.36, metal: 0.62 })));
       return g;
     }
 
@@ -5546,12 +6189,20 @@
     function resTerm(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
+      /* 2026-09-26：三層端電極改成**包覆式**（C 形：端面＋上面一小段＋下面一小段），
+         外層一層包住內層一層 —— 以前是三片立著的板子，看不出「包」這件事。*/
       [['--dg-m-trace', '#E6B95C', 0.9], ['--dg-m-rack', '#B8C2CC', 0.8], ['--dg-sn', '#e2e7ec', 0.6]]
         .forEach((L, i) => {
-          const t = 1 - i * 0.14, off = w * 0.45 - i * w * 0.05;
           const m = K.mat(0, { color: K.css(L[0], L[1]), metal: L[2], rough: 0.3 });
-          g.add(mboxes([[w * 0.1, h * t, d / 2 * 0.98, -off, 0, -d / 4],
-            [w * 0.1, h * t, d / 2 * 0.98, off, 0, -d / 4]], m));
+          const t = w * 0.022, grow = i * t, hh = h * 0.82 + grow * 2, ov = w * 0.12 + i * w * 0.02, dz = d / 2 * 0.96;
+          const list = [];
+          [-1, 1].forEach(sx => {
+            const xo = sx * (w * 0.46 + grow);
+            list.push([t, hh, dz, xo, 0, -d / 4]);                                   // 端面
+            list.push([ov, t, dz, xo - sx * ov / 2, hh / 2 - t / 2, -d / 4]);          // 上面壓一小段
+            list.push([ov, t, dz, xo - sx * ov / 2, -hh / 2 + t / 2, -d / 4]);         // 下面壓一小段
+          });
+          g.add(mboxes(list, m));
         });
       return g;
     }
@@ -5581,6 +6232,14 @@
       g.add(instOf(new T.BoxGeometry(w * 0.22, h * 0.08, d * 0.3),
         K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 }),
         gridXZ(2, 2, w * 0.66, d * 0.52, -h / 2 - h * 0.04)));
+      /* 2026-09-26：凹穴裡靠支撐那一端有一階**台階**（石英片架在台階上的導電膠，不是架在凹穴底），
+         頂緣一圈可伐合金的**封環**（金屬蓋就是焊在這一圈上），角落是半圓的側面導通槽（castellation）。*/
+      g.add(put(box(w * 0.2, h * 0.3, d - t * 2, K.mat(-0.02, { rough: 0.62, metal: 0.04 })), -w / 2 + t + w * 0.1, -h / 2 + t + h * 0.15, 0));
+      const rt = t * 0.7, ry = h / 2 + h * 0.04;
+      g.add(mboxes([[w, h * 0.08, rt, 0, ry, -d / 2 + rt / 2], [w, h * 0.08, rt, 0, ry, d / 2 - rt / 2],
+        [rt, h * 0.08, d, -w / 2 + rt / 2, ry, 0], [rt, h * 0.08, d, w / 2 - rt / 2, ry, 0]], K.mat(0.1, { rough: 0.3, metal: 0.85 })));
+      g.add(instOf(new T.CylinderGeometry(h * 0.12, h * 0.12, h * 1.002, 10, 1, true), K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.3 }),
+        [[-w / 2, 0, -d / 2], [w / 2, 0, -d / 2], [-w / 2, 0, d / 2], [w / 2, 0, d / 2]]));
       return g;
     }
 
@@ -5589,9 +6248,12 @@
     function xtalMount(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(instOf(new T.CylinderGeometry(w * 0.16, w * 0.22, h, 10),
-        K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), rough: 0.5, metal: 0.6 }),
-        [[-w * 0.25, 0, -d * 0.24], [-w * 0.25, 0, d * 0.24]]));
+      // 2026-09-26：導電膠是點上去再固化的一團（圓頂），不是一根圓柱；底下墊著底座上的鍍金墊
+      g.add(instOf(new T.SphereGeometry(w * 0.2, 14, 10),
+        K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), rough: 0.62, metal: 0.45 }),
+        [[-w * 0.25, 0, -d * 0.24, 0, 0, 0, 1, h / (w * 0.4) * 1.1, 1.1], [-w * 0.25, 0, d * 0.24, 0, 0, 0, 1, h / (w * 0.4) * 1.1, 1.1]]));
+      g.add(instOf(new T.BoxGeometry(w * 0.5, h * 0.1, d * 0.3), K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 }),
+        [[-w * 0.25, -h * 0.5, -d * 0.24], [-w * 0.25, -h * 0.5, d * 0.24]]));
       return g;
     }
 
@@ -5601,9 +6263,11 @@
     function xtalBlank(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(0.34, { rough: 0.1, metal: 0.03, op: 0.62 })));
-      g.add(mboxes([[w * 1.002, h * 0.3, Math.max(0.03, d * 0.06), 0, 0, -d / 2],
-        [w * 1.002, h * 0.3, Math.max(0.03, d * 0.06), 0, 0, d / 2]],
+      /* 2026-09-26：石英片的邊緣是**研磨過的斜角**（bevel／凸面化，抑制不要的振動模態往邊緣跑），
+         用圓角擠出做；半透明，看得到底下的電極與引線。兩條亮邊保留（「被切出來」的晶面）。*/
+      g.add(new T.Mesh(rboxGeo(w, h, d, h * 0.45), K.mat(0.34, { rough: 0.1, metal: 0.03, op: 0.62 })));
+      g.add(mboxes([[w * 0.96, h * 0.3, Math.max(0.03, d * 0.05), 0, 0, -d / 2 + d * 0.02],
+        [w * 0.96, h * 0.3, Math.max(0.03, d * 0.05), 0, 0, d / 2 - d * 0.02]],
         K.mat(0.64, { rough: 0.08, metal: 0.05, op: 0.8 })));
       return g;
     }
@@ -6118,6 +6782,8 @@
     if (!el || !spec || !supported()) return null;
     const o = Object.assign({ color: () => '#8ea0c4', onSeg: null, onBg: null, anim: true, members: null, onStock: null }, opts || {});
     const { THREE, OrbitControls } = await load();
+    const tMount0 = performance.now();   // 2026-09-26：首次畫圖時間（從建場景到第一次 render 完成，不含載入函式庫）
+    let firstDrawMs = null;
     const B = mkBuilders(THREE);
 
     const W = () => Math.max(320, el.clientWidth);
@@ -6364,6 +7030,9 @@
          進場一律 expT = 0（看起來是組裝好的成品），游標移進容器才補間到 1、移開再收回 0。*/
     let expT = 0;
     const explodable = [];
+    /* 2026-09-26：流線跟著它掛的那個零件一起拆開（以前流線是寫死的世界座標，零件一拆開它就懸在半空中，
+       看起來就是 Andy 說的「隨便拉的管線」）。收攏時位移是 0，跟以前一模一樣。*/
+    const flowGroups = [];
     /* ★ 按需渲染（#245）的兩個旗標宣告提前到這裡。
        爆炸補間（#246）在「建完場景、還沒進 tick()」的階段就會呼叫 markDirty()，
        留在原本 tick() 上面那一段（const 宣告）會踩到 TDZ，3D 直接退回平面圖。*/
@@ -6390,6 +7059,7 @@
     const applyExplode = (t) => {
       expT = Math.max(0, Math.min(1, t));
       explodable.forEach(place);
+      flowGroups.forEach(fg => { const e = fg.userData.ex; fg.position.set(e[0] * expT, e[1] * expT, e[2] * expT); });
       bumpShadow();     // 零件真的移動了 → 這一幀要重畫陰影貼圖（見 shadowMap.autoUpdate）
       markDirty();      // #245：補間的每一幀都要真的畫出來，不能被「沒變就不畫」擋掉
     };
@@ -6404,6 +7074,7 @@
       return +m.toFixed(3);
     };
 
+    const tBuild0 = performance.now(); let tBuild1 = 0;
     spec.parts.forEach((p, idx) => {
       const hex = o.color(p.seg) || '#8ea0c4';       // 環節色：只給卡片的小圓點與「被點的那一顆」
       // 零件身分：沒宣告就自動補一個（同場景內唯一，但跟 2D 的 data-part 對不起來）
@@ -6445,7 +7116,8 @@
          點別的環節時它會跟著零件一起淡出；粒子跟走線的電流走同一套 stepFlows。*/
       (spec.flows || []).filter(f => f.part === pkey).forEach(f => {
         const fg = B._flowPath(K, f);
-        fg.userData = { seg: p.seg, part: pkey, idx, flowOf: pkey };
+        fg.userData = { seg: p.seg, part: pkey, idx, flowOf: pkey, ex: p.ex || [0, 0, 0] };
+        if (p.ex) flowGroups.push(fg);
         fg.traverse(x => {
           if (x.isMesh) meshes.push(x);
           if (x.isPoints && x.userData && x.userData.flow) { flowPts.push(x); flowAll.push(x); flowSeen.add(x.geometry); }
@@ -6724,6 +7396,7 @@
     /* 柔和的接觸陰影（兩種模式都要「柔和環境陰影」）：真的 shadow map 要幾百顆 mesh 都 castShadow，
        太貴；改用一片 radial gradient 的圓盤墊在模型底下 —— 1 個 draw call、40 個三角形。
        大小照**拆開之後**的外接盒算，顏色與不透明度走 token（--dg-shadow／--dg-shadow-a）。*/
+    tBuild1 = performance.now() - tBuild0;
     applyExplode(1);
     const shadowMat = new THREE.MeshBasicMaterial({ map: B._spriteTex ? B._spriteTex() : null, transparent: true,
       opacity: 0.4, depthWrite: false, color: new THREE.Color('#000000') });
@@ -6731,6 +7404,8 @@
     const shadowMesh = (() => {
       const bb = new THREE.Box3().setFromObject(root);
       const sz = bb.getSize(new THREE.Vector3());
+      // 微表面的紋理密度跟著場景大小走：整個場景橫跨約 5 張雜訊圖（每一張 128 格 ≈ 螢幕上 1 格 1 像素）
+      DGU.freq.value = 5 / Math.max(20, sz.x, sz.y, sz.z);
       const m = new THREE.Mesh(new THREE.CircleGeometry(1, 40), shadowMat);
       m.rotation.x = -Math.PI / 2;
       m.scale.set(Math.max(sz.x, 1) * 0.72, Math.max(sz.z, 1) * 0.72, 1);
@@ -7143,6 +7818,10 @@
       fill.intensity = palNum('--dg-fill', 0.34); fill.color.copy(palCol('--dg-l-fill', '#ffffff'));
       bounce.intensity = palNum('--dg-bounce', 0.16); bounce.color.copy(palCol('--dg-l-fill', '#ffffff'));
       rim.intensity = palNum('--dg-rim', 0); rim.color.copy(palCol('--dg-l-rim', '#ffffff'));
+      /* 微表面的輪廓光（2026-09-26）：科技模式是一道很弱的亮邊；閱讀模式底色是白的，
+         亮邊會讓零件輪廓融進背景，所以反過來用負值把邊緣壓暗一點（像線稿的外框）。*/
+      DGU.rimK.value = palNum('--dg-rim-k', pal === 'read' ? -0.05 : 0.06);
+      if (DGU.rimC.value) DGU.rimC.value.copy(palCol('--dg-lit', '#ffffff'));
       renderer.toneMappingExposure = palNum('--dg-expo', 1.0);
       shadowMat.color.copy(palCol('--dg-shadow', '#000000')); shadowMat.opacity = palNum('--dg-shadow-a', 0.4);
       /* 卡片、引線、端點、編號圓點的元件色跟著模式重算（科技拉亮、閱讀壓暗，見 calcElColor）；
@@ -7729,6 +8408,7 @@
       controls.update();
       if (!run && !dirty && now0 - lastDraw < 400) return;       // ②③ 靜止：沒變就不畫，400ms 補一張
       renderer.render(scene, camera);
+      if (firstDrawMs == null) firstDrawMs = Math.round(performance.now() - tMount0);
       lastDraw = now0; dirty = false;
       // 自轉時每 4 幀重排一次標籤（引線要跟得上零件）；靜止時畫一次就排一次，才不會晚半秒才對齊
       if (run) { if (++relayout % 4 === 0) layoutLabels(); } else layoutLabels();
@@ -7915,7 +8595,18 @@
       // glass／flowLines：兩種模式的驗收要知道「玻璃材質真的有、流線真的有」
       let glassN = 0, glowN = 0;
       byIdx.forEach(p => { if (!p) return; p.mats.forEach(m => { const u = m.userData || {}; if (u.glass) glassN++; if (u.glow || u.flowLine) glowN++; }); });
-      return { drawCalls: ri.calls, triangles: ri.triangles,
+      /* 2026-09-26 細緻化的量測：micro＝掛了微表面的 mesh 數、meshN＝全部實體 mesh 數（排除流線與墊片），
+         arrows＝流線上的方向箭頭數（驗「粗管子換成細線＋箭頭」真的發生，不是只改了變數）。*/
+      let microN = 0, meshN = 0, arrowN = 0;
+      root.traverse(x => {
+        if (!x.isMesh || !x.material) return;
+        let up = x, fl = false; while (up) { if (up.userData && up.userData.flowOf) { fl = true; break; } up = up.parent; }
+        if (fl) { if (x.userData && x.userData.arrows) arrowN += x.userData.arrows; return; }
+        const u = x.material.userData || {};
+        if (u.ao || u.glow || u.led) return;
+        meshN++; if (u.micro) microN++;
+      });
+      return { drawCalls: ri.calls, triangles: ri.triangles, micro: microN, meshN, arrows: arrowN, firstDrawMs: firstDrawMs,
         parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
         spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
@@ -8168,7 +8859,7 @@
         controls.enableDamping = damp; controls.dampingFactor = df; controls.autoRotate = ar;
         layoutLabels();
       },
-      title: spec.title, sub: spec.sub,
+      title: spec.title, sub: spec.sub, perf: () => ({ build: Math.round(tBuild1), first: firstDrawMs }),
     };
     global.Rack3D.current = view;     // 驗收腳本從這裡拿現場的相機與零件位置
     return view;

@@ -8256,8 +8256,11 @@ def t_batch6_n9(pg, base):
         # 下限從 500 改成 300：mesh 數不是「細節多寡」的指標 —— 2026-09-22 把陣列類收成
         # InstancedMesh 之後，機櫃**更細**但 mesh 只剩 476。真正在驗「走線還在」的是
         # flowVisible == 0（粒子收起來）加上場景仍然有幾百顆物件。
+        # ★ 2026-09-26（3D 細緻化）：下限 300 → 200。為了守住 CEO 訂的「每張 ≤ 300 draw call」，
+        #   HBM 的六層、晶片旁的十顆被動元件、七片扇葉、電池牆、光模組埠都各自併成一個 mesh，
+        #   機櫃的 mesh 數從 380 掉到 280 上下 —— 零件一顆都沒少、畫面更細，跟上一次 500 → 300 是同一個理由。
         ok("靜止時粒子收起來，走線本身還在（圖九 2-1）",
-           s2["flowVisible"] == 0 and s2["meshes"] > 300, s2["flowVisible"])
+           s2["flowVisible"] == 0 and s2["meshes"] > 200, {"flowVisible": s2["flowVisible"], "meshes": s2["meshes"]})
         pg.eval_on_selector("#dgAnim", "b => b.click()")
         pg.wait_for_timeout(700)
 
@@ -14104,6 +14107,122 @@ def t_chips_basic0926(pg, base, code):
     pg.evaluate("() => { try { localStorage.removeItem('tw.ms.years'); } catch (e) {} }")
 
 
+
+# ★ 2026-09-26 Andy（3D 設計專責）：「所有的 3D 圖…需要更細緻、更貼近當前產品，而非看起來就是個長方塊、隨便拉的管線」。
+#   這一段量的是**每一張 3D 場景**的效能上限與細緻化真的有生效（不是「元素存在」）：
+#     ① draw call ≤ 300、三角形 ≤ 150,000（CEO 訂的全站上限）
+#     ② 微表面真的掛上去了（實體 mesh 至少六成帶 micro 材質）；有流線的場景一定有方向箭頭
+#     ③ 首次畫圖（建場景＋第一次 render）不得比改之前慢超過 30%：
+#        把改之前那一版（769a4e5）改名成 Rack3DOld 掛在同一頁，舊／新 ABBA 交錯各重掛 5 次、取最快的一次比
+#        （多給 30ms 的絕對餘裕吸收計時抖動）。
+#     ④ 4× CPU 降速下仍可互動：真的用滑鼠拖一段，相機要動、而且 3 秒內畫得出新的一幀。
+#   ⚠ 一律 --workers 1（有 3D）。
+DG3D_DETAIL_ROUTES = {
+    "ai_server": "industry/ai_server/dg/ai_server", "semiconductor": "industry/semiconductor/dg/ai_adv_packaging",
+    "mlcc": "industry/electronics/dg/mlcc", "foundry": "industry/semiconductor/dg/foundry",
+    "silicon_wafer": "industry/semiconductor/dg/silicon_wafer", "hbm": "industry/semiconductor/dg/hbm",
+    "wide_bandgap": "industry/semiconductor/dg/wide_bandgap", "ic_substrate": "industry/ai_server/dg/ic_substrate",
+    "pcb_rigid": "industry/ai_server/dg/pcb_rigid", "server_psu": "industry/ai_server/dg/server_psu",
+    "liquid_cooling": "industry/ai_server/dg/liquid_cooling", "air_cooling": "industry/ai_server/dg/air_cooling",
+    "switch_wireless": "industry/ai_server/dg/switch_wireless", "panel": "industry/electronics/dg/panel",
+    "motion_axis": "industry/electronics/dg/factory_automation", "machine_tool": "industry/electronics/dg/machine_tool",
+    "resistor_protect": "industry/electronics/dg/resistor_protect", "capacitor": "industry/electronics/dg/capacitor",
+    "power_inductor": "industry/electronics/dg/power_inductor", "ai_interconnect": "industry/ai_server/dg/ai_interconnect",
+}
+DG3D_DETAIL_CALL_MAX = 300
+DG3D_DETAIL_TRI_MAX = 150000
+# 「改之前」的版本：2026-09-26 細緻化開工前的 main（769a4e5）。首次畫圖時間跟它**在同一頁、交錯著量**，
+# 機器忙不忙兩邊一起吃，比的才是程式本身（容器常常有好幾支瀏覽器同時在跑，絕對毫秒數沒有意義）。
+DG3D_DETAIL_OLD_REV = "769a4e5"
+# 4× 降速互動只抽五張優先場景（每張要重開頁面，全跑會超過十分鐘）
+DG3D_DETAIL_THROTTLE = ["foundry", "wide_bandgap", "mlcc", "resistor_protect", "power_inductor"]
+
+# 交錯量測：ABBA 各 5 次、每次之間讓瀏覽器喘口氣，丟掉各自的第一次（第一次要編 shader），取最快的那一次
+_DG3D_AB = """async (id) => {
+  const idle = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 400))));
+  const one = async (R) => { await idle(); const el = document.createElement('div');
+    el.style.cssText = 'width:1200px;position:absolute;left:0;top:0'; document.body.appendChild(el);
+    const keep = window.Rack3D.current; const t0 = performance.now();
+    const v = await R.mount(el, id, { anim: false }); const t = performance.now() - t0;
+    v.dispose(); el.remove(); window.Rack3D.current = keep; return t; };
+  // ABBA 交錯（舊新新舊…）：前一次掛載的收尾（GC、WebGL context 釋放）會落在下一次身上，
+  // 固定「舊→新」的話新版每次都替舊版付這筆錢（2026-09-26 實測：同一支程式量出 1.4～1.9 倍的假紅）
+  const a = [], b = [];
+  for (let i = 0; i < 5; i++) {
+    if (i % 2) { b.push(await one(window.Rack3D)); a.push(await one(window.Rack3DOld)); }
+    else { a.push(await one(window.Rack3DOld)); b.push(await one(window.Rack3D)); }
+  }
+  // 取「最快的那一次」而不是中位數：別的行程搶 CPU 只會讓某幾次變慢、不會讓它變快，
+  // 最快那一次最接近程式本身的成本（容器常常同時跑好幾支瀏覽器）
+  const best = (x) => Math.round(Math.min(...x.slice(1)));
+  return { old: best(a), now: best(b) }; }"""
+
+
+def _dg3d_old_src():
+    """把改之前那一版 three3d.js 從版本庫拿出來、改名成 Rack3DOld（兩版同時掛在同一頁）。拿不到回 None。"""
+    try:
+        r = subprocess.run(["git", "show", f"{DG3D_DETAIL_OLD_REV}:site/three3d.js"], cwd=str(ROOT),
+                           capture_output=True, text=True, timeout=30)
+    except Exception:  # noqa: BLE001
+        return None
+    return r.stdout.replace("global.Rack3D", "global.Rack3DOld") if r.returncode == 0 and r.stdout else None
+
+
+def t_dg3d_detail(pg, base):
+    """3D 細緻化：每張場景的效能上限、微表面／箭頭真的生效、首次畫圖時間、4× 降速仍可互動。"""
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(base, wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d','1'); localStorage.setItem('tw.dganim','0'); } catch (e) {} }")
+    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
+        notes.append("這個環境不支援 WebGL，3D細緻化效能整段跳過")
+        return
+    old_src = _dg3d_old_src()
+    if not old_src:
+        notes.append(f"[3D細緻化] 拿不到 {DG3D_DETAIL_OLD_REV} 的 three3d.js（淺層 clone？），首次畫圖時間的前後對照沒有驗")
+    for sc, route in DG3D_DETAIL_ROUTES.items():
+        T = f"[3D細緻化 {sc}]"
+        if not _l1_open(pg, base, route):
+            fails.append(f"{T} 3D 掛不起來")
+            continue
+        pg.mouse.move(2, 2)
+        pg.wait_for_timeout(500)
+        st = pg.evaluate("() => window.Rack3D.current.stats()")
+        ok(f"{T} draw call ≤ {DG3D_DETAIL_CALL_MAX}（{st['drawCalls']}）", 0 < st["drawCalls"] <= DG3D_DETAIL_CALL_MAX, st["drawCalls"])
+        ok(f"{T} 三角形 ≤ {DG3D_DETAIL_TRI_MAX}（{st['triangles']}）", 0 < st["triangles"] <= DG3D_DETAIL_TRI_MAX, st["triangles"])
+        ok(f"{T} 微表面真的掛上去了（實體 mesh ≥ 60% 帶 micro：{st['micro']}／{st['meshN']}）",
+           st["meshN"] > 0 and st["micro"] >= st["meshN"] * 0.6, {"micro": st["micro"], "meshN": st["meshN"]})
+        nflow = pg.evaluate("(id) => (window.Rack3D.SCENES[id].flows || []).length", sc)
+        if nflow:
+            ok(f"{T} 流線是細線＋方向箭頭（{nflow} 條流線、{st['arrows']} 個箭頭）", st["arrows"] >= nflow * 2, st["arrows"])
+        if old_src and not pg.evaluate("() => !!window.Rack3DOld"):
+            pg.add_script_tag(content=old_src)
+        if old_src and pg.evaluate("() => !!window.Rack3DOld"):
+            ab = pg.evaluate(_DG3D_AB, sc)
+            ok(f"{T} 首次畫圖 {ab['now']}ms ≤ 改之前 {ab['old']}ms × 1.3（同頁交錯量）", ab["now"] <= ab["old"] * 1.3 + 30, ab)
+    # ④ 4× CPU 降速下仍可互動
+    for sc in DG3D_DETAIL_THROTTLE:
+        T = f"[3D細緻化 4×降速 {sc}]"
+        if not _l1_open(pg, base, DG3D_DETAIL_ROUTES[sc]):
+            continue
+        scroll_to(pg, "prod3d")
+        pg.wait_for_timeout(400)
+        cv = pg.evaluate("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height }; }")
+        cdp = pg.context.new_cdp_session(pg)
+        try:
+            cdp.send("Emulation.setCPUThrottlingRate", {"rate": 4})
+            c0 = pg.evaluate("() => (window.__dgC0 = window.Rack3D.current.cam())")
+            pg.evaluate("() => { window.__dgFrames = 0; const c = document.querySelector('#prod3d canvas'); window.__dgT0 = performance.now();"
+                        " const f = () => { window.__dgFrames++; if (performance.now() - window.__dgT0 < 4000) requestAnimationFrame(f); }; requestAnimationFrame(f); }")
+            _dg3d_drag(pg, cv, 220, 40)
+            ok_moved = wait_until(pg, "() => JSON.stringify(window.Rack3D.current.cam()) !== JSON.stringify(window.__dgC0)", 3000)
+            c1 = pg.evaluate("() => window.Rack3D.current.cam()")
+            ok(f"{T} 真的拖得動（相機 3 秒內跟著轉）", bool(ok_moved) or c1 != c0, {"before": c0, "after": c1})
+            fr = pg.evaluate("() => window.__dgFrames")
+            ok(f"{T} 降速下仍在出幀（4 秒內 ≥ 4 幀，不是卡死）", fr >= 4, fr)
+        finally:
+            cdp.send("Emulation.setCPUThrottlingRate", {"rate": 1})
+
+
 # ===================================================================== 個股下方三分頁 0926（claude/stock-tabs-0926c）
 # Andy 2026-09-26 晚：①籌碼四張圖共用一條逐交易日的日期軸、預設近 4 週（≥ 20 交易日）、共用區間切換四張一起換，
 # 集保週資料點落在實際公布日 ②除權息年度圖每年一根（近 10 年或資料最早年起）、沒配息的年份照樣標年份，
@@ -14605,6 +14724,8 @@ SECTIONS = {
     "剖析圖2D3D分段鈕":    lambda pg, b, base, code: t_dg_2d3d(pg, base),
     # ★ 2026-09-26 Andy：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」（⚠ 一律 --workers 1）
     "3D視角鈕與點兩下重設": lambda pg, b, base, code: t_dg3d_ctl(pg, base),
+    # ★ 2026-09-26 Andy（3D 設計專責）：所有 3D 圖細緻化 —— 每張場景的效能上限、微表面／箭頭生效、首次畫圖時間、4× 降速仍可互動（⚠ 一律 --workers 1）
+    "3D細緻化效能":        lambda pg, b, base, code: t_dg3d_detail(pg, base),
     # ★ 2026-09-26 Andy：「幫我檢查所有有這樣過多小數點的問題修正」—— 全站提示框／圖內文字／畫布／頁面文字的長小數普查
     "小數點普查":          lambda pg, b, base, code: t_decimal_audit(b, base, code),
     # ★ 2026-09-26 Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」—— 所有剖析圖 × 1440／800 × 2D 全段落展開＋3D，
@@ -18628,11 +18749,14 @@ L1_BUDGET = {
     # ★ 2026-09-23（DECISIONS #252）：`industry/ai_server` 現在是「族群總覽」那一個分頁，
     #   鏈層級的機櫃圖改成有自己的網址 `/dg/ai_server`。全檔 14 處「一進去就要看到那張圖」的
     #   網址都跟著換這一個字串，**要驗的事情一條都沒有放寬**（不換的話會像 #234 那次一樣安靜跳過＝假綠）。
-    "industry/ai_server/dg/ai_server":                (680, 40000, 15000),
+    # ★ 2026-09-26（Andy：3D 細緻化；CEO 訂全站上限 150,000 三角形／300 draw call）：三角形上限改成「改後量到的 ×1.5」。
+    #   倒角方塊一顆 44 個三角形（原本 12）、MLCC 36 層電極、MOV 多面體晶粒、PPTC 碳黑鏈都是刻意加的細節；
+    #   draw call 上限沒有放寬（大部分場景的 draw call 反而變少了）。逐張數字見「3D細緻化效能」段落。
+    "industry/ai_server/dg/ai_server":                (680, 67000, 15000),
     # ★ 2026-09-22：鏈層級的 `industry/semiconductor` 已經是圖別選單（DECISIONS #234），沒有 3D 鈕，
     #   照舊網址走這一段會安靜地整段跳過（假綠）。改成場景真正掛著的那張圖；
     #   上限照兩種模式之後量到的 165 個 draw call 放一點餘裕。
-    "industry/semiconductor/dg/ai_adv_packaging": (200, 40000, 14400),
+    "industry/semiconductor/dg/ai_adv_packaging": (200, 62000, 14400),
     "industry/electronics/dg/mlcc":      (93,   6000,  1400),
 }
 
@@ -21408,8 +21532,11 @@ def t_e3_protect(pg, base):
 #    ⑥ 卡片：編號圓點、--c ＝ data-dgcolor、字級 ≥ 12px
 #    ⑦ 響應式：1500 兩欄、1100 只有右欄、800 卡片搬到底下＋畫布上編號圓點；沒有卡片出框
 L3_ROUTES = {
-    "ai_server":     ("industry/ai_server/dg/ai_server", 680, 40000),
-    "semiconductor": ("industry/semiconductor/dg/ai_adv_packaging", 200, 40000),
+    # ★ 2026-09-26（Andy：3D 細緻化；CEO 訂全站上限 150,000 三角形／300 draw call）：三角形上限改成「改後量到的 ×1.5」。
+    #   倒角方塊一顆 44 個三角形（原本 12）、MLCC 36 層電極、MOV 多面體晶粒、PPTC 碳黑鏈都是刻意加的細節；
+    #   draw call 上限沒有放寬（大部分場景的 draw call 反而變少了）。逐張數字見「3D細緻化效能」段落。
+    "ai_server":     ("industry/ai_server/dg/ai_server", 680, 67000),
+    "semiconductor": ("industry/semiconductor/dg/ai_adv_packaging", 200, 62000),
     "mlcc":          ("industry/electronics/dg/mlcc", 120, 6000),
 }
 
@@ -22994,7 +23121,8 @@ DG3D_MODULES = {
 
 # 三個場景的效能上限（三角形／draw call）。L3_ROUTES 已經有一份，這裡只是把 draw call 也寫成表，
 # 讓「改前／改後」的對照表有一個固定的欄位。
-DG3D_PERF = {"ai_server": (40000, 680), "semiconductor": (40000, 240), "mlcc": (6000, 120)}
+# ★ 2026-09-26（3D 細緻化；CEO 訂全站上限 150,000 三角形／300 draw call）：三角形上限改成改後量到的 ×1.5（draw call 不放寬）
+DG3D_PERF = {"ai_server": (70000, 680), "semiconductor": (62000, 240), "mlcc": (6000, 120)}
 
 
 def _lab(rgb):
@@ -23542,10 +23670,13 @@ B24_ROUTES = {
     #   上限＝量出來的數字留約一倍餘裕；下限是「不准退回一堆方塊」的地板。
     #   第三代半導體那張的地板刻意低（量出來 424）：它畫的是**一疊薄層的半剖**，
     #   一層就是一塊板 —— 那張圖的資訊量在「層的順序與厚薄關係」，不在多邊形數。
-    "晶圓代工":     ("industry/semiconductor/dg/foundry", 95, 6000, 1200, 7),
-    "矽晶圓":       ("industry/semiconductor/dg/silicon_wafer", 60, 9000, 2000, 9),
+    # ★ 2026-09-26（Andy：3D 細緻化；CEO 訂全站上限 150,000 三角形／300 draw call）：三角形上限改成「改後量到的 ×1.5」。
+    #   倒角方塊一顆 44 個三角形（原本 12）、MLCC 36 層電極、MOV 多面體晶粒、PPTC 碳黑鏈都是刻意加的細節；
+    #   draw call 上限沒有放寬（大部分場景的 draw call 反而變少了）。逐張數字見「3D細緻化效能」段落。
+    "晶圓代工":     ("industry/semiconductor/dg/foundry", 95, 13000, 1200, 7),
+    "矽晶圓":       ("industry/semiconductor/dg/silicon_wafer", 60, 23000, 2000, 9),   # 2026-09-26：晶圓疊每片改成帶 notch 的倒角圓片
     "HBM":          ("industry/semiconductor/dg/hbm", 120, 36000, 14000, 8),
-    "第三代半導體": ("industry/semiconductor/dg/wide_bandgap", 70, 4000, 300, 13),
+    "第三代半導體": ("industry/semiconductor/dg/wide_bandgap", 70, 13000, 300, 13),
 }
 
 _B24_CARDS = """() => { const host = document.getElementById('prod3d');
@@ -25770,9 +25901,12 @@ B28_ROUTES = {
     #   控制器櫃／排屑機／軌道，共 **17** 顆），那是刻意加的，不是「多畫了幾塊」。
     #   這裡原本寫 12（那是 `motion_axis` 一根軸的零件數），從 0923-E 起就一直是紅的。
     "CNC 工具機":   ("industry/electronics/dg/machine_tool", 110, 24000, 5000, 17),
-    "被動保護":     ("industry/electronics/dg/resistor_protect", 60, 14000, 2500, 10),
+    # ★ 2026-09-26（Andy：3D 細緻化；CEO 訂全站上限 150,000 三角形／300 draw call）：三角形上限改成「改後量到的 ×1.5」。
+    #   倒角方塊一顆 44 個三角形（原本 12）、MLCC 36 層電極、MOV 多面體晶粒、PPTC 碳黑鏈都是刻意加的細節；
+    #   draw call 上限沒有放寬（大部分場景的 draw call 反而變少了）。逐張數字見「3D細緻化效能」段落。
+    "被動保護":     ("industry/electronics/dg/resistor_protect", 60, 40000, 2500, 10),
     "鋁電容":       ("industry/electronics/dg/capacitor", 80, 16000, 3000, 14),
-    "電感電阻石英": ("industry/electronics/dg/power_inductor", 70, 14000, 2500, 16),
+    "電感電阻石英": ("industry/electronics/dg/power_inductor", 70, 22000, 2500, 16),
 }
 
 # 批次28 新增的零件字彙（site/three3d.js 的 mkBuilders 檔尾那一段）。
@@ -25794,8 +25928,10 @@ B28_KINDS = ["pnframe", "pnfilm", "pnlgp", "pnledbar", "pnprism", "pnpol", "pngl
 B28_LAYERS = {"cppoly", "reslay", "restrim", "resglass", "resback"}
 
 # 陣列類一律要收成 InstancedMesh，不然光是導光板的 96 顆網點就是 96 個 draw call。
+# ★ 2026-09-26（3D 細緻化）：`indwind` 拿掉 —— 繞組從「64 塊小方塊排成環」（陣列）改成**一條連續的扁銅帶螺旋**，
+#   整條本來就是一個 mesh、一個 draw call，已經不是陣列了；這條棘輪要擋的「一顆一個 draw call」不會發生。
 B28_ARRAYS = {"pnlgp", "pntft", "pnlc", "pncf", "mcballs", "mcbrg", "mcblock",
-              "cpcarbon", "cpgrain", "acpore", "indwind", "xtallid"}
+              "cpcarbon", "cpgrain", "acpore", "xtallid"}
 
 # 每張卡片：編號圓點／中英雙語／台股不留白／最小字級，外加「codes: [] 的那幾顆真的是 0 個晶片」
 _B28_CARDS = """() => { const host = document.getElementById('prod3d');

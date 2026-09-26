@@ -581,3 +581,28 @@
 | 2026-09-22 | mechanical-engineer（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**一條來源打架已記錄並給了處理方式**：B3（A16 時程，TrendForce 說 2026 底量產、Tom's Hardware 標題直接寫 slips to 2027、台積電技術頁寫 2H26 production-ready → 畫面只寫「製程就緒」與「放量說法不一」）。**七條查不到**列在 §C，其中 **C5 是必須被看到的踩雷**：`CLAUDE.md` 記載 WebSearch 摘要曾把「穩懋／宏捷科」譯成「Transphorm／Power Integrations」，所以這張圖不畫那三家化合物半導體代工廠的結構。**最大的結構落差是 §7-D1**：族群 7 檔、供應鏈環節只有 3 家，四檔（5347／3105／8086／4991）完全不在 `supply_chain.yaml` 裡 —— 不是掛錯環節，是**小卡會少列四家**，所以規定畫面上要有一行明講，並把那四家寫進 `none:` 文字。**紅線兩條**：T7（GAA 片間金屬，沒有就是畫成 FinFET）與 N4（背面供電只能出現在 A16） |
 | | tech-illustrator | | |
 | | art-director | | |
+
+
+---
+
+## §3D-細節（2026-09-26，3D 設計專責）
+
+零件清單、編號、位置、爆炸位移、卡片文字**都沒動**；只補「TEM 剖面上真的看得到」的結構。
+
+| 零件 | 補了什麼 | 依據 |
+|---|---|---|
+| 平面電晶體 | S/D 改成**擴散在基板表面下**（原本是凸起的方塊）＋表面矽化物；主動區兩側 STI；閘極改 HKMG 三層（high-k → 功函數金屬 → 填充金屬）＋ SiN 蓋；圓弧外形的間隙壁；溝槽接觸與閘極接觸 | §3-C（G1 high-k 在功函數金屬之下） |
+| FinFET | 鰭改成**上窄下寬、頂端圓弧**的蝕刻剖面；源汲改成**菱形磊晶**、相鄰鰭的菱形併在一起；閘極與鰭交界露出 high-k 內襯細線；SiN 蓋、間隙壁、溝槽接觸 | E1 |
+| 奈米片（GAA） | 奈米片改成**圓角扁片**；源汲是有刻面的六角柱；兩側 STI；四層內間隙壁；溝槽接觸 | §3-A F5／F6 |
+| 閘極金屬（GAA） | high-k 內襯夾在金屬與奈米片之間（交界露出細線）、SiN 蓋、閘極接觸 | §3-C |
+| 12 吋晶圓 | **真的缺一塊的 V 形 notch**（原本是一顆黑方塊）＋圓弧倒角邊；晶粒之間留**切割道**；晶粒頂面貼通用示意的版圖；notch 旁雷射刻號 | E2、§7-A7 |
+| 一顆晶粒 | 頂面版圖＋金屬封環（seal ring）＋切割道（`die` 是共用件，其他場景的晶粒一起受惠） | — |
+
+> 證據等級：全部是 **WebSearch 摘要**（這個容器 WebFetch 被擋），沒有人讀過原文；網址留給下一個人去讀。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| E1 | FinFET 源汲磊晶因 {111} 面生長遠慢於 (110)，自限成**菱形**；相鄰鰭的菱形可以合併 | 中（專利＋論文摘要一致） | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/9437496>、<https://www.researchgate.net/publication/254040613_14_nm_FinFET_Stress_Engineering_with_Epitaxial_SiGe_SourceDrain> |
+| E2 | 切割道約 50～100 µm；邊緣排除區約 1～3 mm | 中 | <https://www.universitywafer.com/300mm-silicon-wafers.html>、<https://ukam.com/practical-guide-to-semiconductor-wafer-dicing-materials-blades-and-process-optimization/> |
+
+⚠ 仍是示意：切割道寬、notch 大小、鰭高寬比都**誇張放大**，副標已寫「示意圖，非實物比例」。
