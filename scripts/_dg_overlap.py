@@ -67,7 +67,7 @@ AUDIT2D_JS = r"""(opt) => {
   if (!host) return { err: 'no host ' + opt.host };
   const issues = [];
   const sx = window.scrollX, sy = window.scrollY;
-  const R = (r) => ({ x: r.left + sx, y: r.top + sy, w: r.width, h: r.height });
+  const R = (r) => ({ x: r.left + sx, y: r.top + sy, w: r.right - r.left, h: r.bottom - r.top });
   const inter = (a, b) => { const x0 = Math.max(a.left, b.left), x1 = Math.min(a.right, b.right), y0 = Math.max(a.top, b.top), y1 = Math.min(a.bottom, b.bottom);
     return (x1 > x0 && y1 > y0) ? { left: x0, right: x1, top: y0, bottom: y1, width: x1 - x0, height: y1 - y0 } : null; };
   const union = (a, b) => ({ left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom),
@@ -93,6 +93,7 @@ AUDIT2D_JS = r"""(opt) => {
   function opac(n, svg) { let o = 1; for (let p = n; p && p !== svg; p = p.parentNode) { if (p.nodeType !== 1) continue; const v = parseFloat(getComputedStyle(p).opacity); if (Number.isFinite(v)) o *= v; } return o; }
   const out = { issues, texts: 0, shapes: 0, svgs: 0 };
   const svgs = [...host.querySelectorAll('svg.dg')].filter(s => !s.closest('.xmini') && s.getBoundingClientRect().width > 0);
+  const allTexts = [];
   svgs.forEach((svg) => {
     out.svgs++;
     const svr = svg.getBoundingClientRect();
@@ -109,6 +110,7 @@ AUDIT2D_JS = r"""(opt) => {
         return { el: t, r, tight };
       }).filter(Boolean);
     out.texts += texts.length;
+    texts.forEach((t) => { if (!t.el.classList.contains('non')) allTexts.push(t); });
     const SHAPES = 'rect,path,circle,ellipse,polygon,polyline,line,image,use';
     const W0 = svr.width * svr.height;
     const shapes = [...svg.querySelectorAll(SHAPES)].filter(s => !s.closest(SKIP_ANC) && !s.querySelector('animateMotion,animate') && shown(s, svg))
@@ -118,9 +120,10 @@ AUDIT2D_JS = r"""(opt) => {
         const cs = getComputedStyle(s);
         const o = opac(s, svg);
         const fo = parseFloat(cs.fillOpacity), so = parseFloat(cs.strokeOpacity);
-        const fill = cs.fill && cs.fill !== 'none' && fo * o > 0.3;
+        const clear = (v) => !v || v === 'none' || v === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(v);   // 透明色＝沒塗
+        const fill = !clear(cs.fill) && fo * o > 0.3;
         const sw = parseFloat(cs.strokeWidth) || 0;
-        const stroke = cs.stroke && cs.stroke !== 'none' && sw > 0 && so * o > 0.3;
+        const stroke = !clear(cs.stroke) && sw > 0 && so * o > 0.3;
         const geo = typeof s.isPointInFill === 'function';
         if (!fill && !stroke && s.tagName !== 'image' && s.tagName !== 'use') return null;
         return { el: s, r, fill, stroke, geo, sw };
@@ -210,6 +213,38 @@ AUDIT2D_JS = r"""(opt) => {
       const I = inter(texts[i].tight, texts[j].tight);
       if (I && I.width > TOL && I.height > TOL) issues.push({ kind: '文字互疊', sec: secOf(texts[i].el), a: descText(texts[i].el), b: descText(texts[j].el), px: +Math.min(I.width, I.height).toFixed(1), rect: R(union(texts[i].r, texts[j].r)) });
     }
+  });
+  // ---------------- 引線（.dglead：卡片 → 畫布邊 → 錨點，HTML 疊在畫布上）穿過畫布裡的字 ----------------
+  // 引線是 1px 左右的細線，照「重疊深度」算永遠 ≤ 2px；但它整條橫著劃過一行字，讀起來就是一道刪除線 ——
+  // 所以這一項改量「穿過字身的長度」：橫線落在字身框內（上下各內縮 2px）且橫跨 > 6px 就算。
+  host.querySelectorAll('svg.dglead').forEach((ld) => {
+    const lr = ld.getBoundingClientRect();
+    ld.querySelectorAll('path').forEach((pth) => {
+      const d = pth.getAttribute('d') || ''; const tok = d.match(/[MHVL]|-?[\d.]+/g) || [];
+      let x = 0, y = 0, i = 0; const segs = [];
+      while (i < tok.length) {
+        const c = tok[i++];
+        if (c === 'M') { x = +tok[i++].replace(',', ''); y = +tok[i++]; }
+        else if (c === 'H') { const nx = +tok[i++]; segs.push([x, y, nx, y]); x = nx; }
+        else if (c === 'V') { const ny = +tok[i++]; segs.push([x, y, x, ny]); y = ny; }
+        else if (c === 'L') { const nx = +tok[i++], ny = +tok[i++]; segs.push([x, y, nx, ny]); x = nx; y = ny; }
+      }
+      segs.forEach(([x1, y1, x2, y2]) => {
+        const X1 = lr.left + Math.min(x1, x2), X2 = lr.left + Math.max(x1, x2), Y1 = lr.top + Math.min(y1, y2), Y2 = lr.top + Math.max(y1, y2);
+        allTexts.forEach((T) => {
+          const b = T.tight;
+          if (Y1 === Y2) {                                   // 橫線
+            if (Y1 <= b.top + 2 || Y1 >= b.bottom - 2) return;
+            const len = Math.min(X2, b.right) - Math.max(X1, b.left); if (len <= 6) return;
+            issues.push({ kind: '引線穿過文字', sec: secOf(T.el), a: descText(T.el), b: '引線（橫）', px: +len.toFixed(1), rect: R({ left: Math.max(X1, b.left) - 20, right: Math.min(X2, b.right) + 20, top: b.top - 6, bottom: b.bottom + 6, width: 0, height: 0 }) });
+          } else if (X1 === X2) {                            // 直線
+            if (X1 <= b.left + 2 || X1 >= b.right - 2) return;
+            const len = Math.min(Y2, b.bottom) - Math.max(Y1, b.top); if (len <= 6) return;
+            issues.push({ kind: '引線穿過文字', sec: secOf(T.el), a: descText(T.el), b: '引線（直）', px: +len.toFixed(1), rect: R({ left: b.left - 6, right: b.right + 6, top: Math.max(Y1, b.top) - 20, bottom: Math.min(Y2, b.bottom) + 20, width: 0, height: 0 }) });
+          }
+        });
+      });
+    });
   });
   // ---------------- HTML 說明卡（v2 外掛）----------------
   const vis = (e) => { if (!e || !e.getClientRects().length) return false; const cs = getComputedStyle(e); return cs.visibility !== 'hidden' && cs.display !== 'none'; };
