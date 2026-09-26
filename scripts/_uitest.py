@@ -32052,7 +32052,8 @@ def _ov_fix_0926b_body(pg, base, code):
         const r = b.getBoundingClientRect(), w = document.getElementById('rotClockMiniWrap').getBoundingClientRect();
         return { open: true, name: ((b.querySelector('.hh b') || {}).textContent || '').trim(), link: (b.querySelector('a.pill') || {}).getAttribute ? b.querySelector('a.pill').getAttribute('href') : '',
                  n: b.querySelectorAll('.ms a').length, pos: getComputedStyle(b).position, at: b.dataset.at || '',
-                 inWheel: r.top >= w.top - 1 && r.bottom <= w.bottom + 1, l: r.left, r: r.right, t: r.top, b: r.bottom }; }"""
+                 inWheel: r.top >= w.top - 1 && r.bottom <= w.bottom + 1, inView: r.top >= 0 && r.bottom <= innerHeight,
+                 l: r.left, r: r.right, t: r.top, b: r.bottom }; }"""
 
     def diff(a, b):
         out = {}
@@ -32085,8 +32086,9 @@ def _ov_fix_0926b_body(pg, base, code):
                    p["name"] == d["name"] and p["link"] == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
                 ok(f"★ {tag} 面板打開後「昨日資金去向」與左欄卡片的 top／高度都沒動（≤ 1px）", not diff(m0, m1), diff(m0, m1))
                 ok(f"{tag} 面板是浮在輪盤上的覆蓋卡（absolute）、完全落在輪盤範圍內", p["pos"] == "absolute" and p["inWheel"], p)
+                ok(f"{tag} 面板整張在畫面內（貼著剛點的那顆，不會跑到輪盤另一端的畫面外）", p["inView"], p)
                 covered = p["l"] <= d["x"] <= p["r"] and p["t"] <= d["y"] <= p["b"]
-                ok(f"{tag} 面板沒有蓋到剛點的那顆（點{'上' if pick == 'high' else '下'}半部 → 面板貼{'下' if pick == 'high' else '上'}緣）",
+                ok(f"{tag} 面板沒有蓋到剛點的那顆（點{'上' if pick == 'high' else '下'}半部 → 面板放在那顆的{'下' if pick == 'high' else '上'}方）",
                    not covered and p["at"] == ("bottom" if pick == "high" else "top"), (p, d))
             # 收起來的三種方式
             if pick == "high":

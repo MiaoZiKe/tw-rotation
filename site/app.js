@@ -3130,17 +3130,21 @@
        · 預留固定高度：沒點的時候輪盤下面永遠空一塊 120px，而且面板內容比預留的高時照樣跳。
        · 推到卡片外（fixed 浮動視窗）：離開輪盤、看不出是哪一顆點的面板，捲頁還要跟著算位置。
        · ★ 蓋在輪盤自己的上半或下半（採用）：position:absolute 掛在卡片上，完全不佔版面，所以
-         其他卡片的 top／高度一個像素都不會動；位置挑「沒有剛剛那顆點」的那一半 —— 點下半部的族群，
-         面板就貼輪盤上緣，點上半部就貼下緣，剛點的那顆永遠看得到。蓋住的只是輪盤的另一半，
+         其他卡片的 top／高度一個像素都不會動；位置貼著剛點的那顆 —— 點下半部的族群，面板放在那顆上方，
+         點上半部就放在下方（夾在輪盤範圍內），剛點的那顆永遠看得到、面板也就在視線旁邊。蓋住的只是輪盤的一部分，
          點外面／Esc／再點一次同一顆就收（dismissable，跟全站其他就地面板同一套）。
      手機（≤820）的輪盤是 mobile3.js 另一份雷達＋焦點條，不走這支。*/
   function ovRotPlace(box, chartEl, clickY) {
     const card = box.offsetParent; if (!card) return;
     const wrap = chartEl && chartEl.parentNode;
     const cr = card.getBoundingClientRect(), wr = (wrap || chartEl).getBoundingClientRect();
-    const h = box.offsetHeight, pad = 8;
-    const lower = clickY != null && clickY > wr.height / 2;     // 點在輪盤下半 → 面板貼上緣
-    let top = lower ? (wr.top - cr.top + pad) : (wr.bottom - cr.top - h - pad);
+    const h = box.offsetHeight, pad = 8, gap = 18;
+    const er = (chartEl || wrap).getBoundingClientRect();
+    const lower = clickY != null && clickY > wr.height / 2;     // 點在輪盤下半 → 面板放在那顆的上方
+    /* 貼著剛點的那顆放（下半部放它上面、上半部放它下面），不是貼輪盤的最上／最下緣：
+       1024 寬時輪盤有 520px 高，使用者捲到只看得到下半部時點了一顆，面板若跑去輪盤頂端就在畫面外了。*/
+    const dotTop = clickY != null ? er.top - cr.top + clickY : null;
+    let top = dotTop == null ? (wr.bottom - cr.top - h - pad) : lower ? (dotTop - gap - h) : (dotTop + gap);
     top = Math.max(wr.top - cr.top + pad, Math.min(top, wr.bottom - cr.top - h - pad));
     box.style.top = Math.round(top) + 'px';
     box.dataset.at = lower ? 'top' : 'bottom';                   // 驗收用：這次貼在哪一半

@@ -800,7 +800,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 }
 /* ★ 2026-09-26（Andy：「足跡輪盤點擊族群會影響到旁邊的版面」）：#ovRotPanel 改成浮在輪盤上的覆蓋卡 ——
    absolute 掛在 #ovRotCard 上、不佔版面，打開／收起時「昨日資金去向」與左欄卡片一個像素都不動。
-   top 由 app.js ovRotPlace() 算（貼輪盤上緣或下緣，避開剛點的那顆）。底色用不透明的 --panel-2＋陰影，
+   top 由 app.js ovRotPlace() 算（貼著剛點的那顆放在它上方或下方，不蓋到它）。底色用不透明的 --panel-2＋陰影，
    看得出是一張蓋上去的卡，不會跟底下的輪盤線條混在一起。*/
 #ovRotCard{position:relative}
 #ovRotPanel{position:absolute;left:14px;right:14px;z-index:6;margin-top:0;background:var(--panel-2);
