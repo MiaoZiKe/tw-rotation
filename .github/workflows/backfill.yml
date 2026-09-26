@@ -92,6 +92,17 @@ jobs:
                   ii = json.loads(p.read_text()).get("complete", {}).get("index_intraday") or {}
                   if not (isinstance(ii, dict) and ii.get("done")):
                       done = False
+                  # 2026-09-27：三大法人歷史步驟（計畫補齊後才加的，同上理由）＋法人每日續補
+                  # （每天一次，complete.inst_fresh.date＝台北日期；當天還沒做完就放行一輪）。
+                  cp = json.loads(p.read_text()).get("complete", {})
+                  for k in ("inst", "daytrade+sbl@2025-01-01", "dividend+divresult@2009-01-01"):
+                      st = cp.get(k) or {}
+                      if not (isinstance(st, dict) and st.get("done")):
+                          done = False
+                  fr = cp.get("inst_fresh") or {}
+                  today_tp = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+                  if not (isinstance(fr, dict) and fr.get("done") and fr.get("date") == today_tp):
+                      done = False
               skip = done
           # 公司 Logo（2026-09-26）：計畫補齊之後也要讓 Logo 繼續補／到期重抓。
           # 只有 Logo 還有事做時，這一輪改跑 `--datasets logos`（不碰 FinMind，幾分鐘就結束）。

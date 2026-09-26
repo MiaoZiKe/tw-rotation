@@ -95,11 +95,13 @@ def test_year_bars_cash_and_stock_split_and_unknown_when_no_announcement():
 
 
 def test_year_bars_range_bounds():
-    """年份範圍：至少近 10 年；不早於回補起點 2016；不早於價量第一年；end＝asof 年。"""
+    """年份範圍（2026-09-27 改：不再只畫近 10 年）：從這一檔的回補起點畫起；不早於上市（價量／除權息第一年）；end＝asof 年。"""
     rs = _rs([["2026-07-01", "9999", "息", 1.0, 10.0, 9.0, 9.0]])
     d = S.dividends(None, rs, _px("9999", first="2000-01-04"), "9999", 10.0, asof="2026-09-24")
-    assert [b["year"] for b in d["by_year"]][0] == 2017, "近 10 年：2017～2026"
-    assert d["by_year"][-1]["year"] == 2026 and len(d["by_year"]) == 10
+    assert [b["year"] for b in d["by_year"]][0] == 2016, "沒補過 2009 那一步 → 從 2016 回補起點畫起"
+    assert d["by_year"][-1]["year"] == 2026 and len(d["by_year"]) == 11
+    d9 = S.dividends(None, rs, _px("9999", first="2000-01-04"), "9999", 10.0, asof="2026-09-24", cover_from=2009)
+    assert d9["by_year"][0]["year"] == 2009 and d9["coverage"]["cover_from"] == 2009, "補過 2009 → 往前拉到 2009"
     d2 = S.dividends(None, rs, _px("9999", first="2024-03-01"), "9999", 10.0, asof="2026-09-24")
     assert [b["year"] for b in d2["by_year"]] == [2024, 2025, 2026], "上市前不是「沒配」，不畫"
     # 年底那天不算 partial

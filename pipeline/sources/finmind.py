@@ -439,6 +439,52 @@ def margin_history(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
     return out.dropna(subset=["margin_balance"]).reset_index(drop=True)
 
 
+def day_trading(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔當日沖銷（TaiwanStockDayTrading）。2026-09-27 加（個股頁籌碼「當沖」）。
+
+    FinMind 欄位：BuyAfterSale（可否先買後賣）、Volume（當沖成交股數）、BuyAmount、SellAmount（元）。
+    只存原始數字；當沖比率（÷ 當日成交股數）在 build 端用 price_daily 的量算，不在這裡混口徑。
+    """
+    data = http.finmind_get("TaiwanStockDayTrading", data_id=code, start_date=start,
+                            wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty or "date" not in df.columns:
+        return pd.DataFrame()
+    num = lambda c: pd.to_numeric(df.get(c), errors="coerce")  # noqa: E731
+    out = pd.DataFrame({"date": df["date"].astype(str), "code": code,
+                        "daytrade_volume": num("Volume"), "daytrade_buy_amount": num("BuyAmount"),
+                        "daytrade_sell_amount": num("SellAmount"),
+                        "buy_after_sale": df.get("BuyAfterSale", pd.Series([None] * len(df))).astype(str)})
+    return out.dropna(subset=["daytrade_volume"]).reset_index(drop=True)
+
+
+def short_sale_balances(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔融券／借券賣出餘額（TaiwanDailyShortSaleBalances）。2026-09-27 加（個股頁籌碼「借券賣」）。
+
+    借券賣出（SBL short sale）跟融券是兩件事：融券是向券商借、有信用額度與強制回補；
+    借券賣出是向借券系統借來賣，多半是法人避險。頁面分開畫，不加總。單位：股。
+    """
+    data = http.finmind_get("TaiwanDailyShortSaleBalances", data_id=code, start_date=start,
+                            wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty or "date" not in df.columns:
+        return pd.DataFrame()
+    num = lambda c: pd.to_numeric(df.get(c), errors="coerce")  # noqa: E731
+    out = pd.DataFrame({"date": df["date"].astype(str), "code": code,
+                        "sbl_sell": num("SBLShortSalesShortSales"),
+                        "sbl_return": num("SBLShortSalesReturns"),
+                        "sbl_adjust": num("SBLShortSalesAdjustments"),
+                        "sbl_balance": num("SBLShortSalesCurrentDayBalance"),
+                        "sbl_quota": num("SBLShortSalesQuota"),
+                        "short_sell_ms": num("MarginShortSalesShortSales"),
+                        "short_balance_ms": num("MarginShortSalesCurrentDayBalance")})
+    return out.dropna(subset=["sbl_balance"]).reset_index(drop=True)
+
+
 def _level_lookup() -> dict[str, int]:
     """集保級距標籤（去空白、小寫）→ 級距代號。FinMind 的寫法與集保略有出入，
     另外收幾個已知別名。"""

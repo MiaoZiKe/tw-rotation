@@ -363,8 +363,16 @@ def fund_facet(fx: dict | None, revenue: dict | None, profit: dict | None) -> di
             score -= 0.5
     else:
         pts.append("月營收：資料缺")
-    q = [r for r in ((profit or {}).get("quarters") or []) if isinstance(r, (list, tuple)) and len(r) >= 6
-         and _f(r[5]) is not None]
+    q = [r for r in ((profit or {}).get("quarters") or []) if isinstance(r, (list, tuple)) and len(r) >= 6]
+    # ★ 2026-09-27：「近四季」必須是**連續**的四季（紅線：四季不連續不給 TTM）。
+    #   profit.quarters 現在會把缺的季補成空列（季標籤連續），這裡從最新往回取，
+    #   遇到缺 EPS 的季就停 —— 以前直接濾掉空值再取最後四筆，缺季時會拿跨了斷層的四季相加。
+    run: list = []
+    for r in reversed(q):
+        if _f(r[5]) is None:
+            break
+        run.append(r)
+    q = list(reversed(run))
     if len(q) >= 4:
         ttm = sum(_f(r[5]) for r in q[-4:])
         txt = "近四季 EPS：" + "、".join(f"{r[0]} {_f(r[5]):.2f}" for r in q[-4:]) + f"，合計 {ttm:.2f} 元"
