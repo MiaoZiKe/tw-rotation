@@ -106,20 +106,20 @@
         { seg: 'switch', part: 'ag_nvswitch', name: 'NVSwitch 托盤', note: 'NVLink 交換晶片，9 台夾在運算托盤之間',
           kind: 'tray', box: [44, 2.2, 30], at: [0, 62, 1], n: 3, gap: 6, axis: 'y', role: 'sig', ex: [0, 0, 7] },
         { seg: 'adv_pkg', part: 'ag_gpu', name: '運算托盤 · GPU 模組', note: 'CoWoS-L 封裝：邏輯晶粒（SoIC 堆疊）＋ HBM 放在中介層上',
-          kind: 'gpu', box: [9, 2.6, 9], at: [0, 34, 2], n: 4, gap: 10, axis: 'x', role: 'gpu', ex: [0, 0, 11] },
+          kind: 'aggpu', box: [9, 2.2, 9], at: [0, 36.7, 2], n: 4, gap: 10, axis: 'x', role: 'gpu', ex: [0, 0, 11] },
         { seg: 'foundry', part: 'ag_cpu', name: 'CPU（Grace / x86）', note: '與 GPU 同板 C2C 連接，負責排程與資料搬運',
-          kind: 'chip', box: [7, 2, 7], at: [0, 34, -11], n: 2, gap: 34, axis: 'x', ex: [0, 0, 11] },
+          kind: 'chip', box: [7, 2, 7], at: [0, 36.6, -11], n: 2, gap: 34, axis: 'x', ex: [0, 0, 11] },
         { seg: 'hbm', part: 'ag_hbm', name: 'HBM4 記憶體', note: '12–16 層 DRAM 用 TSV 打通；base die 改用邏輯製程、由晶圓代工做',
-          kind: 'hbm', box: [3, 3.2, 3], at: [0, 34.4, 9], n: 4, gap: 10, axis: 'x', ex: [0, 0, 11] },
+          kind: 'aghbm', box: [9, 2.2, 9], at: [0, 36.7, 2], n: 4, gap: 10, axis: 'x', ex: [0, 0, 11], anchor: [3.2, 0.5, 0.7] },
         /* 運算托盤：六塊板子整排像抽屜一樣**半拉出**（+z 11，托盤深 32 的三分之一），
            板上的 GPU／CPU／HBM／CCL 跟著同一個位移走，拉出來之後晶片才看得見。*/
         { seg: 'hdi_pcb', part: 'ag_pcb', name: '主機板 高階 PCB', note: '托盤底板，50 層以上 MLB／30 層以上 UBB（金像電）；IC 載板是另一個環節（欣興/南電/景碩），供應商完全不同',
-          kind: 'pcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y', ex: [0, 0, 11] },
+          kind: 'agpcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y', ex: [0, 0, 11] },
         /* CCL 的卡片色走紅銅（v3 badge 08 橙）：它就是「銅箔」貼在基板上；剖面本身照舊是銅／介電交疊。*/
         { seg: 'ccl', part: 'ag_ccl', name: 'CCL 銅箔基板', note: 'M8/M9 以上超低損耗板材，Df ≤ 0.002 @10GHz；PCB 的原料',
           kind: 'laminate', box: [46, 0.9, 32], at: [0, 29.9, 0], role: 'cu', ex: [0, 0, 11] },
         { seg: 'thermal', part: 'ag_cdu', alias: ['ag_coldplate'], name: '液冷冷板 / CDU', note: '冷板貼晶片 → UQD 快接頭 → manifold 分歧管 → CDU → 機房一次側',
-          kind: 'cdu', box: [4.5, 64, 4.5], at: [31, 38, 0], role: 'cool', ex: [6, 0, 0] },
+          kind: 'agcdu', box: [4.5, 64, 4.5], at: [31, 38, 0], role: 'cool', ex: [6, 0, 0] },
         /* 快接頭走亮橙（v3 §2：亮橙＝電力／快接頭） */
         { seg: 'thermal', part: 'ag_uqd', name: 'UQD 快接頭 / manifold', note: '漏液是 2026 年最被盯的品質風險；OCP 有規格',
           kind: 'uqd', box: [4, 3, 4], at: [24, 20, 12], n: 3, gap: 14, axis: 'y', role: 'pwr', ex: [5, 0, 0] },
@@ -129,7 +129,7 @@
         { seg: 'thermal', part: 'ag_fan', name: '後門風扇模組', note: '液冷之外仍要帶走記憶體與電源的熱；風扇牆掛在後門',
           kind: 'fan', box: [13, 13, 5], at: [0, 24, 19], n: 3, gap: 15, axis: 'x', role: 'air', ex: [0, 0, 9] },
         { seg: 'power', part: 'ag_psu', name: '電源櫃 PSU', note: '今天是 415V AC 進 PSU → 機櫃內 DC busbar；800V HVDC 是下一世代',
-          kind: 'psu', box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y', role: 'pwr', ex: [0, -2, 9] },
+          kind: 'agshelf', box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y', role: 'pwr', ex: [0, -2, 9] },
         { seg: 'power', part: 'ag_bbu', name: 'BBU 電池 / 超級電容', note: '掉電到柴發接手之間撐住；超電處理 GPU 毫秒級功率突波',
           kind: 'battery', box: [18, 4, 26], at: [0, 4, 0], role: 'pwr', ex: [0, -7, 0] },
         { seg: 'optical', part: 'ag_optic', name: '光模組 / CPO', note: '800G–1.6T 前面板可插拔；CPO 把光引擎搬到交換 ASIC 旁',
@@ -659,16 +659,16 @@
           kind: 'pshelf', box: [30, 34, 46], at: [-54, 6, 0], ex: [-18, 0, 0] },
         { seg: 'power', part: 'psu_unit', name: 'PSU 外罩：上蓋、側板、前面板', note: 'CRPS（通用冗餘電源）把**尺寸、連接器與管理介面**標準化，所以不同家的可以互換、可以熱插拔。前面板有把手（抽得出來）與風扇開孔，後端是卡緣不是電線',
           kind: 'pshell', box: [30, 16, 44], at: [0, 4, 0], ex: [0, 20, 0] },
-        { seg: 'power', part: 'psu_board', name: 'PSU 主板：PFC → LLC → 同步整流 → 輸出', note: '四級由後往前排開，而且**每一級的元件形狀不同**：① PFC 是兩顆大電解電容加一個扼流圈（整顆 PSU 裡最大的東西）② LLC 是一顆有繞線窗口的變壓器 ③ 同步整流是輸出側一整排扁平封裝（低壓大電流所以要並聯）④ 輸出是一條厚銅排往卡緣去',
+        { seg: 'power', part: 'psu_board', name: 'PSU 主板：PFC → LLC → 同步整流 → 輸出', note: '四級**由前（交流插座與風扇那一端）往後（卡緣）**沿長邊排開，而且**每一級的元件形狀不同**：① PFC 是兩顆大電解電容加一個扼流圈（整顆 PSU 裡最大的東西）② LLC 是一顆有繞線窗口的變壓器 ③ 同步整流是輸出側一整排扁平封裝（低壓大電流所以要並聯）④ 輸出是一條厚銅排往卡緣去',
           kind: 'pboard', box: [28, 12, 42], at: [0, -2, 0], ex: [0, -8, 0] },
         { seg: 'power', part: 'psu_cardedge', name: '卡緣連接器（card-edge）', note: '★ CRPS 的後端是**上下兩排鍍金接點**，不是一束電線 —— 畫成電線就認不出是伺服器 PSU。它同時走電力與管理訊號（主機讀得到電壓、電流、溫度與告警）',
           kind: 'pcardedge', box: [20, 3.4, 4], at: [0, -2, -23], ex: [0, 0, -20] },
         { seg: 'connector', part: 'psu_busbar', name: '直流匯流排（busbar）', note: '★ **厚銅排，不是圓線**，而且明顯比任何訊號線粗一個量級 —— 幾百安培靠的是截面積。鎖固孔說明它是**鎖**上去的不是焊的。正負兩條中間隔一片絕緣',
           kind: 'pbusbar', box: [10, 46, 8], at: [34, 6, 0], ex: [12, 0, 0] },
         { seg: 'connector', part: 'psu_whip', name: '電源線組（power whip）', note: '從匯流排的分接點拉到每一台運算托盤。股數與線徑對到的是電流容量 —— 電源線束跟訊號線束粗細差很多',
-          kind: 'cable', box: [24, 6, 6], at: [50, -8, 0], ex: [6, -12, 0] },
+          kind: 'pswhip', box: [24, 6, 6], at: [50, -8, 0], ex: [6, -12, 0] },
         { seg: 'power', part: 'psu_vrm', name: '板上降壓 DC-DC／VRM（多相）', note: '★ 畫成**一排等距的電感**才對：一顆電感就是一相，多相輪流出力，電流才分得開、紋波才壓得下去。畫成一顆方塊就看不出「多相」這件事。它一定**緊鄰晶片** —— 電流大、壓降走不遠',
-          kind: 'pvrm', box: [28, 6, 16], at: [68, 3, 12], ex: [12, 8, 0] },
+          kind: 'psvrm', box: [28, 6, 16], at: [68, 3, 12], ex: [12, 8, 0] },
         { seg: 'power', part: 'psu_die', name: 'GPU／ASIC 核心（受電端）', note: '整條供電路徑的終點：電壓降到零點幾伏特、電流上到幾百安培。★ 這一顆是**熱源與受電端，不是電源零件** —— 它由晶圓代工做，不是電源供應商做，所以底下不列電源台股',
           kind: 'die', box: [18, 4, 18], at: [68, 4, -14], ex: [12, 14, 0], codes: [] },
         { seg: 'power', part: 'psu_bbu', name: 'BBU 電池備援模組', note: '★ 掛在**直流側、機櫃裡面**（畫到交流側就變成 UPS 了，那是這張圖最致命的錯）。撐的是「掉電到柴油發電機接手」之間那一段。看得到電芯、看得到串聯的連片、看得到一正一負兩根極柱',
@@ -685,10 +685,13 @@
          用 bidir 讓它每 6 秒換一次方向，那正是 BBU 在做的事。
          狀態燈由 `led` 材質自己呼吸（既有機制）。*/
       flows: [
-        { kind: 'pwr', part: 'psu_whip', r: 0.7, per: 10, speed: 0.34, pts: [[62, -8, 0], [48, -6, 0], [30, -2, 0], [14, -2, 0]] },
-        { kind: 'pwr', part: 'psu_board', r: 0.6, per: 12, speed: 0.4, pts: [[-13, -2, 0], [0, -1, 0], [13, -2, 0], [22, 2, 0]] },
+        /* ★ 2026-09-26 第二批（B 組）修方向：電源線組是**從匯流排拉到托盤**的直流（卡片就是這樣寫的），
+           舊版的粒子從 x 62 往 14 跑、等於把它畫成交流進線 —— 反了。主板那一條改成沿長邊（z）由前往後：
+           交流從前面板的插座進來、直流從後端的卡緣出去。*/
+        { kind: 'pwr', part: 'psu_whip', r: 0.7, per: 10, speed: 0.34, pts: [[36, -8, 0], [44, -6, 0], [54, -9, 0], [62, -8, 0]] },
+        { kind: 'pwr', part: 'psu_board', r: 0.6, per: 12, speed: 0.4, pts: [[0, -2, 20], [-4, 0, 9], [3, 0, -2], [0, -1, -12], [0, -2.5, -20]] },
         { kind: 'pwr', part: 'psu_busbar', r: 0.75, per: 14, speed: 0.3, pts: [[34, -14, 0], [34, 0, 0], [34, 14, 0], [34, 26, 0]] },
-        { kind: 'pwr', part: 'psu_vrm', r: 0.5, per: 14, speed: 0.5, pts: [[34, 20, 0], [50, 12, 8], [64, 5, 12], [68, 4, 12]] },
+        { kind: 'pwr', part: 'psu_vrm', r: 0.5, per: 14, speed: 0.5, pts: [[62, -6, 2], [64, -1, 8], [66, 3, 12], [68, 4, 12]] },
         { kind: 'pwr', part: 'psu_die', r: 0.4, per: 16, speed: 0.6, pts: [[68, 3, 4], [68, 4, -4], [68, 4, -13]] },
         /* BBU：平時充電、掉電放電 —— 同一條線每 6 秒換一次方向 */
         { kind: 'pwr', part: 'psu_bbu', r: 0.5, per: 10, speed: 0.22, bidir: 6,
@@ -781,7 +784,7 @@
           kind: 'fframe', box: [46, 46, 13], at: [-48, 2, 0], ex: [0, 0, -24] },
         { seg: 'thermal', part: 'blade', name: '前轉子：扇葉（有攻角）', note: '★ 扇葉**一定從輪轂長出來**，不可以懸空。每一片都有攻角 —— 平的葉片推不動空氣，只會攪。攻角、片數與外徑決定它的風量與風壓',
           kind: 'frotor', box: [39, 39, 11], at: [-48, 2, 3], ex: [0, 0, 38] },
-        { seg: 'thermal', part: 'hub', name: '輪轂（hub）', note: '一個開口朝後的**杯狀件** —— 馬達與軸承裝在它裡面。畫成實心圓柱就沒地方放馬達了。杯壁內側那一圈方塊是**轉子磁鐵**：外轉子馬達就是把磁鐵貼在輪轂內壁上',
+        { seg: 'thermal', part: 'hub', name: '輪轂（hub）', note: '一個開口朝後的**杯狀件** —— 馬達與軸承裝在它裡面。畫成實心圓柱就沒地方放馬達了。杯壁內側那一圈是**轉子磁鐵**（一整圈環形磁鐵、充磁成 N／S 交替，黏在鋼製轉子軛上）：外轉子馬達就是把磁鐵貼在輪轂內壁上',
           kind: 'fhub', box: [18, 18, 11], at: [-48, 2, 3], ex: [0, 0, 26] },
         { seg: 'thermal', part: 'motor', name: '馬達（定子線圈 ＋ 轉子磁鐵）', note: '★ **馬達一定在輪轂裡**，不在扇框上。定子是鐵芯的齒加上繞在齒上的銅線圈，在內；轉子磁鐵貼在輪轂內壁，在外；中間那一圈空隙是氣隙。底下那一小塊板上有霍爾元件 —— 轉速回授就是從那裡出去的',
           kind: 'fmotor', box: [15, 15, 10], at: [-48, 2, 0], ex: [0, 0, 14] },
@@ -796,7 +799,7 @@
         { seg: 'assembly', part: 'shroud', name: '導風罩（air shroud／duct）', note: '它本身不散熱，但沒有它風會從鰭片旁邊溜掉。出風那一端收窄，氣流才會被逼著穿過鰭片。★ 氣流方向**全程單向、由前到後**，圖上不准出現往回吹的箭頭',
           kind: 'fshroud', box: [48, 20, 34], at: [36, 0, 2], ex: [0, 14, 26] },
         { seg: 'thermal', part: 'fin', name: '散熱鰭片組（heat sink fin stack）', note: '★ **這一格才是熱真正交給空氣的地方；風扇只是把空氣推過來。** 很多人以為「風扇在散熱」，其實風扇只負責換掉鰭片表面那層被加熱的空氣。鰭片的總表面積就是它的本事',
-          kind: 'heatsink', box: [38, 17, 32], at: [36, -14, 0], ex: [0, -8, 0] },
+          kind: 'acsink', box: [38, 17, 32], at: [36, -14, 0], ex: [0, -8, 0] },
         { seg: 'thermal', part: 'heatpipe', name: '熱管（heat pipe）', note: '把熱從晶片底座**橫著**搬到鰭片裡面去 —— 光靠鋁底板傳，遠端的鰭片根本吃不到熱。★ 熱的方向（晶片 → 底座 → 熱管 → 鰭片）跟氣流方向是**垂直交會**的，不是同一條線',
           kind: 'heatpipe', box: [38, 7, 28], at: [36, -26, 0], ex: [0, -20, 0] },
         { seg: 'thermal', part: 'vc', name: '均熱板 VC（當底座）', note: '晶片越大，熱越不可能只靠一塊銅底板攤開。VC 用兩相流把熱先**攤成一個面**再交給熱管與鰭片 —— 熱管是線、VC 是面，這就是兩者的分工',
@@ -1471,6 +1474,8 @@
     abfcore: 'organic', abfbu: 'organic', abftrace: 'cu', abfvia: 'cu',
     abfsr: 'organic', abfpad: 'cu', abfbga: 'sn',
     pcblay: 'pcb', pcbtrc: 'cu', pcbmask: 'pcb', pcbenig: 'cu', pcbvia: 'cu',
+    /* 2026-09-26 第二批（B 組）：AI 伺服器機櫃、電源、液冷、氣冷四張自己的詞（不動共用件）*/
+    aggpu: 'cer', aghbm: 'si', agpcb: 'pcb', agshelf: 'metal', agcdu: 'metal', psvrm: 'pcb', pswhip: 'emc', acsink: 'alu',
     pshelf: 'metal', pshell: 'metal', pboard: 'pcb', pcardedge: 'pcb',
     pbusbar: 'cu', pvrm: 'pcb', pbbu: 'plastic', pscap: 'alu',
     timlay: 'organic', ihslid: 'cu', cplate: 'cu', cpfin: 'cu', cpport: 'metal',
@@ -2231,43 +2236,80 @@
       return mesh;
     }
 
-    // 背板：板子 ＋ 一排排高速連接器
+    /* NVLink 背板 —— ★ 2026-09-26 第二批（B 組）改畫成**銅纜卡匣**（規格書 docs/diagram_specs/ai_server.md §3D-細節 A2）。
+       以前是「一塊 PCB ＋ 蛇行走線 ＋ 15 個連接器」，那是錯的：NVL72 機櫃後方是**四個直立的纜線卡匣**，
+       裡面是五千多條被動銅纜，托盤推進去時背後的連接器直接咬合卡匣前緣那一排插座。
+       所以現在畫：四個鈑金框 ＋ 每個框裡一束直立的黑色銅纜 ＋ 每一層托盤高度一個插座（面朝托盤、前緣一條金色接點）。
+       電流粒子沿四束纜線上下跑（訊號在托盤與交換托盤之間來回，所以用直立的路徑）。
+       draw call 跟舊版一樣是 5 個（框／纜線／插座／接點／粒子），全部是 mboxes 或 InstancedMesh。*/
     function backplane(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.15)));
-      const cm = K.mat(0.25, { metal: 0.55, rough: 0.35 });
-      /* 圖九 2-1：連接器不只是一個方塊，要看得出裡面成排的端子。
-         ★ 2026-09-22：15 個連接器 × 4 個 Mesh ＝ 60 個 draw call → 收成 2 個 InstancedMesh。
-           畫出來的東西一個像素都沒變，省下來的是 58 個 draw call。*/
-      const body = [], term = [];
-      for (let r = -1; r <= 1; r++) for (let c = -2; c <= 2; c++) {
-        body.push([c * w * 0.18, r * h * 0.26, d * 0.35]);
-        for (let k = -1; k <= 1; k++) term.push([c * w * 0.18 + k * w * 0.026, r * h * 0.26, d * 0.62]);
+      const nC = 4, cw = w / nC, fw = cw * 0.86;
+      const steel = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.38 });
+      const fr = [], t = 0.5;
+      const cxs = [];
+      for (let i = 0; i < nC; i++) {
+        const cx = (-(nC - 1) / 2 + i) * cw; cxs.push(cx);
+        fr.push([t, h, d, cx - fw / 2 + t / 2, 0, 0], [t, h, d, cx + fw / 2 - t / 2, 0, 0],   // 兩側導軌
+          [fw, t * 1.4, d, cx, h / 2 - t * 0.7, 0], [fw, t * 1.4, d, cx, -h / 2 + t * 0.7, 0], // 上下蓋
+          [fw, h * 0.98, 0.18, cx, 0, -d / 2 + 0.09]);                                          // 背板（鈑金）
       }
-      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.14, d * 0.9), cm, body));
-      g.add(instOf(new T.BoxGeometry(w * 0.01, h * 0.07, d * 0.5), K.mat(0.55, { metal: 0.8, rough: 0.25 }), term));
-      // 背板是直立的：走線鋪在 x–y 平面上，所以先把走線層轉 90° 再貼上去
-      const tl = traceLayer(K, w, h, 0, { pairs: 4, cycles: 6, dir: 1 });
-      tl.group.rotation.x = -Math.PI / 2; tl.group.position.z = d * 0.52;
-      g.add(tl.group);
-      g.userData.flows = tl.flows.map(f => ({ ...f, rotX: -Math.PI / 2, offZ: d * 0.52 }));
+      g.add(mboxes(fr, steel));
+      // 銅纜：每個卡匣一束直立的黑色纜線（兩排、每排 11 條）。真的有五千多條 —— 這裡是示意密度
+      const cab = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.82, metal: 0.06 });
+      const cl = [];
+      cxs.forEach(cx => { for (let k = 0; k < 11; k++) for (let r = 0; r < 2; r++)
+        cl.push([cx - fw * 0.4 + k * fw * 0.08, 0, -d * 0.18 + r * d * 0.22]); });
+      g.add(instOf(new T.CylinderGeometry(d * 0.1, d * 0.1, h * 0.95, 5, 1, true), cab, cl));
+      // 插座：每一層托盤高度一個，面朝托盤（+z）；前緣一條金色接點＝托盤推進去時咬合的那一排
+      const hs = [], au = [], rows = 13;
+      cxs.forEach(cx => { for (let r = 0; r < rows; r++) {
+        const y = -h / 2 + h * (r + 0.5) / rows;
+        hs.push([cx, y, d * 0.32]); au.push([cx, y, d * 0.5 + 0.06]);
+      } });
+      g.add(instOf(new T.BoxGeometry(fw * 0.62, h / rows * 0.44, d * 0.5), K.mat(-0.2, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 }), hs));
+      g.add(instOf(new T.BoxGeometry(fw * 0.5, h / rows * 0.16, 0.08), K.mat(0.2, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.24 }), au));
+      // 電流粒子：沿四束纜線直立地跑（交換托盤在中段，運算托盤在上下 —— 訊號是上下來回的）
+      const paths = cxs.map(cx => [new T.Vector3(cx, -h * 0.46, d * 0.1), new T.Vector3(cx, h * 0.46, d * 0.1)]);
+      const per = 8, arr = new Float32Array(paths.length * per * 3);
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(arr, 3));
+      const pm = K.reg(new T.PointsMaterial({ size: 0.9, color: K.col(0.78), transparent: true, opacity: 0.92, depthWrite: false, sizeAttenuation: true }));
+      const pt = new T.Points(geo, pm);
+      pt.userData.flow = { paths, per, t: 0, dir: 1, speed: 0.2 };
+      g.add(pt);
       return g;
     }
 
-    // 托盤／NVSwitch：有厚度的圓角底板（有角色就是那個角色的半透明色）＋ 中間一顆晶片 ＋ 散熱鰭片 ＋ 底下 AO
+    /* NVSwitch 托盤 —— ★ 2026-09-26 第二批（B 組，§3D-細節 A3）：
+       每一台交換托盤裡是**兩顆** NVLink Switch 晶片（共 144 埠），不是一顆；而且跟運算托盤一樣是**液冷**的，
+       晶片上壓的是銅冷板、不是鋁鰭片。後緣一排插座咬合銅纜卡匣，前面板只有管理埠。
+       四個 mesh（鈑金／AO／晶片與插座／冷板與水管），跟舊版一樣。*/
     function tray(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      // 托盤是鈑金件：銀灰金屬實體（規格書一-4）。以前是角色色半透明，整排托盤被染成同一個藍
+      // 托盤是鈑金件：銀灰金屬實體（規格書一-4）
       g.add(rbox(w, h * 0.7, d, h * 0.25, K.mat(-0.18, { metal: 0.8, rough: 0.4 })));
       g.add(aoPad(K, w, d, -h * 0.35 - 0.9));
-      // 托盤中央那顆是交換／控制晶片：石墨灰模封（不是跟鈑金同色的一塊凸起）
-      g.add(put(box(w * 0.26, h * 0.7, d * 0.4, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.18, rough: 0.6 })), 0, h * 0.5, 0));
-      const fin = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.42 });
-      const at = [];
-      for (let i = -5; i <= 5; i++) at.push([i * w * 0.028, h * 0.8, 0]);
-      g.add(instOf(new T.BoxGeometry(w * 0.012, h * 1.1, d * 0.38), fin, at));
+      const top = h * 0.35;
+      // 兩顆交換晶片（封裝載板比冷板大一圈，看得出下面是一顆晶片）＋ 後緣插座 ＋ 前面板管理埠：同一種石墨灰
+      const gr = [];
+      [-1, 1].forEach(s => gr.push([w * 0.2, h * 0.16, d * 0.3, s * w * 0.2, top + h * 0.08, -d * 0.02]));
+      for (let i = 0; i < 6; i++) gr.push([w * 0.11, h * 0.5, d * 0.05, (-2.5 + i) * w * 0.15, top + h * 0.25, -d / 2 + d * 0.04]);
+      [-1, 1].forEach(s => gr.push([w * 0.05, h * 0.3, d * 0.04, s * w * 0.4, top + h * 0.15, d / 2 - d * 0.03]));
+      g.add(mboxes(gr, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.18, rough: 0.6 })));
+      // 銅冷板 ×2 ＋ 串起來的進出水管（接到後緣的快接頭）
+      const cu = K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), metal: 0.9, rough: 0.24 });
+      const cg = [];
+      [-1, 1].forEach(s => { const b = new T.BoxGeometry(w * 0.13, h * 0.2, d * 0.2); b.translate(s * w * 0.2, top + h * 0.26, -d * 0.02); cg.push(b); });
+      [-0.03, 0.03].forEach(dz => {
+        const c = new T.CatmullRomCurve3([new T.Vector3(-w * 0.2, top + h * 0.4, dz * d - d * 0.02), new T.Vector3(0, top + h * 0.5, dz * d - d * 0.02),
+          new T.Vector3(w * 0.2, top + h * 0.4, dz * d - d * 0.02), new T.Vector3(w * 0.3, top + h * 0.4, -d * 0.3), new T.Vector3(w * 0.3, top + h * 0.3, -d * 0.48)]);
+        cg.push(new T.TubeGeometry(c, 16, h * 0.07, 5, false));
+      });
+      // 右緣一對快接頭：跟運算托盤一樣接到機櫃側立柱那一層的分支
+      [-0.9, 0.9].forEach(z => { const q = new T.CylinderGeometry(0.45, 0.45, 1.8, 10); q.rotateZ(Math.PI / 2); q.translate(w / 2 + 0.4, top, z); cg.push(q); });
+      g.add(new T.Mesh(mergeGeos(cg), cu));
       return g;
     }
 
@@ -2406,21 +2448,30 @@
     function cdu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      /* 液冷是規格書一-3 准許透明的三種之一：青綠半透明、粗糙度低、**有厚度**
-         （外殼半透明 ＋ 內層較飽和的水體，轉過去看得出「裡面有水」而不是一片色紙）。*/
+      /* 液冷是規格書一-3 准許透明的三種之一：青綠半透明外殼、**有厚度**。
+         ★ 2026-09-26 第二批（B 組，§3D-細節 L5）：這一支現在只有液冷這張在用（機櫃那張改用 agcdu），所以把裡面畫成真的 CDU：
+           ① **兩顆泵**（馬達＋蝸殼，一用一備）② 一個**儲液槽**（半透明，看得到水位）③ 一支**濾芯**（CDU 標配約 50 µm 的過濾）
+           ④ 控制盒與面板（流量、溫度、壓力都在這裡管）⑤ 裡面的供水（冷）與回水（熱）管 ——
+           板式熱交換器是另一個零件（下面那一顆），兩個迴路只在那裡交換熱。*/
       g.add(rbox(w, h, d, w * 0.22, K.mat(0, { color: K.css('--dg-m-cool', '#2FB8A6'), cool: true })));
-      g.add(put(rbox(w * 0.62, h * 0.94, d * 0.62, w * 0.14,
-        K.mat(0, { color: K.css('--dg-fl-cold', '#2FD9C4'), op: 0.78, rough: 0.2, metal: 0.05 })), 0, 0, 0));
-      const pump = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 });
-      [-0.3, 0.1].forEach(fy => g.add(put(cyl(w * 0.42, h * 0.1, pump), 0, fy * h, 0)));
-      // v3：冷水管螢光藍、熱水管發光紅（3D 自己的 token，閱讀模式是粉彩版，不發光）
+      const stL = [];
+      [-0.34, -0.1].forEach(fy => {
+        const m1 = new T.CylinderGeometry(w * 0.16, w * 0.16, w * 0.46, 14); m1.rotateZ(Math.PI / 2); m1.translate(-w * 0.12, fy * h, -d * 0.1); stL.push(m1);   // 馬達
+        const v1 = new T.CylinderGeometry(w * 0.24, w * 0.24, w * 0.14, 16); v1.rotateZ(Math.PI / 2); v1.translate(w * 0.2, fy * h, -d * 0.1); stL.push(v1);     // 蝸殼
+      });
+      { const f = new T.CylinderGeometry(w * 0.1, w * 0.1, h * 0.16, 12); f.translate(w * 0.24, h * 0.06, d * 0.22); stL.push(f); }                              // 濾芯
+      g.add(new T.Mesh(mergeGeos(stL), K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 })));
+      g.add(put(rbox(w * 0.7, h * 0.2, d * 0.6, w * 0.08, K.mat(0, { color: K.css('--dg-fl-cold', '#2FD9C4'), op: 0.78, rough: 0.2, metal: 0.05 })), 0, h * 0.3, -d * 0.05));   // 儲液槽
+      g.add(put(box(w * 0.5, h * 0.14, d * 0.12, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 })), 0, h * 0.08, d * 0.42));     // 控制盒
+      g.add(put(box(w * 0.34, h * 0.06, d * 0.03, K.mat(0, { led: true })), 0, h * 0.1, d * 0.49));                                                               // 面板
+      // v3：冷水管螢光藍、熱水管發光紅 —— 裡面的直立管 ＋ 外面的進出管，各併成一個 mesh
       const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
       const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), glow: true, metal: 0.2, rough: 0.4 });
-      [[0.42, 1, cold], [-0.42, -1, hot]].forEach(([fy, sx, m]) => {
-        const t = put(cyl(w * 0.22, d * 2.4, m, 10), sx * w * 0.2, fy * h, -d * 1.0);
-        t.rotation.x = Math.PI / 2; g.add(t);
+      [[0.42, 1, cold, -0.3], [-0.42, -1, hot, 0.3]].forEach(([fy, sx, m, iz]) => {
+        const a = new T.CylinderGeometry(w * 0.07, w * 0.07, h * 0.8, 8); a.translate(-w * 0.34, 0, iz * d);
+        const b = new T.CylinderGeometry(w * 0.22, w * 0.22, d * 2.4, 10); b.rotateX(Math.PI / 2); b.translate(sx * w * 0.2, fy * h, -d * 1.0);
+        g.add(new T.Mesh(mergeGeos([a, b]), m));
       });
-      g.add(put(box(w * 0.5, h * 0.03, d * 0.5, K.mat(0, { led: true })), 0, h * 0.46, d * 0.52));
       return g;
     }
 
@@ -2429,15 +2480,31 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       /* 快接頭（UQD）是**銅合金**件（規格書一-4 的「銅件／接頭／快接頭」），
-         不是銀灰鈑金 —— 圖上看得出它跟機櫃柱子不是同一種東西，才對得上不同的供應商。*/
-      const cuM = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 });
-      const body = put(cyl(w * 0.46, h * 1.15, cuM), 0, 0, 0);
-      body.rotation.z = Math.PI / 2; g.add(body);
-      const ring = put(cyl(w * 0.55, h * 0.3, K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.85, rough: 0.25 })), w * 0.3, 0, 0);
-      ring.rotation.z = Math.PI / 2; g.add(ring);
-      // 軟管是橡膠：深灰、完全不金屬（跟銅接頭的對比就是「金屬 vs 非金屬」）
-      const hose = put(cyl(w * 0.24, d * 2.2, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.85, metal: 0.05 })), -w * 0.9, 0, 0);
-      hose.rotation.z = Math.PI / 2; g.add(hose);
+         不是銀灰鈑金 —— 圖上看得出它跟機櫃柱子不是同一種東西，才對得上不同的供應商。
+         ★ 2026-09-26 第二批（B 組，§3D-細節 L6）：補上真的 UQD 看得到的三樣 ——
+           ① 握持用的**滾花套筒**（一圈縱向細肋，拉它才鬆得開）② 開口端的**閥面**：外圈密封面＋中央一顆彈簧閥芯
+           （兩半一分開，閥芯各自彈回去關住＝「不滴漏」）③ 尾端的**倒鉤接頭**（軟管套在上面）。
+           三種材質各併成一個 mesh（銅／鋼／橡膠），draw call 跟舊版一樣是 3 個。*/
+      const cuL = [], stL = [], rbL = [];
+      const r = w * 0.46;
+      const cx = (rad, len, x, seg) => { const c = new T.CylinderGeometry(rad, rad, len, seg || 14); c.rotateZ(Math.PI / 2); c.translate(x, 0, 0); return c; };
+      cuL.push(cx(r, h * 1.15, 0));                                                           // 本體
+      cuL.push(cx(r * 0.42, w * 0.5, -w * 0.78, 10));                                          // 倒鉤接頭
+      for (let i = 0; i < 3; i++) { const c = new T.CylinderGeometry(r * 0.42, r * 0.56, w * 0.08, 10); c.rotateZ(Math.PI / 2); c.translate(-w * 0.6 - i * w * 0.12, 0, 0); cuL.push(c); }
+      stL.push(cx(r * 1.2, h * 0.34, w * 0.3, 16));                                            // 套筒
+      for (let i = 0; i < 12; i++) {                                                           // 滾花：縱向細肋
+        const a = i * Math.PI / 6, b = new T.BoxGeometry(h * 0.32, r * 0.08, r * 0.14);
+        b.translate(w * 0.3, Math.cos(a) * r * 1.22, Math.sin(a) * r * 1.22); stL.push(b);
+      }
+      const face = h * 0.575 + w * 0.02;
+      stL.push(cx(r * 0.36, w * 0.06, face + w * 0.02, 12));                                   // 中央閥芯
+      { const ring = new T.TorusGeometry(r * 0.66, r * 0.12, 5, 16); ring.rotateY(Math.PI / 2); ring.translate(face, 0, 0); stL.push(ring); }   // 閥面外圈的密封面
+      g.add(new T.Mesh(mergeGeos(cuL), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 })));
+      g.add(new T.Mesh(mergeGeos(stL), K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.85, rough: 0.25 })));
+      /* 橡膠軟管。⚠ 驗收用「體積最大的那顆 mesh」代表模組顏色（t_dg3d_pbr 的「銅件」＝ag_uqd），
+         所以軟管不可以跟閥面那一圈併在一起（併了外接盒會橫跨整顆接頭、比銅本體還大）。*/
+      const hose = new T.CylinderGeometry(w * 0.26, w * 0.26, d * 1.6, 10); hose.rotateZ(Math.PI / 2); hose.translate(-w * 0.62 - d * 0.8, 0, 0); rbL.push(hose);
+      g.add(new T.Mesh(mergeGeos(rbL), K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.85, metal: 0.05 })));
       return g;
     }
 
@@ -2554,10 +2621,15 @@
     function optic(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d * 0.86, K.mat(0.05, { metal: 0.82, rough: 0.34 })));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 A6）：800G／1.6T OSFP 的上蓋**本身就是一片鰭片散熱器**
+         （OSFP 跟 QSFP-DD 最好認的差別），所以本體頂面補一排縱向鰭片，跟本體併成一個 mesh；
+         LC 埠與拉環同一種深色、併成一個 mesh —— 8 顆模組省 8 個 draw call，拿去給鰭片用。*/
+      const bodyL = [[w, h * 0.72, d * 0.86, 0, -h * 0.14, 0]];
+      for (let i = 0; i < 5; i++) bodyL.push([w * 0.1, h * 0.3, d * 0.7, (-2 + i) * w * 0.2, h * 0.36, -d * 0.04]);
+      g.add(mboxes(bodyL, K.mat(0.05, { metal: 0.82, rough: 0.34 })));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
-      g.add(mboxes([-1, 1].map(s => [w * 0.3, h * 0.45, d * 0.1, s * w * 0.22, 0, d * 0.44]), port));
-      g.add(put(box(w * 0.7, h * 0.16, d * 0.2, K.mat(0.35, { metal: 0.3, rough: 0.55 })), 0, -h * 0.5, d * 0.52));
+      g.add(mboxes([-1, 1].map(s => [w * 0.3, h * 0.45, d * 0.1, s * w * 0.22, -h * 0.1, d * 0.44])
+        .concat([[w * 0.7, h * 0.16, d * 0.2, 0, -h * 0.5, d * 0.52]]), port));
       // 圖九 2-1：可插拔光模組後端的金手指 —— 成排、鍍金、前緣倒角
       g.add(fingers(K, w * 0.86, h * 0.1, d * 0.12, 7, -h * 0.28, -d * 0.44));
       g.add(put(box(w * 0.18, h * 0.12, d * 0.03, K.mat(0, { led: true })), 0, h * 0.4, d * 0.45));
@@ -2594,6 +2666,173 @@
         g.add(new T.Mesh(new T.TubeGeometry(curve, 12, h * 0.05, 5, false),
           K.mat(0, { color: hex, glow: 0.3, rough: 0.6, metal: 0.05 })));
       });
+      return g;
+    }
+
+    /* ================================================================ AI 伺服器機櫃專用（2026-09-26 第二批，B 組）
+       規格書 docs/diagram_specs/ai_server.md §3D-細節。這幾支**只有 ai_server 用**：
+       原本的 gpu／hbm／pcb／psu／cdu 是跟 CoWoS 剖面、交換器板卡、液冷那幾張共用的，
+       平行作業的規則是「不准改共用件」，所以另開 ag* 這組詞（建議之後合併進共用）。
+       小陣列一律用 InstancedMesh ＋ 平的 BoxGeometry（12 個三角形），不用倒角 —— 機櫃的三角形棘輪是 67,000。*/
+    const agGeo = (w, h, d, x, y, z) => { const b = new T.BoxGeometry(w, h, d); b.translate(x || 0, y || 0, z || 0); return b; };
+    /* 有厚度的圓環（沿 z）：外徑 ro、內徑 ri、長 len。用 ExtrudeGeometry 做成**封閉實體**，
+       內外壁與兩端面都在 —— 不必靠雙面材質（雙面會讓 three 多編一支 shader）。風扇輪轂、軸承內外環、磁鐵環都用它。*/
+    const agRing = (ro, ri, len, seg) => {
+      const s = new T.Shape(); s.absarc(0, 0, ro, 0, Math.PI * 2, false);
+      const hole = new T.Path(); hole.absarc(0, 0, ri, 0, Math.PI * 2, true); s.holes.push(hole);
+      const g = new T.ExtrudeGeometry(s, { depth: len, bevelEnabled: false, curveSegments: Math.max(8, Math.round((seg || 20) / 2)) });
+      g.translate(0, 0, -len / 2); return g;
+    };
+
+    /* GPU 模組（B200 式）：深藍載板 ＋ 中介層 ＋ **兩顆**光罩尺寸的運算晶粒（中間留一道縫＝晶粒對晶粒的高速介面）。
+       HBM 是另一個零件（ag_hbm），站在同一片中介層上、晶粒左右各一排四顆 —— 兩個零件同一個位置、同一個爆炸位移。
+       box 高 2.2：底面剛好坐在運算托盤板面（y 35.6）上，以前 y 34 會被板子吃掉半截（A 組交接的結構錯誤 1）。*/
+    const AGPKG = (h) => ({ sub: -h / 2 + h * 0.14, subH: h * 0.28, ipY: -h / 2 + h * 0.28 + h * 0.07, ipH: h * 0.14,
+      top: -h / 2 + h * 0.42 });                       // top ＝ 中介層頂面（晶粒與 HBM 的底）
+    function agGpu(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box, L = AGPKG(h);
+      g.add(put(box(w, L.subH, d, K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.35, rough: 0.45 })), 0, L.sub, 0));
+      g.add(put(box(w * 0.86, L.ipH, d * 0.8, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.3, rough: 0.5 })), 0, L.ipY, 0));
+      // 補強環（stiffener）：載板外圈一圈金屬框，大尺寸有機載板靠它壓住翹曲（CoWoS 剖面那張也有這一件）
+      const sy = L.sub + L.subH / 2 + h * 0.05, sr = w * 0.035;
+      g.add(mboxes([[w * 0.97, h * 0.1, sr, 0, sy, -d * 0.47], [w * 0.97, h * 0.1, sr, 0, sy, d * 0.47],
+        [sr, h * 0.1, d * 0.9, -w * 0.47, sy, 0], [sr, h * 0.1, d * 0.9, w * 0.47, sy, 0]], K.mat(0.2, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.3 })));
+      // 兩顆晶粒：同一個幾何實例化兩次，頂面各自吃到一張版圖（floor 貼圖是依局部座標取樣的）
+      const dw = w * 0.25, dd = d * 0.56, dh = h * 0.3;
+      const ft = floorTex();
+      const dm = K.mat(0.3, { color: K.css('--dg-si', '#33488a'), metal: 0.36, rough: 0.33, floor: ft ? { tex: ft, sx: dw, sz: dd } : null });
+      g.add(instOf(new T.BoxGeometry(dw, dh, dd), dm, [[-dw / 2 - w * 0.012, L.top + dh / 2, 0], [dw / 2 + w * 0.012, L.top + dh / 2, 0]]));
+      return g;
+    }
+    /* HBM：每顆 GPU 八疊（晶粒左右各一排四疊）。每一疊＝底層邏輯晶粒 ＋ 四段 DRAM（層縫壓暗）——
+       真的是 8～12 層，這個尺寸畫不出來，四段是示意（副標已寫「示意圖，非實物比例」）。
+       DRAM 段與層縫各併成一個幾何：一顆 GPU 的八疊只要 2 個 draw call。*/
+    function agHbm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box, L = AGPKG(h);
+      const sw = w * 0.13, sd = d * 0.12, sh = h * 0.3, n = 4;
+      const dram = [], seam = [];
+      [-1, 1].forEach(s => { for (let i = 0; i < 4; i++) {
+        const x = s * w * 0.36, z = (-1.5 + i) * d * 0.15;
+        dram.push(agGeo(sw, sh * 0.22, sd, x, L.top + sh * 0.11, z));                       // 底層邏輯晶粒
+        for (let k = 0; k < n; k++) {
+          const y0 = L.top + sh * 0.22 + k * sh * 0.78 / n;
+          dram.push(agGeo(sw * 0.96, sh * 0.78 / n * 0.8, sd * 0.96, x, y0 + sh * 0.78 / n * 0.4, z));
+          seam.push(agGeo(sw * 0.9, sh * 0.78 / n * 0.2, sd * 0.9, x, y0 + sh * 0.78 / n * 0.9, z));
+        }
+      } });
+      g.add(new T.Mesh(mergeGeos(dram), K.mat(0.05, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.5, metal: 0.25 })));
+      g.add(new T.Mesh(mergeGeos(seam), K.mat(-0.5, { rough: 0.85 })));
+      return g;
+    }
+
+    /* 運算托盤主機板（Bianca 式）：以前沿用共用的 `pcb`，那一支畫了**三條插槽**＋前緣金手指 ——
+       但這塊板上的 CPU 記憶體（LPDDR5X）是**直接焊在板上**的，沒有 DIMM 插槽；
+       對外的是**後緣的 NVLink 盲插連接器**（推進去咬合銅纜卡匣）與**前緣的網卡籠架與 E1.S 硬碟**（冷通道那一側）。
+       GPU 腳位前方一排電感＝多相供電（電流太大、壓降走不遠，所以緊貼 GPU）。
+       六個 mesh：板／AO／石墨灰小件（一個 InstancedMesh）／金屬件（一個）／走線／走線上的電流。*/
+    function agPcb(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(-0.25, { rough: 0.72, metal: 0.08 })));
+      g.add(aoPad(K, w, d, -h / 2 - 1.2));
+      const y0 = h / 2;
+      // 石墨灰小件：LPDDR5X（每顆 CPU 左右各四顆）、GPU 前方的供電電感、前緣網卡晶片
+      const sm = [];
+      [-17, 17].forEach(cx => [-1, 1].forEach(s => { for (let i = 0; i < 4; i++)
+        sm.push([cx + s * 4.9, y0 + 0.22, -13.5 + i * 1.7, 0, 0, 0, 1.4, 0.44, 1.3]); }));
+      [-15, -5, 5, 15].forEach(cx => { for (let i = 0; i < 6; i++)
+        sm.push([cx - 3.4 + i * 1.36, y0 + 0.36, 8.1, 0, 0, 0, 1.0, 0.72, 0.9]); });
+      [-18, -10, 10, 18].forEach(cx => sm.push([cx, y0 + 0.2, 12.2, 0, 0, 0, 2.2, 0.4, 2.2]));
+      g.add(instOf(new T.BoxGeometry(1, 1, 1), K.mat(0.1, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.55, metal: 0.18 }), sm));
+      // 金屬件：前緣網卡籠架 ×4、E1.S 硬碟架 ×4、後緣 NVLink 盲插連接器 ×4
+      const mt = [];
+      for (let i = 0; i < 4; i++) mt.push([3.4, 1.1, 2.6, -20.2 + i * 3.9, y0 + 0.55, d / 2 - 1.3]);
+      for (let i = 0; i < 4; i++) mt.push([2.2, 0.9, 3.6, 6.4 + i * 4.2, y0 + 0.45, d / 2 - 1.8]);
+      /* ⚠ 這一組金屬件的外接盒不可以比板子大：驗收用「體積最大的那顆 mesh」代表這個模組的顏色（t_dg3d_pbr），
+         金屬件散佈整塊板、高度一超過板厚，PCB 模組就會被量成銀灰色。所以全部壓在 1.1 以內。*/
+      [-16.5, -5.5, 5.5, 16.5].forEach(x => mt.push([7, 1.0, 1.4, x, y0 + 0.5, -d / 2 + 0.7]));
+      g.add(mboxes(mt, K.mat(0.15, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.36 })));
+      // 右緣一對液冷快接頭（冷在前、熱在後）：托盤推進去時對上機櫃側立柱那一層的分支（每台托盤各自拿水、各自回水）
+      const qg = [];
+      [-0.9, 0.9].forEach(z => {
+        const c = new T.CylinderGeometry(0.45, 0.45, 1.8, 10); c.rotateZ(Math.PI / 2); c.translate(w / 2 + 0.4, y0 + 0.5, z); qg.push(c);
+        const r = new T.CylinderGeometry(0.58, 0.58, 0.5, 10); r.rotateZ(Math.PI / 2); r.translate(w / 2 + 1.1, y0 + 0.5, z); qg.push(r);
+        const t = new T.CylinderGeometry(0.22, 0.22, 4, 6); t.rotateZ(Math.PI / 2); t.translate(w / 2 - 2.2, y0 + 0.5, z); qg.push(t);
+      });
+      g.add(new T.Mesh(mergeGeos(qg), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 })));
+      // 板面的蛇行等長差動對：訊號由 GPU 往後緣的 NVLink 連接器（-z）
+      const tl = traceLayer(K, w, d, h * 0.55, { pairs: 4, cycles: 5, dir: -1 });
+      g.add(tl.group);
+      return g;
+    }
+
+    /* 電源櫃（1U power shelf）：六顆熱插拔 PSU 並排（5＋1 冗餘）＋ 左邊一格電源管理控制器（PMC）。
+       前面板看得到每一顆的風扇孔、把手、狀態燈；後面是**夾在機櫃直流匯流排上的銅夾**（50V 直流，不是一束電線）。
+       舊版用共用的 `psu`（一顆大 PSU 的外殼），看不出「一台電源櫃裡有六顆」這件事。*/
+    function agShelf(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h, d, h * 0.18, K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.4, rough: 0.5 })));
+      g.add(aoPad(K, w, d, -h / 2 - 0.8));
+      const pmcW = w * 0.1, bw = (w * 0.96 - pmcW) / 6, x0 = -w * 0.48 + pmcW;
+      const fz = d / 2 + 0.06;
+      const face = [], fan = [], ring = [], led = [], met = [];
+      for (let i = 0; i < 6; i++) {
+        const cx = x0 + bw * (i + 0.5);
+        face.push([bw * 0.92, h * 0.84, 0.3, cx, 0, fz]);
+        fan.push([cx - bw * 0.1, h * 0.04, fz + 0.18, Math.PI / 2, 0, 0]);
+        ring.push([cx - bw * 0.1, h * 0.04, fz + 0.2]);
+        met.push([bw * 0.14, h * 0.62, 0.36, cx + bw * 0.33, 0, fz + 0.2]);                  // 把手
+        led.push([cx + bw * 0.33, h * 0.36, fz + 0.4]);
+      }
+      met.push([pmcW * 0.8, h * 0.74, 0.34, -w * 0.48 + pmcW / 2, 0, fz + 0.1]);             // 管理控制器
+      g.add(mboxes(face, K.mat(-0.28, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.35, rough: 0.55 })));
+      const fr = Math.min(bw * 0.34, h * 0.36);
+      g.add(instOf(new T.CylinderGeometry(fr, fr, 0.08, 14), K.mat(-0.6, { rough: 0.9, metal: 0.05 }), fan));
+      g.add(instOf(new T.TorusGeometry(fr * 0.62, fr * 0.07, 3, 14), K.mat(0.2, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 }), ring));
+      g.add(mboxes(met, K.mat(0.25, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.38 })));
+      g.add(instOf(new T.BoxGeometry(bw * 0.12, h * 0.1, 0.06), K.mat(0, { led: true }), led));
+      // 後面：夾住機櫃直流匯流排的兩片銅夾（正負各一），厚 —— 幾百安培靠截面積
+      g.add(mboxes([[w * 0.12, h * 0.5, d * 0.08, -w * 0.08, 0, -d / 2 - d * 0.04], [w * 0.12, h * 0.5, d * 0.08, w * 0.08, 0, -d / 2 - d * 0.04]],
+        K.mat(0.4, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.28 })));
+      return g;
+    }
+
+    /* 液冷立柱（機櫃側）：半透明外殼裡是**供水／回水兩根直立主管**（冷、熱分開），
+       面向機櫃那一側每一層托盤高度有一對分支 ＋ 快接頭（每台托盤各自拿水、各自回水＝並聯），
+       底部兩顆泵（備援）。舊版是一根青色柱子加兩顆泵，看不出「一冷一熱、每層一對接頭」。*/
+    function agCdu(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h, d, w * 0.22, K.mat(0, { color: K.css('--dg-m-cool', '#2FB8A6'), cool: true })));
+      const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
+      const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), glow: true, metal: 0.2, rough: 0.4 });
+      const pr = w * 0.13;
+      [[-1, cold], [1, hot]].forEach(([s, m]) => g.add(put(cyl(pr, h * 0.9, m, 10), 0, h * 0.03, s * d * 0.2)));
+      // 分支：朝機櫃（-x）伸出去，每層一對（冷在前、熱在後）
+      /* 九層分支對準九台托盤的高度（六塊運算托盤板 y 11～51、三台交換托盤 y 56／62／68），收攏時剛好對上托盤右緣的快接頭 */
+      const lv = [11, 19, 27, 35, 43, 51, 56, 62, 68].map(y => y - p.at[1]).filter(y => Math.abs(y) < h / 2 - 1);
+      const bc = [], bh = [], qd = [];
+      for (let i = 0; i < lv.length; i++) {
+        const y = lv[i];
+        bc.push([-w * 0.45, y, -d * 0.2, 0, 0, Math.PI / 2]); bh.push([-w * 0.45, y, d * 0.2, 0, 0, Math.PI / 2]);
+        qd.push([-w * 0.85, y, -d * 0.2, 0, 0, Math.PI / 2], [-w * 0.85, y, d * 0.2, 0, 0, Math.PI / 2]);
+      }
+      const bg = new T.CylinderGeometry(pr * 0.5, pr * 0.5, w * 0.9, 6, 1, true);
+      g.add(instOf(bg, cold, bc)); g.add(instOf(bg.clone(), hot, bh));
+      g.add(instOf(new T.CylinderGeometry(pr * 0.85, pr * 0.85, w * 0.26, 8), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 }), qd));
+      // 兩顆泵（備援）＋ 一支濾芯：同一種金屬，併成一個 mesh
+      const pm = [];
+      [-0.42, -0.3].forEach(fy => { const c = new T.CylinderGeometry(w * 0.4, w * 0.4, h * 0.08, 14); c.translate(0, fy * h, 0); pm.push(c); });
+      { const c = new T.CylinderGeometry(w * 0.18, w * 0.18, h * 0.12, 10); c.translate(w * 0.1, -h * 0.17, 0); pm.push(c); }
+      g.add(new T.Mesh(mergeGeos(pm), K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 })));
+      [[0.42, 1, cold], [-0.42, -1, hot]].forEach(([fy, sx, m]) => {
+        const t = put(cyl(w * 0.22, d * 2.4, m, 10), sx * w * 0.2, fy * h, -d * 1.0);
+        t.rotation.x = Math.PI / 2; g.add(t);
+      });
+      g.add(put(box(w * 0.5, h * 0.03, d * 0.5, K.mat(0, { led: true })), 0, h * 0.46, d * 0.52));
       return g;
     }
 
@@ -3221,14 +3460,21 @@
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.7, rough: 0.32 });
       const wick = K.mat(0, { color: K.css('--dg-wick', '#8f6a45'), rough: 0.88, metal: 0.12 });
       const vap = K.mat(0, { color: K.css('--dg-vap', '#24324a'), rough: 0.8, metal: 0.05 });
-      g.add(put(box(w, h * 0.2, d, cu), 0, -h * 0.4, 0));                       // 下銅板
-      g.add(put(box(w * 0.96, h * 0.12, d * 0.96, wick), 0, -h * 0.24, 0));     // 燒結銅粉毛細層
-      g.add(put(box(w * 0.96, h * 0.34, d * 0.96, vap), 0, h * 0.02, 0));       // 蒸氣腔（真空）
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 V1）：
+         ① **上蓋板底下也有一層毛細**（上下兩面都燒結銅粉：下面是蒸發端、上面是冷凝端，液體沿支撐柱流回來）
+         ② 一側的**封口注液管**（抽真空、注入少量工作流體之後壓扁焊死 —— 每一片 VC 都有這個小尾巴）
+         ③ 四周一圈**焊邊**（上下兩片是焊起來的，所以邊緣比腔體寬一圈）
+         上下銅板、焊邊與注液管併成一個 mesh；上下毛細一個 mesh；支撐柱仍是 InstancedMesh。*/
+      const cuL = [agGeo(w, h * 0.2, d, 0, -h * 0.4, 0), agGeo(w, h * 0.2, d * 0.52, 0, h * 0.3, -d * 0.24),
+        agGeo(w * 1.03, h * 0.08, d * 0.03, 0, -h * 0.28, d * 0.5)];
+      { const tube = new T.CylinderGeometry(h * 0.08, h * 0.12, w * 0.1, 8); tube.rotateZ(Math.PI / 2); tube.translate(w * 0.54, -h * 0.28, d * 0.2); tube.scale(1, 0.6, 1); cuL.push(tube); }
+      g.add(new T.Mesh(mergeGeos(cuL), cu));
+      g.add(new T.Mesh(mergeGeos([agGeo(w * 0.96, h * 0.12, d * 0.96, 0, -h * 0.24, 0),       // 下毛細（蒸發端）
+        agGeo(w * 0.96, h * 0.08, d * 0.5, 0, h * 0.16, -d * 0.24)]), wick));                  // 上毛細（冷凝端，只在蓋著的那一半看得到）
+      g.add(put(box(w * 0.96, h * 0.3, d * 0.96, vap), 0, -h * 0.02, 0));                     // 蒸氣腔（真空）
       // 支撐柱：把上下板撐開，不然大氣壓會把腔體壓扁
       g.add(instOf(new T.CylinderGeometry(Math.min(w, d) * 0.028, Math.min(w, d) * 0.028, h * 0.34, 8), cu,
         gridXZ(5, 4, w * 0.19, d * 0.22, h * 0.02)));
-      // 上銅板只蓋一半 —— 剖開才看得到裡面，這張圖要講的就是裡面
-      g.add(put(box(w, h * 0.2, d * 0.52, cu), 0, h * 0.3, -d * 0.24));
       return g;
     }
 
@@ -3247,9 +3493,11 @@
         new T.Vector3(-w * 0.48, 0, d * 0.3), new T.Vector3(-w * 0.1, 0, d * 0.32),
         new T.Vector3(w * 0.18, 0, d * 0.05), new T.Vector3(w * 0.3, 0, -d * 0.24),
         new T.Vector3(w * 0.48, 0, -d * 0.3)]);
-      const tube = new T.Mesh(new T.TubeGeometry(curve, 30, r, 10, false), cu);
-      tube.scale.y = 0.5;                        // 壓扁：熱管貼上晶片那一段一定是扁的
-      g.add(tube);
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 V2）：冷凝端補上**壓扁焊死的封口尾巴**（抽真空注液後封起來的地方），
+         跟管身併成同一個幾何（壓扁改成烘進幾何，不再靠 mesh 的 scale）。*/
+      const tg = new T.TubeGeometry(curve, 30, r, 10, false); tg.scale(1, 0.5, 1);
+      const tail = new T.CylinderGeometry(r * 0.35, r, r * 1.6, 8); tail.rotateZ(-Math.PI / 2); tail.scale(1, 0.35, 1); tail.translate(w * 0.48 + r * 0.8, 0, -d * 0.3);
+      g.add(new T.Mesh(mergeGeos([tg, tail]), cu));
       // 切開的那一端：管壁毛細（環）＋ 中央蒸氣道。三層剖面＝它不是一根實心銅棒
       const end = put(cyl(r * 0.78, r * 0.34, wick, 14), -w * 0.49, 0, d * 0.3);
       end.rotation.z = Math.PI / 2; end.scale.z = 0.5; g.add(end);
@@ -4764,100 +5012,162 @@
        3D 這張把「一顆 PSU 拆開」當主角：電源架拉出一顆 → 外罩掀起來 → 主板上四級由後往前排開。*/
 
     /* 電源架（power shelf）：一排 PSU 槽位，其中一格**空著**——
-       那一格就是 N+1 冗餘的畫面證據（少一顆還撐得住）。*/
+       那一格就是 N+1 冗餘的畫面證據（少一顆還撐得住），也正是中間那顆 PSU 被抽出來的地方。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P1）：每顆裝著的 PSU 前面板補上**風扇格柵、把手**；
+         空槽看得到兩條**導軌**與最裡面的**卡緣插座**（PSU 推進去就是插在這裡，所以它不需要任何電線）。
+       ⚠ 實機的 AI 機櫃電源櫃是「1U、六顆並排」（見 ai_server 那張的電源櫃）；這裡為了跟拆出來那一顆同一個比例，畫成三格直疊，是示意。*/
     function psuShelf(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.38 });
       const t = h * 0.05;
-      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
-        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
-        [w, h, t, 0, 0, -d / 2 + t / 2]], st));                       // 框
       const slotH = h / 3.4, pw = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.42, rough: 0.5 });
       const at = [];
       for (let i = 0; i < 3; i++) at.push([0, (i - 1) * (h / 3.2), d * 0.04]);
+      const ey = at[1][1], fz = d * 0.04 + d * 0.45;            // 空槽的高度、裝著的 PSU 前面板位置
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2],
+        // 空槽的兩條導軌（PSU 就是沿著它滑進去的）
+        [w * 0.05, slotH * 0.08, d * 0.86, -w * 0.42, ey - slotH * 0.34, d * 0.02], [w * 0.05, slotH * 0.08, d * 0.86, w * 0.42, ey - slotH * 0.34, d * 0.02]], st));
       // 中間那一格刻意留空：N+1 —— 一顆失效時另外兩顆接手
       g.add(instOf(new T.BoxGeometry(w * 0.9, slotH * 0.74, d * 0.9), pw, [at[0], at[2]]));
-      g.add(put(box(w * 0.9, slotH * 0.74, d * 0.9,
-        K.mat(-0.55, { rough: 0.9, metal: 0.08 })), at[1][0], at[1][1], at[1][2]));   // 空槽（暗）
+      const dark = K.mat(-0.55, { rough: 0.9, metal: 0.08 });
+      g.add(put(box(w * 0.9, slotH * 0.74, d * 0.9, dark), at[1][0], at[1][1], at[1][2] - d * 0.03));   // 空槽（暗）
+      // 前面板：風扇孔（暗）＋ 格柵與把手（金屬）
+      const fr = slotH * 0.28, fx = w * 0.18;
+      g.add(instOf(new T.CylinderGeometry(fr, fr, 0.2, 16), dark, [at[0], at[2]].map(a => [fx, a[1], fz + 0.1, Math.PI / 2, 0, 0])));
+      const gm = [];
+      [at[0], at[2]].forEach(a => {
+        [0.92, 0.55].forEach(k => { const r = new T.TorusGeometry(fr * k, fr * 0.06, 3, 18); r.translate(fx, a[1], fz + 0.25); gm.push(r); });
+        [0, 1].forEach(j => { const s = new T.BoxGeometry(fr * 1.8, fr * 0.07, 0.12); s.rotateZ(j * Math.PI / 2); s.translate(fx, a[1], fz + 0.25); gm.push(s); });
+        gm.push(agGeo(w * 0.22, slotH * 0.1, 0.5, -w * 0.28, a[1], fz + 0.35));                   // 把手
+      });
+      g.add(new T.Mesh(mergeGeos(gm), K.mat(0.2, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.36 })));
+      // 空槽最裡面的卡緣插座（石墨灰）＋ 插槽口那一條金色接點
+      g.add(put(box(w * 0.5, slotH * 0.3, d * 0.06, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 })), 0, ey, -d / 2 + t + d * 0.03));
+      g.add(put(box(w * 0.4, slotH * 0.05, 0.1, K.mat(0.2, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.24 })), 0, ey, -d / 2 + t + d * 0.065));
       // 每一顆的前面板指示燈
       g.add(instOf(new T.BoxGeometry(w * 0.05, slotH * 0.12, d * 0.02), K.mat(0, { led: true }),
-        [[w * 0.38, at[0][1], d / 2 + 0.05], [w * 0.38, at[2][1], d / 2 + 0.05]]));
+        [[w * 0.38, at[0][1], fz + 0.05], [w * 0.38, at[2][1], fz + 0.05]]));
       g.add(aoPad(K, w, d, -h / 2 - 0.8));
       return g;
     }
 
-    /* PSU 外罩：上蓋 ＋ 兩側板 ＋ 前面板（把手、風扇開孔）。
-       它是一個倒 ㄇ 字的鈑金罩 —— 合攏時看起來是一顆完整的 CRPS，
-       爆炸時整個往上掀，底下的主板與四級才露出來。*/
+    /* PSU 外罩：上蓋 ＋ 兩側板 ＋ 前面板。它是一個倒 ㄇ 字的鈑金罩 —— 合攏時看起來是一顆完整的 CRPS，
+       爆炸時整個往上掀，底下的主板才露出來。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P2）：前面板從「一格圓孔陣列」改成真的零件：
+         **一顆風扇**（格柵＋看得到後面的彎刀扇葉）、**交流電源插座**（C20 式，三根銅腳）、把手與卡榫、狀態燈。
+         CRPS 前面就是這四樣 —— 交流從這裡進來，所以主板上的 EMI 濾波器就擺在這一端。*/
     function psuShell(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const st = K.mat(0.05, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.84, rough: 0.34 });
-      const t = h * 0.08;
+      const t = h * 0.08, fz = d / 2;
       g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0],
-        [t, h * 0.92, d, -w / 2 + t / 2, t * 0.4, 0], [t, h * 0.92, d, w / 2 - t / 2, t * 0.4, 0]], st));
-      // 前面板：把手 ＋ 風扇開孔（CRPS 是熱插拔的，把手是它「抽得出來」的證據）
-      g.add(put(box(w * 0.98, h * 0.9, t, st), 0, t * 0.4, d / 2 - t / 2));
-      g.add(put(box(w * 0.3, h * 0.16, t * 1.6, K.mat(0.3, { metal: 0.6, rough: 0.35 })), -w * 0.28, 0, d / 2 + t * 0.4));
-      const hole = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
-      const hl = [];
-      for (let i = -2; i <= 2; i++) for (let j = -1; j <= 1; j++) {
-        hl.push([w * 0.2 + i * w * 0.07, j * h * 0.2, d / 2, Math.PI / 2, 0, 0]);
-      }
-      g.add(instOf(new T.CylinderGeometry(w * 0.024, w * 0.024, t * 2.4, 6, 1, true), hole, hl));
-      g.add(put(box(w * 0.04, h * 0.12, t * 1.4, K.mat(0, { led: true })), w * 0.44, -h * 0.28, d / 2 + t * 0.4));
+        [t, h * 0.92, d, -w / 2 + t / 2, t * 0.4, 0], [t, h * 0.92, d, w / 2 - t / 2, t * 0.4, 0],
+        [w * 0.98, h * 0.9, t, 0, t * 0.4, fz - t / 2]], st));
+      const fx = w * 0.2, fy = t * 0.4, fr = h * 0.33;
+      const dark = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
+      // 暗的：風扇開孔 ＋ 交流插座的凹槽
+      const dk = [new T.CylinderGeometry(fr, fr, t * 1.2, 20)];
+      dk[0].rotateX(Math.PI / 2); dk[0].translate(fx, fy, fz - t * 0.35);
+      dk.push(agGeo(w * 0.13, h * 0.22, t * 1.3, -w * 0.07, fy, fz - t * 0.3));
+      g.add(new T.Mesh(mergeGeos(dk), dark));
+      // 扇葉：從格柵看進去（七片彎刀形，跟氣冷那張同一支幾何）
+      const bl = rotorBlades(7, fr * 0.26, fr * 0.9, fr * 0.46, t * 0.35, 0.5, 1);
+      bl.translate(fx, fy, fz - t * 1.1);
+      g.add(new T.Mesh(bl, K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 })));
+      // 金屬：格柵（兩圈＋四根輻條＋輪轂蓋）、把手、卡榫、插座的三根腳
+      const gm = [];
+      [0.96, 0.62].forEach(k => { const r = new T.TorusGeometry(fr * k, fr * 0.045, 3, 22); r.translate(fx, fy, fz + t * 0.15); gm.push(r); });
+      for (let j = 0; j < 4; j++) { const s = new T.BoxGeometry(fr * 1.9, fr * 0.05, t * 0.3); s.rotateZ(j * Math.PI / 4); s.translate(fx, fy, fz + t * 0.15); gm.push(s); }
+      { const c = new T.CylinderGeometry(fr * 0.24, fr * 0.24, t * 0.4, 14); c.rotateX(Math.PI / 2); c.translate(fx, fy, fz + t * 0.15); gm.push(c); }
+      gm.push(agGeo(w * 0.05, h * 0.5, t * 1.6, -w * 0.38, fy, fz + t * 0.5), agGeo(w * 0.05, h * 0.5, t * 1.6, -w * 0.26, fy, fz + t * 0.5),
+        agGeo(w * 0.17, h * 0.06, t * 1.6, -w * 0.32, fy + h * 0.25, fz + t * 1.0));        // 把手（ㄇ字）
+      gm.push(agGeo(w * 0.04, h * 0.16, t * 0.8, -w * 0.44, fy - h * 0.3, fz + t * 0.3));    // 卡榫
+      [[-0.03, 0.04], [0.03, 0.04], [0, -0.05]].forEach(([dx, dy]) => gm.push(agGeo(w * 0.012, h * 0.06, t * 0.8, -w * 0.07 + dx * w, fy + dy * h, fz)));
+      g.add(new T.Mesh(mergeGeos(gm), K.mat(0.3, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.35 })));
+      g.add(put(box(w * 0.04, h * 0.12, t * 1.4, K.mat(0, { led: true })), w * 0.44, -h * 0.28, fz + t * 0.4));
       return g;
     }
 
-    /* PSU 主板：底殼 ＋ 板子 ＋ **四級由後往前**排開 —— 這是整張圖的主軸。
-         ① PFC（功率因數校正）：大電感 ＋ 大電解電容（整顆 PSU 裡最大的那幾顆）
-         ② LLC 諧振轉換：變壓器（一顆有繞線的大方塊）＋ 諧振電感
-         ③ 同步整流：輸出側一排低壓大電流的功率元件
-         ④ 輸出：厚銅排 → 卡緣
-       ⚠ 每一級的**元件形狀刻意不同**：電容是圓柱、變壓器是有窗口的方塊、整流是一排扁平封裝。
-         全部畫成一樣的小方塊，讀者就看不出這是四個不同的級。*/
+    /* PSU 主板：底殼 ＋ 板子 ＋ 功率級**由前往後**排開 —— 交流從前面板的插座進來，直流從後端的卡緣出去，
+       所以元件就照電走的順序沿著 PSU 的長邊（z）排：
+         ⓪ EMI 濾波器（前端，插座旁）：兩顆共模扼流圈（環形、繞滿銅線）＋ X 電容
+         ① PFC（功率因數校正）：一顆大環形升壓電感 ＋ 功率開關鎖在一片直立的鋁散熱片上
+            ＋ 兩顆大電解電容（PFC 的輸出，整顆 PSU 裡最高的東西）
+         ② LLC 諧振轉換：一顆看得到**繞線窗口**的變壓器（E 形磁芯夾著銅繞組）＋ 諧振電感 ＋ 一小片數位控制卡（直立）
+         ③ 同步整流：輸出側一整排扁平的功率 MOSFET（低壓大電流，所以要並聯）＋ 一排輸出電容
+         ④ 輸出：兩條厚銅排往卡緣去
+       ⚠ 每一級的元件形狀刻意不同（環形／直立鰭片／高圓柱／有窗口的方塊／一排扁平）——
+         全部畫成一樣的小方塊，讀者就看不出這是不同的級。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P3）：以前四級沿 x 排、沒有 EMI 濾波器也沒有散熱片；
+         依材質併成 6 個 mesh（舊版 10 個）。*/
     function psuBoard(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const tray = K.mat(-0.1, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.42 });
       g.add(put(box(w, h * 0.12, d, tray), 0, -h * 0.44, 0));                        // 底殼
-      g.add(put(box(w * 0.94, h * 0.1, d * 0.94,
-        K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, -h * 0.3, 0));  // 板
-      const y0 = -h * 0.25;
-      // ① PFC：大電解電容（圓柱，立著）＋ 扼流圈
-      const alu = K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.72, rough: 0.4 });
-      g.add(instOf(new T.CylinderGeometry(w * 0.075, w * 0.075, h * 0.62, 12), alu,
-        [[-w * 0.3, y0 + h * 0.31, -d * 0.3], [-w * 0.3, y0 + h * 0.31, -d * 0.12]]));
-      g.add(put(box(w * 0.16, h * 0.34, d * 0.16,
-        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.66, metal: 0.14 })), -w * 0.3, y0 + h * 0.17, d * 0.08));
-      // ② LLC：變壓器 —— 有繞線窗口的方塊（跟電容、跟整流都不是同一個形狀）
-      const fer = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.16 });
-      const cuw = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 });
-      g.add(put(box(w * 0.22, h * 0.5, d * 0.3, fer), 0, y0 + h * 0.25, -d * 0.1));
-      g.add(put(box(w * 0.24, h * 0.2, d * 0.2, cuw), 0, y0 + h * 0.25, -d * 0.1));   // 繞線
-      g.add(put(box(w * 0.1, h * 0.26, d * 0.12, fer), 0, y0 + h * 0.13, d * 0.2));   // 諧振電感
-      // ③ 同步整流：輸出側一排扁平的功率元件（低壓大電流，所以是一整排並聯）
-      const pkg = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.55, metal: 0.2 });
-      const rec = [];
-      for (let i = 0; i < 7; i++) rec.push([w * 0.2 + 0, y0 + h * 0.08, (-3 + i) * d * 0.11]);
-      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.16, d * 0.06), pkg, rec));
-      // ④ 輸出：厚銅排往卡緣去（比板上任何一條線都粗一個量級）
-      g.add(put(box(w * 0.3, h * 0.08, d * 0.06, cuw), w * 0.3, y0 + h * 0.04, d * 0.34));
-      g.add(put(box(w * 0.06, h * 0.08, d * 0.7, cuw), w * 0.42, y0 + h * 0.04, 0));
+      const y0 = -h * 0.25;                                                            // 板面
+      const pcbL = [agGeo(w * 0.94, h * 0.1, d * 0.94, 0, -h * 0.3, 0),
+        agGeo(w * 0.02, h * 0.34, d * 0.16, -w * 0.4, y0 + h * 0.17, -d * 0.16)];     // 板 ＋ 直立的數位控制卡
+      g.add(new T.Mesh(mergeGeos(pcbL), K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })));
+      const cuL = [], feL = [], alL = [], capL = [];
+      const tor = (R, r, x, y, z, flat) => { const q = new T.TorusGeometry(R, r, 8, 20); if (flat) q.rotateX(Math.PI / 2); q.translate(x, y, z); return q; };
+      // ⓪ EMI：兩顆共模扼流圈（直立環形）＋ 兩顆 X 電容
+      [-0.3, -0.1].forEach(fx => cuL.push(tor(w * 0.06, w * 0.026, fx * w, y0 + w * 0.088, d * 0.38)));
+      [0.12, 0.28].forEach(fx => capL.push(agGeo(w * 0.1, h * 0.14, w * 0.045, fx * w, y0 + h * 0.07, d * 0.38)));
+      // ① PFC：大環形升壓電感（平放）＋ 直立鋁散熱片（背後一排鰭）＋ 鎖在上面的三顆功率開關
+      cuL.push(tor(w * 0.1, w * 0.042, -w * 0.24, y0 + w * 0.042, d * 0.2, true));
+      alL.push(agGeo(w * 0.36, h * 0.44, d * 0.012, w * 0.2, y0 + h * 0.22, d * 0.26));
+      for (let i = 0; i < 7; i++) alL.push(agGeo(w * 0.012, h * 0.4, d * 0.06, w * 0.04 + i * w * 0.053, y0 + h * 0.2, d * 0.225));
+      for (let i = 0; i < 3; i++) feL.push(agGeo(w * 0.06, h * 0.18, d * 0.012, w * 0.08 + i * w * 0.12, y0 + h * 0.2, d * 0.272));
+      // 兩顆大電解電容（PFC 的輸出／直流鏈）：整顆 PSU 裡最高的東西
+      [-0.26, -0.06].forEach(fx => { const c = new T.CylinderGeometry(w * 0.075, w * 0.075, h * 0.62, 16); c.translate(fx * w, y0 + h * 0.31, d * 0.02); alL.push(c); });
+      // ② LLC：變壓器（E 形磁芯的上下軛＋兩側腳，中間的銅繞組前後凸出來＝看得到繞線窗口）＋ 諧振電感
+      const tx = w * 0.18, tz = -d * 0.14, th = h * 0.4, tw2 = w * 0.26, td = d * 0.1;
+      feL.push(agGeo(tw2, th * 0.2, td, tx, y0 + th * 0.9, tz), agGeo(tw2, th * 0.2, td, tx, y0 + th * 0.1, tz),
+        agGeo(tw2 * 0.16, th * 0.6, td, tx - tw2 * 0.42, y0 + th * 0.5, tz), agGeo(tw2 * 0.16, th * 0.6, td, tx + tw2 * 0.42, y0 + th * 0.5, tz));
+      cuL.push(agGeo(tw2 * 0.56, th * 0.58, td * 1.5, tx, y0 + th * 0.5, tz));
+      feL.push(agGeo(w * 0.12, h * 0.24, d * 0.07, -w * 0.18, y0 + h * 0.12, tz));
+      cuL.push(agGeo(w * 0.13, h * 0.1, d * 0.05, -w * 0.18, y0 + h * 0.12, tz));
+      // ③ 同步整流：一整排扁平 MOSFET ＋ 一排輸出電容
+      for (let i = 0; i < 7; i++) feL.push(agGeo(w * 0.08, h * 0.05, d * 0.04, (-3 + i) * w * 0.12, y0 + h * 0.025, -d * 0.33));
+      for (let i = 0; i < 6; i++) { const c = new T.CylinderGeometry(w * 0.025, w * 0.025, h * 0.16, 10); c.translate((-2.5 + i) * w * 0.13, y0 + h * 0.08, -d * 0.4); alL.push(c); }
+      // ④ 輸出：兩條厚銅排往卡緣去（比板上任何一條線都粗一個量級）
+      cuL.push(agGeo(w * 0.7, h * 0.07, d * 0.03, 0, y0 + h * 0.035, -d * 0.44), agGeo(w * 0.7, h * 0.07, d * 0.03, 0, y0 + h * 0.11, -d * 0.455));
+      g.add(new T.Mesh(mergeGeos(cuL), K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 })));
+      g.add(new T.Mesh(mergeGeos(feL), K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.16 })));
+      g.add(new T.Mesh(mergeGeos(alL), K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.72, rough: 0.4 })));
+      g.add(new T.Mesh(mergeGeos(capL), K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.55, metal: 0.05 })));
       return g;
     }
 
-    /* 卡緣連接器（card-edge）：CRPS 的後端是**一排鍍金接點**，不是一束電線。
-       畫成電線就認不出是 CRPS 型的伺服器 PSU（規格書 §6-S2）。*/
+    /* 卡緣連接器（card-edge）：CRPS 的後端是**板子上下兩面各一排鍍金接點**，不是一束電線。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P4）：接點分兩種 —— 兩端是**寬的電源接點**（大電流），
+         中間是**窄的訊號接點**（電壓、電流、溫度、告警的管理訊號）；而且有幾根**刻意短一截**，
+         熱插拔時長的先接觸（地與電源先通）、短的最後（「我已經插好了」的偵測訊號）。
+         板子上有一道防呆缺口，插反插不進去。上下兩面 50 個接點收成一個 InstancedMesh。*/
     function psuCardEdge(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const pl = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 });
-      g.add(box(w, h, d, pl));
-      // 上下兩排金手指（CRPS 是 2 排）—— 排數就是它跟一般單排卡緣的差別
-      g.add(put(fingers(K, w * 0.9, h * 0.22, d * 0.8, 13, h * 0.3, 0), 0, 0, 0));
-      g.add(put(fingers(K, w * 0.9, h * 0.22, d * 0.8, 13, -h * 0.3, 0), 0, 0, 0));
+      const th = h * 0.36, kx = w * 0.16, kw = w * 0.03;
+      g.add(mboxes([[w / 2 + kx - kw / 2, th, d, -w / 4 + kx / 2 - kw / 4, 0, 0],
+        [w / 2 - kx - kw / 2, th, d, w / 4 + kx / 2 + kw / 4, 0, 0],
+        [kw * 1.1, th, d * 0.6, kx, 0, d * 0.2]], pl));                                // 防呆缺口（前緣挖掉一小段）
+      const pads = [];
+      const put1 = (x, pw, len, sy) => pads.push([x, sy * (th / 2 + 0.03), -d / 2 + len / 2 + d * 0.04, 0, 0, 0, pw, 0.05, len]);
+      [-1, 1].forEach(sy => {
+        for (let i = 0; i < 4; i++) { put1(-w * 0.46 + i * w * 0.055, w * 0.042, d * 0.7, sy); put1(w * 0.46 - i * w * 0.055, w * 0.042, d * 0.7, sy); }
+        for (let i = 0; i < 17; i++) {
+          const x = -w * 0.23 + i * w * 0.028;
+          if (Math.abs(x - kx) < kw) continue;
+          put1(x, w * 0.014, i % 5 === 2 ? d * 0.45 : d * 0.62, sy);                       // 每五根有一根短一截（最後接觸）
+        }
+      });
+      g.add(instOf(new T.BoxGeometry(1, 1, 1), K.mat(0.62, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.22 }), pads));
       return g;
     }
 
@@ -4868,8 +5178,17 @@
       const [w, h, d] = p.box;
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.28 });
       const ins = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.82, metal: 0.06 });
-      [-1, 1].forEach(s => g.add(put(box(w * 0.34, h, d, cu), s * w * 0.32, 0, 0)));   // 正負兩條
-      g.add(put(box(w * 0.2, h * 0.9, d * 0.66, ins), 0, 0, -d * 0.14));              // 中間絕緣隔板（往後縮，正面看得到兩條銅排）
+      g.add(mboxes([-1, 1].map(s => [w * 0.34, h, d, s * w * 0.32, 0, 0]), cu));       // 正負兩條（併成一個 mesh）
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 P5）：中間的絕緣隔板之外，補上**絕緣支座**與**鎖在機櫃上的鈑金支架**——
+         銅排是靠一段一段絕緣支座固定在機櫃背柱上的（不是懸空，也不是直接碰到鈑金）。*/
+      const insL = [[w * 0.2, h * 0.9, d * 0.66, 0, 0, -d * 0.14]];                     // 中間絕緣隔板（往後縮，正面看得到兩條銅排）
+      const brL = [];
+      [-0.42, 0, 0.42].forEach(fy => {
+        insL.push([w * 0.96, h * 0.04, d * 0.3, 0, fy * h, -d * 0.62]);                   // 絕緣支座（兩條銅排都夾住）
+        brL.push([w * 1.2, h * 0.05, d * 0.14, 0, fy * h, -d * 0.84], [w * 0.1, h * 0.05, d * 0.5, w * 0.62, fy * h, -d * 0.62]);
+      });
+      g.add(mboxes(insL, ins));
+      g.add(mboxes(brL, K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.38 })));
       // 分接點：每一層托盤從這裡接一組出去（成對，正負各一）
       const tap = [];
       for (let i = 0; i < 4; i++) [-1, 1].forEach(s => tap.push([s * w * 0.32, (-1.5 + i) * h * 0.22, d * 0.62]));
@@ -4951,6 +5270,69 @@
       return g;
     }
 
+    /* 板上降壓 VRM（電源那一張專用；共用的 `pvrm` 交換器板卡那張也在用，不動它）。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P6）：一相＝**一顆功率級（DrMOS，扁平 QFN）＋ 一顆電感**，八相等距排開；
+         靠晶片那一側是一整排**輸出 MLCC**（瞬間電流由它先頂），另一側是輸入的高分子電容，角落一顆多相控制器。
+         以前只有「一排電感＋一排電容」，看不出每一相是由「開關＋電感」組成的。*/
+    function psVrm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.16, d, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, -h * 0.42, 0));
+      const yb = -h * 0.26, n = 8, pitch = w / n;
+      const gr = [];
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * pitch;
+        gr.push([x, yb + h * 0.26, -d * 0.12, 0, 0, 0, pitch * 0.66, h * 0.52, d * 0.26]);   // 電感（一相一顆）
+        gr.push([x, yb + h * 0.04, d * 0.13, 0, 0, 0, pitch * 0.5, h * 0.08, d * 0.14]);     // 功率級 DrMOS（扁平）
+      }
+      gr.push([w * 0.38, yb + h * 0.04, d * 0.38, 0, 0, 0, w * 0.08, h * 0.08, w * 0.08]);     // 多相控制器
+      g.add(instOf(new T.BoxGeometry(1, 1, 1), K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.16 }), gr));
+      const ml = [];
+      for (let r = 0; r < 2; r++) for (let i = 0; i < 18; i++) ml.push([(-8.5 + i) * w * 0.05, yb + h * 0.04, -d * (0.34 + r * 0.08)]);
+      g.add(instOf(new T.BoxGeometry(w * 0.03, h * 0.08, d * 0.04), K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.55, metal: 0.05 }), ml));
+      const pc = [];
+      for (let i = 0; i < 6; i++) pc.push([(-2.5 + i) * w * 0.1, yb + h * 0.13, d * 0.36]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.022, w * 0.022, h * 0.26, 10), K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.72, rough: 0.4 }), pc));
+      // 電感底下那一排厚銅：相電流就是從這裡灌進晶片底下的
+      g.add(put(box(w * 0.94, h * 0.06, d * 0.5, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.3 })), 0, yb - h * 0.03, -d * 0.16));
+      return g;
+    }
+
+    /* 電源線組（power whip，電源那一張專用；共用的 `cable` 交換器那張也在用）。
+       ★ 2026-09-26 第二批（B 組，§3D-細節 P7）：從匯流排分接點拉到托盤的是**一正一負兩條粗線**，
+         匯流排那一端是**壓接的銅環形端子**（鎖在分接點的螺絲上），托盤那一端是一顆有卡榫的電源連接器；
+         正極套一段暖橘熱縮套管分極性。以前是四條細線加一個方塊端子，看起來像訊號線。*/
+    function psWhip(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = h * 0.13, cab = [];
+      const ends = [];
+      [-1, 1].forEach(s => {
+        const z = s * d * 0.18;
+        const c = new T.CatmullRomCurve3([new T.Vector3(-w * 0.42, 0, z), new T.Vector3(-w * 0.15, h * 0.2, z * 1.3),
+          new T.Vector3(w * 0.15, -h * 0.18, z * 1.3), new T.Vector3(w * 0.42, 0, z)]);
+        cab.push(new T.TubeGeometry(c, 20, r, 8, false));
+        ends.push(z);
+      });
+      g.add(new T.Mesh(mergeGeos(cab), K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.78, metal: 0.05 })));
+      // 匯流排端：壓接筒 ＋ 扁平的環形端子（中間一個鎖螺絲的孔）
+      const lug = [];
+      ends.forEach(z => {
+        const b = new T.CylinderGeometry(r * 1.15, r * 1.15, w * 0.06, 10); b.rotateZ(Math.PI / 2); b.translate(-w * 0.44, 0, z); lug.push(b);
+        lug.push(agGeo(w * 0.04, r * 0.5, r * 2.4, -w * 0.49, 0, z));
+        const ring = new T.TorusGeometry(r * 0.75, r * 0.4, 6, 12); ring.rotateY(Math.PI / 2); ring.translate(-w * 0.52, 0, z); lug.push(ring);
+      });
+      g.add(new T.Mesh(mergeGeos(lug), K.mat(0.2, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.28 })));
+      // 托盤端：有卡榫的電源連接器（兩線進同一顆）
+      g.add(mboxes([[w * 0.12, h * 0.7, d * 0.75, w * 0.47, 0, 0], [w * 0.05, h * 0.16, d * 0.3, w * 0.47, h * 0.42, 0]],
+        K.mat(0, { color: K.css('--dg-frame', '#1a2540'), rough: 0.7, metal: 0.1 })));
+      // 正極的熱縮套管（暖橘）＋ 兩道束線帶
+      g.add(put(cyl(r * 1.12, w * 0.08, K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.6, metal: 0.1 }), 10), -w * 0.34, h * 0.07, ends[1] * 1.08).rotateZ(Math.PI / 2));
+      g.add(mboxes([[w * 0.03, h * 0.36, d * 0.62, -w * 0.12, h * 0.18, 0], [w * 0.03, h * 0.36, d * 0.62, w * 0.2, -h * 0.16, 0]],
+        K.mat(0, { color: K.css('--dg-mute', '#78859f'), rough: 0.8, metal: 0.06 })));
+      return g;
+    }
+
     /* ---------------------------------------------------------------- 液冷：冷板、均熱板 VC 與熱管
        規格書 docs/diagram_specs/liquid_cooling.md §3-A 的硬規則：
          · **每兩個固體之間都要有 TIM**，而且 TIM 畫得**比它上下的任何金屬層都薄**；
@@ -4989,16 +5371,27 @@
       const [w, h, d] = p.box;
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.3 });
       const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.8, rough: 0.32 });
-      g.add(put(box(w, h * 0.24, d, cu), 0, -h * 0.38, 0));                             // 底板（貼 TIM2 那一面）
-      // 四周的側牆：水被關在裡面才流得成流道
+      // 底板（貼 TIM2 那一面）＋ 四周的側牆：水被關在裡面才流得成流道 —— 同一塊銅、併成一個 mesh
       const t = w * 0.045;
-      g.add(mboxes([[w, h * 0.5, t, 0, 0, -d / 2 + t / 2], [w, h * 0.5, t, 0, 0, d / 2 - t / 2],
+      g.add(mboxes([[w, h * 0.24, d, 0, -h * 0.38, 0],
+        [w, h * 0.5, t, 0, 0, -d / 2 + t / 2], [w, h * 0.5, t, 0, 0, d / 2 - t / 2],
         [t, h * 0.5, d, -w / 2 + t / 2, 0, 0], [t, h * 0.5, d, w / 2 - t / 2, 0, 0]], cu));
       g.add(put(box(w, h * 0.16, d * 0.46, st), 0, h * 0.33, -d * 0.27));                // 蓋板只蓋一半
-      // 鎖附的四顆彈簧螺絲：冷板是**壓**在晶片上的，壓力不夠熱就過不去
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L1）：
+         ① 側牆頂上一圈 **O 形環密封墊**（深色）—— 蓋板是鎖上去壓住它才不漏水，蓋板掀開的那一半看得到它
+         ② 四顆鎖附螺絲改成「螺絲＋**彈簧**＋頭」：冷板是**用彈簧的力量壓**在晶片上的，壓力不夠 TIM 壓不薄，熱就過不去 */
+      const gk = t * 0.5, gy = h * 0.255;
+      g.add(mboxes([[w - t, h * 0.04, gk, 0, gy, -d / 2 + t / 2], [w - t, h * 0.04, gk, 0, gy, d / 2 - t / 2],
+        [gk, h * 0.04, d - t, -w / 2 + t / 2, gy, 0], [gk, h * 0.04, d - t, w / 2 - t / 2, gy, 0]],
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.9, metal: 0.04 })));
       const scr = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.8, rough: 0.3 });
-      g.add(instOf(new T.CylinderGeometry(w * 0.035, w * 0.035, h * 0.9, 8), scr,
-        gridXZ(2, 2, w * 0.88, d * 0.88, h * 0.1)));
+      const sg = [new T.CylinderGeometry(w * 0.02, w * 0.02, h * 0.9, 8), new T.CylinderGeometry(w * 0.05, w * 0.05, h * 0.07, 6)];
+      sg[1].translate(0, h * 0.48, 0);
+      const spots = gridXZ(2, 2, w * 0.88, d * 0.88, h * 0.1);
+      g.add(instOf(mergeGeos(sg), scr, spots));
+      const coils = [];
+      spots.forEach(s => { for (let k = 0; k < 3; k++) coils.push([s[0], h * (0.46 + k * 0.045), s[2], Math.PI / 2, 0, 0]); });
+      g.add(instOf(new T.TorusGeometry(w * 0.036, w * 0.007, 4, 12), scr, coils));
       return g;
     }
 
@@ -5008,12 +5401,17 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const cu = K.mat(0.12, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
-      const n = 22, at = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L2）：鏟齒（skived）鰭片是**一整塊銅用刀鏟起來**的 ——
+         所以鰭片更薄更密（22 → 36 片），根部跟底板是同一塊（底下補一片鰭片根座），
+         頂端帶一點**被鏟起時的捲邊**。捲邊跟鰭片烘成同一個幾何，36 片仍是一個 InstancedMesh。*/
+      const n = 36, ft = w / n * 0.34, at = [];
       for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), 0, 0]);
-      g.add(instOf(new T.BoxGeometry(w / n * 0.4, h, d * 0.86), cu, at));
-      // 進出水的集流區：鰭片兩端各留一條沒有鰭片的走道，水才分得均勻
+      const fin = new T.BoxGeometry(ft, h, d * 0.86);
+      const curl = new T.BoxGeometry(ft * 2.2, h * 0.08, d * 0.86); curl.translate(ft * 0.5, h * 0.48, 0);
+      g.add(instOf(mergeGeos([fin, curl]), cu, at));
+      // 鰭片根座 ＋ 進出水的集流區：鰭片兩端各留一條沒有鰭片的走道，水才分得均勻
       g.add(mboxes([[w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, -d * 0.45],
-        [w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, d * 0.45]], cu));
+        [w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, d * 0.45], [w * 0.98, h * 0.12, d * 0.86, 0, -h * 0.5, 0]], cu));
       return g;
     }
 
@@ -5025,10 +5423,21 @@
       const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.45, rough: 0.38 });
       const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.45, rough: 0.38 });
       const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.82, rough: 0.3 });
-      [[-1, cold], [1, hot]].forEach(([s, m]) => {
-        g.add(put(cyl(Math.min(w, d) * 0.3, h * 0.9, m, 14), 0, 0, s * d * 0.3));         // 管
-        g.add(put(cyl(Math.min(w, d) * 0.42, h * 0.16, st, 14), 0, -h * 0.4, s * d * 0.3)); // 接口座
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L3）：一個接口＝接口座 → **六角螺帽**（鎖進蓋板）→ **倒鉤管接頭**（三道倒鉤）
+         → 套在上面的軟管（冷／熱色）→ **束管夾**。以前只有一根色管加一個圓座，看起來像插在上面的吸管。
+         金屬件兩個接口併成一個 mesh；冷熱兩根軟管各一個 —— 3 個 draw call（舊版 4 個）。*/
+      const R = Math.min(w, d) * 0.3, sL = [];
+      [-1, 1].forEach(s => {
+        const z = s * d * 0.3;
+        const add = (geo, y) => { geo.translate(0, y, z); sL.push(geo); };
+        add(new T.CylinderGeometry(R * 1.4, R * 1.4, h * 0.16, 14), -h * 0.4);            // 接口座
+        add(new T.CylinderGeometry(R * 1.1, R * 1.1, h * 0.1, 6), -h * 0.27);             // 六角螺帽
+        add(new T.CylinderGeometry(R * 0.5, R * 0.5, h * 0.3, 10), -h * 0.08);            // 管接頭
+        for (let i = 0; i < 3; i++) add(new T.CylinderGeometry(R * 0.5, R * 0.72, h * 0.05, 10), -h * 0.2 + i * h * 0.08);  // 倒鉤
+        const clamp = new T.TorusGeometry(R * 0.86, R * 0.12, 4, 14); clamp.rotateX(Math.PI / 2); add(clamp, h * 0.12);   // 束管夾
       });
+      g.add(new T.Mesh(mergeGeos(sL), st));
+      [[-1, cold], [1, hot]].forEach(([s, m]) => g.add(put(cyl(R * 0.78, h * 0.55, m, 14), 0, h * 0.2, s * d * 0.3)));    // 軟管
       return g;
     }
 
@@ -5040,16 +5449,28 @@
       const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.4, rough: 0.4 });
       const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.4, rough: 0.4 });
       const r = Math.min(w, d) * 0.16;
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L4）：主管與分支併成一個 mesh（每種顏色一個）；
+         每一個分支口補上**快接頭的母座**（銅）、每根主管上下補**端蓋**、頂端一顆**排氣閥**
+         （充水時把空氣放掉，不然氣泡會卡在冷板裡）。*/
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.4 });
+      const stL = [], qd = [];
       [[-1, cold], [1, hot]].forEach(([s, m]) => {
-        g.add(put(cyl(r, h, m, 14), s * w * 0.28, 0, 0));                                 // 主管（直立）
-        const br = [];
-        for (let i = 0; i < 4; i++) br.push([s * w * 0.28, (-1.5 + i) * h * 0.22, d * 0.26, Math.PI / 2, 0, 0]);
-        g.add(instOf(new T.CylinderGeometry(r * 0.5, r * 0.5, d * 0.52, 10), m, br));      // 分支（並聯）
+        const x = s * w * 0.28, L = [new T.CylinderGeometry(r, r, h, 14)];
+        L[0].translate(x, 0, 0);
+        for (let i = 0; i < 4; i++) {
+          const y = (-1.5 + i) * h * 0.22, b = new T.CylinderGeometry(r * 0.5, r * 0.5, d * 0.52, 10);
+          b.rotateX(Math.PI / 2); b.translate(x, y, d * 0.26); L.push(b);
+          qd.push([x, y, d * 0.55, Math.PI / 2, 0, 0]);
+        }
+        g.add(new T.Mesh(mergeGeos(L), m));
+        [-1, 1].forEach(e => { const c = new T.CylinderGeometry(r * 1.18, r * 1.18, h * 0.03, 14); c.translate(x, e * h * 0.5, 0); stL.push(c); });
+        const v = new T.CylinderGeometry(r * 0.3, r * 0.3, h * 0.06, 8); v.translate(x, h * 0.54, 0); stL.push(v);
+        const vk = new T.BoxGeometry(r * 1.1, h * 0.012, r * 0.3); vk.translate(x, h * 0.575, 0); stL.push(vk);
       });
       // 兩根管之間的固定夾：它們是兩條獨立的管路，不是同一條
-      g.add(instOf(new T.BoxGeometry(w * 0.7, h * 0.05, d * 0.14),
-        K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.4 }),
-        [[0, h * 0.4, 0], [0, -h * 0.4, 0]]));
+      [h * 0.4, -h * 0.4].forEach(y => stL.push(agGeo(w * 0.7, h * 0.05, d * 0.14, 0, y, 0)));
+      g.add(new T.Mesh(mergeGeos(stL), st));
+      g.add(instOf(new T.CylinderGeometry(r * 0.72, r * 0.72, d * 0.14, 10), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 }), qd));
       return g;
     }
 
@@ -5062,14 +5483,27 @@
       const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.5, rough: 0.34 });
       const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.5, rough: 0.34 });
       const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.84, rough: 0.3 });
-      const n = 9, pit = h / (n + 1), c = [], t = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 L7）：硬焊式板式熱交換器（CDU 裡最常見的那一種）——
+         ① 板片的邊緣是**人字形波紋**壓出來的，疊起來從側面看是一條條斜紋（這裡畫在朝外那一面）
+         ② 前端板上**四個接管**：兩個冷（機房側進出）、兩個熱（機櫃側進出），對角配置 ——
+            一眼就看得出「兩個迴路各有自己的一進一出」，水不相通。
+         同色的板片與接管併成一個 mesh；端板與波紋一個 mesh：3 個 draw call（舊版 4 個）。*/
+      const n = 9, pit = h / (n + 1), cL = [], hL = [], sL = [];
       for (let i = 0; i < n; i++) {
         const y = -h / 2 + pit * (i + 1);
-        (i % 2 ? t : c).push([0, y, 0]);
+        (i % 2 ? hL : cL).push(agGeo(w * 0.9, pit * 0.42, d * 0.9, 0, y, 0));
+        for (let k = 0; k < 5; k++) {                                                       // 人字形波紋（側面一排 V）
+          const x = (-2 + k) * w * 0.17;
+          [-1, 1].forEach(sg => { const v = new T.BoxGeometry(w * 0.1, pit * 0.12, 0.08); v.rotateZ(sg * 0.6); v.translate(x + sg * w * 0.04, y, d * 0.455); sL.push(v); });
+        }
       }
-      g.add(instOf(new T.BoxGeometry(w * 0.9, pit * 0.42, d * 0.9), cold, c));   // 一次側（設施水）走的縫
-      g.add(instOf(new T.BoxGeometry(w * 0.9, pit * 0.42, d * 0.9), hot, t));    // 二次側（機櫃水）走的縫
-      [-1, 1].forEach(s => g.add(put(box(w, pit * 0.7, d, st), 0, s * h * 0.47, 0)));   // 上下端板
+      [-1, 1].forEach(s => sL.push(agGeo(w, pit * 0.7, d, 0, s * h * 0.47, 0)));               // 上下端板
+      [[-1, -1, cL], [1, 1, cL], [-1, 1, hL], [1, -1, hL]].forEach(([sx, sz, L]) => {          // 四個接管（對角）
+        const c = new T.CylinderGeometry(w * 0.07, w * 0.07, h * 0.14, 12); c.translate(sx * w * 0.32, h * 0.54, sz * d * 0.3); L.push(c);
+      });
+      g.add(new T.Mesh(mergeGeos(cL), cold));   // 一次側（設施水）
+      g.add(new T.Mesh(mergeGeos(hL), hot));    // 二次側（機櫃水）
+      g.add(new T.Mesh(mergeGeos(sL), st));
       return g;
     }
 
@@ -5089,15 +5523,22 @@
       const [w, h, d] = p.box;
       const r = Math.min(w, h) / 2;
       const fm = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.45, rough: 0.55 });
-      g.add(rbox(w, h, d * 0.86, Math.min(w, h) * 0.09, fm, r * 0.82));
-      // 四角鎖孔：風扇是**鎖**在機殼上的，這是它跟一顆自由葉輪的差別
-      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
-      const at = [];
-      [-1, 1].forEach(sx => [-1, 1].forEach(sy => at.push([sx * w * 0.42, sy * h * 0.42, 0, Math.PI / 2, 0, 0])));
-      g.add(instOf(new T.CylinderGeometry(w * 0.035, w * 0.035, d, 8, 1, true), hl, at));
-      // 四根支撐臂：馬達是靠這幾根撐在框中央的（不然輪轂是浮著的）
-      g.add(instOf(new T.BoxGeometry(r * 1.4, h * 0.05, d * 0.12), K.mat(-0.15, { metal: 0.4, rough: 0.6 }),
-        [0, 1, 2, 3].map(i => [0, 0, -d * 0.3, 0, 0, i * Math.PI / 4])));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F1）：以前中央是八根對穿的細棍子，馬達根本沒地方坐。改成：
+         ① 後側中央一個**馬達座**（定子與軸承管就鎖在這上面）② **四根支撐臂**從馬達座斜伸到框的四角方向
+         ③ 其中一根上有一道**走線槽**（四條線從馬達的驅動板沿著它出去）④ 進風口一圈**導流唇**（喇叭口，風才吸得順）。
+         框、馬達座、支撐臂、導流唇是同一種塑膠，併成一個 mesh；鎖孔與走線槽一個 mesh。*/
+      const fr = [rboxGeo(w, h, d * 0.86, Math.min(w, h) * 0.09, r * 0.82)];
+      { const s = new T.CylinderGeometry(r * 0.36, r * 0.36, d * 0.14, 20); s.rotateX(Math.PI / 2); s.translate(0, 0, -d * 0.36); fr.push(s); }
+      for (let i = 0; i < 4; i++) {
+        const a = Math.PI / 4 + i * Math.PI / 2, b = new T.BoxGeometry(r * 0.5, r * 0.08, d * 0.14);
+        b.rotateX(0.25); b.translate(r * 0.59, 0, 0); b.rotateZ(a); b.translate(0, 0, -d * 0.36); fr.push(b);
+      }
+      { const lip = new T.TorusGeometry(r * 0.83, d * 0.05, 4, 32); lip.translate(0, 0, d * 0.43); fr.push(lip); }
+      g.add(new T.Mesh(mergeGeos(fr), fm));
+      const dk = [];
+      [-1, 1].forEach(sx => [-1, 1].forEach(sy => { const c = new T.CylinderGeometry(w * 0.035, w * 0.035, d, 8, 1, true); c.rotateX(Math.PI / 2); c.translate(sx * w * 0.42, sy * h * 0.42, 0); dk.push(c); }));
+      { const ch = new T.BoxGeometry(r * 0.44, r * 0.035, d * 0.05); ch.translate(r * 0.6, 0, 0); ch.rotateZ(-Math.PI / 4 - Math.PI / 2); ch.translate(0, 0, -d * 0.28); dk.push(ch); }
+      g.add(new T.Mesh(mergeGeos(dk), K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 })));
       return g;
     }
 
@@ -5111,8 +5552,10 @@
       const rev = !!p.rev, sg = rev ? -1 : 1;
       const rotor = new T.Group();
       const bm = K.mat(rev ? -0.12 : 0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
-      // 2026-09-26：彎刀形葉片（見 rotorBlades）；反轉那一組攻角與後掠都反過來
-      rotor.add(new T.Mesh(rotorBlades(7, r * 0.26, r * 0.92, r * 0.46, d * 0.14, 0.5 * sg, sg), twoSided(K, bm)));
+      /* 2026-09-26：彎刀形葉片（見 rotorBlades）；反轉那一組攻角與後掠都反過來。
+         ★ 第二批（B 組）：拿掉雙面材質 —— 葉片是擠出來的**封閉實體**，正面就看得到每一面；
+           雙面材質會讓 three 多編一支 shader（首次畫圖變慢的主因之一，A 組實測）。*/
+      rotor.add(new T.Mesh(rotorBlades(7, r * 0.26, r * 0.92, r * 0.46, d * 0.14, 0.5 * sg, sg), bm));
       // 葉根：葉片是**從輪轂長出來**的，所以根部要有一圈實體把它們連起來
       const root = cyl(r * 0.3, d * 0.6, K.mat(-0.2, { metal: 0.3, rough: 0.6 }), 16);
       root.rotation.x = Math.PI / 2; rotor.add(root);
@@ -5128,17 +5571,23 @@
       const [w, h, d] = p.box;
       const r = Math.min(w, h) / 2;
       const hm = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.38 });
-      const wall = twoSided(K, K.mat(-0.06, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 }));
-      const cap = put(cyl(r, d * 0.14, hm, 20), 0, 0, d * 0.42);
-      cap.rotation.x = Math.PI / 2; g.add(cap);                                         // 前蓋
-      const side = put(new T.Mesh(new T.CylinderGeometry(r, r, d * 0.84, 20, 1, true), wall), 0, 0, 0);
-      side.rotation.x = Math.PI / 2; g.add(side);                                        // 杯壁（開口朝後）
-      // 轉子磁鐵：貼在**輪轂內壁**上的一圈（外轉子馬達就是這樣裝的）
-      const mag = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.58, metal: 0.3 });
-      const at = [];
-      for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.86, Math.sin(i * Math.PI / 4) * r * 0.86,
-        -d * 0.08, 0, 0, i * Math.PI / 4]);
-      g.add(instOf(new T.BoxGeometry(r * 0.2, r * 0.5, d * 0.5), mag, at));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F2）：外轉子馬達的輪轂是三層同心的杯子 ——
+         塑膠杯（扇葉長在它外面）→ 貼在內側的**鋼製轉子軛**（導磁）→ 黏在軛上的**一整圈環形磁鐵**
+         （以前畫成八塊分開的方塊；實際是一個環，只是被充磁成 N／S 交替的八極 —— 那八條細線就是極界）。
+         杯底中央一個軸座，轉軸就壓在這裡（所以軸跟著輪轂一起轉，軸承在下面的軸承管裡）。
+         杯壁改成有厚度的環（封閉實體）—— 不再需要雙面材質。*/
+      const cap = new T.CylinderGeometry(r, r, d * 0.14, 24); cap.rotateX(Math.PI / 2); cap.translate(0, 0, d * 0.42);
+      const wall = agRing(r, r * 0.92, d * 0.84, 28);
+      g.add(new T.Mesh(mergeGeos([cap, wall]), hm));
+      const stL = [agRing(r * 0.92, r * 0.86, d * 0.7, 28)];
+      const boss = new T.CylinderGeometry(r * 0.14, r * 0.14, d * 0.5, 10); boss.rotateX(Math.PI / 2); boss.translate(0, 0, d * 0.12); stL.push(boss);
+      for (let i = 0; i < 8; i++) {                                                         // 八極的極界
+        const a = i * Math.PI / 4, b = new T.BoxGeometry(r * 0.03, r * 0.02, d * 0.5);
+        b.translate(Math.cos(a) * r * 0.735, Math.sin(a) * r * 0.735, -d * 0.08); b.rotateZ(0); stL.push(b);
+      }
+      g.add(new T.Mesh(mergeGeos(stL), K.mat(-0.1, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.82, rough: 0.34 })));
+      const mg = agRing(r * 0.86, r * 0.74, d * 0.5, 28); mg.translate(0, 0, -d * 0.08);
+      g.add(new T.Mesh(mg, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.58, metal: 0.3 })));
       return g;
     }
 
@@ -5151,17 +5600,30 @@
       const r = Math.min(w, h) / 2;
       const fe = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.8, rough: 0.34 });
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 });
-      const teeth = [], coils = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F3）：
+         ① 定子鐵芯是**一片一片矽鋼片疊起來**的（每一個齒看得到四片疊層的縫）＋ 齒尖的**極靴**（比齒寬，磁力線才攤得開）
+         ② 中央的**軸承管**（黃銅）—— 軸承裝在管裡、管子立在馬達座上
+         ③ 驅動板是圓的、上面看得到**霍爾元件**（轉速回授就是從它來的）與驅動 IC。*/
+      const feL = [agRing(r * 0.36, r * 0.24, d * 0.6, 20)];                                   // 背軛
+      const cuL = [];
       for (let i = 0; i < 6; i++) {
         const a = i * Math.PI / 3;
-        teeth.push([Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, 0, 0, 0, a]);
-        coils.push([Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, 0, 0, 0, a]);
+        for (let k = 0; k < 4; k++) {                                                       // 四片疊層（中間留縫）
+          const b = new T.BoxGeometry(r * 0.46, r * 0.24, d * 0.13);
+          b.translate(r * 0.58, 0, -d * 0.24 + k * d * 0.16); b.rotateZ(a); feL.push(b);
+        }
+        const shoe = new T.BoxGeometry(r * 0.1, r * 0.6, d * 0.6); shoe.translate(r * 0.86, 0, 0); shoe.rotateZ(a); feL.push(shoe);   // 極靴
+        const coil = new T.BoxGeometry(r * 0.36, r * 0.46, d * 0.74); coil.translate(r * 0.58, 0, 0); coil.rotateZ(a); cuL.push(coil);  // 繞在齒上的線圈
       }
-      g.add(instOf(new T.BoxGeometry(r * 0.8, r * 0.28, d * 0.6), fe, teeth));           // 鐵芯的齒
-      g.add(instOf(new T.BoxGeometry(r * 0.42, r * 0.52, d * 0.68), cu, coils));         // 繞在齒上的線圈
-      const yoke = put(cyl(r * 0.34, d * 0.62, fe, 16), 0, 0, 0); yoke.rotation.x = Math.PI / 2; g.add(yoke);
-      // 驅動板：霍爾元件在這上面，轉速回授就是從這裡出去的
-      g.add(put(box(r * 1.7, r * 1.7, d * 0.1, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, 0, -d * 0.4));
+      const tube = new T.CylinderGeometry(r * 0.2, r * 0.2, d * 0.95, 14); tube.rotateX(Math.PI / 2); cuL.push(tube);            // 軸承管（黃銅）
+      g.add(new T.Mesh(mergeGeos(feL), fe));
+      g.add(new T.Mesh(mergeGeos(cuL), cu));
+      const pcb = new T.CylinderGeometry(r * 0.95, r * 0.95, d * 0.1, 24); pcb.rotateX(Math.PI / 2); pcb.translate(0, 0, -d * 0.4);
+      g.add(new T.Mesh(pcb, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })));
+      g.add(new T.Mesh(mergeGeos([agGeo(r * 0.12, r * 0.08, d * 0.1, r * 0.66, r * 0.3, -d * 0.31),      // 霍爾元件（貼在齒縫下）
+        agGeo(r * 0.3, r * 0.3, d * 0.08, -r * 0.55, -r * 0.4, -d * 0.32),                                   // 驅動 IC
+        agGeo(r * 0.1, r * 0.05, d * 0.06, -r * 0.2, -r * 0.7, -d * 0.33), agGeo(r * 0.1, r * 0.05, d * 0.06, r * 0.1, -r * 0.72, -d * 0.33)]),
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.15 })));
       return g;
     }
 
@@ -5175,14 +5637,19 @@
       const st = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.86, rough: 0.24 });
       const sh = K.mat(0.18, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.88, rough: 0.2 });
       const shaft = put(cyl(r * 0.32, d, sh, 14), 0, 0, 0); shaft.rotation.x = Math.PI / 2; g.add(shaft);  // 軸
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F4）：一顆滾珠軸承＝**外環＋內環＋鋼珠＋保持架**，前後各一顆。
+         以前只有外環跟鋼珠（鋼珠浮在軸外面），內環與保持架都沒有。環改成有厚度的封閉實體，不用雙面材質。*/
+      const races = [], cage = [], at = [];
       [-1, 1].forEach(s => {
-        const ring = put(new T.Mesh(new T.CylinderGeometry(r, r * 0.92, d * 0.2, 18, 1, true),
-          twoSided(K, st)), 0, 0, s * d * 0.3);
-        ring.rotation.x = Math.PI / 2; g.add(ring);                                      // 外環
-        const at = [];
-        for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.64, Math.sin(i * Math.PI / 4) * r * 0.64, s * d * 0.3]);
-        g.add(instOf(new T.SphereGeometry(r * 0.22, 8, 6), st, at));                     // 鋼珠（看得到才是滾珠軸承）
+        const z = s * d * 0.3;
+        const o = agRing(r, r * 0.8, d * 0.2, 22); o.translate(0, 0, z); races.push(o);
+        const i2 = agRing(r * 0.5, r * 0.33, d * 0.2, 18); i2.translate(0, 0, z); races.push(i2);
+        const c = agRing(r * 0.7, r * 0.58, d * 0.06, 18); c.translate(0, 0, z + d * 0.06); cage.push(c);
+        for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.64, Math.sin(i * Math.PI / 4) * r * 0.64, z]);
       });
+      g.add(new T.Mesh(mergeGeos(races), st));
+      g.add(instOf(new T.SphereGeometry(r * 0.15, 8, 6), st, at));                            // 鋼珠（看得到才是滾珠軸承）
+      g.add(new T.Mesh(mergeGeos(cage), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.7, rough: 0.4 })));   // 保持架（黃銅）
       return g;
     }
 
@@ -5193,7 +5660,10 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const hs = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.7, metal: 0.1 });
-      g.add(put(box(w * 0.5, h, d * 0.3, hs), w * 0.24, 0, 0));                          // 接頭外殼
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F5）：接頭補上**卡榫**與**四個端子孔**（一眼數得出四線）。*/
+      g.add(mboxes([[w * 0.5, h, d * 0.3, w * 0.24, 0, 0], [w * 0.3, h * 0.18, d * 0.12, w * 0.24, h * 0.56, d * 0.06]], hs));   // 外殼＋卡榫
+      g.add(mboxes([0, 1, 2, 3].map(i => [w * 0.07, h * 0.14, d * 0.04, w * 0.24, (i - 1.5) * h * 0.2, d * 0.15]),
+        K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 })));
       const cols = ['--dg-el', '--dg-edge', '--dg-fl-sig', '--dg-fl-pwr'];
       cols.forEach((cv, i) => {
         const m = K.mat(0, { color: K.css(cv, '#4e5866'), rough: 0.8, metal: 0.08 });
@@ -5214,30 +5684,43 @@
       const n = 4, cw = w / n;
       const r = Math.min(cw, h) * 0.44;
       const fm = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.45, rough: 0.55 });
-      g.add(put(box(w, h, d * 0.2, fm), 0, 0, -d * 0.4));                                // 背板
-      const hub = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.4 });
-      const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
-      const rings = [], hubs = [], blades = [];
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F6）：以前是「一片實心背板＋四個圓環」—— 背板把風整個擋住了。改成：
+         ① 每一顆一個**方形扇框**（中間挖圓孔，風才過得去）＋ 上下兩條**托架軌**（整排可以一起抽出來換）
+         ② 前面每顆一片**護網**（三圈同心鐵線＋四根輻條 —— 伺服器風扇牆一定有，手才不會伸進去）
+         ③ 葉片從方塊換成跟單顆風扇同一支的**彎刀形葉片**，仍是一個 InstancedMesh、仍然每幀轉。*/
+      const fr = [];
+      // 圓孔一定要落在圓角矩形的內框裡（ExtrudeGeometry 的洞超出外形就三角化失敗）
+      const holeR = cw * 0.48 - cw * 0.06 - 0.25;
       for (let i = 0; i < n; i++) {
         const x = (-(n - 1) / 2 + i) * cw;
-        rings.push([x, 0, 0]);
+        const f = rboxGeo(cw * 0.96, cw * 0.96, d * 0.5, cw * 0.06, holeR); f.translate(x, 0, 0); fr.push(f);
+      }
+      [-1, 1].forEach(s => fr.push(agGeo(w, h * 0.12, d * 0.6, 0, s * (cw * 0.48 + h * 0.06), 0)));
+      g.add(new T.Mesh(mergeGeos(fr), fm));
+      const hub = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.4 });
+      const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
+      const hubs = [], blades = [], items = [], gr = [];
+      const r0 = r * 0.3;
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * cw;
         hubs.push([x, 0, 0, Math.PI / 2, 0, 0]);
         for (let j = 0; j < 7; j++) {
           const a = j * Math.PI * 2 / 7;
-          blades.push([x + Math.cos(a) * r * 0.58, Math.sin(a) * r * 0.58, 0, 0, 0.44, a + Math.PI / 2]);
+          blades.push([x + Math.cos(a) * r0, Math.sin(a) * r0, 0, 0, 0, a + Math.PI / 2]);
+          items.push({ cx: x, cz: 0, r: r0, a0: a, ry: 0 });
         }
+        [0.95, 0.66, 0.38].forEach(k => { const t = new T.TorusGeometry(r * k, r * 0.02, 3, 20); t.translate(x, 0, d * 0.34); gr.push(t); });
+        [0, 1].forEach(k => { const s = new T.BoxGeometry(r * 1.9, r * 0.03, r * 0.03); s.rotateZ(k * Math.PI / 2 + Math.PI / 4); s.translate(x, 0, d * 0.34); gr.push(s); });
       }
-      g.add(instOf(new T.TorusGeometry(r, r * 0.09, 6, 16), fm, rings));                 // 每一顆的框
       g.add(instOf(new T.CylinderGeometry(r * 0.28, r * 0.28, d * 0.5, 12), hub, hubs));
-      /* C6：風扇牆的葉片**真的在轉**。
-         它是一個 InstancedMesh（4 顆風扇 × 7 片 ＝ 28 個實例、1 個 draw call），
-         所以不能像單顆風扇那樣「轉一個 Group」—— 改成每幀重算 instanceMatrix。
-         28 次矩陣組合 × 30fps ＝ 840 次／秒，可以忽略；
-         換成 4 個 Group 會多 3 個 draw call，而且葉片的幾何要複製 4 份。*/
-      const bi = instOf(new T.BoxGeometry(r * 0.66, r * 0.34, d * 0.14), bm, blades);
-      bi.userData.ispin = { speed: 2.1, t: 0, items: blades.map((b, i) => ({
-        cx: (-(n - 1) / 2 + Math.floor(i / 7)) * cw, cz: 0, r: r * 0.58,
-        a0: (i % 7) * Math.PI * 2 / 7, ry: 0.44 })) };
+      g.add(new T.Mesh(mergeGeos(gr), K.mat(0.25, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.75, rough: 0.35 })));
+      /* C6：風扇牆的葉片**真的在轉**（每幀重算 instanceMatrix，見 stepISpins）。
+         stepISpins 把每一片放在「離轉軸 r、旋轉 a＋90°」的位置 —— 所以葉片幾何預先轉成「沿局部 −y 往外長、葉根在原點」，
+         轉了之後剛好沿半徑往外（葉根貼著輪轂）。*/
+      const bg = rotorBlades(1, r0, holeR * 0.94, r * 0.42, d * 0.1, 0.5, 1);
+      bg.translate(-r0, 0, 0); bg.rotateZ(-Math.PI / 2);
+      const bi = instOf(bg, bm, blades);
+      bi.userData.ispin = { speed: 2.1, t: 0, items };
       g.add(bi);
       return g;
     }
@@ -5247,13 +5730,50 @@
     function fanShroud(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const pl = twoSided(K, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.16, rough: 0.66, op: 0.72 }));
+      /* ★ 2026-09-26 第二批（B 組，§3D-細節 F7）：拿掉雙面材質（牆板都是封閉的方塊，正面就看得到兩側）；
+         補上**進風端的法蘭**（貼著風扇牆的那一圈）與頂蓋上**三條加強肋**（大片塑膠不加肋會被風壓吹得抖）。*/
+      const pl = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.16, rough: 0.66, op: 0.72 });
       const t = h * 0.07;
-      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0],
-        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]], pl));
-      // 收口：出風那一端收窄，氣流才會被逼著穿過鰭片而不是繞過去
-      g.add(mboxes([[w * 0.2, h * 0.9, t * 1.4, -w * 0.38, 0, -d / 2 + t],
-        [w * 0.2, h * 0.9, t * 1.4, w * 0.38, 0, -d / 2 + t]], pl));
+      const L = [[w, t, d, 0, h / 2 - t / 2, 0], [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
+        // 收口：出風那一端收窄，氣流才會被逼著穿過鰭片而不是繞過去
+        [w * 0.2, h * 0.9, t * 1.4, -w * 0.38, 0, -d / 2 + t], [w * 0.2, h * 0.9, t * 1.4, w * 0.38, 0, -d / 2 + t],
+        // 進風端法蘭
+        [w * 1.06, t * 0.8, t * 0.8, 0, h / 2 + t * 0.2, d / 2 - t * 0.4], [t * 0.8, h * 1.02, t * 0.8, -w * 0.53, 0, d / 2 - t * 0.4], [t * 0.8, h * 1.02, t * 0.8, w * 0.53, 0, d / 2 - t * 0.4]];
+      [-0.3, 0, 0.3].forEach(fz => L.push([w * 0.96, t * 0.9, t * 0.7, 0, h / 2 + t * 0.4, fz * d]));
+      g.add(mboxes(L, pl));
+      return g;
+    }
+
+    function acSink(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const al = K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.55, rough: 0.42 });
+      const al2 = K.mat(0, { color: K.css('--dg-alu-2', '#75849a'), metal: 0.5, rough: 0.46 });
+      g.add(put(box(w, h * 0.16, d, al2), 0, -h * 0.42, 0));                                // 底板
+      /* 氣冷這一張專用的鰭片組（共用的 `heatsink` 交換器那張也在用，不動它）。
+         ★ 2026-09-26 第二批（B 組，§3D-細節 F8）：
+         ① **扣合式鰭片**（zipper fin）：每一片上下緣都折一道邊，一片扣一片 —— 從上面看是一條條整齊的折邊，不是一排薄刀片
+         ② **熱管的冷凝段橫穿過整疊鰭片**，兩端露出來（熱就是從這幾根管子交給每一片鰭片的；下面那個 U 形熱管零件是它的蒸發段）
+         ③ 四角的**彈簧螺絲**（散熱器是用彈簧力壓在晶片上的）。*/
+      const n = Math.max(18, Math.round(w / (h * 0.1)));
+      const ft = w / n * 0.2, at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), h * 0.08, 0]);
+      const fin = new T.BoxGeometry(ft, h * 0.84, d * 0.96);
+      const top = new T.BoxGeometry(w / n * 0.92, ft, d * 0.96); top.translate(w / n * 0.4, h * 0.42, 0);
+      const bot = new T.BoxGeometry(w / n * 0.92, ft, d * 0.96); bot.translate(w / n * 0.4, -h * 0.42, 0);
+      g.add(instOf(mergeGeos([fin, top, bot]), al, at));
+      const cu = [];
+      [[-0.28, 0.25], [0, -0.1], [0.28, 0.25], [-0.14, 0.02], [0.14, 0.02]].forEach(([fz, fy]) => {
+        const c = new T.CylinderGeometry(h * 0.055, h * 0.055, w * 1.05, 10); c.rotateZ(Math.PI / 2); c.translate(0, fy * h, fz * d); cu.push(c);
+      });
+      g.add(new T.Mesh(mergeGeos(cu), K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.72, rough: 0.3 })));
+      const sc = [];
+      [-1, 1].forEach(sx => [-1, 1].forEach(sz => {
+        const s = new T.CylinderGeometry(h * 0.035, h * 0.035, h * 0.3, 8); s.translate(sx * w * 0.47, -h * 0.28, sz * d * 0.44); sc.push(s);
+        const hd = new T.CylinderGeometry(h * 0.07, h * 0.07, h * 0.05, 6); hd.translate(sx * w * 0.47, -h * 0.12, sz * d * 0.44); sc.push(hd);
+        for (let k = 0; k < 3; k++) { const c = new T.TorusGeometry(h * 0.055, h * 0.012, 4, 10); c.rotateX(Math.PI / 2); c.translate(sx * w * 0.47, -h * (0.3 - k * 0.05), sz * d * 0.44); sc.push(c); }
+      }));
+      g.add(new T.Mesh(mergeGeos(sc), K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.8, rough: 0.3 })));
       return g;
     }
 
@@ -7419,6 +7939,8 @@
       abfcore: abfCore, abfbu: abfBuildup, abftrace: abfTrace, abfvia: abfVia,
       abfsr: abfSr, abfpad: abfPad, abfbga: abfBga,
       pcblay: pcbLayer, pcbtrc: pcbTrace, pcbmask: pcbMask, pcbenig: pcbEnig, pcbvia: pcbVia,
+      /* 2026-09-26 第二批（B 組）：四張 AI 伺服器場景自己的詞 */
+      aggpu: agGpu, aghbm: agHbm, agpcb: agPcb, agshelf: agShelf, agcdu: agCdu, psvrm: psVrm, pswhip: psWhip, acsink: acSink,
       pshelf: psuShelf, pshell: psuShell, pboard: psuBoard, pcardedge: psuCardEdge,
       pbusbar: psuBusbar, pvrm: psuVrm, pbbu: psuBbu, pscap: psuScap,
       timlay: timLayer, ihslid: ihsLid, cplate: coldPlate, cpfin: cpFin, cpport: cpPort,

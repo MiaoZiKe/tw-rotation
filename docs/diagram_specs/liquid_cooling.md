@@ -517,3 +517,39 @@
 | 2026-09-21 | ai-server-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**來源打架三條已記錄並各自給了處理方式**：B1（「均熱片」的中文名詞在 repo 內外用法不一致 → 畫面一律雙標，並排對照）、B2（VC 的性能提升百分比，兩個來源的比較對象根本不同卻被摘要混講 → 一個百分比都不寫）、B3（液冷帶走熱量的佔比 70–80% vs 80%，分母還不一致 → 寫區間並標明分母不同）。**六條查不到**已列在 §C，其中「各家市占」與「兩相時程」是最容易被編造的兩處。**3D 的判斷寫在 §0 並列了「什麼條件才回頭加」**——不要重演 MLCC 的事後補簽。**一個族群／環節落差已標出**（§7-D3：做快接頭的富世達不在 `thermal` 環節裡），建議交給 Andy 校訂，本規格書不動 YAML |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26 第二批，B 組）
+
+3D 場景 `SCENES.liquid_cooling`。零件清單、編號、對應台股、卡片文字都沒動。
+`uqd`（快接頭）跟 AI 伺服器機櫃共用、`vc`／`heatpipe` 跟氣冷共用 —— 三支都只有 B 組這幾張在用，所以直接改，兩邊一起受惠。
+`cdu` 以前也跟機櫃共用；機櫃那張改用自己的 `agcdu` 之後，`cdu` 只剩這一張用，所以把內部畫成真的 CDU。
+
+| 零件 | 補了什麼 | 依據 |
+|---|---|---|
+| 冷板 | 側牆頂上一圈 **O 形環密封墊**（蓋板掀開那一半看得到）；四顆鎖附螺絲改成「螺絲＋三圈**彈簧**＋六角頭」—— 冷板是用彈簧力壓在晶片上的；底板與側牆併成一個 mesh | L1 |
+| 冷板內部流道 | **鏟齒鰭片**：22 → 36 片、更薄、頂端帶鏟起時的**捲邊**、底下一片鰭片根座（鰭片跟底板是同一塊銅鏟起來的）| L2 |
+| 進出水口 | 一個接口＝接口座 → **六角螺帽** → **三道倒鉤**的管接頭 → 冷／熱色軟管 → **束管夾**（舊版只有一根色管） | — |
+| 分歧管 | 主管與分支併成一個 mesh；每個分支口補**快接頭母座**、主管上下**端蓋**、頂端**排氣閥** | L3 |
+| 快接頭 QD | **滾花套筒**（12 條縱向細肋）、開口端**閥面**（橡膠密封環＋中央彈簧閥芯）、尾端**三道倒鉤**接頭；三種材質各一個 mesh（跟舊版一樣 3 個）| L4 |
+| CDU | 半透明外殼裡：**兩顆泵**（馬達＋蝸殼，一用一備）、半透明**儲液槽**、一支**濾芯**、控制盒與面板、裡面的供水（冷）／回水（熱）直立管 | L5 |
+| 板式熱交換器 | 側面一排排**人字形波紋**；頂端板上**四個接管**（兩冷兩熱、對角配置 —— 兩個迴路各有自己的一進一出）| L5 |
+| 均熱板 VC | **上蓋底下也有一層毛細**（冷凝端）；一側的**封口注液管**；四周一圈**焊邊** | L6 |
+| 熱管 | 冷凝端補上**壓扁焊死的封口尾巴**；壓扁改成烘進幾何 | L7 |
+
+**效能（改前 → 改後）**：draw call 65 → 62（上限 300；批次27 的 draw call 棘輪沒有放寬）、三角形 10,966 → 16,728（上限 150,000；批次27 的三角形上限改成改後 ×1.5）、首次畫圖（對 769a4e5 同頁交錯量）1.15 倍 → 1.11 倍（上限 1.3 倍）。三角形變多是刻意加的細節，draw call 反而變少（同材質併成一個 mesh）。
+
+> 證據等級：全部是 WebSearch 摘要，沒有讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| L1 | 冷板是用彈簧螺絲壓緊（壓力不足 TIM 壓不薄）| 中（業界常識；本輪沒另撈來源，沿用規格書 §4 原有描述）| — |
+| L2 | 微流道冷板常用**鏟齒（skived）**鰭片：刀片刮過金屬塊、把刨起的薄片翻起來成為鰭片；也有中央噴流＋四周鏟齒的設計 | 中（兩個獨立來源）| <https://www.bythermal.com/product/skived-heatsinks/custom-copper-aluminum-skived-fin-heat-sink-microchannel-cold-plate-2/>、<https://jetcool.com/post/2023-data-center-cooling-solutions-microchannel-microconvective-immersion-cooling/> |
+| L3 | 機櫃液冷分歧管有進出口與主管，托盤經快接頭並聯 | 高 | <https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html>、<https://www.leviathansystems.co/articles/gb200-nvl72-deployment-deep-dive> |
+| L4 | UQD（OCP 規格）：公母兩半各有**彈簧閥芯**，分開時各自彈回關閉＝不滴漏；手插、可熱插拔、≥ 5,000 次插拔 | 高（OCP 規格＋ 多家原廠頁）| <https://www.opencompute.org/documents/ocp-universal-quick-disconnect-uqd-specification-rev-1-0-2-pdf>、<https://www.staubli.com/global/en/fluid-connectors/products/quick-and-dry-disconnect-couplings/thermal-management/uqd-universal-quick-disconnect.html>、<https://connector-sensor.com/uqd-couplings-guide/> |
+| L5 | CDU：熱交換器（小型／機櫃內多用**硬焊板式**）、**備援泵**、控制閥與感測器、**儲液槽**、**過濾**（約 50 µm）、控制系統 | 高（三家以上一致）| <https://www.vertiv.com/en-us/insights/articles/educational-articles/understanding-coolant-distribution-units-cdus-for-liquid-cooling/>、<https://www.modine.com/news/understanding-coolant-distribution-units-cdus-for-liquid-cooling-efficiency/>、<https://www.supermicro.com/en/glossary/cdu> |
+| L6 | VC：上下板都有燒結銅粉毛細（蒸發端／冷凝端），銅柱焊在上下板之間防止內外壓差把腔體壓扁，支撐柱也是液體回流路徑 | 中～高（多篇論文摘要一致）| <https://link.springer.com/article/10.1007/s11630-020-1366-3>、<https://link.springer.com/article/10.1007/s00231-019-02645-7> |
+| L7 | 熱管毛細有燒結、溝槽、絲網與複合型 | 中 | <https://eureka.patsnap.com/report-heat-pipe-wick-architectures-sintered-grooved-and-fiber-wicks-for-capillary-headroom>、<https://patents.google.com/patent/US4274479A/en> |
+
+⚠ 仍是示意：鏟齒鰭片的片數與捲邊大小（誇張放大）、UQD 的肋數、CDU 內部各件的相對位置（實機各家不同）。封口注液管「每一片 VC／熱管都有」是業界常識，本輪沒有另外撈到來源 → 低～中。
