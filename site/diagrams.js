@@ -501,6 +501,29 @@
       const ox = hr.left, oy = hr.top;
       lead.setAttribute('width', grid.clientWidth); lead.setAttribute('height', grid.clientHeight);
       const cr = canvas.getBoundingClientRect();
+      /* ★ 2026-09-26（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」，scripts/_dg_overlap.py 量到的）：
+         引線最後一段是「沿著錨點的高度橫著走到錨點」—— 卡片全在右欄（今日事件抽屜開著的兩欄版面）時，
+         錨點在畫布左半邊的那幾條會橫越整張畫布，一路從標籤、說明的字中間劃過去，讀起來像一道刪除線。
+         改成：這一段遇到畫布裡的字就斷開（字的左右各留 3px），線看起來是從字的後面穿過去 ——
+         地圖標籤的做法。引線的走法、端點、顏色一個都沒變；只在「會壓到字」的那幾段留白。*/
+      const txt = [];
+      svg.querySelectorAll('text').forEach((t) => {
+        const r = t.getBoundingClientRect(); if (!r.width || !r.height) return;
+        const pad = r.height * 0.07;
+        // 別的錨點的號碼也算（引線從隔壁編號圓點中間穿過去一樣會把號碼劃掉）；只有自己那一顆不算 —— 線本來就停在它的圓外
+        txt.push({ el: t, l: r.left - ox - 3, r: r.right - ox + 3, t: r.top - oy + pad, b: r.bottom - oy - pad });
+      });
+      const hseg = (x0, x1, y, own) => {                    // 從 x0 橫走到 x1（y 固定），碰到字就斷開
+        const lo = Math.min(x0, x1), hi = Math.max(x0, x1);
+        const gaps = txt.filter((q) => !own.contains(q.el) && y > q.t && y < q.b && q.r > lo && q.l < hi).map((q) => [Math.max(lo, q.l), Math.min(hi, q.r)]).sort((m, n) => m[0] - n[0]);
+        if (!gaps.length) return ` H${x1.toFixed(1)}`;
+        const segs = []; let cur = lo;
+        gaps.forEach(([g0, g1]) => { if (g0 > cur) segs.push([cur, g0]); cur = Math.max(cur, g1); });
+        if (cur < hi) segs.push([cur, hi]);
+        const ordered = x1 >= x0 ? segs : segs.map(([m, n]) => [n, m]).reverse();
+        // 第一段接在前一筆（V 到錨點高度）的尾巴上；其餘每一段各自 M 起筆
+        return ordered.map(([m, n], i) => (i === 0 && Math.abs(m - x0) < 0.5 ? ` H${n.toFixed(1)}` : ` M${m.toFixed(1)},${y.toFixed(1)} H${n.toFixed(1)}`)).join('');
+      };
       let out = '';
       pairs.forEach(({ card, anc }) => {
         ['sel', 'sel-part', 'dim'].forEach((k) => anc.classList.toggle(k, card.classList.contains(k)));
@@ -516,8 +539,8 @@
         const cy = (nr ? nr.top + nr.height / 2 : c.top + c.height / 2) - oy;
         const acx = a.left + a.width / 2 - ox, acy = a.top + a.height / 2 - oy, ar = a.width / 2 + 1;
         let d = null;
-        if (c.right <= cr.left + 2) d = `M${(c.right - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.left - ox - 8).toFixed(1)} V${acy.toFixed(1)} H${(acx - ar).toFixed(1)}`;
-        else if (c.left >= cr.right - 2) d = `M${(c.left - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.right - ox + 8).toFixed(1)} V${acy.toFixed(1)} H${(acx + ar).toFixed(1)}`;
+        if (c.right <= cr.left + 2) d = `M${(c.right - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.left - ox - 8).toFixed(1)} V${acy.toFixed(1)}` + hseg(cr.left - ox - 8, acx - ar, acy, anc);
+        else if (c.left >= cr.right - 2) d = `M${(c.left - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.right - ox + 8).toFixed(1)} V${acy.toFixed(1)}` + hseg(cr.right - ox + 8, acx + ar, acy, anc);
         if (!d) return;                                   // 卡片在畫布下面（單欄）：靠編號對照，不畫引線
         const cls = (card.classList.contains('sel-part') ? 'sel-part' : card.classList.contains('sel') ? 'sel' : '') + (card.classList.contains('dim') ? ' dim' : '');
         out += `<path d="${d}" class="${cls}"${cc ? ` style="--c:${cc}"` : ''}/>`;

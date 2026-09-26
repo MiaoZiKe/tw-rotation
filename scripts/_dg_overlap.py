@@ -110,7 +110,7 @@ AUDIT2D_JS = r"""(opt) => {
         return { el: t, r, tight };
       }).filter(Boolean);
     out.texts += texts.length;
-    texts.forEach((t) => { if (!t.el.classList.contains('non')) allTexts.push(t); });
+    texts.forEach((t) => allTexts.push(t));          // 錨點號碼也算：別條引線從隔壁編號中間穿過，號碼一樣被劃掉
     const SHAPES = 'rect,path,circle,ellipse,polygon,polyline,line,image,use';
     const W0 = svr.width * svr.height;
     const shapes = [...svg.querySelectorAll(SHAPES)].filter(s => !s.closest(SKIP_ANC) && !s.querySelector('animateMotion,animate') && shown(s, svg))
