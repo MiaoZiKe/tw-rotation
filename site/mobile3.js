@@ -423,7 +423,7 @@
     });
     const cnt = {}; all.forEach(p => { cnt[p.quadrant] = (cnt[p.quadrant] || 0) + 1; });
     const corner = { improving: 'left:0;top:0', leading: 'right:0;top:0', lagging: 'left:0;bottom:0', weakening: 'right:0;bottom:0' };
-    el.innerHTML = `<div class="mradar" style="width:${S}px;height:${S}px"><svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" role="img" aria-label="足跡輪盤">${g}</svg>`
+    el.innerHTML = `<div class="mradar" style="width:${S}px;height:${S}px"><svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" role="img" aria-label="資金輪盤">${g}</svg>`
       + Object.keys(ST).map(q => `<button type="button" class="mqb${opts.quad === q ? ' on' : ''}" data-quad="${q}" style="${corner[q]};--c:${stc(q)}" aria-pressed="${opts.quad === q}">${ST[q]}<b>${cnt[q] || 0}</b></button>`).join('')
       + '</div>';
     el.dataset.shown = shown.length;
@@ -514,7 +514,7 @@
     const box = host(card, 'rot', null, { full: '完整版（回放、即時、放大）' });
     if (box.dataset.done) return;
     /* 資料還沒回來之前先放標題與一行「載入中」—— 不然這一段在資料回來之前整片空白（慢網路下看起來像壞掉）*/
-    if (!box.innerHTML) box.innerHTML = '<div class="mhead"><h3>資金輪動</h3></div><div class="msub">載入足跡輪盤與資金排行中…</div>';
+    if (!box.innerHTML) box.innerHTML = '<div class="mhead"><h3>資金輪動</h3></div><div class="msub">載入資金輪盤與資金排行中…</div>';
     const [f, sd] = await Promise.all([load('flow_v3'), load('sankey_daily')]);
     if (!f || !f.rrg || !box.isConnected) return;
     box.dataset.done = '1';

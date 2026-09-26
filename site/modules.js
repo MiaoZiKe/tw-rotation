@@ -45,7 +45,7 @@
     { "id": "flow.clock", "name": "輪動時鐘", "question": "①", "ask": "哪些族群相對大盤在轉強，它們跑到強弱循環的哪一段",
       "tier": "免費", "law": "🟡",
       "at": [
-        { "page": "overview", "step": 1, "seg": "足跡輪盤", "ord": 10,
+        { "page": "overview", "step": 1, "seg": "資金輪盤", "ord": 10,
           "selector": ["#ovRotCard", "#ovRotHead", "#ovRotKpi", "#how-rotm", "#rotClockMiniWrap"],
           "note": "第①步的主圖。它就是「錢往哪個族群跑」最直接的一張圖，以前是總覽中段的一張卡、要捲 1911px 才看得到。#ovRotCard 是跟「資金去向」共用的卡片外殼：桌機一張卡兩件事（量到 1059px），手機拆兩段；兩段都要列外殼，不然另一段會留下一個 34px 高的空卡片（實測）。#ovRotKpi 是手機才長出來的四象限計數（miaRotKpi）。" },
         { "page": "flow", "seg": "輪動", "ord": 10, "selector": ["#flowRotCard"],
@@ -65,7 +65,7 @@
       "at": [
         { "page": "overview", "step": 1, "seg": "資金去向", "ord": 20,
           "selector": ["#ovRotCard", "#ovFlowHead", "#ovFlowWrap"],
-          "note": "總覽上的簡版（renderOvFlow）。2026-09-26 桌機改用 flowtopo.js 緊湊版 layout:'mini'（和資金流向頁經典光纖第二版同一套視覺，有粒子），手機 ≤820 仍是 ECharts 樹。外殼 #ovRotCard 與輪動時鐘共用，理由見 flow.clock。2026-09-24 說明精簡：圖下註腳 #ovFlowNote 拿掉，口徑搬進足跡輪盤的「?」。" },
+          "note": "總覽上的簡版（renderOvFlow）。2026-09-26 桌機改用 flowtopo.js 緊湊版 layout:'mini'（和資金流向頁經典光纖第二版同一套視覺，有粒子），手機 ≤820 仍是 ECharts 樹。外殼 #ovRotCard 與輪動時鐘共用，理由見 flow.clock。2026-09-24 說明精簡：圖下註腳 #ovFlowNote 拿掉，口徑搬進資金輪盤的「?」。" },
         { "page": "flow", "seg": "資金去向", "ord": 20, "selector": ["#flowSankeyCard"] }
       ],
       "tests": ["新-資金流向", "資金去向經典光纖", "資金去向拓撲", "資金去向拓撲-減少動態", "桑基展開與即時", "批次30-兩層下拉與象限卡", "總覽", "總覽右欄", "資金去向v2", "設計系統v2", "載入效能"] },
