@@ -2179,6 +2179,17 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .ev a:hover{color:var(--cyan)}
 .ev .m{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;gap:8px;align-items:center}
 .ev .cat{padding:0 7px;border-radius:999px;background:var(--panel-3);font-size:12px}/* 精修 #8：11 → 12px */
+/* ★ 2026-09-26 個股「公告 / 新聞」合併成一張列表：每列前面一個類型標籤。
+   三色刻意避開紅綠（紅綠在這個站是漲跌）；用主題 token，淺色主題自動換成壓深的同色相。 */
+#stockNews .nrow{padding-left:0;padding-right:0}
+#stockNews .nrow[hidden]{display:none}
+#stockNews .nhead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+#stockNews .nhead a,#stockNews .nhead b{flex:1 1 220px;min-width:0}
+.ntag{flex:none;display:inline-block;padding:0 8px;border-radius:999px;border:1px solid currentColor;font-size:12px;font-weight:700;line-height:1.6;white-space:nowrap}
+.ntag.mops{color:var(--amber)} .ntag.news{color:var(--cyan)} .ntag.broker{color:var(--violet)}
+#stockNews .nwarn{flex:none;font-size:12px;color:var(--ink-3);white-space:nowrap}
+#stockNews #newsEmpty[hidden]{display:none}
+#stockTab .chipBar #chipRange{margin:0}
 .close{border:0;background:transparent;color:var(--ink-3);font-size:20px;cursor:pointer}
 
 /* ---------------- 手機 ---------------- */
