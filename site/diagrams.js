@@ -574,7 +574,7 @@
        照 12px 排的整行說明就頂到框線上、壓在框外。這裡把「所屬的框」也當成右界，一樣只准壓 ≤ 12%。
        所屬的框＝字的起點落在裡面的最小那個 frame（跟普查腳本「文字超出所屬格子」同一條定義）。
        量的是螢幕座標，所以段落的 translate、scale 都自動算進去。*/
-    const frames = [].slice.call(svg.querySelectorAll('rect.frame')).map((f) => ({ f, r: f.getBoundingClientRect() })).filter((x) => x.r.width > 0);
+    const frames = [].slice.call(svg.querySelectorAll('rect.frame,rect.row')).map((f) => ({ f, r: f.getBoundingClientRect() })).filter((x) => x.r.width > 0);
     svg.querySelectorAll('text').forEach((t) => {
       if (t.hasAttribute('textLength')) { t.removeAttribute('textLength'); t.removeAttribute('lengthAdjust'); }
       let b, tr; try { b = t.getBBox(); tr = t.getBoundingClientRect(); } catch (e) { return; }

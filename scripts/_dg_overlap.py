@@ -167,6 +167,8 @@ AUDIT2D_JS = r"""(opt) => {
       });
       /* 底下的圖形：由上往下看，碰到第一塊「整段字都墊在上面」的實心底圖就停 ——
          它下面的東西被它整個隔開了（編號圓點印在零件上、標籤框印在剖面上，都是這種）。*/
+      // 編號圓點裡的號碼：它的底就是自己那顆圓（可能被調淡），圓點之間互蓋另外由 ⑤ 量，這裡不再拿底下的零件比
+      if (T.el.classList.contains('non')) below.length = 0;
       below.sort((p, q) => (p.S.el.compareDocumentPosition(q.S.el) & FOLLOW) ? 1 : -1);   // 上面（後畫）的排前面
       for (const { S, g } of below) {
         if (S.fill && g.dn <= TOL) break;
@@ -183,7 +185,7 @@ AUDIT2D_JS = r"""(opt) => {
       // ② 所屬格子：字的中心落在哪個 frame／bg 裡（取最小的那個），字框就不准伸出去
       const cx = (tb.left + tb.right) / 2, cy = (tb.top + tb.bottom) / 2;
       let box = null;
-      shapes.forEach((S) => { const c = S.el.classList; if (S.el.tagName !== 'rect' || !(c.contains('frame') || c.contains('bg') || c.contains('fbar'))) return;
+      shapes.forEach((S) => { const c = S.el.classList; if (S.el.tagName !== 'rect' || !(c.contains('frame') || c.contains('bg') || c.contains('fbar') || c.contains('row'))) return;
         if (S.el.contains(T.el)) return;
         const r = S.r; if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return;
         if (!box || r.width * r.height < box.r.width * box.r.height) box = S; });
@@ -285,8 +287,15 @@ AUDIT3D_JS = r"""(opt) => {
       if (over > TOL) issues.push({ kind: '3D 卡片文字超出卡片', sec: '3D', a: cdesc(c.el), b: clip(e.textContent, 20), px: +over.toFixed(1), rect: R(union(cr, r)) });
     });
   });
+  // 手機（≤640）的 3D：卡片收掉、畫面上疊編號鈕 —— 鈕與鈕不准互蓋
+  const nums = [...stage.querySelectorAll('.mnumlayer .mnum')].filter(vis).map(e => ({ el: e, r: e.getBoundingClientRect() }));
+  for (let i = 0; i < nums.length; i++) for (let j = i + 1; j < nums.length; j++) {
+    const a = nums[i].r, b = nums[j].r;
+    const ov = (a.width + b.width) / 2 - Math.hypot((a.left + a.right - b.left - b.right) / 2, (a.top + a.bottom - b.top - b.bottom) / 2);
+    if (ov > TOL) issues.push({ kind: '3D 編號鈕互蓋', sec: '3D', a: '編號 ' + nums[i].el.textContent, b: '編號 ' + nums[j].el.textContent, px: +ov.toFixed(1), rect: R(union(a, b)) });
+  }
   const cvr = cv ? cv.getBoundingClientRect() : null;
-  return { issues, cards: cards.map(c => ({ d: cdesc(c.el), r: { left: c.r.left, top: c.r.top, right: c.r.right, bottom: c.r.bottom } })),
+  return { issues, nums: nums.length, cards: cards.map(c => ({ d: cdesc(c.el), r: { left: c.r.left, top: c.r.top, right: c.r.right, bottom: c.r.bottom } })),
            canvas: cvr ? { left: cvr.left, top: cvr.top, width: cvr.width, height: cvr.height } : null, sx, sy };
 }"""
 
@@ -523,7 +532,7 @@ def _one(pg, base: str, t: dict, w: int, mode: str, pal: str, shots, nshot: int,
         issues = r["issues"] + _silhouette_overlap(pg, r, TOL)
         if shots is not None:
             nshot = _shots(pg, t, mode, w, pal, issues, shots, nshot)
-        stat = {"cards": len(r.get("cards") or [])}
+        stat = {"cards": len(r.get("cards") or []), "nums": r.get("nums", 0)}
     # 同一段字被好幾塊圖形蓋到（玻璃方塊是 前面＋頂面＋陰影 三塊）→ 併成一條，B 欄列出全部
     kept, idx = [], {}
     for it in issues:
@@ -531,7 +540,7 @@ def _one(pg, base: str, t: dict, w: int, mode: str, pal: str, shots, nshot: int,
         if _whitelisted(t["id"], it):
             continue
         k = (it["kind"], it["a"], it.get("sec", ""))
-        if k in idx and it["kind"] not in ("文字互疊", "說明卡互蓋", "3D 說明卡互蓋", "編號鈕互蓋", "編號圓點互蓋"):
+        if k in idx and it["kind"] not in ("文字互疊", "說明卡互蓋", "3D 說明卡互蓋", "編號鈕互蓋", "編號圓點互蓋", "3D 編號鈕互蓋"):
             o = idx[k]
             if it["b"] not in o["b"]:
                 o["b"] += "、" + it["b"]
