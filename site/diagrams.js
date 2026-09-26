@@ -1756,7 +1756,63 @@
      新的查找一律走 window.DiagramSlots，不要在別的地方再維護第二份名單。*/
   window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
-  window.DG = { fillChips, STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+  /* ================================================================ 說明文字自動斷行（2026-09-26 覆蓋普查）
+     SVG 的 <text> 不會自己換行。十幾張圖的說明是照「12px、980 寬」的舊畫布一整句寫在一行裡，
+     搬進 660 寬之後，閱讀模式（字大一階）＋ 1100 寬（v2 把畫布縮到 598px、字級反過來放大補回 13px 以上）
+     一行就伸出框、伸出畫布，最多伸出 300px（scripts/_dg_overlap.py 量到的）。
+     這兩支只做一件事：**照最壞情況的字寬估一行放得下幾個字，在標點處斷開**，字級一個都不動（12px 下限照守）。
+       wrap(str, maxW, fs)  → 斷好的字串陣列（maxW＝畫布座標的可用寬；fs＝估寬用的字級，預設 16 ＝ 最壞情況）
+       para(x, y, items, maxW, o) → { svg, n, h }：items 是一段或多段（字串陣列），每段各自斷行；
+          o.cls（預設 sub）、o.lh（行距，預設 18）、o.style、o.indent（續行開頭補的字，預設不補；條列式可以傳 '　 '）、o.gap（段與段多空的 px）
+     估寬：全形字 1 em、半形英數 0.6 em、空白 0.3 em —— 寧可估寬一點（多斷一行），不要估窄（伸出框）。
+     斷點：優先斷在全形標點之後；英數字詞（CoWoS、0.1425%、SFF-TA-1016）不從中間切開。*/
+  const EM = (ch) => (/[⺀-鿿豈-﫿︰-﹏＀-｠　-〿‐-‧←-⇿■-➿]/.test(ch) ? 1 : (ch === ' ' ? 0.3 : 0.6));
+  function wrap(str, maxW, fs) {
+    const lim = maxW / (fs || 16);
+    const out = []; let cur = '', w = 0, lastBreak = -1, wAtBreak = 0;
+    const PUNC = /[，、；：。）」』】！？—,;:)]/;
+    const toks = String(str).match(/[A-Za-z0-9.%\/\-+_#&~]+|\s|./gu) || [];
+    toks.forEach((t) => {
+      const tw = [...t].reduce((a, c) => a + EM(c), 0);
+      // 收尾的標點（，。、）」）不准跑到下一行開頭：寧可這一行多吃半個字寬
+      const closer = /^[，、；：。）」』】！？,.;:)…]$/.test(t);
+      if (w + tw > lim && cur.trim() && !(closer && w + tw <= lim + 1.05)) {
+        if (lastBreak > 0 && wAtBreak > lim * 0.55) {       // 往回找最近的標點斷
+          out.push(cur.slice(0, lastBreak)); cur = cur.slice(lastBreak).replace(/^\s+/, ''); w = [...cur].reduce((a, c) => a + EM(c), 0);
+        } else {
+          // 開括號不放在行尾附近（「（證」這種斷法讀起來像打錯字）：括號後面不到三個字就斷，就把括號一起帶到下一行
+          const m = cur.match(/[（「『【(][^）」』】)]{0,3}$/); const carry = m && m.index > 0 ? m[0] : '';
+          out.push(cur.slice(0, cur.length - carry.length).replace(/\s+$/, '')); cur = carry; w = [...carry].reduce((a, c) => a + EM(c), 0);
+          if (t === ' ') return;
+        }
+        lastBreak = -1; wAtBreak = 0;
+      }
+      cur += t; w += tw;
+      if (PUNC.test(t) || t === ' ') { lastBreak = cur.length; wAtBreak = w; }
+    });
+    if (cur.trim()) out.push(cur);
+    return out;
+  }
+  function para(x, y, items, maxW, o) {
+    o = o || {};
+    const lh = o.lh || 18, cls = o.cls || 'sub', ind = o.indent || '';
+    const esc = (t) => String(t).replace(/&(?!amp;|lt;|gt;|quot;|#)/g, '&amp;').replace(/</g, '&lt;');
+    let n = 0, yy = y, svg = '';
+    (Array.isArray(items) ? items : [items]).forEach((it, k) => {
+      if (k && o.gap) yy += o.gap;
+      const st = typeof it === 'object' && it ? it : { t: it };
+      const indW = ind ? [...ind].reduce((a, c) => a + EM(c), 0) * (o.fs || 16) : 0;
+      const first = wrap(st.t, maxW, o.fs);
+      const lines = first.length > 1 ? [first[0]].concat(wrap(first.slice(1).join(''), maxW - indW, o.fs).map((l) => ind + l)) : first;
+      lines.forEach((l) => {
+        const style = st.style || o.style;
+        svg += `<text class="${st.cls || cls}" x="${x}" y="${yy}"${style ? ` style="${style}"` : ''}>${esc(l)}</text>`;
+        yy += lh; n++;
+      });
+    });
+    return { svg, n, h: yy - y, y: yy };
+  }
+  window.DG = { wrap, para, fillChips, STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 
   // ===== 2.5D 材質（玻璃／發光／光束）=====
   /* Andy 2026-09-22 晚的參考圖（docs/diagram_refs/2d_panel_dark_light.webp）翻成三支可重用的 helper。

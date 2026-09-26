@@ -67,12 +67,14 @@
      四格用同一組常數產生（§9：四格用同一個 cell() 函式，X1 就自動成立）。
      v2：畫布 560，四格改成一欄四列（兩個章節各兩格），每格 528×440。*/
   const W = 560;
-  const CW = 528, CH = 440;
-  const ROW0 = 232, ROWP = 54;         // 格內標註列：相對格頂 232 起、間距 54、共 4 列（v2：閱讀模式 13px，列距 52 會貼在一起）
+  /* ★ 2026-09-26 覆蓋普查：標註列的底框 48 高、第二行說明基線在 y+34 —— 閱讀模式字一大，那一行就壓在底框線上
+     （四格共 16 列全中）。底框 48 → 52、結論句下移 8、第一列下移 16（讓開結論句）、列距 54 → 56、格高 440 → 456；同一段的兩格之間仍留 8px。*/
+  const CW = 528, CH = 456, ONE_Y = 224;
+  const ROW0 = 248, ROWP = 56;         // 格內標註列：相對格頂 232 起、間距 54、共 4 列（v2：閱讀模式 13px，列距 52 會貼在一起）
   /* 四格在畫布上的位置（章節內的絕對座標；wireFolds 會整段平移，只要彼此對得上就好）。
      原本 2×2 的格子在 (16,296)／(500,296)／(16,752)／(500,752)：draw3／draw5 的座標是照右欄寫的，往左移 484；
      draw4／draw5 是照第二排（格頂 752）寫的，往下移到新的格頂。*/
-  const CELL = [[16, 620], [16, 1076], [16, 1580], [16, 2036]];
+  const CELL = [[16, 620], [16, 1084], [16, 1580], [16, 2044]];   // ★ 2026-09-26：格高 +16，同一段裡的第二格跟著下移 8
   const SH2 = CELL[0][1] - 296, SH3 = 16 - 500, SH3Y = CELL[1][1] - 296, SH4 = CELL[2][1] - 752, SH5 = CELL[3][1] - 752;
   const S_CN = 'connector', S_PCB = 'hdi_pcb', S_OPT = 'optical', S_TH = 'thermal';
 
@@ -145,9 +147,9 @@
       <g pointer-events="none">
         <text class="lbl" x="34" y="236">ASIC／GPU</text>
         <text class="sub" x="34" y="252">只畫方塊，不畫內部</text>
-        <text class="lbl" x="168" y="326">① 走板子</text>
+        <text class="lbl" x="168" y="350">① 走板子</text>  <!-- ★ 2026-09-26 覆蓋普查：原本 y 326 壓在板子前緣那條邊上，移到板子底下 -->
         <text class="lbl" x="296" y="352">② 板邊金手指 → 插槽</text>
-        <text class="lbl" x="150" y="166">③ 走內部線纜，繞過板子</text>
+        <text class="lbl" x="150" y="150">③ 走內部線纜，繞過板子</text>  <!-- ★ 2026-09-26 覆蓋普查：原本 y 166，線纜弧線從「板子」兩個字中間穿過，往上提 16 -->
         <text class="sub" x="222" y="88">雙軸線纜剖開來看</text>
         <text class="lbl" x="366" y="122">④ 前面板光模組籠</text>
         <text class="lbl" x="420" y="96">⑤ 機櫃背板線纜匣</text>
@@ -181,7 +183,7 @@
     const lead = o.ax != null
       ? `<path class="leader" d="M${o.ax},${o.ay} L${elbow},${o.ay} L${elbow},${y - 2} L${x + 28},${y - 2}"/>` : '';
     return `<g class="lrow" data-part="${o.id}"${o.seg ? ` data-seg="${o.seg}"` : ''}>
-      <rect class="bg" x="${x + 24}" y="${y - 15}" width="${CW - 38}" height="48" rx="6"/>
+      <rect class="bg" x="${x + 24}" y="${y - 15}" width="${CW - 38}" height="52" rx="6"/>
       ${lead}<circle class="dot" cx="${x + 32}" cy="${y - 2}" r="4"/>
       <text class="lbl" x="${x + 43}" y="${y + 2}">${o.t}</text>
       <text class="sub" x="${x + 43}" y="${y + 18}">${o.s1 || ''}</text>
@@ -193,7 +195,7 @@
       <rect class="frame" x="${x}" y="${y}" width="${CW}" height="${CH}" rx="9"/>
       <text class="hd" x="${x + 14}" y="${y + 22}">${no}　${title}</text>
       ${draw}
-      <text class="lbl" x="${x + 42}" y="${y + 216}">${one}</text>
+      <text class="lbl" x="${x + 42}" y="${y + ONE_Y}">${one}</text>
       ${rows.map((r, j) => crow(x, y, j, r)).join('')}</g>`;
   }
 
@@ -209,7 +211,9 @@
     const beam = (x0, y0, dir) => line(
       `M${x0},${y0} C${x0 + dir * 3},${y0 - 14} ${x0 + dir * 18},${y0 - 20} ${x0 + dir * 14},${y0 - 34}`,
       'var(--dg-cu-lit)', 3.4, ' stroke-linecap="round"');
-    const card = 'M206,318 H294 V398 L285,414 H215 L206,398 Z';
+    /* ★ 2026-09-26 覆蓋普查：卡片上緣原本 318（＝格頂 +22，正好是格標題的基線），把標題尾巴「CEM）」蓋掉；
+       卡片本來就是往上延伸、畫面只截一段，上緣改 326（金手指從 328 起，一筆都沒動）。*/
+    const card = 'M206,326 H294 V398 L285,414 H215 L206,398 Z';
     // v2：整格往下移到新的格頂（原本畫在第一排 y=296 的格子裡），rows2 的錨點也是同一個數字
     return `<g transform="translate(0,${SH2})">
       ${part('slot_housing', S_CN, R(150, 378, 200, 76, 'var(--dg-frame)', 'part', 3)
@@ -229,7 +233,7 @@
       <g pointer-events="none">${R(120, 472, 260, 10, 'var(--dg-pcb)')}
         <text class="sub" x="372" y="${330}">放大：一支彈片</text>
         <text class="sub" x="110" y="340">公端（卡片）</text>
-        <text class="sub" x="122" y="492">母端（插槽）壓在主板上</text></g></g>`;
+        <text class="sub" x="122" y="498">母端（插槽）壓在主板上</text></g></g>`;   /* ★ 原本 492，字頂壓進主板那條色帶 4px */
   }
 
   /* ================================================================ 格 ③　內部線纜（MCIO／SlimSAS ＋ twinax）
@@ -290,8 +294,11 @@
       ${part('belly', S_CN, R(410, 866, 56, 22, 'var(--dg-steel-2)', 'part', 2)
       + R(410, 896, 56, 22, 'var(--dg-steel-2)', 'part', 2) + R(408, 888, 60, 8, 'var(--dg-pcb)', 'part'))}
       <g pointer-events="none">
-        <text class="sub" x="252" y="880">插進去的光模組（只有外殼與拉環）</text>
-        <text class="sub" x="344" y="860">背對背：上下各一個籠</text>
+        <!-- ★ 2026-09-26 覆蓋普查：原本一整行伸到背對背那兩個籠（x 410）上面 → 拆兩行收在光模組上方、避開散熱片；「背對背」移到那兩個籠的正下方 -->
+        <text class="sub" x="260" y="862">插進去的光模組</text>
+        <text class="sub" x="260" y="880">（只有外殼與拉環）</text>
+        <text class="sub" x="404" y="938">背對背：</text>
+        <text class="sub" x="404" y="956">上下各一個籠</text>
         <text class="sub" x="60" y="980">籠架用壓接針腳固定在板上，不是焊上去的</text></g></g>`;
   }
 
@@ -415,12 +422,12 @@
       ${fold('hs3', '④ 前面板光模組籠 ＋ ⑤ 機櫃背板盲插', '通風孔、壓接針腳、EMI 指片、騎在籠上的散熱片；導引柱先到、浮動間隙、線纜匣', `
       ${cell(2, '④', '前面板光模組籠（OSFP／QSFP-DD）', draw4(), '它解決「插光模組，還要散熱、擋電磁干擾」。', rows4)}
       ${cell(3, '⑤', '機櫃背板與盲插（cable cartridge）', draw5(), '它解決「整櫃盲插」：推進去就接上，不用手插。', rows5)}
-      <text class="cap" x="16" y="2500">示意圖，非實物比例｜接點形狀與鍍層厚度均為示意；籠架尺寸、EMI 指片數量、twinax 的線規與阻抗、</text>
-      <text class="cap" x="16" y="2518">插拔次數一律不標（查不到可引用的通用值）。距離對照（22 吋 / 4.5 吋）為單一原廠技術頁的數字，</text>
-      <text class="cap" x="16" y="2536">依板材、頻率與設計規則而異；本圖不寫任何市占、單價與成長率。</text>
-      <text class="cap" x="16" y="2554" style="fill:var(--dg-warn)">★ 點零件篩到的是「環節」不是整個族群：「連接器 / 線材」這一格目前只收錄</text>
-      <text class="cap" x="16" y="2572" style="fill:var(--dg-warn)">　 3665 貿聯-KY 一家 —— 那不是壞掉。族群裡的 3533 嘉澤／3526 凡甲／8103 瀚荃</text>
-      <text class="cap" x="16" y="2590" style="fill:var(--dg-warn)">　 都還沒進供應鏈資料，所以列出來的一家不等於這四類料號的全部供應商。</text>`)}
+      <text class="cap" x="16" y="2524">示意圖，非實物比例｜接點形狀與鍍層厚度均為示意；籠架尺寸、EMI 指片數量、twinax 的線規與阻抗、</text>
+      <text class="cap" x="16" y="2542">插拔次數一律不標（查不到可引用的通用值）。距離對照（22 吋 / 4.5 吋）為單一原廠技術頁的數字，</text>
+      <text class="cap" x="16" y="2560">依板材、頻率與設計規則而異；本圖不寫任何市占、單價與成長率。</text>
+      <text class="cap" x="16" y="2578" style="fill:var(--dg-warn)">★ 點零件篩到的是「環節」不是整個族群：「連接器 / 線材」這一格目前只收錄</text>
+      <text class="cap" x="16" y="2596" style="fill:var(--dg-warn)">　 3665 貿聯-KY 一家 —— 那不是壞掉。族群裡的 3533 嘉澤／3526 凡甲／8103 瀚荃</text>
+      <text class="cap" x="16" y="2614" style="fill:var(--dg-warn)">　 都還沒進供應鏈資料，所以列出來的一家不等於這四類料號的全部供應商。</text>`)}
     </svg>`;
   }
 
