@@ -6794,8 +6794,10 @@ def t_stock(pg, base, code):
     # --- 時間週期：按鈕上要先標清楚哪些這檔沒有（Andy：「1 日以下都不見」）
     tfstate = pg.evaluate("""() => [...document.querySelectorAll('#tfSeg button')].map(b => ({
         tf: b.dataset.tf, off: b.classList.contains('off'), title: b.title }))""")
-    ok("週期鈕依序是 5秒／1分／5分（即時）＋ 15分／1時／4時／日／週／月",
-       [t["tf"] for t in tfstate][:9] == ["5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"], tfstate)
+    # ★ 2026-09-26 晚改前：九個週期全排（5秒～月）→ 改後：預設只排勾起來的 1時／4時／日／週／月（「週期設置」），
+    #   其他要在「指標 ▾」的週期區勾了才出現（那條路在「個股指標下拉0926」段實際點過）
+    ok("週期鈕依序是 1時／4時／日／週／月（09-26 晚起預設只排這五個）",
+       [t["tf"] for t in tfstate] == ["60m", "240m", "1d", "1w", "1M"], tfstate)
     ok("日線一定是有資料的（沒有被劃掉）", not next(t for t in tfstate if t["tf"] == "1d")["off"], tfstate)
     for t in tfstate:
         if t["off"]:
@@ -6860,8 +6862,10 @@ def t_stock(pg, base, code):
     ok("「⚙ 設定」鈕拿掉了（內容都搬進指標下拉）", count(pg, "#cfgBtn") == 0)
     ind_open(pg)
     rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
-    ok("指標下拉清單有這些列（整體、均線、BOLL、成交量、KD、MACD、背離、RSI、停損目標、本益比河流）",
-       all(k in rows for k in ("base", "ma", "boll", "vol", "kd", "macd", "macdDiv", "rsi", "lines", "peRiver")), rows)
+    # ★ 2026-09-26 晚改前：清單含「MACD 背離」「停損目標」→ 改後：兩列拿掉（Andy「MACD & 停損／目標背離先拿掉」），多一區「週期」
+    ok("指標下拉清單有這些列（整體、週期、均線、BOLL、成交量、KD、MACD、RSI、本益比河流）",
+       all(k in rows for k in ("base", "tf", "ma", "boll", "vol", "kd", "macd", "rsi", "peRiver")), rows)
+    ok("★ 指標下拉裡沒有「MACD 背離」「停損／目標」（09-26 晚拿掉）", "macdDiv" not in rows and "lines" not in rows, rows)
     ok("★ 指標下拉裡沒有「SMC 區間」「BOS/CHoCH」", "smc" not in rows and "marks" not in rows, rows)
     for k in ("kd", "macd", "rsi", "vol", "boll", "peRiver"):
         if k not in rows:
@@ -7135,21 +7139,19 @@ def t_stock(pg, base, code):
         return e.offsetLeft >= 0 && e.offsetLeft + e.offsetWidth <= h.clientWidth + 1; }""")
     ok("游標靠右邊時資訊框不會被切掉（自動翻到左側）", fit)
 
-    # 2) MACD 背離（★ 2026-09-26 改前：工具列晶片 → 改後：指標下拉的「MACD 背離」那一列）
+    # 2) MACD 背離
+    # ★ 2026-09-26 晚改前：指標下拉有「MACD 背離」一列、預設開、點了關得掉
+    #   → 改後：整列拿掉（Andy「MACD & 停損／目標背離先拿掉」）；打開 MACD 也不畫背離
     ind_open(pg)
     chips = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(c => c.dataset.k)")
-    ok("指標清單有「MACD 背離」", "macdDiv" in chips, chips)
-    on0 = ind_on(pg, "macdDiv")
+    ok("★ 指標清單沒有「MACD 背離」（09-26 晚拿掉）", "macdDiv" not in chips, chips)
+    mac0 = ind_on(pg, "macd")
+    if not mac0:
+        ind_toggle(pg, "macd", 1200)
     dv = pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }")
-    ok("背離預設是開的", on0)
-    ok("背離有算出來（或誠實回 0，不是壞掉）", dv >= 0, dv)
-    h0 = canvas_hash(pg, "#lwc")
-    ind_toggle(pg, "macdDiv", 1200)
-    ok("點一下真的關掉", ind_on(pg, "macdDiv") is False)
-    ok("關掉之後背離就不算了", pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }") == 0)
-    changed("關掉背離之後圖真的重畫", h0, canvas_hash(pg, "#lwc"))
-    ind_toggle(pg, "macdDiv", 1200)
-    ok("再點一下開回來", ind_on(pg, "macdDiv") is True)
+    ok("★ 打開 MACD 也不畫背離（主圖背離 0 組）", dv == 0, dv)
+    if not mac0:
+        ind_toggle(pg, "macd", 900)
     ind_close(pg)
 
     # 3) ★ 按住 Shift 拉線 = 水平
@@ -9754,6 +9756,11 @@ def t_market3(pg, base):
     pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.live.proxy'].forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
 
+# ★ 2026-09-26 晚：個股週期列預設只排 1時／4時／日／週／月（「週期設置」），5秒／1分／5分／15分 要勾了才出現。
+#   驗即時分 K 的段落是要點那幾顆鈕的，所以進頁面前先在 tw.kcfg.tfOn 把九個都勾起來；收拾時一併刪掉。
+TF_ALL_ON_JS = "c.tfOn = ['5s','1m','5m','15m','60m','240m','1d','1w','1M'];"
+
+
 def t_livek(pg, base, code):
     """個股的即時分 K（livek.js）與四週期可切換。
 
@@ -9791,7 +9798,7 @@ def t_livek(pg, base, code):
 
     pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
                 " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k));"
-                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; " + TF_ALL_ON_JS +
                 " localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch(e){} }")
     pg.route("**/quote?*", fake_quote)
     pg.route("**/y?*", fake_y)
@@ -9895,7 +9902,7 @@ def t_livek(pg, base, code):
     pg.unroute("**/quote?*")
     pg.unroute("**/y?*")
     pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy');"
-                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; delete c.tfOn;"
                 " localStorage.setItem('tw.kcfg', JSON.stringify(c));"
                 " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
@@ -9988,7 +9995,7 @@ def t_livek_offhours(pg, base, code):
     def reset_ls(extra=""):
         pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
                     " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k));"
-                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; " + TF_ALL_ON_JS +
                     " localStorage.setItem('tw.kcfg', JSON.stringify(c)); " + extra + " } catch(e){} }")
 
     def goto():
@@ -10150,7 +10157,7 @@ def t_livek_offhours(pg, base, code):
         pg.unroute("**/quote?*")
         pg.unroute("**/y?*")
         pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy');"
-                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                    " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs; delete c.tfOn;"
                     " localStorage.setItem('tw.kcfg', JSON.stringify(c));"
                     " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
@@ -13371,6 +13378,7 @@ def t_r5(pg, base, code):
 
     # ---------------------------------------------------------------- 6. 即時分 K 抓不到：中文＋退回有資料的週期
     pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); " + TF_ALL_ON_JS + " localStorage.setItem('tw.kcfg', JSON.stringify(c));"
                 " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
     pg.route("**/quote?*", lambda route: route.abort())
     pg.route("**/y?*", lambda route: route.abort())
@@ -15849,18 +15857,42 @@ def t_stock_0926(pg, base, code):
     rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
     ok("[0926-①] 最上面一列是「整體」（線寬／K 棒寬度）", bool(rows) and rows[0] == "base", rows)
     ok("[0926-③] 清單裡沒有 SMC 區間、BOS/CHoCH", "smc" not in rows and "marks" not in rows, rows)
-    # 關 KD → KD 副圖真的消失
+    # ---- 09-26 晚：清空設定之後的預設（週期列只有 1時／4時／日／週／月、指標只開均線＋成交量）
+    tfs0 = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+    ok("★ [0926晚-週期] 清空設定 → 週期列只有 1時／4時／日／週／月", tfs0 == ["60m", "240m", "1d", "1w", "1M"], tfs0)
+    ok("[0926晚-週期] 清空設定 → 選中的是日線", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日", text(pg, "#tfSeg button.on"))
+    on_rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow input.ion')].filter(c => c.checked).map(c => c.dataset.k)")
+    ok("★ [0926晚-預設] 清空設定 → 指標只開均線＋成交量", sorted(on_rows) == ["ma", "vol"], on_rows)
+    pd = pg.evaluate(DBG)["paneH"] or {}
+    ok("[0926晚-預設] 圖上也只有主圖＋成交量兩格（沒有 KD／MACD／RSI 副圖）", sorted(pd) == ["main", "vol"], pd)
+    ok("★ [0926晚-拿掉] 清單裡沒有「MACD 背離」「停損／目標」", "macdDiv" not in rows and "lines" not in rows
+       and "背離" not in text(pg, "#cfgPop") and "停損" not in text(pg, "#cfgPop"), rows)
+    ok("[0926晚-週期] 週期區在「整體」下面、指標上面", rows[:1] == ["base"] and pg.evaluate(
+        "() => { const r = [...document.querySelectorAll('#cfgPop .indrow')].map(x => x.dataset.k); return r[1] === 'tf'; }"))
+    tfc = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .tfc input')].map(c => [c.dataset.tf, c.checked])")
+    ok("[0926晚-週期] 週期區九個勾選（5秒～月），勾起來的正好是預設五個",
+       [t for t, _ in tfc] == ["5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
+       and [t for t, c in tfc if c] == ["60m", "240m", "1d", "1w", "1M"], tfc)
+    # ★ 2026-09-26 晚改：預設只開均線＋成交量，KD 預設關 —— 先打開（副圖多一格），再關（副圖少一格）
+    pa = pg.evaluate(DBG)["paneH"] or {}
+    ok("[0926-①] KD 預設是關的、沒有 KD 副圖（前提，09-26 晚改的預設）", ind_on(pg, "kd") is False and "kd" not in pa, pa)
+    ind_toggle(pg, "kd", 900)
     p0 = pg.evaluate(DBG)["paneH"] or {}
+    ok("★ [0926-①] 在清單裡把 KD 打開 → KD 副圖真的出現（副圖多一格）", "kd" in p0 and len(p0) == len(pa) + 1, f"{pa} → {p0}")
     h0 = canvas_hash(pg, "#lwc")
-    ok("[0926-①] KD 預設是開的、而且有自己的副圖（前提）", ind_on(pg, "kd") is True and "kd" in p0, p0)
+    btn_kd = text(pg, "#indBtn")
+    ok("[0926-①] 打開 KD → 按鈕上的「已開 N」多一個", btn_kd != btn0, f"{btn0} → {btn_kd}")
     ind_toggle(pg, "kd", 900)
     p1 = pg.evaluate(DBG)["paneH"] or {}
     ok("[0926-①] 在清單裡把 KD 關掉 → 勾選框真的取消", ind_on(pg, "kd") is False)
     ok("★ [0926-①] 關 KD → KD 副圖真的消失（副圖少一格）", "kd" not in p1 and len(p1) == len(p0) - 1, f"{p0} → {p1}")
     changed("[0926-①] 關 KD 之後 K 線圖真的重畫", h0, canvas_hash(pg, "#lwc"))
-    ok("[0926-①] 按鈕上的「已開 N」跟著少一個", text(pg, "#indBtn") != btn0, f"{btn0} → {text(pg, '#indBtn')}")
+    ok("[0926-①] 按鈕上的「已開 N」跟著少一個", text(pg, "#indBtn") != btn_kd, f"{btn_kd} → {text(pg, '#indBtn')}")
     ok("[0926-①] 清單還開著（在裡面點不會把自己關掉）", pg.evaluate(IND_POP_OPEN))
-    # 展開 MACD 改參數 → 圖真的變
+    # 展開 MACD 改參數 → 圖真的變（MACD 09-26 晚起預設關，先打開）
+    ok("[0926-①] MACD 預設是關的（09-26 晚改的預設）", ind_on(pg, "macd") is False)
+    ind_toggle(pg, "macd", 900)
+    ok("[0926-①] 打開 MACD → MACD 副圖出現", "macd" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
     ok("[0926-①] MACD 那一列按 ▸ → 就地展開", ind_expand(pg, "macd"))
     ok("[0926-①] 展開後有快線／慢線／訊號三格參數＋顏色線寬透明度",
        count(pg, '#cfgPop .indrow[data-k="macd"] .prow input[data-p]') == 3
@@ -16051,6 +16083,165 @@ def t_stock_0926(pg, base, code):
             if (!b || !l) return null; const r = b.getBoundingClientRect(), lr = l.getBoundingClientRect();
             return { in: r.left >= lr.left && r.right <= lr.right && r.top >= lr.top && r.bottom <= lr.bottom, w: r.width }; }""")
         ok(f"[0926-{vw}px] 重設縮放鈕在圖裡面、沒被切掉", bool(fgn) and fgn["in"] and fgn["w"] >= 20, fgn)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+    t_stock_0926_tf(pg, base, code)
+
+
+# 下拉面板與「指標 ▾」按鈕的相對位置（面板上緣−按鈕下緣、兩者左緣差、面板是否開著）
+IND_POP_GEO = """() => { const p = document.getElementById('cfgPop'), b = document.getElementById('indBtn');
+    if (!p || !b) return null; const r = p.getBoundingClientRect(), q = b.getBoundingClientRect();
+    return { open: !p.hidden && p.dataset.kind === 'ind' && r.width > 0, gap: Math.round((r.top - q.bottom) * 10) / 10,
+             dl: Math.round((r.left - q.left) * 10) / 10, dr: Math.round((r.right - q.right) * 10) / 10,
+             top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight, vw: innerWidth,
+             oy: getComputedStyle(p).overflowY, sh: p.scrollHeight, ch: p.clientHeight, btnBottom: Math.round(q.bottom) }; }"""
+
+
+def t_stock_0926_tf(pg, base, code):
+    """個股 K 線「指標 ▾」09-26 晚三件（Andy）的真人操作驗收：
+      ⑤ 週期設置：在下拉的「週期」區勾 15 分 → 週期列真的多一顆、重新整理記住；取消目前週期 → 自動切走（優先日）；
+         最後一個勾不掉；四週期同看的每格下拉只列勾起來的週期
+      ⑥ 拿掉 MACD 背離、停損／目標：舊存檔寫著 macdDiv／lines:true，主圖照樣沒有背離、沒有價位線
+      ⑦ 下拉位置：面板貼在按鈕正下方（上緣在按鈕下緣下 0～12px、左緣差 ≤ 4px），捲頁之後仍貼著或已關閉（1440／800）"""
+    DBG = "() => window.Industry._dbg()"
+    TFS = "() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)"
+    KCFG = "() => { try { return JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); } catch (e) { return {}; } }"
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    if not ok("[0926晚] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
+        return
+
+    def tf_click(tf, wait=900):
+        ind_open(pg)
+        click(pg, f'#cfgPop .tfc[data-tf="{tf}"]', wait)
+
+    # ---------------------------------------------------------------- ⑤ 勾 15 分 → 週期列出現、重新整理記住
+    tf_click("15m")
+    ok("★ [0926晚-週期] 在週期區勾 15 分 → 週期列真的多出「15分」", "15m" in pg.evaluate(TFS), pg.evaluate(TFS))
+    ok("[0926晚-週期] 15 分排在 5 分之後、1 時之前（照原本順序，不是加在最後）", pg.evaluate(TFS)[:2] == ["15m", "60m"], pg.evaluate(TFS))
+    ok("[0926晚-週期] 勾選寫進 tw.kcfg.tfOn", "15m" in (pg.evaluate(KCFG).get("tfOn") or []), pg.evaluate(KCFG).get("tfOn"))
+    ok("[0926晚-週期] 下拉還開著（勾週期不會把面板關掉）", pg.evaluate(IND_POP_OPEN))
+    ok("[0926晚-週期] 週期區的摘要跟著變（多了 15分）", "15分" in text(pg, "#tfSum"), text(pg, "#tfSum"))
+    click(pg, '#tfSeg button[data-tf="15m"]', 900)
+    ok("[0926晚-週期] 新出現的「15分」按得下去（選中、圖切到 15 分）", pg.evaluate(DBG)["tf"] == "15m")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+    ok("★ [0926晚-週期] 重新整理後週期列還有「15分」", "15m" in pg.evaluate(TFS), pg.evaluate(TFS))
+    ok("[0926晚-週期] 重新整理後下拉裡 15 分仍是勾的",
+       pg.evaluate("() => { const c = document.querySelector('#cfgPop .tfc[data-tf=\"15m\"] input'); return c ? c.checked : null; }") is True
+       if ind_open(pg) else False)
+    # ---------------------------------------------------------------- ⑤ 取消目前的週期 → 自動切走
+    ind_close(pg)
+    click(pg, '#tfSeg button[data-tf="1w"]', 900)
+    ok("[0926晚-週期] 先選週線（前提）", pg.evaluate(DBG)["tf"] == "1w")
+    h0 = canvas_hash(pg, "#lwc")
+    tf_click("1w", 1200)
+    ok("★ [0926晚-週期] 取消目前的週期（週）→ 自動切到日線", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日",
+       [pg.evaluate(DBG)["tf"], text(pg, "#tfSeg button.on")])
+    ok("[0926晚-週期] 週期列上「週」真的不見了", "1w" not in pg.evaluate(TFS), pg.evaluate(TFS))
+    changed("[0926晚-週期] 切走之後 K 線真的重畫（週線 → 日線）", h0, canvas_hash(pg, "#lwc"))
+    tf_click("1d", 1200)
+    tfs_now = pg.evaluate(TFS)
+    ok("★ [0926晚-週期] 再取消日線（沒有日線可退）→ 切到剩下的第一個", pg.evaluate(DBG)["tf"] == tfs_now[0] and "1d" not in tfs_now,
+       [pg.evaluate(DBG)["tf"], tfs_now])
+    tf_click("1d", 900); tf_click("1w", 900); tf_click("15m", 900)
+    ok("[0926晚-週期] 勾回日／週、取消 15 分 → 回到預設五個", pg.evaluate(TFS) == ["60m", "240m", "1d", "1w", "1M"], pg.evaluate(TFS))
+    click(pg, '#tfSeg button[data-tf="1d"]', 900)
+    ind_close(pg)
+    # ---------------------------------------------------------------- ⑤ 四週期同看的每格下拉只列勾起來的
+    click(pg, "#mtfBtn", 2400)
+    opts = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
+    ok("★ [0926晚-週期] 四週期同看：每一格的週期下拉只列勾起來的五個", bool(opts) and len(opts) == 4
+       and all(o == ["60m", "240m", "1d", "1w", "1M"] for o in opts), opts)
+    tf_click("15m", 2000)
+    opts2 = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
+    ok("[0926晚-週期] 四週期模式下勾 15 分 → 四格下拉都多了 15 分", bool(opts2) and all("15m" in o for o in opts2), opts2)
+    tf_click("15m", 2000)
+    ind_close(pg)
+    click(pg, "#mtfBtn", 1600)
+    # ---------------------------------------------------------------- ⑤ 最後一個勾不掉
+    pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.tfOn = ['1d']; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ok("[0926晚-週期] 只勾日線時週期列只剩一顆「日」（前提）", pg.evaluate(TFS) == ["1d"], pg.evaluate(TFS))
+    ind_open(pg)
+    ok("[0926晚-週期] 唯一勾著的那一顆是鎖住的（disabled）",
+       pg.evaluate("() => document.querySelector('#cfgPop .tfc[data-tf=\"1d\"] input').disabled") is True)
+    pg.click('#cfgPop .tfc[data-tf="1d"]', force=True); pg.wait_for_timeout(500)
+    ok("★ [0926晚-週期] 硬點最後一顆 → 週期列照樣有「日」（至少保留一個）", pg.evaluate(TFS) == ["1d"], pg.evaluate(TFS))
+    ind_close(pg)
+
+    # ---------------------------------------------------------------- ⑥ 舊設定 macdDiv／lines:true 也不畫
+    pg.evaluate("""() => { localStorage.setItem('tw.kcfg', JSON.stringify({ macd: { f: 12, s: 26, g: 9 }, macdDiv: true, lines: true,
+        smc: true, marks: true, ma: [5, 20], vol: true })); }""")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1000)
+    wait_until(pg, "() => /MACD\\(/.test((document.querySelector('#lwc .pane-labels') || {}).innerText || '')", 8000)
+    d = pg.evaluate(DBG)
+    ok("[0926晚-拿掉] 舊存檔的 MACD 照樣畫出來（前提：MACD 本身保留）", "macd" in (d.get("paneH") or {}), d.get("paneH"))
+    # 同一份 K 棒用 KInd.divergence 自己算一次：證明「沒畫」不是因為這檔本來就沒有背離
+    raw = pg.evaluate("""() => { const kc = window.KChart.last; if (!kc || !kc.data) return -1; const c = kc.data.map(x => x.close);
+        const m = window.KInd.macd(c, 12, 26, 9); const dv = window.KInd.divergence(c, kc.data.map(x => x.high), kc.data.map(x => x.low), m.dif);
+        return dv.top.length + dv.bottom.length; }""")
+    div = d.get("div") or {}
+    ok("★ [0926晚-拿掉] 舊存檔寫著 macdDiv:true，主圖照樣沒有背離（算得出來的背離有 N 組，圖上 0 組）",
+       (div.get("top", 0) + div.get("bottom", 0)) == 0 and not d.get("divLabels"), {"這檔算得出來": raw, "圖上": div})
+    ok("★ [0926晚-拿掉] 舊存檔寫著 lines:true，主圖照樣沒有停損／目標價位線", d.get("priceLines") == 0, d.get("priceLines"))
+    ok("[0926晚-拿掉] 圖例上沒有「停損」「目標」「背離」字樣",
+       not re.search("停損|目標|背離", pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''")))
+    ind_open(pg)
+    ok("[0926晚-拿掉] 舊存檔的人打開清單也沒有那兩列", count(pg, '#cfgPop .indrow[data-k="macdDiv"], #cfgPop .indrow[data-k="lines"]') == 0)
+    ind_toggle(pg, "ma", 700); ind_toggle(pg, "ma", 700)       # 隨便改一下讓它存檔
+    cf = pg.evaluate(KCFG)
+    ok("[0926晚-拿掉] 存檔之後 tw.kcfg 裡的 macdDiv／lines 鍵被清掉", "macdDiv" not in cf and "lines" not in cf and "smc" not in cf, sorted(cf))
+    ok("[0926晚-預設] 已有存檔的人不被強制改（存檔開著 MACD → 仍然開著）", cf.get("macd") is not None and ind_on(pg, "macd") is True)
+    ind_close(pg)
+    click(pg, "#mtfBtn", 2400)
+    mini = pg.evaluate(DBG).get("mini") or []
+    ok("[0926晚-拿掉] 四週期小圖也沒有背離與價位線（小圖只畫均線／BOLL／量）",
+       bool(mini) and pg.evaluate("() => (window.Industry._dbg().mini || []).every(m => m.markers === 0)"), mini)
+    click(pg, "#mtfBtn", 1600)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+
+    # ---------------------------------------------------------------- ⑦ 下拉位置：貼著按鈕、捲頁跟著或關閉
+    for vw in (1440, 1024, 800):
+        pg.set_viewport_size({"width": vw, "height": 900})
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2000)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(200)
+        click(pg, "#indBtn", 600)
+        g = pg.evaluate(IND_POP_GEO)
+        ok(f"★ [0926晚-位置 {vw}px] 打開 → 面板上緣在按鈕下緣下方 0～12px", bool(g) and g["open"] and 0 <= g["gap"] <= 12, g)
+        ok(f"★ [0926晚-位置 {vw}px] 面板左緣對齊按鈕（差 ≤ 4px）", bool(g) and abs(g["dl"]) <= 4, g)
+        ok(f"[0926晚-位置 {vw}px] 面板沒有超出視窗下緣；內容比較長時自己捲", bool(g) and g["bottom"] <= g["vh"] + 1
+           and (g["sh"] <= g["ch"] + 1 or g["oy"] in ("auto", "scroll")), g)
+        # 捲頁（滾輪捲一小段 → 按鈕還在畫面裡 → 面板要跟著）
+        pg.mouse.move(vw - 30, 880)
+        pg.mouse.wheel(0, 120); pg.wait_for_timeout(500)
+        g2 = pg.evaluate(IND_POP_GEO)
+        ok(f"★ [0926晚-位置 {vw}px] 捲頁一小段 → 面板仍貼著按鈕（或已關閉），不會留在原地浮在圖上",
+           bool(g2) and (not g2["open"] or (0 <= g2["gap"] <= 12 and abs(g2["dl"] - g["dl"]) <= 1)), {"捲前": g, "捲後": g2})
+        # 捲很多（按鈕被捲到頂欄底下）→ 關掉
+        pg.mouse.wheel(0, 900); pg.wait_for_timeout(600)
+        g3 = pg.evaluate(IND_POP_GEO)
+        ok(f"[0926晚-位置 {vw}px] 捲到按鈕看不見 → 面板關掉或仍貼著（不會浮在 K 線中央）",
+           bool(g3) and (not g3["open"] or 0 <= g3["gap"] <= 12), g3)
+        ok(f"[0926晚-位置 {vw}px] 關掉之後按鈕標成收合", bool(g3) and (g3["open"] or pg.get_attribute("#indBtn", "aria-expanded") == "false"))
+        # 改視窗大小 → 跟著按鈕
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        ind_open(pg)
+        pg.set_viewport_size({"width": vw - 60, "height": 880}); pg.wait_for_timeout(600)
+        g4 = pg.evaluate(IND_POP_GEO)
+        ok(f"[0926晚-位置 {vw}px] 改視窗大小 → 面板重新貼到按鈕下方", bool(g4) and (not g4["open"] or (0 <= g4["gap"] <= 12
+           and (abs(g4["dl"]) <= 4 or abs(g4["dr"]) <= 4 or g4["dl"] < 0))), g4)
+        ind_close(pg)
+    # 390：面板夾在畫面裡（左右各留 10px），上緣仍貼著按鈕
+    pg.set_viewport_size({"width": 390, "height": 844})
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ind_open(pg)
+    g = pg.evaluate(IND_POP_GEO)
+    ok("[0926晚-位置 390px] 手機：面板上緣貼著按鈕（0～12px）、整塊在畫面左右裡", bool(g) and g["open"] and 0 <= g["gap"] <= 12
+       and pg.evaluate("() => { const r = document.getElementById('cfgPop').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }"), g)
+    small = pg.evaluate("""() => [...document.querySelectorAll('#cfgPop .tfc')].map(e => parseFloat(getComputedStyle(e).fontSize)).filter(f => f < 11)""")
+    ok("[0926晚-位置 390px] 週期勾選晶片的字 ≥ 11px", not small, small)
+    ind_close(pg)
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
 

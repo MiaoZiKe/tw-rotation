@@ -3529,6 +3529,11 @@
                    daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線與多週期判讀都正常'],
                    thin: ['資料回補中', 'amber', '歷史價量還在回補，目前只有最近幾天的日線'] };
     const tier = TIER[(m.tier || 'daily')] || TIER.daily;
+    /* 週期列（tfButtons）在這裡就要畫，所以設定要先讀進來 —— 以前 state.cfg 到 setupChart 才讀，
+       週期列用不到存檔裡的 tfOn，第一次進來會排出預設的週期、跟使用者勾的對不起來。
+       選中的週期已經不在列上（被取消勾選）就先換成剩下的（優先日線）。*/
+    state.cfg = state.cfg || loadCfg();
+    ensureTf();
     el.innerHTML = `
       <div class="card" id="skChartCard" style="margin-top:var(--gap-card)">
         <div class="row spread" id="skHead">
@@ -3605,9 +3610,14 @@
      都是產業地圖頁的共用元件，一個都沒動。*/
 
   // ---------------------------------------------------------------- K 線面板
+  /* ★ 2026-09-26 晚（Andy）：沒設定過的人預設只開「均線 MA」與「成交量」—— KD／MACD／RSI／BOLL／本益比河流
+     一律預設關（參數照舊記得：關著時 prmOf 回 IND_DEF，打開就是 9,3,3／12,26,9）。
+     已經有 tw.kcfg 的人不強制改：loadCfg 是 Object.assign(DEFAULT, 存檔)，存檔裡的 kd／macd 會蓋過這裡的 null。
+     「停損／目標」（lines）與「MACD 背離」同一天從清單拿掉，所以這裡也沒有 lines 這個鍵了。
+     tfOn＝週期列要出現哪些週期；null＝沒設定過 → 用 TF_DEFAULT_ON（見 tfOnSet）。*/
   const DEFAULT_CFG = { ma: [5, 20, 60, 120], maColor: [], maWidth: [], lineWidth: 1,
-    boll: null, vol: true, volma: 20, kd: { n: 9, m1: 3, m2: 3 }, macd: { f: 12, s: 26, g: 9 },
-    rsi: null, lines: true, tfs: null,
+    boll: null, vol: true, volma: 20, kd: null, macd: null,
+    rsi: null, tfs: null, tfOn: null,
     // 每個指標的顏色／線寬／透明度（SMC 供需區那一組 zone 設定 2026-09-26 跟著 SMC 一起拿掉）
     st: {},
     // K 棒寬度（Lightweight Charts 的 barSpacing）；預設比函式庫的 7 寬，Andy 要「default 先長一點」
@@ -3647,7 +3657,30 @@
                : '這個週期要即時資料，目前沒有即時報價來源，所以看不到';
   }
   const tfLabel = (tf) => TF_NAME[tf] || (/^\d+D$/.test(tf) ? tf.replace('D', ' 日') : /^\d+W$/.test(tf) ? tf.replace('W', ' 週') : tf);
-  function tfList() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
+  /* ★ 2026-09-26 晚（Andy）：「週期設置」—— 指標下拉最上面多一區「週期」，勾起來的才出現在週期列
+     （與四週期同看每一格的週期下拉）。以前九個內建週期全部排在工具列上，1 分／5 秒這種當天即時的
+     對多數人用不到、卻把「指標 ▾」擠到很右邊。預設只勾 1時、4時、日、週、月。
+     · tfAll()   ＝可以勾的全部（內建九個＋使用者自訂的 nD／nW）
+     · tfOnSet() ＝勾起來的（存在 tw.kcfg 的 tfOn；沒設定過用預設。自訂週期是使用者自己加的，沒設定過時一併算勾起來）
+     · tfList()  ＝週期列真的要排的：tfAll 依原本順序濾出勾起來的
+     至少留一個：全部被濾光（例如存檔被手改壞）就退回日線。*/
+  const TF_DEFAULT_ON = ['60m', '240m', '1d', '1w', '1M'];
+  function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
+  function tfOnSet() {
+    const c = state.cfg || {}, all = tfAll();
+    let on = Array.isArray(c.tfOn) ? c.tfOn.filter(t => all.indexOf(t) >= 0) : TF_DEFAULT_ON.concat(c.tfs || []);
+    if (!on.length) on = ['1d'];
+    return on;
+  }
+  function tfList() { const on = tfOnSet(); return tfAll().filter(t => on.indexOf(t) >= 0); }
+  /* 目前選中的週期被取消勾選（或存檔裡的週期已經不在列上）→ 自動切到剩下的：優先日線，沒有日線就第一個。
+     回傳有沒有換，呼叫端決定要不要重畫。*/
+  function ensureTf() {
+    const l = tfList();
+    if (l.indexOf(state.tf) >= 0) return false;
+    state.tf = l.indexOf('1d') >= 0 ? '1d' : l[0];
+    return true;
+  }
   function tfButtons() { return tfList().map(tf => `<button data-tf="${tf}" class="${tf === state.tf ? 'on' : ''}">${tfLabel(tf)}</button>`).join(''); }
   /* 哪些週期這檔真的有資料：沒有的直接在按鈕上劃掉並寫清楚原因。
      Andy 回報「K 線圖 1 日以下都不見」—— 其實按鈕在，是那檔沒有分 K，
@@ -3678,6 +3711,9 @@
         const c = Object.assign({}, DEFAULT_CFG, JSON.parse(s));
         // 2026-09-26 拿掉的 SMC 區間／BOS-CHoCH／供需區樣式：舊的存檔值直接丟掉，下次存檔就乾淨了
         delete c.smc; delete c.marks; delete c.zone;
+        /* 同一天晚上拿掉的「MACD 背離」「停損／目標」（Andy：「MACD & 停損／目標背離先拿掉」）：
+           舊存檔寫著 macdDiv:true／lines:true 也不畫 —— 鍵直接丟掉，畫圖時另外強制 macdDiv:false（見 mainCfg）。*/
+        delete c.macdDiv; delete c.lines;
         return c;
       }
     } catch (e) { /* 忽略 */ }
@@ -3725,7 +3761,11 @@
     return (pg.intraday && pg.intraday[tf]) || [];
   }
   /* 四週期小圖吃的指標：跟大圖同一份設定，但只取主圖疊加（均線、BOLL）與成交量 ——
-     KD／MACD／RSI 是副圖，300px 的小格塞不下；停損目標與本益比河流只對日線有意義。*/
+     KD／MACD／RSI 是副圖，300px 的小格塞不下；本益比河流只對日線有意義（停損目標 2026-09-26 晚整個拿掉）。*/
+  /* 主圖吃的指標：就是 cfg，只是 MACD 背離一律關掉（2026-09-26 晚從清單拿掉）。
+     chart.js 的背離是「macdDiv !== false 就畫」—— 大盤頁（market3.js）還在用那個預設，所以不改 chart.js，
+     而是在個股頁這一層強制關；也不寫進 tw.kcfg（寫進去會連大盤頁一起關掉）。*/
+  function mainCfg(cfg) { return Object.assign({}, cfg, { macdDiv: false }); }
   function miniCfg(cfg) {
     return { ma: cfg.ma || [], maColor: cfg.maColor, maWidth: cfg.maWidth, lineWidth: cfg.lineWidth,
              boll: cfg.boll || null, vol: !!cfg.vol, volma: cfg.volma, st: cfg.st };
@@ -3798,14 +3838,11 @@
       { k: 'macd', label: 'MACD', color: '#3ee0ff', mini: MINI_SKIP, on: () => !!cfg.macd, toggle: () => flip('macd'),
         sum: () => { const p = prmOf('macd'); return `${p.f},${p.s},${p.g}`; },
         params: [{ p: 'f', lab: '快線', min: 2, max: 120 }, { p: 's', lab: '慢線', min: 3, max: 240 }, { p: 'g', lab: '訊號', min: 2, max: 120 }], io: P('macd'), st: 'macd' },
-      // 背離要有 MACD 才算得出來（DIF 是比較基準）：打開背離時 MACD 關著就一起打開
-      { k: 'macdDiv', label: 'MACD 背離', color: '#ffd166', mini: MINI_SKIP, on: () => cfg.macdDiv !== false && !!cfg.macd,
-        toggle: () => { const nowOn = cfg.macdDiv !== false && !!cfg.macd; if (nowOn) cfg.macdDiv = false; else { cfg.macdDiv = true; if (!cfg.macd) cfg.macd = prmOf('macd'); } },
-        sum: () => '' },
+      /* 「MACD 背離」與「停損／目標」兩列 2026-09-26 晚拿掉（Andy：「MACD & 停損／目標背離先拿掉」）。
+         MACD 本身留著（預設關）；背離在主圖由 mainCfg() 強制 macdDiv:false，停損目標的價位線整段不畫了。
+         右側分析卡上那行「停損・目標」文字是分析卡的事，不在這裡。*/
       { k: 'rsi', label: 'RSI', color: '#c3ff5b', mini: MINI_SKIP, on: () => !!cfg.rsi, toggle: () => flip('rsi'),
         sum: () => String(prmOf('rsi').n), params: [{ p: 'n', lab: '天數', min: 2, max: 120 }], io: P('rsi'), st: 'rsi' },
-      { k: 'lines', label: '停損／目標', color: '#ffb454', mini: MINI_SKIP, on: () => !!cfg.lines, toggle: () => { cfg.lines = !cfg.lines; },
-        sum: () => '日線' },
       /* 本益比河流：把下方那張河流圖的五條倍數線疊在 K 棒上（需要近四季 EPS，只有日／週／月線畫得出來）。*/
       { k: 'peRiver', label: '本益比河流', color: '#b39dff', mini: MINI_SKIP, on: () => !!cfg.peRiver, toggle: () => { cfg.peRiver = !cfg.peRiver; },
         sum: () => '日週月' },
@@ -3860,10 +3897,28 @@
         <div class="ihead">${head}${body ? `<button type="button" class="iexp" data-k="${d.k}" aria-expanded="${open}" aria-label="${d.label} 設定" title="${d.label} 設定">▸</button>` : ''}</div>
         ${body ? `<div class="ibody"${open ? '' : ' hidden'}>${bodyHTML(d)}</div>` : ''}</div>`;
     };
+    /* ---- 週期區（2026-09-26 晚，Andy「新增週期設置」）：放在「整體」下面、指標上面，一直攤開（不用按 ▸），
+       每個週期一顆勾選晶片。勾＝出現在 K 線上方的週期列與四週期同看的下拉；至少留一個（最後一顆勾不掉）。*/
+    const tfRowHTML = () => {
+      const on = tfOnSet();
+      return `<div class="indrow tfrow on" data-k="tf"><div class="ihead"><span class="isw tfhd"><i style="background:transparent;border:1px solid var(--ink-3)"></i><span class="iname">週期</span><span class="isum" id="tfSum"></span></span></div>
+        <div class="ibody tfbody"><div class="tfchk" id="tfChk">${tfAll().map(tf => `<label class="tfc${on.indexOf(tf) >= 0 ? ' on' : ''}" data-tf="${tf}"><input type="checkbox" class="tfon" data-tf="${tf}"${on.indexOf(tf) >= 0 ? ' checked' : ''}>${tfLabel(tf)}</label>`).join('')}</div>
+        <div class="note tfnote">勾起來的才出現在上方週期列；至少留一個</div></div></div>`;
+    };
+    const paintTfSet = (pop) => {
+      const on = tfList();
+      $$('.tfc', pop).forEach(l => {
+        const c = $('input', l), v = on.indexOf(l.dataset.tf) >= 0, last = v && on.length <= 1;
+        c.checked = v; c.disabled = last; l.classList.toggle('on', v); l.classList.toggle('last', last);
+        l.title = last ? '至少要留一個週期' : isLiveTf(l.dataset.tf) ? '當天即時（盤中每 5 秒補一根）' : '';
+      });
+      const sm = $('#tfSum', pop); if (sm) sm.textContent = on.map(tfLabel).join(' ');
+    };
     // 開關、摘要、「已開 N」只改字，不重畫清單 —— 重畫會把正在打字的輸入框換掉、焦點跟著掉
     const paintHead = () => {
       const pop = $('#cfgPop');
       if (pop && pop.dataset.kind === 'ind') {
+        paintTfSet(pop);
         $$('.indrow', pop).forEach(r => {
           const d = IDX[r.dataset.k]; if (!d) return;
           const s = $('.isum', r); if (s) s.textContent = d.sum() || '';
@@ -3896,7 +3951,21 @@
       $$('input', r).forEach(i => { i.oninput = syncMa; i.onchange = syncMa; });
       $('[data-f=del]', r).onclick = () => { r.remove(); syncMa(); };
     });
+    /* 勾／取消一個週期：存檔 → 重排週期列 → 目前的週期被取消就切走（ensureTf，優先日線）。
+       四週期同看：每一格的下拉只列勾起來的週期，所以整片重建（存檔裡那一格的週期被取消時 mtfPick 會重挑）。*/
+    const setTfOn = (tf, on) => {
+      let cur = tfOnSet();
+      if (on) { if (cur.indexOf(tf) < 0) cur = cur.concat(tf); }
+      else { if (cur.length <= 1) { paintHead(); return; } cur = cur.filter(t => t !== tf); }
+      cfg.tfOn = tfAll().filter(t => cur.indexOf(t) >= 0);
+      saveCfg(cfg);
+      const moved = ensureTf();
+      $('#tfSeg').innerHTML = tfButtons(); wireTf(); markTf(pg);
+      paintHead();
+      if (state.mtfMode) build(); else if (moved) apply();
+    };
     const wireInd = (pop) => {
+      $$('input.tfon', pop).forEach(c => { c.onchange = () => setTfOn(c.dataset.tf, c.checked); });
       $$('input.ion', pop).forEach(c => { c.onchange = () => { IDX[c.dataset.k].toggle(); commit(); }; });
       const expand = (k) => {
         const r = pop.querySelector(`.indrow[data-k="${k}"]`); if (!r) return;
@@ -3965,7 +4034,8 @@
       const rs = $('#cfgReset', pop);
       if (rs) rs.onclick = () => {
         // 自訂週期（tfs）與四週期各格選的週期（mtfTfs）不是「指標」，回復預設不動它們
-        const keep = { tfs: cfg.tfs, mtfTfs: cfg.mtfTfs };
+        // 週期列勾了哪些（tfOn）也一樣不是指標
+        const keep = { tfs: cfg.tfs, mtfTfs: cfg.mtfTfs, tfOn: cfg.tfOn };
         Object.keys(cfg).forEach(k => { delete cfg[k]; });
         Object.assign(cfg, clone(DEFAULT_CFG), keep);
         closePop(pop); commit();
@@ -3978,7 +4048,7 @@
       if (popVisible(pop, 'ind')) { closePop(pop); return; }
       pop.hidden = false; pop.dataset.kind = 'ind'; pop.classList.add('indpop');
       pop.innerHTML = `<div class="ttl">指標 <small>勾＝開／關　▸＝參數與樣式</small></div>
-        <div class="indlist" id="indList">${IND.map(rowHTML).join('')}</div>
+        <div class="indlist" id="indList">${rowHTML(IND[0])}${tfRowHTML()}${IND.slice(1).map(rowHTML).join('')}</div>
         <div class="ifoot"><button class="btn small" id="cfgReset" type="button">回復預設</button><div class="sp" style="flex:1"></div><span class="note">點外面或 Esc 關閉</span></div>`;
       wireInd(pop); paintHead();
       indBtn.setAttribute('aria-expanded', 'true');
@@ -3990,7 +4060,7 @@
        連同拖過的面板高度一起還原 —— 拉壞了要有一鍵回去的地方。*/
     const mainFit = () => {
       const c = state.cfg || loadCfg();
-      if (c.paneH) { delete c.paneH; saveCfg(c); state.cfg = c; if (kchart) kchart.applyIndicators(c); }
+      if (c.paneH) { delete c.paneH; saveCfg(c); state.cfg = c; if (kchart) kchart.applyIndicators(mainCfg(c)); }
       if (kchart) kchart.resetView(160);
     };
     const newMain = (box, tf) => new KChart(box, { tf, onText: () => window.prompt('文字內容', ''), fit: mainFit, fitId: 'fitBtn' });
@@ -4052,7 +4122,7 @@
       /* 本益比倍數線：算好之後掛在 chart 上（不要塞進 cfg —— cfg 會被寫進 localStorage，
          幾千筆數字存進去毫無意義）。applyIndicators 會自己去讀 this.peBands。*/
       kchart.peBands = cfg.peRiver ? peBandsForBars(peRiver(pg), bars, peStyle(cfg)) : null;
-      kchart.applyIndicators(cfg);
+      kchart.applyIndicators(mainCfg(cfg));
       /* ★ 棒寬只在「換股票／換週期」時套用設定值。
          以前每次 apply() 都套一次 —— 而盤中每幾秒就會 apply() 一次，
          所以使用者滾滾輪放大之後，下一次更新就把棒寬硬拉回 cfg.bar，
@@ -4061,8 +4131,7 @@
       if (!keep && kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
       /* SMC 需求／供給區塊與 BOS／CHoCH／掃蕩標記 2026-09-26 從 K 線上拿掉（Andy：「將這兩個指標拿掉」）。
          多週期判讀卡（renderMtf）與 Python 端 compute/mtf.py 的 SMC 判讀照舊 —— 拿掉的只是圖上那兩層。*/
-      const v = pg.verdict || {};
-      kchart.setPriceLines(cfg.lines && tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
+      /* 停損／目標 1／目標 2 三條價位線 2026-09-26 晚拿掉（Andy「停損／目標…先拿掉」），不再 setPriceLines。*/
       const legend = $('#legendOv');
       const TFN = { '5s': '5 秒（即時）', '1m': '1 分（即時）', '5m': '5 分（即時）', '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' };
       kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${offDay ? `${TF_NAME[tf] || tf} · ${offDay}（非即時）` : (TFN[tf] || tf)}${fbNote ? '（分 K 暫代）' : ''}`);
@@ -4119,8 +4188,10 @@
       b.oncontextmenu = (e) => { // 自訂的週期按右鍵可以移除
         if (TF_BUILTIN.includes(b.dataset.tf)) return;
         e.preventDefault();
-        cfg.tfs = (cfg.tfs || []).filter(t => t !== b.dataset.tf); saveCfg(cfg);
-        if (state.tf === b.dataset.tf) state.tf = '1d';
+        cfg.tfs = (cfg.tfs || []).filter(t => t !== b.dataset.tf);
+        if (Array.isArray(cfg.tfOn)) cfg.tfOn = cfg.tfOn.filter(t => t !== b.dataset.tf);
+        saveCfg(cfg);
+        ensureTf();
         $('#tfSeg').innerHTML = tfButtons(); wireTf(); markTf(pg); build();
       };
     });
@@ -4138,7 +4209,11 @@
       $('#tfOk').onclick = () => {
         const n = Math.max(2, Math.min(60, +$('#tfN').value || 3)), u = $('#tfU').value;
         const id = n + u;
-        cfg.tfs = [...new Set([...(cfg.tfs || []), id])].slice(0, 6); saveCfg(cfg);
+        // 自己加的週期當然要看得到：一併勾進週期列（tfOn），不然按了「加入」週期列上卻沒有它
+        const onBefore = tfOnSet();
+        cfg.tfs = [...new Set([...(cfg.tfs || []), id])].slice(0, 6);
+        cfg.tfOn = tfAll().filter(t => onBefore.indexOf(t) >= 0 || t === id);
+        saveCfg(cfg);
         state.tf = id; pop.hidden = true; $('#tfSeg').innerHTML = tfButtons(); wireTf(); markTf(pg); build();
       };
       $('#tfNo').onclick = () => { closePop(pop); };
@@ -4297,8 +4372,12 @@
     const saved = Array.isArray(cfg.mtfTfs) ? cfg.mtfTfs.filter(t => tfList().indexOf(t) >= 0) : null;
     if (saved && saved.length === 4) return saved;
     const have = (tf) => barsFor(pg, tf).length >= 20;
-    const pref = ['15m', '60m', '240m', '1d', '1w', '1M'].filter(have);
-    const pick = pref.length >= 4 ? (have('15m') ? ['15m', '60m', '240m', '1d'] : pref.slice(-4)) : pref;
+    /* 自動挑的四格也只從「週期設置」勾起來的週期裡挑（2026-09-26 晚）：沒勾的週期不該自己冒出來。
+       有 15 分資料而且 15 分有勾 → 最細的四個；否則取最粗的四個。一個都挑不到（例如只勾了即時週期）就直接用勾的前四個。*/
+    const en = tfList();
+    const pref = ['15m', '60m', '240m', '1d', '1w', '1M'].filter(t => en.indexOf(t) >= 0).filter(have);
+    let pick = pref.length >= 4 ? (pref[0] === '15m' ? pref.slice(0, 4) : pref.slice(-4)) : pref.slice();
+    if (!pick.length) pick = en.slice(0, 4);
     while (pick.length < 4 && pick.length) pick.push(pick[pick.length - 1]);
     return pick;
   }
@@ -4487,6 +4566,7 @@
   }
 
   function closePop(pop) {
+    untrackPop();
     pop = pop || document.getElementById('cfgPop');
     if (!pop) return;
     pop.hidden = true;
@@ -4518,10 +4598,54 @@
     if (pop && A && A.dismissable) A.dismissable(pop, () => closePop(pop), { ignore: ['.cfgpop', '#indBtn', '#tfAdd'] });
   }
 
-  function placePop(pop, btn) {
+  /* ★ 2026-09-26 晚（Andy：「打開指標 ▾ 後面板出現在圖的中央」）——根因與修法：
+     面板是 position:fixed，**只在打開那一刻**依按鈕位置算一次座標。之後頁面一捲動，按鈕跟著內容往上走，
+     面板卻釘在視窗的同一個位置 —— 個股頁的 K 線圖就在工具列正下方，捲個幾百 px，面板看起來就「浮在圖中央」。
+     另一條同源的路：`.view.on` 進場動畫那 0.25 秒內祖先有 transform，fixed 會改以祖先為基準；
+     placePop 的 (0,0) 校正是在動畫中量的，動畫一結束 transform 拿掉，校正值就變成多出來的偏移。
+     修法：面板開著的時候，**捲動（任何捲動容器，capture）／視窗改大小／動畫結束**都重新貼一次按鈕；
+     按鈕被捲到頂欄底下或畫面外（看不到錨點了）就直接關掉 —— 不留一塊沒有主人的面板。
+     面板自己裡面的捲動不算（那是使用者在捲清單，重算只會把清單捲回頂端）。*/
+  let popTrack = null;
+  function untrackPop() {
+    if (!popTrack) return;
+    window.removeEventListener('scroll', popTrack.on, true);
+    window.removeEventListener('resize', popTrack.on);
+    document.removeEventListener('animationend', popTrack.on, true);
+    if (popTrack.raf) cancelAnimationFrame(popTrack.raf);
+    clearTimeout(popTrack.t);
+    popTrack = null;
+  }
+  function trackPop(pop, btn) {
+    untrackPop();
+    const T = { raf: 0, t: 0 };
+    const redo = () => {
+      T.raf = 0;
+      if (popTrack !== T) return;
+      if (!pop.isConnected || pop.hidden || !btn.isConnected) { untrackPop(); return; }
+      const r = btn.getBoundingClientRect();
+      const bar = document.querySelector('.topbar');
+      const hb = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+      if (!r.width || r.bottom <= hb + 2 || r.top >= innerHeight - 8) { closePop(pop); return; }
+      placePop(pop, btn, true);
+    };
+    T.on = (e) => {
+      if (e && e.type === 'scroll' && e.target && e.target.nodeType === 1 && pop.contains(e.target)) return;
+      if (!T.raf) T.raf = requestAnimationFrame(redo);
+    };
+    popTrack = T;
+    window.addEventListener('scroll', T.on, true);
+    window.addEventListener('resize', T.on);
+    document.addEventListener('animationend', T.on, true);
+    // 保險：剛換頁就點開時，進場動畫可能還沒跑完（animationend 會補一次；這裡再補一次，動畫被瀏覽器省略時也對）
+    T.t = setTimeout(T.on, 320);
+  }
+
+  function placePop(pop, btn, again) {
     if (!pop || !btn) return;
-    wirePopDismiss(); popEsc(pop);
+    if (!again) { wirePopDismiss(); popEsc(pop); }
     pop.hidden = false;                                  // 要先顯示才量得到寬高
+    const keepScroll = pop.scrollTop;                    // 重貼時保住清單捲到哪（清 max-height 會把 scrollTop 歸零）
     pop.style.maxHeight = '';
     const r = btn.getBoundingClientRect();
     const w = pop.offsetWidth || 376, h = pop.offsetHeight || 360, pad = 10;
@@ -4548,6 +4672,8 @@
     pop.style.left = (left - zero.left) + 'px';
     pop.style.top = (top - zero.top) + 'px';
     pop.style.maxHeight = room + 'px';
+    if (again) pop.scrollTop = keepScroll;
+    else trackPop(pop, btn);
   }
 
   function peRiver(pg) {
@@ -5246,6 +5372,8 @@
     paneH: kchart && kchart.paneHeights ? kchart.paneHeights() : null,
     // 驗收用：目前算出幾組背離
     div: kchart && kchart.divergences ? { top: kchart.divergences.top.length, bottom: kchart.divergences.bottom.length } : null,
+    // 驗收用：主圖上掛了幾條價位線（停損／目標 2026-09-26 晚拿掉，應該永遠是 0）
+    priceLines: kchart && kchart.priceLines ? kchart.priceLines.length : -1,
     /* 驗收用：K 棒實際多寬、畫面上看得到幾根。
        Andy 2026-09-15：「切換到不同時間週期，K棒會很窄」—— 這兩個數字就是那件事的證據，
        只驗「有畫出來」看不出棒子被壓成一條線。 */
