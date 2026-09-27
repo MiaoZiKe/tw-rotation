@@ -16339,20 +16339,22 @@ def t_flow_popq(pg, base, code):
 # 改後（09-27）：整塊 AI 分析 #skAi 在 K 線卡右上角（卡片夠寬時是跨「名稱區＋工具列」兩列的右欄），
 #   結論列＋四顆標籤（附判讀小字）＋固定高度內容區，一次只顯示一個面向；長卡與跳轉鈕拿掉；#aiCard 只剩手機分段用的空殼。
 #   → 驗的是：AI 區在標題列右半、不在 K 線下方；四顆標籤點了內容真的換、一次一個；tw.aiTab 記住、重新整理還在；
-#     收合只留結論列＋標籤小字、按標籤會展開；內容區不撐高（K 線頂端離「拿掉 AI 區的同一張卡」≤ AI_PUSH_MAX）；
-#     1100／800 也排得下；390 在分段列「AI 分析」那一段、標籤切得動、沒有橫向捲軸。
+#     收合只留結論列＋標籤小字、按標籤會展開；內容區不撐高、K 線不被推下去（兩把尺，見下）；
+#     1100／800 也是兩欄、四顆標籤排得下；390 在分段列「AI 分析」那一段、標籤切得動、沒有橫向捲軸。
 #
-# AI_PUSH_MAX（K 線被 AI 區往下推的上限，px）怎麼定的：
-#   量法＝同一頁、同一個寬度，先量 K 線頂端，再把 #skAi 藏起來（兩欄格線保留、右欄留空）重量一次，兩者相減
-#   ＝「AI 區比左欄（名稱區＋工具列）高出多少」。改前的 K 線頂端（2618，_uitest 外另外量的）：1440＝332、1100＝402、800＝395。
-#   改後實測（2618）：1440 K 線頂 379（AI 區 229 高、左欄 181 → 推 47；比改前 +47）；
-#   1100 K 線頂 411（名稱區與工具列都折行、左欄 260 ≥ AI 區 260 → 推 0；比改前 +9，改前那一行結論本來就排在名稱區下面）。
-#   → 兩欄上限 60：47 再留 13px 給字型與資料長短（結論、標籤判讀字數不同會差一兩行）。
-#   800（卡片 < 960 走單欄）：AI 區只能排在名稱區下面，一定會推 —— 量法改成「整塊藏掉、回單欄」，
-#   實測 K 線頂 552、推約 226（比改前 395 多 157，改前那一行結論本來就推 69）。上限 AI_PUSH_MAX_NARROW＝260。
-#   這是「內容區看得到東西」的代價；收合後只剩結論＋標籤（約 110px），寫在回報的已知限制裡。
+# K 線頂端「被推多少」用兩把尺量（都在同一頁、同一個寬度，暫時藏掉 #skAi 重量一次再還原，只量不改狀態）：
+#   ① AI_PUSH_MAX＝60：藏掉 AI 區、**兩欄格線保留**（右欄留空）→ 量的是「AI 區比左欄（名稱區＋工具列）高出多少」，
+#      也就是「內容區有沒有把標題列撐高」。實測（2618／3026）：1440＝47／47、1100＝0／0、800＝10／17。
+#      47 再留 13px 給字型與資料長短（結論、標籤判讀字數不同會差一兩行）。內容區固定高度一旦失效（例如被改成
+#      height:auto），技術面整段 500px 以上會直接頂破這條。
+#   ② AI_COST_MAX＝110：藏掉 AI 區、**連兩欄一起拿掉**（回到「完全沒有 AI 區」的單欄卡片）→ 量的是 AI 區的總代價，
+#      包含「左欄變窄、名稱區與工具列自己折行」多出來的高度。實測（2618／3026）：1440＝47／47、1100＝79／79、800＝94／102。
+#      這把尺比「跟改前比」嚴：改前右上那一行結論本來就把名稱區撐高（改前 K 線頂端 2618：1440＝332、1100＝402、
+#      800＝395；改後 379／411／408，**跟改前比只多 47／9／13px**）。110＝最大實測 102 再留 8px。
+#   ⚠ 這次改版的第一版草稿（沒上線，WIDE＝960）800 走單欄：AI 區疊在名稱區下面，K 線多掉 120px（800＝515、700＝609）；
+#      所以兩欄門檻降到卡片 600px，窄卡片的四顆標籤改成「名在上、判讀小字在下」（container query）。
 AI_PUSH_MAX = 60
-AI_PUSH_MAX_NARROW = 260
+AI_COST_MAX = 110
 
 AI_SNAP = r"""() => { const q = (s) => document.querySelector(s), qa = (s) => [...document.querySelectorAll(s)];
   const ai = q('#skAi'), body = q('#aiBody'), line = q('#skAiLine'), card = q('#skChartCard'), host = q('#aiCard');
@@ -16391,11 +16393,15 @@ AI_SNAP = r"""() => { const q = (s) => document.querySelector(s), qa = (s) => [.
 AI_NOAI_CHART_TOP = r"""() => { const ai = document.getElementById('skAi'), card = document.getElementById('skChartCard'), cw = document.getElementById('chartWrap');
   if (!ai || !card || !cw) return null;
   const top = () => Math.round(cw.getBoundingClientRect().top + scrollY);
+  const side = card.classList.contains('aiside');
   const withAi = top();
   const d = ai.style.display; ai.style.display = 'none';
-  const noAi = top();
+  const noAi = top();                                   // 尺 ①：兩欄格線保留、右欄留空
+  card.classList.remove('aiside');
+  const bare = top();                                   // 尺 ②：完全沒有 AI 區的單欄卡片
+  if (side) card.classList.add('aiside');
   ai.style.display = d;
-  return { withAi, noAi, push: withAi - noAi, back: top(), aiside: card.classList.contains('aiside') }; }"""
+  return { withAi, noAi, bare, push: withAi - noAi, cost: withAi - bare, back: top(), aiside: side }; }"""
 
 AI_WORDS_BANNED = ("買進", "賣出", "建議", "追進", "加碼", "減碼")
 
@@ -16458,7 +16464,8 @@ def t_stock_ai_0926(pg, base, code):
         # ---- 內容區固定高度、區內捲動
         ok(f"★ {tag} 內容區是區內捲動（overflow-y:auto），高度固定", st["bodyOY"] == "auto" and 120 <= st["bodyH"] <= 420, (st["bodyOY"], st["bodyH"]))
         ps = pg.evaluate(AI_NOAI_CHART_TOP)
-        ok(f"★ {tag} 1440：K 線頂端被 AI 區往下推 ≤ {AI_PUSH_MAX}px（對照：同一張卡藏掉 AI 區）", ps and ps["push"] <= AI_PUSH_MAX and ps["back"] == ps["withAi"], ps)
+        ok(f"★ {tag} 1440：AI 區沒有把標題列撐高 —— K 線頂端比「右欄留空」低 ≤ {AI_PUSH_MAX}px（尺 ①）", ps and ps["push"] <= AI_PUSH_MAX and ps["back"] == ps["withAi"], ps)
+        ok(f"★ {tag} 1440：K 線頂端比「完全沒有 AI 區」低 ≤ {AI_COST_MAX}px（尺 ②，總代價）", ps and ps["cost"] <= AI_COST_MAX, ps)
         # ---- 技術面：1H／4H／日／週四行，沒有月線
         ok(f"★ {tag} 技術面有 1 小時／4 小時／日線／週線四行", st["tfs"] == ["1 小時", "4 小時", "日線", "週線"], st["tfs"])
         ok(f"★ {tag} 技術面沒有月線（含支撐壓力區）", "月線" not in st["tech"], st["tech"][:300])
@@ -16541,8 +16548,13 @@ def t_stock_ai_0926(pg, base, code):
             continue
         ok(f"★ {tg} AI 區在 K 線上方（不在 K 線下方）", s["rAi"]["b"] <= s["rChart"]["t"], (s["rAi"], s["rChart"]))
         ps = pg.evaluate(AI_NOAI_CHART_TOP)
-        lim = AI_PUSH_MAX if s["aiside"] else AI_PUSH_MAX_NARROW
-        ok(f"★ {tg} K 線頂端被 AI 區往下推 ≤ {lim}px（{'兩欄' if s['aiside'] else '單欄'}）", ps and ps["push"] <= lim, ps)
+        # 改前（第一版草稿）800 走單欄、K 線多掉 120px → 改後 800 也是兩欄
+        ok(f"★ {tg} K 線卡是兩欄（AI 區在右半）", s["aiside"] and s["rAi"]["l"] >= s["rCard"]["l"] + s["rCard"]["w"] * 0.4, (s["aiside"], s["rAi"], s["rCard"]))
+        ok(f"★ {tg} AI 區沒有把標題列撐高：K 線頂端比「右欄留空」低 ≤ {AI_PUSH_MAX}px（尺 ①）", ps and ps["push"] <= AI_PUSH_MAX, ps)
+        ok(f"★ {tg} K 線頂端比「完全沒有 AI 區」低 ≤ {AI_COST_MAX}px（尺 ②）", ps and ps["cost"] <= AI_COST_MAX, ps)
+        # 窄 AI 區（800 約 320px）：標籤改成名在上、判讀小字在下；每顆的字不可以溢出按鈕（溢出＝壓到隔壁那顆）
+        spill = pg.evaluate("() => [...document.querySelectorAll('#skAi .aitab')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.dataset.facet)")
+        ok(f"★ {tg} 四顆標籤的字都沒有溢出按鈕（沒有壓到隔壁）", spill == [], spill)
         ok(f"{tg} 四顆標籤同一列、都在 AI 區裡", len({t["r"]["t"] for t in s["tabs"]}) == 1
            and all(s["rAi"]["l"] - 1 <= t["r"]["l"] and t["r"]["r"] <= s["rAi"]["r"] + 1 for t in s["tabs"]), [t["r"] for t in s["tabs"]])
         click(pg, '#skAi .aitab[data-facet="fund"]', 350)
@@ -16568,6 +16580,14 @@ def t_stock_ai_0926(pg, base, code):
     ok("★ [AI分析 390] 切到「AI 分析」段 → 結論列與四顆標籤看得到", not m1["mpOff"] and m1["lineVis"] and len(m1["tabs"]) == 4 and all(t["vis"] for t in m1["tabs"]), m1)
     ok("[AI分析 390] 手機沒記過 → 預設收起（只有結論＋標籤）", not m1["open"] and m1["ls"] is None, (m1["open"], m1["ls"]))
     ok("★ [AI分析 390] 四顆標籤都在畫面寬度內（不靠橫向捲動）", all(t["r"]["l"] >= 0 and t["r"]["r"] <= m1["vw"] for t in m1["tabs"]), [t["r"] for t in m1["tabs"]])
+    mspill = pg.evaluate("() => [...document.querySelectorAll('#skAi .aitab')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.dataset.facet)")
+    ok("[AI分析 390] 四顆標籤的字都沒有溢出按鈕", mspill == [], mspill)
+    # 改前：手機標題列折行時「?」自己孤零零掉到第二行 → 改後：「?」緊跟「AI 分析」，放不下的免責小字換到下一行
+    qpos = pg.evaluate("() => { const b = document.querySelector('#skAi .howbtn[data-how=\"ai\"]'), w = document.getElementById('aiWarn'), t = document.getElementById('aiTgl');"
+                       " if (!b || !w || !t) return null; const rb = b.getBoundingClientRect(), rw = w.getBoundingClientRect(), rt = t.getBoundingClientRect();"
+                       " return { q: Math.round(rb.top), warn: Math.round(rw.top), tgl: Math.round(rt.top), qb: Math.round(rb.bottom) }; }")
+    ok("[AI分析 390]「?」跟「AI 分析」、收合鈕在同一列，免責小字在下一行（不是「?」自己掉到第二行）",
+       bool(qpos) and qpos["q"] < qpos["warn"] and abs(qpos["q"] - qpos["tgl"]) <= 8, qpos)
     click(pg, '#skAi .aitab[data-facet="chip"]', 450)
     m2 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 按「籌碼面」→ 展開並只顯示籌碼面", m2["open"] and m2["shown"] == ["chip"], (m2["open"], m2["shown"]))

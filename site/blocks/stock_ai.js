@@ -22,7 +22,15 @@
      卡片改成兩欄格線：左欄上面是名稱／現價（#skHead）、下面是 K 線工具列（#skTools）；
      右欄是 #skAi，**跨這兩列**。這樣 AI 區可用的高度＝名稱區＋工具列的高度，
      工具列被擠窄時會自己折成兩行，剛好把那兩列撐高給 AI 區用，而不是整塊疊在 K 線上面。
-     卡片窄（800 那種）時退回單欄：AI 區排在名稱區下面、工具列上面，內容區改矮一點（見 CSS 的 --aibh）。
+     ★ 兩欄一路用到卡片 600px（＝桌機／平板全部寬度；只有開著右側事件欄又把視窗拉很窄才會低於它）。
+       量過（2618，K 線頂端 y；改前＝09-26 版，右上一行結論）：
+                     1440   1100    900    800    700
+         改前         332    402    402    395    489
+         單欄（舊門檻）   —      —    534    515    609   ← AI 區疊在名稱區下面，K 線多掉 120px
+         兩欄（新門檻） 379    411    411    408    502   ← 左欄變窄、名稱區與工具列自己折行，AI 區吃那個高度
+       所以窄卡片也走兩欄：AI 區窄到 380px 以下時（container query，量的是 AI 區自己不是視窗），
+       標籤改成「面向名在上、判讀小字在下」、技術面週期列與支撐壓力改單欄，四顆標籤才排得進 300px。
+     卡片 < 600 才退回單欄：AI 區排在名稱區下面、工具列上面，內容區改矮一點（見 CSS 的 --aibh）。
      手機（≤640，mobile v3 分段）：app.js 的 miaStock 把 #skAi 整個節點搬進分段用的空殼 #aiCard
      （「AI 分析」那一段），內容區不限高、不在區內捲（它自己就是一整段，捲頁面就好，不要捲中捲）。
 
@@ -46,7 +54,7 @@
 
   const KEY = 'tw.aiOpen';
   const TAB_KEY = 'tw.aiTab';
-  const WIDE = 960;        // K 線卡寬度 ≥ 這個值才走「右欄跨兩列」；左欄至少要放得下現價那一列（約 560px）
+  const WIDE = 600;        // K 線卡寬度 ≥ 這個值才走「右欄跨兩列」（量測表在檔頭；窄卡片兩欄比單欄少推 K 線約 100px）
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const FACETS = [['tech', '技術面'], ['chip', '籌碼面'], ['fund', '基本面'], ['news', '消息面']];
   // 紅漲綠跌：偏多用 .pos（紅）、偏空用 .neg（綠）；留意＝琥珀色
@@ -70,7 +78,8 @@
     st.id = 'stockAiCss';
     st.textContent = `
 /* ---- K 線卡兩欄（卡片夠寬時，JS 加 .aiside）：右欄 #skAi 跨「名稱區」與「工具列」兩列 */
-#skChartCard.aiside{display:grid;grid-template-columns:minmax(0,1fr) minmax(400px,42%);column-gap:20px;align-items:start}
+/* 右欄最窄 300px：四顆標籤疊成兩行後每顆約 70px 放得下；最寬 44%，左欄（名稱／現價／工具列）至少留一半多 */
+#skChartCard.aiside{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,44%);column-gap:20px;align-items:start}
 #skChartCard.aiside>*{grid-column:1 / -1;min-width:0}
 #skChartCard.aiside>#skHead{grid-column:1;grid-row:1;align-self:start}
 /* 工具列貼在左欄底部＝緊貼 K 線；AI 區比左欄高時多出來的空白落在名稱區與工具列之間，不落在工具列與 K 線之間 */
@@ -80,11 +89,12 @@
   border-left:1px solid var(--line);padding-left:18px}
 /* 內容區高度：兩欄時 132px（量過：1440 左欄＝名稱區 121＋工具列 50 ＝ 171px，AI 區固定部分約 95px，
    132 讓 K 線最多被推約 55px；卡片再窄一點工具列會折行，左欄變高、內容區自動吃掉多出來的高度）。
-   單欄（卡片 < WIDE，800 那種）時 AI 區只能排在名稱區下面、一定會推 K 線，所以壓到 110px（約 5～6 行，底部淡出提示還能捲）。*/
-#skAi{--aibh:132px;display:flex;flex-direction:column;gap:5px;min-width:0}
+   單欄（卡片 < WIDE＝600，只剩「右側事件欄開著＋視窗很窄」會走到）時 AI 區只能排在名稱區下面、一定會推 K 線，所以壓到 110px（約 5～6 行，底部淡出提示還能捲）。*/
+/* container：AI 區自己多寬決定標籤排法（兩欄時跟著卡片寬窄變、手機搬進 #aiCard 又是另一個寬度，看視窗寬猜不準）*/
+#skAi{--aibh:132px;display:flex;flex-direction:column;gap:5px;min-width:0;container:aibox / inline-size}
 #skChartCard:not(.aiside)>#skAi{--aibh:110px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
-/* 單欄時卡片夠寬（800 那種 ≈ 730px）：標題與結論併成同一列（標題｜結論｜收合），省下一整列 ≈ 25px。
-   這不只是好看：工具列每往下 1px，K 線「指標 ▾」下拉在 800×900 下方的空間就少 1px ——
+/* 單欄（退路）：標題與結論併成同一列（標題｜結論｜收合），省下一整列 ≈ 25px。
+   這不只是好看：工具列每往下 1px，K 線「指標 ▾」下拉在矮視窗下方的空間就少 1px ——
    少到 320px 以下它會改往上開（placePop 的判準），蓋住 AI 區。結論太長就在中間那欄自己折行。*/
 #skChartCard:not(.aiside)>#skAi{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:5px;align-items:center}
 #skChartCard:not(.aiside)>#skAi>.aihead{display:contents}
@@ -138,19 +148,24 @@
 #skAi .ainews a{color:var(--cyan)}
 #skAi .ainews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
 #skAi .aiasof{margin-top:8px;font-size:12px;color:var(--ink-3)}
+/* AI 區窄（兩欄的窄卡片、手機）：標籤疊成兩行、標題列不讓收合鈕掉到第二行、「?」緊跟在「AI 分析」後面
+   （改前手機上「?」會自己孤零零掉到第二行），技術面週期列與支撐壓力改單欄 */
+@container aibox (max-width:380px){
+  #skAi .aihead{flex-wrap:nowrap;align-items:flex-start}
+  #skAi .aihead h3{flex:1 1 auto;min-width:0;row-gap:2px}
+  #skAi .aihead h3 small{order:2;flex-basis:100%}
+  #skAi .aihead .btn{flex:none}
+  #skAi .aitab{flex-direction:column;gap:2px;padding:4px 2px 6px}
+  #skAi .aitfs{grid-template-columns:auto 1fr} #skAi .aitfs .tfp{grid-column:1 / -1;margin:-2px 0 4px}
+  #skAi .ailv{grid-template-columns:1fr}
+}
 /* 手機分段用的空殼：桌機永遠是空的，不留一塊空卡 */
 #aiCard:empty{display:none}
 @media (max-width:640px){
   #aiCard>#skAi{margin-top:0;border:0;padding:0}
-  /* 標題列不折行：收合鈕固定在右上，放不下的「規則式自動判讀…」在標題裡自己換到下一行（不要讓收合鈕孤零零掉到第二行）*/
-  #skAi .aihead{flex-wrap:nowrap;align-items:flex-start}
-  #skAi .aihead h3{flex:1 1 auto;min-width:0}
-  #skAi .aihead .btn{flex:none}
+  /* 標籤疊法、標題列不折行等窄版規則在上面的 @container（AI 區 ≤380px 就套，手機一定套到）*/
   #skAi .aibody{height:auto;max-height:none;overflow:visible}
   #skAi .aibody.more{-webkit-mask-image:none;mask-image:none}
-  #skAi .aitab{flex-direction:column;gap:2px;padding:4px 2px 6px;font-size:13px}
-  #skAi .aitfs{grid-template-columns:auto 1fr} #skAi .aitfs .tfp{grid-column:1 / -1;margin:-2px 0 4px}
-  #skAi .ailv{grid-template-columns:1fr}
 }`;
     document.head.appendChild(st);
   }
