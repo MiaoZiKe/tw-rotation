@@ -2203,14 +2203,9 @@
        改成讓動畫迴圈自己判斷「我現在看得見嗎」，看不見就只空轉不畫（見 startSankeyFlow）。*/
     // 產業鏈的外商小面板不屬於任何 view，換頁一定要自己清（Andy 2026-09-18 圖12）
     { const cb = document.getElementById('coBox'); if (cb) cb.remove(); }
-    /* 「成分股放寬、暫時蓋住事件面板」也是同一種東西：它掛在 <body> 上、不屬於任何 view。
-       換頁不清的話，使用者在產業鏈頁按了放寬，跑去總覽會發現事件面板莫名其妙不見了。
-       remember=false —— 那是暫時狀態，不該改掉他自己設定的偏好（DECISIONS #248）。*/
-    if (document.body.classList.contains('memwide')) {
-      document.body.classList.remove('memwide');
-      let want = true; try { want = localStorage.getItem('tw.side') !== '0'; } catch (e) { /* 忽略 */ }
-      if (typeof window.twSetSide === 'function') window.twSetSide(want, false);
-    }
+    /* 舊版「成分股放寬」留在 <body> 上的 `.memwide` 只清掉 class 就好 ——
+       2026-09-28 起事件是預設關著的浮層抽屜，換頁不再需要「把事件欄還回來」。*/
+    document.body.classList.remove('memwide');
     const h = location.hash.replace('#', '') || 'overview';
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
        法定產業別的族群 id 是中文（ind_半導體業），瀏覽器把 hash 存成百分比編碼，
@@ -2275,12 +2270,9 @@
     const tabFix = () => { centerActiveTab(); syncTabOverflow(); };
     requestAnimationFrame(tabFix); setTimeout(tabFix, 420);
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
-    /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
-       不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
-    // 預設就是寬版（Andy：「K 線圖 default 就大一點」）；只有自己按過關掉才會是窄的
-    let wide = true;
-    try { const v = localStorage.getItem('tw.kwide'); if (v !== null) wide = v === '1'; } catch (e) { /* 忽略 */ }
-    document.body.classList.toggle('kwide', head === 'stock' && wide);
+    /* 2026-09-28：K 線「寬版」（`body.kwide`，收起事件欄）拿掉 —— 事件改成浮層抽屜，圖本來就吃滿全寬。
+       舊版存的 `tw.kwide` 在 renderEvents() 開抽屜那段一起清掉；body 上若還掛著 class 也拿掉。*/
+    document.body.classList.remove('kwide');
     /* ★ 2026-09-23（Andy：「每次切換族群不會一直跳到上面，還要再滑下來看」）。
        根因就是這一行：路由**每換一次**就捲頁首，而「切圖別／換族群／換關聯圖中心」
        都會改 hash → 觸發路由 → 整頁彈回最上面，使用者得再滑下來一次。
@@ -10852,74 +10844,49 @@
       sel.className = 'minisel' + (stale ? ' stale' : '');
       sel.title = stale ? `最新一則是 ${newest}，今天（${today}）還沒有新事件` : '選一天看那天發生什麼（保留最近一週）';
       const list = pick === 'all' ? byCat : byCat.filter(i => i._d === pick);
-      $('#evList').innerHTML = list.slice(0, 120).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(i._d)}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || c, { cls: 'sm' })).join('')}</div></div>`).join('')
+      $('#evList').innerHTML = list.slice(0, 120).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(i._d)}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || '', { cls: 'sm' })).join('')}</div></div>`).join('')
         || `<div class="empty">${pick === 'all' ? '沒有這類事件' : pick + ' 沒有這類事件'}</div>`;
     };
     $$('#evFilters button').forEach(b => b.onclick = () => { $$('#evFilters button').forEach(x => x.classList.toggle('on', x === b)); cat = b.dataset.c; draw(); });
     sel.onchange = () => { pick = sel.value; draw(); };
     draw();
-    /* 事件側欄要真的關得掉。手機用 .open 滑出來，桌機要靠 .layout.noside 把那一欄收掉 ——
-       以前只 toggle .open，桌機按了完全沒反應，而且側欄佔掉 360px 讓候選表的六個欄位躲進捲軸。 */
-    const SIDE_KEY = 'tw.side';
-    /* ★ 820px 以下這個側欄不是「一欄」，是**蓋在內容上的浮層**
-       （index.html 的 `@media (max-width:820px)` 把 aside 改成 position:fixed）。
-       2026-09-22 量到的事實：800px 時浮層從 x=440 蓋到 800，
-       而圖別選單裡「MLCC」那張卡的中心在 x=586 —— **真人點下去點到的是浮層，不是那張卡**。
-       （1100px 時卡片右緣 699、浮層左緣 740，只差 41px；1440px 以上才真的不重疊。）
-       這不是測試環境的怪象：任何人把瀏覽器縮成半邊，右半頁就是點不動的。
-
-       兩個修法一起下：
-         ① 窄畫面一進站**一律先關著**。存起來的偏好是「桌機要不要留那一欄」，
-            不該拿來決定「手機要不要彈出一個蓋住半頁的浮層」。
-         ② 浮層狀態下**點外面就關掉**（浮層本來就該這樣）。
-       ⚠ 自動關的時候**不准覆寫存起來的偏好** —— 不然使用者在手機上開一次，
-         回到桌機那一欄就莫名其妙不見了。 */
-    const SIDE_OVERLAY_MAX = 820;                      // 跟 index.html 的 media query 同一個數字
-    const sideIsOverlay = () => window.innerWidth <= SIDE_OVERLAY_MAX;
-    const setSide = (open, remember = true, quiet = false) => {
-      $('#side').classList.toggle('open', open);
-      $('#layout').classList.toggle('noside', !open);
-      if (remember) { try { localStorage.setItem(SIDE_KEY, open ? '1' : '0'); } catch (e) { /* 忽略 */ } }
-      if (!quiet) window.dispatchEvent(new Event('resize'));       // 欄寬變了，圖表要重畫
+    /* ★ 2026-09-28（Andy：「今日事件 Default 先隱藏，出來的形式如圖片提供。他不會擠壓到整體版面，
+       並且點擊背景後可以消失，今日事件內的設定有回到 Default 狀態」）：
+       以前是兩套邏輯疊在一起 —— 桌機是 grid 的一欄（`.layout.noside` 收掉、偏好存 `tw.side`），
+       820px 以下才是浮層（`.open`），個股頁再加一個 `body.kwide` 把那一欄藏起來。
+       現在**所有寬度都是同一種浮層抽屜**：預設關著、按頂欄「事件」才滑出來，
+       旁邊一層遮罩（點它就關）、Esc 與 × 也關。抽屜是 position:fixed，開關不會改變主內容寬度，
+       所以這裡**不派 resize** —— 以前派 resize 是因為欄寬會變，現在派只會讓每張圖白白重排一次。
+       ① 不記偏好：每次重新整理都是關的，`tw.side` 這個舊 key 順手清掉（留著也沒有人讀）。
+       ② 每次打開都回到預設：類別「全部」、日期「全部」、捲回頂端 —— Andy 要的是「關掉再開＝重新開始」，
+          不是「延續上次看到哪」。 */
+    try { localStorage.removeItem('tw.side'); localStorage.removeItem('tw.kwide'); } catch (e) { /* 私密視窗，忽略 */ }
+    const side = $('#side'), back = $('#sideBack');
+    const resetSide = () => {
+      cat = 'all'; pick = 'all';
+      $$('#evFilters button').forEach(x => x.classList.toggle('on', x.dataset.c === 'all'));
+      draw();
+      side.scrollTop = 0;
     };
-    let sideOpen = true;
-    try { sideOpen = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { /* 忽略 */ }
-    /* ★ 2026-09-24 效能：開站這一次不派 resize —— 這時候一張圖都還沒畫（route() 在後面），
-       派了只會讓每個 resize 監聽者（分頁列置中、溢出提示…）各逼瀏覽器同步重排一次整頁（R6 量到 69ms，4 倍降速 503ms）。*/
-    setSide(sideIsOverlay() ? false : sideOpen, false, true);
-    /* 讓別的模組也開得了關得了這一欄（DECISIONS #248：成分股可以暫時蓋住事件面板）。
-       第二個參數 remember=false 很重要 —— 那是「暫時蓋住」，不是使用者改了偏好，
-       關掉之後要回到他自己設定的狀態。*/
-    window.twSetSide = setSide;
-    window.twSideWanted = () => { try { return localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { return true; } };
-    $('#evToggle').onclick = () => setSide($('#layout').classList.contains('noside'));
+    const setSide = (open) => {
+      open = !!open;
+      if (open && !side.classList.contains('open')) resetSide();
+      side.classList.toggle('open', open);
+      side.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (back) back.classList.toggle('on', open);
+      $('#evToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    setSide(false);
+    /* 別的模組（legal.js 的導覽第④步）要打開抽屜指給使用者看，一律走這一支。
+       舊的第二個參數 remember 已經沒有意義（不再記偏好），傳了也不影響。*/
+    window.twSetSide = (open) => setSide(open);
+    $('#evToggle').onclick = () => setSide(!side.classList.contains('open'));
     $('#evClose').onclick = () => setSide(false);
-    // 點浮層外面就收掉。用 capture 才攔得到那些自己 stopPropagation 的元件（剖析圖的零件就是）。
-    document.addEventListener('pointerdown', (e) => {
-      if (!sideIsOverlay()) return;
-      const a = $('#side');
-      if (!a || !a.classList.contains('open')) return;
-      if (e.target.closest('#side') || e.target.closest('#evToggle')) return;
-      setSide(false, false);                           // 不覆寫桌機的偏好
-    }, true);
-    // 2026-09-24：浮層狀態下按 Esc 也收（全站「點了才出現的東西」同一套）；桌機並排時它不是浮層，不動
-    dismissable($('#side'), () => setSide(false, false), { ignore: ['#evToggle'],
-      isOpen: () => sideIsOverlay() && $('#side').classList.contains('open') });
-    /* 從寬拖窄：那一欄變成浮層的瞬間要收掉，不然一樣蓋住內容。
-       ★ 2026-09-23 手機優先改版時抓到的既有 bug：`setSide()` 自己會
-         `dispatchEvent(new Event('resize'))`（為了讓圖表重算寬度），
-         於是「在手機上打開事件抽屜」變成：setSide(true) → 派發 resize →
-         這支處理器看到「是浮層而且是開的」→ 立刻 setSide(false) —— **開不起來**。
-         以前看不到這個 bug，是因為唯一的入口（事件鈕）在手機上被頂欄裁掉、根本按不到（G1）。
-         修法：記住上一次的視窗寬度，**寬度真的變了**才收 —— 那才是「從寬拖窄」的定義；
-         setSide 自己派的 resize 寬度沒變，不該被當成使用者在拖視窗。*/
-    let _lastW = window.innerWidth;
-    window.addEventListener('resize', () => {
-      const w = window.innerWidth;
-      if (w === _lastW) return;
-      _lastW = w;
-      if (sideIsOverlay() && $('#side').classList.contains('open')) setSide(false, false);
-    });
+    if (back) back.onclick = () => setSide(false);
+    /* 登記進全站「點了才出現的東西」：點抽屜外面（含遮罩）、按 Esc 都收。
+       事件鈕自己要排除，不然「按鈕打開 → 同一下被當成點外面」會立刻關掉。*/
+    dismissable(side, () => setSide(false), { ignore: ['#evToggle', '#mmEvents', '#moreBtn'],
+      isOpen: () => side.classList.contains('open') });
   }
 
   // ---------------------------------------------------------------- 公司 Logo（2026-09-26）

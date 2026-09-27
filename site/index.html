@@ -50,7 +50,7 @@
   --rise:#ff4d6d; --fall:#2ee59d; --flat:#8ea0c4;
   --glow:0 0 0 1px rgba(62,224,255,.25), 0 0 24px -6px rgba(62,224,255,.45);
   --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -20px rgba(0,0,0,.9);
-  --r:12px; --side-w:360px;
+  --r:12px;
   /* ================ 2026-09-24 設計系統 v2（docs/design_system_v2.md §2.1）================
      間距 9 階（接續 ui_polish_spec 的 8 階，多一個 20＝卡片內距）、圓角 4 階＋膠囊、字級 6 階。
      量自 Andy 給的三張參考截圖（99／100／101.png），數字與出處都在規格書裡。
@@ -660,19 +660,27 @@ small{font-size:12.5px}
 .evbtn .n{background:var(--violet);color:var(--ontop);font-size:12px;padding:1px 7px;border-radius:9px;margin-left:6px;font-family:var(--mono)}
 
 /* ---------------- 版面 ---------------- */
-.layout{display:grid;grid-template-columns:1fr var(--side-w);min-height:calc(100vh - 58px)}
-.layout.noside{grid-template-columns:1fr}
-/* ★ 2026-09-22 抓到的既有 bug：`.noside` 只把那一欄收掉，**卻沒有把 aside 藏起來**。
-   aside 是 grid item，沒有欄位就被丟到隱含的下一列 ——
-   整條事件側欄堆到 main 底下，整頁高度多出約 900px（1366px 實測 2757 -> 3700）。
-   app.js 的註解本來就寫著「桌機要靠 .layout.noside 把那一欄收掉」，
-   意圖是對的，規則只寫了一半。
-   ⚠ 只給桌機：820px 以下 aside 是 position:fixed 的浮層、由 `.open` 控制，
-   在那裡加 display:none 會讓它第一次滑出時不播動畫。*/
-@media (min-width:821px){ .layout.noside aside{display:none} }
+/* ★ 2026-09-28（Andy：「今日事件 Default 先隱藏…他不會擠壓到整體版面，並且點擊背景後可以消失」）：
+   以前桌機的事件欄是 grid 的第二欄（360px），開著就把主內容擠窄 —— 設計 v4 量到
+   「事件欄佔 25～33% 寬是圖被壓縮的主因」。現在**所有寬度**都只有一種形態：
+   主內容吃滿全寬，事件是從右側滑出、浮在內容上的抽屜（position:fixed），
+   開關它**不會改變主內容任何一個元素的寬度**，圖表也就不會被觸發重排或縮小。
+   舊的 `.layout.noside`（桌機收欄）與 `body.kwide aside`（K 線寬版收欄）兩套邏輯一起拿掉。*/
+.layout{display:block;min-height:calc(100vh - 58px)}
 main{padding:20px 22px 80px;min-width:0}
-aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;position:sticky;top:58px;
-  height:calc(100vh - 58px);overflow:auto}
+/* 抽屜：頂欄下方貼右、寬 min(420px, 92vw)。
+   關著時用 visibility:hidden（跟著 transition 延後生效），裡面的連結不會被 Tab 走到、也點不到。
+   overflow-x:hidden 是保險 —— 真正的修法是 `.ev .m` 換行（見事件列那段），不是把溢出藏起來。*/
+aside{position:fixed;right:0;top:58px;bottom:0;width:min(420px,92vw);z-index:46;
+  background:var(--bg-2);border-left:1px solid var(--line);box-shadow:-24px 0 48px var(--drop);
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  transform:translateX(100%);visibility:hidden;transition:transform .25s ease,visibility 0s linear .25s}
+aside.open{transform:none;visibility:visible;transition:transform .25s ease,visibility 0s}
+/* 半透明背景遮罩：點它就關（app.js 的 setSide）。從頂欄下緣開始蓋，頂欄的「事件」鈕照樣按得到。*/
+.sideback{position:fixed;left:0;right:0;top:58px;bottom:0;z-index:45;background:rgba(3,6,14,.42);
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.sideback.on{opacity:1;pointer-events:auto}
+:root[data-theme="light"] .sideback{background:rgba(30,28,24,.22)}
 .view{display:none} .view.on{display:block;animation:fade .25s ease}
 @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .banner{padding:12px 16px;border-left:3px solid var(--amber);background:rgba(255,180,84,.08);font-size:14px;
@@ -1703,12 +1711,9 @@ tbody tr:last-child td{border-bottom:0}
 /* K 線圖高度跟著視窗走（Andy：「K 線圖太小，版面需要擴大」）：
    以前寫死 640px，螢幕再大也只有那麼高。扣掉頂部列＋標題＋工具列＋說明約 300px，
    剩下的全部給圖；上下限避免小筆電被壓扁、超寬螢幕拉成一條。 */
-#lwc{position:relative;height:clamp(600px,calc(100vh - 250px),1280px);border-radius:10px;overflow:hidden;background:var(--chartbg);border:1px solid var(--line)}
-/* 寬版模式：收起右側事件欄，把整個視窗寬度讓給圖（工具列上的「⤢ 寬版」）*/
-body.kwide .layout{grid-template-columns:1fr}
-body.kwide aside{display:none}
-body.kwide #lwc{height:clamp(640px,calc(100vh - 185px),1500px)}
-body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
+#lwc{position:relative;height:clamp(640px,calc(100vh - 185px),1500px);border-radius:10px;overflow:hidden;background:var(--chartbg);border:1px solid var(--line)}
+/* ★ 2026-09-28：「⤢ 寬版」拿掉 —— 它唯一的作用是收起右側事件欄，事件改成浮層抽屜之後圖本來就吃滿全寬。
+   以前寬版是預設（DECISIONS #103），所以把寬版那組高度直接收成預設值，使用者看到的圖高不變。*/
 #lwc .legend-ov{position:absolute;left:12px;top:8px;z-index:5;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
   pointer-events:none;line-height:1.5;text-shadow:var(--ovl-sh)}
 #lwc .legend-ov b{color:var(--ink)}
@@ -1743,7 +1748,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   border-radius:7px;padding:2px 6px;font-size:12.5px;font-family:inherit;cursor:pointer;margin-right:6px}
 .mtf-cell .cap select.mtfsel:hover{border-color:var(--cyan)}
 .mtf-cell .cap{position:absolute;left:10px;top:8px;z-index:5;font-size:12.5px;color:var(--ink-2);font-family:var(--mono);text-shadow:var(--ovl-sh)}
-.mtf-cell .cv{height:clamp(280px,calc((100vh - 360px) / 2),560px);position:relative}
+.mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px);position:relative}
 /* 四週期小圖的游標看板（2026-09-26）：滑過哪一根就寫那一根的時間、開高低收與量（張）。
    擺在週期下拉的正下方；沒滑過時整塊藏起來，不擋圖。*/
 .mtf-cell .mtip{position:absolute;left:10px;top:40px;z-index:6;pointer-events:none;font-family:var(--mono);font-size:11.5px;
@@ -2198,10 +2203,14 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .side-filters{display:flex;gap:6px;padding:0 16px 10px;flex-wrap:wrap}
 .side-filters button{border:1px solid var(--line-2);background:transparent;color:var(--ink-2);padding:3px 10px;border-radius:999px;font-size:12.5px;cursor:pointer}
 .side-filters button.on{background:var(--violet);border-color:var(--violet);color:#fff}
-.ev{padding:11px 16px;border-top:1px solid var(--line)}
-.ev a{color:var(--ink);font-size:14px;line-height:1.45;display:block}
+.ev{padding:11px 16px;border-top:1px solid var(--line);min-width:0}
+.ev a{color:var(--ink);font-size:14px;line-height:1.45;display:block;overflow-wrap:anywhere}
 .ev a:hover{color:var(--cyan)}
-.ev .m{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;gap:8px;align-items:center}
+/* ★ 2026-09-28（Andy 截圖「今日事件這邊發現 Bug，請調整適當寬度」）：這一列以前是不換行的 flex，
+   一則新聞掛三、四檔個股時 min-content 比抽屜寬，整個抽屜被撐出橫向捲軸、右邊留一大塊空白。
+   以前只有手機（body.m3on）補了換行，641px 以上的浮動抽屜與桌機側欄都沒有 —— 改成所有寬度共用。*/
+.ev .m{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;min-width:0}
+.ev .m .lk-stock{white-space:nowrap}
 .ev .cat{padding:0 7px;border-radius:999px;background:var(--panel-3);font-size:12px}/* 精修 #8：11 → 12px */
 /* ★ 2026-09-26 個股「公告 / 新聞」合併成一張列表：每列前面一個類型標籤。
    三色刻意避開紅綠（紅綠在這個站是漲跌）；用主題 token，淺色主題自動換成壓深的同色相。 */
@@ -2228,9 +2237,6 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 }
 @media (max-width:820px){
   body{font-size:15px}
-  .layout{grid-template-columns:1fr}
-  aside{position:fixed;right:0;top:58px;width:min(92vw,var(--side-w));transform:translateX(100%);transition:.25s;z-index:45;box-shadow:-20px 0 40px var(--drop)}
-  aside.open{transform:none}
   main{padding:14px 14px 90px}
   body{overflow-x:hidden}
   /* backdrop-filter 會讓 .topbar 變成 position:fixed 子元素的定位基準，
@@ -3335,7 +3341,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      於是 `#skIdent` 被撐到 758px，整頁的版面寬度變成 803px，
      手機瀏覽器會把整頁**縮小到 48%** 來塞進 390px（實測 innerWidth 803／initial-scale 失效）。
      那等於全站字在手機上只剩一半大，比原本的問題更嚴重。這兩行就是擋住它的。*/
-  /* K 線的高度：桌機是 `clamp(600px, 100vh - 250px, 1280px)`（`.kwide` 再高一點）。
+  /* K 線的高度：桌機是 `clamp(640px, 100vh - 185px, 1500px)`（2026-09-28 起寬版那組高度就是預設）。
      390×844 的手機上那等於 640px，加上釘住的價格列 65px、分段列 58px、工具列 40px，
      整張圖放不進一屏（量到 782 > 742）。手機收成「一屏剛好放得下」的高度：
      100vh 扣掉 頂欄72 ＋ 分段列58 ＋ 價格列65 ＋ 工具列46 ＋ 底部分頁102 ≈ 343。
@@ -3728,7 +3734,7 @@ h3 .howbtn.pop{font-family:inherit}
   /* 頂欄變 52 之後，所有「釘在頂欄底下」的東西一起往上挪 6px */
   body.m3on .mspine{top:52px}
   body.m3on #skPx{top:52px}
-  body.m3on aside{top:52px}
+  body.m3on aside,body.m3on .sideback{top:52px}
 
   /* ---- B 底部導覽：一列五顆 58px（現行兩列七顆 102px） ---- */
   body.m3on .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
@@ -4125,9 +4131,7 @@ h3 .howbtn.pop{font-family:inherit}
    量測在 scripts/_mobile_tap_audit.py；這裡只修「點不到／沒反應」，不改視覺風格（設計總監接著要重做整站版面）。
    ⚠ 全部在 ≤640px、掛在 body.m3on 底下，桌機一條都碰不到。 */
 @media (max-width:640px){
-  /* 今日事件抽屜：事件列下方的個股連結一整排不換行，把抽屜撐到 604px 寬（抽屜只有 358px），
-     右邊的個股連結整顆在抽屜外面，要先橫向拖抽屜才看得到、點得到。改成換行。 */
-  body.m3on aside .ev .m{flex-wrap:wrap;row-gap:4px}
+  /* 今日事件抽屜的個股連結換行：2026-09-28 起改成全寬度共用的規則（見 `.ev .m`），這裡不再單獨寫。 */
 }
 </style>
 </head>
@@ -4533,11 +4537,12 @@ h3 .howbtn.pop{font-family:inherit}
   </section>
 </main>
 
-<aside id="side">
-  <div class="side-h"><h3>今日事件</h3><div class="row"><select class="minisel" id="evDate" title="選一天看那天發生什麼（保留最近一週）"></select><button class="close" id="evClose">×</button></div></div>
+<aside id="side" aria-label="今日事件" aria-hidden="true">
+  <div class="side-h"><h3>今日事件</h3><div class="row"><select class="minisel" id="evDate" title="選一天看那天發生什麼（保留最近一週）"></select><button class="close" id="evClose" aria-label="關閉今日事件">×</button></div></div>
   <div class="side-filters" id="evFilters"><button data-c="all" class="on">全部</button><button data-c="台股">台股</button><button data-c="科技">科技</button><button data-c="總經">總經</button><button data-c="券商">券商</button></div>
   <div id="evList"></div>
 </aside>
+<div class="sideback" id="sideBack" aria-hidden="true"></div>
 </div>
 
 <script src="chart.js"></script>
