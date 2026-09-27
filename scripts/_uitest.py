@@ -5024,59 +5024,88 @@ def t_new_layout(pg, base):
     ② 「換另一台電腦、螢幕大小不同就會影響整體變化」（附截圖：三張圖壓字）
 
     驗的是**畫面真的因此改變了**，不是元素存在：
-      · 題材那一格真的捲得動（scrollTop 真的從 0 變成非 0），而且高度有上限；
-      · 兩張卡在 1280 / 1440 / 1920 各量一次，差 ≤ 2px；
+      · 題材那一格高度有上限，放大後真的捲得動（scrollLeft 真的從 0 變成非 0）、卡片不被撐高；
+      · 題材所在的左欄與右欄在 1280 / 1440 / 1920 各量一次，上下緣差 ≤ 2px
+        （2026-09-27 起；改版前是「熱門題材｜今日候選」兩張卡，見 ① ② 的改前→改後）；
       · 三張圖（市場寬度／法人連續買超／族群估值）在五個常見螢幕寬度下，
         圖**裡面**的字不重疊、不跑出容器。
         ★ 這一段一定要帶 `?svg=1` —— 線上版是 canvas，圖裡的字在 DOM 上不存在，
           不帶這個參數量到的永遠是 0，等於沒驗（見 scripts/_preview.py 上方的說明）。
     """
-    # ------------------------------------------------ ① 熱門題材：固定高度 + 真的捲得動
+    # ------------------------------------------------ ① 熱門題材：固定高度、內容放大也不撐高卡片、真的捲得動
+    # ★ 2026-09-27（dismiss-fix）改前 → 改後：
+    #   改前：量 `#themeStrip`（方塊清單 `.tile`）的 scrollTop、`.eqpair > .card > .tw`（今日候選表）的拉Bar。
+    #   改後：量 `#ovThemeCard`／`#ovThemeWrap`／`#ovTheme`（題材熱力圖 treemap＋`.zwrap` 滾輪縮放）。
+    #   理由：總覽改版（DECISIONS #258 ③⑨，commit 5a73164）把熱門題材從方塊清單改成熱力圖、「今日候選」表整張移除，
+    #         `#themeStrip`／`.eqpair` 在畫面上已經不存在 —— 原本那條「找不到」是**選擇器過時**，不是網站壞了
+    #         （實測 1280／1440／1920：左欄 #ovLeft 與右欄 #ovRotCard 上下緣完全對齊、題材卡固定 412px）。
+    #   Andy 的原始要求「框格一樣大、超出部分改拉Bar」逐條換成新版面的同一件事，一條都沒放寬：
+    #     · 「高度有上限」→ 題材卡 ≤ 720px（同一個數字）
+    #     · 「內容超出就拉Bar、真的捲得動」→ 熱力圖本身不捲（DECISIONS #61／#67：熱力圖位置固定），
+    #       超出的方式是滾輪放大：放大後**卡片高度一個像素都不變**、框內 scrollWidth 真的變大、scrollLeft 真的從 0 變成非 0
+    #     · 「捲到底看得到最後一個」→ 放大後框內捲得到最右下角（scrollLeft／scrollTop 到得了最大值）
+    #     · 「今日候選也要拉Bar」→ 那張卡已移除，改驗它真的不在（不會有一張沒人維護的殘留卡片）
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    P = "#themeStrip"
-    m0 = pg.evaluate("""() => { const e = document.querySelector('#themeStrip');
-        if (!e) return null;
-        const cs = getComputedStyle(e);
-        return { client: e.clientHeight, scroll: e.scrollHeight, top: e.scrollTop,
-                 overflow: cs.overflowY, tiles: e.querySelectorAll('.tile').length }; }""")
-    if not ok("熱門題材那一格找得到", bool(m0) and m0["tiles"] > 0, m0):
+    pg.evaluate("document.getElementById('ovThemeWrap') && document.getElementById('ovThemeWrap').scrollIntoView({block:'center', behavior:'instant'})")
+    pg.wait_for_timeout(600)
+    TH = """() => { const card = document.getElementById('ovThemeCard'), wrap = document.getElementById('ovThemeWrap'),
+            el = document.getElementById('ovTheme'); if (!card || !wrap || !el) return null;
+        const c = window.echarts && echarts.getInstanceByDom(el); let tiles = 0, type = '';
+        if (c) { const s = (c.getOption().series || [])[0] || {}; type = s.type || '';
+                 const walk = (a) => (a || []).forEach(d => { if (d && d.children && d.children.length) walk(d.children); else if (d) tiles++; }); walk(s.data); }
+        const pane = wrap.querySelector('.zpane');
+        return { cardH: Math.round(card.getBoundingClientRect().height), type, tiles, zwrap: wrap.classList.contains('zwrap'),
+                 zoomed: wrap.classList.contains('zoomed'),
+                 sw: pane ? pane.scrollWidth : 0, cw: pane ? pane.clientWidth : 0, sh: pane ? pane.scrollHeight : 0, ch: pane ? pane.clientHeight : 0,
+                 left: pane ? pane.scrollLeft : 0 }; }"""
+    m0 = pg.evaluate(TH)
+    if not ok("熱門題材那一格找得到（#ovThemeCard 裡的題材熱力圖真的畫出方塊）",
+              bool(m0) and m0["type"] == "treemap" and m0["tiles"] > 0, m0):
         return
-    ok("熱門題材的高度有上限（不再被內容撐到 1400px）", m0["client"] <= 720, m0)
-    ok("熱門題材的內容超出了外框（所以才需要拉Bar）", m0["scroll"] > m0["client"] + 4, m0)
-    ok("熱門題材那一格可以捲（overflow-y 不是 visible）", m0["overflow"] in ("auto", "scroll"), m0)
-    # 真的捲它一段，驗 scrollTop 真的變了
-    pg.evaluate("() => { document.querySelector('#themeStrip').scrollTop = 240; }")
-    pg.wait_for_timeout(350)
-    m1 = pg.evaluate("() => ({ top: document.querySelector('#themeStrip').scrollTop })")
-    ok("真的捲得動（scrollTop 從 0 變成非 0）", m1["top"] > 100, [m0["top"], m1["top"]])
-    # 捲到底之後最後一個題材要看得到（他截圖裡就是「電源 / BBU」之後整段不見）
-    seen = pg.evaluate("""() => { const e = document.querySelector('#themeStrip');
-        e.scrollTop = e.scrollHeight; const tiles = [...e.querySelectorAll('.tile')];
-        const last = tiles[tiles.length - 1]; if (!last) return null;
-        const er = e.getBoundingClientRect(), lr = last.getBoundingClientRect();
-        return { name: (last.querySelector('.t') || {}).textContent,
-                 inside: lr.top >= er.top - 2 && lr.bottom <= er.bottom + 2 }; }""")
-    ok("捲到底看得到最後一個題材（以前是被裁掉而且沒有捲軸）", bool(seen) and seen["inside"], seen)
+    ok("熱門題材的高度有上限（不再被內容撐到 1400px）", m0["cardH"] <= 720, m0)
+    ok("熱門題材掛著滾輪縮放框（.zwrap），預設原始大小", m0["zwrap"] and not m0["zoomed"], m0)
+    r = pg.evaluate("() => { const b = document.getElementById('ovThemeWrap').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    pg.mouse.move(r["x"] + r["w"] * .5, r["y"] + r["h"] * .5)
+    for _ in range(4):
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(160)
+    pg.wait_for_timeout(500)
+    m1 = pg.evaluate(TH)
+    ok("熱門題材放大後內容超出了外框（scrollWidth 變大）、卡片高度一個像素都沒變",
+       m1["zoomed"] and m1["sw"] > m1["cw"] + 4 and m1["cardH"] == m0["cardH"], [m0, m1])
+    pg.evaluate("() => { document.querySelector('#ovThemeWrap .zpane').scrollLeft = 120; }")
+    pg.wait_for_timeout(300)
+    m2 = pg.evaluate(TH)
+    ok("真的捲得動（放大後框內 scrollLeft 從 0 變成非 0）", m2["left"] > 60, [m1["left"], m2["left"]])
+    end_ = pg.evaluate("""() => { const p = document.querySelector('#ovThemeWrap .zpane'); p.scrollLeft = p.scrollWidth; p.scrollTop = p.scrollHeight;
+        return { r: p.scrollLeft + p.clientWidth >= p.scrollWidth - 1, b: p.scrollTop + p.clientHeight >= p.scrollHeight - 1,
+                 left: p.scrollLeft, sw: p.scrollWidth, cw: p.clientWidth }; }""")
+    ok("放大後捲得到最右下角（最後一塊題材看得到，不會被裁掉）", end_["r"] and end_["b"] and end_["left"] > 0, end_)
+    pg.mouse.dblclick(r["x"] + r["w"] * .5, r["y"] + r["h"] * .5); pg.wait_for_timeout(600)
+    ok("雙擊回到原始大小（不會把放大狀態帶到下面的等高量測）", not pg.evaluate(TH)["zoomed"], pg.evaluate(TH))
+    ok("「今日候選」表已移除（DECISIONS #258 ⑨），總覽沒有殘留那張卡",
+       pg.evaluate("() => !document.getElementById('ovCandCard') && !document.querySelector('.eqpair')"))
 
-    # 今日候選那一格也要是「固定高度 + 拉Bar」（Andy：所有相關版面一致）
-    m2 = pg.evaluate("""() => { const e = document.querySelector('.eqpair > .card > .tw');
-        if (!e) return null; e.scrollTop = 200;
-        return { client: e.clientHeight, scroll: e.scrollHeight, top: e.scrollTop,
-                 rows: document.querySelectorAll('#candBody tr').length }; }""")
-    ok("今日候選的表格也是固定高度 + 拉Bar，而且真的捲得動",
-       bool(m2) and m2["scroll"] > m2["client"] + 4 and m2["top"] > 100, m2)
-
-    # ------------------------------------------------ ② 兩張卡等高（三個寬度各量一次）
+    # ------------------------------------------------ ② 左右兩欄等高（三個寬度各量一次）
+    # ★ 2026-09-27 改前 → 改後：
+    #   改前：`.grid.eqpair > .card` 兩張卡（熱門題材｜今日候選）高度差 ≤ 2px。
+    #   改後：`.ovmain`（g21）左欄 `#ovLeft`（資金熱力圖＋熱門題材上下疊）與右欄 `#ovRotCard` 上緣、下緣都差 ≤ 2px，
+    #         而且熱門題材卡的**下緣**跟右欄下緣對齊（它是左欄最下面那一張，等高就是它跟右欄齊底）。
+    #   理由同上：今日候選移除之後，熱門題材的「隔壁」是右欄的資金輪盤卡；
+    #         index.html 的 `.ovcol>#ovHeatCard{flex:1 1 auto}`（≥1101px）就是為了讓兩欄齊底才撐滿的。
+    #   門檻沒放寬：一樣 ≤ 2px、題材卡一樣 ≤ 722px；三個寬度一樣是 1280／1440／1920（都在 ≥1101 兩欄的範圍內）。
     for w in (1280, 1440, 1920):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
-        hs = pg.evaluate("""() => [...document.querySelectorAll('.grid.eqpair > .card')]
-            .map(e => Math.round(e.getBoundingClientRect().height))""")
-        ok(f"[{w}px] 熱門題材／今日候選兩張卡等高（差 ≤ 2px）",
-           len(hs) == 2 and abs(hs[0] - hs[1]) <= 2, hs)
-        ok(f"[{w}px] 兩張卡的高度沒有被內容撐爆（≤ 720px）",
-           len(hs) == 2 and max(hs) <= 722, hs)
+        hs = pg.evaluate("""() => { const g = (id) => { const e = document.getElementById(id); if (!e) return null;
+                const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) }; };
+            return { left: g('ovLeft'), rot: g('ovRotCard'), theme: g('ovThemeCard') }; }""")
+        good = all(hs.get(k) for k in ("left", "rot", "theme"))
+        ok(f"[{w}px] 熱門題材所在的左欄／右欄資金輪盤兩欄等高（上緣、下緣都差 ≤ 2px，題材卡跟右欄齊底）",
+           good and abs(hs["left"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["left"]["b"] - hs["rot"]["b"]) <= 2
+           and abs(hs["theme"]["b"] - hs["rot"]["b"]) <= 2, hs)
+        ok(f"[{w}px] 熱門題材卡的高度沒有被內容撐爆（≤ 720px）",
+           good and hs["theme"]["h"] <= 722, hs)
 
     # ------------------------------------------------ ③ 三張圖在五個寬度都不壓字
     SCAN = """
@@ -5158,10 +5187,19 @@ def t_new_layout(pg, base):
           });
       }
       // 合併的重點：整張卡只准有**一份**篩選列與**一顆**問號鈕
+      /* ★ 2026-09-27（dismiss-fix）改前 → 改後：
+           改前：chips＝`.rotfilter[data-rf] .rotdd` 的總數，斷言 == 1；how＝卡片裡所有 `.howbtn` 的總數。
+           改後：chain／group＝那一排裡「產業鏈」「族群」兩層下拉**各自**的數量，斷言各 == 1；how 只數**畫面上看得到的**「?」。
+           理由：① W6（2026-09-23）把晶片列換成兩層下拉之後，一份篩選列本來就是兩顆 `.rotdd`（上面註解也寫「兩顆＝一份」），
+                 斷言卻還停在 == 1 —— 這條一直被前面「熱門題材找不到」的 return 擋著沒跑到，所以沒人發現。
+                 改成「產業鏈 1 顆＋族群 1 顆」比「總數 == 2」更嚴：左右各長一份時兩個數字都會變 2，照樣抓得到。
+                 ② ≤640px 手機 v3 會在同一張卡裡塞一份手機版（自己的「?」，完整版模式下是 display:none），
+                 使用者看得到的仍然只有一顆；數隱藏的那顆等於在驗 DOM 不是驗畫面。桌機沒有手機版那份，兩種數法一樣。*/
+      const vis = (e) => e.getClientRects().length > 0;
       const merged = card ? { rf: card.querySelectorAll('.rotfilter[data-rf]').length,
-                              /* ★ 2026-09-23 W6：族群晶片列換成兩層下拉，數的是資金輪動那一排的 `.rotdd`（兩顆＝一份）。*/
-                              chips: card.querySelectorAll('.rotfilter[data-rf] .rotdd').length,
-                              how: card.querySelectorAll('.howbtn').length,
+                              chain: card.querySelectorAll('.rotfilter[data-rf] .rotdd[data-dd="chain"]').length,
+                              group: card.querySelectorAll('.rotfilter[data-rf] .rotdd[data-dd="group"]').length,
+                              how: [...card.querySelectorAll('.howbtn')].filter(vis).length,
                               inner: g.querySelectorAll('.card').length } : null;
       /* 排行圖的族群名稱有沒有被截掉／疊在一起：**量真的畫出去的那些字**。
          ★ 一定要帶 ?svg=1 —— 線上版是 canvas，圖裡的字在 DOM 上根本不存在，
@@ -5197,6 +5235,19 @@ def t_new_layout(pg, base):
         pg.set_viewport_size({"width": w, "height": 1000})
         # ?svg=1：圖裡的字才會變成真的 <text> 節點，族群名稱有沒有被截掉才量得到
         pg.goto(f"{base}?svg=1#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        # ★ 2026-09-27（dismiss-fix）改前 → 改後：560／390 改前直接量 → 改後先按卡片最下面的「完整版 ›」再量。
+        #   理由：≤640px 手機 v3（site/mobile3.js，2026-09-24）預設把這張卡換成手機雷達、桌機那一份 display:none
+        #   （量到 0×0，ks 的 x/y/w 全是 0）—— 改前量的是一張藏起來的卡。手機使用者要看到這一份，唯一的入口就是「完整版 ›」，
+        #   所以按下去之後，「單欄、時鐘在上排行在下、只有一份篩選列、字 ≥ 11px、標籤不重疊」這幾條仍然全部要成立，一條都沒拿掉。
+        if w <= 640:
+            has_full = pg.evaluate("() => { const b = document.querySelector('#flowRotCard > .mfullbtn'); return !!b && b.getClientRects().length > 0; }")
+            if ok(f"[{w}px] 手機版有「完整版 ›」可以叫回桌機那一份（前提）", has_full):
+                # ⚠ 同一個網址（?svg=1#flow）再 goto 一次是同文件的錨點跳轉、不會重新載入 ——
+                #   560 那一輪切成的完整版會留到 390；這時再按一次反而是「收回手機版」。所以只在還沒切的時候按。
+                if not pg.evaluate("() => document.getElementById('flowRotCard').classList.contains('mfull')"):
+                    pg.click("#flowRotCard > .mfullbtn"); pg.wait_for_timeout(1800)
+                ok(f"[{w}px] 按「完整版 ›」之後卡片真的切成完整版",
+                   pg.evaluate("() => document.getElementById('flowRotCard').classList.contains('mfull')"))
         f = pg.evaluate(F3)
         if not ok(f"[{w}px] 找得到時鐘／排行那一列（F3）", bool(f) and len(f["ks"]) == 2, f):
             continue
@@ -5216,7 +5267,7 @@ def t_new_layout(pg, base):
         ok(f"[{w}px] 卡片裡沒有東西凸出卡片（F3）", not f["over"], f["over"][:4])
         # ★ 2026-09-21 合併：這三條是「重複的篩選列真的消失了」的證據，每個寬度都要成立
         ok(f"[{w}px] 整張卡只有一份篩選列（合併：不再左右各長一份）",
-           bool(f["merged"]) and f["merged"]["rf"] == 1 and f["merged"]["chips"] == 1, f["merged"])
+           bool(f["merged"]) and f["merged"]["rf"] == 1 and f["merged"]["chain"] == 1 and f["merged"]["group"] == 1, f["merged"])
         ok(f"[{w}px] 整張卡只有一顆「怎麼看 ?」（合併）",
            bool(f["merged"]) and f["merged"]["how"] == 1, f["merged"])
         ok(f"[{w}px] 圖區裡已經沒有巢狀的卡片了（真的是一張卡）",
@@ -30364,6 +30415,42 @@ def _dz_click_el(pg, sel, fx=0.5, fy=0.5):
     return True
 
 
+# ★ 2026-09-27（dismiss-fix）改前 → 改後：「外面」改前是點 outside_sel 寬度 20% 的位置 → 改後是點它**第一段沒有功能的字**的中間。
+#   根因（桌機 1440 #flow 象限面板／下鑽面板那 3 條紅燈）：`#flowSankeyCard h3` 旁邊的副標 `#sankeySub` 變長之後，
+#   h3 寬 470px，20% ＝ 94px 正好落在標題旁的「?」鈕上（81～103px）。「?」刻意不算點外面（dismissable 的 ignore 有 .howbtn：
+#   按別張卡的說明不該順手收掉面板），而且它會打開跳出式說明 #howPop —— 說明開著時 Esc 只關說明（DECISIONS #258 ⑥），
+#   所以接下來的 Esc 也關不掉面板。**網站沒壞**：實測點真正的背景（標題文字）與沒有說明浮層時按 Esc，兩個面板都會關。
+#   這條註解最上面就寫了「外面一律挑一個沒有功能的地方點（卡片標題的字）」—— 改成量字的位置才真的做到，
+#   並且先斷言「那一點真的是沒有功能的字」，下次版面再變也不會默默點到按鈕上。
+#   例外只有一個：受測的面板本身是跳出式說明（在 #howPop 裡）時，蓋在整頁上的 #howBack 就是它的「背景」，點到它才是對的。
+_DZ_TXT = """([s, ps]) => { const e = [...document.querySelectorAll(s)].find(x => x.getClientRects().length > 0); if (!e) return null;
+    const pe = ps && document.querySelector(ps), inPop = !!(pe && pe.closest('#howPop'));
+    const bad = 'button,a,input,select,textarea,label,[role="button"],.howbtn';
+    const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT,
+      { acceptNode: n => n.textContent.trim() && !n.parentElement.closest(bad) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP });
+    const n = w.nextNode(); if (!n) return null;
+    const rg = document.createRange(); rg.selectNodeContents(n); const r = rg.getBoundingClientRect();
+    if (r.top < 90 || r.bottom > innerHeight - 90) window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' });
+    const r2 = rg.getBoundingClientRect();
+    const x = r2.left + Math.min(r2.width / 2, 24), y = r2.top + r2.height / 2, hit = document.elementFromPoint(x, y);
+    return { x, y, txt: n.textContent.trim().slice(0, 12),
+             plain: !!hit && ((e.contains(hit) && !hit.closest(bad)) || (inPop && hit.id === 'howBack')),
+             hit: hit ? hit.tagName + (hit.id ? '#' + hit.id : '') + (hit.className && hit.className.baseVal === undefined ? '.' + hit.className : '') : null }; }"""
+
+
+def _dz_out_pt(pg, sel, panel=None):
+    """outside_sel 裡第一段「沒有功能的字」的螢幕座標（先捲進畫面）。回傳 None＝找不到。"""
+    pt = pg.evaluate(_DZ_TXT, [sel, panel])
+    if pt:
+        pg.wait_for_timeout(250)
+        pt = pg.evaluate(_DZ_TXT, [sel, panel])       # 捲完再量一次（這一頁是 scroll-behavior:smooth）
+    return pt
+
+
+def _dz_rect(pg, sel):
+    return pg.evaluate("(s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }", sel)
+
+
 def _dz_three(pg, tag, panel, open_fn, inside_sel, outside_sel, wait=700):
     """一個面板的三件事。open_fn() 要把面板打開並回傳 True。"""
     if not ok(f"[{tag}] 打得開（後面三條的前提）", open_fn() and _dz_vis(pg, panel), panel):
@@ -30372,8 +30459,17 @@ def _dz_three(pg, tag, panel, open_fn, inside_sel, outside_sel, wait=700):
         "(s) => { const e = document.querySelector(s); return !!e && !e.querySelector('[data-x]') && !/收起 ✕/.test(e.textContent); }", panel))
     _dz_click_el(pg, inside_sel, 0.5, 0.5); pg.wait_for_timeout(wait)
     ok(f"[{tag}] ① 點面板裡面 → 不會關", _dz_vis(pg, panel))
-    _dz_click_el(pg, outside_sel, 0.2, 0.5); pg.wait_for_timeout(wait)
-    ok(f"[{tag}] ② 點面板外面（{outside_sel}）→ 真的關了", not _dz_vis(pg, panel))
+    pt = _dz_out_pt(pg, outside_sel, panel)
+    if not ok(f"[{tag}] 「外面」那一點是沒有功能的字（{outside_sel}），不是按鈕或連結（前提）", bool(pt) and pt["plain"], pt):
+        return
+    c0 = _dz_rect(pg, panel)
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(wait)
+    ok(f"[{tag}] ② 點面板外面（{outside_sel} 的「{pt['txt']}」）→ 真的關了", not _dz_vis(pg, panel))
+    # 關掉之後原本面板那塊不能留下一層看不見的東西擋住底下（頁面其他地方要還能點）
+    if c0:
+        ok(f"[{tag}] 關掉之後原本面板的位置不會擋住底下的東西", pg.evaluate(
+            "([s, x, y]) => { const h = document.elementFromPoint(x, y), p = document.querySelector(s); return !h || !p || !p.contains(h); }",
+            [panel, c0["x"], c0["y"]]), c0)
     if not ok(f"[{tag}] 再打開一次（驗 Esc 的前提）", open_fn() and _dz_vis(pg, panel), panel):
         return
     pg.keyboard.press("Escape"); pg.wait_for_timeout(wait)
@@ -30426,6 +30522,13 @@ def t_dismiss(pg, b, base, code):
         pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1300)
         return True
     _dz_three(pg, "下鑽成分股面板", "#rankPanel", open_rank, "#rankPanel .note", "#flowSankeyCard h3")
+    # ★ 2026-09-27：兩塊面板關掉之後，頁面其他地方要還能正常點 —— 真的按一顆別的按鈕，驗它真的有反應
+    #   （按資金去向的「?」→ 跳出式說明打開 → Esc 關），不是只驗「元素還在」。
+    ok("[資金流向] 象限／下鑽面板都關掉了（下一條的前提）", not _dz_vis(pg, "#stagePanel") and not _dz_vis(pg, "#rankPanel"))
+    _dz_click_el(pg, '#flowSankeyCard .howbtn[data-how="sankey"]'); pg.wait_for_timeout(700)
+    ok("[資金流向] 面板關掉之後，別的按鈕照樣點得動（資金去向「?」→ 說明真的跳出來）", _dz_vis(pg, "#howPop"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+    ok("[資金流向] 說明按 Esc 關掉，面板也沒有被誤開", not _dz_vis(pg, "#howPop") and not _dz_vis(pg, "#stagePanel") and not _dz_vis(pg, "#rankPanel"))
 
     # ---- 3. 「怎麼看 ?」說明
     def open_how():
@@ -30562,15 +30665,61 @@ def t_dismiss(pg, b, base, code):
         if r and r["w"] > 0:
             m.touchscreen.tap(r["x"] + r["w"] * fx, r["y"] + r["h"] * fy)
         m.wait_for_timeout(800)
+    # ★ 2026-09-27（dismiss-fix）改前 → 改後：
+    #   改前：直接找 `#rotClock .rq`，找不到就 `if k:` 整段**默默跳過**。
+    #   改後：先按卡片最下面的「完整版 ›」，再用觸控把象限面板與下鑽面板各驗一輪（點裡面不關、點外面關、Esc 關、關完別處還點得動）；
+    #         找不到象限卡就是紅燈，不再默默跳過。
+    #   理由：≤640px 手機 v3（mobile3.js）預設把桌機那張輪盤藏成 0×0，`#rotClock .rq` 永遠找不到 —— 改前這段手機驗收
+    #         從 2026-09-24 起一條都沒跑過，卻是綠的。手機使用者要碰到這兩塊面板，唯一的入口就是「完整版 ›」。
+    #   「外面」一樣挑沒有功能的字（`_dz_out_pt`），不再點寬度 15% 的位置：手機上那一格的 h3 是藏起來的手機版標題，
+    #   改前那一點量到的是 (0, 0) —— 點到的是最上面的工具列，綠燈是碰巧。
+    def tap_pt(pt):
+        m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(800)
+    fb_ok = m.evaluate("() => { const b = document.querySelector('#flowRotCard > .mfullbtn'); return !!b && b.getClientRects().length > 0; }")
+    if ok("[手機 390] 資金輪動卡有「完整版 ›」（手機上要碰到象限面板的唯一入口）", fb_ok):
+        tap("#flowRotCard > .mfullbtn"); m.wait_for_timeout(1500)
+        ok("[手機 390] 觸控按「完整版 ›」→ 卡片真的切成完整版", m.evaluate("() => document.getElementById('flowRotCard').classList.contains('mfull')"))
+    m.evaluate("() => { const e = document.getElementById('rotClockWrap'); if (e) { const r = e.getBoundingClientRect(); window.scrollBy({ top: r.top - 100, behavior: 'instant' }); } }")
+    m.wait_for_timeout(900)
     k = m.evaluate("""() => { const q = [...document.querySelectorAll('#rotClock .rotquads .rq')]
-        .find(x => parseInt(((x.querySelector('em')||{}).textContent||'0'), 10) > 0); return q ? q.dataset.k : ''; }""")
-    if k:
-        tap(f'#rotClock .rotquads .rq[data-k="{k}"]')
-        if ok("[手機 390] 觸控點象限卡，面板打開", _dz_vis(m, "#stagePanel")):
+        .find(x => x.getClientRects().length > 0 && parseInt(((x.querySelector('em')||{}).textContent||'0'), 10) > 0); return q ? q.dataset.k : ''; }""")
+    if ok("[手機 390] 完整版裡找得到有族群的象限卡（前提，不再默默跳過）", bool(k), k):
+        def m_open_stage():
+            if not _dz_vis(m, "#stagePanel"):
+                tap(f'#rotClock .rotquads .rq[data-k="{k}"]')
+            return _dz_vis(m, "#stagePanel")
+        if ok("[手機 390] 觸控點象限卡，面板打開", m_open_stage()):
             tap("#stagePanel .ph")
             ok("[手機 390] 觸控點面板裡面 → 不會關", _dz_vis(m, "#stagePanel"))
-            tap("#flowRotCard h3", 0.15)
-            ok("[手機 390] 觸控點面板外面 → 真的關了", not _dz_vis(m, "#stagePanel"))
+            pt = _dz_out_pt(m, "#flowRotCard h3")
+            if ok("[手機 390] 「外面」那一點是看得到、沒有功能的字（前提）", bool(pt) and pt["plain"], pt):
+                tap_pt(pt)
+                ok("[手機 390] 觸控點面板外面 → 真的關了", not _dz_vis(m, "#stagePanel"))
+            if ok("[手機 390] 象限面板再打開一次（驗 Esc 的前提）", m_open_stage()):
+                m.keyboard.press("Escape"); m.wait_for_timeout(600)
+                ok("[手機 390] 象限面板按 Esc 關（外接鍵盤）", not _dz_vis(m, "#stagePanel"))
+        # 下鑽面板：從象限面板點一個族群 → 同一個位置換成成分股（#rankPanel）
+        def m_open_rank():
+            if _dz_vis(m, "#rankPanel"):
+                return True
+            if m_open_stage():
+                tap("#stagePanel li[data-gid]")
+            return _dz_vis(m, "#rankPanel")
+        if ok("[手機 390] 觸控點象限面板裡的族群 → 下鑽成分股面板打開", m_open_rank()):
+            ok("[手機 390] 側欄同時只開一塊（下鑽打開、象限面板收起）", not _dz_vis(m, "#stagePanel"))
+            inner = "#rankPanel .note" if m.query_selector("#rankPanel .note") else "#rankPanel"
+            tap(inner, 0.5, 0.2)
+            ok("[手機 390] 觸控點下鑽面板裡面 → 不會關", _dz_vis(m, "#rankPanel"))
+            pt = _dz_out_pt(m, "#flowRotCard h3")
+            if ok("[手機 390] 「外面」那一點是看得到、沒有功能的字（下鑽，前提）", bool(pt) and pt["plain"], pt):
+                tap_pt(pt)
+                ok("[手機 390] 觸控點下鑽面板外面 → 真的關了", not _dz_vis(m, "#rankPanel"))
+            if ok("[手機 390] 下鑽面板再打開一次（驗 Esc 的前提）", m_open_rank()):
+                m.keyboard.press("Escape"); m.wait_for_timeout(600)
+                ok("[手機 390] 下鑽面板按 Esc 關（外接鍵盤）", not _dz_vis(m, "#rankPanel"))
+        # 關完之後別的地方照樣點得動：再點一次象限卡，面板真的重新打開（不是被卡住的殘影）
+        ok("[手機 390] 兩塊面板都關掉之後，再點象限卡照樣打得開", m_open_stage())
+        m.keyboard.press("Escape"); m.wait_for_timeout(400)
     if m.query_selector("#moreBtn") and m.evaluate("() => getComputedStyle(document.getElementById('moreBtn')).display !== 'none'"):
         m.evaluate("() => window.scrollTo(0, 0)"); m.wait_for_timeout(200)
         tap("#moreBtn")
