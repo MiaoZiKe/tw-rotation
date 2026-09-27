@@ -89,17 +89,9 @@
      把它從 DOM 拔起來再插回去會讓圖表容器重新量一次尺寸，最糟的情況是高度變 0。
      而且 show() 一律在寫 innerHTML **之前**呼叫，所以搬的當下兩邊都還是空的。 */
   function show(map, chain, stock) {
-    /* 「放寬蓋住事件面板」是**這一頁**的暫時狀態，換頁就要還原 ——
-       不還原的話使用者在產業鏈頁按了放寬，跑去總覽會發現事件面板莫名其妙不見了。
-       ★ 2026-09-23：放寬那顆鈕已經跟成分股表一起移除，**這段收尾仍然留著** ——
-         使用者可能是在上一版按下放寬之後才重新整理進來的，body 上還掛著 `.memwide`
-         卻再也沒有人會把它拿掉，事件面板就會永遠卡在被蓋住的狀態。*/
-    if (document.body.classList.contains('memwide')) {
-      document.body.classList.remove('memwide');
-      if (typeof window.twSetSide === 'function') {
-        window.twSetSide(window.twSideWanted ? window.twSideWanted() : true, false);
-      }
-    }
+    /* 舊版「成分股放寬」留在 <body> 上的 `.memwide` 只清 class ——
+       2026-09-28 起事件是預設關著的浮層抽屜，不再需要「換頁把事件欄還回來」（那會變成換頁就彈出抽屜）。*/
+    document.body.classList.remove('memwide');
     const mp = $('#indMap'), cn = $('#indChain'), st = $('#stockPage');
     mp.style.display = map ? '' : 'none'; cn.style.display = chain ? '' : 'none'; st.style.display = stock ? '' : 'none';
     const par = st.parentNode; if (!par) return;
@@ -3695,7 +3687,7 @@
           <button class="btn small inddd" id="indBtn" type="button" aria-haspopup="true" aria-expanded="false" title="指標：開關、參數、顏色與線寬">指標 ▾ <span class="indn" id="indN"></span></button>
           <div class="sp"></div>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
-          <button class="btn small" id="wideBtn" title="收起右側事件欄，把整個視窗的寬度讓給 K 線圖">⤢ 寬版</button>
+
           <button class="btn small" id="drawTgl" title="畫線工具（手機預設收起來）">✎ 畫線</button>
           <button class="howbtn pop" data-how="kline" data-ttl="K 線" type="button" aria-label="K 線怎麼看">?</button>
           <!-- 「重設縮放」鈕 2026-09-26 搬進圖裡（主圖 K 棒區右下角、價格軸左邊），由 KChart 自己掛（opts.fit）-->
@@ -4370,23 +4362,8 @@
     // ---- 「⚙ 設定」鈕與獨立的「圖表設定」面板 2026-09-26 拿掉：內容全部搬進上面的「指標 ▾」下拉
 
     $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
-    /* 寬版（Andy：「K 線圖太小，版面需要擴大」）：把右側事件欄收起來，整個視窗寬度都給圖。
-       Lightweight Charts 是 autoSize，容器一變寬它自己重畫；ECharts 的小圖要自己踢一下 resize。
-       狀態存 localStorage，下次進個股頁維持同一個版面。 */
-    const wideBtn = $('#wideBtn');
-    const paintWide = () => {
-      const on = document.body.classList.contains('kwide');
-      wideBtn.classList.toggle('on', on);
-      wideBtn.textContent = on ? '⤢ 寬版 ✓' : '⤢ 寬版';
-      wideBtn.title = on ? '關掉寬版，把右側事件欄叫回來' : '收起右側事件欄，把整個視窗的寬度讓給 K 線圖';
-    };
-    wideBtn.onclick = () => {
-      const on = document.body.classList.toggle('kwide');
-      try { localStorage.setItem('tw.kwide', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-      paintWide();
-      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 60);
-    };
-    paintWide();
+    /* 2026-09-28：「⤢ 寬版」鈕拿掉 —— 它唯一的作用是收起右側事件欄；事件改成浮層抽屜之後圖本來就吃滿全寬，
+       寬版那組較高的圖高也直接收成預設（index.html 的 #lwc）。*/
     /* ★ 2026-09-23 手機優先改版 G8（依據 `docs/mobile_audit.md`）：
        390px 量到 `.drawbar` 被攤平成橫向兩列、約 20 顆 20×20～30×24px 的鈕，
        而桌機是圖表左側的直排工具列 —— 位置對不起來，手指也點不準。

@@ -978,6 +978,9 @@ def t_overview(pg, base):
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
 
     # --- 事件面板篩選：筆數要真的變
+    # 2026-09-28 起事件抽屜預設關著（所有寬度都是浮層），先按頂欄「事件」打開
+    if not pg.evaluate("() => document.getElementById('side').classList.contains('open')"):
+        click(pg, "#evToggle", 600)
     cats = pg.evaluate("[...document.querySelectorAll('#evFilters button')].map(b => b.dataset.c)")
     if cats:
         counts = {}
@@ -986,6 +989,7 @@ def t_overview(pg, base):
             counts[c] = count(pg, "#evList .ev")
         ok("事件分類篩選真的會改變筆數", len(set(counts.values())) >= 2, counts)
         click(pg, f'#evFilters button[data-c="{cats[0]}"]', 250)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(400)     # 關掉抽屜，別蓋住後面要點的東西
     else:
         notes.append("事件面板沒有分類鈕")
 
@@ -6693,32 +6697,14 @@ def t_stock(pg, base, code):
                  w: Math.round(e.getBoundingClientRect().width) }; }""")
     ok("K 線圖高度佔視窗一半以上", kh["h"] > kh["vh"] * 0.5, kh)
 
-    # --- 寬版是預設（Andy：「K 線圖 default 就大一點」）：第一次進來就該是寬的
-    S = """() => ({ w: Math.round(document.getElementById('lwc').getBoundingClientRect().width),
-        wide: document.body.classList.contains('kwide'),
-        aside: !!document.querySelector('aside') && getComputedStyle(document.querySelector('aside')).display !== 'none',
-        saved: (() => { try { return localStorage.getItem('tw.kwide'); } catch (e) { return null; } })(),
-        canvas: document.querySelectorAll('#lwc canvas').length })"""
-    d0 = pg.evaluate(S)
-    ok("沒設定過時，個股頁預設就是寬版", d0["wide"] and not d0["aside"], d0)
-    ok("預設寬版下 K 線圖有畫出來", d0["canvas"] > 0, d0)
-    # 按一次 → 退出寬版：圖變窄、事件欄回來、選擇要存起來
-    click(pg, "#wideBtn", 900)
-    d1 = pg.evaluate(S)
-    ok("按一次會退出寬版，K 線圖變窄", d1["w"] < d0["w"] - 100, f"{d0['w']} → {d1['w']}")
-    ok("退出寬版時右側事件欄回來", d1["aside"], d1)
-    ok("退出寬版的選擇有存起來", d1["saved"] == "0", d1["saved"])
-    ok("退出寬版後 K 線圖還在（沒有變空白）", d1["canvas"] > 0, d1)
-    # 換頁再回來要記得「我關掉了」
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
-    ok("離開個股頁，事件欄一定在", pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display !== 'none'"))
-    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    ok("回個股頁記得「關掉寬版」的選擇", not pg.evaluate("() => document.body.classList.contains('kwide')"))
-    # 再按一次 → 回到寬版
-    click(pg, "#wideBtn", 900)
-    d2 = pg.evaluate(S)
-    ok("再按一次回到寬版，圖又變寬", d2["wide"] and d2["w"] > d1["w"] + 100, f"{d1['w']} → {d2['w']}")
-    ok("回到寬版時事件欄收起來", not d2["aside"], d2)
+    # --- 2026-09-28：「⤢ 寬版」拿掉（事件改成浮層抽屜，圖本來就吃滿全寬）。驗：鈕不在、抽屜預設關、K 線吃滿主內容
+    d0 = pg.evaluate("""() => { const m = document.querySelector('main'), e = document.getElementById('lwc');
+        const cs = getComputedStyle(m); const inner = m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        return { btn: !!document.getElementById('wideBtn'), open: document.getElementById('side').classList.contains('open'),
+                 lwc: Math.round(e.getBoundingClientRect().width), inner: Math.round(inner),
+                 canvas: document.querySelectorAll('#lwc canvas').length }; }""")
+    ok("個股頁沒有「⤢ 寬版」鈕、事件抽屜預設關著", not d0["btn"] and not d0["open"], d0)
+    ok("個股頁 K 線圖幾乎吃滿主內容寬度（事件不再佔一欄）", d0["lwc"] >= d0["inner"] * 0.6 and d0["canvas"] > 0, d0)
 
     # --- K 棒寬度可調，而且預設就要寬一點（Andy：「K棒長度需要可以調整，default先長一點」）
     # ★ 2026-09-26 改前：按「⚙ 設定」開圖表設定面板 → 改後：打開「指標 ▾」下拉、展開最上面的「整體」列
@@ -10344,7 +10330,8 @@ def t_events(pg, base):
     pg.goto("about:blank")
     pg.goto(base + "#overview", wait_until="networkidle")
     pg.wait_for_timeout(1200)
-    if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
+    # 2026-09-28 起抽屜預設關著（所有寬度），先打開才看得到清單
+    if not pg.evaluate("() => document.getElementById('side').classList.contains('open')"):
         click(pg, "#evToggle", 500)
     dates_of = ("() => [...document.querySelectorAll('#evList .ev .m .mono')]"
                 ".map(e=>e.innerText.trim()).filter(Boolean)")
@@ -10398,7 +10385,159 @@ def t_events(pg, base):
         ok("切到券商之後日期選單跟著那一類重算",
            not b_days or set(b_days) <= b_seen | set(days), f"{b_days} vs {sorted(b_seen)}")
     click(pg, "#evFilters button[data-c='all']", 400)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
     pg.unroute("**/data/news.json*")      # 只有這一段要假日期，別影響後面的驗收
+
+
+def t_events_drawer(b, base, code):
+    """今日事件改成「預設隱藏的浮層抽屜」（Andy 2026-09-28，截圖 176／177）。
+
+    Andy 原話：「今日事件 Default 先隱藏，出來的形式如圖片提供。他不會擠壓到整體版面，
+    並且點擊背景後可以消失，今日事件內的設定有回到 Default 狀態」，
+    以及「今日事件這邊發現 Bug，請調整適當寬度」（窄視窗時抽屜被撐寬、橫向捲軸、代號印兩次）。
+
+    每一個寬度都用真的滑鼠／鍵盤操作，驗「畫面真的因此改變了」：
+      ① 預設看不到抽屜、主內容吃滿全寬（連舊版存了 tw.side='1' 也一樣）
+      ② 打開後主內容寬度不變（不擠壓），抽屜在視窗內、寬度 ≈ min(420, 92vw)
+      ③ 抽屜沒有橫向捲軸、整頁也沒有；每一檔代號只印一次
+      ④ 點遮罩會關、按 Esc 會關、點 × 會關
+      ⑤ 改了篩選／日期／捲動之後關掉再開，全部回到「全部」、捲回頂端
+      ⑥ 個股頁：打開抽屜前後 K 線圖寬度不變
+    """
+    ST = """() => { const s = document.getElementById('side'), m = document.querySelector('main'),
+        bk = document.getElementById('sideBack'); const r = s.getBoundingClientRect(), cs = getComputedStyle(s);
+        const seen = r.left < innerWidth - 2 && r.right > 0 && cs.visibility !== 'hidden';
+        return { open: s.classList.contains('open'), seen, left: Math.round(r.left), right: Math.round(r.right),
+                 w: Math.round(r.width), vw: innerWidth, cw: document.documentElement.clientWidth,
+                 mainW: Math.round(m.getBoundingClientRect().width),
+                 back: !!bk && bk.classList.contains('on') && getComputedStyle(bk).pointerEvents !== 'none',
+                 sw: s.scrollWidth, scw: s.clientWidth,
+                 docSW: document.documentElement.scrollWidth, docCW: document.documentElement.clientWidth }; }"""
+
+    def open_drawer(pg, w):
+        if w <= 820:
+            # 窄畫面的入口是頂欄「⋯」清單裡的「今日事件」（桌機那顆鈕在 ≤820 被藏起來）
+            pg.locator("#moreBtn").click(timeout=6000); pg.wait_for_timeout(450)
+            if pg.locator("#mmEvents").is_visible():
+                pg.locator("#mmEvents").click(timeout=6000)
+            else:
+                pg.locator(".mrow[data-m='events']").first.click(timeout=6000)
+        else:
+            pg.locator("#evToggle").click(timeout=6000)
+        pg.wait_for_timeout(650)
+
+    for w in (1440, 1100, 800, 700, 390):
+        T = f"[今日事件浮層 {w}]"
+        ctx = b.new_context(viewport={"width": w, "height": 900 if w > 640 else 844}, has_touch=w <= 640)
+        pg = ctx.new_page()
+        try:
+            # 舊版存的偏好（tw.side='1'＝以前桌機常駐）不准再讓抽屜一進站就開著
+            pg.add_init_script("try { if (!sessionStorage.getItem('_evinit')) { sessionStorage.setItem('_evinit', '1');"
+                               " localStorage.setItem('tw.side', '1'); localStorage.setItem('tw.kwide', '0'); } } catch (e) {}")
+            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
+            wait_until(pg, "() => Number((document.getElementById('evCount') || {}).textContent || 0) > 0", 8000)
+            pg.wait_for_timeout(300)
+            d0 = pg.evaluate(ST)
+            ok(f"{T} 預設看不到抽屜（連舊版存了「常駐」也一樣）", not d0["open"] and not d0["seen"] and not d0["back"], d0)
+            ok(f"{T} 預設主內容吃滿全寬（沒有被事件欄佔掉一欄）", d0["mainW"] >= d0["cw"] - 2, d0)
+            ok(f"{T} 舊偏好 tw.side／tw.kwide 已被清掉",
+               pg.evaluate("() => { try { return localStorage.getItem('tw.side') === null && localStorage.getItem('tw.kwide') === null; } catch (e) { return true; } }"))
+
+            open_drawer(pg, w)
+            d1 = pg.evaluate(ST)
+            ok(f"{T} 按「事件」之後抽屜滑出來、看得到、遮罩也在", d1["open"] and d1["seen"] and d1["back"], d1)
+            ok(f"{T} 打開後主內容寬度不變（抽屜浮在上面，不擠壓）", d1["mainW"] == d0["mainW"], f"{d0['mainW']} → {d1['mainW']}")
+            exp = min(420, round(w * 0.92))
+            ok(f"{T} 抽屜寬 ≈ min(420, 92vw) 而且整個在視窗內",
+               abs(d1["w"] - exp) <= 2 and d1["right"] <= d1["vw"] + 1 and d1["left"] >= 0,
+               {"w": d1["w"], "應為": exp, "left": d1["left"], "right": d1["right"]})
+            ok(f"{T} 抽屜沒有橫向捲軸（scrollWidth ≤ clientWidth）", d1["sw"] <= d1["scw"], {"sw": d1["sw"], "cw": d1["scw"]})
+            ok(f"{T} 整頁沒有橫向捲軸", d1["docSW"] <= d1["docCW"] + 1, {"sw": d1["docSW"], "cw": d1["docCW"]})
+            lk = pg.evaluate("""() => { const s = document.getElementById('side'), sr = s.getBoundingClientRect();
+                const a = [...s.querySelectorAll('#evList .ev .m a.lk-stock')];
+                const dup = a.filter(x => { const c = (x.getAttribute('href') || '').split('/').pop();
+                    return c && x.innerText.split(c).length - 1 !== 1; }).map(x => x.innerText).slice(0, 4);
+                const out = a.filter(x => x.getClientRects().length && x.getBoundingClientRect().right > sr.right + 1).length;
+                const rows = [...s.querySelectorAll('#evList .ev .m')].filter(m => m.scrollWidth > m.clientWidth + 1).length;
+                return { n: a.length, dup, out, rows }; }""")
+            ok(f"{T} 事件列底下有個股連結可以驗", lk["n"] > 0, lk)
+            ok(f"{T} 每一檔代號只印一次（不再出現「300308300308」）", not lk["dup"], lk["dup"])
+            ok(f"{T} 個股連結全部換行留在抽屜裡、沒有哪一列被撐出去", lk["out"] == 0 and lk["rows"] == 0, lk)
+
+            # ④ 點遮罩會關：點在抽屜左邊、遮罩露出來的那一塊正中間
+            x = max(4, d1["left"] // 2); y = 450 if w > 640 else 400
+            hit = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? (e.id || e.className || e.tagName) : ''; }", [x, y])
+            ok(f"{T} 抽屜左邊露出來的那一塊點到的是遮罩（不是底下的圖）", hit == "sideBack", hit)
+            pg.mouse.click(x, y); pg.wait_for_timeout(600)
+            d2 = pg.evaluate(ST)
+            ok(f"{T} 點背景遮罩就關掉", not d2["open"] and not d2["back"], {"點到": hit, **d2})
+            ok(f"{T} 關掉之後主內容寬度仍不變", d2["mainW"] == d0["mainW"], f"{d0['mainW']} → {d2['mainW']}")
+            ok(f"{T} 點遮罩關掉沒有順便換頁（點穿到底下的東西）", pg.evaluate("() => location.hash") in ("#overview", ""),
+               pg.evaluate("() => location.hash"))
+            pg.wait_for_timeout(300)
+            ok(f"{T} 關掉之後抽屜真的看不到（不是只拿掉 class）", not pg.evaluate(ST)["seen"])
+
+            # Esc 會關
+            open_drawer(pg, w)
+            ok(f"{T} 第二次打開成功（Esc 驗收的前提）", pg.evaluate(ST)["open"])
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+            d3 = pg.evaluate(ST)
+            ok(f"{T} 按 Esc 就關掉", not d3["open"] and not d3["back"], d3)
+
+            # ⑤ 改篩選 → 關（用 ×）→ 再開，全部回到預設
+            open_drawer(pg, w)
+            n_all = pg.evaluate("() => document.querySelectorAll('#evList .ev').length")
+            cats = pg.evaluate("() => [...document.querySelectorAll('#evFilters button')].map(b => b.dataset.c)")
+            pick = next((c for c in ("科技", "台股", "總經", "券商") if c in cats), None)
+            pg.locator(f"#evFilters button[data-c='{pick}']").click(timeout=6000); pg.wait_for_timeout(400)
+            opts = pg.evaluate("() => [...document.querySelectorAll('#evDate option')].map(o => o.value).filter(v => v !== 'all')")
+            if opts:
+                pg.select_option("#evDate", opts[-1]); pg.wait_for_timeout(300)
+            pg.evaluate("() => { const s = document.getElementById('side'); s.scrollTop = 400; }")
+            mid = pg.evaluate("""() => ({ on: (document.querySelector('#evFilters button.on') || {}).dataset?.c,
+                d: document.getElementById('evDate').value, n: document.querySelectorAll('#evList .ev').length,
+                st: document.getElementById('side').scrollTop })""")
+            ok(f"{T} 改了篩選之後畫面真的變了（前提）", mid["on"] == pick and (mid["n"] != n_all or mid["d"] != "all"),
+               {"全部": n_all, **mid})
+            pg.locator("#evClose").click(timeout=6000); pg.wait_for_timeout(600)
+            ok(f"{T} 點 × 就關掉", not pg.evaluate(ST)["open"])
+            open_drawer(pg, w)
+            back = pg.evaluate("""() => ({ on: (document.querySelector('#evFilters button.on') || {}).dataset?.c,
+                ons: document.querySelectorAll('#evFilters button.on').length,
+                d: document.getElementById('evDate').value, n: document.querySelectorAll('#evList .ev').length,
+                st: document.getElementById('side').scrollTop })""")
+            ok(f"{T} 關掉再開：類別回到「全部」", back["on"] == "all" and back["ons"] == 1, back)
+            ok(f"{T} 關掉再開：日期回到「全部」、清單筆數回到原本", back["d"] == "all" and back["n"] == n_all, {"原本": n_all, **back})
+            ok(f"{T} 關掉再開：捲回頂端", back["st"] == 0, back)
+            ok(f"{T} 抽屜設定沒有被記進 localStorage", pg.evaluate(
+                "() => { try { return Object.keys(localStorage).filter(k => /side|evcat|evdate|evfilter/i.test(k)); } catch (e) { return []; } }") == [])
+            # 抽屜裡點個股代號 → 走到個股頁，抽屜自己收起來（不然右半邊還蓋著剛打開的個股頁）
+            lk0 = pg.locator("#evList .ev .m a.lk-stock").first
+            if lk0.count():
+                href = lk0.get_attribute("href")
+                lk0.scroll_into_view_if_needed(timeout=6000); lk0.click(timeout=6000); pg.wait_for_timeout(900)
+                ok(f"{T} 抽屜裡點個股代號 → 真的換到個股頁、抽屜自己收起來",
+                   pg.evaluate("() => location.hash") == href and not pg.evaluate(ST)["open"],
+                   [href, pg.evaluate("() => location.hash"), pg.evaluate(ST)["open"]])
+                pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(900)
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+
+            # ⑥ 個股頁：開抽屜前後 K 線圖寬度不變
+            if w in (1440, 800, 390):
+                pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+                KW = ("() => { const e = document.getElementById('lwc'); const c = e && e.querySelector('canvas');"
+                      " return e ? { w: Math.round(e.getBoundingClientRect().width), cv: c ? Math.round(c.getBoundingClientRect().width) : 0,"
+                      " main: Math.round(document.querySelector('main').getBoundingClientRect().width) } : null; }")
+                k0 = pg.evaluate(KW)
+                ok(f"{T} 個股頁預設也看不到抽屜", not pg.evaluate(ST)["seen"])
+                ok(f"{T} 個股頁沒有「⤢ 寬版」殘留（事件不再佔一欄，這顆鈕沒有作用了）", pg.locator("#wideBtn").count() == 0)
+                open_drawer(pg, w); pg.wait_for_timeout(500)
+                k1 = pg.evaluate(KW)
+                ok(f"{T} 個股頁打開抽屜：抽屜真的出來了", pg.evaluate(ST)["open"])
+                ok(f"{T} 個股頁打開抽屜後 K 線圖與主內容寬度都不變", bool(k0) and k0 == k1 and k0["cv"] > 0, f"{k0} → {k1}")
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+        finally:
+            ctx.close()
 
 
 
@@ -11460,8 +11599,7 @@ def _shut_side(pg):
     """
     pg.evaluate("""() => { const b = document.getElementById('evClose');
         const a = document.getElementById('side');
-        if (b && a && a.classList.contains('open')) b.click();
-        try { localStorage.setItem('tw.side', '0'); } catch (e) { /* 私密視窗 */ } }""")
+        if (b && a && a.classList.contains('open')) b.click(); }""")
     pg.wait_for_timeout(450)
 
 
@@ -14844,6 +14982,8 @@ SECTIONS = {
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
+    # ★ 2026-09-28 Andy：今日事件預設隱藏、浮層抽屜、點背景關、關掉再開回到預設、修寬度 bug
+    "今日事件浮層":        lambda pg, b, base, code: t_events_drawer(b, base, code),
     "明亮主題":            lambda pg, b, base, code: t_theme(pg, base),
     "總覽":                lambda pg, b, base, code: t_overview(pg, base),
     "總覽右欄":            lambda pg, b, base, code: t_ov_right(pg, base),
@@ -29330,7 +29470,8 @@ def t_block_broker(b, base):
         if block_off:
             pg.route("**/blocks/broker_views.js*", lambda r: r.abort())
         pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
-        if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
+        # 2026-09-28 起事件抽屜預設關著，先打開
+        if not pg.evaluate("() => document.getElementById('side').classList.contains('open')"):
             click(pg, "#evToggle", 500)
         return ctx, pg, errs
 
