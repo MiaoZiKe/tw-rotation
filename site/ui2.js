@@ -22,14 +22,14 @@
      判斷順序是網站的核心：M1 資金面 → M2 基本面 → M3 技術面 → M4 事件面。
      這裡用一句話講清楚每一頁在那個順序裡的位置，讓第一次來的人知道從哪裡開始看。 */
   const PAGES = {
-    overview: { grp: '今日市場', t: '總覽', d: '今天大盤怎麼走、錢集中在哪幾個族群、題材與法人在做什麼 —— 從這裡開始，一頁看完今天的重點。' },
-    flow: { grp: '錢往哪裡跑', t: '資金流向', d: '錢正在往哪個族群跑：資金輪盤看輪動階段、排行看誰進誰出、資金去向看錢從哪裡流到哪裡。' },
-    heatmap: { grp: '錢往哪裡跑', t: '熱力圖', d: '全市場與題材的冷熱一眼看完：方塊越大錢越多、顏色越紅漲越多；點方塊看成分股。' },
-    industry: { grp: '族群與個股', t: '產業地圖', d: '每條產業鏈的強弱與上下游：先挑產業鏈，再看族群與零件，最後點個股看 K 線與基本面。' },
-    stock: { grp: '族群與個股', t: '個股', d: 'K 線與多週期技術面、營收與獲利、籌碼與除權息 —— 決定「什麼時候進場」與「現在貴不貴」。' },
-    market: { grp: '族群與個股', t: '市場明細', d: '完整名單：漲跌分佈、站上均線、各項排行，可以排序與篩選，找出符合條件的個股。' },
-    season: { grp: '歷史規律', t: '週期統計', d: '每個族群在各月份的歷史表現：勝率、報酬中位數與超額報酬，看現在是不是它的旺季。' },
-    delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
+    overview: { grp: '今日市場', t: '總覽', d: '先看大盤，再找資金集中的族群。今天的市場重點，從這裡開始。' },
+    flow: { grp: '錢往哪裡跑', t: '資金流向', d: '用輪盤看階段、用排行找強弱，最後確認資金正從哪裡流向哪裡。' },
+    heatmap: { grp: '錢往哪裡跑', t: '熱力圖', d: '一眼看完全市場的冷熱。方塊越大、資金越多；點進去就能看成分股。' },
+    industry: { grp: '族群與個股', t: '產業地圖', d: '從產業鏈、上下游一路看到個股，快速找到誰是這波行情的關鍵角色。' },
+    stock: { grp: '族群與個股', t: '個股', d: '把 K 線、營收、籌碼與除權息放在一起，判斷現在貴不貴、什麼時候進場。' },
+    market: { grp: '族群與個股', t: '市場明細', d: '看漲跌分佈、均線位置與排行名單，用排序和篩選找出想追蹤的個股。' },
+    season: { grp: '歷史規律', t: '週期統計', d: '用歷史勝率與報酬，看現在是不是這個族群的旺季。' },
+    delivery: { grp: '專案', t: '交付清單', d: '查看需求與完成狀態，點選項目直接前往驗收位置。' },
   };
   const ALIAS = { themes: 'heatmap', tasks: 'delivery' };
   /* 總覽頁首右邊的判斷四步（M1 → M2 → M3 → M4），每一步連到回答它的那一頁。
@@ -67,7 +67,7 @@
       const t = $('#evToggle'); if (t && $('#layout').classList.contains('noside')) t.click();
     });
     jump = document.createElement('nav'); jump.id = 'ui2Jump'; jump.setAttribute('aria-label', '本頁功能');
-    jump.innerHTML = '<span class="lbl">本頁功能</span><div class="chips"></div>';
+    jump.innerHTML = '<span class="lbl">快速前往</span><div class="chips"></div>';
     chips = $('.chips', jump);
     lay.parentNode.insertBefore(head, lay);
     lay.parentNode.insertBefore(jump, lay);
@@ -90,9 +90,10 @@
     if (sig === lastHead) return;
     lastHead = sig;
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-    head.innerHTML = `<div class="ph">${p.grp ? `<div class="eyebrow">${esc(p.grp)}</div>` : ''}`
+    head.dataset.page = k;
+    head.innerHTML = `<div class="pagelead"><span class="pageglyph" aria-hidden="true"></span><div class="ph">${p.grp ? `<div class="eyebrow">${esc(p.grp)}</div>` : ''}`
       + `<h1>${esc(p.t)}${sub && sub !== p.t ? `<span class="sub1">${esc(sub)}</span>` : ''}</h1>`
-      + (p.d ? `<p>${esc(p.d)}</p>` : '') + '</div>'
+      + (p.d ? `<p>${esc(p.d)}</p>` : '') + '</div></div>'
       + (k === 'overview' ? STEPS : '');
   }
 
@@ -172,6 +173,41 @@
     scanT = setTimeout(() => { scanT = 0; renderHead(); scanCards(); }, 300);
   }
 
+  /* ---------------- 圖表的視覺留白 ----------------
+     這裡只調 ECharts grid 的內邊距，不動資料、軸範圍、事件或路由。
+     目的是讓最左的時間刻度留在圖內，並把指數價格與成交量的右軸標籤分開。 */
+  function polishCharts() {
+    if (!DESK() || !window.echarts) return;
+    ['m3c-TSE', 'm3c-OTC', 'm3c-FUT'].forEach((id) => {
+      const el = document.getElementById(id), ec = el && window.echarts.getInstanceByDom(el);
+      if (!ec || el.dataset.kind !== 'line') return;
+      const gs = (ec.getOption().grid || []);
+      if (gs.length < 2 || (+gs[0].left === 16 && +gs[0].bottom === 84)) return;
+      ec.setOption({ grid: [
+        { left: 16, right: 4, top: 10, bottom: 84, containLabel: true },
+        { left: 16, right: 4, height: 44, bottom: 20, containLabel: true },
+      ] });
+    });
+    const conc = document.getElementById('conc');
+    const cc = conc && window.echarts.getInstanceByDom(conc);
+    if (cc) {
+      const g = (cc.getOption().grid || [])[0] || {};
+      if (+g.right < 30) cc.setOption({ grid: { left: 50, right: 30, top: 30, bottom: 30 } });
+    }
+  }
+
+  /* 總覽的資金流向拓撲圖是閒置時才建立；等它就緒後再一次性修圖表留白，
+     避免同時 setOption 讓拓撲圖錯過自己的初始化時機。其他頁面可直接處理。 */
+  function polishWhenReady(tryNo = 0) {
+    const topo = document.getElementById('ovFlow');
+    const waitingTopo = topo && window.FlowTopo && !window.FlowTopo.has(topo);
+    if (waitingTopo && tryNo < 14) {
+      setTimeout(() => polishWhenReady(tryNo + 1), 250);
+      return;
+    }
+    polishCharts();
+  }
+
   /* ---------------- 導覽收合（寬 ↔ 圖示列） ----------------
      使用者按過就記住（tw.ui2.nav）；沒按過時，視窗 ≤1180px 自動收成圖示列，讓內容有地方放。 */
   const NAV_KEY = 'tw.ui2.nav';
@@ -245,6 +281,7 @@
     wireDrawer();
     applyNav();
     renderHead(); scanCards();
+    setTimeout(polishWhenReady, 350);
     const main = $('main');
     /* 只看「節點增減」：卡片出現／消失一定伴隨 childList。不看 class／style ——
        圖表動畫、盤中閃爍每秒都在改屬性，全部接進來會一直逼瀏覽器重排。
@@ -253,6 +290,7 @@
     window.addEventListener('hashchange', () => {
       lastHead = '';
       [60, 700, 2000].forEach((t) => setTimeout(() => { renderHead(); scanCards(); }, t));
+      setTimeout(polishWhenReady, 450);
     });
     keepEventsClosed();
     window.addEventListener('scroll', spy, { passive: true });
