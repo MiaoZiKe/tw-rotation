@@ -41,7 +41,9 @@ DATA_KEYS = ("price", "inst", "per", "revenue", "financial", "balance",
 FINANCIAL_KEYS = {"per", "revenue", "financial", "balance", "dividend", "divresult"}
 
 # 排程用的預設回補計畫：依序執行，某一步額度用盡就停下，下一小時從那一步接續。
-# scope=universe → target_codes(limit)；scope=groups → 只補 groups.yaml 的成分股。
+# scope=universe → target_codes(limit)（**會吃 --limit**：手動觸發預設 500 時只剩成交值前 500 檔）；
+# scope=market   → market_codes()：全市場上市＋上櫃普通股，**刻意不吃 --limit**（見 market_codes 說明）；
+# scope=groups   → 只補 groups.yaml 的成分股。
 PLAN_DEFAULT = [
     {"datasets": "revenue+financial+balance", "start": "2016-01-01", "scope": "universe"},
     {"datasets": "dividend+divresult",        "start": "2016-01-01", "scope": "universe"},
@@ -50,17 +52,30 @@ PLAN_DEFAULT = [
     # ★ 2026-09-27（個股頁數據普查）：三大法人**從來不在計畫裡**。每日管線只補成交值前 500 檔
     #   （run_daily.fetch_institutional，UNIVERSE_SIZE），更早的一次性回補也只跑到 401 檔 ——
     #   實測 1,980 檔普通股裡 1,626 檔的 inst_daily 一列都沒有，個股頁「三大法人」整張不出現。
-    #   一檔一次請求（FinMind TaiwanStockInstitutionalInvestorsBuySell，免費層可用），約 1,600 次、3～4 輪補完。
+    #   一檔一次請求（FinMind TaiwanStockInstitutionalInvestorsBuySell，免費層可用）。
     #   補完之後的每日更新見 refresh_stale_inst()。
-    {"datasets": "inst",                      "start": "2016-01-01", "scope": "universe"},
+    # ★ 2026-09-28（CEO 查證）：這三步原本寫 scope=universe，而那幾輪是手動觸發（limit 預設 500），
+    #   target_codes(500) 只給成交值前 500 檔 —— 三步都標成 done，資料湖實測卻只有
+    #   inst_daily 781 檔、daytrade_daily 498 檔，前 500 名以外的個股頁照樣空白。
+    #   改成 scope=market（全市場普通股、不吃 limit），完成旗標換成新鍵
+    #   「inst@market」等（datasets_key_of 的 scope 參數），舊的 universe 旗標擋不住新步驟；
+    #   逐檔的 done 鍵（inst:2330、daytrade@2025-01-01:2330…）跟以前**同一個格式**，
+    #   所以前 500 檔已補過的不會重抓一次。
+    {"datasets": "inst",                      "start": "2016-01-01", "scope": "market"},
     # ★ 2026-09-27：當沖與借券賣出（籌碼分頁照 Andy 的券商 App 截圖補）。只補到 2025 年起 ——
     #   籌碼分頁最長看 1 年（約 250 個交易日），更早的用不到；一檔一次請求 × 兩個資料集。
-    {"datasets": "daytrade+sbl",              "start": "2025-01-01", "scope": "universe"},
+    {"datasets": "daytrade+sbl",              "start": "2025-01-01", "scope": "market"},
     # ★ 2026-09-27（Andy：「除權息時間軸往前拉到 2009」）：股利公告與除權息結果再往前補 2009～2015。
     #   done 鍵是「dividend@2009-01-01:<代號>」，build_payload.dividend_cover_years 看這個鍵決定年度圖從哪年畫起。
-    #   約 2,300 檔 × 2 次請求，每小時 ~500 次，約 9～10 輪補完。
-    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "universe"},
+    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "market"},
 ]
+# 請求數估算（2026-09-28 以資料湖實測：market_codes() 1,980 檔，扣掉已有逐檔 done 鍵／已補到起始日的；
+# FinMind 一檔一資料集一次請求，每小時可用約 510 次）：
+#   inst               1,314 次
+#   daytrade+sbl       1,507 × 2 ＝ 3,014 次
+#   dividend+divresult 1,507 × 2 ＝ 3,014 次
+#   合計 ≈ 7,340 次 ÷ 510 ≈ 15 輪。排程每天 22 輪（避開每日管線那兩小時），約 15～18 小時補完。
+#   補完之前每一輪都會撞到額度上限而停在這幾步，refresh_stale_inst 的每日續補要等補完才開始跑。
 PLANS = {"default": PLAN_DEFAULT}
 TAIPEI = timezone(timedelta(hours=8))
 
@@ -180,6 +195,53 @@ def target_codes(limit: int | None) -> list[str]:
     return picks[:limit] if limit else picks
 
 
+MARKET_RECENT_DAYS = 30   # 全市場名單只收最近 30 天內還有成交紀錄的股票（下市股不再花額度）
+MARKET_OK = {"TWSE", "TPEX"}   # company_info 的市場別；興櫃（EMERGING）沒有法人／當沖／除權息可補
+
+
+def market_codes() -> list[str]:
+    """全市場上市＋上櫃普通股（2026-09-28，scope="market"）。
+
+    範圍以「個股頁會出現的股票」為準：build_payload 的個股頁名單取自 price_daily，
+    所以這裡也從 price_daily 取，再濾成普通股（roc.is_common_stock：4 位數字、不以 0 開頭 ——
+    排除 ETF、權證、特別股 2881A、存託憑證 91xxxx）。company_info 有市場別時只收上市／上櫃。
+    只收最近 MARKET_RECENT_DAYS 天內有成交的（用資料裡的日期，不用執行當下的日期）。
+    順序：最新交易日成交值由大到小，其餘（當天停牌）接在後面 —— 額度中途用完時先補到的是熱門股。
+
+    ★ 刻意**不吃 --limit**：limit 是給手動觸發試跑用的，這一步的目的就是「全市場」，
+      被 limit 砍掉就是 2026-09-28 那個 bug 本身。真正的節流閥是 FinMind 額度（402 即停、下一輪接續）。
+    資料湖全空（第一次跑）時退回 FinMind 股票總覽。"""
+    from .util.roc import is_common_stock
+
+    info = store.read("company_info")
+    market_of: dict[str, str] = {}
+    if not info.empty and {"code", "market"} <= set(info.columns):
+        mk = info.dropna(subset=["market"]).assign(code=lambda d: d["code"].astype(str))
+        market_of = mk.drop_duplicates("code", keep="last").set_index("code")["market"].astype(str).to_dict()
+
+    def ok(c: str) -> bool:
+        return is_common_stock(c) and market_of.get(c, "TWSE") in MARKET_OK
+
+    price = store.read("price_daily")
+    if price.empty:
+        fm = finmind.stock_info()
+        if fm.empty:
+            return []
+        return list(dict.fromkeys(c for c in fm["code"].astype(str) if ok(c)))
+    px = price.assign(code=price["code"].astype(str), date=price["date"].astype(str))
+    latest = px["date"].max()
+    since = (pd.Timestamp(latest) - pd.Timedelta(days=MARKET_RECENT_DAYS)).date().isoformat()
+    recent = px[px["date"] >= since]
+    day = recent[recent["date"] == latest]
+    tv = day["turnover"] if "turnover" in day.columns else pd.Series(0.0, index=day.index)
+    by_turnover = (day.assign(_tv=pd.to_numeric(tv, errors="coerce").fillna(0.0))
+                      .groupby("code")["_tv"].sum().sort_values(ascending=False).index.tolist())
+    out = [c for c in by_turnover if ok(c)]
+    seen = set(out)
+    out += sorted(c for c in recent["code"].unique() if c not in seen and ok(c))
+    return out
+
+
 _cov_cache: dict[str, pd.DataFrame] = {}
 
 
@@ -232,14 +294,21 @@ def done_key_of(key: str, code: str, start: str, tag: str | None = None) -> str:
     return f"{key}@{start}:{code}"
 
 
-def datasets_key_of(datasets: str, start: str, tag: str | None = None) -> str:
-    """prog["complete"] 的鍵；規則與 done_key_of 一致（舊格式 "revenue" 不變）。"""
+def datasets_key_of(datasets: str, start: str, tag: str | None = None,
+                    scope: str | None = None) -> str:
+    """prog["complete"] 的鍵；規則與 done_key_of 一致（舊格式 "revenue" 不變）。
+
+    scope="market" 時尾巴多一段 "@market"（2026-09-28）：同一組資料集從「前 500 檔」擴成
+    全市場，必須是**不同的完成旗標**，不然舊的 universe 旗標（已標 done）會讓工作流守門
+    以為計畫早就補齊、整輪跳過。逐檔的 done 鍵不帶 scope，已補過的股票照樣跳過不重抓。"""
     base = "+".join(sorted(datasets.replace("+", ",").split(",")))
     if tag:
-        return f"{base}@{tag}"
-    if start == config.BACKFILL_START:
-        return base
-    return f"{base}@{start}"
+        key = f"{base}@{tag}"
+    elif start == config.BACKFILL_START:
+        key = base
+    else:
+        key = f"{base}@{start}"
+    return f"{key}@market" if scope == "market" else key
 
 
 def run(datasets: str, limit: int | None, start: str, *,
@@ -436,11 +505,23 @@ def monthly_step(today: date | None = None) -> dict:
 
 INDEX_START = "2000-01-01"
 INST_FRESH_DAYS = 14      # 法人每日續補往回抓幾天（涵蓋連假；一檔仍只算一次請求）
-# 每日續補的表：(回補資料集鍵, 資料湖表)。順序＝額度不夠時的優先序（法人最重要）。
-FRESH_TABLES = (("inst", "inst_daily"), ("daytrade", "daytrade_daily"), ("sbl", "sbl_daily"))
+FRESH_MAX_LOOKBACK = 90   # 落後很久的股票最多往回補幾天（歷史回補吃掉額度那幾天留下的缺口）
+# 每日續補的表：(回補資料集鍵, 資料湖表, 每天最多幾檔)。順序＝額度不夠時的優先序（法人最重要）。
+#
+# ★ 2026-09-28 改成全市場後的每日請求量估算：
+#   全市場普通股約 1,975 檔，每日管線（run_daily.fetch_institutional）已經顧好成交值前 500 檔，
+#   所以每張表每天落後的大約是 1,475 檔。三張表全部每天補 ≈ 4,400 次，
+#   以每小時約 510 次可用額度算要吃掉將近 9 小時 —— 會把歷史回補與其他步驟擠光。
+#   所以每張表設「每天最多幾檔」，挑**落後最久的先補**（一次請求就把缺口整段抓回來，
+#   不必天天問）：inst 750 ＋ daytrade 375 ＋ sbl 375 ＝ 每天最多 1,500 次 ≈ 3 輪的額度。
+#   代價：前 500 名以外的股票，法人約每 2 個交易日更新一次、當沖／借券約每 4 個交易日一次；
+#   窗口 INST_FRESH_DAYS=14 天（約 10 個交易日）大於這個週期，所以不會留缺口。
+FRESH_TABLES = (("inst", "inst_daily", 750), ("daytrade", "daytrade_daily", 375),
+                ("sbl", "sbl_daily", 375))
 
 
-def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str]) -> tuple[str | None, list[str]]:
+def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str],
+                     cap: int | None = None) -> tuple[str | None, list[str]]:
     """哪些股票的三大法人落後了：回傳 (最新交易日, 代號清單)。
 
     判準（刻意保守，避免把額度燒在「本來就不會有資料」的股票上）：
@@ -449,6 +530,8 @@ def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str
     - inst_daily 裡**已經有**這一檔（一列都沒有的交給計畫的歷史步驟，回空會記 done，不會每天重問）；
     - 而且它最後一天 < 最新交易日。
     每日管線補的前 500 檔自然已經是最新的，不會被選進來。
+    cap：最多回幾檔。有 cap 時**落後最久的排前面**（同樣落後的維持 universe 的順序），
+    這樣每天只補一部分也不會讓某幾檔一直輪不到。
     """
     if price is None or price.empty or inst is None or inst.empty:
         return None, []
@@ -456,16 +539,30 @@ def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str
     traded = set(price.loc[price["date"].astype(str) == latest, "code"].astype(str))
     last = inst.assign(code=inst["code"].astype(str), date=inst["date"].astype(str)).groupby("code")["date"].max()
     out = [c for c in universe if c in traded and c in last.index and last[c] < latest]
+    if cap is not None:
+        out = sorted(out, key=lambda c: last[c])[:cap]     # sorted 是穩定排序
     return latest, out
 
 
+def fresh_start(latest: str, last_dates: list[str]) -> str:
+    """續補的起始日：平常往回 INST_FRESH_DAYS 天；有股票落後更久就往前拉到它的最後一天，
+    但最多 FRESH_MAX_LOOKBACK 天（一檔一次請求，拉長區間不多花額度）。"""
+    base = (pd.Timestamp(latest) - pd.Timedelta(days=INST_FRESH_DAYS)).date().isoformat()
+    floor = (pd.Timestamp(latest) - pd.Timedelta(days=FRESH_MAX_LOOKBACK)).date().isoformat()
+    oldest = min(last_dates) if last_dates else base
+    return max(floor, min(base, oldest))
+
+
 def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None = None) -> bool:
-    """三大法人的每日續補：每日管線只顧前 500 檔，其餘股票在這裡每天補一次（2026-09-27）。
+    """三大法人（＋當沖、借券）的每日續補：每日管線只顧前 500 檔，其餘股票在這裡補（2026-09-27）。
 
     為什麼不塞進 PLAN_DEFAULT：計畫的完成旗標以「月」為單位（plan_is_done），
     每天都要做的事放進去會讓計畫永遠不算完成；照 backfill_indices 的做法另外記
     `complete["inst_fresh"] = {done, date}`，工作流的守門也看這個旗標（當天沒做完就放行一輪）。
-    額度：一檔一次，約 1,500 次／交易日，分散在每小時的回補裡；額度用完就停，下一輪接續。
+
+    ★ 2026-09-28：範圍從 target_codes(limit)（手動觸發時只剩前 500 檔）改成 market_codes() 全市場，
+      並依 FRESH_TABLES 的每日上限節流（估算見 FRESH_TABLES 上方）。limit 參數保留但不再使用。
+    額度用完就停，下一輪接續（當天的 done 鍵會跳過已補的）。
     """
     today = today or datetime.now(TAIPEI).date()
     flag = (prog.get("complete") or {}).get("inst_fresh")
@@ -474,20 +571,22 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
     if http.finmind_budget_left() <= 1:
         return False
     price = store.read("price_daily")
-    universe = target_codes(limit)
+    universe = market_codes()
     ok, latest, n_codes = True, None, {}
     # 當沖、借券賣出（2026-09-27）同一套：歷史步驟補過的股票，之後每天在這裡續補
-    for key, table in FRESH_TABLES:
+    for key, table, cap in FRESH_TABLES:
         if http.finmind_budget_left() <= 1:
             ok = False
             break
-        lt, codes = stale_inst_codes(store.read(table), price, universe)
+        tbl = store.read(table)
+        lt, codes = stale_inst_codes(tbl, price, universe, cap=cap)
         latest = latest or lt
         n_codes[key] = len(codes)
         if not codes:
             continue
-        start = (pd.Timestamp(lt) - pd.Timedelta(days=INST_FRESH_DAYS)).date().isoformat()
-        log.info("%s 每日續補：%d 檔落後於 %s（從 %s 起抓）", key, len(codes), lt, start)
+        last = tbl.assign(code=tbl["code"].astype(str), date=tbl["date"].astype(str)).groupby("code")["date"].max()
+        start = fresh_start(lt, [last[c] for c in codes])
+        log.info("%s 每日續補：%d 檔落後於 %s（每日上限 %d，從 %s 起抓）", key, len(codes), lt, cap, start)
         s = run(key, None, start, codes=codes, datasets_key=f"{key}@fresh{lt}",
                 tag=f"fresh{lt}", respect_time=False)
         ok = ok and bool(s.get("finished"))
@@ -810,6 +909,8 @@ def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
             log.warning("groups.yaml 沒有任何成分股，這一步沒有目標")
             return []
         return list(dict.fromkeys(m["code"].tolist()))
+    if scope == "market":
+        return market_codes()          # 刻意不吃 limit（見 market_codes）
     return target_codes(limit)
 
 
@@ -850,7 +951,7 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
 
     for n, step in enumerate(steps, 1):
         tag = step.get("tag")
-        key = datasets_key_of(step["datasets"], step["start"], tag)
+        key = datasets_key_of(step["datasets"], step["start"], tag, step.get("scope"))
         log.info("計畫 %s 第 %d/%d 步：%s（起始 %s，範圍 %s）",
                  name, n, len(steps), key, step["start"], step.get("scope", "universe"))
         codes = _codes_for_scope(step.get("scope", "universe"), limit)
