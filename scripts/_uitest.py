@@ -16579,7 +16579,13 @@ def t_stock_ai_0926(pg, base, code):
     tabs = pg.evaluate("() => [...document.querySelectorAll('main .view.on .mpager button')].map(b => b.textContent.trim())")
     ok("[AI分析 390] 手機分段列有「AI 分析」那一段", "AI 分析" in tabs, tabs)
     ok("★ [AI分析 390] AI 區在手機被搬進分段用的 #aiCard（不在 K 線卡裡）、K 線卡沒有留兩欄", m0["parent"] == "aiCard" and not m0["aiside"], (m0["parent"], m0["aiside"]))
-    click(pg, "main .view.on .mpager button:has-text('AI 分析')", 700)
+    # ★ 2026-09-27 手機個股券商式：分段列（.mpager）在手機藏起來，改成頂部的橫捲分頁列 #mbTabs ——
+    #   按那一排的「AI 分析」（mobile3.js skAi 會把藏起來的分段列同步切到「AI 分析」段，顯示的是同一個 #skAi 節點）
+    wait_until(pg, "() => !!document.querySelector('#mbTabs button[data-t=\"ai\"]') || !document.getElementById('mbHead')", 9000)
+    if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=\"ai\"]')"):
+        click(pg, '#mbTabs button[data-t="ai"]', 900)
+    else:
+        click(pg, "main .view.on .mpager button:has-text('AI 分析')", 700)
     m1 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 切到「AI 分析」段 → 結論列與四顆標籤看得到", not m1["mpOff"] and m1["lineVis"] and len(m1["tabs"]) == 4 and all(t["vis"] for t in m1["tabs"]), m1)
     ok("[AI分析 390] 手機沒記過 → 預設收起（只有結論＋標籤）", not m1["open"] and m1["ls"] is None, (m1["open"], m1["ls"]))
@@ -34384,13 +34390,24 @@ def t_mobile_broker(b, base, code):
     wait_until(m, "() => !!document.getElementById('mbHead')", 9000)
     ok(f"{T}回到個股頁：記得上次停在「指標」分頁", m.evaluate("() => document.body.dataset.mbt") == "tag", m.evaluate("() => document.body.dataset.mbt"))
 
-    # ---- AI 分析：直接用積木的渲染，內文攤開 ----
-    m.evaluate(TAP, "ai"); m.wait_for_timeout(800)
-    ai = m.evaluate("() => { const h = document.getElementById('mbAi'), bd = h && h.querySelector('#aiBody'); return { txt: h ? h.innerText.slice(0, 40) : '', open: !!bd && !bd.hidden && bd.getBoundingClientRect().height > 40 }; }")
-    ok(f"{T}AI 分析：StockAI 積木畫進來、內文攤開", "AI 分析" in ai["txt"] and ai["open"], ai)
+    # ---- AI 分析：不另外 render —— 顯示 app.js miaStock 搬進 #aiCard 的同一個 #skAi 節點（四標籤版）----
+    m.evaluate(TAP, "ai"); m.wait_for_timeout(900)
+    AI = """() => { const c = document.getElementById('aiCard'), a = document.getElementById('skAi'); const r = c ? c.getBoundingClientRect() : null;
+        const on = document.querySelector('#skAi .aitab.on');
+        return { n: document.querySelectorAll('#skAi').length, inCard: !!(a && c && a.parentElement === c), h: r ? Math.round(r.height) : 0, t: r ? Math.round(r.top) : null,
+                 tabs: [...document.querySelectorAll('#skAi .aitab')].map(b => b.dataset.facet), on: on ? on.dataset.facet : null,
+                 txt: a ? a.innerText.slice(0, 60) : '', vh: innerHeight, kVis: (() => { const k = document.getElementById('skChartCard'); return !!k && k.getBoundingClientRect().height > 0; })() }; }"""
+    ai = m.evaluate(AI)
+    ok(f"{T}AI 分析：看到的是搬進 #aiCard 的同一個 #skAi（只有一份，不另外畫）", ai["n"] == 1 and ai["inCard"] and ai["h"] > 120 and not ai["kVis"], ai)
+    ok(f"{T}AI 分析：四個面向標籤都在、頂端在第一屏內", len(ai["tabs"]) >= 4 and ai["t"] is not None and ai["t"] < ai["vh"] - 200, ai)
+    if len(ai["tabs"]) >= 2:
+        other = next(f for f in ai["tabs"] if f != ai["on"])
+        m.evaluate("(f) => { const b = document.querySelector('#skAi .aitab[data-facet=\"' + f + '\"]'); if (b) b.click(); }", other); m.wait_for_timeout(500)
+        ai1 = m.evaluate(AI)
+        ok(f"{T}AI 分析：點另一個面向（{other}）→ 標籤真的換過去", ai1["on"] == other and ai1["on"] != ai["on"], (ai["on"], ai1["on"]))
     m.evaluate(TAP, "news"); m.wait_for_timeout(600)
-    ai2 = m.evaluate("() => document.querySelectorAll('#mbAi').length")
-    ok(f"{T}離開 AI 分析 → 那一份清掉（不留重複 id）", ai2 == 0, ai2)
+    ai2 = m.evaluate(AI)
+    ok(f"{T}離開 AI 分析 → #aiCard 藏起來、#skAi 還是只有一份", ai2["h"] == 0 and ai2["n"] == 1, ai2)
     nn = len(pgj.get("news") or []) + len(pgj.get("material_news") or [])
     nr = m.evaluate("() => document.querySelectorAll('#mbBody .mbnews li').length")
     ok(f"{T}新聞：一列一則（新聞＋重大訊息共 {nn} 則）", nr == nn, nr)
@@ -34414,7 +34431,7 @@ def t_mobile_broker(b, base, code):
 
     # ---- 字級與觸控 ----
     fx = m.evaluate("""() => { const bad = [];
-        document.querySelectorAll('#mbHead *, #mbBody *').forEach(e => { if (e.closest('.mbai, svg, canvas')) return;
+        document.querySelectorAll('#mbHead *, #mbBody *').forEach(e => { if (e.closest('svg, canvas')) return;
           const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (!t) return;
           const r = e.getBoundingClientRect(); if (!r.width) return; const s = parseFloat(getComputedStyle(e).fontSize); if (s < 12) bad.push(e.className + ':' + s); });
         const small = [...document.querySelectorAll('#mbHead button, #mbBody .mbseg button')].filter(b => b.getBoundingClientRect().height && b.getBoundingClientRect().height < 40).map(b => b.textContent.trim() + ':' + Math.round(b.getBoundingClientRect().height));
@@ -34558,11 +34575,13 @@ def t_mobile_home(b, base, code):
     # ---- 觀察清單：空的 → 抽屜搜尋加入 → 重新整理還在 → 編輯刪除 → 重新整理不見 ----
     W = """() => ({ n: document.querySelectorAll('#mbWatch .mbw').length, codes: [...document.querySelectorAll('#mbWatch .mbw')].map(e => e.dataset.go),
         names: [...document.querySelectorAll('#mbWatch .mbwn')].map(e => e.firstChild.textContent.trim()),
-        empty: !!document.querySelector('#mbWatch .mbwempty'), add: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
-        ls: localStorage.getItem('tw.watch'), edit: (document.getElementById('mbWEdit') || {}).textContent || '',
-        editHidden: !!(document.getElementById('mbWEdit') || {}).hidden }) """
+        hidden: !!(document.getElementById('mbWatch') || {}).hidden, add: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
+        addW: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().width) : 0; })(),
+        homeH: (() => { const e = document.getElementById('mbHome'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
+        ls: localStorage.getItem('tw.watch'), edit: (document.getElementById('mbWEdit') || {}).textContent || '' }) """
     w0 = m.evaluate(W)
-    ok(f"{T}觀察清單一開始是空的，有「＋ 加入」（≥ 40px）與說明", w0["n"] == 0 and w0["empty"] and w0["add"] >= 40 and w0["editHidden"], w0)
+    ok(f"{T}觀察清單一開始是空的：清單列不佔位、只有指數列右邊一顆「＋ 觀察」（≥ 44×44）", w0["n"] == 0 and w0["hidden"] and w0["add"] >= 44 and w0["addW"] >= 44, w0)
+    ok(f"{T}清單空的時候整塊 ≤ 72px（第①步的輪盤＋焦點條要留在第一屏）", 0 < w0["homeH"] <= 72, w0["homeH"])
     m.tap("#mbWAdd"); m.wait_for_timeout(500)
     m.fill("#mbWQ", "2344"); m.wait_for_timeout(400)
     res = m.evaluate("() => [...document.querySelectorAll('#mbWRes button[data-c]')].map(b => b.dataset.c)")
@@ -34574,7 +34593,12 @@ def t_mobile_home(b, base, code):
     ok(f"{T}加過的那一檔在抽屜裡變成「已在清單」（不能重複加）", dis is True, dis)
     m.keyboard.press("Escape"); m.wait_for_timeout(400)
     w1 = m.evaluate(W)
-    ok(f"{T}加入兩檔 → 清單真的出現兩格（華邦電、台積電）", w1["codes"] == ["2344", "2330"] and "華邦電" in w1["names"], w1)
+    ok(f"{T}加入兩檔 → 清單真的出現兩格（華邦電、台積電）", w1["codes"] == ["2344", "2330"] and "華邦電" in w1["names"] and not w1["hidden"], w1)
+    ok(f"{T}有清單時整塊 ≤ 124px（指數列＋一列清單）", 0 < w1["homeH"] <= 124, w1["homeH"])
+    # 有清單時，第①步的輪盤與焦點條仍在第一屏（跟「手機v3」#1 同一條量法）
+    rf = m.evaluate("""() => { const r = document.getElementById('mRadarOv'), f = document.querySelector('#rotClockMiniWrap .mfocus');
+        return { r: r ? Math.round(r.getBoundingClientRect().bottom) : null, f: f ? Math.round(f.getBoundingClientRect().bottom) : null, vh: innerHeight }; }""")
+    ok(f"{T}有兩檔觀察時，輪盤＋焦點條還在第一屏（底 ≤ {rf['vh'] - 58}）", rf["f"] is not None and rf["f"] <= rf["vh"] - 58, rf)
     ok(f"{T}tw.watch 只存代號（JSON 陣列、沒有張數或成本）", json.loads(w1["ls"] or "null") == ["2344", "2330"], w1["ls"])
     m.reload(wait_until="networkidle")
     wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
@@ -34601,7 +34625,7 @@ def t_mobile_home(b, base, code):
     # 壞掉的 localStorage 不准把頁面弄掛（手動改壞、別的版本寫的格式）
     m.evaluate("() => localStorage.setItem('tw.watch', '{壞掉')"); m.reload(wait_until="networkidle"); m.wait_for_timeout(1500)
     w5 = m.evaluate(W)
-    ok(f"{T}tw.watch 內容壞掉 → 當成空清單，不會掛", w5["n"] == 0 and w5["empty"], w5)
+    ok(f"{T}tw.watch 內容壞掉 → 當成空清單，不會掛", w5["n"] == 0 and w5["hidden"], w5)
     # 字級
     fx = m.evaluate("""() => { const bad = []; document.querySelectorAll('#mbHome *').forEach(e => {
         const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (!t) return;

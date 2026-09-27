@@ -3949,7 +3949,11 @@ h3 .howbtn.pop{font-family:inherit}
 @media (max-width:640px){
   body.m3on.mbon #indCrumbs,body.m3on.mbon #v-industry>.mpager,body.m3on.mbon #v-industry>.mspine,body.m3on.mbon #v-industry>.mnext{display:none!important}
   /* K 線分頁看 #skChartCard；「完整版」分頁看桌機那一組分頁（#stockTabs＋#stockTab）；其他分頁全部藏，改看 #mbBody */
-  body.m3on.mbon #stockPage>*:not(#skChartCard):not(#stockTabs):not(#stockTab){display:none!important}
+  body.m3on.mbon #stockPage>*:not(#skChartCard):not(#stockTabs):not(#stockTab):not(#aiCard){display:none!important}
+  /* AI 分析分頁：看 #aiCard（app.js miaStock 把 #skAi 同一個節點搬進來；見 mobile3.js skAi）*/
+  body.m3on.mbon:not([data-mbt="ai"]) #stockPage>#aiCard{display:none!important}
+  body.m3on.mbon[data-mbt="ai"] #stockPage>#aiCard{display:block!important;margin-top:10px!important}
+  body.m3on.mbon[data-mbt="ai"] #mbBody{display:none}
   body.m3on.mbon:not([data-mbt="k"]) #stockPage>#skChartCard{display:none!important}
   body.m3on.mbon:not([data-mbt="full"]) #stockPage>#stockTabs,body.m3on.mbon:not([data-mbt="full"]) #stockPage>#stockTab{display:none!important}
   body.m3on.mbon[data-mbt="k"] #stockPage>#skChartCard{margin-top:8px!important}
@@ -4043,8 +4047,6 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbdiv .mbdrow{cursor:pointer}
   body.m3on .mbdiv td.mbx,body.m3on .mbdiv th:last-child{width:34px;text-align:center;color:var(--ink-3)}
   body.m3on .mbdiv .mbdet td{white-space:normal;text-align:left;font-family:inherit;font-size:13px;color:var(--ink-2);background:var(--panel-2);padding:8px 14px}
-  body.m3on .mbai{margin:0}
-  body.m3on .mbai #aiTgl{display:none}
   /* 觀察清單 ☆（分頁列最右邊，跟左邊 ☰ 對稱）*/
   body.m3on .mbstar{flex:0 0 44px;height:44px;border:0;border-left:1px solid var(--line);background:transparent;color:var(--ink-2);font-size:20px;cursor:pointer}
   body.m3on .mbstar.on{color:var(--amber)}
@@ -4059,46 +4061,47 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbdivp th:last-child,body.m3on .mbdivp td:last-child{width:auto;text-align:right}
   body.m3on .mbdivp td small{display:inline;color:var(--amber)}
 
-  /* ---- 總覽最上方：指數三格（可左右滑）＋觀察清單（mobile3.js G 段）---- */
-  body.m3on .mbhome{margin:0 0 10px}
-  body.m3on .mbidxwrap{position:relative}
-  body.m3on .mbidx{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;
-    border:1px solid var(--line);border-radius:12px;background:var(--panel);
-    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
-  body.m3on .mbidx.end{-webkit-mask-image:none;mask-image:none}
+  /* ---- 總覽最上方：指數列（可左右滑）＋「＋ 觀察」＋觀察清單列（mobile3.js G 段）----
+     高度預算：清單空的時候整塊約 60px、有清單約 112px —— 第①步的輪盤＋焦點條要留在第一屏（_uitest「手機v3」#1）。*/
+  body.m3on .mbhome{margin:0 0 8px}
+  body.m3on .mbidxwrap{display:flex;gap:6px;align-items:stretch}
+  body.m3on .mbidxbox{position:relative;flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+  /* 不用右緣淡出：一頁剛好三格，淡出會蓋掉第三格的數字；看得出可以滑靠底下的「● ○ ○ 1 / 3」*/
+  body.m3on .mbidx{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
   body.m3on .mbidx::-webkit-scrollbar{display:none}
-  body.m3on .mbit{flex:0 0 33.333%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-    min-height:66px;padding:6px 2px;box-sizing:border-box;border-right:1px solid var(--line);font-variant-numeric:tabular-nums}
+  body.m3on .mbit{flex:0 0 33.333%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+    min-height:54px;padding:3px 1px 13px;box-sizing:border-box;border-right:1px solid var(--line);font-variant-numeric:tabular-nums;line-height:1.2}
   body.m3on .mbit:last-child{border-right:0}
-  body.m3on .mbitn{font-size:13px;color:var(--ink-2);white-space:nowrap}
-  body.m3on .mbitn small{font-size:12px;color:var(--ink-3);margin-left:3px}
-  body.m3on .mbit b{font-size:17px;font-weight:700;white-space:nowrap}
-  body.m3on .mbit span.num{font-size:12px;white-space:nowrap}
+  body.m3on .mbitn{font-size:12px;color:var(--ink-2);white-space:nowrap}
+  body.m3on .mbitn small{font-size:12px;color:var(--ink-3);margin-left:2px}
+  body.m3on .mbit b{font-size:15px;font-weight:700;white-space:nowrap}
+  body.m3on .mbit span.num{font-size:12px;white-space:nowrap;max-width:100%;overflow:hidden;font-family:inherit;font-variant-numeric:tabular-nums}
+  body.m3on .mbitc i,body.m3on .mbitc em{font-style:normal}
+  body.m3on .mbitc em{margin-left:3px}
+  body.m3on .mbitc.tight i{display:none}
+  body.m3on .mbitc.tight em{margin-left:0}
   body.m3on .mbhome .up{color:var(--rise)} body.m3on .mbhome .dn,body.m3on .mbhome .down{color:var(--fall)} body.m3on .mbhome .fl,body.m3on .mbhome .flat{color:var(--ink)}
-  body.m3on .mbdots{display:flex;align-items:center;justify-content:center;gap:5px;height:18px;font-size:12px;color:var(--ink-3)}
-  body.m3on .mbdots i{width:6px;height:6px;border-radius:50%;background:var(--line-2)}
+  /* 位置指示：疊在指數列底邊（不多佔一列）；「1 / 3」字在右下角 */
+  body.m3on .mbdots{position:absolute;left:0;right:0;bottom:1px;display:flex;align-items:center;justify-content:center;gap:4px;height:12px;pointer-events:none}
+  body.m3on .mbdots i{width:5px;height:5px;border-radius:50%;background:var(--line-2)}
   body.m3on .mbdots i.on{background:var(--cyan)}
-  body.m3on .mbdots span{margin-left:4px;font-family:var(--mono)}
-  body.m3on .mbwhead{display:flex;align-items:center;gap:8px;margin:2px 0 4px}
-  body.m3on .mbwhead b{font-size:15px;color:var(--ink)}
-  body.m3on .mbwnote{flex:1;font-size:12px;color:var(--ink-3)}
-  body.m3on .mbwedit{min-height:40px;min-width:56px;padding:0 10px;border:0;background:transparent;color:var(--cyan);font-size:14px;cursor:pointer}
-  body.m3on .mbwedit[hidden]{display:none}
-  body.m3on .mbwatch{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;padding-bottom:2px}
+  body.m3on .mbdots span{margin-left:3px;font-size:12px;line-height:12px;color:var(--ink-3);font-family:var(--mono)}
+  body.m3on .mbwadd{flex:0 0 48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+    border:1px dashed var(--line-2);border-radius:12px;background:transparent;color:var(--ink-2);font-size:12px;cursor:pointer;padding:0}
+  body.m3on .mbwadd b{font-size:19px;line-height:1.1;color:var(--cyan)}
+  body.m3on .mbwatch{display:flex;gap:6px;margin-top:6px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+  body.m3on .mbwatch[hidden]{display:none}
   body.m3on .mbwatch::-webkit-scrollbar{display:none}
-  body.m3on .mbw{position:relative;flex:0 0 116px;display:flex;flex-direction:column;gap:1px;min-height:64px;padding:7px 10px;box-sizing:border-box;
-    border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;font-variant-numeric:tabular-nums}
+  body.m3on .mbw{position:relative;flex:0 0 auto;min-width:118px;max-width:170px;display:grid;grid-template-columns:auto auto;justify-content:space-between;align-items:center;gap:0 6px;min-height:48px;padding:4px 9px;box-sizing:border-box;
+    border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;font-variant-numeric:tabular-nums;line-height:1.25}
   body.m3on .mbw:active{background:var(--panel-3)}
-  body.m3on .mbwn{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  body.m3on .mbwn small{font-size:12px;color:var(--ink-3);margin-left:4px}
-  body.m3on .mbw b{font-size:16px;color:var(--ink);font-weight:700}
-  body.m3on .mbw span.num{font-size:12px}
-  body.m3on .mbwdel{position:absolute;top:-1px;right:-1px;width:40px;height:40px;border:0;border-radius:0 10px 0 10px;background:var(--panel-3);color:var(--ink);font-size:15px;cursor:pointer;border-left:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
+  body.m3on .mbwn{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:6.5em}
+  body.m3on .mbw b{font-size:14px;color:var(--ink);font-weight:700;text-align:right}
+  body.m3on .mbw small{font-size:12px;color:var(--ink-3)}
+  body.m3on .mbw span.num{font-size:12px;text-align:right}
+  body.m3on .mbwdel{position:absolute;top:3px;right:3px;width:40px;height:40px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel-3);color:var(--ink);font-size:15px;cursor:pointer}
   body.m3on .mbwatch.editing .mbw{border-style:dashed;cursor:default}
-  body.m3on .mbwadd{flex:0 0 76px;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-    border:1px dashed var(--line-2);border-radius:10px;background:transparent;color:var(--ink-2);font-size:12px;cursor:pointer}
-  body.m3on .mbwadd b{font-size:20px;line-height:1;color:var(--cyan)}
-  body.m3on .mbwempty{flex:1 1 auto;min-width:0;align-self:center;font-size:12.5px;color:var(--ink-3);line-height:1.5;white-space:normal}
+  body.m3on .mbwedit{flex:0 0 auto;min-height:48px;min-width:56px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--cyan);font-size:14px;cursor:pointer}
   body.m3on .mbwq{width:100%;box-sizing:border-box;min-height:44px;margin:10px 0 6px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;
     background:var(--panel-2);color:var(--ink);font-size:16px}
   body.m3on .mbwres{list-style:none;margin:0;padding:0;max-height:40vh;overflow-y:auto}

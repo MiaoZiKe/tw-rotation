@@ -824,7 +824,7 @@
     { t: 'fin', n: '財務', has: (pg) => (pg.pe_history || []).some(r => r.pe != null) || ((pg.profit && pg.profit.quarters) || []).length > 0 },
     { t: 'basic', n: '基本資料' },
     { t: 'div', n: '除權息', has: (pg) => { const d = pg.dividends || {}; return (d.by_year || []).some(y => y.n > 0 || y.cash > 0 || y.stock > 0) || (d.upcoming || []).length > 0 || (d.by_period || []).length > 0; } },
-    { t: 'ai', n: 'AI 分析', has: () => !!window.StockAI },
+    { t: 'ai', n: 'AI 分析', has: () => !!window.StockAI && !!document.getElementById('aiCard') },
     { t: 'news', n: '新聞', has: (pg) => (pg.news || []).length > 0 || (pg.material_news || []).length > 0 },
     { t: 'full', n: '完整版' },
   ];
@@ -993,7 +993,7 @@
     body.dataset.tab = t;
     /* K 線與「完整版」用的是 industry.js 畫好的節點：順手把（藏起來的）第二版分段列切到對應那一段，
        它掛的 .mp-off 才不會跟這裡打架（K 線卡在「K 線」段、#stockTabs／#stockTab 在「財報籌碼」段）。*/
-    const want = t === 'k' ? 'K 線' : t === 'full' ? '財報籌碼' : null;
+    const want = t === 'k' ? 'K 線' : t === 'full' ? '財報籌碼' : t === 'ai' ? 'AI 分析' : null;
     if (want) { const pb = $$('#v-industry > .mpager button').find(x => x.textContent.trim() === want); if (pb && !pb.classList.contains('on')) pb.click(); }
     if (t === 'k') { body.innerHTML = ''; return; }
     if (t === 'full') {
@@ -1065,13 +1065,18 @@
   }
   const empty = (msg) => `<div class="mbempty">${msg}</div>`;
 
-  /* ---- AI 分析：直接用積木 stock.mtf 的渲染（StockAI.mount），手機一律攤開內文 ---- */
+  /* ---- AI 分析：不另外 render —— 用 app.js miaStock 搬進 #aiCard 的那一個 #skAi 節點（積木 stock.mtf，四標籤版）----
+     2026-09-27 協調：AI 分析四標籤版（claude/ai-topright）桌機住在 K 線卡右上角；手機由 miaStock 把**同一個節點**
+     搬進空殼 #aiCard（分段導覽的「AI 分析」段）。這裡只負責讓 #aiCard 在「AI 分析」分頁露出來（CSS 看 data-mbt="ai"），
+     順便把藏起來的第二版分段列切到「AI 分析」段，它掛的 .mp-off 才不會把 #aiCard 藏掉。
+     選中的標籤、收合狀態都跟著節點走，不重畫。*/
   function skAi(pg, body) {
-    if (!window.StockAI) { body.innerHTML = empty('AI 分析積木沒有載入。'); return; }
-    body.innerHTML = '<div class="card mbai" id="mbAi"></div>';
-    const host = document.getElementById('mbAi');
-    window.StockAI.mount(pg, host, skApp().fmt);
-    const b = host.querySelector('#aiBody'); if (b) b.hidden = false;
+    const card = document.getElementById('aiCard'), ai = document.getElementById('skAi');
+    if (!card || !ai) { body.innerHTML = empty('AI 分析積木沒有載入。'); return; }
+    body.innerHTML = '';
+    if (ai.parentElement !== card) card.appendChild(ai);      // miaStock 還沒跑到（或順序不同）時先搬，行為跟它一樣
+    card.classList.remove('mp-off');
+    if (window.StockAI && window.StockAI.refit) setTimeout(() => { try { window.StockAI.refit(); } catch (e) { /* 略 */ } }, 30);
   }
 
   /* ---- 指標：一列一個標籤（產業鏈／族群／題材／指標），點了進去 ----
@@ -1552,15 +1557,18 @@
     let home = document.getElementById('mbHome');
     if (!home) {
       home = document.createElement('div'); home.id = 'mbHome'; home.className = 'mbhome';
-      home.innerHTML = `<div class="mbidxwrap"><div class="mbidx" id="mbIdx" role="list" aria-label="指數（可左右滑）"></div>
+      /* 高度預算（量過的）：總覽第①步的輪盤＋焦點條要留在第一屏（_uitest「手機v3」#1，390×844 與 360×780）。
+         所以版面是兩條窄列 —— ① 指數列＋右邊一顆「＋ 觀察」（清單是空的時候只有這一列，約 56px）；
+         ② 觀察清單有東西才出現（一列橫捲的小格，48px）。不放標題列與說明句（說明在「＋」抽屜裡）。*/
+      home.innerHTML = `<div class="mbidxwrap"><div class="mbidxbox"><div class="mbidx" id="mbIdx" role="list" aria-label="指數（可左右滑）"></div>
           <div class="mbdots" id="mbIdxPos" aria-live="polite"></div></div>
-        <div class="mbwhead"><b>觀察清單</b><span class="mbwnote">只存代號在這台裝置</span><button type="button" id="mbWEdit" class="mbwedit">編輯</button></div>
-        <div class="mbwatch" id="mbWatch" role="list"></div>`;
-      $('#mbWEdit', home).onclick = () => { HM.edit = !HM.edit; hmWatch(); };
+          <button type="button" class="mbwadd" id="mbWAdd" aria-label="加入觀察清單"><b>＋</b><span>觀察</span></button></div>
+        <div class="mbwatch" id="mbWatch" role="list" aria-label="觀察清單（可左右滑）" hidden></div>`;
+      $('#mbWAdd', home).onclick = () => hmAddSheet();
       $('#mbWatch', home).onclick = (e) => {
         const x = e.target.closest('button[data-del]');
         if (x) { e.stopPropagation(); wSet(wGet().filter(c => c !== x.dataset.del)); return; }
-        if (e.target.closest('#mbWAdd')) { hmAddSheet(); return; }
+        if (e.target.closest('#mbWEdit')) { HM.edit = !HM.edit; hmWatch(); return; }
         const t = e.target.closest('[data-go]'); if (t && !HM.edit) location.hash = '#stock/' + t.dataset.go;
       };
       $('#mbIdx', home).addEventListener('scroll', () => hmDots(), { passive: true });
@@ -1575,7 +1583,7 @@
     /* 第一次跑可能比 app.js 早（window.App 還沒好）：資料沒畫上去就等一下再試 */
     const A = skApp();
     if (!A || !A.load) { clearTimeout(HM.wait); HM.wait = setTimeout(() => { if (isM() && curView() === 'overview') hmOn('overview'); }, 300); return; }
-    if (!document.querySelector('#mbIdx .mbit')) hmIdx();
+    if (!document.querySelector('#mbIdx .mbit')) hmIdx(); else hmFit();
     hmWatch();
   }
   function hmOff() {
@@ -1592,7 +1600,7 @@
     const f = (v) => (+v).toLocaleString('en-US', { minimumFractionDigits: o.dp, maximumFractionDigits: o.dp });
     return `<div class="mbit" role="listitem" data-id="${esc(o.id)}"><span class="mbitn">${esc(o.name)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span>
       <b class="num ${c}" data-k="v">${o.v == null ? '—' : f(o.v)}</b>
-      <span class="num ${c}" data-k="c">${o.chg == null ? '—' : (o.chg > 0 ? '▲' : o.chg < 0 ? '▼' : '') + f(Math.abs(o.chg))}${o.pct == null ? '' : ' (' + Math.abs(o.pct).toFixed(2) + '%)'}</span></div>`;
+      <span class="num mbitc ${c}" data-k="c">${o.chg == null ? '—' : `<i>${(o.chg > 0 ? '▲' : o.chg < 0 ? '▼' : '') + f(Math.abs(o.chg))}</i>`}${o.pct == null ? '' : `<em>(${Math.abs(o.pct).toFixed(2)}%)</em>`}</span></div>`;
   }
   function hmIdx() {
     const A = skApp(); if (!A || !A.load) return;
@@ -1620,8 +1628,12 @@
         .forEach(([sym, nm, dp]) => { const t = mk(sym, nm, by[sym], dp); if (t) tiles.push(t); });
       box.innerHTML = tiles.map(hmTile).join('');
       box.dataset.n = String(tiles.length);
-      hmDots(); hmLiveIdx();
+      hmDots(); hmLiveIdx(); hmFit();
     });
+  }
+  /* 窄螢幕（360 寬時一格約 90px）放不下「▼132.69 (0.28%)」：放不下的那一格只留漲跌幅（比點數重要），不截字 */
+  function hmFit() {
+    $$('#mbIdx .mbitc').forEach(e => { e.classList.remove('tight'); if (e.scrollWidth > e.clientWidth + 1) e.classList.add('tight'); });
   }
   function hmDots() {
     const box = document.getElementById('mbIdx'), pos = document.getElementById('mbIdxPos'); if (!box || !pos) return;
@@ -1641,16 +1653,17 @@
     const v = t.querySelector('[data-k="v"]'), c = t.querySelector('[data-k="c"]');
     const pc = q.chgPct, cls = uc(pc), d = pc != null && pc > -100 ? q.price - q.price / (1 + pc / 100) : null;
     v.textContent = (+q.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    c.textContent = d == null ? '—' : `${d > 0 ? '▲' : d < 0 ? '▼' : ''}${Math.abs(d).toFixed(2)} (${Math.abs(pc).toFixed(2)}%)`;
+    c.innerHTML = d == null ? '—' : `<i>${d > 0 ? '▲' : d < 0 ? '▼' : ''}${Math.abs(d).toFixed(2)}</i><em>(${Math.abs(pc).toFixed(2)}%)</em>`;
     [v, c].forEach(e => { e.classList.remove('up', 'dn', 'fl'); e.classList.add(cls); });
+    hmFit();
   }
   window.addEventListener('tw:quotes', () => { if (document.getElementById('mbIdx')) hmLiveIdx(); });
 
   function hmWatch() {
-    const box = document.getElementById('mbWatch'), eb = document.getElementById('mbWEdit'); if (!box) return;
+    const box = document.getElementById('mbWatch'); if (!box) return;
     const codes = wGet();
     if (!codes.length) HM.edit = false;
-    if (eb) { eb.textContent = HM.edit ? '完成' : '編輯'; eb.setAttribute('aria-pressed', String(HM.edit)); eb.hidden = !codes.length; }
+    box.hidden = !codes.length;
     box.classList.toggle('editing', HM.edit);
     const A = skApp();
     const paint = (list) => {
@@ -1658,15 +1671,14 @@
       box.innerHTML = codes.map(c => {
         const r = by.get(c) || { code: c, name: c };
         const cls = r.chg_pct > 0 ? 'up' : r.chg_pct < 0 ? 'down' : 'flat';
-        return `<div class="mbw" role="listitem" data-go="${esc(c)}" tabindex="0"><span class="mbwn">${esc(r.name || c)}<small class="num">${esc(c)}</small></span>
+        return `<div class="mbw" role="listitem" data-go="${esc(c)}" tabindex="0"><span class="mbwn">${esc(r.name || c)}</span>
           <b class="num" data-live="close" data-lc="${esc(c)}">${r.close == null || !A ? '—' : A.fmt.n(r.close)}</b>
-          <span class="num ${cls}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !A ? '—' : A.fmt.pct(r.chg_pct, 2)}</span>
+          <small class="num">${esc(c)}</small><span class="num ${cls}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !A ? '—' : A.fmt.pct(r.chg_pct, 2)}</span>
           ${HM.edit ? `<button type="button" class="mbwdel" data-del="${esc(c)}" aria-label="從觀察清單刪除 ${esc(r.name || c)}">✕</button>` : ''}</div>`;
-      }).join('')
-        + (codes.length < WMAX ? `<button type="button" class="mbwadd" id="mbWAdd" aria-label="加入觀察清單"><b>＋</b><span>${codes.length ? '加入' : '加入第一檔'}</span></button>` : '')
-        + (!codes.length ? '<div class="mbwempty">還沒有觀察的股票。按 ＋ 搜尋代號或名稱，或在個股頁按 ☆。</div>' : '');
+      }).join('') + (codes.length ? `<button type="button" class="mbwedit" id="mbWEdit" aria-pressed="${HM.edit}">${HM.edit ? '完成' : '編輯'}</button>` : '');
       box.querySelectorAll('.mbw').forEach(el => { el.onkeydown = (e) => { if (e.key === 'Enter' && !HM.edit) location.hash = '#stock/' + el.dataset.go; }; });
     };
+    if (!codes.length) { box.innerHTML = ''; return; }
     if (!A || !A.load) { paint([]); return; }
     A.load('stocks', { fallback: [] }).then(paint);
   }
@@ -1674,7 +1686,7 @@
     const A = skApp();
     const sh = openSheet(`<div class="mshhead"><b>加入觀察清單</b></div>
       <input type="search" id="mbWQ" class="mbwq" placeholder="代號或名稱，例如 2344 或 華邦電" autocomplete="off" enterkeyhint="search" aria-label="搜尋股票">
-      <ul class="mbwres" id="mbWRes"></ul><div class="mbfoot">只存股票代號（不存張數、成本），存在這台裝置的瀏覽器裡。</div>`, { kind: 'watch' });
+      <ul class="mbwres" id="mbWRes"></ul><div class="mbfoot">觀察清單只存股票代號（不存張數、成本），存在這台裝置的瀏覽器裡；總覽最上面那一列點一格進個股頁，「編輯」可以刪。個股頁報價列的 ☆ 也能加。</div>`, { kind: 'watch' });
     const q = sh.querySelector('#mbWQ'), res = sh.querySelector('#mbWRes');
     let all = [];
     const run = () => {
