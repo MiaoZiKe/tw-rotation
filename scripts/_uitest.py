@@ -14203,6 +14203,17 @@ def t_ui2(pg, base):
     ok("[UI2] 390px：頂欄維持原本的高度、底部分頁列還在最下面", mb["th"] <= 64 and abs(mb["tabsB"] - mb["vh"]) <= 2, mb)
     ok("[UI2] 390px：新版頁首與收合鈕不出現（手機這一批只換配色）", mb["head"] == "none" and mb["foot"] == "none", mb)
     ok("[UI2] 390px：沒有橫向捲軸", mb["sw"] <= 391, mb)
+    # 2026-09-27 手機版（Andy：「給我 v2 手機版面」）：頂欄站名的位置顯示「分組＋目前頁名」，換頁真的跟著換；高度不准變
+    MPT = "() => { const e = document.querySelector('.brand .mpt'); return e && getComputedStyle(e).display !== 'none' ? e.textContent : null; }"
+    t0 = pg.evaluate(MPT)
+    ok("[UI2] 390px：頂欄顯示目前頁名（總覽）", bool(t0) and "總覽" in t0, t0)
+    pg.click('.tab[data-view="flow"]')
+    t1 = wait_until(pg, "() => { const e = document.querySelector('.brand .mpt'); return e && e.textContent.indexOf('資金流向') >= 0 ? e.textContent : null; }", 4000)
+    ok("[UI2] 390px：點底部「資金流向」→ 頂欄頁名跟著換", bool(t1), pg.evaluate(MPT))
+    ok("[UI2] 390px：頂欄高度沒變（52px）", 50 <= pg.evaluate("() => document.querySelector('.topbar').getBoundingClientRect().height") <= 54,
+       pg.evaluate("() => document.querySelector('.topbar').getBoundingClientRect().height"))
+    ic = pg.evaluate("() => getComputedStyle(document.querySelector('.tab[data-view=\"flow\"]'), '::before').webkitMaskImage || getComputedStyle(document.querySelector('.tab[data-view=\"flow\"]'), '::before').maskImage")
+    ok("[UI2] 390px：底部導覽用的是線條圖示（遮罩圖），不是文字符號", "svg" in str(ic), str(ic)[:60])
     pg.set_viewport_size({"width": 1440, "height": 1000})
 
 

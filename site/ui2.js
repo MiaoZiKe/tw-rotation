@@ -90,6 +90,13 @@
     if (sig === lastHead) return;
     lastHead = sig;
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    // 手機：頁首整塊不顯示（每頁有一屏高度預算），改把「分組＋頁名」放進頂欄原本寫站名的位置 —— 一個 px 都不多佔
+    const bt = $('.brand > div:not(.logo)');
+    if (bt) {
+      let mpt = $('.mpt', bt);
+      if (!mpt) { mpt = document.createElement('span'); mpt.className = 'mpt'; mpt.setAttribute('aria-hidden', 'true'); bt.insertBefore(mpt, bt.firstChild); }
+      mpt.innerHTML = (p.grp ? `<i>${esc(p.grp)}</i>` : '') + esc(k === 'stock' && sub ? sub : p.t);
+    }
     head.innerHTML = `<div class="ph">${p.grp ? `<div class="eyebrow">${esc(p.grp)}</div>` : ''}`
       + `<h1>${esc(p.t)}${sub && sub !== p.t ? `<span class="sub1">${esc(sub)}</span>` : ''}</h1>`
       + (p.d ? `<p>${esc(p.d)}</p>` : '') + '</div>'

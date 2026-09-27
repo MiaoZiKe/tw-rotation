@@ -122,6 +122,7 @@
   --ic-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E");
   --ic-bell:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9a6 6 0 1 1 12 0c0 6.5 2.6 8.3 2.6 8.3H3.4S6 15.5 6 9z'/%3E%3Cpath d='M10 20.5a2.1 2.1 0 0 0 4 0'/%3E%3C/svg%3E");
   --ic-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E");
+  --ic-more:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='1.8'/%3E%3Ccircle cx='17' cy='17' r='3.5'/%3E%3C/svg%3E");
   --ic-back:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 14L4 9l5-5'/%3E%3Cpath d='M4 9h10.5a5.5 5.5 0 0 1 0 11H11'/%3E%3C/svg%3E");
 }
 
@@ -365,3 +366,53 @@
 :root.ui2 .brand b .bt{font-size:11.5px;font-weight:500;color:var(--ink-3);letter-spacing:.04em}
 @media (min-width:821px){ :root.ui2 .brand b{font-size:18px;letter-spacing:.08em} :root.ui2 .brand .logo{width:36px;height:36px;border-radius:10px} }
 @media (max-width:820px){ :root.ui2 .brand b .bt{display:none} }
+
+/* ---------------- 13. 手機版（≤640px，body.m3on）套上新版的設計語言 ----------------
+   2026-09-27 Andy：「給我 v2 手機版面」。手機有自己一套結構（mobile3.js：頂欄 52、主軸動線、分段列、底部五顆），
+   而且每一頁都有算過的「一屏看完」高度預算 —— 所以這一段**只換長相、一個 px 的高度都不加**：
+     · 頂欄：站名的位置改寫「分組＋目前頁名」（ui2.js 產生 .mpt），一看就知道自己在哪；logo 仍是〈輪輪〉
+     · 底部五顆：文字符號（◎ ⇄ ▦ ▤ ≡）換成跟桌機同一套線條圖示，選中＝主色＋淡底膠囊
+     · 分段列（手機版的「本頁功能」）：選中從整塊反白改成主色淡底，跟桌機的跳轉列同一個樣子
+     · 主軸動線、「下一步」、搜尋鈕：拿掉發光、改主色淡底 */
+.brand .mpt{display:none}
+@media (max-width:640px){
+  :root.ui2 body.m3on .brand{gap:10px}
+  :root.ui2 body.m3on .brand .logo{width:32px;height:32px;border-radius:9px;flex:none}
+  :root.ui2 body.m3on .brand b{display:none}
+  :root.ui2 body.m3on .brand .mpt{display:flex;flex-direction:column;line-height:1.15;font-size:16.5px;font-weight:700;
+    color:var(--ink);letter-spacing:.02em;white-space:nowrap;max-width:52vw;overflow:hidden;text-overflow:ellipsis}
+  :root.ui2 body.m3on .brand .mpt i{font-style:normal;font-size:11px;font-weight:650;letter-spacing:.12em;color:var(--cyan);margin-bottom:2px}
+  /* 搜尋鈕：⌕ 文字 → 線條放大鏡 */
+  :root.ui2 body.m3on .msearchbtn{font-size:0;border-radius:12px;border-color:var(--line)}
+  :root.ui2 body.m3on .msearchbtn::before{content:"";width:19px;height:19px;background:var(--ink-2);
+    -webkit-mask:var(--ic-search) center/contain no-repeat;mask:var(--ic-search) center/contain no-repeat}
+  :root.ui2 body.m3on .morebtn{border-radius:12px;border-color:var(--line)}
+  /* 底部導覽 */
+  :root.ui2 body.m3on .tabs{background:var(--topbar-m);border-top:1px solid var(--line);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  :root.ui2 body.m3on .tab::before,:root.ui2 body.m3on .mtabmore::before{content:""!important;width:44px;height:28px;border-radius:999px;
+    background-color:currentColor;text-shadow:none;
+    -webkit-mask:var(--ic,var(--ic-more)) center/22px 22px no-repeat;mask:var(--ic,var(--ic-more)) center/22px 22px no-repeat}
+  :root.ui2 body.m3on .tab.on::before,:root.ui2 body.m3on .mtabmore.on::before{text-shadow:none}
+  :root.ui2 body.m3on .tab[data-view="overview"]{--ic:var(--ic-overview)}
+  :root.ui2 body.m3on .tab[data-view="flow"]{--ic:var(--ic-flow)}
+  :root.ui2 body.m3on .tab[data-view="industry"]{--ic:var(--ic-industry)}
+  :root.ui2 body.m3on .tab[data-view="heatmap"]{--ic:var(--ic-heatmap)}
+  :root.ui2 body.m3on .mtabmore{--ic:var(--ic-more)}
+  :root.ui2 body.m3on .tab,:root.ui2 body.m3on .mtabmore{color:var(--ink-3);font-weight:600;gap:1px}
+  :root.ui2 body.m3on .tab.on,:root.ui2 body.m3on .mtabmore.on{color:var(--cyan)}
+  /* 選中那顆的淡底膠囊：遮罩只能畫單色，所以膠囊畫在按鈕自己的背景上，位置對準圖示 */
+  :root.ui2 body.m3on .tab.on,:root.ui2 body.m3on .mtabmore.on{
+    background:radial-gradient(closest-side,var(--accent-soft) 99%,transparent) no-repeat center 7px/60px 30px}
+  /* 主軸動線（① 錢往哪跑 ② 貴不貴 ④ 別進的理由） */
+  :root.ui2 body.m3on .mspine{background:var(--head-fade);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  :root.ui2 body.m3on .mspine>button{background:var(--panel);border-color:var(--line)}
+  :root.ui2 body.m3on .mspine>button.on{background:var(--accent-soft);border-color:var(--accent-line);box-shadow:none}
+  :root.ui2 body.m3on .mspine>button.on b{color:var(--ink)}
+  /* 分段列 */
+  :root.ui2 body.m3on .mpager>button{background:var(--panel);border-color:var(--line);color:var(--ink-2)}
+  :root.ui2 body.m3on .mpager>button.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--cyan);font-weight:650}
+  /* 下一步 */
+  :root.ui2 body.m3on .mnext{background:var(--accent-soft);border-color:var(--accent-line);color:var(--cyan);border-radius:14px;font-weight:650}
+  :root.ui2 body.m3on .card{border-radius:16px}
+}
