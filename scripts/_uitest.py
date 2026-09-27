@@ -34207,7 +34207,9 @@ def t_mobile_tap_audit(b, base, code):
     ok("手機按鈕普查：點不到／沒反應／收不回來 0 顆", not P,
        [f"[{r['w']}] {r['page']}｜{r['txt']}｜{r['sel']}｜{r['blocked']}{'｜沒反應' if r['noreact'] else ''}{'｜' + r['noclose'] if r['noclose'] else ''}" for r in P[:30]])
     ok("手機按鈕普查：執行中沒有錯誤（pageerror、切不到分段、中途爆掉）", not res["errors"], res["errors"][:10])
-    notes.append(f"手機按鈕普查：點過 {len(res['rows'])} 顆、觸控目標 < {A.MIN_TOUCH}px 的 {len(res['small'])} 顆（列表見 docs/_mobile_tap/report.md，不算紅燈）")
+    ndg = sum(1 for r in res["rows"] if A.is_dg_part(r) and (r["blocked"] or r["noreact"] or r["noclose"]))
+    notes.append(f"手機按鈕普查：點過 {len(res['rows'])} 顆、觸控目標 < {A.MIN_TOUCH}px 的 {len(res['small'])} 顆、"
+                 f"剖析圖零件圖形點不到或沒反應 {ndg} 列（手機以編號為入口，不算紅燈）—— 列表見 docs/_mobile_tap/report.md")
 
 
 # ★ 2026-09-26 剖析圖覆蓋普查（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」）
