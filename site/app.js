@@ -10883,6 +10883,8 @@
     $('#evToggle').onclick = () => setSide(!side.classList.contains('open'));
     $('#evClose').onclick = () => setSide(false);
     if (back) back.onclick = () => setSide(false);
+    /* 換頁就收：抽屜裡的個股代號一點就是換到個股頁，抽屜還蓋在右半邊的話，使用者要先關掉才看得到剛點開的頁面。*/
+    window.addEventListener('hashchange', () => setSide(false));
     /* 登記進全站「點了才出現的東西」：點抽屜外面（含遮罩）、按 Esc 都收。
        事件鈕自己要排除，不然「按鈕打開 → 同一下被當成點外面」會立刻關掉。*/
     dismissable(side, () => setSide(false), { ignore: ['#evToggle', '#mmEvents', '#moreBtn'],

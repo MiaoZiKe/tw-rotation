@@ -978,6 +978,9 @@ def t_overview(pg, base):
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
 
     # --- 事件面板篩選：筆數要真的變
+    # 2026-09-28 起事件抽屜預設關著（所有寬度都是浮層），先按頂欄「事件」打開
+    if not pg.evaluate("() => document.getElementById('side').classList.contains('open')"):
+        click(pg, "#evToggle", 600)
     cats = pg.evaluate("[...document.querySelectorAll('#evFilters button')].map(b => b.dataset.c)")
     if cats:
         counts = {}
@@ -986,6 +989,7 @@ def t_overview(pg, base):
             counts[c] = count(pg, "#evList .ev")
         ok("事件分類篩選真的會改變筆數", len(set(counts.values())) >= 2, counts)
         click(pg, f'#evFilters button[data-c="{cats[0]}"]', 250)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(400)     # 關掉抽屜，別蓋住後面要點的東西
     else:
         notes.append("事件面板沒有分類鈕")
 
@@ -10507,6 +10511,15 @@ def t_events_drawer(b, base, code):
             ok(f"{T} 關掉再開：捲回頂端", back["st"] == 0, back)
             ok(f"{T} 抽屜設定沒有被記進 localStorage", pg.evaluate(
                 "() => { try { return Object.keys(localStorage).filter(k => /side|evcat|evdate|evfilter/i.test(k)); } catch (e) { return []; } }") == [])
+            # 抽屜裡點個股代號 → 走到個股頁，抽屜自己收起來（不然右半邊還蓋著剛打開的個股頁）
+            lk0 = pg.locator("#evList .ev .m a.lk-stock").first
+            if lk0.count():
+                href = lk0.get_attribute("href")
+                lk0.scroll_into_view_if_needed(timeout=6000); lk0.click(timeout=6000); pg.wait_for_timeout(900)
+                ok(f"{T} 抽屜裡點個股代號 → 真的換到個股頁、抽屜自己收起來",
+                   pg.evaluate("() => location.hash") == href and not pg.evaluate(ST)["open"],
+                   [href, pg.evaluate("() => location.hash"), pg.evaluate(ST)["open"]])
+                pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(900)
             pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
 
             # ⑥ 個股頁：開抽屜前後 K 線圖寬度不變
@@ -29457,7 +29470,8 @@ def t_block_broker(b, base):
         if block_off:
             pg.route("**/blocks/broker_views.js*", lambda r: r.abort())
         pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
-        if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
+        # 2026-09-28 起事件抽屜預設關著，先打開
+        if not pg.evaluate("() => document.getElementById('side').classList.contains('open')"):
             click(pg, "#evToggle", 500)
         return ctx, pg, errs
 
