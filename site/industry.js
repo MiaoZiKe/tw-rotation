@@ -3680,8 +3680,12 @@
           <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
             <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
-          ${window.StockAI ? window.StockAI.line(pg) : ''}
         </div>
+        <!-- ★ 2026-09-27（Andy：「AI 分析 需要在右上角出現，並且技術面 籌碼面 基本面 消息面 用標籤頁切換」）：
+             改前右上只有一行結論（#skAiLine），完整分析是 K 線與分頁之間的長卡（#aiCard）；
+             改後整塊 AI 分析住在這裡（K 線卡右上角，卡片夠寬時是跨「名稱區＋工具列」兩列的右欄），
+             四個面向用標籤頁切換。版面細節與理由見 site/blocks/stock_ai.js 檔頭。-->
+        ${window.StockAI ? '<section class="aipanel" id="skAi" aria-label="AI 分析"></section>' : ''}
         <div class="toolbar" id="skTools" style="margin-top:14px">
           <div class="seg" id="tfSeg">${tfButtons()}</div>
           <button class="btn small" id="tfAdd" title="自訂時間週期">＋</button>
@@ -3713,14 +3717,14 @@
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
         <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每日盤後）</div>
       </div>
-      <!-- ★ 2026-09-26（Andy：「觀望部分需要標示 AI 分析…與多週期合併」）：右上判讀卡（#skVerdict）與
-           「多週期判讀」卡（#mtfCard）合成這一張可收合的「AI 分析」卡（site/blocks/stock_ai.js，積木 stock.mtf）；
-           右上只留一行結論＋四面向標籤（#skAiLine）。那支檔沒載入時兩塊都不畫。-->
+      <!-- #aiCard：只給手機（≤640，mobile v3 分段的「AI 分析」那一段）用的空殼。
+           桌機永遠是空的（CSS #aiCard:empty 收掉，不留黑方塊）；手機由 app.js miaStock 把 #skAi 整個節點搬進來，
+           回到桌機再搬回 K 線卡右上角。改前（09-26）這裡是完整的 AI 分析長卡，09-27 起內容搬到右上角。-->
       ${window.StockAI ? '<div class="card" style="margin-top:var(--gap-card)" id="aiCard"></div>' : ''}
       <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '公告 / 新聞']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div id="stockTab"></div>`;
     setupChart(pg);
-    if (window.StockAI) window.StockAI.mount(pg, $('#aiCard'), A.fmt);
+    if (window.StockAI) window.StockAI.mount(pg, $('#skAi'), A.fmt);
     $$('#stockTabs button').forEach(b => b.onclick = () => { $$('#stockTabs button').forEach(x => x.classList.toggle('on', x === b)); state.tab = b.dataset.t; renderTab(pg, state.tab); });
     renderTab(pg, state.tab);
   }
