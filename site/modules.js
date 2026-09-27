@@ -187,7 +187,7 @@
       "tier": "只准免費", "law": "🔴",
       "at": [
         { "page": "stock", "seg": "AI 分析", "ord": 20, "selector": ["#aiCard"],
-          "note": "2026-09-26 右上判讀卡（#skVerdict）＋多週期判讀卡（#mtfCard）合成一張可收合的 #aiCard，程式在 site/blocks/stock_ai.js，內容由 pipeline/compute/analysis.py 規則產生（不是語言模型）。簡版個股頁沒有 #aiCard —— 抓不到的選擇器會被略過，只剩一段就不畫分段列。" }
+          "note": "2026-09-27 起 AI 分析整塊（#skAi）桌機住在 K 線卡右上角、四個面向用標籤頁切換；#aiCard 只是手機分段用的空殼 —— app.js miaStock 在 ≤640 把 #skAi 節點搬進來，回桌機再搬回 K 線卡（桌機 #aiCard 永遠是空的，CSS :empty 收掉）。改前（09-26）#aiCard 是 K 線與分頁之間的完整長卡。程式在 site/blocks/stock_ai.js，內容由 pipeline/compute/analysis.py 規則產生（不是語言模型）。簡版個股頁沒有 #aiCard —— 抓不到的選擇器會被略過，只剩一段就不畫分段列。" }
       ],
       "tests": ["個股", "個股AI分析0926"] },
 
