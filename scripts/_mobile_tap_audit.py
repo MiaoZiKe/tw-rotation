@@ -159,7 +159,9 @@ ENUM_JS = r"""
     const href = tag === 'a' ? (e.getAttribute('href') || '') : '';
     out.push({i, sel, txt, host: hid, hasSel: tag === 'select' || (tag === 'label' && !!e.querySelector('select, input[type=range]')),
               tbl: tag === 'th' || tag === 'tr', chrome: !!e.closest('header, #tabs, .topbar, .sitefoot, aside#side'),
-              seg: !!e.closest('.mspine, .mpager, #mbTabs, .mbseg, #stockTabs, .mseg, [role=tablist]'), sig: tag + '|' + cls + '|' + hid + '|' + (e.getAttribute('role') || '')
+              // .mnext（「下一步：④ … ›」）也是換分段：點完不帶回原本那一段的話，後面的鈕是在「別的分段」被點到的，
+              // 之後要重開它們開出來的浮層時回到原本那一段就找不到開它的鈕（2026-09-27：總覽「看全部 N 則事件」就是這樣）
+              seg: !!e.closest('.mspine, .mpager, .mnext, #mbTabs, .mbseg, #stockTabs, .mseg, [role=tablist]'), sig: tag + '|' + cls + '|' + hid + '|' + (e.getAttribute('role') || '')
                    // 沒有 class 的鈕（分段列、步驟列）光看標籤分不出來：再加父層的標籤與 class、data 屬性名稱
                    + '|' + (e.parentElement ? e.parentElement.tagName + '.' + [...e.parentElement.classList].filter(c => !STATE.test(c)).sort().join('.') : '')
                    + '|' + Object.keys(e.dataset || {}).filter(k => k !== 'ta').sort().join(','),
@@ -1014,7 +1016,13 @@ class Auditor:
                     pg.touchscreen.tap(p["x"], p["y"]); pg.wait_for_timeout(300); self.settle()
                     if pg.evaluate(MARK_LAYER_JS, layer) and pg.evaluate(LAYER_ON_JS):
                         return True
+                    if attempt and os.environ.get("TW_MTAP_DEBUG"):   # 第一次沒重新載入（可能還停在別頁），失敗是預期的
+                        print(f"        ↻ 重開浮層 {layer} 失敗（第 {attempt + 1} 次）：點了 {opener_key[:50]}，浮層沒出現", flush=True)
                     break
+            else:
+                if attempt and os.environ.get("TW_MTAP_DEBUG"):
+                    print(f"        ↻ 重開浮層 {layer} 失敗（第 {attempt + 1} 次）：找不到開它的那顆 {opener_key[:60]}；"
+                          f"同一種的有 {[k for k in self._keys(items) if k.rsplit('|', 2)[0] == opener_key.rsplit('|', 2)[0]][:3]}", flush=True)
         return False
 
     def run_state(self, st: dict, loaded: bool = False):
