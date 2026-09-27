@@ -225,14 +225,20 @@ def latest_date(sample: tuple[str, str | None] = ("2330", "TWSE")) -> str | None
 # 代價：過去的補不回來 —— 櫃買、台指期的多日分 K 從第一個抓到的交易日開始長。
 #
 # 檔案格式（2026-09-14 17:30 實測，fixture：docs/fixtures/mis_ohlc_tse_20260914.json）：
-#   TSE／OTC：ohlcArray 每分鐘一筆 {t: epoch 毫秒, ts: "090100", c: 指數, s: 該分鐘成交張數}，09:01～13:33
+#   TSE／OTC：ohlcArray 每分鐘一筆 {t: epoch 毫秒, ts: "090100", c: 指數, s: 該分鐘成交**金額（百萬元）**}，09:01～13:33
+#     ★ 2026-09-28 更正：s 以前被當成「張數」。實證：2026-09-24 加權 270 筆 s 加總 736,623
+#       ＝ FinMind TaiwanStockStatisticsOfOrderBookAndTrade 當天 13:30 的 TotalDealMoney（百萬元）736,623，一個不差；
+#       櫃買 s 加總 195,753 百萬元 ≈ FinMind 日線櫃買成交金額 1,948.6 億。fixture 裡 infoArray 的 v（630917）
+#       與 staticObj.tz（630917830610 元）也對得上「百萬元」。
 #   FUT     ：同上但**沒有 ts**，08:46～13:45，s 是口數；證交所這個檔**只有日盤**
 #   infoArray[0]：d 日期（YYYYMMDD）、o/h/l/z 開高低收、y 昨收；staticObj.tv 累計張數
 # 每筆只有「那一分鐘的收盤」，沒有分鐘的高低 —— 所以 1 分 K 是合成的：
 #   開＝前一分鐘的收盤（第一根用 infoArray 的開盤），高低＝開收兩者的極值（跟前端 toBars 同一個口徑）。
 
 CHART_TZ = "Asia/Taipei"
-# 量的單位跟 index_ohlc 對齊：指數存「股」（張 × 1000），台指期存「口」。前端 volUnit() 同一個口徑。
+# 量的單位：台指期存「口」。指數（TSE／OTC）的 s 是成交金額（百萬元，見上方更正），× 1000 存進湖 ＝「千元」。
+# ⚠ 資料湖只增不改，2026-09-24 起已經照這個倍數存了，所以**倍數不能改**；改的是解讀：
+#   compute/intraday_bars.build() 把 TSE／OTC 的 1 分 K 量 × 1000 換成「元」吐給前端（跟 index_ohlc.json 的成交金額同單位）。
 CHART_VOL_UNIT = {"TSE": 1000, "OTC": 1000, "FUT": 1}
 # 每個檔「合理的」時間窗（台北牆鐘分鐘數）。落在窗外的點丟掉；超過 5% 落在窗外就整檔不收 ——
 # 那代表時間戳的語意變了（例如某天 t 改成台北時間的 epoch），寫進只增不改的資料湖就再也洗不掉。

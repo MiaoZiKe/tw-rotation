@@ -16,7 +16,7 @@ on:
       probe:
         description: "要探測哪一組"
         type: choice
-        options: [material_news, taifex_night, jin10, index_intraday]
+        options: [material_news, taifex_night, jin10, index_intraday, index_intraday_sample]
         default: taifex_night
 
 permissions:
@@ -51,6 +51,8 @@ jobs:
         run: |
           if [ "${{ inputs.probe }}" = "index_intraday" ]; then
             python scripts/probe_index_intraday.py
+          elif [ "${{ inputs.probe }}" = "index_intraday_sample" ]; then
+            python scripts/probe_index_intraday.py sample
           else
             python scripts/probe_sources.py "${{ inputs.probe }}"
           fi

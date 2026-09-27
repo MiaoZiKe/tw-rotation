@@ -25,7 +25,7 @@ from pipeline import config  # noqa: E402
 from pipeline.util import http  # noqa: E402
 
 OUT = ROOT / "docs" / "fixtures" / "index_intraday_probe.json"
-DAY = sys.argv[1] if len(sys.argv) > 1 else "2026-09-24"
+DAY = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] != "sample" else "2026-09-24"
 OLD_DAY = "2024-09-24"     # 兩年前那天拿不拿得到（決定能回補多長）
 
 
@@ -81,7 +81,44 @@ def yh(sym: str, interval: str, period: str) -> dict:
     return rec
 
 
+def sample() -> None:
+    """用**正式程式碼**（改好的 yahoo.index_intraday 與 finmind.tse_minute_bars）真的抓一輪，存成 fixture，
+    讓容器裡能用真資料重算 payload、跑前端驗收（容器連不到 Yahoo／FinMind）。"""
+    import pandas as pd
+    from pipeline.sources import finmind, yahoo
+    from pipeline.util import store
+    parts = [yahoo.index_intraday("60m", "730d"), yahoo.index_intraday("15m", "60d")]
+    ohlc = store.read("index_ohlc")
+    tse = ohlc[ohlc["symbol"].astype(str) == "TSE"].sort_values("date")
+    days = [str(d)[:10] for d in tse["date"].tail(12)]
+    report = {"yahoo": {}, "finmind": {}}
+    for p_ in parts:
+        if not p_.empty:
+            for (sym, iv), g in p_.groupby(["symbol", "interval"]):
+                report["yahoo"][f"{sym}|{iv}"] = {"n": int(len(g)), "first": str(g["ts"].min()),
+                                                  "last": str(g["ts"].max())}
+    for d in days:
+        f = finmind.tse_minute_bars(d)
+        row = tse[tse["date"].astype(str).str[:10] == d]
+        official = float(row["turnover"].iloc[0]) if len(row) else None
+        report["finmind"][d] = {"n": int(len(f)), "money_yuan": float(f["volume"].sum() * 1000) if len(f) else 0.0,
+                                "official_turnover": official}
+        if not f.empty:
+            parts.append(f)
+    df = pd.concat([p_ for p_ in parts if not p_.empty], ignore_index=True)
+    src = df["src"].astype(str) if "src" in df.columns else pd.Series("", index=df.index)
+    df = df[(df["symbol"].astype(str) == "OTC") | (src == "finmind")]   # 加權 Yahoo 湖裡本來就有，不重存
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(ROOT / "docs" / "fixtures" / "index_intraday_sample.parquet", index=False)
+    (ROOT / "docs" / "fixtures" / "index_intraday_sample_probe.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(json.dumps(report, ensure_ascii=False)[:4000])
+
+
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "sample":
+        sample()
+        return
     out: dict = {"token_set": bool(config.FINMIND_TOKEN), "day": DAY, "finmind": [], "yahoo": []}
     for ds in ("TaiwanStockEvery5SecondsIndex", "TaiwanVariousIndicators5Seconds",
                "TaiwanStockStatisticsOfOrderBookAndTrade"):
