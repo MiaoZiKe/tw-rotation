@@ -5596,7 +5596,8 @@
         const ht = $('#hoTbl', el);
         if (ht) {
           const hr = ho.slice().reverse();
-          ht.innerHTML = `<table><thead><tr><th class="l">日期</th><th>千張大戶</th><th>400–1000 張</th><th>散戶 ≤10 張</th><th>股東人數</th></tr></thead><tbody>${hr.map(r => `<tr><td class="l mono">${String(r[0]).slice(5)}</td><td class="num">${r[1] == null ? '—' : A.fmt.n(r[1], 2) + '%'}</td><td class="num">${r[2] == null ? '—' : A.fmt.n(r[2], 2) + '%'}</td><td class="num">${r[3] == null ? '—' : A.fmt.n(r[3], 2) + '%'}</td><td class="num">${r[4] == null ? '—' : A.fmt.i(r[4])}</td></tr>`).join('')}</tbody></table><div class="note hoInsider" style="margin-top:4px">內部人（董監）持股：目前沒有經查證的合規來源，暫不提供。</div>`;
+          ht.innerHTML = `<table><thead><tr><th class="l">日期</th><th>千張大戶</th><th>400–1000 張</th><th>散戶 ≤10 張</th><th>股東人數</th></tr></thead><tbody>${hr.map(r => `<tr><td class="l mono">${String(r[0]).slice(5)}</td><td class="num">${r[1] == null ? '—' : A.fmt.n(r[1], 2) + '%'}</td><td class="num">${r[2] == null ? '—' : A.fmt.n(r[2], 2) + '%'}</td><td class="num">${r[3] == null ? '—' : A.fmt.n(r[3], 2) + '%'}</td><td class="num">${r[4] == null ? '—' : A.fmt.i(r[4])}</td></tr>`).join('')}</tbody></table>${(() => { const im = ((pg.insider || {}).monthly || []).slice(-6).reverse();
+            return im.length ? `<div class="note hoInsider" style="margin-top:4px">董監持股（每月申報，新的在前）：${im.map(x => `${A.fmt.esc(x.ym)} ${x.director_pct != null ? A.fmt.n(x.director_pct, 2) + '%' : '—'}`).join('、')}</div>` : ''; })()}`;
         }
         /* 股東人數：每週增減的長條（跟上一週比），紅＝增加、綠＝減少（台股紅漲綠跌：數字變大用紅）。
            上一週若在視窗外、但湖裡有，照樣拿來比；整個湖的第一週沒有上一週 → 不畫那根。 */
