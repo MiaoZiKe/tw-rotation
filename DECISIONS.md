@@ -4345,3 +4345,8 @@ CEO 預設建議 Firebase（Auth＋Firestore＋Realtime Database），並授權�
 7. 隱私權政策（site/legal.js）只有在功能開啟時才多出四列與保存期限，跟 `worker.js` 檔頭、`account.js` 的登入前告知三處一致；改一處要改三處。
 8. 驗收：`node --test workers/account-api/tests/account.test.mjs`（19 條：R1～R6 每條允許＋拒絕、保存期限、白名單三邊一致）；`_uitest`「會員與自選五分頁」（沒設定檔）、「會員雲端路徑」（本機跑真的 worker.js＋假 Google，devserver.mjs）。**沒驗到**：真的 Google 登入頁、Cloudflare 實際部署（容器連不到）。
 規格與事件清單：docs/account_analytics.md。設定步驟：docs/login_setup.md。
+
+## #271 今日事件改全寬度預設收起的浮層抽屜；拿掉「⤢ 寬版」（CEO，2026-09-28）
+Andy：「以後今日事件 Default 先隱藏，出來的形式如圖片提供，他不會擠壓到整體版面，並且點擊背景後可以消失，今日事件內的設定有回到 Default 狀態」＋「K線圖上的紅框 "寬版" 拿掉」。
+- 所有寬度預設收起、主內容吃滿；按頂欄「事件」從右側滑出浮層（min(420px,92vw)，頂欄下方起），遮罩／Esc／× 關，換頁自動收，每次打開篩選與捲動回預設、不存 localStorage。
+- 「⤢ 寬版」唯一作用是收事件欄，已無意義 → 移除；K 線高度沿用寬版那組。推翻 #101／#103 的寬版鈕與 #248 的放寬還原。設計 v4 原型的「1600 以下浮層」門檻以本條為準。

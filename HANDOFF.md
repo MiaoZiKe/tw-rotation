@@ -3242,3 +3242,8 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - backfill_progress：inst（2016 起）、daytrade+sbl（2025 起，scope=universe 前 500 檔）、dividend+divresult（2009 起）三步都 done（17:23 UTC）；18:26 那輪 16 秒即跳過＝已補齊。補觸發排程停止。
 - ⚠ 更正：三步的 scope 都是 universe（成交值前 500 檔），實際只補到 inst_daily 781 檔、daytrade 498 檔，前 500 名以外的個股頁法人／資券／除權息仍空。已派 agent 加 scope=market（全市場）並換新進度鍵（claude/backfill-market）。
 - 09-28 03:1x 合併 backfill-market：scope=market（1,980 檔上市＋上櫃普通股），三步完成鍵改 `…@market`、逐檔 done 鍵沿用不重抓；每日續補改全市場、上限 1,500 次／天；backfill.yml 守門看 @market 鍵。還要約 7,340 次、15 輪、15～18 小時。驗了：pytest 796 passed（分支上，與 main 差異只有資料與 HANDOFF）。
+
+### 09-28 清晨 今日事件浮層抽屜（events-drawer，DECISIONS 新號）
+- 全寬度預設收起、浮層抽屜、遮罩／Esc／× 關、換頁收、重開回預設；修 `.ev .m` 不換行撐寬（604 vs 359px）與無簡稱代號印兩次；移除寬版鈕與 `.layout.noside`／`body.kwide`／`tw.side`。
+- 頂欄重影（Andy 截圖 177）無頭瀏覽器重現不出，推斷是舊 sticky 側欄疊在 backdrop-filter 下的繪圖殘影，待 Andy 確認。
+- 這批驗了：今日事件浮層（5 寬度）／今日事件／總覽／點外面就關／新-版面等高與多寬度／手機／手機按鈕普查／個股／積木-券商觀點 0（分支上）；合併後 _preview 綠。
