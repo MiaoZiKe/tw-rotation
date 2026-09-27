@@ -113,3 +113,108 @@ def material_news() -> pd.DataFrame:
     if not frames:
         return pd.DataFrame()
     return pd.concat(frames, ignore_index=True).drop_duplicates(subset=["news_id"])
+
+
+# ================================================================ 董監事持股（2026-09-27）
+# Andy 的券商 App「大戶」分頁有一欄「內部人持股」、右上一顆「董監持股」。
+# 來源：證交所 OpenAPI /opendata/t187ap11_L「上市公司董監事持股餘額明細資料」（政府資料開放平臺 資料集 22811，
+# 政府資料開放授權條款第 1 版 —— 跟 t187ap03／04／05／14 同一類，見 docs/source_whitelist_taifex_tpex.md 的判準）；
+# 上櫃同一份申報在櫃買 OpenAPI 叫 mopsfin_t187ap11_O。**每月一次**（次月 20 日前後公布上個月底的餘額），只給最新一個月。
+# ⚠ 欄位是 WebSearch 摘要列出來的（出表日期、資料年月、公司代號、公司名稱、職稱、姓名、選任時持股、目前持股、
+#   設質股數、設質股數佔持股比例、內部人關係人目前持股合計…），**容器連不到 openapi，沒有實測過**。
+#   所以 parser 對鍵名寬鬆（去空白、幾個別名都試），必要欄位缺了就回空並把看到的鍵名記進 log，
+#   第一次在 Actions 跑完看 log 就知道對不對 —— 回空不會弄壞任何東西（個股頁那一格顯示「尚無資料」）。
+INSIDER_ENDPOINTS = [
+    ("TWSE", config.TWSE_OPENAPI + "/opendata/t187ap11_L"),
+    ("TPEX", config.TPEX_OPENAPI + "/mopsfin_t187ap11_O"),
+]
+
+
+def _num(v) -> float | None:
+    s = str(v if v is not None else "").replace(",", "").strip()
+    try:
+        return float(s) if s not in ("", "-", "--") else None
+    except ValueError:
+        return None
+
+
+def _norm_keys(r: dict) -> dict:
+    return {str(k).strip().replace(" ", ""): v for k, v in r.items()}
+
+
+def _is_director(title: str) -> bool:
+    """董事（含董事長、副董事長、獨立董事、法人董事與其代表人）或監察人。經理人、大股東不算董監。"""
+    t = str(title or "")
+    return ("董事" in t) or ("監察人" in t)
+
+
+def parse_insider(rows: list[dict], market: str) -> pd.DataFrame:
+    """董監事持股明細 → **每家公司每月一列**的彙總（不存個人姓名：頁面只要合計，姓名留在官方原檔）。
+
+    欄位：ym（YYYY-MM，資料年月）、code、market、
+      director_shares  ＝ 職稱含「董事」或「監察人」的「目前持股」合計（股）
+      insider_shares   ＝ 全部列的「目前持股」合計（這個資料集若含經理人／大股東，也一起算）
+      director_pledged ＝ 董監的設質股數合計（股）
+      n_directors、n_rows
+    去重：同一家公司同一個姓名出現多列（一人兼兩個職稱）只算一次、取最大的那一列 ——
+      重複計算會讓比例超過 100%（網路上已經有人踩過）。法人董事與其代表人是不同的持有人，各算各的。
+    例外：資料年月、公司代號、目前持股任一個解析不出來的列丟掉；全部丟光回空 DataFrame 並把鍵名記進 log。
+    """
+    recs = []
+    for raw in rows or []:
+        if not isinstance(raw, dict):
+            continue
+        r = _norm_keys(raw)
+        code = clean_code(r.get("公司代號") or r.get("SecuritiesCompanyCode"))
+        ym = r.get("資料年月") or r.get("年月")
+        cur = _num(r.get("目前持股") if r.get("目前持股") is not None else r.get("目前持股數"))
+        if not code or ym is None or cur is None:
+            continue
+        s = "".join(ch for ch in str(ym) if ch.isdigit())
+        if len(s) < 5:
+            continue
+        y, m = int(s[:-2]), int(s[-2:])
+        if y < 1911:
+            y += 1911                      # 民國年
+        if not 1 <= m <= 12:
+            continue
+        recs.append({"ym": f"{y:04d}-{m:02d}", "code": code, "title": str(r.get("職稱") or ""),
+                     "name": str(r.get("姓名") or "").strip(), "cur": cur,
+                     "pledged": _num(r.get("設質股數")) or 0.0})
+    if not recs:
+        if rows:
+            first = next((x for x in rows if isinstance(x, dict)), {})
+            log.warning("董監持股 %s：%d 列都解析不出來（鍵名：%s）", market, len(rows),
+                        sorted(_norm_keys(first).keys())[:20])
+        return pd.DataFrame()
+    d = pd.DataFrame(recs)
+    d["dir"] = d["title"].map(_is_director)
+    # 同名只算一次（沒寫姓名的列無法判斷是不是同一人，照列算）；兼任時董監身分優先保留
+    named = d[d["name"] != ""].sort_values(["dir", "cur"]).drop_duplicates(["ym", "code", "name"], keep="last")
+    d = pd.concat([named, d[d["name"] == ""]], ignore_index=True)
+    out = []
+    for (ym, code), g in d.groupby(["ym", "code"]):
+        gd = g[g["dir"]]
+        out.append({"ym": ym, "code": code, "market": market,
+                    "director_shares": float(gd["cur"].sum()) if len(gd) else None,
+                    "director_pledged": float(gd["pledged"].sum()) if len(gd) else None,
+                    "insider_shares": float(g["cur"].sum()),
+                    "n_directors": int(len(gd)), "n_rows": int(len(g))})
+    return pd.DataFrame(out)
+
+
+def insider_holdings() -> pd.DataFrame:
+    """上市＋上櫃的董監事持股（每家公司每月一列）。任一邊失敗只回另一邊，兩邊都失敗回空。"""
+    frames = []
+    for market, url in INSIDER_ENDPOINTS:
+        data = http.get(url)
+        if not isinstance(data, list) or not data:
+            log.warning("董監持股 %s 沒有資料（%s）", market, url)
+            continue
+        df = parse_insider(data, market)
+        if not df.empty:
+            frames.append(df)
+            log.info("董監持股 %s：%d 家、資料年月 %s", market, len(df), sorted(df["ym"].unique())[-1])
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True).drop_duplicates(["ym", "code"], keep="first")

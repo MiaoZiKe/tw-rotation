@@ -240,6 +240,10 @@ def two_step_plan(monkeypatch):
                         lambda s, end=None, wait=True: pd.DataFrame(
                             {"date": ["2000-01-04"], "symbol": ["FUT"], "open": [1.0], "high": [1.0],
                              "low": [1.0], "close": [1.0], "change": [0.0], "volume": [1.0], "turnover": [1.0]}))
+    # ★ 2026-09-27：run_plan 在指數歷史之後還會補大盤分 K（backfill_index_intraday → Yahoo／FinMind 台指期逐筆），
+    #   以前沒擋，這幾支測試會真的連外網；容器被出口代理擋掉時每次請求都要重試退避，
+    #   完整 pytest 卡在這裡十幾分鐘。計畫測試驗的是逐檔那幾步，分 K 另有專屬測試，這裡直接當作補完。
+    monkeypatch.setattr(run_backfill, "backfill_index_intraday", lambda prog, *a, **k: True)
     return steps
 
 

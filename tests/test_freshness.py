@@ -21,6 +21,7 @@ EVENING_ONLY = [
     "twse.financial", "twse.dividend", "twse.dividend_events",
     "tdcc.shareholding", "macro.intl", "macro.fred",
     "finmind.institutional",
+    "mops.insider_holdings",       # 董監持股每月一次，傍晚那輪抓就好（2026-09-27）
 ]
 # 不管哪一輪都要抓的（這就是「當天資料當天到」的最低限度）。
 # news.collect 在 2026-09-15 從 EVENING_ONLY 移過來：新聞整天都在更新、又不吃額度，
@@ -68,6 +69,10 @@ def rd(tmp_path, monkeypatch):
     monkeypatch.setattr(run_daily.finmind, "stock_info", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily, "fetch_institutional", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily, "refresh_financials", lambda *a, **k: empty)
+    # ★ 2026-09-27：公開資訊觀測站兩支（重大訊息、董監持股）以前沒換掉，測試會真的連 openapi ——
+    #   容器被出口代理擋掉時每支要重試退避好幾輪，完整 pytest 卡在這裡十幾分鐘。
+    monkeypatch.setattr(run_daily.mops, "material_news", lambda *a, **k: empty)
+    monkeypatch.setattr(run_daily.mops, "insider_holdings", lambda *a, **k: empty)
 
     run_daily.RESULT.clear()
     run_daily.RESULT.update({"steps": {}, "errors": [], "empty": []})
