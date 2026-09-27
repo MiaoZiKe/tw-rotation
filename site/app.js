@@ -2248,6 +2248,15 @@
       window.scrollTo({ top: 0 });
       return;
     }
+    /* ★ 2026-09-27 管理頁 #admin（使用統計、線上名單）交給 site/account.js（DECISIONS #270）。跟法律頁同一個接法。*/
+    if (window.TwAccount && window.TwAccount.route(head) === 'admin') {
+      $$('.tab').forEach(t => t.classList.remove('on'));
+      $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-admin'));
+      _lastPageKey = 'admin'; _miaKey = 'admin';
+      try { applyMobileIA('admin'); } catch (e) { /* 忽略 */ }
+      window.scrollTo({ top: 0 });
+      return;
+    }
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     /* 近期搜尋（2026-09-26）：進個股頁就記一筆 —— 不管是從搜尋點進來、從別的圖點進來、還是直接貼網址。
        只記全市場索引裡找得到的代號（打錯的代號會走「找不到代號」，不該留在紀錄裡）。*/

@@ -4319,3 +4319,29 @@ Andy 原話：「以上建議OK」，回應 09-27 09:51 的整批回報。以下
 4. 手機個股頁：保留最後的「完整版」分頁；「籌碼（集保）」和「大戶（主力替代）」分兩頁；觀察清單空的時候只有一顆「＋ 觀察」；當沖／借券未回補時分段照樣出現並寫原因；除權息關鍵數字改叫「現價殖利率」。
 5. 台指近全漲跌對上一段收盤（資料湖沒有前一日結算價），會跟券商 App 略有差距。
 6. 相關 ETF、權證、台灣 50／MSCI、集團、紀念品、股息再投入：沒有合規來源或屬試算工具，不做（#267、#268）。主力分點不做，用 main_proxy 替代並標明。
+
+## #270 會員登入／自選清單五分頁／使用統計／線上人數：Cloudflare Worker ＋ Durable Object ＋ Google OAuth，不用 Firebase（UI 專家，2026-09-27）
+Andy 原話：「使用者透過google登入設定，目的是能紀錄線上使用狀況，新增每頁使用功能狀況，更能知道哪個功能更受歡迎，新增線上人數，知道目前有誰使用，新增自選清單並且可以新增五個分頁」。
+CEO 預設建議 Firebase（Auth＋Firestore＋Realtime Database），並授權「查證後認為 Cloudflare 更好可以改，要寫明取捨」。**改用 Cloudflare**，取捨如下：
+
+| 面向 | Firebase（Spark 免費） | Cloudflare Worker ＋ Durable Object（採用） |
+|---|---|---|
+| Andy 公司網路 | 要連 firebaseio.com（WebSocket）、apis.google.com（登入 iframe）、<專案>.firebaseapp.com —— **連不連得到未知** | workers.dev **已知連得到**（即時報價代理 tw-quote 天天在用）；只有登入那一下要連 accounts.google.com（兩案都一樣） |
+| 前端體積 | 要把 Firebase SDK 放進 site/vendor/（modular 要自己打包，compat 數百 KB） | **零 SDK**，全部 fetch；訪客的統計與線上人數也不必載任何函式庫 |
+| 保存期限真的會刪 | 排程函式要 Blaze（綁卡）；Spark 只能靠人手動清 | Durable Object 的 alarm 免費，每小時清一次（統計 13 個月、線上 3 分鐘、會員 24 個月未用） |
+| 額度 | Firestore 每天 2 萬次寫入（每次計數都是寫入）；RTDB 同時 100 條連線 | 每天 10 萬次請求（與報價代理共用）、DO 每天 10 萬列寫入、500 萬列讀取、1 GB；前端每分鐘一次心跳把計數與在線合併送，1 人 8 小時 ≈ 480 次 |
+| 「統計只能遞增不能讀」「管理者才讀得到」 | 安全規則可做，但訪客遞增得開放未登入寫入，而且規則無法逐鍵迴圈，白名單要手寫進規則 | 伺服器端程式直接檢查（白名單、每鍵 1～50、最多 40 鍵），一般人**根本沒有讀的端點**；管理者名單是 Worker Secret |
+| 維護 | 規則、兩個資料庫、授權網域分三處設定 | 一支 worker.js；部署沿用既有 CLOUDFLARE_API_TOKEN（DO 跟著 Worker 部署，不用另建資料庫）；Actions 自動部署＋部署前跑 19 條存取控制測試 |
+| 自己寫的風險 | 登入交給 SDK，成熟 | **要自己寫 OAuth**（授權碼＋PKCE＋state＋nonce＋同瀏覽器 cookie），風險較高 → 用 19 條測試逐條驗允許與拒絕，並由 Worker 直接跟 Google token 端點換 id_token（OIDC Core §3.1.3.7-6：經 TLS 直接取得者可不驗簽章，其餘 iss／aud／exp／nonce／email_verified 全驗） |
+| Andy 要設定的步數 | 約 8 步（建專案、開 Google 登入、授權網域、Web App、兩個資料庫、貼兩份規則、建管理者文件、Secret） | 6 步（第 1 步已完成；Google OAuth 用戶端、3 個 Secret、跑兩次 workflow），docs/login_setup.md |
+
+定案的細節（不要重新討論）：
+1. **沒有設定就整個關閉**：前端讀 `site/account_config.js`（repo 裡永遠是 `api: ''`；pages.yml 依 Secret `ACCOUNT_API_URL` 覆寫部署產物，網址不進版控）；空的 → 沒有登入鈕、不送任何統計、不連任何外部服務。所以可以先部署。不用 `data/account.json`：沒設定時會 404，每一頁主控台多一行紅字（_preview 會抓）。
+2. **管理者白名單**不寫在 repo：Secret `ACCOUNT_ADMIN_EMAILS` → Worker Secret `ADMIN_EMAILS`。權杖簽章金鑰由 Durable Object 第一次啟動時自己產生、存在自己的儲存裡（少一個要人設的 Secret）。
+3. **蒐集最小化**：Google 帳號識別碼只存金鑰雜湊；統計只存「台北日期 × 鍵 × 次數」（usage 表只有三欄，測試釘住），不存 IP、不存單次點擊；線上用每分頁一組 sessionStorage 隨機碼（不跨造訪）。**瀏覽器開 DNT／GPC 就完全不送統計與心跳**（Andy 可能會嫌數字偏低，但這是對「請勿追蹤」的基本尊重）。
+4. **自選清單**：最多 5 頁、每頁 50 檔、名字 12 字；只存代號與清單名（**不存張數、成本、損益**，Worker 會丟掉多帶的欄位）。舊 `tw.watch` 搬進第 1 頁後刪掉舊鍵。首次登入把本機清單**合併**上雲（同名取聯集、不同名接後面、滿五頁併進同位置），成功後清空本機那份；登出刪掉雲端快取換回本機清單（共用電腦不留別人的清單）。兩台同時改以版本號判斷，後到的收 409 換成雲端版本。
+5. **線上人數**：預設對所有人公開「只有數字」；管理者可在 `#admin` 關掉。名字只有管理者看得到，而且只列登入者，訪客只算人數。
+6. **UI 用現有樣式做到可用**（頂欄「★ 自選」＋登入鈕；≤640 收進「⋯」清單；桌機個股頁名稱旁 ☆ 用 MutationObserver 插入、不改 industry.js），視覺之後交給產品設計總監（`claude/design-v4`）統一。
+7. 隱私權政策（site/legal.js）只有在功能開啟時才多出四列與保存期限，跟 `worker.js` 檔頭、`account.js` 的登入前告知三處一致；改一處要改三處。
+8. 驗收：`node --test workers/account-api/tests/account.test.mjs`（19 條：R1～R6 每條允許＋拒絕、保存期限、白名單三邊一致）；`_uitest`「會員與自選五分頁」（沒設定檔）、「會員雲端路徑」（本機跑真的 worker.js＋假 Google，devserver.mjs）。**沒驗到**：真的 Google 登入頁、Cloudflare 實際部署（容器連不到）。
+規格與事件清單：docs/account_analytics.md。設定步驟：docs/login_setup.md。

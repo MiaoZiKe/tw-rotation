@@ -4589,6 +4589,11 @@ h3 .howbtn.pop{font-family:inherit}
      route() 第一次跑的時候就要問得到 window.TwLegal。 -->
 <script src="legal_config.js"></script>
 <script src="legal.js"></script>
+<!-- ★ 2026-09-27 會員登入／自選五分頁／使用統計（DECISIONS #270）。account_config.js 的 api 是空的（repo 裡永遠是空的，部署時依 Secret 覆寫）就只剩本機自選清單，
+     不連任何外部服務。必須在 app.js 之前：route() 第一次跑就要問得到 window.TwAccount（#admin）；mobile3.js 要用 window.TwWatch。 -->
+<script src="watchlists.js"></script>
+<script src="account_config.js"></script>
+<script src="account.js"></script>
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="flowtopo.js"></script>
 <script src="app.js"></script>

@@ -1,0 +1,25 @@
+# 會員登入／自選清單／使用統計／線上人數（DECISIONS #270、docs/login_setup.md）
+# 部署：.github/workflows/deploy-account-worker.yml（推上 main 自動部署；沒設 Google 金鑰時跳過並印待辦）
+name = "tw-account"
+main = "worker.js"
+compatibility_date = "2026-09-27"
+workers_dev = true
+
+# 只有這些網站可以呼叫（CORS ＋ POST 的 Origin 檢查 ＋ 登入完成後可以回去的網址）。
+# 這不是金鑰，是公開的網域白名單。
+[vars]
+ALLOWED_ORIGINS = "https://miaozike.github.io"
+
+# 單一 Durable Object（SQLite 儲存）。免費方案可用：每天 10 萬列寫入、500 萬列讀取、1 GB。
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub"]
+
+# 以下三個是 Secret，不寫在這裡（由 GitHub Actions 從 repo Secret 帶進去，見 docs/login_setup.md）：
+#   GOOGLE_CLIENT_ID      Google OAuth 用戶端 ID
+#   GOOGLE_CLIENT_SECRET  Google OAuth 用戶端密碼
+#   ADMIN_EMAILS          管理者 email（逗號分隔），只有這些人看得到 #admin 的報表與線上名單
