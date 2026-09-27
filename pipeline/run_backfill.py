@@ -34,7 +34,7 @@ PROGRESS = config.STATE / "backfill_progress.json"
 
 # 各資料集鍵（--datasets 用的名字）；summary 與 main() 的合計都照這張表
 DATA_KEYS = ("price", "inst", "per", "revenue", "financial", "balance",
-             "dividend", "divresult", "margin", "holding")
+             "dividend", "divresult", "margin", "holding", "daytrade", "sbl")
 
 # ETF / 指數型商品沒有財報、月營收、本益比、股利公告可抓（ETF 其實有配息，先不抓），
 # 逐檔去問只是在燒額度；融資券與股權分散 ETF 有，要抓
@@ -47,6 +47,19 @@ PLAN_DEFAULT = [
     {"datasets": "dividend+divresult",        "start": "2016-01-01", "scope": "universe"},
     {"datasets": "margin+holding",            "start": "2021-01-01", "scope": "universe"},
     {"datasets": "price",                     "start": "2000-01-01", "scope": "groups"},
+    # ★ 2026-09-27（個股頁數據普查）：三大法人**從來不在計畫裡**。每日管線只補成交值前 500 檔
+    #   （run_daily.fetch_institutional，UNIVERSE_SIZE），更早的一次性回補也只跑到 401 檔 ——
+    #   實測 1,980 檔普通股裡 1,626 檔的 inst_daily 一列都沒有，個股頁「三大法人」整張不出現。
+    #   一檔一次請求（FinMind TaiwanStockInstitutionalInvestorsBuySell，免費層可用），約 1,600 次、3～4 輪補完。
+    #   補完之後的每日更新見 refresh_stale_inst()。
+    {"datasets": "inst",                      "start": "2016-01-01", "scope": "universe"},
+    # ★ 2026-09-27：當沖與借券賣出（籌碼分頁照 Andy 的券商 App 截圖補）。只補到 2025 年起 ——
+    #   籌碼分頁最長看 1 年（約 250 個交易日），更早的用不到；一檔一次請求 × 兩個資料集。
+    {"datasets": "daytrade+sbl",              "start": "2025-01-01", "scope": "universe"},
+    # ★ 2026-09-27（Andy：「除權息時間軸往前拉到 2009」）：股利公告與除權息結果再往前補 2009～2015。
+    #   done 鍵是「dividend@2009-01-01:<代號>」，build_payload.dividend_cover_years 看這個鍵決定年度圖從哪年畫起。
+    #   約 2,300 檔 × 2 次請求，每小時 ~500 次，約 9～10 輪補完。
+    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "universe"},
 ]
 PLANS = {"default": PLAN_DEFAULT}
 TAIPEI = timezone(timedelta(hours=8))
@@ -263,6 +276,8 @@ def run(datasets: str, limit: int | None, start: str, *,
         ("divresult", "dividend_results", lambda c: finmind.dividend_results(c, start, wait=False)),
         ("margin", "margin_daily", lambda c: finmind.margin_history(c, start, wait=False)),
         ("holding", "shareholding_weekly", lambda c: finmind.holding_history(c, start, wait=False)),
+        ("daytrade", "daytrade_daily", lambda c: finmind.day_trading(c, start, wait=False)),
+        ("sbl", "sbl_daily", lambda c: finmind.short_sale_balances(c, start, wait=False)),
     ]
 
     # key -> 這一輪回空的 done_key 清單；key -> 這一輪至少拿到過一次資料
@@ -420,6 +435,73 @@ def monthly_step(today: date | None = None) -> dict:
 
 
 INDEX_START = "2000-01-01"
+INST_FRESH_DAYS = 14      # 法人每日續補往回抓幾天（涵蓋連假；一檔仍只算一次請求）
+# 每日續補的表：(回補資料集鍵, 資料湖表)。順序＝額度不夠時的優先序（法人最重要）。
+FRESH_TABLES = (("inst", "inst_daily"), ("daytrade", "daytrade_daily"), ("sbl", "sbl_daily"))
+
+
+def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str]) -> tuple[str | None, list[str]]:
+    """哪些股票的三大法人落後了：回傳 (最新交易日, 代號清單)。
+
+    判準（刻意保守，避免把額度燒在「本來就不會有資料」的股票上）：
+    - 最新交易日＝price_daily 的最大日期（**用資料裡的日期，不用執行當下的日期**）；
+    - 那天有成交（停牌股不問）；
+    - inst_daily 裡**已經有**這一檔（一列都沒有的交給計畫的歷史步驟，回空會記 done，不會每天重問）；
+    - 而且它最後一天 < 最新交易日。
+    每日管線補的前 500 檔自然已經是最新的，不會被選進來。
+    """
+    if price is None or price.empty or inst is None or inst.empty:
+        return None, []
+    latest = str(price["date"].astype(str).max())
+    traded = set(price.loc[price["date"].astype(str) == latest, "code"].astype(str))
+    last = inst.assign(code=inst["code"].astype(str), date=inst["date"].astype(str)).groupby("code")["date"].max()
+    out = [c for c in universe if c in traded and c in last.index and last[c] < latest]
+    return latest, out
+
+
+def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None = None) -> bool:
+    """三大法人的每日續補：每日管線只顧前 500 檔，其餘股票在這裡每天補一次（2026-09-27）。
+
+    為什麼不塞進 PLAN_DEFAULT：計畫的完成旗標以「月」為單位（plan_is_done），
+    每天都要做的事放進去會讓計畫永遠不算完成；照 backfill_indices 的做法另外記
+    `complete["inst_fresh"] = {done, date}`，工作流的守門也看這個旗標（當天沒做完就放行一輪）。
+    額度：一檔一次，約 1,500 次／交易日，分散在每小時的回補裡；額度用完就停，下一輪接續。
+    """
+    today = today or datetime.now(TAIPEI).date()
+    flag = (prog.get("complete") or {}).get("inst_fresh")
+    if isinstance(flag, dict) and flag.get("done") and flag.get("date") == today.isoformat():
+        return True
+    if http.finmind_budget_left() <= 1:
+        return False
+    price = store.read("price_daily")
+    universe = target_codes(limit)
+    ok, latest, n_codes = True, None, {}
+    # 當沖、借券賣出（2026-09-27）同一套：歷史步驟補過的股票，之後每天在這裡續補
+    for key, table in FRESH_TABLES:
+        if http.finmind_budget_left() <= 1:
+            ok = False
+            break
+        lt, codes = stale_inst_codes(store.read(table), price, universe)
+        latest = latest or lt
+        n_codes[key] = len(codes)
+        if not codes:
+            continue
+        start = (pd.Timestamp(lt) - pd.Timedelta(days=INST_FRESH_DAYS)).date().isoformat()
+        log.info("%s 每日續補：%d 檔落後於 %s（從 %s 起抓）", key, len(codes), lt, start)
+        s = run(key, None, start, codes=codes, datasets_key=f"{key}@fresh{lt}",
+                tag=f"fresh{lt}", respect_time=False)
+        ok = ok and bool(s.get("finished"))
+        if s.get("exhausted"):
+            break
+    prog = _progress()
+    # 續補的 done 鍵一天一組（<key>@fresh<日期>:<代號>），舊的留著只會讓進度檔每天多 1,500 個鍵
+    prog["done"] = {k: v for k, v in (prog.get("done") or {}).items()
+                    if "@fresh" not in k or f"@fresh{latest}:" in k}
+    prog.setdefault("complete", {})["inst_fresh"] = {
+        "done": ok, "date": today.isoformat(), "latest": latest, "codes": n_codes,
+        "at": datetime.now(timezone.utc).isoformat()}
+    _save_progress(prog)
+    return ok
 
 
 def backfill_indices(prog: dict, start: str = INDEX_START) -> bool:
@@ -784,6 +866,12 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
             break
 
     all_done = len(results) == len(steps) and all(results.values())
+    # 法人每日續補：計畫的歷史步驟之外、每天一次（見 refresh_stale_inst）。不影響計畫的完成旗標。
+    if stopped_at is None:
+        try:
+            refresh_stale_inst(_progress(), today, limit)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("法人每日續補失敗（不影響其他步驟）：%s", exc)
     prog = _progress()
     prog.setdefault("complete", {})
     prog["complete"][f"plan:{name}"] = {

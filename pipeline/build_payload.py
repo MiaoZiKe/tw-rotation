@@ -387,6 +387,11 @@ def build() -> None:
         # ★ 2026-09-19：重大訊息（公司自己公告的）。跟 news（媒體寫的）分開放，
         #   因為 M4 事件面要否決一筆進場，靠的是公告不是報導。
         "material_news": store.read("material_news"),
+        # ★ 2026-09-27：籌碼分頁的「當沖」「借券賣」（config.TABLES 的 daytrade_daily／sbl_daily，回補計畫補）
+        "daytrade": store.read("daytrade_daily"),
+        "sbl": store.read("sbl_daily"),
+        # ★ 2026-09-27：董監事持股（每月，sources/mops.insider_holdings）
+        "insider": store.read("insider_holding"),
     }
     cand_rows, breadth = candidates(price, valuation, company, inst, latest,
                                     names=names, markets=markets, fund=fund_rows,
@@ -771,10 +776,21 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                 })
     news_by_code: dict[str, list] = {}
     if news_df is not None and not news_df.empty:
-        for _, n in news_df.sort_values("published_at", ascending=False).iterrows():
+        # ★ 2026-09-27（Andy：「新聞列表時間要顯示到時分」）：published_at 是 RFC 2822 字串
+        #   （"Fri, 11 Sep 2026 00:48:58 +0800"）。以前直接拿字串排序 ＝ 照星期幾的字母排（Fri < Mon < Thu…），
+        #   「最新 8 則」其實不是最新的。改成解析成台北時間再排，順手給前端 time（HH:MM）。
+        _nd = news_df.copy()
+        _ts = pd.to_datetime(_nd["published_at"], errors="coerce", utc=True, format="mixed") \
+            if "published_at" in _nd.columns else pd.Series(pd.NaT, index=_nd.index)
+        _nd["_ts"] = _ts.dt.tz_convert("Asia/Taipei")
+        _nd = _nd.sort_values(["_ts", "date"], ascending=False, na_position="last")
+        for _, n in _nd.iterrows():
+            t = n.get("_ts")
             for c in str(n.get("codes") or "").split(","):
                 if c and len(news_by_code.setdefault(c, [])) < 8:
-                    news_by_code[c].append({"date": n.get("date"), "title": n.get("title"),
+                    news_by_code[c].append({"date": t.strftime("%Y-%m-%d") if pd.notna(t) else n.get("date"),
+                                            "time": t.strftime("%H:%M") if pd.notna(t) else None,
+                                            "title": n.get("title"),
                                             "url": n.get("url"), "source": n.get("source"),
                                             "category": n.get("category")})
     broker_by_code: dict[str, list] = {}
@@ -835,9 +851,13 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     fin_by = _by_code(deep.get("financial"))
     mgn_by = _by_code(deep.get("margin"))
     shw_by = _by_code(deep.get("shareholding"))
+    ins_by = _by_code(deep.get("insider"))
     dve_by = _by_code(deep.get("dividend_events"))
     dvr_by = _by_code(deep.get("dividend_results"))
     com_by = _by_code(deep.get("company"))
+    dtr_by = _by_code(deep.get("daytrade"))
+    div_cover = dividend_cover_years()
+    sbl_by = _by_code(deep.get("sbl"))
     insth_by = _by_code(inst_hist)
     instd_by = _by_code(inst_today)
     valt_by = _by_code(val_today)
@@ -972,18 +992,26 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             # ★ 一律餵「這一檔的切片」，不要餵整張資料湖（見上面 _by_code 的註解）。
             #   g 就是這一檔的完整日線歷史，pe_history / dividends / month_season 要的就是它。
             "revenue": _clean(stockpage.revenue_series(rev_by.get(code, EMPTY), code)),
-            "profit": _clean(stockpage.profit_series(fin_by.get(code, EMPTY), code)),
+            "profit": _clean(stockpage.profit_series(fin_by.get(code, EMPTY), code, asof=latest)),
             "pe_history": _clean(stockpage.pe_history(raw_by.get(code, g), fin_by.get(code, EMPTY), code,
                                                       shares=shares, adj_price=g)),
             "dividends": _clean(stockpage.dividends(dve_by.get(code, EMPTY), dvr_by.get(code, EMPTY),
                                                     raw_by.get(code, g), code, float(last["close"]),
-                                                    shares=shares, asof=latest)),
+                                                    shares=shares, asof=latest, cover_from=div_cover.get(code))),
             # 還原說明：K 線是還原價；這裡列出每一個還原事件（日期、價格因子、配股率、來源），
             # 前端要標示「還原」或對帳時用。source 不是 dividend_results 的是推估值。
             "price_adjust": _adjust_meta(act_by.get(code)),
-            "margin": _clean(stockpage.margin_series(mgn_by.get(code, EMPTY), code)),
+            "margin": _clean(stockpage.margin_series(mgn_by.get(code, EMPTY), code,
+                                                     daytrade=dtr_by.get(code), sbl=sbl_by.get(code),
+                                                     price=raw_by.get(code, g))),
+            "margin_columns": stockpage.MARGIN_COLUMNS,
+            # ★ 2026-09-27「指標」分頁：事實條件標籤（stockpage.stock_tags，不做推介）
+            "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
+            "insider": _clean(stockpage.insider_series(ins_by.get(code), shw_by.get(code), code)),
             "inst_v3": _clean(stockpage.inst_series(insth_by.get(code), code)),
+            # ★ 2026-09-27「主力」替代口徑（券商分點不爬，CLAUDE.md 第 7 條）：法人合計＋5／20 日集中度
+            "main_proxy": _clean(stockpage.main_proxy_series(insth_by.get(code), raw_by.get(code, g), code)),
             "basics": _clean(stockpage.basics(com_by.get(code, EMPTY), code)),
             # C5：1–12 月平均漲幅（最多 15 年）。給逐年的原始數字，前端自己切 1/3/5/自填年數。
             "month_season": _clean(stockpage.monthly_seasonality(g, code, 15)),
@@ -1086,6 +1114,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     thin_px = (price_adj[price_adj["code"].isin(thin_codes)].sort_values(["code", "date"])
                if thin_codes else pd.DataFrame())
     thin_by = {c: g for c, g in thin_px.groupby("code")} if not thin_px.empty else {}
+    # 當沖比率的分母要原始成交股數（還原價的量不變，但這裡刻意用原始表，口徑跟完整頁同一份）
+    thin_raw = ({c: g for c, g in price[price["code"].isin(thin_codes)].groupby("code")} if thin_codes else {})
     for code in thin_codes:
         g = thin_by.get(code)
         close = _cell(day_one, code, "close")
@@ -1114,14 +1144,18 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "basics": _clean(stockpage.basics(deep.get("company"), code)),
             "month_season": _clean(stockpage.monthly_seasonality(g if g is not None else EMPTY, code, 15)),
             "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)) if code in has["revenue"] else {},
-            "profit": _clean(stockpage.profit_series(deep.get("financial"), code)) if code in has["financial"] else {},
+            "profit": _clean(stockpage.profit_series(fin_by.get(code, EMPTY), code, asof=latest)) if code in has["financial"] else {},
             "pe_history": [],
             "dividends": _clean(stockpage.dividends(deep.get("dividend_events"), deep.get("dividend_results"),
-                                                    price, code, float(close) if close else None,
-                                                    shares=shares, asof=latest))
+                                                    thin_raw.get(code), code, float(close) if close else None,
+                                                    shares=shares, asof=latest, cover_from=div_cover.get(code)))
                          if code in has["dividend_events"] or code in has["dividend_results"] else {},
-            "margin": _clean(stockpage.margin_series(deep.get("margin"), code)) if code in has["margin"] else [],
-            "holders": _clean(stockpage.holder_series(deep.get("shareholding"), code)) if code in has["shareholding"] else [],
+            "margin": _clean(stockpage.margin_series(mgn_by.get(code, EMPTY), code, daytrade=dtr_by.get(code),
+                                                     sbl=sbl_by.get(code), price=thin_raw.get(code))),
+            "margin_columns": stockpage.MARGIN_COLUMNS,
+            "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
+            "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
+            "insider": _clean(stockpage.insider_series(ins_by.get(code), shw_by.get(code), code)),
             "inst_v3": {}, "inst": [], "shareholding": _clean(sh_by_code.get(code, [])),
             "fundamental": fund_idx.get(code),
             "news": news_by_code.get(code, []), "broker_views": broker_by_code.get(code, [])[:6],
@@ -1188,6 +1222,21 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 # 用 9.5 當門檻比硬比 10% 準（硬比會漏掉一堆真的漲停）。
 LIMIT_PCT = 9.5
 MOVER_TOP = 60
+
+
+DIV_DEEP_START = "2009-01-01"      # run_backfill.PLAN_DEFAULT 的股利深度回補起點（2026-09-27）
+
+
+def dividend_cover_years() -> dict[str, int]:
+    """每一檔的股利資料「補到哪一年」：2009 那一步回補過的（進度檔有 divresult@2009-01-01:<代號>）給 2009，
+    其他用 stockpage.DIV_COVER_YEAR（2016）。年度股利圖只畫這一年之後 —— 沒補過的年份是「不知道」，不是「沒配」。"""
+    try:
+        prog = json.loads((config.STATE / "backfill_progress.json").read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+    pre = f"divresult@{DIV_DEEP_START}:"
+    y = int(DIV_DEEP_START[:4])
+    return {k[len(pre):]: y for k, v in (prog.get("done") or {}).items() if v and k.startswith(pre)}
 
 
 def _adjust_meta(acts: pd.DataFrame | None) -> dict:

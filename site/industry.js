@@ -3721,7 +3721,7 @@
            桌機永遠是空的（CSS #aiCard:empty 收掉，不留黑方塊）；手機由 app.js miaStock 把 #skAi 整個節點搬進來，
            回到桌機再搬回 K 線卡右上角。改前（09-26）這裡是完整的 AI 分析長卡，09-27 起內容搬到右上角。-->
       ${window.StockAI ? '<div class="card" style="margin-top:var(--gap-card)" id="aiCard"></div>' : ''}
-      <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '公告 / 新聞']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
+      <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['tags', '指標'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '公告 / 新聞']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div id="stockTab"></div>`;
     setupChart(pg);
     if (window.StockAI) window.StockAI.mount(pg, $('#skAi'), A.fmt);
@@ -4593,7 +4593,7 @@
   // ---------------------------------------------------------------- 個股分頁
   function renderTab(pg, tab) {
     const el = $('#stockTab');
-    ({ overview: tabOverview, revenue: tabRevenue, profit: tabProfit, dividend: tabDividend, chips: tabChips, basics: tabBasics, news: tabNews })[tab](pg, el);
+    ({ overview: tabOverview, tags: tabTags, revenue: tabRevenue, profit: tabProfit, dividend: tabDividend, chips: tabChips, basics: tabBasics, news: tabNews })[tab](pg, el);
     setTimeout(() => Object.values(A.charts).forEach(c => c && c.resize && c.resize()), 20);
   }
   /* ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4 第 3 項）：
@@ -4620,7 +4620,7 @@
     const s = pg.summary || {}, iv = pg.inst_v3 || {};
     const holders = pg.holders && pg.holders.length ? pg.holders[pg.holders.length - 1] : null; const hPrev = pg.holders && pg.holders.length > 4 ? pg.holders[pg.holders.length - 5] : null;
     const k = statK;
-    return `<div class="card"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人 20 日＝近 20 個交易日買賣超合計', '千張大戶＝集保持股 ≥1000 張的比例', '大戶 4 週變化＝跟 4 週前比', '散戶＝持股 ≤10 張的比例'], '「主力家數差」需券商分點資料（免費開放資料沒有）；這裡以集保千張大戶增減＋法人動向作替代指標。')}<div class="kvs" style="margin-top:8px">${k('法人 20 日', iv.sum20 != null ? A.fmt.lot(iv.sum20 / 1000) : '—', A.fmt.cls(iv.sum20))}${k('外資 20 日', iv.foreign20 != null ? A.fmt.lot(iv.foreign20 / 1000) : '—', A.fmt.cls(iv.foreign20))}${k('投信 20 日', iv.trust20 != null ? A.fmt.lot(iv.trust20 / 1000) : '—', A.fmt.cls(iv.trust20))}${k('千張大戶', holders ? A.fmt.n(holders[1], 1) + '%' : '—')}${k('大戶 4 週變化', holders && hPrev && holders[1] != null && hPrev[1] != null ? A.fmt.pct(holders[1] - hPrev[1], 2).replace('%', ' pp') : '—', holders && hPrev ? A.fmt.cls(holders[1] - hPrev[1]) : '')}${k('散戶（≤10 張）', holders ? A.fmt.n(holders[3], 1) + '%' : '—')}${k('融資餘額', pg.margin && pg.margin.length ? A.fmt.lot(pg.margin[pg.margin.length - 1][1]) : '—')}${k('量比', s.vol_ratio != null ? A.fmt.n(s.vol_ratio, 2) : '—')}</div></div>`;
+    return `<div class="card"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人 20 日＝近 20 個交易日買賣超合計', '千張大戶＝集保持股 ≥1000 張的比例', '大戶 4 週變化＝跟 4 週前比', '散戶＝持股 ≤10 張的比例'], '「主力家數差」需券商分點資料（免費開放資料沒有）；這裡以集保千張大戶增減＋法人動向作替代指標。')}<div class="kvs" style="margin-top:8px">${k('法人 20 日', iv.sum20 != null ? A.fmt.lot(iv.sum20 / 1000) : '—', A.fmt.cls(iv.sum20))}${k('外資 20 日', iv.foreign20 != null ? A.fmt.lot(iv.foreign20 / 1000) : '—', A.fmt.cls(iv.foreign20))}${k('投信 20 日', iv.trust20 != null ? A.fmt.lot(iv.trust20 / 1000) : '—', A.fmt.cls(iv.trust20))}${k('千張大戶', holders ? A.fmt.n(holders[1], 1) + '%' : '—')}${k('大戶 4 週變化', holders && hPrev && holders[1] != null && hPrev[1] != null ? A.fmt.pct(holders[1] - hPrev[1], 2).replace('%', ' pp') : '—', holders && hPrev ? A.fmt.cls(holders[1] - hPrev[1]) : '')}${k('散戶（≤10 張）', holders ? A.fmt.n(holders[3], 1) + '%' : '—')}${k('融資餘額', (() => { const r = (pg.margin || []).slice().reverse().find(x => x[1] != null); return r ? A.fmt.lot(r[1]) : '—'; })())}${k('量比', s.vol_ratio != null ? A.fmt.n(s.vol_ratio, 2) : '—')}</div></div>`;
   }
   function tabOverview(pg, el) {
     const signal = window.StockSignal ? window.StockSignal.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt) : '';
@@ -4629,18 +4629,89 @@
       ${chipCard(pg)}
       ${signal}</div>`;
   }
+  /* ★ 2026-09-27「指標」分頁（Andy 給的券商 App「符合 65 項指標」截圖）：
+     題材、族群（groups.yaml／themes.yaml）＋管線算的事實條件標籤（stockpage.stock_tags）。
+     **只陳述條件成不成立，不是推介**：符合的列上面（紅字＝條件成立，跟 App 同一個語意），不符合的收在下面、照樣看得到，
+     資料不夠判斷的另列並寫原因。每一條都附判斷用的數字（滑過或點開看）。
+     台灣 50／MSCI 成分股、集團：沒有經查證的白名單來源，不做（DECISIONS #268）。*/
+  function tabTags(pg, el) {
+    const tg = (pg.tags || {}).items || [];
+    const code = pg.meta.code;
+    const th = A.L.themesOf ? A.L.themesOf(code) : '';
+    const grp = (pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('');
+    const hit = tg.filter(t => t.hit === true), miss = tg.filter(t => t.hit === false), na = tg.filter(t => t.hit == null);
+    const row = (kind, body, detail, cls) => `<div class="tagln ${cls || ''}" data-hit="${cls || ''}"><span class="tagk">${kind}</span><div class="tagb">${body}${detail ? `<div class="note tagd">${A.fmt.esc(detail)}</div>` : ''}</div></div>`;
+    el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>符合 <b id="tagN">${hit.length}</b> 項指標 ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
+      ${hbox('sktag', ['題材／族群＝本站 groups.yaml、themes.yaml 的歸類', '指標＝用月營收、季報算的事實條件', '紅字＝條件成立；灰字＝不成立', '每條下方是判斷用的數字與比較範圍', '這些是條件描述，不是買賣建議'], '台灣 50／MSCI 成分股、集團歸屬：目前沒有經查證的合規資料來源，暫不提供。')}
+      <div class="taglist">
+        ${th ? row('題材', `<span class="tagrow">${th}</span>`, '', 'meta') : ''}
+        ${grp ? row('族群', `<span class="tagrow">${grp}</span>`, '', 'meta') : ''}
+        ${hit.map(t => row('指標', `<b class="up">${A.fmt.esc(t.label)}</b>`, t.detail, 'on')).join('')}
+      </div>
+      ${miss.length ? `<details class="tagmore" style="margin-top:10px"><summary>未符合 ${miss.length} 項</summary><div class="taglist">${miss.map(t => row('指標', `<span class="muted">${A.fmt.esc(t.label)}</span>`, t.detail, 'off')).join('')}</div></details>` : ''}
+      ${na.length ? `<details class="tagmore" style="margin-top:6px"><summary>資料不足、無法判斷 ${na.length} 項</summary><div class="taglist">${na.map(t => row('指標', `<span class="muted">${A.fmt.esc(t.label)}</span>`, t.detail, 'na')).join('')}</div></details>` : ''}
+      ${!tg.length ? '<div class="empty">這一檔還沒有月營收／季報可以判斷（回補中）</div>' : ''}
+    </div>`;
+  }
   function tabRevenue(pg, el) {
     const rv = pg.revenue || {}; const mo = rv.monthly || [];
+    const mil = (v) => (v == null ? '—' : A.fmt.i(Math.round(v / 1e6)));
     if (!mo.length) { el.innerHTML = '<div class="card"><div class="empty">尚無月營收歷史（回補進行中，每小時自動接續）</div></div>'; return; }
     const last = mo[mo.length - 1];
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新月份</div><div class="v">${last[0]}</div></div><div class="k"><div class="l">單月營收</div><div class="v">${A.fmt.yi(last[1])}</div></div><div class="k"><div class="l">YoY</div><div class="v ${A.fmt.cls(last[2])}">${A.fmt.pct(last[2])}</div></div><div class="k"><div class="l">MoM</div><div class="v ${A.fmt.cls(last[3])}">${A.fmt.pct(last[3])}</div></div><div class="k"><div class="l">累計營收</div><div class="v">${A.fmt.yi(last[4])}</div></div><div class="k"><div class="l">累計 YoY</div><div class="v ${A.fmt.cls(last[5])}">${A.fmt.pct(last[5])}</div></div></div>
-      <div class="grid g2"><div class="card"><h3>每月營收與 YoY ${hq('skrev', '每月營收與 YoY')}</h3>${hbox('skrev', ['柱＝單月營收（左軸）', '線＝年增率 YoY（右軸）', '最多畫近 60 個月', 'YoY 連續翻正＝營收動能轉強'])}<div id="revBar" class="chart"></div></div>
-      <div class="card"><div class="row spread"><h3>年度走勢 ${hq('skrevy', '年度走勢')}</h3>${hbox('skrevy', ['每條線＝一年，同月份疊在一起比', '最粗那條＝今年', '看哪幾個月固定比較高＝旺季', '右上切單月／累計'])}<div class="seg" id="revMode"><button data-v="m" class="on">單月</button><button data-v="c">累計</button></div></div><div id="revYear" class="chart"></div></div></div>
-      <div class="card" style="margin-top:var(--gap-card)"><h3>月營收明細</h3><div class="tw" style="max-height:360px"><table><thead><tr><th class="l">月份</th><th>營收</th><th>YoY</th><th>MoM</th><th>累計</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${A.fmt.yi(r[1])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${A.fmt.yi(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div>`;
-    const t = mo.slice(-60);
-    A.chart('revBar', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.seriesName === '營收' ? A.fmt.yi(p.value) : A.fmt.pct(p.value)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 50, top: 30, bottom: 30 },
-      xAxis: { ...A.axisStyle, type: 'category', data: t.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2) } }, yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
-      series: [{ name: '營收', type: 'bar', data: t.map(r => r[1]), itemStyle: { color: 'rgba(62,224,255,.55)', borderRadius: [3, 3, 0, 0] } }, { name: 'YoY', type: 'line', yAxisIndex: 1, data: t.map(r => r[2]), smooth: .3, showSymbol: false, lineStyle: { color: '#ffb454', width: 2 } }] });
+      <div class="grid g2"><div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>營收走勢 <small id="revSub" data-readout></small> ${hq('skrev', '營收走勢')}</h3>
+        <div class="row" style="gap:8px"><div class="seg" id="revView" role="group" aria-label="月或年"><button type="button" data-v="m">月走勢</button><button type="button" data-v="y">年度走勢</button></div>
+        <div class="seg" id="revWin" role="group" aria-label="幾個月"><button type="button" data-v="12">12 月</button><button type="button" data-v="24">24 月</button><button type="button" data-v="36">36 月</button></div></div></div>
+        ${hbox('skrev', ['月走勢：當月（青）＋去年同期（灰）並排', '線＝MoM、YoY（右軸 %）', '年度走勢：每年合計＋年增率', '今年未滿 12 個月＝跟去年同期幾個月比', '右上切 12／24／36 個月'])}<div id="revBar" class="chart"></div></div>
+      <div class="card"><div class="row spread"><h3>逐年同月比較 ${hq('skrevy', '逐年同月比較')}</h3>${hbox('skrevy', ['每條線＝一年，同月份疊在一起比', '最粗那條＝今年', '看哪幾個月固定比較高＝旺季', '右上切單月／累計'])}<div class="seg" id="revMode"><button data-v="m" class="on">單月</button><button data-v="c">累計</button></div></div><div id="revYear" class="chart"></div></div></div>
+      <div class="card" style="margin-top:var(--gap-card)"><h3>月營收明細 <small data-readout>單位：百萬元</small></h3><div class="tw" style="max-height:360px"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div>`;
+    /* ★ 2026-09-27（Andy 給的券商 App「營收：月走勢｜年度走勢」）：
+       月走勢＝當月與去年同期兩組柱並排（去年同期取 payload 第 7 欄；舊 payload 沒有就從月份表自己對），MoM、YoY 兩條線吃右軸 %；
+       年度走勢＝每年合計柱＋年增率線。今年還沒過完：年增率只跟「去年同樣那幾個月」比，x 軸寫「2026（1–8 月）」，
+       不拿 8 個月去跟 12 個月比。視窗 12／24／36 個月記在 tw.revWin，月／年記在 tw.revView。*/
+    const byYm = new Map(mo.map(r => [r[0], r[1]]));
+    const lyOf = (r) => (r[6] != null ? r[6] : byYm.get((+r[0].slice(0, 4) - 1) + r[0].slice(4)) ?? null);
+    let rview = lsGet('tw.revView', v => v === 'm' || v === 'y', 'm');
+    let rwin = +lsGet('tw.revWin', v => ['12', '24', '36'].includes(v), '12');
+    const yrsAll = rv.yearly || [];
+    const drawRev = () => {
+      $$('#revView button', el).forEach(b => b.classList.toggle('on', b.dataset.v === rview));
+      $$('#revWin button', el).forEach(b => b.classList.toggle('on', +b.dataset.v === rwin));
+      const wEl = $('#revWin', el); if (wEl) wEl.hidden = rview !== 'm';
+      el.dataset.revView = rview; el.dataset.revWin = String(rwin);
+      const sub = $('#revSub', el);
+      const pctAx = { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } };
+      if (rview === 'm') {
+        const t = mo.slice(-rwin);
+        if (sub) sub.textContent = t.length ? `${t[0][0]}～${t[t.length - 1][0]}，${t.length} 個月` : '';
+        A.chart('revBar', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.seriesName.includes('營收') || p.seriesName === '去年同期' ? A.fmt.yi(p.value) : A.fmt.pct(p.value)}`).join('<br>') },
+          legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 50, top: 30, bottom: 30 },
+          xAxis: { ...A.axisStyle, type: 'category', data: t.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2).replace('-', '/'), hideOverlap: true } },
+          yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } }, pctAx],
+          series: [{ name: '當月營收', type: 'bar', data: t.map(r => r[1]), itemStyle: { color: 'rgba(62,224,255,.75)', borderRadius: [3, 3, 0, 0] } },
+            { name: '去年同期', type: 'bar', data: t.map(lyOf), itemStyle: { color: 'rgba(160,170,190,.45)', borderRadius: [3, 3, 0, 0] } },
+            { name: 'MoM', type: 'line', yAxisIndex: 1, data: t.map(r => r[3]), smooth: .3, showSymbol: t.length <= 24, symbolSize: 4, lineStyle: { color: '#8b7bff', width: 1.6 }, itemStyle: { color: '#8b7bff' } },
+            { name: 'YoY', type: 'line', yAxisIndex: 1, data: t.map(r => r[2]), smooth: .3, showSymbol: t.length <= 24, symbolSize: 4, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
+      } else {
+        const ys = yrsAll.slice(-10);
+        const bm = new Map(yrsAll.map(y => [y.year, y.by_month || {}]));
+        const rows = ys.map(y => { const mths = Object.keys(y.by_month || {}).map(Number); const prev = bm.get(y.year - 1);
+          let yoy = null;
+          if (prev && mths.length && mths.every(m => prev[m] != null)) { const a = mths.reduce((s_, m) => s_ + y.by_month[m], 0), b = mths.reduce((s_, m) => s_ + prev[m], 0); if (b) yoy = (a / b - 1) * 100; }
+          const part = y.months < 12;
+          return { lab: part ? `${y.year}（${Math.min(...mths)}–${Math.max(...mths)} 月）` : String(y.year), rev: y.revenue, yoy, part }; });
+        if (sub) sub.textContent = rows.length ? `${ys[0].year}～${ys[ys.length - 1].year}，${rows.length} 年` : '';
+        A.chart('revBar', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = rows[ps[0].dataIndex]; return `<b>${r.lab}</b><br>營收 ${A.fmt.yi(r.rev)}<br>年增率 ${A.fmt.pct(r.yoy)}${r.part ? '（跟去年同樣月份比）' : ''}`; } },
+          legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 50, top: 30, bottom: 30 },
+          xAxis: { ...A.axisStyle, type: 'category', data: rows.map(r => r.lab), axisLabel: { color: A.CH.ink3, hideOverlap: true, formatter: v => v.slice(0, 4) } },
+          yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } }, pctAx],
+          series: [{ name: '年營收', type: 'bar', data: rows.map(r => ({ value: r.rev, itemStyle: { color: r.part ? 'rgba(62,224,255,.35)' : 'rgba(62,224,255,.75)', borderRadius: [3, 3, 0, 0] } })) },
+            { name: '年增率', type: 'line', yAxisIndex: 1, data: rows.map(r => r.yoy), symbolSize: 6, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
+      }
+    };
+    $$('#revView button', el).forEach(b => b.onclick = () => { rview = b.dataset.v; lsSet('tw.revView', rview); drawRev(); });
+    $$('#revWin button', el).forEach(b => b.onclick = () => { rwin = +b.dataset.v; lsSet('tw.revWin', String(rwin)); drawRev(); });
+    drawRev();
     const yr = (rv.yearly || []).slice(-6); let mode = 'm';
     const drawYear = () => { A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 20, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } },
       series: yr.map((y, i) => { let acc = 0; const d = Array.from({ length: 12 }, (_, m) => { const v = y.by_month[m + 1]; if (v == null) return null; if (mode === 'c') { acc += v; return acc; } return v; }); return { name: String(y.year), type: 'line', data: d, smooth: .2, symbolSize: 5, lineStyle: { width: i === yr.length - 1 ? 3 : 1.5, color: A.PALETTE[i] }, itemStyle: { color: A.PALETTE[i] } }; }) }); };
@@ -5045,8 +5116,17 @@
        跟卡片說明「虧損（EPS ≤ 0）那季不算」同一個口徑。*/
     const pe = (pg.pe_history || []).map(r => (r && !(r.ttm_eps > 0) ? { ...r, pe: null, pe_high: null, pe_low: null } : r));
     if (!q.length) { el.innerHTML = '<div class="card"><div class="empty">尚無季報歷史（回補進行中）</div></div>'; return; }
-    const last = q[q.length - 1];
-    el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${last[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${A.fmt.n(last[2], 1)}%</div></div><div class="k"><div class="l">營益率</div><div class="v">${A.fmt.n(last[3], 1)}%</div></div><div class="k"><div class="l">淨利率</div><div class="v">${A.fmt.n(last[4], 1)}%</div></div></div>
+    /* ★ 2026-09-27（個股頁數據普查）：payload 現在把缺的季補成空列（季標籤連續），最新一列一定有資料；
+       保險起見仍取「最後一列有 EPS 或營收的」。年度（yearly）與法定期限判定（timing）由管線算（stockpage.profit_series）。*/
+    const lastQ = q.slice().reverse().find(r => r[5] != null || r[1] != null) || q[q.length - 1];
+    const last = lastQ;
+    const yr = (pg.profit || {}).yearly || [];
+    const tm = (pg.profit || {}).timing || null;
+    const ylab = (y) => y.partial ? `${y.year}（前 ${y.quarters} 季）` : String(y.year);
+    const tmTxt = tm ? (tm.status === 'ok' ? `財報到 ${tm.latest}（至 ${tm.asof} 法定應有到 ${tm.expected}）`
+      : tm.status === 'missing' ? `⚠ 法定期限已過、應有 ${tm.expected}，目前只到 ${tm.latest || '—'}`
+      : `⚠ ${tm.latest} 的季底還沒到，資料有誤`) : '';
+    el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${lastQ[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${last[2] == null ? "—" : A.fmt.n(last[2], 2) + "%"}</div></div><div class="k"><div class="l">營益率</div><div class="v">${last[3] == null ? "—" : A.fmt.n(last[3], 2) + "%"}</div></div><div class="k"><div class="l">淨利率</div><div class="v">${last[4] == null ? "—" : A.fmt.n(last[4], 2) + "%"}</div></div></div>
       <div class="card"><div class="row spread"><h3>本益比河流圖 ${hq('pe', '本益比河流圖')}</h3>
         <div class="row" style="gap:10px;align-items:center">
           <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
@@ -5065,12 +5145,33 @@
           '拉 Bar 選長度與截止日，▶ 一天天播',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="note" id="peNote" data-readout></div></div>
-      <div class="grid g2" style="margin-top:var(--gap-card)"><div class="card"><h3>EPS 與三率 ${hq('skeps', 'EPS 與三率')}</h3>${hbox('skeps', ['柱＝單季 EPS（左軸）', '線＝毛利率／營益率／淨利率（右軸）', '三率同步往上＝獲利品質變好'], '財報法規是季報，所以只有單季、沒有每月。')}<div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['每季一點＝財報可用日收盤 ÷ 近四季 EPS', '虧損（EPS ≤ 0）那季不算', '跟自己的過去比，看現在貴不貴'])}<div id="peQ" class="chart"></div></div></div>
-      <div class="card" style="margin-top:var(--gap-card)"><h3>季報明細</h3><div class="tw" style="max-height:360px"><table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${A.fmt.yi(r[1])}</td><td class="num">${A.fmt.n(r[2], 1)}%</td><td class="num">${A.fmt.n(r[3], 1)}%</td><td class="num">${A.fmt.n(r[4], 1)}%</td><td class="num">${A.fmt.yi(r[8])}</td><td class="num">${A.fmt.n(r[5])}</td><td class="num">${A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+      <div class="grid g2" style="margin-top:var(--gap-card)"><div class="card"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['每季一點＝財報可用日收盤 ÷ 近四季 EPS', '虧損（EPS ≤ 0）那季不算', '跟自己的過去比，看現在貴不貴'])}<div id="peQ" class="chart"></div></div></div>
+      <div class="card" style="margin-top:var(--gap-card)"><h3 id="profitTblTtl">季報明細</h3><div class="tw" style="max-height:360px" id="profitTbl"></div></div>`;
+    const pct = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
+    const tblQ = () => `<table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${r[1] == null ? '—' : A.fmt.yi(r[1])}</td><td class="num">${pct(r[2])}</td><td class="num">${pct(r[3])}</td><td class="num">${pct(r[4])}</td><td class="num">${r[8] == null ? '—' : A.fmt.yi(r[8])}</td><td class="num">${r[5] == null ? '—' : A.fmt.n(r[5])}</td><td class="num">${r[6] == null ? '—' : A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table>`;
+    const tblY = () => `<table><thead><tr><th class="l">年度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>季數</th></tr></thead><tbody>${yr.slice().reverse().map(y => `<tr><td class="l mono">${ylab(y)}</td><td class="num">${y.revenue == null ? '—' : A.fmt.yi(y.revenue)}</td><td class="num">${pct(y.gm)}</td><td class="num">${pct(y.om)}</td><td class="num">${pct(y.nm)}</td><td class="num">${y.net_income == null ? '—' : A.fmt.yi(y.net_income)}</td><td class="num">${y.eps == null ? '—' : A.fmt.n(y.eps)}</td><td class="num">${y.quarters}</td></tr>`).join('')}</tbody></table>`;
     /* ★ 2026-09-26（小數點普查）：以前沒寫 formatter，提示框只印原值、沒有單位 —— EPS 補「元」、三率補「%」，位數跟下方季報明細表一致（EPS 2 位、三率 1 位）。*/
-    A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : p.seriesName === 'EPS' ? A.fmt.n(p.value, 2) + ' 元' : A.fmt.n(p.value, 1) + '%'}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 50, top: 30, bottom: 30 },
-      xAxis: { ...A.axisStyle, type: 'category', data: q.map(r => r[0]), axisLabel: { color: A.CH.ink3 } }, yAxis: [{ ...A.axisStyle, name: 'EPS' }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
-      series: [{ name: 'EPS', type: 'bar', itemStyle: { color: 'rgba(255,77,109,.7)' }, data: q.map(r => ({ value: r[5], itemStyle: { color: r[5] >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[2]), smooth: .3, showSymbol: false, lineStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: q.map(r => r[3]), smooth: .3, showSymbol: false, lineStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[4]), smooth: .3, showSymbol: false, lineStyle: { color: '#8b7bff' } }] });
+    let pmode = 'q';
+    try { const v = localStorage.getItem('tw.profitMode'); if (v === 'q' || v === 'y') pmode = v; } catch (e) { /* 私密視窗 */ }
+    const drawProfit = () => {
+      const isY = pmode === 'y' && yr.length;
+      const X = isY ? yr.map(ylab) : q.map(r => r[0]);
+      const E = isY ? yr.map(y => y.eps) : q.map(r => r[5]);
+      const M = (k, i) => (isY ? yr.map(y => y[k]) : q.map(r => r[i]));
+      el.dataset.profitMode = isY ? 'y' : 'q';
+      $$('#profitMode button', el).forEach(b => b.classList.toggle('on', b.dataset.v === (isY ? 'y' : 'q')));
+      const tt = $('#profitTblTtl', el); if (tt) tt.textContent = isY ? '年度明細' : '季報明細';
+      const tb = $('#profitTbl', el); if (tb) tb.innerHTML = isY ? tblY() : tblQ();
+      A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : p.seriesName === 'EPS' ? A.fmt.n(p.value, 2) + ' 元' : A.fmt.n(p.value, 1) + '%'}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 50, top: 30, bottom: 30 },
+        xAxis: { ...A.axisStyle, type: 'category', data: X, axisLabel: { color: A.CH.ink3, hideOverlap: true } }, yAxis: [{ ...A.axisStyle, name: 'EPS' }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
+        series: [{ name: 'EPS', type: 'bar', itemStyle: { color: 'rgba(255,77,109,.7)' }, data: E.map(v => ({ value: v, itemStyle: { color: v >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: M('gm', 2), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#ffd166' }, itemStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: M('om', 3), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#3ee0ff' }, itemStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: M('nm', 4), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#8b7bff' }, itemStyle: { color: '#8b7bff' } }] }, { notMerge: true });
+    };
+    $$('#profitMode button', el).forEach(b => b.onclick = () => {
+      pmode = b.dataset.v;
+      try { localStorage.setItem('tw.profitMode', pmode); } catch (e) { /* 忽略 */ }
+      drawProfit();
+    });
+    drawProfit();
     if (pe.length) A.chart('peQ', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = pe[ps[0].dataIndex]; const x = (v) => (v == null ? '—' : A.fmt.n(v, 1));
         return `<b>${r.period}</b><br>本益比 ${x(r.pe)} 倍（區間 ${x(r.pe_low)}–${x(r.pe_high)}）<br>近四季 EPS ${r.ttm_eps != null ? A.fmt.n(r.ttm_eps, 2) + ' 元' : '—'}`; } }, grid: { left: 50, right: 20, top: 20, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: pe.map(r => r.period), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, scale: true },
       series: [{ name: '區間', type: 'line', data: pe.map(r => r.pe_low), lineStyle: { opacity: 0 }, stack: 'pe', showSymbol: false }, { name: '高低', type: 'line', data: pe.map(r => r.pe_high != null && r.pe_low != null ? r.pe_high - r.pe_low : null), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(139,123,255,.2)' }, showSymbol: false }, { name: '本益比', type: 'line', data: pe.map(r => r.pe), lineStyle: { color: '#8b7bff', width: 2 }, symbolSize: 5 }] });
@@ -5162,6 +5263,7 @@
     if (!ev.length && !rs.length) { el.innerHTML = '<div class="card"><div class="empty">尚無除權息資料（回補進行中；ETF 暫不抓）</div></div>'; return; }
     const bars = divBars(dv, rs);
     const cov = dv.coverage || {};
+    const per = dv.by_period || [];
     const MF = A.NUM_FONT || 'JetBrains Mono, monospace';
     const d2 = (v) => { const x = Math.round(v * 100) / 100; return x.toFixed(Number.isInteger(x) ? 0 : 2); };
     const yrsWith = bars.filter(b => b.n > 0).length;
@@ -5178,8 +5280,9 @@
     const upTxt = up.length ? '已公告、尚未除權息：' + up.slice(0, 3).map(u => `${A.fmt.esc(u.period || '')} ${u.kind === 'stock' ? '股票' : '現金'} ${d2(u.amount || 0)} 元`
       + (u.ex_date ? `（${u.ex_date} 除${u.kind === 'stock' ? '權' : '息'}）` : '（除權息日未定）')).join('；') : '';
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">近四次現金股利</div><div class="v">${dv.cash_ttm != null ? A.fmt.n(dv.cash_ttm) + ' 元' : '—'}</div></div><div class="k"><div class="l">殖利率</div><div class="v">${dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—'}</div></div><div class="k"><div class="l">最近除息</div><div class="v" style="font-size:15px">${rs[0] ? rs[0].date : '—'}</div></div><div class="k"><div class="l">最近填息</div><div class="v">${rs[0] ? (rs[0].fill_days === -1 ? '一年未填' : rs[0].fill_days != null ? rs[0].fill_days + ' 天' : '進行中') : '—'}</div></div></div>
-      <div class="grid g2"><div class="card"><h3>各年度股利 <small data-readout id="divSub">${divSub}</small> ${hq('skdiv', '各年度股利')}</h3>${hbox('skdiv', ['每年一根：琥珀＝現金股利、紫＝股票股利（元／股，當時公告的金額）', '年度＝除權息日所在的年份（實際配發那一年），跟右邊紀錄表對得上', '同一年配好幾次（季配、半年配）加總，滑過看每一次', '柱頂「未配」＝那一年沒有除權息；「待補」＝有除權息但股利公告還沒回補到、金額不猜', '最右邊是今年，還沒過完'], '2016 年以前資料湖沒有回補，上市以前的年份也不畫 —— 那些是「不知道」，不是「沒配」。')}<div id="divBar" class="chart"></div>${upTxt ? `<div class="note" data-readout style="margin-top:6px">${upTxt}</div>` : ''}</div>
+      <div class="grid g2"><div class="card"><h3>各年度股利 <small data-readout id="divSub">${divSub}</small> ${hq('skdiv', '各年度股利')}</h3>${hbox('skdiv', ['每年一根：琥珀＝現金股利、紫＝股票股利（元／股，當時公告的金額）', '年度＝除權息日所在的年份（實際配發那一年），跟右邊紀錄表對得上', '同一年配好幾次（季配、半年配）加總，滑過看每一次', '柱頂「未配」＝那一年沒有除權息；「待補」＝有除權息但股利公告還沒回補到、金額不猜', '線＝現金殖利率（右軸）＝現金股利 ÷ 除息前一日收盤', '最右邊是今年，還沒過完'], `${cov.cover_from || 2016} 年以前這一檔的資料還沒回補，上市以前的年份也不畫 —— 那些是「不知道」，不是「沒配」。年度＝除權息日所在年；下方「股利政策」表用股利所屬期間（2025H2、2025Q3），兩者差在季配、半年配會跨年發放。`)}<div id="divBar" class="chart"></div>${upTxt ? `<div class="note" data-readout style="margin-top:6px">${upTxt}</div>` : ''}</div>
       <div class="card"><h3>除權息紀錄 ${hq('skfill', '除權息紀錄')}</h3>${hbox('skfill', ['每一列＝一次除權或除息', '填息天數＝除息後第一次收回除息前收盤', '天數越短＝市場越認同', '「未填」＝到今天還沒填回'])}<div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody id="divRec">${rs.map(r => `<tr><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num">${r.fill_days === -1 ? '<span class="down">未填</span>' : r.fill_days != null ? r.fill_days + ' 天' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>
+      ${per.length ? `<div class="card" style="margin-top:var(--gap-card)" id="divPerCard"><h3>股利政策（依所屬期間）<small data-readout>${per.length} 期</small> ${hq('skdivp', '股利政策')}</h3>${hbox('skdivp', ['一列＝一期股利（年配＝2025、半年配＝2025H2、季配＝2025Q3）', '金額＝當時公告的每股元', '現金殖利率＝現金股利 ÷ 除息前一日收盤', '「待除息」＝已公告、日期還沒到'], '除權息資訊以公開資訊觀測站公告為主；本站資料取自證交所 OpenAPI 與 FinMind 股利政策表。')}<div class="tw" style="max-height:320px"><table><thead><tr><th class="l">所屬期間</th><th>股票股利</th><th>現金股利</th><th class="l">除權日</th><th class="l">除息日</th><th>現金殖利率</th><th class="l">狀態</th></tr></thead><tbody id="divPer">${per.map(p => `<tr><td class="l mono">${A.fmt.esc(p.period)}</td><td class="num">${p.stock != null ? d2(p.stock) : '—'}</td><td class="num">${p.cash != null ? d2(p.cash) : '—'}</td><td class="l mono">${p.stock_ex_date || '—'}</td><td class="l mono">${p.cash_ex_date || '—'}</td><td class="num">${p.cash_yield != null ? A.fmt.n(p.cash_yield, 2) + '%' : '—'}</td><td class="l">${({ paid: '已發放', upcoming: '待除權息', pending: '日期未定' })[p.status] || '—'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
       <div class="card" style="margin-top:var(--gap-card)"><h3>股利公告 <small data-readout>${ev.length} 筆</small></h3><div class="note divEvNote" data-readout${evShort ? ' data-warn' : ''} style="margin:4px 0 8px">${evNote}</div><div class="tw" style="max-height:320px"><table><thead><tr><th class="l">所屬期間</th><th class="l">類別</th><th>金額（元/股）</th><th class="l">公告日</th><th class="l">除權息日</th><th class="l">發放日</th></tr></thead><tbody id="divEv">${ev.map(e => `<tr><td class="l">${A.fmt.esc(e.period)}</td><td class="l">${e.kind === 'cash' ? '現金' : '股票'}</td><td class="num">${d2(e.amount || 0)}</td><td class="l mono">${e.announce_date || '—'}</td><td class="l mono">${e.ex_date || '—'}</td><td class="l mono">${e.payment_date || '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div>`;
     /* ★ 2026-09-25（審查 R5）：① 字族用全站 NUM_FONT；② 數值一律最多 2 位；③ 標籤色跟主題走。*/
     if (!bars.length) { A.empty('divBar'); return; }
@@ -5197,13 +5300,15 @@
             + (it.cash == null || it.stock == null ? '：金額待股利公告回補（含權，不猜）'
               : `：現金 ${d2(it.cash || 0)}${it.stock ? '・股票 ' + d2(it.stock) : ''}`)
             + (it.period ? `（${A.fmt.esc(it.period)}）` : '')).join('');
+          if (b.cash_yield != null) h += `<br>現金殖利率 ${A.fmt.n(b.cash_yield, 2)}%（Σ 每次現金 ÷ 除息前收盤）`;
           return h; } },
-      legend: { top: 0, right: 0, textStyle: { color: A.CH.ink2 }, data: ['現金股利', '股票股利'] },
-      grid: { left: 44, right: 12, top: 30, bottom: 30 },
+      legend: { top: 0, right: 0, textStyle: { color: A.CH.ink2 }, data: ['現金股利', '股票股利', '現金殖利率'] },
+      grid: { left: 44, right: 44, top: 30, bottom: 30 },
       xAxis: { ...A.axisStyle, type: 'category', data: yrs,
         axisLabel: { color: A.CH.ink3, fontFamily: MF, interval: 0, fontSize: narrowDiv ? 10.5 : 12,
           formatter: (v) => narrowDiv ? "'" + String(v).slice(2) : v } },
-      yAxis: { ...A.axisStyle, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) } },
+      yAxis: [{ ...A.axisStyle, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) } },
+        { ...A.axisStyle, splitLine: { show: false }, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) + '%' } }],
       series: [
         { name: '現金股利', type: 'bar', stack: 'd', barWidth: '55%', data: bars.map(b => +(b.cash || 0).toFixed(2)),
           itemStyle: { color: A.CH.amber }, label: { show: false, fontFamily: MF, formatter: (q) => d2(q.value) } },
@@ -5214,6 +5319,9 @@
           itemStyle: { color: 'transparent' },
           label: { show: true, position: 'top', fontFamily: MF, fontSize: narrowDiv ? 10.5 : 12,
             color: A.CH.ink2, formatter: (q) => top(bars[q.dataIndex]) } },
+        /* 現金殖利率線放在最後：驗收（DIV_PROBE）照索引讀 series[0]＝現金、[1]＝股票 */
+        { name: '現金殖利率', type: 'line', yAxisIndex: 1, data: bars.map(b => (b.cash_yield == null ? null : +b.cash_yield.toFixed(2))), symbolSize: 5, connectNulls: false, z: 5,
+          lineStyle: { color: A.CH.cyan, width: 1.8 }, itemStyle: { color: A.CH.cyan } },
       ],
     }, { notMerge: true });
   }
@@ -5229,8 +5337,18 @@
      法人、融資券是日資料，逐日畫；集保是**每週**資料，點落在實際公布日，兩點之間只連線、不補假的每日值；
      視窗內沒有資料的日子留空（柱子不畫、線斷開）。 */
   const CHIP_WINS = [{ v: 20, t: '4 週' }, { v: 63, t: '3 個月' }, { v: 126, t: '6 個月' }, { v: 250, t: '1 年' }];
+  /* ★ 2026-09-27（Andy 給的券商 App 截圖：法人／資券的時間窗都是一季，7/02～9/24 約 60 個交易日；
+     「季的週期要對，我發現部分數據太少」）：預設改「3 個月」（63 個交易日），4 週／6 個月／1 年照樣可切。*/
+  const CHIP_DEFAULT = 63;
+  /* 法人四段（外資｜投信｜自營商｜合計）與資券四段（融資｜當沖｜融券｜借券賣），照截圖；選擇記在 localStorage。
+     inst_v3.daily 欄位：[日期, 外資, 投信, 自營商, 區間累計(舊), 自營自行買賣, 自營避險]（股）
+     margin 欄位：pg.margin_columns（融資／融券餘額與增減是「張」；當沖、借券是管線換好的「張」、當沖率 %）*/
+  const INST_SEGS = [{ v: 'f', t: '外資', i: 1 }, { v: 't', t: '投信', i: 2 }, { v: 'd', t: '自營商', i: 3 }, { v: 'a', t: '合計', i: -1 }];
+  const MG_SEGS = [{ v: 'm', t: '融資' }, { v: 'dt', t: '當沖' }, { v: 's', t: '融券' }, { v: 'sbl', t: '借券賣' }];
+  const lsGet = (k, ok, dflt) => { try { const v = localStorage.getItem(k); if (v !== null && ok(v)) return v; } catch (e) { /* 私密視窗 */ } return dflt; };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 忽略 */ } };
   function chipWinGet() {
-    let v = 20;
+    let v = CHIP_DEFAULT;
     try { const r = localStorage.getItem('tw.chipWin'); if (r !== null && CHIP_WINS.some(w => String(w.v) === r)) v = +r; } catch (e) { /* 私密視窗 */ }
     return v;
   }
@@ -5252,20 +5370,25 @@
     const help = (title, sub, items) => { const key = 'skc' + (hn++);
       return [hq(key, title), hbox(key, items || [sub, '滑過圖看每天的數字', '點上方圖例可以關掉某一條', '上方切 4 週／3 個月／6 個月／1 年，四張圖一起換'], hn === 1 ? MAIN_FINE : '')]; };
     const card = (id, title, sub, o = {}) => { const [b, x] = help(title, sub, o.items);
-      cards.push(`<div class="card"><h3>${title} ${b}</h3>${x}<div id="${id}" class="chart chipChart"${o.style ? ` style="${o.style}"` : ''}></div>${o.extra || ''}</div>`); };
+      const head = o.seg ? `<div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>${title} ${b}</h3>${o.seg}</div>` : `<h3>${title} ${b}</h3>`;
+      cards.push(`<div class="card">${head}${x}<div id="${id}" class="chart chipChart"${o.style ? ` style="${o.style}"` : ''}></div>${o.extra || ''}</div>`); };
+    const segHtml = (id, list, lbl) => `<div class="seg" id="${id}" role="group" aria-label="${lbl}">${list.map(x => `<button type="button" data-v="${x.v}">${x.t}</button>`).join('')}</div>`;
+    const tblBox = (id) => `<div class="tw chipTbl" id="${id}" style="max-height:260px;margin-top:8px"></div>`;
     const numCard = (title, sub, kvs, why) => { const [b, x] = help(title, '回補天數不夠，先直接列最新數字');
       cards.push(`<div class="card"><h3>${title} <small data-readout>${sub}</small> ${b}</h3>${x}
       <div class="kvs" style="margin-top:10px">${kvs}</div><div class="note" style="margin-top:8px">${why}</div></div>`); };
     const k = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
 
-    if (iv.length >= CHIP_MIN) card('instChart', '三大法人', '每日買賣超（張）與區間累計（視窗第一天起算）');
+    if (iv.length >= CHIP_MIN) card('instChart', '三大法人', '每日買賣超（張）與區間累計（視窗第一天起算）', { seg: segHtml('instSeg', INST_SEGS, '法人別'),
+      extra: tblBox('instTbl'), items: ['上方切外資／投信／自營商／合計', '柱＝每日買賣超（紅＝買超、綠＝賣超，張）', '線＝區間累計（視窗第一天起算）', '自營商＝自行買賣＋避險，滑過看拆分', '下方表格＝每天的數字，新的在上'] });
     else if (iv.length) { const r = iv[iv.length - 1];
       numCard('三大法人', `最新一筆 ${r[0]}`,
         k('外資', A.fmt.lot(r[1] / 1000), A.fmt.cls(r[1])) + k('投信', A.fmt.lot(r[2] / 1000), A.fmt.cls(r[2]))
         + k('自營', A.fmt.lot(r[3] / 1000), A.fmt.cls(r[3])),
         `法人歷史只回補到 ${iv.length} 天，畫成走勢圖看不出東西，先直接列數字；回補滿 ${CHIP_MIN} 天以上就會變成走勢圖。`); }
 
-    if (mg.length >= CHIP_MIN) card('marginChart', '融資融券', '每日餘額（張）');
+    if (mg.length >= CHIP_MIN) card('marginChart', '資券', '融資／當沖／融券／借券賣', { seg: segHtml('mgSeg', MG_SEGS, '資券類別'),
+      extra: tblBox('mgTbl'), items: ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率（÷ 當日成交量）', '借券賣：柱＝當日借券賣出張數、線＝借券賣出餘額', '借券賣出（向借券系統借來賣，多為法人避險）不是融券', '下方表格＝每天的數字，新的在上'] });
     else if (mg.length) { const r = mg[mg.length - 1];
       numCard('融資融券', `最新一筆 ${r[0]}`,
         k('融資餘額', A.fmt.lot(r[1])) + k('融券餘額', A.fmt.lot(r[2])),
@@ -5278,8 +5401,16 @@
       ? `<div class="note hoNote" data-readout style="margin-top:6px">集保每週更新一次（點＝實際公布日，點與點之間不是每日資料），自 ${ho[0][0]} 起累積 ${ho.length} 週`
         + '（歷史週資料沒有免費來源，只能每週往後累積）</div>'
       : '';
+    /* ★ 2026-09-27（Andy 的券商 App「大戶」分頁有「內部人持股」「董監持股」）：董監持股＝證交所 OpenAPI t187ap11_L／
+       櫃買 mopsfin_t187ap11_O（董監事持股餘額明細，每月一次、只給最新一個月），÷ 集保總股數（stockpage.insider_series）。
+       2026-09-27 才開始每天抓，所以一開始多半是「尚無資料」—— 照實寫，不拿別的數字頂。
+       散戶口徑寫在同一行：本站＝集保 1–3 級（≤10 張，DECISIONS #20）；券商 App 的「散戶」常用更寬的級距，數字會對不上。*/
+    const insL = (pg.insider || {}).latest;
+    const insNote = `<div class="note insNote" data-readout style="margin-top:4px">${insL
+      ? `董監持股 <b class="mono">${insL.director_pct != null ? A.fmt.n(insL.director_pct, 2) + '%' : '—'}</b>（${A.fmt.esc(insL.ym)} 月底申報，董監 ${insL.n_directors} 人${insL.pledge_pct != null ? `，設質 ${A.fmt.n(insL.pledge_pct, 1)}%` : ''}${insL.flag === 'over100' ? '，比例超過 100% 判定為資料錯誤、不顯示' : ''}）`
+      : '董監持股：尚無資料（公開資訊觀測站每月申報、只公布最新一個月，本站 2026-09 起逐月累積）'}；散戶＝集保 1–3 級（≤10 張），券商 App 的散戶口徑可能較寬</div>`;
     if (ho.length >= CHIP_MIN) {
-      card('holderChart', '大戶 / 散戶持股', '', { style: 'min-height:380px', extra: hoNote, items: [
+      card('holderChart', '大戶 / 散戶持股', '', { style: 'min-height:380px', extra: hoNote + insNote + tblBox('hoTbl'), items: [
         '三格各自一條：千張大戶（≥1000 張）、400–1000 張、散戶（≤10 張）',
         '集保每週更新一次：點落在實際公布日，兩點之間只是連線、沒有每日資料',
         '每格 Y 軸各自縮放、不從 0 起 —— 看的是方向，不是三條誰高',
@@ -5295,13 +5426,23 @@
       numCard('集保股權分散', `最新一週 ${r[0]}`,
         k('千張大戶', A.fmt.n(r[1], 1) + '%') + k('400–1000 張', A.fmt.n(r[2], 1) + '%')
         + k('散戶 ≤10 張', A.fmt.n(r[3], 1) + '%') + k('股東人數', A.fmt.yi(r[4])),
-        `集保是每週一筆，目前只累積到 ${ho.length} 週；滿 ${CHIP_MIN} 週就會變成走勢圖，看得出籌碼是在集中還是分散。`); }
+        `集保是每週一筆，目前只累積到 ${ho.length} 週；滿 ${CHIP_MIN} 週就會變成走勢圖，看得出籌碼是在集中還是分散。` + insNote); }
+
+    /* ★ 2026-09-27「主力」替代口徑（Andy 的券商 App「主力：買賣超＋5 日／20 日集中度」）：
+       券商分點依 CLAUDE.md 第 7 條不爬，改用三大法人合計當代理；集中度＝N 日法人買賣超 ÷ N 日成交量（stockpage.main_proxy_series）。
+       標題直接寫「替代」，不讓人讀成真的主力。*/
+    const mp = (pg.main_proxy || {}).daily || [];
+    if (mp.length >= CHIP_MIN) card('mainChart', '主力（替代：三大法人）', '', {
+      extra: '<div class="note mainNote" data-readout style="margin-top:6px">替代口徑：券商分點主力沒有合規的免費來源（本站不爬分點），這裡以三大法人合計代替；集中度＝N 日法人買賣超 ÷ N 日成交量</div>' + tblBox('mainTbl'),
+      items: ['柱＝三大法人合計每日買賣超（張）', '藍線＝5 日集中度、橘線＝20 日集中度（右軸 %）', '集中度＝N 日法人買賣超 ÷ N 日成交量', '這是法人替代，不是券商分點主力', '下方表格＝每天的數字，新的在上'] });
 
     if (!cards.length) {
       el.innerHTML = `<div class="card"><div class="empty">這一檔的籌碼資料（法人、融資券、集保）還在回補，下一次盤後更新就會出現。</div></div>`;
       return;
     }
     let win = chipWinGet();
+    let iseg = lsGet('tw.instSeg', v => INST_SEGS.some(x => x.v === v), 'f');
+    let mseg = lsGet('tw.mgSeg', v => MG_SEGS.some(x => x.v === v), 'm');
     const bar = `<div class="row chipBar" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <div class="seg" id="chipWin" role="group" aria-label="籌碼圖區間">${CHIP_WINS.map(w => `<button type="button" data-v="${w.v}">${w.t}</button>`).join('')}</div>
         <span class="note" id="chipRange" data-readout></span></div>`;
@@ -5332,27 +5473,83 @@
       const showLbl = win <= 63;              // 3 個月以內才在點／柱上標數字，1 年標上去會疊成一片
 
       if (iv.length >= CHIP_MIN) {
+        const seg = INST_SEGS.find(x => x.v === iseg) || INST_SEGS[0];
+        const valOf = (r) => (!r ? null : seg.i > 0 ? r[seg.i] : (r[1] == null && r[2] == null && r[3] == null ? null : (r[1] || 0) + (r[2] || 0) + (r[3] || 0)));
+        const vals = dates.map(d => valOf(imap.get(d)));
         let s = 0;
-        const cum = dates.map(d => { const r = imap.get(d); if (!r) return null; s += (r[1] || 0) + (r[2] || 0) + (r[3] || 0); return s; });
-        const col = (i) => dates.map(d => { const r = imap.get(d); return r ? r[i] : null; });
+        const cum = vals.map(v => { if (v == null) return null; s += v; return s; });
+        $$('#instSeg button', el).forEach(b => b.classList.toggle('on', b.dataset.v === seg.v));
+        el.dataset.instSeg = seg.v;
+        const lot = (v) => (v == null ? '—' : A.fmt.lot(v / 1000));
         A.chart('instChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue; const r = imap.get(d);
             if (!r) return `<b>${d}</b><br>這天沒有法人資料`;
-            return `<b>${d}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : A.fmt.lot(p.value / 1000)}`).join('<br>'); } },
-          legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 66, right: 78, top: 30, bottom: 30 },
+            let h = `<b>${d}</b><br>${seg.t} ${lot(valOf(r))}`;
+            if (seg.v === 'd' && (r[5] != null || r[6] != null)) h += `<br>· 自行買賣 ${lot(r[5])}<br>· 避險 ${lot(r[6])}`;
+            const c = ps.find(p => p.seriesName === '區間累計'); if (c) h += `<br>區間累計 ${lot(c.value)}`;
+            return h; } },
+          legend: { textStyle: { color: A.CH.ink2 }, top: 0, data: [seg.t, '區間累計'] }, grid: { left: 66, right: 78, top: 30, bottom: 30 },
           xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
-          series: [{ name: '外資', type: 'bar', stack: 'i', data: col(1), itemStyle: { color: '#3ee0ff' } }, { name: '投信', type: 'bar', stack: 'i', data: col(2), itemStyle: { color: '#ffb454' } }, { name: '自營', type: 'bar', stack: 'i', data: col(3), itemStyle: { color: '#8b7bff' } },
-            { name: '區間累計', type: 'line', yAxisIndex: 1, data: cum, showSymbol: false, connectNulls: false, lineStyle: { color: '#ff8fab', width: 2 }, itemStyle: { color: '#ff8fab' } }] }, { notMerge: true });
+          series: [{ name: seg.t, type: 'bar', data: vals.map(v => (v == null ? null : { value: v, itemStyle: { color: v >= 0 ? A.CH.up : A.CH.down } })), itemStyle: { color: A.CH.up } },
+            { name: '區間累計', type: 'line', yAxisIndex: 1, data: cum, showSymbol: false, connectNulls: false, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
+        const tb = $('#instTbl', el);
+        if (tb) {
+          const cell = (v) => `<td class="num ${A.fmt.cls(v)}">${v == null ? '—' : A.fmt.i(Math.round(v / 1000))}</td>`;
+          const rows = dates.slice().reverse().map(d => [d, imap.get(d)]).filter(x => x[1]);
+          tb.innerHTML = `<table><thead><tr><th class="l">日期</th><th>外資</th><th>投信</th><th>自營商</th><th>合計</th></tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${cell(r[1])}${cell(r[2])}${cell(r[3])}${cell((r[1] || 0) + (r[2] || 0) + (r[3] || 0))}</tr>`).join('') || '<tr><td colspan="5" class="l muted">這段期間沒有法人資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張（買超－賣超）</div>`;
+        }
       }
-      /* 融資／融券餘額的單位是張：提示框用跟上面籌碼快照同一個 fmt.lot（2026-09-26 小數點普查補單位）*/
+      /* 資券四段（2026-09-27）：融資／融券＝每日增減柱＋餘額線；當沖＝當沖張數柱＋當沖率線；借券賣＝當日借券賣出柱＋借券餘額線。
+         那一段完全沒有資料（當沖／借券：FinMind 資料集等級不足被封印，或回補還沒輪到）→ 不畫假圖，寫出原因。*/
       if (mg.length >= CHIP_MIN) {
-        const col = (i) => dates.map(d => { const r = mmap.get(d); return r ? r[i] : null; });
-        A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue;
-            if (!mmap.get(d)) return `<b>${d}</b><br>這天沒有融資券資料`;
-            return `<b>${d}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : A.fmt.lot(p.value)}`).join('<br>'); } },
-          legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 },
-          xAxis: xCat({ boundaryGap: false }), yAxis: [{ ...A.axisStyle, scale: true }, { ...A.axisStyle, scale: true, splitLine: { show: false } }],
-          series: [{ name: '融資餘額', type: 'line', data: col(1), showSymbol: nTrade <= 30, symbolSize: 4, connectNulls: false, areaStyle: { color: 'rgba(255,77,109,.12)' }, lineStyle: { color: '#ff4d6d', width: 2 }, itemStyle: { color: '#ff4d6d' } },
-            { name: '融券餘額', type: 'line', yAxisIndex: 1, data: col(2), showSymbol: nTrade <= 30, symbolSize: 4, connectNulls: false, lineStyle: { color: '#2ee59d', width: 1.5 }, itemStyle: { color: '#2ee59d' } }] }, { notMerge: true });
+        const seg = MG_SEGS.find(x => x.v === mseg) || MG_SEGS[0];
+        $$('#mgSeg button', el).forEach(b => b.classList.toggle('on', b.dataset.v === seg.v));
+        const C = { m: [3, 1, '融資增減', '融資餘額', '張'], s: [4, 2, '融券增減', '融券餘額', '張'], dt: [5, 6, '當沖張數', '當沖率', '%'], sbl: [7, 8, '借券賣出', '借券賣出餘額', '張'] }[seg.v];
+        const col = (i) => dates.map(d => { const r = mmap.get(d); return r && r[i] != null ? r[i] : null; });
+        const bar = col(C[0]), line = col(C[1]);
+        const any = mg.some(r => r[C[0]] != null || r[C[1]] != null);
+        el.dataset.mgSeg = seg.v;
+        if (!any) {
+          const why = seg.v === 'dt' ? '當沖資料（FinMind 當日沖銷表）還沒回補到這一檔，或資料源帳號等級拿不到 —— 補到之後這裡會自動出現。'
+            : seg.v === 'sbl' ? '借券賣出資料（FinMind 融券借券賣出餘額表）還沒回補到這一檔，或資料源帳號等級拿不到 —— 補到之後這裡會自動出現。'
+            : '這一檔沒有信用交易資料（可能不是信用交易標的）。';
+          A.empty('marginChart', why);
+        } else {
+          const fmtV = (v, unit) => (v == null ? '—' : unit === '%' ? A.fmt.n(v, 2) + '%' : A.fmt.lot(v));
+          A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue;
+              if (!mmap.get(d)) return `<b>${d}</b><br>這天沒有資券資料`;
+              return `<b>${d}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${fmtV(p.value, p.seriesIndex === 1 ? C[4] : '張')}`).join('<br>'); } },
+            legend: { textStyle: { color: A.CH.ink2 }, top: 0, data: [C[2], C[3]] }, grid: { left: 60, right: 64, top: 30, bottom: 30 },
+            xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v) } }, { ...A.axisStyle, scale: true, splitLine: { show: false }, axisLabel: { formatter: v => (C[4] === '%' ? v + '%' : A.fmt.lot(v)) } }],
+            series: [{ name: C[2], type: 'bar', data: bar.map(v => (v == null ? null : { value: v, itemStyle: { color: (seg.v === 'm' || seg.v === 's') ? (v >= 0 ? A.CH.up : A.CH.down) : A.CH.violet } })), itemStyle: { color: A.CH.violet } },
+              { name: C[3], type: 'line', yAxisIndex: 1, data: line, showSymbol: nTrade <= 30, symbolSize: 4, connectNulls: false, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
+        }
+        const tb = $('#mgTbl', el);
+        if (tb) {
+          const num = (v, sg) => `<td class="num ${sg ? A.fmt.cls(v) : ''}">${v == null ? '—' : A.fmt.i(v)}</td>`;
+          const rows = dates.slice().reverse().map(d => [d, mmap.get(d)]).filter(x => x[1]);
+          tb.innerHTML = `<table><thead><tr><th class="l">日期</th><th>融資</th><th>當沖</th><th>融券</th><th>借券賣</th></tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[3], true)}${num(r[5])}${num(r[4], true)}${num(r[7])}</tr>`).join('') || '<tr><td colspan="5" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。融資／融券＝當日增減；當沖＝當沖成交張數；借券賣＝當日借券賣出張數</div>`;
+        }
+      }
+      if (mp.length >= CHIP_MIN) {
+        const pm = new Map(mp.map(r => [String(r[0]).slice(0, 10), r]));
+        const colM = (i) => dates.map(d => { const r = pm.get(d); return r && r[i] != null ? r[i] : null; });
+        const net = colM(1);
+        const lotM = (v) => (v == null ? '—' : A.fmt.lot(v / 1000));
+        const pctM = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
+        A.chart('mainChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue; const r = pm.get(d);
+            if (!r) return `<b>${d}</b><br>這天沒有法人資料`;
+            return `<b>${d}</b><br>法人合計 ${lotM(r[1])}<br>5 日集中 ${pctM(r[3])}<br>20 日集中 ${pctM(r[4])}`; } },
+          legend: { textStyle: { color: A.CH.ink2 }, top: 0, data: ['法人買賣超', '5 日集中', '20 日集中'] }, grid: { left: 66, right: 56, top: 30, bottom: 30 },
+          xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, scale: true, splitLine: { show: false }, axisLabel: { formatter: v => v + '%' } }],
+          series: [{ name: '法人買賣超', type: 'bar', data: net.map(v => (v == null ? null : { value: v, itemStyle: { color: v >= 0 ? A.CH.up : A.CH.down } })), itemStyle: { color: A.CH.up } },
+            { name: '5 日集中', type: 'line', yAxisIndex: 1, data: colM(3), showSymbol: false, connectNulls: false, lineStyle: { color: '#4f8cff', width: 1.8 }, itemStyle: { color: '#4f8cff' } },
+            { name: '20 日集中', type: 'line', yAxisIndex: 1, data: colM(4), showSymbol: false, connectNulls: false, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
+        const mt = $('#mainTbl', el);
+        if (mt) {
+          const rows = dates.slice().reverse().map(d => [d, pm.get(d)]).filter(x => x[1]);
+          const c = (v, f) => `<td class="num ${A.fmt.cls(v)}">${f(v)}</td>`;
+          mt.innerHTML = `<table><thead><tr><th class="l">日期</th><th>法人買賣超（張）</th><th>5 日集中</th><th>20 日集中</th></tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${c(r[1], v => (v == null ? '—' : A.fmt.i(Math.round(v / 1000))))}${c(r[3], pctM)}${c(r[4], pctM)}</tr>`).join('') || '<tr><td colspan="4" class="l muted">這段期間沒有法人資料</td></tr>'}</tbody></table>`;
+        }
       }
       if (ho.length >= CHIP_MIN) {
         const inWin = dates.filter(d => hmap.has(d)).map(d => hmap.get(d));
@@ -5393,6 +5590,15 @@
               formatter: (q) => q.value == null ? '' : A.fmt.n(q.value, 2) + '%' } })),
         }, { notMerge: true });
 
+        /* ★ 2026-09-27（Andy 的券商 App「大戶持股分布」表）：每週一列，新的在上。
+           級距定義：大戶＝集保 level 15（≥1,000 張）、中實戶＝12–14（400–1,000 張）、散戶＝1–3（≤10 張，DECISIONS #20）。
+           董監持股是**每月**申報（t187ap11），不塞進每週的表，寫在圖下那一行（insNote）。*/
+        const ht = $('#hoTbl', el);
+        if (ht) {
+          const hr = ho.slice().reverse();
+          ht.innerHTML = `<table><thead><tr><th class="l">日期</th><th>千張大戶</th><th>400–1000 張</th><th>散戶 ≤10 張</th><th>股東人數</th></tr></thead><tbody>${hr.map(r => `<tr><td class="l mono">${String(r[0]).slice(5)}</td><td class="num">${r[1] == null ? '—' : A.fmt.n(r[1], 2) + '%'}</td><td class="num">${r[2] == null ? '—' : A.fmt.n(r[2], 2) + '%'}</td><td class="num">${r[3] == null ? '—' : A.fmt.n(r[3], 2) + '%'}</td><td class="num">${r[4] == null ? '—' : A.fmt.i(r[4])}</td></tr>`).join('')}</tbody></table>${(() => { const im = ((pg.insider || {}).monthly || []).slice(-6).reverse();
+            return im.length ? `<div class="note hoInsider" style="margin-top:4px">董監持股（每月申報，新的在前）：${im.map(x => `${A.fmt.esc(x.ym)} ${x.director_pct != null ? A.fmt.n(x.director_pct, 2) + '%' : '—'}`).join('、')}</div>` : ''; })()}`;
+        }
         /* 股東人數：每週增減的長條（跟上一週比），紅＝增加、綠＝減少（台股紅漲綠跌：數字變大用紅）。
            上一週若在視窗外、但湖裡有，照樣拿來比；整個湖的第一週沒有上一週 → 不畫那根。 */
         const cEl = document.getElementById('holderCount');
@@ -5432,6 +5638,8 @@
       try { localStorage.setItem('tw.chipWin', String(win)); } catch (e) { /* 忽略 */ }
       draw();
     });
+    $$('#instSeg button', el).forEach(b => b.onclick = () => { iseg = b.dataset.v; lsSet('tw.instSeg', iseg); draw(); });
+    $$('#mgSeg button', el).forEach(b => b.onclick = () => { mseg = b.dataset.v; lsSet('tw.mgSeg', mseg); draw(); });
     draw();
   }
   function tabBasics(pg, el) {
@@ -5599,7 +5807,7 @@
           </summary><div class="note" style="white-space:pre-wrap;margin-top:6px">${esc(m.detail || '')}</div></details>`; }
       if (it.t === 'news') { const n = it.n;
         return `<div class="ev nrow" data-type="news"><div class="nhead">${tag('news')}<a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></div>
-          <div class="m"><span class="mono">${esc(n.date || '')}</span>${n.category ? `<span class="cat">${esc(n.category)}</span>` : ''}<span>${esc(n.source || '')}</span></div></div>`; }
+          <div class="m"><span class="mono">${esc(n.date || '')}${n.time ? ' ' + esc(n.time) : ''}</span>${n.category ? `<span class="cat">${esc(n.category)}</span>` : ''}<span>${esc(n.source || '')}</span></div></div>`; }
       const b = it.b;
       return `<div class="ev nrow" data-type="broker"><div class="nhead">${tag('broker')}<small class="nwarn" data-warn title="券商看法是新聞引述，不是本站的預估或建議">不是本站預估</small><a href="${esc(b.url || '#')}" target="_blank" rel="noopener">${esc(b.title)}</a></div>
         <div class="m"><span class="mono">${esc(b.date || '')}</span><span>${esc(b.source || '新聞引述')}</span></div></div>`;

@@ -661,6 +661,42 @@ def statutory_available(year: int, quarter: int) -> str:
 
 
 
+def _qlabel(qidx: int) -> str:
+    return f"{qidx // 4}Q{qidx % 4 + 1}"
+
+
+def quarter_timing(asof: str, latest: str | None) -> dict:
+    """某一天「應該有到哪一季財報」的判定（個股頁普查用，2026-09-27）。
+
+    - expected（至少應該有）＝法定期限 ≤ asof 的最後一季（Q1 5/15、Q2 8/14、Q3 11/14、Q4 隔年 3/31）。
+      過了期限還沒有 → missing（漏抓或公司延遲申報，兩者都要看得到）。
+    - max_possible（最多可能有）＝季底 < asof 的最後一季。公司可以比法定期限早公布（台積電 Q3 十月中就公布），
+      所以 expected < latest ≤ max_possible 也是 ok；latest > max_possible（季底都還沒到）＝ future，資料一定錯。
+    - latest 為 None → missing（一季都沒有）。
+    ⚠ 回測／本益比歷史的「可用日」仍一律用法定期限（statutory_available），這裡只判斷「顯示上有沒有漏」。
+    """
+    d = str(asof)[:10]
+    y = int(d[:4])
+    exp = None
+    for qi in range((y - 2) * 4, (y + 1) * 4):
+        if statutory_available(qi // 4, qi % 4 + 1) <= d:
+            exp = qi
+    mx = None
+    for qi in range((y - 2) * 4, (y + 1) * 4):
+        if quarter_end(qi // 4, qi % 4 + 1) < d:
+            mx = qi
+    out = {"asof": d, "expected": _qlabel(exp) if exp is not None else None,
+           "max_possible": _qlabel(mx) if mx is not None else None, "latest": latest}
+    if not latest:
+        out["status"] = "missing"
+        return out
+    ly, lq = int(str(latest)[:4]), int(str(latest)[-1])
+    li = ly * 4 + lq - 1
+    out["status"] = "future" if (mx is not None and li > mx) else \
+                    "missing" if (exp is not None and li < exp) else "ok"
+    return out
+
+
 def quarter_end(year: int, quarter: int) -> str:
     return f"{int(year)}-" + {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}[int(quarter)]
 

@@ -1683,6 +1683,12 @@ tbody tr:last-child td{border-bottom:0}
 @media (max-width:640px){.cfgpop.indpop{width:calc(100vw - 20px)}.indrow .ibody{padding-left:8px}}
 /* 基本資料的題材／族群連結：以前黏成「#AI 伺服器#高階 PCB」一串，看不出哪裡斷 */
 .tagrow{display:inline-flex;flex-wrap:wrap;gap:4px 12px}
+/* 2026-09-27 個股「指標」分頁：一列一條（左邊類別框、右邊內容＋判斷用的數字） */
+.taglist{display:flex;flex-direction:column}
+.tagln{display:flex;gap:12px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line)}
+.tagln .tagk{flex:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:13px;color:var(--ink2)}
+.tagln .tagb{min-width:0;flex:1}.tagln .tagd{margin-top:3px;font-size:12px}
+.tagmore>summary{cursor:pointer;color:var(--ink3);font-size:13px}
 /* 週期統計「自填 年」：以前沒套樣式，深色主題裡是一塊白底 */
 .opabox input[type=number]{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);border-radius:6px;
   padding:3px 6px;font-family:var(--mono);font-size:12.5px;color-scheme:light dark}

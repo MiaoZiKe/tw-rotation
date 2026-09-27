@@ -593,6 +593,10 @@ def main() -> int:
         save("news", news_df)
         save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
         save("material_news", step("mops.material_news", mops.material_news))
+        # 董監事持股（2026-09-27，個股頁「大戶」卡的董監持股比例）：每月才換一次，但端點只給最新一個月，
+        # 每天抓一次、store.append 依 (ym, code) 去重 —— 一次約 2,000 列、不吃 FinMind 額度。
+        # 漏抓一個月就永遠補不回來（沒有歷史端點），所以放在每天都會跑的傍晚那輪。
+        save("insider_holding", step("mops.insider_holdings", mops.insider_holdings))
         save("intl_daily", step("macro.intl", macro.intl_daily))
         save("macro", step("macro.fred", macro.macro_all))
 

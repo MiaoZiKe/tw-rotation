@@ -66,6 +66,16 @@ TABLES: dict[str, list[str]] = {
     # 只帶 code＋website 的列會把 company_info 的名稱、產業、市場別全部蓋成空值。
     # 上市的網址 company_info 本來就有（t187ap03_L 的「網址」），這張表只補上櫃／興櫃。
     "company_website":    ["code"],
+    # v11（2026-09-27，個股頁籌碼分頁照 Andy 給的券商 App 截圖補「當沖」「借券賣」）：
+    #   daytrade_daily ＝ FinMind TaiwanStockDayTrading（當日沖銷成交股數、買進／賣出金額，單位股／元）
+    #   sbl_daily      ＝ FinMind TaiwanDailyShortSaleBalances（融券與借券賣出的當日賣出、回補、餘額，單位股）
+    #   兩者都是 FinMind 既有白名單來源、逐檔抓；帳號等級拿不到時回補會自動封印（run_backfill.seal_dataset），
+    #   頁面照實寫「資料源未提供」。證交所官網 rwd 的同名報表（TWTB4U、TWT93U）依 DECISIONS 不碰。
+    "daytrade_daily":     ["date", "code"],
+    "sbl_daily":          ["date", "code"],
+    # v12（2026-09-27）：董監事持股（證交所 OpenAPI t187ap11_L／櫃買 mopsfin_t187ap11_O，每月一次）。
+    #   只存每家公司每月的合計（sources/mops.parse_insider），不存個人姓名。按年分割、一年約 2.4 萬列。
+    "insider_holding":    ["ym", "code"],
 }
 
 # 按「月」分割的表（其餘一律按年）。
