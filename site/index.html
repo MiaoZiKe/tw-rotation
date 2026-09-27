@@ -17,6 +17,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
 <script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<!-- ★ 2026-09-27 設計 v4（claude/design-v4 試作）：版面風格 casual／hud／pro，存 tw.theme4。
+     跟 data-theme 一樣要在畫面畫出來之前決定，不然會先閃一下舊版面。沒存過＝不掛屬性＝站上照舊。 -->
+<script>try{var t4=localStorage.getItem('tw.theme4');if(t4==='casual'||t4==='hud'||t4==='pro')document.documentElement.setAttribute('data-theme4',t4);}catch(e){}</script>
 <!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
      ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），
@@ -4122,6 +4125,8 @@ h3 .howbtn.pop{font-family:inherit}
 }
 @media (min-width:641px){ #mbHead,#mbBody,#mbHome{display:none!important} }
 </style>
+<!-- 設計 v4 的骨架＋三套主題變數（docs/design_v4/01_設計系統.md）。放在內嵌樣式之後才蓋得過；沒有 data-theme4 時一條都不生效。 -->
+<link rel="stylesheet" href="theme4.css">
 </head>
 <body>
 <header class="topbar">
@@ -4592,6 +4597,7 @@ h3 .howbtn.pop{font-family:inherit}
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="flowtopo.js"></script>
 <script src="app.js"></script>
+<script src="theme4.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>

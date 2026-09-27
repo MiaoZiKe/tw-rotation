@@ -10866,7 +10866,10 @@
        ⚠ 自動關的時候**不准覆寫存起來的偏好** —— 不然使用者在手機上開一次，
          回到桌機那一欄就莫名其妙不見了。 */
     const SIDE_OVERLAY_MAX = 820;                      // 跟 index.html 的 media query 同一個數字
-    const sideIsOverlay = () => window.innerWidth <= SIDE_OVERLAY_MAX;
+    /* ★ 2026-09-27 設計 v4（claude/design-v4）：套了 v4 風格（<html data-theme4>）時，1600px 以下這一欄也改成浮層、預設收起 ——
+       量到 1100px 寬時這一欄吃掉 33% 的寬度（內容只剩 740px），是「圖被壓縮」最大的來源（docs/design_v4/00_現況量測.md）。
+       沒有 data-theme4 時門檻照舊 820，站上行為一模一樣。*/
+    const sideIsOverlay = () => window.innerWidth <= (document.documentElement.hasAttribute('data-theme4') ? 1599 : SIDE_OVERLAY_MAX);
     const setSide = (open, remember = true, quiet = false) => {
       $('#side').classList.toggle('open', open);
       $('#layout').classList.toggle('noside', !open);
