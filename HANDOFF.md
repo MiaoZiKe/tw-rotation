@@ -3237,3 +3237,6 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
   - 版面等高：選擇器還找舊的 `#themeStrip`／`.eqpair`（總覽改版後已不存在）→ 改量 `#ovThemeCard`／`.ovmain` 左右欄；門檻（≤720px、2px、三寬度）沒放寬。解開後浮出的 F3 17 條也都是驗收過時，已照新版面改。
   - 反向驗證：拿掉 `#stagePanel` 的 dismissable 登記 → 桌機紅 3、手機紅 2；還原 0。
 - 這批驗了：點外面就關／新-版面等高與多寬度／資金流向／新-資金流向／總覽／手機按鈕普查 0、_preview 綠（只改 _uitest.py，pytest 依例外跳過；site/ 沒變、不需部署）。
+
+### 09-28 凌晨 歷史回補補齊
+- backfill_progress：inst（2016 起）、daytrade+sbl（2025 起，scope=universe 前 500 檔）、dividend+divresult（2009 起）三步都 done（17:23 UTC）；18:26 那輪 16 秒即跳過＝已補齊。補觸發排程停止。
