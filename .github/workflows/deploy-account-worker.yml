@@ -1,0 +1,101 @@
+name: 部署 Worker（會員登入與使用統計）
+
+# 把 workers/account-api/ 自動部署到 Cloudflare（Worker ＋ Durable Object），並把 Google 登入的金鑰與管理者名單設成 Worker Secret。
+# 架構與取捨：DECISIONS #270；Andy 要做的設定：docs/login_setup.md。
+#
+# ★ 跟「部署 Worker（即時報價代理）」同一個原則：金鑰還沒設的時候「跳過並印出待辦」，不要紅燈。
+#   而且要講出「缺的是哪一個」—— 2026-09-18 踩過：只寫一句死字串，Andy 要自己一個一個猜。
+#
+# 用到的 repo Secret：
+#   CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID  —— 報價代理已經在用，沿用
+#   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET       —— Google Cloud 的 OAuth 用戶端（docs/login_setup.md 第 2 步）
+#   ACCOUNT_ADMIN_EMAILS                          —— 管理者 email（逗號分隔），只有這些人看得到 #admin
+# 這三個會用 `wrangler secret put` 寫進 Worker，**不會**出現在 repo、log 或網站上。
+
+on:
+  push:
+    branches: [main]
+    paths: ['workers/account-api/**', '.github/workflows/deploy-account-worker.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-account-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 部署前先跑存取控制測試（等同 Firebase 安全規則的測試）：規則紅了就不准部署
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 存取控制測試（18 條）
+        run: node --test workers/account-api/tests/account.test.mjs
+
+      - id: guard
+        name: 檢查金鑰
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          G_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          G_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          ADMINS: ${{ secrets.ACCOUNT_ADMIN_EMAILS }}
+        run: |
+          miss=""
+          [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$G_ID" ] && miss="$miss GOOGLE_CLIENT_ID"
+          [ -z "$G_SECRET" ] && miss="$miss GOOGLE_CLIENT_SECRET"
+          if [ -n "$miss" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "缺少：$miss"
+            {
+              echo "### 會員 Worker 尚未部署"
+              echo ""
+              echo "**缺少這些 Secret：**$miss"
+              echo ""
+              echo "步驟見 docs/login_setup.md。設定位置：Settings → Secrets and variables → Actions → New repository secret（放在 Repository secrets）。"
+              echo "在那之前網站照常運作，只是沒有登入鈕（自選清單只存在各自的裝置）。"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            [ -z "$ADMINS" ] && echo "::warning::沒設 ACCOUNT_ADMIN_EMAILS：部署照做，但沒有人看得到 #admin 管理頁"
+          fi
+
+      - name: 部署（含 Durable Object 與三個 Secret）
+        if: steps.guard.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/account-api
+          secrets: |
+            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET
+            ADMIN_EMAILS
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          # 沒設時給一個不是 email 的值：空字串的 Secret 會讓 wrangler 失敗；'none' 比對不到任何人＝沒有管理者
+          ADMIN_EMAILS: ${{ secrets.ACCOUNT_ADMIN_EMAILS || 'none' }}
+
+      - name: 驗證真的活著
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          sleep 5
+          code=$(curl -s -o /tmp/h.json -w '%{http_code}' "https://tw-account.kcq01010909.workers.dev/health")
+          echo "HTTP $code"; head -c 300 /tmp/h.json; echo
+          test "$code" = "200"
+          grep -q '"configured":true' /tmp/h.json
+          {
+            echo "### 會員 Worker 部署成功"
+            echo ""
+            echo "網址：https://tw-account.kcq01010909.workers.dev"
+            echo "最後一步：把這個網址存成 repo Secret **ACCOUNT_API_URL**，再到 Actions 手動跑一次「部署網站」，登入鈕就會出現。"
+          } >> "$GITHUB_STEP_SUMMARY"

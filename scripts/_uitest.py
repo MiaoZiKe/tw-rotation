@@ -15046,6 +15046,10 @@ SECTIONS = {
     "搜尋近期熱門Logo":    lambda pg, b, base, code: t_search_recent_logo(pg, b, base),
     # ★ 2026-09-26 Andy 總覽三件：大盤三張圖量副圖不見、熱門題材要能放大、足跡輪盤點族群不能推動版面（⚠ 一律 --workers 1）
     "總覽修正0926b":       lambda pg, b, base, code: t_ov_fix_0926b(b, base, code),
+    # ★ 2026-09-27 Andy：Google 登入、使用統計、線上人數、自選清單五分頁（DECISIONS #270）
+    #   「會員與自選五分頁」＝沒有設定檔（線上現況）；「會員雲端路徑」＝本機跑真的 worker.js＋假 Google（⚠ 一律 --workers 1）
+    "會員與自選五分頁":    lambda pg, b, base, code: t_watchlists_guest(b, base),
+    "會員雲端路徑":        lambda pg, b, base, code: t_account_cloud(b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -34896,6 +34900,369 @@ def t_mobile_home(b, base, code):
     m.set_viewport_size({"width": 1440, "height": 950}); m.wait_for_timeout(1200)
     ok(f"{T}視窗拉回 1440 → #mbHome 拆掉（桌機不動）", not m.evaluate("() => !!document.getElementById('mbHome')"))
     m.close()
+
+
+# ===================================================================== 會員與自選五分頁（2026-09-27，DECISIONS #270）
+# Andy：「使用者透過 google 登入設定…新增每頁使用功能狀況…新增線上人數，知道目前有誰使用，新增自選清單並且可以新增五個分頁」
+#   · 「會員與自選五分頁」＝**沒有設定檔**（線上現在的狀態）：五分頁的新增／改名／刪除／搬移、舊 tw.watch 搬家、☆ 選清單、
+#     重新整理後還在、手機總覽那一列換頁、手機個股 ☆、800／390 頂欄不溢出、沒有登入鈕也不打任何 API。
+#   · 「會員雲端路徑」＝**有設定檔**：本機起真的 worker.js（node workers/account-api/devserver.mjs，Durable Object 的 SQLite 換成 node:sqlite、
+#     Google 換成一頁假的登入頁），走完整個登入（小視窗與整頁跳轉兩條路）、首次合併上雲、登出清空、管理頁、線上人數開關、刪除我的資料、使用統計。
+#     沒驗到的：真的 Google 登入頁與 Cloudflare 的實際部署（容器連不到）。
+def _wl_ls(pg, key):
+    return pg.evaluate(f"() => {{ try {{ return JSON.parse(localStorage.getItem({json.dumps(key)}) || 'null'); }} catch (e) {{ return 'ERR'; }} }}")
+
+
+def t_watchlists_guest(b, base):
+    errs: list[str] = []
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    ctx.add_init_script("try{if(!sessionStorage.getItem('wlseed')){sessionStorage.setItem('wlseed','1');"
+                        "localStorage.setItem('tw.watch','[\"2330\",\"2454\"]');}}catch(e){}")
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    api_hits: list[str] = []
+    pg.on("request", lambda r: api_hits.append(r.url) if ("/v1/" in r.url or "/auth/" in r.url) else None)
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!window.TwWatch && !!document.getElementById('wlBtn')", 8000)
+
+    # ① 舊的單一清單 tw.watch 搬進第 1 頁，舊鍵刪掉
+    st = _wl_ls(pg, "tw.watchlists")
+    ok("自選：舊 tw.watch 自動搬進第 1 頁", bool(st) and st.get("tabs") and st["tabs"][0]["codes"] == ["2330", "2454"], st)
+    ok("自選：搬完舊鍵 tw.watch 刪掉", pg.evaluate("() => localStorage.getItem('tw.watch')") is None)
+    ok("自選：沒有設定檔時不出現登入鈕", pg.locator("#acctBtn").count() == 0)
+
+    # ② 打開面板
+    pg.click("#wlBtn")
+    ok("自選：按頂欄「自選」面板真的打開", pg.is_visible("#wlPanel"))
+    ok("自選：面板列出第 1 頁的兩檔", pg.locator("#wlList li[data-go]").count() == 2, pg.locator("#wlList li").count())
+
+    # ③ 新增一頁並改名（按 ＋ 直接進入改名）
+    pg.click("#wlNew")
+    ok("自選：按 ＋ 新增一頁後出現改名輸入框", pg.is_visible("#wlRename"))
+    pg.fill("#wlRename", "半導體")
+    pg.press("#wlRename", "Enter")
+    tabs = pg.evaluate("() => TwWatch.tabs().map(t => t.name)")
+    ok("自選：新增的頁叫「半導體」而且是第 2 頁", tabs == ["自選 1", "半導體"], tabs)
+    st = _wl_ls(pg, "tw.watchlists")
+    ok("自選：新增與改名真的寫進 localStorage", [t["name"] for t in st["tabs"]] == ["自選 1", "半導體"], st)
+
+    # ④ 搜尋加入（在「半導體」頁）
+    pg.fill("#wlQ", "2303")
+    wait_until(pg, "() => !!document.querySelector('#wlRes button[data-add=\"2303\"]')", 6000)
+    pg.click("#wlRes button[data-add='2303']")
+    ok("自選：搜尋加入 2303 後清單多一列", pg.evaluate("() => TwWatch.codes()") == ["2303"], pg.evaluate("() => TwWatch.codes()"))
+    ok("自選：畫面上真的出現 2303 那一列", pg.locator("#wlList li[data-go='2303']").count() == 1)
+
+    # ⑤ 改名（改名鈕）
+    pg.click("#wlRen")
+    pg.fill("#wlRename", "晶圓代工")
+    pg.press("#wlRename", "Enter")
+    ok("自選：改名鈕改得動（半導體 → 晶圓代工）", pg.evaluate("() => TwWatch.curTab().name") == "晶圓代工")
+    ok("自選：分頁標籤上的字也換了", "晶圓代工" in pg.inner_text("#wlTabs"))
+
+    # ⑥ 新增到五頁 → ＋ 消失
+    for nm in ("AI", "PCB", "觀察"):
+        pg.click("#wlNew")
+        pg.fill("#wlRename", nm)
+        pg.press("#wlRename", "Enter")
+    ok("自選：可以加到五頁", pg.evaluate("() => TwWatch.tabs().length") == 5)
+    ok("自選：滿五頁後 ＋ 不見了（不能再新增）", pg.locator("#wlNew").count() == 0)
+    ok("自選：滿五頁時程式也拒絕第六頁", pg.evaluate("() => TwWatch.newTab('x')") is None)
+
+    # ⑦ 刪除一頁（要先確認）
+    pg.click("#wlDel")
+    ok("自選：刪除要先確認（出現確定刪除）", pg.is_visible("#wlDelYes"))
+    pg.click("#wlDelNo")
+    ok("自選：按取消不會刪", pg.evaluate("() => TwWatch.tabs().length") == 5)
+    pg.click("#wlDel"); pg.click("#wlDelYes")
+    ok("自選：確定刪除後剩四頁", pg.evaluate("() => TwWatch.tabs().map(t => t.name)") == ["自選 1", "晶圓代工", "AI", "PCB"],
+       pg.evaluate("() => TwWatch.tabs().map(t => t.name)"))
+    ok("自選：＋ 又出現了（不滿五頁）", pg.locator("#wlNew").count() == 1)
+
+    # ⑧ 換到第 1 頁，把 2454 搬到「晶圓代工」
+    pg.click("#wlTabs button[data-tab]:nth-child(1)")
+    ok("自選：點分頁標籤真的換頁", pg.evaluate("() => TwWatch.curTab().name") == "自選 1")
+    tid = pg.evaluate("() => TwWatch.tabs()[1].id")
+    pg.select_option("#wlList select[data-mv='2454']", tid)
+    ok("自選：「移到…」把 2454 搬到晶圓代工",
+       pg.evaluate("() => [TwWatch.codes(), TwWatch.tabs()[1].codes]") == [["2330"], ["2454", "2303"]],
+       pg.evaluate("() => [TwWatch.codes(), TwWatch.tabs()[1].codes]"))
+
+    # ⑨ ✕ 移除，然後把 2330 加回來、點列進個股頁
+    pg.click("#wlList button[data-del='2330']")
+    ok("自選：✕ 從這一頁移除", pg.evaluate("() => TwWatch.codes()") == [])
+    ok("自選：空的頁寫「還沒有股票」而不是留白", "還沒有股票" in pg.inner_text("#wlList"))
+    pg.evaluate("() => TwWatch.add('2330')")
+    pg.click("#wlList li[data-go='2330'] .nm")
+    wait_until(pg, "() => location.hash === '#stock/2330'", 6000)
+    ok("自選：點一列進個股頁", pg.evaluate("() => location.hash") == "#stock/2330")
+
+    # ⑩ 桌機個股頁的 ☆：選要放進哪幾頁
+    wait_until(pg, "() => !!document.getElementById('wlStar')", 10000)
+    ok("自選：桌機個股頁名稱旁有 ☆", pg.locator("#wlStar").count() == 1)
+    ok("自選：已在清單的股票顯示 ★", pg.inner_text("#wlStar").strip() == "★")
+    pg.click("#wlStar")
+    ok("自選：按 ☆ 跳出「加進哪幾頁」", pg.is_visible("#wlPick"))
+    ok("自選：浮層列出四頁、2330 所在的頁已勾選",
+       pg.locator("#wlPick input[data-pk]").count() == 4 and pg.locator("#wlPick input[data-pk]:checked").count() == 1)
+    pg.locator("#wlPick input[data-pk]").nth(2).click()
+    ok("自選：勾「AI」→ 2330 也進了 AI 頁", "2330" in pg.evaluate("() => TwWatch.tabs()[2].codes"), pg.evaluate("() => TwWatch.tabs()"))
+    pg.fill("#pkName", "權值股")
+    pg.click("#pkAdd")
+    ok("自選：浮層裡新增一頁並加入", pg.evaluate("() => TwWatch.tabs().map(t => t.name)")[-1] == "權值股"
+       and "2330" in pg.evaluate("() => TwWatch.tabs()[4].codes"))
+    pg.keyboard.press("Escape")
+    ok("自選：Esc 關掉浮層", not pg.is_visible("#wlPick"))
+    # 全部取消勾選 → ☆
+    pg.click("#wlStar")
+    for i in range(pg.locator("#wlPick input[data-pk]:checked").count()):
+        pg.locator("#wlPick input[data-pk]:checked").first.click()
+    ok("自選：全部取消勾選後星星變回 ☆", pg.inner_text("#wlStar").strip() == "☆" and not pg.evaluate("() => TwWatch.has('2330')"))
+    pg.locator("#wlPick input[data-pk]").nth(0).click()
+    pg.mouse.click(5, 880)
+    ok("自選：點外面關掉浮層", not pg.is_visible("#wlPick"))
+
+    # ⑪ 重新整理後還在
+    before = pg.evaluate("() => TwWatch.tabs()")
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => !!window.TwWatch", 8000)
+    ok("自選：重新整理後五頁與內容都還在", pg.evaluate("() => TwWatch.tabs()") == before, (before, pg.evaluate("() => TwWatch.tabs()")))
+    ok("自選：沒有設定檔時沒有打任何會員 API", not api_hits, api_hits[:3])
+
+    # ⑫ 800 寬：頂欄放得下「自選」而且沒有橫向捲軸
+    pg.set_viewport_size({"width": 800, "height": 900})
+    pg.wait_for_timeout(400)
+    r = pg.evaluate("""() => { const b = document.getElementById('wlBtn').getBoundingClientRect();
+        return { vis: b.width > 0 && b.right <= innerWidth, sw: document.documentElement.scrollWidth, iw: innerWidth }; }""")
+    ok("自選 800：頂欄「自選」看得到、沒有橫向捲軸", r["vis"] and r["sw"] <= r["iw"] + 1, r)
+    pg.click("#wlBtn")
+    r = pg.evaluate("() => { const p = document.getElementById('wlPanel').getBoundingClientRect(); return { l: p.left, r: p.right, iw: innerWidth }; }")
+    ok("自選 800：面板整塊在畫面內", r["l"] >= 0 and r["r"] <= r["iw"] + 1, r)
+    ctx.close()
+
+    # ⑬ 手機 390：總覽那一列換頁、個股 ☆ 選清單、「⋯」清單裡有「自選清單」
+    mctx = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)
+    mctx.add_init_script("try{if(!sessionStorage.getItem('wlseed')){sessionStorage.setItem('wlseed','1');localStorage.setItem('tw.watchlists',"
+                         "JSON.stringify({v:1,tabs:[{id:'aa1',name:'自選 1',codes:['2330']},{id:'bb2',name:'AI',codes:['3231','2382']}]}));"
+                         "localStorage.setItem('tw.watchcur','aa1');}}catch(e){}")
+    m = mctx.new_page()
+    m.on("pageerror", lambda e: errs.append("390: " + str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(m, "() => !!document.querySelector('#mbWatch .mbw')", 10000)
+    ok("手機自選：總覽那一列顯示目前那頁（1 檔）", m.locator("#mbWatch .mbw").count() == 1, m.locator("#mbWatch .mbw").count())
+    ok("手機自選：列最左邊有頁名鈕", m.locator("#mbWTab").count() == 1 and "自選 1" in m.inner_text("#mbWTab"))
+    m.click("#mbWTab")
+    wait_until(m, "() => !!document.querySelector('.msheet:not([hidden]) button[data-wt]')", 4000)
+    m.click(".msheet button[data-wt='bb2']")
+    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length === 2", 4000)
+    ok("手機自選：換到「AI」頁後那一列變成兩檔", m.locator("#mbWatch .mbw").count() == 2)
+    ok("手機自選：換頁記住了（tw.watchcur）", m.evaluate("() => localStorage.getItem('tw.watchcur')") == "bb2")
+    r = m.evaluate("() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth })")
+    ok("手機自選 390：沒有橫向捲軸", r["sw"] <= r["iw"] + 1, r)
+    # 「⋯」清單裡的自選清單
+    m.click("#moreBtn")
+    ok("手機自選：「⋯」清單裡有「自選清單」", m.is_visible("#mmWatch"))
+    m.click("#mmWatch")
+    ok("手機自選：點「自選清單」打開面板（底部抽屜）", m.is_visible("#wlPanel"))
+    fs = m.evaluate("""() => Math.min(...[...document.querySelectorAll('#wlPanel *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
+        .map(e => parseFloat(getComputedStyle(e).fontSize)))""")
+    ok("手機自選：面板字 ≥ 11px", fs >= 11, fs)
+    r = m.evaluate("() => { const p = document.getElementById('wlPanel').getBoundingClientRect(); return { l: p.left, r: p.right, iw: innerWidth, sw: document.documentElement.scrollWidth }; }")
+    ok("手機自選：面板在畫面內、沒有橫向捲軸", r["l"] >= 0 and r["r"] <= r["iw"] + 1 and r["sw"] <= r["iw"] + 1, r)
+    m.click("#wlClose")
+    # 個股 ☆
+    m.goto(base + "#stock/2454", wait_until="domcontentloaded")
+    wait_until(m, "() => !!document.getElementById('mbStar')", 12000)
+    ok("手機自選：不在清單的股票 ☆ 是空心", m.inner_text("#mbStar").strip() == "☆")
+    m.click("#mbStar")
+    ok("手機自選：按 ☆ 跳出「加進哪幾頁」", m.is_visible("#wlPick"))
+    m.click("#wlPick input[data-pk='aa1']")
+    ok("手機自選：勾「自選 1」→ 2454 真的進了第 1 頁", "2454" in m.evaluate("() => TwWatch.codes('aa1')"))
+    wait_until(m, "() => document.getElementById('mbStar').textContent.trim() === '★'", 3000)
+    ok("手機自選：☆ 變成 ★", m.inner_text("#mbStar").strip() == "★")
+    mctx.close()
+    ok("自選：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+def _free_port() -> int:
+    import socket
+    s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
+
+
+def t_account_cloud(b, base):
+    import urllib.request
+    errs: list[str] = []
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    port = _free_port()
+    dev = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(port), "--origin", origin],
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    api = f"http://127.0.0.1:{port}"
+    try:
+        up = False
+        for _ in range(40):
+            try:
+                up = json.loads(urllib.request.urlopen(api + "/health", timeout=1).read()).get("configured") is True
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok("會員：本機 account-api（devserver）起得來", up):
+            return
+
+        def new_ctx(width=1440, seed=None):
+            c = b.new_context(viewport={"width": width, "height": 900})
+            c.route("**/data/account.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({"api": api})))
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            if seed:
+                c.add_init_script("try{if(!sessionStorage.getItem('wlseed')){sessionStorage.setItem('wlseed','1');localStorage.setItem('tw.watchlists',"
+                                  + json.dumps(json.dumps(seed)) + ");}}catch(e){}")
+            return c
+
+        def login(pg, who):
+            pg.click("#acctBtn")
+            ok(f"會員：按「登入」先跳出告知（{who}）", pg.is_visible("#acctDlg") and "不存張數" in pg.inner_text("#acctDlg")
+               and "13 個月" in pg.inner_text("#acctDlg") and "刪除我的資料" in pg.inner_text("#acctDlg"))
+            with pg.expect_popup() as pi:
+                pg.click("#acctGo")
+            pop = pi.value
+            pop.wait_for_selector("#as-" + who, timeout=8000)
+            pop.click("#as-" + who)
+            wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+
+        # ---- ① 未登入的訪客：登入鈕、線上人數、使用統計排隊
+        c1 = new_ctx(seed={"v": 1, "tabs": [{"id": "g1", "name": "自選 1", "codes": ["2330"]}, {"id": "g2", "name": "AI", "codes": ["3231"]}]})
+        pg = c1.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('acctBtn')", 8000)
+        ok("會員：有設定檔時頂欄出現「登入」", pg.inner_text("#acctBtn").strip() == "登入")
+        wait_until(pg, "() => !document.getElementById('acctOnline').hidden", 8000)
+        ok("會員：線上人數出現（至少 1 人）", pg.evaluate("() => TwAccount.online()") >= 1, pg.evaluate("() => TwAccount.online()"))
+        pg.click(".howbtn >> nth=0")
+        pg.keyboard.press("Escape")
+        ok("會員：按「?」有記進使用統計（排隊中）", pg.evaluate("() => TwAccount.pending()['ev:how']") == 1, pg.evaluate("() => TwAccount.pending()"))
+
+        # ---- ② 小視窗登入 Bob → 本機清單合併上雲
+        login(pg, "bob")
+        ok("會員：登入後頂欄換成名字", "Bob" in pg.inner_text("#acctBtn"))
+        ok("會員：權杖存進 localStorage", bool(pg.evaluate("() => localStorage.getItem('tw.acct.tok')")))
+        wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.tabs().length === 2", 8000)
+        ok("會員：首次登入本機兩頁合併上雲", pg.evaluate("() => TwWatch.tabs().map(t => [t.name, t.codes])") == [["自選 1", ["2330"]], ["AI", ["3231"]]],
+           pg.evaluate("() => TwWatch.tabs()"))
+        ok("會員：合併成功後本機那份清空（已經在雲端）",
+           pg.evaluate("() => JSON.parse(localStorage.getItem('tw.watchlists')).tabs.every(t => !t.codes.length)"))
+        pg.evaluate("() => TwWatch.add('2317')")
+        wait_until(pg, "() => !JSON.parse(localStorage.getItem('tw.watchlists.u')).dirty", 6000)
+        pg.reload(wait_until="domcontentloaded")
+        wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 8000)
+        wait_until(pg, "() => TwWatch.codes().includes('2317')", 8000)
+        ok("會員：改動同步上雲，重新整理後從雲端讀回來", pg.evaluate("() => TwWatch.mode() === 'cloud' && TwWatch.codes()") == ["2317", "2330"], pg.evaluate("() => TwWatch.codes()"))
+        pg.goto(base + "#admin", wait_until="domcontentloaded")
+        wait_until(pg, "() => document.getElementById('v-admin') && /不是管理者/.test(document.getElementById('v-admin').textContent)", 8000)
+        ok("會員：一般會員打開 #admin 只看到「不是管理者」", "不是管理者" in pg.inner_text("#v-admin"))
+        # 登出
+        pg.click("#acctBtn")
+        ok("會員：按頭像打開選單（有登出、刪除我的資料）", pg.is_visible("#acctMenu") and "登出" in pg.inner_text("#acctMenu") and "刪除我的資料" in pg.inner_text("#acctMenu"))
+        ok("會員：一般會員選單沒有管理頁", "管理頁" not in pg.inner_text("#acctMenu"))
+        pg.click("#acctMenu [data-a='logout']")
+        wait_until(pg, "() => TwWatch.mode() === 'local'", 4000)
+        ok("會員：登出後換回本機清單、雲端快取刪掉",
+           pg.evaluate("() => TwWatch.codes().length === 0 && localStorage.getItem('tw.watchlists.u') === null && localStorage.getItem('tw.acct.tok') === null"))
+        ok("會員：登出後頂欄變回「登入」", pg.inner_text("#acctBtn").strip() == "登入")
+
+        # ---- ③ 再登入一次：新的本機清單併進雲端，不覆蓋原有的
+        pg.evaluate("() => TwWatch.add('2603')")
+        login(pg, "bob")
+        wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.codes('g1').includes('2603')", 8000)
+        ok("會員：第二台裝置／第二次登入的本機清單併進去、雲端原有的沒被蓋掉",
+           pg.evaluate("() => TwWatch.codes('g1')") == ["2317", "2330", "2603"], pg.evaluate("() => TwWatch.tabs()"))
+
+        # ---- ④ 刪除我的資料
+        pg.click("#acctBtn"); pg.click("#acctMenu [data-a='delete']")
+        ok("會員：刪除要先確認，而且寫明無法復原", "無法復原" in pg.inner_text("#acctDlg"))
+        pg.click("#acctDelYes")
+        wait_until(pg, "() => !TwAccount.user()", 6000)
+        ok("會員：刪除後登出", pg.evaluate("() => !TwAccount.user()"))
+        login(pg, "bob")
+        wait_until(pg, "() => TwWatch.mode() === 'cloud'", 6000)
+        pg.wait_for_timeout(500)
+        ok("會員：刪除後再登入是全新帳號（雲端清單真的被刪了）", pg.evaluate("() => TwWatch.tabs().every(t => !t.codes.length)"), pg.evaluate("() => TwWatch.tabs()"))
+        pg.click("#acctBtn"); pg.click("#acctMenu [data-a='logout']")
+
+        # ---- ⑤ 管理者 Andy：管理頁、線上名單、統計、公開人數開關
+        login(pg, "andy")
+        pg.evaluate("() => TwAccount.flush()")
+        pg.wait_for_timeout(400)
+        pg.click("#acctBtn")
+        ok("會員：管理者選單有「管理頁」", "管理頁" in pg.inner_text("#acctMenu"))
+        pg.click("#acctMenu [data-a='admin']")
+        wait_until(pg, "() => !!document.getElementById('admOnline')", 10000)
+        ok("管理頁：管理者打開 #admin 看得到四張卡", all(pg.locator(s).count() == 1 for s in ("#admOnline", "#admPv", "#admEv", "#admUsers")))
+        ok("管理頁：線上名單列出自己（名稱＋email）", "andy@example.com" in pg.inner_text("#admOnline"), pg.inner_text("#admOnline")[:200])
+        ok("管理頁：「哪一頁最多人看」有總覽", "總覽" in pg.inner_text("#admPv"), pg.inner_text("#admPv")[:200])
+        ok("管理頁：「哪個功能最常被用」記到了「?」說明", "說明" in pg.inner_text("#admEv"), pg.inner_text("#admEv")[:200])
+        ok("管理頁：會員名單有 Bob 與 Andy", "bob@example.com" in pg.inner_text("#admUsers") and "andy@example.com" in pg.inner_text("#admUsers"))
+        pg.select_option("#admDaysSel", "7")
+        pg.wait_for_timeout(500)
+        ok("管理頁：切「近 7 天」重算（每日長條剩 7 格）", pg.locator("#admDayBars i").count() == 7, pg.locator("#admDayBars i").count())
+        # 公開人數開關：關掉 → 訪客的心跳不再回人數
+        pg.uncheck("#admPub")
+        pg.wait_for_timeout(500)
+        c2 = new_ctx()
+        g = c2.new_page()
+        g.on("pageerror", lambda e: errs.append("guest: " + str(e)))
+        g.goto(base + "#flow", wait_until="domcontentloaded")
+        g.wait_for_timeout(2600)
+        ok("會員：管理者關掉公開人數後，訪客看不到線上人數", g.evaluate("() => document.getElementById('acctOnline').hidden"))
+        pg.check("#admPub")
+        pg.wait_for_timeout(400)
+        g.evaluate("() => TwAccount.flush()")
+        wait_until(g, "() => !document.getElementById('acctOnline').hidden", 5000)
+        ok("會員：再打開後訪客又看得到（而且是 2 人：Andy＋訪客）", g.evaluate("() => TwAccount.online()") == 2, g.evaluate("() => TwAccount.online()"))
+        # 訪客關掉分頁 → 離線即刪
+        g.close()
+        pg.wait_for_timeout(600)
+        pg.click("#admRefresh")
+        pg.wait_for_timeout(600)
+        ok("會員：訪客關掉分頁後立刻從線上名單消失（離線即刪）", pg.inner_text("#admOnN").strip() == "1", pg.inner_text("#admOnN"))
+        c2.close()
+
+        # ---- ⑥ 隱私權政策跟著功能出現
+        pg.goto(base + "#privacy", wait_until="domcontentloaded")
+        wait_until(pg, "() => /以 Google 帳號登入/.test(document.getElementById('v-legal').textContent)", 6000)
+        t = pg.inner_text("#v-legal")
+        ok("隱私權政策：有登入、自選清單、使用統計、線上人數四列與保存期限",
+           all(x in t for x in ("以 Google 帳號登入", "自選清單（登入後）", "使用統計（所有訪客）", "線上人數（所有訪客）", "13 個月", "24 個月", "刪除我的資料")))
+        c1.close()
+
+        # ---- ⑦ 小視窗被擋 → 整頁跳轉登入（手機 PWA 常見）
+        c3 = new_ctx(width=390)
+        m = c3.new_page()
+        m.on("pageerror", lambda e: errs.append("redirect: " + str(e)))
+        m.add_init_script("window.open = function () { return null; };")
+        m.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(m, "() => !!window.TwAccount && TwAccount.on()", 8000)
+        m.click("#moreBtn")
+        ok("手機會員：「⋯」清單裡有登入", m.is_visible("#mmAcct") and "登入" in m.inner_text("#mmAcct"))
+        m.click("#mmAcct")
+        m.click("#acctGo")
+        m.wait_for_selector("#as-bob", timeout=8000)
+        m.click("#as-bob")
+        m.wait_for_url(re.compile(r"127\.0\.0\.1:%d/" % int(re.search(r":(\d+)", origin).group(1))), timeout=10000)
+        wait_until(m, "() => !!(window.TwAccount && TwAccount.user())", 10000)
+        ok("手機會員：小視窗被擋時改整頁跳轉，回來也登入成功", (m.evaluate("() => (TwAccount.user() || {}).email") == "bob@example.com"))
+        r = m.evaluate("() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth })")
+        ok("手機會員 390：登入後沒有橫向捲軸", r["sw"] <= r["iw"] + 1, r)
+        c3.close()
+        ok("會員：整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        dev.terminate()
+        try:
+            dev.wait(timeout=3)
+        except Exception:  # noqa: BLE001
+            dev.kill()
 
 
 if __name__ == "__main__":

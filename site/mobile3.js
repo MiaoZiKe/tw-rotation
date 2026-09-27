@@ -916,7 +916,8 @@
     tabs.onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) skGo(b.dataset.t); };
     tabs.addEventListener('scroll', () => tabs.classList.toggle('end', tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 4), { passive: true });
     document.getElementById('mbAll').onclick = skAllSheet;
-    document.getElementById('mbStar').onclick = () => { if (SK.pg) wToggle(SK.pg.meta.code); };
+    /* ☆：跳出「要放進哪幾頁」（watchlists.js 的 pick，手機是底部抽屜）*/
+    document.getElementById('mbStar').onclick = (e) => { if (SK.pg && TW()) TW().pick(SK.pg.meta.code, e.currentTarget); };
     skStar();
     document.body.classList.add('mbon');
     /* 表頭釘在報價列＋分頁列正下方：高度用量的（字型載入前後會差幾 px），寫進 --mbtop */
@@ -961,7 +962,7 @@
     const b = document.getElementById('mbStar'); if (!b || !SK.pg) return;
     const on = wHas(SK.pg.meta.code);
     b.textContent = on ? '★' : '☆'; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
-    b.setAttribute('aria-label', on ? '從觀察清單移除' : '加入觀察清單'); b.title = b.getAttribute('aria-label');
+    b.setAttribute('aria-label', on ? '已在自選清單（選要放哪幾頁）' : '加入自選清單'); b.title = b.getAttribute('aria-label');
   }
   function skAllSheet() {
     const cur = skTab();
@@ -1601,17 +1602,13 @@
          也不需要。價格讀 stocks.json，盤中由 live.js 用 [data-live] 更新。加入：＋ 開抽屜搜尋；個股頁報價列的 ☆ 也能加。
          刪除：「編輯」→ 每格出現 ✕。
      只在 ≤640、#overview 插（#mbHome 是 #v-overview 的第一個子節點）；離開總覽或回桌機就拆掉。*/
-  const WKEY = 'tw.watch', WMAX = 30;
-  const wGet = () => {
-    try { const v = JSON.parse(localStorage.getItem(WKEY) || '[]'); return Array.isArray(v) ? v.map(String).filter(c => /^[0-9A-Z]{4,6}$/.test(c)) : []; }
-    catch (e) { return []; }
-  };
-  const wSet = (a) => {
-    try { localStorage.setItem(WKEY, JSON.stringify([...new Set(a)].slice(0, WMAX))); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
-    window.dispatchEvent(new Event('tw:watch'));
-  };
-  const wHas = (c) => wGet().includes(String(c));
-  const wToggle = (c) => { const a = wGet(); const i = a.indexOf(String(c)); if (i >= 0) a.splice(i, 1); else a.unshift(String(c)); wSet(a); return i < 0; };
+  /* ★ 2026-09-27（Andy：「新增自選清單並且可以新增五個分頁」）：清單本體搬到 site/watchlists.js（window.TwWatch，最多五頁、登入後雲端同步）。
+     這一列顯示「目前那一頁」，左邊一顆頁名鈕可以換頁；舊的 `tw.watch` 由 watchlists.js 第一次載入時搬進第 1 頁。
+     下面三支保留原本的名字與介面，只是改成轉給 TwWatch —— 這一段其他程式幾乎不用動。*/
+  const TW = () => window.TwWatch || null;
+  const wGet = () => (TW() ? TW().codes() : []);
+  const wSet = (a) => { if (TW()) TW().setCodes(a); };
+  const wHas = (c) => !!(TW() && TW().has(c));
   const HM = { edit: false };
   function hmOn(v) {
     if (v !== 'overview') { hmOff(); return; }
@@ -1631,6 +1628,7 @@
         const x = e.target.closest('button[data-del]');
         if (x) { e.stopPropagation(); wSet(wGet().filter(c => c !== x.dataset.del)); return; }
         if (e.target.closest('#mbWEdit')) { HM.edit = !HM.edit; hmWatch(); return; }
+        if (e.target.closest('#mbWTab')) { hmTabSheet(); return; }
         const t = e.target.closest('[data-go]'); if (t && !HM.edit) location.hash = '#stock/' + t.dataset.go;
       };
       $('#mbIdx', home).addEventListener('scroll', () => hmDots(), { passive: true });
@@ -1655,7 +1653,7 @@
   hooks.push({ on: hmOn, off: hmOff });
   window.addEventListener('tw:watch', () => { if (document.getElementById('mbHome')) hmWatch(); if (document.getElementById('mbStar')) skStar(); });
   /* 同一個瀏覽器的另一個分頁改了觀察清單，這裡也跟著換 */
-  window.addEventListener('storage', (e) => { if (e.key === WKEY) window.dispatchEvent(new Event('tw:watch')); });
+  /* （另一個分頁改清單的同步由 watchlists.js 的 storage 監聽負責，它會發 tw:watch）*/
 
   function hmTile(o) {
     const c = uc(o.chg);
@@ -1724,13 +1722,17 @@
   function hmWatch() {
     const box = document.getElementById('mbWatch'); if (!box) return;
     const codes = wGet();
+    const T = TW(), tabs = T ? T.tabs() : [], cur = T ? T.curTab() : { name: '' };
+    const any = tabs.some(t => t.codes.length);
     if (!codes.length) HM.edit = false;
-    box.hidden = !codes.length;
+    /* 目前這一頁是空的、但別頁有東西：列照樣出現（才換得了頁），裡面寫一句提示 */
+    box.hidden = !any;
+    const tabBtn = any ? `<button type="button" class="mbwedit" id="mbWTab" aria-haspopup="dialog" title="換一頁自選清單">${esc(cur.name)} ▾</button>` : '';
     box.classList.toggle('editing', HM.edit);
     const A = skApp();
     const paint = (list) => {
       const by = new Map((list || []).map(r => [r.code, r]));
-      box.innerHTML = codes.map(c => {
+      box.innerHTML = tabBtn + (codes.length ? '' : '<span class="mbwn" style="align-self:center;padding:0 6px;color:var(--ink-2)">這頁還沒有股票</span>') + codes.map(c => {
         const r = by.get(c) || { code: c, name: c };
         const cls = r.chg_pct > 0 ? 'up' : r.chg_pct < 0 ? 'down' : 'flat';
         return `<div class="mbw" role="listitem" data-go="${esc(c)}" tabindex="0"><span class="mbwn">${esc(r.name || c)}</span>
@@ -1740,15 +1742,29 @@
       }).join('') + (codes.length ? `<button type="button" class="mbwedit" id="mbWEdit" aria-pressed="${HM.edit}">${HM.edit ? '完成' : '編輯'}</button>` : '');
       box.querySelectorAll('.mbw').forEach(el => { el.onkeydown = (e) => { if (e.key === 'Enter' && !HM.edit) location.hash = '#stock/' + el.dataset.go; }; });
     };
-    if (!codes.length) { box.innerHTML = ''; return; }
+    if (!any) { box.innerHTML = ''; return; }
     if (!A || !A.load) { paint([]); return; }
     A.load('stocks', { fallback: [] }).then(paint);
+  }
+  /* 換頁：列出所有自選頁（最多五頁），點一頁就換；「管理清單」打開完整面板（新增、改名、刪除、搬移）*/
+  function hmTabSheet() {
+    const T = TW(); if (!T) return;
+    const cur = T.cur();
+    const sh = openSheet(`<div class="mshhead"><b>換一頁自選清單</b></div><div class="mballgrid">${T.tabs().map(t =>
+      `<button type="button" data-wt="${esc(t.id)}" class="${t.id === cur ? 'on' : ''}">${esc(t.name)}（${t.codes.length}）</button>`).join('')}</div>
+      <div class="mballgrid" style="margin-top:8px"><button type="button" id="mbWManage">管理清單（新增／改名／刪除）</button></div>`, { kind: 'watchtabs' });
+    const onPick = (e) => {
+      const b = e.target.closest('button[data-wt]');
+      if (b) { closeSheet(); T.setCur(b.dataset.wt); return; }
+      if (e.target.closest('#mbWManage')) { closeSheet(); T.openPanel(); }
+    };
+    sh.querySelectorAll('.mballgrid').forEach(g => { g.onclick = onPick; });
   }
   function hmAddSheet() {
     const A = skApp();
     const sh = openSheet(`<div class="mshhead"><b>加入觀察清單</b></div>
       <input type="search" id="mbWQ" class="mbwq" placeholder="代號或名稱，例如 2344 或 華邦電" autocomplete="off" enterkeyhint="search" aria-label="搜尋股票">
-      <ul class="mbwres" id="mbWRes"></ul><div class="mbfoot">觀察清單只存股票代號（不存張數、成本），存在這台裝置的瀏覽器裡；總覽最上面那一列點一格進個股頁，「編輯」可以刪。個股頁報價列的 ☆ 也能加。</div>`, { kind: 'watch' });
+      <ul class="mbwres" id="mbWRes"></ul><div class="mbfoot">加進「${esc(TW() ? TW().curTab().name : '')}」。自選清單只存股票代號與清單名（不存張數、成本）；沒登入時存在這台裝置，登入後跨裝置同步。最上面那一列點一格進個股頁，「編輯」可以刪；最左邊的頁名可以換頁、管理最多五頁。個股頁報價列的 ☆ 也能加。</div>`, { kind: 'watch' });
     const q = sh.querySelector('#mbWQ'), res = sh.querySelector('#mbWRes');
     let all = [];
     const run = () => {

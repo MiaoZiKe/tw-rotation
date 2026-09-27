@@ -98,6 +98,24 @@ jobs:
       # build_payload 已經不寫、也會刪舊檔；這一步是給「快取命中、沿用舊 site/data」那條路的保險。
       - name: 確認部署產物裡沒有 tasks.json
         run: rm -f site/data/tasks.json
+      # 2026-09-27 會員登入／使用統計（DECISIONS #270）：前端要知道 account-api 的網址。
+      # 不寫進 repo（CLAUDE.md：任何設定都不進 public repo），部署時從 Secret 產生 site/data/account.json。
+      # Secret 沒設 → 刪掉這個檔 → site/account.js 讀不到就整個功能關閉、頁面照常（所以可以先上線、等 Andy 設好再生效）。
+      # ⚠ 一定要「沒設就刪」：site/data 會被上面的快取帶進來，Secret 拿掉之後舊的 account.json 不能還留著。
+      - name: 會員功能設定檔（沒設 ACCOUNT_API_URL 就關閉）
+        env:
+          ACCOUNT_API_URL: ${{ secrets.ACCOUNT_API_URL }}
+        run: |
+          rm -f site/data/account.json
+          if [ -n "$ACCOUNT_API_URL" ]; then
+            case "$ACCOUNT_API_URL" in
+              https://*) python -c "import json,os; json.dump({'api': os.environ['ACCOUNT_API_URL'].strip().rstrip('/')}, open('site/data/account.json','w'))"
+                         echo "會員功能：開啟";;
+              *) echo "::warning::ACCOUNT_API_URL 不是 https:// 開頭，會員功能維持關閉";;
+            esac
+          else
+            echo "會員功能：沒設 ACCOUNT_API_URL，維持關閉（設定步驟見 docs/login_setup.md）"
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
