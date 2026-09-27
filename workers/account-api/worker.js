@@ -60,7 +60,8 @@ const GOOGLE_ISS = ['accounts.google.com', 'https://accounts.google.com'];
 const enc = new TextEncoder();
 const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const b64uStr = (s) => b64u(enc.encode(s));
-const unb64u = (s) => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return atob(s); };
+/* 解回 UTF-8 字串：id_token 的內容是 UTF-8 JSON，直接用 atob 的結果 JSON.parse，中文名字會變亂碼（驗收抓到「Bob è¨ªå®¢」）*/
+const unb64u = (s) => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return new TextDecoder().decode(Uint8Array.from(atob(s), (c) => c.charCodeAt(0))); };
 const rand = (n = 32) => b64u(crypto.getRandomValues(new Uint8Array(n)));
 const sha256 = async (s) => b64u(await crypto.subtle.digest('SHA-256', enc.encode(s)));
 const safeEq = (a, b) => { if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; };

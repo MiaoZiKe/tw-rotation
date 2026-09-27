@@ -68,6 +68,12 @@ test('R6 登入：完整流程拿得到權杖；PKCE 用 S256、scope 只有 ope
   assert.equal(lastTokenBody.get('grant_type'), 'authorization_code');
 });
 
+test('R6 登入：中文名字不會變亂碼（id_token 是 UTF-8）', async () => {
+  const { hub } = makeHub(env());
+  const { j } = await login(hub, 'wang@example.com', { claims: { name: '王小明' } });
+  assert.equal(j.user.name, '王小明');
+});
+
 test('R6 登入：redeem 只能換一次；沒完成前回 pending', async () => {
   const { hub } = makeHub(env());
   const n = rand();

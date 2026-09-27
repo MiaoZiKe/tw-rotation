@@ -35096,8 +35096,11 @@ def t_account_cloud(b, base):
     errs: list[str] = []
     origin = re.match(r"^(https?://[^/]+)", base).group(1)
     port = _free_port()
+    # TW_DEV_LOG=1：把 devserver 收到的每一個請求與狀態碼印出來（除錯用；平常丟掉）
+    dbg = bool(os.environ.get("TW_DEV_LOG"))
     dev = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(port), "--origin", origin],
-                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                           stdout=None if dbg else subprocess.DEVNULL, stderr=None if dbg else subprocess.DEVNULL,
+                           env={**os.environ, "DEV_LOG": "1"} if dbg else None)
     api = f"http://127.0.0.1:{port}"
     try:
         up = False
@@ -35199,8 +35202,12 @@ def t_account_cloud(b, base):
         ok("會員：管理者選單有「管理頁」", "管理頁" in pg.inner_text("#acctMenu"))
         pg.click("#acctMenu [data-a='admin']")
         wait_until(pg, "() => !!document.getElementById('admOnline')", 10000)
+        # 管理頁可能在 Andy 的第一次心跳之前就畫好（登入當下就在 #admin）→ 按「重新整理」讀最新的
+        pg.click("#admRefresh")
+        wait_until(pg, "() => /andy@example.com/.test((document.getElementById('admOnline') || {}).textContent || '')", 6000)
         ok("管理頁：管理者打開 #admin 看得到四張卡", all(pg.locator(s).count() == 1 for s in ("#admOnline", "#admPv", "#admEv", "#admUsers")))
         ok("管理頁：線上名單列出自己（名稱＋email）", "andy@example.com" in pg.inner_text("#admOnline"), pg.inner_text("#admOnline")[:200])
+        ok("管理頁：中文名字沒有變亂碼", "Andy 測試" in pg.inner_text("#admOnline"), pg.inner_text("#admOnline")[:200])
         ok("管理頁：「哪一頁最多人看」有總覽", "總覽" in pg.inner_text("#admPv"), pg.inner_text("#admPv")[:200])
         ok("管理頁：「哪個功能最常被用」記到了「?」說明", "說明" in pg.inner_text("#admEv"), pg.inner_text("#admEv")[:200])
         ok("管理頁：會員名單有 Bob 與 Andy", "bob@example.com" in pg.inner_text("#admUsers") and "andy@example.com" in pg.inner_text("#admUsers"))

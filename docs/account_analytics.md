@@ -7,7 +7,7 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 - 設定步驟（給 Andy）：`docs/login_setup.md`
 - 後端：`workers/account-api/worker.js`（Cloudflare Worker ＋ Durable Object SQLite）
 - 前端：`site/account.js`（登入、統計、線上人數）、`site/watchlists.js`（自選五分頁）、`site/admin.js`（管理頁 `#admin`）
-- 存取控制測試：`node --test workers/account-api/tests/account.test.mjs`（18 條，含本文件與程式白名單一致性）
+- 存取控制測試：`node --test workers/account-api/tests/account.test.mjs`（19 條，含本文件與程式白名單一致性）
 - 前端驗收：`python scripts/_uitest.py --sections 會員與自選五分頁,會員雲端路徑 --workers 1`
 
 ## 1. 使用統計怎麼記
@@ -70,7 +70,7 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 
 ## 4. 線上人數與「目前誰在用」
 
-- 每個瀏覽分頁一組隨機代碼（`sessionStorage`，關掉分頁就消失，**不跨造訪追蹤**）。
+- 每次載入頁面一組隨機代碼（只在記憶體，重新整理或關掉就換一組，**不跨造訪追蹤**）。不放 `sessionStorage`：重新整理時舊頁面的「離開」會比新頁面的第一次心跳晚到，同一組代碼會把新頁面剛登記的在線紀錄刪掉（驗收實測抓到）。
 - 分頁看得到時每 60 秒一次心跳；切到背景或關閉時送「離開」，Worker 立刻刪掉那一列。
 - 150 秒內有心跳才算在線；超過 180 秒的紀錄每小時與每次心跳順手刪掉（「離線即刪」）。
 - 一般訪客：頂欄看到「● N 人在線」（管理者可在 `#admin` 關掉，關掉後只有管理者看得到數字）。

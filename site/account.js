@@ -12,7 +12,7 @@
      其他全部是 fetch。Andy 公司網路擋 CDN 的問題碰不到；workers.dev 已經因為即時報價在用，連得到是已知事實。
 
    ★ 送出去的東西（跟隱私權政策 site/legal.js、登入前告知 noticeHTML() 必須一致）：
-     · 心跳（每 60 秒，只在分頁看得到的時候）：一組這個分頁專用的隨機代碼（sessionStorage，關掉分頁就沒了）、
+     · 心跳（每 60 秒，只在分頁看得到的時候）：一組這次載入頁面專用的隨機代碼（只在記憶體，關掉或重新整理就換一組）、
        現在在哪一頁、這段時間累積的「功能使用次數」、（登入者）權杖。不送 IP 以外的任何裝置資訊 —— IP 是連線本身帶的，Worker 不存。
      · 瀏覽器有開「請勿追蹤」（DNT）或「全球隱私控制」（GPC）→ 心跳與統計一律不送（登入與清單同步照常）。
 
@@ -58,6 +58,8 @@
     if (!user) { S.tok = null; ls.del(K_TOK); ls.del(K_USER); } else ls.set(K_USER, JSON.stringify(user));
     paintBar();
     if (was !== !!user || user) window.dispatchEvent(new CustomEvent('tw:account', { detail: { user: S.user } }));
+    /* 身分換了就馬上跳一次心跳：線上名單才會立刻從「訪客」變成名字（或反過來），不用等下一分鐘 */
+    if (S.on && S.sid) { clearTimeout(S.beatT); S.beatT = setTimeout(beat, 200); }
   }
 
   // ------------------------------------------------------------------ 使用統計＋線上人數
@@ -397,7 +399,9 @@
     S.api = api; S.on = true;
     window.TW_ACCOUNT_ON = true;
     window.dispatchEvent(new Event('tw:account-config'));
-    S.sid = ss.get('tw.sid') || rnd(12); ss.set('tw.sid', S.sid);
+    /* 線上用的代碼：每次載入頁面一組、只在記憶體。不放 sessionStorage —— 重新整理時舊頁面的「離開」會比新頁面的第一次心跳晚到，
+       同一組代碼會把新頁面剛登記的在線紀錄刪掉（驗收實測抓到），換一組就不會互相踩到。*/
+    S.sid = rnd(12);
     paintBar();
     pv();
     /* 整頁跳轉登入回來：拿 sessionStorage 的 n 去換權杖 */
@@ -413,7 +417,7 @@
       else if (S.user) window.dispatchEvent(new CustomEvent('tw:account', { detail: { user: S.user } }));   // 連不到：先用快取
     }
     if ((location.hash || '').startsWith('#admin')) route('admin');
-    setTimeout(beat, 1500);
+    clearTimeout(S.beatT); S.beatT = setTimeout(beat, 1500);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

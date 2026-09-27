@@ -57,6 +57,7 @@ http.createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/__g/')) return await fakeGoogle(url, req, res, body);
     const r = await hub.fetch(new Request(url.href, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : body }));
+    if (process.env.DEV_LOG) console.log(req.method, url.pathname, r.status, 'origin=' + (req.headers.origin || '-'), 'ct=' + (req.headers['content-type'] || '-'), body.slice(0, 120));
     const h = {}; r.headers.forEach((v, k) => { h[k] = v; });
     res.writeHead(r.status, h); res.end(Buffer.from(await r.arrayBuffer()));
   } catch (e) { res.writeHead(500); res.end(String(e)); }
