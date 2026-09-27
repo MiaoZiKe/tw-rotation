@@ -14088,7 +14088,7 @@ def t_chips_basic0926(pg, base, code):
         ok("[基本0926] 按回「5 年」→ 自填框清空、提示收掉", st2["v"] == "" and st2["hint"] and "共 5 年" in st2["sub"], st2)
     # 窄寬：≤900 疊上下
     # 手機版個股頁是分屏的：#stockTab 在「財報籌碼」那一屏，沒切過去時整塊是 display:none（量到的全是 0，會假綠）
-    MOB_TAB = """() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => x.textContent.trim() === '財報籌碼');
+    MOB_TAB = """() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => ['財報籌碼', '完整版'].includes(x.textContent.trim()) && x.offsetParent);   /* 2026-09-27 手機個股券商式：舊分段列藏起來，改按分頁列的「完整版」 */
         if (b && b.offsetParent) { b.click(); return true; } return false; }"""
     for w in (800, 390):
         pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(900)
@@ -14431,7 +14431,7 @@ def t_stock_tabs0926(pg, base, code):
         ok(f"【{tag}】{c} 切回 3 個月 → 回到 {n0} 個交易日", all(v["n"] == n0 for v in f_["charts"].values()), {k: v["n"] for k, v in f_["charts"].items()})
     # 390：區間鈕看得見、沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 860}); pg.wait_for_timeout(700)
-    pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => x.textContent.trim() === '財報籌碼');
+    pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => ['財報籌碼', '完整版'].includes(x.textContent.trim()) && x.offsetParent);   /* 2026-09-27 手機個股券商式：舊分段列藏起來，改按分頁列的「完整版」 */
         if (b && b.offsetParent) b.click(); }"""); pg.wait_for_timeout(900)
     m = pg.evaluate("() => { const s = document.getElementById('chipWin'); const r = s && s.getBoundingClientRect();"
                     " return { w: r ? r.width : 0, h: r ? r.height : 0, right: r ? r.right : 0, sw: document.documentElement.scrollWidth, vw: innerWidth }; }")
@@ -14487,7 +14487,7 @@ def t_stock_tabs0926(pg, base, code):
            p["evRows"] == max(1, len(dv.get("events") or [])), p["evRows"])
     # 390：年度圖年份標籤不重疊、沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 860}); pg.wait_for_timeout(600)
-    pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => x.textContent.trim() === '財報籌碼');
+    pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => ['財報籌碼', '完整版'].includes(x.textContent.trim()) && x.offsetParent);   /* 2026-09-27 手機個股券商式：舊分段列藏起來，改按分頁列的「完整版」 */
         if (b && b.offsetParent) b.click(); }"""); pg.wait_for_timeout(900)
     p = pg.evaluate(DIV_PROBE)
     if p:
@@ -14542,7 +14542,7 @@ def t_stock_tabs0926(pg, base, code):
     # 390：沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 860}); pg.wait_for_timeout(600)
     pg.goto("about:blank"); pg.goto(f"{base}#stock/{nc}", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => x.textContent.trim() === '財報籌碼');
+    pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => ['財報籌碼', '完整版'].includes(x.textContent.trim()) && x.offsetParent);   /* 2026-09-27 手機個股券商式：舊分段列藏起來，改按分頁列的「完整版」 */
         if (b && b.offsetParent) b.click(); }"""); pg.wait_for_timeout(700)
     click(pg, '#stockTabs button[data-t="news"]', 1200)
     q = pg.evaluate(NEWS_PROBE)
@@ -14869,6 +14869,10 @@ SECTIONS = {
     #   這一段驗的是**座標**（bottom ≤ 可視高），不是「元素存在」——
     #   Andy 抱怨的正是「看圖要一直滑下去來回看」，那件事只有量座標才驗得到。
     "手機一屏":            lambda pg, b, base, code: t_mobile_oneview(b, base, code),
+    # ★ 2026-09-27 Andy：「依據我提供的手機頁面，將手機版也設計類似這樣」（券商 App 式個股頁；site/mobile3.js F 段）
+    "手機個股券商式":      lambda pg, b, base, code: t_mobile_broker(b, base, code),
+    # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（localStorage tw.watch，只存代號；site/mobile3.js G 段）
+    "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金去向長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),
@@ -16816,7 +16820,13 @@ def t_stock_ai_0926(pg, base, code):
     tabs = pg.evaluate("() => [...document.querySelectorAll('main .view.on .mpager button')].map(b => b.textContent.trim())")
     ok("[AI分析 390] 手機分段列有「AI 分析」那一段", "AI 分析" in tabs, tabs)
     ok("★ [AI分析 390] AI 區在手機被搬進分段用的 #aiCard（不在 K 線卡裡）、K 線卡沒有留兩欄", m0["parent"] == "aiCard" and not m0["aiside"], (m0["parent"], m0["aiside"]))
-    click(pg, "main .view.on .mpager button:has-text('AI 分析')", 700)
+    # ★ 2026-09-27 手機個股券商式：分段列（.mpager）在手機藏起來，改成頂部的橫捲分頁列 #mbTabs ——
+    #   按那一排的「AI 分析」（mobile3.js skAi 會把藏起來的分段列同步切到「AI 分析」段，顯示的是同一個 #skAi 節點）
+    wait_until(pg, "() => !!document.querySelector('#mbTabs button[data-t=\"ai\"]') || !document.getElementById('mbHead')", 9000)
+    if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=\"ai\"]')"):
+        click(pg, '#mbTabs button[data-t="ai"]', 900)
+    else:
+        click(pg, "main .view.on .mpager button:has-text('AI 分析')", 700)
     m1 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 切到「AI 分析」段 → 結論列與四顆標籤看得到", not m1["mpOff"] and m1["lineVis"] and len(m1["tabs"]) == 4 and all(t["vis"] for t in m1["tabs"]), m1)
     ok("[AI分析 390] 手機沒記過 → 預設收起（只有結論＋標籤）", not m1["open"] and m1["ls"] is None, (m1["open"], m1["ls"]))
@@ -27508,7 +27518,8 @@ def t_mobile_oneview(b, base, code):
         ("overview", "總覽 足跡輪盤（第①步）", "#mRadarOv", "#rotClockMiniWrap .mfocus", None),
         ("flow", "資金流向 足跡輪盤", "#mRadarFlow", "#flowRotCard .mfocus", None),
         ("industry", "產業地圖 族群漲跌長條", "#gpBar", "#gpNote", None),
-        (f"stock/{code}", "個股 K 線", "#chartWrap", "#skPx", None),
+        # ★ 2026-09-27 手機個股券商式：現價改住在頂部固定報價列（#mbQuote），舊的 #skPx 在手機藏起來
+        (f"stock/{code}", "個股 K 線", "#chartWrap", "#mbQuote", None),
         # ★ 2026-09-24：題材併進熱力圖分頁；用舊網址開，順便驗手機導過去之後直接翻到「題材熱力」那一段
         # ★ 2026-09-24 說明精簡：#themeNote（題材口徑）搬進「怎麼看 ?」，關鍵數字改看熱度圖例（沒有它讀不出顏色是哪一級）
         ("themes", "熱力圖 題材資金熱力（舊網址 #themes）", "#themeMap", "#themeMapLegend", None),
@@ -27538,16 +27549,18 @@ def t_mobile_oneview(b, base, code):
     m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3200)
     m.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight })")
     m.wait_for_timeout(500)
-    st = m.evaluate("""() => { const e = document.getElementById('skPx');
+    # ★ 2026-09-27 手機個股券商式：釘住的是頂部報價列＋分頁列（#mbHead），它是 #v-industry 的直接子項
+    #   （sticky 只在父元素的盒子裡有效，#v-industry 蓋得住整張 K 線卡）；舊的 #skPx 在手機藏起來。
+    st = m.evaluate("""() => { const e = document.getElementById('mbHead'), p = document.getElementById('mbPx');
         if (!e) return null; const r = e.getBoundingClientRect();
         return { t: Math.round(r.top), b: Math.round(r.bottom), pos: getComputedStyle(e).position,
-                 parent: e.parentElement.id, txt: e.innerText.replace(/\s+/g, ' ').slice(0, 40),
+                 parent: e.parentElement.id, txt: p ? p.innerText.trim() : '',
                  vh: innerHeight }; }""")
-    ok("[390px 一屏] 個股：現價那一列真的釘住了（捲到整頁最底下還看得到）",
+    ok("[390px 一屏] 個股：頂部報價列真的釘住了（捲到整頁最底下還看得到）",
        st and st["pos"] == "sticky" and 0 <= st["t"] <= 140, st)
-    ok("[390px 一屏] 個股：它被搬成 K 線卡的直接子項（sticky 只在父元素的盒子裡有效）",
-       st and st["parent"] == "skChartCard", st)
-    ok("[390px 一屏] 個股：價格那一列寫的是真的數字，不是佔位符",
+    ok("[390px 一屏] 個股：報價列是 #v-industry 的直接子項（sticky 只在父元素的盒子裡有效）",
+       st and st["parent"] == "v-industry", st)
+    ok("[390px 一屏] 個股：價格寫的是真的數字，不是佔位符",
        st and any(ch.isdigit() for ch in st["txt"]), st)
 
     # 主軸動線：按「下一步」真的換一步，而且畫面真的因此換了內容
@@ -27702,38 +27715,31 @@ def t_mobile_oneview(b, base, code):
     #      而這一列是釘住的 —— 我親手驗過：捲到工具列滑進它底下（重疊 25.6px）時，
     #      右緣真的看得到「5 秒」那顆晶片透出來（上一批的註解早就寫了，我差點又踩一次）。
     #      所以這裡同時驗兩件事：① 右緣有看得出來的淡出 ② 那是**蓋片**不是 mask。
+    # ★ 2026-09-27 手機個股券商式：#skPx 在手機藏起來（現價改住頂部報價列 #mbQuote，本益比等數字進「指標」「財務」分頁），
+    #   釘住的橫捲列換成分頁列 #mbTabs。同一組要求照驗：藏了內容看得出來、真的滑得動、到底提示收掉、滑完還是釘住。
+    #   ⚠ 淡出用 mask 是可以的：mask 掛在 .mbtabs（沒有底色）上，底色在外層 .mbtabwrap（不透明）——
+    #     捲過去的內容透不過來（跟 #skPx 當年「mask 掛在釘住的列本身」不一樣），這裡驗外層真的有不透明底色。
     m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3200)
-    SK = """() => { const e = document.getElementById('skPx'); if (!e) return null;
-        const cs = getComputedStyle(e), af = getComputedStyle(e, '::after');
-        const kids = [...e.children];
-        const last = kids.length ? kids[kids.length - 1].getBoundingClientRect() : null;
+    SK = """() => { const e = document.getElementById('mbTabs'), h = document.getElementById('mbHead'); if (!e || !h) return null;
+        const cs = getComputedStyle(e), wbg = getComputedStyle(e.parentElement).backgroundColor;
+        const kids = [...e.children], last = kids.length ? kids[kids.length - 1].getBoundingClientRect() : null;
         return { sw: e.scrollWidth, cw: e.clientWidth, sl: Math.round(e.scrollLeft),
-                 mask: (cs.webkitMaskImage || cs.maskImage || 'none') !== 'none',
-                 hsc: e.classList.contains('hsc'), end: e.classList.contains('sk-end'),
-                 pos: cs.position,
-                 cover: (af.backgroundImage || 'none').indexOf('gradient') >= 0,
-                 coverW: Math.round(parseFloat(af.width) || 0),
-                 tip: !!(e.nextElementSibling && e.nextElementSibling.classList
-                         && e.nextElementSibling.classList.contains('swipetip')),
-                 lastT: last ? Math.round(last.left) : null, lastR: last ? Math.round(last.right) : null,
-                 vw: innerWidth }; }"""
+                 mask: (cs.webkitMaskImage || cs.maskImage || 'none') !== 'none', end: e.classList.contains('end'),
+                 wrapBg: wbg, opaque: /^rgb\(/.test(wbg) || (/rgba\(.*,\s*1\)$/.test(wbg)),
+                 pos: getComputedStyle(h).position,
+                 lastT: last ? Math.round(last.left) : null, lastR: last ? Math.round(last.right) : null, vw: innerWidth }; }"""
     k0 = m.evaluate(SK)
-    ok("[390px 個股] 價格列藏了內容時，右緣真的有淡出（看得出可以左右滑）",
-       k0 and k0["sw"] > k0["cw"] + 4 and k0["cover"] and k0["coverW"] >= 20 and not k0["end"], k0)
-    ok("[390px 個股] 而且那塊淡出是**不透明的蓋片**、不是 mask"
-       "（mask 會讓釘住的列半透明 —— 實測底下工具列的「5 秒」會透出來）",
-       k0 and not k0["mask"] and not k0["hsc"], k0)
-    ok("[390px 個股] 但**不准**在它後面插一行「左右滑看更多」（釘住的東西越高，留給圖的越少）",
-       k0 and not k0["tip"], k0)
-    # 真的把它滑到底，最後一顆要完整進得了畫面
-    m.evaluate("() => { const e = document.getElementById('skPx'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
+    ok("[390px 個股] 分頁列藏了內容時，右緣真的有淡出（看得出可以左右滑）",
+       k0 and k0["sw"] > k0["cw"] + 4 and k0["mask"] and not k0["end"], k0)
+    ok("[390px 個股] 淡出底下是不透明的底色（捲過去的內容不會透出來）", k0 and k0["opaque"], k0)
+    m.evaluate("() => { const e = document.getElementById('mbTabs'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
     m.wait_for_timeout(600)
     k1 = m.evaluate(SK)
-    changed("[390px 個股] 真的滑得動（scrollLeft 變了，不是裝飾）", k0["sl"], k1["sl"], str(k1))
-    ok("[390px 個股] 滑到底之後最後一顆（分 K 完整）整顆在畫面內",
+    changed("[390px 個股] 真的滑得動（scrollLeft 變了，不是裝飾）", k0 and k0["sl"], k1 and k1["sl"], str(k1))
+    ok("[390px 個股] 滑到底之後最後一顆分頁整顆在畫面內",
        k1 and k1["lastR"] is not None and k1["lastR"] <= k1["vw"] and k1["lastT"] >= 0, k1)
-    ok("[390px 個股] 滑到底之後蓋片收掉了（「已經到底了還在淡」是假提示）", k1 and k1["end"], k1)
-    ok("[390px 個股] 滑動之後它還是釘住的（蓋片沒有把 sticky 弄掉）", k1 and k1["pos"] == "sticky", k1)
+    ok("[390px 個股] 滑到底之後淡出收掉了（「已經到底了還在淡」是假提示）", k1 and k1["end"] and not k1["mask"], k1)
+    ok("[390px 個股] 滑動之後報價列＋分頁列還是釘住的", k1 and k1["pos"] == "sticky", k1)
 
     # ④ K 線圖例：一個數字不准被折成兩半。
     #    實測（修之前）：「MA60 2,400.83」那個 span 的邊界框是 244.3×33.8 —— 橫跨兩行，
@@ -34439,6 +34445,438 @@ def _ov_fix_0926b_body(pg, base, code):
             m2 = pg.evaluate(MEAS)
             ok(f"{tag} 收起來之後版面也沒動（≤ 1px）", not diff(m0, m2), diff(m0, m2))
     pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+
+# ===================================================================== 手機個股券商式（2026-09-27）
+def t_mobile_broker(b, base, code):
+    """★ 2026-09-27 Andy：「依據我提供的手機頁面，將手機版也設計類似這樣」（某券商 App 的個股頁截圖）。
+
+    手機（≤640）個股頁：頂部固定報價列（◀ 名稱／代號／市場別 現價 漲跌 ▶）＋可橫捲分頁列
+    ＋每頁「分段鈕 → 關鍵數字 → 柱狀圖 → 每日表（新到舊，預設一季）」。程式在 site/mobile3.js 的 F 段。
+    每一條都驗「畫面真的因此改變了」：圖的資料換了、表的欄換了、hash 換了、localStorage 寫進去了。
+    """
+    m = b.new_page(**MOBILE_VP)
+    m.on("pageerror", lambda e: fails.append(f"手機個股券商式 pageerror: {e}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(base, wait_until="domcontentloaded")
+    m.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+    T = "【手機個股券商式】"
+    # 挑一檔資料齊的：優先 2344（Andy 截圖那檔），沒有就用預設代號
+    sc = "2344" if (SITE / "data" / "stock" / "2344.json").exists() else code
+    pgj = json.loads((SITE / "data" / "stock" / f"{sc}.json").read_text(encoding="utf-8"))
+    m.goto(f"{base}#stock/{sc}", wait_until="networkidle")
+    wait_until(m, "() => !!document.getElementById('mbHead') && document.body.classList.contains('mbon')", 9000)
+
+    ST = """() => { const h = document.getElementById('mbHead'), px = document.getElementById('mbPx');
+      const vis = (s) => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+      const c = document.getElementById('mbChart'), ch = c && window.echarts && echarts.getInstanceByDom(c);
+      const o = ch ? ch.getOption() : null;
+      return { head: !!h, pos: h ? getComputedStyle(h).position : '', top: h ? Math.round(h.getBoundingClientRect().top) : null,
+        hb: h ? Math.round(h.getBoundingClientRect().bottom) : null,
+        px: px ? px.textContent.trim() : '', name: (document.querySelector('#mbQuote .mbname') || {}).textContent || '',
+        tabs: [...document.querySelectorAll('#mbTabs button[data-t]')].map(b => b.textContent.trim()),
+        mbt: document.body.dataset.mbt || '', hash: location.hash,
+        kVis: vis('#skChartCard'), lwcH: (() => { const e = document.getElementById('lwc'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
+        lwcB: (() => { const e = document.getElementById('lwc'); return e ? Math.round(e.getBoundingClientRect().bottom) : 0; })(),
+        oldTabsVis: vis('#stockTab'), skPxVis: vis('#skPx'), bodyVis: vis('#mbBody'),
+        seg: [...document.querySelectorAll('#mbBody .mbseg button')].map(b => b.textContent.trim() + (b.classList.contains('on') ? '*' : '')),
+        series: o ? o.series.map(s => ({ n: s.name, len: (s.data || []).length, d: (s.data || []).map(v => v && typeof v === 'object' ? v.value : v).slice(-5) })) : null,
+        xFirst: o ? o.xAxis[0].data[0] : null,
+        th: [...document.querySelectorAll('#mbBody .mbtbl thead th')].map(t => t.textContent.trim()),
+        thSel: (document.querySelector('#mbBody .mbtbl thead th.sel') || {}).textContent || '',
+        rows: document.querySelectorAll('#mbBody .mbtbl tbody tr:not(.mbdet)').length,
+        row0: ((document.querySelector('#mbBody .mbtbl tbody tr') || {}).innerText || '').replace(/\\s+/g, ' ').trim(),
+        docW: document.documentElement.scrollWidth, winW: innerWidth, vh: innerHeight,
+        tabsSW: (document.getElementById('mbTabs') || {}).scrollWidth || 0, tabsCW: (document.getElementById('mbTabs') || {}).clientWidth || 0 }; }"""
+    TAP = "(t) => { const b = document.querySelector('#mbTabs button[data-t=\"' + t + '\"]'); if (b) b.click(); return !!b; }"
+    SEG = "(s) => { const b = document.querySelector('#mbBody .mbseg button[data-s=\"' + s + '\"]'); if (b) b.click(); return !!b; }"
+    LSV = "(k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }"
+
+    s0 = m.evaluate(ST)
+    if not ok(f"{T}頂部報價列出現了（前置條件）", s0["head"], s0):
+        m.close(); return
+    ok(f"{T}報價列寫的是這一檔的名稱與真的現價", s0["name"] == pgj["meta"]["name"] and any(ch.isdigit() for ch in s0["px"]), s0)
+    # ★ 2026-09-27 第二輪：分頁順序照 CEO 轉的清單；「籌碼」（集保股權分散）獨立一頁，「大戶」改成主力替代口徑
+    need = ["K線", "指標", "法人", "籌碼", "大戶", "資券", "營收", "獲利", "財務", "基本資料", "除權息", "AI 分析", "新聞"]
+    ok(f"{T}分頁列有 {len(need)} 頁（{'／'.join(need)}）", all(n in s0["tabs"] for n in need), s0["tabs"])
+    ok(f"{T}分頁順序照清單（K線→指標→法人→籌碼→大戶→資券→營收→獲利→財務→基本資料→除權息→AI 分析→新聞，最後完整版）",
+       [t for t in s0["tabs"] if t in need] == need and s0["tabs"][-1] == "完整版", s0["tabs"])
+    ok(f"{T}沒有合規來源的分頁（相關 ETF、權證、董監持股）不放空殼", not any(x in s0["tabs"] for x in ("相關 ETF", "相關ETF", "權證", "董監持股")), s0["tabs"])
+    ok(f"{T}分頁列沒有「主力」（券商分點禁爬，改叫「大戶」）", "主力" not in s0["tabs"], s0["tabs"])
+    ok(f"{T}預設在 K 線頁：K 線卡看得見、舊的現價列與舊分頁藏起來",
+       s0["mbt"] == "k" and s0["kVis"] and not s0["skPxVis"] and not s0["oldTabsVis"], s0)
+    ok(f"{T}K 線圖＋報價列在同一屏（圖底 {s0['lwcB']} ≤ 可視 {s0['vh'] - 58}）", 300 <= s0["lwcH"] and s0["lwcB"] <= s0["vh"] - 58, s0)
+    ok(f"{T}390 寬整頁沒有橫捲", s0["docW"] <= s0["winW"] + 1, s0)
+    ok(f"{T}只有分頁列自己可以橫捲（內容比框寬）", s0["tabsSW"] > s0["tabsCW"], (s0["tabsSW"], s0["tabsCW"]))
+
+    # ---- 法人：切分頁 → 圖與表都換；切分段 → 圖的資料換、表的選取欄換、localStorage 寫進去 ----
+    m.evaluate(TAP, "inst"); m.wait_for_timeout(900)
+    a = m.evaluate(ST)
+    iv = [r for r in (pgj.get("inst_v3") or {}).get("daily") or [] if r[1] is not None or r[2] is not None or r[3] is not None]
+    n = min(60, len(iv))
+    ok(f"{T}法人：切過去 → K 線卡藏起來、分頁內容出現", a["mbt"] == "inst" and not a["kVis"] and a["bodyVis"], a)
+    ok(f"{T}法人：分段是 外資｜投信｜自營商｜合計", [x.rstrip('*') for x in a["seg"]] == ["外資", "投信", "自營商", "合計"], a["seg"])
+    ok(f"{T}法人：圖是 {n} 根（一季）、表也是 {n} 列（新到舊）",
+       bool(a["series"]) and a["series"][0]["len"] == n and a["rows"] == n, (a["series"], a["rows"]))
+    last = iv[-1] if iv else None
+    ok(f"{T}法人：表的第一列是最新一天（{last and last[0]}）", bool(last) and last[0][5:].replace('-', '/') in a["row0"], a["row0"])
+    ok(f"{T}法人：外資分段 → 表的「外資」欄反白", a["thSel"] == "外資", a["thSel"])
+    m.evaluate(SEG, "t"); m.wait_for_timeout(800)
+    a2 = m.evaluate(ST)
+    ok(f"{T}法人：切「投信」→ 圖的資料換成投信（跟外資不同）",
+       bool(a2["series"]) and a2["series"][0]["n"] == "投信" and a2["series"][0]["d"] != a["series"][0]["d"], (a["series"], a2["series"]))
+    ok(f"{T}法人：切「投信」→ 表的反白欄換成投信", a2["thSel"] == "投信", a2["thSel"])
+    ok(f"{T}法人：分段選擇寫進 localStorage", m.evaluate(LSV, "tw.m3.sk.seg.inst") == "t", m.evaluate(LSV, "tw.m3.sk.seg.inst"))
+
+    # ---- 收合圖 ----
+    m.evaluate("() => document.getElementById('mbFold').click()"); m.wait_for_timeout(400)
+    fz = m.evaluate("() => ({ h: document.getElementById('mbChart').getBoundingClientRect().height, ls: localStorage.getItem('tw.m3.sk.fold') })")
+    ok(f"{T}按「收合圖」→ 圖真的收起來、記住", fz["h"] == 0 and fz["ls"] == "1", fz)
+    m.evaluate("() => document.getElementById('mbFold').click()"); m.wait_for_timeout(700)
+    fz = m.evaluate("() => { const c = document.getElementById('mbChart'); return { h: c.getBoundingClientRect().height, inst: !!echarts.getInstanceByDom(c) }; }")
+    ok(f"{T}再按一次 → 圖回來、真的重畫", fz["h"] > 150 and fz["inst"], fz)
+
+    # ---- 頂部報價列捲動時固定；表頭釘在報價列下面 ----
+    m.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight })"); m.wait_for_timeout(500)
+    sk = m.evaluate("""() => { const h = document.getElementById('mbHead').getBoundingClientRect(), th = document.querySelector('#mbBody .mbtbl thead th');
+        return { sy: Math.round(scrollY), ht: Math.round(h.top), hb: Math.round(h.bottom), tht: th ? Math.round(th.getBoundingClientRect().top) : null }; }""")
+    ok(f"{T}捲到整頁最底下：報價列還釘在頂欄下面（top≈52）", sk["sy"] > 300 and 48 <= sk["ht"] <= 56, sk)
+    ok(f"{T}捲到底：表頭釘在報價列正下方（不被蓋住）", sk["tht"] is not None and abs(sk["tht"] - sk["hb"]) <= 3, sk)
+    m.evaluate("() => window.scrollTo({ top: 0 })")
+
+    # ---- 籌碼（集保股權分散）：千張大戶｜散戶｜股東人數，切分段 → 圖的資料與表的反白欄都換 ----
+    ho = [r for r in (pgj.get("holders") or []) if r[1] is not None]
+    if ho:
+        m.evaluate(TAP, "chip"); m.wait_for_timeout(900)
+        c1 = m.evaluate(ST)
+        ok(f"{T}籌碼：分段是 千張大戶｜散戶 ≤10 張｜股東人數", [x.rstrip('*') for x in c1["seg"]] == ["千張大戶", "散戶 ≤10 張", "股東人數"], c1["seg"])
+        ok(f"{T}籌碼：圖是每週 {len(ho)} 點、表 {len(ho)} 列（新到舊），反白「千張大戶」",
+           bool(c1["series"]) and c1["series"][0]["len"] == len(ho) and c1["rows"] == len(ho) and c1["thSel"] == "千張大戶"
+           and ho[-1][0][5:].replace('-', '/') in c1["row0"], (c1["series"], c1["rows"], c1["thSel"], c1["row0"]))
+        m.evaluate(SEG, "n"); m.wait_for_timeout(800)
+        c2 = m.evaluate(ST)
+        ok(f"{T}籌碼：切「股東人數」→ 圖的數字換成股東人數（{ho[-1][4]}）、反白欄換成股東人數",
+           bool(c2["series"]) and c2["series"][0]["d"][-1] == ho[-1][4] and c2["series"][0]["d"] != c1["series"][0]["d"] and c2["thSel"] == "股東人數",
+           (c1["series"], c2["series"], c2["thSel"]))
+
+    # ---- 大戶（替代主力）：法人買賣超＋集中度｜大戶週增減 ----
+    m.evaluate(TAP, "big"); m.wait_for_timeout(900)
+    bg = m.evaluate("() => ({ alt: (document.querySelector('#mbBody .mbalt') || {}).textContent || '', mbt: document.body.dataset.mbt })")
+    ok(f"{T}大戶：頁面寫明「替代口徑：集保大戶＋法人，非券商分點」", "替代口徑：集保大戶＋法人，非券商分點" in bg["alt"], bg)
+    b1 = m.evaluate(ST)
+    ok(f"{T}大戶：預設「法人買賣超」＝柱（法人合計）＋ 5 日／20 日集中度兩條線，{n} 根（一季）",
+       bool(b1["series"]) and [x["n"] for x in b1["series"]] == ["法人合計", "5 日集中", "20 日集中"] and b1["series"][0]["len"] == n and b1["rows"] == n,
+       (b1["series"], b1["rows"]))
+    # 集中度自己算一次對帳：最後一天 5 日集中＝近 5 日法人合計 ÷ 同期成交量
+    vol = {r[0]: r[5] for r in (pgj.get("daily") or [])}
+    if len(iv) >= 5 and all(vol.get(r[0]) for r in iv[-5:]):
+        c5 = sum((r[1] or 0) + (r[2] or 0) + (r[3] or 0) for r in iv[-5:]) / sum(vol[r[0]] for r in iv[-5:]) * 100
+        got = b1["series"][1]["d"][-1] if b1["series"] else None
+        ok(f"{T}大戶：5 日集中度的數字對得上（自己算 {c5:.2f}%）", got is not None and abs(got - c5) < 0.011, (got, c5))
+    m.evaluate(SEG, "chg"); m.wait_for_timeout(800)
+    b2 = m.evaluate(ST)
+    if len(pgj.get("holders") or []) >= 2:
+        ok(f"{T}大戶：切「大戶週增減」→ 表換成週增減與法人合計", "法人合計" in b2["th"] and b2["th"] != b1["th"], (b1["th"], b2["th"]))
+        ok(f"{T}大戶：週增減圖有柱（大戶）與線（法人合計）",
+           bool(b2["series"]) and [s["n"] for s in b2["series"]] == ["大戶週增減", "法人合計"], b2["series"])
+
+    # ---- 資券 ----
+    m.evaluate(TAP, "margin"); m.wait_for_timeout(900)
+    g1 = m.evaluate(ST)
+    if pgj.get("margin"):
+        ok(f"{T}資券：預設融資、圖是融資增減", bool(g1["series"]) and g1["series"][0]["n"] == "融資增減", g1["series"])
+        has_dt = any(len(r) > 5 and r[5] is not None for r in pgj["margin"][-60:]) or bool(pgj.get("daytrade"))
+        ok(f"{T}資券：當沖分段有資料才出現、沒有就不放空殼（這一檔：{'有' if has_dt else '沒有'}）",
+           ("當沖" in " ".join(g1["seg"])) == has_dt, g1["seg"])
+        m.evaluate(SEG, "s"); m.wait_for_timeout(800)
+        g2 = m.evaluate(ST)
+        ok(f"{T}資券：切「融券」→ 圖換成融券增減、反白欄換成融券",
+           bool(g2["series"]) and g2["series"][0]["n"] == "融券增減" and g2["series"][0]["d"] != g1["series"][0]["d"] and g2["thSel"] == "融券", (g1["series"], g2["series"], g2["thSel"]))
+
+    # ---- 營收：當月＋去年同期並排柱、MoM／YoY 兩條線；年度走勢 ----
+    m.evaluate(TAP, "rev"); m.wait_for_timeout(900)
+    r1 = m.evaluate(ST)
+    ok(f"{T}營收：圖有 當月／去年同期／MoM／YoY 四組", bool(r1["series"]) and [s["n"] for s in r1["series"]] == ["當月", "去年同期", "MoM(%)", "YoY(%)"], r1["series"])
+    ok(f"{T}營收：表頭 年/月、月營收（百萬）、YoY、MoM", r1["th"][:2] == ["年/月", "月營收（百萬）"], r1["th"])
+    m.evaluate(SEG, "y"); m.wait_for_timeout(800)
+    r2 = m.evaluate(ST)
+    ok(f"{T}營收：切「年度走勢」→ X 軸變成年份、表換成年度", bool(r2["xFirst"]) and len(str(r2["xFirst"])) == 4 and r2["th"][0] == "年", (r2["xFirst"], r2["th"]))
+
+    # ---- 獲利：EPS 柱＋毛利率、淨利率線；表有累計 EPS ----
+    m.evaluate(TAP, "profit"); m.wait_for_timeout(900)
+    p1 = m.evaluate(ST)
+    ok(f"{T}獲利：EPS 柱＋毛利率、淨利率兩條線", bool(p1["series"]) and [s["n"] for s in p1["series"]] == ["EPS", "毛利率", "淨利率"], p1["series"])
+    ok(f"{T}獲利：表有 毛利率、淨利率、EPS、累計 EPS", all(any(h.startswith(x) for h in p1["th"]) for x in ("毛利率", "淨利率", "EPS", "累計 EPS")), p1["th"])
+
+    # ---- 除權息：橘色註記、每列可以展開 ----
+    m.evaluate(TAP, "div"); m.wait_for_timeout(900)
+    dv = m.evaluate("""() => { const w = document.querySelector('#mbBody .mbwarn'); const r = document.querySelector('#mbBody .mbdrow');
+        const d0 = r && r.nextElementSibling ? r.nextElementSibling.hidden : null; if (r) r.click();
+        return { warn: w ? w.textContent : '', d0, d1: r && r.nextElementSibling ? r.nextElementSibling.hidden : null }; }""")
+    if (pgj.get("dividends") or {}).get("by_year"):
+        ok(f"{T}除權息：註記「除權息資訊以公開資訊觀測站公告為主」", "公開資訊觀測站" in dv["warn"], dv)
+        ok(f"{T}除權息：點一列 → 明細真的展開", dv["d0"] is True and dv["d1"] is False, dv)
+
+    # ---- 指標：符合 N 項；點族群列真的換頁 ----
+    m.evaluate(TAP, "tag"); m.wait_for_timeout(700)
+    tg = m.evaluate("""() => ({ head: (document.querySelector('#mbBody .mbtaghead b') || {}).textContent || '',
+        kinds: [...document.querySelectorAll('#mbBody .mbtagk')].map(e => e.textContent) })""")
+    ok(f"{T}指標：「符合 N 項指標」＋ 產業鏈／族群標籤", any(ch.isdigit() for ch in tg["head"]) and "族群" in tg["kinds"], tg)
+    m.evaluate("() => { const b = [...document.querySelectorAll('#mbBody .mbtags button')].find(x => x.querySelector('.mbtagk').textContent === '族群'); if (b) b.click(); }")
+    m.wait_for_timeout(1200)
+    h = m.evaluate("() => ({ hash: location.hash, head: !!document.getElementById('mbHead'), mbon: document.body.classList.contains('mbon') })")
+    ok(f"{T}指標：點「族群」那一列 → 真的換到族群頁，報價列跟著拆掉", h["hash"].startswith("#industry/group/") and not h["head"] and not h["mbon"], h)
+    m.goto(f"{base}#stock/{sc}", wait_until="networkidle")
+    wait_until(m, "() => !!document.getElementById('mbHead')", 9000)
+    ok(f"{T}回到個股頁：記得上次停在「指標」分頁", m.evaluate("() => document.body.dataset.mbt") == "tag", m.evaluate("() => document.body.dataset.mbt"))
+
+    # ---- AI 分析：不另外 render —— 顯示 app.js miaStock 搬進 #aiCard 的同一個 #skAi 節點（四標籤版）----
+    m.evaluate(TAP, "ai"); m.wait_for_timeout(900)
+    AI = """() => { const c = document.getElementById('aiCard'), a = document.getElementById('skAi'); const r = c ? c.getBoundingClientRect() : null;
+        const on = document.querySelector('#skAi .aitab.on');
+        return { n: document.querySelectorAll('#skAi').length, inCard: !!(a && c && a.parentElement === c), h: r ? Math.round(r.height) : 0, t: r ? Math.round(r.top) : null,
+                 tabs: [...document.querySelectorAll('#skAi .aitab')].map(b => b.dataset.facet), on: on ? on.dataset.facet : null,
+                 txt: a ? a.innerText.slice(0, 60) : '', vh: innerHeight, kVis: (() => { const k = document.getElementById('skChartCard'); return !!k && k.getBoundingClientRect().height > 0; })() }; }"""
+    ai = m.evaluate(AI)
+    ok(f"{T}AI 分析：看到的是搬進 #aiCard 的同一個 #skAi（只有一份，不另外畫）", ai["n"] == 1 and ai["inCard"] and ai["h"] > 120 and not ai["kVis"], ai)
+    ok(f"{T}AI 分析：四個面向標籤都在、頂端在第一屏內", len(ai["tabs"]) >= 4 and ai["t"] is not None and ai["t"] < ai["vh"] - 200, ai)
+    if len(ai["tabs"]) >= 2:
+        other = next(f for f in ai["tabs"] if f != ai["on"])
+        m.evaluate("(f) => { const b = document.querySelector('#skAi .aitab[data-facet=\"' + f + '\"]'); if (b) b.click(); }", other); m.wait_for_timeout(500)
+        ai1 = m.evaluate(AI)
+        ok(f"{T}AI 分析：點另一個面向（{other}）→ 標籤真的換過去", ai1["on"] == other and ai1["on"] != ai["on"], (ai["on"], ai1["on"]))
+    m.evaluate(TAP, "news"); m.wait_for_timeout(600)
+    ai2 = m.evaluate(AI)
+    ok(f"{T}離開 AI 分析 → #aiCard 藏起來、#skAi 還是只有一份", ai2["h"] == 0 and ai2["n"] == 1, ai2)
+    nn = len(pgj.get("news") or []) + len(pgj.get("material_news") or [])
+    nr = m.evaluate("() => document.querySelectorAll('#mbBody .mbnews li').length")
+    ok(f"{T}新聞：一列一則（新聞＋重大訊息共 {nn} 則）", nr == nn, nr)
+
+    # ---- 完整版：桌機那一組分頁看得見（收起來可以，刪掉不行）----
+    m.evaluate(TAP, "full"); m.wait_for_timeout(900)
+    fv = m.evaluate("() => { const e = document.getElementById('stockTabs'); const r = e && e.getBoundingClientRect(); return { h: r ? r.height : 0, mbt: document.body.dataset.mbt }; }")
+    ok(f"{T}完整版：桌機的個股分頁看得見", fv["h"] > 20 and fv["mbt"] == "full", fv)
+
+    # ---- 觀察清單 ☆（跟總覽同一份 localStorage `tw.watch`，只存代號）----
+    STAR = "() => { const b = document.getElementById('mbStar'); return { t: b ? b.textContent : null, p: b ? b.getAttribute('aria-pressed') : null, h: b ? Math.round(b.getBoundingClientRect().height) : 0, ls: localStorage.getItem('tw.watch') }; }"
+    w0 = m.evaluate(STAR)
+    m.tap("#mbStar"); m.wait_for_timeout(300)
+    w1 = m.evaluate(STAR)
+    ok(f"{T}按 ☆ → 變成 ★、tw.watch 真的寫進這一檔的代號（只有代號）",
+       w0["t"] == "☆" and w1["t"] == "★" and w1["p"] == "true" and json.loads(w1["ls"] or "[]") == [sc], (w0, w1))
+    ok(f"{T}☆ 的觸控高度 ≥ 40px", w1["h"] >= 40, w1)
+    m.tap("#mbStar"); m.wait_for_timeout(300)
+    w2 = m.evaluate(STAR)
+    ok(f"{T}再按一次 → 回到 ☆、從 tw.watch 拿掉", w2["t"] == "☆" and json.loads(w2["ls"] or "[]") == [], w2)
+
+    # ---- 字級與觸控 ----
+    fx = m.evaluate("""() => { const bad = [];
+        document.querySelectorAll('#mbHead *, #mbBody *').forEach(e => { if (e.closest('svg, canvas')) return;
+          const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (!t) return;
+          const r = e.getBoundingClientRect(); if (!r.width) return; const s = parseFloat(getComputedStyle(e).fontSize); if (s < 12) bad.push(e.className + ':' + s); });
+        const small = [...document.querySelectorAll('#mbHead button, #mbBody .mbseg button')].filter(b => b.getBoundingClientRect().height && b.getBoundingClientRect().height < 40).map(b => b.textContent.trim() + ':' + Math.round(b.getBoundingClientRect().height));
+        return { bad: bad.slice(0, 6), small: small.slice(0, 6) }; }""")
+    ok(f"{T}報價列與分頁內容沒有小於 12px 的字", not fx["bad"], fx["bad"])
+    ok(f"{T}可點的鈕高度都 ≥ 40px", not fx["small"], fx["small"])
+
+    # ---- 左右箭頭換股（同族群上一檔／下一檔）----
+    m.evaluate(TAP, "inst"); m.wait_for_timeout(600)
+    wait_until(m, "() => { const b = document.getElementById('mbNext'); return b && !b.disabled; }", 5000)
+    nx = m.evaluate("() => { const b = document.getElementById('mbNext'); return b && !b.disabled ? b.dataset.code : null; }")
+    grp = (pgj.get("meta") or {}).get("group_id")
+    if nx:
+        m.tap("#mbNext")
+        wait_until(m, f"() => location.hash === '#stock/{nx}' && (document.querySelector('#mbQuote .num') || {{}}).textContent === '{nx}'", 9000)
+        s1 = m.evaluate(ST)
+        ok(f"{T}按 ▶ → 換到同族群下一檔（{nx}），報價列換成那一檔", s1["hash"] == f"#stock/{nx}" and s1["name"] != s0["name"], (s1["hash"], s1["name"]))
+        ok(f"{T}換股之後還停在同一個分頁（法人）、圖是新那一檔的", s1["mbt"] == "inst" and bool(s1["series"]), (s1["mbt"], s1["series"] and s1["series"][0]["d"]))
+        wait_until(m, "() => { const b = document.getElementById('mbPrev'); return b && !b.disabled; }", 5000)
+        m.tap("#mbPrev")
+        wait_until(m, f"() => location.hash === '#stock/{sc}' && (document.querySelector('#mbQuote .num') || {{}}).textContent === '{sc}'", 9000)
+        ok(f"{T}按 ◀ → 回到原本那一檔", m.evaluate("() => location.hash") == f"#stock/{sc}", m.evaluate("() => location.hash"))
+    else:
+        ok(f"{T}左右箭頭有同族群的鄰居（{grp}）", False, "mbNext 一直是 disabled")
+
+    # ---- 回桌機：拆乾淨（桌機不准被動到）----
+    m.set_viewport_size({"width": 1440, "height": 950}); m.wait_for_timeout(1200)
+    dk = m.evaluate("() => ({ head: !!document.getElementById('mbHead'), body: !!document.getElementById('mbBody'), mbon: document.body.classList.contains('mbon'), mbt: document.body.dataset.mbt || '', skPx: (() => { const e = document.getElementById('skPx'); return e ? e.getBoundingClientRect().height : 0; })() })")
+    ok(f"{T}視窗拉回 1440 → 手機節點全部拆掉、桌機的現價列回來", not dk["head"] and not dk["body"] and not dk["mbon"] and not dk["mbt"] and dk["skPx"] > 0, dk)
+    m.close()
+
+    # ---- finance-quant 的新欄位一到，分段自己長出來（docs/stock_page_audit_0927.md §3）----
+    #   本機的 payload 還沒有這些欄位（那支分支還沒合），用攔截把同一份 JSON 補上欄位再餵給頁面，
+    #   驗「欄位到了自動出現、沒到不放空殼」這條路真的通。數字是假的，只驗接線。
+    m2 = b.new_page(**MOBILE_VP)
+    m2.on("pageerror", lambda e: fails.append(f"手機個股券商式（新欄位）pageerror: {e}"))
+    m2.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+
+    def _inject(route):
+        j = json.loads((SITE / "data" / "stock" / f"{sc}.json").read_text(encoding="utf-8"))
+        for i, r in enumerate(j.get("margin") or []):
+            j["margin"][i] = (list(r) + [None] * 5)[:5] + [1000 + i, 12.5, 200 + i, 9000]
+        j["margin_columns"] = ["date", "margin_balance", "short_balance", "margin_change", "short_change",
+                               "daytrade_lots", "daytrade_ratio", "sbl_sell_lots", "sbl_balance_lots"]
+        j["tags"] = {"items": [{"id": "t1", "kind": "指標", "label": "測試條件甲", "hit": True, "detail": "說明甲"},
+                               {"id": "t2", "kind": "指標", "label": "測試條件乙", "hit": False, "detail": ""},
+                               {"id": "t3", "kind": "指標", "label": "測試條件丙", "hit": None, "detail": ""}], "n_hit": 1}
+        dv = j.setdefault("dividends", {})
+        dv["by_period"] = [{"period": "2025H2", "cash": 0.5, "stock": 0, "cash_ex_date": "2026-03-27", "stock_ex_date": None,
+                            "cash_yield": 0.52, "status": "paid"}]
+        j.setdefault("profit", {})["yearly"] = [{"year": 2024, "quarters": 4, "partial": False, "eps": 1.2, "gm": 30.0, "nm": 5.0},
+                                                {"year": 2026, "quarters": 2, "partial": True, "eps": 7.65, "gm": 60.0, "nm": 35.0}]
+        mo = (j.get("revenue") or {}).get("monthly") or []
+        for i, r in enumerate(mo):
+            mo[i] = (list(r) + [None] * 6)[:6] + [r[1] * 0.5 if r[1] is not None else None]
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(j, ensure_ascii=False))
+    m2.route(f"**/data/stock/{sc}.json*", _inject)
+    m2.goto(base, wait_until="domcontentloaded")
+    m2.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+    m2.goto(f"{base}#stock/{sc}", wait_until="networkidle")
+    wait_until(m2, "() => !!document.getElementById('mbHead')", 9000)
+    m2.evaluate(TAP, "margin"); m2.wait_for_timeout(900)
+    x1 = m2.evaluate(ST)
+    ok(f"{T}新欄位：資券多出「當沖」「借券賣」兩段（照截圖順序 融資｜當沖｜融券｜借券賣）",
+       [x.rstrip('*') for x in x1["seg"]] == ["融資", "當沖", "融券", "借券賣"], x1["seg"])
+    m2.evaluate(SEG, "dt"); m2.wait_for_timeout(800)
+    x2 = m2.evaluate(ST)
+    nm_ = len(pgj.get("margin") or [])
+    ok(f"{T}新欄位：切「當沖」→ 圖是當沖張數（最後一天 {1000 + nm_ - 1}）、表有當沖欄且反白",
+       bool(x2["series"]) and x2["series"][0]["d"][-1] == 1000 + nm_ - 1 and x2["thSel"] == "當沖", (x2["series"], x2["thSel"], x2["th"]))
+    m2.evaluate(TAP, "tag"); m2.wait_for_timeout(700)
+    x3 = m2.evaluate("""() => ({ head: (document.querySelector('#mbBody .mbtaghead b') || {}).textContent || '',
+        txt: document.getElementById('mbBody').innerText, miss: (document.querySelector('#mbBody .mbmiss summary') || {}).textContent || '' })""")
+    ok(f"{T}新欄位：指標改用後端標籤 —— 符合 1 項、未符合的收起來、資料不足的不列",
+       "符合 1 項" in x3["head"] and "測試條件甲" in x3["txt"] and "未符合 1 項" in x3["miss"] and "測試條件丙" not in x3["txt"], x3)
+    m2.evaluate(TAP, "div"); m2.wait_for_timeout(700)
+    x4 = m2.evaluate(ST)
+    ok(f"{T}新欄位：除權息「股利政策」表改成所屬期間（2025H2）", x4["th"][:1] == ["期別"] and "2025H2" in x4["row0"], (x4["th"], x4["row0"]))
+    m2.evaluate(TAP, "profit"); m2.wait_for_timeout(700)
+    x5 = m2.evaluate(ST)
+    ok(f"{T}新欄位：獲利多出「季走勢｜年度走勢」分段", [x.rstrip('*') for x in x5["seg"]] == ["季走勢", "年度走勢"], x5["seg"])
+    m2.evaluate(SEG, "y"); m2.wait_for_timeout(700)
+    x6 = m2.evaluate(ST)
+    ok(f"{T}新欄位：切「年度走勢」→ X 軸是年份、EPS 柱換成年度 EPS、表第一欄是年",
+       x6["xFirst"] == "2024" and bool(x6["series"]) and x6["series"][0]["d"][-2:] == [1.2, 7.65] and x6["th"][0] == "年", (x6["xFirst"], x6["series"], x6["th"]))
+    m2.evaluate(TAP, "rev"); m2.wait_for_timeout(700)
+    x7 = m2.evaluate(ST)
+    mo = ((pgj.get("revenue") or {}).get("monthly") or [])
+    if mo and mo[-1][1] is not None:
+        want = round(mo[-1][1] * 0.5 / 1e6)
+        ok(f"{T}新欄位：營收「去年同期」柱直接用後端的去年同月營收（{want} 百萬）",
+           bool(x7["series"]) and x7["series"][1]["d"][-1] == want, x7["series"])
+    m2.close()
+
+
+# ===================================================================== 手機總覽：指數三格＋觀察清單（2026-09-27）
+def t_mobile_home(b, base, code):
+    """★ 2026-09-27 借券商 App 首頁截圖的兩塊，放在手機總覽最上方（site/mobile3.js G 段）：
+    · 指數：加權／上櫃／台指近全三格一屏，可左右滑（還有費半、那斯達克、標普、美元兌台幣），有「第幾頁／共幾頁」
+    · 觀察清單：localStorage `tw.watch`，只存代號；新增（抽屜搜尋）、刪除（編輯 → ✕）、重新整理後還在
+    每一條都驗「畫面真的因此改變了」與 localStorage 真的寫進去。"""
+    m = b.new_page(**MOBILE_VP)
+    m.on("pageerror", lambda e: fails.append(f"手機總覽指數觀察清單 pageerror: {e}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(base, wait_until="domcontentloaded")
+    m.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+    T = "【手機總覽】"
+    ix = json.loads((SITE / "data" / "index_ohlc.json").read_text(encoding="utf-8"))
+    m.goto(f"{base}#overview", wait_until="networkidle")
+    wait_until(m, "() => document.querySelectorAll('#mbIdx .mbit').length >= 3", 9000)
+    IDX = """() => { const box = document.getElementById('mbIdx'), pos = document.getElementById('mbIdxPos');
+        const t = [...document.querySelectorAll('#mbIdx .mbit')].map(e => { const r = e.getBoundingClientRect();
+          return { id: e.dataset.id, name: e.querySelector('.mbitn').firstChild.textContent.trim(), v: e.querySelector('[data-k=v]').textContent.trim(),
+                   c: e.querySelector('[data-k=c]').className, l: Math.round(r.left), r: Math.round(r.right), b: Math.round(r.bottom), h: Math.round(r.height) }; });
+        const home = document.getElementById('mbHome'), v = document.getElementById('v-overview');
+        return { t, sl: box ? Math.round(box.scrollLeft) : 0, sw: box ? box.scrollWidth : 0, cw: box ? box.clientWidth : 0,
+                 pos: pos ? pos.dataset.pos : null, of: pos ? pos.dataset.of : null, ptxt: pos ? pos.innerText : '',
+                 first: v && v.firstElementChild ? v.firstElementChild.id : '', vh: innerHeight,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+    a = m.evaluate(IDX)
+    ok(f"{T}#mbHome 是總覽最上面一塊", a["first"] == "mbHome", a["first"])
+    vis = [x for x in a["t"] if x["l"] >= -1 and x["r"] <= a["winW"] + 1]
+    ok(f"{T}一進來看得到三格：加權指數、上櫃指數、台指近全", [x["name"] for x in vis] == ["加權指數", "上櫃指數", "台指近全"], [x["name"] for x in a["t"]])
+    ok(f"{T}三格整格在第一屏（底 ≤ 可視高 {a['vh'] - 58}）", len(vis) == 3 and all(x["b"] <= a["vh"] - 58 for x in vis), vis)
+    tse = [r for r in ix.get("TSE") or [] if r[4] is not None]
+    if tse:
+        want = f"{tse[-1][4]:,.2f}"
+        got = next((x["v"] for x in a["t"] if x["id"] == "TSE"), "")
+        ok(f"{T}加權那一格是資料湖最後一天的收盤（{want}）", got == want, got)
+        d = tse[-1][4] - tse[-2][4]
+        cls = next((x["c"] for x in a["t"] if x["id"] == "TSE"), "")
+        ok(f"{T}加權的漲跌顏色：紅漲綠跌（這一天 {d:+.2f}）", ("up" in cls) if d > 0 else ("dn" in cls) if d < 0 else True, cls)
+    ok(f"{T}往右還有更多格（內容比框寬）、有位置指示「1 / N」", a["sw"] > a["cw"] + 4 and a["pos"] == "1" and a["of"] and f"1 / {a['of']}" in a["ptxt"], a)
+    m.evaluate("() => { const e = document.getElementById('mbIdx'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
+    m.wait_for_timeout(500)
+    a2 = m.evaluate(IDX)
+    changed(f"{T}真的滑得動（scrollLeft 變了）", a["sl"], a2["sl"], str(a2["sl"]))
+    ok(f"{T}滑到底 → 位置指示變成最後一頁（{a['of']} / {a['of']}）", a2["pos"] == a2["of"] and a2["pos"] != "1", (a2["pos"], a2["of"]))
+    ok(f"{T}390 寬整頁沒有橫捲", a2["docW"] <= a2["winW"] + 1, a2)
+
+    # ---- 觀察清單：空的 → 抽屜搜尋加入 → 重新整理還在 → 編輯刪除 → 重新整理不見 ----
+    W = """() => ({ n: document.querySelectorAll('#mbWatch .mbw').length, codes: [...document.querySelectorAll('#mbWatch .mbw')].map(e => e.dataset.go),
+        names: [...document.querySelectorAll('#mbWatch .mbwn')].map(e => e.firstChild.textContent.trim()),
+        hidden: !!(document.getElementById('mbWatch') || {}).hidden, add: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
+        addW: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().width) : 0; })(),
+        homeH: (() => { const e = document.getElementById('mbHome'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
+        ls: localStorage.getItem('tw.watch'), edit: (document.getElementById('mbWEdit') || {}).textContent || '' }) """
+    w0 = m.evaluate(W)
+    ok(f"{T}觀察清單一開始是空的：清單列不佔位、只有指數列右邊一顆「＋ 觀察」（≥ 44×44）", w0["n"] == 0 and w0["hidden"] and w0["add"] >= 44 and w0["addW"] >= 44, w0)
+    ok(f"{T}清單空的時候整塊 ≤ 72px（第①步的輪盤＋焦點條要留在第一屏）", 0 < w0["homeH"] <= 72, w0["homeH"])
+    m.tap("#mbWAdd"); m.wait_for_timeout(500)
+    m.fill("#mbWQ", "2344"); m.wait_for_timeout(400)
+    res = m.evaluate("() => [...document.querySelectorAll('#mbWRes button[data-c]')].map(b => b.dataset.c)")
+    ok(f"{T}抽屜打「2344」→ 搜尋結果有 2344", "2344" in res, res)
+    m.tap("#mbWRes button[data-c='2344']"); m.wait_for_timeout(300)
+    m.fill("#mbWQ", "台積電"); m.wait_for_timeout(400)
+    m.tap("#mbWRes button[data-c='2330']"); m.wait_for_timeout(300)
+    dis = m.evaluate("() => { const b = document.querySelector('#mbWRes button[data-c=\"2330\"]'); return b ? b.disabled : null; }")
+    ok(f"{T}加過的那一檔在抽屜裡變成「已在清單」（不能重複加）", dis is True, dis)
+    m.keyboard.press("Escape"); m.wait_for_timeout(400)
+    w1 = m.evaluate(W)
+    ok(f"{T}加入兩檔 → 清單真的出現兩格（華邦電、台積電）", w1["codes"] == ["2344", "2330"] and "華邦電" in w1["names"] and not w1["hidden"], w1)
+    ok(f"{T}有清單時整塊 ≤ 124px（指數列＋一列清單）", 0 < w1["homeH"] <= 124, w1["homeH"])
+    # 有清單時，第①步的輪盤與焦點條仍在第一屏（跟「手機v3」#1 同一條量法）
+    rf = m.evaluate("""() => { const r = document.getElementById('mRadarOv'), f = document.querySelector('#rotClockMiniWrap .mfocus');
+        return { r: r ? Math.round(r.getBoundingClientRect().bottom) : null, f: f ? Math.round(f.getBoundingClientRect().bottom) : null, vh: innerHeight }; }""")
+    ok(f"{T}有兩檔觀察時，輪盤＋焦點條還在第一屏（底 ≤ {rf['vh'] - 58}）", rf["f"] is not None and rf["f"] <= rf["vh"] - 58, rf)
+    ok(f"{T}tw.watch 只存代號（JSON 陣列、沒有張數或成本）", json.loads(w1["ls"] or "null") == ["2344", "2330"], w1["ls"])
+    m.reload(wait_until="networkidle")
+    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
+    w2 = m.evaluate(W)
+    ok(f"{T}重新整理之後清單還在", w2["codes"] == ["2344", "2330"], w2)
+    m.tap("#mbWatch .mbw[data-go='2330']")
+    wait_until(m, "() => location.hash === '#stock/2330'", 6000)
+    ok(f"{T}點一格 → 真的換到那一檔的個股頁", m.evaluate("() => location.hash") == "#stock/2330", m.evaluate("() => location.hash"))
+    wait_until(m, "() => !!document.getElementById('mbStar')", 9000)
+    ok(f"{T}個股頁的 ☆ 認得它已經在清單裡（★）", m.evaluate("() => document.getElementById('mbStar').textContent") == "★",
+       m.evaluate("() => document.getElementById('mbStar').textContent"))
+    m.goto(f"{base}#overview", wait_until="networkidle")
+    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
+    m.tap("#mbWEdit"); m.wait_for_timeout(300)
+    dh = m.evaluate("() => { const b = document.querySelector('#mbWatch .mbwdel'); return b ? Math.round(b.getBoundingClientRect().height) : 0; }")
+    ok(f"{T}按「編輯」→ 每格出現 ✕（≥ 40px）", dh >= 40 and m.evaluate("() => document.getElementById('mbWEdit').textContent") == "完成", dh)
+    m.tap("#mbWatch .mbwdel[data-del='2344']"); m.wait_for_timeout(300)
+    w3 = m.evaluate(W)
+    ok(f"{T}按 ✕ → 那一格真的不見、tw.watch 同步拿掉", w3["codes"] == ["2330"] and json.loads(w3["ls"] or "null") == ["2330"], w3)
+    m.reload(wait_until="networkidle")
+    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
+    w4 = m.evaluate(W)
+    ok(f"{T}重新整理之後刪掉的那一檔沒有回來", w4["codes"] == ["2330"], w4)
+    # 壞掉的 localStorage 不准把頁面弄掛（手動改壞、別的版本寫的格式）
+    m.evaluate("() => localStorage.setItem('tw.watch', '{壞掉')"); m.reload(wait_until="networkidle"); m.wait_for_timeout(1500)
+    w5 = m.evaluate(W)
+    ok(f"{T}tw.watch 內容壞掉 → 當成空清單，不會掛", w5["n"] == 0 and w5["hidden"], w5)
+    # 字級
+    fx = m.evaluate("""() => { const bad = []; document.querySelectorAll('#mbHome *').forEach(e => {
+        const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (!t) return;
+        const r = e.getBoundingClientRect(); if (!r.width) return; const s = parseFloat(getComputedStyle(e).fontSize); if (s < 12) bad.push(e.className + ':' + s); });
+        return bad.slice(0, 6); }""")
+    ok(f"{T}指數與觀察清單沒有小於 12px 的字", not fx, fx)
+    # 回桌機：拆乾淨
+    m.set_viewport_size({"width": 1440, "height": 950}); m.wait_for_timeout(1200)
+    ok(f"{T}視窗拉回 1440 → #mbHome 拆掉（桌機不動）", not m.evaluate("() => !!document.getElementById('mbHome')"))
+    m.close()
 
 
 if __name__ == "__main__":
