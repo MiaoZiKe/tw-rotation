@@ -98,6 +98,24 @@ jobs:
       # build_payload 已經不寫、也會刪舊檔；這一步是給「快取命中、沿用舊 site/data」那條路的保險。
       - name: 確認部署產物裡沒有 tasks.json
         run: rm -f site/data/tasks.json
+      # 2026-09-27 會員登入／使用統計（DECISIONS #270）：前端要知道 account-api 的網址。
+      # repo 裡的 site/account_config.js 永遠是空的（api: ''）＝功能關閉；這一步依 Secret 覆寫「部署產物」裡的那支，
+      # 網址不進版控。Secret 沒設 → 維持空的 → 沒有登入鈕、不送統計、頁面照常（所以可以先上線、等 Andy 設好再生效）。
+      # 放在版本戳之前或之後都可以（戳記只改 index.html 的 ?v=），這裡放在上傳前最後一步，讀起來比較直觀。
+      - name: 會員功能設定（沒設 ACCOUNT_API_URL 就維持關閉）
+        env:
+          ACCOUNT_API_URL: ${{ secrets.ACCOUNT_API_URL }}
+        run: |
+          if [ -n "$ACCOUNT_API_URL" ]; then
+            case "$ACCOUNT_API_URL" in
+              https://*)
+                python -c "import json,os; u=os.environ['ACCOUNT_API_URL'].strip().rstrip('/'); open('site/account_config.js','w',encoding='utf-8').write('/* 部署時由 pages.yml 依 Secret ACCOUNT_API_URL 產生（repo 裡是空的）*/\nwindow.TW_ACCOUNT = ' + json.dumps({'api': u}) + ';\n')"
+                echo "會員功能：開啟";;
+              *) echo "::warning::ACCOUNT_API_URL 不是 https:// 開頭，會員功能維持關閉";;
+            esac
+          else
+            echo "會員功能：沒設 ACCOUNT_API_URL，維持關閉（設定步驟見 docs/login_setup.md）"
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

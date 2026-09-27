@@ -2248,6 +2248,15 @@
       window.scrollTo({ top: 0 });
       return;
     }
+    /* ★ 2026-09-27 管理頁 #admin（使用統計、線上名單）交給 site/account.js（DECISIONS #270）。跟法律頁同一個接法。*/
+    if (window.TwAccount && window.TwAccount.route(head) === 'admin') {
+      $$('.tab').forEach(t => t.classList.remove('on'));
+      $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-admin'));
+      _lastPageKey = 'admin'; _miaKey = 'admin';
+      try { applyMobileIA('admin'); } catch (e) { /* 忽略 */ }
+      window.scrollTo({ top: 0 });
+      return;
+    }
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     /* 近期搜尋（2026-09-26）：進個股頁就記一筆 —— 不管是從搜尋點進來、從別的圖點進來、還是直接貼網址。
        只記全市場索引裡找得到的代號（打錯的代號會走「找不到代號」，不該留在紀錄裡）。*/
@@ -11262,7 +11271,6 @@
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
-      dismissable,               // ★ 2026-09-27：手機搜尋列（mobile3.js）也登記「點外面就關」，跟全站同一份
       hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmDate, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是

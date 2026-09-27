@@ -3209,3 +3209,11 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-27 早上 Andy 確認「以上建議OK」→ DECISIONS #269
 - 等 Andy 決定的三件全部照現狀定案：「AI 分析」字樣不改、「資金輪盤」名稱不改、1440 K 線下移 47px 可接受；手機版的判斷點（完整版分頁、籌碼／大戶分兩頁、＋觀察、未回補寫原因、現價殖利率）也照現狀。
 - 背景進行中：法人／當沖＋借券／除權息 2009 起的歷史回補（約 1.1 萬次 FinMind，22～24 小時）；董監持股第一筆等傍晚那輪 Actions。
+
+### 09-27 傍晚 會員登入／自選五分頁／使用統計／線上人數（account-analytics，DECISIONS #270）
+- Andy「使用者透過 google 登入…紀錄線上使用狀況，新增每頁使用功能狀況…新增線上人數，知道目前有誰使用，新增自選清單並且可以新增五個分頁」。
+- 架構：Cloudflare Worker＋Durable Object＋Google OAuth（不用 Firebase，理由見 #270）；`workers/account-api/`，`deploy-account-worker.yml` 部署前先跑存取控制測試 19 條。
+- 前端：`site/account.js`（登入）、`site/watchlists.js`（自選 5 分頁，本機 localStorage／登入後雲端同步，舊 `tw.watch` 搬進第 1 頁）、`site/admin.js`（`#admin` 管理頁，只有 ACCOUNT_ADMIN_EMAILS 看得到誰在線與使用統計）。隱私權政策在 legal.js 更新。
+- **沒設 Secret 時全部關閉**（repo 裡 `site/account_config.js` 永遠是空的；pages.yml 依 `ACCOUNT_API_URL` 覆寫部署產物）→ 目前線上只有本機版自選五分頁生效。
+- **待 Andy**：照 `docs/login_setup.md` 建 Google OAuth 用戶端、設 Secrets（GOOGLE_CLIENT_ID／GOOGLE_CLIENT_SECRET／ACCOUNT_ADMIN_EMAILS／ACCOUNT_API_URL），並確認隱私告知文字。
+- 這批驗了：pytest 789 passed；Worker node --test 19/19；_uitest 會員與自選五分頁／會員雲端路徑／手機／手機總覽指數觀察清單／手機個股券商式／設定面板／個股 0、_preview 綠（分支上；與 main 差距只有資料 commit）。
