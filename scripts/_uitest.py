@@ -15046,6 +15046,10 @@ SECTIONS = {
     "搜尋近期熱門Logo":    lambda pg, b, base, code: t_search_recent_logo(pg, b, base),
     # ★ 2026-09-26 Andy 總覽三件：大盤三張圖量副圖不見、熱門題材要能放大、足跡輪盤點族群不能推動版面（⚠ 一律 --workers 1）
     "總覽修正0926b":       lambda pg, b, base, code: t_ov_fix_0926b(b, base, code),
+    # ★ 2026-09-27 Andy：「手機版介面 幫我確實驗證所有按鈕功能，我發現有部分功能無法點選」——
+    #   全站每一頁（含分段、抽屜、彈窗）所有看得見的可點元素，390 與 360 各用觸控點一次：點得到、有反應、收得回來。
+    #   量測在 scripts/_mobile_tap_audit.py（單獨跑有完整報告），⚠ 一律 --workers 1，一輪很長。
+    "手機按鈕普查":        lambda pg, b, base, code: t_mobile_tap_audit(b, base, code),
     # ★ 2026-09-27 Andy：Google 登入、使用統計、線上人數、自選清單五分頁（DECISIONS #270）
     #   「會員與自選五分頁」＝沒有設定檔（線上現況）；「會員雲端路徑」＝本機跑真的 worker.js＋假 Google（⚠ 一律 --workers 1）
     "會員與自選五分頁":    lambda pg, b, base, code: t_watchlists_guest(b, base),
@@ -33933,6 +33937,128 @@ def t_decimal_audit(b, base, code):
        not [x for x in cv if not any(re.search(a, x) for a in _DEC_ALLOW)], cv[:8])
     ok("小數點普查／手機：真的掃到圖", mn >= 6, mn)
     m.close()
+
+
+# ★ 2026-09-27 手機按鈕普查（Andy：「手機版介面 幫我確實驗證所有按鈕功能，我發現有部分功能無法點選」）
+#   量測本體在 scripts/_mobile_tap_audit.py。這一段做兩件事：
+#   ① 量測本身有效：故意種三顆壞鈕（被透明層蓋住／點了沒反應／打開的浮層關不掉），三顆都要被抓到 ——
+#      不然「0 個問題」可能只是量測壞掉。
+#   ② 全站普查：390×844 與 360×780、is_mobile＋has_touch＋DPR2、觸控 tap，問題數必須是 0，
+#      而且每種寬度真的點過足夠多顆、走過足夠多個畫面（防止「一顆都沒點到所以 0 個問題」）。
+def t_mobile_tap_audit(b, base, code):
+    sys.path.insert(0, str(ROOT))
+    import importlib
+    A = importlib.import_module("scripts._mobile_tap_audit")
+    # ---- ① 種三顆壞鈕 ----
+    au = A.Auditor(b, base, 390, log=lambda *a, **k: None)
+    pg = au.new_page()
+    try:
+        st = {"name": "種壞鈕", "hash": "#overview"}
+        au.load(st)
+        pg.evaluate("""() => {
+          const box = document.createElement('div'); box.id = 'taPlant';
+          box.style.cssText = 'position:relative;margin:10px 16px;padding:8px;display:flex;gap:8px;flex-wrap:wrap';
+          box.innerHTML = '<button id="taCover" style="min-width:90px;min-height:44px">被蓋住</button>'
+            + '<button id="taDead" style="min-width:90px;min-height:44px">沒反應</button>'
+            + '<button id="taPop" style="min-width:90px;min-height:44px">關不掉</button>'
+            + '<div style="position:absolute;left:0;top:0;width:110px;height:64px;background:transparent"></div>';
+          document.querySelector('main .view.on').prepend(box);
+          document.getElementById('taCover').onclick = (e) => { e.currentTarget.textContent = '點到了'; };
+          document.getElementById('taPop').onclick = () => {
+            const p = document.createElement('div'); p.id = 'taPopPanel';
+            p.style.cssText = 'position:fixed;left:40px;top:200px;width:240px;height:160px;background:#333;z-index:9999';
+            p.textContent = '沒有關閉鈕、點外面也不關'; document.body.appendChild(p); };
+        }""")
+        pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})")
+        au.baseline()
+        au.audit_scope(st, "#taPlant", 0, lambda force=False: True, budget=10)
+        rows = {r["txt"]: r for r in au.rows}
+        c, d, p = rows.get("被蓋住", {}), rows.get("沒反應", {}), rows.get("關不掉", {})
+        ok("手機按鈕普查：量測本身有效（被透明層蓋住的鈕被抓成「點不到」）", bool(c.get("blocked")), c)
+        ok("手機按鈕普查：量測本身有效（點了沒反應的鈕被抓成「沒反應」）", bool(d.get("noreact")), d)
+        ok("手機按鈕普查：量測本身有效（打開後關不掉的浮層被抓成「收不回來」）", bool(p.get("noclose")), p)
+    finally:
+        try:
+            pg.close()
+        except Exception:  # noqa: BLE001
+            pass
+    # ---- ①b 這一輪修掉的兩件，各自用觸控再驗一次「畫面真的變了」 ----
+    for (W, H) in ((390, 844), (360, 780)):
+        m = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.on("pageerror", lambda e: fails.append(f"手機按鈕普查 pageerror: {e}"))
+        try:
+            m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2200)
+            T = f"[手機按鈕普查 {W}px]"
+            # (1) 搜尋列展開後點旁邊空白處 → 收回，左上品牌又點得到
+            m.tap("#mSearchBtn"); m.wait_for_timeout(400)
+            s0 = m.evaluate("() => document.querySelector('.topbar').classList.contains('msearch')")
+            brand_hit0 = m.evaluate("""() => { const b = document.querySelector('.brand').getBoundingClientRect();
+                const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!h && !!h.closest('.brand'); }""")
+            # 「外面」＝搜尋列與它的建議清單（#sugg 在 .search 裡，會往下蓋一大塊）以外、而且不是任何可點元素的空白處
+            pt = m.evaluate("""() => { const INTER = 'button,a[href],summary,label,select,input,textarea,[role=button],[role=tab],[role=link],[onclick],svg,canvas';
+                for (let y = innerHeight - 70; y > 60; y -= 23) for (let x = 6; x < innerWidth - 4; x += 23) {
+                  const h = document.elementFromPoint(x, y); if (!h || h.closest('.topbar, .search, #tabs, nav') || h.closest(INTER)) continue;
+                  let p = false; for (let n = h; n; n = n.parentElement) if (getComputedStyle(n).cursor === 'pointer') { p = true; break; }
+                  if (!p) return { x, y, on: (h.id || '') + '.' + String(h.className).split(' ')[0] }; }
+                return null; }""")
+            if pt:
+                m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(700)
+            s1 = m.evaluate("() => document.querySelector('.topbar').classList.contains('msearch')")
+            brand_hit1 = m.evaluate("""() => { const b = document.querySelector('.brand').getBoundingClientRect();
+                const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!h && !!h.closest('.brand'); }""")
+            ok(f"{T} 搜尋列展開時蓋住品牌；點旁邊空白處 → 搜尋列收回、品牌又點得到",
+               s0 and not brand_hit0 and bool(pt) and not s1 and brand_hit1,
+               {"展開": s0, "展開時品牌點得到": brand_hit0, "空白點": pt, "點完還展開": s1, "點完品牌點得到": brand_hit1})
+            if s1:
+                m.keyboard.press("Escape"); m.wait_for_timeout(200)      # 上一條紅了也要能往下驗
+            # 點搜尋框本身不算外面（打字到一半不會被收掉）
+            m.tap("#mSearchBtn"); m.wait_for_timeout(300); m.tap("#q"); m.wait_for_timeout(400)
+            ok(f"{T} 點搜尋框本身不會把搜尋列收掉",
+               m.evaluate("() => document.querySelector('.topbar').classList.contains('msearch')"))
+            m.tap("#mSearchX"); m.wait_for_timeout(300)
+            # (2) 今日事件抽屜：事件列底下的個股連結換行，不再把抽屜撐寬（右邊的連結都在抽屜裡）
+            m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2200)
+            m.evaluate("() => { const b = document.getElementById('evToggle'); if (b) b.click(); }"); m.wait_for_timeout(900)
+            ev = m.evaluate("""() => { const s = document.getElementById('side'); if (!s) return null; const sr = s.getBoundingClientRect();
+                const lk = [...s.querySelectorAll('.ev .m a.lk')].filter(a => a.getClientRects().length);
+                const out = lk.filter(a => a.getBoundingClientRect().right > sr.right + 1).length;
+                return { sw: s.scrollWidth, cw: s.clientWidth, open: sr.left < innerWidth - 10, links: lk.length, outside: out }; }""")
+            ok(f"{T} 今日事件抽屜打開後沒有被撐寬、個股連結全部在抽屜裡（可以直接點）",
+               bool(ev) and ev["open"] and ev["links"] > 0 and ev["sw"] <= ev["cw"] + 2 and ev["outside"] == 0, ev)
+            # (3) 普查白名單裡的「重設縮放」：先把 K 線縮到最後 10 根，再用觸控按它 → 可見範圍真的變回來
+            m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(2600)
+            z = m.evaluate("""() => { const k = window.KChart && window.KChart.last; if (!k || !k.chart) return null;
+                const ts = k.chart.timeScale(), r = ts.getVisibleLogicalRange(); if (!r) return null;
+                ts.setVisibleLogicalRange({ from: r.to - 10, to: r.to });
+                const r2 = ts.getVisibleLogicalRange(); return { before: r.to - r.from, zoomed: r2.to - r2.from }; }""")
+            fit = m.evaluate("""() => { const b = [...document.querySelectorAll('.kfit')].find(x => x.getClientRects().length); if (!b) return null;
+                b.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = b.getBoundingClientRect();
+                const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                return { x: r.left + r.width / 2, y: r.top + r.height / 2, hit: !!h && (h === b || b.contains(h)) }; }""")
+            if z and fit:
+                m.touchscreen.tap(fit["x"], fit["y"]); m.wait_for_timeout(600)
+                after = m.evaluate("() => { const r = window.KChart.last.chart.timeScale().getVisibleLogicalRange(); return r ? r.to - r.from : null; }")
+                ok(f"{T} K 線縮到 10 根後用觸控按「重設縮放」→ 真的回到全覽（可見根數變多）",
+                   fit["hit"] and after is not None and after > z["zoomed"] + 5, {"縮放前": z, "重設鈕": fit, "按完": after})
+            else:
+                ok(f"{T} 個股頁找得到 K 線與「重設縮放」鈕", False, {"z": z, "fit": fit})
+        finally:
+            m.close()
+    # ---- ② 全站普查 ----
+    # 兩種寬度各開一個子行程同時跑（一種一輪 30～60 分鐘）；子行程共用這一段已經持有的瀏覽器鎖與本機伺服器
+    res = A.run_parallel(base, (390, 360), code=code, log=lambda *a, **k: print(*a, **k, flush=True))
+    A.write_report(res)
+    P = A.problems(res)
+    for w in (390, 360):
+        n = sum(1 for r in res["rows"] if r["w"] == w)
+        ns = sum(1 for s in res["states"] if s["w"] == w)
+        # 2026-09-27 實測一種寬度：點過約 720 顆、走過約 90 個畫面；門檻抓六～七成，少掉一大塊（整頁沒走到）就會紅
+        ok(f"手機按鈕普查 {w}px：真的點過夠多顆（≥ 500）、走過夠多個畫面（≥ 60）", n >= 500 and ns >= 60, {"點過": n, "畫面": ns})
+    ok("手機按鈕普查：點不到／沒反應／收不回來 0 顆", not P,
+       [f"[{r['w']}] {r['page']}｜{r['txt']}｜{r['sel']}｜{r['blocked']}{'｜沒反應' if r['noreact'] else ''}{'｜' + r['noclose'] if r['noclose'] else ''}" for r in P[:30]])
+    ok("手機按鈕普查：執行中沒有錯誤（pageerror、切不到分段、中途爆掉）", not res["errors"], res["errors"][:10])
+    notes.append(f"手機按鈕普查：點過 {len(res['rows'])} 顆、觸控目標 < {A.MIN_TOUCH}px 的 {len(res['small'])} 顆（列表見 docs/_mobile_tap/report.md，不算紅燈）")
 
 
 # ★ 2026-09-26 剖析圖覆蓋普查（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」）

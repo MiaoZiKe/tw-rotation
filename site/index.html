@@ -4121,6 +4121,14 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbwnone{padding:14px 6px;color:var(--ink-3);font-size:14px}
 }
 @media (min-width:641px){ #mbHead,#mbBody,#mbHome{display:none!important} }
+/* ★ 2026-09-27 手機按鈕普查（Andy：「手機版介面 幫我確實驗證所有按鈕功能，我發現有部分功能無法點選」）。
+   量測在 scripts/_mobile_tap_audit.py；這裡只修「點不到／沒反應」，不改視覺風格（設計總監接著要重做整站版面）。
+   ⚠ 全部在 ≤640px、掛在 body.m3on 底下，桌機一條都碰不到。 */
+@media (max-width:640px){
+  /* 今日事件抽屜：事件列下方的個股連結一整排不換行，把抽屜撐到 604px 寬（抽屜只有 358px），
+     右邊的個股連結整顆在抽屜外面，要先橫向拖抽屜才看得到、點得到。改成換行。 */
+  body.m3on aside .ev .m{flex-wrap:wrap;row-gap:4px}
+}
 </style>
 </head>
 <body>
