@@ -4025,6 +4025,9 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbalt{font-size:12.5px;color:var(--ink-2);line-height:1.5;margin:0 0 8px;padding:7px 10px;border-radius:8px;
     border:1px dashed var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent)}
   body.m3on .mbalt b{display:block;color:var(--amber);font-size:13px}
+  /* 這一段還沒有資料：寫原因（不畫假圖、不放空殼）*/
+  body.m3on .mbwhy{font-size:13px;color:var(--ink-2);line-height:1.6;margin:4px 0 10px;padding:12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2)}
+  body.m3on .mbwhy b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
   body.m3on .mbtaghead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 0 8px;border-bottom:1px solid var(--line)}
   body.m3on .mbtaghead b{font-size:17px;color:var(--ink)} body.m3on .mbtaghead span{font-size:12.5px;color:var(--ink-3)}
   body.m3on .mbtags{list-style:none;margin:0 -14px;padding:0}
@@ -4063,9 +4066,8 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbmiss>summary::-webkit-details-marker{display:none}
   body.m3on .mbmiss .mbtags{margin:0}
   body.m3on .mbmiss .mbtags li button{color:var(--ink-2)}
-  /* 除權息「股利政策（所屬期間）」表：最後一欄是殖利率，不是展開鈕 */
-  body.m3on .mbdivp th:last-child,body.m3on .mbdivp td:last-child{width:auto;text-align:right}
-  body.m3on .mbdivp td small{display:inline;color:var(--amber)}
+  /* 除權息「股利政策（所屬期間）」表：狀態小字（已公告／待除權息）*/
+  body.m3on .mbdiv td small.mbst{color:var(--amber)}
 
   /* ---- 總覽最上方：指數列（可左右滑）＋「＋ 觀察」＋觀察清單列（mobile3.js G 段）----
      高度預算：清單空的時候整塊約 60px、有清單約 112px —— 第①步的輪盤＋焦點條要留在第一屏（_uitest「手機v3」#1）。*/

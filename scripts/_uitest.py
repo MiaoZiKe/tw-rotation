@@ -34514,7 +34514,7 @@ def t_mobile_broker(b, base, code):
     m.evaluate(TAP, "inst"); m.wait_for_timeout(900)
     a = m.evaluate(ST)
     iv = [r for r in (pgj.get("inst_v3") or {}).get("daily") or [] if r[1] is not None or r[2] is not None or r[3] is not None]
-    n = min(60, len(iv))
+    n = min(63, len(iv))   # 一季＝63 個交易日（跟桌機籌碼預設、docs/stock_page_audit_0927.md 一致）
     ok(f"{T}法人：切過去 → K 線卡藏起來、分頁內容出現", a["mbt"] == "inst" and not a["kVis"] and a["bodyVis"], a)
     ok(f"{T}法人：分段是 外資｜投信｜自營商｜合計", [x.rstrip('*') for x in a["seg"]] == ["外資", "投信", "自營商", "合計"], a["seg"])
     ok(f"{T}法人：圖是 {n} 根（一季）、表也是 {n} 列（新到舊）",
@@ -34550,7 +34550,8 @@ def t_mobile_broker(b, base, code):
     if ho:
         m.evaluate(TAP, "chip"); m.wait_for_timeout(900)
         c1 = m.evaluate(ST)
-        ok(f"{T}籌碼：分段是 千張大戶｜散戶 ≤10 張｜股東人數", [x.rstrip('*') for x in c1["seg"]] == ["千張大戶", "散戶 ≤10 張", "股東人數"], c1["seg"])
+        want_seg = ["千張大戶", "散戶 ≤10 張", "股東人數"] + (["董監持股"] if isinstance(pgj.get("insider"), dict) else [])
+        ok(f"{T}籌碼：分段是 {'｜'.join(want_seg)}", [x.rstrip('*') for x in c1["seg"]] == want_seg, c1["seg"])
         ok(f"{T}籌碼：圖是每週 {len(ho)} 點、表 {len(ho)} 列（新到舊），反白「千張大戶」",
            bool(c1["series"]) and c1["series"][0]["len"] == len(ho) and c1["rows"] == len(ho) and c1["thSel"] == "千張大戶"
            and ho[-1][0][5:].replace('-', '/') in c1["row0"], (c1["series"], c1["rows"], c1["thSel"], c1["row0"]))
@@ -34559,6 +34560,15 @@ def t_mobile_broker(b, base, code):
         ok(f"{T}籌碼：切「股東人數」→ 圖的數字換成股東人數（{ho[-1][4]}）、反白欄換成股東人數",
            bool(c2["series"]) and c2["series"][0]["d"][-1] == ho[-1][4] and c2["series"][0]["d"] != c1["series"][0]["d"] and c2["thSel"] == "股東人數",
            (c1["series"], c2["series"], c2["thSel"]))
+        if isinstance(pgj.get("insider"), dict):
+            m.evaluate(SEG, "ins"); m.wait_for_timeout(800)
+            c3 = m.evaluate("() => ({ why: (document.querySelector('#mbBody .mbwhy') || {}).textContent || '', chart: !!document.getElementById('mbChart'), rows: document.querySelectorAll('#mbBody .mbtbl tbody tr').length })")
+            nins = len((pgj["insider"].get("monthly") or []))
+            if nins:
+                ok(f"{T}籌碼：切「董監持股」→ 圖＋每月表（{nins} 列）", c3["chart"] and c3["rows"] == nins, c3)
+            else:
+                ok(f"{T}籌碼：董監持股還沒有月資料 → 寫原因（每月申報、逐月累積），不畫假圖", "尚無資料" in c3["why"] and "每月申報" in c3["why"] and not c3["chart"], c3)
+            m.evaluate(SEG, "big"); m.wait_for_timeout(500)
 
     # ---- 大戶（替代主力）：法人買賣超＋集中度｜大戶週增減 ----
     m.evaluate(TAP, "big"); m.wait_for_timeout(900)
@@ -34572,6 +34582,7 @@ def t_mobile_broker(b, base, code):
     vol = {r[0]: r[5] for r in (pgj.get("daily") or [])}
     if len(iv) >= 5 and all(vol.get(r[0]) for r in iv[-5:]):
         c5 = sum((r[1] or 0) + (r[2] or 0) + (r[3] or 0) for r in iv[-5:]) / sum(vol[r[0]] for r in iv[-5:]) * 100
+        # 後端的 main_proxy 一到，畫的是它的 conc5 —— 自己算的要跟它對得上（兩邊同一條公式）
         got = b1["series"][1]["d"][-1] if b1["series"] else None
         ok(f"{T}大戶：5 日集中度的數字對得上（自己算 {c5:.2f}%）", got is not None and abs(got - c5) < 0.011, (got, c5))
     m.evaluate(SEG, "chg"); m.wait_for_timeout(800)
@@ -34586,9 +34597,15 @@ def t_mobile_broker(b, base, code):
     g1 = m.evaluate(ST)
     if pgj.get("margin"):
         ok(f"{T}資券：預設融資、圖是融資增減", bool(g1["series"]) and g1["series"][0]["n"] == "融資增減", g1["series"])
-        has_dt = any(len(r) > 5 and r[5] is not None for r in pgj["margin"][-60:]) or bool(pgj.get("daytrade"))
-        ok(f"{T}資券：當沖分段有資料才出現、沒有就不放空殼（這一檔：{'有' if has_dt else '沒有'}）",
+        has_dt = "daytrade_lots" in (pgj.get("margin_columns") or []) or bool(pgj.get("daytrade"))
+        ok(f"{T}資券：payload 有當沖欄才出現「當沖」分段（這一檔：{'有' if has_dt else '沒有'}）",
            ("當沖" in " ".join(g1["seg"])) == has_dt, g1["seg"])
+        if has_dt and not any(len(r) > 5 and r[5] is not None for r in pgj["margin"][-63:]):
+            m.evaluate(SEG, "dt"); m.wait_for_timeout(800)
+            gd = m.evaluate("() => ({ why: (document.querySelector('#mbBody .mbwhy') || {}).textContent || '', chart: !!document.getElementById('mbChart'), th: [...document.querySelectorAll('#mbBody .mbtbl thead th')].map(t => t.textContent.trim()) })")
+            ok(f"{T}資券：當沖還沒回補 → 寫原因（不是空圖），表照樣列融資／融券", "還沒有資料" in gd["why"] and "回補" in gd["why"] and not gd["chart"] and "融資" in gd["th"], gd)
+            m.evaluate(SEG, "m"); m.wait_for_timeout(600)
+            g1 = m.evaluate(ST)
         m.evaluate(SEG, "s"); m.wait_for_timeout(800)
         g2 = m.evaluate(ST)
         ok(f"{T}資券：切「融券」→ 圖換成融券增減、反白欄換成融券",
@@ -34746,8 +34763,10 @@ def t_mobile_broker(b, base, code):
     m2.evaluate(TAP, "tag"); m2.wait_for_timeout(700)
     x3 = m2.evaluate("""() => ({ head: (document.querySelector('#mbBody .mbtaghead b') || {}).textContent || '',
         txt: document.getElementById('mbBody').innerText, miss: (document.querySelector('#mbBody .mbmiss summary') || {}).textContent || '' })""")
-    ok(f"{T}新欄位：指標改用後端標籤 —— 符合 1 項、未符合的收起來、資料不足的不列",
-       "符合 1 項" in x3["head"] and "測試條件甲" in x3["txt"] and "未符合 1 項" in x3["miss"] and "測試條件丙" not in x3["txt"], x3)
+    x3b = m2.evaluate("() => (document.querySelector('#mbBody .mbmiss') || {}).textContent || ''")
+    ok(f"{T}新欄位：指標改用後端標籤 —— 符合 1 項在上面，未符合與資料不足收在下面（照樣看得到）",
+       "符合 1 項" in x3["head"] and "測試條件甲" in x3["txt"] and "未符合／資料不足 2 項" in x3["miss"]
+       and "測試條件乙" in x3b and "測試條件丙（資料不足）" in x3b, (x3, x3b))
     m2.evaluate(TAP, "div"); m2.wait_for_timeout(700)
     x4 = m2.evaluate(ST)
     ok(f"{T}新欄位：除權息「股利政策」表改成所屬期間（2025H2）", x4["th"][:1] == ["期別"] and "2025H2" in x4["row0"], (x4["th"], x4["row0"]))
