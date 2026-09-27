@@ -30415,6 +30415,42 @@ def _dz_click_el(pg, sel, fx=0.5, fy=0.5):
     return True
 
 
+# ★ 2026-09-27（dismiss-fix）改前 → 改後：「外面」改前是點 outside_sel 寬度 20% 的位置 → 改後是點它**第一段沒有功能的字**的中間。
+#   根因（桌機 1440 #flow 象限面板／下鑽面板那 3 條紅燈）：`#flowSankeyCard h3` 旁邊的副標 `#sankeySub` 變長之後，
+#   h3 寬 470px，20% ＝ 94px 正好落在標題旁的「?」鈕上（81～103px）。「?」刻意不算點外面（dismissable 的 ignore 有 .howbtn：
+#   按別張卡的說明不該順手收掉面板），而且它會打開跳出式說明 #howPop —— 說明開著時 Esc 只關說明（DECISIONS #258 ⑥），
+#   所以接下來的 Esc 也關不掉面板。**網站沒壞**：實測點真正的背景（標題文字）與沒有說明浮層時按 Esc，兩個面板都會關。
+#   這條註解最上面就寫了「外面一律挑一個沒有功能的地方點（卡片標題的字）」—— 改成量字的位置才真的做到，
+#   並且先斷言「那一點真的是沒有功能的字」，下次版面再變也不會默默點到按鈕上。
+#   例外只有一個：受測的面板本身是跳出式說明（在 #howPop 裡）時，蓋在整頁上的 #howBack 就是它的「背景」，點到它才是對的。
+_DZ_TXT = """([s, ps]) => { const e = [...document.querySelectorAll(s)].find(x => x.getClientRects().length > 0); if (!e) return null;
+    const pe = ps && document.querySelector(ps), inPop = !!(pe && pe.closest('#howPop'));
+    const bad = 'button,a,input,select,textarea,label,[role="button"],.howbtn';
+    const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT,
+      { acceptNode: n => n.textContent.trim() && !n.parentElement.closest(bad) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP });
+    const n = w.nextNode(); if (!n) return null;
+    const rg = document.createRange(); rg.selectNodeContents(n); const r = rg.getBoundingClientRect();
+    if (r.top < 90 || r.bottom > innerHeight - 90) window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' });
+    const r2 = rg.getBoundingClientRect();
+    const x = r2.left + Math.min(r2.width / 2, 24), y = r2.top + r2.height / 2, hit = document.elementFromPoint(x, y);
+    return { x, y, txt: n.textContent.trim().slice(0, 12),
+             plain: !!hit && ((e.contains(hit) && !hit.closest(bad)) || (inPop && hit.id === 'howBack')),
+             hit: hit ? hit.tagName + (hit.id ? '#' + hit.id : '') + (hit.className && hit.className.baseVal === undefined ? '.' + hit.className : '') : null }; }"""
+
+
+def _dz_out_pt(pg, sel, panel=None):
+    """outside_sel 裡第一段「沒有功能的字」的螢幕座標（先捲進畫面）。回傳 None＝找不到。"""
+    pt = pg.evaluate(_DZ_TXT, [sel, panel])
+    if pt:
+        pg.wait_for_timeout(250)
+        pt = pg.evaluate(_DZ_TXT, [sel, panel])       # 捲完再量一次（這一頁是 scroll-behavior:smooth）
+    return pt
+
+
+def _dz_rect(pg, sel):
+    return pg.evaluate("(s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }", sel)
+
+
 def _dz_three(pg, tag, panel, open_fn, inside_sel, outside_sel, wait=700):
     """一個面板的三件事。open_fn() 要把面板打開並回傳 True。"""
     if not ok(f"[{tag}] 打得開（後面三條的前提）", open_fn() and _dz_vis(pg, panel), panel):
@@ -30423,8 +30459,17 @@ def _dz_three(pg, tag, panel, open_fn, inside_sel, outside_sel, wait=700):
         "(s) => { const e = document.querySelector(s); return !!e && !e.querySelector('[data-x]') && !/收起 ✕/.test(e.textContent); }", panel))
     _dz_click_el(pg, inside_sel, 0.5, 0.5); pg.wait_for_timeout(wait)
     ok(f"[{tag}] ① 點面板裡面 → 不會關", _dz_vis(pg, panel))
-    _dz_click_el(pg, outside_sel, 0.2, 0.5); pg.wait_for_timeout(wait)
-    ok(f"[{tag}] ② 點面板外面（{outside_sel}）→ 真的關了", not _dz_vis(pg, panel))
+    pt = _dz_out_pt(pg, outside_sel, panel)
+    if not ok(f"[{tag}] 「外面」那一點是沒有功能的字（{outside_sel}），不是按鈕或連結（前提）", bool(pt) and pt["plain"], pt):
+        return
+    c0 = _dz_rect(pg, panel)
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(wait)
+    ok(f"[{tag}] ② 點面板外面（{outside_sel} 的「{pt['txt']}」）→ 真的關了", not _dz_vis(pg, panel))
+    # 關掉之後原本面板那塊不能留下一層看不見的東西擋住底下（頁面其他地方要還能點）
+    if c0:
+        ok(f"[{tag}] 關掉之後原本面板的位置不會擋住底下的東西", pg.evaluate(
+            "([s, x, y]) => { const h = document.elementFromPoint(x, y), p = document.querySelector(s); return !h || !p || !p.contains(h); }",
+            [panel, c0["x"], c0["y"]]), c0)
     if not ok(f"[{tag}] 再打開一次（驗 Esc 的前提）", open_fn() and _dz_vis(pg, panel), panel):
         return
     pg.keyboard.press("Escape"); pg.wait_for_timeout(wait)
@@ -30477,6 +30522,13 @@ def t_dismiss(pg, b, base, code):
         pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1300)
         return True
     _dz_three(pg, "下鑽成分股面板", "#rankPanel", open_rank, "#rankPanel .note", "#flowSankeyCard h3")
+    # ★ 2026-09-27：兩塊面板關掉之後，頁面其他地方要還能正常點 —— 真的按一顆別的按鈕，驗它真的有反應
+    #   （按資金去向的「?」→ 跳出式說明打開 → Esc 關），不是只驗「元素還在」。
+    ok("[資金流向] 象限／下鑽面板都關掉了（下一條的前提）", not _dz_vis(pg, "#stagePanel") and not _dz_vis(pg, "#rankPanel"))
+    _dz_click_el(pg, '#flowSankeyCard .howbtn[data-how="sankey"]'); pg.wait_for_timeout(700)
+    ok("[資金流向] 面板關掉之後，別的按鈕照樣點得動（資金去向「?」→ 說明真的跳出來）", _dz_vis(pg, "#howPop"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+    ok("[資金流向] 說明按 Esc 關掉，面板也沒有被誤開", not _dz_vis(pg, "#howPop") and not _dz_vis(pg, "#stagePanel") and not _dz_vis(pg, "#rankPanel"))
 
     # ---- 3. 「怎麼看 ?」說明
     def open_how():
@@ -30613,15 +30665,61 @@ def t_dismiss(pg, b, base, code):
         if r and r["w"] > 0:
             m.touchscreen.tap(r["x"] + r["w"] * fx, r["y"] + r["h"] * fy)
         m.wait_for_timeout(800)
+    # ★ 2026-09-27（dismiss-fix）改前 → 改後：
+    #   改前：直接找 `#rotClock .rq`，找不到就 `if k:` 整段**默默跳過**。
+    #   改後：先按卡片最下面的「完整版 ›」，再用觸控把象限面板與下鑽面板各驗一輪（點裡面不關、點外面關、Esc 關、關完別處還點得動）；
+    #         找不到象限卡就是紅燈，不再默默跳過。
+    #   理由：≤640px 手機 v3（mobile3.js）預設把桌機那張輪盤藏成 0×0，`#rotClock .rq` 永遠找不到 —— 改前這段手機驗收
+    #         從 2026-09-24 起一條都沒跑過，卻是綠的。手機使用者要碰到這兩塊面板，唯一的入口就是「完整版 ›」。
+    #   「外面」一樣挑沒有功能的字（`_dz_out_pt`），不再點寬度 15% 的位置：手機上那一格的 h3 是藏起來的手機版標題，
+    #   改前那一點量到的是 (0, 0) —— 點到的是最上面的工具列，綠燈是碰巧。
+    def tap_pt(pt):
+        m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(800)
+    fb_ok = m.evaluate("() => { const b = document.querySelector('#flowRotCard > .mfullbtn'); return !!b && b.getClientRects().length > 0; }")
+    if ok("[手機 390] 資金輪動卡有「完整版 ›」（手機上要碰到象限面板的唯一入口）", fb_ok):
+        tap("#flowRotCard > .mfullbtn"); m.wait_for_timeout(1500)
+        ok("[手機 390] 觸控按「完整版 ›」→ 卡片真的切成完整版", m.evaluate("() => document.getElementById('flowRotCard').classList.contains('mfull')"))
+    m.evaluate("() => { const e = document.getElementById('rotClockWrap'); if (e) { const r = e.getBoundingClientRect(); window.scrollBy({ top: r.top - 100, behavior: 'instant' }); } }")
+    m.wait_for_timeout(900)
     k = m.evaluate("""() => { const q = [...document.querySelectorAll('#rotClock .rotquads .rq')]
-        .find(x => parseInt(((x.querySelector('em')||{}).textContent||'0'), 10) > 0); return q ? q.dataset.k : ''; }""")
-    if k:
-        tap(f'#rotClock .rotquads .rq[data-k="{k}"]')
-        if ok("[手機 390] 觸控點象限卡，面板打開", _dz_vis(m, "#stagePanel")):
+        .find(x => x.getClientRects().length > 0 && parseInt(((x.querySelector('em')||{}).textContent||'0'), 10) > 0); return q ? q.dataset.k : ''; }""")
+    if ok("[手機 390] 完整版裡找得到有族群的象限卡（前提，不再默默跳過）", bool(k), k):
+        def m_open_stage():
+            if not _dz_vis(m, "#stagePanel"):
+                tap(f'#rotClock .rotquads .rq[data-k="{k}"]')
+            return _dz_vis(m, "#stagePanel")
+        if ok("[手機 390] 觸控點象限卡，面板打開", m_open_stage()):
             tap("#stagePanel .ph")
             ok("[手機 390] 觸控點面板裡面 → 不會關", _dz_vis(m, "#stagePanel"))
-            tap("#flowRotCard h3", 0.15)
-            ok("[手機 390] 觸控點面板外面 → 真的關了", not _dz_vis(m, "#stagePanel"))
+            pt = _dz_out_pt(m, "#flowRotCard h3")
+            if ok("[手機 390] 「外面」那一點是看得到、沒有功能的字（前提）", bool(pt) and pt["plain"], pt):
+                tap_pt(pt)
+                ok("[手機 390] 觸控點面板外面 → 真的關了", not _dz_vis(m, "#stagePanel"))
+            if ok("[手機 390] 象限面板再打開一次（驗 Esc 的前提）", m_open_stage()):
+                m.keyboard.press("Escape"); m.wait_for_timeout(600)
+                ok("[手機 390] 象限面板按 Esc 關（外接鍵盤）", not _dz_vis(m, "#stagePanel"))
+        # 下鑽面板：從象限面板點一個族群 → 同一個位置換成成分股（#rankPanel）
+        def m_open_rank():
+            if _dz_vis(m, "#rankPanel"):
+                return True
+            if m_open_stage():
+                tap("#stagePanel li[data-gid]")
+            return _dz_vis(m, "#rankPanel")
+        if ok("[手機 390] 觸控點象限面板裡的族群 → 下鑽成分股面板打開", m_open_rank()):
+            ok("[手機 390] 側欄同時只開一塊（下鑽打開、象限面板收起）", not _dz_vis(m, "#stagePanel"))
+            inner = "#rankPanel .note" if m.query_selector("#rankPanel .note") else "#rankPanel"
+            tap(inner, 0.5, 0.2)
+            ok("[手機 390] 觸控點下鑽面板裡面 → 不會關", _dz_vis(m, "#rankPanel"))
+            pt = _dz_out_pt(m, "#flowRotCard h3")
+            if ok("[手機 390] 「外面」那一點是看得到、沒有功能的字（下鑽，前提）", bool(pt) and pt["plain"], pt):
+                tap_pt(pt)
+                ok("[手機 390] 觸控點下鑽面板外面 → 真的關了", not _dz_vis(m, "#rankPanel"))
+            if ok("[手機 390] 下鑽面板再打開一次（驗 Esc 的前提）", m_open_rank()):
+                m.keyboard.press("Escape"); m.wait_for_timeout(600)
+                ok("[手機 390] 下鑽面板按 Esc 關（外接鍵盤）", not _dz_vis(m, "#rankPanel"))
+        # 關完之後別的地方照樣點得動：再點一次象限卡，面板真的重新打開（不是被卡住的殘影）
+        ok("[手機 390] 兩塊面板都關掉之後，再點象限卡照樣打得開", m_open_stage())
+        m.keyboard.press("Escape"); m.wait_for_timeout(400)
     if m.query_selector("#moreBtn") and m.evaluate("() => getComputedStyle(document.getElementById('moreBtn')).display !== 'none'"):
         m.evaluate("() => window.scrollTo(0, 0)"); m.wait_for_timeout(200)
         tap("#moreBtn")
