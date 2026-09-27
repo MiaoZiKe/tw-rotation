@@ -3241,3 +3241,4 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-28 凌晨 歷史回補補齊
 - backfill_progress：inst（2016 起）、daytrade+sbl（2025 起，scope=universe 前 500 檔）、dividend+divresult（2009 起）三步都 done（17:23 UTC）；18:26 那輪 16 秒即跳過＝已補齊。補觸發排程停止。
 - ⚠ 更正：三步的 scope 都是 universe（成交值前 500 檔），實際只補到 inst_daily 781 檔、daytrade 498 檔，前 500 名以外的個股頁法人／資券／除權息仍空。已派 agent 加 scope=market（全市場）並換新進度鍵（claude/backfill-market）。
+- 09-28 03:1x 合併 backfill-market：scope=market（1,980 檔上市＋上櫃普通股），三步完成鍵改 `…@market`、逐檔 done 鍵沿用不重抓；每日續補改全市場、上限 1,500 次／天；backfill.yml 守門看 @market 鍵。還要約 7,340 次、15 輪、15～18 小時。驗了：pytest 796 passed（分支上，與 main 差異只有資料與 HANDOFF）。
