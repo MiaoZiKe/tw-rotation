@@ -47,8 +47,27 @@ def compare(pb, *pa):
                   " | ".join(str(v) if v is not None else "—" for v in vals) + " |")
 
 
+def brief(pb, pa):
+    """一頁一寬一列的精簡對照：改前 → 改後（括號＝第一屏繪圖區差幾個百分點）"""
+    b, a = load(pb), load(pa)
+    order = ["overview", "flow", "industry", "industry/semiconductor", "stock/2330", "heatmap", "market", "season"]
+    print("| 頁面 | 寬 | 第一屏繪圖區 % | 整頁繪圖區 % | 內容寬 px | 標題負擔 px | 空白帶 % | 頁高 px |")
+    print("|---|---|---|---|---|---|---|---|")
+    for r in order:
+        for w in [1440, 1100, 800, 390]:
+            if (r, w) not in b or (r, w) not in a:
+                continue
+            x, y = b[(r, w)], a[(r, w)]
+            dd = round(y["plot1"] - x["plot1"], 1)
+            print(f"| {x['name'] if w == 1440 else ''} | {w} | {x['plot1']} → **{y['plot1']}**（{'+' if dd >= 0 else ''}{dd}） | "
+                  f"{x['plotP']} → {y['plotP']} | {x['mainW']} → {y['mainW']} | {x['head']} → {y['head']} | "
+                  f"{x['blank']} → {y['blank']} | {x['docH']} → {y['docH']} |")
+
+
 if __name__ == "__main__":
-    if sys.argv[1] == "before":
+    if sys.argv[1] == "brief":
+        brief(sys.argv[2], sys.argv[3])
+    elif sys.argv[1] == "before":
         before(sys.argv[2])
     else:
         compare(sys.argv[2], *sys.argv[3:])

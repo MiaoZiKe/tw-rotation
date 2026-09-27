@@ -95,10 +95,10 @@
 @media (prefers-reduced-motion:reduce){ [data-theme4] aside{transition:none} }
 
 /* ---- 一句結論（site/theme4.js 產生）：每張卡「結論 → 圖 → 表」的第一層 ---- */
-[data-theme4] .t4-lede{margin:0 0 var(--sp-2);font-size:var(--fs-sm);line-height:20px;color:var(--ink-2);
-  display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;min-height:20px}
-[data-theme4] .t4-lede::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--t4-accent-solid,var(--cyan));
-  transform:translateY(-2px)}
+/* 一般文字排版（不是 flex）：flex 會把每一段文字、每個 <b> 各當一個項目、中間塞 gap，句子會被拆得七零八落（原型第一版踩到） */
+[data-theme4] .t4-lede{display:block;margin:0 0 var(--sp-2);font-size:var(--fs-sm);line-height:20px;color:var(--ink-2);min-height:20px}
+[data-theme4] .t4-lede::before{content:"";display:inline-block;vertical-align:middle;margin:0 8px 2px 0;width:6px;height:6px;border-radius:50%;
+  background:var(--t4-accent-solid,var(--cyan))}
 [data-theme4] .t4-lede b{color:var(--ink);font-weight:700}
 [data-theme4] .t4-lede .up{color:var(--rise)} [data-theme4] .t4-lede .down{color:var(--fall)}
 @media (max-width:640px){ [data-theme4] .t4-lede{font-size:var(--fs-sm)} }
@@ -177,10 +177,10 @@
   background-size:14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,100% 100%;
   background-position:left top,left top,right top,right top,left bottom,left bottom,right bottom,right bottom,0 0}
 [data-theme4="hud"] .card h3{font-family:var(--t4-h-font,inherit)}
-[data-theme4="hud"] .t4-lede::before{border-radius:1px;width:8px;height:2px;transform:translateY(-4px)}
+[data-theme4="hud"] .t4-lede::before{border-radius:1px;width:10px;height:2px}
 /* 專業：卡片頂端一條 3px 主色實線＝「這是一個模組」；標題更粗、字距收緊 */
 [data-theme4="pro"] .card{border-top:3px solid var(--t4-accent-solid)}
-[data-theme4="pro"] .t4-lede::before{border-radius:0;width:3px;height:14px;transform:translateY(2px)}
+[data-theme4="pro"] .t4-lede::before{border-radius:0;width:3px;height:14px;margin-bottom:1px}
 [data-theme4="pro"] .t4-lede{font-weight:500}
 /* 休閒：卡片上緣一道很淡的漸層光，像紙卡被光照到（只有裝飾） */
 [data-theme4="casual"] .card{background-image:var(--t4-card-sheen,none)}

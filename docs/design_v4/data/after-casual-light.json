@@ -4,11 +4,11 @@
   "name": "總覽",
   "w": 1440,
   "h": 900,
-  "plot1": 53.6,
-  "plotP": 45.5,
+  "plot1": 51.7,
+  "plotP": 44.3,
   "mainW": 1440,
   "sideW": 0,
-  "docH": 2090,
+  "docH": 2146,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -16,12 +16,12 @@
   "ncards": 6,
   "ncharts": 11,
   "blank": 0.0,
-  "empty": 39.3,
+  "empty": 41.2,
   "worst": {
-   "x": 224,
-   "y": 1110,
-   "w": 128,
-   "h": 176
+   "x": 976,
+   "y": 1430,
+   "w": 432,
+   "h": 80
   },
   "secs": 6.4
  },
@@ -30,11 +30,11 @@
   "name": "資金流向",
   "w": 1440,
   "h": 900,
-  "plot1": 37.6,
-  "plotP": 24.4,
+  "plot1": 45.9,
+  "plotP": 24.6,
   "mainW": 1440,
   "sideW": 0,
-  "docH": 2973,
+  "docH": 2749,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -42,14 +42,14 @@
   "ncards": 4,
   "ncharts": 4,
   "blank": 0.0,
-  "empty": 59.7,
+  "empty": 60.8,
   "worst": {
    "x": 1136,
-   "y": 1314,
+   "y": 1058,
    "w": 272,
-   "h": 880
+   "h": 896
   },
-  "secs": 5.9
+  "secs": 5.7
  },
  {
   "route": "stock/2330",
@@ -82,11 +82,11 @@
   "name": "總覽",
   "w": 1100,
   "h": 900,
-  "plot1": 48.4,
-  "plotP": 41.2,
+  "plot1": 46.5,
+  "plotP": 40.2,
   "mainW": 1100,
   "sideW": 0,
-  "docH": 2071,
+  "docH": 2127,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -94,25 +94,25 @@
   "ncards": 6,
   "ncharts": 11,
   "blank": 0.0,
-  "empty": 34.4,
+  "empty": 34.6,
   "worst": {
    "x": 736,
-   "y": 1414,
+   "y": 1366,
    "w": 336,
-   "h": 48
+   "h": 80
   },
-  "secs": 6.3
+  "secs": 6.0
  },
  {
   "route": "flow",
   "name": "資金流向",
   "w": 1100,
   "h": 900,
-  "plot1": 33.0,
-  "plotP": 19.7,
+  "plot1": 32.3,
+  "plotP": 19.8,
   "mainW": 1100,
   "sideW": 0,
-  "docH": 2869,
+  "docH": 2645,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -120,14 +120,14 @@
   "ncards": 4,
   "ncharts": 4,
   "blank": 0.0,
-  "empty": 53.3,
+  "empty": 56.0,
   "worst": {
    "x": 912,
-   "y": 1186,
+   "y": 930,
    "w": 160,
    "h": 880
   },
-  "secs": 5.7
+  "secs": 5.5
  },
  {
   "route": "stock/2330",
@@ -153,83 +153,83 @@
    "w": 944,
    "h": 32
   },
-  "secs": 5.5
+  "secs": 5.3
  },
  {
   "route": "overview",
   "name": "總覽",
   "w": 800,
   "h": 900,
-  "plot1": 42.8,
-  "plotP": 51.6,
+  "plot1": 42.5,
+  "plotP": 52.2,
   "mainW": 800,
   "sideW": 0,
-  "docH": 3738,
+  "docH": 3706,
   "gapH": null,
   "gapV": 12,
-  "pad": "16px/18px",
-  "head": 119,
+  "pad": "12px/14px",
+  "head": 115,
   "ncards": 6,
   "ncharts": 12,
   "blank": 0.0,
-  "empty": 46.7,
+  "empty": 46.0,
   "worst": {
    "x": 528,
-   "y": 1656,
+   "y": 1640,
    "w": 256,
-   "h": 384
+   "h": 400
   },
-  "secs": 6.4
+  "secs": 6.8
  },
  {
   "route": "flow",
   "name": "資金流向",
   "w": 800,
   "h": 900,
-  "plot1": 13.3,
-  "plotP": 39.3,
+  "plot1": 27.6,
+  "plotP": 44.1,
   "mainW": 800,
   "sideW": 0,
-  "docH": 4050,
+  "docH": 3682,
   "gapH": null,
   "gapV": 12,
-  "pad": "16px/18px",
-  "head": 146,
+  "pad": "12px/14px",
+  "head": 142,
   "ncards": 4,
   "ncharts": 5,
   "blank": 0.0,
-  "empty": 52.2,
+  "empty": 53.5,
   "worst": {
    "x": 592,
    "y": 100,
    "w": 160,
-   "h": 688
+   "h": 576
   },
-  "secs": 5.7
+  "secs": 5.4
  },
  {
   "route": "stock/2330",
   "name": "個股（2330）",
   "w": 800,
   "h": 900,
-  "plot1": 38.9,
-  "plotP": 25.2,
+  "plot1": 39.9,
+  "plotP": 26.0,
   "mainW": 800,
   "sideW": 0,
-  "docH": 2241,
+  "docH": 2209,
   "gapH": null,
   "gapV": 16,
-  "pad": "16px/18px",
-  "head": 368,
+  "pad": "12px/14px",
+  "head": 364,
   "ncards": 4,
   "ncharts": 2,
   "blank": 0.0,
-  "empty": 37.5,
+  "empty": 32.9,
   "worst": {
-   "x": 192,
-   "y": 1304,
-   "w": 576,
-   "h": 48
+   "x": 336,
+   "y": 1816,
+   "w": 448,
+   "h": 64
   },
   "secs": 5.3
  },
@@ -250,14 +250,14 @@
   "ncards": 1,
   "ncharts": 1,
   "blank": 0.0,
-  "empty": 23.9,
+  "empty": 23.8,
   "worst": {
    "x": 16,
    "y": 354,
    "w": 32,
    "h": 256
   },
-  "secs": 5.8
+  "secs": 5.6
  },
  {
   "route": "flow",
@@ -276,14 +276,14 @@
   "ncards": 1,
   "ncharts": 1,
   "blank": 0.0,
-  "empty": 29.4,
+  "empty": 29.5,
   "worst": {
    "x": 192,
    "y": 626,
    "w": 80,
    "h": 160
   },
-  "secs": 5.3
+  "secs": 5.1
  },
  {
   "route": "stock/2330",

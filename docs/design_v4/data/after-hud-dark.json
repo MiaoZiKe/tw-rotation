@@ -4,11 +4,11 @@
   "name": "總覽",
   "w": 1440,
   "h": 900,
-  "plot1": 53.6,
-  "plotP": 45.5,
+  "plot1": 51.7,
+  "plotP": 44.3,
   "mainW": 1440,
   "sideW": 0,
-  "docH": 2090,
+  "docH": 2146,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -16,25 +16,25 @@
   "ncards": 6,
   "ncharts": 11,
   "blank": 0.0,
-  "empty": 39.5,
+  "empty": 41.5,
   "worst": {
-   "x": 224,
-   "y": 1110,
-   "w": 128,
-   "h": 176
+   "x": 976,
+   "y": 1446,
+   "w": 432,
+   "h": 64
   },
-  "secs": 6.7
+  "secs": 6.8
  },
  {
   "route": "flow",
   "name": "資金流向",
   "w": 1440,
   "h": 900,
-  "plot1": 37.6,
-  "plotP": 24.4,
+  "plot1": 45.9,
+  "plotP": 24.6,
   "mainW": 1440,
   "sideW": 0,
-  "docH": 2973,
+  "docH": 2749,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -42,14 +42,14 @@
   "ncards": 4,
   "ncharts": 4,
   "blank": 0.0,
-  "empty": 60.1,
+  "empty": 60.5,
   "worst": {
    "x": 1136,
-   "y": 1314,
+   "y": 1058,
    "w": 256,
    "h": 880
   },
-  "secs": 6.3
+  "secs": 6.2
  },
  {
   "route": "industry",
@@ -75,7 +75,7 @@
    "w": 288,
    "h": 336
   },
-  "secs": 5.1
+  "secs": 5.2
  },
  {
   "route": "industry/semiconductor",
@@ -101,7 +101,7 @@
    "w": 1168,
    "h": 80
   },
-  "secs": 5.7
+  "secs": 5.8
  },
  {
   "route": "stock/2330",
@@ -127,7 +127,7 @@
    "w": 432,
    "h": 176
   },
-  "secs": 5.5
+  "secs": 5.6
  },
  {
   "route": "heatmap",
@@ -153,7 +153,7 @@
    "w": 208,
    "h": 272
   },
-  "secs": 5.3
+  "secs": 5.5
  },
  {
   "route": "heatmap/theme",
@@ -179,7 +179,7 @@
    "w": 208,
    "h": 272
   },
-  "secs": 5.4
+  "secs": 5.3
  },
  {
   "route": "market",
@@ -205,7 +205,7 @@
    "w": 1024,
    "h": 80
   },
-  "secs": 5.4
+  "secs": 5.5
  },
  {
   "route": "season",
@@ -238,11 +238,11 @@
   "name": "總覽",
   "w": 1100,
   "h": 900,
-  "plot1": 48.4,
-  "plotP": 41.2,
+  "plot1": 46.5,
+  "plotP": 40.2,
   "mainW": 1100,
   "sideW": 0,
-  "docH": 2071,
+  "docH": 2127,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -250,25 +250,25 @@
   "ncards": 6,
   "ncharts": 11,
   "blank": 0.0,
-  "empty": 33.9,
+  "empty": 34.1,
   "worst": {
    "x": 736,
-   "y": 1414,
-   "w": 320,
-   "h": 48
+   "y": 1382,
+   "w": 336,
+   "h": 64
   },
-  "secs": 6.3
+  "secs": 6.4
  },
  {
   "route": "flow",
   "name": "資金流向",
   "w": 1100,
   "h": 900,
-  "plot1": 33.0,
-  "plotP": 19.7,
+  "plot1": 32.3,
+  "plotP": 19.8,
   "mainW": 1100,
   "sideW": 0,
-  "docH": 2869,
+  "docH": 2645,
   "gapH": 12,
   "gapV": 12,
   "pad": "12px/16px",
@@ -276,10 +276,10 @@
   "ncards": 4,
   "ncharts": 4,
   "blank": 0.0,
-  "empty": 52.3,
+  "empty": 54.6,
   "worst": {
    "x": 912,
-   "y": 1186,
+   "y": 930,
    "w": 144,
    "h": 864
   },
@@ -335,7 +335,7 @@
    "w": 832,
    "h": 80
   },
-  "secs": 6.0
+  "secs": 6.1
  },
  {
   "route": "stock/2330",
@@ -387,7 +387,7 @@
    "w": 352,
    "h": 112
   },
-  "secs": 5.3
+  "secs": 5.4
  },
  {
   "route": "heatmap/theme",
@@ -413,7 +413,7 @@
    "w": 352,
    "h": 112
   },
-  "secs": 5.2
+  "secs": 5.3
  },
  {
   "route": "market",
@@ -439,7 +439,7 @@
    "w": 672,
    "h": 80
   },
-  "secs": 5.2
+  "secs": 5.3
  },
  {
   "route": "season",
@@ -465,57 +465,57 @@
    "w": 224,
    "h": 608
   },
-  "secs": 5.2
+  "secs": 5.0
  },
  {
   "route": "overview",
   "name": "總覽",
   "w": 800,
   "h": 900,
-  "plot1": 45.7,
-  "plotP": 52.4,
+  "plot1": 42.5,
+  "plotP": 52.2,
   "mainW": 800,
   "sideW": 0,
-  "docH": 3682,
+  "docH": 3706,
   "gapH": null,
   "gapV": 12,
-  "pad": "16px/18px",
-  "head": 119,
+  "pad": "12px/14px",
+  "head": 115,
   "ncards": 6,
   "ncharts": 12,
   "blank": 0.0,
-  "empty": 47.3,
+  "empty": 46.2,
   "worst": {
    "x": 528,
-   "y": 1608,
+   "y": 1640,
    "w": 256,
-   "h": 384
+   "h": 400
   },
-  "secs": 6.3
+  "secs": 6.4
  },
  {
   "route": "flow",
   "name": "資金流向",
   "w": 800,
   "h": 900,
-  "plot1": 13.3,
-  "plotP": 39.3,
+  "plot1": 27.6,
+  "plotP": 44.1,
   "mainW": 800,
   "sideW": 0,
-  "docH": 4050,
+  "docH": 3682,
   "gapH": null,
   "gapV": 12,
-  "pad": "16px/18px",
-  "head": 146,
+  "pad": "12px/14px",
+  "head": 142,
   "ncards": 4,
   "ncharts": 5,
   "blank": 0.0,
-  "empty": 53.0,
+  "empty": 54.4,
   "worst": {
    "x": 592,
    "y": 100,
    "w": 192,
-   "h": 688
+   "h": 576
   },
   "secs": 5.9
  },
@@ -524,50 +524,50 @@
   "name": "產業地圖",
   "w": 800,
   "h": 900,
-  "plot1": 40.3,
-  "plotP": 40.2,
+  "plot1": 41.6,
+  "plotP": 41.1,
   "mainW": 800,
   "sideW": 0,
-  "docH": 1802,
+  "docH": 1794,
   "gapH": null,
   "gapV": null,
-  "pad": "16px/18px",
-  "head": 142,
+  "pad": "12px/14px",
+  "head": 138,
   "ncards": 1,
   "ncharts": 2,
   "blank": 0.0,
-  "empty": 60.2,
+  "empty": 58.7,
   "worst": {
    "x": 496,
-   "y": 440,
-   "w": 256,
+   "y": 424,
+   "w": 272,
    "h": 352
   },
-  "secs": 5.0
+  "secs": 5.1
  },
  {
   "route": "industry/semiconductor",
   "name": "單一產業鏈（半導體）",
   "w": 800,
   "h": 900,
-  "plot1": 54.2,
+  "plot1": 55.2,
   "plotP": 76.5,
   "mainW": 800,
   "sideW": 0,
-  "docH": 4578,
+  "docH": 4552,
   "gapH": null,
   "gapV": null,
-  "pad": "16px/18px",
-  "head": 349,
+  "pad": "12px/14px",
+  "head": 345,
   "ncards": 1,
   "ncharts": 3,
   "blank": 0.0,
-  "empty": 31.7,
+  "empty": 29.6,
   "worst": {
-   "x": 48,
-   "y": 3096,
-   "w": 176,
-   "h": 432
+   "x": 32,
+   "y": 2424,
+   "w": 192,
+   "h": 400
   },
   "secs": 6.1
  },
@@ -576,75 +576,75 @@
   "name": "個股（2330）",
   "w": 800,
   "h": 900,
-  "plot1": 38.9,
-  "plotP": 25.2,
+  "plot1": 39.9,
+  "plotP": 26.0,
   "mainW": 800,
   "sideW": 0,
-  "docH": 2241,
+  "docH": 2209,
   "gapH": null,
   "gapV": 16,
-  "pad": "16px/18px",
-  "head": 368,
+  "pad": "12px/14px",
+  "head": 364,
   "ncards": 4,
   "ncharts": 2,
   "blank": 1.5,
-  "empty": 36.4,
+  "empty": 32.0,
   "worst": {
-   "x": 192,
-   "y": 1304,
-   "w": 576,
-   "h": 48
+   "x": 336,
+   "y": 1816,
+   "w": 448,
+   "h": 64
   },
-  "secs": 5.4
+  "secs": 5.5
  },
  {
   "route": "heatmap",
   "name": "熱力圖",
   "w": 800,
   "h": 900,
-  "plot1": 65.1,
-  "plotP": 54.3,
+  "plot1": 67.4,
+  "plotP": 55.7,
   "mainW": 800,
   "sideW": 0,
-  "docH": 1719,
+  "docH": 1703,
   "gapH": null,
   "gapV": 12,
-  "pad": "16px/18px",
-  "head": 57,
+  "pad": "12px/14px",
+  "head": 53,
   "ncards": 2,
   "ncharts": 2,
   "blank": 0.0,
-  "empty": 43.3,
+  "empty": 42.5,
   "worst": {
-   "x": 48,
-   "y": 984,
-   "w": 240,
+   "x": 32,
+   "y": 968,
+   "w": 256,
    "h": 112
   },
-  "secs": 5.2
+  "secs": 5.1
  },
  {
   "route": "heatmap/theme",
   "name": "題材",
   "w": 800,
   "h": 900,
-  "plot1": 65.1,
-  "plotP": 54.3,
+  "plot1": 67.4,
+  "plotP": 55.7,
   "mainW": 800,
   "sideW": 0,
-  "docH": 1719,
+  "docH": 1703,
   "gapH": null,
   "gapV": 12,
-  "pad": "16px/18px",
-  "head": 57,
+  "pad": "12px/14px",
+  "head": 53,
   "ncards": 2,
   "ncharts": 2,
   "blank": 0.0,
-  "empty": 42.2,
+  "empty": 42.6,
   "worst": {
-   "x": 48,
-   "y": 824,
-   "w": 240,
+   "x": 32,
+   "y": 808,
+   "w": 256,
    "h": 112
   },
   "secs": 5.1
@@ -654,50 +654,50 @@
   "name": "市場明細",
   "w": 800,
   "h": 900,
-  "plot1": 17.6,
-  "plotP": 10.0,
+  "plot1": 17.9,
+  "plotP": 10.3,
   "mainW": 800,
   "sideW": 0,
-  "docH": 1573,
+  "docH": 1557,
   "gapH": null,
   "gapV": 12,
-  "pad": "16px/18px",
-  "head": 194,
+  "pad": "12px/14px",
+  "head": 190,
   "ncards": 2,
   "ncharts": 1,
   "blank": 0.0,
-  "empty": 36.3,
+  "empty": 33.1,
   "worst": {
    "x": 368,
    "y": 168,
-   "w": 400,
-   "h": 96
+   "w": 416,
+   "h": 80
   },
-  "secs": 5.1
+  "secs": 5.4
  },
  {
   "route": "season",
   "name": "週期統計",
   "w": 800,
   "h": 900,
-  "plot1": 49.2,
-  "plotP": 36.0,
+  "plot1": 50.1,
+  "plotP": 36.9,
   "mainW": 800,
   "sideW": 0,
-  "docH": 1229,
+  "docH": 1221,
   "gapH": null,
   "gapV": null,
-  "pad": "16px/18px",
-  "head": 209,
+  "pad": "12px/14px",
+  "head": 205,
   "ncards": 1,
   "ncharts": 1,
   "blank": 0.0,
-  "empty": 30.8,
+  "empty": 31.5,
   "worst": {
    "x": 64,
-   "y": 200,
-   "w": 464,
-   "h": 48
+   "y": 184,
+   "w": 480,
+   "h": 64
   },
   "secs": 5.0
  },
@@ -725,7 +725,7 @@
    "w": 32,
    "h": 256
   },
-  "secs": 5.7
+  "secs": 5.6
  },
  {
   "route": "flow",
@@ -736,7 +736,7 @@
   "plotP": 17.2,
   "mainW": 390,
   "sideW": 0,
-  "docH": 1304,
+  "docH": 1303,
   "gapH": null,
   "gapV": null,
   "pad": "16px/18px",
@@ -744,14 +744,14 @@
   "ncards": 1,
   "ncharts": 1,
   "blank": 0.0,
-  "empty": 30.9,
+  "empty": 29.3,
   "worst": {
    "x": 192,
    "y": 626,
    "w": 80,
    "h": 160
   },
-  "secs": 5.2
+  "secs": 5.0
  },
  {
   "route": "industry",
@@ -777,7 +777,7 @@
    "w": 48,
    "h": 416
   },
-  "secs": 5.1
+  "secs": 5.0
  },
  {
   "route": "industry/semiconductor",
@@ -803,7 +803,7 @@
    "w": 128,
    "h": 128
   },
-  "secs": 5.5
+  "secs": 5.3
  },
  {
   "route": "stock/2330",
@@ -829,7 +829,7 @@
    "w": 16,
    "h": 576
   },
-  "secs": 5.3
+  "secs": 5.2
  },
  {
   "route": "heatmap",
@@ -855,7 +855,7 @@
    "w": 16,
    "h": 656
   },
-  "secs": 5.0
+  "secs": 5.1
  },
  {
   "route": "heatmap/theme",
@@ -881,7 +881,7 @@
    "w": 128,
    "h": 80
   },
-  "secs": 5.1
+  "secs": 5.0
  },
  {
   "route": "market",
@@ -907,7 +907,7 @@
    "w": 64,
    "h": 176
   },
-  "secs": 4.9
+  "secs": 4.8
  },
  {
   "route": "season",
@@ -933,6 +933,6 @@
    "w": 16,
    "h": 656
   },
-  "secs": 5.0
+  "secs": 4.9
  }
 ]

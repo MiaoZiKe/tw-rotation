@@ -2,10 +2,13 @@
 # 設計 v4 截圖：三頁 × 四寬度 × 三主題（各主題的預設明暗）＋ 1440 的另一種明暗 ＋ 改前對照。
 # 每一次開瀏覽器都包 flock（容器同時只能開一支瀏覽器）。輸出轉成 JPEG 放 docs/design_v4/shots/。
 # 用法：bash docs/design_v4/tools/shots.sh [before|after|all]
+# 已經在外層拿到鎖時（整批一次拿鎖，避免 21 次排隊每次都被別的 agent 插隊）設 NOLOCK=1，裡面就不再 flock
+# —— 同一個檔案在子行程再 flock 一次會自己卡死自己。
 set -u
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 OUT="$ROOT/docs/design_v4/shots"
-TMP="${TMPDIR:-/tmp}/t4shots"
+# ⚠ 不要用 TMPDIR：Chromium 會把自己的 socket 開在 TMPDIR 底下，路徑太長（> 108 字元）瀏覽器直接起不來（踩過）
+TMP="${SHOTS_TMP:-/tmp/t4shots}"
 BEFORE_SITE="${BEFORE_SITE:-}"
 mkdir -p "$OUT" "$TMP"
 PAGES="overview flow stock/2330"
@@ -15,11 +18,13 @@ what="${1:-all}"
 shoot() {  # $1=tag $2=view $3=widths $4=ls $5=site(可空)
   local tag="$1" view="$2" widths="$3" ls="$4" site="${5:-}"
   local d="$TMP/$tag"; rm -rf "$d"; mkdir -p "$d"
+  local lock="flock /tmp/claude-0/browser.lock"
+  [ "${NOLOCK:-}" = 1 ] && lock=""
   if [ -n "$site" ]; then
-    TW_SHOW_SITE="$site" TW_SHOW_OUT="$d" timeout 600 flock /tmp/claude-0/browser.lock \
+    TW_SHOW_SITE="$site" TW_SHOW_OUT="$d" timeout 600 $lock \
       python3 "$ROOT/scripts/_show.py" --view "$view" --width "$widths" --full --wait 3500 --ls "$ls" --tag "$tag" >/dev/null 2>&1
   else
-    TW_SHOW_OUT="$d" timeout 600 flock /tmp/claude-0/browser.lock \
+    TW_SHOW_OUT="$d" timeout 600 $lock \
       python3 "$ROOT/scripts/_show.py" --view "$view" --width "$widths" --full --wait 3500 --ls "$ls" --tag "$tag" >/dev/null 2>&1
   fi
   python3 - "$d" "$OUT" <<'PY'
