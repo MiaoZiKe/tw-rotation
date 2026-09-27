@@ -3217,3 +3217,10 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - **沒設 Secret 時全部關閉**（repo 裡 `site/account_config.js` 永遠是空的；pages.yml 依 `ACCOUNT_API_URL` 覆寫部署產物）→ 目前線上只有本機版自選五分頁生效。
 - **待 Andy**：照 `docs/login_setup.md` 建 Google OAuth 用戶端、設 Secrets（GOOGLE_CLIENT_ID／GOOGLE_CLIENT_SECRET／ACCOUNT_ADMIN_EMAILS／ACCOUNT_API_URL），並確認隱私告知文字。
 - 這批驗了：pytest 789 passed；Worker node --test 19/19；_uitest 會員與自選五分頁／會員雲端路徑／手機／手機總覽指數觀察清單／手機個股券商式／設定面板／個股 0、_preview 綠（分支上；與 main 差距只有資料 commit）。
+
+### 09-27 晚 手機按鈕普查・第一批修正（mobile-tap-audit）
+- Andy「手機版介面 幫我確實驗證所有按鈕功能，我發現有部分功能無法點選」：新增 `scripts/_mobile_tap_audit.py`＋段落「手機按鈕普查」（390／360 觸控、全站每顆可點元素：點得到／有反應／收得回來）。
+- 修兩處真的點不到（只 ≤640）：① 搜尋列展開蓋住整條頂欄、點外面收不回 → 登記進 dismissable；② 今日事件抽屜被個股連結撐寬（358→604px），右側 14 顆（360 寬 21 顆）連結在抽屜外 → 換行。
+- 既有紅（改前快照同樣紅）：點外面就關 3、新-版面等高與多寬度 1。
+- 全站普查最終一輪（約 50 分）還在跑，找到新的會另外推。
+- 這批驗了：兩件修正改前紅／改後綠；手機／手機v3／手機一屏／手機個股券商式／手機總覽指數觀察清單／個股AI分析0926／設定面板 0、_preview 綠、pytest 789 passed、桌機 9 頁像素比對只有 #flow 動畫雜訊（分支已含最新 main）。
