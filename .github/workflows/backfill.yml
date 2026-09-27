@@ -9,6 +9,8 @@ name: 歷史回補
 # 排程觸發跑的是 `--plan default`（run_backfill.PLAN_DEFAULT，依序多步驟：
 # 財報 → 股利 → 融資券/股權分散 → 族群成分股 2000 年起的價量 → 每月重抓成分股股利公告）。
 # 計畫的 done 旗標帶年月：跨月後月更新那一步的 tag 變了，排程會自動再跑一輪。
+# 2026-09-28：三大法人、當沖＋借券、2009 起股利三步改成全市場普通股（scope=market，不吃 LIMIT），
+# 守門看的是它們的新完成鍵（…@market）。
 #
 # 排程刻意避開 UTC 09:20 / 10:20：每日管線 10:30 也要用 FinMind 額度。
 #
@@ -94,8 +96,14 @@ jobs:
                       done = False
                   # 2026-09-27：三大法人歷史步驟（計畫補齊後才加的，同上理由）＋法人每日續補
                   # （每天一次，complete.inst_fresh.date＝台北日期；當天還沒做完就放行一輪）。
+                  # ★ 2026-09-28：這三步改成全市場（scope=market），完成鍵換成帶「@market」的新鍵。
+                  #   舊鍵（inst、daytrade+sbl@2025-01-01…）是「只補前 500 檔」那一版標的 done，
+                  #   留著看它只會讓排程以為補齊了、全市場那一版永遠不跑。
+                  #   這張清單要跟 run_backfill.PLAN_DEFAULT 裡 scope=market 的步驟一致，
+                  #   tests/test_backfill_market.py 會實際執行這段守門去比對。
                   cp = json.loads(p.read_text()).get("complete", {})
-                  for k in ("inst", "daytrade+sbl@2025-01-01", "dividend+divresult@2009-01-01"):
+                  for k in ("inst@market", "daytrade+sbl@2025-01-01@market",
+                            "dividend+divresult@2009-01-01@market"):
                       st = cp.get(k) or {}
                       if not (isinstance(st, dict) and st.get("done")):
                           done = False
