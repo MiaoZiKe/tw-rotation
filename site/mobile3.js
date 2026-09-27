@@ -188,6 +188,15 @@
       b.onclick = () => {
         bar.classList.add('msearch');
         const q = document.getElementById('q'); if (q) { q.focus(); }
+        /* ★ 2026-09-27 手機按鈕普查：展開的搜尋列蓋住整條頂欄（左上品牌、搜尋鈕都在它底下），
+           以前只有「取消」和 Esc 收得回來 —— 點旁邊空白處它還開著，頂欄那兩顆就一直點不到。
+           改成登記進全站那一份「點外面就關」（app.js dismissable：按下記位置、放開才關，
+           手指滑動捲頁不算；用 pointer 事件，iPhone 點在一般背景上也收得到）。
+           點搜尋框本身、建議清單（都在 .search 裡）不算外面。 */
+        if (window.App && App.dismissable) {
+          App.dismissable(s, () => bar.classList.remove('msearch'),
+            { ignore: ['#mSearchBtn'], isOpen: () => bar.classList.contains('msearch') && isM() });
+        }
       };
       let c = document.getElementById('mSearchX');
       if (!c) {
