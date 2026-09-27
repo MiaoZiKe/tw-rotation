@@ -3,7 +3,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 540,
-      "seconds": 2.2
+      "seconds": 20.3
     },
     "index_intraday": {
       "stored": 0
@@ -11,15 +11,15 @@
     "taifex.futures_minute": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.1
+      "seconds": 2.1
     },
     "news.collect": {
       "ok": true,
-      "rows": 126,
-      "seconds": 3.2
+      "rows": 127,
+      "seconds": 3.0
     },
     "news": {
-      "stored": 15
+      "stored": 17
     },
     "news.broker_views": {
       "ok": true,
@@ -32,15 +32,15 @@
     "mops.material_news": {
       "ok": true,
       "rows": 4,
-      "seconds": 1.6
+      "seconds": 1.2
     },
     "material_news": {
-      "stored": 0
+      "stored": 4
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1761,
-      "seconds": 0.8
+      "rows": 1759,
+      "seconds": 1.0
     },
     "intl_daily": {
       "stored": 1
@@ -48,7 +48,7 @@
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 1.6
+      "seconds": 1.4
     },
     "build_payload": {
       "ok": true
@@ -67,9 +67,9 @@
       "2026-09-24"
     ]
   },
-  "started_at": "2026-09-27T15:57:49.347094+00:00",
-  "finished_at": "2026-09-27T16:09:48.540948+00:00",
-  "duration_seconds": 719.2,
+  "started_at": "2026-09-27T23:36:09.720460+00:00",
+  "finished_at": "2026-09-27T23:48:25.621449+00:00",
+  "duration_seconds": 735.9,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 472,
@@ -101,7 +101,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 1609976,
+      "rows": 3974416,
       "latest": "2026-09-24"
     },
     {
@@ -136,8 +136,8 @@
     },
     {
       "table": "news",
-      "rows": 2594,
-      "latest": "2026-09-27"
+      "rows": 2611,
+      "latest": "2026-09-28"
     },
     {
       "table": "broker_views",
@@ -146,8 +146,8 @@
     },
     {
       "table": "intl_daily",
-      "rows": 1845,
-      "latest": "2026-09-27"
+      "rows": 1846,
+      "latest": "2026-09-28"
     },
     {
       "table": "macro",
@@ -156,13 +156,13 @@
     },
     {
       "table": "dividend_events",
-      "rows": 17368,
+      "rows": 19438,
       "latest": "—"
     },
     {
       "table": "dividend_results",
-      "rows": 15733,
-      "latest": "2026-09-17"
+      "rows": 17579,
+      "latest": "2026-09-21"
     },
     {
       "table": "index_ohlc",
@@ -181,8 +181,8 @@
     },
     {
       "table": "material_news",
-      "rows": 407,
-      "latest": "2026-09-26"
+      "rows": 411,
+      "latest": "2026-09-27"
     },
     {
       "table": "company_website",
@@ -191,12 +191,12 @@
     },
     {
       "table": "daytrade_daily",
-      "rows": 194534,
+      "rows": 268694,
       "latest": "2026-09-24"
     },
     {
       "table": "sbl_daily",
-      "rows": 201673,
+      "rows": 278840,
       "latest": "2026-09-24"
     },
     {
