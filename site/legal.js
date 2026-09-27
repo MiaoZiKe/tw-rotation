@@ -110,7 +110,7 @@
   function privacyDoc() {
     const P = !!CFG.paid, N = !!CFG.newsletter, S = !!CFG.sync, A = !!CFG.analytics;
     /* ★ 2026-09-27 會員登入／自選同步／使用統計／線上人數（DECISIONS #270）：只有 site/account.js 讀到設定檔
-       （data/account.json，部署時由 Secret 產生）時才成立，所以跟著 window.TW_ACCOUNT_ON 走，不是寫死的旗標 ——
+       （site/account_config.js，部署時依 Secret 覆寫）時才成立，所以跟著 window.TW_ACCOUNT_ON 走，不是寫死的旗標 ——
        功能沒開，條款就不寫一件不存在的事（跟上面 paid／newsletter 同一個原則）。
        內容必須跟 workers/account-api/worker.js 檔頭「蒐集與保存」、site/account.js 的 noticeHTML() 一致。*/
     const ACC = !!window.TW_ACCOUNT_ON;

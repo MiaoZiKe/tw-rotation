@@ -14871,7 +14871,7 @@ SECTIONS = {
     "手機一屏":            lambda pg, b, base, code: t_mobile_oneview(b, base, code),
     # ★ 2026-09-27 Andy：「依據我提供的手機頁面，將手機版也設計類似這樣」（券商 App 式個股頁；site/mobile3.js F 段）
     "手機個股券商式":      lambda pg, b, base, code: t_mobile_broker(b, base, code),
-    # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（localStorage tw.watch，只存代號；site/mobile3.js G 段）
+    # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金去向長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
@@ -34679,17 +34679,21 @@ def t_mobile_broker(b, base, code):
     fv = m.evaluate("() => { const e = document.getElementById('stockTabs'); const r = e && e.getBoundingClientRect(); return { h: r ? r.height : 0, mbt: document.body.dataset.mbt }; }")
     ok(f"{T}完整版：桌機的個股分頁看得見", fv["h"] > 20 and fv["mbt"] == "full", fv)
 
-    # ---- 觀察清單 ☆（跟總覽同一份 localStorage `tw.watch`，只存代號）----
-    STAR = "() => { const b = document.getElementById('mbStar'); return { t: b ? b.textContent : null, p: b ? b.getAttribute('aria-pressed') : null, h: b ? Math.round(b.getBoundingClientRect().height) : 0, ls: localStorage.getItem('tw.watch') }; }"
+    # ---- 自選清單 ☆（2026-09-27 起清單有五頁：☆ 跳出「加進哪幾頁」，存在 localStorage `tw.watchlists`，只存代號；DECISIONS #270）----
+    STAR = """() => { const b = document.getElementById('mbStar'); return { t: b ? b.textContent : null, p: b ? b.getAttribute('aria-pressed') : null,
+        h: b ? Math.round(b.getBoundingClientRect().height) : 0, ls: (() => { try { const o = JSON.parse(localStorage.getItem('tw.watchlists')); const c = localStorage.getItem('tw.watchcur'); const t = o.tabs.find(x => x.id === c) || o.tabs[0]; return JSON.stringify(t.codes); } catch (e) { return null; } })() }; }"""
     w0 = m.evaluate(STAR)
     m.tap("#mbStar"); m.wait_for_timeout(300)
+    ok(f"{T}按 ☆ → 跳出「加進哪幾頁」", m.is_visible("#wlPick"))
+    m.tap("#wlPick input[data-pk] >> nth=0"); m.wait_for_timeout(300)
     w1 = m.evaluate(STAR)
-    ok(f"{T}按 ☆ → 變成 ★、tw.watch 真的寫進這一檔的代號（只有代號）",
+    ok(f"{T}勾第 1 頁 → 變成 ★、自選清單真的寫進這一檔的代號（只有代號）",
        w0["t"] == "☆" and w1["t"] == "★" and w1["p"] == "true" and json.loads(w1["ls"] or "[]") == [sc], (w0, w1))
     ok(f"{T}☆ 的觸控高度 ≥ 40px", w1["h"] >= 40, w1)
-    m.tap("#mbStar"); m.wait_for_timeout(300)
+    m.tap("#wlPick input[data-pk] >> nth=0"); m.wait_for_timeout(300)
     w2 = m.evaluate(STAR)
-    ok(f"{T}再按一次 → 回到 ☆、從 tw.watch 拿掉", w2["t"] == "☆" and json.loads(w2["ls"] or "[]") == [], w2)
+    ok(f"{T}取消勾選 → 回到 ☆、從清單拿掉", w2["t"] == "☆" and json.loads(w2["ls"] or "[]") == [], w2)
+    m.keyboard.press("Escape"); m.wait_for_timeout(200)
 
     # ---- 字級與觸控 ----
     fx = m.evaluate("""() => { const bad = [];
@@ -34795,7 +34799,7 @@ def t_mobile_broker(b, base, code):
 def t_mobile_home(b, base, code):
     """★ 2026-09-27 借券商 App 首頁截圖的兩塊，放在手機總覽最上方（site/mobile3.js G 段）：
     · 指數：加權／上櫃／台指近全三格一屏，可左右滑（還有費半、那斯達克、標普、美元兌台幣），有「第幾頁／共幾頁」
-    · 觀察清單：localStorage `tw.watch`，只存代號；新增（抽屜搜尋）、刪除（編輯 → ✕）、重新整理後還在
+    · 觀察清單（＝自選清單目前那一頁，localStorage `tw.watchlists`）：只存代號；新增（抽屜搜尋）、刪除（編輯 → ✕）、重新整理後還在
     每一條都驗「畫面真的因此改變了」與 localStorage 真的寫進去。"""
     m = b.new_page(**MOBILE_VP)
     m.on("pageerror", lambda e: fails.append(f"手機總覽指數觀察清單 pageerror: {e}"))
@@ -34842,7 +34846,7 @@ def t_mobile_home(b, base, code):
         hidden: !!(document.getElementById('mbWatch') || {}).hidden, add: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
         addW: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().width) : 0; })(),
         homeH: (() => { const e = document.getElementById('mbHome'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
-        ls: localStorage.getItem('tw.watch'), edit: (document.getElementById('mbWEdit') || {}).textContent || '' }) """
+        ls: (() => { try { const o = JSON.parse(localStorage.getItem('tw.watchlists')); const c = localStorage.getItem('tw.watchcur'); const t = o.tabs.find(x => x.id === c) || o.tabs[0]; return JSON.stringify(t.codes); } catch (e) { return null; } })(), edit: (document.getElementById('mbWEdit') || {}).textContent || '' }) """
     w0 = m.evaluate(W)
     ok(f"{T}觀察清單一開始是空的：清單列不佔位、只有指數列右邊一顆「＋ 觀察」（≥ 44×44）", w0["n"] == 0 and w0["hidden"] and w0["add"] >= 44 and w0["addW"] >= 44, w0)
     ok(f"{T}清單空的時候整塊 ≤ 72px（第①步的輪盤＋焦點條要留在第一屏）", 0 < w0["homeH"] <= 72, w0["homeH"])
@@ -34863,7 +34867,8 @@ def t_mobile_home(b, base, code):
     rf = m.evaluate("""() => { const r = document.getElementById('mRadarOv'), f = document.querySelector('#rotClockMiniWrap .mfocus');
         return { r: r ? Math.round(r.getBoundingClientRect().bottom) : null, f: f ? Math.round(f.getBoundingClientRect().bottom) : null, vh: innerHeight }; }""")
     ok(f"{T}有兩檔觀察時，輪盤＋焦點條還在第一屏（底 ≤ {rf['vh'] - 58}）", rf["f"] is not None and rf["f"] <= rf["vh"] - 58, rf)
-    ok(f"{T}tw.watch 只存代號（JSON 陣列、沒有張數或成本）", json.loads(w1["ls"] or "null") == ["2344", "2330"], w1["ls"])
+    ok(f"{T}自選清單只存代號（每頁只有 id／名字／代號，沒有張數或成本）", json.loads(w1["ls"] or "null") == ["2344", "2330"]
+       and m.evaluate("() => JSON.parse(localStorage.getItem('tw.watchlists')).tabs.every(t => Object.keys(t).sort().join() === 'codes,id,name')"), w1["ls"])
     m.reload(wait_until="networkidle")
     wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
     w2 = m.evaluate(W)
@@ -34881,15 +34886,15 @@ def t_mobile_home(b, base, code):
     ok(f"{T}按「編輯」→ 每格出現 ✕（≥ 40px）", dh >= 40 and m.evaluate("() => document.getElementById('mbWEdit').textContent") == "完成", dh)
     m.tap("#mbWatch .mbwdel[data-del='2344']"); m.wait_for_timeout(300)
     w3 = m.evaluate(W)
-    ok(f"{T}按 ✕ → 那一格真的不見、tw.watch 同步拿掉", w3["codes"] == ["2330"] and json.loads(w3["ls"] or "null") == ["2330"], w3)
+    ok(f"{T}按 ✕ → 那一格真的不見、自選清單同步拿掉", w3["codes"] == ["2330"] and json.loads(w3["ls"] or "null") == ["2330"], w3)
     m.reload(wait_until="networkidle")
     wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
     w4 = m.evaluate(W)
     ok(f"{T}重新整理之後刪掉的那一檔沒有回來", w4["codes"] == ["2330"], w4)
     # 壞掉的 localStorage 不准把頁面弄掛（手動改壞、別的版本寫的格式）
-    m.evaluate("() => localStorage.setItem('tw.watch', '{壞掉')"); m.reload(wait_until="networkidle"); m.wait_for_timeout(1500)
+    m.evaluate("() => localStorage.setItem('tw.watchlists', '{壞掉')"); m.reload(wait_until="networkidle"); m.wait_for_timeout(1500)
     w5 = m.evaluate(W)
-    ok(f"{T}tw.watch 內容壞掉 → 當成空清單，不會掛", w5["n"] == 0 and w5["hidden"], w5)
+    ok(f"{T}自選清單內容壞掉 → 當成空清單，不會掛", w5["n"] == 0 and w5["hidden"], w5)
     # 字級
     fx = m.evaluate("""() => { const bad = []; document.querySelectorAll('#mbHome *').forEach(e => {
         const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (!t) return;
@@ -35116,7 +35121,7 @@ def t_account_cloud(b, base):
 
         def new_ctx(width=1440, seed=None):
             c = b.new_context(viewport={"width": width, "height": 900})
-            c.route("**/data/account.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({"api": api})))
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
             c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
             if seed:
                 c.add_init_script("try{if(!sessionStorage.getItem('wlseed')){sessionStorage.setItem('wlseed','1');localStorage.setItem('tw.watchlists',"

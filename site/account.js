@@ -3,9 +3,9 @@
    架構與取捨：DECISIONS #270 ／ 後端：workers/account-api/worker.js ／ 設定步驟：docs/login_setup.md ／
    事件清單：docs/account_analytics.md
 
-   ★ 沒有設定就整個關掉：設定檔 `data/account.json`（{ "api": "https://tw-account.….workers.dev" }）
-     是部署時由 GitHub Actions 從 repo Secret `ACCOUNT_API_URL` 產生的，**不進版控**。
-     讀不到（404）→ 不出現登入鈕、不送任何統計、不連任何外部服務；自選清單照樣用（只存本機）。
+   ★ 沒有設定就整個關掉：設定在 site/account_config.js（window.TW_ACCOUNT = { api: '…' }）。
+     repo 裡那支永遠是空的；部署時由 GitHub Actions 依 repo Secret `ACCOUNT_API_URL` 覆寫（**網址不進版控**）。
+     api 是空的 → 不出現登入鈕、不送任何統計、不連任何外部服務；自選清單照樣用（只存本機）。
      所以這支可以先部署上線，等 Andy 設好再生效。
 
    ★ 前端沒有任何第三方 SDK：登入是開一個小視窗到我們自己的 Worker（Worker 再轉 Google），
@@ -386,13 +386,8 @@
 
   async function boot() {
     injectCSS(); watchZoom();
-    let cfg = null;
-    try {
-      const r = await fetch('data/account.json', { cache: 'no-store' });
-      /* 404 也要把內容讀掉：沒讀的回應本體會讓瀏覽器一直把這個請求算成「還在傳」（驗收的 networkidle 等不到，實測卡 30 秒）*/
-      const txt = await r.text();
-      if (r.ok) cfg = JSON.parse(txt);
-    } catch (e) { cfg = null; }
+    /* TW_ACCOUNT_OVERRIDE：驗收腳本用 add_init_script 注入本機 devserver 的網址（跟 legal.js 的 TW_LEGAL_OVERRIDE 同一個做法）*/
+    const cfg = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT || null;
     const api = cfg && typeof cfg.api === 'string' ? cfg.api.replace(/\/+$/, '') : '';
     /* 只接受 https（正式）或本機（驗收用的 devserver）—— 設定檔被改成奇怪的東西時寧可關掉 */
     if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(api) && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(api)) { S.on = false; paintBar(); return; }

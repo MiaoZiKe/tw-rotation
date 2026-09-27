@@ -4336,7 +4336,7 @@ CEO 預設建議 Firebase（Auth＋Firestore＋Realtime Database），並授權�
 | Andy 要設定的步數 | 約 8 步（建專案、開 Google 登入、授權網域、Web App、兩個資料庫、貼兩份規則、建管理者文件、Secret） | 6 步（第 1 步已完成；Google OAuth 用戶端、3 個 Secret、跑兩次 workflow），docs/login_setup.md |
 
 定案的細節（不要重新討論）：
-1. **沒有設定就整個關閉**：前端讀 `data/account.json`（pages.yml 從 Secret `ACCOUNT_API_URL` 產生，不進版控；沒設就刪）；讀不到 → 沒有登入鈕、不送任何統計、不連任何外部服務。所以可以先部署。
+1. **沒有設定就整個關閉**：前端讀 `site/account_config.js`（repo 裡永遠是 `api: ''`；pages.yml 依 Secret `ACCOUNT_API_URL` 覆寫部署產物，網址不進版控）；空的 → 沒有登入鈕、不送任何統計、不連任何外部服務。所以可以先部署。不用 `data/account.json`：沒設定時會 404，每一頁主控台多一行紅字（_preview 會抓）。
 2. **管理者白名單**不寫在 repo：Secret `ACCOUNT_ADMIN_EMAILS` → Worker Secret `ADMIN_EMAILS`。權杖簽章金鑰由 Durable Object 第一次啟動時自己產生、存在自己的儲存裡（少一個要人設的 Secret）。
 3. **蒐集最小化**：Google 帳號識別碼只存金鑰雜湊；統計只存「台北日期 × 鍵 × 次數」（usage 表只有三欄，測試釘住），不存 IP、不存單次點擊；線上用每分頁一組 sessionStorage 隨機碼（不跨造訪）。**瀏覽器開 DNT／GPC 就完全不送統計與心跳**（Andy 可能會嫌數字偏低，但這是對「請勿追蹤」的基本尊重）。
 4. **自選清單**：最多 5 頁、每頁 50 檔、名字 12 字；只存代號與清單名（**不存張數、成本、損益**，Worker 會丟掉多帶的欄位）。舊 `tw.watch` 搬進第 1 頁後刪掉舊鍵。首次登入把本機清單**合併**上雲（同名取聯集、不同名接後面、滿五頁併進同位置），成功後清空本機那份；登出刪掉雲端快取換回本機清單（共用電腦不留別人的清單）。兩台同時改以版本號判斷，後到的收 409 換成雲端版本。
