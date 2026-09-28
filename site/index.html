@@ -603,6 +603,20 @@ small{font-size:12.5px}
   color:var(--ink-3);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .sugg .sgdel:hover{background:var(--panel-3);color:var(--ink)}
 .sugg .g + .sgdel{margin-left:4px}
+/* 名稱旁的迷你走勢（2026-09-28）：48×16、只畫線；寬度固定（sparks.json 還沒到時也先佔位，列不會跳） */
+.sugg .spkw{flex:none;width:48px;height:16px;display:inline-flex;align-items:center}
+.sugg .spk{display:block;overflow:visible}
+.sugg .spk polyline{fill:none;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+.sugg .spk.up polyline{stroke:var(--rise)}
+.sugg .spk.down polyline{stroke:var(--fall)}
+.sugg .spk.flat polyline{stroke:var(--ink-3)}
+/* 手機「加入觀察清單」抽屜的搜尋結果也用同一張小圖 */
+.mbwres .spkw{flex:none;width:48px;height:16px;display:inline-flex;align-items:center}
+.mbwres .spk{display:block;overflow:visible}
+.mbwres .spk polyline{fill:none;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+.mbwres .spk.up polyline{stroke:var(--rise)}
+.mbwres .spk.down polyline{stroke:var(--fall)}
+.mbwres .spk.flat polyline{stroke:var(--ink-3)}
 .sugg .nm + .sgdel{margin-left:auto}
 .sugg .sgempty{margin:0;padding:6px 12px 10px;font-size:13px;color:var(--ink-3);line-height:1.5}
 /* 公司 Logo（2026-09-26）：圓角方形；沒有圖／圖壞掉時是字母頭像（字由 ::before 畫，不進 DOM 文字）。
@@ -1345,6 +1359,12 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .dcol.on{border-color:#e8eeff}
 .dsep{height:1px;background:var(--line-2);margin:3px 2px}
 .chartwrap #chartHost{flex:1;min-width:0}
+/* 分時走勢（2026-09-28）：分時不是 K 線 → 畫線工具列收起（手繪線存在 K 棒座標上）、「還原」小標收起（分時是原始成交價）。
+   指標鈕不停用（週期勾選也住在裡面），只是變淡、說明改寫。*/
+.chartwrap.tickmode>.drawbar,.chartwrap.tickmode .adjtag{display:none!important}
+#indBtn.tickdim{opacity:.7}
+#drawTgl:disabled{opacity:.45;cursor:not-allowed}
+.indpop .tknote{margin:0 0 6px;color:var(--amber,#ffb454)}
 /* 設定面板固定用 JS 擺在按鈕旁邊（placePop）。position:fixed 是刻意的：
    以前是 absolute + right:18px，錨點是最近的 positioned 祖先、跟按鈕無關，
    結果常常飄到整張 K 線圖下面或畫面另一邊（Andy 2026-09-15 截圖）。*/
@@ -1704,7 +1724,7 @@ tbody tr:last-child td{border-bottom:0}
    以前寫死 640px，螢幕再大也只有那麼高。扣掉頂部列＋標題＋工具列＋說明約 300px，
    剩下的全部給圖；上下限避免小筆電被壓扁、超寬螢幕拉成一條。 */
 #lwc{position:relative;height:clamp(600px,calc(100vh - 250px),1280px);border-radius:10px;overflow:hidden;background:var(--chartbg);border:1px solid var(--line)}
-/* 寬版模式：收起右側事件欄，把整個視窗寬度讓給圖（工具列上的「⤢ 寬版」）*/
+/* 寬版模式：收起右側事件欄，把整個視窗寬度讓給圖。2026-09-28 起個股頁固定寬版（「⤢ 寬版」切換鈕拿掉，app.js 路由一律加 body.kwide）*/
 body.kwide .layout{grid-template-columns:1fr}
 body.kwide aside{display:none}
 body.kwide #lwc{height:clamp(640px,calc(100vh - 185px),1500px)}

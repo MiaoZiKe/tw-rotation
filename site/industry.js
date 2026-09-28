@@ -5,13 +5,20 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   let A;                                   // window.App（app.js 提供）
-  const state = { level: 0, chain: null, group: null, code: null, tf: '1d', mtfMode: false, cfg: null, tab: 'overview', dg: null };
+  /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
+     tfAuto＝這次的週期是「預設帶進來的」不是使用者按的：分時真的沒資料時只有這種情況才自動改用日 K；
+     tickFb＝上一檔是自動退回日 K 的 → 換下一檔要回到分時（不然一檔沒資料就把之後每一檔都變成日 K）。*/
+  const state = { level: 0, chain: null, group: null, code: null, tf: 'tick', mtfMode: false, cfg: null, tab: 'overview', dg: null,
+    tfAuto: true, tickFb: false };
   /* ★ 2026-09-21：中文名一律先讀 payload（`A.L.chains`，來源是 groups.yaml 的 chains.<id>.name），
      這張表只當「payload 裡沒有的虛擬鍵」與 L 還沒 init 完的 fallback ——
      以前它是第二份對照表，新增的 software / financial 沒補進來就直接印英文 id 上畫面。*/
   const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '法定產業別' };
   const SEG_COLORS = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
   let kchart = null, miniCharts = [];
+  // 分時走勢（週期「分時」）的圖：跟 kchart 不會同時存在（見 setupChart 的 applyTick）
+  let tchart = null, tickTimer = null, tickT0 = 0;
+  const TICK_WAIT = 8000;       // 即時層抓 Yahoo 最多等 8 秒；還沒回來就當作沒有（不然網路卡住會一直轉圈）
   // 指標下拉裡哪幾列是展開的（換股票、關掉再打開都維持；只活在這一次瀏覽）
   const indOpen = new Set();
   // 即時分 K 的訂閱（換頁要退掉，不然背景還在每 5 秒重畫一張看不到的圖）
@@ -3673,6 +3680,10 @@
        週期列用不到存檔裡的 tfOn，第一次進來會排出預設的週期、跟使用者勾的對不起來。
        選中的週期已經不在列上（被取消勾選）就先換成剩下的（優先日線）。*/
     state.cfg = state.cfg || loadCfg();
+    // 上一檔是「分時沒資料、自動退回日 K」→ 這一檔回到預設的分時（見 state 宣告處的 tickFb）
+    if (state.tickFb) { state.tf = 'tick'; state.tickFb = false; state.tfAuto = true; }
+    if (state.tf === 'tick') state.tfAuto = true;
+    if (state.tickNone !== code) state.tickNone = null;
     ensureTf();
     el.innerHTML = `
       <div class="card" id="skChartCard" style="margin-top:var(--gap-card)">
@@ -3695,7 +3706,8 @@
           <button class="btn small inddd" id="indBtn" type="button" aria-haspopup="true" aria-expanded="false" title="指標：開關、參數、顏色與線寬">指標 ▾ <span class="indn" id="indN"></span></button>
           <div class="sp"></div>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
-          <button class="btn small" id="wideBtn" title="收起右側事件欄，把整個視窗的寬度讓給 K 線圖">⤢ 寬版</button>
+          <!-- ★ 2026-09-28（Andy：「K線圖上的紅框 "寬版" 拿掉」）：「⤢ 寬版」鈕整顆拿掉，個股頁固定採寬版版面
+               （右側事件欄收起、K 線吃滿視窗寬度；body.kwide 由 app.js 路由在個股頁一律加上）。-->
           <button class="btn small" id="drawTgl" title="畫線工具（手機預設收起來）">✎ 畫線</button>
           <button class="howbtn pop" data-how="kline" data-ttl="K 線" type="button" aria-label="K 線怎麼看">?</button>
           <!-- 「重設縮放」鈕 2026-09-26 搬進圖裡（主圖 K 棒區右下角、價格軸左邊），由 KChart 自己掛（opts.fit）-->
@@ -3707,7 +3719,7 @@
           '雙擊價格軸或按圖右下角 ⌜⌟ 還原',
           '副圖之間的分隔線可上下拖，會記住',
           '週期鈕被劃掉＝這檔沒有那個週期資料',
-        ], '滑鼠移到劃掉的週期鈕上會說原因。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新；K 棒會跟著上下寬度一起變。')}</div>
+        ], '「分時」：線在虛線（昨收）上面＝今天漲、下面＝跌，最後一段往哪邊走就是尾盤的方向；要看指標或畫線請切到 K 線週期。滑鼠移到劃掉的週期鈕上會說原因。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新；K 棒會跟著上下寬度一起變。')}</div>
         <div class="note livenote" id="liveNote" hidden></div>
         <div class="chartwrap" id="chartWrap">${adjTag(pg)}
           <div class="drawbar" id="drawBar"></div>
@@ -3784,8 +3796,10 @@
   // 內建週期＋使用者自訂的（nD = N 日合成、nW = N 週合成；分 K 只能用抓得到的那幾檔）
   /* 5秒 / 1分 / 5分 是「當天即時」的，資料不在 payload 裡，而是 livek.js 現場合成的
      （證交所沒有個股的分時檔，所以是 Yahoo 補早盤 ＋ 即時報價每 5 秒補尾巴）。 */
-  const TF_BUILTIN = ['5s', '1m', '5m', '15m', '60m', '240m', '1d', '1w', '1M'];
-  const TF_NAME = { '5s': '5秒', '1m': '1分', '5m': '5分', '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' };
+  /* 'tick'＝分時走勢（2026-09-28）：不是 K 棒，是「當日（盤中）或最近一個交易日（盤後）」的一條價格線＋昨收虛線＋分時量，
+     由 TickChart（chart.js）畫，資料見 tickData()。放在最前面＝週期列最左邊，而且是預設週期。*/
+  const TF_BUILTIN = ['tick', '5s', '1m', '5m', '15m', '60m', '240m', '1d', '1w', '1M'];
+  const TF_NAME = { tick: '分時', '5s': '5秒', '1m': '1分', '5m': '5分', '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' };
   // 15 分也改成即時（Andy 2026-09-18：「1 5 15 分 K 都限制當天即可」）。
   // 後端不再預先產出 15 分 K —— 那是部署最慢的一塊（DECISIONS #156）。
   const LIVE_TF = ['5s', '1m', '5m', '15m'];
@@ -3811,7 +3825,9 @@
      · tfOnSet() ＝勾起來的（存在 tw.kcfg 的 tfOn；沒設定過用預設。自訂週期是使用者自己加的，沒設定過時一併算勾起來）
      · tfList()  ＝週期列真的要排的：tfAll 依原本順序濾出勾起來的
      至少留一個：全部被濾光（例如存檔被手改壞）就退回日線。*/
-  const TF_DEFAULT_ON = ['60m', '240m', '1d', '1w', '1M'];
+  const TF_DEFAULT_ON = ['tick', '60m', '240m', '1d', '1w', '1M'];
+  // 四週期同看每一格是一張 K 線小圖，分時不是 K 線 → 不列進四格的下拉，也不會被自動挑進去
+  function mtfTfList() { const l = tfList().filter(t => t !== 'tick'); return l.length ? l : ['1d']; }
   function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
   function tfOnSet() {
     const c = state.cfg || {}, all = tfAll();
@@ -3835,6 +3851,15 @@
   function markTf(pg) {
     $$('#tfSeg button').forEach(b => {
       const tf = b.dataset.tf;
+      if (tf === 'tick') {
+        // 分時：有沒有資料要等即時層回來才知道（tickData），確定沒有的那一檔才劃掉
+        const none = state.tickNone === pg.meta.code;
+        b.classList.add('ticktf');
+        b.classList.toggle('off', none);
+        b.title = none ? '此檔暫無分時資料（盤中即時報價與最近交易日的分時都拿不到），已改用日 K'
+                       : '分時走勢：盤中是今天，盤後是最近一個交易日；虛線＝昨收';
+        return;
+      }
       if (isLiveTf(tf)) {
         // 即時週期永遠可以按：盤中會邊看邊長，盤後顯示今天收集到的
         b.classList.remove('off');
@@ -3861,6 +3886,13 @@
         /* 同一天晚上拿掉的「MACD 背離」「停損／目標」（Andy：「MACD & 停損／目標背離先拿掉」）：
            舊存檔寫著 macdDiv:true／lines:true 也不畫 —— 鍵直接丟掉，畫圖時另外強制 macdDiv:false（見 mainCfg）。*/
         delete c.macdDiv; delete c.lines;
+        /* ★ 2026-09-28 分時走勢上線：已經存過週期勾選（tfOn）的舊使用者，自動補勾「分時」（Andy 明講要補，而且要當預設）。
+           只補一次（tickMig）：補完之後使用者自己取消勾選，下次載入不會又被勾回來。*/
+        if (Array.isArray(c.tfOn) && !c.tickMig) {
+          if (c.tfOn.indexOf('tick') < 0) c.tfOn = ['tick'].concat(c.tfOn);
+          c.tickMig = 1;
+          saveCfg(c);
+        }
         return c;
       }
     } catch (e) { /* 忽略 */ }
@@ -3893,6 +3925,44 @@
     return out;
   }
 
+  /* 分時走勢的資料（2026-09-28）。回 {pts:[[時間, 價, 量]], prev, date, live, src} 或 null（真的沒有）。
+     來源順序：
+       ① 即時層 livek.js 的 1 分 K（盤中＝今天：Yahoo 1 分 K 補早盤＋證交所即時報價每 5 秒補尾巴；
+          盤後／週末＝最近一個交易日的 Yahoo 1 分 K；Yahoo 查不到的冷門股，盤中開著頁面收到的報價也會疊成點）；
+       ② 資料湖的 60 分 K（payload 的 intraday['60m']）最近一個交易日 —— 一天 6 點（開盤＋每小時收盤），
+          只在即時層拿不到時當備援，而且那一天必須就是日線的最新交易日（落後的不拿，免得把前天當成今天）。
+     昨收：盤中用報價的昨收（證交所的參考價，除權息當天也對）；其他情況用日線裡「那一天之前」的最後一根收盤。*/
+  function tickData(pg) {
+    const L = window.LiveK;
+    const daily = pg.daily && pg.daily.length ? pg.daily : (pg.ohlcv || []);
+    const prevOf = (date) => {
+      for (let i = daily.length - 1; i >= 0; i--) if (String(daily[i][0]) < date) return +daily[i][4];
+      return null;
+    };
+    if (L && L.bars && L.session) {
+      const b = L.bars('1m') || [];
+      const ses = L.session();
+      if (b.length >= 2 && ses && ses.date) {
+        const pc = L.state && +L.state.prevClose;
+        const prev = ses.live && pc > 0 ? pc : prevOf(ses.date);
+        return { pts: b.map(x => [x[0], +x[4], +x[5] || 0]), prev, date: ses.date, live: !!ses.live, src: 'live' };
+      }
+    }
+    const h = (pg.intraday && pg.intraday['60m']) || [];
+    const lastD = daily.length ? String(daily[daily.length - 1][0]) : null;
+    if (h.length && lastD) {
+      const day = h.filter(x => String(x[0]).slice(0, 10) === lastD);
+      if (day.length) {
+        const close = Date.parse(lastD + 'T00:00:00Z') / 1000 + (13 * 60 + 30) * 60;   // 那天 13:30（epoch+8h 口徑）
+        const t0 = KUtil.toTime(String(day[0][0]));
+        const pts = [[t0, +day[0][1], 0]];
+        day.forEach(x => { const t = KUtil.toTime(String(x[0])); pts.push([Math.min(t + 3600, close), +x[4], +x[5] || 0]); });
+        return { pts, prev: prevOf(lastD), date: lastD, live: false, src: 'm60' };
+      }
+    }
+    return null;
+  }
+
   function barsFor(pg, tf) {
     // 即時週期不吃 payload，直接跟 livek.js 拿（它自己在收）
     if (isLiveTf(tf)) return (window.LiveK ? window.LiveK.bars(tf) : []) || [];
@@ -3923,6 +3993,8 @@
     /* 即時分 K：切到這一檔就開始收，每收到一筆就重畫（畫面位置由 setBars(..., keepView) 保住）。
        Andy 2026-09-15：「當我點擊一般股票時也能做到這樣的效果」 */
     stopLive();
+    tickT0 = Date.now(); clearTimeout(tickTimer);
+    if (tchart) { try { tchart.destroy(); } catch (e) { /* 容器已換掉 */ } tchart = null; }
     if (window.LiveK) {
       window.LiveK.attach(pg.meta.code, pg.meta.market);
       liveOff = window.LiveK.onUpdate(() => {
@@ -3935,8 +4007,8 @@
           }
           return;      // 四週期同看或已離開，不用畫主圖
         }
-        // 即時週期固然要重畫；日／週／月因為最後一根是「今天還沒收的」，也要跟著跳
-        if (isLiveTf(state.tf) || ['1d', '1w', '1M'].indexOf(state.tf) >= 0) apply();
+        // 即時週期固然要重畫；日／週／月因為最後一根是「今天還沒收的」，也要跟著跳；分時的尾巴也是即時的
+        if (state.tf === 'tick' || isLiveTf(state.tf) || ['1d', '1w', '1M'].indexOf(state.tf) >= 0) apply();
       });
     }
     const host = $('#chartHost');
@@ -4195,6 +4267,7 @@
       if (popVisible(pop, 'ind')) { closePop(pop); return; }
       pop.hidden = false; pop.dataset.kind = 'ind'; pop.classList.add('indpop');
       pop.innerHTML = `<div class="ttl">指標 <small>勾＝開／關　▸＝參數與樣式</small></div>
+        ${state.tf === 'tick' && !state.mtfMode ? '<div class="note tknote" id="tkNote">分時走勢不畫指標；這裡的設定套用在 K 線週期</div>' : ''}
         <div class="indlist" id="indList">${rowHTML(IND[0])}${tfRowHTML()}${IND.slice(1).map(rowHTML).join('')}</div>
         <div class="ifoot"><button class="btn small" id="cfgReset" type="button">回復預設</button><div class="sp" style="flex:1"></div><span class="note">點外面或 Esc 關閉</span></div>`;
       wireInd(pop); paintHead();
@@ -4213,15 +4286,99 @@
     const newMain = (box, tf) => new KChart(box, { tf, onText: () => window.prompt('文字內容', ''), fit: mainFit, fitId: 'fitBtn' });
     const build = () => {
       if (kchart) { kchart.destroy(); kchart = null; } miniCharts.forEach(c => c.destroy()); miniCharts = [];
-      if (state.mtfMode) { host.innerHTML = `<div class="mtf-grid" id="mtfGrid"></div>`; buildMtfGrid(pg); return; }
+      if (tchart) { tchart.destroy(); tchart = null; }
+      if (state.mtfMode) { paintTickMode(false); host.innerHTML = `<div class="mtf-grid" id="mtfGrid"></div>`; buildMtfGrid(pg); return; }
       host.innerHTML = `<div id="lwc"><div class="legend-ov" id="legendOv"></div><div class="ohlcbox" id="ohlcBox" hidden></div></div>`;
-      kchart = newMain($('#lwc'), state.tf);
+      if (state.tf !== 'tick') kchart = newMain($('#lwc'), state.tf);
       apply();
       enableDraw(pg);
+    };
+    /* ---- 分時模式下不適用的東西（2026-09-28）：
+       · 畫線工具：手繪線是存在「某一檔某個 K 線週期」的座標上，分時沒有 K 棒 → 工具列收起、✎ 畫線鈕停用；
+       · 指標下拉：不停用（週期勾選也住在裡面），但按鈕變淡、說明寫「分時不畫指標」；
+       · 「還原」小標：分時是原始成交價，不是還原價，收起來免得誤會。*/
+    const paintTickMode = (on) => {
+      const w = $('#chartWrap'); if (w) w.classList.toggle('tickmode', !!on);
+      const dt = $('#drawTgl');
+      if (dt) {
+        if (on && !dt.disabled) { dt.dataset.t0 = dt.title; dt.title = '分時走勢不能畫線（切到 K 線週期才能畫）'; }
+        if (!on && dt.disabled && dt.dataset.t0) dt.title = dt.dataset.t0;
+        dt.disabled = !!on;
+      }
+      const ib = $('#indBtn');
+      if (ib) {
+        ib.classList.toggle('tickdim', !!on);
+        ib.title = on ? '分時走勢不畫指標（這裡的設定套用在 K 線週期；週期勾選也在這裡）' : '指標：開關、參數、顏色與線寬';
+      }
+    };
+    /* ---- 分時走勢（週期「分時」）：資料見 tickData()，圖見 chart.js 的 TickChart。*/
+    const applyTick = (box) => {
+      paintTickMode(true);
+      state.fallbackTf = null; state.offDay = null;
+      if (kchart) { kchart.destroy(); kchart = null; }
+      const L = window.LiveK;
+      const d = tickData(pg);
+      if (!d) {
+        if (tchart) { tchart.destroy(); tchart = null; }
+        const waiting = L && !L.settled && Date.now() - tickT0 < TICK_WAIT;
+        if (waiting) {
+          box.innerHTML = '<div class="empty" style="height:100%" data-tickwait="1">分時資料載入中…</div>';
+          setLiveNote('');
+          clearTimeout(tickTimer);
+          tickTimer = setTimeout(() => { if (state.tf === 'tick' && !state.mtfMode && $('#lwc')) apply(); }, Math.max(300, TICK_WAIT - (Date.now() - tickT0) + 100));
+          return;
+        }
+        state.tickNone = pg.meta.code;
+        if (state.tfAuto) {
+          // 預設帶進來的分時沒有資料 → 這一檔自動改用日 K 當預設（Andy 的規格），按鈕與短註講清楚
+          const rest = tfList().filter(t => t !== 'tick');
+          const fb = rest.indexOf('1d') >= 0 ? '1d' : (rest[0] || '1d');
+          state.tf = fb; state.tfAuto = false; state.tickFb = true; state.tickFbTf = fb;
+          $$('#tfSeg button').forEach(x => x.classList.toggle('on', x.dataset.tf === fb));
+          markTf(pg); paintTickMode(false);
+          box.innerHTML = '';
+          apply();
+          return;
+        }
+        markTf(pg);
+        box.innerHTML = '<div class="empty" style="height:100%">此檔暫無分時資料（盤中即時報價與最近交易日的分時都拿不到）。日 K、週 K、月 K 可以正常看。</div>';
+        setLiveNote('此檔暫無分時資料');
+        return;
+      }
+      if (state.tickNone === pg.meta.code) { state.tickNone = null; markTf(pg); }
+      if (!tchart || !box.contains(tchart.el) || tchart.el !== box) {
+        if (tchart) { tchart.destroy(); tchart = null; }
+        box.innerHTML = '<div class="legend-ov" id="legendOv"></div>';
+        tchart = new TickChart(box);
+      }
+      tchart.setData(d);
+      state.tickSrc = d.src; state.tickDate = d.date;
+      tchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · 分時 · ${d.date}${d.live ? '' : '（非即時）'}`);
+      setLiveNote(d.src === 'm60'
+        ? `最近交易日 ${d.date} 的分時：每小時一點（資料湖的 60 分 K，即時來源連不上時的備援）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`
+        : d.live
+          ? '今天的分時：早盤每分鐘一點來自 Yahoo（延遲約 20 分鐘），最近一段是證交所即時報價每 5 秒更新。虛線＝昨收，線在虛線上面＝漲、下面＝跌。'
+          : `最近交易日 ${d.date}（非即時）的分時；今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`);
+      const legend = $('#legendOv');
+      const rows = tchart.pts;
+      const show = (r) => {
+        if (!legend) return;
+        const p = r || rows[rows.length - 1]; if (!p) { legend.innerHTML = ''; return; }
+        const chg = d.prev ? p.value - d.prev : null;
+        const col = A.upDown(chg || 0);
+        legend.innerHTML = `<b>${KUtil.fmtTime(p.time, '1m').slice(11)}</b>　價 <b style="color:${col}">${A.fmt.n(p.value)}</b>`
+          + (chg != null ? `　<span style="color:${col}">${chg > 0 ? '+' : ''}${A.fmt.n(chg)}（${A.fmt.pct(chg / d.prev * 100, 2)}）</span>` : '')
+          + (p.v != null ? `　量 ${A.fmt.lot((p.v || 0) / 1000)}` : '')
+          + (d.prev ? `<br><span class="muted">昨收 ${A.fmt.n(d.prev)}</span>` : '');
+      };
+      show(null); tchart.onCrosshair(show);
     };
     const apply = () => {
       const box = $('#lwc'); if (!box) return;
       state._apply = apply;      // 驗收用：模擬一次「即時更新造成的重畫」
+      if (state.tf === 'tick') { applyTick(box); return; }
+      paintTickMode(false);
+      if (tchart) { tchart.destroy(); tchart = null; box.innerHTML = ''; }
       /* ★ 2026-09-25（審查 R5）：即時分 K（1／5／15 分）在 Yahoo 抓不到時，以前只剩一塊空白＋一行字。
          改成**先退回有資料的週期**（有 1 時 K 就畫 1 時，沒有就畫日線），上面那行說明講清楚
          「分 K 抓不到、現在畫的是哪一個」；即時報價一接上（每收到一筆都會重跑 apply），自動換回分 K。
@@ -4253,7 +4410,8 @@
         setLiveNote(live ? why : '');
         return;
       }
-      setLiveNote(fbNote || (live && window.LiveK ? window.LiveK.sourceNote(state.tf) : ''));
+      setLiveNote(fbNote || (live && window.LiveK ? window.LiveK.sourceNote(state.tf) : '')
+        || (state.tickFbTf === state.tf && state.tickNone === pg.meta.code ? '此檔暫無分時資料，已改用日 K。' : ''));
       state.fallbackTf = fbNote ? tf : null;      // 驗收讀這個
       // 上一個週期沒資料時圖被拆掉了，換回有資料的週期要重建（不重建的話會整張空白到重新整理為止）
       if (!kchart || !$('#legendOv')) {
@@ -4331,7 +4489,12 @@
     };
     // ---- 時間週期（含自訂）
     const wireTf = () => $$('#tfSeg button').forEach(b => {
-      b.onclick = () => { $$('#tfSeg button').forEach(x => x.classList.toggle('on', x === b)); state.tf = b.dataset.tf; if (state.mtfMode) build(); else apply(); };
+      b.onclick = () => {
+        $$('#tfSeg button').forEach(x => x.classList.toggle('on', x === b)); state.tf = b.dataset.tf;
+        // 使用者自己按的週期：不再自動退回（分時沒資料就明講沒資料）；換下一檔也照這個週期
+        state.tfAuto = false; state.tickFb = false; state.tickFbTf = null;
+        if (state.mtfMode) build(); else apply();
+      };
       b.oncontextmenu = (e) => { // 自訂的週期按右鍵可以移除
         if (TF_BUILTIN.includes(b.dataset.tf)) return;
         e.preventDefault();
@@ -4370,23 +4533,9 @@
     // ---- 「⚙ 設定」鈕與獨立的「圖表設定」面板 2026-09-26 拿掉：內容全部搬進上面的「指標 ▾」下拉
 
     $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
-    /* 寬版（Andy：「K 線圖太小，版面需要擴大」）：把右側事件欄收起來，整個視窗寬度都給圖。
-       Lightweight Charts 是 autoSize，容器一變寬它自己重畫；ECharts 的小圖要自己踢一下 resize。
-       狀態存 localStorage，下次進個股頁維持同一個版面。 */
-    const wideBtn = $('#wideBtn');
-    const paintWide = () => {
-      const on = document.body.classList.contains('kwide');
-      wideBtn.classList.toggle('on', on);
-      wideBtn.textContent = on ? '⤢ 寬版 ✓' : '⤢ 寬版';
-      wideBtn.title = on ? '關掉寬版，把右側事件欄叫回來' : '收起右側事件欄，把整個視窗的寬度讓給 K 線圖';
-    };
-    wideBtn.onclick = () => {
-      const on = document.body.classList.toggle('kwide');
-      try { localStorage.setItem('tw.kwide', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-      paintWide();
-      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 60);
-    };
-    paintWide();
+    /* 「⤢ 寬版」鈕 2026-09-28 拿掉（Andy：「K線圖上的紅框 "寬版" 拿掉」）：
+       以前按它在「收起右側事件欄、K 線吃滿寬度」與「留著事件欄」之間切換，存 localStorage['tw.kwide']。
+       現在個股頁固定是寬版版面（app.js 路由在個股頁一律加 body.kwide），舊的 tw.kwide 存檔不再讀。*/
     /* ★ 2026-09-23 手機優先改版 G8（依據 `docs/mobile_audit.md`）：
        390px 量到 `.drawbar` 被攤平成橫向兩列、約 20 顆 20×20～30×24px 的鈕，
        而桌機是圖表左側的直排工具列 —— 位置對不起來，手指也點不準。
@@ -4516,12 +4665,12 @@
 
   function mtfPick(pg) {
     const cfg = state.cfg || loadCfg();
-    const saved = Array.isArray(cfg.mtfTfs) ? cfg.mtfTfs.filter(t => tfList().indexOf(t) >= 0) : null;
+    const saved = Array.isArray(cfg.mtfTfs) ? cfg.mtfTfs.filter(t => mtfTfList().indexOf(t) >= 0) : null;
     if (saved && saved.length === 4) return saved;
     const have = (tf) => barsFor(pg, tf).length >= 20;
     /* 自動挑的四格也只從「週期設置」勾起來的週期裡挑（2026-09-26 晚）：沒勾的週期不該自己冒出來。
        有 15 分資料而且 15 分有勾 → 最細的四個；否則取最粗的四個。一個都挑不到（例如只勾了即時週期）就直接用勾的前四個。*/
-    const en = tfList();
+    const en = mtfTfList();
     const pref = ['15m', '60m', '240m', '1d', '1w', '1M'].filter(t => en.indexOf(t) >= 0).filter(have);
     let pick = pref.length >= 4 ? (pref[0] === '15m' ? pref.slice(0, 4) : pref.slice(-4)) : pref.slice();
     if (!pick.length) pick = en.slice(0, 4);
@@ -4534,7 +4683,7 @@
     const pick = mtfPick(pg);
     const grid = $('#mtfGrid');
     const offDay = window.LiveK && window.LiveK.offDay ? window.LiveK.offDay() : null;
-    const opts = (cur) => tfList().map(tf =>
+    const opts = (cur) => mtfTfList().map(tf =>
       `<option value="${tf}"${tf === cur ? ' selected' : ''}>${MTF_LABEL(tf)}</option>`).join('');
     grid.innerHTML = pick.map((tf, i) => {
       const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf];
@@ -5851,6 +6000,10 @@
     // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」
     _apply: () => { if (state._apply) state._apply(); },
     _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool,
+    // 驗收用（2026-09-28 分時走勢）：分時圖在不在、畫了幾個點、哪一天、資料來源、顏色方向、這檔是不是確定沒分時、是不是自動退回的
+    tick: tchart ? { pts: (tchart.pts || []).length, rows: (tchart.rows || []).length, date: state.tickDate, src: state.tickSrc,
+                     dir: tchart.dir, color: tchart.color, prev: tchart.prev, setData: tchart.stats.setData } : null,
+    tickNone: state.tickNone || null, tickFb: !!state.tickFb, tfAuto: !!state.tfAuto,
     drawKey: kchart && kchart.draw ? kchart.draw.key : null,
     shapes: kchart && kchart.draw ? kchart.draw.shapes.length : -1,
     hasChart: !!kchart, w: drawW, fill: drawFill,

@@ -6693,32 +6693,29 @@ def t_stock(pg, base, code):
                  w: Math.round(e.getBoundingClientRect().width) }; }""")
     ok("K 線圖高度佔視窗一半以上", kh["h"] > kh["vh"] * 0.5, kh)
 
-    # --- 寬版是預設（Andy：「K 線圖 default 就大一點」）：第一次進來就該是寬的
+    # --- 寬版固定（Andy 2026-09-28：「K線圖上的紅框 "寬版" 拿掉」）
+    #   改前：工具列有「⤢ 寬版」切換鈕，按一次退出寬版（事件欄回來、存 tw.kwide='0'），再按回寬版。
+    #   改後：這顆鈕不存在；個股頁固定寬版版面（事件欄收起、K 線吃滿寬度），舊的 tw.kwide='0' 存檔也不再讀。
     S = """() => ({ w: Math.round(document.getElementById('lwc').getBoundingClientRect().width),
+        vw: document.documentElement.clientWidth,
         wide: document.body.classList.contains('kwide'),
         aside: !!document.querySelector('aside') && getComputedStyle(document.querySelector('aside')).display !== 'none',
-        saved: (() => { try { return localStorage.getItem('tw.kwide'); } catch (e) { return null; } })(),
+        btn: !!document.getElementById('wideBtn'),
+        btnTxt: [...document.querySelectorAll('#skTools button')].some(b => /寬版/.test(b.textContent)),
         canvas: document.querySelectorAll('#lwc canvas').length })"""
     d0 = pg.evaluate(S)
-    ok("沒設定過時，個股頁預設就是寬版", d0["wide"] and not d0["aside"], d0)
-    ok("預設寬版下 K 線圖有畫出來", d0["canvas"] > 0, d0)
-    # 按一次 → 退出寬版：圖變窄、事件欄回來、選擇要存起來
-    click(pg, "#wideBtn", 900)
-    d1 = pg.evaluate(S)
-    ok("按一次會退出寬版，K 線圖變窄", d1["w"] < d0["w"] - 100, f"{d0['w']} → {d1['w']}")
-    ok("退出寬版時右側事件欄回來", d1["aside"], d1)
-    ok("退出寬版的選擇有存起來", d1["saved"] == "0", d1["saved"])
-    ok("退出寬版後 K 線圖還在（沒有變空白）", d1["canvas"] > 0, d1)
-    # 換頁再回來要記得「我關掉了」
+    ok("寬版鈕不存在（#wideBtn 與任何寫著「寬版」的工具列鈕都沒有）", not d0["btn"] and not d0["btnTxt"], d0)
+    ok("個股頁維持寬版版面：body.kwide、右側事件欄收起", d0["wide"] and not d0["aside"], d0)
+    ok("K 線吃滿視窗寬度（≥ 視窗寬 80%）", d0["w"] >= d0["vw"] * 0.8, f"{d0['w']} / {d0['vw']}")
+    # 舊使用者：以前按過「關掉寬版」存了 tw.kwide='0' —— 不再讀，照樣是寬版
+    pg.evaluate("() => { try { localStorage.setItem('tw.kwide', '0'); } catch (e) {} }")
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
     ok("離開個股頁，事件欄一定在", pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display !== 'none'"))
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    ok("回個股頁記得「關掉寬版」的選擇", not pg.evaluate("() => document.body.classList.contains('kwide')"))
-    # 再按一次 → 回到寬版
-    click(pg, "#wideBtn", 900)
-    d2 = pg.evaluate(S)
-    ok("再按一次回到寬版，圖又變寬", d2["wide"] and d2["w"] > d1["w"] + 100, f"{d1['w']} → {d2['w']}")
-    ok("回到寬版時事件欄收起來", not d2["aside"], d2)
+    d1 = pg.evaluate(S)
+    ok("舊存檔 tw.kwide='0' 不再讀：回個股頁仍是寬版、事件欄收起", d1["wide"] and not d1["aside"], d1)
+    ok("寬版下 K 線圖有畫出來", d1["canvas"] > 0, d1)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kwide'); } catch (e) {} }")
 
     # --- K 棒寬度可調，而且預設就要寬一點（Andy：「K棒長度需要可以調整，default先長一點」）
     # ★ 2026-09-26 改前：按「⚙ 設定」開圖表設定面板 → 改後：打開「指標 ▾」下拉、展開最上面的「整體」列

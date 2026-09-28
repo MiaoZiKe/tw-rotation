@@ -1779,12 +1779,15 @@
     const run = () => {
       const k = q.value.trim().toUpperCase(), have = new Set(wGet());
       const hit = !k ? [] : all.filter(r => r.code.startsWith(k) || String(r.name || '').toUpperCase().includes(k)).slice(0, 8);
-      res.innerHTML = hit.map(r => `<li><button type="button" data-c="${esc(r.code)}" ${have.has(r.code) ? 'disabled' : ''}><span class="num">${esc(r.code)}</span><b>${esc(r.name)}</b><em>${have.has(r.code) ? '已在清單' : '＋ 加入'}</em></button></li>`).join('')
+      // 2026-09-28：名稱旁的迷你走勢跟頂欄搜尋下拉同一套（app.js sparkSVG；sparks.json 還沒到時先留空位，到了再重畫一次）
+      const spk = (c) => `<span class="spkw" data-spk="${esc(c)}">${A && A.sparkSVG ? A.sparkSVG(c) : ''}</span>`;
+      res.innerHTML = hit.map(r => `<li><button type="button" data-c="${esc(r.code)}" ${have.has(r.code) ? 'disabled' : ''}><span class="num">${esc(r.code)}</span><b>${esc(r.name)}</b>${spk(r.code)}<em>${have.has(r.code) ? '已在清單' : '＋ 加入'}</em></button></li>`).join('')
         || (k ? '<li class="mbwnone">找不到這個代號或名稱</li>' : '');
     };
     res.onclick = (e) => { const b = e.target.closest('button[data-c]'); if (!b || b.disabled) return; const a = wGet(); a.push(b.dataset.c); wSet(a); run(); };
     q.oninput = run;
     (A && A.load ? A.load('stocks', { fallback: [] }) : Promise.resolve([])).then(l => { all = (l || []).filter(r => r && r.code); run(); });
+    if (A && A.sparkLoad) A.sparkLoad().then(() => { if (q.value.trim()) run(); });
     setTimeout(() => { try { q.focus(); } catch (e) { /* 略 */ } }, 50);
   }
 
