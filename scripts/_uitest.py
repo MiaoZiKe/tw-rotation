@@ -18188,6 +18188,28 @@ def t_ov_right(pg, base):
     click(pg, '#ovFlowHead .howbtn.pop[data-how="ovflow"]', 450)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     ok("[總覽右欄] 按 Esc 也關", pg.evaluate("() => document.getElementById('how-ovflow').hidden"))
+    # ★ 2026-09-29 根因：標題圖示（icons.js）把 span.ticon 插成標題第一個子節點，howPop 讀 childNodes[0] 讀到空字 →
+    #   全站跳出式說明的標題都退成「說明」。改後 howTitle() 跳過圖示。這裡把總覽上「標題裡有圖示」的每一顆跳出式「?」
+    #   都真的點一次，彈窗標題要等於「?」前面那段標題字（不是「說明」、也不是空的）。
+    keys = pg.evaluate("""() => [...document.querySelectorAll('#v-overview .howbtn.pop[data-how]')]
+        .filter(b => b.getClientRects().length && !b.dataset.ttl && b.closest('h2,h3,h4,h5') && b.closest('h2,h3,h4,h5').querySelector('.ticon'))
+        .map(b => b.dataset.how)""")
+    bad_t = []
+    for k in keys:
+        pg.evaluate("() => window.scrollTo(0, 0)")
+        click(pg, f'#v-overview .howbtn.pop[data-how="{k}"]', 400)
+        r = pg.evaluate("""(k) => { const b = document.querySelector('#v-overview .howbtn.pop[data-how="' + k + '"]') || document.querySelector('.howbtn.pop[data-how="' + k + '"]');
+            const h = b && b.closest('h2,h3,h4,h5'); let want = '';
+            if (h) for (const n of h.childNodes) { if (n === b) break; if (n.nodeType === 1 && n.classList.contains('ticon')) continue;
+                const t = (n.textContent || '').trim(); if (t) { want = t; break; } }
+            const p = document.getElementById('howPop');
+            return { open: !!p && !p.hidden, ttl: p ? ((p.querySelector('.hp-h') || {}).textContent || '').trim() : '', want }; }""", k)
+        if not (r["open"] and r["ttl"] and r["ttl"] != "說明" and r["ttl"] == r["want"]):
+            bad_t.append((k, r))
+        if r["open"]:
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    ok(f"[總覽右欄] ★ 總覽每一顆有標題圖示的跳出式「?」，彈窗標題＝標題字（不是「說明」；共 {len(keys)} 顆）",
+       len(keys) >= 3 and not bad_t, bad_t[:4] or keys)
     # ★ 2026-09-26 改前→改後：起點節點、滑過提示、點族群不跳頁 —— 改前讀 ECharts 的 series／getItemGraphicEl，
     #   改後這張在桌機是 flowtopo 緊湊光纖版，改讀畫布探針＋真的用滑鼠滑過／點（_ovfx_checks，深淺主題各一輪）。
     for th in ("dark", "light"):
