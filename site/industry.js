@@ -4866,6 +4866,16 @@
   function extLegend(c, host, opt) {
     if (!c || !host || !host.isConnected) return;
     const o = opt || {};
+    /* 手機（≤640）不搬：這一批手機版面不動，DOM 要跟改前一模一樣（標題列裡連一個藏起來的圖例都不放）——
+       只把 option 裡關掉的 ECharts 圖例照改前打開。驗收「標題圖示」390 抓到標題列在加了圖示之後變高（44 → 84）。*/
+    if ((window.innerWidth || 1440) <= 640) {
+      const id0 = c.getDom().id, old = document.querySelector(`.chlegend[data-for="${id0}"]`);
+      if (old) old.remove();
+      delete extLegRec[id0];
+      c.setOption({ legend: { show: true, ...(o.fb || { top: 0, textStyle: { color: A.CH.ink2, fontSize: 12 } }) },
+        grid: { top: o.fbTop != null ? o.fbTop : 30 }, ...(o.fbOpt || {}) });
+      return;
+    }
     const dom = c.getDom(); const id = dom.id;
     const op = c.getOption();
     const lg = (op.legend || [])[0] || {};
@@ -6003,7 +6013,14 @@
     const body = `<div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
       ${hbox('skho', ['上方色塊＝圖例，按一下隱藏／顯示那一條', '千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
       <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${growing}${insNote}${chipTbl('hoTbl')}</div>`;
+    /* 設計 v4 2B：手機（≤640）三顆色塊維持改前的位置（標題列下面獨佔一列）—— 手機版面這一批不動。
+       chipPage 會先把 body 寫進去再畫圖，所以在第一次畫圖之前（draw 的最前面）搬一次就好。*/
+    let hoPlaced = false;
+    const hoPlace = () => { if (hoPlaced) return; hoPlaced = true;
+      if ((window.innerWidth || 1440) > 640) return;
+      const t = $('#hoTgls', el), hb = $('#how-skho', el); if (t && hb) hb.after(t); };
     const redraw = chipPage(pg, el, 'holders', body, (dates, win) => {
+      hoPlace();
       const { xCat, dayLbl, showLbl } = chipAxis(dates, win);
       const LINES = HO_LINES.filter(L => on.has(L.k));
       $$('#hoTgls .hoTgl', el).forEach(b => { const x = on.has(+b.dataset.k); b.classList.toggle('off', !x); b.setAttribute('aria-pressed', String(x)); });
