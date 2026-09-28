@@ -50,7 +50,7 @@
   const POLL_MS = 5000;             // 跟 mis 自己的 userDelay 一致
   const KEY = (d, c) => `tw.livek.${d}.${c}`;
   const MAX_TICKS = 3600;           // 5 秒 × 3600 ＝ 5 小時，蓋得住整個交易日
-  const MAX_FAILS = 3;
+  // （2026-09-29 起失敗改成退避，不再「連 3 次就停」，MAX_FAILS 拿掉；見 poll() 上面的註解）
   /* 由同一份 1 分 K（Yahoo）＋ 即時 tick 推出來的週期。
      Andy 2026-09-18：「1 5 15 分 K 都限制當天即可」—— 所以 15 分也放進來，
      不再由後端預先產出 60 天的 15 分 K（那是部署最慢的一塊，見 DECISIONS #156）。
@@ -180,31 +180,64 @@
     return 'tse_' + code + '.tw|otc_' + code + '.tw';
   }
 
+  /* ★ 2026-09-29：跟 live.js 共用同一批報價，不再各打各的。
+     改前：個股頁上 live.js 每分鐘打一次 /quote（含這一檔）、這裡每 5 秒再打一次同一檔 —— 同一檔問兩次。
+     改後：live.js 盤中也是每 5 秒一批（畫面上所有代號併成一個請求），這一檔一定在那一批裡，
+     所以這裡先看 Live.raw()：5.5 秒內有新鮮的那一列就直接用；沒有（live.js 那一輪失敗、或還沒跑到）
+     才自己打一次，而且要排 live.js 的節流閥（每 5 秒最多 3 個請求，見 live.js 檔頭）。
+     失敗也不再是「連 3 次就停」—— 那會讓分時尾巴整天不動 —— 改成跟 live.js 一樣退避（10、20、40…秒）。*/
+  const RAW_FRESH_MS = 5500;
+  const cardOn = () => !window.Live || !window.Live.cardOn || window.Live.cardOn('stock');
+  let nextTry = 0;                                  // 退避：這個時間之前不自己打端點
+  let lastRawAt = 0;                                // 上一次吃進來的那一列是什麼時候抓的（同一列不吃兩次）
+  function takeRaw() {
+    const r = window.Live && window.Live.raw ? window.Live.raw(state.code, RAW_FRESH_MS) : null;
+    if (!r) return false;
+    if (r.at <= lastRawAt) return true;             // 這一列已經吃過了，也不用自己再打
+    lastRawAt = r.at;
+    pushTick(r.m);
+    state.lastAt = Date.now(); state.lastErr = ''; state.fails = 0; nextTry = 0;
+    emit();
+    return true;
+  }
   async function poll() {
     if (state.busy || !state.code) return;
     if (document.hidden) return;                    // 背景分頁不要一直打端點
+    if (!cardOn()) return;                          // 個股卡的「即時」關著＝靜態
+    if (takeRaw()) return;                          // live.js 這一輪已經問過這一檔
+    if (Date.now() < nextTry) return;               // 退避中
     const base = proxy();
     if (!base) { state.lastErr = '還沒設定即時來源'; return; }
     state.busy = true;
     try {
       const url = base + '/quote?ex_ch=' + encodeURIComponent(exch(state.code, state.market));
+      if (window.Live && window.Live.slot) await window.Live.slot(0);
       const r = await fetch(url, { cache: 'no-store' });
       if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
       const j = await r.json();
       const m = (j.msgArray || [])[0];
       if (!m) throw new Error('沒有這一檔的報價');
       pushTick(m);
-      state.lastAt = Date.now(); state.lastErr = ''; state.fails = 0;
+      state.lastAt = Date.now(); state.lastErr = ''; state.fails = 0; nextTry = 0;
+      if (window.Live && window.Live.stampCard) window.Live.stampCard('stock', { at: state.lastAt });
       emit();
     } catch (e) {
       state.fails++;
       // 自己丟的錯（代理回 HTTP xxx、沒有這一檔的報價）本來就是中文；瀏覽器丟的英文換成人話
-      state.lastErr = /[\u4e00-\u9fff]/.test(String(e.message || '')) ? String(e.message).slice(0, 60) : zhErr(e).replace('Yahoo', '即時報價');
-      if (state.fails >= MAX_FAILS) stopTimer();     // 打不通就別一直洗 console
+      state.lastErr = /[一-鿿]/.test(String(e.message || '')) ? String(e.message).slice(0, 60) : zhErr(e).replace('Yahoo', '即時報價');
+      // 退避：5 秒 × 2ⁿ（10、20、40…秒），封頂 5 分鐘（打不通就別一直洗 console，但也不永久停）
+      nextTry = Date.now() + Math.min(5 * 60 * 1000, POLL_MS * Math.pow(2, state.fails));
     } finally {
       state.busy = false;
     }
   }
+  // live.js 那一批一回來就吃（不必等自己的 5 秒計時器，兩邊節奏才會對齊、不會慢半拍）
+  window.addEventListener('tw:live', () => { if (state.code && state.timer && cardOn()) takeRaw(); });
+  // 個股卡的「即時」開關：關＝停掉輪詢；開＝重新排上（盤中才排）
+  window.addEventListener('tw:livecard', (e) => {
+    if (!e.detail || e.detail.key !== 'stock' || !state.code) return;
+    if (e.detail.on) { startTimer(); poll(); } else stopTimer();
+  });
 
   /** 一筆報價 → 一個 tick。價格的退位順序跟 live.js 一致（z → trade.z → 買價 → 開盤 → 昨收）。 */
   function pushTick(m) {
@@ -463,8 +496,8 @@
   function stopTimer() { if (state.timer) { clearInterval(state.timer); state.timer = null; } }
   function startTimer() {
     stopTimer();
-    // 盤後不必每 5 秒問，數字不會再動了
-    if (!isIntraday()) return;
+    // 盤後不必每 5 秒問，數字不會再動了；個股卡的「即時」關著也不排（關＝靜態）
+    if (!isIntraday() || !cardOn()) return;
     state.timer = setInterval(poll, POLL_MS);
   }
 
@@ -479,6 +512,7 @@
       state.ticks = []; state.hist = []; state.histTried = false; state.histErr = ''; state.offTicks = null;
       state.histDone = false;
       state.prevClose = null; state.name = ''; state.fails = 0; state.lastErr = '';
+      lastRawAt = 0; nextTry = 0;                   // 換股票：上一檔吃過的那一列、退避時間都不算數
       load();
       startTimer();
       await poll();

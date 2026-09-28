@@ -55,6 +55,22 @@
  * 只更新「畫面上看得到的」（Andy 拍板）。做法是掃 DOM 上的 [data-lc]，
  * 有哪些代號就抓哪些，換一頁自然就換一組。全市場每分鐘既沒有意義
  * （資金輪動是族群層級的事），對官方端點也不禮貌。
+ *
+ * 2026-09-29：盤中從「每分鐘」改成「每 5 秒」＋ 每張卡片自己的「即時」開關
+ * ------------------------------------------------------------------------
+ * Andy：「即時…至少 5S 更新一次…可『即時』更新的圖表及數據多新增『即時』選項，
+ * 歷史過往數據就沒辦要新增更新」。改前實測（假時間＋假 Worker，量 32 秒）：
+ *   本檔報價 60 秒一次、大盤三張圖 10 秒、個股分 K 尾巴 5 秒、四個族群層級的即時模式 60 秒。
+ * 為什麼是 5 秒、不是更快：mis 自己的快照就是 5 秒一張（回應裡 userDelay=5000，DECISIONS #127），
+ * 問更密拿到的是同一張。為什麼 5 秒不會打爆來源，靠下面四道護欄（全部在這個檔案裡，其他模組共用）：
+ *   ① **一批查完**：畫面上所有代號＋各卡片登記的代號（Live.want）併成一個請求（上限 110 檔）。
+ *   ② **只查看得到的**：display:none 的分頁、關掉「即時」的卡片裡的代號不查。
+ *   ③ **節流閥 slot()**：這個分頁對 mis（/quote、/chart）**每 5 秒最多 3 個請求**，其他模組
+ *      （族群即時、大盤分時檔、個股分 K 備援）一律排隊過這一道。3 的來源：社群套件 twstock
+ *      文件寫的「證交所每 5 秒超過 3 個請求會被封 IP」（非官方、中信心，但寧可照它）。
+ *   ④ **錯誤退避**：連續失敗 n 次 → 間隔 5 秒 × 2ⁿ（10、20、40、80、160 秒，封頂 5 分鐘），
+ *      通了立刻回 5 秒；分頁切到背景完全不打（document.hidden），切回來補一輪。
+ * 盤後維持每 30 分鐘（數字不會再變）。
  */
 (function () {
   'use strict';
@@ -62,14 +78,24 @@
   const KEY_PROXY = 'tw.live.proxy';   // Worker 網址（不是密鑰，可以放 localStorage）
   const KEY_ON = 'tw.live.on';         // 自動更新開關
   const MAX_CODES = 110;               // 實測一個請求 120 檔 OK，留一點邊際
-  const MS_INTRADAY = 60 * 1000;       // 盤中：每分鐘
+  const MS_FAST = 5 * 1000;            // ★ 2026-09-29：盤中每 5 秒（＝mis 自己的 userDelay，見檔頭）
+  const MS_INTRADAY = MS_FAST;         // 盤中：每 5 秒（2026-09-29 以前是每分鐘）
   const MS_AFTER = 30 * 60 * 1000;     // 盤後：每 30 分鐘
   const STALE_MS = 3 * 60 * 1000;      // 超過這麼久沒成功就把狀態標成「停了」
-  // 連續失敗這麼多次就把自動輪詢**放慢**到 MS_SAFETY（5 分鐘）一次，成功就回到正常間隔。
-  // 理由有兩個：(1) 公司網路可能整個擋掉 Worker，一直重試只會洗版 console；
-  // (2) 打不通的端點每分鐘敲一次沒有意義。
-  // ★ 2026-09-24 以前是「關掉，等使用者按『更新』」—— 那顆鈕拿掉之後就等於永久停擺，所以改成放慢。
-  const MAX_FAILS = 3;
+  /* 錯誤退避（2026-09-29 改）：連續失敗 n 次 → 下一輪間隔 MS_FAST × 2ⁿ，封頂 BACKOFF_MAX。
+     改前是「連 3 次失敗 → 直接放慢到 5 分鐘」。5 秒一輪之後那樣太粗：
+     網路抖一下（失敗 1 次）就該 10 秒後再試，不是照樣 5 秒猛敲；
+     真的打不通（公司網路擋 workers.dev）也會在一分多鐘內退到 5 分鐘一次，不洗版 console。
+     ★ 2026-09-24 以前是「關掉，等使用者按『更新』」—— 那顆鈕拿掉之後就等於永久停擺，所以一律是退避不是停。*/
+  const BACKOFF_MAX = 5 * 60 * 1000;
+  const backoffMs = (n) => Math.min(BACKOFF_MAX, MS_FAST * Math.pow(2, Math.max(1, n)));
+  const MAX_FAILS = 3;                 // 連續失敗到這個次數，狀態列才用「連續抓不到」的警示字眼
+  /* ---- 節流閥（見檔頭 ③）：這個分頁對 mis 的請求，每 MIS_WINDOW_MS 最多 MIS_MAX 個。 */
+  const MIS_WINDOW_MS = 5000;
+  const MIS_MAX = 3;
+  /* meta.json（網站有沒有重新部署）不必跟著 5 秒一輪一起問 —— 部署一天才幾次，盤中一分鐘看一次就夠。*/
+  const META_EVERY_MS = 60 * 1000;
+  const KEY_CARD = (k) => 'tw.live.card.' + k;   // 每張卡片的「即時」開關（'0'＝關；沒設定＝開）
 
   // ---- SSE（伺服器推送）相關
   // 退避序列：斷了之後隔多久再試。從 1 秒開始翻倍到 30 秒封頂 ——
@@ -115,7 +141,30 @@
     sseWatch: null,      // 看門狗
     ssePaused: false,    // 分頁切到背景時暫停，不算失敗
     sseAt: 0,            // 最後一次收到推送的時間
+    // ---- 2026-09-29 每 5 秒＋卡片開關
+    raw: {},             // code -> { m: mis 原始那一列, at }：個股分 K（livek.js）與大盤卡（market3.js）直接吃這一份，不再各打一次
+    wants: {},           // 卡片登記「畫面上沒有 [data-lc]、但我要」的代號：key -> [code]
+    cardAt: {},          // 卡片 key -> 這張卡最後一次真的拿到新報價的時間（卡上那行「更新 HH:MM:SS」）
+    metaAt: 0,           // 上一次比對 meta.json 的時間（見 META_EVERY_MS）
+    reqs: 0,             // 驗收用：這個分頁總共打了幾次 /quote
   };
+  /* ---- 節流閥的狀態：最近 5 秒內發出去的請求時間戳，與排隊中的請求 */
+  const slotHist = [];
+  const slotQ = [];
+  let slotT = null;
+  /* ---- 其他模組的錯誤退避（2026-09-29 收尾補上）：key -> { n: 連續失敗次數, at: 最後一次失敗的時間 }
+     族群即時模式（漲跌家數 mud、輪動時鐘 rlv、資金去向 skl、族群頁 gp）與大盤卡的期貨報價（m3fut）
+     各自一個 key。改前它們失敗了照樣每 5 秒再打一次 —— 節流閥擋得住「5 秒超過 3 個」，
+     但擋不住「一直打一個已經壞掉的端點」。跟本檔主批次同一條曲線：10、20、40…秒，封頂 5 分鐘。*/
+  /* ⚠ at 記的是「那一輪開始抓的時間」（t0），不是失敗回來的時間：族群模式一輪要排節流閥、可能花好幾秒，
+     用失敗時間起算的話，5 秒一跳的計時器會把 10 秒量化成 15 秒（實測 15.2 秒）。
+     250ms 的寬容是給 setInterval 的抖動（第 10 秒那一跳可能早幾毫秒到）。*/
+  const cool = {};
+  function cooling(k) { const c = cool[k]; return !!c && c.n > 0 && Date.now() - c.at < backoffMs(c.n) - 250; }
+  function report(k, good, t0) {
+    if (good) { delete cool[k]; return; }
+    const c = cool[k] || { n: 0, at: 0 }; c.n++; c.at = t0 || Date.now(); cool[k] = c;
+  }
 
   const ls = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
@@ -146,20 +195,64 @@
   const intervalMs = () => (isIntraday() ? MS_INTRADAY : MS_AFTER);
 
   // ---------------------------------------------------------------- 代號
-  /** 掃畫面上有哪些代號要更新。這就是「只更新看得到的」的實作。 */
+  /* ---------------------------------------------------------------- 卡片的「即時」開關
+   * 一張卡片＝一個 key（'stock' 個股報價＋分時、'watch' 自選清單、'm3' 大盤三張圖）。
+   * 卡片的外框帶 data-livekey，裡面的 [data-live][data-lc] 就跟著那顆開關走：
+   * 關掉＝那些格子不查、不改，而且**退回頁面原本的靜態值**（盤後資料）。*/
+  const cardOn = (k) => ls.get(KEY_CARD(k), '1') !== '0';
+  const keyOf = (el) => { const c = el.closest && el.closest('[data-livekey]'); return c ? c.dataset.livekey : ''; };
+  /** 這個元素現在該不該被即時層動到：沒有歸屬卡片的照舊（一律跟著全站自動更新），有歸屬的看那張卡的開關。 */
+  const elOn = (el) => { const k = keyOf(el); return !k || cardOn(k); };
+  /** 看得到嗎。display:none 的分頁、收起來的面板 getClientRects() 是空的。
+   *  ★ 沒有 data-live 的純標記（例如總覽那個看不見的 [data-lc=t00]）不看可見度 —— 它本來就是「看不見但要抓」。*/
+  const visible = (el) => !el.dataset.live || el.getClientRects().length > 0;
+
+  /** 掃畫面上有哪些代號要更新。這就是「只更新看得到的」的實作。
+   *  ★ 2026-09-29：加上兩條 —— 看不見的格子不查、卡片「即時」關掉的不查；
+   *    再併進各卡片用 Live.want() 登記的代號（大盤卡要 t00／o00，畫面上沒有對應的格子）。*/
   function codesOnScreen() {
     const seen = [];
+    const add = (c) => { if (c && seen.indexOf(c) < 0) seen.push(c); };
+    Object.keys(state.wants).forEach(k => {
+      if (!cardOn(k)) return;
+      const w = state.wants[k];
+      let list = w;
+      if (typeof w === 'function') { try { list = w(); } catch (e) { list = []; } }
+      (list || []).forEach(add);
+    });
     document.querySelectorAll('[data-lc]').forEach(el => {
-      const c = el.dataset.lc;
-      if (c && seen.indexOf(c) < 0) seen.push(c);
+      if (!elOn(el) || !visible(el)) return;
+      add(el.dataset.lc);
     });
     return seen.slice(0, MAX_CODES);
   }
 
-  /** 代號 → mis 的 ex_ch。t00 是加權指數；其餘靠 stocks.json 分上市上櫃，
+  /* ---------------------------------------------------------------- 節流閥
+   * 這個分頁所有打到 mis 的請求（本檔的 /quote、族群即時模式借用的 fetchQuotes、
+   * market3.js 的 /chart、livek.js 的備援 /quote）都要先 await slot()。
+   * 5 秒內已經發了 3 個 → 排隊，等最舊那個滿 5 秒再放行。prio 越小越先（本檔的主批次是 0）。*/
+  function slotPump() {
+    const now = Date.now();
+    while (slotHist.length && now - slotHist[0] >= MIS_WINDOW_MS) slotHist.shift();
+    while (slotQ.length && slotHist.length < MIS_MAX) { slotHist.push(now); slotQ.shift().go(); }
+    if (slotQ.length && !slotT) {
+      const wait = Math.max(20, MIS_WINDOW_MS - (now - slotHist[0]) + 10);
+      slotT = setTimeout(() => { slotT = null; slotPump(); }, wait);
+    }
+  }
+  function slot(prio) {
+    return new Promise(go => {
+      slotQ.push({ prio: prio == null ? 1 : prio, t: Date.now(), go });
+      slotQ.sort((a, b) => a.prio - b.prio || a.t - b.t);
+      slotPump();
+    });
+  }
+
+  /** 代號 → mis 的 ex_ch。t00 是加權指數、o00 是櫃買指數；其餘靠 stocks.json 分上市上櫃，
    *  查不到就兩邊都要（多要一個不會錯，回應本來就只回有的那個）。 */
   function exch(code) {
     if (code === 't00') return ['tse_t00.tw'];
+    if (code === 'o00') return ['otc_o00.tw'];
     let mk = null;
     try {
       const A = window.App;
@@ -213,13 +306,16 @@
   }
 
   const FETCH_TIMEOUT_MS = 12000;   // 報價請求逾時
-  async function fetchQuotes(codes) {
+  /** 打一次 /quote。opts.prio：節流閥的優先序（本檔主批次 0；族群即時模式沒給＝2，排在後面）。 */
+  async function fetchQuotes(codes, opts) {
     const base = proxy();
     if (!base) throw new Error('還沒設定代理網址');
     if (!codes.length) return {};
     const ex = [];
     codes.forEach(c => exch(c).forEach(t => ex.push(t)));
     const url = base + '/quote?ex_ch=' + encodeURIComponent(ex.slice(0, MAX_CODES * 2).join('|'));
+    await slot(opts && opts.prio != null ? opts.prio : 2);
+    state.reqs++;
     // ★ 2026-09-24：加逾時。以前代理卡住時 fetch 永遠不回，即時模式就停在「更新中」不動。
     const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
     const tm = ctl ? setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS) : 0;
@@ -247,9 +343,10 @@
    *  解析各寫一套的話遲早會一邊對一邊錯（2026-09-15 那個「一直在跌」就是這樣來的）。 */
   function absorb(j) {
     const out = {};
+    const now = Date.now();
     ((j && j.msgArray) || []).forEach(m => {
       const q = normalise(m);
-      if (q.code) out[q.code] = q;
+      if (q.code) { out[q.code] = q; state.raw[q.code] = { m, at: now }; }
     });
     return out;
   }
@@ -435,7 +532,13 @@
     document.querySelectorAll('[data-live][data-lc]').forEach(el => {
       const q = state.quotes[el.dataset.lc];
       if (!q) return;
+      // ★ 2026-09-29：這張卡的「即時」關著就不動它（關掉＝靜態，見 setCard）
+      const key = keyOf(el);
+      if (key && !cardOn(key)) return;
+      if (key && q.at && (!state.cardAt[key] || q.at > state.cardAt[key])) state.cardAt[key] = q.at;
       const kind = el.dataset.live;
+      // 第一次改寫之前記下頁面原本的靜態值 —— 關掉「即時」時要退回它（盤後資料），不是停在最後一筆即時價
+      if (el.dataset.lst === undefined) { el.dataset.lst = el.textContent; el.dataset.lstc = el.className; }
       let txt = null;
       if (kind === 'close' || kind === 'idx') {
         txt = q.price == null ? '—' : f.n(q.price, kind === 'idx' ? 0 : 2);
@@ -476,8 +579,8 @@
     const intr = isIntraday();
     const way = state.mode === 'sse' ? '推送（SSE）'
       : !autoOn() ? '自動已關（這台瀏覽器的 localStorage 設了 tw.live.on=0）'
-        : state.slow ? '連續抓不到，改成每 5 分鐘重試（輪詢）'
-          : (intr ? '每分鐘（輪詢）' : '每 30 分（輪詢）');
+        : state.slow ? `連續 ${state.tries} 次抓不到，退避成每 ${secTxt(state.period)} 重試（輪詢）`
+          : (intr ? '每 5 秒（輪詢）' : '每 30 分（輪詢）');
     const how = state.mode === 'sse'
       ? '推送（SSE）：跟代理保持一條連線，值一變就送過來（約 5 秒）。'
       : (state.sseGaveUp
@@ -532,9 +635,13 @@
     state.busy = true; stamp();
     try {
       if (proxy() && codes.length) {
-        apply(await fetchQuotes(codes));
+        const got = await fetchQuotes(codes, { prio: 0 });
+        apply(got);
         state.lastOk = Date.now(); state.lastErr = ''; state.tries = 0;
         if (state.slow) { state.slow = false; reschedule(); }     // 通了 → 回到正常間隔
+        /* 通知吃同一批報價的模組（livek.js 個股分 K、market3.js 大盤卡）：
+           它們用 Live.raw() 拿原始那一列，不必各自再打一次 mis —— 這就是「一批查完」。*/
+        window.dispatchEvent(new CustomEvent('tw:live', { detail: { at: state.lastOk, codes: Object.keys(got) } }));
       } else if (!proxy()) {
         state.lastErr = '還沒設定代理網址';
       }
@@ -545,10 +652,12 @@
     } catch (e) {
       state.tries++;
       state.lastErr = String(e.message || e).slice(0, 60);
-      if (state.tries >= MAX_FAILS && autoOn()) {
-        // ★ 放慢，不是停掉（見 MAX_FAILS 的註解）
-        if (!state.slow) { state.slow = true; reschedule(); }
-        state.lastErr = `連續 ${state.tries} 次抓不到，改成每 5 分鐘自動重試：` + state.lastErr;
+      if (autoOn()) {
+        // ★ 退避，不是停掉（見 BACKOFF_MAX 的註解）：每失敗一次間隔翻倍，通了立刻回到 5 秒
+        state.slow = true; reschedule();
+        if (state.tries >= MAX_FAILS) {
+          state.lastErr = `連續 ${state.tries} 次抓不到，退避成每 ${secTxt(state.period)}自動重試：` + state.lastErr;
+        }
       }
     } finally {
       /* 靜態 JSON 有沒有換新版（Actions 重新部署過）。
@@ -558,8 +667,13 @@
          ★ 2026-09-24（R6 審查）：以前這一行寫在上面抓報價的同一個 try 裡 —— 報價一丟錯（公司網路擋 workers.dev、
            Worker 掛了）就整段跳過，「有新資料」鈕永遠不會出現、盤後也不會自動重新載入。
            它跟報價是兩件不相干的事，所以搬到 finally：報價成功或失敗都照樣檢查（它自己有 try，失敗不會往外丟）。*/
-      try { await reloadIfRedeployed(manual); } catch (e) { /* 自己有 try；這層只是保險 */ }
-      state.busy = false; stamp();
+      /* ★ 2026-09-29：盤中一輪變 5 秒之後，meta.json 不必每輪都問（部署一天才幾次）——
+         手動、盤後（本來就 30 分鐘一輪）照舊每輪都比對；盤中最多一分鐘一次。*/
+      if (manual || !isIntraday() || Date.now() - state.metaAt >= META_EVERY_MS) {
+        state.metaAt = Date.now();
+        try { await reloadIfRedeployed(manual); } catch (e) { /* 自己有 try；這層只是保險 */ }
+      }
+      state.busy = false; stamp(); stampCards();
     }
   }
 
@@ -586,10 +700,156 @@
   function reschedule() {
     if (state.timer) clearInterval(state.timer);
     // SSE 活著的時候不是把輪詢關掉，而是放慢到五分鐘一次當對帳（見 MS_SAFETY）。
-    const ms = (state.mode === 'sse' || state.slow) ? MS_SAFETY : intervalMs();
+    // 失敗中：退避（5 秒 × 2ⁿ，封頂 5 分鐘），但不會比平常的間隔更密（盤後本來就 30 分鐘）。
+    const ms = state.mode === 'sse' ? MS_SAFETY
+      : state.slow ? Math.max(intervalMs(), backoffMs(state.tries)) : intervalMs();
     state.period = autoOn() ? ms : 0;
     state.timer = autoOn() ? setInterval(() => tick(false), ms) : null;
     stamp();
+  }
+
+  // ---------------------------------------------------------------- 卡片的「即時」開關與更新時間（2026-09-29）
+  /* Andy：「可『即時』更新的圖表及數據多新增『即時』選項…回報多久會更新一次」。
+   * 每張有盤中來源的卡片上放一顆「即時」＋一行最後更新時間（台北）：
+   *   開（預設）＝盤中每 5 秒更新、盤後每 30 分鐘；關＝靜態（退回盤後資料、不再打端點）。
+   * 哪些卡片有、哪些沒有、為什麼 —— 見 DECISIONS #277。
+   *
+   * ★ 為什麼掛載寫在這裡、不寫進各頁的 render：
+   *   各頁（industry.js／watchpage.js／watchlists.js／market3.js／mobile3.js）的 render 會整塊 innerHTML 重畫，
+   *   開關跟著被洗掉；在這裡用一張表＋MutationObserver 自動補回去，開關的長相、狀態、更新時間只有一份實作。*/
+  const TPE_HMS = (() => {
+    try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }); }
+    catch (e) { return null; }
+  })();
+  /** 台北時間 HH:MM:SS（使用者電腦不一定在台北）。 */
+  const hms = (ms) => TPE_HMS ? TPE_HMS.format(new Date(ms)) : new Date(ms).toTimeString().slice(0, 8);
+  function secTxt(ms) { return ms >= 60000 ? Math.round(ms / 60000) + ' 分鐘' : Math.round(ms / 1000) + ' 秒'; }
+
+  const cardMeta = {};   // 不走本檔報價的卡片（大盤三張圖）自己回報：key -> { at, err, every }
+  /* 掛載表：key＝開關的名字；card＝卡片外框（帶 data-livekey，裡面的 [data-lc] 都歸它管）；
+     at＝開關插在誰旁邊（沒有 at＝只標歸屬、不放鈕：手機總覽那條橫向自選清單放不下，開關在 #watch 頁）。*/
+  const MOUNTS = [
+    { key: 'stock', card: '#skChartCard', at: '#skPx [data-live="chg"]', pos: 'after' },
+    { key: 'stock', card: '#mbHead', at: '#mbStar', pos: 'before', cls: 'mb' },
+    { key: 'watch', card: '.wpcard', at: '.wphd .sp', pos: 'before' },
+    { key: 'watch', card: '#wlPanel', at: '.wlhd .wlx', pos: 'before' },
+    { key: 'watch', card: '#mbWatch' },
+    { key: 'm3', card: '#m3Frame', at: '.m3-bar .howbtn[data-how="m3"]', pos: 'after' },
+  ];
+  const TG_NAME = { stock: '個股報價與分時', watch: '自選清單', m3: '大盤三張圖' };
+
+  function injectCss() {
+    if (document.getElementById('liveTgCss')) return;
+    const st = document.createElement('style');
+    st.id = 'liveTgCss';
+    /* 顏色一律走主題變數（v4 三主題 × 深淺自動換色）；字級 ≥ 11px（手機驗收的下限）。*/
+    st.textContent = `
+.livetg{display:inline-flex;align-items:center;gap:5px;flex:none;vertical-align:middle;margin-left:8px;white-space:nowrap}
+.livetg-b{font:inherit;font-size:12px;line-height:1;min-height:24px;padding:0 9px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.livetg-b::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.45}
+.livetg-b[aria-pressed="true"]{border-color:var(--rise);color:var(--rise)}
+.livetg-b[aria-pressed="true"]::before{opacity:1}
+.livetg-t{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.livetg.bad .livetg-t,.livetg.stale .livetg-t{color:var(--amber,var(--ink-2))}
+.livetg.mb{margin:0;align-self:stretch}
+.livetg.mb .livetg-b{flex-direction:column;justify-content:center;gap:2px;border-radius:0;border:0;border-left:1px solid var(--line);min-height:44px;padding:0 8px;font-size:12px}
+.livetg.mb .livetg-b::before{display:none}
+.livetg.mb .livetg-t{font-size:11px}
+.livetg.mb .livetg-b[aria-pressed="true"] .livetg-l::before{content:'● '}
+`;
+    document.head.appendChild(st);
+  }
+
+  function makeToggle(key, cls) {
+    const w = document.createElement('span');
+    w.className = 'livetg' + (cls ? ' ' + cls : '');
+    w.dataset.livekey = key;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'livetg-b';
+    const t = document.createElement('span'); t.className = 'livetg-t';
+    if (cls === 'mb') {
+      // 手機：一顆 44px 高的鈕，上面「即時」、下面時間（放在分頁列 ☆ 左邊，不讓報價列變高）
+      const l = document.createElement('span'); l.className = 'livetg-l'; l.textContent = '即時';
+      b.appendChild(l); b.appendChild(t);
+    } else {
+      b.textContent = '即時';
+      w.appendChild(b); w.appendChild(t);
+    }
+    if (cls === 'mb') w.appendChild(b);
+    b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); setCard(key, !cardOn(key)); });
+    return w;
+  }
+
+  function mountAll() {
+    MOUNTS.forEach(sp => {
+      document.querySelectorAll(sp.card).forEach(card => {
+        if (card.dataset.livekey !== sp.key) card.dataset.livekey = sp.key;
+        if (!sp.at || card.querySelector('.livetg')) return;
+        const a = card.querySelector(sp.at);
+        if (!a || !a.parentNode) return;
+        const tg = makeToggle(sp.key, sp.cls);
+        if (sp.pos === 'before') a.parentNode.insertBefore(tg, a);
+        else a.parentNode.insertBefore(tg, a.nextSibling);
+      });
+    });
+    stampCards();
+  }
+
+  /** 把每一顆開關的狀態與「最後更新時間」寫上去。每一輪報價、每次開關、每次掛載都會叫。 */
+  function stampCards() {
+    const intr = isIntraday();
+    document.querySelectorAll('.livetg[data-livekey]').forEach(w => {
+      const k = w.dataset.livekey, on = cardOn(k), meta = cardMeta[k] || {};
+      const b = w.querySelector('.livetg-b'), t = w.querySelector('.livetg-t');
+      if (!b || !t) return;
+      const at = Math.max(state.cardAt[k] || 0, meta.at || 0);
+      const every = meta.every || (intr ? MS_FAST : MS_AFTER);
+      const name = TG_NAME[k] || '這張卡';
+      const err = meta.err || ((k === 'stock' || k === 'watch') && state.slow ? state.lastErr : '');
+      let txt, tip, cls = '';
+      if (!on) {
+        txt = '靜態'; cls = 'off';
+        tip = `${name}：即時已關，停在盤後資料、不再打報價端點。\n按一下打開＝盤中每 5 秒更新、盤後每 30 分鐘。`;
+      } else if (!at && err) {
+        txt = '重試中'; cls = 'bad';
+        tip = `${name}：還沒拿到即時報價（${err}）。失敗會自動退避重試（10、20、40…秒，最慢 5 分鐘一次）。`;
+      } else if (!at) {
+        txt = '—';
+        tip = `${name}：即時開著，還沒拿到第一筆報價。`;
+      } else {
+        const stale = Date.now() - at > Math.max(every * 3, 20000);
+        txt = hms(at) + (intr ? ' · 5秒' : ' · 盤後');
+        cls = err ? 'bad' : (stale ? 'stale' : '');
+        tip = `${name}：最後更新 ${hms(at)}（台北時間）\n`
+          + (intr ? '盤中每 5 秒更新一次（證交所報價本身就是 5 秒一張快照）' : '現在不是盤中（現貨 09:00–13:30），盤後每 30 分鐘對一次')
+          + (err ? `\n上一次抓失敗：${err}（自動退避重試中）` : '')
+          + (stale && !err ? '\n⚠ 已經超過平常間隔很久沒有新資料' : '')
+          + '\n按一下關掉＝靜態（退回盤後資料）。';
+      }
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.title = tip;
+      b.setAttribute('aria-label', `${name}即時更新：${on ? '開' : '關'}`);
+      if (t.textContent !== txt) t.textContent = txt;
+      t.title = tip;
+      w.classList.toggle('off', cls === 'off');
+      w.classList.toggle('bad', cls === 'bad');
+      w.classList.toggle('stale', cls === 'stale');
+    });
+  }
+
+  /** 開／關一張卡的即時。關＝那張卡裡被即時層改過的格子退回原本的靜態值。 */
+  function setCard(k, on) {
+    ls.set(KEY_CARD(k), on ? '1' : '0');
+    if (!on) {
+      document.querySelectorAll('[data-live][data-lc]').forEach(el => {
+        if (keyOf(el) !== k || el.dataset.lst === undefined) return;
+        el.textContent = el.dataset.lst; el.className = el.dataset.lstc || el.className;
+        delete el.dataset.lst; delete el.dataset.lstc;
+      });
+    }
+    try { window.dispatchEvent(new CustomEvent('tw:livecard', { detail: { key: k, on } })); } catch (e) { /* 舊瀏覽器 */ }
+    stampCards();
+    if (on) setTimeout(() => tick(false), 0);    // 打開就馬上抓一輪，不要等下一個 5 秒
   }
 
   // ---------------------------------------------------------------- 設定面板
@@ -615,12 +875,47 @@
     MAX_CODES,
     get quotes() { return state.quotes; },
     get timerOn() { return !!state.timer; },   // 驗收用：自動更新到底有沒有在跑
-    get periodMs() { return state.period; },   // 驗收用：計時器排的間隔（盤中 60000／盤後 1800000／放慢 300000）
+    get periodMs() { return state.period; },   // 驗收用：計時器排的間隔（盤中 5000／盤後 1800000／退避 10000～300000）
     get mode() { return state.mode; },         // 驗收用：現在真的走推送還是輪詢
     get streamOn() { return !!state.es && state.mode === 'sse'; },
     get sseGaveUp() { return state.sseGaveUp; },
+    get busy() { return state.busy; },
+    get tries() { return state.tries; },       // 驗收用：連續失敗幾次（退避的依據）
+    get reqs() { return state.reqs; },         // 驗收用：這個分頁總共打了幾次 /quote
     isIntraday,
+    /* ---- 2026-09-29：每 5 秒＋卡片開關，給其他模組共用的介面 ---- */
+    FAST_MS: MS_FAST,                          // 盤中節奏（族群即時模式、大盤卡、個股分 K 都用這一個數字）
+    intervalMs,                                // 現在該用的間隔（盤中 5 秒／盤後 30 分鐘）
+    /** 族群即時模式的計時器是固定 5 秒一跳；這支判斷「這一跳該不該真的去抓」：
+     *  盤中一律要；盤後只有「還沒抓過」或「上次已經超過 30 分鐘」才抓 —— 盤後數字不會動，5 秒一跳是白打。*/
+    due(lastAt) { return isIntraday() || !lastAt || Date.now() - lastAt >= MS_AFTER; },
+    slot,                                      // 節流閥：打 mis 之前 await Live.slot(prio)
+    /** 其他模組的錯誤退避：`if (Live.cooling('mud')) return;` 抓之前問；抓完 `Live.report('mud', 成功與否, 這一輪開始的時間)`。
+     *  使用者重新打開即時時 `Live.report(key, true)` 清掉，第一輪不必等退避。*/
+    cooling, report,
+    get coolStats() { const o = {}; Object.keys(cool).forEach(k => { o[k] = { n: cool[k].n, waitMs: backoffMs(cool[k].n) }; }); return o; },
+    get slotStats() { const now = Date.now(); return { recent: slotHist.filter(t => now - t < MIS_WINDOW_MS).length, queued: slotQ.length, max: MIS_MAX, windowMs: MIS_WINDOW_MS }; },
+    cardOn, setCard, stampCards, mountAll, hms,
+    /** 卡片登記「畫面上沒有格子、但我要」的代號（大盤卡登記 t00／o00）。
+     *  codes 可以是陣列，或每一輪才問的函式（回陣列；看不到那張卡時回 []）。給 null／空陣列＝撤銷。 */
+    want(key, codes) {
+      if (typeof codes === 'function') state.wants[key] = codes;
+      else if (codes && codes.length) state.wants[key] = codes.slice();
+      else delete state.wants[key];
+    },
+    /** mis 原始那一列（maxAge 毫秒內才回；沒有就 null）。個股分 K 與大盤卡用它，不另外打端點。 */
+    raw(code, maxAge) { const r = state.raw[code]; return r && (!maxAge || Date.now() - r.at <= maxAge) ? r : null; },
+    /** 不走本檔報價的卡片回報自己的更新時間／錯誤（大盤三張圖）。 */
+    stampCard(key, meta) { cardMeta[key] = Object.assign({}, cardMeta[key] || {}, meta || {}); stampCards(); },
     start() {
+      /* ★ 2026-09-29：卡片的「即時」開關自動掛載（各頁 render 重畫後自動補回，見 mountAll 的註解）。*/
+      injectCss();
+      mountAll();
+      try {
+        let mt = null;
+        new MutationObserver(() => { if (mt) return; mt = setTimeout(() => { mt = null; mountAll(); }, 150); })
+          .observe(document.body, { childList: true, subtree: true });
+      } catch (e) { /* 沒有 MutationObserver 的瀏覽器：換頁時 hashchange 那一輪仍會掛 */ }
       /* ★ 2026-09-24：「更新」鈕與 ⚙ 設定面板拿掉了，這裡不再綁它們。
          狀態那顆只有在「有新資料」時可以點（重新載入），平常點了什麼都不做。
          ⚠ 每一個 getElementById 都要容忍拿到 null —— 版面以後再拿掉什麼，這裡都不准丟例外。*/
@@ -647,7 +942,7 @@
       });
       // 換頁之後畫面上的代號就換了一批，重抓一次讓新的那批也有即時價，
       // 並且把 SSE 的訂閱換成新的那一組（不換的話新頁面的格子永遠不會動）
-      window.addEventListener('hashchange', () => setTimeout(() => { tick(false); syncStream(); }, 800));
+      window.addEventListener('hashchange', () => setTimeout(() => { mountAll(); tick(false); syncStream(); }, 800));
       window.addEventListener('pagehide', () => closeStream(true));
       tick(false);
       openStream();

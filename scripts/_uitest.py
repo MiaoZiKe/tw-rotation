@@ -9460,6 +9460,9 @@ IV_RECORDER = """(() => { if (window.__iv) return; window.__iv = [];
 # 找出 live.js 那一顆（回呼是 `() => tick(false)`、間隔等於 Live.periodMs、還沒被清掉），真的呼叫它一次。
 IV_FIRE_LIVE = """(ms) => { const r = (window.__iv || []).filter(x => !x.cleared && x.ms === ms
     && /tick\\(false\\)/.test(x.src)); r.forEach(x => x.fn()); return r.length; }"""
+# ★ 2026-09-29：live.js 加了節流閥（每 5 秒最多 3 個請求，見 site/live.js 檔頭），
+#   連續觸發時請求可能排隊最多 5 秒 —— 觸發之後要等「那一輪真的跑完」（Live.busy 變回 false），不能固定等幾百毫秒。
+LIVE_IDLE = "() => !window.Live || !window.Live.busy"
 
 
 def t_live(pg, base):
@@ -9548,7 +9551,8 @@ def t_live(pg, base):
     per = lp.evaluate("() => window.Live.periodMs")
     ok("自動更新計時器真的在跑（沒有手動鈕之後，這是唯一的更新來源）",
        lp.evaluate("() => window.Live.timerOn === true"))
-    ok("間隔對：盤中每分鐘、盤後每 30 分鐘", per == (60000 if intr else 1800000), {"盤中": intr, "間隔": per})
+    # ★ 2026-09-29 改口徑（Andy：「即時…至少 5S 更新一次」）：盤中 60000 → 5000；盤後維持 30 分鐘
+    ok("間隔對：盤中每 5 秒、盤後每 30 分鐘", per == (5000 if intr else 1800000), {"盤中": intr, "間隔": per})
     ok("瀏覽器裡真的排了一顆這個間隔的計時器（不是只有旗標）",
        lp.evaluate("(ms) => (window.__iv || []).filter(x => !x.cleared && x.ms === ms"
                    " && /tick\\(false\\)/.test(x.src)).length", per) == 1, per)
@@ -9560,7 +9564,7 @@ def t_live(pg, base):
     # 設定面板沒了，本機測試改從 localStorage 指向假的 Worker（proxy() 每一輪都重讀）
     lp.evaluate("() => { try { localStorage.setItem('tw.live.proxy', 'https://fake-worker.test'); } catch (e) {} }")
     fired = lp.evaluate(IV_FIRE_LIVE, per)
-    lp.wait_for_timeout(1500)
+    wait_until(lp, LIVE_IDLE, 8000); lp.wait_for_timeout(500)
     after_px, after_chg = text(lp, SEL_PX), text(lp, SEL_CHG)
     ok("找得到 live.js 自己排的那顆計時器來觸發", fired == 1, fired)
     changed("計時器走一輪，收盤價真的換成即時價", before_px, after_px)
@@ -9574,7 +9578,7 @@ def t_live(pg, base):
     # --- 4b. 再走一輪：換個價格，看它跟不跟（證明不是只抓第一次）
     fake["z"], fake["t"] = "888.0000", "12:34:56"
     lp.evaluate(IV_FIRE_LIVE, per)
-    lp.wait_for_timeout(1500)
+    wait_until(lp, LIVE_IDLE, 8000); lp.wait_for_timeout(500)
     again_px = text(lp, SEL_PX)
     changed("計時器再走一輪，畫面真的又換了一次", after_px, again_px)
     ok("顯示的是新抓到的價格（888）", "888" in again_px, again_px)
@@ -9589,27 +9593,30 @@ def t_live(pg, base):
     st, tt = text(lp, "#liveState"), lp.evaluate(TITLE)
     ok("狀態那顆畫面上只顯示報價時間（12:34）", st == "12:34", st)
     ok("「即時／收盤」搬進提示", ("即時 12:34" in tt) if intr else ("收盤 12:34" in tt), tt)
-    ok("「每分鐘（輪詢）／每 30 分（輪詢）」搬進提示", ("每分鐘（輪詢）" if intr else "每 30 分（輪詢）") in tt, tt)
+    ok("「每 5 秒（輪詢）／每 30 分（輪詢）」搬進提示", ("每 5 秒（輪詢）" if intr else "每 30 分（輪詢）") in tt, tt)
     ok("走輪詢還是推送也寫在提示裡", "輪詢" in tt, tt)
     ok("盤中／收盤的顏色分得出來（只剩時間之後靠顏色一眼看）",
        ("live" if intr else "ok") in lp.evaluate("() => document.getElementById('liveState').className"),
        lp.evaluate("() => document.getElementById('liveState').className"))
 
     # --- 7. ★ 連續抓不到 **不准** 把自動更新停掉（以前會停、等人按「更新」—— 那顆鈕沒了）
+    # ★ 2026-09-29 改口徑：失敗改成「退避」（5 秒 × 2ⁿ：10、20、40…秒，封頂 5 分鐘；盤後本來就 30 分鐘，不會更密）。
+    #   每失敗一次計時器就重排一次，所以每一輪都要觸發「現在排著的那一顆」（間隔會變）。
     fake["fail"] = True
     for _ in range(3):
-        lp.evaluate(IV_FIRE_LIVE, per)
-        lp.wait_for_timeout(700)
-    slow = lp.evaluate("() => ({ on: window.Live.timerOn, ms: window.Live.periodMs })")
+        lp.evaluate(IV_FIRE_LIVE, lp.evaluate("() => window.Live.periodMs"))
+        wait_until(lp, LIVE_IDLE, 8000); lp.wait_for_timeout(200)
+    slow = lp.evaluate("() => ({ on: window.Live.timerOn, ms: window.Live.periodMs, tries: window.Live.tries })")
     tt_bad = lp.evaluate(TITLE)
-    ok("★ 連續失敗三次後自動更新**還在跑**（放慢，不是停掉）", slow["on"] is True, slow)
-    ok("放慢到每 5 分鐘重試一次（不洗版、也不停）", slow["ms"] == 300000, slow)
-    ok("提示裡講得出「連續抓不到、改成每 5 分鐘重試」", "5 分鐘" in tt_bad, tt_bad[:120])
+    ok("★ 連續失敗三次後自動更新**還在跑**（退避，不是停掉）", slow["on"] is True, slow)
+    ok("退避到 40 秒（盤中 5→10→20→40）；盤後維持 30 分鐘（不會比平常更密）",
+       slow["ms"] == (40000 if intr else 1800000) and slow["tries"] == 3, slow)
+    ok("提示裡講得出「連續抓不到、退避重試」", "退避" in tt_bad, tt_bad[:160])
     fake["fail"], fake["z"], fake["t"] = False, "777.0000", "12:40:01"
-    lp.evaluate(IV_FIRE_LIVE, 300000)
-    lp.wait_for_timeout(1500)
+    lp.evaluate(IV_FIRE_LIVE, slow["ms"])
+    wait_until(lp, LIVE_IDLE, 8000); lp.wait_for_timeout(500)
     ok("通了之後畫面真的換成新價格（777）", "777" in text(lp, SEL_PX), text(lp, SEL_PX))
-    ok("通了之後間隔回到正常（盤中每分鐘／盤後每 30 分）",
+    ok("通了之後間隔回到正常（盤中每 5 秒／盤後每 30 分）",
        lp.evaluate("() => window.Live.periodMs") == per, lp.evaluate("() => window.Live.periodMs"))
 
     # --- 8. 「有新資料」那條路：以前是按「更新」載入，現在
@@ -16627,12 +16634,370 @@ def t_title_icons(pg, b, base, code):
     dg_set_theme(pg, "dark", 1200)
 
 
+# ===================================================================== 即時 5 秒（2026-09-29）
+# Andy：「即時…至少 5S 更新一次…回報多久會更新一次…可『即時』更新的圖表及數據多新增『即時』選項，
+#        歷史過往數據就沒辦要新增更新」。
+# ★ 現在是深夜，驗不到真的盤中 —— 這一段**全部用假時間＋假報價**：
+#   pg.clock.install() 把頁面時鐘釘在台北 2026-09-29（二）10:30（時間照常往前走，計時器是真的 5 秒），
+#   Worker 的 /quote、/chart、/fut 全部攔下來回自己編的數字（每一次請求數字都 +1）。
+#   **不代表在真盤中驗過**；真盤中要等 Andy 開盤時看卡上的「HH:MM:SS · 5秒」有沒有每 5 秒跳。
+# 驗的全是「畫面真的因此改變了」：
+#   ① 開著即時：5～6 秒內數字真的換了，而且再換一次（不是只抓第一次）
+#   ② 關掉：數字退回盤後靜態值、之後 11 秒一個請求都沒有、數字不再動；重新整理之後仍是關的
+#   ③ 分頁隱藏：11 秒內一個請求都沒有；切回來馬上補一輪
+#   ④ 錯誤：失敗間隔真的拉長（10 秒、20 秒），卡上標成警示；通了回到 5 秒
+#   ⑤ 節流閥：任何 5 秒內打到 mis（/quote＋/chart）的請求不超過 3 個
+#   ⑥ 只有盤中來源的卡片有開關：季節性等歷史資料頁一顆都沒有；盤後節奏維持 30 分鐘
+LV5_INTRA = "2026-09-29T02:30:00Z"      # 台北 10:30（盤中）
+LV5_AFTER = "2026-09-29T12:30:00Z"      # 台北 20:30（盤後）
+
+
+def t_live5s_0929(b, base, code):
+    import json as _json
+    import time as _time
+    from urllib.parse import urlparse, parse_qs
+
+    code = "2330"   # 報價列一定有的權值股（假報價不管哪一檔都會回，用固定一檔讓斷言好讀）
+    S = {"k": 0, "fk": 0, "fail": False, "log": []}
+
+    def hhmmss(sec):
+        sec = 10 * 3600 + 30 * 60 + sec
+        return "%02d:%02d:%02d" % (sec // 3600, sec // 60 % 60, sec % 60)
+
+    def fake_quote(route):
+        S["log"].append((_time.time(), "/quote"))
+        if S["fail"]:
+            route.fulfill(status=502, content_type="application/json", body='{"error":"upstream failed"}'); return
+        S["k"] += 1; k = S["k"]
+        ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+        arr = []
+        for tok in [t for t in ex.split("|") if t]:
+            try:
+                c = tok.split("_", 1)[1].split(".")[0]
+            except IndexError:
+                continue
+            if c == "t00":
+                z, y = 20100 + k, 20000
+            elif c == "o00":
+                z, y = 300 + k / 10, 299
+            else:
+                z, y = 1000 + k, 990
+            arr.append({"c": c, "n": "測試" + c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y:.2f}", "o": f"{y:.2f}",
+                        "h": f"{z + 5:.2f}", "l": f"{y - 5:.2f}", "v": str(10000 + k * 10), "t": hhmmss(5 * k), "d": "20260929",
+                        "tlong": str(int(_time.time() * 1000))})
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+
+    def fake_chart(route):
+        S["log"].append((_time.time(), "/chart"))
+        cid = (parse_qs(urlparse(route.request.url).query).get("id") or ["TSE"])[0]
+        base_v = {"TSE": 20000.0, "OTC": 299.0, "FUT": 20000.0}.get(cid, 100.0)
+        t0 = 1790643660000          # 2026-09-29 09:01 台北（UTC 01:01）
+        pts = [{"t": str(t0 + i * 60000), "ts": "%02d%02d00" % ((541 + i) // 60, (541 + i) % 60),
+                "c": f"{base_v + i * 0.5:.2f}", "s": "100"} for i in range(90)]      # 09:01～10:30
+        info = {"n": cid, "d": "20260929", "t": "10:30:00", "y": f"{base_v:.2f}", "o": f"{base_v:.2f}",
+                "h": f"{base_v + 60:.2f}", "l": f"{base_v - 5:.2f}", "z": f"{base_v + 44.5:.2f}", "v": "300000"}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"infoArray": [info], "ohlcArray": pts, "staticObj": {"tv": "123456"}}))
+
+    def fake_fut(route):
+        S["log"].append((_time.time(), "/fut"))
+        S["fk"] += 1; k = S["fk"]
+        q = {"SymbolID": "TXFJ6-F", "DispCName": "臺指期", "CLastPrice": str(20150 + k), "CRefPrice": "20000",
+             "COpenPrice": "20010", "CHighPrice": str(20300 + k), "CLowPrice": "19990", "CTotalVolume": "50000",
+             "OpenInterest": "80000", "CTime": hhmmss(5 * k).replace(":", ""), "CDate": "20260929"}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"RtCode": "0", "RtData": {"QuoteList": [q]}}))
+
+    def other(route):
+        S["log"].append((_time.time(), urlparse(route.request.url).path))
+        route.fulfill(status=404, content_type="application/json", body='{"error":"not found"}')
+
+    def open_page(clock, route, vp=None, mobile=False):
+        kw = {"viewport": vp or {"width": 1440, "height": 1000}, "timezone_id": "Asia/Taipei"}
+        if mobile:
+            kw.update(is_mobile=True, has_touch=True)
+        ctx = b.new_context(**kw)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"即時5秒0929 pageerror: {str(e)[:160]}"))
+        pg.clock.install(time=clock)            # ★ 一定要在 goto 之前
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("https://fake-worker.test/**", other)          # 先掛：後掛的優先，下面三支蓋過它
+        pg.route("https://fake-worker.test/quote?*", fake_quote)
+        pg.route("https://fake-worker.test/chart?*", fake_chart)
+        pg.route("https://fake-worker.test/fut?*", fake_fut)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("""() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch (e) {} }""")
+        pg.goto("about:blank")
+        pg.goto(base + "#" + route, wait_until="load")
+        pg.wait_for_timeout(2500)
+        return ctx, pg
+
+    def reqs(since, paths=None):
+        return [(t, p) for t, p in S["log"] if t >= since and (paths is None or p in paths)]
+
+    def max_in_window(since, paths=("/quote", "/chart"), win=4.8):
+        ts = sorted(t for t, p in reqs(since, paths))
+        best = 0
+        for i, t in enumerate(ts):
+            best = max(best, sum(1 for u in ts[i:] if u - t < win))
+        return best
+
+    def changes_within(pg, sel, ms=6500):
+        """等 sel 的字變掉；回傳 (前, 後, 花了幾秒)。沒變就回 (前, 前, None)。"""
+        before = pg.evaluate(f"() => {{ const e = document.querySelector({sel!r}); return e ? e.textContent.trim() : '<缺>'; }}")
+        t0 = _time.time()
+        try:
+            pg.wait_for_function("([s, v]) => { const e = document.querySelector(s); return e && e.textContent.trim() !== v; }",
+                                 arg=[sel, before], timeout=ms, polling=150)
+        except Exception:
+            return before, before, None
+        after = pg.evaluate(f"() => document.querySelector({sel!r}).textContent.trim()")
+        return before, after, round(_time.time() - t0, 2)
+
+    HIDE = """(h) => { if (h) { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+                              Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); }
+                       else { delete document.hidden; delete document.visibilityState; }
+                       document.dispatchEvent(new Event('visibilitychange')); }"""
+    TG = "document.querySelector('.livetg[data-livekey=\"%s\"]')"
+
+    # ------------------------------------------------------------------ A. 個股頁（桌機 1440，盤中）
+    ctx, pg = open_page(LV5_INTRA, f"stock/{code}")
+    wait_until(pg, "() => !!document.getElementById('pxNow') && !!document.querySelector('.livetg[data-livekey=\"stock\"]')", 10000)
+    st = pg.evaluate("() => ({ intra: window.Live.isIntraday(), per: window.Live.periodMs, n: document.querySelectorAll('.livetg').length,"
+                     " inPx: !!document.querySelector('#skPx .livetg[data-livekey=\"stock\"]'),"
+                     " pressed: (%s || {querySelector(){return null}}).querySelector('.livetg-b').getAttribute('aria-pressed') })" % (TG % "stock"))
+    ok("[即時5秒] 假時鐘真的在盤中（台北 10:30）", st["intra"] is True, st)
+    ok("★ [即時5秒] 盤中計時器排的是每 5 秒（改前 60 秒）", st["per"] == 5000, st)
+    ok("[即時5秒] 個股報價列有一顆「即時」開關，而且預設是開的", st["inPx"] and st["pressed"] == "true", st)
+    ok("[即時5秒] 個股頁只有一顆即時開關（營收、財報、籌碼這些歷史資料的卡片不加）", st["n"] == 1, st)
+    b1, a1, s1 = changes_within(pg, "#pxNow")
+    ok("★ [即時5秒] 開著即時：6.5 秒內現價真的換了", s1 is not None, [b1, a1, s1])
+    b2, a2, s2 = changes_within(pg, "#pxNow")
+    ok("★ [即時5秒] 再等一輪又換了一次（不是只抓第一次）", s2 is not None and a2 != a1, [a1, a2, s2])
+    ok("[即時5秒] 兩次更新的間隔落在 5 秒上下（≤ 6.5 秒）", s2 is not None and s2 <= 6.5, s2)
+    stamp1 = text(pg, ".livetg[data-livekey='stock'] .livetg-t")
+    ok("★ [即時5秒] 卡上印最後更新時間（台北 HH:MM:SS · 5秒）", bool(re.search(r"^\d\d:\d\d:\d\d · 5秒$", stamp1)), stamp1)
+    pg.wait_for_timeout(5600)
+    stamp2 = text(pg, ".livetg[data-livekey='stock'] .livetg-t")
+    changed("[即時5秒] 更新時間跟著跳（看得出多久更新一次）", stamp1, stamp2)
+    tip = pg.evaluate("() => document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-b').title")
+    ok("[即時5秒] 開關的提示寫出「台北時間」「每 5 秒」", "台北" in tip and "每 5 秒" in tip, tip[:120])
+    t_a = _time.time(); pg.wait_for_timeout(10200)
+    q10 = len(reqs(t_a, ("/quote",)))
+    ok("★ [即時5秒] 同一檔不重複問：10 秒內 /quote 只有 2～3 次（個股分 K 吃 live.js 同一批，改前個股頁是每 5 秒＋每分鐘各打一次）",
+       2 <= q10 <= 3, q10)
+    ok("[即時5秒] 個股分 K 的 5 秒尾巴也在收（LiveK 有 tick、計時器在跑）",
+       pg.evaluate("() => window.LiveK.ticking && window.LiveK.state.ticks.length >= 2"),
+       pg.evaluate("() => ({ t: window.LiveK.ticking, n: window.LiveK.state.ticks.length })"))
+
+    # --- ② 關掉 → 退回靜態、不再請求、不再換
+    lst = pg.evaluate("() => document.getElementById('pxNow').dataset.lst")
+    pg.click(".livetg[data-livekey='stock'] .livetg-b")
+    pg.wait_for_timeout(400)
+    off = pg.evaluate("() => ({ p: document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-b').getAttribute('aria-pressed'),"
+                      " t: document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-t').textContent,"
+                      " px: document.getElementById('pxNow').textContent.trim(), ls: localStorage.getItem('tw.live.card.stock'),"
+                      " lk: window.LiveK.ticking })")
+    ok("★ [即時5秒] 按一下關掉：開關變成關、卡上寫「靜態」", off["p"] == "false" and off["t"] == "靜態", off)
+    ok("★ [即時5秒] 關掉後現價退回盤後靜態值（不是停在最後一筆即時價）", lst is not None and off["px"] == lst.strip(), [lst, off["px"]])
+    ok("[即時5秒] 關掉後個股分 K 的輪詢也停了", off["lk"] is False, off)
+    ok("[即時5秒] 開關狀態存進 localStorage（tw.live.card.stock=0）", off["ls"] == "0", off)
+    t_off = _time.time(); px_off = off["px"]
+    pg.wait_for_timeout(11000)
+    n_off = len(reqs(t_off))
+    ok("★ [即時5秒] 關掉之後 11 秒一個請求都沒有", n_off == 0, reqs(t_off))
+    ok("★ [即時5秒] 關掉之後數字不再換", text(pg, "#pxNow") == px_off, [px_off, text(pg, "#pxNow")])
+    pg.reload(wait_until="load"); pg.wait_for_timeout(2500)
+    wait_until(pg, "() => !!document.querySelector('.livetg[data-livekey=\"stock\"]')", 8000)
+    ok("[即時5秒] 重新整理之後仍是關的（記住使用者的選擇）",
+       pg.evaluate("() => document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-b').getAttribute('aria-pressed')") == "false")
+    pg.click(".livetg[data-livekey='stock'] .livetg-b")
+    b3, a3, s3 = changes_within(pg, "#pxNow")
+    ok("★ [即時5秒] 再打開：6.5 秒內數字又開始換", s3 is not None, [b3, a3, s3])
+
+    # --- ③ 分頁隱藏 → 不請求；切回來馬上補一輪
+    pg.wait_for_timeout(600)
+    pg.evaluate(HIDE, True)
+    t_h = _time.time(); px_h = text(pg, "#pxNow")
+    pg.wait_for_timeout(11000)
+    ok("★ [即時5秒] 分頁隱藏時 11 秒一個請求都沒有", len(reqs(t_h)) == 0, reqs(t_h))
+    ok("[即時5秒] 分頁隱藏時數字不動", text(pg, "#pxNow") == px_h, [px_h, text(pg, "#pxNow")])
+    t_v = _time.time()
+    pg.evaluate(HIDE, False)          # ⚠ 前值要在切回來之前記（px_h）：切回來那一輪可能在下一行讀值之前就畫完了
+    try:
+        pg.wait_for_function("(v) => document.getElementById('pxNow').textContent.trim() !== v", arg=px_h, timeout=3500, polling=100)
+        s4 = round(_time.time() - t_v, 2)
+    except Exception:
+        s4 = None
+    ok("★ [即時5秒] 切回前景馬上補一輪（3.5 秒內就換，不用等下一個 5 秒）", s4 is not None and len(reqs(t_v, ("/quote",))) >= 1, [s4, len(reqs(t_v))])
+
+    # --- ④ 錯誤退避
+    pg.wait_for_timeout(5500)
+    per0 = pg.evaluate("() => window.Live.periodMs")
+    S["fail"] = True
+    t_f = _time.time()
+    seen, last_n, per_seq = [], pg.evaluate("() => window.Live.reqs"), []
+    while _time.time() - t_f < 37:
+        pg.wait_for_timeout(250)
+        cur = pg.evaluate("() => ({ n: window.Live.reqs, per: window.Live.periodMs, tries: window.Live.tries })")
+        if cur["n"] != last_n:
+            seen.append(round(_time.time() - t_f, 1)); last_n = cur["n"]
+        if not per_seq or per_seq[-1] != cur["per"]:
+            per_seq.append(cur["per"])
+    gaps = [round(y - x, 1) for x, y in zip(seen, seen[1:])]
+    # 第一次失敗可能在第一個取樣點（250ms）之前就發生了，所以只看「5 秒之後依序出現 10 秒、20 秒」
+    seq = [x for x in per_seq if x != 5000]
+    ok("★ [即時5秒] 失敗後間隔真的拉長：計時器 5 秒 → 10 秒 → 20 秒（退避）", per0 == 5000 and seq[:2] == [10000, 20000], [per0, per_seq])
+    ok("★ [即時5秒] 實際重試間隔 ≈ 10 秒、≈ 20 秒（不是照樣 5 秒猛敲）",
+       len(gaps) >= 2 and 8.5 <= gaps[0] <= 12.5 and 18 <= gaps[1] <= 23, {"重試時間點": seen, "間隔": gaps})
+    n_fail = len(reqs(t_f, ("/quote",)))
+    ok("[即時5秒] 失敗的 37 秒內總請求 ≤ 8（live.js 與分 K 備援都退避；不退避會是 15 次）", n_fail <= 8, n_fail)
+    ok("[即時5秒] 失敗時卡上的開關轉成警示色（bad）",
+       pg.evaluate("() => document.querySelector('.livetg[data-livekey=\"stock\"]').classList.contains('bad')"),
+       pg.evaluate("() => document.querySelector('.livetg[data-livekey=\"stock\"]').className"))
+    S["fail"] = False
+    px_f = text(pg, "#pxNow")
+    pg.evaluate(HIDE, True); pg.wait_for_timeout(300); pg.evaluate(HIDE, False)
+    try:
+        pg.wait_for_function("(v) => document.getElementById('pxNow').textContent.trim() !== v", arg=px_f, timeout=6500, polling=100)
+        s5 = True
+    except Exception:
+        s5 = None
+    wait_until(pg, "() => window.Live.periodMs === 5000 && window.Live.tries === 0", 6000)
+    rec = pg.evaluate("() => ({ per: window.Live.periodMs, tries: window.Live.tries, bad: document.querySelector('.livetg[data-livekey=\"stock\"]').classList.contains('bad') })")
+    ok("★ [即時5秒] 通了之後回到每 5 秒、數字恢復更新、警示色拿掉", s5 is not None and rec["per"] == 5000 and rec["tries"] == 0 and not rec["bad"], [s5, rec])
+    ok("★ [即時5秒] 個股頁全程：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
+    ctx.close()
+
+    # ------------------------------------------------------------------ B. 總覽：大盤三張圖
+    S["log"].clear()
+    ctx, pg = open_page(LV5_INTRA, "overview")
+    wait_until(pg, "() => !!document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"]') && !!document.querySelector(\"#m3Grid .m3-card[data-id='TSE'] .m3-px\")", 12000)
+    wait_until(pg, "() => /\\d/.test((document.querySelector(\"#m3Grid .m3-card[data-id='TSE'] .m3-px\") || {}).textContent || '')", 8000)
+    TSE = "#m3Grid .m3-card[data-id='TSE'] .m3-px"
+    FUT = "#m3Grid .m3-card[data-id='FUT'] .m3-px"
+    OTC = "#m3Grid .m3-card[data-id='OTC'] .m3-px"
+    ok("[即時5秒] 大盤三張圖的工具列有「即時」開關（預設開）",
+       pg.evaluate("() => document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"] .livetg-b').getAttribute('aria-pressed')") == "true")
+    ok("[即時5秒] 總覽畫面上只有一顆即時開關（摘要卡列、題材這些不加）",
+       pg.evaluate("() => [...document.querySelectorAll('.livetg')].filter(e => e.getClientRects().length > 0).length") == 1)
+    c1 = changes_within(pg, TSE); c2 = changes_within(pg, TSE)
+    ok("★ [即時5秒] 加權卡數字 6.5 秒內換了、而且再換一次（吃 live.js 那一批的 t00，零額外請求）",
+       c1[2] is not None and c2[2] is not None and c2[1] != c1[1], [c1, c2])
+    f1 = changes_within(pg, FUT)
+    ok("★ [即時5秒] 台指期日盤數字 6.5 秒內換了（每 5 秒問期交所報價）", f1[2] is not None, f1)
+    o1 = changes_within(pg, OTC)
+    ok("[即時5秒] 櫃買卡數字 6.5 秒內換了（o00）", o1[2] is not None, o1)
+    ms = pg.evaluate("() => window.Market3 && window.Market3.state ? window.Market3.state.data.TSE.points.slice(-1)[0] : null")
+    ok("[即時5秒] 走勢線最右端跟著當下值走（最後一點＝卡上的數字）",
+       ms is not None and abs(float(ms["c"]) - float(text(pg, TSE).replace(",", ""))) < 0.011, [ms, text(pg, TSE)])
+    stp = text(pg, "#m3Frame .livetg[data-livekey='m3'] .livetg-t")
+    ok("[即時5秒] 大盤卡印最後更新時間（HH:MM:SS · 5秒）", bool(re.search(r"^\d\d:\d\d:\d\d · 5秒$", stp)), stp)
+    pg.click("#m3Frame .livetg[data-livekey='m3'] .livetg-b"); pg.wait_for_timeout(500)
+    t_o = _time.time(); v_off = [text(pg, TSE), text(pg, FUT)]
+    pg.wait_for_timeout(11000)
+    ok("★ [即時5秒] 大盤卡關掉：11 秒內不再打分時檔與期貨報價", len(reqs(t_o, ("/chart", "/fut"))) == 0, reqs(t_o))
+    ok("★ [即時5秒] 大盤卡關掉：數字不再換", [text(pg, TSE), text(pg, FUT)] == v_off, [v_off, text(pg, TSE), text(pg, FUT)])
+    ok("[即時5秒] 大盤卡關掉：卡上寫「靜態」", text(pg, "#m3Frame .livetg[data-livekey='m3'] .livetg-t") == "靜態")
+    pg.click("#m3Frame .livetg[data-livekey='m3'] .livetg-b")
+    c3 = changes_within(pg, TSE, 7000)
+    ok("[即時5秒] 大盤卡再打開：數字又開始換", c3[2] is not None, c3)
+    ok("★ [即時5秒] 總覽全程：任何 5 秒內打到 mis（/quote＋/chart）的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
+
+    # --- 族群層級的即時模式（市場明細・漲跌家數）：每 5 秒一輪、印最後更新時間
+    S["log"].clear()
+    pg.evaluate("() => { location.hash = '#market'; }")
+    wait_until(pg, "() => !!document.querySelector('#mktMode button[data-m=\"live\"]')", 10000)
+    pg.click("#mktMode button[data-m='live']")
+    wait_until(pg, "() => !!document.querySelector('#mktLive .liveat')", 15000)
+    m1 = text(pg, "#mktLive .liveat")
+    ok("[即時5秒] 漲跌家數即時：狀態列寫「每 5 秒更新」與最後更新時間（台北）",
+       "每 5 秒" in text(pg, "#mktLive") and bool(re.search(r"^\d\d:\d\d:\d\d$", m1)), [m1, text(pg, "#mktLive")[:80]])
+    m2 = changes_within(pg, "#mktLive .liveat", 16000)
+    ok("[即時5秒] 漲跌家數即時：最後更新時間真的往前走（440 檔＝5 個請求一輪，受節流閥限制約 10 秒輪完）", m2[2] is not None, m2)
+    ok("★ [即時5秒] 族群即時模式：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
+    # --- 族群即時模式的錯誤退避（2026-09-29 收尾補的：改前失敗了照樣每 5 秒再打一輪）
+    #     量的是「漲跌家數這個模式自己失敗了幾輪、每輪隔多久」（Live.coolStats.mud.n），不是 /quote 總數 ——
+    #     /quote 裡還混著 live.js 主批次（它有自己的退避，上面個股頁那段驗過）。
+    S["fail"] = True
+    t_mf = _time.time(); mud_seen, last_mn = [], 0
+    while _time.time() - t_mf < 33:
+        pg.wait_for_timeout(250)
+        n = pg.evaluate("() => ((window.Live.coolStats || {}).mud || {}).n || 0")
+        if n != last_mn:
+            mud_seen.append(round(_time.time() - t_mf, 1)); last_mn = n
+    mud_gaps = [round(y - x, 1) for x, y in zip(mud_seen, mud_seen[1:])]
+    ok("★ [即時5秒] 族群即時模式失敗時也退避：33 秒內只失敗 2～3 輪（不退避會是 6～7 輪）", 2 <= last_mn <= 3, {"失敗時間點": mud_seen, "輪數": last_mn})
+    ok("★ [即時5秒] 族群即時模式的重試間隔 ≈ 10 秒、≈ 20 秒（不是照樣 5 秒）",
+       len(mud_gaps) >= 1 and 8.5 <= mud_gaps[0] <= 13 and (len(mud_gaps) < 2 or 18 <= mud_gaps[1] <= 24), {"間隔": mud_gaps})
+    ok("[即時5秒] 族群即時模式失敗時狀態列照實寫出來（不是停在舊的更新時間假裝正常）",
+       bool(re.search(r"失敗|抓不到|連不到|HTTP|錯誤|502", text(pg, "#mktLive"))), text(pg, "#mktLive")[:120])
+    S["fail"] = False
+    pg.click("#mktMode button[data-m='eod']"); pg.wait_for_timeout(300)
+    pg.click("#mktMode button[data-m='live']")
+    try:
+        pg.wait_for_function("() => { const e = document.querySelector('#mktLive .liveat'); return !!e && !((window.Live.coolStats || {}).mud); }", timeout=15000, polling=200)
+        rec_m = True
+    except Exception:
+        rec_m = False
+    ok("★ [即時5秒] 族群即時模式關掉再打開：退避清掉、馬上重新抓到（不必等 40 秒）", rec_m,
+       [text(pg, "#mktLive")[:100], pg.evaluate("() => window.Live.coolStats")])
+    pg.click("#mktMode button[data-m='eod']")
+
+    # --- 歷史資料的頁面不加開關
+    pg.evaluate("() => { location.hash = '#season'; }"); pg.wait_for_timeout(2500)
+    VIS_TG = "() => [...document.querySelectorAll('.livetg')].filter(e => e.getClientRects().length > 0).length"
+    ok("[即時5秒] 季節性（只有歷史資料）畫面上一顆即時開關都沒有", pg.evaluate(VIS_TG) == 0, pg.evaluate(VIS_TG))
+    # ★ 順手修的那個：#m3 在別頁仍在 DOM 裡，以前「不在總覽就不抓」沒成立 → 別頁照樣每 10 秒打分時檔
+    t_se = _time.time(); pg.wait_for_timeout(11000)
+    ok("★ [即時5秒] 換到別頁（季節性）後，大盤卡不再打分時檔與期貨報價（改前在任何頁都每 10 秒打三個）",
+       len(reqs(t_se, ("/chart", "/fut"))) == 0, reqs(t_se))
+    ctx.close()
+
+    # ------------------------------------------------------------------ C. 手機 390：個股（券商式）
+    S["log"].clear()
+    ctx, pg = open_page(LV5_INTRA, f"stock/{code}", vp={"width": 390, "height": 844}, mobile=True)
+    wait_until(pg, "() => !!document.querySelector('#mbHead .livetg.mb')", 10000)
+    mm = pg.evaluate("""() => { const w = document.querySelector('#mbHead .livetg.mb'); if (!w) return null;
+        const r = w.getBoundingClientRect(), fs = [...w.querySelectorAll('.livetg-t, .livetg-l')].map(e => parseFloat(getComputedStyle(e).fontSize));
+        return { w: r.width, h: r.height, vis: r.width > 0 && r.height > 0, minFs: Math.min(...fs),
+                 sw: document.scrollingElement.scrollWidth, qh: document.getElementById('mbQuote').getBoundingClientRect().height }; }""")
+    ok("[即時5秒 手機] 券商式個股頁有「即時」開關（分頁列 ☆ 左邊）", mm is not None and mm["vis"], mm)
+    ok("[即時5秒 手機] 開關上的字 ≥ 11px", mm is not None and mm["minFs"] >= 11, mm)
+    ok("[即時5秒 手機] 390 寬沒有橫向捲軸", mm is not None and mm["sw"] <= 390, mm)
+    mp = changes_within(pg, "#mbPx")
+    ok("★ [即時5秒 手機] 開著即時：6.5 秒內現價真的換了", mp[2] is not None, mp)
+    pg.tap("#mbHead .livetg.mb .livetg-b"); pg.wait_for_timeout(400)
+    ok("[即時5秒 手機] 點一下關掉（aria-pressed=false、字變「靜態」）",
+       pg.evaluate("() => document.querySelector('#mbHead .livetg-b').getAttribute('aria-pressed')") == "false"
+       and text(pg, "#mbHead .livetg-t") == "靜態", text(pg, "#mbHead .livetg-t"))
+    t_m = _time.time(); v_m = text(pg, "#mbPx"); pg.wait_for_timeout(6500)
+    ok("[即時5秒 手機] 關掉後 6.5 秒數字不再換", text(pg, "#mbPx") == v_m, [v_m, text(pg, "#mbPx")])
+    ctx.close()
+
+    # ------------------------------------------------------------------ D. 盤後：維持低頻
+    S["log"].clear()
+    ctx, pg = open_page(LV5_AFTER, f"stock/{code}")
+    wait_until(pg, "() => !!document.querySelector('.livetg[data-livekey=\"stock\"]') && /盤後/.test(document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-t').textContent)", 10000)
+    af = pg.evaluate("() => ({ intra: window.Live.isIntraday(), per: window.Live.periodMs, lk: window.LiveK.ticking,"
+                     " t: document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-t').textContent })")
+    ok("★ [即時5秒 盤後] 盤後維持每 30 分鐘（不跟著 5 秒）", af["intra"] is False and af["per"] == 1800000, af)
+    ok("[即時5秒 盤後] 盤後個股分 K 不輪詢", af["lk"] is False, af)
+    ok("[即時5秒 盤後] 卡上寫「· 盤後」（看得出不是 5 秒）", af["t"].endswith("· 盤後"), af)
+    t_af = _time.time(); pg.wait_for_timeout(7000)
+    ok("[即時5秒 盤後] 盤後 7 秒內沒有再打報價", len(reqs(t_af, ("/quote",))) == 0, reqs(t_af))
+    ctx.close()
+
+
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
+    # ★ 2026-09-29 Andy：「即時…至少 5S 更新一次」＋可即時的卡片加「即時」開關與最後更新時間（假時間＋假報價，深夜也能驗）
+    "即時5秒0929":         lambda pg, b, base, code: t_live5s_0929(b, base, code),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     # ★ 2026-09-28 Andy：今日事件預設隱藏、浮層抽屜、點背景關、關掉再開回到預設、修寬度 bug
