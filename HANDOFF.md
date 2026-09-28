@@ -3313,3 +3313,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 
 ### 09-28 晚 大盤 K 線資料補齊後複驗
 - 回補 index_intraday done（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值 tse1m_left 0）。拉最新資料湖重算 payload 後 _uitest「大盤K線0928」0（之前 7 條資料紅全部轉綠）。⚠ 這次本機 build_payload 撞到 1200 秒 timeout（rc=124），index_intraday 那份已寫出；雲端 pages.yml 不受影響。
+
+### 09-28 晚 合併上線：title-icons（全站卡片標題小圖示）
+- 顏色只走主題變數（0 色碼，v4 合併後自動換色）；圖示 1em、Lucide 圖形內嵌（無套件、不走網路）。殘留：三條標題列在約 860～900 寬多一行（族群×法人、資金集中度、漲跌家數），判斷不再處理（見 docs/design_title_icons.md §6）。
+- 合併後驗了（純前端＋驗收腳本，pytest 依例外跳過）：重算 payload；_uitest 標題圖示／總覽／總覽摘要卡列／資金流向／產業／新-版面等高與多寬度／個股／淺色主題／手機 0；_preview 綠。
