@@ -13,7 +13,7 @@
    改後：整塊 AI 分析（#skAi）住進 K 線卡的右上角：
          · 第一列：「AI 分析」＋「規則式自動判讀，非投資建議」＋「?」＋收合鈕
          · 第二列：結論（觀望／可留意／偏空＋一句帶數字的原因，#skAiLine）
-         · 第三列：四顆標籤「技術面｜籌碼面｜基本面｜消息面」，每顆附判讀小字，一次只顯示一個面向
+         · 第三列：四顆標籤「技術面｜技術面訊號｜基本面｜消息面」（09-28 籌碼面換成技術面訊號），每顆附判讀小字，一次只顯示一個面向
          · 內容區（#aiBody）固定高度、超過就在區內捲動 —— 不撐高標題列、不把 K 線往下推
          K 線與分頁之間那張長卡、「看分析 ↓／展開分析 ▾」跳轉鈕一起拿掉。
 
@@ -37,7 +37,7 @@
    狀態（兩個 localStorage）：
      · tw.aiOpen：內容區收合／展開。收合時只留結論列＋四顆標籤小字。沒記過：桌機展開、手機收起。
        收合時按任何一顆標籤＝展開並切到那一面（標籤本身就是入口，不另外放一顆「展開分析」）。
-     · tw.aiTab：選中的面向（tech／chip／fund／news），重新整理後還在。沒記過＝技術面。
+     · tw.aiTab：選中的面向（tech／sig／fund／news），重新整理後還在。沒記過＝技術面。
 
    ⚠ 誠實標示：內容全部來自 payload 的 `analysis`（pipeline/compute/analysis.py），
      是寫死的規則＋數字組出來的，**不是大型語言模型**。標題寫「AI 分析」是 Andy 要的字樣，
@@ -56,7 +56,12 @@
   const TAB_KEY = 'tw.aiTab';
   const WIDE = 600;        // K 線卡寬度 ≥ 這個值才走「右欄跨兩列」（量測表在檔頭；窄卡片兩欄比單欄少推 K 線約 100px）
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const FACETS = [['tech', '技術面'], ['chip', '籌碼面'], ['fund', '基本面'], ['news', '消息面']];
+  /* ★ 2026-09-28（Andy：「將 "AI分析" 內容替換掉 籌碼 -> 技術面訊號」）：第二顆標籤「籌碼面」換成「技術面訊號」。
+     理由：籌碼已經拆成個股頁下方「法人｜資券｜大戶／散戶」三個獨立分頁，AI 區再放一份籌碼摘要是重複；
+     換成總覽「技術面訊號」卡那九顆燈（均線、結構、RSI、KD、MACD、乖離、BOS、CHoCH、假跌破），燈號從 StockSignal.lights() 拿，兩處永遠一致。
+     payload 的 analysis.facets.chip 照舊產出（其他地方可能在讀），這裡不再顯示。
+     舊的 tw.aiTab＝'chip' 讀不到 → readTab 退回技術面。*/
+  const FACETS = [['tech', '技術面'], ['sig', '技術面訊號'], ['fund', '基本面'], ['news', '消息面']];
   // 紅漲綠跌：偏多用 .pos（紅）、偏空用 .neg（綠）；留意＝琥珀色
   const toneCls = (lb) => lb === '偏多' ? 'pos' : lb === '偏空' ? 'neg' : lb === '留意' ? 'warn' : '';
   const stanceCls = (s) => s === '可留意' ? 'A' : s === '偏空' ? 'N' : 'W';
@@ -111,8 +116,10 @@
 #skAi .aisum .aibrief{min-width:0}
 .grade.N{background:rgba(46,229,157,.16);color:var(--fall)}
 /* 四顆標籤：一列排滿、等寬；每顆＝面向名＋判讀小字 */
-#skAi .aitabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;border-bottom:1px solid var(--line)}
-#skAi .aitab{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:4px 4px 5px;border:0;
+/* 2026-09-28：第二顆從「籌碼面」換成「技術面訊號」（名字多兩個字＋小字「4多2空」），等寬四欄在 1100 寬會溢出壓到隔壁 →
+   第二欄給 1.4 倍寬；真的還是放不下時，判讀小字自己換到第二行（flex-wrap），絕不溢出按鈕。*/
+#skAi .aitabs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:4px;border-bottom:1px solid var(--line)}
+#skAi .aitab{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 6px;min-width:0;padding:4px 4px 5px;border:0;
   border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
 #skAi .aitab:hover{color:var(--ink)}
 #skAi .aitab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--cyan)}
@@ -171,14 +178,35 @@
   }
 
   // 四顆標籤：面向名＋判讀小字（technical why 放 title，滑過看得到依據）
-  function tabs(an, cur) {
+  /* 技術面訊號：九顆燈的多空計數（缺值的燈不算）。標籤小字寫「4 多 2 空」—— 只數燈，不下結論 */
+  function sigCount(pg, fmt) {
+    const L = window.StockSignal && window.StockSignal.lights ? window.StockSignal.lights((pg && pg.summary) || {}, fmt) : [];
+    const pos = L.filter(x => x[2] > 0).length, neg = L.filter(x => x[2] < 0).length;
+    return { L, pos, neg, label: L.length ? `${pos}多${neg}空` : '資料缺', tone: pos > neg ? 'pos' : neg > pos ? 'neg' : '' };
+  }
+  function tabs(an, cur, sig) {
     const f = (an && an.facets) || {};
     return FACETS.map(([k, nm]) => {
-      const x = f[k] || {}; const lb = x.label || '資料缺';
+      const x = f[k] || {};
+      const lb = k === 'sig' ? sig.label : (x.label || '資料缺');
+      const cls = k === 'sig' ? sig.tone : toneCls(lb);
+      const tip = k === 'sig' ? `九顆技術燈號：偏多 ${sig.pos}、偏空 ${sig.neg}` : (x.why || '');
       const on = k === cur;
-      return `<button type="button" role="tab" class="aitab${on ? ' on' : ''}" id="aiTab-${k}" data-facet="${k}" aria-selected="${on}" aria-controls="aiPanel-${k}" title="${esc(x.why || '')}">`
-        + `<span class="nm">${nm}</span><span class="aitag ${toneCls(lb)}">${esc(lb)}</span></button>`;
+      return `<button type="button" role="tab" class="aitab${on ? ' on' : ''}" id="aiTab-${k}" data-facet="${k}" aria-selected="${on}" aria-controls="aiPanel-${k}" title="${esc(tip)}">`
+        + `<span class="nm">${nm}</span><span class="aitag ${cls}">${esc(lb)}</span></button>`;
     }).join('');
+  }
+  function sigHTML(pg, sig) {
+    if (!sig.L.length) return '<div class="empty">技術面訊號資料缺</div>';
+    const v = (pg && pg.verdict) || {};
+    return `<h4>九顆燈號：紅＝偏多 ${sig.pos}、綠＝偏空 ${sig.neg}、灰＝中性或未出現</h4>
+      <div class="lights aisig" id="aiSig">${sig.L.map(window.StockSignal.chip).join('')}</div>
+      <ul>
+        <li>均線看 5／20／60／120 日排列；結構看高低點是否墊高</li>
+        <li>RSI 50 以上、K 在 D 上、MACD 柱為正＝短線偏多</li>
+        <li>BOS＝突破前高；CHoCH＝結構轉向；假跌破＝破底又收回</li>
+      </ul>
+      ${v.invalidation ? `<div class="aisub">失效條件：${esc(v.invalidation)}</div>` : ''}`;
   }
 
   const why = (x) => x && x.why ? `<h4>${esc(x.why)}</h4>` : '';
@@ -232,10 +260,10 @@
       '「AI 分析」是寫死的規則算的，非語言模型',
       '技術：SMC 結構、均線、RSI、支撐壓力',
       '狀態＝回檔、突破兩套型態條件是否成立',
-      '籌碼看法人融資集保；基本看估值營收 EPS',
+      '訊號＝均線、RSI、KD 等九顆燈；基本看估值營收',
       '消息只數公告新聞；四面向不加總、非建議',
     ]) : '';
-    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="這一塊由固定規則與公開資料自動產生（technical_score、SMC 結構、A／B 進場條件、法人／融資／集保、本益比分位、營收與 EPS、公告新聞則數），不是大型語言模型，也不是任何人的投資建議。同一份資料永遠得到同一段文字。">規則式自動判讀，非投資建議</small>
+    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="這一塊由固定規則與公開資料自動產生（技術評分、SMC 結構、回檔與突破兩套條件、九顆技術燈號、本益比分位、營收與 EPS、公告新聞則數），不是大型語言模型，也不是任何人的投資建議。同一份資料永遠得到同一段文字。">規則式自動判讀，非投資建議</small>
         <button class="howbtn pop" data-how="ai" type="button" aria-label="AI 分析怎麼看">?</button></h3>
       <button class="btn small" id="aiTgl" type="button" aria-expanded="${open}" aria-controls="aiBody">${open ? '收合 ▴' : '展開 ▾'}</button></div>
       <div class="howtxt" id="how-ai" hidden>${how}</div>`;
@@ -246,14 +274,15 @@
     if (!an) {
       const sm = pg && pg.mtf && pg.mtf.summary;
       return head + `<div class="aisum" id="skAiLine" data-readout><span class="aibrief">${sm && sm.headline ? esc(sm.headline) : '資料不足'}</span></div>
-        <div class="aibody" id="aiBody"${open ? '' : ' hidden'}><div class="empty">這一版資料包還沒有 AI 分析（下一次盤後更新後出現）</div></div>`;
+        <div class="aibody" id="aiBody"${open ? '' : ' hidden'}><div class="empty">AI 分析資料準備中（下一次盤後更新後出現）</div></div>`;
     }
     const f = an.facets || {};
+    const sig = sigCount(pg, fmt);
     return head + sum
-      + `<div class="aitabs" role="tablist" aria-label="AI 分析面向" id="aiTabs">${tabs(an, cur)}</div>
+      + `<div class="aitabs" role="tablist" aria-label="AI 分析面向" id="aiTabs">${tabs(an, cur, sig)}</div>
       <div class="aibody" id="aiBody" data-readout${open ? '' : ' hidden'}>
         ${panel('tech', cur, techHTML(f.tech, fmt))}
-        ${panel('chip', cur, `${why(f.chip)}${ul((f.chip || {}).points) || '<div class="empty">籌碼面資料缺</div>'}`)}
+        ${panel('sig', cur, sigHTML(pg, sig))}
         ${panel('fund', cur, `${why(f.fund)}${ul((f.fund || {}).points) || '<div class="empty">基本面資料缺</div>'}`)}
         ${panel('news', cur, newsHTML(f.news))}
         <div class="aiasof">資料到 ${esc(an.as_of || '—')}</div>

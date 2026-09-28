@@ -849,7 +849,7 @@
         if (!pages || st.next >= pages) {
           // 這一檔在資料湖裡沒有比個股頁更舊的歷史（回補還沒跑到它）
           st.done = true;
-          this._histNote(pages ? '已經到最早一筆了' : '這一檔的更早歷史還在回補，目前只有畫面上這一段', 3200);
+          this._histNote(pages ? '已經到最早一筆了' : '更早的歷史資料準備中，目前只有畫面上這一段', 3200);
           return 0;
         }
         const j = await histFetch(code, st.next);
@@ -865,7 +865,7 @@
         if (this._dead || this.histCode() !== code || !this.histReady()) return 0;
         this._histDailyUsed = st.daily.length;
         const n = this._prependHistory(st.daily);
-        this._histNote(n ? `已回補到 ${this.data.length ? fmtTime(this.data[0].time, this.tf) : ''}`
+        this._histNote(n ? `已載入到 ${this.data.length ? fmtTime(this.data[0].time, this.tf) : ''}`
           : '已經到最早一筆了', 2600);
         return n;
       } catch (e) {
@@ -1333,6 +1333,121 @@
     }
   }
 
-  global.KChart = KChart; global.KInd = ind;
+  // ---------------------------------------------------------------- 分時走勢
+  /* ★ 2026-09-28（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）：個股頁週期列最左邊的「分時」。
+     跟 KChart 分開一個類別，因為要回答的問題不一樣 —— K 線回答「這段期間的價格結構」，
+     分時只回答「今天（或最近一個交易日）從開盤到現在，比昨天收盤高還是低、往哪邊走」。
+     所以：
+       · 一條價格線（面積淡填色），顏色看「最後一點 vs 昨收」：高於昨收紅、低於綠、平盤中性色；
+       · 昨收一條虛線（價格軸上標「昨收」），而且價格軸**以昨收為中心上下對稱** ——
+         線在虛線上面＝今天漲、下面＝跌，不必看數字；
+       · 下方分時量柱（紅＝這一分鐘比上一分鐘漲或平、綠＝跌），單位張；
+       · 時間軸固定 09:00～13:30：盤中還沒走到的時段留白（不拉伸），一眼看出「現在盤走到哪」；
+       · 不給滾輪縮放與拖曳（位置固定，跟熱力圖同一條規矩 —— 拖走了找不回來比看不清楚更糟），只給十字游標讀數。
+     輸入：pts ＝ [[時間(epoch+8h 秒，跟 KChart 的分 K 同口徑), 價, 量(股)], ...]、prev ＝ 昨收、date ＝ 那一天。*/
+  const SESSION_START = 9 * 60, SESSION_END = 13 * 60 + 30;
+  class TickChart {
+    constructor(el, opts) {
+      this.el = el; this.opts = Object.assign({}, opts);
+      const base = baseOptions({ tf: '1m' });
+      base.handleScale = false; base.handleScroll = false;
+      base.timeScale = Object.assign({}, base.timeScale, { rightOffset: 0, fixLeftEdge: true, fixRightEdge: true, lockVisibleTimeRangeOnResize: true });
+      base.localization = { locale: 'zh-TW', timeFormatter: (t) => fmtTime(t, '1m').slice(11) };
+      base.layout.panes = Object.assign({}, base.layout.panes, { enableResize: false });
+      this.chart = LWC.createChart(el, base);
+      this.line = this.chart.addSeries(LWC.AreaSeries, {
+        lineWidth: 2, priceLineVisible: false, lastValueVisible: true, crosshairMarkerRadius: 3,
+        autoscaleInfoProvider: () => this._range(),
+      }, 0);
+      this.vol = this.chart.addSeries(LWC.HistogramSeries, {
+        priceLineVisible: false, lastValueVisible: false,
+        priceFormat: { type: 'custom', minMove: 1, formatter: (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張') },
+      }, 1);
+      try { const ps = this.chart.panes(); if (ps[0] && ps[1]) { ps[0].setStretchFactor(3); ps[1].setStretchFactor(1); } } catch (e) { /* 舊版沒有 stretch，就用預設等高 */ }
+      this.wm = document.createElement('div'); this.wm.className = 'k-wm'; el.appendChild(this.wm);
+      this.prevLine = null; this.prev = null; this.pts = []; this.lo = null; this.hi = null;
+      this.stats = { setData: 0 };
+      TickChart.last = this;
+    }
+    // 價格軸：以昨收為中心上下對稱（見類別註解）；沒有昨收就照資料本身的高低
+    _range() {
+      if (this.lo == null) return null;
+      const p = this.prev;
+      if (p == null || !(p > 0)) return { priceRange: { minValue: this.lo, maxValue: this.hi } };
+      const d = Math.max(Math.abs(this.hi - p), Math.abs(p - this.lo), p * 0.002);
+      return { priceRange: { minValue: p - d, maxValue: p + d } };
+    }
+    /* 把一天的點整理成「每分鐘一點」：中間沒成交的分鐘沿用上一個價（量 0），盤還沒走到的時段補空白格。
+       ⚠ 間隔不是 1 分鐘的資料（資料湖 60 分 K 備援那種，一天 6 點）不補分鐘，照原樣連線 ——
+         補成 270 格等於把 5 小時畫成同一個價，那是編的。*/
+    static normalize(pts, date, live) {
+      const out = [];
+      if (!pts.length) return out;
+      const minuteLike = pts.length >= 2 && pts.every((p, i) => i === 0 || p[0] - pts[i - 1][0] <= 5 * 60);
+      const day0 = Date.parse(date + 'T00:00:00Z') / 1000;     // 那一天 00:00（epoch+8h 口徑下的「台北牆鐘」）
+      const at = (m) => day0 + m * 60;
+      if (!minuteLike) return pts.map(p => ({ time: p[0], value: p[1], v: p[2] || 0 }));
+      let j = 0, last = null;
+      const firstM = Math.max(SESSION_START, Math.floor((pts[0][0] - day0) / 60));
+      const lastM = Math.min(SESSION_END, Math.floor((pts[pts.length - 1][0] - day0) / 60));
+      for (let m = SESSION_START; m <= SESSION_END; m++) {
+        if (m < firstM) { out.push({ time: at(m) }); continue; }
+        if (m > lastM) { if (live) { out.push({ time: at(m) }); continue; } break; }
+        let v = 0, px = null;
+        while (j < pts.length && Math.floor((pts[j][0] - day0) / 60) <= m) { px = pts[j][1]; v += pts[j][2] || 0; j++; }
+        if (px != null) last = px;
+        if (last == null) { out.push({ time: at(m) }); continue; }
+        out.push({ time: at(m), value: last, v });
+      }
+      return out;
+    }
+    setData(o) {
+      const U = C.up, D = C.down, N = C.text;
+      this.prev = o.prev != null && o.prev > 0 ? +o.prev : null;
+      const rows = TickChart.normalize(o.pts || [], o.date, !!o.live);
+      const vals = rows.filter(r => r.value != null);
+      this.pts = vals;
+      this.lo = vals.length ? Math.min(...vals.map(r => r.value)) : null;
+      this.hi = vals.length ? Math.max(...vals.map(r => r.value)) : null;
+      const last = vals.length ? vals[vals.length - 1].value : null;
+      const dir = last == null || this.prev == null ? 0 : last > this.prev + 1e-9 ? 1 : last < this.prev - 1e-9 ? -1 : 0;
+      const col = dir > 0 ? U : dir < 0 ? D : N;
+      this.dir = dir; this.color = col;
+      this.line.applyOptions({ lineColor: col, topColor: hexa(col.startsWith('#') ? col : '#8ea0c4', 22), bottomColor: hexa(col.startsWith('#') ? col : '#8ea0c4', 2) });
+      this.line.setData(rows.map(r => (r.value == null ? { time: r.time } : { time: r.time, value: r.value })));
+      let pv = this.prev;
+      this.vol.setData(rows.map(r => {
+        if (r.value == null) return { time: r.time };
+        const c = pv == null || r.value >= pv ? U : D; pv = r.value;
+        return { time: r.time, value: r.v || 0, color: hexa(c.startsWith('#') ? c : '#8ea0c4', 60) };
+      }));
+      if (this.prevLine) { try { this.line.removePriceLine(this.prevLine); } catch (e) { /* 已移除 */ } this.prevLine = null; }
+      if (this.prev != null) {
+        this.prevLine = this.line.createPriceLine({ price: this.prev, color: N, lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '昨收' });
+      }
+      this.chart.timeScale().fitContent();
+      this.stats.setData++;
+      this.rows = rows;
+    }
+    setWatermark(text) { if (this.wm) this.wm.textContent = text || ''; }
+    // 十字游標：回呼拿到「那一分鐘的點」（null＝離開圖，呼叫端改顯示最後一點）
+    onCrosshair(fn) {
+      if (this._ch) this.chart.unsubscribeCrosshairMove(this._ch);
+      this._ch = (p) => {
+        if (!p || p.time == null || !p.point) { fn(null); return; }
+        const r = (this.rows || []).find(x => x.time === p.time);
+        fn(r && r.value != null ? r : null);
+      };
+      this.chart.subscribeCrosshairMove(this._ch);
+    }
+    destroy() {
+      if (this._ch) { try { this.chart.unsubscribeCrosshairMove(this._ch); } catch (e) { /* 圖已銷毀 */ } }
+      if (this.wm && this.wm.parentNode) this.wm.parentNode.removeChild(this.wm);
+      this.chart.remove();
+      if (TickChart.last === this) TickChart.last = null;
+    }
+  }
+
+  global.KChart = KChart; global.KInd = ind; global.TickChart = TickChart;
   global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, refreshTheme, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa, hist: HIST };
 })(window);

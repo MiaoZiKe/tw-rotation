@@ -2524,7 +2524,7 @@
     const host = $('#maTrendBox'); if (!host) return;
     const [mb, gt] = await Promise.all([load('ma_breadth', { fallback: { dates: [], mas: [], series: {} } }),
       load('groups_today', { fallback: [] })]);
-    if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '站上均線的歷史還在產出（下一輪盤後管線就會有）'); }
+    if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '站上均線的歷史資料準備中（下一次盤後更新就會有）'); }
     const nOf = {}; (gt || []).forEach(g => { if (g && g.group_name) nOf[g.group_name] = g.constituents; });
     /* 「樣本少」看兩件事，任一成立就標：
        ① 成分股 < 5 檔（groups_today 的 constituents）；
@@ -3033,7 +3033,7 @@
        連資金流向頁把開關勾掉都關不掉這一張。改後：資金流向頁沒勾 → 這裡也只有圓圈；勾了 → 兩張一致。*/
     /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：總覽這張**一律不畫軌跡與腳印**，
        不再跟資金流向頁的「顯示腳印」偏好（ROT.trail）走 —— 那個開關只屬於資金流向頁（DECISIONS #269 第 2 條講的是那一頁），
-       兩頁的差別寫在 DECISIONS #273。上面兩段 09-26 的註解是當時的歷史，留著讓人知道為什麼以前是跟著偏好走。*/
+       兩頁的差別寫在 DECISIONS #274。上面兩段 09-26 的註解是當時的歷史，留著讓人知道為什麼以前是跟著偏好走。*/
     renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: false });
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
     // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
@@ -3921,7 +3921,7 @@
   function rlvCompute(rrg, q) {
     const P = rrg && rrg.live_params;
     if (!P || !P.rs_smooth || !P.rs_base || !P.mom_roc) {
-      throw new Error('這份資料還沒有即時續算參數（rrg.live_params），請等下一輪盤後管線');
+      throw new Error('即時續算資料準備中，請等下一次盤後更新');
     }
     const det = D.groups_detail || {};
     const w = sklWeights();                        // 和資金去向共用同一份 1/n 權重
@@ -6229,7 +6229,7 @@
     const bail = (msg) => { if (window.FlowTopo && window.FlowTopo.has(el)) window.FlowTopo.destroy(el);
       el.style.height = ''; if (sub) sub.textContent = ''; return empty('ovFlow', msg); };
     if (!sd || !(sd.dates || []).length || !(sd.groups || []).length) {
-      return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
+      return bail('資金去向的逐日資料準備中（下一次盤後更新就會有）');
     }
     const day = sd.dates[sd.dates.length - 1];
     const k = sd.dates.length - 1;
@@ -7265,7 +7265,7 @@
     const drawRankDays = (n) => {
       const src = f3 && f3.share_daily;
       if (!src || !src.dates || !src.dates.length) {
-        return empty('rankFlow', '逐日佔比資料還沒產出（下一輪盤後管線就會有）');
+        return empty('rankFlow', '逐日佔比資料準備中（下一次盤後更新就會有）');
       }
       const D2 = src.dates, N = D2.length;   // 不要叫 L —— 外層的 L 是連結工具（L.group/L.stock）
       /* 截止日＝時鐘大圈落在的那一天。對不到（例如那一天不在逐日佔比裡）就退回最新一天，
@@ -7334,7 +7334,7 @@
     const drawInstDays = (n) => {
       const src = f3 && f3.inst_daily;
       if (!src || !src.dates || !src.dates.length) {
-        return empty('instGroups', '逐日法人資料還沒產出（下一輪盤後管線就會有）');
+        return empty('instGroups', '逐日法人資料準備中（下一次盤後更新就會有）');
       }
       const end = instEnd == null ? src.dates.length : Math.max(1, Math.min(src.dates.length, instEnd));
       const k = Math.min(n, end);
@@ -8351,7 +8351,7 @@
       ROT.trail = c.checked; sync(); redraw();
       try { localStorage.setItem('tw.rot.feet', ROT.trail ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
       /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：
-         以前總覽小輪盤讀同一個偏好，這裡要把總覽標成「沒畫過」或當場重畫。現在總覽一律只畫點（DECISIONS #273），
+         以前總覽小輪盤讀同一個偏好，這裡要把總覽標成「沒畫過」或當場重畫。現在總覽一律只畫點（DECISIONS #274），
          這個開關只管資金流向頁（與它的放大視窗），總覽不必跟著重畫。*/
     };
     const rp = $('.rot-ripple', box);
@@ -8635,7 +8635,7 @@
     /* 拿不到個股輪動資料時**不要讓整張圖變空白**，也不要默默什麼都不做 ——
        清單照列（那一份來自 groups_detail，本來就在），只是講清楚畫不上去而已。*/
     const warn = DRILL.state === 'loading' ? '個股輪動資料載入中…'
-      : DRILL.state === 'fail' ? '這個族群的個股輪動資料還沒算出來（下一輪盤後管線就會有），所以現在只能看清單，還畫不到輪盤上。'
+      : DRILL.state === 'fail' ? '這個族群的個股輪動資料準備中（下一次盤後更新就會有），所以現在只能看清單，還畫不到輪盤上。'
         : nRRG ? '' : '這個族群的個股輪動資料還沒算出來（上市未滿 50 個交易日的個股本來就不會有），所以現在只能看清單。';
     box.hidden = false;
     box.classList.remove('merged');
@@ -9364,7 +9364,7 @@
        收不掉寫在 style 上的 height，不清就會留一個 900px 的黑方塊。*/
     const bail = (msg) => { if (window.FlowTopo) window.FlowTopo.destroy(el);
       el.style.height = ''; el._skShape = ''; return empty('sankey', msg); };
-    if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
+    if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料準備中（下一次盤後更新就會有）');
     const D2 = sd.dates;
     const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
     const day = D2[k];
@@ -10192,7 +10192,7 @@
     if (!conc || !conc.length) return empty('conc');
     const key = topN === 10 ? 'top10_share' : 'top_share';
     const has10 = conc.some(r => r.top10_share != null);
-    if (topN === 10 && !has10) { $('#concState').textContent = '前 10 大的歷史還在回補'; return empty('conc', '前 10 大集中度還在回補，先看前 5 大'); }
+    if (topN === 10 && !has10) { $('#concState').textContent = '前 10 大的歷史資料準備中'; return empty('conc', '前 10 大集中度資料準備中，先看前 5 大'); }
     const vals = conc.map(r => (r[key] == null ? null : +r[key]));
     const last = conc[conc.length - 1] || {};
     const cur = last[key], ma20 = sma(vals, 20)[vals.length - 1];
@@ -10629,7 +10629,7 @@
   };
 
   async function renderSeason() {
-    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '週期統計需要歷史回補完成'); return; }
+    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '週期統計資料準備中'); return; }
     let period = s3.periods['all'] ? 'all' : Object.keys(s3.periods)[0], metric = 'avg_excess';
     let view = 'heat';
     try { const v = localStorage.getItem('tw.season.view'); if (v === 'line' || v === 'heat') view = v; } catch (e) { /* 忽略 */ }
@@ -11200,6 +11200,41 @@
     t.remove();
   }, true);
 
+  // ---------------------------------------------------------------- 搜尋下拉的迷你走勢（2026-09-28）
+  /* Andy：「搜尋欄位的對應股票旁需要出現小小的分時走勢圖，只要走勢圖就好不用數據因為只是參考」。
+     每一列名稱旁一張 48×16 的小折線：只畫線，不畫軸、不印數字；顏色跟漲跌（紅漲綠跌、平盤灰）。
+     資料 data/sparks.json（build_payload → compute/sparks.py）：一檔一個字串＝種類＋方向＋64 階的點。
+       · 'i'＝最近一個交易日的分時（資料湖 60 分 K：開盤＋每小時收盤，一天 6 點，x 軸照 09:00～13:30 的真實時間排）；
+       · 'd'＝沒有分時的股票改用最近 20 個交易日的日收盤（等距排；顏色看這 20 天的頭尾，跟線的走向一致）。
+     第一次打開下拉才抓（不拖慢首頁）；抓回來之前先留空位（寬度固定，列不會跳），回來後把已經畫好的列補上。
+     盤中即時價接到最後一點（任務單標「可選」）這一版沒做：檔案只存形狀（64 階），不存價位，接不上真實價。*/
+  let SPARKS = null, _spkP = null;
+  function sparkSVG(code) {
+    const s = SPARKS && SPARKS.s && SPARKS.s[code];
+    if (!s || s.length < 4) return '';
+    const abc = SPARKS.abc || '', kind = s[0], dir = s[1];
+    const v = Array.from(s.slice(2)).map(ch => Math.max(0, abc.indexOf(ch)));
+    const n = v.length, top = Math.max(1, abc.length - 1), W = 48, H = 16, P = 1.5;
+    const X = kind === 'i' && n === 6 ? [0, 60, 120, 180, 240, 270].map(m => m / 270) : v.map((_, i) => i / (n - 1));
+    const pts = v.map((y, i) => `${(P + X[i] * (W - 2 * P)).toFixed(1)},${(H - P - y / top * (H - 2 * P)).toFixed(1)}`).join(' ');
+    const cls = dir === '+' ? 'up' : dir === '-' ? 'down' : 'flat';
+    const t = kind === 'i' ? '最近一個交易日的分時走勢' : '最近 20 個交易日的收盤走勢（這檔沒有分時資料）';
+    return `<svg class="spk ${cls}" data-k="${kind}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${t}"><title>${t}</title><polyline points="${pts}"/></svg>`;
+  }
+  function sparkUpgrade(root) {
+    $$('.spkw[data-spk]:empty', root).forEach(el => { el.innerHTML = sparkSVG(el.dataset.spk); });
+  }
+  function sparkLoad() {
+    if (_spkP) return _spkP;
+    // 跟 logoMapLoad 同一個理由不走共用 load()：404 時也要把本體讀完（不然 networkidle 會一直等）
+    const ver = (D.meta && D.meta.generated_at) || '';
+    _spkP = fetch(`data/sparks.json?v=${ver}`, ver ? {} : { cache: 'no-store' })
+      .then(async r => { const t = await r.text(); if (!r.ok) return null; try { return JSON.parse(t); } catch (e) { return null; } })
+      .catch(() => null)
+      .then(d => { SPARKS = d && d.s ? d : { s: {}, abc: '' }; sparkUpgrade(); return SPARKS; });
+    return _spkP;
+  }
+
   // ---------------------------------------------------------------- 近期搜尋紀錄
   /* 「從搜尋結果點進個股、或直接開 #stock/<code>」都算一筆 —— 所以記錄點放在路由（route），不放在搜尋框。
      只存代號（名稱每次從全市場索引查，改名也跟得上）。localStorage 不能用（無痕、被封鎖）時退回這一輪的記憶體。*/
@@ -11259,7 +11294,8 @@
     const row = (code, name, right, del) => {
       const n = name || L.cname[code] || '';
       return `<div class="sgrow" role="option" aria-selected="false" id="sgo${++nid}" data-c="${fmt.esc(code)}">${logoHTML(code, n, 20)}`
-        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>${right || ''}`
+        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>`
+        + `<span class="spkw" data-spk="${fmt.esc(code)}">${sparkSVG(code)}</span>${right || ''}`
         + (del ? `<button type="button" class="sgdel" data-del="${fmt.esc(code)}" aria-label="從近期搜尋移除 ${fmt.esc(n)}" title="從近期搜尋移除">×</button>` : '')
         + '</div>';
     };
@@ -11269,7 +11305,7 @@
       q.removeAttribute('aria-activedescendant');
       sg.style.display = html ? 'block' : 'none';
       q.setAttribute('aria-expanded', html ? 'true' : 'false');
-      if (html) logoMapLoad();
+      if (html) { logoMapLoad(); sparkLoad(); }
     };
     const close = () => { sg.style.display = 'none'; act = -1; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); };
     const panel = () => {
@@ -11401,15 +11437,15 @@
     let level = '';                                     // '' 正常 / 'warn' / 'bad'
     // 1) 資料湖已經有更新的一天，但前端沒採用 → 那天的上市資料沒到齊
     if (meta.price_ahead_of_payload && meta.price_latest) {
-      bits.push(`資料湖已經有 <b>${fmt.esc(String(meta.price_latest))}</b> 的價格，但那天的上市資料沒到齊，所以畫面仍顯示 <b>${fmt.esc(D_)}</b>`);
+      bits.push(`已收到 <b>${fmt.esc(String(meta.price_latest))}</b> 的價格，但那天的上市資料沒到齊，所以畫面仍顯示 <b>${fmt.esc(D_)}</b>`);
       level = 'warn';
     }
     // 2) 多久沒更新
     const gen = meta.generated_at ? new Date(meta.generated_at) : null;
     if (gen) {
       const hrs = (Date.now() - gen.getTime()) / 3600e3;
-      if (hrs > 72) { bits.push(`已經 <b>${Math.floor(hrs / 24)} 天</b>沒有重新產出，排程可能掛了`); level = 'bad'; }
-      else if (hrs > 30) { bits.push(`上次產出是 ${Math.floor(hrs)} 小時前`); level = level || 'warn'; }
+      if (hrs > 72) { bits.push(`已經 <b>${Math.floor(hrs / 24)} 天</b>沒有更新，自動更新可能中斷了`); level = 'bad'; }
+      else if (hrs > 30) { bits.push(`上次更新是 ${Math.floor(hrs)} 小時前`); level = level || 'warn'; }
     }
     // 2b) 今天的價量是 mis 補的暫定值嗎
     //     開高低收是準的（三個來源對過一字不差），但成交量是盤中口徑、不含盤後定價交易，
@@ -11423,16 +11459,17 @@
     }
     // 3) 哪些來源沒回資料
     const empt = meta.last_run_empty || [], errs = meta.last_run_errors || [];
-    if (errs.length) { bits.push(`來源出錯：<b>${errs.slice(0, 4).map(e => fmt.esc(String(e).split(':')[0])).join('、')}</b>`); level = 'bad'; }
-    if (empt.length) { bits.push(`沒回資料的來源：<b>${empt.slice(0, 6).map(fmt.esc).join('、')}</b>`); level = level || 'warn'; }
+    /* 2026-09-28（Andy：讀者不需要知道資料集名稱）：只講「幾項沒更新」，不列 twse.price_daily 這類內部代號 */
+    if (errs.length) { bits.push(`部分資料更新失敗（<b>${errs.length}</b> 項）`); level = 'bad'; }
+    if (empt.length) { bits.push(`部分資料這一輪沒有更新（<b>${empt.length}</b> 項）`); level = level || 'warn'; }
     if (meta.demo) { bits.push('這是示範資料，不是真實行情'); level = 'bad'; }
 
     const tail = [];
     // 盤後第一輪（台北 15:30）只抓價量，法人／融資券要傍晚才出。
     // 講清楚是「還沒到」而不是「掛了」，否則每天下午都會被誤會。
     if (meta.last_run_phase === 'price') tail.push('這輪只更新價量（法人與融資券傍晚那輪才補）');
-    if (meta.last_run_at) tail.push(`上次抓資料 ${tpe(meta.last_run_at)}`);
-    if (gen) tail.push(`上次產出 ${tpe(meta.generated_at)}`);
+    if (meta.last_run_at) tail.push(`上次更新資料 ${tpe(meta.last_run_at)}`);
+    if (gen) tail.push(`網頁資料產生 ${tpe(meta.generated_at)}`);
     // 網頁版號也寫進來：手機上頂部那顆徽章是藏起來的，這一行是手機唯一看得到版本的地方
     const bd = renderBuild();
     tail.push(`網頁版本 ${fmt.esc(bd.ver)}${bd.at ? '（' + fmt.esc(bd.at) + ' 建置）' : ''}`);
@@ -11444,7 +11481,7 @@
        `#banner` 保留但恆為 hidden，之後若要把「壞掉」等級放回畫面，改這裡一個判斷即可。 */
     const plain = (html) => String(html).replace(/<[^>]*>/g, '');
     const lines = [`資料更新到 ${D_} 盤後`];
-    if (!bits.length) lines.push('所有來源正常。');
+    if (!bits.length) lines.push('所有資料都已更新。');
     else bits.forEach(x => lines.push('· ' + plain(x)));
     if (tail.length) lines.push(tail.map(plain).join('、') + '（台北時間）');
     const asof = $('#asof');
@@ -11491,7 +11528,7 @@
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
       logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
-      logoUpgrade, logoMapLoad, recentGet,
+      logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG,
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置

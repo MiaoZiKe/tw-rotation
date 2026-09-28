@@ -1162,14 +1162,14 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         page = {
             "meta": meta, "as_of": latest, "version": 3,
             "daily": bars, "intraday": {}, "mtf": {"tf": {}, "summary": {}},
-            "marks": {}, "verdict": {"verdict": "資料回補中", "grade": None, "reasons": []},
+            "marks": {}, "verdict": {"verdict": "資料準備中", "grade": None, "reasons": []},
             "summary": {**{k: meta[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
                         "close": close, "chg_pct": _chg(code, close),
                         "turnover": _cell(day_one, code, "turnover"),
                         "pe": _cell(val_one, code, "pe"),
                         "trust_net": _cell(inst_one, code, "trust"),
                         "foreign_net": _cell(inst_one, code, "foreign_total"),
-                        "tech_score": None, "verdict": "資料回補中", "grade": None},
+                        "tech_score": None, "verdict": "資料準備中", "grade": None},
             "basics": _clean(stockpage.basics(deep.get("company"), code)),
             "month_season": _clean(stockpage.monthly_seasonality(g if g is not None else EMPTY, code, 15)),
             "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)) if code in has["revenue"] else {},
@@ -1194,7 +1194,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             #   而且它不依賴價量歷史，所以簡版頁照樣有東西可看，
             #   正好對上「不可以出現沒有資訊的頁面」那條要求。
             "material_news": mops_by_code.get(code, []),
-            "note": f"歷史價量還在回補（目前只有 {len(bars)} 個交易日），技術面與多週期判讀等資料補齊後才會出現。",
+            "note": f"歷史價量資料準備中（目前只有 {len(bars)} 個交易日），技術面與多週期判讀等資料足夠後才會出現。",   # 2026-09-28 讀者語言：不寫「回補」
         }
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False), encoding="utf-8")
 
@@ -1229,6 +1229,12 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         # 不可能發生（all 是三組逐列加出來的），真的發生代表程式被改壞 —— 寫 log，不擋整個 payload
         log.warning("漲跌家數分佈加總不一致：%s", ud["check"]["diff"])
     _write("updown", ud)
+    # ★ 2026-09-28 搜尋下拉的迷你走勢圖（Andy：「搜尋欄位的對應股票旁需要出現小小的分時走勢圖」）。
+    #   範圍＝上面那份全市場索引（搜尋得到的每一檔），來源與口徑見 compute/sparks.py 檔頭。壞掉不擋整個 payload。
+    try:
+        _write("sparks", _sparks_payload(price_adj, index_codes, latest))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("sparks 產出失敗：%s", exc)
     log.info("個股頁：完整 %d 檔（分 K %d 檔）、簡版 %d 檔",
              len(rows), len(intraday_set & written), len(thin_codes))
 
@@ -1254,6 +1260,23 @@ MOVER_TOP = 60
 
 
 DIV_DEEP_START = "2009-01-01"      # run_backfill.PLAN_DEFAULT 的股利深度回補起點（2026-09-27）
+
+
+def _sparks_payload(price: pd.DataFrame, codes: list[str], latest: str) -> dict:
+    """sparks.json：只讀資料湖 intraday_60m 最近兩個月分割（按月分割，讀兩個檔就夠找到最新交易日）。
+
+    ⚠ 不看 SKIP_INTRADAY：那個開關是為了省掉整張 60 分 K（兩年、上百萬列）的讀取與個股頁分 K 的計算，
+      這裡只讀最後兩個分割（約 3 萬列、1 秒內），本機預覽也要看得到分時小圖。"""
+    from .compute import sparks
+    d = config.DATA / "intraday_60m"
+    parts = sorted(p.name.split("=", 1)[1] for p in d.glob("year=*")) if d.exists() else []
+    m60 = pd.DataFrame()
+    if parts:
+        m60 = store.read("intraday_60m", years=[int(x) for x in parts[-2:] if x.isdigit()])
+    out = sparks.build(price, m60, latest, codes)
+    log.info("sparks：分時 %d 檔、日收盤代替 %d 檔、沒有資料 %d 檔",
+             out["stat"]["intraday"], out["stat"]["daily"], out["stat"]["none"])
+    return out
 
 
 def dividend_cover_years() -> dict[str, int]:

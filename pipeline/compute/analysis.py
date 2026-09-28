@@ -81,7 +81,9 @@ def _md(d: str) -> str:
 
 def _tf_line(tf: str, label: str, v: dict | None) -> dict:
     if not v:
-        why = ("這檔目前沒有 60 分 K（不在分 K 名單，或還在回補）"
+        # 2026-09-28（Andy：「我是要給讀者看，他不需要知道這類資訊」）：改前寫「不在分 K 名單，或還在回補」（工程原因）
+        #   → 改後只講讀者需要知道的：哪些個股才有分 K。個股頁 AI 分析的技術面直接顯示這一句。
+        why = ("這檔目前沒有 1 小時 K（只提供族群成分股與成交值較大的個股）"
                if tf in ("60m", "240m") else "K 棒數不足，無法判讀")
         return {"tf": tf, "label": label, "trend": None, "word": "無資料", "points": [why]}
     t = int(v.get("trend") or 0)

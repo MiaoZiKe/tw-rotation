@@ -64,7 +64,9 @@ def test_tech_has_four_timeframes_and_no_monthly():
     for z in t["levels"]["support"] + t["levels"]["resistance"]:
         assert z["tf"] != "1M", "支撐壓力只列到週線"
     # 沒有分 K：1H／4H 要明講沒資料，不是空白、也不是拿日線冒充
-    assert t["tfs"][0]["word"] == "無資料" and "60 分 K" in t["tfs"][0]["points"][0]
+    # 2026-09-28：說明改讀者語言（「1 小時 K」、不寫「分 K 名單／回補」這類工程原因）
+    assert t["tfs"][0]["word"] == "無資料" and "1 小時 K" in t["tfs"][0]["points"][0]
+    assert "回補" not in t["tfs"][0]["points"][0] and "名單" not in t["tfs"][0]["points"][0]
     assert t["label"] in ("偏多", "中性", "偏空")
 
 
