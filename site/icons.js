@@ -306,10 +306,14 @@
      2. 還是放不下（空間差超過 16px）才退到原本的做法：把標題 max-width 釘在「沒有圖示時的寬度」，
         篩選器留在原位，多出來的寬度由標題自己內部換行吸收。 */
   var TIGHT_H = 4, TIGHT_ROW = 8;
+  /* 什麼時候要重量：列寬變了、標題字變了、或「同一列的其他東西」字數變了
+     （2026-09-28 逐寬度比對抓到：總覽「漲跌家數」右邊的 #udSum 是資料到了才填字，
+      只看標題字數的話 fit 在填字前就量完、之後不再量 → 900／880 寬標題列 31 → 70px 沒被處理） */
+  function fitKey(h, p) { return p.clientWidth + '|' + h.textContent.length + '|' + p.textContent.length; }
   function fit(h, sp) {
     var p = h.parentElement;
     if (!p || p.children.length < 2 || !h.getClientRects().length) return;
-    var key = p.clientWidth + '|' + h.textContent.length;
+    var key = fitKey(h, p);
     if (h._tiFit === key) return;
     var cs = getComputedStyle(p);
     if (cs.display.indexOf('flex') < 0 || cs.flexWrap === 'nowrap' || cs.flexDirection.indexOf('row') < 0) { h._tiFit = key; return; }
@@ -331,7 +335,7 @@
         h.style.maxWidth = Math.ceil(w0) + 'px'; h.setAttribute('data-ti-fit', 'pin');
       }
     }
-    h._tiFit = p.clientWidth + '|' + h.textContent.length;
+    h._tiFit = fitKey(h, p);
   }
   function fitAll() {
     var l = document.querySelectorAll('.ticon');
