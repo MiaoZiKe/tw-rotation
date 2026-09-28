@@ -15178,6 +15178,15 @@ def t_design_v4(b, base, code):
 # Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。現在上方的數據如下：
 #        漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」
 #       「總覽 籌碼快照『?』欄位說明，並移除 大戶4週 與 散戶」（個股頁「總覽」分頁的籌碼快照卡）
+# 整頁出現橫向捲軸時，列出「真的把頁面撐寬」的元素（跳過 position:fixed 的祖先 —— 收起的抽屜在視窗外但不撐寬）
+WIDE_CULPRITS_JS = """() => { const W = document.documentElement.clientWidth, out = [];
+  const fixedUp = (e) => { for (let p = e; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).position === 'fixed') return true; return false; };
+  for (const e of document.querySelectorAll('body *')) { if (!e.getClientRects().length) continue;
+    const r = e.getBoundingClientRect(); if (r.right <= W + 1 || fixedUp(e)) continue;
+    const host = e.parentElement && e.parentElement.closest('[id]');
+    out.push((e.id ? '#' + e.id : e.tagName.toLowerCase()) + '.' + String(e.className).split(' ').slice(0, 2).join('.') + ' ' + Math.round(r.left) + '→' + Math.round(r.right)
+      + (host ? ' 在 #' + host.id : '')); }
+  return { sw: document.documentElement.scrollWidth, W, n: out.length, top: out.slice(0, 8) }; }"""
 OVS_M = """() => { const h = document.getElementById('hero'); if (!h) return null;
   const t = h.querySelector('.ovsum-track'); const R = (e) => e.getBoundingClientRect();
   const cs = [...h.querySelectorAll('.osc')];
@@ -15246,7 +15255,7 @@ def t_ov_summary_0928(pg, b, base, code):
         pg.set_viewport_size({"width": w, "height": 1000 if w > 390 else 844}); pg.wait_for_timeout(1000)
         k = pg.evaluate(OVS_M)
         wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 4000)
-        ok(f"★ [摘要卡 {w}] 整頁沒有橫向捲軸", wide == "ok", k and [k["hl"], k["hr"]])
+        ok(f"★ [摘要卡 {w}] 整頁沒有橫向捲軸", wide == "ok", (k and [k["hl"], k["hr"]], wide == "ok" or pg.evaluate(WIDE_CULPRITS_JS)))
         ok(f"[摘要卡 {w}] 卡名與數字沒有被切掉", not k["over"], k["over"])
         ok(f"[摘要卡 {w}] 字 ≥ 11px", k["minFs"] >= 11, k["minFs"])
         ok(f"[摘要卡 {w}] 摘要卡列在視窗內", k["hl"] >= -1 and k["hr"] <= w + 1, [k["hl"], k["hr"]])

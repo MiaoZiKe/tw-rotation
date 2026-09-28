@@ -823,6 +823,26 @@
   }
   const resizeAllCharts = () => { Object.values(charts).forEach(c => { try { resizeIfChanged(c); } catch (e) { /* 已經 dispose 的圖 */ } }); };
   window.addEventListener('resize', resizeAllCharts);
+  /* ★ 2026-09-28（設計 v4 收尾）：視窗**寬度**變了就把滑過提示收掉。
+     提示框是圖內的絕對定位 div，位置是照舊寬度算的；1440 時停在右側的提示，縮成 1100 之後還留在 1342～1599px，
+     整頁多出 7px 橫向捲軸（驗收「總覽摘要卡列」在前面段落把滑鼠留在圖上時重現）。只看寬度：手機捲動時網址列收合
+     只改高度，不能因此把使用者剛點出來的提示收掉。*/
+  let _tipW = window.innerWidth, _tipT = 0;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === _tipW) return;
+    _tipW = window.innerWidth;
+    const roots = [...document.querySelectorAll('[_echarts_instance_]')];
+    roots.forEach(el => { try { const c = echarts.getInstanceByDom(el); if (c) c.dispatchAction({ type: 'hideTip' }); } catch (e) { /* 已經 dispose 的圖 */ } });
+    /* 光 hideTip 不夠：ECharts 收提示只把它設成 visibility:hidden／opacity:0，**位置照舊**，
+       隱形的框一樣會把頁面撐寬（實測 #heat 裡那個還在 1342～1599px）。等收起動畫跑完，把收起來的提示框歸位到圖的左上角；
+       下次滑過 ECharts 會自己重算位置。認法：圖根節點底下 z-index 9999999 的那個 div（ECharts 的 HTML 提示框）。*/
+    clearTimeout(_tipT);
+    _tipT = setTimeout(() => document.querySelectorAll('[_echarts_instance_] > div').forEach(d => {
+      if (d.style.zIndex !== '9999999') return;
+      const cs = getComputedStyle(d);
+      if (cs.visibility === 'hidden' || cs.opacity === '0' || cs.display === 'none') { d.style.transform = 'none'; d.style.left = '0px'; d.style.top = '0px'; }
+    }), 350);
+  });
   /* ★ 2026-09-24 效能：**首屏以外的卡片延後畫**（Andy：「開啟網頁都會卡頓一陣子」）。
      以前總覽／資金流向一進來就把整頁十幾張圖**在同一個任務裡**全部畫完 —— 實測首次開總覽那一個任務 1.4 秒、
      資金流向 1.5 秒，這段時間整頁點不動、捲不動。其中一半是還在畫面下方、使用者根本還沒捲到的卡片。
