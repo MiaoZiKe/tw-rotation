@@ -3369,3 +3369,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 舊驗收跟著搬：總覽（trust 那顆「?」、散佈圖型別、畫出來檢查）、市場明細（四個分頁、t_streak 改在這裡跑）、積木-隱性參數（改去 #market/streak）、新-版面等高與多寬度（壓字掃描只剩 breadth）、說明精簡（多掃 market/streak）。新段落「市場明細下鑽0928」。
 - theme4.js 的 LEDES.ovTrustCard 變成找不到卡片而略過（無害，留給設計 v4 那支決定要不要搬到市場明細）。
 - 這批驗了（分支上，已合併當時的 origin/main）：_uitest 市場明細下鑽0928／市場明細／總覽／總覽摘要卡列／手機／積木-隱性參數／新-版面等高與多寬度 0；說明精簡 9 紅＝既有（breadth 7 條、dg 兩條、個股標題卡、pe 6 條、sknews，都不是這批的字；新掃的 market/streak 綠）；_preview 綠。純前端，pytest 依例外跳過。
+
+### 09-29 01:16 歷史回補全市場全部完成（補觸發排程停止）
+- complete：inst@market、daytrade+sbl@2025@market、dividend+divresult@2009@market（remaining 0／0；確認無資料 dividend 15、divresult 9）、index_intraday（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值）全部 done；plan:default done（2026-09-28T17:16 UTC）。
+- 之後由 backfill.yml 守門自動跳過；每日續補照常（上限 1,500 次／天）。CEO 的 70 分鐘補觸發排程到此停止。
