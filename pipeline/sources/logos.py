@@ -41,6 +41,18 @@
   細節見 docs/logo_sources.md §1.2 與 DECISIONS #267）。robots 不准的公司照舊不走任何備援。
 - 「太小／找不到／預設圖」三種在策略升級後最先重試；好圖不重抓、不覆寫。
 
+第四版（2026-09-28，`LOGO_STRATEGY`＝4，DECISIONS #271）：Andy「有個股還是沒有公司 Logo」（例：8038 長園科）
+--------------------------------------------------------------------------------------------------------
+- **robots.txt 照 RFC 9309 判**：回 4xx（含 401、403）＝「不可取得」，可以抓（§2.3.1.3）；5xx／連不上＝暫時全站禁止（§2.3.1.4），
+  這輪不抓、記 error；429 也是這輪不抓。第三版以前照 robotparser 把 401／403 當全站禁止（比標準嚴），5xx 當沒限制（比標準鬆）。
+  **寫了 Disallow 的照舊尊重**，官網一個檔都不碰、也不問 Google s2。見 robots_rules()。
+- **第二來源 Wikidata／Wikimedia Commons**（logo_wikimedia.py）：官網拿不到圖、或只有低解析小圖時，
+  用證券代號／公司全名找 Wikidata 條目的標誌圖片（P154），只收 PD／CC0／CC BY／CC BY-SA，出處記進索引 `attribution`，
+  署名清單寫在 `data/logos/ATTRIBUTION.md`。它是公開授權的圖庫、不是去爬公司官網，所以 robots 不准的公司也可以用。
+- **人工指定**（data/logos/manual/<代號>.png ＋ manual.json）：最優先，回補永遠不覆寫。見 apply_manual()。
+- **不做**：用程式去 Google 圖片搜尋抓圖（Google 服務條款禁止自動化查詢；搜尋結果的圖來源與授權不明，可能抓到別家公司或未授權的圖）。
+- robots／none／too_small／generic／blank／error 與低解析 ok 在策略升級後最先重試。
+
 判定「沒有」的情況（寧可退回字母頭像，也不存假 Logo）
 ----------------------------------------------------
 - `too_small`：原圖長邊 < `config.LOGO_LOWRES_MIN_PX`（16，官網圖）／`config.LOGO_MIN_PX`（32，Google s2），
@@ -48,8 +60,9 @@
 - `blank`：全透明，或在白底與黑底上看都是單一顏色（空白佔位圖）
 - `generic`：同一張圖（雜湊相同）出現在 ≥ `config.LOGO_GENERIC_DOMAINS` 個**不同網域** ——
   那是 Google 的地球、架站商的預設圖示，不是那家公司的 Logo
-- `robots`：官網 robots.txt 不允許一般爬蟲抓首頁 —— 尊重它，**連 Google 備援也不用**
-  （用 Google 繞過去等於繞 robots，那是紅線）
+- `robots`：官網 robots.txt 的 **Disallow 規則**不允許一般爬蟲抓首頁 —— 尊重它，**連 Google 備援也不用**
+  （用 Google 繞過去等於繞 robots，那是紅線）。第四版起 robots.txt 回 4xx 不算（RFC 9309），
+  而 Wikimedia Commons 的自由授權圖仍可用（不是去爬那個官網，DECISIONS #271）
 - `none`：兩個來源都沒有可用的圖
 - `error`：連線失敗、逾時、圖檔壞掉
 
@@ -733,8 +746,18 @@ def _get(url: str, **kw):
 def robots_rules(root: str):
     """讀官網的 robots.txt，回一個「這個網址能不能抓」的判斷函式（`.why` 記禁止的原因，寫進 log 用）。
 
-    robots.txt 抓不到（404／連線失敗／內容不是規則）＝ 沒有限制；
-    401／403 依 robotparser 的慣例視為全站禁止。一律以一般爬蟲（*）的規則判斷。
+    第四版（2026-09-28，DECISIONS #271）照 RFC 9309 §2.3.1 的四種狀態判：
+    - 200：照 Disallow／Allow 規則判（一律以一般爬蟲 * 的規則）。**寫了 Disallow 的照舊尊重。**
+    - 4xx（含 401、403、404、410）＝「不可取得（unavailable）」：RFC 9309 §2.3.1.3 明定爬蟲**可以存取任何資源**。
+      Google 的 robots.txt 規格也把 4xx（429 除外）當「沒有 robots.txt」。
+      第三版以前照 Python robotparser 的慣例把 401／403 當全站禁止 —— 比標準還嚴，89 家 robots 裡至少 22 家是這樣被擋掉的。
+      ⚠ robots.txt 回 403 常常是 WAF 擋雲端 IP，那種站首頁多半也是 403；首頁 403 就判「找不到」，
+      一樣**不換網址重試、不走任何繞道**（_fetch_logo 的「403／5xx 不換網址」規則照舊）。
+    - 429（請求太頻繁）：對方在叫我們慢下來。這輪不抓（`.defer`），記成 error，下一次照規則再試。
+      RFC 把它歸在 4xx，但 Google 規格特別把 429 排除在「沒有 robots.txt」之外，我們採較保守的那一邊。
+    - 5xx＝「無法連線（unreachable）」：RFC 9309 §2.3.1.4 要求**視為全站禁止**（第三版以前反而當成沒有限制，比標準鬆）。
+      這是暫時狀態，所以不記 robots（永久不准），而是這輪不抓、記成 error，下一次照規則再試。
+    - 連不上（DNS 失敗、逾時）：同 5xx，這輪不抓。
     首頁與每一個圖示網址都要過這一關（有的站只擋 /images/ 之類的目錄）。
     """
     def allow_all(url):
@@ -750,11 +773,20 @@ def robots_rules(root: str):
         unreachable.unreachable = True
         return unreachable
     status, body, _ctype, _final = res
-    if status in (401, 403):
-        def deny(url):
+    if status == 429 or status >= 500:
+        def defer(url):
             return False
-        deny.why = f"robots.txt 回 HTTP {status}（依 robotparser 慣例視為全站禁止）"
-        return deny
+        defer.why = ""
+        defer.defer = (f"robots.txt 回 HTTP {status}（" +
+                       ("請求太頻繁，這輪先不抓" if status == 429 else
+                        "RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓") + f"）{root}")
+        return defer
+    if 400 <= status < 500:
+        def unavailable(url):
+            return True
+        unavailable.why = ""
+        unavailable.unavailable = status      # RFC 9309 §2.3.1.3：不可取得 ＝ 可以存取任何資源
+        return unavailable
     if status != 200:
         return allow_all
     rp = RobotFileParser()
@@ -841,6 +873,8 @@ def _open_home(url: str, host: str, rules) -> tuple:
         allowed = rules(origin)
         if getattr(allowed, "unreachable", False):
             return ("down", f"連不上 {origin}（robots.txt 就連不上，首頁不再試）")
+        if getattr(allowed, "defer", None):
+            return ("down", allowed.defer)      # robots.txt 回 429／5xx：這輪不抓（不是永久的 robots）
         if not allowed(cur):
             return ("robots", origin, getattr(allowed, "why", "") or "robots.txt 不允許")
         res = _get(cur, timeout=10, max_bytes=2_000_000, allow_redirects=False)
@@ -875,7 +909,7 @@ def _fetch_logo(website, host: str, reject: frozenset = frozenset()) -> dict:
         return robots_cache[origin]
 
     # ① 官網首頁（404 或連不上就換 scheme、換 www／非 www；轉址只跟同一家公司的網域）
-    page, reachable = None, None
+    page, reachable, deferred = None, None, False
     for home in homepage_candidates(website, host):
         got = _open_home(home, host, rules)
         if got[0] == "robots":
@@ -883,6 +917,9 @@ def _fetch_logo(website, host: str, reject: frozenset = frozenset()) -> dict:
                     "detail": f"{got[1]} {got[2]} —— 尊重它，也不走 Google 備援"[:200]}
         if got[0] == "down":
             keep(LogoReject("error", got[1]))
+            if got[1].startswith("robots.txt 回 HTTP"):
+                deferred = True     # 429／5xx：對方暫時不准，這輪連 Google 備援都不問（等同 robots 不准）
+                break
             continue
         if got[0] == "foreign":
             keep(LogoReject("none", f"首頁轉到別家網域 {got[1]}，不跟"))
@@ -946,7 +983,7 @@ def _fetch_logo(website, host: str, reject: frozenset = frozenset()) -> dict:
             break          # 已經有 ≥64px 的正方形官方圖示，不必再下載其他候選
 
     # ② Google 備援：官網沒有，或官網最好的也只有 32～47px 時，問 Google 有沒有更大的
-    if best is None or best["eff"] < 48:
+    if not deferred and (best is None or best["eff"] < 48):
         s2 = config.LOGO_GOOGLE_S2.format(domain=host)
         got = _try_image(s2, "google_s2")
         if isinstance(got, LogoReject):
@@ -1012,6 +1049,8 @@ def generic_hashes(items: dict, min_domains: int | None = None) -> set[str]:
     n = config.LOGO_GENERIC_DOMAINS if min_domains is None else min_domains
     by_hash: dict[str, set[str]] = {}
     for rec in items.values():
+        if rec.get("src") == "manual":
+            continue          # 人工指定的是人挑過的圖，不參與「預設圖」判定
         if rec.get("status") in ("ok", "generic") and rec.get("sha1"):
             by_hash.setdefault(rec["sha1"], set()).add(base_domain(rec.get("domain")))
     return {h for h, doms in by_hash.items() if len(doms) >= n}
@@ -1032,7 +1071,9 @@ def usable_codes(idx: dict) -> dict[str, str]:
     bad = known_generic(idx)
     out = {}
     for code, rec in items.items():
-        if rec.get("status") != "ok" or rec.get("sha1") in bad:
+        if rec.get("status") != "ok":
+            continue
+        if rec.get("sha1") in bad and rec.get("src") != "manual":   # 人工指定的一律信任
             continue
         f = logo_dir() / f"{code}.png"
         if f.exists():
@@ -1069,9 +1110,12 @@ def websites() -> pd.DataFrame:
 
 # 取圖策略升級時要「立刻重試」的失敗狀態：這幾種是「方法不夠好」造成的。
 # 第三版加 generic：第二版拒收預設圖後就直接判失敗，沒有往下找頁首圖、s2 —— 那是方法的問題，不是圖的問題。
-# robots（對方不准，DECISIONS #264：一律不走任何備援）、blank（圖本身空白）、error（連線問題）
-# 換了方法也一樣，照 30 天規則。
-RETRY_ON_UPGRADE = ("too_small", "none", "generic")
+# 第四版（DECISIONS #271）再加三種：
+# - robots：robots.txt 回 4xx 的改照 RFC 9309 視為沒有規則；而且 55 家是第一版判的、當時沒記原因，
+#   分不出是 403 還是 Disallow，只能重讀一次 robots.txt 才知道。讀 robots.txt 本身永遠是允許的；
+#   真的寫了 Disallow 的，重讀之後照樣判 robots、照樣不碰官網 —— 但會試 Wikimedia Commons（不是爬官網，見 logo_wikimedia.py）。
+# - blank、error：官網那條路沒變，但多了 Wikimedia 這個新來源，值得再試一次。
+RETRY_ON_UPGRADE = ("too_small", "none", "generic", "robots", "blank", "error")
 
 
 def retry_on_upgrade(rec: dict) -> bool:
@@ -1139,6 +1183,8 @@ def select_todo(sites: pd.DataFrame, idx: dict, today: date, limit: int,
             fresh.append(row)
         elif rec.get("status") == "removed":
             continue          # 人工下架的（見 docs/logo_sources.md「只移除某一家」），永遠不重抓
+        elif rec.get("src") == "manual":
+            continue          # 人工指定的 Logo（第四版）：優先於自動抓的，永遠不重抓、不覆寫
         elif base_domain(rec.get("domain")) != base_domain(host):
             changed.append(row)
         elif retry_on_upgrade(rec):
@@ -1163,8 +1209,13 @@ def _save_png(code: str, png: bytes, old_sha: str | None) -> str:
 
 def run(limit: int | None = None, *, today: date | None = None,
         time_budget: float | None = None, fetcher=None,
-        priority: list[str] | None = None) -> dict:
-    """抓一輪 Logo。回摘要 dict，並寫進 data/_state/logo_progress.json。絕不拋例外。"""
+        priority: list[str] | None = None, wikimedia=None) -> dict:
+    """抓一輪 Logo。回摘要 dict，並寫進 data/_state/logo_progress.json。絕不拋例外。
+
+    wikimedia：第二來源（第四版）。None ＝ 走真的官網抓取（fetcher 沒換）時才用真的 Wikimedia，
+    測試換了 fetcher 就不碰網路；要測 Wikimedia 那段就傳一個 (rows, reject, deadline) → {代號: 結果} 的函式。
+    False ＝ 這輪不用。
+    """
     summary: dict = {"enabled": config.LOGOS_ENABLED, "at": datetime.now(timezone.utc).isoformat()}
     if not config.LOGOS_ENABLED:
         log.info("LOGOS_ENABLED 關閉，Logo 步驟不抓")
@@ -1172,7 +1223,7 @@ def run(limit: int | None = None, *, today: date | None = None,
         _write_state(summary)
         return summary
     try:
-        return _run(summary, limit, today, time_budget, fetcher, priority)
+        return _run(summary, limit, today, time_budget, fetcher, priority, wikimedia)
     except Exception as exc:  # noqa: BLE001
         log.warning("Logo 步驟失敗（不影響其他步驟）：%s", exc)
         summary.update(done=False, error=str(exc)[:200])
@@ -1180,17 +1231,21 @@ def run(limit: int | None = None, *, today: date | None = None,
         return summary
 
 
-def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
+def _run(summary, limit, today, time_budget, fetcher, priority, wikimedia=None) -> dict:
     today = today or _today()
     limit = config.LOGOS_PER_RUN if limit is None else limit
     budget = config.LOGO_TIME_BUDGET_SEC if time_budget is None else time_budget
+    real = fetcher is None or fetcher is fetch_logo
     fetcher = fetcher or fetch_logo
+    if wikimedia is None:
+        wikimedia = _wikimedia_real if real and config.LOGO_WIKIMEDIA_ENABLED else None
     sites = websites()
     idx = read_index()
     items = idx.setdefault("items", {})
+    # 人工指定的 Logo 最先套用（第四版）：優先於任何自動來源，之後的抓取一律不覆寫
+    summary["manual"] = apply_manual(items, today)
     # 開抓前先記下已知的預設圖：判 generic 的那幾家這輪重抓成功後，舊紀錄的雜湊就沒了，結尾要併回去
     reject = frozenset(known_generic(idx))
-    real = fetcher is fetch_logo
     if real:
         _pil()   # 沒有 Pillow 就整輪不跑（直接進 except 記進狀態檔），不要抓了幾百張卻存不了
     todo = select_todo(sites, idx, today, limit, priority)
@@ -1208,6 +1263,8 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
         return lambda website, host: fetch_logo(website, host, reject=rej)
 
     results, deadline_hit = _fetch_rows(todo, bound(reject), deadline)
+    if wikimedia:
+        summary["wikimedia"] = _wikimedia_pass(results, sites, reject, deadline, wikimedia)
 
     counts: dict[str, int] = {}
     failures: list[dict] = []
@@ -1221,7 +1278,7 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
         bad |= known_generic(idx)
         fresh_generic = []
         for code, rec in items.items():
-            if rec.get("status") == "ok" and rec.get("sha1") in bad:
+            if rec.get("status") == "ok" and rec.get("sha1") in bad and rec.get("src") != "manual":
                 rec["status"] = "generic"
                 (logo_dir() / f"{code}.png").unlink(missing_ok=True)
                 n_generic += 1
@@ -1250,6 +1307,7 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
         log.info("Logo：%d 家的圖跟其他網域完全一樣（預設圖），已刪檔改標 generic", n_generic)
 
     write_index(idx)
+    write_attribution(items)
     left = select_todo(sites, idx, today, 10 ** 9, priority)
     dues = [d for d in (next_due(r) for r in items.values() if r.get("status") != "removed") if d]
     summary.update(
@@ -1265,6 +1323,216 @@ def _run(summary, limit, today, time_budget, fetcher, priority) -> dict:
     log.info("Logo：這輪 %s，現在有圖 %d 家，還有 %d 家待抓（下一次到期 %s）",
              counts, summary["have"], len(left), summary["next_due"])
     return summary
+
+
+# ------------------------------------------------------------------ 第二來源：Wikidata／Wikimedia Commons（第四版）
+
+def _wikimedia_real(rows, reject, deadline):
+    from . import logo_wikimedia
+    return logo_wikimedia.fetch_many(rows, reject, deadline)
+
+
+def _full_names() -> dict[str, str]:
+    """{代號: 公司全名}：Wikidata 用名稱比對時要（只有上市公司有全名）。讀不到回空，只剩代號比對。"""
+    try:
+        info = store.read("company_info")
+    except Exception:  # noqa: BLE001
+        return {}
+    if info.empty or "full_name" not in info.columns:
+        return {}
+    x = info.dropna(subset=["full_name"]).drop_duplicates("code", keep="last")
+    return {clean_code(c): str(n) for c, n in zip(x["code"], x["full_name"]) if clean_code(c) and str(n).strip()}
+
+
+def _wikimedia_pass(results: dict, sites: pd.DataFrame, reject, deadline: float, wikimedia) -> dict:
+    """官網那條路沒拿到圖（或只拿到低解析小圖）的，問 Wikimedia Commons 有沒有自由授權的 Logo。
+
+    - 官網失敗（none／too_small／robots／blank／generic／error）→ Commons 有就用 Commons 的。
+      **robots 也問**：Commons 是公開授權的圖庫，不是去爬那家公司的官網（DECISIONS #271）。Google s2 仍然不問。
+    - 官網只有低解析（16～47px）→ Commons 的有效尺寸比較大才換。
+    - 官網拿到正常大小的圖 → 不問（官網自己的圖最準、最新）。
+    換掉時把官網那邊的失敗原因記在 `site_fail`，下一個人查「為什麼這家的圖是從 Commons 來的」對得上。
+    """
+    need = [c for c, r in results.items()
+            if r.get("status") not in ("ok", "no_website") or r.get("lowres")]
+    stat = {"asked": len(need), "ok": 0, "replaced_lowres": 0}
+    if not need or time.time() >= deadline:
+        return stat
+    names = _full_names()
+    rows = [{"code": c, "domain": results[c].get("domain"), "full_name": names.get(c)} for c in sorted(need)]
+    try:
+        got = wikimedia(rows, reject, deadline) or {}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Wikimedia 來源失敗（不影響官網那條路）：%s", exc)
+        return stat
+    stat["matched"] = len(got)
+    for code, w in got.items():
+        old = results.get(code)
+        if old is None or w.get("status") != "ok":
+            continue
+        if old.get("status") == "ok":            # 官網只有低解析：Commons 的比較大才換
+            if effective_px(*w["orig"]) <= effective_px(*old["orig"]):
+                continue
+            stat["replaced_lowres"] += 1
+            fail = f"官網只有低解析 {old.get('orig')} {old.get('url', '')}".strip()
+        else:
+            fail = f"{old.get('status')} {old.get('detail', '')}".strip()
+        new = {**w, "domain": old.get("domain") or w.get("domain"), "site_fail": fail[:200]}
+        if old.get("site"):
+            new["site"] = old["site"]
+        results[code] = new
+        stat["ok"] += 1
+    return stat
+
+
+def write_attribution(items: dict) -> None:
+    """data/logos/ATTRIBUTION.md：Commons 來源的 Logo 逐張列出檔名、作者、授權、出處（CC BY／BY-SA 的署名義務）。
+
+    repo 是 public，圖檔跟著 repo 散布，署名清單就放在圖檔旁邊。內容沒變就不重寫（沒有時間戳，版本庫不會多一個版本）。
+    """
+    rows = []
+    for code, rec in sorted(items.items()):
+        a = rec.get("attribution")
+        if rec.get("status") != "ok" or rec.get("src") != "wikimedia" or not a:
+            continue
+        lic = a.get("license", "") + (f" <{a['license_url']}>" if a.get("license_url") else "")
+        rows.append(f"| {code} | [{a.get('file', '')}]({a.get('page', '')}) | {a.get('artist') or '—'} | {lic} |")
+    f = logo_dir() / "ATTRIBUTION.md"
+    if not rows:
+        if f.exists():
+            f.unlink()
+        return
+    text = ("# 公司 Logo 出處（來自 Wikimedia Commons 的圖）\n\n"
+            "以下 Logo 取自 Wikimedia Commons，只收公有領域、CC0、CC BY、CC BY-SA 授權的檔案；"
+            "本站僅做等比縮放（CC BY-SA 的改作依同一授權釋出）。著作權授權不代表商標授權：各 Logo 之商標權屬各該公司所有，"
+            "本站僅用於識別，不代表任何合作或背書關係。本檔由 `pipeline/sources/logos.py` 自動產生，請勿手改。\n\n"
+            "| 代號 | Commons 檔案 | 作者 | 授權 |\n|---|---|---|---|\n" + "\n".join(rows) + "\n")
+    if not f.exists() or f.read_text(encoding="utf-8") != text:
+        f.write_text(text, encoding="utf-8")
+
+
+# ------------------------------------------------------------------ 人工指定的 Logo（第四版）
+
+def manual_dir() -> Path:
+    return logo_dir() / config.LOGO_MANUAL_SUBDIR
+
+
+def read_manual_meta() -> dict:
+    """manual.json：{代號: {source_url, date, note}}。鍵不是代號的（例如「_說明」）略過；壞掉回空並記 log。"""
+    p = manual_dir() / config.LOGO_MANUAL_META
+    if not p.exists():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8-sig"))
+    except (ValueError, OSError) as exc:
+        log.warning("人工 Logo 的 manual.json 讀不進來（%s）；圖照樣套用，但沒有來源紀錄", exc)
+        return {}
+    if isinstance(d, dict) and isinstance(d.get("items"), dict):
+        d = d["items"]
+    return {clean_code(k): v for k, v in (d.items() if isinstance(d, dict) else [])
+            if clean_code(k) and isinstance(v, dict)}
+
+
+def manual_files() -> dict[str, Path]:
+    """{代號: 檔案}：data/logos/manual/<代號>.png（也收 jpg／webp／gif／svg，同代號多個檔時 png 優先）。"""
+    d = manual_dir()
+    out: dict[str, Path] = {}
+    if not d.is_dir():
+        return out
+    by_ext: dict[str, list[Path]] = {}
+    for f in sorted(d.iterdir()):
+        if f.is_file():
+            by_ext.setdefault(f.suffix.lower(), []).append(f)
+    for ext in config.LOGO_MANUAL_EXTS:          # 依偏好順序：先看到的留下
+        for f in by_ext.get(ext, []):
+            code = clean_code(f.stem)
+            if code and code not in out:
+                out[code] = f
+    return out
+
+
+def apply_manual(items: dict, today: date) -> dict:
+    """把 data/logos/manual/ 的人工 Logo 套進索引與 data/logos/<代號>.png。回摘要。
+
+    - 人工檔**優先**：不管那家原本有沒有自動抓到的圖，一律換成人工的；之後 select_todo 永遠跳過它、_record 也不覆寫。
+    - 一樣走 normalize_image（等比縮放、透明補邊，不裁不拉不改色），跟自動來源同一套「不修改圖形」保證；
+      16px 以上都收（人挑過的圖不用再擋低解析）。長寬比超過 5:1 仍然不收 ——
+      縮進 20px 的框只剩一條線，請裁成接近正方形再放（docs/logo_manual.md）。
+    - 原始檔的雜湊記在 `manual_sha1`：人工檔沒換就不重做；換了圖就重做。
+    - 人工檔被刪掉：索引改回 none、版號歸零，下一輪由自動來源重抓。
+    - manual.json 沒寫來源網址的照樣套用，但記進摘要的 `missing_meta`（CEO 要補）。
+    """
+    files = manual_files()
+    meta = read_manual_meta()
+    stat: dict = {"files": len(files), "applied": [], "errors": [], "missing_meta": [], "removed": []}
+    stamp = today.isoformat()
+    for code, f in sorted(files.items()):
+        try:
+            raw = f.read_bytes()
+        except OSError as exc:
+            stat["errors"].append({"code": code, "detail": f"讀不到 {f.name}：{exc}"[:200]})
+            continue
+        m = meta.get(code) or {}
+        if not str(m.get("source_url") or "").strip():
+            stat["missing_meta"].append(code)
+        old = items.get(code) or {}
+        rsha = sha1(raw)
+        if (old.get("src") == "manual" and old.get("manual_sha1") == rsha
+                and (logo_dir() / f"{code}.png").exists()):
+            # 圖沒換：只同步 manual.json 的來源欄位（CEO 可能事後才補來源）
+            _manual_meta_fields(old, m)
+            continue
+        try:
+            png, orig = normalize_image(raw, allow_lowres=True)
+        except LogoReject as rej:
+            stat["errors"].append({"code": code, "detail": f"{f.name} 不能用：{rej.reason} {rej.detail}"[:200]})
+            log.warning("人工 Logo %s 不能用（%s %s），沿用原本的紀錄", f.name, rej.reason, rej.detail)
+            continue
+        rec = {"status": "ok", "src": "manual", "domain": old.get("domain"), "fetched": stamp,
+               "strategy": config.LOGO_STRATEGY, "orig": list(orig), "manual_sha1": rsha,
+               "manual_file": f"{config.LOGO_MANUAL_SUBDIR}/{f.name}",
+               "sha1": _save_png(code, png, old.get("sha1") if old.get("src") == "manual" else None)}
+        _manual_meta_fields(rec, m)
+        if old and old.get("src") != "manual":
+            rec["replaced"] = {k: old.get(k) for k in ("status", "src", "url") if old.get(k)}
+        items[code] = rec
+        stat["applied"].append(code)
+    for code, rec in list(items.items()):
+        if rec.get("src") == "manual" and code not in files:
+            (logo_dir() / f"{code}.png").unlink(missing_ok=True)
+            items[code] = {"status": "none", "domain": rec.get("domain"), "fetched": stamp, "strategy": 0,
+                           "detail": "人工 Logo 已移除，下一輪由自動來源重抓"}
+            stat["removed"].append(code)
+    if stat["applied"] or stat["removed"] or stat["errors"]:
+        log.info("人工 Logo：套用 %s、移除 %s、不能用 %s、缺來源紀錄 %s",
+                 stat["applied"], stat["removed"], [e["code"] for e in stat["errors"]], stat["missing_meta"])
+    return stat
+
+
+def _manual_meta_fields(rec: dict, m: dict) -> None:
+    if m.get("source_url"):
+        rec["source_url"] = str(m["source_url"])
+    if m.get("date"):
+        rec["manual_date"] = str(m["date"])
+    if m.get("note"):
+        rec["manual_note"] = str(m["note"])[:200]
+
+
+def manual_pending(idx: dict | None = None) -> list[str]:
+    """還沒套進索引（或已換圖、已刪除）的人工 Logo 代號。backfill.yml 的排程守門用它決定要不要放行一輪。"""
+    idx = idx if idx is not None else read_index()
+    items = idx.get("items", {})
+    out = []
+    files = manual_files()
+    for code, f in files.items():
+        rec = items.get(code) or {}
+        try:
+            if rec.get("src") != "manual" or rec.get("manual_sha1") != sha1(f.read_bytes()):
+                out.append(code)
+        except OSError:
+            continue
+    out += [c for c, r in items.items() if r.get("src") == "manual" and c not in files]
+    return sorted(out)
 
 
 def _site_of(sites: pd.DataFrame, code: str):
@@ -1325,6 +1593,10 @@ def _record(items: dict, code: str, res: dict, stamp: str, counts: dict, failure
     if st == "no_website":
         return
     old = items.get(code) or {}
+    if old.get("src") == "manual":
+        # 人工指定的 Logo 優先（第四版）：select_todo 已經跳過它，這裡是第二道保險 —— 同網域共用結果時也可能走到這裡
+        counts["manual_kept"] = counts.get("manual_kept", 0) + 1
+        return
     rec = {"status": st, "domain": res.get("domain"), "fetched": stamp,
            "strategy": config.LOGO_STRATEGY}
     if res.get("site"):
@@ -1334,6 +1606,10 @@ def _record(items: dict, code: str, res: dict, stamp: str, counts: dict, failure
                    sha1=_save_png(code, res["png"], old.get("sha1")))
         if res.get("lowres"):
             rec["lowres"] = True       # 前端不看這欄；給下一個人查「為什麼這家的圖糊」、給 30 天重找用
+        if res.get("attribution"):
+            rec["attribution"] = res["attribution"]   # Wikimedia 來源：檔名、授權、作者、出處頁（CC BY／BY-SA 必記）
+        if res.get("site_fail"):
+            rec["site_fail"] = res["site_fail"]       # 官網那條路為什麼沒用（robots、找不到、只有低解析…）
     else:
         rec["detail"] = res.get("detail", "")
         failures.append({"code": code, "status": st, "domain": res.get("domain"),
