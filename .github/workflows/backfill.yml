@@ -127,6 +127,25 @@ jobs:
                   nd = st.get("next_due")
                   if not st.get("done") or (nd and nd <= today):
                       skip, logos_only = False, True
+                  # 第四版（DECISIONS #276）：兩種「狀態檔還寫著補齊了、其實有事做」的情況也放行一輪。
+                  # ① 取圖策略升級（config.LOGO_STRATEGY 加一）：上一輪的狀態檔是舊版寫的，要重試的那批還沒輪到。
+                  import re, hashlib
+                  # config 讀不到（理論上 checkout 後一定在）就當沒升級 —— 守門本身絕不能因為讀檔失敗整步掛掉
+                  cfg = pathlib.Path("pipeline/config.py")
+                  m = re.search(r"^LOGO_STRATEGY\s*=\s*(\d+)", cfg.read_text(encoding="utf-8"), re.M) if cfg.exists() else None
+                  if m and int(m.group(1)) != int(st.get("strategy") or 0):
+                      skip, logos_only = False, True
+                  # ② 人工指定的 Logo（data/logos/manual/）新增、換圖或刪除：索引裡的 manual_sha1 對不上就放行。
+                  md = pathlib.Path("data/logos/manual")
+                  ip = pathlib.Path("data/logos/_index.json")
+                  items = (json.loads(ip.read_text(encoding="utf-8")).get("items") or {}) if ip.exists() else {}
+                  files = {f.stem: f for f in md.glob("*") if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg")} if md.is_dir() else {}
+                  for code, f in files.items():
+                      rec = items.get(code) or {}
+                      if rec.get("src") != "manual" or rec.get("manual_sha1") != hashlib.sha1(f.read_bytes()).hexdigest():
+                          skip, logos_only = False, True
+                  if any(r.get("src") == "manual" and c not in files for c, r in items.items()):
+                      skip, logos_only = False, True
           print(f"skip={'true' if skip else 'false'}")
           print(f"logos_only={'true' if logos_only else 'false'}")
           print(f"key={key}")

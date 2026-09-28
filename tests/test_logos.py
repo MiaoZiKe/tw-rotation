@@ -910,9 +910,11 @@ def test_redirect_loop_gives_up(monkeypatch):
     assert lg.fetch_logo("www.x.com.tw")["status"] in ("none", "error")
 
 
-def test_robots_detail_says_403_vs_disallow(monkeypatch):
-    monkeypatch.setattr(http, "get_bytes", _web({X + "robots.txt": (403, b"", "text/html")}))
-    assert "403" in lg.fetch_logo("www.x.com.tw")["detail"]
+def test_robots_detail_says_disallow(monkeypatch):
+    """第四版：只有 Disallow 規則會判 robots，detail 講清楚是規則不准（403 那種改照 RFC 9309 可抓，見下面）。"""
+    monkeypatch.setattr(http, "get_bytes", _web({X + "robots.txt": (200, b"User-agent: *\nDisallow: /\n", "text/plain")}))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "robots" and "Disallow" in got["detail"]
 
 
 def test_homepage_404_tries_bare_domain(monkeypatch):
@@ -1052,9 +1054,12 @@ def test_retry_on_upgrade_rule():
     assert not lg.retry_on_upgrade({"status": "none", "strategy": v})
     assert lg.retry_on_upgrade({"status": "generic", "strategy": v - 1})    # 第三版：預設圖也重試
     assert lg.retry_on_upgrade({"status": "generic"})                      # 第一版的 generic（沒記版號）
-    for st in ("ok", "robots", "blank", "error", "removed"):
+    for st in ("ok", "removed"):
         assert not lg.retry_on_upgrade({"status": st})
-    assert not lg.retry_on_upgrade({"status": "robots", "strategy": v - 1})  # robots 永遠不救（DECISIONS #264）
+    # 第四版（DECISIONS #276）：robots 要重讀 robots.txt（4xx 改可抓、第一版的沒記原因）；blank／error 多了 Wikimedia 可試
+    for st in ("robots", "blank", "error"):
+        assert lg.retry_on_upgrade({"status": st, "strategy": v - 1})
+        assert not lg.retry_on_upgrade({"status": st, "strategy": v})
     assert lg.retry_on_upgrade({"status": "ok", "lowres": True, "strategy": v - 1})   # 低解析：之後升級也再找
     assert not lg.retry_on_upgrade({"status": "ok", "lowres": True, "strategy": v})
 
@@ -1069,7 +1074,7 @@ def test_run_retries_old_failures_first_and_keeps_good_logos(sandbox):
         "2330": {"status": "too_small", "domain": "www.c2330.com", "fetched": "2026-09-25"},   # 昨天才判：照樣重試
         "2303": {"status": "too_small", "domain": "www.c2303.com", "fetched": "2026-09-25"},
         "3037": {"status": "none", "domain": "www.c3037.com", "fetched": "2026-09-25"},
-        "3227": {"status": "robots", "domain": "www.c3227.com", "fetched": "2026-09-25"},      # 對方不准：不重試
+        "3227": {"status": "removed", "domain": "www.c3227.com", "fetched": "2026-09-25"},     # 人工下架：永遠不重試
         "1101": {"status": "ok", "domain": "www.c1101.com", "fetched": "2026-09-25", "sha1": lg.sha1(good)},
     }}))
     calls = []
@@ -1247,7 +1252,8 @@ def test_select_todo_v3_retries_three_failure_kinds_first(sandbox):
         "6666": {"status": "blank", "domain": "www.c6666.com", "fetched": "2026-09-26", "strategy": v - 1},
     }}
     todo = [r["code"] for r in lg.select_todo(sites, idx, date(2026, 9, 27), 100)]
-    assert todo == ["1111", "2222", "3333", "7777"]            # 三種失敗先、再來沒抓過的；robots／ok／blank 不動
+    # 第四版：robots、blank 也在策略升級時重試（重讀 robots.txt、多了 Wikimedia）；好圖（ok）不動
+    assert todo == ["1111", "2222", "3333", "4444", "6666", "7777"]
 
 
 def test_run_v3_generic_retried_with_reject_and_hash_remembered(sandbox, monkeypatch):
@@ -1356,3 +1362,505 @@ def test_s2_lowres_only_when_switch_on(monkeypatch):
     monkeypatch.setattr(config, "LOGO_LOWRES_ALLOW_S2", True)
     got = lg.fetch_logo("www.x.com.tw")
     assert got["status"] == "ok" and got["src"] == "google_s2" and got["lowres"] is True
+
+
+# ====================================================================== 第四版（DECISIONS #276）
+# 官網那條路再往下挖（入口頁、首頁連結圖、schema.org、inline SVG、CSS 背景、磚圖示、申報路徑、集團官網）、
+# robots.txt 照 RFC 9309、Wikidata／Commons 第二來源、人工指定 Logo。全部用假回應，不打真網路。
+
+from pipeline.sources import logo_wikimedia as wm  # noqa: E402
+
+needs_svg = pytest.mark.skipif(not lg.svg_supported(), reason="沒有 cairosvg／libcairo")
+
+
+# ------------------------------------------------------------------ 解析：入口頁要跟的下一頁
+
+def test_scan_page_next_links_order_refresh_frame_js_hreflang_lang():
+    html = ('<meta http-equiv="refresh" content="0; URL=\'/tw/index.html\'">'
+            '<frameset><frame src="main.htm"></frameset>'
+            '<script>if(x){window.location.href="/cht/home.aspx";}</script>'
+            '<link rel="alternate" hreflang="zh-TW" href="https://www.x.com.tw/zh-tw/">'
+            '<a href="/en/">English</a><a href="/big5/index.html">繁體中文</a>')
+    nxt = lg.scan_page(html, X)["next"]
+    assert nxt == [X + "tw/index.html", X + "main.htm", X + "cht/home.aspx", X + "zh-tw/", X + "big5/index.html"]
+
+
+def test_scan_page_next_skips_self_and_js_noise():
+    html = '<script>location.href="#top"; location.replace("/");</script><a href="javascript:void(0)">x</a>'
+    assert lg.scan_page(html, X)["next"] == []            # 指回自己、#、javascript: 都不是下一頁
+
+
+# ------------------------------------------------------------------ 解析：不叫 logo 的 Logo
+
+def test_scan_page_home_link_image_first_only_and_not_house_icon():
+    html = ('<div id="top"><a href="index.html" title="回首頁"><img src="images/top_01.png"></a></div>'
+            '<a href="/"><img src="images/top_02.png"></a>'
+            '<nav><a href="/"><img src="images/icon_home.png"></a></nav>')
+    logos = lg.scan_page(html, X)["logos"]
+    assert [c["url"] for c in logos if c["kind"] == "home-img"] == [X + "images/top_01.png"]
+
+
+def test_scan_page_home_image_house_icon_or_footer_rejected():
+    html = ('<a href="/"><img src="/img/home.png"></a>'                   # 房子圖示：不收
+            '<footer><a href="/"><img src="/img/f.png"></a></footer>')    # 頁尾：不收
+    assert lg.scan_page(html, X)["logos"] == []
+
+
+def test_scan_page_home_image_deep_in_page_ignored_unless_header():
+    imgs = "".join(f'<img src="/p{i}.jpg">' for i in range(8))
+    html = imgs + '<a href="/"><img src="/late.png"></a>'
+    assert lg.scan_page(html, X)["logos"] == []                           # 第 9 張圖、不在頁首 → 不猜
+    html2 = imgs + '<div class="header"><a href="https://www.x.com.tw/"><img src="/brand.png"></a></div>'
+    assert [c["url"] for c in lg.scan_page(html2, X)["logos"]] == [X + "brand.png"]
+
+
+def test_jsonld_logos_shapes_and_broken_json():
+    texts = ['{"@type":"Organization","logo":"https://www.x.com.tw/a.png"}',
+             '[{"@type":"Article","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"/b.png"}}}]',
+             '{"@graph":[{"logo":[{"contentUrl":"/c.svg"}, "/a.png"]}]}',
+             '{broken', '<!-- {"logo":"/d.png"} -->']
+    assert lg.jsonld_logos(texts) == ["https://www.x.com.tw/a.png", "/b.png", "/c.svg"]   # 最多 3 個、去重
+
+
+def test_scan_page_schema_logo_from_jsonld_and_itemprop():
+    html = ('<script type="application/ld+json">{"@type":"Corporation","logo":"/img/corp.png"}</script>'
+            '<div itemscope><img itemprop="logo" src="/img/item.png"></div>')
+    got = [(c["kind"], c["url"]) for c in lg.scan_page(html, X)["logos"]]
+    assert got == [("schema-logo", X + "img/item.png"), ("schema-logo", X + "img/corp.png")]
+
+
+def test_css_logo_inline_style_and_style_block():
+    html = ('<style>.nav{background:url(bg.jpg)} #header .site-logo a{display:block;background:url("/img/l.png") no-repeat}'
+            'footer .logo{background:url(/img/foot.png)} .partner-logo{background:url(/img/p.png)}</style>'
+            '<a class="logo" style="background-image: url(\'/img/inline.png\')"></a>')
+    got = [c["url"] for c in lg.scan_page(html, X)["logos"] if c["kind"] == "css-logo"]
+    assert got == [X + "img/inline.png", X + "img/l.png"]               # 頁尾、合作夥伴、非 logo 規則都不收
+
+
+def test_scan_page_inline_svg_logo_only_in_logo_zone():
+    html = ('<header><a class="brand-logo" href="/"><svg viewBox="0 0 100 40"><rect width="100" height="40" fill="#c00"/>'
+            '<svg x="1"><circle r="3"/></svg></svg></a>'
+            '<svg class="icon-search"><path d="M0 0"/></svg></header>'
+            '<footer><div class="logo"><svg><rect/></svg></div></footer>')
+    svgs = lg.scan_page(html, X)["svgs"]
+    assert len(svgs) == 1 and svgs[0]["kind"] == "inline-svg" and svgs[0]["svg"]
+    data = svgs[0]["data"].decode()
+    assert data.startswith('<svg xmlns="http://www.w3.org/2000/svg"') and data.endswith("</svg></svg>")
+
+
+def test_scan_page_ms_tile_and_browserconfig():
+    html = ('<meta name="msapplication-TileImage" content="/mstile-144x144.png">'
+            '<meta name="msapplication-config" content="/browserconfig.xml">')
+    sc = lg.scan_page(html, X)
+    assert sc["icons"] == [{"url": X + "mstile-144x144.png", "kind": "ms-tile", "px": 144, "svg": False}]
+    assert sc["browserconfig"] == X + "browserconfig.xml"
+    xml = (b'<?xml version="1.0"?><browserconfig><msapplication><tile>'
+           b'<square70x70logo src="/t70.png"/><square310x310logo src="/t310.png"/>'
+           b'<square150x150logo src="t150.png"/></tile></msapplication></browserconfig>')
+    got = lg.parse_browserconfig(xml, X + "browserconfig.xml")
+    assert [(c["url"], c["px"]) for c in got] == [(X + "t310.png", 310), (X + "t150.png", 150)]
+    assert lg.parse_browserconfig(b"\xff\xfe garbage", X) == []
+
+
+def test_weak_scan_and_merge():
+    weak = lg.scan_page('<link rel="icon" href="/f.ico"><meta http-equiv=refresh content="0;url=/tw/">', X)
+    assert lg.weak_scan(weak)
+    strong = lg.scan_page('<link rel="apple-touch-icon" href="/a.png">', X)
+    assert not lg.weak_scan(strong)
+    assert not lg.weak_scan(lg.scan_page('<div class="logo"><img src="/l.png"></div>', X))
+    m = lg.merge_scans(weak, lg.scan_page('<link rel="icon" href="/f.ico"><link rel="apple-touch-icon" href="/a.png">', X))
+    assert [c["url"] for c in m["icons"]] == [X + "f.ico", X + "a.png"] and m["next"] == []
+
+
+def test_decode_html_big5_and_mentions_company():
+    body = '<html><head><meta charset="big5"><title>臺灣玻璃工業股份有限公司</title></head></html>'.encode("cp950")
+    text = lg.decode_html(body, "text/html")
+    assert "臺灣玻璃" in text
+    assert lg.mentions_company(text, ["台灣玻璃工業股份有限公司"])            # 臺／台、去掉股份有限公司
+    assert lg.mentions_company(lg.decode_html("<p>台 玻 集團</p>".encode(), "text/html; charset=utf-8"), ["台玻"])
+    assert not lg.mentions_company(text, ["南亞", "x"])                  # 1 個字的名字不算
+    assert lg.decode_html(b"abc", "text/html; charset=nonsense-enc") == "abc"
+
+
+def test_declared_path_first_candidate():
+    assert lg.declared_path("https://www.nanyapcb.com.tw/nypcb/Chinese/index", "www.nanyapcb.com.tw") == "/nypcb/Chinese/index"
+    assert lg.declared_path("http://www.aten.com/tw/zh/?a=1", "www.aten.com") == "/tw/zh/?a=1"
+    assert lg.declared_path("https://www.tsmc.com/", "www.tsmc.com") is None
+    assert lg.homepage_candidates("http://www.aten.com/tw/zh/", "www.aten.com")[:2] == [
+        "http://www.aten.com/tw/zh/", "http://www.aten.com/"]
+    assert lg.homepage_candidates("www.acc.com.tw", "www.acc.com.tw")[0] == "https://www.acc.com.tw/"
+
+
+# ------------------------------------------------------------------ 整家抓：新策略真的救得到
+
+def test_fetch_logo_splash_meta_refresh_followed_to_header_logo(monkeypatch):
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<html><meta http-equiv="refresh" content="0;url=/tw/index.aspx"></html>', "text/html"),
+        X + "tw/index.aspx": (200, b'<div class="header"><a href="/"><img src="/tw/images/top_01.png"></a></div>',
+                              "text/html"),
+        X + "tw/images/top_01.png": (200, _png((120, 120)), "image/png"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:home-img" and got["url"] == X + "tw/images/top_01.png"
+    assert S2 not in calls                                           # 官網就有 ≥48 的圖，不必問 Google
+
+
+def test_fetch_logo_splash_follow_respects_robots_on_next_page(monkeypatch):
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X + "robots.txt": (200, b"User-agent: *\nDisallow: /tw/\n", "text/plain"),
+        X: (200, b'<frameset><frame src="/tw/main.htm"></frameset>', "text/html"),
+        X + "tw/main.htm": (200, b'<div class="logo"><img src="/l.png"></div>', "text/html"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] in ("none", "too_small") and X + "tw/main.htm" not in calls
+
+
+def test_fetch_logo_splash_does_not_follow_other_company_without_names(monkeypatch):
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<script>location.href="https://www.other.com/";</script>', "text/html"),
+        "https://www.other.com/": (200, b'<div class="logo"><img src="/o.png"></div>', "text/html"),
+    }, calls))
+    lg.fetch_logo("www.x.com.tw")
+    assert "https://www.other.com/" not in calls
+
+
+def test_fetch_logo_strong_homepage_does_not_open_next_page(monkeypatch):
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<link rel="apple-touch-icon" href="/a.png"><a href="/tw/">tw</a>', "text/html"),
+        X + "a.png": (200, _png(), "image/png"),
+    }, calls))
+    assert lg.fetch_logo("www.x.com.tw")["status"] == "ok"
+    assert X + "tw/" not in calls                                    # 正常首頁不多花一個請求
+
+
+def test_fetch_logo_schema_logo_rescues_site_without_icons(monkeypatch):
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<script type="application/ld+json">{"@type":"Organization","logo":"/brand.png"}</script>',
+            "text/html"),
+        X + "brand.png": (200, _png((240, 80)), "image/png"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:schema-logo"
+
+
+def test_fetch_logo_css_logo_photo_banner_rejected(monkeypatch):
+    """CSS 背景圖也做照片判定：logo 規則裡放的是橫幅照片就不收。"""
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<style>.logo{background:url(/banner.jpg)}</style>', "text/html"),
+        X + "banner.jpg": (200, _noise((300, 120)), "image/jpeg"),
+    }))
+    assert lg.fetch_logo("www.x.com.tw")["status"] != "ok"
+
+
+@needs_svg
+def test_fetch_logo_inline_svg_rendered_without_download(monkeypatch):
+    calls = []
+    html = (b'<header><div class="logo"><svg viewBox="0 0 120 60"><rect x="10" y="10" width="60" height="30" '
+            b'fill="#c33"/></svg></div></header>')
+    monkeypatch.setattr(http, "get_bytes", _web({X: (200, html, "text/html")}, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:inline-svg" and got["url"].endswith("#inline-svg-1")
+    assert not any("#inline-svg" in u for u in calls)                 # 頁面裡切出來畫，不是去下載
+
+
+def test_fetch_logo_ms_tile_used(monkeypatch):
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b'<meta name="msapplication-TileImage" content="/tile.png">', "text/html"),
+        X + "tile.png": (200, _png((144, 144)), "image/png"),
+    }))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "ok" and got["src"] == "site:ms-tile"
+
+
+def test_fetch_logo_declared_path_page_used(monkeypatch):
+    base = "https://www.x.com.tw/nypcb/Chinese/index"
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X: (200, b"<html>root without icons</html>", "text/html"),
+        base: (200, b'<link rel="apple-touch-icon" href="/nypcb/apple.png">', "text/html"),
+        X + "nypcb/apple.png": (200, _png(), "image/png"),
+    }))
+    got = lg.fetch_logo("https://www.x.com.tw/nypcb/Chinese/index")
+    assert got["status"] == "ok" and got["url"] == X + "nypcb/apple.png"
+
+
+# ------------------------------------------------------------------ 集團官網（別家網域）只在提到公司名稱時才跟
+
+def _group_routes(body: bytes):
+    return {
+        X: (301, b"", "text/html", "https://www.group.com/sub/"),
+        "http://www.x.com.tw/": (301, b"", "text/html", "https://www.group.com/sub/"),
+        "https://x.com.tw/": (301, b"", "text/html", "https://www.group.com/sub/"),
+        "https://www.group.com/sub/": (200, body, "text/html; charset=utf-8"),
+        "https://www.group.com/g.png": (200, _png(), "image/png"),
+    }
+
+
+def test_group_redirect_followed_when_page_mentions_company(monkeypatch):
+    calls = []
+    body = '<title>台灣某某精密股份有限公司</title><link rel="apple-touch-icon" href="/g.png">'.encode()
+    monkeypatch.setattr(http, "get_bytes", _web(_group_routes(body), calls))
+    got = lg.fetch_logo("www.x.com.tw", names=["某某精密", "台灣某某精密股份有限公司"])
+    assert got["status"] == "ok" and got["via"] == "group" and got["site"] == "www.group.com"
+    assert S2 not in calls
+
+
+def test_group_redirect_not_followed_without_mention_or_names(monkeypatch):
+    body = b'<title>Parking page</title><link rel="apple-touch-icon" href="/g.png">'
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web(_group_routes(body), calls))
+    got = lg.fetch_logo("www.x.com.tw", names=["某某精密"])
+    assert got["status"] != "ok" and "via" not in got
+    assert "https://www.group.com/g.png" not in calls
+    calls.clear()
+    lg.fetch_logo("www.x.com.tw")                                    # 沒給名字：照第三版，一律不跟
+    assert "https://www.group.com/sub/" not in calls
+
+
+def test_group_redirect_target_robots_respected(monkeypatch):
+    routes = _group_routes('<title>某某精密</title>'.encode())
+    routes["https://www.group.com/robots.txt"] = (200, b"User-agent: *\nDisallow: /\n", "text/plain")
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web(routes, calls))
+    got = lg.fetch_logo("www.x.com.tw", names=["某某精密"])
+    assert got["status"] == "robots" and "https://www.group.com/sub/" not in calls and S2 not in calls
+
+
+def test_generic_hashes_count_actual_site_not_declared_domain():
+    items = {c: {"status": "ok", "sha1": "g", "domain": f"www.sub{c}.com.tw", "site": "www.group.com"}
+             for c in ("1", "2", "3")}
+    assert lg.generic_hashes(items) == set()                         # 三家都轉到同一個集團官網 → 同一個網站
+    items["4"] = {"status": "ok", "sha1": "g", "domain": "www.a.com"}
+    items["5"] = {"status": "ok", "sha1": "g", "domain": "www.b.com"}
+    assert lg.generic_hashes(items) == {"g"}
+
+
+# ------------------------------------------------------------------ robots.txt 照 RFC 9309
+
+def test_robots_txt_403_but_homepage_ok_is_fetched(monkeypatch):
+    """RFC 9309 §2.3.1.3：robots.txt 回 4xx ＝ 不可取得 ＝ 可以抓（第三版把 403 當全站禁止）。"""
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X + "robots.txt": (403, b"", "text/html"),
+        X: (200, b'<link rel="apple-touch-icon" href="/a.png">', "text/html"),
+        X + "a.png": (200, _png(), "image/png"),
+    }))
+    assert lg.fetch_logo("www.x.com.tw")["status"] == "ok"
+
+
+def test_robots_txt_403_and_homepage_403_does_not_ask_google(monkeypatch):
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({
+        X + "robots.txt": (403, b"", "text/html"),
+        X: (403, b"forbidden", "text/html"),
+        S2: (200, _png((64, 64)), "image/png"),
+    }, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "none" and "擋雲端" in got["detail"]
+    assert calls == [X + "robots.txt", X]                             # 圖檔、Google 都不碰
+
+
+@pytest.mark.parametrize("code", [429, 500, 503])
+def test_robots_txt_429_or_5xx_defers_without_any_fetch(monkeypatch, code):
+    calls = []
+    monkeypatch.setattr(http, "get_bytes", _web({X + "robots.txt": (code, b"", "text/plain"),
+                                                 S2: (200, _png((64, 64)), "image/png")}, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "error" and calls == [X + "robots.txt"]   # 這輪不抓，連 Google 都不問
+
+
+# ------------------------------------------------------------------ Wikidata／Commons
+
+def _sparql(rows):
+    return {"results": {"bindings": [
+        {k: {"value": v} for k, v in r.items()} for r in rows]}}
+
+
+def test_wikidata_parse_and_lookup():
+    raw = _sparql([
+        {"item": "http://www.wikidata.org/entity/Q1", "logo": "http://commons.wikimedia.org/wiki/Special:FilePath/TSMC%20Logo.svg",
+         "ticker": "2330"},
+        {"item": "http://www.wikidata.org/entity/Q1", "logo": "http://commons.wikimedia.org/wiki/Special:FilePath/TSMC%20Logo.svg",
+         "label": "台灣積體電路製造股份有限公司"},
+        {"item": "http://www.wikidata.org/entity/Q2", "logo": "http://commons.wikimedia.org/wiki/Special:FilePath/A.png",
+         "ticker": "TPE:8038"},
+        {"item": "http://www.wikidata.org/entity/Q3", "logo": "http://commons.wikimedia.org/wiki/Special:FilePath/B.png",
+         "ticker": "8038.TWO"},
+        {"item": "bad"},
+    ])
+    m = wm.parse_sparql(raw)
+    assert m["by_code"]["2330"] == [["File:TSMC Logo.svg", "Q1"]]
+    assert wm.lookup(m, "2330") == {"file": "File:TSMC Logo.svg", "item": "Q1", "match": "ticker"}
+    assert wm.lookup(m, "8038") is None                              # 同一代號兩張不同圖：不猜
+    assert wm.lookup(m, "9999", "臺灣積體電路製造股份有限公司")["match"] == "name"
+    assert wm.parse_sparql({"oops": 1}) == {}
+    assert wm.ticker_code("TWSE: 2330") == "2330" and wm.ticker_code("abc") is None
+
+
+@pytest.mark.parametrize("ext,kind", [
+    ({"License": {"value": "pd"}, "LicenseShortName": {"value": "Public domain"}}, "PD"),
+    ({"License": {"value": "cc0"}}, "CC0"),
+    ({"License": {"value": "cc-by-sa-4.0"}, "LicenseShortName": {"value": "CC BY-SA 4.0"}}, "CC BY-SA"),
+    ({"LicenseShortName": {"value": "CC BY 3.0"}}, "CC BY"),
+    ({"License": {"value": "cc-by-nc-4.0"}}, None),
+    ({"LicenseShortName": {"value": "CC BY-ND 2.0"}}, None),
+    ({"License": {"value": "gfdl"}}, None),
+    ({}, None),
+])
+def test_commons_license_whitelist(ext, kind):
+    assert wm.license_of(ext)[0] == kind
+
+
+def _commons_fake(files: dict, calls: list, thumb_status=200):
+    """假的 Commons：files＝{File:名: (授權碼, 圖檔 bytes)}；SPARQL 回 files 對到的代號。"""
+    def fake(url, **kw):
+        calls.append(url)
+        if url.startswith(config.LOGO_WIKIDATA_SPARQL):
+            return (200, json.dumps(_sparql([
+                {"item": f"http://www.wikidata.org/entity/Q{i}",
+                 "logo": "http://commons.wikimedia.org/wiki/Special:FilePath/" + f[5:].replace(" ", "%20"),
+                 "ticker": code} for i, (code, f) in enumerate(sorted(
+                     (c, f) for f, (_l, _b, codes) in files.items() for c in codes))])).encode(), "application/json", url)
+        if url.startswith(config.LOGO_COMMONS_API):
+            pages = [{"title": f, "imageinfo": [{"thumburl": f"https://upload.example/{i}.png", "url": "u",
+                                                 "descriptionurl": f"https://commons.wikimedia.org/wiki/{f}",
+                                                 "width": 500, "height": 500,
+                                                 "extmetadata": {"License": {"value": lic},
+                                                                 "Artist": {"value": "<a href='x'>User:A</a>"}}}]}
+                     for i, (f, (lic, _b, _c)) in enumerate(sorted(files.items()))]
+            return (200, json.dumps({"query": {"pages": pages}}).encode(), "application/json", url)
+        if url.startswith("https://upload.example/"):
+            i = int(url.rsplit("/", 1)[-1].split(".")[0])
+            return (thumb_status, sorted(files.items())[i][1][1], "image/png", url)
+        return (404, b"", "text/html", url)
+    return fake
+
+
+def test_wikimedia_fetch_many_pd_ok_by_needs_switch(sandbox, monkeypatch):
+    calls = []
+    files = {"File:A.svg": ("pd", _png((250, 250)), ["8038"]),
+             "File:B.png": ("cc-by-sa-4.0", _png((250, 125), fg=(20, 90, 200, 255)), ["2330"])}
+    monkeypatch.setattr(http, "get_bytes", _commons_fake(files, calls))
+    monkeypatch.setattr(config, "LOGO_WIKIMEDIA_PAUSE_SEC", 0)
+    got = wm.fetch_many([{"code": "8038", "domain": "www.a.com"}, {"code": "2330", "domain": "www.b.com"},
+                         {"code": "1111", "domain": "www.c.com"}], today=date(2026, 9, 29))
+    assert got["8038"]["status"] == "ok" and got["8038"]["src"] == "wikimedia"
+    assert got["8038"]["attribution"]["license_kind"] == "PD" and got["8038"]["attribution"]["artist"] == "User:A"
+    assert got["2330"]["status"] == "none" and "署名" in got["2330"]["detail"]   # CC BY-SA：預設不收
+    assert "1111" not in got
+    assert json.loads((config.STATE / config.LOGO_WIKIDATA_CACHE).read_text())["fetched"] == "2026-09-29"
+    monkeypatch.setattr(config, "LOGO_WIKIMEDIA_ALLOW_BY", True)
+    calls.clear()
+    got = wm.fetch_many([{"code": "2330", "domain": "www.b.com"}], today=date(2026, 9, 30))
+    assert got["2330"]["status"] == "ok" and got["2330"]["attribution"]["license_kind"] == "CC BY-SA"
+    assert not any(u.startswith(config.LOGO_WIKIDATA_SPARQL) for u in calls)   # 7 天內用快取，不重查
+
+
+def test_wikimedia_throttled_stops_and_never_raises(sandbox, monkeypatch):
+    calls = []
+    files = {"File:A.png": ("pd", _png(), ["8038"]), "File:B.png": ("pd", _png(), ["2330"])}
+    monkeypatch.setattr(http, "get_bytes", _commons_fake(files, calls, thumb_status=429))
+    monkeypatch.setattr(config, "LOGO_WIKIMEDIA_PAUSE_SEC", 0)
+    got = wm.fetch_many([{"code": "8038"}, {"code": "2330"}], today=date(2026, 9, 29))
+    assert got == {} and sum(u.startswith("https://upload.example/") for u in calls) == 1   # 429 就整段收手
+
+    def boom(url, **kw):
+        raise RuntimeError("網路炸了")
+    monkeypatch.setattr(http, "get_bytes", boom)
+    (config.STATE / config.LOGO_WIKIDATA_CACHE).unlink()
+    assert wm.fetch_many([{"code": "8038"}]) == {}
+
+
+def test_run_wikimedia_pass_fills_failures_and_bigger_than_lowres(sandbox):
+    _seed_company([{"code": c, "name": c, "full_name": None, "market": "TWSE", "industry": "x",
+                    "website": f"www.c{c}.com.tw"} for c in ("1111", "2222", "3333", "4444")])
+    small = lg.normalize_image(_png((16, 16)), allow_lowres=True)[0]
+
+    def fetcher(website, host):
+        if host == "www.c1111.com.tw":
+            return {"status": "robots", "domain": host, "detail": "Disallow"}
+        if host == "www.c2222.com.tw":
+            return {"status": "ok", "domain": host, "src": "site:icon", "url": "u", "png": small,
+                    "orig": [16, 16], "lowres": True}
+        if host == "www.c3333.com.tw":
+            return {"status": "ok", "domain": host, "src": "site:icon", "url": "u",
+                    "png": lg.normalize_image(_png())[0], "orig": [180, 180]}
+        return {"status": "none", "domain": host, "detail": "nothing"}
+
+    asked = []
+
+    def wiki(rows, reject, deadline):
+        asked.extend(r["code"] for r in rows)
+        png, orig = lg.normalize_image(_png((250, 250), fg=(10, 150, 60, 255)))
+        return {c: {"status": "ok", "domain": None, "src": "wikimedia", "url": f"https://commons/{c}",
+                    "png": png, "orig": list(orig),
+                    "attribution": {"file": f"File:{c}.svg", "page": f"https://commons/{c}", "license": "Public domain",
+                                    "license_kind": "PD"}}
+                for c in ("1111", "2222", "4444")}
+
+    s = lg.run(today=date(2026, 9, 29), fetcher=fetcher, wikimedia=wiki)
+    assert sorted(asked) == ["1111", "2222", "4444"]                 # 正常大小的官網圖不問；robots 也問（不是爬官網）
+    idx = lg.read_index()["items"]
+    assert idx["1111"]["src"] == "wikimedia" and "robots" in idx["1111"]["site_fail"]
+    assert idx["2222"]["src"] == "wikimedia" and "lowres" not in idx["2222"]
+    assert idx["3333"]["src"] == "site:icon"
+    assert s["wikimedia"]["ok"] == 3 and s["wikimedia"]["replaced_lowres"] == 1
+    att = (config.DATA / "logos" / "ATTRIBUTION.md").read_text()
+    assert "File:1111.svg" in att and "Public domain" in att
+
+
+# ------------------------------------------------------------------ 人工指定的 Logo
+
+def test_manual_logo_applied_kept_and_removed(sandbox):
+    _seed_company([{"code": "8038", "name": "長園科", "market": "TPEX", "industry": "x", "website": "www.z.com.tw"}])
+    md = config.DATA / "logos" / "manual"
+    md.mkdir(parents=True)
+    (md / "8038.png").write_bytes(_png((120, 120)))
+    (md / "manual.json").write_text(json.dumps({"8038": {"source_url": "https://www.z.com.tw/", "date": "2026-09-29"}}),
+                                    encoding="utf-8")
+    calls = []
+    s = lg.run(today=date(2026, 9, 29), fetcher=_ok_fetcher(calls))
+    rec = lg.read_index()["items"]["8038"]
+    assert s["manual"]["applied"] == ["8038"] and rec["src"] == "manual" and calls == []   # 人工的不再自動抓
+    assert rec["source_url"] == "https://www.z.com.tw/" and (config.DATA / "logos" / "8038.png").exists()
+    assert lg.manual_pending() == []
+    (md / "8038.png").unlink()
+    assert lg.manual_pending() == ["8038"]
+    s = lg.run(today=date(2026, 9, 30), fetcher=_ok_fetcher(calls))
+    assert s["manual"]["removed"] == ["8038"] and calls == ["www.z.com.tw"]               # 刪掉 → 回到自動來源
+
+
+def test_manual_logo_too_wide_is_rejected_not_crashing(sandbox):
+    md = config.DATA / "logos" / "manual"
+    md.mkdir(parents=True)
+    (md / "2330.png").write_bytes(_png((600, 60)))
+    s = lg.run(today=date(2026, 9, 29), fetcher=_ok_fetcher([]))
+    assert s["manual"]["errors"] and s["manual"]["errors"][0]["code"] == "2330"
+    assert s["manual"]["missing_meta"] == ["2330"]
+
+
+def test_run_passes_company_names_to_fetch(sandbox, monkeypatch):
+    _seed_company([{"code": "1802", "name": "台玻", "full_name": "台灣玻璃工業股份有限公司", "market": "TWSE",
+                    "industry": "x", "website": "www.taiwanglass.com"}])
+    seen = {}
+
+    def fake_fetch(website, host=None, reject=None, names=None):
+        seen[host] = names
+        return {"status": "none", "domain": host, "detail": "x"}
+    monkeypatch.setattr(lg, "fetch_logo", fake_fetch)
+    monkeypatch.setattr(config, "LOGO_WIKIMEDIA_ENABLED", False)
+    lg.run(today=date(2026, 9, 29))
+    assert seen["www.taiwanglass.com"] == ["台玻", "台灣玻璃工業股份有限公司"]
+
+
+def test_run_records_group_via_and_site(sandbox):
+    _seed_company([{"code": "9999", "name": "某某", "market": "TWSE", "industry": "x", "website": "www.sub.com.tw"}])
+
+    def fetcher(website, host):
+        return {"status": "ok", "domain": host, "src": "site:apple-touch-icon", "url": "https://www.group.com/a.png",
+                "png": lg.normalize_image(_png())[0], "orig": [180, 180], "site": "www.group.com", "via": "group"}
+    lg.run(today=date(2026, 9, 29), fetcher=fetcher)
+    rec = lg.read_index()["items"]["9999"]
+    assert rec["via"] == "group" and rec["site"] == "www.group.com"
