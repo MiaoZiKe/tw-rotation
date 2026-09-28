@@ -15109,7 +15109,8 @@ def t_rev_pe_0928(pg, base, code):
     xs = s36.get("x") or []
     mis = [int(x[:4]) * 12 + int(x[5:7]) for x in xs]
     ok(f"【{tag}】2330 月走勢 x 軸月份連續", len(mis) > 1 and all(b - a == 1 for a, b in zip(mis, mis[1:])), xs[:4] + xs[-3:])
-    bars = sorted(v for v in (s36.get("bars") or []) if v is not None and v > 0)
+    _nv = lambda v: (v.get("value") if isinstance(v, dict) else v)
+    bars = sorted(_nv(v) for v in (s36.get("bars") or []) if _nv(v) is not None and _nv(v) > 0)
     r36 = bars[-1] / bars[len(bars) // 2] if bars else None
     ok(f"★【{tag}】2330 圖上畫出來的營收柱 最大 ÷ 中位 ≤ 10", r36 is not None and r36 <= 10, round(r36, 2) if r36 else None)
 
