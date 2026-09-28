@@ -527,3 +527,37 @@
   a.lk::after,#indCrumbs a::after,.rotdd .ddbtn::after,button.kfit::after{content:'';position:absolute;
     left:min(0px,calc(50% - 20px));right:min(0px,calc(50% - 20px));top:min(0px,calc(50% - 20px));bottom:min(0px,calc(50% - 20px))}
 }
+
+/* ==================================================================================
+   ★ 設計 v4 第二批 2B 收尾（2026-09-29）：產業地圖／產業鏈（族群總覽、關聯圖）—— 04_第二批2B.md §0 ⑧～⑫
+   全部只在 ≥641（手機這一批不動）；元素只換位置，id、內容、事件不變（搬位置的是 industry.js 的 matchMedia）。
+   ================================================================================== */
+@media (min-width:641px){
+  /* ⑧ 族群總覽：資料狀態（#gpNote）、「完整版圖：產業熱力圖 →」併進標題列；滑過讀數（#gpFocus）搬到長條卡標題列右半邊 */
+  .gpdesk>.gphead{justify-content:flex-start;align-items:center;column-gap:12px;row-gap:6px}
+  .gpdesk>.gphead>h4{flex:0 1 auto;margin:0}
+  .gpdesk>.gphead>.gpnote{margin:0;padding:2px 10px;flex:0 1 auto;min-width:0;line-height:1.6}
+  .gpdesk>.gphead>.gptail{margin:0 0 0 auto;padding:0;border:0;flex:none;gap:6px}
+  .gpdesk>.gphead>.gplive{margin-left:auto}
+  .gpdesk>.gphead>.gptail+.gplive{margin-left:0}
+  .gpdesk .gpcard{position:relative}
+  .gpdesk .gpcard>#gpFocus{position:absolute;top:10px;right:12px;max-width:calc(100% - 150px);margin:0!important;
+    text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;line-height:21px}
+  /* 卡片內距套 v4 尺度（改前 10／12／8、14 這種尺度外的數字） */
+  .gpcard{padding:8px 12px 8px}
+  .nbbody{padding:12px 12px 12px}
+  /* ⑨ 產業鏈頁：鏈名標題跟二層分頁列同一列（industry.js fitNbHead：放得下才掛 .nbinl） */
+  .nbcard.nbinl>.nbhead{float:left;margin:4px 16px 0 0;min-height:0}
+  .nbcard.nbinl>.nbhead h2{line-height:32px}
+  .nbcard.nbinl>.nbbody{clear:both;border-top-left-radius:10px}
+  /* ⑪ 12px 下限：分頁上的檔數（11.5）、關聯圖公司卡第二行（代號、股價、漲跌 11） */
+  .nbsw>button em,.nbsw>a em,.chainsw button em{font-size:12px}
+  .chainmap .co .sub{font-size:12px}
+  /* ⑫ 關聯圖區塊跟上一塊的距離 16 → 12（v4 卡片間距） */
+  .relsec{margin-top:12px}
+}
+@media (min-width:821px){
+  /* ⑩ 「環節：全部 ▾」下拉搬進「供應鏈關聯圖」標題列 */
+  #relHead>.segdd{margin:0 auto 0 12px}
+  .relsec.ddhead .relmain{margin-top:8px}
+}

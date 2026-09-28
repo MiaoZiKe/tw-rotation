@@ -336,9 +336,39 @@
           <div class="gplegend" id="gpLegend" aria-label="圖例"></div></div>
       </div>
       <div class="sub" id="gpFocus" style="margin-top:8px"></div>
-      ${ctx.tail ? `<div class="linkrow">${ctx.tail}</div>` : ''}`;
+      ${ctx.tail ? `<div class="linkrow gptail">${ctx.tail}</div>` : ''}`;
 
     const barEl = $('#gpBar', host), pieEl = $('#gpPie', host), noteEl = $('#gpNote', host);
+    /* ★ 設計 v4 第二批 2B（docs/design_v4/04_第二批2B.md §0 ⑧）：桌機（≥641）三行各佔一整列的東西收進既有的列裡：
+         · #gpNote（「昨天（盤後收盤）資料日期…」／「⚡ 盤中暫定值…」）→ 標題列（標題右邊、「即時」左邊），省一整列 ≈ 42px
+         · #gpFocus（滑過讀數，沒滑過時是一行空白佔位）→ 「族群漲跌幅」卡片標題列的右半邊（那一列右邊本來就空著，
+           高度固定、單行、放不下省略 —— 滑過時版面照樣不跳），圖下方那條空白列不見了 ≈ 32px
+         · 「完整版圖：產業熱力圖 →」（產業地圖那一層才有）→ 標題列「即時」左邊，圖下方那一整列（含虛線）不見了 ≈ 40px
+       只搬位置，元素、id、內容、行為都不變（寫入的程式碼照 id 找）。手機（≤640）維持改前的順序：
+       視窗跨過 640 時 matchMedia 來回搬；這個族群總覽被重畫（元素離開 DOM）就把監聽拿掉。*/
+    {
+      const mq = window.matchMedia ? window.matchMedia('(min-width:641px)') : null;
+      const head = $('.gphead', host), live = head && $('.gplive', head), grid = $('.gpgrid', host);
+      const foc = $('#gpFocus', host), tail = $('.gptail', host), barCard = barEl.parentElement;
+      const place = () => {
+        if (!noteEl.isConnected) { if (mq) { try { mq.removeEventListener('change', place); } catch (e) { /* 舊瀏覽器 */ } } return; }
+        const desk = !mq || mq.matches;
+        host.classList.toggle('gpdesk', desk);
+        if (desk) {
+          head.insertBefore(noteEl, live);
+          if (tail) head.insertBefore(tail, live);
+          barCard.insertBefore(foc, barEl);
+        } else {
+          grid.before(noteEl);
+          grid.after(foc);
+          if (tail) foc.after(tail);
+        }
+      };
+      if (head && live && grid && foc && barCard) {
+        place();
+        if (mq) { try { mq.addEventListener('change', place); } catch (e) { /* 舊瀏覽器：照初始位置 */ } }
+      }
+    }
     const backBtn = $('#gpBack', host), liveBtn = $('#gpLiveBtn', host);
     const CH = A.CH;
 
@@ -1186,6 +1216,27 @@
        下拉裡的每一列仍然是同一顆 .segchip，所以下面掛事件、syncHighlight 切 .sel 的程式碼不用換路。*/
     renderSegPicker($('#segChips', el), $('#relList', el), sc, segs, im);
     const segDDOpen = wireSegDD(el);
+    /* ★ 設計 v4 第二批 2B（04 文件 §0 ⑨⑩）：產業鏈頁兩處「一個元件獨佔一整列」收進既有的列：
+         · 鏈名標題（h2＋「?」）跟二層分頁列（族群總覽／各張剖析圖）同一列 —— 標題在左、分頁接在右邊；
+           **放得下才併**（分頁列沒被擠出橫向捲動），放不下照改前兩列（fitNbHead，視窗寬度一變重量一次）。
+         · 「環節：全部 ▾」下拉搬進「供應鏈關聯圖」標題列（標題右邊）—— 只在桌機（≥821，下拉本來就只在桌機是一顆鈕；
+           手機那排色標不動）。元素、id、事件都不變，只換父層；視窗跨過 820 時搬回去。*/
+    fitNbHead($('.nbcard', el));
+    {
+      const mq = window.matchMedia ? window.matchMedia('(min-width:821px)') : null;
+      const dd = $('#segDD', el), rh = $('#relHead', el), rm = $('#relMain', el), rs = $('#relSec', el);
+      const place = () => {
+        if (!dd.isConnected) { if (mq) { try { mq.removeEventListener('change', place); } catch (e) { /* 舊瀏覽器 */ } } return; }
+        const desk = !mq || mq.matches;
+        if (desk) { if (dd.parentElement !== rh) rh.insertBefore(dd, rh.children[1] || null); }
+        else if (dd.parentElement !== rm) rm.insertBefore(dd, rm.firstChild);
+        if (rs) rs.classList.toggle('ddhead', desk);
+      };
+      if (dd && rh && rm) {
+        place();
+        if (mq) { try { mq.addEventListener('change', place); } catch (e) { /* 舊瀏覽器：照初始位置 */ } }
+      }
+    }
     let segFilter = opts.seg || null;
     /* ★ 2026-09-23 第二批（Andy 點名）：下方那張「成分股」卡片整塊移除。
        連同 renderMembers／COLS／排序記憶／市場別 seg／展開更多／放寬蓋住事件面板 一起拿掉 ——
@@ -2832,6 +2883,20 @@
     else { y = M.top - R.top + map.offsetHeight + gap; where = 'under'; }   // 圖框下緣之外（仍是覆蓋層，不推版面）
     col.style.left = x + 'px'; col.style.top = Math.round(y) + 'px'; col.dataset.side = where;
   }
+  /* ★ 設計 v4 第二批 2B：產業鏈頁的鏈名標題跟二層分頁列「放得下才併成一列」。
+     放得下＝加上 .nbinl（標題浮在左邊、分頁列接在右邊）之後，分頁列自己沒有被擠出橫向捲動。
+     手機（≤640）不併（手機版面這一批不動）。全站只掛一個 resize 監聽，量的是畫面上現在那一張 .nbcard。*/
+  function fitNbHead(card) {
+    if (!card) return;
+    const head = card.querySelector(':scope>.nbhead'), sw = card.querySelector(':scope>#dgPick');
+    card.classList.remove('nbinl');
+    if (!head || !sw || !(window.innerWidth > 640)) return;
+    card.classList.add('nbinl');
+    if (sw.scrollWidth > sw.clientWidth + 1) card.classList.remove('nbinl');
+  }
+  let nbFitT = 0;
+  window.addEventListener('resize', () => { clearTimeout(nbFitT); nbFitT = setTimeout(() => {
+    const c = document.querySelector('#indChain .nbcard'); if (c && c.isConnected) fitNbHead(c); }, 150); });
   /* 下拉的開合。點外面、按 Esc、選好一格都會收起來；只在第一次掛全站的監聽器（換鏈不會一路疊上去）。*/
   let segDDWired = false;
   function wireSegDD(root) {
