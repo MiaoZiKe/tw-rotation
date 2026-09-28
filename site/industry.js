@@ -376,6 +376,7 @@
       if (busy) return;
       // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
       if (window.Live && window.Live.due && !window.Live.due(gpOkAt)) return;
+      if (window.Live && window.Live.cooling && window.Live.cooling('gp')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
       busy = true; paintNote();
       try {
         if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
@@ -390,7 +391,9 @@
         liveAt = Object.keys(got).map(k => got[k] && got[k].time).filter(Boolean).sort().pop() || '';
         const ks = Object.keys(got).filter(k => got[k] && got[k].price != null);
         cov = [ks.length, codes.length];
+        if (window.Live && window.Live.report) window.Live.report('gp', true);
       } catch (e) {
+        if (window.Live && window.Live.report) window.Live.report('gp', false);
         if (gen !== gpGen) return;
         liveErr = String((e && e.message) || e).slice(0, 80); q = null; cov = [0, 0];
         // 第二道：萬一哪條路漏掉 live.js 的轉譯，英文的網路錯誤仍然不准原樣上畫面（R3 審查）
@@ -422,6 +425,7 @@
       stopTimer();                      // 先停再開，計時器永遠只有一個
       if (!live) { q = null; liveErr = ''; cov = [0, 0]; paint(); return; }
       paint();                          // 先把「抓取中」寫上去，不要讓畫面看起來沒反應
+      if (window.Live && window.Live.report) window.Live.report('gp', true);   // 重新打開：清掉上次的退避
       liveTick();
       gpTimer = setInterval(() => { if (!document.hidden && live) liveTick(); }, GP_LIVE_MS);
     };

@@ -152,6 +152,16 @@
   const slotHist = [];
   const slotQ = [];
   let slotT = null;
+  /* ---- 其他模組的錯誤退避（2026-09-29 收尾補上）：key -> { n: 連續失敗次數, at: 最後一次失敗的時間 }
+     族群即時模式（漲跌家數 mud、輪動時鐘 rlv、資金去向 skl、族群頁 gp）與大盤卡的期貨報價（m3fut）
+     各自一個 key。改前它們失敗了照樣每 5 秒再打一次 —— 節流閥擋得住「5 秒超過 3 個」，
+     但擋不住「一直打一個已經壞掉的端點」。跟本檔主批次同一條曲線：10、20、40…秒，封頂 5 分鐘。*/
+  const cool = {};
+  function cooling(k) { const c = cool[k]; return !!c && c.n > 0 && Date.now() - c.at < backoffMs(c.n); }
+  function report(k, good) {
+    if (good) { delete cool[k]; return; }
+    const c = cool[k] || { n: 0, at: 0 }; c.n++; c.at = Date.now(); cool[k] = c;
+  }
 
   const ls = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
@@ -877,6 +887,10 @@
      *  盤中一律要；盤後只有「還沒抓過」或「上次已經超過 30 分鐘」才抓 —— 盤後數字不會動，5 秒一跳是白打。*/
     due(lastAt) { return isIntraday() || !lastAt || Date.now() - lastAt >= MS_AFTER; },
     slot,                                      // 節流閥：打 mis 之前 await Live.slot(prio)
+    /** 其他模組的錯誤退避：`if (Live.cooling('mud')) return;` 抓之前問；抓完 `Live.report('mud', 成功與否)`。
+     *  使用者重新打開即時時 `Live.report(key, true)` 清掉，第一輪不必等退避。*/
+    cooling, report,
+    get coolStats() { const o = {}; Object.keys(cool).forEach(k => { o[k] = { n: cool[k].n, waitMs: backoffMs(cool[k].n) }; }); return o; },
     get slotStats() { const now = Date.now(); return { recent: slotHist.filter(t => now - t < MIS_WINDOW_MS).length, queued: slotQ.length, max: MIS_MAX, windowMs: MIS_WINDOW_MS }; },
     cardOn, setCard, stampCards, mountAll, hms,
     /** 卡片登記「畫面上沒有格子、但我要」的代號（大盤卡登記 t00／o00）。

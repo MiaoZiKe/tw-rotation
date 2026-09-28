@@ -16917,6 +16917,32 @@ def t_live5s_0929(b, base, code):
     m2 = changes_within(pg, "#mktLive .liveat", 16000)
     ok("[即時5秒] 漲跌家數即時：最後更新時間真的往前走（440 檔＝5 個請求一輪，受節流閥限制約 10 秒輪完）", m2[2] is not None, m2)
     ok("★ [即時5秒] 族群即時模式：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
+    # --- 族群即時模式的錯誤退避（2026-09-29 收尾補的：改前失敗了照樣每 5 秒再打一輪）
+    #     量的是「漲跌家數這個模式自己失敗了幾輪、每輪隔多久」（Live.coolStats.mud.n），不是 /quote 總數 ——
+    #     /quote 裡還混著 live.js 主批次（它有自己的退避，上面個股頁那段驗過）。
+    S["fail"] = True
+    t_mf = _time.time(); mud_seen, last_mn = [], 0
+    while _time.time() - t_mf < 33:
+        pg.wait_for_timeout(250)
+        n = pg.evaluate("() => ((window.Live.coolStats || {}).mud || {}).n || 0")
+        if n != last_mn:
+            mud_seen.append(round(_time.time() - t_mf, 1)); last_mn = n
+    mud_gaps = [round(y - x, 1) for x, y in zip(mud_seen, mud_seen[1:])]
+    ok("★ [即時5秒] 族群即時模式失敗時也退避：33 秒內只失敗 2～3 輪（不退避會是 6～7 輪）", 2 <= last_mn <= 3, {"失敗時間點": mud_seen, "輪數": last_mn})
+    ok("★ [即時5秒] 族群即時模式的重試間隔 ≈ 10 秒、≈ 20 秒（不是照樣 5 秒）",
+       len(mud_gaps) >= 1 and 8.5 <= mud_gaps[0] <= 13 and (len(mud_gaps) < 2 or 18 <= mud_gaps[1] <= 24), {"間隔": mud_gaps})
+    ok("[即時5秒] 族群即時模式失敗時狀態列照實寫出來（不是停在舊的更新時間假裝正常）",
+       bool(re.search(r"失敗|抓不到|連不到|HTTP|錯誤|502", text(pg, "#mktLive"))), text(pg, "#mktLive")[:120])
+    S["fail"] = False
+    pg.click("#mktMode button[data-m='eod']"); pg.wait_for_timeout(300)
+    pg.click("#mktMode button[data-m='live']")
+    try:
+        pg.wait_for_function("() => { const e = document.querySelector('#mktLive .liveat'); return !!e && !((window.Live.coolStats || {}).mud); }", timeout=15000, polling=200)
+        rec_m = True
+    except Exception:
+        rec_m = False
+    ok("★ [即時5秒] 族群即時模式關掉再打開：退避清掉、馬上重新抓到（不必等 40 秒）", rec_m,
+       [text(pg, "#mktLive")[:100], pg.evaluate("() => window.Live.coolStats")])
     pg.click("#mktMode button[data-m='eod']")
 
     # --- 歷史資料的頁面不加開關

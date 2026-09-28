@@ -2886,13 +2886,18 @@
 
   async function mudTick() {
     if (!MUD.on || MUD.busy) return;
+    /* 離開這一頁就把即時關掉 —— 每 5 秒對一個看不到的畫面打 5 個請求，
+       使用者沒有任何方式察覺，只會看到額度莫名其妙被吃掉。
+       ⚠ 這一條要排在 Live.due 前面：盤後 due 會擋掉 30 分鐘內的每一跳，排在後面的話離開頁面要等半小時才關得掉。*/
+    if (!/^#market/.test(location.hash || '')) { mudOff(false); return; }
+    if (document.hidden) return;               // 分頁在背景：不打（其他三個即時模式在計時器那裡擋，這支的計時器沒擋）
     // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
     if (window.Live && window.Live.due && !window.Live.due(MUD.at)) return;
-    /* 離開這一頁就把即時關掉 —— 每分鐘對一個看不到的畫面打 5 個請求，
-       使用者沒有任何方式察覺，只會看到額度莫名其妙被吃掉。*/
-    if (!/^#market/.test(location.hash || '')) { mudOff(false); return; }
+    if (window.Live && window.Live.cooling && window.Live.cooling('mud')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
     MUD.busy = true; MUD.intraday = !window.Live || window.Live.isIntraday();
-    try { await mudFetch(); } catch (e) { MUD.err = (e && e.message) || String(e); }
+    let good = true;
+    try { await mudFetch(); } catch (e) { good = false; MUD.err = (e && e.message) || String(e); }
+    if (window.Live && window.Live.report) window.Live.report('mud', good);
     MUD.busy = false;
     if (!MUD.on) return;
     if (mktKind === 'updown') drawMarket('updown');
@@ -2910,6 +2915,7 @@
        `if (!MUD.on || MUD.busy) return;`，設了它第一輪會直接被自己擋掉，
        畫面永遠停在「抓取中…」（實測踩過）。*/
     MUD.on = true; MUD.err = '';
+    if (window.Live && window.Live.report) window.Live.report('mud', true);   // 重新打開：清掉上次的退避，第一輪馬上抓
     MUD.intraday = !window.Live || window.Live.isIntraday();
     drawMarket('updown');                      // 先把「抓取中…」畫出來，不要讓人按了沒反應
     mudTick();
@@ -4255,10 +4261,11 @@
     /* 換到站內別的分頁時容器還在 DOM、只是被藏起來（offsetParent 是 null）。
        這時候不要打報價 —— 使用者根本沒在看這張圖，每分鐘 3 個請求純浪費。*/
     { const el = $('#rotClock'); if (el && el.offsetParent === null) return; }
+    if (window.Live && window.Live.cooling && window.Live.cooling('rlv')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
     RLV.busy = true; RLV.intraday = !window.Live || window.Live.isIntraday();
     rlvStamp();
-    try { await rlvFetch(); }
-    catch (e) { RLV.err = String((e && e.message) || e).slice(0, 90); RLV.pt = {}; }
+    try { await rlvFetch(); if (window.Live && window.Live.report) window.Live.report('rlv', true); }
+    catch (e) { RLV.err = String((e && e.message) || e).slice(0, 90); RLV.pt = {}; if (window.Live && window.Live.report) window.Live.report('rlv', false); }
     finally {
       RLV.busy = false;
       if (RLV.on) rlvRedraw();
@@ -4288,6 +4295,7 @@
       if (rotBackBar) { try { rotBackBar.seek(0); } catch (e) { /* 忽略 */ } }
     }
     RLV.err = ''; RLV.at = 0; RLV.pt = {};
+    if (window.Live && window.Live.report) window.Live.report('rlv', true);   // 重新打開：清掉上次的退避
     RLV.intraday = !window.Live || window.Live.isIntraday();
     rlvStamp();
     rlvTick();
@@ -9452,10 +9460,11 @@
        這時候不要打報價 —— 使用者根本沒在看這張圖，每分鐘 2 個請求純浪費。
        回到資金流向頁時計時器還在，下一輪就自己接上。*/
     { const el = $('#sankey'); if (el && el.offsetParent === null) return; }
+    if (window.Live && window.Live.cooling && window.Live.cooling('skl')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
     SKL.busy = true; SKL.intraday = !window.Live || window.Live.isIntraday();
     sklStamp();
-    try { await sklFetch(st.sd); }
-    catch (e) { SKL.err = String((e && e.message) || e).slice(0, 80); SKL.tv = {}; SKL.stv = {}; }
+    try { await sklFetch(st.sd); if (window.Live && window.Live.report) window.Live.report('skl', true); }
+    catch (e) { SKL.err = String((e && e.message) || e).slice(0, 80); SKL.tv = {}; SKL.stv = {}; if (window.Live && window.Live.report) window.Live.report('skl', false); }
     finally {
       SKL.busy = false;
       const s2 = sankeyState;
@@ -9479,6 +9488,7 @@
     SKL.on = true;
     stopAllPlay();                     // 即時和「往回播」是互斥的兩件事，同時跑只會互相蓋
     SKL.err = ''; SKL.at = 0; SKL.tv = {}; SKL.stv = {};
+    if (window.Live && window.Live.report) window.Live.report('skl', true);   // 重新打開：清掉上次的退避
     SKL.intraday = !window.Live || window.Live.isIntraday();
     sklStamp();
     sklTick();
