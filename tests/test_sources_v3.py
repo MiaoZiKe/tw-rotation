@@ -585,14 +585,15 @@ def test_yahoo_index_tries_candidates(monkeypatch):
 
     def dl(sym, **k):
         asked.append(sym)
-        if sym in ("^TWII", "^TWOTCI"):
+        # 2026-09-28：櫃買 Yahoo 代號實測是 IX0043.TWO（第一順位）；它回空才退到舊的 ^TWOII
+        if sym in ("^TWII", "^TWOII"):
             idx = pd.DatetimeIndex(["2026-09-24 09:00"]).tz_localize("Asia/Taipei")
             return pd.DataFrame({"Open": [1.0], "High": [1.0], "Low": [1.0], "Close": [1.0],
                                  "Volume": [0]}, index=idx)
         return pd.DataFrame()
     monkeypatch.setitem(sys.modules, "yfinance", types.SimpleNamespace(download=dl))
     out = yahoo.index_intraday("60m", "5d")
-    assert asked == ["^TWII", "^TWOII", "^TWOTCI"]
+    assert asked == ["^TWII", "IX0043.TWO", "^TWOII"]
     assert set(out["symbol"]) == {"TSE", "OTC"}
 
 
@@ -783,7 +784,8 @@ def test_build_minute_synth_15_60_240():
     assert [b[0] for b in h1] == [_wall(f"2026-09-25 {h:02d}:00") for h in (9, 10, 11, 12, 13)]
     assert len(h4) == 1 and h4[0][0] == _wall("2026-09-25 09:00")
     assert h4[0][1] == 390.0 and h4[0][4] == pytest.approx(390.0 + 269 * 0.1)
-    assert h4[0][5] == 270 * 10 * 1000
+    # 2026-09-28：指數的 s 是成交金額（百萬元）→ 湖存千元（×1000）→ payload 存元（再 ×1000）
+    assert h4[0][5] == 270 * 10 * 1000 * 1000
     assert m15[0][0] == _wall("2026-09-25 09:00") and all(b[0] % 900 == 0 for b in m15)
     assert m15[1][0] == _wall("2026-09-25 09:15")
     assert sum(b[5] for b in m15) == h4[0][5]

@@ -3,7 +3,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 540,
-      "seconds": 20.3
+      "seconds": 1.5
     },
     "index_intraday": {
       "stored": 0
@@ -11,23 +11,23 @@
     "taifex.futures_minute": {
       "ok": false,
       "rows": 0,
-      "seconds": 2.1
+      "seconds": 1.1
     },
     "news.collect": {
       "ok": true,
-      "rows": 127,
-      "seconds": 3.0
+      "rows": 125,
+      "seconds": 3.1
     },
     "news": {
-      "stored": 17
+      "stored": 33
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 1,
+      "rows": 4,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 4
     },
     "mops.material_news": {
       "ok": true,
@@ -35,12 +35,12 @@
       "seconds": 1.2
     },
     "material_news": {
-      "stored": 4
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1759,
-      "seconds": 1.0
+      "rows": 1760,
+      "seconds": 0.8
     },
     "intl_daily": {
       "stored": 1
@@ -48,7 +48,7 @@
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 1.4
+      "seconds": 1.0
     },
     "build_payload": {
       "ok": true
@@ -67,12 +67,12 @@
       "2026-09-24"
     ]
   },
-  "started_at": "2026-09-27T23:36:09.720460+00:00",
-  "finished_at": "2026-09-27T23:48:25.621449+00:00",
-  "duration_seconds": 735.9,
+  "started_at": "2026-09-28T06:14:23.960192+00:00",
+  "finished_at": "2026-09-28T06:26:56.497853+00:00",
+  "duration_seconds": 752.5,
   "trade_date": null,
   "complete": true,
-  "finmind_budget_left": 472,
+  "finmind_budget_left": 440,
   "tables": [
     {
       "table": "price_daily",
@@ -136,17 +136,17 @@
     },
     {
       "table": "news",
-      "rows": 2611,
+      "rows": 2644,
       "latest": "2026-09-28"
     },
     {
       "table": "broker_views",
-      "rows": 38,
-      "latest": "2026-09-25"
+      "rows": 42,
+      "latest": "2026-09-28"
     },
     {
       "table": "intl_daily",
-      "rows": 1846,
+      "rows": 1847,
       "latest": "2026-09-28"
     },
     {
@@ -156,13 +156,13 @@
     },
     {
       "table": "dividend_events",
-      "rows": 19438,
+      "rows": 19490,
       "latest": "—"
     },
     {
       "table": "dividend_results",
-      "rows": 17579,
-      "latest": "2026-09-21"
+      "rows": 17625,
+      "latest": "2026-09-23"
     },
     {
       "table": "index_ohlc",
@@ -176,7 +176,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 37738,
+      "rows": 58366,
       "latest": "—"
     },
     {
@@ -191,12 +191,12 @@
     },
     {
       "table": "daytrade_daily",
-      "rows": 268694,
+      "rows": 694734,
       "latest": "2026-09-24"
     },
     {
       "table": "sbl_daily",
-      "rows": 278840,
+      "rows": 763132,
       "latest": "2026-09-24"
     },
     {
@@ -207,7 +207,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 6,
+    "days_since_review": 7,
     "is_stale": false,
     "group_count": 83,
     "code_count": 444,

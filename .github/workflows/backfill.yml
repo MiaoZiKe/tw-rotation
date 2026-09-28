@@ -94,6 +94,10 @@ jobs:
                   ii = json.loads(p.read_text()).get("complete", {}).get("index_intraday") or {}
                   if not (isinstance(ii, dict) and ii.get("done")):
                       done = False
+                  # 2026-09-28：櫃買 Yahoo 代號改 IX0043.TWO（yahoo_v 3）＋加權真實 1 分 K（tse1m_v 1）是新步驟，
+                  # 舊進度的 done 不涵蓋它們 —— 版本對不上就放行一輪，讓 run_backfill 自己重開。
+                  if isinstance(ii, dict) and (ii.get("yahoo_v") != 3 or ii.get("tse1m_v") != 1):
+                      done = False
                   # 2026-09-27：三大法人歷史步驟（計畫補齊後才加的，同上理由）＋法人每日續補
                   # （每天一次，complete.inst_fresh.date＝台北日期；當天還沒做完就放行一輪）。
                   # ★ 2026-09-28：這三步改成全市場（scope=market），完成鍵換成帶「@market」的新鍵。
