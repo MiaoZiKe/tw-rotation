@@ -4848,7 +4848,9 @@
     const first = r.host.firstElementChild;
     const bb = r.box.getBoundingClientRect(), fb = first && first !== r.box ? first.getBoundingClientRect() : null;
     // 被擠到下一行＝圖例的頂端已經在同一列第一個東西的底下（留 2px 誤差）
-    const wrapped = !!(fb && bb.width > 0 && bb.top >= fb.bottom - 2);
+    /* 手機（≤640）一律照改前畫（ECharts 圖例在圖裡）：這一批手機版面不動，而且 390 寬標題列加了標題圖示之後
+       HTML 圖例一定被擠到下一行（驗收「標題圖示」390 個股／資券、大戶／散戶抓到標題列 44 → 84）。*/
+    const wrapped = (window.innerWidth || 1440) <= 640 || !!(fb && bb.width > 0 && bb.top >= fb.bottom - 2);
     if (wrapped === r.wrapped) { r.box.hidden = wrapped; return; }
     r.wrapped = wrapped;
     r.box.hidden = wrapped;
@@ -4912,6 +4914,13 @@
     r.wrapped = false;
     box.dataset.fit = 'row';      // 初始就是「同一行」版；extLegFit 只在狀態改變時才寫，不先寫的話放得下的圖永遠讀不到 row
     extLegFit(r);
+    /* 標題列的寬度分配在圖畫完之後還會變（標題圖示、「?」、資料日期這些是之後才補進標題的）——
+       只在視窗縮放時重量的話，圖例量的時候放得下、補完標題之後就被擠到下一行，卡片多出一行。
+       所以盯著標題列本身的尺寸：一變就重量（狀態沒變時 extLegFit 什麼都不做，不會來回切）。*/
+    if (!host._extRO && typeof ResizeObserver !== 'undefined') {
+      host._extRO = new ResizeObserver(() => Object.values(extLegRec).forEach(x => { if (x.host === host) extLegFit(x); }));
+      host._extRO.observe(host);
+    }
   }
   const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); delete extLegRec[id]; };
   function fundCard(pg) {
