@@ -167,6 +167,20 @@
      分時檔每分鐘多一筆，10 秒足以讓數字一直在跳、新的一分鐘一出現就補上去。 */
   const MS_LIVE = 10 * 1000;
   const MS_AFTER = 5 * 60 * 1000;
+  /* ★ 2026-09-29（Andy：「即時…至少 5S 更新一次」）：卡片上的數字與走勢線的最右端改成每 5 秒。
+     做法**不是**把三個分時檔改成 5 秒抓一次 —— 那樣每 5 秒 3 個請求＋live.js 那一批就 4 個，
+     超過 live.js 節流閥的「每 5 秒最多 3 個」；而且 Worker 對分時檔有 10 秒邊緣快取，5 秒去問一半是同一份。
+     所以拆成兩條：
+       · 分時檔（整條線、每分鐘多一個點）維持 MS_LIVE＝10 秒（＝Worker 的快取時間，問更密沒有新東西）。
+       · 加權／櫃買的**當下值**吃 live.js 每 5 秒那一批（登記 t00／o00，**零額外請求**），
+         台指期日盤的當下值每 5 秒問一次期交所報價（/fut?session=day，不是 mis，不佔證交所的額度）。
+       拿到的當下值只准往前蓋（撮合時間比分時檔新才蓋，見 patchLive），不會把數字往回拉。*/
+  const MS_FAST = 5 * 1000;
+  const m3On = () => !window.Live || !window.Live.cardOn || window.Live.cardOn('m3');
+  /* ★ 2026-09-29 順手修：`#m3` 寫死在 index.html 的總覽區塊裡，**換到別頁它還在 DOM 裡**（只是 .view 被 display:none）。
+     所以以前那句「不在總覽就不用抓」（`!getElementById('m3')`）從來沒成立過 —— 實測在 #market、#flow 也照樣
+     每 10 秒打三個分時檔。改成看「畫面上真的看得到」（getClientRects），別頁一律不抓。*/
+  const m3Shown = () => { const el = document.getElementById('m3'); return !!el && el.getClientRects().length > 0; };
   /* 夜盤另外一組 60 秒的計時器（2026-09-19）。
      夜盤走勢是「一輪收一個點」收出來的，跟著盤後那 5 分鐘走的話一小時只有 12 個點 ——
      那不叫即時走勢。改成 60 秒，顆粒度就跟日盤的分 K 一致。
@@ -174,7 +188,7 @@
      期交所行情看板本身是秒級更新，一分鐘問一次已經很客氣。 */
   const MS_NIGHT = 60 * 1000;
 
-  const state = { data: {}, err: {}, lakeHead: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
+  const state = { data: {}, err: {}, liveQ: {}, liveAt: 0, fTimer: null, fBusy: false, fErr: '', lakeHead: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
     hist: {}, histErr: {}, histBusy: {}, timer: null, nTimer: null, tickMs: 0, fails: 0,
     // 呼吸燈：tipKey＝上一次看到的「最後一個點」是誰；tipAt＝它最後一次真的往前走的時刻
     tipKey: {}, tipAt: {}, pulses: {}, pTimer: null,
@@ -219,6 +233,17 @@
     return m >= 8 * 60 + 40 && m <= 13 * 60 + 55;
   }
   function schedule() {
+    /* ★ 2026-09-29：卡片的「即時」關著＝靜態：三組會打端點的計時器都收掉（呼吸燈那組只改 class，留著）。*/
+    if (!m3On()) {
+      if (state.timer) { clearInterval(state.timer); state.timer = null; state.tickMs = 0; }
+      if (state.fTimer) { clearInterval(state.fTimer); state.fTimer = null; }
+      syncFutStream();
+      return;
+    }
+    // 登記成「函式」：live.js 每一輪問一次 —— 總覽看得到才要 t00／o00，換到別頁自動不問（零額外請求的前提）
+    if (window.Live && window.Live.want) window.Live.want('m3', () => (m3Shown() ? ['t00', 'o00'] : []));
+    if (isIntraday()) { if (!state.fTimer) state.fTimer = setInterval(fastTick, MS_FAST); }
+    else if (state.fTimer) { clearInterval(state.fTimer); state.fTimer = null; }
     /* ★ 只有「節奏真的變了」才重設計時器。
        檔案最下面有一個每 60 秒呼叫 schedule() 的迴圈（用來跨越開盤／收盤換節奏）——
        如果每次都 clearInterval 再 setInterval，週期比 60 秒長的計時器
@@ -247,7 +272,8 @@
        不收的話，離開這一頁之後那條連線會一直開著 —— 使用者看不到，但它還在耗
        Worker 的 CPU 額度，而且 4 分鐘輪替時還會自己重連一次。*/
     if (document.hidden) { syncFutStream(); return; }
-    if (!document.getElementById('m3')) { syncFutStream(); return; }
+    if (!m3Shown()) { syncFutStream(); return; }          // 不在總覽頁（#m3 還在 DOM 裡，要看可見度）
+    if (!m3On()) { syncFutStream(); return; }            // 大盤卡「即時」關著＝靜態
     if (state.futSession !== 'night' || futSession() !== 'night') { syncFutStream(); return; }
     // 走到這裡代表時鐘與畫面都在夜盤，不用再同步
     await pullNight();
@@ -336,8 +362,9 @@
 
   /** 現在畫面上「應該」要有一條夜盤推送連線嗎（只看時段與畫面，不看退避狀態）。 */
   function fsWanted() {
-    if (!document.getElementById('m3')) return false;       // 不在總覽頁
+    if (!m3Shown()) return false;                           // 不在總覽頁（#m3 還在 DOM 裡，要看可見度）
     if (document.hidden) return false;                      // 分頁在背景：不佔連線
+    if (!m3On()) return false;                              // 大盤卡「即時」關著
     return state.futSession === 'night' && futSession() === 'night';
   }
   /** 現在可以「開」一條嗎。
@@ -867,6 +894,10 @@
   async function fetchOne(id) {
     const base = proxy();
     if (!base) throw new Error('還沒設定即時來源');
+    // 分時檔跟 /quote 同一台主機（mis.twse），一起排 live.js 的節流閥（每 5 秒最多 3 個請求）
+    if (window.Live && window.Live.slot) await window.Live.slot(1);
+    // 排隊等節流閥的期間使用者把「即時」關了 → 這一個就不打（關掉之後不准再有請求）
+    if (!state.runManual && !m3On()) throw new Error('OFF');
     const r = await fetch(base + '/chart?id=' + id + '&t=' + Date.now(), { cache: 'no-store' });
     if (r.status === 404 || r.status === 400) {
       // Worker 還是舊版（只有 /quote）。這是 Andy 要自己去 Cloudflare 重貼的那一步，直接寫在畫面上。
@@ -944,9 +975,13 @@
 
   async function refresh(manual) {
     if (state.busy) return;
-    if (!document.getElementById('m3')) return;          // 不在總覽就不用抓
+    if (!document.getElementById('m3')) return;          // 版面上根本沒有這一塊
     // 分頁切走就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
     if (!manual && document.hidden) return;
+    // 不在總覽（#m3 看不到）就不用抓；manual（mount 那一次、輪動時鐘要總成交值時）照抓
+    if (!manual && !m3Shown()) return;
+    if (!manual && !m3On()) return;                      // 大盤卡「即時」關著＝靜態（mount 那一次 manual 照抓，給一份快照）
+    state.runManual = !!manual;
     /* ★ 每一輪都重新評估要看哪一段 —— 網頁可能整天開著，跨過 13:45（日盤收）
        或 15:00（夜盤開）時要自己翻過去，不能等使用者重新整理。*/
     syncSession();
@@ -954,6 +989,7 @@
     const jobs = IDX.map(async x => {
       let d = null, err = '';
       try { d = await fetchOne(x.id); } catch (e) { err = String(e.message || e); }
+      if (err === 'OFF') return;                       // 卡片剛被關掉：這一輪什麼都不動（不去打 Yahoo 備援）
       /* ★ 2026-09-24 Andy：「日盤不能重新整理找不到數據就空白，麻煩補上該有數據」。
          證交所分時在收盤後常回空、櫃買那支會回 502 —— 以前就直接留白。
          現在依序退：① Yahoo 1 分鐘線（加權 ^TWII、櫃買 ^TWOII）② 這台瀏覽器存下的當天最後一份。
@@ -978,7 +1014,11 @@
           }
         } catch (e) {}
       }
-      if (d && d.points.length) { state.data[x.id] = d; state.err[x.id] = ''; }
+      if (d && d.points.length) {
+        state.data[x.id] = d; state.err[x.id] = '';
+        // 分時檔可能比剛剛 5 秒那一輪的當下值舊（Worker 10 秒快取）—— 把較新的當下值蓋回去，數字不往回跳
+        if (state.liveQ[x.id]) patchLive(x.id, state.liveQ[x.id]);
+      }
       else { if (!state.data[x.id] || !state.data[x.id].points.length) state.data[x.id] = d; state.err[x.id] = err; }
     });
     /* 夜盤報價也放進同一輪（2026-09-19）。
@@ -992,7 +1032,73 @@
     state.busy = false; state.at = Date.now();
     state.fails = IDX.every(x => state.err[x.id]) ? state.fails + 1 : 0;
     draw();
+    m3Stamp();
   }
+
+  /* ---- 2026-09-29：每 5 秒的當下值（見 MS_FAST 的註解）---------------------------------- */
+  const hmsNum = (t) => { const v = parseInt(String(t || '').replace(/:/g, ''), 10); return isFinite(v) ? v : null; };
+  /** 把一筆當下值蓋進某張卡的資料：只准往前（同一天、撮合時間不比現有的舊），同時推動走勢線的最右端。 */
+  function patchLive(id, q) {
+    const d = state.data[id];
+    if (!d || !d.points || !d.points.length || q == null || q.last == null) return false;
+    if (q.date && d.date && String(q.date) !== String(d.date)) return false;     // 不同天不混
+    const tNew = hmsNum(q.time), tOld = hmsNum(d.time);
+    if (tNew == null || (tOld != null && tNew < tOld)) return false;             // 不准往回
+    const changed = d.last !== q.last || tNew !== tOld;
+    d.last = q.last;
+    if (q.high != null) d.high = d.high == null ? q.high : Math.max(d.high, q.high);
+    if (q.low != null) d.low = d.low == null ? q.low : Math.min(d.low, q.low);
+    d.time = String(tNew).padStart(6, '0');
+    /* 走勢線：分時檔的點「090100」代表 09:00～09:01 那一分鐘的收盤，所以 10:30:15 這一筆屬於 10:31 那個點。
+       同一分鐘就改它的收盤；新的一分鐘先補一個暫時點（量記 0），下一次分時檔回來整條換掉。*/
+    const hh = Math.floor(tNew / 10000), mm = Math.floor(tNew / 100) % 100, ss = tNew % 100;
+    const min = hh * 60 + mm + (ss > 0 ? 1 : 0);
+    const lp = d.points[d.points.length - 1];
+    if (min === lp.min) lp.c = q.last;
+    else if (min > lp.min && min - lp.min <= 5) d.points.push({ ms: lp.ms + (min - lp.min) * 60000, min, c: q.last, s: 0, live: true });
+    state.liveQ[id] = q;
+    return changed;
+  }
+  /** live.js 那一批（每 5 秒）一回來：加權 t00、櫃買 o00 的當下值蓋進去。零額外請求。*/
+  function patchFromLive() {
+    if (!m3Shown() || !m3On() || !window.Live || !window.Live.raw) return false;
+    let any = false;
+    [['TSE', 't00'], ['OTC', 'o00']].forEach(([id, code]) => {
+      const r = window.Live.raw(code, 6000); if (!r) return;
+      const m = r.m, z = num(m.z);
+      if (z === null) return;                        // 指數兩次撮合之間 z 可能是 '-'，不拿買價那套去猜
+      if (patchLive(id, { last: z, high: num(m.h), low: num(m.l), time: m.t, date: m.d })) any = true;
+    });
+    if (any) { state.liveAt = Date.now(); draw(); m3Stamp(); }
+    return any;
+  }
+  /** 台指期日盤的當下值：每 5 秒問一次期交所報價（夜盤另有自己那條路，不在這裡）。*/
+  async function fastTick() {
+    if (document.hidden || !m3Shown() || !m3On() || !isIntraday()) return;
+    if (state.fBusy || nightHas()) return;
+    state.fBusy = true;
+    try {
+      const q = await fetchFut('day');
+      const t = String(q.time || '').replace(/:/g, '');
+      if (patchLive('FUT', { last: q.last, high: q.high, low: q.low, time: t, date: q.date })) { state.liveAt = Date.now(); draw(); }
+      state.fErr = '';
+    } catch (e) { state.fErr = String(e.message || e); }
+    state.fBusy = false;
+    m3Stamp();
+  }
+  /** 卡片上那行「更新 HH:MM:SS」（live.js 的開關共用元件）。*/
+  function m3Stamp() {
+    if (!window.Live || !window.Live.stampCard) return;
+    const allBad = IDX.every(x => state.err[x.id]);
+    window.Live.stampCard('m3', { at: Math.max(state.at || 0, state.liveAt || 0),
+      err: allBad ? (state.err.TSE || '分時抓不到') : '', every: isIntraday() ? MS_FAST : MS_AFTER });
+  }
+  window.addEventListener('tw:live', () => { patchFromLive(); });
+  window.addEventListener('tw:livecard', (e) => {
+    if (!e.detail || e.detail.key !== 'm3' || !document.getElementById('m3')) return;
+    schedule();
+    if (e.detail.on) refresh(true);
+  });
 
   /** 這張卡這個歷史週期，要讀資料湖裡的哪一個代號。
    *  台指期夜盤有自己的日 K：FinMind `TaiwanFuturesDaily` 的 `after_market`，

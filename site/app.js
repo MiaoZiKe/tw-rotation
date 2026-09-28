@@ -2732,7 +2732,10 @@
   const MUD = { on: false, q: {}, at: 0, busy: false, err: '', intraday: true,
     timer: null, reqs: 0, hit: 0, codes: 0, quoteAt: '' };
   const MUD_BATCH = 100;               // 一個請求塞幾檔（沿用 live.js 實測的批次大小）
-  const MUD_MS = 60 * 1000;            // 每分鐘一輪（和另外兩個即時模式同節奏）
+  /* ★ 2026-09-29（Andy：「即時…至少 5S 更新一次」）：60 秒 → 5 秒（＝Live.FAST_MS）。
+     一輪 5 個請求，要排 live.js 的節流閥（每 5 秒最多 3 個），所以實際一輪約 10 秒輪完；
+     還沒輪完的時候下一個 5 秒直接跳過（MUD.busy），不會越排越多。卡上印的是真的更新時間，不是假裝 5 秒。*/
+  const MUD_MS = 5 * 1000;
 
   /* 這一輪要抓哪些股票：所有**人工族群**的成分股（去重）。
      自動桶（`ind_*`）跳過 —— 光 ETF 一格就三百多檔，抓它不會讓分佈更準，只會把請求數翻倍。*/
@@ -2806,7 +2809,7 @@
     if (!MUD.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
     const uni = (D.stocks || []).length || 0;
     el.innerHTML = (MUD.intraday
-      ? `<b class="live">即時</b>　報價 ${fmt.esc(MUD.quoteAt || '—')}　每分鐘更新`
+      ? `<b class="live">即時</b>　最後更新 <b class="liveat">${(window.Live && window.Live.hms ? window.Live.hms(MUD.at) : new Date(MUD.at).toTimeString().slice(0, 8))}</b>（台北）　每 5 秒更新（報價 ${fmt.esc(MUD.quoteAt || '—')}）`
       : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最後一次報價的快照</b>，不是盤中變化')
       + `　·　<b>涵蓋率 ${uni ? fmt.n(MUD.hit / uni * 100, 1) : '—'}%</b>`
       + `（抓到 <b>${MUD.hit}</b> 檔 / 想抓 ${MUD.codes} 檔 / 全市場 ${uni} 檔　·　${MUD.reqs} 個請求）`
@@ -3924,7 +3927,7 @@
     intraday: true, timer: null,
   };
   const RLV_BATCH = 100;               // 一個請求塞幾檔（沿用 live.js 實測的批次大小）
-  const RLV_MS = 60 * 1000;            // 每分鐘一輪（和資金去向的即時同節奏）
+  const RLV_MS = 5 * 1000;             // ★ 2026-09-29：60 秒 → 5 秒（3 個請求一輪，排 live.js 節流閥；輪完才接下一輪）
   let rlvRedraw = () => {};            // renderFlow 會換成「卡片＋放大視窗一起重畫」
 
   /* 這一輪要抓哪些股票：所有**有 live_state 的人工族群**的成分股（去重）。
@@ -4135,7 +4138,7 @@
       : '證交所的總成交值這一輪抓不到，所以算不出涵蓋率';
     const chips = rlvTop(6).map(r => `<button type="button" class="rlvchip${r.jump ? ' jump' : ''}" data-g="${r.gid}" style="--c:${STAGE[r.stage].color}" title="族群報酬 ${fmt.pct(r.ret, 2)}（大盤代理值 ${fmt.pct((RLV.mkt || 0) * 100, 2)}）；含慣性的總位移 強弱 ${fmt.n(r.dx, 2)} / 動能 ${fmt.n(r.dy, 2)}。點一下在下面展開這個族群的成分股"><span class="g">${fmt.esc(r.name)}</span><span class="d">強弱 ${r.tdx >= 0 ? '+' : ''}${fmt.n(r.tdx, 2)}　動能 ${r.tdy >= 0 ? '+' : ''}${fmt.n(r.tdy, 2)}</span>${r.jump ? `<span class="j">${STAGE[r.stage0].name}→${STAGE[r.stage].name}</span>` : ''}</button>`).join('');
     el.innerHTML = (RLV.intraday
-      ? `<b class="live">即時</b>　報價 ${fmt.esc(RLV.quoteAt || '—')}　每分鐘更新`
+      ? `<b class="live">即時</b>　最後更新 <b class="liveat">${(window.Live && window.Live.hms ? window.Live.hms(RLV.at) : new Date(RLV.at).toTimeString().slice(0, 8))}</b>（台北）　每 5 秒更新（報價 ${fmt.esc(RLV.quoteAt || '—')}）`
       : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最後一次報價的快照</b>，不是盤中變化')
       + `　·　大盤（代理值）${fmt.pct(RLV.mkt * 100, 2)}　·　<span title="${fmt.esc(covTip)}">${cov}</span>`
       /* 底下兩句是**不准省略**的誠實標示，第三句是「怎麼讀這條線」。
@@ -4211,7 +4214,7 @@
       const b = document.createElement('button');
       b.type = 'button'; b.id = 'rotLiveBtn'; b.className = 'pb livebtn';
       b.textContent = '即時';
-      b.title = '切到盤中即時：用當下的成交價與成交量續算每個族群的位置，每分鐘更新；拖時間軸會自動退出';
+      b.title = '切到盤中即時：用當下的成交價與成交量續算每個族群的位置，每 5 秒更新；拖時間軸會自動退出';
       b.setAttribute('aria-pressed', 'false');
       b.onclick = rlvToggle;
       box.appendChild(b);
@@ -7014,7 +7017,7 @@
       <li><b>篩選</b>：上面兩個下拉（先挑產業鏈、再勾族群，可複選）與「只看前 10 大」，排行與輪盤一起篩。</li>
       <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出；點長條看成分股。</li>
       <li><b>點</b>：象限卡＝列出這一段有誰；圓點＝看成分股，再點成分股就畫到盤上（空心圓）。點面板外面或按 Esc 關閉。</li>
-      <li><b>即時</b>：用當下價量往前續算一步，每分鐘更新。灰虛線＝<b>慣性</b>（平盤也會走），
+      <li><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
         亮色箭頭＝<b>今天真正推出來的</b>（很短是正常的，<b>沒有放大</b>）。
         ⚠ 成交值是「價 × 量」<b>估</b>的（漲跌幅是真的）；盤中的<b>大盤是代理值</b>（只抓得到這批股票）。
         標題旁的狀態字滑上去（手機點一下）看完整說明與涵蓋率。</li>
@@ -9250,7 +9253,7 @@
     intraday: true, timer: null,
   };
   const SKL_BATCH = 100;               // 一個請求塞幾檔（live.js 實測 120 檔 OK，留邊際）
-  const SKL_MS = 60 * 1000;            // 每分鐘一輪（和 live.js 的盤中節奏一致）
+  const SKL_MS = 5 * 1000;             // ★ 2026-09-29：60 秒 → 5 秒（和 live.js 的盤中節奏一致；2 個請求一輪，排節流閥）
   const isAutoBucket = (gid) => /^ind_/.test(String(gid));
 
   /* 一檔股票掛在幾個手寫板塊 → 它的成交值要拆成幾份。
@@ -9326,7 +9329,7 @@
     if (SKL.err) { el.innerHTML = `<b class="bad">即時抓不到</b>　${fmt.esc(SKL.err)}　·　再按一次「即時」可退回盤後資料`; return; }
     const amt = SKL.marketAmt != null ? `台股總成交值 <b>${fmt.yi(SKL.marketAmt)}</b>（證交所真實值）` : '台股總成交值：這一輪沒取到';
     el.innerHTML = (SKL.intraday
-      ? `<b class="live">即時</b>　報價 ${fmt.esc(SKL.quoteAt || '—')}　每分鐘更新`
+      ? `<b class="live">即時</b>　最後更新 <b class="liveat">${(window.Live && window.Live.hms ? window.Live.hms(SKL.at) : new Date(SKL.at).toTimeString().slice(0, 8))}</b>（台北）　每 5 秒更新（報價 ${fmt.esc(SKL.quoteAt || '—')}）`
       : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最近一次收盤後的報價快照</b>，不是盤中變化')
       + `　·　${amt}`
       + `　·　板塊成交值是 <b>價 × 量</b> 的<b>估算值</b>（端點沒有每檔的累積成交金額）`
@@ -9382,7 +9385,7 @@
     const b = document.createElement('button');
     b.type = 'button'; b.id = 'sankeyLiveBtn'; b.className = 'pb livebtn';
     b.textContent = '即時';
-    b.title = '切到盤中即時：板塊成交值改用即時報價估算（價 × 量），每分鐘更新';
+    b.title = '切到盤中即時：板塊成交值改用即時報價估算（價 × 量），每 5 秒更新';
     b.setAttribute('aria-pressed', 'false');
     b.onclick = sklToggle;
     box.appendChild(b);

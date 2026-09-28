@@ -279,7 +279,7 @@
      那是同一個問題的下一層，跳頁會把他剛剛比較出來的上下文丟掉（也回不去原來的捲動位置）。 */
   const GP_TOP = 18;             // 族群層級最多列幾條（超過的併進圓餅的「其餘」，長條不列）
   const GP_TOP_STOCK = 24;       // 個股層級最多列幾條
-  const GP_LIVE_MS = 60 * 1000;  // 即時每分鐘重算（和輪動時鐘、資金去向同節奏）
+  const GP_LIVE_MS = 5 * 1000;   // ★ 2026-09-29：60 秒 → 5 秒（和 live.js 盤中節奏一致；最多 3 個請求一輪，排節流閥、輪完才接下一輪）
   const GP_LIVE_MAX = 300;       // 即時一輪最多問幾檔（live.js 一批 110，這裡切 100 × 3 個請求）
   const GP_LIVE_BATCH = 100;
   /* gpTimer／gpGen 是模組層級的：同一時間畫面上只會有一個族群總覽，
@@ -303,6 +303,7 @@
        使用者明確指定了一個族群，先給他看「這個族群裡面誰在漲」才是他要的那一步。*/
     let drill = ctx.drillGid ? (all.find(g => g.id === ctx.drillGid) || null) : null;
     let live = false, q = null, liveErr = '', liveAt = '', busy = false, cov = [0, 0];
+    let gpOkAt = 0;                   // 最後一次真的拿到報價的時間（卡上印「最後更新 HH:MM:SS」）
     let hi = null;                    // 兩圖連動：滑鼠現在停在哪一條／哪一塊
     let barData = [], pieData = [], items = [];
     /* ★ W3-8：圓餅只標前五大，其餘併成一塊灰色的「其他」。
@@ -320,7 +321,7 @@
         <div class="row gplive">
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
           <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
-            title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每分鐘更新（盤中暫定值）">即時</button></span>
+            title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
@@ -383,7 +384,7 @@
           Object.assign(got, await window.Live.fetchQuotes(codes.slice(i, i + GP_LIVE_BATCH)));
         }
         if (gen !== gpGen) return;          // 回來的時候使用者已經換頁了，這一輪整個丟掉
-        q = got; liveErr = '';
+        q = got; liveErr = ''; gpOkAt = Date.now();
         liveAt = Object.keys(got).map(k => got[k] && got[k].time).filter(Boolean).sort().pop() || '';
         const ks = Object.keys(got).filter(k => got[k] && got[k].price != null);
         cov = [ks.length, codes.length];
@@ -530,7 +531,9 @@
           + `　<span class="muted">仍畫 ${day} 收盤值；再按「即時」關掉</span>`;
         return;
       }
-      noteEl.innerHTML = `<b class="live">⚡ 盤中暫定值</b>　報價 ${A.fmt.esc(liveAt || '—')}`
+      /* ★ 2026-09-29：每 5 秒一輪之後要讓人看得出「多久更新一次」—— 印最後一次真的拿到報價的台北時間 */
+      const gpHms = gpOkAt ? (window.Live && window.Live.hms ? window.Live.hms(gpOkAt) : new Date(gpOkAt).toTimeString().slice(0, 8)) : '—';
+      noteEl.innerHTML = `<b class="live">⚡ 盤中暫定值</b>　最後更新 <b class="liveat">${gpHms}</b>（台北）　每 5 秒更新（報價 ${A.fmt.esc(liveAt || '—')}）`
         + `　<span class="warn">成交值估算</span>　涵蓋 ${cov[0]} / ${cov[1]} 檔`;
     }
 
@@ -679,7 +682,7 @@
         : `${A.fmt.esc(ctx.scope)}族群漲幅與占比${gpQ}　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
       /* ★ 2026-09-24 說明精簡：同一份內容改成「一句問題 → 條列 → 最下面一行小字」，住在「怎麼看 ?」裡。*/
       const gpFine = '甜甜圈其餘併成「其他」，中心寫前五大合計；滑過任一邊，另一邊對應的那一塊同步標起來，下方那行寫出它的數字。'
-        + '按「即時」＝盤中暫定值，每分鐘更新：成交值是<b>估算</b>的（即時端點沒有每檔的累積成交金額，用「最新價 × 累積張數」推算，和輪動時鐘的即時同一個口徑），'
+        + '按「即時」＝盤中暫定值，每 5 秒更新：成交值是<b>估算</b>的（即時端點沒有每檔的累積成交金額，用「最新價 × 累積張數」推算，和輪動時鐘的即時同一個口徑），'
         + '漲跌幅是這批個股的成交值加權；抓不到報價的仍用收盤值，所以占比只能當「相對大小」看。';
       // 彈窗開著時 #gpHint 被搬到 body 底下的 #howPop，host 裡找不到 —— 退回全域找，不然即時每分鐘重畫會丟例外
       ($('#gpHint', host) || document.getElementById('gpHint') || {}).innerHTML = drill
