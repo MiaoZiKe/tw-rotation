@@ -15184,6 +15184,10 @@ def t_ov_summary_0928(pg, b, base, code):
                st["open"] and lab in st["ttl"] and st["n"] >= 1 and st["len"] > 10, st)
             pg.mouse.click(6, 300); pg.wait_for_timeout(300)
             ok(f"[籌碼快照] 「{lab}」的說明點背景就關", pg.evaluate("() => { const p = document.getElementById('howPop'); return !p || p.hidden; }"))
+    # ★ 2026-09-28（標題圖示收尾時抓到）：上面的迴圈最後停在 800 寬，沒還原就離開 ——
+    #   --workers 1 時後面的段落共用這個分頁，全部變成在 800 寬跑。「產業」在 ≤820 會合法地長出 #segBox，
+    #   於是「[桌機] 點零件之後圖下方不再長出環節面板」只要排在這段後面就紅（單獨跑「產業」是綠的）。
+    pg.set_viewport_size({"width": 1440, "height": 1000})
 
 def t_index_kline_0928(pg, base):
     """總覽大盤 K 線 2026-09-28（Andy：「CEO 全力解決首頁的 K線圖問題…櫃買4H 1H…
