@@ -1073,15 +1073,7 @@
          成交量被擠成一條線、指標面板空白、面板標題跑到卡片外面。 */
       /* 四週期同看的小圖（mini）：成交量副圖吃圖高的 20%（Andy 2026-09-26「四週期成交量呢？」，
          要 18～22%）。一律用比例、不吃使用者在大圖拖出來的 paneH —— 大圖的 100px 放進 300px 的小格就是三分之一。*/
-      const mh0 = this.el.clientHeight || 300;
-      const PH = this.opts.mini
-        ? { vol: Math.round(mh0 * 0.2), ind: Math.round(mh0 * 0.2), min: Math.round(mh0 * 0.5) }
-        : this.opts.compact
-        ? { vol: 52, ind: 58, min: 110 }
-        // Andy 2026-09-15：「下面的成交量 MACD 這些指標上下間隔寬點」。
-        // 以前實際只有 57~67px；這組在 813px 高的個股頁量到量 96／KD 115／MACD 115，主圖還有 441。
-        // 再大就要吃掉主圖了 —— 他同樣在意 K 線圖要大（DECISIONS #101），想更寬可以自己拖，會記住。
-        : { vol: 100, ind: 120, min: 260 };
+      const PH = this._ph();
       const V = this._calc(cfg);
       this.values = V;
       // 均線：條數、週期、顏色、粗細都吃 cfg（Andy 2026-09-12「線寬 均線數量 數字 顏色 粗細都要能調」）
@@ -1191,6 +1183,34 @@
       }
       this._applyPaneHeights(want, PH);
       setTimeout(() => { if (!this._dead) this._layoutLabels(); }, 30);
+    }
+    /** 各面板想要的高度（像素）。拆成方法是為了 setVolRatio() 能在不重建指標的情況下重排。 */
+    _ph() {
+      const mh0 = this.el.clientHeight || 300;
+      const PH = this.opts.mini
+        ? { vol: Math.round(mh0 * 0.2), ind: Math.round(mh0 * 0.2), min: Math.round(mh0 * 0.5) }
+        : this.opts.compact
+        ? { vol: 52, ind: 58, min: 110 }
+        // Andy 2026-09-15：「下面的成交量 MACD 這些指標上下間隔寬點」。
+        // 以前實際只有 57~67px；這組在 813px 高的個股頁量到量 96／KD 115／MACD 115，主圖還有 441。
+        // 再大就要吃掉主圖了 —— 他同樣在意 K 線圖要大（DECISIONS #101），想更寬可以自己拖，會記住。
+        : { vol: 100, ind: 120, min: 260 };
+      /* ★ 2026-09-28 opts.volRatio（只給 mini／compact 用）：量副圖佔圖高的比例。
+         總覽大盤三張圖要「拖一張、另外兩張跟著變」（Andy：「成交量縮放只需要抓取其中一條，其他兩條會連動」），
+         三張圖高度不一定一樣（展開那張比較高），所以共用的是**比例**不是像素。
+         小卡以前每 10 秒重建一次指標就把使用者拖好的量副圖打回 20%（小卡不走 _paneMem），有了這個比例也一併解掉。*/
+      const vr = +this.opts.volRatio;
+      if ((this.opts.mini || this.opts.compact) && vr >= 0.05 && vr <= 0.8) PH.vol = Math.round(mh0 * vr);
+      return PH;
+    }
+    /** 量副圖改成佔圖高 r（0.05～0.8），不重建任何 series、不動可視範圍。沒有量副圖時只記下來，下次建圖用。 */
+    setVolRatio(r) {
+      if (!(r >= 0.05 && r <= 0.8)) return;
+      this.opts.volRatio = r;
+      if (this._dead || !this.chart || this.paneIndex.vol == null) return;
+      const PH = this._ph(); const want = [0];
+      Object.keys(this.paneIndex).forEach(k => { want[this.paneIndex[k]] = k === 'vol' ? PH.vol : PH.ind; });
+      try { this._applyPaneHeights(want, PH); } catch (e) { /* 圖剛銷毀 */ }
     }
     /* 面板高度一次全部套上去。
        ★ 不可以逐一呼叫 `pane.setHeight()`。Lightweight Charts 的 `setHeight` 內部是

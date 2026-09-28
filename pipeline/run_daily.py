@@ -423,6 +423,41 @@ def collect_futures_60m(day: str) -> pd.DataFrame:
     return out
 
 
+TSE_MINUTE_RECENT = 5      # 每日管線補最近幾個交易日的加權真實 1 分 K（排程延遲、FinMind 晚出時下一輪撿得回來）
+
+
+def tse_minute_todo(have: pd.DataFrame, ohlc: pd.DataFrame, limit: int) -> list[str]:
+    """加權真實 1 分 K（src=finmind）還沒進湖的交易日，新的在前。交易日取自 index_ohlc 的 TSE（回應裡的日期）。"""
+    if ohlc is None or ohlc.empty:
+        return []
+    days = sorted(ohlc.loc[ohlc["symbol"].astype(str) == "TSE", "date"].astype(str).str[:10].unique())
+    got: set[str] = set()
+    if have is not None and not have.empty and "src" in have.columns:
+        fm = have[(have["symbol"].astype(str) == "TSE") & (have["src"].astype(str) == "finmind")]
+        got = set(fm["ts"].astype(str).str[:10])
+    return [d for d in reversed(days) if d not in got][:limit]
+
+
+def collect_tse_minute() -> pd.DataFrame:
+    """加權指數的真實 1 分 K（FinMind 每 5 秒指數＋每 5 秒成交統計，兩個都是免費資料集）→ `index_intraday`（src=finmind）。
+
+    為什麼（2026-09-28，Andy：「加權指數的成交量 15min 30min 1H 都沒有確切成交量」）：
+    Yahoo 指數分 K 的量全是 0，前端只能估；mis 分時只能從開始存的那天往後長。
+    FinMind 這兩個資料集 register 等級拿得到、回得到 2005 年（實測見 docs/fixtures/index_intraday_probe.json），
+    一天 2 次額度。這裡只補最近 TSE_MINUTE_RECENT 個交易日；更早的由回補工作流（run_backfill）慢慢補。
+    """
+    todo = tse_minute_todo(store.read("index_intraday"), store.read("index_ohlc"), TSE_MINUTE_RECENT)
+    frames = []
+    for d in todo:
+        if http.finmind_budget_left() <= 20:
+            log.warning("FinMind 額度剩不多，加權 1 分 K 停在 %s", d)
+            break
+        f = finmind.tse_minute_bars(d)
+        if not f.empty:
+            frames.append(f)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
 def collect_otc_60m(day: str) -> pd.DataFrame:
     """櫃買某一天的 60 分 K：Yahoo 沒有時改用 FinMind 指數 1 分 K 聚合。湖裡已有那天就不花額度。
 
@@ -612,6 +647,8 @@ def main() -> int:
     if not light and not news_only and not args.skip_finmind and trade_date:
         save("index_intraday", step("finmind.futures_60m", collect_futures_60m, trade_date))
         save("index_intraday", step("finmind.otc_60m", collect_otc_60m, trade_date))
+        # 加權真實 1 分 K（2026-09-28）：15／30／60 分的量從這裡來（Yahoo 指數量是 0）。一天 2 次額度。
+        save("index_intraday", step("finmind.tse_minute", collect_tse_minute))
 
     if not light and not news_only and not args.skip_finmind and trade_date:
         codes = universe(args.universe)

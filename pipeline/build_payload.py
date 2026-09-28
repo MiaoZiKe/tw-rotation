@@ -74,6 +74,23 @@ def _f(v):
     return None if f != f else round(f, 4)
 
 
+def _minute_money_by_day(lake) -> dict:
+    """資料湖 index_intraday 裡 FinMind 真實 1 分 K 的每日成交金額加總（元）：{(symbol, 'YYYY-MM-DD'): 元}。
+    只用 src=finmind（整天 270 根、累計差分，加總＝官方當日成交金額）；mis 可能缺頭缺尾，不拿來補日線。"""
+    try:
+        if lake is None or lake.empty or "src" not in lake.columns:
+            return {}
+        fm = lake[(lake["src"].astype(str) == "finmind") & (lake["interval"].astype(str) == "1m")]
+        if fm.empty:
+            return {}
+        day = fm["ts"].astype(str).str[:10]
+        tot = pd.to_numeric(fm["volume"], errors="coerce").fillna(0).groupby([fm["symbol"].astype(str), day]).sum()
+        return {k: float(v) * 1000.0 for k, v in tot.items() if v > 0}   # 湖存千元 → 元
+    except Exception as exc:  # noqa: BLE001 —— 補不了就照實給 0
+        log.warning("分鐘成交金額加總失敗：%s", exc)
+        return {}
+
+
 def _clean(obj):
     """NaN / numpy 型別轉成 JSON 吃得下的形式。"""
     if isinstance(obj, dict):
@@ -410,22 +427,34 @@ def build() -> None:
     # Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」。
     # Yahoo 的 ^TWOII 壞掉、台指期沒有代號，所以改由 FinMind 存進資料湖再從這裡吐給前端。
     # 前端的週／月／季是拿日線再合成的，所以這裡只給日線。
+    # ★ 2026-09-28：加權、櫃買的「量」一律用**成交金額（元）**（Trading_money → turnover），台指期照舊口數。
+    #   為什麼：分 K 的量唯一真實的來源（證交所 mis 分時的 s、FinMind 每 5 秒成交統計）給的都是成交金額，
+    #   以前日線用張數、分 K 用金額卻都印成「張」，同一張圖 4 小時（一天一根）跟日 K 差了一個單位。
+    #   金額也是台股看大盤量的慣用說法（「成交量 7,366 億」），證交所自己的走勢圖量柱也是金額。
+    #   日線成交金額是 0 的日子（加權 2026-02 那 12 天等）若湖裡有那天的真實 1 分 K（FinMind），用分鐘加總補回 ——
+    #   那是真實值的加總，不是估算；沒有就照實給 0，前端不畫那根量柱。
     idx = store.read("index_ohlc")
+    lake_intra = store.read("index_intraday")
+    minute_money = _minute_money_by_day(lake_intra)
     out_idx: dict = {}
     if not idx.empty:
         idx = idx.dropna(subset=["date", "symbol", "close"]).sort_values("date")
         for sym, g in idx.groupby("symbol"):
             g = g.drop_duplicates("date", keep="last").tail(1300)
-            out_idx[str(sym)] = _clean([
-                [str(r.date), _f(r.open), _f(r.high), _f(r.low), _f(r.close), _f(r.volume)]
-                for r in g.itertuples(index=False)
-            ])
+            money = str(sym) in ("TSE", "OTC") and "turnover" in g.columns
+            rows = []
+            for r in g.itertuples(index=False):
+                v = _f(r.turnover) if money else _f(r.volume)
+                if money and not (v and v > 0):
+                    v = minute_money.get((str(sym), str(r.date)[:10])) or v
+                rows.append([str(r.date), _f(r.open), _f(r.high), _f(r.low), _f(r.close), v])
+            out_idx[str(sym)] = _clean(rows)
     _write("index_ohlc", out_idx)
 
     # 大盤三張圖的 1H／4H（2026-09-25）：資料湖 index_intraday 依台股時段合成，前端只讀、不再即時抓 Yahoo。
     try:
         from .compute import intraday_bars
-        _write("index_intraday", intraday_bars.build(store.read("index_intraday")))
+        _write("index_intraday", intraday_bars.build(lake_intra))
     except Exception as exc:  # noqa: BLE001 —— 這張壞掉不能拖垮整個 build，前端會走退回鏈
         log.warning("index_intraday 合成失敗：%s", exc)
         _write("index_intraday", {})

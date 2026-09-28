@@ -178,7 +178,8 @@ def _run_guard(tmp_path: Path, complete: dict) -> dict:
 def _all_done_complete() -> dict:
     tp = datetime.now(timezone(timedelta(hours=8)))
     cp = {"plan:default": {"done": True, "month": tp.strftime("%Y-%m")},
-          "index_intraday": {"done": True},
+          # 2026-09-28：大盤分 K 多了櫃買 IX0043.TWO（yahoo_v 3）與加權真實 1 分 K（tse1m_v 1）兩個版本鍵
+          "index_intraday": {"done": True, "yahoo_v": 3, "tse1m_v": 1},
           "inst_fresh": {"done": True, "date": tp.strftime("%Y-%m-%d")},
           # 舊的 universe 旗標（前 500 檔那一版）
           "inst": {"done": True}, "daytrade+sbl@2025-01-01": {"done": True},
@@ -191,6 +192,13 @@ def _all_done_complete() -> dict:
 
 def test_守門_全部補齊才跳過(tmp_path):
     assert _run_guard(tmp_path, _all_done_complete())["skip"] == "true"
+
+
+def test_守門_大盤分K舊版進度要放行(tmp_path):
+    """舊進度的 index_intraday done 不涵蓋 IX0043.TWO 與加權真實 1 分 K —— 版本對不上就放行一輪。"""
+    cp = _all_done_complete()
+    cp["index_intraday"] = {"done": True, "yahoo_v": 2}
+    assert _run_guard(tmp_path, cp)["skip"] == "false"
 
 
 @pytest.mark.parametrize("step", [s for s in run_backfill.PLAN_DEFAULT if s.get("scope") == "market"],

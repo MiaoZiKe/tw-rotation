@@ -751,3 +751,91 @@ def futures_kbar(day: str, data_id: str = "TX", *, wait: bool = False) -> pd.Dat
     if not df.empty and "contract_date" not in df.columns:
         df["contract_date"] = df["futures_id"] if "futures_id" in df.columns else ""
     return df
+
+
+# ------------------------------------------------------------ 加權指數的真實 1 分 K（2026-09-28）
+# Andy 2026-09-28：「加權指數的成交量 15min 30min 1H 都沒有確切成交量」。
+# 根因：加權的歷史分 K 來自 Yahoo（^TWII 60m／15m），Yahoo 指數的量**全部是 0**；前端以前用「日總量 × 分時分布」估。
+# FinMind 有兩個**免費**資料集（2026-09-28 Actions 實測：register 等級拿得到，兩年前的 2024-09-24 也拿得到；
+# fixture：docs/fixtures/index_intraday_probe.json）：
+#   · TaiwanVariousIndicators5Seconds：加權指數每 5 秒一筆（date "YYYY-MM-DD HH:MM:SS", TAIEX），一天 3241 筆。
+#       ⚠ 09:00:00 那一筆是**昨收**（2026-09-24 那天 48157.29 ＝ 09-23 收盤），09:00:05 才是官方開盤 48075.39。
+#   · TaiwanStockStatisticsOfOrderBookAndTrade：每 5 秒委託成交統計（Time "HH:MM:SS", date,
+#       TotalDealVolume 累計成交張數, TotalDealMoney 累計成交金額「百萬元」…），一天 3241 筆。
+#       ⚠ 這跟證交所 mis 分時檔的 `s` 欄是同一個口徑：2026-09-24 mis 加權分時 s 的加總 736,623
+#         ＝ 這裡 13:30:00 的 TotalDealMoney 736,623，一個都不差 —— mis 的 s 是「成交金額（百萬元）」，不是張數。
+# 兩支合起來＝加權每分鐘的真實開高低收＋真實成交金額，一天 2 次請求。
+# 量存「千元」：跟 mis 分時進湖的那一份同口徑（mis 存的是 s × CHART_VOL_UNIT 1000 ＝ 百萬元 × 1000 ＝ 千元）。
+TSE_5S_PRICE = "TaiwanVariousIndicators5Seconds"
+TSE_5S_TRADE = "TaiwanStockStatisticsOfOrderBookAndTrade"
+
+
+def tse_minute_bars(day: str, *, wait: bool = False) -> pd.DataFrame:
+    """加權指數某一天的 1 分 K（真實高低＋真實每分鐘成交金額）。失敗／休市／沒權限回空並記 log。"""
+    px = http.finmind_get(TSE_5S_PRICE, start_date=day, end_date=day, wait_when_exhausted=wait)
+    if not px:
+        err = http.finmind_last_error() or {}
+        log.warning("FinMind %s %s 回空（上游：%s）", TSE_5S_PRICE, day,
+                    f"{err.get('status')} {err.get('msg')}" if err.get("dataset") == TSE_5S_PRICE else "休市或無資料")
+        return pd.DataFrame()
+    tr = http.finmind_get(TSE_5S_TRADE, start_date=day, end_date=day, wait_when_exhausted=wait)
+    if not tr:
+        err = http.finmind_last_error() or {}
+        log.warning("FinMind %s %s 回空（上游：%s）", TSE_5S_TRADE, day,
+                    f"{err.get('status')} {err.get('msg')}" if err.get("dataset") == TSE_5S_TRADE else "休市或無資料")
+        return pd.DataFrame()
+    return tse_minute_from_5s(px, tr, day)
+
+
+def _minute_of(ts: pd.Series) -> pd.Series:
+    """5 秒資料的時間 T 是「到 T 為止」→ 歸到 (T − 1 秒) 那一分鐘（09:00:05～09:01:00 是 09:00 那根）。
+    09:00:00 那一筆（昨收／累計 0）不往前歸到 08:59。13:30:00 收盤集合競價那筆因此歸 13:29（最後一根）。"""
+    m = (ts - pd.Timedelta(seconds=1)).dt.floor("min")
+    return m.where(ts.dt.strftime("%H:%M:%S") != "09:00:00", ts.dt.floor("min"))
+
+
+def tse_minute_from_5s(px: list[dict], tr: list[dict], day: str) -> pd.DataFrame:
+    """兩份 5 秒資料 → 1 分 K（純函式，pytest 直接餵 fixture）。欄位對不上回空並印前 200 字。
+
+    欄位跟 `index_intraday` 一致：ts（台北時間 ISO，標**分鐘開始**，跟期交所逐筆合成同一個慣例）,
+    symbol="TSE", interval="1m", open, high, low, close, volume（千元）, src="finmind"。一天 270 根（09:00～13:29）。
+    """
+    p = pd.DataFrame(px)
+    t = pd.DataFrame(tr)
+    if not {"date", "TAIEX"}.issubset(p.columns) or not {"Time", "TotalDealMoney"}.issubset(t.columns):
+        log.warning("FinMind 加權 5 秒資料欄位對不上（%s）：%s / %s", day, str(px[:1])[:200], str(tr[:1])[:200])
+        return pd.DataFrame()
+    dday = str(day)[:10]
+    p["ts"] = pd.to_datetime(p["date"].astype(str), errors="coerce")
+    p["px"] = pd.to_numeric(p["TAIEX"], errors="coerce")
+    p = p.dropna(subset=["ts", "px"])
+    p = p[(p["px"] > 0) & (p["ts"].dt.strftime("%H:%M:%S") != "09:00:00")]   # 09:00:00 是昨收
+    tdate = t["date"].astype(str).str[:10] if "date" in t.columns else dday
+    t["ts"] = pd.to_datetime(tdate + " " + t["Time"].astype(str), errors="coerce")
+    t["money"] = pd.to_numeric(t["TotalDealMoney"], errors="coerce")
+    t = t.dropna(subset=["ts", "money"]).sort_values("ts", kind="stable")
+    if p.empty or t.empty:
+        return pd.DataFrame()
+    p = p.sort_values("ts", kind="stable")
+    p["m"] = _minute_of(p["ts"])
+    g = p.groupby("m")["px"]
+    bars = pd.DataFrame({"open": g.first(), "high": g.max(), "low": g.min(), "close": g.last()})
+    # 每分鐘成交金額＝這一分鐘最後一筆累計 − 上一分鐘最後一筆累計；第一分鐘減 09:00:00 那筆（通常是 0）。
+    # 累計值偶有回頭（上游校正）→ 取累積最大值，不讓它變成負量。
+    t["m"] = _minute_of(t["ts"])
+    cum = t.groupby("m")["money"].last().sort_index().cummax()
+    at0 = t.loc[t["ts"].dt.strftime("%H:%M:%S") == "09:00:00", "money"]
+    base = float(at0.iloc[0]) if len(at0) else 0.0
+    vol = cum.diff()
+    vol.iloc[0] = cum.iloc[0] - base
+    bars["volume"] = vol.reindex(bars.index).fillna(0).clip(lower=0) * 1000.0   # 百萬元 → 千元（湖的口徑）
+    bars = bars.dropna(subset=["close"])
+    if bars.empty:
+        return pd.DataFrame()
+    idx = pd.DatetimeIndex(bars.index).tz_localize("Asia/Taipei")
+    out = pd.DataFrame({"ts": [x.isoformat() for x in idx], "symbol": "TSE", "interval": "1m",
+                        "open": bars["open"].to_numpy(), "high": bars["high"].to_numpy(),
+                        "low": bars["low"].to_numpy(), "close": bars["close"].to_numpy(),
+                        "volume": bars["volume"].to_numpy(), "src": "finmind"})
+    log.info("FinMind 加權 1 分 K %s：%d 根，成交金額合計 %.0f 百萬元", dday, len(out), out["volume"].sum() / 1000)
+    return out
