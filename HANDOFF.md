@@ -3264,3 +3264,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 待觀察：合併後第一輪回補要確認 log 有「加權 1 分 K 回補：這一輪試了 N 天」且 `complete.index_intraday.tse1m_left` 遞減、`yahoo` 重新拿到 OTC。加權 1H 量柱要等回補補滿近 18 個交易日才會出現（之前是收起來＋寫原因）。
 - 這批驗了（分支上）：pytest 806 passed／3 skipped／1 xfailed（全跑一輪 1 紅＝舊測試口徑，已改後該檔重跑綠）；本機 SKIP_INTRADAY=1 重算 payload＋樣本併入 site/data；
   _uitest 總覽 0、大盤K線0928 0（反向驗證：拿掉連動呼叫 → 紅 4）、新-大盤三張圖 第一輪 4 紅（舊的估算斷言與「該分量」字樣）→ 改成新口徑後 0；_preview 綠。
+
+### 09-28 午後 合併上線：index-kline-0928（DECISIONS #272）
+- 合併後驗了：pytest 809 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 總覽／總覽摘要卡列／新-大盤三張圖 0、大盤K線0928 7 紅＝**全部是資料還沒進湖**（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值要等合併後那輪回補），連動縮放與無量說明那幾條綠；_preview 綠。
+- 回補跑過後要回頭重跑「大盤K線0928」確認 7 條轉綠（看 complete.index_intraday.tse1m_left 在減少、櫃買 yahoo_v 3 done）。
