@@ -30,6 +30,10 @@ from pathlib import Path
 
 import tinycss2
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import spacing_apply as _apply  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 SCALE = {0, 4, 8, 12, 16, 24}
 PROPS = re.compile(r"^(margin|padding)(-(top|right|bottom|left|inline|block|inline-start|inline-end|block-start|block-end))?$|^(row-|column-)?gap$|^grid-(row-|column-)?gap$")
@@ -72,7 +76,7 @@ def media_ctx(prelude: str) -> str:
 
 def combine(ctxs):
     """巢狀 @media：取最窄的那個"""
-    order = ["mob", "desk", "mid", "other", "all"]
+    order = ["mob", "other", "desk", "mid", "all"]
     for o in order:
         if o in ctxs:
             return o
@@ -117,7 +121,8 @@ def walk(rules, src, base_line, ctx_stack, out):
             prelude = tinycss2.serialize(r.prelude).strip()
             if kw in ("media", "supports", "container", "layer"):
                 sub = tinycss2.parse_rule_list(r.content, skip_comments=True, skip_whitespace=True)
-                c = media_ctx(prelude) if kw == "media" else "all"
+                # 跟 spacing_apply.py 同一套判斷（@container 只在容器量到窄寬時生效，歸 other，不收）
+                c = _apply.media_ctx(prelude) if kw == "media" else ("other" if kw == "container" else "all")
                 walk(sub, src, base_line, ctx_stack + [(c, "@" + kw + " " + prelude)], out)
             continue
         if r.type != "qualified-rule":

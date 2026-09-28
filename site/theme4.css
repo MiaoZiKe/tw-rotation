@@ -58,28 +58,28 @@
 @media (min-width:821px){
   /* 頁邊 24 → 16、卡片之間 24 → 12、卡片內距 20 → 12/16：同一個 1440 視窗，內容區多出 16px、每張圖多出 8px 寬與 8px 高 */
   [data-theme4] main{padding:12px 16px 40px}
-  [data-theme4] .card{padding:12px 16px 14px;border-radius:var(--r-lg)}
-  [data-theme4] .card.tight{padding:10px 12px;border-radius:var(--r-md)}
+  [data-theme4] .card{padding:var(--sp-3) var(--sp-4) var(--sp-3);border-radius:var(--r-lg)}
+  [data-theme4] .card.tight{padding:var(--sp-2) var(--sp-3);border-radius:var(--r-md)}
   [data-theme4] body{font-size:var(--fs-body)}
   [data-theme4] h2{font-size:var(--fs-h2);font-weight:var(--t4-h-w,700)}
   [data-theme4] h3{font-size:var(--fs-h3);font-weight:var(--t4-h-w,700);letter-spacing:var(--t4-h-ls,.01em)}
   /* 卡片標題列：固定一行 32px；控制項跟標題同一列，不往下長 */
-  [data-theme4] .card>.row.spread:first-child{min-height:var(--t4-head-h);row-gap:6px}
+  [data-theme4] .card>.row.spread:first-child{min-height:var(--t4-head-h);row-gap:var(--sp-1)}
   [data-theme4] .card h3{line-height:var(--t4-head-h)}
   [data-theme4] .card h3 small,[data-theme4] h3 small{font-size:var(--fs-sm);line-height:20px}
   [data-theme4] .btn{min-height:32px;padding:0 12px}
-  [data-theme4] .btn.small{min-height:28px;padding:0 10px}
+  [data-theme4] .btn.small{min-height:28px;padding:0 var(--sp-2)}
   [data-theme4] .howbtn{min-height:24px;padding:0 8px}
   [data-theme4] .hmlegend{margin-top:var(--sp-2)}
-  [data-theme4] .hpanel{margin-top:var(--sp-2);padding:10px 12px}
-  [data-theme4] .subtabs{margin:12px 0 10px}
+  [data-theme4] .hpanel{margin-top:var(--sp-2);padding:var(--sp-2) var(--sp-3)}
+  [data-theme4] .subtabs{margin:var(--sp-3) 0 var(--sp-2)}
 }
 
 /* 641～820（平板、瀏覽器縮成半邊）：現行套的是手機那套 16/18 內距。v4 收到 12/14，頁邊 14 → 12。
    ≤640 的手機一屏版不動（那一段歸 mobile-ui，另一位 agent 正在改手機按鈕）。 */
 @media (min-width:641px) and (max-width:820px){
   [data-theme4] main{padding-left:12px;padding-right:12px}
-  [data-theme4] .card{padding:12px 14px}
+  [data-theme4] .card{padding:var(--sp-3) var(--sp-3)}
 }
 
 /* ---- 「今日事件」：不在這裡處理 ----
@@ -98,8 +98,8 @@
 /* ---- 三頁的版面收斂（骨架的一部分；三個主題共用）---- */
 @media (min-width:821px){
   /* 資金流向・資金輪動卡：時間拉 Bar 與「腳印／水波／掃描」勾選原本各佔一行，併成一行（省 34px，圖往上移） */
-  [data-theme4] #flowRotCard .rottime{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
-  [data-theme4] #flowRotCard .rotfilter{margin-bottom:6px}
+  [data-theme4] #flowRotCard .rottime{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1) var(--sp-4)}
+  [data-theme4] #flowRotCard .rotfilter{margin-bottom:var(--sp-1)}
   /* 總覽下排（漲跌家數／法人）：兩張卡等高時，較矮那張的圖撐滿，不留底部空白帶 */
   [data-theme4] .ovlow>.card{display:flex;flex-direction:column}
   [data-theme4] .ovlow>.card>[id$="Wrap"]{flex:1 1 auto;display:flex;flex-direction:column}
@@ -129,8 +129,8 @@
 @media (min-width:821px){
   [data-theme4] #flowRotCard .rotleft{flex-flow:row wrap;align-content:flex-start;column-gap:16px}
   [data-theme4] #flowRotCard .rotleft>*{flex:0 0 100%;min-width:0}
-  [data-theme4] #flowRotCard .rotleft>.rotchead{order:1;flex:0 0 auto;margin:0 0 6px}
-  [data-theme4] #flowRotCard .rotleft>.rottime{order:2;flex:1 1 auto;width:auto;margin-bottom:6px}
+  [data-theme4] #flowRotCard .rotleft>.rotchead{order:1;flex:0 0 auto;margin:0 0 var(--sp-1)}
+  [data-theme4] #flowRotCard .rotleft>.rottime{order:2;flex:1 1 auto;width:auto;margin-bottom:var(--sp-1)}
   /* 勾選列原本 flex-basis 320px（整行寬時用來換行），併進同一行後改成照內容寬，不然 1440 寬也會被擠到第二行 */
   [data-theme4] #flowRotCard #rotTools{flex:0 1 auto}
   [data-theme4] #flowRotCard .rotleft>.rotstagerow{order:3}
@@ -146,21 +146,23 @@
   [data-theme4] .rotcols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
   [data-theme4] .rotpane+.rotpane{margin-top:0}
   /* 側欄（象限／成分股）蓋在排行那一欄上：跟 ≥1101 同一套收小規則 */
-  [data-theme4] #rankFlowWrap>.sidepanel.stagepanel{bottom:auto;max-height:100%;padding:8px 10px}
-  [data-theme4] #rankFlowWrap>.sidepanel .ph{font-size:12px;gap:6px}
+  [data-theme4] #rankFlowWrap>.sidepanel.stagepanel{bottom:auto;max-height:100%;padding:var(--sp-2) var(--sp-2)}
+  [data-theme4] #rankFlowWrap>.sidepanel .ph{font-size:12px;gap:var(--sp-2)}
   [data-theme4] #rankFlowWrap>.sidepanel .ph b{font-size:13.5px}
   [data-theme4] #rankFlowWrap>.stagepanel ul.ms li:not(.mem){padding-top:3px;padding-bottom:3px;font-size:12px}
 }
 /* ④ 圖例搬到繪圖區外（01 §4）：族群 × 法人 → 篩選列右端的 HTML 圖例（#instLegend，可點＝隱藏／顯示該法人）；
       資金集中度 → 主線色樣併進「均線」勾選列（.concmain）。兩張圖的繪圖區頂端都不再讓出一行給圖例。 */
 .chlegend{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px 4px;margin-left:auto}
-.chlegend button{appearance:none;display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:0 6px;border:0;background:none;
+.chlegend button{appearance:none;display:inline-flex;align-items:center;gap:var(--sp-1);min-height:28px;padding:0 var(--sp-1);border:0;background:none;
   color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer;border-radius:var(--r-sm,6px)}
+@media (max-width:640px){.chlegend button{gap:5px;padding:0 6px}}
 .chlegend button:hover{color:var(--ink)}
 .chlegend button i,.concmain i{display:inline-block;width:12px;height:8px;border-radius:2px}
 .chlegend button[aria-pressed="false"]{color:var(--ink-3);text-decoration:line-through}
 .chlegend button[aria-pressed="false"] i{opacity:.25}
-.concmain{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2);margin-right:6px}
+.concmain{display:inline-flex;align-items:center;gap:var(--sp-1);color:var(--ink-2);margin-right:var(--sp-1)}
+@media (max-width:640px){.concmain{gap:5px;margin-right:6px}}
 .concmain i{height:3px;border-radius:2px}
 /* ⑤ 族群 × 法人／資金集中度兩張卡等高時，較矮那張的圖撐滿（改前集中度底下空一條） */
 @media (min-width:821px){
@@ -182,7 +184,7 @@
 @media (min-width:641px){
   [data-theme4] #skAi .aibody.more{-webkit-mask-image:none;mask-image:none}
   [data-theme4] #skAi .aibody.more::after{content:"▾ 往下捲還有";position:sticky;bottom:0;display:block;height:36px;margin-top:-36px;
-    padding-top:18px;box-sizing:border-box;text-align:right;font-size:12px;line-height:18px;color:var(--ink-3);pointer-events:none;
+    padding-top:var(--sp-4);box-sizing:border-box;text-align:right;font-size:12px;line-height:18px;color:var(--ink-3);pointer-events:none;
     background:linear-gradient(to bottom,color-mix(in srgb,var(--panel) 0%,transparent),var(--panel) 62%)}
 }
 /* 個股頁「總覽」分頁的三張卡：≤1100 退成兩欄時第三張（技術面訊號）落單，右邊空 544×208（00 §4）。
@@ -194,7 +196,8 @@
 /* ---- 表格：列高 32（手機 40）、分隔線、表頭固定、數字等寬右對齊 ---- */
 /* ⚠ Lightweight Charts 的 K 線本身就是一張 <table>（窗格、價格軸、分隔線都是 td），
    表格規則一律排除 .tv-lightweight-charts 裡面的，不然 K 線的窗格分隔線會被撐成 32px 高（原型第一版踩到）。 */
-[data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){padding:0 10px;height:var(--t4-row-h)}
+[data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){padding:0 var(--sp-2);height:var(--t4-row-h)}
+@media (max-width:640px){[data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){padding:0 10px}}
 [data-theme4] th:not(.tv-lightweight-charts *){background:var(--t4-th-bg,var(--panel-3));font-size:var(--fs-min);font-weight:600;color:var(--ink-2);letter-spacing:.02em;
   box-shadow:inset 0 -1px 0 var(--line-2)}
 [data-theme4] td.num,[data-theme4] td .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -405,9 +408,11 @@
   border:1px solid var(--line-2);box-shadow:0 16px 40px -12px var(--drop);color:var(--ink)}
 .t4pop[hidden]{display:none}
 .t4pop h4{margin:0 0 8px;font-size:13px;color:var(--ink-2)}
-.t4pop .t4opts{display:grid;gap:6px}
-.t4pop button.t4o{display:grid;grid-template-columns:28px 1fr;gap:2px 10px;align-items:center;text-align:left;width:100%;
-  min-height:44px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer}
+.t4pop .t4opts{display:grid;gap:var(--sp-2)}
+@media (max-width:640px){.t4pop .t4opts{gap:6px}}
+.t4pop button.t4o{display:grid;grid-template-columns:28px 1fr;gap:2px var(--sp-2);align-items:center;text-align:left;width:100%;
+  min-height:44px;padding:var(--sp-1) var(--sp-2);border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer}
+@media (max-width:640px){.t4pop button.t4o{gap:2px 10px;padding:6px 10px}}
 .t4pop button.t4o .sw{grid-row:span 2;width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2)}
 .t4pop button.t4o b{font-size:14px}
 .t4pop button.t4o small{font-size:12px;color:var(--ink-3)}
@@ -415,7 +420,8 @@
 .t4pop .t4hint{margin-top:8px;font-size:12px;color:var(--ink-3)}
 .t4pop h4+.t4opts{margin-bottom:12px}
 /* 明暗兩顆：跟風格選項同一種按鈕語言，但一列兩顆 */
-.t4pop .t4modes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.t4pop .t4modes{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2)}
+@media (max-width:640px){.t4pop .t4modes{gap:6px}}
 .t4pop button.t4m{min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:14px}
 .t4pop button.t4m[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset;font-weight:700}
 .morepop .t4mm button[aria-pressed="true"]{background:var(--panel-2);font-weight:700}
@@ -436,7 +442,7 @@
 .chlegend.skleg button{min-height:24px;padding:0 4px;gap:4px}
 .chlegend.skleg[hidden]{display:none}
 @media (max-width:640px){ .chlegend.skleg button{min-height:32px} }
-@media (min-width:641px){ [data-theme4] #lwc .pane-labels div{font-size:12px;line-height:18px;padding:0 6px} }
+@media (min-width:641px){ [data-theme4] #lwc .pane-labels div{font-size:12px;line-height:18px;padding:0 var(--sp-1)} }
 #hoHead>.hoTgls{margin:0}
 @media (min-width:1101px){ #hoHead>.hoTgls{order:1} #hoHead>small{order:2} }
 @media (min-width:821px){
@@ -534,10 +540,10 @@
    ================================================================================== */
 @media (min-width:641px){
   /* ⑧ 族群總覽：資料狀態（#gpNote）、「完整版圖：產業熱力圖 →」併進標題列；滑過讀數（#gpFocus）搬到長條卡標題列右半邊 */
-  .gpdesk>.gphead{justify-content:flex-start;align-items:center;column-gap:12px;row-gap:6px}
+  .gpdesk>.gphead{justify-content:flex-start;align-items:center;column-gap:12px;row-gap:var(--sp-1)}
   .gpdesk>.gphead>h4{flex:0 1 auto;margin:0}
-  .gpdesk>.gphead>.gpnote{margin:0;padding:2px 10px;flex:0 1 auto;min-width:0;line-height:1.6}
-  .gpdesk>.gphead>.gptail{margin:0 0 0 auto;padding:0;border:0;flex:none;gap:6px}
+  .gpdesk>.gphead>.gpnote{margin:0;padding:2px var(--sp-2);flex:0 1 auto;min-width:0;line-height:1.6}
+  .gpdesk>.gphead>.gptail{margin:0 0 0 auto;padding:0;border:0;flex:none;gap:var(--sp-2)}
   .gpdesk>.gphead>.gplive{margin-left:auto}
   .gpdesk>.gphead>.gptail+.gplive{margin-left:0}
   .gpdesk .gpcard{position:relative}
