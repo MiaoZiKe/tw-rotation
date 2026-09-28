@@ -120,6 +120,33 @@ ENUM_JS = r"""
     }
     return {w: r.width, h: r.height};
   };
+  // 觸控範圍＝外框 ∪ 擴大點擊區的偽元素（::before／::after 絕對定位、負的 inset）。
+  // 瀏覽器命中測試本來就算偽元素（點在偽元素上＝點在它的元素上），所以「28px 圓點＋inset:-8px」真的是 44px 可點；
+  // 只看 getBoundingClientRect 會把這種刻意做大的點擊區誤列成「觸控目標不足」（2026-09-28 設計 v4 第二批）。
+  // 偽元素被 overflow 非 visible 的祖先切掉的部分點不到，一併夾回來。
+  const hitBox = (e) => {
+    const r = e.getBoundingClientRect();
+    let x0 = r.left, y0 = r.top, x1 = r.right, y1 = r.bottom;
+    if (!(e instanceof HTMLElement) || getComputedStyle(e).position === 'static') return {tw: Math.round(r.width), th: Math.round(r.height)};
+    for (const ps of ['::before', '::after']) {
+      const cs = getComputedStyle(e, ps);
+      if (!cs || cs.content === 'none' || cs.content === 'normal' || cs.display === 'none'
+          || cs.position !== 'absolute' || cs.pointerEvents === 'none' || cs.visibility === 'hidden') continue;
+      const t = parseFloat(cs.top), l = parseFloat(cs.left), rr = parseFloat(cs.right), b = parseFloat(cs.bottom);
+      if (Number.isFinite(t)) y0 = Math.min(y0, r.top + t);
+      if (Number.isFinite(b)) y1 = Math.max(y1, r.bottom - b);
+      if (Number.isFinite(l)) x0 = Math.min(x0, r.left + l);
+      if (Number.isFinite(rr)) x1 = Math.max(x1, r.right - rr);
+    }
+    for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      const pr = p.getBoundingClientRect();
+      if (cs.overflowX !== 'visible') { x0 = Math.max(x0, Math.min(r.left, pr.left)); x1 = Math.min(x1, Math.max(r.right, pr.right)); }
+      if (cs.overflowY !== 'visible') { y0 = Math.max(y0, Math.min(r.top, pr.top)); y1 = Math.min(y1, Math.max(r.bottom, pr.bottom)); }
+    }
+    return {tw: Math.round(x1 - x0), th: Math.round(y1 - y0)};
+  };
   const cands = [];
   const all = root.querySelectorAll('*');
   for (const e of all) {
@@ -165,7 +192,7 @@ ENUM_JS = r"""
                    // 沒有 class 的鈕（分段列、步驟列）光看標籤分不出來：再加父層的標籤與 class、data 屬性名稱
                    + '|' + (e.parentElement ? e.parentElement.tagName + '.' + [...e.parentElement.classList].filter(c => !STATE.test(c)).sort().join('.') : '')
                    + '|' + Object.keys(e.dataset || {}).filter(k => k !== 'ta').sort().join(','),
-              w: Math.round(r.width), h: Math.round(r.height), selected,
+              w: Math.round(r.width), h: Math.round(r.height), ...hitBox(e), selected,
               href, target: e.getAttribute('target') || '', download: e.hasAttribute('download'),
               exp: e.getAttribute('aria-expanded')});
   });
@@ -731,8 +758,10 @@ class Auditor:
                 row["blocked"] = f"自己 pointer-events:none，點下去落在祖先 {p['by']}"
             else:
                 row["blocked"] = f"被 {p['by']} 蓋住（pointer-events:{p['byPe']}，opacity:{p['byOp']}）" + ("；角落點得到" if p.get("anyOk") else "") + (f"（{p['ownNo'][1:]}）" if str(p.get("ownNo", "")).startswith("!") else "")
-        if it["w"] < MIN_TOUCH or it["h"] < MIN_TOUCH:
-            self.small.append({"page": st["name"], "w": self.W, "sel": it["sel"], "txt": it["txt"], "size": f"{it['w']}×{it['h']}"})
+        tw, th = it.get("tw", it["w"]), it.get("th", it["h"])
+        if tw < MIN_TOUCH or th < MIN_TOUCH:
+            sz = f"{it['w']}×{it['h']}" + (f"（觸控 {tw}×{th}）" if (tw, th) != (it["w"], it["h"]) else "")
+            self.small.append({"page": st["name"], "w": self.W, "sel": it["sel"], "txt": it["txt"], "size": sz})
         layers0 = {L["key"] for L in pg.evaluate(LAYERS_JS)}
         pg.evaluate(ARM_JS, it["i"])
         url0 = pg.url
