@@ -319,31 +319,57 @@ def revenue_momentum(revenue_monthly: pd.DataFrame) -> pd.DataFrame:
     - MoM 對照該檔近 5 年同月的 MoM 中位數，不看絕對值（淡旺季）
     - YoY > 100% 標警示（併購 / 一次性），不自動當利多
     - 另給近 3 個月合計 YoY 當平滑版
+
+    ★ 2026-09-28（營收普查，docs/revenue_audit_0928.md）—— 全部改成**日曆月對齊**、**分母 > 0 才算**：
+    - 以前 YoY 用 `groupby(month).shift(1)`、MoM 用 `pct_change()`，都是「上一列」：
+      缺一年就拿兩年前比、缺一個月就拿兩個月前比（資料湖 39 檔有缺月）。
+    - 以前分母只判非零：去年同月是負營收（證券、金控）時 YoY 正負號反了，連續年增月數也跟著錯。
+    - 1+2 月合併、近 3 月合計、年初至今：比較的兩邊月份**都要齊**才給，缺一個月就是 NaN，
+      不拿「今年 3 個月對去年 2 個月」這種不對稱的數字。
+    - 基期：證交所那一列附了「去年當月營收」（同口徑、IFRS 17 重編後）就用它，跟個股頁 revenue_series 一致。
     """
     if revenue_monthly is None or revenue_monthly.empty:
         return pd.DataFrame()
-    df = revenue_monthly[["ym", "code", "revenue"]].copy()
+    cols = ["ym", "code", "revenue"] + [c for c in ("revenue_last_year",) if c in revenue_monthly.columns]
+    df = revenue_monthly[cols].copy()
     df["revenue"] = pd.to_numeric(df["revenue"], errors="coerce")
-    df = df.dropna(subset=["ym", "code"]).drop_duplicates(["code", "ym"], keep="last")
+    df["off_ly"] = pd.to_numeric(df["revenue_last_year"], errors="coerce") if "revenue_last_year" in df.columns else np.nan
+    df = df.dropna(subset=["ym", "code", "revenue"])
+    df = df[df["ym"].astype(str).str.match(r"^\d{4}-(0[1-9]|1[0-2])$", na=False)]
+    df = df.drop_duplicates(["code", "ym"], keep="last")
     df["year"] = df["ym"].str[:4].astype(int)
     df["month"] = df["ym"].str[5:7].astype(int)
+    df["mi"] = df["year"] * 12 + df["month"]
+
+    def pct(a, b):
+        return float(a / b * 100 - 100) if (a is not None and b is not None and pd.notna(a) and pd.notna(b) and b > 0) else np.nan
+
+    def tot(val, mis):
+        vs = [val.get(i) for i in mis]
+        return None if any(v is None for v in vs) else float(sum(vs))
 
     rows = []
     for code, g in df.groupby("code"):
-        g = g.sort_values("ym").reset_index(drop=True)
+        g = g.sort_values("mi").reset_index(drop=True)
         if len(g) < 2:
             continue
-        g["yoy"] = g["revenue"] / g.groupby("month")["revenue"].shift(1) * 100 - 100
-        g["mom"] = g["revenue"].pct_change() * 100
-        # 1+2 月合併的 YoY
-        jf = g[g["month"].isin([1, 2])].groupby("year")["revenue"].sum()
-        jf_yoy = (jf / jf.shift(1) * 100 - 100)
+        val = dict(zip(g["mi"].astype(int), g["revenue"].astype(float)))
+        off = {int(m): float(v) for m, v in zip(g["mi"], g["off_ly"]) if pd.notna(v)}
+        g["yoy"] = [pct(v, off.get(int(i), val.get(int(i) - 12))) for i, v in zip(g["mi"], g["revenue"])]
+        g["mom"] = [pct(v, val.get(int(i) - 1)) for i, v in zip(g["mi"], g["revenue"])]
         last = g.iloc[-1]
-        ym, month, year = last["ym"], int(last["month"]), int(last["year"])
+        ym, month, year, lmi = last["ym"], int(last["month"]), int(last["year"]), int(last["mi"])
 
         yoy = float(last["yoy"]) if pd.notna(last["yoy"]) else np.nan
-        if month in (1, 2) and year in jf_yoy.index and pd.notna(jf_yoy.get(year)):
-            yoy_adj = float(jf_yoy[year]); yoy_note = "1-2 月合併"
+        # 1+2 月合併的 YoY：今年、去年的 1、2 月四個數字都要有
+        if month in (1, 2):
+            a = tot(val, [year * 12 + 1, year * 12 + month]) if month == 2 else None
+            b = tot(val, [(year - 1) * 12 + 1, (year - 1) * 12 + 2]) if month == 2 else None
+            jf = pct(a, b) if a is not None and b is not None else np.nan
+        else:
+            jf = np.nan
+        if month == 2 and pd.notna(jf):
+            yoy_adj = jf; yoy_note = "1-2 月合併"
         else:
             yoy_adj = yoy; yoy_note = None
 
@@ -352,25 +378,23 @@ def revenue_momentum(revenue_monthly: pd.DataFrame) -> pd.DataFrame:
         mom = float(last["mom"]) if pd.notna(last["mom"]) else np.nan
         mom_typical = float(same_month.median()) if len(same_month) >= 3 else np.nan
 
-        # 近 3 個月合計 YoY
-        r3 = g["revenue"].tail(3).sum()
-        prev3 = g[g["ym"].isin(
-            [f"{y}-{m:02d}" for y, m in
-             [((int(x[:4]) - 1), int(x[5:7])) for x in g["ym"].tail(3)]])]["revenue"].sum()
-        yoy_3m = float(r3 / prev3 * 100 - 100) if prev3 else np.nan
+        # 近 3 個月合計 YoY：最近三個日曆月與去年同樣三個月都要齊
+        r3 = tot(val, [lmi - 2, lmi - 1, lmi])
+        p3 = tot(val, [lmi - 14, lmi - 13, lmi - 12])
+        yoy_3m = pct(r3, p3) if r3 is not None and p3 is not None else np.nan
 
-        # 連續 YoY 成長月數
-        streak = 0
-        for v in reversed(g["yoy"].tolist()):
-            if pd.notna(v) and v > 0:
-                streak += 1
+        # 連續 YoY 成長月數：往回數到第一個「不成長／算不出來／缺月」為止
+        streak, prev_i = 0, None
+        for i, v in zip(reversed(g["mi"].tolist()), reversed(g["yoy"].tolist())):
+            if pd.notna(v) and v > 0 and (prev_i is None or i == prev_i - 1):
+                streak += 1; prev_i = i
             else:
                 break
 
-        # 年初至今累計 YoY
-        ytd = g[g["year"] == year]["revenue"].sum()
-        ytd_prev = g[(g["year"] == year - 1) & (g["month"] <= month)]["revenue"].sum()
-        ytd_yoy = float(ytd / ytd_prev * 100 - 100) if ytd_prev else np.nan
+        # 年初至今累計 YoY：今年 1..m 月、去年 1..m 月都要齊
+        ytd = tot(val, [year * 12 + k for k in range(1, month + 1)])
+        ytd_prev = tot(val, [(year - 1) * 12 + k for k in range(1, month + 1)])
+        ytd_yoy = pct(ytd, ytd_prev) if ytd is not None and ytd_prev is not None else np.nan
 
         rows.append({
             "code": code, "ym": ym, "revenue": float(last["revenue"]),

@@ -4677,7 +4677,24 @@
       const pctAx = { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } };
       if (rview === 'm') {
         const t = mo.slice(-rwin);
-        if (sub) sub.textContent = t.length ? `${t[0][0]}～${t[t.length - 1][0]}，${t.length} 個月` : '';
+        /* ★ 2026-09-28（營收普查）：管線把缺的月份補成空列（營收 null，不是 0），類別軸才不會把 3 月跟 5 月畫成相鄰；
+           讀數要講出來「這一段缺幾個月」，不然空一格看起來像是營收掉到 0。
+           右軸（YoY／MoM）遇到極端值（小基期、建設交屋月動輒 +30,000%）會把其他月份壓成一條平線 ——
+           軸的上下界改成可見值的 5～95 百分位再留 15% 邊，超出的點被圖框切掉、數字照樣在提示框裡，讀數標「右軸已截斷」。
+           只動顯示範圍，不改任何數字。*/
+        const gapN = t.filter(r => r[1] == null).length;
+        const pv = t.flatMap(r => [r[2], r[3]]).filter(v => v != null && isFinite(v)).sort((a, b) => a - b);
+        let pMin = null, pMax = null, clipped = false;
+        if (pv.length >= 4) {
+          const q = (p) => pv[Math.min(pv.length - 1, Math.max(0, Math.round((pv.length - 1) * p)))];
+          const lo = Math.min(0, q(0.05)), hi = Math.max(0, q(0.95)), pad = Math.max(10, (hi - lo) * 0.15);
+          if (pv[0] < lo - pad || pv[pv.length - 1] > hi + pad) {
+            pMin = Math.floor((lo - pad) / 10) * 10; pMax = Math.ceil((hi + pad) / 10) * 10; clipped = true;
+          }
+        }
+        el.dataset.revGap = String(gapN); el.dataset.revClip = clipped ? '1' : '0';
+        if (sub) sub.textContent = t.length ? `${t[0][0]}～${t[t.length - 1][0]}，${t.length} 個月${gapN ? `（缺 ${gapN} 個月，留空）` : ''}${clipped ? '　·　右軸已截斷，極端值看提示框' : ''}` : '';
+        if (pMin != null) { pctAx.min = pMin; pctAx.max = pMax; }
         A.chart('revBar', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.seriesName.includes('營收') || p.seriesName === '去年同期' ? A.fmt.yi(p.value) : A.fmt.pct(p.value)}`).join('<br>') },
           legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 50, top: 30, bottom: 30 },
           xAxis: { ...A.axisStyle, type: 'category', data: t.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2).replace('-', '/'), hideOverlap: true } },
@@ -4708,7 +4725,7 @@
     drawRev();
     const yr = (rv.yearly || []).slice(-6); let mode = 'm';
     const drawYear = () => { A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 20, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } },
-      series: yr.map((y, i) => { let acc = 0; const d = Array.from({ length: 12 }, (_, m) => { const v = y.by_month[m + 1]; if (v == null) return null; if (mode === 'c') { acc += v; return acc; } return v; }); return { name: String(y.year), type: 'line', data: d, smooth: .2, symbolSize: 5, lineStyle: { width: i === yr.length - 1 ? 3 : 1.5, color: A.PALETTE[i] }, itemStyle: { color: A.PALETTE[i] } }; }) }); };
+      series: yr.map((y, i) => { let acc = 0, broke = false; const d = Array.from({ length: 12 }, (_, m) => { const v = y.by_month[m + 1]; if (v == null) { broke = true; return null; } if (mode === 'c') { if (broke) return null; acc += v; return acc; } return v; }); /* ★ 2026-09-28：累計遇缺月就停（跳過缺月繼續加，後面每個月都少算一個月，線會系統性偏低）*/ return { name: String(y.year), type: 'line', data: d, smooth: .2, symbolSize: 5, lineStyle: { width: i === yr.length - 1 ? 3 : 1.5, color: A.PALETTE[i] }, itemStyle: { color: A.PALETTE[i] } }; }) }); };
     $$('#revMode button').forEach(b => b.onclick = () => { $$('#revMode button').forEach(x => x.classList.toggle('on', x === b)); mode = b.dataset.v; drawYear(); });
     drawYear();
   }
@@ -4723,18 +4740,31 @@
      金融股合理本益比十倍出頭、AI 股三十倍，寫死對大多數股票沒有意義。
      改用這一檔自己的歷史本益比分位數（10/30/50/70/90%），等於「跟自己比貴不貴」。*/
   const PE_ZONES = [            // 由下到上；顏色跟著「貴＝紅、便宜＝綠」（Andy 給的參考圖就是這個方向）
-    { name: '低估', c: '#1c7a5a' }, { name: '價值', c: '#2ee59d' }, { name: '合理', c: '#c3ff5b' },
-    { name: '觀望', c: '#ffd166' }, { name: '高估', c: '#ff8fab' }, { name: '警示', c: '#ff4d6d' },
+    { name: '低估', c: '#1f9e89' }, { name: '價值', c: '#5fe08a' }, { name: '合理', c: '#d4f25a' },
+    { name: '觀望', c: '#ffc53d' }, { name: '高估', c: '#ff7a45' }, { name: '警示', c: '#ff2e63' },
   ];
+  /* ★ 2026-09-28（Andy：「本益比河流圖 顏色」）：配色分深／淺兩組，並把色帶預設透明度 30% → 45%。
+     舊的一組（#1c7a5a #2ee59d #c3ff5b #ffd166 #ff8fab #ff4d6d）在淺色主題的白底上，
+     合理／觀望兩帶疊 30% 後跟底色的對比只有 1.06～1.12:1（等於看不見），高估（粉）與警示（紅）相鄰色差 ΔE 只有 9～11。
+     新的兩組是「青綠→綠→黃綠→琥珀→橘→紅」的發散色階，相鄰帶同時差色相與明度；
+     算過（CIELAB ΔE、疊在卡片底色上）：預設 45% 時相鄰帶 ΔE 深色 19～27、淺色 18～27，每一帶對底色 ≥1.35:1。
+     _uitest「本益比河流配色與Y軸0928」在瀏覽器裡用實際畫出來的顏色再驗一次（門檻 ΔE ≥ 15、對比 ≥ 1.25）。*/
+  const PE_Z_LIGHT = ['#0b7a75', '#2fa84f', '#a0c020', '#f0b000', '#ef6a20', '#c8102e'];
+  const PE_Z_OLD = ['#1c7a5a', '#2ee59d', '#c3ff5b', '#ffd166', '#ff8fab', '#ff4d6d'];
+  const peDefaultZ = () => (document.documentElement.getAttribute('data-theme') === 'light' ? PE_Z_LIGHT : PE_ZONES.map(x => x.c));
 
   /* 河流圖的樣式也要能自己調（Andy 2026-09-15：「需要新增本益比河流圖的顏色 線條粗細 透明度 等設定」）。
      存在 cfg.st.pe：z＝六個區間的顏色（由下到上）、w＝線寬、o＝色帶透明度。
      沒設定過就回預設，所以舊的 localStorage 不用搬。 */
   function peStyle(cfg) {
     // of＝填滿模式自己的透明度（預設 90，一眼就是「填滿」的樣子）；o 是色帶模式的
-    const raw = Object.assign({ w: 1, o: 30, of: 90 }, ((cfg || {}).st || {}).pe || {});
-    const z = (Array.isArray(raw.z) && raw.z.length === 6) ? raw.z : PE_ZONES.map(x => x.c);
-    return { w: Math.max(1, Math.min(4, +raw.w || 1)), o: Math.max(5, Math.min(100, +raw.o || 30)),
+    const raw = Object.assign({ w: 1, o: 45, of: 90 }, ((cfg || {}).st || {}).pe || {});
+    // 存著的 z 若跟任何一組預設（舊預設、深色、淺色）一模一樣＝沒自己調過，只是設定面板存檔時順手把畫面上的預設寫進去
+    // → 一律換成「目前主題」的預設。不然在深色主題碰過設定，切到淺色還是深色那組（淺底上看不清楚）。
+    const same = (a) => raw.z.every((c, i) => String(c).toLowerCase() === a[i]);
+    const own = Array.isArray(raw.z) && raw.z.length === 6 && ![PE_Z_OLD, PE_Z_LIGHT, PE_ZONES.map(x => x.c)].some(same);
+    const z = own ? raw.z : peDefaultZ();
+    return { w: Math.max(1, Math.min(4, +raw.w || 1)), o: Math.max(5, Math.min(100, +raw.o || 45)),
              of: Math.max(20, Math.min(100, +raw.of || 90)),
              z, zones: PE_ZONES.map((x, i) => ({ name: x.name, c: z[i] })) };
   }
@@ -4941,6 +4971,72 @@
        這件事這支檔案 1631 行早就寫過一次；2026-09-19 我沒看到又踩一次，
        驗收立刻抓到「本益比河流圖往上滾沒有放大」。*/
   let peWin = { start: 0, end: 100 };
+  /* ★ 2026-09-28（Andy：「本益比河流圖 … 縮放（Y 軸拖曳）」）：沿用 K 線圖價格軸的手感（chart.js _wheelOnPriceAxis、
+     Lightweight Charts 的價格軸拖曳）—— 在**左側 Y 軸**上：按住往上拖＝拉開（放大）、往下拖＝壓扁（縮小）、
+     滾輪一格 1.12 倍、雙擊還原自動範圍。圖區內部照舊交給 wheelZoom（滾輪放大整張、放大後拖曳平移）。
+     做法是在 Y 軸那一條疊一塊透明的 .peyaxis 接事件並 stopPropagation：
+       · 不用 ECharts dataZoom —— 它會吃掉 wheel（DECISIONS #192，這支檔案已經踩過兩次）；
+       · 不在整張圖上判座標 —— wheelZoom 的 pointerdown 掛在外層 pane，疊一塊自己的元素，事件在它身上就停，兩邊不打架。
+     peY＝null 是自動；換股票歸零（tabProfit），切畫法、拉時間 Bar 都保留（使用者調好的價格區間不該被重設）。*/
+  let peY = null;
+  function wirePeYAxis(id, redraw) {
+    const dom = document.getElementById(id); if (!dom) return;
+    dom._peRedraw = redraw;
+    const resetBtn = document.getElementById('peYReset');
+    if (resetBtn) resetBtn.hidden = !peY;
+    let ax = dom.querySelector(':scope > .peyaxis');
+    if (!ax) {
+      ax = document.createElement('div');
+      ax.className = 'peyaxis';
+      ax.title = 'Y 軸：按住上下拖曳縮放、滾輪縮放、雙擊還原';
+      ax.setAttribute('aria-label', '本益比河流圖 Y 軸縮放區（上下拖曳、滾輪、雙擊還原）');
+      ax.style.cssText = 'position:absolute;left:0;top:24px;bottom:34px;width:56px;z-index:6;cursor:ns-resize;touch-action:none;background:transparent';
+      if (getComputedStyle(dom).position === 'static') dom.style.position = 'relative';
+      dom.appendChild(ax);
+      const inst = () => window.echarts && echarts.getInstanceByDom(dom);
+      const base = () => { const i = inst(); return (i && i._peY) || null; };
+      let raf = 0;
+      const apply = (min, max) => {
+        if (!(max > min)) return;
+        peY = { min: +min.toFixed(2), max: +max.toFixed(2) };
+        if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (dom._peRedraw) dom._peRedraw(); });
+      };
+      const scale = (b, f) => { const c = (b.min + b.max) / 2, h = Math.max(0.01, (b.max - b.min) / 2 * f); apply(c - h, c + h); };
+      let drag = null;
+      ax.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        const b = base(); if (!b) return;
+        e.preventDefault(); e.stopPropagation();
+        drag = { y: e.clientY, b: { min: b.min, max: b.max }, id: e.pointerId };
+        try { ax.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+        dom.classList.add('peydrag');
+      });
+      ax.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        e.preventDefault(); e.stopPropagation();
+        // 往上拖（dy<0）→ f<1 → 範圍變窄＝放大；往下拖 → 範圍變寬＝縮小。160px 約一倍，跟 K 線價格軸的手感接近
+        scale(drag.b, Math.exp((e.clientY - drag.y) / 160));
+      });
+      const end = (e) => {
+        if (!drag) return;
+        try { ax.releasePointerCapture(drag.id); } catch (err) { /* 忽略 */ }
+        drag = null; dom.classList.remove('peydrag');
+        if (e) e.stopPropagation();
+      };
+      ax.addEventListener('pointerup', end);
+      ax.addEventListener('pointercancel', end);
+      ax.addEventListener('wheel', (e) => {
+        const b = base(); if (!b) return;
+        e.preventDefault(); e.stopPropagation();
+        scale(b, e.deltaY > 0 ? 1.12 : 1 / 1.12);
+      }, { passive: false });
+      ax.addEventListener('dblclick', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        peY = null; if (dom._peRedraw) dom._peRedraw();
+      });
+      ax.addEventListener('click', (e) => e.stopPropagation());
+    }
+  }
   function sliceRiver(r, win) {
     if (!r || !r.dates || !r.dates.length) return r;
     const N = r.dates.length;
@@ -5016,7 +5112,9 @@
         diff(r.bands[3], r.bands[2]), diff(r.bands[4], r.bands[3]), diff(top, r.bands[4])];
       series = layers.map((d, i) => ({
         name: ZN[i].name, type: 'line', data: d, stack: 'pe', symbol: 'none', silent: true, smooth: 0.3,
-        lineStyle: solid ? { color: 'rgba(0,0,0,.26)', width: 1 } : { width: 0 },
+        /* ★ 2026-09-28：色帶模式每一帶的上緣描一條同色實線（最上面那塊是畫面留白，不描）——
+           半透明的兩塊相鄰時邊界靠的是這條線，不是靠兩塊透明色的差。*/
+        lineStyle: solid ? { color: 'rgba(0,0,0,.26)', width: 1 } : (i < 5 ? { color: ZN[i].c, width: 1.2, opacity: 0.95 } : { width: 0 }),
         areaStyle: { color: ZN[i].c, opacity: op }, z: 1,
       }));
     }
@@ -5032,6 +5130,9 @@
     }
     series.push({ name: '收盤', type: 'line', data: r.close, symbol: 'none', z: 6, silent: true,
       lineStyle: { color: closeC, width: S.w + 0.8 } });
+    /* Y 軸手動範圍（拖曳左側價格軸縮放，見 wirePeYAxis）：有設就蓋過自動算的上下界；自動值留著給拖曳當起點。*/
+    const autoY = { min: yMin, max: yMax };
+    if (peY) { yMin = peY.min; yMax = peY.max; }
 
     /* X 軸：以前每隔幾根就印一次 `YYYY-MM`，同一個月連印三四次「2026-04、2026-04…」。
        改成只在**每個月的第一個交易日**落刻度，月份太多時再每 N 個月取一個，整條軸最多約 8 個。*/
@@ -5056,6 +5157,8 @@
       // 一定要 notMerge：兩種模式的 series 數量與型態都不一樣，
       // 用合併的話切到「倍數線」時，上一次的色帶還留在圖上（實測就是這樣糊成一片）
     }, { notMerge: true });
+    if (inst) { inst._peAutoY = autoY; inst._peY = { min: yMin, max: yMax, manual: !!peY }; }
+    wirePeYAxis(id, () => drawPeRiver(id, r0, mode, st));
     /* 右側的倍數／區間名稱：以前用每條 series 的 endLabel，ECharts 的 moveOverlap 管不到 endLabel，
        「價值」「低估」兩個字疊在一起。改成自己排：算出每一塊（或每一條線）在最後一天的中點，
        由上往下排、兩兩至少隔 14px，擠不進圖框的那個就不印（滑過 tooltip 仍看得到區間名）。*/
@@ -5126,6 +5229,7 @@
           <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
           <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
             <input id="peOpa" type="range" min="10" max="100" step="5"><span class="val" id="peOpaV"></span></label>
+          <button type="button" class="btn small" id="peYReset" hidden title="Y 軸回到自動範圍（在左側價格軸上雙擊也可以）">Y 軸還原</button>
         </div></div>
         <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:6px">
           <div id="peLen" title="這張圖一次看多長一段"></div>
@@ -5137,6 +5241,7 @@
           '倍數用這檔自己的歷史分位，非固定',
           '色帶越紅＝市場給的評價越高',
           '拉 Bar 選長度與截止日，▶ 一天天播',
+          '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="note" id="peNote" data-readout></div></div>
       <div class="grid g2" style="margin-top:var(--gap-card)"><div class="card"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['每季一點＝財報可用日收盤 ÷ 近四季 EPS', '虧損（EPS ≤ 0）那季不算', '跟自己的過去比，看現在貴不貴'])}<div id="peQ" class="chart"></div></div></div>
@@ -5173,6 +5278,9 @@
 
     // ---- 河流圖：兩種模式，選過就記住（換股票、重新整理都沿用）
     const river = peRiver(pg);
+    peY = null;                                   // 換股票（或重進獲利分頁）Y 軸回自動：上一檔的價格區間對這一檔沒有意義
+    const yRst = $('#peYReset', el);
+    if (yRst) yRst.onclick = () => { peY = null; const d = $('#peChart', el); if (d && d._peRedraw) d._peRedraw(); };
     const MODES = ['band', 'fill', 'mult'];
     let mode = 'band';
     try { const s = localStorage.getItem('tw.periver'); if (MODES.includes(s)) mode = s; } catch (e) { /* 忽略 */ }
