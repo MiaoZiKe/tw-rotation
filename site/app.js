@@ -2895,9 +2895,9 @@
     if (window.Live && window.Live.due && !window.Live.due(MUD.at)) return;
     if (window.Live && window.Live.cooling && window.Live.cooling('mud')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
     MUD.busy = true; MUD.intraday = !window.Live || window.Live.isIntraday();
-    let good = true;
+    let good = true; const t0 = Date.now();
     try { await mudFetch(); } catch (e) { good = false; MUD.err = (e && e.message) || String(e); }
-    if (window.Live && window.Live.report) window.Live.report('mud', good);
+    if (window.Live && window.Live.report) window.Live.report('mud', good, t0);
     MUD.busy = false;
     if (!MUD.on) return;
     if (mktKind === 'updown') drawMarket('updown');
@@ -4264,8 +4264,9 @@
     if (window.Live && window.Live.cooling && window.Live.cooling('rlv')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
     RLV.busy = true; RLV.intraday = !window.Live || window.Live.isIntraday();
     rlvStamp();
+    const t0 = Date.now();
     try { await rlvFetch(); if (window.Live && window.Live.report) window.Live.report('rlv', true); }
-    catch (e) { RLV.err = String((e && e.message) || e).slice(0, 90); RLV.pt = {}; if (window.Live && window.Live.report) window.Live.report('rlv', false); }
+    catch (e) { RLV.err = String((e && e.message) || e).slice(0, 90); RLV.pt = {}; if (window.Live && window.Live.report) window.Live.report('rlv', false, t0); }
     finally {
       RLV.busy = false;
       if (RLV.on) rlvRedraw();
@@ -9463,8 +9464,9 @@
     if (window.Live && window.Live.cooling && window.Live.cooling('skl')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
     SKL.busy = true; SKL.intraday = !window.Live || window.Live.isIntraday();
     sklStamp();
+    const t0 = Date.now();
     try { await sklFetch(st.sd); if (window.Live && window.Live.report) window.Live.report('skl', true); }
-    catch (e) { SKL.err = String((e && e.message) || e).slice(0, 80); SKL.tv = {}; SKL.stv = {}; if (window.Live && window.Live.report) window.Live.report('skl', false); }
+    catch (e) { SKL.err = String((e && e.message) || e).slice(0, 80); SKL.tv = {}; SKL.stv = {}; if (window.Live && window.Live.report) window.Live.report('skl', false, t0); }
     finally {
       SKL.busy = false;
       const s2 = sankeyState;

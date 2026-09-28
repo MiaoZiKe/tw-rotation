@@ -156,11 +156,14 @@
      族群即時模式（漲跌家數 mud、輪動時鐘 rlv、資金去向 skl、族群頁 gp）與大盤卡的期貨報價（m3fut）
      各自一個 key。改前它們失敗了照樣每 5 秒再打一次 —— 節流閥擋得住「5 秒超過 3 個」，
      但擋不住「一直打一個已經壞掉的端點」。跟本檔主批次同一條曲線：10、20、40…秒，封頂 5 分鐘。*/
+  /* ⚠ at 記的是「那一輪開始抓的時間」（t0），不是失敗回來的時間：族群模式一輪要排節流閥、可能花好幾秒，
+     用失敗時間起算的話，5 秒一跳的計時器會把 10 秒量化成 15 秒（實測 15.2 秒）。
+     250ms 的寬容是給 setInterval 的抖動（第 10 秒那一跳可能早幾毫秒到）。*/
   const cool = {};
-  function cooling(k) { const c = cool[k]; return !!c && c.n > 0 && Date.now() - c.at < backoffMs(c.n); }
-  function report(k, good) {
+  function cooling(k) { const c = cool[k]; return !!c && c.n > 0 && Date.now() - c.at < backoffMs(c.n) - 250; }
+  function report(k, good, t0) {
     if (good) { delete cool[k]; return; }
-    const c = cool[k] || { n: 0, at: 0 }; c.n++; c.at = Date.now(); cool[k] = c;
+    const c = cool[k] || { n: 0, at: 0 }; c.n++; c.at = t0 || Date.now(); cool[k] = c;
   }
 
   const ls = {
@@ -887,7 +890,7 @@
      *  盤中一律要；盤後只有「還沒抓過」或「上次已經超過 30 分鐘」才抓 —— 盤後數字不會動，5 秒一跳是白打。*/
     due(lastAt) { return isIntraday() || !lastAt || Date.now() - lastAt >= MS_AFTER; },
     slot,                                      // 節流閥：打 mis 之前 await Live.slot(prio)
-    /** 其他模組的錯誤退避：`if (Live.cooling('mud')) return;` 抓之前問；抓完 `Live.report('mud', 成功與否)`。
+    /** 其他模組的錯誤退避：`if (Live.cooling('mud')) return;` 抓之前問；抓完 `Live.report('mud', 成功與否, 這一輪開始的時間)`。
      *  使用者重新打開即時時 `Live.report(key, true)` 清掉，第一輪不必等退避。*/
     cooling, report,
     get coolStats() { const o = {}; Object.keys(cool).forEach(k => { o[k] = { n: cool[k].n, waitMs: backoffMs(cool[k].n) }; }); return o; },

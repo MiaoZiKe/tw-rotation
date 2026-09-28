@@ -1079,13 +1079,14 @@
     const L = window.Live;
     if (L && L.cooling && L.cooling('m3fut')) return;     // 期交所報價上一輪失敗 → 退避中（10、20、40…秒）
     state.fBusy = true;
+    const t0 = Date.now();
     try {
       const q = await fetchFut('day');
       const t = String(q.time || '').replace(/:/g, '');
       if (patchLive('FUT', { last: q.last, high: q.high, low: q.low, time: t, date: q.date })) { state.liveAt = Date.now(); draw(); }
       state.fErr = '';
       if (L && L.report) L.report('m3fut', true);
-    } catch (e) { state.fErr = String(e.message || e); if (L && L.report) L.report('m3fut', false); }
+    } catch (e) { state.fErr = String(e.message || e); if (L && L.report) L.report('m3fut', false, t0); }
     state.fBusy = false;
     m3Stamp();
   }

@@ -378,6 +378,7 @@
       if (window.Live && window.Live.due && !window.Live.due(gpOkAt)) return;
       if (window.Live && window.Live.cooling && window.Live.cooling('gp')) return;   // 上一輪失敗 → 退避中（10、20、40…秒）
       busy = true; paintNote();
+      const t0 = Date.now();
       try {
         if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
         const codes = liveCodes();
@@ -393,7 +394,7 @@
         cov = [ks.length, codes.length];
         if (window.Live && window.Live.report) window.Live.report('gp', true);
       } catch (e) {
-        if (window.Live && window.Live.report) window.Live.report('gp', false);
+        if (window.Live && window.Live.report) window.Live.report('gp', false, t0);
         if (gen !== gpGen) return;
         liveErr = String((e && e.message) || e).slice(0, 80); q = null; cov = [0, 0];
         // 第二道：萬一哪條路漏掉 live.js 的轉譯，英文的網路錯誤仍然不准原樣上畫面（R3 審查）
