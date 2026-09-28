@@ -3268,3 +3268,13 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-28 午後 合併上線：index-kline-0928（DECISIONS #272）
 - 合併後驗了：pytest 809 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 總覽／總覽摘要卡列／新-大盤三張圖 0、大盤K線0928 7 紅＝**全部是資料還沒進湖**（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值要等合併後那輪回補），連動縮放與無量說明那幾條綠；_preview 綠。
 - 回補跑過後要回頭重跑「大盤K線0928」確認 7 條轉綠（看 complete.index_intraday.tse1m_left 在減少、櫃買 yahoo_v 3 done）。
+
+### 09-28 晚 卡片標題小圖示・收尾（title-icons，分支 claude/title-icons，未合併 main）
+- Andy「所有標題加上小圖示，顏色要搭配」。接手 claude/wip2-title-icons（6865302 已完成＋4e70146 容器重啟前的半成品），合併 main 無衝突。
+- 機制 `site/icons.js`（Lucide path 內嵌、MutationObserver 自動掛、1em、5 色系＋漲跌）；**顏色只用主題變數、0 個色碼**（收尾拿掉 hover 的 `#fff` 後備）。
+  v4 的 theme4.css（claude/design-v4-impl-1）六組主題都有定義 --cyan／--violet／--amber／--lime／--rise／--fall，合併後圖示自動跟著換；「標題圖示」段落偵測到 data-theme4 會自動加量三主題 × 深淺六組對比。
+- 半成品收尾：① 被圖示擠換行的標題列 → 先收字距（標題內 10→4px、標題列 12→8px），還放不下才釘寬（只給有副標的標題；短標題不拆兩行）；② fit 重量條件加上「同一列其他東西字數」（漲跌家數的 #udSum 資料到了才填字）。
+- 驗收補：手機券商式個股頁逐一切 #mbTabs；量到 0 個卡片標題的畫面要證明頁面上沒有其他 h2～h5（不是選擇器漏認）。
+- ★ 驗收順序 bug（main 本來就有）：`總覽摘要卡列` 結束停在 800 寬沒還原，`--workers 1` 時後面的段落都在 800 跑，「產業」在 ≤820 合法長出 #segBox → 誤紅。已補還原。
+- 逐寬度真基準比對（有 icons.js vs 拿掉 icons.js 的副本，5 頁 × 12 寬）：276 條標題列 3 條變高（族群 × 法人 ≈900、資金集中度 ≈860、漲跌家數 ≈880 那一小段寬度）——圖示 22px、收字距只省 16px 的殘留，寫在 docs/design_title_icons.md §6。
+- 這批驗了（分支上，SKIP_INTRADAY=1 重算 payload）：_preview 綠；_uitest 標題圖示／總覽／總覽摘要卡列／資金流向／產業／淺色主題／手機／新-版面等高與多寬度 0（產業在修視窗還原前排在總覽摘要卡列後面會紅 1）；個股 0（中途一輪 35 紅是鎖排隊時的環境抖動：同一份程式有／無 icons.js 各重跑一次都 0）。純前端＋驗收腳本，pytest 依例外跳過。
