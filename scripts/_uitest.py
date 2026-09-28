@@ -15365,6 +15365,249 @@ def t_index_kline_0928(pg, base):
     pg.unroute("**/chart?*")
     pg.unroute("**/y?*")
 
+# ===================================================================== 營收與本益比河流（2026-09-28，金融專家）
+# Andy 2026-09-28：「營收走勢確保數值正常，檢查後續會不會還發生」「本益比河流圖 顏色 與縮放（Y 軸拖曳）」。
+# ① 資料層：site/data/stock/*.json 每一檔的月營收序列月份連續、缺月是 null 不是 0、最後一列有值；
+#    六檔大型股的單月營收 最大 ÷ 中位 ≤ 10（千元／元混用會是 1,000 倍，一眼就紅）。
+# ② 真的去按：營收月走勢 12／24／36 切換後柱數真的變、x 軸月份連續；有缺月的股票讀數寫「缺 N 個月」、那一格是空的；
+#    YoY 有極端值的股票右軸被截斷、讀數寫「右軸已截斷」、截斷範圍比真正的極值小。
+# ③ 本益比河流：深／淺兩個主題各量一次**畫出來的**色帶顏色（疊在卡片底色上），相鄰帶 ΔE ≥ 15、每一帶對底色 ≥ 1.25:1；
+#    左側 Y 軸按住往上拖 → 可視範圍真的變窄、往下拖 → 變寬；滾輪 → 範圍變、頁面沒被捲、整張圖沒被 wheelZoom 放大；
+#    切畫法範圍保留；雙擊 Y 軸／按「Y 軸還原」→ 回到自動範圍。800 寬再拖一次。
+REVPE_CODES = ["2330", "2454", "2618", "1101", "3026", "6669"]
+
+
+def _revpe_local_pages():
+    """直接讀本機產出的 site/data/stock/*.json（驗收跑在同一台機器上）。"""
+    import glob as _g
+    import json as _j
+    out = {}
+    for f in sorted(_g.glob(str(ROOT / "site" / "data" / "stock" / "*.json"))):
+        try:
+            j = _j.load(open(f, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(j, dict) and isinstance(j.get("revenue"), dict):
+            out[Path(f).stem] = j
+    return out
+
+
+_PE_COLOR_PROBE = """() => {
+  const dom = document.getElementById('peChart'); const inst = dom && echarts.getInstanceByDom(dom);
+  if (!inst) return null;
+  const o = inst.getOption();
+  const card = dom.closest('.card'); const bgs = getComputedStyle(card).backgroundColor;
+  const rgb = (s) => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = s; const h = c.fillStyle;
+    if (h[0] === '#') return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+    const m = h.match(/[\\d.]+/g).map(Number); return m.slice(0, 3).map(v => v / 255); };
+  const lin = (v) => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  const L = (c) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  const lab = (c) => { const [r, g, b] = c.map(lin); const f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const x = f((r * .4124 + g * .3576 + b * .1805) / .95047), y = f(r * .2126 + g * .7152 + b * .0722), z = f((r * .0193 + g * .1192 + b * .9505) / 1.08883);
+    return [116 * y - 16, 500 * (x - y), 200 * (y - z)]; };
+  const bg = rgb(bgs);
+  const areas = (o.series || []).filter(s => s.areaStyle && s.stack === 'pe');
+  const bl = areas.map(s => { const c = rgb(s.areaStyle.color), op = s.areaStyle.opacity == null ? 1 : s.areaStyle.opacity;
+    return c.map((v, i) => bg[i] * (1 - op) + v * op); });
+  const de = bl.slice(1).map((c, i) => { const a = lab(bl[i]), b = lab(c); return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); });
+  const cr = bl.map(c => { const a = L(c), b = L(bg); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); });
+  return { n: areas.length, colors: areas.map(s => s.areaStyle.color), op: areas.map(s => s.areaStyle.opacity),
+           de: de.map(v => +v.toFixed(1)), cr: cr.map(v => +v.toFixed(2)), bg: bgs,
+           theme: document.documentElement.getAttribute('data-theme') || 'dark' };
+}"""
+
+_PE_Y = """() => { const dom = document.getElementById('peChart'); const i = dom && echarts.getInstanceByDom(dom);
+  if (!i) return null; const y = i.getOption().yAxis[0];
+  const r = document.getElementById('peYReset');
+  return { min: y.min, max: y.max, manual: !!(i._peY && i._peY.manual), reset: r ? !r.hidden : null,
+           zoomed: document.getElementById('peWrap').classList.contains('zoomed'), sy: Math.round(window.scrollY) }; }"""
+
+
+def _pe_axis_box(pg):
+    return pg.evaluate("""() => { const a = document.querySelector('#peChart > .peyaxis'); if (!a) return null;
+      a.scrollIntoView({ block: 'center' }); const r = a.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, h: r.height, w: r.width }; }""")
+
+
+def _pe_drag(pg, dy):
+    box = _pe_axis_box(pg)
+    if not box:
+        return None
+    pg.wait_for_timeout(300)
+    box = _pe_axis_box(pg)
+    pg.mouse.move(box["x"], box["y"])
+    pg.mouse.down()
+    for k in range(1, 7):
+        pg.mouse.move(box["x"], box["y"] + dy * k / 6)
+        pg.wait_for_timeout(30)
+    pg.mouse.up()
+    pg.wait_for_timeout(500)
+    return box
+
+
+def t_rev_pe_0928(pg, base, code):
+    tag = "營收河流0928"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { ['tw.revView','tw.revWin','tw.periver','tw.kcfg'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pages = _revpe_local_pages()
+    ok(f"【{tag}】本機有個股 JSON（前置條件）", len(pages) > 50, len(pages))
+
+    # ---------------------------------------------------------------- ① 資料層：全市場普查
+    bad = []
+    for c, j in pages.items():
+        rv = j.get("revenue") or {}
+        mo = rv.get("monthly") or []
+        if not mo:
+            continue
+        mis = [int(r[0][:4]) * 12 + int(r[0][5:7]) for r in mo]
+        if any(b - a != 1 for a, b in zip(mis, mis[1:])):
+            bad.append((c, "月份不連續"))
+        miss = set(rv.get("missing") or [])
+        if any(r[0] in miss and r[1] is not None for r in mo):
+            bad.append((c, "缺月卻有數字"))
+        if any(r[1] == 0 and r[0] in miss for r in mo):
+            bad.append((c, "缺月被寫成 0"))
+        if mo[-1][1] is None:
+            bad.append((c, "最後一列是空的"))
+        if any(r[2] is not None and r[6] is not None and r[6] <= 0 for r in mo):
+            bad.append((c, "去年同月 ≤ 0 卻算了 YoY"))
+    ok(f"★【{tag}】全部 {len(pages)} 檔的營收序列：月份連續、缺月是 null、去年同月 ≤ 0 不算 YoY", bad == [], bad[:12])
+    for c in REVPE_CODES:
+        j = pages.get(c)
+        if not ok(f"【{tag}】{c} 有營收（前置條件）", bool(j and (j.get("revenue") or {}).get("monthly"))):
+            continue
+        v = sorted(r[1] for r in j["revenue"]["monthly"][-36:] if r[1] is not None and r[1] > 0)
+        ratio = v[-1] / v[len(v) // 2] if v else None
+        ok(f"★【{tag}】{c} 近 36 個月營收 最大 ÷ 中位 ≤ 10（千元／元混用會是 1,000 倍）", ratio is not None and ratio <= 10,
+           round(ratio, 2) if ratio else None)
+
+    # ---------------------------------------------------------------- ② 營收月走勢：真的按
+    pg.goto("about:blank")
+    pg.goto(f"{base}#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    click(pg, '#stockTabs button[data-t="revenue"]', 1500)
+    click(pg, '#revView button[data-v="m"]', 700)
+    seen = {}
+    for w in ("12", "36", "24"):
+        click(pg, f'#revWin button[data-v="{w}"]', 900)
+        seen[w] = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('revBar')); if (!i) return null;
+          const o = i.getOption(); return { x: o.xAxis[0].data, bars: o.series[0].data, sub: document.getElementById('revSub').textContent }; }""")
+    lens = {w: len((s or {}).get("x") or []) for w, s in seen.items()}
+    ok(f"★【{tag}】切 12／24／36 個月，柱數真的跟著變", lens == {"12": 12, "24": 24, "36": 36}, lens)
+    s36 = seen.get("36") or {}
+    xs = s36.get("x") or []
+    mis = [int(x[:4]) * 12 + int(x[5:7]) for x in xs]
+    ok(f"【{tag}】2330 月走勢 x 軸月份連續", len(mis) > 1 and all(b - a == 1 for a, b in zip(mis, mis[1:])), xs[:4] + xs[-3:])
+    _nv = lambda v: (v.get("value") if isinstance(v, dict) else v)
+    bars = sorted(_nv(v) for v in (s36.get("bars") or []) if _nv(v) is not None and _nv(v) > 0)
+    r36 = bars[-1] / bars[len(bars) // 2] if bars else None
+    ok(f"★【{tag}】2330 圖上畫出來的營收柱 最大 ÷ 中位 ≤ 10", r36 is not None and r36 <= 10, round(r36, 2) if r36 else None)
+
+    # 有缺月（在最近 36 個月內）的股票：讀數寫「缺 N 個月」、那一格是空的
+    gap_code = next((c for c, j in pages.items()
+                     if any(r[1] is None for r in (j["revenue"].get("monthly") or [])[-36:])), None)
+    if ok(f"【{tag}】找得到最近 36 個月內有缺月的股票（前置條件）", gap_code is not None, "資料湖可能已補齊 → 這條會紅，改用合成資料驗"):
+        pg.goto("about:blank")
+        pg.goto(f"{base}#stock/{gap_code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        click(pg, '#stockTabs button[data-t="revenue"]', 1500)
+        click(pg, '#revView button[data-v="m"]', 600)
+        click(pg, '#revWin button[data-v="36"]', 900)
+        g = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('revBar'));
+          const o = i.getOption(); return { nulls: o.series[0].data.filter(v => v == null).length,
+            sub: document.getElementById('revSub').textContent, ds: document.querySelector('#stockPage [data-rev-gap]') ?
+            document.querySelector('#stockPage [data-rev-gap]').dataset.revGap : null }; }""")
+        ok(f"★【{tag}】{gap_code} 缺月那一格是空的（null），讀數寫「缺 N 個月」", g["nulls"] > 0 and "缺" in g["sub"], g)
+
+    # YoY 有極端值的股票：右軸截斷
+    def _ext(j):
+        mo = (j["revenue"].get("monthly") or [])[-12:]
+        return max((abs(v) for r in mo for v in (r[2], r[3]) if v is not None), default=0)
+    clip_code = next((c for c, j in sorted(pages.items(), key=lambda kv: -_ext(kv[1])) if _ext(j) > 1500), None)
+    if ok(f"【{tag}】找得到近 12 個月 YoY／MoM 超過 1500% 的股票（前置條件）", clip_code is not None):
+        pg.goto("about:blank")
+        pg.goto(f"{base}#stock/{clip_code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        click(pg, '#stockTabs button[data-t="revenue"]', 1500)
+        click(pg, '#revView button[data-v="m"]', 600)
+        click(pg, '#revWin button[data-v="12"]', 900)
+        c2 = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('revBar'));
+          const o = i.getOption(); const vs = o.series.slice(2).flatMap(s => s.data).filter(v => v != null);
+          return { max: o.yAxis[1].max, min: o.yAxis[1].min, ext: Math.max(...vs.map(Math.abs)), sub: document.getElementById('revSub').textContent }; }""")
+        ok(f"★【{tag}】{clip_code} 右軸截斷：軸上界比極端值小、讀數寫「右軸已截斷」",
+           c2["max"] is not None and c2["max"] < c2["ext"] and "截斷" in c2["sub"], c2)
+
+    # ---------------------------------------------------------------- ③ 本益比河流：配色（深、淺）
+    def _to_profit(c="2330"):
+        pg.goto("about:blank")
+        pg.goto(f"{base}#stock/{c}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        click(pg, '#stockTabs button[data-t="profit"]', 1800)
+        click(pg, '#peMode button[data-v="band"]', 1200)
+
+    pals = {}
+    for th in ("dark", "light"):
+        dg_set_theme(pg, th)
+        _to_profit()
+        p = pg.evaluate(_PE_COLOR_PROBE)
+        pals[th] = p
+        if ok(f"【{tag}】{th} 主題河流圖量得到六條色帶（前置條件）", bool(p) and p["n"] == 6, p):
+            ok(f"★【{tag}】{th} 主題相鄰色帶 ΔE ≥ 15（層次分明）", min(p["de"]) >= 15, p)
+            ok(f"★【{tag}】{th} 主題每一帶對卡片底色 ≥ 1.25:1（看得見）", min(p["cr"]) >= 1.25, p)
+    if pals.get("dark") and pals.get("light"):
+        ok(f"【{tag}】深、淺主題用不同的一組色帶", pals["dark"]["colors"] != pals["light"]["colors"],
+           [pals["dark"]["colors"], pals["light"]["colors"]])
+    dg_set_theme(pg, "dark")
+
+    # ---------------------------------------------------------------- ③ 本益比河流：Y 軸拖曳
+    _to_profit()
+    y0 = pg.evaluate(_PE_Y)
+    if ok(f"【{tag}】河流圖有 Y 軸縮放區（前置條件）", bool(y0) and _pe_axis_box(pg) is not None, y0):
+        ok(f"【{tag}】一開始是自動範圍、「Y 軸還原」鈕藏著", not y0["manual"] and y0["reset"] is False, y0)
+        _pe_drag(pg, -120)
+        y1 = pg.evaluate(_PE_Y)
+        ok(f"★【{tag}】Y 軸按住往上拖 → 可視範圍真的變窄（放大）",
+           y1["manual"] and (y1["max"] - y1["min"]) < (y0["max"] - y0["min"]) * 0.8, {"前": y0, "後": y1})
+        ok(f"【{tag}】拖過之後「Y 軸還原」鈕出現", y1["reset"] is True, y1)
+        ok(f"【{tag}】拖 Y 軸不會把整張圖帶去平移／放大（wheelZoom 沒被觸發）", not y1["zoomed"], y1)
+        _pe_drag(pg, 160)
+        y2 = pg.evaluate(_PE_Y)
+        ok(f"★【{tag}】Y 軸按住往下拖 → 可視範圍真的變寬（縮小）", (y2["max"] - y2["min"]) > (y1["max"] - y1["min"]) * 1.3,
+           {"前": y1, "後": y2})
+        box = _pe_axis_box(pg); pg.wait_for_timeout(250); box = _pe_axis_box(pg)
+        sy = pg.evaluate("() => Math.round(window.scrollY)")
+        pg.mouse.move(box["x"], box["y"])
+        for _ in range(3):
+            pg.mouse.wheel(0, -120); pg.wait_for_timeout(120)
+        pg.wait_for_timeout(500)
+        y3 = pg.evaluate(_PE_Y)
+        ok(f"★【{tag}】在 Y 軸上滾輪 → 範圍變窄、頁面沒被捲、整張圖沒被放大",
+           (y3["max"] - y3["min"]) < (y2["max"] - y2["min"]) * 0.9 and abs(y3["sy"] - sy) <= 2 and not y3["zoomed"],
+           {"前": y2, "後": y3, "scrollY 前": sy})
+        click(pg, '#peMode button[data-v="fill"]', 1200)
+        y4 = pg.evaluate(_PE_Y)
+        ok(f"【{tag}】切到「填滿」，手動的 Y 範圍保留", y4["manual"] and abs(y4["min"] - y3["min"]) < 0.02 and abs(y4["max"] - y3["max"]) < 0.02,
+           {"切前": y3, "切後": y4})
+        box = _pe_axis_box(pg); pg.wait_for_timeout(250); box = _pe_axis_box(pg)
+        pg.mouse.dblclick(box["x"], box["y"]); pg.wait_for_timeout(700)
+        y5 = pg.evaluate(_PE_Y)
+        ok(f"★【{tag}】雙擊 Y 軸 → 回到自動範圍", not y5["manual"] and y5["reset"] is False and not y5["zoomed"], y5)
+        _pe_drag(pg, -100)
+        ok(f"【{tag}】（再拖一次，準備驗還原鈕）", pg.evaluate(_PE_Y)["manual"])
+        click(pg, "#peYReset", 700)
+        y6 = pg.evaluate(_PE_Y)
+        ok(f"★【{tag}】按「Y 軸還原」→ 回到自動範圍、鈕藏回去", not y6["manual"] and y6["reset"] is False, y6)
+        click(pg, '#peMode button[data-v="band"]', 900)
+
+    # 800 寬：一樣拖得動、不橫向捲
+    pg.set_viewport_size({"width": 800, "height": 900})
+    pg.wait_for_timeout(900)
+    y7 = pg.evaluate(_PE_Y)
+    _pe_drag(pg, -100)
+    y8 = pg.evaluate(_PE_Y)
+    ok(f"★【{tag}】800 寬：Y 軸往上拖一樣會放大", bool(y7 and y8) and y8["manual"] and (y8["max"] - y8["min"]) < (y7["max"] - y7["min"]),
+       {"前": y7, "後": y8})
+    sw = pg.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+    ok(f"【{tag}】800 寬獲利分頁不橫向捲", sw <= 1, sw)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+
 
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
@@ -15596,6 +15839,8 @@ SECTIONS = {
     "個股AI分析0926":      lambda pg, b, base, code: t_stock_ai_0926(pg, base, code),
     # ★ 2026-09-27 Andy：「季的週期要對，部分數據太少」＋券商 App 截圖；六檔季週期／筆數／按鈕（⚠ 一律 --workers 1）
     "個股季週期與筆數":    lambda pg, b, base, code: t_stock_quarter_audit0927(pg, base, code),
+    # ★ 2026-09-28 Andy：「營收走勢確保數值正常」「本益比河流圖 顏色 與縮放（Y 軸拖曳）」（⚠ 一律 --workers 1）
+    "營收河流0928":        lambda pg, b, base, code: t_rev_pe_0928(pg, base, code),
     "收尾0925-週期統計提示框": lambda pg, b, base, code: t_wrap_season_tip(pg, base, code),
     "收尾0925-R4方塊標籤":  lambda pg, b, base, code: t_wrap_r4_label(pg, base, code),
     "收尾0925-R2小項":      lambda pg, b, base, code: t_wrap_r2(pg, base, code),
