@@ -374,6 +374,8 @@
     };
     async function liveTick() {
       if (busy) return;
+      // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
+      if (window.Live && window.Live.due && !window.Live.due(gpOkAt)) return;
       busy = true; paintNote();
       try {
         if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');

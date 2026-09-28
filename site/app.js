@@ -2823,6 +2823,8 @@
 
   async function mudTick() {
     if (!MUD.on || MUD.busy) return;
+    // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
+    if (window.Live && window.Live.due && !window.Live.due(MUD.at)) return;
     /* 離開這一頁就把即時關掉 —— 每分鐘對一個看不到的畫面打 5 個請求，
        使用者沒有任何方式察覺，只會看到額度莫名其妙被吃掉。*/
     if (!/^#market/.test(location.hash || '')) { mudOff(false); return; }
@@ -4161,6 +4163,8 @@
 
   async function rlvTick() {
     if (!RLV.on || RLV.busy) return;
+    // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
+    if (window.Live && window.Live.due && !window.Live.due(RLV.at)) return;
     /* 換到站內別的分頁時容器還在 DOM、只是被藏起來（offsetParent 是 null）。
        這時候不要打報價 —— 使用者根本沒在看這張圖，每分鐘 3 個請求純浪費。*/
     { const el = $('#rotClock'); if (el && el.offsetParent === null) return; }
@@ -9340,6 +9344,8 @@
 
   async function sklTick() {
     if (!SKL.on || SKL.busy) return;
+    // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
+    if (window.Live && window.Live.due && !window.Live.due(SKL.at)) return;
     const st = sankeyState; if (!st) return;
     /* 換到站內別的分頁時容器還在 DOM、只是被藏起來（offsetParent 是 null）。
        這時候不要打報價 —— 使用者根本沒在看這張圖，每分鐘 2 個請求純浪費。

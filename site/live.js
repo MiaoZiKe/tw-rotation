@@ -699,7 +699,7 @@
   /* Andy：「可『即時』更新的圖表及數據多新增『即時』選項…回報多久會更新一次」。
    * 每張有盤中來源的卡片上放一顆「即時」＋一行最後更新時間（台北）：
    *   開（預設）＝盤中每 5 秒更新、盤後每 30 分鐘；關＝靜態（退回盤後資料、不再打端點）。
-   * 哪些卡片有、哪些沒有、為什麼 —— 見 DECISIONS #275。
+   * 哪些卡片有、哪些沒有、為什麼 —— 見 DECISIONS #277。
    *
    * ★ 為什麼掛載寫在這裡、不寫進各頁的 render：
    *   各頁（industry.js／watchpage.js／watchlists.js／market3.js／mobile3.js）的 render 會整塊 innerHTML 重畫，
@@ -873,6 +873,9 @@
     /* ---- 2026-09-29：每 5 秒＋卡片開關，給其他模組共用的介面 ---- */
     FAST_MS: MS_FAST,                          // 盤中節奏（族群即時模式、大盤卡、個股分 K 都用這一個數字）
     intervalMs,                                // 現在該用的間隔（盤中 5 秒／盤後 30 分鐘）
+    /** 族群即時模式的計時器是固定 5 秒一跳；這支判斷「這一跳該不該真的去抓」：
+     *  盤中一律要；盤後只有「還沒抓過」或「上次已經超過 30 分鐘」才抓 —— 盤後數字不會動，5 秒一跳是白打。*/
+    due(lastAt) { return isIntraday() || !lastAt || Date.now() - lastAt >= MS_AFTER; },
     slot,                                      // 節流閥：打 mis 之前 await Live.slot(prio)
     get slotStats() { const now = Date.now(); return { recent: slotHist.filter(t => now - t < MIS_WINDOW_MS).length, queued: slotQ.length, max: MIS_MAX, windowMs: MIS_WINDOW_MS }; },
     cardOn, setCard, stampCards, mountAll, hms,
