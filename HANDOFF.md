@@ -3403,3 +3403,11 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-29 清晨 合併上線：logo-v4（DECISIONS #276）
 - 新取圖策略 10 條（入口頁跟下一頁、回首頁連結圖、schema.org logo、頁首 inline SVG／CSS 背景、磚圖示、申報路徑、RFC 9309 robots、集團官網、Wikidata／Commons 只收 PD/CC0、人工指定 data/logos/manual/）；預估多救 60～130 家。Google 圖片搜尋不做（條款禁止自動查詢）。
 - 驗了：分支上 pytest 876 passed／4 skipped／1 xfailed；合併後 pipeline／tests 與分支相同（只差 site／資料），不重跑；沒動 site 與 build_payload，_preview／_uitest 依例外跳過。合併後手動觸發 backfill.yml（logos）。
+
+### 09-29 清晨 盤中即時改成每 5 秒＋「即時」開關（分支 claude/realtime-5s，未合併 main，DECISIONS #277，全文 docs/realtime_5s.md）
+- 接手 claude/wip3-realtime-5s：b9032e1（主要功能）＋ bac1aee（WIP：四個族群即時模式盤後只在 30 分鐘到期才抓、DECISIONS #277 條文）—— bac1aee 判斷為完成、保留；合併 origin/main，DECISIONS 衝突兩邊都留（#275／#276 在前）。
+- 改前／改後：報價格子 60 秒 → 5 秒；個股分 K 尾巴 5 秒但跟報價同一檔各問一次 → 吃同一批；大盤三張圖當下值 10 秒 → 5 秒（加權／櫃買零額外請求、台指期問期交所）；四個族群即時模式 60 秒 → 5 秒（漲跌家數受節流閥限制約 10 秒一輪）；盤後 30 分鐘不變。
+- 有「即時」開關：個股報價＋分時、自選清單、大盤三張圖（預設開、存 tw.live.card.<key>、關＝退回盤後值且不再打端點）。沒加的（營收／財報／籌碼／季節性／剖析圖／總覽摘要卡列…）理由在 docs/realtime_5s.md §3。
+- 收尾補的：族群即時模式（mud／rlv／skl／gp）與台指期當下值（m3fut）補錯誤退避（Live.cooling／report，10、20、40…秒，從那一輪開始抓的時間起算）；漲跌家數背景分頁不打、離開頁面判斷排到 Live.due 前面。
+- 這批驗了（純前端＋_uitest，pytest 依例外跳過；沒動 workers／pipeline）：_uitest 盤中即時／即時推送／即時5秒0929／總覽／市場明細 0；個股即時分K 3 紅＝**origin/main 同一份資料一模一樣 3 紅**（fixture 報價是 09-15、資料湖最後一根已是 09-24，今天那根接不上去）→ 待處理（不是這批）。_preview 見下一行。
+- ⚠ 全部假時間＋假報價，**沒有在真盤中驗過**。代價：約 8 人整盤掛總覽會用完 Worker 免費額度（10 萬次／天）。
