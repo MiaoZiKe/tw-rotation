@@ -404,7 +404,7 @@
        只有使用者在桌機勾掉過（'0'）才不畫，沒有值就畫（跟桌機預設勾選一致）。*/
     let feet = opts.feet !== false;
     /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：總覽那一張傳 feet:false，一律不畫；
-       資金流向那一張照舊跟桌機的偏好走（DECISIONS #271）。*/
+       資金流向那一張照舊跟桌機的偏好走（DECISIONS #272）。*/
     try { if (feet && localStorage.getItem('tw.rot.feet') === '0') feet = false; } catch (e) { /* 私密視窗：用預設（畫） */ }
     if (feet) shown.slice(0, 3).forEach(p => {
       const tr = (p.trail || []).slice(-9), col = stc(p.quadrant);
@@ -425,7 +425,10 @@
         + (sel ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r + 6).toFixed(1)}" fill="none" stroke="${col}" stroke-width="2"/>` : '') + '</g>';
     });
     const boxes = [];
-    const lbl = shown.slice(0, 5).map(p => p.group_id); if (opts.sel && !lbl.includes(opts.sel)) lbl.push(opts.sel);
+    /* ★ 2026-09-28（Andy：「homepage wheel dots only, popover beside the dot」）：總覽那一張傳 labels:false ——
+       盤上只畫點，不掛任何名字膠囊（連選取的那一顆也不掛：名字已經寫在點旁的說明框 #mOvPop 裡，掛兩次只是多一塊擋點的東西）。
+       資金流向那一張照舊掛前 5 名＋選取的那一顆。*/
+    const lbl = opts.labels === false ? [] : shown.slice(0, 5).map(p => p.group_id); if (opts.labels !== false && opts.sel && !lbl.includes(opts.sel)) lbl.push(opts.sel);
     const bg = cssv('--bg'), ink = cssv('--ink');
     /* ★ 2026-09-25（clock-mobile-reds）：選取的那一顆先找位置。
        改前：依佔比順序找，選取的排最後 —— 前 5 名把好位置佔完，點一顆沒掛名字的點（實測「石化與塑膠產業」），
@@ -499,6 +502,7 @@
       + `<dl class="rp-kv"><dt>相對大盤強弱</dt><dd>${sgn(p.x - 100, 2)}</dd><dt>動能</dt><dd>${sgn(p.y - 100, 2)}</dd>`
       + `<dt>成交值佔比</dt><dd>${(+p.share).toFixed(1)}%</dd></dl>`
       + (was ? `<div class="rp-was">${back} 天前在「${ST[was]}」${was !== p.quadrant ? '，剛換段' : ''}</div>` : '')
+      + (window.App && App.rotPopMembers ? App.rotPopMembers(p.group_id) : '')   // 成交值前 3 檔（跟桌機同一支）
       + `<a class="rp-go" href="#industry/group/${encodeURIComponent(p.group_id)}">進族群頁 →</a>`;
   }
   async function ovRadar() {
@@ -507,6 +511,8 @@
     const box = host(wrap, 'radar', '<div class="mrhost" id="mRadarOv"></div><div class="mfhost"></div><div class="rotpop mrpop" id="mOvPop" role="dialog" aria-label="族群說明" hidden></div>');
     if (box.dataset.done) return;
     const f = await load('flow_v3'); if (!f || !f.rrg || !isM()) return;
+    // 說明框的「成交值前 3 檔」讀 App 的全域快取 D.groups_detail —— 先確定它載進來了（總覽本來就會載，這裡只是保險）
+    if (window.App && App.load) { try { await App.load('groups_detail'); } catch (e) { /* 載不到：框裡就不列成分股，進族群頁那條還在 */ } }
     box.dataset.done = '1';
     box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
     box.classList.add('mrbox');
@@ -541,7 +547,7 @@
     const draw = () => {
       if (!box.isConnected) return;
       const el = $('.mrhost', box);
-      R = radar(el, all, { sel, quad, max: 360, fitBelow: 44 + 16, feet: false,   // 以前 65＋44＋16：65 是焦點條，已拿掉
+      R = radar(el, all, { sel, quad, max: 360, fitBelow: 44 + 16, feet: false, labels: false,   // 以前 65＋44＋16：65 是焦點條，已拿掉
         onPick: (p) => { if (sel === p.group_id && !pop.hidden) { close(); return; } sel = p.group_id; draw(); },
         onQuad: (q) => { quad = quad === q ? null : q; pop.hidden = true; sel = null; draw(); } });
       if (sel && !R.shown.some(x => x.group_id === sel)) sel = null;

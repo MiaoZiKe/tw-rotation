@@ -3063,7 +3063,7 @@
        連資金流向頁把開關勾掉都關不掉這一張。改後：資金流向頁沒勾 → 這裡也只有圓圈；勾了 → 兩張一致。*/
     /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：總覽這張**一律不畫軌跡與腳印**，
        不再跟資金流向頁的「顯示腳印」偏好（ROT.trail）走 —— 那個開關只屬於資金流向頁（DECISIONS #269 第 2 條講的是那一頁），
-       兩頁的差別寫在 DECISIONS #271。上面兩段 09-26 的註解是當時的歷史，留著讓人知道為什麼以前是跟著偏好走。*/
+       兩頁的差別寫在 DECISIONS #272。上面兩段 09-26 的註解是當時的歷史，留著讓人知道為什麼以前是跟著偏好走。*/
     renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: false });
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
     // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
@@ -3161,6 +3161,16 @@
      · absolute 掛在 #ovRotCard（position:relative）上，不佔版面，其他卡片一個像素都不動（09-26 那條要求照舊）。
      · 點外面／Esc 關（全站 dismissable），再點同一顆也關；點另一顆就換成那一顆。
      手機（≤640）是 mobile3.js 的雷達，用同一套規則另外畫（mOvPop）。*/
+  /* ★ 2026-09-28（Andy：「popover beside the dot」＋任務規格「族群名、數值、成分股連結」）：
+     說明框裡放這個族群成交值最大的前 3 檔當連結（直接到個股頁）＋「進族群頁 →」看全部。
+     為什麼只放 3 檔：框貼在點旁邊、寬度上限 210px，放 40 檔就又變回 09-26 那張把輪盤蓋掉一半的成分股卡；
+     3 檔剛好一行半，回答「這個族群是誰在撐」，要看全部走族群頁。手機（mobile3.js）用同一支（App.rotPopMembers）。*/
+  function rotPopMembers(gid) {
+    const det = (D.groups_detail || {})[gid] || {};
+    const ms = (det.members || []).filter(m => m && m.code).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).slice(0, 3);
+    if (!ms.length) return '';
+    return `<div class="rp-ms" aria-label="成交值前 3 檔">${ms.map(m => `<a href="#stock/${encodeURIComponent(m.code)}" data-code="${fmt.esc(m.code)}">${fmt.esc(m.name || m.code)}<span class="${fmt.cls(m.chg_pct)}">${m.chg_pct == null ? '' : fmt.pct(m.chg_pct)}</span></a>`).join('')}</div>`;
+  }
   function ovRotPop(box, chartEl, r, back, px, rad) {
     const s = STAGE[r.stage] || { name: '', color: 'var(--ink)' };
     const sg = (v) => (v >= 0 ? '+' : '') + fmt.n(v, 2);
@@ -3169,6 +3179,7 @@
       + `<dt>動能</dt><dd class="num">${sg(r.mo - 100)}</dd>`
       + `<dt>成交值佔比</dt><dd class="num">${fmt.n(r.share, 1)}%</dd></dl>`
       + (r.was && STAGE[r.was] ? `<div class="rp-was">${back} 天前在「${STAGE[r.was].name}」${r.moved ? '，剛換段' : ''}</div>` : '')
+      + rotPopMembers(r.gid)
       + `<a class="rp-go" href="#industry/group/${encodeURIComponent(r.gid)}">進族群頁 →</a>`;
     box.dataset.gid = r.gid;
     box.hidden = false;
@@ -6787,7 +6798,7 @@
       const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
       return `<b>族群跑到強弱循環的哪一段。</b>
       <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝剛進場、領先＝主流、轉弱＝設停利、落後＝別抄底。</li>
-      <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。點一顆，旁邊出現它的強弱、動能、佔比。</li>
+      <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。點一顆，旁邊出現它的強弱、動能、佔比與成交值前 3 檔（點名字進個股頁）；點旁邊空白處關掉。</li>
       <li>完整版（腳印、回放、即時）在「資金流向」分頁。</li></ul>`;
     },
     /* ★ 2026-09-25（Andy：「昨日資金去向」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
@@ -8149,7 +8160,7 @@
       ROT.trail = c.checked; sync(); redraw();
       try { localStorage.setItem('tw.rot.feet', ROT.trail ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
       /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：
-         以前總覽小輪盤讀同一個偏好，這裡要把總覽標成「沒畫過」或當場重畫。現在總覽一律只畫點（DECISIONS #271），
+         以前總覽小輪盤讀同一個偏好，這裡要把總覽標成「沒畫過」或當場重畫。現在總覽一律只畫點（DECISIONS #272），
          這個開關只管資金流向頁（與它的放大視窗），總覽不必跟著重畫。*/
     };
     const rp = $('.rot-ripple', box);
@@ -11267,7 +11278,7 @@
     initSwipeHints();           // 橫向可捲容器的「← 左右滑 →」提示（G6）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { rotPopMembers, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmDate, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
