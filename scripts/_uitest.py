@@ -35961,6 +35961,11 @@ def t_wheel_watch_0928(b, base, code):
             const min = Math.min(...[...b.querySelectorAll('*')].filter(x => x.getClientRects().length && x.textContent.trim()).map(x => parseFloat(getComputedStyle(x).fontSize)));
             return { open: true, gid: b.dataset.gid, txt: b.innerText, l: r.left, r: r.right, t: r.top, b: r.bottom, iw: innerWidth, min,
                      stocks: b.querySelectorAll('.rp-ms a[href^="#stock/"]').length }; }""")
+        # ★ 2026-09-28 收尾：點下去之後盤面不准縮一圈（改前：第一次點才量輪盤頂端 → 324px 縮成 301px，
+        #   點的那一顆往上跳 10px，說明框照縮完的位置放、蓋住手指剛點的地方）。量「同一顆」點擊前後的螢幕座標。
+        d_after = next((x for x in (m.evaluate(MDOTS) or []) if x["gid"] == d["gid"]), None)
+        ok(f"★ {tag} ② 點一顆之後盤面沒有縮放、那一顆沒有跳位置（≤ 2px）",
+           bool(d_after) and abs(d_after["x"] - d["x"]) <= 2 and abs(d_after["y"] - d["y"]) <= 2, (d, d_after))
         if ok(f"★ {tag} ② 點一顆 → 說明框出現", p["open"], p):
             dist, inside = near(p, d)
             ok(f"★ {tag} ② 說明框在那一顆旁邊（≤ 40px）、沒蓋住它、內容是那個族群", dist <= 40 and not inside and p["gid"] == d["gid"], (dist, inside, p, d))

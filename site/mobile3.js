@@ -557,6 +557,21 @@
     };
     box._redraw = draw;
     draw();
+    /* ★ 2026-09-28（wheel-watch 收尾）：第一次點盤面，整個盤縮一圈、點下去的那一顆跑到框底下。
+       實測 390×844：總覽剛換頁那一刻輪盤頂端還量不準（radar() 那段註解寫的「量到 1483px」），
+       所以第一次畫用欄寬 324px、不記大小；之後**唯一**會重量的時機是使用者點盤面 —— 一點就縮成 301px，
+       選的那一顆往上跳 10px，點旁說明框是照「縮完的位置」放的，跟手指點的地方對不上（驗收量到框蓋住點）。
+       修法：輪盤第一次真的出現在畫面上（使用者看得到、才點得到）就重畫一次，讓 radar() 在可信的位置量好、記住；
+       之後點盤面只換選取，不再改大小。走 draw()（不是直接呼叫 radar()）是為了讓 R 跟著換，說明框才用新尺寸定位。*/
+    const host0 = $('.mrhost', box);
+    if (host0 && host0._radarKey == null && window.IntersectionObserver) {
+      const io = new IntersectionObserver((es) => {
+        if (!es.some(e => e.isIntersecting)) return;
+        io.disconnect();
+        if (box.isConnected && host0._radarKey == null) draw();
+      });
+      io.observe(host0);
+    }
   }
 
   /* ---- 資金去向：桑基 → 可以點開的長條（台股 → 產業鏈 ▸ → 族群 ▸ → 個股），數字同一份 flow_v3.sankey ----
