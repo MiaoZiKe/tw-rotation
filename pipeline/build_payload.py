@@ -1229,6 +1229,12 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         # 不可能發生（all 是三組逐列加出來的），真的發生代表程式被改壞 —— 寫 log，不擋整個 payload
         log.warning("漲跌家數分佈加總不一致：%s", ud["check"]["diff"])
     _write("updown", ud)
+    # ★ 2026-09-28 搜尋下拉的迷你走勢圖（Andy：「搜尋欄位的對應股票旁需要出現小小的分時走勢圖」）。
+    #   範圍＝上面那份全市場索引（搜尋得到的每一檔），來源與口徑見 compute/sparks.py 檔頭。壞掉不擋整個 payload。
+    try:
+        _write("sparks", _sparks_payload(price_adj, index_codes, latest))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("sparks 產出失敗：%s", exc)
     log.info("個股頁：完整 %d 檔（分 K %d 檔）、簡版 %d 檔",
              len(rows), len(intraday_set & written), len(thin_codes))
 
@@ -1254,6 +1260,23 @@ MOVER_TOP = 60
 
 
 DIV_DEEP_START = "2009-01-01"      # run_backfill.PLAN_DEFAULT 的股利深度回補起點（2026-09-27）
+
+
+def _sparks_payload(price: pd.DataFrame, codes: list[str], latest: str) -> dict:
+    """sparks.json：只讀資料湖 intraday_60m 最近兩個月分割（按月分割，讀兩個檔就夠找到最新交易日）。
+
+    ⚠ 不看 SKIP_INTRADAY：那個開關是為了省掉整張 60 分 K（兩年、上百萬列）的讀取與個股頁分 K 的計算，
+      這裡只讀最後兩個分割（約 3 萬列、1 秒內），本機預覽也要看得到分時小圖。"""
+    from .compute import sparks
+    d = config.DATA / "intraday_60m"
+    parts = sorted(p.name.split("=", 1)[1] for p in d.glob("year=*")) if d.exists() else []
+    m60 = pd.DataFrame()
+    if parts:
+        m60 = store.read("intraday_60m", years=[int(x) for x in parts[-2:] if x.isdigit()])
+    out = sparks.build(price, m60, latest, codes)
+    log.info("sparks：分時 %d 檔、日收盤代替 %d 檔、沒有資料 %d 檔",
+             out["stat"]["intraday"], out["stat"]["daily"], out["stat"]["none"])
+    return out
 
 
 def dividend_cover_years() -> dict[str, int]:

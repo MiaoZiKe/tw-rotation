@@ -6858,8 +6858,10 @@ def t_stock(pg, base, code):
         tf: b.dataset.tf, off: b.classList.contains('off'), title: b.title }))""")
     # ★ 2026-09-26 晚改前：九個週期全排（5秒～月）→ 改後：預設只排勾起來的 1時／4時／日／週／月（「週期設置」），
     #   其他要在「指標 ▾」的週期區勾了才出現（那條路在「個股指標下拉0926」段實際點過）
-    ok("週期鈕依序是 1時／4時／日／週／月（09-26 晚起預設只排這五個）",
-       [t["tf"] for t in tfstate] == ["60m", "240m", "1d", "1w", "1M"], tfstate)
+    # ★ 2026-09-28 分時走勢上線：「分時」排在最前面而且是預設勾起來的（Andy：「Default 設定在上面」），
+    #   所以預設是六個。分時在開發容器裡通常是劃掉的（Yahoo 被擋、本機 payload 沒有 60 分 K）——下面的迴圈照樣驗它有寫原因。
+    ok("週期鈕依序是 分時／1時／4時／日／週／月（09-28 起分時排最前面）",
+       [t["tf"] for t in tfstate] == ["tick", "60m", "240m", "1d", "1w", "1M"], tfstate)
     ok("日線一定是有資料的（沒有被劃掉）", not next(t for t in tfstate if t["tf"] == "1d")["off"], tfstate)
     for t in tfstate:
         if t["off"]:
@@ -15174,6 +15176,202 @@ def t_design_v4(b, base, code):
     ok("⑥ 390：頂欄「外觀」鈕收起來（入口在清單裡）", p.evaluate("() => getComputedStyle(document.getElementById('t4Btn')).display") == "none")
     c.close()
 
+
+# ===================================================================== 分時預設＋搜尋迷你走勢（2026-09-28）
+# Andy：「K-line 分時 as default at the top plus search-row mini sparklines」
+#   —— 個股頁 K 線的預設週期是「分時」、分時鈕放在週期列最前面；搜尋下拉每一列名稱旁有一張小走勢圖。
+# 每一步都驗「畫面真的因此改變了」：
+#   A. 進個股頁：不按任何鈕，週期就是分時、分時鈕在最左邊而且是亮的、畫出來的線有上百個點、短註寫出昨收
+#   B. 切日線 → 真的換成 K 線（畫面變了、hasChart）→ 切回分時 → 線又回來（點數同樣多、畫面又變了）
+#   C. 分時真的沒資料的股票（即時來源 Yahoo 回空、payload 也沒有 60 分 K）→ 自動退回日線、短註寫原因、
+#      分時鈕劃掉，**不是一塊空白**；再進有資料的股票 → 回到分時（一檔沒資料不會把之後每一檔都變日線）
+#   D. 搜尋輸入「23」→ 每一列都有 <svg.spk> 走勢圖、形狀彼此不同（不是同一條線複製）、顏色跟漲跌方向一致；
+#      390 寬也不撐出橫向捲軸
+def t_tick_spark(pg, base, code):
+    import json as _json
+    import calendar
+    import datetime as _dt
+    from urllib.parse import urlparse, parse_qs
+
+    today = pg.evaluate("() => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' })")
+    prev = (_dt.date.fromisoformat(today) - _dt.timedelta(days=1)).isoformat()
+    prev2 = (_dt.date.fromisoformat(today) - _dt.timedelta(days=2)).isoformat()
+    mode = {"y": "ok"}
+
+    def fake_y(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        sym = (q.get("symbol") or ["2330.TW"])[0]
+        if mode["y"] == "empty":
+            route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                          body=_json.dumps({"chart": {"result": [{"meta": {"symbol": sym}, "timestamp": None,
+                                                                   "indicators": {"quote": [{}]}}], "error": None}}))
+            return
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(_yahoo_days(sym, [(prev2, "09:00", 40), (prev, "09:00", 271)])))
+
+    def fake_quote(route):
+        # 週末情境：報價停在上一交易日收盤那一筆，分時只靠 Yahoo 那 271 根；「沒資料」情境連報價都沒有
+        q = parse_qs(urlparse(route.request.url).query)
+        tok = [t for t in (q.get("ex_ch") or [""])[0].split("|") if t][0]
+        c = tok.split("_", 1)[1].split(".")[0]
+        if mode["y"] == "empty":
+            route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                          body=_json.dumps({"rtcode": "0000", "msgArray": []}))
+            return
+        y, m, d = (int(x) for x in prev.split("-"))
+        tl = calendar.timegm((y, m, d, 5, 30, 0, 0, 0, 0))
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "msgArray": [{
+                          "c": c, "n": "測試" + c, "ex": tok[:3], "d": prev.replace("-", ""),
+                          "z": "1007.0000", "y": "1000.0000", "o": "1001.0000", "h": "1012.0000", "l": "995.0000",
+                          "v": "5280", "tlong": str(tl * 1000), "t": "13:30:00", "trade": {"z": "1007.0000"}}]}))
+
+    DBG = """() => { const d = window.Industry._dbg(); const ln = document.getElementById('liveNote') || {};
+        const bs = [...document.querySelectorAll('#tfSeg button')];
+        const on = bs.find(b => b.classList.contains('on'));
+        const tb = document.querySelector('#tfSeg button[data-tf="tick"]');
+        return { tf: d.tf, tick: d.tick, has: d.hasChart, tickNone: d.tickNone, tfAuto: d.tfAuto,
+                 first: bs.length ? bs[0].dataset.tf : null, firstTxt: bs.length ? bs[0].textContent.trim() : '',
+                 on: on ? on.dataset.tf : null, tickOff: tb ? tb.classList.contains('off') : null,
+                 note: ln.hidden ? '' : (ln.innerText || ''),
+                 empty: (document.querySelector('#lwc .empty') || {}).innerText || '',
+                 canvas: document.querySelectorAll('#lwc canvas').length }; }"""
+
+    def reset_ls():
+        pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
+                    " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k));"
+                    " localStorage.removeItem('tw.kcfg'); } catch(e){} }")
+
+    def fresh():
+        # 重新載入整頁：Industry 模組的 state.tf 是模組層級的，前面的段落可能切過別的週期
+        pg.goto(base + "#overview", wait_until="networkidle")
+        reset_ls()
+        pg.reload(wait_until="networkidle")
+
+    def goto(c):
+        pg.goto(base + f"#stock/{c}", wait_until="networkidle")
+        # 等分時畫好、或確定沒資料退回日線（即時層最多等 8 秒）
+        wait_until(pg, "() => { const d = window.Industry && window.Industry._dbg && window.Industry._dbg();"
+                       " return d && ((d.tf === 'tick' && d.tick && d.tick.pts > 1) || d.tickNone); }", 12000)
+        pg.wait_for_timeout(500)
+        return pg.evaluate(DBG)
+
+    pg.route("**/quote?*", fake_quote)
+    pg.route("**/y?*", fake_y)
+    try:
+        # ============================================================ A. 預設就是分時
+        fresh()
+        a = goto(code)
+        ok("A 分時鈕排在週期列最前面、字樣是「分時」", a["first"] == "tick" and a["firstTxt"] == "分時", a)
+        ok("★ A 沒按任何鈕：週期就是分時、分時鈕是亮的", a["tf"] == "tick" and a["on"] == "tick", a)
+        ok("★ A 分時有線：畫了那一天整天的點（09:00～13:30，≥ 250 點）",
+           bool(a["tick"]) and a["tick"]["pts"] >= 250 and a["canvas"] > 0, a["tick"])
+        ok("A 盤後顯示的是最近交易日那一天（不是今天、也不是空白）",
+           bool(a["tick"]) and a["tick"]["date"] == prev and not a["empty"], a["tick"])
+        ok("A 有昨收可比（虛線），線的方向是 -1／0／1 其中之一",
+           bool(a["tick"]) and bool(a["tick"]["prev"]) and a["tick"]["dir"] in (-1, 0, 1), a["tick"])
+        ok("A 短註寫清楚：非即時、虛線＝昨收", "非即時" in a["note"] and "昨收" in a["note"], a["note"][:120])
+        dt = pg.evaluate("() => { const b = document.getElementById('drawTgl'); return b ? b.disabled : null; }")
+        ok("A 分時不能畫線：✎ 畫線鈕停用", dt is True, dt)
+        h_tick = canvas_hash(pg, "#lwc")
+        ok("A 分時圖真的有畫出東西", h_tick not in ("no-canvas", "0"), h_tick)
+
+        # ============================================================ B. 切日線再切回分時
+        click(pg, "#tfSeg button[data-tf='1d']", 1500)
+        b1 = pg.evaluate(DBG)
+        ok("B 切到日線：週期換了、K 線圖建好、分時圖拆掉", b1["tf"] == "1d" and b1["has"] and not b1["tick"], b1)
+        h_day = canvas_hash(pg, "#lwc")
+        changed("B 切到日線之後畫面真的換了", h_tick, h_day)
+        dt = pg.evaluate("() => document.getElementById('drawTgl').disabled")
+        ok("B 日線可以畫線（✎ 畫線鈕恢復）", dt is False, dt)
+        click(pg, "#tfSeg button[data-tf='tick']", 1500)
+        b2 = pg.evaluate(DBG)
+        ok("★ B 切回分時：線又回來了（點數跟一開始一樣多）",
+           b2["tf"] == "tick" and bool(b2["tick"]) and bool(a["tick"]) and b2["tick"]["pts"] == a["tick"]["pts"] and not b2["has"],
+           b2["tick"])
+        h_back = canvas_hash(pg, "#lwc")
+        ok("B 切回分時畫面有東西（不是空白）", h_back not in ("no-canvas", "0") and not b2["empty"], h_back)
+        changed("B 切回分時之後畫面跟日線不一樣", h_day, h_back)
+        box = pg.evaluate("() => { const r = document.getElementById('lwc').getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }")
+        pg.mouse.move(box[0] + box[2] * 0.4, box[1] + box[3] * 0.3); pg.wait_for_timeout(400)
+        lg = text(pg, "#legendOv")
+        ok("B 十字游標在分時圖上讀得到「時間＋價」", bool(re.search(r"\d\d:\d\d", lg)) and "價" in lg, lg[:60])
+        pg.mouse.move(5, 5)
+
+        # ============================================================ C. 沒有分時 → 自動退回日線
+        mode["y"] = "empty"
+        fresh()
+        # 挑一檔 payload 沒有 60 分 K 的（簡版個股頁沒有 intraday；完整頁本機 SKIP_INTRADAY 時也沒有）
+        c2 = pg.evaluate("""async () => { const l = await (await fetch('data/stocks.json')).json();
+            const cs = l.map(r => r.code).filter(c => /^[1-9]\\d{3}$/.test(c));
+            for (const c of cs.slice(0, 120)) {
+              try { const r = await fetch('data/stock/' + c + '.json'); if (!r.ok) continue;
+                    const j = await r.json();
+                    if (!(j.intraday && (j.intraday['60m'] || []).length) && (j.ohlcv || j.daily || []).length > 30) return c; } catch (e) {}
+            } return null; }""")
+        ok("C 找得到一檔沒有 60 分 K 的股票來驗", bool(c2), c2)
+        if c2:
+            cdat = goto(c2)
+            ok("★ C 分時沒資料：自動退回日線，而且是有圖的（不是空白）",
+               cdat["tf"] == "1d" and cdat["has"] and cdat["canvas"] > 0 and not cdat["empty"], cdat)
+            ok("C 短註寫出原因「此檔暫無分時資料，已改用日 K」", "暫無分時資料" in cdat["note"], cdat["note"][:120])
+            ok("C 分時鈕劃掉、日線鈕亮著", cdat["tickOff"] is True and cdat["on"] == "1d", cdat)
+            tt = pg.evaluate("() => document.querySelector('#tfSeg button[data-tf=\"tick\"]').title")
+            ok("C 滑鼠移到劃掉的分時鈕上說原因", "暫無分時資料" in tt, tt)
+            # 使用者硬按分時：明講沒資料（不是空白、不轉圈）
+            click(pg, "#tfSeg button[data-tf='tick']", 1200)
+            c3 = pg.evaluate(DBG)
+            ok("C 使用者自己按分時：畫面寫「此檔暫無分時資料」而不是一塊黑", c3["tf"] == "tick" and "暫無分時資料" in c3["empty"], c3)
+            click(pg, "#tfSeg button[data-tf='1d']", 1200)
+            # 一檔自動退回之後，下一檔（有資料）預設又是分時
+            fresh()
+            goto(c2)                                   # 沒資料 → 自動退回日線（tickFb）
+            mode["y"] = "ok"
+            c4 = goto(code)                            # 同一次瀏覽換下一檔，這次 Yahoo 有資料
+            ok("★ C 上一檔自動退回日線，下一檔有資料：預設又回到分時、有線",
+               c4["tf"] == "tick" and bool(c4["tick"]) and c4["tick"]["pts"] >= 250, c4)
+
+        # ============================================================ D. 搜尋列迷你走勢
+        pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
+        pg.click("#q"); pg.fill("#q", ""); pg.type("#q", "23", delay=40)
+        wait_until(pg, "() => document.querySelectorAll('#sugg .sgrow[data-c] .spkw svg.spk polyline').length >= 3", 6000)
+        sp = pg.evaluate("""() => [...document.querySelectorAll('#sugg .sgrow[data-c]')].map(r => {
+            const s = r.querySelector('.spkw svg.spk'), p = s && s.querySelector('polyline');
+            const bb = s ? s.getBoundingClientRect() : null;
+            return { c: r.dataset.c, has: !!p, pts: p ? p.getAttribute('points') : '', cls: s ? s.getAttribute('class') : '',
+                     w: bb ? Math.round(bb.width) : 0, h: bb ? Math.round(bb.height) : 0,
+                     stroke: p ? getComputedStyle(p).stroke : '' }; })""")
+        withs = [x for x in sp if x["has"]]
+        ok("★ D 搜尋「23」的結果列有迷你走勢圖（至少 3 列、每列一張 svg）", len(withs) >= 3, [(x["c"], x["has"]) for x in sp])
+        shapes = {x["pts"] for x in withs}
+        ok("★ D 每列的走勢形狀不同（不是同一條線複製貼上）", len(withs) >= 3 and len(shapes) >= max(3, int(len(withs) * 0.6)),
+           {"列數": len(withs), "不同形狀": len(shapes)})
+        ok("D 走勢圖是小圖（48×16，不帶數字、不撐高列）", all(40 <= x["w"] <= 56 and 12 <= x["h"] <= 20 for x in withs),
+           [(x["c"], x["w"], x["h"]) for x in withs[:5]])
+        ok("D 每條線都有顏色（不是透明）",
+           all(x["stroke"] and x["stroke"] not in ("none", "rgba(0, 0, 0, 0)") for x in withs), [x["stroke"] for x in withs[:5]])
+        ok("D 每條線都有漲跌方向類別（up／down／flat）", all(any(t in x["cls"] for t in ("up", "down", "flat")) for x in withs),
+           [x["cls"] for x in withs[:5]])
+        cols = pg.evaluate("""() => { const g = (c) => { const s = document.querySelector('#sugg .spk.' + c + ' polyline'); return s ? getComputedStyle(s).stroke : null; };
+            return { up: g('up'), down: g('down') }; }""")
+        ok("D 紅漲綠跌：up 與 down 的線顏色不同", not (cols["up"] and cols["down"]) or cols["up"] != cols["down"], cols)
+        # 換關鍵字：列換了，走勢圖也跟著換
+        pg.fill("#q", ""); pg.type("#q", "24", delay=40); pg.wait_for_timeout(500)
+        sp2 = pg.evaluate("() => [...document.querySelectorAll('#sugg .sgrow[data-c] .spkw polyline')].map(p => p.getAttribute('points'))")
+        changed("D 換關鍵字「24」之後走勢圖跟著換", sorted(shapes), sorted(set(sp2)))
+        # 速度：打一個字（結果最多的情況）到畫完不能卡
+        ms = pg.evaluate("""async () => { const q = document.getElementById('q'); q.value = ''; q.dispatchEvent(new Event('input', { bubbles: true }));
+            const t0 = performance.now(); q.value = '2'; q.dispatchEvent(new Event('input', { bubbles: true }));
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            return { ms: Math.round(performance.now() - t0), n: document.querySelectorAll('#sugg .spkw svg').length }; }""")
+        ok("D 打一個字到結果連走勢圖畫完 < 250ms（不卡頓）", ms["ms"] < 250 and ms["n"] >= 1, ms)
+        pg.keyboard.press("Escape")
+    finally:
+        pg.unroute("**/quote?*")
+        pg.unroute("**/y?*")
+        pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy'); localStorage.removeItem('tw.kcfg');"
+                    " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
+
 # ===================================================================== 2026-09-28 總覽摘要卡列 ＋ 個股籌碼快照「?」
 # Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。現在上方的數據如下：
 #        漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」
@@ -16023,6 +16221,8 @@ SECTIONS = {
     "零件誰做的":          lambda pg, b, base, code: t_whomakes(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
+    # ★ 2026-09-28 Andy：K 線預設「分時」且放最前面＋搜尋列迷你走勢圖
+    "分時預設與搜尋走勢":  lambda pg, b, base, code: t_tick_spark(pg, base, code),
     # Andy 2026-09-26「為何這邊分 K 無法使用？」：週末／休市／開盤前改畫最近交易日（livek.js）
     "個股分K非交易時段":   lambda pg, b, base, code: t_livek_offhours(pg, base, code),
     "縮放掃描":            lambda pg, b, base, code: t_zoom_sweep(pg, base, code),
@@ -35841,6 +36041,32 @@ def t_mobile_broker(b, base, code):
     ok(f"{T}預設在 K 線頁：K 線卡看得見、舊的現價列與舊分頁藏起來",
        s0["mbt"] == "k" and s0["kVis"] and not s0["skPxVis"] and not s0["oldTabsVis"], s0)
     ok(f"{T}K 線圖＋報價列在同一屏（圖底 {s0['lwcB']} ≤ 可視 {s0['vh'] - 58}）", 300 <= s0["lwcH"] and s0["lwcB"] <= s0["vh"] - 58, s0)
+    # ★ 2026-09-28 分時預設：分時（或「沒分時、已改用日 K」）一定有一行短註。手機上只佔一行、點一下展開、再點收回，
+    #   而且短註出現的時候圖底仍在一屏內（上面那條）。先等分時那一趟有結果（最多 8 秒就會退回日 K 並寫短註）。
+    wait_until(m, "() => { const n = document.getElementById('liveNote'); return n && !n.hidden; }", 10000)
+    LN = """() => { const n = document.getElementById('liveNote'), l = document.getElementById('lwc');
+      if (!n || n.hidden) return null; const r = n.getBoundingClientRect();
+      return { h: Math.round(r.height), txt: n.textContent.slice(0, 40), sw: n.scrollWidth, cw: n.clientWidth,
+               fs: parseFloat(getComputedStyle(n).fontSize), lwcB: Math.round(l.getBoundingClientRect().bottom), vh: innerHeight }; }"""
+    ln0 = m.evaluate(LN)
+    if ok(f"{T}分時預設：K 線頁有一行短註（分時的來源與怎麼看，或「已改用日 K」）", bool(ln0), ln0):
+        ok(f"{T}短註在手機上只佔一行（≤ 30px）、字 ≥ 11px", ln0["h"] <= 30 and ln0["fs"] >= 11, ln0)
+        ok(f"{T}短註出現時圖底仍在一屏內（{ln0['lwcB']} ≤ {ln0['vh'] - 58}）", ln0["lwcB"] <= ln0["vh"] - 58, ln0)
+        if ln0["sw"] <= ln0["cw"] + 1:
+            # 這個容器連不到 Yahoo，拿到的是短的「已改用日 K」那句、一行放得下 → 換成線上分時真正會出現的那段長字，
+            # 才驗得到「超出一行會收起、點開看全文」
+            m.evaluate("() => { document.getElementById('liveNote').textContent = '最近交易日 2026-09-25（非即時）的分時；"
+                       "今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。'; }")
+            m.wait_for_timeout(200)
+            ln0 = m.evaluate(LN)
+            ok(f"{T}長短註在手機上仍只佔一行（超出的收起）", ln0["h"] <= 30 and ln0["sw"] > ln0["cw"] + 1, ln0)
+        if ln0["sw"] > ln0["cw"] + 1:
+            m.tap("#liveNote"); m.wait_for_timeout(300)
+            ln1 = m.evaluate(LN)
+            ok(f"{T}★ 點短註 → 展開全文（高度變高）", ln1["h"] > ln0["h"], {"前": ln0, "後": ln1})
+            m.tap("#liveNote"); m.wait_for_timeout(300)
+            ln2 = m.evaluate(LN)
+            ok(f"{T}再點一次 → 收回一行", ln2["h"] == ln0["h"], {"前": ln0, "後": ln2})
     ok(f"{T}390 寬整頁沒有橫捲", s0["docW"] <= s0["winW"] + 1, s0)
     ok(f"{T}只有分頁列自己可以橫捲（內容比框寬）", s0["tabsSW"] > s0["tabsCW"], (s0["tabsSW"], s0["tabsCW"]))
 
