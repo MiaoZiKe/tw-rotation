@@ -1,0 +1,366 @@
+/* ==================================================================================
+   設計 v4（產品設計總監 2026-09-27，分支 claude/design-v4）—— 一套骨架＋三套主題變數
+   規格：docs/design_v4/01_設計系統.md；現況量測：docs/design_v4/00_現況量測.md
+
+   Andy 原話（2026-09-27）：
+   「目前最大的痛點是無法充分利用版面空間，有些間隔太大導致圖被壓縮……包含配色，版面風格，
+    ……色系也是很重要，可以親和力休閒，並且帶點漸層效果，科技或是專業風格可以搭配一點 HUD 透明玻璃感覺，
+    以及可以專業風格看起來更有力」
+
+   怎麼掛：<html data-theme4="casual|hud|pro">。★ 2026-09-28 正式套用（Andy「V4執行」）：**一定會掛**，
+   沒存過或存了不認得的值＝科技 HUD（index.html <head> 那段小 script 決定，畫面畫出來之前就掛好，不閃）。
+   明暗沿用原本的 data-theme（dark＝沒寫或 "dark"、light＝"light"），所以一套主題有深淺兩組變數；
+   原本選了淺色（tw.theme=light）的人會落在「科技 HUD・淺」，字色、底色都是那一組算過對比的變數，不會看不見字。
+   存在 localStorage `tw.theme4`；切換入口：頂欄「外觀」鈕打開的外觀設定面板（風格＋明暗），手機在「⋯」清單（site/theme4.js）。
+
+   三條規矩：
+   1. **骨架只有一套**：間距、格線、字級、元件結構全部寫在「骨架」段，三個主題共用。
+      主題段只准寫變數（色、漸層、透明度、陰影、圓角、字重），不准改版面。
+   2. **紅漲綠跌不動**：--rise 永遠是紅（色相 345°～352°）、--fall 永遠是綠（155°～160°），只依底色調明度。
+      主色刻意避開紅與綠：休閒＝靛紫、科技＝青、專業＝鈷藍。
+   3. **不動 --dg-*（剖析圖那組歸 art-director）**，也不動熱力圖 7 格 --hm-*（那組量過白字對比，沿用）。
+
+   ⚠ 圖表讀的 --chartbg／--panel 一律是**實心 hex**（app.js 拿它做 hexA()／mixHex() 運算）；
+     玻璃的半透明只寫在選擇器的外觀上（style-lab glass 踩過的坑）。
+   ⚠ 毛玻璃掛在 .card::before，不掛在 .card 本身（backdrop-filter 會讓卡片變成 fixed 子孫的定位基準，
+     放大視窗、說明浮層會被關在卡片裡）。
+   ⚠ 特異度：原本淺色是 :root[data-theme="light"]（0,2,0）。這裡深色一律寫
+     :root[data-theme4="x"]:not([data-theme="light"])（0,3,0）、淺色寫 :root[data-theme4="x"][data-theme="light"]（0,3,0）。
+   ================================================================================== */
+
+/* =============================== 骨架（三主題共用） =============================== */
+:root[data-theme4]{
+  /* 間距尺度（一套，只有這五階）：4／8／12／16／24。卡片之間 12、卡片內距 12/16、頁邊 16。 */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px;
+  --gap-card:12px;
+  /* 字級（6 階）：12 下限／13 輔助／14 內文／16 卡片標題／20 頁標／28 大數字 */
+  --fs-min:12px; --fs-sm:13px; --fs-body:14px; --fs-h3:16px; --fs-h2:20px; --fs-kpi:28px;
+  --lh-body:1.55; --lh-tight:1.3;
+  /* 圓角交給主題（三階＋膠囊）：卡片／內層小卡／控制項 */
+  --r-lg:var(--t4-r-card,14px); --r-md:var(--t4-r-inner,10px); --r-sm:var(--t4-r-ctl,8px);
+  /* 卡片標題列固定高度：一行標題＋控制項，不准長成兩三行 */
+  --t4-head-h:32px;
+  /* 表格 */
+  --t4-row-h:32px; --t4-row-h-m:40px;
+}
+@media (max-width:640px){ :root[data-theme4]{ --gap-card:8px } }
+
+/* ---- 頁面與卡片 ---- */
+[data-theme4] body{background:var(--t4-page,var(--bg));background-attachment:fixed;line-height:var(--lh-body)}
+@media (prefers-reduced-motion:reduce){ [data-theme4] body{background-attachment:scroll} }
+[data-theme4] .card{background:var(--t4-card-bg,var(--panel));border:1px solid var(--t4-card-edge,var(--line));
+  box-shadow:var(--t4-card-sh,none)}
+[data-theme4="hud"] .card::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+  background:var(--t4-card-tint,transparent);-webkit-backdrop-filter:var(--t4-card-blur,none);backdrop-filter:var(--t4-card-blur,none)}
+/* 卡片內的小卡、面板：一律吃「內層」圓角 */
+[data-theme4] .tile,[data-theme4] .hpanel,[data-theme4] .gpcard,[data-theme4] .howtxt,[data-theme4] .dlv{border-radius:var(--r-md)}
+
+@media (min-width:821px){
+  /* 頁邊 24 → 16、卡片之間 24 → 12、卡片內距 20 → 12/16：同一個 1440 視窗，內容區多出 16px、每張圖多出 8px 寬與 8px 高 */
+  [data-theme4] main{padding:12px 16px 40px}
+  [data-theme4] .card{padding:12px 16px 14px;border-radius:var(--r-lg)}
+  [data-theme4] .card.tight{padding:10px 12px;border-radius:var(--r-md)}
+  [data-theme4] body{font-size:var(--fs-body)}
+  [data-theme4] h2{font-size:var(--fs-h2);font-weight:var(--t4-h-w,700)}
+  [data-theme4] h3{font-size:var(--fs-h3);font-weight:var(--t4-h-w,700);letter-spacing:var(--t4-h-ls,.01em)}
+  /* 卡片標題列：固定一行 32px；控制項跟標題同一列，不往下長 */
+  [data-theme4] .card>.row.spread:first-child{min-height:var(--t4-head-h);row-gap:6px}
+  [data-theme4] .card h3{line-height:var(--t4-head-h)}
+  [data-theme4] .card h3 small,[data-theme4] h3 small{font-size:var(--fs-sm);line-height:20px}
+  [data-theme4] .btn{min-height:32px;padding:0 12px}
+  [data-theme4] .btn.small{min-height:28px;padding:0 10px}
+  [data-theme4] .howbtn{min-height:24px;padding:0 8px}
+  [data-theme4] .hmlegend{margin-top:var(--sp-2)}
+  [data-theme4] .hpanel{margin-top:var(--sp-2);padding:10px 12px}
+  [data-theme4] .subtabs{margin:12px 0 10px}
+}
+
+/* 641～820（平板、瀏覽器縮成半邊）：現行套的是手機那套 16/18 內距。v4 收到 12/14，頁邊 14 → 12。
+   ≤640 的手機一屏版不動（那一段歸 mobile-ui，另一位 agent 正在改手機按鈕）。 */
+@media (min-width:641px) and (max-width:820px){
+  [data-theme4] main{padding-left:12px;padding-right:12px}
+  [data-theme4] .card{padding:12px 14px}
+}
+
+/* ---- 「今日事件」：不在這裡處理 ----
+   原型（09-27）在 1600 以下把事件欄改成浮層；2026-09-28 main 已改成「所有寬度預設收起的浮層抽屜」（DECISIONS #271，
+   Andy 後來的指令），比原型更徹底。這一段原型規則整段拿掉，抽屜的尺寸與行為一律照 index.html 的 aside／.sideback，不在 v4 覆寫。*/
+
+/* ---- 一句結論（site/theme4.js 產生）：每張卡「結論 → 圖 → 表」的第一層 ---- */
+/* 一般文字排版（不是 flex）：flex 會把每一段文字、每個 <b> 各當一個項目、中間塞 gap，句子會被拆得七零八落（原型第一版踩到） */
+[data-theme4] .t4-lede{display:block;margin:0 0 var(--sp-2);font-size:var(--fs-sm);line-height:20px;color:var(--ink-2);min-height:20px}
+[data-theme4] .t4-lede::before{content:"";display:inline-block;vertical-align:middle;margin:0 8px 2px 0;width:6px;height:6px;border-radius:50%;
+  background:var(--t4-accent-solid,var(--cyan))}
+[data-theme4] .t4-lede b{color:var(--ink);font-weight:700}
+[data-theme4] .t4-lede .up{color:var(--rise)} [data-theme4] .t4-lede .down{color:var(--fall)}
+@media (max-width:640px){ [data-theme4] .t4-lede{font-size:var(--fs-sm)} }
+
+/* ---- 三頁的版面收斂（骨架的一部分；三個主題共用）---- */
+@media (min-width:821px){
+  /* 資金流向・資金輪動卡：時間拉 Bar 與「腳印／水波／掃描」勾選原本各佔一行，併成一行（省 34px，圖往上移） */
+  [data-theme4] #flowRotCard .rottime{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+  [data-theme4] #flowRotCard .rotfilter{margin-bottom:6px}
+  /* 總覽下排（漲跌家數／法人）：兩張卡等高時，較矮那張的圖撐滿，不留底部空白帶 */
+  [data-theme4] .ovlow>.card{display:flex;flex-direction:column}
+  [data-theme4] .ovlow>.card>[id$="Wrap"]{flex:1 1 auto;display:flex;flex-direction:column}
+  [data-theme4] .ovlow>.card>[id$="Wrap"]>.chart{flex:1 1 auto}
+  /* 個股頁：K 線卡工具列與名稱區的距離 14 → 8 */
+  [data-theme4] #skTools{margin-top:8px!important}
+  [data-theme4] #stockTabs{margin-top:12px}
+}
+
+/* 總覽主區（熱力圖＋輪盤）：現行在 ≤1100 退成單欄，是因為那時內容只剩 740px（事件欄佔掉 360）。
+   v4 事件欄收起後 1100 寬的內容有 1068px，單欄會把輪盤撐到 700px 高、整頁多出一屏；所以 901～1100 維持 2:1 兩欄。 */
+@media (min-width:901px) and (max-width:1100px){
+  [data-theme4] .ovmain{grid-template-columns:2fr 1fr}
+  /* 資金輪動卡同理：單欄時輪盤高 ≈ 600px、排行被推到下一屏。兩欄時輪盤跟排行並排。
+     現行 ≤1100 為單欄寫的 .rothead 右側 190px 保留（給釘在右上角的兩顆鈕）一併取消 —— 兩欄時那兩顆鈕不存在於左欄。 */
+  [data-theme4] #flowRotCard .rotcols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+  [data-theme4] #flowRotCard .rothead{padding-right:0}
+}
+/* 個股頁 AI 分析區（桌機右上角）：內容區高度跟著左邊名稱區走，不會剛好是整行的倍數，
+   最後一行常被切掉半截（CEO 2026-09-27 看 1440 截圖指出「週線」那行只露上半截）。
+   原本的提示是 22px 的遮罩淡出，太淺、看起來像切壞。v4 改成：遮罩拿掉，改在捲動區底部釘一條
+   36px 的漸層＋「▾ 往下捲還有」小字（position:sticky，跟著捲動區底部走；捲到底時 .more 會被 stock_ai.js 拿掉，提示跟著消失）。 */
+@media (min-width:641px){
+  [data-theme4] #skAi .aibody.more{-webkit-mask-image:none;mask-image:none}
+  [data-theme4] #skAi .aibody.more::after{content:"▾ 往下捲還有";position:sticky;bottom:0;display:block;height:36px;margin-top:-36px;
+    padding-top:18px;box-sizing:border-box;text-align:right;font-size:12px;line-height:18px;color:var(--ink-3);pointer-events:none;
+    background:linear-gradient(to bottom,color-mix(in srgb,var(--panel) 0%,transparent),var(--panel) 62%)}
+}
+/* 個股頁「總覽」分頁的三張卡：≤1100 退成兩欄時第三張（技術面訊號）落單，右邊空 544×208（00 §4）。
+   落單的那張跨兩欄補滿，不留洞。只在兩欄的寬度（821～1100）生效（820 以下是單欄，跨兩欄會憑空多長出一欄）。 */
+@media (min-width:821px) and (max-width:1100px){
+  [data-theme4] #stockTab>.grid.g3>.card:nth-child(3):last-child{grid-column:span 2}
+}
+
+/* ---- 表格：列高 32（手機 40）、分隔線、表頭固定、數字等寬右對齊 ---- */
+/* ⚠ Lightweight Charts 的 K 線本身就是一張 <table>（窗格、價格軸、分隔線都是 td），
+   表格規則一律排除 .tv-lightweight-charts 裡面的，不然 K 線的窗格分隔線會被撐成 32px 高（原型第一版踩到）。 */
+[data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){padding:0 10px;height:var(--t4-row-h)}
+[data-theme4] th:not(.tv-lightweight-charts *){background:var(--t4-th-bg,var(--panel-3));font-size:var(--fs-min);font-weight:600;color:var(--ink-2);letter-spacing:.02em;
+  box-shadow:inset 0 -1px 0 var(--line-2)}
+[data-theme4] td.num,[data-theme4] td .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+[data-theme4] tbody tr:nth-child(5n) td:not(.tv-lightweight-charts *){border-bottom-color:var(--line-2)}
+@media (max-width:640px){ [data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){height:var(--t4-row-h-m);padding:0 8px} }
+
+/* ---- 頂欄、分頁、控制項：只換外觀 ---- */
+[data-theme4] .topbar{background:var(--t4-topbar,var(--topbar));border-bottom:1px solid var(--t4-card-edge,var(--line))}
+[data-theme4] .brand .logo{background:var(--t4-accent);color:var(--on-accent);box-shadow:var(--t4-accent-glow,none);border-radius:var(--r-sm)}
+[data-theme4] .tab.on{background:var(--t4-accent);color:var(--on-accent);box-shadow:var(--t4-accent-glow,none)}
+[data-theme4] .seg button.on{background:var(--t4-accent);color:var(--on-accent)}
+[data-theme4] .seg button.livetf.on::after{color:var(--on-accent)}
+[data-theme4] .evbtn .n{background:var(--t4-accent);color:var(--on-accent)}
+[data-theme4] .subtabs button.on{color:var(--t4-accent-solid);border-bottom-color:var(--t4-accent-solid)}
+[data-theme4] .btn,[data-theme4] .evbtn,[data-theme4] .seg,[data-theme4] .pill,[data-theme4] .rotdd .ddbtn,[data-theme4] .minisel{
+  background:var(--t4-ctl,var(--panel-3));border-color:var(--t4-ctl-edge,var(--line-2))}
+[data-theme4] .btn:hover,[data-theme4] .evbtn:hover{border-color:var(--t4-accent-solid)}
+[data-theme4] .rotdd .ddbtn i,[data-theme4] .segdd .ddbtn i{font-size:12px}   /* 原樣式 11px，守 12px 下限 */
+
+/* ---- 主題專屬的「標記」：只加裝飾，不改尺寸 ---- */
+/* HUD：卡片四角的定位框（像瞄準框），用背景漸層畫，不佔版面、不擋滑鼠 */
+[data-theme4="hud"] .card{background-image:
+  linear-gradient(var(--t4-bracket),var(--t4-bracket)),linear-gradient(var(--t4-bracket),var(--t4-bracket)),
+  linear-gradient(var(--t4-bracket),var(--t4-bracket)),linear-gradient(var(--t4-bracket),var(--t4-bracket)),
+  linear-gradient(var(--t4-bracket),var(--t4-bracket)),linear-gradient(var(--t4-bracket),var(--t4-bracket)),
+  linear-gradient(var(--t4-bracket),var(--t4-bracket)),linear-gradient(var(--t4-bracket),var(--t4-bracket)),
+  var(--t4-card-sheen,none);
+  background-repeat:no-repeat;
+  background-size:14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,100% 100%;
+  background-position:left top,left top,right top,right top,left bottom,left bottom,right bottom,right bottom,0 0}
+[data-theme4="hud"] .card h3{font-family:var(--t4-h-font,inherit)}
+[data-theme4="hud"] .t4-lede::before{border-radius:1px;width:10px;height:2px}
+/* 專業：卡片頂端一條 3px 主色實線＝「這是一個模組」；標題更粗、字距收緊 */
+[data-theme4="pro"] .card{border-top:3px solid var(--t4-accent-solid)}
+[data-theme4="pro"] .t4-lede::before{border-radius:0;width:3px;height:14px;margin-bottom:1px}
+[data-theme4="pro"] .t4-lede{font-weight:500}
+/* 休閒：卡片上緣一道很淡的漸層光，像紙卡被光照到（只有裝飾） */
+[data-theme4="casual"] .card{background-image:var(--t4-card-sheen,none)}
+
+/* ========================== 主題變數（只換變數，不改版面） ==========================
+   每一組前面的 `@tokens 主題 模式` 註解是給 docs/design_v4/tools/contrast.py 抓的，不要刪。 */
+
+/* @tokens casual light */
+:root[data-theme4="casual"][data-theme="light"]{
+  --bg:#F7F5FB; --bg-2:#F1EEF8; --panel:#FFFFFF; --panel-2:#FBFAFE; --panel-3:#F3F0FA;
+  --line:#E9E4F3; --line-2:#D6CFE6;
+  --ink:#231F36; --ink-2:#433D5C; --ink-3:#655E80;
+  --cyan:#5643D1; --violet:#7A3FC8; --amber:#8F5600; --lime:#3F7512;
+  --rise:#C8143A; --fall:#0B7A50; --flat:#5F6480;
+  --accent:#5643D1; --on-accent:#FFFFFF;
+  --ontop:#FFFFFF; --chartbg:#FFFFFF;
+  --grid:rgba(60,40,120,.07); --drop:rgba(60,40,120,.16);
+  --glow:0 0 0 1px rgba(86,67,209,.22), 0 4px 16px -8px rgba(86,67,209,.4);
+  --focus:#5643D1; --row-hover:#F5F2FC;
+  --tip-bg:rgba(255,255,255,.97); --tip-line:transparent; --tip-sh:0 10px 28px -10px rgba(60,40,120,.28);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --t4-r-card:18px; --t4-r-inner:12px; --t4-r-ctl:999px;
+  --t4-page:
+    radial-gradient(1100px 620px at 0% -10%, #FFE8DA 0, rgba(255,232,218,0) 62%),
+    radial-gradient(1000px 640px at 100% -6%, #E2E6FF 0, rgba(226,230,255,0) 58%),
+    radial-gradient(900px 700px at 60% 110%, #F4E4FF 0, rgba(244,228,255,0) 60%),
+    #F7F5FB;
+  --t4-card-bg:#FFFFFF; --t4-card-edge:#ECE7F5;
+  --t4-card-sh:0 1px 2px rgba(60,40,120,.05), 0 8px 24px -16px rgba(60,40,120,.22);
+  --t4-card-sheen:linear-gradient(180deg,rgba(124,108,242,.05),rgba(124,108,242,0) 64px);
+  --t4-accent:linear-gradient(135deg,#6A55E6 0%,#4A63D8 100%); --t4-accent-solid:#5643D1;
+  --t4-accent-glow:0 6px 16px -8px rgba(86,67,209,.55);
+  --t4-ctl:#F6F3FC; --t4-ctl-edge:#E0D9EE; --t4-th-bg:#F6F3FC;
+  --t4-topbar:rgba(255,255,255,.78); --t4-h-w:700;
+}
+/* @tokens casual dark */
+:root[data-theme4="casual"]:not([data-theme="light"]){
+  --bg:#17142B; --bg-2:#1B1832; --panel:#211D3A; --panel-2:#262243; --panel-3:#2D294D;
+  --line:#352F5A; --line-2:#4A4378;
+  --ink:#F4F1FF; --ink-2:#CDC7EC; --ink-3:#A39CC9;
+  --cyan:#A99BFF; --violet:#D2A8FF; --amber:#FFC266; --lime:#C6F36B;
+  --rise:#FF6F86; --fall:#3DDC98; --flat:#A6A2C4;
+  --accent:#8E7CFF; --on-accent:#140F2C;
+  --ontop:#140F2C; --chartbg:#211D3A;
+  --grid:rgba(255,255,255,.06); --drop:rgba(8,5,24,.55);
+  --glow:0 0 0 1px rgba(169,155,255,.3), 0 0 22px -6px rgba(169,155,255,.5);
+  --focus:#A99BFF; --row-hover:#2A2647;
+  --tip-bg:rgba(38,34,67,.96); --tip-line:#4A4378; --tip-sh:0 12px 32px -10px rgba(8,5,24,.7);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --t4-r-card:18px; --t4-r-inner:12px; --t4-r-ctl:999px;
+  --t4-page:
+    radial-gradient(1100px 620px at 0% -10%, rgba(255,140,110,.16) 0, rgba(255,140,110,0) 60%),
+    radial-gradient(1000px 640px at 100% -6%, rgba(110,130,255,.22) 0, rgba(110,130,255,0) 58%),
+    radial-gradient(900px 700px at 60% 110%, rgba(190,120,255,.16) 0, rgba(190,120,255,0) 60%),
+    #17142B;
+  --t4-card-bg:#211D3A; --t4-card-edge:#352F5A;
+  --t4-card-sh:0 10px 28px -18px rgba(8,5,24,.8);
+  --t4-card-sheen:linear-gradient(180deg,rgba(169,155,255,.07),rgba(169,155,255,0) 64px);
+  --t4-accent:linear-gradient(135deg,#B3A6FF 0%,#8FB4FF 100%); --t4-accent-solid:#A99BFF;
+  --t4-accent-glow:0 6px 18px -8px rgba(169,155,255,.6);
+  --t4-ctl:#2A2647; --t4-ctl-edge:#443D6E; --t4-th-bg:#2A2647;
+  --t4-topbar:rgba(23,20,43,.8); --t4-h-w:700;
+}
+
+/* @tokens hud dark */
+:root[data-theme4="hud"]:not([data-theme="light"]){
+  --bg:#050A13; --bg-2:#08101D; --panel:#0B1626; --panel-2:#0F1C2F; --panel-3:#13233A;
+  --line:#16304A; --line-2:#22486A;
+  --ink:#E4F6FF; --ink-2:#A6C8DC; --ink-3:#86A9BF;
+  --cyan:#37E2FF; --violet:#9C8CFF; --amber:#FFBE5C; --lime:#B8F55A;
+  --rise:#FF5470; --fall:#2EE59D; --flat:#8FA9BC;
+  --accent:#37E2FF; --on-accent:#03121B;
+  --ontop:#03121B; --chartbg:#0B1626;
+  --grid:rgba(55,226,255,.07); --drop:rgba(0,4,10,.6);
+  --glow:0 0 0 1px rgba(55,226,255,.35), 0 0 22px -4px rgba(55,226,255,.55);
+  --focus:#37E2FF; --row-hover:rgba(55,226,255,.07);
+  --tip-bg:rgba(9,20,34,.92); --tip-line:rgba(55,226,255,.35); --tip-sh:0 0 0 1px rgba(55,226,255,.12), 0 12px 32px -10px rgba(0,0,0,.8);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --t4-r-card:10px; --t4-r-inner:8px; --t4-r-ctl:6px;
+  --t4-page:
+    linear-gradient(rgba(55,226,255,.035) 1px, transparent 1px) 0 0/32px 32px,
+    linear-gradient(90deg, rgba(55,226,255,.035) 1px, transparent 1px) 0 0/32px 32px,
+    radial-gradient(1000px 600px at 12% -12%, rgba(55,226,255,.14) 0, rgba(55,226,255,0) 60%),
+    radial-gradient(900px 600px at 100% 0%, rgba(120,110,255,.12) 0, rgba(120,110,255,0) 58%),
+    #050A13;
+  --t4-card-bg:rgba(11,22,38,.55); --t4-card-edge:rgba(55,226,255,.18);
+  --t4-card-tint:rgba(11,22,38,.62); --t4-card-blur:blur(14px) saturate(140%);
+  --t4-card-sh:inset 0 1px 0 rgba(160,240,255,.08), 0 16px 40px -22px rgba(0,0,0,.9);
+  --t4-card-sheen:linear-gradient(135deg,rgba(55,226,255,.06),rgba(55,226,255,0) 40%);
+  --t4-bracket:rgba(55,226,255,.7);
+  --t4-accent:linear-gradient(135deg,#37E2FF 0%,#5AA8FF 100%); --t4-accent-solid:#37E2FF;
+  --t4-accent-glow:0 0 0 1px rgba(55,226,255,.4), 0 0 18px -4px rgba(55,226,255,.6);
+  --t4-ctl:rgba(55,226,255,.06); --t4-ctl-edge:rgba(55,226,255,.22); --t4-th-bg:#0F1C2F;
+  --t4-topbar:rgba(5,10,19,.72); --t4-h-w:600; --t4-h-ls:.04em; --t4-grid-type:dashed;
+}
+/* @tokens hud light */
+:root[data-theme4="hud"][data-theme="light"]{
+  --bg:#E8EFF5; --bg-2:#E1EAF2; --panel:#F8FBFD; --panel-2:#F1F6FA; --panel-3:#E8F0F6;
+  --line:#CFDDE8; --line-2:#AFC3D3;
+  --ink:#0A1B2A; --ink-2:#2C4559; --ink-3:#4A6377;
+  --cyan:#0A6A86; --violet:#5145C8; --amber:#8F5600; --lime:#3F7512;
+  --rise:#C4142F; --fall:#07784E; --flat:#566A7C;
+  --accent:#0A6A86; --on-accent:#FFFFFF;
+  --ontop:#FFFFFF; --chartbg:#F8FBFD;
+  --grid:rgba(10,106,134,.08); --drop:rgba(10,40,60,.16);
+  --glow:0 0 0 1px rgba(10,106,134,.25), 0 4px 16px -8px rgba(10,106,134,.4);
+  --focus:#0A6A86; --row-hover:rgba(10,106,134,.06);
+  --tip-bg:rgba(248,251,253,.95); --tip-line:rgba(10,106,134,.3); --tip-sh:0 12px 32px -12px rgba(10,40,60,.3);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --t4-r-card:10px; --t4-r-inner:8px; --t4-r-ctl:6px;
+  --t4-page:
+    linear-gradient(rgba(10,106,134,.05) 1px, transparent 1px) 0 0/32px 32px,
+    linear-gradient(90deg, rgba(10,106,134,.05) 1px, transparent 1px) 0 0/32px 32px,
+    radial-gradient(1000px 600px at 12% -12%, rgba(55,200,255,.22) 0, rgba(55,200,255,0) 60%),
+    #E8EFF5;
+  --t4-card-bg:rgba(248,251,253,.66); --t4-card-edge:rgba(10,106,134,.2);
+  --t4-card-tint:rgba(248,251,253,.7); --t4-card-blur:blur(14px) saturate(140%);
+  --t4-card-sh:inset 0 1px 0 rgba(255,255,255,.9), 0 12px 32px -20px rgba(10,40,60,.35);
+  --t4-card-sheen:linear-gradient(135deg,rgba(255,255,255,.6),rgba(255,255,255,0) 45%);
+  --t4-bracket:rgba(10,106,134,.65);
+  --t4-accent:linear-gradient(135deg,#0A6A86 0%,#1F5FB8 100%); --t4-accent-solid:#0A6A86;
+  --t4-accent-glow:0 4px 14px -6px rgba(10,106,134,.5);
+  --t4-ctl:rgba(255,255,255,.7); --t4-ctl-edge:rgba(10,106,134,.2); --t4-th-bg:#E8F0F6;
+  --t4-topbar:rgba(248,251,253,.72); --t4-h-w:600; --t4-h-ls:.04em; --t4-grid-type:dashed;
+}
+
+/* @tokens pro light */
+:root[data-theme4="pro"][data-theme="light"]{
+  --bg:#ECEEF2; --bg-2:#E6E9EE; --panel:#FFFFFF; --panel-2:#F7F8FA; --panel-3:#EFF1F5;
+  --line:#DCE0E6; --line-2:#C1C7D0;
+  --ink:#0A0E17; --ink-2:#262E3D; --ink-3:#4D5668;
+  --cyan:#1544C0; --violet:#5A34C9; --amber:#8A5200; --lime:#3A6E10;
+  --rise:#C00F2C; --fall:#00744A; --flat:#525C6E;
+  --accent:#1544C0; --on-accent:#FFFFFF;
+  --ontop:#FFFFFF; --chartbg:#FFFFFF;
+  --grid:rgba(10,14,23,.07); --drop:rgba(10,14,23,.14);
+  --glow:0 0 0 2px rgba(21,68,192,.28);
+  --focus:#1544C0; --row-hover:#F2F4F8;
+  --tip-bg:rgba(255,255,255,.98); --tip-line:#C1C7D0; --tip-sh:0 8px 24px -10px rgba(10,14,23,.25);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --t4-r-card:6px; --t4-r-inner:4px; --t4-r-ctl:4px;
+  --t4-page:#ECEEF2;
+  --t4-card-bg:#FFFFFF; --t4-card-edge:#DCE0E6; --t4-card-sh:0 1px 0 rgba(10,14,23,.04);
+  --t4-accent:#1544C0; --t4-accent-solid:#1544C0; --t4-accent-glow:none;
+  --t4-ctl:#F4F5F8; --t4-ctl-edge:#C9CED6; --t4-th-bg:#EEF0F4;
+  --t4-topbar:rgba(255,255,255,.94); --t4-h-w:800; --t4-h-ls:0;
+}
+/* @tokens pro dark */
+:root[data-theme4="pro"]:not([data-theme="light"]){
+  --bg:#0A0C10; --bg-2:#0E1116; --panel:#13161C; --panel-2:#181C23; --panel-3:#1E232B;
+  --line:#272D37; --line-2:#3A4250;
+  --ink:#F5F7FA; --ink-2:#C4CAD5; --ink-3:#949DAE;
+  --cyan:#6A96FF; --violet:#A993FF; --amber:#FFB14E; --lime:#B6EE5C;
+  --rise:#FF4F62; --fall:#22CC8B; --flat:#99A2B2;
+  --accent:#2E5BDB; --on-accent:#FFFFFF;
+  --ontop:#FFFFFF; --chartbg:#13161C;
+  --grid:rgba(255,255,255,.06); --drop:rgba(0,0,0,.55);
+  --glow:0 0 0 2px rgba(106,150,255,.35);
+  --focus:#6A96FF; --row-hover:#1B1F27;
+  --tip-bg:rgba(24,28,35,.98); --tip-line:#3A4250; --tip-sh:0 10px 28px -10px rgba(0,0,0,.7);
+  --body-1:transparent; --body-2:transparent; --card-sh:none;
+  --t4-r-card:6px; --t4-r-inner:4px; --t4-r-ctl:4px;
+  --t4-page:#0A0C10;
+  --t4-card-bg:#13161C; --t4-card-edge:#272D37; --t4-card-sh:none;
+  --t4-accent:#2E5BDB; --t4-accent-solid:#6A96FF; --t4-accent-glow:none;
+  --t4-ctl:#1B1F27; --t4-ctl-edge:#343B48; --t4-th-bg:#1B1F27;
+  --t4-topbar:rgba(10,12,16,.94); --t4-h-w:800; --t4-h-ls:0;
+}
+
+/* ---- 風格選單（頂欄「風格」鈕打開的小面板；手機在「⋯」清單裡）---- */
+.t4btn{white-space:nowrap}
+.t4pop{position:fixed;z-index:60;min-width:240px;padding:12px;border-radius:12px;background:var(--panel);
+  border:1px solid var(--line-2);box-shadow:0 16px 40px -12px var(--drop);color:var(--ink)}
+.t4pop[hidden]{display:none}
+.t4pop h4{margin:0 0 8px;font-size:13px;color:var(--ink-2)}
+.t4pop .t4opts{display:grid;gap:6px}
+.t4pop button.t4o{display:grid;grid-template-columns:28px 1fr;gap:2px 10px;align-items:center;text-align:left;width:100%;
+  min-height:44px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer}
+.t4pop button.t4o .sw{grid-row:span 2;width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2)}
+.t4pop button.t4o b{font-size:14px}
+.t4pop button.t4o small{font-size:12px;color:var(--ink-3)}
+.t4pop button.t4o[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+.t4pop .t4hint{margin-top:8px;font-size:12px;color:var(--ink-3)}
+.t4pop h4+.t4opts{margin-bottom:12px}
+/* 明暗兩顆：跟風格選項同一種按鈕語言，但一列兩顆 */
+.t4pop .t4modes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.t4pop button.t4m{min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:14px}
+.t4pop button.t4m[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset;font-weight:700}
+.morepop .t4mm button[aria-pressed="true"]{background:var(--panel-2);font-weight:700}
+/* 手機（≤820）頂欄的 ☀／事件已經收進「⋯」清單，「風格」鈕跟著收（清單裡有「版面風格」那一段） */
+@media (max-width:820px){ #t4Btn{display:none} }

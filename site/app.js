@@ -595,6 +595,7 @@
       c.setOption = (o2, ...rest) => raw(softenOption(o2, c), ...rest);
       c._soft = true;
     }
+    if (window.T4 && window.T4.normalize) option = window.T4.normalize(option);   // 設計 v4 §4：只留水平格線、圖例不壓繪圖區（theme4.js）
     let full = withTipFmt(Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option));
     /* ★ 2026-09-24 效能：**圖表第一次出現不播進場動畫**（長條長出來、扇形轉開那一段 0.24～0.5 秒）。
        首次開總覽時七八張圖同時進場，每一幀都要把每張圖重畫一次 —— 實測把進場動畫拿掉，
@@ -641,8 +642,8 @@
      軸標籤是照原本的寬度留邊的，換成等寬會把「-10.0 萬張」這種刻度切掉；無襯線寬度接近，
      而且跟其他圖（吃 chart() 預設 textStyle 的 Noto Sans TC）同一個樣子。*/
   const NUM_FONT = 'JetBrains Mono, "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif';
-  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT }, splitLine: { lineStyle: { color: CH.grid } } };
-  const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 12.5 }, confine: true };
+  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, fontSize: 12 }, splitLine: { lineStyle: { color: CH.grid } } };  // 設計 v4 §4：軸字 12
+  const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 13 }, padding: [8, 10], confine: true };  // 設計 v4 §4：提示框 13、內距 8×10
 
   /* ---------------- 明亮／深色主題（Andy 2026-09-14）----------------
      版面本身全部吃 CSS 變數，換主題是一行 setAttribute 的事。
@@ -670,6 +671,7 @@
     axisStyle.axisLine.lineStyle.color = CH.line;
     axisStyle.axisLabel.color = CH.ink3;
     axisStyle.splitLine.lineStyle.color = CH.grid;
+    axisStyle.splitLine.lineStyle.type = v('--t4-grid-type', 'solid');   // 設計 v4：科技 HUD 的格線是虛線（theme4.css 的 --t4-grid-type）
     CH.card = v('--panel', '#0f172b');
     CH.hm = ['--hm-n3', '--hm-n2', '--hm-n1', '--hm-0', '--hm-p1', '--hm-p2', '--hm-p3'].map((n, i) => v(n, CH.hm[i]));
     CH.hmNa = v('--hm-na', CH.hmNa);

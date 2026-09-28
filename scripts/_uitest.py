@@ -14977,7 +14977,188 @@ def t_stock_quarter_audit0927(pg, base, code):
 
 
 
+# ---------------------------------------------------------------------------------------------------
+# ★ 2026-09-28 設計 v4 正式套用・第一批（Andy「V4執行」；docs/design_v4/01_設計系統.md、02_套用第一批.md）
+# 在頁面裡算 WCAG 對比：前景色對「實際疊出來的底色」（沿祖先一路把半透明的底色合成上去，
+# 合到不透明為止；HUD 的玻璃卡片 rgba 底就是這樣算的）。
+V4_CONTRAST_JS = r"""(sels) => {
+  const parse = (c) => { const m = (c || '').match(/[\d.]+/g); if (!m) return null;
+    return { r: +m[0], g: +m[1], b: +m[2], a: m.length > 3 ? +m[3] : 1 }; };
+  const over = (top, bot) => { const a = top.a + bot.a * (1 - top.a); if (!a) return { r: 0, g: 0, b: 0, a: 0 };
+    return { r: (top.r * top.a + bot.r * bot.a * (1 - top.a)) / a, g: (top.g * top.a + bot.g * bot.a * (1 - top.a)) / a,
+             b: (top.b * top.a + bot.b * bot.a * (1 - top.a)) / a, a }; };
+  const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const bgOf = (el) => { const layers = []; let p = el;
+    while (p && p.nodeType === 1) { const c = parse(getComputedStyle(p).backgroundColor); if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break; } p = p.parentElement; }
+    let acc = parse(getComputedStyle(document.body).backgroundColor);
+    if (!acc || acc.a === 0) acc = parse(getComputedStyle(document.documentElement).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
+    if (acc.a < 1) acc = over(acc, { r: 255, g: 255, b: 255, a: 1 });
+    for (let i = layers.length - 1; i >= 0; i--) acc = over(layers[i], acc);
+    return acc; };
+  const out = {};
+  for (const s of sels) {
+    const el = [...document.querySelectorAll(s)].find(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && e.textContent.trim(); });
+    if (!el) { out[s] = null; continue; }
+    const fg0 = parse(getComputedStyle(el).color), bg = bgOf(el), fg = over(fg0, bg);
+    const L1 = lum(fg), L2 = lum(bg);
+    out[s] = Math.round(((Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05)) * 100) / 100;
+  }
+  return out; }"""
+
+
+def _v4_popclick(pg, sel, wait):
+    """外觀設定面板裡點一顆：面板收著就先按「外觀」打開（切風格會重畫整頁，面板本身不受影響，但保險）。"""
+    if pg.evaluate("() => { const p = document.getElementById('t4Pop'); return !p || p.hidden; }"):
+        click(pg, "#t4Btn", 300)
+    click(pg, sel, wait)
+
+
+def t_design_v4(b, base, code):
+    """設計 v4 三套主題 × 深淺（Andy 2026-09-28「V4執行」）。
+
+    驗「畫面真的因此改變了」，不是驗元素存在：
+      ① 沒存過任何偏好＝科技 HUD・深色；骨架數字真的生效（卡片間距 12、卡片內距 12/16、頁邊 16、行高 1.55、標題列一行）
+      ② 真的在外觀設定面板點三套風格 × 深淺：data-theme4／data-theme 換掉、CSS 變數真的變（六組 --bg 互不相同）、
+         localStorage 真的寫進去、圖表色票（App.CH.ink）跟著換、關鍵文字對比 ≥ 4.5
+      ③ 重新整理後保留；面板裡「按下去的那顆」也對；☀ 鈕照舊能切明暗
+      ④ 舊使用者相容：只存了 tw.theme=light（沒有 tw.theme4）→ 科技 HUD・淺，字看得見；存了不認得的風格 → 科技 HUD
+      ⑤ 圖表共用規格：軸字 12、提示框 13、HUD 虛線／專業實線、直向格線關掉
+      ⑥ 800／390：三套都沒有橫向捲軸；手機「⋯」清單真的切得動
+    """
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme4'); localStorage.removeItem('tw.theme'); } catch(e){} }")
+    pg.goto("about:blank"); pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    st = lambda: pg.evaluate("""() => { const h = document.documentElement, cs = getComputedStyle(h);
+        const g = (k) => cs.getPropertyValue(k).trim(); let ls = {};
+        try { ls = { t4: localStorage.getItem('tw.theme4'), t: localStorage.getItem('tw.theme') }; } catch (e) {}
+        return { t4: h.getAttribute('data-theme4'), mode: h.getAttribute('data-theme') || 'dark',
+                 bg: g('--bg'), panel: g('--panel'), ink: g('--ink'),
+                 ch: window.App && window.App.CH.ink, ls }; }""")
+    s0 = st()
+    ok("① 沒存過偏好＝科技 HUD", s0["t4"] == "hud", s0)
+    ok("① 沒存過偏好＝深色", s0["mode"] == "dark", s0)
+    geo = pg.evaluate("""() => { const cs = getComputedStyle(document.documentElement);
+        const c = document.querySelector('#ovHeatCard'), cc = getComputedStyle(c), m = getComputedStyle(document.querySelector('main'));
+        const h = c.querySelector(':scope > .row.spread');
+        return { gap: cs.getPropertyValue('--gap-card').trim(), pt: cc.paddingTop, pl: cc.paddingLeft,
+                 mainL: m.paddingLeft, lh: getComputedStyle(document.body).lineHeight,
+                 head: h ? Math.round(h.getBoundingClientRect().height) : null }; }""")
+    ok("① 卡片間距 12px", geo["gap"] == "12px", geo)
+    ok("① 卡片內距 上 12／左右 16", geo["pt"] == "12px" and geo["pl"] == "16px", geo)
+    ok("① 頁邊 16px", geo["mainL"] == "16px", geo)
+    try:
+        lh = float(str(geo["lh"]).replace("px", ""))
+    except ValueError:
+        lh = -1
+    ok("① 內文行高 1.55（14px → 21.7px）", abs(lh - 14 * 1.55) < 0.3, geo)
+    ok("① 卡片標題列一行（32～40px，篩選器同一行不往下長）", geo["head"] is not None and 32 <= geo["head"] <= 40, geo)
+    gapv = pg.evaluate("""() => { const a = document.querySelector('#ovHeatCard').getBoundingClientRect(),
+        b = document.querySelector('#ovThemeCard').getBoundingClientRect(); return Math.round(b.top - a.bottom); }""")
+    ok("① 熱力圖卡與題材卡之間實測 12px", gapv == 12, gapv)
+
+    # ---- ② 在外觀設定面板真的點
+    ok("② 頂欄有「外觀」鈕", count(pg, "#t4Btn") == 1)
+    click(pg, "#t4Btn", 400)
+    ok("② 按「外觀」面板真的出現", pg.evaluate("""() => { const p = document.getElementById('t4Pop'); if (!p || p.hidden) return false;
+        const r = p.getBoundingClientRect(); return r.width > 100 && r.bottom < innerHeight + 2 && r.right <= innerWidth + 1; }"""))
+    ok("② 面板裡三套風格＋深淺兩顆", count(pg, "#t4Pop .t4o") == 3 and count(pg, "#t4Pop .t4m") == 2)
+    seen = {}
+    KEY_SEL = ["main .card h3", "#ovHeatCard .t4-lede", ".topbar .tab:not(.on)", "#t4Btn", "#m3Kpis, #hero"]
+    for th in ["casual", "hud", "pro"]:
+        for md in ["dark", "light"]:
+            _v4_popclick(pg, f'#t4Pop .t4o[data-t4="{th}"]', 900)
+            _v4_popclick(pg, f'#t4Pop .t4m[data-t4m="{md}"]', 1400)
+            wait_until(pg, "() => !!document.querySelector('#ovHeatCard .t4-lede')", 5000)
+            s = st(); tag = f"{th}・{'深' if md == 'dark' else '淺'}"
+            ok(f"② {tag}：data-theme4／data-theme 真的換掉", s["t4"] == th and s["mode"] == md, s)
+            ok(f"② {tag}：localStorage 寫進去", s["ls"].get("t4") == th and s["ls"].get("t") == md, s["ls"])
+            ok(f"② {tag}：圖表色票跟著 CSS 變數換（App.CH.ink == --ink）", (s["ch"] or "").lower() == s["ink"].lower(), s)
+            ok(f"② {tag}：面板按下去的是這兩顆", pg.evaluate(f"""() => document.querySelector('#t4Pop .t4o[data-t4="{th}"]').getAttribute('aria-pressed') === 'true'
+                && document.querySelector('#t4Pop .t4m[data-t4m="{md}"]').getAttribute('aria-pressed') === 'true'"""))
+            seen[tag] = s["bg"]
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+            ok(f"② {tag}：按 Esc 面板收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
+            cr = pg.evaluate(V4_CONTRAST_JS, KEY_SEL)
+            bad = {k: v for k, v in cr.items() if v is None or v < 4.5}
+            ok(f"② {tag}：關鍵文字對比都 ≥ 4.5", not bad, cr)
+            ok(f"② {tag}：熱力圖切完還在（有重畫、不是空白）",
+               canvas_hash(pg, "#heat") not in ("no-canvas", "0"), canvas_hash(pg, "#heat"))
+    ok("② 六組主題的頁底 --bg 互不相同（變數真的換了，不是同一組）", len(set(seen.values())) == 6, seen)
+
+    # ---- ③ 重新整理保留
+    _v4_popclick(pg, '#t4Pop .t4o[data-t4="casual"]', 900)
+    _v4_popclick(pg, '#t4Pop .t4m[data-t4m="dark"]', 1200)
+    pg.goto("about:blank"); pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    s = st()
+    ok("③ 重新整理後還是親和休閒・深", s["t4"] == "casual" and s["mode"] == "dark", s)
+    click(pg, "#t4Btn", 400)
+    ok("③ 重整後面板標的是親和休閒", pg.evaluate("() => document.querySelector('#t4Pop .t4o[data-t4=\"casual\"]').getAttribute('aria-pressed') === 'true'"))
+    pg.mouse.click(700, 600); pg.wait_for_timeout(300)
+    ok("③ 點面板外面會收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
+    click(pg, "#themeBtn", 1400)
+    ok("③ 頂欄 ☀ 鈕照舊切得動明暗", st()["mode"] == "light")
+    click(pg, "#t4Btn", 300)
+    ok("③ ☀ 切完之後面板的「淺色」是按下去的", pg.evaluate("() => document.querySelector('#t4Pop .t4m[data-t4m=\"light\"]').getAttribute('aria-pressed') === 'true'"))
+    pg.keyboard.press("Escape")
+
+    # ---- ⑤ 圖表共用規格
+    pg.evaluate("() => window.T4.set('hud')"); pg.wait_for_timeout(1800)
+    spec = pg.evaluate("""() => { const A = window.App; const i = echarts.getInstanceByDom(document.getElementById('breadth'));
+        const o = i && i.getOption(); const x = o && o.xAxis && o.xAxis[0];
+        return { ax: A.axisStyle.axisLabel.fontSize, tip: A.tip.textStyle.fontSize, pad: A.tip.padding,
+                 dash: A.axisStyle.splitLine.lineStyle.type, xsplit: x ? !!(x.splitLine && x.splitLine.show) : null }; }""")
+    ok("⑤ 軸字 12px", spec["ax"] == 12, spec)
+    ok("⑤ 提示框字 13px、內距 8×10", spec["tip"] == 13 and spec["pad"] == [8, 10], spec)
+    ok("⑤ 科技 HUD 的格線是虛線", spec["dash"] == "dashed", spec)
+    ok("⑤ 漲跌家數的直向格線關掉（只留水平）", spec["xsplit"] is False, spec)
+    pg.evaluate("() => window.T4.set('pro')"); pg.wait_for_timeout(1200)
+    ok("⑤ 專業有力的格線是實線", pg.evaluate("() => window.App.axisStyle.splitLine.lineStyle.type") == "solid")
+    ctx.close()
+
+    # ---- ④ 舊使用者相容
+    for preset, want_mode, tag in [
+        ({"tw.theme": "light"}, "light", "只存過淺色（舊版使用者）"),
+        ({"tw.theme4": "y2k", "tw.theme": "dark"}, "dark", "存了不認得的風格"),
+    ]:
+        c = b.new_context(viewport={"width": 1440, "height": 900})
+        js = ";".join(f"localStorage.setItem({k!r},{v!r})" for k, v in preset.items())
+        c.add_init_script("try{ if(!sessionStorage.getItem('v4pre')){ localStorage.removeItem('tw.theme4'); "
+                          + js + "; sessionStorage.setItem('v4pre','1'); } }catch(e){}")
+        p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2200)
+        h = p.evaluate("() => [document.documentElement.getAttribute('data-theme4'), document.documentElement.getAttribute('data-theme') || 'dark']")
+        ok(f"④ {tag} → 科技 HUD・{'淺' if want_mode == 'light' else '深'}", h == ["hud", want_mode], h)
+        cr = p.evaluate(V4_CONTRAST_JS, ["main .card h3", ".topbar .tab:not(.on)", "#m3Kpis, #hero"])
+        ok(f"④ {tag}：字看得見（對比 ≥ 4.5）", all(v is not None and v >= 4.5 for v in cr.values()), cr)
+        c.close()
+
+    # ---- ⑥ 窄畫面：800 三套都不溢出；390 用「⋯」清單切
+    c = b.new_context(viewport={"width": 800, "height": 900})
+    p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2000)
+    for th in ["casual", "hud", "pro"]:
+        p.evaluate(f"() => window.T4.set('{th}')"); p.wait_for_timeout(1400)
+        ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        ok(f"⑥ 800 寬 {th}：沒有橫向捲軸", ov <= 1, ov)
+    c.close()
+    c = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+    p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2200)
+    p.locator("#moreBtn").click(timeout=6000); p.wait_for_timeout(400)
+    ok("⑥ 390：「⋯」清單裡有三套風格", count(p, "#mmT4 [data-t4]") == 3)
+    p.locator('#mmT4 [data-t4="pro"]').click(timeout=6000); p.wait_for_timeout(1500)
+    ok("⑥ 390：點「專業有力」真的切過去並記住",
+       p.evaluate("() => [document.documentElement.getAttribute('data-theme4'), localStorage.getItem('tw.theme4')]") == ["pro", "pro"])
+    ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+    ok("⑥ 390：沒有橫向捲軸", ov <= 1, ov)
+    ok("⑥ 390：頂欄「外觀」鈕收起來（入口在清單裡）", p.evaluate("() => getComputedStyle(document.getElementById('t4Btn')).display") == "none")
+    c.close()
+
+
+
 SECTIONS = {
+    # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
+    "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
