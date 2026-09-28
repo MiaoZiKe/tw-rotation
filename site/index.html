@@ -3900,6 +3900,8 @@ h3 .howbtn.pop{font-family:inherit}
   /* 氣泡：貼在「?」的正下方（下面放不下翻到上面，由 mobile3.js placeHowPop 算 top）；左右各留 12px */
   body.m3on #howPop.mbubble{left:12px;right:12px;width:auto;transform:none;max-height:56vh;border-radius:14px;
     padding:12px 14px;font-size:13.5px;line-height:1.65;background:var(--panel-2);box-shadow:0 18px 40px -12px rgba(0,0,0,.8)}
+  /* 上下都放不下時框高被 mobile3.js 限在那一邊的空間、內容在框裡捲：底部淡出提示「下面還有字」，捲到底就收掉（data-scroll） */
+  body.m3on #howPop.mbubble[data-scroll="1"]{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent)}
   body.m3on #howBack{background:rgba(3,6,14,.28);backdrop-filter:none}
   :root[data-theme="light"] body.m3on #howBack{background:rgba(30,28,24,.16)}
 

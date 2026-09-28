@@ -78,11 +78,25 @@
     if (!pop || pop.hidden || !isM()) return;
     pop.classList.add('mbubble');
     const r = btn.getBoundingClientRect(), vh = window.innerHeight;
-    pop.style.top = '0px';
+    pop.style.top = '0px'; pop.style.maxHeight = '';
     const h = Math.min(pop.scrollHeight, vh * 0.56);
     const below = r.bottom + 8;
-    const top = (below + h <= vh - NAV_H - 8) ? below : Math.max(60, r.top - 8 - h);
+    /* ★ 2026-09-29（mobile-onescreen-fix）：上下都放不下時，不准蓋住「?」本身。
+       改前：下面放不下就翻上去、頂端夾在 60px —— 360×780 總覽「資金輪盤 ?」的說明 332px 高，
+       「?」在 377～409，上面只剩 309、下面只剩 297，翻上去夾在 60 之後框底到 392，**蓋住「?」15px**
+       （箭頭指向的那顆被自己蓋掉，也點不到它來關）。
+       改後：下面放得下＝正下方；上面放得下＝正上方（規格 R2 照舊）；兩邊都放不下＝挑空間大的那一邊，
+       把框高限在那一邊的空間（框本來就 overflow:auto，內容一個字都沒少，只是在框裡捲），並標 data-scroll 讓底部淡出提示還有字。*/
+    const roomB = vh - NAV_H - 8 - below, roomA = r.top - 8 - 60;
+    let top;
+    if (h <= roomB) top = below;
+    else if (h <= roomA) top = r.top - 8 - h;
+    else if (roomB >= roomA) { top = below; pop.style.maxHeight = Math.floor(roomB) + 'px'; }
+    else { pop.style.maxHeight = Math.floor(roomA) + 'px'; top = r.top - 8 - Math.floor(roomA); }
     pop.style.top = Math.round(top) + 'px';
+    const more = () => { pop.dataset.scroll = pop.scrollHeight - pop.clientHeight - pop.scrollTop > 1 ? '1' : '0'; };   // 捲到底就收掉淡出
+    pop.scrollTop = 0; more();
+    if (!pop._moreWired) { pop._moreWired = true; pop.addEventListener('scroll', () => { if (pop.classList.contains('mbubble')) more(); }, { passive: true }); }
     pop.style.setProperty('--arrow-x', Math.round(r.left + r.width / 2 - 12) + 'px');
     pop.dataset.flip = top < r.top ? '1' : '0';
   }
@@ -223,7 +237,7 @@
     sheet = null; scrim = null;
     const bar = $('.topbar'); if (bar) bar.classList.remove('msearch');
     const hp = document.getElementById('howPop');
-    if (hp) { hp.classList.remove('mbubble'); hp.style.top = ''; }
+    if (hp) { hp.classList.remove('mbubble'); hp.style.top = ''; hp.style.maxHeight = ''; delete hp.dataset.scroll; }
     hooks.forEach(h => { if (h.off) { try { h.off(); } catch (e) { /* 拆不乾淨不該讓桌機掛掉 */ } } });
   }
   function apply() {
@@ -532,13 +546,37 @@
       const cx = mr.left - br.left + q.x * k, cy = mr.top - br.top + q.y * k, rad = (q.r + 6) * k;
       const w = pop.offsetWidth, h = pop.offsetHeight, gap = 4, pad = 4;
       const minY = Math.max(pad, mr.top - br.top), maxY = Math.min(br.height, mr.bottom - br.top) - h - pad;
-      const cy2 = (y) => Math.max(minY, Math.min(maxY, y));
+      /* ★ 2026-09-29（mobile-onescreen-fix）：說明框一律夾在「頂欄（＋黏住的四步列）」與「底部導覽」之間。
+         改前：左右都放不下（框寬 200 ＞ 點旁剩的寬，手機上幾乎每一顆都是）就走上／下，
+         上面放不下就直接放下面、**完全不夾** —— 390×844 點盤上偏下的點（實測 ccl），框底 819px，
+         底部導覽從 786 開始，框的最後兩行（成分股、「進族群頁 →」）被導覽蓋掉 33px；360×780 蓋掉 84px。
+         輪盤本身在一屏內，但「點了才看得到的關鍵數字」跑出一屏 —— 正是手機判準「一屏看完一件事」要擋的。
+         改後：先試「在輪盤裡」的上／下；都不行再試「在可視範圍裡」的上／下（可以蓋到輪盤上方的卡片標題，那是暫時的浮層；不准高過四步列）；
+         還是不行就夾在可視範圍內（寧可蓋到那一顆的一角，也不讓數字被導覽吃掉）。左右那兩種也多夾一次可視範圍。*/
+      const topbar = document.querySelector('.topbar'), spine = document.querySelector('#v-overview .mspine');
+      const tb = topbar ? topbar.getBoundingClientRect().bottom : 52;
+      const spr = spine && spine.getClientRects().length ? spine.getBoundingClientRect() : null;
+      // 四步列（.mspine）是 sticky、z-index 31，比說明框（z 6）高 —— 沒黏住的時候也一樣會蓋在框上面（360×780 實測框頂被它吃掉），
+      // 所以只要它在畫面上，框頂就不准高過它的底。
+      const vTop = Math.max(tb, spr && spr.bottom > tb ? spr.bottom : 0) + pad - br.top;          // 框頂最高到這裡（相對於 box）
+      const vBot = window.innerHeight - NAV_H - pad - br.top;                                      // 框底最低到這裡
+      const cy2 = (y) => {
+        const lo = Math.max(minY, vTop), hi = Math.min(maxY, vBot - h);
+        return lo <= hi ? Math.max(lo, Math.min(hi, y)) : Math.max(vTop, Math.min(vBot - h, y));
+      };
       let at, x, y;
       if (cx + rad + gap + w <= br.width - pad) { at = 'right'; x = cx + rad + gap; y = cy2(cy - h / 2); }
       else if (cx - rad - gap - w >= pad) { at = 'left'; x = cx - rad - gap - w; y = cy2(cy - h / 2); }
       else {
         x = Math.max(pad, Math.min(br.width - pad - w, cx - w / 2));
-        if (cy - rad - gap - h >= minY) { at = 'above'; y = cy - rad - gap - h; } else { at = 'below'; y = cy + rad + gap; }
+        const yA = cy - rad - gap - h, yB = cy + rad + gap;
+        const inR = (t) => t >= Math.max(minY, vTop) && t + h <= Math.min(maxY + h, vBot);   // 在輪盤裡、也在可視範圍裡
+        const inV = (t) => t >= vTop && t + h <= vBot;                                        // 只要在可視範圍裡
+        if (inR(yA)) { at = 'above'; y = yA; }
+        else if (inR(yB)) { at = 'below'; y = yB; }
+        else if (inV(yA)) { at = 'above'; y = yA; }
+        else if (inV(yB)) { at = 'below'; y = yB; }
+        else { at = 'clamp'; y = Math.max(vTop, Math.min(vBot - h, yB)); }
       }
       pop.style.left = Math.round(x) + 'px'; pop.style.top = Math.round(y) + 'px';
       pop.dataset.at = at; pop.dataset.cx = Math.round(cx); pop.dataset.cy = Math.round(cy); pop.dataset.rad = Math.round(rad);
