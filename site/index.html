@@ -3567,6 +3567,11 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
   display:inline-flex;align-items:center;justify-content:center;vertical-align:2px;margin-left:6px;line-height:1}
 h3 .howbtn.pop{font-family:inherit}
 .m3-bar .howbtn.pop{margin-left:0}
+/* 欄位名稱旁的小「?」（個股頁籌碼快照，2026-09-28）：比標題那顆小一號，免得六格名稱被六顆大圓鈕搶走目光；
+   觸控範圍用 ::after 往外撐到 32px，手機上手指點得到（畫面上仍是 18px 的小圓）。 */
+.kvs .k[data-chip] .l{display:flex;align-items:center;gap:0;min-width:0}
+.kvs .k .l .howbtn.kq{position:relative;flex:none;width:18px;height:18px;font-size:11px;margin-left:5px;vertical-align:0;font-family:inherit}
+.kvs .k .l .howbtn.kq::after{content:'';position:absolute;inset:-7px}
 #howBack{position:fixed;inset:0;z-index:180;background:rgba(4,8,18,.46);backdrop-filter:blur(1.5px)}
 :root[data-theme="light"] #howBack{background:rgba(30,28,24,.28)}
 #howBack[hidden],#howPop[hidden]{display:none}
