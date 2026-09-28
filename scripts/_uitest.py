@@ -880,10 +880,11 @@ def t_overview(pg, base):
     ok("★ 總覽卡片下方的「族群／其他題材」連結列全部拿掉", not cp["linkrow"], cp["linkrow"])
     ok("★ 總覽卡片上的註腳說明拿掉", not cp["notes"], cp["notes"])
     ok("★ 說明一律改成標題旁的「?」（沒有舊的「怎麼看 ?」長鈕）",
-       cp["old"] == 0 and {"m3", "heat", "themeov", "rotm", "ovflow", "breadth", "trust"} <= set(cp["q"]), cp)
+       cp["old"] == 0 and {"m3", "heat", "themeov", "rotm", "ovflow", "breadth"} <= set(cp["q"]), cp)
     # --- 「?」逐顆點開 → 跳出說明；點背景 → 關
     # 2026-09-25 改前 6 顆 → 改後 7 顆：「昨日資金去向」標題旁新增 ovflow（Andy：說明放進「?」）
-    for k in ("heat", "themeov", "rotm", "ovflow", "breadth", "trust", "m3"):
+    # 2026-09-28 7 → 6 顆：法人連續買賣超（trust）搬到市場明細「法人連買賣」分頁，那顆「?」在「市場明細下鑽0928」段驗
+    for k in ("heat", "themeov", "rotm", "ovflow", "breadth", "m3"):
         pg.evaluate("() => window.scrollTo(0, 0)")
         click(pg, f'#v-overview .howbtn.pop[data-how="{k}"]', 450)
         hp = pg.evaluate("""(k) => { const p = document.getElementById('howPop'), bk = document.getElementById('howBack'), b = document.getElementById('how-' + k);
@@ -1194,13 +1195,8 @@ def t_overview(pg, base):
     # ★ 2026-09-23：「族群估值」`#gval` 整塊移除（Andy 追問後回覆 OK），所以它那一圈拿掉 ——
     #   留著的話 `getInstanceByDom(null)` 回 null，那一圈三條會一起紅。
     # 改前：市場寬度＝儀表＋堆疊長條 → 改後：漲跌家數分佈直條（上面已逐條驗），這裡只留法人那張的型別
-    for cid, name, want in (("trust", "法人連續買賣超", ("scatter",)),):
-        types = pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('{cid}'));
-            return c ? (c.getOption().series || []).map(s => s.type) : null; }}""")
-        ok(f"總覽「{name}」有畫出來", bool(types), types)
-        if cid != "breadth":
-            ok(f"總覽「{name}」不是長條圖", types and 'bar' not in types, types)
-        ok(f"總覽「{name}」用的是更生動的圖形", types and any(w in types for w in want), types)
+    # ★ 2026-09-28：法人連續買賣超搬到市場明細（#market/streak），這一圈（四象限散佈圖的型別）搬進 t_streak
+    #   —— 那裡本來就逐條驗四象限（點數、左右半、象限名），總覽上已經沒有這張圖。
 
     # 改前：這裡驗「市場寬度只有一根堆疊長條＋上半是儀表」→ 改後：卡片已換成「漲跌家數」11 級分佈（上面新的驗收）。
 
@@ -1265,9 +1261,13 @@ def t_overview(pg, base):
     # --- 資金熱力圖保留縮放，放大後要能用游標抓著移動
     check_drag(pg, "heatWrap", "資金熱力圖")
 
-    # --- ★ 法人連續買超（Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動，
-    #     還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」）
-    t_streak(pg, base)
+    # --- ★ 法人連續買超：2026-09-28 搬到市場明細（Andy：「法人連續買賣超 資訊移動到市場明細」），
+    #     操作驗收（t_streak）改在「市場明細」段跑；這裡只驗總覽沒有重複、原位置留了指路連結。
+    dup = pg.evaluate("""() => ({ trust: !!document.querySelector('#v-overview #trust'), card: !!document.getElementById('ovTrustCard'),
+        who: document.querySelectorAll('#v-overview #streakWho').length,
+        link: (document.getElementById('ovTrustLink') || {}).getAttribute ? document.getElementById('ovTrustLink').getAttribute('href') : null })""")
+    ok("★ 總覽不再有「法人連續買賣超」那張圖（搬到市場明細，不重複）", not dup["trust"] and not dup["card"] and dup["who"] == 0, dup)
+    ok("★ 總覽原位置留一條連結指向市場明細的法人分頁", dup["link"] == "#market/streak", dup)
 
     # --- 熱力圖要把卡片填滿，不可以留一塊空的（Andy：「不滿當前版面」）
     # 重新載入一次：前面的測試會把「成分股」面板留在展開狀態，那塊也算在卡片高度裡
@@ -1293,7 +1293,8 @@ def t_overview(pg, base):
 
     # --- 下方那幾張圖：要有資料，不是空狀態
     # ★ 2026-09-23：「族群估值」`#gval` 整塊移除，從清單拿掉（留著 `has` 會是 None ＝ 必紅）
-    for cid, name in (("breadth", "漲跌家數"), ("trust", "法人連續買賣超")):
+    # 2026-09-28：法人連續買賣超搬到市場明細，這裡只剩漲跌家數（那張在「市場明細」段驗）
+    for cid, name in (("breadth", "漲跌家數"),):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty') || /尚無|沒有|回補中/.test(e.innerText) }} : null; }}")
         ok(f"總覽「{name}」有畫出來", bool(has) and has["canvas"] and not has["empty"], has)
 
@@ -1308,6 +1309,9 @@ def t_streak(pg, base):
     pts_of = ("() => { const c = echarts.getInstanceByDom(document.getElementById('trust'));"
               " if (!c) return -1; const s = (c.getOption().series || [])[0];"
               " return s && s.data ? s.data.length : 0; }")
+    # 2026-09-28：這張圖從總覽搬到市場明細的「法人連買賣」分頁（#market/streak）
+    pg.goto(f"{base}#market/streak", wait_until="networkidle")
+    wait_until(pg, "() => { const e = document.getElementById('trust'); return e && (e.querySelector('canvas') || e.querySelector('.empty')); }", 8000)
     scroll_to(pg, "trustWrap")
     ok("法人連續買超有三顆切換鈕（投信／外資／合計）", count(pg, "#streakWho button") == 3,
        count(pg, "#streakWho button"))
@@ -1323,10 +1327,12 @@ def t_streak(pg, base):
         const o = c.getOption(), s = o.series[0];
         const xs = s.data.map(d => d.value[0]);
         const g = (o.graphic || []).flatMap(x => x.elements || [x]).map(x => (x.style || {}).text).filter(Boolean);
-        return { n: s.data.length, pts: +e.dataset.pts, buys: +e.dataset.buys, sells: +e.dataset.sells,
+        return { n: s.data.length, pts: +e.dataset.pts, buys: +e.dataset.buys, sells: +e.dataset.sells, types: o.series.map(x => x.type),
                  pos: xs.filter(x => x > 0).length, neg: xs.filter(x => x < 0).length, quads: g,
                  ylog: o.yAxis[0].type, sub: (document.getElementById('streakSub') || {}).textContent || '',
-                 row: !!document.querySelector('#ovTrustCard .linkrow') }; }""")
+                 row: !!document.querySelector('#mktBody .linkrow') }; }""")
+    ok("法人連續買賣超是散佈圖、不是長條圖（原本在總覽驗，2026-09-28 跟著搬來）",
+       bool(q4) and "scatter" in q4["types"] and "bar" not in q4["types"], q4 and q4["types"])
     ok("★ 四象限點數＝買超檔數＋賣超檔數", bool(q4) and q4["n"] == q4["pts"] == q4["buys"] + q4["sells"], q4)
     ok("★ 買在右半、賣在左半（兩邊都有點）", bool(q4) and q4["pos"] == q4["buys"] > 0 and q4["neg"] == q4["sells"] > 0, q4)
     ok("★ 四個象限都有標名：連買加碼／連買減碼／連賣加碼／連賣減碼",
@@ -1374,11 +1380,238 @@ def t_streak(pg, base):
     check_drag(pg, "trustWrap", "法人連續買超")
 
 
+# ===================================================================== 市場明細下鑽（2026-09-28）
+# Andy：「法人連續買賣超 資訊移動到市場明細 並且漲跌家數這邊點擊長條圖後，會顯示個股在右邊可以看」。
+# 驗的全部是「畫面真的因此改變了」：
+#   · 點兩根不同的長條 → 名單真的換掉（區間標題、代號清單都不同）、筆數＝長條上的家數、
+#     每一檔的原始漲跌幅都落在那一根的區間裡（用 data-chg 原值比，不用四捨五入後的字）
+#   · 預設依漲跌幅排（正半邊由大到小、負半邊由小到大）；切「依成交值」真的重排
+#   · 名單在圖的右邊（1440／800）、在圖的下面（390）；選中那根照原色、其他淡掉
+#   · 收起：×、點圖的空白處、Esc 三條路都真的收掉；篩選「上市」時名單跟著重算、仍＝長條家數
+#   · 點名稱進個股頁
+#   · 法人連續買賣超：市場明細看得到而且畫得出來、總覽沒有重複、總覽的指路連結帶得過去
+#   · 1440／800／390 整頁沒有橫向捲軸；390 名單裡的字 ≥ 11px
+DRILL_EDGES = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
+
+DRILL_BARS = """() => { const e = document.getElementById('chgDist'); const c = e && echarts.getInstanceByDom(e); if (!c) return null;
+    const o = c.getOption(); const s = o.series[0]; const r = e.getBoundingClientRect();
+    return { labels: o.xAxis[0].data, vals: s.data.map(d => (d && d.value != null) ? d.value : d),
+             ops: s.data.map(d => (d && d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1),
+             pts: s.data.map((d, i) => { const v = (d && d.value != null) ? d.value : d;
+               const p = c.convertToPixel({ seriesIndex: 0 }, [i, Math.max(v, 0) / 2]); const base = c.convertToPixel({ seriesIndex: 0 }, [i, 0]);
+               // 0 家或很矮的長條點「那一欄、軸線上方 12px」（整欄都算點到那一根）
+               const y = (base[1] - p[1] < 12) ? base[1] - 12 : p[1];
+               return { x: r.left + p[0], y: r.top + y }; }),
+             box: { l: r.left, t: r.top, w: r.width, h: r.height } }; }"""
+
+DRILL_PANEL = """() => { const b = document.getElementById('distPick'), ch = document.getElementById('chgDistBox');
+    if (!b || b.hidden || !b.getClientRects().length) return { open: false };
+    const r = b.getBoundingClientRect(), cr = ch.getBoundingClientRect();
+    const rows = [...b.querySelectorAll('tr[data-code]')].map(t => ({ code: t.dataset.code, chg: +t.dataset.chg,
+        to: t.dataset.to === '' ? null : +t.dataset.to }));
+    let minFs = 99; b.querySelectorAll('*').forEach(x => { if (!x.childElementCount && (x.textContent || '').trim() && x.getClientRects().length) minFs = Math.min(minFs, parseFloat(getComputedStyle(x).fontSize)); });
+    return { open: true, bin: +b.dataset.bin, head: ((b.querySelector('.dph b') || {}).textContent || '').trim(),
+             n: +((b.querySelector('.dpn') || {}).textContent || -1), rows,
+             sort: ((b.querySelector('#distSort button.on') || { dataset: {} }).dataset.s) || '',
+             right: r.left >= cr.right - 1 && r.top < cr.bottom && r.bottom > cr.top,
+             below: r.top >= cr.bottom - 1, minFs,
+             inView: r.left >= 0 && r.right <= innerWidth + 1 && getComputedStyle(b).visibility !== 'hidden' && getComputedStyle(b).position !== 'fixed',
+             pl: r.left, pr: r.right, cl: cr.left, crr: cr.right }; }"""
+
+
+def _drill_in_bin(i: int, v: float, nb: int) -> bool:
+    if i == 0:
+        return v <= -10
+    if i == nb - 1:
+        return v >= 10
+    return DRILL_EDGES[i - 1] < v <= DRILL_EDGES[i] and -10 < v < 10
+
+
+def _drill_sorted(rows, bin_i, key):
+    if not rows:
+        return True
+    if key == "to":
+        vs = [r["to"] if r["to"] is not None else 0 for r in rows]
+        return all(vs[k] >= vs[k + 1] for k in range(len(vs) - 1))
+    vs = [r["chg"] for r in rows]
+    if bin_i < 5:
+        return all(vs[k] <= vs[k + 1] for k in range(len(vs) - 1))
+    return all(vs[k] >= vs[k + 1] for k in range(len(vs) - 1))
+
+
+def _drill_pick_two(bars):
+    """挑兩根有股票、而且不相鄰的長條（一根在負半邊、一根在正半邊最好，名單一定不同）。"""
+    vals = bars["vals"]
+    neg = [i for i in range(0, 5) if vals[i] > 0]
+    pos = [i for i in range(5, len(vals)) if vals[i] > 0]
+    # 家數適中的優先（不要剛好挑到七八百檔那根，名單要捲很久但驗的東西一樣）
+    neg.sort(key=lambda i: abs(vals[i] - 60)); pos.sort(key=lambda i: abs(vals[i] - 60))
+    if neg and pos:
+        return neg[0], pos[0]
+    allb = [i for i, v in enumerate(vals) if v > 0]
+    return (allb[0], allb[-1]) if len(allb) >= 2 else (None, None)
+
+
+def _drill_check_bin(pg, tag, bars, i):
+    """點第 i 根，回傳面板內容並驗：筆數＝長條家數、每一檔落在區間、預設排序、選中那根沒淡掉。"""
+    pt = bars["pts"][i]
+    pg.mouse.click(pt["x"], pt["y"])
+    wait_until(pg, f"() => {{ const b = document.getElementById('distPick'); return b && !b.hidden && b.dataset.bin === '{i}'; }}", 4000)
+    pg.wait_for_timeout(300)
+    p = pg.evaluate(DRILL_PANEL)
+    lab = bars["labels"][i]
+    if not ok(f"★ [{tag}] 點「{lab}%」那根長條 → 名單打開、而且是那一根", p["open"] and p["bin"] == i, p if not p["open"] else [p["bin"], p["head"]]):
+        return p
+    # 2026-09-28 開發時踩到：名單用 <aside> 會吃到全站「今日事件抽屜」的 aside 規則（fixed、藏在畫面右外側）——
+    # 「在圖的右邊」這條照樣成立，所以另外驗名單整塊都在視窗裡、看得見
+    ok(f"★ [{tag}] 「{lab}%」名單整塊在視窗裡看得見（不是飛到畫面外）", p.get("inView"), [p.get("pl"), p.get("pr")])
+    ok(f"★ [{tag}] 「{lab}%」名單筆數＝長條上的家數", p["n"] == len(p["rows"]) == bars["vals"][i], [p["n"], len(p["rows"]), bars["vals"][i]])
+    bad = [r for r in p["rows"] if not _drill_in_bin(i, r["chg"], len(bars["labels"]))]
+    ok(f"★ [{tag}] 「{lab}%」每一檔的漲跌幅都落在這個區間裡", not bad, bad[:3])
+    ok(f"[{tag}] 「{lab}%」預設依漲跌幅排（越極端越上面）", p["sort"] == "chg" and _drill_sorted(p["rows"], i, "chg"),
+       [p["sort"], [r["chg"] for r in p["rows"][:5]]])
+    ops = pg.evaluate(DRILL_BARS)["ops"]
+    ok(f"[{tag}] 選中那根照原色、其他長條淡掉", ops[i] == 1 and all(o < 1 for k, o in enumerate(ops) if k != i), ops)
+    return p
+
+
+def t_market_drill_0928(pg, b, base):
+    tag = "市場明細下鑽0928"
+    for w in (1440, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        # 真的重新載入：只換 hash 不會重整，上一輪打開的名單會被刻意保留（從個股頁按返回時停在原本那一根）
+        pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.reload(wait_until="networkidle")
+        wait_until(pg, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e); }", 8000)
+        pg.wait_for_timeout(800)
+        scroll_to(pg, "chgDistBox"); pg.wait_for_timeout(500)
+        bars = pg.evaluate(DRILL_BARS)
+        if not ok(f"[{tag} {w}] 漲跌分佈長條圖畫出來了", bool(bars) and sum(bars["vals"]) > 0, bars and bars["vals"]):
+            continue
+        ok(f"[{tag} {w}] 一開始名單是收著的，圖吃滿整列", not pg.evaluate(DRILL_PANEL)["open"])
+        i1, i2 = _drill_pick_two(bars)
+        if not ok(f"[{tag} {w}] 至少有兩根有股票的長條（下面兩條才驗得了）", i1 is not None, bars["vals"]):
+            continue
+        p1 = _drill_check_bin(pg, f"{tag} {w}", bars, i1)
+        ok(f"★ [{tag} {w}] 名單在圖的右邊", p1.get("right"), p1.get("open") and [p1["cl"], p1["crr"], p1["pl"], p1["pr"]])
+        # 名單打開後圖變窄 → 長條位置要重量
+        pg.wait_for_timeout(500)
+        bars = pg.evaluate(DRILL_BARS)
+        p2 = _drill_check_bin(pg, f"{tag} {w}", bars, i2)
+        ok(f"★ [{tag} {w}] 再點另一根 → 名單真的換了（區間標題與代號都不同）",
+           p1.get("open") and p2.get("open") and p1["head"] != p2["head"]
+           and [r["code"] for r in p1["rows"]] != [r["code"] for r in p2["rows"]],
+           [p1.get("head"), p2.get("head")])
+        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 3000)
+        ok(f"★ [{tag} {w}] 名單開著時整頁沒有橫向捲軸", wide == "ok", pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+        if w != 1440:
+            continue
+        # --- 切排序
+        pg.click("#distSort button[data-s='to']"); pg.wait_for_timeout(400)
+        ps = pg.evaluate(DRILL_PANEL)
+        ok(f"[{tag}] 切「依成交值」→ 名單真的依成交值由大到小重排，筆數不變",
+           ps["sort"] == "to" and _drill_sorted(ps["rows"], i2, "to") and len(ps["rows"]) == len(p2["rows"]),
+           [ps["sort"], [r["to"] for r in ps["rows"][:4]]])
+        pg.click("#distSort button[data-s='chg']"); pg.wait_for_timeout(400)
+        ok(f"[{tag}] 切回「依漲跌幅」排序回得來", [r["code"] for r in pg.evaluate(DRILL_PANEL)["rows"]] == [r["code"] for r in p2["rows"]])
+        # --- 篩選上市：名單跟著重算
+        if count(pg, "#distMkt button[data-m='TWSE']"):
+            pg.click("#distMkt button[data-m='TWSE']"); pg.wait_for_timeout(900)
+            bf = pg.evaluate(DRILL_BARS); pf = pg.evaluate(DRILL_PANEL)
+            ok(f"[{tag}] 篩「上市」時名單仍開著、停在同一根，筆數＝新的長條家數",
+               pf["open"] and pf["bin"] == i2 and len(pf["rows"]) == bf["vals"][i2] == pf["n"], [pf.get("bin"), len(pf.get("rows", [])), bf["vals"][i2]])
+            ok(f"[{tag}] 篩「上市」後的名單比全部少或一樣多", len(pf["rows"]) <= len(p2["rows"]), [len(pf["rows"]), len(p2["rows"])])
+            pg.click("#distMkt button[data-m='']"); pg.wait_for_timeout(900)
+        # --- 三條收起的路
+        pg.click("#distPickX"); pg.wait_for_timeout(400)
+        ok(f"★ [{tag}] 按 × 收起名單", not pg.evaluate(DRILL_PANEL)["open"])
+        ok(f"[{tag}] 收起後長條全部恢復原色", all(o == 1 for o in pg.evaluate(DRILL_BARS)["ops"]), pg.evaluate(DRILL_BARS)["ops"])
+        pg.wait_for_timeout(400)
+        bars = pg.evaluate(DRILL_BARS)
+        pt = bars["pts"][i1]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(500)
+        ok(f"[{tag}] 收起後再點長條打得開", pg.evaluate(DRILL_PANEL)["open"])
+        bx = pg.evaluate(DRILL_BARS)["box"]
+        pg.mouse.click(bx["l"] + 6, bx["t"] + 6); pg.wait_for_timeout(500)
+        ok(f"★ [{tag}] 點圖的空白處（格線外）收起名單", not pg.evaluate(DRILL_PANEL)["open"])
+        bars = pg.evaluate(DRILL_BARS)
+        pt = bars["pts"][i1]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(500)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+        ok(f"[{tag}] 按 Esc 收起名單", not pg.evaluate(DRILL_PANEL)["open"])
+        # --- 點名稱進個股頁
+        bars = pg.evaluate(DRILL_BARS)
+        pt = bars["pts"][i1]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(500)
+        code = pg.evaluate("() => { const t = document.querySelector('#distPick tr[data-code]'); return t ? t.dataset.code : null; }")
+        if ok(f"[{tag}] 名單有個股可以點", bool(code), code):
+            pg.click(f"#distPick tr[data-code='{code}'] a"); pg.wait_for_timeout(1200)
+            ok(f"★ [{tag}] 點名單上的名稱進個股頁", pg.evaluate("location.hash") == f"#stock/{code}", pg.evaluate("location.hash"))
+
+    # ---------------------------------------------------------------- 法人連續買賣超：搬到市場明細、總覽不重複
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    ov = pg.evaluate("""() => ({ trust: !!document.querySelector('#v-overview #trust'), card: !!document.getElementById('ovTrustCard'),
+        who: document.querySelectorAll('#v-overview #streakWho').length, link: !!document.getElementById('ovTrustLink') })""")
+    ok(f"★ [{tag}] 總覽的原位置沒有重複的法人連續買賣超", not ov["trust"] and not ov["card"] and ov["who"] == 0, ov)
+    if ok(f"[{tag}] 總覽原位置留一條連結", ov["link"], ov):
+        pg.click("#ovTrustLink"); pg.wait_for_timeout(1500)
+        ok(f"★ [{tag}] 點總覽那條連結 → 到市場明細的「法人連買賣」分頁", pg.evaluate("location.hash") == "#market/streak"
+           and pg.evaluate("() => (document.querySelector('#mktSeg2 button.on') || {dataset:{}}).dataset.k") == "streak",
+           pg.evaluate("location.hash"))
+    for w in (1440, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#market/streak", wait_until="networkidle")
+        wait_until(pg, "() => { const e = document.getElementById('trust'); return e && e.querySelector('canvas'); }", 8000)
+        st = pg.evaluate("""() => { const e = document.getElementById('trust'); const c = e && echarts.getInstanceByDom(e);
+            return { n: c ? (c.getOption().series[0].data || []).length : 0, sub: (document.getElementById('streakSub') || {}).textContent || '',
+                     inMkt: !!(e && e.closest('#v-market')), btns: document.querySelectorAll('#v-market #streakWho button').length }; }""")
+        ok(f"★ [{tag} {w}] 市場明細看得到法人連續買賣超（四象限有點、三顆法人鈕、副標有買賣檔數）",
+           st["inMkt"] and st["n"] > 0 and st["btns"] == 3 and "買" in st["sub"] and "賣" in st["sub"], st)
+        pg.click("#streakWho button[data-w='foreign']"); pg.wait_for_timeout(700)
+        ok(f"[{tag} {w}] 市場明細裡切「外資」副標真的換了", "外資" in text(pg, "#streakSub"), text(pg, "#streakSub"))
+        pg.click("#streakWho button[data-w='trust']"); pg.wait_for_timeout(500)
+        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 3000)
+        ok(f"★ [{tag} {w}] 法人分頁整頁沒有橫向捲軸", wide == "ok", pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+
+    # ---------------------------------------------------------------- 手機 390：名單排在圖下面、字 ≥ 11px、沒有橫向捲軸
+    ctx = b.new_context(**MOBILE_VP)
+    m = ctx.new_page()
+    errs: list[str] = []
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        m.goto(f"{base}#market/updown", wait_until="networkidle")
+        wait_until(m, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e); }", 8000)
+        m.wait_for_timeout(900)
+        scroll_to(m, "chgDistBox"); m.wait_for_timeout(500)
+        bars = m.evaluate(DRILL_BARS)
+        i1, i2 = _drill_pick_two(bars) if bars else (None, None)
+        if ok(f"[{tag} 390] 手機上漲跌分佈畫得出來、有兩根可點", i1 is not None, bars and bars["vals"]):
+            p1 = _drill_check_bin(m, f"{tag} 390", bars, i1)
+            ok(f"★ [{tag} 390] 手機名單排在圖的下面", p1.get("below"), p1.get("open") and p1)
+            ok(f"[{tag} 390] 名單裡的字 ≥ 11px", p1.get("minFs", 0) >= 11, p1.get("minFs"))
+            scroll_to(m, "chgDistBox"); m.wait_for_timeout(500)
+            bars = m.evaluate(DRILL_BARS)
+            p2 = _drill_check_bin(m, f"{tag} 390", bars, i2)
+            ok(f"★ [{tag} 390] 手機再點另一根名單真的換了", p1.get("open") and p2.get("open") and p1["head"] != p2["head"], [p1.get("head"), p2.get("head")])
+            ok(f"★ [{tag} 390] 名單開著時沒有橫向捲軸", m.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
+               m.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+        m.goto(f"{base}#market/streak", wait_until="networkidle")
+        wait_until(m, "() => { const e = document.getElementById('trust'); return e && (e.querySelector('canvas') || e.querySelector('.empty')); }", 8000)
+        m.wait_for_timeout(600)
+        ok(f"★ [{tag} 390] 手機市場明細也看得到法人連續買賣超", m.evaluate("() => { const e = document.getElementById('trust'); return !!(e && e.querySelector('canvas') && e.getBoundingClientRect().height > 100); }"))
+        ok(f"★ [{tag} 390] 法人分頁沒有橫向捲軸", m.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
+           m.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+        m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
+        ok(f"[{tag} 390] 手機總覽也沒有重複的法人連續買賣超", m.evaluate("() => !document.querySelector('#v-overview #trust') && !document.getElementById('ovTrustCard')"))
+        ok(f"[{tag} 390] 整段沒有 JS 錯誤", not errs, errs[:2])
+    finally:
+        ctx.close()
+
+
 def t_market(pg, base):
     pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(2000)
     tabs = pg.evaluate("[...document.querySelectorAll('#mktSeg2 button')].map(b => b.dataset.k)")
     # 2026-09-18（Andy 圖16「市場明細內資金集中這頁拿掉」）：四個 → 三個
-    ok("市場明細有三個分頁（資金集中已移除）", tabs == ["updown", "ma", "cand"], tabs)
+    # 2026-09-28（Andy「法人連續買賣超 資訊移動到市場明細」）：多一個「法人連買賣」（streak）
+    ok("市場明細有四個分頁（漲跌家數／法人連買賣／站上均線／今日候選）", tabs == ["updown", "streak", "ma", "cand"], tabs)
     ok("資金集中那一頁真的拿掉了", "top5" not in tabs, tabs)
     seen = {}
     for k in tabs:
@@ -1386,7 +1619,7 @@ def t_market(pg, base):
         seen[k] = pg.evaluate("""() => ({ on: (document.querySelector('#mktSeg2 button.on')||{dataset:{}}).dataset.k,
             title: (document.getElementById('mktTitle')||{}).innerText.split(String.fromCharCode(10))[0],
             rows: document.querySelectorAll('#mktBody tr[data-code]').length,
-            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5').length })""")
+            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody #trust canvas, #mktBody #trust .empty').length })""")
         ok(f"市場明細「{k}」按下去真的被選取", seen[k]["on"] == k, seen[k])
         ok(f"市場明細「{k}」有列出東西", seen[k]["rows"] > 0 or seen[k]["blocks"] > 0, seen[k])
     ok("四個分頁標題各不相同", len({v["title"] for v in seen.values()}) == len(seen),
@@ -1419,6 +1652,10 @@ def t_market(pg, base):
     if count(pg, "#mktBody tr[data-code]"):
         click(pg, "#mktBody tr[data-code]", 1600)
         ok("市場明細點一列會進個股頁", pg.evaluate("location.hash").startswith("#stock/"), pg.evaluate("location.hash"))
+
+    # --- ★ 法人連續買超（Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動，
+    #     還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」）；2026-09-28 起在市場明細
+    t_streak(pg, base)
 
     # ================================================================ D4：漲跌幅多一個「即時」模式
     # Andy 2026-09-23：「漲跌幅需要多一個『即時』Mode」。
@@ -5133,7 +5370,7 @@ def t_new_layout(pg, base):
       /* ★ 2026-09-23：`gval`（族群估值）整塊移除，從掃描清單拿掉。
          ⚠ 這裡不是 `ok()`：找不到那張圖會被 `out.overlaps.push([...])` **算成一筆重疊**而變紅，
            用關鍵字搜 `ok(` 找不到它 —— 這種「不是斷言但會判紅」的地方最容易漏。*/
-      const want = ['breadth', 'trust'];
+      const want = ['breadth'];            // 2026-09-28 trust 搬到市場明細（#market/streak），不在總覽了
       const out = { overlaps: [], outside: [], nodes: {} };
       for (const id of want) {
         const host = document.getElementById(id);
@@ -16747,6 +16984,8 @@ SECTIONS = {
     # ★ 2026-09-26 Andy：總覽「漲跌家數」要分 上市／上櫃／全部（切換、點一級清單、重新整理記住、淺色、手機 390）
     "漲跌家數市場別":      lambda pg, b, base, code: t_ud_market(pg, base),
     "市場明細":            lambda pg, b, base, code: t_market(pg, base),
+    # ★ 2026-09-28 Andy：法人連續買賣超搬到市場明細；漲跌分佈點長條 → 右側列出那一段的個股（⚠ 一律 --workers 1）
+    "市場明細下鑽0928":    lambda pg, b, base, code: t_market_drill_0928(pg, b, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
     "產業":                lambda pg, b, base, code: t_industry(pg, base),
     "族群頁":              lambda pg, b, base, code: t_group_pages(pg, base),
@@ -17008,6 +17247,8 @@ SECTIONS = {
     #   全站每一頁（含分段、抽屜、彈窗）所有看得見的可點元素，390 與 360 各用觸控點一次：點得到、有反應、收得回來。
     #   量測在 scripts/_mobile_tap_audit.py（單獨跑有完整報告），⚠ 一律 --workers 1，一輪很長。
     "手機按鈕普查":        lambda pg, b, base, code: t_mobile_tap_audit(b, base, code),
+    # ★ 2026-09-28 設計 v4 第二批 2D：360 圖例撐寬（放大層關不掉、圖例點不到）＋觸控目標 40（章節鈕列、排序抽屜、圖例、頁尾、連結）
+    "手機v4二批":          lambda pg, b, base, code: t_mobile_v4_2d(b, base, code),
     # ★ 2026-09-27 Andy：Google 登入、使用統計、線上人數、自選清單五分頁（DECISIONS #270）
     #   「會員與自選五分頁」＝沒有設定檔（線上現況）；「會員雲端路徑」＝本機跑真的 worker.js＋假 Google（⚠ 一律 --workers 1）
     "會員與自選五分頁":    lambda pg, b, base, code: t_watchlists_guest(b, base),
@@ -18288,6 +18529,28 @@ def t_ov_right(pg, base):
     click(pg, '#ovFlowHead .howbtn.pop[data-how="ovflow"]', 450)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     ok("[總覽右欄] 按 Esc 也關", pg.evaluate("() => document.getElementById('how-ovflow').hidden"))
+    # ★ 2026-09-29 根因：標題圖示（icons.js）把 span.ticon 插成標題第一個子節點，howPop 讀 childNodes[0] 讀到空字 →
+    #   全站跳出式說明的標題都退成「說明」。改後 howTitle() 跳過圖示。這裡把總覽上「標題裡有圖示」的每一顆跳出式「?」
+    #   都真的點一次，彈窗標題要等於「?」前面那段標題字（不是「說明」、也不是空的）。
+    keys = pg.evaluate("""() => [...document.querySelectorAll('#v-overview .howbtn.pop[data-how]')]
+        .filter(b => b.getClientRects().length && !b.dataset.ttl && b.closest('h2,h3,h4,h5') && b.closest('h2,h3,h4,h5').querySelector('.ticon'))
+        .map(b => b.dataset.how)""")
+    bad_t = []
+    for k in keys:
+        pg.evaluate("() => window.scrollTo(0, 0)")
+        click(pg, f'#v-overview .howbtn.pop[data-how="{k}"]', 400)
+        r = pg.evaluate("""(k) => { const b = document.querySelector('#v-overview .howbtn.pop[data-how="' + k + '"]') || document.querySelector('.howbtn.pop[data-how="' + k + '"]');
+            const h = b && b.closest('h2,h3,h4,h5'); let want = '';
+            if (h) for (const n of h.childNodes) { if (n === b) break; if (n.nodeType === 1 && n.classList.contains('ticon')) continue;
+                const t = (n.textContent || '').trim(); if (t) { want = t; break; } }
+            const p = document.getElementById('howPop');
+            return { open: !!p && !p.hidden, ttl: p ? ((p.querySelector('.hp-h') || {}).textContent || '').trim() : '', want }; }""", k)
+        if not (r["open"] and r["ttl"] and r["ttl"] != "說明" and r["ttl"] == r["want"]):
+            bad_t.append((k, r))
+        if r["open"]:
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    ok(f"[總覽右欄] ★ 總覽每一顆有標題圖示的跳出式「?」，彈窗標題＝標題字（不是「說明」；共 {len(keys)} 顆）",
+       len(keys) >= 3 and not bad_t, bad_t[:4] or keys)
     # ★ 2026-09-26 改前→改後：起點節點、滑過提示、點族群不跳頁 —— 改前讀 ECharts 的 series／getItemGraphicEl，
     #   改後這張在桌機是 flowtopo 緊湊光纖版，改讀畫布探針＋真的用滑鼠滑過／點（_ovfx_checks，深淺主題各一輪）。
     for th in ("dark", "light"):
@@ -18321,7 +18584,8 @@ def t_ov_right(pg, base):
 def t_copy_trim(pg, base, code):
     """說明精簡：卡片上的說明 ≤40 字、每顆「怎麼看 ?」點得開且條列短。"""
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    routes = [("overview", None), ("market", None), ("flow", None), ("heatmap", None), ("heatmap/theme/cowos", None),
+    # 2026-09-28：法人連續買賣超（trust）搬到市場明細的「法人連買賣」分頁 → 多掃一次 market/streak
+    routes = [("overview", None), ("market", None), ("market/streak", None), ("flow", None), ("heatmap", None), ("heatmap/theme/cowos", None),
               ("industry", None), ("industry/semiconductor/overview", None), ("industry/semiconductor", None),
               ("industry/ai_server", None), ("season", None)] + \
              [(f"stock/{code}", t) for t in ("overview", "profit", "basics", "news")]
@@ -31512,7 +31776,7 @@ def t_block_registry(b, base, code):
     m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1800)
     st = m.evaluate("""() => ({ mods: typeof window.TwModules, pager: document.querySelectorAll('.view.on > .mpager').length,
         off: document.querySelectorAll('.view.on .mp-off').length,
-        shown: ['#ovHeatCard', '#ovTrustCard', '#ovCandCard'].filter(s => { const e = document.querySelector(s);
+        shown: ['#ovHeatCard', '#ovBreadthCard', '#ovCandCard'].filter(s => { const e = document.querySelector(s);
           return e && e.getBoundingClientRect().height > 0; }).length })""")
     ok(f"【{tag}】擋掉 modules.js：沒有分段列、沒有被收起的卡、熱力／法人／候選三張卡都照常顯示",
        st["mods"] == "undefined" and st["pager"] == 0 and st["off"] == 0 and st["shown"] == 3, st)
@@ -31532,8 +31796,8 @@ def t_block_implicit(b, base):
     pg = ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    pg.goto(base + "#overview", wait_until="networkidle")
-    wait_until(pg, "window.App && document.querySelector('#streakSub') && /檔/.test(document.querySelector('#streakSub').textContent)", 8000)
+    pg.goto(base + "#market/streak", wait_until="networkidle")     # 2026-09-28 從總覽搬到市場明細
+    wait_until(pg, "window.App && document.querySelector('#streakSub') && /買/.test(document.querySelector('#streakSub').textContent)", 8000)
     read = """() => { const el = document.getElementById('trust'); const c = el && window.echarts && echarts.getInstanceByDom(el);
         const s = c && c.getOption().series[0];
         return { sub: document.getElementById('streakSub').textContent, n: s ? (s.data || []).length : 0 }; }"""
@@ -36043,6 +36307,209 @@ def t_mobile_tap_audit(b, base, code):
     ndg = sum(1 for r in res["rows"] if A.is_dg_part(r) and (r["blocked"] or r["noreact"] or r["noclose"]))
     notes.append(f"手機按鈕普查：點過 {len(res['rows'])} 顆、觸控目標 < {A.MIN_TOUCH}px 的 {len(res['small'])} 顆、"
                  f"剖析圖零件圖形點不到或沒反應 {ndg} 列（手機以編號為入口，不算紅燈）—— 列表見 docs/_mobile_tap/report.md")
+
+
+# ★ 2026-09-28 設計 v4 第二批 2D：手機 360／390 修正
+#   ① 360 寬熱力圖圖例整條（.hmbar）撐出 382 寬 → 手機瀏覽器把版面視窗放大到 382、觸控座標對不上：
+#      放大層按「關閉 ✕」關不掉、圖例 7 格有 6 格點了沒反應。這一段用觸控真的點：放大層打開 → 點 ✕ → 真的關掉；
+#      圖例每一格點下去真的只亮那一級、再點一次還原；總覽每一段的文件寬 ＝ 視窗寬（版面視窗沒被撐大）。
+#   ② 觸控目標放大到 40：剖析圖章節鈕列（點了圖真的展開）、週期統計排序抽屜（點了表頭排序月真的換、熱力圖列順序真的變）、
+#      產業地圖圖例／頁尾連結／個股基本資料連結 ≥ 40 高、a.lk 點擊區 ≥ 40 而且中心點不會被隔壁的點擊區搶走。
+#   ③ 桌機（1440）不插章節鈕列、不插排序鈕、圖裡的章節列照樣可以點。
+_HITBOX_JS = r"""
+(e) => { const r = e.getBoundingClientRect(); let x0 = r.left, y0 = r.top, x1 = r.right, y1 = r.bottom;
+  if (getComputedStyle(e).position !== 'static') for (const ps of ['::before', '::after']) {
+    const cs = getComputedStyle(e, ps); if (cs.content === 'none' || cs.content === 'normal' || cs.position !== 'absolute' || cs.display === 'none') continue;
+    const t = parseFloat(cs.top), l = parseFloat(cs.left), rr = parseFloat(cs.right), b = parseFloat(cs.bottom);
+    if (isFinite(t)) y0 = Math.min(y0, r.top + t); if (isFinite(b)) y1 = Math.max(y1, r.bottom - b);
+    if (isFinite(l)) x0 = Math.min(x0, r.left + l); if (isFinite(rr)) x1 = Math.max(x1, r.right - rr); }
+  return { w: Math.round(x1 - x0), h: Math.round(y1 - y0) }; }
+"""
+
+
+def t_mobile_v4_2d(b, base, code):
+    sys.path.insert(0, str(ROOT))
+    import importlib
+    A = importlib.import_module("scripts._mobile_tap_audit")
+
+    def tap(m, sel):
+        c = m.evaluate("""(s) => { const e = document.querySelector(s); if (!e) return null;
+            e.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = e.getBoundingClientRect();
+            const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2, hit: !!h && (h === e || e.contains(h)) }; }""", sel)
+        if c:
+            m.touchscreen.tap(c["x"], c["y"]); m.wait_for_timeout(650)
+        return c
+
+    for W in (390, 360):
+        T = f"[手機v4二批 {W}px]"
+        au = A.Auditor(b, base, W, log=lambda *a, **k: None)
+        m = au.new_page()
+        m.on("pageerror", lambda e: fails.append(f"手機v4二批 pageerror: {e}"))
+        try:
+            # ---- ① 總覽每一段：文件寬 ＝ 視窗寬（版面視窗沒有被撐大）
+            au.load({"name": "總覽", "hash": "#overview"})
+            bars = m.evaluate(A.SEG_JS)
+            segs = [(f"{bar['sel']} > :nth-child({bt['nth']})", bt["label"]) for bar in bars if "mpager" in bar["sel"] for bt in bar["btns"]]
+            heat_step = next((s for s, lb in segs if lb.startswith("熱力圖")), None)
+            wide = []
+            for s, lb in segs:
+                au.load({"name": lb, "hash": "#overview", "steps": [s]})
+                d = m.evaluate("() => [document.documentElement.scrollWidth, innerWidth, Math.round(visualViewport.width)]")
+                if d[0] > W or d[1] != W:
+                    wide.append((lb, d))
+            ok(f"{T} 總覽每一段（{len(segs)} 段）文件寬 ≤ 視窗寬、版面視窗沒被撐大（360 圖例撐出 382 的根因）",
+               len(segs) >= 3 and not wide, {"段": [lb for _, lb in segs], "撐寬": wide})
+            if not heat_step:
+                ok(f"{T} 總覽找得到「熱力圖」那一段", False, segs)
+                continue
+            au.load({"name": "總覽／熱力圖", "hash": "#overview", "steps": [heat_step]})
+            # ---- 圖例每一格：觸控點下去 → 只亮那一級；再點一次 → 還原
+            LG = """() => { const l = document.querySelector('#ovHeatCard .hmlegend'); if (!l) return null;
+                const on = l.querySelector('.hmcell.on'); return { focus: l.classList.contains('focus'), on: on ? +on.dataset.bin : null,
+                n: l.querySelectorAll('.hmcell').length, minH: Math.min(...[...l.querySelectorAll('.hmcell')].map(c => c.getBoundingClientRect().height)) }; }"""
+            lg0 = m.evaluate(LG) or {}
+            bad = []
+            for i in range(lg0.get("n", 0)):
+                c = tap(m, f'#ovHeatCard .hmcell[data-bin="{i}"]')
+                s1 = m.evaluate(LG)
+                if not (c and c["hit"] and s1 and s1["focus"] and s1["on"] == i):
+                    bad.append({"格": i, "點": c, "點完": s1}); continue
+                tap(m, f'#ovHeatCard .hmcell[data-bin="{i}"]')
+                s2 = m.evaluate(LG)
+                if not (s2 and not s2["focus"] and s2["on"] is None):
+                    bad.append({"格": i, "再點": s2})
+            ok(f"{T} 熱力圖圖例 7 格用觸控逐格點：每一格都真的只亮那一級、再點一次還原", lg0.get("n") == 7 and not bad, {"圖例": lg0, "失敗": bad[:4]})
+            ok(f"{T} 熱力圖圖例每格高 ≥ 40", (lg0.get("minH") or 0) >= 40, lg0)
+            # ---- 放大層：打開 → 標題列與關閉鈕都在視窗內 → 點 ✕ → 真的關掉
+            c = tap(m, "#heatZoom"); m.wait_for_timeout(400)
+            z = m.evaluate("""() => { const ov = document.getElementById('zoomOv'), zh = ov.querySelector('.zh'), x = document.getElementById('zoomClose');
+                const r = x.getBoundingClientRect(), h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                return { open: !ov.hidden, zhRight: Math.round(zh.getBoundingClientRect().right), xRight: Math.round(r.right), xH: Math.round(r.height),
+                         hit: !!h && (h === x || x.contains(h)), vw: innerWidth }; }""")
+            ok(f"{T} 觸控點「放大 ⤢」→ 放大層真的打開，標題列與「關閉 ✕」都在 {W}px 視窗內、✕ 中心點得到、高 ≥ 40",
+               bool(c) and z["open"] and z["zhRight"] <= W and z["xRight"] <= W and z["hit"] and z["xH"] >= 40 and z["vw"] == W, {"點": c, "放大層": z})
+            if z["open"]:
+                tap(m, "#zoomClose"); m.wait_for_timeout(300)
+                z2 = m.evaluate("() => ({ hidden: document.getElementById('zoomOv').hidden, bodyOv: document.body.style.overflow })")
+                ok(f"{T} 放大層按「關閉 ✕」（觸控）→ 真的關掉、頁面捲動還原", z2["hidden"] and z2["bodyOv"] == "", z2)
+                if not z2["hidden"]:
+                    m.keyboard.press("Escape")
+            # ---- 頁尾連結與「詳細規範」≥ 40 高
+            ft = m.evaluate("""() => [...document.querySelectorAll('.sitefoot .sf-links a, .sitefoot .sf-links button, #sfMore')]
+                .filter(e => e.getClientRects().length).map(e => [e.textContent.trim().slice(0, 8), Math.round(e.getBoundingClientRect().height)])""")
+            ok(f"{T} 頁尾連結、平台導覽、「顯示詳細規範」每顆高 ≥ 40", len(ft) >= 4 and all(h >= 40 for _, h in ft), ft)
+            # ---- 產業地圖圖例 ≥ 40 高，點一列真的進族群
+            au.load({"name": "產業地圖", "hash": "#industry"})
+            gl = m.evaluate("""() => [...document.querySelectorAll('#gpLegend .lg')].filter(e => e.getClientRects().length)
+                .map(e => [e.dataset.n, Math.round(e.getBoundingClientRect().height), e.classList.contains('other')])""")
+            ok(f"{T} 產業地圖圖例每列高 ≥ 40", len(gl) >= 3 and all(h >= 40 for _, h, _o in gl), gl)
+            first = next((n for n, _h, o in gl if not o), None)
+            if first:
+                # 點一列＝點那一塊扇形：同一頁往下鑽到那個族群的成分股（圖例整份換成個股）
+                NM = "() => [...document.querySelectorAll('#gpLegend .lg')].map(e => e.dataset.n).join('|')"
+                n0 = m.evaluate(NM)
+                c = tap(m, f'#gpLegend .lg[data-n="{first}"]'); m.wait_for_timeout(700)
+                n1 = m.evaluate(NM)
+                ok(f"{T} 產業地圖圖例點一列（觸控）→ 真的鑽進那個族群（圖例換成成分股）", bool(c) and c["hit"] and n1 and n1 != n0,
+                   {"點": first, "命中": c, "前": n0[:80], "後": n1[:80]})
+            if W != 390:
+                continue
+            # ---- ② 剖析圖章節鈕列（390）
+            au.load({"name": "半導體", "hash": "#industry/semiconductor"})
+            m.wait_for_timeout(600)
+            fd = m.evaluate("""() => { const bs = [...document.querySelectorAll('.mdgfolds button[data-fold]')], gs = [...document.querySelectorAll('#prodDiagram g.dgfold[data-fold]')];
+                return { nb: bs.length, ng: gs.length, minH: bs.length ? Math.min(...bs.map(b => b.getBoundingClientRect().height)) : 0,
+                         pe: gs.length ? getComputedStyle(gs[0]).pointerEvents : null, same: bs.map(b => b.dataset.fold).join() === gs.map(g => g.dataset.fold).join() }; }""")
+            ok(f"{T} 半導體剖析圖：圖下方的章節鈕一條章節列一顆、順序相同、每顆高 ≥ 40；圖裡 15px 的章節列手機不接觸控",
+               fd["nb"] >= 2 and fd["nb"] == fd["ng"] and fd["same"] and fd["minH"] >= 40 and fd["pe"] == "none", fd)
+            if fd["nb"]:
+                SV = "() => Math.round(document.querySelector('#prodDiagram svg').getBoundingClientRect().height)"
+                h0 = m.evaluate(SV)
+                tap(m, ".mdgfolds button[data-fold]:nth-child(2)")
+                s1 = m.evaluate("""() => { const b = document.querySelector('.mdgfolds button[data-fold]:nth-child(2)'), g = document.querySelector(`#prodDiagram g.dgfold[data-fold="${b.dataset.fold}"]`);
+                    const gr = g.getBoundingClientRect(); return { exp: b.getAttribute('aria-expanded'), sign: b.querySelector('.sg').textContent, open: g.classList.contains('open'),
+                    gTop: Math.round(gr.top), vh: innerHeight }; }""")
+                h1 = m.evaluate(SV)
+                ok(f"{T} 點第二顆章節鈕（觸控）→ 圖裡那一段真的展開（圖變高、章節列 open、鈕變「－」），而且那一段捲進畫面",
+                   s1["exp"] == "true" and s1["sign"] == "－" and s1["open"] and h1 > h0 + 20 and 40 <= s1["gTop"] <= s1["vh"] - 60,
+                   {"圖高": [h0, h1], "狀態": s1})
+                tap(m, ".mdgfolds button[data-fold]:nth-child(2)")
+                s2 = m.evaluate("() => document.querySelector('.mdgfolds button[data-fold]:nth-child(2)').getAttribute('aria-expanded')")
+                ok(f"{T} 再點一次 → 收回（圖高回到原本）", s2 == "false" and abs(m.evaluate(SV) - h0) <= 2, {"狀態": s2, "圖高": [h0, m.evaluate(SV)]})
+            # ---- a.lk 點擊區 ≥ 40、中心點不被隔壁搶走（產業鏈頁的族群／產業鏈連結）
+            lk = m.evaluate("""(HB) => { const hb = eval(HB); const as = [...document.querySelectorAll('main .view.on a.lk')].filter(a => a.getClientRects().length).slice(0, 60);
+                const small = [], stolen = [];
+                as.forEach(a => { a.scrollIntoView({ block: 'center', behavior: 'instant' }); const s = hb(a), r = a.getBoundingClientRect();
+                  if (s.w < 40 || s.h < 40) small.push([a.textContent.trim().slice(0, 8), s]);
+                  const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                  if (h && !(h === a || a.contains(h)) && h.closest('a.lk')) stolen.push([a.textContent.trim().slice(0, 8), h.textContent.trim().slice(0, 8)]); });
+                return { n: as.length, small, stolen }; }""", _HITBOX_JS)
+            ok(f"{T} 產業鏈頁的族群／產業鏈連結點擊區 ≥ 40×40，而且中心點不會被隔壁連結的點擊區搶走",
+               lk["n"] >= 5 and not lk["small"] and not lk["stolen"], lk)
+            # ---- 市場明細「名單」：表格裡的個股／族群連結觸控範圍 ≥ 40（儲存格會裁掉 ::after，所以是連結本身 40 高）
+            au.load({"name": "市場明細", "hash": "#market"})
+            bars = m.evaluate(A.SEG_JS)
+            st = next((f"{bar['sel']} > :nth-child({bt['nth']})" for bar in bars for bt in bar["btns"] if bt["label"].startswith("名單")), None)
+            if st:
+                au.load({"name": "市場明細／名單", "hash": "#market", "steps": [st]})
+                ml = m.evaluate("""(HB) => { const hb = eval(HB); const as = [...document.querySelectorAll('main .view.on a.lk')].filter(a => a.getClientRects().length).slice(0, 40);
+                    return { n: as.length, small: as.map(a => [a.textContent.trim().slice(0, 8), hb(a), Math.round(a.getBoundingClientRect().height)]).filter(x => x[2] < 40).slice(0, 6) }; }""", _HITBOX_JS)
+                ok(f"{T} 市場明細名單：表格裡的個股／族群連結高 ≥ 40", ml["n"] >= 5 and not ml["small"], ml)
+            else:
+                ok(f"{T} 市場明細找得到「名單」分段", False, bars)
+            # ---- 週期統計：排序抽屜
+            au.load({"name": "週期統計", "hash": "#season"})
+            m.wait_for_timeout(500)
+            ROWS = "() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat')); const y = c && c.getOption().yAxis; return y && y[0] ? (y[0].data || []).map(d => d && d.value !== undefined ? d.value : d).join('|') : ''; }"
+            s0 = m.evaluate("""() => { const s = document.getElementById('mSeasonSort'), on = document.querySelector('#seasonHeatHead button.on');
+                return { lab: s && s.textContent, h: s ? Math.round(s.getBoundingClientRect().height) : 0, on: on ? +on.dataset.m : null,
+                         headPe: on ? getComputedStyle(on).pointerEvents : null }; }""")
+            r0 = m.evaluate(ROWS)
+            ok(f"{T} 週期統計有「排序：N 月 ›」鈕（高 ≥ 40、字跟表頭亮的那個月一致），表頭照樣可以點（次要入口，不准關成點不到）",
+               s0["h"] >= 40 and s0["on"] and s0["lab"] == f"排序：{s0['on']} 月 ›" and s0["headPe"] != "none", s0)
+            tgt = 3 if s0["on"] != 3 else 5
+            tap(m, "#mSeasonSort")
+            sh = m.evaluate("""() => { const s = document.getElementById('mSheet'); return { open: !!s && !s.hidden, kind: s && s.dataset.kind,
+                n: s ? s.querySelectorAll('.mballgrid button[data-m]').length : 0,
+                minH: s ? Math.min(...[...s.querySelectorAll('.mballgrid button[data-m]')].map(b => b.getBoundingClientRect().height)) : 0 }; }""")
+            ok(f"{T} 點「排序」→ 底部抽屜打開、12 個月各一顆、每顆高 ≥ 40", sh["open"] and sh["kind"] == "seasonsort" and sh["n"] == 12 and sh["minH"] >= 40, sh)
+            tap(m, f'#mSheet .mballgrid button[data-m="{tgt}"]'); m.wait_for_timeout(500)
+            s1 = m.evaluate("""() => { const s = document.getElementById('mSeasonSort'), on = document.querySelector('#seasonHeatHead button.on');
+                return { lab: s && s.textContent, on: on ? +on.dataset.m : null, sheet: (document.getElementById('mSheet') || { hidden: true }).hidden }; }""")
+            r1 = m.evaluate(ROWS)
+            ok(f"{T} 抽屜點「{tgt} 月」→ 抽屜收起、表頭改亮 {tgt} 月、鈕字跟著換、熱力圖的族群順序真的變了",
+               s1["on"] == tgt and s1["lab"] == f"排序：{tgt} 月 ›" and s1["sheet"] and r1 and r1 != r0, {"前": s0, "後": s1, "列順序變了": r1 != r0})
+            # ---- 個股頁「基本資料」的族群／題材連結 ≥ 40 高
+            au.load({"name": "個股", "hash": f"#stock/{code}"})
+            bars = m.evaluate(A.SEG_JS)
+            st = next((f"{bar['sel']} > :nth-child({bt['nth']})" for bar in bars for bt in bar["btns"] if bt["label"].startswith("基本資料")), None)
+            if st:
+                au.load({"name": "個股基本資料", "hash": f"#stock/{code}", "steps": [st]})
+                kv = m.evaluate("""() => [...document.querySelectorAll('.mbkv dd a')].filter(a => a.getClientRects().length)
+                    .map(a => [a.textContent.trim().slice(0, 8), Math.round(a.getBoundingClientRect().height)])""")
+                ok(f"{T} 個股頁「基本資料」的產業鏈／族群／題材／網站連結每顆高 ≥ 40", len(kv) >= 3 and all(h >= 40 for _, h in kv), kv)
+                h0 = m.evaluate("() => location.hash")
+                tap(m, '.mbkv dd a[href^="#industry/group/"]'); m.wait_for_timeout(500)
+                ok(f"{T} 點族群連結（觸控）→ 真的換到族群頁", m.evaluate("() => location.hash").startswith("#industry/group/") and m.evaluate("() => location.hash") != h0,
+                   m.evaluate("() => location.hash"))
+            else:
+                ok(f"{T} 個股頁找得到「基本資料」分段", False, bars)
+        finally:
+            m.close()
+    # ---- ③ 桌機（1440）：不插章節鈕列與排序鈕，圖裡的章節列照樣可以點
+    d = b.new_page(viewport={"width": 1440, "height": 950})
+    d.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        d.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); d.wait_for_timeout(2200)
+        dk = d.evaluate("""() => { const g = document.querySelector('#prodDiagram g.dgfold'); return { lists: document.querySelectorAll('.mdgfolds').length,
+            pe: g ? getComputedStyle(g).pointerEvents : null, foldon: document.querySelectorAll('.mfoldon').length }; }""")
+        ok("[手機v4二批 1440px] 桌機不插章節鈕列、圖裡的章節列照樣接滑鼠", dk["lists"] == 0 and dk["foldon"] == 0 and dk["pe"] not in (None, "none"), dk)
+        d.goto(f"{base}#season", wait_until="networkidle"); d.wait_for_timeout(1800)
+        ok("[手機v4二批 1440px] 桌機週期統計沒有手機的排序鈕、表頭月份照樣可以點",
+           d.evaluate("() => !document.getElementById('mSeasonSort') && getComputedStyle(document.querySelector('#seasonHeatHead button')).pointerEvents !== 'none'"))
+    finally:
+        d.close()
 
 
 # ★ 2026-09-26 剖析圖覆蓋普查（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」）

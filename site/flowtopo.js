@@ -580,7 +580,11 @@
     const W = S.W, H = S.H, root = S.root, chains = root.kids;
     let maxG = 0, maxC = 0;
     chains.forEach(c => { maxC = Math.max(maxC, elBadgeW(S, c)); c.kids.forEach(g => { maxG = Math.max(maxG, elBadgeW(S, g)); }); });
-    const rootX = 12, gR = 6, narrow = S.miniNarrow = W < 420;
+    const gR = 6, narrow = S.miniNarrow = W < 420;
+    /* ★ 2026-09-29 窄版根節點 12 → 8px：跟根節點同一高度的那條鏈（通常是 AI 伺服器）膠囊要「讓開根」，
+       從 根.x ＋ 根半徑 6 ＋ 4 起算（measureLabelsClassic 的 xr）。根往左 4px，讓開的距離就少 4px。
+       改前 1024 寬（v4 兩欄，這張 293px）「AI 伺服器 37.7%」101px ＋ 讓開 22px ＝ 123 > 右界 122 → 被截成「AI 伺…」。*/
+    const rootX = narrow ? 8 : 12;
     let gX, cX;
     if (!narrow) {
       gX = Math.max(W * 0.5, W - 4 - Math.min(maxG, W * 0.5) - 6 - gR);
@@ -589,7 +593,10 @@
     } else {
       /* 寬度先給產業鏈膠囊（只有 5 條、名字短），剩下的給族群；族群至少 104px（和舊版 ECharts 窄版同一個下限）。
          241px（1280＋側欄）時兩邊都放不下，只截名稱 */
-      const gLab = Math.max(Math.min(104, maxG), Math.min(maxG, W - 28 - maxC));
+      /* 產業鏈要的寬度 ＝ 最長的鏈膠囊 ＋ 讓開根的距離（根.x ＋ 6 ＋ 4）。改前只留「最長 ＋ 2」（置中擺得下的量），
+         沒算「和根同高那條要讓開」，所以明明族群那邊還有空，鏈名卻先被截。族群放得下全名時照舊給足。*/
+      const dodge = rootX + 6 + 4;
+      const gLab = Math.max(Math.min(104, maxG), Math.min(maxG, W - 26 - dodge - maxC));
       gX = W - 4 - gLab - 6 - gR;
       cX = rootX + Math.max(38, (gX - rootX) * 0.42);
       S.miniCR = gX - gR - 4;                           // 產業鏈膠囊（在節點下方）的右界
