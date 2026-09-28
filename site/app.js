@@ -1531,7 +1531,8 @@
      它跟 'industry' 共用 industry.js 的資料載入，所以路由也交給 window.Industry 處理。*/
   /* ★ 2026-09-24：'themes' 從這裡拿掉 —— 題材併進熱力圖分頁（Andy：「題材內 熱力圖 放到熱力圖分頁」）。
      `#themes` 這個網址仍然有效，route() 一進來就導到 `#heatmap/theme`，見那裡的註解。*/
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'tasks', 'delivery'];
+  // 2026-09-28：'watch'＝自選分頁（導覽列最後一格，取代交付清單的入口；'delivery' 路由照舊留著）
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'tasks', 'delivery', 'watch'];
   const rendered = {};
   /* ★ 2026-09-23：頂層分頁多了「熱力圖」「交付清單」之後，1440 以下這一排就放不下了。
      放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
@@ -2344,7 +2345,10 @@
     }
     if (view === 'industry') { await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
-    if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery })[view](); }
+    // 自選分頁：第一次進來整頁畫；之後每次回來重畫一次（別頁按 ☆ 改過清單、或換過主題）
+    if (view === 'watch' && rendered.watch && window.TwWatchPage) window.TwWatchPage.paint();
+    if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery,
+      watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); } })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(resizeVisibleCharts, 30);
     // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）
@@ -3057,7 +3061,10 @@
        ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：總覽小輪盤跟著同一個「顯示腳印」偏好（ROT.trail）。
        改前：這裡沒傳 trail，renderRotClock 的 `opts.trail !== false` 把它當成開 —— 焦點族群身後永遠拖著腳印，
        連資金流向頁把開關勾掉都關不掉這一張。改後：資金流向頁沒勾 → 這裡也只有圓圈；勾了 → 兩張一致。*/
-    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: ROT.trail });
+    /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：總覽這張**一律不畫軌跡與腳印**，
+       不再跟資金流向頁的「顯示腳印」偏好（ROT.trail）走 —— 那個開關只屬於資金流向頁（DECISIONS #269 第 2 條講的是那一頁），
+       兩頁的差別寫在 DECISIONS #271。上面兩段 09-26 的註解是當時的歷史，留著讓人知道為什麼以前是跟著偏好走。*/
+    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: false });
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
     // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
     whenNear($('#ovFlow'), () => renderOvFlow(sd));
@@ -3145,36 +3152,52 @@
     if (!opts || opts.scroll !== false) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  /* ★ 2026-09-26（Andy：「足跡輪盤點擊族群會影響到旁邊的版面，處理這問題」）：
-     總覽足跡輪盤點族群後的成分股面板（#ovRotPanel）改成**浮在輪盤上的覆蓋卡**，不再插進文件流。
-     以前它是輪盤正下方的一個區塊：一打開就把「昨日資金去向」往下推 100 多 px、整欄變高，
-     右欄一變高，左右兩欄等高的格線又把左欄（資金熱力圖／熱門題材）一起撐高 —— 點一下整頁在跳。
-     三種做法比過：
-       · 預留固定高度：沒點的時候輪盤下面永遠空一塊 120px，而且面板內容比預留的高時照樣跳。
-       · 推到卡片外（fixed 浮動視窗）：離開輪盤、看不出是哪一顆點的面板，捲頁還要跟著算位置。
-       · ★ 蓋在輪盤自己的上半或下半（採用）：position:absolute 掛在卡片上，完全不佔版面，所以
-         其他卡片的 top／高度一個像素都不會動；位置貼著剛點的那顆 —— 點下半部的族群，面板放在那顆上方，
-         點上半部就放在下方（夾在輪盤範圍內），剛點的那顆永遠看得到、面板也就在視線旁邊。蓋住的只是輪盤的一部分，
-         點外面／Esc／再點一次同一顆就收（dismissable，跟全站其他就地面板同一套）。
-     手機（≤820）的輪盤是 mobile3.js 另一份雷達＋焦點條，不走這支。*/
-  /* ★ 2026-09-26 晚（Andy：「將出現的資訊移動到下方或上方，依據當前點擊的圓圈位置決定」）：
-     面板不再蓋在輪盤中間，改貼在**輪盤圓外**——點在下半部的族群，面板放在輪盤上緣之上（蓋住標題列那一帶）；
-     點在上半部，面板放在輪盤下緣之下（蓋在「昨日資金去向」上方那一帶）。仍是 absolute 覆蓋，不推版面；
-     放完若整張跑出畫面，就平滑捲到剛好看得到（block:'nearest'，已經看得到就不動）。*/
-  function ovRotPlace(box, chartEl, clickY) {
+  /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤……點擊後需要出現的資訊在點擊圓圈旁內說明欄位簡短呈現，
+     並且只需要說明這點即可，不用說明"點一下看成分股"」）—— 取代 09-26 的 ovRotPlace（輪盤上方／下方的成分股覆蓋卡）。
+     · 內容只講這一顆：族群名＋所在象限、相對大盤強弱、動能、成交值佔比，外加一句「N 天前在哪一段」。
+       成分股清單拿掉；唯一的動作是「進族群頁 →」（要看成分股的人還有路走，而且只有一條路）。
+     · 位置：貼在圓圈旁邊 —— 先放右側，右邊放不下放左側，兩邊都不行才放上／下；垂直方向對齊圓心，
+       夾在輪盤外框與卡片之內。一律跟圓圈保留「半徑＋4px」的距離，**不蓋住剛點的那顆**。
+     · absolute 掛在 #ovRotCard（position:relative）上，不佔版面，其他卡片一個像素都不動（09-26 那條要求照舊）。
+     · 點外面／Esc 關（全站 dismissable），再點同一顆也關；點另一顆就換成那一顆。
+     手機（≤640）是 mobile3.js 的雷達，用同一套規則另外畫（mOvPop）。*/
+  function ovRotPop(box, chartEl, r, back, px, rad) {
+    const s = STAGE[r.stage] || { name: '', color: 'var(--ink)' };
+    const sg = (v) => (v >= 0 ? '+' : '') + fmt.n(v, 2);
+    box.innerHTML = `<div class="rp-h"><b>${fmt.esc(r.name)}</b><span class="rp-st" style="color:${s.color}">${s.name}</span></div>`
+      + `<dl class="rp-kv"><dt>相對大盤強弱</dt><dd class="num">${sg(r.rs - 100)}</dd>`
+      + `<dt>動能</dt><dd class="num">${sg(r.mo - 100)}</dd>`
+      + `<dt>成交值佔比</dt><dd class="num">${fmt.n(r.share, 1)}%</dd></dl>`
+      + (r.was && STAGE[r.was] ? `<div class="rp-was">${back} 天前在「${STAGE[r.was].name}」${r.moved ? '，剛換段' : ''}</div>` : '')
+      + `<a class="rp-go" href="#industry/group/${encodeURIComponent(r.gid)}">進族群頁 →</a>`;
+    box.dataset.gid = r.gid;
+    box.hidden = false;
     const card = box.offsetParent; if (!card) return;
-    const wrap = chartEl && chartEl.parentNode;
-    const cr = card.getBoundingClientRect(), wr = (wrap || chartEl).getBoundingClientRect();
-    const h = box.offsetHeight, gap = 6;
-    const lower = clickY != null && clickY > wr.height / 2;     // 點在輪盤下半 → 面板放在輪盤上方
-    const top = lower ? (wr.top - cr.top - h - gap) : (wr.bottom - cr.top + gap);
-    box.style.top = Math.round(top) + 'px';
-    box.dataset.at = lower ? 'top' : 'bottom';                   // 驗收用：這次貼在哪一邊（輪盤上方／下方）
+    const cr = card.getBoundingClientRect(), er = chartEl.getBoundingClientRect();
+    const wrap = chartEl.parentNode, wr = (wrap || chartEl).getBoundingClientRect();
+    const cx = er.left - cr.left + (px[0] || 0), cy = er.top - cr.top + (px[1] || 0);
+    const w = box.offsetWidth, h = box.offsetHeight, gap = 4, pad = 6;
+    const minX = pad, maxX = cr.width - pad - w;
+    const minY = Math.max(pad, wr.top - cr.top), maxY = Math.min(cr.height - pad, wr.bottom - cr.top) - h;
+    const clampY = (y) => Math.max(minY, Math.min(maxY, y));
+    let at, x, y;
+    if (cx + rad + gap + w <= cr.width - pad) { at = 'right'; x = cx + rad + gap; y = clampY(cy - h / 2); }
+    else if (cx - rad - gap - w >= pad) { at = 'left'; x = cx - rad - gap - w; y = clampY(cy - h / 2); }
+    else {
+      x = Math.max(minX, Math.min(maxX, cx - w / 2));
+      if (cy - rad - gap - h >= minY) { at = 'above'; y = cy - rad - gap - h; } else { at = 'below'; y = cy + rad + gap; }
+    }
+    box.style.left = Math.round(x) + 'px'; box.style.top = Math.round(y) + 'px';
+    box.dataset.at = at;                                            // 驗收用：這次放在圓圈的哪一側
+    box.dataset.cx = Math.round(cx); box.dataset.cy = Math.round(cy); box.dataset.rad = Math.round(rad);
+    dismissable(box, () => { box.hidden = true; });
     requestAnimationFrame(() => {
-      const r = box.getBoundingClientRect();
-      if (r.top < 60 || r.bottom > window.innerHeight) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const b = box.getBoundingClientRect();
+      if (b.top < 60 || b.bottom > window.innerHeight) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   }
+  // 視窗大小一變，圓圈的位置就跟著變，說明框留在原地會指錯顆 —— 直接收起來
+  window.addEventListener('resize', () => { const b = document.getElementById('ovRotPop'); if (b && !b.hidden) b.hidden = true; });
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
@@ -5277,7 +5300,12 @@
     const rotDeco = el._rotDeco = {};       // 非焦點腳印的兩個版本（背景版 D ／ 焦點版 F），給 highlightClock 換
     const o = {
       tooltip: {
-        ...tip, trigger: 'item', formatter: (q) => {
+        ...tip, trigger: 'item',
+        /* ★ 2026-09-28（Andy：「點擊後需要出現的資訊在點擊圓圈旁內說明欄位簡短呈現」）：總覽小輪盤不用滑過提示框，
+           改成「點一下 → 圓圈旁邊浮出一個只講這一點的說明框」（ovRotPop）。兩個都留的話，滑過去一個框、點下去又一個框，
+           內容還一樣 —— 同一件事只留一個答案。資金流向頁那張照舊有提示框。*/
+        ...(compact && id === 'rotClockMini' ? { show: false } : {}),
+        formatter: (q) => {
           const r = q.data && q.data.row; if (!r) return '';
           const s = STAGE[r.stage];
           // 個股點：分母是所屬族群（和成分股清單、資金去向的葉節點同一個口徑）
@@ -5898,13 +5926,16 @@
       /* ★ 2026-09-24（審查 R1：總覽小輪盤點族群沒反應）：`drillOpen` 只會畫進資金流向頁的
          #rankPanel／#sankeyPanel，總覽根本沒有那兩塊 —— 提示框寫「點一下看成分股」，點了卻什麼都沒發生。
          總覽（compact）改走熱力圖那一套 `heatPanel`，畫進輪盤正下方的 #ovRotPanel（原地展開，點外面／Esc 關）。*/
-      if (compact && id === 'rotClockMini' && $('#ovRotPanel')) {
-        const box = $('#ovRotPanel');
-        // 再點一次同一個族群點＝收起來（dismissable 的「點外面」會被 heatPanel 重畫蓋掉，所以這裡自己判斷）
+      /* ★ 2026-09-28（Andy：「點擊後需要出現的資訊在點擊圓圈旁內說明欄位簡短呈現，並且只需要說明這點即可」）：
+         不再推出下方的成分股面板，改成圓圈旁邊的小說明框（ovRotPop）。*/
+      if (compact && id === 'rotClockMini' && $('#ovRotPop')) {
+        const box = $('#ovRotPop');
+        // 再點一次同一顆＝收起來（dismissable 的「點外面」遇到點在圖上會被重畫蓋掉，所以這裡自己判斷）
         if (!box.hidden && box.dataset.gid === r.gid) { box.hidden = true; return; }
-        heatPanel('ovRotPanel', r.gid, r.name, r.share != null ? `佔比 ${fmt.n(r.share, 1)}%` : '', { scroll: false });
-        box.dataset.gid = r.gid;
-        ovRotPlace(box, el, q.event && q.event.offsetY);
+        let px = null;
+        try { px = c.convertToPixel({ seriesIndex: q.seriesIndex }, q.data.value); } catch (e) { /* 換算失敗就用點擊位置 */ }
+        if (!px || !isFinite(px[0])) px = [q.event && q.event.offsetX, q.event && q.event.offsetY];
+        ovRotPop(box, el, r, back, px, (r.sz || 16) / 2 + 4);
         return;
       }
       drillOpen(r.gid, r.name);
@@ -6164,7 +6195,7 @@
       }],
     }, { notMerge: true });
     /* ★ 2026-09-25（Andy：「切斷族群節點的超連結」）：點族群不再導到族群頁。
-       成分股的入口是上面足跡輪盤（點族群點 → 原地展開 #ovRotPanel），同一張卡不需要第二個跳頁入口。*/
+       成分股的入口是上面足跡輪盤（點族群點 → 圓圈旁的說明框 #ovRotPop 裡的「進族群頁 →」，2026-09-28 起），同一張卡不需要第二個跳頁入口。*/
     if (c) c.off('click');
     if (sub) sub.textContent = ovFlowSubText(day, gs.length, total);
   }
@@ -6756,7 +6787,7 @@
       const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
       return `<b>族群跑到強弱循環的哪一段。</b>
       <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝剛進場、領先＝主流、轉弱＝設停利、落後＝別抄底。</li>
-      <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。點一顆看成分股。</li>
+      <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。點一顆，旁邊出現它的強弱、動能、佔比。</li>
       <li>完整版（腳印、回放、即時）在「資金流向」分頁。</li></ul>`;
     },
     /* ★ 2026-09-25（Andy：「昨日資金去向」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
@@ -8117,12 +8148,9 @@
     if (c) c.onchange = () => {
       ROT.trail = c.checked; sync(); redraw();
       try { localStorage.setItem('tw.rot.feet', ROT.trail ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
-      /* 總覽小輪盤讀同一個偏好，但它畫在另一個分頁（此刻藏著、寬高是 0，當場重畫會算錯半徑）。
-         標成「沒畫過」，下次切回總覽時 route() 會整頁重畫一次（換主題也是走這條路）；
-         總覽正開著（從總覽按「放大」進來的）就當場帶新的 trail 重畫那一張。*/
-      const ov = document.getElementById('v-overview'), mini = document.getElementById('rotClockMini');
-      if (ov && ov.classList.contains('on') && mini && mini._rotRedraw) mini._rotRedraw({ trail: ROT.trail });   // 從總覽開的放大視窗：當場跟上
-      else delete rendered.overview;
+      /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：
+         以前總覽小輪盤讀同一個偏好，這裡要把總覽標成「沒畫過」或當場重畫。現在總覽一律只畫點（DECISIONS #271），
+         這個開關只管資金流向頁（與它的放大視窗），總覽不必跟著重畫。*/
     };
     const rp = $('.rot-ripple', box);
     if (rp) rp.onchange = () => {

@@ -827,30 +827,23 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
    1440 看不到、800 一看就發現，是 DECISIONS #171 那一類的坑。*/
 .hpanel .ms a.sub{margin-left:12px;font-size:12.5px;flex-wrap:wrap;row-gap:1px;align-items:center}
 .hpanel .ms a.sub>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* ★ 2026-09-25（Andy：總覽足跡輪盤下方點族群出現的面板「範圍要小一點」）：只收桌機的 #ovRotPanel
-   （手機另有人做）。字與間距收小、個股從一格一格的卡片改成一行排好幾檔的小標籤，高度上限 88px（約三行）。
-   代號藏起來（連結本身就走到個股頁），留名稱＋漲跌。*/
-@media (min-width:821px){
-  #ovRotPanel{margin-top:6px;padding:7px 10px;border-radius:8px}
-  #ovRotPanel .hh{gap:6px}
-  #ovRotPanel .hh b{font-size:13px}
-  #ovRotPanel .hh .m{font-size:11.5px}
-  #ovRotPanel .hh .pill{font-size:11.5px;padding:1px 8px}
-  #ovRotPanel .ms{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;max-height:88px}
-  #ovRotPanel .ms a{padding:2px 7px;gap:4px;border-radius:6px;font-size:12px;line-height:1.35}
-  #ovRotPanel .ms a .c{display:none}
-  #ovRotPanel .ms a .g{margin-left:0;font-size:11px}
-}
-/* ★ 2026-09-26（Andy：「足跡輪盤點擊族群會影響到旁邊的版面」）：#ovRotPanel 改成浮在輪盤上的覆蓋卡 ——
-   absolute 掛在 #ovRotCard 上、不佔版面，打開／收起時「昨日資金去向」與左欄卡片一個像素都不動。
-   top 由 app.js ovRotPlace() 算（貼著剛點的那顆放在它上方或下方，不蓋到它）。底色用不透明的 --panel-2＋陰影，
-   看得出是一張蓋上去的卡，不會跟底下的輪盤線條混在一起。*/
+/* ★ 2026-09-28（Andy：「點擊後需要出現的資訊在點擊圓圈旁內說明欄位簡短呈現，並且只需要說明這點即可」）：
+   總覽資金輪盤點圓圈 → 圓圈旁的小說明框（取代 09-25／09-26 的成分股覆蓋卡 #ovRotPanel）。
+   absolute 掛在 #ovRotCard 上、不佔版面（09-26「不能推動版面」那條照舊）；left／top 由 app.js ovRotPop() 算，
+   貼著圓圈、不蓋住它。寬度固定上限，四行數字＋一個連結，字 ≥ 12px。底色不透明＋陰影，跟底下的盤面分得開。*/
 #ovRotCard{position:relative}
-#ovRotPanel{position:absolute;left:14px;right:14px;z-index:6;margin-top:0;background:var(--panel-2);
-  box-shadow:0 10px 28px rgba(0,0,0,.45)}
-/* 641～820 還是桌機那一份輪盤（手機雷達是 ≤640），但沒吃到上面 ≥821 的緊湊樣式 —— 清單上限收到約四行，
-   不然一張浮卡就把整個輪盤蓋滿。*/
-@media (max-width:820px){ #ovRotPanel .ms{max-height:120px} }
+.rotpop{position:absolute;z-index:6;width:max-content;max-width:210px;padding:8px 10px 7px;border-radius:9px;
+  background:var(--panel-2);border:1px solid var(--line-2);box-shadow:0 10px 28px rgba(0,0,0,.45);font-size:12.5px;line-height:1.45;color:var(--ink)}
+.rotpop[hidden]{display:none}
+.rotpop .rp-h{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.rotpop .rp-h b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.rotpop .rp-st{font-size:12.5px;font-weight:700;white-space:nowrap}
+.rotpop .rp-kv{display:grid;grid-template-columns:auto auto;column-gap:12px;row-gap:1px;margin:0}
+.rotpop .rp-kv dt{color:var(--ink-2);margin:0}
+.rotpop .rp-kv dd{margin:0;text-align:right;font-family:var(--mono)}
+.rotpop .rp-was{margin-top:3px;color:var(--ink-2);font-size:12px}
+.rotpop .rp-go{display:inline-block;margin-top:5px;font-size:12.5px;color:var(--cyan);text-decoration:none}
+.rotpop .rp-go:hover{text-decoration:underline}
 .hpanel .ms a.sub .c{flex:none}
 .hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 .hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}
@@ -3739,7 +3732,7 @@ h3 .howbtn.pop{font-family:inherit}
   /* ---- B 底部導覽：一列五顆 58px（現行兩列七顆 102px） ---- */
   body.m3on .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
     padding:0 0 env(safe-area-inset-bottom);height:calc(58px + env(safe-area-inset-bottom))}
-  body.m3on .tab[data-view=market],body.m3on .tab[data-view=season],body.m3on .tab[data-view=delivery]{display:none}
+  body.m3on .tab[data-view=market],body.m3on .tab[data-view=season],body.m3on .tab[data-view=watch],body.m3on .tab[data-view=delivery]{display:none}
   body.m3on .tab,body.m3on .mtabmore{min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;
     background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
     font-size:12px;line-height:1.2;color:var(--ink-3);font-weight:600;flex:none}
@@ -3851,6 +3844,10 @@ h3 .howbtn.pop{font-family:inherit}
   /* 雷達 */
   body.m3on .mrhost{display:flex;justify-content:center}
   body.m3on .mradar{position:relative;margin:4px auto 0}
+  /* ★ 2026-09-28：總覽雷達點一顆 → 旁邊的說明框（#mOvPop，樣式沿用 .rotpop）；absolute 掛在這一塊上，不推版面 */
+  body.m3on .mrbox{position:relative}
+  body.m3on .mrpop{font-size:13px;max-width:200px}
+  body.m3on .mrpop .rp-go{min-height:32px;display:inline-flex;align-items:center;margin-top:2px}
   body.m3on .mradar svg{display:block;width:100%;height:auto;touch-action:manipulation}
   body.m3on .mqb{position:absolute;min-height:30px;padding:0 10px;border-radius:999px;border:1.2px solid var(--c);
     background:color-mix(in srgb,var(--bg) 70%,var(--panel));color:var(--c);font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -4167,7 +4164,9 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
          且如實完成」）：交付清單。他只重新整理網頁，所以驗收清單一定要在網頁上 ——
          同一天才剛把「任務板」拿掉，這一格能留下來的唯一理由就是它放的是**他的原話**。 -->
-    <button class="tab" data-view="delivery">交付清單</button>
+    <!-- ★ 2026-09-28（Andy：「自選是需要在獨立分頁 在最後一頁，"自選分頁替代"交付清單」）：最後一格換成「自選」（#watch，site/watchpage.js）。
+         交付清單的入口收掉，`#delivery` 路由與 #v-delivery 照舊留著（直接貼網址仍然進得去，`#tasks` 也還是導到它）。 -->
+    <button class="tab" data-view="watch">自選</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
          直接貼 `…/#tasks` 會導到交付清單；`tasks.json` 2026-09-25 起不再產出（內部作業文字不上 public 網站）。
@@ -4261,7 +4260,8 @@ h3 .howbtn.pop{font-family:inherit}
       <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>資金輪盤 <button class="howbtn pop" data-how="rotm" aria-label="資金輪盤怎麼看">?</button></h3></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
-        <div class="hpanel" id="ovRotPanel" hidden></div>
+        <!-- ★ 2026-09-28（Andy）：點圓圈 → 圓圈旁的簡短說明框（取代 09-26 的成分股覆蓋卡 #ovRotPanel）。位置由 app.js ovRotPop() 算。 -->
+        <div class="rotpop" id="ovRotPop" role="dialog" aria-label="族群說明" hidden></div>
         <!-- #ovFlowSub 不上畫面：它是「幾號盤後、幾個族群、合計多少」的讀數，2026-09-25 起搬進「昨日資金去向」自己的「?」（HOW.ovflow 會讀它）。 -->
         <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <button class="howbtn pop" data-how="ovflow" aria-label="昨日資金去向怎麼看">?</button> <small id="ovFlowSub" hidden></small></h4>
         <div class="howtxt" id="how-ovflow" hidden></div>
@@ -4500,6 +4500,10 @@ h3 .howbtn.pop{font-family:inherit}
        轉成 site/data/delivery.json。整頁由 app.js 的 renderDelivery 畫。 -->
   <section class="view" id="v-delivery"></section>
 
+  <!-- ================= 自選（#watch，2026-09-28） =================
+       最多五頁的自選清單（儲存在 site/watchlists.js，DECISIONS #270）；整頁由 site/watchpage.js 畫。 -->
+  <section class="view" id="v-watch"></section>
+
   <!-- ================= 週期統計（路由沿用 #season） =================
        ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
          「本月最強」這件事改由熱力圖本身回答：列依某個月由強到弱排序（預設本月，點月份換一個月），
@@ -4610,6 +4614,8 @@ h3 .howbtn.pop{font-family:inherit}
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="flowtopo.js"></script>
 <script src="app.js"></script>
+<!-- ★ 2026-09-28 自選分頁（#watch）的整頁畫面；資料層是上面的 watchlists.js -->
+<script src="watchpage.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>
