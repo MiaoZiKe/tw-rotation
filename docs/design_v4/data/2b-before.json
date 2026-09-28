@@ -1,0 +1,2159 @@
+[
+ {
+  "view": "stock-overview",
+  "route": "stock/2330",
+  "tab": "overview",
+  "w": 1440,
+  "h": 900,
+  "plot1": 48.9,
+  "plotP": 33.0,
+  "docH": 1788,
+  "gapV": 62,
+  "gapH": 12,
+  "head": 285,
+  "blank": 0.0,
+  "empty": 41.9,
+  "worst": {
+   "x": 976,
+   "y": 1382,
+   "w": 432,
+   "h": 176
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1205,
+  "tabPlot": 0.0,
+  "tabHead": null,
+  "tabCardH": 369,
+  "secs": 8.5
+ },
+ {
+  "view": "stock-revenue",
+  "route": "stock/2330",
+  "tab": "revenue",
+  "w": 1440,
+  "h": 900,
+  "plot1": 48.9,
+  "plotP": 32.7,
+  "docH": 2288,
+  "gapV": 12,
+  "gapH": 12,
+  "head": 119,
+  "blank": 0.0,
+  "empty": 36.8,
+  "worst": {
+   "x": 320,
+   "y": 854,
+   "w": 1008,
+   "h": 48
+  },
+  "charts": {
+   "revBar": {
+    "w": 664,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 64.2,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 179,
+     "y": 0,
+     "w": 306,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "revYear": {
+    "w": 664,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 67.7,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 129,
+     "y": 0,
+     "w": 406,
+     "h": 23
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1205,
+  "tabPlot": 18.6,
+  "tabHead": 119,
+  "tabCardH": 364,
+  "secs": 8.1
+ },
+ {
+  "view": "stock-profit",
+  "route": "stock/2330",
+  "tab": "profit",
+  "w": 1440,
+  "h": 900,
+  "plot1": 48.9,
+  "plotP": 36.8,
+  "docH": 2715,
+  "gapV": 12,
+  "gapH": 12,
+  "head": 105,
+  "blank": 0.0,
+  "empty": 38.1,
+  "worst": {
+   "x": 320,
+   "y": 854,
+   "w": 1008,
+   "h": 48
+  },
+  "charts": {
+   "peChart": {
+    "w": 1374,
+    "h": 340,
+    "gridTop": 24,
+    "plotPct": 75.8,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "profitChart": {
+    "w": 664,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 65.3,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 184,
+     "y": 0,
+     "w": 295,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "peQ": {
+    "w": 664,
+    "h": 260,
+    "gridTop": 20,
+    "plotPct": 72.3,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1205,
+  "tabPlot": 32.2,
+  "tabHead": 105,
+  "tabCardH": 455,
+  "secs": 8.9
+ },
+ {
+  "view": "stock-dividend",
+  "route": "stock/2330",
+  "tab": "dividend",
+  "w": 1440,
+  "h": 900,
+  "plot1": 48.9,
+  "plotP": 36.1,
+  "docH": 1852,
+  "gapV": null,
+  "gapH": 12,
+  "head": 285,
+  "blank": 0.0,
+  "empty": 37.6,
+  "worst": {
+   "x": 320,
+   "y": 854,
+   "w": 1008,
+   "h": 48
+  },
+  "charts": {
+   "divBar": {
+    "w": 664,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 66.7,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 387,
+     "y": 0,
+     "w": 277,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1205,
+  "tabPlot": 18.9,
+  "tabHead": 75,
+  "tabCardH": 360,
+  "secs": 8.4
+ },
+ {
+  "view": "stock-inst",
+  "route": "stock/2330",
+  "tab": "inst",
+  "w": 1440,
+  "h": 900,
+  "plot1": 48.9,
+  "plotP": 37.7,
+  "docH": 2199,
+  "gapV": null,
+  "gapH": null,
+  "head": 285,
+  "blank": 0.0,
+  "empty": 41.7,
+  "worst": {
+   "x": 320,
+   "y": 854,
+   "w": 1008,
+   "h": 48
+  },
+  "charts": {
+   "instChart": {
+    "w": 1374,
+    "h": 340,
+    "gridTop": 30,
+    "plotPct": 73.7,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 611,
+     "y": 0,
+     "w": 153,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1205,
+  "tabPlot": 31.4,
+  "tabHead": 79,
+  "tabCardH": 734,
+  "secs": 8.3
+ },
+ {
+  "view": "stock-margin",
+  "route": "stock/2330",
+  "tab": "margin",
+  "w": 1440,
+  "h": 900,
+  "plot1": 48.9,
+  "plotP": 37.8,
+  "docH": 2199,
+  "gapV": null,
+  "gapH": null,
+  "head": 285,
+  "blank": 0.0,
+  "empty": 40.8,
+  "worst": {
+   "x": 128,
+   "y": 1254,
+   "w": 1056,
+   "h": 48
+  },
+  "charts": {
+   "marginChart": {
+    "w": 1374,
+    "h": 340,
+    "gridTop": 30,
+    "plotPct": 74.9,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 599,
+     "y": 0,
+     "w": 177,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1205,
+  "tabPlot": 31.8,
+  "tabHead": 79,
+  "tabCardH": 734,
+  "secs": 8.3
+ },
+ {
+  "view": "stock-holders",
+  "route": "stock/2330",
+  "tab": "holders",
+  "w": 1440,
+  "h": 900,
+  "plot1": 48.9,
+  "plotP": 37.2,
+  "docH": 2240,
+  "gapV": null,
+  "gapH": null,
+  "head": 285,
+  "blank": 0.0,
+  "empty": 42.2,
+  "worst": {
+   "x": 784,
+   "y": 1254,
+   "w": 512,
+   "h": 112
+  },
+  "charts": {
+   "holderChart": {
+    "w": 1374,
+    "h": 420,
+    "gridTop": 30,
+    "plotPct": 61.3,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 11,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1205,
+  "tabPlot": 30.4,
+  "tabHead": 125,
+  "tabCardH": 774,
+  "secs": 8.2
+ },
+ {
+  "view": "industry",
+  "route": "industry",
+  "tab": null,
+  "w": 1440,
+  "h": 900,
+  "plot1": 41.5,
+  "plotP": 34.7,
+  "docH": 1077,
+  "gapV": null,
+  "gapH": null,
+  "head": 122,
+  "blank": 0.0,
+  "empty": 58.0,
+  "worst": {
+   "x": 512,
+   "y": 406,
+   "w": 288,
+   "h": 336
+  },
+  "charts": {
+   "gpBar": {
+    "w": 744,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 72.9,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 566,
+    "h": 450,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
+  "secs": 5.4
+ },
+ {
+  "view": "chain-semi",
+  "route": "industry/semiconductor",
+  "tab": null,
+  "w": 1440,
+  "h": 900,
+  "plot1": 65.1,
+  "plotP": 60.8,
+  "docH": 1857,
+  "gapV": null,
+  "gapH": null,
+  "head": 127,
+  "blank": 0.0,
+  "empty": 42.9,
+  "worst": {
+   "x": 176,
+   "y": 982,
+   "w": 1152,
+   "h": 80
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 6.3
+ },
+ {
+  "view": "chain-elec",
+  "route": "industry/electronics",
+  "tab": null,
+  "w": 1440,
+  "h": 900,
+  "plot1": 65.1,
+  "plotP": 57.4,
+  "docH": 1671,
+  "gapV": null,
+  "gapH": null,
+  "head": 127,
+  "blank": 0.0,
+  "empty": 45.2,
+  "worst": {
+   "x": 176,
+   "y": 966,
+   "w": 1152,
+   "h": 80
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 5.8
+ },
+ {
+  "view": "stock-overview",
+  "route": "stock/2330",
+  "tab": "overview",
+  "w": 1100,
+  "h": 900,
+  "plot1": 43.7,
+  "plotP": 29.8,
+  "docH": 1886,
+  "gapV": 62,
+  "gapH": 12,
+  "head": 321,
+  "blank": 0.0,
+  "empty": 39.6,
+  "worst": {
+   "x": 560,
+   "y": 1446,
+   "w": 512,
+   "h": 80
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1240,
+  "tabPlot": 0.0,
+  "tabHead": null,
+  "tabCardH": 298,
+  "secs": 7.7
+ },
+ {
+  "view": "stock-revenue",
+  "route": "stock/2330",
+  "tab": "revenue",
+  "w": 1100,
+  "h": 900,
+  "plot1": 43.7,
+  "plotP": 29.9,
+  "docH": 2358,
+  "gapV": 12,
+  "gapH": 12,
+  "head": 153,
+  "blank": 0.0,
+  "empty": 35.3,
+  "worst": {
+   "x": 560,
+   "y": 1622,
+   "w": 512,
+   "h": 80
+  },
+  "charts": {
+   "revBar": {
+    "w": 494,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 59.8,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 94,
+     "y": 0,
+     "w": 306,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "revYear": {
+    "w": 494,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 64.5,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 44,
+     "y": 0,
+     "w": 406,
+     "h": 23
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1240,
+  "tabPlot": 16.5,
+  "tabHead": 153,
+  "tabCardH": 398,
+  "secs": 8.1
+ },
+ {
+  "view": "stock-profit",
+  "route": "stock/2330",
+  "tab": "profit",
+  "w": 1100,
+  "h": 900,
+  "plot1": 43.7,
+  "plotP": 32.8,
+  "docH": 2893,
+  "gapV": 12,
+  "gapH": 12,
+  "head": 151,
+  "blank": 0.0,
+  "empty": 37.9,
+  "worst": {
+   "x": 192,
+   "y": 1302,
+   "w": 896,
+   "h": 80
+  },
+  "charts": {
+   "peChart": {
+    "w": 1034,
+    "h": 340,
+    "gridTop": 24,
+    "plotPct": 73.5,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "profitChart": {
+    "w": 494,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 61.4,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 99,
+     "y": 0,
+     "w": 295,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "peQ": {
+    "w": 494,
+    "h": 260,
+    "gridTop": 20,
+    "plotPct": 69.3,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1240,
+  "tabPlot": 27.6,
+  "tabHead": 105,
+  "tabCardH": 455,
+  "secs": 8.5
+ },
+ {
+  "view": "stock-dividend",
+  "route": "stock/2330",
+  "tab": "dividend",
+  "w": 1100,
+  "h": 900,
+  "plot1": 43.7,
+  "plotP": 33.6,
+  "docH": 1888,
+  "gapV": null,
+  "gapH": 12,
+  "head": 321,
+  "blank": 0.0,
+  "empty": 35.1,
+  "worst": {
+   "x": 160,
+   "y": 934,
+   "w": 832,
+   "h": 48
+  },
+  "charts": {
+   "divBar": {
+    "w": 494,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 63.2,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 217,
+     "y": 0,
+     "w": 277,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1240,
+  "tabPlot": 17.5,
+  "tabHead": 75,
+  "tabCardH": 360,
+  "secs": 7.9
+ },
+ {
+  "view": "stock-inst",
+  "route": "stock/2330",
+  "tab": "inst",
+  "w": 1100,
+  "h": 900,
+  "plot1": 43.7,
+  "plotP": 35.3,
+  "docH": 2235,
+  "gapV": null,
+  "gapH": null,
+  "head": 321,
+  "blank": 0.0,
+  "empty": 38.8,
+  "worst": {
+   "x": 160,
+   "y": 934,
+   "w": 832,
+   "h": 48
+  },
+  "charts": {
+   "instChart": {
+    "w": 1034,
+    "h": 340,
+    "gridTop": 30,
+    "plotPct": 70.9,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 441,
+     "y": 0,
+     "w": 153,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1240,
+  "tabPlot": 30.0,
+  "tabHead": 79,
+  "tabCardH": 734,
+  "secs": 7.9
+ },
+ {
+  "view": "stock-margin",
+  "route": "stock/2330",
+  "tab": "margin",
+  "w": 1100,
+  "h": 900,
+  "plot1": 43.7,
+  "plotP": 35.5,
+  "docH": 2235,
+  "gapV": null,
+  "gapH": null,
+  "head": 321,
+  "blank": 0.0,
+  "empty": 38.1,
+  "worst": {
+   "x": 160,
+   "y": 934,
+   "w": 832,
+   "h": 48
+  },
+  "charts": {
+   "marginChart": {
+    "w": 1034,
+    "h": 340,
+    "gridTop": 30,
+    "plotPct": 72.5,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 429,
+     "y": 0,
+     "w": 177,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1240,
+  "tabPlot": 30.5,
+  "tabHead": 79,
+  "tabCardH": 734,
+  "secs": 8.4
+ },
+ {
+  "view": "stock-holders",
+  "route": "stock/2330",
+  "tab": "holders",
+  "w": 1100,
+  "h": 900,
+  "plot1": 43.7,
+  "plotP": 35.0,
+  "docH": 2275,
+  "gapV": null,
+  "gapH": null,
+  "head": 321,
+  "blank": 0.0,
+  "empty": 40.1,
+  "worst": {
+   "x": 160,
+   "y": 934,
+   "w": 832,
+   "h": 48
+  },
+  "charts": {
+   "holderChart": {
+    "w": 1034,
+    "h": 420,
+    "gridTop": 30,
+    "plotPct": 60.1,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 11,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 587
+    },
+    {
+     "top": 588,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 595,
+     "h": 23
+    }
+   ],
+   "h": 715
+  },
+  "tabTop": 1240,
+  "tabPlot": 29.6,
+  "tabHead": 125,
+  "tabCardH": 774,
+  "secs": 8.0
+ },
+ {
+  "view": "industry",
+  "route": "industry",
+  "tab": null,
+  "w": 1100,
+  "h": 900,
+  "plot1": 38.1,
+  "plotP": 31.8,
+  "docH": 1077,
+  "gapV": null,
+  "gapH": null,
+  "head": 122,
+  "blank": 0.0,
+  "empty": 52.5,
+  "worst": {
+   "x": 416,
+   "y": 406,
+   "w": 192,
+   "h": 336
+  },
+  "charts": {
+   "gpBar": {
+    "w": 552,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 65.7,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 418,
+    "h": 450,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
+  "secs": 5.0
+ },
+ {
+  "view": "chain-semi",
+  "route": "industry/semiconductor",
+  "tab": null,
+  "w": 1100,
+  "h": 900,
+  "plot1": 63.7,
+  "plotP": 61.6,
+  "docH": 1967,
+  "gapV": null,
+  "gapH": null,
+  "head": 127,
+  "blank": 0.0,
+  "empty": 36.7,
+  "worst": {
+   "x": 176,
+   "y": 1030,
+   "w": 816,
+   "h": 80
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 6.5
+ },
+ {
+  "view": "chain-elec",
+  "route": "industry/electronics",
+  "tab": null,
+  "w": 1100,
+  "h": 900,
+  "plot1": 63.7,
+  "plotP": 58.2,
+  "docH": 1772,
+  "gapV": null,
+  "gapH": null,
+  "head": 127,
+  "blank": 0.0,
+  "empty": 42.9,
+  "worst": {
+   "x": 384,
+   "y": 1030,
+   "w": 672,
+   "h": 112
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 5.9
+ },
+ {
+  "view": "stock-overview",
+  "route": "stock/2330",
+  "tab": "overview",
+  "w": 800,
+  "h": 900,
+  "plot1": 36.4,
+  "plotP": 24.3,
+  "docH": 2203,
+  "gapV": 16,
+  "gapH": null,
+  "head": 403,
+  "blank": 1.6,
+  "empty": 31.8,
+  "worst": {
+   "x": 192,
+   "y": 1816,
+   "w": 592,
+   "h": 48
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 543
+    },
+    {
+     "top": 544,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 551,
+     "h": 23
+    }
+   ],
+   "h": 670
+  },
+  "tabTop": 1288,
+  "tabPlot": 0.0,
+  "tabHead": null,
+  "tabCardH": 218,
+  "secs": 7.5
+ },
+ {
+  "view": "stock-revenue",
+  "route": "stock/2330",
+  "tab": "revenue",
+  "w": 800,
+  "h": 900,
+  "plot1": 36.4,
+  "plotP": 29.6,
+  "docH": 2904,
+  "gapV": 16,
+  "gapH": null,
+  "head": 135,
+  "blank": 1.1,
+  "empty": 28.8,
+  "worst": {
+   "x": 400,
+   "y": 1352,
+   "w": 400,
+   "h": 80
+  },
+  "charts": {
+   "revBar": {
+    "w": 746,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 65.6,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 220,
+     "y": 0,
+     "w": 306,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "revYear": {
+    "w": 746,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 68.7,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 170,
+     "y": 0,
+     "w": 406,
+     "h": 23
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 543
+    },
+    {
+     "top": 544,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 551,
+     "h": 23
+    }
+   ],
+   "h": 670
+  },
+  "tabTop": 1288,
+  "tabPlot": 26.0,
+  "tabHead": 134,
+  "tabCardH": 378,
+  "secs": 8.1
+ },
+ {
+  "view": "stock-profit",
+  "route": "stock/2330",
+  "tab": "profit",
+  "w": 800,
+  "h": 900,
+  "plot1": 36.4,
+  "plotP": 32.9,
+  "docH": 3329,
+  "gapV": 12,
+  "gapH": null,
+  "head": 113,
+  "blank": 1.0,
+  "empty": 30.1,
+  "worst": {
+   "x": 208,
+   "y": 2280,
+   "w": 576,
+   "h": 48
+  },
+  "charts": {
+   "peChart": {
+    "w": 746,
+    "h": 340,
+    "gridTop": 24,
+    "plotPct": 69.8,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "profitChart": {
+    "w": 746,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 66.6,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 225,
+     "y": 0,
+     "w": 295,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "peQ": {
+    "w": 746,
+    "h": 260,
+    "gridTop": 20,
+    "plotPct": 73.2,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 543
+    },
+    {
+     "top": 544,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 551,
+     "h": 23
+    }
+   ],
+   "h": 670
+  },
+  "tabTop": 1288,
+  "tabPlot": 33.6,
+  "tabHead": 112,
+  "tabCardH": 480,
+  "secs": 8.3
+ },
+ {
+  "view": "stock-dividend",
+  "route": "stock/2330",
+  "tab": "dividend",
+  "w": 800,
+  "h": 900,
+  "plot1": 36.4,
+  "plotP": 29.3,
+  "docH": 2389,
+  "gapV": 16,
+  "gapH": null,
+  "head": 403,
+  "blank": 1.4,
+  "empty": 28.6,
+  "worst": {
+   "x": 176,
+   "y": 936,
+   "w": 512,
+   "h": 32
+  },
+  "charts": {
+   "divBar": {
+    "w": 746,
+    "h": 260,
+    "gridTop": 30,
+    "plotPct": 67.8,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 469,
+     "y": 0,
+     "w": 277,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 543
+    },
+    {
+     "top": 544,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 551,
+     "h": 23
+    }
+   ],
+   "h": 670
+  },
+  "tabTop": 1288,
+  "tabPlot": 21.9,
+  "tabHead": 68,
+  "tabCardH": 336,
+  "secs": 7.9
+ },
+ {
+  "view": "stock-inst",
+  "route": "stock/2330",
+  "tab": "inst",
+  "w": 800,
+  "h": 900,
+  "plot1": 36.4,
+  "plotP": 30.9,
+  "docH": 2406,
+  "gapV": null,
+  "gapH": null,
+  "head": 403,
+  "blank": 1.4,
+  "empty": 32.2,
+  "worst": {
+   "x": 176,
+   "y": 936,
+   "w": 512,
+   "h": 32
+  },
+  "charts": {
+   "instChart": {
+    "w": 746,
+    "h": 340,
+    "gridTop": 30,
+    "plotPct": 66.5,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 297,
+     "y": 0,
+     "w": 153,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 543
+    },
+    {
+     "top": 544,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 551,
+     "h": 23
+    }
+   ],
+   "h": 670
+  },
+  "tabTop": 1288,
+  "tabPlot": 27.3,
+  "tabHead": 87,
+  "tabCardH": 740,
+  "secs": 8.0
+ },
+ {
+  "view": "stock-margin",
+  "route": "stock/2330",
+  "tab": "margin",
+  "w": 800,
+  "h": 900,
+  "plot1": 36.4,
+  "plotP": 31.3,
+  "docH": 2406,
+  "gapV": null,
+  "gapH": null,
+  "head": 403,
+  "blank": 1.4,
+  "empty": 31.6,
+  "worst": {
+   "x": 128,
+   "y": 1352,
+   "w": 416,
+   "h": 48
+  },
+  "charts": {
+   "marginChart": {
+    "w": 746,
+    "h": 340,
+    "gridTop": 30,
+    "plotPct": 68.7,
+    "legendIn": true,
+    "legendHit": false,
+    "legendBox": {
+     "x": 285,
+     "y": 0,
+     "w": 177,
+     "h": 24
+    },
+    "axisMin": 12,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 543
+    },
+    {
+     "top": 544,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 551,
+     "h": 23
+    }
+   ],
+   "h": 670
+  },
+  "tabTop": 1288,
+  "tabPlot": 28.4,
+  "tabHead": 87,
+  "tabCardH": 740,
+  "secs": 7.8
+ },
+ {
+  "view": "stock-holders",
+  "route": "stock/2330",
+  "tab": "holders",
+  "w": 800,
+  "h": 900,
+  "plot1": 36.4,
+  "plotP": 31.2,
+  "docH": 2446,
+  "gapV": null,
+  "gapH": null,
+  "head": 403,
+  "blank": 1.4,
+  "empty": 32.1,
+  "worst": {
+   "x": 256,
+   "y": 1352,
+   "w": 400,
+   "h": 48
+  },
+  "charts": {
+   "holderChart": {
+    "w": 746,
+    "h": 420,
+    "gridTop": 30,
+    "plotPct": 58.1,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 11,
+    "vGrid": 0
+   }
+  },
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 543
+    },
+    {
+     "top": 544,
+     "h": 96
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 551,
+     "h": 23
+    }
+   ],
+   "h": 670
+  },
+  "tabTop": 1288,
+  "tabPlot": 28.3,
+  "tabHead": 133,
+  "tabCardH": 780,
+  "secs": 7.7
+ },
+ {
+  "view": "industry",
+  "route": "industry",
+  "tab": null,
+  "w": 800,
+  "h": 900,
+  "plot1": 41.6,
+  "plotP": 41.1,
+  "docH": 1794,
+  "gapV": null,
+  "gapH": null,
+  "head": 138,
+  "blank": 0.0,
+  "empty": 58.6,
+  "worst": {
+   "x": 496,
+   "y": 424,
+   "w": 272,
+   "h": 352
+  },
+  "charts": {
+   "gpBar": {
+    "w": 720,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 72.2,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 720,
+    "h": 440,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
+  "secs": 5.1
+ },
+ {
+  "view": "chain-semi",
+  "route": "industry/semiconductor",
+  "tab": null,
+  "w": 800,
+  "h": 900,
+  "plot1": 55.2,
+  "plotP": 76.5,
+  "docH": 4552,
+  "gapV": null,
+  "gapH": null,
+  "head": 345,
+  "blank": 0.0,
+  "empty": 29.4,
+  "worst": {
+   "x": 32,
+   "y": 2424,
+   "w": 192,
+   "h": 400
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 6.5
+ },
+ {
+  "view": "chain-elec",
+  "route": "industry/electronics",
+  "tab": null,
+  "w": 800,
+  "h": 900,
+  "plot1": 55.2,
+  "plotP": 71.5,
+  "docH": 3194,
+  "gapV": null,
+  "gapH": null,
+  "head": 289,
+  "blank": 0.0,
+  "empty": 34.9,
+  "worst": {
+   "x": 320,
+   "y": 1736,
+   "w": 416,
+   "h": 144
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 6.0
+ },
+ {
+  "view": "stock-overview",
+  "route": "stock/2330",
+  "tab": "overview",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 23.0,
+  "docH": 1182,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339
+    },
+    {
+     "top": 340,
+     "h": 94
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.2
+ },
+ {
+  "view": "stock-revenue",
+  "route": "stock/2330",
+  "tab": "revenue",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 23.0,
+  "docH": 1182,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339
+    },
+    {
+     "top": 340,
+     "h": 94
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.1
+ },
+ {
+  "view": "stock-profit",
+  "route": "stock/2330",
+  "tab": "profit",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 23.0,
+  "docH": 1182,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339
+    },
+    {
+     "top": 340,
+     "h": 94
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.4
+ },
+ {
+  "view": "stock-dividend",
+  "route": "stock/2330",
+  "tab": "dividend",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 23.0,
+  "docH": 1182,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339
+    },
+    {
+     "top": 340,
+     "h": 94
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.3
+ },
+ {
+  "view": "stock-inst",
+  "route": "stock/2330",
+  "tab": "inst",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 23.0,
+  "docH": 1182,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339
+    },
+    {
+     "top": 340,
+     "h": 94
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.2
+ },
+ {
+  "view": "stock-margin",
+  "route": "stock/2330",
+  "tab": "margin",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 23.0,
+  "docH": 1182,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339
+    },
+    {
+     "top": 340,
+     "h": 94
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.2
+ },
+ {
+  "view": "stock-holders",
+  "route": "stock/2330",
+  "tab": "holders",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 23.0,
+  "docH": 1182,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339
+    },
+    {
+     "top": 340,
+     "h": 94
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.3
+ },
+ {
+  "view": "industry",
+  "route": "industry",
+  "tab": null,
+  "w": 390,
+  "h": 844,
+  "plot1": 19.7,
+  "plotP": 23.1,
+  "docH": 1769,
+  "gapV": null,
+  "gapH": null,
+  "head": 193,
+  "blank": 0.0,
+  "empty": 40.4,
+  "worst": {
+   "x": 304,
+   "y": 370,
+   "w": 48,
+   "h": 416
+  },
+  "charts": {
+   "gpBar": {
+    "w": 298,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 41.6,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 298,
+    "h": 320,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
+  "secs": 4.9
+ },
+ {
+  "view": "chain-semi",
+  "route": "industry/semiconductor",
+  "tab": null,
+  "w": 390,
+  "h": 844,
+  "plot1": 37.6,
+  "plotP": 92.1,
+  "docH": 2145,
+  "gapV": null,
+  "gapH": null,
+  "head": 323,
+  "blank": 0.0,
+  "empty": 21.9,
+  "worst": {
+   "x": 224,
+   "y": 322,
+   "w": 128,
+   "h": 128
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 5.0
+ },
+ {
+  "view": "chain-elec",
+  "route": "industry/electronics",
+  "tab": null,
+  "w": 390,
+  "h": 844,
+  "plot1": 37.6,
+  "plotP": 97.0,
+  "docH": 2037,
+  "gapV": null,
+  "gapH": null,
+  "head": 323,
+  "blank": 0.0,
+  "empty": 23.7,
+  "worst": {
+   "x": 144,
+   "y": 322,
+   "w": 208,
+   "h": 80
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 5.3
+ }
+]
