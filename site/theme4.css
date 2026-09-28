@@ -545,7 +545,9 @@
     text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;line-height:21px}
   /* 卡片內距套 v4 尺度（改前 10／12／8、14 這種尺度外的數字） */
   .gpcard{padding:8px 12px 8px}
-  .nbbody{padding:8px 12px 12px}   /* 上 10 → 8：量過 12 會讓 800 寬剖析圖第一屏少 0.7 個百分點（圖往下 2px），退步不上 */
+  /* .nbbody 上 10 → 8、下 14 → 12；左右照舊（≥821 是 12、641～820 是 index.html 那段的 8）——
+     第一版一律寫 12，量到 800 寬剖析圖第一屏 55.2 → 54.9（左右各多 4px，剖析圖的引線層被擠窄），退步不上 */
+  .nbbody{padding-top:8px;padding-bottom:12px}
   /* ⑨ 產業鏈頁：鏈名標題跟二層分頁列同一列（industry.js fitNbHead：放得下才掛 .nbinl） */
   .nbcard.nbinl>.nbhead{float:left;margin:4px 16px 0 0;min-height:0}
   .nbcard.nbinl>.nbhead h2{line-height:32px}

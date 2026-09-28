@@ -49,7 +49,7 @@
   "tabPlot": 0.0,
   "tabHead": null,
   "tabCardH": 369,
-  "secs": 8.2
+  "secs": 8.1
  },
  {
   "view": "stock-revenue",
@@ -124,7 +124,7 @@
   "tabPlot": 22.3,
   "tabHead": 99,
   "tabCardH": 364,
-  "secs": 8.4
+  "secs": 7.9
  },
  {
   "view": "stock-profit",
@@ -139,7 +139,7 @@
   "gapH": 12,
   "head": 105,
   "blank": 0.0,
-  "empty": 37.1,
+  "empty": 36.5,
   "worst": {
    "x": 144,
    "y": 854,
@@ -215,7 +215,7 @@
   "tabPlot": 32.7,
   "tabHead": 105,
   "tabCardH": 455,
-  "secs": 9.0
+  "secs": 8.7
  },
  {
   "view": "stock-dividend",
@@ -279,7 +279,7 @@
   "tabPlot": 21.9,
   "tabHead": 57,
   "tabCardH": 360,
-  "secs": 7.9
+  "secs": 8.0
  },
  {
   "view": "stock-inst",
@@ -343,7 +343,7 @@
   "tabPlot": 33.7,
   "tabHead": 59,
   "tabCardH": 734,
-  "secs": 8.0
+  "secs": 8.1
  },
  {
   "view": "stock-margin",
@@ -407,7 +407,7 @@
   "tabPlot": 34.1,
   "tabHead": 59,
   "tabCardH": 734,
-  "secs": 8.5
+  "secs": 8.1
  },
  {
   "view": "stock-holders",
@@ -471,7 +471,7 @@
   "tabPlot": 32.7,
   "tabHead": 79,
   "tabCardH": 728,
-  "secs": 8.0
+  "secs": 7.9
  },
  {
   "view": "industry",
@@ -480,18 +480,18 @@
   "w": 1440,
   "h": 900,
   "plot1": 41.5,
-  "plotP": 34.7,
-  "docH": 1077,
+  "plotP": 38.7,
+  "docH": 965,
   "gapV": null,
   "gapH": null,
-  "head": 122,
+  "head": 79,
   "blank": 0.0,
-  "empty": 58.0,
+  "empty": 57.0,
   "worst": {
-   "x": 512,
-   "y": 406,
-   "w": 288,
-   "h": 336
+   "x": 528,
+   "y": 342,
+   "w": 272,
+   "h": 368
   },
   "charts": {
    "gpBar": {
@@ -518,7 +518,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.0
+  "secs": 5.1
  },
  {
   "view": "chain-semi",
@@ -526,23 +526,23 @@
   "tab": null,
   "w": 1440,
   "h": 900,
-  "plot1": 65.1,
-  "plotP": 60.8,
-  "docH": 1857,
+  "plot1": 68.4,
+  "plotP": 63.8,
+  "docH": 1777,
   "gapV": null,
   "gapH": null,
-  "head": 127,
+  "head": 93,
   "blank": 0.0,
-  "empty": 42.9,
+  "empty": 39.6,
   "worst": {
-   "x": 176,
-   "y": 982,
-   "w": 1152,
-   "h": 80
+   "x": 1056,
+   "y": 662,
+   "w": 336,
+   "h": 256
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.8
+  "secs": 5.9
  },
  {
   "view": "chain-elec",
@@ -550,23 +550,94 @@
   "tab": null,
   "w": 1440,
   "h": 900,
-  "plot1": 65.1,
-  "plotP": 57.4,
-  "docH": 1671,
+  "plot1": 68.4,
+  "plotP": 60.2,
+  "docH": 1592,
   "gapV": null,
   "gapH": null,
-  "head": 127,
+  "head": 93,
   "blank": 0.0,
-  "empty": 45.2,
+  "empty": 41.4,
   "worst": {
-   "x": 176,
-   "y": 966,
-   "w": 1152,
+   "x": 480,
+   "y": 982,
+   "w": 912,
    "h": 80
   },
   "charts": {},
   "lwc": null,
+  "secs": 5.7
+ },
+ {
+  "view": "chain-semi-ov",
+  "route": "industry/semiconductor/overview",
+  "tab": null,
+  "w": 1440,
+  "h": 900,
+  "plot1": 39.7,
+  "plotP": 51.4,
+  "docH": 1652,
+  "gapV": null,
+  "gapH": null,
+  "head": 122,
+  "blank": 0.0,
+  "empty": 50.8,
+  "worst": {
+   "x": 192,
+   "y": 246,
+   "w": 304,
+   "h": 320
+  },
+  "charts": {
+   "gpBar": {
+    "w": 729,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 69.8,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 555,
+    "h": 450,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
   "secs": 5.5
+ },
+ {
+  "view": "chain-ai",
+  "route": "industry/ai_server",
+  "tab": null,
+  "w": 1440,
+  "h": 900,
+  "plot1": 68.4,
+  "plotP": 67.8,
+  "docH": 2057,
+  "gapV": null,
+  "gapH": null,
+  "head": 93,
+  "blank": 0.0,
+  "empty": 43.8,
+  "worst": {
+   "x": 960,
+   "y": 1062,
+   "w": 432,
+   "h": 320
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 6.0
  },
  {
   "view": "stock-overview",
@@ -618,7 +689,7 @@
   "tabPlot": 0.0,
   "tabHead": null,
   "tabCardH": 298,
-  "secs": 7.7
+  "secs": 7.6
  },
  {
   "view": "stock-revenue",
@@ -703,7 +774,7 @@
   "tabPlot": 19.6,
   "tabHead": 153,
   "tabCardH": 398,
-  "secs": 8.2
+  "secs": 8.0
  },
  {
   "view": "stock-profit",
@@ -718,7 +789,7 @@
   "gapH": 12,
   "head": 151,
   "blank": 0.0,
-  "empty": 34.7,
+  "empty": 34.6,
   "worst": {
    "x": 192,
    "y": 1302,
@@ -794,7 +865,7 @@
   "tabPlot": 29.7,
   "tabHead": 105,
   "tabCardH": 455,
-  "secs": 8.8
+  "secs": 8.9
  },
  {
   "view": "stock-dividend",
@@ -863,7 +934,7 @@
   "tabPlot": 17.8,
   "tabHead": 75,
   "tabCardH": 360,
-  "secs": 7.8
+  "secs": 8.2
  },
  {
   "view": "stock-inst",
@@ -927,7 +998,7 @@
   "tabPlot": 32.1,
   "tabHead": 59,
   "tabCardH": 734,
-  "secs": 7.6
+  "secs": 7.9
  },
  {
   "view": "stock-margin",
@@ -991,7 +1062,7 @@
   "tabPlot": 32.7,
   "tabHead": 59,
   "tabCardH": 734,
-  "secs": 7.6
+  "secs": 8.2
  },
  {
   "view": "stock-holders",
@@ -1055,7 +1126,7 @@
   "tabPlot": 30.2,
   "tabHead": 119,
   "tabCardH": 768,
-  "secs": 7.7
+  "secs": 8.5
  },
  {
   "view": "industry",
@@ -1064,18 +1135,18 @@
   "w": 1100,
   "h": 900,
   "plot1": 38.1,
-  "plotP": 31.8,
-  "docH": 1077,
+  "plotP": 35.5,
+  "docH": 965,
   "gapV": null,
   "gapH": null,
-  "head": 122,
+  "head": 79,
   "blank": 0.0,
-  "empty": 52.5,
+  "empty": 50.9,
   "worst": {
-   "x": 416,
-   "y": 406,
-   "w": 192,
-   "h": 336
+   "x": 432,
+   "y": 342,
+   "w": 176,
+   "h": 368
   },
   "charts": {
    "gpBar": {
@@ -1102,7 +1173,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.0
+  "secs": 5.4
  },
  {
   "view": "chain-semi",
@@ -1110,23 +1181,23 @@
   "tab": null,
   "w": 1100,
   "h": 900,
-  "plot1": 63.7,
-  "plotP": 61.6,
-  "docH": 1967,
+  "plot1": 66.9,
+  "plotP": 64.2,
+  "docH": 1888,
   "gapV": null,
   "gapH": null,
-  "head": 127,
+  "head": 93,
   "blank": 0.0,
-  "empty": 36.7,
+  "empty": 33.5,
   "worst": {
-   "x": 176,
-   "y": 1030,
-   "w": 816,
-   "h": 80
+   "x": 48,
+   "y": 1414,
+   "w": 240,
+   "h": 240
   },
   "charts": {},
   "lwc": null,
-  "secs": 6.5
+  "secs": 5.9
  },
  {
   "view": "chain-elec",
@@ -1134,23 +1205,94 @@
   "tab": null,
   "w": 1100,
   "h": 900,
-  "plot1": 63.7,
-  "plotP": 58.2,
-  "docH": 1772,
+  "plot1": 64.9,
+  "plotP": 61.1,
+  "docH": 1692,
   "gapV": null,
   "gapH": null,
-  "head": 127,
+  "head": 93,
   "blank": 0.0,
-  "empty": 42.9,
+  "empty": 41.4,
   "worst": {
    "x": 384,
-   "y": 1030,
+   "y": 950,
    "w": 672,
    "h": 112
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.8
+  "secs": 6.0
+ },
+ {
+  "view": "chain-semi-ov",
+  "route": "industry/semiconductor/overview",
+  "tab": null,
+  "w": 1100,
+  "h": 900,
+  "plot1": 36.0,
+  "plotP": 50.4,
+  "docH": 1713,
+  "gapV": null,
+  "gapH": null,
+  "head": 122,
+  "blank": 0.0,
+  "empty": 47.1,
+  "worst": {
+   "x": 192,
+   "y": 246,
+   "w": 208,
+   "h": 320
+  },
+  "charts": {
+   "gpBar": {
+    "w": 537,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 61.3,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 407,
+    "h": 450,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
+  "secs": 5.6
+ },
+ {
+  "view": "chain-ai",
+  "route": "industry/ai_server",
+  "tab": null,
+  "w": 1100,
+  "h": 900,
+  "plot1": 66.9,
+  "plotP": 68.9,
+  "docH": 2245,
+  "gapV": null,
+  "gapH": null,
+  "head": 93,
+  "blank": 0.0,
+  "empty": 37.8,
+  "worst": {
+   "x": 736,
+   "y": 1030,
+   "w": 320,
+   "h": 384
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 6.7
  },
  {
   "view": "stock-overview",
@@ -1202,7 +1344,7 @@
   "tabPlot": 0.0,
   "tabHead": null,
   "tabCardH": 218,
-  "secs": 7.4
+  "secs": 7.7
  },
  {
   "view": "stock-revenue",
@@ -1277,7 +1419,7 @@
   "tabPlot": 28.6,
   "tabHead": 115,
   "tabCardH": 378,
-  "secs": 7.9
+  "secs": 8.0
  },
  {
   "view": "stock-profit",
@@ -1368,7 +1510,7 @@
   "tabPlot": 33.4,
   "tabHead": 113,
   "tabCardH": 480,
-  "secs": 8.0
+  "secs": 8.3
  },
  {
   "view": "stock-dividend",
@@ -1432,7 +1574,7 @@
   "tabPlot": 23.7,
   "tabHead": 65,
   "tabCardH": 351,
-  "secs": 7.7
+  "secs": 8.0
  },
  {
   "view": "stock-inst",
@@ -1496,7 +1638,7 @@
   "tabPlot": 29.2,
   "tabHead": 67,
   "tabCardH": 740,
-  "secs": 7.5
+  "secs": 8.0
  },
  {
   "view": "stock-margin",
@@ -1560,7 +1702,7 @@
   "tabPlot": 30.4,
   "tabHead": 67,
   "tabCardH": 740,
-  "secs": 7.6
+  "secs": 7.8
  },
  {
   "view": "stock-holders",
@@ -1624,7 +1766,7 @@
   "tabPlot": 28.5,
   "tabHead": 127,
   "tabCardH": 774,
-  "secs": 7.7
+  "secs": 7.9
  },
  {
   "view": "industry",
@@ -1632,14 +1774,14 @@
   "tab": null,
   "w": 800,
   "h": 900,
-  "plot1": 41.6,
-  "plotP": 41.1,
-  "docH": 1794,
+  "plot1": 43.2,
+  "plotP": 43.1,
+  "docH": 1712,
   "gapV": null,
   "gapH": null,
-  "head": 138,
+  "head": 127,
   "blank": 0.0,
-  "empty": 58.6,
+  "empty": 58.0,
   "worst": {
    "x": 496,
    "y": 424,
@@ -1671,7 +1813,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.1
+  "secs": 5.2
  },
  {
   "view": "chain-semi",
@@ -1679,23 +1821,23 @@
   "tab": null,
   "w": 800,
   "h": 900,
-  "plot1": 55.2,
-  "plotP": 76.5,
-  "docH": 4552,
+  "plot1": 59.1,
+  "plotP": 77.6,
+  "docH": 4524,
   "gapV": null,
   "gapH": null,
-  "head": 345,
+  "head": 303,
   "blank": 0.0,
-  "empty": 29.4,
+  "empty": 28.4,
   "worst": {
    "x": 32,
-   "y": 2424,
+   "y": 2392,
    "w": 192,
-   "h": 400
+   "h": 416
   },
   "charts": {},
   "lwc": null,
-  "secs": 6.2
+  "secs": 6.1
  },
  {
   "view": "chain-elec",
@@ -1703,14 +1845,14 @@
   "tab": null,
   "w": 800,
   "h": 900,
-  "plot1": 55.2,
-  "plotP": 71.5,
-  "docH": 3194,
+  "plot1": 54.9,
+  "plotP": 71.6,
+  "docH": 3188,
   "gapV": null,
   "gapH": null,
-  "head": 289,
+  "head": 287,
   "blank": 0.0,
-  "empty": 34.9,
+  "empty": 35.0,
   "worst": {
    "x": 320,
    "y": 1736,
@@ -1719,7 +1861,78 @@
   },
   "charts": {},
   "lwc": null,
+  "secs": 5.9
+ },
+ {
+  "view": "chain-semi-ov",
+  "route": "industry/semiconductor/overview",
+  "tab": null,
+  "w": 800,
+  "h": 900,
+  "plot1": 35.5,
+  "plotP": 45.4,
+  "docH": 3792,
+  "gapV": null,
+  "gapH": null,
+  "head": 149,
+  "blank": 0.0,
+  "empty": 37.4,
+  "worst": {
+   "x": 192,
+   "y": 296,
+   "w": 272,
+   "h": 320
+  },
+  "charts": {
+   "gpBar": {
+    "w": 694,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 68.6,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 694,
+    "h": 440,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
   "secs": 5.8
+ },
+ {
+  "view": "chain-ai",
+  "route": "industry/ai_server",
+  "tab": null,
+  "w": 800,
+  "h": 900,
+  "plot1": 54.9,
+  "plotP": 72.7,
+  "docH": 4728,
+  "gapV": null,
+  "gapH": null,
+  "head": 308,
+  "blank": 0.0,
+  "empty": 28.0,
+  "worst": {
+   "x": 608,
+   "y": 2200,
+   "w": 160,
+   "h": 432
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 7.0
  },
  {
   "view": "stock-overview",
@@ -1728,56 +1941,8 @@
   "w": 390,
   "h": 844,
   "plot1": 32.2,
-  "plotP": 23.0,
-  "docH": 1182,
-  "gapV": null,
-  "gapH": null,
-  "head": 118,
-  "blank": 0.0,
-  "empty": 19.4,
-  "worst": {
-   "x": 16,
-   "y": 196,
-   "w": 16,
-   "h": 576
-  },
-  "charts": {},
-  "lwc": {
-   "font": 12,
-   "vertLines": false,
-   "panes": [
-    {
-     "top": 0,
-     "h": 339,
-     "dataTop": 27
-    },
-    {
-     "top": 340,
-     "h": 94,
-     "dataTop": 8
-    }
-   ],
-   "labels": [
-    {
-     "t": "成交量 1.5 萬張　MA20 ",
-     "fs": 12,
-     "y": 347,
-     "h": 23
-    }
-   ],
-   "h": 464
-  },
-  "secs": 7.0
- },
- {
-  "view": "stock-revenue",
-  "route": "stock/2330",
-  "tab": "revenue",
-  "w": 390,
-  "h": 844,
-  "plot1": 32.2,
-  "plotP": 23.0,
-  "docH": 1182,
+  "plotP": 22.1,
+  "docH": 1229,
   "gapV": null,
   "gapH": null,
   "head": 118,
@@ -1818,14 +1983,14 @@
   "secs": 7.2
  },
  {
-  "view": "stock-profit",
+  "view": "stock-revenue",
   "route": "stock/2330",
-  "tab": "profit",
+  "tab": "revenue",
   "w": 390,
   "h": 844,
   "plot1": 32.2,
-  "plotP": 23.0,
-  "docH": 1182,
+  "plotP": 22.1,
+  "docH": 1229,
   "gapV": null,
   "gapH": null,
   "head": 118,
@@ -1863,7 +2028,55 @@
    ],
    "h": 464
   },
-  "secs": 7.3
+  "secs": 7.4
+ },
+ {
+  "view": "stock-profit",
+  "route": "stock/2330",
+  "tab": "profit",
+  "w": 390,
+  "h": 844,
+  "plot1": 32.2,
+  "plotP": 22.1,
+  "docH": 1229,
+  "gapV": null,
+  "gapH": null,
+  "head": 118,
+  "blank": 0.0,
+  "empty": 19.4,
+  "worst": {
+   "x": 16,
+   "y": 196,
+   "w": 16,
+   "h": 576
+  },
+  "charts": {},
+  "lwc": {
+   "font": 12,
+   "vertLines": false,
+   "panes": [
+    {
+     "top": 0,
+     "h": 339,
+     "dataTop": 27
+    },
+    {
+     "top": 340,
+     "h": 94,
+     "dataTop": 8
+    }
+   ],
+   "labels": [
+    {
+     "t": "成交量 1.5 萬張　MA20 ",
+     "fs": 12,
+     "y": 347,
+     "h": 23
+    }
+   ],
+   "h": 464
+  },
+  "secs": 7.4
  },
  {
   "view": "stock-dividend",
@@ -1872,8 +2085,8 @@
   "w": 390,
   "h": 844,
   "plot1": 32.2,
-  "plotP": 23.0,
-  "docH": 1182,
+  "plotP": 22.1,
+  "docH": 1229,
   "gapV": null,
   "gapH": null,
   "head": 118,
@@ -1920,8 +2133,8 @@
   "w": 390,
   "h": 844,
   "plot1": 32.2,
-  "plotP": 23.0,
-  "docH": 1182,
+  "plotP": 22.1,
+  "docH": 1229,
   "gapV": null,
   "gapH": null,
   "head": 118,
@@ -1959,7 +2172,7 @@
    ],
    "h": 464
   },
-  "secs": 7.0
+  "secs": 7.2
  },
  {
   "view": "stock-margin",
@@ -1968,8 +2181,8 @@
   "w": 390,
   "h": 844,
   "plot1": 32.2,
-  "plotP": 23.0,
-  "docH": 1182,
+  "plotP": 22.1,
+  "docH": 1229,
   "gapV": null,
   "gapH": null,
   "head": 118,
@@ -2016,8 +2229,8 @@
   "w": 390,
   "h": 844,
   "plot1": 32.2,
-  "plotP": 23.0,
-  "docH": 1182,
+  "plotP": 22.1,
+  "docH": 1229,
   "gapV": null,
   "gapH": null,
   "head": 118,
@@ -2055,7 +2268,7 @@
    ],
    "h": 464
   },
-  "secs": 7.2
+  "secs": 7.1
  },
  {
   "view": "industry",
@@ -2064,13 +2277,13 @@
   "w": 390,
   "h": 844,
   "plot1": 19.7,
-  "plotP": 23.1,
-  "docH": 1769,
+  "plotP": 21.9,
+  "docH": 1866,
   "gapV": null,
   "gapH": null,
   "head": 193,
   "blank": 0.0,
-  "empty": 40.4,
+  "empty": 41.7,
   "worst": {
    "x": 304,
    "y": 370,
@@ -2102,7 +2315,7 @@
    }
   },
   "lwc": null,
-  "secs": 4.9
+  "secs": 5.0
  },
  {
   "view": "chain-semi",
@@ -2111,13 +2324,13 @@
   "w": 390,
   "h": 844,
   "plot1": 37.6,
-  "plotP": 92.1,
-  "docH": 2145,
+  "plotP": 83.6,
+  "docH": 2364,
   "gapV": null,
   "gapH": null,
   "head": 323,
   "blank": 0.0,
-  "empty": 21.9,
+  "empty": 21.0,
   "worst": {
    "x": 224,
    "y": 322,
@@ -2126,7 +2339,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.2
+  "secs": 5.0
  },
  {
   "view": "chain-elec",
@@ -2135,13 +2348,13 @@
   "w": 390,
   "h": 844,
   "plot1": 37.6,
-  "plotP": 97.0,
-  "docH": 2037,
+  "plotP": 89.2,
+  "docH": 2216,
   "gapV": null,
   "gapH": null,
   "head": 323,
   "blank": 0.0,
-  "empty": 23.7,
+  "empty": 23.1,
   "worst": {
    "x": 144,
    "y": 322,
@@ -2150,6 +2363,77 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.2
+  "secs": 5.1
+ },
+ {
+  "view": "chain-semi-ov",
+  "route": "industry/semiconductor/overview",
+  "tab": null,
+  "w": 390,
+  "h": 844,
+  "plot1": 10.7,
+  "plotP": 11.8,
+  "docH": 2982,
+  "gapV": null,
+  "gapH": null,
+  "head": 306,
+  "blank": 0.0,
+  "empty": 32.3,
+  "worst": {
+   "x": 192,
+   "y": 498,
+   "w": 64,
+   "h": 272
+  },
+  "charts": {
+   "gpBar": {
+    "w": 280,
+    "h": 524,
+    "gridTop": 8,
+    "plotPct": 31.3,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": 12,
+    "vGrid": 0
+   },
+   "gpPie": {
+    "w": 280,
+    "h": 320,
+    "gridTop": null,
+    "plotPct": 0,
+    "legendIn": false,
+    "legendHit": false,
+    "legendBox": null,
+    "axisMin": null,
+    "vGrid": 0
+   }
+  },
+  "lwc": null,
+  "secs": 5.3
+ },
+ {
+  "view": "chain-ai",
+  "route": "industry/ai_server",
+  "tab": null,
+  "w": 390,
+  "h": 844,
+  "plot1": 37.6,
+  "plotP": 94.2,
+  "docH": 2262,
+  "gapV": null,
+  "gapH": null,
+  "head": 323,
+  "blank": 0.0,
+  "empty": 24.1,
+  "worst": {
+   "x": 288,
+   "y": 1058,
+   "w": 80,
+   "h": 288
+  },
+  "charts": {},
+  "lwc": null,
+  "secs": 5.3
  }
 ]
