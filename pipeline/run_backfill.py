@@ -681,11 +681,17 @@ def backfill_index_intraday(prog: dict, days: int = FUT_TICK_DAYS) -> bool:
     from .compute.intraday_bars import kbar_to_60m
 
     flag = (prog.get("complete") or {}).get("index_intraday") or {}
-    if flag.get("yahoo_v") != 2:
+    if flag.get("yahoo_v") != 3:
         # 2026-09-25 櫃買加了 Yahoo 候選代號（^TWOTCI）；舊進度的 yahoo=true 是只有加權抓到時記的，重開 Yahoo 一次。
+        # ★ 2026-09-28（v3）：櫃買的 Yahoo 代號實測是 IX0043.TWO（^TWOII／^TWOTCI 都回空），而且
+        #   index_intraday_since 改成每個指數各算各的缺口 —— 重開一次，讓櫃買一口氣補回 730 天 60 分＋60 天 15 分。
         flag.pop("yahoo", None)
         flag.pop("done", None)
-        flag["yahoo_v"] = 2
+        flag["yahoo_v"] = 3
+    if flag.get("tse1m_v") != 1:
+        # 2026-09-28：加權真實 1 分 K（FinMind 每 5 秒指數＋成交統計）回補，見 _backfill_tse_minute。
+        flag.pop("done", None)
+        flag["tse1m_v"] = 1
     if flag.get("kbar_v") != 1:
         # 2026-09-25 加了 FinMind 分 K 路線（櫃買 TaiwanStockKBar、台指期 TaiwanFuturesKBar）：
         # 舊進度可能因為「逐筆不可用」就記成 done，這裡重開一次讓分 K 那兩條有機會補；Yahoo 那段不重跑。
@@ -738,11 +744,59 @@ def backfill_index_intraday(prog: dict, days: int = FUT_TICK_DAYS) -> bool:
         fut_ok = True
 
     otc_ok = _backfill_otc_kbar(flag, have, days)
-    flag["done"] = bool(flag.get("yahoo")) and fut_ok and otc_ok
+    tse_ok = _backfill_tse_minute(flag, store.read("index_intraday"))
+    flag["done"] = bool(flag.get("yahoo")) and fut_ok and otc_ok and tse_ok
     flag["at"] = datetime.now(timezone.utc).isoformat()
     prog.setdefault("complete", {})["index_intraday"] = flag
     _save_progress(prog)
     return flag["done"]
+
+
+TSE_MINUTE_DAYS = 730        # 加權真實 1 分 K 往回補幾個日曆日（跟 Yahoo 60 分 K 的保留期一樣長，1H 整段都有真實量）
+TSE_MINUTE_PER_RUN = 120     # 每一輪最多補幾個交易日（一天 2 次額度 → 240 次；每小時額度 510，留給法人續補等其他步驟）
+
+
+def _backfill_tse_minute(flag: dict, have: pd.DataFrame) -> bool:
+    """加權真實 1 分 K（2026-09-28，Andy：「加權指數的成交量 15min 30min 1H 都沒有確切成交量」）。回傳這段算不算完成。
+
+    來源：FinMind TaiwanVariousIndicators5Seconds（加權每 5 秒）＋ TaiwanStockStatisticsOfOrderBookAndTrade
+    （每 5 秒累計成交金額），兩個都是免費資料集（Actions 實測 register 等級拿得到、兩年前也拿得到）。
+    交易日取自 index_ohlc 的 TSE（回應裡的日期，不用執行當天推算）；湖裡已有 finmind 那天的跳過；新的先補
+    （最近的 15／30／60 分最常看）；額度剩 ≤ 20 或這一輪補滿 TSE_MINUTE_PER_RUN 天就停，下一小時接續。
+    兩個資料集回「沒權限」（400 且不是額度）就記 `tse1m_unavailable`，之後不再重試。
+    """
+    from .run_daily import tse_minute_todo
+
+    if flag.get("tse1m_unavailable"):
+        return True
+    ohlc = store.read("index_ohlc")
+    if ohlc is not None and not ohlc.empty:
+        cut = (datetime.now(TAIPEI) - timedelta(days=TSE_MINUTE_DAYS)).strftime("%Y-%m-%d")
+        ohlc = ohlc[ohlc["date"].astype(str).str[:10] >= cut]
+    # 同一天連續 3 輪都回空（FinMind 那天真的缺資料）就不再試 —— 不然每小時都為它燒 2 次額度、done 永遠不成立
+    empt = flag.setdefault("tse1m_empty", {})
+    todo = [d for d in tse_minute_todo(have, ohlc, 100_000) if empt.get(d, 0) < 3]
+    n = 0
+    for d in list(todo):
+        if n >= TSE_MINUTE_PER_RUN:
+            break
+        if http.finmind_budget_left() <= 20:
+            log.warning("額度剩不多，加權 1 分 K 回補停在 %s，下一輪接續", d)
+            break
+        bars = finmind.tse_minute_bars(d)
+        n += 1
+        if bars.empty:
+            if _dataset_denied(finmind.TSE_5S_PRICE) or _dataset_denied(finmind.TSE_5S_TRADE):
+                log.warning("加權 5 秒資料不可用（%s），記下來不再重試", _err_text())
+                flag["tse1m_unavailable"] = _err_text()
+                return True
+            empt[d] = empt.get(d, 0) + 1
+            continue
+        store.append("index_intraday", bars)
+        todo.remove(d)
+    flag["tse1m_left"] = len(todo)
+    log.info("加權 1 分 K 回補：這一輪試了 %d 天，還剩 %d 天", n, len(todo))
+    return not todo
 
 
 def _dataset_denied(dataset: str) -> bool:
