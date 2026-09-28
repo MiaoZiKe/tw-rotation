@@ -377,6 +377,11 @@
 @media (max-width:560px){
   .hmlegend .hmbar{flex:0 1 auto;max-width:100%;min-width:0}
 }
+/* 總覽摘要卡（手機）有三處寫死 11px（日期膠囊、數字下的小字、百分比）—— 破了 12px 字級下限（手機v3 #17 抓到，main 既有）。
+   只把字級拉回 12，行高照舊 14px，卡片高度不變（輪盤一屏的量測不受影響）。 */
+@container ovsum (max-width:560px){
+  .osc-d,.osn small,.osn-v em{font-size:12px}
+}
 @media (max-width:640px){
   .zoomov .zh{min-width:0;flex-wrap:nowrap}
   .zoomov .zh #zoomTitle{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
