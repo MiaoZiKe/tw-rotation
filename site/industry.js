@@ -3658,7 +3658,7 @@
     const groupLinks = (m.groups || []).map(gn => A.L.groupByName(gn)).join(' ');
     const themeLinks = A.L.themesOf(m.code);
     const TIER = { full: ['分 K 完整', 'cyan', '15 分／1 小時／4 小時分 K 每日盤後更新'],
-                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線正常；AI 分析的 1 小時／4 小時會寫無資料'],
+                   daily: ['日線以上', '', '這檔目前只提供日線／週線／月線（分 K 只提供族群成分股與成交值較大的個股）'],
                    thin: ['資料準備中', 'amber', '歷史價量資料準備中，目前只有最近幾天的日線'] };
     const tier = TIER[(m.tier || 'daily')] || TIER.daily;
     /* 週期列（tfButtons）在這裡就要畫，所以設定要先讀進來 —— 以前 state.cfg 到 setupChart 才讀，
@@ -5522,7 +5522,12 @@
       return `<button type="button" class="hoTgl" data-k="${L.k}" aria-pressed="true" style="--hc:${A.CH[L.c]}" title="按一下顯示／隱藏這一條">`
         + `<span class="sw"></span><span class="nm">${L.name}</span><b class="mono">${last[L.k] != null ? A.fmt.n(last[L.k], 2) + '%' : '—'}</b>`
         + `<span class="mono ${ppCls(w) === 'dn' ? 'down' : ppCls(w) === 'up' ? 'up' : 'muted'}">${pp(w)}</span></button>`; }).join('');
-    const growing = ho.length < 8 ? `<div class="note hoNote" data-readout style="margin-top:6px">每週公布一次；資料準備中，目前有 ${ho[0][0]} 起的 ${ho.length} 週，之後每週增加一筆</div>`
+    /* 歷史回補（Andy：「歷史資料能回補就回補，補不了要講原因」）：補不了 ——
+       集保中心的開放資料每週只給「最新一週」，FinMind 的歷史集保表免費帳號不開（DECISIONS #210，2026-09-12 那輪 500 檔全回空），
+       集保官網的歷史查詢頁不在合規來源白名單內（CLAUDE.md 絕對不做 1）。所以只能從資料湖第一週（2026-09-04）起往後累積。
+       畫面上用讀者聽得懂的一句話講，不寫資料集或帳號等級；滿一年（52 週）之後這句自動換成一般的讀圖提示。*/
+    const growing = ho.length < 52
+      ? `<div class="note hoNote" data-readout style="margin-top:6px">集保中心每週只公開最新一週的持股分級，更早的週資料無法補回，所以從 ${A.fmt.esc(ho[0][0])} 起每週累積，目前 ${ho.length} 週</div>`
       : `<div class="note hoNote" data-readout style="margin-top:6px">每週公布一次：點＝公布日，點與點之間只是連線</div>`;
     const body = `<div class="card" id="hoCard"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small></div>
       ${hbox('skho', ['上方色塊＝圖例，按一下隱藏／顯示那一條', '千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
@@ -5757,7 +5762,7 @@
         <h3>公告 / 新聞 ${hq('sknews', '公告 / 新聞')}</h3>
         <a class="pill" href="https://mops.twse.com.tw/mops/web/t05st01" target="_blank" rel="noopener">公開資訊觀測站 ↗</a></div>
       ${hbox('sknews', ['一張列表、依時間由新到舊；每列前面的標籤說明是哪一種',
-        '重大訊息＝公司自己在公開資訊觀測站發的公告（不是媒體報導），點一則展開摘要；只存前 800 字，全文請到觀測站',
+        '重大訊息＝公司自己在公開資訊觀測站發的公告（不是媒體報導），點一則展開摘要，全文請到觀測站',
         `新聞＝媒體報導，只列標題或內文提到${esc(pg.meta.name || '')}的，點標題開原文（新分頁）`,
         '券商觀點＝新聞引述的券商目標價，不是本站預估',
         '上方分段鈕可以只看其中一種'])}

@@ -6725,16 +6725,16 @@ def t_stock(pg, base, code):
     ind_close(pg)     # 改前：再按一次 ⚙ 關 → 改後：Esc 關
 
     # --- 籌碼頁不可以出現空圖（Andy：「抓不到數據就替換其他方式或直接刪除」）
-    click(pg, '#stockTabs button[data-t="chips"]', 1400)
-    chips = pg.evaluate("""() => { const t = document.getElementById('stockTab');
-        const blanks = [...t.querySelectorAll('.chart')].filter(c => !c.querySelector('canvas') && !c.querySelector('.empty'));
-        return { cards: t.querySelectorAll('.card').length, charts: t.querySelectorAll('.chart').length,
-                 blanks: blanks.length, tiles: t.querySelectorAll('.kvs .k').length,
-                 len: t.innerText.trim().length }; }""")
-    ok("籌碼頁沒有畫不出東西的空圖", chips["blanks"] == 0, chips)
-    # 2026-09-25：卡片副標與底部「主力需付費資料」那行搬進「?」之後，4 張圖的頁面文字只剩標題（約 30 字）——
-    #   字數門檻 60 → 20（仍擋得住「整頁空白」；圖與數字格的數量才是主要判準）
-    ok("籌碼頁有內容（圖或數字至少一樣）", chips["charts"] + chips["tiles"] > 0 and chips["len"] > 20, chips)
+    # ★ 2026-09-28 改前：一個「籌碼」分頁 → 改後：拆成「法人／資券／大戶散戶」三頁，三頁各驗一次
+    for ct in ("inst", "margin", "holders"):
+        click(pg, f'#stockTabs button[data-t="{ct}"]', 1400)
+        chips = pg.evaluate("""() => { const t = document.getElementById('stockTab');
+            const blanks = [...t.querySelectorAll('.chart')].filter(c => !c.querySelector('canvas') && !c.querySelector('.empty') && !c.classList.contains('isempty'));
+            return { cards: t.querySelectorAll('.card').length, charts: t.querySelectorAll('.chart').length,
+                     blanks: blanks.length, tiles: t.querySelectorAll('.kvs .k').length,
+                     len: t.innerText.trim().length }; }""")
+        ok(f"籌碼分頁 {ct} 沒有畫不出東西的空圖", chips["blanks"] == 0, chips)
+        ok(f"籌碼分頁 {ct} 有內容（圖或數字至少一樣）", chips["charts"] + chips["tiles"] > 0 and chips["len"] > 20, chips)
 
     # --- 完整個股頁缺檔時的簡版頁（Andy：「不可以出現沒有資訊狀況」）
     # 故意讓某一檔的個股頁 404，頁面還是必須有實際內容，不能只剩一句「還沒產生」
@@ -6764,11 +6764,12 @@ def t_stock(pg, base, code):
 
     # --- 六個分頁：每個都要真的換內容
     seen = {}
-    for tab in ("revenue", "profit", "dividend", "chips", "basics", "news"):
+    # ★ 2026-09-28：「籌碼」拆成法人／資券／大戶散戶三頁 → 六個分頁變八個
+    for tab in ("revenue", "profit", "dividend", "inst", "margin", "holders", "basics", "news"):
         click(pg, f'#stockTabs button[data-t="{tab}"]', 700)
         seen[tab] = pg.evaluate("() => document.getElementById('stockTab').innerText.trim().slice(0,60)")
         ok(f"分頁 {tab} 有內容", len(seen[tab]) > 5, seen[tab])
-    ok("六個分頁內容彼此不同", len(set(seen.values())) == 6, seen)
+    ok("八個分頁內容彼此不同", len(set(seen.values())) == 8, seen)
 
     # --- 營收分頁的「單月／累計」切換要真的重畫
     click(pg, '#stockTabs button[data-t="revenue"]', 800)
@@ -13447,13 +13448,15 @@ def t_r5(pg, base, code):
 
     # ---------------------------------------------------------------- 1. 圖例色點＝線色
     goto_stock()
-    tab("chips", 1800)
+    # ★ 2026-09-28 改前：「籌碼」分頁（四張圖）→ 改後：籌碼拆三頁，折線集中在「大戶／散戶」（三條持股線）
+    pg.evaluate("() => { try { localStorage.removeItem('tw.hoLines'); } catch (e) {} }")
+    tab("holders", 1800)
     r = pg.evaluate(LINE_ITEM_JS)
-    ok("R5-1 籌碼分頁：有畫到折線（前置條件）", r["n"] >= 3, r)
-    ok("★ R5-1 籌碼分頁每條折線的圖例色點＝線色（千張大戶不再是藍圈紅線）", not r["bad"], r["bad"][:4])
+    ok("R5-1 大戶／散戶分頁：有畫到折線（前置條件）", r["n"] >= 3, r)
+    ok("★ R5-1 大戶／散戶分頁每條折線的圖例色點＝線色", not r["bad"], r["bad"][:4])
     lg = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('holderChart'));
-        if (!c) return null; const s = c.getOption().series.find(x => x.name === '千張大戶'); return s ? s.itemStyle.color : null; }""")
-    ok("R5-1「千張大戶」圖例點是紅色（#ff4d6d），跟線一樣", lg is None or str(lg).lower() == "#ff4d6d", lg)
+        if (!c) return null; const s = c.getOption().series[0]; return s ? [s.itemStyle.color, s.lineStyle.color] : null; }""")
+    ok("R5-1 千張以上那條的點色＝線色", bool(lg) and str(lg[0]).lower() == str(lg[1]).lower(), lg)
     tab("profit", 1800)
     r = pg.evaluate(LINE_ITEM_JS)
     ok("★ R5-1 獲利分頁的折線圖例色點＝線色", not r["bad"], r["bad"][:4])
@@ -13534,9 +13537,11 @@ def t_r5(pg, base, code):
        bool(m3) and m3["shown"] == ["全市場 MA60", "全市場 MA20"], m3 and m3["shown"])
     click(pg, '#maSeg button[data-n="20"]', 800)
 
-    # ---------------------------------------------------------------- 4. 股東人數／集保軸標籤
+    # ---------------------------------------------------------------- 4. 集保軸標籤
+    # ★ 2026-09-28：股東人數圖拿掉（Andy「籌碼內股東人數拿掉」），holderCount 不存在 → 股東人數兩條自然跳過；
+    #   大戶／散戶那條改在「大戶／散戶」分頁驗
     goto_stock()
-    tab("chips", 1800)
+    tab("holders", 1800)
     AX_JS = """(id) => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return null;
         // 2026-09-26 改：集保兩張圖換成時間軸＋customValues 之後，ECharts 5.6 的 getViewLabels() 會把頭尾兩個刻度各回兩次
         //   （同一個 tickValue、畫在同一個位置，畫面上只看得到一個）。改前直接比 formattedLabel；改後先依 tickValue 去重再比
@@ -13550,6 +13555,8 @@ def t_r5(pg, base, code):
            hc["y"] and len(set(hc["y"])) == len(hc["y"]), hc["y"])
         ok("★ R5-4 股東人數 X 軸每個點的日期都不一樣（不再三點都是「26-09」）",
            hc["x"] and len(set(hc["x"])) == len(hc["x"]), hc["x"])
+    ok("R5-4 股東人數圖已經拿掉（2026-09-28）", hc is None, hc)
+    if True:
         # 2026-09-26 改：大戶／散戶持股拆成三格小圖（改前：單一 xAxis 0；改後：日期只印在最下面那格 xAxis 2）
         hh = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('holderChart')); if (!c) return null;
             const seen = new Set();
@@ -14188,7 +14195,9 @@ def t_chips_basic0926(pg, base, code):
     raw = pg.evaluate(f"() => fetch('data/stock/{code}.json').then(r => r.json()).then(j => j.holders || []).catch(() => [])")
     if not ok(f"[籌碼0926] {code} 的資料有集保週資料（前置條件）", len(raw) >= 3, len(raw)):
         return
-    click(pg, '#stockTabs button[data-t="chips"]', 1800)
+    # ★ 2026-09-28 改前：「籌碼」分頁 → 改後：「大戶／散戶」獨立分頁（三條線預設全開）
+    pg.evaluate("() => { try { localStorage.removeItem('tw.hoLines'); } catch (e) {} }")
+    click(pg, '#stockTabs button[data-t="holders"]', 1800)
     pg.eval_on_selector("#holderChart", "e => e.scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
     h = pg.evaluate(HO_OPT)
     if not ok("[籌碼0926] 大戶／散戶持股圖畫出來了", bool(h), h):
@@ -14205,9 +14214,12 @@ def t_chips_basic0926(pg, base, code):
     ok("[籌碼0926] 點要畫出來、標數值", all(y["label"] and y["sym"] for y in h["ys"]), [(y["name"], y["label"], y["sym"]) for y in h["ys"]])
     ok("★ [籌碼0926] X 軸是共用的逐交易日視窗（預設 ≥ 20 個交易日）", len(h["ax"]) >= 20 and h["ax"] == sorted(h["ax"]),
        {"起": h["first"], "迄": h["last"], "天數": len(h["ax"])})
-    ok("[籌碼0926] 每格左上寫最新比例與週變化（pp）", len(h["titles"]) == 3 and all("週" in t and "pp" in t for t in h["titles"]), h["titles"])
-    ok(f"★ [籌碼0926] 卡片短註寫「集保每週更新一次…自 {raw[0][0]} 起累積 {len(raw)} 週」",
-       "集保每週更新一次" in h["note"] and f"自 {raw[0][0]} 起累積 {len(raw)} 週" in h["note"], h["note"])
+    # ★ 2026-09-28：每格左上改寫「區間變化」（最新週比最新比例在上方色塊上），仍以 pp 表示
+    ok("[籌碼0926] 每格左上寫這條線在區間內的變化（pp）", len(h["titles"]) == 3 and all("pp" in t for t in h["titles"]), h["titles"])
+    # ★ 2026-09-28（Andy：「補不了要在頁面上用讀者看得懂的一句話講原因」）：短註改成講「為什麼只有這幾週」
+    if len(raw) < 52:
+        ok(f"★ [籌碼0926] 卡片短註講清楚為什麼只有 {len(raw)} 週（集保只公開最新一週、無法補回、從 {raw[0][0]} 起累積）",
+           "無法補回" in h["note"] and f"從 {raw[0][0]} 起每週累積，目前 {len(raw)} 週" in h["note"], h["note"])
     ok("[籌碼0926] 卡片上沒有「?」以外的附註鈕（短註是讀數，不是說明鈕）",
        pg.evaluate("() => !document.querySelector('#stockTab .hoNote button')"))
     # 真的滑過一個點：提示框要出現、而且有週變化（改前 dataIndex 1 → 改後用第 2 個公布日在日期軸上的位置）
@@ -14218,28 +14230,9 @@ def t_chips_basic0926(pg, base, code):
         tip = pg.evaluate("() => { const t = [...document.querySelectorAll('#holderChart div')].find(d => /週/.test(d.textContent) && getComputedStyle(d).display !== 'none' && d.style.position === 'absolute'); return t ? t.textContent : ''; }")
         ok("★ [籌碼0926] 滑過第 2 週：提示框列出三條的比例與週變化（pp）", tip.count("pp") >= 3 and win[1][0] in tip, tip[:160])
 
-    c = pg.evaluate(HC_OPT)
-    if ok("[籌碼0926] 股東人數圖畫出來了", bool(c), c):
-        ok("★ [籌碼0926] 股東人數改成長條（type=bar），標題寫「週增減」", c["type"] == "bar" and "週增減" in c["title"], {"type": c["type"], "標題": c["title"]})
-        hd = {r[0][:10] for r in win}
-        wb = [b for b in c["bars"] if b["date"] in hd]
-        ok("[籌碼0926] 非公布日沒有柱（值是空）", all(b["v"] is None for b in c["bars"] if b["date"] not in hd))
-        idx0 = raw.index(win[0]) if win else 0
-        exp = [None if (idx0 + i) == 0 else (r[4] - raw[idx0 + i - 1][4]) for i, r in enumerate(win)]
-        got = [b["v"] for b in wb]
-        ok("★ [籌碼0926] 每根柱＝當週總人數 − 上週總人數（第一週沒有上一週 → 不畫）", got == exp, {"預期": exp, "畫的": got})
-        if idx0 == 0 and wb:
-            ok("★ [籌碼0926] 湖裡第一週那根沒有柱（值是空、高度 0）", got[0] is None and wb[0]["h"] == 0, wb[0])
-        colors = pg.evaluate("() => ({ up: App.CH.up, down: App.CH.down })")
-        bad = [b for b in wb if b["v"] is not None and ((b["v"] > 0 and b["color"] != colors["up"]) or (b["v"] < 0 and b["color"] != colors["down"]))]
-        ok("★ [籌碼0926] 紅＝增加、綠＝減少（台股紅漲綠跌）", not bad and any(b["v"] is not None for b in wb), {"錯色": bad, "色": colors})
-        ok("[籌碼0926] 有值的柱真的畫出高度", all(b["h"] > 0 for b in wb if b["v"]), [(b["v"], b["h"]) for b in wb])
-        tb = next((b for b in wb if b["v"] is not None), None)
-        if tb:
-            pg.evaluate(f"() => echarts.getInstanceByDom(document.getElementById('holderCount')).dispatchAction({{ type: 'showTip', seriesIndex: 0, dataIndex: {tb['i']} }})")
-            pg.wait_for_timeout(400)
-            tip2 = pg.evaluate("() => { const t = [...document.querySelectorAll('#holderCount div')].find(d => /總股東/.test(d.textContent) && d.style.position === 'absolute'); return t ? t.textContent : ''; }")
-            ok("★ [籌碼0926] 滑過柱子：提示框有當週總人數與增減", "總股東" in tip2 and "比上週" in tip2 and "人" in tip2, tip2[:120])
+    # ★ 2026-09-28（Andy：「籌碼內股東人數拿掉」）：改前股東人數長條 → 改後整張拿掉
+    ok("★ [籌碼0926] 股東人數圖已拿掉（#holderCount 不存在、頁面沒有「股東人數」字樣）",
+       pg.evaluate("() => !document.getElementById('holderCount') && !/股東人數/.test(document.getElementById('stockTab').innerText)"))
 
     # ---------------------------------------------------------------- 基本資料＋季節卡並排、自填
     click(pg, '#stockTabs button[data-t="basics"]', 1800)
@@ -14287,8 +14280,8 @@ def t_chips_basic0926(pg, base, code):
             ok(f"★ [基本0926] {w}px：季節卡疊到基本資料下面（上下排）", p["bT"] >= p["aB"] - 1 and abs(p["bL"] - p["aL"]) <= 2, p)
             ok(f"[基本0926] {w}px：沒有橫向捲軸", p["sw"] <= p["vw"] + 1, {"scrollWidth": p["sw"], "vw": p["vw"]})
             ok(f"[基本0926] {w}px：季節圖高度 ≥ 280px", p["chH"] >= 280, p["chH"])
-    # 390 的籌碼頁：三格圖與長條圖照樣畫、沒有橫向捲軸
-    click(pg, '#stockTabs button[data-t="chips"]', 1800)
+    # 390 的大戶／散戶頁（2026-09-28 改前「籌碼」頁）：三格圖照樣畫、沒有橫向捲軸
+    click(pg, '#stockTabs button[data-t="holders"]', 1800)
     ok("[籌碼0926] 390px：籌碼圖看得見（前置條件）", pg.evaluate("() => { const e = document.getElementById('holderChart'); return !!e && e.getBoundingClientRect().height > 300; }"))
     h = pg.evaluate(HO_OPT)
     ok("[籌碼0926] 390px：三格仍各自看得出變化（≥ 20px）", bool(h) and all(y["px"] >= 20 for y in h["ys"] if y["spread"] > 0), h and [(y["name"], y["px"]) for y in h["ys"]])
@@ -14552,24 +14545,44 @@ def t_stock_tabs0926(pg, base, code):
         click(pg, f'#stockTabs button[data-t="{t}"]', wait)
 
     # ---------------------------------------------------------------- ① 籌碼：共用日期軸
+    # ★ 2026-09-28 改前：一個「籌碼」分頁四張圖 → 改後：拆成「法人／資券／大戶散戶」三頁（股東人數拿掉），
+    #   三頁共用同一組區間與同一條逐交易日軸。這裡把三頁各點一次、把圖合起來比（口徑不變，只是分頁變了）。
+    CHIP_TABS = ("inst", "margin", "holders")
+
+    def probe_all(c, reload=True):
+        a = {"charts": {}, "hash": {}}
+        for k, t in enumerate(CHIP_TABS):
+            if k == 0 and reload:
+                goto(c, t)
+            else:
+                click(pg, f'#stockTabs button[data-t="{t}"]', 1500)
+            r = pg.evaluate(CHIP_AX)
+            for cid in r["charts"]:
+                a["hash"][cid] = canvas_hash(pg, f"#{cid}")
+            a["charts"].update(r["charts"])
+            for kk in ("win", "range", "on", "ls"):
+                a.setdefault(kk, r[kk])
+            a.setdefault("notes", []); a["notes"] += r["notes"]
+            a.setdefault("wins", []).append(r["win"])
+        return a
+
     for c in dict.fromkeys([code, "3026"]):
         j = pg.evaluate(f"() => fetch('data/stock/{c}.json').then(r => r.json()).catch(() => null)")
         if not ok(f"【{tag}】{c} 個股 JSON 讀得到（前置條件）", bool(j)):
             continue
-        goto(c, "chips")
-        a = pg.evaluate(CHIP_AX)
+        a = probe_all(c)
         ch = a["charts"]
-        ok(f"★【{tag}】{c} 籌碼四張圖都畫出來（三大法人、融資融券、大戶散戶、股東人數）",
-           set(ch) == {"instChart", "marginChart", "holderChart", "holderCount"}, sorted(ch))
+        ok(f"★【{tag}】{c} 三個籌碼分頁的圖都畫出來（法人、資券、大戶散戶；股東人數已拿掉）",
+           set(ch) == {"instChart", "marginChart", "holderChart"}, sorted(ch))
         if not ch:
             continue
         rng = {k: (v["first"], v["last"], v["n"]) for k, v in ch.items()}
-        ok(f"★【{tag}】{c} 四張圖的 x 軸起訖日與天數完全一致", len(set(rng.values())) == 1, rng)
+        ok(f"★【{tag}】{c} 三頁的 x 軸起訖日與天數完全一致", len(set(rng.values())) == 1, rng)
         ok(f"【{tag}】{c} 大戶散戶三格小圖的 x 軸也跟最下面那格同一條", all(v["same"] for v in ch.values()), {k: v["same"] for k, v in ch.items()})
         n0 = next(iter(ch.values()))["n"]
         # ★ 2026-09-27（Andy 的券商 App：籌碼時間窗一季）預設改「3 個月」＝最多 63 個交易日
-        ok(f"★【{tag}】{c} 預設「3 個月」：x 軸 > 20、≤ 63 個交易日（逐日）", 20 < n0 <= 63 and a["on"] == ["3 個月"] and a["win"] == "63",
-           {"天數": n0, "按鈕": a["on"], "win": a["win"]})
+        ok(f"★【{tag}】{c} 預設「3 個月」：x 軸 > 20、≤ 63 個交易日（逐日）", 20 < n0 <= 63 and a["on"] == ["3 個月"] and set(a["wins"]) == {"63"},
+           {"天數": n0, "按鈕": a["on"], "win": a["wins"]})
         last_trade = str((j.get("daily") or [[None]])[-1][0])[:10]
         ok(f"【{tag}】{c} 視窗最後一天＝最新交易日（{last_trade}）", next(iter(ch.values()))["last"] >= last_trade, rng)
         first = next(iter(ch.values()))["first"]; last = next(iter(ch.values()))["last"]
@@ -14579,49 +14592,48 @@ def t_stock_tabs0926(pg, base, code):
         hp = ch.get("holderChart", {}).get("pts", [])
         ok(f"★【{tag}】{c} 大戶散戶的點＝視窗內的集保公布日（{len(ho_dates)} 個），不是每天一點",
            bool(hp) and all(p["dates"] == ho_dates for p in hp) and len(ho_dates) < n0, {"應有": ho_dates, "畫的": [p["dates"] for p in hp][:1]})
-        hc = ch.get("holderCount", {}).get("pts", [{}])[0].get("dates", [])
-        ok(f"【{tag}】{c} 股東人數的柱只出現在集保公布日", set(hc) <= set(ho_dates) and len(hc) >= max(0, len(ho_dates) - 1), {"柱": hc, "公布日": ho_dates})
-        ok(f"【{tag}】{c} 卡片短註寫「集保每週更新」", any("集保每週更新" in t for t in a["notes"]), a["notes"])
-        # 法人：逐日（視窗內有資料的每一天都有點；沒資料的日子留空）
+        ok(f"【{tag}】{c} 卡片短註講「集保每週…」", any("集保" in t and "每週" in t for t in a["notes"]), a["notes"])
+        # 法人：逐日（視窗內有資料的每一天都有點；沒資料的日子留空）。2026-09-28：法人頁一次顯示一段（預設外資）
         iv_dates = [str(r[0])[:10] for r in ((j.get("inst_v3") or {}).get("daily") or []) if first <= str(r[0])[:10] <= last]
         ip = next((p for p in ch.get("instChart", {}).get("pts", []) if p["name"] == "外資"), None)
         ok(f"【{tag}】{c} 三大法人逐日：外資柱的日期＝視窗內法人資料的日期（{len(iv_dates)} 天）", bool(ip) and ip["dates"] == iv_dates,
            {"應有": len(iv_dates), "畫的": ip and len(ip["dates"])})
 
-        # 切「4 週」：四張一起換、存進 localStorage（2026-09-27 起預設是 3 個月，所以這裡改成切短）
-        hs = {k: canvas_hash(pg, f"#{k}") for k in ch}
+        # 切「4 週」（在大戶散戶頁按）：三頁一起換、存進 localStorage
         click(pg, '#chipWin button[data-v="20"]', 1200)
-        b = pg.evaluate(CHIP_AX)
+        b = probe_all(c, reload=False)
         rng2 = {k: (v["first"], v["last"], v["n"]) for k, v in b["charts"].items()}
-        ok(f"★【{tag}】{c} 切「4 週」→ 四張圖的 x 軸一起換、仍然一致", len(set(rng2.values())) == 1 and set(rng2.values()) != set(rng.values()), {"前": rng, "後": rng2})
+        ok(f"★【{tag}】{c} 切「4 週」→ 三頁的 x 軸一起換、仍然一致", len(set(rng2.values())) == 1 and set(rng2.values()) != set(rng.values()), {"前": rng, "後": rng2})
         n3 = next(iter(b["charts"].values()))["n"]
         ok(f"【{tag}】{c} 4 週＝最多 20 個交易日、比 3 個月短", n3 <= 20 < n0, {"3 個月": n0, "4 週": n3})
         for k in ch:
-            changed(f"【{tag}】{c} 切 4 週之後 {k} 真的重畫", hs[k], canvas_hash(pg, f"#{k}"))
+            changed(f"【{tag}】{c} 切 4 週之後 {k} 真的重畫", a["hash"].get(k), b["hash"].get(k))
         ok(f"【{tag}】{c} 選擇存進 localStorage（tw.chipWin＝20）、按鈕亮在 4 週", b["ls"] == "20" and b["on"] == ["4 週"], {"ls": b["ls"], "on": b["on"]})
         iv3 = [str(r[0])[:10] for r in ((j.get("inst_v3") or {}).get("daily") or []) if b["charts"]["instChart"]["first"] <= str(r[0])[:10]]
         ip3 = next((p for p in b["charts"]["instChart"]["pts"] if p["name"] == "外資"), None)
         ok(f"【{tag}】{c} 4 週的法人柱數＝視窗內法人資料天數（{len(iv3)}）", bool(ip3) and len(ip3["dates"]) == len(iv3), [ip3 and len(ip3["dates"]), len(iv3)])
         if c == code:
             # 重新整理 → 記得 4 週
-            goto(c, "chips")
-            d = pg.evaluate(CHIP_AX)
-            ok(f"★【{tag}】重新整理後仍是 4 週（四張圖都是）", d["on"] == ["4 週"] and all(v["n"] == n3 for v in d["charts"].values()),
+            d = probe_all(c)
+            ok(f"★【{tag}】重新整理後仍是 4 週（三頁都是）", d["on"] == ["4 週"] and all(v["n"] == n3 for v in d["charts"].values()),
                {"on": d["on"], "n": {k: v["n"] for k, v in d["charts"].items()}})
+            click(pg, '#stockTabs button[data-t="inst"]', 1200)
             click(pg, '#chipWin button[data-v="250"]', 1200)
-            e = pg.evaluate(CHIP_AX)
+            e = probe_all(c, reload=False)
             ne = {v["n"] for v in e["charts"].values()}
-            ok(f"【{tag}】切「1 年」→ 四張一起變長（≥ 3 個月、≤ 250）", len(ne) == 1 and n0 <= min(ne) <= 250, ne)
+            ok(f"【{tag}】切「1 年」→ 三頁一起變長（≥ 3 個月、≤ 250）", len(ne) == 1 and n0 <= min(ne) <= 250, ne)
+            click(pg, '#stockTabs button[data-t="inst"]', 1200)
             xl = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('instChart')); const seen = new Set();"
                              " return c.getModel().getComponent('xAxis', 0).axis.getViewLabels().map(l => l.formattedLabel).filter(t => { if (seen.has(t)) return false; seen.add(t); return true; }); }")
             ok(f"【{tag}】1 年的刻度帶年份（YY/MM/DD，跨年不會撞成同一個日期）", bool(xl) and all(len(t) == 8 and t[2] == "/" for t in xl), xl[:4])
         click(pg, '#chipWin button[data-v="63"]', 900)
-        f_ = pg.evaluate(CHIP_AX)
+        f_ = probe_all(c, reload=False)
         ok(f"【{tag}】{c} 切回 3 個月 → 回到 {n0} 個交易日", all(v["n"] == n0 for v in f_["charts"].values()), {k: v["n"] for k, v in f_["charts"].items()})
     # 390：區間鈕看得見、沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 860}); pg.wait_for_timeout(700)
     pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => ['財報籌碼', '完整版'].includes(x.textContent.trim()) && x.offsetParent);   /* 2026-09-27 手機個股券商式：舊分段列藏起來，改按分頁列的「完整版」 */
         if (b && b.offsetParent) b.click(); }"""); pg.wait_for_timeout(900)
+    click(pg, '#stockTabs button[data-t="holders"]', 1200)
     m = pg.evaluate("() => { const s = document.getElementById('chipWin'); const r = s && s.getBoundingClientRect();"
                     " return { w: r ? r.width : 0, h: r ? r.height : 0, right: r ? r.right : 0, sw: document.documentElement.scrollWidth, vw: innerWidth }; }")
     ok(f"【{tag}】390px：區間鈕看得見、在畫面內", m["h"] > 0 and m["right"] <= m["vw"] + 1, m)
@@ -14656,10 +14668,9 @@ def t_stock_tabs0926(pg, base, code):
         ok(f"★【{tag}】{c} 年度圖「有配」的年份＝除權息紀錄表的年份", have == in_rng, {"圖": have, "紀錄表": in_rng})
         if c == "3026":
             ok(f"★【{tag}】3026 年度數與紀錄表年份數一致（不再只有一根）", len(have) == len(rec_years) and len(have) >= 5, {"圖": len(have), "紀錄表": len(rec_years)})
-            cov = dv.get("coverage") or {}
-            if (cov.get("events_years") or 0) < len(rec_years):
-                ok(f"【{tag}】3026 股利公告只有 {cov.get('events_n')} 筆 → 卡片寫明是資料湖還在回補（不是只配過一次）",
-                   "回補" in p["evNote"] and str(cov.get("events_n")) in p["evNote"], p["evNote"])
+            # ★ 2026-09-28（Andy：「股利政策&股利公告移除」）：改前股利公告卡寫「資料湖還在回補」→ 改後整張拿掉，頁面不准再出現這類說明
+            ok(f"★【{tag}】3026 除權息頁沒有「股利公告」「股利政策」卡、也沒有「回補／資料湖」字樣",
+               pg.evaluate("() => { const t = document.getElementById('stockTab').innerText; return !/股利公告|股利政策|回補|資料湖/.test(t) && !document.getElementById('divEv'); }"))
         # 滑過一個有配的年份：提示框列出每一次
         i1 = max(range(len(by)), key=lambda i: (by[i]["n"], by[i]["year"]))
         pg.evaluate(f"() => echarts.getInstanceByDom(document.getElementById('divBar')).dispatchAction({{ type: 'showTip', seriesIndex: 0, dataIndex: {i1} }})")
@@ -14672,8 +14683,7 @@ def t_stock_tabs0926(pg, base, code):
             pg.wait_for_timeout(300)
             tip0 = pg.evaluate("() => { const t = [...document.querySelectorAll('#divBar div')].find(d => /年/.test(d.textContent) && d.style.position === 'absolute' && getComputedStyle(d).display !== 'none'); return t ? t.textContent : ''; }")
             ok(f"【{tag}】{c} 滑過沒配息的 {by[zero[0]]['year']}：寫「這一年沒有除權息」", "沒有除權息" in tip0, tip0[:120])
-        ok(f"【{tag}】{c} 股利公告表列出 JSON 裡的全部公告（{len(dv.get('events') or [])} 筆）",
-           p["evRows"] == max(1, len(dv.get("events") or [])), p["evRows"])
+        ok(f"【{tag}】{c} 股利公告表已拿掉（2026-09-28）", p["evRows"] == 0, p["evRows"])
     # 390：年度圖年份標籤不重疊、沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 860}); pg.wait_for_timeout(600)
     pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => ['財報籌碼', '完整版'].includes(x.textContent.trim()) && x.offsetParent);   /* 2026-09-27 手機個股券商式：舊分段列藏起來，改按分頁列的「完整版」 */
@@ -14765,7 +14775,7 @@ def _qi(lab: str) -> int:
 def t_stock_quarter_audit0927(pg, base, code):
     tag = "個股季週期"
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    pg.evaluate("() => { try { ['tw.chipWin','tw.profitMode','tw.instSeg','tw.mgSeg','tw.revView','tw.revWin'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.evaluate("() => { try { ['tw.chipWin','tw.profitMode','tw.instSeg','tw.mgSeg','tw.revView','tw.revWin','tw.hoLines'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
     def goto(c, t, wait=1500):
         pg.goto("about:blank")
@@ -14850,7 +14860,8 @@ def t_stock_quarter_audit0927(pg, base, code):
     ok(f"【{tag}】切回「季」", (pg.evaluate(PX) or {}).get("mode") == "q")
 
     # ---------------------------------------------------------------- ③ 籌碼：法人四段、資券四段
-    goto(c, "chips")
+    # ★ 2026-09-28：籌碼拆三頁 → 法人段在「法人」分頁、資券段在「資券」分頁、董監持股在「大戶／散戶」分頁
+    goto(c, "inst")
     CX = "() => { const g = (id) => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return null; const o = c.getOption();" \
          " return { names: o.series.map(s => s.name), n: (o.xAxis[0].data || []).length, x: o.xAxis[0].data }; };" \
          " const st = document.getElementById('stockTab');" \
@@ -14872,6 +14883,7 @@ def t_stock_quarter_audit0927(pg, base, code):
         if v != "f":
             changed(f"【{tag}】法人切「{nm}」圖真的重畫", h0, canvas_hash(pg, "#instChart"))
     mg_rows = {r[0]: r for r in (j.get("margin") or [])}
+    click(pg, '#stockTabs button[data-t="margin"]', 1200)
     for v, nm, bar in (("dt", "當沖", "當沖張數"), ("s", "融券", "融券增減"), ("sbl", "借券賣", "借券賣出"), ("m", "融資", "融資增減")):
         click(pg, f'#mgSeg button[data-v="{v}"]', 700)
         b = pg.evaluate(CX) or {}
@@ -14882,37 +14894,18 @@ def t_stock_quarter_audit0927(pg, base, code):
         else:
             ok(f"★【{tag}】資券切「{nm}」→ 資料還沒回補：不畫假圖、寫出原因", b.get("mseg") == v and (nm in b.get("mgEmpty", "") or "信用交易" in b.get("mgEmpty", "")), b.get("mgEmpty"))
     ok(f"【{tag}】資券每日表有列（融資／當沖／融券／借券賣四欄）", (pg.evaluate(CX) or {}).get("mtr", 0) > 0)
+    click(pg, '#stockTabs button[data-t="holders"]', 1200)
     il = (j.get("insider") or {}).get("latest")
     hi = (pg.evaluate(CX) or {}).get("hoIns") or ""
-    ok(f"★【{tag}】大戶卡寫出董監持股（有資料給比例與申報年月；沒有就寫「尚無資料」）與散戶級距口徑",
-       ("董監持股" in hi) and ("1–3 級" in hi) and ((il is None and "尚無資料" in hi) or (il is not None and str(il.get("ym")) in hi)), hi)
+    # ★ 2026-09-28：讀者語言 —— 散戶口徑寫「持股 ≤10 張」（不寫集保「1–3 級」這種內部級距編號）；沒資料寫「資料準備中」
+    ok(f"★【{tag}】大戶／散戶卡寫出董監持股（有資料給比例與申報年月；沒有就寫「資料準備中」）與散戶口徑",
+       ("董監持股" in hi) and ("≤10 張" in hi) and ((il is None and "資料準備中" in hi) or (il is not None and str(il.get("ym")) in hi)), hi)
 
-    # 主力（替代口徑：三大法人）：標題寫替代、柱＝法人合計、兩條集中度線、每日表、切區間 x 軸跟著變
-    mp = (j.get("main_proxy") or {}).get("daily") or []
-    MX = "() => { const c = echarts.getInstanceByDom(document.getElementById('mainChart')); const o = c && c.getOption();" \
-         " const h = document.getElementById('mainChart'); const card = h && h.closest('.card');" \
-         " return { names: o ? o.series.map(s => s.name) : [], n: o ? (o.xAxis[0].data || []).length : 0, x: o ? o.xAxis[0].data : []," \
-         " ttl: card ? (card.querySelector('h3') || {}).textContent : '', note: (document.querySelector('.mainNote') || {}).textContent || ''," \
-         " rows: document.querySelectorAll('#mainTbl tbody tr').length }; }"
-    if len(mp) >= 3:
-        m0 = pg.evaluate(MX) or {}
-        xin = set(m0.get("x") or [])
-        exp_rows = sum(1 for r in mp if r[0] in xin)
-        ok(f"★【{tag}】主力卡標題寫「替代」、柱＝法人買賣超＋5 日／20 日集中度兩條線",
-           "替代" in (m0.get("ttl") or "") and {"法人買賣超", "5 日集中", "20 日集中"} <= set(m0.get("names") or []) and "不爬分點" in (m0.get("note") or ""), m0)
-        ok(f"【{tag}】主力每日表列數＝視窗內有資料的天數（{exp_rows}）", m0.get("rows") == exp_rows, [m0.get("rows"), exp_rows])
-        last = mp[-1]
-        if last[3] is not None:
-            ok(f"【{tag}】主力 5 日集中度＝近 5 日法人買賣超 ÷ 近 5 日成交量（最新一列 {last[0]}）",
-               abs(sum(r[1] for r in mp[-5:]) / sum(r[2] for r in mp[-5:]) * 100 - last[3]) < 0.02, mp[-5:])
-        h0 = canvas_hash(pg, "#mainChart")
-        click(pg, '#chipWin button[data-v="250"]', 900)
-        m1 = pg.evaluate(MX) or {}
-        ok(f"★【{tag}】切「1 年」→ 主力圖 x 軸變長（{m0.get('n')} → {m1.get('n')}）", (m1.get("n") or 0) > (m0.get("n") or 0), [m0.get("n"), m1.get("n")])
-        changed(f"【{tag}】切「1 年」主力圖真的重畫", h0, canvas_hash(pg, "#mainChart"))
-        click(pg, '#chipWin button[data-v="63"]', 700)
-    else:
-        ok(f"【{tag}】主力替代資料不足 3 天 → 不畫主力卡", pg.evaluate("() => !document.getElementById('mainChart')"))
+    # ★ 2026-09-28（Andy：「主力（替代）拿掉」）：改前有主力替代卡 → 改後三個籌碼分頁都不准出現
+    for t_ in ("inst", "margin", "holders"):
+        click(pg, f'#stockTabs button[data-t="{t_}"]', 900)
+        ok(f"★【{tag}】「{t_}」分頁沒有主力替代卡、也沒有「主力」字樣",
+           pg.evaluate("() => !document.getElementById('mainChart') && !/主力/.test(document.getElementById('stockTab').innerText)"))
 
     # ---------------------------------------------------------------- ④ 指標分頁
     goto(c, "tags")
@@ -14957,7 +14950,8 @@ def t_stock_quarter_audit0927(pg, base, code):
     d = pg.evaluate(DX)
     per = (j.get("dividends") or {}).get("by_period") or []
     ok(f"★【{tag}】除權息年度圖有現金殖利率線", "現金殖利率" in d["names"], d["names"])
-    ok(f"★【{tag}】股利政策表＝所屬期間 {len(per)} 期", d["per"] == len(per) and (len(per) == 0 or all(p["period"][:4].isdigit() for p in per)), d)
+    # ★ 2026-09-28（Andy：「股利政策&股利公告移除」）：改前「股利政策（所屬期間）」表 → 改後整張拿掉
+    ok(f"★【{tag}】股利政策表已拿掉（後端 by_period {len(per)} 期照舊產出，前端不畫）", d["per"] == 0, d)
 
     # ---------------------------------------------------------------- ⑦ 新聞時間到時分
     news = [n for n in (j.get("news") or []) if n.get("time")]
@@ -14968,13 +14962,172 @@ def t_stock_quarter_audit0927(pg, base, code):
 
     # ---------------------------------------------------------------- ⑧ 800 寬：不准橫向捲
     pg.set_viewport_size({"width": 800, "height": 900})
-    for t_ in ("profit", "chips", "tags", "revenue", "dividend"):
+    for t_ in ("profit", "inst", "margin", "holders", "tags", "revenue", "dividend"):
         goto(c, t_, 1000)
         m = pg.evaluate("() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth })")
         ok(f"【{tag}】800px「{t_}」分頁沒有橫向捲軸", m["sw"] <= m["vw"] + 1, m)
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    pg.evaluate("() => { try { ['tw.chipWin','tw.profitMode','tw.instSeg','tw.mgSeg','tw.revView','tw.revWin'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.evaluate("() => { try { ['tw.chipWin','tw.profitMode','tw.instSeg','tw.mgSeg','tw.revView','tw.revWin','tw.hoLines'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
+
+
+# ===================================================================== 個股籌碼分頁 0928（claude/stock-tabs-0928）
+# Andy 2026-09-28 個股頁八件：①讀者看不懂的內部說明全部拿掉（股利政策／股利公告、回補中、資料源…）
+# ②資券獨立一頁 ③三大法人獨立一頁 ④股東人數拿掉 ⑤「大戶／散戶」一頁三條線（千張以上／400～1000／≤10）可勾選，
+# 歷史補不回來要用一句讀者聽得懂的話講原因 ⑥主力（替代）拿掉 ⑦基本面「?」逐欄說明 ⑧AI 分析的「籌碼面」→「技術面訊號」。
+# 每一條都真的操作並驗「畫面因此改變」：點分頁 → 圖的系列與 hash 換了；按色塊 → 圖上的線數真的變了、localStorage 寫進去、
+# 重新整理還在；說明文字 → 全部分頁掃一遍，禁用字一個都不准出現。
+STOCK0928_BANNED = ("股利政策", "股利公告", "股東人數", "主力", "回補", "資料湖", "FinMind", "Yahoo", "payload", "管線",
+                    "資料源", "帳號等級", "walk-forward", "資料集", "替代口徑")
+CHIP0928_PROBE = r"""() => { const st = document.getElementById('stockTab'); const out = { kind: st.dataset.chip || '', charts: {} };
+  st.querySelectorAll('.chart').forEach(el => { const c = echarts.getInstanceByDom(el); if (!c) { out.charts[el.id] = null; return; }
+    const o = c.getOption(); out.charts[el.id] = { names: o.series.map(s => s.name), n: o.series.length, grids: (o.grid || []).length }; });
+  out.tgl = [...st.querySelectorAll('#hoTgls .hoTgl')].map(b => ({ k: b.dataset.k, off: b.classList.contains('off'), p: b.getAttribute('aria-pressed') }));
+  out.hoLines = st.dataset.hoLines || '';
+  out.empty = !!st.querySelector('#holderChart.isempty');
+  out.ls = (() => { try { return localStorage.getItem('tw.hoLines'); } catch (e) { return null; } })();
+  out.txt = st.innerText; out.sw = document.documentElement.scrollWidth; out.vw = innerWidth;
+  out.thSel = [...st.querySelectorAll('#hoTbl th.sel')].map(t => t.textContent.trim());
+  return out; }"""
+
+
+def t_stock_tabs0928(pg, base, code):
+    tag = "【籌碼分頁0928】"
+    code = code or "2330"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { ['tw.hoLines','tw.chipWin','tw.instSeg','tw.mgSeg','tw.aiTab','tw.aiOpen'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+
+    def goto(c, t=None, wait=1600):
+        pg.goto("about:blank")
+        pg.goto(f"{base}#stock/{c}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        if t:
+            click(pg, f'#stockTabs button[data-t="{t}"]', wait)
+
+    j = pg.evaluate(f"() => fetch('data/stock/{code}.json').then(r => r.json()).catch(() => null)") or {}
+    goto(code)
+    tabs = pg.evaluate("() => [...document.querySelectorAll('#stockTabs button')].map(b => [b.dataset.t, b.textContent.trim()])")
+    names = [t[1] for t in tabs]
+    # ---- ②③⑤ 分頁列：法人、資券、大戶／散戶各自一頁；舊「籌碼」拿掉
+    ok(f"★ {tag}分頁列有「法人」「資券」「大戶／散戶」三頁、沒有舊的「籌碼」",
+       all(n in names for n in ("法人", "資券", "大戶／散戶")) and "籌碼" not in names, names)
+    ok(f"{tag}三頁順序是 法人 → 資券 → 大戶／散戶（相鄰）",
+       names.index("資券") == names.index("法人") + 1 and names.index("大戶／散戶") == names.index("資券") + 1 if "法人" in names and "資券" in names and "大戶／散戶" in names else False, names)
+
+    # ---- 真的點每一個新分頁：圖的內容換了（系列名、hash 都不同）
+    seen = {}
+    for t, want in (("inst", "instChart"), ("margin", "marginChart"), ("holders", "holderChart")):
+        click(pg, f'#stockTabs button[data-t="{t}"]', 1600)
+        p = pg.evaluate(CHIP0928_PROBE)
+        on = pg.evaluate("() => [...document.querySelectorAll('#stockTabs button.on')].map(b => b.dataset.t)")
+        ok(f"★ {tag}點「{t}」→ 分頁亮起來、內容換成這一頁（data-chip＝{t}）", on == [t] and p["kind"] == t, (on, p["kind"]))
+        ok(f"★ {tag}點「{t}」→ 這一頁只有自己那張主圖（{want}），而且真的畫出來", list(p["charts"].keys()) == [want] and bool(p["charts"][want]), p["charts"])
+        seen[t] = (tuple((p["charts"].get(want) or {}).get("names") or []), canvas_hash(pg, f"#{want}"))
+    ok(f"★ {tag}三頁的圖系列彼此不同（法人／資券／大戶散戶不是同一張圖換標題）", len({v[0] for v in seen.values()}) == 3, {k: v[0] for k, v in seen.items()})
+    ok(f"{tag}三頁的畫面 hash 彼此不同", len({v[1] for v in seen.values()}) == 3, {k: v[1] for k, v in seen.items()})
+
+    # ---- ⑤ 大戶／散戶：三條線、可篩選
+    ho = [r for r in (j.get("holders") or []) if r and (r[1] is not None or r[2] is not None or r[3] is not None)]
+    if ok(f"{tag}{code} 有集保週資料（前置條件）", len(ho) >= 1, len(ho)):
+        click(pg, '#stockTabs button[data-t="holders"]', 1600)
+        a = pg.evaluate(CHIP0928_PROBE)
+        hc = a["charts"].get("holderChart") or {}
+        ok(f"★ {tag}預設三條線全開：千張以上、400～1000 張、≤10 張（三格）",
+           hc.get("n") == 3 and hc.get("grids") == 3 and [x.split("（")[0] for x in hc.get("names", [])] == ["千張大戶", "中實戶", "散戶"]
+           and [t["k"] for t in a["tgl"]] == ["1", "2", "3"] and not any(t["off"] for t in a["tgl"]), (hc, a["tgl"]))
+        ok(f"{tag}色塊寫出三個級距的名字與最新比例", all(w in a["txt"] for w in ("千張以上", "400～1000 張", "≤10 張")), a["txt"][:200])
+        h0 = canvas_hash(pg, "#holderChart")
+        click(pg, '#hoTgls .hoTgl[data-k="2"]', 900)
+        b = pg.evaluate(CHIP0928_PROBE)
+        hb = b["charts"].get("holderChart") or {}
+        ok(f"★ {tag}按掉「400～1000 張」→ 圖上剩兩條（線數 3 → {hb.get('n')}）、兩格",
+           hb.get("n") == 2 and hb.get("grids") == 2 and not any(x.startswith("中實戶") for x in hb.get("names", [])), hb)
+        ok(f"★ {tag}按掉的那顆色塊變灰（aria-pressed＝false）、選擇記進 localStorage（tw.hoLines＝1,3）",
+           next(t for t in b["tgl"] if t["k"] == "2")["off"] and next(t for t in b["tgl"] if t["k"] == "2")["p"] == "false" and b["ls"] == "1,3", (b["tgl"], b["ls"]))
+        ok(f"{tag}表格的反白欄跟著少一欄（只剩千張以上、≤10 張）", b["thSel"] == ["千張以上", "≤10 張"], b["thSel"])
+        changed(f"{tag}按掉一條之後圖真的重畫", h0, canvas_hash(pg, "#holderChart"))
+        click(pg, '#hoTgls .hoTgl[data-k="1"]', 900)
+        c = pg.evaluate(CHIP0928_PROBE)
+        ok(f"★ {tag}再按掉「千張以上」→ 只剩「≤10 張」一條", (c["charts"].get("holderChart") or {}).get("n") == 1
+           and (c["charts"]["holderChart"]["names"][0]).startswith("散戶"), c["charts"].get("holderChart"))
+        click(pg, '#hoTgls .hoTgl[data-k="3"]', 900)
+        d = pg.evaluate(CHIP0928_PROBE)
+        ok(f"★ {tag}三條都按掉 → 圖收成一句提示（.isempty，不是空黑框）", d["empty"] and "隱藏" in d["txt"] and d["ls"] == "", (d["empty"], d["ls"]))
+        click(pg, '#hoTgls .hoTgl[data-k="3"]', 900)
+        e = pg.evaluate(CHIP0928_PROBE)
+        ok(f"★ {tag}從「全部隱藏」再打開一條 → 圖回來、畫那一條", not e["empty"] and (e["charts"].get("holderChart") or {}).get("n") == 1, e["charts"].get("holderChart"))
+        # 重新整理 → 記得只開 ≤10 張
+        goto(code, "holders")
+        f = pg.evaluate(CHIP0928_PROBE)
+        ok(f"★ {tag}重新整理後仍只顯示「≤10 張」一條", (f["charts"].get("holderChart") or {}).get("n") == 1 and f["hoLines"] == "3", (f["charts"].get("holderChart"), f["hoLines"]))
+        click(pg, '#hoTgls .hoTgl[data-k="1"]', 700); click(pg, '#hoTgls .hoTgl[data-k="2"]', 900)
+        g = pg.evaluate(CHIP0928_PROBE)
+        ok(f"{tag}全部打開回來 → 三條", (g["charts"].get("holderChart") or {}).get("n") == 3 and g["ls"] == "1,2,3", (g["charts"].get("holderChart"), g["ls"]))
+        # 歷史補不回來：一句讀者聽得懂的話
+        if len(ho) < 52:
+            ok(f"★ {tag}資料只有 {len(ho)} 週 → 頁面講清楚原因（集保只公開最新一週、無法補回、從哪一週起累積）",
+               "無法補回" in g["txt"] and f"從 {ho[0][0]} 起每週累積，目前 {len(ho)} 週" in g["txt"], [l for l in g["txt"].split("\n") if "集保" in l][:2])
+
+    # ---- ④⑥①：全部分頁掃一遍，禁用字（內部說明、股東人數、主力、股利政策／公告）一個都不准出現
+    #   掃「畫面上看得到的字」＋「點開每一顆 ? 的說明」＋「滑過會跳的 title」三處
+    hits = {}
+    for t, _ in tabs:
+        click(pg, f'#stockTabs button[data-t="{t}"]', 1300)
+        txt = pg.evaluate("""() => { const st = document.getElementById('stockTab');
+            const how = [...st.querySelectorAll('.howtxt')].map(e => e.textContent).join(' ');
+            const tip = [...st.querySelectorAll('[title]')].map(e => e.title).join(' ');
+            return st.innerText + ' ' + how + ' ' + tip; }""")
+        bad = [w for w in STOCK0928_BANNED if w in txt]
+        if bad:
+            hits[t] = bad
+    ok(f"★ {tag}{len(tabs)} 個分頁（含 ? 說明與滑過提示）都沒有內部說明／股東人數／主力／股利政策／股利公告", not hits, hits)
+    ok(f"{tag}法人、資券、大戶散戶三頁都沒有主力替代卡（#mainChart）、股東人數圖（#holderCount）",
+       pg.evaluate("() => !document.getElementById('mainChart') && !document.getElementById('holderCount')"))
+    # K 線卡與 AI 區（分頁上面）也掃一次
+    top = pg.evaluate("""() => { const e = document.getElementById('skChartCard'); if (!e) return '';
+        return e.innerText + ' ' + [...e.querySelectorAll('[title]')].map(x => x.title).join(' ') + ' ' + [...e.querySelectorAll('.howtxt')].map(x => x.textContent).join(' '); }""")
+    ok(f"{tag}K 線卡與 AI 區也沒有內部說明字樣", not [w for w in STOCK0928_BANNED if w in top], [w for w in STOCK0928_BANNED if w in top])
+
+    # ---- ⑦ 基本面「?」：真的按、逐欄說明
+    goto(code, "overview")
+    click(pg, '#stockTab .howbtn[data-how="skfund"]', 500)
+    fd = pg.evaluate("""() => { const b = document.getElementById('how-skfund'); if (!b) return null;
+        const vis = !b.hidden && b.getBoundingClientRect().height > 0;
+        return { vis, items: [...b.querySelectorAll('li')].map(l => l.textContent.trim()) }; }""")
+    lbls = pg.evaluate("() => [...document.querySelectorAll('#stockTab .card')].find(c => /基本面/.test((c.querySelector('h3')||{}).textContent||'')) ? [...[...document.querySelectorAll('#stockTab .card')].find(c => /基本面/.test((c.querySelector('h3')||{}).textContent||'')).querySelectorAll('.kvs .l')].map(e => e.textContent.trim()) : []")
+    if ok(f"★ {tag}按基本面標題旁的「?」→ 說明真的打開", bool(fd) and fd["vis"], fd):
+        miss = [l for l in lbls if not any(it.startswith(l.split("（")[0]) for it in fd["items"])]
+        ok(f"★ {tag}基本面「?」每一個欄位都有一句說明（{len(lbls)} 欄）", len(lbls) >= 6 and not miss, {"欄位": lbls, "缺": miss})
+        ok(f"{tag}基本面「?」每條 ≤ 30 字", all(len(x) <= 30 for x in fd["items"]), [x for x in fd["items"] if len(x) > 30])
+    pg.mouse.click(5, 300); pg.wait_for_timeout(300)
+
+    # ---- ⑧ AI 分析：籌碼面 → 技術面訊號（九顆燈，跟總覽「技術面訊號」卡同一份）
+    ai = pg.evaluate("""() => ({ tabs: [...document.querySelectorAll('#skAi .aitab')].map(b => [b.dataset.facet, b.querySelector('.nm').textContent]),
+        ov: [...document.querySelectorAll('#stockTab .lights .light')].map(e => e.textContent.trim()) })""")
+    ok(f"★ {tag}AI 分析第二顆標籤是「技術面訊號」、沒有「籌碼面」", [t[1] for t in ai["tabs"]] == ["技術面", "技術面訊號", "基本面", "消息面"], ai["tabs"])
+    if any(t[0] == "sig" for t in ai["tabs"]):
+        pg.evaluate("() => { try { localStorage.setItem('tw.aiOpen', '1'); } catch (e) {} }")
+        before = pg.evaluate("() => { const p = [...document.querySelectorAll('#skAi .aipanel')].find(x => !x.hidden); return p ? p.innerText : ''; }")
+        click(pg, '#skAi .aitab[data-facet="sig"]', 500)
+        s = pg.evaluate("""() => { const p = document.getElementById('aiPanel-sig'); return p ? { vis: !p.hidden && p.getBoundingClientRect().height > 0,
+            lights: [...p.querySelectorAll('.light')].map(e => e.textContent.trim()), txt: p.innerText } : null; }""")
+        if ok(f"★ {tag}點「技術面訊號」→ 面板打開、內容換了", bool(s) and s["vis"] and s["txt"] != before, s and s["txt"][:100]):
+            ok(f"★ {tag}技術面訊號九顆燈＝總覽分頁「技術面訊號」卡的九顆燈（同一份資料）", len(s["lights"]) == 9 and s["lights"] == ai["ov"], (s["lights"], ai["ov"]))
+
+    # ---- 800 與 390：三頁都沒有橫向捲軸、色塊排得下
+    for w in (800, 390):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(700)
+        pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => x.textContent.trim() === '完整版' && x.offsetParent); if (b) b.click(); }""")
+        pg.wait_for_timeout(700)
+        for t in ("inst", "margin", "holders"):
+            click(pg, f'#stockTabs button[data-t="{t}"]', 1200)
+            m = pg.evaluate("""() => { const st = document.getElementById('stockTab'); const r = st.getBoundingClientRect();
+                const tg = [...st.querySelectorAll('.hoTgl')].map(b => b.getBoundingClientRect()).map(q => ({ l: Math.round(q.left), r: Math.round(q.right) }));
+                return { sw: document.documentElement.scrollWidth, vw: innerWidth, h: Math.round(r.height), tg }; }""")
+            ok(f"{tag}{w}px「{t}」分頁看得見、沒有橫向捲軸", m["h"] > 100 and m["sw"] <= m["vw"] + 1, m)
+            if t == "holders":
+                ok(f"{tag}{w}px 三顆色塊都在畫面內", len(m["tg"]) == 3 and all(q["l"] >= 0 and q["r"] <= m["vw"] + 1 for q in m["tg"]), m["tg"])
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { ['tw.hoLines','tw.aiTab','tw.aiOpen'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
 
 SECTIONS = {
@@ -15203,6 +15356,9 @@ SECTIONS = {
     "個股AI分析0926":      lambda pg, b, base, code: t_stock_ai_0926(pg, base, code),
     # ★ 2026-09-27 Andy：「季的週期要對，部分數據太少」＋券商 App 截圖；六檔季週期／筆數／按鈕（⚠ 一律 --workers 1）
     "個股季週期與筆數":    lambda pg, b, base, code: t_stock_quarter_audit0927(pg, base, code),
+    # ★ 2026-09-28 Andy：個股頁籌碼拆「法人／資券／大戶散戶」三頁、大戶散戶三條線可勾選、股東人數與主力替代拿掉、
+    #   讀者看不懂的內部說明全清、基本面 ? 逐欄說明、AI 分析籌碼面 → 技術面訊號（claude/stock-tabs-0928）
+    "個股籌碼分頁0928":    lambda pg, b, base, code: t_stock_tabs0928(pg, base, code),
     "收尾0925-週期統計提示框": lambda pg, b, base, code: t_wrap_season_tip(pg, base, code),
     "收尾0925-R4方塊標籤":  lambda pg, b, base, code: t_wrap_r4_label(pg, base, code),
     "收尾0925-R2小項":      lambda pg, b, base, code: t_wrap_r2(pg, base, code),
@@ -16665,7 +16821,7 @@ def t_wrap_popq(pg, base, code):
     pages = [("heatmap", "#v-heatmap", None), ("heatmap/theme/cowos", "#v-heatmap", None),
              ("market/updown", "#v-market", None), ("market/ma", "#v-market", None), ("market/cand", "#v-market", None),
              ("season", "#v-season", None)] + \
-            [(f"stock/{code}", "#v-industry", t) for t in ("overview", "revenue", "profit", "dividend", "chips", "basics", "news")]
+            [(f"stock/{code}", "#v-industry", t) for t in ("overview", "revenue", "profit", "dividend", "inst", "margin", "holders", "basics", "news")]
     seen = set()
     for route, root, tab in pages:
         pg.goto(f"{base}#{route}", wait_until="networkidle"); pg.wait_for_timeout(2300)
@@ -16825,9 +16981,11 @@ AI_SNAP = r"""() => { const q = (s) => document.querySelector(s), qa = (s) => [.
     bodyOY: body ? getComputedStyle(body).overflowY : '', bodyTop: body ? body.scrollTop : 0,
     rAi: R(ai), rCard: R(card), rHead: R(q('#skHead')), rIdent: R(q('#skIdent')), rTools: R(q('#skTools')), rChart: R(q('#chartWrap')), rTabs: R(q('#stockTabs')),
     tfs: qa('#aiTfs .tfn').map(e => e.innerText.trim()),
-    tech: tp('tech'), chip: tp('chip'), fund: tp('fund'), news: tp('news'),
+    tech: tp('tech'), sig: tp('sig'), fund: tp('fund'), news: tp('news'),
     why: qa('#aiWhy li').map(e => e.textContent.trim()),
-    chipN: q('#aiPanel-chip') ? q('#aiPanel-chip').querySelectorAll('li').length : 0,
+    sigN: q('#aiPanel-sig') ? q('#aiPanel-sig').querySelectorAll('.light').length : 0,
+    sigPos: q('#aiPanel-sig') ? q('#aiPanel-sig').querySelectorAll('.light.pos').length : 0,
+    sigNeg: q('#aiPanel-sig') ? q('#aiPanel-sig').querySelectorAll('.light.neg').length : 0,
     fundN: q('#aiPanel-fund') ? q('#aiPanel-fund').querySelectorAll('li').length : 0,
     newsN: q('#aiPanel-news') ? q('#aiPanel-news').querySelectorAll('li').length : 0,
     shownTxt: panels.filter(vis).map(p => p.innerText.replace(/\s+/g, ' ').trim().slice(0, 160)).join(' | '),
@@ -16856,7 +17014,8 @@ AI_WORDS_BANNED = ("買進", "賣出", "建議", "追進", "加碼", "減碼")
 def _ai_tabs_cycle(pg, tag):
     """四顆標籤逐一真的點：選中的換、內容區一次只顯示那一面、內容真的換了、tw.aiTab 寫進去、K 線頂端不跟著跳。"""
     prev = pg.evaluate(AI_SNAP)
-    for k, nm in (("chip", "籌碼面"), ("fund", "基本面"), ("news", "消息面"), ("tech", "技術面")):
+    # ★ 2026-09-28（Andy：「將 AI 分析內容替換掉：籌碼 → 技術面訊號」）：第二顆標籤 chip（籌碼面）→ sig（技術面訊號）
+    for k, nm in (("sig", "技術面訊號"), ("fund", "基本面"), ("news", "消息面"), ("tech", "技術面")):
         click(pg, f'#skAi .aitab[data-facet="{k}"]', 350)
         s = pg.evaluate(AI_SNAP)
         on = [t["k"] for t in s["tabs"] if t["on"]]
@@ -16902,9 +17061,12 @@ def t_stock_ai_0926(pg, base, code):
         ok(f"★ {tag}「看分析 ↓／展開分析 ▾」跳轉鈕拿掉了", st["jump"] == 0 and st["jumpTxt"] == 0, (st["jump"], st["jumpTxt"]))
         # ---- 結論列＋四顆標籤
         ok(f"{tag} 結論列（狀態＋一句原因）看得到", st["lineVis"] and st["stance"] in ("觀望", "可留意", "偏空") and len(st["lineTxt"]) > len(st["stance"]) + 3, st["lineTxt"])
-        ok(f"★ {tag} 四顆標籤依序是 技術面｜籌碼面｜基本面｜消息面，每顆附判讀小字",
-           [t["t"][:3] for t in st["tabs"]] == ["技術面", "籌碼面", "基本面", "消息面"]
-           and all(any(w in t["t"] for w in ("偏多", "中性", "偏空", "留意", "資料缺")) for t in st["tabs"]), [t["t"] for t in st["tabs"]])
+        # ★ 2026-09-28 改前：技術面｜籌碼面｜基本面｜消息面 → 改後：技術面｜技術面訊號｜基本面｜消息面（訊號標籤小字＝「N多M空」）
+        _nm = lambda t: (re.match(r"(技術面訊號|技術面|籌碼面|基本面|消息面)", t) or [None, None])[1]
+        ok(f"★ {tag} 四顆標籤依序是 技術面｜技術面訊號｜基本面｜消息面，每顆附判讀小字",
+           [_nm(t["t"]) for t in st["tabs"]] == ["技術面", "技術面訊號", "基本面", "消息面"]
+           and all(any(w in t["t"] for w in ("偏多", "中性", "偏空", "留意", "資料缺", "多")) for t in st["tabs"]), [t["t"] for t in st["tabs"]])
+        ok(f"★ {tag} AI 區不再有「籌碼面」標籤與面板", all(t["k"] != "chip" for t in st["tabs"]) and not pg.evaluate("() => !!document.getElementById('aiPanel-chip')"), [t["k"] for t in st["tabs"]])
         ok(f"{tag} 四顆標籤排在同一列、都在 AI 區裡", len({t["r"]["t"] for t in st["tabs"]}) == 1
            and all(a["l"] - 1 <= t["r"]["l"] and t["r"]["r"] <= a["r"] + 1 for t in st["tabs"]), [t["r"] for t in st["tabs"]])
         ok(f"{tag} 桌機沒記過 → 預設展開、預設技術面、一次只顯示技術面", st["open"] and st["ls"] is None and st["shown"] == ["tech"], st)
@@ -16921,9 +17083,14 @@ def t_stock_ai_0926(pg, base, code):
             joined = "；".join(st["why"])
             ok(f"★ {tag} 觀望：列出哪幾條條件沒成立、而且帶數字", len(st["why"]) >= 2 and "條中" in joined and "未成立" in joined
                and any(ch_.isdigit() for ch_ in joined), st["why"])
-        for k, nm in (("chip", "籌碼面"), ("fund", "基本面"), ("news", "消息面")):
+        for k, nm in (("fund", "基本面"), ("news", "消息面")):
             ok(f"{tag} {nm}有依據條列（或明確寫資料缺）", st[k + "N"] >= 1 or "資料缺" in st[k], st[k][:200])
-        ok(f"{tag} 籌碼面寫出法人買賣超張數", "張" in st["chip"] or "資料缺" in st["chip"], st["chip"][:200])
+        # 技術面訊號：九顆燈、多空計數要跟標籤小字對得上（跟總覽分頁「技術面訊號」卡同一份 lights()）
+        sig_tab = next((t["t"] for t in st["tabs"] if t["k"] == "sig"), "")
+        ok(f"★ {tag} 技術面訊號面板有九顆燈（或寫資料缺）", st["sigN"] == 9 or "資料缺" in st["sig"], (st["sigN"], st["sig"][:120]))
+        if st["sigN"] == 9:
+            ok(f"★ {tag} 技術面訊號標籤小字＝面板燈號的多空計數（{st['sigPos']}多{st['sigNeg']}空）",
+               f"{st['sigPos']}多{st['sigNeg']}空" in sig_tab.replace(" ", ""), sig_tab)
         ok(f"{tag} 消息面誠實寫「僅列事件，未判讀情緒」（或主旨含警示字的留意）", "未判讀情緒" in st["news"] or "留意" in st["news"], st["news"][:200])
         # 「非投資建議」「非建議」是必要的免責字樣，先拿掉再掃；消息面的新聞標題（.ainews）是媒體原文照登（例：2330「中鋼…加碼台積電…買進均價」），不算本站用語
         alltxt = pg.evaluate("() => { const e = document.getElementById('skAi'); if (!e) return ''; const c = e.cloneNode(true); c.querySelectorAll('.ainews').forEach(x => x.remove()); return c.textContent; }").replace("非投資建議", "").replace("非建議", "")
@@ -16965,9 +17132,9 @@ def t_stock_ai_0926(pg, base, code):
     s5 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析] 再按「展開 ▾」→ 內容區回來、仍是剛才選的基本面", s5["open"] and s5["ls"] == "1" and s5["shown"] == ["fund"], (s5["open"], s5["ls"], s5["shown"]))
     click(pg, "#aiTgl", 400)
-    click(pg, '#skAi .aitab[data-facet="chip"]', 400)
+    click(pg, '#skAi .aitab[data-facet="sig"]', 400)
     s6 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 收合時按「籌碼面」標籤 → 直接展開並顯示籌碼面", s6["open"] and s6["shown"] == ["chip"] and s6["ls"] == "1" and s6["lt"] == "chip",
+    ok("★ [AI分析] 收合時按「技術面訊號」標籤 → 直接展開並顯示技術面訊號", s6["open"] and s6["shown"] == ["sig"] and s6["ls"] == "1" and s6["lt"] == "sig",
        (s6["open"], s6["shown"], s6["ls"], s6["lt"]))
     # ---------------------------------------------------------------- 「?」說明、逐條條件、重大訊息
     click(pg, '#skAi .howbtn[data-how="ai"]', 450)
@@ -17041,9 +17208,9 @@ def t_stock_ai_0926(pg, base, code):
                        " return { q: Math.round(rb.top), warn: Math.round(rw.top), tgl: Math.round(rt.top), qb: Math.round(rb.bottom) }; }")
     ok("[AI分析 390]「?」跟「AI 分析」、收合鈕在同一列，免責小字在下一行（不是「?」自己掉到第二行）",
        bool(qpos) and qpos["q"] < qpos["warn"] and abs(qpos["q"] - qpos["tgl"]) <= 8, qpos)
-    click(pg, '#skAi .aitab[data-facet="chip"]', 450)
+    click(pg, '#skAi .aitab[data-facet="sig"]', 450)
     m2 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析 390] 按「籌碼面」→ 展開並只顯示籌碼面", m2["open"] and m2["shown"] == ["chip"], (m2["open"], m2["shown"]))
+    ok("★ [AI分析 390] 按「技術面訊號」→ 展開並只顯示技術面訊號", m2["open"] and m2["shown"] == ["sig"], (m2["open"], m2["shown"]))
     click(pg, '#skAi .aitab[data-facet="tech"]', 450)
     m3 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 按「技術面」→ 只顯示技術面、四個週期列排得下", m3["shown"] == ["tech"] and m3["tfs"] == ["1 小時", "4 小時", "日線", "週線"], (m3["shown"], m3["tfs"]))
@@ -17150,7 +17317,7 @@ def t_howpop_census(b, base, code):
     routes = ["overview", "market", "market/updown", "flow", "heatmap", "heatmap/theme/cowos", "industry",
               "industry/semiconductor/overview", "industry/semiconductor", "industry/ai_server", "industry/traditional",
               "season", "delivery"]
-    tabs = ("overview", "revenue", "profit", "dividend", "chips", "basics", "news")
+    tabs = ("overview", "revenue", "profit", "dividend", "inst", "margin", "holders", "basics", "news")   # 2026-09-28 籌碼拆三頁
     for w, h, mob in ((1440, 1000, False), (390, 844, True)):
         kw = {"viewport": {"width": w, "height": h}}
         if mob:
@@ -34922,11 +35089,14 @@ def t_mobile_broker(b, base, code):
     if not ok(f"{T}頂部報價列出現了（前置條件）", s0["head"], s0):
         m.close(); return
     ok(f"{T}報價列寫的是這一檔的名稱與真的現價", s0["name"] == pgj["meta"]["name"] and any(ch.isdigit() for ch in s0["px"]), s0)
-    # ★ 2026-09-27 第二輪：分頁順序照 CEO 轉的清單；「籌碼」（集保股權分散）獨立一頁，「大戶」改成主力替代口徑
-    need = ["K線", "指標", "法人", "籌碼", "大戶", "資券", "營收", "獲利", "財務", "基本資料", "除權息", "AI 分析", "新聞"]
+    # ★ 2026-09-27 第二輪：分頁順序照 CEO 轉的清單
+    # ★ 2026-09-28（Andy：資券、法人各自一頁；「大戶／散戶」一頁三條線；股東人數、主力替代拿掉）：
+    #   改前 法人→籌碼→大戶→資券 → 改後 法人→資券→大戶／散戶（跟桌機分頁同一順序）
+    need = ["K線", "指標", "法人", "資券", "大戶／散戶", "營收", "獲利", "財務", "基本資料", "除權息", "AI 分析", "新聞"]
     ok(f"{T}分頁列有 {len(need)} 頁（{'／'.join(need)}）", all(n in s0["tabs"] for n in need), s0["tabs"])
-    ok(f"{T}分頁順序照清單（K線→指標→法人→籌碼→大戶→資券→營收→獲利→財務→基本資料→除權息→AI 分析→新聞，最後完整版）",
+    ok(f"{T}分頁順序照清單（K線→指標→法人→資券→大戶／散戶→營收→獲利→財務→基本資料→除權息→AI 分析→新聞，最後完整版）",
        [t for t in s0["tabs"] if t in need] == need and s0["tabs"][-1] == "完整版", s0["tabs"])
+    ok(f"{T}分頁列沒有舊的「籌碼」「大戶」兩頁", not any(t in ("籌碼", "大戶") for t in s0["tabs"]), s0["tabs"])
     ok(f"{T}沒有合規來源的分頁（相關 ETF、權證、董監持股）不放空殼", not any(x in s0["tabs"] for x in ("相關 ETF", "相關ETF", "權證", "董監持股")), s0["tabs"])
     ok(f"{T}分頁列沒有「主力」（券商分點禁爬，改叫「大戶」）", "主力" not in s0["tabs"], s0["tabs"])
     ok(f"{T}預設在 K 線頁：K 線卡看得見、舊的現價列與舊分頁藏起來",
@@ -34970,52 +35140,52 @@ def t_mobile_broker(b, base, code):
     ok(f"{T}捲到底：表頭釘在報價列正下方（不被蓋住）", sk["tht"] is not None and abs(sk["tht"] - sk["hb"]) <= 3, sk)
     m.evaluate("() => window.scrollTo({ top: 0 })")
 
-    # ---- 籌碼（集保股權分散）：千張大戶｜散戶｜股東人數，切分段 → 圖的資料與表的反白欄都換 ----
+    # ---- 大戶／散戶（2026-09-28）：三條持股週線（千張以上｜400～1000 張｜≤10 張），上方三顆色塊＝圖例兼開關 ----
+    #   改前：「籌碼」（千張大戶｜散戶｜股東人數三選一）＋「大戶」（主力替代：法人買賣超＋集中度）兩頁
+    #   改後：一頁「大戶／散戶」；按掉一顆色塊 → 那一條真的從圖上消失（系列數減一）、記在 localStorage、再按回來
     ho = [r for r in (pgj.get("holders") or []) if r[1] is not None]
     if ho:
-        m.evaluate(TAP, "chip"); m.wait_for_timeout(900)
-        c1 = m.evaluate(ST)
-        want_seg = ["千張大戶", "散戶 ≤10 張", "股東人數"] + (["董監持股"] if isinstance(pgj.get("insider"), dict) else [])
-        ok(f"{T}籌碼：分段是 {'｜'.join(want_seg)}", [x.rstrip('*') for x in c1["seg"]] == want_seg, c1["seg"])
-        ok(f"{T}籌碼：圖是每週 {len(ho)} 點、表 {len(ho)} 列（新到舊），反白「千張大戶」",
-           bool(c1["series"]) and c1["series"][0]["len"] == len(ho) and c1["rows"] == len(ho) and c1["thSel"] == "千張大戶"
-           and ho[-1][0][5:].replace('-', '/') in c1["row0"], (c1["series"], c1["rows"], c1["thSel"], c1["row0"]))
-        m.evaluate(SEG, "n"); m.wait_for_timeout(800)
-        c2 = m.evaluate(ST)
-        ok(f"{T}籌碼：切「股東人數」→ 圖的數字換成股東人數（{ho[-1][4]}）、反白欄換成股東人數",
-           bool(c2["series"]) and c2["series"][0]["d"][-1] == ho[-1][4] and c2["series"][0]["d"] != c1["series"][0]["d"] and c2["thSel"] == "股東人數",
-           (c1["series"], c2["series"], c2["thSel"]))
+        m.evaluate(TAP, "big"); m.wait_for_timeout(900)
+        HO = """() => { const c = document.getElementById('mbChart'), ch = c && window.echarts && echarts.getInstanceByDom(c); const o = ch ? ch.getOption() : null;
+            return { tg: [...document.querySelectorAll('#mbHoTgls .mbhotgl')].map(b => ({ k: b.dataset.k, off: b.classList.contains('off'), p: b.getAttribute('aria-pressed'), h: Math.round(b.getBoundingClientRect().height) })),
+              series: o ? o.series.map(s => ({ n: s.name, len: (s.data || []).length, last: (s.data || [])[(s.data || []).length - 1] })) : [],
+              grids: o ? (o.grid || []).length : 0, empty: c ? c.classList.contains('isempty') : null, h: c ? Math.round(c.getBoundingClientRect().height) : 0,
+              ls: (() => { try { return localStorage.getItem('tw.m3.sk.hoLines'); } catch (e) { return null; } })(),
+              txt: (document.getElementById('mbBody') || {}).innerText || '', th: [...document.querySelectorAll('#mbBody .mbtbl thead th')].map(t => t.textContent.trim()),
+              rows: document.querySelectorAll('#mbBody .mbtbl tbody tr').length }; }"""
+        h1 = m.evaluate(HO)
+        ok(f"{T}大戶／散戶：三顆色塊（千張以上｜400～1000 張｜≤10 張）預設全開", [t["k"] for t in h1["tg"]] == ["big", "mid", "ret"] and not any(t["off"] for t in h1["tg"]), h1["tg"])
+        ok(f"{T}大戶／散戶：圖上三條線、三格，每條 {len(ho)} 點（每週一點），最後一點＝最新一週",
+           [x["n"] for x in h1["series"]] == ["千張以上", "400～1000 張", "≤10 張"] and h1["grids"] == 3
+           and all(x["len"] == len(ho) for x in h1["series"]) and abs((h1["series"][0]["last"] or 0) - ho[-1][1]) < 1e-6, h1["series"])
+        ok(f"{T}大戶／散戶：每週表 {len(ho)} 列、欄位是三個級距", h1["rows"] == len(ho) and h1["th"][1:4] == ["千張以上", "400～1000", "≤10"], (h1["rows"], h1["th"]))
+        ok(f"{T}大戶／散戶：沒有股東人數、沒有主力替代", "股東人數" not in h1["txt"] and "主力" not in h1["txt"] and "替代口徑" not in h1["txt"], h1["txt"][:200])
+        if len(ho) < 52:
+            ok(f"{T}大戶／散戶：講清楚為什麼只有 {len(ho)} 週（集保只公開最新一週、無法補回）", "無法補回" in h1["txt"] and f"目前 {len(ho)} 週" in h1["txt"], h1["txt"][-200:])
+        ok(f"{T}大戶／散戶：色塊觸控高度 ≥ 36px", all(t["h"] >= 36 for t in h1["tg"]), h1["tg"])
+        m.evaluate("() => document.querySelector('#mbHoTgls .mbhotgl[data-k=mid]').click()"); m.wait_for_timeout(700)
+        h2 = m.evaluate(HO)
+        ok(f"★ {T}大戶／散戶：按掉「400～1000 張」→ 圖上剩兩條（千張以上、≤10 張）、色塊變灰、記進 localStorage",
+           [x["n"] for x in h2["series"]] == ["千張以上", "≤10 張"] and h2["grids"] == 2 and next(t for t in h2["tg"] if t["k"] == "mid")["off"]
+           and h2["ls"] == "big,ret", (h2["series"], h2["tg"], h2["ls"]))
+        ok(f"{T}大戶／散戶：少一格 → 圖變矮（{h1['h']} → {h2['h']}）", h2["h"] < h1["h"], (h1["h"], h2["h"]))
+        m.evaluate("() => { document.querySelector('#mbHoTgls .mbhotgl[data-k=big]').click(); document.querySelector('#mbHoTgls .mbhotgl[data-k=ret]').click(); }"); m.wait_for_timeout(700)
+        h3 = m.evaluate(HO)
+        ok(f"{T}大戶／散戶：三條都按掉 → 圖收成一句提示（不是空黑框）", h3["empty"] is True and "隱藏" in h3["txt"], (h3["empty"], h3["txt"][:120]))
+        m.evaluate("() => document.querySelector('#mbHoTgls .mbhotgl[data-k=ret]').click()"); m.wait_for_timeout(700)
+        h4 = m.evaluate(HO)
+        ok(f"★ {T}大戶／散戶：只打開「≤10 張」→ 圖上只剩那一條", [x["n"] for x in h4["series"]] == ["≤10 張"] and h4["empty"] is False, h4["series"])
+        m.evaluate("() => { document.querySelector('#mbHoTgls .mbhotgl[data-k=big]').click(); document.querySelector('#mbHoTgls .mbhotgl[data-k=mid]').click(); }"); m.wait_for_timeout(700)
+        ok(f"{T}大戶／散戶：全部打開回來 → 三條", len(m.evaluate(HO)["series"]) == 3)
         if isinstance(pgj.get("insider"), dict):
             m.evaluate(SEG, "ins"); m.wait_for_timeout(800)
             c3 = m.evaluate("() => ({ why: (document.querySelector('#mbBody .mbwhy') || {}).textContent || '', chart: !!document.getElementById('mbChart'), rows: document.querySelectorAll('#mbBody .mbtbl tbody tr').length })")
             nins = len((pgj["insider"].get("monthly") or []))
             if nins:
-                ok(f"{T}籌碼：切「董監持股」→ 圖＋每月表（{nins} 列）", c3["chart"] and c3["rows"] == nins, c3)
+                ok(f"{T}大戶／散戶：切「董監持股」→ 圖＋每月表（{nins} 列）", c3["chart"] and c3["rows"] == nins, c3)
             else:
-                ok(f"{T}籌碼：董監持股還沒有月資料 → 寫原因（每月申報、逐月累積），不畫假圖", "尚無資料" in c3["why"] and "每月申報" in c3["why"] and not c3["chart"], c3)
-            m.evaluate(SEG, "big"); m.wait_for_timeout(500)
-
-    # ---- 大戶（替代主力）：法人買賣超＋集中度｜大戶週增減 ----
-    m.evaluate(TAP, "big"); m.wait_for_timeout(900)
-    bg = m.evaluate("() => ({ alt: (document.querySelector('#mbBody .mbalt') || {}).textContent || '', mbt: document.body.dataset.mbt })")
-    ok(f"{T}大戶：頁面寫明「替代口徑：集保大戶＋法人，非券商分點」", "替代口徑：集保大戶＋法人，非券商分點" in bg["alt"], bg)
-    b1 = m.evaluate(ST)
-    ok(f"{T}大戶：預設「法人買賣超」＝柱（法人合計）＋ 5 日／20 日集中度兩條線，{n} 根（一季）",
-       bool(b1["series"]) and [x["n"] for x in b1["series"]] == ["法人合計", "5 日集中", "20 日集中"] and b1["series"][0]["len"] == n and b1["rows"] == n,
-       (b1["series"], b1["rows"]))
-    # 集中度自己算一次對帳：最後一天 5 日集中＝近 5 日法人合計 ÷ 同期成交量
-    vol = {r[0]: r[5] for r in (pgj.get("daily") or [])}
-    if len(iv) >= 5 and all(vol.get(r[0]) for r in iv[-5:]):
-        c5 = sum((r[1] or 0) + (r[2] or 0) + (r[3] or 0) for r in iv[-5:]) / sum(vol[r[0]] for r in iv[-5:]) * 100
-        # 後端的 main_proxy 一到，畫的是它的 conc5 —— 自己算的要跟它對得上（兩邊同一條公式）
-        got = b1["series"][1]["d"][-1] if b1["series"] else None
-        ok(f"{T}大戶：5 日集中度的數字對得上（自己算 {c5:.2f}%）", got is not None and abs(got - c5) < 0.011, (got, c5))
-    m.evaluate(SEG, "chg"); m.wait_for_timeout(800)
-    b2 = m.evaluate(ST)
-    if len(pgj.get("holders") or []) >= 2:
-        ok(f"{T}大戶：切「大戶週增減」→ 表換成週增減與法人合計", "法人合計" in b2["th"] and b2["th"] != b1["th"], (b1["th"], b2["th"]))
-        ok(f"{T}大戶：週增減圖有柱（大戶）與線（法人合計）",
-           bool(b2["series"]) and [s["n"] for s in b2["series"]] == ["大戶週增減", "法人合計"], b2["series"])
+                ok(f"{T}大戶／散戶：董監持股還沒有月資料 → 寫「資料準備中」，不畫假圖", "資料準備中" in c3["why"] and not c3["chart"], c3)
+            m.evaluate(SEG, "lines"); m.wait_for_timeout(500)
 
     # ---- 資券 ----
     m.evaluate(TAP, "margin"); m.wait_for_timeout(900)
@@ -35028,7 +35198,8 @@ def t_mobile_broker(b, base, code):
         if has_dt and not any(len(r) > 5 and r[5] is not None for r in pgj["margin"][-63:]):
             m.evaluate(SEG, "dt"); m.wait_for_timeout(800)
             gd = m.evaluate("() => ({ why: (document.querySelector('#mbBody .mbwhy') || {}).textContent || '', chart: !!document.getElementById('mbChart'), th: [...document.querySelectorAll('#mbBody .mbtbl thead th')].map(t => t.textContent.trim()) })")
-            ok(f"{T}資券：當沖還沒回補 → 寫原因（不是空圖），表照樣列融資／融券", "還沒有資料" in gd["why"] and "回補" in gd["why"] and not gd["chart"] and "融資" in gd["th"], gd)
+            # 2026-09-28：原因改讀者語言（改前「還沒回補／資料源帳號等級」→ 改後「資料準備中」）
+            ok(f"{T}資券：當沖還沒有資料 → 寫「資料準備中」（不是空圖），表照樣列融資／融券", "資料準備中" in gd["why"] and "回補" not in gd["why"] and not gd["chart"] and "融資" in gd["th"], gd)
             m.evaluate(SEG, "m"); m.wait_for_timeout(600)
             g1 = m.evaluate(ST)
         m.evaluate(SEG, "s"); m.wait_for_timeout(800)
@@ -35198,7 +35369,9 @@ def t_mobile_broker(b, base, code):
        and "測試條件乙" in x3b and "測試條件丙（資料不足）" in x3b, (x3, x3b))
     m2.evaluate(TAP, "div"); m2.wait_for_timeout(700)
     x4 = m2.evaluate(ST)
-    ok(f"{T}新欄位：除權息「股利政策」表改成所屬期間（2025H2）", x4["th"][:1] == ["期別"] and "2025H2" in x4["row0"], (x4["th"], x4["row0"]))
+    # ★ 2026-09-28（Andy：「股利政策&股利公告移除」）：改前 by_period 一到就畫「股利政策（期別）」表 → 改後一律年度表
+    ok(f"{T}除權息：by_period 到了也不畫「股利政策（期別）」表，一律年度表、分段第一顆叫「全部」",
+       x4["th"][:1] == ["年度"] and "股利政策" not in " ".join(x4["seg"]) and [x.rstrip('*') for x in x4["seg"]][:1] == ["全部"], (x4["th"], x4["seg"]))
     m2.evaluate(TAP, "profit"); m2.wait_for_timeout(700)
     x5 = m2.evaluate(ST)
     ok(f"{T}新欄位：獲利多出「季走勢｜年度走勢」分段", [x.rstrip('*') for x in x5["seg"]] == ["季走勢", "年度走勢"], x5["seg"])

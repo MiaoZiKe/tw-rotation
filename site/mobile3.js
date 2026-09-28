@@ -1213,7 +1213,8 @@
     const tg = SK_HO.map(h => `<button type="button" class="mbhotgl${on.has(h.k) ? '' : ' off'}" data-k="${h.k}" aria-pressed="${on.has(h.k)}" style="--hc:${CH[h.c]}">`
       + `<i></i><span class="nm">${h.n}</span><b class="num">${pct(last[h.k])}</b><small class="num ${uc(last[h.d])}">${sFix(last[h.d], 2)}</small></button>`).join('');
     const cols = [{ h: '公布日', f: r => [md(r.d)] }].concat(SK_HO.map(h => ({ h: h.n.replace(' 張', ''), f: r => [r[h.k] == null ? '—' : tri(r[h.d]) + (+r[h.k]).toFixed(2), uc(r[h.d])] })));
-    const grow = W.length < 8 ? `資料準備中：目前有 ${esc(W[0].d)} 起的 ${W.length} 週，之後每週增加一筆。` : '';
+    // 補不了歷史的原因跟桌機 tabHolders 同一句（集保只公開最新一週；DECISIONS #210）
+    const grow = W.length < 52 ? `集保中心每週只公開最新一週的持股分級，更早的週資料無法補回，所以從 ${esc(W[0].d)} 起每週累積，目前 ${W.length} 週。` : '';
     body.innerHTML = segBar('big', SEG, seg)
       + `<div class="mbhotgls" id="mbHoTgls" role="group" aria-label="顯示哪幾條線">${tg}</div>`
       + chartBox('')
@@ -1487,30 +1488,18 @@
     body.innerHTML = `<dl class="mbkv">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`;
   }
 
-  /* ---- 除權息：股利政策｜現金股利｜股票股利（紀念品、股息再投入不做）----
+  /* ---- 除權息：全部｜現金股利｜股票股利（紀念品、股息再投入不做）----
      年度＝除權息日所在的年（dividends.by_year）；殖利率＝現金股利 ÷ 除息前一日收盤（dividends.results 的 before_price，原始價）。
-     finance-quant 若補了每年的 yield 欄位就改用它（by_year[i].yield）。每列點一下展開當年每一次除權息的明細。*/
-  /* 股利政策（所屬期間）表：finance-quant 的 dividends.by_period（docs/stock_page_audit_0927.md §3）；
-     每列＝期別、除權日／除息日、股票／現金股利、殖利率、狀態（已發／已公告未除／待公告）。截圖那一頁的表就是這個口徑。*/
-  function skDivPeriod(bp) {
-    const ST = { paid: '已發放', upcoming: '已公告、尚未除權息', pending: '待公告除權息日' };
-    const dd = (d) => d ? esc(String(d).replace(/-/g, '/')) : '—';
-    return `<div class="mbtblwrap"><table class="mbtbl mbdiv"><thead><tr><th>期別</th><th>除權日<br>除息日</th><th class="sel">股票股利<br>現金股利</th><th>殖利率</th><th aria-label="展開"></th></tr></thead><tbody>`
-      + bp.slice().sort((a, b) => String(b.period).localeCompare(String(a.period))).map((r, i) => `<tr class="mbdrow" data-i="${i}" tabindex="0" aria-expanded="false"><td>${esc(r.period || '—')}${r.status && r.status !== 'paid' ? '<br><small class="mbst">' + (r.status === 'upcoming' ? '已公告' : '待除權息') + '</small>' : ''}</td>`
-        + `<td>${r.stock_ex_date ? dd(r.stock_ex_date).slice(5) : '—'}<br>${r.cash_ex_date ? dd(r.cash_ex_date).slice(5) : '—'}</td>`
-        + `<td class="sel">${(+(r.stock || 0)).toFixed(3)}<br>${(+(r.cash || 0)).toFixed(3)}</td><td>${r.cash_yield != null ? (+r.cash_yield).toFixed(2) + '%' : '—'}</td><td class="mbx">﹀</td></tr>`
-        + `<tr class="mbdet" hidden><td colspan="5"><div>所屬期間：${esc(r.raw_period || r.period || '—')}（${esc(ST[r.status] || '—')}）</div>`
-        + `<div>除權日 ${dd(r.stock_ex_date)}；除息日 ${dd(r.cash_ex_date)}；發放日 ${dd(r.payment_date)}；公告日 ${dd(r.announce_date)}</div>`
-        + `<div>股票股利 ${(+(r.stock || 0)).toFixed(3)} 元、現金股利 ${(+(r.cash || 0)).toFixed(3)} 元${r.cash_yield != null ? `；現金殖利率 ${(+r.cash_yield).toFixed(2)}%（÷ 除息前一日收盤）` : ''}</div></td></tr>`).join('')
-      + '</tbody></table></div>';
-  }
+     finance-quant 若補了每年的 yield 欄位就改用它（by_year[i].yield）。每列點一下展開當年每一次除權息的明細。
+     ★ 2026-09-28（Andy：「股利政策&股利公告移除」，跟桌機 tabDividend 同一批）：
+       改前第一段叫「股利政策」、表是所屬期間（2025H2…）＋底下一行「股利政策表＝所屬期間…」的說明 →
+       改後第一段叫「全部」、表一律是年度表（年度＋點開每一次明細），所屬期間表與那行說明拿掉。後端 by_period 照舊產出。*/
   function skDiv(pg, body) {
     const A = skApp(), CH = A.CH, dv = pg.dividends || {};
     const by = (dv.by_year || []).filter(y => y.n > 0 || y.cash > 0 || y.stock > 0);
-    const bp = (dv.by_period || []).filter(r => r.cash > 0 || r.stock > 0 || r.status === 'upcoming' || r.status === 'pending');
     const res = new Map((dv.results || []).map(r => [String(r.date).slice(0, 10), r]));
     const up = dv.upcoming || [];
-    if (!by.length && !up.length && !bp.length) { body.innerHTML = empty('這一檔近年沒有除權息紀錄。'); return; }
+    if (!by.length && !up.length) { body.innerHTML = empty('這一檔近年沒有除權息紀錄。'); return; }
     const Y = by.map(y => {
       const it = y.items || [];
       const xi = it.find(x => x.kind === '息'), qi = it.find(x => x.kind === '權');
@@ -1518,7 +1507,7 @@
       if (yl == null && y.cash > 0) { const s = it.filter(x => x.kind === '息' && x.cash > 0).reduce((a, x) => { const r = res.get(String(x.date).slice(0, 10)); return r && r.before_price ? a + x.cash / r.before_price * 100 : a; }, 0); yl = s || null; }
       return { y: y.year, cash: y.cash || 0, stock: y.stock || 0, xd: xi ? xi.date : null, qd: qi ? qi.date : null, yl, part: y.partial, it };
     });
-    const SEG = [['all', '股利政策'], ['cash', '現金股利'], ['stock', '股票股利']];
+    const SEG = [['all', '全部'], ['cash', '現金股利'], ['stock', '股票股利']];
     const seg = SEG.some(s => s[0] === skSeg('div', 'all')) ? skSeg('div', 'all') : 'all';
     const cashC = light() ? '#3b82c4' : '#4aa8f0', stockC = CH.amber;
     const last = Y[Y.length - 1];
@@ -1531,14 +1520,14 @@
       + '<div class="mbwarn">＊除權息資訊以公開資訊觀測站公告為主＊</div>'
       + (upTxt ? `<div class="mbfoot" style="margin-top:0">已公告、尚未除權息：${upTxt}</div>` : '')
       + chartBox(kpi(k) + legend(lg))
-      + (seg === 'all' && bp.length ? skDivPeriod(bp) : `<div class="mbtblwrap"><table class="mbtbl mbdiv"><thead><tr><th>年度</th><th>除權日<br>除息日</th><th class="${seg !== 'all' ? 'sel' : ''}">股票股利<br>現金股利</th>${hasYl ? '<th>殖利率</th>' : ''}<th aria-label="展開"></th></tr></thead><tbody>`
+      + (`<div class="mbtblwrap"><table class="mbtbl mbdiv"><thead><tr><th>年度</th><th>除權日<br>除息日</th><th class="${seg !== 'all' ? 'sel' : ''}">股票股利<br>現金股利</th>${hasYl ? '<th>殖利率</th>' : ''}<th aria-label="展開"></th></tr></thead><tbody>`
       + Y.slice().reverse().map((r, i) => `<tr class="mbdrow" data-i="${i}" tabindex="0" aria-expanded="false"><td>${r.y}${r.part ? '<br><small>今年</small>' : ''}</td><td>${r.qd ? md(r.qd) : '—'}<br>${r.xd ? md(r.xd) : '—'}</td>`
         + `<td class="${seg !== 'all' ? 'sel' : ''}">${r.stock ? (+r.stock).toFixed(3) : '0'}<br>${r.cash ? (+r.cash).toFixed(3) : '0'}</td>${hasYl ? `<td>${r.yl != null ? r.yl.toFixed(2) + '%' : '—'}</td>` : ''}<td class="mbx">﹀</td></tr>`
         + `<tr class="mbdet" hidden><td colspan="${hasYl ? 5 : 4}">${r.it.map(x => { const rr = res.get(String(x.date).slice(0, 10));
           return `<div>${esc(x.date)} 除${esc(x.kind)}${x.period ? '（' + esc(x.period) + '）' : ''}：${x.kind === '息' ? '現金 ' + (x.cash != null ? (+x.cash).toFixed(3) : '—') + ' 元' : '股票 ' + (x.stock != null ? (+x.stock).toFixed(3) : '—') + ' 元'}`
             + (rr ? `；前一日收盤 ${rr.before_price ?? '—'}、參考價 ${rr.reference_price ?? '—'}${rr.fill_days != null ? `、${rr.fill_days} 天填${esc(x.kind)}` : '、尚未填' + esc(x.kind)}` : '') + '</div>'; }).join('') || '無明細'}</td></tr>`).join('')
       + '</tbody></table></div>')
-      + `<div class="mbfoot">${seg === 'all' && bp.length ? '股利政策表＝所屬期間（股利屬於哪一期的盈餘）；圖＝' : ''}年度＝除權息日所在年；${hasYl ? '殖利率＝當年現金股利 ÷ 除息前一日收盤（原始價）。' : ''}點一列看明細。</div>`;
+      + `<div class="mbfoot">年度＝除權息日所在年；${hasYl ? '殖利率＝當年現金股利 ÷ 除息前一日收盤（原始價）。' : ''}點一列看明細。</div>`;
     $$('.mbdrow', body).forEach(tr => { const tg = () => { const d = tr.nextElementSibling, o = d.hidden; d.hidden = !o; tr.setAttribute('aria-expanded', String(o)); tr.querySelector('.mbx').textContent = o ? '︿' : '﹀'; };
       tr.onclick = tg; tr.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tg(); } }; });
     const draw = () => barChart({ x: Y.map(r => String(r.y)),

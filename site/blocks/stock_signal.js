@@ -35,10 +35,12 @@
   }
   const chip = (x) => `<span class="light ${x[2] > 0 ? 'pos' : x[2] < 0 ? 'neg' : ''}">${x[0]} ${x[1]}</span>`;
 
+  /* ★ 2026-09-28（Andy：「我是要給讀者看，他不需要知道這類資訊」）：底下小字改前「權重未經 walk-forward 檢驗」
+     是寫給開發者的回測術語 → 改後只留「決策輔助，非投資建議」，滑過說明也改成讀者語言。*/
   function view(input, fmt) {
     const s = (input && input.summary) || {};
     const verdict = input && input.verdict;
-    return `<div class="card"><h3>技術面訊號</h3><div class="lights" style="margin-top:8px">${lights(s, fmt).map(chip).join('')}</div>${verdict && verdict.invalidation ? `<div class="note" data-readout style="margin-top:8px">失效條件：${fmt.esc(verdict.invalidation)}</div>` : ''}<div class="note" style="margin-top:6px" title="本頁為決策輔助，技術評分與規則權重尚未經 walk-forward 檢驗；不構成投資建議。">決策輔助，權重未經 walk-forward 檢驗；非投資建議</div></div>`;
+    return `<div class="card"><h3>技術面訊號</h3><div class="lights" style="margin-top:8px">${lights(s, fmt).map(chip).join('')}</div>${verdict && verdict.invalidation ? `<div class="note" data-readout style="margin-top:8px">失效條件：${fmt.esc(verdict.invalidation)}</div>` : ''}<div class="note" style="margin-top:6px" title="燈號由固定規則計算，只描述目前的技術狀態，不構成投資建議。">決策輔助，非投資建議</div></div>`;
   }
 
   window.StockSignal = { id: 'stock.signal', view, lights, chip };
