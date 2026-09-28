@@ -14996,14 +14996,14 @@ OVS_M = """() => { const h = document.getElementById('hero'); if (!h) return nul
   const cs = [...h.querySelectorAll('.osc')];
   const num = (e) => { const s = (e ? e.textContent : '').replace(/[,%\\s]/g, ''); return s === '' || isNaN(+s) ? null : +s; };
   const card = (k) => h.querySelector('.osc[data-k="' + k + '"]');
-  const vals = (k) => [...(card(k) || document.createElement('i')).querySelectorAll('.osn .osn-v b')].map(num);
+  const vals = (k) => [...(card(k) || document.createElement('i')).querySelectorAll('.osn .osn-v b')].filter(e => e.getClientRects().length).map(num);
   const fs = [...h.querySelectorAll('.osc *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())
       && e.getClientRects().length).map(e => parseFloat(getComputedStyle(e).fontSize));
   const tr = t ? R(t) : null;
   return { n: cs.length, labels: cs.map(c => (c.querySelector('.osc-t') || {}).textContent),
     ud: vals('updown'), udN: +h.dataset.udN, rot: vals('rot'), rotN: +h.dataset.rotN, flow: vals('flow'), theme: vals('theme'),
     themeTop: h.dataset.themeTop, flowTop: h.dataset.flowTop,
-    over: [...h.querySelectorAll('.osc-t, .osn-v, .osc-h')].filter(e => e.getClientRects().length && e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim().slice(0, 16)),
+    over: [...h.querySelectorAll('.osc-t, .osn-v, .osc-h, .osc[data-k="updown"] .osn small, .osc[data-k="rot"] .osn small')].filter(e => e.getClientRects().length && e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim().slice(0, 16)),
     minFs: fs.length ? Math.min(...fs) : 0,
     scrolls: t ? t.scrollWidth > t.clientWidth + 2 : null, sl: t ? Math.round(t.scrollLeft) : 0,
     allIn: tr ? cs.every(c => { const r = R(c); return r.left >= tr.left - 1 && r.right <= tr.right + 1; }) : false,
@@ -15033,11 +15033,12 @@ def t_ov_summary_0928(pg, b, base, code):
     ok("★ [摘要卡] 漲跌家數有上漲／平盤／下跌三個整數，加總 > 0 且等於卡片自報的總檔數",
        len(m["ud"]) == 3 and None not in m["ud"] and sum(m["ud"]) == m["udN"] > 0, [m["ud"], m["udN"]])
     # 跟下方「漲跌家數」分佈卡同一個口徑（stocks.json 逐檔、級距 udBinOf）：切到「全部」時那張卡寫的共 N 檔
-    bt = pg.evaluate("""() => { const c = [...document.querySelectorAll('#v-overview .card')].find(x => /漲跌家數/.test((x.querySelector('h3')||{}).textContent||'') && !x.closest('#hero'));
-        return c ? c.innerText.replace(/\\s+/g, ' ') : ''; }""")
-    ok("[摘要卡] 漲跌三數加總出現在下方漲跌家數分佈卡上（同一個口徑，不會上下兩個數字對不起來）",
-       f"{m['udN']:,}" in bt or str(m["udN"]) in bt, [m["udN"], bt[:160]])
-    ok("★ [摘要卡] 資金輪盤有四段（領先／改善／轉弱／落後）的族群數，加總＝盤上族群數且 > 0",
+    # 跟下方「漲跌家數」分佈卡同一個口徑（stocks.json 逐檔、級距 udBinOf）：那張卡切到「全部」時的總檔數（#breadth data-total）
+    if count(pg, '#udMkt button[data-m="all"]'):
+        pg.eval_on_selector('#udMkt button[data-m="all"]', "b => b.click()"); pg.wait_for_timeout(600)
+    bt = pg.evaluate("() => { const e = document.getElementById('breadth'); return e ? +e.dataset.total : null; }")
+    ok("[摘要卡] 漲跌三數加總＝下方漲跌家數分佈卡「全部」的總檔數（同一個口徑，上下對得起來）", bt == m["udN"], [m["udN"], bt])
+    ok("★ [摘要卡] 資金輪盤有四段（領先／改善／轉弱／落後）的族群數，加總＝全部族群數且 > 0",
        len(m["rot"]) == 4 and None not in m["rot"] and sum(m["rot"]) == m["rotN"] > 0, [m["rot"], m["rotN"]])
     ok("★ [摘要卡] 資金去向列出前三大產業鏈的百分比（0～100，由大到小）",
        len(m["flow"]) == 3 and None not in m["flow"] and all(0 < v <= 100 for v in m["flow"]) and m["flow"] == sorted(m["flow"], reverse=True), m["flow"])
@@ -15082,7 +15083,8 @@ def t_ov_summary_0928(pg, b, base, code):
         blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody .chart').length })""")
     ok("★ [摘要卡] 點「漲跌家數」→ 市場明細的漲跌家數，而且有內容", st["hash"].startswith("#market/updown") and (st["rows"] > 0 or st["blocks"] > 0), st)
     for kk, anchor, name in (("rot", "ovRotCard", "資金輪盤"), ("flow", "ovFlowHead", "昨日資金去向"), ("theme", "ovThemeCard", "熱門題材")):
-        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        # ⚠ 只差 hash 的 goto 不會重新載入頁面（上一張卡的捲動追蹤還在跑）→ goto 之後再 reload 一次，每張卡都從頁首乾淨開始
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
         y0 = pg.evaluate("() => Math.round(scrollY)")
         click(pg, f'#hero .osc[data-k="{kk}"]', 300)
@@ -15090,12 +15092,12 @@ def t_ov_summary_0928(pg, b, base, code):
         ok(f"★ [摘要卡] 點「{name.replace('昨日', '')}」→ 同一頁捲到下面的「{name}」（標題進到視窗）",
            bool(r) and r["y"] > y0 + 150 and pg.evaluate("() => location.hash") == "#overview", {"y0": y0, "量到": r})
     # 點熱門題材卡裡的題材名 → 下面那張熱力圖直接打開那個題材
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
     tops = pg.evaluate("() => [...document.querySelectorAll('#hero .osn-t')].map(e => ({ id: e.dataset.theme, n: e.querySelector('small').textContent }))")
     if ok("[摘要卡] 熱門題材卡列出可點的題材名", len(tops) >= 2, tops):
-        pick = tops[1]
         dd0 = text(pg, "#ovThemeDD .ddbtn b")
+        pick = next((t for t in tops if t["n"] not in dd0), tops[-1])   # 挑一個「現在下拉不是它」的，才看得出有沒有換
         click(pg, f'#hero .osn-t[data-theme="{pick["id"]}"]', 300)
         r = _ovs_inview(pg, "ovThemeCard")
         dd1 = text(pg, "#ovThemeDD .ddbtn b")
@@ -15121,6 +15123,19 @@ def t_ov_summary_0928(pg, b, base, code):
         mp.eval_on_selector('#hero .osc[data-k="rot"]', "c => c.click()")
         r = _ovs_inview(mp, "ovRotCard")
         ok("★ [摘要卡 手機] 在第②步點「資金輪盤」→ 自動切回第①步並捲到資金輪盤", bool(r), r)
+        # 卡片四段數＝手機輪盤四角徽章的數字（兩邊都是全部族群；半成品原本只數前 10，卡片「改善 6」底下卻寫「改善 17」）
+        mk = mp.evaluate(OVS_M)
+        badges = mp.evaluate("""() => { const t = (document.getElementById('rotClockMiniWrap') || document.body).innerText;
+            const g = (n) => { const m = t.match(new RegExp(n + '[ \\n\\t]*([0-9]+)')); return m ? +m[1] : null; };
+            return [g('領先'), g('改善'), g('轉弱'), g('落後')]; }""")
+        ok("★ [摘要卡 手機] 資金輪盤卡的四段數＝下面輪盤四角徽章（領先／改善／轉弱／落後）", badges == mk["rot"] and None not in badges, [mk["rot"], badges])
+        mp.evaluate("() => window.scrollTo(0, 0)"); mp.wait_for_timeout(300)
+        mp.eval_on_selector('#hero .osc[data-k="flow"]', "c => c.click()"); mp.wait_for_timeout(2200)
+        mk = mp.evaluate(OVS_M)
+        lst = mp.evaluate("""() => [...document.querySelectorAll('#v-overview .mrank > li[data-k]')].filter(li => li.getClientRects().length && !li.classList.contains('other'))
+            .slice(0, 3).map(li => { const s = li.querySelector('.v small'); return s ? parseFloat(s.textContent) : null; })""")
+        ok("★ [摘要卡 手機] 點「資金去向」→ 切到資金去向分段，卡片前三名的 % ＝ 手機長條前三名的 %（同一份口徑）",
+           len(lst) == 3 and lst == mk["flow"], [mk["flow"], lst])
     mp.close()
 
     # ---------------------------------------------------------------- 5. 個股頁「總覽」分頁的籌碼快照：移除兩欄、每欄「?」點得開

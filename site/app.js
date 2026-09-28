@@ -3060,9 +3060,11 @@
     + `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${OVS_ICON[name]}</svg></span>`;
   const ovsDate = (d) => d ? `<span class="osc-d" title="資料日期（交易日）"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${fmt.esc(String(d).slice(5).replace('-', '/'))}</span>` : '';
   // 比例條的一段：flex-grow＝數值（0 的段不畫，不然會留一條看不見的縫）
-  const ovsSeg = (v, color, tip) => v > 0 ? `<i style="flex-grow:${v};background:${color}" title="${fmt.esc(tip)}"></i>` : '';
-  const ovsNum = (label, val, pct, cls, extra) => `<div class="osn"${extra || ''}><small>${label}</small>`
-    + `<span class="osn-v"><b class="${cls || ''}">${val}</b>${pct != null ? `<em>${pct}</em>` : ''}</span></div>`;
+  const ovsSeg = (v, color, tip, cls) => v > 0 ? `<i${cls ? ` class="${cls}"` : ''} style="flex-grow:${v};background:${color}" title="${fmt.esc(tip)}"></i>` : '';
+  /* 百分比放在名稱那一行（「上漲 36.7%」），數字那一行只放數字：卡片放不下四張時每張固定 262px、分三欄每欄約 80px，
+     「1194 52.2%」擠在同一行會被切掉（_uitest「總覽摘要卡列」1100／800／390 量到過）。*/
+  const ovsNum = (label, val, pct, cls, extra) => `<div class="osn"${extra || ''}><small>${label}${pct != null ? ` <em>${pct}</em>` : ''}</small>`
+    + `<span class="osn-v"><b class="${cls || ''}">${val}</b></span></div>`;
 
   function ovsCard(k, o) {
     return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}">`
@@ -3103,32 +3105,53 @@
       host.dataset.udN = String(n); host.dataset.udFrom = from;
     }
 
-    /* ② 資金輪盤 —— 口徑＝下面那張總覽小輪盤**畫在盤上的那幾顆點**：rotRows(f3.rrg, 5) 依成交值佔比排序取前 10
-         （renderRotClock 的 compact 上限 `cap = 10`；兩邊改一邊記得改另一邊）。階段＝後端 quadrant（沒有才用 stageOf 算），
-         跟點的顏色同一個欄位。四段數加總＝盤上的點數。
-       「最強」＝這幾顆裡相對大盤強度（RS-Ratio，x）最高的那一個 —— 它離「比大盤強」那一側最遠。*/
+    /* ② 資金輪盤 —— 四段數＝**全部族群**（flow_v3 rrg.points，階段＝後端 quadrant，沒有才用 stageOf 算），四段加總＝族群總數。
+       ★ 2026-09-28 接手改：半成品原本只數總覽小輪盤盤上那 10 顆（成交值前 10）。但手機總覽的輪盤（mobile3.js ovRadar）
+         四角徽章寫的是全部族群（例如 改善 17／領先 13／落後 14／轉弱 6），卡片寫「改善 6」、下面緊接著寫「改善 17」，
+         使用者一定以為其中一個錯了。桌機小輪盤的四角不寫數字，所以改成全部族群兩邊都對得起來；
+         而「強弱循環四段各有幾個族群」本來就該問整個市場，不是只問前 10。
+       「最強」＝成交值前 10 大族群裡相對大盤強度（RS-Ratio，x）最高的 —— 不從全部挑：
+         成交值很小的族群 RS 容易暴衝，挑到它當「最強」沒有代表性；前 10 也正是桌機小輪盤盤上那幾顆，點過去看得到它。*/
     {
-      const rows = rotRows(f3 && f3.rrg, 5).slice(0, 10);
+      const all = rotRows(f3 && f3.rrg, 5);
       const ORDER = ['leading', 'improving', 'weakening', 'lagging'];
       const cnt = {}; ORDER.forEach(k => { cnt[k] = 0; });
-      rows.forEach(r => { if (cnt[r.stage] != null) cnt[r.stage]++; });
+      all.forEach(r => { if (cnt[r.stage] != null) cnt[r.stage]++; });
       const COL = { leading: 'var(--rise)', improving: 'var(--cyan)', weakening: 'var(--amber)', lagging: 'var(--fall)' };
-      const best = rows.slice().sort((a, b) => (b.rs || 0) - (a.rs || 0))[0];
+      const best = all.slice(0, 10).sort((a, b) => (b.rs || 0) - (a.rs || 0))[0];
       cards.push(ovsCard('rot', {
         title: '資金輪盤', icon: 'compass', color: 'var(--cyan)', date: f3 && f3.date,
         aria: `資金輪盤：${ORDER.map(k => STAGE[k].name + ' ' + cnt[k]).join('、')}。點一下捲到資金輪盤`,
         bar: ORDER.map(k => ovsSeg(cnt[k], COL[k], `${STAGE[k].name} ${cnt[k]} 個族群：${STAGE[k].sub}`)).join(''),
-        nums: rows.length ? ORDER.map(k => ovsNum(STAGE[k].name, cnt[k], null, '', ` data-v="${k}" style="--c:${COL[k]}"`)).join('')
+        nums: all.length ? ORDER.map(k => ovsNum(STAGE[k].name, cnt[k], null, '', ` data-v="${k}" style="--c:${COL[k]}"`)).join('')
           : '<span class="muted">資金輪盤需要至少 20 個交易日</span>',
-        foot: best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）・盤上 ${rows.length} 個族群</span>` : '',
+        foot: best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）・成交值前 10 大中</span>` : '',
       }));
-      host.dataset.rotN = String(rows.length);
+      host.dataset.rotN = String(all.length);
     }
 
-    /* ③ 資金去向 —— 口徑＝下面「昨日資金去向」同一份 sankey_daily、同一天（dates 最後一天）、同一條公式：
+    /* ③ 資金去向 —— 桌機口徑＝下面「昨日資金去向」同一份 sankey_daily、同一天（dates 最後一天）、同一條公式：
          族群成交值（1/n 拆分）依產業鏈加總，% ＝ 佔全部族群合計（分流圖第一層「佔上一層」）。
-         比例條畫前三大鏈＋「其他」一段；下面列前三名。*/
+         比例條畫前三大鏈＋「其他」一段；下面列前三名。
+       ★ 2026-09-28 接手補：手機（≤640）點這張卡跳到的「資金去向」是 mobile3.js 的可展開長條，
+         它吃的是 flow_v3.sankey（分母＝台股成交值，含「其他族群」，「其他」永遠排最後）——
+         同一天兩份口徑差很多（例：桌機 半導體 39.6%／AI 伺服器 37.7%，手機 AI 伺服器 20.7%／半導體 19.4%，連名次都反過來）。
+         卡片數字要跟「點下去看到的那張」對得起來，所以兩份都算、用 CSS 依寬度只顯示一份（.ovs-dk 桌機／.ovs-mb 手機），
+         不動手機那張長條本身的口徑。*/
     {
+      const COL = ['var(--cyan)', 'var(--violet)', 'var(--amber)'];
+      const REST = 'color-mix(in srgb,var(--ink-3) 45%,transparent)';
+      const variant = (items, total, topG, cls) => {
+        const rest = Math.max(0, total - items.slice(0, 3).reduce((a, x) => a + x.v, 0));
+        return {
+          bar: items.slice(0, 3).map((x, i) => ovsSeg(x.v, COL[i], `${x.name} ${pct(x.v, total)}`, cls)).join('')
+            + ovsSeg(rest, REST, `其他 ${pct(rest, total)}`, cls),
+          nums: items.slice(0, 3).map((x, i) => ovsNum(fmt.esc(x.name), pct(x.v, total), null, '', ` data-v="${fmt.esc(x.cid)}" style="--c:${COL[i]}"`)
+            .replace('<div class="osn"', `<div class="osn ${cls}"`)).join(''),
+          foot: topG ? `<span class="${cls}">最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${pct(topG.v, total)}</span></span>` : '',
+        };
+      };
+      // 桌機：sankey_daily
       let items = [], day = null, total = 0, topG = null;
       if (sd && (sd.dates || []).length && (sd.groups || []).length) {
         const k = sd.dates.length - 1; day = sd.dates[k];
@@ -3139,16 +3162,23 @@
           total += v; if (!topG || v > topG.v) topG = { name: g.name, v }; });
         items = Object.values(by).sort((a, b) => b.v - a.v);
       }
-      const COL = ['var(--cyan)', 'var(--violet)', 'var(--amber)'];
-      const rest = items.slice(3).reduce((a, x) => a + x.v, 0);
+      // 手機：flow_v3.sankey（跟 mobile3.js drill() 同一條：第一層＝台股成交值 → 產業鏈，「其他…」不進前三）
+      const Lk = (f3 && f3.sankey && f3.sankey.links) || [];
+      const isOther = (n) => /^其他/.test(n);
+      const L1 = Lk.filter(l => l.source === '台股成交值');
+      const mTotal = L1.reduce((a, l) => a + (l.value || 0), 0);
+      const mItems = L1.filter(l => !isOther(l.target) && l.value > 0).map(l => ({ cid: l.target, name: l.target, v: l.value })).sort((a, b) => b.v - a.v);
+      const chains = new Set(L1.map(l => l.target));
+      const mTop = Lk.filter(l => chains.has(l.source) && !isOther(l.target) && l.value > 0).sort((a, b) => b.value - a.value)[0];
+      const D = variant(items, total, topG, 'ovs-dk');
+      const M = mItems.length ? variant(mItems, mTotal, mTop ? { name: mTop.target, v: mTop.value } : null, 'ovs-mb') : D;
+      const has = items.length || mItems.length;
       cards.push(ovsCard('flow', {
-        title: '資金去向', icon: 'git-branch', color: 'var(--violet)', date: day,
+        title: '資金去向', icon: 'git-branch', color: 'var(--violet)', date: day || (f3 && f3.date),
         aria: `資金去向：${items.slice(0, 3).map(x => x.name + ' ' + pct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
-        bar: items.slice(0, 3).map((x, i) => ovsSeg(x.v, COL[i], `${x.name} ${pct(x.v, total)}`)).join('')
-          + ovsSeg(rest, 'color-mix(in srgb,var(--ink-3) 45%,transparent)', `其他 ${pct(rest, total)}`),
-        nums: items.length ? items.slice(0, 3).map((x, i) => ovsNum(fmt.esc(x.name), pct(x.v, total), null, '', ` data-v="${fmt.esc(x.cid)}" style="--c:${COL[i]}"`)).join('')
-          : '<span class="muted">資金去向還沒產出</span>',
-        foot: topG ? `最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${pct(topG.v, total)}</span>` : '',
+        bar: D.bar + (M !== D ? M.bar : ''),
+        nums: has ? D.nums + (M !== D ? M.nums : '') : '<span class="muted">資金去向還沒產出</span>',
+        foot: D.foot + (M !== D ? M.foot : ''),
       }));
       host.dataset.flowTop = items.length ? items[0].cid : '';
     }

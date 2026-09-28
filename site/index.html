@@ -3625,7 +3625,8 @@ h3 .howbtn.pop{font-family:inherit}
 .osn-v{display:flex;align-items:baseline;gap:5px;white-space:nowrap;min-width:0;overflow:hidden}
 .osn-v b{font:700 18px/22px var(--mono);color:var(--ink)}
 .osn-v b.up{color:var(--rise)} .osn-v b.down{color:var(--fall)} .osn-v b.flat{color:var(--ink-2)}
-.osn-v em{font-style:normal;font:11.5px/1 var(--mono);color:var(--ink-3)}
+.osn-v em,.osn small em{font-style:normal;font:11.5px/1 var(--mono);color:var(--ink-3)}
+.osn small em{font-size:11px}
 .osn-t{cursor:pointer;border-radius:6px}
 .osn-t:hover small{color:var(--ink);text-decoration:underline}
 .osc-f{font-size:12px;line-height:16px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3656,6 +3657,10 @@ h3 .howbtn.pop{font-family:inherit}
   .osc-f{display:none}
   .ovsum-nav{display:none}
 }
+/* 資金去向卡兩份口徑依寬度只顯示一份（app.js renderOvSummary ③）：桌機＝昨日資金去向分流圖，手機＝手機版資金去向長條。
+   斷點跟 mobile3.js 的 isM()（≤640）一致 —— 它決定點卡片後看到的是哪一張。 */
+.osc .ovs-mb{display:none!important}
+@media (max-width:640px){ .osc .ovs-dk{display:none!important} .osc .ovs-mb{display:revert!important} .osc .osn.ovs-mb{display:flex!important} }
 /* 捲到下面那幾張卡時，頂欄（sticky 58px）不要蓋住卡片標題；手機還有一條 sticky 的四步列 */
 #ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:68px}
 @media (max-width:640px){ #ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:124px} }
