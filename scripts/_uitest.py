@@ -10095,9 +10095,22 @@ def t_livek(pg, base, code):
     四週期那四格的下拉真的換得動而且記得住。
     """
     import json as _json
+    import datetime as _dt
     from urllib.parse import urlparse, parse_qs
 
     px = {"v": 2395.0, "cum": 5280}
+    # ★ 2026-09-29 改前：假報價日期寫死 2026-09-15（d=20260915、tlong 是 09-15 10:26）。
+    #   那是寫這段時「資料湖最後一根的下一個交易日」；資料湖一路長到 09-24 之後，報價反而比日線舊，
+    #   withToday() 照設計不接（「報價比資料湖還舊＝假日，不動」），於是「今天這根日 K」三條一起紅 ——
+    #   網站行為是對的，是驗收的日期過期了。
+    #   改後：假報價那天＝這一檔 payload 日線最後一根的**下一個平日**（台股休市日這裡不必管：
+    #   要驗的只是「報價日比資料湖新 → 接成新的一根」，哪一個平日都成立）。所有假時間戳一起平移同樣天數。
+    _last = _json.loads((SITE / "data" / "stock" / f"{code}.json").read_text(encoding="utf-8"))["daily"][-1][0]
+    _fd = _dt.date.fromisoformat(_last) + _dt.timedelta(days=1)
+    while _fd.weekday() >= 5:
+        _fd += _dt.timedelta(days=1)
+    FAKE_DAY = _fd.isoformat()
+    SHIFT = (_fd - _dt.date(2026, 9, 15)).days * 86400          # 秒；原本寫死的 09-15 時間戳一律加這個
 
     def fake_quote(route):
         q = parse_qs(urlparse(route.request.url).query)
@@ -10106,19 +10119,22 @@ def t_livek(pg, base, code):
         c = tok.split("_", 1)[1].split(".")[0]
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps({"rtcode": "0000", "msgArray": [{
-                          "c": c, "n": "測試" + c, "ex": tok[:3], "d": "20260915",
+                          "c": c, "n": "測試" + c, "ex": tok[:3], "d": FAKE_DAY.replace("-", ""),
                           # z 故意給 '-'：兩次撮合之間真的長這樣，價格要從 trade.z 拿
                           "z": "-", "tv": "-", "y": "2380.0000", "o": "2405.0000",
                           "h": "2405.0000", "l": "2380.0000", "v": str(px["cum"]),
                           "b": "2390.0000_2389.0000", "t": "10:26:05",
-                          "tlong": str(int(1789439165000)),
+                          "tlong": str(int(1789439165000 + SHIFT * 1000)),
                           "trade": {"ft": 20, "t": "10:25:35", "v": 1, "z": f'{px["v"]:.4f}'},
                       }]}))
 
     def fake_y(route):
         q = parse_qs(urlparse(route.request.url).query)
-        route.fulfill(status=200, content_type="application/json; charset=utf-8",
-                      body=_json.dumps(_fake_yahoo((q.get("symbol") or ["2330.TW"])[0], "1m", 60, 2390.0)))
+        y = _fake_yahoo((q.get("symbol") or ["2330.TW"])[0], "1m", 60, 2390.0)
+        r0 = y["chart"]["result"][0]                                  # 早盤 1 分 K 也搬到假報價那天
+        r0["timestamp"] = [t + SHIFT for t in r0["timestamp"]]
+        r0["meta"]["regularMarketTime"] += SHIFT
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(y))
 
     pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
                 " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k));"
@@ -10155,7 +10171,7 @@ def t_livek(pg, base, code):
     # --- 4. ★ 餵一筆新報價：K 棒真的長出來
     n0 = pg.evaluate("() => (window.LiveK.bars('5s')||[]).length")
     pg.evaluate("""() => window.LiveK._feed({ c:'X', n:'測試', z:'-', y:'2380.0000', o:'2405.0000',
-        h:'2405.0000', l:'2380.0000', v:'5400', t:'10:40:00', tlong: String(1789440000000),
+        h:'2405.0000', l:'2380.0000', v:'5400', t:'10:40:00', tlong: String(""" + str(1789440000000 + SHIFT * 1000) + """),
         trade:{ t:'10:40:00', z:'2450.0000' } })""")
     pg.wait_for_timeout(900)
     n1 = pg.evaluate("() => (window.LiveK.bars('5s')||[]).length")
@@ -10202,7 +10218,8 @@ def t_livek(pg, base, code):
     #      所以盤中要用報價把「今天這根還沒收的日 K」接上去。
     click(pg, "#tfSeg button[data-tf='1d']", 2000)
     tb = pg.evaluate("() => window.LiveK.todayBar()")
-    ok("報價組得出「今天這一根日 K」", bool(tb) and tb[0] == "2026-09-15", tb)
+    ok("報價組得出「今天這一根日 K」（日期＝假報價那天，比資料湖最後一根新）",
+       bool(tb) and tb[0] == FAKE_DAY and FAKE_DAY > _last, {"tb": tb, "lake": _last, "fake": FAKE_DAY})
     dbg = pg.evaluate("() => window.Industry._dbg()")
     ok("★ 日線圖最後一根就是報價那天，不是資料湖那天",
        tb and dbg.get("lastBar") == tb[0], f"圖上 {dbg.get('lastBar')} / 報價 {tb[0] if tb else None}")
@@ -10882,13 +10899,45 @@ def check_code_sort(pg, sel, name):
 
 def t_sort(pg, base):
     # --- 每一張可排序的表，每一欄都驗
+    # ★ 2026-09-29 改前：在總覽逐欄點 #candTable 的表頭驗排序（check_sort／check_code_sort）。
+    #   改後：總覽「今日候選」表 2026-09-24 整張拿掉（DECISIONS 2026-09-24 第 9 條：名單只在市場明細），
+    #   #candTable 全站已不存在 —— check_code_sort 沒有「表不在就跳過」，所以一直卡在 30 秒點不到表頭。
+    #   名單的新家 #market/cand 是一張**不可點表頭排序**的清單（stockTable，表頭沒有 data-k），
+    #   它的順序是資料決定的：有 A／B 就只列 A／B；沒有就列綜合分前 40、由高到低。
+    #   所以這裡改驗：① 總覽真的沒有那張表了 ② 新家列的筆數＝標題寫的 A＋B 檔數（或沒有 A／B 時 ≤40 檔、
+    #   綜合分真的由高到低）③ 每一列都點得進個股頁。
+    #   ⚠ 全站目前已經沒有「點表頭排序」的表（grep 過：th 的排序 onclick 只剩 app.js 裡 #candTable 那段死碼），
+    #   所以 check_sort／check_code_sort 暫時沒有對象 —— 函式留著，下一張可排序的表接回來就用它。
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    # 代號要當「字串」排，不是數字：ETF 是 0050 / 00631L，當數字排會變成 50 / 631
-    check_sort(pg, "#candTable", "今日候選", skip=("code",))
-    check_code_sort(pg, "#candTable", "今日候選")
+    ok("總覽的「今日候選」表已經整張拿掉（#candTable 不在 DOM，DECISIONS 09-24 第 9 條）",
+       pg.evaluate("() => !document.getElementById('candTable')"))
+    pg.goto(f"{base}#market/cand", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    mc = pg.evaluate("""() => { const t = document.querySelector('#mktBody table'); if (!t) return null;
+        const hs = [...t.querySelectorAll('thead th')].map(h => h.textContent.trim());
+        const gi = hs.indexOf('判定'), si = hs.indexOf('綜合分');
+        const rows = [...t.querySelectorAll('tbody tr')].map(tr => { const td = tr.querySelectorAll('td');
+          const a = tr.querySelector('a[href^="#stock/"]');
+          return { g: (td[gi] || {}).textContent.trim(), s: parseFloat(((td[si] || {}).textContent || '').replace(/,/g, '')), href: a ? a.getAttribute('href') : '' }; });
+        const title = (document.getElementById('mktTitle') || {}).textContent || '';
+        const m = title.match(/A\s*(\d+)\s*檔\s*\/\s*B\s*(\d+)\s*檔/);
+        return { title: title.replace(/\s+/g, ' ').trim(), ab: m ? (+m[1]) + (+m[2]) : null, rows,
+                 note: !!document.querySelector('#mktBody .kpinote'), sortable: !!t.querySelector('thead th[data-k]') }; }""")
+    if ok("市場明細「今日候選」有名單表", bool(mc) and len(mc["rows"]) > 0, mc and mc["title"]):
+        if mc["ab"] is not None:
+            ok("有 A／B 的日子：列的筆數＝標題寫的 A＋B 檔數，而且每一列判定都是 A 或 B",
+               len(mc["rows"]) == mc["ab"] and all(r["g"] in ("A", "B") for r in mc["rows"]),
+               {"標題": mc["title"], "列數": len(mc["rows"]), "判定": [r["g"] for r in mc["rows"]][:10]})
+        else:
+            sc = [r["s"] for r in mc["rows"]]
+            ok("沒有 A／B 的日子：寫出「只當觀察名單」、最多 40 檔、綜合分由高到低",
+               mc["note"] and len(sc) <= 40 and all(sc[i] >= sc[i + 1] for i in range(len(sc) - 1)), sc[:10])
+        ok("名單每一列都點得進個股頁", all(r["href"].startswith("#stock/") for r in mc["rows"]), [r["href"] for r in mc["rows"]][:5])
+        href0 = mc["rows"][0]["href"]
+        click(pg, f'#mktBody table tbody a[href="{href0}"]', 1500)
+        ok("點名單第一列的股票 → 真的進那一檔的個股頁", pg.evaluate("location.hash") == href0, pg.evaluate("location.hash"))
     # ★ 2026-09-23 第二批（W3-2）：產業鏈頁的「成分股」表整塊移除，所以
     #   「每一欄都排得對」「即時更新後跟著重排」在那一頁已經沒有對象可以驗。
-    #   那兩件事在**候選名單（上面那張）與個股頁的表格**上仍然逐欄驗著，沒有放掉；
+    #   （2026-09-29 更正：候選名單表 09-24 也拿掉了，見上面；這一行以前寫「在候選名單與個股頁的表格上仍然逐欄驗著」已不成立）
     #   產業鏈頁改成驗它的新家：族群總覽的長條圖**本來就照漲幅由高到低排**。
     pg.goto(f"{base}#industry/ai_server/overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
     bars = pg.evaluate("""() => { const el = document.getElementById('gpBar');
@@ -14259,7 +14308,27 @@ def t_mobile_v3(b, base, code):
 
         # ---- 「更多」抽屜：版號、主題 ----
         m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
-        m.tap("#mTabMore"); m.wait_for_timeout(300)
+        # ★ 2026-09-29 改前：這裡直接 tap「更多」，360 寬 30 秒逾時（HANDOFF 記成 main 既有紅）。
+        #   追到的根因是**網站真的點不到**，不是驗收狀態殘留：總覽大盤圖（lightweight-charts）的窗格分隔線
+        #   是 z-index:50 的透明條，圖外層沒有自己的堆疊層，於是蓋過底部導覽（z 44）；360×780 不捲動時
+        #   它剛好橫在「更多」正中央（elementFromPoint 拿到那條分隔線）。修法在 index.html
+        #   `.tv-lightweight-charts{isolation:isolate}`。
+        #   這裡先量「讀者手指點到的是不是按鈕本身」：整頁從上捲到下（每 1/4 視窗一格），
+        #   每一格都量底部五顆導覽鈕正中央 elementFromPoint 是不是那顆鈕（或它裡面的字）。
+        #   反向驗證：拿改前的 index.html 跑，360 寬 scrollY 0 這格「更多」會被分隔線蓋住（這一條紅）。
+        NAVHIT = """() => { const out = []; const H = document.documentElement.scrollHeight, step = Math.max(80, Math.round(innerHeight / 4));
+            const bs = [...document.querySelectorAll('#tabs > *')].filter(e => getComputedStyle(e).display !== 'none');
+            for (let y = 0; y <= H; y += step) { window.scrollTo({ top: y, behavior: 'instant' });
+              bs.forEach(e => { const r = e.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                if (h !== e && !e.contains(h)) out.push({ y: Math.round(scrollY), btn: e.id || e.dataset.v || e.textContent.trim(),
+                  hit: h ? h.tagName + (h.id ? '#' + h.id : '') + (typeof h.className === 'string' && h.className ? '.' + h.className : '') + ' z=' + getComputedStyle(h).zIndex : null }); }); }
+            window.scrollTo({ top: 0, behavior: 'instant' }); return { n: bs.length, bad: out.slice(0, 8), nbad: out.length }; }"""
+        nh = m.evaluate(NAVHIT)
+        ok(f"{T} ★ 總覽整頁捲一遍：底部導覽每一顆的正中央都點得到按鈕本身（沒有被圖表的分隔線蓋住）",
+           nh["n"] == 5 and nh["nbad"] == 0, nh)
+        m.wait_for_timeout(300)
+        m.tap("#mTabMore", timeout=8000)
+        m.wait_for_timeout(300)
         mo = m.evaluate("() => { const s = document.getElementById('mSheet'); return { open: !s.hidden, kind: s.dataset.kind, ver: (s.querySelector('.mver') || {}).textContent || '', rows: s.querySelectorAll('.mrow').length }; }")
         ok(f"{T} 「更多」抽屜：市場明細／週期統計／交付清單／今日事件／主題 五列＋版號", mo["open"] and mo["rows"] == 5 and "版號" in mo["ver"], mo)
         th0 = m.evaluate("() => document.documentElement.dataset.theme")
