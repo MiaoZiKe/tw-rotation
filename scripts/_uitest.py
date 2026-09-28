@@ -10251,15 +10251,18 @@ def t_theme(pg, base):
     lum = pg.evaluate("""() => { const c = getComputedStyle(document.querySelector('#themeBtn')).backgroundColor;
         const m = c.match(/\\d+/g) || [0,0,0]; return (+m[0] + +m[1] + +m[2]) / 3; }""")
     ok("明亮主題的面板真的是亮的", lum > 200, f"平均亮度 {lum}")
+    # ★ 2026-09-28 設計 v4 改前→改後：改前釘死 --panel == #ffffff（舊淺色主題的值）；
+    #   改後三套主題的淺色面板各自不同（HUD 淺 #F8FBFD、休閒淺／專業淺 #FFFFFF），改驗「真的是亮的」：RGB 平均 ≥ 240。
+    _lt = """(v) => { v = (v || '').trim(); const m = v.match(/^#([0-9a-f]{6})$/i); if (!m) return 0;
+        const n = parseInt(m[1], 16); return ((n >> 16) + ((n >> 8) & 255) + (n & 255)) / 3; }"""
     ok("卡片跟著變亮（卡片是漸層，量 --panel 這個變數）",
-       pg.evaluate("""() => { const v = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
-           return v.toLowerCase() === '#ffffff' || v.toLowerCase() === '#fff'; }"""),
+       pg.evaluate(f"""() => ({_lt})(getComputedStyle(document.documentElement).getPropertyValue('--panel')) >= 240"""),
        pg.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--panel')"))
     ok("圖表色票也跟著換（不是只有 CSS）",
        pg.evaluate("() => window.App.CH.line") != "#1e2a48",
        pg.evaluate("() => window.App.CH.line"))
     ok("K 線那一層的色票也跟著換",
-       pg.evaluate("() => window.KUtil.colors.bg") == "#ffffff",
+       pg.evaluate(f"() => ({_lt})(window.KUtil.colors.bg) >= 240"),
        pg.evaluate("() => window.KUtil.colors.bg"))
     heat1 = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('heat')); return i ? i.id : ''; }")
     changed("熱力圖真的整個重建過（舊實例被丟掉、用新色重畫）", heat0, heat1)
