@@ -16435,7 +16435,10 @@ def t_copy_trim(pg, base, code):
                 st = pg.evaluate(COPY_HOWBOX, k)
                 seen_how.add(k)
                 ok(f"[說明精簡] {where}「怎麼看：{k}」按下去真的展開、內容非空", bool(st) and st["open"] and st["len"] > 20, st)
-                ok(f"[說明精簡] {where}「怎麼看：{k}」條列 1～5 條", bool(st) and 1 <= st["n"] <= 5, st and st["n"])
+                # ★ 2026-09-28（Andy：「籌碼快照／基本面 "?" 需要補充每個欄位簡短說明」）：這兩顆是「逐欄一句話」的欄位表，
+                #   欄位有 6～8 格，所以上限放寬到 8 條；每條 ≤30 字的規矩照舊。
+                cap = 8 if k in ("skchip", "skfund") else 5
+                ok(f"[說明精簡] {where}「怎麼看：{k}」條列 1～{cap} 條", bool(st) and 1 <= st["n"] <= cap, st and st["n"])
                 ok(f"[說明精簡] {where}「怎麼看：{k}」每條 ≤ 30 字", bool(st) and not st["long"], st and st["long"])
                 # ★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：
                 #   改前：條列下方還有一段 .howfine 小字口徑 → 改後：只留標題＋條列，條列之後一個字都看不到

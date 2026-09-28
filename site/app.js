@@ -2542,7 +2542,7 @@
     const host = $('#maTrendBox'); if (!host) return;
     const [mb, gt] = await Promise.all([load('ma_breadth', { fallback: { dates: [], mas: [], series: {} } }),
       load('groups_today', { fallback: [] })]);
-    if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '站上均線的歷史還在產出（下一輪盤後管線就會有）'); }
+    if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '站上均線的歷史資料準備中（下一次盤後更新就會有）'); }
     const nOf = {}; (gt || []).forEach(g => { if (g && g.group_name) nOf[g.group_name] = g.constituents; });
     /* 「樣本少」看兩件事，任一成立就標：
        ① 成分股 < 5 檔（groups_today 的 constituents）；
@@ -3704,7 +3704,7 @@
   function rlvCompute(rrg, q) {
     const P = rrg && rrg.live_params;
     if (!P || !P.rs_smooth || !P.rs_base || !P.mom_roc) {
-      throw new Error('這份資料還沒有即時續算參數（rrg.live_params），請等下一輪盤後管線');
+      throw new Error('即時續算資料準備中，請等下一次盤後更新');
     }
     const det = D.groups_detail || {};
     const w = sklWeights();                        // 和資金去向共用同一份 1/n 權重
@@ -6004,7 +6004,7 @@
     const bail = (msg) => { if (window.FlowTopo && window.FlowTopo.has(el)) window.FlowTopo.destroy(el);
       el.style.height = ''; if (sub) sub.textContent = ''; return empty('ovFlow', msg); };
     if (!sd || !(sd.dates || []).length || !(sd.groups || []).length) {
-      return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
+      return bail('資金去向的逐日資料準備中（下一次盤後更新就會有）');
     }
     const day = sd.dates[sd.dates.length - 1];
     const k = sd.dates.length - 1;
@@ -7040,7 +7040,7 @@
     const drawRankDays = (n) => {
       const src = f3 && f3.share_daily;
       if (!src || !src.dates || !src.dates.length) {
-        return empty('rankFlow', '逐日佔比資料還沒產出（下一輪盤後管線就會有）');
+        return empty('rankFlow', '逐日佔比資料準備中（下一次盤後更新就會有）');
       }
       const D2 = src.dates, N = D2.length;   // 不要叫 L —— 外層的 L 是連結工具（L.group/L.stock）
       /* 截止日＝時鐘大圈落在的那一天。對不到（例如那一天不在逐日佔比裡）就退回最新一天，
@@ -7109,7 +7109,7 @@
     const drawInstDays = (n) => {
       const src = f3 && f3.inst_daily;
       if (!src || !src.dates || !src.dates.length) {
-        return empty('instGroups', '逐日法人資料還沒產出（下一輪盤後管線就會有）');
+        return empty('instGroups', '逐日法人資料準備中（下一次盤後更新就會有）');
       }
       const end = instEnd == null ? src.dates.length : Math.max(1, Math.min(src.dates.length, instEnd));
       const k = Math.min(n, end);
@@ -8413,7 +8413,7 @@
     /* 拿不到個股輪動資料時**不要讓整張圖變空白**，也不要默默什麼都不做 ——
        清單照列（那一份來自 groups_detail，本來就在），只是講清楚畫不上去而已。*/
     const warn = DRILL.state === 'loading' ? '個股輪動資料載入中…'
-      : DRILL.state === 'fail' ? '這個族群的個股輪動資料還沒算出來（下一輪盤後管線就會有），所以現在只能看清單，還畫不到輪盤上。'
+      : DRILL.state === 'fail' ? '這個族群的個股輪動資料準備中（下一次盤後更新就會有），所以現在只能看清單，還畫不到輪盤上。'
         : nRRG ? '' : '這個族群的個股輪動資料還沒算出來（上市未滿 50 個交易日的個股本來就不會有），所以現在只能看清單。';
     box.hidden = false;
     box.classList.remove('merged');
@@ -9142,7 +9142,7 @@
        收不掉寫在 style 上的 height，不清就會留一個 900px 的黑方塊。*/
     const bail = (msg) => { if (window.FlowTopo) window.FlowTopo.destroy(el);
       el.style.height = ''; el._skShape = ''; return empty('sankey', msg); };
-    if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
+    if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料準備中（下一次盤後更新就會有）');
     const D2 = sd.dates;
     const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
     const day = D2[k];
@@ -9970,7 +9970,7 @@
     if (!conc || !conc.length) return empty('conc');
     const key = topN === 10 ? 'top10_share' : 'top_share';
     const has10 = conc.some(r => r.top10_share != null);
-    if (topN === 10 && !has10) { $('#concState').textContent = '前 10 大的歷史還在回補'; return empty('conc', '前 10 大集中度還在回補，先看前 5 大'); }
+    if (topN === 10 && !has10) { $('#concState').textContent = '前 10 大的歷史資料準備中'; return empty('conc', '前 10 大集中度資料準備中，先看前 5 大'); }
     const vals = conc.map(r => (r[key] == null ? null : +r[key]));
     const last = conc[conc.length - 1] || {};
     const cur = last[key], ma20 = sma(vals, 20)[vals.length - 1];
@@ -10407,7 +10407,7 @@
   };
 
   async function renderSeason() {
-    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '週期統計需要歷史回補完成'); return; }
+    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '週期統計資料準備中'); return; }
     let period = s3.periods['all'] ? 'all' : Object.keys(s3.periods)[0], metric = 'avg_excess';
     let view = 'heat';
     try { const v = localStorage.getItem('tw.season.view'); if (v === 'line' || v === 'heat') view = v; } catch (e) { /* 忽略 */ }
@@ -11202,15 +11202,15 @@
     let level = '';                                     // '' 正常 / 'warn' / 'bad'
     // 1) 資料湖已經有更新的一天，但前端沒採用 → 那天的上市資料沒到齊
     if (meta.price_ahead_of_payload && meta.price_latest) {
-      bits.push(`資料湖已經有 <b>${fmt.esc(String(meta.price_latest))}</b> 的價格，但那天的上市資料沒到齊，所以畫面仍顯示 <b>${fmt.esc(D_)}</b>`);
+      bits.push(`已收到 <b>${fmt.esc(String(meta.price_latest))}</b> 的價格，但那天的上市資料沒到齊，所以畫面仍顯示 <b>${fmt.esc(D_)}</b>`);
       level = 'warn';
     }
     // 2) 多久沒更新
     const gen = meta.generated_at ? new Date(meta.generated_at) : null;
     if (gen) {
       const hrs = (Date.now() - gen.getTime()) / 3600e3;
-      if (hrs > 72) { bits.push(`已經 <b>${Math.floor(hrs / 24)} 天</b>沒有重新產出，排程可能掛了`); level = 'bad'; }
-      else if (hrs > 30) { bits.push(`上次產出是 ${Math.floor(hrs)} 小時前`); level = level || 'warn'; }
+      if (hrs > 72) { bits.push(`已經 <b>${Math.floor(hrs / 24)} 天</b>沒有更新，自動更新可能中斷了`); level = 'bad'; }
+      else if (hrs > 30) { bits.push(`上次更新是 ${Math.floor(hrs)} 小時前`); level = level || 'warn'; }
     }
     // 2b) 今天的價量是 mis 補的暫定值嗎
     //     開高低收是準的（三個來源對過一字不差），但成交量是盤中口徑、不含盤後定價交易，
@@ -11224,16 +11224,17 @@
     }
     // 3) 哪些來源沒回資料
     const empt = meta.last_run_empty || [], errs = meta.last_run_errors || [];
-    if (errs.length) { bits.push(`來源出錯：<b>${errs.slice(0, 4).map(e => fmt.esc(String(e).split(':')[0])).join('、')}</b>`); level = 'bad'; }
-    if (empt.length) { bits.push(`沒回資料的來源：<b>${empt.slice(0, 6).map(fmt.esc).join('、')}</b>`); level = level || 'warn'; }
+    /* 2026-09-28（Andy：讀者不需要知道資料集名稱）：只講「幾項沒更新」，不列 twse.price_daily 這類內部代號 */
+    if (errs.length) { bits.push(`部分資料更新失敗（<b>${errs.length}</b> 項）`); level = 'bad'; }
+    if (empt.length) { bits.push(`部分資料這一輪沒有更新（<b>${empt.length}</b> 項）`); level = level || 'warn'; }
     if (meta.demo) { bits.push('這是示範資料，不是真實行情'); level = 'bad'; }
 
     const tail = [];
     // 盤後第一輪（台北 15:30）只抓價量，法人／融資券要傍晚才出。
     // 講清楚是「還沒到」而不是「掛了」，否則每天下午都會被誤會。
     if (meta.last_run_phase === 'price') tail.push('這輪只更新價量（法人與融資券傍晚那輪才補）');
-    if (meta.last_run_at) tail.push(`上次抓資料 ${tpe(meta.last_run_at)}`);
-    if (gen) tail.push(`上次產出 ${tpe(meta.generated_at)}`);
+    if (meta.last_run_at) tail.push(`上次更新資料 ${tpe(meta.last_run_at)}`);
+    if (gen) tail.push(`網頁資料產生 ${tpe(meta.generated_at)}`);
     // 網頁版號也寫進來：手機上頂部那顆徽章是藏起來的，這一行是手機唯一看得到版本的地方
     const bd = renderBuild();
     tail.push(`網頁版本 ${fmt.esc(bd.ver)}${bd.at ? '（' + fmt.esc(bd.at) + ' 建置）' : ''}`);
@@ -11245,7 +11246,7 @@
        `#banner` 保留但恆為 hidden，之後若要把「壞掉」等級放回畫面，改這裡一個判斷即可。 */
     const plain = (html) => String(html).replace(/<[^>]*>/g, '');
     const lines = [`資料更新到 ${D_} 盤後`];
-    if (!bits.length) lines.push('所有來源正常。');
+    if (!bits.length) lines.push('所有資料都已更新。');
     else bits.forEach(x => lines.push('· ' + plain(x)));
     if (tail.length) lines.push(tail.map(plain).join('、') + '（台北時間）');
     const asof = $('#asof');
