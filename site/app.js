@@ -2386,8 +2386,10 @@
      所以不在總覽塞一個小面板，而是給它一個真的分頁，資訊可以鋪得開。 */
   /* 2026-09-18（Andy 圖16）：「市場明細內資金集中這頁拿掉」——
      資金集中度在「資金流向」頁已經有完整的一張（含均線與逐日鑽取），這裡重複了。*/
+  /* ★ 2026-09-28（Andy：「法人連續買賣超 資訊移動到市場明細」）：總覽右下那張四象限搬來這裡當第二個分頁。
+     放在「漲跌家數」後面 —— 兩張都是在回答「今天盤面是誰在動」，一張看家數、一張看法人。*/
   const MKT = [
-    ['updown', '漲跌家數'], ['ma', '站上均線'], ['cand', '今日候選'],
+    ['updown', '漲跌家數'], ['streak', '法人連買賣'], ['ma', '站上均線'], ['cand', '今日候選'],
   ];
   /* 捲到某個元素，並且盯到版面穩住為止（以前是 wireKpiDrill 的內文；2026-09-28 KPI 細列換成摘要卡列後抽出來共用）。
      ★ 2026-09-19：換頁之後要再捲到那張圖。例如集中度圖在資金流向頁 2700px 處，
@@ -2442,11 +2444,16 @@
   }
 
   let mktKind = 'updown', mktTab = 0;
+  /* 「法人連買賣」分頁的三份輸入（積木 market.streak）。跟以前在總覽時一樣**明確當參數傳**給 renderTrust／wireStreak，
+     不讓它回頭讀全域快取 D（驗收「積木-隱性參數」會把 D.inst_streak 清掉，圖要不變）。*/
+  const MKT_ST = { trust: null, cands: null, streak: null };
   async function renderMarket() {
     wireHowto($('#v-market'));
     // stocks.json：圖15 的漲跌分佈長條圖要用（每一檔都有 market / group / chg_pct）
-    await Promise.all([load('market_heat'), load('groups_today'), load('candidates'),
-                       load('groups_detail'), load('stocks', { fallback: [] })]);
+    const got = await Promise.all([load('market_heat'), load('groups_today'), load('candidates'),
+                       load('groups_detail'), load('stocks', { fallback: [] }),
+                       load('trust_streak', { fallback: [] }), load('inst_streak', { fallback: {} })]);
+    MKT_ST.cands = got[2]; MKT_ST.trust = got[5]; MKT_ST.streak = got[6];
     $('#mktSeg2').innerHTML = MKT.map(([k, l]) => `<button data-k="${k}">${l}</button>`).join('');
     $$('#mktSeg2 button').forEach(b => b.onclick = () => { location.hash = '#market/' + b.dataset.k; });
     drawMarket((location.hash.split('/')[1]) || 'updown');
@@ -2458,7 +2465,8 @@
      資料直接用 stocks.json（每一檔都有 market / group / chg_pct），不必改後端。
      ETF 預設排除（已拍板）—— ETF 的漲跌分佈跟個股不同，混在一起會把中央那根撐高。
      兩端各留一個「≤ -10%」「≥ +10%」的溢出格，不要把離群值丟掉。*/
-  const DIST = { market: '', groups: null, etf: false };
+  /* pick＝下鑽名單目前打開哪一根（null＝收起）；sort＝名單排序（chg 漲跌幅／to 成交值）。2026-09-28 下鑽加的。*/
+  const DIST = { market: '', groups: null, etf: false, pick: null, sort: 'chg' };
   /* 圖15 的篩選：市場（全部／上市／上櫃）、含不含 ETF、族群複選。
      族群用「晶片」而不是下拉 —— 這頁本來就用晶片，語彙一致。*/
   function wireDistFilter() {
@@ -2648,30 +2656,38 @@
     const labels = ['≤ -10'];
     for (let i = 0; i < edges.length - 1; i++) labels.push(`${edges[i]} ~ ${edges[i + 1]}`);
     labels.push('≥ +10');
-    const bins = new Array(labels.length).fill(0);
-    pool.forEach(r => {
-      const v = +r.chg_pct;
-      if (v <= -10) { bins[0]++; return; }
-      if (v >= 10) { bins[bins.length - 1]++; return; }
+    /* ★ 2026-09-28 下鑽：每一根長條的**成員**跟家數一起算、用同一條分格規則（binOf）——
+       以前點長條時另外用一段條件重篩一次，+8～+10 那格的上界寫成 ≤ 10，剛好 10.00% 的會同時出現在兩格，
+       名單筆數就跟長條上的數字對不起來。現在長條上的數字就是 members[i].length。*/
+    const binOf = (v) => {
+      if (v <= -10) return 0;
+      if (v >= 10) return labels.length - 1;
       let k = 0; while (k < edges.length - 1 && v > edges[k + 1]) k++;
-      bins[k + 1]++;
-    });
+      return k + 1;
+    };
+    const members = labels.map(() => []);
+    pool.forEach(r => { members[binOf(+r.chg_pct)].push(r); });
+    const bins = members.map(m => m.length);
     const n = pool.length || 1;
     // 常態曲線：用這批樣本自己的平均與標準差，疊上去看「今天偏左還偏右」
     const mu = pool.reduce((s2, r) => s2 + (+r.chg_pct), 0) / n;
     const sd = Math.sqrt(pool.reduce((s2, r) => s2 + Math.pow(+r.chg_pct - mu, 2), 0) / n) || 1;
     const mids = labels.map((_, i) => (i === 0 ? -11 : i === labels.length - 1 ? 11 : (edges[i - 1] + edges[i]) / 2));
     const norm = mids.map(x => n * 2 / (sd * Math.sqrt(2 * Math.PI)) * Math.exp(-Math.pow(x - mu, 2) / (2 * sd * sd)));
+    // 選中那一根照原色、其他淡掉 —— 名單開著時一眼看得出「右邊這份是哪一根」
+    const barData = () => bins.map((v, i) => ({ value: v,
+      itemStyle: { color: chgColor(mids[i], 6), borderRadius: [3, 3, 0, 0],
+        opacity: DIST.pick == null || DIST.pick === i ? 1 : 0.35 } }));
+    if (DIST.pick != null && DIST.pick >= labels.length) DIST.pick = null;
     const c = chart('chgDist', {
       tooltip: { ...tip, trigger: 'axis',
         formatter: (ps) => { const i = ps[0].dataIndex;
-          return `<b>${labels[i]}%</b><br>${bins[i]} 檔（${fmt.n(bins[i] / n * 100, 1)}%）<br><small>點一下只看這一段</small>`; } },
+          return `<b>${labels[i]}%</b><br>${bins[i]} 檔（${fmt.n(bins[i] / n * 100, 1)}%）<br><small>點一下列出這一段的個股</small>`; } },
       grid: { left: 50, right: 20, top: 26, bottom: 34 },
       xAxis: { ...axisStyle, type: 'category', data: labels, axisLabel: { color: CH.ink3, fontSize: 12, interval: 0, rotate: 30 } },
       yAxis: { ...axisStyle, name: '家數', nameTextStyle: { color: CH.ink3, fontSize: 12 }, axisLabel: { color: CH.ink3 } },
       series: [
-        { type: 'bar', data: bins.map((v, i) => ({ value: v,
-            itemStyle: { color: chgColor(mids[i], 6), borderRadius: [3, 3, 0, 0] } })),
+        { type: 'bar', data: barData(),
           barWidth: '72%',
           label: { show: true, position: 'top', color: CH.ink3, fontSize: 12,
             formatter: (q) => (q.value ? `${q.value}` : '') } },
@@ -2685,23 +2701,70 @@
     /* ★ 2026-09-24 說明精簡：「虛線＝常態曲線」那句搬進「怎麼看 ?」（HOW.mkt 最下面一行），這裡只留讀數。*/
     if (sub) sub.textContent = (live ? `⚡ 即時 · ${n} 檔（非全市場）　` : `${n} 檔　`)
       + `平均 ${fmt.pct(mu)}　標準差 ${fmt.n(sd, 2)}%`;
-    // 點某一段 → 下面只列那一段
-    if (c) c.off('click').on('click', (p) => {
-      const i = p.dataIndex;
-      const lo = i === 0 ? -Infinity : edges[i - 1];
-      const hi = i === labels.length - 1 ? Infinity : edges[i];
-      const rows = pool.filter(r => (i === 0 ? r.chg_pct <= -10
-        : i === labels.length - 1 ? r.chg_pct >= 10
-          : r.chg_pct > lo && r.chg_pct <= hi))
-        .sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).slice(0, 80);
-      const box = $('#distPick'); if (!box) return;
-      box.hidden = false;
-      box.innerHTML = `<div class="hh"><b>${labels[i]}%</b><span class="m">${rows.length} 檔（依成交值）</span>
-          </div>
-        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
-          ${rows.map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一段沒有股票</span>'}</div>`;
-      dismissable(box, () => { box.hidden = true; });       // 點外面／Esc 關（不再有「收起 ✕」）
-    });
+    /* ================================================================ 下鑽（2026-09-28）
+       Andy：「漲跌家數這邊點擊長條圖後，會顯示個股在右邊可以看」。
+       · 點**那一欄的任何地方**都算點到那一根（不是只有長條本身）—— 0 家、1 家的長條只有一兩個像素高，
+         手機上根本點不到；用 convertFromPixel 換算出第幾欄。
+       · 名單在圖的右邊（≤640 在圖下面），代號／名稱／漲跌幅／成交值，筆數＝長條上的家數（不截斷，名單自己捲）。
+       · 預設依漲跌幅排（正的那半由大到小、負的那半由小到大 ＝ 越極端越上面），可切成交值。
+       · 再點另一根就換；點圖的空白處（格線外）、名單外面、按 × 或 Esc 收起。
+       · 點一列（或名稱）進個股頁。*/
+    const pickBox = $('#distPick');
+    const closePick = () => {
+      DIST.pick = null;
+      if (pickBox) { pickBox.hidden = true; pickBox.innerHTML = ''; }
+      const ci = echarts.getInstanceByDom($('#chgDist'));
+      if (ci) ci.setOption({ series: [{ data: barData() }] });
+    };
+    const openPick = (i) => {
+      if (!pickBox) return;
+      DIST.pick = i;
+      const neg = i < 5;                           // 0 以下那五根（≤-10、-10～-8…-2～0）
+      const rows = members[i].slice().sort(DIST.sort === 'to'
+        ? (a, b2) => (b2.turnover || 0) - (a.turnover || 0)
+        : neg ? (a, b2) => (+a.chg_pct) - (+b2.chg_pct) : (a, b2) => (+b2.chg_pct) - (+a.chg_pct));
+      pickBox.hidden = false;
+      pickBox.dataset.bin = String(i);
+      pickBox.innerHTML = `<div class="dph"><b>${labels[i]}%</b><span class="m"><em class="dpn">${rows.length}</em> 檔${live ? '（即時，成交值為估算）' : ''}</span>
+          <button type="button" class="x" id="distPickX" aria-label="收起名單" title="收起">×</button></div>
+        <div class="seg tiny dpsort" id="distSort">
+          <button type="button" data-s="chg" class="${DIST.sort === 'chg' ? 'on' : ''}">依漲跌幅</button>
+          <button type="button" data-s="to" class="${DIST.sort === 'to' ? 'on' : ''}">依成交值</button></div>
+        <div class="dplist">${rows.length ? `<table><thead><tr><th class="l">代號</th><th class="l">名稱</th><th>漲跌幅</th><th>成交值</th></tr></thead><tbody>`
+          // data-chg／data-to 放原始數值：畫面上的百分比四捨五入到兩位，驗收要拿原值比對分格邊界
+          + rows.map(r => `<tr data-code="${r.code}" data-chg="${+r.chg_pct}" data-to="${r.turnover != null ? r.turnover : ''}"><td class="l cd">${r.code}</td>`
+            + `<td class="l"><a href="#stock/${r.code}" title="看 ${fmt.esc(r.name || '')} 個股頁">${fmt.esc(r.name || L.cname[r.code] || r.code)}</a></td>`
+            + `<td class="${fmt.cls(r.chg_pct)}">${fmt.pct(+r.chg_pct, 2)}</td>`
+            + `<td>${r.turnover != null ? fmt.yi(r.turnover) : '—'}</td></tr>`).join('')
+          + '</tbody></table>' : '<div class="empty">這一段沒有股票</div>'}</div>`;
+      $$('tr[data-code]', pickBox).forEach(tr => tr.onclick = (e) => { if (e.target.closest('a')) return; goStock(tr.dataset.code); });
+      $('#distPickX', pickBox).onclick = closePick;
+      $$('#distSort button', pickBox).forEach(bt => bt.onclick = () => { DIST.sort = bt.dataset.s; openPick(i); });
+      const ci = echarts.getInstanceByDom($('#chgDist'));
+      if (ci) ci.setOption({ series: [{ data: barData() }] });
+      dismissable(pickBox, closePick);
+      // 手機名單排在圖下面：打開時捲到看得到名單頂端（已經看得到就不動）
+      if (window.innerWidth <= 640) {
+        const r = pickBox.getBoundingClientRect();
+        if (r.top > window.innerHeight - 80) pickBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    };
+    if (c) {
+      c.off('click');
+      const zr = c.getZr();
+      if (zr.__distClick) zr.off('click', zr.__distClick);
+      zr.__distClick = (e) => {
+        const pt = [e.offsetX, e.offsetY];
+        if (!c.containPixel('grid', pt)) { closePick(); return; }     // 點到格線外的空白＝收起
+        const v = c.convertFromPixel({ gridIndex: 0 }, pt);
+        const i = Math.round(Array.isArray(v) ? v[0] : v);
+        if (!(i >= 0 && i < labels.length)) return;
+        openPick(i);
+      };
+      zr.on('click', zr.__distClick);
+    }
+    // 篩選（市場／ETF／族群）或即時每分鐘重畫之後，名單跟著換成新的成員，停在同一根
+    if (DIST.pick != null) openPick(DIST.pick); else if (pickBox) pickBox.hidden = true;
   }
 
   /* ================================================================ 漲跌家數／漲跌分佈的「即時」模式（D4）
@@ -2851,7 +2914,7 @@
   function drawMarket(kind) {
     // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
-    if (kind !== mktKind) mktTab = 0;
+    if (kind !== mktKind) { mktTab = 0; DIST.pick = null; }      // 換分頁回來，下鑽名單從收起開始
     mktKind = kind;
     $$('#mktSeg2 button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
@@ -2929,8 +2992,8 @@
         <div class="card" style="margin:10px 0 14px;padding:12px 14px">
           <div class="row spread"><h3 style="margin:0">漲跌分佈 <small id="distSub"></small></h3>
             <div class="row" id="distFilter" style="gap:8px;flex-wrap:wrap"></div></div>
-          <div id="chgDistBox"><div id="chgDist" class="chart" style="min-height:260px"></div></div>
-          <div class="hpanel" id="distPick" hidden></div></div>`
+          <div class="distlay"><div id="chgDistBox"><div id="chgDist" class="chart" style="min-height:260px"></div></div>
+            <div class="distpick" id="distPick" role="region" hidden aria-label="這一段的個股"></div></div></div>`
         + `<div class="seg" id="mktTabs">${sets.map((t, i) =>
         `<button data-i="${i}" class="${i === mktTab ? 'on' : ''}">${t[0]} <em>${t[1].length}</em></button>`).join('')}</div>`
         + `<div id="mktInner" style="margin-top:10px"></div>`;
@@ -2947,6 +3010,29 @@
         $$('#mktTabs button').forEach(x => x.classList.toggle('on', x === btn)); draw();
       });
       draw();
+      return;
+    }
+
+    if (kind === 'streak') {
+      /* 2026-09-28 從總覽搬過來（Andy：「法人連續買賣超 資訊移動到市場明細」）。
+         控制列、四象限、滾輪放大與拖曳全部照舊（renderTrust／wireStreak 一行沒改），只是換了一個家；
+         元素 id（#streakSub／#streakWho／#streakDays／#trustWrap／#trust）沿用，舊驗收與說明都還對得上。
+         投信／外資／合計與天數門檻存在 streakState，換分頁再回來停在原本的選擇。*/
+      title.innerHTML = '法人連續買賣超';          // 讀法在「?」（全站規矩：卡片上不放說明句）
+      const who = streakState.who, dd = streakState.days;
+      body.innerHTML = `<div class="mktstreakbar">
+          <span class="pill" id="streakSub" data-readout></span>
+          <div class="row">
+            <div class="seg tiny" id="streakWho">${[['trust', '投信'], ['foreign', '外資'], ['total', '合計']].map(([k, l]) =>
+              `<button data-w="${k}" class="${k === who ? 'on' : ''}">${l}</button>`).join('')}</div>
+            <select class="minisel" id="streakDays" title="連續天數門檻（買與賣都套用）">${[2, 3, 5, 8, 12].map(d =>
+              `<option value="${d}"${d === dd ? ' selected' : ''}>≥${d} 天</option>`).join('')}</select>
+            <button class="howbtn pop" data-how="trust" data-ttl="法人連續買賣超" type="button" aria-label="法人連續買賣超怎麼看">?</button>
+          </div></div>
+        <div class="howtxt" id="how-trust" hidden></div>
+        <div id="trustWrap"><div id="trust" class="chart" style="min-height:360px"></div></div>`;
+      renderTrust(MKT_ST.trust, MKT_ST.cands, MKT_ST.streak);
+      wireStreak(MKT_ST.trust, MKT_ST.cands, MKT_ST.streak);
       return;
     }
 
@@ -3012,7 +3098,8 @@
        至少讀程式的人看得到「這一份是為了誰載的」。 */
     /* ★ 2026-09-24 總覽改版：多載 `stocks`（漲跌家數分佈要逐檔的漲跌幅，跟市場明細的「漲跌分佈」同一份）。
        `candidates` 仍然載 —— 法人卡的 tooltip 靠它查中文名（今日候選表本身已經拿掉）。*/
-    const [heat, gt, rot, cands, f3, th, trust, gdForPanels, streak, sd, stocks] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null }), load('stocks', { fallback: [] })]);
+    /* ★ 2026-09-28：「法人連續買賣超」搬到市場明細（#market/streak），總覽不再載 trust_streak／inst_streak。*/
+    const [heat, gt, rot, cands, f3, th, gdForPanels, sd, stocks] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('groups_detail'), load('sankey_daily', { fallback: null }), load('stocks', { fallback: [] })]);
     /* ★ 2026-09-24 效能：資金去向（#ovFlow）延後畫，但它的**高度**現在就定下來（跟 renderOvFlow 同一條公式）。
        這張圖跟熱力圖在同一排：它畫完才把自己撐高的話，熱力圖會跟著被拉長（實測 617 → 800px），
        等於熱力圖剛畫完又得整張重畫一次（resize ＋ 重排標籤）。先把高度給它，熱力圖第一次就畫在最後的尺寸上。*/
@@ -3062,7 +3149,7 @@
     whenNear($('#ovFlow'), () => renderOvFlow(sd));
     whenNear($('#ovTheme'), () => renderOvThemes(th));
     whenNear($('#breadth'), () => renderUpDown(stocks, heat));
-    whenNear($('#trust'), () => { renderTrust(trust, cands, streak); wireStreak(trust, cands, streak); });
+    // 法人連續買賣超 2026-09-28 搬到市場明細「法人連買賣」分頁（drawMarket 的 streak 分支），這裡只留 #ovTrustLink 指路
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
        徽章會壓在圖上、滾輪又會搶走頁面捲動，代價大於收益。 */
@@ -7042,14 +7129,14 @@
        最下面一行小字放口徑細節。原本卡片上的長副標、圖下註腳一律搬進來，**只搬家＋改短，不刪資訊**。
        rot／rotm 兩段不在這一批（另一支 agent 在改資金輪動卡與總覽小輪盤）。*/
     mkt: howHTML('這一頁回答：總覽上方那排數字背後是哪些股票。', [
-      '漲跌家數：看分佈重心偏左還偏右',
+      '漲跌家數：點長條，右邊列出那一段的個股',
+      '法人連買賣：法人連續買賣誰、力道增減',
       '站上均線：拆到族群，看誰在撐誰在拖',
-      '資金集中：越高越縮圈，冷門股難動',
       '今日候選：技術面最後一關，方向估值先過',
       '盤後＝收盤全市場；即時＝抓得到的那批',
     ], '「⚡ 即時」只抓有人工分族群的成分股聯集（約 440 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
       + '漲跌幅是真值（現價 vs 昨收），成交值是「現價 × 累計張數」估算，和盤後那一版不是同一個東西；非盤中按下去畫的是最後一次報價快照。'
-      + '漲停＝漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7～10.0）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線，點一段只列那一段。'
+      + '漲停＝漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7～10.0）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），右邊（手機在下面）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
       + '站上均線的條越長＝越多成分股站在 20 日均線之上。今日候選：A＝回檔承接、B＝突破追進；沒有 A／B 的日子（大盤走弱時很常見）列綜合分前 40 當觀察名單，不是進場訊號（總覽的「今日候選」表 2026-09-24 已拿掉，名單只在這一頁）。'
       + '每一列都點得進個股頁，族群名稱點得進族群頁。'),
     heat: () => howHTML('這張圖回答：今天的錢集中在哪些族群。', [
