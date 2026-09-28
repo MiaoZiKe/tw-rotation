@@ -7165,6 +7165,17 @@
      ② 卡片自己在 `#how-<key>` 裡預先放好的節點（例如 #gpHint、#relHint、#dgQ 由 industry.js 寫）——
         HOW 沒有這個 key 時**不覆蓋**盒子裡原本的內容。有 `.howbody` 子節點就只填它，其餘子節點保留。*/
   let howWired = false;
+  /* 跳出式說明的標題：標題元素裡「?」鈕之前第一段有字的節點（跳過標題圖示 .ticon 與空白）。見 howPop 的註解。*/
+  function howTitle(h, btn) {
+    for (const n of h.childNodes) {
+      if (n === btn) break;
+      if (n.nodeType === 1 && n.contains(btn)) return n.textContent.replace(btn.textContent, '').trim();
+      if (n.nodeType === 1 && n.classList.contains('ticon')) continue;
+      const t = (n.textContent || '').trim();
+      if (t) return t;
+    }
+    return '';
+  }
   /* ★ 2026-09-24 總覽改版（Andy：「卡片上的說明文字全部拿掉，只留名稱，說明改用標題旁的『?』按鈕，
      點了跳出說明（點背景關閉）」）。
      跟一般「怎麼看 ?」共用同一份內容（HOW[key]）與同一個盒子（#how-<key>），差別只在「怎麼顯示」：
@@ -7195,7 +7206,10 @@
     // ★ 2026-09-26 加 h2：產業鏈頁首的「?」（nb）住在鏈名 h2 裡，彈窗標題要讀得到鏈名
     const h = btn.closest('h2, h3, h4, h5');
     // 標題：鈕上有 data-ttl 就用它（K 線工具列那顆不在標題裡），否則取所在標題的第一段字
-    const ttl = btn.dataset.ttl || (h ? ((h.childNodes[0] && h.childNodes[0].textContent) || '').trim() : '');
+    // ★ 2026-09-29 改前：直接讀 childNodes[0] → 改後：跳過標題圖示（icons.js 插在最前面的 span.ticon，只有 SVG、沒有字）
+    //   與純空白節點，取第一段「有字」的節點；碰到「?」鈕本身就停（鈕前面沒字＝這個標題沒有名稱，退回「說明」）。
+    //   原因：標題圖示上線後每個標題的第一個子節點都變成圖示，全站跳出式說明的標題一律變成「說明」。
+    const ttl = btn.dataset.ttl || (h ? howTitle(h, btn) : '');
     pop.innerHTML = `<div class="hp-h"><b>${fmt.esc(ttl || '說明')}</b></div>`;
     pop.appendChild(box);
     box.hidden = false; back.hidden = false; pop.hidden = false;
