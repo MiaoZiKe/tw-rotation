@@ -15576,6 +15576,10 @@ def t_ov_summary_0928(pg, b, base, code):
                st["open"] and lab in st["ttl"] and st["n"] >= 1 and st["len"] > 10, st)
             pg.mouse.click(6, 300); pg.wait_for_timeout(300)
             ok(f"[籌碼快照] 「{lab}」的說明點背景就關", pg.evaluate("() => { const p = document.getElementById('howPop'); return !p || p.hidden; }"))
+    # ★ 2026-09-28（標題圖示收尾時抓到）：上面的迴圈最後停在 800 寬，沒還原就離開 ——
+    #   --workers 1 時後面的段落共用這個分頁，全部變成在 800 寬跑。「產業」在 ≤820 會合法地長出 #segBox，
+    #   於是「[桌機] 點零件之後圖下方不再長出環節面板」只要排在這段後面就紅（單獨跑「產業」是綠的）。
+    pg.set_viewport_size({"width": 1440, "height": 1000})
 
 def t_index_kline_0928(pg, base):
     """總覽大盤 K 線 2026-09-28（Andy：「CEO 全力解決首頁的 K線圖問題…櫃買4H 1H…
@@ -16159,6 +16163,232 @@ def t_stock_tabs0928(pg, base, code):
     pg.evaluate("() => { try { ['tw.hoLines','tw.aiTab','tw.aiOpen'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
 
+# ===================================================================== 2026-09-28 標題圖示
+# Andy：「所有標題加上小圖示，顏色要搭配」。機制在 site/icons.js，規格在 docs/design_title_icons.md。
+# 這一段驗四件事（每一件都是「量」不是「看有沒有」）：
+#   ① 覆蓋：全站各頁（含個股頁每個分頁、手機每個分段）每個看得見的卡片標題，第一個子元素都是 .ticon，
+#      而且不是退回預設的那顆（data-fb）—— 「卡片標題」用這裡自己的選擇器認，不抄 icons.js 的清單，
+#      這樣 icons.js 漏掛一種標題時這裡會紅，不會跟著一起漏。
+#   ② 對比：圖示的描邊色 對 它實際坐著的底色（往上疊半透明底色一路合成到頁底）≥ 3:1（WCAG 1.4.11 圖形），
+#      深、淺各量一次；v4 三主題的 CSS 在的話（data-theme4 會換 --bg），三主題 × 深淺六組都量。
+#   ③ 不擠：同一刻把 .ticon 藏起來再量一次（A/B），標題與標題列（父層）高度不准因為圖示變高（≤ 1px），
+#      右邊的篩選器不准因為圖示被擠掉（標題列 scrollWidth 不准變寬）；1440／800／390 三個寬度。
+#   ④ 動效有分寸：transition ≤ 240ms、hover 不位移（ui_polish_spec §7.2）、prefers-reduced-motion 下沒有 transition。
+TI_CARD_SEL = ("h2, h3, h4, h5")
+TI_CARD_HOST = ".card, .m3-card, .gpcard, .mhead, .side-h, .nbhead"
+TI_NOT = ".osc, .howtxt, .howbox, #coBox, [role=\"dialog\"], .modal, svg, .dg, [data-dg], #skIdent, .tip, .ttip"
+
+TI_M = """([HS, HOST, NOT]) => {
+  const vis = (e) => { if (!e.getClientRects().length) return false; const r = e.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return false; const cs = getComputedStyle(e); return cs.visibility !== 'hidden' && +cs.opacity !== 0; };
+  const hs = [...document.querySelectorAll(HS)].filter(h => h.closest(HOST) && !h.closest(NOT) && vis(h)
+      && h.textContent.replace(/\\s+/g, '').length > 0
+      // 標題裡面還有標題（卡片外殼包子卡）時只算最內層那個真的有字的
+      && !h.closest('.ticon'));
+  // ---- 顏色工具：rgb()/rgba()/color(srgb …) → [r,g,b,a]（0～255）
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1; const g = cv.getContext('2d', { willReadFrequently: true });
+  const rgba = (c) => { if (!c || c === 'transparent' || c === 'none') return [0, 0, 0, 0];
+    g.clearRect(0, 0, 1, 1); g.fillStyle = '#000'; g.fillStyle = c; g.fillRect(0, 0, 1, 1);
+    const d = g.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2], d[3] / 255]; };
+  const over = (top, bot) => { const a = top[3] + bot[3] * (1 - top[3]); if (!a) return [0, 0, 0, 0];
+    return [0, 1, 2].map(i => (top[i] * top[3] + bot[i] * bot[3] * (1 - top[3])) / a).concat([a]); };
+  const bgOf = (el) => { const layers = []; let e = el;
+    while (e && e.nodeType === 1) { const c = rgba(getComputedStyle(e).backgroundColor); if (c[3] > 0) { layers.push(c); if (c[3] >= 0.999) break; } e = e.parentElement; }
+    let acc = rgba(getComputedStyle(document.documentElement).backgroundColor); if (acc[3] < 1) acc = over(acc, [255, 255, 255, 1]);
+    for (let i = layers.length - 1; i >= 0; i--) acc = over(layers[i], acc); return acc; };
+  const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const root = getComputedStyle(document.documentElement);
+  const rows = hs.map(h => {
+    const ic = h.firstElementChild && h.firstElementChild.classList.contains('ticon') ? h.firstElementChild : null;
+    const t = h.textContent.replace(/\\s+/g, ' ').trim().slice(0, 22);
+    if (!ic) return { t, ic: false };
+    const svg = ic.querySelector('svg'); const bg = bgOf(h);
+    // 描邊色：一般＝currentColor（computed stroke 就是 rgb）；漲跌並陳＝漸層，兩端各量（--rise、--fall）
+    let strokes;
+    if (ic.dataset.tone === 'mix') strokes = [root.getPropertyValue('--rise'), root.getPropertyValue('--fall')];
+    else strokes = [getComputedStyle(svg).stroke];
+    const crs = strokes.map(s => { let c = rgba(s.trim()); if (c[3] < 1) c = over(c, bg); return Math.round(cr(c, bg) * 100) / 100; });
+    const fs = parseFloat(getComputedStyle(h).fontSize); const ir = ic.getBoundingClientRect();
+    return { t, ic: true, k: ic.dataset.k, tone: ic.dataset.tone, fb: !!ic.dataset.fb, cr: Math.min(...crs), crs, first: h.firstElementChild === ic,
+      w: Math.round(ir.width * 10) / 10, fs, stroke: strokes[0].trim() };
+  });
+  // ---- A/B：有圖示 vs 藏起來，同一刻量標題與標題列
+  const geo = () => hs.map(h => { const p = h.parentElement; return { h: h.getBoundingClientRect().height, p: p ? p.getBoundingClientRect().height : 0,
+      ps: p ? p.scrollWidth - p.clientWidth : 0 }; });
+  const withI = geo();
+  const st = document.createElement('style'); st.textContent = '.ticon{display:none!important}'; document.head.appendChild(st);
+  const noI = geo(); st.remove(); void document.body.offsetHeight;
+  const grow = [];
+  hs.forEach((h, i) => { const a = withI[i], b = noI[i];
+    if (a.h > b.h + 1 || a.p > b.p + 1 || a.ps > Math.max(0, b.ps) + 1) grow.push({ t: rows[i].t, h: [Math.round(b.h), Math.round(a.h)], row: [Math.round(b.p), Math.round(a.p)], ovf: [b.ps, a.ps] }); });
+  // 沒掛在卡片外殼裡、但看得見的標題（h2～h5）：用來證明「這個畫面量到 0 個」是真的沒有標題，不是選擇器漏認
+  const orphans = [...document.querySelectorAll('main h2, main h3, main h4, main h5, #app h2, #app h3, #app h4, #app h5')]
+    .filter(h => !h.closest(HOST) && !h.closest(NOT) && vis(h) && h.textContent.replace(/\\s+/g, '').length > 0)
+    .map(h => h.textContent.replace(/\\s+/g, ' ').trim().slice(0, 22));
+  return { n: hs.length, orphans: [...new Set(orphans)], miss: rows.filter(r => !r.ic).map(r => r.t), fb: rows.filter(r => r.fb).map(r => r.t),
+    notFirst: rows.filter(r => r.ic && !r.first).map(r => r.t),
+    low: rows.filter(r => r.ic && r.cr < 3).map(r => [r.t, r.tone, r.cr, r.stroke]), minCr: rows.filter(r => r.ic).reduce((m, r) => Math.min(m, r.cr), 99),
+    tones: [...new Set(rows.filter(r => r.ic).map(r => r.tone))], grow,
+    sizes: [...new Set(rows.filter(r => r.ic).map(r => r.w + '@' + r.fs))].slice(0, 8),
+    sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
+
+TI_OSC = """() => [...document.querySelectorAll('#hero .osc')].filter(c => c.getClientRects().length).map(c => {
+  const s = c.querySelector('.osc-ic'); return { k: c.dataset.k, tk: s && s.dataset.tk, tone: s && s.dataset.tone, n: s ? s.querySelectorAll('svg').length : 0,
+    nested: s ? s.querySelectorAll('.ticon').length : 0 }; })"""
+
+
+def _ti_pages(code):
+    return [("總覽", "overview"), ("資金流向", "flow"), ("市場明細", "market"), ("產業地圖", "industry"),
+            ("熱力圖", "heatmap"), ("季節性", "season"), ("交付清單", "delivery"),
+            ("半導體鏈", "industry/semiconductor"), ("族群頁", "industry/group/foundry"), ("個股", f"stock/{code}")]
+
+
+def _ti_segments(pg):
+    """手機（≤640）：主軸每一步 × 分段每一顆 —— 一段一段切過去，讓被 .mp-off 收起來的卡片也輪得到。回傳要走的點擊序列。"""
+    return pg.evaluate("""() => { const sp = [...document.querySelectorAll('.mspine button')].filter(b => b.getClientRects().length).length;
+        const pb = [...document.querySelectorAll('.mpager button')].filter(b => b.getClientRects().length).length; return [sp, pb]; }""")
+
+
+def _ti_measure_all(pg, tag, res):
+    """量一次、把結果併進 res；個股頁再逐一切分頁、手機再逐一切分段。"""
+    def one(label):
+        m = pg.evaluate(TI_M, [TI_CARD_SEL, TI_CARD_HOST, TI_NOT])
+        res.append((label, m))
+    one(tag)
+    tabs = pg.evaluate("() => [...document.querySelectorAll('#stockTabs button[data-t]')].filter(b => b.getClientRects().length).map(b => b.dataset.t)")
+    for t in tabs[1:]:
+        pg.eval_on_selector(f'#stockTabs button[data-t="{t}"]', "b => b.click()"); pg.wait_for_timeout(900)
+        one(f"{tag}／分頁 {t}")
+    if tabs:
+        pg.eval_on_selector(f'#stockTabs button[data-t="{tabs[0]}"]', "b => b.click()"); pg.wait_for_timeout(500)
+    # 手機（≤640）個股頁是券商式：桌機分頁收起來，換成 #mbTabs —— 逐一切過去
+    # （「AI 分析」那頁有卡片標題；其餘是分段鈕＋關鍵數字＋圖＋表，本來就沒有卡片標題，靠 orphans 證明不是漏認）
+    mtabs = pg.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].filter(b => b.getClientRects().length).map(b => b.dataset.t)")
+    for t in mtabs:
+        pg.eval_on_selector(f'#mbTabs button[data-t="{t}"]', "b => b.click()"); pg.wait_for_timeout(900)
+        one(f"{tag}／手機分頁 {t}")
+    if mtabs:
+        pg.eval_on_selector(f'#mbTabs button[data-t="{mtabs[0]}"]', "b => b.click()"); pg.wait_for_timeout(500)
+        pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.m3.sk.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        return
+    sp, pb = _ti_segments(pg)
+    for si in range(max(sp, 1)):
+        if sp:
+            pg.evaluate(f"() => {{ const b = [...document.querySelectorAll('.mspine button')].filter(b => b.getClientRects().length)[{si}]; b && b.click(); }}")
+            pg.wait_for_timeout(700)
+            one(f"{tag}／第 {si + 1} 步")            # 換步＝回到那一步的第 1 段（只有一段時分段列不畫，所以一定要在這裡量）
+        n = pg.evaluate("() => [...document.querySelectorAll('.mpager button')].filter(b => b.getClientRects().length).length")
+        for pi in range(1, n):
+            pg.evaluate(f"() => {{ const b = [...document.querySelectorAll('.mpager button')].filter(b => b.getClientRects().length)[{pi}]; b && b.click(); }}")
+            pg.wait_for_timeout(700)
+            one(f"{tag}／分段 {si + 1}-{pi + 1}")
+    # 走完把「記住停在哪一段」清掉，不把第 4 步留給後面的段落
+    pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.mia.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+
+
+def t_title_icons(pg, b, base, code):
+    code = code or "2330"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto("about:blank"); pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    if not ok("[標題圖示] icons.js 有載入（window.TwIcons）", pg.evaluate("() => !!window.TwIcons")):
+        return
+    pages = _ti_pages(code)
+    for w in (1440, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 1000 if w > 390 else 844})
+        for mode in ("dark", "light"):
+            res = []
+            for name, route in pages:
+                if mode == "light" and w != 1440 and name not in ("總覽", "個股"):
+                    continue      # 淺色只在 1440 全站走一輪；800／390 走總覽＋個股（最密的兩頁）就夠抓「換主題會不會擠」
+                pg.goto("about:blank")
+                pg.goto(f"{base}#{route}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+                dg_set_theme(pg, mode, 1200)        # 真的按主題鈕（跟使用者一樣），已經在那一邊就不動
+                wait_until(pg, "() => document.querySelectorAll('.ticon').length > 0 ? 1 : null", 5000)
+                _ti_measure_all(pg, f"{w} {mode} {name}", res)
+            tot = sum(m["n"] for _, m in res)
+            print(f"  （標題圖示 {w} {mode}）量了 {len(res)} 個畫面、{tot} 個卡片標題，最低對比 {min([m['minCr'] for _, m in res] or [0])}："
+                  + "、".join(f"{l.split(' ', 2)[2]} {m['n']}" for l, m in res))
+            # 量到 0 個的畫面（手機券商式個股頁、只有一張圖的分段）要證明「頁面上真的沒有其他看得見的標題」，不是選擇器漏認
+            ok(f"[標題圖示 {w} {mode}] 量到 0 個卡片標題的畫面，頁面上也真的沒有其他看得見的標題",
+               all(m["n"] > 0 or not m["orphans"] for _, m in res), [(l, m["orphans"]) for l, m in res if not m["n"] and m["orphans"]])
+            zero = [l for l, m in res if not m["n"]]
+            if zero:
+                print(f"  （標題圖示 {w} {mode}）這些畫面沒有卡片標題（已確認頁面上也沒有其他標題）：" + "、".join(zero))
+            ok(f"[標題圖示 {w} {mode}] 總數夠多（走遍頁面才會 > 20）", tot > 20 or (mode == "light" and w != 1440 and tot > 5), tot)
+            for label, m in res:
+                ok(f"★ [標題圖示 {label}] 每個卡片標題都有圖示（共 {m['n']} 個）", not m["miss"], m["miss"])
+                ok(f"[標題圖示 {label}] 圖示都對得到語意（沒有退回預設那顆）", not m["fb"], m["fb"])
+                ok(f"[標題圖示 {label}] 圖示是標題的第一個元素（在字的前面）", not m["notFirst"], m["notFirst"])
+                ok(f"★ [標題圖示 {label}] 圖示對底色 ≥ 3:1（最低 {m['minCr']}）", not m["low"], m["low"])
+                ok(f"★ [標題圖示 {label}] 加了圖示，標題與標題列沒有變高、篩選器沒有被擠出去", not m["grow"], m["grow"])
+                ok(f"[標題圖示 {label}] 整頁沒有橫向捲軸", not m["sideways"], m["sideways"])
+            tones = set().union(*[set(m["tones"]) for _, m in res]) if res else set()
+            if w == 1440 and mode == "dark":
+                # 語意色收成 5 個色系：同一頁不該變彩虹
+                col = pg.evaluate("""(ts) => { const out = {}; const s = document.createElement('span'); s.className = 'ticon'; document.body.appendChild(s);
+                    for (const t of ts) { s.dataset.tone = t; out[t] = getComputedStyle(s).color; } s.remove(); return out; }""", sorted(tones))
+                ok("[標題圖示] 全站的圖示顏色收在 ≤ 6 種（5 個色系＋漲跌）", len(set(col.values())) <= 6, col)
+    # ---------------------------------------------------------------- 總覽摘要卡：換成同一套圖示、同一個語意色，不疊兩顆
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto("about:blank"); pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    dg_set_theme(pg, "dark", 1200)          # 上面最後量的是淺色，這裡起回深色（也不把淺色留給後面的段落）
+    o = pg.evaluate(TI_OSC)
+    ok("★ [標題圖示] 總覽四張摘要卡的圖示＝下方同名大卡那顆（漲跌 pulse／輪盤 radar／去向 flow／題材 flame）",
+       [(x["k"], x["tk"]) for x in o] == [("updown", "pulse"), ("rot", "radar"), ("flow", "flow"), ("theme", "flame")], o)
+    ok("[標題圖示] 摘要卡每格只有一顆圖示（沒有疊成兩顆）", all(x["n"] == 1 and x["nested"] == 0 for x in o), o)
+    big = pg.evaluate("""() => { const f = (s) => { const h = document.querySelector(s); const i = h && h.querySelector(':scope > .ticon'); return i ? getComputedStyle(i).color : null; };
+        const g = (k) => { const i = document.querySelector('#hero .osc[data-k="' + k + '"] .osc-ic'); return i ? getComputedStyle(i).color : null; };
+        return { rot: [g('rot'), f('#ovRotCard h3')], theme: [g('theme'), f('#ovThemeCard h3')] }; }""")
+    ok("[標題圖示] 摘要卡圖示顏色＝下方同名大卡圖示顏色（輪盤、題材）", all(a and a == b2 for a, b2 in big.values()), big)
+    # ---------------------------------------------------------------- 標題文字換掉，圖示跟著換（MutationObserver 真的有在補）
+    ch = pg.evaluate("""async () => { const h = document.querySelector('#ovHeatCard h3') || document.querySelector('.card h3'); if (!h) return null;
+        const k0 = h.querySelector('.ticon') && h.querySelector('.ticon').dataset.k;
+        const card = document.createElement('div'); card.className = 'card'; card.innerHTML = '<h3>三大法人 <small>測試</small></h3>';
+        document.querySelector('main, #app, body').appendChild(card);
+        await new Promise(r => setTimeout(r, 300));
+        const a = card.querySelector('.ticon') && card.querySelector('.ticon').dataset.k;
+        [...card.querySelector('h3').childNodes].find(n => n.nodeType === 3).nodeValue = '月營收明細 ';
+        await new Promise(r => setTimeout(r, 300));
+        const b = card.querySelector('.ticon') && card.querySelector('.ticon').dataset.k;
+        const n = card.querySelectorAll('.ticon').length; card.remove(); return { k0, a, b, n }; }""")
+    ok("[標題圖示] 晚畫的卡片自動補上圖示、標題改字圖示跟著換、不會疊兩顆", bool(ch) and ch["a"] == "landmark" and ch["b"] == "table" and ch["n"] == 1, ch)
+    # ---------------------------------------------------------------- 動效有分寸
+    mo = pg.evaluate("""() => { const i = document.querySelector('.card h3 > .ticon'); if (!i) return null; const cs = getComputedStyle(i);
+        const ms = (s) => s.split(',').map(x => x.trim().endsWith('ms') ? parseFloat(x) : parseFloat(x) * 1000);
+        return { dur: Math.max(...ms(cs.transitionDuration)), tf: cs.transform, anim: cs.animationName }; }""")
+    ok("[標題圖示] 圖示 transition ≤ 240ms", bool(mo) and mo["dur"] <= 240, mo)
+    card = pg.query_selector("#ovHeatCard h3") or pg.query_selector(".card h3")
+    if card:
+        card.hover(); pg.wait_for_timeout(300)
+        hv = pg.evaluate("() => { const i = document.querySelector('#ovHeatCard h3 > .ticon') || document.querySelector('.card h3 > .ticon'); return getComputedStyle(i).transform; }")
+        ok("[標題圖示] 滑過卡片：圖示不位移不放大（ui_polish_spec §7.2 hover 只改顏色）", hv in ("none", "matrix(1, 0, 0, 1, 0, 0)"), hv)
+    pg.emulate_media(reduced_motion="reduce")
+    rm = pg.evaluate("() => { const i = document.querySelector('.card h3 > .ticon'); return i ? getComputedStyle(i).transitionDuration : null; }")
+    ok("[標題圖示] prefers-reduced-motion：圖示沒有 transition", rm is not None and all((float(x.strip()[:-2]) if x.strip().endswith('ms') else float(x.strip().rstrip('s') or 0) * 1000) <= 1 for x in rm.split(',')), rm)
+    pg.emulate_media(reduced_motion="no-preference")
+    # ---------------------------------------------------------------- v4 三主題（theme4.css 在的時候才量；還沒合進來就記一筆說明，不算紅）
+    has4 = pg.evaluate("""() => { const r = document.documentElement; const b0 = getComputedStyle(r).getPropertyValue('--bg');
+        r.setAttribute('data-theme4', 'hud'); const b1 = getComputedStyle(r).getPropertyValue('--bg'); r.removeAttribute('data-theme4'); return b0 !== b1; }""")
+    if not has4:
+        print("  （標題圖示）v4 三主題的 CSS 還不在這個分支，三主題 × 深淺的對比這次沒量到")
+        return
+    for th in ("casual", "hud", "pro"):
+        for mode in ("dark", "light"):
+            for name, route in (("總覽", "overview"), ("個股", f"stock/{code}")):
+                pg.goto("about:blank")
+                pg.goto(f"{base}#{route}", wait_until="networkidle"); pg.wait_for_timeout(2000)
+                dg_set_theme(pg, mode, 1200)
+                pg.evaluate(f"() => document.documentElement.setAttribute('data-theme4', '{th}')")
+                pg.wait_for_timeout(300)
+                m = pg.evaluate(TI_M, [TI_CARD_SEL, TI_CARD_HOST, TI_NOT])
+                ok(f"★ [標題圖示 v4 {th} {mode} {name}] 圖示對底色 ≥ 3:1（最低 {m['minCr']}）", not m["low"], m["low"])
+                ok(f"[標題圖示 v4 {th} {mode} {name}] 標題列沒有變高", not m["grow"], m["grow"])
+    pg.evaluate("() => document.documentElement.removeAttribute('data-theme4')")
+    dg_set_theme(pg, "dark", 1200)
+
+
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
@@ -16441,6 +16671,8 @@ SECTIONS = {
     #   「會員與自選五分頁」＝沒有設定檔（線上現況）；「會員雲端路徑」＝本機跑真的 worker.js＋假 Google（⚠ 一律 --workers 1）
     "會員與自選五分頁":    lambda pg, b, base, code: t_watchlists_guest(b, base),
     "會員雲端路徑":        lambda pg, b, base, code: t_account_cloud(b, base),
+    # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
+    "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
