@@ -56,6 +56,9 @@ VIEWS = [
     ("industry", "industry", None),
     ("chain-semi", "industry/semiconductor", None),
     ("chain-elec", "industry/electronics", None),
+    # 2B 收尾（產業頁）：族群總覽分頁（長條＋圓餅）、AI 伺服器鏈（剖析圖＋關聯圖都有）
+    ("chain-semi-ov", "industry/semiconductor/overview", None),
+    ("chain-ai", "industry/ai_server", None),
 ]
 
 JS2 = r"""
