@@ -16667,6 +16667,8 @@ SECTIONS = {
     #   全站每一頁（含分段、抽屜、彈窗）所有看得見的可點元素，390 與 360 各用觸控點一次：點得到、有反應、收得回來。
     #   量測在 scripts/_mobile_tap_audit.py（單獨跑有完整報告），⚠ 一律 --workers 1，一輪很長。
     "手機按鈕普查":        lambda pg, b, base, code: t_mobile_tap_audit(b, base, code),
+    # ★ 2026-09-28 設計 v4 第二批 2D：360 圖例撐寬（放大層關不掉、圖例點不到）＋觸控目標 40（章節鈕列、排序抽屜、圖例、頁尾、連結）
+    "手機v4二批":          lambda pg, b, base, code: t_mobile_v4_2d(b, base, code),
     # ★ 2026-09-27 Andy：Google 登入、使用統計、線上人數、自選清單五分頁（DECISIONS #270）
     #   「會員與自選五分頁」＝沒有設定檔（線上現況）；「會員雲端路徑」＝本機跑真的 worker.js＋假 Google（⚠ 一律 --workers 1）
     "會員與自選五分頁":    lambda pg, b, base, code: t_watchlists_guest(b, base),
@@ -35692,6 +35694,195 @@ def t_mobile_tap_audit(b, base, code):
     ndg = sum(1 for r in res["rows"] if A.is_dg_part(r) and (r["blocked"] or r["noreact"] or r["noclose"]))
     notes.append(f"手機按鈕普查：點過 {len(res['rows'])} 顆、觸控目標 < {A.MIN_TOUCH}px 的 {len(res['small'])} 顆、"
                  f"剖析圖零件圖形點不到或沒反應 {ndg} 列（手機以編號為入口，不算紅燈）—— 列表見 docs/_mobile_tap/report.md")
+
+
+# ★ 2026-09-28 設計 v4 第二批 2D：手機 360／390 修正
+#   ① 360 寬熱力圖圖例整條（.hmbar）撐出 382 寬 → 手機瀏覽器把版面視窗放大到 382、觸控座標對不上：
+#      放大層按「關閉 ✕」關不掉、圖例 7 格有 6 格點了沒反應。這一段用觸控真的點：放大層打開 → 點 ✕ → 真的關掉；
+#      圖例每一格點下去真的只亮那一級、再點一次還原；總覽每一段的文件寬 ＝ 視窗寬（版面視窗沒被撐大）。
+#   ② 觸控目標放大到 40：剖析圖章節鈕列（點了圖真的展開）、週期統計排序抽屜（點了表頭排序月真的換、熱力圖列順序真的變）、
+#      產業地圖圖例／頁尾連結／個股基本資料連結 ≥ 40 高、a.lk 點擊區 ≥ 40 而且中心點不會被隔壁的點擊區搶走。
+#   ③ 桌機（1440）不插章節鈕列、不插排序鈕、圖裡的章節列照樣可以點。
+_HITBOX_JS = r"""
+(e) => { const r = e.getBoundingClientRect(); let x0 = r.left, y0 = r.top, x1 = r.right, y1 = r.bottom;
+  if (getComputedStyle(e).position !== 'static') for (const ps of ['::before', '::after']) {
+    const cs = getComputedStyle(e, ps); if (cs.content === 'none' || cs.content === 'normal' || cs.position !== 'absolute' || cs.display === 'none') continue;
+    const t = parseFloat(cs.top), l = parseFloat(cs.left), rr = parseFloat(cs.right), b = parseFloat(cs.bottom);
+    if (isFinite(t)) y0 = Math.min(y0, r.top + t); if (isFinite(b)) y1 = Math.max(y1, r.bottom - b);
+    if (isFinite(l)) x0 = Math.min(x0, r.left + l); if (isFinite(rr)) x1 = Math.max(x1, r.right - rr); }
+  return { w: Math.round(x1 - x0), h: Math.round(y1 - y0) }; }
+"""
+
+
+def t_mobile_v4_2d(b, base, code):
+    sys.path.insert(0, str(ROOT))
+    import importlib
+    A = importlib.import_module("scripts._mobile_tap_audit")
+
+    def tap(m, sel):
+        c = m.evaluate("""(s) => { const e = document.querySelector(s); if (!e) return null;
+            e.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = e.getBoundingClientRect();
+            const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2, hit: !!h && (h === e || e.contains(h)) }; }""", sel)
+        if c:
+            m.touchscreen.tap(c["x"], c["y"]); m.wait_for_timeout(650)
+        return c
+
+    for W in (390, 360):
+        T = f"[手機v4二批 {W}px]"
+        au = A.Auditor(b, base, W, log=lambda *a, **k: None)
+        m = au.new_page()
+        m.on("pageerror", lambda e: fails.append(f"手機v4二批 pageerror: {e}"))
+        try:
+            # ---- ① 總覽每一段：文件寬 ＝ 視窗寬（版面視窗沒有被撐大）
+            au.load({"name": "總覽", "hash": "#overview"})
+            bars = m.evaluate(A.SEG_JS)
+            segs = [(f"{bar['sel']} > :nth-child({bt['nth']})", bt["label"]) for bar in bars if "mpager" in bar["sel"] for bt in bar["btns"]]
+            heat_step = next((s for s, lb in segs if lb.startswith("熱力圖")), None)
+            wide = []
+            for s, lb in segs:
+                au.load({"name": lb, "hash": "#overview", "steps": [s]})
+                d = m.evaluate("() => [document.documentElement.scrollWidth, innerWidth, Math.round(visualViewport.width)]")
+                if d[0] > W or d[1] != W:
+                    wide.append((lb, d))
+            ok(f"{T} 總覽每一段（{len(segs)} 段）文件寬 ≤ 視窗寬、版面視窗沒被撐大（360 圖例撐出 382 的根因）",
+               len(segs) >= 3 and not wide, {"段": [lb for _, lb in segs], "撐寬": wide})
+            if not heat_step:
+                ok(f"{T} 總覽找得到「熱力圖」那一段", False, segs)
+                continue
+            au.load({"name": "總覽／熱力圖", "hash": "#overview", "steps": [heat_step]})
+            # ---- 圖例每一格：觸控點下去 → 只亮那一級；再點一次 → 還原
+            LG = """() => { const l = document.querySelector('#ovHeatCard .hmlegend'); if (!l) return null;
+                const on = l.querySelector('.hmcell.on'); return { focus: l.classList.contains('focus'), on: on ? +on.dataset.bin : null,
+                n: l.querySelectorAll('.hmcell').length, minH: Math.min(...[...l.querySelectorAll('.hmcell')].map(c => c.getBoundingClientRect().height)) }; }"""
+            lg0 = m.evaluate(LG) or {}
+            bad = []
+            for i in range(lg0.get("n", 0)):
+                c = tap(m, f'#ovHeatCard .hmcell[data-bin="{i}"]')
+                s1 = m.evaluate(LG)
+                if not (c and c["hit"] and s1 and s1["focus"] and s1["on"] == i):
+                    bad.append({"格": i, "點": c, "點完": s1}); continue
+                tap(m, f'#ovHeatCard .hmcell[data-bin="{i}"]')
+                s2 = m.evaluate(LG)
+                if not (s2 and not s2["focus"] and s2["on"] is None):
+                    bad.append({"格": i, "再點": s2})
+            ok(f"{T} 熱力圖圖例 7 格用觸控逐格點：每一格都真的只亮那一級、再點一次還原", lg0.get("n") == 7 and not bad, {"圖例": lg0, "失敗": bad[:4]})
+            ok(f"{T} 熱力圖圖例每格高 ≥ 40", (lg0.get("minH") or 0) >= 40, lg0)
+            # ---- 放大層：打開 → 標題列與關閉鈕都在視窗內 → 點 ✕ → 真的關掉
+            c = tap(m, "#heatZoom"); m.wait_for_timeout(400)
+            z = m.evaluate("""() => { const ov = document.getElementById('zoomOv'), zh = ov.querySelector('.zh'), x = document.getElementById('zoomClose');
+                const r = x.getBoundingClientRect(), h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                return { open: !ov.hidden, zhRight: Math.round(zh.getBoundingClientRect().right), xRight: Math.round(r.right), xH: Math.round(r.height),
+                         hit: !!h && (h === x || x.contains(h)), vw: innerWidth }; }""")
+            ok(f"{T} 觸控點「放大 ⤢」→ 放大層真的打開，標題列與「關閉 ✕」都在 {W}px 視窗內、✕ 中心點得到、高 ≥ 40",
+               bool(c) and z["open"] and z["zhRight"] <= W and z["xRight"] <= W and z["hit"] and z["xH"] >= 40 and z["vw"] == W, {"點": c, "放大層": z})
+            if z["open"]:
+                tap(m, "#zoomClose"); m.wait_for_timeout(300)
+                z2 = m.evaluate("() => ({ hidden: document.getElementById('zoomOv').hidden, bodyOv: document.body.style.overflow })")
+                ok(f"{T} 放大層按「關閉 ✕」（觸控）→ 真的關掉、頁面捲動還原", z2["hidden"] and z2["bodyOv"] == "", z2)
+                if not z2["hidden"]:
+                    m.keyboard.press("Escape")
+            # ---- 頁尾連結與「詳細規範」≥ 40 高
+            ft = m.evaluate("""() => [...document.querySelectorAll('.sitefoot .sf-links a, .sitefoot .sf-links button, #sfMore')]
+                .filter(e => e.getClientRects().length).map(e => [e.textContent.trim().slice(0, 8), Math.round(e.getBoundingClientRect().height)])""")
+            ok(f"{T} 頁尾連結、平台導覽、「顯示詳細規範」每顆高 ≥ 40", len(ft) >= 4 and all(h >= 40 for _, h in ft), ft)
+            # ---- 產業地圖圖例 ≥ 40 高，點一列真的進族群
+            au.load({"name": "產業地圖", "hash": "#industry"})
+            gl = m.evaluate("""() => [...document.querySelectorAll('#gpLegend .lg')].filter(e => e.getClientRects().length)
+                .map(e => [e.dataset.n, Math.round(e.getBoundingClientRect().height), e.classList.contains('other')])""")
+            ok(f"{T} 產業地圖圖例每列高 ≥ 40", len(gl) >= 3 and all(h >= 40 for _, h, _o in gl), gl)
+            first = next((n for n, _h, o in gl if not o), None)
+            if first:
+                h0 = m.evaluate("() => location.hash")
+                tap(m, f'#gpLegend .lg[data-n="{first}"]'); m.wait_for_timeout(500)
+                ok(f"{T} 產業地圖圖例點一列（觸控）→ 真的換到那個族群", m.evaluate("() => location.hash") != h0,
+                   {"點": first, "前": h0, "後": m.evaluate("() => location.hash")})
+            if W != 390:
+                continue
+            # ---- ② 剖析圖章節鈕列（390）
+            au.load({"name": "半導體", "hash": "#industry/semiconductor"})
+            m.wait_for_timeout(600)
+            fd = m.evaluate("""() => { const bs = [...document.querySelectorAll('.mdgfolds button[data-fold]')], gs = [...document.querySelectorAll('#prodDiagram g.dgfold[data-fold]')];
+                return { nb: bs.length, ng: gs.length, minH: bs.length ? Math.min(...bs.map(b => b.getBoundingClientRect().height)) : 0,
+                         pe: gs.length ? getComputedStyle(gs[0]).pointerEvents : null, same: bs.map(b => b.dataset.fold).join() === gs.map(g => g.dataset.fold).join() }; }""")
+            ok(f"{T} 半導體剖析圖：圖下方的章節鈕一條章節列一顆、順序相同、每顆高 ≥ 40；圖裡 15px 的章節列手機不接觸控",
+               fd["nb"] >= 2 and fd["nb"] == fd["ng"] and fd["same"] and fd["minH"] >= 40 and fd["pe"] == "none", fd)
+            if fd["nb"]:
+                SV = "() => Math.round(document.querySelector('#prodDiagram svg').getBoundingClientRect().height)"
+                h0 = m.evaluate(SV)
+                tap(m, ".mdgfolds button[data-fold]:nth-child(2)")
+                s1 = m.evaluate("""() => { const b = document.querySelector('.mdgfolds button[data-fold]:nth-child(2)'), g = document.querySelector(`#prodDiagram g.dgfold[data-fold="${b.dataset.fold}"]`);
+                    const gr = g.getBoundingClientRect(); return { exp: b.getAttribute('aria-expanded'), sign: b.querySelector('.sg').textContent, open: g.classList.contains('open'),
+                    gTop: Math.round(gr.top), vh: innerHeight }; }""")
+                h1 = m.evaluate(SV)
+                ok(f"{T} 點第二顆章節鈕（觸控）→ 圖裡那一段真的展開（圖變高、章節列 open、鈕變「－」），而且那一段捲進畫面",
+                   s1["exp"] == "true" and s1["sign"] == "－" and s1["open"] and h1 > h0 + 20 and 40 <= s1["gTop"] <= s1["vh"] - 60,
+                   {"圖高": [h0, h1], "狀態": s1})
+                tap(m, ".mdgfolds button[data-fold]:nth-child(2)")
+                s2 = m.evaluate("() => document.querySelector('.mdgfolds button[data-fold]:nth-child(2)').getAttribute('aria-expanded')")
+                ok(f"{T} 再點一次 → 收回（圖高回到原本）", s2 == "false" and abs(m.evaluate(SV) - h0) <= 2, {"狀態": s2, "圖高": [h0, m.evaluate(SV)]})
+            # ---- a.lk 點擊區 ≥ 40、中心點不被隔壁搶走（產業鏈頁的族群／產業鏈連結）
+            lk = m.evaluate("""(HB) => { const hb = eval(HB); const as = [...document.querySelectorAll('main .view.on a.lk')].filter(a => a.getClientRects().length).slice(0, 60);
+                const small = [], stolen = [];
+                as.forEach(a => { a.scrollIntoView({ block: 'center', behavior: 'instant' }); const s = hb(a), r = a.getBoundingClientRect();
+                  if (s.w < 40 || s.h < 40) small.push([a.textContent.trim().slice(0, 8), s]);
+                  const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                  if (h && !(h === a || a.contains(h)) && h.closest('a.lk')) stolen.push([a.textContent.trim().slice(0, 8), h.textContent.trim().slice(0, 8)]); });
+                return { n: as.length, small, stolen }; }""", _HITBOX_JS)
+            ok(f"{T} 產業鏈頁的族群／產業鏈連結點擊區 ≥ 40×40，而且中心點不會被隔壁連結的點擊區搶走",
+               lk["n"] >= 5 and not lk["small"] and not lk["stolen"], lk)
+            # ---- 週期統計：排序抽屜
+            au.load({"name": "週期統計", "hash": "#season"})
+            m.wait_for_timeout(500)
+            ROWS = "() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat')); const y = c && c.getOption().yAxis; return y && y[0] ? (y[0].data || []).map(d => d && d.value !== undefined ? d.value : d).join('|') : ''; }"
+            s0 = m.evaluate("""() => { const s = document.getElementById('mSeasonSort'), on = document.querySelector('#seasonHeatHead button.on');
+                return { lab: s && s.textContent, h: s ? Math.round(s.getBoundingClientRect().height) : 0, on: on ? +on.dataset.m : null,
+                         headPe: on ? getComputedStyle(on).pointerEvents : null }; }""")
+            r0 = m.evaluate(ROWS)
+            ok(f"{T} 週期統計有「排序：N 月 ›」鈕（高 ≥ 40、字跟表頭亮的那個月一致），表頭 19px 格子手機不接觸控",
+               s0["h"] >= 40 and s0["on"] and s0["lab"] == f"排序：{s0['on']} 月 ›" and s0["headPe"] == "none", s0)
+            tgt = 3 if s0["on"] != 3 else 5
+            tap(m, "#mSeasonSort")
+            sh = m.evaluate("""() => { const s = document.getElementById('mSheet'); return { open: !!s && !s.hidden, kind: s && s.dataset.kind,
+                n: s ? s.querySelectorAll('.mballgrid button[data-m]').length : 0,
+                minH: s ? Math.min(...[...s.querySelectorAll('.mballgrid button[data-m]')].map(b => b.getBoundingClientRect().height)) : 0 }; }""")
+            ok(f"{T} 點「排序」→ 底部抽屜打開、12 個月各一顆、每顆高 ≥ 40", sh["open"] and sh["kind"] == "seasonsort" and sh["n"] == 12 and sh["minH"] >= 40, sh)
+            tap(m, f'#mSheet .mballgrid button[data-m="{tgt}"]'); m.wait_for_timeout(500)
+            s1 = m.evaluate("""() => { const s = document.getElementById('mSeasonSort'), on = document.querySelector('#seasonHeatHead button.on');
+                return { lab: s && s.textContent, on: on ? +on.dataset.m : null, sheet: document.getElementById('mSheet').hidden }; }""")
+            r1 = m.evaluate(ROWS)
+            ok(f"{T} 抽屜點「{tgt} 月」→ 抽屜收起、表頭改亮 {tgt} 月、鈕字跟著換、熱力圖的族群順序真的變了",
+               s1["on"] == tgt and s1["lab"] == f"排序：{tgt} 月 ›" and s1["sheet"] and r1 and r1 != r0, {"前": s0, "後": s1, "列順序變了": r1 != r0})
+            # ---- 個股頁「基本資料」的族群／題材連結 ≥ 40 高
+            au.load({"name": "個股", "hash": f"#stock/{code}"})
+            bars = m.evaluate(A.SEG_JS)
+            st = next((f"{bar['sel']} > :nth-child({bt['nth']})" for bar in bars for bt in bar["btns"] if bt["label"].startswith("基本資料")), None)
+            if st:
+                au.load({"name": "個股基本資料", "hash": f"#stock/{code}", "steps": [st]})
+                kv = m.evaluate("""() => [...document.querySelectorAll('.mbkv dd a')].filter(a => a.getClientRects().length)
+                    .map(a => [a.textContent.trim().slice(0, 8), Math.round(a.getBoundingClientRect().height)])""")
+                ok(f"{T} 個股頁「基本資料」的產業鏈／族群／題材／網站連結每顆高 ≥ 40", len(kv) >= 3 and all(h >= 40 for _, h in kv), kv)
+                h0 = m.evaluate("() => location.hash")
+                tap(m, '.mbkv dd a[href^="#industry/group/"]'); m.wait_for_timeout(500)
+                ok(f"{T} 點族群連結（觸控）→ 真的換到族群頁", m.evaluate("() => location.hash").startswith("#industry/group/") and m.evaluate("() => location.hash") != h0,
+                   m.evaluate("() => location.hash"))
+            else:
+                ok(f"{T} 個股頁找得到「基本資料」分段", False, bars)
+        finally:
+            m.close()
+    # ---- ③ 桌機（1440）：不插章節鈕列與排序鈕，圖裡的章節列照樣可以點
+    d = b.new_page(viewport={"width": 1440, "height": 950})
+    d.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        d.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); d.wait_for_timeout(2200)
+        dk = d.evaluate("""() => { const g = document.querySelector('#prodDiagram g.dgfold'); return { lists: document.querySelectorAll('.mdgfolds').length,
+            pe: g ? getComputedStyle(g).pointerEvents : null, foldon: document.querySelectorAll('.mfoldon').length }; }""")
+        ok("[手機v4二批 1440px] 桌機不插章節鈕列、圖裡的章節列照樣接滑鼠", dk["lists"] == 0 and dk["foldon"] == 0 and dk["pe"] not in (None, "none"), dk)
+        d.goto(f"{base}#season", wait_until="networkidle"); d.wait_for_timeout(1800)
+        ok("[手機v4二批 1440px] 桌機週期統計沒有手機的排序鈕、表頭月份照樣可以點",
+           d.evaluate("() => !document.getElementById('mSeasonSort') && getComputedStyle(document.querySelector('#seasonHeatHead button')).pointerEvents !== 'none'"))
+    finally:
+        d.close()
 
 
 # ★ 2026-09-26 剖析圖覆蓋普查（Andy：「請檢查所有 2D 3D 圖說明有沒有覆蓋現象」）
