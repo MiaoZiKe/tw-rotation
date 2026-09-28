@@ -35430,6 +35430,14 @@ def t_mobile_broker(b, base, code):
     if ok(f"{T}分時預設：K 線頁有一行短註（分時的來源與怎麼看，或「已改用日 K」）", bool(ln0), ln0):
         ok(f"{T}短註在手機上只佔一行（≤ 30px）、字 ≥ 11px", ln0["h"] <= 30 and ln0["fs"] >= 11, ln0)
         ok(f"{T}短註出現時圖底仍在一屏內（{ln0['lwcB']} ≤ {ln0['vh'] - 58}）", ln0["lwcB"] <= ln0["vh"] - 58, ln0)
+        if ln0["sw"] <= ln0["cw"] + 1:
+            # 這個容器連不到 Yahoo，拿到的是短的「已改用日 K」那句、一行放得下 → 換成線上分時真正會出現的那段長字，
+            # 才驗得到「超出一行會收起、點開看全文」
+            m.evaluate("() => { document.getElementById('liveNote').textContent = '最近交易日 2026-09-25（非即時）的分時；"
+                       "今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。'; }")
+            m.wait_for_timeout(200)
+            ln0 = m.evaluate(LN)
+            ok(f"{T}長短註在手機上仍只佔一行（超出的收起）", ln0["h"] <= 30 and ln0["sw"] > ln0["cw"] + 1, ln0)
         if ln0["sw"] > ln0["cw"] + 1:
             m.tap("#liveNote"); m.wait_for_timeout(300)
             ln1 = m.evaluate(LN)
