@@ -124,7 +124,7 @@
   "tabPlot": 22.3,
   "tabHead": 99,
   "tabCardH": 364,
-  "secs": 7.9
+  "secs": 8.2
  },
  {
   "view": "stock-profit",
@@ -215,7 +215,7 @@
   "tabPlot": 32.7,
   "tabHead": 105,
   "tabCardH": 455,
-  "secs": 8.7
+  "secs": 8.4
  },
  {
   "view": "stock-dividend",
@@ -279,7 +279,7 @@
   "tabPlot": 21.9,
   "tabHead": 57,
   "tabCardH": 360,
-  "secs": 8.0
+  "secs": 7.8
  },
  {
   "view": "stock-inst",
@@ -343,7 +343,7 @@
   "tabPlot": 33.7,
   "tabHead": 59,
   "tabCardH": 734,
-  "secs": 8.1
+  "secs": 8.0
  },
  {
   "view": "stock-margin",
@@ -471,7 +471,7 @@
   "tabPlot": 32.7,
   "tabHead": 79,
   "tabCardH": 728,
-  "secs": 7.9
+  "secs": 8.1
  },
  {
   "view": "industry",
@@ -518,7 +518,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.1
+  "secs": 5.0
  },
  {
   "view": "chain-semi",
@@ -542,7 +542,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.9
+  "secs": 5.8
  },
  {
   "view": "chain-elec",
@@ -566,7 +566,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.7
+  "secs": 5.6
  },
  {
   "view": "chain-semi-ov",
@@ -613,7 +613,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.5
+  "secs": 5.4
  },
  {
   "view": "chain-ai",
@@ -637,7 +637,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 6.0
+  "secs": 5.9
  },
  {
   "view": "stock-overview",
@@ -689,7 +689,7 @@
   "tabPlot": 0.0,
   "tabHead": null,
   "tabCardH": 298,
-  "secs": 7.6
+  "secs": 7.7
  },
  {
   "view": "stock-revenue",
@@ -774,7 +774,7 @@
   "tabPlot": 19.6,
   "tabHead": 153,
   "tabCardH": 398,
-  "secs": 8.0
+  "secs": 7.7
  },
  {
   "view": "stock-profit",
@@ -789,7 +789,7 @@
   "gapH": 12,
   "head": 151,
   "blank": 0.0,
-  "empty": 34.6,
+  "empty": 34.7,
   "worst": {
    "x": 192,
    "y": 1302,
@@ -865,7 +865,7 @@
   "tabPlot": 29.7,
   "tabHead": 105,
   "tabCardH": 455,
-  "secs": 8.9
+  "secs": 8.1
  },
  {
   "view": "stock-dividend",
@@ -934,7 +934,7 @@
   "tabPlot": 17.8,
   "tabHead": 75,
   "tabCardH": 360,
-  "secs": 8.2
+  "secs": 7.7
  },
  {
   "view": "stock-inst",
@@ -998,7 +998,7 @@
   "tabPlot": 32.1,
   "tabHead": 59,
   "tabCardH": 734,
-  "secs": 7.9
+  "secs": 7.8
  },
  {
   "view": "stock-margin",
@@ -1062,7 +1062,7 @@
   "tabPlot": 32.7,
   "tabHead": 59,
   "tabCardH": 734,
-  "secs": 8.2
+  "secs": 7.7
  },
  {
   "view": "stock-holders",
@@ -1126,7 +1126,7 @@
   "tabPlot": 30.2,
   "tabHead": 119,
   "tabCardH": 768,
-  "secs": 8.5
+  "secs": 7.6
  },
  {
   "view": "industry",
@@ -1173,7 +1173,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.4
+  "secs": 4.8
  },
  {
   "view": "chain-semi",
@@ -1197,7 +1197,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.9
+  "secs": 6.0
  },
  {
   "view": "chain-elec",
@@ -1221,7 +1221,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 6.0
+  "secs": 5.5
  },
  {
   "view": "chain-semi-ov",
@@ -1268,7 +1268,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.6
+  "secs": 5.3
  },
  {
   "view": "chain-ai",
@@ -1292,7 +1292,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 6.7
+  "secs": 5.9
  },
  {
   "view": "stock-overview",
@@ -1344,7 +1344,7 @@
   "tabPlot": 0.0,
   "tabHead": null,
   "tabCardH": 218,
-  "secs": 7.7
+  "secs": 7.4
  },
  {
   "view": "stock-revenue",
@@ -1419,7 +1419,7 @@
   "tabPlot": 28.6,
   "tabHead": 115,
   "tabCardH": 378,
-  "secs": 8.0
+  "secs": 7.6
  },
  {
   "view": "stock-profit",
@@ -1510,7 +1510,7 @@
   "tabPlot": 33.4,
   "tabHead": 113,
   "tabCardH": 480,
-  "secs": 8.3
+  "secs": 7.9
  },
  {
   "view": "stock-dividend",
@@ -1574,7 +1574,7 @@
   "tabPlot": 23.7,
   "tabHead": 65,
   "tabCardH": 351,
-  "secs": 8.0
+  "secs": 7.4
  },
  {
   "view": "stock-inst",
@@ -1638,7 +1638,7 @@
   "tabPlot": 29.2,
   "tabHead": 67,
   "tabCardH": 740,
-  "secs": 8.0
+  "secs": 7.6
  },
  {
   "view": "stock-margin",
@@ -1702,7 +1702,7 @@
   "tabPlot": 30.4,
   "tabHead": 67,
   "tabCardH": 740,
-  "secs": 7.8
+  "secs": 7.5
  },
  {
   "view": "stock-holders",
@@ -1766,7 +1766,7 @@
   "tabPlot": 28.5,
   "tabHead": 127,
   "tabCardH": 774,
-  "secs": 7.9
+  "secs": 7.6
  },
  {
   "view": "industry",
@@ -1813,7 +1813,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.2
+  "secs": 4.9
  },
  {
   "view": "chain-semi",
@@ -1821,23 +1821,23 @@
   "tab": null,
   "w": 800,
   "h": 900,
-  "plot1": 59.1,
-  "plotP": 77.6,
-  "docH": 4524,
+  "plot1": 59.4,
+  "plotP": 77.2,
+  "docH": 4506,
   "gapV": null,
   "gapH": null,
   "head": 303,
   "blank": 0.0,
-  "empty": 28.4,
+  "empty": 27.7,
   "worst": {
    "x": 32,
-   "y": 2392,
+   "y": 2376,
    "w": 192,
-   "h": 416
+   "h": 400
   },
   "charts": {},
   "lwc": null,
-  "secs": 6.1
+  "secs": 6.0
  },
  {
   "view": "chain-elec",
@@ -1845,14 +1845,14 @@
   "tab": null,
   "w": 800,
   "h": 900,
-  "plot1": 54.9,
-  "plotP": 71.6,
+  "plot1": 55.2,
+  "plotP": 71.5,
   "docH": 3188,
   "gapV": null,
   "gapH": null,
   "head": 287,
   "blank": 0.0,
-  "empty": 35.0,
+  "empty": 34.8,
   "worst": {
    "x": 320,
    "y": 1736,
@@ -1861,7 +1861,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.9
+  "secs": 5.5
  },
  {
   "view": "chain-semi-ov",
@@ -1869,26 +1869,26 @@
   "tab": null,
   "w": 800,
   "h": 900,
-  "plot1": 35.5,
-  "plotP": 45.4,
+  "plot1": 36.0,
+  "plotP": 45.6,
   "docH": 3792,
   "gapV": null,
   "gapH": null,
   "head": 149,
   "blank": 0.0,
-  "empty": 37.4,
+  "empty": 37.6,
   "worst": {
-   "x": 192,
+   "x": 176,
    "y": 296,
-   "w": 272,
+   "w": 288,
    "h": 320
   },
   "charts": {
    "gpBar": {
-    "w": 694,
+    "w": 702,
     "h": 524,
     "gridTop": 8,
-    "plotPct": 68.6,
+    "plotPct": 68.9,
     "legendIn": false,
     "legendHit": false,
     "legendBox": null,
@@ -1896,7 +1896,7 @@
     "vGrid": 0
    },
    "gpPie": {
-    "w": 694,
+    "w": 702,
     "h": 440,
     "gridTop": null,
     "plotPct": 0,
@@ -1908,7 +1908,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.8
+  "secs": 5.9
  },
  {
   "view": "chain-ai",
@@ -1916,14 +1916,14 @@
   "tab": null,
   "w": 800,
   "h": 900,
-  "plot1": 54.9,
-  "plotP": 72.7,
-  "docH": 4728,
+  "plot1": 55.2,
+  "plotP": 72.6,
+  "docH": 4734,
   "gapV": null,
   "gapH": null,
   "head": 308,
   "blank": 0.0,
-  "empty": 28.0,
+  "empty": 27.4,
   "worst": {
    "x": 608,
    "y": 2200,
@@ -1932,7 +1932,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 7.0
+  "secs": 6.5
  },
  {
   "view": "stock-overview",
@@ -2028,7 +2028,7 @@
    ],
    "h": 464
   },
-  "secs": 7.4
+  "secs": 6.9
  },
  {
   "view": "stock-profit",
@@ -2076,7 +2076,7 @@
    ],
    "h": 464
   },
-  "secs": 7.4
+  "secs": 7.2
  },
  {
   "view": "stock-dividend",
@@ -2124,7 +2124,7 @@
    ],
    "h": 464
   },
-  "secs": 7.2
+  "secs": 7.1
  },
  {
   "view": "stock-inst",
@@ -2172,7 +2172,7 @@
    ],
    "h": 464
   },
-  "secs": 7.2
+  "secs": 7.0
  },
  {
   "view": "stock-margin",
@@ -2220,7 +2220,7 @@
    ],
    "h": 464
   },
-  "secs": 7.2
+  "secs": 6.9
  },
  {
   "view": "stock-holders",
@@ -2268,7 +2268,7 @@
    ],
    "h": 464
   },
-  "secs": 7.1
+  "secs": 6.9
  },
  {
   "view": "industry",
@@ -2315,7 +2315,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.0
+  "secs": 4.8
  },
  {
   "view": "chain-semi",
@@ -2339,7 +2339,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.0
+  "secs": 4.8
  },
  {
   "view": "chain-elec",
@@ -2363,7 +2363,7 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.1
+  "secs": 5.2
  },
  {
   "view": "chain-semi-ov",
@@ -2410,7 +2410,7 @@
    }
   },
   "lwc": null,
-  "secs": 5.3
+  "secs": 5.0
  },
  {
   "view": "chain-ai",
@@ -2434,6 +2434,6 @@
   },
   "charts": {},
   "lwc": null,
-  "secs": 5.3
+  "secs": 5.1
  }
 ]
