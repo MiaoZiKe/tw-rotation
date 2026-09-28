@@ -121,19 +121,28 @@
    ① 資金輪動卡左欄：「資金輪盤 8/28～9/24」小標跟時間拉 Bar 併成一行（放得下才併，放不下自動換行，跟改前一樣兩行）。
       小標排在拉 Bar 前面（order），讀起來是「資金輪盤・這一段日期 → 拉 Bar 調這一段」，盤往上移 30px。
    ② 輪盤高度跟欄寬走：--rot-hk（高 ÷ 欄寬）／--rot-hmax（上限）交給 app.js rotFitH 讀。
-   ③ 901～1100 維持兩欄（量測決定，見 03 文件）；≤900 退單欄時排行放輪盤下方、限高。*/
+      改前高＝0.8 × 欄寬（1280 寬只有 561px 高、盤半徑 267）；改後高＝欄寬（上限 640／≥1101 為 664），盤直徑幾乎等於欄寬。
+   ③ 1060～1100 維持兩欄、821～1059 單欄（排行放輪盤下方、限高）—— 兩種都量過再切（03 文件 §2）：
+      兩欄時輪盤欄 < 560px 會切成「編號模式」（盤上只寫編號、名字列在盤下清單），1000 寬兩欄量到第一屏 41.6 → 41.2、
+      整頁 26.1 → 21.7，901 寬 46.2 → 34.0，都是退步；1100 寬兩欄 37.8 → 47.5、頁高少 500px 是進步。
+      分界 1060：輪盤欄＝(視窗 − 頁邊 32 − 卡片內距 32 − 欄距 12) × 1.4 ÷ 2.4 ≥ 560，再扣桌機捲軸 15px 還站得住。*/
 @media (min-width:821px){
   [data-theme4] #flowRotCard .rotleft{flex-flow:row wrap;align-content:flex-start;column-gap:16px}
   [data-theme4] #flowRotCard .rotleft>*{flex:0 0 100%;min-width:0}
   [data-theme4] #flowRotCard .rotleft>.rotchead{order:1;flex:0 0 auto;margin:0 0 6px}
   [data-theme4] #flowRotCard .rotleft>.rottime{order:2;flex:1 1 auto;width:auto;margin-bottom:6px}
+  /* 勾選列原本 flex-basis 320px（整行寬時用來換行），併進同一行後改成照內容寬，不然 1440 寬也會被擠到第二行 */
+  [data-theme4] #flowRotCard #rotTools{flex:0 1 auto}
   [data-theme4] #flowRotCard .rotleft>.rotstagerow{order:3}
   [data-theme4] #rotClock{--rot-hk:1;--rot-hmax:640}
 }
+/* ≥1101 兩欄：上限 640 → 664。① 把小標併進時間列省下來的 24px 還給輪盤（卡片總高跟改前一樣，省下的空間給圖、不是只讓頁面變短）；
+   1440×900 時輪盤容器底在 882px，整個盤仍在第一屏裡。1440 寬：盤半徑 304 → 318。*/
+@media (min-width:1101px){ [data-theme4] #rotClock{--rot-hmax:664} }
 /* index.html 在 ≤1100 給 .rothead 留了 190px 右邊距，是給已經拿掉的「放大／怎麼看」兩顆鈕（.rotbtns，09-25／09-26 移除）釘在右上角用的；
    鈕不在了，邊距只會把標題列擠窄 → 歸零 */
 @media (min-width:821px) and (max-width:1100px){ [data-theme4] #flowRotCard .rothead{padding-right:0} }
-@media (min-width:901px) and (max-width:1100px){
+@media (min-width:1060px) and (max-width:1100px){
   [data-theme4] .rotcols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
   [data-theme4] .rotpane+.rotpane{margin-top:0}
   /* 側欄（象限／成分股）蓋在排行那一欄上：跟 ≥1101 同一套收小規則 */
@@ -160,7 +169,7 @@
   [data-theme4] #flowInstCard>#instGroupsWrap>#instGroups{flex:1 1 auto}
   [data-theme4] #flowConcCard>#conc{flex:1 1 auto}
 }
-@media (min-width:821px) and (max-width:900px){
+@media (min-width:821px) and (max-width:1059px){
   /* 單欄：排行放輪盤下方，高度只給 15 根長條需要的（15 × 21 ＋ 上下軸 50），不再撐 420 */
   [data-theme4] .rotright>#rankFlowWrap{min-height:0}
   [data-theme4] .rotright>#rankFlowWrap>#rankFlow{min-height:365px;height:365px}

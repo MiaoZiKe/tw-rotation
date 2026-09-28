@@ -2,7 +2,9 @@
 
 measure.py 量的是整頁（第一屏繪圖區 %、空白帶、頁高），改前改後都用它；這支只量資金流向頁四張卡的細節：
   rot     資金輪動卡：卡高、輪盤容器寬高、盤半徑 R、盤直徑佔容器寬 %、排行圖容器寬高與繪圖區（grid）寬高、兩欄或單欄
-  sankey  資金去向：畫布寬高、**右側空帶寬**（從畫布右緣往左，整欄像素都是底色的連續寬度，截圖量）
+  sankey  資金去向：畫布寬高、**右側空帶寬**（FlowTopo.probe 讀每個節點標籤的實際位置）：
+            bandIdle＝畫布右緣 − 根／產業鏈／族群標籤最右緣（沒滑過時右邊整條空多寬）
+            bandLeaf＝畫布右緣 − 代表股標籤最右緣（滑過顯示代表股時，右邊還剩多寬用不到）
   legend  族群 × 法人、資金集中度：ECharts 圖例是不是畫在圖表容器裡（inBox）、繪圖區頂端離容器頂幾 px（gridTop）
   axis    四張 ECharts 圖的軸字最小字級（getOption 讀 axisLabel.fontSize，沒寫＝ECharts 預設 12）
   docH    頁高
@@ -17,7 +19,6 @@ measure.py 量的是整頁（第一屏繪圖區 %、空白帶、頁高），改�
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import threading
 from functools import partial
@@ -48,6 +49,11 @@ JS = r"""
     && r.getBoundingClientRect().left > l.getBoundingClientRect().left + 40);
   out.clockTop = clk ? Math.round(clk.getBoundingClientRect().top - card.getBoundingClientRect().top) : null;
   out.sankey = R(document.getElementById('sankey'));
+  try { const t = window.FlowTopo && FlowTopo.probe(document.getElementById('sankey'));
+    const v = t.nodes.filter(n => n.lv < 3 && n.lab), l3 = t.nodes.filter(n => n.lv === 3 && n.lab);
+    out.sankeyBand = { W: Math.round(t.W), idle: Math.round(t.W - Math.max(...v.map(n => n.lab.x + n.lab.w))),
+      leaf: l3.length ? Math.round(t.W - Math.max(...l3.map(n => n.lab.x + n.lab.w))) : null,
+      barH: Math.round(t.total - t.H) }; } catch (e) { out.sankeyBand = null; }
   out.sankeyCard = R(document.getElementById('flowSankeyCard'));
   const leg = {};
   for (const id of ['instGroups', 'conc', 'rankFlow', 'rotClock']) {
@@ -73,24 +79,6 @@ JS = r"""
 """
 
 
-def right_band(img, box, bg_tol=10):
-    """從 box 右緣往左，整欄像素（上下各內縮 4px）都跟那一欄的第一個像素差 ≤ bg_tol 的連續寬度。"""
-    import numpy as np
-    x0, y0, w, h = box["x"], box["y"], box["w"], box["h"]
-    a = np.asarray(img.convert("RGB")).astype(np.int16)[y0 + 4:y0 + h - 4, x0:x0 + w]
-    if a.size == 0:
-        return None
-    ref = a[:, -3:-2, :].mean(axis=0, keepdims=True) if a.shape[1] > 3 else a[:, -1:, :]
-    n = 0
-    for j in range(a.shape[1] - 1, -1, -1):
-        col = a[:, j, :]
-        if (abs(col - ref[0]).max()) <= bg_tol:
-            n += 1
-        else:
-            break
-    return n
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--site", required=True)
@@ -101,7 +89,6 @@ def main() -> int:
     ap.add_argument("--port", type=int, default=8794)
     ap.add_argument("--wait", type=int, default=3500)
     args = ap.parse_args()
-    from PIL import Image
     from playwright.sync_api import sync_playwright
 
     site = Path(args.site).resolve()
@@ -122,14 +109,16 @@ def main() -> int:
                 pg = ctx.new_page()
                 pg.goto(f"{base}#flow", wait_until="networkidle")
                 pg.wait_for_timeout(args.wait)
+                # 資金去向的畫布在首屏下方時是「捲進畫面或閒下來才畫」：先捲過去讓它畫完，再捲回頂端量
+                pg.evaluate("() => { const e = document.getElementById('sankey'); if (e) e.scrollIntoView(); }")
+                pg.wait_for_timeout(900)
+                pg.evaluate("() => window.scrollTo(0, 0)")
+                pg.wait_for_timeout(300)
                 m = pg.evaluate(JS)
-                png = pg.screenshot(full_page=True)
-                img = Image.open(io.BytesIO(png))
-                m["sankeyRightBand"] = right_band(img, m["sankey"]) if m.get("sankey") else None
                 m["w"] = w
                 res.append(m)
                 print(json.dumps({k: m.get(k) for k in ("w", "docH", "twoCol", "R", "discPct", "clock", "clockTop", "rank", "rankGrid",
-                                                         "sankeyRightBand")}, ensure_ascii=False), flush=True)
+                                                         "sankeyBand")}, ensure_ascii=False), flush=True)
                 ctx.close()
             b.close()
     finally:

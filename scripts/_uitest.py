@@ -16392,6 +16392,7 @@ def t_title_icons(pg, b, base, code):
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
+    "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
@@ -37075,6 +37076,138 @@ def t_account_cloud(b, base):
             dev.wait(timeout=3)
         except Exception:  # noqa: BLE001
             dev.kill()
+
+
+# ---------------------------------------------------------------------------------------------------
+# ★ 2026-09-28 設計 v4 第二批 2A：資金流向頁（docs/design_v4/03_第二批2A.md）
+V4_2A_M = r"""() => {
+  const R = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, b: r.bottom, r: r.right }; };
+  const q = (s) => document.querySelector(s);
+  const out = { chead: R(q('#flowRotCard .rotchead')), time: R(q('#rotBack')), clock: R(q('#rotClock')),
+    left: R(q('#flowRotCard .rotleft')), right: R(q('#flowRotCard .rotright')), rank: R(q('#rankFlow')),
+    numList: !!document.querySelector('.rotnums[data-for="rotClock"]'),
+    sw: document.documentElement.scrollWidth, iw: innerWidth };
+  const gtop = (id) => { try { const c = echarts.getInstanceByDom(document.getElementById(id));
+      return Math.round(c.getModel().getComponent('grid').coordinateSystem.getRect().y); } catch (e) { return null; } };
+  const legShown = (id) => { try { const c = echarts.getInstanceByDom(document.getElementById(id)); const l = c.getOption().legend;
+      return !!(l && l[0] && l[0].show !== false); } catch (e) { return null; } };
+  const axisFs = (id) => { try { const o = echarts.getInstanceByDom(document.getElementById(id)).getOption(); const fs = [];
+      for (const k of ['xAxis', 'yAxis']) for (const a of (o[k] || [])) { const al = a.axisLabel || {}; if (al.show !== false) fs.push(al.fontSize == null ? 12 : al.fontSize); }
+      return fs.length ? Math.min(...fs) : null; } catch (e) { return null; } };
+  out.inst = { gtop: gtop('instGroups'), leg: legShown('instGroups'), fs: axisFs('instGroups') };
+  out.conc = { gtop: gtop('conc'), leg: legShown('conc'), fs: axisFs('conc') };
+  out.rankFs = axisFs('rankFlow');
+  const lg = q('#instLegend'), ig = q('#instGroups');
+  out.instLeg = lg ? { box: R(lg), n: lg.querySelectorAll('button').length, inRow: !!lg.closest('.ddrow[data-for="instGroups"]'),
+    outside: !!(ig && lg.getBoundingClientRect().bottom <= ig.getBoundingClientRect().top + 1) } : null;
+  out.concMain = (q('#concMa .concmain') || {}).textContent || '';
+  try { const t = FlowTopo.probe(document.getElementById('sankey'));
+    const v = t.nodes.filter(n => n.lv < 3 && n.lab), l3 = t.nodes.filter(n => n.lv === 3 && n.lab);
+    const bar = q('#sankey .ftbar'), st = q('#sankey .ftstage');
+    out.sk = { W: t.W, H: t.H, total: t.total, idle: t.W - Math.max(...v.map(n => n.lab.x + n.lab.w)),
+      leaf: l3.length ? t.W - Math.max(...l3.map(n => n.lab.x + n.lab.w)) : null,
+      barFloat: !!(bar && bar.classList.contains('ftfloat') && st && st.contains(bar)),
+      btnIn: (() => { const b = q('#sankeyMotionBtn'); if (!b || !st) return false; const br = b.getBoundingClientRect(), sr = st.getBoundingClientRect();
+        return br.top >= sr.top - 1 && br.right <= sr.right + 1 && br.width > 0; })() };
+  } catch (e) { out.sk = null; }
+  return out; }"""
+
+
+def t_design_v4_2a(b, base, code):
+    """設計 v4 第二批 2A：資金流向頁的空間。驗「畫面真的因此改變了」：
+      ① 1440：「資金輪盤」小標與時間拉 Bar 同一行、輪盤高＝min(欄寬, 640)、排行在右欄
+      ② 1080（1060～1100）：兩欄、輪盤欄 ≥ 560（名字寫在盤上，不是編號模式）
+      ③ 1000（821～1059）：單欄、排行在輪盤下方、限高 365、沒有橫向捲軸
+      ④ 資金去向：代表股的字右緣離畫布 ≤ 16px、說明列浮在畫布右上角（不佔高度）、「動態」鈕真的切得動
+      ⑤ 族群 × 法人：ECharts 圖例不畫、HTML 圖例在篩選列（繪圖區外）；點「投信」真的藏起投信、再點回來；重畫之後狀態還在
+      ⑥ 資金集中度：ECharts 圖例不畫、主線色樣在均線列；切「前 10 大」色樣文字跟著換
+      ⑦ 軸字 ≥ 12；三主題 × 深淺都沒有橫向捲軸、HTML 圖例看得到、字對比 ≥ 4.5"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(base + "#flow", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme4'); localStorage.removeItem('tw.theme'); localStorage.setItem('tw.flowtopo.motion', '1'); } catch(e){} }")
+    pg.goto("about:blank"); pg.goto(base + "#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+    m = pg.evaluate(V4_2A_M)
+    ok("① [1440] 「資金輪盤」小標跟時間拉 Bar 在同一行（頂端差 ≤ 6px）",
+       bool(m["chead"] and m["time"]) and abs(m["chead"]["t"] - m["time"]["t"]) <= 6 and m["chead"]["r"] <= m["time"]["l"], m)
+    ok("① [1440] 輪盤高＝min(欄寬, 640)（改前 0.8 × 欄寬）", abs(m["clock"]["h"] - min(640, m["clock"]["w"])) <= 3, m["clock"])
+    ok("① [1440] 兩欄：排行在右欄", m["right"]["l"] > m["left"]["r"] - 1 and abs(m["right"]["t"] - m["left"]["t"]) < 40, [m["left"], m["right"]])
+    sk = m["sk"]
+    if ok("④ 讀得到資金去向的探針", bool(sk), sk):
+        ok("④ 代表股的字右緣離畫布右緣 ≤ 16px（改前 1440 寬 101px 連滑過都用不到）", sk["leaf"] is not None and 0 <= sk["leaf"] <= 16, sk)
+        ok("④ 沒滑過時右側空帶只剩代表股那一欄（≤ 180px；改前 271px）", sk["idle"] <= 180, sk)
+        ok("④ 說明列浮在畫布右上角、不佔高度（容器高＝畫布高）", sk["barFloat"] and sk["btnIn"] and abs(sk["total"] - sk["H"]) < 1, sk)
+        m0 = pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')")
+        scroll_to(pg, "sankey"); pg.wait_for_timeout(300)
+        click(pg, "#sankeyMotionBtn", 500)
+        m1 = pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')")
+        ok("④ 浮在右上角的「動態」鈕按得到、真的切換（localStorage 換了）", m0 != m1, [m0, m1])
+        click(pg, "#sankeyMotionBtn", 300)
+    inst = m["inst"]
+    ok("⑤ 族群 × 法人：ECharts 圖例不畫、繪圖區頂端 ≤ 10px（改前 30）", inst["leg"] is False and inst["gtop"] is not None and inst["gtop"] <= 10, inst)
+    ok("⑤ HTML 圖例三顆、在篩選列、在繪圖區外（圖的上緣之上）", bool(m["instLeg"]) and m["instLeg"]["n"] == 3 and m["instLeg"]["inRow"] and m["instLeg"]["outside"], m["instLeg"])
+    sel = lambda: pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
+        const s = (c.getOption().legend[0] || {}).selected || {}; const b = document.querySelector('#instLegend button[data-n="投信"]');
+        return { sel: s['投信'] !== false, pressed: b && b.getAttribute('aria-pressed') }; }""")
+    scroll_to(pg, "instGroups"); pg.wait_for_timeout(300)
+    h0 = canvas_hash(pg, "#instGroups")
+    click(pg, '#instLegend button[data-n="投信"]', 700)
+    s1 = sel(); h1 = canvas_hash(pg, "#instGroups")
+    ok("⑤ 點「投信」：圖上的投信真的藏起來（ECharts 選取＝false、圖換了、鈕變成未按下）", not s1["sel"] and s1["pressed"] == "false" and h1 != h0, [s1, h0, h1])
+    # 重畫（拉天數拉 Bar）之後狀態還在
+    pg.evaluate("""() => { const i = document.querySelector('#instDays input[type=range]'); if (!i) return;
+        i.value = String(Math.max(+i.min || 1, (+i.value || 20) - 5)); i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }""")
+    pg.wait_for_timeout(900)
+    s2 = sel()
+    ok("⑤ 換天數重畫之後，投信仍然是藏起來的（圖例也還在篩選列）", not s2["sel"] and s2["pressed"] == "false" and count(pg, "#instLegend button") == 3, s2)
+    click(pg, '#instLegend button[data-n="投信"]', 700)
+    s3 = sel()
+    ok("⑤ 再點一次「投信」：顯示回來", s3["sel"] and s3["pressed"] == "true", s3)
+    conc = m["conc"]
+    ok("⑥ 資金集中度：ECharts 圖例不畫、繪圖區頂端 ≤ 12px（改前 30）", conc["leg"] is False and conc["gtop"] is not None and conc["gtop"] <= 12, conc)
+    ok("⑥ 主線色樣在均線列（前 5 族群佔比）", "前 5 族群佔比" in m["concMain"], m["concMain"])
+    scroll_to(pg, "conc"); pg.wait_for_timeout(200)
+    click(pg, '#concSeg button[data-v="10"]', 900)
+    t10 = pg.evaluate("() => (document.querySelector('#concMa .concmain') || {}).textContent || ''")
+    ok("⑥ 切「前 10 大」：色樣文字跟著換成前 10", "前 10 族群佔比" in t10, t10)
+    click(pg, '#concSeg button[data-v="5"]', 600)
+    ok("⑦ 軸字 ≥ 12（排行／族群 × 法人／集中度）", all((x or 0) >= 12 for x in (m["rankFs"], inst["fs"], conc["fs"])), [m["rankFs"], inst["fs"], conc["fs"]])
+
+    # ---- ② 1080：兩欄
+    pg.set_viewport_size({"width": 1080, "height": 900}); pg.wait_for_timeout(1500)
+    m = pg.evaluate(V4_2A_M)
+    ok("② [1080] 兩欄（排行在輪盤右邊）", m["right"]["l"] > m["left"]["r"] - 1 and abs(m["right"]["t"] - m["left"]["t"]) < 40, [m["left"], m["right"]])
+    ok("② [1080] 輪盤欄 ≥ 560：名字寫在盤上（不是編號模式、盤下沒有編號清單）", m["clock"]["w"] >= 560 and not m["numList"], [m["clock"], m["numList"]])
+    ok("② [1080] 沒有橫向捲軸", m["sw"] <= m["iw"] + 1, m)
+    # ---- ③ 1000：單欄
+    pg.set_viewport_size({"width": 1000, "height": 900}); pg.wait_for_timeout(1500)
+    m = pg.evaluate(V4_2A_M)
+    ok("③ [1000] 單欄：排行在輪盤下方", m["rank"]["t"] >= m["clock"]["b"] - 1, [m["clock"], m["rank"]])
+    ok("③ [1000] 排行限高 365（改前撐到 420）", abs(m["rank"]["h"] - 365) <= 2, m["rank"])
+    ok("③ [1000] 單欄時輪盤不是編號模式", not m["numList"], m["numList"])
+    ok("③ [1000] 沒有橫向捲軸", m["sw"] <= m["iw"] + 1, m)
+    ctx.close()
+
+    # ---- ⑦ 三主題 × 深淺
+    for th in ("casual", "hud", "pro"):
+        for md in ("dark", "light"):
+            c2 = b.new_context(viewport={"width": 1440, "height": 900})
+            c2.add_init_script(f"try{{localStorage.setItem('tw.theme4','{th}');localStorage.setItem('tw.theme','{md}');}}catch(e){{}}")
+            p2 = c2.new_page()
+            p2.goto(base + "#flow", wait_until="networkidle"); p2.wait_for_timeout(2600)
+            tag = f"{th}・{'深' if md == 'dark' else '淺'}"
+            r = p2.evaluate("() => ({ t4: document.documentElement.getAttribute('data-theme4'), sw: document.documentElement.scrollWidth, iw: innerWidth })")
+            ok(f"⑦ {tag}：主題真的掛上、1440 沒有橫向捲軸", r["t4"] == th and r["sw"] <= r["iw"] + 1, r)
+            scroll_to(p2, "instGroups"); p2.wait_for_timeout(400)
+            cr = p2.evaluate(V4_CONTRAST_JS, ["#instLegend button", "#concMa .concmain", "#flowRotCard .rotchead h4"])
+            bad = {k: v for k, v in cr.items() if v is None or v < 4.5}
+            ok(f"⑦ {tag}：圖例與小標的字對比 ≥ 4.5", not bad, cr)
+            p2.set_viewport_size({"width": 1080, "height": 900}); p2.wait_for_timeout(1200)
+            r = p2.evaluate("() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth })")
+            ok(f"⑦ {tag}：1080 兩欄沒有橫向捲軸", r["sw"] <= r["iw"] + 1, r)
+            c2.close()
 
 
 if __name__ == "__main__":
