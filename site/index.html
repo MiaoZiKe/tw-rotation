@@ -744,6 +744,20 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* 這個週期這檔沒有資料：灰掉但還是點得下去，點了會說明為什麼沒有 */
 .seg button.off{color:var(--ink-3);opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
 .seg button.off.on{background:var(--line-2);color:var(--ink-2);text-decoration:none;opacity:1}
+/* ★ 2026-09-28 個股「法人／資券／大戶散戶」三頁：表格裡「目前選中的那一段」欄位反白，對得上上面的圖 */
+.chipTbl th.sel{color:var(--cyan)}
+.chipTbl td.sel{background:color-mix(in srgb,var(--cyan) 7%,transparent);font-weight:700}
+/* 大戶／散戶持股：三顆色塊＝圖例兼開關（按掉那一條就收掉那一格）。顏色由 --hc 帶進來（青／琥珀／紫，避開紅綠） */
+.hoTgls{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.hoTgl{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:4px 12px;border-radius:10px;cursor:pointer;
+  border:2px solid var(--hc);background:color-mix(in srgb,var(--hc) 12%,var(--panel-2));color:var(--ink);font:inherit;font-size:14px}
+.hoTgl .sw{width:22px;height:4px;border-radius:2px;background:var(--hc);flex:none}
+.hoTgl .nm{font-weight:700}
+.hoTgl b{font-size:14.5px}
+.hoTgl span.mono{font-size:12.5px}
+.hoTgl.off{border-color:var(--line-2);background:transparent;color:var(--ink-3)}
+.hoTgl.off .sw{background:var(--line-2)}
+.hoTgl.off .nm{text-decoration:line-through;text-decoration-thickness:1px}
 /* K 線設定面板：指標樣式列 */
 .cfgpop .strow{align-items:center;gap:7px}
 .cfgpop .strow>label{min-width:74px;font-size:12.5px;color:var(--ink-2)}
@@ -4059,6 +4073,16 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbchartbox{position:relative;margin:0 0 6px}
   body.m3on .mbchart{height:210px;width:100%}
   body.m3on .mbchartbox.fold .mbchart{display:none}
+  /* 2026-09-28 手機「大戶／散戶」：三顆色塊＝圖例兼開關（跟桌機 .hoTgl 同一套配色；按掉＝那一條收掉） */
+  body.m3on .mbhotgls{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  body.m3on .mbhotgl{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:3px 10px;border-radius:9px;cursor:pointer;
+    border:2px solid var(--hc);background:color-mix(in srgb,var(--hc) 12%,var(--panel-2));color:var(--ink);font:inherit;font-size:13.5px}
+  body.m3on .mbhotgl i{width:16px;height:4px;border-radius:2px;background:var(--hc);flex:none}
+  body.m3on .mbhotgl .nm{font-weight:700}
+  body.m3on .mbhotgl small{font-size:12px}
+  body.m3on .mbhotgl.off{border-color:var(--line-2);background:transparent;color:var(--ink-3)}
+  body.m3on .mbhotgl.off i{background:var(--line-2)}
+  body.m3on .mbhotgl.off .nm{text-decoration:line-through}
   body.m3on .mbfold{display:block;margin:0 auto;min-height:40px;min-width:120px;border:0;background:transparent;color:var(--ink-3);font-size:13px;cursor:pointer}
   body.m3on .mbtblwrap{margin:0 -14px;overflow:visible}
   body.m3on .mbtbl{width:100%;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}

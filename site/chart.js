@@ -849,7 +849,7 @@
         if (!pages || st.next >= pages) {
           // 這一檔在資料湖裡沒有比個股頁更舊的歷史（回補還沒跑到它）
           st.done = true;
-          this._histNote(pages ? '已經到最早一筆了' : '這一檔的更早歷史還在回補，目前只有畫面上這一段', 3200);
+          this._histNote(pages ? '已經到最早一筆了' : '更早的歷史資料準備中，目前只有畫面上這一段', 3200);
           return 0;
         }
         const j = await histFetch(code, st.next);
@@ -865,7 +865,7 @@
         if (this._dead || this.histCode() !== code || !this.histReady()) return 0;
         this._histDailyUsed = st.daily.length;
         const n = this._prependHistory(st.daily);
-        this._histNote(n ? `已回補到 ${this.data.length ? fmtTime(this.data[0].time, this.tf) : ''}`
+        this._histNote(n ? `已載入到 ${this.data.length ? fmtTime(this.data[0].time, this.tf) : ''}`
           : '已經到最早一筆了', 2600);
         return n;
       } catch (e) {
