@@ -299,6 +299,13 @@
      flex 換行是照「標題的最大內容寬」判斷的，所以這裡量「沒有圖示時標題多寬」，把標題的 max-width 釘在那個寬度：
      換不換行跟加圖示前一模一樣，多出來的那一點寬度改由標題自己內部吸收（副標本來就會在標題內換行）。
      只在「加了圖示真的讓那一列變高」時才動；列寬變了（換寬度、側欄開關）重量一次。 */
+  /* 做法分兩步，先輕後重（2026-09-28 收尾時補第 1 步）：
+     1. 先把「標題內」的字距從 10px 收到 4px（.card h3 是 flex＋gap 10px：字｜?｜副標 兩個間隔共省 12px），
+        標題列的間距從 12px 收到 8px（再省 4px）—— 只動這一條標題、只在它真的會被圖示擠換行時才動。
+        收完就放得下＝版面跟沒有圖示時一模一樣（同一列、同一個高度）。
+     2. 還是放不下（空間差超過 16px）才退到原本的做法：把標題 max-width 釘在「沒有圖示時的寬度」，
+        篩選器留在原位，多出來的寬度由標題自己內部換行吸收。 */
+  var TIGHT_H = 4, TIGHT_ROW = 8;
   function fit(h, sp) {
     var p = h.parentElement;
     if (!p || p.children.length < 2 || !h.getClientRects().length) return;
@@ -306,12 +313,24 @@
     if (h._tiFit === key) return;
     var cs = getComputedStyle(p);
     if (cs.display.indexOf('flex') < 0 || cs.flexWrap === 'nowrap' || cs.flexDirection.indexOf('row') < 0) { h._tiFit = key; return; }
-    if (h.getAttribute('data-ti-fit')) { h.style.maxWidth = ''; h.removeAttribute('data-ti-fit'); }
+    if (h.getAttribute('data-ti-fit')) {
+      h.style.maxWidth = ''; h.style.columnGap = ''; p.style.columnGap = ''; h.removeAttribute('data-ti-fit'); fixGap(h, sp);
+    }
     sp.style.display = 'none';
     var h0 = p.getBoundingClientRect().height, w0 = h.getBoundingClientRect().width;
     sp.style.display = '';
     var h1 = p.getBoundingClientRect().height;
-    if (h1 > h0 + 1) { h.style.maxWidth = Math.ceil(w0) + 'px'; h.setAttribute('data-ti-fit', '1'); }
+    if (h1 > h0 + 1) {
+      var hg = parseFloat(getComputedStyle(h).columnGap) || 0, pg = parseFloat(cs.columnGap) || 0;
+      if (/flex|grid/.test(getComputedStyle(h).display) && hg > TIGHT_H) h.style.columnGap = TIGHT_H + 'px';
+      if (pg > TIGHT_ROW) p.style.columnGap = TIGHT_ROW + 'px';
+      fixGap(h, sp);
+      h.setAttribute('data-ti-fit', 'gap');
+      if (p.getBoundingClientRect().height > h0 + 1) {
+        h.style.columnGap = ''; p.style.columnGap = ''; fixGap(h, sp);
+        h.style.maxWidth = Math.ceil(w0) + 'px'; h.setAttribute('data-ti-fit', 'pin');
+      }
+    }
     h._tiFit = p.clientWidth + '|' + h.textContent.length;
   }
   function fitAll() {

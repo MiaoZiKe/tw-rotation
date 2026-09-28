@@ -15426,7 +15426,11 @@ TI_M = """([HS, HOST, NOT]) => {
   const grow = [];
   hs.forEach((h, i) => { const a = withI[i], b = noI[i];
     if (a.h > b.h + 1 || a.p > b.p + 1 || a.ps > Math.max(0, b.ps) + 1) grow.push({ t: rows[i].t, h: [Math.round(b.h), Math.round(a.h)], row: [Math.round(b.p), Math.round(a.p)], ovf: [b.ps, a.ps] }); });
-  return { n: hs.length, miss: rows.filter(r => !r.ic).map(r => r.t), fb: rows.filter(r => r.fb).map(r => r.t),
+  // 沒掛在卡片外殼裡、但看得見的標題（h2～h5）：用來證明「這個畫面量到 0 個」是真的沒有標題，不是選擇器漏認
+  const orphans = [...document.querySelectorAll('main h2, main h3, main h4, main h5, #app h2, #app h3, #app h4, #app h5')]
+    .filter(h => !h.closest(HOST) && !h.closest(NOT) && vis(h) && h.textContent.replace(/\\s+/g, '').length > 0)
+    .map(h => h.textContent.replace(/\\s+/g, ' ').trim().slice(0, 22));
+  return { n: hs.length, orphans: [...new Set(orphans)], miss: rows.filter(r => !r.ic).map(r => r.t), fb: rows.filter(r => r.fb).map(r => r.t),
     notFirst: rows.filter(r => r.ic && !r.first).map(r => r.t),
     low: rows.filter(r => r.ic && r.cr < 3).map(r => [r.t, r.tone, r.cr, r.stroke]), minCr: rows.filter(r => r.ic).reduce((m, r) => Math.min(m, r.cr), 99),
     tones: [...new Set(rows.filter(r => r.ic).map(r => r.tone))], grow,
@@ -15462,6 +15466,16 @@ def _ti_measure_all(pg, tag, res):
         one(f"{tag}／分頁 {t}")
     if tabs:
         pg.eval_on_selector(f'#stockTabs button[data-t="{tabs[0]}"]', "b => b.click()"); pg.wait_for_timeout(500)
+    # 手機（≤640）個股頁是券商式：桌機分頁收起來，換成 #mbTabs —— 逐一切過去
+    # （「AI 分析」那頁有卡片標題；其餘是分段鈕＋關鍵數字＋圖＋表，本來就沒有卡片標題，靠 orphans 證明不是漏認）
+    mtabs = pg.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].filter(b => b.getClientRects().length).map(b => b.dataset.t)")
+    for t in mtabs:
+        pg.eval_on_selector(f'#mbTabs button[data-t="{t}"]', "b => b.click()"); pg.wait_for_timeout(900)
+        one(f"{tag}／手機分頁 {t}")
+    if mtabs:
+        pg.eval_on_selector(f'#mbTabs button[data-t="{mtabs[0]}"]', "b => b.click()"); pg.wait_for_timeout(500)
+        pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.m3.sk.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        return
     sp, pb = _ti_segments(pg)
     for si in range(max(sp, 1)):
         if sp:
@@ -15499,7 +15513,12 @@ def t_title_icons(pg, b, base, code):
             tot = sum(m["n"] for _, m in res)
             print(f"  （標題圖示 {w} {mode}）量了 {len(res)} 個畫面、{tot} 個卡片標題，最低對比 {min([m['minCr'] for _, m in res] or [0])}："
                   + "、".join(f"{l.split(' ', 2)[2]} {m['n']}" for l, m in res))
-            ok(f"[標題圖示 {w} {mode}] 每個畫面都量得到卡片標題", all(m["n"] > 0 for _, m in res), [l for l, m in res if not m["n"]])
+            # 量到 0 個的畫面（手機券商式個股頁、只有一張圖的分段）要證明「頁面上真的沒有其他看得見的標題」，不是選擇器漏認
+            ok(f"[標題圖示 {w} {mode}] 量到 0 個卡片標題的畫面，頁面上也真的沒有其他看得見的標題",
+               all(m["n"] > 0 or not m["orphans"] for _, m in res), [(l, m["orphans"]) for l, m in res if not m["n"] and m["orphans"]])
+            zero = [l for l, m in res if not m["n"]]
+            if zero:
+                print(f"  （標題圖示 {w} {mode}）這些畫面沒有卡片標題（已確認頁面上也沒有其他標題）：" + "、".join(zero))
             ok(f"[標題圖示 {w} {mode}] 總數夠多（走遍頁面才會 > 20）", tot > 20 or (mode == "light" and w != 1440 and tot > 5), tot)
             for label, m in res:
                 ok(f"★ [標題圖示 {label}] 每個卡片標題都有圖示（共 {m['n']} 個）", not m["miss"], m["miss"])
