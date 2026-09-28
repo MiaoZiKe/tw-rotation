@@ -3364,13 +3364,16 @@ def t_new_market3(pg, base):
                li[i] and li[i]["tf"] == tfn and li[i]["n"] > 5, li[i])
             ok(f"★ [{tf}] {nm}不再出現「已改用日」", li[i] and "已改用" not in li[i]["fb"], li[i])
         ok(f"[{tf}] 三張圖的來源標記都是 lake", src == ["lake"] * 3, src)
-        # ★ 2026-09-25 改前→改後：改前「指數量全 0 → 量柱隱藏」→ 改後三張量柱都照畫（指數歷史用估算、台指期實量）
-        ok(f"[{tf}] 指數湖裡的量全 0 → 估算補上，三張量柱都照畫、每根 > 0",
-           all(li[i] and li[i]["vol"] and li[i]["pos"] == li[i]["n"] for i in ("TSE", "OTC", "FUT")), li)
+        # ★ 2026-09-25 改前→改後：改前「指數量全 0 → 量柱隱藏」→ 09-25 改成三張都照畫（指數歷史用估算）
+        # ★ 2026-09-28 再改回（DECISIONS #272，Andy：「沒有確切成交量」）：不估 —— 指數湖的量全 0、日線湖也沒有那幾天
+        #   → 量面板收掉、圖上方寫「此週期無成交量資料」；台指期是逐筆實量 → 照畫、每根 > 0
+        ok(f"[{tf}] 指數湖裡的量全 0（日線也對不到）→ 加權、櫃買不畫量柱、不估，圖上方寫「此週期無成交量資料」",
+           all(li[i] and not li[i]["vol"] and li[i]["est"] == 0 and "此週期無成交量資料" in li[i]["fb"] for i in ("TSE", "OTC")), li)
+        ok(f"[{tf}] 台指期逐筆實量 → 量柱照畫、每根 > 0", li["FUT"] and li["FUT"]["vol"] and li["FUT"]["pos"] == li["FUT"]["n"], li["FUT"])
         # ★ 2026-09-26：櫃買、台指期的多日分 K 是證交所分時自己累積的 → 卡片一行「自 YYYY-MM-DD 起累積（N 天）」；
         #   加權有 Yahoo 更早的歷史 → 不寫。天數讀 src（build_payload 算的），不寫死。
         for i, nm in (("OTC", "櫃買"), ("FUT", "台指期")):
-            # （這份假湖的量是 0，後面會再接一句「灰色量柱＝估算量」，所以只驗短句本身在、而且排第一）
+            # （這份假湖的量是 0，後面會再接一句「此週期無成交量資料」，所以只驗短句本身在、而且排第一）
             ok(f"★ [{tf}] {nm}卡片一行「{nm}分 K 自 2026-08-17 起累積（30 天）」",
                li[i] and li[i]["fb"].startswith(f"{nm}分 K 自 2026-08-17 起累積（30 天）"), li[i])
         ok(f"[{tf}] 加權有更早的 Yahoo 歷史 → 不寫「起累積」", li["TSE"] and "起累積" not in li["TSE"]["fb"], li["TSE"])
@@ -3584,7 +3587,7 @@ def t_new_market3(pg, base):
     #   滑鼠停上去的那一刻圖剛好被重畫掉，提示框跟著消失。改成：同一個位置最多試 3 次、每次輪詢 1.2 秒，
     #   只要有一次讀得到就算數 —— 真人也是滑一下沒出來就再滑一下；功能壞掉的話三次都讀不到，照樣紅。
     TIPQ = """(id) => { const e = document.getElementById('m3c-' + id);
-            const t = [...e.querySelectorAll('div')].filter(d => /該分量/.test(d.innerText || '') && d.offsetParent !== null).pop();
+            const t = [...e.querySelectorAll('div')].filter(d => /該分(量|成交值)/.test(d.innerText || '') && d.offsetParent !== null).pop();
             return t ? t.innerText.replace(/\\s+/g, ' ') : ''; }"""
     for idx in ("TSE", "OTC", "FUT"):
         tipx = ""
@@ -3593,13 +3596,16 @@ def t_new_market3(pg, base):
             t_end = time.time() + 1.2
             while time.time() < t_end:
                 tipx = pg.evaluate(TIPQ, idx)
-                if "該分量" in tipx:
+                if "該分量" in tipx or "該分成交值" in tipx:
                     break
                 pg.wait_for_timeout(150)
-            if "該分量" in tipx:
+            if "該分量" in tipx or "該分成交值" in tipx:
                 break
             pg.mouse.move(5, 5); pg.wait_for_timeout(300)
-        ok(f"★ 走勢圖 {idx} 游標讀得到價格與該分鐘量", ("指數" in tipx or "價" in tipx) and "該分量" in tipx, tipx[:80])
+        # 2026-09-28：指數的分時量是成交值（mis 的 s 是百萬元）→ 游標寫「該分成交值 N 億／萬」；台指期照舊「該分量 N 口」
+        want_w = "該分量" if idx == "FUT" else "該分成交值"
+        ok(f"★ 走勢圖 {idx} 游標讀得到價格與該分鐘量（{want_w}）", ("指數" in tipx or "價" in tipx) and want_w in tipx
+           and (idx == "FUT" or "張" not in tipx), tipx[:80])
     click(pg, "#m3Mode button[data-m='k']", 900)
     for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
         pg.select_option("#m3Tf", tf); pg.wait_for_timeout(1300)
