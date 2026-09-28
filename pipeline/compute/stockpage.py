@@ -55,48 +55,184 @@ def _r(x, nd=2):
 
 # ------------------------------------------------------------------ 營收
 
-def revenue_series(rev: pd.DataFrame, code: str, months: int = 72) -> dict:
-    """月營收序列：每月營收、YoY、MoM、累計營收、累計 YoY；另附年度合計方便畫「年度走勢」。"""
-    if rev is None or rev.empty:
-        return {"monthly": [], "yearly": []}
-    g = rev[rev["code"] == code][["ym", "revenue"]].copy()
+_YM_RE = r"^\d{4}-(0[1-9]|1[0-2])$"
+
+
+def _pct(a, b):
+    """成長率（%）＝ a ÷ b × 100 − 100；**分母必須 > 0**，否則回 None。
+
+    ★ 2026-09-28（營收普查，docs/revenue_audit_0928.md）：以前只判 `if b`（非零就算），
+      分母是負的（證券、金控、壽險月營收會出現負數）時算出來的正負號是反的 ——
+      去年同月 −3 億、今年 +1 億，舊算法給 −133%（看起來大衰退），實際是由負轉正。
+      資料湖 37 檔、187 個月踩到。分母 ≤ 0 的成長率沒有意義，一律不給。"""
+    a, b = _f(a), _f(b)
+    if a is None or b is None or b <= 0:
+        return None
+    return a / b * 100 - 100
+
+
+def _revenue_frame(rev: pd.DataFrame | None, code: str) -> pd.DataFrame:
+    """這一檔的月營收，清成一個月一列：[ym, mi, year, month, revenue, off_ly, off_pm, off_cum_ly]。
+
+    mi＝年×12＋月（日曆月序號），缺月判斷一律用它，不用列序。
+    off_*＝證交所 t187ap05 那一列**自己附的**去年同月／上月／去年累計（每日管線抓的最近兩三個月才有；
+    FinMind 回補的歷史列是 NaN）。口徑見 revenue_series。
+    """
+    cols = ["ym", "mi", "year", "month", "revenue", "off_ly", "off_pm", "off_cum_ly"]
+    if rev is None or rev.empty or "revenue" not in rev.columns:
+        return pd.DataFrame(columns=cols)
+    keep = [c for c in ("ym", "revenue", "revenue_last_year", "revenue_prev_month", "cum_last_year") if c in rev.columns]
+    g = rev.loc[rev["code"].astype(str) == str(code), keep].copy()      # 先只留要用的欄，全市場跑 2,000 次省一半時間
     if g.empty:
-        return {"monthly": [], "yearly": []}
+        return pd.DataFrame(columns=cols)
+    g["ym"] = g["ym"].astype(str)
+    g = g[g["ym"].str.match(_YM_RE, na=False)]
     g["revenue"] = pd.to_numeric(g["revenue"], errors="coerce")
+    for src, dst in (("revenue_last_year", "off_ly"), ("revenue_prev_month", "off_pm"), ("cum_last_year", "off_cum_ly")):
+        g[dst] = pd.to_numeric(g[src], errors="coerce") if src in g.columns else np.nan
     g = g.dropna(subset=["revenue"]).drop_duplicates("ym", keep="last").sort_values("ym")
+    if g.empty:
+        return pd.DataFrame(columns=cols)
     g["year"] = g["ym"].str[:4].astype(int)
     g["month"] = g["ym"].str[5:7].astype(int)
-    # 用 (year, month) 對齊去年同月，而不是 shift(12)：缺月時 shift 會對錯
-    prev = g.set_index(["year", "month"])["revenue"]
-    g["yoy"] = [
-        (r / prev.get((y - 1, m)) * 100 - 100) if prev.get((y - 1, m)) else None
-        for r, y, m in zip(g["revenue"], g["year"], g["month"])
-    ]
-    g["rev_ly"] = [prev.get((y - 1, m)) for y, m in zip(g["year"], g["month"])]
-    # MoM 也要對到「上一個日曆月」，不是上一列：缺月時 pct_change 會拿兩個月前的來比
-    g["mom"] = [(r / prev.get((y - (m == 1), 12 if m == 1 else m - 1)) * 100 - 100)
-                if prev.get((y - (m == 1), 12 if m == 1 else m - 1)) else None
-                for r, y, m in zip(g["revenue"], g["year"], g["month"])]
-    g["cum"] = g.groupby("year")["revenue"].cumsum()
-    # 累計營收要從 1 月一路都有才算數：缺月時「累計」少了一個月，累計 YoY 會系統性偏低
-    g["cum"] = g["cum"].where(g.groupby("year").cumcount() + 1 == g["month"])
-    cum_prev = g.set_index(["year", "month"])["cum"]
-    g["cum_yoy"] = [
-        (c / cum_prev.get((y - 1, m)) * 100 - 100) if (pd.notna(c) and pd.notna(cum_prev.get((y - 1, m), np.nan))
-                                                         and cum_prev.get((y - 1, m))) else None
-        for c, y, m in zip(g["cum"], g["year"], g["month"])
-    ]
-    tail = g.tail(months)
-    # ★ 2026-09-27：列尾多一欄「去年同月營收」（Andy 的券商 App：月走勢是當月＋去年同期兩組柱並排）
-    monthly = [[r.ym, _r(r.revenue, 0), _r(r.yoy, 1), _r(r.mom, 1), _r(r.cum, 0), _r(r.cum_yoy, 1), _r(r.rev_ly, 0)]
-               for r in tail.itertuples()]
-    yearly = []
-    for y, gg in g.groupby("year"):
-        yearly.append({"year": int(y), "months": int(len(gg)),
-                       "revenue": _r(gg["revenue"].sum(), 0),
-                       "by_month": {int(m): _r(v, 0) for m, v in zip(gg["month"], gg["revenue"])}})
-    return {"monthly": monthly, "yearly": yearly[-7:],
-            "columns": ["ym", "revenue", "yoy", "mom", "cum", "cum_yoy", "revenue_last_year"]}
+    g["mi"] = g["year"] * 12 + g["month"]
+    return g[cols].reset_index(drop=True)
+
+
+REVENUE_COLUMNS = ["ym", "revenue", "yoy", "mom", "cum", "cum_yoy", "revenue_last_year"]
+
+
+def revenue_series(rev: pd.DataFrame, code: str, months: int = 72) -> dict:
+    """月營收序列：每月營收、YoY、MoM、累計營收、累計 YoY、去年同月營收；另附年度合計方便畫「年度走勢」。
+
+    公式（全部用日曆月對齊，不用列序）：
+    - YoY_m ＝ 營收_m ÷ 基期_m × 100 − 100，基期＝去年同月營收；MoM 同理，基期＝上一個日曆月。
+    - 累計_m ＝ Σ 今年 1..m 月，**1..m 每個月都要有**才給（缺月的累計會系統性偏低）。
+    - 累計 YoY ＝ 累計_m ÷ 去年累計_m × 100 − 100。
+    例外處理：
+    - 基期 ≤ 0（負營收、0 營收）或缺 → 成長率給 None（見 _pct）。
+    - ★ 2026-09-28 **同口徑基期**：那一列若有證交所自己附的「去年當月營收／上月營收／去年累計」（t187ap05），
+      基期用官方那個數，不用資料湖裡另一個來源的舊值。原因：2026 年起保險業接軌 IFRS 17，
+      金控／壽險的去年同月營收由公司**重編**，官方附的是重編後的同口徑數字；FinMind 回補的 2025 年是舊口徑。
+      混著比，2882 國泰金 2026-07 的 YoY 會從 −69.7%（官方同口徑）變成 −31.9%。資料湖 27 列對不起來、21 列是金融保險。
+      「去年同期」柱也跟著用官方值 —— 所以同一個月在一年前那根柱子（舊口徑）可能跟它不一樣高，那是口徑換了，不是錯。
+    - ★ 2026-09-28 **缺月補空列**：第一個月到最後一個月之間，資料湖沒有的月份補一列 [ym, None, …]。
+      以前直接跳過，前端的類別軸會把 2022-03 和 2022-05 畫成相鄰兩根，看起來像是連續的（39 檔踩到）。
+      缺的月份是「不知道」，不是 0，所以營收給 None，不給 0。
+    - 回傳多一個 `missing`：區間內缺的年月（由舊到新），前端讀數會標「缺 N 個月」。
+    """
+    empty = {"monthly": [], "yearly": [], "missing": [], "columns": list(REVENUE_COLUMNS)}
+    g = _revenue_frame(rev, code)
+    if g.empty:
+        return empty
+    val = {int(k): float(v) for k, v in zip(g["mi"], g["revenue"])}
+    off = {k: {int(m): float(v) for m, v in zip(g["mi"], g[k]) if pd.notna(v)} for k in ("off_ly", "off_pm", "off_cum_ly")}
+
+    def cum_of(mi):
+        y, m = (mi - 1) // 12, (mi - 1) % 12 + 1
+        vs = [val.get(y * 12 + k) for k in range(1, m + 1)]
+        return None if any(v is None for v in vs) else float(sum(vs))
+
+    rows, missing = [], []
+    lo, hi = int(g["mi"].min()), int(g["mi"].max())
+    for mi in range(lo, hi + 1):
+        y, m = (mi - 1) // 12, (mi - 1) % 12 + 1
+        ym = f"{y:04d}-{m:02d}"
+        r = val.get(mi)
+        ly = off["off_ly"].get(mi, val.get(mi - 12))
+        pm = off["off_pm"].get(mi, val.get(mi - 1))
+        if r is None:
+            missing.append(ym)
+            rows.append([ym, None, None, None, None, None, _r(ly, 0)])
+            continue
+        cum = cum_of(mi)
+        cum_ly = off["off_cum_ly"].get(mi, cum_of(mi - 12))
+        rows.append([ym, _r(r, 0), _r(_pct(r, ly), 1), _r(_pct(r, pm), 1), _r(cum, 0),
+                     _r(_pct(cum, cum_ly) if cum is not None else None, 1), _r(ly, 0)])
+    by_year: dict[int, dict[int, float]] = {}
+    for mi, v in val.items():
+        by_year.setdefault((mi - 1) // 12, {})[(mi - 1) % 12 + 1] = v
+    yearly = [{"year": y, "months": len(bm), "revenue": _r(sum(bm.values()), 0),
+               "by_month": {m: _r(v, 0) for m, v in sorted(bm.items())}}
+              for y, bm in sorted(by_year.items())]
+    return {**empty, "monthly": rows[-months:], "yearly": yearly[-7:], "missing": missing}
+
+
+# 普查門檻（revenue_audit）：千元／元混用會是剛好 1,000 倍，留 2 倍寬容給真實的營收起伏。
+UNIT_LO, UNIT_HI = 500.0, 2000.0
+
+
+def _unit_ratio(a, b) -> bool:
+    """a／b（或 b／a）落在 500～2000 倍 ＝ 疑似單位差一千倍。兩個都要 > 0。"""
+    if a is None or b is None or not (a > 0 and b > 0):
+        return False
+    q = a / b
+    return UNIT_LO <= q <= UNIT_HI or UNIT_LO <= 1 / q <= UNIT_HI
+
+
+def revenue_audit(rev: pd.DataFrame | None) -> dict:
+    """全市場月營收普查（2026-09-28，Andy：「營收走勢確保數值正常，檢查後續會不會還發生」）。
+
+    回傳 dict，每一項是「疑似異常」的清單（list of dict），pytest 拿它當防回歸：
+    - bad_ym：年月不是 YYYY-MM（例如民國年沒換算、月份 13）。
+    - dup_key：同一檔同一個月出現兩列（store.append 依 key 去重，理論上不該有）。
+    - unit_jump：某個月是**前後兩個相鄰日曆月**的 500～2000 倍（或 1/2000～1/500），而且前後兩個月彼此差不到 3 倍
+      ＝ 典型的「那一個月忘了千元換元」（或多乘一次）。只看前後月都存在的列，缺月不判。
+    - cross_unit：證交所那一列附的「去年當月營收」與資料湖另一來源（FinMind）的去年同月差 500～2000 倍
+      ＝ 兩個來源單位不一致（twse.py 的 thousand_scale 被拿掉就會中）。
+    - month_shift：證交所附的「上月營收」對不上資料湖的上個月、卻剛好等於前兩個月（±0.5%）
+      ＝ 某個來源的年月錯位一個月（例如把公布月當成營收月）。
+    - gaps：第一個月到最後一個月之間缺月的股票（只列出，不算錯：公司停牌、FinMind 缺檔都會這樣；
+      revenue_series 會補空列，不會畫錯）。
+    負營收與 0 營收**不列為異常**：證券、金控、壽險月營收本來就會是負的（評價損失），建設公司沒完工交屋的月份就是 0。
+    """
+    out = {k: [] for k in ("bad_ym", "dup_key", "unit_jump", "cross_unit", "month_shift", "gaps")}
+    if rev is None or rev.empty:
+        return out
+    d = rev.copy()
+    d["ym"] = d["ym"].astype(str)
+    d["code"] = d["code"].astype(str)
+    ok = d["ym"].str.match(_YM_RE, na=False)
+    out["bad_ym"] = d.loc[~ok, ["code", "ym"]].to_dict("records")
+    dup = d[d.duplicated(["code", "ym"], keep=False)]
+    out["dup_key"] = dup[["code", "ym"]].drop_duplicates().to_dict("records")
+    d = d[ok].copy()
+    d["revenue"] = pd.to_numeric(d["revenue"], errors="coerce")
+    d = d.dropna(subset=["revenue"]).drop_duplicates(["code", "ym"], keep="last")
+    if d.empty:
+        return out
+    d["mi"] = d["ym"].str[:4].astype(int) * 12 + d["ym"].str[5:7].astype(int)
+    lk = dict(zip(zip(d["code"], d["mi"]), d["revenue"].astype(float)))
+    for c, mi, ym, r in zip(d["code"], d["mi"], d["ym"], d["revenue"]):
+        a, b = lk.get((c, mi - 1)), lk.get((c, mi + 1))
+        if a and b and a > 0 and b > 0 and max(a, b) / min(a, b) < 3 and _unit_ratio(r, a) and _unit_ratio(r, b):
+            out["unit_jump"].append({"code": c, "ym": ym, "revenue": float(r), "prev": a, "next": b})
+
+    def near(x, v):
+        return x is not None and x > 0 and abs(x / v - 1) <= 0.005
+
+    for col, key in (("revenue_last_year", "cross_unit"), ("revenue_prev_month", "month_shift")):
+        if col not in d.columns:
+            continue
+        o = pd.to_numeric(d[col], errors="coerce")
+        for c, mi, ym, v in zip(d["code"], d["mi"], d["ym"], o):
+            if not (pd.notna(v) and v > 0):
+                continue
+            v = float(v)
+            if key == "cross_unit":
+                base = lk.get((c, mi - 12))
+                if _unit_ratio(v, base):
+                    out[key].append({"code": c, "ym": ym, "official": v, "lake": base})
+            else:
+                p1, p2 = lk.get((c, mi - 1)), lk.get((c, mi - 2))
+                if not near(p1, v) and near(p2, v):
+                    out[key].append({"code": c, "ym": ym, "official_prev": v, "lake_m1": p1, "lake_m2": p2})
+    for c, gg in d.groupby("code"):
+        mis = sorted(gg["mi"])
+        n = (mis[-1] - mis[0] + 1) - len(mis)
+        if n > 0:
+            out["gaps"].append({"code": c, "missing": int(n), "from": gg["ym"].min(), "to": gg["ym"].max()})
+    return out
 
 
 # ------------------------------------------------------------------ 獲利
@@ -259,14 +395,13 @@ def stock_tags(rev: pd.DataFrame | None, fin: pd.DataFrame | None, code: str) ->
     items: dict[str, dict] = {k: {"id": k, "kind": "指標", "label": lab, "hit": None, "detail": "資料不足"}
                               for k, lab in TAG_RULES}
     if rev is not None and not rev.empty:
-        g = rev[rev["code"] == code][["ym", "revenue"]].copy()
-        g["revenue"] = pd.to_numeric(g["revenue"], errors="coerce")
-        g = g.dropna().drop_duplicates("ym", keep="last").sort_values("ym")
+        # ★ 2026-09-28：跟營收分頁同一套 YoY（_revenue_frame＋_pct）：分母 ≤ 0 不給、官方同口徑基期優先。
+        #   以前自己算一份、分母只判非零，負營收那個月的 YoY 正負號是反的，「連續 N 個月年增」會數錯。
+        g = _revenue_frame(rev, code)
         if len(g):
-            g["y"] = g["ym"].str[:4].astype(int); g["m"] = g["ym"].str[5:7].astype(int)
-            g["mi"] = g["y"] * 12 + g["m"]
             val = dict(zip(g["mi"], g["revenue"]))
-            g["yoy"] = [(v / val[i - 12] * 100 - 100) if val.get(i - 12) else np.nan for i, v in zip(g["mi"], g["revenue"])]
+            g["yoy"] = [np.nan if (p := _pct(v, (o if pd.notna(o) else val.get(i - 12)))) is None else p
+                        for i, v, o in zip(g["mi"], g["revenue"], g["off_ly"])]
             t3 = g.tail(3)
             if len(t3) == 3 and t3["mi"].iloc[-1] - t3["mi"].iloc[0] == 2 and t3["yoy"].notna().all():
                 items["rev_yoy3_20"].update(hit=bool((t3["yoy"] > 20).all()),
