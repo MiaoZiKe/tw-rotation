@@ -517,6 +517,8 @@ def states(code: str | None = None) -> list[dict]:
         {"name": "市場明細", "hash": "#market"},
         {"name": "週期統計", "hash": "#season"},
         {"name": "交付清單", "hash": "#delivery"},
+        # ★ 2026-09-28：自選獨立成一頁（#watch，手機在「更多」裡；DECISIONS #273）—— 新的一頁要一起被普查
+        {"name": "自選", "hash": "#watch"},
         {"name": f"個股{code}", "hash": f"#stock/{code}"},
     ]
     for cid, nm in (("semiconductor", "半導體"), ("ai_server", "AI伺服器"), ("electronics", "一般電子"),
