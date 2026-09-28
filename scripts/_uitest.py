@@ -37896,7 +37896,7 @@ V4_2B_CH = r"""(ids) => { const out = {};
     const fs = []; for (const k of ['xAxis', 'yAxis']) for (const a of (o[k] || [])) { const al = a.axisLabel || {}; if (a.show !== false && al.show !== false) fs.push(al.fontSize == null ? 12 : al.fontSize); }
     const box = document.querySelector('.chlegend[data-for="' + id + '"]');
     const er = el.getBoundingClientRect();
-    out[id] = { gtop, legShown: !!(lg && lg.show !== false && (lg.data || []).length), sel: (lg && lg.selected) || {},
+    out[id] = { gtop, legShown: !!(lg && lg.show !== false), sel: (lg && lg.selected) || {},
       fs: fs.length ? Math.min(...fs) : null,
       barLab: (o.series || []).filter(s => s.type === 'bar' && s.label && s.label.show && s.name !== '合計').map(s => s.name),
       leg: box ? { n: box.querySelectorAll('button').length, names: [...box.querySelectorAll('button')].map(b => b.dataset.n),
@@ -37983,8 +37983,13 @@ def t_design_v4_2b(b, base, code):
     r = ch(["profitChart", "peQ", "peChart"])
     c = r["profitChart"]
     if ok("② EPS 與三率畫出來了", bool(c), c):
-        ok("② EPS 與三率：ECharts 圖例不畫、繪圖區頂 ≤ 12", not c["legShown"] and c["gtop"] <= 12, c)
-        ok("② 圖例在標題列、「EPS」單位併進圖例（EPS（元，左軸））", bool(c["leg"]) and c["leg"]["inHead"] and "EPS（元，左軸）" in c["leg"]["txt"], c["leg"])
+        # 收尾修正：這張的標題列有一段很長的副標（財報到…法定應有到…），1440 放不下 → 照改前畫（04 文件 §2.4 第 3 點）。
+        # 所以跟 ⑧ 同一個判準：放得下＝HTML 圖例同一行＋ECharts 圖例收起、繪圖區頂 ≤ 12；放不下＝HTML 藏起、ECharts 照改前畫（頂 ≥ 28）
+        lg2 = c["leg"] or {}
+        st2 = ((lg2.get("fit") == "row" and lg2.get("vis") and not c["legShown"] and c["gtop"] <= 12)
+               or (lg2.get("fit") == "wrap" and lg2.get("hidden") and c["legShown"] and c["gtop"] >= 28))
+        ok("② EPS 與三率：圖例放得下就在標題列（繪圖區頂 ≤ 12）、放不下就照改前畫（不多佔一行）", bool(st2), c)
+        ok("② HTML 圖例在標題列、「EPS」單位併進圖例（EPS（元，左軸））", bool(c["leg"]) and c["leg"]["inHead"] and "EPS（元，左軸）" in c["leg"]["txt"], c["leg"])
     pg.wait_for_timeout(500)
     side = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('peChart')); const g = c && c.getOption().graphic;"
                        " const t = ((g && g[0] && g[0].elements) || []).filter(e => /^peside/.test(e.id || '')); return t.map(e => (e.style || {}).font || ''); }")

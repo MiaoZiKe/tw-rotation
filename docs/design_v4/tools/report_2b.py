@@ -11,6 +11,7 @@ NAMES = {
     "stock-overview": "個股・總覽", "stock-revenue": "個股・營收", "stock-profit": "個股・獲利", "stock-dividend": "個股・除權息",
     "stock-inst": "個股・法人", "stock-margin": "個股・資券", "stock-holders": "個股・大戶／散戶",
     "industry": "產業地圖", "chain-semi": "產業鏈・半導體", "chain-elec": "產業鏈・一般電子",
+    "chain-semi-ov": "產業鏈・半導體（族群總覽）", "chain-ai": "產業鏈・AI 伺服器",
 }
 
 

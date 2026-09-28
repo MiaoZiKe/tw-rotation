@@ -4849,7 +4849,7 @@
     const bb = r.box.getBoundingClientRect(), fb = first && first !== r.box ? first.getBoundingClientRect() : null;
     // 被擠到下一行＝圖例的頂端已經在同一列第一個東西的底下（留 2px 誤差）
     const wrapped = !!(fb && bb.width > 0 && bb.top >= fb.bottom - 2);
-    if (wrapped === r.wrapped) return;
+    if (wrapped === r.wrapped) { r.box.hidden = wrapped; return; }
     r.wrapped = wrapped;
     r.box.hidden = wrapped;
     r.box.dataset.fit = wrapped ? 'wrap' : 'row';
@@ -4895,17 +4895,22 @@
       const b = e.target.closest('button[data-n]'); if (!b) return;
       const n = b.dataset.n;
       const ch = window.echarts && echarts.getInstanceByDom(document.getElementById(id));
-      if (ch) ch.dispatchAction({ type: off[n] ? 'legendSelect' : 'legendUnSelect', name: n });
-      else { off[n] = !off[n]; paint(); }
+      /* ★ 收尾修正：先記自己的狀態再送 action。ECharts 對 legendSelect／legendUnSelect 發的事件是
+         legendselected／legendunselected，**不是** legendselectchanged（那個只有 legendToggleSelect 會發）——
+         以前只聽 legendselectchanged，點 HTML 圖例之後 off 永遠沒寫進去：按鈕的 aria-pressed 不變、
+         切 12／24 月重畫之後藏起來的那條又跑回來（驗收 ①「切 24 月重畫之後 YoY 仍然藏著」抓到）。*/
+      off[n] = !off[n]; paint();
+      if (ch) ch.dispatchAction({ type: off[n] ? 'legendUnSelect' : 'legendSelect', name: n });
     };
     // 兩種狀態共用 ECharts 的選取：不管點的是 HTML 圖例還是（放不下時的）ECharts 圖例，都從這裡同步回來
-    c.off('legendselectchanged', c._extLegSync);
+    ['legendselectchanged', 'legendselected', 'legendunselected'].forEach(t => c.off(t, c._extLegSync));
     c._extLegSync = (ev) => { Object.entries(ev.selected || {}).forEach(([k, v]) => { off[k] = v === false; }); paint(); };
-    c.on('legendselectchanged', c._extLegSync);
+    ['legendselectchanged', 'legendselected', 'legendunselected'].forEach(t => c.on(t, c._extLegSync));
     const r = extLegRec[id] = { c, host, box, top: o.top != null ? o.top : 10, fbTop: o.fbTop != null ? o.fbTop : 30,
       fb: o.fb || { top: 0, textStyle: { color: A.CH.ink2, fontSize: 12 } }, fbOpt: o.fbOpt, okOpt: o.okOpt, wrapped: null };
     // 圖剛畫出來是「HTML 圖例版」（option 裡 legend.show:false、grid.top 小）；量完放不下才退回改前的畫法
     r.wrapped = false;
+    box.dataset.fit = 'row';      // 初始就是「同一行」版；extLegFit 只在狀態改變時才寫，不先寫的話放得下的圖永遠讀不到 row
     extLegFit(r);
   }
   const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); delete extLegRec[id]; };
