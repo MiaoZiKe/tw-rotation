@@ -189,6 +189,9 @@
 .ftopo .ftbtn[aria-pressed="true"]{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 55%,transparent)}
 .ftopo .ftbtn:disabled{opacity:.5;cursor:default}
 .ftopo .ftstage .ftbtn.ftcorner{position:absolute;left:6px;top:6px;z-index:5;padding:1px 8px;line-height:16px;opacity:.85}
+.ftopo .ftstage .ftbar.ftfloat{position:absolute;right:6px;top:4px;height:auto;z-index:5;gap:8px;overflow:visible}
+.ftopo .ftstage .ftbar.ftfloat .ftleg:empty{display:none}
+.ftopo .ftstage .ftbar.ftfloat .ftbtn{padding:1px 8px;line-height:16px;opacity:.85}
 .ftopo .ftstage{position:relative;width:100%;border-radius:10px;overflow:hidden;
   background:radial-gradient(120% 90% at 8% 50%,color-mix(in srgb,var(--cyan) 5%,transparent),transparent 60%)}
 .ftopo .ftstage canvas{position:absolute;left:0;top:0;display:block}
@@ -515,9 +518,15 @@
         maxG = Math.max(maxG, elBadgeW(S, g));
         g.kids.forEach(lf => { maxL = Math.max(maxL, Math.min(CFG.CL_LEAF_LABEL_W, elBadgeW(S, lf) - 12)); });
       }));
-      const need = 6 + 6 + maxG + 16 + 6 + maxL + 4;       // 族群圓點右半＋膠囊＋空隙＋代表股小點到字＋字＋右緣
-      const gX = Math.max(W * 0.54, Math.min(W * 0.66, W - need));
-      const lX = Math.min(W - 4 - maxL - 6, Math.max(W * 0.83, gX + 6 + 6 + maxG + 16));
+      /* ★ 2026-09-28 設計 v4 第二批 2A（01 §4.4「標籤欄寬度＝實際最長標籤，葉節點標籤右側只留 8px」）：
+         改前族群欄夾在 54～66%、代表股欄至少 83% → 1440 寬時代表股的字收在 1268px，右邊 108px 連滑過都用不到，
+         不滑過的時候從族群膠囊右緣到畫布右緣整條空 256px（measure.py 的 worst 就框在這裡）。
+         改後從右邊往回排：代表股的字右緣離畫布 8px → 代表股圓點 → 16px 空隙 → 最長的族群膠囊 → 族群圓點。
+         不滑過時的空帶只剩「代表股那一欄」本身（滑過才顯示，位置要留著，不然會蓋到族群膠囊）。
+         窄到族群欄會退到 54% 以左時，照舊夾在 54%，代表股接在膠囊後面（跟改前同一條退路）。*/
+      let lX = W - 8 - maxL - 6;                            // 代表股圓點：字（6px 後起）右緣離畫布右緣 8px
+      let gX = lX - 16 - maxG - 6 - 6;                      // 族群圓點：膠囊右緣＋16px＝代表股圓點
+      if (gX < W * 0.54) { gX = W * 0.54; lX = Math.min(W - 4 - maxL - 6, gX + 6 + 6 + maxG + 16); }
       cols = [CFG.CL_LEFT + 8, CFG.CL_LEFT + 8 + (gX - CFG.CL_LEFT - 8) * 0.44, gX, lX];
     }
     const plan = slotPlan(S), slot = plan.slot;
@@ -1432,7 +1441,7 @@
     S.meter.lastDrawMs = dt;
     if (S.meter.firstDrawMs == null) S.meter.firstDrawMs = dt;
   }
-  const barH = (S) => (S.mini ? 0 : CFG.BAR_H);             // 緊湊版沒有上方說明列
+  const barH = (S) => (S.mini || S.float ? 0 : CFG.BAR_H);  // 緊湊版沒有上方說明列；經典光纖的說明列浮在畫布右上角（2A）
   const spriteKey = (S) => S.DPR + '|' + S.pal.dark + '|' + (S.classic ? 'el' : 'tp') + '|' + [...new Set(S.order.map(n => n.hue))].join(',');
 
   /* ---- 滑過／點擊 ---- */
@@ -1518,6 +1527,14 @@
        左上角：根在左邊中間、線往右上右下散開，左上角那一小塊一直是空的；左下角在窄排法會壓到最後一條鏈的膠囊。*/
     const mini = lay === 'mini';
     S.bar.style.display = mini ? 'none' : '';
+    /* ★ 2026-09-28 設計 v4 第二批 2A：經典光纖（資金流向頁）的說明列改成浮在畫布右上角，不再自己佔一行 30px。
+       那一行平常只有右端一顆「動態 開」（圖例句 09-25 已搬進「?」，只剩盤中的「即時」兩個字），整行是空的。
+       右上角是代表股欄最上面那一格的上方（第一個族群槽位從 22px 起），鈕高 20px、不壓到任何標籤。*/
+    const fl = lay === 'classic';
+    S.float = fl;
+    S.bar.classList.toggle('ftfloat', fl);
+    if (fl && S.bar.parentNode !== S.stage) S.stage.appendChild(S.bar);
+    if (!fl && S.bar.parentNode !== S.host) S.host.insertBefore(S.bar, S.stage);
     S.mbtn.classList.toggle('ftcorner', mini);
     if (mini && S.mbtn.parentNode !== S.stage) S.stage.appendChild(S.mbtn);
     if (!mini && S.mbtn.parentNode !== S.bar) S.bar.appendChild(S.mbtn);

@@ -117,6 +117,55 @@
      1100 寬資金流向頁第一屏繪圖區 37.8% → 32.3%、整頁 24.4% → 19.8%（輪盤縮小的面積比省下的頁高多），
      數字是退步的，所以不上；資金流向頁的排版留給第二批，用量測決定（docs/design_v4/02_套用第一批.md §3）。*/
 }
+/* ---- 第二批 2A：資金流向頁（docs/design_v4/03_第二批2A.md，改前→改後量測在那一份）----
+   ① 資金輪動卡左欄：「資金輪盤 8/28～9/24」小標跟時間拉 Bar 併成一行（放得下才併，放不下自動換行，跟改前一樣兩行）。
+      小標排在拉 Bar 前面（order），讀起來是「資金輪盤・這一段日期 → 拉 Bar 調這一段」，盤往上移 30px。
+   ② 輪盤高度跟欄寬走：--rot-hk（高 ÷ 欄寬）／--rot-hmax（上限）交給 app.js rotFitH 讀。
+   ③ 901～1100 維持兩欄（量測決定，見 03 文件）；≤900 退單欄時排行放輪盤下方、限高。*/
+@media (min-width:821px){
+  [data-theme4] #flowRotCard .rotleft{flex-flow:row wrap;align-content:flex-start;column-gap:16px}
+  [data-theme4] #flowRotCard .rotleft>*{flex:0 0 100%;min-width:0}
+  [data-theme4] #flowRotCard .rotleft>.rotchead{order:1;flex:0 0 auto;margin:0 0 6px}
+  [data-theme4] #flowRotCard .rotleft>.rottime{order:2;flex:1 1 auto;width:auto;margin-bottom:6px}
+  [data-theme4] #flowRotCard .rotleft>.rotstagerow{order:3}
+  [data-theme4] #rotClock{--rot-hk:1;--rot-hmax:640}
+}
+/* index.html 在 ≤1100 給 .rothead 留了 190px 右邊距，是給已經拿掉的「放大／怎麼看」兩顆鈕（.rotbtns，09-25／09-26 移除）釘在右上角用的；
+   鈕不在了，邊距只會把標題列擠窄 → 歸零 */
+@media (min-width:821px) and (max-width:1100px){ [data-theme4] #flowRotCard .rothead{padding-right:0} }
+@media (min-width:901px) and (max-width:1100px){
+  [data-theme4] .rotcols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+  [data-theme4] .rotpane+.rotpane{margin-top:0}
+  /* 側欄（象限／成分股）蓋在排行那一欄上：跟 ≥1101 同一套收小規則 */
+  [data-theme4] #rankFlowWrap>.sidepanel.stagepanel{bottom:auto;max-height:100%;padding:8px 10px}
+  [data-theme4] #rankFlowWrap>.sidepanel .ph{font-size:12px;gap:6px}
+  [data-theme4] #rankFlowWrap>.sidepanel .ph b{font-size:13.5px}
+  [data-theme4] #rankFlowWrap>.stagepanel ul.ms li:not(.mem){padding-top:3px;padding-bottom:3px;font-size:12px}
+}
+/* ④ 圖例搬到繪圖區外（01 §4）：族群 × 法人 → 篩選列右端的 HTML 圖例（#instLegend，可點＝隱藏／顯示該法人）；
+      資金集中度 → 主線色樣併進「均線」勾選列（.concmain）。兩張圖的繪圖區頂端都不再讓出一行給圖例。 */
+.chlegend{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px 4px;margin-left:auto}
+.chlegend button{appearance:none;display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:0 6px;border:0;background:none;
+  color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer;border-radius:var(--r-sm,6px)}
+.chlegend button:hover{color:var(--ink)}
+.chlegend button i,.concmain i{display:inline-block;width:12px;height:8px;border-radius:2px}
+.chlegend button[aria-pressed="false"]{color:var(--ink-3);text-decoration:line-through}
+.chlegend button[aria-pressed="false"] i{opacity:.25}
+.concmain{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2);margin-right:6px}
+.concmain i{height:3px;border-radius:2px}
+/* ⑤ 族群 × 法人／資金集中度兩張卡等高時，較矮那張的圖撐滿（改前集中度底下空一條） */
+@media (min-width:821px){
+  [data-theme4] #flowInstCard,[data-theme4] #flowConcCard{display:flex;flex-direction:column}
+  [data-theme4] #flowInstCard>#instGroupsWrap{flex:1 1 auto;display:flex;flex-direction:column}
+  [data-theme4] #flowInstCard>#instGroupsWrap>#instGroups{flex:1 1 auto}
+  [data-theme4] #flowConcCard>#conc{flex:1 1 auto}
+}
+@media (min-width:821px) and (max-width:900px){
+  /* 單欄：排行放輪盤下方，高度只給 15 根長條需要的（15 × 21 ＋ 上下軸 50），不再撐 420 */
+  [data-theme4] .rotright>#rankFlowWrap{min-height:0}
+  [data-theme4] .rotright>#rankFlowWrap>#rankFlow{min-height:365px;height:365px}
+}
+
 /* 個股頁 AI 分析區（桌機右上角）：內容區高度跟著左邊名稱區走，不會剛好是整行的倍數，
    最後一行常被切掉半截（CEO 2026-09-27 看 1440 截圖指出「週線」那行只露上半截）。
    原本的提示是 22px 的遮罩淡出，太淺、看起來像切壞。v4 改成：遮罩拿掉，改在捲動區底部釘一條

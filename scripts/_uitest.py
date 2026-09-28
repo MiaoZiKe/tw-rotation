@@ -34275,13 +34275,20 @@ def _fx_crisp(t, tag, dark=True):
     sl = t.get("slot") or 0
     ok(f"{tag} ③ 族群等距垂直槽位：同一條鏈內相鄰族群的 y 差都一樣、槽高 36～42（改前依葉子數排）",
        not bad_eq and 36 <= sl <= 42 and all(abs(x - sl) <= 1.01 for x in diffs), {"slot": sl, "差": sorted(diffs), "不等距": bad_eq[:2]})
-    x83 = t["W"] * 0.83
     lx = sorted({n["x"] for n in L3})
     # 2026-09-26（晚）改前→改後：固定在 83% → max(83%, 族群膠囊最右緣 ＋ 16)（代表股收起後族群欄往右移，滑過顯示時不能蓋到族群膠囊）
+    # ★ 2026-09-28 設計 v4 第二批 2A 改前→改後：max(83%, 族群膠囊最右緣 ＋ 16) → 從右邊往回排：代表股的字右緣離畫布 8px
+    #   （01 §4.4「標籤欄寬度＝實際最長標籤、葉節點標籤右側只留 8px」；改前 1440 寬右邊 108px 連滑過都用不到）。
+    #   窄到族群欄退到 54% 時照舊接在族群膠囊後面，那時不驗右緣。
     gr = max((n["lab"]["x"] + n["lab"]["w"] for n in L2 if n["lab"]), default=0)
-    ok(f"{tag} ④ 代表股全部對齊同一欄、在 83% 以右、而且在所有族群膠囊右緣 16px 之後（滑過顯示時不蓋到族群膠囊）",
-       bool(lx) and max(lx) - min(lx) <= 1 and lx[0] >= x83 - 1.5 and lx[0] >= gr + 15,
-       {"x": lx[:4], "83%": round(x83, 1), "族群膠囊最右": round(gr, 1)})
+    lr = max((n["lab"]["x"] + n["lab"]["w"] for n in L3 if n["lab"]), default=0)
+    gx = min((n["x"] for n in L2), default=0)
+    clamped = gx <= t["W"] * 0.54 + 1.5
+    ok(f"{tag} ④ 代表股全部對齊同一欄、在所有族群膠囊右緣 16px 之後（滑過顯示時不蓋到族群膠囊）",
+       bool(lx) and max(lx) - min(lx) <= 1 and lx[0] >= gr + 15,
+       {"x": lx[:4], "族群膠囊最右": round(gr, 1)})
+    ok(f"{tag} ④ 右側不留空帶：代表股的字右緣離畫布右緣 ≤ 16px（規格 8px＋最長標籤量測誤差；族群欄退到 54% 時不驗）",
+       clamped or 0 <= t["W"] - lr <= 16, {"W": t["W"], "代表股字最右": round(lr, 1), "族群欄": round(gx, 1)})
     ok(f"{tag} ④ 代表股的字不出畫布右緣", all(n["lab"]["x"] + n["lab"]["w"] <= t["W"] + 0.5 for n in L3),
        [n["name"] for n in L3 if n["lab"]["x"] + n["lab"]["w"] > t["W"] + 0.5][:3])
     per = {}
@@ -34457,9 +34464,11 @@ def t_flowfx(pg, b, base):
     W0 = t0["W"]
     # 2026-09-26（晚）改前→改後：固定 26%／54%／83% → 代表股收起後右欄讓給版面：族群 54%～66%、產業鏈在根與族群的 44% 處、
     #   代表股 ≥ 83%（細節在 _fx_crisp ④）
-    ok("四層各自一欄：根貼左、族群在 54%～66%、產業鏈在根與族群之間 44% 處、代表股 ≥ 83%",
-       one_col and cx[0] < 40 and W0 * 0.54 - 1.5 <= cx[2] <= W0 * 0.66 + 1.5
-       and abs(cx[1] - (cx[0] + (cx[2] - cx[0]) * 0.44)) <= 1.5 and cx[3] >= W0 * 0.83 - 1.5,
+    # ★ 2026-09-28 設計 v4 第二批 2A 改前→改後：族群 54%～66%、代表股 ≥ 83% → 從右邊往回排（代表股的字右緣離畫布 8px、
+    #   族群膠囊右緣＋16＝代表股），族群欄只剩下限 54%；代表股欄在族群欄右邊（細節在 _fx_crisp ④）
+    ok("四層各自一欄：根貼左、族群 ≥ 54%、產業鏈在根與族群之間 44% 處、代表股在族群右邊",
+       one_col and cx[0] < 40 and W0 * 0.54 - 1.5 <= cx[2] < cx[3]
+       and abs(cx[1] - (cx[0] + (cx[2] - cx[0]) * 0.44)) <= 1.5,
        {"x": xs, "欄距": gaps, "W": W0})
     ok("標籤都在節點右邊（經典版 label.position = right）",
        all(n["lab"] and n["lab"]["x"] > n["x"] for n in t0["nodes"]),

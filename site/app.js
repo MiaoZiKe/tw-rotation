@@ -5075,7 +5075,12 @@
     if (!rotDesk()) { if (el.style.height) el.style.height = ''; return; }
     const w = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
     if (!(w > 0)) return;
-    const h = Math.round(Math.max(440, Math.min(640, w * 0.8)));
+    /* ★ 2026-09-28 設計 v4 第二批 2A：比例與上限改由 CSS 變數決定（theme4.css 依欄寬分段設 --rot-hk／--rot-hmax），
+       沒設就是原本的 0.8／640。版面數字放在樣式表裡，跟兩欄／單欄的斷點寫在同一處，不會一邊改了一邊忘了。*/
+    const cs = getComputedStyle(el);
+    const hk = parseFloat(cs.getPropertyValue('--rot-hk')) || 0.8;
+    const hmax = parseFloat(cs.getPropertyValue('--rot-hmax')) || 640;
+    const h = Math.round(Math.max(440, Math.min(hmax, w * hk)));
     if (Math.abs((el.clientHeight || 0) - h) > 2) el.style.height = h + 'px';
   }
   function renderRotClock(rows, back, id, compact, opts) {
@@ -10109,7 +10114,10 @@
          24 的時候在 1536px / 1920px 量到它跑出容器 5px（多寬度掃描抓到的）。
          天數拉 Bar 的預設從「跟著期間」改成 20 天之後，資料範圍變了、刻度也跟著變寬，
          才把這個一直都在的邊界問題逼出來。 */
-      legend: { textStyle: { color: CH.ink2 }, top: 0, data: ['外資', '投信', '自營'] }, grid: { left: yW + 8, right: 42, top: 30, bottom: 22 },
+      /* ★ 2026-09-28 設計 v4 第二批 2A（01 §4「圖例一律在繪圖區外」）：ECharts 圖例（圖表容器頂端 30px）改成
+         篩選列右端的 HTML 圖例（#instLegend，instLegend() 畫），繪圖區頂端 30 → 8。ECharts 的圖例元件留著但不畫
+         （show:false）—— 點 HTML 圖例送的是同一個 legendToggleSelect，選取狀態記在 instLegSel，重畫也不會跑掉。*/
+      legend: { show: false, data: ['外資', '投信', '自營'], selected: { ...instLegSel } }, grid: { left: yW + 8, right: 42, top: 8, bottom: 22 },
       // hideOverlap：1280px 量到「-250.0 萬張」和「-200.0 萬張」疊在一起（刻度太密）
       xAxis: { ...axisStyle,
         axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3, hideOverlap: true } },
@@ -10118,7 +10126,7 @@
         data: yLab,
         // width/overflow：寬度用量的（yW），超過上限才截
         axisLabel: { color: CH.ink2, width: yW, overflow: 'truncate' } },
-      series: [['外資', 'foreign', '#3ee0ff'], ['投信', 'trust', '#ffb454'], ['自營', 'dealer', '#8b7bff']].map(([n, k, col]) => ({
+      series: INST_SER.map(([n, k, col]) => ({
         name: n, type: 'bar', stack: 'a', barWidth: 14,
         data: top.map(g => ({ value: g[k] || 0, gid: g.group_id, dim: !!(pick && pick !== g.group_id),
           itemStyle: { color: col, opacity: (pick && pick !== g.group_id) ? 0.14 : 1 } })),
@@ -10136,6 +10144,29 @@
       (nx) => renderInstPeriod(p, nx),
       { ...ddo, onText: (nm) => `只亮「${fmt.esc(nm)}」`,
         onChain: (c, drop) => renderInstPeriod(p, drop ? null : undefined) });
+    instLegend(c);
+  }
+  /* ★ 2026-09-28 設計 v4 第二批 2A：族群 × 法人的圖例搬到繪圖區外 —— 篩選列（產業鏈／族群兩顆下拉）右端。
+     篩選列每次重畫都是 innerHTML 重建，所以圖例每次跟著補回去；點一顆＝ECharts 圖例的 legendToggleSelect（同一個動作）。*/
+  const INST_SER = [['外資', 'foreign', '#3ee0ff'], ['投信', 'trust', '#ffb454'], ['自營', 'dealer', '#8b7bff']];
+  const instLegSel = {};
+  function instLegend(c) {
+    const row = document.querySelector('#flowInstCard .ddrow[data-for="instGroups"]');
+    if (!row) return;
+    let box = row.querySelector('#instLegend');
+    if (!box) { box = document.createElement('div'); box.id = 'instLegend'; box.className = 'chlegend'; box.setAttribute('role', 'group');
+      box.setAttribute('aria-label', '圖例（點一下隱藏／顯示）'); row.appendChild(box); }
+    box.innerHTML = INST_SER.map(([n, , col]) => `<button type="button" data-n="${n}" aria-pressed="${instLegSel[n] === false ? 'false' : 'true'}"
+      title="點一下${instLegSel[n] === false ? '顯示' : '隱藏'}${n}"><i style="background:${col}"></i>${n}</button>`).join('');
+    box.onclick = (e) => {
+      const b = e.target.closest('button[data-n]'); if (!b) return;
+      const n = b.dataset.n;
+      instLegSel[n] = instLegSel[n] === false;             // 原本關 → 開；原本開（或沒記過）→ 關
+      const ch = window.echarts && echarts.getInstanceByDom(document.getElementById('instGroups'));
+      if (ch) ch.dispatchAction({ type: instLegSel[n] ? 'legendSelect' : 'legendUnSelect', name: n });
+      b.setAttribute('aria-pressed', instLegSel[n] ? 'true' : 'false');
+      b.title = `點一下${instLegSel[n] ? '隱藏' : '顯示'}${n}`;
+    };
   }
 
   /* 資金集中度（Andy 2026-09-18）：
@@ -10194,7 +10225,8 @@
     const on = concMaSet();
     const box = $('#concMa');
     if (box) {
-      box.innerHTML = '<span class="muted">均線</span>' + CONC_MAS.map((n, i) =>
+      box.innerHTML = `<span class="concmain" title="主線：前 ${topN} 大族群的成交值佔比"><i style="background:${CH.cyan}"></i>前 ${topN} 族群佔比</span>`
+        + '<span class="muted">均線</span>' + CONC_MAS.map((n, i) =>
         `<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer">
            <input type="checkbox" data-ma="${n}" ${on.has(n) ? 'checked' : ''}>
            <span style="color:${PALETTE[i % PALETTE.length]}">${n} 日</span></label>`).join('');
@@ -10215,8 +10247,11 @@
          佔比是資料端存的 4 位原值、均線是前端 sma() 加總再除的浮點數，以前提示框原樣吐出。
          一律 2 位＋%（同一張卡標題旁的讀數是 1 位；提示框多 1 位，看得出均線與佔比差多少）。只改顯示，sma() 不動。*/
       tooltip: { ...tip, trigger: 'axis', valueFormatter: (v) => (v == null || !isFinite(v) ? '—' : fmt.n(v, 2) + '%') },
-      grid: { left: 50, right: 20, top: 30, bottom: 30 },
-      legend: { type: 'scroll', textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 }, top: 0 },
+      /* ★ 2026-09-28 設計 v4 第二批 2A（01 §4「圖例一律在繪圖區外」）：圖上方那排 ECharts 圖例（前 N 族群佔比／各均線）
+         跟上面的「均線」勾選列講的是同一件事（勾選列的字本來就用線的顏色）→ 圖例不畫，主線的色樣補進勾選列最前面。
+         繪圖區頂端 30 → 10。*/
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      legend: { show: false },
       /* ★ 2026-09-25（審查 R2 #53：資料跨 2025-02～2026-09，軸上只有「02-06」「02-10」看不出是哪一年）：
          刻度一律寫「YY/MM/DD」—— 不靠「換年那格才寫年」：ECharts 會自己跳著印刻度，換年那一格常常剛好被跳過。*/
       xAxis: { ...axisStyle, type: 'category', data: conc.map(r => r.date),
