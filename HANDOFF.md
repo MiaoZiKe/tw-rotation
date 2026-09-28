@@ -3373,3 +3373,9 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-29 01:16 歷史回補全市場全部完成（補觸發排程停止）
 - complete：inst@market、daytrade+sbl@2025@market、dividend+divresult@2009@market（remaining 0／0；確認無資料 dividend 15、divresult 9）、index_intraday（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值）全部 done；plan:default done（2026-09-28T17:16 UTC）。
 - 之後由 backfill.yml 守門自動跳過；每日續補照常（上限 1,500 次／天）。CEO 的 70 分鐘補觸發排程到此停止。
+
+### 09-29 凌晨 合併上線：market-drill-0928（DECISIONS #275）＋ ov-right-fix
+- 兩批共用一輪驗收（瀏覽器排隊太久），一起推。
+- market-drill：法人連續買賣超搬到市場明細「法人連買賣」分頁（#market/streak），總覽原位留連結；漲跌分佈點長條→右側（≤640 下方）列出該區間個股，筆數＝家數、不截斷；修 +8～+10% 上界重疊 bug。
+- ov-right-fix：howPop 標題讀到標題圖示的空 span → 全站有圖示的「?」彈窗標題都變「說明」，新增 howTitle 跳過 .ticon；flowtopo 窄版鏈名讓開根的 20px 沒算進寬度 → 1024 寬「AI 伺…」被截。
+- 合併後驗了（純前端，pytest 依例外跳過）：_uitest 設計v4主題／總覽／總覽摘要卡列／總覽右欄／市場明細／市場明細下鑽0928／新-版面等高與多寬度／手機／積木-隱性參數／標題圖示 0；_preview 綠。
