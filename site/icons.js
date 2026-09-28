@@ -99,7 +99,13 @@
     'code-xml': 'code', 'arrow-up-down': 'updown', 'shopping-cart': 'shopping', ai: 'sparkles' };
 
   /* ---- 語意色（docs/design_title_icons.md §2） -------------------------
-     語意 → 色票變數。色票本身寫在 CSS 的 :root（深／淺各一組），v4 三主題沿用同一組（對比已驗過）。*/
+     語意 → 色。★ 這支檔**不寫任何色碼**：每個語意都對到主題本來就有的變數
+     （--cyan／--violet／--amber／--lime／--rise／--fall），深淺主題、v4 三主題換了那組變數，圖示就跟著換，
+     而那組變數本來就為了「對卡片底 ≥4.5」調過，所以圖形 ≥3:1 是站在它們肩膀上（_uitest「標題圖示」逐主題實量）。
+     15 個語意收成 5 個色系（同一頁最多 5 種顏色，才叫「搭配」而不是彩虹）：
+       資金面 M1（flow／rot／dest）→ --cyan；技術面 M3、K 線、AI（tech）→ --violet；
+       基本面、產業（fund）→ --cyan 與 --violet 各半；題材熱度、估值、事件、股利、自選（heat／val／event／yield／watch）→ --amber；
+       籌碼、營收成長（chip／grow）→ --lime；漲／跌（up／down）→ --rise／--fall（紅漲綠跌）。*/
   var TONES = {
     flow: 'sky',      // 資金、流向（青藍）
     rot: 'cyan',      // 輪動、輪盤（青）
@@ -191,6 +197,10 @@
     [/^傳產/, 'factory', 'fund'],
     [/^基礎建設/, 'zap', 'fund'],
     [/^(供應鏈|關聯圖|產業關係)/, 'network', 'fund'],
+    // 族群頁三欄（.gpcard > h5）：誰供給它／它供給誰／同業
+    [/^上游/, 'box', 'fund'],
+    [/^下游/, 'shopping', 'fund'],
+    [/^同業/, 'users', 'fund'],
     [/^產品剖析/, 'layers', 'fund'],
     // 其他頁
     [/^市場明細/, 'table', 'flow'],
@@ -211,7 +221,7 @@
     '.nbhead > h2', '#v-delivery .card h2', '.mhead h3', '.side-h h3', '.m3-card h3', '.aihead h3', '[data-icon]'
   ].join(',');
   /* 不加：說明盒、外商小面板、對話框、剖析圖內部（--dg 歸 art-director）、個股名稱（左邊已經有公司 logo） */
-  var SKIP = '.howtxt, .howbox, #coBox, [role="dialog"], .modal, svg, .dg, [data-dg], #skIdent, .tip, .ttip';
+  var SKIP = '.osc-ic, .howtxt, .howbox, #coBox, [role="dialog"], .modal, svg, .dg, [data-dg], #skIdent, .tip, .ttip';
 
   var SW = 1.75;
   var FALLBACK = ['bars', 'flow'];
@@ -274,12 +284,24 @@
     fixGap(h, sp);
   }
 
-  /* 圖示與文字的距離固定約 7px：標題若是 flex＋gap（.card h3 是 gap 10px），就用負的 margin 吃回來 */
+  /* 圖示與文字的距離固定 6px（＝ --s2）：標題若是 flex＋gap（.card h3 是 gap 10px），就用負的 margin 吃回來 */
   function fixGap(h, sp) {
     var cs = getComputedStyle(h), g = 0;
     if (/flex|grid/.test(cs.display)) { g = parseFloat(cs.columnGap) || 0; }
-    var m = Math.round(7 - g);
+    var m = Math.round(6 - g);
     if (sp.style.marginRight !== m + 'px') sp.style.marginRight = m + 'px';
+  }
+
+  /* 總覽摘要卡（.osc）左上那格：跟下方同名大卡用同一個圖示與語意色（輪盤＝radar、去向＝flow…），
+     一眼就對得到「這張小卡是下面哪張大卡的摘要」。只換 svg 與 data-tone，不動那格的尺寸。 */
+  var OSC = { updown: ['pulse', 'mix'], rot: ['radar', 'rot'], flow: ['flow', 'dest'], theme: ['flame', 'heat'] };
+  function slot(el) {
+    var c = el.closest('.osc'), m = c && OSC[c.getAttribute('data-k')];
+    if (!m) return;
+    if (el.getAttribute('data-tk') === m[0] && el.getAttribute('data-tone') === m[1]) return;
+    el.setAttribute('data-tk', m[0]);
+    el.setAttribute('data-tone', m[1]);
+    el.innerHTML = svg(m[0], 14);
   }
 
   var pending = 0;
@@ -287,52 +309,52 @@
     pending = 0;
     var list = document.querySelectorAll(AUTO);
     for (var i = 0; i < list.length; i++) decorate(list[i]);
+    var sl = document.querySelectorAll('.osc-ic');
+    for (var j = 0; j < sl.length; j++) slot(sl[j]);
   }
   function schedule() { if (!pending) pending = requestAnimationFrame(scan); }
 
   /* ---- 樣式（色票＋動效）；跟著這支檔走，不必改 index.html 的大樣式段 ---- */
   var CSS = [
-    /* 色票：深色（預設）。數字與對比見 docs/design_title_icons.md §2.2 */
-    ':root{--ti-sky:#38bdf8;--ti-cyan:#3ee0ff;--ti-blue:#6ea8ff;--ti-teal:#2dd4bf;--ti-violet:#a78bfa;',
-    '--ti-orange:#fb923c;--ti-heat:#ff7a45;--ti-emerald:#34d399;--ti-yellow:#facc15;--ti-rose:#fb7185;--ti-pink:#f472b6;',
-    '--ti-sw:1.75;--ti-chip-a:0%;--ti-chip-r:50%;--ti-glow:0px;--ti-lift:-1px}',
-    ':root[data-theme="light"]{--ti-sky:#0369a1;--ti-cyan:#0e7490;--ti-blue:#1d4ed8;--ti-teal:#0f766e;--ti-violet:#6d28d9;',
-    '--ti-orange:#b45309;--ti-heat:#c2410c;--ti-emerald:#047857;--ti-yellow:#a16207;--ti-rose:#e11d48;--ti-pink:#be185d}',
-    /* v4 三主題：色票沿用（六組底色都驗過 ≥3:1），只換「性格」變數 */
-    ':root[data-theme4="casual"]{--ti-chip-a:16%;--ti-chip-r:50%}',
-    ':root[data-theme4="hud"]{--ti-sw:1.6;--ti-glow:5px}',
+    /* 色：全部走主題變數（見上面 TONES 的註解）。「性格」變數只有 v4 三主題會改 */
+    ':root{--ti-flow:var(--cyan);--ti-tech:var(--violet);--ti-fund:color-mix(in oklab,var(--cyan) 50%,var(--violet));',
+    '--ti-warm:var(--amber);--ti-chip:var(--lime);--ti-sw:1.75;--ti-chip-a:0%;--ti-chip-r:50%;--ti-glow:0px}',
+    ':root[data-theme4="casual"]{--ti-chip-a:14%;--ti-chip-r:50%}',
+    ':root[data-theme4="hud"]{--ti-sw:1.6;--ti-glow:4px}',
     ':root[data-theme4="pro"]{--ti-sw:2.1;--ti-chip-r:3px}',
+    /* 尺寸：1em＝跟著標題字級走（h3 16px → 16px；h4.subh 13～14px → 同大），夾在 14～20px。
+       高度 1em ≤ 標題行高，所以不會把標題列撐高；寬度吃掉的是「1em＋與字距 6px」。 */
     '.ticon{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;',
-    'width:18px;height:18px;align-self:center;vertical-align:-3px;color:var(--tc,var(--ti-blue));line-height:0;',
-    'transition:transform .18s cubic-bezier(.2,.8,.2,1),color .18s,filter .18s}',
-    '.ticon>svg{position:relative;z-index:1;width:17px;height:17px;stroke-width:var(--ti-sw);overflow:visible}',
-    /* 底下那顆淡色圓：平常看不到（休閒主題常駐 16%），滑過卡片時浮出來 —— 不佔版面（absolute） */
-    '.ticon::before{content:"";position:absolute;inset:-4px;border-radius:var(--ti-chip-r);',
-    'background:color-mix(in srgb,var(--tc) var(--ti-chip-a),transparent);transition:background .18s,transform .18s;pointer-events:none}',
+    'width:clamp(14px,1em,20px);height:clamp(14px,1em,20px);align-self:center;vertical-align:-.14em;',
+    'color:var(--tc,var(--ti-flow));line-height:0;',
+    'transition:color var(--dur-fast,120ms) var(--ease,ease),filter var(--dur-fast,120ms) var(--ease,ease)}',
+    '.ticon>svg{position:relative;z-index:1;width:100%;height:100%;stroke-width:var(--ti-sw);overflow:visible}',
+    /* 底下那顆淡色圓：平常看不到（休閒主題常駐 14%），滑過卡片時浮出來 —— absolute，不佔版面 */
+    '.ticon::before{content:"";position:absolute;inset:-3px;border-radius:var(--ti-chip-r);',
+    'background:color-mix(in srgb,var(--tc) var(--ti-chip-a),transparent);transition:background var(--dur-fast,120ms) var(--ease,ease);pointer-events:none}',
     ':root[data-theme4="hud"] .ticon{filter:drop-shadow(0 0 var(--ti-glow) color-mix(in srgb,var(--tc) 45%,transparent))}',
-    '.ticon[data-tone="flow"]{--tc:var(--ti-sky)}.ticon[data-tone="rot"]{--tc:var(--ti-cyan)}',
-    '.ticon[data-tone="dest"],.ticon[data-tone="fund"]{--tc:var(--ti-blue)}.ticon[data-tone="grow"]{--tc:var(--ti-teal)}',
-    '.ticon[data-tone="tech"]{--tc:var(--ti-violet)}.ticon[data-tone="val"]{--tc:var(--ti-orange)}',
-    '.ticon[data-tone="heat"]{--tc:var(--ti-heat)}.ticon[data-tone="chip"]{--tc:var(--ti-emerald)}',
-    '.ticon[data-tone="event"]{--tc:var(--ti-yellow)}.ticon[data-tone="watch"]{--tc:var(--ti-rose)}',
-    '.ticon[data-tone="yield"]{--tc:var(--ti-pink)}.ticon[data-tone="up"]{--tc:var(--rise)}',
-    '.ticon[data-tone="down"]{--tc:var(--fall)}.ticon[data-tone="mix"]{--tc:var(--rise)}',
+    '.ticon[data-tone="flow"],.ticon[data-tone="rot"],.ticon[data-tone="dest"]{--tc:var(--ti-flow)}',
+    '.ticon[data-tone="tech"]{--tc:var(--ti-tech)}.ticon[data-tone="fund"]{--tc:var(--ti-fund)}',
+    '.ticon:is([data-tone="heat"],[data-tone="val"],[data-tone="event"],[data-tone="yield"],[data-tone="watch"]){--tc:var(--ti-warm)}',
+    '.ticon:is([data-tone="chip"],[data-tone="grow"]){--tc:var(--ti-chip)}',
+    '.ticon[data-tone="up"],.ticon[data-tone="mix"]{--tc:var(--rise)}.ticon[data-tone="down"]{--tc:var(--fall)}',
     '.ticon[data-tone="mix"]>svg{stroke:url(#ti-mix)}',
-    /* 互動：滑過卡片 → 圖示微微上浮、變亮、底圓浮出；可填色的圖示（愛心、圓餅、星）再填一層淡色 */
+    /* 摘要卡（總覽 K 線上方 .osc-ic）：那格原本是 app.js 的暫時圖示，由這支換成同一套圖與色，
+       底色淡圓沿用它自己的 16%（它的 --ic 是 inline style，所以這裡要 !important 才蓋得過） */
+    '.osc-ic[data-tone]{color:var(--tc)!important;background:color-mix(in srgb,var(--tc) 16%,transparent)!important}',
+    '.osc-ic[data-tone="mix"] svg{stroke:url(#ti-mix)}',
+    '.osc-ic[data-tone="flow"],.osc-ic[data-tone="rot"],.osc-ic[data-tone="dest"]{--tc:var(--ti-flow)}',
+    '.osc-ic[data-tone="heat"]{--tc:var(--ti-warm)}.osc-ic[data-tone="mix"]{--tc:var(--rise)}',
+    /* 互動（docs/ui_polish_spec.md §7.2：hover 只准改顏色，不准位移／放大）：
+       滑過卡片 → 圖示提亮一階、底圓浮出；可填色的圖示再填一層淡色。120ms。 */
     '@media (hover:hover){',
-    ':is(.card,.m3-card,.gpcard,aside):hover .ticon{transform:translateY(var(--ti-lift)) scale(1.1);',
-    'color:color-mix(in srgb,var(--tc) 82%,var(--ink,#fff))}',
-    ':is(.card,.m3-card,.gpcard,aside):hover .ticon::before{background:color-mix(in srgb,var(--tc) 20%,transparent)}',
+    ':is(.card,.m3-card,.gpcard,aside):hover .ticon{color:color-mix(in srgb,var(--tc) 80%,var(--ink,#fff))}',
+    ':is(.card,.m3-card,.gpcard,aside):hover .ticon::before{background:color-mix(in srgb,var(--tc) 18%,transparent)}',
     ':is(.card,.m3-card,.gpcard,aside):hover .ticon:is([data-k="heart"],[data-k="pie"],[data-k="star"],[data-k="coins"]) svg{fill:color-mix(in srgb,var(--tc) 22%,transparent)}',
-    ':is(.card,.m3-card,.gpcard,aside):hover .ticon[data-k="rotate"]{transform:translateY(var(--ti-lift)) rotate(40deg) scale(1.08)}',
     '}',
-    /* 手機：點下去縮一下、底圓亮一下（.ti-tap 由 pointerdown 加，450ms 拿掉） */
-    '.ticon.ti-tap{animation:tiTap .45s cubic-bezier(.2,.8,.2,1)}',
+    /* 觸控：點卡片時底圓亮一下（.ti-tap 由 pointerdown 加，240ms 拿掉；不縮放 —— 標題不是按鈕，§7.3 的縮放只給整顆按鈕） */
     '.ticon.ti-tap::before{background:color-mix(in srgb,var(--tc) 26%,transparent)}',
-    '@keyframes tiTap{0%{transform:scale(1)}35%{transform:scale(.82)}70%{transform:scale(1.14)}100%{transform:scale(1)}}',
-    '@media (prefers-reduced-motion:reduce){.ticon,.ticon::before{transition:none}',
-    ':is(.card,.m3-card,.gpcard,aside):hover .ticon,:is(.card,.m3-card,.gpcard,aside):hover .ticon[data-k="rotate"]{transform:none}',
-    '.ticon.ti-tap{animation:none}}'
+    '@media (prefers-reduced-motion:reduce){.ticon,.ticon::before{transition:none}}'
   ].join('');
 
   function injectCss() {
@@ -363,11 +385,9 @@
     if (!card) return;
     var ic = card.querySelector('.ticon');
     if (!ic) return;
-    ic.classList.remove('ti-tap');
-    void ic.offsetWidth;                      // 重新觸發動畫
     ic.classList.add('ti-tap');
     clearTimeout(ic._tiT);
-    ic._tiT = setTimeout(function () { ic.classList.remove('ti-tap'); }, 450);
+    ic._tiT = setTimeout(function () { ic.classList.remove('ti-tap'); }, 240);
   }
 
   var rsT = 0;
