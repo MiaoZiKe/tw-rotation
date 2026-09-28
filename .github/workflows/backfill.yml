@@ -212,8 +212,13 @@ jobs:
               python3 - <<'PY'
           import json, pathlib, collections
           p = json.loads(pathlib.Path("data/_state/backfill_progress.json").read_text())
+          # done 鍵的前綴＝資料集＋起始日：`dividend:` 是 2016 那一步，`dividend@2009-01-01:` 才是 2009 那一步，
+          # 兩者不能混著看（2026-09-28 就是看錯前綴，把「每輪都在前進」誤判成「卡住」）。
+          # 值是 "no_data" 的＝上游回空、確認無資料，不算「補到了」。
           c = collections.Counter(k.split(":")[0] for k in p.get("done", {}))
-          print("- 已完成檔數：" + "、".join(f"{k} {v}" for k, v in sorted(c.items())))
+          nd = collections.Counter(k.split(":")[0] for k, v in p.get("done", {}).items() if v == "no_data")
+          print("- 已處理檔數（其中確認無資料）：" + "、".join(
+              f"{k} {v}" + (f"（{nd[k]}）" if nd.get(k) else "") for k, v in sorted(c.items())))
           plan = p.get("complete", {}).get("plan:default")
           if isinstance(plan, dict):
               steps = plan.get("steps") or {}
@@ -226,7 +231,10 @@ jobs:
           for k, v in p.get("complete", {}).items():
               if k.startswith("plan:"):
                   continue
-              print(f"- `{k}`：{'補齊' if (v.get('done') if isinstance(v, dict) else v) else '未補齊'}")
+              ok = v.get('done') if isinstance(v, dict) else v
+              rem = v.get('remaining') if isinstance(v, dict) else None
+              tail = f"（還剩 {rem}）" if rem and any(rem.values()) else ""
+              print(f"- `{k}`：{'補齊' if ok else '未補齊'}{tail}")
           PY
             fi
           } >> "$GITHUB_STEP_SUMMARY"
