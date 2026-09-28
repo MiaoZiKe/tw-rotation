@@ -282,6 +282,8 @@
     sp.innerHTML = svg(r.k);
     if (!cur) h.insertBefore(sp, h.firstChild);
     fixGap(h, sp);
+    h._tiFit = '';
+    watch(h);
   }
 
   /* 圖示與文字的距離固定 6px（＝ --s2）：標題若是 flex＋gap（.card h3 是 gap 10px），就用負的 margin 吃回來 */
@@ -290,6 +292,31 @@
     if (/flex|grid/.test(cs.display)) { g = parseFloat(cs.columnGap) || 0; }
     var m = Math.round(6 - g);
     if (sp.style.marginRight !== m + 'px') sp.style.marginRight = m + 'px';
+  }
+
+  /* ★ 不擠篩選器：標題跟篩選器排在同一條「可換行的 flex 列」（.row.spread）時，
+     圖示多出來的 1em＋6px 可能剛好讓篩選器被擠到第二行（_uitest 實測：800 寬「族群 × 法人」列 40 → 72px）。
+     flex 換行是照「標題的最大內容寬」判斷的，所以這裡量「沒有圖示時標題多寬」，把標題的 max-width 釘在那個寬度：
+     換不換行跟加圖示前一模一樣，多出來的那一點寬度改由標題自己內部吸收（副標本來就會在標題內換行）。
+     只在「加了圖示真的讓那一列變高」時才動；列寬變了（換寬度、側欄開關）重量一次。 */
+  function fit(h, sp) {
+    var p = h.parentElement;
+    if (!p || p.children.length < 2 || !h.getClientRects().length) return;
+    var key = p.clientWidth + '|' + h.textContent.length;
+    if (h._tiFit === key) return;
+    var cs = getComputedStyle(p);
+    if (cs.display.indexOf('flex') < 0 || cs.flexWrap === 'nowrap' || cs.flexDirection.indexOf('row') < 0) { h._tiFit = key; return; }
+    if (h.getAttribute('data-ti-fit')) { h.style.maxWidth = ''; h.removeAttribute('data-ti-fit'); }
+    sp.style.display = 'none';
+    var h0 = p.getBoundingClientRect().height, w0 = h.getBoundingClientRect().width;
+    sp.style.display = '';
+    var h1 = p.getBoundingClientRect().height;
+    if (h1 > h0 + 1) { h.style.maxWidth = Math.ceil(w0) + 'px'; h.setAttribute('data-ti-fit', '1'); }
+    h._tiFit = p.clientWidth + '|' + h.textContent.length;
+  }
+  function fitAll() {
+    var l = document.querySelectorAll('.ticon');
+    for (var i = 0; i < l.length; i++) { var h = l[i].parentElement; if (h && !h.classList.contains('osc-ic')) fit(h, l[i]); }
   }
 
   /* 總覽摘要卡（.osc）左上那格：跟下方同名大卡用同一個圖示與語意色（輪盤＝radar、去向＝flow…），
@@ -311,6 +338,15 @@
     for (var i = 0; i < list.length; i++) decorate(list[i]);
     var sl = document.querySelectorAll('.osc-ic');
     for (var j = 0; j < sl.length; j++) slot(sl[j]);
+    fitAll();
+  }
+  /* 標題列尺寸一變（換寬度、手機分段從隱藏變顯示、側欄開關）就重量一次 fit；只看列，不看整頁 */
+  var ro = window.ResizeObserver ? new ResizeObserver(function () { schedule(); }) : null;
+  var watched = window.WeakSet ? new WeakSet() : null;
+  function watch(h) {
+    var p = h.parentElement;
+    if (!ro || !watched || !p || watched.has(p)) return;
+    watched.add(p); ro.observe(p);
   }
   function schedule() { if (!pending) pending = requestAnimationFrame(scan); }
 

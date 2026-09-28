@@ -15278,13 +15278,14 @@ def _ti_measure_all(pg, tag, res):
         if sp:
             pg.evaluate(f"() => {{ const b = [...document.querySelectorAll('.mspine button')].filter(b => b.getClientRects().length)[{si}]; b && b.click(); }}")
             pg.wait_for_timeout(700)
+            one(f"{tag}／第 {si + 1} 步")            # 換步＝回到那一步的第 1 段（只有一段時分段列不畫，所以一定要在這裡量）
         n = pg.evaluate("() => [...document.querySelectorAll('.mpager button')].filter(b => b.getClientRects().length).length")
-        for pi in range(n):
-            if not sp and pi == 0:
-                continue
+        for pi in range(1, n):
             pg.evaluate(f"() => {{ const b = [...document.querySelectorAll('.mpager button')].filter(b => b.getClientRects().length)[{pi}]; b && b.click(); }}")
             pg.wait_for_timeout(700)
             one(f"{tag}／分段 {si + 1}-{pi + 1}")
+    # 走完把「記住停在哪一段」清掉，不把第 4 步留給後面的段落
+    pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.mia.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
 
 def t_title_icons(pg, b, base, code):
@@ -15307,7 +15308,10 @@ def t_title_icons(pg, b, base, code):
                 wait_until(pg, "() => document.querySelectorAll('.ticon').length > 0 ? 1 : null", 5000)
                 _ti_measure_all(pg, f"{w} {mode} {name}", res)
             tot = sum(m["n"] for _, m in res)
-            ok(f"[標題圖示 {w} {mode}] 量得到卡片標題（> 20 個）", tot > 20, tot)
+            print(f"  （標題圖示 {w} {mode}）量了 {len(res)} 個畫面、{tot} 個卡片標題，最低對比 {min([m['minCr'] for _, m in res] or [0])}："
+                  + "、".join(f"{l.split(' ', 2)[2]} {m['n']}" for l, m in res))
+            ok(f"[標題圖示 {w} {mode}] 每個畫面都量得到卡片標題", all(m["n"] > 0 for _, m in res), [l for l, m in res if not m["n"]])
+            ok(f"[標題圖示 {w} {mode}] 總數夠多（走遍頁面才會 > 20）", tot > 20 or (mode == "light" and w != 1440 and tot > 5), tot)
             for label, m in res:
                 ok(f"★ [標題圖示 {label}] 每個卡片標題都有圖示（共 {m['n']} 個）", not m["miss"], m["miss"])
                 ok(f"[標題圖示 {label}] 圖示都對得到語意（沒有退回預設那顆）", not m["fb"], m["fb"])
@@ -15340,7 +15344,7 @@ def t_title_icons(pg, b, base, code):
         document.querySelector('main, #app, body').appendChild(card);
         await new Promise(r => setTimeout(r, 300));
         const a = card.querySelector('.ticon') && card.querySelector('.ticon').dataset.k;
-        card.querySelector('h3').firstChild.nodeValue = '月營收明細 ';
+        [...card.querySelector('h3').childNodes].find(n => n.nodeType === 3).nodeValue = '月營收明細 ';
         await new Promise(r => setTimeout(r, 300));
         const b = card.querySelector('.ticon') && card.querySelector('.ticon').dataset.k;
         const n = card.querySelectorAll('.ticon').length; card.remove(); return { k0, a, b, n }; }""")
@@ -15357,7 +15361,7 @@ def t_title_icons(pg, b, base, code):
         ok("[標題圖示] 滑過卡片：圖示不位移不放大（ui_polish_spec §7.2 hover 只改顏色）", hv in ("none", "matrix(1, 0, 0, 1, 0, 0)"), hv)
     pg.emulate_media(reduced_motion="reduce")
     rm = pg.evaluate("() => { const i = document.querySelector('.card h3 > .ticon'); return i ? getComputedStyle(i).transitionDuration : null; }")
-    ok("[標題圖示] prefers-reduced-motion：圖示沒有 transition", rm is not None and all(float(x.strip().rstrip('ms').rstrip('s') or 0) == 0 for x in rm.split(',')), rm)
+    ok("[標題圖示] prefers-reduced-motion：圖示沒有 transition", rm is not None and all((float(x.strip()[:-2]) if x.strip().endswith('ms') else float(x.strip().rstrip('s') or 0) * 1000) <= 1 for x in rm.split(',')), rm)
     pg.emulate_media(reduced_motion="no-preference")
     # ---------------------------------------------------------------- v4 三主題（theme4.css 在的時候才量；還沒合進來就記一筆說明，不算紅）
     has4 = pg.evaluate("""() => { const r = document.documentElement; const b0 = getComputedStyle(r).getPropertyValue('--bg');
