@@ -2967,7 +2967,7 @@
           <div class="row spread"><h3 style="margin:0">漲跌分佈 <small id="distSub"></small></h3>
             <div class="row" id="distFilter" style="gap:8px;flex-wrap:wrap"></div></div>
           <div class="distlay"><div id="chgDistBox"><div id="chgDist" class="chart" style="min-height:260px"></div></div>
-            <aside class="distpick" id="distPick" hidden aria-label="這一段的個股"></aside></div></div>`
+            <div class="distpick" id="distPick" role="region" hidden aria-label="這一段的個股"></div></div></div>`
         + `<div class="seg" id="mktTabs">${sets.map((t, i) =>
         `<button data-i="${i}" class="${i === mktTab ? 'on' : ''}">${t[0]} <em>${t[1].length}</em></button>`).join('')}</div>`
         + `<div id="mktInner" style="margin-top:10px"></div>`;

@@ -3771,6 +3771,7 @@ h3 .howbtn.pop{font-family:inherit}
 .mktstreakbar .row{gap:6px;flex-wrap:wrap}
 
 /* ---- 市場明細：漲跌分佈下鑽（2026-09-28，Andy「點擊長條圖後，會顯示個股在右邊可以看」）----
+   ⚠ 名單容器用 div 不用 aside：全站的 `aside` 規則是今日事件抽屜（position:fixed 貼右邊），用 aside 會整塊飛到畫面外。
    圖在左、名單在右；名單沒打開時圖吃滿整列。≤640 名單改排到圖的下面（手機寬度放不下兩欄）。
    名單自己捲（表頭黏住），整頁不會因為 0～+2% 那一段有七八百檔而被拉得很長。 */
 .distlay{display:flex;gap:12px;align-items:stretch}

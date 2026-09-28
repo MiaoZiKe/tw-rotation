@@ -1416,6 +1416,7 @@ DRILL_PANEL = """() => { const b = document.getElementById('distPick'), ch = doc
              sort: ((b.querySelector('#distSort button.on') || { dataset: {} }).dataset.s) || '',
              right: r.left >= cr.right - 1 && r.top < cr.bottom && r.bottom > cr.top,
              below: r.top >= cr.bottom - 1, minFs,
+             inView: r.left >= 0 && r.right <= innerWidth + 1 && getComputedStyle(b).visibility !== 'hidden' && getComputedStyle(b).position !== 'fixed',
              pl: r.left, pr: r.right, cl: cr.left, crr: cr.right }; }"""
 
 
@@ -1462,6 +1463,9 @@ def _drill_check_bin(pg, tag, bars, i):
     lab = bars["labels"][i]
     if not ok(f"★ [{tag}] 點「{lab}%」那根長條 → 名單打開、而且是那一根", p["open"] and p["bin"] == i, p if not p["open"] else [p["bin"], p["head"]]):
         return p
+    # 2026-09-28 開發時踩到：名單用 <aside> 會吃到全站「今日事件抽屜」的 aside 規則（fixed、藏在畫面右外側）——
+    # 「在圖的右邊」這條照樣成立，所以另外驗名單整塊都在視窗裡、看得見
+    ok(f"★ [{tag}] 「{lab}%」名單整塊在視窗裡看得見（不是飛到畫面外）", p.get("inView"), [p.get("pl"), p.get("pr")])
     ok(f"★ [{tag}] 「{lab}%」名單筆數＝長條上的家數", p["n"] == len(p["rows"]) == bars["vals"][i], [p["n"], len(p["rows"]), bars["vals"][i]])
     bad = [r for r in p["rows"] if not _drill_in_bin(i, r["chg"], len(bars["labels"]))]
     ok(f"★ [{tag}] 「{lab}%」每一檔的漲跌幅都落在這個區間裡", not bad, bad[:3])
@@ -1476,7 +1480,8 @@ def t_market_drill_0928(pg, b, base):
     tag = "市場明細下鑽0928"
     for w in (1440, 800):
         pg.set_viewport_size({"width": w, "height": 1000})
-        pg.goto(f"{base}#market/updown", wait_until="networkidle")
+        # 真的重新載入：只換 hash 不會重整，上一輪打開的名單會被刻意保留（從個股頁按返回時停在原本那一根）
+        pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.reload(wait_until="networkidle")
         wait_until(pg, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e); }", 8000)
         pg.wait_for_timeout(800)
         scroll_to(pg, "chgDistBox"); pg.wait_for_timeout(500)
