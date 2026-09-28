@@ -880,10 +880,11 @@ def t_overview(pg, base):
     ok("★ 總覽卡片下方的「族群／其他題材」連結列全部拿掉", not cp["linkrow"], cp["linkrow"])
     ok("★ 總覽卡片上的註腳說明拿掉", not cp["notes"], cp["notes"])
     ok("★ 說明一律改成標題旁的「?」（沒有舊的「怎麼看 ?」長鈕）",
-       cp["old"] == 0 and {"m3", "heat", "themeov", "rotm", "ovflow", "breadth", "trust"} <= set(cp["q"]), cp)
+       cp["old"] == 0 and {"m3", "heat", "themeov", "rotm", "ovflow", "breadth"} <= set(cp["q"]), cp)
     # --- 「?」逐顆點開 → 跳出說明；點背景 → 關
     # 2026-09-25 改前 6 顆 → 改後 7 顆：「昨日資金去向」標題旁新增 ovflow（Andy：說明放進「?」）
-    for k in ("heat", "themeov", "rotm", "ovflow", "breadth", "trust", "m3"):
+    # 2026-09-28 7 → 6 顆：法人連續買賣超（trust）搬到市場明細「法人連買賣」分頁，那顆「?」在「市場明細下鑽0928」段驗
+    for k in ("heat", "themeov", "rotm", "ovflow", "breadth", "m3"):
         pg.evaluate("() => window.scrollTo(0, 0)")
         click(pg, f'#v-overview .howbtn.pop[data-how="{k}"]', 450)
         hp = pg.evaluate("""(k) => { const p = document.getElementById('howPop'), bk = document.getElementById('howBack'), b = document.getElementById('how-' + k);
@@ -1193,13 +1194,8 @@ def t_overview(pg, base):
     # ★ 2026-09-23：「族群估值」`#gval` 整塊移除（Andy 追問後回覆 OK），所以它那一圈拿掉 ——
     #   留著的話 `getInstanceByDom(null)` 回 null，那一圈三條會一起紅。
     # 改前：市場寬度＝儀表＋堆疊長條 → 改後：漲跌家數分佈直條（上面已逐條驗），這裡只留法人那張的型別
-    for cid, name, want in (("trust", "法人連續買賣超", ("scatter",)),):
-        types = pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('{cid}'));
-            return c ? (c.getOption().series || []).map(s => s.type) : null; }}""")
-        ok(f"總覽「{name}」有畫出來", bool(types), types)
-        if cid != "breadth":
-            ok(f"總覽「{name}」不是長條圖", types and 'bar' not in types, types)
-        ok(f"總覽「{name}」用的是更生動的圖形", types and any(w in types for w in want), types)
+    # ★ 2026-09-28：法人連續買賣超搬到市場明細（#market/streak），這一圈（四象限散佈圖的型別）搬進 t_streak
+    #   —— 那裡本來就逐條驗四象限（點數、左右半、象限名），總覽上已經沒有這張圖。
 
     # 改前：這裡驗「市場寬度只有一根堆疊長條＋上半是儀表」→ 改後：卡片已換成「漲跌家數」11 級分佈（上面新的驗收）。
 
@@ -1330,10 +1326,12 @@ def t_streak(pg, base):
         const o = c.getOption(), s = o.series[0];
         const xs = s.data.map(d => d.value[0]);
         const g = (o.graphic || []).flatMap(x => x.elements || [x]).map(x => (x.style || {}).text).filter(Boolean);
-        return { n: s.data.length, pts: +e.dataset.pts, buys: +e.dataset.buys, sells: +e.dataset.sells,
+        return { n: s.data.length, pts: +e.dataset.pts, buys: +e.dataset.buys, sells: +e.dataset.sells, types: o.series.map(x => x.type),
                  pos: xs.filter(x => x > 0).length, neg: xs.filter(x => x < 0).length, quads: g,
                  ylog: o.yAxis[0].type, sub: (document.getElementById('streakSub') || {}).textContent || '',
                  row: !!document.querySelector('#mktBody .linkrow') }; }""")
+    ok("法人連續買賣超是散佈圖、不是長條圖（原本在總覽驗，2026-09-28 跟著搬來）",
+       bool(q4) and "scatter" in q4["types"] and "bar" not in q4["types"], q4 and q4["types"])
     ok("★ 四象限點數＝買超檔數＋賣超檔數", bool(q4) and q4["n"] == q4["pts"] == q4["buys"] + q4["sells"], q4)
     ok("★ 買在右半、賣在左半（兩邊都有點）", bool(q4) and q4["pos"] == q4["buys"] > 0 and q4["neg"] == q4["sells"] > 0, q4)
     ok("★ 四個象限都有標名：連買加碼／連買減碼／連賣加碼／連賣減碼",
@@ -5371,7 +5369,7 @@ def t_new_layout(pg, base):
       /* ★ 2026-09-23：`gval`（族群估值）整塊移除，從掃描清單拿掉。
          ⚠ 這裡不是 `ok()`：找不到那張圖會被 `out.overlaps.push([...])` **算成一筆重疊**而變紅，
            用關鍵字搜 `ok(` 找不到它 —— 這種「不是斷言但會判紅」的地方最容易漏。*/
-      const want = ['breadth', 'trust'];
+      const want = ['breadth'];            // 2026-09-28 trust 搬到市場明細（#market/streak），不在總覽了
       const out = { overlaps: [], outside: [], nodes: {} };
       for (const id of want) {
         const host = document.getElementById(id);
@@ -18220,7 +18218,8 @@ def t_ov_right(pg, base):
 def t_copy_trim(pg, base, code):
     """說明精簡：卡片上的說明 ≤40 字、每顆「怎麼看 ?」點得開且條列短。"""
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    routes = [("overview", None), ("market", None), ("flow", None), ("heatmap", None), ("heatmap/theme/cowos", None),
+    # 2026-09-28：法人連續買賣超（trust）搬到市場明細的「法人連買賣」分頁 → 多掃一次 market/streak
+    routes = [("overview", None), ("market", None), ("market/streak", None), ("flow", None), ("heatmap", None), ("heatmap/theme/cowos", None),
               ("industry", None), ("industry/semiconductor/overview", None), ("industry/semiconductor", None),
               ("industry/ai_server", None), ("season", None)] + \
              [(f"stock/{code}", t) for t in ("overview", "profit", "basics", "news")]
