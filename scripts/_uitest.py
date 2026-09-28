@@ -38071,6 +38071,77 @@ def t_design_v4_2b(b, base, code):
        and 'aria-pressed="false"' in pg.evaluate("() => document.querySelector('.chlegend[data-for=\"revYear\"] button[data-n=\"2021\"]').outerHTML"),
        {"1000": a and (a["leg"], a["legShown"], a["gtop"]), "1440": z and (z["leg"], z["legShown"], z["sel"])})
     click(pg, '.chlegend[data-for="revYear"] button[data-n="2021"]', 400)
+
+    # ---- ⑩ 2B 收尾：產業地圖／產業鏈（族群總覽、關聯圖）—— 一整列一個元件的東西收進既有的列
+    GP_PLACE = """() => { const q = s => document.querySelector(s);
+      const head = q('.gphead'), note = q('#gpNote'), foc = q('#gpFocus'), tail = q('.gptail'), bar = q('#gpBar');
+      const card = bar && bar.parentElement, grid = q('.gpgrid');
+      const R = e => e ? e.getBoundingClientRect() : null;
+      return { noteInHead: !!(head && note && head.contains(note)), tailInHead: !!(head && tail && head.contains(tail)), hasTail: !!tail,
+               focInCard: !!(card && foc && card.contains(foc)), focAfterGrid: !!(grid && foc && grid.nextElementSibling === foc),
+               cardH: card ? Math.round(R(card).height) : null, focTxt: foc ? foc.innerText.trim() : '',
+               headH: head ? Math.round(R(head).height) : null,
+               sw: document.documentElement.scrollWidth, iw: innerWidth }; }"""
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(base + "#industry", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    g0 = pg.evaluate(GP_PLACE)
+    ok("⑩ [1440] 產業地圖：資料狀態（#gpNote）與「完整版圖：產業熱力圖 →」在標題列裡（改前各佔一整列）",
+       g0["noteInHead"] and g0["hasTail"] and g0["tailInHead"] and g0["headH"] <= 40, g0)
+    ok("⑩ [1440] 滑過讀數（#gpFocus）在「族群漲跌幅」卡片裡（改前是圖下方一條空白列）", g0["focInCard"], g0)
+    pos = pg.evaluate(B29_BARPOS, -1)
+    if pos:
+        pg.mouse.move(pos["x"], pos["y"]); pg.wait_for_timeout(700)
+        g1 = pg.evaluate(GP_PLACE)
+        ok("⑩ [1440] 滑過長條：讀數真的換成那個族群、卡片高度不變（版面不跳）",
+           pos["name"] in g1["focTxt"] and g1["cardH"] == g0["cardH"], {"name": pos["name"], "before": g0["cardH"], "after": g1})
+        pg.mouse.move(5, 5); pg.wait_for_timeout(400)
+    pg.set_viewport_size({"width": 600, "height": 900}); pg.wait_for_timeout(900)
+    g2 = pg.evaluate(GP_PLACE)
+    ok("⑩ [縮到 600] 手機版面維持改前的順序：資料狀態不在標題列、讀數在圖下方、沒有橫向捲軸",
+       not g2["noteInHead"] and not g2["focInCard"] and g2["focAfterGrid"] and g2["sw"] <= g2["iw"] + 1, g2)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
+    g3 = pg.evaluate(GP_PLACE)
+    ok("⑩ [拉回 1440] 又搬回標題列／卡片裡", g3["noteInHead"] and g3["focInCard"] and g3["tailInHead"], g3)
+
+    NB_STATE = """() => { const q = s => document.querySelector(s);
+      const card = q('#indChain .nbcard'), h2 = q('#indChain .nbhead h2'), sw = q('#indChain #dgPick'), dd = q('#segDD'), rh = q('#relHead'), rm = q('#relMain');
+      const R = e => e ? e.getBoundingClientRect() : null, hr = R(h2), sr = R(sw);
+      const em = q('#dgPick a em, .nbsw a em'), sub = q('#chainMap .co .sub');
+      return { inl: !!(card && card.classList.contains('nbinl')), over: sw ? sw.scrollWidth > sw.clientWidth + 1 : null,
+               sameRow: !!(hr && sr && hr.top >= sr.top - 12 && hr.bottom <= sr.bottom + 12),
+               ddInHead: !!(dd && rh && rh.contains(dd)), ddInMain: !!(dd && rm && rm.contains(dd)),
+               btnTxt: ((q('#segDDBtn b') || {}).textContent || ''),
+               emFs: em ? parseFloat(getComputedStyle(em).fontSize) : null,
+               sw: document.documentElement.scrollWidth, iw: innerWidth }; }"""
+    pg.goto(base + "#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    n0 = pg.evaluate(NB_STATE)
+    ok("⑩ [1440] 產業鏈：鏈名標題跟二層分頁同一列（.nbinl）、分頁列沒有被擠出橫向捲動",
+       n0["inl"] and n0["sameRow"] and not n0["over"], n0)
+    ok("⑩ [1440] 「環節 ▾」下拉在「供應鏈關聯圖」標題列裡", n0["ddInHead"], n0)
+    ok("⑩ 分頁上的檔數字 ≥ 12px（改前 11.5）", (n0["emFs"] or 0) >= 12 or n0["emFs"] is None, n0)
+    seg = pg.evaluate("() => { const c = document.querySelector('#segChips .segchip[data-seg]:not(.nomem)'); return c ? c.dataset.seg : null; }")
+    if seg:
+        click(pg, "#segDDBtn", 300)
+        opened = pg.evaluate("() => !!document.querySelector('#segDD.open')")
+        click(pg, f'#segChips .segchip[data-seg="{seg}"]', 900)
+        n1 = pg.evaluate(NB_STATE)
+        ok("⑩ [1440] 從標題列的下拉選一格：下拉真的打開、選完按鈕字換成那一格", opened and n1["btnTxt"] not in ("", "全部"), [opened, n0["btnTxt"], n1["btnTxt"]])
+        click(pg, "#segDDBtn", 300)
+        click(pg, "#segChips .segall", 700)
+    for w in (1100, 800):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(900)
+        nw = pg.evaluate(NB_STATE)
+        ok(f"⑩ [{w}] 產業鏈：同列只在放得下時成立（有 .nbinl 就不准分頁列溢出）、沒有橫向捲軸",
+           (not nw["inl"] or not nw["over"]) and nw["sw"] <= nw["iw"] + 1, nw)
+        if w == 800:
+            ok("⑩ [800] ≤820 下拉搬回關聯圖區塊（手機那套色標排法不動）", nw["ddInMain"] and not nw["ddInHead"], nw)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
+    n2 = pg.evaluate(NB_STATE)
+    ok("⑩ [拉回 1440] 下拉又回到標題列、標題與分頁又同一列", n2["ddInHead"] and n2["inl"], n2)
+    pg.evaluate("() => { const b = document.querySelector('#chainMap .foldbar [data-fold=\"none\"]'); if (b) b.click(); }"); pg.wait_for_timeout(900)
+    sub = pg.evaluate("() => { const s = document.querySelector('#chainMap .co:not(.chip) .sub'); return s ? parseFloat(getComputedStyle(s).fontSize) : null; }")
+    ok("⑩ 關聯圖公司卡（展開）第二行字 ≥ 12px（改前 11）", sub is None or sub >= 12, sub)
+    pg.evaluate("() => { const b = document.querySelector('#chainMap .foldbar [data-fold=\"all\"]'); if (b) b.click(); }"); pg.wait_for_timeout(600)
     ok("整段沒有 JS 錯誤", not errs, errs[:3])
     ctx.close()
 
