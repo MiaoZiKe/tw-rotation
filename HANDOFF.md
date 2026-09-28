@@ -3268,3 +3268,8 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-28 午後 合併上線：index-kline-0928（DECISIONS #272）
 - 合併後驗了：pytest 809 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 總覽／總覽摘要卡列／新-大盤三張圖 0、大盤K線0928 7 紅＝**全部是資料還沒進湖**（櫃買 IX0043.TWO 60 分 K、加權 FinMind 分鐘成交值要等合併後那輪回補），連動縮放與無量說明那幾條綠；_preview 綠。
 - 回補跑過後要回頭重跑「大盤K線0928」確認 7 條轉綠（看 complete.index_intraday.tse1m_left 在減少、櫃買 yahoo_v 3 done）。
+
+### 09-28 午後 合併上線：rev-pe-0928（DECISIONS #273，原分支用 #272 與大盤 K 線撞號，合併時改號）
+- 月營收口徑：成長率分母 >0 才給、日曆月對齊缺月留空、證交所附的同口徑基期優先（IFRS 17 金控保險）；全市場普查 docs/revenue_audit_0928.md；防回歸 tests/test_revenue_audit_0928.py 16 條。本益比河流深淺兩組配色＋Y 軸拖曳縮放。
+- 合併後驗了：pytest 825 passed／1 xfailed；SKIP_INTRADAY=1 重算 payload；_uitest 營收河流0928／個股／新-產業與個股 0（營收河流第一次瀏覽器頁面崩潰＝記憶體吃緊，單獨重跑 0）；_preview 綠。
+- 待處理：`finmind.revenue_announce_date()` 對 2026 起金融保險業應為次月 15 日（目前寫 10 日，尚無任何回測使用，還沒造成偷看未來）。
