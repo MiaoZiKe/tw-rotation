@@ -1,4 +1,4 @@
-# 公司 Logo 的資料來源、條款查證與風險（2026-09-26；同日第二版改取圖策略見 §1.1、深夜第三版見 §1.2）
+# 公司 Logo 的資料來源、條款查證與風險（2026-09-26；同日第二版改取圖策略見 §1.1、深夜第三版見 §1.2、第四版見 §1.3）
 
 Andy 2026-09-26 要在**搜尋結果**與**個股頁名稱旁**顯示公司 Logo。這份文件記錄資料端的來源選擇、
 查證結果、商標風險，以及**怎麼整批關掉**。程式在 `pipeline/sources/logos.py`，
@@ -182,6 +182,60 @@ Andy 2026-09-26 要在**搜尋結果**與**個股頁名稱旁**顯示公司 Logo
 
 ---
 
+### 1.3 第四版（2026-09-28～29，`LOGO_STRATEGY`＝4，DECISIONS #276）
+
+起因：Andy「我發現有個股還是沒有公司 Logo，若是搜不到，可以去 Google 搜尋找尋 Logo 截圖或下載貼上來，也可以直接去他們公司將 Logo 截圖貼上」。
+第三版跑完：1,985 家有官網，ok 1,670（84.1%，其中低解析 109）、none 168、robots 89、too_small 51、blank 6、generic 1。
+
+**缺的 315 家長什麼樣（2026-09-29 用資料湖索引實算）**
+
+| 狀態 | 家數 | 細分（索引 `detail` 的第一個失敗） |
+|---|---|---|
+| none | 168 | 77 家首頁打得開但一個候選都沒有（第一個失敗是 `/apple-touch-icon.png` 404）；61 家首頁連不到、Google s2 也 404；其餘 30 家是圖檔 403／500、軟 404、SVG 用了外部實體、首頁轉到別家網域（1 家） |
+| robots | 89 | 55 家是第一版判的、沒記原因；22 家是 robots.txt 回 **403**（第三版照 robotparser 當全站禁止）；12 家是真的寫了 Disallow |
+| too_small | 51 | 官網沒有 ≥16px 的圖、s2 只給 16px |
+| blank／generic | 7 | — |
+
+**新策略（全部寫在 `pipeline/sources/logos.py`、`logo_wikimedia.py`，由 backfill.yml 的 logos 步驟執行；容器連不到外網）**
+
+| # | 策略 | 針對誰 | 預估多救 | 依據與信心 |
+|---|---|---|---|---|
+| 1 | **入口頁跟下一頁**：`<meta http-equiv=refresh>`、`<frameset><frame>`、`location.href='…'`、`hreflang=zh-TW`、href 含 /tw/、/cht/、/big5/… 的繁中版連結；首頁候選太弱才跟，最多 2 頁，同公司網域、每頁過 robots | none 的 77 家（首頁打得開卻沒候選） | 與 #2～#5 合計 30～55 | 低中：看不到那 77 家的 HTML；台灣中小企業官網入口頁、frameset 很常見，但比例沒實測 |
+| 2 | **回首頁連結包著的第一張圖**（`<a href="/"><img src="top_01.png">`），檔名像按鈕／房子圖示的不收 | 同上＋too_small 51 家 | 同上 | 同上 |
+| 3 | **schema.org logo**（JSON-LD 的 `"logo"`、`itemprop="logo"`） | 同上 | 同上 | WordPress／Yoast 站會自動輸出 |
+| 4 | **頁首 inline `<svg>`**（logo 區或 class 含 logo），切出原文用 cairosvg 畫；**logo 元素的 CSS 背景圖**（style 屬性、頁面內 `<style>` 裡選擇器含 logo 的規則；不下載外部 .css） | 同上 | 同上 | 同上 |
+| 5 | **msapplication-TileImage／square150x150logo** 與 `browserconfig.xml` | 同上 | 同上 | IIS／ASP.NET 老站常見 |
+| 6 | **申報網址帶路徑就先開那一頁**（例 `nanyapcb.com.tw/nypcb/Chinese/index`） | 9 家 | 3～6 | 中：9 家都是資料湖裡實際的申報網址 |
+| 7 | **robots.txt 照 RFC 9309**：4xx＝沒有規則可以抓、5xx／429／連不上＝這輪不抓；寫了 Disallow 的照舊一個檔都不碰 | robots 裡 robots.txt 回 4xx 的（22 家已知＋55 家未知原因裡推估約 35 家） | 15～30 | 中：RFC 9309 §2.3.1.3、Google 規格同樣做法；但 robots.txt 回 403 的站首頁多半也 403，那種**不抓也不請 Google 代抓**（見下） |
+| 8 | **同集團母公司官網**：申報官網整個轉到別的網域時，那一頁**提到這家公司的簡稱或全名**才跟過去取圖（`via: group`），也不問 s2 | 轉址到別家網域的（目前可見 1 家） | 0～2 | 高（家數少）；沒有「集團關係」的合規資料源，所以只做「申報官網自己轉過去」這一種 |
+| 9 | **Wikidata P154（標誌圖片）＋ Wikimedia Commons**：用證券代號（P414＋P249）或公司全名找條目，只收**公有領域、CC0**；CC BY／BY-SA 要等網站畫面有出處連結（`LOGO_WIKIMEDIA_ALLOW_BY`，預設關）。不是爬官網，所以 robots 不准的公司也可以問；s2 仍不問 | 全部缺圖的＋低解析 | 5～15 | 低：缺圖的多是中小型公司，Wikidata 有標誌圖又是自由授權的不多；大公司（例 3481 群創）才可能有 |
+| 10 | **人工指定**（`data/logos/manual/<代號>.png`＋`manual.json` 記來源網址），最優先、永不覆寫 | 自動救不了的 | 看人工 | 操作見 `docs/logo_manual.md` |
+
+合計**預估多 60～130 家**（1,670 → 約 1,730～1,800，87%～91%），另外約 20～40 家低解析會換成大圖。
+實際數字看第四版跑完後 `data/_state/logo_progress.json` 的 `counts`、`wikimedia`、`manual`。
+
+**救不了的（寫在前面）**
+- **robots.txt 寫了 Disallow**（已知 12 家＋55 家未知原因裡推估約 20 家）：官網一個檔都不碰、Google s2 不問。只剩 Commons 與人工。
+- **對雲端 IP 擋 403 的站**：robots.txt 與首頁都回 401／403 → 判 none，**圖檔與 Google s2 都不抓**。
+  RFC 9309 讓我們可以抓，但首頁也不給就是不給；請 Google 代抓等於繞過對方的存取控制（同 #267 不用 DuckDuckGo 的理由）。
+- **首頁從 GitHub Actions 連不到**（DNS 失敗、逾時；約 61 家）：沒有合規的替代路徑，只剩 Commons 與人工。
+- **Logo 只由 JavaScript 畫出來**（React／Vue 單頁網站）或寫在外部 CSS：我們不執行 JS、不下載外部 CSS。
+- **Google 圖片搜尋截圖**：不做。Google 服務條款明文禁止未經許可送出任何自動化查詢（"You may not send automated queries of any sort to Google's system without express permission"）；
+  而且搜尋結果裡的圖來源與授權都不明，很容易抓到別家公司、舊版或二創的 Logo —— 違反「寧可沒有，也不要掛錯公司的 Logo」。
+  程式也不能「截圖」別人的網站當 Logo：截圖是把整頁畫面縮小，不是公司發布的圖檔，而且一樣要先把網站打開，受 robots 約束。
+  Andy 說的「去他們公司將 Logo 截圖貼上」改走**人工指定**：人在瀏覽器裡看過、確認是那家公司的 Logo，把圖交給 CEO 放進 `data/logos/manual/`（`docs/logo_manual.md`）。
+
+**查證（2026-09-29，WebSearch 摘要；原文點不進去）**
+
+| 查什麼 | 查到的 | 信心 | 來源 |
+|---|---|---|---|
+| RFC 9309 對 robots.txt 狀態碼 | 4xx＝unavailable，可以抓任何資源；5xx 或沒回應＝unreachable，視為全站禁止直到恢復 | 高 | [RFC 9309](https://datatracker.ietf.org/doc/html/rfc9309)、[Google 的 robots.txt 規格](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec) |
+| Google 條款對自動化查詢 | 不得未經事先許可送出任何自動化查詢；不得以 robots、spiders、scrapers 存取服務或內容 | 中（第三方轉述一致） | [Google Terms of Service](https://www.google.com/intl/en/mobile/xhtml/terms_of_service.html)、[WPSEOAI 整理](https://wpseoai.com/blog/is-web-scraping-against-google/) |
+| Commons 的 Logo 授權 | `{{PD-textlogo}}`＝只有文字與簡單幾何形狀、未達著作權原創性門檻；通常同時掛 `{{trademarked}}`：著作權自由，商標仍屬公司 | 中高 | [Template:PD-textlogo](https://commons.wikimedia.org/wiki/Template:PD-textlogo)、[Commons:Threshold of originality](https://commons.wikimedia.org/wiki/Commons:Threshold_of_originality) |
+| Wikimedia API／WDQS 規範 | User-Agent 要可辨識並附聯絡方式；WDQS 每 UA＋IP 每分鐘 60 秒查詢時間、429 帶 Retry-After | 中（第四版半成品 2026-09-28 查的，這次沒重查） | 見 `logo_wikimedia.py` 檔頭 |
+
+---
+
 ## 2. 條款與穩定性查證（2026-09-26，WebSearch 摘要；容器打不開原文）
 
 | 查什麼 | 查到的 | 信心度 | 來源 |
@@ -280,7 +334,7 @@ LOGOS_ENABLED = os.environ.get("LOGOS_ENABLED", "1").strip() not in (...)
 或手動觸發「部署網站」）才會出現在網站上。
 
 `status` 的值：`ok`（有圖）／`too_small`（含長寬比超過 5:1）／`blank`／`generic`（預設圖）／`robots`／`none`／`error`／`removed`（人工下架）。
-`src` 的值：`site:apple-touch-icon`／`site:icon`／`site:manifest`／`site:mask-icon`／`site:conventional`／`site:header-img`／`site:og-image`／`google_s2`。
+`src` 的值：`site:apple-touch-icon`／`site:icon`／`site:manifest`／`site:mask-icon`／`site:conventional`／`site:header-img`／`site:og-image`／`google_s2`；第四版加 `site:ms-tile`／`site:schema-logo`／`site:inline-svg`／`site:home-img`／`site:css-logo`／`wikimedia`（另有 `attribution`、`site_fail`）／`manual`（另有 `source_url`、`manual_sha1`）。`via: group`＝圖取自申報官網轉過去的集團官網。
 `lowres: true`：狀態 ok，但官網找不到 ≥48px 的圖、收的是 16～47px 的小圖（照原尺寸存）。前端不看這欄。
 增量規則：策略升級要重試的（舊版判 `too_small`／`none`／`generic`，以及之後的低解析 ok）→ 沒抓過的（族群成分股優先）→ 網域換了的 → 到期的（`ok` 90 天、低解析 ok 與其他 30 天，最舊的先）。
 之前抓到過、這次重抓失敗的，**保留舊圖**，只記 `last_fail`。

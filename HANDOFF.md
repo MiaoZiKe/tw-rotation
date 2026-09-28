@@ -3379,3 +3379,10 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - market-drill：法人連續買賣超搬到市場明細「法人連買賣」分頁（#market/streak），總覽原位留連結；漲跌分佈點長條→右側（≤640 下方）列出該區間個股，筆數＝家數、不截斷；修 +8～+10% 上界重疊 bug。
 - ov-right-fix：howPop 標題讀到標題圖示的空 span → 全站有圖示的「?」彈窗標題都變「說明」，新增 howTitle 跳過 .ticon；flowtopo 窄版鏈名讓開根的 20px 沒算進寬度 → 1024 寬「AI 伺…」被截。
 - 合併後驗了（純前端，pytest 依例外跳過）：_uitest 設計v4主題／總覽／總覽摘要卡列／總覽右欄／市場明細／市場明細下鑽0928／新-版面等高與多寬度／手機／積木-隱性參數／標題圖示 0；_preview 綠。
+
+### 09-29 凌晨 公司 Logo 第四版（分支 claude/logo-v4，未合併 main，DECISIONS #276）
+- 接手 claude/wip-logo-v4（b01811e 半成品：RFC 9309 robots、Wikidata／Commons 第二來源、人工指定 Logo、排程守門）；DECISIONS 號 #271 已被今日事件用掉 → 改 **#276**。
+- 補做：入口頁跟下一頁（meta refresh／frame／JS 轉址／hreflang／繁中版連結，最多 2 頁）、回首頁連結的圖、JSON-LD／itemprop logo、頁首 inline SVG、CSS 背景 logo、msapplication 磚圖示＋browserconfig、申報網址帶路徑先開、集團官網（頁面提到公司名稱才跟）、robots.txt 與首頁都 401／403 不請 s2 代抓、Commons 只收 PD／CC0（`LOGO_WIKIMEDIA_ALLOW_BY` 預設關）、預設圖判定改用實際取圖主機。
+- 預估多救 60～130 家（依據 docs/logo_sources.md §1.3）。合併 main 後由 CEO 手動觸發 backfill.yml（資料集 logos）；守門看到 LOGO_STRATEGY 4≠狀態檔也會自動放行。約 424 家要重試（315 缺圖＋109 低解析），每輪 300 家 → 2 輪。
+- 驗了：pytest（見回報）；tests/test_logos.py 新增約 45 條（新策略解析、整家抓的假回應、RFC 9309、Commons 授權／限流、人工 Logo、run 傳公司名稱）。只動 pipeline／workflow／tests／docs，_preview／_uitest 依例外跳過。
+- 待處理：① 前端要在搜尋下拉／個股頁加「Logo 出處」連結（指向 ATTRIBUTION 內容）之後才能開 `LOGO_WIKIMEDIA_ALLOW_BY` 收 CC BY／BY-SA；② 第四版跑完看 logo_progress.json 的 counts／wikimedia 校正估計。

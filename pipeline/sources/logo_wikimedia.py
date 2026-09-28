@@ -1,6 +1,6 @@
 """公司 Logo 的第二來源：Wikidata 的「標誌圖片」（P154）＋ Wikimedia Commons 的圖檔（第四版，2026-09-28）。
 
-為什麼加這個來源（DECISIONS #271、docs/logo_sources.md §1.3）
+為什麼加這個來源（DECISIONS #276、docs/logo_sources.md §1.3）
 ------------------------------------------------------------
 Andy 2026-09-28：「我發現有個股還是沒有公司 Logo」（例：8038 長園科）。第三版之後還缺 315 家：
 none 168、robots 89、too_small 51、blank 6、generic 1；另有 109 家只有 16～47px 的低解析 favicon。
@@ -74,8 +74,9 @@ SELECT DISTINCT ?item ?logo ?ticker ?label WHERE {
 }
 """
 
-# 收的授權（DECISIONS #271）：公有領域、CC0、CC BY、CC BY-SA。任何帶 NC（非商業）、ND（禁止改作）的都不收 ——
+# 收的授權（DECISIONS #276）：公有領域、CC0、CC BY、CC BY-SA。任何帶 NC（非商業）、ND（禁止改作）的都不收 ——
 # 我們要縮放成 64px（算改作）而且網站是公開的；GFDL 單授權要求附整份授權全文，也不收。
+# ⚠ CC BY／BY-SA 另外要 config.LOGO_WIKIMEDIA_ALLOW_BY 打開才收（預設關）：署名要做在網站畫面上，前端還沒有出處連結。
 ALLOWED = ("PD", "CC0", "CC BY", "CC BY-SA")
 _CC_CODE = re.compile(r"^cc-by(-sa)?-\d(\.\d)?(-[a-z]{2,})?$")
 _CC_SHORT = re.compile(r"^cc by(-sa)? \d(\.\d)?( [a-z]{2,})?$")
@@ -377,6 +378,12 @@ def _fetch_many(rows, reject, deadline, today, max_downloads) -> dict[str, dict]
         kind, short = license_of(info["ext"])
         if not kind:
             out[code] = {"status": "none", "domain": dom[code], "detail": f"{short}（{f}）"[:200]}
+            continue
+        if kind in ("CC BY", "CC BY-SA") and not config.LOGO_WIKIMEDIA_ALLOW_BY:
+            # 署名義務要在「顯示圖的地方」做到（CC BY 4.0 §3(a)：合理方式，例如連到載明出處的頁面）。
+            # 網站目前只在 repo 的 data/logos/ATTRIBUTION.md 列出處、畫面上沒有連結 —— 前端補上署名連結之前不收。
+            out[code] = {"status": "none", "domain": dom[code],
+                         "detail": f"{short} 需要在網站上署名，前端還沒有出處連結，暫不收（{f}）"[:200]}
             continue
         if f not in got:
             if len(got) >= limit or (deadline and time.time() >= deadline):

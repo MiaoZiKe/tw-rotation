@@ -351,12 +351,12 @@ LOGO_GOOGLE_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=128"
 # 不等 30 天 —— 策略變好了，舊結論就不算數。之後再改策略、想讓失敗的重來一次，把這個數字加一即可。
 # 第三版（2026-09-26 深夜）：官網小圖當低解析後備；預設圖拒收後繼續往下找（不直接判失敗）；
 # 「太小／找不到／預設圖」三種最先重試。好圖不重抓、不覆寫。
-# 第四版（2026-09-28，DECISIONS #271）：robots.txt 回 4xx 照 RFC 9309 視為「沒有規則」（第三版以前把 401／403
+# 第四版（2026-09-28，DECISIONS #276）：robots.txt 回 4xx 照 RFC 9309 視為「沒有規則」（第三版以前把 401／403
 # 當全站禁止）、5xx 才視為暫時全站禁止；新增 Wikidata／Wikimedia Commons（只收自由授權）當第二來源；
 # 人工指定 Logo（data/logos/manual/）優先而且不被覆寫。robots／none／too_small／generic／blank／error
 # 與低解析 ok 在下一輪最先重試。
 LOGO_STRATEGY = 4
-LOGO_MAX_TRIES = 10                    # 每家最多下載幾個圖檔候選（找到 ≥64px 的正方形圖示就提早停）
+LOGO_MAX_TRIES = 12                    # 每家最多下載幾個圖檔候選（找到 ≥64px 的正方形圖示就提早停；第四版候選種類變多，10→12）
 LOGO_MAX_ASPECT = 5.0                  # 長寬比超過 5:1 的橫條字標，縮進 64×64 只剩 12px 高，判「太小」（不裁切）
 LOGO_SVG_MAX_BYTES = 500_000           # SVG 超過這個大小不畫（防止病態檔案卡住整輪）
 # 人工指定的 Logo（第四版）：data/logos/manual/<代號>.png ＋ manual.json（每家的來源網址與日期）。
@@ -365,7 +365,7 @@ LOGO_MANUAL_SUBDIR = "manual"
 LOGO_MANUAL_META = "manual.json"
 LOGO_MANUAL_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg")
 # Wikidata／Wikimedia Commons（第四版）：公開授權的圖庫，不是去爬公司官網，所以不受官網 robots 影響
-# （理由見 DECISIONS #271、docs/logo_sources.md §1.3）。只收 PD／CC0／CC BY／CC BY-SA，出處與授權記進索引。
+# （理由見 DECISIONS #276、docs/logo_sources.md §1.3）。只收 PD／CC0／CC BY／CC BY-SA，出處與授權記進索引。
 LOGO_WIKIMEDIA_ENABLED = os.environ.get("LOGO_WIKIMEDIA_ENABLED", "1").strip() not in ("0", "false", "False", "")
 LOGO_WIKIDATA_SPARQL = "https://query.wikidata.org/sparql"
 LOGO_COMMONS_API = "https://commons.wikimedia.org/w/api.php"
@@ -378,3 +378,6 @@ LOGO_WIKIDATA_REFRESH_DAYS = 7
 LOGO_COMMONS_THUMB_PX = 250           # Commons 縮圖只接受標準尺寸（20/40/60/120/250/330/500…），非標準寬度會回 400／429
 LOGO_WIKIMEDIA_MAX_PER_RUN = 120      # 每輪最多下載幾張 Commons 縮圖（匿名 API 每 IP 每小時約 500 次，留很大餘裕）
 LOGO_WIKIMEDIA_PAUSE_SEC = 1.0        # Commons 請求之間的間隔（序列抓，不並行）
+# CC BY／CC BY-SA 的圖要在「顯示的地方」署名。網站畫面目前沒有出處連結（只有 repo 裡的 data/logos/ATTRIBUTION.md），
+# 所以預設只收公有領域與 CC0。前端在搜尋下拉／個股頁補上「Logo 出處」連結之後，把這個打開（設 1）。
+LOGO_WIKIMEDIA_ALLOW_BY = os.environ.get("LOGO_WIKIMEDIA_ALLOW_BY", "0").strip() in ("1", "true", "True")
