@@ -17,6 +17,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
 <script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<!-- ★ 2026-09-28 設計 v4 正式套用（Andy「V4執行」）：版面風格 casual 親和休閒／hud 科技 HUD／pro 專業有力，存 tw.theme4。
+     跟 data-theme 一樣要在畫面畫出來之前決定，不然會先閃一下。沒存過（或存了不認得的值）＝科技 HUD。
+     例外處理也掛 hud：私密視窗讀不到 localStorage 時照樣是 v4 骨架，不會退回沒有間距尺度的舊版。 -->
+<script>(function(){var t4='hud';try{var v=localStorage.getItem('tw.theme4');if(v==='casual'||v==='hud'||v==='pro')t4=v;}catch(e){}document.documentElement.setAttribute('data-theme4',t4);})();</script>
 <!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
      ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），
@@ -4230,6 +4234,8 @@ h3 .howbtn.pop{font-family:inherit}
   /* 今日事件抽屜的個股連結換行：2026-09-28 起改成全寬度共用的規則（見 `.ev .m`），這裡不再單獨寫。 */
 }
 </style>
+<!-- 設計 v4 的骨架＋三套主題變數（docs/design_v4/01_設計系統.md）。放在內嵌樣式之後才蓋得過（<head> 那段 script 一定會掛 data-theme4）。 -->
+<link rel="stylesheet" href="theme4.css">
 </head>
 <body>
 <header class="topbar">
@@ -4712,6 +4718,7 @@ h3 .howbtn.pop{font-family:inherit}
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="flowtopo.js"></script>
 <script src="app.js"></script>
+<script src="theme4.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>
