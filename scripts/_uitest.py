@@ -4456,6 +4456,30 @@ def t_new_industry(pg, base):
 
 
 
+def _sk_native_tree(pg, base, on: bool = True):
+    """把資金去向切到「讀者真的會看到 ECharts 樹」的寬度（800px，≤ 820 的原生畫法），或切回 1500 桌機＋驗收內部切換。
+
+    ★ 2026-09-29 為什麼要這支：新-資金流向的小圓點（App.sankeyDots／sankeyFlowStats）11 條長期紅。
+      量過：1500 寬用 sk_classic（App.sankeyStyle('classic')，驗收專用的內部切換，讀者沒有這顆鈕）硬切回
+      ECharts 樹時，小圓點層只排到第一段 5 條線、App.sankeyDots() 是空的；
+      同一份資料、800 寬（讀者在窄畫面與手機真的看到的 ECharts 樹）是 77 條線、179 顆點、最粗/最細 8 倍、
+      通過率 13.9 倍、三段都在動 —— 也就是**功能在讀者的路徑上是好的**，是驗收量錯了寬度。
+      所以小圓點這幾條改在 800 寬量，門檻一個都不動。"""
+    if on:
+        pg.set_viewport_size({"width": 800, "height": 1000})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
+        pg.eval_on_selector("#sankey", "el => el.scrollIntoView({block: 'center', behavior: 'instant'})")
+        wait_until(pg, "() => (window.App.sankeyDots() || []).length > 0 ? 1 : 0", 8000)
+        pg.wait_for_timeout(600)
+    else:
+        pg.set_viewport_size({"width": 1500, "height": 1000})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        sk_classic(pg, True)
+
+
 def t_new_flow(pg, base):
     """資金流向頁（site/app.js）：資金去向的 nan／族群固定／小圓點、移除播放與河流、
     族群展開清單拉Bar、族群晶片篩選。
@@ -4608,6 +4632,9 @@ def t_new_flow(pg, base):
             set_range(pg, bar, mx, 1500)
 
     # ------------------------------------------------- ③ 小圓點傳輸動畫：座標真的在動
+    # ★ 2026-09-29 改前：接著上面 1500 寬＋sk_classic 量 → 改後：切到 800 寬（讀者真的看到 ECharts 樹的寬度）量，
+    #   量完切回 1500＋sk_classic 給 ④ 用。理由寫在 _sk_native_tree。
+    _sk_native_tree(pg, base, True)
     ok("有小圓點在線上跑（App.sankeyDots）",
        pg.evaluate("() => (window.App.sankeyDots() || []).length > 0"),
        pg.evaluate("() => (window.App.sankeyDots() || []).length"))
@@ -4643,6 +4670,7 @@ def t_new_flow(pg, base):
         document.dispatchEvent(new Event('visibilitychange')); }""")
     pg.wait_for_timeout(600)
     ok("回到前景之後又繼續動", pg.evaluate("() => window.App.sankeyFxRunning()"))
+    _sk_native_tree(pg, base, False)
 
     # ---------------------------------------------------------------- ④ 移除
     gone = pg.evaluate("""() => ({
@@ -4891,6 +4919,8 @@ def t_new_flow(pg, base):
 
     # ---------------------------------------------------------- D5-③ 小圓點密度
     # 先量密度（後面按了即時就會重配），順便確認「每條線至少 1 顆」沒有退回去（D4 修過的）
+    # ★ 2026-09-29：跟 ③ 同一件事 —— 改在 800 寬（讀者真的看到 ECharts 樹）量，量完切回 1500＋sk_classic 給 D5-① 用。
+    _sk_native_tree(pg, base, True)
     fs = pg.evaluate("() => window.App.sankeyFlowStats()")
     if ok("量得到每條連線配到幾顆點（App.sankeyFlowStats）", bool(fs), fs):
         ok("每一條線都至少有 1 顆點（D4 修過的，不准退回去）", fs["minN"] >= 1, fs)
@@ -4907,6 +4937,9 @@ def t_new_flow(pg, base):
         ok("但沒有超過上限 420（不要讓手機每幀畫上千顆）", fs["dots"] <= 420, fs)
         ok("點的大小也跟著流量走（最粗的點半徑至少是最細的 2.5 倍）",
            fs["top"]["size"] >= fs["bot"]["size"] * 2.5, fs)
+    _sk_native_tree(pg, base, False)
+    pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
+    pg.wait_for_timeout(300)
 
     # ---------------------------------------------------- D5-① 點第一層（產業鏈）節點
     def _sk_node_xy(name):
@@ -6265,26 +6298,37 @@ def t_new_clock(pg, base):
         h0 = pg.evaluate("() => location.hash")
         pg.mouse.click(pt["x"], pt["y"])
         pg.wait_for_timeout(1600)
-        st = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
+        # ★ 2026-09-29 改前→改後（驗收跟上 2026-09-25 的「合併側欄」，app.js renderMergedSide）：
+        #   改前：點族群 → #rankPanel 換成一張成分股卡片面板，標題列 .hh 寫「‹ 全部族群 › 族群名」，
+        #         每檔一個 .ms a[data-code]（data-tv＝成交值）。
+        #   改後（桌機 >820，Andy：「點擊領先時，裡面的 HPC 會有下拉清單可以看個股資訊，這兩張圖合併」）：
+        #         #rankPanel 是「那個族群所在象限」的族群表，標題列 .ph 是「‹ 全部族群｜象限名 N 個族群」，
+        #         被點的族群那一列（li[data-gid].ison）就地展開成一行一檔的成分股小表（.mr[data-code]）；
+        #         點名稱＝畫到盤上、點 → ＝進個股頁。舊的 .hh 不存在，所以舊斷言讀 textContent 直接爆掉。
+        #   要守的事一件都沒變：列得出成分股、照成交值排、不跳頁、回得去階段一、點個股真的畫上盤。
+        st = pg.evaluate("""(gid) => { const b = document.getElementById('rankPanel');
             if (!b || b.hidden) return null;
-            const as = [...b.querySelectorAll('.ms a')];
-            return { n: as.length, tv: as.map(a => +a.dataset.tv),
-                     crumb: (b.querySelector('.hh') || {}).textContent.replace(/\s+/g, ' ').trim(),
-                     back: !!b.querySelector('[data-all]'),
-                     plot: as.filter(a => !a.className.includes('noplot')).length,
-                     hash: location.hash }; }""")
-        if ok("點時鐘上的族群，旁邊真的列出它的成分股（階段二）", bool(st) and st["n"] > 0, st):
+            const rs = [...b.querySelectorAll('.mt .mr[data-code]')];
+            const on = b.querySelector('li[data-gid].ison');
+            return { n: rs.length, merged: b.classList.contains('merged'),
+                     // 每列第二個 .v ＝ 佔族群成交值的 %（跟成交值同順序；成交值那格是「412 億」這種格式化字）
+                     tv: rs.map(r => parseFloat(((r.querySelectorAll('.v')[1] || {}).textContent || '').replace(/[^0-9.\-]/g, ''))),
+                     head: ((b.querySelector('.ph') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+                     back: !!b.querySelector('.ph [data-all]'), open: on ? on.dataset.gid : null,
+                     plot: rs.filter(r => !r.classList.contains('noplot')).length,
+                     hash: location.hash }; }""", pt["gid"])
+        if ok("點時鐘上的族群，旁邊真的列出它的成分股（階段二；桌機是合併側欄）", bool(st) and st["n"] > 0 and st["merged"], st):
             ok("成分股清單真的照成交值由大到小排（讀數值比大小，不是看有沒有 render）",
                all(st["tv"][i - 1] >= st["tv"][i] for i in range(1, len(st["tv"]))), st["tv"][:6])
             ok("點族群不會把人帶離這一頁（在原地展開）", st["hash"] == h0, st["hash"])
-            ok("面板上有麵包屑「全部族群 › 族群名」（回得去階段一）",
-               st["back"] and "全部族群" in st["crumb"] and pt["name"] in st["crumb"], st["crumb"][:60])
+            ok("面板上有「‹ 全部族群」回得去階段一，而且展開的那一列就是點的族群",
+               st["back"] and "全部族群" in st["head"] and st["open"] == pt["gid"], {"head": st["head"][:60], "展開": st["open"], "點的": pt["gid"]})
 
-        # --- 階段二 → 階段三：點個股，圖上的點數真的變多
-        codes = pg.evaluate("""() => [...document.querySelectorAll('#rankPanel .ms a')]
-            .filter(a => !a.className.includes('noplot')).slice(0, 3).map(a => a.dataset.code)""")
+        # --- 階段二 → 階段三：點個股，圖上的點數真的變多（合併側欄：點成分股那一列）
+        codes = pg.evaluate("""() => [...document.querySelectorAll('#rankPanel .mt .mr[data-code]')]
+            .filter(r => !r.classList.contains('noplot')).slice(0, 3).map(r => r.dataset.code)""")
         if ok("清單裡至少有一檔算得出輪動座標（畫得上去）", bool(codes), codes):
-            pg.eval_on_selector(f'#rankPanel .ms a[data-code="{codes[0]}"]', "a => a.click()")
+            pg.eval_on_selector(f'#rankPanel .mr[data-code="{codes[0]}"] .nm', "a => a.click()")
             pg.wait_for_timeout(1500)
             p1 = _rot_pts(pg)
             changed("點個股，輪動時鐘上的點數真的變多（階段三）", n_base, len(p1))
@@ -6307,7 +6351,7 @@ def t_new_clock(pg, base):
 
             # 多選：再點兩檔
             for c2 in codes[1:3]:
-                pg.eval_on_selector(f'#rankPanel .ms a[data-code="{c2}"]', "a => a.click()")
+                pg.eval_on_selector(f'#rankPanel .mr[data-code="{c2}"] .nm', "a => a.click()")
                 pg.wait_for_timeout(1100)
             pmulti = _rot_pts(pg)
             ok("可以多選（點三檔就有三顆個股）",
@@ -6370,13 +6414,13 @@ def t_new_clock(pg, base):
 
             # --- 再點一次要移除
             for c2 in codes[:3]:
-                pg.eval_on_selector(f'#rankPanel .ms a[data-code="{c2}"]', "a => a.click()")
+                pg.eval_on_selector(f'#rankPanel .mr[data-code="{c2}"] .nm', "a => a.click()")
                 pg.wait_for_timeout(1000)
             ok("再點一次，個股真的從盤上移除",
                sum(1 for x in _rot_pts(pg) if x["stock"]) == 0, _rot_pts(pg))
 
             # --- 返回階段一：ESC
-            pg.eval_on_selector(f'#rankPanel .ms a[data-code="{codes[0]}"]', "a => a.click()")
+            pg.eval_on_selector(f'#rankPanel .mr[data-code="{codes[0]}"] .nm', "a => a.click()")
             pg.wait_for_timeout(1200)
             ok("（先再畫一檔上去，才驗得到返回會把它收掉）",
                sum(1 for x in _rot_pts(pg) if x["stock"]) == 1)
@@ -6402,15 +6446,16 @@ def t_new_clock(pg, base):
         # 基準要在**點完族群之後**才量：點族群晶片本來就會把圖篩成只剩它，
         # 在那之前量的話這一條會變成在比兩件不相干的事（實測 16 → 2）。
         n_before_fail = len(_rot_pts(pg))
+        # ★ 2026-09-29：合併側欄（見上面階段二的說明）—— 成分股列是 .mr[data-code]、畫不上去的原因寫在 .mw
         fb = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
-            return { open: !!b && !b.hidden, n: b ? b.querySelectorAll('.ms a').length : 0,
-                     note: b ? (b.querySelector('.note') || {}).textContent || '' : '',
-                     noplot: b ? b.querySelectorAll('.ms a.noplot').length : 0 }; }""")
+            return { open: !!b && !b.hidden, n: b ? b.querySelectorAll('.mt .mr[data-code]').length : 0,
+                     note: b ? (b.querySelector('.mw, .note') || {}).textContent || '' : '',
+                     noplot: b ? b.querySelectorAll('.mt .mr[data-code].noplot').length : 0 }; }""")
         ok("個股輪動資料抓不到時，成分股清單照樣列得出來（不是整張面板空白）",
            fb["open"] and fb["n"] > 0, fb)
         ok("而且有講清楚為什麼畫不上去（不是默默沒反應）", "還沒算出來" in fb["note"], fb["note"][-60:])
         ok("每一列都標成「畫不上去」，點了也不會亂加點", fb["noplot"] == fb["n"], fb)
-        pg.eval_on_selector("#rankPanel .ms a", "a => a.click()")
+        pg.eval_on_selector("#rankPanel .mt .mr[data-code] .nm", "a => a.click()")
         pg.wait_for_timeout(1000)
         ok("抓不到資料時點個股，圖上不會多出假的點（不可以假裝有值）",
            len(_rot_pts(pg)) == n_before_fail, f"{n_before_fail} → {len(_rot_pts(pg))}")
@@ -7819,12 +7864,18 @@ def t_batch2(pg, base):
     #    而第一次點開成分股面板時 heatPanel 會 scrollIntoView 把頁面捲動一段，
     #    舊座標就指不到那根長條了（2026-09-18 踩到：第二次點沒收起來，
     #    其實是第二次點根本沒點到圖上）。
+    # ★ 2026-09-29 改前：點最上面那一根（i = 最後一筆，佔比增加最多）→ 改後：點最下面那一根（i = 0）。
+    #   理由：2026-09-25 起桌機點長條打開的是「合併側欄」（app.js renderMergedSide），它貼著排行卡頂端疊在圖上
+    #   （1500×1000 實測：#rankPanel 117～643、#rankFlow 117～882）—— 最上面那幾根被側欄蓋住，
+    #   讀者本來就點不到「同一根」第二次（實測 elementFromPoint 拿到的是側欄標題列 .ph）；
+    #   收起靠「‹ 全部族群」、Esc 或點外面（另有段落在驗）。最下面那一根沒被蓋住，
+    #   「再點同一根＝收起」這條互動在它身上仍然成立，所以改點它，判準不變。
     def rank_spot():
         return pg.evaluate("""() => { const el = document.getElementById('rankFlow');
             const c = echarts.getInstanceByDom(el); if (!c) return null;
             const o = c.getOption(); const d = (o.series[0].data || []);
             if (!d.length) return null;
-            const i = d.length - 1;
+            const i = 0;
             const v = typeof d[i] === 'object' ? d[i].value : d[i];
             const p = c.convertToPixel({ seriesIndex: 0 }, [v, i]);
             if (!p) return null;
@@ -7870,7 +7921,12 @@ def t_batch2(pg, base):
         #       而且面板的說明要**明講**一句，不能讓使用者以為自己點壞了
         note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
         # 2026-09-24 改名：時鐘 → 足跡輪盤；★ 2026-09-26 改前→改後：面板那句改成「不在左邊資金輪盤」
-        offclock = "不在左邊資金輪盤" in note
+        # ★ 2026-09-29 改前：只看面板有沒有那句話判斷「在不在輪盤上」→ 改後：合併側欄不印那句說明（DRILL.notes 只有舊面板在印），
+        #   所以直接讀輪盤上畫了哪些族群來判斷；面板字仍然算數（舊面板路徑）。
+        on_gids = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+            const sc = c && (c.getOption().series || []).filter(s => s.type === 'scatter')[0];
+            return sc ? (sc.data || []).map(d => d.row && d.row.gid) : []; }""")
+        offclock = "不在左邊資金輪盤" in note or (bool(clicked) and clicked not in on_gids)
         if offclock:
             ok("點到時鐘上沒有的族群時，時鐘不准整張灰掉",
                bool(dim) and dim["hi"] > 0.9, dim)
@@ -8211,9 +8267,16 @@ def t_batch7(pg, base):
        pg.evaluate("() => (window.App && window.App._rotFrame) || null"))
 
     # ---- N5 圓圈範圍變大
-    r = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-        if (!c) return null; const p = (c.getOption().polar||[])[0]; return p ? p.radius : null; }""")
-    ok("輪動時鐘的圓圈放大了（N5，72% → 84%）", str(r) == "84%", r)
+    # ★ 2026-09-29 改前：polar.radius 要等於字串 "84%" → 改後：桌機的半徑 09-24 起是**像素值**（app.js rotGeo：
+    #   R＝min(寬,高)/2 − ROT_PAD，放不下四角象限卡才往內縮；2A 之後輪盤高＝欄寬），所以讀到的是 318 這種數字。
+    #   N5 要守的是「盤不准縮回 72% 那麼小」—— 換算成同一把尺：像素半徑 ÷ (min(寬,高)/2) ≥ 0.84。
+    r = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+        if (!c) return null; const p = (c.getOption().polar||[])[0]; if (!p) return null;
+        const m = Math.min(el.clientWidth, el.clientHeight) / 2;
+        const px = typeof p.radius === 'number' ? p.radius : (parseFloat(p.radius) / 100) * m;
+        return { radius: p.radius, px: Math.round(px), half: Math.round(m), ratio: +(px / m).toFixed(3) }; }""")
+    ok("輪動時鐘的圓圈夠大（N5：半徑 ≥ 84% × 容器短邊的一半；09-24 起半徑是像素值）",
+       bool(r) and r["ratio"] >= 0.84, r)
 
     # ---- N6 「順時針」這件事要講得出來
     # ★ 2026-09-20：盤面上那四個 ↻ 箭頭移除了（理由寫在 site/app.js 的 graphic 區塊）。
@@ -8232,10 +8295,15 @@ def t_batch7(pg, base):
        all(k in _note for k in ("落後", "改善", "領先", "轉弱")), _note[:120])
 
     # ---- N3 回放是「走過去」不是「跳格」：同一組族群時要用 merge（有補間動畫）
-    ok("回放有補間動畫設定（N3「像螞蟻一樣緩步移動」）",
-       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-           if (!c) return false; const o = c.getOption();
-           return o.animationDurationUpdate >= 400 && o.animationEasingUpdate === 'linear'; }"""))
+    # ★ 2026-09-29 改前：讀 ECharts 的 animationDurationUpdate ≥ 400 ＋ linear → 改後：卡片輪盤的補間 09-24 夜起改由
+    #   自己的 rAF 補間 rotTween 搬圖元（DECISIONS #259），ECharts 內建補間**刻意設成 0**（內建的會讓名字瞬移、腳印跳格）。
+    #   N3 要守的「走過去不是跳格」改量真正在跑的那一支：真的按回放走一步，rotTween 記下這一步補間了、耗時約 400ms。
+    #   （逐幀位置真的出現中間值由「足跡輪盤補間」段另外量。）
+    pg.evaluate("() => window.App.rotReplay(29)")
+    pg.wait_for_timeout(1400)
+    _tw = pg.evaluate("() => window.App.rotTween()")
+    ok("回放是補間走過去的（N3「像螞蟻一樣緩步移動」：rotTween 這一步真的補間、約 400ms）",
+       bool(_tw) and _tw.get("tweens", 0) >= 1 and bool(_tw.get("last")) and 330 <= _tw["last"]["ms"] <= 900, _tw)
 
     # ---- N10 季節性下方的四段卡片：★ 2026-09-24 Andy「下方的兩個表格都拿掉」，整張移除。
     #   這裡改驗「真的不在了」—— 連 DOM 節點都不留，也不准留一個空卡殼。
@@ -16650,6 +16718,16 @@ def t_title_icons(pg, b, base, code):
                 dg_set_theme(pg, mode, 1200)        # 真的按主題鈕（跟使用者一樣），已經在那一邊就不動
                 wait_until(pg, "() => document.querySelectorAll('.ticon').length > 0 ? 1 : null", 5000)
                 _ti_measure_all(pg, f"{w} {mode} {name}", res)
+                # ★ 2026-09-29：手機個股頁有一顆「完整版」分頁 —— 按下去，390 寬看到的就是桌機那組分頁（法人／資券／大戶散戶…）。
+                #   以前這條路只有在前一段驗收剛好把 tw.m3.sk.tab 留在 full 時才會被量到（設計 v4 2B 看到的「390 卻看得到桌機分頁」
+                #   就是這個），單獨跑這一段永遠走不到，所以資券、大戶／散戶標題列在 390 被圖示擠成兩行一直沒被固定抓到。
+                #   改成真的按「完整版」再把桌機分頁逐頁量一遍（_ti_measure_all 看到桌機分頁可見就會逐頁切）。
+                if w == 390 and name == "個股":
+                    pg.evaluate("() => { const b = document.querySelector('#mbTabs button[data-t=\"full\"]'); b && b.click(); }")
+                    pg.wait_for_timeout(1200)
+                    ok(f"[標題圖示 {w} {mode}] 個股頁按「完整版」→ 桌機分頁真的出現（這條路才量得到）",
+                       pg.evaluate("() => { const t = document.getElementById('stockTabs'); return !!t && t.getClientRects().length > 0; }"))
+                    _ti_measure_all(pg, f"{w} {mode} {name}＋完整版", res)
             tot = sum(m["n"] for _, m in res)
             print(f"  （標題圖示 {w} {mode}）量了 {len(res)} 個畫面、{tot} 個卡片標題，最低對比 {min([m['minCr'] for _, m in res] or [0])}："
                   + "、".join(f"{l.split(' ', 2)[2]} {m['n']}" for l, m in res))

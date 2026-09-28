@@ -6181,6 +6181,13 @@
         const G2 = rotGeo(el.clientWidth || 0, el.clientHeight || 0, false);
         o.polar = { ...o.polar, radius: Math.max(10, G2.R) };
         try { c.setOption({ polar: o.polar, series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
+        /* ★ 2026-09-29（批次2「點排行長條 → 輪盤只亮那一個族群」長期紅，查下去是網站真的沒亮）：
+           上面那行把 o.series（每顆點原本的透明度）整份寫回去，會把 highlightClock 剛壓暗的狀態洗掉；
+           但 el._hiGid 還留著「亮著的是誰」，於是畫面全亮、狀態卻說有人亮著 —— 下一次 highlightClock 同一個族群
+           還會被「同一個已經亮著」那道閘擋掉。點排行長條正好會踩到：drillOpen 打開合併側欄 → rotSideChanged
+           → 這支 relayout（盤的半徑要跟著欄寬換）。所以重排完把「亮著的那一個」再套一次。 */
+        const hg = el._hiGid;
+        if (hg) { el._hiGid = null; highlightClock(hg, el.id); }
       };
       // patch：只改這張圖的某幾個選項再重畫（例：總覽小輪盤跟著「顯示腳印」開關換 trail），之後的重畫沿用改過的
       el._rotRedraw = (patch) => { if (patch) Object.assign(opts, patch); return renderRotClock(rows, back, id, compact, opts); };
@@ -7189,10 +7196,10 @@
     ]),
     /* ★ 2026-09-24：「市場寬度」改成「漲跌家數」分佈（key 沿用 breadth，積木清單與驗收段落不用改名）。*/
     breadth: () => howHTML('這張圖回答：今天是大家都在漲，還是少數幾檔撐盤。', [
-      '每根直條＝一個漲跌幅級距有幾檔',
-      '重心偏右＝普漲，偏左＝普跌',
-      '兩頭都高＝強弱分歧，選股重於方向',
-      '紅漲綠跌，越外側顏色越深',
+      /* ★ 2026-09-29 說明精簡（上限 5 條、每條 ≤ 30 字）：改前 6 條＋家數讀數 1 條＝7 條。
+         「紅漲綠跌、越外側越深」併進第一條，「普漲普跌」與「兩頭高＝分歧」併成一條，意思一個都沒少。*/
+      '每根直條＝一級漲跌幅的家數，紅漲綠跌',
+      '重心偏右＝普漲、偏左＝普跌，兩頭高＝分歧',
       '點直條列出那一級的股票',
       '右上切全部／上市／上櫃（盤後資料，盤中不跳）',
       // howHTML 不印第三個參數（說明精簡），所以三組家數的讀數要放在條列裡才看得到；

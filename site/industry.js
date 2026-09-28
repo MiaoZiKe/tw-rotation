@@ -1140,7 +1140,7 @@
             '點零件：看它是誰做的（供應商）',
             '同色的環節色標、關聯圖會一起亮',
             '右上可開關動畫、收合圖',
-            '有「2D｜3D」的圖，切到 3D 可拖曳轉動；轉亂了在 3D 畫面上點兩下（或按畫面右上的「重設視角」）就回到一開始的角度',
+            '3D 可拖曳轉動；點兩下回到原角度',
             '圖以原尺寸顯示，放不下可左右滑',
           ], '原創示意圖，非實物比例；字不跟著縮小（最小 12px）。')}</div>
           <!-- ★ 2026-09-26（Andy：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」）
@@ -3724,14 +3724,19 @@
           '副圖之間的分隔線可上下拖，會記住',
           '週期鈕被劃掉＝這檔沒有那個週期資料',
         ], '「分時」：線在虛線（昨收）上面＝今天漲、下面＝跌，最後一段往哪邊走就是尾盤的方向；要看指標或畫線請切到 K 線週期。滑鼠移到劃掉的週期鈕上會說原因。分 K 每日盤後更新；K 棒會跟著上下寬度一起變。')}</div>
-        <div class="note livenote" id="liveNote" hidden></div>
+        <!-- ★ 2026-09-29 data-readout：這一行是「這一檔此刻畫的是哪一天、哪個來源、量是不是估計值、有沒有分時」的狀態讀數
+             （LiveK.sourceNote／「此檔暫無分時資料，已改用日 K」），跟 #peNote 同一類 —— 每一檔、每個時段都不一樣，
+             而且「量是估計值」這種資料誠實聲明必須看得到（個股即時分K 驗收在守），不是可以搬進「?」的說明文字。
+             所以不算進「卡片說明 ≤ 40 字」（說明精簡）。⚠ 分時那幾句尾巴還帶一句讀法「虛線＝昨收…」（09-28 分時預設那批寫的，手機一行收起、點開才全文），
+             這句要不要搬進 K 線的「?」留給下一批判斷（K 線「?」已經 5 條滿了）。-->
+        <div class="note livenote" id="liveNote" data-readout hidden></div>
         <div class="chartwrap" id="chartWrap">${adjTag(pg)}
           <div class="drawbar" id="drawBar"></div>
           <div id="chartHost"></div>
         </div>
         <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每日盤後）</div>
+        <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b></div>
       </div>
       <!-- #aiCard：只給手機（≤640，mobile v3 分段的「AI 分析」那一段）用的空殼。
            桌機永遠是空的（CSS #aiCard:empty 收掉，不留黑方塊）；手機由 app.js miaStock 把 #skAi 整個節點搬進來，
@@ -5425,10 +5430,9 @@
           <div id="peEnd" title="截止到哪一天：往回拉看以前的評價，按 ▶ 一天一天播"></div>
         </div>
         <div class="howtxt" id="how-pe" hidden>${A.howHTML('這張圖回答：市場現在給這一檔幾倍的評價。', [
-          '每條帶＝近四季 EPS × 某個倍數',
+          '每條帶＝近四季 EPS × 倍數，越紅越貴',
           '收盤線落在哪條帶＝市場現在給的評價',
           '倍數用這檔自己的歷史分位，非固定',
-          '色帶越紅＝市場給的評價越高',
           '拉 Bar 選長度與截止日，▶ 一天天播',
           '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
@@ -6058,8 +6062,8 @@
         <h3>公告 / 新聞 ${hq('sknews', '公告 / 新聞')}</h3>
         <a class="pill" href="https://mops.twse.com.tw/mops/web/t05st01" target="_blank" rel="noopener">公開資訊觀測站 ↗</a></div>
       ${hbox('sknews', ['一張列表、依時間由新到舊；每列前面的標籤說明是哪一種',
-        '重大訊息＝公司自己在公開資訊觀測站發的公告（不是媒體報導），點一則展開摘要，全文請到觀測站',
-        `新聞＝媒體報導，只列標題或內文提到${esc(pg.meta.name || '')}的，點標題開原文（新分頁）`,
+        '重大訊息＝公司在觀測站的公告，點開看摘要',
+        `新聞＝提到${esc(pg.meta.name || '')}的媒體報導，點標題開原文`,
         '券商觀點＝新聞引述的券商目標價，不是本站預估',
         '上方分段鈕可以只看其中一種'])}
       <div class="seg" id="newsSeg" role="group" aria-label="新聞類型" style="margin:8px 0 4px">${NEWS_TYPES.map(x => `<button type="button" data-v="${x.v}"${x.v === 'all' ? ' class="on"' : ''}>${x.t} <span class="mono">${cnt[x.v]}</span></button>`).join('')}</div>

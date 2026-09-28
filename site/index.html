@@ -4115,6 +4115,15 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on.mbon #skChartCard #liveNote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:18px;padding:4px 10px;cursor:pointer}
   body.m3on.mbon #skChartCard #liveNote.open{white-space:normal}
   body.m3on.mbon #skChartCard:has(#liveNote:not([hidden])) #lwc{height:clamp(360px,calc(100vh - var(--mbtop,160px) - 58px - 128px - 34px),620px)}
+  /* ★ 2026-09-29（驗收「標題圖示」390 寬 2 紅，查下去是讀者真的會看到）：手機個股頁按「完整版」→ 桌機的「資券」「大戶／散戶」分頁，
+     標題列加了標題圖示（圖示 17px＋間距，共寬 23px）之後被擠成兩行：資券 44 → 84px、大戶／散戶 32 → 59px（390 寬、容器 324px）。
+     · 資券：標題 106 ＋ 間距 12 ＋ 四顆分段鈕 224 ＝ 342 > 324。分段鈕左右內距 11 → 8（每顆仍 43px 寬、36px 高），
+       分段列 224 → 200，318 ≤ 324 —— 一列放得下，圖示在、標題列回到 44px。
+     · 大戶／散戶：標題 223 ＋ 12 ＋「最新 2026-09-24」102 ＝ 337 > 324。要塞回一行只能把字縮到 12px 以下或砍掉年份，
+       兩個都不行（手機字級下限、日期要完整），所以手機上日期讀數**固定**排在標題下一行（跟加圖示後讀者看到的一模一樣），
+       版面不再「因為多一顆圖示才換行」。 */
+  body.m3on.mbon #stockTab #mgSeg button{padding-left:8px;padding-right:8px}
+  body.m3on.mbon #hoCard > .row:first-child > small.note{flex-basis:100%}
 
   body.m3on .mbhead{position:sticky;top:52px;z-index:30;margin:-14px -14px 0;background:var(--bg-2);border-bottom:1px solid var(--line)}
   body.m3on .mbq{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto 40px;align-items:center;gap:0 8px;padding:6px 2px;min-height:62px}
