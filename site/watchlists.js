@@ -135,7 +135,11 @@
     if (e.key === K && S.mode === 'local') { S.tabs = loadLocal(); paintAll(); emit(); }
     if (e.key === K_CLOUD && S.mode === 'cloud') { const c = readJSON(K_CLOUD); if (c) { S.tabs = sanitize(c.tabs); S.rev = c.rev || 0; S.dirty = !!c.dirty; paintAll(); emit(); } }
   });
-  function setMsg(m) { S.msg = m; const e = document.getElementById('wlMsg'); if (e) { e.textContent = m; e.hidden = !m; } }
+  function setMsg(m) {
+    S.msg = m; const e = document.getElementById('wlMsg'); if (e) { e.textContent = m; e.hidden = !m; }
+    // 2026-09-28：自選分頁（site/watchpage.js）也要顯示同一句提示
+    try { window.dispatchEvent(new CustomEvent('tw:watchmsg', { detail: { msg: m } })); } catch (x) { /* 略 */ }
+  }
 
   // ------------------------------------------------------------------ 操作
   const API = {
@@ -188,6 +192,12 @@
       S.tabs.splice(i, 1); if (!S.tabs.length) S.tabs = blank();
       if (S.cur === id) S.cur = S.tabs[Math.max(0, i - 1)].id;
       commit(); return true;
+    },
+    /* 2026-09-28 自選分頁的拖曳排序：把 id 那一頁搬到第 to 個位置（只改順序，內容不動；雲端同步照 commit 那條路）*/
+    moveTab(id, to) {
+      const i = S.tabs.findIndex((x) => x.id === id); if (i < 0) return false;
+      to = Math.max(0, Math.min(S.tabs.length - 1, to | 0)); if (to === i) return false;
+      const [t] = S.tabs.splice(i, 1); S.tabs.splice(to, 0, t); commit(); return true;
     },
     merge: mergeLists,
     openPanel, closePanel, pick, closePick,
@@ -297,10 +307,14 @@
     const bar = ensureBar(); if (!bar || document.getElementById('wlBtn')) return;
     const b = document.createElement('button');
     b.type = 'button'; b.id = 'wlBtn'; b.className = 'abtn'; b.setAttribute('aria-haspopup', 'dialog');
-    b.title = '自選清單（最多五頁）'; b.innerHTML = '<b>★</b>自選';
-    b.onclick = () => { const p = document.getElementById('wlPanel'); if (p && !p.hidden) closePanel(); else openPanel(); };
+    /* ★ 2026-09-28（Andy：「自選是需要在獨立分頁 在最後一頁」）：自選有了整頁（#watch，site/watchpage.js），
+       這顆與「⋯」清單那一列都改成**直接到自選分頁**，不再開小面板。
+       為什麼不留小面板當快捷入口：同一份清單兩套編輯介面（面板一套、整頁一套），行為遲早會分岔，
+       而且整頁已經在導覽列最後一格、一鍵就到。小面板的程式（openPanel）留著不刪，API 還在，只是站上不再有入口。*/
+    b.title = '自選清單（最多五頁）'; b.innerHTML = '<b>★</b>自選'; b.removeAttribute('aria-haspopup');
+    b.onclick = () => { closePanel(); location.hash = '#watch'; };
     bar.insertBefore(b, bar.firstChild);
-    moreRow('mmWatch', '★', '自選清單', () => openPanel());
+    moreRow('mmWatch', '★', '自選清單', () => { location.hash = '#watch'; });
   }
 
   // ------------------------------------------------------------------ 清單面板

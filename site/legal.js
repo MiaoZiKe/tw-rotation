@@ -457,6 +457,9 @@
       + '<a href="#terms" id="sfTerms">服務條款' + draft + '</a>'
       + '<a href="#privacy" id="sfPriv">隱私權政策' + draft + '</a>'
       + '<button type="button" id="sfTour">平台導覽</button>'
+      /* ★ 2026-09-28（Andy：「自選 as its own last tab replacing 交付清單」）：導覽列最後一格換成「自選」，
+         交付清單的入口搬到頁尾這一排（每一頁、桌機與手機都看得到）。`#delivery` 路由與整頁照舊，只是換了門。*/
+      + '<a href="#delivery" id="sfDelivery">交付清單</a>'
       + '</nav></div>'   // ★ 2026-09-24 Andy：原始碼不能公開 ——「原始碼與演算法」連結已拿掉
       + '<button type="button" class="sf-more" id="sfMore" aria-expanded="false" aria-controls="sfDetail">'
       + '<span>顯示詳細規範</span>' + CHEV + '</button></div>'

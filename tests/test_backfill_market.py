@@ -208,3 +208,123 @@ def test_守門_全市場步驟沒補完就放行(tmp_path, step):
     cp = _all_done_complete()
     cp.pop(run_backfill.datasets_key_of(step["datasets"], step["start"], step.get("tag"), "market"))
     assert _run_guard(tmp_path, cp)["skip"] == "false"
+
+
+# ------------------------------------------------------------------ 5. 2009 股利全市場步驟的完成判定（2026-09-28）
+# 誤判事件：dividend+divresult@2009-01-01@market 連續十幾輪 done=False、stopped_at 一直停在這一步，
+# 被當成「卡住、永遠不會完成」。實際上 2009 那一步的逐檔鍵是 `dividend@2009-01-01:<代號>`
+# （00:49 的 500 → 15:34 的 1,928，每輪約 +250），`dividend:<代號>` 是 2016 那一步的鍵（2,338 個，
+# 跟這一步無關）；每一輪都在前進，只是都撞到 FinMind 伺服器端額度上限才停。這一組守三件事：
+#   ① 2016 那一步的鍵不會被當成 2009 這一步補過；
+#   ② 額度用盡時 done=False，但旗標寫出「還剩幾檔」；下一輪從沒補的接續、不重抓；
+#   ③ 額度還在、上游回空 → 記成「確認無資料」（NO_DATA，仍是真值會跳過），
+#      名單全部處理過才 done=True；確認無資料的檔也算「股利補到 2009」。
+
+def _div_events(code):
+    return pd.DataFrame({"code": [code], "period": ["2009"], "kind": ["cash"],
+                         "announce_date": ["2009-06-01"], "cash": [1.0]})
+
+
+def _div_results(code):
+    return pd.DataFrame({"code": [code], "date": ["2009-07-01"], "cash": [1.0]})
+
+
+def _div_sandbox(monkeypatch, codes):
+    store.append("price_daily", _price([("2026-09-24", c, float(100 - i)) for i, c in enumerate(codes)]))
+    monkeypatch.setattr(run_backfill, "plan_steps", lambda name, today=None: [
+        {"datasets": "dividend+divresult", "start": "2009-01-01", "scope": "market"}])
+    monkeypatch.setattr(run_backfill, "finmind_reachable", lambda prog: True)
+    monkeypatch.setattr(run_backfill, "backfill_indices", lambda prog, *a, **k: True)
+    monkeypatch.setattr(run_backfill, "backfill_index_intraday", lambda prog, *a, **k: True)
+    monkeypatch.setattr(run_backfill, "refresh_stale_inst", lambda *a, **k: True)
+
+
+def test_2009股利步驟_額度用盡記剩幾檔_下一輪接續到done(sandbox, monkeypatch):
+    codes = ["2330", "2454", "2317", "1101", "6488", "8888"]
+    _div_sandbox(monkeypatch, codes)
+    # 2016 那一步的鍵全部都有（就是誤判時看到的那 2,338 個）—— 不能讓 2009 這一步跳過
+    run_backfill._save_progress({"done": {**{f"dividend:{c}": True for c in codes},
+                                          **{f"divresult:{c}": True for c in codes}},
+                                 "complete": {}})
+    key = "dividend+divresult@2009-01-01@market"
+    asked: list[tuple[str, str]] = []
+    budget = {"n": 5}      # 第一輪只給 5 次請求就撞到伺服器端上限（前一個 run 吃掉了同一小時的額度）
+
+    def gate(kind, make):
+        def fetch(code, start, wait=False):
+            asked.append((kind, code))
+            budget["n"] -= 1
+            if budget["n"] < 0:
+                http.finmind_mark_exhausted()       # 伺服器回 402：這一筆不能當成沒資料
+                return pd.DataFrame()
+            if code == "8888":
+                return pd.DataFrame()               # 從沒配過股利：額度還在卻回空
+            return make(code)
+        return fetch
+
+    monkeypatch.setattr(run_backfill.finmind, "dividend_events", gate("dividend", _div_events))
+    monkeypatch.setattr(run_backfill.finmind, "dividend_results", gate("divresult", _div_results))
+
+    r1 = run_backfill.run_plan("default", 500, today=date(2026, 9, 28))
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert asked[0] == ("dividend", "2330"), "2016 那一步的 dividend:<代號> 不可以擋住 2009 這一步"
+    assert r1["stopped_at"] == key and r1["done"] is False
+    st = prog["complete"][key]
+    assert st["done"] is False
+    # 5 次請求：2330、2454 兩個資料集都補到，2317 的 dividend 補到、divresult 那一筆撞上限
+    assert st["remaining"] == {"dividend": 3, "divresult": 4}, st
+    assert "divresult@2009-01-01:2317" not in prog["done"], "撞到上限的那一筆不能記成做過"
+
+    # 第二輪：新的 Actions run，額度重新給足
+    run_backfill._save_progress(prog)
+    http._save_quota({"window_start": 0.0, "used": 0})
+    budget["n"] = 999
+    asked.clear()
+    run_backfill._cov_cache.clear()
+    r2 = run_backfill.run_plan("default", 500, today=date(2026, 9, 28))
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert asked[0] == ("divresult", "2317"), "從上一輪停下的那一筆接續，補過的不重抓"
+    assert ("dividend", "2330") not in asked and ("dividend", "2317") not in asked
+    st = prog["complete"][key]
+    assert st["done"] is True and r2["stopped_at"] is None, st
+    assert st["remaining"] == {"dividend": 0, "divresult": 0}
+    assert prog["complete"]["plan:default"]["done"] is True
+    # 8888 是「確認無資料」，不是「補到了」；但仍是真值，下一輪不再問
+    assert prog["done"]["dividend@2009-01-01:8888"] == run_backfill.NO_DATA
+    assert prog["done"]["divresult@2009-01-01:8888"] == run_backfill.NO_DATA
+    assert prog["done"]["dividend@2009-01-01:2330"] is True
+    assert st["no_data"] == {"dividend": 1, "divresult": 1}
+
+    # 第三輪：全部跳過、一次請求都不花、旗標維持 done
+    asked.clear()
+    run_backfill._cov_cache.clear()
+    run_backfill.run_plan("default", 500, today=date(2026, 9, 28))
+    assert asked == []
+    assert json.loads(run_backfill.PROGRESS.read_text())["complete"][key]["done"] is True
+
+
+def test_確認無資料的股票也算股利補到2009(sandbox):
+    """年度股利圖依 divresult@2009-01-01:<代號> 決定從哪年畫起：回空＝查過、確認沒配，也算補到 2009。"""
+    from pipeline import build_payload
+    run_backfill._save_progress({"done": {"divresult@2009-01-01:2330": True,
+                                          "divresult@2009-01-01:8888": run_backfill.NO_DATA,
+                                          "divresult:1101": True}, "complete": {}})
+    assert build_payload.dividend_cover_years() == {"2330": 2009, "8888": 2009}
+
+
+def test_執行摘要分開列確認無資料與還剩幾檔(tmp_path):
+    """backfill.yml「執行摘要」那段 Python 真的跑一次：前綴分開、no_data 另計、未補齊的步驟寫剩幾檔。"""
+    text = (ROOT / ".github" / "workflows" / "backfill.yml").read_text(encoding="utf-8")
+    m = re.search(r"name: 執行摘要\n.*?python3 - <<'PY'\n(.*?)\n\s+PY\n", text, re.S)
+    assert m, "backfill.yml 找不到執行摘要那段 Python"
+    st = tmp_path / "data" / "_state"
+    st.mkdir(parents=True)
+    (st / "backfill_progress.json").write_text(json.dumps({
+        "done": {"dividend:2330": True, "dividend@2009-01-01:2330": True,
+                 "dividend@2009-01-01:8888": "no_data"},
+        "complete": {"dividend+divresult@2009-01-01@market": {
+            "done": False, "remaining": {"dividend": 79, "divresult": 80}}}}))
+    out = subprocess.run([sys.executable, "-c", textwrap.dedent(m.group(1))], cwd=tmp_path,
+                         capture_output=True, text=True, check=True).stdout
+    assert "dividend 1、dividend@2009-01-01 2（1）" in out, out
+    assert "還剩 {'dividend': 79, 'divresult': 80}" in out, out

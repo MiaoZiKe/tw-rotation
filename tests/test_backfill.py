@@ -121,7 +121,8 @@ def test_no_data_is_marked_done_when_budget_remains(sandbox, monkeypatch):
     summary = run_backfill.run("balance", None, "2016-01-01")
     prog = json.loads(run_backfill.PROGRESS.read_text())
     assert summary["no_data"] == 1
-    assert prog["done"]["balance:9999"] is True
+    assert prog["done"]["balance:9999"] == run_backfill.NO_DATA, "回空要記成確認無資料，不是「補到了」"
+    assert prog["done"]["balance:9999"], "但仍是真值：下一輪照樣跳過、不再花額度"
 
 
 # ------------------------------------------------------------------ v3：done_key 帶起始日、新資料集、回補計畫
@@ -312,7 +313,7 @@ def test_plan_marks_done_when_every_step_completes(sandbox, monkeypatch, two_ste
     assert prog["done"]["revenue:2330"] is True, "預設起始日維持舊鍵格式"
     assert prog["done"]["price@2000-01-01:3034"] is True
     assert prog["done"]["dividend@m2026-09:2330"] is True, "月更新步驟的鍵帶年月"
-    assert prog["done"]["divresult@m2026-09:3034"] is True
+    assert prog["done"]["divresult@m2026-09:3034"] == run_backfill.NO_DATA, "回空＝確認無資料"
     plan = prog["complete"]["plan:default"]
     assert plan["done"] is True and plan["month"] == "2026-09" and plan["stopped_at"] is None
     assert plan["steps"] == {"revenue": True, "price@2000-01-01": True,
@@ -399,8 +400,9 @@ def test_有拿到過資料時其餘回空的照舊記done(sandbox, monkeypatch)
 
     assert summary["no_data"] == 3
     assert not summary.get("unavailable")
-    for c in codes:
-        assert prog["done"][f"holding@2021-01-01:{c}"] is True
+    assert prog["done"]["holding@2021-01-01:2330"] is True
+    for c in codes[1:]:
+        assert prog["done"][f"holding@2021-01-01:{c}"] == run_backfill.NO_DATA
     assert prog["complete"]["holding@2021-01-01"]["done"] is True
 
 
@@ -411,8 +413,8 @@ def test_只問到兩檔就全空不算資料集不開放(sandbox, monkeypatch):
                         lambda c, s, wait=False: pd.DataFrame())
     run_backfill.run("holding", None, "2021-01-01")
     prog = json.loads(run_backfill.PROGRESS.read_text())
-    assert prog["done"]["holding@2021-01-01:9999"] is True
-    assert prog["done"]["holding@2021-01-01:8888"] is True
+    assert prog["done"]["holding@2021-01-01:9999"] == run_backfill.NO_DATA
+    assert prog["done"]["holding@2021-01-01:8888"] == run_backfill.NO_DATA
 
 
 # --------------------------------------------- 指數歷史（大盤／櫃買／台指期）

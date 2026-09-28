@@ -40,6 +40,12 @@ DATA_KEYS = ("price", "inst", "per", "revenue", "financial", "balance",
 # 逐檔去問只是在燒額度；融資券與股權分散 ETF 有，要抓
 FINANCIAL_KEYS = {"per", "revenue", "financial", "balance", "dividend", "divresult"}
 
+# 逐檔 done 鍵的值（2026-09-28）：True＝抓到資料寫進資料湖；NO_DATA＝額度還在、上游明確回空，
+# 「確認這檔沒有這種資料」（新掛牌、從沒配過股利…）。兩者對「要不要再問」的判斷一樣（都是真值、
+# 都跳過），但對「補到多少」的統計不一樣 —— 以前一律寫 True，done 區的鍵數看起來全都是
+# 「補到了」，無從分辨哪些其實是空的。舊進度檔裡既有的 True 無法回溯區分，只從這版開始分。
+NO_DATA = "no_data"
+
 # 排程用的預設回補計畫：依序執行，某一步額度用盡就停下，下一小時從那一步接續。
 # scope=universe → target_codes(limit)（**會吃 --limit**：手動觸發預設 500 時只剩成交值前 500 檔）；
 # scope=market   → market_codes()：全市場上市＋上櫃普通股，**刻意不吃 --limit**（見 market_codes 說明）；
@@ -452,7 +458,10 @@ def run(datasets: str, limit: int | None, start: str, *,
     for key, keys in pending_no_data.items():
         if key in got_data or len(keys) < 3:
             for dk in keys:
-                prog["done"][dk] = True
+                prog["done"][dk] = NO_DATA        # 確認無資料，不是「補到了」
+            log.info("%s 本輪 %d 檔上游回空（額度還在）→ 記成確認無資料，下一輪不再問：%s",
+                     key, len(keys), "、".join(dk.rsplit(":", 1)[-1] for dk in keys[:30])
+                     + ("…" if len(keys) > 30 else ""))
         else:
             err = http.finmind_last_error() or {}
             reason = f"HTTP {err.get('status')}：{err.get('msg')}" if err else "整組回空"
@@ -482,12 +491,47 @@ def run(datasets: str, limit: int | None, start: str, *,
     finished_all = (not summary["exhausted"] and summary["failed"] == 0
                     and not newly_unavailable)
     summary["finished"] = finished_all
+
+    # ★ 2026-09-28：把「這一步還剩幾檔沒補、幾檔確認無資料」寫進完成旗標與 log。
+    #   那天 dividend+divresult@2009-01-01@market 連續十幾輪 done=False，被誤判成「卡住、永遠不會完成」，
+    #   實際上每一輪都有前進（2009 鍵 500→1,928），只是每輪都撞到額度上限才停；
+    #   而看得到的只有 done 區的鍵數 —— 那裡 `dividend:<代號>` 是 2016 那一步的鍵，跟 2009 這一步無關，
+    #   `dividend@2009-01-01:<代號>` 才是。旗標上直接寫「剩幾檔」，就不必再從鍵名去猜。
+    tables = {k: t for k, t, _ in jobs}
+    remaining: dict[str, int] = {}
+    no_data_n: dict[str, int] = {}
+    for key in sorted(k for k in wanted if k in tables):
+        left = nd = 0
+        for code in codes:
+            v = prog["done"].get(done_key_of(key, code, start, tag))
+            if v == NO_DATA:
+                nd += 1
+            if v:
+                continue
+            if key in FINANCIAL_KEYS and roc.is_etf(code):
+                continue
+            if already_covered(tables[key], code, start, respect_time):
+                continue
+            left += 1
+        remaining[key] = left
+        no_data_n[key] = nd
+    summary["remaining"] = remaining
     prog["complete"][datasets_key] = {
         "done": finished_all,
         "at": datetime.now(timezone.utc).isoformat(),
         "codes": len(codes),
+        "remaining": remaining,
+        "no_data": no_data_n,
     }
     _save_progress(prog)
+    if any(remaining.values()):
+        why = ("FinMind 額度用盡，下一輪從這裡接續" if summary["exhausted"]
+               else "有抓取失敗或資料集封印中" if not finished_all
+               else "封印中的資料集不計入完成判定")
+        log.info("%s 還剩 %s 檔沒補（約 %d 次請求；%s）；確認無資料 %s 檔",
+                 datasets_key, remaining, sum(remaining.values()), why, no_data_n)
+    else:
+        log.info("%s 名單 %d 檔全部處理過；確認無資料 %s 檔", datasets_key, len(codes), no_data_n)
     log.info("回補結束：%s", summary)
     return summary
 
@@ -1017,7 +1061,8 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
         results[key] = bool(summary.get("finished"))
         if summary["exhausted"]:
             stopped_at = key
-            log.warning("計畫 %s 在第 %d 步（%s）額度用盡，其餘步驟下一輪接續", name, n, key)
+            log.warning("計畫 %s 在第 %d 步（%s）額度用盡，這一步還剩 %s 檔，其餘步驟下一輪接續",
+                        name, n, key, summary.get("remaining"))
             break
 
     all_done = len(results) == len(steps) and all(results.values())
