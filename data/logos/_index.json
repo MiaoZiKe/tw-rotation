@@ -15097,8 +15097,8 @@
   "6123": {
    "status": "ok",
    "domain": "www.grandtech.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.grandtech.com/files/atts/0I075385001830884494/layout/images/favicon.ico",
    "orig": [
@@ -15150,8 +15150,8 @@
   "6127": {
    "status": "none",
    "domain": "www.leatec.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.leatec.com&sz=128"
   },
   "6128": {
@@ -15170,23 +15170,35 @@
   "6129": {
    "status": "none",
    "domain": "www.princeton.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.princeton.com.tw&sz=128"
   },
   "6130": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.singbao.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "回的是 HTML 不是圖 https://www.singbao.com/docs/singbao_logo_st-1.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:inline-svg",
+   "url": "https://www.singbao.com/#inline-svg-1",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "4295737885e78c42e9fdfff97fbce6ad1aefeb6e"
   },
   "6133": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.gbe.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 http://www.gbe.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:schema-logo",
+   "url": "https://i0.wp.com/www.gbe.com.tw/wp-content/gb_uploads/GBE_LOGO_02.png?fit=4000%2C852",
+   "orig": [
+    4000,
+    852
+   ],
+   "sha1": "0e0a2c4b3fdc94a9a1764adb8e37438252dd6850"
   },
   "6134": {
    "status": "ok",
@@ -15204,9 +15216,9 @@
   "6136": {
    "status": "none",
    "domain": "www.fullerton.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.fullerton.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "下一頁在別家網域、而且沒提到公司名稱 https://www.googletagmanager.com/ns.html?id=GTM-KP3K9XJ，不跟"
   },
   "6138": {
    "status": "ok",
@@ -15286,11 +15298,17 @@
    "sha1": "139e3552afcf3dddcf35d6eb82ac30ef028f582e"
   },
   "6144": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.deltamac.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 http://www.deltamac.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.homemovie.com.tw/images/logo.jpg",
+   "orig": [
+    205,
+    50
+   ],
+   "sha1": "60f96498a6edb14d1ff4b9867a63767db588e15f"
   },
   "6146": {
    "status": "ok",
@@ -15347,8 +15365,8 @@
   "6151": {
    "status": "ok",
    "domain": "www.ginar.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.ginar.com.tw/favicon.ico",
    "orig": [
@@ -15381,8 +15399,8 @@
   "6154": {
    "status": "too_small",
    "domain": "www.sunfar.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "16x16 https://www.google.com/s2/favicons?domain=www.sunfar.com.tw&sz=128"
   },
   "6155": {
@@ -15400,23 +15418,22 @@
   "6156": {
    "status": "robots",
    "domain": "www.song-shang.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "https://www.song-shang.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "6158": {
    "status": "ok",
    "domain": "www.p-two.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "src": "site:icon",
-   "url": "https://www.p-two.com/images/favicon.png",
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:home-img",
+   "url": "https://www.p-two.com/cache/fillw_285h_285/1760507376.jpg",
    "orig": [
-    16,
-    16
+    285,
+    285
    ],
-   "sha1": "12891206ae08a004384e4624b9b582543c8254e7",
-   "lowres": true
+   "sha1": "9900e8cc1a1b0a2b1deb15572220d516bba66048"
   },
   "6160": {
    "status": "ok",
@@ -15461,8 +15478,8 @@
   "6164": {
    "status": "none",
    "domain": "www.ledtech.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "首頁 HTTP 404 http://www.ledtech.com/"
   },
   "6165": {
@@ -15662,8 +15679,8 @@
   "6183": {
    "status": "none",
    "domain": "www.trade-van.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.trade-van.com&sz=128"
   },
   "6184": {
@@ -15720,8 +15737,8 @@
   "6188": {
    "status": "ok",
    "domain": "www.qsitw.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:conventional",
    "url": "https://www.qsitw.com/favicon.ico",
    "orig": [
@@ -15729,7 +15746,8 @@
     16
    ],
    "sha1": "3571f2c83412b07b94041472245684c6b819c8ed",
-   "lowres": true
+   "lowres": true,
+   "last_fail": "none"
   },
   "6189": {
    "status": "ok",
@@ -15747,8 +15765,8 @@
   "6190": {
    "status": "too_small",
    "domain": "www.wontex.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "370x64 https://www.wontex.com/dist/images/common/logo.png"
   },
   "6191": {
@@ -15787,8 +15805,8 @@
   "6195": {
    "status": "none",
    "domain": "ir.scanteak.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=ir.scanteak.com.tw&sz=128"
   },
   "6196": {
@@ -15839,15 +15857,15 @@
   "6201": {
    "status": "none",
    "domain": "www.yahorng.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.yahorng.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "下一頁打不開（down）http://design.lifeshow.com.tw/service-index.html"
   },
   "6202": {
    "status": "ok",
    "domain": "www.holtek.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.holtek.com.tw/favicon.ico",
    "orig": [
@@ -15962,8 +15980,8 @@
   "6212": {
    "status": "none",
    "domain": "www.met.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 http://www.met.com.tw/apple-touch-icon.png"
   },
   "6213": {
@@ -16033,8 +16051,8 @@
   "6218": {
    "status": "robots",
    "domain": "www.hauman.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "https://www.hauman.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "6219": {
@@ -16066,8 +16084,8 @@
   "6221": {
    "status": "none",
    "domain": "www.genesis.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.genesis.com.tw&sz=128"
   },
   "6222": {
@@ -16161,8 +16179,8 @@
   "6229": {
    "status": "robots",
    "domain": "www.vtac.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "https://www.vtac.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "6230": {
@@ -16378,11 +16396,17 @@
    "sha1": "d9327c4736ff506b71cec7e03a98f70a0d4a39f1"
   },
   "6259": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.bullwill.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.bullwill.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:home-img",
+   "url": "https://www.bullwill.com.tw/images/main_head_08.jpg",
+   "orig": [
+    216,
+    54
+   ],
+   "sha1": "30b138e753f2c2e8e694d916330608f947ef66d0"
   },
   "6261": {
    "status": "ok",
@@ -16400,8 +16424,8 @@
   "6263": {
    "status": "none",
    "domain": "www.planet.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.planet.com.tw/apple-touch-icon.png"
   },
   "6264": {
@@ -16420,8 +16444,8 @@
   "6265": {
    "status": "too_small",
    "domain": "www.kc-uppertech.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "344x56 http://www.kc-uppertech.com/images/logo.png"
   },
   "6266": {
@@ -16453,8 +16477,8 @@
   "6270": {
    "status": "ok",
    "domain": "www.pct.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.pct.com.tw/static/favicon.ico",
    "orig": [
@@ -16527,11 +16551,11 @@
    "sha1": "d5ee2b7aae46db42ab4773de72749ca62ff44b5b"
   },
   "6277": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.aten.com",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "detail": "http://www.aten.com/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.aten.com/tw/zh/"
   },
   "6278": {
    "status": "ok",
@@ -16625,8 +16649,8 @@
   "6291": {
    "status": "too_small",
    "domain": "www.analog.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "562x92 https://www.analog.com.tw/image/index/aic_LOGO.png"
   },
   "6292": {
@@ -16645,8 +16669,8 @@
   "6294": {
    "status": "none",
    "domain": "www.tekom.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.tekom.com.tw&sz=128"
   },
   "6405": {
@@ -16793,8 +16817,8 @@
   "6425": {
    "status": "none",
    "domain": "www.efctw.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.efctw.com&sz=128"
   },
   "6426": {
@@ -16925,11 +16949,17 @@
    "detail": "HTTP 404 https://www.shunsintech.com/apple-touch-icon.png"
   },
   "6456": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.gis-touch.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.gis-touch.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.gis-touch.com/images/logo.png",
+   "orig": [
+    175,
+    62
+   ],
+   "sha1": "049ba768c31e970550a4aef3fc5950f1cee31f7a"
   },
   "6461": {
    "status": "ok",
@@ -16959,8 +16989,8 @@
   "6464": {
    "status": "none",
    "domain": "www.topmso.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.topmso.com.tw&sz=128"
   },
   "6465": {
@@ -17122,8 +17152,8 @@
   "6494": {
    "status": "ok",
    "domain": "www.nyquest.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.nyquest.com.tw/dist/assets/img/nyquest.ico",
    "orig": [
@@ -17426,8 +17456,8 @@
   "6538": {
    "status": "ok",
    "domain": "www.bch.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.bch.com.tw/images/project/474/favicon.ico",
    "orig": [
@@ -17477,11 +17507,11 @@
    "sha1": "76e398c446c32b647a3114e9124a48bff12ce7e6"
   },
   "6547": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.medigenvac.com",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "detail": "http://www.medigenvac.com/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.medigenvac.com/"
   },
   "6548": {
    "status": "ok",
@@ -17511,11 +17541,11 @@
    "sha1": "958bfb07b0301823f1e54c21b0bfe9f4f6389785"
   },
   "6552": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.jmct.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "detail": "http://www.jmct.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 http://www.jmct.com.tw/"
   },
   "6556": {
    "status": "ok",
@@ -17582,11 +17612,11 @@
    "sha1": "c5fadfc839558e659e009d5e3b255898fa493cfc"
   },
   "6569": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.onyx-healthcare.com",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "detail": "http://www.onyx-healthcare.com/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.onyx-healthcare.com/"
   },
   "6570": {
    "status": "ok",
@@ -17707,8 +17737,8 @@
   "6582": {
    "status": "ok",
    "domain": "www.shinfoong.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:conventional",
    "url": "https://www.shinfoong.com.tw/favicon.ico",
    "orig": [
@@ -17735,8 +17765,8 @@
   "6585": {
    "status": "ok",
    "domain": "www.dingzing.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:conventional",
    "url": "https://www.dingzing.com/favicon.ico",
    "orig": [
@@ -17825,11 +17855,11 @@
    "sha1": "125a8ad371cc316c0574355ef50ce829b8b5fef8"
   },
   "6596": {
-   "status": "none",
+   "status": "error",
    "domain": "www.khaminc.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 500 http://www.khaminc.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）http://www.khaminc.com.tw/"
   },
   "6597": {
    "status": "ok",
@@ -17988,15 +18018,15 @@
   "6620": {
    "status": "none",
    "domain": "www.handapharma.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "首頁 HTTP 403 https://www.handapharma.com.tw/"
   },
   "6624": {
    "status": "ok",
    "domain": "www.ever-clear.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "http://www.ever-clear.com.tw/images/favicon.ico",
    "orig": [
@@ -18035,9 +18065,9 @@
   "6637": {
    "status": "none",
    "domain": "www.mic-tw.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 http://www.mic-tw.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.mic-tw.com&sz=128"
   },
   "6640": {
    "status": "none",
@@ -18049,8 +18079,8 @@
   "6641": {
    "status": "none",
    "domain": "www.gsd.net.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.gsd.net.tw&sz=128"
   },
   "6642": {
@@ -18106,8 +18136,8 @@
   "6651": {
    "status": "too_small",
    "domain": "www.cystekec.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "16x16 https://www.google.com/s2/favicons?domain=www.cystekec.com&sz=128"
   },
   "6654": {
@@ -18150,11 +18180,11 @@
    "sha1": "39055a779d54afd5076d59dd5bf16930dfa79d07"
   },
   "6658": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.synpower.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "detail": "http://www.synpower.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 http://www.synpower.com.tw/"
   },
   "6662": {
    "status": "ok",
@@ -18184,8 +18214,8 @@
   "6666": {
    "status": "none",
    "domain": "www.luolihfen.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.luolihfen.com&sz=128"
   },
   "6667": {
@@ -18382,8 +18412,8 @@
   "6695": {
    "status": "too_small",
    "domain": "www.icatchtek.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "16x16 https://www.google.com/s2/favicons?domain=www.icatchtek.com&sz=128"
   },
   "6697": {
@@ -18402,8 +18432,8 @@
   "6698": {
    "status": "none",
    "domain": "www.fine-mat.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.fine-mat.com/wp-content/uploads/2025/02/cropped-favicon-192x192.png"
   },
   "6703": {
@@ -18537,8 +18567,8 @@
   "6725": {
    "status": "too_small",
    "domain": "www.cicahuntek.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "337x52 https://www.cicahuntek.com.tw/images/cica-huntek_logo.png"
   },
   "6727": {
@@ -18557,8 +18587,8 @@
   "6728": {
    "status": "none",
    "domain": "www.upyoung.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.upyoung.com.tw/apple-touch-icon.png"
   },
   "6730": {
@@ -18590,15 +18620,15 @@
   "6733": {
    "status": "robots",
    "domain": "www.biogend.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "https://www.biogend.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "6735": {
    "status": "none",
    "domain": "www.amidatec.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "SVG 畫不出來：EntitiesForbidden(name='ns_extend', system_id=None, public_id=None) https://www.amidatec.com/images/logo.svg"
   },
   "6739": {
@@ -18630,8 +18660,8 @@
   "6742": {
    "status": "too_small",
    "domain": "www.vactronics.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "16x16 https://www.google.com/s2/favicons?domain=www.vactronics.com.tw&sz=128"
   },
   "6743": {
@@ -18750,16 +18780,15 @@
   "6763": {
    "status": "ok",
    "domain": "www.ecpay.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "src": "site:icon",
-   "url": "https://www.ecpay.com.tw/Content/Themes/WebStyle20131201/images/favicon.ico",
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.ecpay.com.tw/Content/themes/Intro/adminappintro/images/frame/header_logo.png",
    "orig": [
-    16,
-    16
+    180,
+    64
    ],
-   "sha1": "5529c492bad78441d6c15f91b13f58731ad6c122",
-   "lowres": true
+   "sha1": "10aaac14e5c3a61d91706a3e889237da66f5d6b7"
   },
   "6767": {
    "status": "ok",
@@ -18777,8 +18806,8 @@
   "6768": {
    "status": "none",
    "domain": "www.sportsgear.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "首頁轉到別家網域 http://www.msftncsi.com/ncsi?hytf_url=https://www.sportsgear.com.tw/，不跟"
   },
   "6770": {
@@ -18886,8 +18915,8 @@
   "6790": {
    "status": "too_small",
    "domain": "www.yfycpg.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "648x98 https://www.yfycpg.com/images/cropped-yfy_logo.png"
   },
   "6791": {
@@ -18919,9 +18948,9 @@
   "6794": {
    "status": "none",
    "domain": "www.unicocell.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.unicocell.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "下一頁在別家網域、而且沒提到公司名稱 https://www.youtube.com/embed/aTFZEYUopok?si=H8y_FHqP0cDxs9Xu，不跟"
   },
   "6796": {
    "status": "ok",
@@ -18937,17 +18966,24 @@
    "sha1": "1785dd740babca675fbf002bcdf9a916ecfeb285"
   },
   "6799": {
-   "status": "too_small",
+   "status": "ok",
    "domain": "www.m3tekic.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "426x41 https://www.m3tekic.com/images/logo.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:home-img",
+   "url": "https://www.m3tekic.com/images/ic-cart.png",
+   "orig": [
+    30,
+    27
+   ],
+   "sha1": "afafcac595285a9415c75cf6c249680c770aba30",
+   "lowres": true
   },
   "6803": {
    "status": "none",
    "domain": "www.ecove.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "回的是 HTML 不是圖 http://www.ecove.com/apple-touch-icon.png"
   },
   "6804": {
@@ -19140,8 +19176,8 @@
   "6844": {
    "status": "robots",
    "domain": "www.norbelbaby.com.tw",
-   "fetched": "2026-09-26",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "https://www.norbelbaby.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "6846": {
@@ -19527,16 +19563,15 @@
   "6907": {
    "status": "ok",
    "domain": "www.arterychip.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "src": "site:icon",
-   "url": "https://www.arterychip.com/images/favicon.ico",
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.arterychip.com/images/logo_m.png",
    "orig": [
-    16,
-    16
+    150,
+    82
    ],
-   "sha1": "0e87aeb821017e7dad495ddb13a995c155d6bf89",
-   "lowres": true
+   "sha1": "81c9df5b4a7200647514dd4f85b9979627bfeac2"
   },
   "6908": {
    "status": "ok",
@@ -19656,11 +19691,11 @@
    "sha1": "2ef7e89c5bee86b3004b38aca4ff69faada65b88"
   },
   "6922": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.neousys-tech.com",
-   "fetched": "2026-09-26",
-   "strategy": 2,
-   "detail": "https://www.neousys-tech.com/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.neousys-tech.com/"
   },
   "6923": {
    "status": "ok",
@@ -19717,16 +19752,15 @@
   "6929": {
    "status": "ok",
    "domain": "www.yourchance.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "src": "site:icon",
-   "url": "https://www.yourchance.com.tw/site/themes/default/cht/images/favicon.ico",
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.yourchance.com.tw/site/themes/default/cht/images/about-logo1.jpg",
    "orig": [
-    16,
-    16
+    400,
+    110
    ],
-   "sha1": "b618f60d902a5207e686e7259b9d1d7e6bdb3e04",
-   "lowres": true
+   "sha1": "4ad89056c79822656880ebfd8d6b9aad42e09d40"
   },
   "6931": {
    "status": "ok",
@@ -19814,8 +19848,8 @@
   "6947": {
    "status": "ok",
    "domain": "www.tech-zone.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.tech-zone.com.tw/images/web-icon.png",
    "orig": [
@@ -20023,8 +20057,8 @@
   "6983": {
    "status": "too_small",
    "domain": "www.hua-yang.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "374x60 https://www.hua-yang.com.tw/images/logo.png"
   },
   "6986": {
@@ -20121,8 +20155,8 @@
   "7556": {
    "status": "ok",
    "domain": "www.yeedex.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.yeedex.com.tw/images/favicon.ico",
    "orig": [
@@ -20187,8 +20221,8 @@
   "7689": {
    "status": "none",
    "domain": "www.climax.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.climax.com.tw&sz=128"
   },
   "7703": {
@@ -20231,11 +20265,11 @@
    "sha1": "401b5d1e22323127f5504b52d9d11ba4c3a04a40"
   },
   "7708": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.familygourmet.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "http://www.familygourmet.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.familygourmet.com.tw/"
   },
   "7709": {
    "status": "ok",
@@ -20726,11 +20760,11 @@
    "sha1": "0a424ff3d196c2797642a131434dc558de7378e0"
   },
   "7788": {
-   "status": "none",
+   "status": "too_small",
    "domain": "www.songchuan.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.songchuan.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "315x50 https://www.songchuan.com/sc/wp-content/uploads/2025/05/cropped-網站首頁最上方LOGO.png"
   },
   "7791": {
    "status": "ok",
@@ -20759,11 +20793,17 @@
    "sha1": "dd06015acb38524a26ac73ed51b1df67b26ac538"
   },
   "7794": {
-   "status": "too_small",
+   "status": "ok",
    "domain": "www.acerpure.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "16x16 https://www.google.com/s2/favicons?domain=www.acerpure.com&sz=128"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.acerpure.com/static-html/images/acerpure-logo.svg",
+   "orig": [
+    256,
+    74
+   ],
+   "sha1": "ec8e2663c989391777050228d46295ef15384971"
   },
   "7795": {
    "status": "ok",
@@ -20833,16 +20873,15 @@
   "7811": {
    "status": "ok",
    "domain": "www.minson.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "src": "site:icon",
-   "url": "https://www.minson.com.tw/SRC/images/favicon/favicon.ico",
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:inline-svg",
+   "url": "https://www.minson.com.tw/#inline-svg-1",
    "orig": [
-    16,
-    16
+    246,
+    256
    ],
-   "sha1": "c0fc0089a3175d12f7ceb269786027d5c5d6bd1c",
-   "lowres": true
+   "sha1": "82603dcdc333cff45665314a43051f4147132cf9"
   },
   "7812": {
    "status": "ok",
@@ -20886,8 +20925,8 @@
   "7819": {
    "status": "ok",
    "domain": "www.systexfintech.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.systexfintech.com/favicon.ico",
    "orig": [
@@ -20911,11 +20950,11 @@
    "sha1": "bda6214918042950faccc4360269a8d5017e7552"
   },
   "7821": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.mitacmdt.com",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "https://www.mitacmdt.com/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.mitacmdt.com/"
   },
   "7822": {
    "status": "ok",
@@ -21023,11 +21062,11 @@
    "sha1": "f90eeb402676f2a17ce46843ca492458a7da9504"
   },
   "7855": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.hotaileasing.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "https://www.hotaileasing.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.hotaileasing.com.tw/"
   },
   "7856": {
    "status": "ok",
@@ -21317,11 +21356,11 @@
    "sha1": "35e5c894df2647f1dffc967778fdda1a2ecfba1c"
   },
   "8059": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.castlenet.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "http://www.castlenet.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.castlenet.com.tw/"
   },
   "8064": {
    "status": "ok",
@@ -21349,11 +21388,17 @@
    "sha1": "80cc77ca27f571e944764012b05d29c6ebd28140"
   },
   "8067": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.gish.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "回的是 HTML 不是圖 http://www.gish.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://images.squarespace-cdn.com/content/v1/54c5ba9fe4b0b73c4793e478/1435760407253-ZS2O9Z3B0LV9S0OVALTC/favicon.ico?format=100w",
+   "orig": [
+    100,
+    100
+   ],
+   "sha1": "e0b07587260cdc6c45d6f353cdbc126b23c1b002"
   },
   "8068": {
    "status": "ok",
@@ -21395,8 +21440,8 @@
   "8071": {
    "status": "too_small",
    "domain": "www.fstdisc.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "602x106 http://www.fstdisc.com.tw/images/all/logo.png"
   },
   "8072": {
@@ -21455,8 +21500,8 @@
   "8080": {
    "status": "ok",
    "domain": "www.terralink.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "http://www.terralink.com.tw/images/favicon.ico",
    "orig": [
@@ -21481,8 +21526,8 @@
   "8083": {
    "status": "none",
    "domain": "www.prohawk.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 http://www.prohawk.com.tw/apple-touch-icon.png"
   },
   "8084": {
@@ -21527,8 +21572,8 @@
   "8087": {
    "status": "blank",
    "domain": "www.leadsun-green.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "16x16 https://static.parastorage.com/client/pfavico.ico"
   },
   "8088": {
@@ -21546,8 +21591,8 @@
   "8089": {
    "status": "ok",
    "domain": "www.comtrend.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.comtrend.com/favicon.ico",
    "orig": [
@@ -21624,8 +21669,8 @@
   "8099": {
    "status": "ok",
    "domain": "www.etatung.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.etatung.com/images/favicon.ico",
    "orig": [
@@ -21702,8 +21747,8 @@
   "8107": {
    "status": "none",
    "domain": "www.kenmos.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.kenmos.com/apple-touch-icon.png"
   },
   "8109": {
@@ -21733,11 +21778,11 @@
    "sha1": "83a68e8c63bff610ddb1b24b5c5b8251426118c7"
   },
   "8111": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.ligitek.com",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "http://www.ligitek.com/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 http://www.ligitek.com/"
   },
   "8112": {
    "status": "ok",
@@ -21839,8 +21884,8 @@
   "8163": {
    "status": "ok",
    "domain": "www.darfon.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.darfon.com.tw/Content/Home/styles/images/favicon.ico",
    "orig": [
@@ -21848,7 +21893,8 @@
     32
    ],
    "sha1": "3d3cc85fca78809af5e8a0966fb2dd96596f3c1c",
-   "lowres": true
+   "lowres": true,
+   "last_fail": "error"
   },
   "8176": {
    "status": "ok",
@@ -21866,15 +21912,15 @@
   "8182": {
    "status": "none",
    "domain": "www.hele.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.hele.com.tw&sz=128"
   },
   "8183": {
    "status": "ok",
    "domain": "www.psaitc.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:header-img",
    "url": "https://www.psaitc.com/images/phd_logo.png",
    "orig": [
@@ -21887,8 +21933,8 @@
   "8201": {
    "status": "too_small",
    "domain": "www.besta.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "16x16 https://www.google.com/s2/favicons?domain=www.besta.com.tw&sz=128"
   },
   "8210": {
@@ -21906,8 +21952,8 @@
   "8213": {
    "status": "none",
    "domain": "tpt-pcb.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://tpt-pcb.com.tw/apple-touch-icon.png"
   },
   "8215": {
@@ -21964,8 +22010,8 @@
   "8240": {
    "status": "ok",
    "domain": "www.wahhong.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.wahhong.com/wh.ico",
    "orig": [
@@ -22054,8 +22100,8 @@
   "8279": {
    "status": "ok",
    "domain": "www.syngen.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.syngen.com.tw/site/themes/default/cht/images/favicon.ico",
    "orig": [
@@ -22068,8 +22114,8 @@
   "8284": {
    "status": "none",
    "domain": "www.mitake.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.mitake.com.tw&sz=128"
   },
   "8289": {
@@ -22087,11 +22133,17 @@
    "sha1": "5ac79aa2bb970567f6dfadc06aaf260e5e8642f8"
   },
   "8291": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.shinemore.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 http://www.shinemore.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "http://www.shinemore.com.tw/images/ch/logo.jpg",
+   "orig": [
+    171,
+    100
+   ],
+   "sha1": "a07ac457f863b87002f25d507f055bcff2096341"
   },
   "8299": {
    "status": "ok",
@@ -22134,8 +22186,8 @@
   "8349": {
    "status": "none",
    "domain": "www.qst.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.qst.com.tw/apple-touch-icon.png"
   },
   "8354": {
@@ -22203,11 +22255,11 @@
    "sha1": "e32aea78d769a94bf4745e1e6a2d72c93f5b1606"
   },
   "8401": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.bsbs.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "https://www.bsbs.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.bsbs.com.tw/"
   },
   "8403": {
    "status": "ok",
@@ -22264,8 +22316,8 @@
   "8411": {
    "status": "none",
    "domain": "www.kingcanholdings.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.kingcanholdings.com&sz=128"
   },
   "8415": {
@@ -22334,11 +22386,11 @@
    "sha1": "7857d3dcda1e4aec6c1ff62bf46cae9ac0db2390"
   },
   "8424": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.wellpool.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "http://www.wellpool.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.wellpool.com.tw/"
   },
   "8426": {
    "status": "ok",
@@ -22434,9 +22486,9 @@
   "8437": {
    "status": "none",
    "domain": "www.edudadi.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 http://www.edudadi.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "HTTP 404 https://www.edudadi.com/apple-touch-icon.png"
   },
   "8438": {
    "status": "ok",
@@ -22454,8 +22506,8 @@
   "8440": {
    "status": "robots",
    "domain": "www.eer.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "https://www.eer.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "8442": {
@@ -22500,8 +22552,8 @@
   "8446": {
    "status": "ok",
    "domain": "www.him.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.him.com.tw/images/favicon.ico",
    "orig": [
@@ -22644,8 +22696,8 @@
   "8476": {
    "status": "ok",
    "domain": "www.tesc.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.tesc.com.tw/img/ico/icon.png",
    "orig": [
@@ -22685,8 +22737,8 @@
   "8481": {
    "status": "robots",
    "domain": "www.transart.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "http://www.transart.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "8482": {
@@ -22718,8 +22770,8 @@
   "8488": {
    "status": "none",
    "domain": "www.jypkg.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 http://www.jypkg.com/apple-touch-icon.png"
   },
   "8489": {
@@ -22738,8 +22790,8 @@
   "8499": {
    "status": "ok",
    "domain": "topbright.taiwanscale.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:conventional",
    "url": "https://topbright.taiwanscale.com/favicon.ico",
    "orig": [
@@ -22765,8 +22817,8 @@
   "8906": {
    "status": "ok",
    "domain": "www.forward-net.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:conventional",
    "url": "http://www.forward-net.com.tw/favicon.ico",
    "orig": [
@@ -22790,11 +22842,17 @@
    "sha1": "5a14b82a95cb7987ca874794278a4d149bf3f766"
   },
   "8916": {
-   "status": "robots",
+   "status": "ok",
    "domain": "www.klf-group.com",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "http://www.klf-group.com/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.klf-group.com/english/img/BCorp-logo.svg",
+   "orig": [
+    175,
+    256
+   ],
+   "sha1": "80bce18bd6a6067bf8e400d3b57646c787b6871f"
   },
   "8917": {
    "status": "ok",
@@ -22915,8 +22973,8 @@
   "8931": {
    "status": "robots",
    "domain": "www.tycc.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "http://www.tycc.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "8932": {
@@ -22934,16 +22992,16 @@
   "8933": {
    "status": "robots",
    "domain": "www.idealbike.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "https://www.idealbike.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "8935": {
    "status": "none",
    "domain": "www.pontex.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.pontex.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "HTTP 404 https://www.pontex.com/mstile-144x144.png"
   },
   "8936": {
    "status": "ok",
@@ -23011,11 +23069,12 @@
    "sha1": "49109a7082d73f1777983d94e09314a02807dce0"
   },
   "8942": {
-   "status": "none",
+   "status": "too_small",
    "domain": "xxentria-tech.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=xxentria-tech.com&sz=128"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "site": "www.xxentria-tech.com",
+   "detail": "230x36 https://www.xxentria-tech.com/assets/images/logo.png"
   },
   "8996": {
    "status": "ok",
@@ -23045,16 +23104,16 @@
   "910322": {
    "status": "none",
    "domain": "www.masterkong.com.cn",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.masterkong.com.cn/apple-touch-icon.png"
   },
   "9105": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.calcomp.co.th",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "http://www.calcomp.co.th/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.calcomp.co.th/"
   },
   "910861": {
    "status": "ok",
@@ -23096,17 +23155,23 @@
    "sha1": "cb673f7e077a9edb0060e62441959dba5c7156d0"
   },
   "911622": {
-   "status": "none",
+   "status": "ok",
    "domain": "www.tycons.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.tycons.com/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "src": "site:header-img",
+   "url": "https://www.tycons.com/images/index_en_02.jpg",
+   "orig": [
+    275,
+    115
+   ],
+   "sha1": "501bf185f552c4abad408a27843c2dfc4feb2557"
   },
   "911868": {
    "status": "none",
    "domain": "www.neo-neon.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.neo-neon.com&sz=128"
   },
   "912000": {
@@ -23125,8 +23190,8 @@
   "9136": {
    "status": "too_small",
    "domain": "www.juteng.com.hk",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "600x56 http://www.juteng.com.hk/aboutjuteng/logo.gif"
   },
   "9802": {
@@ -23145,8 +23210,8 @@
   "9902": {
    "status": "ok",
    "domain": "www.tidehold.com",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "http://www.tidehold.com/favicon.ico",
    "orig": [
@@ -23209,11 +23274,11 @@
    "sha1": "04c28527fb826b4b8fd8e4314e6ed1f30d5838b1"
   },
   "9908": {
-   "status": "too_small",
+   "status": "error",
    "domain": "www.taipeigas.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "431x57 https://www.taipeigas.com.tw/images/com-logo.gif"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://www.taipeigas.com.tw/"
   },
   "9910": {
    "status": "ok",
@@ -23229,11 +23294,11 @@
    "sha1": "fc443562a818981e1e13ba2cdf7158aa397c9704"
   },
   "9911": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.sakura.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "https://www.sakura.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.sakura.com.tw/"
   },
   "9912": {
    "status": "ok",
@@ -23262,11 +23327,11 @@
    "sha1": "5b2732a863142f1a591cabd52b982d170dccb853"
   },
   "9917": {
-   "status": "robots",
+   "status": "none",
    "domain": "www.secom.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 2,
-   "detail": "https://www.secom.com.tw/ robots.txt 回 HTTP 403（依 robotparser 慣例視為全站禁止） —— 尊重它，也不走 Google 備援"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.secom.com.tw/"
   },
   "9918": {
    "status": "ok",
@@ -23336,16 +23401,16 @@
   "9926": {
    "status": "none",
    "domain": "www.shinhaigas.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=www.shinhaigas.com.tw&sz=128"
   },
   "9927": {
    "status": "none",
    "domain": "www.tmicl.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 http://www.tmicl.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "下一頁在別家網域、而且沒提到公司名稱 http://mops.twse.com.tw/mops/web/index，不跟"
   },
   "9928": {
    "status": "ok",
@@ -23376,8 +23441,8 @@
   "9930": {
    "status": "ok",
    "domain": "www.chc.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
+   "fetched": "2026-09-29",
+   "strategy": 4,
    "src": "site:icon",
    "url": "https://www.chc.com.tw/images/logo.ico",
    "orig": [
@@ -23390,9 +23455,9 @@
   "9931": {
    "status": "none",
    "domain": "www.hkgas.com.tw",
-   "fetched": "2026-09-27",
-   "strategy": 3,
-   "detail": "HTTP 404 https://www.hkgas.com.tw/apple-touch-icon.png"
+   "fetched": "2026-09-29",
+   "strategy": 4,
+   "detail": "下一頁在別家網域、而且沒提到公司名稱 https://www.youtube.com/embed/HWfiMyeM2nw?si=mWIFs61WkS-dBKcc，不跟"
   },
   "9933": {
    "status": "ok",
@@ -23649,7 +23714,7 @@
    "sha1": "a401f1b89092fbbb927aad9ab95e4c9ad76b9da0"
   }
  },
- "updated_at": "2026-09-28T19:21:39.483957+00:00",
+ "updated_at": "2026-09-28T20:09:43.279699+00:00",
  "generic_sha1": [
   "07667b594c83945d9d47a47b7abc7b6018ac3d50",
   "4cc17acf317825a6e9f40d28712ec3af511e80a3",
