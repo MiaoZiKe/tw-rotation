@@ -4764,13 +4764,38 @@
   const statK = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
   /* ★ 2026-09-29 設計 v4 第二批 2B（01 §4「圖例一律在繪圖區外」，改前→改後量測在 docs/design_v4/04_第二批2B.md）：
      個股頁的 ECharts 圖例（畫在圖表容器頂端、佔 30px 一行）改成卡片標題列裡的 HTML 圖例（.chlegend，
-     跟資金流向頁 #instLegend 同一套樣式）。ECharts 的圖例元件留著但 show:false —— 點 HTML 圖例送的是同一個
-     legendSelect／legendUnSelect；隱藏了哪幾條記在 extLegOff[圖 id]，重畫（切月／年、切區間、切分段）後補回去。
-     繪圖區頂端 30 → 10，容器高度不變，省下來的高度全部給繪圖區。
+     跟資金流向頁 #instLegend 同一套樣式）。點 HTML 圖例送的是 ECharts 同一個 legendSelect／legendUnSelect；
+     隱藏了哪幾條記在 extLegOff[圖 id]，重畫（切月／年、切區間、切分段）後補回去。
+     **放得下才搬**：HTML 圖例放進標題列之後如果被擠到下一行（半寬卡片、窄視窗），多出來的那一行（≈30px）
+     會把整張卡撐高、頁面變長 —— 那比改前差。所以量一次：
+       · 跟標題列同一行 → ECharts 圖例收起來、繪圖區頂端 30 → o.top（10～12），容器高度不變，省下的高度全部給繪圖區；
+       · 被擠到下一行 → HTML 圖例藏起來、ECharts 圖例照改前畫（o.fb），版面跟改前一模一樣。
+       視窗寬度一變（debounce 200ms）重量一次，兩種狀態來回切，選取狀態兩邊同步（legendselectchanged）。
        · 色樣讀 ECharts 算好的系列顏色（getVisual('style')），不另寫色碼；長條＝方塊、折線＝細條。
        · o.dual[name]＝[正色, 負色]：逐根上色的長條（紅買綠賣、EPS 正負）畫成左右兩半，不讓人以為只有紅色。
-       · o.labels[name]：圖例上顯示的字（例如把原本寫在 Y 軸上方的「EPS」單位併進圖例）。*/
+       · o.labels[name]：圖例上顯示的字（例如把原本寫在 Y 軸上方的「EPS」單位併進圖例）。
+     驗收：_uitest「設計v4第二批2B」。*/
   const extLegOff = {};
+  const extLegRec = {};
+  function extLegFit(r) {
+    const c = r.c; if (!c || (c.isDisposed && c.isDisposed()) || !r.box.isConnected) return;
+    r.box.hidden = false;
+    const first = r.host.firstElementChild;
+    const bb = r.box.getBoundingClientRect(), fb = first && first !== r.box ? first.getBoundingClientRect() : null;
+    // 被擠到下一行＝圖例的頂端已經在同一列第一個東西的底下（留 2px 誤差）
+    const wrapped = !!(fb && bb.width > 0 && bb.top >= fb.bottom - 2);
+    if (wrapped === r.wrapped) return;
+    r.wrapped = wrapped;
+    r.box.hidden = wrapped;
+    r.box.dataset.fit = wrapped ? 'wrap' : 'row';
+    c.setOption(wrapped ? { legend: { show: true, ...r.fb }, grid: { top: r.fbTop }, ...(r.fbOpt || {}) }
+      : { legend: { show: false }, grid: { top: r.top }, ...(r.okOpt || {}) });
+  }
+  let extLegT = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(extLegT);
+    extLegT = setTimeout(() => Object.values(extLegRec).forEach(r => { r.wrapped = null; extLegFit(r); }), 200);
+  });
   function extLegend(c, host, opt) {
     if (!c || !host || !host.isConnected) return;
     const o = opt || {};
@@ -4788,26 +4813,37 @@
     if (!box) {
       box = document.createElement('div'); box.className = 'chlegend skleg'; box.dataset.for = id;
       box.setAttribute('role', 'group'); box.setAttribute('aria-label', '圖例（點一下隱藏／顯示）');
-      if (o.before && o.before.parentElement === host) host.insertBefore(box, o.before); else host.appendChild(box);
+      host.appendChild(box);
     }
     const esc = A.fmt.esc;
-    box.innerHTML = names.map(n => {
-      const v = sw(n); const lab = (o.labels && o.labels[n]) || n; const on = !off[n];
-      const d = o.dual && o.dual[n];
-      const bg = d ? `linear-gradient(90deg,${d[0]} 50%,${d[1]} 50%)` : (v.col || 'currentColor');
-      return `<button type="button" data-n="${esc(n)}" aria-pressed="${on}" title="點一下${on ? '隱藏' : '顯示'}${esc(lab)}"><i class="${v.line ? 'ln' : ''}" style="background:${bg}"></i>${esc(lab)}</button>`;
-    }).join('');
+    const paint = () => {
+      box.innerHTML = names.map(n => {
+        const v = sw(n); const lab = (o.labels && o.labels[n]) || n; const on = !off[n];
+        const d = o.dual && o.dual[n];
+        const bg = d ? `linear-gradient(90deg,${d[0]} 50%,${d[1]} 50%)` : (v.col || 'currentColor');
+        return `<button type="button" data-n="${esc(n)}" aria-pressed="${on}" title="點一下${on ? '隱藏' : '顯示'}${esc(lab)}"><i class="${v.line ? 'ln' : ''}" style="background:${bg}"></i>${esc(lab)}</button>`;
+      }).join('');
+    };
+    paint();
     names.forEach(n => { if (off[n]) c.dispatchAction({ type: 'legendUnSelect', name: n }); });
     box.onclick = (e) => {
       const b = e.target.closest('button[data-n]'); if (!b) return;
-      const n = b.dataset.n; off[n] = !off[n];
+      const n = b.dataset.n;
       const ch = window.echarts && echarts.getInstanceByDom(document.getElementById(id));
-      if (ch) ch.dispatchAction({ type: off[n] ? 'legendUnSelect' : 'legendSelect', name: n });
-      const lab = b.textContent;
-      b.setAttribute('aria-pressed', String(!off[n])); b.title = `點一下${off[n] ? '顯示' : '隱藏'}${lab}`;
+      if (ch) ch.dispatchAction({ type: off[n] ? 'legendSelect' : 'legendUnSelect', name: n });
+      else { off[n] = !off[n]; paint(); }
     };
+    // 兩種狀態共用 ECharts 的選取：不管點的是 HTML 圖例還是（放不下時的）ECharts 圖例，都從這裡同步回來
+    c.off('legendselectchanged', c._extLegSync);
+    c._extLegSync = (ev) => { Object.entries(ev.selected || {}).forEach(([k, v]) => { off[k] = v === false; }); paint(); };
+    c.on('legendselectchanged', c._extLegSync);
+    const r = extLegRec[id] = { c, host, box, top: o.top != null ? o.top : 10, fbTop: o.fbTop != null ? o.fbTop : 30,
+      fb: o.fb || { top: 0, textStyle: { color: A.CH.ink2, fontSize: 12 } }, fbOpt: o.fbOpt, okOpt: o.okOpt, wrapped: null };
+    // 圖剛畫出來是「HTML 圖例版」（option 裡 legend.show:false、grid.top 小）；量完放不下才退回改前的畫法
+    r.wrapped = false;
+    extLegFit(r);
   }
-  const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); };
+  const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); delete extLegRec[id]; };
   function fundCard(pg) {
     const f = pg.fundamental || {}, dv = pg.dividends || {};
     const k = statK;
@@ -4954,7 +4990,7 @@
     const yr = (rv.yearly || []).slice(-6); let mode = 'm';
     const drawYear = () => { const yc = A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { show: false }, grid: { left: 60, right: 20, top: 10, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } },
       series: yr.map((y, i) => { let acc = 0, broke = false; const d = Array.from({ length: 12 }, (_, m) => { const v = y.by_month[m + 1]; if (v == null) { broke = true; return null; } if (mode === 'c') { if (broke) return null; acc += v; return acc; } return v; }); /* ★ 2026-09-28：累計遇缺月就停（跳過缺月繼續加，後面每個月都少算一個月，線會系統性偏低）*/ return { name: String(y.year), type: 'line', data: d, smooth: .2, symbolSize: 5, lineStyle: { width: i === yr.length - 1 ? 3 : 1.5, color: A.PALETTE[i] }, itemStyle: { color: A.PALETTE[i] } }; }) });
-      const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement, { before: rm }); };   // 設計 v4 2B：六個年份的圖例放標題列（單月／累計左邊）
+      const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下就自己換到下一行，仍在圖外）
     $$('#revMode button').forEach(b => b.onclick = () => { $$('#revMode button').forEach(x => x.classList.toggle('on', x === b)); mode = b.dataset.v; drawYear(); });
     drawYear();
   }
@@ -5493,9 +5529,10 @@
       const pc = A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : p.seriesName === 'EPS' ? A.fmt.n(p.value, 2) + ' 元' : A.fmt.n(p.value, 1) + '%'}`).join('<br>') }, legend: { show: false }, grid: { left: 50, right: 50, top: 10, bottom: 30 },
         xAxis: { ...A.axisStyle, type: 'category', data: X, axisLabel: { color: A.CH.ink3, hideOverlap: true } }, yAxis: [{ ...A.axisStyle }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
         series: [{ name: 'EPS', type: 'bar', itemStyle: { color: 'rgba(255,77,109,.7)' }, data: E.map(v => ({ value: v, itemStyle: { color: v >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: M('gm', 2), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#ffd166' }, itemStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: M('om', 3), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#3ee0ff' }, itemStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: M('nm', 4), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#8b7bff' }, itemStyle: { color: '#8b7bff' } }] }, { notMerge: true });
-      /* 設計 v4 2B：圖例搬到標題列（季／年左邊）；原本寫在左軸頂上的「EPS」字樣（佔繪圖區上方一行）併進圖例：EPS（元，左軸） */
+      /* 設計 v4 2B：圖例搬到標題列最右端（季／年後面，放不下自己換行）；原本寫在左軸頂上的「EPS」字樣（佔繪圖區上方一行）併進圖例：EPS（元，左軸） */
       const pm = $('#profitMode', el);
-      if (pm) extLegend(pc, pm.parentElement, { before: pm, labels: { EPS: 'EPS（元，左軸）' }, dual: { EPS: ['rgba(255,77,109,.7)', 'rgba(46,229,157,.7)'] } });
+      if (pm) extLegend(pc, pm.parentElement, { labels: { EPS: 'EPS（元，左軸）' }, dual: { EPS: ['rgba(255,77,109,.7)', 'rgba(46,229,157,.7)'] },
+        fbOpt: { yAxis: [{ name: 'EPS' }, {}] }, okOpt: { yAxis: [{ name: '' }, {}] } });   // 放不下退回改前時，左軸頂上的「EPS」也還原
     };
     $$('#profitMode button', el).forEach(b => b.onclick = () => {
       pmode = b.dataset.v;
@@ -5616,6 +5653,11 @@
     const yrs = bars.map(b => String(b.year));
     const top = (b) => b.n === 0 ? '未配' : (b.cash || 0) + (b.stock || 0) > 0 ? d2((b.cash || 0) + (b.stock || 0)) : b.unknown ? '待補' : '0';
     const narrowDiv = (($('#divBar') || {}).clientWidth || 600) < 420;
+    /* 設計 v4 2B：年份字 12px 一格要多寬才不疊 —— 「2009」≈ 32px、「'09」≈ 22px（12px 等寬字）。
+       一格（繪圖區寬 ÷ 年數）放不下四位數就縮成 'YY（改前只有容器 < 420 才縮，1100 寬半欄卡片 18 年一格 22px，「2009」疊成一串）；
+       連 'YY 都放不下（< 24px，例如 390）才直排。*/
+    const divSlot = ((($('#divBar') || {}).clientWidth || 600) - 88) / Math.max(1, bars.length);
+    const divShort = narrowDiv || divSlot < 34, divRot = divSlot < 24;
     const kindTxt = (k) => ({ '息': '除息', '權': '除權', '權息': '除權息' })[k] || (k || '');
     const dc = A.chart('divBar', {
       tooltip: { ...A.tip, trigger: 'axis', axisPointer: { type: 'shadow' },
@@ -5631,10 +5673,10 @@
           return h; } },
       legend: { show: false, data: ['現金股利', '股票股利', '現金殖利率'] },
       /* 設計 v4 2B：12px 下限。窄（容器 < 420px）以前把年份縮成 10.5px 硬塞，改成 12px 直排（每格 15px 放得下），底部多留 8px */
-      grid: { left: 44, right: 44, top: 12, bottom: narrowDiv ? 38 : 30 },
+      grid: { left: 44, right: 44, top: 12, bottom: divRot ? 38 : 30 },
       xAxis: { ...A.axisStyle, type: 'category', data: yrs,
-        axisLabel: { color: A.CH.ink3, fontFamily: MF, interval: 0, fontSize: 12, rotate: narrowDiv ? 90 : 0,
-          formatter: (v) => narrowDiv ? "'" + String(v).slice(2) : v } },
+        axisLabel: { color: A.CH.ink3, fontFamily: MF, interval: 0, fontSize: 12, rotate: divRot ? 90 : 0,
+          formatter: (v) => divShort ? "'" + String(v).slice(2) : v } },
       yAxis: [{ ...A.axisStyle, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) } },
         { ...A.axisStyle, splitLine: { show: false }, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) + '%' } }],
       series: [
@@ -5645,7 +5687,7 @@
         /* 柱頂標籤：堆疊最上層一根 0 高度的柱子專門掛字（合計／未配／待補），不佔高度、不進圖例 */
         { name: '合計', type: 'bar', stack: 'd', barWidth: '55%', data: bars.map(() => 0), silent: true, tooltip: { show: false },
           itemStyle: { color: 'transparent' },
-          labelLayout: narrowDiv ? { hideOverlap: true } : undefined,
+          labelLayout: divShort ? { hideOverlap: true } : undefined,   // 格子窄時柱頂數字（12.50、10.50…）互相疊，疊到的先藏（滑過提示框照樣有）
           label: { show: true, position: 'top', fontFamily: MF, fontSize: 12,
             color: A.CH.ink2, formatter: (q) => top(bars[q.dataIndex]) } },
         /* 現金殖利率線放在最後：驗收（DIV_PROBE）照索引讀 series[0]＝現金、[1]＝股票 */
@@ -5653,7 +5695,7 @@
           lineStyle: { color: A.CH.cyan, width: 1.8 }, itemStyle: { color: A.CH.cyan } },
       ],
     }, { notMerge: true });
-    extLegend(dc, $('#divHead', el));           // 設計 v4 2B：圖例搬到標題列右端（繪圖區頂 30 → 12）
+    extLegend(dc, $('#divHead', el), { top: 12, fb: { top: 0, right: 0, textStyle: { color: A.CH.ink2, fontSize: 12 } } });   // 設計 v4 2B：圖例搬到標題列右端（繪圖區頂 30 → 12）
   }
   /* 籌碼頁：資料不夠就不要畫一張空圖。
      Andy：「若是籌碼下方無法抓取到數據，就把他替換其他方式，或是直接刪除」。
@@ -5772,8 +5814,8 @@
         xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
         series: [{ name: seg.t, type: 'bar', data: vals.map(v => (v == null ? null : { value: v, itemStyle: { color: v >= 0 ? A.CH.up : A.CH.down } })), itemStyle: { color: A.CH.up } },
           { name: '區間累計', type: 'line', yAxisIndex: 1, data: cum, showSymbol: false, connectNulls: false, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
-      // 設計 v4 2B：圖例搬到標題列（外資／投信／自營商／合計那組鈕的左邊）；柱是紅買綠賣，色樣畫成兩半
-      const isg = $('#instSeg', el); if (isg) extLegend(ic, isg.parentElement, { before: isg, dual: { [seg.t]: [A.CH.up, A.CH.down] } });
+      // 設計 v4 2B：圖例搬到標題列最右端（外資／投信／自營商／合計那組鈕後面）；柱是紅買綠賣，色樣畫成兩半
+      const isg = $('#instSeg', el); if (isg) extLegend(ic, isg.parentElement, { dual: { [seg.t]: [A.CH.up, A.CH.down] } });
       const tb = $('#instTbl', el);
       if (tb) {
         const cell = (v, on) => `<td class="num ${A.fmt.cls(v)}${on ? ' sel' : ''}">${v == null ? '—' : A.fmt.i(Math.round(v / 1000))}</td>`;
@@ -5825,7 +5867,7 @@
           series: [{ name: C[2], type: 'bar', data: bar.map(v => (v == null ? null : { value: v, itemStyle: { color: (seg.v === 'm' || seg.v === 's') ? (v >= 0 ? A.CH.up : A.CH.down) : A.CH.violet } })), itemStyle: { color: A.CH.violet } },
             { name: C[3], type: 'line', yAxisIndex: 1, data: line, showSymbol: nTrade <= 30, symbolSize: 4, connectNulls: false, lineStyle: { color: '#ffb454', width: 2 }, itemStyle: { color: '#ffb454' } }] }, { notMerge: true });
         // 設計 v4 2B：圖例搬到標題列；融資／融券增減逐根紅綠，色樣畫成兩半（當沖、借券賣是單色）
-        const msg = $('#mgSeg', el); if (msg) extLegend(mc, msg.parentElement, { before: msg, dual: (seg.v === 'm' || seg.v === 's') ? { [C[2]]: [A.CH.up, A.CH.down] } : null });
+        const msg = $('#mgSeg', el); if (msg) extLegend(mc, msg.parentElement, { dual: (seg.v === 'm' || seg.v === 's') ? { [C[2]]: [A.CH.up, A.CH.down] } : null });
       }
       const tb = $('#mgTbl', el);
       if (tb) {
@@ -5877,8 +5919,9 @@
       ? `<div class="note hoNote" data-readout style="margin-top:6px">集保中心每週只公開最新一週的持股分級，更早的週資料無法補回，所以從 ${A.fmt.esc(ho[0][0])} 起每週累積，目前 ${ho.length} 週</div>`
       : `<div class="note hoNote" data-readout style="margin-top:6px">每週公布一次：點＝公布日，點與點之間只是連線</div>`;
     /* 設計 v4 2B：三顆色塊（圖例兼開關）從標題下面獨佔的一列（10＋36＋4＝50px）搬進標題列，
-       放不下（窄畫面）時整組自己換到下一行，跟改前一樣。id、按鈕、行為都不變。*/
-    const body = `<div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small></div>
+       放不下（窄畫面）時整組自己換到下一行，跟改前一樣。id、按鈕、行為都不變。
+       DOM 順序是「標題、日期、色塊」：窄的時候先換行的是色塊（日期留在標題那一行），寬的時候 CSS 用 order 把色塊排到中間。*/
+    const body = `<div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
       ${hbox('skho', ['上方色塊＝圖例，按一下隱藏／顯示那一條', '千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
       <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${growing}${insNote}${chipTbl('hoTbl')}</div>`;
     const redraw = chipPage(pg, el, 'holders', body, (dates, win) => {

@@ -432,11 +432,18 @@
    ④ 分頁裡兩欄並排的卡片（營收、獲利、除權息）等高時，較矮那張的圖撐滿，不留底部空白帶。 */
 .chlegend button i.ln{height:3px;border-radius:2px}
 .chlegend.skleg{min-width:0}
-[data-theme4] #lwc .pane-labels div{font-size:12px;line-height:18px;padding:0 6px}
+.chlegend.skleg{gap:0 2px}
+.chlegend.skleg button{min-height:24px;padding:0 4px;gap:4px}
+.chlegend.skleg[hidden]{display:none}
+@media (max-width:640px){ .chlegend.skleg button{min-height:32px} }
+@media (min-width:641px){ [data-theme4] #lwc .pane-labels div{font-size:12px;line-height:18px;padding:0 6px} }
 #hoHead>.hoTgls{margin:0}
+@media (min-width:1101px){ #hoHead>.hoTgls{order:1} #hoHead>small{order:2} }
 @media (min-width:821px){
   [data-theme4] #stockTab .grid.g2>.card{display:flex;flex-direction:column}
-  [data-theme4] #stockTab .grid.g2>.card>.chart{flex:1 1 auto}
+  /* flex-basis 0＋min-height：圖只「吃剩下的高度」，不拿自己目前的畫布高度當內容高度 ——
+     用 flex:1 1 auto 會形成棘輪（兩張卡互相撐高，1100 寬實測圖被撐到 600px）*/
+  [data-theme4] #stockTab .grid.g2>.card>.chart{flex:1 1 0;min-height:260px}
 }
 /* ⑤ K 線卡標題區（skHead＋工具列＋AI 分析）：
       a. 現價列的五顆資訊小標（技術分／本益比／同業分位／營收 YoY／分 K 完整）字 12、左右內距 8、間距 8：

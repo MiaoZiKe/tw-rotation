@@ -37697,7 +37697,7 @@ V4_2B_CH = r"""(ids) => { const out = {};
       leg: box ? { n: box.querySelectorAll('button').length, names: [...box.querySelectorAll('button')].map(b => b.dataset.n),
         txt: [...box.querySelectorAll('button')].map(b => b.textContent.trim()),
         above: box.getBoundingClientRect().bottom <= er.top + 1, vis: box.getBoundingClientRect().width > 0,
-        inHead: !!box.closest('.row') } : null };
+        inHead: !!box.closest('.row'), fit: box.dataset.fit || '', hidden: !!box.hidden } : null };
   }
   out._sw = document.documentElement.scrollWidth; out._iw = innerWidth;
   return out; }"""
@@ -37753,7 +37753,8 @@ def t_design_v4_2b(b, base, code):
         c = r[cid]
         if ok(f"① {cid} 畫出來了", bool(c), c):
             ok(f"① {cid}：ECharts 圖例不畫、繪圖區頂 ≤ 12（改前 30）", not c["legShown"] and c["gtop"] is not None and c["gtop"] <= 12, c)
-            ok(f"① {cid}：HTML 圖例在標題列、在圖的上緣之上", bool(c["leg"]) and c["leg"]["n"] >= 2 and c["leg"]["above"] and c["leg"]["inHead"] and c["leg"]["vis"], c["leg"])
+            ok(f"① {cid}：1440 放得下 → HTML 圖例跟標題列同一行、在圖的上緣之上", bool(c["leg"]) and c["leg"]["n"] >= 2 and c["leg"]["fit"] == "row"
+               and c["leg"]["above"] and c["leg"]["inHead"] and c["leg"]["vis"], c["leg"])
     ok("① 月走勢長條不再自動標原值（改前 12 根兩組柱標「+514805337000」疊成一團）", bool(r["revBar"]) and not r["revBar"]["barLab"], r["revBar"] and r["revBar"]["barLab"])
     ok("① 1440 營收分頁沒有橫向捲軸", r["_sw"] <= r["_iw"] + 1, r)
     scroll_to(pg, "revBar")
@@ -37835,12 +37836,36 @@ def t_design_v4_2b(b, base, code):
     for w in (1100, 800):
         pg.set_viewport_size({"width": w, "height": 900})
         pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
-        for t, ids in (("revenue", ["revBar", "revYear"]), ("profit", ["profitChart"]), ("inst", ["instChart"])):
+        for t, ids in (("revenue", ["revBar", "revYear"]), ("profit", ["profitChart"]), ("dividend", ["divBar"]), ("inst", ["instChart"])):
             tab(t)
             rr = ch(ids)
-            bad = [i for i in ids if not rr.get(i) or not rr[i]["leg"] or not rr[i]["leg"]["above"]]
-            ok(f"⑧ [{w}] {t}：圖例在圖外（圖的上緣之上）、沒有橫向捲軸", not bad and rr["_sw"] <= rr["_iw"] + 1,
-               {"bad": bad, "sw": rr["_sw"], "iw": rr["_iw"]})
+            st = {}
+            for i in ids:
+                c = rr.get(i)
+                if not c or not c["leg"]:
+                    st[i] = "沒有圖或圖例"
+                elif c["leg"]["fit"] == "row":      # 放得下：HTML 圖例在標題列同一行、ECharts 圖例收起、繪圖區頂小
+                    st[i] = "ok" if (c["leg"]["vis"] and c["leg"]["above"] and not c["legShown"] and c["gtop"] <= 12) else ("row 狀態不對", c)
+                elif c["leg"]["fit"] == "wrap":     # 放不下：HTML 圖例藏起、ECharts 圖例照改前畫（繪圖區頂讓出 28 以上）
+                    st[i] = "ok" if (c["leg"]["hidden"] and c["legShown"] and c["gtop"] >= 28) else ("wrap 狀態不對", c)
+                else:
+                    st[i] = ("沒有量過", c["leg"])
+            ok(f"⑧ [{w}] {t}：圖例放得下就在標題列、放不下就照改前畫（不多佔一行）、沒有橫向捲軸",
+               all(v == "ok" for v in st.values()) and rr["_sw"] <= rr["_iw"] + 1, {"st": st, "sw": rr["_sw"], "iw": rr["_iw"]})
+    # 視窗寬度來回：放不下退回改前、放得下又搬回標題列（選取狀態兩邊同步）
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    tab("revenue")
+    click(pg, '.chlegend[data-for="revYear"] button[data-n="2021"]', 600)
+    pg.set_viewport_size({"width": 1000, "height": 900}); pg.wait_for_timeout(1200)
+    a = ch(["revYear"])["revYear"]
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(1200)
+    z = ch(["revYear"])["revYear"]
+    ok("⑧ 縮到 1000 再拉回 1440：圖例回到標題列同一行、2021 仍然是藏起來的",
+       bool(z and z["leg"]) and z["leg"]["fit"] == "row" and not z["legShown"] and z["sel"].get("2021") is False
+       and 'aria-pressed="false"' in pg.evaluate("() => document.querySelector('.chlegend[data-for=\"revYear\"] button[data-n=\"2021\"]').outerHTML"),
+       {"1000": a and (a["leg"], a["legShown"], a["gtop"]), "1440": z and (z["leg"], z["legShown"], z["sel"])})
+    click(pg, '.chlegend[data-for="revYear"] button[data-n="2021"]', 400)
     ok("整段沒有 JS 錯誤", not errs, errs[:3])
     ctx.close()
 

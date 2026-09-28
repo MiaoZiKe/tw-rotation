@@ -623,7 +623,12 @@
       }
     }
     /** 副圖標籤帶的高度（px）；總覽小卡、四週期小圖不留（它們的標籤規格另外一套）。*/
-    _lblStrip() { return (this.opts.mini || this.opts.compact) ? 0 : KChart.LBL_STRIP; }
+    /*  手機（≤640）也不留：手機的 K 線本來就矮（360～620px），再從主圖拿一條會讓 K 棒被壓扁，手機版面歸 mobile-ui 另外定。*/
+    _lblStrip() {
+      if (this.opts.mini || this.opts.compact) return 0;
+      try { if (!window.matchMedia('(min-width:641px)').matches) return 0; } catch (e) { /* 沒有 matchMedia 就照桌機 */ }
+      return KChart.LBL_STRIP;
+    }
     /* 滾輪在價格軸上：縮放上下寬度（TradingView 手感）；圖區內滾輪維持時間縮放。
 
        這兩個 listener 掛在容器 `#lwc` 上，而容器是**跨圖表活著的**（換股票、換週期時
@@ -1218,7 +1223,7 @@
         // 以前實際只有 57~67px；這組在 813px 高的個股頁量到量 96／KD 115／MACD 115，主圖還有 441。
         // 再大就要吃掉主圖了 —— 他同樣在意 K 線圖要大（DECISIONS #101），想更寬可以自己拖，會記住。
         // 設計 v4 2B：副圖頂端多一條標籤帶（KChart.LBL_STRIP），預設高度跟著加，可畫資料的高度不變（見 _layoutLabels）
-        : { vol: 100 + KChart.LBL_STRIP, ind: 120 + KChart.LBL_STRIP, min: 260 };
+        : { vol: 100 + this._lblStrip(), ind: 120 + this._lblStrip(), min: 260 };
       /* ★ 2026-09-28 opts.volRatio（只給 mini／compact 用）：量副圖佔圖高的比例。
          總覽大盤三張圖要「拖一張、另外兩張跟著變」（Andy：「成交量縮放只需要抓取其中一條，其他兩條會連動」），
          三張圖高度不一定一樣（展開那張比較高），所以共用的是**比例**不是像素。

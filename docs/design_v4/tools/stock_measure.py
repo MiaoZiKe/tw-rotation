@@ -99,7 +99,9 @@ JS2 = r"""
   if (k && lw && vis(lw)) {
     let font = null; try { font = k.chart.options().layout.fontSize; } catch (e) {}
     let vert = null; try { vert = k.chart.options().grid.vertLines.visible; } catch (e) {}
-    const panes = []; try { let top = 0; for (const p of k.chart.panes()) { panes.push({ top, h: p.getHeight() }); top += p.getHeight() + 1; } } catch (e) {}
+    const panes = []; try { let top = 0; for (const p of k.chart.panes()) { let mt = null;
+        try { const s = (p.getSeries ? p.getSeries() : [])[0]; mt = s.priceScale().options().scaleMargins.top; } catch (e) {}
+        panes.push({ top, h: p.getHeight(), dataTop: mt == null ? null : Math.round(mt * p.getHeight()) }); top += p.getHeight() + 1; } } catch (e) {}
     const lr = lw.getBoundingClientRect();
     const lbls = [...lw.querySelectorAll('.pane-labels div')].filter(vis).map(d => { const b = d.getBoundingClientRect();
       return { t: d.textContent.trim().slice(0, 16), fs: parseFloat(getComputedStyle(d).fontSize), y: Math.round(b.top - lr.top), h: Math.round(b.height) }; });
