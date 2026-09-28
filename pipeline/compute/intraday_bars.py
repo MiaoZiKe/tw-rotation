@@ -86,7 +86,17 @@ INTERVAL_RANK = {"1m": 0, "15m": 1, "60m": 2}
 # 同是 1m 時再比來源（2026-09-26）：期交所逐筆合成（taifex，真實盤中高低、含夜盤）＞ 證交所分時（mis，
 # 由分鐘收盤合成）。同一盤兩個都有時只用 taifex，不混 —— 兩者時間戳慣例不同（mis 標分鐘結束、taifex 標開始），
 # 混在一起會出現同一分鐘兩根。排名＝INTERVAL_RANK × 10 ＋ SRC_RANK。
-SRC_RANK = {"taifex": 0, "mis": 1}
+SRC_RANK = {"taifex": 0, "finmind": 0, "mis": 1}
+# ★ 2026-09-28：加權多一個 1 分 K 來源 finmind（FinMind 每 5 秒加權指數＋每 5 秒成交統計合成，真實高低、真實每分鐘成交金額，
+#   見 sources/finmind.tse_minute_bars）。同一盤跟 mis 並存時用 finmind：高低是真的盤中極值，而且可以回補到兩年前。
+
+# 指數（TSE／OTC）的量是「成交金額」（2026-09-28 查證：mis 分時的 s 是百萬元，不是張數）。
+# 湖裡 mis／finmind 兩個來源都存「千元」→ 這裡 × 1000 換成「元」，跟 index_ohlc.json 的日成交金額同單位，
+# 前端 1 分～季同一把尺。Yahoo 那幾盤的量是 0（Yahoo 指數沒有量），照實給 0，前端不畫量柱、不估。
+# 台指期（FUT／FUT_N）是口數，不換。
+MONEY_SYMBOLS = {"TSE", "OTC"}
+H1_TAIL = 3800
+MONEY_SRC_TO_YUAN = {"mis": 1000.0, "finmind": 1000.0}
 
 
 def bucket(bars: pd.DataFrame, secs: int) -> list[list]:
@@ -148,11 +158,16 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
     df["srcv"] = src
     df["rank"] = (df["iv"].map(INTERVAL_RANK).fillna(9).astype(int) * 10
                   + src.map(SRC_RANK).fillna(5).astype(int))
+    mult = src.map(MONEY_SRC_TO_YUAN).fillna(1.0)
+    is_money = df["symbol"].astype(str).isin(MONEY_SYMBOLS)
+    df.loc[is_money, "volume"] = df.loc[is_money, "volume"] * mult[is_money]
     cols = ["t", "open", "high", "low", "close", "volume"]
     for sym, g in df.groupby("symbol"):
         best = g.groupby("day")["rank"].transform("min")
         use = g[g["rank"] == best].sort_values(["t", "rank"], kind="stable").drop_duplicates("t", keep="first")
-        h1 = synth(use[cols], "H1")[-tail:]
+        # 1H 多留一點（2026-09-28）：Yahoo 60 分 K 兩年 ≈ 725 盤 × 5 根 ≈ 3,650 根，舊的 2600 會把最早約 200 盤切掉，
+        # 使用者往左拖就是「看不到更之前的 K 棒」。H1_TAIL 蓋住整段 Yahoo 保留期。
+        h1 = synth(use[cols], "H1")[-max(tail, H1_TAIL):]
         h4 = synth(use[cols], "H4")[-tail:]
         # 原始 15 分 K 也吐給前端（2026-09-25，Andy：「已經有 15 分 K，1H & 4H 理論上可以透過 15 分 K 計算」）。
         # 前端選「15 分／30 分」時看得到多日，1H／4H 跟它是同一份資料切出來的。
@@ -169,6 +184,10 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
         m1_days = sorted(set(r1["day"]))
         mis_days = sorted(set(r1.loc[r1["srcv"] == "mis", "day"]))
         tx_days = sorted(set(r1.loc[r1["srcv"] == "taifex", "day"]))
+        fm_days = sorted(set(r1.loc[r1["srcv"] == "finmind", "day"]))
+        # 有真實分鐘量的盤（那一盤的分 K 至少一半有量）：前端講「哪天以前沒有分鐘量」讀這個，不寫死
+        vd = use.assign(pos=use["volume"].fillna(0) > 0).groupby("day")["pos"].mean()
+        vol_days = sorted(int(d) for d, r in vd.items() if r >= 0.5)
         all_days = sorted(set(use["day"]))
         out[str(sym)] = {"H1": h1, "H4": h4, "M15": m15[-tail:],
                          "src": {"rows": int(len(use)),
@@ -182,7 +201,13 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
                                  "m1_first": _day_str(m1_days[0]) if m1_days else None,
                                  "m1_days": len(m1_days),
                                  "taifex_first": _day_str(tx_days[0]) if tx_days else None,
-                                 "taifex_days": len(tx_days)}}
+                                 "taifex_days": len(tx_days),
+                                 "finmind_first": _day_str(fm_days[0]) if fm_days else None,
+                                 "finmind_days": len(fm_days),
+                                 "vol_first": _day_str(vol_days[0]) if vol_days else None,
+                                 "vol_days": len(vol_days),
+                                 # 量的單位：指數＝成交金額（元）、台指期＝口
+                                 "vol_unit": "yuan" if str(sym) in MONEY_SYMBOLS else "lots"}}
     return out
 
 

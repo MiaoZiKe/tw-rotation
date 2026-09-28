@@ -275,13 +275,15 @@ def main() -> int:
         state["overview"]["hero"] = pg.evaluate("document.getElementById('hero').innerText.slice(0,80)")
         state["overview"]["layout"] = pg.evaluate("""() => ({
             heroH: Math.round(document.getElementById('hero').getBoundingClientRect().height),
-            kpis: document.querySelectorAll('#hero .kpi').length,
+            kpis: document.querySelectorAll('#hero .osc').length,
             candGone: !document.getElementById('ovCandCard'),
             m3Cards: document.querySelectorAll('#m3Frame .m3-card').length,
             ud: !!document.querySelector('#breadth canvas'), theme: !!document.querySelector('#ovTheme canvas') })""")
         lay = state["overview"]["layout"]
-        if lay["heroH"] > 64 or lay["kpis"] != 4:
-            problems.append(f"總覽 KPI 橫條應該 4 格、高度 ≤ 64px：{lay}")
+        # ★ 2026-09-28：KPI 細列（4 格、≤64px）換成四張摘要卡（Andy：「以這種方式呈現數據在K線圖上方」）。
+        #   1440 四張一排，卡高約 110px；上限 140px ＝ 四張沒有被擠成兩排（兩排會 > 220px）。
+        if lay["heroH"] > 140 or lay["kpis"] != 4:
+            problems.append(f"總覽摘要卡列應該 4 張、一排（高度 ≤ 140px）：{lay}")
         if not lay["candGone"] or lay["m3Cards"] != 3 or not lay["ud"] or not lay["theme"]:
             problems.append(f"總覽改版後的版面不完整：{lay}")
         visit("flow", "flow")
@@ -452,7 +454,7 @@ def main() -> int:
         m.on("pageerror", lambda e: problems.append(f"mobile pageerror: {e}"))
         m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1200)
-        state["mobile"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, hero: document.querySelectorAll('#hero .kpi').length })")
+        state["mobile"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, hero: document.querySelectorAll('#hero .osc').length })")
         m.screenshot(path=str(out / "v3_mobile.png"), full_page=False)
         m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(1800)
         state["mobile_stock"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, lwc: !!document.querySelector('#lwc canvas') })")

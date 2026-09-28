@@ -4593,11 +4593,28 @@
     const k = statK;
     return `<div class="card"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small></h3><div class="kvs" style="margin-top:8px">${k('近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—')}${k('本益比', f.pe ? A.fmt.n(f.pe, 1) : '—')}${k('同業分位', f.percentile != null ? A.fmt.n(f.percentile, 0) + '%' : '<small>樣本不足</small>')}${k('ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—')}${k('毛利率', f.gross_margin != null ? A.fmt.n(f.gross_margin, 1) + '%' : '—')}${k('月營收 YoY', A.fmt.pct(f.rev_yoy), A.fmt.cls(f.rev_yoy))}${k('營運動能', f.momentum_score != null ? A.fmt.n(f.momentum_score, 0) + ' / 100' : '—')}${k('殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—')}</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}` : '本益比只在同族群內比較'}</div></div>`;
   }
+  /* ★ 2026-09-28（Andy：「總覽 籌碼快照『?』欄位說明，並移除 大戶4週 與 散戶」）：
+     · 拿掉「大戶 4 週變化」「散戶（≤10 張）」兩格。千張大戶的週變化在「籌碼」分頁的集保圖有完整走勢，
+       散戶比例的口徑（集保 1–3 級）又跟券商 App 對不起來（DECISIONS #268「散戶口徑不跟 App」），擺在快照裡只會招來誤讀。
+     · 每一格名稱旁一顆小「?」，點了跳出**那一格**的定義與怎麼用（同一套 howPop：點背景／Esc／再按一次都會關）。
+       以前只有標題那顆「?」，而且它列的正好是被拿掉的兩格，剩下的外資、投信、融資、量比都沒講。
+     · 說明格式照「說明精簡」：每格 2 條、每條 ≤30 字、不附註。*/
+  const CHIP_HELP = {
+    sum20:   ['法人 20 日', ['近 20 個交易日三大法人買賣超合計（張）', '正＝法人淨買進；持續為正代表法人在累積']],
+    foreign20: ['外資 20 日', ['近 20 個交易日外資買賣超合計（張）', '大型權值股的價格受外資進出影響最大']],
+    trust20: ['投信 20 日', ['近 20 個交易日投信買賣超合計（張）', '中小型股看投信；連續買超代表投信在布局']],
+    big:     ['千張大戶', ['集保持股 ≥1000 張的股東佔總股數比例', '比例越高籌碼越集中；週變化看籌碼分頁']],
+    margin:  ['融資餘額', ['最新一天的融資餘額（張）', '融資大增＝信用追價，籌碼變得不穩']],
+    volr:    ['量比', ['今日成交量 ÷ 近 20 日平均量（含今日）', '≥1.5 算爆量；帶量突破比無量突破可信']],
+  };
   function chipCard(pg) {
     const s = pg.summary || {}, iv = pg.inst_v3 || {};
-    const holders = pg.holders && pg.holders.length ? pg.holders[pg.holders.length - 1] : null; const hPrev = pg.holders && pg.holders.length > 4 ? pg.holders[pg.holders.length - 5] : null;
-    const k = statK;
-    return `<div class="card"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人 20 日＝近 20 個交易日買賣超合計', '千張大戶＝集保持股 ≥1000 張的比例', '大戶 4 週變化＝跟 4 週前比', '散戶＝持股 ≤10 張的比例'], '「主力家數差」需券商分點資料（免費開放資料沒有）；這裡以集保千張大戶增減＋法人動向作替代指標。')}<div class="kvs" style="margin-top:8px">${k('法人 20 日', iv.sum20 != null ? A.fmt.lot(iv.sum20 / 1000) : '—', A.fmt.cls(iv.sum20))}${k('外資 20 日', iv.foreign20 != null ? A.fmt.lot(iv.foreign20 / 1000) : '—', A.fmt.cls(iv.foreign20))}${k('投信 20 日', iv.trust20 != null ? A.fmt.lot(iv.trust20 / 1000) : '—', A.fmt.cls(iv.trust20))}${k('千張大戶', holders ? A.fmt.n(holders[1], 1) + '%' : '—')}${k('大戶 4 週變化', holders && hPrev && holders[1] != null && hPrev[1] != null ? A.fmt.pct(holders[1] - hPrev[1], 2).replace('%', ' pp') : '—', holders && hPrev ? A.fmt.cls(holders[1] - hPrev[1]) : '')}${k('散戶（≤10 張）', holders ? A.fmt.n(holders[3], 1) + '%' : '—')}${k('融資餘額', (() => { const r = (pg.margin || []).slice().reverse().find(x => x[1] != null); return r ? A.fmt.lot(r[1]) : '—'; })())}${k('量比', s.vol_ratio != null ? A.fmt.n(s.vol_ratio, 2) : '—')}</div></div>`;
+    const holders = pg.holders && pg.holders.length ? pg.holders[pg.holders.length - 1] : null;
+    // 名稱旁的小「?」：data-ttl 給彈窗標題（這顆鈕不在 h3 裡，howPop 讀不到標題）
+    const k = (key, v, cls) => { const [l, items] = CHIP_HELP[key];
+      return `<div class="k" data-chip="${key}"><div class="l">${l}<button class="howbtn pop kq" data-how="skc-${key}" data-ttl="${l}" type="button" aria-label="${l}是什麼">?</button></div><div class="v ${cls || ''}">${v}</div>${hbox('skc-' + key, items)}</div>`; };
+    const mg = (pg.margin || []).slice().reverse().find(x => x[1] != null);
+    return `<div class="card"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人三格＝近 20 個交易日買賣超（張）', '千張大戶＝集保持股 ≥1000 張的比例', '主力分點無免費來源，以法人＋大戶替代', '每一格名稱旁的 ? 看該格定義'])}<div class="kvs" style="margin-top:8px">${k('sum20', iv.sum20 != null ? A.fmt.lot(iv.sum20 / 1000) : '—', A.fmt.cls(iv.sum20))}${k('foreign20', iv.foreign20 != null ? A.fmt.lot(iv.foreign20 / 1000) : '—', A.fmt.cls(iv.foreign20))}${k('trust20', iv.trust20 != null ? A.fmt.lot(iv.trust20 / 1000) : '—', A.fmt.cls(iv.trust20))}${k('big', holders ? A.fmt.n(holders[1], 1) + '%' : '—')}${k('margin', mg ? A.fmt.lot(mg[1]) : '—')}${k('volr', s.vol_ratio != null ? A.fmt.n(s.vol_ratio, 2) : '—')}</div></div>`;
   }
   function tabOverview(pg, el) {
     const signal = window.StockSignal ? window.StockSignal.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt) : '';

@@ -2365,60 +2365,46 @@
   const MKT = [
     ['updown', '漲跌家數'], ['ma', '站上均線'], ['cand', '今日候選'],
   ];
-  function wireKpiDrill() {
-    /* drill 以 # 開頭就是完整 hash（例如集中度改導到資金流向頁），否則是市場明細的子頁。
-       ★ 2026-09-19：完整 hash 的情況要再捲到那張圖。「前五族群佔比」導到 #flow，
-       但集中度圖在頁面 2700px 處，使用者點完只會看到資金流向頁的頂端，
-       得自己往下捲很久才找得到 —— 看起來像「點了沒反應」。
-       #anchor 的形式寫成 `#flow>conc`：> 後面是要捲過去的元素 id。 */
-    $$('#hero .kpi.clickable').forEach(k => k.onclick = () => {
-      const d = k.dataset.drill || '';
-      if (!d.startsWith('#')) { location.hash = '#market/' + d; return; }
-      const [hash, anchor] = d.split('>');
-      location.hash = hash;
-      if (!anchor) return;
-      /* 換頁是非同步的（route() 要等資料與圖表），輪詢到元素出現再捲。
-         ★ 2026-09-20：原本捲一次就結束，而那一刻圖表往往還在長高
-         （每張圖都有 min-height 佔位，畫完才變成真高度）——
-         於是使用者被留在錯的位置，看起來就像「點了沒反應」。
-         在慢一點的機器上一定會遇到，這跟 Andy 回報的「換一台電腦版面就跑掉」是同一類。
-         改成：捲過去之後繼續盯著目標的位置，位置還在變就再捲一次，
-         直到連續兩次量到同一個位置（或超過上限）為止。
-         使用者只要自己動了滾輪／觸控／方向鍵就立刻放手，不跟人搶。 */
-      let tries = 0, settles = 0, rescrolls = 0, lastTop = null, userMoved = false;
-      const release = () => { userMoved = true; };
-      ['wheel', 'touchstart', 'keydown'].forEach(ev =>
-        window.addEventListener(ev, release, { passive: true, once: true }));
-      const done = () => ['wheel', 'touchstart', 'keydown'].forEach(ev =>
-        window.removeEventListener(ev, release));
-      const go = (el) => (el.closest('.card') || el).scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const settle = () => {
-        if (userMoved) { done(); return; }
-        const el = document.getElementById(anchor);
-        if (!el) { done(); return; }
-        const top = Math.round(el.getBoundingClientRect().top);
-        // 已經在視窗裡而且位置穩住了 → 收工
-        if (lastTop !== null && Math.abs(top - lastTop) <= 2) {
-          if (top >= 0 && top < window.innerHeight) { done(); return; }
-          settles++;
-        } else {
-          settles = 0;
-        }
-        lastTop = top;
-        // 位置變了（版面還在長）或還沒捲進視窗 → 再捲一次，但有上限，不要無限追
-        if ((settles > 0 || top < 0 || top >= window.innerHeight) && rescrolls < 8) {
-          rescrolls++; go(el);
-        }
-        if (rescrolls < 8) setTimeout(settle, 220);
-        else done();
-      };
-      const tick = () => {
-        const el = document.getElementById(anchor);
-        if (el && el.offsetParent !== null) { go(el); setTimeout(settle, 220); return; }
-        if (++tries < 40) setTimeout(tick, 100); else done();
-      };
-      setTimeout(tick, 100);
-    });
+  /* 捲到某個元素，並且盯到版面穩住為止（以前是 wireKpiDrill 的內文；2026-09-28 KPI 細列換成摘要卡列後抽出來共用）。
+     ★ 2026-09-19：換頁之後要再捲到那張圖。例如集中度圖在資金流向頁 2700px 處，
+       使用者點完只會看到頁面頂端，得自己往下捲很久才找得到 —— 看起來像「點了沒反應」。
+     ★ 2026-09-28：總覽摘要卡列在**同一頁**裡捲（資金輪盤／資金去向／熱門題材），下面那幾張卡是捲近了才畫（whenNear），
+       捲的途中它們一張張長高，捲一次一定停在錯的位置 —— 同一個「盯到穩住」正好用得上。 */
+  // self＝捲到元素本身而不是它所在的整張卡（「昨日資金去向」是資金輪盤那張卡的下半段，捲到卡頂等於沒捲到）
+  function scrollSettle(anchor, self) {
+    let tries = 0, settles = 0, rescrolls = 0, lastTop = null, userMoved = false;
+    const release = () => { userMoved = true; };
+    ['wheel', 'touchstart', 'keydown'].forEach(ev =>
+      window.addEventListener(ev, release, { passive: true, once: true }));
+    const done = () => ['wheel', 'touchstart', 'keydown'].forEach(ev =>
+      window.removeEventListener(ev, release));
+    const go = (el) => ((self ? el : el.closest('.card')) || el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const settle = () => {
+      if (userMoved) { done(); return; }
+      const el = document.getElementById(anchor);
+      if (!el) { done(); return; }
+      const top = Math.round(el.getBoundingClientRect().top);
+      // 已經在視窗裡而且位置穩住了 → 收工
+      if (lastTop !== null && Math.abs(top - lastTop) <= 2) {
+        if (top >= 0 && top < window.innerHeight) { done(); return; }
+        settles++;
+      } else {
+        settles = 0;
+      }
+      lastTop = top;
+      // 位置變了（版面還在長）或還沒捲進視窗 → 再捲一次，但有上限，不要無限追
+      if ((settles > 0 || top < 0 || top >= window.innerHeight) && rescrolls < 8) {
+        rescrolls++; go(el);
+      }
+      if (rescrolls < 8) setTimeout(settle, 220);
+      else done();
+    };
+    const tick = () => {
+      const el = document.getElementById(anchor);
+      if (el && el.offsetParent !== null) { go(el); setTimeout(settle, 220); return; }
+      if (++tries < 40) setTimeout(tick, 100); else done();
+    };
+    setTimeout(tick, 100);
   }
 
   function stockTable(rows, cols) {
@@ -3016,31 +3002,15 @@
           if (sub) sub.textContent = ovFlowSubText(sd.dates[k], vs.length, vs.reduce((a, v) => a + v, 0) || 1);
         }
       } }
-    /* ---- KPI 橫條（Andy 2026-09-24：「太占版面：只留加權指數、成交值、漲跌家數、族群占比四格，
-       移到三張走勢圖上方，做成一條緊湊的橫條（高度 ≤ 64px）」）。
-       · 拿掉「今日候選」「站上 MA20」兩格（名單仍在市場明細的分頁裡，路徑沒斷）。
-       · 每格只留「名稱＋一個數字＋一個小讀數」，不再有第三行說明（說明精簡：卡片上只留名稱）。
-       · 點得開的兩格照舊到明細（漲跌家數 → 市場明細、前五族群佔比 → 資金流向頁的集中度圖）。*/
-    const b = (heat && heat.breadth) || {};
-    const mv = b.movers || {};
-    const kp = (l, v, d, cls, drill, tip) => `<div class="kpi${drill ? ' clickable' : ''}"${drill ? ` data-drill="${drill}"` : ''}${tip ? ` title="${fmt.esc(tip)}"` : ''}>`
-      + `<div class="l">${l}${drill ? '<span class="more" aria-hidden="true">›</span>' : ''}</div>`
-      + `<div class="vv"><span class="v ${cls || ''}">${v}</span>${d ? `<span class="d">${d}</span>` : ''}</div></div>`;
-    $('#hero').innerHTML = [
-      // 加權指數是 mis 的 tse_t00.tw；盤中每分鐘跳一次（live.js）
-      kp('加權指數', `<span data-live="idx" data-lc="t00">${fmt.n(heat && heat.taiex, 0)}</span>`,
-         heat ? `<span class="${fmt.cls(heat.change)}" data-live="chg" data-lc="t00">${fmt.pct(heat.change / (heat.taiex - heat.change) * 100)}</span>` : '', heat && fmt.cls(heat.change)),
-      kp('成交值', heat ? fmt.yi(heat.turnover) : '—',
-         heat && heat.turnover_ma20 ? `均 ${fmt.yi(heat.turnover_ma20)}` : '', '', '',
-         heat && heat.turnover_ma20 ? '右邊小字＝20 日平均成交值' : ''),
-      kp('漲跌家數', heat ? `<span class="up">${heat.advancers}</span><span class="muted"> / </span><span class="down">${heat.decliners}</span>` : '—',
-         heat ? `平 ${heat.unchanged}` : '', '', mv.counts ? 'updown' : '',
-         mv.counts ? `漲停 ${mv.counts.limit_up}　跌停 ${mv.counts.limit_down}　平盤 ${heat.unchanged}` : ''),
-      // 「資金集中」那一頁 2026-09-18 拿掉了，改導到資金流向頁的集中度圖（那裡功能更完整）
-      kp('前五族群佔比', heat && heat.top5_share != null ? heat.top5_share.toFixed(1) + '%' : '—', '', '',
-         (gt || []).length ? '#flow>conc' : '', '成交值最大的五個族群合計佔全市場的比例；越高＝資金越集中'),
-    ].join('');
-    wireKpiDrill();
+    /* ---- 摘要卡列（Andy 2026-09-28，取代原本那條 KPI 細列「加權指數｜成交值｜漲跌家數｜前五族群佔比」）。
+       他的原話：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
+                  現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」。
+       · 加權指數：下面三張大盤圖的加權那一格本來就寫著同一個數字（market3.js），拿掉不丟資訊。
+       · 成交值：放進「漲跌家數」卡的最後一行（大盤體質那一張）。刻意**不**放進「資金去向」卡 ——
+         那張卡的百分比分母是族群成交值（1/n 拆分後的合計），跟全市場成交值不是同一個數，擺在一起會被讀成「佔 7756 億的 39%」。
+       · 前五族群佔比：資金去向卡的比例條就是同一件事的更完整版本（前幾大去向各佔多少）；完整的集中度圖仍在資金流向頁。
+       節點沿用 #hero（market3.js 的 placeKpi 會把它搬進大盤三張圖卡片裡、手機由 mobile3.js 放到指數列下面），內容整個換掉。*/
+    renderOvSummary({ heat, stocks, f3, sd, th });
     renderHeat(gt, rot);
     /* ★ 2026-09-24 效能：熱力圖畫完先讓瀏覽器畫一幀、喘口氣（處理點擊與捲動），再畫輪盤。
        以前兩張連同整頁一起在同一個任務裡畫完，那一個任務就是 Andy 說的「開啟就卡一陣子」。*/
@@ -3069,6 +3039,227 @@
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
        徽章會壓在圖上、滾輪又會搶走頁面捲動，代價大於收益。 */
+  }
+
+  /* ================================================================ 總覽摘要卡列（2026-09-28，取代 KPI 細列）
+     Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
+            現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」（附某券商網站的一排摘要卡）。
+     每張卡回答一個問題，而且是「下面那張大圖」的一句話摘要 —— 點卡片就帶你去那張大圖：
+       · 漲跌家數：今天是普漲還是普跌？                → 點了進市場明細（完整的漲跌名單）
+       · 資金輪盤：強弱循環的四段各有幾個族群、誰最強？ → 點了捲到下面的資金輪盤
+       · 資金去向：昨天的錢主要流進哪幾條產業鏈？       → 點了捲到下面的「昨日資金去向」
+       · 熱門題材：哪個題材最熱？                        → 點了捲到熱門題材；點題材名＝直接在那張熱力圖打開那個題材
+     口徑一律跟「下面那張大圖」同一份資料、同一條公式（寫在各卡的註解），數字才對得起來。
+     版面：卡片寬度夠就四張一排；不夠（800、390）整列橫向滑動（整頁不准出現橫向捲軸），左右緣各一顆 ‹ › 翻頁。*/
+  const OVS_ICON = {
+    // 暫時用的內嵌圖示。data-icon 是設計總監的全站標題圖示機制（site/icons.js）認的名字，那支合進來之後會換成它的版本。
+    pulse: '<path d="M3 12h4l2.2-6 4.4 12 2.2-6H21"/>',
+    compass: '<circle cx="12" cy="12" r="8.5"/><path d="M15.4 8.6l-2.1 4.7-4.7 2.1 2.1-4.7z"/>',
+    'git-branch': '<circle cx="6" cy="5.5" r="2"/><circle cx="6" cy="18.5" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7.5v9M18 10c0 4.5-6 3.5-10.6 7.3"/>',
+    flame: '<path d="M12 3.2c.8 2.9 4.6 5 4.6 9.3a4.6 4.6 0 0 1-9.2 0c0-2 1-3.3 2.2-4.4.1 1.6.8 2.7 1.9 3 .2-2.9-.8-4.9.5-7.9z"/>',
+  };
+  const ovsIcon = (name, color) => `<span class="osc-ic" data-icon="${name}" style="--ic:${color}" aria-hidden="true">`
+    + `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${OVS_ICON[name]}</svg></span>`;
+  const ovsDate = (d) => d ? `<span class="osc-d" title="資料日期（交易日）"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${fmt.esc(String(d).slice(5).replace('-', '/'))}</span>` : '';
+  // 比例條的一段：flex-grow＝數值（0 的段不畫，不然會留一條看不見的縫）
+  const ovsSeg = (v, color, tip, cls) => v > 0 ? `<i${cls ? ` class="${cls}"` : ''} style="flex-grow:${v};background:${color}" title="${fmt.esc(tip)}"></i>` : '';
+  /* 百分比放在名稱那一行（「上漲 36.7%」），數字那一行只放數字：卡片放不下四張時每張固定 262px、分三欄每欄約 80px，
+     「1194 52.2%」擠在同一行會被切掉（_uitest「總覽摘要卡列」1100／800／390 量到過）。*/
+  const ovsNum = (label, val, pct, cls, extra) => `<div class="osn"${extra || ''}><small>${label}${pct != null ? ` <em>${pct}</em>` : ''}</small>`
+    + `<span class="osn-v"><b class="${cls || ''}">${val}</b></span></div>`;
+
+  function ovsCard(k, o) {
+    return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}">`
+      + `<div class="osc-h">${ovsIcon(o.icon, o.color)}<b class="osc-t">${o.title}</b>${ovsDate(o.date)}<span class="osc-more" aria-hidden="true">›</span></div>`
+      + `<div class="osc-bar${o.barCls ? ' ' + o.barCls : ''}">${o.bar || '<i class="osc-none"></i>'}</div>`
+      + `<div class="osc-n">${o.nums}</div>`
+      + `<div class="osc-f">${o.foot || '&nbsp;'}</div></div>`;
+  }
+
+  function renderOvSummary(src) {
+    const host = $('#hero'); if (!host) return;
+    const { heat, stocks, f3, sd, th } = src || {};
+    const pct = (v, n) => (n ? fmt.n(v / n * 100, 1) + '%' : '—');
+    const cards = [];
+
+    /* ① 漲跌家數 —— 口徑＝總覽下方「漲跌家數」分佈卡的「全部」（stocks.json 逐檔、級距 udBinOf，DECISIONS #258-8／#263）：
+         上漲＝後五級（0~1 … 漲停）、平盤＝「平」那一級、下跌＝前五級（跌停 … -1~0）。三數加總＝那張卡「全部」時右上角的「共 N 檔」。
+       ⚠ 刻意不用 market_heat 的 advancers／decliners（證交所當日收盤口徑）：兩者可能差幾十檔（#258-8），
+         同一頁上下兩個「漲跌家數」對不起來比哪一個更準更糟。這裡固定看「全部」，不跟著下方卡的上市／上櫃切換走 ——
+         摘要卡講的是整個市場；要分市場就到下面那張卡切。
+       逐檔資料缺席（舊 payload）才退回 market_heat 的三個數（host.dataset.udFrom＝'heat' 讓驗收分得出來）。*/
+    {
+      let up = 0, dn = 0, fl = 0, from = 'stocks';
+      (stocks || []).forEach(r => { if (!r) return; const b = udBinOf(r); if (b == null) return;
+        if (b > 5) up++; else if (b < 5) dn++; else fl++; });
+      if (!(up + dn + fl) && heat) { up = heat.advancers || 0; dn = heat.decliners || 0; fl = heat.unchanged || 0; from = 'heat'; }
+      const n = up + dn + fl;
+      const to = heat && heat.turnover != null ? fmt.yi(heat.turnover) : null;
+      const ma = heat && heat.turnover_ma20 ? fmt.yi(heat.turnover_ma20) : null;
+      cards.push(ovsCard('updown', {
+        title: '漲跌家數', icon: 'pulse', color: 'var(--rise)', date: heat && heat.date,
+        aria: `漲跌家數：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下看市場明細`,
+        bar: ovsSeg(up, 'var(--rise)', `上漲 ${up} 檔`) + ovsSeg(fl, 'var(--flat)', `平盤 ${fl} 檔`) + ovsSeg(dn, 'var(--fall)', `下跌 ${dn} 檔`),
+        nums: n ? ovsNum('上漲', up, pct(up, n), 'up', ' data-v="up"') + ovsNum('平盤', fl, pct(fl, n), 'flat', ' data-v="flat"')
+          + ovsNum('下跌', dn, pct(dn, n), 'down', ' data-v="down"') : '<span class="muted">尚無漲跌資料</span>',
+        foot: to ? `成交值 <b>${to}</b>${ma ? `<span class="muted">・20 日均 ${ma}</span>` : ''}` : '',
+      }));
+      host.dataset.udN = String(n); host.dataset.udFrom = from;
+    }
+
+    /* ② 資金輪盤 —— 四段數＝**全部族群**（flow_v3 rrg.points，階段＝後端 quadrant，沒有才用 stageOf 算），四段加總＝族群總數。
+       ★ 2026-09-28 接手改：半成品原本只數總覽小輪盤盤上那 10 顆（成交值前 10）。但手機總覽的輪盤（mobile3.js ovRadar）
+         四角徽章寫的是全部族群（例如 改善 17／領先 13／落後 14／轉弱 6），卡片寫「改善 6」、下面緊接著寫「改善 17」，
+         使用者一定以為其中一個錯了。桌機小輪盤的四角不寫數字，所以改成全部族群兩邊都對得起來；
+         而「強弱循環四段各有幾個族群」本來就該問整個市場，不是只問前 10。
+       「最強」＝成交值前 10 大族群裡相對大盤強度（RS-Ratio，x）最高的 —— 不從全部挑：
+         成交值很小的族群 RS 容易暴衝，挑到它當「最強」沒有代表性；前 10 也正是桌機小輪盤盤上那幾顆，點過去看得到它。*/
+    {
+      const all = rotRows(f3 && f3.rrg, 5);
+      const ORDER = ['leading', 'improving', 'weakening', 'lagging'];
+      const cnt = {}; ORDER.forEach(k => { cnt[k] = 0; });
+      all.forEach(r => { if (cnt[r.stage] != null) cnt[r.stage]++; });
+      const COL = { leading: 'var(--rise)', improving: 'var(--cyan)', weakening: 'var(--amber)', lagging: 'var(--fall)' };
+      const best = all.slice(0, 10).sort((a, b) => (b.rs || 0) - (a.rs || 0))[0];
+      cards.push(ovsCard('rot', {
+        title: '資金輪盤', icon: 'compass', color: 'var(--cyan)', date: f3 && f3.date,
+        aria: `資金輪盤：${ORDER.map(k => STAGE[k].name + ' ' + cnt[k]).join('、')}。點一下捲到資金輪盤`,
+        bar: ORDER.map(k => ovsSeg(cnt[k], COL[k], `${STAGE[k].name} ${cnt[k]} 個族群：${STAGE[k].sub}`)).join(''),
+        nums: all.length ? ORDER.map(k => ovsNum(STAGE[k].name, cnt[k], null, '', ` data-v="${k}" style="--c:${COL[k]}"`)).join('')
+          : '<span class="muted">資金輪盤需要至少 20 個交易日</span>',
+        foot: best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）・成交值前 10 大中</span>` : '',
+      }));
+      host.dataset.rotN = String(all.length);
+    }
+
+    /* ③ 資金去向 —— 桌機口徑＝下面「昨日資金去向」同一份 sankey_daily、同一天（dates 最後一天）、同一條公式：
+         族群成交值（1/n 拆分）依產業鏈加總，% ＝ 佔全部族群合計（分流圖第一層「佔上一層」）。
+         比例條畫前三大鏈＋「其他」一段；下面列前三名。
+       ★ 2026-09-28 接手補：手機（≤640）點這張卡跳到的「資金去向」是 mobile3.js 的可展開長條，
+         它吃的是 flow_v3.sankey（分母＝台股成交值，含「其他族群」，「其他」永遠排最後）——
+         同一天兩份口徑差很多（例：桌機 半導體 39.6%／AI 伺服器 37.7%，手機 AI 伺服器 20.7%／半導體 19.4%，連名次都反過來）。
+         卡片數字要跟「點下去看到的那張」對得起來，所以兩份都算、用 CSS 依寬度只顯示一份（.ovs-dk 桌機／.ovs-mb 手機），
+         不動手機那張長條本身的口徑。*/
+    {
+      const COL = ['var(--cyan)', 'var(--violet)', 'var(--amber)'];
+      const REST = 'color-mix(in srgb,var(--ink-3) 45%,transparent)';
+      const variant = (items, total, topG, cls) => {
+        const rest = Math.max(0, total - items.slice(0, 3).reduce((a, x) => a + x.v, 0));
+        return {
+          bar: items.slice(0, 3).map((x, i) => ovsSeg(x.v, COL[i], `${x.name} ${pct(x.v, total)}`, cls)).join('')
+            + ovsSeg(rest, REST, `其他 ${pct(rest, total)}`, cls),
+          nums: items.slice(0, 3).map((x, i) => ovsNum(fmt.esc(x.name), pct(x.v, total), null, '', ` data-v="${fmt.esc(x.cid)}" style="--c:${COL[i]}"`)
+            .replace('<div class="osn"', `<div class="osn ${cls}"`)).join(''),
+          foot: topG ? `<span class="${cls}">最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${pct(topG.v, total)}</span></span>` : '',
+        };
+      };
+      // 桌機：sankey_daily
+      let items = [], day = null, total = 0, topG = null;
+      if (sd && (sd.dates || []).length && (sd.groups || []).length) {
+        const k = sd.dates.length - 1; day = sd.dates[k];
+        const by = {};
+        sd.groups.forEach(g => { const v = (g.tv || [])[k] || 0; if (!(v > 0)) return;
+          const cid = g.chain || 'other';
+          (by[cid] = by[cid] || { cid, name: g.chain_name || chainLabel(cid), v: 0 }).v += v;
+          total += v; if (!topG || v > topG.v) topG = { name: g.name, v }; });
+        items = Object.values(by).sort((a, b) => b.v - a.v);
+      }
+      // 手機：flow_v3.sankey（跟 mobile3.js drill() 同一條：第一層＝台股成交值 → 產業鏈，「其他…」不進前三）
+      const Lk = (f3 && f3.sankey && f3.sankey.links) || [];
+      const isOther = (n) => /^其他/.test(n);
+      const L1 = Lk.filter(l => l.source === '台股成交值');
+      const mTotal = L1.reduce((a, l) => a + (l.value || 0), 0);
+      const mItems = L1.filter(l => !isOther(l.target) && l.value > 0).map(l => ({ cid: l.target, name: l.target, v: l.value })).sort((a, b) => b.v - a.v);
+      const chains = new Set(L1.map(l => l.target));
+      const mTop = Lk.filter(l => chains.has(l.source) && !isOther(l.target) && l.value > 0).sort((a, b) => b.value - a.value)[0];
+      const D = variant(items, total, topG, 'ovs-dk');
+      const M = mItems.length ? variant(mItems, mTotal, mTop ? { name: mTop.target, v: mTop.value } : null, 'ovs-mb') : D;
+      const has = items.length || mItems.length;
+      cards.push(ovsCard('flow', {
+        title: '資金去向', icon: 'git-branch', color: 'var(--violet)', date: day || (f3 && f3.date),
+        aria: `資金去向：${items.slice(0, 3).map(x => x.name + ' ' + pct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
+        bar: D.bar + (M !== D ? M.bar : ''),
+        nums: has ? D.nums + (M !== D ? M.nums : '') : '<span class="muted">資金去向還沒產出</span>',
+        foot: D.foot + (M !== D ? M.foot : ''),
+      }));
+      host.dataset.flowTop = items.length ? items[0].cid : '';
+    }
+
+    /* ④ 熱門題材 —— 口徑＝themes.json 的 heat（0～100，資金佔比變化＋法人＋新聞，跟熱門題材熱力圖的顏色同一個數）。
+         依熱度排前三；比例條＝第一名的熱度（滿格 100）。點題材名＝在下面那張熱力圖直接打開那個題材（OVT.sel）。*/
+    {
+      const ts = ((th && th.themes) || []).filter(t => t && t.heat != null).slice().sort((a, b) => b.heat - a.heat);
+      const top = ts.slice(0, 3);
+      const hot = ts.filter(t => t.heat >= 70).length;
+      cards.push(ovsCard('theme', {
+        title: '熱門題材', icon: 'flame', color: 'var(--amber)', date: th && th.date,
+        aria: `熱門題材：${top.map(t => t.name + ' 熱度 ' + t.heat).join('、')}。點一下捲到熱門題材`,
+        barCls: 'track',
+        bar: top.length ? `<i class="heat" style="width:${Math.max(2, Math.min(100, top[0].heat))}%" title="${fmt.esc(top[0].name)} 熱度 ${top[0].heat}／100"></i>` : '',
+        nums: top.length ? top.map(t => `<div class="osn osn-t" data-theme="${fmt.esc(t.id)}" title="在熱門題材熱力圖打開「${fmt.esc(t.name)}」"><small>${fmt.esc(t.name)}</small>`
+          + `<span class="osn-v"><b>${fmt.n(t.heat, 0)}</b><em>熱度</em></span></div>`).join('')
+          : '<span class="muted">尚無題材資料</span>',
+        foot: ts.length ? `熱度 ≥ 70 <b>${hot}</b><span class="muted"> 個題材（共 ${ts.length} 個）</span>` : '',
+      }));
+      host.dataset.themeTop = top.length ? top[0].id : '';
+    }
+
+    host.classList.add('ovsum');
+    host.classList.remove('hero', 'ovstrip');
+    host.setAttribute('aria-label', '今日摘要：漲跌家數、資金輪盤、資金去向、熱門題材');
+    /* ⚠ 最後那個看不見的 [data-lc="t00"]：以前 KPI 細列的「加權指數」格帶著它，live.js 靠掃畫面上的 [data-lc] 決定要跟 mis 要哪些報價
+       （codesOnScreen）。那一格拿掉之後總覽上就沒有人要加權 —— 手機指數列（mobile3.js hmLiveIdx）讀的 window.Live.quotes.t00
+       會永遠停在盤後值。留一個標記讓 live.js 照舊把加權抓回來；它沒有 data-live，所以 live.js 不會去改它的字。*/
+    host.innerHTML = `<div class="ovsum-track" id="ovSumTrack">${cards.join('')}</div>`
+      + `<button type="button" class="ovsum-nav prev" id="ovSumPrev" aria-label="往左看摘要卡" hidden>‹</button>`
+      + `<button type="button" class="ovsum-nav next" id="ovSumNext" aria-label="往右看更多摘要卡" hidden>›</button>`
+      + `<span class="ovsum-live" data-lc="t00" hidden></span>`;
+
+    const track = $('#ovSumTrack');
+    const go = (k, e) => {
+      if (k === 'updown') { location.hash = '#market/updown'; return; }
+      if (k === 'theme') {
+        const t = e && e.target && e.target.closest ? e.target.closest('[data-theme]') : null;
+        if (t && th) { OVT.sel = t.dataset.theme; OVT.focus = null; renderOvThemes(th); }
+        ovsJump('熱門題材', 'ovThemeCard');
+        return;
+      }
+      if (k === 'rot') ovsJump('資金輪盤', 'ovRotCard');
+      if (k === 'flow') ovsJump('資金去向', 'ovFlowHead', true);
+    };
+    $$('.osc', host).forEach(c => {
+      c.onclick = (e) => go(c.dataset.k, e);
+      c.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(c.dataset.k, e); } };
+    });
+    // 左右翻：一次翻一張卡的寬度；到頭／到尾就藏那一顆（按了不會動的鈕是雜訊）
+    const step = () => { const c = track.querySelector('.osc'); return c ? c.getBoundingClientRect().width + 10 : 240; };
+    $('#ovSumNext').onclick = () => track.scrollBy({ left: step(), behavior: 'smooth' });
+    $('#ovSumPrev').onclick = () => track.scrollBy({ left: -step(), behavior: 'smooth' });
+    track.addEventListener('scroll', ovsNav, { passive: true });
+    if (!host._ovsRO && typeof ResizeObserver !== 'undefined') { host._ovsRO = new ResizeObserver(() => ovsNav()); host._ovsRO.observe(host); }
+    ovsNav();
+  }
+  function ovsNav() {
+    const t = $('#ovSumTrack'); if (!t) return;
+    const max = t.scrollWidth - t.clientWidth;
+    const p = $('#ovSumPrev'), n = $('#ovSumNext');
+    if (p) p.hidden = !(max > 2 && t.scrollLeft > 2);
+    if (n) n.hidden = !(max > 2 && t.scrollLeft < max - 2);
+    const h = $('#hero'); if (h) h.classList.toggle('scrolls', max > 2);
+  }
+  /* 捲到總覽下面的某張卡。手機（≤640）那張卡可能藏在別的分段裡（.mp-off）：先切到第①步的那一段，再捲。
+     切分段用的是畫面上那兩排真的鈕（.mspine／.mpager）—— 跟使用者自己點是同一條路，分段記憶（localStorage）也跟著對。*/
+  function ovsJump(seg, anchor, self) {
+    const view = $('#v-overview');
+    if (mIsM() && view) {
+      const spine = view.querySelector(':scope > .mspine');
+      const s1 = spine && spine.children[0];
+      if (s1 && !s1.classList.contains('on')) s1.click();
+      const bar = view.querySelector(':scope > .mpager');
+      const b = bar && [...bar.children].find(x => x.textContent.trim() === seg);
+      if (b && !b.classList.contains('on')) b.click();
+    }
+    scrollSettle(anchor, self);
   }
 
   // 圖表下方的可點連結列：圖上點得到的東西，這裡也一定點得到（手機沒有 hover）
