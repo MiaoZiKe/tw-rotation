@@ -127,7 +127,9 @@
      現行是兩列七顆 102px；多出來的 44px 全部給圖。市場明細／週期統計／交付清單收進「更多」
      （Andy：「可以多點頁面沒關係」）。三顆原本的分頁**還在 DOM 裡**，只是手機用 CSS 藏起來 ——
      路由、驗收、桌機全部照舊。「更多」這顆只在手機插，不帶 `.tab`（route() 的 `$$('.tab')` 不會碰到它）。*/
-  const MORE_VIEWS = ['market', 'season', 'delivery'];
+  /* ★ 2026-09-28（Andy：「"自選分頁替代"交付清單」）：「更多」裡的交付清單換成自選（#watch）。
+     交付清單的網址 #delivery 照樣打得開，只是入口收掉（桌機導覽列同一件事）。*/
+  const MORE_VIEWS = ['market', 'season', 'watch'];
   function buildNav() {
     const tabs = document.getElementById('tabs');
     if (!tabs) return;
@@ -157,7 +159,7 @@
       <div class="mgrp">頁面</div>
       ${row('market', '▦', '市場明細', '<small>漲跌家數、站上均線、完整名單</small>', v === 'market')}
       ${row('season', '◷', '週期統計', '<small>族群 × 月份的歷史表現</small>', v === 'season')}
-      ${row('delivery', '✓', '交付清單', '<small>Andy 的需求與完成狀態</small>', v === 'delivery')}
+      ${row('watch', '★', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
       <div class="mgrp">工具</div>
       ${row('events', '▤', '今日事件', `<span class="n">${esc(evn)}</span>`)}
       ${row('theme', '☀', '切換成' + theme)}
@@ -400,8 +402,10 @@
        改前（同日稍早）：「足跡輪盤只需要留下圓圈即可」→ 手機這張直接不畫腳印。
        改後：回到 09-25 的畫法。手機這張沒有自己的開關，但跟桌機讀同一個偏好 `tw.rot.feet` ——
        只有使用者在桌機勾掉過（'0'）才不畫，沒有值就畫（跟桌機預設勾選一致）。*/
-    let feet = true;
-    try { if (localStorage.getItem('tw.rot.feet') === '0') feet = false; } catch (e) { /* 私密視窗：用預設（畫） */ }
+    let feet = opts.feet !== false;
+    /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：總覽那一張傳 feet:false，一律不畫；
+       資金流向那一張照舊跟桌機的偏好走（DECISIONS #274）。*/
+    try { if (feet && localStorage.getItem('tw.rot.feet') === '0') feet = false; } catch (e) { /* 私密視窗：用預設（畫） */ }
     if (feet) shown.slice(0, 3).forEach(p => {
       const tr = (p.trail || []).slice(-9), col = stc(p.quadrant);
       for (let i = 1; i < tr.length; i++) {
@@ -421,7 +425,10 @@
         + (sel ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r + 6).toFixed(1)}" fill="none" stroke="${col}" stroke-width="2"/>` : '') + '</g>';
     });
     const boxes = [];
-    const lbl = shown.slice(0, 5).map(p => p.group_id); if (opts.sel && !lbl.includes(opts.sel)) lbl.push(opts.sel);
+    /* ★ 2026-09-28（Andy：「homepage wheel dots only, popover beside the dot」）：總覽那一張傳 labels:false ——
+       盤上只畫點，不掛任何名字膠囊（連選取的那一顆也不掛：名字已經寫在點旁的說明框 #mOvPop 裡，掛兩次只是多一塊擋點的東西）。
+       資金流向那一張照舊掛前 5 名＋選取的那一顆。*/
+    const lbl = opts.labels === false ? [] : shown.slice(0, 5).map(p => p.group_id); if (opts.labels !== false && opts.sel && !lbl.includes(opts.sel)) lbl.push(opts.sel);
     const bg = cssv('--bg'), ink = cssv('--ink');
     /* ★ 2026-09-25（clock-mobile-reds）：選取的那一顆先找位置。
        改前：依佔比順序找，選取的排最後 —— 前 5 名把好位置佔完，點一顆沒掛名字的點（實測「石化與塑膠產業」），
@@ -479,31 +486,92 @@
       + (note ? `<span class="note">${esc(note)}</span>` : '') + '</div>';
   }
 
-  /* ---- 總覽 ①足跡輪盤：雷達＋四角徽章＋焦點條 ---- */
+  /* ---- 總覽 ①資金輪盤：雷達＋四角徽章＋點一下出說明框 ----
+     ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可，點擊後需要出現的資訊在點擊圓圈旁內說明欄位簡短呈現，
+       並且只需要說明這點即可」）：跟桌機 ovRotPop 同一套規則 ——
+       · 不畫腳印（feet:false）；
+       · 圖下方的焦點條拿掉，改成點一顆 → 圓圈旁邊浮出小說明框（族群＋象限、強弱、動能、佔比、N 天前在哪一段、「進族群頁 →」）；
+       · 預設不選任何一顆（以前預設選佔比第一名、焦點條不留空；現在沒點就沒有框，盤面乾淨）；
+       · 點外面關（全站 App.dismissable：按下記位置、放開才判斷，手指滑動捲頁不算）、再點同一顆也關、Esc 關。
+     角落徽章「只看某一段」照舊；那一段的一行說明留在圖下（它講的是篩選狀態，不是某一顆點）。*/
+  const quadOf = (x, y) => (x >= 100 ? (y >= 100 ? 'leading' : 'weakening') : (y >= 100 ? 'improving' : 'lagging'));
+  function ovPopHtml(p) {
+    const tr = p.trail || [], back = 5, w = tr.length > back ? tr[tr.length - 1 - back] : null;
+    const was = w && w[1] != null && w[2] != null ? quadOf(w[1], w[2]) : '';
+    return `<div class="rp-h"><b>${esc(p.group_name)}</b><span class="rp-st" style="color:${stc(p.quadrant)}">${ST[p.quadrant] || ''}</span></div>`
+      + `<dl class="rp-kv"><dt>相對大盤強弱</dt><dd>${sgn(p.x - 100, 2)}</dd><dt>動能</dt><dd>${sgn(p.y - 100, 2)}</dd>`
+      + `<dt>成交值佔比</dt><dd>${(+p.share).toFixed(1)}%</dd></dl>`
+      + (was ? `<div class="rp-was">${back} 天前在「${ST[was]}」${was !== p.quadrant ? '，剛換段' : ''}</div>` : '')
+      + (window.App && App.rotPopMembers ? App.rotPopMembers(p.group_id) : '')   // 成交值前 3 檔（跟桌機同一支）
+      + `<a class="rp-go" href="#industry/group/${encodeURIComponent(p.group_id)}">進族群頁 →</a>`;
+  }
   async function ovRadar() {
     const wrap = document.getElementById('rotClockMiniWrap');
     if (!wrap) return;
-    const box = host(wrap, 'radar', '<div class="mrhost" id="mRadarOv"></div><div class="mfhost"></div>');
+    const box = host(wrap, 'radar', '<div class="mrhost" id="mRadarOv"></div><div class="mfhost"></div><div class="rotpop mrpop" id="mOvPop" role="dialog" aria-label="族群說明" hidden></div>');
     if (box.dataset.done) return;
     const f = await load('flow_v3'); if (!f || !f.rrg || !isM()) return;
+    // 說明框的「成交值前 3 檔」讀 App 的全域快取 D.groups_detail —— 先確定它載進來了（總覽本來就會載，這裡只是保險）
+    if (window.App && App.load) { try { await App.load('groups_detail'); } catch (e) { /* 載不到：框裡就不列成分股，進族群頁那條還在 */ } }
     box.dataset.done = '1';
     box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
+    box.classList.add('mrbox');
     const all = f.rrg.points;
-    let sel = null, quad = null;
+    const pop = $('#mOvPop', box);
+    let sel = null, quad = null, R = null;
+    const close = () => { pop.hidden = true; if (sel) { sel = null; draw(); } };
+    const place = () => {
+      const q = R && R.pts.find(o => o.p.group_id === sel);
+      if (!q) { pop.hidden = true; return; }
+      const p = q.p;
+      pop.innerHTML = ovPopHtml(p);
+      pop.dataset.gid = p.group_id;
+      pop.hidden = false;
+      const br = box.getBoundingClientRect(), mr = $('.mradar', box).getBoundingClientRect();
+      const k = mr.width / R.S;                                   // SVG 單位 → 螢幕 px（盤是等比縮放）
+      const cx = mr.left - br.left + q.x * k, cy = mr.top - br.top + q.y * k, rad = (q.r + 6) * k;
+      const w = pop.offsetWidth, h = pop.offsetHeight, gap = 4, pad = 4;
+      const minY = Math.max(pad, mr.top - br.top), maxY = Math.min(br.height, mr.bottom - br.top) - h - pad;
+      const cy2 = (y) => Math.max(minY, Math.min(maxY, y));
+      let at, x, y;
+      if (cx + rad + gap + w <= br.width - pad) { at = 'right'; x = cx + rad + gap; y = cy2(cy - h / 2); }
+      else if (cx - rad - gap - w >= pad) { at = 'left'; x = cx - rad - gap - w; y = cy2(cy - h / 2); }
+      else {
+        x = Math.max(pad, Math.min(br.width - pad - w, cx - w / 2));
+        if (cy - rad - gap - h >= minY) { at = 'above'; y = cy - rad - gap - h; } else { at = 'below'; y = cy + rad + gap; }
+      }
+      pop.style.left = Math.round(x) + 'px'; pop.style.top = Math.round(y) + 'px';
+      pop.dataset.at = at; pop.dataset.cx = Math.round(cx); pop.dataset.cy = Math.round(cy); pop.dataset.rad = Math.round(rad);
+      if (window.App && App.dismissable) App.dismissable(pop, close, { isOpen: () => !pop.hidden && isM() });
+    };
     const draw = () => {
       if (!box.isConnected) return;
       const el = $('.mrhost', box);
-      const r = radar(el, all, { sel, quad, max: 360, fitBelow: 65 + 44 + 16,
-        onPick: (p) => { sel = p.group_id; draw(); },
-        onQuad: (q) => { quad = quad === q ? null : q; draw(); } });
-      if (!sel || (quad && !r.shown.some(x => x.group_id === sel))) sel = r.shown.length ? r.shown[0].group_id : sel;
-      const p = all.find(x => x.group_id === sel);
-      $('.mfhost', box).innerHTML = focusHtml(p, quad ? `只看「${ST[quad]}」：盤上 ${r.shown.length} 個（佔比前 16 名內）· 再點一次角落還原` : '');
+      R = radar(el, all, { sel, quad, max: 360, fitBelow: 44 + 16, feet: false, labels: false,   // 以前 65＋44＋16：65 是焦點條，已拿掉
+        onPick: (p) => { if (sel === p.group_id && !pop.hidden) { close(); return; } sel = p.group_id; draw(); },
+        onQuad: (q) => { quad = quad === q ? null : q; pop.hidden = true; sel = null; draw(); } });
+      if (sel && !R.shown.some(x => x.group_id === sel)) sel = null;
+      $('.mfhost', box).innerHTML = quad ? `<div class="msub mquadnote">只看「${ST[quad]}」：盤上 ${R.shown.length} 個（佔比前 16 名內）· 再點一次角落還原</div>` : '';
       el.dataset.sel = sel || ''; el.dataset.quad = quad || '';
-      if (!r.shown.some(x => x.group_id === sel)) { /* 選到的不在盤上（被角落篩掉）：重畫一次讓外圈跟上 */ }
+      if (sel) place(); else pop.hidden = true;
     };
     box._redraw = draw;
     draw();
+    /* ★ 2026-09-28（wheel-watch 收尾）：第一次點盤面，整個盤縮一圈、點下去的那一顆跑到框底下。
+       實測 390×844：總覽剛換頁那一刻輪盤頂端還量不準（radar() 那段註解寫的「量到 1483px」），
+       所以第一次畫用欄寬 324px、不記大小；之後**唯一**會重量的時機是使用者點盤面 —— 一點就縮成 301px，
+       選的那一顆往上跳 10px，點旁說明框是照「縮完的位置」放的，跟手指點的地方對不上（驗收量到框蓋住點）。
+       修法：輪盤第一次真的出現在畫面上（使用者看得到、才點得到）就重畫一次，讓 radar() 在可信的位置量好、記住；
+       之後點盤面只換選取，不再改大小。走 draw()（不是直接呼叫 radar()）是為了讓 R 跟著換，說明框才用新尺寸定位。*/
+    const host0 = $('.mrhost', box);
+    if (host0 && host0._radarKey == null && window.IntersectionObserver) {
+      const io = new IntersectionObserver((es) => {
+        if (!es.some(e => e.isIntersecting)) return;
+        io.disconnect();
+        if (box.isConnected && host0._radarKey == null) draw();
+      });
+      io.observe(host0);
+    }
   }
 
   /* ---- 資金去向：桑基 → 可以點開的長條（台股 → 產業鏈 ▸ → 族群 ▸ → 個股），數字同一份 flow_v3.sankey ----
@@ -1726,7 +1794,7 @@
     const onPick = (e) => {
       const b = e.target.closest('button[data-wt]');
       if (b) { closeSheet(); T.setCur(b.dataset.wt); return; }
-      if (e.target.closest('#mbWManage')) { closeSheet(); T.openPanel(); }
+      if (e.target.closest('#mbWManage')) { closeSheet(); location.hash = '#watch'; }   // 2026-09-28：管理清單改到自選分頁（整頁）
     };
     sh.querySelectorAll('.mballgrid').forEach(g => { g.onclick = onPick; });
   }

@@ -229,7 +229,7 @@
       m.addEventListener('click', (e) => {
         const a = e.target.closest('[data-a]'); if (!a) return;
         m.hidden = true;
-        if (a.dataset.a === 'watch' && window.TwWatch) window.TwWatch.openPanel();
+        if (a.dataset.a === 'watch') location.hash = '#watch';   // 2026-09-28：自選改成整頁（#watch）
         if (a.dataset.a === 'admin') location.hash = '#admin';
         if (a.dataset.a === 'privacy') location.hash = '#privacy';
         if (a.dataset.a === 'delete') openDlg('delete');
