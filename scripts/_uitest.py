@@ -13542,7 +13542,7 @@ def t_r5(pg, base, code):
     #   大戶／散戶那條改在「大戶／散戶」分頁驗
     goto_stock()
     tab("holders", 1800)
-    AX_JS = """(id) => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return null;
+    AX_JS = """(id) => { const e0 = document.getElementById(id); const c = e0 && echarts.getInstanceByDom(e0); if (!c) return null;
         // 2026-09-26 改：集保兩張圖換成時間軸＋customValues 之後，ECharts 5.6 的 getViewLabels() 會把頭尾兩個刻度各回兩次
         //   （同一個 tickValue、畫在同一個位置，畫面上只看得到一個）。改前直接比 formattedLabel；改後先依 tickValue 去重再比
         //   —— 這條要擋的是「不同的點印成同一個日期」，同一個點被回報兩次不算。
@@ -14862,7 +14862,7 @@ def t_stock_quarter_audit0927(pg, base, code):
     # ---------------------------------------------------------------- ③ 籌碼：法人四段、資券四段
     # ★ 2026-09-28：籌碼拆三頁 → 法人段在「法人」分頁、資券段在「資券」分頁、董監持股在「大戶／散戶」分頁
     goto(c, "inst")
-    CX = "() => { const g = (id) => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return null; const o = c.getOption();" \
+    CX = "() => { const g = (id) => { const e0 = document.getElementById(id); const c = e0 && echarts.getInstanceByDom(e0); if (!c) return null; const o = c.getOption();" \
          " return { names: o.series.map(s => s.name), n: (o.xAxis[0].data || []).length, x: o.xAxis[0].data }; };" \
          " const st = document.getElementById('stockTab');" \
          " return { inst: g('instChart'), mg: g('marginChart'), win: st.dataset.win, iseg: st.dataset.instSeg, mseg: st.dataset.mgSeg," \
@@ -14870,8 +14870,9 @@ def t_stock_quarter_audit0927(pg, base, code):
          " mgEmpty: (document.querySelector('#marginChart .empty, #marginChart.isempty') || {}).textContent || '', hoIns: (document.querySelector('.insNote') || {}).textContent || ''," \
          " ls: (() => { try { return [localStorage.getItem('tw.instSeg'), localStorage.getItem('tw.mgSeg')]; } catch (e) { return []; } })() }; }"
     a = pg.evaluate(CX) or {}
-    ok(f"★【{tag}】籌碼預設 3 個月、法人預設外資、資券預設融資", a.get("win") == "63" and a.get("iseg") == "f" and a.get("mseg") == "m"
-       and "外資" in ((a.get("inst") or {}).get("names") or []) and "融資增減" in ((a.get("mg") or {}).get("names") or []), a)
+    # 2026-09-28：法人、資券分兩頁 → 這裡先驗法人頁（3 個月＋外資），資券預設融資在切到資券頁之後驗
+    ok(f"★【{tag}】籌碼預設 3 個月、法人預設外資", a.get("win") == "63" and a.get("iseg") == "f"
+       and "外資" in ((a.get("inst") or {}).get("names") or []), a)
     x = set((a.get("inst") or {}).get("x") or [])
     iv_in = [r for r in ((j.get("inst_v3") or {}).get("daily") or []) if r[0] in x]
     ok(f"★【{tag}】法人每日表的列數＝視窗內有法人資料的天數（{len(iv_in)}）", a.get("itr") == len(iv_in), [a.get("itr"), len(iv_in)])
@@ -14884,6 +14885,9 @@ def t_stock_quarter_audit0927(pg, base, code):
             changed(f"【{tag}】法人切「{nm}」圖真的重畫", h0, canvas_hash(pg, "#instChart"))
     mg_rows = {r[0]: r for r in (j.get("margin") or [])}
     click(pg, '#stockTabs button[data-t="margin"]', 1200)
+    a2 = pg.evaluate(CX) or {}
+    ok(f"★【{tag}】資券頁預設融資、區間沿用 3 個月", a2.get("win") == "63" and a2.get("mseg") == "m" and "融資增減" in ((a2.get("mg") or {}).get("names") or []),
+       {k: a2.get(k) for k in ("win", "mseg", "mg")})
     for v, nm, bar in (("dt", "當沖", "當沖張數"), ("s", "融券", "融券增減"), ("sbl", "借券賣", "借券賣出"), ("m", "融資", "融資增減")):
         click(pg, f'#mgSeg button[data-v="{v}"]', 700)
         b = pg.evaluate(CX) or {}

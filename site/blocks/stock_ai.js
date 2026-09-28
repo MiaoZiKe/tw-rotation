@@ -116,8 +116,10 @@
 #skAi .aisum .aibrief{min-width:0}
 .grade.N{background:rgba(46,229,157,.16);color:var(--fall)}
 /* 四顆標籤：一列排滿、等寬；每顆＝面向名＋判讀小字 */
-#skAi .aitabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;border-bottom:1px solid var(--line)}
-#skAi .aitab{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:4px 4px 5px;border:0;
+/* 2026-09-28：第二顆從「籌碼面」換成「技術面訊號」（名字多兩個字＋小字「4多2空」），等寬四欄在 1100 寬會溢出壓到隔壁 →
+   第二欄給 1.4 倍寬；真的還是放不下時，判讀小字自己換到第二行（flex-wrap），絕不溢出按鈕。*/
+#skAi .aitabs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:4px;border-bottom:1px solid var(--line)}
+#skAi .aitab{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 6px;min-width:0;padding:4px 4px 5px;border:0;
   border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
 #skAi .aitab:hover{color:var(--ink)}
 #skAi .aitab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--cyan)}
