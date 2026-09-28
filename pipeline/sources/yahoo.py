@@ -200,14 +200,20 @@ def intraday_since(codes: list[str], markets: dict[str, str], since: str | None,
 # 總覽大盤三張圖的 1 小時／4 小時。以前是瀏覽器經 Worker 即時抓 Yahoo 15 分 K，線上抓不到就整張退回日 K；
 # 改成管線在 Actions 端抓、增量進資料湖 `index_intraday`，前端只讀（DECISIONS #155）。
 # 指數代號不能走 symbol_of()（那會加上 .TW），所以另外一張對照表。
-INDEX_SYMBOLS = {"^TWII": "TSE", "^TWOII": "OTC"}
+INDEX_SYMBOLS = {"^TWII": "TSE", "IX0043.TWO": "OTC"}
 # 同一個指數在 Yahoo 可能掛不同代號：依序試，第一個有資料的就用，後面不再打。
 # 為什麼（2026-09-25）：Actions 實測 ^TWOII 分 K 回「No data found」。WebSearch 查證：
 #   · Investing.com 把櫃買指數標成 TWOII（https://www.investing.com/indices/tpex）
 #   · Bloomberg 的代號是 TWOTCI（https://www.bloomberg.com/quote/TWOTCI:IND）
 #   Yahoo 上沒有找到任何一篇原文寫出「^TWOTCI 有分 K」—— 這是低信心的候選，只能在 Actions 看 log 定案。
 #   試不到就算了（每個候選一次請求），櫃買改由 FinMind 分 K 那條補（run_daily.collect_kbar_60m）。
-INDEX_CANDIDATES = {"TSE": ["^TWII"], "OTC": ["^TWOII", "^TWOTCI"]}
+# ★ 2026-09-28 定案（Andy：「為何櫃買 4H 1H 都無法顯示到更之前的 K 棒」，這件事修了三輪都沒好）：
+#   Actions 實測（docs/fixtures/index_intraday_probe.json）：^TWOII 60m／15m／1d 全部 0 列；
+#   **IX0043.TWO**（Yahoo 股市「櫃檯指數」頁的代號，https://tw.stock.yahoo.com/quote/IX0043.TWO）
+#   60m 3639 列（2023-09-25 起 728 個交易日）、15m 1062 列（59 天），長度跟加權 ^TWII 一樣；量一樣是 0。
+#   ^TWOTCI 是 Bloomberg 的代號，Yahoo 沒有（2026-09-25 那輪回補試過，湖裡一列都沒有）。
+#   ^TWOII 留在第二順位：萬一哪天 Yahoo 把 IX0043.TWO 改名，至少還會試一次舊代號。
+INDEX_CANDIDATES = {"TSE": ["^TWII"], "OTC": ["IX0043.TWO", "^TWOII"]}
 
 
 def index_intraday(interval: str, period: str,
@@ -261,16 +267,29 @@ def index_intraday_since(have: pd.DataFrame, interval: str) -> pd.DataFrame:
     """增量：依資料湖裡這個 interval 最後一根決定跟 Yahoo 要多長；湖是空的就補滿保留上限。
 
     時間比較用 Timestamp，不用字串 —— 字串比較在 +08:00 與 Z 混用時會錯。
+
+    ★ 2026-09-28 根因修正：「最後一根」要**每個指數各算各的**。
+      以前是整個 interval 取一個 max —— 加權每天都有新的一根，所以算出來的缺口永遠只有一兩天，
+      櫃買就算代號換對了，也只會拿到最近那一兩天、永遠補不回 730 天的歷史（這是櫃買 1H／4H 修了三輪都短的第二個原因）。
+      現在：缺口取「最落後的那個指數」決定跟 Yahoo 要多長，再依每個指數自己的最後一根各自過濾。
     """
-    since = None
+    cap_days = int(str(INTRADAY_MAX_PERIOD.get(interval, "60d")).rstrip("d"))
+    sub = pd.DataFrame()
     if have is not None and not have.empty and "interval" in have.columns:
         sub = have[have["interval"].astype(str) == interval]
-        if not sub.empty:
-            since = pd.to_datetime(sub["ts"].astype(str), utc=True, format="mixed").max()
-    cap_days = int(str(INTRADAY_MAX_PERIOD.get(interval, "60d")).rstrip("d"))
-    gap = cap_days if since is None else (pd.Timestamp.now(tz="UTC") - since).days
+    since: dict[str, pd.Timestamp | None] = {}
+    for sym in INDEX_CANDIDATES:
+        s_ = sub[sub["symbol"].astype(str) == sym] if not sub.empty and "symbol" in sub.columns else pd.DataFrame()
+        since[sym] = (pd.to_datetime(s_["ts"].astype(str), utc=True, format="mixed").max()
+                      if not s_.empty else None)
+    now = pd.Timestamp.now(tz="UTC")
+    gap = max(cap_days if v is None else (now - v).days for v in since.values())
     df = index_intraday(interval, period_for(gap, interval))
-    if df.empty or since is None:
+    if df.empty:
         return df
-    keep = pd.to_datetime(df["ts"].astype(str), utc=True, format="mixed") > since
+    ts = pd.to_datetime(df["ts"].astype(str), utc=True, format="mixed")
+    keep = pd.Series(True, index=df.index)
+    for sym, v in since.items():
+        if v is not None:
+            keep &= ~((df["symbol"].astype(str) == sym) & (ts <= v))
     return df[keep].reset_index(drop=True)

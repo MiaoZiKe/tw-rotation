@@ -3565,6 +3565,11 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
   display:inline-flex;align-items:center;justify-content:center;vertical-align:2px;margin-left:6px;line-height:1}
 h3 .howbtn.pop{font-family:inherit}
 .m3-bar .howbtn.pop{margin-left:0}
+/* 欄位名稱旁的小「?」（個股頁籌碼快照，2026-09-28）：比標題那顆小一號，免得六格名稱被六顆大圓鈕搶走目光；
+   觸控範圍用 ::after 往外撐到 32px，手機上手指點得到（畫面上仍是 18px 的小圓）。 */
+.kvs .k[data-chip] .l{display:flex;align-items:center;gap:0;min-width:0}
+.kvs .k .l .howbtn.kq{position:relative;flex:none;width:18px;height:18px;font-size:11px;margin-left:5px;vertical-align:0;font-family:inherit}
+.kvs .k .l .howbtn.kq::after{content:'';position:absolute;inset:-7px}
 #howBack{position:fixed;inset:0;z-index:180;background:rgba(4,8,18,.46);backdrop-filter:blur(1.5px)}
 :root[data-theme="light"] #howBack{background:rgba(30,28,24,.28)}
 #howBack[hidden],#howPop[hidden]{display:none}
@@ -3575,47 +3580,88 @@ h3 .howbtn.pop{font-family:inherit}
 #howPop .hp-h{font-size:15px;margin-bottom:6px;color:var(--ink)}
 #howPop .howtxt{margin:0;border-left-width:3px}
 
-/* ---- ① KPI 橫條（≤64px）---- */
-@media (min-width:821px){
-  #hero.ovstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0;
-    background:var(--card,var(--panel));border:1px solid var(--line);border-radius:14px;overflow:hidden;
-    margin-bottom:var(--gap-card);max-height:64px}
-  #hero.ovstrip .kpi{display:flex;flex-direction:column;justify-content:center;gap:1px;
-    padding:8px 16px;min-height:0;height:58px;box-sizing:border-box;border:0;border-radius:0;background:none;box-shadow:none}
-  #hero.ovstrip .kpi+.kpi{border-left:1px solid var(--line)}
-  #hero.ovstrip .kpi.clickable:hover{background:color-mix(in srgb,var(--cyan) 7%,transparent)}
-}
-#hero.ovstrip .kpi .l{font-size:12px;line-height:16px;letter-spacing:.04em;color:var(--ink-3);display:flex;align-items:center;gap:6px;flex:none}
-#hero.ovstrip .kpi .l .more{float:none;margin-left:auto;font-size:14px;opacity:.75}
-#hero.ovstrip .kpi .vv{display:flex;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden;flex:none;line-height:28px;height:28px}
-#hero.ovstrip .kpi .v{font-size:22px;line-height:1.15}
-#hero.ovstrip .kpi .d{font-size:12.5px;color:var(--ink-2);font-family:var(--mono)}
-
-/* ---- ①' 2026-09-26：KPI 橫條搬進「大盤三張圖」的工具列（Andy：「將我把這內容放進來，並且排版一下」）----
-   #hero 節點本身被 market3.js 的 placeKpi() 搬進 #m3Kpis（手機 ≤640 維持原位，所以這裡不必包 media）。
-   · 高度跟工具列同一級：每格兩行（名稱 12px／數字 16px），整條 42px；原本頂端那條 64px 就沒了。
-   · 放在「?」右邊那段空白：#m3Kpis 吃掉工具列剩下的寬度（flex:1），4 格等寬、細線隔開。
-   · 剩下的寬度不到 680px（1024、800 都是）就整條換到工具列第二行、吃滿整列 —— 不擠、不溢出；
-     連整列都不到 600px（641～660 那一小段）才收成兩兩一組。
-   · 選擇器前面掛 #m3Frame：權重 (2,x,0) 才蓋得過上面 #hero.ovstrip 那組 (1,x,0) 與 @container 的 #hero 欄數。*/
-.m3-bar .m3-kpis{flex:1 1 680px;min-width:0;display:flex;container:m3kpi/inline-size}
+/* ---- ① 總覽摘要卡列（2026-09-28，取代 KPI 細列；Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉」）----
+   節點仍是 #hero：桌機（>640）由 market3.js 的 placeKpi() 搬進大盤三張圖卡片的 #m3Kpis；手機由 mobile3.js 放到指數列下面。
+   · #m3Kpis 在工具列（flex、會換行）裡吃滿一整列、order:-1 排在「走勢圖／K 線／週期」前面 ——
+     卡片在三張 K 線上方、在同一張大方框之內，而工具列仍然緊貼它控制的那三張圖。
+   · 卡片寬度夠（容器 ≥ 960px）就四張等寬一排；不夠就每張固定寬、整列橫向滑動（scroll-snap），
+     左右緣的 ‹ › 翻一張。橫捲只發生在 .ovsum-track 裡，整頁不會有橫向捲軸（每一層都 min-width:0）。
+   · 顏色一律吃主題變數（紅漲綠跌：--rise／--fall；平盤 --flat），深淺主題都跟著換。*/
+.m3-bar .m3-kpis{flex:1 1 100%;order:-1;min-width:0;display:block;margin-bottom:2px}
 .m3-kpis[hidden]{display:none}
-#m3Frame #hero.ovstrip{flex:1 1 auto;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0;margin:0;
-  max-height:none;background:color-mix(in srgb,var(--panel-3) 55%,transparent);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-#m3Frame #hero.ovstrip .kpi{display:flex;flex-direction:column;justify-content:center;gap:0;height:42px;min-height:0;
-  padding:3px 12px;box-sizing:border-box;border:0;border-radius:0;background:none;box-shadow:none;min-width:0}
-#m3Frame #hero.ovstrip .kpi+.kpi{border-left:1px solid var(--line)}
-#m3Frame #hero.ovstrip .kpi.clickable:hover{background:color-mix(in srgb,var(--cyan) 8%,transparent)}
-#m3Frame #hero.ovstrip .kpi .l{font-size:12px;line-height:15px;letter-spacing:.03em}
-#m3Frame #hero.ovstrip .kpi .l .more{font-size:13px;line-height:15px}
-#m3Frame #hero.ovstrip .kpi .vv{line-height:21px;height:21px;gap:6px}
-#m3Frame #hero.ovstrip .kpi .v{font-size:16px;line-height:21px}
-#m3Frame #hero.ovstrip .kpi .d{font-size:12px}
-@container m3kpi (max-width:599.98px){
-  #m3Frame #hero.ovstrip{grid-template-columns:repeat(2,minmax(0,1fr))}
-  #m3Frame #hero.ovstrip .kpi:nth-child(3){border-left:0}
-  #m3Frame #hero.ovstrip .kpi:nth-child(n+3){border-top:1px solid var(--line)}
+#hero.ovsum{position:relative;min-width:0;display:block;margin:0 0 var(--gap-card);container:ovsum/inline-size}
+#m3Frame #hero.ovsum{margin:0}
+.ovsum-track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;
+  overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;padding:1px}
+.ovsum-track::-webkit-scrollbar{display:none}
+.osc{scroll-snap-align:start;min-width:0;display:flex;flex-direction:column;gap:7px;padding:10px 12px 9px;box-sizing:border-box;
+  border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel-3) 55%,transparent);
+  cursor:pointer;transition:border-color .15s,background-color .15s}
+.osc:hover{border-color:color-mix(in srgb,var(--cyan) 45%,var(--line));background:color-mix(in srgb,var(--cyan) 6%,var(--panel-3))}
+.osc:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.osc-h{display:flex;align-items:center;gap:7px;min-width:0;height:22px}
+.osc-ic{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;color:var(--ic);
+  background:color-mix(in srgb,var(--ic) 16%,transparent)}
+.osc-ic svg{display:block}
+.osc-t{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.osc-d{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:var(--r-pill);
+  border:1px solid var(--line);font:11.5px/1 var(--mono);color:var(--ink-3);white-space:nowrap}
+.osc-d svg{flex:none}
+.osc-more{flex:none;font-size:17px;line-height:1;color:var(--ink-3);margin-left:2px}
+.osc-d + .osc-more{margin-left:0}
+.osc-t + .osc-more{margin-left:auto}
+.osc:hover .osc-more{color:var(--cyan)}
+.osc-bar{display:flex;gap:2px;height:6px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--ink-3) 16%,transparent)}
+.osc-bar i{display:block;height:100%;min-width:3px}
+.osc-bar i.osc-none{flex:1;background:none}
+.osc-bar.track i.heat{background:linear-gradient(90deg,var(--amber),var(--rise));border-radius:99px}
+.osc-n{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;min-width:0}
+.osc-n > .muted{font-size:12px}
+.osn{min-width:0;display:flex;flex-direction:column;gap:1px}
+.osn small{font-size:11.5px;line-height:15px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.osn[style*="--c"] small::before{content:'';display:inline-block;width:7px;height:7px;border-radius:2px;background:var(--c);margin-right:4px;vertical-align:1px}
+.osn-v{display:flex;align-items:baseline;gap:5px;white-space:nowrap;min-width:0;overflow:hidden}
+.osn-v b{font:700 18px/22px var(--mono);color:var(--ink)}
+.osn-v b.up{color:var(--rise)} .osn-v b.down{color:var(--fall)} .osn-v b.flat{color:var(--ink-2)}
+.osn-v em,.osn small em{font-style:normal;font:11.5px/1 var(--mono);color:var(--ink-3)}
+.osn small em{font-size:11px}
+.osn-t{cursor:pointer;border-radius:6px}
+.osn-t:hover small{color:var(--ink);text-decoration:underline}
+.osc-f{font-size:12px;line-height:16px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.osc-f b{color:var(--ink);font-weight:600}
+.ovsum-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:30px;height:46px;padding:0;
+  display:grid;place-items:center;border-radius:10px;border:1px solid var(--line-2);cursor:pointer;
+  background:color-mix(in srgb,var(--panel) 92%,transparent);color:var(--ink);font-size:20px;line-height:1;
+  box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.ovsum-nav:hover{border-color:var(--cyan);color:var(--cyan)}
+.ovsum-nav.prev{left:-6px} .ovsum-nav.next{right:-6px}
+.ovsum-nav[hidden]{display:none}
+/* 放不下四張：每張固定寬、整列可以滑（800 約看到 2.8 張、390 約 1.4 張 —— 露出下一張的邊，一眼看得出「還有」）*/
+@container ovsum (max-width:959.98px){
+  .ovsum-track{grid-auto-columns:min(262px,76%)}
 }
+/* 手機：卡片壓矮（不能把第①步的資金輪盤擠出第一屏）—— 標題列 20、比例條 5、數字兩行；最後一行說明收掉（點進去的大圖裡都有）*/
+@container ovsum (max-width:560px){
+  .ovsum-track{gap:8px}
+  .osc{gap:5px;padding:7px 10px 7px;border-radius:10px}
+  .osc-h{height:20px;gap:6px}
+  .osc-ic{width:20px;height:20px;border-radius:6px}
+  .osc-t{font-size:13px}
+  .osc-d{height:18px;padding:0 6px;font-size:11px}
+  .osc-bar{height:5px}
+  .osn small{font-size:11px;line-height:14px}
+  .osn-v b{font-size:16px;line-height:19px}
+  .osn-v em{font-size:11px}
+  .osc-f{display:none}
+  .ovsum-nav{display:none}
+}
+/* 資金去向卡兩份口徑依寬度只顯示一份（app.js renderOvSummary ③）：桌機＝昨日資金去向分流圖，手機＝手機版資金去向長條。
+   斷點跟 mobile3.js 的 isM()（≤640）一致 —— 它決定點卡片後看到的是哪一張。 */
+.osc .ovs-mb{display:none!important}
+@media (max-width:640px){ .osc .ovs-dk{display:none!important} .osc .ovs-mb{display:revert!important} .osc .osn.ovs-mb{display:flex!important} }
+/* 捲到下面那幾張卡時，頂欄（sticky 58px）不要蓋住卡片標題；手機還有一條 sticky 的四步列 */
+#ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:68px}
+@media (max-width:640px){ #ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:124px} }
 
 /* ---- 大盤三張圖：一個大方框、三格用細線隔開、工具列在框內左上 ---- */
 #m3{margin-bottom:0}
@@ -4238,7 +4284,10 @@ h3 .howbtn.pop{font-family:inherit}
          手機分段（site/modules.js）照原本的選擇器就抓得到 —— 手機版另有人做，這裡保留可合併的結構。 -->
     <!-- ★ 2026-09-26（Andy：「將我把這內容放進來，並且排版一下」）：#hero 在桌機（>640px）會被 market3.js 的 placeKpi()
          搬進下方「大盤三張圖」工具列的 #m3Kpis（「?」右邊那段空白）；手機維持在這裡。它在這裡是手機的位置、也是搬走前的初始位置。 -->
-    <div class="hero ovstrip" id="hero"></div>
+    <!-- ★ 2026-09-28（Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉」）：KPI 細列換成摘要卡列
+         （漲跌家數／資金輪盤／資金去向／熱門題材，app.js renderOvSummary）。id 沿用 #hero，桌機一樣被 placeKpi() 搬進大盤卡片；
+         手機（≤640）由 mobile3.js 放到指數列（#mbHome）正下方，不參與分段導覽（modules.js 的 market.kpi 沒有 seg ＝ 永遠顯示）。 -->
+    <div class="ovsum" id="hero" role="region" aria-label="今日摘要"></div>
     <!-- 加權 / 櫃買 / 台指期 的當日走勢與分 K（Andy 2026-09-14）。資料與繪圖在 market3.js -->
     <div id="m3"></div>
     <div class="grid g21 ovmain" style="margin-top:var(--gap-card)">

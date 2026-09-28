@@ -16,7 +16,7 @@ on:
       probe:
         description: "要探測哪一組"
         type: choice
-        options: [material_news, taifex_night, jin10]
+        options: [material_news, taifex_night, jin10, index_intraday, index_intraday_sample]
         default: taifex_night
 
 permissions:
@@ -45,7 +45,17 @@ jobs:
 
       # 探測本身不可以讓工作流失敗：連不上也是結果，要留在 fixture 裡
       - name: 打一輪候選端點
-        run: python scripts/probe_sources.py "${{ inputs.probe }}"
+        # index_intraday（2026-09-28）：大盤三張圖歷史分 K／分鐘量候選，要 FinMind token 才看得出會員等級擋不擋
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: |
+          if [ "${{ inputs.probe }}" = "index_intraday" ]; then
+            python scripts/probe_index_intraday.py
+          elif [ "${{ inputs.probe }}" = "index_intraday_sample" ]; then
+            python scripts/probe_index_intraday.py sample
+          else
+            python scripts/probe_sources.py "${{ inputs.probe }}"
+          fi
         continue-on-error: true
 
       - name: 把 fixture commit 回 repo
