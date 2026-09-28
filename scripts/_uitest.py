@@ -15203,9 +15203,16 @@ OVS_M = """() => { const h = document.getElementById('hero'); if (!h) return nul
 
 
 def _ovs_inview(pg, anchor, timeout=9000):
+    # ★ 2026-09-28（設計 v4 收尾）：要等**捲動停下來**才量，不是「一進視窗就量」。
+    #   1440×1000 下資金輪盤卡本來就在第一屏（main 616px、v4 606px，都 < 960），
+    #   所以舊寫法在平滑捲動剛起步（scrollY 75～102）就回傳 → 「y > y0 + 150」會依機器快慢間歇性假紅。
+    #   改成連續兩次輪詢 scrollY 不變、而且標題在視窗內才回傳（實測兩邊最後都停在 538～548）。
+    pg.evaluate("() => { window.__ovsLastY = -1; }")
     return wait_until(pg, """() => { const el = document.getElementById('%s'); if (!el || !el.getClientRects().length) return null;
-        const r = el.getBoundingClientRect(); if (r.top < 0 || r.top >= innerHeight - 40) return null;
-        return { top: Math.round(r.top), y: Math.round(scrollY) }; }""" % anchor, timeout)
+        const r = el.getBoundingClientRect(), y = Math.round(scrollY), prev = window.__ovsLastY; window.__ovsLastY = y;
+        if (y !== prev) return null;
+        if (r.top < 0 || r.top >= innerHeight - 40) return null;
+        return { top: Math.round(r.top), y }; }""" % anchor, timeout)
 
 
 def t_ov_summary_0928(pg, b, base, code):
