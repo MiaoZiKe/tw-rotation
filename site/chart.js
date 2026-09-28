@@ -501,8 +501,8 @@
       /* panes.enableResize：面板之間可以用滑鼠拖大拖小（Andy 2026-09-15
          「下方MACD KD 成交量等範圍上下可以拉大」）。分隔線本來用 grid 的顏色，幾乎看不見，
          使用者不會知道那裡可以拉 —— 改成明顯一點，hover 再亮起來。 */
-      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace', fontSize: 11, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
-      grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
+      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace', fontSize: 12, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
+      grid: { vertLines: { color: C.grid, visible: false }, horzLines: { color: C.grid } },   // 設計 v4 §4.1：軸字 11→12、垂直格線關掉
       crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { labelBackgroundColor: C.panel3 }, horzLine: { labelBackgroundColor: C.panel3 } },
       rightPriceScale: { borderColor: C.line, scaleMargins: { top: 0.08, bottom: 0.08 } },
       timeScale: { borderColor: C.line, timeVisible: true, secondsVisible: false, rightOffset: 4, barSpacing: 7 },
