@@ -3403,3 +3403,8 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-29 清晨 合併上線：logo-v4（DECISIONS #276）
 - 新取圖策略 10 條（入口頁跟下一頁、回首頁連結圖、schema.org logo、頁首 inline SVG／CSS 背景、磚圖示、申報路徑、RFC 9309 robots、集團官網、Wikidata／Commons 只收 PD/CC0、人工指定 data/logos/manual/）；預估多救 60～130 家。Google 圖片搜尋不做（條款禁止自動查詢）。
 - 驗了：分支上 pytest 876 passed／4 skipped／1 xfailed；合併後 pipeline／tests 與分支相同（只差 site／資料），不重跑；沒動 site 與 build_payload，_preview／_uitest 依例外跳過。合併後手動觸發 backfill.yml（logos）。
+
+### 09-29 04:10 Logo 第四版兩輪跑完
+- ok 1,670 → **1,716／1,985（86.4%）**，+46 家（第一輪 +35，其中 Wikimedia 公有領域 12；第二輪 +11）；pending 0。剩 269 家：none 182、too_small 43、robots 33（照 robots 不抓）、error 6、blank 5。下次自動重試 2026-10-26（30 天規則）。
+- 比預估（60～130）少：官網從 Actions 連不到、Logo 只在 JS／外部 CSS 的佔多數。人工補圖：把確認過的圖放 data/logos/manual/（docs/logo_manual.md）。
+- 這次 push 觸發 pages.yml，新 Logo 隨部署上線。
