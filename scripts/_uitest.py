@@ -1264,9 +1264,13 @@ def t_overview(pg, base):
     # --- 資金熱力圖保留縮放，放大後要能用游標抓著移動
     check_drag(pg, "heatWrap", "資金熱力圖")
 
-    # --- ★ 法人連續買超（Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動，
-    #     還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」）
-    t_streak(pg, base)
+    # --- ★ 法人連續買超：2026-09-28 搬到市場明細（Andy：「法人連續買賣超 資訊移動到市場明細」），
+    #     操作驗收（t_streak）改在「市場明細」段跑；這裡只驗總覽沒有重複、原位置留了指路連結。
+    dup = pg.evaluate("""() => ({ trust: !!document.querySelector('#v-overview #trust'), card: !!document.getElementById('ovTrustCard'),
+        who: document.querySelectorAll('#v-overview #streakWho').length,
+        link: (document.getElementById('ovTrustLink') || {}).getAttribute ? document.getElementById('ovTrustLink').getAttribute('href') : null })""")
+    ok("★ 總覽不再有「法人連續買賣超」那張圖（搬到市場明細，不重複）", not dup["trust"] and not dup["card"] and dup["who"] == 0, dup)
+    ok("★ 總覽原位置留一條連結指向市場明細的法人分頁", dup["link"] == "#market/streak", dup)
 
     # --- 熱力圖要把卡片填滿，不可以留一塊空的（Andy：「不滿當前版面」）
     # 重新載入一次：前面的測試會把「成分股」面板留在展開狀態，那塊也算在卡片高度裡
@@ -1292,7 +1296,8 @@ def t_overview(pg, base):
 
     # --- 下方那幾張圖：要有資料，不是空狀態
     # ★ 2026-09-23：「族群估值」`#gval` 整塊移除，從清單拿掉（留著 `has` 會是 None ＝ 必紅）
-    for cid, name in (("breadth", "漲跌家數"), ("trust", "法人連續買賣超")):
+    # 2026-09-28：法人連續買賣超搬到市場明細，這裡只剩漲跌家數（那張在「市場明細」段驗）
+    for cid, name in (("breadth", "漲跌家數"),):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty') || /尚無|沒有|回補中/.test(e.innerText) }} : null; }}")
         ok(f"總覽「{name}」有畫出來", bool(has) and has["canvas"] and not has["empty"], has)
 
@@ -1307,6 +1312,9 @@ def t_streak(pg, base):
     pts_of = ("() => { const c = echarts.getInstanceByDom(document.getElementById('trust'));"
               " if (!c) return -1; const s = (c.getOption().series || [])[0];"
               " return s && s.data ? s.data.length : 0; }")
+    # 2026-09-28：這張圖從總覽搬到市場明細的「法人連買賣」分頁（#market/streak）
+    pg.goto(f"{base}#market/streak", wait_until="networkidle")
+    wait_until(pg, "() => { const e = document.getElementById('trust'); return e && (e.querySelector('canvas') || e.querySelector('.empty')); }", 8000)
     scroll_to(pg, "trustWrap")
     ok("法人連續買超有三顆切換鈕（投信／外資／合計）", count(pg, "#streakWho button") == 3,
        count(pg, "#streakWho button"))
@@ -1325,7 +1333,7 @@ def t_streak(pg, base):
         return { n: s.data.length, pts: +e.dataset.pts, buys: +e.dataset.buys, sells: +e.dataset.sells,
                  pos: xs.filter(x => x > 0).length, neg: xs.filter(x => x < 0).length, quads: g,
                  ylog: o.yAxis[0].type, sub: (document.getElementById('streakSub') || {}).textContent || '',
-                 row: !!document.querySelector('#ovTrustCard .linkrow') }; }""")
+                 row: !!document.querySelector('#mktBody .linkrow') }; }""")
     ok("★ 四象限點數＝買超檔數＋賣超檔數", bool(q4) and q4["n"] == q4["pts"] == q4["buys"] + q4["sells"], q4)
     ok("★ 買在右半、賣在左半（兩邊都有點）", bool(q4) and q4["pos"] == q4["buys"] > 0 and q4["neg"] == q4["sells"] > 0, q4)
     ok("★ 四個象限都有標名：連買加碼／連買減碼／連賣加碼／連賣減碼",
@@ -1373,11 +1381,233 @@ def t_streak(pg, base):
     check_drag(pg, "trustWrap", "法人連續買超")
 
 
+# ===================================================================== 市場明細下鑽（2026-09-28）
+# Andy：「法人連續買賣超 資訊移動到市場明細 並且漲跌家數這邊點擊長條圖後，會顯示個股在右邊可以看」。
+# 驗的全部是「畫面真的因此改變了」：
+#   · 點兩根不同的長條 → 名單真的換掉（區間標題、代號清單都不同）、筆數＝長條上的家數、
+#     每一檔的原始漲跌幅都落在那一根的區間裡（用 data-chg 原值比，不用四捨五入後的字）
+#   · 預設依漲跌幅排（正半邊由大到小、負半邊由小到大）；切「依成交值」真的重排
+#   · 名單在圖的右邊（1440／800）、在圖的下面（390）；選中那根照原色、其他淡掉
+#   · 收起：×、點圖的空白處、Esc 三條路都真的收掉；篩選「上市」時名單跟著重算、仍＝長條家數
+#   · 點名稱進個股頁
+#   · 法人連續買賣超：市場明細看得到而且畫得出來、總覽沒有重複、總覽的指路連結帶得過去
+#   · 1440／800／390 整頁沒有橫向捲軸；390 名單裡的字 ≥ 11px
+DRILL_EDGES = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10]
+
+DRILL_BARS = """() => { const e = document.getElementById('chgDist'); const c = e && echarts.getInstanceByDom(e); if (!c) return null;
+    const o = c.getOption(); const s = o.series[0]; const r = e.getBoundingClientRect();
+    return { labels: o.xAxis[0].data, vals: s.data.map(d => (d && d.value != null) ? d.value : d),
+             ops: s.data.map(d => (d && d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1),
+             pts: s.data.map((d, i) => { const v = (d && d.value != null) ? d.value : d;
+               const p = c.convertToPixel({ seriesIndex: 0 }, [i, Math.max(v, 0) / 2]); const base = c.convertToPixel({ seriesIndex: 0 }, [i, 0]);
+               // 0 家或很矮的長條點「那一欄、軸線上方 12px」（整欄都算點到那一根）
+               const y = (base[1] - p[1] < 12) ? base[1] - 12 : p[1];
+               return { x: r.left + p[0], y: r.top + y }; }),
+             box: { l: r.left, t: r.top, w: r.width, h: r.height } }; }"""
+
+DRILL_PANEL = """() => { const b = document.getElementById('distPick'), ch = document.getElementById('chgDistBox');
+    if (!b || b.hidden || !b.getClientRects().length) return { open: false };
+    const r = b.getBoundingClientRect(), cr = ch.getBoundingClientRect();
+    const rows = [...b.querySelectorAll('tr[data-code]')].map(t => ({ code: t.dataset.code, chg: +t.dataset.chg,
+        to: t.dataset.to === '' ? null : +t.dataset.to }));
+    let minFs = 99; b.querySelectorAll('*').forEach(x => { if (!x.childElementCount && (x.textContent || '').trim() && x.getClientRects().length) minFs = Math.min(minFs, parseFloat(getComputedStyle(x).fontSize)); });
+    return { open: true, bin: +b.dataset.bin, head: ((b.querySelector('.dph b') || {}).textContent || '').trim(),
+             n: +((b.querySelector('.dpn') || {}).textContent || -1), rows,
+             sort: ((b.querySelector('#distSort button.on') || { dataset: {} }).dataset.s) || '',
+             right: r.left >= cr.right - 1 && r.top < cr.bottom && r.bottom > cr.top,
+             below: r.top >= cr.bottom - 1, minFs,
+             pl: r.left, pr: r.right, cl: cr.left, crr: cr.right }; }"""
+
+
+def _drill_in_bin(i: int, v: float, nb: int) -> bool:
+    if i == 0:
+        return v <= -10
+    if i == nb - 1:
+        return v >= 10
+    return DRILL_EDGES[i - 1] < v <= DRILL_EDGES[i] and -10 < v < 10
+
+
+def _drill_sorted(rows, bin_i, key):
+    if not rows:
+        return True
+    if key == "to":
+        vs = [r["to"] if r["to"] is not None else 0 for r in rows]
+        return all(vs[k] >= vs[k + 1] for k in range(len(vs) - 1))
+    vs = [r["chg"] for r in rows]
+    if bin_i < 5:
+        return all(vs[k] <= vs[k + 1] for k in range(len(vs) - 1))
+    return all(vs[k] >= vs[k + 1] for k in range(len(vs) - 1))
+
+
+def _drill_pick_two(bars):
+    """挑兩根有股票、而且不相鄰的長條（一根在負半邊、一根在正半邊最好，名單一定不同）。"""
+    vals = bars["vals"]
+    neg = [i for i in range(0, 5) if vals[i] > 0]
+    pos = [i for i in range(5, len(vals)) if vals[i] > 0]
+    # 家數適中的優先（不要剛好挑到七八百檔那根，名單要捲很久但驗的東西一樣）
+    neg.sort(key=lambda i: abs(vals[i] - 60)); pos.sort(key=lambda i: abs(vals[i] - 60))
+    if neg and pos:
+        return neg[0], pos[0]
+    allb = [i for i, v in enumerate(vals) if v > 0]
+    return (allb[0], allb[-1]) if len(allb) >= 2 else (None, None)
+
+
+def _drill_check_bin(pg, tag, bars, i):
+    """點第 i 根，回傳面板內容並驗：筆數＝長條家數、每一檔落在區間、預設排序、選中那根沒淡掉。"""
+    pt = bars["pts"][i]
+    pg.mouse.click(pt["x"], pt["y"])
+    wait_until(pg, f"() => {{ const b = document.getElementById('distPick'); return b && !b.hidden && b.dataset.bin === '{i}'; }}", 4000)
+    pg.wait_for_timeout(300)
+    p = pg.evaluate(DRILL_PANEL)
+    lab = bars["labels"][i]
+    if not ok(f"★ [{tag}] 點「{lab}%」那根長條 → 名單打開、而且是那一根", p["open"] and p["bin"] == i, p if not p["open"] else [p["bin"], p["head"]]):
+        return p
+    ok(f"★ [{tag}] 「{lab}%」名單筆數＝長條上的家數", p["n"] == len(p["rows"]) == bars["vals"][i], [p["n"], len(p["rows"]), bars["vals"][i]])
+    bad = [r for r in p["rows"] if not _drill_in_bin(i, r["chg"], len(bars["labels"]))]
+    ok(f"★ [{tag}] 「{lab}%」每一檔的漲跌幅都落在這個區間裡", not bad, bad[:3])
+    ok(f"[{tag}] 「{lab}%」預設依漲跌幅排（越極端越上面）", p["sort"] == "chg" and _drill_sorted(p["rows"], i, "chg"),
+       [p["sort"], [r["chg"] for r in p["rows"][:5]]])
+    ops = pg.evaluate(DRILL_BARS)["ops"]
+    ok(f"[{tag}] 選中那根照原色、其他長條淡掉", ops[i] == 1 and all(o < 1 for k, o in enumerate(ops) if k != i), ops)
+    return p
+
+
+def t_market_drill_0928(pg, b, base):
+    tag = "市場明細下鑽0928"
+    for w in (1440, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#market/updown", wait_until="networkidle")
+        wait_until(pg, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e); }", 8000)
+        pg.wait_for_timeout(800)
+        scroll_to(pg, "chgDistBox"); pg.wait_for_timeout(500)
+        bars = pg.evaluate(DRILL_BARS)
+        if not ok(f"[{tag} {w}] 漲跌分佈長條圖畫出來了", bool(bars) and sum(bars["vals"]) > 0, bars and bars["vals"]):
+            continue
+        ok(f"[{tag} {w}] 一開始名單是收著的，圖吃滿整列", not pg.evaluate(DRILL_PANEL)["open"])
+        i1, i2 = _drill_pick_two(bars)
+        if not ok(f"[{tag} {w}] 至少有兩根有股票的長條（下面兩條才驗得了）", i1 is not None, bars["vals"]):
+            continue
+        p1 = _drill_check_bin(pg, f"{tag} {w}", bars, i1)
+        ok(f"★ [{tag} {w}] 名單在圖的右邊", p1.get("right"), p1.get("open") and [p1["cl"], p1["crr"], p1["pl"], p1["pr"]])
+        # 名單打開後圖變窄 → 長條位置要重量
+        pg.wait_for_timeout(500)
+        bars = pg.evaluate(DRILL_BARS)
+        p2 = _drill_check_bin(pg, f"{tag} {w}", bars, i2)
+        ok(f"★ [{tag} {w}] 再點另一根 → 名單真的換了（區間標題與代號都不同）",
+           p1.get("open") and p2.get("open") and p1["head"] != p2["head"]
+           and [r["code"] for r in p1["rows"]] != [r["code"] for r in p2["rows"]],
+           [p1.get("head"), p2.get("head")])
+        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 3000)
+        ok(f"★ [{tag} {w}] 名單開著時整頁沒有橫向捲軸", wide == "ok", pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+        if w != 1440:
+            continue
+        # --- 切排序
+        pg.click("#distSort button[data-s='to']"); pg.wait_for_timeout(400)
+        ps = pg.evaluate(DRILL_PANEL)
+        ok(f"[{tag}] 切「依成交值」→ 名單真的依成交值由大到小重排，筆數不變",
+           ps["sort"] == "to" and _drill_sorted(ps["rows"], i2, "to") and len(ps["rows"]) == len(p2["rows"]),
+           [ps["sort"], [r["to"] for r in ps["rows"][:4]]])
+        pg.click("#distSort button[data-s='chg']"); pg.wait_for_timeout(400)
+        ok(f"[{tag}] 切回「依漲跌幅」排序回得來", [r["code"] for r in pg.evaluate(DRILL_PANEL)["rows"]] == [r["code"] for r in p2["rows"]])
+        # --- 篩選上市：名單跟著重算
+        if count(pg, "#distMkt button[data-m='TWSE']"):
+            pg.click("#distMkt button[data-m='TWSE']"); pg.wait_for_timeout(900)
+            bf = pg.evaluate(DRILL_BARS); pf = pg.evaluate(DRILL_PANEL)
+            ok(f"[{tag}] 篩「上市」時名單仍開著、停在同一根，筆數＝新的長條家數",
+               pf["open"] and pf["bin"] == i2 and len(pf["rows"]) == bf["vals"][i2] == pf["n"], [pf.get("bin"), len(pf.get("rows", [])), bf["vals"][i2]])
+            ok(f"[{tag}] 篩「上市」後的名單比全部少或一樣多", len(pf["rows"]) <= len(p2["rows"]), [len(pf["rows"]), len(p2["rows"])])
+            pg.click("#distMkt button[data-m='']"); pg.wait_for_timeout(900)
+        # --- 三條收起的路
+        pg.click("#distPickX"); pg.wait_for_timeout(400)
+        ok(f"★ [{tag}] 按 × 收起名單", not pg.evaluate(DRILL_PANEL)["open"])
+        ok(f"[{tag}] 收起後長條全部恢復原色", all(o == 1 for o in pg.evaluate(DRILL_BARS)["ops"]), pg.evaluate(DRILL_BARS)["ops"])
+        pg.wait_for_timeout(400)
+        bars = pg.evaluate(DRILL_BARS)
+        pt = bars["pts"][i1]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(500)
+        ok(f"[{tag}] 收起後再點長條打得開", pg.evaluate(DRILL_PANEL)["open"])
+        bx = pg.evaluate(DRILL_BARS)["box"]
+        pg.mouse.click(bx["l"] + 6, bx["t"] + 6); pg.wait_for_timeout(500)
+        ok(f"★ [{tag}] 點圖的空白處（格線外）收起名單", not pg.evaluate(DRILL_PANEL)["open"])
+        bars = pg.evaluate(DRILL_BARS)
+        pt = bars["pts"][i1]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(500)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+        ok(f"[{tag}] 按 Esc 收起名單", not pg.evaluate(DRILL_PANEL)["open"])
+        # --- 點名稱進個股頁
+        bars = pg.evaluate(DRILL_BARS)
+        pt = bars["pts"][i1]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(500)
+        code = pg.evaluate("() => { const t = document.querySelector('#distPick tr[data-code]'); return t ? t.dataset.code : null; }")
+        if ok(f"[{tag}] 名單有個股可以點", bool(code), code):
+            pg.click(f"#distPick tr[data-code='{code}'] a"); pg.wait_for_timeout(1200)
+            ok(f"★ [{tag}] 點名單上的名稱進個股頁", pg.evaluate("location.hash") == f"#stock/{code}", pg.evaluate("location.hash"))
+
+    # ---------------------------------------------------------------- 法人連續買賣超：搬到市場明細、總覽不重複
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    ov = pg.evaluate("""() => ({ trust: !!document.querySelector('#v-overview #trust'), card: !!document.getElementById('ovTrustCard'),
+        who: document.querySelectorAll('#v-overview #streakWho').length, link: !!document.getElementById('ovTrustLink') })""")
+    ok(f"★ [{tag}] 總覽的原位置沒有重複的法人連續買賣超", not ov["trust"] and not ov["card"] and ov["who"] == 0, ov)
+    if ok(f"[{tag}] 總覽原位置留一條連結", ov["link"], ov):
+        pg.click("#ovTrustLink"); pg.wait_for_timeout(1500)
+        ok(f"★ [{tag}] 點總覽那條連結 → 到市場明細的「法人連買賣」分頁", pg.evaluate("location.hash") == "#market/streak"
+           and pg.evaluate("() => (document.querySelector('#mktSeg2 button.on') || {dataset:{}}).dataset.k") == "streak",
+           pg.evaluate("location.hash"))
+    for w in (1440, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#market/streak", wait_until="networkidle")
+        wait_until(pg, "() => { const e = document.getElementById('trust'); return e && e.querySelector('canvas'); }", 8000)
+        st = pg.evaluate("""() => { const e = document.getElementById('trust'); const c = e && echarts.getInstanceByDom(e);
+            return { n: c ? (c.getOption().series[0].data || []).length : 0, sub: (document.getElementById('streakSub') || {}).textContent || '',
+                     inMkt: !!(e && e.closest('#v-market')), btns: document.querySelectorAll('#v-market #streakWho button').length }; }""")
+        ok(f"★ [{tag} {w}] 市場明細看得到法人連續買賣超（四象限有點、三顆法人鈕、副標有買賣檔數）",
+           st["inMkt"] and st["n"] > 0 and st["btns"] == 3 and "買" in st["sub"] and "賣" in st["sub"], st)
+        pg.click("#streakWho button[data-w='foreign']"); pg.wait_for_timeout(700)
+        ok(f"[{tag} {w}] 市場明細裡切「外資」副標真的換了", "外資" in text(pg, "#streakSub"), text(pg, "#streakSub"))
+        pg.click("#streakWho button[data-w='trust']"); pg.wait_for_timeout(500)
+        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 3000)
+        ok(f"★ [{tag} {w}] 法人分頁整頁沒有橫向捲軸", wide == "ok", pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+
+    # ---------------------------------------------------------------- 手機 390：名單排在圖下面、字 ≥ 11px、沒有橫向捲軸
+    ctx = b.new_context(**MOBILE_VP)
+    m = ctx.new_page()
+    errs: list[str] = []
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        m.goto(f"{base}#market/updown", wait_until="networkidle")
+        wait_until(m, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e); }", 8000)
+        m.wait_for_timeout(900)
+        scroll_to(m, "chgDistBox"); m.wait_for_timeout(500)
+        bars = m.evaluate(DRILL_BARS)
+        i1, i2 = _drill_pick_two(bars) if bars else (None, None)
+        if ok(f"[{tag} 390] 手機上漲跌分佈畫得出來、有兩根可點", i1 is not None, bars and bars["vals"]):
+            p1 = _drill_check_bin(m, f"{tag} 390", bars, i1)
+            ok(f"★ [{tag} 390] 手機名單排在圖的下面", p1.get("below"), p1.get("open") and p1)
+            ok(f"[{tag} 390] 名單裡的字 ≥ 11px", p1.get("minFs", 0) >= 11, p1.get("minFs"))
+            scroll_to(m, "chgDistBox"); m.wait_for_timeout(500)
+            bars = m.evaluate(DRILL_BARS)
+            p2 = _drill_check_bin(m, f"{tag} 390", bars, i2)
+            ok(f"★ [{tag} 390] 手機再點另一根名單真的換了", p1.get("open") and p2.get("open") and p1["head"] != p2["head"], [p1.get("head"), p2.get("head")])
+            ok(f"★ [{tag} 390] 名單開著時沒有橫向捲軸", m.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
+               m.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+        m.goto(f"{base}#market/streak", wait_until="networkidle")
+        wait_until(m, "() => { const e = document.getElementById('trust'); return e && (e.querySelector('canvas') || e.querySelector('.empty')); }", 8000)
+        m.wait_for_timeout(600)
+        ok(f"★ [{tag} 390] 手機市場明細也看得到法人連續買賣超", m.evaluate("() => { const e = document.getElementById('trust'); return !!(e && e.querySelector('canvas') && e.getBoundingClientRect().height > 100); }"))
+        ok(f"★ [{tag} 390] 法人分頁沒有橫向捲軸", m.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
+           m.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+        m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
+        ok(f"[{tag} 390] 手機總覽也沒有重複的法人連續買賣超", m.evaluate("() => !document.querySelector('#v-overview #trust') && !document.getElementById('ovTrustCard')"))
+        ok(f"[{tag} 390] 整段沒有 JS 錯誤", not errs, errs[:2])
+    finally:
+        ctx.close()
+
+
 def t_market(pg, base):
     pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(2000)
     tabs = pg.evaluate("[...document.querySelectorAll('#mktSeg2 button')].map(b => b.dataset.k)")
     # 2026-09-18（Andy 圖16「市場明細內資金集中這頁拿掉」）：四個 → 三個
-    ok("市場明細有三個分頁（資金集中已移除）", tabs == ["updown", "ma", "cand"], tabs)
+    # 2026-09-28（Andy「法人連續買賣超 資訊移動到市場明細」）：多一個「法人連買賣」（streak）
+    ok("市場明細有四個分頁（漲跌家數／法人連買賣／站上均線／今日候選）", tabs == ["updown", "streak", "ma", "cand"], tabs)
     ok("資金集中那一頁真的拿掉了", "top5" not in tabs, tabs)
     seen = {}
     for k in tabs:
@@ -1385,7 +1615,7 @@ def t_market(pg, base):
         seen[k] = pg.evaluate("""() => ({ on: (document.querySelector('#mktSeg2 button.on')||{dataset:{}}).dataset.k,
             title: (document.getElementById('mktTitle')||{}).innerText.split(String.fromCharCode(10))[0],
             rows: document.querySelectorAll('#mktBody tr[data-code]').length,
-            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5').length })""")
+            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody #trust canvas, #mktBody #trust .empty').length })""")
         ok(f"市場明細「{k}」按下去真的被選取", seen[k]["on"] == k, seen[k])
         ok(f"市場明細「{k}」有列出東西", seen[k]["rows"] > 0 or seen[k]["blocks"] > 0, seen[k])
     ok("四個分頁標題各不相同", len({v["title"] for v in seen.values()}) == len(seen),
@@ -1418,6 +1648,10 @@ def t_market(pg, base):
     if count(pg, "#mktBody tr[data-code]"):
         click(pg, "#mktBody tr[data-code]", 1600)
         ok("市場明細點一列會進個股頁", pg.evaluate("location.hash").startswith("#stock/"), pg.evaluate("location.hash"))
+
+    # --- ★ 法人連續買超（Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動，
+    #     還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」）；2026-09-28 起在市場明細
+    t_streak(pg, base)
 
     # ================================================================ D4：漲跌幅多一個「即時」模式
     # Andy 2026-09-23：「漲跌幅需要多一個『即時』Mode」。
@@ -15976,6 +16210,8 @@ SECTIONS = {
     # ★ 2026-09-26 Andy：總覽「漲跌家數」要分 上市／上櫃／全部（切換、點一級清單、重新整理記住、淺色、手機 390）
     "漲跌家數市場別":      lambda pg, b, base, code: t_ud_market(pg, base),
     "市場明細":            lambda pg, b, base, code: t_market(pg, base),
+    # ★ 2026-09-28 Andy：法人連續買賣超搬到市場明細；漲跌分佈點長條 → 右側列出那一段的個股（⚠ 一律 --workers 1）
+    "市場明細下鑽0928":    lambda pg, b, base, code: t_market_drill_0928(pg, b, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
     "產業":                lambda pg, b, base, code: t_industry(pg, base),
     "族群頁":              lambda pg, b, base, code: t_group_pages(pg, base),
@@ -30738,7 +30974,7 @@ def t_block_registry(b, base, code):
     m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1800)
     st = m.evaluate("""() => ({ mods: typeof window.TwModules, pager: document.querySelectorAll('.view.on > .mpager').length,
         off: document.querySelectorAll('.view.on .mp-off').length,
-        shown: ['#ovHeatCard', '#ovTrustCard', '#ovCandCard'].filter(s => { const e = document.querySelector(s);
+        shown: ['#ovHeatCard', '#ovBreadthCard', '#ovCandCard'].filter(s => { const e = document.querySelector(s);
           return e && e.getBoundingClientRect().height > 0; }).length })""")
     ok(f"【{tag}】擋掉 modules.js：沒有分段列、沒有被收起的卡、熱力／法人／候選三張卡都照常顯示",
        st["mods"] == "undefined" and st["pager"] == 0 and st["off"] == 0 and st["shown"] == 3, st)
@@ -30758,8 +30994,8 @@ def t_block_implicit(b, base):
     pg = ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    pg.goto(base + "#overview", wait_until="networkidle")
-    wait_until(pg, "window.App && document.querySelector('#streakSub') && /檔/.test(document.querySelector('#streakSub').textContent)", 8000)
+    pg.goto(base + "#market/streak", wait_until="networkidle")     # 2026-09-28 從總覽搬到市場明細
+    wait_until(pg, "window.App && document.querySelector('#streakSub') && /買/.test(document.querySelector('#streakSub').textContent)", 8000)
     read = """() => { const el = document.getElementById('trust'); const c = el && window.echarts && echarts.getInstanceByDom(el);
         const s = c && c.getOption().series[0];
         return { sub: document.getElementById('streakSub').textContent, n: s ? (s.data || []).length : 0 }; }"""

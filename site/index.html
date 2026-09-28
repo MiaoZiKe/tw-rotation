@@ -3762,6 +3762,45 @@ h3 .howbtn.pop{font-family:inherit}
 .ovmain h3,.ovlow h3{display:flex;align-items:center}
 #udSum{font-size:12.5px}
 #streakSub{font-size:12.5px}
+/* 總覽漲跌家數卡底下那條「法人連續買賣超 → 市場明細」（2026-09-28 那張卡搬家後留在原位置的指路） */
+.ovmore{margin-top:8px;text-align:right;font-size:12.5px}
+.ovmore a{color:var(--cyan);text-decoration:none}
+.ovmore a:hover{text-decoration:underline}
+/* 市場明細「法人連買賣」分頁的控制列（2026-09-28 從總覽搬過來）：窄畫面換行，不撐出橫向捲軸 */
+.mktstreakbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:0 0 8px}
+.mktstreakbar .row{gap:6px;flex-wrap:wrap}
+
+/* ---- 市場明細：漲跌分佈下鑽（2026-09-28，Andy「點擊長條圖後，會顯示個股在右邊可以看」）----
+   圖在左、名單在右；名單沒打開時圖吃滿整列。≤640 名單改排到圖的下面（手機寬度放不下兩欄）。
+   名單自己捲（表頭黏住），整頁不會因為 0～+2% 那一段有七八百檔而被拉得很長。 */
+.distlay{display:flex;gap:12px;align-items:stretch}
+.distlay>#chgDistBox{flex:1 1 auto;min-width:0}
+.distpick{flex:0 0 340px;min-width:0;display:flex;flex-direction:column;padding:10px 12px;border-radius:10px;
+  background:var(--panel-3);border:1px solid var(--line-2)}
+.distpick[hidden]{display:none}
+.distpick .dph{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.distpick .dph b{font-size:14px}
+.distpick .dph .m{color:var(--ink-2);font-size:12.5px}
+.distpick .dph .x{margin-left:auto;background:none;border:1px solid var(--line-2);color:var(--ink-2);border-radius:6px;
+  width:28px;height:28px;line-height:1;font-size:16px;cursor:pointer}
+.distpick .dph .x:hover{color:var(--ink);border-color:var(--cyan)}
+.distpick .dpsort{margin-top:6px}
+.distpick .dplist{margin-top:8px;overflow:auto;max-height:300px;flex:1 1 auto}
+.distpick table{width:100%;border-collapse:collapse;font-size:12.5px}
+.distpick th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-3);font-weight:500;text-align:right;padding:4px 6px;z-index:1}
+.distpick td{padding:4px 6px;text-align:right;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+.distpick th.l,.distpick td.l{text-align:left}
+.distpick td.l{white-space:normal}
+.distpick td.cd{color:var(--ink-2)}
+.distpick tr[data-code]{cursor:pointer}
+.distpick tr[data-code]:hover td{background:var(--panel-2)}
+.distpick td a{color:var(--ink);text-decoration:none}
+.distpick td a:hover{color:var(--cyan);text-decoration:underline}
+@media (max-width:640px){
+  .distlay{flex-direction:column}
+  .distpick{flex:none}
+  .distpick .dplist{max-height:360px}
+}
 
 /* ---- 法人卡「滾輪放大」徽章：淺色主題原本是深底配灰字、再疊在淺底上 → 灰底灰字看不見（審查 R1）---- */
 :root[data-theme="light"] .zwrap>.zbadge{background:rgba(255,255,255,.92);color:var(--ink-2);border-color:var(--line-2)}
@@ -4366,7 +4405,10 @@ h3 .howbtn.pop{font-family:inherit}
         <div class="howtxt" id="how-ovflow" hidden></div>
         <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div></div>
     </div>
-    <div class="grid g2 ovlow" style="margin-top:var(--gap-card)">
+    <!-- ★ 2026-09-28（Andy：「法人連續買賣超 資訊移動到市場明細」）：右半的「法人連續買賣超」整張搬到
+         市場明細的「法人連買賣」分頁（#market/streak），這一排只剩漲跌家數一張、改成單欄吃滿；
+         原位置留一條連結（#ovTrustLink）過去，找得到新家。 -->
+    <div class="grid ovlow" style="margin-top:var(--gap-card)">
       <div class="card" id="ovBreadthCard"><div class="row spread"><h3>漲跌家數 <button class="howbtn pop" data-how="breadth" aria-label="漲跌家數怎麼看">?</button></h3>
         <!-- ★ 2026-09-26（Andy：「需要分 上市 上櫃 全部」）：市場分段鈕，預設全部，選擇記在 tw.udMkt -->
         <div class="row" style="gap:6px">
@@ -4375,17 +4417,8 @@ h3 .howbtn.pop{font-family:inherit}
         </div></div>
         <div class="howtxt" id="how-breadth" hidden></div>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:300px"></div></div>
-        <div class="hpanel" id="udPanel" hidden></div></div>
-      <div class="card" id="ovTrustCard"><div class="row spread"><h3>法人連續買賣超 <button class="howbtn pop" data-how="trust" aria-label="法人連續買賣超怎麼看">?</button></h3>
-        <div class="row" style="gap:6px">
-          <span class="pill" id="streakSub" data-readout></span>
-          <div class="seg tiny" id="streakWho"><button data-w="trust" class="on">投信</button><button data-w="foreign">外資</button><button data-w="total">合計</button></div>
-          <select class="minisel" id="streakDays" title="連續天數門檻（買與賣都套用）">
-            <option value="2">≥2 天</option><option value="3" selected>≥3 天</option>
-            <option value="5">≥5 天</option><option value="8">≥8 天</option><option value="12">≥12 天</option></select>
-        </div></div>
-        <div class="howtxt" id="how-trust" hidden></div>
-        <div id="trustWrap"><div id="trust" class="chart" style="min-height:320px"></div></div></div>
+        <div class="hpanel" id="udPanel" hidden></div>
+        <div class="ovmore"><a id="ovTrustLink" href="#market/streak">法人連續買賣超 → 市場明細</a></div></div>
     </div>
   </section>
 

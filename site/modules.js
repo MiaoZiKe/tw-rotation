@@ -141,16 +141,17 @@
     { "id": "market.streak", "name": "法人連續買賣超", "question": "②", "ask": "法人在誰身上連續買或賣、力道在加大還是收手（四象限，投信／外資／合計，門檻可調）",
       "tier": "免費〔推〕", "law": "🟠",
       "at": [
-        { "page": "overview", "step": 2, "seg": "法人買超", "ord": 70, "selector": ["#ovTrustCard"] }
+        { "page": "market", "selector": ["#mktSeg2", "#mktBody"],
+          "note": "2026-09-28（Andy：「法人連續買賣超 資訊移動到市場明細」）：從總覽第②步的「法人買超」段搬到市場明細的「法人連買賣」分頁（#market/streak，app.js drawMarket 的 streak 分支）；總覽原位置只留 #ovTrustLink 指路。市場明細不分段，所以不帶 seg。" }
       ],
-      "tests": ["總覽", "積木-隱性參數"] },
+      "tests": ["市場明細下鑽0928", "市場明細", "積木-隱性參數"] },
 
     { "id": "market.detail", "name": "市場明細名單", "question": "②", "ask": "總覽上那幾個數字，完整名單長什麼樣",
       "tier": "免費", "law": "🟡",
       "at": [
         { "page": "market", "selector": ["#mktSeg2", "#mktBody"] }
       ],
-      "tests": ["市場明細", "批次4"] },
+      "tests": ["市場明細", "批次4", "市場明細下鑽0928"] },
 
     { "id": "season.month", "name": "週期統計", "question": "②", "ask": "這個族群在這個月份，歷史上通常表現如何",
       "tier": "免費", "law": "🟡",
