@@ -35853,8 +35853,8 @@ def t_mobile_v4_2d(b, base, code):
                 return { lab: s && s.textContent, h: s ? Math.round(s.getBoundingClientRect().height) : 0, on: on ? +on.dataset.m : null,
                          headPe: on ? getComputedStyle(on).pointerEvents : null }; }""")
             r0 = m.evaluate(ROWS)
-            ok(f"{T} 週期統計有「排序：N 月 ›」鈕（高 ≥ 40、字跟表頭亮的那個月一致），表頭 19px 格子手機不接觸控",
-               s0["h"] >= 40 and s0["on"] and s0["lab"] == f"排序：{s0['on']} 月 ›" and s0["headPe"] == "none", s0)
+            ok(f"{T} 週期統計有「排序：N 月 ›」鈕（高 ≥ 40、字跟表頭亮的那個月一致），表頭照樣可以點（次要入口，不准關成點不到）",
+               s0["h"] >= 40 and s0["on"] and s0["lab"] == f"排序：{s0['on']} 月 ›" and s0["headPe"] != "none", s0)
             tgt = 3 if s0["on"] != 3 else 5
             tap(m, "#mSeasonSort")
             sh = m.evaluate("""() => { const s = document.getElementById('mSheet'); return { open: !!s && !s.hidden, kind: s && s.dataset.kind,

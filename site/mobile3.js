@@ -788,7 +788,7 @@
      熱力圖上方那排 1～12 月表頭本來就能點（點哪個月＝依那個月由強到弱排），但 360～390 寬一格只有 19px、
      十二顆緊貼著排 —— 手指點「9」常常點到 8 或 10（手機按鈕普查：12 顆全部 < 40px）。
      手機改由一顆 40px 的「排序：9 月 ›」接手：點開底部抽屜，十二個月各一顆大鈕（3 欄 × 4 列、48px 高），
-     點一顆＝去按表頭同一顆（排序邏輯只有 app.js 那一份）。表頭照樣顯示目前依哪個月排，只是手機上不接觸控。*/
+     點一顆＝去按表頭同一顆（排序邏輯只有 app.js 那一份）。表頭照樣顯示目前依哪個月排、照樣可以點（次要入口）。*/
   function seasonSort(after) {
     let s = document.getElementById('mSeasonSort');
     const cur = () => { const on = document.querySelector('#seasonHeatHead button.on'); return on ? +on.dataset.m : null; };

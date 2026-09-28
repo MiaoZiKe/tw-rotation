@@ -422,9 +422,9 @@
   .mdgfolds b{flex:0 1 auto;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .mdgfolds i{flex:1 1 0;min-width:0;font-style:normal;font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* 週期統計：月份表頭（一格 19px）手機上只顯示目前依哪個月排，排序改由「排序：N 月 ›」（mobile3.js seasonSort）接手；
+  /* 週期統計：月份表頭一格只有 19px（12 欄塞進 360 寬，物理上到不了 40），手機的主要入口改成 40px 的「排序：N 月 ›」
+     （mobile3.js seasonSort）；表頭照樣可以點（不關掉：關掉的話手機按鈕普查會把它抓成「點不到」，而且點了沒反應比點歪更糟）。
      手機的篩選鈕（設定 · …／排序／資金流向篩選）36 → 40 */
-  body.m3on #seasonHeatHead button{pointer-events:none;cursor:default}
   body.m3on .mfilt{min-height:40px}
   body.m3on #mSeasonSort{display:block;margin:6px 0 0}
 
