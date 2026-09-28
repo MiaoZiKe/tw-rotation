@@ -35793,10 +35793,13 @@ def t_mobile_v4_2d(b, base, code):
             ok(f"{T} 產業地圖圖例每列高 ≥ 40", len(gl) >= 3 and all(h >= 40 for _, h, _o in gl), gl)
             first = next((n for n, _h, o in gl if not o), None)
             if first:
-                h0 = m.evaluate("() => location.hash")
-                tap(m, f'#gpLegend .lg[data-n="{first}"]'); m.wait_for_timeout(500)
-                ok(f"{T} 產業地圖圖例點一列（觸控）→ 真的換到那個族群", m.evaluate("() => location.hash") != h0,
-                   {"點": first, "前": h0, "後": m.evaluate("() => location.hash")})
+                # 點一列＝點那一塊扇形：同一頁往下鑽到那個族群的成分股（圖例整份換成個股）
+                NM = "() => [...document.querySelectorAll('#gpLegend .lg')].map(e => e.dataset.n).join('|')"
+                n0 = m.evaluate(NM)
+                c = tap(m, f'#gpLegend .lg[data-n="{first}"]'); m.wait_for_timeout(700)
+                n1 = m.evaluate(NM)
+                ok(f"{T} 產業地圖圖例點一列（觸控）→ 真的鑽進那個族群（圖例換成成分股）", bool(c) and c["hit"] and n1 and n1 != n0,
+                   {"點": first, "命中": c, "前": n0[:80], "後": n1[:80]})
             if W != 390:
                 continue
             # ---- ② 剖析圖章節鈕列（390）
