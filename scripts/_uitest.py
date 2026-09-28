@@ -14066,28 +14066,46 @@ def t_mobile_v3(b, base, code):
         m.keyboard.press("Escape"); m.wait_for_timeout(200)
         ok(f"{T} Esc 收回搜尋框", not m.evaluate("() => document.querySelector('.topbar').classList.contains('msearch')"))
 
-        # ---- #1 總覽：輪盤與焦點條同一屏；步驟列一列排完 ----
+        # ---- #1 總覽：輪盤整張同一屏、點一顆的說明框也在同一屏（#274 起沒有焦點條）；步驟列一列排完 ----
         R = """() => { const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: Math.round(b.top), b: Math.round(b.bottom), r: Math.round(b.right) }; };
             return { vh: innerHeight, vw: innerWidth, radar: r('#mRadarOv .mradar'), focus: r('#rotClockMiniWrap .mfocus'),
                      steps: [...document.querySelectorAll('.mspine>button')].map(b => Math.round(b.getBoundingClientRect().right)),
                      sel: (document.getElementById('mRadarOv') || {}).dataset?.sel || '',
                      focusId: (document.querySelector('#rotClockMiniWrap .mfocus') || {}).dataset?.focus || '',
+                     pop: (document.getElementById('mOvPop') || {}).hidden === false ? r('#mOvPop') : null,
+                     popId: (document.getElementById('mOvPop') || {}).dataset?.gid || '',
+                     popHit: (() => { const p = document.getElementById('mOvPop'); if (!p || p.hidden) return null; const b = p.getBoundingClientRect();
+                         const a = document.elementFromPoint(b.left + b.width / 2, b.top + 6), z = document.elementFromPoint(b.left + b.width / 2, b.bottom - 6);
+                         return !!(a && a.closest('#mOvPop')) && !!(z && z.closest('#mOvPop')); })(),   // 框頂框底真的看得到（沒被四步列／導覽蓋住）
                      shown: +((document.getElementById('mRadarOv') || {}).dataset?.shown || 0),
                      dots: document.querySelectorAll('#mRadarOv svg g[data-g]').length }; }"""
         r0 = m.evaluate(R)
-        ok(f"{T} #1 總覽：輪盤與焦點條都在一屏內（bottom ≤ {r0['vh'] - 58}）",
-           r0["radar"] and r0["focus"] and r0["focus"]["b"] <= r0["vh"] - 58 and r0["radar"]["t"] >= 52, r0)
+        # ★ 2026-09-29（mobile-onescreen-fix）：總覽輪盤的焦點條是 DECISIONS #274 **刻意拿掉**的（Andy：「homepage wheel dots only,
+        #   popover beside the dot」），關鍵數字改成「點一顆 → 點旁說明框 #mOvPop」。所以 #1／#2 改驗新設計：
+        #   #1 一進來輪盤整張在一屏內、預設不選任何一顆（沒有框、盤面乾淨）；
+        #   #2 點盤上**每一顆**都量一次說明框 —— 框是那一顆、而且整個框夾在頂欄（52）與底部導覽之間（一屏看完一件事）。
+        ok(f"{T} #1 總覽：輪盤整張在一屏內（bottom ≤ {r0['vh'] - 58}）",
+           bool(r0["radar"]) and r0["radar"]["b"] <= r0["vh"] - 58 and r0["radar"]["t"] >= 52, r0)
         ok(f"{T} #1 步驟列每一格都在畫面內（四步一次看得到）", r0["steps"] and max(r0["steps"]) <= r0["vw"], r0["steps"])
-        ok(f"{T} #1 焦點條預設就有人（佔比第一名，不留空）", bool(r0["focusId"]), r0)
-        # ---- #2 點輪盤上第 3 顆點 → 焦點條換人 ----
-        pt = m.evaluate("""() => { const g = document.querySelectorAll('#mRadarOv svg g[data-g]')[2]; if (!g) return null;
-            const c = g.querySelectorAll('circle')[1].getBoundingClientRect(); return { x: c.left + c.width / 2, y: c.top + c.height / 2, id: g.dataset.g }; }""")
-        if pt:
-            m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(400)
-            r1 = m.evaluate(R)
-            ok(f"{T} #2 點輪盤上一顆點 → 焦點條換成那一顆", r1["focusId"] == r1["sel"] and r1["focusId"] != r0["focusId"], {"before": r0["focusId"], "after": r1["focusId"], "tapped": pt["id"]})
-        else:
-            ok(f"{T} #2 輪盤上至少有 3 顆點", False, r0)
+        ok(f"{T} #1 預設不選任何一顆（#274：沒點就沒有說明框、盤上沒有圈）、也沒有已拿掉的焦點條",
+           r0["sel"] == "" and not r0["pop"] and r0["focus"] is None and r0["dots"] > 0, r0)
+        # ---- #2 點輪盤上每一顆 → 說明框換成那一顆、整個框在一屏內 ----
+        pts = m.evaluate("""() => [...document.querySelectorAll('#mRadarOv svg g[data-g]')].map(g => { const c = g.querySelectorAll('circle')[1].getBoundingClientRect();
+            return { x: c.left + c.width / 2, y: c.top + c.height / 2, id: g.dataset.g }; })""") or []
+        if ok(f"{T} #2 輪盤上至少有 3 顆點", len(pts) >= 3, len(pts)):
+            bad, seen = [], 0
+            for pt in pts:
+                m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(350)
+                r1 = m.evaluate(R)
+                p = r1["pop"]
+                if not p or r1["popId"] != pt["id"] or r1["sel"] != pt["id"]:
+                    bad.append({"id": pt["id"], "why": "框沒開或不是這一顆", "pop": p, "popId": r1["popId"], "sel": r1["sel"]})
+                else:
+                    seen += 1
+                    if p["t"] < 52 or p["b"] > r1["vh"] - 58 or not r1["popHit"]:
+                        bad.append({"id": pt["id"], "why": "框出了一屏或被蓋住", "pop": p, "hit": r1["popHit"], "vh": r1["vh"]})
+                if p: m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(250)     # 再點同一顆＝收框（#274：再點同一顆關）
+            ok(f"{T} #2 點盤上每一顆（{len(pts)} 顆）→ 說明框換成那一顆、整個框在頂欄與底部導覽之間、框頂框底沒被四步列或導覽蓋住", not bad and seen == len(pts), bad[:3])
         # ---- #3 點角落「改善」→ 點數變少；再點還原 ----
         m.tap('#mRadarOv .mqb[data-quad="improving"]'); m.wait_for_timeout(400)
         r2 = m.evaluate(R)
@@ -14099,9 +14117,20 @@ def t_mobile_v3(b, base, code):
         q = m.evaluate("""() => { const p = document.getElementById('howPop'), b = document.querySelector('#ovRotHead .howbtn');
             if (!p || p.hidden) return { open: false };
             const pr = p.getBoundingClientRect(), br = b.getBoundingClientRect();
-            return { open: true, below: Math.round(pr.top - br.bottom), l: Math.round(pr.left), r: Math.round(innerWidth - pr.right),
+            return { open: true, below: Math.round(pr.top - br.bottom), above: Math.round(br.top - pr.bottom), l: Math.round(pr.left), r: Math.round(innerWidth - pr.right),
+                     pt: Math.round(pr.top), pb: Math.round(pr.bottom), vh: innerHeight, sh: p.scrollHeight, ch: p.clientHeight, more: p.dataset.scroll || '',
                      fold: [...p.querySelectorAll('button')].some(x => /收起/.test(x.textContent)), q: Math.round(br.width) }; }""")
-        ok(f"{T} #4 點「?」→ 氣泡開在「?」正下方、左右各留 12px", q["open"] and 0 <= q.get("below", -1) <= 16 and q.get("l") == 12 and q.get("r") == 12, q)
+        # ★ 2026-09-29（mobile-onescreen-fix）：規格 R2 是「正下方，下面放不下就翻到上面」—— 360×780 這顆「?」在 377～409，
+        #   說明 332px 高、下面只剩 297，翻上去是**照規格**，不是壞掉。真的壞的是：上面也只剩 309，翻上去夾在 60 之後框底到 392，
+        #   **蓋住「?」本身 15px**。所以這一條改驗：緊貼「?」（正下方或正上方 0～16px）、不蓋住「?」、整個框在頂欄與底部導覽之間。
+        ok(f"{T} #4 點「?」→ 氣泡緊貼「?」（正下方，放不下才翻到正上方，0～16px）、不蓋住「?」、左右各留 12px、上下都不出界",
+           q["open"] and (0 <= q.get("below", -1) <= 16 or 0 <= q.get("above", -1) <= 16) and q.get("l") == 12 and q.get("r") == 12
+           and q.get("pt", 0) >= 52 and q.get("pb", 9999) <= q.get("vh", 0) - 58, q)
+        if q.get("open") and q.get("sh", 0) > q.get("ch", 0) + 1:
+            # 框被限高、內容在框裡捲：底部淡出提示要亮著，而且真的捲得動、捲到底提示收掉（內容沒有被砍）
+            m.evaluate("() => { const p = document.getElementById('howPop'); p.scrollTop = p.scrollHeight; }"); m.wait_for_timeout(200)
+            q2 = m.evaluate("() => { const p = document.getElementById('howPop'); return { st: Math.round(p.scrollTop), more: p.dataset.scroll || '' }; }")
+            ok(f"{T} #4 氣泡被限高時：底部淡出提示亮著 → 捲到底真的捲得動、提示收掉", q["more"] == "1" and q2["st"] > 0 and q2["more"] == "0", {"before": q["more"], **q2})
         ok(f"{T} #4 「?」本身 32px、氣泡裡沒有「收起」鈕", q.get("q") == 32 and not q.get("fold"), q)
         m.touchscreen.tap(5, H / 2); m.wait_for_timeout(300)          # 氣泡左右各留 12px：點最左邊那條縫＝點背景
         ok(f"{T} #4 點背景 → 氣泡關掉", m.evaluate("() => { const p = document.getElementById('howPop'); return !p || p.hidden; }"))
@@ -29788,7 +29817,12 @@ def t_mobile_oneview(b, base, code):
     # （路由, 名字, 主圖, 關鍵數字, 要不要先點某一步）
     CASES = [
         # ★ 手機 v3：足跡輪盤換成新雷達（#mRadarOv／#mRadarFlow），關鍵數字＝焦點條（.mfocus）
-        ("overview", "總覽 足跡輪盤（第①步）", "#mRadarOv", "#rotClockMiniWrap .mfocus", None),
+        # ★ 2026-09-29（mobile-onescreen-fix）：總覽那一張的焦點條是 DECISIONS #274 **刻意拿掉**的
+        #   （Andy：「homepage wheel dots only, popover beside the dot」；mobile3.js ovRadar 註解寫明「圖下方的焦點條拿掉」），
+        #   關鍵數字改住在「點一顆 → 點旁說明框 #mOvPop」。所以這一條改成：捲好之後**真的點盤上最下面那一顆**
+        #   （框往下長最容易出界的那一顆），再量說明框。step="tapdot" 是這一條專用的動作。
+        #   資金流向那一張（flowRot）的焦點條還在，照舊驗 .mfocus。
+        ("overview", "總覽 足跡輪盤（第①步）", "#mRadarOv", "#mOvPop", "tapdot"),
         ("flow", "資金流向 足跡輪盤", "#mRadarFlow", "#flowRotCard .mfocus", None),
         ("industry", "產業地圖 族群漲跌長條", "#gpBar", "#gpNote", None),
         # ★ 2026-09-27 手機個股券商式：現價改住在頂部固定報價列（#mbQuote），舊的 #skPx 在手機藏起來
@@ -29802,7 +29836,7 @@ def t_mobile_oneview(b, base, code):
     ]
     for route, name, cs, ks, step in CASES:
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(3000)
-        if step is not None:
+        if isinstance(step, int):
             m.evaluate("(i) => { const b = document.querySelectorAll('.mspine>button')[i]; if (b) b.click(); }", step)
             m.wait_for_timeout(1200)
         r0 = m.evaluate(RECT, [cs, ks])
@@ -29810,12 +29844,23 @@ def t_mobile_oneview(b, base, code):
         # 捲到主圖的頂端（留 132px 給頂欄與分段列）
         m.evaluate("(sel) => { const e = document.querySelector(sel); if (e) window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 132 }); }", cs)
         m.wait_for_timeout(500)
+        if step == "tapdot":
+            # 點盤上最下面那一顆（說明框往下長、最容易被底部導覽蓋住的那一顆）
+            pt = m.evaluate("""() => { const d = [...document.querySelectorAll('#mRadarOv svg g[data-g]')].map(g => { const c = g.querySelectorAll('circle')[1].getBoundingClientRect();
+                return { x: c.left + c.width / 2, y: c.top + c.height / 2, id: g.dataset.g }; }).sort((a, b) => b.y - a.y); return d[0] || null; }""")
+            if pt: m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(500)
         r = m.evaluate(RECT, [cs, ks])
         vis = r["vh"] - 58                        # 扣掉底部導覽（手機 v3：一列 58px；改版前兩列 102px）
         ok(f"[390px 一屏] {name}：主圖整張在可視範圍內（{vis}px）",
            r["c"]["t"] >= -4 and r["c"]["b"] <= vis + 4, r)
-        ok(f"[390px 一屏] {name}：關鍵數字**同時**看得到（改版前個股頁相隔 1087px）",
-           bool(r["k"]) and 0 < r["k"]["b"] <= vis, r)
+        if step == "tapdot":
+            kv = m.evaluate("() => { const p = document.getElementById('mOvPop'); return !!p && !p.hidden; }")
+            ok(f"[390px 一屏] {name}：點盤上最下面那一顆 → 點旁說明框打開，而且整個框在頂欄與底部導覽之間（關鍵數字跟圖同一屏）",
+               kv and bool(r["k"]) and r["k"]["t"] >= 52 and 0 < r["k"]["b"] <= vis, r)
+            m.touchscreen.tap(8, 70); m.wait_for_timeout(300)
+        else:
+            ok(f"[390px 一屏] {name}：關鍵數字**同時**看得到（改版前個股頁相隔 1087px）",
+               bool(r["k"]) and 0 < r["k"]["b"] <= vis, r)
         ok(f"[390px 一屏] {name}：沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
 
     # 個股頁的價格列是「釘住」的：捲到圖的最底下，它還要在畫面上
@@ -37495,7 +37540,7 @@ def t_mobile_home(b, base, code):
         ls: (() => { try { const o = JSON.parse(localStorage.getItem('tw.watchlists')); const c = localStorage.getItem('tw.watchcur'); const t = o.tabs.find(x => x.id === c) || o.tabs[0]; return JSON.stringify(t.codes); } catch (e) { return null; } })(), edit: (document.getElementById('mbWEdit') || {}).textContent || '' }) """
     w0 = m.evaluate(W)
     ok(f"{T}觀察清單一開始是空的：清單列不佔位、只有指數列右邊一顆「＋ 觀察」（≥ 44×44）", w0["n"] == 0 and w0["hidden"] and w0["add"] >= 44 and w0["addW"] >= 44, w0)
-    ok(f"{T}清單空的時候整塊 ≤ 72px（第①步的輪盤＋焦點條要留在第一屏）", 0 < w0["homeH"] <= 72, w0["homeH"])
+    ok(f"{T}清單空的時候整塊 ≤ 72px（第①步的輪盤要留在第一屏）", 0 < w0["homeH"] <= 72, w0["homeH"])
     m.tap("#mbWAdd"); m.wait_for_timeout(500)
     m.fill("#mbWQ", "2344"); m.wait_for_timeout(400)
     res = m.evaluate("() => [...document.querySelectorAll('#mbWRes button[data-c]')].map(b => b.dataset.c)")
@@ -37509,10 +37554,25 @@ def t_mobile_home(b, base, code):
     w1 = m.evaluate(W)
     ok(f"{T}加入兩檔 → 清單真的出現兩格（華邦電、台積電）", w1["codes"] == ["2344", "2330"] and "華邦電" in w1["names"] and not w1["hidden"], w1)
     ok(f"{T}有清單時整塊 ≤ 124px（指數列＋一列清單）", 0 < w1["homeH"] <= 124, w1["homeH"])
-    # 有清單時，第①步的輪盤與焦點條仍在第一屏（跟「手機v3」#1 同一條量法）
-    rf = m.evaluate("""() => { const r = document.getElementById('mRadarOv'), f = document.querySelector('#rotClockMiniWrap .mfocus');
-        return { r: r ? Math.round(r.getBoundingClientRect().bottom) : null, f: f ? Math.round(f.getBoundingClientRect().bottom) : null, vh: innerHeight }; }""")
-    ok(f"{T}有兩檔觀察時，輪盤＋焦點條還在第一屏（底 ≤ {rf['vh'] - 58}）", rf["f"] is not None and rf["f"] <= rf["vh"] - 58, rf)
+    # 有清單時，第①步的輪盤仍在第一屏（跟「手機v3」#1 同一條量法）
+    # ★ 2026-09-29（mobile-onescreen-fix）：焦點條是 DECISIONS #274 刻意拿掉的（總覽輪盤只留點、點一顆出點旁說明框 #mOvPop），
+    #   所以改量「輪盤整張」＋「點盤上最下面那一顆之後，說明框整個在頂欄與底部導覽之間」。
+    RF = """() => { const r = document.querySelector('#mRadarOv .mradar'), p = document.getElementById('mOvPop');
+        const pr = p && !p.hidden ? p.getBoundingClientRect() : null;
+        return { r: r ? Math.round(r.getBoundingClientRect().bottom) : null, t: r ? Math.round(r.getBoundingClientRect().top) : null,
+                 pt: pr ? Math.round(pr.top) : null, pb: pr ? Math.round(pr.bottom) : null, vh: innerHeight, sy: Math.round(scrollY) }; }"""
+    rf = m.evaluate(RF)
+    ok(f"{T}有兩檔觀察時，輪盤整張還在第一屏（底 ≤ {rf['vh'] - 58}）", rf["r"] is not None and rf["t"] >= 52 and rf["r"] <= rf["vh"] - 58, rf)
+    low = m.evaluate("""() => { const d = [...document.querySelectorAll('#mRadarOv svg g[data-g]')].map(g => { const c = g.querySelectorAll('circle')[1].getBoundingClientRect();
+        return { x: c.left + c.width / 2, y: c.top + c.height / 2 }; }).sort((a, b) => b.y - a.y); return d[0] || null; }""")
+    if low:
+        m.touchscreen.tap(low["x"], low["y"]); m.wait_for_timeout(450)
+        rp = m.evaluate(RF)
+        ok(f"{T}有兩檔觀察時，點輪盤最下面那一顆 → 說明框整個在第一屏（{rp['pt']}～{rp['pb']}，可用 52～{rp['vh'] - 58}）",
+           rp["pb"] is not None and rp["pt"] >= 52 and rp["pb"] <= rp["vh"] - 58 and rp["sy"] == rf["sy"], rp)
+        m.touchscreen.tap(8, 70); m.wait_for_timeout(300)
+    else:
+        ok(f"{T}有兩檔觀察時，輪盤上有點（前提）", False, rf)
     ok(f"{T}自選清單只存代號（每頁只有 id／名字／代號，沒有張數或成本）", json.loads(w1["ls"] or "null") == ["2344", "2330"]
        and m.evaluate("() => JSON.parse(localStorage.getItem('tw.watchlists')).tabs.every(t => Object.keys(t).sort().join() === 'codes,id,name')"), w1["ls"])
     m.reload(wait_until="networkidle")
