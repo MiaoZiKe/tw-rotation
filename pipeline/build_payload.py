@@ -1162,14 +1162,14 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         page = {
             "meta": meta, "as_of": latest, "version": 3,
             "daily": bars, "intraday": {}, "mtf": {"tf": {}, "summary": {}},
-            "marks": {}, "verdict": {"verdict": "資料回補中", "grade": None, "reasons": []},
+            "marks": {}, "verdict": {"verdict": "資料準備中", "grade": None, "reasons": []},
             "summary": {**{k: meta[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
                         "close": close, "chg_pct": _chg(code, close),
                         "turnover": _cell(day_one, code, "turnover"),
                         "pe": _cell(val_one, code, "pe"),
                         "trust_net": _cell(inst_one, code, "trust"),
                         "foreign_net": _cell(inst_one, code, "foreign_total"),
-                        "tech_score": None, "verdict": "資料回補中", "grade": None},
+                        "tech_score": None, "verdict": "資料準備中", "grade": None},
             "basics": _clean(stockpage.basics(deep.get("company"), code)),
             "month_season": _clean(stockpage.monthly_seasonality(g if g is not None else EMPTY, code, 15)),
             "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)) if code in has["revenue"] else {},
@@ -1194,7 +1194,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             #   而且它不依賴價量歷史，所以簡版頁照樣有東西可看，
             #   正好對上「不可以出現沒有資訊的頁面」那條要求。
             "material_news": mops_by_code.get(code, []),
-            "note": f"歷史價量還在回補（目前只有 {len(bars)} 個交易日），技術面與多週期判讀等資料補齊後才會出現。",
+            "note": f"歷史價量資料準備中（目前只有 {len(bars)} 個交易日），技術面與多週期判讀等資料足夠後才會出現。",   # 2026-09-28 讀者語言：不寫「回補」
         }
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False), encoding="utf-8")
 

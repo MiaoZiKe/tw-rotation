@@ -353,7 +353,7 @@ def main() -> int:
         st["overlaps"] = pg.evaluate(OVERLAP_JS); state["stock"] = st
         pg.screenshot(path=str(out / "v3_stock.png"), full_page=True)
         # 切分頁與週期
-        for tab in ("revenue", "profit", "dividend", "chips", "basics", "news"):
+        for tab in ("revenue", "profit", "dividend", "inst", "margin", "holders", "basics", "news"):   # 2026-09-28 籌碼拆三頁
             pg.evaluate(f"document.querySelector('#stockTabs button[data-t=\"{tab}\"]').click()"); pg.wait_for_timeout(500)
             state["tab_" + tab] = pg.evaluate("({ canvases: document.querySelectorAll('#stockTab canvas').length, text: document.getElementById('stockTab').innerText.length, empties: Array.from(document.querySelectorAll('#stockTab .empty')).map(e => e.textContent.trim().slice(0,30)) })")
             pg.screenshot(path=str(out / f"v3_tab_{tab}.png"), full_page=False)
