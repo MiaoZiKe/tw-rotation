@@ -35747,6 +35747,7 @@ def _ov_fix_0926b_body(pg, base, code):
         if not ok(f"{tag} 桌機輪盤畫得出來（前提）", pg.evaluate("() => !!echarts.getInstanceByDom(document.getElementById('rotClockMini'))")):
             continue
         for pick in ("high", "low"):
+            settle_scroll(pg)          # 上一輪說明框可能觸發了 smooth 捲動；停下來才量基準與點座標
             m0 = pg.evaluate(MEAS)
             d = pg.evaluate(DOT, pick)
             if not ok(f"{tag} 算得出輪盤上{'上' if pick == 'high' else '下'}半部一顆族群點", bool(d), d):
@@ -35766,11 +35767,20 @@ def _ov_fix_0926b_body(pg, base, code):
                    p["pos"] == "absolute" and near <= 40 and not inside and p["at"] in ("right", "left", "above", "below"), (p, d, near))
                 ok(f"{tag} 面板整張在畫面內（放完會捲到看得到）", p["inView"], p)
             # 收起來的三種方式
+            # ★ 2026-09-28 收尾：說明框放完若超出畫面，ovRotPop 會 smooth 捲到看得到（上面「整張在畫面內」驗的就是這件事）——
+            #   頁面一捲，剛剛量的點座標就過期了。改前直接拿舊座標再點：點到盤面空白＝「點外面」一樣會關（假綠），
+            #   第三次再點空白就打不開（1024 寬兩輪各紅一次，位置不同）。改成等捲動停下、重量同一顆再點。
+            def redot(gid):
+                settle_scroll(pg)
+                ds_all = pg.evaluate(DOT.replace("return pick === 'low' ? ds[ds.length - 1] : ds[0]; }", "return ds; }"), pick) or []
+                return next((x for x in ds_all if x["gid"] == gid), d)
             if pick == "high":
-                pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(700)
+                d2 = redot(d["gid"])
+                pg.mouse.click(d2["x"], d2["y"]); pg.wait_for_timeout(700)
                 ok(f"★ {tag} 再點一次同一顆 → 面板收起來", not pg.evaluate(PANEL)["open"])
-                pg.mouse.click(d["x"], d["y"]); pg.wait_for_timeout(700)
-                ok(f"{tag} 第三次點 → 又打開（收／開可以來回）", pg.evaluate(PANEL)["open"])
+                d2 = redot(d["gid"])
+                pg.mouse.click(d2["x"], d2["y"]); pg.wait_for_timeout(700)
+                ok(f"{tag} 第三次點 → 又打開（收／開可以來回）", pg.evaluate(PANEL)["open"], (d, d2))
                 pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
                 ok(f"{tag} 按 Esc → 面板收起來", not pg.evaluate(PANEL)["open"])
             else:
@@ -36531,6 +36541,10 @@ def t_wheel_watch_0928(b, base, code):
             ok(f"{tag} ② 說明框有成分股連結（到個股頁）與進族群頁", len(p["stocks"]) >= 1 and p["go"] == f"#industry/group/{d0['gid']}", p)
             ok(f"{tag} ② 說明框裡沒有「點一下看成分股」", "看成分股" not in p["txt"], p["txt"])
             ok(f"{tag} ② 說明框整塊在畫面寬度內", p["l"] >= 0 and p["r"] <= p["iw"] + 1, p)
+            # ★ 2026-09-28 收尾：站上會自己派「假的」resize（大盤三張圖每畫一次派一次）—— 改前框一律被收，
+            #   1024 寬實測「點了閃一下就不見、再點反而打開」。視窗沒變就不能收。
+            pg.evaluate("() => window.dispatchEvent(new Event('resize'))"); pg.wait_for_timeout(300)
+            ok(f"★ {tag} ② 別的圖派的 resize（視窗沒變）→ 說明框還開著", pg.evaluate(POP)["open"])
         # 點另一顆 → 換成那一顆（挑一顆沒被框蓋住的：被框蓋住的那幾顆，點下去點到的是框本身，這是覆蓋卡的本質不是 bug）
         if p["open"]:
             free = [d for d in ds if d["gid"] != d0["gid"] and not (p["l"] - 8 <= d["x"] <= p["r"] + 8 and p["t"] - 8 <= d["y"] <= p["b"] + 8)]

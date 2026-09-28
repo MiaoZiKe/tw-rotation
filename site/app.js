@@ -3374,6 +3374,7 @@
       + `<a class="rp-go" href="#industry/group/${encodeURIComponent(r.gid)}">進族群頁 →</a>`;
     box.dataset.gid = r.gid;
     box.hidden = false;
+    box._vw = window.innerWidth; box._vh = window.innerHeight;     // 下面 resize 監聽用：視窗真的變了才收
     const card = box.offsetParent; if (!card) return;
     const cr = card.getBoundingClientRect(), er = chartEl.getBoundingClientRect();
     const wrap = chartEl.parentNode, wr = (wrap || chartEl).getBoundingClientRect();
@@ -3399,7 +3400,15 @@
     });
   }
   // 視窗大小一變，圓圈的位置就跟著變，說明框留在原地會指錯顆 —— 直接收起來
-  window.addEventListener('resize', () => { const b = document.getElementById('ovRotPop'); if (b && !b.hidden) b.hidden = true; });
+  /* ★ 2026-09-28（wheel-watch 收尾）：只在視窗**真的變大小**時收。
+     改前：任何 resize 事件都收 —— 但站上有好幾處自己派「假的」resize（market3.js 大盤三張圖每畫一次就派一次、
+     手機換段也派），視窗根本沒變。實測 1024 寬：點一顆 → 框打開 → 150ms 後大盤圖重畫派了一次 resize → 框被收掉，
+     使用者看到的是「點了閃一下就不見」，再點一次反而變成「打開」，開關整個錯拍。
+     所以打開時記下視窗寬高，事件來了比一下，一樣就不動。*/
+  window.addEventListener('resize', () => {
+    const b = document.getElementById('ovRotPop');
+    if (b && !b.hidden && (b._vw !== window.innerWidth || b._vh !== window.innerHeight)) b.hidden = true;
+  });
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
