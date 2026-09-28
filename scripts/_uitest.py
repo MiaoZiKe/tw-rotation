@@ -35863,7 +35863,7 @@ def t_mobile_v4_2d(b, base, code):
             ok(f"{T} 點「排序」→ 底部抽屜打開、12 個月各一顆、每顆高 ≥ 40", sh["open"] and sh["kind"] == "seasonsort" and sh["n"] == 12 and sh["minH"] >= 40, sh)
             tap(m, f'#mSheet .mballgrid button[data-m="{tgt}"]'); m.wait_for_timeout(500)
             s1 = m.evaluate("""() => { const s = document.getElementById('mSeasonSort'), on = document.querySelector('#seasonHeatHead button.on');
-                return { lab: s && s.textContent, on: on ? +on.dataset.m : null, sheet: document.getElementById('mSheet').hidden }; }""")
+                return { lab: s && s.textContent, on: on ? +on.dataset.m : null, sheet: (document.getElementById('mSheet') || { hidden: true }).hidden }; }""")
             r1 = m.evaluate(ROWS)
             ok(f"{T} 抽屜點「{tgt} 月」→ 抽屜收起、表頭改亮 {tgt} 月、鈕字跟著換、熱力圖的族群順序真的變了",
                s1["on"] == tgt and s1["lab"] == f"排序：{tgt} 月 ›" and s1["sheet"] and r1 and r1 != r0, {"前": s0, "後": s1, "列順序變了": r1 != r0})
