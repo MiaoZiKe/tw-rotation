@@ -384,7 +384,7 @@
     /* 互動（docs/ui_polish_spec.md §7.2：hover 只准改顏色，不准位移／放大）：
        滑過卡片 → 圖示提亮一階、底圓浮出；可填色的圖示再填一層淡色。120ms。 */
     '@media (hover:hover){',
-    ':is(.card,.m3-card,.gpcard,aside):hover .ticon{color:color-mix(in srgb,var(--tc) 80%,var(--ink,#fff))}',
+    ':is(.card,.m3-card,.gpcard,aside):hover .ticon{color:color-mix(in srgb,var(--tc) 80%,var(--ink))}',
     ':is(.card,.m3-card,.gpcard,aside):hover .ticon::before{background:color-mix(in srgb,var(--tc) 18%,transparent)}',
     ':is(.card,.m3-card,.gpcard,aside):hover .ticon:is([data-k="heart"],[data-k="pie"],[data-k="star"],[data-k="coins"]) svg{fill:color-mix(in srgb,var(--tc) 22%,transparent)}',
     '}',
