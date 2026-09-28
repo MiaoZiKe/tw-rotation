@@ -22972,27 +22972,21 @@
     "divresult@2009-01-01:8021": true,
     "dividend@2009-01-01:2363": true
   },
-  "updated_at": "2026-09-28T05:37:51.521209+00:00",
+  "updated_at": "2026-09-28T06:03:42.866596+00:00",
   "complete": {
     "balance+financial+revenue": {
-      "done": true,
-      "at": "2026-09-28T05:33:20.155616+00:00",
+      "done": false,
+      "at": "2026-09-28T06:03:42.853790+00:00",
       "codes": 500
     },
     "plan:default": {
       "done": false,
-      "at": "2026-09-28T05:37:51.521192+00:00",
+      "at": "2026-09-28T06:03:42.866578+00:00",
       "month": "2026-09",
       "steps": {
-        "balance+financial+revenue": true,
-        "dividend+divresult": true,
-        "holding+margin@2021-01-01": true,
-        "price@2000-01-01": true,
-        "inst@market": true,
-        "daytrade+sbl@2025-01-01@market": true,
-        "dividend+divresult@2009-01-01@market": false
+        "balance+financial+revenue": false
       },
-      "stopped_at": "dividend+divresult@2009-01-01@market"
+      "stopped_at": "balance+financial+revenue"
     },
     "index_ohlc": {
       "done": true,
@@ -23022,14 +23016,19 @@
     },
     "index_intraday": {
       "fut_left": 60,
-      "at": "2026-09-25T13:26:18.498858+00:00",
+      "at": "2026-09-28T06:03:42.387055+00:00",
       "kbar_v": 1,
       "tick_unavailable": "TaiwanFuturesTick 400 Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
       "fut_unavailable": "TaiwanFuturesKBar 400 Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
       "otc_unavailable": "TaiwanStockKBar 400 Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
-      "yahoo_v": 2,
+      "yahoo_v": 3,
+      "tse1m_v": 1,
       "yahoo": true,
-      "done": true
+      "tse1m_empty": {
+        "2026-07-01": 1
+      },
+      "tse1m_left": 423,
+      "done": false
     },
     "company_website": {
       "done": true,
@@ -23096,7 +23095,7 @@
   },
   "finmind_health": {
     "ok": true,
-    "at": "2026-09-28T05:33:15.541963+00:00",
+    "at": "2026-09-28T06:03:06.880473+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-09-18",
     "detail": ""
   },
