@@ -742,19 +742,19 @@
     if (document.getElementById('liveTgCss')) return;
     const st = document.createElement('style');
     st.id = 'liveTgCss';
-    /* 顏色一律走主題變數（v4 三主題 × 深淺自動換色）；字級 ≥ 11px（手機驗收的下限）。*/
+    /* 顏色一律走主題變數（v4 三主題 × 深淺自動換色）；字級 ≥ 12px（手機v3 驗收的下限）。*/
     st.textContent = `
 .livetg{display:inline-flex;align-items:center;gap:5px;flex:none;vertical-align:middle;margin-left:8px;white-space:nowrap}
 .livetg-b{font:inherit;font-size:12px;line-height:1;min-height:24px;padding:0 9px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .livetg-b::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.45}
 .livetg-b[aria-pressed="true"]{border-color:var(--rise);color:var(--rise)}
 .livetg-b[aria-pressed="true"]::before{opacity:1}
-.livetg-t{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.livetg-t{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .livetg.bad .livetg-t,.livetg.stale .livetg-t{color:var(--amber,var(--ink-2))}
 .livetg.mb{margin:0;align-self:stretch}
 .livetg.mb .livetg-b{flex-direction:column;justify-content:center;gap:2px;border-radius:0;border:0;border-left:1px solid var(--line);min-height:44px;padding:0 8px;font-size:12px}
 .livetg.mb .livetg-b::before{display:none}
-.livetg.mb .livetg-t{font-size:11px}
+.livetg.mb .livetg-t{font-size:12px}
 .livetg.mb .livetg-b[aria-pressed="true"] .livetg-l::before{content:'● '}
 `;
     document.head.appendChild(st);
