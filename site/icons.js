@@ -332,7 +332,10 @@
       h.setAttribute('data-ti-fit', 'gap');
       if (p.getBoundingClientRect().height > h0 + 1) {
         h.style.columnGap = ''; p.style.columnGap = ''; fixGap(h, sp);
-        h.style.maxWidth = Math.ceil(w0) + 'px'; h.setAttribute('data-ti-fit', 'pin');
+        /* 釘寬只給「有副標」的標題：副標換到第二行讀起來自然；沒有副標的短標題（例：漲跌家數 ?）釘寬會把標題本身拆成兩行，
+           不如讓右邊的篩選器照常換到下一行（data-ti-fit="wrap" 只是標記，給驗收與逐寬度比對看） */
+        if (h.querySelector('small')) { h.style.maxWidth = Math.ceil(w0) + 'px'; h.setAttribute('data-ti-fit', 'pin'); }
+        else h.setAttribute('data-ti-fit', 'wrap');
       }
     }
     h._tiFit = fitKey(h, p);
