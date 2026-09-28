@@ -1643,10 +1643,17 @@
       $('#mbIdx', home).addEventListener('scroll', () => hmDots(), { passive: true });
     }
     if (view.firstElementChild !== home) view.insertBefore(home, view.firstChild);
+    /* ★ 2026-09-28（Andy：總覽摘要卡列「在手機上放在指數列下面，可以橫向滑動，高度要小」）：
+       摘要卡列（#hero，app.js renderOvSummary）緊貼在 #mbHome 後面 —— 在四步導覽列之前，不管切到第幾步都看得到。
+       它不參與分段（modules.js 的 market.kpi 沒有 seg），高度由 index.html 的 @container ovsum (max-width:560px) 壓矮。*/
+    const hmSum = () => { const h = document.getElementById('mbHome'), s = document.getElementById('hero');
+      if (h && s && h.parentElement === view && h.nextElementSibling !== s) h.after(s); };
+    hmSum();
     /* app.js 的分段導覽（.mspine／.mpager）是在路由畫完之後才插到 #v-overview 最前面，可能比這裡晚 ——
-       盯著 #v-overview 的子節點，誰擠到前面就把 #mbHome 放回第一個（放回去那一次不會再觸發條件，不會迴圈）。*/
+       盯著 #v-overview 的子節點，誰擠到前面就把 #mbHome 放回第一個（放回去那一次不會再觸發條件，不會迴圈）。
+       摘要卡列同理：被擠開就放回 #mbHome 後面（條件成立才搬，搬完條件就不成立，不會迴圈）。*/
     if (!HM.mo && window.MutationObserver) {
-      HM.mo = new MutationObserver(() => { const h = document.getElementById('mbHome'); if (h && h.parentElement === view && view.firstElementChild !== h) view.insertBefore(h, view.firstChild); });
+      HM.mo = new MutationObserver(() => { const h = document.getElementById('mbHome'); if (h && h.parentElement === view && view.firstElementChild !== h) view.insertBefore(h, view.firstChild); hmSum(); });
       HM.mo.observe(view, { childList: true });
     }
     /* 第一次跑可能比 app.js 早（window.App 還沒好）：資料沒畫上去就等一下再試 */

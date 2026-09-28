@@ -123,13 +123,13 @@
       ],
       "tests": ["大盤三張圖", "新-大盤三張圖", "夜盤真實fixture", "夜盤推送"] },
 
-    { "id": "market.kpi", "name": "大盤 KPI 橫條", "question": "②", "ask": "今天大盤的體質（加權／成交值／漲跌家數／前五族群佔比）",
+    { "id": "market.kpi", "name": "總覽摘要卡列", "question": "②", "ask": "今天盤面一眼看完（漲跌家數、資金輪盤四段、資金去向、熱門題材），點卡片到對應的大圖",
       "tier": "免費", "law": "🟢",
       "at": [
-        { "page": "overview", "step": 2, "seg": "大盤", "ord": 50, "selector": ["#hero"],
-          "note": "2026-09-24：六格收成四格（拿掉今日候選、站上 MA20），搬到三張走勢圖上方做成一條 ≤64px 的橫條。2026-09-26：桌機（>640px）整條搬進大盤三張圖的工具列（#m3Kpis，market3.js placeKpi），手機維持原位；選擇器仍是 #hero。" }
+        { "page": "overview", "selector": ["#hero"],
+          "note": "2026-09-24：六格收成四格，搬到三張走勢圖上方。2026-09-26：桌機（>640px）整條搬進大盤三張圖的工具列（#m3Kpis，market3.js placeKpi）。2026-09-28（Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉」）：KPI 細列換成四張摘要卡（app.js renderOvSummary）；手機由 mobile3.js 放在指數列正下方，刻意不給 seg ＝ 不參與分段導覽、每一步都看得到。選擇器仍是 #hero。" }
       ],
-      "tests": ["總覽", "市場明細"] },
+      "tests": ["總覽摘要卡列", "總覽", "手機v3", "手機一屏"] },
 
     { "id": "market.breadth", "name": "漲跌家數分佈", "question": "②", "ask": "今天是「大家都在漲」還是「少數幾檔撐盤」（依漲跌幅分級的家數直條）",
       "tier": "免費", "law": "🟢",
@@ -166,7 +166,7 @@
         { "page": "stock", "seg": "財報籌碼", "ord": 30, "selector": ["#stockTabs", "#stockTab"],
           "note": "stock.fund／stock.signal／stock.news／broker.views 共用同一個分頁列（#stockTabs）與內容區（#stockTab），手機上是同一段。" }
       ],
-      "tests": ["個股", "新-產業與個股", "積木-個股三卡", "籌碼基本0926"] },
+      "tests": ["個股", "新-產業與個股", "積木-個股三卡", "籌碼基本0926", "總覽摘要卡列"] },
 
     { "id": "cand.board", "name": "今日候選", "question": "③", "ask": "今天有哪些標的符合「A 回檔承接／B 突破追進」的條件",
       "tier": "只准免費", "law": "🔴",

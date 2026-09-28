@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-09-28T04:22:02.090959+00:00",
+ "at": "2026-09-28T05:33:14.764806+00:00",
  "done": true,
  "pending": 0,
  "attempted": 0,
@@ -9,7 +9,7 @@
  "sites": 1985,
  "have": 1670,
  "next_due": "2026-10-26",
- "seconds": 0.1,
+ "seconds": 0.0,
  "deadline_hit": false,
  "strategy": 3,
  "svg": true,
