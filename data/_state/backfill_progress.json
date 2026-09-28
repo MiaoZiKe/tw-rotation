@@ -20949,7 +20949,7 @@
     "sbl@2025-01-01:7812": true,
     "sbl@2025-01-01:6969": true
   },
-  "updated_at": "2026-09-28T00:49:32.141314+00:00",
+  "updated_at": "2026-09-28T00:50:14.961010+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
@@ -21066,10 +21066,10 @@
     }
   },
   "finmind_health": {
-    "ok": true,
-    "at": "2026-09-28T00:48:06.872355+00:00",
+    "ok": false,
+    "at": "2026-09-28T00:50:14.960905+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-09-18",
-    "detail": ""
+    "detail": "HTTP 402：Requests reach the upper limit. https://finmindtrade.com/"
   },
   "unavailable": {
     "holding": {
