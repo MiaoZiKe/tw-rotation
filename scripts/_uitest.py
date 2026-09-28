@@ -852,18 +852,22 @@ def t_overview(pg, base):
     #   改前：KPI 橫條是一條獨立的列，排在三張走勢圖**上方**（h 在 #m3 前面、底緣 ≤ #m3 頂緣）。
     #   改後：整條搬進「大盤三張圖」卡片的工具列（#m3Frame .m3-bar #m3Kpis），在「?」右邊 → 驗「在工具列裡」。
     #   位置／點擊／即時更新的細節在「KPI工具列0926」那一段驗。
-    kpi = pg.evaluate("""() => { const h = document.getElementById('hero'), m = document.getElementById('m3');
-        const ks = [...h.querySelectorAll('.kpi')];
-        return { above: !!h.closest('#m3Frame .m3-bar #m3Kpis'),
-                 h: Math.round(h.getBoundingClientRect().height), n: ks.length,
-                 labels: ks.map(k => (k.querySelector('.l') || {}).textContent.replace('›', '').trim()),
-                 clipped: ks.some(k => { const v = k.querySelector('.v'); const r = v.getBoundingClientRect(), q = k.getBoundingClientRect();
+    # ★ 2026-09-28 改前→改後（Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
+    #   現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」）：
+    #   改前：工具列裡一條 42px 的四格 KPI（加權指數／成交值／漲跌家數／前五族群佔比）
+    #   改後：同一個 #hero 換成四張摘要卡，仍在大盤三張圖的卡片裡、排在三張圖上方。點擊與寬度細節在「總覽摘要卡列」段。
+    kpi = pg.evaluate("""() => { const h = document.getElementById('hero');
+        const cs = [...h.querySelectorAll('.osc')];
+        return { inM3: !!h.closest('#m3Frame .m3-bar #m3Kpis'), n: cs.length,
+                 labels: cs.map(c => (c.querySelector('.osc-t') || {}).textContent),
+                 old: h.querySelectorAll('.kpi').length,
+                 clipped: cs.some(c => { const n = c.querySelector('.osc-n'); const r = n.getBoundingClientRect(), q = c.getBoundingClientRect();
                                          return r.bottom > q.bottom + 1 || r.top < q.top - 1; }) }; }""")
-    ok("★ KPI 橫條在大盤三張圖的工具列裡（2026-09-26 起）", kpi["above"], kpi)
-    ok("★ KPI 橫條高度 ≤ 64px", kpi["h"] <= 64, kpi["h"])
-    ok("★ KPI 只留四格：加權指數／成交值／漲跌家數／前五族群佔比",
-       kpi["labels"] == ["加權指數", "成交值", "漲跌家數", "前五族群佔比"], kpi["labels"])
-    ok("KPI 的大數字沒有被橫條切掉", not kpi["clipped"], kpi)
+    ok("★ 摘要卡列在大盤三張圖的卡片裡（跟以前的 KPI 同一個位置）", kpi["inM3"], kpi)
+    ok("★ 摘要卡四張：漲跌家數／資金輪盤／資金去向／熱門題材",
+       kpi["labels"] == ["漲跌家數", "資金輪盤", "資金去向", "熱門題材"], kpi["labels"])
+    ok("★ 舊的 KPI 四格（加權指數／成交值／…／前五族群佔比）拿掉了", kpi["old"] == 0, kpi["old"])
+    ok("摘要卡的數字沒有被卡片切掉", not kpi["clipped"], kpi)
     # --- ⑧ 卡片上只留名稱：總覽每張卡的標題裡不再有副標 <small>、圖下不再有「族群／其他題材」那排連結
     cp = pg.evaluate("""() => { const v = document.getElementById('v-overview');
         const vis = (e) => e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
@@ -1128,9 +1132,11 @@ def t_overview(pg, base):
     heat_dd_pick(pg, "", wait=700)
 
     # --- 上方數字點得開：點了要去「市場明細」分頁看完整名單
-    kinds = pg.evaluate("[...document.querySelectorAll('#hero .kpi.clickable')].map(k => k.dataset.drill)")
-    # 改前：至少四個數字點得開（六格裡有四格可點）→ 改後：四格裡「漲跌家數」「前五族群佔比」兩格點得開
-    ok("總覽上方點得開的 KPI：漲跌家數與前五族群佔比", sorted(kinds) == ["#flow>conc", "updown"], kinds)
+    # ★ 2026-09-28 改前：KPI 兩格點得開（漲跌家數 → 市場明細、前五族群佔比 → #flow>conc）
+    #   改後：摘要卡四張都點得開；換頁的只有「漲跌家數」（→ 市場明細），其餘三張在總覽同頁捲動（「總覽摘要卡列」段驗）。
+    kinds = pg.evaluate("[...document.querySelectorAll('#hero .osc[data-k]')].map(k => k.dataset.k)")
+    ok("總覽上方摘要卡四張都點得開", sorted(kinds) == ["flow", "rot", "theme", "updown"], kinds)
+    kinds = ["updown"]
     for k in kinds:
         # ★ 2026-09-20：先捲回頁首再點。這一行是平行化之後補的。
         #   KPI 那一排就長在 #hero，也就是頁面的最上面 —— 真人要點得到它，
@@ -1139,7 +1145,7 @@ def t_overview(pg, base):
         #   「有沒有真的捲到那張圖」就會量到錯的基準而假紅。
         #   捲回頁首才是忠於使用者真實狀態的做法，不是為了讓測試變綠。
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
-        click(pg, f'#hero .kpi[data-drill="{k}"]', 1400)
+        click(pg, f'#hero .osc[data-k="{k}"]', 1400)
         st = pg.evaluate("""() => ({ hash: location.hash, tab: (document.querySelector('.tab.on')||{dataset:{}}).dataset.view,
             scrollY: Math.round(window.scrollY),
             title: (document.getElementById('mktTitle')||{}).innerText,
@@ -9283,7 +9289,9 @@ def t_live(pg, base):
     before_px, before_chg = text(lp, SEL_PX), text(lp, SEL_CHG)
     marked = count(lp, "[data-live='close'][data-lc]")
     ok("個股頁的現價有標記可即時更新", marked > 0, f"只有 {marked} 格")
-    ok("加權指數有標記可即時更新", count(lp, "#hero [data-live='idx'][data-lc='t00']") == 1)
+    # ★ 2026-09-28 改前：總覽 KPI 的「加權指數」格帶 [data-live=idx][data-lc=t00] → 改後：那一格隨 KPI 細列拿掉，
+    #   留一個看不見的 [data-lc=t00]（沒有 data-live）讓 live.js 照舊把加權抓回來（手機指數列讀 Live.quotes.t00）
+    ok("加權指數仍在 live.js 要抓的清單上（摘要卡列留的 t00 標記）", count(lp, "#hero [data-lc='t00']") == 1)
 
     # --- 3. ★ 自動更新的計時器真的在跑，而且間隔對（盤中每分鐘、盤後每 30 分）
     intr = lp.evaluate("() => window.Live.isIntraday()")
@@ -9322,9 +9330,10 @@ def t_live(pg, base):
     ok("顯示的是新抓到的價格（888）", "888" in again_px, again_px)
 
     # --- 5. 加權指數也要動，而且是整數位（不要跑出 45,862.52 那種小數）
-    idx_txt = text(lp, "#hero [data-live='idx']")
-    ok("加權指數也換成即時值", "888" in idx_txt, idx_txt)
-    ok("指數不顯示小數", "." not in idx_txt, idx_txt)
+    # ★ 2026-09-28：總覽上已沒有顯示加權的 [data-live=idx] 格（大盤三張圖的加權卡自己抓 mis 分時）；
+    #   改驗 live.js 真的把 t00 抓回來了（手機指數列讀的就是這一份）
+    idx_q = lp.evaluate("() => { const q = window.Live && window.Live.quotes && window.Live.quotes.t00; return q ? q.price : null; }")
+    ok("加權指數（t00）也換成即時值", idx_q is not None and abs(float(idx_q) - 888) < 1e-6, idx_q)
 
     # --- 6. ★ 狀態那顆：畫面上只剩時間，狀態文字搬進 title（一個字都沒少）
     st, tt = text(lp, "#liveState"), lp.evaluate(TITLE)
@@ -9659,7 +9668,8 @@ def t_market3(pg, base):
        all(any(k in " ".join(names) for k in ks) for ks in (["加權"], ["櫃買"], ["台指期"])), names)
     # ★ 2026-09-24 改前→改後：改前「三張圖排在 hero 上面」；Andy 要 KPI 橫條移到三張走勢圖**上方** → 反過來驗
     # ★ 2026-09-26 改前→改後：改前「hero 排在 #m3 前面」；Andy 要 KPI 搬進三張圖的工具列 → 驗「hero 在 #m3 的工具列裡」
-    ok("KPI 橫條（hero）在三張圖的工具列裡",
+    # ★ 2026-09-28：KPI 橫條換成摘要卡列，節點仍是 #hero、位置不變
+    ok("摘要卡列（hero）在三張圖的工具列裡",
        pg.evaluate("() => { const h=document.getElementById('hero');"
                    " return !!(h && h.closest('#m3 #m3Frame .m3-bar')); }"))
 
@@ -14977,6 +14987,196 @@ def t_stock_quarter_audit0927(pg, base, code):
 
 
 
+# ===================================================================== 2026-09-28 總覽摘要卡列 ＋ 個股籌碼快照「?」
+# Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。現在上方的數據如下：
+#        漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」
+#       「總覽 籌碼快照『?』欄位說明，並移除 大戶4週 與 散戶」（個股頁「總覽」分頁的籌碼快照卡）
+OVS_M = """() => { const h = document.getElementById('hero'); if (!h) return null;
+  const t = h.querySelector('.ovsum-track'); const R = (e) => e.getBoundingClientRect();
+  const cs = [...h.querySelectorAll('.osc')];
+  const num = (e) => { const s = (e ? e.textContent : '').replace(/[,%\\s]/g, ''); return s === '' || isNaN(+s) ? null : +s; };
+  const card = (k) => h.querySelector('.osc[data-k="' + k + '"]');
+  const vals = (k) => [...(card(k) || document.createElement('i')).querySelectorAll('.osn .osn-v b')].filter(e => e.getClientRects().length).map(num);
+  const fs = [...h.querySelectorAll('.osc *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())
+      && e.getClientRects().length).map(e => parseFloat(getComputedStyle(e).fontSize));
+  const tr = t ? R(t) : null;
+  return { n: cs.length, labels: cs.map(c => (c.querySelector('.osc-t') || {}).textContent),
+    ud: vals('updown'), udN: +h.dataset.udN, rot: vals('rot'), rotN: +h.dataset.rotN, flow: vals('flow'), theme: vals('theme'),
+    themeTop: h.dataset.themeTop, flowTop: h.dataset.flowTop,
+    over: [...h.querySelectorAll('.osc-t, .osn-v, .osc-h, .osc[data-k="updown"] .osn small, .osc[data-k="rot"] .osn small')].filter(e => e.getClientRects().length && e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim().slice(0, 16)),
+    minFs: fs.length ? Math.min(...fs) : 0,
+    scrolls: t ? t.scrollWidth > t.clientWidth + 2 : null, sl: t ? Math.round(t.scrollLeft) : 0,
+    allIn: tr ? cs.every(c => { const r = R(c); return r.left >= tr.left - 1 && r.right <= tr.right + 1; }) : false,
+    ch: cs.map(c => Math.round(R(c).height)), cw: cs.map(c => Math.round(R(c).width)),
+    next: !!(document.getElementById('ovSumNext') && !document.getElementById('ovSumNext').hidden && document.getElementById('ovSumNext').getClientRects().length),
+    hl: Math.round(R(h).left), hr: Math.round(R(h).right),
+    sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
+
+
+def _ovs_inview(pg, anchor, timeout=9000):
+    return wait_until(pg, """() => { const el = document.getElementById('%s'); if (!el || !el.getClientRects().length) return null;
+        const r = el.getBoundingClientRect(); if (r.top < 0 || r.top >= innerHeight - 40) return null;
+        return { top: Math.round(r.top), y: Math.round(scrollY) }; }""" % anchor, timeout)
+
+
+def t_ov_summary_0928(pg, b, base, code):
+    """總覽 K 線上方的四張摘要卡：數字、四種寬度、點擊導向；個股籌碼快照移除兩欄、每欄「?」。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    wait_until(pg, "() => document.querySelectorAll('#hero .osc').length === 4", 8000)
+
+    # ---------------------------------------------------------------- 1. 四張卡都有數字，而且對得上自己宣稱的口徑
+    m = pg.evaluate(OVS_M)
+    if not ok("[摘要卡] 量得到摘要卡列", bool(m), m):
+        return
+    ok("★ [摘要卡] 四張依序：漲跌家數／資金輪盤／資金去向／熱門題材", m["labels"] == ["漲跌家數", "資金輪盤", "資金去向", "熱門題材"], m["labels"])
+    ok("★ [摘要卡] 漲跌家數有上漲／平盤／下跌三個整數，加總 > 0 且等於卡片自報的總檔數",
+       len(m["ud"]) == 3 and None not in m["ud"] and sum(m["ud"]) == m["udN"] > 0, [m["ud"], m["udN"]])
+    # 跟下方「漲跌家數」分佈卡同一個口徑（stocks.json 逐檔、級距 udBinOf）：切到「全部」時那張卡寫的共 N 檔
+    # 跟下方「漲跌家數」分佈卡同一個口徑（stocks.json 逐檔、級距 udBinOf）：那張卡切到「全部」時的總檔數（#breadth data-total）
+    if count(pg, '#udMkt button[data-m="all"]'):
+        pg.eval_on_selector('#udMkt button[data-m="all"]', "b => b.click()"); pg.wait_for_timeout(600)
+    bt = pg.evaluate("() => { const e = document.getElementById('breadth'); return e ? +e.dataset.total : null; }")
+    ok("[摘要卡] 漲跌三數加總＝下方漲跌家數分佈卡「全部」的總檔數（同一個口徑，上下對得起來）", bt == m["udN"], [m["udN"], bt])
+    ok("★ [摘要卡] 資金輪盤有四段（領先／改善／轉弱／落後）的族群數，加總＝全部族群數且 > 0",
+       len(m["rot"]) == 4 and None not in m["rot"] and sum(m["rot"]) == m["rotN"] > 0, [m["rot"], m["rotN"]])
+    ok("★ [摘要卡] 資金去向列出前三大產業鏈的百分比（0～100，由大到小）",
+       len(m["flow"]) == 3 and None not in m["flow"] and all(0 < v <= 100 for v in m["flow"]) and m["flow"] == sorted(m["flow"], reverse=True), m["flow"])
+    ok("★ [摘要卡] 熱門題材列出前三個題材的熱度（0～100，由高到低）",
+       len(m["theme"]) == 3 and None not in m["theme"] and all(0 <= v <= 100 for v in m["theme"]) and m["theme"] == sorted(m["theme"], reverse=True), m["theme"])
+    rot_foot = text(pg, '#hero .osc[data-k="rot"] .osc-f')
+    ok("[摘要卡] 資金輪盤寫出重點一句（最強族群）", "最強" in rot_foot and len(rot_foot) > 4, rot_foot)
+
+    # ---------------------------------------------------------------- 2. 四種寬度：不擠、不溢出、字 ≥ 11px
+    for w in (1440, 1100, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 1000 if w > 390 else 844}); pg.wait_for_timeout(1000)
+        k = pg.evaluate(OVS_M)
+        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 4000)
+        ok(f"★ [摘要卡 {w}] 整頁沒有橫向捲軸", wide == "ok", k and [k["hl"], k["hr"]])
+        ok(f"[摘要卡 {w}] 卡名與數字沒有被切掉", not k["over"], k["over"])
+        ok(f"[摘要卡 {w}] 字 ≥ 11px", k["minFs"] >= 11, k["minFs"])
+        ok(f"[摘要卡 {w}] 摘要卡列在視窗內", k["hl"] >= -1 and k["hr"] <= w + 1, [k["hl"], k["hr"]])
+        if w == 1440:
+            ok("★ [摘要卡 1440] 四張一排全看得到（不用滑）", k["allIn"] and not k["scrolls"], k)
+        if w == 1100:
+            # 1100 時 K 線卡寬 < 960 → 改成固定寬可滑；不管哪一種，每張卡至少 200px，不准為了塞四張而擠扁
+            ok("[摘要卡 1100] 每張卡寬 ≥ 200px（不擠）", min(k["cw"]) >= 200, k["cw"])
+        if w == 800:
+            ok("[摘要卡 800] 放不下四張 → 卡片列可以橫向滑、每張卡寬 ≥ 200px", k["scrolls"] and min(k["cw"]) >= 200, k)
+            if ok("[摘要卡 800] 右緣有「›」翻頁鈕", k["next"], k):
+                sl0 = k["sl"]
+                click(pg, "#ovSumNext", 700)
+                sl1 = pg.evaluate("() => Math.round(document.getElementById('ovSumTrack').scrollLeft)")
+                ok("★ [摘要卡 800] 按「›」卡片列真的往右翻", sl1 > sl0 + 100, [sl0, sl1])
+                ok("[摘要卡 800] 翻過去之後出現「‹」可以翻回來",
+                   pg.evaluate("() => { const b = document.getElementById('ovSumPrev'); return !!b && !b.hidden; }"))
+                click(pg, "#ovSumPrev", 700)
+                ok("[摘要卡 800] 按「‹」翻回來", pg.evaluate("() => Math.round(document.getElementById('ovSumTrack').scrollLeft)") < sl1)
+        if w == 390:
+            ok("[摘要卡 390] 手機卡片壓矮（每張 ≤ 120px，第一屏不被吃掉）", max(k["ch"]) <= 120, k["ch"])
+            ok("[摘要卡 390] 卡片列可以橫向滑", k["scrolls"], k)
+    pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(800)
+
+    # ---------------------------------------------------------------- 3. 點擊：每張卡都走到對應的完整區塊或頁面
+    click(pg, '#hero .osc[data-k="updown"]', 1600)
+    st = pg.evaluate("""() => ({ hash: location.hash, rows: document.querySelectorAll('#mktBody tr[data-code]').length,
+        blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody .chart').length })""")
+    ok("★ [摘要卡] 點「漲跌家數」→ 市場明細的漲跌家數，而且有內容", st["hash"].startswith("#market/updown") and (st["rows"] > 0 or st["blocks"] > 0), st)
+    for kk, anchor, name in (("rot", "ovRotCard", "資金輪盤"), ("flow", "ovFlowHead", "昨日資金去向"), ("theme", "ovThemeCard", "熱門題材")):
+        # ⚠ 只差 hash 的 goto 不會重新載入頁面（上一張卡的捲動追蹤還在跑）→ goto 之後再 reload 一次，每張卡都從頁首乾淨開始
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
+        y0 = pg.evaluate("() => Math.round(scrollY)")
+        click(pg, f'#hero .osc[data-k="{kk}"]', 300)
+        r = _ovs_inview(pg, anchor)
+        ok(f"★ [摘要卡] 點「{name.replace('昨日', '')}」→ 同一頁捲到下面的「{name}」（標題進到視窗）",
+           bool(r) and r["y"] > y0 + 150 and pg.evaluate("() => location.hash") == "#overview", {"y0": y0, "量到": r})
+    # 點熱門題材卡裡的題材名 → 下面那張熱力圖直接打開那個題材
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
+    tops = pg.evaluate("() => [...document.querySelectorAll('#hero .osn-t')].map(e => ({ id: e.dataset.theme, n: e.querySelector('small').textContent }))")
+    if ok("[摘要卡] 熱門題材卡列出可點的題材名", len(tops) >= 2, tops):
+        dd0 = text(pg, "#ovThemeDD .ddbtn b")
+        pick = next((t for t in tops if t["n"] not in dd0), tops[-1])   # 挑一個「現在下拉不是它」的，才看得出有沒有換
+        click(pg, f'#hero .osn-t[data-theme="{pick["id"]}"]', 300)
+        r = _ovs_inview(pg, "ovThemeCard")
+        dd1 = text(pg, "#ovThemeDD .ddbtn b")
+        ok("★ [摘要卡] 點題材名 → 捲到熱門題材，而且熱力圖的題材下拉換成那個題材",
+           bool(r) and pick["n"] in dd1 and dd1 != dd0, {"點": pick, "改前": dd0, "改後": dd1, "量到": r})
+
+    # ---------------------------------------------------------------- 4. 手機 390：放在指數列下面；點卡片先切到對的分段再捲
+    mp = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    mp.goto(f"{base}#overview", wait_until="networkidle"); mp.wait_for_timeout(2600)
+    pos = mp.evaluate("""() => { const h = document.getElementById('hero'), mb = document.getElementById('mbHome');
+        const r = h ? h.getBoundingClientRect() : null;
+        return { afterHome: !!(h && mb && mb.nextElementSibling === h), top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : 0,
+                 n: h ? h.querySelectorAll('.osc').length : 0, vh: innerHeight, sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }""")
+    ok("★ [摘要卡 手機] 摘要卡列緊貼指數列下面、四張都在、第一屏看得到", pos["afterHome"] and pos["n"] == 4 and pos["h"] > 0 and pos["top"] is not None and pos["top"] < pos["vh"], pos)
+    ok("[摘要卡 手機] 沒有橫向捲軸", not pos["sideways"], pos)
+    # 切到第②步再點「資金輪盤」卡：要自己切回第①步、捲到輪盤
+    if count(mp, "#v-overview .mspine>button") >= 2:
+        mp.eval_on_selector("#v-overview .mspine>button:nth-child(2)", "b => b.click()"); mp.wait_for_timeout(1000)
+        vis = mp.evaluate("() => { const h = document.getElementById('hero'); return !!h && h.getBoundingClientRect().height > 0; }")
+        ok("[摘要卡 手機] 切到第②步摘要卡列照樣在（不參與分段）", vis)
+        mp.evaluate("() => window.scrollTo(0, 0)"); mp.wait_for_timeout(250)
+        mp.eval_on_selector('#hero .osc[data-k="rot"]', "c => c.click()")
+        r = _ovs_inview(mp, "ovRotCard")
+        ok("★ [摘要卡 手機] 在第②步點「資金輪盤」→ 自動切回第①步並捲到資金輪盤", bool(r), r)
+        # 卡片四段數＝手機輪盤四角徽章的數字（兩邊都是全部族群；半成品原本只數前 10，卡片「改善 6」底下卻寫「改善 17」）
+        mk = mp.evaluate(OVS_M)
+        badges = mp.evaluate("""() => { const t = (document.getElementById('rotClockMiniWrap') || document.body).innerText;
+            const g = (n) => { const m = t.match(new RegExp(n + '[ \\n\\t]*([0-9]+)')); return m ? +m[1] : null; };
+            return [g('領先'), g('改善'), g('轉弱'), g('落後')]; }""")
+        ok("★ [摘要卡 手機] 資金輪盤卡的四段數＝下面輪盤四角徽章（領先／改善／轉弱／落後）", badges == mk["rot"] and None not in badges, [mk["rot"], badges])
+        mp.evaluate("() => window.scrollTo(0, 0)"); mp.wait_for_timeout(300)
+        mp.eval_on_selector('#hero .osc[data-k="flow"]', "c => c.click()"); mp.wait_for_timeout(2200)
+        mk = mp.evaluate(OVS_M)
+        lst = mp.evaluate("""() => [...document.querySelectorAll('#v-overview .mrank > li[data-k]')].filter(li => li.getClientRects().length && !li.classList.contains('other'))
+            .slice(0, 3).map(li => { const s = li.querySelector('.v small'); return s ? parseFloat(s.textContent) : null; })""")
+        ok("★ [摘要卡 手機] 點「資金去向」→ 切到資金去向分段，卡片前三名的 % ＝ 手機長條前三名的 %（同一份口徑）",
+           len(lst) == 3 and lst == mk["flow"], [mk["flow"], lst])
+    mp.close()
+
+    # ---------------------------------------------------------------- 5. 個股頁「總覽」分頁的籌碼快照：移除兩欄、每欄「?」點得開
+    for w in (1440, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        if count(pg, '#stockTabs button[data-t="overview"]'):
+            click(pg, '#stockTabs button[data-t="overview"]', 1000)
+        chip = pg.evaluate("""() => { const c = [...document.querySelectorAll('#stockTab .card')].find(x => /籌碼快照/.test((x.querySelector('h3')||{}).textContent||''));
+            if (!c) return null;
+            const ks = [...c.querySelectorAll('.kvs > .k')];
+            return { labels: ks.map(k => (k.querySelector('.l').childNodes[0] || {}).textContent),
+                     q: ks.map(k => !!k.querySelector('.l .howbtn.kq[data-how]')), keys: ks.map(k => (k.querySelector('.howbtn.kq') || {dataset:{}}).dataset.how),
+                     text: c.innerText,
+                     qs: ks.map(k => { const b = k.querySelector('.howbtn.kq'); if (!b) return 0; const r = b.getBoundingClientRect(); return Math.round(r.width); }),
+                     over: ks.filter(k => k.scrollWidth > k.clientWidth + 1).map(k => k.textContent.slice(0, 10)),
+                     sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }""")
+        if not ok(f"[籌碼快照 {w}] 個股頁總覽分頁有籌碼快照卡", bool(chip), chip):
+            continue
+        ok(f"★ [籌碼快照 {w}] 「大戶 4 週變化」「散戶」兩欄拿掉了",
+           not any(("大戶 4 週" in (l or "")) or ("散戶" in (l or "")) for l in chip["labels"]) and "散戶" not in chip["text"] and "4 週" not in chip["text"], chip["labels"])
+        ok(f"[籌碼快照 {w}] 留下的六欄照舊：法人／外資／投信 20 日、千張大戶、融資餘額、量比",
+           chip["labels"] == ["法人 20 日", "外資 20 日", "投信 20 日", "千張大戶", "融資餘額", "量比"], chip["labels"])
+        ok(f"★ [籌碼快照 {w}] 每一欄名稱旁都有「?」", len(chip["q"]) == 6 and all(chip["q"]), chip["q"])
+        ok(f"[籌碼快照 {w}] 欄位不溢出、整頁沒有橫向捲軸", not chip["over"] and not chip["sideways"], chip)
+        if w != 1440:
+            continue
+        for key, lab in zip(chip["keys"], chip["labels"]):
+            if not key:
+                continue
+            click(pg, f'.howbtn.kq[data-how="{key}"]', 450)
+            st = pg.evaluate("""(k) => { const p = document.getElementById('howPop'), box = document.getElementById('how-' + k);
+                return { open: !!p && !p.hidden && !!box && p.contains(box) && !box.hidden,
+                         ttl: p ? ((p.querySelector('.hp-h') || {}).textContent || '') : '',
+                         n: box ? box.querySelectorAll('li').length : 0, len: box ? box.innerText.trim().length : 0 }; }""", key)
+            ok(f"★ [籌碼快照] 點「{lab}」的「?」→ 跳出這一欄的說明（標題＝欄名、有內容）",
+               st["open"] and lab in st["ttl"] and st["n"] >= 1 and st["len"] > 10, st)
+            pg.mouse.click(6, 300); pg.wait_for_timeout(300)
+            ok(f"[籌碼快照] 「{lab}」的說明點背景就關", pg.evaluate("() => { const p = document.getElementById('howPop'); return !p || p.hidden; }"))
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
@@ -14986,6 +15186,8 @@ SECTIONS = {
     "今日事件浮層":        lambda pg, b, base, code: t_events_drawer(b, base, code),
     "明亮主題":            lambda pg, b, base, code: t_theme(pg, base),
     "總覽":                lambda pg, b, base, code: t_overview(pg, base),
+    # ★ 2026-09-28 Andy：總覽 K 線上方的四張摘要卡（漲跌家數／資金輪盤／資金去向／熱門題材）＋個股籌碼快照「?」與移除兩欄（⚠ 一律 --workers 1）
+    "總覽摘要卡列":        lambda pg, b, base, code: t_ov_summary_0928(pg, b, base, code),
     "總覽右欄":            lambda pg, b, base, code: t_ov_right(pg, base),
     # ★ 2026-09-26 Andy：總覽「漲跌家數」要分 上市／上櫃／全部（切換、點一級清單、重新整理記住、淺色、手機 390）
     "漲跌家數市場別":      lambda pg, b, base, code: t_ud_market(pg, base),
@@ -33859,125 +34061,24 @@ FOOT0926_M = """() => { const f = document.getElementById('siteFoot'), v = docum
 
 def t_kpi_footer_0926(pg, b, base):
     """2026-09-26：KPI 搬進大盤工具列、足跡輪盤放大取消、頁尾跟主內容同寬。"""
-    LABELS = ["加權指數", "成交值", "漲跌家數", "前五族群佔比"]
+    # ★ 2026-09-28 改前→改後（Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉」）：
+    #   改前：這裡逐條驗工具列裡的四格 KPI（加權指數／成交值／漲跌家數／前五族群佔比；高 36～44px、同一列、live.js 改加權那格）。
+    #   改後：那四格換成四張摘要卡（#hero 節點與位置不變）。四格專屬的斷言（標籤、42px、加權即時格、前五族群 → #flow）
+    #   已無對象；寬度、點擊、手機位置改在「總覽摘要卡列」段驗。這裡只留 09-26 那件事本身：「放進大盤卡、重掛不會被丟掉」。
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    wait_until(pg, "() => document.querySelectorAll('#hero .kpi').length === 4", 8000)
-
-    # ---------------------------------------------------------------- ① KPI 在工具列裡（1440／1024／800）
-    for w in (1440, 1024, 800):
-        pg.set_viewport_size({"width": w, "height": 1000}); pg.wait_for_timeout(900)
-        k = pg.evaluate(KPI0926_M)
-        if not ok(f"[{w}] 量得到 KPI 與大盤卡", bool(k), k):
-            continue
-        ok(f"★ [{w}] KPI 在大盤三張圖的工具列裡（#m3Frame .m3-bar #m3Kpis）", k["inBar"], k["parent"])
-        ok(f"[{w}] 四格照舊：加權指數／成交值／漲跌家數／前五族群佔比", k["labels"] == LABELS, k["labels"])
-        ok(f"[{w}] 每格高 36～44px（跟工具列同一級，比原本 58px 小）", all(36 <= x <= 44 for x in k["kh"]), k["kh"])
-        ok(f"[{w}] 名稱與數字都沒有被切掉或溢出", not k["over"], k["over"])
-        ok(f"[{w}] 整條在大盤卡框內、排在「?」右邊（放不下就換到下一行，不溢出）", k["inside"] and k["afterQ"], k)
-        ok(f"[{w}] 字 ≥ 11px", k["minFs"] >= 11, k["minFs"])
-        ok(f"[{w}] 可點的兩格（漲跌家數、前五族群佔比）保留 ›", k["more"] == [True, True] and len(k["drills"]) == 2, k)
-        # 橫向捲軸：換寬度之後圖表是 ResizeObserver 非同步重畫，重畫完之前可能短暫凸出（負載 30 時實測過一次）。
-        # 等它穩定（最多 4 秒）再判；真的凸出就把是誰凸出列出來，不會被這個等待吃掉。
-        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 4000)
-        ok(f"[{w}] 沒有橫向捲軸", wide == "ok", pg.evaluate("""() => [...document.querySelectorAll('body *')]
-            .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1 && e.offsetParent !== null; })
-            .slice(0, 6).map(e => (e.id || '') + '.' + String(e.className || '').slice(0, 30))"""))
-        if w == 1440:
-            ok("[1440] KPI 跟「走勢圖／K 線」「?」同一列（真的放在那段空白裡，不是另起一行）", k["sameRow"], k)
-    pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(700)
-    ok("★ 頂端原本那條拿掉了（#v-overview 底下不再直接掛 #hero，#m3 前面沒有獨立的 KPI 列）",
-       pg.evaluate("() => !document.querySelector('#v-overview > #hero')"))
-
-    # ---------------------------------------------------------------- ① 點擊：照舊打開原本的東西
-    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
-    click(pg, '#m3Kpis .kpi.clickable[data-drill="updown"]', 1600)
-    st = pg.evaluate("""() => ({ hash: location.hash, tab: (document.querySelector('.tab.on')||{dataset:{}}).dataset.view,
-        rows: document.querySelectorAll('#mktBody tr[data-code]').length,
-        blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody .chart').length })""")
-    ok("★ 點工具列裡的「漲跌家數」→ 照舊打開市場明細的漲跌家數，而且有內容",
-       st["hash"].startswith("#market/updown") and (st["rows"] > 0 or st["blocks"] > 0), st)
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
-    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
-    click(pg, '#m3Kpis .kpi.clickable[data-drill="#flow>conc"]', 1600)
-    ok("點工具列裡的「前五族群佔比」→ 照舊到資金流向頁", pg.evaluate("() => location.hash") == "#flow",
-       pg.evaluate("() => location.hash"))
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
-
-    # 大盤卡重掛（mount 會把整個工具列 innerHTML 換掉）：KPI 不能跟著被丟掉
+    wait_until(pg, "() => document.querySelectorAll('#hero .osc').length === 4", 8000)
+    IN_BAR = "() => { const h = document.getElementById('hero'); return { inBar: !!(h && h.closest('#m3Frame .m3-bar #m3Kpis')), n: h ? h.querySelectorAll('.osc').length : 0 }; }"
+    k = pg.evaluate(IN_BAR)
+    ok("★ 摘要卡列在大盤三張圖的卡片裡（#m3Frame .m3-bar #m3Kpis）、四張都在", k["inBar"] and k["n"] == 4, k)
+    ok("★ 頂端沒有另一條獨立的列（#v-overview 底下不直接掛 #hero）", pg.evaluate("() => !document.querySelector('#v-overview > #hero')"))
     pg.evaluate("() => window.Market3 && window.Market3.mount()"); pg.wait_for_timeout(1400)
-    k2 = pg.evaluate(KPI0926_M)
-    ok("★ 大盤卡重掛之後 KPI 還在工具列裡、四格都在（沒有被 innerHTML 丟掉）",
-       bool(k2) and k2["inBar"] and k2["labels"] == LABELS, k2)
+    k2 = pg.evaluate(IN_BAR)
+    ok("★ 大盤卡重掛之後摘要卡列還在、四張都在（沒有被 innerHTML 丟掉）", k2["inBar"] and k2["n"] == 4, k2)
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
-    click(pg, '#m3Kpis .kpi.clickable[data-drill="updown"]', 1600)
-    ok("重掛之後點「漲跌家數」照樣打開市場明細", pg.evaluate("() => location.hash").startswith("#market/updown"),
+    click(pg, '#m3Kpis .osc[data-k="updown"]', 1600)
+    ok("重掛之後點「漲跌家數」卡照樣打開市場明細", pg.evaluate("() => location.hash").startswith("#market/updown"),
        pg.evaluate("() => location.hash"))
-
-    # ---------------------------------------------------------------- ① 盤中即時：工具列裡的格子照樣被 live.js 改到
-    fake = {"z": "48888.1200"}
-
-    def fake_quote(route):
-        from urllib.parse import urlparse, parse_qs
-        q = parse_qs(urlparse(route.request.url).query)
-        arr = []
-        for tok in [t for t in (q.get("ex_ch") or [""])[0].split("|") if t]:
-            try:
-                code = tok.split("_", 1)[1].split(".")[0]
-            except IndexError:
-                continue
-            arr.append({"c": code, "n": "測試" + code, "ex": tok[:3], "z": fake["z"], "y": "48000.0000",
-                        "o": "48010.0000", "h": "48900.0000", "l": "47990.0000", "v": "12345",
-                        "t": "11:22:33", "d": "20260926"})
-        route.fulfill(status=200, content_type="application/json; charset=utf-8",
-                      body=json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
-
-    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
-    lp.on("pageerror", lambda e: fails.append(f"KPI工具列0926 pageerror: {e}"))
-    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    lp.add_init_script(IV_RECORDER)
-    lp.goto(base + "#overview", wait_until="networkidle"); lp.wait_for_timeout(1500)
-    wait_until(lp, "() => !window.Live || !window.Live.busy", 6000); lp.wait_for_timeout(2500)
-    SEL_I, SEL_C = "#m3Kpis [data-live='idx'][data-lc='t00']", "#m3Kpis [data-live='chg'][data-lc='t00']"
-    ok("加權指數那格搬進工具列之後仍帶 [data-live] 標記（live.js 認得到）", count(lp, SEL_I) == 1 and count(lp, SEL_C) == 1,
-       [count(lp, SEL_I), count(lp, SEL_C)])
-    i0, c0 = text(lp, SEL_I), text(lp, SEL_C)
-    lp.route("**/quote?*", fake_quote)
-    lp.route("**/stream?*", lambda r: r.fulfill(status=404, content_type="application/json", body='{"error":"not found"}'))
-    lp.evaluate("() => { try { localStorage.setItem('tw.live.proxy', 'https://fake-worker.test'); } catch (e) {} }")
-    per = lp.evaluate("() => window.Live.periodMs")
-    fired = lp.evaluate(IV_FIRE_LIVE, per); lp.wait_for_timeout(1600)
-    i1, c1 = text(lp, SEL_I), text(lp, SEL_C)
-    ok("找得到 live.js 的計時器來觸發", fired == 1, fired)
-    changed("★ 即時更新走一輪，工具列裡的加權指數真的換成即時值", i0, i1)
-    ok("換上去的是回應裡的值（48,888）", "48,888" in i1, i1)
-    changed("漲跌也跟著換（48888.12 / 48000 ＝ +1.85%）", c0, c1)
-    ok("漲跌是即時值重算的", "1.85" in c1, c1)
-    lp.close()
-
-    # ---------------------------------------------------------------- ① 手機 390：維持原位；放寬再搬進去
-    m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
-    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
-    POS = """() => { const h = document.getElementById('hero'), s = document.getElementById('m3Kpis'), m3 = document.getElementById('m3');
-        return { parent: h && h.parentElement.id, beforeM3: !!(h && m3) && h.nextElementSibling === m3,
-                 slotHidden: !s || s.hidden || getComputedStyle(s).display === 'none', inBar: !!(h && h.closest('#m3Kpis')),
-                 n: h ? h.querySelectorAll('.kpi').length : 0, sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
-    mm = m.evaluate(POS)
-    ok("★ [390] 手機維持原位（#hero 在 #m3 前面、工具列那格收起來）",
-       mm["parent"] == "v-overview" and mm["beforeM3"] and mm["slotHidden"] and not mm["inBar"], mm)
-    ok("[390] 沒有橫向捲軸", not mm["sideways"], mm)
-    if ok("[390] 找得到手機的分段按鈕（① 錢往哪跑／② 貴不貴…）", count(m, "#v-overview .mspine>button") >= 2, count(m, "#v-overview .mspine>button")):
-        m.eval_on_selector("#v-overview .mspine>button:nth-child(2)", "b => b.click()"); m.wait_for_timeout(1200)
-        vis = m.evaluate("""() => { const h = document.getElementById('hero'); const r = h.getBoundingClientRect();
-            return { h: Math.round(r.height), w: Math.round(r.width), n: [...h.querySelectorAll('.kpi')].filter(k => k.getBoundingClientRect().height > 0).length }; }""")
-        ok("[390] 手機「② 貴不貴」那一段照樣看得到四格 KPI", vis["h"] > 0 and vis["n"] == 4, vis)
-    m.set_viewport_size({"width": 1200, "height": 900}); m.wait_for_timeout(900)
-    ok("視窗從 390 放寬到 1200 → KPI 自動搬進工具列", m.evaluate(POS)["inBar"], m.evaluate(POS))
-    m.set_viewport_size({"width": 390, "height": 844}); m.wait_for_timeout(900)
-    back = m.evaluate(POS)
-    ok("再縮回 390 → 搬回原位", back["beforeM3"] and not back["inBar"], back)
-    m.close()
 
     # ---------------------------------------------------------------- ② 足跡輪盤的放大鈕不存在；其他卡的放大／展開還在
     pg.set_viewport_size({"width": 1440, "height": 1000})
