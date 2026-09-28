@@ -3341,3 +3341,13 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-28 深夜 合併上線：wheel-watch-0928（輪盤只留點＋自選分頁，DECISIONS #274）
 - 合併後驗了：pytest 829 passed／1 xfailed；_uitest 設計v4主題／總覽／總覽摘要卡列／任務板／手機／點外面就關／會員與自選五分頁／輪盤只留點與自選分頁／標題圖示 0；_preview 綠。
 - 總覽右欄 2 紅：「昨日資金去向」的「?」點不開／標題不對、1024 寬「AI 伺…」名稱被截。**origin/main（v4 第一批＋標題圖示）同一份資料一樣紅，不是這批造成**；推測是 v4 間距／標題圖示佔寬，待修（派 agent）。
+
+### 09-29 凌晨 回補「2009 股利全市場」一直未補齊的查證（分支 claude/backfill-div-done，未合併 main）
+- 結論：**沒有卡住，每輪都在前進**，只是每輪都撞到 FinMind 伺服器端額度上限才停。這一步的逐檔鍵是 `dividend@2009-01-01:<代號>`／`divresult@2009-01-01:<代號>`：09-28 00:49 各 500 → 11:11 1,099 → 13:38 1,606 → 14:50 1,859 → 15:34 1,928／1,927（2,338 個的 `dividend:<代號>` 是 2016 那一步的鍵，跟這步無關）。15:34 那輪只前進 69 檔，因為 45 分鐘前手動觸發的 14:46 那輪已吃掉同一小時的額度（log：`FinMind 伺服器端額度用盡（TaiwanStockDividendResult/1439）`，本機計數器還顯示剩 369）。以 origin/main afcf20e 的資料湖實算還剩 dividend 79／divresult 80 檔。
+- 改了：① 完成旗標多寫 `remaining`（每個資料集還剩幾檔）與 `no_data`（確認無資料幾檔），log 與 Actions 執行摘要直接印「還剩幾檔」，不必再從鍵名猜；② 額度還在但上游回空的檔，done 值從 `True` 改成 `"no_data"`（確認無資料；仍是真值、照樣跳過，股利年度圖照樣算補到 2009）——舊進度檔既有的 True 無法回溯區分；③ 執行摘要的已處理檔數旁邊括號列確認無資料數。
+- 驗了：pytest 828 passed／4 skipped／1 xfailed；新測試 tests/test_backfill_market.py 第 5 節三條（額度用盡記剩幾檔→下一輪從停下那筆接續→done、確認無資料也算補到 2009、執行摘要真的跑一次）。
+
+### 09-29 凌晨 合併上線：backfill-div-done（回補進度可見化）
+- 查證：除權息 @2009@market 沒卡住，逐檔鍵是 `dividend@2009-01-01:<code>`（CEO 先前看錯成 2016 那步的前綴）；每輪撞 FinMind 額度才停，剩約 80 檔。⚠ CEO 手動補觸發離上一輪不到一小時會吃同一小時額度——以後只在 >60 分鐘沒跑時才補。
+- complete 多寫 remaining／no_data；回空的檔記 `no_data`；執行摘要顯示還剩幾檔。
+- 合併後驗了：pytest 832 passed／1 xfailed（第一輪 1 紅 1 error＝容器硬碟滿 OSError，清掉已完成 agent 的 worktree 釋出 18G 後重跑綠）。只動 pipeline／workflow／tests，_preview／_uitest 依例外跳過。
