@@ -205,8 +205,7 @@
     lakeDaily: {},     // 資料湖原始日線（用來講「歷史只有幾年」，需求二）
     // noSrc[指數|週期] = true：這張卡片的這個週期沒有免費來源，已自動退回日線（N11）
     noSrc: {},     // （舊）保留欄位；2026-09-24 起 1H／4H 退回日線不再是黏著的旗標，每次畫都重算
-    // histEst[鍵] = Map(時間 → 'nb'|'part')：日／週／月／季裡哪幾根的量是補的（見 fillDaily）
-    histEst: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
+    histEst: {} };   // （2026-09-28 起不再估算日線缺量，保留空物件給舊的讀取點）   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
 
   function taipeiNow() {
     return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
@@ -1023,13 +1022,10 @@
         bars = bars.map(b => b.slice());
         // 原始日線另外留一份：週／月／季看起來「只有幾根」時，要能講出日線到底有幾年（需求二）
         state.lakeDaily[sym] = bars.slice();
-        // 日線缺量的日子先補（前後 5 日均量），再合成週／月／季 —— 週量才不會因為一天 0 而偏低（見 fillDaily）
-        const estDays = fillDaily(bars);
-        const daily = bars;
+        // ★ 2026-09-28：日線缺量的日子不再用前後 5 日均量補（那是假的量）—— 照實空著，週／月／季照實加總。
         if (def.roll) bars = rollLake(bars, def.roll);
         if (def.group > 1) bars = groupBars(bars, def.group);
         state.hist[key] = bars;
-        state.histEst[key] = rollEst(daily, estDays, def);
         state.histErr[key] = '';
       } catch (e) {
         state.histErr[key] = String(e.message || e);
@@ -1128,88 +1124,35 @@
     if (!days) return `${x.short}多日分 K 尚未累積，只含今日`;
     return '';
   }
-  /** 量柱要不要畫：超過一半的 K 棒沒有量＝來源根本沒給量（Yahoo 指數的成交量是 0），畫出一排 0 張是錯的。
-   *  只有零星幾根是 0（例如資料湖加權日線 1300 根裡有 12 根沒量）就照畫 —— 那是缺值，不是沒有這項資料。 */
-  function hasVol(bars) {
-    if (!bars || !bars.length) return false;
-    const z = bars.filter(b => !(b[5] > 0)).length;
-    return z * 2 < bars.length;
+  /* ---------------------------------------------------------------- 成交量：只畫真實的量（2026-09-28 改寫）
+     Andy 2026-09-28：「加權指數的成交量 15min 30min 1H 都沒有確切成交量」。
+     以前（2026-09-25 那版）為了「每個週期都要有量」，Yahoo 那段歷史用「那天總量 × 分時量分布」估、灰色量柱標「估」，
+     日 K 缺量的日子用前後 5 日均量補。那些都是假的量 —— 看起來有、其實不是那一小時真正成交的。
+     ★ 新規則（取代 #258 第 3 點與 09-25 的估算，DECISIONS #271）：
+       1. 只畫真實的量，**不估、不補、不畫一排 0**。
+       2. 量的來源：
+          · 加權、櫃買 ＝ **成交金額（元）**：證交所分時的 s（百萬元，2026-09-28 查證它不是張數）、
+            FinMind 每 5 秒成交統計（加權，可回補兩年）、日線 index_ohlc 的成交金額 —— 三個來源同一把尺。
+          · 台指期 ＝ 口數（期交所逐筆、證交所分時、日線）。
+       3. 4 小時一盤一根 ＝ 那天的**日線實際總量**（真實值，不是估；分 K 沒量的那幾盤才用它）。
+       4. 最近看得到的那一段（fitLast 那幾根）不到九成有量 → 整個量面板收掉，圖上方那一行寫「此週期無成交量資料」，
+          滑鼠提示講原因。看得到量的時候，更早沒有量的那幾根就是空的（不畫 0 張、不畫假的）。 */
+  const volUnit = (x) => (x.id === 'FUT' ? 1 : 1e6);   // 分時 s → K 棒量：指數 s 是百萬元 → 元；台指期 s 是口
+  const isMoney = (x) => x.id !== 'FUT';
+  /** K 棒量（元或口）→ 畫面上的字。 */
+  function volTxt(x, v) {
+    const f = F();
+    if (!(v > 0) || !f) return '—';
+    return isMoney(x) ? f.yi(v) : f.i(v) + ' 口';
   }
-
-  /* ---------------------------------------------------------------- 成交量：實量或估量（2026-09-25）
-     Andy：「確保每個週期（1 分～季）都有成交量……只要是估的就要標明；不准顯示空白量柱或 0 張」。
-
-     哪些是實量
-       · 今天的分 K／1H／4H：證交所分時的 s 欄（每分鐘成交張數；台指期是口數）—— 第一手實量。
-       · 台指期夜盤：期交所分時的 V 欄 —— 實量。
-       · 日／週／月／季：資料湖 index_ohlc（FinMind 大盤成交股數、台指期近月口數）—— 實量。
-       · 4 小時「一盤一根」：那一根就是一整個交易時段，量直接用資料湖那一天的實際總量 —— 也是實量。
-
-     哪些要估（而且畫面上一定標出來）
-       · 加權歷史的 15 分／30 分／1H：資料湖裡的分 K 來自 Yahoo，Yahoo 指數的成交量永遠是 0。
-         估法：那一天的**實際總量**（index_ohlc）×「分時量分布」裡這根 K 棒涵蓋的比例。
-         分布依序用：① 今天已經走完一整盤的分時（第一手、最新）
-                     ② 這台瀏覽器存下的「最近一個完整交易日」的分布（盤中打開時今天還沒走完，用它）
-                     ③ 都沒有才用內建的台股常見分布（開盤量大、午盤量小、13:25 收盤集合競價再放大）。
-         同一天所有 K 棒的比例加總＝1，所以估出來的量加總剛好等於那天的實際總量（只是分配是估的）。
-         那一天的總量也查不到（資料湖日線還沒到）→ 用前 20 個交易日的中位數當總量（一樣標「估」）。
-       · 日 K 少數沒有量的日子（資料湖加權日線 2026-02 有一段 0）：用前後各 5 個交易日的平均補。
-     怎麼標：游標看板的量後面掛「估」（週／月／季含估算日掛「含估」）、量柱改灰色；
-             估算的 K 棒超過兩成時，圖上方那一行也寫一句。完整口徑在「?」。
-     ⚠ 只有「整盤都沒有量」的那一盤才估 —— 有實量的盤一根都不動（真的 0 就是 0，不拿估算去蓋真值）。*/
-  const EST_COL = 'rgba(142,160,196,0.45)';          // 估算量柱：灰藍，淺深主題都看得到、又明顯不是紅綠
-  const volUnit = (x) => (x.id === 'FUT' ? 1 : 1000);
-  /* 內建分布（只在 ①② 都沒有時用）：15 分鐘一格的相對權重，key＝那一格開始的台北分鐘數。
-     依據是台股的交易規則本身，不是某一天的統計：09:00 開盤集合競價＋開盤後半小時最熱，
-     午盤最冷，13:25～13:30 收盤集合競價再放大一次（分時檔把它記在 13:30 那一分鐘）。
-     台指期多 08:45～09:00 那一段（現貨還沒開），13:30 之後現貨收了、只剩期貨，量明顯縮。 */
-  const DEF_PROF = {
-    STK: [[540, 12], [555, 7], [570, 6], [585, 5.5], [600, 5], [615, 4.6], [630, 4.3], [645, 4.1], [660, 4], [675, 3.8],
-          [690, 3.7], [705, 3.6], [720, 3.6], [735, 3.7], [750, 3.9], [765, 4.2], [780, 4.6], [795, 5.4], [810, 7]],
-    FUT: [[525, 8], [540, 9], [555, 6.5], [570, 5.5], [585, 5], [600, 4.5], [615, 4.2], [630, 4], [645, 3.8], [660, 3.7],
-          [675, 3.6], [690, 3.5], [705, 3.5], [720, 3.5], [735, 3.6], [750, 3.8], [765, 4], [780, 4.4], [795, 5], [810, 3.5], [825, 1]],
-  };
-  const slotOf = (min) => Math.floor(min / 15) * 15;
-  function normProf(pairs) {
-    const w = {}; let t = 0; pairs.forEach(([k, v]) => { w[k] = v; t += v; });
-    Object.keys(w).forEach(k => { w[k] /= t; }); return w;
+  /** 看得到的那一段（跟 drawK 的 fitLast 同一個根數）裡有量的比例。 */
+  const VOL_SHOW = 0.9;
+  function volRatio(bars, n) {
+    if (!bars || !bars.length) return 0;
+    const seg = bars.slice(-Math.max(1, n || bars.length));
+    return seg.filter(b => b[5] > 0).length / seg.length;
   }
-  /** 分時點 → {格子開始分鐘: 佔比}。沒有任何量（Yahoo 備援的指數量是 0）回 null。 */
-  function profFromPoints(pts) {
-    const w = {}; let tot = 0;
-    (pts || []).forEach(p => { const v = +p.s || 0; if (v > 0) { const k = slotOf(p.min); w[k] = (w[k] || 0) + v; tot += v; } });
-    if (!(tot > 0)) return null;
-    Object.keys(w).forEach(k => { w[k] /= tot; });
-    return w;
-  }
-  /** 這張卡（日盤／夜盤）現在用哪一份分時量分布。回傳 { w, src: 'today'|'cache'|'default', day }。 */
-  function volProfile(x, night) {
-    const ck = 'm3.prof.' + x.id + (night ? '.n' : '');
-    const d = night ? (isNight(x) ? nightSeries() : null) : state.data[x.id];
-    const [s0, s1] = night ? SESSION_NIGHT : (SESSION[x.id] || SESSION.TSE);
-    // 「走完一整盤」：點數 ≥ 八成、最後一點到收盤前 2 分鐘內。盤中的半盤不能用（下午那段的比例會是 0）。
-    if (d && !d.night === !night && d.points && d.points.length >= (s1 - s0) * 0.8
-        && d.points[d.points.length - 1].min >= s1 - 2) {
-      const w = profFromPoints(d.points);
-      if (w) {
-        try {
-          const o = JSON.parse(localStorage.getItem(ck) || 'null');
-          if (!o || o.day !== d.date) localStorage.setItem(ck, JSON.stringify({ day: d.date, w }));
-        } catch (e) { /* 存不了就下次再算 */ }
-        return { w, src: 'today', day: d.date || '' };
-      }
-    }
-    try {
-      const o = JSON.parse(localStorage.getItem(ck) || 'null');
-      if (o && o.w && Object.keys(o.w).length) return { w: o.w, src: 'cache', day: o.day || '' };
-    } catch (e) { /* 忽略 */ }
-    if (night) {                      // 夜盤沒有內建分布：15:00～05:00 平均攤（實務上夜盤一定有實量，走不到這裡）
-      const p = []; for (let m = SESSION_NIGHT[0]; m < SESSION_NIGHT[1]; m += 15) p.push([m, 1]);
-      return { w: normProf(p), src: 'default', day: '' };
-    }
-    return { w: normProf(x.id === 'FUT' ? DEF_PROF.FUT : DEF_PROF.STK), src: 'default', day: '' };
-  }
-  /** 資料湖日線的量（估算的「那天總量」）。只載一次，載完重畫。 */
+  /** 資料湖日線的量（4 小時一盤一根用）。只載一次，載完重畫。 */
   async function loadDailyVol() {
     if (state.dvolBusy || state.dvol) return;
     state.dvolBusy = true;
@@ -1219,99 +1162,85 @@
       Object.keys(all || {}).forEach(sym => {
         const m = new Map();
         (all[sym] || []).forEach(b => { if (b && +b[5] > 0) m.set(String(b[0]).slice(0, 10), +b[5]); });
-        o[sym] = { m, dates: [...m.keys()].sort() };
+        o[sym] = { m };
       });
       state.dvol = o;
     } catch (e) { state.dvol = {}; }
     state.dvolBusy = false;
     draw();
   }
-  /** 那天的總量查不到時的替代：那天（含）以前 20 個交易日的中位數；那天比資料湖還早就用最早 20 天。 */
-  function refVol(dv, date) {
-    const ds = dv.dates; if (!ds.length) return null;
-    let hi = ds.length - 1; while (hi > 0 && ds[hi] > date) hi--;
-    const pick = ds.slice(Math.max(0, hi - 19), hi + 1).map(k => dv.m.get(k)).sort((a, b) => a - b);
-    return pick.length ? pick[Math.floor(pick.length / 2)] : null;
-  }
-  /** 台北牆鐘秒數 → 分鐘數；夜盤凌晨那段記成 24*60+（跟分時點、分布的 key 同一套）。 */
-  function wallMin(t) { const m = Math.floor((t % 86400) / 60); return m < 5 * 60 + 1 ? m + 1440 : m; }
-  /** 分 K／1H／4H（時間是數字）：整盤沒有量的那幾盤補上估算量。就地改 bars，回傳 Map(時間字串 → 種類)。
-   *  種類：'est'＝日總量×分布；'avg'＝連那天總量都沒有、用中位數；'day'＝一盤一根＝實際總量（不算估）。 */
-  function fillVol(x, bars, night) {
-    const est = new Map();
-    if (!bars || !bars.length || typeof bars[0][0] !== 'number') return est;
-    const dv = state.dvol ? state.dvol[night ? 'FUT_N' : x.id] : null;
-    let prof = null;
-    const groups = new Map();
-    bars.forEach((b, i) => { const k = sessKey(b[0], 'H4'); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); });
-    groups.forEach((idx, k) => {
-      if (idx.some(i => bars[i][5] > 0)) return;                 // 這一盤有實量 → 一根都不動
-      const date = new Date(k * 1000).toISOString().slice(0, 10);
-      let tot = dv ? dv.m.get(date) : null, kind = 'est';
-      if (!(tot > 0)) { tot = dv ? refVol(dv, date) : null; kind = 'avg'; }
-      if (!(tot > 0)) return;                                      // 連參考量都沒有 → 不估（hasVol 會把量柱收掉）
-      if (!prof) prof = volProfile(x, night);
-      const mins = idx.map(i => wallMin(bars[i][0]));
-      idx.forEach((i, j) => {
-        // 第一根往前吃到開盤（台指期 08:45 併進 09 那根）、最後一根往後吃到收盤（13:30 集合競價併進 13 那根）
-        const a = j === 0 ? -Infinity : mins[j], b = j === idx.length - 1 ? Infinity : mins[j + 1];
-        let sh = 0;
-        for (const s0 in prof.w) { const m = +s0; if (m >= a && m < b) sh += prof.w[s0]; }
-        if (!(sh > 0)) sh = 1 / Math.max(19, idx.length);          // 分布裡沒有這一格（少見）：給一個小的平均份額，不寫 0
-        bars[i][5] = Math.max(1, Math.round(tot * sh));
-        est.set(String(bars[i][0]), idx.length === 1 && kind === 'est' ? 'day' : kind);
-      });
-    });
-    return est;
-  }
-  /** 日 K 缺量的日子用前後各 5 個交易日的平均補。就地改 bars，回傳補過的日期 Set。 */
-  function fillDaily(bars) {
-    const est = new Set();
-    const v0 = bars.map(b => (+b[5] > 0 ? +b[5] : 0));
-    bars.forEach((b, i) => {
-      if (v0[i] > 0) return;
-      const near = [];
-      for (let j = i - 1, n = 0; j >= 0 && n < 5; j--) if (v0[j] > 0) { near.push(v0[j]); n++; }
-      for (let j = i + 1, n = 0; j < bars.length && n < 5; j++) if (v0[j] > 0) { near.push(v0[j]); n++; }
-      if (!near.length) return;
-      b[5] = Math.round(near.reduce((a, c) => a + c, 0) / near.length);
-      est.add(String(b[0]).slice(0, 10));
-    });
-    return est;
-  }
-  /** 週／月／季（日線合成）：哪幾根含有補過的日子 → Map(時間字串 → 'part')。
-   *  做法：把「這天是不是補的」當成量，用**同一支**合成函式再滾一次 —— 時間戳保證跟 K 棒一模一樣
-   *  （resampleDaily 用的是區間最後一天、groupBars 用的是第一根，自己另外推區間一定會對歪）。*/
-  function rollEst(daily, estDays, def) {
+  /** 4 小時（一盤一根）：分 K 沒有量的那幾盤，補上那天日線的**實際總量**。就地改 bars，回傳 Map(時間字串 → 'day')。
+   *  ⚠ 只補「一盤只有一根」的情況（4 小時）；1 小時一天五根，拿日總量去分就是估，不做。 */
+  function fillDayTotal(x, bars, night) {
     const out = new Map();
-    if (!estDays || !estDays.size) return out;
-    let fl = daily.map(b => [b[0], 0, 0, 0, 0, estDays.has(String(b[0]).slice(0, 10)) ? 1 : 0]);
-    if (def.roll) fl = rollLake(fl, def.roll);
-    if (def.group > 1) fl = groupBars(fl, def.group);
-    fl.forEach(b => { if (b[5] > 0) out.set(String(b[0]), def.roll ? 'part' : 'nb'); });
+    if (!bars || !bars.length || typeof bars[0][0] !== 'number') return out;
+    const dv = state.dvol ? state.dvol[night ? 'FUT_N' : x.id] : null;
+    if (!dv) return out;
+    const per = new Map();
+    bars.forEach((b, i) => { const k = sessKey(b[0], 'H4'); per.set(k, (per.get(k) || []).concat(i)); });
+    per.forEach((idx, k) => {
+      if (idx.length !== 1) return;
+      const b = bars[idx[0]];
+      if (b[5] > 0) return;                                          // 分 K 本來就有真實量 → 不動
+      const date = new Date(k * 1000).toISOString().slice(0, 10);
+      const tot = dv.m.get(date);
+      if (tot > 0) { b[5] = tot; out.set(String(b[0]), 'day'); }
+    });
     return out;
   }
-  /** 圖表時間（數字、'YYYY-MM-DD'、或圖表庫給的 {year,month,day}）→ est Map 的鍵。 */
-  function timeKey(t) {
-    if (t && typeof t === 'object' && t.year) return `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
-    return String(t);
-  }
-  /** 量柱面板的後處理：估算那幾根改灰色；台指期的刻度單位改「口」（KChart 預設印「張」）。
-   *  KChart 每次 applyIndicators 都會重建量柱，所以 drawK 每畫一次就要再套一次。 */
-  function decorVol(x, k, est) {
+  /** 量柱面板的後處理：量軸刻度的單位（指數＝億／萬元、台指期＝口）。KChart 每次 applyIndicators 都重建量柱，所以每畫一次套一次。 */
+  function decorVol(x, k) {
     const s = k && k.panes && k.panes.vol && k.panes.vol[0];
     if (!s) return;
-    if (x.id === 'FUT') {
-      try { s.applyOptions({ priceFormat: { type: 'custom', minMove: 1,
-        formatter: (v) => (Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + '萬口' : Math.round(v) + '口') } }); } catch (e) { /* 忽略 */ }
-    }
-    if (!est || !est.size || typeof s.data !== 'function') return;
     try {
-      s.setData(s.data().map(p => {
-        const kd = est.get(timeKey(p.time));
-        return kd && kd !== 'day' ? Object.assign({}, p, { color: EST_COL }) : p;
-      }));
-    } catch (e) { /* 圖表庫不支援就維持原色，游標看板照樣標「估」 */ }
+      s.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: isMoney(x)
+        ? (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(Math.abs(v) >= 1e10 ? 0 : 1) + '億' : Math.round(v / 1e4) + '萬')
+        : (v) => (Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + '萬口' : Math.round(v) + '口') } });
+    } catch (e) { /* 圖表庫不支援就維持預設刻度 */ }
+  }
+  /** 沒有量時圖上方那一行的原因（滑鼠提示）。天數讀資料湖 src，不寫死。 */
+  function noVolWhy(x, tfKey) {
+    const o = (((state.lakeIntra || {})[lakeSym(x)] || {}).src) || {};
+    const since = o.vol_first ? `（真實分鐘量從 ${o.vol_first} 起才有，共 ${o.vol_days} 天）` : '';
+    if (x.id === 'OTC') return `櫃買指數的歷史分 K 只有價格（Yahoo）；逐分鐘成交值只有證交所分時檔，每天盤後存起來${since}，不足以畫量柱，所以不畫、也不估。`;
+    if (x.id === 'TSE') return `加權的真實分鐘成交值（FinMind 每 5 秒成交統計）還在回補${since}；還沒補到的這一段不畫量柱、也不估。`;
+    return `台指期這個週期沒有逐筆成交量${since}，不畫量柱。`;
+  }
+  /* ---------------------------------------------------------------- 量副圖高度三張連動（2026-09-28）
+     Andy：「調整加權、櫃買、台指的成交量縮放只需要抓取其中一條，其他兩條會連動調整寬度」。
+     把手＝Lightweight Charts 本身的面板分隔線（主圖與量柱中間那條，hover 會亮；chart.js baseOptions 開了 enableResize）。
+     拖完放開 → 量這張的量副圖佔圖高的比例 → 存 localStorage `tw.m3.volr` → 另外兩張照同一個比例重排。
+     重新整理、換週期、展開收合都讀同一個比例（KChart 的 opts.volRatio）。 */
+  const VOLR_KEY = 'tw.m3.volr';
+  function loadVolR() {
+    try { const v = parseFloat(localStorage.getItem(VOLR_KEY)); return v >= 0.08 && v <= 0.7 ? v : null; } catch (e) { return null; }
+  }
+  function saveVolR(r) { try { localStorage.setItem(VOLR_KEY, String(Math.round(r * 1000) / 1000)); } catch (e) { /* 存不了就只連動這一次 */ } }
+  /** 這張圖的量副圖現在佔圖高多少（沒有量副圖回 null）。 */
+  function volShare(k) {
+    try {
+      if (!k || !k.paneIndex || k.paneIndex.vol == null) return null;
+      const h = k.paneHeights(); const tot = Object.values(h).reduce((a, v) => a + (v || 0), 0);
+      return tot > 0 && h.vol ? h.vol / tot : null;
+    } catch (e) { return null; }
+  }
+  function syncVolFrom(id) {
+    const k = state.kcharts[id]; const r = volShare(k);
+    if (r == null) return;
+    const old = loadVolR();
+    if (old != null && Math.abs(old - r) < 0.01) return;             // 只是點一下、沒拖 → 不動另外兩張
+    saveVolR(r);
+    IDX.forEach(y => { if (y.id !== id && state.kcharts[y.id] && state.kcharts[y.id].setVolRatio) state.kcharts[y.id].setVolRatio(r); });
+    if (k.setVolRatio) k.opts.volRatio = r;
+  }
+  /** 掛在圖表容器上（容器跨圖表活著，只掛一次）：按下時在這張圖上、放開（不論放在哪）就量一次。 */
+  function armVolSync(x, el) {
+    if (el._volSync) return;
+    el._volSync = true;
+    el.addEventListener('pointerdown', () => {
+      const up = () => { document.removeEventListener('pointerup', up, true); setTimeout(() => syncVolFrom(x.id), 60); };
+      document.addEventListener('pointerup', up, true);
+    }, true);
   }
   /** 資料湖 15 分 K → 30 分 K（對齊整點與半點；13:30 那根自成一根，跟今天的分時 toBars(…, 30) 同一個切法）。 */
   function rollMin(b15, n) {
@@ -2338,27 +2267,30 @@
       el.innerHTML = `<div class="empty">${def ? '這個週期的資料不足' : '今天還沒有任何分鐘資料'}</div>`;
       el.dataset.kind = ''; return;
     }
-    /* ★ 2026-09-25：量。日／週／月／季在 fetchHist 已補好（est 從 histEst 拿）；
-       分 K／1H／4H 在這裡補「整盤沒有量」的那幾盤（見 fillVol）。日線總量還沒載到時先照畫，載到會自己重畫。*/
-    let est;
-    if (def && def.lake) est = state.histEst[lakeSym(x) + '|' + def.id] || new Map();
-    else {
+    /* ★ 2026-09-28：量只畫真實的（見上方「成交量：只畫真實的量」）。4 小時一盤一根時，分 K 沒量的盤補上日線實際總量
+       （真實值）；其他一律照實。日線總量還沒載到時先照畫，載到會自己重畫。*/
+    let est = new Map();
+    if (!(def && def.lake)) {
       if (!state.dvol) loadDailyVol();
-      est = fillVol(x, bars, !!(d && d.night));
+      est = fillDayTotal(x, bars, !!(d && d.night));
     }
-    const nEst = [...est.values()].filter(v => v !== 'day').length;
-    if (nEst > bars.length * 0.2) {
-      const t = '灰色量柱＝估算量（游標看板標「估」）';
+    el.dataset.est = '0';
+    const expanded = state.big === x.id;
+    const showN = (def || multi) ? (expanded ? 160 : 90) : bars.length;
+    // 看得到的那一段不到九成有量 → 量面板收掉、圖上方寫「此週期無成交量資料」（原因在滑鼠提示）
+    const vr = volRatio(bars, showN);
+    const vol = vr >= VOL_SHOW;
+    el.dataset.volr = vr.toFixed(3);
+    el.dataset.novol = vol ? '' : '1';
+    el.dataset.novolWhy = vol ? '' : noVolWhy(x, tfKey);
+    if (!vol) {
+      const t = '此週期無成交量資料';
       el.dataset.fallback = el.dataset.fallback ? el.dataset.fallback + '　·　' + t : t;
     }
-    el.dataset.est = String(nEst);
-    const expanded = state.big === x.id;
     // key 含日盤／夜盤：切 session 時資料整組換掉，不能沿用同一個圖表就地改
     // ★ 2026-09-24：key 多帶 tfName（1 小時合成不到會退回日，同一個選單值畫的是不同週期）與「有沒有量」
-    const vol = hasVol(bars);
     const key = x.id + '|' + String(tfKey) + '|' + tfName + '|' + (vol ? 'v' : 'nv') + '|' + (expanded ? 'big' : 'small')
       + '|' + (d && d.night ? 'n' : 'd') + (multi ? '|multi' : '');
-    /* 量柱：來源沒給量（Yahoo 指數的 15 分 K 成交量全是 0）就整個面板收掉，不畫一排 0 張（見 hasVol）。*/
     const cfgOf = () => { const c = loadCfg(expanded); if (!vol) c.vol = false; return c; };
     const live0 = state.kcharts[x.id];
     /* 同一張卡、同一個週期、同樣大小 → 就地換資料。
@@ -2367,19 +2299,21 @@
     if (live0 && live0._m3key === key && el.dataset.kind === 'k') {
       live0.setBars(bars, tfName, true);
       live0.applyIndicators(cfgOf());
-      live0._m3est = est; decorVol(x, live0, est);
+      live0._m3est = est; decorVol(x, live0);
       return;
     }
     killK(x.id);
     el.innerHTML = ''; el.dataset.kind = 'k';
     // mini：不要面板標題與浮水印（那兩個的 CSS 只掛在個股頁的 #lwc 底下，放這裡會掉到卡片外面）
-    const k = new window.KChart(el, { tf: tfName, mini: true, compact: !expanded });
+    // volRatio：量副圖佔圖高的比例，三張共用一個（使用者拖過就用他拖的，見 armVolSync）
+    const k = new window.KChart(el, { tf: tfName, mini: true, compact: !expanded, volRatio: loadVolR() || undefined });
     k._m3key = key;
     state.kcharts[x.id] = k;
     k.setBars(bars, tfName);
     const cfg = cfgOf();
     k.applyIndicators(cfg);
-    k._m3est = est; decorVol(x, k, est);
+    k._m3est = est; decorVol(x, k);
+    armVolSync(x, el);
     const f = F();
     const dp = x.id === 'FUT' ? 0 : 2;
     k.setBarSpacing(expanded ? (cfg.bar || 9) : 5);
