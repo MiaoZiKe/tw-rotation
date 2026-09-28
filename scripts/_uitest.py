@@ -6857,8 +6857,10 @@ def t_stock(pg, base, code):
         tf: b.dataset.tf, off: b.classList.contains('off'), title: b.title }))""")
     # ★ 2026-09-26 晚改前：九個週期全排（5秒～月）→ 改後：預設只排勾起來的 1時／4時／日／週／月（「週期設置」），
     #   其他要在「指標 ▾」的週期區勾了才出現（那條路在「個股指標下拉0926」段實際點過）
-    ok("週期鈕依序是 1時／4時／日／週／月（09-26 晚起預設只排這五個）",
-       [t["tf"] for t in tfstate] == ["60m", "240m", "1d", "1w", "1M"], tfstate)
+    # ★ 2026-09-28 分時走勢上線：「分時」排在最前面而且是預設勾起來的（Andy：「Default 設定在上面」），
+    #   所以預設是六個。分時在開發容器裡通常是劃掉的（Yahoo 被擋、本機 payload 沒有 60 分 K）——下面的迴圈照樣驗它有寫原因。
+    ok("週期鈕依序是 分時／1時／4時／日／週／月（09-28 起分時排最前面）",
+       [t["tf"] for t in tfstate] == ["tick", "60m", "240m", "1d", "1w", "1M"], tfstate)
     ok("日線一定是有資料的（沒有被劃掉）", not next(t for t in tfstate if t["tf"] == "1d")["off"], tfstate)
     for t in tfstate:
         if t["off"]:
@@ -35417,6 +35419,24 @@ def t_mobile_broker(b, base, code):
     ok(f"{T}預設在 K 線頁：K 線卡看得見、舊的現價列與舊分頁藏起來",
        s0["mbt"] == "k" and s0["kVis"] and not s0["skPxVis"] and not s0["oldTabsVis"], s0)
     ok(f"{T}K 線圖＋報價列在同一屏（圖底 {s0['lwcB']} ≤ 可視 {s0['vh'] - 58}）", 300 <= s0["lwcH"] and s0["lwcB"] <= s0["vh"] - 58, s0)
+    # ★ 2026-09-28 分時預設：分時（或「沒分時、已改用日 K」）一定有一行短註。手機上只佔一行、點一下展開、再點收回，
+    #   而且短註出現的時候圖底仍在一屏內（上面那條）。先等分時那一趟有結果（最多 8 秒就會退回日 K 並寫短註）。
+    wait_until(m, "() => { const n = document.getElementById('liveNote'); return n && !n.hidden; }", 10000)
+    LN = """() => { const n = document.getElementById('liveNote'), l = document.getElementById('lwc');
+      if (!n || n.hidden) return null; const r = n.getBoundingClientRect();
+      return { h: Math.round(r.height), txt: n.textContent.slice(0, 40), sw: n.scrollWidth, cw: n.clientWidth,
+               fs: parseFloat(getComputedStyle(n).fontSize), lwcB: Math.round(l.getBoundingClientRect().bottom), vh: innerHeight }; }"""
+    ln0 = m.evaluate(LN)
+    if ok(f"{T}分時預設：K 線頁有一行短註（分時的來源與怎麼看，或「已改用日 K」）", bool(ln0), ln0):
+        ok(f"{T}短註在手機上只佔一行（≤ 30px）、字 ≥ 11px", ln0["h"] <= 30 and ln0["fs"] >= 11, ln0)
+        ok(f"{T}短註出現時圖底仍在一屏內（{ln0['lwcB']} ≤ {ln0['vh'] - 58}）", ln0["lwcB"] <= ln0["vh"] - 58, ln0)
+        if ln0["sw"] > ln0["cw"] + 1:
+            m.tap("#liveNote"); m.wait_for_timeout(300)
+            ln1 = m.evaluate(LN)
+            ok(f"{T}★ 點短註 → 展開全文（高度變高）", ln1["h"] > ln0["h"], {"前": ln0, "後": ln1})
+            m.tap("#liveNote"); m.wait_for_timeout(300)
+            ln2 = m.evaluate(LN)
+            ok(f"{T}再點一次 → 收回一行", ln2["h"] == ln0["h"], {"前": ln0, "後": ln2})
     ok(f"{T}390 寬整頁沒有橫捲", s0["docW"] <= s0["winW"] + 1, s0)
     ok(f"{T}只有分頁列自己可以橫捲（內容比框寬）", s0["tabsSW"] > s0["tabsCW"], (s0["tabsSW"], s0["tabsCW"]))
 

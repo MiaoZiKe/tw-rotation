@@ -29,6 +29,9 @@
     if (!el) return;
     el.hidden = !txt;
     el.textContent = txt || '';
+    /* 手機上短註只佔一行（CSS 見 body.m3on.mbon #liveNote）→ 點一下展開全文、再點收回。
+       桌機是完整換行的，class 切了也沒有差別，所以不分寬度一律掛上。*/
+    if (!el.onclick) el.onclick = () => el.classList.toggle('open');
   }
   function stopLive() {
     if (liveOff) { liveOff(); liveOff = null; }

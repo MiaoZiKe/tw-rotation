@@ -4039,6 +4039,12 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on.mbon #skChartCard #skHead,body.m3on.mbon #skChartCard #skPx{display:none!important}
   /* K 線高度：一屏放得下 報價列＋分頁列＋工具列＋圖＋底部導覽（量到的高度寫在 _uitest「手機個股券商式」）*/
   body.m3on.mbon #lwc{height:clamp(360px,calc(100vh - var(--mbtop,160px) - 58px - 128px),620px)}
+  /* ★ 2026-09-28 分時預設上線：分時一定會有一行來源／怎麼看的短註（#liveNote），以前日線預設時它是收起來的。
+     手機上那段字會折成三行、把圖底推出一屏（_uitest「手機個股券商式」量到 788 > 786）。
+     所以手機上短註只佔一行（超出的用…收起，點一下展開看全文），圖高同時扣掉這一行 —— 一屏仍放得下 報價列＋工具列＋圖。*/
+  body.m3on.mbon #skChartCard #liveNote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:18px;padding:4px 10px;cursor:pointer}
+  body.m3on.mbon #skChartCard #liveNote.open{white-space:normal}
+  body.m3on.mbon #skChartCard:has(#liveNote:not([hidden])) #lwc{height:clamp(360px,calc(100vh - var(--mbtop,160px) - 58px - 128px - 34px),620px)}
 
   body.m3on .mbhead{position:sticky;top:52px;z-index:30;margin:-14px -14px 0;background:var(--bg-2);border-bottom:1px solid var(--line)}
   body.m3on .mbq{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto 40px;align-items:center;gap:0 8px;padding:6px 2px;min-height:62px}
