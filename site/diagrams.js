@@ -2048,7 +2048,75 @@
     $$(':scope > .mnumlayer', host).forEach(e => e.remove());
     const bar = host.previousElementSibling;
     if (bar && bar.classList.contains('mdgbar')) bar.remove();
+    unmountFolds(host);
   }
+
+  /* ---------------- 章節鈕列（設計 v4 第二批 2D，2026-09-28）----------------
+     圖裡的章節列（g.dgfold：「＋ ② 尺度：晶圓 → 晶粒…」）在 390 寬被縮到 15px 高、上下間距 18px ——
+     手指一點常常點到隔壁那一條（手機按鈕普查：68 種章節列全部 < 40px）。
+     手機改由圖下方一列 HTML 章節鈕接手：一顆一列、40px 高、寫全名，點一下＝展開／收合那一段（呼叫圖裡同一條章節列的點擊，
+     狀態只有一份），展開後把那一段捲進畫面。圖裡的章節列照樣顯示 ＋／－ 狀態，只是手機上不接觸控（.mfoldon），
+     免得 15px 的細條跟 40px 的鈕搶同一個手指。桌機（>640）一進來就拆掉、完全不插節點。*/
+  function foldList(host) {
+    const n = host.nextElementSibling;
+    if (n && n.classList.contains('mdgfolds')) return n;
+    const t = n && n.classList.contains('swipetip') ? n.nextElementSibling : null;
+    return t && t.classList.contains('mdgfolds') ? t : null;
+  }
+  function unmountFolds(host) {
+    if (!host) return;
+    host.classList.remove('mfoldon');
+    const L = foldList(host); if (L) L.remove();
+  }
+  function paintFolds(host, L) {
+    const gs = $$('g.dgfold[data-fold]', host);
+    $$('button[data-fold]', L).forEach((b) => {
+      const g = gs.find(x => x.getAttribute('data-fold') === b.dataset.fold);
+      const on = !!g && g.classList.contains('open');
+      b.classList.toggle('on', on); b.setAttribute('aria-expanded', String(on));
+      const s = b.querySelector('.sg'); if (s) s.textContent = on ? '－' : '＋';
+    });
+  }
+  function mobileFolds(host) {
+    if (!host) return;
+    if (!isM()) { unmountFolds(host); return; }
+    const gs = $$('g.dgfold[data-fold]', host);
+    if (!gs.length) { unmountFolds(host); return; }
+    let L = foldList(host);
+    if (!L) {
+      L = document.createElement('div'); L.className = 'mdgfolds'; L.setAttribute('role', 'group'); L.setAttribute('aria-label', '圖的章節：點一下展開或收合');
+      const after = host.nextElementSibling && host.nextElementSibling.classList.contains('swipetip') ? host.nextElementSibling : host;
+      after.after(L);
+    }
+    L.innerHTML = gs.map((g) => {
+      const id = g.getAttribute('data-fold');
+      const hd = ((g.querySelector('.hd') || {}).textContent || '').trim();
+      const hint = (g.getAttribute('data-hint') || '').trim();
+      return `<button type="button" data-fold="${esc(id)}" aria-expanded="false" title="${esc(hd + (hint ? '：' + hint : ''))}">`
+        + `<span class="sg">＋</span><b>${esc(hd)}</b>${hint ? `<i>${esc(hint)}</i>` : ''}</button>`;
+    }).join('');
+    host.classList.add('mfoldon');
+    L.onclick = (e) => {
+      const b = e.target.closest('button[data-fold]'); if (!b) return;
+      const g = $$('g.dgfold[data-fold]', host).find(x => x.getAttribute('data-fold') === b.dataset.fold);
+      if (!g) return;
+      g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      paintFolds(host, L);
+      requestAnimationFrame(() => {
+        layout2d(host);
+        if (!g.classList.contains('open')) return;
+        /* 展開的那一段在圖裡（按鈕在圖下方）：把那條章節列捲到頂欄下面，讀者直接看到剛打開的內容 */
+        if (host.classList.contains('mbig')) {
+          const hr = host.getBoundingClientRect(), gr = g.getBoundingClientRect();
+          host.scrollTop += gr.top - hr.top - 8;
+        }
+        const gr = g.getBoundingClientRect();
+        if (gr.top < 64 || gr.top > window.innerHeight * 0.6) window.scrollBy({ top: gr.top - 72, behavior: 'instant' });
+      });
+    };
+    paintFolds(host, L);
+  }
+  window.DG.mobileFolds = mobileFolds;
   function layout2d(host) {
     if (!cur || cur.host !== host || !host.isConnected) return;
     const layer = cur.layer;
@@ -2078,7 +2146,8 @@
     if (!host) return;
     if (!isM()) { unmount2d(host); return; }
     const items = items2d(host);
-    if (!items.length) { unmount2d(host); return; }
+    if (!items.length) { unmount2d(host); mobileFolds(host); return; }
+    mobileFolds(host);
     host.classList.add('mnum2d');
     host.classList.toggle('mbig', zoomOf() === 'big');
     let layer = host.querySelector(':scope > .mnumlayer');
@@ -2118,6 +2187,7 @@
     clearTimeout(rz);
     rz = setTimeout(() => {
       $$('.mnum2d').forEach(h => { if (!isM()) unmount2d(h); else layout2d(h); });
+      if (!isM()) $$('.mfoldon').forEach(unmountFolds);
       if (isM()) { const h = document.getElementById('prodDiagram'); if (h && !h.classList.contains('mnum2d') && h.querySelector('.dgcards')) mobileNums(h); }
     }, 220);
   });

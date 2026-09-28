@@ -168,7 +168,9 @@ def _run_guard(tmp_path: Path, complete: dict) -> dict:
     st.mkdir(parents=True, exist_ok=True)
     (st / "backfill_progress.json").write_text(json.dumps({"done": {}, "complete": complete}))
     # Logo 補齊而且還沒到期，守門才會真的回「跳過」
-    (st / "logo_progress.json").write_text(json.dumps({"done": True, "next_due": "2999-01-01"}))
+    from pipeline import config as cfg
+    (st / "logo_progress.json").write_text(json.dumps({"done": True, "next_due": "2999-01-01",
+                                                       "strategy": cfg.LOGO_STRATEGY}))
     env = {**os.environ, "DATASETS": "plan", "GITHUB_EVENT_NAME": "schedule"}
     out = subprocess.run([sys.executable, "-c", _guard_script()], cwd=tmp_path, env=env,
                          capture_output=True, text=True, check=True).stdout
@@ -208,6 +210,32 @@ def test_守門_全市場步驟沒補完就放行(tmp_path, step):
     cp = _all_done_complete()
     cp.pop(run_backfill.datasets_key_of(step["datasets"], step["start"], step.get("tag"), "market"))
     assert _run_guard(tmp_path, cp)["skip"] == "false"
+
+
+def test_守門_Logo策略升級或人工Logo要放行(tmp_path):
+    """Logo 第四版（DECISIONS #276）：狀態檔寫著補齊，但 LOGO_STRATEGY 跟狀態檔的版號不同 → 放行一輪 logos；
+    版號相同就照舊跳過；data/logos/manual/ 多一張索引沒記的人工 Logo → 也放行。"""
+    from pipeline import config as cfg
+    (tmp_path / "pipeline").mkdir()
+    (tmp_path / "pipeline" / "config.py").write_text(f"LOGO_STRATEGY = {cfg.LOGO_STRATEGY}\n", encoding="utf-8")
+    assert _run_guard(tmp_path, _all_done_complete())["skip"] == "true"   # 版號對上、沒有人工檔 → 跳過
+    lp = tmp_path / "data" / "_state" / "logo_progress.json"
+    env = {**os.environ, "DATASETS": "plan", "GITHUB_EVENT_NAME": "schedule"}
+
+    def guard():
+        out = subprocess.run([sys.executable, "-c", _guard_script()], cwd=tmp_path, env=env,
+                             capture_output=True, text=True, check=True).stdout
+        return dict(line.split("=", 1) for line in out.strip().splitlines())
+    lp.write_text(json.dumps({"done": True, "next_due": "2999-01-01", "strategy": cfg.LOGO_STRATEGY - 1}))
+    got = guard()                                                     # 狀態檔是舊版策略寫的 → 放行
+    assert got["skip"] == "false" and got["logos_only"] == "true"
+    lp.write_text(json.dumps({"done": True, "next_due": "2999-01-01", "strategy": cfg.LOGO_STRATEGY}))
+    assert guard()["skip"] == "true"
+    md = tmp_path / "data" / "logos" / "manual"
+    md.mkdir(parents=True)
+    (md / "8038.png").write_bytes(b"fake")
+    got = guard()
+    assert got["skip"] == "false" and got["logos_only"] == "true"
 
 
 # ------------------------------------------------------------------ 5. 2009 股利全市場步驟的完成判定（2026-09-28）
