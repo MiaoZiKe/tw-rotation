@@ -37132,7 +37132,7 @@ def t_design_v4_2a(b, base, code):
     m = pg.evaluate(V4_2A_M)
     ok("① [1440] 「資金輪盤」小標跟時間拉 Bar 在同一行（頂端差 ≤ 6px）",
        bool(m["chead"] and m["time"]) and abs(m["chead"]["t"] - m["time"]["t"]) <= 6 and m["chead"]["r"] <= m["time"]["l"], m)
-    ok("① [1440] 輪盤高＝min(欄寬, 640)（改前 0.8 × 欄寬）", abs(m["clock"]["h"] - min(640, m["clock"]["w"])) <= 3, m["clock"])
+    ok("① [1440] 輪盤高＝min(欄寬, 664)（改前 0.8 × 欄寬、上限 640；≥1101 上限 664）", abs(m["clock"]["h"] - min(664, m["clock"]["w"])) <= 3, m["clock"])
     ok("① [1440] 兩欄：排行在右欄", m["right"]["l"] > m["left"]["r"] - 1 and abs(m["right"]["t"] - m["left"]["t"]) < 40, [m["left"], m["right"]])
     sk = m["sk"]
     if ok("④ 讀得到資金去向的探針", bool(sk), sk):
