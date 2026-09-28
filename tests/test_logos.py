@@ -910,9 +910,11 @@ def test_redirect_loop_gives_up(monkeypatch):
     assert lg.fetch_logo("www.x.com.tw")["status"] in ("none", "error")
 
 
-def test_robots_detail_says_403_vs_disallow(monkeypatch):
-    monkeypatch.setattr(http, "get_bytes", _web({X + "robots.txt": (403, b"", "text/html")}))
-    assert "403" in lg.fetch_logo("www.x.com.tw")["detail"]
+def test_robots_detail_says_disallow(monkeypatch):
+    """第四版：只有 Disallow 規則會判 robots，detail 講清楚是規則不准（403 那種改照 RFC 9309 可抓，見下面）。"""
+    monkeypatch.setattr(http, "get_bytes", _web({X + "robots.txt": (200, b"User-agent: *\nDisallow: /\n", "text/plain")}))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["status"] == "robots" and "Disallow" in got["detail"]
 
 
 def test_homepage_404_tries_bare_domain(monkeypatch):
@@ -1052,9 +1054,12 @@ def test_retry_on_upgrade_rule():
     assert not lg.retry_on_upgrade({"status": "none", "strategy": v})
     assert lg.retry_on_upgrade({"status": "generic", "strategy": v - 1})    # 第三版：預設圖也重試
     assert lg.retry_on_upgrade({"status": "generic"})                      # 第一版的 generic（沒記版號）
-    for st in ("ok", "robots", "blank", "error", "removed"):
+    for st in ("ok", "removed"):
         assert not lg.retry_on_upgrade({"status": st})
-    assert not lg.retry_on_upgrade({"status": "robots", "strategy": v - 1})  # robots 永遠不救（DECISIONS #264）
+    # 第四版（DECISIONS #271）：robots 要重讀 robots.txt（4xx 改可抓、第一版的沒記原因）；blank／error 多了 Wikimedia 可試
+    for st in ("robots", "blank", "error"):
+        assert lg.retry_on_upgrade({"status": st, "strategy": v - 1})
+        assert not lg.retry_on_upgrade({"status": st, "strategy": v})
     assert lg.retry_on_upgrade({"status": "ok", "lowres": True, "strategy": v - 1})   # 低解析：之後升級也再找
     assert not lg.retry_on_upgrade({"status": "ok", "lowres": True, "strategy": v})
 
@@ -1069,7 +1074,7 @@ def test_run_retries_old_failures_first_and_keeps_good_logos(sandbox):
         "2330": {"status": "too_small", "domain": "www.c2330.com", "fetched": "2026-09-25"},   # 昨天才判：照樣重試
         "2303": {"status": "too_small", "domain": "www.c2303.com", "fetched": "2026-09-25"},
         "3037": {"status": "none", "domain": "www.c3037.com", "fetched": "2026-09-25"},
-        "3227": {"status": "robots", "domain": "www.c3227.com", "fetched": "2026-09-25"},      # 對方不准：不重試
+        "3227": {"status": "removed", "domain": "www.c3227.com", "fetched": "2026-09-25"},     # 人工下架：永遠不重試
         "1101": {"status": "ok", "domain": "www.c1101.com", "fetched": "2026-09-25", "sha1": lg.sha1(good)},
     }}))
     calls = []
@@ -1247,7 +1252,8 @@ def test_select_todo_v3_retries_three_failure_kinds_first(sandbox):
         "6666": {"status": "blank", "domain": "www.c6666.com", "fetched": "2026-09-26", "strategy": v - 1},
     }}
     todo = [r["code"] for r in lg.select_todo(sites, idx, date(2026, 9, 27), 100)]
-    assert todo == ["1111", "2222", "3333", "7777"]            # 三種失敗先、再來沒抓過的；robots／ok／blank 不動
+    # 第四版：robots、blank 也在策略升級時重試（重讀 robots.txt、多了 Wikimedia）；好圖（ok）不動
+    assert todo == ["1111", "2222", "3333", "4444", "6666", "7777"]
 
 
 def test_run_v3_generic_retried_with_reject_and_hash_remembered(sandbox, monkeypatch):
