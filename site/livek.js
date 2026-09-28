@@ -63,6 +63,7 @@
     hist: [],         // Yahoo 的 1 分 K：[{s, d(台北日期), o, h, l, c, v(股)}]；可能含前幾個交易日（range=5d）
     offTicks: null,   // 非交易時段：最近交易日那天在 localStorage 裡收過的 5 秒序列 {date, t}
     histTried: false, histErr: '', histErrRaw: '',
+    histDone: false,  // 這一檔的 Yahoo 早盤那一趟「回來了」（成功或失敗都算）；分時走勢用它判斷「真的沒資料」還是「還在抓」
     timer: null, busy: false, fails: 0,
     lastAt: 0, lastErr: '', prevClose: null, name: '',
     today: null,      // 今天這一根日 K（直接來自報價的 o/h/l/z/v，見 todayBar()）
@@ -476,11 +477,13 @@
       state.code = code; state.market = market || null;
       state.symbol = yahooSymbol(code, market);
       state.ticks = []; state.hist = []; state.histTried = false; state.histErr = ''; state.offTicks = null;
+      state.histDone = false;
       state.prevClose = null; state.name = ''; state.fails = 0; state.lastErr = '';
       load();
       startTimer();
       await poll();
       await loadHistory();
+      if (state.code === code) state.histDone = true;
       emit();
     },
     detach() { stopTimer(); state.code = null; },
@@ -489,6 +492,9 @@
     session, offDay, drawnTf, paintDots,
     /** 還在抓 Yahoo（四週期同看用它決定「資料到了要不要重建那一格」）。*/
     get loading() { return !state.histTried; },
+    /** Yahoo 早盤那一趟已經回來（loading 在「開始抓」那一刻就變 false，抓的途中也是 false，不能拿來判斷「抓完了還是沒有」）。
+     *  2026-09-28 分時走勢：抓完還是沒有資料，才自動改用日 K。*/
+    get settled() { return !!state.histDone; },
     /** Yahoo 早盤那段**真的抓失敗了**（不是還沒設定來源、也不是 Worker 舊版）。
      *  industry.js 用它決定要不要先退回有資料的週期，不讓使用者對著一塊空白。*/
     histFailed() {

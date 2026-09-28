@@ -11161,6 +11161,41 @@
     t.remove();
   }, true);
 
+  // ---------------------------------------------------------------- 搜尋下拉的迷你走勢（2026-09-28）
+  /* Andy：「搜尋欄位的對應股票旁需要出現小小的分時走勢圖，只要走勢圖就好不用數據因為只是參考」。
+     每一列名稱旁一張 48×16 的小折線：只畫線，不畫軸、不印數字；顏色跟漲跌（紅漲綠跌、平盤灰）。
+     資料 data/sparks.json（build_payload → compute/sparks.py）：一檔一個字串＝種類＋方向＋64 階的點。
+       · 'i'＝最近一個交易日的分時（資料湖 60 分 K：開盤＋每小時收盤，一天 6 點，x 軸照 09:00～13:30 的真實時間排）；
+       · 'd'＝沒有分時的股票改用最近 20 個交易日的日收盤（等距排；顏色看這 20 天的頭尾，跟線的走向一致）。
+     第一次打開下拉才抓（不拖慢首頁）；抓回來之前先留空位（寬度固定，列不會跳），回來後把已經畫好的列補上。
+     盤中即時價接到最後一點（任務單標「可選」）這一版沒做：檔案只存形狀（64 階），不存價位，接不上真實價。*/
+  let SPARKS = null, _spkP = null;
+  function sparkSVG(code) {
+    const s = SPARKS && SPARKS.s && SPARKS.s[code];
+    if (!s || s.length < 4) return '';
+    const abc = SPARKS.abc || '', kind = s[0], dir = s[1];
+    const v = Array.from(s.slice(2)).map(ch => Math.max(0, abc.indexOf(ch)));
+    const n = v.length, top = Math.max(1, abc.length - 1), W = 48, H = 16, P = 1.5;
+    const X = kind === 'i' && n === 6 ? [0, 60, 120, 180, 240, 270].map(m => m / 270) : v.map((_, i) => i / (n - 1));
+    const pts = v.map((y, i) => `${(P + X[i] * (W - 2 * P)).toFixed(1)},${(H - P - y / top * (H - 2 * P)).toFixed(1)}`).join(' ');
+    const cls = dir === '+' ? 'up' : dir === '-' ? 'down' : 'flat';
+    const t = kind === 'i' ? '最近一個交易日的分時走勢' : '最近 20 個交易日的收盤走勢（這檔沒有分時資料）';
+    return `<svg class="spk ${cls}" data-k="${kind}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${t}"><title>${t}</title><polyline points="${pts}"/></svg>`;
+  }
+  function sparkUpgrade(root) {
+    $$('.spkw[data-spk]:empty', root).forEach(el => { el.innerHTML = sparkSVG(el.dataset.spk); });
+  }
+  function sparkLoad() {
+    if (_spkP) return _spkP;
+    // 跟 logoMapLoad 同一個理由不走共用 load()：404 時也要把本體讀完（不然 networkidle 會一直等）
+    const ver = (D.meta && D.meta.generated_at) || '';
+    _spkP = fetch(`data/sparks.json?v=${ver}`, ver ? {} : { cache: 'no-store' })
+      .then(async r => { const t = await r.text(); if (!r.ok) return null; try { return JSON.parse(t); } catch (e) { return null; } })
+      .catch(() => null)
+      .then(d => { SPARKS = d && d.s ? d : { s: {}, abc: '' }; sparkUpgrade(); return SPARKS; });
+    return _spkP;
+  }
+
   // ---------------------------------------------------------------- 近期搜尋紀錄
   /* 「從搜尋結果點進個股、或直接開 #stock/<code>」都算一筆 —— 所以記錄點放在路由（route），不放在搜尋框。
      只存代號（名稱每次從全市場索引查，改名也跟得上）。localStorage 不能用（無痕、被封鎖）時退回這一輪的記憶體。*/
@@ -11220,7 +11255,8 @@
     const row = (code, name, right, del) => {
       const n = name || L.cname[code] || '';
       return `<div class="sgrow" role="option" aria-selected="false" id="sgo${++nid}" data-c="${fmt.esc(code)}">${logoHTML(code, n, 20)}`
-        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>${right || ''}`
+        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>`
+        + `<span class="spkw" data-spk="${fmt.esc(code)}">${sparkSVG(code)}</span>${right || ''}`
         + (del ? `<button type="button" class="sgdel" data-del="${fmt.esc(code)}" aria-label="從近期搜尋移除 ${fmt.esc(n)}" title="從近期搜尋移除">×</button>` : '')
         + '</div>';
     };
@@ -11230,7 +11266,7 @@
       q.removeAttribute('aria-activedescendant');
       sg.style.display = html ? 'block' : 'none';
       q.setAttribute('aria-expanded', html ? 'true' : 'false');
-      if (html) logoMapLoad();
+      if (html) { logoMapLoad(); sparkLoad(); }
     };
     const close = () => { sg.style.display = 'none'; act = -1; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); };
     const panel = () => {
@@ -11453,7 +11489,7 @@
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
       logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
-      logoUpgrade, logoMapLoad, recentGet,
+      logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG,
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置
