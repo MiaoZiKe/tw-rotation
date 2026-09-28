@@ -383,8 +383,8 @@
   .zoomov .zh .chainchips{min-width:0;flex:1 1 auto}
   .zoomov .zh #zoomClose{flex:none;margin-left:auto;min-height:40px}
 
-  /* 熱力圖圖例：每格 40 高（360 寬會換成兩列，每列 40） */
-  .hmlegend .hmcell{height:40px}
+  /* 熱力圖圖例：每格 40×40 起跳（360 寬會換成兩列，每列 40） */
+  .hmlegend .hmcell{height:40px;min-width:40px}
 
   /* 產業地圖甜甜圈圖例：列高 22 → 40、列距 2 → 0 */
   .gplegend{row-gap:0}
@@ -393,7 +393,10 @@
   /* 頁尾：連結列每顆 40 高；「詳細規範」膠囊 32 → 40 */
   .sitefoot .sf-links{row-gap:0}
   .sitefoot .sf-links a,.sitefoot .sf-links button{display:inline-flex;align-items:center;min-height:40px}
-  .sf-more{height:40px}
+  #siteFoot .sf-more{height:40px}   /* legal.js 的樣式是執行期插在後面的，要比它具體才蓋得過 */
+  /* 表格裡的個股／族群連結（市場明細名單…）：32 → 40（手機表格列高本來就是 40，列高不變；
+     ::after 在這裡會被儲存格的 overflow 裁掉，只剩 37，所以直接把連結本身撐到 40） */
+  .tw a.lk{min-height:40px}
 
   /* 個股頁「基本資料」：族群／題材／產業鏈連結一顆 40 高（多顆會換行成一列一列 40 高，不互相疊） */
   body.m3on .mbkv dd:has(a){display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;min-width:0;padding-top:2px;padding-bottom:2px}

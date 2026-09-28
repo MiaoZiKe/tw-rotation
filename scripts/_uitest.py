@@ -35831,6 +35831,17 @@ def t_mobile_v4_2d(b, base, code):
                 return { n: as.length, small, stolen }; }""", _HITBOX_JS)
             ok(f"{T} 產業鏈頁的族群／產業鏈連結點擊區 ≥ 40×40，而且中心點不會被隔壁連結的點擊區搶走",
                lk["n"] >= 5 and not lk["small"] and not lk["stolen"], lk)
+            # ---- 市場明細「名單」：表格裡的個股／族群連結觸控範圍 ≥ 40（儲存格會裁掉 ::after，所以是連結本身 40 高）
+            au.load({"name": "市場明細", "hash": "#market"})
+            bars = m.evaluate(A.SEG_JS)
+            st = next((f"{bar['sel']} > :nth-child({bt['nth']})" for bar in bars for bt in bar["btns"] if bt["label"].startswith("名單")), None)
+            if st:
+                au.load({"name": "市場明細／名單", "hash": "#market", "steps": [st]})
+                ml = m.evaluate("""(HB) => { const hb = eval(HB); const as = [...document.querySelectorAll('main .view.on a.lk')].filter(a => a.getClientRects().length).slice(0, 40);
+                    return { n: as.length, small: as.map(a => [a.textContent.trim().slice(0, 8), hb(a), Math.round(a.getBoundingClientRect().height)]).filter(x => x[2] < 40).slice(0, 6) }; }""", _HITBOX_JS)
+                ok(f"{T} 市場明細名單：表格裡的個股／族群連結高 ≥ 40", ml["n"] >= 5 and not ml["small"], ml)
+            else:
+                ok(f"{T} 市場明細找得到「名單」分段", False, bars)
             # ---- 週期統計：排序抽屜
             au.load({"name": "週期統計", "hash": "#season"})
             m.wait_for_timeout(500)
