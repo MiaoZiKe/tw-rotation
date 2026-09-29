@@ -2,53 +2,53 @@
   "steps": {
     "mis.index_minute": {
       "ok": true,
-      "rows": 4,
-      "seconds": 1.2
+      "rows": 840,
+      "seconds": 2.9
     },
     "index_intraday": {
-      "stored": 831
+      "stored": 836
     },
     "taifex.futures_minute": {
-      "ok": true,
-      "rows": 831,
-      "seconds": 4.2
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.3
     },
     "news.collect": {
       "ok": true,
-      "rows": 127,
+      "rows": 141,
       "seconds": 4.8
     },
     "news": {
-      "stored": 56
+      "stored": 103
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 4,
+      "rows": 1,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 1
     },
     "mops.material_news": {
       "ok": true,
       "rows": 13,
-      "seconds": 1.1
+      "seconds": 2.6
     },
     "material_news": {
-      "stored": 13
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1760,
-      "seconds": 1.1
+      "rows": 1759,
+      "seconds": 0.8
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 2
     },
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 1.3
+      "seconds": 2.1
     },
     "build_payload": {
       "ok": true
@@ -62,17 +62,17 @@
   "index_minute_days": {
     "FUT": [
       "2026-09-29"
+    ],
+    "OTC": [
+      "2026-09-29"
+    ],
+    "TSE": [
+      "2026-09-29"
     ]
   },
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-09-24",
-      "2026-09-25"
-    ]
-  },
-  "started_at": "2026-09-29T00:49:19.306473+00:00",
-  "finished_at": "2026-09-29T00:55:33.761759+00:00",
-  "duration_seconds": 374.5,
+  "started_at": "2026-09-29T06:34:48.156458+00:00",
+  "finished_at": "2026-09-29T06:47:27.949835+00:00",
+  "duration_seconds": 759.8,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 440,
@@ -139,17 +139,17 @@
     },
     {
       "table": "news",
-      "rows": 2739,
+      "rows": 2842,
       "latest": "2026-09-29"
     },
     {
       "table": "broker_views",
-      "rows": 42,
-      "latest": "2026-09-28"
+      "rows": 43,
+      "latest": "2026-09-29"
     },
     {
       "table": "intl_daily",
-      "rows": 1852,
+      "rows": 1854,
       "latest": "2026-09-29"
     },
     {
@@ -179,7 +179,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 174761,
+      "rows": 175597,
       "latest": "—"
     },
     {
