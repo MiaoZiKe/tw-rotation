@@ -16789,24 +16789,49 @@ def t_title_icons(pg, b, base, code):
     rm = pg.evaluate("() => { const i = document.querySelector('.card h3 > .ticon'); return i ? getComputedStyle(i).transitionDuration : null; }")
     ok("[標題圖示] prefers-reduced-motion：圖示沒有 transition", rm is not None and all((float(x.strip()[:-2]) if x.strip().endswith('ms') else float(x.strip().rstrip('s') or 0) * 1000) <= 1 for x in rm.split(',')), rm)
     pg.emulate_media(reduced_motion="no-preference")
-    # ---------------------------------------------------------------- v4 三主題（theme4.css 在的時候才量；還沒合進來就記一筆說明，不算紅）
-    has4 = pg.evaluate("""() => { const r = document.documentElement; const b0 = getComputedStyle(r).getPropertyValue('--bg');
-        r.setAttribute('data-theme4', 'hud'); const b1 = getComputedStyle(r).getPropertyValue('--bg'); r.removeAttribute('data-theme4'); return b0 !== b1; }""")
-    if not has4:
-        print("  （標題圖示）v4 三主題的 CSS 還不在這個分支，三主題 × 深淺的對比這次沒量到")
+    # ---------------------------------------------------------------- v4 三主題 × 深淺六組的圖示對比
+    # ★ 2026-09-29 修：以前用「掛上 data-theme4 前後 --bg 有沒有變」判斷 theme4.css 在不在 ——
+    #   設計 v4 正式套用後 <head> 那段 script 一定先掛好 data-theme4（預設 hud），再掛一次 hud 當然不會變，
+    #   於是永遠判成「不在」、六組對比每次都被跳過卻沒有紅（假綠）。
+    #   改成三件事同時成立才算在：① theme4.css 的 <link> 真的載入、有規則 ② window.T4 物件在（切主題的正式入口）
+    #   ③ 三套主題各自解出來的 --bg 互不相同（證明 CSS 真的依主題換變數，不是只有空殼）。
+    #   v4 已經是全站預設，所以任何一件不成立都是紅燈，不再當「還沒合進來」放過。
+    # （上面剛切回深色，所以這裡量到的三個 --bg 是深色那一組，下面深色時拿來對「真的切過去了」）
+    t4 = pg.evaluate("""() => { const r = document.documentElement; const orig = r.getAttribute('data-theme4');
+        const link = [...document.querySelectorAll('link[rel="stylesheet"]')].find(l => /(^|\/)theme4\.css(\?|$)/.test(l.getAttribute('href') || ''));
+        let rules = 0; try { rules = link && link.sheet ? link.sheet.cssRules.length : 0; } catch (e) { rules = -1; }
+        const bgs = {}; for (const t of ['casual', 'hud', 'pro']) { r.setAttribute('data-theme4', t); bgs[t] = getComputedStyle(r).getPropertyValue('--bg').trim(); }
+        if (orig === null) r.removeAttribute('data-theme4'); else r.setAttribute('data-theme4', orig);
+        return { link: !!link, rules, api: !!(window.T4 && window.T4.set && window.T4.THEMES), themes: window.T4 ? window.T4.THEMES : null, bgs, orig }; }""")
+    has4 = t4["link"] and t4["rules"] > 0 and t4["api"] and len(set(t4["bgs"].values())) == 3
+    if not ok("★ [標題圖示 v4] theme4.css 有載入（有規則）、window.T4 在、三主題的 --bg 互不相同（才量得到六組對比）", has4, t4):
         return
+    six = {}
     for th in ("casual", "hud", "pro"):
         for mode in ("dark", "light"):
             for name, route in (("總覽", "overview"), ("個股", f"stock/{code}")):
                 pg.goto("about:blank")
                 pg.goto(f"{base}#{route}", wait_until="networkidle"); pg.wait_for_timeout(2000)
                 dg_set_theme(pg, mode, 1200)
-                pg.evaluate(f"() => document.documentElement.setAttribute('data-theme4', '{th}')")
-                pg.wait_for_timeout(300)
+                # 走正式入口切主題（跟使用者在設定面板點一樣：換屬性＋重畫圖表），不是只改屬性
+                pg.evaluate(f"() => window.T4.set('{th}')")
+                pg.wait_for_timeout(500)
+                cur = pg.evaluate("() => [document.documentElement.getAttribute('data-theme4'), document.documentElement.getAttribute('data-theme') || 'dark', getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()]")
+                ok(f"[標題圖示 v4 {th} {mode} {name}] 主題真的切過去了（data-theme4／深淺／--bg）",
+                   cur[0] == th and cur[1] == mode and bool(cur[2]) and (mode != "dark" or cur[2] == t4["bgs"][th]), [cur, t4["bgs"][th]])
                 m = pg.evaluate(TI_M, [TI_CARD_SEL, TI_CARD_HOST, TI_NOT])
+                ok(f"[標題圖示 v4 {th} {mode} {name}] 真的量到卡片標題（> 0 個，否則對比等於沒量）", m["n"] > 0, m["n"])
                 ok(f"★ [標題圖示 v4 {th} {mode} {name}] 圖示對底色 ≥ 3:1（最低 {m['minCr']}）", not m["low"], m["low"])
                 ok(f"[標題圖示 v4 {th} {mode} {name}] 標題列沒有變高", not m["grow"], m["grow"])
-    pg.evaluate("() => document.documentElement.removeAttribute('data-theme4')")
+                k = f"{th}/{mode}"
+                six.setdefault(k, {"n": 0, "min": 99, "bg": cur[2]})
+                six[k]["n"] += m["n"]; six[k]["min"] = min(six[k]["min"], m["minCr"])
+    print("  （標題圖示 v4 六組）" + "；".join(f"{k} 量 {v['n']} 個標題、最低 {v['min']}（--bg {v['bg']}）" for k, v in six.items()))
+    ok("[標題圖示 v4] 六組主題 × 深淺都真的量過（反向：判斷式沒有把這段跳掉）", len(six) == 6 and all(v["n"] > 0 for v in six.values()), six)
+    ok("[標題圖示 v4] 六組的 --bg 各不相同（證明每一組真的換了底色，不是同一組量六次）", len({v["bg"] for v in six.values()}) == 6,
+       {k: v["bg"] for k, v in six.items()})
+    # 還原成預設風格（T4.set 會寫 localStorage，不能把 pro 留給後面的段落）
+    pg.evaluate("() => { window.T4.set('hud'); try { localStorage.removeItem('tw.theme4'); } catch (e) {} }")
     dg_set_theme(pg, "dark", 1200)
 
 
