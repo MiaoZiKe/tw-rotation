@@ -1598,6 +1598,14 @@ tr.whyrow>td{padding:2px var(--sp-2) var(--sp-2);border-top:0}
 /* 讓它自己換行，不要用省略號 —— 「昨收 46,184…」少了尾數等於沒講 */
 .m3-sub{font-size:11.5px;color:var(--ink-3);font-family:var(--mono);line-height:1.55}
 .m3-sub b{font-weight:600}
+/* ★ 2026-09-29（手機v3「更多」點不下去）：lightweight-charts 的窗格分隔線是一條 z-index:50、
+   position:absolute、高 9px 的透明 div（拖曳改窗格高度用）。圖表外層沒有自己的堆疊層，
+   所以這個 50 直接跟全站比 —— 比手機底部導覽 #tabs（44）和桌機置頂頂欄 .topbar（40）都高。
+   實測 360×780 開總覽不捲動：大盤那張圖的分隔線剛好橫在底部導覽上，點「更多」正中央
+   elementFromPoint 拿到的是那條分隔線，按鈕點不到（捲到別的位置，別顆導覽鈕也會中）。
+   讓每張 lightweight-charts 自成一個堆疊層：圖裡的 z-index 只在圖裡比，不會再蓋過頁面上的固定列；
+   圖本身的十字線、分隔線拖曳都在圖裡面，不受影響。 */
+.tv-lightweight-charts{isolation:isolate}
 .m3-chart{height:250px;position:relative}
 .m3-grid.big .m3-chart{height:clamp(420px,calc(100vh - 420px),760px)}
 @media(max-width:1100px){.m3-grid{grid-template-columns:1fr}.m3-chart{height:260px}}
@@ -4405,6 +4413,15 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on.mbon #skChartCard #liveNote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:18px;padding:4px 10px;cursor:pointer}
   body.m3on.mbon #skChartCard #liveNote.open{white-space:normal}
   body.m3on.mbon #skChartCard:has(#liveNote:not([hidden])) #lwc{height:clamp(360px,calc(100vh - var(--mbtop,160px) - 58px - 128px - 34px),620px)}
+  /* ★ 2026-09-29（驗收「標題圖示」390 寬 2 紅，查下去是讀者真的會看到）：手機個股頁按「完整版」→ 桌機的「資券」「大戶／散戶」分頁，
+     標題列加了標題圖示（圖示 17px＋間距，共寬 23px）之後被擠成兩行：資券 44 → 84px、大戶／散戶 32 → 59px（390 寬、容器 324px）。
+     · 資券：標題 106 ＋ 間距 12 ＋ 四顆分段鈕 224 ＝ 342 > 324。分段鈕左右內距 11 → 8（每顆仍 43px 寬、36px 高），
+       分段列 224 → 200，318 ≤ 324 —— 一列放得下，圖示在、標題列回到 44px。
+     · 大戶／散戶：標題 223 ＋ 12 ＋「最新 2026-09-24」102 ＝ 337 > 324。要塞回一行只能把字縮到 12px 以下或砍掉年份，
+       兩個都不行（手機字級下限、日期要完整），所以手機上日期讀數**固定**排在標題下一行（跟加圖示後讀者看到的一模一樣），
+       版面不再「因為多一顆圖示才換行」。 */
+  body.m3on.mbon #stockTab #mgSeg button{padding-left:8px;padding-right:8px}
+  body.m3on.mbon #hoCard > .row:first-child > small.note{flex-basis:100%}
 
   body.m3on .mbhead{position:sticky;top:52px;z-index:30;margin:-14px -14px 0;background:var(--bg-2);border-bottom:1px solid var(--line)}
   body.m3on .mbq{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto 40px;align-items:center;gap:0 8px;padding:6px 2px;min-height:62px}
