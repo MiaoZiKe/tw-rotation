@@ -422,6 +422,43 @@
 /* 手機（≤820）頂欄的 ☀／事件已經收進「⋯」清單，「風格」鈕跟著收（清單裡有「版面風格」那一段） */
 @media (max-width:820px){ #t4Btn{display:none} }
 
+/* ---- 第二批 2B：產業頁／個股頁（docs/design_v4/04_第二批2B.md，改前→改後量測在那一份）----
+   ① 圖例搬到繪圖區外：個股頁營收、獲利、除權息、法人、資券五張圖的 ECharts 圖例（容器頂端一行 30px）改成標題列裡的
+      HTML 圖例（industry.js extLegend，沿用 2A 的 .chlegend 樣式；點一下＝隱藏／顯示那一條）。繪圖區頂 30 → 10～12。
+      折線的色樣畫成細條（i.ln），長條畫成方塊。
+   ② K 線副圖標籤（成交量／KD／MACD／RSI）：chart.js 在副圖頂端留一條 24px 標籤帶、資料畫在帶子下面；
+      這裡把標籤本身壓到 18px 高（上 3px，下留 3px），標籤帶才放得下。
+   ③ 大戶／散戶三顆色塊搬進標題列（industry.js），這裡只把色塊列原本上 10／下 4 的外距歸零。
+   ④ 分頁裡兩欄並排的卡片（營收、獲利、除權息）等高時，較矮那張的圖撐滿，不留底部空白帶。 */
+.chlegend button i.ln{height:3px;border-radius:2px}
+.chlegend.skleg{min-width:0}
+.chlegend.skleg{gap:0 2px}
+.chlegend.skleg button{min-height:24px;padding:0 4px;gap:4px}
+.chlegend.skleg[hidden]{display:none}
+@media (max-width:640px){ .chlegend.skleg button{min-height:32px} }
+@media (min-width:641px){ [data-theme4] #lwc .pane-labels div{font-size:12px;line-height:18px;padding:0 6px} }
+#hoHead>.hoTgls{margin:0}
+@media (min-width:1101px){ #hoHead>.hoTgls{order:1} #hoHead>small{order:2} }
+@media (min-width:821px){
+  [data-theme4] #stockTab .grid.g2>.card{display:flex;flex-direction:column}
+  /* flex-basis 0＋min-height：圖只「吃剩下的高度」，不拿自己目前的畫布高度當內容高度 ——
+     用 flex:1 1 auto 會形成棘輪（兩張卡互相撐高，1100 寬實測圖被撐到 600px）*/
+  [data-theme4] #stockTab .grid.g2>.card>.chart{flex:1 1 0;min-height:260px}
+}
+/* ⑤ K 線卡標題區（skHead＋工具列＋AI 分析）：
+      a. 現價列的五顆資訊小標（技術分／本益比／同業分位／營收 YoY／分 K 完整）字 12、左右內距 8、間距 8：
+         1440 寬時最後一顆「分 K 完整」不再自己掉到第二行（名稱區 155 → 115px）。
+         641～820 這幾顆原本吃「觸控 36px」的規則，但它們只是資訊標籤（不是按鈕、點了沒有動作），收回 24px 高。
+      b. 「此檔暫無分時資料／分時來源」那行短註（#liveNote）從「整行、K 線上方」搬進左欄工具列下面：
+         兩欄時右邊 AI 區（固定內容高 132px）本來就比左欄高，左欄底下那塊空白正好放得下這行字，K 線整個往上移一行（≈33px）。
+         單欄（卡片 < 600，.aiside 沒掛）時照舊整行。 */
+@media (min-width:641px){
+  [data-theme4] #skPx{column-gap:8px}
+  [data-theme4] #skPx .pill{font-size:12px;padding:2px 8px;min-height:0}
+  [data-theme4] #skChartCard.aiside>#skAi{grid-row:1 / span 3}
+  [data-theme4] #skChartCard.aiside>#liveNote{grid-column:1;grid-row:3;align-self:end;margin-top:8px}
+}
+
 /* ==================================================================================
    ★ 設計 v4 第二批 2D（2026-09-28）：手機 360／390 修正 —— 全部只在 ≤640px（桌機一個像素都不動）
    ① 360 寬熱力圖圖例整條（.hmbar）flex:none 不肯縮，7 格加起來 349px 撐出視窗（文件寬 382 > 360）。
@@ -489,4 +526,40 @@
   a.lk,#indCrumbs a,.rotdd .ddbtn{position:relative}
   a.lk::after,#indCrumbs a::after,.rotdd .ddbtn::after,button.kfit::after{content:'';position:absolute;
     left:min(0px,calc(50% - 20px));right:min(0px,calc(50% - 20px));top:min(0px,calc(50% - 20px));bottom:min(0px,calc(50% - 20px))}
+}
+
+/* ==================================================================================
+   ★ 設計 v4 第二批 2B 收尾（2026-09-29）：產業地圖／產業鏈（族群總覽、關聯圖）—— 04_第二批2B.md §0 ⑧～⑫
+   全部只在 ≥641（手機這一批不動）；元素只換位置，id、內容、事件不變（搬位置的是 industry.js 的 matchMedia）。
+   ================================================================================== */
+@media (min-width:641px){
+  /* ⑧ 族群總覽：資料狀態（#gpNote）、「完整版圖：產業熱力圖 →」併進標題列；滑過讀數（#gpFocus）搬到長條卡標題列右半邊 */
+  .gpdesk>.gphead{justify-content:flex-start;align-items:center;column-gap:12px;row-gap:6px}
+  .gpdesk>.gphead>h4{flex:0 1 auto;margin:0}
+  .gpdesk>.gphead>.gpnote{margin:0;padding:2px 10px;flex:0 1 auto;min-width:0;line-height:1.6}
+  .gpdesk>.gphead>.gptail{margin:0 0 0 auto;padding:0;border:0;flex:none;gap:6px}
+  .gpdesk>.gphead>.gplive{margin-left:auto}
+  .gpdesk>.gphead>.gptail+.gplive{margin-left:0}
+  .gpdesk .gpcard{position:relative}
+  .gpdesk .gpcard>#gpFocus{position:absolute;top:10px;right:12px;max-width:calc(100% - 150px);margin:0!important;
+    text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;line-height:21px}
+  /* 卡片內距套 v4 尺度（改前 10／12／8、14 這種尺度外的數字） */
+  .gpcard{padding:8px 12px 8px}
+  /* .nbbody 上 10 → 8、下 14 → 12；左右照舊（≥821 是 12、641～820 是 index.html 那段的 8）——
+     第一版一律寫 12，量到 800 寬剖析圖第一屏 55.2 → 54.9（左右各多 4px，剖析圖的引線層被擠窄），退步不上 */
+  .nbbody{padding-top:8px;padding-bottom:12px}
+  /* ⑨ 產業鏈頁：鏈名標題跟二層分頁列同一列（industry.js fitNbHead：放得下才掛 .nbinl） */
+  .nbcard.nbinl>.nbhead{float:left;margin:4px 16px 0 0;min-height:0}
+  .nbcard.nbinl>.nbhead h2{line-height:32px}
+  .nbcard.nbinl>.nbbody{clear:both;border-top-left-radius:10px}
+  /* ⑪ 12px 下限：分頁上的檔數（11.5）、關聯圖公司卡第二行（代號、股價、漲跌 11） */
+  .nbsw>button em,.nbsw>a em,.chainsw button em{font-size:12px}
+  .chainmap .co .sub{font-size:12px}
+  /* ⑫ 關聯圖區塊跟上一塊的距離 16 → 12（v4 卡片間距） */
+  .relsec{margin-top:12px}
+}
+@media (min-width:821px){
+  /* ⑩ 「環節：全部 ▾」下拉搬進「供應鏈關聯圖」標題列 */
+  #relHead>.segdd{margin:0 auto 0 12px}
+  .relsec.ddhead .relmain{margin-top:8px}
 }

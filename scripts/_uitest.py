@@ -17170,6 +17170,7 @@ SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
+    "設計v4第二批2B":      lambda pg, b, base, code: t_design_v4_2b(b, base, code),
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     # ★ 2026-09-29 Andy：「即時…至少 5S 更新一次」＋可即時的卡片加「即時」開關與最後更新時間（假時間＋假報價，深夜也能驗）
@@ -38452,6 +38453,290 @@ def t_design_v4_2a(b, base, code):
             p2.set_viewport_size({"width": 1080, "height": 900}); p2.wait_for_timeout(1200)
             r = p2.evaluate("() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth })")
             ok(f"⑦ {tag}：1080 兩欄沒有橫向捲軸", r["sw"] <= r["iw"] + 1, r)
+            c2.close()
+
+
+# ---------------------------------------------------------------------------------------------------
+# ★ 2026-09-29 設計 v4 第二批 2B：產業頁／個股頁（docs/design_v4/04_第二批2B.md）
+V4_2B_CH = r"""(ids) => { const out = {};
+  for (const id of ids) {
+    const el = document.getElementById(id); const c = el && window.echarts && echarts.getInstanceByDom(el);
+    if (!c) { out[id] = null; continue; }
+    const o = c.getOption(), m = c.getModel();
+    let gtop = null; try { const gs = []; m.eachComponent('grid', g => { const r = g.coordinateSystem && g.coordinateSystem.getRect(); if (r) gs.push(r.y); }); gtop = gs.length ? Math.round(Math.min(...gs)) : null; } catch (e) {}
+    const lg = (o.legend || [])[0];
+    const fs = []; for (const k of ['xAxis', 'yAxis']) for (const a of (o[k] || [])) { const al = a.axisLabel || {}; if (a.show !== false && al.show !== false) fs.push(al.fontSize == null ? 12 : al.fontSize); }
+    const box = document.querySelector('.chlegend[data-for="' + id + '"]');
+    const er = el.getBoundingClientRect();
+    out[id] = { gtop, legShown: !!(lg && lg.show !== false), sel: (lg && lg.selected) || {},
+      fs: fs.length ? Math.min(...fs) : null,
+      barLab: (o.series || []).filter(s => s.type === 'bar' && s.label && s.label.show && s.name !== '合計').map(s => s.name),
+      leg: box ? { n: box.querySelectorAll('button').length, names: [...box.querySelectorAll('button')].map(b => b.dataset.n),
+        txt: [...box.querySelectorAll('button')].map(b => b.textContent.trim()),
+        above: box.getBoundingClientRect().bottom <= er.top + 1, vis: box.getBoundingClientRect().width > 0,
+        inHead: !!box.closest('.row'), fit: box.dataset.fit || '', hidden: !!box.hidden } : null };
+  }
+  out._sw = document.documentElement.scrollWidth; out._iw = innerWidth;
+  return out; }"""
+
+V4_2B_K = r"""() => { const k = window.KChart && KChart.last; const lw = document.getElementById('lwc'); if (!k || !lw) return null;
+  const ps = k.chart.panes(); const lr = lw.getBoundingClientRect(); let top = 0; const out = { panes: [], main: Math.round(ps[0].getHeight()), vh: innerHeight };
+  const lbls = [...lw.querySelectorAll('.pane-labels div')].map(d => { const b = d.getBoundingClientRect(); return { y: b.top - lr.top, h: b.height, fs: parseFloat(getComputedStyle(d).fontSize) }; });
+  ps.forEach((p, i) => { const h = p.getHeight(); if (i > 0) { const s = (p.getSeries ? p.getSeries() : [])[0];
+      let mt = null; try { mt = s.priceScale().options().scaleMargins.top; } catch (e) {}
+      const lb = lbls.find(l => l.y >= top - 2 && l.y < top + h);
+      out.panes.push({ i, h: Math.round(h), dataTop: mt == null ? null : Math.round(mt * h), lblBot: lb ? Math.round(lb.y + lb.h - top) : null, fs: lb ? lb.fs : null }); }
+    top += h + 1; });
+  return out; }"""
+
+
+def t_design_v4_2b(b, base, code):
+    """設計 v4 第二批 2B：產業頁／個股頁。驗「畫面真的因此改變了」：
+      ① 營收：兩張圖 ECharts 圖例不畫、繪圖區頂 ≤ 12（改前 30）；HTML 圖例在標題列（圖的上緣之上）；
+         月走勢的長條不再自動標原值（改前「+514805337000」疊成一團）；點「YoY」真的藏起來、切 24 月重畫後還藏著、再點回來
+      ② 獲利：EPS 與三率圖例搬到標題列、「EPS」單位併進圖例；本益比河流右側倍數標籤 12px
+      ③ 除權息：圖例在標題列、繪圖區頂 ≤ 12
+      ④ 法人／資券：圖例在標題列；切外資→投信、融資→當沖，圖例字跟著換
+      ⑤ 大戶／散戶：三顆色塊在標題列（改前獨佔一列）、Y 軸字 12
+      ⑥ 所有圖軸字 ≥ 12（個股頁各分頁＋產業地圖族群長條）
+      ⑦ K 線副圖：標籤在副圖頂端的標籤帶裡、資料畫在標籤下面（不壓資料）；主圖 ≥ 可視高度 55%
+      ⑧ 1100／800：沒有橫向捲軸、圖例仍在圖外
+      ⑨ 三主題 × 深淺：圖例字對比 ≥ 4.5、沒有橫向捲軸"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + f"#stock/{code}", wait_until="networkidle")
+    pg.evaluate("() => { try { ['tw.theme4','tw.theme','tw.revView','tw.revWin','tw.profitMode','tw.instSeg','tw.mgSeg','tw.hoLines','tw.chipWin','tw.kcfg'].forEach(k => localStorage.removeItem(k)); } catch(e){} }")
+    pg.goto("about:blank"); pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    ch = lambda ids: pg.evaluate(V4_2B_CH, ids)
+
+    def tab(t):
+        pg.evaluate("(t) => { const b = document.querySelector('#stockTabs button[data-t=\"' + t + '\"]'); if (b) b.click(); }", t)
+        pg.wait_for_timeout(1300)
+
+    # ---- ⑦ K 線副圖標籤
+    k = pg.evaluate(V4_2B_K)
+    if ok("⑦ 讀得到 K 線（有副圖）", bool(k) and len(k["panes"]) >= 1, k):
+        bad = [p for p in k["panes"] if p["lblBot"] is None or p["dataTop"] is None or p["lblBot"] > p["dataTop"] + 1]
+        ok("⑦ 每個副圖的標籤都在標籤帶裡：標籤底 ≤ 資料區頂（改前標籤直接蓋在量柱／指標線上）", not bad, k["panes"])
+        ok("⑦ 副圖標籤字 ≥ 12px", all((p["fs"] or 0) >= 12 for p in k["panes"]), k["panes"])
+        ok("⑦ 主圖高 ≥ 可視高度 55%（01 §4.1）", k["main"] >= 0.55 * k["vh"], k)
+
+    # ---- ① 營收
+    tab("revenue")
+    r = ch(["revBar", "revYear"])
+    for cid in ("revBar", "revYear"):
+        c = r[cid]
+        if ok(f"① {cid} 畫出來了", bool(c), c):
+            ok(f"① {cid}：ECharts 圖例不畫、繪圖區頂 ≤ 12（改前 30）", not c["legShown"] and c["gtop"] is not None and c["gtop"] <= 12, c)
+            ok(f"① {cid}：1440 放得下 → HTML 圖例跟標題列同一行、在圖的上緣之上", bool(c["leg"]) and c["leg"]["n"] >= 2 and c["leg"]["fit"] == "row"
+               and c["leg"]["above"] and c["leg"]["inHead"] and c["leg"]["vis"], c["leg"])
+    ok("① 月走勢長條不再自動標原值（改前 12 根兩組柱標「+514805337000」疊成一團）", bool(r["revBar"]) and not r["revBar"]["barLab"], r["revBar"] and r["revBar"]["barLab"])
+    ok("① 1440 營收分頁沒有橫向捲軸", r["_sw"] <= r["_iw"] + 1, r)
+    scroll_to(pg, "revBar")
+    h0 = canvas_hash(pg, "#revBar")
+    click(pg, '.chlegend[data-for="revBar"] button[data-n="YoY"]', 700)
+    r1 = ch(["revBar"])["revBar"]; h1 = canvas_hash(pg, "#revBar")
+    ok("① 點「YoY」：YoY 真的藏起來（ECharts 選取＝false、圖換了）", r1["sel"].get("YoY") is False and h1 != h0, [r1["sel"], h0, h1])
+    click(pg, '#revWin button[data-v="24"]', 900)
+    r2 = ch(["revBar"])["revBar"]
+    ok("① 切 24 月重畫之後 YoY 仍然藏著、圖例還在標題列", r2["sel"].get("YoY") is False and bool(r2["leg"]) and r2["leg"]["inHead"], r2)
+    click(pg, '.chlegend[data-for="revBar"] button[data-n="YoY"]', 700)
+    ok("① 再點一次「YoY」：顯示回來", ch(["revBar"])["revBar"]["sel"].get("YoY") is not False)
+    click(pg, '#revWin button[data-v="12"]', 600)
+    click(pg, '#revView button[data-v="y"]', 900)
+    r3 = ch(["revBar"])["revBar"]
+    ok("① 切「年度走勢」：圖例換成年營收／年增率", bool(r3["leg"]) and r3["leg"]["names"] == ["年營收", "年增率"], r3["leg"])
+    click(pg, '#revView button[data-v="m"]', 700)
+
+    # ---- ② 獲利
+    tab("profit")
+    r = ch(["profitChart", "peQ", "peChart"])
+    c = r["profitChart"]
+    if ok("② EPS 與三率畫出來了", bool(c), c):
+        # 收尾修正：這張的標題列有一段很長的副標（財報到…法定應有到…），1440 放不下 → 照改前畫（04 文件 §2.4 第 3 點）。
+        # 所以跟 ⑧ 同一個判準：放得下＝HTML 圖例同一行＋ECharts 圖例收起、繪圖區頂 ≤ 12；放不下＝HTML 藏起、ECharts 照改前畫（頂 ≥ 28）
+        lg2 = c["leg"] or {}
+        st2 = ((lg2.get("fit") == "row" and lg2.get("vis") and not c["legShown"] and c["gtop"] <= 12)
+               or (lg2.get("fit") == "wrap" and lg2.get("hidden") and c["legShown"] and c["gtop"] >= 28))
+        ok("② EPS 與三率：圖例放得下就在標題列（繪圖區頂 ≤ 12）、放不下就照改前畫（不多佔一行）", bool(st2), c)
+        ok("② HTML 圖例在標題列、「EPS」單位併進圖例（EPS（元，左軸））", bool(c["leg"]) and c["leg"]["inHead"] and "EPS（元，左軸）" in c["leg"]["txt"], c["leg"])
+    pg.wait_for_timeout(500)
+    side = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('peChart')); const g = c && c.getOption().graphic;"
+                       " const t = ((g && g[0] && g[0].elements) || []).filter(e => /^peside/.test(e.id || '')); return t.map(e => (e.style || {}).font || ''); }")
+    ok("② 本益比河流右側倍數標籤 12px（改前 11px）", bool(side) and all(" 12px" in f for f in side), side)
+
+    # ---- ③ 除權息
+    tab("dividend")
+    c = ch(["divBar"])["divBar"]
+    if c:
+        ok("③ 除權息：ECharts 圖例不畫、繪圖區頂 ≤ 12、HTML 圖例三顆在標題列", not c["legShown"] and c["gtop"] <= 12
+           and bool(c["leg"]) and c["leg"]["n"] == 3 and c["leg"]["inHead"] and c["leg"]["above"], c)
+
+    # ---- ④ 法人／資券
+    tab("inst")
+    c = ch(["instChart"])["instChart"]
+    if c:
+        ok("④ 法人：圖例在標題列、繪圖區頂 ≤ 12", not c["legShown"] and c["gtop"] <= 12 and bool(c["leg"]) and c["leg"]["inHead"], c)
+        click(pg, '#instSeg button[data-v="t"]', 900)
+        c2 = ch(["instChart"])["instChart"]
+        ok("④ 切「投信」：圖例第一顆換成投信", bool(c2["leg"]) and c2["leg"]["names"][:1] == ["投信"], c2["leg"])
+        click(pg, '#instSeg button[data-v="f"]', 600)
+    tab("margin")
+    c = ch(["marginChart"])["marginChart"]
+    if c:
+        ok("④ 資券：圖例在標題列、繪圖區頂 ≤ 12", not c["legShown"] and c["gtop"] <= 12 and bool(c["leg"]) and c["leg"]["inHead"], c)
+        click(pg, '#mgSeg button[data-v="dt"]', 900)
+        c2 = ch(["marginChart"])["marginChart"]
+        ok("④ 切「當沖」：圖例換成當沖張數／當沖率（沒資料時圖例拿掉）", (c2 is None) or (c2["leg"] is None) or c2["leg"]["names"] == ["當沖張數", "當沖率"], c2 and c2["leg"])
+        click(pg, '#mgSeg button[data-v="m"]', 600)
+
+    # ---- ⑤ 大戶／散戶
+    tab("holders")
+    hh = pg.evaluate("() => { const t = document.getElementById('hoTgls'), h = document.getElementById('hoHead'); return { inHead: !!(t && h && h.contains(t)), n: t ? t.querySelectorAll('.hoTgl').length : 0 }; }")
+    c = ch(["holderChart"])["holderChart"]
+    if c:
+        ok("⑤ 大戶／散戶：三顆色塊在標題列（改前獨佔一列）", hh["inHead"] and hh["n"] == 3, hh)
+        ok("⑤ 大戶／散戶 Y 軸字 ≥ 12（改前 11）", (c["fs"] or 0) >= 12, c)
+
+    # ---- ⑥ 軸字
+    fsall = {}
+    for t, ids in (("revenue", ["revBar", "revYear"]), ("profit", ["profitChart", "peQ", "peChart"]), ("dividend", ["divBar"]),
+                   ("inst", ["instChart"]), ("margin", ["marginChart"]), ("holders", ["holderChart"])):
+        tab(t)
+        rr = ch(ids)
+        for i in ids:
+            if rr.get(i):
+                fsall[i] = rr[i]["fs"]
+    ok("⑥ 個股頁各分頁的圖軸字都 ≥ 12", bool(fsall) and all((v or 0) >= 12 for v in fsall.values()), fsall)
+    pg.goto(base + "#industry", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    g = ch(["gpBar"])["gpBar"]
+    ok("⑥ 產業地圖族群長條軸字 ≥ 12（改前 11.5）", bool(g) and (g["fs"] or 0) >= 12, g)
+
+    # ---- ⑧ 1100／800
+    for w in (1100, 800):
+        pg.set_viewport_size({"width": w, "height": 900})
+        pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        for t, ids in (("revenue", ["revBar", "revYear"]), ("profit", ["profitChart"]), ("dividend", ["divBar"]), ("inst", ["instChart"])):
+            tab(t)
+            rr = ch(ids)
+            st = {}
+            for i in ids:
+                c = rr.get(i)
+                if not c or not c["leg"]:
+                    st[i] = "沒有圖或圖例"
+                elif c["leg"]["fit"] == "row":      # 放得下：HTML 圖例在標題列同一行、ECharts 圖例收起、繪圖區頂小
+                    st[i] = "ok" if (c["leg"]["vis"] and c["leg"]["above"] and not c["legShown"] and c["gtop"] <= 12) else ("row 狀態不對", c)
+                elif c["leg"]["fit"] == "wrap":     # 放不下：HTML 圖例藏起、ECharts 圖例照改前畫（繪圖區頂讓出 28 以上）
+                    st[i] = "ok" if (c["leg"]["hidden"] and c["legShown"] and c["gtop"] >= 28) else ("wrap 狀態不對", c)
+                else:
+                    st[i] = ("沒有量過", c["leg"])
+            ok(f"⑧ [{w}] {t}：圖例放得下就在標題列、放不下就照改前畫（不多佔一行）、沒有橫向捲軸",
+               all(v == "ok" for v in st.values()) and rr["_sw"] <= rr["_iw"] + 1, {"st": st, "sw": rr["_sw"], "iw": rr["_iw"]})
+    # 視窗寬度來回：放不下退回改前、放得下又搬回標題列（選取狀態兩邊同步）
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    tab("revenue")
+    click(pg, '.chlegend[data-for="revYear"] button[data-n="2021"]', 600)
+    pg.set_viewport_size({"width": 1000, "height": 900}); pg.wait_for_timeout(1200)
+    a = ch(["revYear"])["revYear"]
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(1200)
+    z = ch(["revYear"])["revYear"]
+    ok("⑧ 縮到 1000 再拉回 1440：圖例回到標題列同一行、2021 仍然是藏起來的",
+       bool(z and z["leg"]) and z["leg"]["fit"] == "row" and not z["legShown"] and z["sel"].get("2021") is False
+       and 'aria-pressed="false"' in pg.evaluate("() => document.querySelector('.chlegend[data-for=\"revYear\"] button[data-n=\"2021\"]').outerHTML"),
+       {"1000": a and (a["leg"], a["legShown"], a["gtop"]), "1440": z and (z["leg"], z["legShown"], z["sel"])})
+    click(pg, '.chlegend[data-for="revYear"] button[data-n="2021"]', 400)
+
+    # ---- ⑩ 2B 收尾：產業地圖／產業鏈（族群總覽、關聯圖）—— 一整列一個元件的東西收進既有的列
+    GP_PLACE = """() => { const q = s => document.querySelector(s);
+      const head = q('.gphead'), note = q('#gpNote'), foc = q('#gpFocus'), tail = q('.gptail'), bar = q('#gpBar');
+      const card = bar && bar.parentElement, grid = q('.gpgrid');
+      const R = e => e ? e.getBoundingClientRect() : null;
+      return { noteInHead: !!(head && note && head.contains(note)), tailInHead: !!(head && tail && head.contains(tail)), hasTail: !!tail,
+               focInCard: !!(card && foc && card.contains(foc)), focAfterGrid: !!(grid && foc && grid.nextElementSibling === foc),
+               cardH: card ? Math.round(R(card).height) : null, focTxt: foc ? foc.innerText.trim() : '',
+               headH: head ? Math.round(R(head).height) : null,
+               sw: document.documentElement.scrollWidth, iw: innerWidth }; }"""
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(base + "#industry", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    g0 = pg.evaluate(GP_PLACE)
+    ok("⑩ [1440] 產業地圖：資料狀態（#gpNote）與「完整版圖：產業熱力圖 →」在標題列裡（改前各佔一整列）",
+       g0["noteInHead"] and g0["hasTail"] and g0["tailInHead"] and g0["headH"] <= 40, g0)
+    ok("⑩ [1440] 滑過讀數（#gpFocus）在「族群漲跌幅」卡片裡（改前是圖下方一條空白列）", g0["focInCard"], g0)
+    pos = pg.evaluate(B29_BARPOS, -1)
+    if pos:
+        pg.mouse.move(pos["x"], pos["y"]); pg.wait_for_timeout(700)
+        g1 = pg.evaluate(GP_PLACE)
+        ok("⑩ [1440] 滑過長條：讀數真的換成那個族群、卡片高度不變（版面不跳）",
+           pos["name"] in g1["focTxt"] and g1["cardH"] == g0["cardH"], {"name": pos["name"], "before": g0["cardH"], "after": g1})
+        pg.mouse.move(5, 5); pg.wait_for_timeout(400)
+    pg.set_viewport_size({"width": 600, "height": 900}); pg.wait_for_timeout(900)
+    g2 = pg.evaluate(GP_PLACE)
+    ok("⑩ [縮到 600] 手機版面維持改前的順序：資料狀態不在標題列、讀數在圖下方、沒有橫向捲軸",
+       not g2["noteInHead"] and not g2["focInCard"] and g2["focAfterGrid"] and g2["sw"] <= g2["iw"] + 1, g2)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
+    g3 = pg.evaluate(GP_PLACE)
+    ok("⑩ [拉回 1440] 又搬回標題列／卡片裡", g3["noteInHead"] and g3["focInCard"] and g3["tailInHead"], g3)
+
+    NB_STATE = """() => { const q = s => document.querySelector(s);
+      const card = q('#indChain .nbcard'), h2 = q('#indChain .nbhead h2'), sw = q('#indChain #dgPick'), dd = q('#segDD'), rh = q('#relHead'), rm = q('#relMain');
+      const R = e => e ? e.getBoundingClientRect() : null, hr = R(h2), sr = R(sw);
+      const em = q('#dgPick a em, .nbsw a em'), sub = q('#chainMap .co .sub');
+      return { inl: !!(card && card.classList.contains('nbinl')), over: sw ? sw.scrollWidth > sw.clientWidth + 1 : null,
+               sameRow: !!(hr && sr && hr.top >= sr.top - 12 && hr.bottom <= sr.bottom + 12),
+               ddInHead: !!(dd && rh && rh.contains(dd)), ddInMain: !!(dd && rm && rm.contains(dd)),
+               btnTxt: ((q('#segDDBtn b') || {}).textContent || ''),
+               emFs: em ? parseFloat(getComputedStyle(em).fontSize) : null,
+               sw: document.documentElement.scrollWidth, iw: innerWidth }; }"""
+    pg.goto(base + "#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    n0 = pg.evaluate(NB_STATE)
+    ok("⑩ [1440] 產業鏈：鏈名標題跟二層分頁同一列（.nbinl）、分頁列沒有被擠出橫向捲動",
+       n0["inl"] and n0["sameRow"] and not n0["over"], n0)
+    ok("⑩ [1440] 「環節 ▾」下拉在「供應鏈關聯圖」標題列裡", n0["ddInHead"], n0)
+    ok("⑩ 分頁上的檔數字 ≥ 12px（改前 11.5）", (n0["emFs"] or 0) >= 12 or n0["emFs"] is None, n0)
+    seg = pg.evaluate("() => { const c = document.querySelector('#segChips .segchip[data-seg]:not(.nomem)'); return c ? c.dataset.seg : null; }")
+    if seg:
+        click(pg, "#segDDBtn", 300)
+        opened = pg.evaluate("() => !!document.querySelector('#segDD.open')")
+        click(pg, f'#segChips .segchip[data-seg="{seg}"]', 900)
+        n1 = pg.evaluate(NB_STATE)
+        ok("⑩ [1440] 從標題列的下拉選一格：下拉真的打開、選完按鈕字換成那一格", opened and n1["btnTxt"] not in ("", "全部"), [opened, n0["btnTxt"], n1["btnTxt"]])
+        click(pg, "#segDDBtn", 300)
+        click(pg, "#segChips .segall", 700)
+    for w in (1100, 800):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(900)
+        nw = pg.evaluate(NB_STATE)
+        ok(f"⑩ [{w}] 產業鏈：同列只在放得下時成立（有 .nbinl 就不准分頁列溢出）、沒有橫向捲軸",
+           (not nw["inl"] or not nw["over"]) and nw["sw"] <= nw["iw"] + 1, nw)
+        if w == 800:
+            ok("⑩ [800] ≤820 下拉搬回關聯圖區塊（手機那套色標排法不動）", nw["ddInMain"] and not nw["ddInHead"], nw)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
+    n2 = pg.evaluate(NB_STATE)
+    ok("⑩ [拉回 1440] 下拉又回到標題列、標題與分頁又同一列", n2["ddInHead"] and n2["inl"], n2)
+    pg.evaluate("() => { const b = document.querySelector('#chainMap .foldbar [data-fold=\"none\"]'); if (b) b.click(); }"); pg.wait_for_timeout(900)
+    sub = pg.evaluate("() => { const s = document.querySelector('#chainMap .co:not(.chip) .sub'); return s ? parseFloat(getComputedStyle(s).fontSize) : null; }")
+    ok("⑩ 關聯圖公司卡（展開）第二行字 ≥ 12px（改前 11）", sub is None or sub >= 12, sub)
+    pg.evaluate("() => { const b = document.querySelector('#chainMap .foldbar [data-fold=\"all\"]'); if (b) b.click(); }"); pg.wait_for_timeout(600)
+    ok("整段沒有 JS 錯誤", not errs, errs[:3])
+    ctx.close()
+
+    # ---- ⑨ 三主題 × 深淺
+    for th in ("casual", "hud", "pro"):
+        for md in ("dark", "light"):
+            c2 = b.new_context(viewport={"width": 1440, "height": 900})
+            c2.add_init_script(f"try{{localStorage.setItem('tw.theme4','{th}');localStorage.setItem('tw.theme','{md}');}}catch(e){{}}")
+            p2 = c2.new_page()
+            p2.goto(base + f"#stock/{code}", wait_until="networkidle"); p2.wait_for_timeout(2400)
+            p2.evaluate("() => { const b = document.querySelector('#stockTabs button[data-t=\"revenue\"]'); if (b) b.click(); }"); p2.wait_for_timeout(1300)
+            tag = f"{th}・{'深' if md == 'dark' else '淺'}"
+            r = p2.evaluate("() => ({ t4: document.documentElement.getAttribute('data-theme4'), sw: document.documentElement.scrollWidth, iw: innerWidth })")
+            ok(f"⑨ {tag}：主題真的掛上、1440 沒有橫向捲軸", r["t4"] == th and r["sw"] <= r["iw"] + 1, r)
+            scroll_to(p2, "revBar"); p2.wait_for_timeout(300)
+            cr = p2.evaluate(V4_CONTRAST_JS, ['.chlegend[data-for="revBar"] button', '.chlegend[data-for="revYear"] button'])
+            bad = {k2: v for k2, v in cr.items() if v is None or v < 4.5}
+            ok(f"⑨ {tag}：營收圖例字對比 ≥ 4.5", not bad, cr)
             c2.close()
 
 

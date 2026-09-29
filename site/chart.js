@@ -598,8 +598,36 @@
       this._layoutCorner();
       if (!this.labels) return;
       const ps = this.chart.panes(); let top = 0; const tops = ps.map(p => { const t = top; top += p.getHeight() + 1; return t; });
-      const html = Object.entries(this.paneIndex).map(([k, i]) => tops[i] == null ? '' : `<div style="top:${tops[i] + 6}px">${(this._paneText || {})[k] || ''}</div>`).join('');
+      const strip = this._lblStrip();
+      const off = strip ? 3 : 6;
+      const html = Object.entries(this.paneIndex).map(([k, i]) => tops[i] == null ? '' : `<div style="top:${tops[i] + off}px">${(this._paneText || {})[k] || ''}</div>`).join('');
       this.labels.innerHTML = html;
+      /* ★ 2026-09-29 設計 v4 第二批 2B（01 §4「圖例一律在繪圖區外」）：副圖左上角的標籤（成交量／KD／MACD／RSI ＋ 當下數值）
+         以前直接蓋在副圖的資料上 —— 左邊一根大量的量柱、KD 在 80 以上的線，都會鑽到標籤底下。
+         整頁大圖（不是總覽小卡 compact、不是四週期小圖 mini）的每個副圖，頂端留一條 LBL_STRIP px 的標籤帶：
+         價格軸的 scaleMargins.top＝標籤帶 ÷ 副圖高，資料只畫在標籤帶下面。副圖預設高度同時加高一條標籤帶（_ph），
+         所以量柱、指標線可畫的高度跟改前一樣，多出來的高度是從主圖拿的（1440×900：主圖 587 → 563px，仍 ≥ 可視高度 55%）。
+         副圖被拖大拖小、指標開關時都會走到這裡，高度一變就重算（sig 沒變就不動，十字游標移動時不會一直 applyOptions）。*/
+      if (!strip) return;
+      const sig = ps.map(p => Math.round(p.getHeight())).join(',');
+      if (sig === this._lblSig) return;
+      this._lblSig = sig;
+      for (let i = 1; i < ps.length; i++) {
+        const h = ps[i].getHeight(); if (!(h > 30)) continue;
+        const t = Math.min(0.45, strip / h);
+        const ss = ps[i].getSeries ? ps[i].getSeries() : [];
+        for (const s of ss) {
+          try { const cur = (s.priceScale().options() || {}).scaleMargins || {};
+            s.priceScale().applyOptions({ scaleMargins: { top: t, bottom: cur.bottom != null ? cur.bottom : 0.08 } }); } catch (e) { /* 圖剛銷毀 */ }
+        }
+      }
+    }
+    /** 副圖標籤帶的高度（px）；總覽小卡、四週期小圖不留（它們的標籤規格另外一套）。*/
+    /*  手機（≤640）也不留：手機的 K 線本來就矮（360～620px），再從主圖拿一條會讓 K 棒被壓扁，手機版面歸 mobile-ui 另外定。*/
+    _lblStrip() {
+      if (this.opts.mini || this.opts.compact) return 0;
+      try { if (!window.matchMedia('(min-width:641px)').matches) return 0; } catch (e) { /* 沒有 matchMedia 就照桌機 */ }
+      return KChart.LBL_STRIP;
     }
     /* 滾輪在價格軸上：縮放上下寬度（TradingView 手感）；圖區內滾輪維持時間縮放。
 
@@ -1194,7 +1222,8 @@
         // Andy 2026-09-15：「下面的成交量 MACD 這些指標上下間隔寬點」。
         // 以前實際只有 57~67px；這組在 813px 高的個股頁量到量 96／KD 115／MACD 115，主圖還有 441。
         // 再大就要吃掉主圖了 —— 他同樣在意 K 線圖要大（DECISIONS #101），想更寬可以自己拖，會記住。
-        : { vol: 100, ind: 120, min: 260 };
+        // 設計 v4 2B：副圖頂端多一條標籤帶（KChart.LBL_STRIP），預設高度跟著加，可畫資料的高度不變（見 _layoutLabels）
+        : { vol: 100 + this._lblStrip(), ind: 120 + this._lblStrip(), min: 260 };
       /* ★ 2026-09-28 opts.volRatio（只給 mini／compact 用）：量副圖佔圖高的比例。
          總覽大盤三張圖要「拖一張、另外兩張跟著變」（Andy：「成交量縮放只需要抓取其中一條，其他兩條會連動」），
          三張圖高度不一定一樣（展開那張比較高），所以共用的是**比例**不是像素。
@@ -1448,6 +1477,7 @@
     }
   }
 
+  KChart.LBL_STRIP = 24;          // 設計 v4 2B：副圖標籤帶（標籤 top 3 ＋ 高 18 ＋ 3px 空隙），見 _layoutLabels
   global.KChart = KChart; global.KInd = ind; global.TickChart = TickChart;
   global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, refreshTheme, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa, hist: HIST };
 })(window);
