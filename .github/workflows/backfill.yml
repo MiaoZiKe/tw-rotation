@@ -17,7 +17,7 @@ name: 歷史回補
 # 2026-09-26 加公司 Logo：每輪最多 300 家、15 分鐘（不吃 FinMind 額度），`data/logos/` 一起 commit。
 # 計畫補齊後排程若發現 Logo 還沒補完或到期，改跑 `--datasets logos` 那一步就好。
 #
-# 2026-09-30 加個股 60 分 K 全市場回補（Yahoo，不吃 FinMind 額度）：每輪最多 400 檔、約 4 輪補完新增的約 1,400 檔，
+# 2026-09-30 加個股 60 分 K 全市場回補（Yahoo，不吃 FinMind 額度）：每輪最多 400 檔、約 5 輪補完（要補 1,719 檔：新增約 1,440 ＋ 以前只有幾根的約 280），
 # 進度 complete.intraday_60m（含 remaining）。計畫補齊後這一步沒補完就改跑 `--datasets intraday`（跟 Logo 可以同一輪）。
 
 on:

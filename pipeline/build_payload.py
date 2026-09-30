@@ -57,10 +57,16 @@ CAND_PER_FACET = 300      # candidates.json 每個面向各留這麼多檔（取
 FULL_PAGE_BARS = 1500     # 有分 K 的那一批給 6 年日線（週／月線在前端合成）
 SLIM_PAGE_BARS = 1250     # 其餘有歷史的股票也要 5 年（Andy 2026-09-18：「日 K 這種需要有至少 5 年」）
                           # 以前是 1000（約 4 年），只有前 400 檔達標，其餘不符規格
-# 分 K（Yahoo）給幾檔。族群成分股一定有，其餘照成交值往下補到這個數。
-# 從 150 拉到 400：Andy 回報「1 日以下的週期打開是空的」，大多是他看的股票不在前 150 名。
-# yfinance 每批 40 檔、批間停 1 秒，兩個 interval 共約 20 批，多出來的時間在盤後管線可以接受。
+# 「日線給 6 年（FULL_PAGE_BARS）」那一批有幾檔：族群成分股一定有，其餘照成交值往下補到這個數。
+# ★ 2026-09-30：這個數字**不再決定誰有分 K** —— 60 分 K 擴到全市場（pipeline/intraday60.py），
+#   有沒有 1H／4H 只看資料湖裡有沒有這一檔的 60 分 K（meta.m60）。這裡只剩「日線給多長」的用途，
+#   刻意不跟著擴大：全市場都給 6 年日線，個股頁每檔多 250 根，網站多約 20MB，換不到什麼。
 INTRADAY_LIMIT = 400
+# 60 分 K 給前端幾根（約 520 個交易日 ≈ 兩年，DECISIONS #156「60 分給滿 730 天」）。多週期分析也用同一段。
+M60_PAGE_BARS = 2600
+# 60 分 K 只讀資料湖最近幾個月分割（每月一個）：2,600 根 ≈ 25 個月，多讀兩個月當緩衝。
+# 全表是三年多、全市場好幾百萬列，全讀只是浪費記憶體。
+M60_READ_MONTHS = 27
 # 事件側欄保留幾天（日期下拉選單就是拿這一段的日期去產生的）
 NEWS_KEEP_DAYS = 7
 
@@ -716,6 +722,59 @@ def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _m60_lake() -> dict[str, pd.DataFrame]:
+    """資料湖的個股 60 分 K，每檔最後 M60_PAGE_BARS 根：{代號: DataFrame(ts, code, open, high, low, close, volume)}。
+
+    只讀最近 M60_READ_MONTHS 個月分割（DECISIONS #155：build_payload 對湖只准讀、不准抓）。失敗回空。"""
+    try:
+        d = config.DATA / "intraday_60m"
+        parts = sorted(p.parent.name.split("=", 1)[1] for p in d.glob("year=*/part.parquet"))
+        parts = [int(x) for x in parts[-M60_READ_MONTHS:] if x.isdigit()]
+        m60 = store.read("intraday_60m", years=parts) if parts else pd.DataFrame()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("60 分 K 讀取失敗：%s", exc)
+        return {}
+    if m60.empty or not {"ts", "code"} <= set(m60.columns):
+        return {}
+    m60 = (m60.assign(code=m60["code"].astype(str), ts=m60["ts"].astype(str))
+              .sort_values(["code", "ts"], kind="stable"))
+    out = {c: g.tail(M60_PAGE_BARS).reset_index(drop=True) for c, g in m60.groupby("code", sort=False)}
+    log.info("60 分 K：從資料湖讀到 %d 列 / %d 檔（最近 %d 個月分割，每檔最多給 %d 根）",
+             len(m60), len(out), len(parts), M60_PAGE_BARS)
+    return out
+
+
+def _num(v, nd: int = 2):
+    """價格四捨五入到 nd 位、整數去掉 .0（Yahoo 的價格偶爾帶 float32 尾巴，52.29999923706055 這種）。NaN → None。"""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(f):
+        return None
+    f = round(f, nd)
+    return int(f) if f == int(f) else f
+
+
+def _m60_payload(code: str, bars: pd.DataFrame, as_of: str) -> dict:
+    """個股 60 分 K 的精簡格式（site/data/m60/<代號>.json；前端 industry.js 的 expandM60 還原）。
+
+    {"v":1, "code", "as_of", "tz":"+08:00", "n", "days": [["YYYY-MM-DD", [[HHMM, 開, 高, 低, 收, 量], ...]], ...]}
+    為什麼不用個股頁原本的 [ISO 時間字串, 開, 高, 低, 收, 量]：一根 K 棒光時間就佔 27 個字元，
+    日期每天重複五次；改成「日期一次＋HHMM 整數」、價格去掉 float 尾巴，每檔大約省一半，
+    全市場約 2,000 檔省下一兩百 MB（GitHub Pages 整站上限 1GB）。時間一律台北時間（+08:00）。"""
+    days: list = []
+    cur = None
+    for ts, o, h, lo, c, v in bars[["ts", "open", "high", "low", "close", "volume"]].itertuples(index=False, name=None):
+        ts = str(ts)
+        d_, hm = ts[:10], int(ts[11:13] + ts[14:16])
+        if d_ != cur:
+            days.append([d_, []])
+            cur = d_
+        days[-1][1].append([hm, _num(o), _num(h), _num(lo), _num(c), _num(v, 0)])
+    return {"v": 1, "code": code, "as_of": as_of, "tz": "+08:00", "n": int(len(bars)), "days": days}
+
+
 def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                company: pd.DataFrame, inst: pd.DataFrame,
                latest: str, limit: int = INTRADAY_LIMIT, *, names: dict | None = None,
@@ -756,18 +815,18 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             group_of[c_] = {"group_id": "ind_" + ind_, "group_name": _nm, "groups": [_nm]}
 
     day = price[price["date"] == latest]
-    # 分 K 逐檔跟 Yahoo 要，成本高：族群成分股全部給，再用成交值補到 limit。
-    # 其餘股票只有日線以上（指數列如 TAIEX 與權證不算個股）。
+    # 日線給 6 年的那一批：族群成分股全部給，再用成交值補到 limit（指數列如 TAIEX 與權證不算個股）。
+    # ★ 2026-09-30 以前這一批同時決定「誰有分 K」；現在分 K 全市場都有（看 m60_state），這裡只管日線長度。
     member_codes = set(m["code"])
     by_turnover = [c for c in day.sort_values("turnover", ascending=False)["code"].tolist()
                    if is_tradable_security(c)]
-    intraday_codes = [c for c in by_turnover if c in member_codes]
+    long_codes = [c for c in by_turnover if c in member_codes]
     for c in by_turnover:
-        if len(intraday_codes) >= limit:
+        if len(long_codes) >= limit:
             break
-        if c not in intraday_codes:
-            intraday_codes.append(c)
-    intraday_set = set(intraday_codes)
+        if c not in long_codes:
+            long_codes.append(c)
+    long_set = set(long_codes)
     # 個股頁做「全部」股票：有足夠日線的算完整指標與評分，其餘在最後補簡版頁。
     # 名單取自整個資料湖而不是只有今天 —— 今天停牌或沒成交（例如 6806）也要有頁面，
     # 不然搜尋得到卻點不進去，就是 Andy 回報的「不在範圍內就不顯示」。
@@ -851,17 +910,38 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     #   現在 60 分 K 由 run_daily 盤後增量寫進資料湖，這裡只要讀。
     #   15 分 K 不再預先產出：Andy 2026-09-18「1 5 15 分 K 都限制當天即可」，
     #   改由前端開個股時即時抓（livek.js 的 1 分 K 已經是這條路）。
-    m60 = m15 = pd.DataFrame()
-    if not os.environ.get("SKIP_INTRADAY"):
-        try:
-            m60 = store.read("intraday_60m")
-            if not m60.empty:
-                m60 = m60[m60["code"].astype(str).isin(set(intraday_codes))]
-            log.info("分 K：從資料湖讀到 60 分 %d 列 / %d 檔",
-                     len(m60), 0 if m60.empty else m60["code"].nunique())
-        except Exception as exc:  # noqa: BLE001
-            log.warning("分 K 抓取失敗：%s", exc)
-    m60_by = {c: g for c, g in m60.groupby("code")} if not m60.empty else {}
+    # ★ 2026-09-30 全市場：不再只讀前 400 檔；而且 60 分 K **不再塞進個股頁**，改寫成每檔一個
+    #   `m60/<代號>.json`（精簡格式，見 _m60_payload），前端開個股頁時才載入。
+    #   塞在個股頁裡的話，全市場約 2,000 檔 × 每檔約 180KB，網站會多三百多 MB（GitHub Pages 上限 1GB），
+    #   而且只看日線的人也要多下載一份用不到的分 K。
+    #   SKIP_INTRADAY 只跳過「多週期分析的 1H／4H」（最貴的那段計算），分 K 檔照寫 —— 讀湖＋寫檔很便宜，
+    #   本機驗收（SKIP_INTRADAY=1 重算 payload）才驗得到 1H／4H。
+    m15 = pd.DataFrame()
+    m60_by = _m60_lake()
+    try:
+        from . import intraday60
+        _prog = intraday60.read_progress()
+        _names = set(intraday60.universe()[0]) or None     # 湖裡沒有價量時不判「不在名單」
+        m60_state = {c: intraday60.state_of(c, len(m60_by.get(c, ())), _prog, _names)
+                     for c in set(bar_count.index) | set(m60_by)}
+    except Exception as exc:  # noqa: BLE001 —— 狀態只影響個股頁那一句說明，壞了當成「還在回補」
+        log.warning("60 分 K 狀態判斷失敗：%s", exc)
+        m60_state = {c: ("ok" if len(g) >= 5 else "pending") for c, g in m60_by.items()}
+    m60_dir = config.SITE_DATA / "m60"
+    shutil.rmtree(m60_dir, ignore_errors=True)   # 不清的話，下市或被判無資料的舊檔會一直掛在網站上
+    m60_dir.mkdir(parents=True, exist_ok=True)
+    m60_stat = {"files": 0, "bytes": 0}
+
+    def _write_m60(code_: str) -> None:
+        if m60_state.get(code_) != "ok":
+            return
+        path_ = m60_dir / f"{code_}.json"
+        path_.write_text(json.dumps(_m60_payload(code_, m60_by[code_], latest), ensure_ascii=False,
+                                    separators=(",", ":")), encoding="utf-8")
+        m60_stat["files"] += 1
+        m60_stat["bytes"] += path_.stat().st_size
+
+    skip_mtf60 = bool(os.environ.get("SKIP_INTRADAY"))
     m15_by = {c: g for c, g in m15.groupby("code")} if not m15.empty else {}
 
     # ★ 迴圈裡不准再對整張資料湖做 `df[df["code"] == code]`。
@@ -977,9 +1057,10 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
         # ---------------- 個股頁
         tail = ind.tail(250)
-        full = code in intraday_set
-        long = ind.tail(FULL_PAGE_BARS if full else SLIM_PAGE_BARS)   # 前端自己合成週 K / 月 K
-        bars60 = m60_by.get(code, pd.DataFrame())
+        long = ind.tail(FULL_PAGE_BARS if code in long_set else SLIM_PAGE_BARS)   # 前端自己合成週 K / 月 K
+        st60 = m60_state.get(code, "pending")
+        # 多週期分析的 1H／4H 跟前端畫的是同一段（最後 M60_PAGE_BARS 根）
+        bars60 = m60_by.get(code, pd.DataFrame()) if st60 == "ok" and not skip_mtf60 else pd.DataFrame()
         bars15 = m15_by.get(code, pd.DataFrame())
         try:
             # daily_ind：日線指標主迴圈上面剛算完，不要讓 mtf 再算一次
@@ -1008,15 +1089,18 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             return _clean(rows_)
 
         page = {
+            # tier：full＝有 60 分 K（1H／4H 看得到）；daily＝只有日線以上。
+            # m60：ok／none（確認無資料，冷門股）／pending（還在回補）—— 前端靠它決定要不要載 m60 檔、
+            #      沒有時講哪一句話（不要空白）。m60_n：分 K 檔裡有幾根。
             "meta": dict({k: row[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
-                         tier="full" if full else "daily"),
+                         tier="full" if st60 == "ok" else "daily", m60=st60,
+                         m60_n=min(len(m60_by.get(code, ())), M60_PAGE_BARS) if st60 == "ok" else 0),
             "as_of": latest,
             "version": 3,
             "daily": _bars(long, "date"),
-            # 60 分給滿 730 天（每天約 5 根 → 約 2,500 根）。
-            # 240 分改由前端從 60 分合成、15 分開個股時即時抓，都不再預先產出
-            # —— 這兩塊本來佔了每個個股頁 1,900 根 K 棒（DECISIONS #156）。
-            "intraday": {"60m": _bars(bars60.tail(2600), "ts")},
+            # 60 分 K 不在這裡了：每檔獨立一個 m60/<代號>.json（見上面 _write_m60），前端開頁時才載入。
+            # 240 分由前端從 60 分合成、15 分開個股時即時抓，都不預先產出（DECISIONS #156）。
+            "intraday": {},
             "mtf": _clean(mtf_res),
             # ★ 一律餵「這一檔的切片」，不要餵整張資料湖（見上面 _by_code 的註解）。
             #   g 就是這一檔的完整日線歷史，pe_history / dividends / month_season 要的就是它。
@@ -1077,6 +1161,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         # 整頁過一次 _clean：任何漏網的 NaN 都會讓瀏覽器 JSON.parse 直接失敗
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False),
                                                 encoding="utf-8")
+        _write_m60(code)
 
         # ---------------- ③ 更舊的日 K（往左拖到頭才載入）
         #
@@ -1149,9 +1234,11 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         g = thin_by.get(code)
         close = _cell(day_one, code, "close")
         gi = group_of.get(code, {})
+        st60 = m60_state.get(code, "pending")
         meta = {"code": code, "name": names.get(code) or code, "market": markets.get(code),
                 "group": gi.get("group_name") or "—", "group_id": gi.get("group_id"),
-                "groups": gi.get("groups", []), "tier": "thin"}
+                "groups": gi.get("groups", []), "tier": "thin", "m60": st60,
+                "m60_n": min(len(m60_by.get(code, ())), M60_PAGE_BARS) if st60 == "ok" else 0}
         bars = []
         if g is not None and not g.empty:
             cols_ = [c_ for c_ in ("date", "open", "high", "low", "close", "volume") if c_ in g]
@@ -1197,6 +1284,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "note": f"歷史價量資料準備中（目前只有 {len(bars)} 個交易日），技術面與多週期判讀等資料足夠後才會出現。",   # 2026-09-28 讀者語言：不寫「回補」
         }
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False), encoding="utf-8")
+        _write_m60(code)       # 日線還不夠 60 根的新股，分 K 可能已經有了（Yahoo 從掛牌第一天就有）
 
     # ---------------- 全市場索引：搜尋與各頁連結都靠這份（每一檔都有頁）
     row_idx = {r["code"]: r for r in rows}
@@ -1217,7 +1305,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "turnover": r["turnover"] if r else _cell(day_one, code, "turnover"),
             "pe": r["pe"] if r else _cell(val_one, code, "pe"),
             "grade": r["grade"] if r else None,
-            "tier": ("full" if code in intraday_set else "daily") if r else "thin",
+            "tier": ("full" if m60_state.get(code) == "ok" else "daily") if r else "thin",
         })
     # ★ 2026-09-26 漲跌家數分上市／上櫃／全部：級距由管線決定（flow.updown_bin，唯一權威），
     # 每列帶 `ud`，前端分組直接讀它；updown.json 是三組家數（all／twse／tpex／other）＋加總檢查。
@@ -1235,8 +1323,11 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         _write("sparks", _sparks_payload(price_adj, index_codes, latest))
     except Exception as exc:  # noqa: BLE001
         log.warning("sparks 產出失敗：%s", exc)
-    log.info("個股頁：完整 %d 檔（分 K %d 檔）、簡版 %d 檔",
-             len(rows), len(intraday_set & written), len(thin_codes))
+    _st = pd.Series({c: m60_state.get(c, "pending") for c in index_codes}, dtype=object)
+    log.info("個股頁：完整 %d 檔、簡版 %d 檔；60 分 K 有 %d 檔（確認無資料 %d、還在回補 %d），"
+             "分 K 檔 %d 個、共 %.1f MB",
+             len(rows), len(thin_codes), int((_st == "ok").sum()), int((_st == "none").sum()),
+             int((_st == "pending").sum()), m60_stat["files"], m60_stat["bytes"] / 1e6)
 
     rows.sort(key=lambda r: (r["grade"] or "Z", -(r.get("score_all") or r["tech_score"])))
     if breadth["n"]:

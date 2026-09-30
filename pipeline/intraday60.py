@@ -42,7 +42,7 @@ TRIES_KEY = "intraday_60m_empty"   # prog 裡記「Yahoo 回空過幾輪」的�
 NO_DATA = "no_data"                # 跟 run_backfill.NO_DATA 同一個值（執行摘要靠它分開計數）
 
 TOP_TRADABLE = 400      # 普通股全市場之外，另外保留成交值前 400 名的可交易證券（含 ETF）
-BACKFILL_PER_RUN = 400  # 回補一輪最多補幾檔（10 批 × 40 檔）；新增約 1,400 檔 → 約 4 輪
+BACKFILL_PER_RUN = 400  # 回補一輪最多補幾檔（10 批 × 40 檔）。2026-09-30 實測名單 2,043、湖裡已完整 324 → 要補 1,719 檔 ≈ 5 輪
 BATCH = 40              # 一次跟 Yahoo 要幾檔（yfinance 一次下載多檔；沿用 yahoo.intraday 的預設）
 NO_DATA_TRIES = 2       # 同一檔要連幾輪回空（而且那一輪 2330 拿得到）才記成確認無資料
 DAILY_MIN_DAYS = 5      # 每日續補至少跟 Yahoo 要幾天（排程延遲、漏一兩輪也補得回來）
@@ -82,7 +82,8 @@ def universe() -> tuple[list[str], dict[str, str]]:
     if not px.empty and {"date", "code"} <= set(px.columns):
         px = px.assign(code=px["code"].astype(str), date=px["date"].astype(str)).sort_values("date", kind="stable")
         if "market" in px.columns:
-            mk = px.dropna(subset=["market"]).drop_duplicates("code", keep="last")
+            # 只認 TWSE／TPEX：FinMind 回補寫進來的列市場別是 "FINMIND"，拿它去決定 .TW／.TWO 會猜錯
+            mk = px[px["market"].isin(["TWSE", "TPEX"])].drop_duplicates("code", keep="last")
             markets = dict(zip(mk["code"], mk["market"].astype(str)))
         latest = px["date"].max()
         day = px[px["date"] == latest]
@@ -113,12 +114,17 @@ def no_data_codes(prog: dict | None) -> set[str]:
     return {k[len(DONE_PREFIX):] for k, v in done.items() if k.startswith(DONE_PREFIX) and v == NO_DATA}
 
 
-def state_of(code: str, n_bars: int, prog: dict | None) -> str:
-    """個股頁要怎麼講這一檔的 60 分 K：ok（有）／none（確認無資料）／pending（還在回補）。"""
+def state_of(code: str, n_bars: int, prog: dict | None, names: set[str] | None = None) -> str:
+    """個股頁要怎麼講這一檔的 60 分 K：ok（有）／none（沒有，也不會有）／pending（還在回補）。
+
+    none 有兩種：回補確認 Yahoo 沒有（no_data），或根本不在名單裡（`names`＝universe()；例如成交值排不進前段的 ETF）
+    —— 對讀者都是同一句「此檔沒有盤中分 K 資料」，不能講「還在回補」讓人一直等。"""
     if n_bars >= 5:
         return "ok"
     v = ((prog or {}).get("done") or {}).get(DONE_PREFIX + str(code))
-    return "none" if v == NO_DATA else "pending"
+    if v == NO_DATA or (names is not None and str(code) not in names):
+        return "none"
+    return "pending"
 
 
 # ------------------------------------------------------------------ 每日續補

@@ -214,3 +214,40 @@ def test_run_backfill的intraday資料集只跑分K_不碰FinMind(lake, monkeypa
     prog = json.loads((lake / "_state" / "backfill_progress.json").read_text())
     assert prog["complete"]["intraday_60m"]["remaining"] == {"intraday_60m": 1}
     assert len(set(store.read("intraday_60m")["code"])) == 4
+
+
+def test_不在名單的代號算確認無資料_不講還在回補(lake):
+    """成交值排不進前段的 ETF 不在名單裡，永遠不會補 —— 個股頁不能寫「還在回補」讓人一直等。"""
+    names = set(intraday60.universe()[0])
+    assert intraday60.state_of("00999", 0, {}, names) == "none"
+    assert intraday60.state_of("1101", 0, {}, names) == "pending"
+
+
+# ------------------------------------------------------------------ 5. 前端分 K 檔（build_payload）
+
+def test_分K檔精簡格式_日期一次_HHMM_價格去尾巴():
+    from pipeline import build_payload as bp
+    bars = pd.DataFrame([
+        {"ts": "2026-09-28T09:00:00+08:00", "open": 52.29999923706055, "high": 53.0, "low": 52.0, "close": 52.5, "volume": 1234.0},
+        {"ts": "2026-09-28T13:00:00+08:00", "open": 52.5, "high": 52.6, "low": 52.1, "close": float("nan"), "volume": 99.0},
+        {"ts": "2026-09-29T09:00:00+08:00", "open": 1010.0, "high": 1015.0, "low": 1005.0, "close": 1010.0, "volume": 5e6},
+    ])
+    j = bp._m60_payload("2330", bars, "2026-09-29")
+    assert j["v"] == 1 and j["n"] == 3 and j["tz"] == "+08:00"
+    assert [d[0] for d in j["days"]] == ["2026-09-28", "2026-09-29"], "同一天只寫一次日期"
+    assert j["days"][0][1][0] == [900, 52.3, 53, 52, 52.5, 1234], "float32 尾巴要去掉、整數不帶 .0"
+    assert j["days"][0][1][1][0] == 1300 and j["days"][0][1][1][4] is None, "NaN 要變 null（JSON 不吃 NaN）"
+    assert j["days"][1][1][0] == [900, 1010, 1015, 1005, 1010, 5000000]
+    json.dumps(j, allow_nan=False)
+
+
+def test_分K只讀最近幾個月分割_每檔給最後幾根(lake, monkeypatch):
+    from pipeline import build_payload as bp
+    monkeypatch.setattr(bp, "M60_PAGE_BARS", 7)
+    monkeypatch.setattr(bp, "M60_READ_MONTHS", 1)
+    store.append("intraday_60m", pd.concat([_bars("2330", ["2026-08-31"]),
+                                            _bars("2330", ["2026-09-28", "2026-09-29"])]))
+    got = bp._m60_lake()
+    assert set(got) == {"2330"}
+    assert len(got["2330"]) == 7, "每檔只給最後 M60_PAGE_BARS 根"
+    assert got["2330"]["ts"].min() >= "2026-09-01", "只讀最近 M60_READ_MONTHS 個月的分割"

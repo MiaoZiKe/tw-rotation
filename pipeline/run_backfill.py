@@ -959,7 +959,7 @@ def backfill_intraday_60m() -> dict | None:
     """個股 60 分 K 全市場回補一輪（2026-09-30，細節見 pipeline/intraday60.py）。
 
     為什麼放回補、不放每日管線：新增約 1,400 檔 × Yahoo 兩年，一次打完會被限流、也拖慢每日管線；
-    回補每小時一輪、每輪最多 intraday60.BACKFILL_PER_RUN 檔，約 4 輪補完。進度寫 `complete["intraday_60m"]`
+    回補每小時一輪、每輪最多 intraday60.BACKFILL_PER_RUN 檔，約 5 輪補完（2026-09-30：要補 1,719 檔）。進度寫 `complete["intraday_60m"]`
     （含 remaining），backfill.yml 的守門看它 —— 計畫補齊之後這一步還沒補完，照樣放行一輪。
     失敗一律吞掉、記 log，不影響後面的 FinMind 步驟。
     """
