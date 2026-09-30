@@ -4595,3 +4595,93 @@ Andy 台北 2026-09-30 23:26 截圖：夜盤正在交易，總覽大盤卡的即
 3. **真正的解法得換一條不經 Cloudflare 出口的路**（依 2 的結果決定）：候選是另找夜盤報價來源
    （先用 `probe.yml` 探測，不猜），或把期交所那兩支搬到別的代理。
    前端不必改：`pullNight()` 只認 `/fut`、`/futchart` 的回應形狀，換後端不用動畫面。
+
+## #281 台指期（夜盤與日盤 /fut）520 的根因：期交所在 Cloudflare 後面，拒絕「經 Cloudflare Worker 來的請求」；換標頭、換路徑、重試都救不回來，要換不經 Cloudflare 的代理（爬蟲專家，2026-10-01 凌晨；合併時若撞號請改號）
+
+接 #280 的「要修的在 Worker／期交所那一側」。三輪實測（台北 2026-10-01 00:28、00:39、00:41），全部在 GitHub Actions 上打。
+
+### 證據
+
+**探測一：run 36744234360（00:28，部署前）** <https://github.com/MiaoZiKe/tw-rotation/actions/runs/36744234360>
+
+```
+從 Actions 直連期交所
+  getQuoteList 夜盤（探測器原本的標頭）          200   672ms   server: cloudflare  cf-ray …-LAX
+  getChartData1M 夜盤                              200   294ms   server: cloudflare
+  getQuoteList 夜盤 ★帶 Worker 逐字元相同的標頭與緊湊 body   200   325ms
+  getChartData1M 夜盤 ★同上                        200   226ms
+  OPTIONS 預檢 getQuoteList（Origin: miaozike.github.io）    403   "Invalid CORS request"，沒有任何 Access-Control-* 標頭
+  OPTIONS 預檢 getChartData1M                      403   同上
+  POST（Origin／Referer 是 miaozike.github.io，application/json）  200，但回應沒有 Access-Control-Allow-Origin
+  POST text/plain（「簡單請求」繞預檢）            415   Content type 'text/plain;charset=UTF-8' not supported
+經自家 Worker
+  /health                                          200
+  /quote?ex_ch=tse_2330.tw（打 mis.twse）          200   ← Worker 本身與其他上游都正常
+  /fut?session=night                               520   16 bytes「error code: 520」
+  /fut?session=day                                 520   ← 日盤那支也壞，不是夜盤專屬
+  /futchart?symbol=TXFJ6-M                         520
+  /fut?session=night 連打三次、間隔 3 秒           520／520／520（3874／1840／986ms）
+  /futchart 連打三次                               520／520／520
+```
+
+**部署 Worker 診斷版：run 36745685741**（main f9da788，00:38 推、00:39 部署成功、「驗證真的活著」那步 /quote 200）
+
+**探測二：run 36745792375（00:41，部署後）** <https://github.com/MiaoZiKe/tw-rotation/actions/runs/36745792375>
+
+```
+/fut?session=night   502 {"upstream_status":520,"colo":"PDX","upstream_ray":"a434aba91b2fcb90-PDX","elapsed_ms":982,"head":"error code: 520\n"}
+/fut?session=day     502 {"upstream_status":520,"colo":"PDX",…}
+/futchart（夜盤）    502 {"upstream_status":520,"colo":"PDX","elapsed_ms":169,…}
+/quote               200
+/fut?session=night&diag=1（同一個 Worker、同一個機房依序打三個變體）
+  as_is        原樣的 POST                                    520  1118ms
+  browser_hdr  同一支 POST，標頭換成一般 Chrome、不帶 Origin   520   168ms
+  static_page  GET 行情看板靜態首頁 mis.taifex.com.tw/futures/ 520   788ms
+```
+
+**worker-watch：run 36745796387（00:39）**：/fut 502（upstream_status 520，colo KIX）、/futchart 502（upstream_status 520，colo CPH）。
+前後幾輪 Worker 跑過的機房：SYD、CPH、OTP、PDX、KIX —— **每個機房都一樣**。
+
+### 結論
+
+1. **不是標頭**：從 Actions 帶 Worker 逐字元相同的標頭與 body 直連是 200；反過來，從 Worker 換成瀏覽器標頭照樣 520。
+2. **不是 API、不是夜盤**：Worker 連 GET 期交所的**靜態首頁**都 520，日盤那支 `/fut?session=day` 也 520。
+3. **是「經 Cloudflare Worker」這一段**：`mis.taifex.com.tw` 自己就在 Cloudflare 後面（回應帶 `server: cloudflare`、`cf-ray`）。
+   Cloudflare 的規則是：Worker 對**另一個 Cloudflare 客戶的網域**發子請求時，對方收到的 `CF-Connecting-IP`
+   一律是 Worker 專用的 `2a06:98c0:3600::103`（Cloudflare 文件〈HTTP request headers〉，WebSearch 摘要，
+   <https://developers.cloudflare.com/fundamentals/reference/http-headers/>）。
+   也就是**全世界所有 Worker 打期交所，在期交所的原站眼裡都是同一個來源**；期交所那一側對它限流或阻擋，
+   Cloudflare 連原站失敗就代填 520。這也解釋了 worker-watch 的型態：09-28 13:31 起盤中與夜盤（大家都在用的時段）
+   幾乎每輪壞、冷門時段偶爾好。⚠ 期交所原站到底是「限流」還是「整個封鎖」，我們看不到它的設定，只能從型態推；
+   但「換標頭／換路徑／換機房／連打都一樣」已經足以排除所有 Worker 端能動的變數。
+4. **瀏覽器也不能直連**：期交所的 CORS 預檢對 `https://miaozike.github.io` 回 403「Invalid CORS request」，
+   實際回應也不給 `Access-Control-Allow-Origin`；改用 text/plain 想繞預檢，期交所回 415 不收。所以「前端 Worker 失敗就直打期交所」這條路是關的。
+5. **重試沒有用**：每次都壞的東西重試救不回來，只會讓期交所那一側請求量乘二、讓使用者等更久（#256 的教訓）。所以這一版**沒有加重試**。
+
+### 這一版做了什麼（main f9da788 已部署）
+
+- `workers/quote-proxy/worker.js`：`/fut`、`/futchart` 收到上游 5xx 不再原樣轉回，改回 **502 JSON**，帶
+  `upstream_status`、`elapsed_ms`、`colo`（`request.cf.colo`）、`upstream_ray`（期交所那側的 cf-ray）、`head`（前 80 字）、`hint`。
+  上游丟例外的那條 502 也補上 `elapsed_ms`、`colo`。**2xx／4xx／304 的回應逐位元組不變**
+  （`tests/fut_fail_check.mjs` 用同一組假上游跑新舊兩版逐欄比對：日盤／夜盤 200、400、304，以及 `/quote`、`/chart`、`/health`）。
+- `/fut?session=night&diag=1`：只給探測用，同一機房打上面那三個變體。一個 isolate 30 秒只准跑一次（其餘回 429、不打上游），日盤帶 diag 不會進去。
+- `scripts/probe_sources.py`：taifex_night 多了 IP／標頭分離、CORS 預檢、text/plain、日盤與現貨基準線、連打三次、Worker 診斷；
+  回應標頭只留 CORS／server／cf-ray 那幾個（不把 cookie 寫進 public repo）。`WORKER_TAIFEX_HEADERS` 由測試守著跟 worker.js 一致。
+- `.github/workflows/worker-watch.yml`：刪掉「期交所擋 Cloudflare 會回 502 不是 520」那句錯的提示；
+  現在的讀法是「**502 且有 upstream_status → 期交所那段拒絕 Worker**；520 本身 → Worker 自己出錯（#255 那種）」，失敗列直接把回應前段貼進摘要。
+- 前端沒改：`fetchFut()`／`fetchFutChart()` 對非 2xx 一律 `代理回 HTTP <狀態>`，所以畫面上的說明會從「HTTP 520」變成「HTTP 502」。
+  想讓它講出「期交所經代理回 520」要改 `market3.js` 並在 `_uitest.py` 加一段，這一批沒做（見 HANDOFF 待處理）。
+
+### 夜盤要回來，只剩「不經 Cloudflare 出口」的路（尚未選，需要開新帳號，列代價）
+
+| 選項 | 出口 | 代價 |
+|---|---|---|
+| Deno Deploy（免費層） | 自家網路（非 Cloudflare） | 要 Andy 開帳號並連 GitHub；程式可幾乎照搬（同樣是 fetch API）；新網域要加進前端 `proxy()` 的候選 |
+| Netlify Functions／Vercel **Node.js** Functions | AWS Lambda | 同上；⚠ 不能選它們的 Edge 版（Netlify Edge 跑在 Deno Deploy，可行；Vercel Edge 要先查清楚跑在哪） |
+| Google Apps Script 網頁應用程式 | Google | 免費但 UrlFetch 每日約 2 萬次配額，要用 CacheService 讓所有讀者共用 10～30 秒的結果；延遲 1～3 秒 |
+| 自己的小 VM（Oracle／GCP 免費層） | 固定 IP | 最穩，但要維運、要 TLS 與網域 |
+| GitHub Actions 排程抓 | GitHub | 排程最短 5 分鐘又常延遲，而且要 commit 資料 —— 不是即時，不建議 |
+
+⚠ 這幾條也都是「共享出口」，期交所若改成擋整個雲端網段一樣會壞；上線前要用 `probe.yml` 或同等方式先實測一輪，不要推論。
+在換路之前，夜盤卡片維持 #258 的顯示規則（拿不到夜盤就整張顯示日盤、小標講原因），**日盤畫面不受影響**（日盤走勢走 `/chart?id=FUT`＝mis.twse，實測 200）；
+但日盤的「每 5 秒台指期當下值」（`fastTick()` 打 `/fut?session=day`）同樣被這個 520 擋住，只是它有 `/chart` 的分時可以退。
