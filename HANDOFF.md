@@ -3490,3 +3490,9 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-29 晚 董監持股第一筆資料確認
 - data/insider_holding 已有 **2026-08** 1,975 家（ym, code, market, director_shares, director_pledged, insider_shares, n_directors）。9/29 22:35 那輪 daily（full）mops.insider_holdings ok、rows 1,975、stored 0（依 (ym, code) 去重，前一輪已存）。下個月資料約 10 月中公布後自動進來。
 - daily.yml 18:30 那輪排程實際在 22:35（UTC 14:35）才跑，晚約 4 小時（GitHub 排程延遲，跟盤中巡檢同一個問題）。
+
+### 09-30 盤中巡檢（手動兩輪）＋ GitHub 排程延遲實況
+- run #8（台北 11:09～11:12）全綠：294／294 檔、11:09:16→11:10:17、15/15 點移動、推得最多面板產業、涵蓋率 103.7%。⚠ 11:10:29 起連 19 輪報價停在 11:10:17（約 1 分 45 秒不前進，294 檔都有回、無錯誤）。
+- run #9（11:16～11:21，wait 240）全綠：11:16:39→11:20:42、38 輪，最長停滯約 30 秒；11:17:56 那輪報價時間倒退（11:17:34→11:17:16，上游偶發舊批次），下一輪恢復。→ 停滯沒重演，列觀察項；再出現 >60 秒就查 Worker 快取（caches.default／cf.cacheTtl／CACHE_QUOTE=3）與 mis sysTime。
+- 待查：涵蓋率 103.7%／103.8% 超過 100%（分子＝即時樣本成交值、分母＝Market3.marketAmt，口徑可能不一致）。
+- GitHub schedule 延遲：9/29 04:11 UTC 那輪實際 10:36（晚 6.4 小時）；9/30 01:17／02:43 到 03:06 UTC 都還沒觸發。盤中巡檢目前靠手動 workflow_dispatch。可靠替代方案（待 Andy 決定）：Cloudflare Worker Cron Trigger 呼叫 GitHub workflow_dispatch API，需 fine-grained token（只限此 repo、Actions 寫入）存 Worker secret。
