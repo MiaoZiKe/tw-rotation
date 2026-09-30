@@ -6984,6 +6984,20 @@ def t_stock(pg, base, code):
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
     ok("個股頁有標題", len(text(pg, "#stockPage h2")) > 2, text(pg, "#stockPage h2"))
     ok("個股頁 K 線有畫出來", count(pg, "#lwc canvas") > 0)
+    # ★ 2026-09-30 個股 60 分 K 擴到全市場之後：預設週期「分時」在有 60 分 K 的股票（2330 線上本來就有）
+    #   會先拿 60 分 K 當備援畫點，不會自己退回日線 —— 這時 K 線圖（kchart）根本還沒建，
+    #   下面的 K 棒寬度、價格軸、畫線、游標資訊框全部量不到。以前一直綠是因為本機 payload 沒有 60 分 K、分時一律退回日線。
+    #   使用者要調 K 棒、畫線之前也一樣會先按「日」，所以這裡照做，並驗「按下去 K 線圖真的建好、畫面真的換了」。
+    h_first = canvas_hash(pg, "#lwc")
+    first_tf = pg.evaluate("() => window.Industry._dbg().tf")
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    d_day = pg.evaluate("() => { const d = window.Industry._dbg(); const b = document.querySelector('#tfSeg button.on');"
+                        " return { tf: d.tf, has: d.hasChart, bars: d.barsTotal, on: b ? b.dataset.tf : null,"
+                        " canvas: document.querySelectorAll('#lwc canvas').length }; }")
+    ok("按「日」之後 K 線圖真的建好（日線鈕亮、K 棒 > 30 根）",
+       d_day["tf"] == "1d" and d_day["has"] and d_day["on"] == "1d" and d_day["bars"] > 30 and d_day["canvas"] > 0, d_day)
+    if first_tf != "1d":
+        changed(f"從預設週期 {first_tf} 按「日」，畫面真的換成 K 線", h_first, canvas_hash(pg, "#lwc"))
     # Andy：「資訊需要定期更新」—— 頁面要自己講清楚更新到哪一天
     fresh = pg.evaluate("""() => { const ns = [...document.querySelectorAll('#stockPage .note')].map(e => e.innerText);
         return ns.find(t => t.includes('資料更新到')) || ''; }""")
@@ -7191,8 +7205,11 @@ def t_stock(pg, base, code):
     ok("在價格軸上滾滾輪，價格軸真的被拉開了（前置條件）",
        bool(before and zoomed and span(zoomed) > span(before) * 1.3), {"前": before, "後": zoomed})
     # 換一個有資料的週期，再換回來；兩次都要重新貼合，不可以留著剛剛拉開的範圍
+    # ★ 2026-09-30：排除「分時」—— 分時是折線圖（TickChart），沒有 K 棒也沒有 kchart 的價格軸，
+    #   這一段要驗的是「K 線週期之間切換會重新貼合」。以前本機分時一律劃掉所以挑不到它；
+    #   2330 有 60 分 K 之後分時沒劃掉，就被挑成 other、priceRange 永遠是 None。改挑下一個 K 線週期（有 60 分 K 時＝1時，正是原始病灶那種）。
     other = next((t["tf"] for t in tfstate
-                  if not t["off"] and t["tf"] not in LIVE_TFS and t["tf"] != "1d"), "1w")
+                  if not t["off"] and t["tf"] not in LIVE_TFS and t["tf"] not in ("1d", "tick")), "1w")
     click(pg, f'#tfSeg button[data-tf="{other}"]', 1100)
     a = pg.evaluate("() => window.Industry._dbg().priceRange")
     ok(f"切到 {other} 之後價格軸有重新貼合（K 棒沒有被壓扁）",
@@ -7442,6 +7459,9 @@ def t_stock(pg, base, code):
 
     # 重新整理後線還在（真的存住了，不是只在記憶體）
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+    # ★ 2026-09-30：重新整理後週期回到預設「分時」；2330 有 60 分 K 時分時不會自動退回日線，
+    #   使用者要看剛剛畫在日線上的線，本來就要再按一次「日」—— 照做（線存在「每檔每週期」的 key 上）
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
     ok("重新整理後手繪線還在", pg.evaluate("() => window.Industry._dbg().shapes") == len(drawn),
        pg.evaluate("() => window.Industry._dbg()"))
 
@@ -9166,6 +9186,11 @@ def t_kzoom_keep(pg, base, code):
     pg.goto(base + f"#stock/{code}", wait_until="networkidle")
     pg.wait_for_timeout(3000)
     rng = "() => { const c = window.Industry._dbg(); return c && c.visibleBars; }"
+    # ★ 2026-09-30：預設週期是「分時」，有 60 分 K 的股票（2330）分時用 60 分 K 備援畫點、不會退回日線 ——
+    #   那是折線圖，沒有 K 線可縮放（visibleBars＝None）。使用者要縮 K 線也是先按「日」，照做並確認 K 線圖真的建好。
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    kd = pg.evaluate("() => { const d = window.Industry._dbg(); return { tf: d.tf, has: d.hasChart, bars: d.barsTotal }; }")
+    ok("K線縮放：按「日」之後 K 線圖建好", kd["tf"] == "1d" and kd["has"] and kd["bars"] > 30, kd)
 
     scroll_to(pg, "lwc")
     box = pg.evaluate("() => { const r = document.getElementById('lwc').getBoundingClientRect();"
@@ -15659,11 +15684,17 @@ def t_tick_spark(pg, base, code):
         reset_ls()
         pg.reload(wait_until="networkidle")
 
-    def goto(c):
+    def goto(c, want=None):
         pg.goto(base + f"#stock/{c}", wait_until="networkidle")
         # 等分時畫好、或確定沒資料退回日線（即時層最多等 8 秒）
+        # ★ 2026-09-30 個股 60 分 K 擴到全市場：有 60 分 K 的股票（2330）分時會**先**用 60 分 K 備援畫 6 點，
+        #   Yahoo（這裡是假的 271 根）回來後才換成即時那條 —— 先有東西看、再升級，是對的行為。
+        #   所以「Yahoo 有資料」的情境要等到來源真的換成 live 才量（want='live'）；
+        #   不然 pts > 1 在備援那一刻就成立，量到的是 6 點的備援線。
+        cond = ("d.tf === 'tick' && d.tick && d.tick.src === 'live' && d.tick.pts > 1" if want == "live"
+                else "(d.tf === 'tick' && d.tick && d.tick.pts > 1) || d.tickNone")
         wait_until(pg, "() => { const d = window.Industry && window.Industry._dbg && window.Industry._dbg();"
-                       " return d && ((d.tf === 'tick' && d.tick && d.tick.pts > 1) || d.tickNone); }", 12000)
+                       f" return d && ({cond}); }}", 12000)
         pg.wait_for_timeout(500)
         return pg.evaluate(DBG)
 
@@ -15672,7 +15703,7 @@ def t_tick_spark(pg, base, code):
     try:
         # ============================================================ A. 預設就是分時
         fresh()
-        a = goto(code)
+        a = goto(code, "live")
         ok("A 分時鈕排在週期列最前面、字樣是「分時」", a["first"] == "tick" and a["firstTxt"] == "分時", a)
         ok("★ A 沒按任何鈕：週期就是分時、分時鈕是亮的", a["tf"] == "tick" and a["on"] == "tick", a)
         ok("★ A 分時有線：畫了那一天整天的點（09:00～13:30，≥ 250 點）",
@@ -15709,6 +15740,42 @@ def t_tick_spark(pg, base, code):
         ok("B 十字游標在分時圖上讀得到「時間＋價」", bool(re.search(r"\d\d:\d\d", lg)) and "價" in lg, lg[:60])
         pg.mouse.move(5, 5)
 
+        # ============================================================ E. 即時來源拿不到、但有 60 分 K → 分時用 60 分 K 備援畫點
+        # ★ 2026-09-30 個股 60 分 K 擴到全市場：大部分股票都有 m60 檔了，「分時沒資料」的主要情況變成
+        #   「Yahoo／報價拿不到但資料湖有 60 分 K」。這時分時**不退回日線**，而是畫最近交易日每小時一點＋昨收虛線，
+        #   短註講清楚是備援。跟下面 C 段（完全沒有 60 分 K → 退回日線）是一對，兩種都要對。
+        mode["y"] = "empty"
+        fresh()
+        cm = pg.evaluate("""async (code) => {
+            const meta = async (c) => { try { const r = await fetch('data/stock/' + c + '.json'); if (!r.ok) return null;
+                                              return (await r.json()).meta || {}; } catch (e) { return null; } };
+            const m = await meta(code); if (m && m.m60 === 'ok') return code;
+            const l = await (await fetch('data/stocks.json')).json();
+            for (const r of l.filter(r => r.tier === 'full').slice(0, 60)) { const mm = await meta(r.code); if (mm && mm.m60 === 'ok') return r.code; }
+            return null; }""", code)
+        ok("E 找得到一檔有 60 分 K（meta.m60＝ok）的股票來驗", bool(cm), cm)
+        if cm:
+            e = goto(cm)
+            # 即時層確定拿不到（histDone）之後再量一次：備援線要還在，不可以被「沒資料」蓋掉或自己退回日線
+            wait_until(pg, "() => window.LiveK && window.LiveK.settled", 10000)
+            pg.wait_for_timeout(600)
+            e = pg.evaluate(DBG)
+            lastd = pg.evaluate("""async (c) => { const j = await (await fetch('data/stock/' + c + '.json')).json();
+                const d = (j.daily && j.daily.length ? j.daily : (j.ohlcv || [])); return d.length ? String(d[d.length - 1][0]) : null; }""", cm)
+            ok("★ E 即時拿不到、有 60 分 K：週期仍是分時（沒有退回日線）、分時鈕亮著沒劃掉",
+               e["tf"] == "tick" and e["on"] == "tick" and e["tickOff"] is False and not e["tickNone"], e)
+            ok("★ E 分時用 60 分 K 備援畫出點（來源 m60、≥ 2 點、有圖）",
+               bool(e["tick"]) and e["tick"]["src"] == "m60" and e["tick"]["pts"] >= 2 and e["canvas"] > 0 and not e["empty"], e["tick"])
+            ok("E 備援畫的是資料最後一個交易日、有昨收可比",
+               bool(e["tick"]) and e["tick"]["date"] == lastd and bool(e["tick"]["prev"]), {"tick": e["tick"], "最後交易日": lastd})
+            ok("E 短註寫清楚是 60 分 K 備援、虛線＝昨收", "60 分 K" in e["note"] and "備援" in e["note"] and "昨收" in e["note"], e["note"][:120])
+            h_m60 = canvas_hash(pg, "#lwc")
+            ok("E 備援分時圖真的有畫出東西", h_m60 not in ("no-canvas", "0"), h_m60)
+            click(pg, "#tfSeg button[data-tf='1d']", 1500)
+            e2 = pg.evaluate(DBG)
+            ok("E 從備援分時按「日」：K 線圖建好、分時圖拆掉", e2["tf"] == "1d" and e2["has"] and not e2["tick"], e2)
+            changed("E 按「日」之後畫面真的換了", h_m60, canvas_hash(pg, "#lwc"))
+
         # ============================================================ C. 沒有分時 → 自動退回日線
         mode["y"] = "empty"
         fresh()
@@ -15741,7 +15808,7 @@ def t_tick_spark(pg, base, code):
             fresh()
             goto(c2)                                   # 沒資料 → 自動退回日線（tickFb）
             mode["y"] = "ok"
-            c4 = goto(code)                            # 同一次瀏覽換下一檔，這次 Yahoo 有資料
+            c4 = goto(code, "live")                    # 同一次瀏覽換下一檔，這次 Yahoo 有資料
             ok("★ C 上一檔自動退回日線，下一檔有資料：預設又回到分時、有線",
                c4["tf"] == "tick" and bool(c4["tick"]) and c4["tick"]["pts"] >= 250, c4)
 
