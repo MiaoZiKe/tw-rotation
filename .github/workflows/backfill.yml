@@ -16,6 +16,9 @@ name: 歷史回補
 #
 # 2026-09-26 加公司 Logo：每輪最多 300 家、15 分鐘（不吃 FinMind 額度），`data/logos/` 一起 commit。
 # 計畫補齊後排程若發現 Logo 還沒補完或到期，改跑 `--datasets logos` 那一步就好。
+#
+# 2026-09-30 加個股 60 分 K 全市場回補（Yahoo，不吃 FinMind 額度）：每輪最多 400 檔、約 4 輪補完新增的約 1,400 檔，
+# 進度 complete.intraday_60m（含 remaining）。計畫補齊後這一步沒補完就改跑 `--datasets intraday`（跟 Logo 可以同一輪）。
 
 on:
   schedule:
@@ -33,7 +36,7 @@ on:
       datasets:
         description: "要補的資料集（plan＝跑 default 計畫）"
         type: choice
-        options: [plan, logos, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
+        options: [plan, logos, intraday, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
         default: plan
 
 permissions:
@@ -116,6 +119,7 @@ jobs:
                   if not (isinstance(fr, dict) and fr.get("done") and fr.get("date") == today_tp):
                       done = False
               skip = done
+          plan_done = skip and key == "plan:default"
           # 公司 Logo（2026-09-26）：計畫補齊之後也要讓 Logo 繼續補／到期重抓。
           # 只有 Logo 還有事做時，這一輪改跑 `--datasets logos`（不碰 FinMind，幾分鐘就結束）。
           logos_only = False
@@ -146,8 +150,17 @@ jobs:
                           skip, logos_only = False, True
                   if any(r.get("src") == "manual" and c not in files for c, r in items.items()):
                       skip, logos_only = False, True
+          # 個股 60 分 K 全市場回補（2026-09-30）：Yahoo、不吃 FinMind 額度，每輪最多 400 檔。
+          # 計畫補齊之後這一步還沒補完（complete.intraday_60m.done 不是真）就放行一輪，只跑 `--datasets intraday`。
+          # 計畫還沒補齊時不用特別處理：`--plan default` 那一輪本來就會先跑這一步。
+          intraday_only = False
+          if plan_done:
+              im = (json.loads(p.read_text()).get("complete", {}).get("intraday_60m") or {}) if p.exists() else {}
+              if not (isinstance(im, dict) and im.get("done")):
+                  skip, intraday_only = False, True
           print(f"skip={'true' if skip else 'false'}")
           print(f"logos_only={'true' if logos_only else 'false'}")
+          print(f"intraday_only={'true' if intraday_only else 'false'}")
           print(f"key={key}")
           PY
           echo "資料集 $DATASETS → 是否跳過：$(grep skip= $GITHUB_OUTPUT | tail -1)"
@@ -177,9 +190,13 @@ jobs:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
           BACKFILL_START: ${{ env.START_DATE }}
           LOGOS_ONLY: ${{ steps.guard.outputs.logos_only }}
+          INTRADAY_ONLY: ${{ steps.guard.outputs.intraday_only }}
         run: |
-          if [ "$LOGOS_ONLY" = "true" ]; then
-            python -m pipeline.run_backfill --datasets logos
+          if [ "$LOGOS_ONLY" = "true" ] || [ "$INTRADAY_ONLY" = "true" ]; then
+            EX=""
+            if [ "$LOGOS_ONLY" = "true" ]; then EX="logos"; fi
+            if [ "$INTRADAY_ONLY" = "true" ]; then EX="${EX:+$EX+}intraday"; fi
+            python -m pipeline.run_backfill --datasets "$EX"
           elif [ "$DATASETS" = "plan" ]; then
             python -m pipeline.run_backfill --limit "$LIMIT" --plan default
           else

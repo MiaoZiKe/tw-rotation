@@ -951,6 +951,27 @@ def backfill_logos(prog: dict, limit: int | None = None, today: date | None = No
     return logos.run(limit, today=today, priority=prio)
 
 
+# 不吃 FinMind 額度、放在健檢之前跑的資料集（`--datasets` 只給這幾個時，整輪不碰 FinMind）
+EXTRA_DATASETS = {"logos", "intraday"}
+
+
+def backfill_intraday_60m() -> dict | None:
+    """個股 60 分 K 全市場回補一輪（2026-09-30，細節見 pipeline/intraday60.py）。
+
+    為什麼放回補、不放每日管線：新增約 1,400 檔 × Yahoo 兩年，一次打完會被限流、也拖慢每日管線；
+    回補每小時一輪、每輪最多 intraday60.BACKFILL_PER_RUN 檔，約 4 輪補完。進度寫 `complete["intraday_60m"]`
+    （含 remaining），backfill.yml 的守門看它 —— 計畫補齊之後這一步還沒補完，照樣放行一輪。
+    失敗一律吞掉、記 log，不影響後面的 FinMind 步驟。
+    """
+    from . import intraday60
+    try:
+        prog = _progress()
+        return intraday60.backfill(prog, save=_save_progress)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("個股 60 分 K 回補失敗（不影響其他步驟）：%s", exc)
+        return None
+
+
 def finmind_reachable(prog: dict) -> bool:
     """花 1 次額度確認「整把 token 還通不通」。
 
@@ -1097,7 +1118,7 @@ def main() -> int:
     mode.add_argument("--datasets", default=None,
                       help="price / inst / per / revenue / financial / balance / "
                            "dividend / divresult / margin / holding，可用 + 串接（預設 price+inst）；"
-                           "logos ＝ 只抓公司 Logo")
+                           "logos ＝ 只抓公司 Logo；intraday ＝ 只補個股 60 分 K（Yahoo，全市場分批）")
     mode.add_argument("--plan", default=None, choices=sorted(PLANS),
                       help="改跑預設回補計畫（依序多步驟，忽略 --start；與 --datasets 二擇一）")
     ap.add_argument("--start", default=config.BACKFILL_START)
@@ -1109,15 +1130,20 @@ def main() -> int:
     limit_raw = (args.limit or "").strip()
     limit = int(limit_raw) if limit_raw.isdigit() and int(limit_raw) > 0 else None
 
-    # 公司 Logo：不吃 FinMind 額度，放在 FinMind 健檢之前，token 掛掉也照樣補。
-    # `--datasets logos` ＝ 只跑這一步（手動觸發用）；`--limit` 在這裡不套用（Logo 有自己的每輪上限）。
-    if args.plan or args.datasets == "logos":
+    # 公司 Logo 與個股 60 分 K：都不吃 FinMind 額度，放在 FinMind 健檢之前，token 掛掉也照樣補。
+    # `--datasets logos`／`intraday`／`logos+intraday` ＝ 只跑這幾步（計畫補齊後守門放行、或手動觸發用）；
+    # `--limit` 在這裡不套用（兩者各有自己的每輪上限）。
+    extras = set((args.datasets or "").split("+")) if args.datasets else set()
+    only_extras = bool(extras) and extras <= EXTRA_DATASETS
+    if args.plan or "logos" in extras:
         try:
             backfill_logos(_progress())
         except Exception as exc:  # noqa: BLE001
             log.warning("Logo 步驟失敗（不影響其他步驟）：%s", exc)
-        if args.datasets == "logos":
-            return 0
+    if args.plan or "intraday" in extras:
+        backfill_intraday_60m()
+    if only_extras:
+        return 0
 
     if args.plan:
         summary = run_plan(args.plan, limit)
