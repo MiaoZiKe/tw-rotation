@@ -85,3 +85,70 @@ def test_探測結果寫成_fixture_檔(monkeypatch, tmp_path):
     f = ps.run("t")
     got = json.loads(f.read_text(encoding="utf-8"))
     assert got["probe"] == "t" and got["results"][0]["status"] == 200
+
+
+# =============================================================== 2026-10-01：IP／標頭分離與 CORS 探測（DECISIONS #281）
+
+def test_對照組的標頭跟_Worker_逐字元相同():
+    """「直連但帶 Worker 同一組標頭」那支探測是對照組；Worker 改了標頭這裡沒跟著改，對照就失效。"""
+    import re
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "workers" / "quote-proxy" / "worker.js").read_text(encoding="utf-8")
+    for fn in ("futQuoteRequest", "futChartRequest"):
+        body = src[src.index(f"function {fn}("):]
+        body = body[:body.index("body:")]
+        got = dict(re.findall(r"'([A-Za-z-]+)':\s*'([^']*)'", body))
+        assert got == ps.WORKER_TAIFEX_HEADERS, f"{fn} 的標頭跟 probe_sources.WORKER_TAIFEX_HEADERS 對不上"
+
+
+def test_緊湊_body_跟_JSON_stringify_逐位元組相同(monkeypatch):
+    seen = {}
+
+    def grab(method, url, headers=None, data=None, json=None, timeout=None):
+        seen.update(method=method, headers=headers, data=data, json=json)
+        return FakeResp({"RtCode": "0"})
+
+    monkeypatch.setattr(ps.requests, "request", grab)
+    ps.one({"id": "w", "method": "POST", "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+            "json": {"MarketType": "1", "RowSize": "全部"}, "note": "n",
+            "exact_headers": dict(ps.WORKER_TAIFEX_HEADERS), "body_compact": True})
+    # JS：JSON.stringify({MarketType:'1',RowSize:'全部'}) === '{"MarketType":"1","RowSize":"全部"}'
+    assert seen["data"] == '{"MarketType":"1","RowSize":"全部"}'.encode("utf-8")
+    assert seen["json"] is None
+    assert seen["headers"] == ps.WORKER_TAIFEX_HEADERS          # 一個都沒多（沒被塞預設 UA）
+
+
+def test_預檢不帶_body_而且回應的_CORS_標頭要記下來(monkeypatch):
+    seen = {}
+    resp = FakeResp(None, status=200, ctype="text/plain", text="")
+    resp.headers = {"Content-Type": "text/plain", "Access-Control-Allow-Origin": "*",
+                    "Set-Cookie": "SESSION=abc", "Server": "nginx"}
+
+    def grab(method, url, headers=None, data=None, json=None, timeout=None):
+        seen.update(method=method, data=data, json=json)
+        return resp
+
+    monkeypatch.setattr(ps.requests, "request", grab)
+    r = ps.one({"id": "pf", "method": "OPTIONS", "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+                "json": {"SymbolID": "TXFJ6-M"}, "note": "n",
+                "exact_headers": dict(ps.BROWSER_PREFLIGHT_HEADERS)})
+    assert seen["method"] == "OPTIONS" and seen["data"] is None and seen["json"] is None
+    assert r["resp_headers"]["access-control-allow-origin"] == "*"
+    assert r["resp_headers"]["server"] == "nginx"
+    assert "set-cookie" not in r["resp_headers"]                # 不把 cookie 寫進 public repo
+
+
+def test_連打幾次要把每一次的狀態記下來(monkeypatch):
+    codes = iter([520, 200, 520])
+
+    def grab(*a, **k):
+        c = next(codes)
+        return FakeResp(None, status=c, ctype="text/plain", text=f"error code: {c}")
+
+    monkeypatch.setattr(ps.requests, "request", grab)
+    monkeypatch.setattr(ps.time, "sleep", lambda s: None)
+    r = ps.one({"id": "x3", "url": "https://tw-quote.example/fut?session=night", "note": "n",
+                "repeat": 3, "repeat_gap_s": 3})
+    assert r["status"] == 520
+    assert [x["status"] for x in r["repeats"]] == [200, 520]
+    assert r["repeats"][1]["head"] == "error code: 520"

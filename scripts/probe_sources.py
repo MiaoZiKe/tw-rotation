@@ -31,6 +31,53 @@ TW = timezone(timedelta(hours=8))
 UA = "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)"
 TIMEOUT = 25
 
+# ★ 跟 workers/quote-proxy/worker.js 的 futQuoteRequest()／futChartRequest() **逐字元相同**。
+#   改 Worker 的標頭就要一起改這裡，不然「直連但帶 Worker 同一組標頭」那支探測就不再是對照組。
+#   tests/test_probe_sources.py 會讀 worker.js 比對，對不上就紅。
+WORKER_TAIFEX_HEADERS = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Referer": "https://mis.taifex.com.tw/futures/",
+    "Origin": "https://mis.taifex.com.tw",
+    "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0)",
+}
+# 讀者的瀏覽器從 miaozike.github.io 發出的樣子（預設 referrer policy 只送網域）。
+_BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+               "(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
+BROWSER_PREFLIGHT_HEADERS = {
+    "Origin": "https://miaozike.github.io",
+    "Access-Control-Request-Method": "POST",
+    "Access-Control-Request-Headers": "content-type",
+    "User-Agent": _BROWSER_UA,
+    "Accept": "*/*",
+}
+BROWSER_POST_HEADERS = {
+    "Content-Type": "application/json",
+    "Accept": "*/*",
+    "Origin": "https://miaozike.github.io",
+    "Referer": "https://miaozike.github.io/",
+    "User-Agent": _BROWSER_UA,
+}
+# 回應標頭只留「診斷用得到」的那幾個：CORS 全部、誰在前面擋（server／via／cf-ray）、快取、
+# Worker 自己加的 x-upstream-*。整份存下來會把 set-cookie 之類的東西寫進 public repo，沒必要。
+KEEP_RESP_HEADERS = ("access-control-", "server", "via", "cf-ray", "cf-cache-status",
+                     "x-cache", "x-served-by", "vary", "allow", "x-upstream")
+
+
+def keep_headers(h) -> dict:
+    """回應標頭 → 只留診斷用得到的那幾個（鍵一律小寫）。"""
+    out = {}
+    try:
+        items = list(h.items())
+    except Exception:  # noqa: BLE001
+        return out
+    for k, v in items:
+        lk = str(k).lower()
+        if any(lk == p or lk.startswith(p) for p in KEEP_RESP_HEADERS):
+            out[lk] = str(v)[:200]
+    return out
+
+
 # 每一組 = 一個題目下的所有候選端點。probe 只讀不寫，全部 GET/POST 一次就好。
 PROBES: dict[str, list[dict]] = {
     "material_news": [
@@ -143,6 +190,76 @@ PROBES: dict[str, list[dict]] = {
          "series_stats": {"path": "RtData.Ticks", "session": "RtData.Info.Sessions",
                           "total": "RtData.Quote.CTotalVolume"},
          "note": "★自家 Worker 的夜盤分時：跟 taifex_chartdata_1m_night 對照筆數"},
+        # ★★★ 2026-10-01 加的（DECISIONS #281）：把「IP」跟「標頭」分開，並問清楚瀏覽器能不能直連。
+        #
+        #    09-30 23:33／23:39 兩輪：期交所直連 200、經 Worker 520。但直連那幾支帶的
+        #    User-Agent 跟 Worker 不一樣（這支檔案的 UA 多了 `; +https://github.com/...`），
+        #    Accept 也不一樣 —— 所以「是 Cloudflare 出口 IP 被擋」還不能下結論，
+        #    也有可能是期交所的防火牆看 UA／標頭組合。下面兩支**逐字元複製** Worker 的
+        #    `futQuoteRequest()`／`futChartRequest()`：標頭一模一樣、body 用 JSON.stringify
+        #    的緊湊格式（沒有空白）。它們也 200 → 唯一的差別只剩「從哪個 IP 出去」。
+        {"id": "taifex_quotelist_night_worker_hdr", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+         "json": {"MarketType": "1", "SymbolType": "F", "KindID": "1", "CID": "TXF",
+                  "ExpireMonth": "", "RowSize": "全部", "PageNo": "", "SortColumn": "", "AscDesc": "A"},
+         "exact_headers": dict(WORKER_TAIFEX_HEADERS), "body_compact": True,
+         "note": "★IP／標頭分離：跟 Worker 的 futQuoteRequest(true) 逐字元相同的標頭與 body，從 Actions 直連"},
+        {"id": "taifex_chartdata_1m_night_worker_hdr", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+         "json": {"SymbolID": "TXFJ6-M"},
+         "symbol_from": {"probe": "taifex_quotelist_night", "suffix": "-M"},
+         "exact_headers": dict(WORKER_TAIFEX_HEADERS), "body_compact": True,
+         "note": "★IP／標頭分離：跟 Worker 的 futChartRequest() 逐字元相同的標頭與 body，從 Actions 直連"},
+        # ---- 瀏覽器能不能不經 Worker、直接從 miaozike.github.io 打期交所？
+        #      瀏覽器跨來源 POST application/json 一定先送 OPTIONS 預檢；
+        #      預檢沒回 Access-Control-Allow-Origin（或回的不是我們的網域／*）就整個被擋。
+        #      Origin／Referer 照瀏覽器預設（strict-origin-when-cross-origin）會送的樣子填，
+        #      UA 換成一般 Chrome —— 這幾支模擬的是「讀者的瀏覽器」，不是我們的程式。
+        {"id": "taifex_cors_preflight_quote", "method": "OPTIONS",
+         "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+         "exact_headers": dict(BROWSER_PREFLIGHT_HEADERS),
+         "note": "★CORS 預檢（報價）：看有沒有 Access-Control-Allow-Origin／Allow-Methods／Allow-Headers"},
+        {"id": "taifex_cors_preflight_chart", "method": "OPTIONS",
+         "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+         "json": {"SymbolID": "TXFJ6-M"},
+         "exact_headers": dict(BROWSER_PREFLIGHT_HEADERS),
+         "note": "★CORS 預檢（分時）：同上。OPTIONS 不送 body，json 只是為了守『SymbolID 是字串』那條測試"},
+        {"id": "taifex_cors_actual_quote", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+         "json": {"MarketType": "1", "SymbolType": "F", "KindID": "1", "CID": "TXF",
+                  "ExpireMonth": "", "RowSize": "全部", "PageNo": "", "SortColumn": "", "AscDesc": "A"},
+         "exact_headers": dict(BROWSER_POST_HEADERS), "body_compact": True,
+         "note": "★瀏覽器真的送出去的那一支（Origin／Referer 是我們的網站）：看回應帶不帶 ACAO，"
+                 "也順便看期交所吃不吃『Referer 不是自己網域』"},
+        {"id": "taifex_cors_simple_textplain", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+         "json": {"MarketType": "1", "SymbolType": "F", "KindID": "1", "CID": "TXF",
+                  "ExpireMonth": "", "RowSize": "全部", "PageNo": "", "SortColumn": "", "AscDesc": "A"},
+         "exact_headers": dict(BROWSER_POST_HEADERS, **{"Content-Type": "text/plain;charset=UTF-8"}),
+         "body_compact": True,
+         "note": "text/plain 是『簡單請求』不用預檢：期交所若照樣解析 body 又給 ACAO，瀏覽器就能繞過預檢直連"},
+        # ---- 自家 Worker：日盤端點與現貨端點（夜盤修法不准動到它們，這兩支是基準線）
+        {"id": "our_worker_fut_day", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=day",
+         "note": "自家 Worker 的日盤報價：夜間打也該回 200（期交所回日盤最後一筆）。一起壞 → 不是夜盤專屬的問題"},
+        {"id": "our_worker_quote", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/quote?ex_ch=tse_2330.tw",
+         "note": "自家 Worker 的現貨報價（打 mis.twse）：基準線，確認 Worker 本身與其他上游都正常"},
+        # ---- 同一支夜盤端點連打三次、間隔 3 秒：看是「每次都壞」還是「時好時壞」（限流的型態）
+        {"id": "our_worker_fut_night_x3", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night",
+         "repeat": 3, "repeat_gap_s": 3,
+         "note": "自家 Worker 夜盤報價連打三次：全壞＝被擋；時好時壞＝限流或出口 IP 輪替"},
+        {"id": "our_worker_futchart_night_x3", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/futchart?symbol=TXFJ6-M",
+         "repeat": 3, "repeat_gap_s": 3,
+         "note": "自家 Worker 夜盤分時連打三次：同上"},
+        # ---- Worker 的診斷模式（2026-10-01 部署的版本才有；舊版會照一般 /fut 回）：
+        #      從同一個 Worker 依序打「原樣／換成瀏覽器標頭／GET 行情看板靜態首頁」三個變體。
+        #      三個都 520 → 期交所那一側整個網域拒絕 Worker 來的請求，換標頭、換路徑都沒用。
+        {"id": "our_worker_fut_night_diag", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night&diag=1",
+         "note": "★Worker 診斷：同一機房打三個變體（原樣／瀏覽器標頭／靜態首頁 GET），看換標頭或換路徑有沒有差"},
     ],
     # ---- 金十數據（Andy 2026-09-21：「並且需要多一項 金十數據」）
     #
@@ -359,17 +476,43 @@ def one(p: dict, prev: dict | None = None) -> dict:
     rec["req"] = body_json if body_json is not None else p.get("data")
     t0 = time.time()
     try:
-        hdr = {"User-Agent": UA, "Accept": "application/json, */*"}
-        # 期交所那幾支要帶 Referer，不帶會被擋（跟 mis.twse 同一個脾氣）
-        if "taifex" in p["url"]:
-            hdr["Referer"] = "https://mis.taifex.com.tw/futures/"
-            hdr["Origin"] = "https://mis.taifex.com.tw"
+        if p.get("exact_headers"):
+            # 對照組：一個標頭都不准多、不准少（IP／標頭分離、模擬瀏覽器都靠這個）
+            hdr = dict(p["exact_headers"])
+        else:
+            hdr = {"User-Agent": UA, "Accept": "application/json, */*"}
+            # 期交所那幾支要帶 Referer，不帶會被擋（跟 mis.twse 同一個脾氣）
+            if "taifex" in p["url"]:
+                hdr["Referer"] = "https://mis.taifex.com.tw/futures/"
+                hdr["Origin"] = "https://mis.taifex.com.tw"
+        rec["req_headers"] = hdr
+        data, js = p.get("data"), body_json
+        if rec["method"] == "OPTIONS":
+            data, js = None, None                  # 預檢不帶 body（瀏覽器也不會帶）
+        elif p.get("body_compact") and body_json is not None:
+            # JS 的 JSON.stringify 不留空白、中文原樣輸出；requests 的 json= 會加空白並轉 \uXXXX。
+            # 要當「跟 Worker 一模一樣」的對照組，body 也得逐位元組相同。
+            data = json.dumps(body_json, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+            js = None
         r = requests.request(rec["method"], p["url"], headers=hdr,
-                             data=p.get("data"), json=body_json, timeout=TIMEOUT)
+                             data=data, json=js, timeout=TIMEOUT)
         rec["status"] = r.status_code
         rec["elapsed_ms"] = int((time.time() - t0) * 1000)
         rec["content_type"] = r.headers.get("Content-Type", "")
         rec["bytes"] = len(r.content)
+        rec["resp_headers"] = keep_headers(r.headers)
+        # 連打幾次看型態（限流是時好時壞，封鎖是每次都壞）。只記狀態／毫秒／前 80 字／cf-ray。
+        for _ in range(max(0, int(p.get("repeat") or 1) - 1)):
+            time.sleep(float(p.get("repeat_gap_s") or 0))
+            t1 = time.time()
+            try:
+                r2 = requests.request(rec["method"], p["url"], headers=hdr,
+                                      data=data, json=js, timeout=TIMEOUT)
+                rec.setdefault("repeats", []).append({
+                    "status": r2.status_code, "elapsed_ms": int((time.time() - t1) * 1000),
+                    "head": r2.text[:80], "resp_headers": keep_headers(r2.headers)})
+            except Exception as e2:  # noqa: BLE001
+                rec.setdefault("repeats", []).append({"status": None, "error": f"{type(e2).__name__}: {e2}"})
         body = r.text
         try:
             j = r.json()
@@ -465,6 +608,16 @@ def run(name: str) -> Path:
             extra = " 命中：" + "、".join(f"{len(v)} 個" for v in r["grep"].values())
         elif r.get("kind") == "list":
             extra = f" {r.get('n')} 筆，欄位 {r.get('fields')}"
+        rh = r.get("resp_headers") or {}
+        acao = {k: v for k, v in rh.items() if k.startswith("access-control-")}
+        if acao or r.get("method") == "OPTIONS" or "cors" in r["id"]:
+            extra += f" CORS {acao or '（沒有任何 Access-Control-* 標頭）'}"
+        if rh.get("cf-ray"):
+            extra += f" cf-ray={rh['cf-ray']}"
+        if r.get("repeats"):
+            extra += " 重打：" + "、".join(str(x.get("status")) for x in r["repeats"])
+        if r.get("status") != 200:
+            extra += f" 內容：{(r.get('sample_text') or json.dumps(r.get('sample'), ensure_ascii=False) or '')[:120]!r}"
         sym = f" [{r['symbol_used']}]" if r.get("symbol_used") else ""
         print(f"{mark}{r['id']:30s} {r.get('status')} {r.get('bytes', 0)}B{sym}{extra}"
               f"{'  ' + r['error'] if r.get('error') else ''}")

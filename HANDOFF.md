@@ -1,5 +1,20 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 夜盤 520 根因確定：期交所拒絕經 Cloudflare Worker 的請求；Worker 改回 502 JSON 講斷點（2026-10-01 00:50，台北，爬蟲專家，分支 `claude/night-worker-520`）
+
+- 證據全文在 DECISIONS #281。一句話：從 Actions 帶 Worker **逐字元相同**的標頭直連期交所 200；
+  從 Worker 打（原樣／換瀏覽器標頭／GET 靜態首頁）三個變體都 520，SYD／CPH／OTP／PDX／KIX 每個機房都一樣，日盤 `/fut?session=day` 也 520。
+  期交所本身在 Cloudflare 後面，Worker 跨網域子請求在對方眼裡一律是 Worker 共用來源 IP `2a06:98c0:3600::103`。
+- 瀏覽器直連不行：期交所 CORS 預檢對 miaozike.github.io 回 403「Invalid CORS request」；text/plain 繞預檢回 415。
+- **已部署（main f9da788，deploy-worker run 36745685741 成功）**：`/fut`、`/futchart` 上游 5xx → 502 JSON（upstream_status／elapsed_ms／colo／upstream_ray／head）；
+  成功與 4xx 路徑逐位元組不變（`workers/quote-proxy/tests/fut_fail_check.mjs` 新舊兩版比對）；`/fut?session=night&diag=1` 診斷（30 秒一次）。沒加重試（連打三次三次壞）。
+- 分支上（未進 main，等合併）：`scripts/probe_sources.py` 新探測、`tests/test_probe_sources.py` 4 條新測試、`worker-watch.yml` 改掉錯的提示、fixture、DECISIONS #281、這段 HANDOFF。
+- 這批驗了：`pytest tests/ -q` 899 passed／4 skipped／1 xfailed、Worker 離線驗收 `fut_fail_check.mjs` 69 條（含新舊比對）、`worker_closed` 綠、`worker_check` 3 輪有 1 輪「三條新連線共用上游」紅（計時型、舊版 4 輪全綠，/stream 程式碼沒動）、
+  `futstream_check` 2 條紅（舊版同樣 2 條，既有）。沒改 site/，沒跑 `_preview`／`_uitest`。部署後 probe run 36745792375、worker-watch run 36745796387 實測：日盤 `/quote` 200、`/fut?session=day` 502（上游 520）、夜盤兩支 502（上游 520）。
+- **待處理**：① **夜盤要回來只能換不經 Cloudflare 的代理**（Deno Deploy／Netlify・Vercel Node 函式／Apps Script／自己的 VM，代價表在 #281），都要 Andy 開帳號，還沒選。
+  ② 前端 `fetchFut()`／`fetchFutChart()` 讀 502 JSON 的 `upstream_status`，說明改寫成「期交所經代理回 520」；要同時改 `_uitest.py`，不在這批範圍。
+  ③ 日盤 `fastTick()`（每 5 秒 `/fut?session=day`）同樣被擋，靠 `m3fut` 退避與 `/chart` 分時撐著。
+
 ## 夜盤「顯示日盤」查證：斷點在 Worker→期交所（520），前端只補說明（2026-09-30 深夜，台北，分支 `claude/night-session-fix`，**未推 main**）
 
 - 根因與證據全文在 DECISIONS #280。一句話：兩輪探測（23:33、23:39）期交所直連全 200，經自家 Worker 的 `/fut?session=night`、`/futchart` 全 520

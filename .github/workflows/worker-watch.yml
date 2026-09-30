@@ -47,7 +47,9 @@ jobs:
               echo "| ✅ $name | $code | |" >> /tmp/rows.md
             else
               echo "FAIL $name  ($code)  $head"
-              echo "| ❌ **$name** | **$code** | $hint |" >> /tmp/rows.md
+              # 502 JSON 裡的 upstream_status／colo 直接貼進摘要（#281），不必再點進 log 猜是哪一段
+              detail=$(printf '%s' "$head" | tr -d '|`')
+              echo "| ❌ **$name** | **$code** | $hint<br>\`$detail\` |" >> /tmp/rows.md
               bad=1
             fi
           }
@@ -56,9 +58,9 @@ jobs:
           probe "/health（GET）"                "$BASE/health" \
                 "整台 Worker 掛了或網域不通。先看 Cloudflare 後台這個 Worker 還在不在。"
           probe "/fut?session=night（POST）"    "$BASE/fut?session=night" \
-                "POST 那條路壞了。第一個嫌疑：又有人對 POST 帶了 cf 快取選項（那只對 GET 有效，會回 520）—— 見 DECISIONS #255。"
+                "回 502 且 upstream_status 是 520 → 期交所那一段（Worker 打期交所被拒，DECISIONS #281）；回 520 本身 → Worker 自己出錯（例如 POST 帶了 cf 快取選項，#255）。"
           probe "/futchart（POST）"             "$BASE/futchart?symbol=TXFJ6-M" \
-                "同上。另一個可能是期交所擋掉 Cloudflare 的出口 IP，那時回的會是 502 upstream failed 而不是 520。"
+                "同上。2026-10-01 起 Worker 收到上游 5xx 會回 502 JSON 並帶 upstream_status／colo／head。"
 
           {
             echo "### 即時報價代理（Worker）狀態"
@@ -72,9 +74,11 @@ jobs:
               echo "而且畫面上會寫出「代理回 HTTP <code>」—— 那個數字就是上面這張表的數字。"
               echo ""
               echo "查的順序（DECISIONS #255）："
-              echo "1. **GET 好、POST 壞** → 幾乎一定是 POST 帶了 cf 快取選項，去看 \`workers/quote-proxy/worker.js\`。"
-              echo "2. **全部都壞** → Worker 沒部署成功，看「部署 Worker（即時報價代理）」那條工作流。"
-              echo "3. **回 502 upstream failed** → 期交所那一側的問題，不是我們的。"
+              echo "1. **回 502 且內容有 \`upstream_status\`** → 是 Worker 打期交所那一段被拒（期交所在 Cloudflare 後面，"
+              echo "   Worker 打它時對方看到的是全體 Worker 共用的來源 IP；DECISIONS #281）。**換 Worker 程式碼修不好**，要換不經 Cloudflare 的路。"
+              echo "   ⚠ 以前這裡寫「被擋時會回 502 upstream failed 而不是 520」是錯的：2026-10-01 以前被擋時是 **520 原樣轉回**。"
+              echo "2. **回 520 本身（不是 502）** → Worker 自己出錯。GET 好、POST 壞時幾乎一定是 POST 帶了 cf 快取選項（#255），去看 \`workers/quote-proxy/worker.js\`。"
+              echo "3. **全部都壞** → Worker 沒部署成功，看「部署 Worker（即時報價代理）」那條工作流。"
             else
               echo "三支都回 200。"
               echo ""
