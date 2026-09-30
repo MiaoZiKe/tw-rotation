@@ -9,7 +9,7 @@
 - **已部署（main f9da788，deploy-worker run 36745685741 成功）**：`/fut`、`/futchart` 上游 5xx → 502 JSON（upstream_status／elapsed_ms／colo／upstream_ray／head）；
   成功與 4xx 路徑逐位元組不變（`workers/quote-proxy/tests/fut_fail_check.mjs` 新舊兩版比對）；`/fut?session=night&diag=1` 診斷（30 秒一次）。沒加重試（連打三次三次壞）。
 - 分支上（未進 main，等合併）：`scripts/probe_sources.py` 新探測、`tests/test_probe_sources.py` 4 條新測試、`worker-watch.yml` 改掉錯的提示、fixture、DECISIONS #281、這段 HANDOFF。
-- 這批驗了：pytest（見回報）、Worker 離線驗收 `fut_fail_check.mjs` 69 條（含新舊比對）、`worker_closed` 綠、`worker_check` 3 輪有 1 輪「三條新連線共用上游」紅（計時型、舊版 4 輪全綠，/stream 程式碼沒動）、
+- 這批驗了：`pytest tests/ -q` 899 passed／4 skipped／1 xfailed、Worker 離線驗收 `fut_fail_check.mjs` 69 條（含新舊比對）、`worker_closed` 綠、`worker_check` 3 輪有 1 輪「三條新連線共用上游」紅（計時型、舊版 4 輪全綠，/stream 程式碼沒動）、
   `futstream_check` 2 條紅（舊版同樣 2 條，既有）。沒改 site/，沒跑 `_preview`／`_uitest`。部署後 probe run 36745792375、worker-watch run 36745796387 實測：日盤 `/quote` 200、`/fut?session=day` 502（上游 520）、夜盤兩支 502（上游 520）。
 - **待處理**：① **夜盤要回來只能換不經 Cloudflare 的代理**（Deno Deploy／Netlify・Vercel Node 函式／Apps Script／自己的 VM，代價表在 #281），都要 Andy 開帳號，還沒選。
   ② 前端 `fetchFut()`／`fetchFutChart()` 讀 502 JSON 的 `upstream_status`，說明改寫成「期交所經代理回 520」；要同時改 `_uitest.py`，不在這批範圍。
