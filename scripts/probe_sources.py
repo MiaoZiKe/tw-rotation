@@ -254,6 +254,12 @@ PROBES: dict[str, list[dict]] = {
          "url": "https://tw-quote.kcq01010909.workers.dev/futchart?symbol=TXFJ6-M",
          "repeat": 3, "repeat_gap_s": 3,
          "note": "自家 Worker 夜盤分時連打三次：同上"},
+        # ---- Worker 的診斷模式（2026-10-01 部署的版本才有；舊版會照一般 /fut 回）：
+        #      從同一個 Worker 依序打「原樣／換成瀏覽器標頭／GET 行情看板靜態首頁」三個變體。
+        #      三個都 520 → 期交所那一側整個網域拒絕 Worker 來的請求，換標頭、換路徑都沒用。
+        {"id": "our_worker_fut_night_diag", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night&diag=1",
+         "note": "★Worker 診斷：同一機房打三個變體（原樣／瀏覽器標頭／靜態首頁 GET），看換標頭或換路徑有沒有差"},
     ],
     # ---- 金十數據（Andy 2026-09-21：「並且需要多一項 金十數據」）
     #
