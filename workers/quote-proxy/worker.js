@@ -229,6 +229,108 @@ function safeStatus(code) {
   return (code === 204 || code === 205 || code === 304) ? 200 : code;
 }
 
+/* ================================================================ /fut、/futchart 的上游失敗（DECISIONS #281）
+ *
+ * ★ 為什麼不再把上游的 5xx 原樣轉回
+ *   2026-09-28 13:31 起，/fut 與 /futchart 盤中、夜盤幾乎每輪都回 `error code: 520`（16 bytes）。
+ *   以前的寫法是 `new Response(txt, { status: r.status })`，於是瀏覽器、worker-watch、探測
+ *   看到的都是「一個 520」—— 跟 Cloudflare 在 Worker 自己丟例外時代填的 520 **長得一模一樣**，
+ *   #255、#256、#280 每一次都得從頭猜「是 Worker 壞了還是期交所那一段壞了」。
+ *   改成回 **502 JSON**，並帶上判斷斷點要的每一樣東西：
+ *     upstream_status  期交所那一段回的狀態碼（520 就是 Cloudflare 連不上期交所的原站）
+ *     elapsed_ms       從發出到收到花了多久（快速失敗 vs. 卡到逾時，兩種病）
+ *     colo             這個 Worker 跑在哪個 Cloudflare 機房（request.cf.colo）
+ *     upstream_ray     期交所那一側回的 cf-ray（期交所自己也在 Cloudflare 後面，見下）
+ *     head             回應內容前 80 字
+ *
+ * ★ 根因（2026-10-01 探測，docs/fixtures/taifex_night_probe.json）
+ *   mis.taifex.com.tw **本身就在 Cloudflare 後面**（回應帶 server: cloudflare、cf-ray）。
+ *   Cloudflare 的規則是：Worker 對「另一個 Cloudflare 客戶的網域」發子請求時，
+ *   對方收到的 CF-Connecting-IP 一律是 Worker 專用的 `2a06:98c0:3600::103`
+ *   （Cloudflare 文件 HTTP request headers 一節）—— 也就是**全世界所有 Worker 打期交所，
+ *   在期交所眼裡都是同一個來源 IP**。從 Actions 帶一模一樣的標頭直連是 200，
+ *   經 Worker 連打三次三次都 520，日盤端點（/fut?session=day）也一樣 520 ——
+ *   斷點不在標頭、不在夜盤，在「經 Cloudflare Worker」這一段。
+ *
+ * ★ 為什麼**沒有**加重試
+ *   同一輪探測連打三次、間隔 3 秒：/fut 三次 520（3874／1840／986ms）、/futchart 三次 520。
+ *   一直都壞的東西重試救不回來，只會把期交所那一側的請求量乘二、把使用者的等待拉長
+ *   （#256 的教訓：重試把 2 秒的失敗變成 4 秒）。
+ */
+function coloOf(request) {
+  try { return String((request.cf && request.cf.colo) || ''); } catch (e) { return ''; }
+}
+
+function futUpstreamFail(which, session, r, txt, t0, request, origin) {
+  let ray = '';
+  try { ray = String(r.headers.get('cf-ray') || ''); } catch (e) { /* 拿不到就空著 */ }
+  return json({
+    error: 'upstream',
+    which, session,
+    upstream: which === 'fut' ? 'mis.taifex.com.tw getQuoteList' : 'mis.taifex.com.tw getChartData1M',
+    upstream_status: r.status,
+    elapsed_ms: Date.now() - t0,
+    colo: coloOf(request),
+    upstream_ray: ray,
+    head: String(txt || '').slice(0, 80),
+    hint: r.status >= 520 && r.status <= 527
+      ? '期交所在 Cloudflare 後面；Worker 打它時對方看到的是全體 Worker 共用的來源 IP（見 DECISIONS #281）'
+      : '期交所回了 5xx',
+  }, 502, origin);
+}
+
+/* ---- /fut?session=night&diag=1：只給探測用的「把斷點再切細一點」
+ *
+ * 從**同一個 Worker、同一個機房**依序打三個變體，看「換標頭」「換方法／換路徑」有沒有差：
+ *   as_is        跟正式請求一模一樣
+ *   browser_hdr  同一支 POST，但標頭換成一般 Chrome、不帶 Origin（只留 Referer）
+ *   static_page  GET 行情看板首頁 https://mis.taifex.com.tw/futures/（靜態頁，不是 API）
+ * 三個都 520 → 期交所那一側是整個網域拒絕 Worker 來的請求，換標頭、換路徑都沒用。
+ *
+ * ⚠ 一個 isolate 30 秒內只跑一次（一次最多三個上游請求），再叫就回 429 —— 不讓它變成放大器。
+ *   一般流量不會帶 diag=1，前端也不會。
+ */
+const FUT_DIAG_GAP_MS = 30000;
+let futDiagAt = 0;
+async function futDiag(request, origin) {
+  const now = Date.now();
+  if (now - futDiagAt < FUT_DIAG_GAP_MS) {
+    return json({ error: 'diag throttled', retry_after_ms: FUT_DIAG_GAP_MS - (now - futDiagAt) }, 429, origin);
+  }
+  futDiagAt = now;
+  const variants = [
+    ['as_is', () => futQuoteRequest(true)],
+    ['browser_hdr', () => new Request(TAIFEX_QUOTE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-TW,zh;q=0.9',
+        'Referer': 'https://mis.taifex.com.tw/futures/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+      },
+      body: TAIFEX_BODY(true),
+    })],
+    ['static_page', () => new Request('https://mis.taifex.com.tw/futures/', {
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; tw-rotation/1.0)', 'Accept': 'text/html' },
+    })],
+  ];
+  const out = [];
+  for (const [name, make] of variants) {
+    const t = Date.now();
+    try {
+      const r = await fetch(make());
+      const txt = await r.text();
+      out.push({ name, status: r.status, ms: Date.now() - t, bytes: txt.length,
+                 head: txt.slice(0, 80), upstream_ray: String(r.headers.get('cf-ray') || '') });
+    } catch (e) {
+      out.push({ name, status: null, ms: Date.now() - t, error: String(e).slice(0, 120) });
+    }
+  }
+  return json({ diag: 'fut-night', colo: coloOf(request), at: new Date().toISOString(), variants: out }, 200, origin);
+}
+
 const handle = async (request, env, ctx) => {
   {
     const origin = request.headers.get('Origin') || '';
@@ -290,6 +392,9 @@ const handle = async (request, env, ctx) => {
     if (url.pathname === '/fut') {
       const night = (url.searchParams.get('session') || 'day') === 'night';
       const upstream = futQuoteRequest(night);
+      // 診斷模式只給夜盤、只在明確帶 diag=1 時跑（探測工作流用），一般流量完全不會走到。
+      if (night && url.searchParams.get('diag') === '1') return futDiag(request, origin);
+      const t0 = Date.now();
       try {
         /* ★ 2026-09-23：這裡原本帶 cf: { cacheTtl, cacheEverything: true }。
            **那組選項只對 GET 有效** —— 這是 POST，POST 的回應本來就不可快取，
@@ -299,11 +404,15 @@ const handle = async (request, env, ctx) => {
            不是在這裡硬掛一個對 POST 無效的選項。 */
         const r = await fetchRetry(upstream);
         const txt = await r.text();
+        // ★ 2026-10-01（DECISIONS #281）：上游 5xx 不再原樣轉回，改回講得出斷點的 502 JSON。
+        //   2xx／4xx 那條路（日盤與夜盤的成功回應）一個字都沒改。
+        if (r.status >= 500) return futUpstreamFail('fut', night ? 'night' : 'day', r, txt, t0, request, origin);
         return new Response(txt, { status: safeStatus(r.status),
           headers: { 'Content-Type': 'application/json; charset=utf-8',
                      'Cache-Control': `public, max-age=${CACHE_QUOTE}`, ...cors(origin) } });
       } catch (e) {
-        return json({ error: 'upstream failed', detail: String(e) }, 502, origin);
+        return json({ error: 'upstream failed', detail: String(e), elapsed_ms: Date.now() - t0,
+                      colo: coloOf(request) }, 502, origin);
       }
     }
 
@@ -314,14 +423,18 @@ const handle = async (request, env, ctx) => {
       const sym = (url.searchParams.get('symbol') || '').toUpperCase();
       if (!FUT_SYMBOL.test(sym)) return json({ error: 'bad symbol', got: sym }, 400, origin);
       const upstream = futChartRequest(sym);
+      const t0 = Date.now();
       try {
         const r = await fetchRetry(upstream);   // 同上：POST 不可帶 cf 快取選項，會回 520
         const txt = await r.text();
+        // 同 /fut：上游 5xx 改回 502 JSON（#281），成功那條路沒動
+        if (r.status >= 500) return futUpstreamFail('futchart', sym.endsWith('-M') ? 'night' : 'day', r, txt, t0, request, origin);
         return new Response(txt, { status: safeStatus(r.status),
           headers: { 'Content-Type': 'application/json; charset=utf-8',
                      'Cache-Control': `public, max-age=${CACHE_CHART}`, ...cors(origin) } });
       } catch (e) {
-        return json({ error: 'upstream failed', detail: String(e) }, 502, origin);
+        return json({ error: 'upstream failed', detail: String(e), elapsed_ms: Date.now() - t0,
+                      colo: coloOf(request) }, 502, origin);
       }
     }
 

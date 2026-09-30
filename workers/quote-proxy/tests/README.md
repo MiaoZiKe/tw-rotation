@@ -18,6 +18,8 @@ Claude 的容器連不出去（連 `miaozike.github.io` 與 `workers.dev` 都打
 node workers/quote-proxy/tests/worker_check.mjs      # 現貨 SSE（/stream）16 條
 node workers/quote-proxy/tests/worker_closed.mjs     # 非交易時段行為 4 條
 node workers/quote-proxy/tests/futstream_check.mjs   # 夜盤 SSE（/futstream）29 條
+node workers/quote-proxy/tests/fut_fail_check.mjs    # /fut、/futchart 上游 5xx 改回 502 JSON、成功路徑不變、diag 節流（#281）
+# 加 OLD_WORKER=<舊版 worker.js 絕對路徑> 會拿同一組假上游逐欄比對新舊兩版的成功回應
 ```
 
 不需要任何相依套件，也不會連外網。**改過 `worker.js` 就跑一次**。
