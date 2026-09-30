@@ -3730,8 +3730,14 @@
        ⚠ 只拿掉個股頁的掛載：剖析圖、環節晶片、drawChainMap 這些共用元件照舊給產業地圖頁用。
        上面麵包屑與 K 線卡的「產業鏈／族群」連結還在，要看產業鏈照樣點得過去。*/
     show(false, false, true);
-    const pg = await A.load('stock/' + code, { fallback: null });
+    const pgP = A.load('stock/' + code, { fallback: null });
+    /* 索引（stocks.json）說這檔有 60 分 K（tier full）就同時開始載分 K 檔，不用等個股頁回來再多等一趟；
+       ensureM60 會接手同一個請求（A.load 對同一個名字只打一次）。*/
+    const ix = ((A.D && A.D.stocks) || []).find(r => r.code === code);
+    if (ix && ix.tier === 'full') A.load('m60/' + code, { fallback: null });
+    const pg = await pgP;
     if (!pg) { await renderStockLite(code, im, sc, gd); return; }
+    await ensureM60(pg);
     const m = pg.meta, s = pg.summary || {};
     // 上方產業鏈（同步高亮）
     state.chain = chainOfGroup(im, m.group_id) || 'industry'; state.group = null;
@@ -3742,8 +3748,8 @@
     const el = $('#stockPage');
     const groupLinks = (m.groups || []).map(gn => A.L.groupByName(gn)).join(' ');
     const themeLinks = A.L.themesOf(m.code);
-    const TIER = { full: ['分 K 完整', 'cyan', '15 分／1 小時／4 小時分 K 每日盤後更新'],
-                   daily: ['日線以上', '', '這檔目前只提供日線／週線／月線（分 K 只提供族群成分股與成交值較大的個股）'],
+    const TIER = { full: ['分 K 完整', 'cyan', '1 小時／4 小時分 K 每日盤後更新（15 分以下是當天即時）'],
+                   daily: ['日線以上', '', m60Why(pg)],
                    thin: ['資料準備中', 'amber', '歷史價量資料準備中，目前只有最近幾天的日線'] };
     const tier = TIER[(m.tier || 'daily')] || TIER.daily;
     /* 週期列（tfButtons）在這裡就要畫，所以設定要先讀進來 —— 以前 state.cfg 到 setupChart 才讀，
@@ -3944,9 +3950,7 @@
       }
       const has = (barsFor(pg, tf) || []).length >= 5;
       b.classList.toggle('off', !has);
-      b.title = has ? '' : (/m$/.test(tf)
-        ? `${pg.meta.name} 目前沒有分 K（只提供族群成分股與成交值較大的個股）。日線／週線／月線正常。`
-        : '這個週期的資料準備中');
+      b.title = has ? '' : (/m$/.test(tf) ? `${pg.meta.name}：${m60Why(pg)}` : '這個週期的資料準備中');
     });
     // 即時週期的點：非交易時段改灰點（livek.js 判定；它每次收到資料也會自己重塗一次）
     if (window.LiveK && window.LiveK.paintDots) window.LiveK.paintDots();
@@ -4036,6 +4040,42 @@
       }
     }
     return null;
+  }
+
+  /* ★ 2026-09-30 個股 60 分 K 擴到全市場（Andy：「有部分股票…1 小時 4 小時都會是找不到數據」）。
+     分 K 不再塞在個股頁 JSON 裡 —— 全市場約 2,000 檔都塞的話網站要多三百多 MB、只看日線的人也要多下載一份 ——
+     改成每檔一個 data/m60/<代號>.json（精簡格式：日期一次＋HHMM，見 pipeline/build_payload._m60_payload），
+     開個股頁時才載入，還原成原本的 [ISO 時間, 開, 高, 低, 收, 量] 掛回 pg.intraday['60m']，
+     所以 barsFor／tickData／四週期小圖一行都不用改。
+     meta.m60：ok＝有；none＝沒有（Yahoo 查無、或不在名單）；pending＝還在回補。沒有時一律用 m60Why 講一句話，不留白。*/
+  function expandM60(j) {
+    const out = [];
+    if (!j || !Array.isArray(j.days)) return out;
+    const tz = j.tz || '+08:00';
+    for (const day of j.days) {
+      const d = day[0];
+      for (const r of (day[1] || [])) {
+        const hm = String(r[0]).padStart(4, '0');
+        out.push([`${d}T${hm.slice(0, 2)}:${hm.slice(2)}:00${tz}`, r[1], r[2], r[3], r[4], r[5]]);
+      }
+    }
+    return out;
+  }
+  async function ensureM60(pg) {
+    if (!pg || !pg.meta) return;
+    const has = pg.intraday && pg.intraday['60m'] && pg.intraday['60m'].length;   // 舊版 payload 還塞在頁裡
+    if (has || pg.meta.m60 !== 'ok') return;
+    const j = await A.load('m60/' + pg.meta.code, { fallback: null });
+    const bars = expandM60(j);
+    pg.m60Failed = !bars.length;          // 標成有卻載不到（網路斷、檔案不在）：講清楚是載入失敗，不是沒資料
+    if (bars.length) pg.intraday = Object.assign({}, pg.intraday || {}, { '60m': bars });
+  }
+  function m60Why(pg) {
+    const st = pg && pg.meta && pg.meta.m60;
+    if (pg && pg.m60Failed) return '這檔的 1 小時分 K 沒有載入成功，請重新整理再試一次；日線／週線／月線正常';
+    if (st === 'none') return '此檔沒有盤中分 K 資料（成交很少的個股常見），1 小時／4 小時看不到；日線／週線／月線正常';
+    if (st === 'pending') return '這檔的 1 小時分 K 還在補資料（每小時補一批），補齊後就看得到；日線／週線／月線正常';
+    return '這檔目前沒有 1 小時分 K；日線／週線／月線正常';
   }
 
   function barsFor(pg, tf) {
@@ -4478,7 +4518,7 @@
         const why = live
           ? (window.LiveK ? window.LiveK.sourceNote(state.tf) : '即時層還沒載入')
           : pg.meta.tier === 'thin' ? (pg.note || '歷史價量資料準備中')
-          : /m$/.test(state.tf) ? '這檔目前沒有分 K（只提供族群成分股與成交值較大的個股）；日線／週線／月線可以正常看'
+          : /m$/.test(state.tf) ? m60Why(pg)
           : '這個週期尚無資料';
         if (kchart) { kchart.destroy(); kchart = null; }
         box.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(why)}</div>`;
@@ -4778,7 +4818,7 @@
       const bars = barsFor(pg, tf);
       if (!bars || bars.length < 2) {
         const wait = isLiveTf(tf) && window.LiveK && window.LiveK.loading;
-        el.innerHTML = `<div class="empty"${wait ? ' data-live="1"' : ''} style="height:100%">${A.fmt.esc(isLiveTf(tf) ? liveEmptyMsg(tf) : '這個週期尚無資料')}</div>`;
+        el.innerHTML = `<div class="empty"${wait ? ' data-live="1"' : ''} style="height:100%">${A.fmt.esc(isLiveTf(tf) ? liveEmptyMsg(tf) : /m$/.test(tf) ? m60Why(pg) : '這個週期尚無資料')}</div>`;
         return;
       }
       // 非交易時段的 5 秒格沒收過就畫 1 分（livek.js 決定），游標時間要用分鐘格式

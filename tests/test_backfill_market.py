@@ -185,7 +185,9 @@ def _all_done_complete() -> dict:
           "inst_fresh": {"done": True, "date": tp.strftime("%Y-%m-%d")},
           # 舊的 universe 旗標（前 500 檔那一版）
           "inst": {"done": True}, "daytrade+sbl@2025-01-01": {"done": True},
-          "dividend+divresult@2009-01-01": {"done": True}}
+          "dividend+divresult@2009-01-01": {"done": True},
+          # 2026-09-30：個股 60 分 K 全市場回補（Yahoo，不在 PLAN_DEFAULT 裡，守門另外看）
+          "intraday_60m": {"done": True, "remaining": {"intraday_60m": 0}}}
     for s in run_backfill.PLAN_DEFAULT:
         if s.get("scope") == "market":
             cp[run_backfill.datasets_key_of(s["datasets"], s["start"], s.get("tag"), "market")] = {"done": True}
@@ -210,6 +212,29 @@ def test_守門_全市場步驟沒補完就放行(tmp_path, step):
     cp = _all_done_complete()
     cp.pop(run_backfill.datasets_key_of(step["datasets"], step["start"], step.get("tag"), "market"))
     assert _run_guard(tmp_path, cp)["skip"] == "false"
+
+
+def test_守門_個股60分K沒補完要放行且只跑intraday(tmp_path):
+    """計畫補齊之後才加的 60 分 K 全市場回補：complete.intraday_60m 不是 done → 放行一輪，只跑 `--datasets intraday`
+    （不碰 FinMind）；補完才跳過。沒有這個鍵（第一次上線）也要放行。"""
+    cp = _all_done_complete()
+    cp["intraday_60m"] = {"done": False, "remaining": {"intraday_60m": 1413}}
+    got = _run_guard(tmp_path, cp)
+    assert got["skip"] == "false" and got["intraday_only"] == "true" and got["logos_only"] == "false"
+    cp.pop("intraday_60m")
+    assert _run_guard(tmp_path, cp)["intraday_only"] == "true"
+    cp["intraday_60m"] = {"done": True}
+    got = _run_guard(tmp_path, cp)
+    assert got["skip"] == "true" and got["intraday_only"] == "false"
+
+
+def test_守門_計畫沒補齊時不另外標intraday_only(tmp_path):
+    """計畫還在跑（--plan default 那一輪本來就會先補 60 分 K），不必另外切成只跑 intraday。"""
+    cp = _all_done_complete()
+    cp["plan:default"]["done"] = False
+    cp["intraday_60m"] = {"done": False}
+    got = _run_guard(tmp_path, cp)
+    assert got["skip"] == "false" and got["intraday_only"] == "false"
 
 
 def test_守門_Logo策略升級或人工Logo要放行(tmp_path):

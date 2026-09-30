@@ -269,55 +269,38 @@ def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
     return mis.price_snapshot(pairs)
 
 
-# 分 K 逐檔跟 Yahoo 要，成本高，所以只做「成交值前段」這一批。
-# 跟 build_payload.INTRADAY_LIMIT 是同一個口徑，改一邊要改另一邊。
+# ★ 2026-09-30：名單從「成交值前 400」擴到全市場（普通股全部＋成交值前段 ETF），邏輯搬到 pipeline/intraday60.py。
+#   以前這裡只抓前 400、而且增量起點是「整張表的最後一根」—— 資料湖只有 567 檔，約 1,400 檔的個股頁 1H／4H 永遠是空的，
+#   567 檔裡還有約 1/4 只有 2～15 根（掉出前 400 就停了）。這個常數只剩 build_payload 決定「日線給 6 年」那一批還在用。
 INTRADAY_LIMIT = 400
 
 
-def intraday_universe(limit: int = INTRADAY_LIMIT) -> tuple[list[str], dict[str, str]]:
-    """要抓 60 分 K 的代號，以及它們的市場別（Yahoo 要靠它決定 .TW / .TWO）。
-
-    挑法：拿資料湖最新那一天，照成交值由大到小取前 `limit` 檔。
-    """
-    px = store.read("price_daily", years=[datetime.now(timezone.utc).year])
-    if px.empty or "date" not in px.columns:
-        return [], {}
-    latest = str(px["date"].astype(str).max())
-    day = px[px["date"].astype(str) == latest]
-    if "turnover" in day.columns:
-        day = day.sort_values("turnover", ascending=False)
-    codes, markets = [], {}
-    for _, r in day.iterrows():
-        c = str(r["code"])
-        if not is_tradable_security(c) or c in markets:
-            continue
-        markets[c] = str(r.get("market") or "")
-        codes.append(c)
-        if len(codes) >= limit:
-            break
-    return codes, markets
+def intraday_universe(limit: int | None = None) -> tuple[list[str], dict[str, str]]:
+    """要抓 60 分 K 的代號與市場別（全市場，見 intraday60.universe）；`limit` 只給測試／手動截短用。"""
+    from . import intraday60
+    codes, markets = intraday60.universe()
+    if limit:
+        codes = codes[:limit]
+    return codes, {c: markets.get(c, "") for c in codes}
 
 
 def collect_intraday_60m() -> pd.DataFrame:
-    """把 60 分 K 的**增量**抓回來（只抓資料湖最後一根之後的那一段）。
+    """把 60 分 K 的**增量**抓回來：全市場名單，只要最近幾天，逐檔只留「這一檔最後一根之後」。
 
     ★ 這一步存在的理由（DECISIONS #155）：分 K 以前完全不進資料湖，
       `build_payload` 每次部署都從零重抓 400 檔 ×（60 分 730 天 ＋ 15 分 60 天），
       實測部署 14 分鐘裡有 13 分 43 秒卡在那裡 —— 昨天抓過的今天再抓一次。
       現在改成「盤後抓當天新增的那幾根、寫進資料湖」，部署只要讀。
+    ★ 2026-09-30：兩年的歷史**不在這裡補**（那會一次打爆 Yahoo），交給回補（run_backfill → intraday60.backfill，
+      每小時一輪、每輪有上限）。這裡最多只跟 Yahoo 要 intraday60.DAILY_MAX_DAYS 天。
     """
-    from .sources import yahoo
+    from . import intraday60
 
-    codes, markets = intraday_universe()
-    if not codes:
+    df, info = intraday60.daily_increment()
+    RESULT["steps"]["intraday.since"] = {"since": info.get("lake_last"), **info}
+    if not info.get("codes"):
         log.warning("還沒有價量資料，不知道要抓哪些代號的分 K")
-        return pd.DataFrame()
-
-    have = store.read("intraday_60m")
-    since = str(have["ts"].astype(str).max()) if not have.empty and "ts" in have.columns else None
-    RESULT["steps"]["intraday.since"] = {"since": since, "codes": len(codes),
-                                         "lake_rows": 0 if have.empty else len(have)}
-    return yahoo.intraday_since(codes, markets, since, "60m")
+    return df
 
 
 def collect_index_intraday() -> pd.DataFrame:

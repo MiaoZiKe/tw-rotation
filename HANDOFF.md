@@ -3496,3 +3496,20 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - run #9（11:16～11:21，wait 240）全綠：11:16:39→11:20:42、38 輪，最長停滯約 30 秒；11:17:56 那輪報價時間倒退（11:17:34→11:17:16，上游偶發舊批次），下一輪恢復。→ 停滯沒重演，列觀察項；再出現 >60 秒就查 Worker 快取（caches.default／cf.cacheTtl／CACHE_QUOTE=3）與 mis sysTime。
 - 待查：涵蓋率 103.7%／103.8% 超過 100%（分子＝即時樣本成交值、分母＝Market3.marketAmt，口徑可能不一致）。
 - GitHub schedule 延遲：9/29 04:11 UTC 那輪實際 10:36（晚 6.4 小時）；9/30 01:17／02:43 到 03:06 UTC 都還沒觸發。盤中巡檢目前靠手動 workflow_dispatch。可靠替代方案（待 Andy 決定）：Cloudflare Worker Cron Trigger 呼叫 GitHub workflow_dispatch API，需 fine-grained token（只限此 repo、Actions 寫入）存 Worker secret。
+
+### 09-30 下午 個股 60 分 K 擴到全市場（分支 `claude/intraday-all`，未合併 main，DECISIONS #279）
+- 起因：Andy「部分股票 1 小時／4 小時找不到數據」。湖裡只有 567 檔、約 1/4 只有 2～15 根（舊名單＝成交值前 400、增量起點＝全表最後一根）。
+- 名單改全市場普通股＋成交值前 400 的可交易證券（2,043 檔，`pipeline/intraday60.py`）；每日管線只要最近 5～30 天、逐檔增量；
+  兩年歷史交給回補（每輪 400 檔、要補 1,719 檔 ≈ 5 輪，進度 `complete.intraday_60m.remaining`）；Yahoo 連兩輪回空且 2330 拿得到才記 no_data。
+- 前端：分 K 改每檔獨立 `site/data/m60/<代號>.json`、開個股頁才載入；沒有時寫「此檔沒有盤中分 K 資料」／「還在補資料」。
+- 量測：build 810→912 秒；site/data 337→474 MB（m60 181MB／2,059 檔，單檔中位數 90KB）；改後是暫存區假資料湖模擬回補補完。
+- **合併後要做**：CEO 手動觸發 backfill（`datasets=intraday` 或 `plan`），看執行摘要 `intraday_60m` 的「還剩」每輪約 −400；
+  第一輪要看 log 有沒有「整批回空、2330 也拿不到」（＝Yahoo 限流，這輪收手）。補完後 `_uitest --sections 全市場1H4H` 會自動改用真資料驗。
+- 這批驗了：pytest 全套 898 passed／1 xfailed；`SKIP_INTRADAY=1` 重算 payload（真湖：分 K 檔 551、確認無資料 282、回補中 1,508）；_preview 綠；
+  _uitest 全市場1H4H 0（真湖＝假分 K 注入模式；假資料湖 payload＝真檔案模式也 0，隨機挑 5607／2029／7716）。
+  反向驗證：同一份 payload 換回 origin/main 的 industry.js，全市場1H4H 24 紅（沒載 m60、1時劃掉、0 根）。
+- ⚠ 待處理（不是這批造成，main 早就這樣）：`個股` 11 紅、`K線縮放` 1 紅、`分時預設與搜尋走勢` A 段 2～3 紅。
+  根因：這幾段假設 2330「分時沒資料 → 自動退回日線」，而本機以前一律 SKIP_INTRADAY 建（個股頁沒有 60 分 K）所以一直綠；
+  現在分 K 檔照寫，2330 有 60 分 K → 分時用 60 分 K 備援畫 6 點、K 線還沒建，手繪工具列、K 棒寬度、滾輪縮放那幾條就量不到。
+  證據：把 60 分 K 塞回 stock/2330.json、前端換回 origin/main 的 industry.js，同樣是個股 11＋K線縮放 1、分時 A 2 紅（線上 2330 本來就帶 60 分 K）。
+  `--code 5234`（沒有 60 分 K）跑新前端：個股 2（＝main 本機基準那 2 條）、K線縮放 0。修法：那幾段操作 K 線前先明確按「日」。

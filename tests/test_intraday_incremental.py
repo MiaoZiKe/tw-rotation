@@ -89,6 +89,7 @@ def test_Yahoo一筆都沒回也不會炸(monkeypatch):
 @pytest.fixture
 def lake(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATA", tmp_path)
+    monkeypatch.setattr(config, "STATE", tmp_path)       # 確認無資料清單讀 backfill_progress，不能讀到真的那份
     store.append("price_daily", pd.DataFrame([
         {"date": "2026-09-18", "code": "2330", "market": "TWSE", "turnover": 9e9, "close": 1000.0},
         {"date": "2026-09-18", "code": "1101", "market": "TWSE", "turnover": 1e9, "close": 50.0},
@@ -97,17 +98,19 @@ def lake(tmp_path, monkeypatch):
     return tmp_path
 
 
-def test_第一次跑會補滿第二次只補增量(lake, spy, monkeypatch):
-    monkeypatch.setattr(run_daily, "INTRADAY_LIMIT", 10, raising=False)
-
+def test_每日管線不再一次要兩年_第二次只補增量(lake, spy, monkeypatch):
+    """★ 2026-09-30 改：名單擴到全市場（約 2,000 檔）之後，每日管線**連第一次都不准要 730 天**
+    —— 兩年的歷史交給回補分批補（intraday60.backfill，見 tests/test_intraday_all.py），
+    不然湖是空的那一天會一次對 Yahoo 打 2,000 檔 × 兩年。"""
     first = run_daily.collect_intraday_60m()
-    assert spy[0]["period"] == "730d", "資料湖是空的，第一次本來就要補滿"
+    assert spy[0]["period"] != "730d", f"每日管線不該要兩年：{spy[0]['period']}"
     store.append("intraday_60m", first)
 
     second = run_daily.collect_intraday_60m()
     assert spy[1]["period"] != "730d", f"第二次不該再要兩年：{spy[1]['period']}"
     assert run_daily.RESULT["steps"]["intraday.since"]["since"] == "2026-09-18T10:00:00+08:00"
-    # 重跑同一段不會讓資料湖長出重複列（key = ts + code）
+    # 第二次 Yahoo 回的是同一段，逐檔只留最後一根之後 → 沒有新列；重跑也不會讓湖長出重複列（key = ts + code）
+    assert second.empty
     store.append("intraday_60m", second)
     assert len(store.read("intraday_60m")) == 3
 

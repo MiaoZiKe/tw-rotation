@@ -15714,10 +15714,13 @@ def t_tick_spark(pg, base, code):
         fresh()
         # 挑一檔 payload 沒有 60 分 K 的（簡版個股頁沒有 intraday；完整頁本機 SKIP_INTRADAY 時也沒有）
         c2 = pg.evaluate("""async () => { const l = await (await fetch('data/stocks.json')).json();
-            const cs = l.map(r => r.code).filter(c => /^[1-9]\\d{3}$/.test(c));
+            // ★ 2026-09-30：60 分 K 擴到全市場、改成另外載入的 m60 檔 → 個股頁 JSON 一律沒有 intraday，
+            //   要看索引的 tier（full＝有 m60 檔）與 meta.m60，不然會挑到「其實有分 K」的股票（分時會拿 m60 當備援、不退回日線）
+            const cs = l.filter(r => r.tier !== 'full').map(r => r.code).filter(c => /^[1-9]\\d{3}$/.test(c));
             for (const c of cs.slice(0, 120)) {
               try { const r = await fetch('data/stock/' + c + '.json'); if (!r.ok) continue;
                     const j = await r.json();
+                    if ((j.meta || {}).m60 === 'ok') continue;
                     if (!(j.intraday && (j.intraday['60m'] || []).length) && (j.ohlcv || j.daily || []).length > 30) return c; } catch (e) {}
             } return null; }""")
         ok("C 找得到一檔沒有 60 分 K 的股票來驗", bool(c2), c2)
@@ -17191,6 +17194,124 @@ def t_live5s_0929(b, base, code):
     ctx.close()
 
 
+# ===================================================================== 全市場 1H／4H（2026-09-30）
+M60_BASELINE = ROOT / "docs" / "fixtures" / "intraday_60m_baseline_567.txt"
+
+
+def t_intraday_all(pg, base, code):
+    """★ 2026-09-30 個股 60 分 K 擴到全市場（Andy：「有部分股票打開在小時間級別的周期裡面 1 小時 4 小時都會是找不到數據」）。
+
+    真人操作：隨機挑 3 檔「擴大前 567 檔名單以外、payload 已經有 60 分 K（tier full）」的股票，
+    打開個股頁 → 真的按「1時」→ 圖上真的有 K 棒、畫面真的變了 → 再按「4時」→ 根數約 1 小時的四分之一、畫面又變了；
+    而且分 K 是另外載入的 data/m60/<代號>.json（個股頁 JSON 不再塞分 K）。
+    再驗「確認無資料」與「還在回補」兩種狀態：1 小時畫面寫一句讀者看得懂的話，不是空白。
+
+    ⚠ 資料湖還沒補到任何新名單的股票（例如合併前、回補還沒跑）：改成**假分 K 注入模式** ——
+      隨機挑 3 檔名單外的股票，把它們的 m60 檔與個股頁 meta 換成假資料，一樣真的按 1時／4時。
+      這只能證明前端路徑對，證明不了資料湖真的補到了，所以會在 notes 講清楚是哪一種模式。
+    """
+    import random
+    base_set = {ln.strip() for ln in M60_BASELINE.read_text(encoding="utf-8").splitlines()
+                if ln.strip() and not ln.startswith("#")}
+    ok("567 檔基準名單讀得到", len(base_set) == 567, len(base_set))
+    pg.goto("about:blank")          # DECISIONS：靠 pg.route 餵假資料之前一律先 about:blank，免得同一份文件的快取攔不到
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
+    idx = pg.evaluate("""async () => (await (await fetch('data/stocks.json', { cache: 'no-store' })).json())
+        .map(r => [r.code, r.tier])""")
+    common = [c for c, t in idx if re.fullmatch(r"[1-9]\d{3}", c) and t != "thin"]
+    real = [c for c, t in idx if t == "full" and c not in base_set and re.fullmatch(r"[1-9]\d{3}", c)]
+    rnd = random.Random()
+    fake = not real
+    if fake:
+        picks = rnd.sample([c for c in common if c not in base_set], 3)
+        notes.append(f"全市場1H4H：資料湖還沒補到 567 名單以外的股票 → 假分 K 注入模式（只驗前端路徑），挑 {picks}")
+    else:
+        picks = rnd.sample(real, min(3, len(real)))
+        notes.append(f"全市場1H4H：資料湖已補到 {len(real)} 檔新名單的股票，隨機挑 {picks}")
+    ok("挑得到 3 檔原本不在 567 名單內的股票", len(picks) == 3, {"real": len(real), "picks": picks})
+
+    def fake_m60(route):
+        """假分 K：20 個交易日 × 每天 5 根（09～13 時），價格逐根變化、量每根不同。"""
+        c = route.request.url.split("/m60/")[1].split(".json")[0]
+        days = []
+        k = 0
+        for dd in range(1, 21):
+            rows = []
+            for hh in (9, 10, 11, 12, 13):
+                k += 1
+                px = 50 + k * 0.1
+                rows.append([hh * 100, round(px, 2), round(px + 0.5, 2), round(px - 0.5, 2), round(px + 0.2, 2), 1000 + k * 37])
+            days.append([f"2026-08-{dd:02d}", rows])
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=json.dumps({"v": 1, "code": c, "as_of": "2026-08-20", "tz": "+08:00", "n": 100, "days": days}))
+
+    def with_meta(state):
+        def h(route):
+            resp = route.fetch(); j = resp.json()
+            j.setdefault("meta", {})["m60"] = state
+            j["meta"]["tier"] = "full" if state == "ok" else "daily"
+            j["intraday"] = {}
+            route.fulfill(response=resp, body=json.dumps(j, ensure_ascii=False),
+                          headers={**resp.headers, "content-type": "application/json; charset=utf-8"})
+        return h
+
+    DBG = "() => window.Industry._dbg()"
+    for c in picks:
+        reqs: list[str] = []
+        on_req = lambda r: reqs.append(r.url) if "/data/m60/" in r.url or "/data/stock/" in r.url else None
+        pg.on("request", on_req)
+        if fake:
+            pg.route(f"**/data/m60/{c}.json*", fake_m60)
+            pg.route(f"**/data/stock/{c}.json*", with_meta("ok"))
+        pg.goto("about:blank")      # 整頁重載：App.D 快取裡要是已經有這一檔，就不會真的去抓 m60 檔
+        pg.goto(f"{base}#stock/{c}", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        wait_until(pg, "() => document.querySelector('#tfSeg button[data-tf=\"60m\"]')", 6000)
+        got_m60 = any(f"/data/m60/{c}.json" in u for u in reqs)
+        ok(f"★ {c}：打開個股頁有另外載入分 K 檔 data/m60/{c}.json", got_m60, [u.split('/data/')[-1] for u in reqs])
+        b = pg.evaluate("""() => { const b = document.querySelector('#tfSeg button[data-tf="60m"]');
+            return b ? { off: b.classList.contains('off'), title: b.title } : null; }""")
+        ok(f"{c}：「1時」按鈕沒有被劃掉", bool(b) and not b["off"], b)
+        h0 = canvas_hash(pg, "#lwc")
+        click(pg, "#tfSeg button[data-tf='60m']", 1200)
+        d1 = wait_until(pg, "() => { const d = window.Industry._dbg(); return d.tf === '60m' && d.barsTotal >= 5 ? d : null; }", 6000) or pg.evaluate(DBG)
+        h1 = canvas_hash(pg, "#lwc")
+        ok(f"★ {c}：按「1時」之後圖上真的有 K 棒（≥5 根、不是空白）",
+           d1.get("tf") == "60m" and d1.get("hasChart") and (d1.get("barsTotal") or 0) >= 5 and count(pg, "#lwc .empty") == 0,
+           {k: d1.get(k) for k in ("tf", "hasChart", "barsTotal", "lastBar")})
+        ok(f"{c}：1 小時最後一根帶時間（是分 K 不是日 K）", bool(re.search(r"T\d\d:\d\d", str(d1.get("lastBar") or ""))), d1.get("lastBar"))
+        changed(f"{c}：按「1時」畫面真的變了", h0, h1)
+        n60 = d1.get("barsTotal") or 0
+        click(pg, "#tfSeg button[data-tf='240m']", 1200)
+        d4 = wait_until(pg, "() => { const d = window.Industry._dbg(); return d.tf === '240m' && d.barsTotal >= 2 ? d : null; }", 6000) or pg.evaluate(DBG)
+        n4 = d4.get("barsTotal") or 0
+        ok(f"★ {c}：按「4時」之後圖上真的有 K 棒，根數約 1 小時的四分之一",
+           d4.get("tf") == "240m" and n4 >= 2 and abs(n4 - math.ceil(n60 / 4)) <= 1 and count(pg, "#lwc .empty") == 0,
+           {"1時": n60, "4時": n4})
+        changed(f"{c}：按「4時」畫面又變了", h1, canvas_hash(pg, "#lwc"))
+        click(pg, "#tfSeg button[data-tf='1d']", 800)
+        pg.remove_listener("request", on_req)
+        if fake:
+            pg.unroute(f"**/data/m60/{c}.json*")
+            pg.unroute(f"**/data/stock/{c}.json*")
+
+    # ---- 確認無資料／還在回補：畫面要講一句話，不是空白（挑一檔還沒載過的，把 meta 換掉）
+    for state, want in (("none", "此檔沒有盤中分 K 資料"), ("pending", "還在補資料")):
+        c = rnd.choice([x for x in common if x not in picks])
+        pg.route(f"**/data/stock/{c}.json*", with_meta(state))
+        pg.goto("about:blank")      # 整頁重載，route 才攔得到（App.D 快取裡有就不會再抓）
+        pg.goto(f"{base}#stock/{c}", wait_until="networkidle"); pg.wait_for_timeout(1600)
+        b = pg.evaluate("""() => { const b = document.querySelector('#tfSeg button[data-tf="60m"]');
+            return b ? { off: b.classList.contains('off'), title: b.title } : null; }""")
+        ok(f"★ {state}：「1時」按鈕劃掉，滑上去說原因「{want}」", bool(b) and b["off"] and want in b["title"], b)
+        click(pg, "#tfSeg button[data-tf='60m']", 1200)
+        msg = pg.evaluate("() => { const e = document.querySelector('#lwc .empty'); return e ? e.innerText : ''; }")
+        ok(f"★ {state}：按下去畫面寫「{want}」，不是一塊空白", want in msg and "日線" in msg, msg[:100])
+        ok(f"{state}：不再出現舊的「只提供族群成分股」說法", "只提供族群成分股" not in msg and "只提供族群成分股" not in (b or {}).get("title", ""), msg[:100])
+        click(pg, "#tfSeg button[data-tf='1d']", 800)
+        ok(f"{state}：切回日線圖回得來", count(pg, "#lwc canvas") > 0 and count(pg, "#lwc .empty") == 0)
+        pg.unroute(f"**/data/stock/{c}.json*")
+
+
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
@@ -17485,6 +17606,8 @@ SECTIONS = {
     "會員雲端路徑":        lambda pg, b, base, code: t_account_cloud(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
+    # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
+    "全市場1H4H":          lambda pg, b, base, code: t_intraday_all(pg, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
