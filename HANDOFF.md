@@ -1,5 +1,19 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 夜盤「顯示日盤」查證：斷點在 Worker→期交所（520），前端只補說明（2026-09-30 深夜，台北，分支 `claude/night-session-fix`，**未推 main**）
+
+- 根因與證據全文在 DECISIONS #280。一句話：兩輪探測（23:33、23:39）期交所直連全 200，經自家 Worker 的 `/fut?session=night`、`/futchart` 全 520
+  （內容 `error code: 520`、Content-Type 是我們自己的 `application/json` ＝ Worker 把上游的 520 原樣轉回）；`worker-watch.yml` 從 09-28 13:31 起盤中／夜盤幾乎每輪紅。
+- 前端 09-28～29 那批的四個閘門（`'m3fut'` 退避、`cardOn`／`m3Shown`、`Live.slot`、盤後計時器）逐條查過都沒擋夜盤。
+- 改動：`site/market3.js` 小標 `#futSess` 在「夜盤時段卻顯示日盤」時 title／`data-why` 帶出原因（例：代理回 HTTP 520）；顯示邏輯沒動。
+- 新驗收段落 `夜盤盤後0930`（登記進 `site/modules.js` 的 `index.board`）；反向驗證三種植入缺陷都會紅。
+- 這批驗了：`_uitest --sections 夜盤盤後0930,夜盤推送,即時推送,總覽,新-大盤三張圖,大盤三張圖,夜盤真實fixture --workers 1`、`_preview.py`。
+  ⚠ `夜盤真實fixture` 8 條紅是**既有的**（main 的 market3.js 跑同一段也是同樣 8 條）：斷言還停在 #258 之前「兩支都掛要空白」「數字列要寫夜盤／TXFJ6-M」，待另案改寫。
+  `即時推送` 第一輪有 2 條紅（退回輪詢後計時器那兩條），之後兩輪都 0 —— 會飄，沒動到 live.js。
+  `_preview.py` 第一輪 1 條 404 是本機 `site/data` 在 #279 之前建的、缺 `m60/2330.json`（跟這批無關）；補上那一檔後重跑綠。
+- **待處理（Worker 端，沒動）**：① `/fut`、`/futchart` 收到上游 5xx 改回 502 JSON 並帶 upstream_status／colo；`worker-watch.yml` 那句「被擋會回 502」的提示是錯的要改
+  ② 探測加一支「直連但帶 Worker 同一組標頭」分開 IP 與標頭 ③ 依 ② 結果換夜盤來源或代理。
+
 ## 大盤三張圖：每個週期都有量＋15／30 分接湖＋1H/4H 短句（2026-09-25 晚，台北，分支 `claude/idx-volume`，**未推 main**）
 - 量：今天＝證交所分時逐分鐘實量；日週月季＝index_ohlc 實量；4H 一盤一根＝當天實際總量。加權歷史分 K（Yahoo 量 0）
   ＝「那天實際總量 × 分時量分布」估算（分布：今天完整一盤 → 本機存的最近完整一盤 → 內建台股 U 型），灰色量柱＋游標看板「估」；
