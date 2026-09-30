@@ -17535,6 +17535,9 @@ SECTIONS = {
     "夜盤真實fixture":     lambda pg, b, base, code: t_night_fixture(b, base),
     # ★ 夜盤 SSE 推送：推一筆進來數字與線真的變、斷線真的退回輪詢、POST 不准帶 cf 快取選項
     "夜盤推送":            lambda pg, b, base, code: t_night_push(b, base),
+    # ★ 2026-09-30 Andy 23:26「為何沒有顯示夜盤」：盤後（live.js 判定）＋日盤報價失敗＋日盤退避中，夜盤兩支有資料 → 小標必須是「夜盤」、畫夜盤的點；
+    #   夜盤兩支都回 520 → 小標「日盤」且說明講出 HTTP 520（DECISIONS #280）
+    "夜盤盤後0930":        lambda pg, b, base, code: t_night_afterhours_0930(b, base),
     # ★ 2026-09-23 桌面版介面精修第一階段九項（tabular-nums／token 對比／分頁溢出／
     #   動效與按下回饋／關動效兜底／鍵盤焦點／小字下限／表格）。
     #   最後一段同時證明「手機那一套沒有被這一批動到」。
@@ -30893,6 +30896,198 @@ def t_night_push(b, base):
        "'/futstream'" in raw and "'futstream'" in raw, None)
     ok("worker.js：現貨那條 /stream 的節奏常數一個字都沒動（不准影響現貨推送）",
        "const POLL_TRADE_MS = 5000;" in raw and "const STREAM_MAX_MS = 4 * 60 * 1000;" in raw, None)
+
+
+# ===================================================================== 夜盤盤後0930
+def t_night_afterhours_0930(b, base):
+    """台指期夜盤：**盤後**（live.js 判定）＋日盤報價失敗時，夜盤仍要顯示（2026-09-30，DECISIONS #280）。
+
+    為什麼要多這一段
+    ----------------
+    Andy 台北 2026-09-30 23:26 截圖：夜盤正在交易，總覽工具列寫「● 即時 23:26:19 · 盤後」，
+    台指期那張卻標「日盤」、畫日盤走勢。當時最可疑的是 09-28～29「盤中即時改成每 5 秒」那一批
+    （b9032e1／8dd6e0c／b3cb576）加進來的四個閘門，每一個都可能在盤後把夜盤那條路擋掉：
+      · `Live.cooling('m3fut')` —— 日盤報價的錯誤退避鍵，夜盤如果共用就會被日盤的失敗一起冷卻
+      · `Live.cardOn('m3')`／`m3Shown()` —— 卡片「即時」開關與可見度
+      · `Live.slot()` —— mis 的節流閥
+      · 夜盤那組 60 秒計時器在「盤後」還跑不跑
+    查完的結論是**前端四條都沒擋**，斷點在 Worker 打期交所回 520（見 DECISIONS #280 的探測數字）。
+    這一段把「沒擋」變成機器守著的事實：以後誰在夜盤那條路上加閘門，這裡會紅。
+
+    驗三件事（全部在台北 23:26、live.js 判定盤後的真實狀態下量）：
+      A. 日盤 /fut?session=day 回 520、夜盤兩支有資料 → 小標「夜盤」，線的最後一點＝fixture 的夜盤收盤
+      B. 再把日盤的退避鍵 'm3fut' 打成冷卻中 → 60 秒後夜盤計時器**照樣**去抓、線真的往前走一格
+      C. 夜盤兩支也回 520（＝Andy 那一晚真實的上游狀態）→ 小標「日盤」，而且說明講得出「HTTP 520」
+    """
+    import json as _json
+    import copy as _copy
+    fx = _json.loads((ROOT / "docs/fixtures/taifex_night_probe.json").read_text(encoding="utf-8"))
+    S = {r["id"]: r for r in fx["results"]}
+    FUT_NIGHT = S["taifex_quotelist_night"]["sample"]
+    CHART_NIGHT = S["taifex_chartdata_1m_night"]["sample"]
+    _ticks = ((CHART_NIGHT.get("RtData") or {}).get("Ticks") or [])
+    assert _ticks, "fixture 裡沒有 Ticks，這一段的前提不成立"
+    # ★ 從 fixture 自己讀，不寫死（fixture 每跑一次探測就會被覆蓋，見 t_night_fixture 的說明）
+    LAST = int(float(_ticks[-1][4]))
+    NEXT = LAST + 77                                           # B 段「下一分鐘」的收盤，fixture 裡不可能剛好有
+    # 時鐘跟著 fixture 走：釘在「最後一筆 Tick 的兩分鐘後」（台北）。
+    #   Andy 截圖是 23:26，這份 fixture 是 23:33 探測的；時鐘若早於資料，等於拿未來的點在驗。
+    #   fixture 被重新探測覆蓋之後這裡自己跟著移，一樣落在夜盤時段、live.js 一樣判定盤後。
+    import datetime as _dt
+    _t = str(_ticks[-1][0]).zfill(6)
+    _d = str(((CHART_NIGHT.get("RtData") or {}).get("Quote") or {}).get("CDate") or "20260930")
+    _base = _dt.datetime(int(_d[:4]), int(_d[4:6]), int(_d[6:8]), int(_t[:2]), int(_t[2:4]))
+    if int(_t[:2]) < 6:                                        # 凌晨那段屬於前一晚開始的夜盤，日期要往後一天
+        _base += _dt.timedelta(days=1)
+    NEXT_T = (_base + _dt.timedelta(minutes=1)).strftime("%H%M%S")   # B 段「下一分鐘」
+    FIXED = (_base + _dt.timedelta(minutes=2) - _dt.timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ERR520 = "error code: 520\n"                               # Worker 那一晚真的回的內容（Content-Type 是 application/json）
+
+    def chart_plus_one():
+        """同一份夜盤分時，多一分鐘（收 NEXT）；報價那份也跟著走到那一分鐘。"""
+        c = _copy.deepcopy(CHART_NIGHT)
+        c["RtData"]["Ticks"] = list(c["RtData"]["Ticks"]) + [[NEXT_T, str(LAST), str(NEXT), str(LAST), f"{NEXT}.00", "9"]]
+        c["RtData"]["Quote"]["CLastPrice"] = f"{NEXT}.00"
+        q = _copy.deepcopy(FUT_NIGHT)
+        for row in q["RtData"]["QuoteList"]:
+            if row.get("SymbolID") == c["RtData"].get("SymbolID"):
+                row["CLastPrice"] = f"{NEXT}.00"
+                row["CTime"] = NEXT_T
+        return c, q
+
+    PROBE = """() => { const el = document.getElementById('m3c-FUT'), ss = document.getElementById('futSess');
+        let series = null, last = null;
+        try { const i = echarts.getInstanceByDom(el);
+          if (i) { const d = (i.getOption().series || [])[0];
+            if (d) { const v = (d.data || []).filter(x => x != null);
+              series = v.length; last = v.length ? v[v.length - 1] : null; } } } catch (e) {}
+        const L = window.Live || {};
+        const tg = document.querySelector('.livetg[data-livekey="m3"] .livetg-t');
+        return { sess: window.Market3.session, shown: window.Market3.shown,
+          label: ss ? ss.textContent.trim() : '', why: ss ? (ss.dataset.why || '') : '', title: ss ? ss.title : '',
+          series, last, canvas: el ? el.querySelectorAll('canvas').length : 0,
+          px: (document.querySelector("#m3Grid .m3-card[data-id='FUT'] .m3-px") || {}).textContent || '',
+          intr: L.isIntraday ? L.isIntraday() : null, every: L.intervalMs ? L.intervalMs() : null,
+          stamp: tg ? tg.textContent : '', cardOn: L.cardOn ? L.cardOn('m3') : null,
+          cool: L.cooling ? L.cooling('m3fut') : null,
+          e1: window.Market3.state.futChartErr, e2: window.Market3.state.futNightErr }; }"""
+
+    def lastnum(v):
+        """ECharts 走勢的資料點可能是數字、[x, y] 或 {value: …}；一律取最後那個數字。"""
+        if isinstance(v, dict):
+            v = v.get("value")
+        if isinstance(v, list):
+            v = v[-1] if v else None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    def open_page(night_mode):
+        """台北 23:26、日盤 /fut 一律回 520；night_mode='ok' 夜盤兩支給 fixture，'520' 夜盤兩支也回 520。"""
+        ctx = b.new_context(viewport={"width": 1500, "height": 1000}, timezone_id="Asia/Taipei")
+        pg = ctx.new_page()
+        boom: list[str] = []
+        pg.on("pageerror", lambda e: boom.append(str(e)[:200]))
+        pg.clock.install(time=FIXED)          # ★ 一定要在 goto 之前
+        cur = {"chart": CHART_NIGHT, "fut": FUT_NIGHT, "night": night_mode}
+        hits = {"day": 0, "night": 0, "chart": 0}
+
+        def e520(route):
+            route.fulfill(status=520, content_type="application/json; charset=utf-8", body=ERR520)
+
+        def on_fut(route):
+            if "session=day" in route.request.url:
+                hits["day"] += 1
+                e520(route)
+                return
+            hits["night"] += 1
+            if cur["night"] == "520":
+                e520(route)
+                return
+            route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(cur["fut"]))
+
+        def on_chart(route):
+            hits["chart"] += 1
+            if cur["night"] == "520":
+                e520(route)
+                return
+            route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(cur["chart"]))
+
+        pg.route("**/futstream?*", lambda r: r.abort("failed"))
+        pg.route("**/futchart?*", on_chart)
+        pg.route("**/fut?*", on_fut)
+        pg.route("**/chart?*", lambda r: r.fulfill(
+            status=200, content_type="application/json", body='{"RtCode":"0","RtData":{"QuoteList":[]}}'))
+        pg.route("**/quote?*", lambda r: r.fulfill(
+            status=200, content_type="application/json", body='{"msgArray":[],"rtcode":"0000"}'))
+        pg.route("**/stream?*", lambda r: r.abort("failed"))
+        pg.route("**/y?*", lambda r: r.abort("failed"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("""() => { try {
+            ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.m3.fut','tw.m3.nightpts','tw.m3.futsym','tw.sse']
+              .forEach(k => localStorage.removeItem(k));
+            localStorage.setItem('tw.live.proxy','https://fake-worker.test');
+          } catch (e) {} }""")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="networkidle")
+        pg.wait_for_timeout(1500)
+        # 照規矩用驗收專用的 forceClock 把時鐘釘在夜盤（它會等上一輪 refresh 空出來再重抓一次）
+        pg.evaluate("() => window.Market3.forceClock('night')")
+        pg.wait_for_timeout(1500)
+        return ctx, pg, cur, hits, boom
+
+    # ---------------- A. 盤後＋日盤 520＋夜盤有資料 → 必須顯示夜盤
+    ctx, pg, cur, hits, boom = open_page("ok")
+    r = pg.evaluate(PROBE)
+    ok("[前提] live.js 判定現在不是盤中（台北 23:26）", r["intr"] is False, r["intr"])
+    ok("[前提] live.js 的節奏是盤後那一檔（30 分鐘）", r["every"] == 30 * 60 * 1000, r["every"])
+    ok("[前提] 大盤卡的即時戳記寫的是「盤後」（＝Andy 截圖上那一行）", "盤後" in r["stamp"], r["stamp"])
+    ok("[前提] 大盤卡的「即時」開關是開的（預設）", r["cardOn"] is True, r["cardOn"])
+    ok("[前提] 時鐘在夜盤", r["sess"] == "night", r["sess"])
+    ok("夜盤兩支真的有被打（盤後不准不抓）", hits["night"] >= 1 and hits["chart"] >= 1, hits)
+    ok("★ 盤後＋日盤報價 520，夜盤有資料 → 小標是「夜盤」", r["label"] == "夜盤", r)
+    ok("★ 卡片畫的是夜盤那一份（Market3.shown）", r["shown"] == "night", r["shown"])
+    lv = lastnum(r["last"])
+    ok(f"★ 線的最後一點就是 fixture 的夜盤收盤 {LAST}（畫的真的是夜盤的點）",
+       lv is not None and abs(lv - LAST) < 0.5, {"last": r["last"], "series": r["series"]})
+    ok(f"卡片上的成交價也是夜盤的 {LAST:,}", f"{LAST:,}" in r["px"], r["px"])
+    ok("有夜盤資料時小標不帶失敗原因", r["why"] == "", r["why"])
+
+    # ---------------- B. 日盤退避鍵冷卻中 → 夜盤 60 秒計時器照樣抓、線往前走
+    #   在盤後 fastTick 根本不跑，所以 'm3fut' 不會自己冷卻；這裡直接把它打成「連續失敗 4 次」
+    #   （＝最壞情況：收盤前日盤報價一路 520，冷卻延續進夜盤），驗夜盤那條路**不看**這把鍵。
+    pg.evaluate("() => { for (let i = 0; i < 4; i++) window.Live.report('m3fut', false, Date.now()); }")
+    cool0 = pg.evaluate("() => window.Live.cooling('m3fut')")
+    ok("[前提] 日盤報價的退避鍵 'm3fut' 現在是冷卻中", cool0 is True, cool0)
+    cur["chart"], cur["fut"] = chart_plus_one()
+    n0 = hits["night"] + hits["chart"]
+    pg.clock.run_for(61 * 1000)             # 讓夜盤那組 60 秒計時器（tickNight）真的跳一次
+    pg.wait_for_timeout(1800)
+    r = pg.evaluate(PROBE)
+    ok("★ 日盤退避中，夜盤 60 秒計時器照樣去抓（請求數有增加）", hits["night"] + hits["chart"] > n0,
+       {"before": n0, "after": hits["night"] + hits["chart"]})
+    lv = lastnum(r["last"])
+    ok(f"★ 線真的往前走一格：最後一點變成 {NEXT}", lv is not None and abs(lv - NEXT) < 0.5,
+       {"last": r["last"], "series": r["series"]})
+    ok("而且 'm3fut' 到這時候都還在冷卻（證明上一條是在冷卻中量到的）", r["cool"] is True, r["cool"])
+    ok("小標仍是「夜盤」", r["label"] == "夜盤", r["label"])
+    ok("盤後日盤報價一次都沒打（fastTick 只在盤中跑，不會在夜間替夜盤製造冷卻）", hits["day"] == 0, hits)
+    ok("頁面沒爆", not boom, boom)
+    ctx.close()
+
+    # ---------------- C. 夜盤兩支也 520（Andy 那一晚真實的上游）→ 日盤＋講得出原因
+    ctx, pg, cur, hits, boom = open_page("520")
+    r = pg.evaluate(PROBE)
+    ok("夜盤兩支真的有被打（失敗是上游回的，不是前端沒去抓）", hits["night"] >= 1 and hits["chart"] >= 1, hits)
+    ok("夜盤兩支都 520 → 小標退回「日盤」（DECISIONS #258 第 1 條）", r["label"] == "日盤", r["label"])
+    ok("★ 小標的說明講得出真正的斷點「HTTP 520」（DECISIONS #255 教訓 3）",
+       "HTTP 520" in r["why"] and "HTTP 520" in r["title"], {"why": r["why"], "title": r["title"]})
+    ok("說明是純文字（不帶 <code> 之類的標籤殘渣）", "<" not in r["title"], r["title"])
+    ok("頁面沒爆", not boom, boom)
+    ctx.close()
 
 
 def _raw_worker() -> str:

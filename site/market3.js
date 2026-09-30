@@ -1796,9 +1796,17 @@
     // 台指期的日盤／夜盤鈕：選中的要亮起來（以前藏在 drawFutNight 裡，拆掉之後移到這裡）
     // 台指期現在畫的是哪一段（2026-09-24 切換鈕拿掉之後，這個小標是唯一的標示，不准省）
     const ss = document.getElementById('futSess');
+    /* ★ 2026-09-30（Andy 23:26：「為何沒有顯示夜盤」，DECISIONS #280）：夜盤時段卻顯示日盤時，
+       小標的說明要講出**夜盤那兩支為什麼沒拿到**（例如「代理回 HTTP 520」）。
+       那一晚前端每一條路都有去抓，是 Worker 打期交所回 520 —— 但畫面只寫「還沒拿到夜盤資料」，
+       讀者只能來問，我們也只能從頭查一輪。DECISIONS #255 教訓 3：錯誤訊息要指到真正的斷點。
+       `data-why` 給驗收讀；nightWhy() 回的是 HTML（帶 <code>），title 只能放純文字。*/
     if (ss) { const n = nightHas(); ss.textContent = n ? '夜盤' : '日盤'; ss.dataset.s = n ? 'night' : 'day';
+      const why = (!n && state.futSession === 'night' && (state.futNightErr || state.futChartErr))
+        ? nightWhy().replace(/<[^>]+>/g, '') : '';
+      ss.dataset.why = why;
       ss.title = n ? '夜盤（15:00～翌日 05:00）有資料，顯示夜盤' : (state.futSession === 'night'
-        ? '夜盤時段，但還沒拿到夜盤資料 —— 先顯示日盤' : '日盤時段（08:45～13:45）'); }
+        ? '夜盤時段，但還沒拿到夜盤資料 —— 先顯示日盤' + (why ? '\n原因：' + why : '') : '日盤時段（08:45～13:45）'); }
     grid.classList.toggle('big', !!state.big);
     const one = (x) => {
       const card = grid.querySelector(`.m3-card[data-id="${x.id}"]`);
