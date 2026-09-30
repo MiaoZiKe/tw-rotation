@@ -94,10 +94,14 @@ def _split_by_ticker(raw: pd.DataFrame, symbols: dict[str, str]) -> list[pd.Data
 
 
 def intraday(codes: list[str], markets: dict[str, str], interval: str, period: str,
-             batch: int = 40) -> pd.DataFrame:
+             batch: int = 40, start: str | None = None) -> pd.DataFrame:
     """分 K 長格式：ts（台北時間 ISO 字串）, code, open, high, low, close, volume。
 
     interval 支援 "60m" / "15m"，period 對應 "730d" / "60d"（Yahoo 的保留上限）。
+    給了 `start`（YYYY-MM-DD）就改用明確起日、不送 period —— 2026-09-30 實測：
+    近兩年才上市的代號用 period=730d 會被 Yahoo 自己把起日算到 730 天以前，
+    回「The requested range must be within the last 730 days」（00937B、6933、7734 等 15 檔），
+    改送明確起日就不會經過那段換算。
     分批下載（每批 batch 檔），批間 sleep；任何例外只 log，回已成功的部分。
     """
     codes = [str(c).strip() for c in codes if str(c).strip()]
@@ -117,7 +121,8 @@ def intraday(codes: list[str], markets: dict[str, str], interval: str, period: s
     for n, chunk in enumerate(batches, 1):
         symbols = {symbol_of(c, markets): c for c in chunk}
         try:
-            raw = yf.download(list(symbols), interval=interval, period=period,
+            span = {"start": start} if start else {"period": period}
+            raw = yf.download(list(symbols), interval=interval, **span,
                               group_by="ticker", auto_adjust=False,
                               progress=False, threads=True)
             frames.extend(f for f in _split_by_ticker(raw, symbols) if not f.empty)

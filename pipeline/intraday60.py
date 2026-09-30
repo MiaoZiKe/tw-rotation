@@ -44,6 +44,7 @@ NO_DATA = "no_data"                # 跟 run_backfill.NO_DATA 同一個值（執
 TOP_TRADABLE = 400      # 普通股全市場之外，另外保留成交值前 400 名的可交易證券（含 ETF）
 BACKFILL_PER_RUN = 400  # 回補一輪最多補幾檔（10 批 × 40 檔）。2026-09-30 實測名單 2,043、湖裡已完整 324 → 要補 1,719 檔 ≈ 5 輪
 BATCH = 40              # 一次跟 Yahoo 要幾檔（yfinance 一次下載多檔；沿用 yahoo.intraday 的預設）
+RETRY_START_DAYS = 720  # period=730d 拿不到的代號，改用明確起日（今天往回 720 天）個別重抓一次
 NO_DATA_TRIES = 2       # 同一檔要連幾輪回空（而且那一輪 2330 拿得到）才記成確認無資料
 DAILY_MIN_DAYS = 5      # 每日續補至少跟 Yahoo 要幾天（排程延遲、漏一兩輪也補得回來）
 DAILY_MAX_DAYS = 30     # 每日續補最多要幾天 —— 更久的缺口是回補的事，不在每日管線一次打爆 Yahoo
@@ -249,6 +250,21 @@ def backfill(prog: dict, save=None, per_run: int = BACKFILL_PER_RUN, batch: int 
             log.warning("60 分 K 回補第 %d 批失敗：%s", i // batch + 1, exc)
             df = pd.DataFrame()
         got = set(df["code"].astype(str)) if df is not None and not df.empty else set()
+        miss = [c for c in chunk if c not in got]
+        if got and miss:
+            # 同一批別人拿得到、這幾檔拿不到：多半是近兩年上市、被 Yahoo 把 730d 換算到範圍外（見 yahoo.intraday）。
+            # 改送明確起日重抓一次；整批都空的情況交給下面的限流判斷，不在這裡多打。
+            since = (datetime.now(TPE) - timedelta(days=RETRY_START_DAYS)).date().isoformat()
+            try:
+                df2 = yahoo.intraday(miss, markets, "60m", "730d", batch=len(miss), start=since)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("60 分 K 回補第 %d 批明確起日重抓失敗：%s", i // batch + 1, exc)
+                df2 = pd.DataFrame()
+            if df2 is not None and not df2.empty:
+                log.info("60 分 K 回補第 %d 批：%d 檔改用起日 %s 重抓拿到 %d 檔",
+                         i // batch + 1, len(miss), since, df2["code"].nunique())
+                df = pd.concat([df, df2], ignore_index=True)
+                got = set(df["code"].astype(str))
         if not got and not _canary_ok():
             # 整批回空、連 2330 都拿不到 → 限流或斷線，不是這批沒資料。不記任何 no_data，這一輪收手。
             stopped = f"第 {i // batch + 1} 批整批回空，而且 {CANARY} 也拿不到（多半是 Yahoo 限流或網路），這一輪先停"

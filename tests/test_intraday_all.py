@@ -50,14 +50,16 @@ def lake(tmp_path, monkeypatch):
 class FakeYahoo:
     """記下每一次請求；`have` 裡的代號回 `days` 那幾天的 60 分 K，其餘回空。"""
 
-    def __init__(self, have, days=("2026-09-28", "2026-09-29"), down=False):
+    def __init__(self, have, days=("2026-09-28", "2026-09-29"), down=False, need_start=()):
         self.have, self.days, self.down, self.calls = set(have), days, down, []
+        self.need_start = set(need_start)   # 這些代號只有送明確起日才拿得到（近兩年上市、730d 被換算到範圍外）
 
-    def __call__(self, codes, markets, interval, period, batch=40):
-        self.calls.append({"codes": list(codes), "period": period, "markets": dict(markets)})
+    def __call__(self, codes, markets, interval, period, batch=40, start=None):
+        self.calls.append({"codes": list(codes), "period": period, "markets": dict(markets), "start": start})
         if self.down:
             return pd.DataFrame()
-        parts = [_bars(c, self.days) for c in codes if c in self.have]
+        parts = [_bars(c, self.days) for c in codes
+                 if c in self.have and (start or c not in self.need_start)]
         return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
 
 
@@ -170,6 +172,20 @@ def test_冷門股連兩輪回空才記確認無資料(lake, monkeypatch):
     assert prog["done"]["intraday_60m:9999"] == "no_data"
     assert rec["done"] is True and rec["remaining"] == {"intraday_60m": 0} and rec["no_data"] == 1
     assert intraday60.no_data_codes(prog) == {"9999"}
+
+
+def test_730d被拒的新上市股改用明確起日重抓(lake, monkeypatch):
+    # 2026-09-30 實測：00937B、6933、7734 等 15 檔每輪都回「range must be within the last 730 days」
+    fake = FakeYahoo({"2330", "0050", "6488", "1101"}, need_start={"6488"})
+    monkeypatch.setattr(yahoo, "intraday", fake)
+    prog: dict = {}
+    rec = intraday60.backfill(prog, per_run=10)
+    assert prog["done"]["intraday_60m:6488"] is True, "明確起日重抓拿到了，就算補完"
+    retry = [c for c in fake.calls if c["start"]]
+    assert retry and set(retry[0]["codes"]) == {"6488", "9999"}, "只重抓同一批裡拿不到的那幾檔"
+    assert "intraday_60m:9999" not in prog["done"] and prog[intraday60.TRIES_KEY]["9999"] == 1, \
+        "重抓也拿不到的照舊算回空一次"
+    assert rec["this_run"]["got"] == 4
 
 
 def test_整批回空又探不到2330是限流_收手不記no_data(lake, monkeypatch):
