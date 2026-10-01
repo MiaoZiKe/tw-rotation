@@ -1197,6 +1197,39 @@
       if (p.group === group && p !== except) { try { p.stop(); } catch (e) { /* 忽略 */ } }
     });
   }
+  /* ---------------------------------------------------------------- 即時模式反灰（DECISIONS #283）
+     Andy 2026-10-01：「當點選即時功能，旁邊的日期以及時間拉Bar 都需反灰」。
+     即時模式只畫「最新那一刻」，這時候拉Bar 還能拖，使用者會以為自己在看某一天，
+     其實畫面不是；以前的做法是「拖了就自動退出即時」，等於讓一個不明顯的副作用替他做決定。
+     現在改成：即時開著 → 同一排的日期／拉桿／− ＋ ▶ 全部停用並反灰，只留「即時」那顆可按；
+     關掉即時才恢復。全站只有這一支在做這件事（輪動時鐘、資金去向、live.js 的卡片都叫它），
+     不要每張卡各寫一套。容器被 rangeBar／playBar 重建後，呼叫端的 stamp 會再叫一次把狀態補回去。*/
+  const LIVE_DIM_TIP = '即時模式中，關閉即時才能回看歷史';
+  function liveDim(box, on) {
+    box = typeof box === 'string' ? document.querySelector(box) : box;
+    if (!box) return;
+    on = !!on;
+    if (on) { const p = _players.get(box); if (p) { try { p.stop(); } catch (e) { /* 忽略 */ } } }
+    box.classList.toggle('livedim', on);
+    box.querySelectorAll('input, button, select').forEach(el => {
+      if (el.classList.contains('livebtn')) return;
+      if (on) {
+        if (!el.hasAttribute('data-ldt')) el.setAttribute('data-ldt', el.title || '');
+        if (!el.hasAttribute('data-ldd')) el.setAttribute('data-ldd', el.disabled ? '1' : '0');
+        el.disabled = true; el.setAttribute('aria-disabled', 'true'); el.title = LIVE_DIM_TIP;
+      } else if (el.hasAttribute('data-ldd')) {
+        el.disabled = el.getAttribute('data-ldd') === '1'; el.title = el.getAttribute('data-ldt') || '';
+        el.removeAttribute('aria-disabled'); el.removeAttribute('data-ldd'); el.removeAttribute('data-ldt');
+      }
+    });
+    if (on) box.setAttribute('data-livetip', LIVE_DIM_TIP); else box.removeAttribute('data-livetip');
+  }
+  // live.js 那套卡片（cardOn／tw:livecard）：卡片裡的 .rbar 一律跟著開關走
+  window.addEventListener('tw:livecard', (e) => {
+    const d = (e && e.detail) || {};
+    document.querySelectorAll(`[data-livekey="${d.key}"] .rbar`).forEach(b => liveDim(b, d.on));
+  });
+
   function playBar(box, o) {
     box = typeof box === 'string' ? document.getElementById(box) : box;
     if (!box) return null;
@@ -4197,6 +4230,7 @@
     // 卡片那顆與放大視窗那顆（#rotZoomLiveBtn）是同一個開關，一起亮一起滅
     ['#rotLiveBtn', '#rotZoomLiveBtn'].forEach(sel => { const btn = $(sel);
       if (btn) { btn.classList.toggle('on', RLV.on); btn.setAttribute('aria-pressed', RLV.on ? 'true' : 'false'); } });
+    liveDim('#rotBack', RLV.on); liveDim('#rotZoomBack', RLV.on);
     try { rankSubPaint(); } catch (e) { /* 排行還沒畫 */ }
     const el = $('#rotLive');
     const tag = $('#rotLiveTag');
@@ -9443,6 +9477,7 @@
     const el = $('#sankeyLive');
     const btn = $('#sankeyLiveBtn');
     if (btn) { btn.classList.toggle('on', SKL.on); btn.setAttribute('aria-pressed', SKL.on ? 'true' : 'false'); }
+    liveDim('#sankeyDays', SKL.on);
     if (!el) return;
     if (!SKL.on) { el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
