@@ -1,54 +1,51 @@
 {
   "steps": {
     "mis.index_minute": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 1.0
-    },
-    "taifex.futures_minute": {
       "ok": true,
-      "rows": 833,
-      "seconds": 3.4
+      "rows": 840,
+      "seconds": 1.1
     },
     "index_intraday": {
-      "stored": 833
+      "stored": 840
+    },
+    "taifex.futures_minute": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.1
     },
     "news.collect": {
       "ok": true,
-      "rows": 132,
-      "seconds": 2.8
+      "rows": 129,
+      "seconds": 2.3
     },
     "news": {
-      "stored": 50
+      "stored": 90
     },
     "news.broker_views": {
-      "ok": true,
-      "rows": 2,
+      "ok": false,
+      "rows": 0,
       "seconds": 0.0
-    },
-    "broker_views": {
-      "stored": 0
     },
     "mops.material_news": {
       "ok": true,
       "rows": 157,
-      "seconds": 1.4
+      "seconds": 38.5
     },
     "material_news": {
-      "stored": 157
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1760,
-      "seconds": 1.5
+      "rows": 1761,
+      "seconds": 0.9
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 2
     },
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.9
+      "seconds": 0.5
     },
     "build_payload": {
       "ok": true
@@ -56,18 +53,24 @@
   },
   "errors": [],
   "empty": [
+    "news.broker_views",
     "macro.fred"
   ],
   "phase": "news",
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-09-30",
+  "index_minute_days": {
+    "FUT": [
+      "2026-10-01"
+    ],
+    "OTC": [
+      "2026-10-01"
+    ],
+    "TSE": [
       "2026-10-01"
     ]
   },
-  "started_at": "2026-10-01T00:23:38.159894+00:00",
-  "finished_at": "2026-10-01T00:34:05.371274+00:00",
-  "duration_seconds": 627.2,
+  "started_at": "2026-10-01T06:50:58.464567+00:00",
+  "finished_at": "2026-10-01T07:05:51.893963+00:00",
+  "duration_seconds": 893.4,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 440,
@@ -99,7 +102,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 3976579,
+      "rows": 3977086,
       "latest": "2026-09-30"
     },
     {
@@ -134,7 +137,7 @@
     },
     {
       "table": "news",
-      "rows": 3209,
+      "rows": 3299,
       "latest": "2026-10-01"
     },
     {
@@ -144,7 +147,7 @@
     },
     {
       "table": "intl_daily",
-      "rows": 1866,
+      "rows": 1868,
       "latest": "2026-10-01"
     },
     {
@@ -174,7 +177,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 180352,
+      "rows": 181192,
       "latest": "—"
     },
     {
