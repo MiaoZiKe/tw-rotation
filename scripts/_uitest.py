@@ -18341,7 +18341,7 @@ def t_stock_tabs_1002(pg, base, code):
     j = json.loads((SITE / "data" / "stock" / f"{cd}.json").read_text(encoding="utf-8"))
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#overview", wait_until="networkidle")
-    pg.evaluate("() => { try { ['tw.peLineW','tw.chipWin','tw.periver'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.evaluate("() => { try { ['tw.peLineW','tw.chipWin','tw.periver','tw.hoLines','tw.revView','tw.revWin','tw.instSeg','tw.mgSeg'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
     def goto(w, svg=False):
         pg.set_viewport_size({"width": w, "height": 950})
@@ -18394,7 +18394,11 @@ def t_stock_tabs_1002(pg, base, code):
     p0 = pg.evaluate(PE1002)
     if ok(f"{tag}獲利分頁有河流圖與線寬滑桿（1～5px）", p0["w"] is not None and p0["min"] == "1" and p0["max"] == "5", p0):
         ok(f"{tag}線寬滑桿就在透明度旁邊（同一列、緊接在後）", p0["sameRow"] and p0["nextToOpa"], p0)
-        ok(f"{tag}沒調過 → 收盤線寬＝改前口徑（設定線寬＋0.8，預設 1.8px）、tw.peLineW 沒寫", abs(p0["w"] - 1.8) < 0.05 and p0["ls"] is None, p0)
+        # 「沒調過」的基準＝設定面板的本益比線寬 w（1～4）＋0.8：同一個分頁先跑「個股」段落時，它會把 tw.kcfg 的 w 調成 4（→ 4.8px），
+        # 所以期望值從 localStorage 讀，不寫死 1.8（2026-10-02 跟「個股」接著跑時抓到的跨段落污染）
+        exp_w = pg.evaluate("""() => { try { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); const w = +(((c.st || {}).pe || {}).w) || 1;
+            return Math.max(1, Math.min(4, w)) + 0.8; } catch (e) { return 1.8; } }""")
+        ok(f"{tag}沒調過 → 收盤線寬＝改前口徑（設定面板線寬＋0.8，預設 1.8px）、tw.peLineW 沒寫", abs(p0["w"] - exp_w) < 0.05 and p0["ls"] is None, (exp_w, p0))
         h0 = canvas_hash(pg, "#peChart")
         pg.evaluate("() => { const s = document.getElementById('peLw'); s.value = '4'; s.dispatchEvent(new Event('input', { bubbles: true })); }")
         pg.wait_for_timeout(900)
