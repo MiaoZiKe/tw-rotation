@@ -2964,6 +2964,12 @@
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
     const gt = D.groups_today || [], cands = D.candidates || [], gd = D.groups_detail || {};
     const body = $('#mktBody'); const title = $('#mktTitle');
+    /* ★ 2026-10-02 卡頓（DECISIONS #284）：下面每一條路都會把 #mktBody 整塊換掉（innerHTML）。
+       換之前先把裡面的 ECharts 實例（漲跌分佈 #chgDist）dispose —— 不收的話 ECharts 的實例表一直抓著舊容器、畫布、事件，
+       回收不掉：實測每進一次市場明細漏 1 張；「⚡ 即時」開著時每 5 秒重畫一次，等於每 5 秒漏 1 張。畫面不變。*/
+    if (body && typeof echarts !== 'undefined') body.querySelectorAll('[_echarts_instance_]').forEach(d => {
+      try { const i = echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已經沒了 */ }
+    });
     const PCT = ['漲跌', r => `<span class="${fmt.cls(r.chg_pct)}">${fmt.pct(r.chg_pct, 2)}</span>`];
     const CLOSE = ['收盤', r => fmt.n(r.close)];
     const TO = ['成交值', r => fmt.yi(r.turnover)];
