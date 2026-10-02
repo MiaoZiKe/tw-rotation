@@ -18,6 +18,20 @@
   `_uitest.py --workers 1 --sections 會員與自選五分頁,會員雲端路徑,設定面板,會員權限開關,盤中即時,自選走勢與搜尋對齊`（新段落「會員權限開關」含 1440＋390；反向：鎖頭失效時紅 10 條）＋ `_preview.py`。沒跑 pytest（沒動 .github／pipeline）。
 - 已知限制（寫在 DECISIONS #288）：① **鎖頭只擋畫面**，`site/data/*.json` 是公開檔，懂技術的人照樣讀得到；真正的付費牆要改由 Worker 驗身分後才給資料（設計與 2～3 天工作量在 #288），這次沒做。
   ② `deploy-account-worker.yml` 步驟名稱還寫「19 條」（實際 26 條），沒動 .github。③ 鎖頭裡的 🔒 是 emoji，極少數沒有 emoji 字型的系統會顯示方框（文字照常）。
+## 迷你走勢精確化：小圖＝展開大圖同一份資料，加外框／昨收虛線／面積／終點圓點／提示框（2026-10-02 15:30，台北，UI 專家，分支 `claude/spark-precise`，**未推 main**）
+
+- [x] 根因（DECISIONS #290）：v1 分時一天只有 6 點、小圖 1 天 vs 大圖 5 天、只存 64 階形狀所以每檔都撐滿整格（2330 09-24 是 `i-0__000`）、60 分 K 終點不含收盤集合競價
+- [x] `pipeline/compute/sparks.py` v2：5 日×（開盤＋5 根收盤）＝30 點／沒分 K 用 60 日收盤；帶真實價位（最低、最高、昨收、起、訖）；最後一點換正式收盤；基準＝昨收
+- [x] `site/app.js`：`sparkSVG(code, {w,h})` 重寫＋新 `sparkData`／`trendSeries`／`trendRange`／`trendText`／`pxFmt`（掛在 `App`）、全站提示框 `.spktip`、`sparkUpgrade` 吃 `data-w/h`
+- [x] `site/watchpage.js`：`sparkCell` 用實際像素（桌機 80×26、手機 46×20）、`drawExp` 走勢模式改用 `App.trendSeries`（昨收虛線、日分隔、X 軸只標日期、小註寫期間／起訖／漲跌）
+- [x] `site/index.html`：`.sugg`／`.mbwres` 各自一套的 spk 樣式收成共用 `svg.spk`（外框、虛線、面積、圓點）＋ `.spktip`
+- [x] `tests/test_sparks.py` 改寫成 v2 口徑（6 條）
+- **這批驗了**：`pytest tests/ -q` 905 passed／1 xfailed；`_preview.py` 全綠；`_uitest.py --workers 1 --sections 自選走勢與搜尋對齊,會員與自選五分頁,搜尋近期熱門Logo,市場明細,分時預設與搜尋走勢,手機總覽指數觀察清單`
+  → 五段 0 問題；「分時預設與搜尋走勢」1 紅＝「E 找得到一檔 meta.m60＝ok」，跟 10-02 前一批同一條本機資料過舊（stock/*.json 沒有 meta.m60），D 段（搜尋小走勢）全綠。
+  新斷言反向驗證：拿掉外框 → 紅；前端期間改 4 天 → 「同一份資料」三寬全紅。
+- 本機驗收資料：worktree 的 `site/data/` 是逐檔 symlink 到主 checkout，只有 `sparks.json`（v2）與 `m60/`（2330、2454、1303、2317、2603、3008、2308、2382，用 `_m60_payload` 截到 09-24）是自己的，
+  跟本機 stock/*.json（09-24）同一天 —— 不然小圖與大圖的最後一天會不一樣，驗不出「同一份資料」。
+- 已知限制：盤中小圖與大圖都停在上一個交易日（湖每天盤後才更新）；手機觸控不顯示提示框（點小圖是展開／進個股頁）；sparks.json 60KB → 226KB（gzip 90KB）。
 
 ## 搜尋下拉走勢圖對齊＋自選頁滿寬／每列走勢圖／點了原地展開（2026-10-01 12:00，台北，UI 專家，分支 `claude/watch-spark`，**未推 main**）
 
