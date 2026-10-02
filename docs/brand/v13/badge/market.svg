@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96"><title>大盤儀表</title>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef1f6"/><stop offset=".55" stop-color="#e3e8f2"/><stop offset="1" stop-color="#f6efe6"/></linearGradient></defs>
+<rect x="3" y="3" width="90" height="90" rx="24" fill="url(#g)" stroke="#ffffff" stroke-width="4"/>
+<rect x="11" y="11" width="74" height="74" rx="17" fill="#ffffff" fill-opacity=".2" stroke="#ffffff" stroke-opacity=".7" stroke-width="1.5"/>
+<g transform="translate(19.2 19.2) scale(2.4)" fill="none" stroke="#4552a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="3.50,14.00 3.66,12.34 4.15,10.75 4.93,9.28 5.99,7.99 7.28,6.93 8.75,6.15 10.34,5.66 12.00,5.50 13.66,5.66 15.25,6.15 16.72,6.93 18.01,7.99 19.07,9.28 19.85,10.75 20.34,12.34 20.50,14.00"/>
+<path d="M4.01 11.09L5.99 11.81"/>
+<path d="M7.75 6.64L8.80 8.46"/>
+<path d="M12.00 5.50L12.00 7.60"/>
+<path d="M16.25 6.64L15.20 8.46"/>
+<path d="M19.99 11.09L18.01 11.81"/>
+<path d="M12 14L16.6 8.6"/>
+<circle cx="12" cy="14" r="2.2" fill="#f08a4b" stroke="none"/>
+<path d="M5 19.5h14"/>
+</g></svg>

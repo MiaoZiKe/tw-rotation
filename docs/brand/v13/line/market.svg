@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><title>大盤儀表</title>
+<polyline points="3.50,14.00 3.66,12.34 4.15,10.75 4.93,9.28 5.99,7.99 7.28,6.93 8.75,6.15 10.34,5.66 12.00,5.50 13.66,5.66 15.25,6.15 16.72,6.93 18.01,7.99 19.07,9.28 19.85,10.75 20.34,12.34 20.50,14.00"/>
+<path d="M4.01 11.09L5.99 11.81"/>
+<path d="M7.75 6.64L8.80 8.46"/>
+<path d="M12.00 5.50L12.00 7.60"/>
+<path d="M16.25 6.64L15.20 8.46"/>
+<path d="M19.99 11.09L18.01 11.81"/>
+<path d="M12 14L16.6 8.6"/>
+<circle cx="12" cy="14" r="2.2" fill="currentColor" stroke="none"/>
+<path d="M5 19.5h14"/>
+</svg>
