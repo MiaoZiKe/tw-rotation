@@ -9611,13 +9611,26 @@ def t_draw_vp_1002(pg, b, base, code):
     X, Y, r = _dt_rect(pg)
     v4 = pg.evaluate(VP, s["id"])
     ok("[分佈] 重新整理後還在、檔數與總量一樣", v4 and v4["bars"] == 48 and abs(v4["sum"] - v3["sum"]) <= v3["sum"] * 1e-6, v4)
-    # 1 時、4 時也畫得出來（有 60 分 K 的股票才驗）
+    # 1 時、4 時也畫得出來（有 60 分 K 的股票才驗）。
+    # 本機 payload 若是 #279 之前建的，stock JSON 沒有 meta.m60＝ok，前端就不會去讀 data/m60/<代號>.json（線上會重算、不會這樣）。
+    # 這裡只在驗收裡把那一個旗標補上（m60 檔本身在才補），讓 1時／4時 用真的 60 分 K 驗；線上行為不受影響。
+    def _m60_ok(route):
+        try:
+            resp = route.fetch(); j = resp.json()
+            if (j.get("meta") or {}).get("m60") != "ok" and (SITE / "data" / "m60" / f"{code}.json").exists():
+                j.setdefault("meta", {})["m60"] = "ok"
+            route.fulfill(response=resp, json=j)
+        except Exception:  # noqa: BLE001
+            route.continue_()
+    pg.route(f"**/data/stock/{code}.json*", _m60_ok)   # A.load 會帶 ?v=，萬用字元要吃到查詢字串
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
     for tf in ("60m", "240m"):
-        has = pg.evaluate(f"() => {{ const b = document.querySelector('#tfSeg button[data-tf=\"{tf}\"]'); return !!b && !b.disabled && !b.classList.contains('na') && !b.classList.contains('off'); }}")
+        has = pg.evaluate(f"() => {{ const b = document.querySelector('#tfSeg button[data-tf=\"{tf}\"]'); return !!b && !b.disabled; }}")
         if not has:
             notes.append(f"[分佈] {code} 沒有 {tf} 週期鈕可按，跳過"); continue
         click(pg, f'#tfSeg button[data-tf="{tf}"]', 1200)
-        if pg.evaluate("() => !DrawTools.active || !DrawTools.active.kc.data || DrawTools.active.kc.data.length < 20"):
+        # 週期鈕劃掉（off）也照按：本機 payload 可能比較舊、沒標 m60，但 m60 檔在 —— 按下去 K 棒夠 20 根就驗，不夠才跳過
+        if pg.evaluate(f"() => window.Industry._dbg().tf !== '{tf}' || !DrawTools.active || !DrawTools.active.kc.data || DrawTools.active.kc.data.length < 20"):
             notes.append(f"[分佈] {code} 的 {tf} 本機沒有足夠分 K，跳過"); continue
         X, Y, r = _dt_rect(pg)
         _dt_tool(pg, "vp")
@@ -9625,6 +9638,7 @@ def t_draw_vp_1002(pg, b, base, code):
         sv = pg.evaluate(_DT_LAST)
         vv = pg.evaluate(VP, sv["id"]) if sv else None
         ok(f"[分佈] {tf} 週期也畫得出來、加總＝範圍總量", sv and sv["kind"] == "vp" and vv and vv["bars"] == vv["n"] and abs(vv["sum"] - vv["tot"]) <= max(1, vv["tot"]) * 0.01, vv)
+    pg.unroute(f"**/data/stock/{code}.json*")
     click(pg, '#tfSeg button[data-tf="1d"]', 1200)
     X, Y, r = _dt_rect(pg)
     # 橡皮擦刪得掉
