@@ -231,6 +231,7 @@
         m.hidden = true;
         if (a.dataset.a === 'watch') location.hash = '#watch';   // 2026-09-28：自選改成整頁（#watch）
         if (a.dataset.a === 'admin') location.hash = '#admin';
+        if (a.dataset.a === 'perm') location.hash = '#admin/perm';      // 2026-10-02 會員功能權限（DECISIONS #288）
         if (a.dataset.a === 'privacy') location.hash = '#privacy';
         if (a.dataset.a === 'delete') openDlg('delete');
         if (a.dataset.a === 'logout') logout();
@@ -239,7 +240,7 @@
     const u = S.user || {};
     m.innerHTML = `<div class="mh"><b>${esc(u.name || '')}</b><small>${esc(u.email || '')}</small></div>`
       + `<button type="button" role="menuitem" data-a="watch">★ 自選清單</button>`
-      + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理頁：使用統計與線上名單</button>` : '')
+      + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理頁：使用統計與線上名單</button><button type="button" role="menuitem" data-a="perm">管理頁：會員功能權限</button>` : '')
       + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
       + `<button type="button" role="menuitem" data-a="delete" class="danger">刪除我的資料…</button>`
       + `<button type="button" role="menuitem" data-a="logout">登出</button>`;
@@ -263,6 +264,7 @@
         <li><b>我們會收到並保存</b>：你的 Google 顯示名稱、email、大頭貼網址。Google 帳號識別碼只存加密雜湊，不存原值。<b>拿不到你的密碼</b>，也不會讀取 Gmail、雲端硬碟或聯絡人（只要求 openid、email、profile 三項基本權限）。</li>
         <li><b>用途</b>：辨識你是誰、讓自選清單在不同裝置同步；網站管理者看得到會員名單，以及目前線上的登入者名稱與所在頁面。</li>
         <li><b>自選清單</b>只存股票代號與清單名稱，<b>不存張數、成本、損益</b>。</li>
+        <li><b>功能權限</b>：網站管理者可以替你的 email 設定方案與可用的功能（例如付費方案）；刪除帳號時一起刪除。</li>
         <li><b>使用統計（所有訪客，不論是否登入）</b>：每天每一頁、每一項功能被使用的<b>次數</b>，不含身分、不存 IP，保留 13 個月。瀏覽器開了「請勿追蹤」就完全不送。</li>
         <li><b>線上狀態</b>：關掉分頁，或 3 分鐘沒有訊號，就刪除。</li>
         <li><b>保存期限</b>：會員資料保存到你刪除為止；連續 24 個月沒有使用會自動刪除。</li>
@@ -288,7 +290,7 @@
     d.dataset.kind = kind;
     d.innerHTML = '<div class="box">' + (kind === 'notice' ? noticeHTML()
       : kind === 'wait' ? `<h3>等待 Google 登入完成…</h3><p>請在跳出來的視窗選擇帳號。完成後這裡會自動關閉。</p><p class="muted">沒看到視窗？可能被瀏覽器擋了跳出式視窗，請允許後再按一次「登入」。</p><div class="row2"><button type="button" data-close>取消</button></div>`
-      : kind === 'delete' ? `<h3>刪除我的資料</h3><p>會立即刪除：你的會員資料（名稱、email、大頭貼網址）、雲端上的自選清單、線上狀態。<b>無法復原。</b></p><p class="muted">使用統計只記「每天每一項的次數」，本來就沒有記是誰，所以沒有可以刪的個人部分。這台裝置上的本機清單不受影響。</p><div class="row2"><button type="button" data-close>取消</button><button type="button" class="danger" id="acctDelYes">確定刪除</button></div>`
+      : kind === 'delete' ? `<h3>刪除我的資料</h3><p>會立即刪除：你的會員資料（名稱、email、大頭貼網址）、雲端上的自選清單、線上狀態、管理者替你設定的功能權限。<b>無法復原。</b></p><p class="muted">使用統計只記「每天每一項的次數」，本來就沒有記是誰，所以沒有可以刪的個人部分。這台裝置上的本機清單不受影響。</p><div class="row2"><button type="button" data-close>取消</button><button type="button" class="danger" id="acctDelYes">確定刪除</button></div>`
       : '') + '</div>';
     d.hidden = false;
     const f = d.querySelector('.pri,.danger,button'); if (f) try { f.focus(); } catch (e) { /* 略 */ }

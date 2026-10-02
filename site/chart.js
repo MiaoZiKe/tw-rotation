@@ -213,72 +213,12 @@
       } }); } }) }]; }
   }
 
-  /* ---------------------------------------------------------------- 繪圖層（參考 TradingView）
-     支援：趨勢線、射線、水平線、矩形、文字。座標存 {t: 時間, p: 價格}，
-     所以縮放平移都會跟著跑，不是畫在畫布上的死線。
-     每檔每週期各存一份在 localStorage。 */
-  const DRAW_TOOLS = [
-    { k: 'cursor', label: '選取', icon: 'M4,2 L4,15 L7.5,11.6 L10,16 L12,15 L9.5,10.7 L14,10.5 Z', pts: 0 },
-    { k: 'trend', label: '趨勢線', icon: 'M2,15 L16,3', pts: 2 },
-    { k: 'ray', label: '射線', icon: 'M2,15 L16,3 M11,3 L16,3 L16,8', pts: 2 },
-    { k: 'hline', label: '水平線', icon: 'M1,9 L17,9', pts: 1 },
-    { k: 'rect', label: '矩形', icon: 'M3,4 H15 V14 H3 Z', pts: 2 },
-    { k: 'text', label: '文字', icon: 'M3,4 H15 M9,4 V15', pts: 1 },
-    { k: 'erase', label: '刪除', icon: 'M4,5 H15 M6,5 V15 H13 V5 M8,8 V13 M11,8 V13', pts: 0 },
-  ];
-  // 最後一個原本是 #e8eeff（近白），淺色主題畫在白底上等於沒畫；改成中性灰兩邊都看得見
-  const DRAW_COLORS = ['#3ee0ff', '#ffd166', '#ff4d6d', '#2ee59d', '#8b7bff', '#8ea0c4'];
-
-  class DrawPrimitive {
-    constructor(mgr) { this.m = mgr; }
-    attached(p) { this._series = p.series; this._chart = p.chart; this._req = p.requestUpdate; }
-    detached() { this._series = null; }
-    update() { if (this._req) this._req(); }
-    updateAllViews() {}
-    paneViews() {
-      const self = this;
-      return [{ zOrder: () => 'top', renderer: () => ({ draw(target) { target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
-        if (!self._series || !self._chart) return;
-        const ts = self._chart.timeScale();
-        const X = (t) => { const c = ts.timeToCoordinate(t); return c === null ? null : c; };
-        const Y = (p) => self._series.priceToCoordinate(p);
-        const all = self.m.shapes.concat(self.m.draft ? [self.m.draft] : []);
-        for (const s of all) {
-          ctx.save();
-          ctx.strokeStyle = s.color || '#3ee0ff'; ctx.fillStyle = s.color || '#3ee0ff';
-          ctx.lineWidth = s.w || 1.5; ctx.setLineDash(s.dash ? [5, 4] : []);
-          const a = s.a, b = s.b;
-          const ax = a ? X(a.t) : null, ay = a ? Y(a.p) : null;
-          const bx = b ? X(b.t) : null, by = b ? Y(b.p) : null;
-          if (s.kind === 'hline' && ay !== null) {
-            ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(mediaSize.width, ay); ctx.stroke();
-            ctx.font = '600 10.5px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace'; ctx.textAlign = 'left';
-            const lab = String(Math.round(a.p * 100) / 100);
-            ctx.fillStyle = 'rgba(10,16,32,.85)'; ctx.fillRect(3, ay - 12, ctx.measureText(lab).width + 8, 13);
-            ctx.fillStyle = s.color; ctx.fillText(lab, 7, ay - 2);
-          } else if (s.kind === 'text' && ax !== null && ay !== null) {
-            ctx.font = '600 12px "Noto Sans TC", sans-serif'; ctx.textAlign = 'left';
-            const t = s.text || '文字';
-            const w = ctx.measureText(t).width;
-            ctx.fillStyle = 'rgba(10,16,32,.8)'; ctx.fillRect(ax - 3, ay - 13, w + 8, 17);
-            ctx.fillStyle = s.color; ctx.fillText(t, ax + 1, ay);
-          } else if (ax !== null && ay !== null && bx !== null && by !== null) {
-            if (s.kind === 'rect') {
-              // fill=true 實心（濃一點看得出範圍）、false 只有框線（不遮住 K 棒）
-              if (s.fill) { ctx.globalAlpha = .28; ctx.fillRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay)); }
-              ctx.globalAlpha = 1; ctx.strokeRect(Math.min(ax, bx) + .5, Math.min(ay, by) + .5, Math.abs(bx - ax), Math.abs(by - ay));
-            } else {
-              let ex = bx, ey = by;
-              if (s.kind === 'ray') { const dx = bx - ax, dy = by - ay; const k = dx === 0 ? 9999 : (mediaSize.width - ax) / dx; if (k > 0) { ex = ax + dx * k; ey = ay + dy * k; } }
-              ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ex, ey); ctx.stroke();
-              if (s === self.m.hot) { ctx.fillStyle = s.color; [[ax, ay], [bx, by]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill(); }); }
-            }
-          }
-          ctx.restore();
-        }
-      }); } }) }];
-    }
-  }
+  /* ---------------------------------------------------------------- 繪圖層
+     ★ 2026-10-02（DECISIONS #289）整套搬到 site/drawtools.js（DrawTools.Drawings）：
+     文字框、橡皮擦、屬性列、選取／拖曳、測量、成交量分佈都住在那裡，這裡只留轉接。
+     DRAW_TOOLS／DRAW_COLORS 保留成別名，舊的呼叫端（KUtil.DRAW_*）不用改。 */
+  const DRAW_TOOLS = (global.DrawTools && global.DrawTools.TOOLS) || [];
+  const DRAW_COLORS = (global.DrawTools && global.DrawTools.COLORS) || ['#3ee0ff'];
 
   /* 背離連線。把兩個轉折點用虛線連起來並標字，主圖與 MACD 面板各掛一個。
      值是用 index 存的（不是時間），因為 MACD 面板的 series 與主圖共用同一組 index。 */
@@ -331,93 +271,6 @@
         ctx.restore();
       }); } }) }];
     }
-  }
-
-  class Drawings {
-    constructor(kc, key) {
-      this.kc = kc; this.key = key; this.shapes = []; this.draft = null; this.tool = 'cursor';
-      this.color = DRAW_COLORS[0]; this.w = 1.5; this.hot = null;
-      this.fill = false;               // 方框要不要填滿（Andy 2026-09-15）
-      this.prim = new DrawPrimitive(this);
-      kc.candle.attachPrimitive(this.prim);
-      this.load();
-      this._bind();
-    }
-    setTool(t) { this.tool = t; this.kc.el.style.cursor = t === 'cursor' ? '' : (t === 'erase' ? 'not-allowed' : 'crosshair'); this._lock(t !== 'cursor'); }
-    setColor(c) { this.color = c; if (this.hot) { this.hot.color = c; this.save(); this.prim.update(); } }
-    setWidth(w) { this.w = w; if (this.hot) { this.hot.w = w; this.save(); this.prim.update(); } }
-    setFill(on) { this.fill = !!on; if (this.hot) { this.hot.fill = this.fill; this.save(); this.prim.update(); } }
-    _lock(on) { this.kc.chart.applyOptions({ handleScroll: { pressedMouseMove: !on, horzTouchDrag: !on }, handleScale: { axisPressedMouseMove: { time: !on, price: !on } } }); }
-    _at(e) {
-      const r = this.kc.el.getBoundingClientRect();
-      const x = e.clientX - r.left, y = e.clientY - r.top;
-      const t = this.kc.chart.timeScale().coordinateToTime(x);
-      const p = this.kc.candle.coordinateToPrice(y);
-      return (t === null || p === null) ? null : { t, p, x, y };
-    }
-    _bind() {
-      const el = this.kc.el;
-      el.addEventListener('pointerdown', (e) => {
-        if (this.tool === 'cursor') return;
-        const a = this._at(e); if (!a) return;
-        e.preventDefault(); e.stopPropagation();
-        if (this.tool === 'erase') { this._eraseAt(a); return; }
-        const def = DRAW_TOOLS.find(d => d.k === this.tool);
-        if (def.pts === 1) {
-          const s = { kind: this.tool, a: { t: a.t, p: a.p }, color: this.color, w: this.w };
-          if (this.tool === 'text') { const v = this.kc.opts.onText && this.kc.opts.onText(); s.text = v || '文字'; }
-          this.shapes.push(s); this.save(); this.prim.update();
-          if (this.kc.opts.onDrawEnd) this.kc.opts.onDrawEnd();
-          return;
-        }
-        this.draft = { kind: this.tool, a: { t: a.t, p: a.p }, b: { t: a.t, p: a.p }, color: this.color, w: this.w, fill: this.fill };
-        const start = a;
-        /* Andy 2026-09-15：「當拉線時，按著Shift 會主動變成水平線」。
-           一併支援垂直：看滑鼠往哪個方向拉得比較多，橫向就鎖成水平（價格不變），
-           縱向就鎖成垂直（時間不變）。TradingView 也是這個手感。 */
-        const move = (ev) => {
-          const b = this._at(ev); if (!b || !this.draft) return;
-          let t = b.t, p = b.p;
-          if (ev.shiftKey) {
-            if (Math.abs(b.x - start.x) >= Math.abs(b.y - start.y)) p = start.p;   // 水平
-            else t = start.t;                                                       // 垂直
-          }
-          this.draft.b = { t, p }; this.draft.shift = !!ev.shiftKey; this.prim.update();
-        };
-        const up = () => {
-          el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up);
-          if (this.draft) { this.shapes.push(this.draft); this.draft = null; this.save(); this.prim.update(); }
-          if (this.kc.opts.onDrawEnd) this.kc.opts.onDrawEnd();
-        };
-        el.addEventListener('pointermove', move); el.addEventListener('pointerup', up);
-      }, true);
-    }
-    _eraseAt(a) {
-      const ts = this.kc.chart.timeScale();
-      const X = (t) => ts.timeToCoordinate(t), Y = (p) => this.kc.candle.priceToCoordinate(p);
-      const near = (s) => {
-        const ax = X(s.a.t), ay = Y(s.a.p);
-        if (s.kind === 'hline') return ay !== null && Math.abs(ay - a.y) < 7;
-        if (s.kind === 'text') return ax !== null && ay !== null && Math.abs(ax - a.x) < 60 && Math.abs(ay - a.y) < 12;
-        const bx = X(s.b.t), by = Y(s.b.p);
-        if (ax === null || bx === null || ay === null || by === null) return false;
-        if (s.kind === 'rect') {
-          const inX = a.x >= Math.min(ax, bx) - 5 && a.x <= Math.max(ax, bx) + 5;
-          const inY = a.y >= Math.min(ay, by) - 5 && a.y <= Math.max(ay, by) + 5;
-          return inX && inY;
-        }
-        const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-        const u = L2 ? Math.max(0, Math.min(1, ((a.x - ax) * dx + (a.y - ay) * dy) / L2)) : 0;
-        return Math.hypot(a.x - (ax + u * dx), a.y - (ay + u * dy)) < 7;
-      };
-      const i = this.shapes.findIndex(near);
-      if (i >= 0) { this.shapes.splice(i, 1); this.save(); this.prim.update(); }
-    }
-    undo() { this.shapes.pop(); this.save(); this.prim.update(); }
-    clear() { this.shapes = []; this.save(); this.prim.update(); }
-    save() { try { localStorage.setItem(this.key, JSON.stringify(this.shapes)); } catch (e) { /* 私密模式等情況忽略 */ } }
-    load() { try { const s = localStorage.getItem(this.key); this.shapes = s ? JSON.parse(s) : []; } catch (e) { this.shapes = []; } }
-    destroy() { try { this.kc.candle.detachPrimitive(this.prim); } catch (e) { /* 圖已銷毀 */ } }
   }
 
   // ---------------------------------------------------------------- ③ 歷史無限回溯
@@ -1344,7 +1197,8 @@
     }
     // 重設整個介面：價格軸自動、時間軸回到最近 n 根（TradingView 右下角那顆的行為）
     resetView(n) { this.candle.priceScale().setAutoScale(true); this.chart.timeScale().resetTimeScale(); this.fitLast(n || 160); }
-    enableDrawing(key) { if (this.draw) this.draw.destroy(); this.draw = new Drawings(this, key); return this.draw; }
+    // 手繪工具在 drawtools.js（DECISIONS #289）；舊的那一組會沿用同一個 localStorage key，所以畫過的線不會不見
+    enableDrawing(key) { if (this.draw) this.draw.destroy(); this.draw = global.DrawTools ? new global.DrawTools.Drawings(this, key) : null; return this.draw; }
     destroy() {
       this._dead = true;
       // 這兩個掛在容器上，容器不會跟著圖表一起消失 —— 一定要自己拿掉

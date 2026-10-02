@@ -431,6 +431,8 @@ def main() -> int:
             problems.append(f"繪圖沒存下來：{state['drawings']}")
         pg.screenshot(path=str(out / "v3_kchart_draw.png"), full_page=False)
         pg.evaluate("document.querySelector('#drawBar .dtool[data-a=clear]').click()"); pg.wait_for_timeout(250)
+        # 2026-10-02（DECISIONS #289）：「全部清除」改成二次確認，要再按一次「全部清除」
+        pg.evaluate("() => { const b = document.querySelector('#drawBar .dt-confirm [data-ok]'); if (b) b.click(); }"); pg.wait_for_timeout(250)
         left = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
             return k.reduce((n,x)=>n+JSON.parse(localStorage.getItem(x)||'[]').length, 0); }""")
         if left != 0:

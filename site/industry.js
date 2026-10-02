@@ -4398,7 +4398,9 @@
       if (c.paneH) { delete c.paneH; saveCfg(c); state.cfg = c; if (kchart) kchart.applyIndicators(mainCfg(c)); }
       if (kchart) kchart.resetView(160);
     };
-    const newMain = (box, tf) => new KChart(box, { tf, onText: () => window.prompt('文字內容', ''), fit: mainFit, fitId: 'fitBtn' });
+    /* ★ 2026-10-02（DECISIONS #289）：文字工具不再跳 window.prompt（「miaozike.github.io 顯示：文字內容」），
+       改成在點下去的位置直接出現可編輯的文字框（drawtools.js），所以這裡拿掉 onText。*/
+    const newMain = (box, tf) => new KChart(box, { tf, fit: mainFit, fitId: 'fitBtn' });
     const build = () => {
       if (kchart) { kchart.destroy(); kchart = null; } miniCharts.forEach(c => c.destroy()); miniCharts = [];
       if (tchart) { tchart.destroy(); tchart = null; }
@@ -4679,7 +4681,8 @@
   function enableDraw(pg) {
     if (!kchart) return;
     const d = kchart.enableDrawing(`tw.draw.${pg.meta.code}.${state.tf}`);
-    d.setTool(drawTool); d.setColor(drawColor); d.setWidth(drawW); d.setFill(drawFill);
+    // 顏色／線寬／填滿這些預設樣式由 DrawTools 自己記（tw.draw.style），這裡只要把目前選的工具交給新的那一組
+    if (d) d.setTool(drawTool);
   }
 
   /* 跟著游標走的資訊框（Andy 2026-09-15：「當游標移動過去時 需要在旁邊顯示開高收低 日期 時間等基本資訊」，
@@ -4720,54 +4723,18 @@
   }
 
   // ---------------------------------------------------------------- 繪圖工具列（TradingView 式）
-  // Andy 2026-09-15：「劃線需要有5種不同粗細可選，框格可選擇填滿或透明」
-  const DRAW_WIDTHS = [1, 1.5, 2.5, 4, 6];
-  const DW_KEY = 'tw.draw.style';
-  let drawTool = 'cursor', drawColor = KUtil.DRAW_COLORS[0], drawW = 1.5, drawFill = false;
-  try {
-    const st = JSON.parse(localStorage.getItem(DW_KEY) || '{}');
-    if (DRAW_WIDTHS.indexOf(+st.w) >= 0) drawW = +st.w;
-    if (KUtil.DRAW_COLORS.indexOf(st.c) >= 0) drawColor = st.c;
-    drawFill = !!st.fill;
-  } catch (e) { /* 忽略 */ }
-  const saveDrawStyle = () => {
-    try { localStorage.setItem(DW_KEY, JSON.stringify({ w: drawW, c: drawColor, fill: drawFill })); }
-    catch (e) { /* 忽略 */ }
-  };
-
+  /* ★ 2026-10-02（DECISIONS #289）：工具列與所有繪圖互動搬到 site/drawtools.js。
+     這裡只剩掛載：工具列上留工具本身，顏色／線寬／方框填滿與透明度搬進圖上的屬性列
+     （Andy：「方框在上面，『填滿』卻是工具列最下面另一顆獨立按鈕」）。
+     drawTool／drawW／drawFill 留著是因為 _dbg() 與舊驗收還讀它們，由 DrawTools 回呼同步。 */
+  let drawTool = 'cursor', drawW = DrawTools.STYLE.w, drawFill = DrawTools.STYLE.fill;
   function drawBar() {
     const bar = $('#drawBar'); if (!bar) return;
-    bar.innerHTML = KUtil.DRAW_TOOLS.map(t =>
-      `<button class="dtool ${t.k === drawTool ? 'on' : ''}" data-t="${t.k}" title="${t.label}${t.pts === 2 ? '（拉的時候按住 Shift ＝ 鎖水平／垂直）' : ''}">
-         <svg viewBox="0 0 18 18"><path d="${t.icon}"/></svg></button>`).join('')
-      + `<div class="dsep"></div>`
-      + KUtil.DRAW_COLORS.map(c => `<button class="dcol ${c === drawColor ? 'on' : ''}" data-c="${c}" style="background:${c}" title="顏色"></button>`).join('')
-      + `<div class="dsep"></div>`
-      // 五段粗細：用線條本身的厚度表示，一眼看得出差別
-      + DRAW_WIDTHS.map(w => `<button class="dw ${w === drawW ? 'on' : ''}" data-w="${w}" title="線寬 ${w}px">
-           <span style="height:${w}px"></span></button>`).join('')
-      + `<div class="dsep"></div>
-         <button class="dtool dfill ${drawFill ? 'on' : ''}" data-a="fill" title="方框：${drawFill ? '填滿（點一下改成透明）' : '透明（點一下改成填滿）'}">
-           <svg viewBox="0 0 18 18"><rect x="3" y="4" width="12" height="10" ${drawFill ? 'fill="currentColor"' : ''}/></svg></button>
-         <button class="dtool" data-a="undo" title="復原上一筆"><svg viewBox="0 0 18 18"><path d="M7,4 L3,8 L7,12 M3,8 H11 a4,4 0 0 1 0,8 H8"/></svg></button>
-         <button class="dtool" data-a="clear" title="清空這檔這個週期的所有線"><svg viewBox="0 0 18 18"><path d="M3,3 L15,15 M15,3 L3,15"/></svg></button>`;
-    $$('.dtool[data-t]', bar).forEach(b => b.onclick = () => {
-      drawTool = b.dataset.t; drawBar(); if (kchart && kchart.draw) kchart.draw.setTool(drawTool);
-    });
-    $$('.dcol', bar).forEach(b => b.onclick = () => {
-      drawColor = b.dataset.c; saveDrawStyle(); drawBar(); if (kchart && kchart.draw) kchart.draw.setColor(drawColor);
-    });
-    $$('.dw', bar).forEach(b => b.onclick = () => {
-      drawW = +b.dataset.w; saveDrawStyle(); drawBar(); if (kchart && kchart.draw) kchart.draw.setWidth(drawW);
-    });
-    $$('.dtool[data-a]', bar).forEach(b => b.onclick = () => {
-      if (b.dataset.a === 'fill') {
-        drawFill = !drawFill; saveDrawStyle(); drawBar();
-        if (kchart && kchart.draw) kchart.draw.setFill(drawFill);
-        return;
-      }
-      if (!kchart || !kchart.draw) return;
-      if (b.dataset.a === 'undo') kchart.draw.undo(); else kchart.draw.clear();
+    DrawTools.mountBar(bar, {
+      tool: drawTool,
+      get: () => (kchart && kchart.draw) || null,
+      onTool: (t) => { drawTool = t; },
+      onStyle: (st) => { drawW = st.w; drawFill = st.fill; },
     });
   }
   /* 四週期同看。
@@ -4854,10 +4821,13 @@
      支撐／壓力區、各週期多空都還在，搬到那張卡的技術面裡（只到週線，月線不列）。*/
 
   // ---------------------------------------------------------------- 個股分頁
-  /* 分頁順序（2026-09-28）：總覽、指標、營收、獲利、除權息、法人、資券、大戶／散戶、基本資料、公告／新聞。
+  /* 分頁順序（2026-10-02 Andy，DECISIONS #294）：總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞。
+     改前（09-28）「基本資料」排在倒數第二 —— 想先知道「這家公司做什麼」的人要越過七個財報籌碼分頁才找得到，
+     所以搬到「總覽」旁邊。手機（mobile3.js SK_TABS）同一個順序。
+     會員權限（features.js 的 stab）是用 data-t 對分頁鈕，不看位置 —— 換順序不影響 perm.js 的攔截。
      舊的「籌碼」分頁已拆掉；state.tab 若還停在 'chips'（同一個分頁開著時換版）就落到「法人」。*/
-  const STOCK_TABS = [['overview', '總覽'], ['tags', '指標'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'],
-    ['inst', '法人'], ['margin', '資券'], ['holders', '大戶／散戶'], ['basics', '基本資料'], ['news', '公告 / 新聞']];
+  const STOCK_TABS = [['overview', '總覽'], ['basics', '基本資料'], ['tags', '指標'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'],
+    ['inst', '法人'], ['margin', '資券'], ['holders', '大戶／散戶'], ['news', '公告 / 新聞']];
   function renderTab(pg, tab) {
     const el = $('#stockTab');
     const T = { overview: tabOverview, tags: tabTags, revenue: tabRevenue, profit: tabProfit, dividend: tabDividend,
@@ -4881,7 +4851,6 @@
      盒子要放在卡片裡（howPop 關的時候會把它搬回原位，驗收照 #how-<key> 找得到）。*/
   const hq = (key, title) => `<button class="howbtn pop" data-how="${key}" type="button" aria-label="${title}怎麼看">?</button>`;
   const hbox = (key, items, fine) => `<div class="howtxt" id="how-${key}" hidden>${A.howHTML('', items, fine)}</div>`;
-  const statK = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
   /* ★ 2026-09-29 設計 v4 第二批 2B（01 §4「圖例一律在繪圖區外」，改前→改後量測在 docs/design_v4/04_第二批2B.md）：
      個股頁的 ECharts 圖例（畫在圖表容器頂端、佔 30px 一行）改成卡片標題列裡的 HTML 圖例（.chlegend，
      跟資金流向頁 #instLegend 同一套樣式）。點 HTML 圖例送的是 ECharts 同一個 legendSelect／legendUnSelect；
@@ -4990,13 +4959,39 @@
   const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); delete extLegRec[id]; };
   function fundCard(pg) {
     const f = pg.fundamental || {}, dv = pg.dividends || {};
-    const k = statK;
     /* ★ 2026-09-28（Andy：「總覽 基本面 也需要新增 "?" 說明」）：逐欄一句話（≤30 字），口徑照管線：
        本益比＝收盤 ÷ 近四季 EPS；同業分位＝族群內估值比它低的比例（fundamental._pct_within）；ROE＝近四季稅後淨利 ÷ 母公司權益；
        營運動能＝月營收 YoY、連續成長月數、創新高等加權的 0～100 分（fundamental.momentum_score）。*/
-    const help = hbox('skfund', ['近四季 EPS＝最近四季每股盈餘相加', '本益比＝股價 ÷ 近四季 EPS，越低越便宜', '同業分位＝同族群裡估值比它低的比例', 'ROE＝近四季淨利 ÷ 股東權益，看賺錢效率',
+    /* ★ 2026-10-02（Andy：「能用小圖表示的就用小圖。例如營運動能 94/100 改成半圓儀表或進度條；本益比的同業位置也可以做成小刻度」，DECISIONS #294）：
+       · 營運動能 → 半圓儀表（SVG 只畫弧，數字寫在 HTML 裡：SVG 的字會跟著縮放，手機上量不準 11px 下限）
+       · 本益比 → 下面一條「同業位置」刻度：左＝同族群最便宜、右＝最貴，中間刻度＝中位，點＝本檔的分位。
+         以前「同業分位」是另一格只寫「67%」，讀者要自己推「67% 是貴還是便宜」——兩格併成一格，刻度直接把答案畫出來。
+       · 毛利率 → 進度條（0～100%，毛利本來就是「營收裡留下幾成」）
+       其他（EPS、ROE、月營收 YoY、殖利率）是單一數字，硬畫小圖反而多一步推論，照舊寫數字。*/
+    const help = hbox('skfund', ['近四季 EPS＝最近四季每股盈餘相加', '本益比＝股價 ÷ 近四季 EPS，越低越便宜', '刻度＝同業位置，越右越貴；*＝樣本少', 'ROE＝近四季淨利 ÷ 股東權益，看賺錢效率',
       '毛利率＝最新一季毛利 ÷ 營收', '月營收 YoY＝最新月營收比去年同月增減', '營運動能＝營收成長、創新高等綜合分數 0～100', '殖利率＝近四次現金股利 ÷ 目前股價']);
-    return `<div class="card"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small> ${hq('skfund', '基本面')}</h3>${help}<div class="kvs" style="margin-top:8px">${k('近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—')}${k('本益比', f.pe ? A.fmt.n(f.pe, 1) : '—')}${k('同業分位', f.percentile != null ? A.fmt.n(f.percentile, 0) + '%' : '<small>樣本不足</small>')}${k('ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—')}${k('毛利率', f.gross_margin != null ? A.fmt.n(f.gross_margin, 1) + '%' : '—')}${k('月營收 YoY', A.fmt.pct(f.rev_yoy), A.fmt.cls(f.rev_yoy))}${k('營運動能', f.momentum_score != null ? A.fmt.n(f.momentum_score, 0) + ' / 100' : '—')}${k('殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—')}</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}` : '本益比只在同族群內比較'}</div></div>`;
+    const fk = (key, l, v, mini, cls) => `<div class="k" data-f="${key}"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div>${mini || ''}</div>`;
+    const pct = f.percentile != null && isFinite(f.percentile) ? Math.max(0, Math.min(100, +f.percentile)) : null;
+    const peMini = pct == null ? `<div class="minil"><span>同業位置：樣本不足</span></div>`
+      : `<div class="pescale" style="--p:${pct.toFixed(1)}%" role="img" aria-label="同族群本益比分位 ${A.fmt.n(pct, 0)}%（越右越貴）" title="同族群（${A.fmt.esc(f.group_name || '—')}，n=${f.group_n || '—'}）裡估值比它低的比例 ${A.fmt.n(pct, 0)}%${f.thin_sample ? '；樣本少，僅供參考' : ''}"><i class="pemid"></i><b class="pedot"></b></div>`
+        + `<div class="minil"><span>便宜</span><span class="pep" data-pct="${pct.toFixed(1)}"${f.thin_sample ? ' title="* ＝同族群樣本少於 5 檔，分位僅供參考"' : ''}>分位 ${A.fmt.n(pct, 0)}%${f.thin_sample ? '*' : ''}</span><span>貴</span></div>`;
+    const gm = f.gross_margin != null && isFinite(f.gross_margin) ? Math.max(0, Math.min(100, +f.gross_margin)) : null;
+    const gmMini = gm == null ? '' : `<div class="meter" style="--p:${gm.toFixed(1)}%;--c:var(--cyan)" role="img" aria-label="毛利率 ${A.fmt.n(gm, 1)}%"><i></i></div>`;
+    const ms = f.momentum_score != null && isFinite(f.momentum_score) ? Math.max(0, Math.min(100, +f.momentum_score)) : null;
+    /* 半圓弧：pathLength=100，dasharray 前段＝分數 —— 不必自己算弧長，分數就是長度 */
+    const arc = 'M6 32 A26 26 0 0 1 58 32';
+    const msV = ms == null ? '—' : `<span class="gaugev"><svg class="gauge" viewBox="0 0 64 36" width="56" height="32" role="img" aria-label="營運動能 ${A.fmt.n(ms, 0)} 分（滿分 100）" data-score="${ms.toFixed(1)}">`
+      + `<path d="${arc}" pathLength="100" class="gtrack"/><path d="${arc}" pathLength="100" class="gfill" stroke-dasharray="${ms.toFixed(1)} 100"/></svg>`
+      + `<span>${A.fmt.n(ms, 0)}<small> / 100</small></span></span>`;
+    return `<div class="card" id="skFundCard"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small> ${hq('skfund', '基本面')}</h3>${help}<div class="kvs skfund" style="margin-top:8px">`
+      + fk('eps', '近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—')
+      + fk('pe', '本益比', f.pe ? A.fmt.n(f.pe, 1) + ' <small>倍</small>' : '—', peMini)
+      + fk('roe', 'ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—')
+      + fk('gm', '毛利率', f.gross_margin != null ? A.fmt.n(f.gross_margin, 1) + '%' : '—', gmMini)
+      + fk('yoy', '月營收 YoY', A.fmt.pct(f.rev_yoy), '', A.fmt.cls(f.rev_yoy))
+      + fk('mom', '營運動能', msV)
+      + fk('yld', '殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—')
+      + `</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}` : '本益比只在同族群內比較'}</div></div>`;
   }
   /* ★ 2026-09-28（Andy：「總覽 籌碼快照『?』欄位說明，並移除 大戶4週 與 散戶」）：
      · 拿掉「大戶 4 週變化」「散戶（≤10 張）」兩格。千張大戶的週變化在「籌碼」分頁的集保圖有完整走勢，
@@ -5004,53 +4999,201 @@
      · 每一格名稱旁一顆小「?」，點了跳出**那一格**的定義與怎麼用（同一套 howPop：點背景／Esc／再按一次都會關）。
        以前只有標題那顆「?」，而且它列的正好是被拿掉的兩格，剩下的外資、投信、融資、量比都沒講。
      · 說明格式照「說明精簡」：每格 2 條、每條 ≤30 字、不附註。*/
+  /* ★ 2026-10-02（Andy 五張截圖之一、DECISIONS #294）：籌碼快照從「六格數字」改成三張比例小圖＋量比一條。
+     樣式照總覽「資金去向」摘要卡：上面一條分段色條、下面圖例＋數值。每一張只回答一個問題：
+       ① 法人近 20 日：外資、投信、自營商誰在買、誰在賣、各佔多少？
+          比重＝各自買賣超張數的絕對值 ÷ 三者絕對值合計（買超與賣超都算「動作的份量」）。
+          色條分成兩段：左邊實色＝買超、中間一道分隔、右邊斜紋淡色＝賣超；顏色跟著法人走（外資青、投信琥珀、自營紫，
+          跟資金流向頁「族群 × 法人」同一組），不跟著正負走 —— 紅綠在本站是漲跌，拿來分法人會跟「買賣超」打架。
+          色條右上寫合計（＝改前「法人 20 日」那一格的數字，所以那一格拿掉不會少資訊）。
+       ② 集保持股分布：≥1,000 張、400～1,000 張、≤10 張各佔總股數幾成（中間 10～400 張畫成灰色「其他」，色條才是 100%），
+          每一段附近 4 週變化（pp）。⚠ 這裡寫「≤10 張」不寫「散戶」：本站散戶口徑（集保 1–3 級）跟券商 App 不同（#268），
+          09-28 拿掉「散戶」那格就是因為這個字招誤讀；Andy 10-02 要求把 ≤10 張加回來，用級距名稱就不會被拿去跟 App 比。
+       ③ 信用與借券（單位一律「張」，標日期）：融資餘額、融券餘額、借券賣出餘額三段（都是「餘額」才放同一條色條），
+          當沖另起一條進度條＝當沖率（當沖張數 ÷ 成交張數，%）—— 當沖是當天的成交量、不是餘額，跟前三個放進同一條比例會誤導。
+          數字跟「資券」分頁最上面那一列同一支 mgLatest() 算，兩邊永遠一致（#294 對帳）。
+     資料不夠的那一張寫一句「資料準備中」，不畫空色條。*/
   const CHIP_HELP = {
-    sum20:   ['法人 20 日', ['近 20 個交易日三大法人買賣超合計（張）', '正＝法人淨買進；持續為正代表法人在累積']],
-    foreign20: ['外資 20 日', ['近 20 個交易日外資買賣超合計（張）', '大型權值股的價格受外資進出影響最大']],
-    trust20: ['投信 20 日', ['近 20 個交易日投信買賣超合計（張）', '中小型股看投信；連續買超代表投信在布局']],
-    big:     ['千張大戶', ['集保持股 ≥1000 張的股東佔總股數比例', '比例越高籌碼越集中；週變化看籌碼分頁']],
-    margin:  ['融資餘額', ['最新一天的融資餘額（張）', '融資大增＝信用追價，籌碼變得不穩']],
-    volr:    ['量比', ['今日成交量 ÷ 近 20 日平均量（含今日）', '≥1.5 算爆量；帶量突破比無量突破可信']],
+    inst:   ['法人近 20 日', ['比重＝各自買賣超張數 ÷ 三者絕對值合計', '實色＝買超、斜紋淡色＝賣超；右上是合計']],
+    hold:   ['集保持股分布', ['各級距持股佔總股數的比例（每週公布）', 'N 週＝近 N 週變化（最多 4 週），單位 pp']],
+    credit: ['信用與借券', ['融資、融券、借券賣出都是「餘額」，單位張', '融資多＝信用追價；券＋借券多＝放空部位']],
+    dt:     ['當沖率', ['當沖成交張數 ÷ 當日成交張數', '當沖率高＝短線客多，價格容易暴漲暴跌']],
+    volr:   ['量比', ['今日成交量 ÷ 近 20 日平均量（含今日）', '≥1.5 算爆量；帶量突破比無量突破可信']],
   };
-  function chipCard(pg) {
-    const s = pg.summary || {}, iv = pg.inst_v3 || {};
-    const holders = pg.holders && pg.holders.length ? pg.holders[pg.holders.length - 1] : null;
-    // 名稱旁的小「?」：data-ttl 給彈窗標題（這顆鈕不在 h3 裡，howPop 讀不到標題）
-    const k = (key, v, cls) => { const [l, items] = CHIP_HELP[key];
-      return `<div class="k" data-chip="${key}"><div class="l">${l}<button class="howbtn pop kq" data-how="skc-${key}" data-ttl="${l}" type="button" aria-label="${l}是什麼">?</button></div><div class="v ${cls || ''}">${v}</div>${hbox('skc-' + key, items)}</div>`; };
-    const mg = (pg.margin || []).slice().reverse().find(x => x[1] != null);
-    return `<div class="card"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人三格＝近 20 個交易日買賣超（張）', '千張大戶＝集保持股 ≥1000 張的比例', '每一格名稱旁的 ? 看該格定義'])}<div class="kvs" style="margin-top:8px">${k('sum20', iv.sum20 != null ? A.fmt.lot(iv.sum20 / 1000) : '—', A.fmt.cls(iv.sum20))}${k('foreign20', iv.foreign20 != null ? A.fmt.lot(iv.foreign20 / 1000) : '—', A.fmt.cls(iv.foreign20))}${k('trust20', iv.trust20 != null ? A.fmt.lot(iv.trust20 / 1000) : '—', A.fmt.cls(iv.trust20))}${k('big', holders ? A.fmt.n(holders[1], 1) + '%' : '—')}${k('margin', mg ? A.fmt.lot(mg[1]) : '—')}${k('volr', s.vol_ratio != null ? A.fmt.n(s.vol_ratio, 2) : '—')}</div></div>`;
+  const MIX_C = { f: 'var(--cyan)', t: 'var(--amber)', d: 'var(--violet)', big: 'var(--cyan)', mid: 'var(--amber)', ret: 'var(--violet)',
+    rest: 'color-mix(in srgb,var(--ink-3) 45%,transparent)', mb: 'var(--cyan)', sb: 'var(--amber)', sbl: 'var(--violet)' };
+  const md5 = (d) => String(d || '').slice(5, 10);
+  /* 小圖標題列的「?」：data-ttl 給彈窗標題（這顆鈕不在 h3 裡，howPop 讀不到標題）*/
+  const mixQ = (key) => { const [l, items] = CHIP_HELP[key];
+    return `<button class="howbtn pop kq" data-how="skc-${key}" data-ttl="${l}" type="button" aria-label="${l}是什麼">?</button>${hbox('skc-' + key, items)}`; };
+  /* 一條分段色條：segs＝[{k, v(>0 才畫), lab, sell?}]，'|' ＝買超／賣超之間的分隔 */
+  const mixBar = (segs, aria) => `<div class="mixbar" role="img" aria-label="${A.fmt.esc(aria)}">${segs.map(s => s === '|' ? '<b class="mixsep" aria-hidden="true"></b>'
+    : (s.v > 0 ? `<i data-k="${s.k}"${s.sell ? ' class="sell"' : ''} style="flex-grow:${s.v};--c:${MIX_C[s.k]}" title="${A.fmt.esc(s.lab)}"></i>` : '')).join('')}</div>`;
+  /* 圖例格三行：色塊＋名稱／數值／小字（比重或 4 週變化、資料日）。比重不跟名稱擠同一行：
+     390 寬一格只有約 95px，「借券賣出餘額 15.6%」放一行會被省略號切掉（_uitest「個股總覽1002」量到過）。*/
+  const mixItem = (k, label, pct, val, cls, extra) => { const e = extra || {};
+    // 每一小段各自不斷行（「資料日 09-24」不會被拆成「09-」「24」兩行），要換行只在「・」之間換
+    const sub = [pct != null ? `${e.pre || '佔'} ${pct}` : '', e.sub || ''].filter(Boolean).map(x => `<span class="nw">${x}</span>`).join('・');
+    return `<div class="mixi${e.sell ? ' sell' : ''}" data-k="${k}"${e.attrs || ''} style="--c:${MIX_C[k]}">`
+      + `<small>${label}</small><b class="${cls || ''}">${val}</b>${sub ? `<span class="mixsub">${sub}</span>` : ''}</div>`; };
+  const mixBox = (key, dateTxt, sumTxt, body) => `<div class="mix" data-mix="${key}"><div class="mixh"><span class="mixt">${CHIP_HELP[key][0]}</span>${mixQ(key)}`
+    + `${dateTxt ? `<span class="mixd" data-readout>${dateTxt}</span>` : ''}${sumTxt ? `<span class="mixs">${sumTxt}</span>` : ''}</div>${body}</div>`;
+  const signLot = (v) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + A.fmt.i(Math.abs(v)) + ' 張');
+  const pp = (v) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(2) + 'pp');
+
+  /* 法人近 20 日（張）：跟管線 inst_v3.sum20／foreign20／trust20 同一個窗（最後 20 列），自營商＝那 20 列的 dealer 加總 */
+  function instMix(pg) {
+    const rows = ((pg.inst_v3 || {}).daily || []).filter(r => r && (r[1] != null || r[2] != null || r[3] != null)).slice(-20);
+    if (!rows.length) return null;
+    const sum = (i) => rows.reduce((a, r) => a + (r[i] || 0), 0) / 1000;
+    const v = { f: Math.round(sum(1)), t: Math.round(sum(2)), d: Math.round(sum(3)) };
+    const abs = Math.abs(v.f) + Math.abs(v.t) + Math.abs(v.d);
+    return { v, abs, total: v.f + v.t + v.d, from: rows[0][0], to: rows[rows.length - 1][0], n: rows.length };
   }
+  /* 集保：最新一週 ＋ 比較基準那一週＝34 天內、日期最接近「最新 − 28 天」的那一列（4 週前；遇到休市週可能是 27～34 天）。
+     ⚠ 2026-10-02 實測：資料湖的集保週資料目前每一檔都只有 4 筆（09-04～09-24，集保開放資料只給最新一週、從 9 月初才開始累積），
+       最早那一筆距最新只有 20 天 —— 硬要「4 週」就永遠是空的。所以基準取「4 週內能拿到的最早一筆」，
+       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化：09-04 → 09-24」），資料滿 4 週之後自動變成「4 週」。
+       不到 2 週（< 13 天）就不給變化：一週的雜訊太大，寫出來只會被誤讀成趨勢。*/
+  function holdMix(pg) {
+    const ho = (pg.holders || []).filter(r => r && r[1] != null);
+    if (!ho.length) return null;
+    const last = ho[ho.length - 1];
+    const day = (r) => Date.parse(String(r[0]).slice(0, 10));
+    const lim = day(last) - (28 + 6) * 864e5;
+    const t28 = day(last) - 28 * 864e5;
+    let prev = null;      // 34 天內、最接近 28 天的那一列（都不到 28 天時＝最早那一列）
+    ho.slice(0, -1).forEach(r => { if (day(r) >= lim && (!prev || Math.abs(day(r) - t28) < Math.abs(day(prev) - t28))) prev = r; });
+    const days = prev ? Math.round((day(last) - day(prev)) / 864e5) : 0;
+    if (!prev || days < 13) return { last, prev: null, weeks: 0 };
+    return { last, prev, weeks: Math.round(days / 7) };
+  }
+  /* 資券最新值：每一欄各自找「最後一個有值的交易日」——融資券（證交所，每天）與當沖／借券（另一個來源，常晚幾天）日期可能不同，
+     所以一律連日期一起帶著走，畫面上寫出來。資券分頁最上面那一列用同一支，兩邊不會對不上（DECISIONS #294）。*/
+  function mgLatest(pg) {
+    const mg = pg.margin || [];
+    const at = (i) => { for (let j = mg.length - 1; j >= 0; j--) if (mg[j] && mg[j][i] != null) return { d: String(mg[j][0]).slice(0, 10), v: mg[j][i], r: mg[j] }; return null; };
+    const dt = at(5);
+    return { mb: at(1), sb: at(2), mc: at(3), sc: at(4), dt, dr: dt && dt.r[6] != null ? { d: dt.d, v: dt.r[6] } : null, sl: at(7), sbl: at(8) };
+  }
+  function chipCard(pg) {
+    const s = pg.summary || {};
+    const pct1 = (v, n) => (n > 0 ? A.fmt.n(v / n * 100, 1) + '%' : '—');
+    const P = (v, n) => (n > 0 ? (v / n * 100).toFixed(2) : '');
+    const parts = [];
+    /* ① 法人 */
+    const im = instMix(pg);
+    if (im && im.abs > 0) {
+      const NM = { f: '外資', t: '投信', d: '自營商' };
+      const buy = ['f', 't', 'd'].filter(k => im.v[k] > 0), sell = ['f', 't', 'd'].filter(k => im.v[k] < 0);
+      const segs = buy.map(k => ({ k, v: im.v[k], lab: `${NM[k]} 買超 ${A.fmt.i(im.v[k])} 張（${pct1(im.v[k], im.abs)}）` }))
+        .concat(buy.length && sell.length ? ['|'] : [])
+        .concat(sell.map(k => ({ k, v: -im.v[k], sell: true, lab: `${NM[k]} 賣超 ${A.fmt.i(-im.v[k])} 張（${pct1(-im.v[k], im.abs)}）` })));
+      const items = ['f', 't', 'd'].map(k => mixItem(k, NM[k], pct1(Math.abs(im.v[k]), im.abs), signLot(im.v[k]), A.fmt.cls(im.v[k]),
+        { sell: im.v[k] < 0, pre: '比重', attrs: ` data-v="${im.v[k]}" data-pct="${P(Math.abs(im.v[k]), im.abs)}"` })).join('');
+      parts.push(mixBox('inst', `${md5(im.from)}～${md5(im.to)}`, `合計 <b class="${A.fmt.cls(im.total)}" data-v="${im.total}">${signLot(im.total)}</b>`,
+        mixBar(segs, `法人近 20 日：${['f', 't', 'd'].map(k => NM[k] + ' ' + signLot(im.v[k])).join('、')}；合計 ${signLot(im.total)}`)
+        + `<div class="mixn">${items}</div><div class="mixf">實色＝買超、斜紋＝賣超（${im.n} 個交易日）</div>`));
+    } else parts.push(mixBox('inst', '', '', '<div class="mixf">法人買賣超資料準備中</div>'));
+    /* ② 集保 */
+    const hm = holdMix(pg);
+    if (hm) {
+      const L = hm.last, Pv = hm.prev;
+      const v = { big: L[1], mid: L[2], ret: L[3] };
+      const rest = Math.max(0, 100 - (v.big || 0) - (v.mid || 0) - (v.ret || 0));
+      const ch = (i) => (Pv && L[i] != null && Pv[i] != null ? L[i] - Pv[i] : null);
+      const NM = { big: '≥1,000 張', mid: '400～1,000 張', ret: '≤10 張' };
+      const IX = { big: 1, mid: 2, ret: 3 };
+      const segs = [{ k: 'big', v: v.big, lab: `≥1,000 張 ${A.fmt.n(v.big, 2)}%` }, { k: 'mid', v: v.mid, lab: `400～1,000 張 ${A.fmt.n(v.mid, 2)}%` },
+        { k: 'rest', v: rest, lab: `其他（10～400 張）${A.fmt.n(rest, 2)}%` }, { k: 'ret', v: v.ret, lab: `≤10 張 ${A.fmt.n(v.ret, 2)}%` }];
+      const items = ['big', 'mid', 'ret'].map(k => { const c = ch(IX[k]);
+        return mixItem(k, NM[k], null, v[k] != null ? A.fmt.n(v[k], 1) + '%' : '—', '',
+          { attrs: ` data-v="${v[k] != null ? v[k] : ''}" data-ch="${c != null ? c.toFixed(4) : ''}"`, sub: `${hm.weeks || 4} 週 <span class="${c == null ? '' : c > 0 ? 'up' : c < 0 ? 'down' : ''}">${pp(c)}</span>` }); }).join('');
+      parts.push(mixBox('hold', md5(L[0]), '<span class="muted">灰＝10～400 張</span>',
+        mixBar(segs, `集保持股：≥1,000 張 ${A.fmt.n(v.big, 1)}%、400～1,000 張 ${A.fmt.n(v.mid, 1)}%、≤10 張 ${A.fmt.n(v.ret, 1)}%`)
+        + `<div class="mixn">${items}</div><div class="mixf">${Pv ? `近 ${hm.weeks} 週變化：${md5(Pv[0])} → ${md5(L[0])}${hm.weeks < 4 ? '（集保歷史還不到 4 週）' : ''}` : '週變化：集保歷史不到 2 週'}</div>`));
+    } else parts.push(mixBox('hold', '', '', '<div class="mixf">集保持股資料準備中（每週公布一次）</div>'));
+    /* ③ 信用與借券（張）＋ 當沖率 */
+    const m = mgLatest(pg);
+    if (m.mb) {
+      const v = { mb: m.mb.v, sb: m.sb ? m.sb.v : 0, sbl: m.sbl ? m.sbl.v : 0 };
+      const tot = v.mb + v.sb + v.sbl;
+      const dTag = (x) => (x && x.d !== m.mb.d ? `（${md5(x.d)}）` : '');
+      const segs = [{ k: 'mb', v: v.mb, lab: `融資餘額 ${A.fmt.i(v.mb)} 張` }, { k: 'sb', v: v.sb, lab: `融券餘額 ${A.fmt.i(v.sb)} 張` },
+        { k: 'sbl', v: v.sbl, lab: `借券賣出餘額 ${A.fmt.i(v.sbl)} 張${dTag(m.sbl)}` }];
+      const items = mixItem('mb', '融資餘額', pct1(v.mb, tot), A.fmt.i(v.mb) + ' 張', '', { attrs: ` data-v="${v.mb}" data-d="${m.mb.d}" data-pct="${P(v.mb, tot)}"` })
+        + mixItem('sb', '融券餘額', m.sb ? pct1(v.sb, tot) : null, m.sb ? A.fmt.i(v.sb) + ' 張' : '—', '', { attrs: ` data-v="${m.sb ? v.sb : ''}" data-d="${m.sb ? m.sb.d : ''}" data-pct="${P(v.sb, tot)}"` })
+        + mixItem('sbl', '借券賣出餘額', m.sbl ? pct1(v.sbl, tot) : null, m.sbl ? A.fmt.i(v.sbl) + ' 張' : '—', '',
+          { attrs: ` data-v="${m.sbl ? v.sbl : ''}" data-d="${m.sbl ? m.sbl.d : ''}" data-pct="${P(v.sbl, tot)}"`, sub: m.sbl ? (dTag(m.sbl) ? `資料日 ${md5(m.sbl.d)}` : '') : '資料準備中' });
+      const ratio = v.mb > 0 && m.sb ? v.sb / v.mb * 100 : null;
+      let dtRow = '';
+      if (m.dt) {
+        const dr = m.dr ? m.dr.v : null;
+        const p = dr != null ? Math.max(0, Math.min(100, dr)) : null;
+        dtRow = `<div class="mixdt" data-v="${m.dt.v}" data-d="${m.dt.d}" data-r="${dr != null ? dr : ''}"><span class="mixt">${CHIP_HELP.dt[0]}</span>${mixQ('dt')}`
+          + `${p != null ? `<div class="meter" style="--p:${p.toFixed(1)}%;--c:var(--amber)" role="img" aria-label="當沖率 ${A.fmt.n(dr, 1)}%"><i></i></div>` : ''}`
+          + `<span class="mixdtv"><b>${p != null ? A.fmt.n(dr, 1) + '%' : '—'}</b> <small>當沖 ${A.fmt.i(m.dt.v)} 張・${md5(m.dt.d)}</small></span></div>`;
+      }
+      parts.push(mixBox('credit', md5(m.mb.d), ratio != null ? `券資比 <b>${A.fmt.n(ratio, 1)}%</b>` : '',
+        mixBar(segs, `信用與借券（張）：融資餘額 ${A.fmt.i(v.mb)}、融券餘額 ${A.fmt.i(v.sb)}、借券賣出餘額 ${A.fmt.i(v.sbl)}`)
+        + `<div class="mixn">${items}</div>${dtRow}<div class="mixf">單位：張（餘額）；比例＝佔三項餘額合計</div>`));
+    } else parts.push(mixBox('credit', '', '', '<div class="mixf">這一檔沒有融資融券資料（可能不是信用交易標的）</div>'));
+    /* 量比：一條 0～3 的進度條，1.5 畫刻度（爆量門檻）*/
+    const vr = s.vol_ratio != null && isFinite(s.vol_ratio) ? +s.vol_ratio : null;
+    parts.push(`<div class="mixdt mixvr" data-v="${vr != null ? vr : ''}"><span class="mixt">${CHIP_HELP.volr[0]}</span>${mixQ('volr')}`
+      + `${vr != null ? `<div class="meter" style="--p:${Math.min(100, vr / 3 * 100).toFixed(1)}%;--c:var(--cyan)" role="img" aria-label="量比 ${A.fmt.n(vr, 2)}（刻度＝1.5 爆量）"><i></i><b class="tick" style="left:50%"></b></div>` : ''}`
+      + `<span class="mixdtv"><b>${vr != null ? A.fmt.n(vr, 2) : '—'}</b> <small>${vr != null ? (vr >= 1.5 ? '爆量（≥1.5）' : '未達 1.5') : ''}</small></span></div>`);
+    return `<div class="card" id="skChipCard"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人：近 20 個交易日誰買誰賣、各佔多少', '集保：三個級距的持股比例與近幾週變化', '信用：融資、融券、借券賣出餘額（張）', '每一張小圖標題旁的 ? 看定義'])}`
+      + `<div class="mixes">${parts.join('')}</div></div>`;
+  }
+  /* ★ 2026-10-02（Andy，DECISIONS #294）「總覽」分頁的版面，由上到下：
+       ① AI 分析重點（積木 stock.mtf，site/blocks/stock_ai.js 的 brief）：一行結論＋四顆小標籤，點標籤捲到下面那一張細節卡
+       ② 基本面、籌碼快照（積木 stock.fund，本檔）：上下兩張滿寬。改前並排（g2）時基本面七格只佔左卡上半、下半截空著跟右邊等高；
+          滿寬之後基本面七格排成一列，籌碼快照三張小圖在寬畫面（容器 ≥900px）也排成一列，窄畫面才往下排
+       ③ 各面向細節四張並排（桌機一列四張、窄畫面依序往下排）：技術面、技術面訊號、基本面、消息面。
+          技術面訊號那一張就是積木 stock.signal 的出口（StockSignal.view），其他三張是 stock.mtf 的 facetCards。
+     擋掉任何一支積木檔，只少那幾張，其他照常（積木原則三）。K 線卡右上角那一份 #skAi（頂部、另一支分支在改）這裡不動。*/
   function tabOverview(pg, el) {
-    const signal = window.StockSignal ? window.StockSignal.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt) : '';
-    el.innerHTML = `<div class="grid g3">
-      ${fundCard(pg)}
-      ${chipCard(pg)}
-      ${signal}</div>`;
+    const AI = window.StockAI, SG = window.StockSignal;
+    const brief = AI && AI.brief ? AI.brief(pg, A.fmt) : '';
+    const fc = (AI && AI.facetCards ? AI.facetCards(pg, A.fmt) : null) || {};
+    const sig = SG ? SG.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt, { tag: true, id: 'ovF-sig' }) : '';
+    const cards = [fc.tech, sig, fc.fund, fc.news].filter(Boolean);
+    el.innerHTML = `<div class="skov" id="skOv">${brief}
+      <div class="skovkpi">${fundCard(pg)}${chipCard(pg)}</div>
+      ${cards.length ? `${fc.tech && AI.facetHead ? AI.facetHead() : ''}<div class="skfacets" id="ovFacets" data-n="${cards.length}">${cards.join('')}</div>` : ''}</div>`;
+    if (AI && AI.bindOverview) AI.bindOverview(el);
   }
   /* ★ 2026-09-27「指標」分頁（Andy 給的券商 App「符合 65 項指標」截圖）：
      題材、族群（groups.yaml／themes.yaml）＋管線算的事實條件標籤（stockpage.stock_tags）。
-     **只陳述條件成不成立，不是推介**：符合的列上面（紅字＝條件成立，跟 App 同一個語意），不符合的收在下面、照樣看得到，
-     資料不夠判斷的另列並寫原因。每一條都附判斷用的數字（滑過或點開看）。
-     台灣 50／MSCI 成分股、集團：沒有經查證的白名單來源，不做（DECISIONS #268）。*/
+     **只陳述條件成不成立，不是推介**。台灣 50／MSCI 成分股、集團：沒有經查證的白名單來源，不做（DECISIONS #268）。
+     ★ 2026-10-02（Andy，DECISIONS #294）：一條一列的清單 → 小方塊卡片（grid），分「符合」「未符合」兩區：
+       · 符合＝強調色（紅框＋淡紅底，紅＝條件成立，跟 App 同一個語意）、未符合＝淡色；資料不足另一區、更淡。
+       · 每一塊＝指標名稱＋一行判斷數字（「連三月營收年增>20%｜26-06 +32.3%…」）。一行放不下的數字點方塊**原地展開**全文，
+         再點收回 —— 不跳頁、不開彈窗。
+       · 題材、族群兩列移到最上面當標籤（點了照舊進題材／族群頁）。
+       · 改前「未符合」收在 <details> 裡要多點一下才看得到；改後兩區都直接攤開，一眼看得出「6 項成立、2 項沒有」。
+     #tagN（符合數）、#tagCard 這兩個 id 不變（別的驗收在讀）。*/
   function tabTags(pg, el) {
     const tg = (pg.tags || {}).items || [];
     const code = pg.meta.code;
     const th = A.L.themesOf ? A.L.themesOf(code) : '';
     const grp = (pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('');
     const hit = tg.filter(t => t.hit === true), miss = tg.filter(t => t.hit === false), na = tg.filter(t => t.hit == null);
-    const row = (kind, body, detail, cls) => `<div class="tagln ${cls || ''}" data-hit="${cls || ''}"><span class="tagk">${kind}</span><div class="tagb">${body}${detail ? `<div class="note tagd">${A.fmt.esc(detail)}</div>` : ''}</div></div>`;
-    el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>符合 <b id="tagN">${hit.length}</b> 項指標 ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
-      ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅字＝條件成立；灰字＝不成立', '每條下方是判斷用的數字與比較範圍', '這些是條件描述，不是買賣建議'])}
-      <div class="taglist">
-        ${th ? row('題材', `<span class="tagrow">${th}</span>`, '', 'meta') : ''}
-        ${grp ? row('族群', `<span class="tagrow">${grp}</span>`, '', 'meta') : ''}
-        ${hit.map(t => row('指標', `<b class="up">${A.fmt.esc(t.label)}</b>`, t.detail, 'on')).join('')}
-      </div>
-      ${miss.length ? `<details class="tagmore" style="margin-top:10px"><summary>未符合 ${miss.length} 項</summary><div class="taglist">${miss.map(t => row('指標', `<span class="muted">${A.fmt.esc(t.label)}</span>`, t.detail, 'off')).join('')}</div></details>` : ''}
-      ${na.length ? `<details class="tagmore" style="margin-top:6px"><summary>資料不足、無法判斷 ${na.length} 項</summary><div class="taglist">${na.map(t => row('指標', `<span class="muted">${A.fmt.esc(t.label)}</span>`, t.detail, 'na')).join('')}</div></details>` : ''}
+    const tile = (t, cls) => `<button type="button" class="tagtile ${cls}" data-hit="${cls}" data-id="${A.fmt.esc(t.id || '')}" aria-expanded="false" title="${A.fmt.esc((t.label || '') + (t.detail ? '｜' + t.detail : ''))}">`
+      + `<b class="tagnm">${A.fmt.esc(t.label)}</b><span class="tagd">${t.detail ? A.fmt.esc(t.detail) : '—'}</span></button>`;
+    const zone = (id, cls, title, list) => list.length ? `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
+      + `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div></section>` : '';
+    el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
+      ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
+      ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
+      ${zone('tagHit', 'on', '符合', hit)}
+      ${zone('tagMiss', 'off', '未符合', miss)}
+      ${zone('tagNa', 'na', '資料不足、無法判斷', na)}
       ${!tg.length ? '<div class="empty">這一檔的月營收／季報資料準備中</div>' : ''}
     </div>`;
+    /* 點方塊＝原地展開那一行判斷數字的全文（再點收回）；同一時間可以開好幾塊，方便對照 */
+    $$('.tagtile', el).forEach(b => b.onclick = () => { const o = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(o)); b.classList.toggle('open', o); });
   }
   function tabRevenue(pg, el) {
     const rv = pg.revenue || {}; const mo = rv.monthly || [];
@@ -5974,14 +6117,24 @@
   function tabMargin(pg, el) {
     const mg = pg.margin || [];
     if (!mg.length) { el.innerHTML = '<div class="card"><div class="empty">這一檔沒有融資融券資料（可能不是信用交易標的）。</div></div>'; return; }
-    if (mg.length < CHIP_MIN) { const r = mg[mg.length - 1];
-      el.innerHTML = chipNums('skmg', '融資融券', `最新一筆 ${r[0]}`, chipK('融資餘額', A.fmt.lot(r[1])) + chipK('融券餘額', A.fmt.lot(r[2])),
+    /* ★ 2026-10-02（Andy：「總覽籌碼快照的『融資餘額 2.1 萬張』和『資券』分頁的數字對不上」，對帳表在 DECISIONS #294）：
+       根因不是算錯，是**兩邊顯示的根本不是同一個指標**：總覽寫的是「融資餘額」（margin_balance，張），
+       資券分頁的每日表那一欄標題只寫「融資」、內容卻是「融資增減」（margin_change，張，例如 −503），
+       圖上的長條也是增減，餘額只是右軸那條線、畫面上沒有任何地方寫出最新餘額的數字 —— 讀者只能拿 2.1 萬去對 −503。
+       修法：① 分頁最上面加一列「最新數字」（融資餘額／融券餘額／借券賣出餘額／當沖），跟總覽同一支 mgLatest()，日期一起寫；
+       ② 每日表的欄名全部寫清楚「融資增減」「融資餘額」…，餘額欄補回來。數字本身一個都沒改。*/
+    const ML = mgLatest(pg);
+    const mgk = (k, l, x, val) => `<div class="k" data-mgk="${k}" data-v="${x ? x.v : ''}" data-d="${x ? x.d : ''}"><div class="l">${l}${x ? ` <span class="mgd">${md5(x.d)}</span>` : ''}</div><div class="v">${x ? val : '—'}</div></div>`;
+    const kpis = `<div class="kvs mgkpi" id="mgKpi" style="margin-bottom:12px">${mgk('mb', '融資餘額', ML.mb, ML.mb && A.fmt.i(ML.mb.v) + ' 張')}${mgk('sb', '融券餘額', ML.sb, ML.sb && A.fmt.i(ML.sb.v) + ' 張')}`
+      + `${mgk('sbl', '借券賣出餘額', ML.sbl, ML.sbl && A.fmt.i(ML.sbl.v) + ' 張')}${mgk('dt', '當沖（當沖率）', ML.dt, ML.dt && `${A.fmt.i(ML.dt.v)} 張 <small>${ML.dr ? A.fmt.n(ML.dr.v, 1) + '%' : ''}</small>`)}</div>`;
+    if (mg.length < CHIP_MIN) {
+      el.innerHTML = kpis + chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
         `資料準備中：目前只有 ${mg.length} 天，滿 ${CHIP_MIN} 天以上就會畫成走勢圖。`);
       return; }
     let mseg = lsGet('tw.mgSeg', v => MG_SEGS.some(x => x.v === v), 'm');
     const mmap = new Map(mg.map(r => [String(r[0]).slice(0, 10), r]));
-    const body = chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
-      ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '借券賣出多為法人避險，不是融券', '融資一路增加＝散戶加碼，留意籌碼變亂'],
+    const body = kpis + chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
+      ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '最上面一列＝最新餘額，跟總覽同一個數', '借券賣出多為法人避險，不是融券'],
       chipTbl('mgTbl'), 'min-height:340px');
     const redraw = chipPage(pg, el, 'margin', body, (dates, win) => {
       const { xCat } = chipAxis(dates, win);
@@ -6017,7 +6170,8 @@
         const num = (v, sg, on) => `<td class="num ${sg ? A.fmt.cls(v) : ''}${on ? ' sel' : ''}">${v == null ? '—' : A.fmt.i(v)}</td>`;
         const rows = dates.slice().reverse().map(d => [d, mmap.get(d)]).filter(x => x[1]);
         const th = (t, v) => `<th${seg.v === v ? ' class="sel"' : ''}>${t}</th>`;
-        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資', 'm')}${th('當沖', 'dt')}${th('融券', 's')}${th('借券賣', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[3], true, seg.v === 'm')}${num(r[5], false, seg.v === 'dt')}${num(r[4], true, seg.v === 's')}${num(r[7], false, seg.v === 'sbl')}</tr>`).join('') || '<tr><td colspan="5" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。融資／融券＝當日增減；當沖＝當沖成交張數；借券賣＝當日借券賣出張數</div>`;
+        /* 2026-10-02（#294 對帳）：欄名寫全（改前只寫「融資」「融券」，內容卻是增減，讀者拿去跟總覽的餘額比就對不上），餘額欄補回來 */
+        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt')}${num(r[7], false, seg.v === 'sbl')}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
       }
     });
     $$('#mgSeg button', el).forEach(b => b.onclick = () => { mseg = b.dataset.v; lsSet('tw.mgSeg', mseg); redraw(); });
