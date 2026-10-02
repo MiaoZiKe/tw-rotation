@@ -15,14 +15,14 @@ LIGHT = dict(
     glyph='#12345a', acc='#1474d3', rise='#d93a4f', fall='#14936a',
     outline='#24557b', tick='#2c4b6c', bracket='#1d3557',
     top='#e8f7fd', left='#d7eefa', right='#c6e8fa', base='#dff2fb', face_op=.55, base_op=.92,
-    hi='#ffffff', hidden_op=.75, back_op=.28)
+    hi='#ffffff', hidden_op=.75, back_op=.32)
 DARK = dict(
     name='dark', bg0='#1c3358', bg1='#0b1629', tile_stroke='#2c4670',
     ink='#eef6ff', sub='#9fb6cf', rule='#5d7898',
     glyph='#e6f4ff', acc='#5cc0ff', rise='#ff5f73', fall='#2fcf92',
     outline='#6cc0f2', tick='#8fb3d9', bracket='#d6ecff',
     top='#a9e2fb', left='#7cc6ef', right='#5aaee0', base='#6fbde8', face_op=.2, base_op=.16,
-    hi='#e4f6ff', hidden_op=.45, back_op=.3)
+    hi='#e4f6ff', hidden_op=.45, back_op=.2)
 
 # 面上的圖示：前三面（上＝資金分流、左＝技術 K 棒、右＝產業晶片），後三面隔著玻璃（籌碼、事件、基本）
 FRONT = {'top': v13.flow, 'left': v13.candle, 'right': v13.chain}
@@ -54,6 +54,20 @@ class Cube:
         O, X, Y = self.face[k]
         D = (X[0] + Y[0] - O[0], X[1] + Y[1] - O[1])
         return [O, X, D, Y]
+
+    def matrix_flat(self, k, fill=.62):
+        """水平面（上、底）改用「沿兩條對角線」貼：等於把圖示在面上轉 45° 再投影 ——
+        仍然精準落在面上，但看起來是水平、由左往右讀（圖二上面那顆輪動箭頭就是這樣擺的）。
+        fill：圖示半寬／面的半對角線（圖示四角是空的，所以可以略大於內接的 0.5）"""
+        q = self.quad(k)
+        cx = sum(x for x, _ in q)/4; cy = sum(y for _, y in q)/4
+        a = S3*self.s*fill; b = .5*self.s*fill              # 水平、垂直半對角線 × fill
+        f = 2/24
+        return f'matrix({a*f:.4f} 0 0 {b*f:.4f} {cx - a:.2f} {cy - b:.2f})'
+
+    def place(self, k, pad):
+        # 水平面的大小另外換算：前面（pad 小）用 0.6、隔著玻璃的底面（pad 大）用 0.44
+        return self.matrix_flat(k, .6 if pad < .2 else .44) if k in ('top', 'bottom') else self.matrix(k, pad)
 
     def matrix(self, k, pad=.17):
         """把 24×24 圖示貼進面 k（四周留 pad 比例的邊）"""
@@ -109,7 +123,8 @@ def brackets(P, x0, y0, x1, y1, L, w, corners=('tl', 'tr', 'bl')):
     return f'<path d="{"".join(seg[c] for c in corners)}" fill="none" stroke="{P["bracket"]}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>'
 
 
-def glass_cube(cb, P, u, glyphs=True, ow=7.0, yw=7.0, sw=1.7):
+def glass_cube(cb, P, u, glyphs=True, ow=7.0, yw=7.0, sw=1.7, ycol=None):
+    """ycol：前面 Y 稜的顏色；大圖用白色高光（圖二的做法），48px 改用輪廓色，否則白線在淺色玻璃上會消失"""
     C = cb.C; s = cb.s
     o = []
     # 地上的影子（只有亮版）
@@ -120,7 +135,7 @@ def glass_cube(cb, P, u, glyphs=True, ow=7.0, yw=7.0, sw=1.7):
     # 2) 後三面的圖示（隔著玻璃，淡）＋看不見的三條稜（白色細線）
     if glyphs:
         for k, fn in BACK.items():
-            o.append(f'<g opacity="{P["back_op"]}" transform="{cb.matrix(k)}">{glyph(fn, P, sw)}</g>')
+            o.append(f'<g opacity="{P["back_op"]}" transform="{cb.place(k, .27)}">{glyph(fn, P, sw)}</g>')
     o.append(f'<path d="M{C[0]:.1f} {C[1]:.1f}L{cb.T[0]:.1f} {cb.T[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.LL[0]:.1f} {cb.LL[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.LR[0]:.1f} {cb.LR[1]:.1f}" '
              f'stroke="{P["hi"]}" stroke-width="{yw*.45:.1f}" stroke-opacity="{P["hidden_op"]}" stroke-linecap="round"/>')
     # 3) 前三面：各自一層玻璃色＋內側白色細框（玻璃厚度的高光）
@@ -134,10 +149,10 @@ def glass_cube(cb, P, u, glyphs=True, ow=7.0, yw=7.0, sw=1.7):
     o.append(f'<polygon points="{pts([(a[0] + s*.12, a[1] + s*.14), (b[0] - s*.1, b[1] + s*.2), (b[0] - s*.26, b[1] + s*.36), (a[0] + s*.12, a[1] + s*.42)])}" fill="{P["hi"]}" opacity=".28"/>')
     if glyphs:
         for k, fn in FRONT.items():
-            o.append(f'<g transform="{cb.matrix(k)}">{glyph(fn, P, sw)}</g>')
+            o.append(f'<g transform="{cb.place(k, .11)}">{glyph(fn, P, sw)}</g>')
     # 4) 前面的 Y 稜（白色亮線）＋外輪廓（藍色粗圓角線）＋輪廓內側一圈白
     o.append(f'<path d="M{C[0]:.1f} {C[1]:.1f}L{cb.UL[0]:.1f} {cb.UL[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.UR[0]:.1f} {cb.UR[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.B[0]:.1f} {cb.B[1]:.1f}" '
-             f'stroke="{P["hi"]}" stroke-width="{yw:.1f}" stroke-opacity=".95" stroke-linecap="round"/>')
+             f'stroke="{ycol or P["hi"]}" stroke-width="{yw:.1f}" stroke-opacity=".95" stroke-linecap="round"/>')
     o.append(f'<polygon points="{pts(shrink(cb.hex, C, 1 - (ow*1.25)/s))}" fill="none" stroke="{P["hi"]}" stroke-opacity=".9" stroke-width="{ow*.45:.1f}" stroke-linejoin="round"/>')
     o.append(f'<polygon points="{pts(cb.hex)}" fill="none" stroke="{P["outline"]}" stroke-width="{ow:.1f}" stroke-linejoin="round"/>')
     return ''.join(o)
@@ -173,8 +188,8 @@ def icon(P, u, size='L', tile=True):
         o.append('</svg>')
         return '\n'.join(o)
     if size == 'L':
-        cx, cy, s = 240, 236, 128
-        o.append(ring(P, cx, cy, 190))
+        cx, cy, s = 238, 234, 138
+        o.append(ring(P, cx, cy, 196))
         o.append(brackets(P, 64, 60, 416, 412, 58, 20))
         cb = Cube(cx, cy, s)
         o.append(glass_cube(cb, P, u, glyphs=True, ow=7, yw=6, sw=1.7))
@@ -183,7 +198,7 @@ def icon(P, u, size='L', tile=True):
         cx, cy, s = 232, 226, 150
         o.append(brackets(P, 52, 48, 412, 408, 66, 34))
         cb = Cube(cx, cy, s)
-        o.append(glass_cube(cb, P, u, glyphs=False, ow=16, yw=14))
+        o.append(glass_cube(cb, P, u, glyphs=False, ow=16, yw=11, ycol=P['outline'] if P['name'] == 'light' else None))
         o.append(magnifier(cb, P, u, k=1.32))
     o.append('</svg>')
     return '\n'.join(o)
@@ -194,23 +209,23 @@ def save(name, s):
 
 
 # ---------- 直式標準字 ----------
-NAME, EN = '股立方', 'STOCK · CUBE'
+NAME, EN = '股立方', 'STOCK·CUBE'
 TAG = '六面透視　資金・籌碼・產業・技術・事件・基本'
 
 def lockup(P, u):
     ic = icon(P, u, 'L', tile=False)
     inner = ic.split('>', 1)[1].rsplit('</svg>', 1)[0]      # 直接內嵌（用 <img> 開的 SVG 不能再引用外部檔）
-    W, H = 760, 940
+    W, H = 800, 880
     bg = (f'<rect width="{W}" height="{H}" rx="32" fill="{P["bg0"]}"/>' if P['name'] == 'light' else
           f'<defs><linearGradient id="{u}lbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{P["bg0"]}"/><stop offset="1" stop-color="{P["bg1"]}"/></linearGradient></defs>'
           f'<rect width="{W}" height="{H}" rx="32" fill="url(#{u}lbg)"/>')
     # letter-spacing 會在最後一個字後面也加一段，所以置中時 x 往右補半個字距
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}">{bg}
-<svg x="120" y="16" width="520" height="520" viewBox="0 0 512 512">{inner}</svg>
-<text x="{W/2 + 12}" y="700" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="150" font-weight="700" letter-spacing="24" fill="{P["ink"]}" stroke="{P["ink"]}" stroke-width="3.5" stroke-linejoin="round">{NAME}</text>
-<text x="{W/2 + 9}" y="776" text-anchor="middle" font-family="DejaVu Sans" font-size="38" letter-spacing="18" fill="{P["ink"]}">{EN}</text>
-<path d="M60 818H{W - 60}" stroke="{P["rule"]}" stroke-width="2"/>
-<text x="{W/2 + 2}" y="874" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" font-weight="600" letter-spacing="4" fill="{P["ink"]}">{TAG}</text></svg>'''
+<svg x="{W/2 - 260 + 8}" y="10" width="520" height="520" viewBox="0 0 512 512">{inner}</svg>
+<text x="{W/2 + 12}" y="642" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="150" font-weight="700" letter-spacing="24" fill="{P["ink"]}" stroke="{P["ink"]}" stroke-width="6" stroke-linejoin="round">{NAME}</text>
+<text x="{W/2 + 9}" y="716" text-anchor="middle" font-family="DejaVu Sans" font-weight="700" font-size="36" letter-spacing="18" fill="{P["ink"]}">{EN}</text>
+<path d="M56 758H{W - 56}" stroke="{P["rule"]}" stroke-width="2"/>
+<text x="{W/2 + 2}" y="816" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="27" font-weight="600" letter-spacing="4" fill="{P["ink"]}">{TAG}</text></svg>'''
 
 
 # ---------- 六面＋大盤徽章（第十四輪配色：冰藍玻璃底、深藍線） ----------
@@ -250,14 +265,14 @@ h2{{font-size:20px;letter-spacing:.1em;margin:8px 0 14px;color:#24557b}}
 </style></head><body>
 <h1>股立方｜圖二風格</h1><div class="en">STOCK · CUBE // ICE GLASS CUBE × WOOD LENS // ISOMETRIC</div>
 <p>照 Andy 給的圖二：冰藍透明玻璃立方（等角正交投影）、深藍線條、深藍刻度環、粗角框（512 畫布上線寬 20）、藍色金屬環＋木柄放大鏡。<br>
-前三面：<b>上＝資金（分流圖）</b>、<b>左＝技術（K 棒，紅漲綠跌）</b>、<b>右＝產業（晶片）</b>；後三面隔著玻璃淡淡看得到：籌碼（左上）、基本（右上）、事件（下）。</p>
+前三面：<b>上＝資金（分流圖）</b>、<b>左＝技術（K 棒，紅漲綠跌）</b>、<b>右＝產業（晶片）</b>；後三面隔著玻璃淡淡看得到：籌碼（左上）、基本（右上）、事件（下）。<br>角框只畫三個角，右下角讓給放大鏡握把（圖二也是這樣）；上、底兩個水平面的圖示沿對角線貼，看起來由左往右讀。</p>
 <div class="row"><div class="card lt"><img class="big" src="icon_light.svg"><div class="smalls">{sm('')}</div></div>
 <div class="card dk"><img class="big" src="icon_dark.svg"><div class="smalls">{sm('_dark')}</div></div></div>
 <h2>直式標準字</h2>
 <div class="row"><div class="lock"><img src="lockup_light.svg"></div><div class="lock" style="background:#050c18"><img src="lockup_dark.svg"></div></div>
 <h2>六面＋大盤圖示（第十三輪線條圖示，套第十四輪配色）</h2>
 <div class="bads">{bd}</div>
-<p class="foot">48／24px 用 <code>icon48*.svg</code>（拿掉面上圖示與刻度環，只留玻璃立方＋放大鏡＋角框）；16px 用 <code>icon16*.svg</code>（只留立方輪廓＋Y 線）。<br>
+<p class="foot">48／24px 用 <code>icon48*.svg</code>（拿掉面上圖示與刻度環，只留玻璃立方＋放大鏡＋角框；亮版的 Y 稜改用輪廓色，白線在淺玻璃上會消失）；16px 用 <code>icon16*.svg</code>（只留立方輪廓＋Y 線）。<br>
 名稱用「股立方」（圖二的「台股立方」只當風格參考）。字型：中文 WenQuanYi Zen Hei、英文 DejaVu Sans。</p>
 </body></html>'''
 

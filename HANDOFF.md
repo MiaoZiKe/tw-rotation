@@ -30,6 +30,7 @@ pytest 639 passed（只動 `site/**` 與 `_uitest.py`，照規矩可跳，仍跑
 - **交給 Codex 設計（2026-09-26 晚，Andy：「我需要提供網頁給 codeX 設計」）**：說明書 `docs/codex_design_brief.md`
   （分支規則：從本分支開 `codex/ui-design`、PR 合回本分支、絕不推 main；setup script 要先 `build_payload`；可改／不可改的檔案；硬規則；驗收段落）。
   `_preview.py`／`_uitest.py`／`_show.py` 的 Chromium 路徑改成「有 /opt/pw-browsers/chromium 才用，沒有就用 Playwright 自己裝的」，Codex 環境才跑得起來。
+- **品牌第十三～十四輪（2026-10-02）**：六面簡易圖示改版（資金＝分流圖、籌碼＝賭桌籌碼、產業＝晶片、基本＝走勢圖；`docs/brand/v13/`），照 Andy 圖二重做冰藍玻璃立方標誌＋粗角框（`docs/brand/v14/`，名稱用〈股立方〉）。尚未套進網站。
 - **品牌第十二輪（2026-10-02）**：命名收斂為〈股立方〉（全名台股立方），照 Andy 的參考圖重畫（霧面玻璃立方＋暖色 HUD＋木柄放大鏡）；`docs/brand/v12/`。尚未套進網站。
 - **品牌第十一輪（2026-10-02）**：〈台股立方〉× 六角鏡片 × 半透明立方（HUD 透視），每面一個指標；圖與產生器在 `docs/brand/v11/`，說明在 `docs/marketing/brand_direction.md` 最後一節。尚未套進網站（命名未定案）。
 - **命名提案（2026-09-26 晚，Andy：「幫我想個親近點又好記住的名稱以及對應圖案」）**：四個方向，圖在 `docs/brand/`（四支 SVG ＋ 提案圖）。
