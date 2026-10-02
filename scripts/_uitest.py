@@ -17202,7 +17202,12 @@ def t_live5s_0929(b, base, code):
     pg.evaluate("() => { location.hash = '#market'; }")
     wait_until(pg, "() => !!document.querySelector('#mktMode button[data-m=\"live\"]')", 10000)
     pg.click("#mktMode button[data-m='live']")
-    wait_until(pg, "() => !!document.querySelector('#mktLive .liveat')", 15000)
+    # ★ 2026-10-02（DECISIONS #296）15 → 20 秒：這一條驗的是「狀態列寫什麼」，速度由下一條（16 秒內往前走）驗。
+    #   總覽摘要卡的補位讓「大盤卡即時關掉」時主批次照樣每 5 秒一次（摘要卡自己的即時還開著），
+    #   所以上一步「大盤卡關 11 秒再打開」那 3 個分時檔請求會排到這一步，第一輪最多晚一個 5 秒窗：
+    #   實測請求時間線（點「即時」後）1.1 主批次＋分時檔、4.3 主批次 → 6.1 才輪到漲跌家數的前兩個請求，16.5 秒輪完。
+    #   大盤卡一直開著時兩版一樣快（同一套假報價量：本分支 10.7 秒、補位關掉 10.6 秒）。
+    wait_until(pg, "() => !!document.querySelector('#mktLive .liveat')", 20000)
     m1 = text(pg, "#mktLive .liveat")
     ok("[即時5秒] 漲跌家數即時：狀態列寫「每 5 秒更新」與最後更新時間（台北）",
        "每 5 秒" in text(pg, "#mktLive") and bool(re.search(r"^\d\d:\d\d:\d\d$", m1)), [m1, text(pg, "#mktLive")[:80]])
