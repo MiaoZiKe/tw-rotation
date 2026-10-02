@@ -3649,3 +3649,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 10-02 15:1x 合併上線：會員功能權限開關（#288）＋專家模型分配（DECISIONS #292）
 - 會員權限：Worker 已部署（14:43）；前端 b123ee4 合併。這批驗了：_preview（合併後）；分支上 _uitest「會員與自選五分頁、會員雲端路徑、設定面板、會員權限開關、盤中即時、自選走勢與搜尋對齊」0 問題、Worker 測試 26 條全過。
 - 專家模型：deployer／visual-designer／industry-analyst 改 sonnet；reviewer／smc-technical／security-privacy／finance-quant 釘 opus。
+
+### 10-02 16:5x 合併上線：K 線繪圖工具改版（#289）
+- 合併後驗了：_preview 綠；_uitest 繪圖工具1002 0、繪圖成交量分佈1002 0、會員權限開關 0、個股 2 紅。
+- 個股那 2 紅（「個股頁 K 線有畫出來」「tick 點下去畫得出來 canvas 0」）在合併前的 origin/main 上用同一份本機資料跑也一樣 2 紅 → 既有，不是這批造成；待查（疑似本機 stock/*.json 過舊或分時預設改動後的斷言）。
