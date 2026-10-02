@@ -19453,6 +19453,9 @@ SECTIONS = {
     # ★ 2026-10-02 深夜 Andy「誤解了」：總覽三欄（基本面｜籌碼快照｜AI 卡）、AI 四面向併一張卡＋膠囊分頁籤、指標符合／未符合左右並排、
     #   拿掉資料不足區；1440／1100／800／390（DECISIONS #297，⚠ 一律 --workers 1）
     "個股總覽三欄1002":    lambda pg, b, base, code: t_stock_ov3_1002(b, base, code),
+    # ★ 2026-10-03 Andy 三件（DECISIONS #303，⚠ 一律 --workers 1）：總覽三欄等高、本益比（每季）修畫壞（虧損季／極端值）、獲利分頁並排
+    "個股總覽等高1003":    lambda pg, b, base, code: t_stock_ov_eq_1003(b, base, code),
+    "獲利並排本益比1003":  lambda pg, b, base, code: t_profit_pe_1003(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -42245,6 +42248,274 @@ def t_stock_ov3_1002(b, base, code):
     ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
 
 
+# ===================================================================== 2026-10-03（DECISIONS #303）
+# Andy 三件：① 個股總覽三欄改等高、底部對齊 ② 本益比（每季）圖修畫壞（虧損季斷段、TTM 很小時衝到 500 撐爆 Y 軸）③ 獲利分頁全部並排
+EQ1003_GEO = r"""() => { const R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top + scrollY), r: Math.round(r.right), b: Math.round(r.bottom + scrollY), h: Math.round(r.height), w: Math.round(r.width) }; };
+  const fac = document.getElementById('ovFacets'), note = document.querySelector('#skFundCard > .note');
+  const ks = [...document.querySelectorAll('#skFundCard .kvs.skfund > .k')].map(R);
+  return { fund: R(document.getElementById('skFundCard')), chip: R(document.getElementById('skChipCard')), ai: R(document.getElementById('ovAiCard')),
+    note: R(note), noteTxt: note ? note.textContent.trim() : '', ks,
+    facSH: fac ? fac.scrollHeight : 0, facCH: fac ? fac.clientHeight : 0, facST: fac ? fac.scrollTop : 0, facOY: fac ? getComputedStyle(fac).overflowY : '',
+    cur: fac ? fac.dataset.cur : '' }; }"""
+
+
+def t_stock_ov_eq_1003(b, base, code):
+    """個股總覽三欄等高（Andy 2026-10-03，DECISIONS #303，推翻 #297 第 2 條）的真人操作驗收。
+
+      ① 1440：三張卡 top 一致、高度差 < 4px（＝籌碼快照的自然高度）
+      ② 四顆 AI 分頁籤逐一真的點：三張卡的高度一個像素都不變（AI 卡 contain:size，內容不撐高這一列）
+      ③ AI 卡內容較多時在卡裡捲：技術面按「看細節」原地展開 → 卡高不變、分頁內容比框高、滾輪在上面 → 卡裡真的往下捲、頁面不跟著捲
+      ④ 基本面卡：格子平均撐開（每列一樣高、最後一列貼近卡底）、「同族群本益比中位」那一句在卡底
+      ⑤ 1100（兩欄）、800（一欄）不強制等高：AI 卡切籤時高度會跟著內容變（技術面 ≠ 技術面訊號）
+      ⑥ 四種寬度沒有橫向捲軸、文字重疊、超出視窗"""
+    T = "[個股總覽等高1003]"
+    errs: list[str] = []
+    cd = "3189" if (SITE / "data" / "stock" / "3189.json").exists() else (code or "2330")
+    for W in (1440, 1100, 800, 390):
+        ctx = b.new_context(viewport={"width": W, "height": 1000})
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e, W=W: errs.append(f"{W}: {e}"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        tag = f"{T}{W}"
+        try:
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            pg.evaluate("() => { try { ['tw.ovAiTab', 'tw.aiOpen', 'tw.aiTab'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+            pg.goto("about:blank")
+            pg.goto(base + f"#stock/{cd}", wait_until="networkidle")
+            if W <= 640:
+                wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 5", 15000)
+                pg.click('#mbTabs button[data-t="full"]'); pg.wait_for_timeout(700)
+            if not ok(f"{tag} 打開 #stock/{cd} 有總覽三張卡", bool(wait_until(pg, "() => !!document.getElementById('skChipCard') && !!document.getElementById('ovAiCard')", 15000))):
+                ctx.close()
+                continue
+            pg.wait_for_timeout(500)
+            g0 = pg.evaluate(EQ1003_GEO)
+            f_, c_, a_ = g0["fund"], g0["chip"], g0["ai"]
+            if W == 1440:
+                hs = (f_["h"], c_["h"], a_["h"])
+                ok(f"★ {tag} 三欄等高：高度差 < 4px", max(hs) - min(hs) < 4, hs)
+                ok(f"★ {tag} 三欄 top 一致、底部對齊（≤2px）", max(f_["t"], c_["t"], a_["t"]) - min(f_["t"], c_["t"], a_["t"]) <= 2
+                   and max(f_["b"], c_["b"], a_["b"]) - min(f_["b"], c_["b"], a_["b"]) <= 2, (f_, c_, a_))
+                ok(f"{tag} 等高的高度＝籌碼快照的自然高度（≥560px 下限）", c_["h"] >= 559 and abs(a_["h"] - c_["h"]) < 4, (c_["h"], a_["h"]))
+                # ---- ② 切籤三欄高度不變
+                for k in ("sig", "fund", "news", "tech"):
+                    click(pg, f'#ovAiTags .ovtag[data-facet="{k}"]', 350)
+                    g = pg.evaluate(EQ1003_GEO)
+                    ok(f"★ {tag} 點「{k}」籤 → 切到那一面、三張卡高度都不變（±1px）",
+                       g["cur"] == k and all(abs(g[n]["h"] - g0[n]["h"]) <= 1 for n in ("fund", "chip", "ai")),
+                       (k, g["cur"], [(g0[n]["h"], g[n]["h"]) for n in ("fund", "chip", "ai")]))
+                # ---- ③ 內容多的那一面在卡裡捲
+                ok(f"{tag} AI 分頁內容框 overflow-y＝auto（內容多就在卡裡捲）", g0["facOY"] == "auto", g0["facOY"])
+                if count(pg, '#ovFacets > [data-facet="tech"] .ovmore'):
+                    click(pg, '#ovFacets > [data-facet="tech"] .ovmore', 500)
+                    g = pg.evaluate(EQ1003_GEO)
+                    ok(f"★ {tag} 技術面按「看細節」展開 → AI 卡高度不變、內容比框高（在卡裡捲）",
+                       abs(g["ai"]["h"] - g0["ai"]["h"]) <= 1 and g["facSH"] > g["facCH"] + 20, (g0["ai"]["h"], g["ai"]["h"], g["facSH"], g["facCH"]))
+                    # 先 hover（Playwright 會把元素捲進畫面，那一下頁面捲動不算）、再記 scrollY、再滾輪
+                    pg.hover("#ovFacets"); pg.wait_for_timeout(250)
+                    y0 = pg.evaluate("() => scrollY")
+                    pg.mouse.wheel(0, 240); pg.wait_for_timeout(450)
+                    g2 = pg.evaluate(EQ1003_GEO)
+                    y1 = pg.evaluate("() => scrollY")
+                    ok(f"★ {tag} 滾輪在 AI 分頁內容上 → 卡裡真的往下捲", g2["facST"] > 0, g2["facST"])
+                    ok(f"{tag} 卡裡還捲得動時頁面不跟著捲", abs(y1 - y0) <= 2 or g2["facST"] + g2["facCH"] >= g2["facSH"] - 1, (y0, y1, g2["facST"]))
+                    click(pg, '#ovFacets > [data-facet="tech"] .ovmore', 400)
+                else:
+                    notes.append(f"{T} {cd} 技術面沒有「看細節」鈕，③ 沒驗到展開後捲動")
+                # ---- ④ 基本面卡撐開
+                ks = g0["ks"]
+                rows = sorted({k["t"] for k in ks})
+                hrow = {k["h"] for k in ks}
+                ok(f"★ {tag} 基本面格子平均撐開（每格一樣高 ±1px）", len(ks) >= 4 and max(hrow) - min(hrow) <= 1, sorted(hrow))
+                last_b = max(k["b"] for k in ks) if ks else 0
+                ok(f"★ {tag} 基本面卡底沒有一大塊空白：最後一列格子＋族群中位那一句貼著卡底（剩 ≤ 40px）",
+                   bool(g0["note"]) and g0["note"]["t"] >= last_b and f_["b"] - g0["note"]["b"] <= 40, (last_b, g0["note"], f_["b"], len(rows)))
+                ok(f"{tag} 卡底那一句寫的是同族群本益比中位（或「只在同族群內比較」）", "本益比" in g0["noteTxt"], g0["noteTxt"])
+            elif W in (1100, 800):
+                click(pg, '#ovAiTags .ovtag[data-facet="tech"]', 350)
+                h_t = pg.evaluate(EQ1003_GEO)["ai"]["h"]
+                click(pg, '#ovAiTags .ovtag[data-facet="sig"]', 350)
+                h_s = pg.evaluate(EQ1003_GEO)["ai"]["h"]
+                ok(f"★ {tag} 不強制等高：AI 卡照內容長（技術面 {h_t}px ≠ 技術面訊號 {h_s}px）", abs(h_t - h_s) > 20, (h_t, h_s))
+                if W == 1100:
+                    ok(f"{tag} 兩欄：AI 卡沒有被拉成左欄（基本面＋籌碼）那麼高", a_["h"] < (c_["b"] - f_["t"]) - 20, (a_["h"], c_["b"] - f_["t"]))
+                click(pg, '#ovAiTags .ovtag[data-facet="tech"]', 300)
+            lay = pg.evaluate(SOV_LAYOUT)
+            ok(f"★ {tag} 總覽：沒有橫向捲軸、沒有超出視窗、字 ≥11px、文字不重疊",
+               lay and lay["sw"] <= 1 and not lay["wide"] and not lay["small"] and not lay["over"] and not lay["clip"], lay)
+        except Exception as ex:  # noqa: BLE001
+            ok(f"{tag} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
+        ctx.close()
+    ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
+
+PEQ1003 = r"""() => { const el = document.getElementById('peQ'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption(), S = (n) => o.series.find(s => s.name === n) || { data: [] };
+  const v = (d) => (d == null ? null : (typeof d === 'object' ? d.value : d));
+  const ext = c.getModel().getComponent('yAxis', 0).axis.scale.getExtent();
+  const loss = S('虧損').data.map(d => d != null && v(d) != null);
+  const lab = S('虧損').data.map(d => !!(d && d.label && d.label.show));
+  return { x: o.xAxis[0].data, ymax: ext[1], ymin: ext[0], cap: +el.dataset.cap, loss, lab,
+    line: S('本益比').data.map(v), hi: S('高低').data.map(v), lo: S('區間').data.map(v), over: S('超出範圍').data.map(v),
+    note: (document.getElementById('peQNote') || {}).textContent || '', h: Math.round(el.getBoundingClientRect().height) }; }"""
+PEQ1003_PX = r"""(i) => { const el = document.getElementById('peQ'); const c = echarts.getInstanceByDom(el); const o = c.getOption();
+  const r = el.getBoundingClientRect(); const p = c.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [o.xAxis[0].data[i], 0]);
+  const gr = c.getModel().getComponent('grid', 0).coordinateSystem.getRect();
+  return { x: r.left + p[0], y: r.top + gr.y + gr.height / 2 }; }"""
+
+
+def _peq_expect(pe):
+    """跟前端 peQModel 同一套口徑（DECISIONS #303）：cap＝max(200, 第 75 百分位 × 1.5)，最多 1000；TTM ≤ 0 → 虧損。"""
+    rows = [dict(r, pe=None) if not ((r.get("ttm_eps") or 0) > 0) else r for r in pe]
+    ok_ = sorted(float(r["pe"]) for r in rows if r.get("pe") is not None)
+    if ok_:
+        i = (len(ok_) - 1) * 0.75
+        lo_, hi_ = math.floor(i), math.ceil(i)
+        p75 = ok_[lo_] + (ok_[hi_] - ok_[lo_]) * (i - lo_)
+    else:
+        p75 = None
+    cap = round(min(1000, max(200, p75 * 1.5 if p75 is not None else 200)))
+    loss = [r.get("pe") is None for r in rows]
+    over = [r.get("pe") is not None and max(float(r["pe"]), float(r.get("pe_high") or 0)) > cap for r in rows]
+    return rows, cap, loss, over
+
+
+def t_profit_pe_1003(b, base, code):
+    """獲利分頁並排＋本益比（每季）修畫壞（Andy 2026-10-03，DECISIONS #303）的真人操作驗收。
+
+      ① 本益比（每季）：3105 穩懋（虧損 4 季＋2025Q3 帶上緣 527.7 倍）、3707 漢磊（2021Q3 16,550 倍＋10 季虧損）、2330（對照：一季都不截）
+         · 圖上限＝跟前端同口徑算的 cap；Y 軸最大值 ≤ cap × 1.3（不被撐到 600／16,550）
+         · 虧損季＝灰底長條（只在虧損季有）、每段連續虧損只在第一格寫「虧損」；線在虧損季留空
+         · 超出上限的季：線與帶都截在 cap（同一口徑）、▲ 標在 cap
+         · 滑鼠真的移到虧損季／超出季：提示框寫「虧損…不計本益比」／實際值＋「超出圖上限」
+         · 圖下一行寫中位數、虧損幾季、超出幾季
+      ② 獲利分頁並排：1440 第一列河流圖｜本益比（每季）、第二列 EPS 與三率｜明細表，同一列 top 一致、等高；
+         1100 河流圖與明細表滿寬、中間兩張並排等高；800 一欄依序往下；切「年」之後版面不跳
+      ③ 四種寬度（1440／1100／800／390）獲利分頁沒有文字重疊、溢出、小於 11px 的字、圖內壓字（?svg=1 量）
+      ④ 河流圖線寬滑桿與四個資訊塊還在"""
+    T = "[獲利並排本益比1003]"
+    errs: list[str] = []
+    picks = [c for c in ("3105", "3707", "2330") if (SITE / "data" / "stock" / f"{c}.json").exists()]
+    ctx = b.new_context(viewport={"width": 1440, "height": 1000})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(f"1440: {e}"))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+
+    def open_profit(c, pg=pg, svg=False, W=1440):
+        pg.goto("about:blank")
+        pg.goto(base + f"{'?svg=1' if svg else ''}#stock/{c}", wait_until="networkidle")
+        if W <= 640:
+            wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 5", 15000)
+            pg.click('#mbTabs button[data-t="full"]'); pg.wait_for_timeout(700)
+        wait_until(pg, "() => !!document.querySelector('#stockTabs button[data-t=\"profit\"]')", 15000)
+        click(pg, '#stockTabs button[data-t="profit"]', 1800)
+        return wait_until(pg, "() => !!document.getElementById('peQ') && !!document.getElementById('profGrid')", 8000)
+
+    try:
+        # ---------------------------------------------------------------- ① 本益比（每季）
+        for c in picks:
+            pe = json.loads((SITE / "data" / "stock" / f"{c}.json").read_text(encoding="utf-8")).get("pe_history") or []
+            rows, cap, loss, over = _peq_expect(pe)
+            tg = f"{T}{c}"
+            if not ok(f"{tg} 打開獲利分頁有本益比（每季）", bool(open_profit(c))) or len(rows) < 4:
+                continue
+            q = pg.evaluate(PEQ1003)
+            if not ok(f"{tg} 本益比（每季）畫出來了", bool(q), q):
+                continue
+            ok(f"★ {tg} 圖上限＝{cap} 倍（max(200, P75×1.5)，最多 1000；跟前端同口徑）", q["cap"] == cap, (q["cap"], cap))
+            raw_max = max([float(r.get("pe_high") or 0) for r in rows] + [float(r.get("pe") or 0) for r in rows])
+            ok(f"★ {tg} Y 軸上限合理：≤ 圖上限 × 1.3（原始最大 {raw_max:g} 倍）", q["ymax"] <= cap * 1.3, (q["ymax"], cap, raw_max))
+            ok(f"★ {tg} 灰底只出現在虧損季（{sum(loss)} 季），線在那幾季留空", q["loss"] == loss and all((q["line"][i] is None) == loss[i] for i in range(len(loss))),
+               (q["loss"], loss))
+            runs = [i for i in range(len(loss)) if loss[i] and not (i > 0 and loss[i - 1])]
+            ok(f"{tg} 「虧損」字只寫在每段連續虧損的第一格（{len(runs)} 段）", [i for i, s in enumerate(q["lab"]) if s] == runs, (q["lab"], runs))
+            ok(f"★ {tg} 超出上限的季（{sum(over)} 季）▲ 標在上限；線與帶都截在上限（同一口徑）",
+               [o is not None for o in q["over"]] == over and all(o == cap for o in q["over"] if o is not None)
+               and all(v is None or v <= cap + 1e-6 for v in q["line"])
+               and all(q["lo"][i] is None or q["hi"][i] is None or q["lo"][i] + q["hi"][i] <= cap + 1e-6 for i in range(len(rows))),
+               (q["over"], over))
+            ok(f"{tg} 圖下那一行寫中位數{'、虧損季' if any(loss) else ''}{'、超出上限' if any(over) else ''}",
+               "中位" in q["note"] and (("虧損" in q["note"]) == any(loss)) and (("超過圖上限" in q["note"]) == any(over)), q["note"])
+            # 真的把滑鼠移上去讀提示框
+            pg.locator("#peQ").scroll_into_view_if_needed()
+            pg.wait_for_timeout(300)
+            for kind, idxs in (("虧損", [i for i, L in enumerate(loss) if L][:1]), ("超出", [i for i, o in enumerate(over) if o][:1]),
+                               ("一般", [i for i in range(len(rows)) if not loss[i] and not over[i]][-1:])):
+                for i in idxs:
+                    p = pg.evaluate(PEQ1003_PX, i)
+                    pg.mouse.move(p["x"], p["y"]); pg.wait_for_timeout(450)
+                    tip = pg.evaluate("() => { const t = [...document.querySelectorAll('#peQ div')].filter(d => /本益比|虧損/.test(d.textContent) && getComputedStyle(d).display !== 'none' && d.offsetParent !== null).pop(); return t ? t.innerText : ''; }")
+                    r = rows[i]
+                    if kind == "虧損":
+                        ok(f"★ {tg} 滑鼠移到 {r['period']}（虧損季）→ 提示框寫「虧損（近四季 EPS {r.get('ttm_eps')} 元），不計本益比」",
+                           r["period"] in tip and "虧損" in tip and "不計本益比" in tip, tip)
+                    elif kind == "超出":
+                        real = r["pe"] if float(r["pe"]) > cap else r.get("pe_high")
+                        ok(f"★ {tg} 滑鼠移到 {r['period']}（超出上限）→ 提示框寫實際值 {real} 倍與「超出圖上限 {cap} 倍」",
+                           r["period"] in tip and f"{float(real):,.1f}" in tip and f"超出圖上限 {cap} 倍" in tip, tip)
+                    else:
+                        ok(f"{tg} 滑鼠移到 {r['period']}（一般季）→ 提示框寫本益比 {r['pe']} 倍、沒有「超出」字樣",
+                           r["period"] in tip and f"{float(r['pe']):,.1f}" in tip and "超出" not in tip, tip)
+            pg.mouse.move(5, 5)
+        # ---------------------------------------------------------------- ② 並排（1440／1100／800）
+        cd = picks[0] if picks else (code or "2330")
+        ids = ["peRiverCard", "peQCard", "profitCard", "profitTblCard"]
+        GEO = r"""(ids) => ids.map(id => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect();
+          return { id, l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top + scrollY), b: Math.round(r.bottom + scrollY), h: Math.round(r.height), w: Math.round(r.width) }; })"""
+        for W in (1440, 1100, 800):
+            pg.set_viewport_size({"width": W, "height": 1000})
+            open_profit(cd, W=W)
+            pg.wait_for_timeout(500)
+            g = pg.evaluate(GEO, ids)
+            tg = f"{T}{W}"
+            if not ok(f"{tg} 獲利分頁四張卡都在同一個並排區（#profGrid）", all(g) and pg.evaluate("(ids) => ids.every(id => document.getElementById(id).parentElement.id === 'profGrid')", ids), g):
+                continue
+            rv, pq, ep, tb = g
+            if W == 1440:
+                ok(f"★ {tg} 第一列：河流圖｜本益比（每季）並排、top 一致、等高（≤2px）", rv["r"] <= pq["l"] and rv["t"] == pq["t"] and abs(rv["h"] - pq["h"]) <= 2, (rv, pq))
+                ok(f"★ {tg} 第二列：EPS 與三率｜明細表並排、top 一致、等高（≤2px）", ep["r"] <= tb["l"] and ep["t"] == tb["t"] and abs(ep["h"] - tb["h"]) <= 2 and ep["t"] >= rv["b"], (ep, tb))
+                ok(f"{tg} 河流圖與明細表各佔兩欄寬（約為單欄的 2 倍）", rv["w"] >= pq["w"] * 1.8 and tb["w"] >= ep["w"] * 1.8, (rv["w"], pq["w"], tb["w"], ep["w"]))
+                tw = pg.evaluate("() => { const t = document.querySelector('#profitTblCard .tw'); return { sh: t.scrollHeight, ch: t.clientHeight, sw: t.scrollWidth, cw: t.clientWidth, n: t.querySelectorAll('tbody tr').length }; }")
+                ok(f"{tg} 明細表在卡裡捲（不撐高第二列）、9 欄放得下不必橫捲", tw["sh"] > tw["ch"] and tw["sw"] <= tw["cw"] + 1, tw)
+                peq_h0 = pg.evaluate("() => Math.round(document.getElementById('peQ').getBoundingClientRect().height)")
+                ok(f"{tg} 本益比（每季）的圖撐滿卡（跟河流圖同列等高，圖 ≥ 300px）", peq_h0 >= 300, peq_h0)
+                click(pg, '#profitMode button[data-v="y"]', 900)
+                g2 = pg.evaluate(GEO, ids)
+                ok(f"★ {tg} 切「年」→ 表頭換成年度明細、兩列仍各自 top 一致等高",
+                   "年度" in text(pg, "#profitTblTtl") and g2[2]["t"] == g2[3]["t"] and abs(g2[2]["h"] - g2[3]["h"]) <= 2 and g2[0]["t"] == g2[1]["t"] and abs(g2[0]["h"] - g2[1]["h"]) <= 2, g2)
+                click(pg, '#profitMode button[data-v="q"]', 700)
+                # ④ 河流圖工具列與資訊塊還在
+                ok(f"{tg} 河流圖線寬滑桿還在、四個資訊塊同一列", count(pg, "#peLw") == 1 and pg.evaluate("() => { const k = [...document.querySelectorAll('#peNote .k')]; return k.length === 4 && new Set(k.map(e => Math.round(e.getBoundingClientRect().top))).size === 1; }"))
+            elif W == 1100:
+                ok(f"★ {tg} 河流圖滿寬、明細表滿寬", abs(rv["w"] - tb["w"]) <= 2 and rv["w"] >= pq["w"] * 1.8, (rv, tb))
+                ok(f"★ {tg} 中間：本益比（每季）｜EPS 與三率並排、top 一致、等高", pq["r"] <= ep["l"] and pq["t"] == ep["t"] and abs(pq["h"] - ep["h"]) <= 2 and pq["t"] >= rv["b"] and tb["t"] >= pq["b"], (pq, ep))
+            else:
+                ok(f"★ {tg} 一欄：河流圖 → 本益比（每季）→ EPS 與三率 → 明細表依序往下、同一個左緣",
+                   rv["b"] <= pq["t"] and pq["b"] <= ep["t"] and ep["b"] <= tb["t"] and len({x["l"] for x in g}) == 1, g)
+        # ---------------------------------------------------------------- ③ 四種寬度掃描（?svg=1：圖裡的字是真的 <text>）
+        for W in (1440, 1100, 800, 390):
+            for c in picks[:2]:
+                pg.set_viewport_size({"width": W, "height": 1000})
+                open_profit(c, svg=True, W=W)
+                pg.wait_for_timeout(600)
+                tg = f"{T}{W}/{c}"
+                s = pg.evaluate(TABS1002_SCAN)
+                ok(f"★ {tg} 獲利分頁沒有文字重疊", not s.get("ov"), s.get("ov"))
+                ok(f"★ {tg} 獲利分頁沒有橫向溢出（頁面不橫捲、卡片不出框）", s["sx"] <= s["vw"] + 1 and not s["out"], (s["sx"], s["vw"], s["out"]))
+                ok(f"{tg} 獲利分頁看得到的字都 ≥ 11px", not s["tiny"], s["tiny"])
+                ct = pg.evaluate(TABS1002_CHARTTXT)
+                ok(f"★ {tg} 圖裡的字沒有互相壓到（含「虧損」標籤）", ct["n"] > 0 and not ct["ov"], (ct["n"], ct["ov"]))
+                # SVG 字的螢幕大小（getScreenCTM）：「虧損」標籤在手機上也不准小於 11px
+                fs = pg.evaluate("""() => [...document.querySelectorAll('#peQ svg text')].filter(t => /虧損/.test(t.textContent)).map(t => {
+                    const m = t.getScreenCTM(); return (parseFloat(t.getAttribute('font-size') || getComputedStyle(t).fontSize) || 0) * (m ? Math.hypot(m.a, m.b) : 1); })""")
+                if fs:
+                    ok(f"{tg} 「虧損」標籤螢幕上 ≥ 11px", min(fs) >= 10.9, fs)
+                lg = pg.evaluate(TABS1002_LEGIN)
+                ok(f"{tg} 圖內圖例沒有伸進繪圖區", not lg["bad"], lg)
+    except Exception as ex:  # noqa: BLE001
+        ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
+    ctx.close()
+    ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
 if __name__ == "__main__":
     raise SystemExit(main())
-
