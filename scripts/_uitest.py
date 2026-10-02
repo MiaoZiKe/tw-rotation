@@ -39189,7 +39189,10 @@ WS_SG = """() => { const s = document.getElementById('sugg');
     const L = (sel) => rows.map(r => { const e = r.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left * 2) / 2 : null; });
     const R = (sel) => rows.map(r => { const e = r.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().right * 2) / 2 : null; });
     const ov = rows.filter(r => { const n = r.querySelector('.nm'), k = r.querySelector('.spkw'); return n && k && n.getBoundingClientRect().right > k.getBoundingClientRect().left + 0.5; }).map(r => r.dataset.c);
-    return { n: rows.length, spk: L('.spkw'), tvR: R('.tv').filter(x => x != null), chgR: R('.chg').filter(x => x != null), ov,
+    const sr = s.getBoundingClientRect(), inR = sr.left + s.clientLeft + s.clientWidth;
+    const clip = rows.filter(r => { const e = r.querySelector('.chg'); return e && e.getBoundingClientRect().right > inR + 0.5; }).map(r => r.dataset.c);
+    return { n: rows.length, spk: L('.spkw'), tvR: R('.tv').filter(x => x != null), chgR: R('.chg').filter(x => x != null), ov, clip,
+      nchg: rows.filter(r => r.querySelector('.chg')).length,
       sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
 WS_ST = """() => { const t = document.getElementById('wpTbl'); const card = document.querySelector('#v-watch .wpcard');
     const main = document.querySelector('#v-watch');
@@ -39219,20 +39222,24 @@ def t_watch_spark(b, base):
         wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0 && !!window.TwWatch", 8000)
 
         # ---- ① 搜尋下拉：熱門股票每一列的走勢圖起點一致、不壓名稱、成交值／漲跌幅右緣對齊
-        if W != 390 or pg.evaluate("() => !!document.getElementById('q') && document.getElementById('q').getClientRects().length > 0"):
+        # 手機的搜尋框收在頂列「⌕」鈕（#mSearchBtn）後面，打開的是同一個 #sugg —— 390 也要驗，不准跳過
+        qvis = pg.evaluate("() => !!document.getElementById('q') && document.getElementById('q').getClientRects().length > 0")
+        if True:
             try:
                 pg.evaluate("() => { const q = document.getElementById('q'); q.blur(); q.value = ''; }")
-                pg.click("#q"); wait_until(pg, "() => document.querySelectorAll('#sugg .spkw svg').length >= 5", 5000)
+                pg.click("#q" if qvis else "#mSearchBtn"); wait_until(pg, "() => document.querySelectorAll('#sugg .spkw svg').length >= 5", 5000)
                 s = pg.evaluate(WS_SG)
                 spk = [x for x in s["spk"] if x is not None]
                 ok(f"{T}{W} 搜尋下拉各列走勢圖 left 一致", s["n"] >= 5 and len(spk) == s["n"] and max(spk) - min(spk) <= 0.5, s)
                 ok(f"{T}{W} 名稱不壓到走勢圖", not s["ov"], s)
+                # 欄寬固定後一列變長：以前桌機下拉 340px，漲跌幅整欄被擠到框外看不到 —— 驗它真的在框裡
+                ok(f"{T}{W} 漲跌幅在下拉框裡看得到（沒被擠出去）", s["nchg"] >= 5 and not s["clip"], s)
                 ok(f"{T}{W} 成交值、漲跌幅右緣對齊", len(s["tvR"]) >= 5 and max(s["tvR"]) - min(s["tvR"]) <= 0.5
                    and max(s["chgR"]) - min(s["chgR"]) <= 0.5, s)
                 ok(f"{T}{W} 搜尋下拉不撐出橫向捲軸", s["sw"] <= s["vw"], s)
                 pg.keyboard.press("Escape")
-            except Exception as e:  # 手機版搜尋框藏在別處時，下拉那段由「搜尋近期熱門Logo」驗
-                ok(f"{T}{W} 搜尋下拉打得開", W == 390, str(e)[:200])
+            except Exception as e:
+                ok(f"{T}{W} 搜尋下拉打得開", False, str(e)[:200])
 
         # ---- ② 自選頁：放三檔（名稱長短不同），用滿寬、每列有走勢圖
         pg.evaluate("""() => { const T = TwWatch; T.curTab().codes.slice().forEach(c => T.remove(c));
@@ -39251,6 +39258,11 @@ def t_watch_spark(b, base):
         ok(f"{T}{W} 點走勢圖在那一列下方展開", st["exp"] == "2330" and st["prev"] == "2330" and st["nexp"] == 1, st)
         ok(f"{T}{W} 展開圖高 250～330、真的畫了線", 250 <= st["h"] <= 330 and st["mode"] == "line" and st["ec"] and st["n"] >= 2, st)
         ok(f"{T}{W} 展開不離開自選頁", st["hash"] == "#watch", st)
+        # Y 軸刻度標籤彼此不重疊（以前手算 min／max 會在 4,900 底下多冒一個 4,878 疊在一起）
+        yov = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('wpxC'));
+            const ys = i.getModel().getComponent('yAxis').axis.getTicksCoords().map(t => t.coord).sort((a, b) => a - b);
+            let m = 1e9; for (let k = 1; k < ys.length; k++) m = Math.min(m, ys[k] - ys[k - 1]); return Math.round(m); }""")
+        ok(f"{T}{W} 展開走勢圖 Y 軸刻度間距夠（標籤不疊）", yov >= 14, yov)
         if W == 390:
             ok(f"{T}{W} 手機展開圖用滿寬（扣卡片內距）", st["w"] >= st["cardW"] - 50, st)
             ok(f"{T}{W} 手機自選表不超出卡片", pg.evaluate("() => document.getElementById('wpTbl').getBoundingClientRect().right <= document.querySelector('#v-watch .wpcard').getBoundingClientRect().right + 1"), "表格右緣超出卡片")

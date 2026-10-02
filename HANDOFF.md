@@ -8,6 +8,11 @@
 - [x] 新增 `Industry.watchBars(code, tf)`：走個股頁同一條載入路（stock JSON ＋ m60 ＋ groupBars），不接即時、不打 mis（`site/industry.js`）
 - **這批只驗了**：`_uitest.py --sections 自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單,搜尋近期熱門Logo,輪盤只留點與自選分頁`（新段落 1730／800／390 三寬）＋ `_preview.py`
 - 已知限制：展開圖的日 K 最後一根是上一個交易日（刻意不接 withToday，見 DECISIONS #282）；手機 390 自選表的公司 Logo 藏起來讓名稱有 112px。
+- **2026-10-02 接手補完**（前一位額度中斷，WIP e7f92a7）：合進最新 main（含 live-dim-range，DECISIONS／HANDOFF 兩邊保留）；
+  修桌機下拉 340px 把「漲跌幅」整欄擠出框外（改 440px）；展開走勢圖 Y 軸改 `scale:true`（原本多冒一個刻度疊字）；390 搜尋下拉改點 `#mSearchBtn` 照驗，不再跳過。
+- **這批驗了（2026-10-02 重跑）**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單,搜尋近期熱門Logo,分時預設與搜尋走勢`
+  → 前四段 0 問題；「分時預設與搜尋走勢」1 個紅＝「E 找得到一檔 meta.m60＝ok 的股票」—— 本機 site/data/stock/*.json 是 09-30 以前建的、沒有 `meta.m60` 欄位，屬本機資料過舊，跟這批無關（線上 payload 會重算）。
+  本機 m60 只用 `_m60_payload` 補了 2330／2454／1303／2317／2603／3008 六檔。
 
 ## 即時模式開著時日期／時間拉Bar 反灰（2026-10-01，台北，UI 專家，分支 `claude/live-dim-range`，**未推 main**）
 - Andy：「當點選即時功能，旁邊的日期以及時間拉Bar 都需反灰」→ DECISIONS #283。共用 `app.js` 的 `liveDim()`＋`index.html` 的 `.rbar.livedim`。

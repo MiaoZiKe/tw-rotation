@@ -270,13 +270,14 @@
       if (pts.length < 2) { box.innerHTML = '<div class="empty">這檔還沒有走勢資料</div>'; box.dataset.state = 'empty'; return; }
       const up = pts[pts.length - 1][1] >= pts[0][1];
       const col = getComputedStyle(document.documentElement).getPropertyValue(up ? '--rise' : '--fall').trim() || (up ? '#ff4d5e' : '#22c55e');
-      const vals = pts.map((p) => p[1]), lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.08 || 1;
+      const vals = pts.map((p) => p[1]);
       const ax = (a && a.axisStyle) || {};
       a.chart(box, {
         animation: false, grid: { left: 8, right: 54, top: 10, bottom: 24, containLabel: false },
         tooltip: { trigger: 'axis', valueFormatter: (v) => (a.fmt ? a.fmt.n(v) : v) },
-        xAxis: Object.assign({}, ax, { type: 'category', data: pts.map((p) => p[0]), boundaryGap: false, axisLabel: Object.assign({}, ax.axisLabel || {}, { fontSize: 11, hideOverlap: true }) }),
-        yAxis: Object.assign({}, ax, { type: 'value', position: 'right', min: +(lo - pad).toFixed(2), max: +(hi + pad).toFixed(2), axisLabel: Object.assign({}, ax.axisLabel || {}, { fontSize: 11 }) }),
+        xAxis: Object.assign({}, ax, { type: 'category', data: pts.map((p) => p[0]), boundaryGap: false, axisLabel: Object.assign({}, ax.axisLabel || {}, { fontSize: 11, hideOverlap: true, alignMinLabel: 'left', alignMaxLabel: 'right' }) }),
+        // scale:true 讓 ECharts 自己挑整數刻度：以前手算 min／max 會在 4,900 底下多冒一個 4,878，兩個標籤疊在一起
+        yAxis: Object.assign({}, ax, { type: 'value', position: 'right', scale: true, axisLabel: Object.assign({}, ax.axisLabel || {}, { fontSize: 11 }) }),
         series: [{ type: 'line', data: vals, showSymbol: false, lineStyle: { width: 1.6, color: col }, areaStyle: { color: col, opacity: 0.08 } }],
       });
       box.dataset.n = String(pts.length);
