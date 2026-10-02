@@ -5058,12 +5058,15 @@
     if (!mo.length) { el.innerHTML = '<div class="card"><div class="empty">月營收歷史資料準備中</div></div>'; return; }
     const last = mo[mo.length - 1];
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新月份</div><div class="v">${last[0]}</div></div><div class="k"><div class="l">單月營收</div><div class="v">${A.fmt.yi(last[1])}</div></div><div class="k"><div class="l">YoY</div><div class="v ${A.fmt.cls(last[2])}">${A.fmt.pct(last[2])}</div></div><div class="k"><div class="l">MoM</div><div class="v ${A.fmt.cls(last[3])}">${A.fmt.pct(last[3])}</div></div><div class="k"><div class="l">累計營收</div><div class="v">${A.fmt.yi(last[4])}</div></div><div class="k"><div class="l">累計 YoY</div><div class="v ${A.fmt.cls(last[5])}">${A.fmt.pct(last[5])}</div></div></div>
-      <div class="grid g2"><div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>營收走勢 <small id="revSub" data-readout></small> ${hq('skrev', '營收走勢')}</h3>
+      <div class="grid skrev3" id="revGrid"><div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>營收走勢 <small id="revSub" data-readout></small> ${hq('skrev', '營收走勢')}</h3>
         <div class="row" style="gap:8px"><div class="seg" id="revView" role="group" aria-label="月或年"><button type="button" data-v="m">月走勢</button><button type="button" data-v="y">年度走勢</button></div>
         <div class="seg" id="revWin" role="group" aria-label="幾個月"><button type="button" data-v="12">12 月</button><button type="button" data-v="24">24 月</button><button type="button" data-v="36">36 月</button></div></div></div>
         ${hbox('skrev', ['月走勢：當月（青）＋去年同期（灰）並排', '線＝MoM、YoY（右軸 %）', '年度走勢：每年合計＋年增率', '今年未滿 12 個月＝跟去年同期幾個月比', '右上切 12／24／36 個月'])}<div id="revBar" class="chart"></div></div>
-      <div class="card"><div class="row spread"><h3>逐年同月比較 ${hq('skrevy', '逐年同月比較')}</h3>${hbox('skrevy', ['每條線＝一年，同月份疊在一起比', '最粗那條＝今年', '看哪幾個月固定比較高＝旺季', '右上切單月／累計'])}<div class="seg" id="revMode"><button data-v="m" class="on">單月</button><button data-v="c">累計</button></div></div><div id="revYear" class="chart"></div></div></div>
-      <div class="card" style="margin-top:var(--gap-card)"><h3>月營收明細 <small data-readout>單位：百萬元</small></h3><div class="tw" style="max-height:360px"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div>`;
+      <div class="card"><div class="row spread"><h3>逐年同月比較 ${hq('skrevy', '逐年同月比較')}</h3>${hbox('skrevy', ['每條線＝一年，同月份疊在一起比', '最粗那條＝今年', '看哪幾個月固定比較高＝旺季', '右上切單月／累計'])}<div class="seg" id="revMode"><button data-v="m" class="on">單月</button><button data-v="c">累計</button></div></div><div id="revYear" class="chart"></div></div>
+      <div class="card tblcard" id="revTblCard"><h3>月營收明細 <small data-readout>單位：百萬元</small></h3><div class="tw"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div></div>`;
+    /* ★ 2026-10-02（Andy #stock/1709，DECISIONS #285）：改前「營收走勢｜逐年同月」兩欄＋下面一張整列的月營收明細長表；
+       改後三張卡並排（#revGrid .skrev3，跟總覽三欄同一套），明細表是第三欄、高度跟兩張圖卡一樣、在卡裡捲（.tblcard）。
+       ≤1100 兩欄（明細表跨滿第二列）、≤820 一欄依序往下排。*/
     /* ★ 2026-09-27（Andy 給的券商 App「營收：月走勢｜年度走勢」）：
        月走勢＝當月與去年同期兩組柱並排（去年同期取 payload 第 7 欄；舊 payload 沒有就從月份表自己對），MoM、YoY 兩條線吃右軸 %；
        年度走勢＝每年合計柱＋年增率線。今年還沒過完：年增率只跟「去年同樣那幾個月」比，x 軸寫「2026（1–8 月）」，
@@ -5484,6 +5487,17 @@
     apply();
   }
 
+  /* ★ 2026-10-02（Andy #stock/1709：「中間那條本益比線的粗細可以調整」，DECISIONS #285）：
+     河流圖中間那條收盤線的寬度，工具列「線寬」滑桿 1～5px（0.5 一格），存 localStorage tw.peLineW。
+     沒調過＝改前的口徑（設定面板的本益比線寬 w ＋ 0.8，預設 1.8px），所以沒碰過滑桿的人畫面不變。
+     只管河流圖這一條線；上面 K 線的本益比帶仍吃設定面板的 w。*/
+  const PE_LW_KEY = 'tw.peLineW';
+  function peLineW(S) {
+    let v = null;
+    try { v = parseFloat(localStorage.getItem(PE_LW_KEY)); } catch (e) { /* 私密視窗 */ }
+    if (v >= 1 && v <= 5) return v;
+    return (S && S.w ? S.w : 1) + 0.8;
+  }
   function drawPeRiver(id, r0, mode, st) {
     const S = st || peStyle(null), ZN = S.zones;
     if (!r0) { A.empty(id, '需要至少四季連續財報，才算得出近四季 EPS'); return; }
@@ -5535,10 +5549,10 @@
     const closeC = light ? '#10182e' : '#ffffff';
     if (mode === 'fill') {
       series.push({ name: '收盤外框', type: 'line', data: r.close, symbol: 'none', z: 5, silent: true,
-        lineStyle: { color: light ? 'rgba(255,255,255,.75)' : 'rgba(0,0,0,.55)', width: S.w + 3.4 } });
+        lineStyle: { color: light ? 'rgba(255,255,255,.75)' : 'rgba(0,0,0,.55)', width: peLineW(S) + 2.6 } });   // 外框永遠比收盤線粗 2.6（改前 w+3.4＝(w+0.8)+2.6）
     }
     series.push({ name: '收盤', type: 'line', data: r.close, symbol: 'none', z: 6, silent: true,
-      lineStyle: { color: closeC, width: S.w + 0.8 } });
+      lineStyle: { color: closeC, width: peLineW(S) } });
     /* Y 軸手動範圍（拖曳左側價格軸縮放，見 wirePeYAxis）：有設就蓋過自動算的上下界；自動值留著給拖曳當起點。*/
     const autoY = { min: yMin, max: yMax };
     if (peY) { yMin = peY.min; yMax = peY.max; }
@@ -5638,6 +5652,8 @@
           <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
           <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
             <input id="peOpa" type="range" min="10" max="100" step="5"><span class="val" id="peOpaV"></span></label>
+          <label class="opabox" title="中間那條收盤線的粗細（1～5px，記在這台瀏覽器）">線寬
+            <input id="peLw" type="range" min="1" max="5" step="0.5"><span class="val" id="peLwV"></span></label>
           <button type="button" class="btn small" id="peYReset" hidden title="Y 軸回到自動範圍（在左側價格軸上雙擊也可以）">Y 軸還原</button>
         </div></div>
         <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:6px">
@@ -5651,7 +5667,7 @@
           '拉 Bar 選長度與截止日，▶ 一天天播',
           '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
-        <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="note" id="peNote" data-readout></div></div>
+        <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="pekvs" id="peNote" data-readout></div></div>
       <div class="grid g2" style="margin-top:var(--gap-card)"><div class="card"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['每季一點＝財報可用日收盤 ÷ 近四季 EPS', '虧損（EPS ≤ 0）那季不算', '跟自己的過去比，看現在貴不貴'])}<div id="peQ" class="chart"></div></div></div>
       <div class="card" style="margin-top:var(--gap-card)"><h3 id="profitTblTtl">季報明細</h3><div class="tw" style="max-height:360px" id="profitTbl"></div></div>`;
     const pct = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
@@ -5716,13 +5732,20 @@
       if (opaV) opaV.textContent = mode === 'mult' ? '—' : cur + '%';
       drawPeRiver('peChart', river, mode, st);
       wirePeWin(el, river, () => drawPeRiver('peChart', river, mode, peStyle(state.cfg || loadCfg())));
+      const lw = $('#peLw', el), lwV = $('#peLwV', el), lwNow = peLineW(st);
+      if (lw) lw.value = String(Math.round(lwNow * 2) / 2);
+      if (lwV) lwV.textContent = (Math.round(lwNow * 10) / 10) + 'px';
+      /* ★ 2026-10-02（#285）：改前圖下一整行用「·」串四件事，寬螢幕一行讀不完、窄畫面折成三四行；
+         改成四個並排的小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜讀法＋色帶由低到高的小色票），窄畫面自己換行。*/
       if (note) {
+        const kv = (l, v, k) => `<div class="k" data-k="${k}"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+        const sw = mode === 'mult' ? '' : `<span class="zsw" aria-hidden="true">${st.zones.map(z => `<i style="background:${z.c}" title="${z.name}"></i>`).join('')}</span>`;
         note.innerHTML = river
-          ? `目前本益比 <b>${A.fmt.n(river.curPe, 1)}</b> 倍（近四季 EPS ${A.fmt.n(river.lastEps)} 元）`
-            + `　·　落在 <b style="color:${st.zones[river.zoneIdx].c}">${river.zone.name}</b> 區`
-            + `　·　這一檔的歷史倍數帶：${river.mult.join(' / ')}`
-            + `　·　${HOWTO[mode]}`
-          : '這一檔還沒有四季連續財報（或近四季 EPS 是負的），河流圖算不出來。';
+          ? kv('目前本益比', `<b>${A.fmt.n(river.curPe, 1)}</b> 倍 <small>近四季 EPS ${A.fmt.n(river.lastEps)} 元</small>`, 'pe')
+            + kv('落在哪一區', `<b style="color:${st.zones[river.zoneIdx].c}">${river.zone.name}</b> 區 <small>${river.zoneIdx + 1}／6，越上面越貴</small>`, 'zone')
+            + kv('歷史倍數帶', `<span class="mono">${river.mult.join(' / ')}</span> <small>倍</small>`, 'mult')
+            + kv('怎麼讀', `${sw}${HOWTO[mode]}`, 'how')
+          : '<div class="k"><div class="v">這一檔還沒有四季連續財報（或近四季 EPS 是負的），河流圖算不出來。</div></div>';
       }
     };
     $$('#peMode button', el).forEach(b => b.onclick = () => {
@@ -5740,6 +5763,12 @@
       // 色帶模式寫 o（跟上面 K 線的本益比帶共用，DECISIONS #145）；填滿模式寫自己的 of
       c.st.pe = Object.assign({}, c.st.pe, mode === 'fill' ? { of: +opa.value } : { o: +opa.value });
       state.cfg = c; saveCfg(c);
+      paint();
+    };
+    const lwIn = $('#peLw', el);
+    if (lwIn) lwIn.oninput = () => {
+      const v = Math.max(1, Math.min(5, +lwIn.value || 2));
+      try { localStorage.setItem(PE_LW_KEY, String(v)); } catch (e) { /* 私密視窗：這一次照樣重畫，只是不記 */ }
       paint();
     };
     /* 縮放與拖曳（Andy 2026-09-16：「具備縮放功能，游標可以抓取移動」）。
@@ -5916,12 +5945,14 @@
     return redraw;
   }
   const chipSeg = (id, list, lbl) => `<div class="seg" id="${id}" role="group" aria-label="${lbl}">${list.map(x => `<button type="button" data-v="${x.v}">${x.t}</button>`).join('')}</div>`;
-  const chipTbl = (id) => `<div class="tw chipTbl" id="${id}" style="max-height:320px;margin-top:10px"></div>`;
+  /* ★ 2026-10-02（Andy #stock/1709，DECISIONS #285）：三頁「上圖下長表」→ 左圖右表並排（.skduo），明細表自成一張卡（.tblcard），
+     高度跟左邊圖卡一樣、表在卡裡捲；≤1100 疊成上下。三頁共用這一組（chipTbl／chipCardHtml），版型一致。*/
+  const chipTbl = (id, title) => `<div class="card tblcard" id="${id}Card"><h3>${title || '每日明細'}</h3><div class="tw chipTbl" id="${id}"></div></div>`;
   const chipK = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
   /* 資料還不到 CHIP_MIN 天：不畫一條兩點的假斜線，直接列最新數字 */
   const chipNums = (key, title, sub, kvs, why) => `<div class="card"><h3>${title} <small data-readout>${sub}</small> ${hq(key, title)}</h3>${hbox(key, ['資料天數還不夠畫走勢，先列最新數字'])}
       <div class="kvs" style="margin-top:10px">${kvs}</div><div class="note" style="margin-top:8px">${why}</div></div>`;
-  const chipCardHtml = (key, id, title, seg, items, extra, style) => `<div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>${title} ${hq(key, title)}</h3>${seg || ''}</div>${hbox(key, items)}<div id="${id}" class="chart chipChart"${style ? ` style="${style}"` : ''}></div>${extra || ''}</div>`;
+  const chipCardHtml = (key, id, title, seg, items, extra, style) => `<div class="skduo chipduo" id="${id}Duo"><div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>${title} ${hq(key, title)}</h3>${seg || ''}</div>${hbox(key, items)}<div id="${id}" class="chart chipChart"${style ? ` style="${style}"` : ''}></div></div>${extra || ''}</div>`;
 
   /* ---- 法人：外資｜投信｜自營商｜合計；柱＝每日買賣超、線＝區間累計（視窗第一天起算）；下方每日表 ---- */
   function tabInst(pg, el) {
@@ -5936,7 +5967,7 @@
     const imap = new Map(iv.map(r => [String(r[0]).slice(0, 10), r]));
     const body = chipCardHtml('skinst', 'instChart', '三大法人買賣超', chipSeg('instSeg', INST_SEGS, '法人別'),
       ['上方切外資／投信／自營商／合計', '柱＝每日買賣超（紅＝買超、綠＝賣超，張）', '線＝區間累計（從區間第一天起算）', '自營商＝自行買賣＋避險，滑過看拆分', '累計線一路往上＝這段期間持續買進'],
-      chipTbl('instTbl'), 'min-height:340px');
+      chipTbl('instTbl', '每日明細'), 'min-height:340px');
     const redraw = chipPage(pg, el, 'inst', body, (dates, win) => {
       const { xCat } = chipAxis(dates, win);
       const seg = INST_SEGS.find(x => x.v === iseg) || INST_SEGS[0];
@@ -5982,7 +6013,7 @@
     const mmap = new Map(mg.map(r => [String(r[0]).slice(0, 10), r]));
     const body = chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
       ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '借券賣出多為法人避險，不是融券', '融資一路增加＝散戶加碼，留意籌碼變亂'],
-      chipTbl('mgTbl'), 'min-height:340px');
+      chipTbl('mgTbl', '每日明細'), 'min-height:340px');
     const redraw = chipPage(pg, el, 'margin', body, (dates, win) => {
       const { xCat } = chipAxis(dates, win);
       const nTrade = dates.length;
@@ -6059,14 +6090,14 @@
        集保官網的歷史查詢頁不在合規來源白名單內（CLAUDE.md 絕對不做 1）。所以只能從資料湖第一週（2026-09-04）起往後累積。
        畫面上用讀者聽得懂的一句話講，不寫資料集或帳號等級；滿一年（52 週）之後這句自動換成一般的讀圖提示。*/
     const growing = ho.length < 52
-      ? `<div class="note hoNote" data-readout style="margin-top:6px">集保中心每週只公開最新一週的持股分級，更早的週資料無法補回，所以從 ${A.fmt.esc(ho[0][0])} 起每週累積，目前 ${ho.length} 週</div>`
+      ? `<div class="note hoNote" data-readout data-weeks="${ho.length}" style="margin-top:6px"><b>目前累積 ${ho.length} 週，每週五自動增加</b>（從 ${A.fmt.esc(ho[0][0])} 起）。集保中心每週只公開最新一週的持股分級，更早的週資料無法補回</div>`
       : `<div class="note hoNote" data-readout style="margin-top:6px">每週公布一次：點＝公布日，點與點之間只是連線</div>`;
     /* 設計 v4 2B：三顆色塊（圖例兼開關）從標題下面獨佔的一列（10＋36＋4＝50px）搬進標題列，
        放不下（窄畫面）時整組自己換到下一行，跟改前一樣。id、按鈕、行為都不變。
        DOM 順序是「標題、日期、色塊」：窄的時候先換行的是色塊（日期留在標題那一行），寬的時候 CSS 用 order 把色塊排到中間。*/
-    const body = `<div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
+    const body = `<div class="skduo chipduo" id="hoDuo"><div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
       ${hbox('skho', ['上方色塊＝圖例，按一下隱藏／顯示那一條', '千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
-      <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${growing}${insNote}${chipTbl('hoTbl')}</div>`;
+      <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${growing}${insNote}</div>${chipTbl('hoTbl', '每週明細')}</div>`;
     /* 設計 v4 2B：手機（≤640）三顆色塊維持改前的位置（標題列下面獨佔一列）—— 手機版面這一批不動。
        chipPage 會先把 body 寫進去再畫圖，所以在第一次畫圖之前（draw 的最前面）搬一次就好。*/
     let hoPlaced = false;

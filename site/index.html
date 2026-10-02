@@ -789,6 +789,27 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* 這個週期這檔沒有資料：灰掉但還是點得下去，點了會說明為什麼沒有 */
 .seg button.off{color:var(--ink-3);opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
 .seg button.off.on{background:var(--line-2);color:var(--ink-2);text-decoration:none;opacity:1}
+/* ★ 2026-10-02（Andy #stock/1709，DECISIONS #285）：個股頁「圖＋明細表」一律並排，不再上圖下長表。
+   · .skduo：法人／資券／大戶散戶三頁共用 —— 左＝圖卡（1.75 份），右＝明細表卡（最窄 300px）；≤1100 疊成上下（圖在上）。
+   · .skrev3：營收分頁三張卡（營收走勢｜逐年同月｜月營收明細），桌機三欄＝跟總覽的 .g3 同一套；≤1100 兩欄、明細表跨滿一列；≤820 一欄。
+   · .tblcard：明細表卡 contain:size —— **表格的長度不參與決定這一列多高**（不然 36 個月的表會把旁邊兩張圖卡撐成 1000px），
+     高度＝同列的圖卡高度（stretch）；單獨一列時退回 min-height。表在卡裡自己捲（.tw flex:1）。*/
+.skduo{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);gap:var(--gap-card,16px);align-items:stretch}
+.skduo>*,.skrev3>*{min-width:0}
+.skrev3{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+.tblcard>h3{flex:none}
+.tblcard>.tw{flex:1 1 0;min-height:0;max-height:none!important;margin-top:8px;scrollbar-width:thin}
+@media (max-width:1100px){.skduo{grid-template-columns:minmax(0,1fr)} .skrev3{grid-template-columns:repeat(2,minmax(0,1fr))} .skrev3>.tblcard{grid-column:1 / -1}}
+@media (max-width:820px){.skrev3{grid-template-columns:minmax(0,1fr)}}
+/* 本益比河流圖下方讀數：四個並排的小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜讀法），取代改前一整行「·」串起來的長句 */
+.pekvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px}
+.pekvs .k{background:var(--panel-3);border-radius:9px;padding:6px 10px;min-width:0}
+.pekvs .k .l{font-size:12px;color:var(--ink-3)}
+.pekvs .k .v{font-size:14px;font-weight:600;color:var(--ink);line-height:1.45;overflow-wrap:anywhere}
+.pekvs .k .v small{font-size:12px;font-weight:400;color:var(--ink-3)}
+.pekvs .zsw{display:inline-flex;gap:2px;vertical-align:middle;margin-right:6px}
+.pekvs .zsw i{width:12px;height:10px;border-radius:2px;display:inline-block}
 /* ★ 2026-09-28 個股「法人／資券／大戶散戶」三頁：表格裡「目前選中的那一段」欄位反白，對得上上面的圖 */
 .chipTbl th.sel{color:var(--cyan)}
 .chipTbl td.sel{background:color-mix(in srgb,var(--cyan) 7%,transparent);font-weight:700}

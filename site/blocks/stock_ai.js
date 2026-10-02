@@ -92,6 +92,14 @@
 /* 右欄不畫外框（外框＋內距要多吃 22px 高度＝K 線多被推 22px），只用左側一條分隔線跟名稱區分開 */
 #skChartCard.aiside>#skAi{grid-column:2;grid-row:1 / span 2;align-self:stretch;margin-top:0;
   border-left:1px solid var(--line);padding-left:18px}
+/* ★ 2026-10-02（Andy #stock/1709：「AI 分析展開時不准影響旁邊版面」，DECISIONS #285）：
+   改前 AI 區的高度＝內容高度，格線兩列跟著它長高 → 展開把左邊的價格列、週期鈕、K 線往下推，收合又彈回來。
+   改後 contain:size —— AI 區**不再用自己的內容決定格線高度**，只貢獻一個固定的保留高度 --aiH；
+   左欄比它高（窄卡片工具列折行）就 stretch 撐滿左欄。展開／收合／換面向都只改 AI 區裡面，
+   格線高度兩種狀態一模一樣，左欄與 K 線一個像素都不動。內容比保留高度長＝內容區自己捲（.aibody flex:1 + overflow:auto）。
+   --aiH 228：1440 左欄（名稱區＋工具列）約 171px，保留 228 讓內容區還有約 120px（5～6 行）可讀，K 線比「右欄留空」低約 57px，
+   跟改前「展開」狀態的位置差不多（改前展開推約 47～55px），所以預設展開的人看不出 K 線位置有變。*/
+
 /* 內容區高度：兩欄時 132px（量過：1440 左欄＝名稱區 121＋工具列 50 ＝ 171px，AI 區固定部分約 95px，
    132 讓 K 線最多被推約 55px；卡片再窄一點工具列會折行，左欄變高、內容區自動吃掉多出來的高度）。
    單欄（卡片 < WIDE＝600，只剩「右側事件欄開著＋視窗很窄」會走到）時 AI 區只能排在名稱區下面、一定會推 K 線，所以壓到 110px（約 5～6 行，底部淡出提示還能捲）。*/
@@ -131,7 +139,12 @@
 .aitag.warn{background:rgba(255,180,84,.16);color:var(--amber)}
 /* 內容區：固定高度、區內捲動（不撐高標題列）。收合＝整個 hidden */
 #skAi .aibody{height:var(--aibh);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px;min-width:0}
-#skChartCard.aiside>#skAi .aibody{flex:1 1 var(--aibh);height:auto;min-height:var(--aibh)}
+#skChartCard.aiside>#skAi .aibody{flex:1 1 0;height:auto;min-height:0}
+/* 單欄退路（卡片 < 600、視窗 > 640：右側事件欄開著又把視窗拉窄才會走到）：內容區改成**浮層**往下展開、蓋在 K 線上面，
+   不佔版面 —— 展開／收合 K 線都不動（同一條 #285）。點「收合 ▴」或任一標籤就收回/切換。*/
+#skChartCard:not(.aiside)>#skAi{position:relative}
+#skChartCard:not(.aiside)>#skAi>.aibody{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:40;height:auto;max-height:min(320px,60vh);
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow),0 14px 32px -12px rgba(0,0,0,.55);padding:10px 12px}
 /* 下面還有字 → 底部淡出一條，提示「區內還能往下捲」（捲到底就拿掉）*/
 #skAi .aibody.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);mask-image:linear-gradient(#000 calc(100% - 22px),transparent)}
 #skAi .aisec h4{margin:0 0 4px;font-size:13px;font-weight:400;color:var(--ink-2)}
