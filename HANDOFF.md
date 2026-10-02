@@ -1,5 +1,23 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 個股總覽改三欄＋AI 卡分頁籤＋指標左右並排（2026-10-03 02:25，台北，UI 專家，分支 `claude/stock-ov-3col`，**未推 main**，DECISIONS #297）
+
+- Andy（10-02 23:xx）看了 #294 上線版說「誤解了」。基於 main 5acc47f 開分支；交付前再 `git merge origin/main`（期間 main 沒有新 commit）。
+- [x] 總覽：桌機三欄（基本面｜籌碼快照｜AI 卡，1 : 1 : 1.2，頂端對齊、自然高度）；容器 790～1080（視窗約 820～1110）兩欄＝基本面＋籌碼左欄、AI 右欄；更窄一欄。
+- [x] 籌碼快照卡內四塊一律由上往下（法人 → 集保 → 信用與借券（含當沖率）→ 量比）。
+- [x] AI 四面向併成一張卡（`StockAI.ovCard`）：標題＋緊貼的免責 → 一行重點 → `.seg` 膠囊分頁籤（每顆帶判讀）→ 一次一面；預設技術面、存 `tw.ovAiTab`、方向鍵可換。
+- [x] 頂部 #skAi 收合時點小標籤 → 捲到總覽 AI 卡並切到那一面（`gotoFacet` → `setOvTab`）。
+- [x] 指標分頁：拿掉「資料不足」區；符合（左）／未符合（右）並排、欄內往下排；視窗 ≤820 上下排。
+- [x] 會員權限 `stock.ai` 選擇器沒改、照樣鎖得到（#ovAiBrief＝重點那一行、#ovFacets [data-ai]＝三個 AI 面）；分頁籤不鎖，關掉 AI 時照樣切得到技術面訊號。
+- 改的函式：`site/industry.js` `tabOverview`（三欄外殼、右欄改叫 ovCard）、`tabTags`（拿掉資料不足、左右兩欄 #tagCols、0 項佔位）；`chipCard` 的 JS 沒改（垂直排列是 CSS）。
+  `site/blocks/stock_ai.js` `gotoFacet`（捲到 AI 卡＋切籤）、`ovCss`（AI 卡樣式）、`brief`（只剩一行重點）、新增 `readOvTab`／`setOvTab`／`ovCard`、`bindOverview`（籤＝卡內切換＋方向鍵）、`facetHead` 拿掉；`facetCards` 沒改。
+  `site/index.html`：`.skov3`／`.skovkpi`／`.mixes`／`.skfacets`／`.tagcols`／`.tagnone` 與拿掉 `.tagtile.na`。`site/features.js`、`site/modules.js` 只改註解與 tests 清單。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 個股總覽三欄1002,個股總覽1002,個股頂部1002,個股AI分析0926,個股,會員權限開關,手機,新-版面等高與多寬度` 全部 0 個問題（452 秒）；
+  另跑 `積木-個股三卡`（比技術面訊號 outerHTML）0。新段落「個股總覽三欄1002」（1440／1100／800／390）反向驗證：拿掉三欄 display:contents＋籌碼改橫排＋不寫 tw.ovAiTab → 紅 34 條。
+  「個股總覽1002」改的斷言：資料不足區改驗「不存在」；符合／未符合改驗 >820 左右、≤820 上下；四張細節卡並排改驗「只有一張 AI 卡、一次一面」；點標籤改驗卡內切換（籤仍在畫面裡，不比 scrollY —— 換成較短的一面時頁面變矮、瀏覽器會夾 scrollY）。
+  「個股頂部1002」「個股AI分析0926」的小標籤斷言改成「AI 卡進畫面、閃一下、而且切到那一面」（多驗切籤）。沒跑 pytest（只動 site/、scripts/_uitest.py、文件）。
+- 已知限制：① 1101～1110 視窗仍是兩欄（斷點量容器）；② 390 手機只有「完整版」看得到這個總覽（手機原生分頁沒動）；③ 淺色主題只用 `_show.py --ls tw.theme=light` 截圖看過 AI 卡（選中籤的判讀小膠囊讀得到），沒有寫進驗收。
+
 ## 總覽四張摘要卡即時：補位進每 5 秒那一批、共用各頁即時公式、右上角日期＝即時開關（2026-10-02，台北，UI 專家，分支 `claude/ov-kpi-live`，**未推 main**）
 
 - Andy（15:36）：「這都需要具備即時功能」（漲跌家數／資金輪盤／資金去向／熱門題材四張卡右上角都寫 10/01）→ DECISIONS #296（推翻 #277「摘要卡刻意不加即時」那一句）。
@@ -113,6 +131,49 @@
 - 已知限制：① Deno 免費層據 WebSearch 摘要（第三方、低信心）每月 100 萬請求，一個讀者整天開總覽約每月 11～12 萬次，**同時整天開著的讀者超過約 8 個就會碰頂**（碰頂會退回 Worker→顯示日盤＋原因，不白屏）。
   ② 瀏覽器從 `miaozike.github.io` 打 Deno 的 CORS 沒在真瀏覽器驗過（容器連不到外網）；`main.ts` 有放行 github.io，合併上線後請開總覽確認夜盤。③ 台灣讀者到 Deno 的延遲沒實測（runner 在美國，`region: ord`）。
 - 下一步：合併 `claude/taifex-deno` 到 main（只動前端，`pages.yml` 會部署）；上線後夜盤時段開總覽，台指期小標應是「夜盤」。
+## 整體卡頓：量測＋修五項（2026-10-02 21:20，台北，效能，分支 `claude/perf-jank`，**未推 main**，DECISIONS #284）
+
+- 接手兩次中斷的半成品（`claude/wip-perf-jank` 5e85c63、`claude/wip-perf-jank2` 03eb0ac），基於 main 6bd284f 開 `claude/perf-jank` 重做；WIP 的三個修法（☆、產業 dispose、大盤 drawLive）都帶進來並重量。
+- [x] 量測工具：`python scripts/_perf.py --jank [--cpu 4] [--width 1440|390] [--only load,dwell,switch,hover] [--prof]`（本體 `scripts/_perf_jank.py`）。用法、怎麼比修前修後寫在 DECISIONS #284。
+- [x] ① 手機寬度 resize 迴圈拆掉（app.js 分段 ↔ miaResize、mobile3.js apply ↔ m3go；改成回聲標記 `twEcho`）—— 390 總覽停留忙碌 39.0% → 3.4%、資金流向 24.5% → 1.4%
+- [x] ② 大盤三張圖盤中更新走 `drawLive(ids)`，只補有變的那張 —— 1440 總覽 draw 15.9 秒／分 → 5.2 秒、setOption 每 5 秒 8.2 → 4.5
+- [x] ③ 個股 ☆ `paintStar()` 字沒變不寫 —— 1440 個股停留 38.3% → 12.5%
+- [x] ④ 全頁觀察者不被無關變動叫醒（icons.js relevant()、live.js／theme4.js／app.js 略過只有 .rotping 的批次、手機限筆觀察者防抖後才讀 innerWidth）
+- [x] ⑤ 切頁 ECharts dispose（industry.js disposeCharts、app.js drawMarket）—— 10 輪脫離圖表 36 → 0
+- 改到的函式（給同時在改這幾支檔的人對照）：
+  - `site/market3.js`：refresh()（結尾一行）、patchFromLive()、fastTick()（一行）、新增 drawLive()／axisDec、patchLine()（一條判斷）、drawLine()（H.dec、formatter）
+  - `site/app.js`：drawMarket()（開頭 dispose）、新增 mutPingOnly()、initSwipeHints()（觀察者一行）、miaResize()、applyMobileIA 下方的 miaMore 觀察者與 resize 監聽
+  - `site/mobile3.js`：檔頭 resize 監聽、m3go()（最後一行）
+  - `site/live.js`：start()（觀察者）｜`site/theme4.js`：boot()（觀察者）｜`site/icons.js`：fit()、新增 relevant()／onMut()、start()
+  - `site/industry.js`：新增 disposeCharts()，呼叫點在 renderHeat()／renderMap()／renderChain()｜`site/watchlists.js`：paintStar()
+  - 個股頁頂部、五個分頁、分時即時、總覽 KPI、台指期、版面那幾段一行都沒碰。
+- **這批驗了**：`_preview.py` 兩次全綠（改手機迴圈前後各一次）；
+  `_uitest.py --workers 1 --sections` 總覽、大盤三張圖、新-大盤三張圖、即時5秒0929、盤中即時、市場明細、市場明細下鑽0928、產業、族群頁、產業鏈導覽、熱力圖v2、熱力圖R4、
+  會員與自選五分頁、標題圖示、設計v4主題、掃描光束、時鐘水波、新-輪動時鐘、手機、縮放掃描；改完手機迴圈之後再跑 手機、手機改版、手機一屏、手機v3、手機個股券商式、
+  手機總覽指數觀察清單、手機按鈕普查、手機v4二批、桌機零差異、新-版面等高與多寬度、縮放掃描、大盤三張圖。
+  紅燈全部跟 main 對過（同一份 payload、同一時間同時跑）：
+  - 標題圖示 26、熱力圖v2 4（提示框 .92 不透明）、掃描光束 2／時鐘水波 1（fps，容器負載）、新-輪動時鐘 1（最外圈族群）、手機改版 2（#mmTheme）—— **main 一模一樣**，不是這批造成的。
+  - 產業 1～2、產業鏈導覽 3～8（點不下去、截圖逾時）：負載高時 main 跟這批**同時跑一模一樣紅**（10 條逐字相同），負載低時 main 單獨跑 0 個 —— 是容器負載，不是這批。
+  - 設計v4主題 1、即時5秒0929 1：第一輪紅、同順序重跑 0 個（排在前面的段落留下的狀態＋負載）。
+  - **手機按鈕普查**（這批 4 條、main 3 條，同一時間各跑一次，各約 43 分鐘）：
+    · 「個股頁找得到 K 線與重設縮放鈕」390／360 各 1 條：main 一模一樣。
+    · ★ **main 上這一段的自我檢查是紅的**：「點了沒反應的鈕要被抓成沒反應」那顆故意種的壞鈕在 main 被判成「DOM×2 有反應」——
+      因為手機寬度下 resize 迴圈每 1.5 秒改 DOM 約 490 筆（這批修掉之後是 0 筆，實測 390 寬個股頁停著不動），普查拿「點完有沒有 DOM 變動」判斷反應，
+      在 main 上**任何一顆鈕都會被判成有反應**。這批修掉迴圈之後，自我檢查變綠，普查才真的量得到東西。
+    · 因此這批多出來的兩條是**以前被迴圈遮住的真實狀況**，不是新壞掉的：
+      ① 個股頁「＋」自訂週期浮層裡的 `select#tfU`（日／週）換選項不會有任何畫面變化（它本來就沒有 change 處理，值是按「加入」時才讀；main 上被判 DOM×10 是背景雜訊）；
+      ② 「指標 ▾（已開 2）」浮層重新打開失敗：兩邊點過的 13 顆完全一樣，普查用「鈕上的字」找開關，字裡的「已開 N」點完會變，所以找不回同一顆 —— 普查工具的找法問題。
+      ③ 360 寬「產業鏈-AI伺服器 CoWoS 封裝＋HBM」那一列被一顆 circle 蓋住（角落點得到）：main 這次沒抓到；剖析圖 diagrams.js 這批沒動，看起來是動畫位置的時機，待觀察。
+    要讓這段回到全綠：普查的 EXEMPT 加上「值在按鈕時才讀的表單欄位」、找開關時忽略括號裡的計數 —— 屬驗收工具的改動，這批沒做（不想在同一批放寬驗收）。
+  沒跑 pytest（只改 site/ 與 scripts/ 的量測工具；`tests/` 沒有任何一支 import _perf.py／_perf_jank.py）。
+- **合併提醒**：做這批期間 main 又進了台指期 Deno、個股頂部、分時即時、總覽 KPI 即時（a9f75e2）。`git merge-tree origin/main claude/perf-jank` 沒有衝突；
+  main 對 market3.js 的改動只在 futGet()／fetchFut()／fetchFutChart()（台指期改走 Deno），跟 drawLive 不重疊。合併後建議重跑 總覽、大盤三張圖、即時5秒0929、手機 幾段。
+- 還沒修（排行與數字在 DECISIONS #284）：ECharts 更新補間每次約 12 幀重畫（關掉＝畫面行為改變）、資金流向／熱力圖首屏 1 秒以上的長任務、
+  live.js taipeiNow() 每次新建 ICU 格式器（改成建一次的 `Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', year/month/day/hour/minute/second: 'numeric' })`，
+  輸出逐字相同，量到 0.53 → 0.31 秒／分，投報率低沒收）、切頁後 CDP 節點計數每輪 +600、滑圖時 ECharts 提示框強制排版。
+- ⚠ 共用暫存區事故（已處理）：這批一開始誤把 `ln -s` 指到已存在的資料夾，在主 checkout 的 `site/data/` 裡生出一個指回自己的 `data` 符號連結（10:28 UTC），
+  21:00 前已 `unlink` 移除；另外共用暫存區的 `scratchpad/base/site` 被我用 origin/main 6bd284f 的 site 蓋過一次（那個資料夾原本是別的 agent 的基準），
+  `base/scripts/_uitest.py` 也被換成 6bd284f 版。之後我只用自己的 `scratchpad/pj_base`、`scratchpad/fix_*`。
 
 ## 「個股」段 2 個紅燈＝本機資料過舊造成的假紅，不是線上 bug（2026-10-02 17:10，台北，審核專家，分支 `claude/fix-stock-k`，只改 HANDOFF）
 
