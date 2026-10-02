@@ -577,7 +577,9 @@ def test_超過24小時只拿少量樣本重探(sandbox, monkeypatch):
 
     run_backfill.run("holding", None, "2021-01-01")
 
-    assert len(asked) == run_backfill.PROBE_CODES, "重探只拿少量樣本，不是整包重問"
+    # ★ 2026-10-03（#304）：封印前多問 1 次台積電當反證，所以是「5 檔樣本＋1 次反證」
+    assert asked[:-1] == [str(9000 + i) for i in range(run_backfill.PROBE_CODES)], "重探只拿少量樣本，不是整包重問"
+    assert asked[-1] == run_backfill.CANARY_CODE
     prog = json.loads(run_backfill.PROGRESS.read_text())
     assert prog["unavailable"]["holding"]["probes"] == 2, "探過要累加，並把時間戳往後推"
     assert prog["unavailable"]["holding"]["last_probe"] > stale
@@ -615,7 +617,9 @@ def test_第一次整組掛掉也不准把額度燒完(sandbox, monkeypatch):
     monkeypatch.setattr(run_backfill.finmind, "holding_history", fake)
     run_backfill.run("holding", None, "2021-01-01")
 
-    assert len(asked) == run_backfill.EMPTY_STREAK_LIMIT, "連續回空到上限就要收手"
+    # ★ 2026-10-03（#304）：收手前多問 1 次台積電當反證（台積電也空才收手）
+    assert len(asked) == run_backfill.EMPTY_STREAK_LIMIT + 1, "連續回空到上限就要收手"
+    assert asked[-1] == run_backfill.CANARY_CODE
     prog = json.loads(run_backfill.PROGRESS.read_text())
     assert "holding" in prog["unavailable"]
 

@@ -116,6 +116,22 @@ PROBES: dict[str, list[dict]] = {
     #      月份代碼每個月都在換，所以這裡**不寫死** —— 用 `symbol_from`
     #      從上面那兩支 getQuoteList 的回應裡挑「成交量最大的那一支」（＝近月）。
     #      寫死的 default 只是整組都失敗時的退路。
+    # ---- 籌碼日報全市場候選（2026-10-03，DECISIONS #304）：當沖、借券賣出、上櫃融資融券
+    #      目前三者都只能靠 FinMind 逐檔（每天有上限、輪一圈要好幾天）。這裡只打**官方 OpenAPI**
+    #      （openapi.twse.com.tw／www.tpex.org.tw/openapi，白名單內），候選名是 WebSearch 摘要給的線索、沒有實測過。
+    #      ⚠ 不碰 www.twse.com.tw/rwd（使用條款禁爬）。先把目錄抓回來，用 summary 找「當日沖銷」「借券」「融資」。
+    "chip_daily": [
+        {"id": "twse_swagger", "url": "https://openapi.twse.com.tw/v1/swagger.json",
+         "note": "證交所 OpenAPI 目錄：找 summary 帶『當日沖銷』『借券』『融資融券』的 path"},
+        {"id": "tpex_swagger", "url": "https://www.tpex.org.tw/openapi/swagger.json",
+         "note": "櫃買 OpenAPI 目錄：同上（櫃買對雲端 IP 常回 403，回 403 也是結果）"},
+        {"id": "twse_TWTB4U", "url": "https://openapi.twse.com.tw/v1/exchangeReport/TWTB4U",
+         "note": "推測：上市當日沖銷交易標的及統計（WebSearch 摘要線索，未實測）"},
+        {"id": "twse_TWT93U", "url": "https://openapi.twse.com.tw/v1/exchangeReport/TWT93U",
+         "note": "推測：融券／借券賣出餘額（WebSearch 摘要線索，未實測）"},
+        {"id": "tpex_margin", "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance",
+         "note": "推測：上櫃融資融券餘額"},
+    ],
     "taifex_night": [
         {"id": "taifex_quotelist_day", "method": "POST",
          "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",

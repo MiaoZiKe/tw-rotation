@@ -915,6 +915,21 @@ MARGIN_COLUMNS = ["date", "margin_balance", "short_balance", "margin_change", "s
                   "daytrade_lots", "daytrade_ratio", "sbl_sell_lots", "sbl_balance_lots"]
 
 
+def margin_asof(margin: pd.DataFrame | None, daytrade: pd.DataFrame | None,
+                sbl: pd.DataFrame | None) -> dict:
+    """資券三個來源在**整個資料湖**裡最新到哪一天（{margin, daytrade, sbl}，沒有就 None）。
+
+    ★ 2026-10-03（DECISIONS #304）：當沖／借券賣出被誤封印、09-25 之後全市場一筆都沒有，
+      個股頁每日表那兩欄一路「—」，讀者會以為是 0 或這檔沒人當沖。
+      用全市場的最新日期（不是單一檔自己的最後一天）判斷「資料源只更新到哪天」：
+      某一檔自己沒有（不能當沖的處置股）是那檔的事，全市場都沒有才是資料源的事，頁面兩種要講得不一樣。"""
+    def last(df):
+        if df is None or not isinstance(df, pd.DataFrame) or df.empty or "date" not in df.columns:
+            return None
+        return str(df["date"].astype(str).max())[:10]
+    return {"margin": last(margin), "daytrade": last(daytrade), "sbl": last(sbl)}
+
+
 def margin_series(margin: pd.DataFrame, code: str, days: int = CHIP_DAYS,
                   daytrade: pd.DataFrame | None = None, sbl: pd.DataFrame | None = None,
                   price: pd.DataFrame | None = None) -> list:
