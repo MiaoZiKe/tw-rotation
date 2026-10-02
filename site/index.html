@@ -5035,6 +5035,8 @@ h3 .howbtn.pop{font-family:inherit}
 <div class="sideback" id="sideBack" aria-hidden="true"></div>
 </div>
 
+<!-- drawtools.js 要排在 chart.js 前面：KChart.enableDrawing() 與 KUtil.DRAW_* 都從它拿（DECISIONS #289） -->
+<script src="drawtools.js"></script>
 <script src="chart.js"></script>
 <script src="diagrams.js"></script>
 <!-- ★ 2026-09-21：一張剖析圖一個檔（site/dg/<slot>.js），各自呼叫 window.DG.register。
