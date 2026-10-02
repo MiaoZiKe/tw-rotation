@@ -7460,6 +7460,9 @@ def t_stock(pg, base, code):
         pg.mouse.move(x0, y0); pg.mouse.down()
         pg.mouse.move(x1, y1, steps=6); pg.mouse.up()
         pg.wait_for_timeout(400)
+        if t == "text":
+            # ★ 2026-10-02（DECISIONS #289）：文字工具改成就地文字框，打字＋Enter 才算一筆
+            pg.keyboard.type("測試"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
         n1 = pg.evaluate("() => window.Industry._dbg().shapes")
         if ok(f"繪圖工具「{t}」畫得出東西", n1 > n0, f"{n0} → {n1}"):
             drawn.append(t)
@@ -7491,7 +7494,11 @@ def t_stock(pg, base, code):
         click(pg, "#drawBar .dtool[data-a=undo]", 500)
         changed("按「復原」真的少一筆", n0, pg.evaluate("() => window.Industry._dbg().shapes"))
     n1 = pg.evaluate("() => window.Industry._dbg().shapes")
-    click(pg, "#drawBar .dtool[data-a=clear]", 600)
+    click(pg, "#drawBar .dtool[data-a=clear]", 400)
+    # ★ 2026-10-02：「全部清除」要二次確認 —— 只按第一下不可以清掉
+    ok("★ 只按「全部清除」第一下不會清掉（要二次確認）", pg.evaluate("() => window.Industry._dbg().shapes") == n1,
+       pg.evaluate("() => window.Industry._dbg().shapes"))
+    click(pg, "#drawBar .dt-confirm [data-ok]", 600)
     ok("按「清空」真的歸零", pg.evaluate("() => window.Industry._dbg().shapes") == 0, n1)
     left = pg.evaluate("""() => Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'))
         .reduce((n,x)=>n+JSON.parse(localStorage.getItem(x)||'[]').length, 0)""")
@@ -7560,7 +7567,8 @@ def t_stock(pg, base, code):
     ok("★ 按住 Shift 拉線真的被鎖成水平（兩端價格一樣）",
        shp and abs(shp["ap"] - shp["bp"]) < 1e-9, shp)
     ok("而且時間兩端不同（真的有拉出長度）", shp and shp["at"] != shp["bt"], shp)
-    # 不按 Shift 就不該是水平
+    # 不按 Shift 就不該是水平（★ 2026-10-02：畫完會自動回到「選取」，所以要再選一次趨勢線）
+    click(pg, "#drawBar .dtool[data-t=trend]", 300)
     pg.mouse.move(x0, y0 + 10); pg.mouse.down()
     pg.mouse.move(r["x"] + r["w"] * 0.58, r["y"] + r["h"] * 0.62, steps=8); pg.mouse.up()
     pg.wait_for_timeout(600)
@@ -7570,11 +7578,13 @@ def t_stock(pg, base, code):
     ok("沒按 Shift 就是一般斜線", shp2 and abs(shp2["ap"] - shp2["bp"]) > 1e-6, shp2)
 
     # 4) ★ 五段粗細 + 方框填滿／透明
-    ws = pg.evaluate("() => [...document.querySelectorAll('#drawBar .dw')].map(b => +b.dataset.w)")
+    # ★ 2026-10-02（DECISIONS #289）：粗細搬進圖上的屬性列（選了工具就出現）
+    click(pg, "#drawBar .dtool[data-t=trend]", 300)
+    ws = pg.evaluate("() => [...document.querySelectorAll('#lwc .dt-props .dw')].map(b => +b.dataset.w)")
     ok("畫線粗細有 5 段", len(ws) == 5, ws)
-    click(pg, f'#drawBar .dw[data-w="{ws[-1]}"]', 400)
+    click(pg, f'#lwc .dt-props .dw[data-w="{ws[-1]}"]', 400)
     ok("選最粗那一段之後按鈕亮起來",
-       pg.evaluate(f"() => document.querySelector('#drawBar .dw[data-w=\"{ws[-1]}\"]').classList.contains('on')"))
+       pg.evaluate(f"() => document.querySelector('#lwc .dt-props .dw[data-w=\"{ws[-1]}\"]').classList.contains('on')"))
     pg.mouse.move(x0, y0 + 24); pg.mouse.down()
     pg.mouse.move(r["x"] + r["w"] * 0.55, r["y"] + r["h"] * 0.40, steps=6); pg.mouse.up()
     pg.wait_for_timeout(600)
@@ -7585,11 +7595,12 @@ def t_stock(pg, base, code):
     style = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.draw.style')||'{}'); } catch(e){ return null; } }")
     ok("粗細選擇存進 localStorage", style and style.get("w") == ws[-1], style)
 
-    fill0 = pg.evaluate("() => document.querySelector('#drawBar .dfill').classList.contains('on')")
-    click(pg, "#drawBar .dfill", 400)
-    fill1 = pg.evaluate("() => document.querySelector('#drawBar .dfill').classList.contains('on')")
-    changed("方框填滿／透明按得動", fill0, fill1)
+    # ★ 2026-10-02：方框的填滿／透明搬進屬性列（選了方框工具就在同一處）
     click(pg, "#drawBar .dtool[data-t=rect]", 300)
+    fill0 = pg.evaluate("() => document.querySelector('#lwc .dt-props .dt-fillseg [data-fill=\"1\"]').classList.contains('on')")
+    click(pg, f'#lwc .dt-props .dt-fillseg [data-fill="{0 if fill0 else 1}"]', 400)
+    fill1 = pg.evaluate("() => document.querySelector('#lwc .dt-props .dt-fillseg [data-fill=\"1\"]').classList.contains('on')")
+    changed("方框填滿／透明按得動", fill0, fill1)
     hb = canvas_hash(pg, "#lwc")
     pg.mouse.move(r["x"] + r["w"] * 0.32, r["y"] + r["h"] * 0.62); pg.mouse.down()
     pg.mouse.move(r["x"] + r["w"] * 0.50, r["y"] + r["h"] * 0.78, steps=6); pg.mouse.up()
@@ -7655,7 +7666,9 @@ def t_stock(pg, base, code):
     ok("按「重設縮放」把拖過的高度還原", back is None, back)
 
     # 收拾
-    click(pg, "#drawBar .dtool[data-a=clear]", 600)
+    click(pg, "#drawBar .dtool[data-a=clear]", 400)
+    if count(pg, "#drawBar .dt-confirm [data-ok]"):
+        click(pg, "#drawBar .dt-confirm [data-ok]", 500)
     click(pg, "#drawBar .dtool[data-t=cursor]", 250)
     pg.evaluate("try{localStorage.removeItem('tw.draw.style')}catch(e){}")
 
@@ -9229,6 +9242,462 @@ def t_kzoom_keep(pg, base, code):
     after = pg.evaluate(rng)
     ok("重畫之後縮放沒有被彈回去", after == zoomed,
        {"縮放後": zoomed, "重畫後": after, "原始": before})
+
+
+
+# ===================================================================== 繪圖工具 2026-10-02（DECISIONS #289）
+# Andy 用五張截圖要求：文字框就地編輯（不再 prompt）、箭頭方向／錯位修好、垃圾桶換橡皮擦、方框填滿併進屬性列、
+# 畫線「點一下、再點一下」＋端點圓圈、所有圖形可選取拖曳、新增測量；之後追加固定範圍成交量分佈（第 8 項）。
+# 每一條都用真的滑鼠／觸控操作，驗「畫面或存檔真的因此改變了」。
+_DT_LAST = "() => { const d = DrawTools.active; const s = d && d.shapes[d.shapes.length - 1]; return s ? JSON.parse(JSON.stringify(s)) : null; }"
+_DT_STATE = """() => { const d = DrawTools.active; if (!d) return null;
+  return { n: d.shapes.length, tool: d.tool, sel: d.sel ? d.sel.id : null, selKind: d.sel ? d.sel.kind : null,
+           draft: !!d.draft, placing: !!d._placing, handles: d.rendered._handles || 0,
+           props: (() => { const e = document.querySelector('#lwc .dt-props'); return e && !e.hidden ? e.dataset.kind : null; })() }; }"""
+
+
+def _dt_setup(pg, base, code):
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto("about:blank")
+    pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('tw.draw.')).forEach(k => localStorage.removeItem(k)); }")
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    return _dt_rect(pg)
+
+
+def _dt_rect(pg):
+    """把 K 線捲到畫面正中間，回傳主圖（不含副圖）的座標換算：X(比例)、Y(比例)、矩形。"""
+    pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
+    r = main_rect(pg)
+    return (lambda f: r["x"] + r["w"] * f), (lambda f: r["y"] + r["h"] * f), r
+
+
+def _dt_tool(pg, t):
+    click(pg, f"#drawBar .dtool[data-t={t}]", 250)
+
+
+def t_draw_tools_1002(pg, b, base, code):
+    X, Y, r = _dt_setup(pg, base, code)
+    ok("[繪圖] DrawTools 載入、K 線圖掛上繪圖層", pg.evaluate("() => !!(window.DrawTools && DrawTools.active)"))
+    tools = pg.evaluate("() => [...document.querySelectorAll('#drawBar .dtool[data-t]')].map(b => b.dataset.t)")
+    for want in ("cursor", "trend", "ray", "arrow", "hline", "rect", "text", "measure", "vp", "erase"):
+        ok(f"[繪圖] 工具列有「{want}」", want in tools, tools)
+    ok("[繪圖] 工具列上不再有「方框填滿」那顆獨立按鈕（併進屬性列）", count(pg, "#drawBar .dfill") == 0)
+    ok("[繪圖] 顏色／線寬不在左側工具列（搬進屬性列）", count(pg, "#drawBar .dcol") + count(pg, "#drawBar .dw") == 0)
+
+    # ---------- ⑤ 畫線：點一下出現起點圓圈、線跟著拉；再點一下固定、圓圈消失
+    _dt_tool(pg, "trend")
+    ok("[繪圖⑤] 選了趨勢線，屬性列出現", pg.evaluate(_DT_STATE)["props"] == "trend", pg.evaluate(_DT_STATE))
+    pg.mouse.click(X(.30), Y(.32)); pg.wait_for_timeout(250)
+    st1 = pg.evaluate(_DT_STATE)
+    ok("[繪圖⑤] 點第一下：進入拉線狀態、起點出現圓圈", st1["draft"] and st1["placing"] and st1["handles"] >= 1, st1)
+    d0 = pg.evaluate("() => JSON.stringify(DrawTools.active.draft.b)")
+    pg.mouse.move(X(.40), Y(.45), steps=6); pg.wait_for_timeout(200)
+    changed("[繪圖⑤] 滑鼠移動時線跟著拉（終點跟著游標）", d0, pg.evaluate("() => JSON.stringify(DrawTools.active.draft.b)"))
+    pg.mouse.click(X(.46), Y(.52)); pg.wait_for_timeout(300)
+    st2 = pg.evaluate(_DT_STATE)
+    ok("[繪圖⑤] 點第二下：完成一條線、圓圈消失、回到選取", st2["n"] == 1 and not st2["draft"] and st2["handles"] == 0 and st2["tool"] == "cursor", st2)
+    ok("[繪圖⑤] 工具列跟著亮回「選取」", pg.evaluate("() => document.querySelector('#drawBar .dtool.on').dataset.t") == "cursor")
+    line = pg.evaluate(_DT_LAST)
+    # 點線身＝選取，兩端圓圈再出現
+    pg.mouse.click(X(.38), Y(.42)); pg.wait_for_timeout(300)
+    st3 = pg.evaluate(_DT_STATE)
+    ok("[繪圖⑤] 點這條線＝選取，兩端圓圈重新出現", st3["sel"] == line["id"] and st3["handles"] == 2, st3)
+    ok("[繪圖⑤] 選取後屬性列出現、而且有刪除鈕", st3["props"] == "trend" and count(pg, "#lwc .dt-props .dt-del") == 1, st3)
+    # 拖端點改範圍
+    pg.mouse.move(X(.46), Y(.52)); pg.mouse.down(); pg.mouse.move(X(.56), Y(.62), steps=8); pg.mouse.up(); pg.wait_for_timeout(300)
+    l2 = pg.evaluate(_DT_LAST)
+    ok("[繪圖⑤] 拖終點的圓圈：終點的時間與價格真的變了、起點不動",
+       l2["b"] != line["b"] and l2["a"] == line["a"], {"前": line["b"], "後": l2["b"]})
+    # 拖線身整條移動
+    pg.mouse.move(X(.38), Y(.42)); pg.mouse.down(); pg.mouse.move(X(.33), Y(.36), steps=8); pg.mouse.up(); pg.wait_for_timeout(300)
+    l3 = pg.evaluate(_DT_LAST)
+    ok("[繪圖⑤] 拖線身：兩端一起移動", l3["a"] != l2["a"] and l3["b"] != l2["b"], {"前": [l2["a"], l2["b"]], "後": [l3["a"], l3["b"]]})
+    saved = pg.evaluate(f"() => JSON.parse(localStorage.getItem('tw.draw.{code}.1d') || '[]').pop()")
+    ok("[繪圖⑤] 拖完的座標真的存進 localStorage", saved and saved["a"] == l3["a"] and saved["b"] == l3["b"], saved)
+    # 點背景取消選取
+    pg.mouse.click(X(.85), Y(.9)); pg.wait_for_timeout(250)
+    st4 = pg.evaluate(_DT_STATE)
+    ok("[繪圖⑤] 點背景：取消選取、圓圈消失、屬性列收起", st4["sel"] is None and st4["handles"] == 0 and st4["props"] is None, st4)
+    # 按住拖曳也能畫（舊習慣不壞）
+    _dt_tool(pg, "trend")
+    pg.mouse.move(X(.15), Y(.80)); pg.mouse.down(); pg.mouse.move(X(.28), Y(.70), steps=6); pg.mouse.up(); pg.wait_for_timeout(300)
+    ok("[繪圖⑤] 按住拖曳一次畫完也可以", pg.evaluate(_DT_STATE)["n"] == 2, pg.evaluate(_DT_STATE))
+
+    # ---------- ② 箭頭：方向（起點→終點）、箭頭在終點、往左畫、畫進右邊空白、捲動後跟著 K 棒
+    def arrow(fx0, fy0, fx1, fy1):
+        _dt_tool(pg, "arrow")
+        pg.mouse.click(X(fx0), Y(fy0)); pg.mouse.move(X(fx1), Y(fy1), steps=5); pg.mouse.click(X(fx1), Y(fy1)); pg.wait_for_timeout(300)
+        s = pg.evaluate(_DT_LAST)
+        rd = pg.evaluate("(id) => DrawTools.active.rendered[id] || null", s["id"])
+        return s, rd
+    s, rd = arrow(.62, .30, .50, .58)                    # 往左下
+    ok("[繪圖②] 箭頭畫得出來（kind＝arrow）", s and s["kind"] == "arrow", s)
+    ok("[繪圖②] 往左下畫：箭頭尖端在終點（左下）、尾巴在起點",
+       rd and rd["tip"]["x"] < rd["tail"]["x"] and rd["tip"]["y"] > rd["tail"]["y"], rd)
+    ok("[繪圖②] 尖端就落在第二下點的位置（≤ 半根 K 棒＋2px）",
+       rd and abs(rd["tip"]["y"] - (Y(.58) - r["y"])) <= 2 and abs(rd["tip"]["x"] - (X(.50) - r["x"])) <= 8, {"tip": rd and rd["tip"], "click": [X(.50) - r["x"], Y(.58) - r["y"]]})
+    s2, rd2 = arrow(.40, .60, .52, .40)                  # 往右上
+    ok("[繪圖②] 往右上畫：尖端在右上", rd2 and rd2["tip"]["x"] > rd2["tail"]["x"] and rd2["tip"]["y"] < rd2["tail"]["y"], rd2)
+    # 畫進最後一根 K 棒右邊的空白：舊版 coordinateToTime 回 null／被夾到最後一根，終點被拉回去
+    wsp = pg.evaluate("""() => { const kc = DrawTools.active.kc, ts = kc.chart.timeScale();
+        const x = ts.logicalToCoordinate(kc.data.length - 1 + 3); return { x, w: ts.width() }; }""")
+    if wsp["x"] and wsp["x"] < wsp["w"] - 4:
+        fx = wsp["x"] / r["w"]
+        s3, rd3 = arrow(.70, .55, fx, .35)
+        ok("[繪圖②] 箭頭畫進右邊空白：終點記成「最後一根之後第 3 根」（o＝3）", s3["b"].get("o") == 3, s3["b"])
+        ok("[繪圖②] 畫進空白時尖端仍落在點的位置", rd3 and abs(rd3["tip"]["x"] - wsp["x"]) <= 2, {"tip": rd3 and rd3["tip"], "want": wsp["x"]})
+    else:
+        notes.append(f"[繪圖②] 右邊空白不夠 3 根（{wsp}），跳過畫進空白那條")
+    # 捲動／縮放之後，箭頭尖端仍錨在同一根 K 棒的時間上（不是錨在像素）
+    tip_before = rd2["tip"]["x"]
+    pg.evaluate("() => { const ts = DrawTools.active.kc.chart.timeScale(); const r = ts.getVisibleLogicalRange(); ts.setVisibleLogicalRange({ from: r.from - 25, to: r.to - 10 }); }")
+    pg.wait_for_timeout(400)
+    after = pg.evaluate("""(id) => { const d = DrawTools.active, s = d.shapes.find(x => x.id === id);
+        return { tip: (d.rendered[id] || {}).tip, want: d.kc.chart.timeScale().timeToCoordinate(s.b.t), wantY: d.kc.candle.priceToCoordinate(s.b.p) }; }""", s2["id"])
+    ok("[繪圖②] 捲動＋縮放之後尖端真的跟著移動", after["tip"] and abs(after["tip"]["x"] - tip_before) > 5, {"前": tip_before, "後": after})
+    ok("[繪圖②] 而且仍落在終點那根 K 棒的時間與價格上", after["tip"] and abs(after["tip"]["x"] - after["want"]) <= 1 and abs(after["tip"]["y"] - after["wantY"]) <= 1, after)
+    pg.evaluate("() => DrawTools.active.kc.defaultView()"); pg.wait_for_timeout(400)
+    # 射線往左畫要往左延伸（舊版只算往右，往左畫就不延伸）
+    _dt_tool(pg, "ray")
+    pg.mouse.click(X(.55), Y(.35)); pg.mouse.click(X(.45), Y(.45)); pg.wait_for_timeout(300)
+    sr = pg.evaluate(_DT_LAST)
+    rr = pg.evaluate("(id) => DrawTools.active.rendered[id] || null", sr["id"])
+    ok("[繪圖②] 射線往左畫：往左延伸出圖邊（舊版不延伸）", rr and rr["to"]["x"] < 0, rr)
+
+    # ---------- 換週期不能把線寫進別的週期（舊版 pointerdown 監聽沒拿掉，換週期後一筆存兩份）
+    n_d = pg.evaluate(f"() => JSON.parse(localStorage.getItem('tw.draw.{code}.1d') || '[]').length")
+    click(pg, '#tfSeg button[data-tf="1w"]', 1000)
+    X, Y, r = _dt_rect(pg)
+    _dt_tool(pg, "trend")
+    pg.mouse.click(X(.3), Y(.4)); pg.mouse.click(X(.5), Y(.5)); pg.wait_for_timeout(300)
+    n_w = pg.evaluate(f"() => JSON.parse(localStorage.getItem('tw.draw.{code}.1w') || '[]').length")
+    n_d2 = pg.evaluate(f"() => JSON.parse(localStorage.getItem('tw.draw.{code}.1d') || '[]').length")
+    ok("[繪圖] 週線畫的線只存在週線（日線那組筆數不變）", n_w == 1 and n_d2 == n_d, {"週": n_w, "日 前": n_d, "日 後": n_d2})
+    # 舊格式相容：沒有 id、沒有 o、文字沒有字級的舊資料照樣讀得回來
+    pg.evaluate(f"""() => localStorage.setItem('tw.draw.{code}.1M', JSON.stringify([
+        {{ kind: 'trend', a: {{ t: DrawTools.active.kc.data[0].time, p: 500 }}, b: {{ t: DrawTools.active.kc.data[5].time, p: 600 }}, color: '#ffd166', w: 2.5 }},
+        {{ kind: 'text', a: {{ t: DrawTools.active.kc.data[3].time, p: 550 }}, color: '#3ee0ff', w: 1.5, text: '舊文字' }},
+        {{ kind: 'rect', a: {{ t: DrawTools.active.kc.data[1].time, p: 520 }}, b: {{ t: DrawTools.active.kc.data[4].time, p: 580 }}, color: '#2ee59d', w: 1, fill: true }} ]))""")
+    click(pg, '#tfSeg button[data-tf="1d"]', 900)
+    click(pg, '#tfSeg button[data-tf="1M"]', 1000)
+    old = pg.evaluate("() => { const d = DrawTools.active; return { n: d.shapes.length, ids: d.shapes.every(s => !!s.id), key: d.key }; }")
+    ok("[繪圖] 舊格式的三筆（沒有 id／o／字級）讀得回來", old["n"] == 3 and old["ids"] and old["key"].endswith(".1M"), old)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1000)
+    X, Y, r = _dt_rect(pg)
+
+    # ---------- ① 文字：就地文字框、不呼叫 prompt、Enter 完成、Esc 取消、點文字再編輯、拖曳、改顏色字級
+    pg.evaluate("() => { window.__pc = 0; window.__origPrompt = window.prompt; window.prompt = () => { window.__pc++; return '不該出現'; }; }")
+    _dt_tool(pg, "text")
+    pg.mouse.click(X(.20), Y(.75)); pg.wait_for_timeout(300)
+    ed = pg.evaluate("""() => { const e = document.querySelector('#lwc .dt-edit'); if (!e) return null;
+        return { ph: e.placeholder, focus: document.activeElement === e, vis: e.offsetWidth > 0 }; }""")
+    ok("[繪圖①] 點一下就在圖上出現文字框（不是瀏覽器對話框）", ed and ed["vis"], ed)
+    ok("[繪圖①] 佔位文字是「新增文字」、游標在框裡", ed and ed["ph"] == "新增文字" and ed["focus"], ed)
+    n_t0 = pg.evaluate(_DT_STATE)["n"]
+    w0 = pg.evaluate("() => document.querySelector('#lwc .dt-edit').offsetWidth")
+    pg.keyboard.type("突破頸線看多"); pg.wait_for_timeout(150)
+    ok("[繪圖①] 打字即時顯示在框裡（框也跟著變寬）",
+       pg.evaluate("() => document.querySelector('#lwc .dt-edit').value") == "突破頸線看多"
+       and pg.evaluate("() => document.querySelector('#lwc .dt-edit').offsetWidth") > w0)
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    tx = pg.evaluate(_DT_LAST)
+    ok("[繪圖①] 按 Enter 完成：多一筆文字、內容就是打的字、框收掉",
+       pg.evaluate(_DT_STATE)["n"] == n_t0 + 1 and tx["kind"] == "text" and tx["text"] == "突破頸線看多" and count(pg, "#lwc .dt-edit") == 0, tx)
+    ok("[繪圖①] 整個過程沒有呼叫 window.prompt", pg.evaluate("() => window.__pc") == 0, pg.evaluate("() => window.__pc"))
+    # Esc 取消
+    _dt_tool(pg, "text")
+    pg.mouse.click(X(.60), Y(.80)); pg.wait_for_timeout(250)
+    pg.keyboard.type("不要了"); pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    ok("[繪圖①] 按 Esc 取消：沒有多一筆、框收掉", pg.evaluate(_DT_STATE)["n"] == n_t0 + 1 and count(pg, "#lwc .dt-edit") == 0, pg.evaluate(_DT_STATE))
+    # 點背景完成
+    _dt_tool(pg, "text")
+    pg.mouse.click(X(.62), Y(.86)); pg.wait_for_timeout(250)
+    pg.keyboard.type("點背景完成"); pg.mouse.click(X(.85), Y(.25)); pg.wait_for_timeout(300)
+    ok("[繪圖①] 點背景也算完成", pg.evaluate(_DT_LAST)["text"] == "點背景完成" and count(pg, "#lwc .dt-edit") == 0, pg.evaluate(_DT_LAST))
+    # 點文字再編輯
+    box = pg.evaluate("(id) => DrawTools.active.rendered[id].box", tx["id"])
+    cx, cy = r["x"] + box["x"] + box["w"] / 2, r["y"] + box["y"] + box["h"] / 2
+    pg.mouse.click(cx, cy); pg.wait_for_timeout(300)
+    ed2 = pg.evaluate("() => { const e = document.querySelector('#lwc .dt-edit'); return e ? e.value : null; }")
+    ok("[繪圖①] 點已完成的文字：再次出現編輯框、帶著原本的內容", ed2 == "突破頸線看多", ed2)
+    ok("[繪圖①] 編輯中屬性列是「文字」：有顏色與字級", pg.evaluate(_DT_STATE)["props"] == "text" and count(pg, "#lwc .dt-props .dt-fs button") == 4)
+    click(pg, '#lwc .dt-props .dt-fs button[data-fs="24"]', 200)
+    click(pg, '#lwc .dt-props .dt-c[data-c="#ffd166"]', 200)
+    pg.keyboard.press("End"); pg.keyboard.type("！"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    tx2 = pg.evaluate("(id) => DrawTools.active.shapes.find(s => s.id === id)", tx["id"])
+    ok("[繪圖①] 再編輯後內容改了", tx2 and tx2["text"] == "突破頸線看多！", tx2)
+    ok("[繪圖①] 字級改成 24、顏色改成黃色", tx2 and tx2.get("fs") == 24 and tx2.get("color") == "#ffd166", tx2)
+    # 拖曳移動
+    box = pg.evaluate("(id) => DrawTools.active.rendered[id].box", tx["id"])
+    cx, cy = r["x"] + box["x"] + box["w"] / 2, r["y"] + box["y"] + box["h"] / 2
+    pg.mouse.move(cx, cy); pg.mouse.down(); pg.mouse.move(cx + 120, cy - 60, steps=8); pg.mouse.up(); pg.wait_for_timeout(300)
+    tx3 = pg.evaluate("(id) => DrawTools.active.shapes.find(s => s.id === id)", tx["id"])
+    ok("[繪圖①] 拖曳文字：錨點的時間與價格真的移動了", tx3 and tx3["a"]["t"] != tx2["a"]["t"] and tx3["a"]["p"] != tx2["a"]["p"], {"前": tx2 and tx2["a"], "後": tx3 and tx3["a"]})
+    ok("[繪圖①] 拖曳不會打開編輯框", count(pg, "#lwc .dt-edit") == 0)
+    ok("[繪圖①] 文字的新增／Esc／點背景完成／再編輯／拖曳整段都沒有呼叫 window.prompt", pg.evaluate("() => window.__pc") == 0, pg.evaluate("() => window.__pc"))
+    pg.mouse.click(X(.85), Y(.9)); pg.wait_for_timeout(200)
+
+    # ---------- ④ 方框：屬性列裡切填滿／透明、透明度、邊框色、線寬
+    _dt_tool(pg, "rect")
+    ok("[繪圖④] 選了方框：屬性列出現填滿／透明、透明度、顏色、線寬",
+       pg.evaluate(_DT_STATE)["props"] == "rect" and count(pg, "#lwc .dt-props .dt-fillseg button") == 2
+       and count(pg, "#lwc .dt-props input[type=range]") == 1 and count(pg, "#lwc .dt-props .dt-c") == 6 and count(pg, "#lwc .dt-props .dw") == 5)
+    click(pg, '#lwc .dt-props .dt-fillseg [data-fill="1"]', 200)
+    pg.mouse.click(X(.70), Y(.62)); pg.mouse.click(X(.82), Y(.80)); pg.wait_for_timeout(300)
+    rc = pg.evaluate(_DT_LAST)
+    rr0 = pg.evaluate("(id) => DrawTools.active.rendered[id]", rc["id"])
+    ok("[繪圖④] 選「填滿」後畫的方框真的是實心", rc["kind"] == "rect" and rc.get("fill") is True and rr0["fill"] and rr0["alpha"] > 0, rr0)
+    # 選取既有方框 → 屬性列 → 透明
+    pg.mouse.click(X(.76), Y(.71)); pg.wait_for_timeout(250)
+    ok("[繪圖④] 點方框裡面就選得到（實心）", pg.evaluate(_DT_STATE)["sel"] == rc["id"] and pg.evaluate(_DT_STATE)["props"] == "rect", pg.evaluate(_DT_STATE))
+    hb = canvas_hash(pg, "#lwc")
+    click(pg, '#lwc .dt-props .dt-fillseg [data-fill="0"]', 400)
+    rr1 = pg.evaluate("(id) => DrawTools.active.rendered[id]", rc["id"])
+    sv = pg.evaluate(f"(id) => JSON.parse(localStorage.getItem('tw.draw.{code}.1d') || '[]').find(s => s.id === id)", rc["id"])
+    ok("[繪圖④] 切成「透明」：畫出來真的沒有填色（alpha＝0）、存檔 fill＝false", not rr1["fill"] and rr1["alpha"] == 0 and sv and sv.get("fill") is False, {"畫": rr1, "存": sv})
+    changed("[繪圖④] 切透明之後圖真的變了", hb, canvas_hash(pg, "#lwc"))
+    ok("[繪圖④] 透明時「透明度」滑桿反灰", pg.evaluate("() => document.querySelector('#lwc .dt-props .dt-op').classList.contains('dt-off')"))
+    click(pg, '#lwc .dt-props .dt-fillseg [data-fill="1"]', 300)
+    pg.evaluate("""() => { const i = document.querySelector('#lwc .dt-props input[type=range]'); i.value = 70;
+        i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }""")
+    pg.wait_for_timeout(250)
+    ok("[繪圖④] 拉透明度：方框的 alpha 真的變成 0.7", abs((pg.evaluate("(id) => DrawTools.active.rendered[id].alpha", rc["id"]) or 0) - 0.7) < 1e-6)
+    click(pg, '#lwc .dt-props .dt-c[data-c="#ff4d6d"]', 200)
+    click(pg, '#lwc .dt-props .dw[data-w="4"]', 200)
+    rc2 = pg.evaluate("(id) => DrawTools.active.shapes.find(s => s.id === id)", rc["id"])
+    ok("[繪圖④] 邊框色、線寬改得動", rc2["color"] == "#ff4d6d" and rc2["w"] == 4, rc2)
+    # 拖角改範圍
+    g = pg.evaluate("(id) => { const d = DrawTools.active; const s = d.shapes.find(x => x.id === id); return d._geo(s, d._plotW(), d._paneH()).handles; }", rc["id"])
+    h = [q for q in g if q["k"] == "bb"][0]
+    pg.mouse.move(r["x"] + h["x"], r["y"] + h["y"]); pg.mouse.down(); pg.mouse.move(r["x"] + h["x"] + 50, r["y"] + h["y"] + 30, steps=6); pg.mouse.up(); pg.wait_for_timeout(250)
+    rc3 = pg.evaluate("(id) => DrawTools.active.shapes.find(s => s.id === id)", rc["id"])
+    ok("[繪圖④⑥] 拖方框右下角：b 的時間與價格變了、a 不動", rc3["b"] != rc2["b"] and rc3["a"] == rc2["a"], {"前": rc2["b"], "後": rc3["b"]})
+    pg.mouse.click(X(.9), Y(.15)); pg.wait_for_timeout(200)
+
+    # ---------- ⑦ 測量：漲跌幅、K 棒根數與資料一致；紅漲綠跌
+    _dt_tool(pg, "measure")
+    pg.mouse.click(X(.35), Y(.62)); pg.mouse.move(X(.50), Y(.40), steps=4); pg.mouse.click(X(.50), Y(.40)); pg.wait_for_timeout(300)
+    ms = pg.evaluate(_DT_LAST)
+    chk = pg.evaluate("""(id) => { const d = DrawTools.active, s = d.shapes.find(x => x.id === id), data = d.kc.data;
+        const ia = data.findIndex(x => String(x.time) === String(s.a.t)) + (s.a.o || 0);
+        const ib = data.findIndex(x => String(x.time) === String(s.b.t)) + (s.b.o || 0);
+        const pct = (s.b.p - s.a.p) / s.a.p * 100, diff = s.b.p - s.a.p;
+        let vol = 0; for (let i = Math.max(0, Math.min(ia, ib)); i <= Math.min(data.length - 1, Math.max(ia, ib)); i++) vol += data[i].volume || 0;
+        return { ia, ib, bars: Math.abs(ib - ia), pct, diff, vol, rd: d.rendered[id] }; }""", ms["id"])
+    lines = (chk["rd"] or {}).get("lines") or []
+    import re as _re
+    m1 = _re.search(r"([+−-]?)([\d,]+\.\d+)（([+−-]?)([\d.]+)%）", lines[0] if lines else "")
+    m2 = _re.search(r"(\d+) 根・(\d+) 天", lines[1] if len(lines) > 1 else "")
+    ok("[繪圖⑦] 測量顯示價差、漲跌幅、K 棒根數、天數、區間量五項", len(lines) == 3 and m1 and m2 and "量" in lines[2], lines)
+    if m1:
+        ok("[繪圖⑦] 顯示的漲跌幅跟 (終點價−起點價)/起點價 一致（到小數第二位）",
+           abs(float(m1.group(4)) - round(abs(chk["pct"]), 2)) < 0.006 and ((m1.group(3) == "+") == (chk["pct"] > 0)), {"畫面": lines[0], "算": chk["pct"]})
+        ok("[繪圖⑦] 顯示的價差跟資料一致", abs(float(m1.group(2).replace(",", "")) - round(abs(chk["diff"]), 2)) < 0.006, {"畫面": lines[0], "算": chk["diff"]})
+    if m2:
+        ok("[繪圖⑦] 顯示的 K 棒根數跟資料裡兩點相隔的根數一致", int(m2.group(1)) == chk["bars"], {"畫面": lines[1], "算": chk["bars"]})
+    ok("[繪圖⑦] 往上量＝紅底（台股紅漲綠跌）", chk["rd"] and chk["rd"]["up"] is True and chk["pct"] > 0, chk["rd"])
+    # 測量也能選取與調整
+    pg.mouse.click(X(.42), Y(.51)); pg.wait_for_timeout(250)
+    ok("[繪圖⑦⑥] 測量點得到（選取）", pg.evaluate(_DT_STATE)["sel"] == ms["id"], pg.evaluate(_DT_STATE))
+    g = pg.evaluate("(id) => { const d = DrawTools.active; const s = d.shapes.find(x => x.id === id); return d._geo(s, d._plotW(), d._paneH()).handles; }", ms["id"])
+    h = [q for q in g if q["k"] == "bb"][0]
+    pg.mouse.move(r["x"] + h["x"], r["y"] + h["y"]); pg.mouse.down(); pg.mouse.move(r["x"] + h["x"] + 40, r["y"] + h["y"] + 200, steps=8); pg.mouse.up(); pg.wait_for_timeout(300)
+    rd2m = pg.evaluate("(id) => DrawTools.active.rendered[id]", ms["id"])
+    ok("[繪圖⑦] 把終點拖到起點下方：數字跟著重算、變成綠底（下跌）", rd2m and rd2m["up"] is False and rd2m["lines"] != lines, {"前": lines, "後": rd2m and rd2m["lines"]})
+    pg.mouse.click(X(.9), Y(.15)); pg.wait_for_timeout(200)
+
+    # ---------- ③ 橡皮擦：游標變橡皮擦、點空白不刪、點到才刪；全部清除要二次確認
+    _dt_tool(pg, "erase")
+    cur = pg.evaluate("() => ({ cls: document.getElementById('lwc').classList.contains('dt-erase'), cur: getComputedStyle(document.querySelector('#lwc canvas')).cursor })")
+    ok("[繪圖③] 選了橡皮擦：游標換成橡皮擦圖示", cur["cls"] and "url(" in cur["cur"], cur)
+    n_e0 = pg.evaluate(_DT_STATE)["n"]
+    pg.mouse.click(X(.95), Y(.05)); pg.wait_for_timeout(250)
+    ok("[繪圖③] 點空白處：一筆都沒刪", pg.evaluate(_DT_STATE)["n"] == n_e0, pg.evaluate(_DT_STATE))
+    box = pg.evaluate("(id) => DrawTools.active.rendered[id].box", rc["id"])
+    pg.mouse.click(r["x"] + box["x"] + box["w"] / 2, r["y"] + box["y"] + box["h"] / 2); pg.wait_for_timeout(250)
+    ids = pg.evaluate("() => DrawTools.active.shapes.map(s => s.id)")
+    ok("[繪圖③] 點到方框：只刪掉那一個", len(ids) == n_e0 - 1 and rc["id"] not in ids, {"前": n_e0, "後": len(ids)})
+    ok("[繪圖③] 橡皮擦用完還留在橡皮擦（可以連續擦）", pg.evaluate(_DT_STATE)["tool"] == "erase")
+    click(pg, "#drawBar .dtool[data-t=cursor]", 200)
+    ok("[繪圖③] 「全部清除」就在橡皮擦旁邊",
+       pg.evaluate("() => { const e = document.querySelector('#drawBar .dtool[data-t=erase]'); return e && e.nextElementSibling && e.nextElementSibling.dataset.a === 'clear'; }"))
+
+    # ---------- 重新整理後全部還在
+    before = pg.evaluate("() => DrawTools.active.shapes.map(s => s.kind + ':' + s.id).sort()")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    after = pg.evaluate("() => DrawTools.active.shapes.map(s => s.kind + ':' + s.id).sort()")
+    ok("[繪圖] 重新整理後全部圖形都還在（種類與 id 一樣）", after == before and len(after) >= 7, {"前": before, "後": after})
+
+    # 清除：第一下只跳確認、取消不清、確定才清
+    n_c = len(after)
+    click(pg, "#drawBar .dtool[data-a=clear]", 300)
+    ok("[繪圖③] 按「全部清除」先跳出確認（還沒清）", count(pg, "#drawBar .dt-confirm") == 1 and pg.evaluate(_DT_STATE)["n"] == n_c)
+    click(pg, "#drawBar .dt-confirm [data-no]", 300)
+    ok("[繪圖③] 按「取消」：一筆都沒少", pg.evaluate(_DT_STATE)["n"] == n_c and count(pg, "#drawBar .dt-confirm") == 0)
+    click(pg, "#drawBar .dtool[data-a=clear]", 300)
+    click(pg, "#drawBar .dt-confirm [data-ok]", 400)
+    ok("[繪圖③] 確定後才真的全部清除（localStorage 也空了）",
+       pg.evaluate(_DT_STATE)["n"] == 0 and pg.evaluate(f"() => JSON.parse(localStorage.getItem('tw.draw.{code}.1d') || '[]').length") == 0)
+    click(pg, "#drawBar .dtool[data-a=undo]", 300)
+    ok("[繪圖] 清錯了按「復原」整組回來", pg.evaluate(_DT_STATE)["n"] == n_c, pg.evaluate(_DT_STATE))
+    pg.evaluate("() => { if (window.__origPrompt) window.prompt = window.__origPrompt; }")
+
+    # ---------- 390px 觸控：能畫、能選取、能拖
+    _dt_mobile(b, base, code)
+
+    # 收拾
+    pg.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('tw.draw.')).forEach(k => localStorage.removeItem(k)); }")
+
+
+
+def t_draw_vp_1002(pg, b, base, code):
+    """固定範圍成交量分佈（Andy 2026-10-02 第 8 項，演算法在 DECISIONS #289）。
+    驗：長條數＝檔數、各檔加總＝範圍內 K 棒成交量加總（1%）、POC 是最大的那檔、拖端點真的重算、改檔數、
+    日／1時／4時都畫得出來、重新整理後還在、橡皮擦刪得掉。"""
+    X, Y, r = _dt_setup(pg, base, code)
+    VP = """(id) => { const d = DrawTools.active, s = d.shapes.find(x => x.id === id); if (!s) return null;
+        const v = d.vpCalc(s), rd = d.rendered[id] || {}, data = d.kc.data;
+        const la = Math.round(d._lx(s.a)), lb = Math.round(d._lx(s.b));
+        const i0 = Math.max(0, Math.min(la, lb)), i1 = Math.min(data.length - 1, Math.max(la, lb));
+        let tot = 0; for (let i = i0; i <= i1; i++) tot += data[i].volume || 0;
+        const rows = v ? v.rows.map(q => q.up + q.dn) : [];
+        return { bars: rd.bars, rowsN: s.rows, n: v && v.n, sum: rows.reduce((a, c) => a + c, 0), tot, poc: v && v.poc,
+                 max: rows.length ? rows.indexOf(Math.max(...rows)) : -1, pocVal: v ? rows[v.poc] : 0, maxVal: Math.max(0, ...rows),
+                 upSum: v ? v.rows.reduce((a, q) => a + q.up, 0) : 0, pocY: rd.pocY, i0, i1 }; }"""
+    _dt_tool(pg, "vp")
+    ok("[分佈] 選了成交量分佈：屬性列有檔數、POC、價值區、透明度",
+       pg.evaluate(_DT_STATE)["props"] == "vp" and count(pg, "#lwc .dt-props select[data-r=rows]") == 1
+       and count(pg, "#lwc .dt-props [data-tg=poc]") == 1 and count(pg, "#lwc .dt-props [data-tg=va]") == 1
+       and count(pg, "#lwc .dt-props input[data-r=vpAlpha]") == 1)
+    pg.mouse.click(X(.20), Y(.30)); pg.wait_for_timeout(200)
+    ok("[分佈] 點起點：出現圓圈、等第二下", pg.evaluate(_DT_STATE)["placing"], pg.evaluate(_DT_STATE))
+    pg.mouse.move(X(.45), Y(.30), steps=5); pg.mouse.click(X(.45), Y(.30)); pg.wait_for_timeout(400)
+    s = pg.evaluate(_DT_LAST)
+    ok("[分佈] 再點終點：完成一個成交量分佈", s and s["kind"] == "vp", s)
+    v = pg.evaluate(VP, s["id"])
+    ok("[分佈] 畫出來的長條數＝檔數（預設 24）", v["bars"] == v["n"] == 24 and s.get("rows") == 24, v)
+    ok("[分佈] 各檔成交量加總＝範圍內 K 棒成交量加總（容差 1%）", v["tot"] > 0 and abs(v["sum"] - v["tot"]) <= v["tot"] * 0.01, v)
+    ok("[分佈] POC 那一檔就是最大的那一檔", v["poc"] == v["max"] and v["pocVal"] == v["maxVal"], v)
+    ok("[分佈] POC 線有畫出來", v["pocY"] is not None, v)
+    ok("[分佈] 上漲量（紅）與下跌量（綠）都有、而且不超過總量", 0 < v["upSum"] < v["sum"], v)
+    # 選取 → 拖右端點 → 重算
+    pg.mouse.click(X(.24), Y(.30)); pg.wait_for_timeout(250)
+    st = pg.evaluate(_DT_STATE)
+    if st["sel"] != s["id"]:
+        bx = pg.evaluate("(id) => DrawTools.active.rendered[id].box", s["id"])
+        pg.mouse.click(r["x"] + bx["x"] + 4, r["y"] + bx["y"] + bx["h"] / 2); pg.wait_for_timeout(250)
+        st = pg.evaluate(_DT_STATE)
+    ok("[分佈] 點範圍就選得到，兩端圓圈出現", st["sel"] == s["id"] and st["handles"] == 2, st)
+    g = pg.evaluate("(id) => { const d = DrawTools.active; const s = d.shapes.find(x => x.id === id); return d._geo(s, d._plotW(), d._paneH()).handles; }", s["id"])
+    hb = [q for q in g if q["k"] == "b"][0]
+    pg.mouse.move(r["x"] + hb["x"], r["y"] + hb["y"]); pg.mouse.down(); pg.mouse.move(r["x"] + hb["x"] + 160, r["y"] + hb["y"], steps=8); pg.mouse.up(); pg.wait_for_timeout(350)
+    v2 = pg.evaluate(VP, s["id"])
+    ok("[分佈] 拖右端點：範圍變長、總量真的重算（變大）", v2["i1"] > v["i1"] and v2["sum"] > v["sum"], {"前": [v["i1"], v["sum"]], "後": [v2["i1"], v2["sum"]]})
+    ok("[分佈] 重算後加總仍＝範圍總量（1%）", abs(v2["sum"] - v2["tot"]) <= v2["tot"] * 0.01, v2)
+    # 改檔數
+    pg.select_option("#lwc .dt-props select[data-r=rows]", "48"); pg.wait_for_timeout(300)
+    v3 = pg.evaluate(VP, s["id"])
+    ok("[分佈] 屬性列把檔數改成 48：長條數跟著變 48", v3["bars"] == 48 and v3["rowsN"] == 48, v3)
+    ok("[分佈] 改檔數後總量不變（只是分得更細）", abs(v3["sum"] - v2["sum"]) <= v2["sum"] * 1e-6, {"24 檔": v2["sum"], "48 檔": v3["sum"]})
+    click(pg, "#lwc .dt-props [data-tg=poc]", 250)
+    ok("[分佈] 關掉 POC：POC 線不畫了", pg.evaluate(VP, s["id"])["pocY"] is None)
+    click(pg, "#lwc .dt-props [data-tg=poc]", 250)
+    pg.mouse.click(X(.9), Y(.9)); pg.wait_for_timeout(200)
+    # 重新整理後還在
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    X, Y, r = _dt_rect(pg)
+    v4 = pg.evaluate(VP, s["id"])
+    ok("[分佈] 重新整理後還在、檔數與總量一樣", v4 and v4["bars"] == 48 and abs(v4["sum"] - v3["sum"]) <= v3["sum"] * 1e-6, v4)
+    # 1 時、4 時也畫得出來（有 60 分 K 的股票才驗）
+    for tf in ("60m", "240m"):
+        has = pg.evaluate(f"() => {{ const b = document.querySelector('#tfSeg button[data-tf=\"{tf}\"]'); return !!b && !b.disabled && !b.classList.contains('na') && !b.classList.contains('off'); }}")
+        if not has:
+            notes.append(f"[分佈] {code} 沒有 {tf} 週期鈕可按，跳過"); continue
+        click(pg, f'#tfSeg button[data-tf="{tf}"]', 1200)
+        if pg.evaluate("() => !DrawTools.active || !DrawTools.active.kc.data || DrawTools.active.kc.data.length < 20"):
+            notes.append(f"[分佈] {code} 的 {tf} 本機沒有足夠分 K，跳過"); continue
+        X, Y, r = _dt_rect(pg)
+        _dt_tool(pg, "vp")
+        pg.mouse.click(X(.35), Y(.4)); pg.mouse.click(X(.70), Y(.4)); pg.wait_for_timeout(400)
+        sv = pg.evaluate(_DT_LAST)
+        vv = pg.evaluate(VP, sv["id"]) if sv else None
+        ok(f"[分佈] {tf} 週期也畫得出來、加總＝範圍總量", sv and sv["kind"] == "vp" and vv and vv["bars"] == vv["n"] and abs(vv["sum"] - vv["tot"]) <= max(1, vv["tot"]) * 0.01, vv)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    X, Y, r = _dt_rect(pg)
+    # 橡皮擦刪得掉
+    _dt_tool(pg, "erase")
+    bx = pg.evaluate("(id) => (DrawTools.active.rendered[id] || {}).box", s["id"])
+    if bx:
+        pg.mouse.click(r["x"] + bx["x"] + 3, r["y"] + bx["y"] + bx["h"] / 2); pg.wait_for_timeout(250)
+    ok("[分佈] 橡皮擦點到範圍就刪掉", pg.evaluate("(id) => !DrawTools.active.shapes.some(x => x.id === id)", s["id"]))
+    click(pg, "#drawBar .dtool[data-t=cursor]", 200)
+    pg.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('tw.draw.')).forEach(k => localStorage.removeItem(k)); }")
+
+
+def _dt_mobile(b, base, code):
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, device_scale_factor=2)
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"[繪圖390] pageerror: {e}"))
+    m.route("**/fonts.googleapis.com/**", lambda r_: r_.abort())
+    try:
+        m.goto(base + f"#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3000)
+        m.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('tw.draw.')).forEach(k => localStorage.removeItem(k)); }")
+        m.evaluate("() => document.querySelector('#tfSeg button[data-tf=\"1d\"]').click()"); m.wait_for_timeout(1200)
+        if not m.evaluate("() => document.getElementById('chartWrap').classList.contains('drawon')"):
+            m.evaluate("() => document.getElementById('drawTgl').click()"); m.wait_for_timeout(400)
+        # 工具列放到 sticky 頁籤底下、圖整張在畫面裡
+        m.evaluate("() => { const b = document.getElementById('drawBar').getBoundingClientRect(); window.scrollBy(0, b.top - 250); }"); m.wait_for_timeout(500)
+        cdp = ctx.new_cdp_session(m)
+        def touch(kind, x, y):
+            cdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": [] if kind == "touchEnd" else [{"x": x, "y": y, "id": 1}]})
+        def tap(x, y):
+            touch("touchStart", x, y); m.wait_for_timeout(40); touch("touchEnd", x, y); m.wait_for_timeout(260)
+        def drag(x0, y0, x1, y1, n=8):
+            touch("touchStart", x0, y0); m.wait_for_timeout(30)
+            for i in range(1, n + 1):
+                touch("touchMove", x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n); m.wait_for_timeout(16)
+            touch("touchEnd", x1, y1); m.wait_for_timeout(300)
+        def tool_tap(t):
+            bb = m.evaluate(f"() => {{ const e = document.querySelector('#drawBar .dtool[data-t={t}]').getBoundingClientRect(); return {{x: e.x + e.width / 2, y: e.y + e.height / 2}}; }}")
+            hit = m.evaluate(f"() => {{ const e = document.elementFromPoint({bb['x']}, {bb['y']}); return !!(e && e.closest('.dtool[data-t={t}]')); }}")
+            ok(f"[繪圖390] 工具「{t}」的鈕沒有被別的東西蓋住（點得到）", hit)
+            tap(bb["x"], bb["y"])
+        rr = m.evaluate("() => { const e = document.getElementById('lwc').getBoundingClientRect(); return {x: e.x, y: e.y, w: e.width}; }")
+        mh = m.evaluate("() => window.Industry._dbg().paneH.main")
+        X = lambda f: rr["x"] + rr["w"] * f
+        Y = lambda f: rr["y"] + mh * f
+        tool_tap("rect")       # 「還原」小標以前蓋在方框鈕上
+        tool_tap("trend")
+        ok("[繪圖390] 用手指點工具列：選到趨勢線", m.evaluate(_DT_STATE)["tool"] == "trend", m.evaluate(_DT_STATE))
+        tap(X(.20), Y(.25)); tap(X(.55), Y(.50))
+        st = m.evaluate(_DT_STATE)
+        ok("[繪圖390] 觸控「點一下、再點一下」畫出一條線", st["n"] == 1 and st["tool"] == "cursor", st)
+        l0 = m.evaluate(_DT_LAST)
+        tap(X(.375), Y(.375))
+        st = m.evaluate(_DT_STATE)
+        ok("[繪圖390] 手指點線＝選取（兩端圓圈出現）", st["sel"] == l0["id"] and st["handles"] == 2, st)
+        g = m.evaluate("(id) => { const d = DrawTools.active; const s = d.shapes.find(x => x.id === id); return d._geo(s, d._plotW(), d._paneH()).handles; }", l0["id"])
+        hb_ = [q for q in g if q["k"] == "b"][0]
+        y0 = m.evaluate("() => scrollY")
+        drag(rr["x"] + hb_["x"], rr["y"] + hb_["y"], rr["x"] + hb_["x"] - 40, rr["y"] + hb_["y"] + 60)
+        l1 = m.evaluate(_DT_LAST)
+        ok("[繪圖390] 手指拖端點：終點座標真的改變、起點不動", l1["b"] != l0["b"] and l1["a"] == l0["a"], {"前": l0["b"], "後": l1["b"]})
+        ok("[繪圖390] 拖端點時整頁沒有跟著捲動", abs(m.evaluate("() => scrollY") - y0) <= 2, {"前": y0, "後": m.evaluate("() => scrollY")})
+        tool_tap("trend")
+        drag(X(.15), Y(.75), X(.45), Y(.65))
+        ok("[繪圖390] 手指按住拖曳也能畫線", m.evaluate(_DT_STATE)["n"] == 2, m.evaluate(_DT_STATE))
+        tool_tap("rect")
+        pr = m.evaluate("""() => { const e = document.querySelector('#lwc .dt-props'); if (!e || e.hidden) return null; const r = e.getBoundingClientRect(), l = document.getElementById('lwc').getBoundingClientRect();
+            const small = [...e.querySelectorAll('*')].filter(x => [...x.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(x).fontSize) < 11).length;
+            return { l: r.left - l.left, r: l.right - r.right, sw: document.documentElement.scrollWidth, small }; }""")
+        ok("[繪圖390] 方框的屬性列在圖內、沒有橫向捲軸、字不小於 11px", pr and pr["l"] >= 0 and pr["r"] >= 0 and pr["sw"] <= 391 and pr["small"] == 0, pr)
+        m.evaluate("() => document.querySelector('#drawBar .dtool[data-t=cursor]').click()")
+    finally:
+        m.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.draw.') || k === 'tw.drawbar').forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        ctx.close()
 
 
 def t_lightink(b, base, code):
@@ -17476,6 +17945,10 @@ SECTIONS = {
     "網頁版號":            lambda pg, b, base, code: t_buildver(b, base),
     "設定面板":            lambda pg, b, base, code: t_cfgpop(pg, base, code),
     "K線縮放":             lambda pg, b, base, code: t_kzoom_keep(pg, base, code),
+    # ★ 2026-10-02 Andy 五張截圖：文字框就地編輯、箭頭、橡皮擦、方框屬性列、點兩下畫線＋端點圓圈、選取拖曳、測量、成交量分佈（DECISIONS #289；⚠ 一律 --workers 1）
+    "繪圖工具1002":        lambda pg, b, base, code: t_draw_tools_1002(pg, b, base, code),
+    # ★ 2026-10-02 Andy 追加第 8 項：固定範圍成交量分佈（長條數＝檔數、加總＝區間量、POC 最大、拖端點重算、重新整理還在；⚠ 一律 --workers 1）
+    "繪圖成交量分佈1002":  lambda pg, b, base, code: t_draw_vp_1002(pg, b, base, code),
     "淺色主題":            lambda pg, b, base, code: t_lightink(b, base, code),
     "批次14b-被動RLC":     lambda pg, b, base, code: t_b14b_rlc(pg, base),
     "批次14b-高速互連":     lambda pg, b, base, code: t_hsio_v2(pg, base),      # restyle-w2b：v2（舊的 t_b14b_hsio 留在檔裡當對照）
