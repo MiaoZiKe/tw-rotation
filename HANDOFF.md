@@ -1,5 +1,24 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 10-03 版面 V2 第三批＋側欄子分頁（UI 專家，分支 `claude/layout-v2-desktop` → `preview/layout-v2`，**未推 main，等 CEO 驗完合併**）
+只作用在電腦版（>820，掛 l4）；手機版（≤820）不動。檔案：`site/layout4.js`、`site/layout4.css`、`site/app.js`（route／nearIdle／renderFlow 三處）、`scripts/_uitest.py`。
+- [x] 頁首只剩「頁名＋台北現在時間」（每秒走，寫 data-t 屬性由 ::before 畫，避開 body 上兩支 MutationObserver），黏在最上面；分組小標、說明句拿掉；「本頁功能」那排只藏不刪
+- [x] 收合鈕改成 logo 右側側欄圖示小方鈕（#l4NavBtn），左欄底部「‹ 收合導覽」拿掉
+- [x] 「事件」移到導覽最上面一格（保留數字徽章）
+- [x] 左欄底部：帳號卡（account.js 的 #acctBtn 本人搬進卡片，≤820 搬回 .acctbar；沒設定檔時只寫「訪客／自選存在這台瀏覽器」不放登入鈕）＋「淺色｜深色」二段式（按下去＝按 #themeBtn）＋外觀調色盤小鈕；「★ 自選」與 ☀ 在電腦版藏起來（DOM 留著）
+- [x] G 分組名「錢往哪裡跑」→「資金流水」
+- [x] H 資金流向拆三個側欄子分頁：#flow/rotation（資金輪動）、#flow/sankey（資金去向）、#flow/inst（族群×法人＋資金集中度）；#flow 導到 ①
+- [x] I 熱力圖拆兩個：#heatmap/industry（產業）、#heatmap/theme[/<id>]（題材，沿用舊網址）；#heatmap 導到產業
+  · 子分頁＝<html data-l4sub>（app.js route() 掛）＋ layout4.css 藏別的卡；藏起來的卡由 whenNear 等露出來才畫（nearIdle 在電腦版這兩頁不偷畫）。
+    輪盤首次繪製、排行、資金去向（含 sankey_daily 載入）改走 whenNear；熱力圖產業／題材只畫看得到的那半。計算邏輯沒改。
+  · 側欄子項是 `.l4subtab`（不是 .tab），收合時顯示兩字短名（輪動／去向／法人／產業／題材）。
+- 改了既有驗收：明亮主題／設計v4主題 的 ☀ 改走 theme_flip（電腦版點二段式）；會員與自選五分頁 的「★ 自選」電腦版改點導覽；
+  資金流向／新-資金流向／批次3／題材 依賴「同一頁四張卡」的地方改成先 `l4_sub()` 切到那張卡的子分頁（斷言本身沒改）；批次3 兩條 hash 接受 #flow/inst。
+- 順手修：資金去向的小圓點層（canvas.dotfx）原本只在看得到時才改尺寸，容器在看不到時變寬變窄會停在舊寬度把整頁撐出橫捲（拆子分頁後 800px 變 1235px 被抓到）→ 加 ResizeObserver 跟著容器改尺寸。
+- **這批驗了**：`_preview.py` 全綠；`_uitest --workers 1 --sections 版面v2結構,資金流向,新-資金流向,新-輪動時鐘,批次2,批次3,批次7,題材,設定面板,淺色主題,明亮主題,設計v4主題,會員與自選五分頁,會員雲端路徑`
+  → 除下面 4 條已知外全 0（版面v2結構、資金流向、題材、新-資金流向 在最後一次改動後單獨重跑過）。沒跑 pytest（只動 site/、_uitest、文件）。
+- 已知（main 上同樣紅，不是這批造成；用 origin/main 快照同段落實測過）：新-資金流向「800px 沒有橫向捲軸」×2（pageW 846）、新-輪動時鐘「最外圈只有一個族群」、批次2「再點一次同一根長條會收起來」。
+
 ## 10-03 04:56 版面 V2 上正式站（CEO）
 
 - Andy：「目前滿意預覽版本排法，幫我改成預覽為正式版本」→ `claude/layout-v2-desktop`（175a5a2）合併進 main（3c24dfd）。只作用在電腦版 >820；手機不變。

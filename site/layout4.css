@@ -140,7 +140,8 @@
     position:absolute;left:var(--sp-3);top:-21px;font-size:var(--fs-min);font-weight:600;letter-spacing:.12em;
     color:var(--ink-3);pointer-events:none;white-space:nowrap;line-height:16px}
   :root.l4 .tab[data-view="overview"]::before{content:"今日市場"}
-  :root.l4 .tab[data-view="flow"]::before{content:"錢往哪裡跑"}
+  /* 2026-10-03（Andy：「側欄分組名『錢往哪裡跑』改成『資金流水』」） */
+  :root.l4 .tab[data-view="flow"]::before{content:"資金流水"}
   :root.l4 .tab[data-view="industry"]::before{content:"族群與個股"}
   :root.l4 .tab[data-view="season"]::before{content:"歷史規律"}
   :root.l4 .tab[data-view="watch"]::before{content:"專案"}
@@ -210,6 +211,34 @@
     -webkit-mask:var(--l4-ic-palette) center/contain no-repeat;mask:var(--l4-ic-palette) center/contain no-repeat}
   :root.l4 .topbar>.morebtn,:root.l4 .topbar>.morepop{display:none!important}
 
+  /* ---- 子分頁（2026-10-03，Andy：資金流向拆三格、熱力圖拆產業／題材）：父頁下面的縮排子項 ----
+     layout4.js 插在 #tabs 裡、父頁按鈕後面（class l4subtab，不是 .tab）；order 跟父頁一樣，同 order 時照 DOM 順序 → 緊跟在父頁下面。
+     左邊一條細線對齊父頁圖示中心，像樹狀目錄；目前那格＝主色淡底＋主色字＋主色線（跟分頁「實心反白」區分：這是「在哪一段」）。 */
+  :root.l4 .tabs>.l4subtab[data-parent="flow"]{order:2}
+  :root.l4 .tabs>.l4subtab[data-parent="heatmap"]{order:3}
+  :root.l4 .l4subtab{position:relative;display:flex;align-items:center;width:100%;min-width:0;margin:0;padding:5px var(--sp-3) 5px 40px;
+    border:0;border-radius:var(--r-md);background:transparent;color:var(--ink-3);font-size:var(--fs-sm);line-height:20px;text-align:left;
+    white-space:nowrap;cursor:pointer}
+  :root.l4 .l4subtab .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  :root.l4 .l4subtab .sh{display:none}
+  :root.l4 .l4subtab::before{content:"";position:absolute;left:21px;top:0;bottom:0;width:1px;background:var(--t4-card-edge,var(--line))}
+  :root.l4 .l4subtab:hover{background:var(--panel-2);color:var(--ink)}
+  :root.l4 .l4subtab.on{color:var(--t4-accent-solid,var(--cyan));font-weight:700;
+    background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,transparent)}
+  :root.l4 .l4subtab.on::before{left:20px;width:3px;border-radius:2px;background:var(--t4-accent-solid,var(--cyan))}
+  /* 有子分頁亮著時，父頁不再實心反白（同一個位置不要亮兩格），改成粗體字表示「在這一頁裡」 */
+  :root.l4[data-l4sub^="flow-"] .tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tab[data-view="heatmap"].on{
+    background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
+
+  /* 子分頁只顯示自己的卡（<html data-l4sub> 由 app.js route() 掛；藏起來的卡由 whenNear 等露出來才畫）。
+     #v-flow：①資金輪動＝#flowRotCard ②資金去向＝#flowSankeyCard ③族群×法人＋資金集中度＝包著兩張卡的那一格 grid
+     #v-heatmap：產業＝#indHeat（全市場 treemap）  題材＝#themeMapCard＋#themeDetail */
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-rotation"]) #flowRotCard,
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-sankey"]) #flowSankeyCard,
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-inst"]) #v-flow>:has(>#flowInstCard),
+  :root.l4[data-l4sub="heat-industry"] #themeMapCard,:root.l4[data-l4sub="heat-industry"] #themeDetail,
+  :root.l4[data-l4sub="heat-theme"] #indHeat{display:none!important}
+
   /* =============================== 2. 收合成圖示列（72px） =============================== */
   :root.l4.l4-mini .topbar{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto var(--l4-tabs-h,calc(100vh - 420px)) auto auto auto;
     grid-template-areas:"brand" "nav" "search" "ev" "tabs" "acct" "mode" "t4";padding:var(--sp-4) var(--sp-2) var(--sp-3)}
@@ -248,6 +277,11 @@
   :root.l4.l4-mini #l4Acct.in .act{justify-content:center}
   :root.l4.l4-mini #l4Acct.in #acctBtn{width:auto;font-size:0;gap:0}
   :root.l4.l4-mini #l4Acct.in #acctBtn .anm{display:none}
+  /* 子分頁：收合時改寫兩個字的短名（輪動／去向／法人、產業／題材），不畫樹狀線 */
+  :root.l4.l4-mini .l4subtab{justify-content:center;padding:4px 0;font-size:var(--fs-min);line-height:16px}
+  :root.l4.l4-mini .l4subtab .lbl{display:none}
+  :root.l4.l4-mini .l4subtab .sh{display:inline}
+  :root.l4.l4-mini .l4subtab::before{display:none}
   /* 淺色／深色：上下兩顆圖示 */
   :root.l4.l4-mini #l4Mode{grid-template-columns:minmax(0,1fr)}
   :root.l4.l4-mini #l4Mode .lbl{display:none}

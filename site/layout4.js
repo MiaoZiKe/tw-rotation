@@ -44,8 +44,8 @@
      這裡一句話講清楚每一頁在那個順序裡的位置，讓第一次來的人知道從哪裡開始看。 */
   const PAGES = {
     overview: { grp: '今日市場', t: '總覽', d: '今天大盤怎麼走、錢集中在哪幾個族群、題材在做什麼 —— 從這裡開始，一頁看完今天的重點。' },
-    flow: { grp: '錢往哪裡跑', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金去向看錢從哪裡流到哪裡。' },
-    heatmap: { grp: '錢往哪裡跑', t: '熱力圖', d: '全市場與題材的冷熱一眼看完：方塊越大錢越多、越紅漲越多；點方塊看成分股。' },
+    flow: { grp: '資金流水', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金去向看錢從哪裡流到哪裡。' },
+    heatmap: { grp: '資金流水', t: '熱力圖', d: '全市場與題材的冷熱一眼看完：方塊越大錢越多、越紅漲越多；點方塊看成分股。' },
     industry: { grp: '族群與個股', t: '產業地圖', d: '每條產業鏈的強弱與上下游：先挑產業鏈，再看族群與零件，最後點個股看 K 線與基本面。' },
     stock: { grp: '族群與個股', t: '個股', d: 'K 線與多週期技術面、營收與獲利、籌碼與除權息 —— 決定「什麼時候進場」與「現在貴不貴」。' },
     market: { grp: '族群與個股', t: '市場明細', d: '完整名單：漲跌分佈、站上均線、法人動向與各項排行，可以排序篩選，找出符合條件的個股。' },
@@ -54,6 +54,21 @@
     delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
   };
   const ALIAS = { themes: 'heatmap', tasks: 'delivery' };
+  /* ★ 2026-10-03（Andy：「資金流向」四個本頁功能拆成三個側欄子分頁、「熱力圖」拆產業／題材）：
+     側欄縮排子項。路由與「這一頁顯示哪幾張卡」在 app.js route()（<html data-l4sub>）＋ layout4.css；這裡只畫側欄那幾格、亮目前那格。
+     短名（s）是收合成圖示列時顯示的兩個字。 */
+  const SUBS = {
+    flow: [
+      { k: 'flow-rotation', h: '#flow/rotation', t: '資金輪動', s: '輪動' },
+      { k: 'flow-sankey', h: '#flow/sankey', t: '資金去向', s: '去向' },
+      { k: 'flow-inst', h: '#flow/inst', t: '族群×法人＋集中度', s: '法人' },
+    ],
+    heatmap: [
+      { k: 'heat-industry', h: '#heatmap/industry', t: '產業', s: '產業' },
+      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', s: '題材' },
+    ],
+  };
+  const subKey = () => root.getAttribute('data-l4sub') || '';
   /* 卡片標題讀出來不像「這一節」的，指定名字（大盤三張圖的外框第一個標題是「加權指數」，但這一節是三張圖） */
   const CARD_NAME = { m3Frame: '大盤走勢' };
 
@@ -91,6 +106,7 @@
     const k = curKey(), p = PAGES[k];
     let sub = '';
     if (p && (k === 'industry' || k === 'stock') && /^#(industry\/|stock\/)/.test(location.hash)) sub = chainName();
+    if (p && SUBS[k]) { const it = SUBS[k].find((x) => x.k === subKey()); if (it) sub = it.t; }
     const sig = [k, sub].join('|');
     if (sig === lastHead) return;
     lastHead = sig;
@@ -241,6 +257,38 @@
   function queueScan() {
     if (scanT) return;
     scanT = setTimeout(() => { scanT = 0; renderHead(); scanCards(); }, 300);
+  }
+
+  /* ---------------- 側欄子分頁（資金流向三格、熱力圖兩格） ----------------
+     插在 #tabs 裡、各自的父頁後面；class 是 l4subtab（**不是 .tab**）—— 手機版、app.js 的分頁列、驗收腳本都是數 .tab，
+     不能讓它們多算。≤820 deactivate() 整批拿掉。點了只是換 hash，其餘交給 app.js 的 route()。 */
+  function buildSubs() {
+    const tabs = $('#tabs'); if (!tabs || $('.l4subtab', tabs)) return;
+    Object.keys(SUBS).forEach((v) => {
+      const parent = $(`.tab[data-view="${v}"]`, tabs); if (!parent) return;
+      let after = parent;
+      SUBS[v].forEach((it) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'l4subtab'; b.dataset.l4sub = it.k; b.dataset.parent = v;
+        b.innerHTML = `<span class="lbl">${esc(it.t)}</span><span class="sh" aria-hidden="true">${esc(it.s)}</span>`;
+        b.title = (PAGES[v] ? PAGES[v].t + '・' : '') + it.t;
+        b.onclick = () => {
+          // 熱力圖題材子分頁：已經在題材（可能還帶著 /<題材 id>）就不動網址，不要把展開中的題材收掉
+          if (subKey() === it.k) return;
+          location.hash = it.h;
+        };
+        after.after(b); after = b;
+      });
+    });
+    markSubs();
+  }
+  function markSubs() {
+    const k = subKey();
+    $$('.l4subtab').forEach((b) => {
+      const on = b.dataset.l4sub === k;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
   }
 
   /* ---------------- 左側導覽收合（寬 ↔ 圖示列） ----------------
@@ -397,7 +445,7 @@
     active = true;
     root.classList.add('l4');
     if (!DESK()) root.classList.add('l4m');
-    build(); buildNavBtn(); buildBottom();
+    build(); buildNavBtn(); buildBottom(); buildSubs();
     lastHead = ''; lastSig = '';
     applyNav();
     renderHead(); scanCards(); syncAcct(); syncMode();
@@ -411,7 +459,8 @@
     const ab = $('#acctBtn'), abar = $('#acctBar');
     if (ab && abar && ab.parentNode !== abar) abar.appendChild(ab);
     acctSig = '';
-    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '#l4Acct', '#l4Mode', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '#l4Acct', '#l4Mode', '.l4subtab', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    root.removeAttribute('data-l4sub');      // 子分頁只有電腦版有；手機版要看到整頁（app.js route() 掛的）
     head = jump = chips = null; cards = []; lastHead = ''; lastSig = '';
     root.classList.remove('l4', 'l4-mini', 'l4m');
     root.style.removeProperty('--l4-tabs-h'); root.style.removeProperty('--l4-spine-h');
@@ -430,7 +479,12 @@
     if (bar) new MutationObserver(() => { fitNav(); if (active) syncAcct(); }).observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class', 'title'] });
     window.addEventListener('tw:account', () => { if (active) syncAcct(); });
     // 明暗：不管是誰切的（這裡的二段式、外觀面板、≤820 的「⋯」清單），都以 <html data-theme> 為準
-    new MutationObserver(() => { if (active) syncMode(); }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    // 子分頁：app.js route() 一改 data-l4sub（含第一次進站、replace 導向）就亮對的那格、頁首補上子分頁名
+    new MutationObserver((recs) => {
+      if (!active) return;
+      if (recs.some((r) => r.attributeName === 'data-theme')) syncMode();
+      if (recs.some((r) => r.attributeName === 'data-l4sub')) { markSubs(); renderHead(); }
+    }).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-l4sub'] });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitNav);
     const main = $('main');
     /* 只看「節點增減」：卡片出現／消失一定伴隨 childList。不看 class／style ——
@@ -440,7 +494,8 @@
     window.addEventListener('hashchange', () => {
       if (!active) return;
       lastHead = ''; lastSig = '';
-      [60, 700, 2000].forEach((t) => setTimeout(() => { renderHead(); scanCards(); }, t));
+      markSubs();
+      [60, 700, 2000].forEach((t) => setTimeout(() => { markSubs(); renderHead(); scanCards(); }, t));
     });
     window.addEventListener('scroll', () => {
       if (!active) return;
@@ -450,7 +505,17 @@
     }, { passive: true });
     window.addEventListener('resize', () => {
       const w = WANT();
-      if (w !== active) { if (w) activate(); else deactivate(); return; }
+      if (w !== active) {
+        if (w) activate(); else deactivate();
+        /* 子分頁只有電腦版有：拉寬要把 #flow 導到子分頁，縮窄要讓 app.js 把「別的子分頁」那幾張卡補畫出來
+           （手機版是整頁）—— 用 hashchange 請 route() 再跑一次，不另外寫一套 */
+        /* 縮窄時資金流向不必重跑：拿掉 data-l4sub 之後藏起來的卡全部露出來，whenNear 的 IntersectionObserver 自己會把它們畫出來；
+           重跑路由反而會讓資金去向在換寬度的同一刻被重新排一次（小圓點那層量到舊寬度，_uitest「新-資金流向」800px 抓到的）。
+           熱力圖的題材／產業是 route() 裡直接畫的（沒有走 whenNear），所以縮窄時仍要重跑一次。 */
+        const hp = location.hash || '';
+        if (w ? /^#(flow|heatmap)(\/|$)/.test(hp) : /^#heatmap(\/|$)/.test(hp)) setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 0);
+        return;
+      }
       if (!active) return;
       if (!LS.get(NAV_KEY)) applyNav();
       queueScan(); spy(); fitNav();
