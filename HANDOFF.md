@@ -1,5 +1,23 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 台指期改走 Deno 代理：期交所經 Deno 日盤夜盤全 200，網站台指期先打 Deno、失敗才退回 Worker（2026-10-02 19:00，台北，爬蟲專家，分支 `claude/taifex-deno`，**未推 main**，DECISIONS #286）
+
+- [x] **期交所經 Deno 回 200（兩輪實測）**：Deno 網址 `https://tw-taifex.miaozike.deno.net`（CLI 的 productionUrl）。
+  run 36955532108（10:25，push 84d55bc）與 run 36995563974（18:28，workflow_dispatch，**夜盤交易中**）：`/health`、`/fut` 日盤、`/fut` 夜盤、`/futchart` TXFJ6-F、TXFJ6-M **全部 200**，回的是期交所原始 JSON。
+- [x] `site/live.js`：常數 `TAIFEX_PROXY` ＋ `Live.taifexProxy()`。
+- [x] `site/market3.js`：新 `futGet()` —— 台指期 `/fut`（日盤 5 秒、夜盤 60 秒）與 `/futchart` 先打 Deno（6 秒逾時），非 2xx／連不上 → 退回 Worker；
+  兩條都壞時說明寫「Deno 回 HTTP 520，Worker 也回 HTTP 502」。加權、櫃買、台指期日盤分時的 `/chart`（mis.twse）一行沒動；`/futstream`（SSE，預設關）仍只走 Worker。
+- [x] `scripts/_uitest.py` 新段落 `台指期Deno優先`（A Deno 好→夜盤＋夜盤點、Worker 0 次；B Deno 520→退回 Worker；B2 Deno 連不上→退回；D 兩條都壞→日盤＋兩邊原因），`site/modules.js` 的 `index.board` 登記。
+  反向驗證四種植入缺陷各紅 10／6／2／2 條，還原後綠（表在 DECISIONS #286）。
+- [x] `docs/v3_sources_spec.md` 第 7 節那句「前端經 Worker 讀」補上 Deno。
+- 接手的狀況：前一位停在反向驗證中途（`claude/wip-taifex-deno` 那份 `market3.js` 還留著植入的 `const deno = '';  // PLANTED`），這一批已還原並重寫 `futGet()`（原因要跟著回應走、兩條都壞要講兩邊），測試補 B2 與 D。
+- **這批驗了**：`_uitest.py --workers 1 --sections 夜盤盤後0930,夜盤推送,即時推送,新-大盤三張圖,總覽,台指期Deno優先,積木清單`
+  → 前六段 0 問題；積木清單 3 條＝main 既有的那 3 條（手機 #stock「AI 分析」「財報籌碼」、擋掉 modules.js），跟這批無關。`_preview.py` 全綠。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件；`tests/` 不 import `_uitest.py`）。瀏覽器鎖被占超過 5 分鐘，改用 `TW_UITEST_PORT=8791`／`TW_PREVIEW_PORT=8792` 不加 flock 跑；本機 `site/data` 是 symlink 到主 checkout（10-01 資料）。
+- 已知限制：① Deno 免費層據 WebSearch 摘要（第三方、低信心）每月 100 萬請求，一個讀者整天開總覽約每月 11～12 萬次，**同時整天開著的讀者超過約 8 個就會碰頂**（碰頂會退回 Worker→顯示日盤＋原因，不白屏）。
+  ② 瀏覽器從 `miaozike.github.io` 打 Deno 的 CORS 沒在真瀏覽器驗過（容器連不到外網）；`main.ts` 有放行 github.io，合併上線後請開總覽確認夜盤。③ 台灣讀者到 Deno 的延遲沒實測（runner 在美國，`region: ord`）。
+- 下一步：合併 `claude/taifex-deno` 到 main（只動前端，`pages.yml` 會部署）；上線後夜盤時段開總覽，台指期小標應是「夜盤」。
+
 ## 「個股」段 2 個紅燈＝本機資料過舊造成的假紅，不是線上 bug（2026-10-02 17:10，台北，審核專家，分支 `claude/fix-stock-k`，只改 HANDOFF）
 
 - 紅燈：`_uitest.py --sections 個股 --workers 1` 的「個股頁 K 線有畫出來」與「沒劃掉的週期 tick 點下去真的畫得出來 ← {'canvas': 0, 'empty': True}」。
@@ -126,6 +144,7 @@
 - 這批驗了：`pytest tests/ -q` 899 passed／4 skipped／1 xfailed、Worker 離線驗收 `fut_fail_check.mjs` 69 條（含新舊比對）、`worker_closed` 綠、`worker_check` 3 輪有 1 輪「三條新連線共用上游」紅（計時型、舊版 4 輪全綠，/stream 程式碼沒動）、
   `futstream_check` 2 條紅（舊版同樣 2 條，既有）。沒改 site/，沒跑 `_preview`／`_uitest`。部署後 probe run 36745792375、worker-watch run 36745796387 實測：日盤 `/quote` 200、`/fut?session=day` 502（上游 520）、夜盤兩支 502（上游 520）。
 - **待處理**：① **夜盤要回來只能換不經 Cloudflare 的代理**（Deno Deploy／Netlify・Vercel Node 函式／Apps Script／自己的 VM，代價表在 #281），都要 Andy 開帳號，還沒選。
+  → 2026-10-02 已選 Deno Deploy 並實測 200，前端接上在分支 `claude/taifex-deno`（DECISIONS #286，見本檔最上面那節）。
   ② 前端 `fetchFut()`／`fetchFutChart()` 讀 502 JSON 的 `upstream_status`，說明改寫成「期交所經代理回 520」；要同時改 `_uitest.py`，不在這批範圍。
   ③ 日盤 `fastTick()`（每 5 秒 `/fut?session=day`）同樣被擋，靠 `m3fut` 退避與 `/chart` 分時撐著。
 
