@@ -36,6 +36,7 @@ ap.add_argument('--settle', type=float, default=8)
 ap.add_argument('--site', default=str(Path(__file__).resolve().parent.parent / 'site'))
 ap.add_argument('--tag', default='jank')
 ap.add_argument('--gc-each', action='store_true', help='切頁階段每換一頁都 GC，記每一頁的監聽／節點／記憶體增量（找洩漏用）')
+ap.add_argument('--warm', type=int, default=0, help='切頁階段前 N 輪不計入每頁增量（第一次進頁的建置成本不算洩漏）')
 ap.add_argument('--attr', action='store_true', help='記錄 rAF／setOption／setData 的呼叫來源（有額外成本，只拿來找兇手）')
 ap.add_argument('--out', default=str(Path(tempfile.gettempdir()) / 'tw_perf'))
 a = ap.parse_args()
@@ -325,7 +326,7 @@ with sync_playwright() as p:
                 d['ec_leak_new'] += e['ecLeak'] - b['ecLeak']; d['lw_create'] += e['lw']['create'] - b['lw']['create']
                 d['lw_remove'] += e['lw']['remove'] - b['lw']['remove']; d['dom'] = e['dom']
                 d['leak_ids'] |= set(e['leakIds']) - set(b['leakIds'])
-                if a.gc_each:
+                if a.gc_each and r >= a.warm:
                     d['listeners_d'] = d.get('listeners_d', 0) + int(me['JSEventListeners'] - mb['JSEventListeners'])
                     d['nodes_d'] = d.get('nodes_d', 0) + int(me['Nodes'] - mb['Nodes'])
                     d['heap_kb_d'] = d.get('heap_kb_d', 0) + int((me['JSHeapUsedSize'] - mb['JSHeapUsedSize']) / 1024)
