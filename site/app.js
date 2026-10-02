@@ -2253,7 +2253,10 @@
     const mroot = document.querySelector('main');
     if (mroot) mo.observe(mroot, { childList: true, subtree: true }); }
   { let rt = null;
-    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
+    /* ★ 2026-10-02 卡頓（#284）：只認真的視窗變動（e.isTrusted）。站上自己派的 resize（miaResize、大盤三張圖、手機 m3go…）
+       是叫圖表重新量寬度用的，視窗寬度沒變，不必重排分段 —— 以前它們會形成迴圈：resize → 220ms → applyMobileIA → miaPager
+       → 30／300ms 後 miaResize 再派 resize → …，手機寬度下頁面永遠停不下來（390 寬停在總覽 20 秒派了 150 次）。*/
+    window.addEventListener('resize', (e) => { if (!e.isTrusted) return; clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
   let _miaKey = 'overview';
 
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）

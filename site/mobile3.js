@@ -250,7 +250,10 @@
   }
   let rt = null;
   let wasM = isM();
-  window.addEventListener('resize', () => {
+  /* ★ 2026-10-02 卡頓（DECISIONS #284）：只認真的視窗變動（e.isTrusted）。m3go()／分頁切換派的 resize 是叫圖表重量寬度，
+     不必整套 apply() —— 以前 apply() → m3go() → 40ms 後派 resize → 200ms 後又 apply() …，手機寬度下每 0.25 秒一輪停不下來。*/
+  window.addEventListener('resize', (e) => {
+    if (!e.isTrusted) return;
     clearTimeout(rt);
     rt = setTimeout(() => { const now = isM(); if (now !== wasM || now) { wasM = now; apply(); } }, 200);
   });
