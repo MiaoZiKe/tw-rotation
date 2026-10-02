@@ -142,7 +142,7 @@
     jump.hidden = items.length < 2;                  // 只有一張卡的頁面不需要跳轉列
     chips.innerHTML = items.map((x, i) => `<button type="button" data-i="${i}"><i>${String(i + 1).padStart(2, '0')}</i>${esc(x.t)}</button>`).join('');
     $$('button', chips).forEach((b) => { b.onclick = () => go(+b.dataset.i); });
-    spy(true);
+    if (Date.now() >= lockUntil) mark(current()); spy(true);   // 重建之後當場亮一顆（不等下一幀：機器忙時那一幀可能晚到，膠囊列會有一段時間全暗）
   }
   let lockUntil = 0;
   function go(i) {
@@ -180,12 +180,15 @@
       const stickTop = parseFloat(getComputedStyle(jump).top) || 0;
       jump.classList.toggle('stuck', jump.getBoundingClientRect().top <= stickTop + 1 && window.scrollY > 10);
       if (!force && Date.now() < lockUntil) return;   // 剛點過膠囊：捲動動畫跑完之前不要被偵測改掉
-      const line = jump.getBoundingClientRect().bottom + 24;
-      let best = 0, bestTop = -Infinity;
-      cards.forEach((x, i) => { const t = x.c.getBoundingClientRect().top; if (t <= line && t > bestTop + 1) { best = i; bestTop = t; } });
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4 && window.scrollY > 0) best = cards.length - 1;
-      mark(best);
+      mark(current());
     });
+  }
+  function current() {
+    const line = jump.getBoundingClientRect().bottom + 24;
+    let best = 0, bestTop = -Infinity;
+    cards.forEach((x, i) => { const t = x.c.getBoundingClientRect().top; if (t <= line && t > bestTop + 1) { best = i; bestTop = t; } });
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4 && window.scrollY > 0) best = cards.length - 1;
+    return best;
   }
   /* 卡片是非同步畫出來的（圖表、資料載入完才出現），所以用 MutationObserver 追，
      但只在「最外層卡片的組成」變了才重畫膠囊（scanCards 內部有簽章比對），盤中每 5 秒的報價更新不會讓膠囊列重排。

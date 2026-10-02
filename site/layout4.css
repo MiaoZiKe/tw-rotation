@@ -331,7 +331,8 @@
   :root.l4 body.m3on:not(.mbon) main{padding-top:6px}
 
   /* ---- 本頁功能：沒有分段列的頁面才出現的跳轉列（黏在頂欄 52px 底下、可橫向滑） ---- */
-  :root.l4{scroll-padding-top:104px}
+  /* 手機不設 scroll-padding：既有的捲動（總覽卡片的 scroll-margin-top 124、按鈕普查的置中捲動）都是照「沒有 padding」算的；跳轉列自己的捲動由 layout4.js 算位移 */
+  :root.l4{scroll-padding-top:0}
   :root.l4 body.m3on #l4Jump{display:flex;align-items:center;gap:var(--sp-2);position:sticky;top:52px;z-index:30;
     padding:6px 14px;background:var(--bg);box-shadow:0 8px 12px -10px var(--drop)}
   :root.l4 body.m3on #l4Jump[hidden]{display:none}

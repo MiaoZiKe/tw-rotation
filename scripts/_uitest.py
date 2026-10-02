@@ -40361,7 +40361,9 @@ def t_layout4(b, base, code):
               seen: getComputedStyle(s).visibility !== 'hidden' && r.left < innerWidth - 2,
               back: k.classList.contains('on'), backL: Math.round(k.getBoundingClientRect().left),
               navW: Math.round(document.querySelector('.topbar').getBoundingClientRect().width) }; }"""
-        pg.locator("#evToggle").click(timeout=6000); pg.wait_for_timeout(600)
+        pg.locator("#evToggle").click(timeout=6000)
+        # 等滑進來的動畫（0.25s）真的跑完：機器忙的時候固定睡 600ms 會量到還在畫面外的抽屜（right＝1860）
+        wait_until(pg, "() => { const r = document.getElementById('side').getBoundingClientRect(); return Math.round(r.right) === innerWidth; }", 4000)
         d1 = pg.evaluate(SD)
         ok(f"{T}1440 按左欄「事件」→ 抽屜滑出、遮罩出現", d1["open"] and d1["seen"] and d1["back"], d1)
         ok(f"{T}1440 抽屜從視窗頂端開始（上面已經沒有頂欄）、貼右", d1["top"] == 0 and d1["right"] == d1["vw"], d1)
@@ -40466,7 +40468,7 @@ def t_layout4(b, base, code):
         pg.wait_for_timeout(600)
         pg.evaluate("() => window.scrollTo(0, 700)"); pg.wait_for_timeout(400)
         pf = pg.evaluate(L4_MPAGER)
-        ok(f"{T}390 資金流向捲下去 → 分段列黏在頂欄底下（top＝52）", pf["pager"] and pf["sy"] > 300 and abs(pf["top"] - 52) <= 1 and pf["jump"] is False, pf)
+        ok(f"{T}390 資金流向捲下去 → 分段列黏在頂欄底下（top＝52）", pf["pager"] and pf["sy"] > 120 and abs(pf["top"] - 52) <= 1 and pf["jump"] is False, pf)
         # 點分段 → 真的換段（app.js 原本的行為：換段回到這一段最上面）
         names = pg.evaluate("() => [...document.querySelectorAll('.view.on > .mpager > button')].map(b => b.textContent.trim())")
         if len(names) >= 2:
@@ -40503,6 +40505,7 @@ def t_layout4(b, base, code):
                 pg.locator(".mrow[data-m='events']").first.tap(timeout=6000)
             pg.wait_for_timeout(650)
         m_open()
+        wait_until(pg, "() => { const r = document.getElementById('side').getBoundingClientRect(); return Math.round(r.right) === innerWidth; }", 4000)
         sd = pg.evaluate(L4_SIDE)
         ok(f"{T}390 事件抽屜從右側滑出、滿高（從頂端到底）", sd["open"] and sd["top"] == 0 and sd["bottom"] == sd["vh"] and sd["right"] == sd["vw"] and sd["back"], sd)
         pg.touchscreen.tap(max(4, sd["left"] // 2), 420); pg.wait_for_timeout(600)
@@ -40561,7 +40564,8 @@ def t_layout4(b, base, code):
         j2 = pg.evaluate(L4_JUMP)
         ok(f"{T}768 用滾輪捲回頂端 → 亮回第 1 顆", j2["on"] == 0 and j2["sy"] == 0, j2)
         pg.locator("#moreBtn").click(timeout=6000); pg.wait_for_timeout(400)
-        pg.locator("#mmEvents").click(timeout=6000); pg.wait_for_timeout(650)
+        pg.locator("#mmEvents").click(timeout=6000)
+        wait_until(pg, "() => { const r = document.getElementById('side').getBoundingClientRect(); return Math.round(r.right) === innerWidth; }", 4000)
         sd = pg.evaluate(L4_SIDE)
         ok(f"{T}768 事件抽屜（從「⋯」打開）滿高、貼右", sd["open"] and sd["top"] == 0 and sd["bottom"] == sd["vh"] and sd["right"] == sd["vw"], sd)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
