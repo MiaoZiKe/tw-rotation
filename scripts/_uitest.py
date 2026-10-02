@@ -17453,16 +17453,15 @@ def t_stock_tabs0928(pg, base, code):
         ov: [...document.querySelectorAll('#stockTab .lights .light')].map(e => e.textContent.trim()) })""")
     ok(f"★ {tag}AI 分析第二顆標籤是「技術面訊號」、沒有「籌碼面」", [t[1] for t in ai["tabs"]] == ["技術面", "技術面訊號", "基本面", "消息面"], ai["tabs"])
     if any(t[0] == "sig" for t in ai["tabs"]):
-        pg.evaluate("() => { try { localStorage.setItem('tw.aiOpen', '1'); } catch (e) {} }")
-        # ★ 2026-10-02（#293）頂部 AI 預設只看重點（收合），收合時的小標籤是「捲到總覽細節卡」—— 先按「展開」，標籤才是切換面向的標籤頁
-        if pg.evaluate("() => { const b = document.getElementById('aiBody'); return !!b && b.hidden; }"):
-            click(pg, "#aiTgl", 400)
-        before = pg.evaluate("() => { const p = [...document.querySelectorAll('#skAi .aipanel')].find(x => !x.hidden); return p ? p.innerText : ''; }")
-        click(pg, '#skAi .aitab[data-facet="sig"]', 500)
-        s = pg.evaluate("""() => { const p = document.getElementById('aiPanel-sig'); return p ? { vis: !p.hidden && p.getBoundingClientRect().height > 0,
-            lights: [...p.querySelectorAll('.light')].map(e => e.textContent.trim()), txt: p.innerText } : null; }""")
-        if ok(f"★ {tag}點「技術面訊號」→ 面板打開、內容換了", bool(s) and s["vis"] and s["txt"] != before, s and s["txt"][:100]):
-            ok(f"★ {tag}技術面訊號九顆燈＝總覽分頁「技術面訊號」卡的九顆燈（同一份資料）", len(s["lights"]) == 9 and s["lights"] == ai["ov"], (s["lights"], ai["ov"]))
+        # ★ 2026-10-03（#305）頂部 AI 的「展開」拿掉了：K 線卡裡點「技術面訊號」那一列 ＝ 捲到總覽 AI 卡、切到技術面訊號那一面
+        click(pg, '#skAi .aitab[data-facet="sig"]', 900)
+        s = pg.evaluate("""() => { const f = document.getElementById('ovFacets'), p = f && f.querySelector(':scope > [data-facet="sig"]');
+            const q = document.getElementById('aiPanel-sig');
+            return { cur: f ? f.dataset.cur : '', vis: !!p && p.getBoundingClientRect().height > 0,
+              lights: p ? [...p.querySelectorAll('.light')].map(e => e.textContent.trim()) : [],
+              top: q ? [...q.querySelectorAll('.light')].map(e => e.textContent.trim()) : [] }; }""")
+        if ok(f"★ {tag}點頂部「技術面訊號」那一列 → 總覽 AI 卡切到技術面訊號、看得到九顆燈", bool(s) and s["cur"] == "sig" and s["vis"], s):
+            ok(f"★ {tag}技術面訊號九顆燈：頂部 AI 區那一份＝總覽 AI 卡那一份（同一份資料）", len(s["lights"]) == 9 and s["lights"] == s["top"], (s["lights"], s["top"]))
 
     # ---- 800 與 390：三頁都沒有橫向捲軸、色塊排得下
     for w in (800, 390):
@@ -19269,6 +19268,19 @@ HEAD1002_FACET = r"""() => { const card = document.getElementById('ovAiCard'); c
            tab: !!tb && tb.classList.contains('on'), shown, ls: localStorage.getItem('tw.ovAiTab') }; }"""
 
 
+# ★ 2026-10-03（#305）頂部 AI 四列：每列的外框、面向名與判讀的左右位置、字級、判讀的 class 與字色；展開鈕有沒有
+AI1003_ROWS = r"""() => { const h = document.getElementById('skAi'); if (!h) return { rows: [], tgl: -1 };
+  const R = (e) => e.getBoundingClientRect();
+  const rows = [...h.querySelectorAll('#aiTabs .aitab')].filter(b => b.getClientRects().length).map(b => { const r = R(b), nm = b.querySelector('.nm'), tg = b.querySelector('.aitag');
+    const rn = R(nm), rt = R(tg); const cls = ['pos', 'neg', 'warn'].find(c => tg.classList.contains(c)) || '';
+    return { k: b.dataset.facet, l: r.left, r: r.right, t: r.top + scrollY, b: r.bottom + scrollY, w: Math.round(r.width), nmL: rn.left, nmR: rn.right, tgL: rt.left, tgR: rt.right,
+      nmF: parseFloat(getComputedStyle(nm).fontSize), tgF: parseFloat(getComputedStyle(tg).fontSize), cls, col: getComputedStyle(tg).color }; });
+  const hr = h.getClientRects().length ? R(h) : null;
+  return { rows, tgl: h.querySelectorAll('#aiTgl').length, expandTxt: /展開|收合/.test([...h.querySelectorAll('button')].filter(b => b.getClientRects().length).map(b => b.textContent).join(' ')),
+    aiB: hr ? hr.bottom + scrollY : null }; }"""
+AI1003_CLIP = r"""() => [...document.querySelectorAll('#skAi #aiTabs .aitab .nm, #skAi #aiTabs .aitab .aitag')].filter(e => e.getClientRects().length && e.scrollWidth > e.clientWidth + 1).map(e => e.textContent)"""
+
+
 def _head1002_rows(tops):
     """小標籤排成幾行：上緣差 > 4px 才算不同行（次像素四捨五入會差 1px）。"""
     rows = []
@@ -19357,83 +19369,64 @@ def t_stock_head_1002(pg, base, code):
         pg.mouse.click(hr["l"] + 20, hr["t"] - pg.evaluate("() => scrollY") + hr["h"] - 6); pg.wait_for_timeout(400)
         ok(f"{tag}點小框外面 → 收起來", not snap()["pop"]["vis"])
 
-    # ---------------------------------------------------------------- ① 兩欄（1440／1100）：預設只看重點；展開／收合／點標籤，左側與 K 線一個像素都不動
-    # ★ 同一天第二個要求（Andy「上方的 AI 分析只寫重點」）：預設＝收合＝一行結論＋四顆面向小標籤（約 2 行），
-    #   點小標籤捲到下面「總覽」分頁的細節卡（#ovFacets），按「展開」才看各週期細節。
+    # ---------------------------------------------------------------- ① 兩欄（1440／1100）：一行結論＋四列面向（直排、14px），沒有「展開」
+    # ★ 2026-10-03（Andy：「標籤上下排列、字放大；展開功能取消，下方總覽分頁已經有完整版」，DECISIONS #305）：
+    #   改前這一段驗「展開／收合／換面向時左側不動」；展開拿掉了，改驗「沒有展開鈕、四列直排、點一列捲到總覽 AI 卡、左側不動」。
+    an = (json.loads((SITE / "data" / "stock" / f"{cd}.json").read_text(encoding="utf-8")).get("analysis") or {}).get("facets") or {}
+    tone = lambda lb: "pos" if lb == "偏多" else "neg" if lb == "偏空" else "warn" if lb == "留意" else ""
     for w in (1440, 1100):
-        pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); localStorage.removeItem('tw.aiSplit'); } catch (e) {} }")
         goto(w)
         s0 = snap()
         if not ok(f"{tag}{w} K 線卡兩欄、中間有分隔線", s0["aiside"] and s0["split"] is not None, (s0["aiside"], s0["split"])):
             continue
         ok(f"{tag}{w} 價格、週期鈕、K 線都量得到（下面的比較才有意義）", all(s0["left"][k] for k in ("px", "tf", "chart", "name")), s0["left"])
         bf = pg.evaluate(HEAD1002_BRIEF)
-        rows = _head1002_rows(bf["chips"])
-        ok(f"★ {tag}{w} 預設只看重點：內容區收著、看不到各週期細節", not s0["open"] and bf["bodyHidden"] and not bf["tfsVis"], bf)
-        ok(f"★ {tag}{w} 重點的結論只佔一行（太長出「…」、滑過看全文）", bf["lineH"] <= bf["lh"] * 1.6 + 2 and bf["ellipsis"] == "ellipsis" and len(bf["full"]) > 4, bf)
-        ok(f"★ {tag}{w} 四顆面向小標籤{'一行' if w == 1440 else '最多兩行'}", rows == 1 if w == 1440 else 1 <= rows <= 2, (rows, bf["chips"]))
-        ok(f"★ {tag}{w} 頂部 AI 預設的高度不超過約 2 行（結論＋小標籤 ≤ {64 if w == 1440 else 92}px；整塊含標題列 ≤ {100 if w == 1440 else 130}px）",
-           bf["briefH"] <= (64 if w == 1440 else 92) and bf["hostH"] <= (100 if w == 1440 else 130), bf)
-        click(pg, "#aiTgl", 450)
-        s1 = snap()
-        ok(f"★ {tag}{w} 按「展開」→ 看得到完整內容、tw.aiOpen=1", s1["open"] and s1["ls"]["tw.aiOpen"] == "1", (s1["open"], s1["ls"]))
-        ok(f"★ {tag}{w} 展開前後：名稱、產業鏈列、價格、漲跌、即時徽章、標籤、週期鈕、K 線的 top/left 都不變（< 2px）",
-           not _head1002_moved(s0, s1), _head1002_moved(s0, s1))
-        click(pg, '#skAi .aitab[data-facet="sig"]', 450)
-        s2 = snap()
-        ok(f"★ {tag}{w} 展開時按「技術面訊號」→ 換面向，左側與 K 線仍不動", s2["open"] and not _head1002_moved(s0, s2), (s2["open"], _head1002_moved(s0, s2)))
-        click(pg, '#skAi .aitab[data-facet="tech"]', 450)
-        s3 = snap()
-        ok(f"{tag}{w} 換到最長的技術面 → 左側與 K 線仍不動、內容在區內捲（內容區 ≥ 80px）",
-           not _head1002_moved(s0, s3) and s3["body"] and s3["body"]["h"] >= 80, (_head1002_moved(s0, s3), s3["body"]))
-        ok(f"{tag}{w} AI 區在分隔線右邊、不壓到左欄", s3["ai"]["l"] >= s3["split"]["r"] - 1 and s3["head"]["r"] <= s3["split"]["l"] + 1, (s3["head"], s3["split"], s3["ai"]))
-        click(pg, "#aiTgl", 450)
-        s4 = snap()
-        ok(f"★ {tag}{w} 再按「收合」→ 回到重點、tw.aiOpen=0，左側與 K 線仍不動", not s4["open"] and s4["ls"]["tw.aiOpen"] == "0" and not _head1002_moved(s0, s4),
-           (s4["open"], s4["ls"], _head1002_moved(s0, s4)))
-        if w == 1440:
-            # 重點模式的小標籤：捲到下面「總覽」分頁的細節卡（原地捲，不換頁），上面的 AI 區不展開、左側不動
-            click(pg, '#skAi .aitab[data-facet="tech"]', 400)
-            got = wait_until(pg, HEAD1002_FACET.replace("FACET", "tech"), 4000)
-            s5 = snap()
-            ok(f"★ {tag}重點模式點「技術面」小標籤 → 捲到下面「總覽」的 AI 卡（進到畫面、閃一下）並切到技術面分頁籤",
-               bool(got) and got["ov"] and got["flash"] and got["tab"] and got["shown"] == ["tech"], got)
-            ok(f"★ {tag}點小標籤後上面的 AI 區還是重點模式、左側與 K 線位置不變", not s5["open"] and not _head1002_moved(s0, s5), (s5["open"], _head1002_moved(s0, s5)))
-            pg.evaluate("() => window.scrollTo(0, 0)")
+        rw = pg.evaluate(AI1003_ROWS)
+        ok(f"★ {tag}{w} 頂部 AI 沒有「展開／收合」鈕、內容區不顯示、看不到各週期細節", rw["tgl"] == 0 and not rw["expandTxt"] and bf["bodyHidden"] and not bf["tfsVis"] and not s0["open"], (rw["tgl"], rw["expandTxt"], bf))
+        ok(f"★ {tag}{w} 結論只佔一行（太長出「…」、滑過看全文）", bf["lineH"] <= bf["lh"] * 1.6 + 2 and bf["ellipsis"] == "ellipsis" and len(bf["full"]) > 4, bf)
+        rows = rw["rows"]
+        ok(f"★ {tag}{w} 四個面向上下排列：4 列、每列一個（上緣遞增、左緣一樣、寬度一樣）",
+           len(rows) == 4 and all(rows[i + 1]["t"] >= rows[i]["b"] - 1 for i in range(3)) and max(r["l"] for r in rows) - min(r["l"] for r in rows) <= 1
+           and max(r["w"] for r in rows) - min(r["w"] for r in rows) <= 1, rows)
+        ok(f"★ {tag}{w} 每列左邊面向名、右邊判讀（判讀貼右、名稱在左）、字 ≥ 13.5px",
+           len(rows) == 4 and all(r["nmR"] < r["tgL"] and r["nmL"] - r["l"] < 20 and r["r"] - r["tgR"] < 30 and r["nmF"] >= 13.5 and r["tgF"] >= 13.5 for r in rows), rows)
+        want = [tone((an.get(k) or {}).get("label") or "") for k in ("tech", "fund", "news")]
+        got = [next((r["cls"] for r in rows if r["k"] == k), None) for k in ("tech", "fund", "news")]
+        ok(f"★ {tag}{w} 判讀用顏色區分：偏多＝紅（pos）、偏空＝綠（neg）、中性＝灰（無色）—— 跟 JSON 的判讀一致", got == want, (got, want))
+        cols = {r["cls"]: r["col"] for r in rows}
+        if "pos" in cols and "" in cols:
+            ok(f"{tag}{w} 偏多與中性的字色真的不同", cols["pos"] != cols[""], cols)
+        ok(f"★ {tag}{w} AI 區（四列）沒有把 K 線往下推：AI 區底 ≤ K 線頂", rw["aiB"] is not None and s0["left"]["chart"] and rw["aiB"] <= s0["left"]["chart"]["t"] + 1, (rw["aiB"], s0["left"]["chart"]))
+        ok(f"{tag}{w} AI 區在分隔線右邊、不壓到左欄", s0["ai"]["l"] >= s0["split"]["r"] - 1 and s0["head"]["r"] <= s0["split"]["l"] + 1, (s0["head"], s0["split"], s0["ai"]))
+        # 點一列 → 捲到下面「總覽」的 AI 卡並切到那一面（原地捲，不換頁）；左側與 K 線位置不變
+        fk = "sig" if w == 1440 else "news"
+        click(pg, f'#skAi .aitab[data-facet="{fk}"]', 400)
+        gotf = wait_until(pg, HEAD1002_FACET.replace("FACET", fk), 4000)
+        s5 = snap()
+        ok(f"★ {tag}{w} 點「{fk}」那一列 → 捲到下面「總覽」的 AI 卡（進到畫面、閃一下）並切到那一面",
+           bool(gotf) and gotf["ov"] and gotf["tab"] and gotf["shown"] == [fk], gotf)
+        ok(f"★ {tag}{w} 點完上面的 AI 區還是收著、左側與 K 線位置不變", not s5["open"] and not _head1002_moved(s0, s5), (s5["open"], _head1002_moved(s0, s5)))
+        pg.evaluate("() => window.scrollTo(0, 0)")
 
-    # ---------------------------------------------------------------- ① 單欄（800）：重點兩行；浮層展開，不推 K 線；不讀也不寫 tw.aiOpen
-    pg.evaluate("() => { try { localStorage.setItem('tw.aiOpen', '1'); } catch (e) {} }")
+    # ---------------------------------------------------------------- ① 單欄（800）：標題＋結論一行、四個面向 2×2；沒有浮層、沒有展開
     goto(800)
     s0 = snap()
     if ok(f"{tag}800 上下排（沒有兩欄）、沒有分隔線", not s0["aiside"] and s0["split"] is None, (s0["aiside"], s0["split"])):
-        ok(f"★ {tag}800 tw.aiOpen=1 也一樣進頁面是收著的（浮層不會一進來就蓋住工具列）", not s0["open"], s0["open"])
         bf = pg.evaluate(HEAD1002_BRIEF)
-        ok(f"★ {tag}800 重點＝兩行：標題｜一行結論｜展開 一行、四顆小標籤一行（AI 區 ≤ 80px）",
-           _head1002_rows(bf["chips"]) == 1 and bf["lineH"] <= bf["lh"] * 1.6 + 2 and bf["hostH"] <= 80, bf)
-        click(pg, "#aiTgl", 450)
-        s1 = snap()
-        ok(f"★ {tag}800 按「展開」→ 內容區是浮層（position:absolute）、真的蓋到工具列／K 線上", s1["open"] and s1["bodyPos"] == "absolute"
-           and s1["body"]["b"] > s1["tools"]["t"], (s1["open"], s1["bodyPos"], s1["body"], s1["tools"]))
-        ok(f"★ {tag}800 展開前後：左側與 K 線的 top/left 都不變（< 2px）、AI 區高度不變", not _head1002_moved(s0, s1) and abs(s1["ai"]["h"] - s0["ai"]["h"]) < 2,
-           (_head1002_moved(s0, s1), s0["ai"]["h"], s1["ai"]["h"]))
-        click(pg, '#skAi .aitab[data-facet="news"]', 400)
-        ok(f"{tag}800 浮層開著時按「消息面」→ 浮層裡換成消息面", pg.evaluate("() => { const p = document.getElementById('aiPanel-news'); return !!p && !p.hidden && p.getClientRects().length > 0; }"))
-        pg.keyboard.press("Escape"); pg.wait_for_timeout(350)
-        s2 = snap()
-        ok(f"★ {tag}800 按 Esc → 浮層收起、K 線仍不動", not s2["open"] and not _head1002_moved(s0, s2), (s2["open"], _head1002_moved(s0, s2)))
+        rw = pg.evaluate(AI1003_ROWS)
+        ok(f"★ {tag}800 沒有「展開」鈕、內容區不顯示", rw["tgl"] == 0 and not rw["expandTxt"] and not s0["open"], (rw["tgl"], rw["expandTxt"], s0["open"]))
+        rows = rw["rows"]
+        ok(f"★ {tag}800 四個面向排成 2×2（兩列、每列兩格；省 K 線上方的高度）",
+           len(rows) == 4 and _head1002_rows([r["t"] for r in rows]) == 2 and len({round(r["l"]) for r in rows}) == 2, rows)
+        ok(f"★ {tag}800 每格左名右判讀、字 ≥ 13.5px", len(rows) == 4 and all(r["nmR"] < r["tgL"] and r["nmF"] >= 13.5 and r["tgF"] >= 13.5 for r in rows), rows)
+        ok(f"{tag}800 AI 區整塊 ≤ 110px（標題＋結論一行、四格兩列）", bf["hostH"] <= 110, bf)
         click(pg, '#skAi .aitab[data-facet="tech"]', 400)
-        got = wait_until(pg, HEAD1002_FACET.replace("FACET", "tech"), 4000)
-        ok(f"★ {tag}800 收著時按「技術面」小標籤 → 捲到下面「總覽」的 AI 卡並切到技術面分頁籤、浮層不打開",
-           bool(got) and got["ov"] and got["tab"] and got["shown"] == ["tech"] and not snap()["open"], got)
+        gotf = wait_until(pg, HEAD1002_FACET.replace("FACET", "tech"), 4000)
+        s1 = snap()
+        ok(f"★ {tag}800 點「技術面」→ 捲到下面「總覽」的 AI 卡並切到技術面、上面沒有浮層打開",
+           bool(gotf) and gotf["ov"] and gotf["tab"] and gotf["shown"] == ["tech"] and not s1["open"], gotf)
+        ok(f"{tag}800 點完左側與 K 線位置不變", not _head1002_moved(s0, s1), _head1002_moved(s0, s1))
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
-        click(pg, "#aiTgl", 450)
-        s3 = snap()
-        hr = s3["head"]
-        pg.mouse.click(hr["r"] - 12, hr["t"] - pg.evaluate("() => scrollY") + 8); pg.wait_for_timeout(450)
-        s4 = snap()
-        ok(f"★ {tag}800 點浮層外面 → 收起來", s3["open"] and not s4["open"], (s3["open"], s4["open"]))
-        ok(f"{tag}800 浮層開關都沒有寫 tw.aiOpen（還是進來前的 1）", s4["ls"]["tw.aiOpen"] == "1", s4["ls"])
-    pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); } catch (e) {} }")
 
     # ---------------------------------------------------------------- ② 分隔線：拖、存、重新整理還在、左欄最小寬、雙擊還原、方向鍵
     goto(1440)
@@ -19491,22 +19484,15 @@ def t_stock_head_1002(pg, base, code):
         ok(f"{tag}鍵盤聚焦分隔線按 ← → 右欄變寬、寫進 localStorage", s5["ai"]["w"] > s4["ai"]["w"] + 10 and s5["ls"]["tw.aiSplit"] is not None, (s4["ai"]["w"], s5["ai"]["w"], s5["ls"]))
         pg.evaluate("() => { try { localStorage.removeItem('tw.aiSplit'); } catch (e) {} }")
 
-    # ---------------------------------------------------------------- ④ 四種寬度：沒有溢出、沒有重疊（桌機展開與收合兩種狀態都掃）
+    # ---------------------------------------------------------------- ④ 三種桌機寬度：沒有溢出、沒有重疊（#305 起只有一種狀態，沒有展開）
     for w in (1440, 1100, 800):
         goto(w)
-        for st in ("開", "收"):
-            if st == "收":
-                if snap()["open"]:
-                    click(pg, "#aiTgl", 400)
-            elif not snap()["open"]:
-                click(pg, "#aiTgl", 400)
-            s = snap()
-            ov = pg.evaluate(HEAD1002_OVL)
-            ok(f"★ {tag}{w}（AI {st}）頂部沒有任何元素互相重疊", ov["bad"] == [], ov["bad"])
-            ok(f"★ {tag}{w}（AI {st}）頁面沒有橫向捲軸", s["sx"] <= s["vw"] + 1, (s["sx"], s["vw"]))
-        if snap()["open"]:
-            click(pg, "#aiTgl", 300)
-    pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); } catch (e) {} }")
+        s = snap()
+        ov = pg.evaluate(HEAD1002_OVL)
+        ok(f"★ {tag}{w} 頂部沒有任何元素互相重疊", ov["bad"] == [], ov["bad"])
+        ok(f"★ {tag}{w} 頁面沒有橫向捲軸", s["sx"] <= s["vw"] + 1, (s["sx"], s["vw"]))
+        cl = pg.evaluate(AI1003_CLIP)
+        ok(f"{tag}{w} 四列的面向名與判讀都沒有被截掉（scrollWidth ≤ clientWidth）", cl == [], cl)
     pg.set_viewport_size({"width": 390, "height": 844})
     pg.goto("about:blank")
     pg.goto(f"{base}#stock/{cd}", wait_until="networkidle")
@@ -19516,6 +19502,7 @@ def t_stock_head_1002(pg, base, code):
     ok(f"★ {tag}390 頁面沒有橫向捲軸", m["sx"] <= m["vw"] + 1, (m["sx"], m["vw"]))
     ok(f"{tag}390 手機不顯示工具列標籤區、也沒有分隔線（手機版面不動）", m["left"]["tags"] is None and m["split"] is None, (m["left"]["tags"], m["split"]))
     ok(f"{tag}390 AI 分析照舊住在手機分段的 #aiCard", m["aiParent"] == "aiCard", m["aiParent"])
+    ok(f"★ {tag}390 手機 AI 分段：沒有「展開」鈕、內容區直接打開（#305）", pg.evaluate(AI1003_ROWS)["tgl"] == 0 and pg.evaluate("() => { const b = document.getElementById('aiBody'); return !!b && !b.hidden; }"), m["open"])
     pg.set_viewport_size({"width": 1440, "height": 950})
     clear_ls()
 
@@ -19954,6 +19941,8 @@ SECTIONS = {
     # ★ 2026-10-03 Andy 三件（DECISIONS #303，⚠ 一律 --workers 1）：總覽三欄等高、本益比（每季）修畫壞（虧損季／極端值）、獲利分頁並排
     "個股總覽等高1003":    lambda pg, b, base, code: t_stock_ov_eq_1003(b, base, code),
     "獲利並排本益比1003":  lambda pg, b, base, code: t_profit_pe_1003(b, base, code),
+    # ★ 2026-10-03 Andy：頂部 AI 直排＋拿掉展開、基本面卡小格／大格＋細項、獲利分頁本益比位置、營收／資券 KPI 列拿掉（DECISIONS #305）
+    "個股基本面卡1003":    lambda pg, b, base, code: t_stock_fund_1003(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -21532,7 +21521,10 @@ def t_flow_popq(pg, base, code):
 #   ⚠ 這次改版的第一版草稿（沒上線，WIDE＝960）800 走單欄：AI 區疊在名稱區下面，K 線多掉 120px（800＝515、700＝609）；
 #      所以兩欄門檻降到卡片 600px，窄卡片的四顆標籤改成「名在上、判讀小字在下」（container query）。
 AI_PUSH_MAX = 60
-AI_COST_MAX = 110
+# ★ 2026-10-03（Andy：AI 面向「上下排列、字放大」，DECISIONS #305）：≤820 的單欄從「一排 12px 膠囊（約 24px）」改成「2×2、14px（約 61px）」，
+#   800 實測 2330／3026 從 94～102 → 115。Andy 要的就是大字直排，這 30px 是設計換來的；上限改 125（最大實測 115 再留 10px）。
+#   1440／1100 兩欄的四列直排吃的是左欄本來就有的高度（尺 ① 照舊 ≤ 60）。
+AI_COST_MAX = 125
 
 AI_SNAP = r"""() => { const q = (s) => document.querySelector(s), qa = (s) => [...document.querySelectorAll(s)];
   const ai = q('#skAi'), body = q('#aiBody'), line = q('#skAiLine'), card = q('#skChartCard'), host = q('#aiCard');
@@ -21555,7 +21547,7 @@ AI_SNAP = r"""() => { const q = (s) => document.querySelector(s), qa = (s) => [.
     bodyH: body ? Math.round(body.getBoundingClientRect().height) : 0, bodyCH: body ? body.clientHeight : 0, bodySH: body ? body.scrollHeight : 0,
     bodyOY: body ? getComputedStyle(body).overflowY : '', bodyTop: body ? body.scrollTop : 0,
     rAi: R(ai), rCard: R(card), rHead: R(q('#skHead')), rIdent: R(q('#skIdent')), rTools: R(q('#skTools')), rChart: R(q('#chartWrap')), rTabs: R(q('#stockTabs')),
-    tfs: qa('#aiTfs .tfn').map(e => e.innerText.trim()),
+    tfs: qa('#aiTfs .tfn').map(e => e.textContent.trim()),
     tech: tp('tech'), sig: tp('sig'), fund: tp('fund'), news: tp('news'),
     why: qa('#aiWhy li').map(e => e.textContent.trim()),
     sigN: q('#aiPanel-sig') ? q('#aiPanel-sig').querySelectorAll('.light').length : 0,
@@ -21597,9 +21589,8 @@ AI_WORDS_BANNED = ("買進", "賣出", "建議", "追進", "加碼", "減碼")
 
 
 def _ai_tabs_cycle(pg, tag):
-    """四顆標籤逐一真的點：選中的換、內容區一次只顯示那一面、內容真的換了、tw.aiTab 寫進去、K 線頂端不跟著跳。"""
+    """手機（#aiCard 裡）四顆標籤逐一真的點：選中的換、內容區一次只顯示那一面、內容真的換了、tw.aiTab 寫進去。"""
     prev = pg.evaluate(AI_SNAP)
-    # ★ 2026-09-28（Andy：「將 AI 分析內容替換掉：籌碼 → 技術面訊號」）：第二顆標籤 chip（籌碼面）→ sig（技術面訊號）
     for k, nm in (("sig", "技術面訊號"), ("fund", "基本面"), ("news", "消息面"), ("tech", "技術面")):
         click(pg, f'#skAi .aitab[data-facet="{k}"]', 350)
         s = pg.evaluate(AI_SNAP)
@@ -21610,35 +21601,45 @@ def _ai_tabs_cycle(pg, tag):
         ok(f"{tag} 點「{nm}」→ 顯示的內容真的換了（跟上一面不同）", s["shownTxt"] and s["shownTxt"] != prev["shownTxt"],
            (prev["shownTxt"][:60], s["shownTxt"][:60]))
         ok(f"{tag} 點「{nm}」→ localStorage tw.aiTab＝{k}", s["lt"] == k, s["lt"])
-        if prev["rChart"] and s["rChart"]:
-            ok(f"{tag} 點「{nm}」→ K 線頂端沒有跟著跳（內容區固定高度）", abs(s["rChart"]["t"] - prev["rChart"]["t"]) <= 2,
-               (prev["rChart"]["t"], s["rChart"]["t"]))
         prev = s
     return prev
 
 
-def t_stock_ai_0926(pg, base, code):
-    """個股頁「AI 分析」的真人操作驗收（09-26 建立；09-27 改成右上角＋標籤頁，改前→改後寫在上面的註解）。
+def _ai_rows_goto(pg, tag):
+    """★ 2026-10-03（#305）桌機 K 線卡裡的四列逐一真的點：每點一列 → 捲到下面「總覽」的 AI 卡、卡裡切到那一面；
+    上面的 AI 區不展開（沒有內容區）、K 線頂端不動、tw.aiTab 記下最後點的那一面。"""
+    s0 = pg.evaluate(AI_SNAP)
+    for k, nm in (("sig", "技術面訊號"), ("fund", "基本面"), ("news", "消息面"), ("tech", "技術面")):
+        click(pg, f'#skAi .aitab[data-facet="{k}"]', 400)
+        g = wait_until(pg, f"""() => {{ const f = document.getElementById('ovFacets'), c = document.getElementById('ovAiCard');
+            if (!f || !c || f.dataset.cur !== '{k}') return null; const r = c.getBoundingClientRect();
+            return r.top >= -2 && r.top < innerHeight - 40 ? {{ top: Math.round(r.top), cur: f.dataset.cur }} : null; }}""", 4000)
+        s = pg.evaluate(AI_SNAP)
+        ok(f"★ {tag} 點「{nm}」那一列 → 捲到下面「總覽」的 AI 卡（進到畫面）、卡裡切到「{nm}」", bool(g), g)
+        ok(f"{tag} 點「{nm}」→ 上面的 AI 區不展開（沒有內容區）、tw.aiTab＝{k}", not s["open"] and s["lt"] == k, (s["open"], s["lt"]))
+        if s0["rChart"] and s["rChart"]:
+            ok(f"{tag} 點「{nm}」→ K 線頂端沒有跟著跳", abs(s["rChart"]["t"] - s0["rChart"]["t"]) <= 2, (s0["rChart"]["t"], s["rChart"]["t"]))
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(150)
 
-    每一條都驗「畫面真的因此改變了」：點標籤內容真的換、一次一個；localStorage 真的寫進去、重新整理真的記住；
-    收合後內容區真的不見、只剩結論列與標籤小字；按標籤真的展開；K 線頂端真的沒有被推下去；手機真的切得到那一段。"""
+
+def t_stock_ai_0926(pg, base, code):
+    """個股頁「AI 分析」的真人操作驗收（09-26 建立；09-27 改成右上角＋標籤頁；10-03 拿掉「展開」，四面向改直排，DECISIONS #305）。
+
+    每一條都驗「畫面真的因此改變了」：桌機點一列真的捲到總覽 AI 卡並切到那一面；K 線頂端真的沒有被推下去；
+    手機真的切得到那一段、標籤真的切換內容、tw.aiTab 真的寫進去。"""
     codes = ["3026"] + ([code] if code and code != "3026" else ["2330"])
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#overview", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); localStorage.removeItem('tw.aiTab'); } catch (e) {} }")
     for cd in codes:
         tag = f"[AI分析 {cd}]"
-        # 每一檔都從「沒記過」開始（上一檔驗的時候按過展開，會寫 tw.aiOpen=1）
-        pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); } catch (e) {} }")
         pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(2400)
         st = pg.evaluate(AI_SNAP)
         if not ok(f"{tag} 個股頁有「AI 分析」區（#skAi）", st["ai"], st):
             continue
-        # ★ 2026-10-02（Andy「上方的 AI 分析只寫重點」，DECISIONS #293）：改前桌機沒記過＝預設展開 → 改後一律預設收合（只看重點），
-        #   按「展開」才看各週期細節。下面的內容檢查都是「展開之後」的內容，所以先驗預設是重點、再按一次展開。
-        ok(f"★ {tag} 桌機沒記過 → 預設只看重點（內容區收著、tw.aiOpen 沒寫）", not st["open"] and st["ls"] is None and st["lineVis"], (st["open"], st["ls"]))
-        click(pg, "#aiTgl", 450)
-        st = pg.evaluate(AI_SNAP)
+        # ★ 2026-10-03（Andy：「展開功能取消，因為下方總覽分頁已經有完整版」，DECISIONS #305）：
+        #   改前這裡先按「展開」再驗內容；改後桌機沒有展開鈕、內容區永遠不顯示，內容（各週期、燈號…）照樣在 DOM 裡（手機分段要用），用 textContent 驗。
+        ok(f"★ {tag} 桌機沒有「展開／收合」鈕、內容區不顯示、結論列看得到", count(pg, "#aiTgl") == 0 and not st["open"] and st["lineVis"], (st["open"], st["lineVis"]))
         ok(f"{tag} 標題寫「AI 分析」", "AI 分析" in st["title"], st["title"])
         ok(f"★ {tag} 標題緊接「規則式自動判讀，非投資建議」", "規則式自動判讀" in st["warn"] and "非投資建議" in st["warn"], st["warn"])
         ok(f"{tag} 滑過小字說明寫清楚：不是大型語言模型、依哪些規則與資料", "不是大型語言模型" in st["warnTitle"] and "SMC" in st["warnTitle"], st["warnTitle"])
@@ -21651,25 +21652,19 @@ def t_stock_ai_0926(pg, base, code):
            {"ai": a, "head": st["rHead"], "chart": ch})
         ok(f"★ {tag} K 線與分頁之間那張長卡拿掉了（#aiCard 是空殼、看不見）", st["hostKids"] == 0 and not st["hostVis"], (st["hostKids"], st["hostVis"]))
         ok(f"★ {tag}「看分析 ↓／展開分析 ▾」跳轉鈕拿掉了", st["jump"] == 0 and st["jumpTxt"] == 0, (st["jump"], st["jumpTxt"]))
-        # ---- 結論列＋四顆標籤
+        # ---- 結論列＋四列面向
         ok(f"{tag} 結論列（狀態＋一句原因）看得到", st["lineVis"] and st["stance"] in ("觀望", "可留意", "偏空") and len(st["lineTxt"]) > len(st["stance"]) + 3, st["lineTxt"])
-        # ★ 2026-09-28 改前：技術面｜籌碼面｜基本面｜消息面 → 改後：技術面｜技術面訊號｜基本面｜消息面（訊號標籤小字＝「N多M空」）
         _nm = lambda t: (re.match(r"(技術面訊號|技術面|籌碼面|基本面|消息面)", t) or [None, None])[1]
-        ok(f"★ {tag} 四顆標籤依序是 技術面｜技術面訊號｜基本面｜消息面，每顆附判讀小字",
+        ok(f"★ {tag} 四個面向依序是 技術面｜技術面訊號｜基本面｜消息面，每個附判讀",
            [_nm(t["t"]) for t in st["tabs"]] == ["技術面", "技術面訊號", "基本面", "消息面"]
            and all(any(w in t["t"] for w in ("偏多", "中性", "偏空", "留意", "資料缺", "多")) for t in st["tabs"]), [t["t"] for t in st["tabs"]])
         ok(f"★ {tag} AI 區不再有「籌碼面」標籤與面板", all(t["k"] != "chip" for t in st["tabs"]) and not pg.evaluate("() => !!document.getElementById('aiPanel-chip')"), [t["k"] for t in st["tabs"]])
-        ok(f"{tag} 四顆標籤排在同一列、都在 AI 區裡", len({t["r"]["t"] for t in st["tabs"]}) == 1
+        ok(f"★ {tag} 四個面向上下排列（4 列、上緣遞增）、都在 AI 區裡", len(st["tabs"]) == 4 and all(st["tabs"][i + 1]["r"]["t"] >= st["tabs"][i]["r"]["b"] - 1 for i in range(3))
            and all(a["l"] - 1 <= t["r"]["l"] and t["r"]["r"] <= a["r"] + 1 for t in st["tabs"]), [t["r"] for t in st["tabs"]])
-        ok(f"{tag} 按「展開」→ 內容區打開、預設技術面、一次只顯示技術面、tw.aiOpen=1", st["open"] and st["ls"] == "1" and st["shown"] == ["tech"], st)
-        # ---- 內容區固定高度、區內捲動
-        # ★ 2026-10-02 改前：內容區保底 132px（下限驗 120）→ 改後（#293）：AI 區高度＝左欄高度（保底 190px），內容區吃剩下的，
-        #   1440 約 95～105px（左欄有沒有短註那一行會差 37px）。下限改 80：低於這個就只剩三行字，等於壞了。
-        ok(f"★ {tag} 內容區是區內捲動（overflow-y:auto），高度固定", st["bodyOY"] == "auto" and 80 <= st["bodyH"] <= 420, (st["bodyOY"], st["bodyH"]))
         ps = pg.evaluate(AI_NOAI_CHART_TOP)
         ok(f"★ {tag} 1440：AI 區沒有把標題列撐高 —— K 線頂端比「右欄留空」低 ≤ {AI_PUSH_MAX}px（尺 ①）", ps and ps["push"] <= AI_PUSH_MAX and ps["back"] == ps["withAi"], ps)
         ok(f"★ {tag} 1440：K 線頂端比「完全沒有 AI 區」低 ≤ {AI_COST_MAX}px（尺 ②，總代價）", ps and ps["cost"] <= AI_COST_MAX, ps)
-        # ---- 技術面：1H／4H／日／週四行，沒有月線
+        # ---- 內容（藏著但在 DOM 裡；手機分段顯示的就是這一份）
         ok(f"★ {tag} 技術面有 1 小時／4 小時／日線／週線四行", st["tfs"] == ["1 小時", "4 小時", "日線", "週線"], st["tfs"])
         ok(f"★ {tag} 技術面沒有月線（含支撐壓力區）", "月線" not in st["tech"], st["tech"][:300])
         ok(f"{tag} 技術面保留綜合原因與支撐／壓力區", "綜合" in st["tech"] and "支撐／壓力區" in st["tech"], st["tech"][-200:])
@@ -21679,81 +21674,27 @@ def t_stock_ai_0926(pg, base, code):
                and any(ch_.isdigit() for ch_ in joined), st["why"])
         for k, nm in (("fund", "基本面"), ("news", "消息面")):
             ok(f"{tag} {nm}有依據條列（或明確寫資料缺）", st[k + "N"] >= 1 or "資料缺" in st[k], st[k][:200])
-        # 技術面訊號：九顆燈、多空計數要跟標籤小字對得上（跟總覽分頁「技術面訊號」卡同一份 lights()）
         sig_tab = next((t["t"] for t in st["tabs"] if t["k"] == "sig"), "")
         ok(f"★ {tag} 技術面訊號面板有九顆燈（或寫資料缺）", st["sigN"] == 9 or "資料缺" in st["sig"], (st["sigN"], st["sig"][:120]))
         if st["sigN"] == 9:
-            ok(f"★ {tag} 技術面訊號標籤小字＝面板燈號的多空計數（{st['sigPos']}多{st['sigNeg']}空）",
+            ok(f"★ {tag} 技術面訊號那一列的判讀＝面板燈號的多空計數（{st['sigPos']}多{st['sigNeg']}空）",
                f"{st['sigPos']}多{st['sigNeg']}空" in sig_tab.replace(" ", ""), sig_tab)
         ok(f"{tag} 消息面誠實寫「僅列事件，未判讀情緒」（或主旨含警示字的留意）", "未判讀情緒" in st["news"] or "留意" in st["news"], st["news"][:200])
-        # 「非投資建議」「非建議」是必要的免責字樣，先拿掉再掃；消息面的新聞標題（.ainews）是媒體原文照登（例：2330「中鋼…加碼台積電…買進均價」），不算本站用語
         alltxt = pg.evaluate("() => { const e = document.getElementById('skAi'); if (!e) return ''; const c = e.cloneNode(true); c.querySelectorAll('.ainews').forEach(x => x.remove()); return c.textContent; }").replace("非投資建議", "").replace("非建議", "")
         ok(f"★ {tag} AI 區內沒有指示性交易用語", not [w for w in AI_WORDS_BANNED if w in alltxt], [w for w in AI_WORDS_BANNED if w in alltxt])
-        # ---- 四顆標籤真的切
-        _ai_tabs_cycle(pg, tag)
+        # ---- 四列真的點：每一列都捲到總覽 AI 卡並切到那一面
+        _ai_rows_goto(pg, tag)
         ok(f"{tag} 1440 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
         pg.evaluate("() => window.scrollTo(0, 0)")
 
     cd = codes[0]
-    # ---------------------------------------------------------------- 內容區真的在區內捲，頁面不跟著捲
     pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    s0 = pg.evaluate(AI_SNAP)
-    if s0["bodySH"] > s0["bodyCH"] + 20:
-        pg.hover("#aiBody"); pg.mouse.wheel(0, 240); pg.wait_for_timeout(350)
-        s1 = pg.evaluate(AI_SNAP)
-        ok("★ [AI分析] 技術面內容比內容區長 → 滾輪在區內捲（scrollTop 變大），頁面沒有跟著捲", s1["bodyTop"] > 0 and s1["sy"] == s0["sy"],
-           (s0["bodyTop"], s1["bodyTop"], s0["sy"], s1["sy"]))
-    # ---------------------------------------------------------------- 選中的標籤重新整理後還在
-    click(pg, '#skAi .aitab[data-facet="fund"]', 350)
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
-    s2 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 選「基本面」→ 重新整理後仍選基本面、內容區顯示基本面", s2["lt"] == "fund" and [t["k"] for t in s2["tabs"] if t["on"]] == ["fund"]
-       and s2["shown"] == ["fund"], (s2["lt"], s2["shown"]))
-    # ---------------------------------------------------------------- 收合／展開
-    base_h = s2["rAi"]["h"]
-    click(pg, "#aiTgl", 400)
-    s3 = pg.evaluate(AI_SNAP)
-    # 兩欄時 AI 區會撐滿左欄高度（align-self:stretch），所以量「看得到的子項加總」而不是外框高
-    ok("★ [AI分析] 按「收合 ▴」→ 內容區真的收起來、AI 區內容真的變矮", s2["open"] and not s3["open"] and s3["aiInner"] < s2["aiInner"] - 60, (s2["aiInner"], s3["aiInner"], base_h, s3["rAi"]["h"]))
-    ok("★ [AI分析] 收合後只留結論列＋四顆標籤小字（都看得到）", s3["lineVis"] and len(s3["tabs"]) == 4 and all(t["vis"] for t in s3["tabs"]) and s3["shown"] == [],
-       (s3["lineVis"], [t["t"] for t in s3["tabs"]], s3["shown"]))
-    ok("[AI分析] 收合狀態寫進 localStorage（tw.aiOpen=0）、按鈕變「展開 ▾」", s3["ls"] == "0" and "展開" in (pg.evaluate("() => document.getElementById('aiTgl').innerText") or ""), s3["ls"])
-    ok("[AI分析] 收合後 K 線頂端沒有往下掉", s3["rChart"]["t"] <= s2["rChart"]["t"] + 2, (s2["rChart"]["t"], s3["rChart"]["t"]))
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
-    s4 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 重新整理後仍是收合（真的記住）", not s4["open"] and s4["ls"] == "0", (s4["open"], s4["ls"]))
-    click(pg, "#aiTgl", 400)
-    s5 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 再按「展開 ▾」→ 內容區回來、仍是剛才選的基本面", s5["open"] and s5["ls"] == "1" and s5["shown"] == ["fund"], (s5["open"], s5["ls"], s5["shown"]))
-    click(pg, "#aiTgl", 400)
-    # ★ 2026-10-02 改前：收合時按標籤＝直接展開看那一面 → 改後（#293，Andy「上方的 AI 分析只寫重點」）：
-    #   收合（重點模式）的小標籤＝捲到下面「總覽」分頁裡那一張細節卡（#ovFacets），AI 區照舊收著；要看各週期細節按「展開」。
-    click(pg, '#skAi .aitab[data-facet="sig"]', 400)
-    wait_until(pg, AI_OVSIG_IN_VIEW, 4000)
-    s6 = pg.evaluate(AI_SNAP)
-    g6 = pg.evaluate(AI_OVSIG)
-    ok("★ [AI分析] 收合時按「技術面訊號」小標籤 → 捲到下面「總覽」的 AI 卡（卡片進到畫面裡、閃一下）並切到技術面訊號那一面",
-       bool(g6) and g6["ov"] and -2 <= g6["top"] < g6["vh"] - 40 and g6["flash"] and g6["tab"] and g6["shown"], g6)
-    ok("★ [AI分析] 按小標籤不會把上面的 AI 區展開（重點模式不變）、記住選了技術面訊號", not s6["open"] and s6["ls"] == "0" and s6["lt"] == "sig",
-       (s6["open"], s6["ls"], s6["lt"]))
-    click(pg, "#aiTgl", 400)
-    s6b = pg.evaluate(AI_SNAP)
-    ok("[AI分析] 再按「展開」→ 顯示剛才點的技術面訊號", s6b["open"] and s6b["shown"] == ["sig"], (s6b["open"], s6b["shown"]))
-    # ---------------------------------------------------------------- 「?」說明、逐條條件、重大訊息
+    # ---------------------------------------------------------------- 「?」說明
     click(pg, '#skAi .howbtn[data-how="ai"]', 450)
     how = pg.evaluate("() => { const b = document.getElementById('how-ai'); return b ? { open: !b.hidden && b.getBoundingClientRect().height > 10, t: b.innerText } : null; }")
     ok("[AI分析]「?」打開說明：寫清楚是寫死的規則、不是語言模型、非建議", bool(how) and how["open"] and "規則" in how["t"] and "非語言模型" in how["t"], how)
+    ok("[AI分析]「?」說明不再提「展開」（#305 拿掉了）", bool(how) and "展開" not in how["t"], how and how["t"])
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
-    click(pg, '#skAi .aitab[data-facet="tech"]', 350)
-    if count(pg, "#skAi .aickbtn"):
-        click(pg, "#skAi .aickbtn", 300)
-        dd = pg.evaluate("() => { const d = document.querySelector('#skAi .aickbody'); return { open: !d.hidden && d.getBoundingClientRect().height > 20, n: d.querySelectorAll('.ck').length }; }")
-        ok("[AI分析] 技術面點「逐條條件」→ 真的展開，A 六條＋B 五條＋停損距離都列出", dd["open"] and dd["n"] >= 11, dd)
-    click(pg, '#skAi .aitab[data-facet="news"]', 350)
-    if count(pg, "#skAi [data-aitab]"):
-        click(pg, "#skAi [data-aitab]", 700)
-        on = pg.evaluate("() => { const b = document.querySelector('#stockTabs button.on'); return b ? b.dataset.t : null; }")
-        ok("[AI分析] 消息面點重大訊息標題 → 真的切到下方「公告 / 新聞」分頁", on == "news" and "重大訊息" in text(pg, "#stockTab"), on)
 
     # ---------------------------------------------------------------- 1100／800：排得下、不在 K 線下方、K 線不被推太多
     for vw in (1100, 800):
@@ -21766,30 +21707,26 @@ def t_stock_ai_0926(pg, base, code):
         ok(f"★ {tg} AI 區在 K 線上方（不在 K 線下方）", s["rAi"]["b"] <= s["rChart"]["t"], (s["rAi"], s["rChart"]))
         ps = pg.evaluate(AI_NOAI_CHART_TOP)
         if vw > 820:
-            # 改前（第一版草稿）800 走單欄、K 線多掉 120px → 09-27 改 800 也兩欄 →
-            # ★ 2026-10-02 再改（Andy #stock/3189，#293）：≤820 照 Andy 說的上下排、內容區是浮層；兩欄只剩 > 820
             ok(f"★ {tg} K 線卡是兩欄（AI 區在右半）", s["aiside"] and s["rAi"]["l"] >= s["rCard"]["l"] + s["rCard"]["w"] * 0.4, (s["aiside"], s["rAi"], s["rCard"]))
             ok(f"★ {tg} AI 區沒有把標題列撐高：K 線頂端比「右欄留空」低 ≤ {AI_PUSH_MAX}px（尺 ①）", ps and ps["push"] <= AI_PUSH_MAX, ps)
+            ok(f"{tg} 四個面向上下排列（4 列）", len({t["r"]["t"] for t in s["tabs"]}) == 4, [t["r"] for t in s["tabs"]])
         else:
-            ok(f"★ {tg} ≤820 上下排（沒有兩欄），內容區是收著的浮層", not s["aiside"] and not s["open"], (s["aiside"], s["open"]))
+            ok(f"★ {tg} ≤820 上下排（沒有兩欄）、沒有內容區", not s["aiside"] and not s["open"], (s["aiside"], s["open"]))
+            ok(f"{tg} 四個面向排成 2×2（兩列）", len({t["r"]["t"] for t in s["tabs"]}) == 2, [t["r"] for t in s["tabs"]])
         ok(f"★ {tg} K 線頂端比「完全沒有 AI 區」低 ≤ {AI_COST_MAX}px（尺 ②）", ps and ps["cost"] <= AI_COST_MAX, ps)
-        # 窄 AI 區（800 約 320px）：標籤改成名在上、判讀小字在下；每顆的字不可以溢出按鈕（溢出＝壓到隔壁那顆）
         spill = pg.evaluate("() => [...document.querySelectorAll('#skAi .aitab')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.dataset.facet)")
-        ok(f"★ {tg} 四顆標籤的字都沒有溢出按鈕（沒有壓到隔壁）", spill == [], spill)
-        ok(f"{tg} 四顆標籤同一列、都在 AI 區裡", len({t["r"]["t"] for t in s["tabs"]}) == 1
-           and all(s["rAi"]["l"] - 1 <= t["r"]["l"] and t["r"]["r"] <= s["rAi"]["r"] + 1 for t in s["tabs"]), [t["r"] for t in s["tabs"]])
-        if not s["open"]:
-            click(pg, "#aiTgl", 400)      # 800 是浮層、進頁面收著；1100 照 tw.aiOpen —— 先展開，下面才是標籤頁
-        click(pg, '#skAi .aitab[data-facet="fund"]', 350)
+        ok(f"★ {tg} 四個面向的字都沒有溢出（沒有被截掉）", spill == [], spill)
+        ok(f"{tg} 都在 AI 區裡", all(s["rAi"]["l"] - 1 <= t["r"]["l"] and t["r"]["r"] <= s["rAi"]["r"] + 1 for t in s["tabs"]), [t["r"] for t in s["tabs"]])
+        click(pg, '#skAi .aitab[data-facet="fund"]', 400)
+        g = wait_until(pg, "() => { const f = document.getElementById('ovFacets'); return !!f && f.dataset.cur === 'fund'; }", 4000)
         s_ = pg.evaluate(AI_SNAP)
-        ok(f"{tg} 點「基本面」→ 一次只顯示基本面", s_["shown"] == ["fund"], s_["shown"])
+        ok(f"{tg} 點「基本面」→ 總覽 AI 卡切到基本面、上面不展開", bool(g) and not s_["open"], (g, s_["open"]))
         ok(f"{tg} 沒有橫向捲軸", s_["sx"] <= s_["vw"] + 1, (s_["sx"], s_["vw"]))
 
-    # ---------------------------------------------------------------- 手機（≤640）：分段列「AI 分析」那一段、標籤切得動、沒有橫向捲軸
+    # ---------------------------------------------------------------- 手機（≤640）：分段列「AI 分析」那一段、內容直接打開、標籤切得動、沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 844})
     pg.goto(f"{base}#overview", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); localStorage.removeItem('tw.aiTab'); } catch (e) {} }")
-    # 總覽的非同步重畫要先跑完：高負載時它會比接著打開的個股頁晚完成，把畫面切回總覽（實測假紅 1/3）
     wait_until(pg, "() => { const v = document.querySelector('main .view.on'); return !!v && v.id === 'v-overview' && !!v.querySelector('.mpager button'); }", 15000)
     pg.wait_for_timeout(600)
     pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(1200)
@@ -21798,8 +21735,6 @@ def t_stock_ai_0926(pg, base, code):
     tabs = pg.evaluate("() => [...document.querySelectorAll('main .view.on .mpager button')].map(b => b.textContent.trim())")
     ok("[AI分析 390] 手機分段列有「AI 分析」那一段", "AI 分析" in tabs, tabs)
     ok("★ [AI分析 390] AI 區在手機被搬進分段用的 #aiCard（不在 K 線卡裡）、K 線卡沒有留兩欄", m0["parent"] == "aiCard" and not m0["aiside"], (m0["parent"], m0["aiside"]))
-    # ★ 2026-09-27 手機個股券商式：分段列（.mpager）在手機藏起來，改成頂部的橫捲分頁列 #mbTabs ——
-    #   按那一排的「AI 分析」（mobile3.js skAi 會把藏起來的分段列同步切到「AI 分析」段，顯示的是同一個 #skAi 節點）
     wait_until(pg, "() => !!document.querySelector('#mbTabs button[data-t=\"ai\"]') || !document.getElementById('mbHead')", 9000)
     if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=\"ai\"]')"):
         click(pg, '#mbTabs button[data-t="ai"]', 900)
@@ -21807,27 +21742,28 @@ def t_stock_ai_0926(pg, base, code):
         click(pg, "main .view.on .mpager button:has-text('AI 分析')", 700)
     m1 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析 390] 切到「AI 分析」段 → 結論列與四顆標籤看得到", not m1["mpOff"] and m1["lineVis"] and len(m1["tabs"]) == 4 and all(t["vis"] for t in m1["tabs"]), m1)
-    ok("[AI分析 390] 手機沒記過 → 預設收起（只有結論＋標籤）", not m1["open"] and m1["ls"] is None, (m1["open"], m1["ls"]))
+    # ★ #305：手機分段本身就是「看完整 AI 分析」的地方，沒有展開鈕，內容區一進來就打開（預設技術面）
+    ok("★ [AI分析 390] 手機沒有展開鈕、內容區直接打開、預設技術面", count(pg, "#aiTgl") == 0 and m1["open"] and m1["shown"] == ["tech"], (m1["open"], m1["shown"]))
     ok("★ [AI分析 390] 四顆標籤都在畫面寬度內（不靠橫向捲動）", all(t["r"]["l"] >= 0 and t["r"]["r"] <= m1["vw"] for t in m1["tabs"]), [t["r"] for t in m1["tabs"]])
     mspill = pg.evaluate("() => [...document.querySelectorAll('#skAi .aitab')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.dataset.facet)")
     ok("[AI分析 390] 四顆標籤的字都沒有溢出按鈕", mspill == [], mspill)
-    # 改前：手機標題列折行時「?」自己孤零零掉到第二行 → 改後：「?」緊跟「AI 分析」，放不下的免責小字換到下一行
-    qpos = pg.evaluate("() => { const b = document.querySelector('#skAi .howbtn[data-how=\"ai\"]'), w = document.getElementById('aiWarn'), t = document.getElementById('aiTgl');"
-                       " if (!b || !w || !t) return null; const rb = b.getBoundingClientRect(), rw = w.getBoundingClientRect(), rt = t.getBoundingClientRect();"
-                       " return { q: Math.round(rb.top), warn: Math.round(rw.top), tgl: Math.round(rt.top), qb: Math.round(rb.bottom) }; }")
-    ok("[AI分析 390]「?」跟「AI 分析」、收合鈕在同一列，免責小字在下一行（不是「?」自己掉到第二行）",
-       bool(qpos) and qpos["q"] < qpos["warn"] and abs(qpos["q"] - qpos["tgl"]) <= 8, qpos)
-    click(pg, '#skAi .aitab[data-facet="sig"]', 450)
-    m2 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析 390] 按「技術面訊號」→ 展開並只顯示技術面訊號", m2["open"] and m2["shown"] == ["sig"], (m2["open"], m2["shown"]))
-    click(pg, '#skAi .aitab[data-facet="tech"]', 450)
-    m3 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析 390] 按「技術面」→ 只顯示技術面、四個週期列排得下", m3["shown"] == ["tech"] and m3["tfs"] == ["1 小時", "4 小時", "日線", "週線"], (m3["shown"], m3["tfs"]))
-    ok("★ [AI分析 390] 沒有橫向捲軸", m3["sx"] <= m3["vw"] + 1, (m3["sx"], m3["vw"]))
-    # 回桌機：節點搬回 K 線卡右上角
+    qpos = pg.evaluate("() => { const b = document.querySelector('#skAi .howbtn[data-how=\"ai\"]'), w = document.getElementById('aiWarn'), h = document.querySelector('#skAi .aihead h3');"
+                       " if (!b || !w || !h) return null; const rb = b.getBoundingClientRect(), rw = w.getBoundingClientRect(), rh = h.getBoundingClientRect();"
+                       " return { q: Math.round(rb.top), warn: Math.round(rw.top), h3: Math.round(rh.top) }; }")
+    ok("[AI分析 390]「?」跟「AI 分析」在同一列，免責小字在下一行（不是「?」自己掉到第二行）",
+       bool(qpos) and qpos["q"] < qpos["warn"] and abs(qpos["q"] - qpos["h3"]) <= 8, qpos)
+    m_ = _ai_tabs_cycle(pg, "[AI分析 390]")
+    ok("★ [AI分析 390] 技術面四個週期列排得下", m_["shown"] == ["tech"] and m_["tfs"] == ["1 小時", "4 小時", "日線", "週線"], (m_["shown"], m_["tfs"]))
+    ok("★ [AI分析 390] 沒有橫向捲軸", m_["sx"] <= m_["vw"] + 1, (m_["sx"], m_["vw"]))
+    if count(pg, "#skAi .aickbtn"):
+        click(pg, "#skAi .aickbtn", 300)
+        dd = pg.evaluate("() => { const d = document.querySelector('#skAi .aickbody'); return { open: !d.hidden && d.getBoundingClientRect().height > 20, n: d.querySelectorAll('.ck').length }; }")
+        ok("[AI分析 390] 技術面點「逐條條件」→ 真的展開，A 六條＋B 五條＋停損距離都列出", dd["open"] and dd["n"] >= 11, dd)
+    # 回桌機：節點搬回 K 線卡右上角，內容區跟著收掉
     pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(900)
     b1 = pg.evaluate(AI_SNAP)
-    ok("[AI分析] 手機 → 桌機：AI 區搬回 K 線卡、恢復兩欄", b1["parent"] == "skChartCard" and b1["aiside"] and b1["hostKids"] == 0, (b1["parent"], b1["aiside"], b1["hostKids"]))
+    ok("[AI分析] 手機 → 桌機：AI 區搬回 K 線卡、恢復兩欄、內容區不顯示", b1["parent"] == "skChartCard" and b1["aiside"] and b1["hostKids"] == 0 and not b1["open"],
+       (b1["parent"], b1["aiside"], b1["hostKids"], b1["open"]))
     pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); localStorage.removeItem('tw.aiTab'); } catch (e) {} }")
 
 
@@ -42539,7 +42475,8 @@ SOV_LAYOUT = r"""() => { const root = document.getElementById('stockTab'); if (!
     .map(e => e.tagName + '.' + String(e.className).slice(0, 20) + ':' + getComputedStyle(e).fontSize + ':' + e.textContent.trim().slice(0, 12));
   const SEL = '.mixi small, .mixi b, .mixsub, .mixt, .mixd, .mixs, .mixdtv, .mixf, .kvs .k .l, .kvs .k .v, .minil span, .ovtag, .ovline, '
     + '.tagtile .tagnm, .tagtile .tagd, .ovtfs > span, .ovck > *, .ovfacet h3, .mgkpi .l, .mgkpi .v, #ovAiCard > h3, #ovAiCard > h3 small, '
-    + '.ovtag .nm, .ovtag .aitag, #ovFacets .light, .tagzh, .tagnone';   // #297：AI 卡標題、分頁籤、技術面訊號燈號、指標兩欄標題
+    + '.ovtag .nm, .ovtag .aitag, #ovFacets .light, .tagzh, .tagnone, '   // #297：AI 卡標題、分頁籤、技術面訊號燈號、指標兩欄標題
+    + '.kvs .k .s, .kbig .kh .l, .kbig .kh .v, .pslab span, .psnote, .gmr > *, .mpr > *';   // #305：基本面卡小格小字、大格標題列、本益比位置刻度字、毛利率與營運動能細項
   const boxes = [...root.querySelectorAll(SEL)].filter(vis).map(e => ({ e, r: e.getBoundingClientRect() }));
   const over = [];
   for (let i = 0; i < boxes.length && over.length < 6; i++) for (let j = i + 1; j < boxes.length && over.length < 6; j++) {
@@ -42550,6 +42487,56 @@ SOV_LAYOUT = r"""() => { const root = document.getElementById('stockTab'); if (!
   const clip = [...root.querySelectorAll('.mixi b, .mixdtv, .mixt, .kvs .k .v, .tagtile .tagnm, .ovtag')].filter(vis)
     .filter(e => e.scrollWidth > e.clientWidth + 1).slice(0, 6).map(e => e.className + '「' + e.textContent.trim().slice(0, 14) + '」');
   return { sw: document.documentElement.scrollWidth - innerWidth, wide, small, over, clip }; }"""
+
+
+# ★ 2026-10-03（DECISIONS #305）本益比位置（site/industry.js peStand）的 Python 版：同一條逐日本益比（peRiver 口徑）、
+#   便宜端／中位／貴端＝第 10／50／90 百分位（線性內插）、分位＝比目前低的比例（相等算一半）。前端改口徑時這裡跟著改。
+def _pestand_expect(j: dict):
+    f = j.get("fundamental") or {}
+    cur = f.get("pe")
+    if not (isinstance(cur, (int, float)) and cur > 0):
+        return None
+    hist = [r for r in (j.get("pe_history") or []) if r and (r.get("ttm_eps") or 0) > 0 and r.get("from")]
+    daily = j.get("daily") or j.get("ohlcv") or []
+    if len(hist) < 4 or len(daily) < 60:
+        return None
+    steps = sorted(hist, key=lambda r: str(r["from"]))
+    pes, si = [], 0
+    for b in daily:
+        d = str(b[0])[:10]
+        if d < str(steps[0]["from"]):
+            continue
+        while si + 1 < len(steps) and str(steps[si + 1]["from"]) <= d:
+            si += 1
+        e, c = steps[si]["ttm_eps"], b[4]
+        if not (e and e > 0 and c and c > 0):
+            continue
+        pes.append(c / e)
+    pes = sorted(v for v in pes if v > 0 and math.isfinite(v))
+    if len(pes) < 60:
+        return None
+    n = len(pes)
+
+    def q(p):
+        i = (n - 1) * p
+        lo, hi = math.floor(i), math.ceil(i)
+        return pes[lo] + (pes[hi] - pes[lo]) * (i - lo)
+
+    def rank(x):
+        lt = sum(1 for v in pes if v < x)
+        eq = sum(1 for v in pes if v == x)
+        return (lt + eq / 2) / n * 100
+    gm = f.get("group_median")
+    return {"pct": round(rank(cur) * 10) / 10, "p10": round(q(0.1) * 10) / 10, "p50": round(q(0.5) * 10) / 10, "p90": round(q(0.9) * 10) / 10,
+            "n": n, "gpct": (round(rank(gm) * 10) / 10) if isinstance(gm, (int, float)) and gm > 0 else None}
+
+
+PESTAND_READ = r"""(id) => { const e = document.getElementById(id); if (!e) return null;
+  const bar = e.querySelector('.psbar'), dot = e.querySelector('.psdot'), gm = e.querySelector('.psgm');
+  const br = bar ? bar.getBoundingClientRect() : null, at = (x) => { if (!x || !br) return null; const r = x.getBoundingClientRect(); return ((r.left + r.width / 2) - br.left) / br.width * 100; };
+  const d = e.dataset;
+  return { ok: d.ok, pct: d.pct, cur: d.cur, p10: d.p10, p50: d.p50, p90: d.p90, lo: d.lo, hi: d.hi, n: d.n, gmed: d.gmed || null, gpct: d.gpct || null, peer: d.peer || null,
+    dotPct: at(dot), gmPct: at(gm), txt: e.innerText.replace(/\s+/g, ' ').trim(), vis: !!e.getClientRects().length && e.getBoundingClientRect().height > 0 }; }"""
 
 
 def _sov_expect(j: dict) -> dict:
@@ -42737,19 +42724,17 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
                        and (E["dt"][2][6] is None or abs(float(m["dt"]["r"]) - E["dt"][2][6]) < 1e-6), (m["dt"], E["dt"][:2]))
 
                 # ---- ③ 總覽 vs 資券分頁：同一個數字
+                # ★ 2026-10-03（Andy，DECISIONS #305）：資券分頁最上面那排 4 個 KPI 方塊（#mgKpi）整排拿掉 ——
+                #   改成「總覽的融資餘額＝資券每日表最新一列的融資餘額」（同一天才比），並確認 #mgKpi 真的不見了。
                 click(pg, '#stockTabs button[data-t="margin"]', 1200)
-                mk = pg.evaluate("""() => { const g = (k) => { const e = document.querySelector(`#mgKpi [data-mgk="${k}"]`); return e ? { v: e.dataset.v, d: e.dataset.d, t: e.querySelector('.v').textContent.trim() } : null; };
-                    const th = [...document.querySelectorAll('#mgTbl thead th')].map(t => t.textContent.trim());
+                mk = pg.evaluate("""() => { const th = [...document.querySelectorAll('#mgTbl thead th')].map(t => t.textContent.trim());
                     const tr = document.querySelector('#mgTbl tbody tr'); const r0 = tr ? [...tr.cells].map(c => c.textContent.trim()) : [];
-                    return { mb: g('mb'), sb: g('sb'), sbl: g('sbl'), dt: g('dt'), th, r0 }; }""")
-                ok(f"{tag} ★ 總覽「融資餘額」＝資券分頁最上面「融資餘額」（值、日期都一樣）",
-                   bool(mk["mb"]) and mk["mb"]["v"] == got["mb"]["v"] and mk["mb"]["d"] == got["mb"]["d"], (mk["mb"], got.get("mb")))
-                ok(f"{tag} 總覽與資券分頁的融券餘額、借券賣出餘額也一樣",
-                   (mk["sb"] or {}).get("v") == got["sb"]["v"] and (mk["sbl"] or {}).get("v", "") == got["sbl"]["v"], (mk["sb"], mk["sbl"], got.get("sb"), got.get("sbl")))
+                    return { kpi: !!document.getElementById('mgKpi') || document.querySelectorAll('#stockTab [data-mgk]').length, th, r0 }; }""")
+                ok(f"{tag} ★ 資券分頁沒有最上面那排 KPI 方塊（#mgKpi 已拿掉）", not mk["kpi"], mk["kpi"])
                 ok(f"{tag} 資券每日表欄名寫清楚（融資餘額／融資增減…），沒有只寫「融資」的欄",
                    "融資餘額" in mk["th"] and "融資增減" in mk["th"] and "融資" not in mk["th"] and "融券" not in mk["th"], mk["th"])
                 if mk["r0"] and mb[0][5:] == mk["r0"][0]:
-                    ok(f"{tag} 資券每日表最新一列的「融資餘額」＝上面那個數", mk["r0"][1].replace(",", "") == f"{mb[1]:.0f}", (mk["r0"], mb[:2]))
+                    ok(f"{tag} ★ 資券每日表最新一列的「融資餘額」＝總覽信用小圖的融資餘額", mk["r0"][1].replace(",", "") == f"{mb[1]:.0f}" and float(got["mb"]["v"]) == mb[1], (mk["r0"], mb[:2], got.get("mb")))
                 click(pg, '#stockTabs button[data-t="overview"]', 900)
 
             if c != "3189":
@@ -42855,8 +42840,16 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
             if fd.get("momentum_score") is not None:
                 ok(f"{tag} 營運動能改成半圓儀表、弧長＝分數（{fd['momentum_score']:.1f}）",
                    fm["score"] is not None and abs(fm["score"] - fd["momentum_score"]) < 0.06 and (fm["dash"] or "").startswith(f"{fm['score']:.1f}"), fm)
-            if fd.get("percentile") is not None:
-                ok(f"{tag} 本益比同業位置刻度：點的位置＝同業分位 {fd['percentile']:.0f}%（±3）", fm["dotPct"] is not None and abs(fm["dotPct"] - fd["percentile"]) <= 3, fm)
+            # ★ 2026-10-03（#305）：本益比那一格改成「自己歷史每日本益比的分位」（peStand）；歷史樣本不夠才退回同業位置刻度
+            pe_x = _pestand_expect(j)
+            psd = pg.evaluate(PESTAND_READ, "peStandOv")
+            if pe_x:
+                ok(f"{tag} 本益比位置：分位＝自己歷史每日本益比的第 {pe_x['pct']:.1f} 百分位（同 Python 重算 ±0.15）、便宜／貴端＝第 10／90 百分位",
+                   bool(psd) and psd["ok"] == "1" and abs(float(psd["pct"]) - pe_x["pct"]) <= 0.15
+                   and abs(float(psd["p10"]) - pe_x["p10"]) <= 0.051 and abs(float(psd["p90"]) - pe_x["p90"]) <= 0.051, (psd, pe_x))
+                ok(f"{tag} 本益比位置：圓點畫在分位那個位置（±3）", bool(psd) and psd["dotPct"] is not None and abs(psd["dotPct"] - float(psd["pct"])) <= 3, psd)
+            elif fd.get("percentile") is not None and psd and psd["ok"] == "0":
+                ok(f"{tag} 本益比歷史不夠 → 退回同業位置刻度：點的位置＝同業分位 {fd['percentile']:.0f}%（±3）", fm["dotPct"] is not None and abs(fm["dotPct"] - fd["percentile"]) <= 3, fm)
             if fd.get("gross_margin") is not None:
                 ok(f"{tag} 毛利率有進度條", fm["gm"], fm)
 
@@ -43074,9 +43067,10 @@ def t_stock_ov3_1002(b, base, code):
 # Andy 三件：① 個股總覽三欄改等高、底部對齊 ② 本益比（每季）圖修畫壞（虧損季斷段、TTM 很小時衝到 500 撐爆 Y 軸）③ 獲利分頁全部並排
 EQ1003_GEO = r"""() => { const R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top + scrollY), r: Math.round(r.right), b: Math.round(r.bottom + scrollY), h: Math.round(r.height), w: Math.round(r.width) }; };
   const fac = document.getElementById('ovFacets'), note = document.querySelector('#skFundCard > .note');
-  const ks = [...document.querySelectorAll('#skFundCard .kvs.skfund > .k')].map(R);
+  const ks = [...document.querySelectorAll('#skFundCard .kvs.skfund .k')].map(R);
+  const sm = [...document.querySelectorAll('#skFundCard .kvs.skfund .fsm > .k')].map(R), bg = [...document.querySelectorAll('#skFundCard .kvs.skfund .fbig > .k')].map(R);
   return { fund: R(document.getElementById('skFundCard')), chip: R(document.getElementById('skChipCard')), ai: R(document.getElementById('ovAiCard')),
-    note: R(note), noteTxt: note ? note.textContent.trim() : '', ks,
+    note: R(note), noteTxt: note ? note.textContent.trim() : '', ks, sm, bg,
     facSH: fac ? fac.scrollHeight : 0, facCH: fac ? fac.clientHeight : 0, facST: fac ? fac.scrollTop : 0, facOY: fac ? getComputedStyle(fac).overflowY : '',
     cur: fac ? fac.dataset.cur : '' }; }"""
 
@@ -43145,10 +43139,14 @@ def t_stock_ov_eq_1003(b, base, code):
                 else:
                     notes.append(f"{T} {cd} 技術面沒有「看細節」鈕，③ 沒驗到展開後捲動")
                 # ---- ④ 基本面卡撐開
+                # ★ 2026-10-03（#305）：改成「小格窄欄｜大格寬欄」—— 小格（4 格）平均分掉窄欄、兩欄底部對齊
                 ks = g0["ks"]
                 rows = sorted({k["t"] for k in ks})
-                hrow = {k["h"] for k in ks}
-                ok(f"★ {tag} 基本面格子平均撐開（每格一樣高 ±1px）", len(ks) >= 4 and max(hrow) - min(hrow) <= 1, sorted(hrow))
+                sm_, bg_ = g0["sm"], g0["bg"]
+                hsm = {k["h"] for k in sm_}
+                ok(f"★ {tag} 基本面小格（4 格）一樣高 ±1px、大格 3 格", len(sm_) == 4 and len(bg_) == 3 and max(hsm) - min(hsm) <= 1, (sorted(hsm), len(bg_)))
+                ok(f"★ {tag} 基本面兩欄底部對齊（窄欄最後一格與寬欄最後一格底差 ≤2px）", bool(sm_ and bg_) and abs(sm_[-1]["b"] - bg_[-1]["b"]) <= 2,
+                   (sm_ and sm_[-1], bg_ and bg_[-1]))
                 last_b = max(k["b"] for k in ks) if ks else 0
                 ok(f"★ {tag} 基本面卡底沒有一大塊空白：最後一列格子＋族群中位那一句貼著卡底（剩 ≤ 40px）",
                    bool(g0["note"]) and g0["note"]["t"] >= last_b and f_["b"] - g0["note"]["b"] <= 40, (last_b, g0["note"], f_["b"], len(rows)))
@@ -43202,6 +43200,154 @@ def _peq_expect(pe):
     return rows, cap, loss, over
 
 
+FUND1003_GEO = r"""() => { const R = (e) => { if (!e || !e.getClientRects().length) return null; const r = e.getBoundingClientRect();
+    return { l: Math.round(r.left), t: Math.round(r.top + scrollY), r: Math.round(r.right), b: Math.round(r.bottom + scrollY), w: Math.round(r.width), h: Math.round(r.height) }; };
+  const card = document.getElementById('skFundCard'); if (!card) return null;
+  const sm = [...card.querySelectorAll('.fsm > .k')], bg = [...card.querySelectorAll('.fbig > .k')];
+  const pad = (e) => { const cs = getComputedStyle(e); return [parseFloat(cs.paddingTop), parseFloat(cs.paddingLeft)]; };
+  return { card: R(card), sm: sm.map(e => ({ f: e.dataset.f, ...R(e), pad: pad(e) })), bg: bg.map(e => ({ f: e.dataset.f, ...R(e) })),
+    txt: card.innerText, gmr: [...card.querySelectorAll('.gmr')].map(e => ({ k: e.dataset.k, v: +e.dataset.v, cls: (e.querySelector('b') || {}).className || '', t: e.innerText.replace(/\s+/g, ' ') })),
+    spark: card.querySelector('.gmspark svg') ? +card.querySelector('.gmspark svg').dataset.n : 0,
+    mom: [...card.querySelectorAll('.mpr[data-k]')].map(e => ({ k: e.dataset.k, pts: +e.dataset.pts })), score: card.querySelector('.gauge') ? +card.querySelector('.gauge').dataset.score : null,
+    note: (card.querySelector(':scope > .note') || {}).textContent || '' }; }"""
+
+
+def t_stock_fund_1003(b, base, code):
+    """個股頂部 AI 直排＋基本面卡小格／大格＋獲利分頁本益比位置＋營收／資券 KPI 列拿掉（Andy 2026-10-03，DECISIONS #305）的真人操作驗收。
+
+      ① 基本面卡（1440／1100／390 ＋ 1440 淺色）：小格 4（EPS、ROE、月營收 YoY、殖利率）、大格 3（本益比、毛利率、營運動能）；
+         桌機小格比大格窄、也比大格矮（尺寸不同）；兩欄底部對齊；手機小格 2×2 在上、大格在下；小格內距 ≤ 10px
+      ② 本益比位置：data-* ＝ Python 重算（同一條逐日本益比的第 10／50／90 百分位與目前分位）；圓點、菱形畫在對的位置；刻度字寫出倍數
+      ③ 毛利率：前一季／去年同季的值＝profit.quarters 往前 1／4 列、增減顏色（紅升綠降）；有 ≥4 季就有小趨勢
+      ④ 營運動能：起始 50 ＋ 各子項加分，夾在 0～100 ＝ fundamental.momentum_score（±0.06）；缺資料的子項不列、整張卡沒有「資料不足」字樣
+      ⑤ 「獲利」分頁的本益比位置跟總覽那一格逐項相同（同一支函式），而且真的切過去量
+      ⑥ 營收分頁沒有 KPI 列、三張卡頂到分頁列下；資券分頁沒有 KPI 列、圖卡頂到區間鈕下
+      ⑦ 頂部 AI：四列直排、沒有展開鈕（細節在「個股頂部1002」）
+      ⑧ 各寬度沒有橫向捲軸、文字重疊、小於 11px 的字"""
+    T = "[個股基本面卡1003]"
+    errs: list[str] = []
+    picks = [c for c in ("2330", "3105", "1102", "1438") if (SITE / "data" / "stock" / f"{c}.json").exists()]
+    for W, theme in ((1440, "dark"), (1100, "dark"), (390, "dark"), (1440, "light")):
+        ctx = b.new_context(viewport={"width": W, "height": 1000})
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e, W=W: errs.append(f"{W}: {e}"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        if theme == "light":
+            pg.add_init_script("try{localStorage.setItem('tw.theme','light')}catch(e){}")
+        for c in (picks if (W == 1440 and theme == "dark") else picks[:2]):
+            tag = f"{T}{W}{'淺' if theme == 'light' else ''} {c}"
+            try:
+                j = json.loads((SITE / "data" / "stock" / f"{c}.json").read_text(encoding="utf-8"))
+                f = j.get("fundamental") or {}
+                pg.goto("about:blank")
+                pg.goto(base + f"#stock/{c}", wait_until="networkidle")
+                if W <= 640:
+                    wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 5", 15000)
+                    pg.click('#mbTabs button[data-t="full"]'); pg.wait_for_timeout(700)
+                if not ok(f"{tag} 打開個股頁有基本面卡", bool(wait_until(pg, "() => !!document.getElementById('skFundCard')", 15000))):
+                    continue
+                pg.wait_for_timeout(500)
+                g = pg.evaluate(FUND1003_GEO)
+                sm, bg = g["sm"], g["bg"]
+                # ---- ① 小格／大格
+                ok(f"★ {tag} 基本面：小格 4 格（EPS、ROE、月營收 YoY、殖利率）、大格 3 格（本益比、毛利率、營運動能）",
+                   [x["f"] for x in sm] == ["eps", "roe", "yoy", "yld"] and [x["f"] for x in bg] == ["pe", "gm", "mom"], ([x["f"] for x in sm], [x["f"] for x in bg]))
+                if W > 640:
+                    ok(f"★ {tag} 小格與大格尺寸不同：小格比大格窄（寬 {sm[0]['w']} < {bg[0]['w']}）、面積小", sm[0]["w"] < bg[0]["w"] - 40
+                       and max(x["w"] * x["h"] for x in sm) < min(x["w"] * x["h"] for x in bg), ([(x["w"], x["h"]) for x in sm], [(x["w"], x["h"]) for x in bg]))
+                    ok(f"★ {tag} 小格縱向堆在一窄欄（左緣一樣、由上往下），大格在旁邊", len({x["l"] for x in sm}) == 1 and all(sm[i + 1]["t"] > sm[i]["t"] for i in range(3))
+                       and bg[0]["l"] > sm[0]["r"], (sm, bg))
+                    ok(f"{tag} 兩欄底部對齊（≤2px）", abs(sm[-1]["b"] - bg[-1]["b"]) <= 2, (sm[-1]["b"], bg[-1]["b"]))
+                else:
+                    ok(f"★ {tag} 手機：小格 2×2 在上、大格滿寬在下", len({x["t"] for x in sm}) == 2 and len({x["l"] for x in sm}) == 2
+                       and all(x["t"] > max(y["b"] for y in sm) for x in bg) and all(abs(x["w"] - g["card"]["w"]) < 60 for x in bg), (sm, bg))
+                ok(f"{tag} 小格內距收緊（上下 ≤ 8px、左右 ≤ 11px）", all(x["pad"][0] <= 8 and x["pad"][1] <= 11 for x in sm), [x["pad"] for x in sm])
+                ok(f"★ {tag} 整張卡沒有「資料不足」字樣（缺的子項整行不出現）", "資料不足" not in g["txt"], g["txt"][:200])
+                ok(f"{tag} 卡底保留「同族群…本益比中位」那一句", "本益比" in g["note"], g["note"])
+                # ---- ② 本益比位置
+                px = _pestand_expect(j)
+                ps = pg.evaluate(PESTAND_READ, "peStandOv")
+                if px:
+                    ok(f"★ {tag} 本益比位置＝Python 重算：分位 {px['pct']:.1f}、便宜 {px['p10']}／中位 {px['p50']}／貴 {px['p90']}、樣本 {px['n']} 天",
+                       bool(ps) and ps["ok"] == "1" and abs(float(ps["pct"]) - px["pct"]) <= 0.15 and all(abs(float(ps[k]) - px[k]) <= 0.051 for k in ("p10", "p50", "p90"))
+                       and int(ps["n"]) == px["n"], (ps, px))
+                    ok(f"★ {tag} 本益比位置：刻度字寫出便宜／中位／貴的倍數、說明寫第幾百分位與近幾年",
+                       bool(ps) and all(A in ps["txt"] for A in ("便宜", "中位", "貴", "百分位")) and re.search(r"近 [\d.]+ (年|個月)", ps["txt"]) is not None, ps and ps["txt"])
+                    ok(f"{tag} 本益比位置：圓點在分位位置（±3）", ps["dotPct"] is not None and abs(ps["dotPct"] - float(ps["pct"])) <= 3, ps)
+                    if px["gpct"] is not None:
+                        ok(f"★ {tag} 族群中位◆畫在它在這一檔歷史裡的分位（{px['gpct']:.1f}，±3）、說明寫族群中位倍數",
+                           ps["gmPct"] is not None and abs(ps["gmPct"] - px["gpct"]) <= 3 and abs(float(ps["gpct"]) - px["gpct"]) <= 0.15 and "族群中位" in ps["txt"], ps)
+                elif f.get("pe"):
+                    ok(f"★ {tag} 歷史本益比不夠 → 退回同業位置刻度（不畫空的歷史條）", bool(ps) and ps["ok"] == "0" and (f.get("percentile") is None or ps["peer"] is not None), ps)
+                else:
+                    ok(f"{tag} 虧損（沒有本益比）→ 本益比格寫「—」、不畫條", bool(ps) and ps["ok"] == "0" and ps["dotPct"] is None, ps)
+                # ---- ③ 毛利率
+                q = (j.get("profit") or {}).get("quarters") or []
+                qi = next((i for i, r in enumerate(q) if r and r[0] == f.get("latest_period")), -1)
+                if qi >= 0 and q[qi][2] is not None and f.get("gross_margin") is not None:
+                    gm = {x["k"]: x for x in g["gmr"]}
+                    for k, off, nm in (("prev", 1, "前一季"), ("ly", 4, "去年同季")):
+                        if qi - off >= 0 and q[qi - off][2] is not None:
+                            want = q[qi - off][2]
+                            d = f["gross_margin"] - want
+                            ok(f"★ {tag} 毛利率「{nm}」＝{q[qi - off][0]} {want:.2f}%、增減 {d:+.1f}pp 顏色對（紅升綠降）",
+                               k in gm and abs(gm[k]["v"] - want) < 1e-6 and q[qi - off][0] in gm[k]["t"]
+                               and (("up" in gm[k]["cls"]) if d > 0 else ("down" in gm[k]["cls"]) if d < 0 else True), (gm.get(k), want, d))
+                        else:
+                            ok(f"{tag} 毛利率沒有「{nm}」資料 → 那一列不出現", k not in gm, gm)
+                    nq = sum(1 for r in q[max(0, qi - 7):qi + 1] if r[2] is not None)
+                    ok(f"{tag} 毛利率小趨勢：有 ≥4 季才畫（{nq} 季）", (g["spark"] == nq) if nq >= 4 else g["spark"] == 0, (g["spark"], nq))
+                # ---- ④ 營運動能
+                if f.get("momentum_score") is not None:
+                    raw = 50 + sum(x["pts"] for x in g["mom"])
+                    ok(f"★ {tag} 營運動能：起始 50＋各子項加分（夾 0～100）＝{f['momentum_score']:.1f}（照管線公式，±0.06）",
+                       abs(max(0, min(100, raw)) - f["momentum_score"]) <= 0.06 and g["score"] is not None and abs(g["score"] - f["momentum_score"]) < 0.06, (raw, g["mom"], f["momentum_score"]))
+                    ks = [x["k"] for x in g["mom"]]
+                    ok(f"{tag} 營運動能子項只列有資料的（MoM 比歷年同月 {'有' if f.get('rev_mom_vs_typical') is not None else '沒有'}；一次性警示 {'有' if f.get('rev_flag_spike') else '沒有'}）",
+                       ("mom" in ks) == (f.get("rev_mom_vs_typical") is not None) and ("spike" in ks) == bool(f.get("rev_flag_spike")) and ("yoy" in ks) == (f.get("rev_yoy") is not None), ks)
+                # ---- ⑧ 版面
+                lay = pg.evaluate(SOV_LAYOUT)
+                ok(f"★ {tag} 總覽：沒有橫向捲軸、字 ≥11px、文字不重疊、數字沒被截", lay and lay["sw"] <= 1 and not lay["wide"] and not lay["small"] and not lay["over"] and not lay["clip"], lay)
+                if W == 1440:
+                    hs = [pg.evaluate(f"() => Math.round(document.getElementById('{i}').getBoundingClientRect().height)") for i in ("skFundCard", "skChipCard", "ovAiCard")]
+                    ok(f"{tag} 總覽三欄仍等高（#303，差 < 4px）", max(hs) - min(hs) < 4, hs)
+                # ---- ⑤ 獲利分頁的本益比位置＝總覽那一格（真的切過去量）
+                if c in picks[:2]:
+                    click(pg, '#stockTabs button[data-t="profit"]', 1600)
+                    wait_until(pg, "() => !!document.getElementById('peStandProf')", 8000)
+                    pp = pg.evaluate(PESTAND_READ, "peStandProf")
+                    keys = ("ok", "pct", "cur", "p10", "p50", "p90", "lo", "hi", "n", "gmed", "gpct", "peer")
+                    ok(f"★ {tag} 「獲利」分頁有本益比位置，而且每個數字＝總覽那一格（{', '.join(keys)}）",
+                       bool(pp) and pp["vis"] and bool(ps) and all(pp[k] == ps[k] for k in keys) and pp["txt"] == ps["txt"], (pp, ps))
+                    if pp and pp["ok"] == "1":
+                        ok(f"{tag} 獲利分頁的圓點也在分位位置（±3）", pp["dotPct"] is not None and abs(pp["dotPct"] - float(pp["pct"])) <= 3, pp)
+                    lay = pg.evaluate(SOV_LAYOUT)
+                    ok(f"{tag} 獲利分頁：沒有橫向捲軸、字 ≥11px、文字不重疊", lay and lay["sw"] <= 1 and not lay["wide"] and not lay["small"] and not lay["over"], lay)
+                    # ---- ⑥ 營收／資券分頁沒有 KPI 列
+                    click(pg, '#stockTabs button[data-t="revenue"]', 1400)
+                    rv = pg.evaluate("""() => { const st = document.getElementById('stockTab'), g = document.getElementById('revGrid'); if (!st || !g) return null;
+                        const kv = [...st.querySelectorAll('.kvs .l')].map(e => e.textContent.trim());
+                        return { kv, first: st.firstElementChild ? st.firstElementChild.id : '', gap: Math.round(g.getBoundingClientRect().top - st.getBoundingClientRect().top) }; }""")
+                    if (j.get("revenue") or {}).get("monthly"):
+                        ok(f"★ {tag} 營收分頁沒有最上面那排 6 個 KPI 方塊（最新月份／單月營收／YoY…）、三張卡頂到最上面",
+                           bool(rv) and not [x for x in rv["kv"] if x in ("最新月份", "單月營收", "累計營收", "累計 YoY", "MoM")] and rv["first"] == "revGrid" and rv["gap"] <= 4, rv)
+                    click(pg, '#stockTabs button[data-t="margin"]', 1400)
+                    mg = pg.evaluate("""() => { const st = document.getElementById('stockTab'); if (!st) return null; const bar = st.querySelector('.chipBar'), duo = document.getElementById('marginChartDuo');
+                        return { kpi: !!document.getElementById('mgKpi') || st.querySelectorAll('[data-mgk], .mgkpi').length, kv: [...st.querySelectorAll('.kvs .l')].map(e => e.textContent.trim()),
+                          gap: bar && duo ? Math.round(duo.getBoundingClientRect().top - bar.getBoundingClientRect().bottom) : null }; }""")
+                    if len(j.get("margin") or []) >= 5:
+                        ok(f"★ {tag} 資券分頁沒有 4 個 KPI 方塊（融資餘額／融券餘額／借券賣出餘額／當沖）、圖卡頂到區間鈕下",
+                           bool(mg) and not mg["kpi"] and not [x for x in mg["kv"] if x.startswith(("融資餘額", "融券餘額", "借券賣出餘額", "當沖"))] and mg["gap"] is not None and 0 <= mg["gap"] <= 24, mg)
+                # ---- ⑦ 頂部 AI（桌機；沒有 analysis 的簡版頁只有一行結論，沒有四列）
+                if W > 820 and j.get("analysis"):
+                    rw = pg.evaluate(AI1003_ROWS)
+                    ok(f"★ {tag} 頂部 AI：四個面向上下排列（4 列）、沒有展開鈕", len(rw["rows"]) == 4 and len({round(r["t"]) for r in rw["rows"]}) == 4 and rw["tgl"] == 0 and not rw["expandTxt"], rw)
+            except Exception as ex:  # noqa: BLE001
+                ok(f"{tag} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
+        ctx.close()
+    ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
+
 def t_profit_pe_1003(b, base, code):
     """獲利分頁並排＋本益比（每季）修畫壞（Andy 2026-10-03，DECISIONS #303）的真人操作驗收。
 
@@ -43241,6 +43387,14 @@ def t_profit_pe_1003(b, base, code):
             tg = f"{T}{c}"
             if not ok(f"{tg} 打開獲利分頁有本益比（每季）", bool(open_profit(c))) or len(rows) < 4:
                 continue
+            # ★ 2026-10-03（#305）：本益比（每季）卡上方多一塊「本益比位置」（跟總覽基本面卡同一支 peStand）
+            jx = json.loads((SITE / "data" / "stock" / f"{c}.json").read_text(encoding="utf-8"))
+            px_ = _pestand_expect(jx)
+            pp_ = pg.evaluate(PESTAND_READ, "peStandProf")
+            if px_:
+                ok(f"★ {tg} 獲利分頁有「本益比位置」：分位 {px_['pct']:.1f}、便宜 {px_['p10']}／中位 {px_['p50']}／貴 {px_['p90']}（同 Python 重算）",
+                   bool(pp_) and pp_["vis"] and pp_["ok"] == "1" and abs(float(pp_["pct"]) - px_["pct"]) <= 0.15
+                   and all(abs(float(pp_[k]) - px_[k]) <= 0.051 for k in ("p10", "p50", "p90")), (pp_, px_))
             q = pg.evaluate(PEQ1003)
             if not ok(f"{tg} 本益比（每季）畫出來了", bool(q), q):
                 continue
@@ -43299,8 +43453,14 @@ def t_profit_pe_1003(b, base, code):
                 ok(f"{tg} 河流圖與明細表各佔兩欄寬（約為單欄的 2 倍）", rv["w"] >= pq["w"] * 1.8 and tb["w"] >= ep["w"] * 1.8, (rv["w"], pq["w"], tb["w"], ep["w"]))
                 tw = pg.evaluate("() => { const t = document.querySelector('#profitTblCard .tw'); return { sh: t.scrollHeight, ch: t.clientHeight, sw: t.scrollWidth, cw: t.clientWidth, n: t.querySelectorAll('tbody tr').length }; }")
                 ok(f"{tg} 明細表在卡裡捲（不撐高第二列）、9 欄放得下不必橫捲", tw["sh"] > tw["ch"] and tw["sw"] <= tw["cw"] + 1, tw)
-                peq_h0 = pg.evaluate("() => Math.round(document.getElementById('peQ').getBoundingClientRect().height)")
-                ok(f"{tg} 本益比（每季）的圖撐滿卡（跟河流圖同列等高，圖 ≥ 300px）", peq_h0 >= 300, peq_h0)
+                # ★ 2026-10-03（#305）：卡片上方多了「本益比位置」那一塊（約 150px），圖從 ≥300px 改驗「圖撐滿卡剩下的空間」：
+                #   圖 ≥ 240px、圖底到卡底只剩圖下那一行（≤ 60px）、本益比位置那一塊在圖的上面
+                pqm = pg.evaluate("""() => { const c = document.getElementById('peQ').getBoundingClientRect(), k = document.getElementById('peQCard').getBoundingClientRect(),
+                    p = document.querySelector('#peQCard .psprof'); const pr = p ? p.getBoundingClientRect() : null;
+                    return { h: Math.round(c.height), gapB: Math.round(k.bottom - c.bottom), ps: pr ? Math.round(pr.bottom - c.top) : null }; }""")
+                peq_h0 = pqm["h"]
+                ok(f"{tg} 本益比（每季）的圖撐滿卡剩下的空間（圖 ≥ 240px、圖底離卡底 ≤ 60px、本益比位置在圖上方）",
+                   pqm["h"] >= 240 and pqm["gapB"] <= 60 and pqm["ps"] is not None and pqm["ps"] <= 2, pqm)
                 click(pg, '#profitMode button[data-v="y"]', 900)
                 g2 = pg.evaluate(GEO, ids)
                 ok(f"★ {tg} 切「年」→ 表頭換成年度明細、兩列仍各自 top 一致等高",
