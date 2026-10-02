@@ -5001,13 +5001,13 @@
          以前「同業分位」是另一格只寫「67%」，讀者要自己推「67% 是貴還是便宜」——兩格併成一格，刻度直接把答案畫出來。
        · 毛利率 → 進度條（0～100%，毛利本來就是「營收裡留下幾成」）
        其他（EPS、ROE、月營收 YoY、殖利率）是單一數字，硬畫小圖反而多一步推論，照舊寫數字。*/
-    const help = hbox('skfund', ['近四季 EPS＝最近四季每股盈餘相加', '本益比＝股價 ÷ 近四季 EPS，越低越便宜', '刻度＝同族群裡的位置：越右越貴、中線＝中位', 'ROE＝近四季淨利 ÷ 股東權益，看賺錢效率',
+    const help = hbox('skfund', ['近四季 EPS＝最近四季每股盈餘相加', '本益比＝股價 ÷ 近四季 EPS，越低越便宜', '刻度＝同業位置，越右越貴；*＝樣本少', 'ROE＝近四季淨利 ÷ 股東權益，看賺錢效率',
       '毛利率＝最新一季毛利 ÷ 營收', '月營收 YoY＝最新月營收比去年同月增減', '營運動能＝營收成長、創新高等綜合分數 0～100', '殖利率＝近四次現金股利 ÷ 目前股價']);
     const fk = (key, l, v, mini, cls) => `<div class="k" data-f="${key}"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div>${mini || ''}</div>`;
     const pct = f.percentile != null && isFinite(f.percentile) ? Math.max(0, Math.min(100, +f.percentile)) : null;
     const peMini = pct == null ? `<div class="minil"><span>同業位置：樣本不足</span></div>`
       : `<div class="pescale" style="--p:${pct.toFixed(1)}%" role="img" aria-label="同族群本益比分位 ${A.fmt.n(pct, 0)}%（越右越貴）" title="同族群（${A.fmt.esc(f.group_name || '—')}，n=${f.group_n || '—'}）裡估值比它低的比例 ${A.fmt.n(pct, 0)}%${f.thin_sample ? '；樣本少，僅供參考' : ''}"><i class="pemid"></i><b class="pedot"></b></div>`
-        + `<div class="minil"><span>便宜</span><span class="pep" data-pct="${pct.toFixed(1)}">分位 ${A.fmt.n(pct, 0)}%${f.thin_sample ? '*' : ''}</span><span>貴</span></div>`;
+        + `<div class="minil"><span>便宜</span><span class="pep" data-pct="${pct.toFixed(1)}"${f.thin_sample ? ' title="* ＝同族群樣本少於 5 檔，分位僅供參考"' : ''}>分位 ${A.fmt.n(pct, 0)}%${f.thin_sample ? '*' : ''}</span><span>貴</span></div>`;
     const gm = f.gross_margin != null && isFinite(f.gross_margin) ? Math.max(0, Math.min(100, +f.gross_margin)) : null;
     const gmMini = gm == null ? '' : `<div class="meter" style="--p:${gm.toFixed(1)}%;--c:var(--cyan)" role="img" aria-label="毛利率 ${A.fmt.n(gm, 1)}%"><i></i></div>`;
     const ms = f.momentum_score != null && isFinite(f.momentum_score) ? Math.max(0, Math.min(100, +f.momentum_score)) : null;
@@ -5024,7 +5024,7 @@
       + fk('yoy', '月營收 YoY', A.fmt.pct(f.rev_yoy), '', A.fmt.cls(f.rev_yoy))
       + fk('mom', '營運動能', msV)
       + fk('yld', '殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—')
-      + `</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}${f.thin_sample && pct != null ? '；分位旁的 * ＝同族群樣本少，僅供參考' : ''}` : '本益比只在同族群內比較'}</div></div>`;
+      + `</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}` : '本益比只在同族群內比較'}</div></div>`;
   }
   /* ★ 2026-09-28（Andy：「總覽 籌碼快照『?』欄位說明，並移除 大戶4週 與 散戶」）：
      · 拿掉「大戶 4 週變化」「散戶（≤10 張）」兩格。千張大戶的週變化在「籌碼」分頁的集保圖有完整走勢，
@@ -5048,7 +5048,7 @@
      資料不夠的那一張寫一句「資料準備中」，不畫空色條。*/
   const CHIP_HELP = {
     inst:   ['法人近 20 日', ['比重＝各自買賣超張數 ÷ 三者絕對值合計', '實色＝買超、斜紋淡色＝賣超；右上是合計']],
-    hold:   ['集保持股分布', ['各級距持股佔總股數的比例（每週公布）', '4 週＝近 4 週變化，單位 pp（百分點）']],
+    hold:   ['集保持股分布', ['各級距持股佔總股數的比例（每週公布）', 'N 週＝近 N 週變化（最多 4 週），單位 pp']],
     credit: ['信用與借券', ['融資、融券、借券賣出都是「餘額」，單位張', '融資多＝信用追價；券＋借券多＝放空部位']],
     dt:     ['當沖率', ['當沖成交張數 ÷ 當日成交張數', '當沖率高＝短線客多，價格容易暴漲暴跌']],
     volr:   ['量比', ['今日成交量 ÷ 近 20 日平均量（含今日）', '≥1.5 算爆量；帶量突破比無量突破可信']],
@@ -5065,7 +5065,8 @@
   /* 圖例格三行：色塊＋名稱／數值／小字（比重或 4 週變化、資料日）。比重不跟名稱擠同一行：
      390 寬一格只有約 95px，「借券賣出餘額 15.6%」放一行會被省略號切掉（_uitest「個股總覽1002」量到過）。*/
   const mixItem = (k, label, pct, val, cls, extra) => { const e = extra || {};
-    const sub = [pct != null ? `${e.pre || '佔'} ${pct}` : '', e.sub || ''].filter(Boolean).join('・');
+    // 每一小段各自不斷行（「資料日 09-24」不會被拆成「09-」「24」兩行），要換行只在「・」之間換
+    const sub = [pct != null ? `${e.pre || '佔'} ${pct}` : '', e.sub || ''].filter(Boolean).map(x => `<span class="nw">${x}</span>`).join('・');
     return `<div class="mixi${e.sell ? ' sell' : ''}" data-k="${k}"${e.attrs || ''} style="--c:${MIX_C[k]}">`
       + `<small>${label}</small><b class="${cls || ''}">${val}</b>${sub ? `<span class="mixsub">${sub}</span>` : ''}</div>`; };
   const mixBox = (key, dateTxt, sumTxt, body) => `<div class="mix" data-mix="${key}"><div class="mixh"><span class="mixt">${CHIP_HELP[key][0]}</span>${mixQ(key)}`
@@ -5082,16 +5083,23 @@
     const abs = Math.abs(v.f) + Math.abs(v.t) + Math.abs(v.d);
     return { v, abs, total: v.f + v.t + v.d, from: rows[0][0], to: rows[rows.length - 1][0], n: rows.length };
   }
-  /* 集保：最新一週 ＋ 約 4 週前那一週（找日期最接近「最新 − 28 天」、相差 ≤ 6 天的那一列；找不到就不給變化，不拿 3 週或 6 週湊）*/
+  /* 集保：最新一週 ＋ 比較基準那一週＝34 天內、日期最接近「最新 − 28 天」的那一列（4 週前；遇到休市週可能是 27～34 天）。
+     ⚠ 2026-10-02 實測：資料湖的集保週資料目前每一檔都只有 4 筆（09-04～09-24，集保開放資料只給最新一週、從 9 月初才開始累積），
+       最早那一筆距最新只有 20 天 —— 硬要「4 週」就永遠是空的。所以基準取「4 週內能拿到的最早一筆」，
+       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化：09-04 → 09-24」），資料滿 4 週之後自動變成「4 週」。
+       不到 2 週（< 13 天）就不給變化：一週的雜訊太大，寫出來只會被誤讀成趨勢。*/
   function holdMix(pg) {
     const ho = (pg.holders || []).filter(r => r && r[1] != null);
     if (!ho.length) return null;
     const last = ho[ho.length - 1];
-    const t0 = Date.parse(String(last[0]).slice(0, 10)) - 28 * 864e5;
-    let prev = null, best = 1e18;
-    ho.slice(0, -1).forEach(r => { const dd = Math.abs(Date.parse(String(r[0]).slice(0, 10)) - t0); if (dd < best) { best = dd; prev = r; } });
-    if (best > 6 * 864e5) prev = null;
-    return { last, prev };
+    const day = (r) => Date.parse(String(r[0]).slice(0, 10));
+    const lim = day(last) - (28 + 6) * 864e5;
+    const t28 = day(last) - 28 * 864e5;
+    let prev = null;      // 34 天內、最接近 28 天的那一列（都不到 28 天時＝最早那一列）
+    ho.slice(0, -1).forEach(r => { if (day(r) >= lim && (!prev || Math.abs(day(r) - t28) < Math.abs(day(prev) - t28))) prev = r; });
+    const days = prev ? Math.round((day(last) - day(prev)) / 864e5) : 0;
+    if (!prev || days < 13) return { last, prev: null, weeks: 0 };
+    return { last, prev, weeks: Math.round(days / 7) };
   }
   /* 資券最新值：每一欄各自找「最後一個有值的交易日」——融資券（證交所，每天）與當沖／借券（另一個來源，常晚幾天）日期可能不同，
      所以一律連日期一起帶著走，畫面上寫出來。資券分頁最上面那一列用同一支，兩邊不會對不上（DECISIONS #294）。*/
@@ -5133,10 +5141,10 @@
         { k: 'rest', v: rest, lab: `其他（10～400 張）${A.fmt.n(rest, 2)}%` }, { k: 'ret', v: v.ret, lab: `≤10 張 ${A.fmt.n(v.ret, 2)}%` }];
       const items = ['big', 'mid', 'ret'].map(k => { const c = ch(IX[k]);
         return mixItem(k, NM[k], null, v[k] != null ? A.fmt.n(v[k], 1) + '%' : '—', '',
-          { attrs: ` data-v="${v[k] != null ? v[k] : ''}" data-ch="${c != null ? c.toFixed(4) : ''}"`, sub: `4 週 <span class="${c == null ? '' : c > 0 ? 'up' : c < 0 ? 'down' : ''}">${pp(c)}</span>` }); }).join('');
+          { attrs: ` data-v="${v[k] != null ? v[k] : ''}" data-ch="${c != null ? c.toFixed(4) : ''}"`, sub: `${hm.weeks || 4} 週 <span class="${c == null ? '' : c > 0 ? 'up' : c < 0 ? 'down' : ''}">${pp(c)}</span>` }); }).join('');
       parts.push(mixBox('hold', md5(L[0]), '<span class="muted">灰＝10～400 張</span>',
         mixBar(segs, `集保持股：≥1,000 張 ${A.fmt.n(v.big, 1)}%、400～1,000 張 ${A.fmt.n(v.mid, 1)}%、≤10 張 ${A.fmt.n(v.ret, 1)}%`)
-        + `<div class="mixn">${items}</div><div class="mixf">${Pv ? `近 4 週變化：${md5(Pv[0])} → ${md5(L[0])}` : '近 4 週變化：歷史不足 4 週'}</div>`));
+        + `<div class="mixn">${items}</div><div class="mixf">${Pv ? `近 ${hm.weeks} 週變化：${md5(Pv[0])} → ${md5(L[0])}${hm.weeks < 4 ? '（集保歷史還不到 4 週）' : ''}` : '週變化：集保歷史不到 2 週'}</div>`));
     } else parts.push(mixBox('hold', '', '', '<div class="mixf">集保持股資料準備中（每週公布一次）</div>'));
     /* ③ 信用與借券（張）＋ 當沖率 */
     const m = mgLatest(pg);
@@ -5168,12 +5176,13 @@
     parts.push(`<div class="mixdt mixvr" data-v="${vr != null ? vr : ''}"><span class="mixt">${CHIP_HELP.volr[0]}</span>${mixQ('volr')}`
       + `${vr != null ? `<div class="meter" style="--p:${Math.min(100, vr / 3 * 100).toFixed(1)}%;--c:var(--cyan)" role="img" aria-label="量比 ${A.fmt.n(vr, 2)}（刻度＝1.5 爆量）"><i></i><b class="tick" style="left:50%"></b></div>` : ''}`
       + `<span class="mixdtv"><b>${vr != null ? A.fmt.n(vr, 2) : '—'}</b> <small>${vr != null ? (vr >= 1.5 ? '爆量（≥1.5）' : '未達 1.5') : ''}</small></span></div>`);
-    return `<div class="card" id="skChipCard"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人：近 20 個交易日誰買誰賣、各佔多少', '集保：三個級距的持股比例與 4 週變化', '信用：融資、融券、借券賣出餘額（張）', '每一張小圖標題旁的 ? 看定義'])}`
+    return `<div class="card" id="skChipCard"><h3>籌碼快照 ${hq('skchip', '籌碼快照')}</h3>${hbox('skchip', ['法人：近 20 個交易日誰買誰賣、各佔多少', '集保：三個級距的持股比例與近幾週變化', '信用：融資、融券、借券賣出餘額（張）', '每一張小圖標題旁的 ? 看定義'])}`
       + `<div class="mixes">${parts.join('')}</div></div>`;
   }
   /* ★ 2026-10-02（Andy，DECISIONS #294）「總覽」分頁的版面，由上到下：
        ① AI 分析重點（積木 stock.mtf，site/blocks/stock_ai.js 的 brief）：一行結論＋四顆小標籤，點標籤捲到下面那一張細節卡
-       ② 基本面｜籌碼快照（積木 stock.fund，本檔）：數字＋小圖，一眼看完
+       ② 基本面、籌碼快照（積木 stock.fund，本檔）：上下兩張滿寬。改前並排（g2）時基本面七格只佔左卡上半、下半截空著跟右邊等高；
+          滿寬之後基本面七格排成一列，籌碼快照三張小圖在寬畫面（容器 ≥900px）也排成一列，窄畫面才往下排
        ③ 各面向細節四張並排（桌機一列四張、窄畫面依序往下排）：技術面、技術面訊號、基本面、消息面。
           技術面訊號那一張就是積木 stock.signal 的出口（StockSignal.view），其他三張是 stock.mtf 的 facetCards。
      擋掉任何一支積木檔，只少那幾張，其他照常（積木原則三）。K 線卡右上角那一份 #skAi（頂部、另一支分支在改）這裡不動。*/
@@ -5184,7 +5193,7 @@
     const sig = SG ? SG.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt, { tag: true, id: 'ovF-sig' }) : '';
     const cards = [fc.tech, sig, fc.fund, fc.news].filter(Boolean);
     el.innerHTML = `<div class="skov" id="skOv">${brief}
-      <div class="grid g2 skovkpi">${fundCard(pg)}${chipCard(pg)}</div>
+      <div class="skovkpi">${fundCard(pg)}${chipCard(pg)}</div>
       ${cards.length ? `${fc.tech && AI.facetHead ? AI.facetHead() : ''}<div class="skfacets" id="ovFacets" data-n="${cards.length}">${cards.join('')}</div>` : ''}</div>`;
     if (AI && AI.bindOverview) AI.bindOverview(el);
   }

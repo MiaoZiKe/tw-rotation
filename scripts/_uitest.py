@@ -32273,7 +32273,9 @@ def t_block_stock_cards(b, base, code):
     驗的事情不變：① 卡片照新版面排、順序對；② 技術面訊號那張就是 `StockSignal.view()` 的輸出（畫面走的是積木出口）；
         ③ 換分頁再換回來會重畫；④ 擋掉 blocks/stock_signal.js 之後只少那一張卡、其他照常、沒有 JS 錯誤。"""
     tag = "積木-個股三卡"
-    heads_js = "() => [...document.querySelectorAll('#stockTab .skovkpi > .card > h3')].map(h => h.firstChild.textContent.trim())"
+    # 標題文字＝h3 自己的文字節點（跳過 icons.js 插在最前面的 span.ticon 與「?」、small）。
+    # ★ 2026-10-02 改前：h.firstChild.textContent → 標題圖示（09-29）上線後第一個子節點是圖示，這條從那天起一直讀到空字串。
+    heads_js = "() => [...document.querySelectorAll('#stockTab .skovkpi > .card > h3')].map(h => [...h.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim())"
     facets_js = "() => [...document.querySelectorAll('#ovFacets > .card')].map(c => c.dataset.facet)"
 
     def open_page(block_off: bool):
@@ -32296,7 +32298,9 @@ def t_block_stock_cards(b, base, code):
         const card = document.querySelector('#ovFacets > .card[data-facet="sig"]');
         const html = window.StockSignal.view({ summary: pg.summary, verdict: pg.verdict }, window.App.fmt, { tag: true, id: 'ovF-sig' });
         const t = document.createElement('div'); t.innerHTML = html;
-        return { id: window.StockSignal.id, same: !!card && card.outerHTML === t.firstElementChild.outerHTML,
+        // 比之前先拿掉 icons.js 事後插進標題的圖示（span.ticon）——那是全站標題圖示機制加的，不是積木出口的輸出
+        const c2 = card ? card.cloneNode(true) : null; if (c2) c2.querySelectorAll('.ticon').forEach(e => e.remove());
+        return { id: window.StockSignal.id, same: !!c2 && c2.outerHTML === t.firstElementChild.outerHTML,
                  lights: card ? card.querySelectorAll('.light').length : 0 }; })""")
     ok(f"【{tag}】技術面訊號那張 ＝ 積木 stock.signal 出口的輸出（九顆燈號）",
        same.get("id") == "stock.signal" and same.get("same") and same.get("lights") == 9, same)
@@ -39665,11 +39669,14 @@ def _sov_expect(j: dict) -> dict:
     ho = [r for r in (j.get("holders") or []) if r and r[1] is not None]
     if ho:
         last = ho[-1]
-        p = lambda x: _d.fromisoformat(str(x)[:10])  # noqa: E731
-        t0 = p(last[0]).toordinal() - 28
-        cands = sorted(ho[:-1], key=lambda r: abs(p(r[0]).toordinal() - t0))
-        prev = cands[0] if cands and abs(p(cands[0][0]).toordinal() - t0) <= 6 else None
-        out["hold"] = {"last": last, "prev": prev}
+        p = lambda x: _d.fromisoformat(str(x)[:10]).toordinal()  # noqa: E731
+        L0 = p(last[0])
+        # 基準＝34 天內、最接近 28 天前的那一列；跨不到 13 天就不給（資料湖目前每檔只有 4 週，最早那筆距最新 20 天）
+        cands = [r for r in ho[:-1] if L0 - p(r[0]) <= 34]
+        prev = min(cands, key=lambda r: abs((L0 - p(r[0])) - 28)) if cands else None
+        if prev is not None and L0 - p(prev[0]) < 13:
+            prev = None
+        out["hold"] = {"last": last, "prev": prev, "weeks": round((L0 - p(prev[0])) / 7) if prev else 0}
     mg = j.get("margin") or []
 
     def lastv(i):
@@ -39679,6 +39686,26 @@ def _sov_expect(j: dict) -> dict:
         return None
     out["mb"], out["sb"], out["sbl"], out["dt"] = lastv(1), lastv(2), lastv(8), lastv(5)
     return out
+
+
+def _sov_mixed_code() -> list:
+    """挑一檔近 20 日「有人買、有人賣」的普通股（四位數代號），讓「賣超看得出來」那幾條真的被驗到 ——
+    3189／2330／2454 這陣子三大法人剛好全是買超，只驗它們的話斜紋那一段永遠不會出現。"""
+    for f in sorted((SITE / "data" / "stock").glob("*.json")):
+        if not re.fullmatch(r"[1-9]\d{3}", f.stem):
+            continue
+        try:
+            j = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        d = [r for r in ((j.get("inst_v3") or {}).get("daily") or []) if r and any(r[i] is not None for i in (1, 2, 3))][-20:]
+        if len(d) < 20 or not j.get("margin"):
+            continue
+        sums = [round(sum((r[i] or 0) for r in d) / 1000) for i in (1, 2, 3)]
+        if any(x < 0 for x in sums) and any(x > 0 for x in sums):
+            return [f.stem]
+    notes.append("[個股總覽1002] 找不到近 20 日有買有賣的普通股，賣超斜紋那幾條沒驗到")
+    return []
 
 
 def t_stock_ov_1002(b, base, code):
@@ -39693,7 +39720,7 @@ def t_stock_ov_1002(b, base, code):
       ⑤ AI 分析重點：一行重點＋四顆標籤，點標籤捲到下面那一張細節卡；四張細節卡桌機一列、窄畫面往下排；技術面「看細節」原地展開
       ⑥ 基本面小圖：營運動能儀表＝分數、本益比刻度的點位＝同業分位
       ⑦ 1440／800／390 三個寬度都沒有重疊、溢出、橫向捲軸、小於 11px 的字
-    三檔：3189（Andy 截圖那一檔）全部驗；2330、2454 抽驗②③（金額大、張數上萬、正負都有）。"""
+    3189（Andy 截圖那一檔）全部驗；2330、2454 抽驗②③（金額大、張數上萬），再自動挑一檔近 20 日有買有賣的股票驗賣超斜紋。"""
     T = "[個股總覽1002]"
     errs: list[str] = []
     want_tabs = ["overview", "basics", "tags", "revenue", "profit", "dividend", "inst", "margin", "holders", "news"]
@@ -39703,7 +39730,7 @@ def t_stock_ov_1002(b, base, code):
         pg = ctx.new_page()
         pg.on("pageerror", lambda e, W=W: errs.append(f"{W}: {e}"))
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-        for c in (["3189", "2330", "2454"] if W == 1440 else ["3189"]):
+        for c in (["3189", "2330", "2454"] + _sov_mixed_code() if W == 1440 else ["3189"]):
             jp = SITE / "data" / "stock" / f"{c}.json"
             if not jp.exists():
                 notes.append(f"{T}本機沒有 {c} 的個股 JSON，略過")
@@ -39786,9 +39813,13 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
                 ok(f"{tag} 集保小圖：≥1000／400～1000／≤10 張比例＝JSON 最新一週",
                    all(abs(float(got[k]["v"]) - L[i]) < 1e-6 for k, i in (("big", 1), ("mid", 2), ("ret", 3))), ({k: got.get(k, {}).get("v") for k in ("big", "mid", "ret")}, L))
                 if P:
-                    ok(f"{tag} 集保小圖：近 4 週變化（pp）＝最新 − 約 28 天前那一週（{P[0]}）",
+                    wk = he["weeks"]
+                    ok(f"{tag} 集保小圖：近 {wk} 週變化（pp）＝最新 − {P[0]} 那一週（最多 4 週）",
                        all(abs(float(got[k]["ch"]) - (L[i] - P[i])) < 1e-3 for k, i in (("big", 1), ("mid", 2), ("ret", 3)) if L[i] is not None and P[i] is not None),
                        ({k: got.get(k, {}).get("ch") for k in ("big", "mid", "ret")}, [L, P]))
+                    ok(f"{tag} 集保小圖：畫面寫出實際跨幾週（「{wk} 週」），不假裝是 4 週",
+                       all(got[k]["sub"].startswith(f"{wk} 週") for k in ("big", "mid", "ret")) and f"近 {wk} 週變化" in hm.get("txt", ""),
+                       [got[k]["sub"] for k in ("big", "mid", "ret")])
                 tw = sum(s["w"] for s in hm["segs"]) or 1
                 big = next((s["w"] for s in hm["segs"] if s["k"] == "big"), 0)
                 ok(f"{tag} 集保小圖：四段（含灰色其他）＝100%，≥1000 張那段寬度比例＝它的 %（±4pp）",

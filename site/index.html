@@ -3921,8 +3921,13 @@ h3 .howbtn.pop{font-family:inherit}
    色條加粗到 10px（6px 看不出斜紋，賣超就認不出來）。字一律 ≥11.5px（手機 11px 下限）。
    ================================================================================== */
 .skov{container:skov / inline-size}
-.skovkpi{align-items:stretch}
+/* 基本面、籌碼快照上下兩張滿寬（並排時基本面卡下半截是空的）；籌碼快照三張小圖在容器 ≥900px 排成一列、等高，量比橫跨在下面 */
+.skovkpi{display:flex;flex-direction:column;gap:var(--gap-card,16px)}
 .mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+@container skov (min-width:900px){
+  .mixes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+  .mixes>.mixvr{grid-column:1 / -1;width:min(100%,560px)}
+}
 .mix{display:flex;flex-direction:column;gap:7px;padding:10px 12px;border-radius:10px;background:var(--panel-3);min-width:0}
 .mixh{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .mixt{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
@@ -3945,13 +3950,14 @@ h3 .howbtn.pop{font-family:inherit}
 .mixi b{font:700 15px/20px var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mixi b.up{color:var(--rise)} .mixi b.down{color:var(--fall)}
 .mixsub{font-size:11.5px;line-height:1.35;color:var(--ink-3)}
-.mixsub .up{color:var(--rise)} .mixsub .down{color:var(--fall)}
+.mixsub .up{color:var(--rise)} .mixsub .down{color:var(--fall)} .mixsub .nw{white-space:nowrap}
 .mixf{font-size:11.5px;line-height:1.45;color:var(--ink-3)}
 /* 一列「名稱 ? ｜進度條｜數值」：當沖率（信用小圖裡）與量比（卡片最下面）*/
 .mixdt{display:grid;grid-template-columns:auto auto minmax(60px,1fr) auto;align-items:center;gap:6px 8px;min-width:0}
 .mix .mixdt{padding-top:6px;border-top:1px dashed var(--line)}
 .mixvr{padding:2px 12px 0}
-.mixdtv{white-space:nowrap;font-size:12px;color:var(--ink-3)}
+/* 數值在上、說明小字在下（右對齊）：390 寬一列只剩約 300px，「58.0% 當沖 25,588 張・09-24」擠一行會撐破卡片 */
+.mixdtv{display:flex;flex-direction:column;align-items:flex-end;gap:0;font-size:11.5px;line-height:1.3;color:var(--ink-3);white-space:nowrap;text-align:right}
 .mixdtv b{font:700 15px/20px var(--mono);color:var(--ink)}
 /* 進度條（毛利率、當沖率、量比、停損距離共用）：--p＝填多少、--c＝顏色、.tick＝門檻刻度 */
 .meter{position:relative;display:block;height:8px;border-radius:99px;background:color-mix(in srgb,var(--ink-3) 18%,transparent);min-width:40px}
