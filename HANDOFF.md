@@ -24,6 +24,22 @@
   分時鈕不會被劃掉；之後再點分時，會顯示「此檔暫無分時資料…日 K、週 K、月 K 可以正常看」並且當下才劃掉。有空狀態文案、不是一塊黑，所以不算畫不出來；
   要收的話是在即時層回報後（不論目前週期）補跑一次 `markTf`，屬產品改動，這次沒做。
 - 這批驗了：`_uitest.py --sections 個股 --workers 1`（新資料 0／舊資料 2，各一次）＋三張 `_show.py` 截圖。沒跑 pytest 與 `_preview.py`（沒改任何程式）。
+## 個股頁下方分頁改版＋融資對帳（2026-10-02 17:30，台北，UI 專家，分支 `claude/stock-overview-mini`，**未推 main**，DECISIONS #294）
+
+- [x] 總覽「籌碼快照」：六格數字 → 三張比例小圖（法人近 20 日買賣超比重、集保 ≥1000／400～1000／≤10 張＋近幾週變化、融資／融券／借券賣出餘額）＋當沖率、量比兩條進度條；「法人 20 日」那一格拿掉（合計寫在法人色條右上）。賣超＝同色斜紋淡色＋分隔線＋綠字「−」
+- [x] 總覽「基本面」：營運動能半圓儀表、本益比＋同業位置刻度（同業分位併進來）、毛利率進度條；基本面與籌碼快照改上下兩張滿寬
+- [x] 總覽上方「AI 分析重點」（一行重點＋四顆小標籤，點了捲到下面細節卡並閃一下）、下方四張面向細節卡並排（技術面／技術面訊號／基本面／消息面；技術面「看細節」原地展開）
+- [x] 「指標」分頁：方塊卡片分「符合」「未符合」（＋資料不足）三區，題材／族群移到最上面當標籤，點方塊原地展開
+- [x] 分頁順序：總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞；手機同一個相對順序（features.js 排列跟著調、id 不變；stock.ai 鎖頭多蓋總覽那份 AI）
+- [x] 融資對不上：根因＝總覽是「融資餘額」、資券分頁每日表標題只寫「融資」內容卻是「融資增減」。資券分頁加最上面一列「最新數字」（跟總覽同一支 mgLatest()）＋表頭寫全；對帳表在 DECISIONS #294（3189／2330／2454）
+- **K 線卡右上角那份 AI 分析（#skAi）沒動**：那是 `claude/stock-head-layout` 的範圍。兩支合併後若要頂部也只寫重點，可直接用 `StockAI.briefText(pg)`。
+- 改到 `site/industry.js` 的函式：`STOCK_TABS`（常數）、`fundCard`、`chipCard`（＋新增 `instMix`／`holdMix`／`mgLatest`／`mixBar`／`mixItem`／`mixBox`／`mixQ`、常數 `CHIP_HELP`／`MIX_C`）、`tabOverview`、`tabTags`、`tabMargin`；拿掉沒人用的 `statK`。分時即時、繪圖工具、效能那幾段一行都沒碰。
+  其他檔：`blocks/stock_ai.js`（新增 brief／briefText／facetCards／facetHead／bindOverview，#skAi 的 mount 沒改）、`blocks/stock_signal.js`（view 多一個可選參數）、`mobile3.js`（SK_TABS 順序、完整版說明、資券當沖／借券讀最後有值那天）、`features.js`、`modules.js`、`index.html`（一段新 CSS）。
+- **這批驗了**：`_preview.py` 全綠（0 重疊）；`_uitest.py --workers 1 --sections 個股總覽1002,個股,排序,新-產業與個股,手機,會員權限開關,總覽摘要卡列,個股季週期與筆數,手機個股券商式,積木-個股三卡,積木清單,個股籌碼分頁0928`
+  → 新段「個股總覽1002」（1440／800／390、3189＋2330＋2454＋自動挑一檔有買有賣的）0 問題；個股、排序、新-產業與個股、手機、會員權限開關、總覽摘要卡列、手機個股券商式、積木-個股三卡 0 問題。
+  其餘紅燈都是**改前就紅**（拿 origin/main 同一份 payload 跑基準線比對過）：個股季週期與筆數 1 條（獲利「年」標題前多空白）、個股籌碼分頁0928 1 條（K 線卡裡有「資料湖」三個字，頂部範圍）、積木清單 3 條（手機 #stock 的「AI 分析」「財報籌碼」分段、擋掉 modules.js —— main 上一模一樣的 3 條，跟這批無關）。
+  積木-個股三卡在 main 上 4 條紅（標題圖示 09-29 上線後 firstChild 讀到圖示），這批順手修好驗收寫法。沒跑 pytest（沒動 pipeline／tests／.github，只改 site/** 與 scripts/_uitest.py）。
+- 本機 payload：`SKIP_INTRADAY=1 python -m pipeline.build_payload` 在這個 worktree 重算過（資料湖 d859d7f）。
 
 ## 會員功能開放制度：#admin/perm 依 email 開關功能＋方案範本＋鎖頭（2026-10-02，台北，UI 專家，分支 `claude/member-perm`；Worker 已上 main）
 

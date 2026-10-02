@@ -3922,6 +3922,109 @@ h3 .howbtn.pop{font-family:inherit}
 .kvs .k .l .howbtn.kq{position:relative;flex:none;width:18px;height:18px;font-size:11px;margin-left:var(--sp-1);vertical-align:0;font-family:inherit}
 @media (max-width:640px){.kvs .k .l .howbtn.kq{margin-left:5px}}
 .kvs .k .l .howbtn.kq::after{content:'';position:absolute;inset:-7px}
+/* ==================================================================================
+   ★ 2026-10-02 個股「總覽」分頁的小圖（Andy 五張截圖，DECISIONS #294；程式在 industry.js chipCard／fundCard／tabTags）
+   ---------------------------------------------------------------------------------
+   比例小圖（.mix）樣式照總覽「資金去向」摘要卡（.osc-bar／.osn）：一條分段色條＋下面圖例格；
+   色條加粗到 10px（6px 看不出斜紋，賣超就認不出來）。字一律 ≥11.5px（手機 11px 下限）。
+   ================================================================================== */
+.skov{container:skov / inline-size}
+/* 基本面、籌碼快照上下兩張滿寬（並排時基本面卡下半截是空的）；籌碼快照三張小圖在容器 ≥900px 排成一列、等高，量比橫跨在下面 */
+.skovkpi{display:flex;flex-direction:column;gap:var(--gap-card,16px)}
+.mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+@container skov (min-width:900px){
+  .mixes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+  .mixes>.mixvr{grid-column:1 / -1;width:min(100%,560px)}
+}
+.mix{display:flex;flex-direction:column;gap:7px;padding:10px 12px;border-radius:10px;background:var(--panel-3);min-width:0}
+.mixh{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+.mixt{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
+.mix .howbtn.kq,.mixdt .howbtn.kq{position:relative;flex:none;width:18px;height:18px;font-size:11px;margin-left:0;font-family:inherit}
+.mix .howbtn.kq::after,.mixdt .howbtn.kq::after{content:'';position:absolute;inset:-7px}
+.mixd{flex:none;font:11.5px/1 var(--mono);color:var(--ink-3);border:1px solid var(--line);border-radius:var(--r-pill,999px);padding:3px 7px;white-space:nowrap}
+.mixs{margin-left:auto;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.mixs b{font-family:var(--mono);font-weight:700;color:var(--ink)} .mixs b.up{color:var(--rise)} .mixs b.down{color:var(--fall)}
+.mixbar{display:flex;gap:2px;height:10px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--ink-3) 16%,transparent)}
+.mixbar i{display:block;height:100%;min-width:3px;background:var(--c)}
+/* 賣超：同一個法人顏色的斜紋淡色（顏色＝誰，斜紋＝賣）；分隔線＝買超段與賣超段的界線 */
+.mixbar i.sell{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 75%,transparent) 0 2px,color-mix(in srgb,var(--c) 20%,transparent) 2px 5px)}
+.mixbar .mixsep{flex:none;width:2px;background:var(--ink-2);border-radius:1px}
+.mixn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 10px}
+.mixi{min-width:0;display:flex;flex-direction:column;gap:1px}
+.mixi small{font-size:11.5px;line-height:15px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mixi small::before{content:'';display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c);margin-right:4px;vertical-align:0}
+.mixi.sell small::before{background:repeating-linear-gradient(135deg,var(--c) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1px var(--c)}
+.mixi small em{font-style:normal;font-family:var(--mono);color:var(--ink-2)}
+.mixi b{font:700 15px/20px var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mixi b.up{color:var(--rise)} .mixi b.down{color:var(--fall)}
+.mixsub{font-size:11.5px;line-height:1.35;color:var(--ink-3)}
+.mixsub .up{color:var(--rise)} .mixsub .down{color:var(--fall)} .mixsub .nw{white-space:nowrap}
+.mixf{font-size:11.5px;line-height:1.45;color:var(--ink-3)}
+/* 一列「名稱 ? ｜進度條｜數值」：當沖率（信用小圖裡）與量比（卡片最下面）*/
+.mixdt{display:grid;grid-template-columns:auto auto minmax(60px,1fr) auto;align-items:center;gap:6px 8px;min-width:0}
+.mix .mixdt{padding-top:6px;border-top:1px dashed var(--line)}
+.mixvr{padding:2px 12px 0}
+/* 數值在上、說明小字在下（右對齊）：390 寬一列只剩約 300px，「58.0% 當沖 25,588 張・09-24」擠一行會撐破卡片 */
+.mixdtv{display:flex;flex-direction:column;align-items:flex-end;gap:0;font-size:11.5px;line-height:1.3;color:var(--ink-3);white-space:nowrap;text-align:right}
+.mixdtv b{font:700 15px/20px var(--mono);color:var(--ink)}
+/* 進度條（毛利率、當沖率、量比、停損距離共用）：--p＝填多少、--c＝顏色、.tick＝門檻刻度 */
+.meter{position:relative;display:block;height:8px;border-radius:99px;background:color-mix(in srgb,var(--ink-3) 18%,transparent);min-width:40px}
+.meter>i{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);border-radius:99px;background:var(--c,var(--cyan))}
+.meter>.tick{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink-2);border-radius:1px}
+.kvs .k .meter{margin-top:6px}
+/* 本益比同業位置：一條細線、中線＝中位、點＝本檔分位 */
+.pescale{position:relative;height:12px;margin-top:6px}
+.pescale::before{content:'';position:absolute;left:0;right:0;top:5px;height:2px;border-radius:1px;background:linear-gradient(90deg,var(--cyan),var(--amber))}
+.pescale .pemid{position:absolute;left:50%;top:1px;width:2px;height:10px;margin-left:-1px;background:var(--ink-3)}
+.pescale .pedot{position:absolute;left:var(--p);top:1px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 2px var(--panel-3)}
+.minil{display:flex;justify-content:space-between;gap:4px;margin-top:3px;font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.minil .pep{color:var(--ink-2)}
+/* 營運動能半圓儀表：SVG 只畫弧，分數寫在旁邊的 HTML（SVG 的字會跟著縮放）*/
+.gaugev{display:inline-flex;align-items:flex-end;gap:6px}
+.gauge{display:block;flex:none}
+.gauge .gtrack{fill:none;stroke:color-mix(in srgb,var(--ink-3) 22%,transparent);stroke-width:7;stroke-linecap:round}
+.gauge .gfill{fill:none;stroke:var(--cyan);stroke-width:7;stroke-linecap:round}
+.gaugev small{font-size:12px;color:var(--ink-3);font-weight:400}
+.kvs .k .v small{font-size:12px;color:var(--ink-3);font-weight:400}
+/* 各面向細節：桌機一列四張（技術面那張寬一點，它的週期敘述最長）、中寬兩張一列、窄畫面依序往下排。
+   量的是分頁內容區本身（container skov），右側事件欄開關、視窗寬窄都跟著走 */
+.skfacets{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr)}
+@container skov (min-width:640px){ .skfacets{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@container skov (min-width:1060px){
+  .skfacets[data-n="4"]{grid-template-columns:minmax(0,1.45fr) repeat(3,minmax(0,1fr))}
+  .skfacets[data-n="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* 「指標」分頁：方塊卡片，分符合／未符合兩區 */
+.tagmeta{display:flex;flex-direction:column;gap:6px;margin:8px 0 4px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.tagmr{display:flex;gap:10px;align-items:baseline;min-width:0}
+.tagmr .tagk{flex:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12.5px;color:var(--ink-2)}
+.tagzone{margin-top:12px}
+.tagzh{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);margin-bottom:8px}
+.tagzh b{font-family:var(--mono);color:var(--ink)}
+.tagzh i{width:10px;height:10px;border-radius:3px;background:color-mix(in srgb,var(--ink-3) 35%,transparent)}
+.tagzone.on .tagzh i{background:var(--rise)}
+.taggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.tagtile{display:flex;flex-direction:column;gap:4px;min-width:0;text-align:left;padding:9px 12px;border-radius:10px;cursor:pointer;font:inherit;
+  border:1px solid var(--line);background:color-mix(in srgb,var(--panel-3) 60%,transparent);color:var(--ink-2)}
+.tagtile:hover{border-color:var(--line-2)}
+.tagtile:focus-visible{outline:2px solid var(--focus,var(--cyan));outline-offset:2px}
+.tagtile .tagnm{font-size:13.5px;font-weight:700;line-height:1.4}
+.tagtile .tagd{font-size:12px;line-height:1.45;color:var(--ink-3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tagtile.open .tagd{white-space:normal;overflow:visible}
+.tagtile.on{border-color:color-mix(in srgb,var(--rise) 55%,var(--line));background:color-mix(in srgb,var(--rise) 9%,var(--panel-3))}
+.tagtile.on .tagnm{color:var(--rise)}
+.tagtile.off,.tagtile.na{opacity:.72}
+.tagtile.off .tagnm,.tagtile.na .tagnm{color:var(--ink-2);font-weight:600}
+.tagtile.na{border-style:dashed}
+/* 資券分頁最上面一列「最新數字」的日期小字 */
+.mgkpi .mgd{font:11px/1 var(--mono);color:var(--ink-3);margin-left:4px}
+.mgkpi .v small{font-size:12px;color:var(--ink-3);font-weight:400}
+@media (max-width:640px){
+  .mix{padding:9px 10px}
+  .mixn{gap:6px 8px}
+  .mixi b{font-size:14px}
+  .taggrid{grid-template-columns:minmax(0,1fr)}
+}
 #howBack{position:fixed;inset:0;z-index:180;background:rgba(4,8,18,.46);backdrop-filter:blur(1.5px)}
 :root[data-theme="light"] #howBack{background:rgba(30,28,24,.28)}
 #howBack[hidden],#howPop[hidden]{display:none}
