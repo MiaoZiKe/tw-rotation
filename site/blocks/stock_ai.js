@@ -206,8 +206,9 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #skChartCard>#skAi:not(.aiopen) .aitab:hover,#skChartCard:not(.aiside)>#skAi .aitab:hover{border-color:var(--cyan);color:var(--ink)}
 /* 單欄展開時選中的那顆只換框色與字色、不加粗（加粗會變寬、膠囊可能換行，標籤列一長高就推 K 線） */
 #skChartCard:not(.aiside)>#skAi.aiopen .aitab.on{border-color:var(--cyan);color:var(--ink);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
-/* 重點模式的結論只佔一行（太長出「…」，滑過看全文）；兩欄展開時才完整換行 */
-#skChartCard>#skAi:not(.aiopen) .aibrief,#skChartCard:not(.aiside)>#skAi .aibrief{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* K 線卡裡的結論一律只佔一行（太長出「…」，滑過看全文；完整原因在展開後的技術面裡）。
+   展開時也不換行：兩欄的保底高度是照「展開時標題＋結論＋標籤」量的，結論在 1100 寬會折成兩三行，保底就多出 40px、左欄工具列被推離價格一大段（截圖看到的）。*/
+#skChartCard>#skAi .aibrief{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aitag{padding:1px 7px;border-radius:6px;font-size:12px;background:var(--panel-3);color:var(--ink-2);white-space:nowrap}
 .aitag.pos{background:rgba(255,77,109,.16);color:var(--rise)} .aitag.neg{background:rgba(46,229,157,.16);color:var(--fall)}
 .aitag.warn{background:rgba(255,180,84,.16);color:var(--amber)}

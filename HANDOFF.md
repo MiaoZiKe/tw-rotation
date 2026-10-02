@@ -1,13 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-## 個股頁 K 線上方版面三件：AI 展開收合左側不動、左右分隔線可拖、標籤搬到週期鈕那一行（2026-10-02，台北，UI 專家，分支 `claude/stock-head-layout`，**未推 main**）
+## 個股頁 K 線上方版面：AI 預設只看重點、展開收合左側不動、左右分隔線可拖、標籤搬到週期鈕那一行（2026-10-02，台北，UI 專家，分支 `claude/stock-head-layout`，**未推 main**）
 
-- Andy 15:19（#stock/3189 景碩三張截圖）→ DECISIONS #293。前一位的半成品 `claude/wip-stock-layout`（5a9a11e）只沿用「AI 區 contain:size」「單欄內容區改浮層」兩個想法，其他四項（營收三欄、本益比線寬、籌碼並排、大戶週數）沒帶進來。
-- [x] ① AI 區高度不再由內容決定（`site/blocks/stock_ai.js` CSS：`contain:size`＋保底 `--aiH:190px`），展開／收合／換面向左側與 K 線不動；≤820 內容區是浮層（進頁面收著、不寫 tw.aiOpen）
+- Andy 15:19（#stock/3189 景碩三張截圖）＋同日「上方的 AI 分析只寫重點」→ DECISIONS #293。前一位的半成品 `claude/wip-stock-layout`（5a9a11e）只沿用「AI 區 contain:size」「單欄內容區改浮層」兩個想法，其他四項（營收三欄、本益比線寬、籌碼並排、大戶週數）沒帶進來。
+- 分支已合進 `origin/claude/merge-ov-mini`（＝main 304fe44＋stock-overview-mini，因為那時 main 還沒有總覽重點），合併 main 時應該是快轉或只剩文件衝突。
+- [x] ① AI 區：預設收合＝一行結論＋四顆面向小標籤（點了捲到下面「總覽」的細節卡 #ovFacets），按「展開」才看各週期細節；
+  展開時撐滿右欄＋`contain:size`、保底高度 `--aiH` 掛在分隔線上 → 展開／收合／換面向左側與 K 線一個像素都不動；≤820 內容區是浮層（進頁面收著、不寫 tw.aiOpen）
 - [x] ② 分隔線 `#skSplit`：拖曳（col-resize）、存 `tw.aiSplit`（比例）、雙擊還原 44%、←／→ 鍵 2%；左欄最小寬＝工具列一行放得下；≤820 不出現（上下排）
 - [x] ③ 技術分／本益比／同業分位／營收 YoY／分 K 等級搬到工具列 `#skTags`（「指標」與「四週期同看」之間），放不下收進「⋯ N」；現價列只剩現價、漲跌、即時徽章；手機不顯示
-- 動到的函式與選擇器（給同時改 industry.js 的人對照）：industry.js `renderStock` 模板（#skPx、#skTools）、新增 `stockTags`／`tagPopClose`／`tagPopFill`／`fitTags`／`wireTags`；
-  stock_ai.js `css()`（#skChartCard.aiside 格線、#skSplit、#skAi contain、單欄 .aibody 浮層）、`setOpen`／`userOpen`／`modeOf`／`leftMin`／`innerW`／`aiPx`／`wireSplit`／`watchWidth`／`mount`；
+- [x] 附帶：兩欄時短註 #liveNote 固定佔一行（不然分時資料非同步到達時 K 線自己跳 18px）；641～760 工具列可橫滑；「⋯ N」小框改 position:fixed
+- 動到的函式與選擇器（給同時改 industry.js 的人對照）：industry.js `setLiveNote`（多一個 title）、`renderStock` 模板（#skPx、#skTools）、新增 `stockTags`／`tagPopClose`／`tagPopFill`／`fitTags`／`wireTags`；
+  stock_ai.js `css()`（#skChartCard.aiside 格線、#skSplit、#skAi 收合／展開、膠囊、單欄 .aibody 浮層、#liveNote）、`readOpen`（預設收合＋換版清一次）、`html`（結論改 briefText）、
+  `setOpen`／`userOpen`／`modeOf`／`leftMin`／`innerW`／`aiPx`／`sizeAi`／`wireSplit`／`watchWidth`／`mount`（小標籤點擊）／新增 `gotoFacet`；
   index.html 新增 `#skTools`／`.sktags`／`.sktmore`／`.sktagpop` 規則；modules.js 兩塊積木的 tests 加「個股頂部1002」。
 - **這批驗了**：（跑完補）
 
