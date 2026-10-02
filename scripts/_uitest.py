@@ -5567,7 +5567,13 @@ def t_new_flow(pg, base):
                     回 true 會讓「排版沒壞」在元件消失時照樣通過 ＝ 假綠。*/
                  chipsIn: (() => { const row = document.querySelector('.ddrow[data-for="sankey"]');
                    if (!row) return false; const rr = row.getBoundingClientRect();
-                   return rr.right <= window.innerWidth + 1; })() }; }""")
+                   return rr.right <= window.innerWidth + 1; })() ,
+                 /* ★ 2026-10-03 診斷：橫捲軸紅燈時一併列出「右緣超出視窗、又不是 fixed」的元素（最多 8 個），不用再手動二分 */
+                 wide: [...document.querySelectorAll('body *')].filter(e => {
+                   const r = e.getBoundingClientRect(); if (!(r.width > 0) || r.right <= window.innerWidth + 1) return false;
+                   for (let p = e; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).position === 'fixed') return false;
+                   return true; }).slice(0, 8).map(e => e.tagName + '#' + e.id + '.' + String(e.className && e.className.baseVal === undefined ? e.className : '').slice(0, 30) + ' r=' + Math.round(e.getBoundingClientRect().right)
+                   + ' ← ' + (e.parentElement ? e.parentElement.tagName + '#' + e.parentElement.id + '.' + String(e.parentElement.className).slice(0, 30) : '') + ' 「' + (e.textContent || '').trim().slice(0, 24) + '」' + (e.getAttribute('style') || '').slice(0, 220)) }; }""")
     ok("800px 沒有橫向捲軸", nw["pageW"] <= nw["winW"] + 1, nw)
     ok("800px 資金去向還畫得出來", nw["chart"], nw)
     ok("800px 小圓點那一層跟著縮（不會蓋到隔壁）",

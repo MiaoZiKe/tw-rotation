@@ -10481,7 +10481,9 @@
 
     // 選項先組成一個物件：拓撲版也要借用同一支提示框內容（tooltip.formatter），不另寫一份
     const skOpt = {
-      tooltip: { ...tip, trigger: 'item', triggerOn: 'mousemove',
+      /* ★ 2026-10-03 一屏看完（DECISIONS #308）：提示框預設 white-space:nowrap，即時模式那段說明（一長句）會撐成一行 ~850px，
+         800px 寬的畫面就把頁面撐出 46px 橫向捲軸（新-資金流向「800px 沒有橫向捲軸」紅燈）。改成可折行、最寬 380px（再窄的視窗就是視窗寬 − 32）。 */
+      tooltip: { ...tip, extraCssText: (tip.extraCssText || '') + 'white-space:normal;max-width:min(380px,calc(100vw - 32px));', trigger: 'item', triggerOn: 'mousemove',
         formatter: (p) => {
           const d = p.data || {};
           if (d.placeholder) return '';
