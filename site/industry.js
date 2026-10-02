@@ -4011,6 +4011,18 @@
        ② 資料湖的 60 分 K（payload 的 intraday['60m']）最近一個交易日 —— 一天 6 點（開盤＋每小時收盤），
           只在即時層拿不到時當備援，而且那一天必須就是日線的最新交易日（落後的不拿，免得把前天當成今天）。
      昨收：盤中用報價的昨收（證交所的參考價，除權息當天也對）；其他情況用日線裡「那一天之前」的最後一根收盤。*/
+  /* 分時說明（2026-10-02，DECISIONS #287）：照實講每一段是哪裡來的，時間寫出來 ——
+     「09:00～10:06 來自 Yahoo（延遲）；10:26 之後是本頁即時累積，每 5 秒更新；10:07～10:25 在你打開頁面前，暫無資料」。
+     以前寫「最近一段是證交所即時報價每 5 秒更新」，畫面上卻是 10:06 一條直線跳到 10:26 —— 說明跟圖對不上。*/
+  function tickLiveNote(d) {
+    const hm = (t) => KUtil.fmtTime(t, '1m').slice(11, 16);
+    const parts = [];
+    if (d.yahoo) parts.push(`${hm(d.yahoo[0])}～${hm(d.yahoo[1])} 來自 Yahoo（延遲約 20 分鐘，每 2 分鐘重抓一次）`);
+    if (d.liveSeg) parts.push(`${hm(d.liveSeg[0])} 之後是本頁即時累積，每 5 秒更新、量是累計成交量相減`);
+    (d.gaps || []).forEach(g => parts.push(`${hm(g[0])}～${hm(g[1])} 在你打開頁面之前，暫無資料（圖上斜線那段；Yahoo 追上來後自動補上）`));
+    if (!parts.length) parts.push('今天的分時');
+    return '今天的分時：' + parts.join('；') + '。虛線＝昨收，線在虛線上面＝漲、下面＝跌。';
+  }
   function tickData(pg) {
     const L = window.LiveK;
     const daily = pg.daily && pg.daily.length ? pg.daily : (pg.ohlcv || []);
@@ -4019,8 +4031,17 @@
       return null;
     };
     if (L && L.bars && L.session) {
-      const b = L.bars('1m') || [];
       const ses = L.session();
+      /* ★ 2026-10-02（Andy：「個股分時需要有即時走勢」，DECISIONS #287）：今天有盤就改用 minuteSeries ——
+         逐分鐘挑來源（一直開著收的那幾分鐘用報價疊、其他用 Yahoo），並帶出 Yahoo 跟報價都沒涵蓋到的缺口，
+         讓 TickChart 畫虛線、標「此段等待資料」，不再一條直線從 Yahoo 最後一根拉到第一筆報價。*/
+      const ms = ses && ses.live && L.minuteSeries ? L.minuteSeries() : null;
+      if (ms && ms.bars.length >= 1) {
+        const pc = L.state && +L.state.prevClose;
+        return { pts: ms.bars.map(x => [x[0], +x[4], +x[5] || 0]), prev: pc > 0 ? pc : prevOf(ms.date), date: ms.date,
+                 live: true, src: 'live', minute: true, gaps: ms.gaps, yahoo: ms.yahoo, liveSeg: ms.live };
+      }
+      const b = L.bars('1m') || [];
       if (b.length >= 2 && ses && ses.date) {
         const pc = L.state && +L.state.prevClose;
         const prev = ses.live && pc > 0 ? pc : prevOf(ses.date);
@@ -4474,7 +4495,7 @@
       setLiveNote(d.src === 'm60'
         ? `最近交易日 ${d.date} 的分時：每小時一點（資料湖的 60 分 K，即時來源連不上時的備援）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`
         : d.live
-          ? '今天的分時：早盤每分鐘一點來自 Yahoo（延遲約 20 分鐘），最近一段是證交所即時報價每 5 秒更新。虛線＝昨收，線在虛線上面＝漲、下面＝跌。'
+          ? tickLiveNote(d)
           : `最近交易日 ${d.date}（非即時）的分時；今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`);
       const legend = $('#legendOv');
       const rows = tchart.pts;

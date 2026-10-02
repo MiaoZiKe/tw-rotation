@@ -56,6 +56,16 @@
      不再由後端預先產出 60 天的 15 分 K（那是部署最慢的一塊，見 DECISIONS #156）。
      一次請求換三個週期，比分開打三次便宜。*/
   const TFS = { '5s': 5, '1m': 60, '5m': 300, '15m': 900 };
+  /* ★ 2026-10-02 分時一路即時（Andy：「個股分時需要有即時走勢」，DECISIONS #287）。
+     兩筆報價相隔超過這個秒數，就當成「中間沒在收」（頁面關著、分頁在背景、代理斷線）——
+     那段的累計量差不知道該分給哪幾分鐘，不硬塞給後面那一根（會長出一根假的巨量），也不畫成實線。
+     65 秒：正常是 5 秒一筆，live.js 失敗退避最長到 40 秒還算連續；超過一分鐘就一定有整分鐘沒看到。*/
+  const GAP_S = 65;
+  /* Yahoo 早盤盤中多久重抓一次。Yahoo 延遲約 20 分鐘，只在打開頁面時抓一次的話，
+     「Yahoo 最後一根」到「打開頁面那一刻」之間那 20 分鐘永遠是空的；每 2 分鐘重抓，
+     開著頁面約 20 分鐘後缺口就會被 Yahoo 補滿。打的是 Worker 的 /y（Yahoo），不是 mis，
+     所以不增加證交所的請求。*/
+  const HIST_REFRESH_MS = 2 * 60 * 1000;
 
   const state = {
     code: null, market: null, symbol: null,
@@ -135,8 +145,10 @@
     return out.length ? { bars: out, res } : { err: 'EMPTY', res };
   }
 
+  let histAt = 0, histBusy = false;
   async function loadHistory() {
     state.histTried = true;
+    histAt = Date.now();
     const base = proxy();
     if (!base) { state.histErr = '還沒設定即時來源'; return; }
     try {
@@ -172,6 +184,24 @@
     return '抓取失敗';
   }
 
+  /* 盤中重抓 Yahoo（只抓 range=1d，今天那段）。失敗就留著舊的，不清空 —— 已經畫出來的早盤不該因為一次失敗消失。*/
+  async function refreshHist() {
+    if (histBusy || !state.histDone || !isIntraday()) return;
+    if (Date.now() - histAt < HIST_REFRESH_MS) return;
+    const base = proxy(); if (!base) return;
+    histBusy = true; histAt = Date.now();
+    const code = state.code;
+    try {
+      const got = await fetchYahoo(base, '1d');
+      const day = today();
+      if (state.code === code && got.bars && got.bars.some(b => b.d === day)) {
+        state.hist = state.hist.filter(b => b.d !== day).concat(got.bars.filter(b => b.d === day));
+        state.histRefreshes = (state.histRefreshes || 0) + 1;
+        emit();
+      }
+    } catch (e) { /* 下一輪再試 */ } finally { histBusy = false; }
+  }
+
   // ---------------------------------------------------------------- mis 即時
   function exch(code, market) {
     const mk = (market || '').toUpperCase();
@@ -204,6 +234,7 @@
     if (state.busy || !state.code) return;
     if (document.hidden) return;                    // 背景分頁不要一直打端點
     if (!cardOn()) return;                          // 個股卡的「即時」關著＝靜態
+    refreshHist();                                  // 不等它；Yahoo 回來自己 emit
     if (takeRaw()) return;                          // live.js 這一輪已經問過這一檔
     if (Date.now() < nextTry) return;               // 退避中
     const base = proxy();
@@ -275,18 +306,39 @@
       };
     }
     const last = state.ticks[state.ticks.length - 1];
+    /* q＝「這一筆是什麼時候收到的」（本機時鐘）。冷門股沒成交時撮合時間不動、ts 一直是同一個值，
+       只看 ts 會誤以為那幾分鐘「沒在收」而畫成等待資料；有 q 才知道其實一直開著、只是沒成交。*/
+    const q = Math.floor(Date.now() / 1000);
     // 同一個 5 秒格只留最後一筆（報價沒動的時候不要疊出一堆一樣的點）
     if (last && Math.floor(last.s / 5) === Math.floor(ts / 5)) {
-      last.s = ts; last.p = p; last.cv = cv;
+      last.s = ts; last.p = p; last.cv = cv; last.q = q;
     } else {
-      state.ticks.push({ s: ts, p, cv });
+      state.ticks.push({ s: ts, p, cv, q });
       if (state.ticks.length > MAX_TICKS) state.ticks.splice(0, state.ticks.length - MAX_TICKS);
     }
     save();
   }
 
+  /* 隔天清掉（2026-10-02，DECISIONS #287）：今天真的開盤了（有今天 09:00 以後的報價）才把「今天以前」的 tw.livek.* 全刪。
+     不在開盤前刪 —— 週末／開盤前要靠上一個交易日存的 5 秒序列畫「最近交易日」（2026-09-26 那條）。
+     一頁只刪一次。*/
+  let pruned = false;
+  function pruneOld(day) {
+    if (pruned) return;
+    if (!state.ticks.some(t => dateOf(t.s) === day && minOf(t.s) >= 9 * 60)) return;
+    pruned = true;
+    try {
+      const old = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i), m = /^tw\.livek\.(\d{4}-\d\d-\d\d)\./.exec(k || '');
+        if (m && m[1] < day) old.push(k);
+      }
+      old.forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* 私密視窗，忽略 */ }
+  }
   function save() {
     if (!state.code) return;
+    pruneOld(today());
     /* 只存「今天」的 tick。週末打開頁面時報價回的是上一個交易日收盤那一筆（撮合時間是那天），
        那一筆不屬於今天，存進今天的鍵只是垃圾；更不能存進那天的鍵 —— 會把那天盤中收的整串 5 秒 K 蓋掉。*/
     const day = today();
@@ -428,6 +480,85 @@
     const seam = firstTick == null ? null : Math.floor(firstTick / sec) * sec;
     return join(barsFromHist(sec, seam, ses.date), barsFromTicks(sec, seam));
   }
+  /** ★ 2026-10-02 分時用的「今天每分鐘一根」（DECISIONS #287）。只在今天有盤時回東西，否則 null。
+   *
+   *  為什麼不直接用 bars('1m')：bars() 的接縫是「這次收到的第一筆報價」，前後各取一邊 ——
+   *    · 早上 09:30 開過一下、10:26 再打開：localStorage 裡 09:30 那幾筆讓接縫落在 09:30，
+   *      09:31～10:26 Yahoo 明明有，卻被丟掉、畫成一條直線；
+   *    · Yahoo 最後一根（例 10:06）到第一筆報價（10:26）之間，join() 直接把兩點連起來，看起來像走勢，其實是空的。
+   *  這裡改成逐分鐘決定：
+   *    ① 那一分鐘的報價是「從上一分鐘就一直在收」（full）→ 用報價疊的（即時、量是累計量差分，比 Yahoo 準）；
+   *    ② 否則 Yahoo 有那一分鐘 → 用 Yahoo；
+   *    ③ 都沒有、但報價有半分鐘（剛打開頁面那一分鐘）→ 用報價。
+   *  兩邊都沒涵蓋到的分鐘＝缺口（gaps），交給 TickChart 畫虛線、標「此段等待資料」，不准畫成實線冒充走勢。
+   *  回 {bars:[[epoch+8h, o, h, l, c, 量(股)]], gaps:[[起分鐘, 迄分鐘]]（epoch+8h，含頭含尾）,
+   *      yahoo:[首, 末]|null, live:[首, 末]|null（即時疊出來的那段，epoch+8h）, ticks: 筆數}。*/
+  function minuteSeries() {
+    const ses = session();
+    if (!ses.live || !ses.date) return null;
+    const day = ses.date;
+    const day0 = Date.parse(day + 'T00:00:00Z') / 1000 - 8 * 3600;     // 台北那天 00:00 的真 epoch
+    const OPEN = 9 * 60, CLOSE = 13 * 60 + 30;
+    const mOf = (k) => k - day0 / 60;                                   // 分鐘鍵 → 當天第幾分鐘
+    // Yahoo
+    const yb = new Map();
+    for (const b of state.hist) if (b.d === day) yb.set(Math.floor(b.s / 60), b);
+    const yKeys = [...yb.keys()].sort((a, b) => a - b);
+    const yFirst = yKeys.length ? yKeys[0] : null, yLast = yKeys.length ? yKeys[yKeys.length - 1] : null;
+    // 報價 → 每分鐘一桶；同時記下「有在收」的時段（runs）
+    const tk = state.ticks.filter(t => dateOf(t.s) === day).sort((a, b) => a.s - b.s);
+    const tb = new Map(), runs = [];
+    let prev = null, run = null;
+    for (const t of tk) {
+      const pEnd = prev ? Math.max(prev.s, prev.q || 0) : null;
+      const cont = prev != null && t.s - pEnd <= GAP_S;
+      const dv = cont && t.cv >= prev.cv ? (t.cv - prev.cv) * 1000 : 0;
+      if (!cont || !run) { run = { a: t.s, b: Math.max(t.s, t.q || 0) }; runs.push(run); }
+      else run.b = Math.max(run.b, t.s, t.q || 0);
+      const k = Math.floor(t.s / 60);
+      let c = tb.get(k);
+      if (!c) {
+        const o = cont ? prev.p : t.p;
+        // full：這一分鐘開始之前就在收（上一筆連得上），或這一分鐘的頭 10 秒內就收到了
+        c = { o, h: Math.max(o, t.p), l: Math.min(o, t.p), c: t.p, v: dv, full: cont || t.s - k * 60 <= 10 };
+        tb.set(k, c);
+      } else {
+        c.h = Math.max(c.h, t.p); c.l = Math.min(c.l, t.p); c.c = t.p; c.v += dv;
+      }
+      prev = t;
+    }
+    // 逐分鐘挑來源
+    const keys = [...new Set(yKeys.concat([...tb.keys()]))].sort((a, b) => a - b);
+    const out = []; let liveA = null, liveB = null;
+    for (const k of keys) {
+      const m = mOf(k); if (m < OPEN || m > CLOSE) continue;
+      const t = tb.get(k), y = yb.get(k);
+      if (t && (t.full || !y)) {
+        out.push([k * 60 + 8 * 3600, t.o, t.h, t.l, t.c, t.v]);
+        if (liveA == null) liveA = k; liveB = k;
+      } else if (y) out.push([k * 60 + 8 * 3600, y.o, y.h, y.l, y.c, y.v]);
+    }
+    // 缺口：第一根到最後一根之間，Yahoo 跟報價都沒涵蓋到的分鐘
+    const covered = (k) => (yFirst != null && k >= Math.min(yFirst, day0 / 60 + OPEN) && k <= yLast)
+      || runs.some(r => k >= Math.floor(r.a / 60) && k <= Math.floor(r.b / 60));
+    const gaps = [];
+    if (out.length >= 2) {
+      const k0 = (out[0][0] - 8 * 3600) / 60, k1 = (out[out.length - 1][0] - 8 * 3600) / 60;
+      let g = null;
+      for (let k = k0 + 1; k < k1; k++) {
+        if (!covered(k)) { if (!g) { g = [k, k]; gaps.push(g); } else g[1] = k; }
+        else g = null;
+      }
+    }
+    const T = (k) => k * 60 + 8 * 3600;
+    return {
+      bars: out, gaps: gaps.map(g => [T(g[0]), T(g[1])]),
+      yahoo: yFirst != null ? [T(yFirst), T(yLast)] : null,
+      live: liveA != null ? [T(liveA), T(liveB)] : null,
+      ticks: tk.length, date: day,
+    };
+  }
+
   /** 這個週期實際畫的是哪一個週期（只有「非交易時段、那天沒收過 5 秒」會回 1m）。*/
   function drawnTf(tf) {
     const ses = session();
@@ -521,7 +652,7 @@
       emit();
     },
     detach() { stopTimer(); state.code = null; },
-    bars, sourceNote, isIntraday,
+    bars, sourceNote, isIntraday, minuteSeries,
     // 非交易時段（Andy 2026-09-26「為何這邊分 K 無法使用？」）：畫哪一天、實際畫哪個週期、按鈕上的點
     session, offDay, drawnTf, paintDots,
     /** 還在抓 Yahoo（四週期同看用它決定「資料到了要不要重建那一格」）。*/
