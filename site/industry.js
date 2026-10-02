@@ -3068,12 +3068,17 @@
       .forEach(g => (g.members || []).forEach(m => { priceOf[m.code] = m; }));
     /* 度數與環節層級的上下游，都只算「兩端都在這條鏈上」的邊 —— 跟關聯圖同一個口徑，
        不然同一家公司在圖上沒有線、在清單上卻掛著一個數字，兩邊會對不起來。*/
+    /* ★ 2026-10-03：範圍縮到「剖析圖對得上的幾格」時，度數（「?」＝沒有任何上下游關聯）與每格的上下游
+       仍照**整條鏈**算 —— 一家公司的客戶剛好不在這張圖上，不代表它沒有上下游；照範圍算會冒出一堆錯的「?」。
+       nEdge 是圖上真的畫得出來的邊（兩端都在範圍裡），給「怎麼看 ?」那行數字用。*/
+    const fullSegIds = new Set(chainSegments(sc, chainId).map(s => s.id));
+    const coSegAll = {}; sc.companies.forEach(c => { if (fullSegIds.has(c.segment)) coSegAll[c.id] = c.segment; });
     const deg = {}, upS = {}, dnS = {}; let nEdge = 0;
     (sc.edges || []).forEach(e => {
-      if (e.rel === 'competes' || !inChain.has(e.from) || !inChain.has(e.to)) return;
-      nEdge++;
+      if (e.rel === 'competes' || !coSegAll[e.from] || !coSegAll[e.to]) return;
+      if (inChain.has(e.from) && inChain.has(e.to)) nEdge++;
       deg[e.from] = (deg[e.from] || 0) + 1; deg[e.to] = (deg[e.to] || 0) + 1;
-      const a = coSeg[e.from], b = coSeg[e.to];
+      const a = coSegAll[e.from], b = coSegAll[e.to];
       if (a !== b) { (dnS[a] = dnS[a] || new Set()).add(b); (upS[b] = upS[b] || new Set()).add(a); }
     });
     const ROLE = { equipment: '設備', material: '材料' };
@@ -3320,7 +3325,8 @@
     /* 孤立節點要標「?」，所以連線度數得在畫卡片之前就算好。
        只算兩端都在這條鏈上的邊 —— 另一端不在圖上的邊本來就畫不出來，
        算進去會讓一個明明沒有線的節點不被標記。競爭關係（competes）不是上下游，不算。*/
-    const inChain = new Set(cos.map(c => c.id)), deg = {};
+    /* ★ 2026-10-03：度數照整條鏈算（同 drawSegList 那段）—— 範圍縮小時，客戶不在這張圖上的公司不能被標成「?」。*/
+    const inChain = new Set(sc.companies.filter(c => chainSegments(sc, chainId).some(s2 => s2.id === c.segment)).map(c => c.id)), deg = {};
     sc.edges.forEach(e => { if (e.rel === 'competes' || !inChain.has(e.from) || !inChain.has(e.to)) return;
       deg[e.from] = (deg[e.from] || 0) + 1; deg[e.to] = (deg[e.to] || 0) + 1; });
     /* ★ 2026-09-26（批次6-圖十 1500px 紅燈）：環節標題改成「量過放得下才整段印」。

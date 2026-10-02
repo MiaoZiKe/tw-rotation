@@ -2773,7 +2773,8 @@ def t_chainnav(pg, base):
     E5 以前只有卡片最底下那排連結，換一條鏈要先捲到底或退回產業地圖。
     E6 以前不管從哪條鏈點進 ABF 載板，看到的都只有當下這條鏈的內容，另一半整個看不到。
     兩個都驗「真的按下去、畫面真的因此換掉」，不是驗元素存在。"""
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    # ★ 2026-10-03（DECISIONS #304）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
+    pg.goto(f"{base}#industry/ai_server/overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
 
     # ---------------- E5
     sw = pg.evaluate("""() => { const s = document.getElementById('chainSwitch'); if (!s) return null;
@@ -2811,6 +2812,9 @@ def t_chainnav(pg, base):
     ok("E5 換鏈不會留下上一個 3D 畫布", after["canvas"] == 0, after)
 
     # ---------------- E6：ABF 載板同時屬於半導體與 AI 伺服器
+    # ★ 2026-10-03（DECISIONS #304）：切換列換鏈之後落在「第一張剖析圖」分頁，那裡的環節選單只留那張圖對得上的環節；
+    #   E6 要的是整條鏈的環節選單，所以先真的點二層分頁的「族群總覽」（整條鏈）再選 ABF 載板。
+    click(pg, '#dgPick .segchip[data-dgtab="overview"]', 1600)
     if not ok("E6 半導體鏈看得到 ABF 載板環節", count(pg, "#segChips .segchip[data-seg='abf_pcb']") == 1):
         return
     _cg_chip(pg, "#segChips .segchip[data-seg='abf_pcb']", 1200)
@@ -2847,7 +2851,8 @@ def t_chainnav(pg, base):
         # 先繞去產業地圖再回來：goto 到「一模一樣的 hash」不會重新載入（DECISIONS #154），
         # 上一輪選好的環節會留著，這一下點下去反而是把它**取消**選取，圖就不見了
         pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(700)
-        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(1600)
+        # ★ 2026-10-03（DECISIONS #304）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
+        pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
         pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
         if not pg.evaluate("() => { const c = document.querySelector(\"#segChips .segchip[data-seg='abf_pcb']\");"
                            " return !!c && c.classList.contains('sel'); }"):
@@ -2878,7 +2883,8 @@ def t_electronics(pg, base):
          以前那個索引是「依 layer 排序後的位置」，在 layer 0 插一格會讓後面全部 +1。
          這一條直接讀 A.L.sidx 驗數值，因為顏色變了畫面上不會報錯、只會「怪怪的」。
     """
-    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    # ★ 2026-10-03（DECISIONS #304）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
+    pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
 
     n_chip = count(pg, "#segChips .segchip")
     if not ok("一般電子鏈有環節色標（以前是 0 個）", n_chip >= 8, n_chip):
@@ -2995,7 +3001,8 @@ def t_electronics(pg, base):
         body = pg.evaluate("() => ['themeMapCard', 'themeDetail'].map(i => (document.getElementById(i) || {}).innerText || '').join('\\n')")
         ok(f"新題材 {tid} 的頁面打得開而且不是空的", len(body.strip()) > 40, body[:80])
         ok(f"新題材 {tid} 列得出成分股 {want}", want in body, body[:160])
-    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    # ★ 2026-10-03（DECISIONS #304）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
+    pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
 
     # --- 窄畫面（Andy 2026-09-18：開發過程就要驗 800px，不要只在 1440px 看）
     pg.set_viewport_size({"width": 800, "height": 1000})
@@ -8665,7 +8672,8 @@ def t_relpanel(pg, base):
     pg.evaluate("() => { try { localStorage.setItem('tw.segExpand', 'all');"
                 " localStorage.setItem('tw.relOpen', '1'); } catch (e) {} }")
     # ⚠ 鏈要挑對：台積電在 semiconductor 鏈的「晶圓代工」那一格。
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    # ★ 2026-10-03（DECISIONS #304）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
+    pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
     # 挑一家「一定有上下游」的：台積電 2330
     if not _cg_open_stock(pg, "2330"):
         fails.append("關聯圖上點不開台積電 2330 的資訊欄，後面整段驗不了")
@@ -8740,7 +8748,8 @@ def t_relpanel(pg, base):
     # 金像電 2368（PCB 硬板製造）：它的下游是一整排「產業推論」，所以用它驗推論的標示。
     # ⚠ 它的族群在 **ai_server** 鏈上（semiconductor 鏈沒有那一顆節點），所以要先換鏈。
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(500)
-    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    # ★ 2026-10-03（DECISIONS #304）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
+    pg.goto(f"{base}#industry/ai_server/overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
     _cg_open_stock(pg, "2368")
     gs = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
         const g = [...b.querySelectorAll('.relbox li.guess')];
@@ -8976,7 +8985,12 @@ SC_GEOM = """() => {
   const byId = {}; cards.forEach(c => (byId[c.id] = c));
   const paths = [...svg.querySelectorAll('path.edge')];
   const badEnd = [], cross = [];
-  const onEdge = (pt, c) => Math.min(Math.abs(pt.x - c.x), Math.abs(pt.x - (c.x + c.w))) <= 2
+  /* ★ 2026-10-03（DECISIONS #304）：每個環節加了外框，公司卡在框裡內縮 6px，連線端點刻意停在**框的左右緣**（不穿進框裡）。
+     所以「端點在邊緣」的定義改成：x 在卡片左右緣，或在這張卡所屬環節外框（rect.segbox）的左右緣；y 照舊要在卡片高度內。*/
+  const boxOf = {}; [...svg.querySelectorAll('rect.segbox')].forEach(r => { boxOf[r.dataset.seg] = { x: +r.getAttribute('x') - 0.5, w: +r.getAttribute('width') + 1 }; });
+  cards.forEach(c => { const g = svg.querySelector('g.co[data-id="' + c.id + '"]'); c.f = g && boxOf[g.dataset.segment]; });
+  const onEdge = (pt, c) => (Math.min(Math.abs(pt.x - c.x), Math.abs(pt.x - (c.x + c.w))) <= 2
+                             || (c.f && Math.min(Math.abs(pt.x - c.f.x), Math.abs(pt.x - (c.f.x + c.f.w))) <= 2))
                             && pt.y >= c.y - 2 && pt.y <= c.y + c.h + 2;
   paths.forEach(p => {
     const a = byId[p.dataset.from], b = byId[p.dataset.to]; if (!a || !b) return;
@@ -9095,7 +9109,8 @@ def t_batch6_n3(pg, base):
     """
     # ★ 2026-09-26 改前：入口是個股頁（3017／2330）下方那張 → 改後：個股頁的產業鏈位置卡拿掉了（Andy），
     #   同一支 drawChainMap 在產業鏈頁的「分層」關聯圖（#relSec 的 #chainMap，tw.relView 預設 layer）照樣畫，門檻一條都沒放寬。
-    ENTRY = {"ai_server": "#industry/ai_server", "semiconductor": "#industry/semiconductor"}
+    # ★ 2026-10-03（DECISIONS #304）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
+    ENTRY = {"ai_server": "#industry/ai_server/overview", "semiconductor": "#industry/semiconductor/overview"}
     # 2026-09-25 關聯圖環節預設收合（chainmap-fold）→ 這段量的是「展開的公司卡」幾何，先把兩條鏈設成展開再量
     pg.goto(base + "#overview"); pg.evaluate("""() => { try { localStorage.setItem('tw.chainFold',
         JSON.stringify({ ai_server: { def: false, seg: {} }, semiconductor: { def: false, seg: {} } })); } catch (e) {} }""")
@@ -9130,7 +9145,8 @@ def t_batch6_n3(pg, base):
                g["overflow"] <= 1 or g["scrollable"], {"overflow": g["overflow"], "scrollable": g["scrollable"]})
         # ---- 真的把滑鼠移到一張卡片上，相關的線要亮起來、其他的要變暗
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(400)
-        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)   # 2026-09-26 改前：#stock/3017
+        # 2026-10-03（DECISIONS #304）：改前 #industry/ai_server（第一張剖析圖分頁，關聯圖在圖下面、捲近了才畫）→ 改後族群總覽（整條鏈、當場畫）
+        pg.goto(f"{base}#industry/ai_server/overview", wait_until="networkidle"); pg.wait_for_timeout(2600)   # 2026-09-26 改前：#stock/3017
         pg.eval_on_selector("#chainMap g.co", "g => g.dispatchEvent(new MouseEvent('mouseenter'))")
         pg.wait_for_timeout(400)
         hl = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap path.edge.hi').length,
@@ -30955,6 +30971,9 @@ def t_themes_2d(pg, base):
                      stroke: slot ? getComputedStyle(slot).stroke : '' }; }"""
         n_stn = count(pg, ".dg3 g.stn")
         idx = 2 if n_stn > 3 else 0          # 規格點名的是「第三格」
+        # ★ 2026-10-03：游標先移開。題材圖收成原尺寸（DECISIONS #304）之後站點往上移，上一段留下的游標位置
+        #   剛好落在第三格上 → 「點之前」量到的就已經是滑過（:hover）的顏色，跟選取色一樣，誤判成「點了沒變」。
+        pg.mouse.move(2, 2); pg.wait_for_timeout(200)
         b0 = pg.evaluate(SNAP, idx)
         if not ok(f"[{tid}] 圖上量得到第 {idx + 1} 格（共 {n_stn} 格）", bool(b0), b0):
             continue
@@ -43231,10 +43250,13 @@ def t_dg_tidy_1003(b, base):
                 continue
             ok(f"★ {tg} 畫布原尺寸、不再被放大：螢幕寬 {z['w']:.0f} ≤ 畫布 {z['cw']}（容器 {z['inner']:.0f}）",
                z["w"] <= z["cw"] + 1 and z["inner"] > z["cw"] + 100, z)
-            ok(f"★ {tg} 圖高 {z['h']:.0f} ≤ 改前畫法（撐滿容器）{z['hUp']:.0f} 的 80%", z["h"] <= z["hUp"] * 0.8, z)
+            # 改前（版面 v2，1440 欄寬 1140、圖被放大 1.16 倍）實測卡片高度：heavy_electric 573／cowos 602／ai_server 637（DECISIONS #304）
+            before = {"heavy_electric": 573, "cowos": 602, "ai_server": 637}[tid]
+            ok(f"★ {tg} 圖是 1:1（螢幕高 {z['h']:.0f}＝畫布高 {z['vbH']:.0f}），卡片 {z['cardH']:.0f} ≤ 改前 {before} 的 90%",
+               abs(z["h"] - z["vbH"]) <= 1 and z["cardH"] <= before * 0.9, z)
             if tid == "heavy_electric":
-                # 改前實測 672px（DECISIONS #304），改後 511
-                ok(f"★ {tg} 整張卡變矮：{z['cardH']:.0f}px < 600（改前 672）", z["cardH"] < 600, z["cardH"])
+                # 改前實測：舊版面 672px、版面 v2 573px（DECISIONS #304）
+                ok(f"★ {tg} 整張卡變矮：{z['cardH']:.0f}px < 520（改前 573／舊版面 672）", z["cardH"] < 520, z["cardH"])
             ok(f"★ {tg} 螢幕字級：站名 {z['lbl']}≈15、說明 {z['sub']}≈13、膠囊 {z['chip']}≈12、流程格 {z['step']}≈14",
                14.5 <= z["lbl"] <= 15.5 and 12.5 <= z["sub"] <= 13.5 and 11.5 <= z["chip"] <= 12.5 and 13.5 <= z["step"] <= 14.5, z)
             ok(f"{tg} 字都 ≥ 11px（螢幕上）", z["minFs"] >= 10.9, z["minFs"])
@@ -43248,14 +43270,14 @@ def t_dg_tidy_1003(b, base):
             snap = ("() => { const g = document.querySelectorAll('#themeDiagram g.stn')[1]; const sl = g && g.querySelector('rect.slot');"
                     " return g ? { cls: g.getAttribute('class'), fill: getComputedStyle(sl).fill, stroke: getComputedStyle(sl).stroke } : null; }")
             b0 = pg.evaluate(snap)
-            box = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn')[1]; g.scrollIntoView({ block: 'center' });"
+            box = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn')[1]; g.scrollIntoView({ block: 'center', behavior: 'instant' });"
                               " const r = g.querySelector('rect.slot').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + 20 }; }")
             pg.mouse.click(box["x"], box["y"]); pg.wait_for_timeout(600)
             b1 = pg.evaluate(snap)
             ok(f"★ {T}題材 滑鼠真的點第 2 格 → 那一格真的選起來（class 與框色都變）",
                bool(b0) and bool(b1) and b0["cls"] != b1["cls"] and (b0["fill"] != b1["fill"] or b0["stroke"] != b1["stroke"]),
                (b0, b1, pg.evaluate("() => location.hash")))
-            code = pg.evaluate("() => { const c = document.querySelector('#themeDiagram .scode[data-code]'); if (!c) return null; c.scrollIntoView({ block: 'center' }); return c.dataset.code; }")
+            code = pg.evaluate("() => { const c = document.querySelector('#themeDiagram .scode[data-code]'); if (!c) return null; c.scrollIntoView({ block: 'center', behavior: 'instant' }); return c.dataset.code; }")
             if ok(f"{T}題材 圖上有代號膠囊", bool(code), code):
                 pg.wait_for_timeout(300)
                 r = pg.evaluate("(c) => { const n = document.querySelector('#themeDiagram .scode[data-code=\"' + c + '\"] rect').getBoundingClientRect();"
@@ -43282,9 +43304,10 @@ def t_dg_tidy_1003(b, base):
         def open_map(chain, W):
             pg.set_viewport_size({"width": W, "height": 1000})
             pg.goto("about:blank")
-            pg.goto(base + f"#industry/{chain}", wait_until="load")
+            # 族群總覽分頁＝整條鏈的關聯圖（剖析圖分頁只留對得上的環節，那一段在「關聯圖對應與3D大小1003」驗）
+            pg.goto(base + f"#industry/{chain}/overview", wait_until="load")
             wait_until(pg, "() => !!document.querySelector('#chainMap')", 12000)
-            pg.evaluate("() => { const m = document.querySelector('#chainMap'); if (m) m.scrollIntoView({ block: 'start' }); }")
+            pg.evaluate("() => { const m = document.querySelector('#chainMap'); if (m) m.scrollIntoView({ block: 'start', behavior: 'instant' }); }")
             return wait_until(pg, "() => !!document.querySelector('#chainMap svg rect.segbox')", 10000)
 
         for theme in ("dark", "light"):
@@ -43319,11 +43342,14 @@ def t_dg_tidy_1003(b, base):
             pg.evaluate("() => { try { localStorage.removeItem('tw.chainFold'); } catch (e) {} }")
             if open_map("semiconductor", 1440):
                 pg.wait_for_timeout(400)
-                seg = pg.evaluate("() => { const t = document.querySelectorAll('#chainMap g.segtitle')[2]; if (!t) return null; t.scrollIntoView({ block: 'center' }); return t.dataset.seg; }")
+                seg = pg.evaluate("() => { const t = document.querySelectorAll('#chainMap g.segtitle')[2]; if (!t) return null; t.scrollIntoView({ block: 'center', behavior: 'instant' }); return t.dataset.seg; }")
                 q = "(s) => { const b = document.querySelector('#chainMap rect.segbox[data-seg=\"' + s + '\"]'); return b ? { cls: b.getAttribute('class'), st: getComputedStyle(b).stroke } : null; }"
                 s0 = pg.evaluate(q, seg)
                 pg.wait_for_timeout(300)
-                r = pg.evaluate("(s) => { const n = document.querySelector('#chainMap g.segtitle[data-seg=\"' + s + '\"] text').getBoundingClientRect(); return { x: n.left + 10, y: n.top + n.height / 2 }; }", seg)
+                r = pg.evaluate("(s) => { const n = document.querySelector('#chainMap g.segtitle[data-seg=\"' + s + '\"] text'); if (!n) return null;"
+                                " const b = n.getBoundingClientRect(); return { x: b.left + 10, y: b.top + b.height / 2 }; }", seg)
+                if not ok(f"{T}關聯圖·{lab} 量得到環節標題「{seg}」", bool(r), r):
+                    continue
                 pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(700)
                 s1 = pg.evaluate(q, seg)
                 ok(f"★ {T}關聯圖·{lab} 滑鼠真的點環節標題「{seg}」→ 那個框真的被選起來（.sel、框線色改變）",
@@ -43459,10 +43485,9 @@ def t_rel_scope_3d_1003(b, base):
             pg.mouse.move(cv["x"], cv["y"]); pg.mouse.down(); pg.mouse.move(cv["x"] + 200, cv["y"] + 30, steps=12); pg.mouse.up()
             pg.mouse.wheel(0, -400); pg.wait_for_timeout(700)
             moved = pg.evaluate("() => window.Rack3D.current.fit().now")
-            rb = pg.locator("#dgReset")
-            if rb.is_visible():
-                rb.click()
-            else:            # 視角鈕被捲出畫面／收起時，走畫面上寫的另一條路：在 3D 畫面上點兩下
+            try:
+                pg.locator("#dgReset").click(timeout=4000)
+            except Exception:  # noqa: BLE001  視角鈕點不到時，走畫面上寫的另一條路：在 3D 畫面上點兩下
                 pg.mouse.dblclick(cv["x"], cv["y"] - 140)
             pg.wait_for_timeout(1200)
             z2 = pg.evaluate(D3_FIT)
