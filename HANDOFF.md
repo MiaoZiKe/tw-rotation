@@ -11,7 +11,10 @@
 - 改的函式（app.js）：`ovsDate`（改成鈕）、`ovsCard`（存盤後那一份）、`renderOvSummary`（組法抽成 `ovsUdParts`／`ovsRotParts`／`ovsFlowVariant`，結尾補登記補位與補回即時）、
   新增 `ovlUni`／`ovlFill`／`ovlMerge`／`ovlUD`／`ovlRot`／`ovlFlow`／`ovlTheme`／`ovsMorph`／`ovsApply`／`ovlEod`／`ovlUpdate`／`ovlStamp`／`ovlToggle` 與三個事件監聽；`sklFetch` 拆出 `sklCodes`／`sklCompute`。
   live.js：`codesOnScreen(forFetch)`、`tick`、`want`、`TG_NAME`。
-- **這批驗了**：（跑完補）
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 總覽摘要卡即時,總覽,新-大盤三張圖,今日事件,資金流向,新-輪動時鐘,即時推送,盤中即時,總覽摘要卡列,即時5秒0929`
+  → 前九段全部 0 個問題（新段落「總覽摘要卡即時」155 秒；第一次跑抓到 390 熱門題材「+2.2%即時」被切掉，拿掉數字後的「即時」小字後綠）；
+  `即時5秒0929`（額外加跑，因為動了 live.js）1 條紅：「漲跌家數即時：狀態列寫每 5 秒更新」—— 市場明細即時第一輪 15 秒內沒輪完（5 個請求、節流閥每 5 秒 3 個）。BASELINE_NOTE
+  沒跑 pytest（只動 site/、scripts/_uitest.py、文件）。
 - 已知限制：見 DECISIONS #296（每檔報價最舊約一圈 25～40 秒；熱度盤中做不到；收盤快照是估算樣本不是全市場）。
 
 ## 會員功能開放制度：#admin/perm 依 email 開關功能＋方案範本＋鎖頭（2026-10-02，台北，UI 專家，分支 `claude/member-perm`；Worker 已上 main）

@@ -3620,7 +3620,9 @@
       html: { barCls: 'track',
         bar: `<i class="heat" style="width:${Math.max(2, Math.round(t0.up / t0.n * 100))}%" title="${fmt.esc(t0.name)}：成分股 ${t0.up}／${t0.n} 檔上漲"></i>`,
         nums: top.map(t => `<div class="osn osn-t" data-theme="${fmt.esc(t.id)}" title="在熱門題材熱力圖打開「${fmt.esc(t.name)}」"><small>${fmt.esc(t.name)}</small>`
-          + `<span class="osn-v"><b class="${fmt.cls(t.chg)}">${fmt.pct(t.chg, 1)}</b><em>即時</em></span></div>`).join(''),
+          /* 不像盤後那樣在數字後面掛小字（「熱度」）：「+2.2%」比「80」寬，390 手機一欄只有約 74px，掛「即時」會被切掉
+             （_uitest「總覽摘要卡即時」390 量到過）。是即時、口徑是什麼，右上角與底線都寫了。*/
+          + `<span class="osn-v"><b class="${fmt.cls(t.chg)}">${fmt.pct(t.chg, 1)}</b></span></div>`).join(''),
         foot: `<span class="muted">即時估算（${hitAll.size} 檔）・</span>依成分股即時漲跌排<span class="muted">（成交值加權）</span>`,
         aria: `熱門題材（盤中依成分股即時漲跌排，成交值加權）：${top.map(t => t.name + ' ' + fmt.pct(t.chg, 1)).join('、')}。點一下捲到熱門題材`,
         ds: { themeTop: t0.id } },
