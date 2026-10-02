@@ -963,19 +963,25 @@
      （桌機那一組分頁，含技術面訊號、本益比河流等上面各頁沒有的內容 —— 收起來可以，刪掉不行）。
      has(pg)：這一檔沒有那份資料就**不顯示那一頁**（不放空殼）。相關 ETF、權證、董監持股、當沖、借券
      要等 finance-quant 找到合規來源（docs/stock_page_audit_0927.md），欄位到了才加。*/
+  /* ★ 2026-10-02（Andy：「基本資料分頁移到總覽旁邊…手機版個股分頁的順序也一起改」，DECISIONS #294）：
+     桌機新順序＝總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞。
+     手機沒有「總覽」（第一頁是 K 線），所以照同一個相對順序排：K線、基本資料、指標、營收、獲利（＋手機才有的「財務」緊跟在後）、
+     除權息、法人、資券、大戶／散戶；「AI 分析」照 09-27 的決定留在新聞前面，「完整版」最後。
+     改前：K線、指標、法人、資券、大戶／散戶、營收、獲利、財務、基本資料、除權息、AI 分析、新聞、完整版。
+     會員權限（features.js）是用 data-t 對 #mbTabs 的鈕，不看位置。*/
   const SK_TABS = [
     { t: 'k', n: 'K線' },
+    { t: 'basic', n: '基本資料' },
     { t: 'tag', n: '指標' },
+    { t: 'rev', n: '營收', has: (pg) => ((pg.revenue && pg.revenue.monthly) || []).length > 0 },
+    { t: 'profit', n: '獲利', has: (pg) => ((pg.profit && pg.profit.quarters) || []).some(r => r[5] != null) },
+    { t: 'fin', n: '財務', has: (pg) => (pg.pe_history || []).some(r => r.pe != null) || ((pg.profit && pg.profit.quarters) || []).length > 0 },
+    { t: 'div', n: '除權息', has: (pg) => { const d = pg.dividends || {}; return (d.by_year || []).some(y => y.n > 0 || y.cash > 0 || y.stock > 0) || (d.upcoming || []).length > 0 || (d.by_period || []).length > 0; } },
     /* 2026-09-28（Andy）：「籌碼」（集保）與「大戶」（主力替代）兩頁併成「大戶／散戶」一頁（三條持股線）；
        主力替代與股東人數拿掉。順序跟桌機一樣：法人、資券、大戶／散戶。*/
     { t: 'inst', n: '法人', has: (pg) => skInstRows(pg).length > 0 },
     { t: 'margin', n: '資券', has: (pg) => (pg.margin || []).some(r => r[1] != null) },
     { t: 'big', n: '大戶／散戶', has: (pg) => (pg.holders || []).some(r => r[1] != null) },
-    { t: 'rev', n: '營收', has: (pg) => ((pg.revenue && pg.revenue.monthly) || []).length > 0 },
-    { t: 'profit', n: '獲利', has: (pg) => ((pg.profit && pg.profit.quarters) || []).some(r => r[5] != null) },
-    { t: 'fin', n: '財務', has: (pg) => (pg.pe_history || []).some(r => r.pe != null) || ((pg.profit && pg.profit.quarters) || []).length > 0 },
-    { t: 'basic', n: '基本資料' },
-    { t: 'div', n: '除權息', has: (pg) => { const d = pg.dividends || {}; return (d.by_year || []).some(y => y.n > 0 || y.cash > 0 || y.stock > 0) || (d.upcoming || []).length > 0 || (d.by_period || []).length > 0; } },
     { t: 'ai', n: 'AI 分析', has: () => !!window.StockAI && !!document.getElementById('aiCard') },
     { t: 'news', n: '新聞', has: (pg) => (pg.news || []).length > 0 || (pg.material_news || []).length > 0 },
     { t: 'full', n: '完整版' },
@@ -1151,7 +1157,7 @@
     if (want) { const pb = $$('#v-industry > .mpager button').find(x => x.textContent.trim() === want); if (pb && !pb.classList.contains('on')) pb.click(); }
     if (t === 'k') { body.innerHTML = ''; return; }
     if (t === 'full') {
-      body.innerHTML = '<div class="mbfoot" style="margin:0 0 8px">完整版＝桌機的個股分頁（總覽、營收、獲利、除權息、籌碼、基本資料、公告／新聞），含技術面訊號、本益比河流、歷年月報酬等上面各頁沒有的內容。</div>';
+      body.innerHTML = '<div class="mbfoot" style="margin:0 0 8px">完整版＝桌機的個股分頁（總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞），含籌碼小圖、技術面訊號、本益比河流、歷年月報酬等上面各頁沒有的內容。</div>';
       return;
     }
     const fn = { ai: skAi, tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, fin: skFin, profit: skProfit, basic: skBasic, div: skDiv, news: skNews }[t];
@@ -1451,6 +1457,12 @@
     const nm = SEG.find(x => x[0] === seg)[1];
     const last = rows[rows.length - 1];
     const sum = (k, n) => rows.slice(-n).reduce((a, r) => a + (r[k] || 0), 0);
+    /* ★ 2026-10-02（#294 對帳時順手抓到）：當沖／借券賣出跟融資券是兩個來源，常晚幾天才到 ——
+       改前一律讀最後一列（融資券最新那天），當沖那天還沒資料就顯示「09/30 當沖 — 張」。
+       改成各自讀「最後一個有值的交易日」並寫出那一天（跟總覽籌碼快照、桌機資券分頁同一個規則）；5 日也只數有值的天。*/
+    const lastOf = (k) => rows.slice().reverse().find(r => r[k] != null) || last;
+    const lastDt = lastOf('dt'), lastSl = lastOf('sl');
+    const dt5 = rows.filter(r => r.dt != null).slice(-5), sl5 = rows.filter(r => r.sl != null).slice(-5);
     const ratio = last.mb ? last.sb / last.mb * 100 : null;
     // 2026-09-28：讀者語言（不寫資料集名稱與帳號等級），跟桌機 tabMargin 同一句
     const WHY = { dt: '這一檔的當沖資料準備中，之後會自動出現。', sl: '這一檔的借券賣出資料準備中，之後會自動出現。' };
@@ -1470,8 +1482,8 @@
     }
     const k = seg === 'm' ? [[`${md(last.d)} 融資增減`, sInt(last.mc), uc(last.mc)], ['融資餘額', int(last.mb) + ' 張'], ['5 日', sInt(sum('mc', 5)), uc(sum('mc', 5))], ['券資比', ratio != null ? ratio.toFixed(1) + '%' : '—']]
       : seg === 's' ? [[`${md(last.d)} 融券增減`, sInt(last.sc), uc(last.sc)], ['融券餘額', int(last.sb) + ' 張'], ['5 日', sInt(sum('sc', 5)), uc(sum('sc', 5))], ['券資比', ratio != null ? ratio.toFixed(1) + '%' : '—']]
-        : seg === 'dt' ? [[`${md(last.d)} 當沖`, int(last.dt) + ' 張'], ['當沖率', last.dr != null ? (+last.dr).toFixed(1) + '%' : '—'], ['5 日平均', int(sum('dt', 5) / 5) + ' 張']]
-          : [[`${md(last.d)} 借券賣出`, int(last.sl) + ' 張'], ['借券賣出餘額', last.slb != null ? int(last.slb) + ' 張' : '—'], ['5 日合計', int(sum('sl', 5)) + ' 張']];
+        : seg === 'dt' ? [[`${md(lastDt.d)} 當沖`, int(lastDt.dt) + ' 張'], ['當沖率', lastDt.dr != null ? (+lastDt.dr).toFixed(1) + '%' : '—'], ['5 日平均', dt5.length ? int(dt5.reduce((a, r) => a + r.dt, 0) / dt5.length) + ' 張' : '—']]
+          : [[`${md(lastSl.d)} 借券賣出`, int(lastSl.sl) + ' 張'], ['借券賣出餘額', lastSl.slb != null ? int(lastSl.slb) + ' 張' : '—'], ['5 日合計', int(sl5.reduce((a, r) => a + r.sl, 0)) + ' 張']];
     const line = seg === 'dt' && rows.some(r => r.dr != null) ? [{ name: '當沖率', data: rows.map(r => r.dr), color: CH.amber }]
       : seg === 'sl' && rows.some(r => r.slb != null) ? [{ name: '借券賣出餘額', data: rows.map(r => r.slb), color: CH.amber }] : [];
     const lg = line.length ? legend([[seg === 'dt' ? '當沖張數（左軸）' : '借券賣出（張，左軸）', CH.violet], [seg === 'dt' ? '當沖率（%，右軸）' : '借券賣出餘額（張，右軸）', CH.amber, 1]]) : '';

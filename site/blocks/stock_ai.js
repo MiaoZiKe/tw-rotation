@@ -555,5 +555,210 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   // app.js miaStock 搬完節點後叫一次，讓兩欄／單欄立刻跟上（不必等 ResizeObserver）
   function refit() { const c = document.getElementById('skChartCard'); if (c && c._aiFit) c._aiFit(); }
 
-  window.StockAI = { id: 'stock.mtf', html, mount, refit, _key: KEY, _tabKey: TAB_KEY, _splitKey: SPLIT_KEY };
+  /* ==========================================================================
+     ★ 2026-10-02（Andy 五張截圖，DECISIONS #294）個股「總覽」分頁裡的 AI 分析：
+       · brief()      —— 最上面一張「AI 分析重點」：結論一個字（觀望／可留意／偏空）＋一行帶數字的原因
+                         （「回檔型態 4/6、突破型態 4/5；停損距離 21.3% 超過 8%」）＋四顆小標籤（技術面／技術面訊號／基本面／消息面）。
+                         點標籤＝捲到下面那一張細節卡、閃一下（原地，不跳頁）。
+       · facetCards() —— 三張細節小卡（技術面、基本面、消息面）。第二張「技術面訊號」是積木 stock.signal 的出口，
+                         由 industry.js 夾在中間，這支不重畫九顆燈（兩處同一份 lights()）。
+       · facetHead()  —— 細節卡上面那一行小標題（「AI 分析・各面向細節」＋非投資建議）。
+       · bindOverview(root) —— 掛標籤捲動、技術面卡「看細節」原地展開、重大訊息點了切「公告／新聞」分頁。
+     為什麼技術面卡要放小圖：Andy「能用小圖表示的就用小圖」—— 回檔／突破兩套型態的成立條數畫成點（●●●●○○），
+     停損距離畫成一條有「8% 上限」刻度的進度條，超過上限一眼就看得到；長句子（原因、逐條條件、若…則…）收進「看細節」。
+     ⚠ K 線卡右上角那一份（#skAi，mount）這裡一個字都沒改 —— 頂部版面是另一支分支（claude/stock-head-layout）在改。
+       兩份共用同一份 payload 的 analysis 與同一支 sigCount／stanceCls／toneCls，數字不會分家。
+     ⚠ id 一律 ov 開頭（ovF-tech、how-ovai…），不跟 #skAi 裡的 aiTfs／how-ai 撞號（兩份同時在頁面上）。
+     ========================================================================== */
+  function ovCss() {
+    if (document.getElementById('stockAiOvCss')) return;
+    const st = document.createElement('style');
+    st.id = 'stockAiOvCss';
+    st.textContent = `
+#ovAiBrief{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--gap-card,16px)}
+#ovAiBrief h3{margin:0}
+#ovAiBrief h3 small[data-warn]{font-size:12px;color:var(--amber);font-weight:500}
+#ovAiBrief .ovline{display:flex;align-items:baseline;gap:10px;min-width:0;font-size:15px;color:var(--ink);line-height:1.5}
+#ovAiBrief .ovline .grade{flex:none;white-space:nowrap}
+#ovAiBrief .ovline .ovbrief{min-width:0}
+#ovAiBrief .ovtags{display:flex;flex-wrap:wrap;gap:8px}
+#ovAiBrief .ovtag{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:3px 10px 3px 12px;border-radius:999px;border:1px solid var(--line-2);
+  background:var(--panel-3);color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer}
+#ovAiBrief .ovtag:hover{border-color:var(--cyan);color:var(--ink)}
+#ovAiBrief .ovtag:focus-visible{outline:2px solid var(--focus,var(--cyan));outline-offset:2px}
+.ovsech{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:var(--gap-card,16px) 0 8px;font-size:14px;font-weight:700;color:var(--ink)}
+.ovsech small{font-size:12px;font-weight:500;color:var(--amber)}
+#ovFacets>.card{min-width:0;scroll-margin-top:80px}
+#ovFacets>.card h3{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#ovFacets>.card.flash{animation:ovflash 1.4s ease-out 1}
+@keyframes ovflash{0%{box-shadow:0 0 0 2px var(--cyan)}100%{box-shadow:0 0 0 2px transparent}}
+@media (prefers-reduced-motion:reduce){#ovFacets>.card.flash{animation:none;box-shadow:0 0 0 2px var(--cyan)}}
+.ovfacet h4{margin:0 0 6px;font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5}
+.ovfacet ul{margin:4px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.55}
+.ovfacet li{margin:3px 0}
+.ovfacet .ovsub{margin-top:10px;font-size:12.5px;color:var(--ink-3);font-weight:600}
+/* 技術面：週期列（週期名｜多空小標｜敘述）*/
+.ovtfs{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:5px 8px;align-items:baseline;font-size:13px}
+.ovtfs .tfn{color:var(--ink-3);white-space:nowrap}
+.ovtfs .aitag{justify-self:start}
+.ovtfs .tfp{color:var(--ink-2);line-height:1.5;min-width:0}
+/* 型態條件：成立幾條畫成點、停損距離畫成有上限刻度的進度條 */
+.ovck{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin-top:6px;font-size:13px}
+.ovck .ckn{color:var(--ink-2);white-space:nowrap}
+.ovck .dots{display:flex;gap:4px;flex-wrap:wrap}
+.ovck .dots i{width:9px;height:9px;border-radius:50%;background:color-mix(in srgb,var(--ink-3) 30%,transparent)}
+.ovck .dots i.on{background:var(--cyan)}
+.ovck b{font-family:var(--mono);font-weight:600;color:var(--ink);white-space:nowrap}
+.ovck b.warn{color:var(--amber)}
+.ovck .meter{height:8px}
+.ovlv{margin-top:8px;font-size:12.5px;color:var(--ink-2);line-height:1.55}
+.ovlv b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.ovmore{margin-top:8px;background:none;border:0;padding:4px 0;color:var(--cyan);font:inherit;font-size:13px;cursor:pointer;text-align:left}
+.ovmore:hover{text-decoration:underline}
+.ovdet .ck{display:flex;gap:6px;margin:3px 0;font-size:12.5px;color:var(--ink-2)} .ovdet .ck .m{flex:none;width:14px;font-weight:700}
+.ovdet .ck.ok .m{color:var(--rise)} .ovdet .ck.no .m{color:var(--ink-3)}
+.ovnews a{color:var(--cyan)}
+.ovnews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
+.ovasof{margin-top:8px;font-size:12px;color:var(--ink-3)}
+@media (max-width:640px){#ovAiBrief .ovline{font-size:14.5px}}`;
+    document.head.appendChild(st);
+  }
+
+  /* 一行重點：有兩套型態條件就一律用「回檔 a/6、突破 b/5；停損 x% 超過／在 8% 內」（Andy 給的格式），
+     沒有才退回管線的 headline.brief（例如資料不足時的一句話）*/
+  function briefText(pg) {
+    const an = pg && pg.analysis;
+    const ck = an && an.facets && an.facets.tech && an.facets.tech.checks;
+    if (ck && ck.n_a) {
+      const ra = ck.risk && ck.risk.a;
+      let t = `回檔型態 ${ck.met_a}/${ck.n_a}、突破型態 ${ck.met_b}/${ck.n_b}`;
+      if (ra && ra.pct != null) t += `；停損距離 ${Number(ra.pct).toFixed(1)}% ${ra.ok ? '在' : '超過'} ${Number(ra.max != null ? ra.max : 8).toFixed(0)}%${ra.ok ? ' 內' : ''}`;
+      return t;
+    }
+    const hd = (an && an.headline) || {};
+    const v = (pg && pg.verdict) || {};
+    return hd.brief || (v.reasons || [])[0] || '';
+  }
+  function facetTags(pg, fmt) {
+    const an = (pg && pg.analysis) || {};
+    const f = an.facets || {};
+    const sig = sigCount(pg, fmt);
+    return FACETS.map(([k, nm]) => {
+      const x = f[k] || {};
+      const lb = k === 'sig' ? sig.label : (x.label || '資料缺');
+      return { k, nm, lb, cls: k === 'sig' ? sig.tone : toneCls(lb), tip: k === 'sig' ? `九顆技術燈號：偏多 ${sig.pos}、偏空 ${sig.neg}` : (x.why || '') };
+    });
+  }
+  function brief(pg, fmt) {
+    ovCss(); css();
+    const an = pg && pg.analysis;
+    const v = (pg && pg.verdict) || {};
+    const hd = (an && an.headline) || {};
+    const stance = hd.stance || v.verdict || '—';
+    const how = window.App && window.App.howHTML ? window.App.howHTML('', [
+      '一行重點＝回檔、突破兩套型態成立幾條＋停損距離',
+      '四顆標籤＝四個面向各自的判讀，點了看下面細節',
+      '「AI 分析」是寫死的規則算的，非語言模型',
+      '四面向不加總、不是買賣建議',
+    ]) : '';
+    const tags = an ? facetTags(pg, fmt).map(t => `<button type="button" class="ovtag" data-facet="${t.k}" title="${esc(t.tip)}" aria-controls="ovF-${t.k}">`
+      + `<span class="nm">${t.nm}</span><span class="aitag ${t.cls}">${esc(t.lb)}</span></button>`).join('') : '';
+    return `<div class="card" id="ovAiBrief" data-ai><h3>AI 分析重點 <small data-warn title="由固定規則與公開資料自動產生，不是大型語言模型，也不是任何人的投資建議。">規則式自動判讀，非投資建議</small>`
+      + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析重點怎麼看">?</button>`
+      + `${an && an.as_of ? ` <small data-readout>資料到 ${esc(an.as_of)}</small>` : ''}</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
+      + `<div class="ovline" id="ovAiLine" data-readout><span class="grade ${stanceCls(stance)}">${esc(stance)}</span><span class="ovbrief">${esc(an ? briefText(pg) : '資料準備中（下一次盤後更新後出現）')}</span></div>`
+      + (tags ? `<div class="ovtags" id="ovAiTags" role="group" aria-label="四個面向（點了看下面細節）">${tags}</div>` : '')
+      + `</div>`;
+  }
+  function facetHead() {
+    return '<div class="ovsech" id="ovFacetHead">AI 分析・各面向細節 <small>規則式自動判讀，非投資建議</small></div>';
+  }
+  function techCard(t, fmt) {
+    if (!t) return '';
+    const tag = `<span class="aitag ${toneCls(t.label)}">${esc(t.label || '資料缺')}</span>`;
+    /* 1 小時、4 小時都沒資料而且原因一樣 → 併成一列，不重複兩次同一句話 */
+    let tfs = (t.tfs || []).slice();
+    const nod = tfs.filter(r => r.trend == null && (r.tf === '60m' || r.tf === '240m'));
+    if (nod.length === 2 && (nod[0].points || []).join() === (nod[1].points || []).join()) {
+      tfs = [{ tf: '60m+240m', label: '1 小時／4 小時', trend: null, word: nod[0].word, points: nod[0].points }].concat(tfs.filter(r => !nod.includes(r)));
+    }
+    const rows = tfs.map(r => `<span class="tfn" data-tf="${esc(r.tf)}">${esc(r.label)}</span><span class="aitag ${r.trend > 0 ? 'pos' : r.trend < 0 ? 'neg' : ''}">${esc(r.word)}</span>`
+      + `<span class="tfp">${esc((r.points || []).join('・'))}</span>`).join('');
+    const ck = t.checks;
+    let ckHTML = '';
+    if (ck && ck.n_a) {
+      const dots = (met, n) => `<span class="dots" role="img" aria-label="${n} 條中 ${met} 條成立">${Array.from({ length: n }, (_, i) => `<i class="${i < met ? 'on' : ''}"></i>`).join('')}</span>`;
+      const ra = ck.risk && ck.risk.a;
+      let risk = '';
+      if (ra && ra.pct != null) {
+        const mx = Number(ra.max != null ? ra.max : 8), pct = Number(ra.pct);
+        const top = Math.max(mx * 2, pct * 1.15);           // 刻度範圍：至少到上限的兩倍，超過時多留 15% 讓點不貼邊
+        risk = `<span class="ckn">停損距離</span><span class="meter" style="--p:${Math.min(100, pct / top * 100).toFixed(1)}%;--c:${ra.ok ? 'var(--cyan)' : 'var(--amber)'}" role="img" aria-label="停損距離 ${pct.toFixed(1)}%，上限 ${mx}%"><i></i><b class="tick" style="left:${(mx / top * 100).toFixed(1)}%" title="上限 ${mx}%"></b></span>`
+          + `<b class="${ra.ok ? '' : 'warn'}" data-risk="${pct}">${pct.toFixed(1)}%</b>`;
+      }
+      ckHTML = `<div class="ovsub">型態條件（成立幾條）</div><div class="ovck" id="ovCk">`
+        + `<span class="ckn">回檔型態</span>${dots(ck.met_a, ck.n_a)}<b data-met="${ck.met_a}/${ck.n_a}">${ck.met_a}/${ck.n_a}</b>`
+        + `<span class="ckn">突破型態</span>${dots(ck.met_b, ck.n_b)}<b data-met="${ck.met_b}/${ck.n_b}">${ck.met_b}/${ck.n_b}</b>${risk}</div>`;
+    }
+    const lv = t.levels || {};
+    const z = (a) => (a && a[0] ? `<b>${esc(fmt.n(a[0].low))}–${esc(fmt.n(a[0].high))}</b>（${esc(a[0].label || '')}，距 ${esc(fmt.pct(a[0].dist_pct))}）` : '');
+    const lvHTML = `<div class="ovlv">最近支撐 ${z(lv.support) || '<span class="muted">下方沒有通過門檻的需求區</span>'}<br>最近壓力 ${z(lv.resistance) || '<span class="muted">上方沒有通過門檻的供給區</span>'}</div>`;
+    const ckList = (arr) => (arr || []).map(c => `<div class="ck ${c.ok ? 'ok' : 'no'}"><span class="m">${c.ok ? '✓' : '✗'}</span><span><b>${esc(c.name)}</b>：${esc(c.text)}</span></div>`).join('');
+    const det = `<div class="ovdet" id="ovTechDet" hidden>
+        <div class="ovsub">綜合：${esc(t.stance || '—')} 的原因</div><ul>${(t.reasons || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul>
+        ${ck ? `<div class="ovsub">回檔型態（A）逐條</div>${ckList(ck.a)}<div class="ovsub">突破型態（B）逐條</div>${ckList(ck.b)}` : ''}
+        ${t.ifs && t.ifs.length ? `<div class="ovsub">若…則…（狀態會在什麼情況下改變）</div><ul>${t.ifs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${t.plan ? `<div class="ovsub">${esc(t.plan)}</div>` : ''}</div>`;
+    return `<div class="card ovfacet" id="ovF-tech" data-facet="tech" data-ai><h3>技術面 ${tag}</h3>${t.why ? `<h4>${esc(t.why)}</h4>` : ''}
+      <div class="ovtfs" id="ovTfs">${rows}</div>${ckHTML}${lvHTML}
+      <button type="button" class="ovmore" id="ovTechMore" aria-expanded="false" aria-controls="ovTechDet">▸ 看細節：原因・逐條條件・若…則…</button>${det}</div>`;
+  }
+  function fundFacet(x) {
+    if (!x) return '';
+    return `<div class="card ovfacet" id="ovF-fund" data-facet="fund" data-ai><h3>基本面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
+      + `${x.why ? `<h4>${esc(x.why)}</h4>` : ''}${ul(x.points) || '<div class="empty">基本面資料缺</div>'}</div>`;
+  }
+  function newsFacet(x) {
+    if (!x) return '';
+    const items = (x.items || []).slice(0, 4).map(it => {
+      const d = esc(String(it.date || '').slice(5));
+      const ttl = esc(String(it.title || '').replace(/\s+/g, ''));
+      if (it.kind === '新聞' && it.url) return `<li><span class="kind">新聞</span><span class="mono">${d}</span> <a href="${esc(it.url)}" target="_blank" rel="noopener">${ttl}</a></li>`;
+      return `<li><span class="kind">${esc(it.kind)}</span><span class="mono">${d}</span> <a href="#" data-ovtab="news">${ttl}</a></li>`;
+    }).join('');
+    return `<div class="card ovfacet" id="ovF-news" data-facet="news" data-ai><h3>消息面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
+      + `${x.why ? `<h4>${esc(x.why)}</h4>` : ''}${ul(x.points)}${items ? `<div class="ovsub">最新 ${Math.min(4, (x.items || []).length)} 則</div><ul class="ovnews">${items}</ul>` : ''}</div>`;
+  }
+  function facetCards(pg, fmt) {
+    ovCss(); css();
+    const an = pg && pg.analysis;
+    if (!an) return null;
+    const f = an.facets || {};
+    return { tech: techCard(f.tech, fmt), fund: fundFacet(f.fund), news: newsFacet(f.news) };
+  }
+  function bindOverview(root) {
+    if (!root) return;
+    root.querySelectorAll('#ovAiTags .ovtag').forEach(b => b.onclick = () => {
+      const c = root.querySelector(`#ovFacets [data-facet="${b.dataset.facet}"]`);
+      if (!c) return;
+      try { c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { c.scrollIntoView(); }
+      c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
+      clearTimeout(c._ovT); c._ovT = setTimeout(() => c.classList.remove('flash'), 1500);
+    });
+    const mb = root.querySelector('#ovTechMore');
+    if (mb) mb.onclick = () => {
+      const d = root.querySelector('#ovTechDet'); if (!d) return;
+      const open = d.hidden; d.hidden = !open;
+      mb.setAttribute('aria-expanded', String(open));
+      mb.textContent = (open ? '▾ 收起細節' : '▸ 看細節：原因・逐條條件・若…則…');
+    };
+    // 重大訊息沒有外部網址：點標題切到「公告 / 新聞」分頁（站內既有的那一頁）
+    root.querySelectorAll('[data-ovtab]').forEach(a => a.onclick = (e) => {
+      e.preventDefault();
+      const b = document.querySelector(`#stockTabs button[data-t="${a.dataset.ovtab}"]`);
+      if (b) { b.click(); try { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (er) { b.scrollIntoView(); } }
+    });
+  }
+
+  window.StockAI = { id: 'stock.mtf', html, mount, refit, brief, briefText, facetCards, facetHead, bindOverview, _key: KEY, _tabKey: TAB_KEY, _splitKey: SPLIT_KEY };
 })();
