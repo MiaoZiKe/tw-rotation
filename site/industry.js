@@ -5108,41 +5108,162 @@
     }
   }
   const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); delete extLegRec[id]; };
+  /* ==========================================================================
+     ★ 2026-10-03（Andy：「基本面卡：純數字小格、有圖表的大格並補充詳細；本益比這邊的算法需要新增到獲利那邊」，DECISIONS #304）
+     本益比位置（peStand）：**目前本益比落在這一檔自己過去每天本益比的第幾百分位**，總覽基本面卡與「獲利」分頁共用這一支，數字一定一致。
+       · 樣本＝peRiver(pg) 那一條逐日本益比（每天收盤 ÷ 當時最新的近四季 EPS，財報可用日起算、虧損季不算），
+         跟獲利分頁的本益比河流圖是同一條 —— 河流圖的五條倍數線就是這條的 10／30／50／70／90 分位。
+       · 便宜端＝第 10 百分位、貴端＝第 90 百分位、中位＝第 50 百分位（同河流圖最下、最上那兩條帶的界線）。
+       · 目前＝fundamental.pe（收盤 ÷ 近四季 EPS，卡片上那個大數字），分位＝樣本裡比它低的比例（相等的算一半）。
+       · 族群中位（fundamental.group_median）也換算成它在這一檔歷史裡的分位，畫成菱形 —— 一眼看出「族群現在給的倍數，
+         放在這一檔自己的歷史裡算貴還是便宜」。同業分位（族群內估值比它低的比例）照舊寫在下面一行。
+       · 為什麼條是「分位」刻度而不是本益比數值刻度：3105 那種 TTM 很小的季會衝到 500 倍（#303），數值刻度會把其他 95% 的日子壓成一個點；
+         分位刻度永遠是 0～100，極端值只佔最右邊那一小段。刻度上的數字（便宜／中位／貴）才是本益比倍數。
+       · 樣本不到 60 個交易日（peRiver 回 null）→ 不畫歷史位置，退回「同業位置」那條舊刻度；目前本益比沒有（虧損）→ 只寫一句虧損。
+     ========================================================================== */
+  function peStand(pg) {
+    const f = pg.fundamental || {};
+    const cur = f.pe != null && isFinite(f.pe) && f.pe > 0 ? +f.pe : null;
+    const gmed = f.group_median != null && isFinite(f.group_median) && f.group_median > 0 ? +f.group_median : null;
+    const peer = f.percentile != null && isFinite(f.percentile) ? Math.max(0, Math.min(100, +f.percentile)) : null;
+    const base = { cur, gmed, peer, gname: f.group_name || '', gn: f.group_n || null, thin: !!f.thin_sample, loss: !!f.is_loss || cur == null };
+    const r = peRiver(pg);
+    if (!r || cur == null) return { ...base, ok: false };
+    const pes = r.dates.map((d, i) => r.close[i] / r.eps[i]).filter(v => isFinite(v) && v > 0);
+    if (pes.length < 60) return { ...base, ok: false };
+    const s = pes.slice().sort((a, b) => a - b), n = s.length;
+    const q = (p) => { const i = (n - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return s[lo] + (s[hi] - s[lo]) * (i - lo); };
+    const rank = (x) => { let lt = 0, eq = 0; for (const v of s) { if (v < x) lt++; else if (v === x) eq++; } return (lt + eq / 2) / n * 100; };
+    const from = r.dates[0], to = r.dates[r.dates.length - 1];
+    const yrs = (Date.parse(to) - Date.parse(from)) / (365.25 * 864e5);
+    const span = yrs >= 1 ? `近 ${yrs.toFixed(1)} 年` : `近 ${Math.max(1, Math.round(yrs * 12))} 個月`;
+    const r1 = (v) => Math.round(v * 10) / 10;
+    return { ...base, ok: true, n, from, to, span, lo: r1(s[0]), hi: r1(s[n - 1]), p10: r1(q(0.1)), p50: r1(q(0.5)), p90: r1(q(0.9)),
+      pct: Math.round(rank(cur) * 10) / 10, gpct: gmed != null ? Math.round(rank(gmed) * 10) / 10 : null };
+  }
+  /* 本益比位置那一塊的 HTML（id 由呼叫端給：總覽 #peStandOv、獲利 #peStandProf）。data-* 帶原始數字，兩邊對帳用。*/
+  function peStandHTML(m, id) {
+    const n1 = (v) => A.fmt.n(v, 1), esc = A.fmt.esc;
+    if (!m.ok) {
+      if (m.cur == null) return `<div class="pestand" id="${id}" data-ok="0">${m.loss ? '<div class="psnote">近四季 EPS ≤ 0（虧損），不計本益比</div>' : ''}</div>`;
+      // 歷史樣本不夠 → 退回同業位置刻度（左＝族群最便宜、右＝最貴，中線＝中位）
+      if (m.peer == null) return `<div class="pestand" id="${id}" data-ok="0"></div>`;
+      return `<div class="pestand" id="${id}" data-ok="0" data-peer="${m.peer.toFixed(1)}"><div class="pescale" style="--p:${m.peer.toFixed(1)}%" role="img" aria-label="同族群本益比分位 ${A.fmt.n(m.peer, 0)}%（越右越貴）"><i class="pemid"></i><b class="pedot"></b></div>`
+        + `<div class="minil"><span>族群便宜</span><span class="pep" data-pct="${m.peer.toFixed(1)}">同業分位 ${A.fmt.n(m.peer, 0)}%${m.thin ? '*' : ''}</span><span>族群貴</span></div>`
+        + `<div class="psnote">歷史本益比還不到 60 個交易日，先看同族群（${esc(m.gname || '—')}，${m.gn || '—'} 檔）裡的位置</div></div>`;
+    }
+    const zone = m.pct < 10 ? '低於便宜端' : m.pct > 90 ? '高於貴端' : m.pct < 50 ? '中位以下' : '中位以上';
+    const aria = `目前本益比 ${n1(m.cur)} 倍，在${m.span}每日本益比的第 ${A.fmt.n(m.pct, 0)} 百分位；便宜端 ${n1(m.p10)} 倍、中位 ${n1(m.p50)} 倍、貴端 ${n1(m.p90)} 倍`;
+    return `<div class="pestand" id="${id}" data-ok="1" data-pct="${m.pct}" data-cur="${m.cur}" data-p10="${m.p10}" data-p50="${m.p50}" data-p90="${m.p90}" data-lo="${m.lo}" data-hi="${m.hi}" data-n="${m.n}"`
+      + `${m.gmed != null ? ` data-gmed="${m.gmed}" data-gpct="${m.gpct}"` : ''}${m.peer != null ? ` data-peer="${m.peer.toFixed(1)}"` : ''}>`
+      + `<div class="psbar" role="img" aria-label="${esc(aria)}"><i class="pst" style="left:10%"></i><i class="pst pmid" style="left:50%"></i><i class="pst" style="left:90%"></i>`
+      + `${m.gpct != null ? `<b class="psgm" style="left:${m.gpct}%" title="族群中位 ${n1(m.gmed)} 倍＝這一檔歷史的第 ${A.fmt.n(m.gpct, 0)} 百分位"></b>` : ''}`
+      + `<b class="psdot" style="left:${m.pct}%" title="目前 ${n1(m.cur)} 倍＝第 ${A.fmt.n(m.pct, 0)} 百分位"></b></div>`
+      + `<div class="pslab"><span>便宜 <b>${n1(m.p10)}</b></span><span>中位 <b>${n1(m.p50)}</b></span><span>貴 <b>${n1(m.p90)}</b></span></div>`
+      + `<div class="psnote">目前 <b>${n1(m.cur)}</b> 倍＝${m.span}本益比第 <b class="pspct">${A.fmt.n(m.pct, 0)}</b> 百分位（${zone}；區間 ${n1(m.lo)}～${n1(m.hi)} 倍）</div>`
+      + `${m.gmed != null ? `<div class="psnote"><i class="psgmk" aria-hidden="true"></i>族群中位 <b>${n1(m.gmed)}</b> 倍（${esc(m.gname || '—')} ${m.gn || '—'} 檔）${m.peer != null ? `・同業分位 ${A.fmt.n(m.peer, 0)}%${m.thin ? '*' : ''}` : ''}</div>` : ''}`
+      + `</div>`;
+  }
+  /* 毛利率：最新一季（財報到那一季）、前一季、去年同季，與近 8 季小趨勢。季別照 profit.quarters 的順序（管線把缺的季補成空列，往前數 1／4 列就是前一季／去年同季）*/
+  function gmTrend(pg) {
+    const q = (pg.profit || {}).quarters || [];
+    const f = pg.fundamental || {};
+    let i = f.latest_period ? q.findIndex(r => r && r[0] === f.latest_period) : -1;
+    if (i < 0) for (let j = q.length - 1; j >= 0; j--) if (q[j] && q[j][2] != null) { i = j; break; }
+    if (i < 0 || q[i][2] == null) return null;
+    const at = (k) => (k >= 0 && q[k] && q[k][2] != null ? { p: q[k][0], v: +q[k][2] } : null);
+    const ser = q.slice(Math.max(0, i - 7), i + 1).map(r => ({ p: r[0], v: r[2] != null ? +r[2] : null }));
+    return { cur: at(i), prev: at(i - 1), ly: at(i - 4), ser };
+  }
+  /* 營運動能的組成：照管線 fundamental.momentum_score 的公式逐項算（起始 50；月營收 YoY 夾在 −40～60 乘 0.5；連續年增月數最多 12 乘 1.5；
+     創新高 +6；MoM 比歷年同月中位的差夾在 ±20 乘 0.3；YoY > 100% 扣 8；總分夾在 0～100）。⚠ 管線改公式這裡要跟著改（_uitest 會比總分）。
+     缺資料的那一項不列（例如 MoM 沒有 3 年同月可比）。*/
+  function momParts(f) {
+    if (f.momentum_score == null || !isFinite(f.momentum_score)) return null;
+    const clip = (v, a, b) => Math.max(a, Math.min(b, v));
+    const sg = (v) => (v > 0 ? '+' : v < 0 ? '−' : '±') + A.fmt.n(Math.abs(v), 1);
+    const P = [];
+    if (f.rev_yoy != null && isFinite(f.rev_yoy)) P.push({ k: 'yoy', l: `月營收 YoY${f.rev_yoy_note ? '（' + f.rev_yoy_note + '）' : ''}`, v: A.fmt.pct(f.rev_yoy), pts: clip(+f.rev_yoy, -40, 60) * 0.5 });
+    if (f.rev_streak != null) P.push({ k: 'streak', l: '連續年增', v: `${f.rev_streak} 個月`, pts: Math.min(+f.rev_streak, 12) * 1.5 });
+    if (f.rev_record_high != null) P.push({ k: 'high', l: '營收創新高', v: f.rev_record_high ? '是' : '否', pts: f.rev_record_high ? 6 : 0 });
+    if (f.rev_mom_vs_typical != null && isFinite(f.rev_mom_vs_typical)) P.push({ k: 'mom', l: 'MoM 比歷年同月', v: (f.rev_mom_vs_typical > 0 ? '+' : '') + A.fmt.n(f.rev_mom_vs_typical, 1) + 'pp', pts: clip(+f.rev_mom_vs_typical, -20, 20) * 0.3 });
+    if (f.rev_flag_spike) P.push({ k: 'spike', l: 'YoY 超過 100%（一次性？）', v: '是', pts: -8 });
+    const raw = 50 + P.reduce((a, x) => a + x.pts, 0);
+    return { parts: P.map(x => ({ ...x, txt: sg(x.pts) })), raw, score: clip(raw, 0, 100) };
+  }
+  /* 近 8 季毛利率小趨勢：SVG 只畫線與點（沒有字 —— SVG 的字會跟著縮放，手機量不準 11px），頭尾季別寫在 HTML */
+  function gmSpark(ser) {
+    const pts = ser.map((x, i) => [i, x.v]).filter(x => x[1] != null);
+    if (pts.length < 4) return '';
+    const vs = pts.map(x => x[1]), lo = Math.min(...vs), hi = Math.max(...vs), pad = Math.max(0.5, (hi - lo) * 0.15);
+    const X = (i) => (ser.length > 1 ? i / (ser.length - 1) * 96 + 2 : 50), Y = (v) => 27 - (v - (lo - pad)) / ((hi + pad) - (lo - pad)) * 24;
+    const d = pts.map((p, k) => `${k ? 'L' : 'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ');
+    const L = pts[pts.length - 1];
+    return `<div class="gmspark"><div class="gmsv"><svg viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="近 ${ser.length} 季毛利率：${pts.map(p => ser[p[0]].p + ' ' + A.fmt.n(p[1], 1) + '%').join('、')}" data-n="${pts.length}">`
+      + `<path d="${d}" class="gml" vector-effect="non-scaling-stroke"/></svg><i class="gmd" style="left:${X(L[0]).toFixed(1)}%;top:${(Y(L[1]) / 30 * 100).toFixed(1)}%"></i></div>`
+      + `<div class="minil"><span>${A.fmt.esc(ser[0].p)}</span><span>近 ${ser.length} 季 ${A.fmt.n(lo, 1)}～${A.fmt.n(hi, 1)}%</span><span>${A.fmt.esc(ser[ser.length - 1].p)}</span></div></div>`;
+  }
   function fundCard(pg) {
     const f = pg.fundamental || {}, dv = pg.dividends || {};
-    /* ★ 2026-09-28（Andy：「總覽 基本面 也需要新增 "?" 說明」）：逐欄一句話（≤30 字），口徑照管線：
-       本益比＝收盤 ÷ 近四季 EPS；同業分位＝族群內估值比它低的比例（fundamental._pct_within）；ROE＝近四季稅後淨利 ÷ 母公司權益；
-       營運動能＝月營收 YoY、連續成長月數、創新高等加權的 0～100 分（fundamental.momentum_score）。*/
-    /* ★ 2026-10-02（Andy：「能用小圖表示的就用小圖。例如營運動能 94/100 改成半圓儀表或進度條；本益比的同業位置也可以做成小刻度」，DECISIONS #294）：
-       · 營運動能 → 半圓儀表（SVG 只畫弧，數字寫在 HTML 裡：SVG 的字會跟著縮放，手機上量不準 11px 下限）
-       · 本益比 → 下面一條「同業位置」刻度：左＝同族群最便宜、右＝最貴，中間刻度＝中位，點＝本檔的分位。
-         以前「同業分位」是另一格只寫「67%」，讀者要自己推「67% 是貴還是便宜」——兩格併成一格，刻度直接把答案畫出來。
-       · 毛利率 → 進度條（0～100%，毛利本來就是「營收裡留下幾成」）
-       其他（EPS、ROE、月營收 YoY、殖利率）是單一數字，硬畫小圖反而多一步推論，照舊寫數字。*/
-    const help = hbox('skfund', ['近四季 EPS＝最近四季每股盈餘相加', '本益比＝股價 ÷ 近四季 EPS，越低越便宜', '刻度＝同業位置，越右越貴；*＝樣本少', 'ROE＝近四季淨利 ÷ 股東權益，看賺錢效率',
-      '毛利率＝最新一季毛利 ÷ 營收', '月營收 YoY＝最新月營收比去年同月增減', '營運動能＝營收成長、創新高等綜合分數 0～100', '殖利率＝近四次現金股利 ÷ 目前股價']);
-    const fk = (key, l, v, mini, cls) => `<div class="k" data-f="${key}"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div>${mini || ''}</div>`;
-    const pct = f.percentile != null && isFinite(f.percentile) ? Math.max(0, Math.min(100, +f.percentile)) : null;
-    const peMini = pct == null ? `<div class="minil"><span>同業位置：樣本不足</span></div>`
-      : `<div class="pescale" style="--p:${pct.toFixed(1)}%" role="img" aria-label="同族群本益比分位 ${A.fmt.n(pct, 0)}%（越右越貴）" title="同族群（${A.fmt.esc(f.group_name || '—')}，n=${f.group_n || '—'}）裡估值比它低的比例 ${A.fmt.n(pct, 0)}%${f.thin_sample ? '；樣本少，僅供參考' : ''}"><i class="pemid"></i><b class="pedot"></b></div>`
-        + `<div class="minil"><span>便宜</span><span class="pep" data-pct="${pct.toFixed(1)}"${f.thin_sample ? ' title="* ＝同族群樣本少於 5 檔，分位僅供參考"' : ''}>分位 ${A.fmt.n(pct, 0)}%${f.thin_sample ? '*' : ''}</span><span>貴</span></div>`;
+    /* ★ 2026-09-28（Andy：「總覽 基本面 也需要新增 "?" 說明」）：逐欄一句話（≤30 字），口徑照管線。
+       ★ 2026-10-02（DECISIONS #294）：能用小圖的用小圖（營運動能半圓儀表、本益比刻度、毛利率進度條）。
+       ★ 2026-10-03（Andy，DECISIONS #304）：改前 7 格等大方塊（每格約 190×120px，數字只佔一角），Andy：「純數字的格子做成小格，
+         縱向堆在一窄欄；有圖表的格子做成大格放旁邊，有圖表的需要補充詳細點」「其他文字框需要調整適當版面，空白太多了」。
+         · 小格（窄欄，由上往下）：近四季 EPS、ROE、月營收 YoY、殖利率 —— 數字＋一行有資料才寫的小字
+         · 大格（寬欄）：本益比位置（peStand，跟「獲利」分頁共用）、毛利率（前一季／去年同季增減＋近 8 季小趨勢）、營運動能（儀表＋組成分數）
+         · 兩欄底部對齊：小格平均分掉窄欄高度（內容垂直置中）、大格依內容；卡片寬 < 360px（手機）改成小格 2×2 在上、大格在下。
+         資料不足的子項整行不出現（不寫「資料不足」）。*/
+    const help = hbox('skfund', ['近四季 EPS＝最近四季每股盈餘相加', 'ROE＝近四季淨利 ÷ 股東權益', '本益比條＝跟自己過去每天比；◆＝族群中位', '便宜／貴＝自己歷史第 10／90 百分位', '毛利率＝最新一季毛利 ÷ 營收，比前季、去年同季', '月營收 YoY＝最新月營收比去年同月增減',
+      '營運動能＝營收成長各項加分，0～100', '殖利率＝近四次現金股利 ÷ 目前股價']);
+    const q = (pg.profit || {}).quarters || [];
+    const qi = f.latest_period ? q.findIndex(r => r && r[0] === f.latest_period) : -1;
+    const sub = (t) => (t ? `<div class="s">${t}</div>` : '');
+    const ks = (key, l, v, s2, cls) => `<div class="k ksm" data-f="${key}"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div>${sub(s2)}</div>`;
+    const kb = (key, l, v, body, cls) => `<div class="k kbig" data-f="${key}"><div class="kh"><span class="l">${l}</span><span class="v ${cls || ''}">${v}</span></div>${body || ''}</div>`;
+    // 小格的小字：有資料才寫
+    const epsQ = qi >= 0 && q[qi][5] != null ? `單季 ${A.fmt.esc(q[qi][0])} ${A.fmt.n(q[qi][5])} 元` : '';
+    const pbT = f.pb != null && isFinite(f.pb) ? `股價淨值比 ${A.fmt.n(f.pb, 1)} 倍` : '';
+    const yoyT = f.rev_ym ? `${A.fmt.esc(f.rev_ym)}${f.rev_yoy_note ? '（' + A.fmt.esc(f.rev_yoy_note) + '）' : ''}${f.rev_yoy_3m != null && isFinite(f.rev_yoy_3m) ? `・近 3 月 ${A.fmt.pct(f.rev_yoy_3m)}` : ''}` : '';
+    const dvT = dv.cash_ttm != null && dv.cash_ttm > 0 ? `近四次現金 ${A.fmt.n(dv.cash_ttm)} 元` : '';
+    // 大格 ①：本益比位置
+    const ps = peStand(pg);
+    // 大格 ②：毛利率
     const gm = f.gross_margin != null && isFinite(f.gross_margin) ? Math.max(0, Math.min(100, +f.gross_margin)) : null;
-    const gmMini = gm == null ? '' : `<div class="meter" style="--p:${gm.toFixed(1)}%;--c:var(--cyan)" role="img" aria-label="毛利率 ${A.fmt.n(gm, 1)}%"><i></i></div>`;
-    const ms = f.momentum_score != null && isFinite(f.momentum_score) ? Math.max(0, Math.min(100, +f.momentum_score)) : null;
-    /* 半圓弧：pathLength=100，dasharray 前段＝分數 —— 不必自己算弧長，分數就是長度 */
+    const gt = gmTrend(pg);
+    const dpp = (a, b) => { const d = a - b; return `<b class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲ +' : d < 0 ? '▼ −' : '± '}${A.fmt.n(Math.abs(d), 1)}pp</b>`; };
+    let gmBody = '';
+    if (gm != null) {
+      gmBody = `<div class="meter" style="--p:${gm.toFixed(1)}%;--c:var(--cyan)" role="img" aria-label="毛利率 ${A.fmt.n(gm, 1)}%（0～100%）"><i></i>${gt && gt.ly ? `<b class="tick" style="left:${Math.max(0, Math.min(100, gt.ly.v)).toFixed(1)}%" title="去年同季 ${A.fmt.n(gt.ly.v, 1)}%"></b>` : ''}</div>`;
+      const rows = [];
+      if (gt && gt.prev) rows.push(`<div class="gmr" data-k="prev" data-v="${gt.prev.v}"><span>前一季 ${A.fmt.esc(gt.prev.p)}</span><span>${A.fmt.n(gt.prev.v, 1)}%</span>${dpp(gm, gt.prev.v)}</div>`);
+      if (gt && gt.ly) rows.push(`<div class="gmr" data-k="ly" data-v="${gt.ly.v}"><span>去年同季 ${A.fmt.esc(gt.ly.p)}</span><span>${A.fmt.n(gt.ly.v, 1)}%</span>${dpp(gm, gt.ly.v)}</div>`);
+      gmBody += (rows.length ? `<div class="gmrs">${rows.join('')}</div>` : '') + (gt ? gmSpark(gt.ser) : '');
+    }
+    // 大格 ③：營運動能
+    const mp = momParts(f);
+    const ms = mp ? Math.max(0, Math.min(100, +f.momentum_score)) : null;
     const arc = 'M6 32 A26 26 0 0 1 58 32';
-    const msV = ms == null ? '—' : `<span class="gaugev"><svg class="gauge" viewBox="0 0 64 36" width="56" height="32" role="img" aria-label="營運動能 ${A.fmt.n(ms, 0)} 分（滿分 100）" data-score="${ms.toFixed(1)}">`
-      + `<path d="${arc}" pathLength="100" class="gtrack"/><path d="${arc}" pathLength="100" class="gfill" stroke-dasharray="${ms.toFixed(1)} 100"/></svg>`
-      + `<span>${A.fmt.n(ms, 0)}<small> / 100</small></span></span>`;
+    let momV = '—', momBody = '';
+    if (ms != null) {
+      /* 半圓儀表放在標題列（分數旁），組成分數用整格寬列在下面 —— 儀表放左邊的話，右邊只剩約 170px，「MoM 比歷年同月」那一列會被截掉 */
+      momV = `<span class="gaugev"><svg class="gauge" viewBox="0 0 64 36" width="48" height="27" role="img" aria-label="營運動能 ${A.fmt.n(ms, 0)} 分（滿分 100）" data-score="${ms.toFixed(1)}">`
+        + `<path d="${arc}" pathLength="100" class="gtrack"/><path d="${arc}" pathLength="100" class="gfill" stroke-dasharray="${ms.toFixed(1)} 100"/></svg>`
+        + `<span>${A.fmt.n(ms, 0)}<small> / 100</small></span></span>`;
+      momBody = `<div class="momw"><div class="momps" data-raw="${mp.raw.toFixed(2)}"><div class="mpr base"><span>起始分</span><span></span><b>50</b></div>`
+        + mp.parts.map(x => `<div class="mpr" data-k="${x.k}" data-pts="${x.pts.toFixed(2)}"><span>${A.fmt.esc(x.l)}</span><span>${x.v}</span><b class="${x.pts > 0 ? 'up' : x.pts < 0 ? 'down' : ''}">${x.txt}</b></div>`).join('')
+        + `${mp.raw > 100 || mp.raw < 0 ? `<div class="mpr cap"><span>加總 ${A.fmt.n(mp.raw, 1)}，夾在 0～100</span><span></span><b>${A.fmt.n(ms, 0)}</b></div>` : ''}</div></div>`;
+    }
     return `<div class="card" id="skFundCard"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small> ${hq('skfund', '基本面')}</h3>${help}<div class="kvs skfund" style="margin-top:8px">`
-      + fk('eps', '近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—')
-      + fk('pe', '本益比', f.pe ? A.fmt.n(f.pe, 1) + ' <small>倍</small>' : '—', peMini)
-      + fk('roe', 'ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—')
-      + fk('gm', '毛利率', f.gross_margin != null ? A.fmt.n(f.gross_margin, 1) + '%' : '—', gmMini)
-      + fk('yoy', '月營收 YoY', A.fmt.pct(f.rev_yoy), '', A.fmt.cls(f.rev_yoy))
-      + fk('mom', '營運動能', msV)
-      + fk('yld', '殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—')
-      + `</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}` : '本益比只在同族群內比較'}</div></div>`;
+      + `<div class="fsm">`
+      + ks('eps', '近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—', epsQ)
+      + ks('roe', 'ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—', pbT)
+      + ks('yoy', '月營收 YoY', A.fmt.pct(f.rev_yoy), yoyT, A.fmt.cls(f.rev_yoy))
+      + ks('yld', '殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—', dvT)
+      + `</div><div class="fbig">`
+      + kb('pe', '本益比', ps.cur != null ? A.fmt.n(ps.cur, 1) + ' <small>倍</small>' : '—', peStandHTML(ps, 'peStandOv'))
+      + kb('gm', '毛利率', gm != null ? A.fmt.n(gm, 1) + '%' : '—', gmBody)
+      + kb('mom', '營運動能', momV, momBody)
+      + `</div></div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}` : '本益比只在同族群內比較'}</div></div>`;
   }
   /* ★ 2026-09-28（Andy：「總覽 籌碼快照『?』欄位說明，並移除 大戶4週 與 散戶」）：
      · 拿掉「大戶 4 週變化」「散戶（≤10 張）」兩格。千張大戶的週變化在「籌碼」分頁的集保圖有完整走勢，
@@ -5359,8 +5480,9 @@
     const mil = (v) => (v == null ? '—' : A.fmt.i(Math.round(v / 1e6)));
     if (!mo.length) { el.innerHTML = '<div class="card"><div class="empty">月營收歷史資料準備中</div></div>'; return; }
     const last = mo[mo.length - 1];
-    el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新月份</div><div class="v">${last[0]}</div></div><div class="k"><div class="l">單月營收</div><div class="v">${A.fmt.yi(last[1])}</div></div><div class="k"><div class="l">YoY</div><div class="v ${A.fmt.cls(last[2])}">${A.fmt.pct(last[2])}</div></div><div class="k"><div class="l">MoM</div><div class="v ${A.fmt.cls(last[3])}">${A.fmt.pct(last[3])}</div></div><div class="k"><div class="l">累計營收</div><div class="v">${A.fmt.yi(last[4])}</div></div><div class="k"><div class="l">累計 YoY</div><div class="v ${A.fmt.cls(last[5])}">${A.fmt.pct(last[5])}</div></div></div>
-      <div class="grid skrev3" id="revGrid"><div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>營收走勢 <small id="revSub" data-readout></small> ${hq('skrev', '營收走勢')}</h3>
+    /* ★ 2026-10-03（Andy：「營收分頁上面那排 6 個 KPI 方塊拿掉」，DECISIONS #304）：最新月份／單月營收／YoY／MoM／累計營收／累計 YoY
+       全部是下方「月營收明細」表第一列的數字（同一份 revenue.monthly 最後一列），擺兩次只是把三張卡往下推。拿掉後三張卡直接頂到分頁列下面。*/
+    el.innerHTML = `<div class="grid skrev3" id="revGrid"><div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>營收走勢 <small id="revSub" data-readout></small> ${hq('skrev', '營收走勢')}</h3>
         <div class="row" style="gap:8px"><div class="seg" id="revView" role="group" aria-label="月或年"><button type="button" data-v="m">月走勢</button><button type="button" data-v="y">年度走勢</button></div>
         <div class="seg" id="revWin" role="group" aria-label="幾個月"><button type="button" data-v="12">12 月</button><button type="button" data-v="24">24 月</button><button type="button" data-v="36">36 月</button></div></div></div>
         ${hbox('skrev', ['月走勢：當月（青）＋去年同期（灰）並排', '線＝MoM、YoY（右軸 %）', '年度走勢：每年合計＋年增率', '今年未滿 12 個月＝跟去年同期幾個月比', '右上切 12／24／36 個月'])}<div id="revBar" class="chart"></div></div>
@@ -6019,6 +6141,10 @@
     const tmTxt = tm ? (tm.status === 'ok' ? `財報到 ${tm.latest}（至 ${tm.asof} 法定應有到 ${tm.expected}）`
       : tm.status === 'missing' ? `⚠ 法定期限已過、應有 ${tm.expected}，目前只到 ${tm.latest || '—'}`
       : `⚠ ${tm.latest} 的季底還沒到，資料有誤`) : '';
+    /* ★ 2026-10-03（Andy：「本益比（這邊的算法需要新增到獲利那邊）」，DECISIONS #304）：總覽基本面卡的「本益比位置」
+       （目前本益比在自己歷史每日本益比的第幾百分位、便宜端／貴端、族群中位）放進「本益比（每季）」卡的圖上方。
+       同一支 peStand(pg)＋peStandHTML 畫，兩邊數字一定一樣（_uitest「獲利並排本益比1003」逐項比 data-*）。*/
+    const psProf = `<div class="psprof"><div class="psh">本益比位置 <small>跟自己過去每天的本益比比</small></div>${peStandHTML(peStand(pg), 'peStandProf')}</div>`;
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${lastQ[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${last[2] == null ? "—" : A.fmt.n(last[2], 2) + "%"}</div></div><div class="k"><div class="l">營益率</div><div class="v">${last[3] == null ? "—" : A.fmt.n(last[3], 2) + "%"}</div></div><div class="k"><div class="l">淨利率</div><div class="v">${last[4] == null ? "—" : A.fmt.n(last[4], 2) + "%"}</div></div></div>
       <div class="grid skprof" id="profGrid"><div class="card" id="peRiverCard"><div class="row spread"><h3>本益比河流圖 ${hq('pe', '本益比河流圖')}</h3>
         <div class="row" style="gap:10px;align-items:center">
@@ -6041,7 +6167,7 @@
           '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="pekvs" id="peNote" data-readout></div></div>
-      <div class="card" id="peQCard"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['線＝財報可用日收盤 ÷ 近四季 EPS', '帶＝同一季每天的本益比高低', '灰底＝虧損季（EPS ≤ 0），不計', '▲＝超過圖上限，游標看實際值', '跟自己的過去比，看現在貴不貴'], '線與帶是同一條逐日本益比：線取那一季第一天（財報可用日），帶是那一季每天的最低～最高。圖上限＝max(200 倍, 近 5 年第 75 百分位 × 1.5)，最多 1000 倍。')}<div id="peQ" class="chart"></div><div class="note" id="peQNote" data-readout></div></div>
+      <div class="card" id="peQCard"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['線＝財報可用日收盤 ÷ 近四季 EPS', '帶＝同一季每天的本益比高低', '灰底＝虧損季（EPS ≤ 0），不計', '▲＝超過圖上限，游標看實際值', '跟自己的過去比，看現在貴不貴'], '線與帶是同一條逐日本益比：線取那一季第一天（財報可用日），帶是那一季每天的最低～最高。圖上限＝max(200 倍, 近 5 年第 75 百分位 × 1.5)，最多 1000 倍。')}${psProf}<div id="peQ" class="chart"></div><div class="note" id="peQNote" data-readout></div></div>
       <div class="card" id="profitCard"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div>
       <div class="card tblcard" id="profitTblCard"><h3 id="profitTblTtl">季報明細</h3><div class="tw" style="max-height:360px" id="profitTbl"></div></div></div>`;
     const pct = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
@@ -6395,18 +6521,18 @@
        圖上的長條也是增減，餘額只是右軸那條線、畫面上沒有任何地方寫出最新餘額的數字 —— 讀者只能拿 2.1 萬去對 −503。
        修法：① 分頁最上面加一列「最新數字」（融資餘額／融券餘額／借券賣出餘額／當沖），跟總覽同一支 mgLatest()，日期一起寫；
        ② 每日表的欄名全部寫清楚「融資增減」「融資餘額」…，餘額欄補回來。數字本身一個都沒改。*/
+    /* ★ 2026-10-03（Andy：「資券分頁那排 4 個 KPI 方塊直接整排拿掉」，DECISIONS #304，推翻 #294 ①「最上面加一列最新數字」）：
+       最新的融資／融券／借券賣出餘額與當沖，總覽「籌碼快照」的「信用與借券」那一塊已經有（同一支 mgLatest），
+       下方每日明細表第一列也有；這一頁留圖與明細表就好，圖卡直接頂到區間鈕下面。②（每日表欄名寫全、餘額欄）照舊。*/
     const ML = mgLatest(pg);
-    const mgk = (k, l, x, val) => `<div class="k" data-mgk="${k}" data-v="${x ? x.v : ''}" data-d="${x ? x.d : ''}"><div class="l">${l}${x ? ` <span class="mgd">${md5(x.d)}</span>` : ''}</div><div class="v">${x ? val : '—'}</div></div>`;
-    const kpis = `<div class="kvs mgkpi" id="mgKpi" style="margin-bottom:12px">${mgk('mb', '融資餘額', ML.mb, ML.mb && A.fmt.i(ML.mb.v) + ' 張')}${mgk('sb', '融券餘額', ML.sb, ML.sb && A.fmt.i(ML.sb.v) + ' 張')}`
-      + `${mgk('sbl', '借券賣出餘額', ML.sbl, ML.sbl && A.fmt.i(ML.sbl.v) + ' 張')}${mgk('dt', '當沖（當沖率）', ML.dt, ML.dt && `${A.fmt.i(ML.dt.v)} 張 <small>${ML.dr ? A.fmt.n(ML.dr.v, 1) + '%' : ''}</small>`)}</div>`;
     if (mg.length < CHIP_MIN) {
-      el.innerHTML = kpis + chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
+      el.innerHTML = chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
         `資料準備中：目前只有 ${mg.length} 天，滿 ${CHIP_MIN} 天以上就會畫成走勢圖。`);
       return; }
     let mseg = lsGet('tw.mgSeg', v => MG_SEGS.some(x => x.v === v), 'm');
     const mmap = new Map(mg.map(r => [String(r[0]).slice(0, 10), r]));
-    const body = kpis + chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
-      ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '最上面一列＝最新餘額，跟總覽同一個數', '借券賣出多為法人避險，不是融券'],
+    const body = chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
+      ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '最新餘額看右邊明細表第一列（同總覽）', '借券賣出多為法人避險，不是融券'],
       chipTbl('mgTbl', '每日明細'), 'min-height:340px');
     const redraw = chipPage(pg, el, 'margin', body, (dates, win) => {
       const { xCat } = chipAxis(dates, win);
