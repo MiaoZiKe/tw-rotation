@@ -1,5 +1,16 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 個股頁 K 線上方版面三件：AI 展開收合左側不動、左右分隔線可拖、標籤搬到週期鈕那一行（2026-10-02，台北，UI 專家，分支 `claude/stock-head-layout`，**未推 main**）
+
+- Andy 15:19（#stock/3189 景碩三張截圖）→ DECISIONS #293。前一位的半成品 `claude/wip-stock-layout`（5a9a11e）只沿用「AI 區 contain:size」「單欄內容區改浮層」兩個想法，其他四項（營收三欄、本益比線寬、籌碼並排、大戶週數）沒帶進來。
+- [x] ① AI 區高度不再由內容決定（`site/blocks/stock_ai.js` CSS：`contain:size`＋保底 `--aiH:190px`），展開／收合／換面向左側與 K 線不動；≤820 內容區是浮層（進頁面收著、不寫 tw.aiOpen）
+- [x] ② 分隔線 `#skSplit`：拖曳（col-resize）、存 `tw.aiSplit`（比例）、雙擊還原 44%、←／→ 鍵 2%；左欄最小寬＝工具列一行放得下；≤820 不出現（上下排）
+- [x] ③ 技術分／本益比／同業分位／營收 YoY／分 K 等級搬到工具列 `#skTags`（「指標」與「四週期同看」之間），放不下收進「⋯ N」；現價列只剩現價、漲跌、即時徽章；手機不顯示
+- 動到的函式與選擇器（給同時改 industry.js 的人對照）：industry.js `renderStock` 模板（#skPx、#skTools）、新增 `stockTags`／`tagPopClose`／`tagPopFill`／`fitTags`／`wireTags`；
+  stock_ai.js `css()`（#skChartCard.aiside 格線、#skSplit、#skAi contain、單欄 .aibody 浮層）、`setOpen`／`userOpen`／`modeOf`／`leftMin`／`innerW`／`aiPx`／`wireSplit`／`watchWidth`／`mount`；
+  index.html 新增 `#skTools`／`.sktags`／`.sktmore`／`.sktagpop` 規則；modules.js 兩塊積木的 tests 加「個股頂部1002」。
+- **這批驗了**：（跑完補）
+
 ## 會員功能開放制度：#admin/perm 依 email 開關功能＋方案範本＋鎖頭（2026-10-02，台北，UI 專家，分支 `claude/member-perm`；Worker 已上 main）
 
 - [x] **Worker（已部署）**：main dbfc523 → deploy-account-worker run 36974835747 成功（14:43 台北；部署與「驗證真的活著」兩步都成功）。

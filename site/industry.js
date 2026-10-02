@@ -3723,6 +3723,80 @@
       <div class="card" style="margin-top:var(--gap-card)"><div class="note">資料更新到 <b>${A.fmt.esc((A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新）。${A.L.back()}</div></div>`;
   }
 
+  /* ★ 2026-10-02（Andy #stock/3189 截圖三，DECISIONS #293）個股 K 線卡工具列的五顆資訊標籤。
+     改前住在現價那一行（現價｜漲跌｜即時｜技術分｜本益比｜同業分位｜營收 YoY｜分 K 完整），1440 寬右欄 AI 區一占，
+     「分 K 完整」就自己掉到第二行，左欄多一整行；800 寬更是三行。
+     改後住在工具列「指標 ▾」與「四週期同看」之間的空白：工具列**一律一行**，放不下的從最右邊一顆一顆收進「⋯ N」，
+     點「⋯ N」原地展開一個小框列出收起來的那幾顆（點外面／Esc 收）。每顆：[鍵, 字, 額外 class, 滑過說明]。*/
+  function stockTags(s, tier) {
+    return [
+      ['tech', `技術分 ${A.fmt.n(s.tech_score, 0)}`, '', ''],
+      ['pe', `本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}`, '', ''],
+      ['pct', `同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}`, '', ''],
+      ['yoy', `營收 YoY ${A.fmt.pct(s.rev_yoy)}`, '', ''],
+      ['tier', tier[0], tier[1], tier[2]],
+    ];
+  }
+  let tagRO = null;
+  function tagPopClose() {
+    const pop = document.getElementById('skTagPop'), more = document.getElementById('skTagMore');
+    if (pop) pop.hidden = true;
+    if (more) more.setAttribute('aria-expanded', 'false');
+  }
+  function tagPopFill() {
+    const pop = document.getElementById('skTagPop'), more = document.getElementById('skTagMore');
+    if (!pop || !more) return;
+    const hid = $$('#skTags>.pill[data-tag]').filter(t => t.hidden);
+    pop.innerHTML = hid.map(t => `<span class="${A.fmt.esc(t.className)}"${t.title ? ` title="${A.fmt.esc(t.title)}"` : ''}>${A.fmt.esc(t.textContent)}</span>`).join('');
+    // 框的左緣對齊「⋯ N」那顆（框是工具列的絕對定位子元素）；太靠右就往左收，不超出工具列
+    const tb = document.getElementById('skTools');
+    if (!tb) return;
+    const x = more.getBoundingClientRect().left - tb.getBoundingClientRect().left;
+    pop.style.left = Math.max(0, Math.min(x, tb.clientWidth - pop.offsetWidth)) + 'px';
+  }
+  /* 量一次：先全部放回去，還是超出就從最右邊一顆一顆收，收到放得下為止（最多 5 輪排版，很便宜）。
+     工具列的寬由欄寬決定（拖分隔線、開關事件欄、縮放視窗都會變），週期鈕被勾掉／加上會改標籤可用的寬 → 兩者都觀察。*/
+  function fitTags() {
+    const box = document.getElementById('skTags'), more = document.getElementById('skTagMore');
+    if (!box || !more) return;
+    const tags = $$('#skTags>.pill[data-tag]');
+    tags.forEach(t => { t.hidden = false; });
+    more.hidden = true;
+    if (!box.getClientRects().length) { tagPopClose(); return; }      // 手機（CSS 藏起來）或還沒排版
+    const over = () => box.scrollWidth > box.clientWidth + 1;
+    if (!over()) { tagPopClose(); return; }
+    more.hidden = false;
+    let n = 0;
+    for (let i = tags.length - 1; i >= 0; i--) {
+      tags[i].hidden = true; n++;
+      more.textContent = '⋯ ' + n;
+      if (!over()) break;
+    }
+    const names = tags.filter(t => t.hidden).map(t => t.textContent).join('、');
+    more.title = `還有 ${n} 個標籤：${names}（點一下展開）`;
+    more.setAttribute('aria-label', `還有 ${n} 個標籤：${names}`);
+    const pop = document.getElementById('skTagPop');
+    if (pop && !pop.hidden) tagPopFill();
+  }
+  function wireTags() {
+    const tb = document.getElementById('skTools'), more = document.getElementById('skTagMore'), pop = document.getElementById('skTagPop');
+    if (!tb || !more || !pop) return;
+    more.onclick = (e) => {
+      e.stopPropagation();
+      if (!pop.hidden) { tagPopClose(); return; }
+      pop.hidden = false; more.setAttribute('aria-expanded', 'true');
+      tagPopFill();
+      if (A.dismissable) A.dismissable(pop, tagPopClose, { also: [more] });
+    };
+    if (tagRO) tagRO.disconnect();
+    if (window.ResizeObserver) {
+      tagRO = new ResizeObserver(() => fitTags());
+      tagRO.observe(tb);
+      ['#tfSeg', '#indBtn', '#mtfBtn'].forEach(s => { const e = document.querySelector(s); if (e) tagRO.observe(e); });
+    }
+    fitTags();
+  }
+
   // ================================================================ Level 2：個股頁
   async function renderStock(code, im, sc, gd) {
     /* ★ 2026-09-26（Andy：「下方產業鏈位置表格 拿掉」）：個股頁最下面那張「產業鏈位置」卡
@@ -3766,7 +3840,9 @@
         <div class="row spread" id="skHead">
           <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
-            <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
+            <!-- ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）：現價列只留現價、漲跌、即時徽章與時間（徽章由 live.js 插在漲跌後面）；
+                 技術分／本益比／同業分位／營收 YoY／分 K 完整五顆標籤搬到下面工具列（#skTags），左欄少一行。-->
+            <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span></div></div>
         </div>
         <!-- ★ 2026-09-27（Andy：「AI 分析 需要在右上角出現，並且技術面 籌碼面 基本面 消息面 用標籤頁切換」）：
              改前右上只有一行結論（#skAiLine），完整分析是 K 線與分頁之間的長卡（#aiCard）；
@@ -3780,6 +3856,10 @@
                以前這裡是一整排指標晶片＋右邊一顆「⚙ 設定」開獨立的「圖表設定」面板，兩處管同一件事。
                合成一顆下拉：清單每列＝一個指標（左開關、右 ▸ 就地展開該指標的參數與樣式）。-->
           <button class="btn small inddd" id="indBtn" type="button" aria-haspopup="true" aria-expanded="false" title="指標：開關、參數、顏色與線寬">指標 ▾ <span class="indn" id="indN"></span></button>
+          <!-- ★ 2026-10-02（Andy #stock/3189 截圖三，DECISIONS #293）：五顆資訊標籤從現價列搬來「指標」與「四週期同看」中間的空白。
+               工具列一律一行（不准折行把週期鈕擠下去）：放不下的標籤從右邊收進「⋯ N」，點開看全部（fitTags）。手機不顯示（手機的數字在「指標」「財務」分頁）。-->
+          <div class="sktags" id="skTags" role="group" aria-label="這一檔的關鍵數字">${stockTags(s, tier).map(t => `<span class="pill${t[2] ? ' ' + t[2] : ''}" data-tag="${t[0]}"${t[3] ? ` title="${A.fmt.esc(t[3])}"` : ''}>${t[1]}</span>`).join('')}<button type="button" class="pill sktmore" id="skTagMore" aria-haspopup="true" aria-expanded="false" aria-controls="skTagPop" hidden>⋯</button></div>
+          <div class="sktagpop" id="skTagPop" role="dialog" aria-label="其他標籤" hidden></div>
           <div class="sp"></div>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
 
@@ -3817,6 +3897,7 @@
       <div class="subtabs" id="stockTabs">${STOCK_TABS.map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div id="stockTab"></div>`;
     setupChart(pg);
+    wireTags();
     if (window.StockAI) window.StockAI.mount(pg, $('#skAi'), A.fmt);
     $$('#stockTabs button').forEach(b => b.onclick = () => { $$('#stockTabs button').forEach(x => x.classList.toggle('on', x === b)); state.tab = b.dataset.t; renderTab(pg, state.tab); });
     renderTab(pg, state.tab);
