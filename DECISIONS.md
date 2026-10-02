@@ -4769,3 +4769,11 @@ Andy 原話：「之後會分付費和免費會員，要一個新分頁，用 Sw
 4. 額度：Workers 免費每天 10 萬次請求（跟報價代理、會員心跳共用），付費資料每次換頁都要過 Worker —— 會員一多就要升級 Workers Paid（US$5／月）。
 5. 工作量估計：管線＋R2 上傳 0.5～1 天、Worker 端點＋存取測試 0.5 天、前端改讀取路徑與驗收 1～1.5 天（要跟改 industry.js 的人排開），合計 **2～3 個工作天**；
    需要 Andy 在 Cloudflare 開 R2（免費 10 GB）與一個 API token 權限。
+
+## #289 專家 Agent 的模型分配：部署／美編／產業改 Sonnet，審核與口徑、資安、技術分析固定 Opus（Andy 2026-10-02 拍板「套用」）
+
+- `deployer`、`visual-designer`、`industry-analyst` → `model: sonnet`（規則清楚、量大的工作，省額度與時間）。
+- `reviewer`、`smc-technical`、`security-privacy`、`finance-quant` → `model: opus`（釘死，不跟著主對話的模型走）。
+- `deployer` **刻意不用 Haiku**：它要從幾千行 Actions 紀錄判斷「真的上線了沒」，過去抓過「紀錄被截斷」「m60 744 不是 900」這類細節；它大部分時間在等，Haiku 省不到多少，卻可能回報不實的成功。
+- 驗收關卡（pytest／_preview／_uitest）是程式判定，不受模型影響；最後把關的 `reviewer` 維持 Opus，所以前面降級的專家出錯仍會被擋。
+- 其他沒寫 `model` 的專家照舊繼承主對話的模型。
