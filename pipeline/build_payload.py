@@ -967,6 +967,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     dtr_by = _by_code(deep.get("daytrade"))
     div_cover = dividend_cover_years()
     sbl_by = _by_code(deep.get("sbl"))
+    # 資券三個來源全市場最新到哪天（#304）：頁面據此寫「資料源更新到 MM-DD」，不讓空格被當成 0
+    mg_asof = stockpage.margin_asof(deep.get("margin"), deep.get("daytrade"), deep.get("sbl"))
     insth_by = _by_code(inst_hist)
     instd_by = _by_code(inst_today)
     valt_by = _by_code(val_today)
@@ -1118,6 +1120,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                                                      daytrade=dtr_by.get(code), sbl=sbl_by.get(code),
                                                      price=raw_by.get(code, g))),
             "margin_columns": stockpage.MARGIN_COLUMNS,
+            "margin_asof": mg_asof,
             # ★ 2026-09-27「指標」分頁：事實條件標籤（stockpage.stock_tags，不做推介）
             "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
@@ -1269,6 +1272,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "margin": _clean(stockpage.margin_series(mgn_by.get(code, EMPTY), code, daytrade=dtr_by.get(code),
                                                      sbl=sbl_by.get(code), price=thin_raw.get(code))),
             "margin_columns": stockpage.MARGIN_COLUMNS,
+            "margin_asof": mg_asof,
             "tags": _clean(stockpage.stock_tags(rev_by.get(code), fin_by.get(code), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
             "insider": _clean(stockpage.insider_series(ins_by.get(code), shw_by.get(code), code)),

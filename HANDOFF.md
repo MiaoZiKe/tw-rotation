@@ -1,5 +1,25 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 當沖／借券賣出 09-25 起斷更＝回補誤封印；上櫃融資券沒有每日來源（2026-10-03，台北，爬蟲專家，分支 `claude/daytrade-fix`，**未合併 main**，DECISIONS #304）
+
+- **根因**（證據在 #304）：不是 FinMind 改等級、不是參數、也不是連假。09-28 那輪每日續補挑「落後最久」的股票去問當沖／借券，
+  落後最久的正好是早就沒資料的 72／10 檔（最後一筆停在 2025 年的處置股等）→ 全空 → 封印「整組回空」；之後探測又拿同一批 → 永遠探不通。
+  backfill run 36456219124 日誌：「daytrade 每日續補：72 檔落後於 2026-09-24（…從 2026-06-26 起抓）」→「連續 20 檔回空」→「判定為該資料集不開放」。查的區間 06-26～09-24 有六十幾個交易日。
+  上櫃融資券：`run_daily` 只抓上市（MI_MARGN），上櫃只靠一次性的歷史步驟，09-24 起少 530 檔。
+- [x] `pipeline/run_backfill.py`：封印前拿台積電反證（`canary_has_data`）、區間內沒交易日不判定（`no_trading_day_since`）、
+  既有「整組回空」封印每 24 小時拿台積電驗一次、驗通當場解封；`stale_inst_codes` 把「比這張表最新日早 14 天以上」的股票排到最後；
+  `FRESH_TABLES` 加 `margin`（inst 600／margin 300／daytrade 300／sbl 300），計畫本月補齊時 ×`FRESH_BOOST`＝2。
+- [x] `pipeline/compute/stockpage.py` `margin_asof`、`pipeline/build_payload.py` 每檔帶 `margin_asof`；
+  `site/industry.js` `tabMargin`、`site/mobile3.js` `skMargin`：資料源停更時寫「更新到 MM-DD」、之後的格子寫「未提供」（不是 0）；`site/index.html` 一條 `.mbna` 樣式。
+- [x] `scripts/probe_sources.py`＋`.github/workflows/probe.yml`：新探測組 `chip_daily`（證交所 TWTB4U／TWT93U、櫃買融資券 OpenAPI 候選，未實測）。
+- [x] 測試：新檔 `tests/test_backfill_seal_1003.py`（12 條，含事故重現）；`tests/test_backfill.py` 兩條改成「樣本＋1 次反證」。
+- **資料預計何時補回（合併 main 之後）**：下一輪整點回補（`inst_fresh` 10-03 還沒做完，會放行）就會解封；
+  每天續補上限（計畫已補齊 ×2）：當沖 600、借券 600、上櫃融資券 600 檔，一次請求把 09-25 之後整段抓回。
+  週末價量最新日停在 10-02，補過的不會再被挑 → 上櫃融資券約 10-04、當沖約 10-05、借券約 10-06 全市場補齊（台北）。台積電等前幾百檔當天就有。
+- **這批驗了**：`pytest tests/ -q` 916 passed／4 skipped／1 xfailed（16 分 38 秒，含新測試）；之後改了 probe 兩支再跑 `test_probe_sources`、`test_taifex_night` 31 passed，`test_backfill*` 三支 53 passed。反向驗證：把 `run_backfill.py` 換回 main 版 → 新測試 6 條紅（反證、連假、自動解封、排序、margin 續補），換回來全綠。`SKIP_INTRADAY=1 python -m pipeline.build_payload` 重算後（2330 的 `margin_asof`＝margin 10-02／daytrade 09-24／sbl 09-24）：`_preview.py` 全綠（兩次）；`_uitest.py --workers 1 --sections 資券資料源未提供1003,個股籌碼分頁0928,手機個股券商式,個股分頁版面1002` → 新段落 0、手機個股券商式 0、個股分頁版面1002 0、個股籌碼分頁0928 剩 1 條＝10-02 就記的既有紅燈（K 線卡／AI 區「資料湖」字樣，main 一樣紅）。第一輪新段落抓到我自己的字眼違規（畫面寫了「資料源」，是 09-28 禁用字），已改成「當沖資料目前只更新到 MM-DD」。
+- 待處理：① `http._last_error` 是全域變數，會把上一個資料集的錯誤（例如 402）記成下一個資料集的封印理由（測試裡看得到）；
+  ② 合併後跑一次 `probe.yml` → `chip_daily`，有全市場一個請求的官方日報就改接，續補額度可以省下來；③ 封印機制的「整組回空」理由以後若再出現，先看反證日誌那一行。
+
 ## 10-03 04:56 版面 V2 上正式站（CEO）
 
 - Andy：「目前滿意預覽版本排法，幫我改成預覽為正式版本」→ `claude/layout-v2-desktop`（175a5a2）合併進 main（3c24dfd）。只作用在電腦版 >820；手機不變。

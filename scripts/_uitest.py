@@ -19520,6 +19520,106 @@ def t_stock_head_1002(pg, base, code):
     clear_ls()
 
 
+def t_margin_src_1003(pg, base, code):
+    """★ 2026-10-03（DECISIONS #304）：當沖／借券賣出的資料源停在某天時，個股頁「資券」照實寫「更新到 MM-DD」，
+    之後的日期寫「未提供」（不是 0、不是一路「—」）。
+
+    兩個方向都驗：① 真資料（payload 的 margin_asof：當沖、借券比融資券舊）→ 說明列出現、格子寫未提供；
+    ② 用 route 把同一檔的 margin_asof 改成三個來源同一天（資料源正常的樣子）→ 說明列消失、格子回到原本的「—」／數字。
+    ③ 手機 390 的券商式資券頁（mobile3.js）同一個規則。"""
+    tag = "【資料源未提供1003】"
+    code = "2330"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { ['tw.mgSeg','tw.chipWin'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    j = pg.evaluate(f"() => fetch('data/stock/{code}.json').then(r => r.json()).catch(() => null)") or {}
+    asof = j.get("margin_asof") or {}
+    if not ok(f"{tag}{code} 的個股 JSON 帶 margin_asof（前置條件：payload 要用這一批的 build_payload 重算）",
+              bool(asof.get("margin")), asof):
+        return
+    ref = max(v for v in asof.values() if v)
+    cut_dt = asof.get("daytrade") if asof.get("daytrade") and asof["daytrade"] < ref else None
+    cut_sbl = asof.get("sbl") if asof.get("sbl") and asof["sbl"] < ref else None
+    if not ok(f"{tag}資料湖現況：當沖或借券賣出比融資券舊（前置條件；資料源恢復後這段會改走 ② 的路）",
+              bool(cut_dt or cut_sbl), asof):
+        return
+
+    PROBE = """() => {
+      const n = document.getElementById('mgSrcNote');
+      const rows = [...document.querySelectorAll('#mgTbl tbody tr')].map(tr => [...tr.children].map(td => [td.textContent.trim(), td.dataset.na || '', td.classList.contains('sel')]));
+      const th = [...document.querySelectorAll('#mgTbl thead th')].map(t => [t.textContent.trim(), t.classList.contains('sel')]);
+      return { note: n ? n.textContent.trim() : null, dtCut: n ? n.dataset.dtCut : null, sblCut: n ? n.dataset.sblCut : null, rows, th };
+    }"""
+
+    def open_margin(seg=None):
+        pg.goto("about:blank")
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        click(pg, '#stockTabs button[data-t="margin"]', 1500)
+        if seg:
+            click(pg, f'#mgSeg button[data-v="{seg}"]', 900)
+        return pg.evaluate(PROBE)
+
+    # ---- ① 真資料
+    a = open_margin()
+    want = [f"當沖資料目前只更新到 {cut_dt[5:]}" if cut_dt else None, f"借券賣出資料目前只更新到 {cut_sbl[5:]}" if cut_sbl else None]
+    ok(f"★ {tag}資券分頁上方寫出「資料只更新到 MM-DD」與「不是 0」，而且不出現禁用字「資料源」",
+       a["note"] is not None and all(w in a["note"] for w in want if w) and "不是 0" in a["note"] and "資料源" not in a["note"], a["note"])
+    ok(f"{tag}說明列的日期就是 payload 的 margin_asof", (a["dtCut"] or None) == cut_dt and (a["sblCut"] or None) == cut_sbl, (a["dtCut"], a["sblCut"], asof))
+    hdr = [t for t, _ in a["th"]]
+    i_dt, i_sbl = (hdr.index("當沖張數") if "當沖張數" in hdr else -1), (hdr.index("借券賣出") if "借券賣出" in hdr else -1)
+    late = [r for r in a["rows"] if r and cut_dt and f"{ref[:4]}-{r[0][0]}" > cut_dt]
+    early = [r for r in a["rows"] if r and cut_dt and f"{ref[:4]}-{r[0][0]}" <= cut_dt]
+    if ok(f"{tag}表格裡有資料源停更之後的日期（前置條件）", bool(late) and i_dt > 0, (len(late), hdr)):
+        ok(f"★ {tag}停更之後的每一天，當沖欄寫「未提供」（data-na＝src），不是「—」也不是 0",
+           all(r[i_dt][0] == "未提供" and r[i_dt][1] == "src" for r in late), [r[i_dt] for r in late][:5])
+        if cut_sbl and i_sbl > 0:
+            ok(f"★ {tag}停更之後的每一天，借券賣出欄也寫「未提供」",
+               all(r[i_sbl][0] == "未提供" for r in late if f"{ref[:4]}-{r[0][0]}" > cut_sbl), [r[i_sbl] for r in late][:5])
+        ok(f"{tag}融資欄不受影響（融資券來源沒停）", all(r[1][0] not in ("未提供",) for r in late), [r[1] for r in late][:3])
+    if early:
+        ok(f"{tag}停更之前的日期，當沖欄照常是數字（沒有被誤標未提供）", not any(r[i_dt][1] == "src" for r in early), [r[i_dt] for r in early][:3])
+    # 真的按「當沖」分段：反白欄換到當沖，未提供的格子跟著反白（畫面真的因此改變）
+    b = open_margin("dt")
+    sel_th = [t for t, s in b["th"] if s]
+    late_b = [r for r in b["rows"] if r and f"{ref[:4]}-{r[0][0]}" > (cut_dt or "9999")]
+    ok(f"★ {tag}按「當沖」→ 表頭反白換成當沖張數、未提供的格子也反白", sel_th == ["當沖張數"] and late_b and all(r[i_dt][2] for r in late_b), (sel_th, [r[i_dt] for r in late_b][:3]))
+    ok(f"{tag}按「當沖」→ 說明列仍在", b["note"] is not None, b["note"])
+
+    # ---- ② 假裝資料源正常：三個來源同一天 → 說明列與「未提供」都要消失
+    def fix(route):
+        resp = route.fetch()
+        body = resp.json()
+        m = body.get("margin_asof") or {}
+        top = max(v for v in m.values() if v)
+        body["margin_asof"] = {k: top for k in ("margin", "daytrade", "sbl")}
+        route.fulfill(response=resp, json=body)
+    pg.route(f"**/data/stock/{code}.json*", fix)
+    try:
+        c = open_margin("dt")
+    finally:
+        pg.unroute(f"**/data/stock/{code}.json*")
+    ok(f"★ {tag}資料源正常（三個來源同一天）→ 不出現說明列", c["note"] is None, c["note"])
+    ok(f"★ {tag}資料源正常 → 表格裡沒有任何「未提供」", not any(td[1] == "src" for r in c["rows"] for td in r),
+       [r for r in c["rows"] if any(td[1] == "src" for td in r)][:2])
+
+    # ---- ③ 手機 390（券商式 mobile3.js）
+    pg.set_viewport_size({"width": 390, "height": 860})
+    pg.goto("about:blank")
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    if ok(f"{tag}390 有手機分頁「資券」（前置條件）", count(pg, '#mbTabs button[data-t="margin"]') > 0, None):
+        pg.eval_on_selector('#mbTabs button[data-t="margin"]', "b => b.click()"); pg.wait_for_timeout(900)
+        if count(pg, '#mbBody .mbseg button[data-s="dt"]'):
+            pg.eval_on_selector('#mbBody .mbseg button[data-s="dt"]', "b => b.click()"); pg.wait_for_timeout(900)
+        m = pg.evaluate("""() => ({ src: (document.querySelector('#mbBody .mbsrc') || {}).textContent || null,
+          na: document.querySelectorAll('#mbBody .mbtbl td.mbna').length,
+          seg: (document.querySelector('#mbBody .mbseg button.on') || {}).textContent || null,
+          sx: document.documentElement.scrollWidth, vw: window.innerWidth })""")
+        ok(f"★ {tag}390 資券（當沖段）表下寫「資料只更新到 MM-DD」、不寫「資料源」", bool(m["src"]) and "資料源" not in m["src"] and (not cut_dt or cut_dt[5:].replace("-", "/") in m["src"]) and "不是 0" in m["src"], m)   # 手機日期寫 MM/DD
+        ok(f"★ {tag}390 停更之後的格子寫「未提供」", m["na"] >= 1, m)
+        ok(f"{tag}390 頁面沒有橫向捲軸", m["sx"] <= m["vw"] + 1, (m["sx"], m["vw"]))
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { ['tw.mgSeg'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+
+
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
@@ -19782,6 +19882,8 @@ SECTIONS = {
     # ★ 2026-09-28 Andy：個股頁籌碼拆「法人／資券／大戶散戶」三頁、大戶散戶三條線可勾選、股東人數與主力替代拿掉、
     #   讀者看不懂的內部說明全清、基本面 ? 逐欄說明、AI 分析籌碼面 → 技術面訊號（claude/stock-tabs-0928）
     "個股籌碼分頁0928":    lambda pg, b, base, code: t_stock_tabs0928(pg, base, code),
+    # ★ 2026-10-03（DECISIONS #304）：當沖／借券賣出資料源停更時，資券分頁照實寫「更新到 MM-DD」、之後寫「未提供」（桌機＋手機 390）
+    "資券資料源未提供1003": lambda pg, b, base, code: t_margin_src_1003(pg, base, code),
     # ★ 2026-10-02 Andy（#stock/1709）：營收三卡並排、河流圖線寬＋讀數小資訊塊、籌碼三頁圖表並排、大戶散戶週數＝資料湖（DECISIONS #295，⚠ 一律 --workers 1）
     "個股分頁版面1002":    lambda pg, b, base, code: t_stock_tabs_1002(pg, base, code),
 

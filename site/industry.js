@@ -6399,13 +6399,25 @@
     const mgk = (k, l, x, val) => `<div class="k" data-mgk="${k}" data-v="${x ? x.v : ''}" data-d="${x ? x.d : ''}"><div class="l">${l}${x ? ` <span class="mgd">${md5(x.d)}</span>` : ''}</div><div class="v">${x ? val : '—'}</div></div>`;
     const kpis = `<div class="kvs mgkpi" id="mgKpi" style="margin-bottom:12px">${mgk('mb', '融資餘額', ML.mb, ML.mb && A.fmt.i(ML.mb.v) + ' 張')}${mgk('sb', '融券餘額', ML.sb, ML.sb && A.fmt.i(ML.sb.v) + ' 張')}`
       + `${mgk('sbl', '借券賣出餘額', ML.sbl, ML.sbl && A.fmt.i(ML.sbl.v) + ' 張')}${mgk('dt', '當沖（當沖率）', ML.dt, ML.dt && `${A.fmt.i(ML.dt.v)} 張 <small>${ML.dr ? A.fmt.n(ML.dr.v, 1) + '%' : ''}</small>`)}</div>`;
+    /* ★ 2026-10-03（DECISIONS #304）：當沖／借券賣出被管線誤封印，09-25 之後全市場一筆都沒有，
+       每日表那兩欄一路「—」，讀者會以為是 0 或沒人當沖。pg.margin_asof＝三個來源**全市場**最新到哪天：
+       某個來源比其他來源舊，就是資料源自己停在那天（不是這檔的事）→ 照實寫「更新到 MM-DD」，
+       之後的日期在表格寫「未提供」、提示框寫「這天還沒提供」（畫面不寫「資料源」：09-28 Andy 要求讀者看不懂的內部字眼全清，_uitest 禁用字）。某一檔自己沒有（不能當沖的處置股）不在這裡講。*/
+    const AS = pg.margin_asof || {};
+    const asRef = [AS.margin, AS.daytrade, AS.sbl].filter(Boolean).sort().pop() || '';
+    const cutOf = (k) => (AS[k] && asRef && AS[k] < asRef ? AS[k] : null);
+    const CUT = { dt: cutOf('daytrade'), sbl: cutOf('sbl') };
+    const naCut = (k, d) => !!(CUT[k] && d > CUT[k]);
+    const srcNote = (CUT.dt || CUT.sbl)
+      ? `<div class="note" id="mgSrcNote" data-dt-cut="${CUT.dt || ''}" data-sbl-cut="${CUT.sbl || ''}" style="margin:-4px 0 10px">${[CUT.dt && `當沖資料目前只更新到 <b class="mono">${md5(CUT.dt)}</b>`, CUT.sbl && `借券賣出資料目前只更新到 <b class="mono">${md5(CUT.sbl)}</b>`].filter(Boolean).join('、')}；之後的日期寫「未提供」，不是 0，恢復提供後會自動補上。</div>`
+      : '';
     if (mg.length < CHIP_MIN) {
-      el.innerHTML = kpis + chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
+      el.innerHTML = kpis + srcNote + chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
         `資料準備中：目前只有 ${mg.length} 天，滿 ${CHIP_MIN} 天以上就會畫成走勢圖。`);
       return; }
     let mseg = lsGet('tw.mgSeg', v => MG_SEGS.some(x => x.v === v), 'm');
     const mmap = new Map(mg.map(r => [String(r[0]).slice(0, 10), r]));
-    const body = kpis + chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
+    const body = kpis + srcNote + chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
       ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '最上面一列＝最新餘額，跟總覽同一個數', '借券賣出多為法人避險，不是融券'],
       chipTbl('mgTbl', '每日明細'), 'min-height:340px');
     const redraw = chipPage(pg, el, 'margin', body, (dates, win) => {
@@ -6429,6 +6441,7 @@
         const fmtV = (v, unit) => (v == null ? '—' : unit === '%' ? A.fmt.n(v, 2) + '%' : A.fmt.lot(v));
         const mc = A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue;
             if (!mmap.get(d)) return `<b>${d}</b><br>這天沒有資券資料`;
+            if (naCut(seg.v, d)) return `<b>${d}</b><br>這天還沒提供（${seg.v === 'dt' ? '當沖' : '借券賣出'}只更新到 ${md5(CUT[seg.v])}）`;
             return `<b>${d}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${fmtV(p.value, p.seriesIndex === 1 ? C[4] : '張')}`).join('<br>'); } },
           legend: { show: false, data: [C[2], C[3]] }, grid: { left: 60, right: 64, top: 10, bottom: 30 },
           xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v) } }, { ...A.axisStyle, scale: true, splitLine: { show: false }, axisLabel: { formatter: v => (C[4] === '%' ? v + '%' : A.fmt.lot(v)) } }],
@@ -6439,11 +6452,13 @@
       }
       const tb = $('#mgTbl', el);
       if (tb) {
-        const num = (v, sg, on) => `<td class="num ${sg ? A.fmt.cls(v) : ''}${on ? ' sel' : ''}">${v == null ? '—' : A.fmt.i(v)}</td>`;
+        const num = (v, sg, on, na) => (v == null && na
+          ? `<td class="num muted${on ? ' sel' : ''}" data-na="src" title="這天還沒提供（不是 0）"><small>未提供</small></td>`
+          : `<td class="num ${sg ? A.fmt.cls(v) : ''}${on ? ' sel' : ''}">${v == null ? '—' : A.fmt.i(v)}</td>`);
         const rows = dates.slice().reverse().map(d => [d, mmap.get(d)]).filter(x => x[1]);
         const th = (t, v) => `<th${seg.v === v ? ' class="sel"' : ''}>${t}</th>`;
         /* 2026-10-02（#294 對帳）：欄名寫全（改前只寫「融資」「融券」，內容卻是增減，讀者拿去跟總覽的餘額比就對不上），餘額欄補回來 */
-        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt')}${num(r[7], false, seg.v === 'sbl')}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
+        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt', naCut('dt', d))}${num(r[7], false, seg.v === 'sbl', naCut('sbl', d))}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
       }
     });
     $$('#mgSeg button', el).forEach(b => b.onclick = () => { mseg = b.dataset.v; lsSet('tw.mgSeg', mseg); redraw(); });
