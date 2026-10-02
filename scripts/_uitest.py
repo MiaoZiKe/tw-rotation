@@ -10809,6 +10809,9 @@ def t_events_drawer(b, base, code):
         return { open: s.classList.contains('open'), seen, left: Math.round(r.left), right: Math.round(r.right),
                  w: Math.round(r.width), vw: innerWidth, cw: document.documentElement.clientWidth,
                  mainW: Math.round(m.getBoundingClientRect().width),
+                 // 桌機左側導覽（DECISIONS #291）固定佔掉的寬度：主內容「吃滿」＝吃滿導覽以外的寬度
+                 navW: (() => { const t = document.querySelector('.topbar'), tr = t.getBoundingClientRect();
+                   return getComputedStyle(t).position === 'fixed' && tr.left === 0 && tr.width < innerWidth / 2 ? Math.round(tr.width) : 0; })(),
                  back: !!bk && bk.classList.contains('on') && getComputedStyle(bk).pointerEvents !== 'none',
                  sw: s.scrollWidth, scw: s.clientWidth,
                  docSW: document.documentElement.scrollWidth, docCW: document.documentElement.clientWidth }; }"""
@@ -10838,7 +10841,8 @@ def t_events_drawer(b, base, code):
             pg.wait_for_timeout(300)
             d0 = pg.evaluate(ST)
             ok(f"{T} 預設看不到抽屜（連舊版存了「常駐」也一樣）", not d0["open"] and not d0["seen"] and not d0["back"], d0)
-            ok(f"{T} 預設主內容吃滿全寬（沒有被事件欄佔掉一欄）", d0["mainW"] >= d0["cw"] - 2, d0)
+            # ★ 2026-10-02（#291）：桌機多了左側導覽，「吃滿」改成吃滿導覽以外的寬度（事件欄沒有佔掉一欄這件事不變）
+            ok(f"{T} 預設主內容吃滿全寬（沒有被事件欄佔掉一欄）", d0["mainW"] >= d0["cw"] - d0["navW"] - 2, d0)
             ok(f"{T} 舊偏好 tw.side／tw.kwide 已被清掉",
                pg.evaluate("() => { try { return localStorage.getItem('tw.side') === null && localStorage.getItem('tw.kwide') === null; } catch (e) { return true; } }"))
 
@@ -17699,6 +17703,8 @@ SECTIONS = {
     "全市場1H4H":          lambda pg, b, base, code: t_intraday_all(pg, base, code),
     # ★ 2026-10-01 Andy：搜尋熱門股票走勢圖對齊；自選頁滿寬＋每列走勢圖＋點了展開（走勢／K 線＋週期）（⚠ 一律 --workers 1）
     "自選走勢與搜尋對齊":  lambda pg, b, base, code: t_watch_spark(b, base),
+    # ★ 2026-10-02 Andy：V2 的版面結構搬到 v4 —— 可收合左側導覽、頁首、本頁功能跳轉列、事件抽屜、手機頁名＋線條圖示（DECISIONS #291，⚠ 一律 --workers 1）
+    "版面v2結構":          lambda pg, b, base, code: t_layout4(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -39297,6 +39303,238 @@ def t_watch_spark(b, base):
         pg.click('#wpTbl tr[data-go="2454"] .wpgo')
         wait_until(pg, "() => location.hash.startsWith('#stock/')", 4000)
         ok(f"{T}{W} 點名稱進個股頁", pg.evaluate("() => location.hash") == "#stock/2454", pg.evaluate("() => location.hash"))
+        ctx.close()
+    ok(f"{T} 沒有 pageerror", not errs, errs[:5])
+
+
+# ===================================================================== 版面 v2 結構（2026-10-02，DECISIONS #291）
+L4_NAV = """() => { const t = document.querySelector('.topbar'), m = document.querySelector('main');
+    const r = t.getBoundingClientRect(), cs = getComputedStyle(t);
+    return { mini: document.documentElement.classList.contains('l4-mini'), l4: document.documentElement.classList.contains('l4'),
+      navW: Math.round(r.width), barH: Math.round(r.height), pos: cs.position, left: Math.round(r.left),
+      // 左欄看得到的範圍：底色畫在 .topbar::before（從上到下），最底下是「收合導覽」鈕
+      bgH: (() => { const b = getComputedStyle(t, '::before'); return b.position === 'fixed' && b.top === '0px' && b.bottom === '0px' ? innerHeight : 0; })(),
+      footB: (() => { const f = document.getElementById('l4NavBtn'); return f ? Math.round(f.getBoundingClientRect().bottom) : -1; })(), vh: innerHeight,
+      mainL: Math.round(m.getBoundingClientRect().left), mainW: Math.round(m.getBoundingClientRect().width),
+      pref: (() => { try { return localStorage.getItem('tw.layout4.nav'); } catch (e) { return 'x'; } })(),
+      sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, hash: location.hash }; }"""
+L4_JUMP = """() => { const j = document.getElementById('l4Jump'); if (!j) return null;
+    const bs = [...j.querySelectorAll('.chips button')];
+    return { shown: !j.hidden && j.getClientRects().length > 0, n: bs.length, labels: bs.map(b => b.textContent),
+      on: bs.findIndex(b => b.classList.contains('on')), bottom: Math.round(j.getBoundingClientRect().bottom),
+      top: Math.round(j.getBoundingClientRect().top), sy: Math.round(scrollY) }; }"""
+
+
+def t_layout4(b, base, code):
+    """V2 分支的版面結構搬到設計 v4（Andy 2026-10-02：「只做排版，不改配色、不改功能」）。
+
+    每一項都用真的滑鼠／觸控操作，驗「畫面真的因此改變了」：
+      ① 桌機 1440：左側導覽固定在左邊、主內容讓出導覽寬；分組順序＝今日市場／錢往哪裡跑／族群與個股／歷史規律／專案
+      ② 點分組裡的頁面 → 路由真的換了（hash、.tab.on、.view.on、頁首的頁名與分組小標都跟著換）
+      ③ 收合 → 導覽寬度真的變窄、主內容真的變寬、localStorage 記住；重新整理後還是收合；展開再重新整理也記得
+      ④ 「本頁功能」膠囊：點了捲到對應卡片（卡片頂端落在跳轉列下面）、那顆亮起；用滾輪捲回去，亮起的膠囊跟著變
+      ⑤ 事件抽屜：打開（從視窗頂端起、遮罩不蓋左欄）、點遮罩關、Esc 關、× 關
+      ⑥ 左欄底部的「外觀」面板與搜尋下拉都完整在視窗內
+      ⑦ 1100（沒按過收合）預設收成圖示列；圖示列的頁面有滑鼠提示
+      ⑧ 手機 390：頂欄顯示目前頁名（換頁跟著換、個股頁寫股名）；底部五顆是線條圖示；底部列高度不大於改前
+         （「改前」＝同一頁拿掉 html.l4 當場量，等於舊版 CSS —— 不是寫死的數字）
+    """
+    T = "[版面v2結構]"
+    errs: list[str] = []
+
+    # ---------------- 桌機 1440 ----------------
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(f"1440: {e}"))
+    try:
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        pg.evaluate("() => { try { localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
+        pg.reload(wait_until="networkidle")
+        wait_until(pg, "() => !!document.getElementById('l4NavBtn') && !!document.querySelector('#l4Head h1')", 8000)
+        n0 = pg.evaluate(L4_NAV)
+        ok(f"{T}1440 掛上新版面、沒按過收合時是展開的", n0["l4"] and not n0["mini"], n0)
+        ok(f"{T}1440 導覽固定在左邊、底色從上到下整個視窗高、收合鈕貼在視窗底部", n0["pos"] == "fixed" and n0["left"] == 0
+           and 200 <= n0["navW"] <= 240 and n0["bgH"] == n0["vh"] and n0["vh"] - 40 <= n0["footB"] <= n0["vh"], n0)
+        # .topbar 的盒子只能是「頂端被蓋住的那一條」（＝跳轉列高）：industry.js 的指標面板拿它的下緣判斷按鈕有沒有被蓋住
+        ok(f"{T}1440 .topbar 盒子高＝頂端那一條（≤ 60px，不是整個視窗高）", n0["barH"] <= 60, n0)
+        ok(f"{T}1440 主內容讓出導覽寬（不被蓋住）", abs(n0["mainL"] - n0["navW"]) <= 2, n0)
+        ok(f"{T}1440 沒有橫向捲軸", n0["sw"] <= n0["cw"] + 1, n0)
+        grp = pg.evaluate("""() => { const tabs = [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length);
+            tabs.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+            return { order: tabs.map(t => t.dataset.view),
+              labels: tabs.map(t => getComputedStyle(t, '::before').content).filter(c => c && c !== 'none' && c !== 'normal').map(c => c.replace(/"/g, '')),
+              icons: tabs.filter(t => /svg/.test(getComputedStyle(t, '::after').maskImage || getComputedStyle(t, '::after').webkitMaskImage || '')).length,
+              n: tabs.length }; }""")
+        ok(f"{T}1440 頁面依分組排：總覽｜資金流向、熱力圖｜產業地圖、市場明細｜週期統計｜自選",
+           grp["order"] == ["overview", "flow", "heatmap", "industry", "market", "season", "watch"], grp)
+        ok(f"{T}1440 分組標題依序是 今日市場／錢往哪裡跑／族群與個股／歷史規律／專案",
+           grp["labels"] == ["今日市場", "錢往哪裡跑", "族群與個股", "歷史規律", "專案"], grp)
+        ok(f"{T}1440 每一頁都有線條圖示", grp["icons"] == grp["n"], grp)
+
+        # ② 點分組裡的頁面 → 切路由
+        for view, name, g in (("flow", "資金流向", "錢往哪裡跑"), ("heatmap", "熱力圖", "錢往哪裡跑"),
+                              ("season", "週期統計", "歷史規律"), ("overview", "總覽", "今日市場")):
+            pg.locator(f"#tabs .tab[data-view='{view}']").click(timeout=6000)
+            got = wait_until(pg, f"""() => location.hash.startsWith('#{view}') && document.querySelector('#v-{view}.on')
+                && (document.querySelector('#l4Head h1') || {{}}).textContent === '{name}' ? 1 : 0""", 6000)
+            st = pg.evaluate("""() => ({ hash: location.hash, on: (document.querySelector('#tabs .tab.on') || {}).dataset?.view,
+                view: (document.querySelector('.view.on') || {}).id, h1: (document.querySelector('#l4Head h1') || {}).textContent,
+                eb: (document.querySelector('#l4Head .eyebrow') || {}).textContent, p: (document.querySelector('#l4Head p') || {}).textContent })""")
+            ok(f"{T}1440 點導覽「{name}」→ 路由真的換到 #{view}（分頁亮、頁面換、頁首換）",
+               bool(got) and st["on"] == view and st["eb"] == g and len(st["p"] or "") >= 10, st)
+
+        # ③ 收合／展開，寬度真的變、重新整理後還在
+        pg.locator("#l4NavBtn").click(timeout=6000)
+        wait_until(pg, "() => document.documentElement.classList.contains('l4-mini')", 3000)
+        pg.wait_for_timeout(250)
+        n1 = pg.evaluate(L4_NAV)
+        ok(f"{T}1440 按「收合導覽」→ 導覽真的變窄（只剩圖示）", n1["mini"] and n1["navW"] <= 80 and n1["navW"] < n0["navW"] - 100, {"前": n0, "後": n1})
+        ok(f"{T}1440 收合後收合鈕仍貼在視窗底部（中間清單高度重算過）", n1["vh"] - 40 <= n1["footB"] <= n1["vh"], n1)
+        ok(f"{T}1440 收合後主內容真的變寬", n1["mainW"] >= n0["mainW"] + 100 and abs(n1["mainL"] - n1["navW"]) <= 2, {"前": n0["mainW"], "後": n1["mainW"]})
+        ok(f"{T}1440 收合狀態寫進 localStorage", n1["pref"] == "mini", n1)
+        tip = pg.evaluate("() => [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length).map(t => t.title)")
+        ok(f"{T}1440 圖示列的每一頁都有滑鼠提示（字收掉了，靠 title 認）", all(tip) and len(tip) >= 7, tip)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(600)
+        n2 = pg.evaluate(L4_NAV)
+        ok(f"{T}1440 重新整理後還是收合", n2["mini"] and n2["navW"] <= 80, n2)
+        pg.locator("#l4NavBtn").click(timeout=6000); pg.wait_for_timeout(300)
+        n3 = pg.evaluate(L4_NAV)
+        ok(f"{T}1440 再按一次 → 展開、寬度回來", not n3["mini"] and abs(n3["navW"] - n0["navW"]) <= 2 and n3["pref"] == "full", n3)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(600)
+        n4 = pg.evaluate(L4_NAV)
+        ok(f"{T}1440 重新整理後還是展開（記得的是使用者按的，不是視窗寬）", not n4["mini"] and abs(n4["navW"] - n0["navW"]) <= 2, n4)
+
+        # ④ 本頁功能膠囊：點了捲過去、捲動時亮起的跟著變
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#l4Jump .chips button').length >= 3", 8000)
+        pg.wait_for_timeout(800)
+        j0 = pg.evaluate(L4_JUMP)
+        ok(f"{T}#flow 本頁功能膠囊列出現、編號 01 起、至少 3 節", j0 and j0["shown"] and j0["n"] >= 3 and j0["labels"][0].startswith("01"), j0)
+        ok(f"{T}#flow 剛進來亮第 1 顆", j0 and j0["on"] == 0, j0)
+        # 點第 2 顆（第 3、4 顆在頁尾那一排，頁面捲到底也頂不到跳轉列下緣 —— 那是頁面不夠長，不是膠囊沒作用）
+        k = 1
+        pg.locator(f"#l4Jump .chips button[data-i='{k}']").click(timeout=6000)
+        hit = wait_until(pg, f"""() => {{ const j = document.getElementById('l4Jump').getBoundingClientRect();
+            const c = [...document.querySelectorAll('.card')].find(x => x.classList.contains('l4-hit'));
+            if (!c || scrollY < 50) return null; const t = c.getBoundingClientRect().top;
+            return (t >= j.bottom - 2 && t <= j.bottom + 40) ? {{ t: Math.round(t), jb: Math.round(j.bottom),
+              ttl: (c.querySelector('h3') || {{}}).textContent }} : null; }}""", 4000)
+        j1 = pg.evaluate(L4_JUMP)
+        ok(f"{T}#flow 點第 2 顆膠囊 → 真的捲到那張卡（卡片頂端落在跳轉列正下方、標題對得上）",
+           bool(hit) and j1["sy"] > 50 and j0["labels"][1][2:].rstrip("…") in (hit or {}).get("ttl", ""), {"hit": hit, **(j1 or {})})
+        ok(f"{T}#flow 點了之後那顆亮起", j1 and j1["on"] == k, j1)
+        ok(f"{T}#flow 捲下去之後跳轉列黏在視窗頂端", j1 and j1["top"] == 0, j1)
+        pg.wait_for_timeout(1000)                          # 等點擊鎖（900ms）解除，之後才是純捲動偵測
+        # 用滾輪捲 —— 滑鼠放在跳轉列的標籤上（不是圖上：輪盤、熱力圖會自己吃滾輪拿去縮放）
+        lb = pg.locator("#l4Jump .lbl").bounding_box()
+        pg.mouse.move(lb["x"] + 5, lb["y"] + 5)
+        pg.mouse.wheel(0, -8000); pg.wait_for_timeout(900)
+        j2 = pg.evaluate(L4_JUMP)
+        ok(f"{T}#flow 用滾輪捲回頂端 → 亮起的膠囊跟著換回第 1 顆", j2 and j2["on"] == 0 and j2["sy"] == 0, {"捲前": j1, "捲後": j2})
+        pg.mouse.wheel(0, 20000); pg.wait_for_timeout(900)
+        j3 = pg.evaluate(L4_JUMP)
+        ok(f"{T}#flow 用滾輪捲到底 → 亮起最後一顆", j3 and j3["on"] == j3["n"] - 1 and j3["sy"] > j1["sy"], {"捲前": j1, "捲後": j3})
+        pg.mouse.wheel(0, -8000); pg.wait_for_timeout(600)
+
+        # ⑤ 事件抽屜
+        SD = """() => { const s = document.getElementById('side'), k = document.getElementById('sideBack'), r = s.getBoundingClientRect();
+            return { open: s.classList.contains('open'), top: Math.round(r.top), right: Math.round(r.right), vw: innerWidth,
+              seen: getComputedStyle(s).visibility !== 'hidden' && r.left < innerWidth - 2,
+              back: k.classList.contains('on'), backL: Math.round(k.getBoundingClientRect().left),
+              navW: Math.round(document.querySelector('.topbar').getBoundingClientRect().width) }; }"""
+        pg.locator("#evToggle").click(timeout=6000); pg.wait_for_timeout(600)
+        d1 = pg.evaluate(SD)
+        ok(f"{T}1440 按左欄「事件」→ 抽屜滑出、遮罩出現", d1["open"] and d1["seen"] and d1["back"], d1)
+        ok(f"{T}1440 抽屜從視窗頂端開始（上面已經沒有頂欄）、貼右", d1["top"] == 0 and d1["right"] == d1["vw"], d1)
+        ok(f"{T}1440 遮罩從左欄右緣開始蓋（左欄的鈕照樣按得到）", abs(d1["backL"] - d1["navW"]) <= 1, d1)
+        pg.mouse.click(d1["navW"] + 200, 450); pg.wait_for_timeout(600)
+        ok(f"{T}1440 點遮罩 → 抽屜關掉", not pg.evaluate(SD)["open"], pg.evaluate(SD))
+        pg.locator("#evToggle").click(timeout=6000); pg.wait_for_timeout(500)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+        ok(f"{T}1440 按 Esc → 抽屜關掉", not pg.evaluate(SD)["open"], pg.evaluate(SD))
+        pg.locator("#evToggle").click(timeout=6000); pg.wait_for_timeout(500)
+        ok(f"{T}1440 第三次打開（× 驗收前提）", pg.evaluate(SD)["open"])
+        pg.locator("#evClose").click(timeout=6000); pg.wait_for_timeout(500)
+        ok(f"{T}1440 點 × → 抽屜關掉", not pg.evaluate(SD)["open"], pg.evaluate(SD))
+
+        # ⑥ 外觀面板、搜尋下拉在視窗內
+        pg.locator("#t4Btn").click(timeout=6000); pg.wait_for_timeout(400)
+        tp = pg.evaluate("""() => { const p = document.getElementById('t4Pop'); if (!p || p.hidden) return null; const r = p.getBoundingClientRect();
+            return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right), vh: innerHeight, vw: innerWidth,
+              navW: Math.round(document.querySelector('.topbar').getBoundingClientRect().width) }; }""")
+        ok(f"{T}1440 左欄底部「外觀」→ 面板打開而且整塊在視窗內、貼在左欄右邊",
+           bool(tp) and tp["top"] >= 0 and tp["bottom"] <= tp["vh"] and tp["left"] >= tp["navW"] and tp["right"] <= tp["vw"], tp)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        pg.locator("#q").click(timeout=6000)
+        wait_until(pg, "() => document.querySelectorAll('#sugg .sgrow').length >= 3", 5000)
+        sg = pg.evaluate("""() => { const s = document.getElementById('sugg'), r = s.getBoundingClientRect();
+            return { n: s.querySelectorAll('.sgrow').length, left: Math.round(r.left), right: Math.round(r.right), vw: innerWidth,
+              sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }; }""")
+        ok(f"{T}1440 左欄搜尋框 → 下拉往右長、整塊在視窗內", sg["n"] >= 3 and sg["left"] >= 0 and sg["right"] <= sg["vw"] and sg["sw"] <= sg["cw"] + 1, sg)
+        pg.keyboard.press("Escape")
+
+        # ⑨ 回歸：個股頁「指標 ▾」面板打開後要留著（左欄第一版把 .topbar 撐滿視窗高，面板 320ms 後就被 trackPop 當成「按鈕被蓋住」關掉）
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle")
+        wait_until(pg, "() => !!document.getElementById('indBtn')", 8000); pg.wait_for_timeout(800)
+        pg.locator("#indBtn").click(timeout=6000); pg.wait_for_timeout(900)
+        cp = pg.evaluate("""() => { const p = document.getElementById('cfgPop'); if (!p || p.hidden) return { open: false };
+            const r = p.getBoundingClientRect(); return { open: true, top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight }; }""")
+        ok(f"{T}1440 個股頁按「指標 ▾」→ 面板打開、過了 0.9 秒還在", cp["open"] and cp["top"] >= 0 and cp["top"] < cp["vh"], cp)
+        pg.keyboard.press("Escape")
+    finally:
+        ctx.close()
+
+    # ---------------- 1100：沒按過收合 → 預設圖示列 ----------------
+    ctx = b.new_context(viewport={"width": 1100, "height": 900})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(f"1100: {e}"))
+    try:
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(800)
+        n = pg.evaluate(L4_NAV)
+        ok(f"{T}1100 沒按過收合 → 預設收成圖示列（讓內容有地方放）", n["mini"] and n["navW"] <= 80 and n["pref"] is None, n)
+        ok(f"{T}1100 沒有橫向捲軸", n["sw"] <= n["cw"] + 1, n)
+        pg.locator("#tabs .tab[data-view='market']").click(timeout=6000)
+        ok(f"{T}1100 圖示列點「市場明細」→ 路由換到 #market", bool(wait_until(pg, "() => location.hash.startsWith('#market') && !!document.querySelector('#v-market.on')", 5000)),
+           pg.evaluate("() => location.hash"))
+    finally:
+        ctx.close()
+
+    # ---------------- 手機 390 ----------------
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(f"390: {e}"))
+    try:
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        wait_until(pg, "() => document.body.classList.contains('m3on') && !!document.getElementById('mTabMore')", 8000)
+        pg.wait_for_timeout(600)
+        MT = """() => { const p = document.querySelector('.brand .l4pt'), b = document.querySelector('.brand b'), t = document.getElementById('tabs');
+            const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+            return { pt: vis(p) ? p.innerText.replace(/\\s+/g, ' ').trim() : null, site: vis(b),
+              fs: p ? parseFloat(getComputedStyle(p.querySelector('span') || p).fontSize) : 0,
+              tabsH: Math.round(t.getBoundingClientRect().height), topH: Math.round(document.querySelector('.topbar').getBoundingClientRect().height),
+              head: !!document.getElementById('l4Head') && document.getElementById('l4Head').getClientRects().length > 0,
+              icons: [...t.querySelectorAll('.tab, .mtabmore')].filter(vis).map(x => /svg/.test(getComputedStyle(x, '::before').maskImage || getComputedStyle(x, '::before').webkitMaskImage || '')),
+              sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, hash: location.hash }; }"""
+        m1 = pg.evaluate(MT)
+        ok(f"{T}390 頂欄寫目前頁名（今日市場／總覽），站名收掉", m1["pt"] and "總覽" in m1["pt"] and "今日市場" in m1["pt"] and not m1["site"], m1)
+        ok(f"{T}390 頁名字級 ≥ 11px", m1["fs"] >= 11, m1)
+        ok(f"{T}390 手機不顯示桌機頁首（一屏高度預算不動）", not m1["head"], m1)
+        ok(f"{T}390 底部五顆都是線條圖示（遮罩圖，不是文字符號）", len(m1["icons"]) == 5 and all(m1["icons"]), m1)
+        ok(f"{T}390 沒有橫向捲軸", m1["sw"] <= m1["cw"] + 1, m1)
+        # 改前：同一頁拿掉 html.l4（＝舊版 CSS）當場量
+        old = pg.evaluate("""() => { const c = document.documentElement.classList; c.remove('l4');
+            const h = Math.round(document.getElementById('tabs').getBoundingClientRect().height),
+                  th = Math.round(document.querySelector('.topbar').getBoundingClientRect().height);
+            c.add('l4'); return { tabsH: h, topH: th }; }""")
+        ok(f"{T}390 底部分頁列高度不大於改前", m1["tabsH"] <= old["tabsH"] and old["tabsH"] > 0, {"改前": old, "改後": m1["tabsH"]})
+        ok(f"{T}390 頂欄高度不變", m1["topH"] <= old["topH"], {"改前": old, "改後": m1["topH"]})
+        pg.locator("#tabs .tab[data-view='flow']").tap(timeout=6000)
+        got = wait_until(pg, "() => location.hash.startsWith('#flow') && ((document.querySelector('.brand .l4pt') || {}).innerText || '').indexOf('資金流向') >= 0", 6000)
+        ok(f"{T}390 點底部「資金流向」→ 頂欄頁名跟著換", bool(got), pg.evaluate(MT))
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle")
+        got = wait_until(pg, f"() => ((document.querySelector('.brand .l4pt') || {{}}).innerText || '').indexOf('{code}') >= 0", 8000)
+        ok(f"{T}390 個股頁頂欄寫股名＋代號", bool(got), pg.evaluate(MT))
+    finally:
         ctx.close()
     ok(f"{T} 沒有 pageerror", not errs, errs[:5])
 
