@@ -1,12 +1,21 @@
 """載入效能量測（R6 方法；2026-09-25 perf-2 收進 repo，免得每次重寫）。
 量「首次開某一頁」：FCP、boot 完成、可互動（boot 之後 5 秒內沒有新長任務的起點）、TBT、最長長任務、
 每個長任務的來源函式（CDP CPU profile）、JSON 逐檔大小、script 總量。
+卡頓（長任務／即時一輪／切頁洩漏）：python scripts/_perf.py --jank [--cpu 4] [--width 390] [--pages overview,flow] [--dwell 60]
 用法：python scripts/_perf.py [--cpu 1|4] [--net none|slow] [--hash overview] [--tag name] [--site site] [--out 目錄]
       比對兩版：python scripts/_perf_matrix.py new=site old=/某處/舊版/site --cpu 1,4 --rep 3
 ⚠ 先要有 site/data/*.json（python -m pipeline.build_payload，SKIP_INTRADAY=1 可省分 K）。
 ⚠ 數字受容器負載影響很大（同一版連跑兩次可差 ±500ms），比較兩版一律交錯跑、看中位數。
 """
 import argparse, json, sys, threading, time, gzip, os, collections, tempfile
+
+# ★ 2026-10-01 卡頓量測（DECISIONS #284）：`python scripts/_perf.py --jank ...` 走另一套（scripts/_perf_jank.py），
+#   量「用起來卡不卡」：每頁長任務／主執行緒忙碌比例／記憶體／DOM、盤中 5 秒一輪的成本、切頁洩漏。
+if '--jank' in sys.argv:
+    sys.argv.remove('--jank')
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import _perf_jank  # noqa: F401  （匯入即執行）
+    sys.exit(0)
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
