@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 10-03 04:56 版面 V2 上正式站（CEO）
+
+- Andy：「目前滿意預覽版本排法，幫我改成預覽為正式版本」→ `claude/layout-v2-desktop`（175a5a2）合併進 main（3c24dfd）。只作用在電腦版 >820；手機不變。
+- 這批驗了：`_preview.py` 全綠；`_uitest --sections 版面v2結構,總覽,個股,產業,新-版面等高與多寬度,設定面板,淺色主題,手機,會員與自選五分頁` → 除 `新-版面等高與多寬度` 3 紅外全 0。
+  那 3 紅（breadth 圖沒畫出來 ×2、1024 排行被截）在合併前的 main 也有（main 該段 26 紅，多數斷言已過時），不是 V2 造成；交給 `claude/fit-screen` 順便更正。
+- 沒跑 pytest（只動 site/、_uitest、文件）。
+- 進行中（各自分支）：頁首只剩標題＋時間／收合鈕／事件置頂／帳號卡＋淺深切換／側欄拆子分頁（layout-v2-desktop）、剖析圖縮小＋關聯圖加框＋剖析圖與關聯圖對應＋3D 70%（diagram-tidy）、個股基本面卡／AI 標籤／資券與營收 KPI 列拿掉（stock-fund-card）、重新整理回預設（reset-on-reload）、一屏看完（fit-screen）、產業地圖地圖化（industry-map-v2 → preview/industry-map）、當沖借券停在 9/24（daytrade-fix）、兩條不穩驗收（uitest-flaky2）。
+
 ## 10-03 04:15 合併狀態（CEO）
 
 - **#303 已推 main（faae730）**。合併後這批驗了：`_preview.py` 全綠；`_uitest --sections 個股總覽等高1003,獲利並排本益比1003,個股總覽三欄1002,市場明細兩欄1003,個股` 全 0。
