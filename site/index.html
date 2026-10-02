@@ -2193,6 +2193,11 @@ tbody tr:last-child td{border-bottom:0}
 .chainmap .co.dim{opacity:.28}
 .chainmap .co rect{stroke:var(--line-2)}
 .chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--c,var(--cyan));filter:drop-shadow(0 0 8px var(--c,rgba(62,224,255,.6)))}
+/* ★ 2026-10-03（Andy：「供應鏈關聯圖族群需要框線框起來比較簡潔」）：每個環節一個細框。
+   邊框吃 v4 的卡片邊色（--t4-card-edge，沒掛 v4 時退回 --line-2），淡底＝環節色 5%；
+   選取／滑過那個環節時框改成環節色（跟標題色塊同一個語意）。框不吃滑鼠，點擊照舊落在標題與卡片上。*/
+.chainmap .segbox{fill:color-mix(in srgb,var(--c) 5%,transparent);stroke:var(--t4-card-edge,var(--line-2));stroke-width:1;pointer-events:none}
+.chainmap .segbox.sel{stroke:color-mix(in srgb,var(--c) 70%,transparent)}
 .chainmap .segtitle{cursor:pointer} .chainmap .segtitle.sel rect{fill-opacity:.4}
 .chainmap .segtitle:hover rect{fill-opacity:.3}
 /* 畫布底改讀 --dg-bg（預設就是 var(--illus)，所以科技配色下外觀零變化）。
@@ -3144,6 +3149,8 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      是 industry.js 的 `fitCols()` 把左右內距算成一樣大，寫進 viewBox 裡。
      CSS 這邊只要**不要再有 max-width 把它卡住**就好，那正是舊版靠左的原因。*/
 .relsec{margin-top:16px;max-width:100%;min-width:0}
+/* 2026-10-03：上方剖析圖跟關聯圖對不上任何一格時整塊藏（industry.js applyRelScope）；.relsec 沒有 display 規則，這條保險 */
+.relsec[hidden]{display:none}
 .relsec .chainrow{max-width:100%;min-width:0}
 /* ================= 產業鏈頁的供應鏈關聯圖：環節下拉 ＋ 選中環節的族群／個股（2026-09-24）
    Andy：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」「上方標籤改成下拉清單、下方環節字卡全部拿掉」。
