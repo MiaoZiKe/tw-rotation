@@ -22,6 +22,13 @@ const { hub } = makeHub({
 });
 const codes = new Map();
 const PEOPLE = { andy: ['andy@example.com', 'Andy 測試'], bob: ['bob@example.com', 'Bob 訪客'] };
+/* --person key=email=名字（可重複）：驗收要用的額外假帳號（例如功能權限那段的測試帳號）。
+   刻意由 _uitest.py 從命令列帶進來、不寫死在這裡 —— 測試用的真實 email 只准出現在驗收的假資料裡（DECISIONS #288）。*/
+process.argv.forEach((a, i) => {
+  if (a !== '--person') return;
+  const [k, email, name] = String(process.argv[i + 1] || '').split('=');
+  if (/^[a-z0-9]{1,12}$/.test(k || '') && /@/.test(email || '')) PEOPLE[k] = [email, name || email];
+});
 const b64u = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 
 async function fakeGoogle(url, req, res, body) {

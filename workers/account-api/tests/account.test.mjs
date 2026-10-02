@@ -262,3 +262,127 @@ test('白名單三邊一致：worker.js ＝ site/account.js ＝ docs/account_ana
   for (const e of EVENTS) assert.ok(doc.includes('`' + e + '`'), '文件沒寫到事件 ' + e);
   for (const v of VIEWS) assert.ok(doc.includes('`' + v + '`'), '文件沒寫到頁面 ' + v);
 });
+
+/* ======================================================================== R7 功能權限（DECISIONS #288）
+ * 跟 R1～R6 同一個標準：每條同時驗「該允許的有允許」與「該拒絕的有拒絕」。
+ * 重點三條：① 一般人讀不到別人的 ② 一般人寫不了任何人的（包括自己）③ 上線當下所有人都是全開（不能讓誰突然看不到）。*/
+const ADMIN_EPS = ['/v1/admin/perm/get', '/v1/admin/perm/put', '/v1/admin/perm/list', '/v1/admin/plans/get', '/v1/admin/plans/put'];
+
+test('R7 上線預設：訪客、從沒被設定過的會員，拿到的都是空的開關（＝前端全部照預設開啟）', async () => {
+  const { hub } = makeHub(env());
+  const g = await (await post(hub, '/v1/perm/me', {})).json();
+  assert.deepEqual([g.who, g.plan, g.feats], ['guest', 'guest', {}]);
+  const bob = (await login(hub, 'bob@example.com')).j.tok;
+  const m = await (await post(hub, '/v1/perm/me', { t: bob })).json();
+  assert.deepEqual([m.who, m.plan, m.feats], ['member', 'free', {}]);
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  const pl = await (await post(hub, '/v1/admin/plans/get', { t: andy })).json();
+  assert.deepEqual(pl.plans.map((p) => [p.id, p.builtin, JSON.stringify(p.feats)]).sort(), [['free', true, '{}'], ['guest', true, '{}'], ['paid', false, '{}']]);
+});
+
+test('R7 管理者：設定某 email 的方案＋微調，本人登入後讀得到；email 不分大小寫；可以先設好、對方之後才登入', async () => {
+  const { hub } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t: andy, id: 'paid', name: '付費會員', feats: { 'stock.ai': true, 'watch.tabs': 5 } })).status, 200);
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t: andy, id: 'free', feats: { 'stock.ai': false, 'watch.tabs': 2 } })).status, 200);
+  const put = await post(hub, '/v1/admin/perm/put', { t: andy, email: 'Carol@Example.com', plan: 'paid', over: { 'stock.k_hour': false } });
+  assert.equal(put.status, 200);
+  const pj = await put.json();
+  assert.equal(pj.email, 'carol@example.com');
+  assert.deepEqual(pj.feats, { 'stock.ai': true, 'watch.tabs': 5, 'stock.k_hour': false });
+  const carol = (await login(hub, 'carol@example.com')).j.tok;          // 設定之後才第一次登入
+  const me = await (await post(hub, '/v1/perm/me', { t: carol })).json();
+  assert.deepEqual([me.plan, me.feats], ['paid', { 'stock.ai': true, 'watch.tabs': 5, 'stock.k_hour': false }]);
+  // 沒被設定的會員吃「免費會員」範本
+  const dave = (await login(hub, 'dave@example.com')).j.tok;
+  assert.deepEqual((await (await post(hub, '/v1/perm/me', { t: dave })).json()).feats, { 'stock.ai': false, 'watch.tabs': 2 });
+  // 讀回單一 email、清單
+  const gj = await (await post(hub, '/v1/admin/perm/get', { t: andy, email: 'carol@example.com' })).json();
+  assert.deepEqual([gj.plan, gj.over, gj.known && gj.known.name], ['paid', { 'stock.k_hour': false }, 'carol']);
+  const lj = await (await post(hub, '/v1/admin/perm/list', { t: andy })).json();
+  assert.deepEqual(lj.rows.map((r) => [r.email, r.plan, r.n]), [['carol@example.com', 'paid', 1]]);
+  assert.ok(lj.users.some((u) => u.email === 'dave@example.com'));
+  // reset：回到免費預設
+  await post(hub, '/v1/admin/perm/put', { t: andy, email: 'carol@example.com', reset: true });
+  assert.equal((await (await post(hub, '/v1/perm/me', { t: carol })).json()).plan, 'free');
+});
+
+test('R7 拒絕：非管理者（含沒權杖、假權杖）不能讀寫別人的權限、不能讀寫方案範本', async () => {
+  const { hub } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  await post(hub, '/v1/admin/perm/put', { t: andy, email: 'alice@example.com', plan: 'paid', over: { 'stock.ai': true } });
+  const bob = (await login(hub, 'bob@example.com')).j.tok;
+  const forged = andy.replace(/\.[^.]+$/, '.AAAA');
+  for (const t of [bob, undefined, forged]) {
+    for (const p of ADMIN_EPS) {
+      const r = await post(hub, p, { t, email: 'alice@example.com', plan: 'paid', over: { 'stock.ai': false }, id: 'paid', name: 'x', feats: {} });
+      assert.equal(r.status, 403, `${p} 用 ${t === bob ? 'Bob' : t ? '假權杖' : '沒權杖'}`);
+    }
+  }
+  // 被拒絕的那幾次不可以動到資料
+  const gj = await (await post(hub, '/v1/admin/perm/get', { t: andy, email: 'alice@example.com' })).json();
+  assert.deepEqual(gj.over, { 'stock.ai': true });
+  const pl = await (await post(hub, '/v1/admin/plans/get', { t: andy })).json();
+  assert.equal(pl.plans.find((p) => p.id === 'paid').name, '付費會員');
+  // /v1/perm/me 不收 email 參數：Bob 帶 alice 的 email 拿到的還是自己的
+  const me = await (await post(hub, '/v1/perm/me', { t: bob, email: 'alice@example.com' })).json();
+  assert.deepEqual([me.plan, me.feats], ['free', {}]);
+});
+
+test('R7 拒絕：非管理者不能改自己 —— 寫自己的 email 一樣 403；/v1/perm/me 多帶 plan／feats 也不會被寫進去', async () => {
+  const { hub } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  await post(hub, '/v1/admin/plans/put', { t: andy, id: 'free', feats: { 'stock.ai': false } });
+  const bob = (await login(hub, 'bob@example.com')).j.tok;
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: bob, email: 'bob@example.com', plan: 'paid', over: { 'stock.ai': true } })).status, 403);
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: bob, email: 'BOB@example.com', reset: true })).status, 403);
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t: bob, id: 'free', feats: {} })).status, 403);
+  const r = await (await post(hub, '/v1/perm/me', { t: bob, plan: 'paid', feats: { 'stock.ai': true }, over: { 'stock.ai': true } })).json();
+  assert.deepEqual([r.plan, r.feats], ['free', { 'stock.ai': false }]);
+  assert.deepEqual((await (await post(hub, '/v1/perm/me', { t: bob })).json()).feats, { 'stock.ai': false });
+  // 假權杖讀自己：401（跟 R1 一致，前端會當作登出）
+  assert.equal((await post(hub, '/v1/perm/me', { t: bob.replace(/\.[^.]+$/, '.AAAA') })).status, 401);
+});
+
+test('R7 格式：壞 email、壞鍵、壞值、太多鍵、不存在／訪客方案、刪內建方案 一律拒絕；刪方案的人退回免費', async () => {
+  const { hub } = makeHub(env());
+  const t = (await login(hub, 'andy@example.com')).j.tok;
+  for (const email of ['', 'no-at', 'a@b', '<x>@example.com', 'a b@example.com', 'x'.repeat(65) + '@example.com']) {
+    assert.equal((await post(hub, '/v1/admin/perm/put', { t, email, plan: 'free', over: {} })).status, 400, email);
+  }
+  for (const over of [{ 'Bad Key': true }, { 'x': true }, { 'stock.ai': 'yes' }, { 'stock.ai': -1 }, { 'stock.ai': 100 }, { 'stock.ai': 1.5 }, ['stock.ai'],
+    Object.fromEntries(Array.from({ length: 121 }, (_, i) => ['f' + i + 'x', true]))]) {
+    assert.equal((await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'free', over })).status, 400, JSON.stringify(over).slice(0, 40));
+  }
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'nope', over: {} })).status, 400, '不存在的方案');
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'guest', over: {} })).status, 400, '會員不能指定成訪客方案');
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t, id: 'guest', del: true })).status, 400, '內建方案不能刪');
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t, id: 'free', del: true })).status, 400);
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t, id: 'Bad Id', name: 'x', feats: {} })).status, 400);
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t, id: 'vip', name: '   ', feats: {} })).status, 400);
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t, id: 'vip', name: '<b>VIP</b>', feats: { 'stock.ai': true } })).status, 200);
+  const pl = await (await post(hub, '/v1/admin/plans/get', { t })).json();
+  assert.equal(pl.plans.find((p) => p.id === 'vip').name, 'bVIP/b', '名稱裡的 < > 被拿掉');
+  await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'vip', over: { 'stock.mtf': false } });
+  await post(hub, '/v1/admin/plans/put', { t, id: 'vip', del: true });
+  const gj = await (await post(hub, '/v1/admin/perm/get', { t, email: 'c@example.com' })).json();
+  assert.deepEqual([gj.plan, gj.over], ['free', { 'stock.mtf': false }], '方案刪掉 → 退回免費、個別微調保留');
+});
+
+test('R7 方案範本最多 20 個；刪除我的資料時權限設定一起刪', async () => {
+  const { hub, db } = makeHub(env());
+  const t = (await login(hub, 'andy@example.com')).j.tok;
+  for (let i = 0; i < 17; i++) assert.equal((await post(hub, '/v1/admin/plans/put', { t, id: 'p' + i, name: 'P' + i, feats: {} })).status, 200);
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t, id: 'p99', name: 'P99', feats: {} })).status, 400, '第 21 個');
+  const bob = (await login(hub, 'bob@example.com')).j.tok;
+  await post(hub, '/v1/admin/perm/put', { t, email: 'bob@example.com', plan: 'paid', over: {} });
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM perm').get().c, 1);
+  await post(hub, '/v1/delete', { t: bob });
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM perm').get().c, 0);
+});
+
+test('R7 管理者名單是空的時，沒有人讀寫得到權限設定', async () => {
+  const { hub } = makeHub(env({ ADMIN_EMAILS: '' }));
+  const t = (await login(hub, 'andy@example.com')).j.tok;
+  for (const p of ADMIN_EPS) assert.equal((await post(hub, p, { t, email: 'x@example.com', id: 'paid', name: 'x', feats: {} })).status, 403, p);
+});

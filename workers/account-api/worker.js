@@ -21,6 +21,12 @@
  *   R4 線上總人數：預設公開（只有數字），管理者可在 #admin 關掉；關掉後只回給管理者。
  *   R5 權杖：HMAC-SHA256 簽章＋到期時間＋版本號；刪除帳號後舊權杖立即失效（查不到使用者就拒絕）。
  *   R6 登入：OAuth 2.0 授權碼＋PKCE（S256）＋ state ＋ nonce ＋ 綁定瀏覽器的 cookie；return 網址只准白名單網域。
+ *   R7 功能權限（DECISIONS #288）：每個 email 套一個方案範本＋個別微調。
+ *      · 一般人只有 /v1/perm/me：訪客（沒權杖）拿「訪客」方案、登入者拿「自己 email」那一份 —— 同 R1，API 不收 email 參數，
+ *        沒有「讀別人」的路徑；也**沒有任何寫入端點給一般人**，所以「改自己的權限」在物理上不存在。
+ *      · 讀寫任何 email 的權限、讀寫方案範本：只有 ADMIN_EMAILS 裡的人（同 R3）。
+ *      · ⚠ 這只決定「前端要不要上鎖頭」。網站資料 JSON 是 GitHub Pages 上的公開檔，懂技術的人照樣讀得到 ——
+ *        真正保護付費內容，要讓那份資料改由這支 Worker 驗身分後才給（設計與工作量見 DECISIONS #288）。
  *
  * 蒐集與保存（隱私權政策照這裡寫，改這裡要一起改 site/legal.js 與 site/account.js 的告知文字）
  *   · 會員：Google 顯示名稱、email、大頭貼網址、Google 帳號識別碼的雜湊（不存原值）、建立與最後使用時間。
@@ -28,6 +34,8 @@
  *   · 自選清單：清單名稱＋股票代號。**不存張數、成本、損益**（CLAUDE.md 第 5 條）。
  *   · 使用統計：每天每一項的「次數」而已，不含任何識別碼、不存 IP、不存單次點擊。保留 13 個月。
  *   · 線上：一個分頁一組隨機代碼（關掉分頁就失效）＋目前在哪一頁＋（登入者）uid。離線即刪（最多 3 分鐘）。
+ *   · 功能權限：管理者替某個 email 設定的「方案代號＋各功能開關」。保存到管理者移除，或本人刪除帳號（一起刪）。
+ *     email 是管理者自己輸入的（可以先設好、對方之後才登入）；除此之外不存任何東西。
  */
 
 /* ---------------------------------------------------------------- 可調參數 */
@@ -41,6 +49,16 @@ const MAX_TABS = 5, MAX_CODES = 50, MAX_NAME = 12;
 const MAX_EV_KEYS = 40, MAX_EV_INC = 50;
 const RATE_PER_MIN = 240;              // 同一個 IP 每分鐘最多幾次心跳（公司 NAT 後面可能有幾十人共用一個 IP）
 const ALARM_EVERY_MS = 60 * 60 * 1000; // 每小時清一次過期資料
+/* 功能權限（R7）。功能清單本身在 site/features.js —— Worker 刻意**不**抄一份白名單：
+   前端每加一個功能就要重新部署 Worker 太重，而且這裡存的只是「管理者寫的開關」，只驗格式與上限就夠
+   （值只准 true／false／0～99 的整數，鍵只准小寫英數與 . _，最多 120 個）。*/
+const MAX_FEAT_KEYS = 120, MAX_PLANS = 20, MAX_PERM_ROWS = 5000, MAX_PLAN_NAME = 20;
+const FEAT_RE = /^[a-z][a-z0-9_.]{1,39}$/;
+const PLAN_RE = /^[a-z0-9_-]{1,20}$/;
+const EMAIL_RE = /^[^\s@<>"'(),;:\\]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+/* 內建方案：訪客（沒登入）、免費會員（登入後沒被指定方案的預設）。不能刪，可以改內容。
+   上線時兩者都是 {}（＝全部照 features.js 的預設值，現在全部開啟）—— 不能因為這次上線讓任何人突然看不到功能。*/
+const BUILTIN_PLANS = [['guest', '訪客（未登入）'], ['free', '免費會員（預設）']];
 
 /* 使用統計白名單（R2）。改這裡要一起改 site/account.js 的 EVENTS 與 docs/account_analytics.md —— 測試會比對三邊一致。*/
 export const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other'];
@@ -91,6 +109,15 @@ export class Hub {
     this.q('CREATE TABLE IF NOT EXISTS usage (day TEXT, k TEXT, n INTEGER, PRIMARY KEY (day, k))');
     this.q('CREATE TABLE IF NOT EXISTS presence (sid TEXT PRIMARY KEY, uid TEXT, route TEXT, seen INTEGER)');
     this.q('CREATE TABLE IF NOT EXISTS logins (n TEXT PRIMARY KEY, state TEXT UNIQUE, verifier TEXT, nonce TEXT, mode TEXT, ret TEXT, exp INTEGER, tok TEXT, uid TEXT)');
+    /* R7 功能權限：以 email（小寫）為鍵，不是 uid —— 管理者要能先替還沒登入過的人設好（付費後再登入）。*/
+    this.q('CREATE TABLE IF NOT EXISTS perm (email TEXT PRIMARY KEY, plan TEXT, over TEXT, updated INTEGER)');
+    this.q('CREATE TABLE IF NOT EXISTS plans (id TEXT PRIMARY KEY, name TEXT, feats TEXT, builtin INTEGER, updated INTEGER)');
+    for (const [id, name] of BUILTIN_PLANS) if (!this.q('SELECT 1 FROM plans WHERE id = ?', id).length) this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 1, 0)', id, name, '{}');
+    /* 「付費會員」只在第一次啟動時種一份空的範本（＝全開），管理者刪掉就不會再長回來 */
+    if (!this.kv('plans_seeded')) {
+      if (!this.q('SELECT 1 FROM plans WHERE id = ?', 'paid').length) this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 0, 0)', 'paid', '付費會員', '{}');
+      this.setKv('plans_seeded', '1');
+    }
     /* 權杖簽章金鑰：第一次啟動時隨機產生、存在這個 Durable Object 自己的儲存裡。
        不進 repo、不是 GitHub Secret、Andy 也不用產生 —— 少一個要人記得設的東西。
        要讓所有人強制重新登入：刪掉這一列（或換 Worker 名稱）即可。*/
@@ -182,6 +209,12 @@ export class Hub {
         case '/v1/admin/stats': return await this.adminStats(req, b);
         case '/v1/admin/online': return await this.adminOnline(req, b);
         case '/v1/admin/settings': return await this.adminSettings(req, b);
+        case '/v1/perm/me': return await this.permMe(req, b);
+        case '/v1/admin/perm/get': return await this.adminPermGet(req, b);
+        case '/v1/admin/perm/put': return await this.adminPermPut(req, b);
+        case '/v1/admin/perm/list': return await this.adminPermList(req, b);
+        case '/v1/admin/plans/get': return await this.adminPlansGet(req, b);
+        case '/v1/admin/plans/put': return await this.adminPlansPut(req, b);
         default: return this.json(req, { error: 'not_found' }, 404);
       }
     } catch (e) {
@@ -381,6 +414,8 @@ export class Hub {
     this.q('DELETE FROM lists WHERE uid = ?', uid);
     this.q('DELETE FROM presence WHERE uid = ?', uid);
     this.q('DELETE FROM logins WHERE uid = ?', uid);
+    /* 權限設定是以 email 存的個人資料，一起刪（代價：付費會員刪帳號後再登入會回到免費預設，要請管理者重設）*/
+    if (v.user.email) this.q('DELETE FROM perm WHERE email = ?', String(v.user.email).toLowerCase());
     this.q('DELETE FROM users WHERE uid = ?', uid);
     return this.json(req, { ok: true, deleted: true });
   }
@@ -406,6 +441,102 @@ export class Hub {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
     if (typeof b.public_online === 'boolean') this.setKv('public_online', b.public_online ? '1' : '0');
     return this.json(req, { public_online: this.publicOnline() });
+  }
+
+  /* ---------------------------------------------------------------- 功能權限（R7，DECISIONS #288）*/
+  /* 驗「功能開關」：只收格式對的鍵、布林或 0～99 的整數；任何一項不合格就整批不收（同 cleanEv 的原則）。*/
+  cleanFeats(f) {
+    if (f == null) return {};
+    if (typeof f !== 'object' || Array.isArray(f)) return null;
+    const ent = Object.entries(f);
+    if (ent.length > MAX_FEAT_KEYS) return null;
+    const out = {};
+    for (const [k, v] of ent) {
+      if (!FEAT_RE.test(k)) return null;
+      if (typeof v === 'boolean' || (Number.isInteger(v) && v >= 0 && v <= 99)) out[k] = v; else return null;
+    }
+    return out;
+  }
+  cleanEmail(e) {
+    const s = String(e == null ? '' : e).trim().toLowerCase();
+    return s.length <= 200 && EMAIL_RE.test(s) ? s : null;
+  }
+  plan(id) {
+    const r = this.q('SELECT id, name, feats, builtin FROM plans WHERE id = ?', id)[0];
+    return r ? { id: r.id, name: r.name, feats: JSON.parse(r.feats || '{}'), builtin: !!r.builtin } : null;
+  }
+  /* 某個 email 實際生效的權限：方案範本 ← 個別微調（微調蓋過範本）。方案被刪掉的人自動退回「免費會員」。*/
+  effective(email) {
+    const row = email ? this.q('SELECT plan, over, updated FROM perm WHERE email = ?', email)[0] : null;
+    const p = (row && this.plan(row.plan)) || this.plan('free');
+    const over = row ? JSON.parse(row.over || '{}') : {};
+    return { plan: p.id, planName: p.name, over, feats: Object.assign({}, p.feats, over), set: !!row, updated: row ? row.updated : 0 };
+  }
+  async permMe(req, b) {
+    /* 刻意不看 b.email／b.plan／b.feats —— 一般人只能拿「權杖裡那個人」或「訪客」的那一份 */
+    if (!b.t) { const g = this.plan('guest'); return this.json(req, { who: 'guest', plan: g.id, planName: g.name, feats: g.feats }); }
+    const v = await this.verify(b.t);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const e = this.effective(String(v.user.email || '').toLowerCase());
+    return this.json(req, { who: 'member', plan: e.plan, planName: e.planName, feats: e.feats });
+  }
+  async adminPermGet(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    const known = this.q('SELECT name, seen FROM users WHERE lower(email) = ?', email)[0] || null;
+    return this.json(req, { email, ...this.effective(email), known: known ? { name: known.name, seen: known.seen } : null });
+  }
+  async adminPermPut(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    if (b.reset === true) { this.q('DELETE FROM perm WHERE email = ?', email); return this.json(req, { email, ...this.effective(email) }); }
+    const plan = String(b.plan || 'free');
+    /* 「訪客」方案只給沒登入的人；會員不能被指定成訪客（那是另一個語意，混用會讓「訪客預設」改一下就波及會員）*/
+    if (!PLAN_RE.test(plan) || plan === 'guest' || !this.plan(plan)) return this.json(req, { error: 'bad_plan' }, 400);
+    const over = this.cleanFeats(b.over);
+    if (!over) return this.json(req, { error: 'bad_feats' }, 400);
+    if (!this.q('SELECT 1 FROM perm WHERE email = ?', email).length && this.q('SELECT COUNT(*) AS c FROM perm')[0].c >= MAX_PERM_ROWS) return this.json(req, { error: 'too_many' }, 400);
+    this.q('INSERT INTO perm (email, plan, over, updated) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET plan = excluded.plan, over = excluded.over, updated = excluded.updated',
+      email, plan, JSON.stringify(over), this.now());
+    return this.json(req, { email, ...this.effective(email) });
+  }
+  async adminPermList(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const rows = this.q('SELECT email, plan, over, updated FROM perm ORDER BY updated DESC LIMIT 500')
+      .map((r) => ({ email: r.email, plan: r.plan, n: Object.keys(JSON.parse(r.over || '{}')).length, updated: r.updated }));
+    const users = this.q('SELECT name, email FROM users ORDER BY seen DESC LIMIT 300').map((u) => ({ name: u.name, email: String(u.email || '').toLowerCase() }));
+    return this.json(req, { rows, users });
+  }
+  async adminPlansGet(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const used = {};
+    this.q('SELECT plan, COUNT(*) AS c FROM perm GROUP BY plan').forEach((r) => { used[r.plan] = r.c; });
+    const plans = this.q('SELECT id FROM plans ORDER BY builtin DESC, updated, id').map((r) => ({ ...this.plan(r.id), members: used[r.id] || 0 }));
+    return this.json(req, { plans });
+  }
+  async adminPlansPut(req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const id = String(b.id || '');
+    if (!PLAN_RE.test(id)) return this.json(req, { error: 'bad_plan' }, 400);
+    const cur = this.plan(id);
+    if (b.del === true) {
+      if (!cur) return this.json(req, { error: 'not_found' }, 404);
+      if (cur.builtin) return this.json(req, { error: 'builtin' }, 400);
+      /* 用這個方案的人退回「免費會員」（保留各自的個別微調），不是連人一起刪 */
+      this.q('UPDATE perm SET plan = ?, updated = ? WHERE plan = ?', 'free', this.now(), id);
+      this.q('DELETE FROM plans WHERE id = ?', id);
+      return await this.adminPlansGet(req, b);
+    }
+    const name = String(b.name == null ? (cur ? cur.name : '') : b.name).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, MAX_PLAN_NAME);
+    if (!name) return this.json(req, { error: 'bad_name' }, 400);
+    const feats = this.cleanFeats(b.feats);
+    if (!feats) return this.json(req, { error: 'bad_feats' }, 400);
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM plans')[0].c >= MAX_PLANS) return this.json(req, { error: 'too_many' }, 400);
+    this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 0, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, feats = excluded.feats, updated = excluded.updated',
+      id, name, JSON.stringify(feats), this.now());
+    return await this.adminPlansGet(req, b);
   }
 
   /* ---------------------------------------------------------------- 保存期限（每小時 alarm ＋ 心跳時順手）*/
