@@ -7,6 +7,27 @@
   那 3 紅（breadth 圖沒畫出來 ×2、1024 排行被截）在合併前的 main 也有（main 該段 26 紅，多數斷言已過時），不是 V2 造成；交給 `claude/fit-screen` 順便更正。
 - 沒跑 pytest（只動 site/、_uitest、文件）。
 - 進行中（各自分支）：頁首只剩標題＋時間／收合鈕／事件置頂／帳號卡＋淺深切換／側欄拆子分頁（layout-v2-desktop）、剖析圖縮小＋關聯圖加框＋剖析圖與關聯圖對應＋3D 70%（diagram-tidy）、個股基本面卡／AI 標籤／資券與營收 KPI 列拿掉（stock-fund-card）、重新整理回預設（reset-on-reload）、一屏看完（fit-screen）、產業地圖地圖化（industry-map-v2 → preview/industry-map）、當沖借券停在 9/24（daytrade-fix）、兩條不穩驗收（uitest-flaky2）。
+## 10-03 05:20 驗收腳本兩條不穩定修正（分支 `claude/uitest-flaky2`，只動 `scripts/_uitest.py`，沒碰 `site/`）
+
+- **「個股」段畫線工具列偶發「element is not visible」→ IndexError**：
+  - 更正下面 04:15 那節的推測：工具列**沒有**「游標移入才展開」。它只在兩種情況被藏：週期是「分時」
+    （`.chartwrap.tickmode>.drawbar{display:none!important}`）或 ≤820px 沒按「✎ 畫線」。驗收跑 1500px，所以是頁面回到了分時。
+    失敗那輪「清空後 localStorage 也乾淨了」是綠的 → 清除真的做了，接著頁面回到預設週期；同一檔會讓週期回到分時的只有整頁重載。
+    最可能是 live.js `reloadIfRedeployed`（盤後 meta.json 的 generated_at 變了就 reload）撞到共用 `site/data` 被別人重建 ——
+    **推論，沒重現**（4 支平行、CPU 降速 6 倍都沒出現），所以修法不賭它。
+  - 修法：新增 `_draw_ready`／`dclick`，畫線區塊 14 處點工具列前先確認看得見；看不見就像使用者一樣切回日線再點。
+    分兩種：驗收放的標記 `window.__uitDrawMark` 不見＝頁面自己重載過（環境因素，印一行說明不記失敗）；
+    標記還在卻跑回分時＝網站把使用者選的週期改掉了（**記失敗**）。「全部清除」的確認框若因重載不見，會再按一次清除叫出來。
+    `ws[-1]`（屬性列粗細）與方框填滿那兩處，屬性列沒出現時改成記失敗、跳過，不再讓整段爆掉。
+  - 反向驗證（暫時掛的模擬碼已拿掉）：在確認鈕前故意 `location.reload()` → 印出重載說明、畫線相關 0 紅；
+    故意切到分時不重載 → 記到「★ [畫線] 頁面沒重新載入，週期卻自己跑回分時」那條。
+- **「總覽摘要卡即時」跨收盤 2 條假紅**：假時鐘不再寫死 09/29，改成 `site/data/meta.json` 的 `data_date` 之後第一個平日
+  （本機 10-01 → 10-02）；假報價的 `d`、假分時起點、跨收盤時刻、「收盤快照」日期都跟著走。讀不到 meta 就退回 09/29。
+  `LV5_INTRA`／`LV5_AFTER` 給「即時5秒0929」等其他段共用，沒動。
+- **這批驗了**：`TW_UITEST_PORT=8871 python scripts/_uitest.py --sections 個股,總覽摘要卡即時 --workers 1` → 個股 0、總覽摘要卡即時 0；
+  `--sections 個股` 再跑 2 次 → 0、0（三次都在負載 20～28 下跑）。沒跑 pytest（只動 `_uitest.py`、文件）；沒動 `site/` 所以沒跑 `_preview.py`。
+- 已知限制：① 「個股」段另有一條負載下才紅的「本益比河流圖還原成原始大小時整頁不會被帶著往下（scrollY 1014 → 1392）」，
+  4 支平行時 2/4 出現，單跑沒出現，這批沒處理。② 重載的真正來源沒抓到現行犯；下次再遇到，看輸出有沒有「（個股／畫線）頁面在操作中途自己重新載入了」那行。
 
 ## 10-03 04:15 合併狀態（CEO）
 
