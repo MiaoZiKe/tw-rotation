@@ -21,6 +21,46 @@
 - 已知限制：① 台積電這類九位數營收的明細表在 1440 第三欄仍要橫捲（年/月欄釘住）；② 390 手機版要點分頁列「完整版」才看得到這五頁的桌機版型（手機原生分頁沒動）；
   ③ 大戶散戶要等每週累積，補不回歷史。
 
+## 個股頁 K 線上方版面：AI 預設只看重點、展開收合左側不動、左右分隔線可拖、標籤搬到週期鈕那一行（2026-10-02，台北，UI 專家，分支 `claude/stock-head-layout`，**未推 main**）
+
+- Andy 15:19（#stock/3189 景碩三張截圖）＋同日「上方的 AI 分析只寫重點」→ DECISIONS #293。前一位的半成品 `claude/wip-stock-layout`（5a9a11e）只沿用「AI 區 contain:size」「單欄內容區改浮層」兩個想法，其他四項（營收三欄、本益比線寬、籌碼並排、大戶週數）沒帶進來。
+- 分支已合進最新 main（9268a82，含 stock-overview-mini 的總覽重點與台指期 Deno），合併回 main 應該只剩文件衝突。
+- [x] ① AI 區：預設收合＝一行結論＋四顆面向小標籤（點了捲到下面「總覽」的細節卡 #ovFacets），按「展開」才看各週期細節；
+  展開時撐滿右欄＋`contain:size`、保底高度 `--aiH` 掛在分隔線上 → 展開／收合／換面向左側與 K 線一個像素都不動；≤820 內容區是浮層（進頁面收著、不寫 tw.aiOpen）
+- [x] ② 分隔線 `#skSplit`：拖曳（col-resize）、存 `tw.aiSplit`（比例）、雙擊還原 44%、←／→ 鍵 2%；左欄最小寬＝工具列一行放得下；≤820 不出現（上下排）
+- [x] ③ 技術分／本益比／同業分位／營收 YoY／分 K 等級搬到工具列 `#skTags`（「指標」與「四週期同看」之間），放不下收進「⋯ N」；現價列只剩現價、漲跌、即時徽章；手機不顯示
+- [x] 附帶：兩欄時短註 #liveNote 固定佔一行（不然分時資料非同步到達時 K 線自己跳 18px）；641～760 工具列可橫滑；「⋯ N」小框改 position:fixed
+- 動到的函式與選擇器（給同時改 industry.js 的人對照）：industry.js `setLiveNote`（多一個 title）、`renderStock` 模板（#skPx、#skTools）、新增 `stockTags`／`tagPopClose`／`tagPopFill`／`fitTags`／`wireTags`；
+  stock_ai.js `css()`（#skChartCard.aiside 格線、#skSplit、#skAi 收合／展開、膠囊、單欄 .aibody 浮層、#liveNote）、`readOpen`（預設收合＋換版清一次）、`html`（結論改 briefText）、
+  `setOpen`／`userOpen`／`modeOf`／`leftMin`／`innerW`／`aiPx`／`sizeAi`／`wireSplit`／`watchWidth`／`mount`（小標籤點擊）／新增 `gotoFacet`；
+  index.html 新增 `#skTools`／`.sktags`／`.sktmore`／`.sktagpop` 規則；modules.js 兩塊積木的 tests 加「個股頂部1002」。
+- **這批驗了**（瀏覽器指令全包在 flock 裡；沒跑 pytest：只動 site/**、_uitest.py、文件）：
+  - 合併 main＋總覽重點、改「預設只看重點」之後最後一輪（19:05 台北）：`_uitest.py --workers 1 --sections 個股頂部1002,個股AI分析0926,新-版面等高與多寬度` 全 0；`_preview.py` 全綠（0 重疊）。
+  - 同一份程式碼（窄右欄膠囊那一刀之前）：`--sections 個股,K線縮放,新-產業與個股,新-版面等高與多寬度,手機` 全 0；`--sections 個股總覽1002` 0；
+    `--sections 個股籌碼分頁0928` 1 條紅＝「K 線卡裡有『資料湖』三個字」—— **改前就紅**（stock-overview-mini 的 HANDOFF 記過），
+    字串在 industry.js applyTick 的分時短註「（資料湖的 60 分 K，即時來源連不上時的備援）」，屬分時即時那一塊，這批沒動它（另一位 agent 正在改分時）。
+  - 新段落「個股頂部1002」驗：預設重點（結論一行＋小標籤一行、≤ 約 2 行）、展開／收合／換面向／點小標籤時名稱・產業鏈・價格・漲跌・即時徽章・標籤・週期鈕・K 線 top/left 差 < 2px（1440／1100／800）、
+    小標籤捲到總覽細節卡、800 浮層（Esc／點外面收、不寫 tw.aiOpen）、分隔線（col-resize、拖 100px 右欄真的寬 100px、拖到底左欄停在最小寬、重新整理還在、雙擊還原、← 鍵）、
+    標籤與週期鈕同一行（top 差 < 6px）、「⋯ N」點開／Esc／點外面、1440／1100／800／390 無溢出無重疊。
+
+## 台指期改走 Deno 代理：期交所經 Deno 日盤夜盤全 200，網站台指期先打 Deno、失敗才退回 Worker（2026-10-02 19:00，台北，爬蟲專家，分支 `claude/taifex-deno`，**未推 main**，DECISIONS #286）
+
+- [x] **期交所經 Deno 回 200（兩輪實測）**：Deno 網址 `https://tw-taifex.miaozike.deno.net`（CLI 的 productionUrl）。
+  run 36955532108（10:25，push 84d55bc）與 run 36995563974（18:28，workflow_dispatch，**夜盤交易中**）：`/health`、`/fut` 日盤、`/fut` 夜盤、`/futchart` TXFJ6-F、TXFJ6-M **全部 200**，回的是期交所原始 JSON。
+- [x] `site/live.js`：常數 `TAIFEX_PROXY` ＋ `Live.taifexProxy()`。
+- [x] `site/market3.js`：新 `futGet()` —— 台指期 `/fut`（日盤 5 秒、夜盤 60 秒）與 `/futchart` 先打 Deno（6 秒逾時），非 2xx／連不上 → 退回 Worker；
+  兩條都壞時說明寫「Deno 回 HTTP 520，Worker 也回 HTTP 502」。加權、櫃買、台指期日盤分時的 `/chart`（mis.twse）一行沒動；`/futstream`（SSE，預設關）仍只走 Worker。
+- [x] `scripts/_uitest.py` 新段落 `台指期Deno優先`（A Deno 好→夜盤＋夜盤點、Worker 0 次；B Deno 520→退回 Worker；B2 Deno 連不上→退回；D 兩條都壞→日盤＋兩邊原因），`site/modules.js` 的 `index.board` 登記。
+  反向驗證四種植入缺陷各紅 10／6／2／2 條，還原後綠（表在 DECISIONS #286）。
+- [x] `docs/v3_sources_spec.md` 第 7 節那句「前端經 Worker 讀」補上 Deno。
+- 接手的狀況：前一位停在反向驗證中途（`claude/wip-taifex-deno` 那份 `market3.js` 還留著植入的 `const deno = '';  // PLANTED`），這一批已還原並重寫 `futGet()`（原因要跟著回應走、兩條都壞要講兩邊），測試補 B2 與 D。
+- **這批驗了**：`_uitest.py --workers 1 --sections 夜盤盤後0930,夜盤推送,即時推送,新-大盤三張圖,總覽,台指期Deno優先,積木清單`
+  → 前六段 0 問題；積木清單 3 條＝main 既有的那 3 條（手機 #stock「AI 分析」「財報籌碼」、擋掉 modules.js），跟這批無關。`_preview.py` 全綠。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件；`tests/` 不 import `_uitest.py`）。瀏覽器鎖被占超過 5 分鐘，改用 `TW_UITEST_PORT=8791`／`TW_PREVIEW_PORT=8792` 不加 flock 跑；本機 `site/data` 是 symlink 到主 checkout（10-01 資料）。
+- 已知限制：① Deno 免費層據 WebSearch 摘要（第三方、低信心）每月 100 萬請求，一個讀者整天開總覽約每月 11～12 萬次，**同時整天開著的讀者超過約 8 個就會碰頂**（碰頂會退回 Worker→顯示日盤＋原因，不白屏）。
+  ② 瀏覽器從 `miaozike.github.io` 打 Deno 的 CORS 沒在真瀏覽器驗過（容器連不到外網）；`main.ts` 有放行 github.io，合併上線後請開總覽確認夜盤。③ 台灣讀者到 Deno 的延遲沒實測（runner 在美國，`region: ord`）。
+- 下一步：合併 `claude/taifex-deno` 到 main（只動前端，`pages.yml` 會部署）；上線後夜盤時段開總覽，台指期小標應是「夜盤」。
+
 ## 「個股」段 2 個紅燈＝本機資料過舊造成的假紅，不是線上 bug（2026-10-02 17:10，台北，審核專家，分支 `claude/fix-stock-k`，只改 HANDOFF）
 
 - 紅燈：`_uitest.py --sections 個股 --workers 1` 的「個股頁 K 線有畫出來」與「沒劃掉的週期 tick 點下去真的畫得出來 ← {'canvas': 0, 'empty': True}」。
@@ -45,6 +85,22 @@
   分時鈕不會被劃掉；之後再點分時，會顯示「此檔暫無分時資料…日 K、週 K、月 K 可以正常看」並且當下才劃掉。有空狀態文案、不是一塊黑，所以不算畫不出來；
   要收的話是在即時層回報後（不論目前週期）補跑一次 `markTf`，屬產品改動，這次沒做。
 - 這批驗了：`_uitest.py --sections 個股 --workers 1`（新資料 0／舊資料 2，各一次）＋三張 `_show.py` 截圖。沒跑 pytest 與 `_preview.py`（沒改任何程式）。
+## 個股頁下方分頁改版＋融資對帳（2026-10-02 17:30，台北，UI 專家，分支 `claude/stock-overview-mini`，**未推 main**，DECISIONS #294）
+
+- [x] 總覽「籌碼快照」：六格數字 → 三張比例小圖（法人近 20 日買賣超比重、集保 ≥1000／400～1000／≤10 張＋近幾週變化、融資／融券／借券賣出餘額）＋當沖率、量比兩條進度條；「法人 20 日」那一格拿掉（合計寫在法人色條右上）。賣超＝同色斜紋淡色＋分隔線＋綠字「−」
+- [x] 總覽「基本面」：營運動能半圓儀表、本益比＋同業位置刻度（同業分位併進來）、毛利率進度條；基本面與籌碼快照改上下兩張滿寬
+- [x] 總覽上方「AI 分析重點」（一行重點＋四顆小標籤，點了捲到下面細節卡並閃一下）、下方四張面向細節卡並排（技術面／技術面訊號／基本面／消息面；技術面「看細節」原地展開）
+- [x] 「指標」分頁：方塊卡片分「符合」「未符合」（＋資料不足）三區，題材／族群移到最上面當標籤，點方塊原地展開
+- [x] 分頁順序：總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞；手機同一個相對順序（features.js 排列跟著調、id 不變；stock.ai 鎖頭多蓋總覽那份 AI）
+- [x] 融資對不上：根因＝總覽是「融資餘額」、資券分頁每日表標題只寫「融資」內容卻是「融資增減」。資券分頁加最上面一列「最新數字」（跟總覽同一支 mgLatest()）＋表頭寫全；對帳表在 DECISIONS #294（3189／2330／2454）
+- **K 線卡右上角那份 AI 分析（#skAi）沒動**：那是 `claude/stock-head-layout` 的範圍。兩支合併後若要頂部也只寫重點，可直接用 `StockAI.briefText(pg)`。
+- 改到 `site/industry.js` 的函式：`STOCK_TABS`（常數）、`fundCard`、`chipCard`（＋新增 `instMix`／`holdMix`／`mgLatest`／`mixBar`／`mixItem`／`mixBox`／`mixQ`、常數 `CHIP_HELP`／`MIX_C`）、`tabOverview`、`tabTags`、`tabMargin`；拿掉沒人用的 `statK`。分時即時、繪圖工具、效能那幾段一行都沒碰。
+  其他檔：`blocks/stock_ai.js`（新增 brief／briefText／facetCards／facetHead／bindOverview，#skAi 的 mount 沒改）、`blocks/stock_signal.js`（view 多一個可選參數）、`mobile3.js`（SK_TABS 順序、完整版說明、資券當沖／借券讀最後有值那天）、`features.js`、`modules.js`、`index.html`（一段新 CSS）。
+- **這批驗了**：`_preview.py` 全綠（0 重疊）；`_uitest.py --workers 1 --sections 個股總覽1002,個股,排序,新-產業與個股,手機,會員權限開關,總覽摘要卡列,個股季週期與筆數,手機個股券商式,積木-個股三卡,積木清單,個股籌碼分頁0928`
+  → 新段「個股總覽1002」（1440／800／390、3189＋2330＋2454＋自動挑一檔有買有賣的）0 問題；個股、排序、新-產業與個股、手機、會員權限開關、總覽摘要卡列、手機個股券商式、積木-個股三卡 0 問題。
+  其餘紅燈都是**改前就紅**（拿 origin/main 同一份 payload 跑基準線比對過）：個股季週期與筆數 1 條（獲利「年」標題前多空白）、個股籌碼分頁0928 1 條（K 線卡裡有「資料湖」三個字，頂部範圍）、積木清單 3 條（手機 #stock 的「AI 分析」「財報籌碼」分段、擋掉 modules.js —— main 上一模一樣的 3 條，跟這批無關）。
+  積木-個股三卡在 main 上 4 條紅（標題圖示 09-29 上線後 firstChild 讀到圖示），這批順手修好驗收寫法。沒跑 pytest（沒動 pipeline／tests／.github，只改 site/** 與 scripts/_uitest.py）。
+- 本機 payload：`SKIP_INTRADAY=1 python -m pipeline.build_payload` 在這個 worktree 重算過（資料湖 d859d7f）。
 
 ## 會員功能開放制度：#admin/perm 依 email 開關功能＋方案範本＋鎖頭（2026-10-02，台北，UI 專家，分支 `claude/member-perm`；Worker 已上 main）
 
@@ -131,6 +187,7 @@
 - 這批驗了：`pytest tests/ -q` 899 passed／4 skipped／1 xfailed、Worker 離線驗收 `fut_fail_check.mjs` 69 條（含新舊比對）、`worker_closed` 綠、`worker_check` 3 輪有 1 輪「三條新連線共用上游」紅（計時型、舊版 4 輪全綠，/stream 程式碼沒動）、
   `futstream_check` 2 條紅（舊版同樣 2 條，既有）。沒改 site/，沒跑 `_preview`／`_uitest`。部署後 probe run 36745792375、worker-watch run 36745796387 實測：日盤 `/quote` 200、`/fut?session=day` 502（上游 520）、夜盤兩支 502（上游 520）。
 - **待處理**：① **夜盤要回來只能換不經 Cloudflare 的代理**（Deno Deploy／Netlify・Vercel Node 函式／Apps Script／自己的 VM，代價表在 #281），都要 Andy 開帳號，還沒選。
+  → 2026-10-02 已選 Deno Deploy 並實測 200，前端接上在分支 `claude/taifex-deno`（DECISIONS #286，見本檔最上面那節）。
   ② 前端 `fetchFut()`／`fetchFutChart()` 讀 502 JSON 的 `upstream_status`，說明改寫成「期交所經代理回 520」；要同時改 `_uitest.py`，不在這批範圍。
   ③ 日盤 `fastTick()`（每 5 秒 `/fut?session=day`）同樣被擋，靠 `m3fut` 退避與 `/chart` 分時撐著。
 

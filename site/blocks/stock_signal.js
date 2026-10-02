@@ -37,10 +37,20 @@
 
   /* ★ 2026-09-28（Andy：「我是要給讀者看，他不需要知道這類資訊」）：底下小字改前「權重未經 walk-forward 檢驗」
      是寫給開發者的回測術語 → 改後只留「決策輔助，非投資建議」，滑過說明也改成讀者語言。*/
-  function view(input, fmt) {
+  /* ★ 2026-10-02（DECISIONS #294）：個股「總覽」分頁改成四張面向小卡並排（技術面｜技術面訊號｜基本面｜消息面），
+     這張就是第二張。第三個參數 o 可選：o.tag＝標題旁加「4多2空」小標籤（跟另外三張的「偏多／中性」同一個位置），
+     o.id＝卡片 id（「AI 分析重點」的標籤點了要捲到這一張）。不給 o 時輸出跟改前一個字元都不差。*/
+  function view(input, fmt, o) {
     const s = (input && input.summary) || {};
     const verdict = input && input.verdict;
-    return `<div class="card"><h3>技術面訊號</h3><div class="lights" style="margin-top:8px">${lights(s, fmt).map(chip).join('')}</div>${verdict && verdict.invalidation ? `<div class="note" data-readout style="margin-top:8px">失效條件：${fmt.esc(verdict.invalidation)}</div>` : ''}<div class="note" style="margin-top:6px" title="燈號由固定規則計算，只描述目前的技術狀態，不構成投資建議。">決策輔助，非投資建議</div></div>`;
+    const L = lights(s, fmt);
+    let tag = '';
+    if (o && o.tag) {
+      const pos = L.filter(x => x[2] > 0).length, neg = L.filter(x => x[2] < 0).length;
+      tag = ` <span class="aitag ${pos > neg ? 'pos' : neg > pos ? 'neg' : ''}" title="九顆燈號：偏多 ${pos}、偏空 ${neg}">${pos}多${neg}空</span>`;
+    }
+    const attrs = o && o.id ? ` id="${o.id}" data-facet="sig"` : '';
+    return `<div class="card"${attrs}><h3>技術面訊號${tag}</h3><div class="lights" style="margin-top:8px">${L.map(chip).join('')}</div>${verdict && verdict.invalidation ? `<div class="note" data-readout style="margin-top:8px">失效條件：${fmt.esc(verdict.invalidation)}</div>` : ''}<div class="note" style="margin-top:6px" title="燈號由固定規則計算，只描述目前的技術狀態，不構成投資建議。">決策輔助，非投資建議</div></div>`;
   }
 
   window.StockSignal = { id: 'stock.signal', view, lights, chip };

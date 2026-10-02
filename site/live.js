@@ -120,6 +120,13 @@
   // 這不是密鑰 —— Worker 本身只轉一個端點、只給白名單網域 CORS。
   const DEFAULT_PROXY = 'https://tw-quote.kcq01010909.workers.dev';
 
+  // 台指期（期交所 /fut、/futchart）專用的代理：Deno Deploy（DECISIONS #286）。
+  // 期交所在 Cloudflare 後面、拒絕所有經 Cloudflare Worker 來的請求（上游 520，#281），
+  // 所以上面那台 Worker 打不到期交所；Deno Deploy 不走 Cloudflare 出口，2026-10-02 實測日盤夜盤四支全 200。
+  // market3.js 先打這台，失敗才退回 DEFAULT_PROXY 的 /fut、/futchart（Worker 那兩支保留不刪）。
+  // 原始碼 workers/taifex-deno/main.ts，推上 main 由 .github/workflows/deploy-deno.yml 部署。這不是密鑰。
+  const TAIFEX_PROXY = 'https://tw-taifex.miaozike.deno.net';
+
   const state = {
     quotes: {},        // code -> { price, prevClose, chgPct, open, high, low, volume, time, name }
     timer: null,
@@ -869,6 +876,7 @@
     tick,
     paint,
     proxy,                                     // market3.js／livek.js 共用同一組來源
+    taifexProxy: () => TAIFEX_PROXY,            // 台指期優先走的 Deno 代理（market3.js 用）
     /* ★ 2026-09-21：對外開放這一支，給「即時資金去向」批次抓板塊成分股用。
        它要的不是「畫面上看得到的代號」（那是 codesOnScreen 的工作），
        而是一組指定的代號 —— 但 Worker 代理、上市上櫃判定（exch）、

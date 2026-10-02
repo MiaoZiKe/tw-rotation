@@ -121,7 +121,7 @@
         { "page": "overview", "step": 2, "seg": "大盤", "ord": 50, "selector": ["#m3"],
           "note": "跟 market.kpi 同一段：三張走勢圖與 KPI 橫條是同一個問題（今天大盤的體質）。2026-09-24 起三張合進一個大方框（#m3Frame），台指期日夜盤自動切。" }
       ],
-      "tests": ["大盤三張圖", "新-大盤三張圖", "夜盤真實fixture", "夜盤推送", "夜盤盤後0930"] },
+      "tests": ["大盤三張圖", "新-大盤三張圖", "夜盤真實fixture", "夜盤推送", "夜盤盤後0930", "台指期Deno優先"] },
 
     { "id": "market.kpi", "name": "總覽摘要卡列", "question": "②", "ask": "今天盤面一眼看完（漲跌家數、資金輪盤四段、資金去向、熱門題材），點卡片到對應的大圖",
       "tier": "免費", "law": "🟢",
@@ -167,7 +167,7 @@
         { "page": "stock", "seg": "財報籌碼", "ord": 30, "selector": ["#stockTabs", "#stockTab"],
           "note": "stock.fund／stock.signal／stock.news／broker.views 共用同一個分頁列（#stockTabs）與內容區（#stockTab），手機上是同一段。" }
       ],
-      "tests": ["個股", "新-產業與個股", "積木-個股三卡", "籌碼基本0926", "總覽摘要卡列", "個股籌碼分頁0928", "個股分頁版面1002"] },
+      "tests": ["個股", "新-產業與個股", "積木-個股三卡", "籌碼基本0926", "總覽摘要卡列", "個股籌碼分頁0928", "個股總覽1002", "個股分頁版面1002"] },
 
     { "id": "cand.board", "name": "今日候選", "question": "③", "ask": "今天有哪些標的符合「A 回檔承接／B 突破追進」的條件",
       "tier": "只准免費", "law": "🔴",
@@ -182,15 +182,15 @@
       "at": [
         { "page": "stock", "seg": "K 線", "ord": 10, "selector": ["#skChartCard"] }
       ],
-      "tests": ["個股", "K線縮放", "繪圖工具1002", "繪圖成交量分佈1002", "個股即時分K", "個股分K非交易時段", "個股R5", "個股指標下拉0926", "全市場1H4H"] },
+      "tests": ["個股", "K線縮放", "繪圖工具1002", "繪圖成交量分佈1002", "個股即時分K", "個股分K非交易時段", "個股R5", "個股指標下拉0926", "全市場1H4H", "個股頂部1002"] },
 
     { "id": "stock.mtf", "name": "AI 分析（多週期＋籌碼＋基本＋消息，規則式）", "question": "③", "ask": "1 小時到週線的結構、籌碼、基本面、消息各自偏哪邊，為什麼是觀望",
       "tier": "只准免費", "law": "🔴",
       "at": [
         { "page": "stock", "seg": "AI 分析", "ord": 20, "selector": ["#aiCard"],
-          "note": "2026-09-27 起 AI 分析整塊（#skAi）桌機住在 K 線卡右上角、四個面向用標籤頁切換；#aiCard 只是手機分段用的空殼 —— app.js miaStock 在 ≤640 把 #skAi 節點搬進來，回桌機再搬回 K 線卡（桌機 #aiCard 永遠是空的，CSS :empty 收掉）。改前（09-26）#aiCard 是 K 線與分頁之間的完整長卡。程式在 site/blocks/stock_ai.js，內容由 pipeline/compute/analysis.py 規則產生（不是語言模型）。簡版個股頁沒有 #aiCard —— 抓不到的選擇器會被略過，只剩一段就不畫分段列。" }
+          "note": "2026-09-27 起 AI 分析整塊（#skAi）桌機住在 K 線卡右上角、四個面向用標籤頁切換；#aiCard 只是手機分段用的空殼 —— app.js miaStock 在 ≤640 把 #skAi 節點搬進來，回桌機再搬回 K 線卡（桌機 #aiCard 永遠是空的，CSS :empty 收掉）。改前（09-26）#aiCard 是 K 線與分頁之間的完整長卡。程式在 site/blocks/stock_ai.js，內容由 pipeline/compute/analysis.py 規則產生（不是語言模型）。簡版個股頁沒有 #aiCard —— 抓不到的選擇器會被略過，只剩一段就不畫分段列。2026-10-02 起個股「總覽」分頁另有一份（#ovAiBrief 重點卡＋#ovFacets 裡 data-ai 的三張細節卡，StockAI.brief／facetCards，DECISIONS #294），跟分頁內容區同一段。" }
       ],
-      "tests": ["個股", "個股AI分析0926"] },
+      "tests": ["個股", "個股AI分析0926", "個股總覽1002", "個股頂部1002"] },
 
     { "id": "stock.signal", "name": "技術面訊號卡", "question": "③", "ask": "均線／結構／RSI／KD／MACD／乖離／BOS／CHoCH／假跌破 現在各是什麼狀態",
       "tier": "只准免費", "law": "🔴",
