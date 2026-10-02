@@ -4005,13 +4005,25 @@ h3 .howbtn.pop{font-family:inherit}
    色條加粗到 10px（6px 看不出斜紋，賣超就認不出來）。字一律 ≥11.5px（手機 11px 下限）。
    ================================================================================== */
 .skov{container:skov / inline-size}
-/* 基本面、籌碼快照上下兩張滿寬（並排時基本面卡下半截是空的）；籌碼快照三張小圖在容器 ≥900px 排成一列、等高，量比橫跨在下面 */
-.skovkpi{display:flex;flex-direction:column;gap:var(--gap-card,16px)}
-.mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-@container skov (min-width:900px){
-  .mixes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
-  .mixes>.mixvr{grid-column:1 / -1;width:min(100%,560px)}
+/* ★ 2026-10-02 深夜（Andy：「誤解了」，DECISIONS #297）總覽三欄：基本面｜籌碼快照｜AI 卡，欄寬 1 : 1 : 1.2。
+   改前（#294）是基本面、籌碼快照上下兩張滿寬，下面四張 AI 面向卡一列 —— Andy 要的是三欄並排。
+   · 頂端對齊、各自自然高度（align-items:start）：AI 卡切分頁時高度會變（技術面最長、技術面訊號最短），
+     等高的話左、中兩欄會跟著一下長一下短，而且基本面卡內容最少，拉齊會在卡底留一大塊空白。
+   · 斷點量的是分頁內容區（container skov，個股頁內容區＝視窗 − 32px）：容器 ≥1080（視窗約 >1110）三欄；
+     790～1080（視窗約 820～1110，含 Andy 說的 1100～820）兩欄＝基本面＋籌碼疊成左欄、AI 右欄；更窄一欄依序往下。
+   · .skovkpi 三欄時 display:contents（兩張卡各自當一欄）、兩欄時就是左欄、一欄時照順序往下。 */
+.skov3{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr);align-items:start}
+.skovkpi{display:flex;flex-direction:column;gap:var(--gap-card,16px);min-width:0}
+@container skov (min-width:790px){ .skov3[data-cols="3"]{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)} }
+@container skov (min-width:1080px){
+  .skov3[data-cols="3"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)}
+  .skov3[data-cols="3"]>.skovkpi{display:contents}
 }
+/* 擋掉兩支 AI 積木（只剩基本面、籌碼快照）：兩張並排 */
+@container skov (min-width:790px){ .skov3[data-cols="2"]>.skovkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start} }
+/* 籌碼快照卡內四塊（法人 → 集保 → 信用與借券（含當沖率）→ 量比）一律由上往下排：中欄只有約 430px 寬，
+   改前在寬容器排成三欄、量比橫跨下面；三欄版面裡它自己就是一欄，再橫排會擠成每格不到 120px */
+.mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .mix{display:flex;flex-direction:column;gap:7px;padding:10px 12px;border-radius:10px;background:var(--panel-3);min-width:0}
 .mixh{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .mixt{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
@@ -4062,15 +4074,14 @@ h3 .howbtn.pop{font-family:inherit}
 .gauge .gfill{fill:none;stroke:var(--cyan);stroke-width:7;stroke-linecap:round}
 .gaugev small{font-size:12px;color:var(--ink-3);font-weight:400}
 .kvs .k .v small{font-size:12px;color:var(--ink-3);font-weight:400}
-/* 各面向細節：桌機一列四張（技術面那張寬一點，它的週期敘述最長）、中寬兩張一列、窄畫面依序往下排。
-   量的是分頁內容區本身（container skov），右側事件欄開關、視窗寬窄都跟著走 */
-.skfacets{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr)}
-@container skov (min-width:640px){ .skfacets{grid-template-columns:repeat(2,minmax(0,1fr))} }
-@container skov (min-width:1060px){
-  .skfacets[data-n="4"]{grid-template-columns:minmax(0,1.45fr) repeat(3,minmax(0,1fr))}
-  .skfacets[data-n="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-/* 「指標」分頁：方塊卡片，分符合／未符合兩區 */
+/* 擋掉 stock_ai.js 時右欄只剩技術面訊號那一張（#ovFacets 單卡外殼）；AI 卡本身的樣式在 blocks/stock_ai.js 的 ovCss */
+.skfacets{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr);min-width:0}
+/* 「指標」分頁：方塊卡片，左欄符合、右欄未符合（#297：改前上下兩區；資料不足那一區拿掉）。
+   欄內方塊一塊一塊往下排（每塊整欄寬，判斷數字一行放得下就不必點開）；視窗 ≤820px 才上下排 */
+.tagcols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;align-items:start}
+.tagcols .taggrid{grid-template-columns:minmax(0,1fr)}
+.tagnone{font-size:13px;color:var(--ink-3);padding:10px 12px;border:1px dashed var(--line);border-radius:10px}
+@media (max-width:820px){ .tagcols{grid-template-columns:minmax(0,1fr)} }
 .tagmeta{display:flex;flex-direction:column;gap:6px;margin:8px 0 4px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .tagmr{display:flex;gap:10px;align-items:baseline;min-width:0}
 .tagmr .tagk{flex:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12.5px;color:var(--ink-2)}
@@ -4089,9 +4100,8 @@ h3 .howbtn.pop{font-family:inherit}
 .tagtile.open .tagd{white-space:normal;overflow:visible}
 .tagtile.on{border-color:color-mix(in srgb,var(--rise) 55%,var(--line));background:color-mix(in srgb,var(--rise) 9%,var(--panel-3))}
 .tagtile.on .tagnm{color:var(--rise)}
-.tagtile.off,.tagtile.na{opacity:.72}
-.tagtile.off .tagnm,.tagtile.na .tagnm{color:var(--ink-2);font-weight:600}
-.tagtile.na{border-style:dashed}
+.tagtile.off{opacity:.72}
+.tagtile.off .tagnm{color:var(--ink-2);font-weight:600}
 /* 資券分頁最上面一列「最新數字」的日期小字 */
 .mgkpi .mgd{font:11px/1 var(--mono);color:var(--ink-3);margin-left:4px}
 .mgkpi .v small{font-size:12px;color:var(--ink-3);font-weight:400}

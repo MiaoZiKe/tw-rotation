@@ -19103,9 +19103,14 @@ HEAD1002_BRIEF = r"""() => { const h = document.getElementById('skAi'), l = docu
     briefH: rl && rt ? Math.round(rt.bottom - rl.top) : 0, bodyHidden: !!b && b.hidden, tfsVis: !!tf && tf.getClientRects().length > 0,
     ellipsis: br ? getComputedStyle(br).textOverflow : '', full: br ? (br.title || '') : '' }; }"""
 # 小標籤 → 下面「總覽」分頁那一張細節卡：卡片上緣進到畫面、閃一下、總覽分頁是選中的（FACET 換成面向 id）
-HEAD1002_FACET = r"""() => { const c = document.querySelector('#ovFacets [data-facet="FACET"]'); const ob = document.querySelector('#stockTabs button[data-t="overview"]');
-  if (!c) return null; const r = c.getBoundingClientRect(); if (r.top < -2 || r.top > innerHeight - 40) return null;
-  return { top: Math.round(r.top), vh: innerHeight, flash: c.classList.contains('flash'), ov: !!ob && ob.classList.contains('on') }; }"""
+# ★ 2026-10-02 深夜（#297）四張細節卡併成一張 AI 卡（#ovAiCard、膠囊分頁籤一次一面）：
+#   改成「AI 卡上緣進到畫面、AI 卡閃一下、卡裡的分頁籤切到 FACET、那一面真的顯示出來（其他面藏著）」—— 比改前多驗一件事（切籤），不是放寬。
+HEAD1002_FACET = r"""() => { const card = document.getElementById('ovAiCard'); const c = document.querySelector('#ovFacets > [data-facet="FACET"]');
+  const ob = document.querySelector('#stockTabs button[data-t="overview"]'); const tb = document.querySelector('#ovAiTags .ovtag[data-facet="FACET"]');
+  if (!card || !c || !c.getClientRects().length) return null; const r = card.getBoundingClientRect(); if (r.top < -2 || r.top > innerHeight - 40) return null;
+  const shown = [...document.querySelectorAll('#ovFacets > [data-facet]')].filter(x => x.getClientRects().length).map(x => x.dataset.facet);
+  return { top: Math.round(r.top), vh: innerHeight, flash: card.classList.contains('flash'), ov: !!ob && ob.classList.contains('on'),
+           tab: !!tb && tb.classList.contains('on'), shown, ls: localStorage.getItem('tw.ovAiTab') }; }"""
 
 
 def _head1002_rows(tops):
@@ -19235,7 +19240,8 @@ def t_stock_head_1002(pg, base, code):
             click(pg, '#skAi .aitab[data-facet="tech"]', 400)
             got = wait_until(pg, HEAD1002_FACET.replace("FACET", "tech"), 4000)
             s5 = snap()
-            ok(f"★ {tag}重點模式點「技術面」小標籤 → 捲到下面「總覽」的技術面細節卡（進到畫面、閃一下）", bool(got) and got["ov"] and got["flash"], got)
+            ok(f"★ {tag}重點模式點「技術面」小標籤 → 捲到下面「總覽」的 AI 卡（進到畫面、閃一下）並切到技術面分頁籤",
+               bool(got) and got["ov"] and got["flash"] and got["tab"] and got["shown"] == ["tech"], got)
             ok(f"★ {tag}點小標籤後上面的 AI 區還是重點模式、左側與 K 線位置不變", not s5["open"] and not _head1002_moved(s0, s5), (s5["open"], _head1002_moved(s0, s5)))
             pg.evaluate("() => window.scrollTo(0, 0)")
 
@@ -19261,7 +19267,8 @@ def t_stock_head_1002(pg, base, code):
         ok(f"★ {tag}800 按 Esc → 浮層收起、K 線仍不動", not s2["open"] and not _head1002_moved(s0, s2), (s2["open"], _head1002_moved(s0, s2)))
         click(pg, '#skAi .aitab[data-facet="tech"]', 400)
         got = wait_until(pg, HEAD1002_FACET.replace("FACET", "tech"), 4000)
-        ok(f"★ {tag}800 收著時按「技術面」小標籤 → 捲到下面「總覽」的技術面細節卡、浮層不打開", bool(got) and got["ov"] and not snap()["open"], got)
+        ok(f"★ {tag}800 收著時按「技術面」小標籤 → 捲到下面「總覽」的 AI 卡並切到技術面分頁籤、浮層不打開",
+           bool(got) and got["ov"] and got["tab"] and got["shown"] == ["tech"] and not snap()["open"], got)
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
         click(pg, "#aiTgl", 450)
         s3 = snap()
@@ -19681,6 +19688,9 @@ SECTIONS = {
     # ★ 2026-10-02 Andy 五張截圖：個股頁下方分頁 —— 籌碼快照三張比例小圖、基本面小圖、AI 重點＋四張面向卡、
     #   融資餘額總覽／資券對帳、指標方塊兩區、分頁順序（基本資料搬到總覽旁）；1440／800／390（DECISIONS #294，⚠ 一律 --workers 1）
     "個股總覽1002":        lambda pg, b, base, code: t_stock_ov_1002(b, base, code),
+    # ★ 2026-10-02 深夜 Andy「誤解了」：總覽三欄（基本面｜籌碼快照｜AI 卡）、AI 四面向併一張卡＋膠囊分頁籤、指標符合／未符合左右並排、
+    #   拿掉資料不足區；1440／1100／800／390（DECISIONS #297，⚠ 一律 --workers 1）
+    "個股總覽三欄1002":    lambda pg, b, base, code: t_stock_ov3_1002(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -21311,11 +21321,15 @@ AI_NOAI_CHART_TOP = r"""() => { const ai = document.getElementById('skAi'), card
   return { withAi, noAi, bare, push: withAi - noAi, cost: withAi - bare, back: top(), aiside: side }; }"""
 
 # ★ 2026-10-02（#293）收合時按小標籤 → 捲到「總覽」分頁裡的細節卡：卡片上緣進到畫面裡、閃一下、總覽分頁是選中的
-AI_OVSIG_IN_VIEW = """() => { const c = document.querySelector('#ovFacets [data-facet="sig"]'); if (!c) return false;
-  const r = c.getBoundingClientRect(); return r.top >= -2 && r.top < innerHeight - 40; }"""
-AI_OVSIG = """() => { const c = document.querySelector('#ovFacets [data-facet="sig"]'); const ob = document.querySelector('#stockTabs button[data-t="overview"]');
-  if (!c) return null; const r = c.getBoundingClientRect();
-  return { top: Math.round(r.top), vh: innerHeight, flash: c.classList.contains('flash'), ov: !!ob && ob.classList.contains('on') }; }"""
+# ★ 2026-10-02 深夜（#297）四張細節卡併成一張 AI 卡：量 AI 卡（#ovAiCard）進到畫面、閃一下，而且卡裡切到「技術面訊號」那一面
+AI_OVSIG_IN_VIEW = """() => { const card = document.getElementById('ovAiCard'); const c = document.querySelector('#ovFacets > [data-facet="sig"]');
+  if (!card || !c || !c.getClientRects().length) return false;
+  const r = card.getBoundingClientRect(); return r.top >= -2 && r.top < innerHeight - 40; }"""
+AI_OVSIG = """() => { const card = document.getElementById('ovAiCard'); const c = document.querySelector('#ovFacets > [data-facet="sig"]');
+  const ob = document.querySelector('#stockTabs button[data-t="overview"]'); const tb = document.querySelector('#ovAiTags .ovtag[data-facet="sig"]');
+  if (!card || !c) return null; const r = card.getBoundingClientRect();
+  return { top: Math.round(r.top), vh: innerHeight, flash: card.classList.contains('flash'), ov: !!ob && ob.classList.contains('on'),
+           tab: !!tb && tb.classList.contains('on'), shown: c.getClientRects().length > 0 }; }"""
 AI_WORDS_BANNED = ("買進", "賣出", "建議", "追進", "加碼", "減碼")
 
 
@@ -21455,8 +21469,8 @@ def t_stock_ai_0926(pg, base, code):
     wait_until(pg, AI_OVSIG_IN_VIEW, 4000)
     s6 = pg.evaluate(AI_SNAP)
     g6 = pg.evaluate(AI_OVSIG)
-    ok("★ [AI分析] 收合時按「技術面訊號」小標籤 → 捲到下面「總覽」的技術面訊號細節卡（卡片進到畫面裡、閃一下）",
-       bool(g6) and g6["ov"] and -2 <= g6["top"] < g6["vh"] - 40 and g6["flash"], g6)
+    ok("★ [AI分析] 收合時按「技術面訊號」小標籤 → 捲到下面「總覽」的 AI 卡（卡片進到畫面裡、閃一下）並切到技術面訊號那一面",
+       bool(g6) and g6["ov"] and -2 <= g6["top"] < g6["vh"] - 40 and g6["flash"] and g6["tab"] and g6["shown"], g6)
     ok("★ [AI分析] 按小標籤不會把上面的 AI 區展開（重點模式不變）、記住選了技術面訊號", not s6["open"] and s6["ls"] == "0" and s6["lt"] == "sig",
        (s6["open"], s6["ls"], s6["lt"]))
     click(pg, "#aiTgl", 400)
@@ -41146,6 +41160,14 @@ def t_member_perm(b, base, code):
             tab: document.getElementById('stockTab').hasAttribute('data-plk') })""")
         ok(f"{T}：總覽分頁的 AI 重點卡、AI 細節卡跟著上鎖；技術面訊號、籌碼快照、整個分頁不鎖",
            ovl["brief"] and ovl["tech"] and ovl["news"] and not ovl["sig"] and not ovl["chip"] and not ovl["tab"], ovl)
+        # ★ #297：四面併成一張 AI 卡（分頁籤一次一面）之後，鎖頭只蓋重點那一行與三個 AI 面；分頁籤本身不鎖，
+        #   所以 AI 分析關掉時照樣切得到「技術面訊號」那一面（它屬於「總覽」那一項），而且那一面沒有被糊掉
+        if tp.locator("#ovAiTags .ovtag[data-facet=sig]").count():
+            tp.click("#ovAiTags .ovtag[data-facet=sig]"); tp.wait_for_timeout(300)
+            sg = tp.evaluate("""() => { const c = document.getElementById('ovF-sig'); return { vis: !!c && c.getClientRects().length > 0, lk: !!c && c.hasAttribute('data-plk'),
+                lights: c ? c.querySelectorAll('.light').length : 0, tabsLk: !!document.querySelector('#ovAiTags[data-plk], #ovAiCard[data-plk]') }; }""")
+            ok(f"{T}：AI 分析關掉時，AI 卡的分頁籤照樣點得到「技術面訊號」、那一面顯示出來而且沒上鎖", sg["vis"] and not sg["lk"] and sg["lights"] >= 1 and not sg["tabsLk"], sg)
+            tp.click("#ovAiTags .ovtag[data-facet=tech]"); tp.wait_for_timeout(200)
         second = tp.evaluate("() => (document.querySelectorAll('#stockTabs button')[1] || {dataset:{}}).dataset.t")
         tp.click("#stockTabs button[data-t=basics]")
         ok(f"{T}：分頁新順序第二顆是「基本資料」，點了內容正常（沒有誤鎖）", second == "basics"
@@ -41929,7 +41951,8 @@ SOV_LAYOUT = r"""() => { const root = document.getElementById('stockTab'); if (!
   const small = texty.filter(e => !e.closest('svg') && parseFloat(getComputedStyle(e).fontSize) < 11).slice(0, 6)
     .map(e => e.tagName + '.' + String(e.className).slice(0, 20) + ':' + getComputedStyle(e).fontSize + ':' + e.textContent.trim().slice(0, 12));
   const SEL = '.mixi small, .mixi b, .mixsub, .mixt, .mixd, .mixs, .mixdtv, .mixf, .kvs .k .l, .kvs .k .v, .minil span, .ovtag, .ovline, '
-    + '.tagtile .tagnm, .tagtile .tagd, .ovtfs > span, .ovck > *, .ovfacet h3, .mgkpi .l, .mgkpi .v, #ovAiBrief h3';
+    + '.tagtile .tagnm, .tagtile .tagd, .ovtfs > span, .ovck > *, .ovfacet h3, .mgkpi .l, .mgkpi .v, #ovAiCard > h3, #ovAiCard > h3 small, '
+    + '.ovtag .nm, .ovtag .aitag, #ovFacets .light, .tagzh, .tagnone';   // #297：AI 卡標題、分頁籤、技術面訊號燈號、指標兩欄標題
   const boxes = [...root.querySelectorAll(SEL)].filter(vis).map(e => ({ e, r: e.getBoundingClientRect() }));
   const over = [];
   for (let i = 0; i < boxes.length && over.length < 6; i++) for (let j = i + 1; j < boxes.length && over.length < 6; j++) {
@@ -42002,7 +42025,9 @@ def t_stock_ov_1002(b, base, code):
          賣超那一段是斜紋、數字是綠色帶「−」；「法人 20 日」那一格真的不見了
       ③ 總覽「融資餘額」＝資券分頁最上面那一列的「融資餘額」（值與日期都一樣）、每日表欄名寫的是「融資增減」不是「融資」
       ④ 指標分頁分「符合」「未符合」兩區、數量＝原本的 n_hit／未符合數；題材族群在最上面；點方塊原地展開
+         （#297：資料不足區拿掉；>820 左右並排、≤820 上下排）
       ⑤ AI 分析重點：一行重點＋四顆標籤，點標籤捲到下面那一張細節卡；四張細節卡桌機一列、窄畫面往下排；技術面「看細節」原地展開
+         （#297：四張併成一張 AI 卡，標籤＝卡內分頁籤一次一面；三欄版面細節在「個股總覽三欄1002」）
       ⑥ 基本面小圖：營運動能儀表＝分數、本益比刻度的點位＝同業分位
       ⑦ 1440／800／390 三個寬度都沒有重疊、溢出、橫向捲軸、小於 11px 的字
     3189（Andy 截圖那一檔）全部驗；2330、2454 抽驗②③（金額大、張數上萬），再自動挑一檔近 20 日有買有賣的股票驗賣超斜紋。"""
@@ -42150,19 +42175,31 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
                         nm: (t.querySelector('.tagnm') || {}).textContent || '', d: (t.querySelector('.tagd') || {}).textContent || '', cls: t.className,
                         bc: getComputedStyle(t).borderTopColor })) : []; };
                     const top = (id) => { const e = document.getElementById(id); return e ? e.getBoundingClientRect().top : null; };
-                    return { hit: z('tagHit'), miss: z('tagMiss'), na: z('tagNa'), n: +((document.getElementById('tagN') || {}).textContent || -1),
+                    const box = (id) => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
+                    return { hit: z('tagHit'), miss: z('tagMiss'), na: document.querySelectorAll('#tagCard .tagtile.na, #tagCard .tagtile[data-hit="na"]').length, n: +((document.getElementById('tagN') || {}).textContent || -1),
+                             naZone: !!document.getElementById('tagNa'), txt: (document.getElementById('tagCard') || {}).innerText || '',
+                             bhit: box('tagHit'), bmiss: box('tagMiss'),
                              meta: top('tagMeta'), zhit: top('tagHit'), zmiss: top('tagMiss'), metaTxt: ((document.getElementById('tagMeta') || {}).innerText || '') }; }""")
                 nh = sum(1 for t in items if t.get("hit") is True)
                 nm_ = sum(1 for t in items if t.get("hit") is False)
                 nn = sum(1 for t in items if t.get("hit") is None)
                 ok(f"{tag} 指標：「符合」區 {nh} 塊＝原本的符合數（n_hit {j['tags'].get('n_hit')}）＝標題數字",
                    len(tg["hit"]) == nh == tg["n"] and (j["tags"].get("n_hit") in (None, nh)), (len(tg["hit"]), nh, tg["n"]))
-                ok(f"{tag} 指標：「未符合」區 {nm_} 塊、資料不足 {nn} 塊（數量跟原本一樣）", len(tg["miss"]) == nm_ and len(tg["na"]) == nn, (len(tg["miss"]), len(tg["na"])))
+                # ★ #297（Andy：「資料不足、無法判斷」整區拿掉）：改前驗「資料不足 nn 塊」→ 改後驗那一區不存在（JSON 有幾條 hit=None 都一樣）
+                ok(f"{tag} 指標：「未符合」區 {nm_} 塊（數量跟原本一樣）、「資料不足」區整區不見（JSON 有 {nn} 條資料不足）",
+                   len(tg["miss"]) == nm_ and tg["na"] == 0 and not tg["naZone"] and "資料不足" not in tg["txt"], (len(tg["miss"]), tg["na"], tg["naZone"]))
                 ok(f"{tag} 指標：每一塊都有名稱＋一行數據",
                    all(x["nm"] and x["d"] for x in tg["hit"] + tg["miss"]), [x for x in tg["hit"] + tg["miss"] if not (x["nm"] and x["d"])][:2])
                 if tg["hit"] and tg["miss"]:
                     ok(f"{tag} 指標：符合用強調色、未符合用淡色（框線顏色不同）", tg["hit"][0]["bc"] != tg["miss"][0]["bc"], (tg["hit"][0]["bc"], tg["miss"][0]["bc"]))
-                    ok(f"{tag} 指標：「符合」區排在「未符合」區上面", tg["zhit"] < tg["zmiss"], (tg["zhit"], tg["zmiss"]))
+                    # ★ #297：改前「符合在上、未符合在下」→ 改後 1440 左右並排（左＝符合、右＝未符合，上緣對齊），≤820 才上下排
+                    bh, bm = tg["bhit"], tg["bmiss"]
+                    if W > 820:
+                        ok(f"{tag} 指標：「符合」在左欄、「未符合」在右欄（上緣對齊、左右不重疊）",
+                           abs(bh["t"] - bm["t"]) <= 2 and bh["r"] <= bm["l"] + 1 and bh["l"] < bm["l"], (bh, bm))
+                    else:
+                        ok(f"{tag} 指標：≤820 上下排（「符合」在上、「未符合」在下、同一個左緣）",
+                           bh["b"] <= bm["t"] + 1 and abs(bh["l"] - bm["l"]) <= 1, (bh, bm))
                 if tg["meta"] is not None:
                     ok(f"{tag} 指標：題材／族群標籤在最上面", tg["meta"] < (tg["zhit"] or 1e9), (tg["meta"], tg["zhit"]))
                 first = "#tagHit .tagtile" if tg["hit"] else "#tagMiss .tagtile"
@@ -42177,30 +42214,34 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
                    lay and lay["sw"] <= 1 and not lay["wide"] and not lay["small"] and not lay["over"], lay)
                 click(pg, '#stockTabs button[data-t="overview"]', 900)
 
-            # ---- ⑤ AI 分析重點＋四張細節卡
+            # ---- ⑤ AI 卡（#297：重點卡＋四張細節卡 → 右欄一張卡、膠囊分頁籤一次一面）
             an = j.get("analysis") or {}
             ck = ((an.get("facets") or {}).get("tech") or {}).get("checks") or {}
             ai = pg.evaluate("""() => ({ line: ((document.getElementById('ovAiLine') || {}).innerText || '').replace(/\\s+/g, ' '),
+                n: document.querySelectorAll('#ovAiCard').length,
                 tags: [...document.querySelectorAll('#ovAiTags .ovtag')].map(b => [b.dataset.facet, b.querySelector('.nm').textContent, b.querySelector('.aitag').textContent]),
-                cards: [...document.querySelectorAll('#ovFacets > .card')].map(c => { const r = c.getBoundingClientRect(); return { f: c.dataset.facet, top: Math.round(r.top + scrollY), left: Math.round(r.left), w: Math.round(r.width) }; }) })""")
+                cards: [...document.querySelectorAll('#ovFacets > .card')].map(c => ({ f: c.dataset.facet, vis: c.getClientRects().length > 0 })),
+                inCard: [...document.querySelectorAll('#ovFacets > .card')].every(c => !!c.closest('#ovAiCard')) })""")
             if an:
-                ok(f"{tag} AI 分析重點：一行寫出回檔／突破成立條數（{ck.get('met_a')}/{ck.get('n_a')}、{ck.get('met_b')}/{ck.get('n_b')}）",
+                ok(f"{tag} AI 卡：一行重點寫出回檔／突破成立條數（{ck.get('met_a')}/{ck.get('n_a')}、{ck.get('met_b')}/{ck.get('n_b')}）",
                    not ck or (f"回檔型態 {ck.get('met_a')}/{ck.get('n_a')}" in ai["line"] and f"突破型態 {ck.get('met_b')}/{ck.get('n_b')}" in ai["line"]), ai["line"])
-                ok(f"{tag} AI 分析重點：四顆小標籤＝技術面、技術面訊號、基本面、消息面", [t[1] for t in ai["tags"]] == ["技術面", "技術面訊號", "基本面", "消息面"], ai["tags"])
-                ok(f"{tag} 細節卡四張、順序＝技術面→技術面訊號→基本面→消息面", [x["f"] for x in ai["cards"]] == ["tech", "sig", "fund", "news"], ai["cards"])
-                tops = [x["top"] for x in ai["cards"]]
-                if W == 1440:
-                    ok(f"{tag} 桌機四張並排（同一列）", len(set(tops)) == 1 and len(tops) == 4, ai["cards"])
-                elif W == 390:
-                    ok(f"{tag} 窄畫面依序往下排（一張一列、順序不變）", all(tops[i] < tops[i + 1] for i in range(len(tops) - 1)) and len(set(x["left"] for x in ai["cards"])) == 1, ai["cards"])
-                else:
-                    ok(f"{tag} 中寬不擠成一列（換行排）", len(set(tops)) >= 2, ai["cards"])
-                # 點「基本面」小標籤 → 捲到基本面細節卡、閃一下、不跳頁
-                pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(200)
-                click(pg, '#ovAiTags .ovtag[data-facet="fund"]', 900)
-                fl = pg.evaluate("() => { const c = document.getElementById('ovF-fund'); const r = c.getBoundingClientRect(); return { flash: c.classList.contains('flash'), top: r.top, bottom: r.bottom, vh: innerHeight, hash: location.hash }; }")
-                ok(f"{tag} 點「基本面」標籤 → 捲到基本面細節卡（在畫面裡）、閃一下、不跳頁",
-                   fl["flash"] and fl["top"] < fl["vh"] and fl["bottom"] > 0 and fl["hash"] == f"#stock/{c}", fl)
+                ok(f"{tag} AI 卡：四顆分頁籤＝技術面、技術面訊號、基本面、消息面（每顆帶小判讀）",
+                   [t[1] for t in ai["tags"]] == ["技術面", "技術面訊號", "基本面", "消息面"] and all(t[2].strip() for t in ai["tags"]), ai["tags"])
+                ok(f"{tag} AI 卡只有一張、四面（技術面→技術面訊號→基本面→消息面）都在這張卡裡、一次只顯示一面",
+                   ai["n"] == 1 and ai["inCard"] and [x["f"] for x in ai["cards"]] == ["tech", "sig", "fund", "news"] and sum(x["vis"] for x in ai["cards"]) == 1, ai)
+                # 點「基本面」分頁籤 → 卡裡換成基本面、籤變選中、寫進 tw.ovAiTab、不捲動不跳頁
+                # 先把分頁籤捲進畫面再記 scrollY（click 自己會捲一次，那一下不是切籤造成的）
+                pg.evaluate("() => document.getElementById('ovAiTags').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(250)
+                y0 = pg.evaluate("() => scrollY")
+                click(pg, '#ovAiTags .ovtag[data-facet="fund"]', 500)
+                fl = pg.evaluate("""() => ({ vis: [...document.querySelectorAll('#ovFacets > .card')].filter(c => c.getClientRects().length).map(c => c.dataset.facet),
+                    on: [...document.querySelectorAll('#ovAiTags .ovtag.on')].map(b => b.dataset.facet), sel: (document.querySelector('#ovAiTags .ovtag[data-facet="fund"]') || {}).ariaSelected,
+                    ls: localStorage.getItem('tw.ovAiTab'), y: scrollY, hash: location.hash,
+                    tabT: document.getElementById('ovAiTags').getBoundingClientRect().top, vh: innerHeight })""")
+                # 「不跳走」量分頁籤還在畫面裡：技術面（最長）換成基本面時頁面變矮，捲在底部的話瀏覽器會把 scrollY 夾回去（800／390 實測），那不是切籤造成的捲動
+                ok(f"{tag} 點「基本面」籤 → 卡裡只剩基本面那一面、籤選中、tw.ovAiTab=fund、分頁籤仍在畫面裡（不跳走、不換頁）",
+                   fl["vis"] == ["fund"] and fl["on"] == ["fund"] and fl["sel"] == "true" and fl["ls"] == "fund" and 0 <= fl["tabT"] < fl["vh"] and fl["hash"] == f"#stock/{c}", (y0, fl))
+                click(pg, '#ovAiTags .ovtag[data-facet="tech"]', 400)
                 # 技術面「看細節」原地展開
                 if pg.evaluate("() => !!document.getElementById('ovTechMore')"):
                     d0 = pg.evaluate("() => document.getElementById('ovTechDet').hidden")
@@ -42215,6 +42256,7 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
                 if ck:
                     dots = pg.evaluate("() => [...document.querySelectorAll('#ovCk .dots')].map(d => [d.querySelectorAll('i.on').length, d.querySelectorAll('i').length])")
                     ok(f"{tag} 型態條件小圖：亮的點＝成立條數", dots[:2] == [[ck.get("met_a"), ck.get("n_a")], [ck.get("met_b"), ck.get("n_b")]], dots)
+
 
             # ---- ⑥ 基本面小圖
             fd = j.get("fundamental") or {}
@@ -42253,6 +42295,192 @@ def _sov_block_off(b, base, T):
        not st["brief"] and st["cards"] == ["sig"] and st["fund"] and st["chip"], st)
     ok(f"{T} 擋掉 stock_ai.js 也沒有 JS 錯誤", not e2, e2[:2])
     ctx.close()
+
+
+# ===================================================================== 個股總覽三欄（2026-10-02 深夜，DECISIONS #297）
+# Andy 看了 #294 上線版說「誤解了」：總覽要三欄並排（基本面｜籌碼快照｜AI 卡），AI 四個面向併成一張卡、膠囊分頁籤一次一面；
+# 指標分頁拿掉「資料不足」區、符合／未符合左右並排。
+OV3_GEO = r"""() => { const R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top + scrollY), r: Math.round(r.right), b: Math.round(r.bottom + scrollY), w: Math.round(r.width), h: Math.round(r.height) }; };
+  const h3 = document.querySelector('#ovAiCard > h3'); let warn = null;
+  if (h3) { const w = h3.querySelector('small[data-warn]'); const tn = [...h3.childNodes].find(n => n.nodeType === 3 && /AI 分析/.test(n.textContent));
+    if (w && tn) { const rg = document.createRange(); rg.selectNodeContents(tn); const a = [...rg.getClientRects()].filter(x => x.width > 0).pop(), b = w.getBoundingClientRect();
+      warn = a ? { gap: Math.round(b.left - a.right), dy: Math.round(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2)), txt: w.textContent.trim() } : null; } }
+  const line = document.getElementById('ovAiLine'), tabs = document.getElementById('ovAiTags');
+  return { fund: R(document.getElementById('skFundCard')), chip: R(document.getElementById('skChipCard')), ai: R(document.getElementById('ovAiCard')),
+    nAi: document.querySelectorAll('#ovAiCard').length, oldBrief: document.querySelectorAll('#ovAiBrief.card, #ovFacetHead').length,
+    mix: [...document.querySelectorAll('#skChipCard .mixes > *')].map(e => Object.assign({ k: e.dataset.mix || (e.classList.contains('mixvr') ? 'vr' : '?') }, R(e))),
+    dtIn: !!document.querySelector('#skChipCard .mix[data-mix="credit"] .mixdt'), warn,
+    lineTop: line ? R(line).t : null, h3b: h3 ? R(h3).b : null, tabsT: tabs ? R(tabs).t : null }; }"""
+OV3_PANE = r"""() => { const v = [...document.querySelectorAll('#ovFacets > [data-facet]')].filter(c => c.getClientRects().length);
+  const H = (id) => { const e = document.getElementById(id); return e ? Math.round(e.getBoundingClientRect().height) : null; };
+  return { shown: v.map(c => c.dataset.facet), txt: v.map(c => c.innerText.trim().slice(0, 200)).join('|'),
+    on: [...document.querySelectorAll('#ovAiTags .ovtag.on')].map(b => b.dataset.facet),
+    sel: [...document.querySelectorAll('#ovAiTags .ovtag[aria-selected="true"]')].map(b => b.dataset.facet),
+    cur: (document.getElementById('ovFacets') || { dataset: {} }).dataset.cur, ls: localStorage.getItem('tw.ovAiTab'), y: Math.round(scrollY), hash: location.hash,
+    fundH: H('skFundCard'), chipH: H('skChipCard'), vh: innerHeight,
+    tabT: document.getElementById('ovAiTags') ? Math.round(document.getElementById('ovAiTags').getBoundingClientRect().top) : null }; }"""
+OV3_TAGS = r"""() => { const box = (id) => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom) }; };
+  const tiles = (id) => [...document.querySelectorAll(`#${id} .tagtile`)].map(t => { const r = t.getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top) }; });
+  return { hit: box('tagHit'), miss: box('tagMiss'), meta: box('tagMeta'), naZone: !!document.getElementById('tagNa'), na: document.querySelectorAll('#tagCard .tagtile.na').length,
+    txt: (document.getElementById('tagCard') || {}).innerText || '', th: tiles('tagHit'), tm: tiles('tagMiss'), n: +((document.getElementById('tagN') || {}).textContent || -1) }; }"""
+
+
+def _ov3_na_code():
+    """挑一檔指標裡有「資料不足」（hit=None）而且符合、未符合都有的普通股 —— 3189 沒有資料不足的條件，只驗它的話「那一區拿掉了」永遠是綠的。"""
+    for f in sorted((SITE / "data" / "stock").glob("*.json")):
+        if not re.fullmatch(r"[1-9]\d{3}", f.stem):
+            continue
+        try:
+            it = ((json.loads(f.read_text(encoding="utf-8")).get("tags") or {}).get("items") or [])
+        except Exception:  # noqa: BLE001
+            continue
+        if any(t.get("hit") is None for t in it) and any(t.get("hit") is True for t in it) and any(t.get("hit") is False for t in it):
+            return f.stem
+    notes.append("[個股總覽三欄1002] 找不到指標裡有「資料不足」的普通股，「整區拿掉」那一條只驗到 3189")
+    return None
+
+
+def t_stock_ov3_1002(b, base, code):
+    """個股總覽三欄＋AI 卡分頁籤＋指標左右並排（Andy 2026-10-02 深夜「誤解了」，DECISIONS #297）的真人操作驗收。
+
+      ① 1440：基本面｜籌碼快照｜AI 卡三欄（left 遞增、top 對齊、AI 欄最寬）；1100：兩欄（基本面＋籌碼疊左欄、AI 右欄）；800／390：一欄依序往下
+      ② 籌碼快照四塊（法人 → 集保 → 信用與借券（含當沖率）→ 量比）在中欄內由上往下（top 遞增、left 相同）
+      ③ AI 卡只有一張；免責字樣緊貼「AI 分析」（#269）；一行重點在標題下面、分頁籤上面
+      ④ 四顆分頁籤逐一真的點：顯示的那一面真的換、內容真的不同、籤選中、tw.ovAiTab 真的寫進去；方向鍵也能換；重新整理後還在；
+         切籤時左、中兩欄高度不變（選「頂端對齊、自然高度」的理由）
+      ⑤ 頂部 K 線卡的 #skAi（收合）點小標籤 → 捲到 AI 卡、切到那一面；從別的分頁點也會先切回總覽
+      ⑥ 指標分頁：沒有「資料不足」區（挑一檔真的有資料不足條件的股票驗）；>820 左右並排、≤820 上下排；欄內方塊往下排
+      ⑦ 1440／1100／800／390 總覽與指標都沒有重疊、溢出、橫向捲軸、小於 11px 的字"""
+    T = "[個股總覽三欄1002]"
+    errs: list[str] = []
+    na_code = _ov3_na_code()
+    for W in (1440, 1100, 800, 390):
+        ctx = b.new_context(viewport={"width": W, "height": 1000})
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e, W=W: errs.append(f"{W}: {e}"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        tag = f"{T}{W}"
+
+        def open_stock(c, pg=pg, W=W):
+            pg.goto("about:blank")
+            pg.goto(base + f"#stock/{c}", wait_until="networkidle")
+            if W <= 640:
+                wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 5", 15000)
+                pg.click('#mbTabs button[data-t="full"]'); pg.wait_for_timeout(700)
+            return wait_until(pg, "() => !!document.getElementById('skChipCard') && document.querySelectorAll('#stockTabs button').length >= 10", 15000)
+
+        try:
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            pg.evaluate("() => { try { ['tw.ovAiTab', 'tw.aiOpen', 'tw.aiTab'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+            if not ok(f"{tag} 打開 #stock/3189 有總覽三張卡", bool(open_stock("3189"))):
+                ctx.close()
+                continue
+            g = pg.evaluate(OV3_GEO)
+            f_, c_, a_ = g["fund"], g["chip"], g["ai"]
+            ok(f"{tag} AI 卡只有一張（改前的「AI 分析重點」卡與「各面向細節」小標題都不在）", g["nAi"] == 1 and g["oldBrief"] == 0, g)
+            # ---- ① 三欄／兩欄／一欄
+            if W == 1440:
+                ok(f"{tag} 三欄：基本面｜籌碼快照｜AI 卡 left 遞增、互不重疊", f_["r"] <= c_["l"] and c_["r"] <= a_["l"] and f_["l"] < c_["l"] < a_["l"], (f_, c_, a_))
+                ok(f"{tag} 三欄 top 對齊（≤2px）", max(f_["t"], c_["t"], a_["t"]) - min(f_["t"], c_["t"], a_["t"]) <= 2, (f_["t"], c_["t"], a_["t"]))
+                ok(f"{tag} 欄寬約 1 : 1 : 1.2（AI 欄最寬）", abs(f_["w"] - c_["w"]) <= 2 and 1.12 <= a_["w"] / f_["w"] <= 1.28, (f_["w"], c_["w"], a_["w"]))
+            elif W == 1100:
+                ok(f"{tag} 兩欄：基本面與籌碼快照疊成左欄（同 left、籌碼在下）", abs(f_["l"] - c_["l"]) <= 1 and c_["t"] >= f_["b"], (f_, c_))
+                ok(f"{tag} 兩欄：AI 卡在右欄、跟基本面頂端對齊", a_["l"] >= f_["r"] and abs(a_["t"] - f_["t"]) <= 2, (f_, a_))
+            else:
+                ok(f"{tag} 一欄：基本面 → 籌碼快照 → AI 卡依序往下、同一個左緣",
+                   f_["b"] <= c_["t"] and c_["b"] <= a_["t"] and len({f_["l"], c_["l"], a_["l"]}) == 1, (f_, c_, a_))
+            # ---- ② 籌碼快照四塊由上往下
+            mx = g["mix"]
+            ok(f"{tag} 籌碼快照四塊＝法人 → 集保 → 信用與借券 → 量比，當沖率在信用與借券裡", [m["k"] for m in mx] == ["inst", "hold", "credit", "vr"] and g["dtIn"], [m["k"] for m in mx])
+            ok(f"{tag} 籌碼快照四塊在卡內由上往下排（top 遞增、left 相同、上下不重疊）",
+               len(mx) == 4 and all(mx[i]["b"] <= mx[i + 1]["t"] + 1 for i in range(3)) and len({m["l"] for m in mx}) == 1, mx)
+            # ---- ③ 免責字樣緊貼標題、重點在標題下
+            w_ = g["warn"]
+            ok(f"{tag} 「規則式自動判讀，非投資建議」緊貼「AI 分析」（同一行、間距 ≤ 24px，#269）",
+               bool(w_) and w_["txt"] == "規則式自動判讀，非投資建議" and 0 <= w_["gap"] <= 24 and w_["dy"] <= 6, w_)
+            ok(f"{tag} 一行 AI 重點在標題下方、分頁籤上方", g["lineTop"] is not None and g["h3b"] - 1 <= g["lineTop"] < g["tabsT"], (g["h3b"], g["lineTop"], g["tabsT"]))
+            # ---- ④ 分頁籤（每個寬度都真的點）
+            p0 = pg.evaluate(OV3_PANE)
+            ok(f"{tag} 沒選過＝預設技術面（只顯示技術面、籤選中）", p0["shown"] == ["tech"] and p0["on"] == ["tech"] and p0["sel"] == ["tech"], p0)
+            prev = p0
+            for k in ("sig", "fund", "news", "tech"):
+                click(pg, f'#ovAiTags .ovtag[data-facet="{k}"]', 350)
+                p = pg.evaluate(OV3_PANE)
+                ok(f"{tag} 點「{k}」籤 → 卡裡只顯示那一面、籤選中（aria-selected）、tw.ovAiTab={k}",
+                   p["shown"] == [k] and p["on"] == [k] and p["sel"] == [k] and p["cur"] == k and p["ls"] == k and p["hash"] == "#stock/3189", p)
+                changed(f"{tag} 點「{k}」籤 → 顯示的內容真的換了", prev["txt"], p["txt"])
+                # 原地切換：點完分頁籤還在畫面裡（不會把人帶走）。不直接比 scrollY —— 換成較短的那一面時頁面變矮，
+                # 捲在底部的話瀏覽器自己會把 scrollY 夾回去，那不是切籤造成的捲動
+                ok(f"{tag} 點「{k}」籤 → 分頁籤仍在畫面裡（原地切換、不跳走）", p["tabT"] is not None and 0 <= p["tabT"] < p["vh"], (p["tabT"], p["vh"]))
+                ok(f"{tag} 點「{k}」籤 → 左、中兩欄高度不變（頂端對齊、自然高度）",
+                   p["fundH"] is not None and abs(p["fundH"] - p0["fundH"]) <= 1 and abs(p["chipH"] - p0["chipH"]) <= 1,
+                   (p0["fundH"], p["fundH"], p0["chipH"], p["chipH"]))
+                prev = p
+            if W == 1440:
+                pg.focus('#ovAiTags .ovtag[data-facet="tech"]')
+                pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(250)
+                pk = pg.evaluate(OV3_PANE)
+                ok(f"{tag} 焦點在「技術面」按 → 換到「技術面訊號」", pk["shown"] == ["sig"] and pk["ls"] == "sig", pk)
+                click(pg, '#ovAiTags .ovtag[data-facet="news"]', 300)
+                pg.reload(wait_until="networkidle")
+                wait_until(pg, "() => !!document.getElementById('ovAiCard')", 15000)
+                pr = pg.evaluate(OV3_PANE)
+                ok(f"★ {tag} 選「消息面」後重新整理 → 還是消息面（真的記住）", pr["shown"] == ["news"] and pr["on"] == ["news"] and pr["ls"] == "news", pr)
+                pg.evaluate("() => localStorage.setItem('tw.ovAiTab', 'tech')")
+                # ---- ⑤ 頂部 #skAi（收合）點小標籤 → 捲到 AI 卡、切到那一面
+                pg.reload(wait_until="networkidle")
+                wait_until(pg, "() => !!document.querySelector('#skAi .aitab') && !!document.getElementById('ovAiCard')", 15000)
+                pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+                shut = pg.evaluate("() => { const b = document.getElementById('aiBody'); return !!b && b.hidden; }")
+                ok(f"{tag} 頂部 AI 區進頁面是收合（重點模式）", shut, shut)
+                click(pg, '#skAi .aitab[data-facet="fund"]', 300)
+                got = wait_until(pg, HEAD1002_FACET.replace("FACET", "fund"), 4000)
+                ok(f"★ {tag} 頂部點「基本面」小標籤 → 捲到總覽 AI 卡（進畫面、閃一下）並切到基本面那一面",
+                   bool(got) and got["flash"] and got["tab"] and got["shown"] == ["fund"] and got["ls"] == "fund", got)
+                pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(200)
+                click(pg, '#stockTabs button[data-t="revenue"]', 600)
+                click(pg, '#skAi .aitab[data-facet="news"]', 300)
+                got = wait_until(pg, HEAD1002_FACET.replace("FACET", "news"), 4000)
+                ok(f"★ {tag} 在「營收」分頁時頂部點「消息面」→ 先切回總覽、捲到 AI 卡、切到消息面", bool(got) and got["ov"] and got["tab"] and got["shown"] == ["news"], got)
+                pg.evaluate("() => localStorage.setItem('tw.ovAiTab', 'tech')")
+                pg.reload(wait_until="networkidle")
+                wait_until(pg, "() => !!document.getElementById('ovAiCard')", 15000)
+            # ---- ⑦ 版面（總覽）：技術面（最長那一面）與技術面訊號各量一次
+            for k in ("tech", "sig"):
+                click(pg, f'#ovAiTags .ovtag[data-facet="{k}"]', 300)
+                lay = pg.evaluate(SOV_LAYOUT)
+                ok(f"{tag} 總覽（AI 卡顯示 {k}）：沒有橫向捲軸、沒有超出視窗、字 ≥11px、文字不重疊、數字沒被截掉",
+                   lay and lay["sw"] <= 1 and not lay["wide"] and not lay["small"] and not lay["over"] and not lay["clip"], lay)
+            # ---- ⑥ 指標分頁
+            for c in ["3189"] + ([na_code] if na_code else []):
+                if c != "3189":
+                    open_stock(c)
+                click(pg, '#stockTabs button[data-t="tags"]', 900)
+                tg = pg.evaluate(OV3_TAGS)
+                j = json.loads((SITE / "data" / "stock" / f"{c}.json").read_text(encoding="utf-8"))
+                items = ((j.get("tags") or {}).get("items") or [])
+                nn = sum(1 for t in items if t.get("hit") is None)
+                ok(f"{tag} {c} 指標：沒有「資料不足、無法判斷」區（JSON 有 {nn} 條資料不足）、標題的符合數不變",
+                   not tg["naZone"] and tg["na"] == 0 and "資料不足" not in tg["txt"] and tg["n"] == sum(1 for t in items if t.get("hit") is True), (tg["naZone"], tg["na"], tg["n"]))
+                h, m = tg["hit"], tg["miss"]
+                if h and m:
+                    if W > 820:
+                        ok(f"{tag} {c} 指標：符合（左）與未符合（右）左右並排、上緣對齊", h["r"] <= m["l"] + 1 and h["l"] < m["l"] and abs(h["t"] - m["t"]) <= 2, (h, m))
+                    else:
+                        ok(f"{tag} {c} 指標：≤820 上下排（符合在上）", h["b"] <= m["t"] + 1 and abs(h["l"] - m["l"]) <= 1, (h, m))
+                    for nm, ts in (("符合", tg["th"]), ("未符合", tg["tm"])):
+                        if len(ts) >= 2:
+                            ok(f"{tag} {c} 指標：「{nm}」欄內方塊往下排（同一個左緣、top 遞增）",
+                               len({t["l"] for t in ts}) == 1 and all(ts[i]["t"] < ts[i + 1]["t"] for i in range(len(ts) - 1)), ts)
+                if tg["meta"] and h:
+                    ok(f"{tag} {c} 指標：題材／族群標籤列在最上面", tg["meta"]["b"] <= h["t"] + 1, (tg["meta"], h))
+                lay = pg.evaluate(SOV_LAYOUT)
+                ok(f"{tag} {c} 指標分頁：沒有橫向捲軸、沒有超出視窗、字 ≥11px、文字不重疊",
+                   lay and lay["sw"] <= 1 and not lay["wide"] and not lay["small"] and not lay["over"], lay)
+        except Exception as ex:  # noqa: BLE001 —— 量測程式自己炸掉也要記成紅
+            ok(f"{tag} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
+        ctx.close()
+    ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
 
 
 if __name__ == "__main__":

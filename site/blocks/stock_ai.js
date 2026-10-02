@@ -39,12 +39,12 @@
      · 兩欄的門檻改成「視窗 > 820 而且卡片放得下」；≤820 上下排，內容區改成往下開的浮層（不推 K 線，進頁面收著）。
      · 現價列的五顆標籤（技術分…分 K 完整）搬到工具列（industry.js #skTags），左欄因此少一行。
      · 預設改成「只看重點」（Andy「上方的 AI 分析只寫重點」）：收合＝標題列＋一行結論（跟總覽的 briefText 同一句）＋四顆面向膠囊，
-       點膠囊捲到下面「總覽」分頁的細節卡（#ovFacets）；按「展開」才看各週期細節（兩欄撐滿右欄、單欄是浮層，都不推左側）。
+       點膠囊捲到下面「總覽」分頁的 AI 卡並切到那一面（#ovAiCard，#297）；按「展開」才看各週期細節（兩欄撐滿右欄、單欄是浮層，都不推左側）。
        保底高度改掛在分隔線上（--aiH 寫在卡片），收合時 AI 區只有內容那麼高。
 
    狀態（兩個 localStorage）：
      · tw.aiOpen：內容區收合／展開。收合時只留結論列＋四顆標籤小字。沒記過：一律收起（2026-10-02 起，改前桌機展開；換版時清一次舊記錄，記號 tw.aiOpenV＝2）。
-       收合時按標籤：K 線卡裡（桌機）＝捲到下面「總覽」的細節卡；手機（#aiCard）＝展開並切到那一面。
+       收合時按標籤：K 線卡裡（桌機）＝捲到下面「總覽」的 AI 卡並切到那一面（#297）；手機（#aiCard）＝展開並切到那一面。
      · tw.aiTab：選中的面向（tech／sig／fund／news），重新整理後還在。沒記過＝技術面。
      · tw.aiSplit（2026-10-02）：兩欄時右欄占「左欄＋右欄」的比例（0～1），拖分隔線時寫、雙擊分隔線刪掉＝回預設。
      ⚠ 單欄（≤820）的浮層不讀也不寫 tw.aiOpen：浮層是點了才開的，進頁面一律收著。
@@ -596,12 +596,15 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     requestAnimationFrame(() => moreHint(host));
   }
 
-  /* 小標籤 → 下面「總覽」分頁裡對應的細節卡（#ovFacets [data-facet]，tabOverview 畫的；技術面訊號那張是 stock.signal 的出口）。
-     不在總覽分頁就先按「總覽」鈕切過去（分頁內容是非同步畫的，最多等 1.5 秒）；捲到卡片上緣並閃一下（跟總覽裡的小標籤同一個 flash）。
-     那一面沒有細節卡（例如資料缺、或擋掉了 stock.signal）就退回原地展開看那一面，不讓點擊落空。*/
+  /* 小標籤 → 下面「總覽」分頁的 AI 卡（#ovAiCard，ovCard 畫的），並把卡裡的分頁籤切到同一面。
+     ★ 2026-10-02 深夜（Andy：總覽改三欄、AI 四面向併成一張卡，DECISIONS #297）：改前是捲到四張細節卡裡的那一張；
+       四張併成一張之後，「捲到那一張」就變成「捲到 AI 卡、切到那一面的分頁籤」—— 一次只顯示一面，切過去才看得到。
+     不在總覽分頁就先按「總覽」鈕切過去（分頁內容是非同步畫的，最多等 1.5 秒）；捲到卡片上緣並閃一下。
+     那一面沒有內容（例如資料缺、或擋掉了 stock.signal）就退回原地展開看那一面，不讓點擊落空。*/
   function gotoFacet(host, k) {
-    const find = () => document.querySelector(`#ovFacets [data-facet="${k}"]`);
+    const find = () => { const c = document.getElementById('ovAiCard'); return c && c.querySelector(`#ovFacets > [data-facet="${k}"]`) ? c : null; };
     const go = (c) => {
+      setOvTab(c, k, true);
       try { c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { c.scrollIntoView(); }
       c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
       clearTimeout(c._ovT); c._ovT = setTimeout(() => c.classList.remove('flash'), 1500);
@@ -615,7 +618,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       c = find();
       if (c) { go(c); return; }
       if (Date.now() - t0 < 1500) { setTimeout(wait, 60); return; }
-      userOpen(host, true);                                  // 找不到細節卡：原地展開看那一面
+      userOpen(host, true);                                  // 找不到 AI 卡（或那一面沒內容）：原地展開看那一面
     };
     setTimeout(wait, 30);
   }
@@ -630,37 +633,56 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
                          點標籤＝捲到下面那一張細節卡、閃一下（原地，不跳頁）。
        · facetCards() —— 三張細節小卡（技術面、基本面、消息面）。第二張「技術面訊號」是積木 stock.signal 的出口，
                          由 industry.js 夾在中間，這支不重畫九顆燈（兩處同一份 lights()）。
-       · facetHead()  —— 細節卡上面那一行小標題（「AI 分析・各面向細節」＋非投資建議）。
-       · bindOverview(root) —— 掛標籤捲動、技術面卡「看細節」原地展開、重大訊息點了切「公告／新聞」分頁。
+       · facetHead()  —— 細節卡上面那一行小標題（「AI 分析・各面向細節」＋非投資建議）。（#297 起拿掉：標題併進 ovCard 的卡片標題）
+       · bindOverview(root) —— 掛標籤捲動、技術面卡「看細節」原地展開、重大訊息點了切「公告／新聞」分頁。（#297 起標籤＝卡內切換）
      為什麼技術面卡要放小圖：Andy「能用小圖表示的就用小圖」—— 回檔／突破兩套型態的成立條數畫成點（●●●●○○），
      停損距離畫成一條有「8% 上限」刻度的進度條，超過上限一眼就看得到；長句子（原因、逐條條件、若…則…）收進「看細節」。
      ⚠ K 線卡右上角那一份（#skAi，mount）這裡一個字都沒改 —— 頂部版面是另一支分支（claude/stock-head-layout）在改。
        兩份共用同一份 payload 的 analysis 與同一支 sigCount／stanceCls／toneCls，數字不會分家。
      ⚠ id 一律 ov 開頭（ovF-tech、how-ovai…），不跟 #skAi 裡的 aiTfs／how-ai 撞號（兩份同時在頁面上）。
+
+     ★ 2026-10-02 深夜改版（Andy 看了 #294 上線版說「誤解了」，DECISIONS #297）：
+       改前：最上面一張「AI 分析重點」＋下面「各面向細節」四張卡並排（技術面那張 1.45 倍寬）。
+       改後：**合成一張卡 ovCard()**，放在總覽三欄的右欄：
+         標題「AI 分析」＋緊貼的「規則式自動判讀，非投資建議」（#269）→ 一行重點（brief）→ 一排膠囊分頁籤
+         （技術面｜技術面訊號｜基本面｜消息面，樣式＝「法人」分頁「外資｜投信｜自營商｜合計」那組 .seg，每顆帶原本的小判讀）
+         → 卡裡一次只顯示一面（點籤在同一張卡內切換，不捲動、不跳頁）。選哪一面存 tw.ovAiTab，沒存過＝技術面。
+       為什麼一次只顯示一面：三欄裡右欄只有約 500px 寬，四張細節卡疊起來會比左、中兩欄長兩三倍，整頁被右欄撐長。
+       四張細節卡的內容一個字都沒改（facetCards 照舊產出、技術面訊號照舊是 StockSignal.view 的出口），
+       只是在卡裡壓平（不再是卡中卡）、標題交給分頁籤（每一面原本的 h3 在卡裡藏起來，籤上已經寫了名稱與判讀）。
+       顯示哪一面用 #ovFacets 的 data-cur ＋ CSS 決定，**不改各面那個節點的屬性** —— 技術面訊號那一面要跟積木出口一字不差（_uitest 積木-個股三卡在比 outerHTML）。
      ========================================================================== */
   function ovCss() {
     if (document.getElementById('stockAiOvCss')) return;
     const st = document.createElement('style');
     st.id = 'stockAiOvCss';
     st.textContent = `
-#ovAiBrief{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--gap-card,16px)}
-#ovAiBrief h3{margin:0}
-#ovAiBrief h3 small[data-warn]{font-size:12px;color:var(--amber);font-weight:500}
-#ovAiBrief .ovline{display:flex;align-items:baseline;gap:10px;min-width:0;font-size:15px;color:var(--ink);line-height:1.5}
-#ovAiBrief .ovline .grade{flex:none;white-space:nowrap}
-#ovAiBrief .ovline .ovbrief{min-width:0}
-#ovAiBrief .ovtags{display:flex;flex-wrap:wrap;gap:8px}
-#ovAiBrief .ovtag{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:3px 10px 3px 12px;border-radius:999px;border:1px solid var(--line-2);
-  background:var(--panel-3);color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer}
-#ovAiBrief .ovtag:hover{border-color:var(--cyan);color:var(--ink)}
-#ovAiBrief .ovtag:focus-visible{outline:2px solid var(--focus,var(--cyan));outline-offset:2px}
-.ovsech{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:var(--gap-card,16px) 0 8px;font-size:14px;font-weight:700;color:var(--ink)}
-.ovsech small{font-size:12px;font-weight:500;color:var(--amber)}
-#ovFacets>.card{min-width:0;scroll-margin-top:80px}
-#ovFacets>.card h3{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#ovFacets>.card.flash{animation:ovflash 1.4s ease-out 1}
+/* 合併後的 AI 卡（#297）：標題＋免責 → 一行重點 → 膠囊分頁籤 → 一次一面 */
+#ovAiCard{display:flex;flex-direction:column;gap:10px;min-width:0;scroll-margin-top:80px;container:ovai / inline-size}
+#ovAiCard>h3{margin:0}
+#ovAiCard>h3 small[data-warn]{font-size:12px;color:var(--amber);font-weight:500}
+#ovAiCard.flash{animation:ovflash 1.4s ease-out 1}
 @keyframes ovflash{0%{box-shadow:0 0 0 2px var(--cyan)}100%{box-shadow:0 0 0 2px transparent}}
-@media (prefers-reduced-motion:reduce){#ovFacets>.card.flash{animation:none;box-shadow:0 0 0 2px var(--cyan)}}
+@media (prefers-reduced-motion:reduce){#ovAiCard.flash{animation:none;box-shadow:0 0 0 2px var(--cyan)}}
+#ovAiCard .ovline{display:flex;align-items:baseline;gap:10px;min-width:0;font-size:15px;color:var(--ink);line-height:1.5}
+#ovAiCard .ovline .grade{flex:none;white-space:nowrap}
+#ovAiCard .ovline .ovbrief{min-width:0}
+/* 膠囊分頁籤：外框、底色、選中態都吃全站 .seg（跟「法人」分頁同一組），這裡只補「四顆撐滿一列、每顆帶小判讀」。
+   卡內寬度 < 430px（手機、或兩欄時右欄很窄）四顆排不下一列 → 2×2，不讓第四顆單獨掉到第二行 */
+#ovAiCard .ovseg{display:grid;grid-template-columns:repeat(4,auto);justify-content:stretch;align-self:stretch;min-width:0}
+@container ovai (max-width:430px){ #ovAiCard .ovseg{grid-template-columns:repeat(2,minmax(0,1fr))} }
+#ovAiCard .ovseg .ovtag{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:32px;white-space:nowrap}
+#ovAiCard .ovseg .ovtag .aitag{font-size:12px;padding:0 6px}
+/* 選中那顆底色是青色：判讀小標改成卡片底色的小膠囊，紅綠字才讀得到（直接疊在青底上對比不夠）*/
+#ovAiCard .ovseg .ovtag.on .aitag{background:var(--panel);font-weight:600}
+#ovAiCard .ovseg .ovtag:focus-visible{outline:2px solid var(--focus,var(--cyan));outline-offset:2px}
+/* 一次一面：#ovFacets 的 data-cur 決定顯示哪一面；各面壓平（不是卡中卡），標題交給分頁籤 */
+#ovAiCard #ovFacets{min-width:0}
+#ovAiCard #ovFacets>[data-facet]{display:none;background:none;border:0;border-radius:0;box-shadow:none;padding:0;margin:0;min-width:0}
+#ovAiCard #ovFacets[data-cur="tech"]>[data-facet="tech"],#ovAiCard #ovFacets[data-cur="sig"]>[data-facet="sig"],
+#ovAiCard #ovFacets[data-cur="fund"]>[data-facet="fund"],#ovAiCard #ovFacets[data-cur="news"]>[data-facet="news"]{display:block}
+#ovAiCard #ovFacets>[data-facet]>h3{display:none}
+#ovAiCard #ovFacets>[data-facet] .lights{margin-top:0!important}
 .ovfacet h4{margin:0 0 6px;font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5}
 .ovfacet ul{margin:4px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.55}
 .ovfacet li{margin:3px 0}
@@ -688,7 +710,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 .ovnews a{color:var(--cyan)}
 .ovnews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
 .ovasof{margin-top:8px;font-size:12px;color:var(--ink-3)}
-@media (max-width:640px){#ovAiBrief .ovline{font-size:14.5px}}`;
+@media (max-width:640px){#ovAiCard .ovline{font-size:14.5px}}`;
     document.head.appendChild(st);
   }
 
@@ -717,29 +739,58 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       return { k, nm, lb, cls: k === 'sig' ? sig.tone : toneCls(lb), tip: k === 'sig' ? `九顆技術燈號：偏多 ${sig.pos}、偏空 ${sig.neg}` : (x.why || '') };
     });
   }
-  function brief(pg, fmt) {
-    ovCss(); css();
+  /* 總覽 AI 卡選哪一面（tw.ovAiTab）。跟 K 線卡那一份的 tw.aiTab 分開存：兩份同時在頁面上，
+     在總覽切面向不該順手把頂部那一份也換掉（頂部收合時點小標籤會切這一份，見 gotoFacet）。*/
+  const OV_TAB_KEY = 'tw.ovAiTab';
+  function readOvTab(have) {
+    let v = null;
+    try { v = localStorage.getItem(OV_TAB_KEY); } catch (e) { /* 私密視窗 */ }
+    if (v && have.includes(v)) return v;
+    return have.includes('tech') ? 'tech' : have[0];
+  }
+  /* 切到某一面：改 #ovFacets 的 data-cur（CSS 依它顯示那一面）＋籤的選中態；save＝寫 localStorage。那一面不存在就回 false。*/
+  function setOvTab(root, k, save) {
+    const fac = root && root.querySelector('#ovFacets');
+    if (!fac || !fac.querySelector(`:scope > [data-facet="${k}"]`)) return false;
+    fac.dataset.cur = k;
+    root.querySelectorAll('#ovAiTags .ovtag').forEach(b => { const on = b.dataset.facet === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+    if (save) { try { localStorage.setItem(OV_TAB_KEY, k); } catch (e) { /* 忽略 */ } }
+    return true;
+  }
+  /* 一行重點（#ovAiBrief，data-ai＝跟著「AI 分析」那一項上鎖）。標題不放在這塊裡：上鎖時只糊掉結論，標題與免責字樣照樣看得到 */
+  function brief(pg) {
     const an = pg && pg.analysis;
     const v = (pg && pg.verdict) || {};
     const hd = (an && an.headline) || {};
     const stance = hd.stance || v.verdict || '—';
+    return `<div id="ovAiBrief" data-ai><div class="ovline" id="ovAiLine" data-readout><span class="grade ${stanceCls(stance)}">${esc(stance)}</span>`
+      + `<span class="ovbrief">${esc(an ? briefText(pg) : '資料準備中（下一次盤後更新後出現）')}</span></div></div>`;
+  }
+  /* ★ 2026-10-02 深夜（#297）總覽右欄那一張 AI 卡。sig＝StockSignal.view 的輸出（industry.js 給；擋掉 stock_signal.js 時是空字串，那一面就不出現）。*/
+  function ovCard(pg, fmt, sig) {
+    ovCss(); css();
+    const an = pg && pg.analysis;
+    const fc = facetCards(pg, fmt) || {};
+    const panes = [['tech', fc.tech], ['sig', sig], ['fund', fc.fund], ['news', fc.news]].filter(x => x[1]);
+    const have = panes.map(x => x[0]);
+    const cur = have.length ? readOvTab(have) : '';
     const how = window.App && window.App.howHTML ? window.App.howHTML('', [
       '一行重點＝回檔、突破兩套型態成立幾條＋停損距離',
-      '四顆標籤＝四個面向各自的判讀，點了看下面細節',
+      '分頁籤＝四個面向，籤上是各自的判讀，點了在卡裡切換',
       '「AI 分析」是寫死的規則算的，非語言模型',
       '四面向不加總、不是買賣建議',
     ]) : '';
-    const tags = an ? facetTags(pg, fmt).map(t => `<button type="button" class="ovtag" data-facet="${t.k}" title="${esc(t.tip)}" aria-controls="ovF-${t.k}">`
-      + `<span class="nm">${t.nm}</span><span class="aitag ${t.cls}">${esc(t.lb)}</span></button>`).join('') : '';
-    return `<div class="card" id="ovAiBrief" data-ai><h3>AI 分析重點 <small data-warn title="由固定規則與公開資料自動產生，不是大型語言模型，也不是任何人的投資建議。">規則式自動判讀，非投資建議</small>`
-      + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析重點怎麼看">?</button>`
+    const tg = facetTags(pg, fmt).filter(t => have.includes(t.k));
+    const tabs = tg.length >= 2 ? `<div class="seg ovseg" id="ovAiTags" role="tablist" aria-label="AI 分析四個面向">${tg.map(t => {
+      const on = t.k === cur;
+      return `<button type="button" class="ovtag${on ? ' on' : ''}" role="tab" data-facet="${t.k}" id="ovT-${t.k}" aria-selected="${on}" tabindex="${on ? 0 : -1}" aria-controls="ovF-${t.k}" title="${esc(t.tip)}">`
+        + `<span class="nm">${t.nm}</span><span class="aitag ${t.cls}">${esc(t.lb)}</span></button>`; }).join('')}</div>` : '';
+    return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn title="由固定規則與公開資料自動產生，不是大型語言模型，也不是任何人的投資建議。">規則式自動判讀，非投資建議</small>`
+      + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析怎麼看">?</button>`
       + `${an && an.as_of ? ` <small data-readout>資料到 ${esc(an.as_of)}</small>` : ''}</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
-      + `<div class="ovline" id="ovAiLine" data-readout><span class="grade ${stanceCls(stance)}">${esc(stance)}</span><span class="ovbrief">${esc(an ? briefText(pg) : '資料準備中（下一次盤後更新後出現）')}</span></div>`
-      + (tags ? `<div class="ovtags" id="ovAiTags" role="group" aria-label="四個面向（點了看下面細節）">${tags}</div>` : '')
+      + brief(pg) + tabs
+      + (panes.length ? `<div class="ovpanes" id="ovFacets" data-cur="${cur}" data-n="${panes.length}">${panes.map(x => x[1]).join('')}</div>` : '')
       + `</div>`;
-  }
-  function facetHead() {
-    return '<div class="ovsech" id="ovFacetHead">AI 分析・各面向細節 <small>規則式自動判讀，非投資建議</small></div>';
   }
   function techCard(t, fmt) {
     if (!t) return '';
@@ -806,13 +857,17 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   }
   function bindOverview(root) {
     if (!root) return;
-    root.querySelectorAll('#ovAiTags .ovtag').forEach(b => b.onclick = () => {
-      const c = root.querySelector(`#ovFacets [data-facet="${b.dataset.facet}"]`);
-      if (!c) return;
-      try { c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { c.scrollIntoView(); }
-      c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
-      clearTimeout(c._ovT); c._ovT = setTimeout(() => c.classList.remove('flash'), 1500);
-    });
+    /* ★ #297：分頁籤＝在同一張卡內切換那一面（改前＝捲到下面那一張細節卡）。不捲動、不跳頁 */
+    const tabs = [...root.querySelectorAll('#ovAiTags .ovtag')];
+    tabs.forEach(b => b.onclick = () => setOvTab(root, b.dataset.facet, true));
+    // 方向鍵左右換籤（WAI-ARIA tabs 慣例），焦點跟著走
+    const tl = root.querySelector('#ovAiTags');
+    if (tl) tl.onkeydown = (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = tabs.indexOf(document.activeElement); if (i < 0) return;
+      const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      n.focus(); n.click(); e.preventDefault();
+    };
     const mb = root.querySelector('#ovTechMore');
     if (mb) mb.onclick = () => {
       const d = root.querySelector('#ovTechDet'); if (!d) return;
@@ -828,5 +883,5 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     });
   }
 
-  window.StockAI = { id: 'stock.mtf', html, mount, refit, brief, briefText, facetCards, facetHead, bindOverview, _key: KEY, _tabKey: TAB_KEY, _splitKey: SPLIT_KEY };
+  window.StockAI = { id: 'stock.mtf', html, mount, refit, brief, briefText, facetCards, ovCard, bindOverview, _key: KEY, _tabKey: TAB_KEY, _ovTabKey: OV_TAB_KEY, _splitKey: SPLIT_KEY };
 })();
