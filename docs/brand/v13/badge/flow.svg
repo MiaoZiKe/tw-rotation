@@ -3,11 +3,11 @@
 <rect x="3" y="3" width="90" height="90" rx="24" fill="url(#g)" stroke="#ffffff" stroke-width="4"/>
 <rect x="11" y="11" width="74" height="74" rx="17" fill="#ffffff" fill-opacity=".2" stroke="#ffffff" stroke-opacity=".7" stroke-width="1.5"/>
 <g transform="translate(19.2 19.2) scale(2.4)" fill="none" stroke="#4552a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-<path d="M4.2 12C11 12 11.5 5.2 17.6 5.2" stroke-width="2.8"/>
-<path d="M4.2 12C11 12 11.5 12 17.6 12" stroke-width="1.9"/>
-<path d="M4.2 12C11 12 11.5 18.8 17.6 18.8" stroke-width="1.2"/>
-<circle cx="19.9" cy="5.2" r="2.2" fill="#4552a6" stroke="none"/>
-<circle cx="19.9" cy="12" r="2.2" fill="#4552a6" stroke="none"/>
-<circle cx="19.9" cy="18.8" r="2.2" fill="#4552a6" stroke="none"/>
+<path d="M4.2 12C11 12 11.5 5.2 17.6 5.2" stroke-width="2.8" stroke="#1474d3"/>
+<path d="M4.2 12C11 12 11.5 12 17.6 12" stroke-width="1.9" stroke="#1474d3"/>
+<path d="M4.2 12C11 12 11.5 18.8 17.6 18.8" stroke-width="1.2" stroke="#1474d3"/>
+<circle cx="19.9" cy="5.2" r="2.2" fill="#f08a4b" stroke="none"/>
+<circle cx="19.9" cy="12" r="2.2" fill="#22a6a0" stroke="none"/>
+<circle cx="19.9" cy="18.8" r="2.2" fill="#7b6cf0" stroke="none"/>
 <circle cx="4.2" cy="12" r="2.6" fill="#f08a4b" stroke="none"/>
 </g></svg>

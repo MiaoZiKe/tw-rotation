@@ -3,8 +3,8 @@
 <rect x="3" y="3" width="90" height="90" rx="24" fill="url(#g)" stroke="#ffffff" stroke-width="4"/>
 <rect x="11" y="11" width="74" height="74" rx="17" fill="#ffffff" fill-opacity=".2" stroke="#ffffff" stroke-opacity=".7" stroke-width="1.5"/>
 <g transform="translate(19.2 19.2) scale(2.4)" fill="none" stroke="#4552a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-<polygon points="7,16.5 10.5,12.5 13.5,14.5 19,7 19,19.6 7,19.6" fill="#4552a6" fill-opacity=".16" stroke="none"/>
+<polygon points="7,16.5 10.5,12.5 13.5,14.5 19,7 19,19.6 7,19.6" fill="#4552a6" fill-opacity="0.22" stroke="none"/>
 <path d="M4 3.5V20H21.5"/>
-<polyline points="7,16.5 10.5,12.5 13.5,14.5 19,7"/>
+<polyline points="7,16.5 10.5,12.5 13.5,14.5 19,7" stroke="#1474d3"/>
 <circle cx="19" cy="7" r="2" fill="#f08a4b" stroke="none"/>
 </g></svg>

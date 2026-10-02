@@ -9,7 +9,7 @@
 <path d="M12.00 5.50L12.00 7.60"/>
 <path d="M16.25 6.64L15.20 8.46"/>
 <path d="M19.99 11.09L18.01 11.81"/>
-<path d="M12 14L16.6 8.6"/>
+<path d="M12 14L16.6 8.6" stroke="#f08a4b"/>
 <circle cx="12" cy="14" r="2.2" fill="#f08a4b" stroke="none"/>
 <path d="M5 19.5h14"/>
 </g></svg>

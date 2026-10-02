@@ -9,46 +9,35 @@ def arc_pts(cx, cy, r, a0, a1, k=16):
     return [(cx + r*math.cos(math.radians(a0 + (a1-a0)*i/k)), cy + r*math.sin(math.radians(a0 + (a1-a0)*i/k))) for i in range(k+1)]
 def pl(p): return ' '.join(f'{x:.2f},{y:.2f}' for x, y in p)
 
+# 配色鍵（第十五輪起）：每個面一點顏色。線條版（LINE）全部是 currentColor／none，維持單色、跟著網站主題變色；
+# 徽章與立方面上的圖示才傳入下面這些鍵。沒傳的鍵一律退回原本的單色（c.get(鍵, 預設)）。
+#   flowline 資金分流線  n1/n2/n3 三個族群終點  trend 走勢線  area 走勢面積  hot 橘色強調點（基本／事件／產業／大盤）
+#   chip 籌碼本體填色  chipacc 籌碼頂面強調線  core 晶片內方塊填色
+
 def flow(c):   # 資金面：分流圖（網站「資金去向」光纖分流的簡易版）—— 左邊一個來源，三條粗細不同的平滑曲線流到右邊三個族群
     o = []
+    line = c.get('flowline')
     for y, w in ((5.2, 2.8), (12, 1.9), (18.8, 1.2)):   # 線越粗＝流過去的錢越多
-        o.append(f'<path d="M4.2 12C11 12 11.5 {y} 17.6 {y}" stroke-width="{w}"/>')
-    for y in (5.2, 12, 18.8):   # 右邊三個族群節點用實心點，避免跟「分享」那種空心圈圖示混淆
-        o.append(f'<circle cx="19.9" cy="{y}" r="2.2" fill="{c["ink"]}" stroke="none"/>')
+        o.append(f'<path d="M4.2 12C11 12 11.5 {y} 17.6 {y}" stroke-width="{w}"' + (f' stroke="{line}"' if line else '') + '/>')
+    for y, k in ((5.2, 'n1'), (12, 'n2'), (18.8, 'n3')):   # 右邊三個族群節點用實心點，避免跟「分享」那種空心圈圖示混淆
+        o.append(f'<circle cx="19.9" cy="{y}" r="2.2" fill="{c.get(k, c["ink"])}" stroke="none"/>')
     o.append(f'<circle cx="4.2" cy="12" r="2.6" fill="{c["acc"]}" stroke="none"/>')
     return o
 
-def _band(cx, y0, rx, ry, t, a0, a1, k=8):
-    """籌碼側邊的一段：上緣沿 y0 的下半橢圓弧、下緣沿 y0+t 的弧，角度 a0→a1（0＝左端、π＝右端）"""
-    top = [(cx - rx*math.cos(a0 + (a1-a0)*i/k), y0 + ry*math.sin(a0 + (a1-a0)*i/k)) for i in range(k+1)]
-    bot = [(x, y + t) for x, y in reversed(top)]
-    return 'M' + ' L'.join(f'{x:.2f} {y:.2f}' for x, y in top + bot) + 'Z'
-
-def chips(c):  # 籌碼面：賭桌上的三疊籌碼（高低不同），側邊有賭場籌碼的邊緣色塊／缺口
-    o = []
-    RX, RY, P, T = 3.1, 1.25, 3.0, 2.35     # 半寬、橢圓半高、每片間距、側邊色帶厚度（其餘是片與片之間的縫）
-    G, E = .58, .5                           # 中間缺口的角寬、邊緣切口的角寬（弧度）
-    for cx, n in ((4.6, 2), (12, 4), (19.4, 3)):
-        yt = 20.2 - RY - 1.3 - n*P + (P - T)  # 最上面那片的頂面中心（三疊底部對齊在 y≈20.2）
-        for k in range(n):
-            y0 = yt + 1.3 + k*P
-            # 偶數片：正中間一個缺口；奇數片：兩側邊緣切掉一塊 —— 上下錯開，像賭場籌碼側邊的色塊
-            # （奇數片不在弧中段開兩個缺口，因為透視壓縮後兩側會剩下細到 16px 看不見的碎片）
-            if k % 2 == 0:
-                cuts = [0, math.pi/2 - G/2, math.pi/2 + G/2, math.pi]
-            else:
-                cuts = [E, math.pi - E]
-            d = ''.join(_band(cx, y0, RX, RY, T, cuts[i], cuts[i+1]) for i in range(0, len(cuts), 2))
-            o.append(f'<path d="{d}" fill="{c["ink"]}" stroke="none"/>')
-        o.append(f'<ellipse cx="{cx}" cy="{yt:.2f}" rx="{RX}" ry="{RY}" fill="{c["fill"]}" stroke-width="1.6"/>')
-    o.append(f'<ellipse cx="12" cy="{20.2 - RY - 1.3 - 4*P + (P - T):.2f}" rx="1.1" ry=".42" fill="{c["acc"]}" stroke="none"/>')
+def chips(c):  # 籌碼面：一疊籌碼（第十三輪最早的版本，Andy 第十五輪要求改回）
+    o = []   # 由下往上畫，上層的填色才不會蓋掉下層的弧線
+    body = c.get('chip', c['fill'])
+    for y in (14.1, 10.3, 6.5):
+        o.append(f'<path d="M4.5 {y} v3.8 A7.5 2.6 0 0 0 19.5 {y+3.8:.1f} V{y}" fill="{body}"/>')
+    o.append(f'<ellipse cx="12" cy="6.5" rx="7.5" ry="2.6" fill="{body}"/>')
+    o.append(f'<path d="M9.5 6.5 h5" stroke="{c.get("chipacc", c["acc"])}"/>')
     return o
 
 def chain(c):  # 產業面：IC 晶片（Andy 給的圖一）—— 方形外框、四邊針腳、中間內方塊，內方塊中心一個節點
     o = [f'<rect x="6" y="6" width="12" height="12" rx="2" fill="{c["fill"]}"/>']
     o.append('<path d="' + ''.join(f'M{t} 6V3M{t} 18V21M6 {t}H3M18 {t}H21' for t in (9, 12, 15)) + '"/>')
-    o.append('<rect x="9.4" y="9.4" width="5.2" height="5.2" rx="1"/>')
-    o.append(f'<circle cx="12" cy="12" r=".95" fill="{c["acc"]}" stroke="none"/>')
+    o.append(f'<rect x="9.4" y="9.4" width="5.2" height="5.2" rx="1" fill="{c.get("core", "none")}"/>')
+    o.append(f'<circle cx="12" cy="12" r=".95" fill="{c.get("hot", c["acc"])}" stroke="none"/>')
     return o
 
 def candle(c): # 技術面：三根 K 棒（紅漲綠跌；線條版空心＝漲、實心＝跌）
@@ -61,14 +50,15 @@ def candle(c): # 技術面：三根 K 棒（紅漲綠跌；線條版空心＝漲
 
 def event(c):  # 事件面：脈衝＋警示點
     return ['<polyline points="2,13 6.5,13 9,6 12.5,19 15,10 16.5,13 22,13"/>',
-            f'<circle cx="19" cy="5.5" r="2.2" fill="{c["acc"]}" stroke="none"/>']
+            f'<circle cx="19" cy="5.5" r="2.2" fill="{c.get("hot", c["acc"])}" stroke="none"/>']
 
-def fund(c):   # 基本面：走勢圖（L 形座標軸＋走勢折線＋末端一點；徽章版加淡淡的面積）
+def fund(c):   # 基本面：走勢圖（L 形座標軸＋走勢折線＋末端一點；徽章版加淡淡的面積）。不用紅綠，免得跟漲跌混淆
     o = []
     if c.get('area'):
-        o.append(f'<polygon points="7,16.5 10.5,12.5 13.5,14.5 19,7 19,19.6 7,19.6" fill="{c["area"]}" fill-opacity=".16" stroke="none"/>')
-    o += ['<path d="M4 3.5V20H21.5"/>', '<polyline points="7,16.5 10.5,12.5 13.5,14.5 19,7"/>',
-          f'<circle cx="19" cy="7" r="2" fill="{c["acc"]}" stroke="none"/>']
+        o.append(f'<polygon points="7,16.5 10.5,12.5 13.5,14.5 19,7 19,19.6 7,19.6" fill="{c["area"]}" fill-opacity="{c.get("area_op", .16)}" stroke="none"/>')
+    trend = c.get('trend')
+    o += ['<path d="M4 3.5V20H21.5"/>', '<polyline points="7,16.5 10.5,12.5 13.5,14.5 19,7"' + (f' stroke="{trend}"' if trend else '') + '/>',
+          f'<circle cx="19" cy="7" r="2" fill="{c.get("hot", c["acc"])}" stroke="none"/>']
     return o
 
 def gauge(c):  # 大盤儀表（不屬於六面，是外圈刻度）
@@ -77,8 +67,9 @@ def gauge(c):  # 大盤儀表（不屬於六面，是外圈刻度）
     for a in (200, 240, 270, 300, 340):
         r = math.radians(a)
         o.append(f'<path d="M{12+8.5*math.cos(r):.2f} {14+8.5*math.sin(r):.2f}L{12+6.4*math.cos(r):.2f} {14+6.4*math.sin(r):.2f}"/>')
-    o.append('<path d="M12 14L16.6 8.6"/>')
-    o.append(f'<circle cx="12" cy="14" r="2.2" fill="{c["acc"]}" stroke="none"/>')
+    hot = c.get('hot')
+    o.append('<path d="M12 14L16.6 8.6"' + (f' stroke="{hot}"' if hot else '') + '/>')
+    o.append(f'<circle cx="12" cy="14" r="2.2" fill="{c.get("hot", c["acc"])}" stroke="none"/>')
     o.append('<path d="M5 19.5h14"/>')
     return o
 
@@ -91,7 +82,10 @@ ICONS = [('flow', '資金面', '錢往哪個族群跑', flow, ('#ffe3f1', '#e2da
          ('market', '大盤儀表', '今天大環境如何（外圈）', gauge, ('#eef1f6', '#e3e8f2', '#f6efe6'))]
 
 LINE = dict(acc='currentColor', fill='none', rise='currentColor', fall='currentColor', ink='currentColor')
-BADGE = dict(acc='#f08a4b', fill='#ffffff', rise='#e0526a', fall='#23a37a', ink='#4552a6', area='#4552a6')
+BADGE = dict(acc='#f08a4b', fill='#ffffff', rise='#e0526a', fall='#23a37a', ink='#4552a6', area='#4552a6',
+             # 第十五輪：每個面一點配色（跟 v15 立方面上的圖示同一組）
+             flowline='#1474d3', n1='#f08a4b', n2='#22a6a0', n3='#7b6cf0', trend='#1474d3', area_op=.22,
+             hot='#f08a4b', chip='#e7b04a', chipacc='#e0526a', core='#22a6a0')
 
 def main():
     for key, name, q, fn, (g0, g1, g2) in ICONS:
@@ -136,8 +130,8 @@ h1{{margin:0;font-size:34px;font-weight:600;letter-spacing:.1em}} .mono{{font-fa
 .ln span{{display:inline-flex}} .ln svg{{width:100%;height:100%}}
 .foot{{margin-top:26px;color:#c9b9a8;font-size:15px;line-height:1.9}} code{{color:#f2b48c}}
 </style></head><body><h1>股立方｜六個面的簡易圖示</h1><div class="mono">6 FACES + MARKET GAUGE // LINE 24px + GLASS BADGE</div>
-<p class="sub">每個面一個圖：<b>資金</b>＝分流圖（網站「資金去向」的簡易版，線越粗錢越多）、<b>籌碼</b>＝賭桌籌碼（三疊高低不同、側邊有賭場籌碼的色塊缺口）、<b>產業</b>＝晶片、<b>技術</b>＝K 棒、<b>事件</b>＝脈衝＋警示點、<b>基本</b>＝走勢圖（座標軸＋走勢線）。第七個虛線框的「大盤儀表」不屬於六面，是立方外圈的刻度。<br>
-上排：彩色徽章（對外宣傳、介紹頁）。下兩排：線條圖示在深色／米色底的 48、24、16px —— 線條版只用一個顏色，放進網站會自動跟著深淺主題變色。</p>
+<p class="sub">每個面一個圖：<b>資金</b>＝分流圖（網站「資金去向」的簡易版，線越粗錢越多）、<b>籌碼</b>＝一疊籌碼（字面意思）、<b>產業</b>＝晶片、<b>技術</b>＝K 棒、<b>事件</b>＝脈衝＋警示點、<b>基本</b>＝走勢圖（座標軸＋走勢線）。第七個虛線框的「大盤儀表」不屬於六面，是立方外圈的刻度。<br>
+上排：彩色徽章（對外宣傳、介紹頁；每個面一點配色，技術面照台股慣例紅漲綠跌）。下兩排：線條圖示在深色／米色底的 48、24、16px —— 線條版只用一個顏色，放進網站會自動跟著深淺主題變色。</p>
 <div class="g">{rows}</div>
 <p class="foot">檔案：<code>line/*.svg</code>（線條、currentColor）、<code>badge/*.svg</code>（彩色徽章）、<code>faces.svg</code>（一支 sprite，網站用 <code>&lt;svg&gt;&lt;use href="faces.svg#face-flow"/&gt;&lt;/svg&gt;</code>）。產業面的檔名沿用 <code>chain</code>，圖已換成晶片。<br>
 線條版的技術面用「空心＝漲、實心＝跌」區分；徽章版照台股慣例紅漲綠跌。</p></body></html>""")

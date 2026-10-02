@@ -5,6 +5,6 @@
 <g transform="translate(19.2 19.2) scale(2.4)" fill="none" stroke="#4552a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
 <rect x="6" y="6" width="12" height="12" rx="2" fill="#ffffff"/>
 <path d="M9 6V3M9 18V21M6 9H3M18 9H21M12 6V3M12 18V21M6 12H3M18 12H21M15 6V3M15 18V21M6 15H3M18 15H21"/>
-<rect x="9.4" y="9.4" width="5.2" height="5.2" rx="1"/>
+<rect x="9.4" y="9.4" width="5.2" height="5.2" rx="1" fill="#22a6a0"/>
 <circle cx="12" cy="12" r=".95" fill="#f08a4b" stroke="none"/>
 </g></svg>
