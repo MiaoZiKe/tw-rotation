@@ -5110,6 +5110,16 @@ def t_new_flow(pg, base):
         pg.wait_for_timeout(2800)
         lv = pg.evaluate("() => window.App.sankeyLive()")
         if ok("按下去真的進入即時模式而且抓到資料", lv["on"] and not lv["err"] and lv["boards"] > 0, lv):
+            # ★ DECISIONS #283：即時開著時「看哪一天」那支拉Bar 反灰、點不動
+            sd = pg.evaluate("""() => { const b = document.getElementById('sankeyDays'), i = b && b.querySelector('input');
+                if (!i) return null; i.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = i.getBoundingClientRect();
+                return { cls: b.classList.contains('livedim'), dis: i.disabled, pe: getComputedStyle(i).pointerEvents,
+                         v: i.value, x: r.left + 4, y: r.top + r.height / 2 }; }""")
+            if sd:
+                ok("資金去向：即時開著時日期拉Bar 反灰停用", sd["cls"] and sd["dis"] and sd["pe"] == "none", sd)
+                pg.mouse.click(sd["x"], sd["y"]); pg.wait_for_timeout(400)
+                ok("資金去向：即時開著時點拉Bar，日期**不會變**",
+                   pg.evaluate("() => document.querySelector('#sankeyDays input').value") == sd["v"])
             ok("鈕自己亮起來（看得出現在畫的不是收盤那一張）",
                pg.evaluate("() => document.getElementById('sankeyLiveBtn').classList.contains('on')"))
             tr = pg.evaluate(SKL_TREE)
@@ -5162,6 +5172,15 @@ def t_new_flow(pg, base):
         ok("再按一次真的退出即時（回到收盤那一張）",
            not pg.evaluate("() => window.App.sankeyLive().on")
            and pg.evaluate("() => document.getElementById('sankeyLive').hidden"))
+        sd2 = pg.evaluate("""() => { const b = document.getElementById('sankeyDays'), i = b && b.querySelector('input');
+            if (!i) return null; i.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = i.getBoundingClientRect();
+            return { cls: b.classList.contains('livedim'), dis: i.disabled, v: i.value, x: r.left + 4, y: r.top + r.height / 2 }; }""")
+        if sd2:
+            ok("資金去向：關掉即時後拉Bar 恢復可用", not sd2["cls"] and not sd2["dis"], sd2)
+            pg.mouse.click(sd2["x"], sd2["y"]); pg.wait_for_timeout(600)
+            ok("資金去向：關掉即時後點拉Bar 最左邊，日期**真的改變**",
+               pg.evaluate("() => document.querySelector('#sankeyDays input').value") != sd2["v"], sd2)
+            pg.evaluate("() => { const i = document.querySelector('#sankeyDays input'); i.value = i.max; i.dispatchEvent(new Event('input')); i.dispatchEvent(new Event('change')); }")
         pg.evaluate(SKL_STUB, False)
         pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()")
         pg.wait_for_timeout(2800)
@@ -22384,35 +22403,43 @@ def t_rot_live(pg, base):
     #   **只有滑塊（thumb）接得到滑鼠**（index.html `.rbar .dual`）。舊寫法從軌道 5% 處按下去，
     #   按到的是空氣，所以值永遠不變，連帶讓 ⑦ 那一段拿到「即時還開著」的狀態、按一下反而把它關掉。
     #   真人是抓住右邊那顆青色滑塊往左拖 —— 這裡照做：算出 `input.days`（合併後的單把手「N 天前」）滑塊中心的像素位置再拖。
-    box = pg.evaluate("""() => { const i = document.querySelector('#rotBack input.days');
+    # ★ 2026-10-01（DECISIONS #283，Andy：「當點選即時功能，旁邊的日期以及時間拉Bar 都需反灰」）：
+    #   即時開著 → 拉Bar／− ＋ ▶ 全部停用。以前這裡驗「拖了不退出即時」「按 ▶ 退出即時」，
+    #   現在兩件事都不可能發生了，改驗「真的用滑鼠拖，值不會變」→ 關掉即時 → 「再拖一次，值真的變了」。
+    _rot_drag = """() => { const i = document.querySelector('#rotBack input.days');
         if (!i) return null; i.scrollIntoView({ block: 'center', behavior: 'instant' });
-        const r = i.getBoundingClientRect(), mx = +i.max || 30, v = +i.value, TH = 13;
+        const r = i.getBoundingClientRect(), mx = +i.max || 30, mn = +i.min || 1, v = +i.value, TH = 13;
         return { x: r.left, y: r.top + r.height / 2, w: r.width, v: v, max: mx,
-                 tx: r.left + TH / 2 + (r.width - TH) * v / mx }; }""")
-    if ok("抓得到「看哪一天」那支拉Bar 的位置（要真的用滑鼠拖）", bool(box), box):
-        pg.mouse.move(box["tx"], box["y"])
-        pg.mouse.down()
-        pg.mouse.move(box["x"] + box["w"] * 0.45, box["y"], steps=12)
-        pg.mouse.up()
-        pg.wait_for_timeout(1200)
-        v1 = pg.evaluate("() => +document.querySelector('#rotBack input.days').value")
-        if ok(f"滑鼠真的把拉Bar 拖動了（{box['v']} → {v1}）", v1 != box["v"], {"前": box["v"], "後": v1}):
-            ok("拖「N 天前」→ 即時**不退出**（點還是停在最新一天，只是腳印長度變了）",
-               pg.evaluate("() => window.App.rotLive().on"))
-            ok("排行副標的結尾寫**今天**（即時模式；Andy：「幾月幾號~今天日期」）",
-               pg.evaluate("""() => { const d = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
-                   const m = d.match(/^\\d{4}-(\\d{2})-(\\d{2})/); const want = (+m[1]) + '/' + (+m[2]);
-                   return (document.getElementById('rankSub').textContent || '').trim().endsWith(want); }"""),
-               text(pg, "#rankSub"))
-        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+                 tx: r.left + TH / 2 + (r.width - TH) * (v - mn) / (mx - mn) }; }"""
+    def _drag(bx, frac):
+        pg.mouse.move(bx["tx"], bx["y"]); pg.mouse.down()
+        pg.mouse.move(bx["x"] + bx["w"] * frac, bx["y"], steps=12); pg.mouse.up()
         pg.wait_for_timeout(900)
-        ok("按 ▶ 回放 → **自動退出即時**（和資金去向同一條互斥規矩）",
-           pg.evaluate("() => !window.App.rotLive().on")
-           and pg.evaluate("() => document.getElementById('rotLive').hidden"))
-        ok("鈕也跟著暗回去、狀態字也收掉（不可以畫的是盤後、鈕卻還亮著）",
-           pg.evaluate("() => document.getElementById('rotLiveBtn').getAttribute('aria-pressed')") == "false"
-           and pg.evaluate("() => document.getElementById('rotLiveTag').hidden"))
-        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        return pg.evaluate("() => +document.querySelector('#rotBack input.days').value")
+    box = pg.evaluate(_rot_drag)
+    if ok("抓得到「看哪一天」那支拉Bar 的位置（要真的用滑鼠拖）", bool(box), box):
+        dim = pg.evaluate("""() => { const b = document.getElementById('rotBack'), i = b.querySelector('input.days');
+            const pl = b.querySelector('.pb.play'), lv = document.getElementById('rotLiveBtn');
+            return { cls: b.classList.contains('livedim'), dis: i.disabled, aria: i.getAttribute('aria-disabled'),
+                     tip: i.title, op: +getComputedStyle(i).opacity, pe: getComputedStyle(i).pointerEvents,
+                     play: pl ? pl.disabled : null, live: lv ? getComputedStyle(lv).pointerEvents : '' }; }""")
+        ok("即時開著：拉Bar 反灰停用（.livedim、disabled、aria-disabled、半透明、點不到）",
+           dim["cls"] and dim["dis"] and dim["aria"] == "true" and dim["op"] < 0.5 and dim["pe"] == "none", dim)
+        ok("停用時提示寫「關閉即時才能回看歷史」", "關閉即時才能回看歷史" in (dim["tip"] or ""), dim["tip"])
+        ok("▶ 播放鈕也一起停用；「即時」鈕本身仍然按得到", dim["play"] is not False and dim["live"] != "none", dim)
+        v1 = _drag(box, 0.15)
+        ok(f"即時開著時用滑鼠拖拉Bar，值**不會變**（{box['v']} → {v1}），即時也還開著",
+           v1 == box["v"] and pg.evaluate("() => window.App.rotLive().on"), {"前": box["v"], "後": v1})
+        pg.eval_on_selector("#rotLiveBtn", "b => b.click()")
+        pg.wait_for_timeout(900)
+        ok("關掉即時：拉Bar 恢復可用（沒有 .livedim、沒有 disabled）",
+           pg.evaluate("""() => { const b = document.getElementById('rotBack'), i = b.querySelector('input.days');
+               return !b.classList.contains('livedim') && !i.disabled && !i.hasAttribute('aria-disabled'); }"""))
+        box = pg.evaluate(_rot_drag)
+        sub0 = text(pg, "#rankSub")
+        v2 = _drag(box, 0.15 if box["v"] > 8 else 0.85)
+        ok(f"關掉即時後再拖一次，值**真的變了**（{box['v']} → {v2}）", v2 != box["v"], {"前": box["v"], "後": v2})
+        ok("而且排行的日期區間跟著變了（畫面真的換了一段）", text(pg, "#rankSub") != sub0, [sub0, text(pg, "#rankSub")])
         rot_seek(pg, 0, 900)
 
     # ---------------------------------------------------------- ⑦ 抓不到報價：有錯誤訊息，而且圖沒有變空白

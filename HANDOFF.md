@@ -9,6 +9,13 @@
 - **這批只驗了**：`_uitest.py --sections 自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單,搜尋近期熱門Logo,輪盤只留點與自選分頁`（新段落 1730／800／390 三寬）＋ `_preview.py`
 - 已知限制：展開圖的日 K 最後一根是上一個交易日（刻意不接 withToday，見 DECISIONS #282）；手機 390 自選表的公司 Logo 藏起來讓名稱有 112px。
 
+## 即時模式開著時日期／時間拉Bar 反灰（2026-10-01，台北，UI 專家，分支 `claude/live-dim-range`，**未推 main**）
+- Andy：「當點選即時功能，旁邊的日期以及時間拉Bar 都需反灰」→ DECISIONS #283。共用 `app.js` 的 `liveDim()`＋`index.html` 的 `.rbar.livedim`。
+- 涵蓋：輪動時鐘／資金流向排行（`#rotBack`）、資金去向桑基（`#sankeyDays`）；`tw:livecard` 卡片裡的 `.rbar` 也自動跟著（目前 m3／stock／watch 卡內沒有拉Bar）。
+- 舊行為「按 ▶ 回放自動退出即時」被取代：即時開著時 ▶ 停用，要先關即時。
+- 這批驗了：_preview.py；_uitest `--sections` 資金流向、新-資金流向、新-輪動時鐘、批次2、批次3、批次7、總覽、新-大盤三張圖、即時推送、淺色主題、輪動時鐘即時（新增驗收寫在 t_rot_live ⑥ 與 t_new_flow 的資金去向即時段）。
+- 既有紅燈（改前就紅，基準線實測）：輪動時鐘即時的「800px 沒有橫向捲軸」「800px 面板沒有超出視窗」「[390px] 即時模式開得起來」。
+
 ## 夜盤 520 根因確定：期交所拒絕經 Cloudflare Worker 的請求；Worker 改回 502 JSON 講斷點（2026-10-01 00:50，台北，爬蟲專家，分支 `claude/night-worker-520`）
 
 - 證據全文在 DECISIONS #281。一句話：從 Actions 帶 Worker **逐字元相同**的標頭直連期交所 200；
