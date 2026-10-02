@@ -99,6 +99,16 @@ UNAVAILABLE_RETRY_HOURS = 24   # 封印後至少隔這麼久才准再探一次
 PROBE_CODES = 5                # 解封探測一輪最多問幾檔（夠過「3 檔以上」的判定門檻）
 EMPTY_STREAK_LIMIT = 20        # 同一個資料集在一輪內連續回空幾檔就先收手
 
+# ★ 2026-10-03 誤封印事故（daytrade／sbl，DECISIONS #304）：
+#   「這一輪問到的每一檔都回空」不等於「資料集不開放」—— 要看問的是哪些股票。
+#   每日續補挑的是「落後最久」的股票，而落後最久的正好是**早就沒有當沖／借券資料**的那幾十檔
+#   （不能當沖的處置股、借券標的被拿掉的…，最後一筆停在 2025 年），於是 20 檔全空 → 封印；
+#   之後每 24 小時的探測又拿名單最前面那 5 檔（還是同一批）去問 → 永遠探不通。
+#   修法：封印前先拿 CANARY_CODE（台積電）問同一個區間當反證 —— 台積電有資料就代表資料集是通的，
+#   那些回空的是真的沒資料；而且區間內根本沒有交易日（連假）時一律不判定。
+#   已經用「整組回空」理由封印的，每 SEAL_CANARY_RETRY_HOURS 小時也拿台積電驗一次，驗通就當場解封。
+SEAL_CANARY_RETRY_HOURS = 24
+
 # 健檢用的標的：台積電最近幾天的日線 —— FinMind 免費層一定有的東西。
 # 連它都拿不到就不是「某個資料集不開放」，是整把 token／帳號的問題。
 CANARY_CODE = "2330"
@@ -165,6 +175,19 @@ def unseal_dataset(prog: dict, key: str) -> None:
     if key in book:
         book.pop(key, None)
         log.info("%s 又拿得到資料了 —— 解除封印，恢復全量回補", key)
+
+
+def no_trading_day_since(start: str) -> bool:
+    """price_daily 裡完全沒有 >= start 的交易日 → True（這段區間問什麼都會是空的，不能拿來判定封印）。
+
+    用資料湖裡的日期判斷，不用執行當下的日期（連假、颱風假都自然涵蓋）。
+    price_daily 是空的（測試沙盒、剛建湖）→ 不知道 → False，交給其他判準。"""
+    if "price_daily" not in _cov_cache:
+        _cov_cache["price_daily"] = store.read("price_daily")
+    px = _cov_cache["price_daily"]
+    if px is None or px.empty or "date" not in px.columns:
+        return False
+    return str(px["date"].astype(str).max()) < str(start)[:10]
 
 
 def _save_progress(p: dict) -> None:
@@ -364,6 +387,65 @@ def run(datasets: str, limit: int | None, start: str, *,
     asked: dict[str, int] = {k: 0 for k in wanted}
     empty_streak: dict[str, int] = {k: 0 for k in wanted}
     halted: set[str] = set()          # 這一輪已經收手的資料集（連續回空太多）
+
+    fetchers = {k: (t, f) for k, t, f in jobs}
+    canary_seen: dict[str, bool | None] = {}
+
+    def canary_has_data(key: str) -> bool | None:
+        """封印前的反證（見 SEAL_CANARY_RETRY_HOURS 上方的事故說明）：拿 CANARY_CODE 問同一個區間。
+
+        True＝台積電有資料 → 資料集是通的；False＝台積電也空 → 真的可能不開放；
+        None＝不知道（額度用完、抓取例外）→ 這一輪什麼都不判定。每個資料集一輪最多問一次。
+        拿到的資料照樣寫進資料湖（store.append 冪等），這 1 次額度不浪費。"""
+        if key in canary_seen:
+            return canary_seen[key]
+        verdict: bool | None = None
+        if http.finmind_budget_left() > 1:
+            table, fetch = fetchers[key]
+            try:
+                df = fetch(CANARY_CODE)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("%s 封印前反證（%s）抓取失敗：%s", key, CANARY_CODE, exc)
+                summary["failed"] += 1              # 沒判定成，這一步不算完成，下一輪再來
+            else:
+                if http.finmind_budget_left() <= 1:
+                    summary["exhausted"] = True     # 撞到限流才空的，不能當證據
+                elif df is not None and not df.empty:
+                    summary[key] += store.append(table, df)
+                    verdict = True
+                else:
+                    verdict = False
+        canary_seen[key] = verdict
+        log.info("%s 封印前反證：%s 從 %s 起 → %s", key, CANARY_CODE, start,
+                 {True: "有資料（資料集是通的，回空的是那幾檔自己沒資料）",
+                  False: "也是空的", None: "無法判定"}[verdict])
+        return verdict
+
+    def mark_available(key: str) -> None:
+        got_data.add(key)
+        empty_streak[key] = 0
+        if modes[key] != "full":
+            unseal_dataset(prog, key)
+            modes[key] = "full"
+
+    # 先前以「整組回空」（上游沒回任何錯誤訊息）封印的資料集：這種理由最可能是誤判，
+    # 每 SEAL_CANARY_RETRY_HOURS 小時拿台積電驗一次，驗通就當場解封、這一輪恢復全量。
+    # HTTP 400「等級不足」那種有明確原因的不走這條（照舊 24 小時拿 5 檔探）。
+    for k in sorted(wanted):
+        rec = (prog.get("unavailable") or {}).get(k)
+        if modes.get(k) == "full" or not isinstance(rec, dict) or k not in fetchers:
+            continue
+        if str(rec.get("last_reason") or "") != "整組回空":
+            continue
+        last_c = _parse_ts(rec.get("canary_at"))
+        if last_c and (_now() - last_c).total_seconds() < SEAL_CANARY_RETRY_HOURS * 3600:
+            continue
+        if canary_has_data(k):
+            log.warning("%s 先前以「整組回空」封印，但 %s 拿得到資料 —— 判定是誤封印，解除並恢復全量",
+                        k, CANARY_CODE)
+            mark_available(k)
+        else:
+            rec["canary_at"] = _now().isoformat()
     for k, mode in sorted(modes.items()):
         if mode == "sealed":
             rec = (prog.get("unavailable") or {}).get(k, {})
@@ -426,6 +508,11 @@ def run(datasets: str, limit: int | None, start: str, *,
                 #   而且這一輪一次都沒成功過 → 先收手，剩下的額度留給補得動的步驟。
                 #   2026-09-19 少了這道閘，光是必定失敗的請求就吃掉 506 次額度。
                 if empty_streak[key] >= EMPTY_STREAK_LIMIT and key not in got_data:
+                    # ★ 收手前先反證（2026-10-03）：名單前面剛好全是「本來就沒資料」的股票時，
+                    #   台積電照樣拿得到 → 資料集是通的，繼續往下問，不收手。
+                    if canary_has_data(key):
+                        mark_available(key)
+                        continue
                     halted.add(key)
                     log.warning("%s 連續 %d 檔回空且一次都沒成功 —— 本輪先停問這個資料集，"
                                 "把額度留給其他步驟", key, empty_streak[key])
@@ -456,6 +543,18 @@ def run(datasets: str, limit: int | None, start: str, *,
     #   門檻訂 3 是為了不要因為一輪只跑到兩檔就誤判。
     newly_unavailable: list[str] = []
     for key, keys in pending_no_data.items():
+        if key not in got_data and len(keys) >= 3:
+            # ★ 2026-10-03：判定「不開放」之前的兩道反證（見 SEAL_CANARY_RETRY_HOURS 上方）
+            if no_trading_day_since(start):
+                log.info("%s 本輪 %d 檔回空，但資料湖裡 %s 之後沒有任何交易日（連假）—— 不判定、不寫 done，下一輪重問",
+                         key, len(keys), start)
+                continue
+            verdict = canary_has_data(key)
+            if verdict is None:
+                log.info("%s 本輪 %d 檔回空，反證無法判定 —— 不判定、不寫 done，下一輪重問", key, len(keys))
+                continue
+            if verdict:
+                mark_available(key)
         if key in got_data or len(keys) < 3:
             for dk in keys:
                 prog["done"][dk] = NO_DATA        # 確認無資料，不是「補到了」
@@ -560,8 +659,17 @@ FRESH_MAX_LOOKBACK = 90   # 落後很久的股票最多往回補幾天（歷史�
 #   不必天天問）：inst 750 ＋ daytrade 375 ＋ sbl 375 ＝ 每天最多 1,500 次 ≈ 3 輪的額度。
 #   代價：前 500 名以外的股票，法人約每 2 個交易日更新一次、當沖／借券約每 4 個交易日一次；
 #   窗口 INST_FRESH_DAYS=14 天（約 10 個交易日）大於這個週期，所以不會留缺口。
-FRESH_TABLES = (("inst", "inst_daily", 750), ("daytrade", "daytrade_daily", 375),
-                ("sbl", "sbl_daily", 375))
+#
+# ★ 2026-10-03（DECISIONS #304）兩處調整：
+#   1. 加 margin（融資融券）：上市的每天由 run_daily 從證交所 MI_MARGN 全量抓，**上櫃沒有任何每日來源** ——
+#      上櫃的融資券只靠計畫裡 holding+margin@2021-01-01 那一步一次性補到 09-23，之後就停了
+#      （margin_daily 每日檔數 1,828 → 1,298，掉的 530 檔正好是上櫃）。走 FinMind 逐檔、跟歷史步驟同一支函式、同一口徑。
+#   2. 基本上限仍是每天 1,500 次（inst 600 ＋ margin 300 ＋ daytrade 300 ＋ sbl 300）；
+#      **計畫（PLAN_DEFAULT）本月已補齊時乘以 FRESH_BOOST** —— 那時候已經沒有歷史步驟需要讓額度，
+#      原本「其餘留給歷史回補」的理由不成立，額度閒著不用只會讓續補多拖幾天。
+FRESH_TABLES = (("inst", "inst_daily", 600), ("margin", "margin_daily", 300),
+                ("daytrade", "daytrade_daily", 300), ("sbl", "sbl_daily", 300))
+FRESH_BOOST = 2
 
 
 def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str],
@@ -584,7 +692,15 @@ def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str
     last = inst.assign(code=inst["code"].astype(str), date=inst["date"].astype(str)).groupby("code")["date"].max()
     out = [c for c in universe if c in traded and c in last.index and last[c] < latest]
     if cap is not None:
-        out = sorted(out, key=lambda c: last[c])[:cap]     # sorted 是穩定排序
+        # ★ 2026-10-03（DECISIONS #304）：「落後最久的先補」要排除**早就停止有資料**的股票，
+        #   否則名單最前面永遠是那幾十檔（當沖表裡最後一筆停在 2025-04 的處置股之類），
+        #   每天的上限先被它們吃掉，而且整組回空會被誤判成資料集不開放（09-28 就是這樣封印的）。
+        #   判準用**這張表自己的最新日期**往回 INST_FRESH_DAYS 天（不是 price 的最新日）：
+        #   整張表一起落後（例如上游停了一週）時，大家都還算「活著」，不會整批被降級。
+        #   被降級的不是剔除，只是排到最後 —— 復牌、恢復當沖的股票額度有剩時照樣會補到。
+        tbl_latest = str(last.max())
+        cut = (pd.Timestamp(tbl_latest) - pd.Timedelta(days=INST_FRESH_DAYS)).date().isoformat()
+        out = sorted(out, key=lambda c: (last[c] < cut, last[c]))[:cap]     # sorted 是穩定排序
     return latest, out
 
 
@@ -617,8 +733,14 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
     price = store.read("price_daily")
     universe = market_codes()
     ok, latest, n_codes = True, None, {}
+    plan = (prog.get("complete") or {}).get("plan:default")
+    boost = FRESH_BOOST if (isinstance(plan, dict) and plan.get("done")
+                            and plan.get("month") == f"{today:%Y-%m}") else 1
+    if boost > 1:
+        log.info("計畫本月已補齊 —— 每日續補上限 ×%d", boost)
     # 當沖、借券賣出（2026-09-27）同一套：歷史步驟補過的股票，之後每天在這裡續補
     for key, table, cap in FRESH_TABLES:
+        cap = cap * boost
         if http.finmind_budget_left() <= 1:
             ok = False
             break

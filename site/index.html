@@ -21,6 +21,12 @@
      跟 data-theme 一樣要在畫面畫出來之前決定，不然會先閃一下。沒存過（或存了不認得的值）＝科技 HUD。
      例外處理也掛 hud：私密視窗讀不到 localStorage 時照樣是 v4 骨架，不會退回沒有間距尺度的舊版。 -->
 <script>(function(){var t4='hud';try{var v=localStorage.getItem('tw.theme4');if(v==='casual'||v==='hud'||v==='pro')t4=v;}catch(e){}document.documentElement.setAttribute('data-theme4',t4);})();</script>
+<!-- ★ 2026-10-02 版面 v2 結構搬到 v4（DECISIONS #291，layout4.css／layout4.js）：桌機頂欄改成可收合的左側導覽。
+     l4＝套用新版面（拿掉這個 class 就回到舊頂欄）；l4-mini＝收成圖示列。跟主題一樣要在畫面畫出來之前決定，
+     不然收合過的人每次開頁都會先看到展開的左欄、再縮回去。沒按過收合時，視窗 ≤1180 預設收合（layout4.js 同一個門檻）。 -->
+<!-- ★ 2026-10-03（Andy：「手機版先停擺，等電腦版 OK 之後再做」）：只有視窗寬 > 820 才掛 l4 —— ≤820（平板與手機）完全是 main 原本的樣子。
+     視窗之後被拉寬／縮窄跨過 821，由 layout4.js 的 resize 掛上或撤掉。 -->
+<script>(function(){if(innerWidth<=820)return;var c=document.documentElement.classList;c.add('l4');try{var v=localStorage.getItem('tw.layout4.nav');if(v?v==='mini':innerWidth<=1180)c.add('l4-mini');}catch(e){}})();</script>
 <!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
      ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），
@@ -4049,7 +4055,7 @@ h3 .howbtn.pop{font-family:inherit}
   .skov3[data-cols="3"] #ovAiCard{contain:size;min-height:0}
   .skov3[data-cols="3"] #ovAiCard>#ovFacets{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:4px}
   .skov3[data-cols="3"] #skFundCard{display:flex;flex-direction:column}
-  /* #304：基本面卡改成「小格窄欄｜大格寬欄」之後，撐開交給兩欄各自的 flex（小格平均分窄欄、大格依內容再平均分多出來的高度）*/
+  /* #305：基本面卡改成「小格窄欄｜大格寬欄」之後，撐開交給兩欄各自的 flex（小格平均分窄欄、大格依內容再平均分多出來的高度）*/
   .skov3[data-cols="3"] #skFundCard>.kvs.skfund{flex:1 1 auto}
   .skov3[data-cols="3"] #skFundCard>.note{margin-top:10px!important;padding:8px 10px;border-radius:9px;background:var(--panel-3)}
 }
@@ -4109,7 +4115,7 @@ h3 .howbtn.pop{font-family:inherit}
 .gaugev small{font-size:12px;color:var(--ink-3);font-weight:400}
 .kvs .k .v small{font-size:12px;color:var(--ink-3);font-weight:400}
 /* ==================================================================================
-   ★ 2026-10-03 基本面卡「小格窄欄｜大格寬欄」（Andy：「純數字的格子做成小格縱向堆在一窄欄、有圖表的做成大格放旁邊並補充詳細」，DECISIONS #304）
+   ★ 2026-10-03 基本面卡「小格窄欄｜大格寬欄」（Andy：「純數字的格子做成小格縱向堆在一窄欄、有圖表的做成大格放旁邊並補充詳細」，DECISIONS #305）
    · 小格（EPS、ROE、月營收 YoY、殖利率）：內距 7px 10px、數字 17px，平均分掉窄欄高度、內容垂直置中
    · 大格（本益比位置、毛利率、營運動能）：標題列＝名稱｜大數字，下面是圖與細項
    · 卡片內寬 < 380px（手機）：小格 2×2 在上、大格在下（窄欄只剩 110px 時「單季 2026Q2 19.50 元」會折三行）
@@ -4843,6 +4849,7 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbtbl th.sel{color:var(--cyan)}
   body.m3on .mbtbl td.sel{background:color-mix(in srgb,var(--cyan) 7%,transparent);font-weight:700}
   body.m3on .mbfoot{font-size:12px;color:var(--ink-3);margin:10px 0 4px;line-height:1.5}
+  body.m3on .mbtbl td.mbna{color:var(--ink-3);font-size:12px;font-family:inherit}  /* #304 資料源未提供（不是 0） */
   body.m3on .mbempty{padding:28px 8px;text-align:center;color:var(--ink-3);font-size:14px;line-height:1.6}
   body.m3on .mbalt{font-size:12.5px;color:var(--ink-2);line-height:1.5;margin:0 0 8px;padding:7px 10px;border-radius:8px;
     border:1px dashed var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent)}
@@ -4952,6 +4959,8 @@ h3 .howbtn.pop{font-family:inherit}
 </style>
 <!-- 設計 v4 的骨架＋三套主題變數（docs/design_v4/01_設計系統.md）。放在內嵌樣式之後才蓋得過（<head> 那段 script 一定會掛 data-theme4）。 -->
 <link rel="stylesheet" href="theme4.css">
+<!-- 版面 v2 結構（左側導覽、頁首、本頁功能跳轉列、手機頁名與線條圖示）。只排版、不寫任何色值，顏色全部吃上面 theme4.css 的變數，所以放在它後面。 -->
+<link rel="stylesheet" href="layout4.css">
 </head>
 <body>
 <header class="topbar">
@@ -5449,6 +5458,9 @@ h3 .howbtn.pop{font-family:inherit}
 <script src="live.js"></script>
 <!-- ★ 手機版 v3（docs/mobile_v3_spec.md）：只在 ≤640px 動作，桌機整支不插任何節點 -->
 <script src="mobile3.js"></script>
+<!-- ★ 2026-10-02 版面 v2 結構（DECISIONS #291）：頁首、本頁功能跳轉列、導覽收合、手機頂欄頁名。
+     只讀畫面、只加導覽節點，不碰路由與資料；放最後：要等 theme4.js 插好「外觀」鈕、account.js 掛好帳號列。 -->
+<script src="layout4.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
   <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>
     <button class="btn small" id="zoomClose">關閉 ✕</button></div>

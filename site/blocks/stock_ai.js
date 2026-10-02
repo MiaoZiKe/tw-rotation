@@ -43,7 +43,7 @@
        保底高度改掛在分隔線上（--aiH 寫在卡片），收合時 AI 區只有內容那麼高。
 
    狀態（兩個 localStorage）：
-     · tw.aiOpen：（#304 起不再使用）以前記內容區收合／展開。2026-10-03 拿掉「展開」鈕：K 線卡裡只剩一行結論＋四列面向判讀，
+     · tw.aiOpen：（#305 起不再使用）以前記內容區收合／展開。2026-10-03 拿掉「展開」鈕：K 線卡裡只剩一行結論＋四列面向判讀，
        點一列捲到總覽 AI 卡（完整版在那裡）；手機 #aiCard 裡內容區一律打開。
        收合時按標籤：K 線卡裡（桌機）＝捲到下面「總覽」的 AI 卡並切到那一面（#297）；手機（#aiCard）＝展開並切到那一面。
      · tw.aiTab：選中的面向（tech／sig／fund／news），重新整理後還在。沒記過＝技術面。
@@ -88,7 +88,7 @@
   const toneCls = (lb) => lb === '偏多' ? 'pos' : lb === '偏空' ? 'neg' : lb === '留意' ? 'warn' : '';
   const stanceCls = (s) => s === '可留意' ? 'A' : s === '偏空' ? 'N' : 'W';
 
-  /* ★ 2026-10-03（#304）：「展開／收合」拿掉，tw.aiOpen 不再讀寫（KEY 只留著給 _key 出口，舊驗收在清它）。
+  /* ★ 2026-10-03（#305）：「展開／收合」拿掉，tw.aiOpen 不再讀寫（KEY 只留著給 _key 出口，舊驗收在清它）。
      改前 #293 的「預設收合＋換版清一次 tw.aiOpenV」一起退場。*/
   function readTab() {
     try { const v = localStorage.getItem(TAB_KEY); if (FACETS.some(f => f[0] === v)) return v; } catch (e) { /* 忽略 */ }
@@ -184,7 +184,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #skAi .aitab:hover{color:var(--ink)}
 #skAi .aitab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--cyan)}
 #skAi .aitab .aitag{font-weight:500}
-/* ★ 2026-10-03（Andy：「AI 分析標籤上下排列、字放大；展開功能取消，下方總覽分頁已經有完整版」，DECISIONS #304）：
+/* ★ 2026-10-03（Andy：「AI 分析標籤上下排列、字放大；展開功能取消，下方總覽分頁已經有完整版」，DECISIONS #305）：
    K 線卡裡（桌機兩欄／單欄）的四顆面向標籤改成**一列一個**的清單：左邊面向名、右邊判讀（偏多紅／中性灰／偏空綠／留意琥珀），字 14px。
    改前是一排 12px 的小膠囊＋最右邊「展開 ▾」：小膠囊要瞇著看，展開後的內容又跟下面總覽 AI 卡一模一樣（兩份）。
    點一列＝捲到下面「總覽」分頁的 AI 卡、切到那一面（gotoFacet，原地捲、不換頁）；右邊的「›」提示點得下去。
@@ -379,7 +379,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       </div>`;
   }
 
-  /* ★ 2026-10-03（#304）「展開／收合」鈕拿掉：內容區只在手機（#aiCard 裡，away）打開，K 線卡裡（side／stack）永遠收著。
+  /* ★ 2026-10-03（#305）「展開／收合」鈕拿掉：內容區只在手機（#aiCard 裡，away）打開，K 線卡裡（side／stack）永遠收著。
      以前的 tw.aiOpen（記住展開與否）、單欄浮層（dismissable）一起退場。*/
   function setOpen(host, v) {
     const body = host.querySelector('#aiBody');
@@ -429,7 +429,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   }
 
   /* AI 區保底高度：量「標題＋結論＋四列面向」實際多高（AI 區越窄，結論越容易折成兩行）。
-     ★ 2026-10-03（#304）：內容區在 K 線卡裡不再出現，不必再替它多留 BODY_MIN（改前＝標題列＋膠囊＋90px 內容區）。
+     ★ 2026-10-03（#305）：內容區在 K 線卡裡不再出現，不必再替它多留 BODY_MIN（改前＝標題列＋膠囊＋90px 內容區）。
      只在版面變（視窗、卡片、分隔線）時量。*/
   function sizeAi(card, host) {
     if (!card.classList.contains('aiside')) { card.style.removeProperty('--aiH'); return; }
@@ -533,7 +533,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       const k = b.dataset.facet;
       saveTab(k); setTab(host, k);
       /* K 線卡裡（桌機兩欄／單欄）的每一列＝捲到下面「總覽」分頁的 AI 卡並切到那一面（原地捲，不換頁）；
-         手機（#aiCard 裡）是標籤頁，切換下面內容區那一面（#304 起內容區在手機一律打開）。*/
+         手機（#aiCard 裡）是標籤頁，切換下面內容區那一面（#305 起內容區在手機一律打開）。*/
       if (modeOf(host) !== 'away') gotoFacet(host, k);
     });
     // 標籤列支援方向鍵（WAI-ARIA tabs 的慣例）
@@ -588,7 +588,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       c = find();
       if (c) { go(c); return; }
       if (Date.now() - t0 < 1500) { setTimeout(wait, 60); return; }
-      // 找不到 AI 卡（或那一面沒內容，例如擋掉了 stock.signal）：停在總覽分頁就好 —— #304 起 K 線卡裡沒有內容區可以原地展開
+      // 找不到 AI 卡（或那一面沒內容，例如擋掉了 stock.signal）：停在總覽分頁就好 —— #305 起 K 線卡裡沒有內容區可以原地展開
     };
     setTimeout(wait, 30);
   }

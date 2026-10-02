@@ -5109,7 +5109,7 @@
   }
   const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); delete extLegRec[id]; };
   /* ==========================================================================
-     ★ 2026-10-03（Andy：「基本面卡：純數字小格、有圖表的大格並補充詳細；本益比這邊的算法需要新增到獲利那邊」，DECISIONS #304）
+     ★ 2026-10-03（Andy：「基本面卡：純數字小格、有圖表的大格並補充詳細；本益比這邊的算法需要新增到獲利那邊」，DECISIONS #305）
      本益比位置（peStand）：**目前本益比落在這一檔自己過去每天本益比的第幾百分位**，總覽基本面卡與「獲利」分頁共用這一支，數字一定一致。
        · 樣本＝peRiver(pg) 那一條逐日本益比（每天收盤 ÷ 當時最新的近四季 EPS，財報可用日起算、虧損季不算），
          跟獲利分頁的本益比河流圖是同一條 —— 河流圖的五條倍數線就是這條的 10／30／50／70／90 分位。
@@ -5207,7 +5207,7 @@
     const f = pg.fundamental || {}, dv = pg.dividends || {};
     /* ★ 2026-09-28（Andy：「總覽 基本面 也需要新增 "?" 說明」）：逐欄一句話（≤30 字），口徑照管線。
        ★ 2026-10-02（DECISIONS #294）：能用小圖的用小圖（營運動能半圓儀表、本益比刻度、毛利率進度條）。
-       ★ 2026-10-03（Andy，DECISIONS #304）：改前 7 格等大方塊（每格約 190×120px，數字只佔一角），Andy：「純數字的格子做成小格，
+       ★ 2026-10-03（Andy，DECISIONS #305）：改前 7 格等大方塊（每格約 190×120px，數字只佔一角），Andy：「純數字的格子做成小格，
          縱向堆在一窄欄；有圖表的格子做成大格放旁邊，有圖表的需要補充詳細點」「其他文字框需要調整適當版面，空白太多了」。
          · 小格（窄欄，由上往下）：近四季 EPS、ROE、月營收 YoY、殖利率 —— 數字＋一行有資料才寫的小字
          · 大格（寬欄）：本益比位置（peStand，跟「獲利」分頁共用）、毛利率（前一季／去年同季增減＋近 8 季小趨勢）、營運動能（儀表＋組成分數）
@@ -5480,7 +5480,7 @@
     const mil = (v) => (v == null ? '—' : A.fmt.i(Math.round(v / 1e6)));
     if (!mo.length) { el.innerHTML = '<div class="card"><div class="empty">月營收歷史資料準備中</div></div>'; return; }
     const last = mo[mo.length - 1];
-    /* ★ 2026-10-03（Andy：「營收分頁上面那排 6 個 KPI 方塊拿掉」，DECISIONS #304）：最新月份／單月營收／YoY／MoM／累計營收／累計 YoY
+    /* ★ 2026-10-03（Andy：「營收分頁上面那排 6 個 KPI 方塊拿掉」，DECISIONS #305）：最新月份／單月營收／YoY／MoM／累計營收／累計 YoY
        全部是下方「月營收明細」表第一列的數字（同一份 revenue.monthly 最後一列），擺兩次只是把三張卡往下推。拿掉後三張卡直接頂到分頁列下面。*/
     el.innerHTML = `<div class="grid skrev3" id="revGrid"><div class="card"><div class="row spread" style="gap:8px;flex-wrap:wrap"><h3>營收走勢 <small id="revSub" data-readout></small> ${hq('skrev', '營收走勢')}</h3>
         <div class="row" style="gap:8px"><div class="seg" id="revView" role="group" aria-label="月或年"><button type="button" data-v="m">月走勢</button><button type="button" data-v="y">年度走勢</button></div>
@@ -6141,7 +6141,7 @@
     const tmTxt = tm ? (tm.status === 'ok' ? `財報到 ${tm.latest}（至 ${tm.asof} 法定應有到 ${tm.expected}）`
       : tm.status === 'missing' ? `⚠ 法定期限已過、應有 ${tm.expected}，目前只到 ${tm.latest || '—'}`
       : `⚠ ${tm.latest} 的季底還沒到，資料有誤`) : '';
-    /* ★ 2026-10-03（Andy：「本益比（這邊的算法需要新增到獲利那邊）」，DECISIONS #304）：總覽基本面卡的「本益比位置」
+    /* ★ 2026-10-03（Andy：「本益比（這邊的算法需要新增到獲利那邊）」，DECISIONS #305）：總覽基本面卡的「本益比位置」
        （目前本益比在自己歷史每日本益比的第幾百分位、便宜端／貴端、族群中位）放進「本益比（每季）」卡的圖上方。
        同一支 peStand(pg)＋peStandHTML 畫，兩邊數字一定一樣（_uitest「獲利並排本益比1003」逐項比 data-*）。*/
     const psProf = `<div class="psprof"><div class="psh">本益比位置 <small>跟自己過去每天的本益比比</small></div>${peStandHTML(peStand(pg), 'peStandProf')}</div>`;
@@ -6521,17 +6521,29 @@
        圖上的長條也是增減，餘額只是右軸那條線、畫面上沒有任何地方寫出最新餘額的數字 —— 讀者只能拿 2.1 萬去對 −503。
        修法：① 分頁最上面加一列「最新數字」（融資餘額／融券餘額／借券賣出餘額／當沖），跟總覽同一支 mgLatest()，日期一起寫；
        ② 每日表的欄名全部寫清楚「融資增減」「融資餘額」…，餘額欄補回來。數字本身一個都沒改。*/
-    /* ★ 2026-10-03（Andy：「資券分頁那排 4 個 KPI 方塊直接整排拿掉」，DECISIONS #304，推翻 #294 ①「最上面加一列最新數字」）：
+    /* ★ 2026-10-03（Andy：「資券分頁那排 4 個 KPI 方塊直接整排拿掉」，DECISIONS #305，推翻 #294 ①「最上面加一列最新數字」）：
        最新的融資／融券／借券賣出餘額與當沖，總覽「籌碼快照」的「信用與借券」那一塊已經有（同一支 mgLatest），
        下方每日明細表第一列也有；這一頁留圖與明細表就好，圖卡直接頂到區間鈕下面。②（每日表欄名寫全、餘額欄）照舊。*/
     const ML = mgLatest(pg);
+    /* ★ 2026-10-03（DECISIONS #304）：當沖／借券賣出被管線誤封印，09-25 之後全市場一筆都沒有，
+       每日表那兩欄一路「—」，讀者會以為是 0 或沒人當沖。pg.margin_asof＝三個來源**全市場**最新到哪天：
+       某個來源比其他來源舊，就是資料源自己停在那天（不是這檔的事）→ 照實寫「更新到 MM-DD」，
+       之後的日期在表格寫「未提供」、提示框寫「這天還沒提供」（畫面不寫「資料源」：09-28 Andy 要求讀者看不懂的內部字眼全清，_uitest 禁用字）。某一檔自己沒有（不能當沖的處置股）不在這裡講。*/
+    const AS = pg.margin_asof || {};
+    const asRef = [AS.margin, AS.daytrade, AS.sbl].filter(Boolean).sort().pop() || '';
+    const cutOf = (k) => (AS[k] && asRef && AS[k] < asRef ? AS[k] : null);
+    const CUT = { dt: cutOf('daytrade'), sbl: cutOf('sbl') };
+    const naCut = (k, d) => !!(CUT[k] && d > CUT[k]);
+    const srcNote = (CUT.dt || CUT.sbl)
+      ? `<div class="note" id="mgSrcNote" data-dt-cut="${CUT.dt || ''}" data-sbl-cut="${CUT.sbl || ''}" style="margin:-4px 0 10px">${[CUT.dt && `當沖資料目前只更新到 <b class="mono">${md5(CUT.dt)}</b>`, CUT.sbl && `借券賣出資料目前只更新到 <b class="mono">${md5(CUT.sbl)}</b>`].filter(Boolean).join('、')}；之後的日期寫「未提供」，不是 0，恢復提供後會自動補上。</div>`
+      : '';
     if (mg.length < CHIP_MIN) {
-      el.innerHTML = chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
+      el.innerHTML = srcNote + chipNums('skmg', '融資融券', `最新一筆 ${ML.mb ? ML.mb.d : mg[mg.length - 1][0]}`, chipK('融資增減', ML.mc ? A.fmt.lot(ML.mc.v) : '—') + chipK('融券增減', ML.sc ? A.fmt.lot(ML.sc.v) : '—'),
         `資料準備中：目前只有 ${mg.length} 天，滿 ${CHIP_MIN} 天以上就會畫成走勢圖。`);
       return; }
     let mseg = lsGet('tw.mgSeg', v => MG_SEGS.some(x => x.v === v), 'm');
     const mmap = new Map(mg.map(r => [String(r[0]).slice(0, 10), r]));
-    const body = chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
+    const body = srcNote + chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
       ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '最新餘額看右邊明細表第一列（同總覽）', '借券賣出多為法人避險，不是融券'],
       chipTbl('mgTbl', '每日明細'), 'min-height:340px');
     const redraw = chipPage(pg, el, 'margin', body, (dates, win) => {
@@ -6555,6 +6567,7 @@
         const fmtV = (v, unit) => (v == null ? '—' : unit === '%' ? A.fmt.n(v, 2) + '%' : A.fmt.lot(v));
         const mc = A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const d = ps[0].axisValue;
             if (!mmap.get(d)) return `<b>${d}</b><br>這天沒有資券資料`;
+            if (naCut(seg.v, d)) return `<b>${d}</b><br>這天還沒提供（${seg.v === 'dt' ? '當沖' : '借券賣出'}只更新到 ${md5(CUT[seg.v])}）`;
             return `<b>${d}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${fmtV(p.value, p.seriesIndex === 1 ? C[4] : '張')}`).join('<br>'); } },
           legend: { show: false, data: [C[2], C[3]] }, grid: { left: 60, right: 64, top: 10, bottom: 30 },
           xAxis: xCat(), yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v) } }, { ...A.axisStyle, scale: true, splitLine: { show: false }, axisLabel: { formatter: v => (C[4] === '%' ? v + '%' : A.fmt.lot(v)) } }],
@@ -6565,11 +6578,13 @@
       }
       const tb = $('#mgTbl', el);
       if (tb) {
-        const num = (v, sg, on) => `<td class="num ${sg ? A.fmt.cls(v) : ''}${on ? ' sel' : ''}">${v == null ? '—' : A.fmt.i(v)}</td>`;
+        const num = (v, sg, on, na) => (v == null && na
+          ? `<td class="num muted${on ? ' sel' : ''}" data-na="src" title="這天還沒提供（不是 0）"><small>未提供</small></td>`
+          : `<td class="num ${sg ? A.fmt.cls(v) : ''}${on ? ' sel' : ''}">${v == null ? '—' : A.fmt.i(v)}</td>`);
         const rows = dates.slice().reverse().map(d => [d, mmap.get(d)]).filter(x => x[1]);
         const th = (t, v) => `<th${seg.v === v ? ' class="sel"' : ''}>${t}</th>`;
         /* 2026-10-02（#294 對帳）：欄名寫全（改前只寫「融資」「融券」，內容卻是增減，讀者拿去跟總覽的餘額比就對不上），餘額欄補回來 */
-        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt')}${num(r[7], false, seg.v === 'sbl')}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
+        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt', naCut('dt', d))}${num(r[7], false, seg.v === 'sbl', naCut('sbl', d))}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
       }
     });
     $$('#mgSeg button', el).forEach(b => b.onclick = () => { mseg = b.dataset.v; lsSet('tw.mgSeg', mseg); redraw(); });
