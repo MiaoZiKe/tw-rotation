@@ -623,10 +623,39 @@
     state.futSession = want;
     return true;
   }
-  async function fetchFut(session) {
+  /* ---- 台指期的兩支（/fut、/futchart）先打 Deno 代理，失敗才退回 Worker（DECISIONS #286）----
+     為什麼：期交所在 Cloudflare 後面，拒絕所有經 Cloudflare Worker 來的請求（上游 520，#281），
+     Worker 那條路日盤夜盤一起壞；Deno Deploy 不走 Cloudflare 出口，2026-10-02 實測四支全 200。
+     兩邊回的是**同一份期交所原始 JSON**（main.ts 原文照轉），所以下游解析一個字都不用改。
+     退回 Worker 留著當保險：哪天 Deno 掛了或被公司網路擋，至少還有一條路（雖然現在那條也是壞的）。
+     ⚠ 只有台指期這兩支走這裡；加權、櫃買的分時（/chart，mis.twse）照舊只走 Worker。 */
+  function taifexProxy() {
+    return (window.Live && window.Live.taifexProxy) ? String(window.Live.taifexProxy() || '') : '';
+  }
+  async function futGet(path) {
+    const deno = '';  // PLANTED
     const base = proxy();
-    if (!base) throw new Error('還沒設定即時來源');
-    const r = await fetch(`${base}/fut?session=${session}&t=${Date.now()}`, { cache: 'no-store' });
+    let miss = null;     // Deno 那一次的失敗（Response 或例外），Worker 也沒得退時拿它交代原因
+    if (deno) {
+      try {
+        // 6 秒就放棄改走 Worker：寧可快速換路，也不要讓讀者等到瀏覽器逾時（#256）
+        const opt = { cache: 'no-store' };
+        if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opt.signal = AbortSignal.timeout(6000);
+        const r = await fetch(deno + path, opt);
+        if (r.ok) { state.futVia = 'deno'; return r; }
+        miss = r;
+      } catch (e) { miss = e; }
+    }
+    if (!base) {
+      if (miss instanceof Response) { state.futVia = 'deno'; return miss; }
+      if (miss) throw miss;
+      throw new Error('還沒設定即時來源');
+    }
+    state.futVia = 'worker';
+    return await fetch(base + path, { cache: 'no-store' });
+  }
+  async function fetchFut(session) {
+    const r = await futGet(`/fut?session=${session}&t=${Date.now()}`);
     if (r.status === 404 || r.status === 400) throw new Error('NOFUT');
     if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
     return parseFutQuote(await r.json(), session);
@@ -747,11 +776,8 @@
   }
 
   async function fetchFutChart(symbol) {
-    const base = proxy();
-    if (!base) throw new Error('還沒設定即時來源');
     if (!/^[A-Za-z0-9]{3,8}-[FM]$/.test(String(symbol || ''))) throw new Error('NOSYMBOL');
-    const r = await fetch(`${base}/futchart?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`,
-                          { cache: 'no-store' });
+    const r = await futGet(`/futchart?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`);
     // 404＝Worker 還是舊版（沒有 /futchart），要 Andy 去 Cloudflare 重貼一次
     if (r.status === 404) throw new Error('NOFUTCHART');
     if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
@@ -2574,6 +2600,7 @@
       return o;
     },
     get futChart() { return state.futChart; },   // 驗收用：期交所分時序列接到了沒
+    get futVia() { return state.futVia || ''; },  // 驗收用：最後一次台指期是走 'deno' 還是退回 'worker'（#286）
     /* 驗收用：夜盤現在走推送還是輪詢、收了幾筆、退回過幾次、為什麼退回。
        `mode` 就是畫面上那個「推送／輪詢」小標籤讀的同一個值 —— 驗的是同一件事。*/
     get futStream() {
