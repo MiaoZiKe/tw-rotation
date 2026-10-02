@@ -620,20 +620,28 @@ small{font-size:12.5px}
   color:var(--ink-3);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .sugg .sgdel:hover{background:var(--panel-3);color:var(--ink)}
 .sugg .g + .sgdel{margin-left:4px}
-/* 名稱旁的迷你走勢（2026-09-28）：48×16、只畫線；寬度固定（sparks.json 還沒到時也先佔位，列不會跳） */
-.sugg .spkw{flex:none;width:48px;height:16px;display:inline-flex;align-items:center}
-.sugg .spk{display:block;overflow:visible}
-.sugg .spk polyline{fill:none;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
-.sugg .spk.up polyline{stroke:var(--rise)}
-.sugg .spk.down polyline{stroke:var(--fall)}
-.sugg .spk.flat polyline{stroke:var(--ink-3)}
-/* 手機「加入觀察清單」抽屜的搜尋結果也用同一張小圖 */
-.mbwres .spkw{flex:none;width:48px;height:16px;display:inline-flex;align-items:center}
-.mbwres .spk{display:block;overflow:visible}
-.mbwres .spk polyline{fill:none;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
-.mbwres .spk.up polyline{stroke:var(--rise)}
-.mbwres .spk.down polyline{stroke:var(--fall)}
-.mbwres .spk.flat polyline{stroke:var(--ink-3)}
+/* 迷你走勢（2026-09-28 起；2026-10-02 v2 加輔助繪製，DECISIONS #290）：搜尋下拉、手機加入清單抽屜、自選頁共用同一支 App.sparkSVG。
+   淡色底框＋細外框讓它看得出是「一張圖」不是一條線；基準虛線（窗口前一天收盤）讓人看出在基準之上還是之下；
+   線下半透明面積＋最後一點圓點交代「現在在哪」。顏色全部吃主題變數（深淺主題各自成立），漲跌用 currentColor 一次切換。 */
+.sugg .spkw{flex:none;width:48px;height:18px;display:inline-flex;align-items:center}
+.mbwres .spkw{flex:none;width:48px;height:18px;display:inline-flex;align-items:center}
+svg.spk{display:block;overflow:visible;color:var(--ink-3)}
+svg.spk.up{color:var(--rise)}
+svg.spk.down{color:var(--fall)}
+svg.spk .fr{fill:var(--ink-3);fill-opacity:.07;stroke:var(--ink-3);stroke-opacity:.42;stroke-width:1}
+svg.spk .dv{stroke:var(--ink-3);stroke-opacity:.22;stroke-width:1}
+svg.spk .bl{stroke:var(--ink-2);stroke-opacity:.75;stroke-width:1;stroke-dasharray:2 2}
+svg.spk .ar{fill:currentColor;fill-opacity:.16;stroke:none}
+svg.spk polyline{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
+/* 滑到小走勢的提示框（App.sparkSVG 的 data-tip；全站一個） */
+.spktip{position:fixed;z-index:10050;pointer-events:none;max-width:min(320px,calc(100vw - 12px));padding:6px 9px;border-radius:8px;
+  background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);box-shadow:0 6px 20px rgba(0,0,0,.28);font-size:12px;line-height:1.55}
+.spktip .p{color:var(--ink-2)}
+.spktip .h{color:var(--ink-3);margin-top:2px}
+.spktip .up{color:var(--rise);font-weight:700}
+.spktip .down{color:var(--fall);font-weight:700}
+.spktip .flat{color:var(--ink-2);font-weight:700}
 .sugg .nm + .sgdel{margin-left:auto}
 /* 2026-10-01（Andy：熱門股票的小走勢圖起點不齊、還壓到名稱）：代號、名稱給固定寬度，
    名稱超長就省略號 —— 走勢圖的 left 就只由「logo＋代號＋名稱」三個固定寬決定，每一列都一樣。
@@ -5055,6 +5063,8 @@ h3 .howbtn.pop{font-family:inherit}
 <div class="sideback" id="sideBack" aria-hidden="true"></div>
 </div>
 
+<!-- drawtools.js 要排在 chart.js 前面：KChart.enableDrawing() 與 KUtil.DRAW_* 都從它拿（DECISIONS #289） -->
+<script src="drawtools.js"></script>
 <script src="chart.js"></script>
 <script src="diagrams.js"></script>
 <!-- ★ 2026-09-21：一張剖析圖一個檔（site/dg/<slot>.js），各自呼叫 window.DG.register。

@@ -4398,7 +4398,9 @@
       if (c.paneH) { delete c.paneH; saveCfg(c); state.cfg = c; if (kchart) kchart.applyIndicators(mainCfg(c)); }
       if (kchart) kchart.resetView(160);
     };
-    const newMain = (box, tf) => new KChart(box, { tf, onText: () => window.prompt('文字內容', ''), fit: mainFit, fitId: 'fitBtn' });
+    /* ★ 2026-10-02（DECISIONS #289）：文字工具不再跳 window.prompt（「miaozike.github.io 顯示：文字內容」），
+       改成在點下去的位置直接出現可編輯的文字框（drawtools.js），所以這裡拿掉 onText。*/
+    const newMain = (box, tf) => new KChart(box, { tf, fit: mainFit, fitId: 'fitBtn' });
     const build = () => {
       if (kchart) { kchart.destroy(); kchart = null; } miniCharts.forEach(c => c.destroy()); miniCharts = [];
       if (tchart) { tchart.destroy(); tchart = null; }
@@ -4679,7 +4681,8 @@
   function enableDraw(pg) {
     if (!kchart) return;
     const d = kchart.enableDrawing(`tw.draw.${pg.meta.code}.${state.tf}`);
-    d.setTool(drawTool); d.setColor(drawColor); d.setWidth(drawW); d.setFill(drawFill);
+    // 顏色／線寬／填滿這些預設樣式由 DrawTools 自己記（tw.draw.style），這裡只要把目前選的工具交給新的那一組
+    if (d) d.setTool(drawTool);
   }
 
   /* 跟著游標走的資訊框（Andy 2026-09-15：「當游標移動過去時 需要在旁邊顯示開高收低 日期 時間等基本資訊」，
@@ -4720,54 +4723,18 @@
   }
 
   // ---------------------------------------------------------------- 繪圖工具列（TradingView 式）
-  // Andy 2026-09-15：「劃線需要有5種不同粗細可選，框格可選擇填滿或透明」
-  const DRAW_WIDTHS = [1, 1.5, 2.5, 4, 6];
-  const DW_KEY = 'tw.draw.style';
-  let drawTool = 'cursor', drawColor = KUtil.DRAW_COLORS[0], drawW = 1.5, drawFill = false;
-  try {
-    const st = JSON.parse(localStorage.getItem(DW_KEY) || '{}');
-    if (DRAW_WIDTHS.indexOf(+st.w) >= 0) drawW = +st.w;
-    if (KUtil.DRAW_COLORS.indexOf(st.c) >= 0) drawColor = st.c;
-    drawFill = !!st.fill;
-  } catch (e) { /* 忽略 */ }
-  const saveDrawStyle = () => {
-    try { localStorage.setItem(DW_KEY, JSON.stringify({ w: drawW, c: drawColor, fill: drawFill })); }
-    catch (e) { /* 忽略 */ }
-  };
-
+  /* ★ 2026-10-02（DECISIONS #289）：工具列與所有繪圖互動搬到 site/drawtools.js。
+     這裡只剩掛載：工具列上留工具本身，顏色／線寬／方框填滿與透明度搬進圖上的屬性列
+     （Andy：「方框在上面，『填滿』卻是工具列最下面另一顆獨立按鈕」）。
+     drawTool／drawW／drawFill 留著是因為 _dbg() 與舊驗收還讀它們，由 DrawTools 回呼同步。 */
+  let drawTool = 'cursor', drawW = DrawTools.STYLE.w, drawFill = DrawTools.STYLE.fill;
   function drawBar() {
     const bar = $('#drawBar'); if (!bar) return;
-    bar.innerHTML = KUtil.DRAW_TOOLS.map(t =>
-      `<button class="dtool ${t.k === drawTool ? 'on' : ''}" data-t="${t.k}" title="${t.label}${t.pts === 2 ? '（拉的時候按住 Shift ＝ 鎖水平／垂直）' : ''}">
-         <svg viewBox="0 0 18 18"><path d="${t.icon}"/></svg></button>`).join('')
-      + `<div class="dsep"></div>`
-      + KUtil.DRAW_COLORS.map(c => `<button class="dcol ${c === drawColor ? 'on' : ''}" data-c="${c}" style="background:${c}" title="顏色"></button>`).join('')
-      + `<div class="dsep"></div>`
-      // 五段粗細：用線條本身的厚度表示，一眼看得出差別
-      + DRAW_WIDTHS.map(w => `<button class="dw ${w === drawW ? 'on' : ''}" data-w="${w}" title="線寬 ${w}px">
-           <span style="height:${w}px"></span></button>`).join('')
-      + `<div class="dsep"></div>
-         <button class="dtool dfill ${drawFill ? 'on' : ''}" data-a="fill" title="方框：${drawFill ? '填滿（點一下改成透明）' : '透明（點一下改成填滿）'}">
-           <svg viewBox="0 0 18 18"><rect x="3" y="4" width="12" height="10" ${drawFill ? 'fill="currentColor"' : ''}/></svg></button>
-         <button class="dtool" data-a="undo" title="復原上一筆"><svg viewBox="0 0 18 18"><path d="M7,4 L3,8 L7,12 M3,8 H11 a4,4 0 0 1 0,8 H8"/></svg></button>
-         <button class="dtool" data-a="clear" title="清空這檔這個週期的所有線"><svg viewBox="0 0 18 18"><path d="M3,3 L15,15 M15,3 L3,15"/></svg></button>`;
-    $$('.dtool[data-t]', bar).forEach(b => b.onclick = () => {
-      drawTool = b.dataset.t; drawBar(); if (kchart && kchart.draw) kchart.draw.setTool(drawTool);
-    });
-    $$('.dcol', bar).forEach(b => b.onclick = () => {
-      drawColor = b.dataset.c; saveDrawStyle(); drawBar(); if (kchart && kchart.draw) kchart.draw.setColor(drawColor);
-    });
-    $$('.dw', bar).forEach(b => b.onclick = () => {
-      drawW = +b.dataset.w; saveDrawStyle(); drawBar(); if (kchart && kchart.draw) kchart.draw.setWidth(drawW);
-    });
-    $$('.dtool[data-a]', bar).forEach(b => b.onclick = () => {
-      if (b.dataset.a === 'fill') {
-        drawFill = !drawFill; saveDrawStyle(); drawBar();
-        if (kchart && kchart.draw) kchart.draw.setFill(drawFill);
-        return;
-      }
-      if (!kchart || !kchart.draw) return;
-      if (b.dataset.a === 'undo') kchart.draw.undo(); else kchart.draw.clear();
+    DrawTools.mountBar(bar, {
+      tool: drawTool,
+      get: () => (kchart && kchart.draw) || null,
+      onTool: (t) => { drawTool = t; },
+      onStyle: (st) => { drawW = st.w; drawFill = st.fill; },
     });
   }
   /* 四週期同看。
