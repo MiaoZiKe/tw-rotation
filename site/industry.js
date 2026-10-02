@@ -6300,10 +6300,15 @@
     return { dayLbl, xCat, showLbl: win <= 63 };      // 3 個月以內才在點／柱上標數字，1 年標上去會疊成一片
   }
   /* 三頁共用的外殼：上方區間鈕＋日期範圍，下面是這一頁的卡片；draw(dates, win) 由各頁自己畫 */
-  function chipPage(pg, el, kind, body, draw) {
+  /* ★ 2026-10-03（Andy，DECISIONS #302）：opts.wins＝這一頁允許的區間值。大戶／散戶資料只有約 6 週（集保每週才一筆、要 11/27 才滿 13 週），
+     6 個月、1 年的圖只是一小段線後面一片空白，所以只留 4 週、3 個月。存著的區間不在允許清單（例如在法人頁選了 1 年）
+     → 這一頁退回 3 個月，**不改寫 localStorage**（回到法人頁仍是原本選的 1 年）。沒傳 opts 的頁（法人、資券）行為完全不變。*/
+  function chipPage(pg, el, kind, body, draw, opts) {
+    const wins = opts && opts.wins ? CHIP_WINS.filter(w => opts.wins.includes(w.v)) : CHIP_WINS;
     let win = chipWinGet();
+    if (!wins.some(w => w.v === win)) win = CHIP_DEFAULT;
     el.innerHTML = `<div class="row chipBar" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-        <div class="seg" id="chipWin" role="group" aria-label="區間">${CHIP_WINS.map(w => `<button type="button" data-v="${w.v}">${w.t}</button>`).join('')}</div>
+        <div class="seg" id="chipWin" role="group" aria-label="區間">${wins.map(w => `<button type="button" data-v="${w.v}">${w.t}</button>`).join('')}</div>
         <span class="note" id="chipRange" data-readout></span></div>${body}`;
     el.dataset.chip = kind;
     const redraw = () => {
@@ -6544,7 +6549,7 @@
           return `<td class="num${on.has(L.k) ? ' sel' : ''}">${r[L.k] == null ? '—' : A.fmt.n(r[L.k], 2) + '%'}<small class="${ppCls(w) === 'dn' ? 'down' : ppCls(w) === 'up' ? 'up' : 'muted'}" style="margin-left:6px">${w == null ? '' : pp(w)}</small></td>`; };
         ht.innerHTML = `<table><thead><tr><th class="l">公布日</th>${HO_LINES.map(L => `<th${on.has(L.k) ? ' class="sel"' : ''}>${L.name}</th>`).join('')}</tr></thead><tbody>${ho.slice().reverse().map(r => `<tr><td class="l mono">${String(r[0])}</td>${HO_LINES.map(L => cell(r, L)).join('')}</tr>`).join('')}</tbody></table><div class="note" style="margin-top:4px">持股比例＝該級距持股 ÷ 總股數；小字＝跟上一週比（pp＝百分點）</div>`;
       }
-    });
+    }, { wins: [20, 63] });   // 大戶／散戶只留 4 週、3 個月（#302）
     $$('#hoTgls .hoTgl', el).forEach(b => b.onclick = () => {
       const k = +b.dataset.k;
       if (on.has(k)) on.delete(k); else on.add(k);
