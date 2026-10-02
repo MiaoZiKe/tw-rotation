@@ -1492,7 +1492,12 @@ def t_market_drill_0928(pg, b, base):
         if not ok(f"[{tag} {w}] 至少有兩根有股票的長條（下面兩條才驗得了）", i1 is not None, bars["vals"]):
             continue
         p1 = _drill_check_bin(pg, f"{tag} {w}", bars, i1)
-        ok(f"★ [{tag} {w}] 名單在圖的右邊", p1.get("right"), p1.get("open") and [p1["cl"], p1["crr"], p1["pl"], p1["pr"]])
+        # ★ 2026-10-03（#300 兩欄並排）：>1100 時左欄只有約 590px，名單改排到圖的下面（右邊只剩 240px 的圖，讀不了）；
+        #   ≤1100 卡片疊成上下、寬度夠，名單照舊在圖的右邊。
+        if w > 1100:
+            ok(f"★ [{tag} {w}] 名單在圖的下面（兩欄並排時左欄放不下左右）", p1.get("below"), p1.get("open") and [p1["cl"], p1["crr"], p1["pl"], p1["pr"]])
+        else:
+            ok(f"★ [{tag} {w}] 名單在圖的右邊", p1.get("right"), p1.get("open") and [p1["cl"], p1["crr"], p1["pl"], p1["pr"]])
         # 名單打開後圖變窄 → 長條位置要重量
         pg.wait_for_timeout(500)
         bars = pg.evaluate(DRILL_BARS)
@@ -1601,6 +1606,237 @@ def t_market_drill_0928(pg, b, base):
            m.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
         m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
         ok(f"[{tag} 390] 手機總覽也沒有重複的法人連續買賣超", m.evaluate("() => !document.querySelector('#v-overview #trust') && !document.getElementById('ovTrustCard')"))
+        ok(f"[{tag} 390] 整段沒有 JS 錯誤", not errs, errs[:2])
+    finally:
+        ctx.close()
+
+
+# ================================================================ 市場明細「漲跌家數」兩大欄並排＋「TPEX」改「上櫃」（2026-10-03，DECISIONS #300）
+# Andy 截 #market：①漲跌分佈圖卡與分頁表格卡桌機左右並排（約 1:1.2、等高、表格在卡內捲動且表頭固定、≤1100 疊回上下）
+#                 ②篩選「全部｜上市｜TPEX」的 TPEX 改成「上櫃」，全站畫面上給人看的 TPEX／TWSE 一併改中文。
+# 這一段當真人操作：量卡片的位置與高度、真的把表捲下去量表頭、真的點「上櫃」數筆數對資料、
+# 四個寬度（1440／1100／800／390）各掃一次文字重疊與溢出，另外量 1101（斷點邊界）確認並排時放得下。
+MKT2_SCAN = r"""() => {
+  const root = document.getElementById('mktBody'); if (!root) return { none: true, ov: [], out: [], tiny: [], sx: 0, vw: 0 };
+  const els = [...root.querySelectorAll('*')].filter(e => { if (!(e instanceof HTMLElement)) return false;
+    if (['SCRIPT','STYLE','CANVAS','SVG','INPUT','BUTTON'].includes(e.tagName)) return false;
+    if (![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) return false;
+    const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+    return r.width > 6 && r.height > 6 && cs.visibility !== 'hidden' && cs.display !== 'none'; });
+  const clip = (e) => { let r = e.getBoundingClientRect(); r = { top: r.top, left: r.left, bottom: r.bottom, right: r.right };
+    for (let p = e.parentElement; p; p = p.parentElement) { const cs = getComputedStyle(p);
+      if (!/auto|scroll|hidden/.test(cs.overflowY + cs.overflowX)) continue; const pr = p.getBoundingClientRect();
+      const t = Math.max(r.top, pr.top), l = Math.max(r.left, pr.left), b = Math.min(r.bottom, pr.bottom), rt = Math.min(r.right, pr.right);
+      if (b <= t || rt <= l) return null; r = { top: t, left: l, bottom: b, right: rt }; }
+    r.width = r.right - r.left; r.height = r.bottom - r.top; return r; };
+  const wrapOnly = (p, q) => { const multi = (e) => getComputedStyle(e).display === 'inline' && e.getClientRects().length > 1;
+    if (!multi(p) && !multi(q)) return false;
+    for (const a of p.getClientRects()) for (const b of q.getClientRects()) {
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) return false; }
+    return true; };
+  const rs = els.map(e => ({ e, r: clip(e) })).filter(x => x.r && x.r.width > 6 && x.r.height > 6);
+  const ov = [];
+  for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) { const a = rs[i], b = rs[j];
+    if (a.e.contains(b.e) || b.e.contains(a.e)) continue;
+    const x = Math.max(0, Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left)), y = Math.max(0, Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top));
+    const inter = x * y, small = Math.min(a.r.width * a.r.height, b.r.width * b.r.height);
+    if (inter > 0.3 * small && inter > 40 && !wrapOnly(a.e, b.e)) ov.push([a.e.textContent.trim().slice(0, 24), b.e.textContent.trim().slice(0, 24)]); }
+  /* 溢出：兩張卡、圖、表框都不准超出視窗；兩張卡之間不准互相蓋住；表格本身可以在 .tw 裡橫捲 */
+  const vw = document.documentElement.clientWidth, out = [];
+  root.querySelectorAll('.card, .chart, .tw, .mktduo').forEach(e => { const r = e.getBoundingClientRect();
+    if (r.width > 0 && (r.right > vw + 1 || r.left < -1)) out.push([e.id || String(e.className).slice(0, 30), Math.round(r.left), Math.round(r.right)]); });
+  const d = document.querySelector('.mktdist'), l = document.querySelector('.mktlist');
+  if (d && l && d.getClientRects().length && l.getClientRects().length) { const a = d.getBoundingClientRect(), b = l.getBoundingClientRect();
+    if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) out.push(['兩張卡互相蓋住', Math.round(a.right - b.left), Math.round(a.bottom - b.top)]); }
+  const tiny = rs.filter(x => parseFloat(getComputedStyle(x.e).fontSize) < 11).map(x => [x.e.textContent.trim().slice(0, 16), getComputedStyle(x.e).fontSize]).slice(0, 5);
+  return { ov: ov.slice(0, 8), out: out.slice(0, 8), tiny, sx: document.documentElement.scrollWidth, vw: innerWidth, n: rs.length }; }"""
+
+MKT2_RECTS = """() => { const q = (s) => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null;
+    const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+  const tw = document.querySelector('#mktInner .tw');
+  return { dist: q('.mktdist'), list: q('.mktlist'), duo: q('.mktduo'),
+           tw: tw ? { ch: tw.clientHeight, sh: tw.scrollHeight, cw: tw.clientWidth, sw: tw.scrollWidth, st: tw.scrollTop,
+                      rows: tw.querySelectorAll('tbody tr').length } : null,
+           docH: document.documentElement.scrollHeight, sx: document.documentElement.scrollWidth, vw: innerWidth,
+           kids: [...(document.querySelector('.mktduo') || { children: [] }).children].map(c => c.className) }; }"""
+
+
+def _mkt2_open(pg, base, w, h=1000):
+    pg.set_viewport_size({"width": w, "height": h})
+    # 真的重新載入：DIST 篩選與下鑽名單都是頁面內的狀態，不重載會把上一輪的選擇帶進來
+    pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.reload(wait_until="networkidle")
+    wait_until(pg, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e) && document.querySelector('#mktInner .tw'); }", 8000)
+    pg.wait_for_timeout(700)
+
+
+def _mkt2_lake():
+    """site/data/stocks.json（前端吃的就是它）：{代號: 市場}、以及圖的口徑（有漲跌幅、不含 ETF）下各市場的檔數。"""
+    rows = json.loads((SITE / "data" / "stocks.json").read_text(encoding="utf-8"))
+    mk = {str(r["code"]): r.get("market") for r in rows}
+    n = {}
+    for r in rows:
+        if r.get("chg_pct") is None or str(r["code"]).startswith("00"):
+            continue
+        n[r.get("market")] = n.get(r.get("market"), 0) + 1
+    return mk, n
+
+
+def t_market_2col_1003(pg, b, base):
+    tag = "市場明細兩欄1003"
+    mk, nby = _mkt2_lake()
+    # ---------------------------------------------------------------- ① 桌機 1440：左右並排、約 1:1.2、等高
+    for w in (1440, 1101):
+        _mkt2_open(pg, base, w)
+        r = pg.evaluate(MKT2_RECTS)
+        d, l = r["dist"], r["list"]
+        if not ok(f"[{tag} {w}] 圖卡與表格卡都畫出來了（兩張卡是同一個 .mktduo 的子節點）",
+                  bool(d) and bool(l) and r["kids"][:2] == ["card mktdist", "card mktlist"], r["kids"]):
+            continue
+        ok(f"★ [{tag} {w}] 兩張卡 top 一致（差 < 1px）", abs(d["t"] - l["t"]) < 1, [d["t"], l["t"]])
+        ok(f"★ [{tag} {w}] 兩張卡 left 遞增（圖卡在左、表格卡在右，而且沒有互相蓋住）", d["l"] < l["l"] and l["l"] >= d["r"] - 1, [d["l"], d["r"], l["l"]])
+        ok(f"★ [{tag} {w}] 兩張卡等高（高度差 < 4px）", abs(d["h"] - l["h"]) < 4, [d["h"], l["h"]])
+        ratio = l["w"] / d["w"]
+        ok(f"[{tag} {w}] 欄寬比約 1 : 1.2（量到 1 : {ratio:.2f}，容許 1.1～1.3）", 1.1 <= ratio <= 1.3, [d["w"], l["w"]])
+        ok(f"[{tag} {w}] 整頁沒有橫向捲軸", r["sx"] <= r["vw"] + 1, [r["sx"], r["vw"]])
+        tw = r["tw"]
+        if ok(f"[{tag} {w}] 表格有畫出來", bool(tw) and tw["rows"] > 5, tw):
+            ok(f"★ [{tag} {w}] 表格比卡片長、在卡內有捲軸（表格的長度沒有把卡片撐高）", tw["sh"] > tw["ch"] + 20 and l["h"] < 900, [tw["sh"], tw["ch"], l["h"]])
+            ok(f"[{tag} {w}] 表格在並排的窄欄裡不需要橫向捲動（5 欄放得下）", tw["sw"] <= tw["cw"] + 1, [tw["sw"], tw["cw"]])
+        # --- 表格真的往下捲、表頭固定
+        st = pg.evaluate("""() => { const tw = document.querySelector('#mktInner .tw'); const wr = tw.getBoundingClientRect();
+            const th = tw.querySelector('thead th'), tr = tw.querySelector('tbody tr');
+            const a = { st: tw.scrollTop, th: th.getBoundingClientRect().top - wr.top, tr: tr.getBoundingClientRect().top - wr.top };
+            tw.scrollTop = 320;
+            return { before: a, st: tw.scrollTop, th: th.getBoundingClientRect().top - wr.top, tr: tr.getBoundingClientRect().top - wr.top,
+                     docH: document.documentElement.scrollHeight }; }""")
+        pg.wait_for_timeout(200)
+        ok(f"★ [{tag} {w}] 表格在卡內真的往下捲了（scrollTop 0 → {st['st']:.0f}），第一列被捲到表頭上面", st["st"] > 100 and st["tr"] < st["th"] - 20, st)
+        ok(f"★ [{tag} {w}] 捲動時表頭固定（表頭離表框頂端的距離捲前後一樣，差 < 2px）", abs(st["th"] - st["before"]["th"]) < 2, [st["before"]["th"], st["th"]])
+        r2 = pg.evaluate(MKT2_RECTS)
+        ok(f"[{tag} {w}] 表捲下去之後兩張卡的高度沒有變", abs(r2["list"]["h"] - l["h"]) < 1 and abs(r2["dist"]["h"] - d["h"]) < 1, [l["h"], r2["list"]["h"]])
+        # --- 換子分頁：表真的換了、卡片高度不變（跌停只有幾檔，短表也不能讓兩欄不等高）
+        codes0 = pg.evaluate("() => [...document.querySelectorAll('#mktInner tbody tr[data-code]')].map(t => t.dataset.code).join(',')")
+        pg.evaluate("document.querySelectorAll('#mktTabs button')[1].click()"); pg.wait_for_timeout(500)
+        codes1 = pg.evaluate("() => [...document.querySelectorAll('#mktInner tbody tr[data-code]')].map(t => t.dataset.code).join(',')")
+        r3 = pg.evaluate(MKT2_RECTS)
+        ok(f"★ [{tag} {w}] 點「跌停」子分頁 → 表真的換成另一份名單", codes1 and codes1 != codes0, [codes0[:24], codes1[:24]])
+        ok(f"★ [{tag} {w}] 換成短表（{r3['tw']['rows'] if r3['tw'] else 0} 列）後兩張卡仍等高、高度沒變",
+           abs(r3["dist"]["h"] - r3["list"]["h"]) < 4 and abs(r3["list"]["h"] - l["h"]) < 1, [r3["dist"]["h"], r3["list"]["h"], l["h"]])
+        pg.evaluate("document.querySelectorAll('#mktTabs button')[4].click()"); pg.wait_for_timeout(500)
+        r4 = pg.evaluate(MKT2_RECTS)
+        ok(f"[{tag} {w}] 換到「成交值前段」（60 列）兩張卡一樣高、高度沒變", abs(r4["dist"]["h"] - r4["list"]["h"]) < 4 and abs(r4["list"]["h"] - l["h"]) < 1,
+           [r4["dist"]["h"], r4["list"]["h"], l["h"]])
+        pg.evaluate("document.querySelectorAll('#mktTabs button')[0].click()"); pg.wait_for_timeout(300)
+        # --- 點一列仍然進得了個股頁
+        if w == 1440:
+            code = pg.evaluate("() => { const t = document.querySelector('#mktInner tbody tr[data-code]'); return t ? t.dataset.code : null; }")
+            pg.click("#mktInner tbody tr[data-code] td.num"); pg.wait_for_timeout(1200)
+            ok(f"[{tag} {w}] 並排後點表格一列仍進得了個股頁", pg.evaluate("location.hash") == f"#stock/{code}", [code, pg.evaluate("location.hash")])
+            continue
+        sc = pg.evaluate(MKT2_SCAN)
+        ok(f"★ [{tag} {w}] 並排的邊界寬度沒有文字重疊、沒有超出視窗", not sc["ov"] and not sc["out"], sc)
+
+    # ---------------------------------------------------------------- ② 「上櫃」：鈕上的字、點下去真的只剩上櫃
+    _mkt2_open(pg, base, 1440)
+    btns = pg.evaluate("() => [...document.querySelectorAll('#distMkt button')].map(b => [b.textContent.trim(), b.dataset.m])")
+    ok(f"★ [{tag}] 篩選鈕顯示「全部｜上市｜上櫃」（不再有英文 TPEX）", [x[0] for x in btns] == ["全部", "上市", "上櫃"], btns)
+    ok(f"[{tag}] 鈕背後的資料代號沒有動（上市＝TWSE、上櫃＝TPEX）", [x[1] for x in btns] == ["", "TWSE", "TPEX"], btns)
+    for lab, key in (("上櫃", "TPEX"), ("上市", "TWSE")):
+        if not any(x[0] == lab for x in btns):
+            continue
+        pg.click(f"#distMkt button[data-m='{key}']"); pg.wait_for_timeout(900)
+        bars = pg.evaluate(DRILL_BARS)
+        tot = sum(bars["vals"]) if bars else -1
+        ok(f"★ [{tag}] 點「{lab}」→ 長條加總＝資料裡{lab}（有漲跌幅、不含 ETF）的檔數 {nby.get(key)}", tot == nby.get(key), [tot, nby])
+        sub = text(pg, "#distSub")
+        ok(f"[{tag}] 點「{lab}」→ 圖卡副標「N 檔」也跟著變成 {nby.get(key)}", f"{nby.get(key)} 檔" in sub, sub)
+        ok(f"[{tag}] 點「{lab}」→ 那顆鈕真的亮起來、別顆沒亮", pg.evaluate("() => [...document.querySelectorAll('#distMkt button.on')].map(b => b.dataset.m)") == [key],
+           pg.evaluate("() => [...document.querySelectorAll('#distMkt button.on')].map(b => b.dataset.m)"))
+        if bars:
+            i = max(range(len(bars["vals"])), key=lambda k: bars["vals"][k])
+            pt = bars["pts"][i]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(600)
+            pan = pg.evaluate(DRILL_PANEL)
+            if ok(f"[{tag}] 點「{lab}」後再點最高那根 → 名單打開、筆數＝長條家數", pan["open"] and pan["n"] == len(pan["rows"]) == bars["vals"][i], [pan.get("n"), bars["vals"][i]]):
+                alien = [r["code"] for r in pan["rows"] if mk.get(r["code"]) != key]
+                ok(f"★ [{tag}] 「{lab}」名單裡 {len(pan['rows'])} 檔全部都是{lab}股（混進別的市場 0 檔）", not alien, alien[:5])
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    pg.click("#distMkt button[data-m='']"); pg.wait_for_timeout(700)
+    bars = pg.evaluate(DRILL_BARS)
+    ok(f"[{tag}] 切回「全部」→ 長條加總＝上市＋上櫃", bars and sum(bars["vals"]) == nby.get("TWSE", 0) + nby.get("TPEX", 0), [bars and sum(bars["vals"]), nby])
+
+    # ---------------------------------------------------------------- ③ 畫面上沒有英文的 TPEX／TWSE（市場明細、個股頁名稱旁小標、基本資料「市場」）
+    pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    body = pg.evaluate("() => document.getElementById('v-market').innerText")
+    ok(f"★ [{tag}] 市場明細整頁畫面上沒有「TPEX／TPEx／TWSE」字樣", not re.search(r"TPEX|TPEx|TWSE", body), re.findall(r".{0,8}(?:TPEX|TPEx|TWSE).{0,8}", body)[:3])
+    pick = {}
+    for key in ("TWSE", "TPEX"):
+        for c, m_ in mk.items():
+            if m_ == key and (SITE / "data" / "stock" / f"{c}.json").exists() and not c.startswith("00"):
+                pick[key] = c
+                break
+    for key, lab in (("TWSE", "上市"), ("TPEX", "上櫃")):
+        c = pick.get(key)
+        if not c:
+            continue
+        pg.goto(f"{base}#stock/{c}", wait_until="networkidle"); wait_until(pg, "() => document.querySelector('#skIdent small')", 8000)
+        pg.wait_for_timeout(600)
+        small = pg.evaluate("() => (document.querySelector('#skIdent small') || {}).textContent || ''").strip()
+        ok(f"★ [{tag}] 個股頁 {c} 名稱旁的小標寫「{lab}」（不是 {key}）", small == lab, small)
+        click(pg, "#stockTabs button[data-t='basics']", 900)
+        mrow = pg.evaluate("() => { const dt = [...document.querySelectorAll('#stockTab dt')].find(x => x.textContent.trim() === '市場'); return dt ? dt.nextElementSibling.textContent.trim() : null; }")
+        ok(f"[{tag}] 個股頁 {c} 基本資料的「市場」那一列寫「{lab}」", mrow == lab, mrow)
+        whole = pg.evaluate("() => document.getElementById('stockPage').innerText")
+        ok(f"[{tag}] 個股頁 {c} 整頁畫面上沒有「TPEX／TWSE」字樣", not re.search(r"\bTPEX\b|\bTWSE\b|\bTPEx\b", whole), re.findall(r".{0,8}(?:TPEX|TPEx|TWSE).{0,8}", whole)[:3])
+
+    # ---------------------------------------------------------------- ④ 窄畫面（1100、800）：上下排，圖卡在上、表格卡在下；四個寬度都沒有重疊與溢出
+    for w in (1440, 1100, 800):
+        _mkt2_open(pg, base, w)
+        r = pg.evaluate(MKT2_RECTS)
+        d, l = r["dist"], r["list"]
+        if w <= 1100:
+            ok(f"★ [{tag} {w}] 欄寬不夠 → 上下排（表格卡在圖卡正下方、左緣對齊、寬度一樣）",
+               l["t"] >= d["b"] - 1 and abs(l["l"] - d["l"]) < 2 and abs(l["w"] - d["w"]) < 2, [d, l])
+            tw = r["tw"]
+            ok(f"[{tag} {w}] 上下排時表格最多 460px 再捲（不會一路拉長整頁）", tw and tw["ch"] <= 462, tw)
+            ok(f"[{tag} {w}] 上下排時表格的捲軸是真的（內容比框高）", tw and tw["sh"] > tw["ch"] + 20, tw)
+        sc = pg.evaluate(MKT2_SCAN)
+        ok(f"★ [{tag} {w}] 沒有文字重疊、沒有超出視窗（掃 {sc.get('n')} 個文字節點）", not sc["ov"] and not sc["out"] and sc["sx"] <= sc["vw"] + 1, sc)
+        # 名單打開時（並排時它在圖下面、卡片變高）再掃一次
+        bars = pg.evaluate(DRILL_BARS)
+        i1, _ = _drill_pick_two(bars) if bars else (None, None)
+        if i1 is not None:
+            pt = bars["pts"][i1]; pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(700)
+            r5 = pg.evaluate(MKT2_RECTS)
+            if w > 1100:
+                ok(f"★ [{tag} {w}] 下鑽名單打開、圖卡變高之後，兩張卡仍然等高（差 < 4px）", abs(r5["dist"]["h"] - r5["list"]["h"]) < 4, [r5["dist"]["h"], r5["list"]["h"]])
+            sc2 = pg.evaluate(MKT2_SCAN)
+            ok(f"★ [{tag} {w}] 名單打開時也沒有文字重疊、沒有超出視窗", not sc2["ov"] and not sc2["out"] and sc2["sx"] <= sc2["vw"] + 1, sc2)
+
+    # ---------------------------------------------------------------- ⑤ 手機 390：兩段（分佈圖／名單）各掃一次
+    ctx = b.new_context(**MOBILE_VP)
+    m = ctx.new_page()
+    errs: list[str] = []
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        for seg in ("dist", "list"):
+            m.goto(f"{base}#market/updown", wait_until="networkidle")
+            m.evaluate(f"() => localStorage.setItem('tw.m3.mkt.seg', '{seg}')")
+            m.reload(wait_until="networkidle")
+            wait_until(m, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e); }", 8000)
+            m.wait_for_timeout(900)
+            r = m.evaluate(MKT2_RECTS)
+            shown = (r["dist"] is not None, r["list"] is not None)
+            ok(f"★ [{tag} 390 {seg}] 手機「{'分佈圖' if seg == 'dist' else '名單'}」段只顯示對應那張卡", shown == ((True, False) if seg == "dist" else (False, True)), shown)
+            sc = m.evaluate(MKT2_SCAN)
+            ok(f"★ [{tag} 390 {seg}] 沒有文字重疊、沒有超出視窗、字 ≥ 11px、整頁沒有橫向捲軸",
+               not sc["ov"] and not sc["out"] and not sc["tiny"] and sc["sx"] <= sc["vw"] + 1, sc)
+            if seg == "dist":
+                lab = m.evaluate("() => [...document.querySelectorAll('#distMkt button')].map(b => b.textContent.trim())")
+                ok(f"[{tag} 390] 手機的篩選鈕也是「全部｜上市｜上櫃」", lab == ["全部", "上市", "上櫃"], lab)
+            else:
+                tw = r["tw"]
+                ok(f"[{tag} 390] 手機名單段：表格在卡內捲（最多 460px）、不撐長整頁", tw and tw["ch"] <= 462 and tw["sh"] > tw["ch"] + 20, tw)
         ok(f"[{tag} 390] 整段沒有 JS 錯誤", not errs, errs[:2])
     finally:
         ctx.close()
@@ -14947,7 +15183,7 @@ def t_mobile_v3(b, base, code):
         m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(300)
         # ---- #16 市場明細：切「名單」段 → 分佈圖藏、名單出現、整頁高度變了 ----
         m.goto(f"{base}#market", wait_until="networkidle"); m.wait_for_timeout(2600)
-        K = """() => { const b = document.getElementById('mktBody'); const c = b && b.querySelector(':scope > .card'), l = document.getElementById('mktInner');
+        K = """() => { const b = document.getElementById('mktBody'); const c = b && b.querySelector('.mktdist'), l = document.getElementById('mktInner');   // 2026-10-03 #300：圖卡包進 .mktduo，不再是 #mktBody 的直接子節點
             return { dist: !!c && c.offsetHeight > 0, list: !!l && l.offsetHeight > 0, h: document.documentElement.scrollHeight }; }"""
         k0 = m.evaluate(K)
         m.tap('#mMktSeg button[data-s="list"]'); m.wait_for_timeout(700)
@@ -19194,6 +19430,8 @@ SECTIONS = {
     "市場明細":            lambda pg, b, base, code: t_market(pg, base),
     # ★ 2026-09-28 Andy：法人連續買賣超搬到市場明細；漲跌分佈點長條 → 右側列出那一段的個股（⚠ 一律 --workers 1）
     "市場明細下鑽0928":    lambda pg, b, base, code: t_market_drill_0928(pg, b, base),
+    # ★ 2026-10-03 Andy 截 #market：漲跌分佈圖卡＋分頁表格卡桌機左右並排（等高、表在卡內捲、表頭固定、≤1100 上下排）＋「TPEX」改「上櫃」（⚠ 一律 --workers 1）
+    "市場明細兩欄1003":    lambda pg, b, base, code: t_market_2col_1003(pg, b, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
     "產業":                lambda pg, b, base, code: t_industry(pg, base),
     "族群頁":              lambda pg, b, base, code: t_group_pages(pg, base),

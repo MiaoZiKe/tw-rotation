@@ -3712,7 +3712,7 @@
       <div class="card" style="margin-top:var(--gap-card)">
         <div class="row spread">
           <div><h2>${A.logo ? A.logo(code, known.name, 32, 'sklogo') : ''}${A.fmt.esc(known.name || '')} <span class="mono cyan">${code}</span>
-            <small class="muted" style="font-size:13px">${known.market === 'TPEX' ? '上櫃' : known.market === 'TWSE' ? '上市' : (known.market || '')}</small></h2>
+            <small class="muted" style="font-size:13px">${A.fmt.mkt(known.market)}</small></h2>
             <div class="row" style="gap:6px 12px;margin-top:4px;font-size:13.5px">
               <span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}
               <span class="muted">族群</span>${gid ? A.L.group(gid, (mem && mem.group_name) || known.group) : '—'}
@@ -3857,7 +3857,7 @@
     el.innerHTML = `
       <div class="card" id="skChartCard" style="margin-top:var(--gap-card)">
         <div class="row spread" id="skHead">
-          <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
+          <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${A.fmt.mkt(m.market)}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
             <!-- ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）：現價列只留現價、漲跌、即時徽章與時間（徽章由 live.js 插在漲跌後面）；
                  技術分／本益比／同業分位／營收 YoY／分 K 完整五顆標籤搬到下面工具列（#skTags），左欄少一行。-->
@@ -6495,7 +6495,7 @@
   function tabBasics(pg, el) {
     const b = pg.basics || {}; const f = pg.fundamental || {};
     const indLink = b.industry ? (A.L.gname['ind_' + b.industry] ? A.L.group('ind_' + b.industry, b.industry) : A.fmt.esc(b.industry)) : null;
-    const rows = [['公司全名', b.full_name], ['市場', b.market], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).length ? `<span class="tagrow">${(pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('')}</span>` : null, true], ['題材', A.L.themesOf(pg.meta.code) ? `<span class="tagrow">${A.L.themesOf(pg.meta.code)}</span>` : null, true]];
+    const rows = [['公司全名', b.full_name], ['市場', A.fmt.mkt(b.market)], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).length ? `<span class="tagrow">${(pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('')}</span>` : null, true], ['題材', A.L.themesOf(pg.meta.code) ? `<span class="tagrow">${A.L.themesOf(pg.meta.code)}</span>` : null, true]];
     /* ★ 2026-09-26（Andy：「將過往歷史數據移動到圖三那位置」）：基本資料表只佔左半，右半一大塊空白，
        「1–12 月平均漲幅」卻排在整張表下面要往下捲才看得到。改成兩欄並排（.skBasics，桌機等高），≤900px 疊成上下。
        季節卡是 flex 直欄、圖吃掉剩下的高度，跟左邊基本資料表一樣高。 */
