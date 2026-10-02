@@ -17737,6 +17737,19 @@ def t_tick_live_lead(b, base):
     ok("[分時開盤頭段] 兩端都有點之後改畫虛線、小標不再是 lead", l2["gl"] == 2 and l2["lead"] == "", l2)
     px = _tick_gap_pixels(pg)
     ok("★ [分時開盤頭段] 畫面上缺口那段沒有主線（像素掃描）", bool(px) and px["gap"] <= 2 and px["ctl"] >= 10, px)
+
+    # 手機 390 與 800：缺口只有十幾 px 也照樣標「此段等待資料」—— 字塊可以超出斜線底紋，但不准跑出價格區、字不小於 11px
+    for vw, vh in ((800, 1000), (390, 844)):
+        pg.set_viewport_size({"width": vw, "height": vh})
+        pg.wait_for_timeout(1200)
+        lb = pg.evaluate("""() => { const t = document.querySelector('#lwc .tk-gap'), sp = t && t.querySelector('span');
+            const w = document.getElementById('lwc'); if (!t || !sp || !w) return { none: true, tag: !!t };
+            const a = sp.getBoundingClientRect(), z = w.getBoundingClientRect(), g = t.getBoundingClientRect();
+            const plotR = z.left + TickChart.last.chart.timeScale().width();
+            return { txt: sp.textContent, fs: parseFloat(getComputedStyle(sp).fontSize), gapW: Math.round(g.width), lblW: Math.round(a.width),
+                     inside: a.left >= z.left - 1 && a.right <= plotR + 1, hs: document.documentElement.scrollWidth <= innerWidth + 1 }; }""")
+        ok(f"★ [分時開盤頭段] {vw}px：缺口比字窄也標「此段等待資料」、字塊在價格區內、字 ≥ 11px、沒有橫向捲軸",
+           lb.get("txt") == "此段等待資料" and lb.get("inside") and lb.get("fs", 0) >= 11 and lb.get("hs"), lb)
     ctx.close()
 
 

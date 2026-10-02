@@ -1382,8 +1382,8 @@
       this._placeGapTags();
       requestAnimationFrame(() => this._placeGapTags());
     }
-    /* 「此段等待資料」的小標：擺在缺口正中間、價格區上緣。跟著圖寬重算（subscribeSizeChange）。
-       ⚠ 字 11px（手機 390 的下限），缺口太窄（< 72px）就只留底紋與虛線、不硬塞字。*/
+    /* 「此段等待資料」的缺口標記：斜線底紋蓋住缺口那幾分鐘的價格區，小標置中（可超出底紋、不超出價格區）。
+       跟著圖寬重算（subscribeSizeChange＋ResizeObserver）。⚠ 字 11px（手機 390 的下限）。*/
     _placeGapTags() {
       (this.gapTags || []).forEach(t => t.remove()); this.gapTags = [];
       if (this._dead) return;
@@ -1398,14 +1398,22 @@
         tag.dataset.from = KUtil_fmt(sg.g[0]); tag.dataset.to = KUtil_fmt(sg.g[1]);
         tag.title = `${tag.dataset.from}～${tag.dataset.to}：` + (sg.g[3] || 'Yahoo 早盤延遲約 20 分鐘、這段又在你打開頁面之前，暫時沒有資料（Yahoo 追上來後自動補上）');
         if (!sg.line) tag.dataset.lead = '1';
-        // 缺口太窄（< 72px，手機上 5 分鐘左右）只留底紋與虛線，不硬塞字（字比格子寬會蓋到旁邊的線）
-        if (Math.abs(x1 - x0) >= 72) { const sp = document.createElement('span'); sp.textContent = sg.g[2] || '此段等待資料'; tag.appendChild(sp); }
-        tag.style.left = Math.round(Math.min(x0, x1)) + 'px';
-        tag.style.width = Math.max(2, Math.round(Math.abs(x1 - x0))) + 'px';
+        const left = Math.round(Math.min(x0, x1)), w = Math.max(2, Math.round(Math.abs(x1 - x0)));
+        tag.style.left = left + 'px';
+        tag.style.width = w + 'px';
         // 底紋只蓋價格區（不蓋到下面的量）：照價格面板實際高度，拿不到才用 CSS 的 72%
         if (ph > 0) tag.style.height = ph + 'px';
         this.el.appendChild(tag);
         this.gapTags.push(tag);
+        /* 小標：缺口比字窄（手機上 19 分鐘只有二十幾 px）也照樣標 —— 字塊置中在缺口上、可以超出底紋，
+           但夾在價格區左右邊界裡（不蓋到價格軸）。只有 1～2 分鐘那種小斷（< 8px）不放字，免得滿圖都是小標。*/
+        if (w >= 8) {
+          const sp = document.createElement('span'); sp.textContent = sg.g[2] || '此段等待資料'; tag.appendChild(sp);
+          let plotW = 0; try { plotW = ts.width(); } catch (e) { plotW = this.el.clientWidth - 60; }
+          const sw = sp.offsetWidth;
+          const at = Math.max(2, Math.min(left + (w - sw) / 2, plotW - sw - 2));
+          sp.style.left = Math.round(at - left) + 'px';
+        }
       });
     }
     setWatermark(text) { if (this.wm) this.wm.textContent = text || ''; }
