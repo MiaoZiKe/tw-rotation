@@ -1,0 +1,6 @@
+{
+  "deploy": {
+    "org": "miaozike",
+    "app": "tw-taifex"
+  }
+}
