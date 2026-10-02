@@ -1375,6 +1375,7 @@
        · 不給滾輪縮放與拖曳（位置固定，跟熱力圖同一條規矩 —— 拖走了找不回來比看不清楚更糟），只給十字游標讀數。
      輸入：pts ＝ [[時間(epoch+8h 秒，跟 KChart 的分 K 同口徑), 價, 量(股)], ...]、prev ＝ 昨收、date ＝ 那一天。*/
   const SESSION_START = 9 * 60, SESSION_END = 13 * 60 + 30;
+  const KUtil_fmt = (t) => fmtTime(t, '1m').slice(11, 16);
   class TickChart {
     constructor(el, opts) {
       this.el = el; this.opts = Object.assign({}, opts);
@@ -1393,8 +1394,21 @@
         priceFormat: { type: 'custom', minMove: 1, formatter: (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張') },
       }, 1);
       try { const ps = this.chart.panes(); if (ps[0] && ps[1]) { ps[0].setStretchFactor(3); ps[1].setStretchFactor(1); } } catch (e) { /* 舊版沒有 stretch，就用預設等高 */ }
+      /* ★ 2026-10-02 缺口（DECISIONS #287）：Yahoo 早盤之後、打開頁面之前那段沒有資料。
+         主線在那幾分鐘是空白（斷開），另外用一條淡色虛線把缺口兩端連起來、上面標「此段等待資料」——
+         看得出「這裡斷了、不是走勢」，又不會讓線突然消失看起來像壞掉。虛線不吃十字游標、不進價格軸。*/
+      this.gapLine = this.chart.addSeries(LWC.LineSeries, {
+        color: hexa('#8ea0c4', 70), lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: () => null,
+      }, 0);
+      this.gapTags = [];
       this.wm = document.createElement('div'); this.wm.className = 'k-wm'; el.appendChild(this.wm);
-      this.prevLine = null; this.prev = null; this.pts = []; this.lo = null; this.hi = null;
+      this._onGapPos = () => this._placeGapTags();
+      try { this.chart.timeScale().subscribeSizeChange(this._onGapPos); } catch (e) { /* 舊版沒有，setData 時仍會擺一次 */ }
+      /* 容器變寬變窄（手機轉向、拖瀏覽器）時 LWC 的 sizeChange 不一定會叫（實測 1440 → 390 沒叫，小標留在舊座標跑出圖外），
+         再掛一個 ResizeObserver，等圖重排完下一幀重擺。*/
+      if (window.ResizeObserver) { this._gapRo = new ResizeObserver(() => requestAnimationFrame(this._onGapPos)); this._gapRo.observe(el); }
+      this.prevLine = null; this.prev = null; this.pts = []; this.lo = null; this.hi = null; this.gaps = [];
       this.stats = { setData: 0 };
       TickChart.last = this;
     }
@@ -1409,10 +1423,16 @@
     /* 把一天的點整理成「每分鐘一點」：中間沒成交的分鐘沿用上一個價（量 0），盤還沒走到的時段補空白格。
        ⚠ 間隔不是 1 分鐘的資料（資料湖 60 分 K 備援那種，一天 6 點）不補分鐘，照原樣連線 ——
          補成 270 格等於把 5 小時畫成同一個價，那是編的。*/
-    static normalize(pts, date, live) {
+    static normalize(pts, date, live, gaps, minute) {
       const out = [];
       if (!pts.length) return out;
-      const minuteLike = pts.length >= 2 && pts.every((p, i) => i === 0 || p[0] - pts[i - 1][0] <= 5 * 60);
+      gaps = gaps || [];
+      const inGap = (t) => gaps.some(g => t >= g[0] && t <= g[1]);
+      /* minute＝呼叫端明講「這是每分鐘一點」（即時層）。以前只靠「相鄰兩點都不超過 5 分鐘」判斷，
+         Yahoo 停在 10:06、報價從 10:26 開始 —— 中間 20 分鐘一空，整天就被當成「不是分鐘資料」照原樣連線，
+         10:06 直接一條斜線拉到 10:26。缺口的分鐘另外標出來，不算進判斷。*/
+      const minuteLike = minute != null ? !!minute
+        : pts.length >= 2 && pts.every((p, i) => i === 0 || p[0] - pts[i - 1][0] <= 5 * 60);
       const day0 = Date.parse(date + 'T00:00:00Z') / 1000;     // 那一天 00:00（epoch+8h 口徑下的「台北牆鐘」）
       const at = (m) => day0 + m * 60;
       if (!minuteLike) return pts.map(p => ({ time: p[0], value: p[1], v: p[2] || 0 }));
@@ -1422,6 +1442,7 @@
       for (let m = SESSION_START; m <= SESSION_END; m++) {
         if (m < firstM) { out.push({ time: at(m) }); continue; }
         if (m > lastM) { if (live) { out.push({ time: at(m) }); continue; } break; }
+        if (inGap(at(m))) { out.push({ time: at(m), gap: true }); continue; }
         let v = 0, px = null;
         while (j < pts.length && Math.floor((pts[j][0] - day0) / 60) <= m) { px = pts[j][1]; v += pts[j][2] || 0; j++; }
         if (px != null) last = px;
@@ -1433,7 +1454,8 @@
     setData(o) {
       const U = C.up, D = C.down, N = C.text;
       this.prev = o.prev != null && o.prev > 0 ? +o.prev : null;
-      const rows = TickChart.normalize(o.pts || [], o.date, !!o.live);
+      const rows = TickChart.normalize(o.pts || [], o.date, !!o.live, o.gaps, o.minute);
+      this.gaps = (o.gaps || []).slice();
       const vals = rows.filter(r => r.value != null);
       this.pts = vals;
       this.lo = vals.length ? Math.min(...vals.map(r => r.value)) : null;
@@ -1454,9 +1476,48 @@
       if (this.prev != null) {
         this.prevLine = this.line.createPriceLine({ price: this.prev, color: N, lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '昨收' });
       }
+      // 缺口虛線：每個缺口連「缺口前最後一點」到「缺口後第一點」；兩段之間塞空白，不同缺口不要連成一條
+      const gl = [];
+      this.gapSegs = [];
+      this.gaps.forEach(g => {
+        let a = null, b = null;
+        for (const r of rows) { if (r.value == null || r.gap) continue; if (r.time < g[0]) a = r; else if (r.time > g[1] && !b) b = r; }
+        if (!a || !b) return;
+        /* 斷開前一段：塞一個空白點。⚠ 時間一定要落在既有的分鐘格上（上一段終點 +60 秒）——
+           塞一個不在格上的時間（例如 a.time - 1）會讓共用時間軸多出一格，整張圖的間距跟著歪。*/
+        if (gl.length) { const pe = gl[gl.length - 1].time + 60; if (pe < a.time) gl.push({ time: pe }); }
+        gl.push({ time: a.time, value: a.value }, { time: b.time, value: b.value });
+        this.gapSegs.push({ from: a.time, to: b.time, g });
+      });
+      // 時間要嚴格遞增（兩個缺口中間只隔一根時，前一段終點＝後一段起點，去掉重複那一點）
+      this.gapLine.setData(gl.filter((p, i) => i === 0 || p.time > gl[i - 1].time));
       this.chart.timeScale().fitContent();
       this.stats.setData++;
       this.rows = rows;
+      this._placeGapTags();
+      requestAnimationFrame(() => this._placeGapTags());
+    }
+    /* 「此段等待資料」的小標：擺在缺口正中間、價格區上緣。跟著圖寬重算（subscribeSizeChange）。
+       ⚠ 字 11px（手機 390 的下限），缺口太窄（< 72px）就只留底紋與虛線、不硬塞字。*/
+    _placeGapTags() {
+      (this.gapTags || []).forEach(t => t.remove()); this.gapTags = [];
+      if (this._dead) return;
+      if (!this.gapSegs || !this.gapSegs.length) return;
+      const ts = this.chart.timeScale();
+      this.gapSegs.forEach(sg => {
+        const x0 = ts.timeToCoordinate(sg.g[0]), x1 = ts.timeToCoordinate(sg.g[1]);
+        if (x0 == null || x1 == null) return;
+        const tag = document.createElement('div');
+        tag.className = 'tk-gap';
+        tag.dataset.from = KUtil_fmt(sg.g[0]); tag.dataset.to = KUtil_fmt(sg.g[1]);
+        tag.title = `${tag.dataset.from}～${tag.dataset.to}：Yahoo 早盤延遲約 20 分鐘、這段又在你打開頁面之前，暫時沒有資料（Yahoo 追上來後自動補上）`;
+        // 缺口太窄（< 72px，手機上 5 分鐘左右）只留底紋與虛線，不硬塞字（字比格子寬會蓋到旁邊的線）
+        tag.textContent = Math.abs(x1 - x0) >= 72 ? '此段等待資料' : '';
+        tag.style.left = Math.round(Math.min(x0, x1)) + 'px';
+        tag.style.width = Math.max(2, Math.round(Math.abs(x1 - x0))) + 'px';
+        this.el.appendChild(tag);
+        this.gapTags.push(tag);
+      });
     }
     setWatermark(text) { if (this.wm) this.wm.textContent = text || ''; }
     // 十字游標：回呼拿到「那一分鐘的點」（null＝離開圖，呼叫端改顯示最後一點）
@@ -1471,6 +1532,10 @@
     }
     destroy() {
       if (this._ch) { try { this.chart.unsubscribeCrosshairMove(this._ch); } catch (e) { /* 圖已銷毀 */ } }
+      try { this.chart.timeScale().unsubscribeSizeChange(this._onGapPos); } catch (e) { /* 圖已銷毀 */ }
+      if (this._gapRo) { this._gapRo.disconnect(); this._gapRo = null; }
+      this._dead = true;
+      (this.gapTags || []).forEach(t => t.remove()); this.gapTags = [];
       if (this.wm && this.wm.parentNode) this.wm.parentNode.removeChild(this.wm);
       this.chart.remove();
       if (TickChart.last === this) TickChart.last = null;
