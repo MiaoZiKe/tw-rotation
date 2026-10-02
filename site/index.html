@@ -4903,6 +4903,8 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="theme4.css">
 <!-- 版面 v2 結構（左側導覽、頁首、本頁功能跳轉列、手機頁名與線條圖示）。只排版、不寫任何色值，顏色全部吃上面 theme4.css 的變數，所以放在它後面。 -->
 <link rel="stylesheet" href="layout4.css">
+<!-- ★ 2026-10-03 一屏看完（DECISIONS #306，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
+<link rel="stylesheet" href="fit.css">
 </head>
 <body>
 <header class="topbar">
@@ -5390,6 +5392,7 @@ h3 .howbtn.pop{font-family:inherit}
 <script src="features.js"></script>
 <script src="perm.js"></script>
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
+<script src="fit.js"></script>
 <script src="flowtopo.js"></script>
 <script src="app.js"></script>
 <script src="theme4.js"></script>
