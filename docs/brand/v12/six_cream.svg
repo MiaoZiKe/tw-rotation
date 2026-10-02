@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 470"><defs>
+<linearGradient id="t0" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe3f1"/><stop offset=".55" stop-color="#e2daff"/><stop offset="1" stop-color="#cfeeff"/></linearGradient>
+<linearGradient id="t1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b8ddff"/><stop offset=".55" stop-color="#d6c8ff"/><stop offset="1" stop-color="#ffcde4"/></linearGradient>
+<linearGradient id="t2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc4dc"/><stop offset=".55" stop-color="#dcc6ff"/><stop offset="1" stop-color="#b9d4ff"/></linearGradient>
+<linearGradient id="t3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9f0ff"/><stop offset=".55" stop-color="#e4dcff"/><stop offset="1" stop-color="#ffe0ee"/></linearGradient>
+<linearGradient id="t4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe9d6"/><stop offset=".55" stop-color="#f3dcff"/><stop offset="1" stop-color="#d6e6ff"/></linearGradient>
+<linearGradient id="t5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6dcff"/><stop offset=".55" stop-color="#ffd6e8"/><stop offset="1" stop-color="#d2ecff"/></linearGradient>
+</defs><rect width="1500" height="470" rx="24" fill="#f6ead8"/>
+<rect x="53.0" y="58" width="184" height="184" rx="22" fill="url(#t0)" stroke="#ffffff" stroke-width="5"/>
+<rect x="67.0" y="72" width="156" height="156" rx="14" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".7" stroke-width="2"/>
+<polyline points="101.8,165.7 104.9,172.5 109.0,178.7 114.1,184.1 120.0,188.6 126.6,192.2 133.6,194.6 141.0,195.8 148.4,195.9 155.8,194.7 162.9,192.4 169.5,188.9 175.4,184.5 180.6,179.1 184.8,173.0" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="194.0,157.1 196.0,179.4 173.7,166.6" fill="#4552a6"/>
+<polyline points="188.2,134.3 185.1,127.5 181.0,121.3 175.9,115.9 170.0,111.4 163.4,107.8 156.4,105.4 149.0,104.2 141.6,104.1 134.2,105.3 127.1,107.6 120.5,111.1 114.6,115.5 109.4,120.9 105.2,127.0" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="96.0,142.9 94.0,120.6 116.3,133.4" fill="#4552a6"/>
+<polygon points="154.2,150.0 153.0,145.4 149.6,142.0 145.0,140.8 140.4,142.0 137.0,145.4 135.8,150.0 137.0,154.6 140.4,158.0 145.0,159.2 149.6,158.0 153.0,154.6" fill="#f08a4b"/>
+<text x="145.0" y="290" text-anchor="middle" font-family="DejaVu Sans Mono" font-size="20" fill="#c9875a">01</text>
+<text x="145.0" y="334" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#5a3a22">資金面</text>
+<text x="145.0" y="374" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="21" fill="#c9875a">錢往哪裡跑</text>
+<text x="145.0" y="410" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">資金流向・資金輪盤</text>
+<text x="145.0" y="438" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">雷達・熱力圖</text>
+<rect x="301.0" y="58" width="184" height="184" rx="22" fill="url(#t1)" stroke="#ffffff" stroke-width="5"/>
+<rect x="315.0" y="72" width="156" height="156" rx="14" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".7" stroke-width="2"/>
+<polyline points="341.5,120.6 393.0,150.0" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polyline points="341.5,179.4 393.0,150.0" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polyline points="393.0,150.0 444.5,113.2" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polyline points="393.0,150.0 444.5,186.8" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polygon points="352.5,120.6 351.9,116.8 349.9,113.5 347.0,111.0 343.4,109.7 339.6,109.7 336.0,111.0 333.0,113.5 331.1,116.8 330.4,120.6 331.1,124.3 333.0,127.7 336.0,130.1 339.6,131.4 343.4,131.4 347.0,130.1 349.9,127.7 351.9,124.3" fill="#4552a6"/>
+<polygon points="352.5,179.4 351.9,175.7 349.9,172.3 347.0,169.9 343.4,168.6 339.6,168.6 336.0,169.9 333.0,172.3 331.1,175.7 330.4,179.4 331.1,183.2 333.0,186.5 336.0,189.0 339.6,190.3 343.4,190.3 347.0,189.0 349.9,186.5 351.9,183.2" fill="#4552a6"/>
+<polygon points="455.6,113.2 454.9,109.4 453.0,106.1 450.0,103.6 446.4,102.3 442.6,102.3 439.0,103.6 436.1,106.1 434.1,109.4 433.5,113.2 434.1,117.0 436.1,120.3 439.0,122.8 442.6,124.1 446.4,124.1 450.0,122.8 453.0,120.3 454.9,117.0" fill="#4552a6"/>
+<polygon points="455.6,186.8 454.9,183.0 453.0,179.7 450.0,177.2 446.4,175.9 442.6,175.9 439.0,177.2 436.1,179.7 434.1,183.0 433.5,186.8 434.1,190.6 436.1,193.9 439.0,196.4 442.6,197.7 446.4,197.7 450.0,196.4 453.0,193.9 454.9,190.6" fill="#4552a6"/>
+<polygon points="408.6,150.0 407.7,144.7 405.0,139.9 400.8,136.5 395.7,134.6 390.3,134.6 385.2,136.5 381.0,139.9 378.3,144.7 377.4,150.0 378.3,155.3 381.0,160.1 385.2,163.5 390.3,165.4 395.7,165.4 400.8,163.5 405.0,160.1 407.7,155.3" fill="#f08a4b"/>
+<text x="393.0" y="290" text-anchor="middle" font-family="DejaVu Sans Mono" font-size="20" fill="#c9875a">02</text>
+<text x="393.0" y="334" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#5a3a22">產業面</text>
+<text x="393.0" y="374" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="21" fill="#c9875a">上下游誰最強</text>
+<text x="393.0" y="410" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">2D／3D 產業地圖</text>
+<text x="393.0" y="438" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">產業鏈關聯</text>
+<rect x="549.0" y="58" width="184" height="184" rx="22" fill="url(#t2)" stroke="#ffffff" stroke-width="5"/>
+<rect x="563.0" y="72" width="156" height="156" rx="14" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".7" stroke-width="2"/>
+<polyline points="602.4,196.0 602.4,140.8" stroke="#e0526a" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="591.3,185.0 613.4,185.0 613.4,151.8 591.3,151.8" fill="#e0526a"/>
+<polyline points="641.0,179.4 641.0,116.9" stroke="#23a37a" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="630.0,168.4 652.0,168.4 652.0,131.6 630.0,131.6" fill="#23a37a"/>
+<polyline points="679.6,166.6 679.6,93.0" stroke="#e0526a" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="668.6,154.6 690.7,154.6 690.7,104.0 668.6,104.0" fill="#e0526a"/>
+<text x="641.0" y="290" text-anchor="middle" font-family="DejaVu Sans Mono" font-size="20" fill="#c9875a">03</text>
+<text x="641.0" y="334" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#5a3a22">技術面</text>
+<text x="641.0" y="374" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="21" fill="#c9875a">什麼時候進場</text>
+<text x="641.0" y="410" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">K 線・多週期 SMC</text>
+<text x="641.0" y="438" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">技術評分</text>
+<rect x="797.0" y="58" width="184" height="184" rx="22" fill="url(#t3)" stroke="#ffffff" stroke-width="5"/>
+<rect x="811.0" y="72" width="156" height="156" rx="14" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".7" stroke-width="2"/>
+<polygon points="835.6,150.0 854.0,150.0 854.0,111.4 835.6,111.4" fill="#e0526a"/>
+<polygon points="865.1,150.0 883.5,150.0 883.5,175.8 865.1,175.8" fill="#23a37a"/>
+<polygon points="894.5,150.0 912.9,150.0 912.9,94.8 894.5,94.8" fill="#e0526a"/>
+<polygon points="924.0,150.0 942.4,150.0 942.4,122.4 924.0,122.4" fill="#e0526a"/>
+<polyline points="828.3,150.0 949.7,150.0" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<text x="889.0" y="290" text-anchor="middle" font-family="DejaVu Sans Mono" font-size="20" fill="#c9875a">04</text>
+<text x="889.0" y="334" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#5a3a22">籌碼面</text>
+<text x="889.0" y="374" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="21" fill="#c9875a">誰在買、誰在賣</text>
+<text x="889.0" y="410" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">法人買賣超</text>
+<text x="889.0" y="438" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">集保大戶</text>
+<rect x="1045.0" y="58" width="184" height="184" rx="22" fill="url(#t4)" stroke="#ffffff" stroke-width="5"/>
+<rect x="1059.0" y="72" width="156" height="156" rx="14" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".7" stroke-width="2"/>
+<polygon points="1081.8,188.6 1116.8,161.0 1144.4,172.1 1188.5,111.4 1188.5,201.5 1081.8,201.5" fill="#4552a6" opacity=".22"/>
+<polyline points="1081.8,188.6 1116.8,161.0 1144.4,172.1 1188.5,111.4" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="1088.2,188.6 1087.0,184.9 1083.8,182.5 1079.8,182.5 1076.6,184.9 1075.4,188.6 1076.6,192.4 1079.8,194.8 1083.8,194.8 1087.0,192.4" fill="#4552a6"/>
+<polygon points="1123.2,161.0 1122.0,157.3 1118.8,154.9 1114.8,154.9 1111.5,157.3 1110.3,161.0 1111.5,164.8 1114.8,167.2 1118.8,167.2 1122.0,164.8" fill="#4552a6"/>
+<polygon points="1150.8,172.1 1149.6,168.3 1146.4,166.0 1142.4,166.0 1139.1,168.3 1137.9,172.1 1139.1,175.9 1142.4,178.2 1146.4,178.2 1149.6,175.9" fill="#4552a6"/>
+<polygon points="1195.0,111.4 1193.7,107.6 1190.5,105.2 1186.5,105.2 1183.3,107.6 1182.1,111.4 1183.3,115.1 1186.5,117.5 1190.5,117.5 1193.7,115.1" fill="#4552a6"/>
+<text x="1137.0" y="290" text-anchor="middle" font-family="DejaVu Sans Mono" font-size="20" fill="#c9875a">05</text>
+<text x="1137.0" y="334" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#5a3a22">基本面</text>
+<text x="1137.0" y="374" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="21" fill="#c9875a">現在貴不貴</text>
+<text x="1137.0" y="410" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">營收・獲利</text>
+<text x="1137.0" y="438" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">本益比河流・週期統計</text>
+<rect x="1293.0" y="58" width="184" height="184" rx="22" fill="url(#t5)" stroke="#ffffff" stroke-width="5"/>
+<rect x="1307.0" y="72" width="156" height="156" rx="14" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".7" stroke-width="2"/>
+<polyline points="1324.3,150.0 1359.2,150.0 1371.2,104.0 1385.0,194.2 1397.9,131.6 1408.9,150.0 1445.7,150.0" stroke="#4552a6" stroke-width="7.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="1439.3,122.4 1437.7,117.5 1433.6,114.5 1428.4,114.5 1424.3,117.5 1422.7,122.4 1424.3,127.3 1428.4,130.3 1433.6,130.3 1437.7,127.3" fill="#f08a4b"/>
+<text x="1385.0" y="290" text-anchor="middle" font-family="DejaVu Sans Mono" font-size="20" fill="#c9875a">06</text>
+<text x="1385.0" y="334" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#5a3a22">事件面</text>
+<text x="1385.0" y="374" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="21" fill="#c9875a">有沒有理由不進場</text>
+<text x="1385.0" y="410" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">今日事件・新聞</text>
+<text x="1385.0" y="438" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="18" fill="#8a6a52">總經</text>
+</svg>
