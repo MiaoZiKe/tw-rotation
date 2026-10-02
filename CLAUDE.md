@@ -35,6 +35,13 @@
 
 ## 工作規則
 
+- **★★★★★★★★ 2026-10-03：要給 Andy 看的半成品，一律推 `preview/<名稱>` 並附預覽網址，不推 main。**
+  Andy 原話：「直接開分支給我一版可操作的，以後都這樣，避免覆蓋到原版本」。
+  `git push origin <分支>:preview/<名稱>` → 部署後網址是 `https://miaozike.github.io/tw-rotation/preview/<名稱>/`
+  （頁首黃色橫幅標「預覽版」；localStorage 跟正式站分開；資料讀正式站的；會員雲端寫入被擋）。
+  收掉：`git push origin --delete preview/<名稱>`。細節、限制與「推了沒動」的處理見 `docs/preview.md`（DECISIONS #301）。
+  ⚠ 預覽版吃的是**正式站的資料**：分支若改了 JSON 格式（`pipeline/build_payload.py`），預覽看不出來。
+
 - **★ 開工第一件事：先確認「推得上去」，再開始改東西。**
   `git push --dry-run origin deploy:main`。如果回 `access denied by the git proxy: ... not in this
   session's authorized repository set`，代表這個 session 沒有 repo 的寫入權限 ——
