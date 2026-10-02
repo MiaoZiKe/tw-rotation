@@ -285,6 +285,21 @@ def _dg_mouse_click(pg, sel: str, wait: int = 300):
     return True
 
 
+def theme_flip(pg, wait: int = 300):
+    """真的用滑鼠切一次明暗。
+
+    ★ 2026-10-03 版面 V2 第三批（Andy：「登入模式可以參考圖三下方」）：電腦版（>820，掛 l4）的 ☀ 鈕（#themeBtn）
+    改成左欄底部的「淺色｜深色」二段式切換（#l4Mode），#themeBtn 藏起來（DOM 留著，二段式按下去其實就是去按它）。
+    所以這裡：看得到 #l4Mode 就點「不是目前那一邊」的那顆；看不到（≤820、或沒掛新版面）照舊點 #themeBtn。
+    兩條路最後都是 app.js 的 applyTheme(…, true)，斷言（底色、圖表重畫、localStorage）一個字都不用改。
+    """
+    if pg.evaluate("() => { const m = document.getElementById('l4Mode'); return !!m && m.getClientRects().length > 0; }"):
+        other = "dark" if pg.evaluate("() => document.documentElement.getAttribute('data-theme')") == "light" else "light"
+        click(pg, f"#l4Mode [data-l4m='{other}']", wait)
+    else:
+        click(pg, "#themeBtn", wait)
+
+
 def click_moving(pg, sel: str, wait: int = 300):
     """點一個「一直在動」的東西（會飄的剖析圖零件）。
 
@@ -11353,7 +11368,7 @@ def t_theme(pg, base):
     # ECharts 的畫布本身是透明的，換主題後像素差異很小；改成驗「實例真的被重建」
     heat0 = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('heat')); return i ? i.id : ''; }")
 
-    click(pg, "#themeBtn", 1800)
+    theme_flip(pg, 1800)
     ok("切過去之後 data-theme 真的是 light",
        pg.evaluate("() => document.documentElement.getAttribute('data-theme')") == "light")
     bg1 = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
@@ -11402,7 +11417,7 @@ def t_theme(pg, base):
     ok("明亮主題下 K 線圖底色是亮的",
        pg.evaluate("""() => { const c = getComputedStyle(document.getElementById('lwc')).backgroundColor;
            const m = c.match(/\\d+/g) || [0,0,0]; return (+m[0]+ +m[1]+ +m[2])/3 > 200; }"""))
-    click(pg, "#themeBtn", 2500)
+    theme_flip(pg, 2500)
     ok("切回深色", pg.evaluate("() => window.App.theme()") == "dark")
     k1 = canvas_hash(pg, "#lwc")
     changed("個股 K 線真的跟著重畫", k0, k1)
@@ -16300,8 +16315,8 @@ def t_design_v4(b, base, code):
     ok("③ 重整後面板標的是親和休閒", pg.evaluate("() => document.querySelector('#t4Pop .t4o[data-t4=\"casual\"]').getAttribute('aria-pressed') === 'true'"))
     pg.mouse.click(700, 600); pg.wait_for_timeout(300)
     ok("③ 點面板外面會收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
-    click(pg, "#themeBtn", 1400)
-    ok("③ 頂欄 ☀ 鈕照舊切得動明暗", st()["mode"] == "light")
+    theme_flip(pg, 1400)
+    ok("③ 頂欄 ☀ 鈕（電腦版是左欄「淺色｜深色」）照舊切得動明暗", st()["mode"] == "light")
     click(pg, "#t4Btn", 300)
     ok("③ ☀ 切完之後面板的「淺色」是按下去的", pg.evaluate("() => document.querySelector('#t4Pop .t4m[data-t4m=\"light\"]').getAttribute('aria-pressed') === 'true'"))
     pg.keyboard.press("Escape")
@@ -40539,7 +40554,14 @@ def t_watchlists_guest(b, base):
     #   面板的程式留著但站上沒有入口 —— 所以這裡改成**在整頁上**做同樣的事（新增／改名／五頁上限／刪除確認／搜尋加入／移除／點列進個股頁）。
     #   儲存照舊是 TwWatch（localStorage tw.watchlists），斷言的資料口徑一個字都沒改。
     # ② 按頂欄「★ 自選」→ 到自選分頁
-    pg.click("#wlBtn")
+    #   ★ 2026-10-03 版面 V2 第三批（Andy：「原『自選』『登入』兩顆鈕整併進去」）：電腦版（掛 l4）的「★ 自選」藏起來，
+    #   自選就是左側導覽「專案」組那一格 —— 這裡改點那一格；≤820 沒掛新版面時照舊點 #wlBtn（⑫ 的 800 寬就是那條路）。
+    if pg.evaluate("() => document.documentElement.classList.contains('l4')"):
+        ok("自選：電腦版的「★ 自選」鈕藏起來（DOM 還在，併進左側導覽）",
+           pg.evaluate("() => { const b = document.getElementById('wlBtn'); return !!b && b.getClientRects().length === 0; }"))
+        pg.click("#tabs .tab[data-view='watch']")
+    else:
+        pg.click("#wlBtn")
     wait_until(pg, "() => location.hash === '#watch' && document.getElementById('v-watch').classList.contains('on') && !!document.getElementById('wpTbl')", 8000)
     ok("自選：按頂欄「自選」到自選分頁（#watch）", pg.evaluate("() => location.hash") == "#watch", pg.evaluate("() => location.hash"))
     ok("自選：自選分頁列出第 1 頁的兩檔", pg.locator("#wpList tr[data-go]").count() == 2, pg.locator("#wpList tr").count())
@@ -42024,9 +42046,9 @@ L4_NAV = """() => { const t = document.querySelector('.topbar'), m = document.qu
     const r = t.getBoundingClientRect(), cs = getComputedStyle(t);
     return { mini: document.documentElement.classList.contains('l4-mini'), l4: document.documentElement.classList.contains('l4'),
       navW: Math.round(r.width), barH: Math.round(r.height), pos: cs.position, left: Math.round(r.left),
-      // 左欄看得到的範圍：底色畫在 .topbar::before（從上到下），最底下是「收合導覽」鈕
+      // 左欄看得到的範圍：底色畫在 .topbar::before（從上到下）。2026-10-03 第三批起最底下是「淺色｜深色」（#l4Mode）
       bgH: (() => { const b = getComputedStyle(t, '::before'); return b.position === 'fixed' && b.top === '0px' && b.bottom === '0px' ? innerHeight : 0; })(),
-      footB: (() => { const f = document.getElementById('l4NavBtn'); return f ? Math.round(f.getBoundingClientRect().bottom) : -1; })(), vh: innerHeight,
+      footB: (() => { const f = document.getElementById('l4Mode'); return f ? Math.round(f.getBoundingClientRect().bottom) : -1; })(), vh: innerHeight,
       mainL: Math.round(m.getBoundingClientRect().left), mainW: Math.round(m.getBoundingClientRect().width),
       pref: (() => { try { return localStorage.getItem('tw.layout4.nav'); } catch (e) { return 'x'; } })(),
       sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, hash: location.hash }; }"""
@@ -42086,7 +42108,7 @@ def t_layout4(b, base, code):
         wait_until(pg, "() => !!document.getElementById('l4NavBtn') && !!document.querySelector('#l4Head h1')", 8000)
         n0 = pg.evaluate(L4_NAV)
         ok(f"{T}1440 掛上新版面、沒按過收合時是展開的", n0["l4"] and not n0["mini"], n0)
-        ok(f"{T}1440 導覽固定在左邊、底色從上到下整個視窗高、收合鈕貼在視窗底部", n0["pos"] == "fixed" and n0["left"] == 0
+        ok(f"{T}1440 導覽固定在左邊、底色從上到下整個視窗高、最底下的「淺色｜深色」貼在視窗底部", n0["pos"] == "fixed" and n0["left"] == 0
            and 200 <= n0["navW"] <= 240 and n0["bgH"] == n0["vh"] and n0["vh"] - 40 <= n0["footB"] <= n0["vh"], n0)
         # .topbar 的盒子只能是「頂端被蓋住的那一條」（＝跳轉列高）：industry.js 的指標面板拿它的下緣判斷按鈕有沒有被蓋住
         ok(f"{T}1440 .topbar 盒子高＝頂端那一條（≤ 60px，不是整個視窗高）", n0["barH"] <= 60, n0)
@@ -42112,9 +42134,12 @@ def t_layout4(b, base, code):
                 && (document.querySelector('#l4Head h1') || {{}}).textContent === '{name}' ? 1 : 0""", 6000)
             st = pg.evaluate("""() => ({ hash: location.hash, on: (document.querySelector('#tabs .tab.on') || {}).dataset?.view,
                 view: (document.querySelector('.view.on') || {}).id, h1: (document.querySelector('#l4Head h1') || {}).textContent,
-                eb: (document.querySelector('#l4Head .eyebrow') || {}).textContent, p: (document.querySelector('#l4Head p') || {}).textContent })""")
-            ok(f"{T}1440 點導覽「{name}」→ 路由真的換到 #{view}（分頁亮、頁面換、頁首換）",
-               bool(got) and st["on"] == view and st["eb"] == g and len(st["p"] or "") >= 10, st)
+                kids: [...document.querySelectorAll('#l4Head > *')].map(e => e.tagName.toLowerCase() + (e.className ? '.' + e.className : '')),
+                clock: (document.querySelector('#l4Head .l4clock') || { dataset: {} }).dataset.t || '' })""")
+            # 2026-10-03 第三批（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
+            # 改前驗「分組小標＝{g}、說明句 ≥ 10 字」→ 改後驗頁首只剩 h1＋時間兩樣
+            ok(f"{T}1440 點導覽「{name}」→ 路由真的換到 #{view}（分頁亮、頁面換、頁首換）、頁首只剩頁名＋時間",
+               bool(got) and st["on"] == view and st["kids"] == ["h1", "time.l4clock"] and len(st["clock"]) >= 19, st)
 
         # ③ 收合／展開，寬度真的變、重新整理後還在
         pg.locator("#l4NavBtn").click(timeout=6000)
@@ -42122,7 +42147,7 @@ def t_layout4(b, base, code):
         pg.wait_for_timeout(250)
         n1 = pg.evaluate(L4_NAV)
         ok(f"{T}1440 按「收合導覽」→ 導覽真的變窄（只剩圖示）", n1["mini"] and n1["navW"] <= 80 and n1["navW"] < n0["navW"] - 100, {"前": n0, "後": n1})
-        ok(f"{T}1440 收合後收合鈕仍貼在視窗底部（中間清單高度重算過）", n1["vh"] - 40 <= n1["footB"] <= n1["vh"], n1)
+        ok(f"{T}1440 收合後最底下的「淺色｜深色」仍貼在視窗底部（中間清單高度重算過）", n1["vh"] - 60 <= n1["footB"] <= n1["vh"], n1)
         ok(f"{T}1440 收合後主內容真的變寬", n1["mainW"] >= n0["mainW"] + 100 and abs(n1["mainL"] - n1["navW"]) <= 2, {"前": n0["mainW"], "後": n1["mainW"]})
         ok(f"{T}1440 收合狀態寫進 localStorage", n1["pref"] == "mini", n1)
         tip = pg.evaluate("() => [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length).map(t => t.title)")
@@ -42137,37 +42162,21 @@ def t_layout4(b, base, code):
         n4 = pg.evaluate(L4_NAV)
         ok(f"{T}1440 重新整理後還是展開（記得的是使用者按的，不是視窗寬）", not n4["mini"] and abs(n4["navW"] - n0["navW"]) <= 2, n4)
 
-        # ④ 本頁功能膠囊：點了捲過去、捲動時亮起的跟著變
-        pg.goto(f"{base}#flow", wait_until="networkidle")
-        wait_until(pg, "() => document.querySelectorAll('#l4Jump .chips button').length >= 3", 8000)
-        pg.wait_for_timeout(800)
-        j0 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 本頁功能膠囊列出現、編號 01 起、至少 3 節", j0 and j0["shown"] and j0["n"] >= 3 and j0["labels"][0].startswith("01"), j0)
-        ok(f"{T}#flow 剛進來亮第 1 顆", j0 and j0["on"] == 0, j0)
-        # 點第 2 顆（第 3、4 顆在頁尾那一排，頁面捲到底也頂不到跳轉列下緣 —— 那是頁面不夠長，不是膠囊沒作用）
-        k = 1
-        pg.locator(f"#l4Jump .chips button[data-i='{k}']").click(timeout=6000)
-        hit = wait_until(pg, f"""() => {{ const j = document.getElementById('l4Jump').getBoundingClientRect();
-            const c = [...document.querySelectorAll('.card')].find(x => x.classList.contains('l4-hit'));
-            if (!c || scrollY < 50) return null; const t = c.getBoundingClientRect().top;
-            return (t >= j.bottom - 2 && t <= j.bottom + 40) ? {{ t: Math.round(t), jb: Math.round(j.bottom),
-              ttl: (c.querySelector('h3') || {{}}).textContent }} : null; }}""", 4000)
-        j1 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 點第 2 顆膠囊 → 真的捲到那張卡（卡片頂端落在跳轉列正下方、標題對得上）",
-           bool(hit) and j1["sy"] > 50 and j0["labels"][1][2:].rstrip("…") in (hit or {}).get("ttl", ""), {"hit": hit, **(j1 or {})})
-        ok(f"{T}#flow 點了之後那顆亮起", j1 and j1["on"] == k, j1)
-        ok(f"{T}#flow 捲下去之後跳轉列黏在視窗頂端", j1 and j1["top"] == 0, j1)
-        pg.wait_for_timeout(1000)                          # 等點擊鎖（900ms）解除，之後才是純捲動偵測
-        # 用滾輪捲 —— 滑鼠放在跳轉列的標籤上（不是圖上：輪盤、熱力圖會自己吃滾輪拿去縮放）
-        lb = pg.locator("#l4Jump .lbl").bounding_box()
-        pg.mouse.move(lb["x"] + 5, lb["y"] + 5)
-        pg.mouse.wheel(0, -8000); pg.wait_for_timeout(900)
-        j2 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 用滾輪捲回頂端 → 亮起的膠囊跟著換回第 1 顆", j2 and j2["on"] == 0 and j2["sy"] == 0, {"捲前": j1, "捲後": j2})
-        pg.mouse.wheel(0, 20000); pg.wait_for_timeout(900)
-        j3 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 用滾輪捲到底 → 亮起最後一顆", j3 and j3["on"] == j3["n"] - 1 and j3["sy"] > j1["sy"], {"捲前": j1, "捲後": j3})
-        pg.mouse.wheel(0, -8000); pg.wait_for_timeout(600)
+        # ④ 2026-10-03 第三批（Andy：「紅框處 只留下 總覽 及當下日期時間」）：
+        #   改前：「本頁功能」膠囊點了捲過去、捲動時亮起的跟著變 → 改後：那一排拿掉（DOM 留著、看不到），
+        #   頁首（頁名＋時間）頂替它黏在視窗最上面 —— 捲下去之後頁首還在頂端、而且 .topbar 盒子高＝頁首高（trackPop 的前提）
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1200)
+        jh = pg.evaluate("""() => { const j = document.getElementById('l4Jump'); return { dom: !!j, seen: !!j && j.getClientRects().length > 0 }; }""")
+        ok(f"{T}#flow 「本頁功能」那一排看不到（只藏不刪：DOM 還在）", jh["dom"] and not jh["seen"], jh)
+        pg.mouse.move(700, 20)
+        pg.evaluate("() => window.scrollTo({ top: 900, behavior: 'instant' })"); pg.wait_for_timeout(500)
+        hs = pg.evaluate("""() => { const h = document.getElementById('l4Head').getBoundingClientRect();
+            return { top: Math.round(h.top), h: Math.round(h.height), sy: Math.round(scrollY),
+              bar: Math.round(document.querySelector('.topbar').getBoundingClientRect().height),
+              stuck: document.getElementById('l4Head').classList.contains('stuck') }; }""")
+        ok(f"{T}#flow 捲下去之後頁首（頁名＋時間）黏在視窗頂端、畫出下框線", hs["sy"] > 300 and hs["top"] == 0 and hs["stuck"], hs)
+        ok(f"{T}#flow 頁首高＝.topbar 盒子高（≤ 60，指標面板 trackPop 的前提沒變）", abs(hs["h"] - hs["bar"]) <= 1 and hs["h"] <= 60, hs)
+        pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(300)
 
         # ⑤ 事件抽屜
         SD = """() => { const s = document.getElementById('side'), k = document.getElementById('sideBack'), r = s.getBoundingClientRect();
@@ -42197,7 +42206,7 @@ def t_layout4(b, base, code):
         tp = pg.evaluate("""() => { const p = document.getElementById('t4Pop'); if (!p || p.hidden) return null; const r = p.getBoundingClientRect();
             return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right), vh: innerHeight, vw: innerWidth,
               navW: Math.round(document.querySelector('.topbar').getBoundingClientRect().width) }; }""")
-        ok(f"{T}1440 左欄底部「外觀」→ 面板打開而且整塊在視窗內、貼在左欄右邊",
+        ok(f"{T}1440 左欄底部「外觀」（調色盤小鈕）→ 面板打開而且整塊在視窗內、貼在左欄右邊",
            bool(tp) and tp["top"] >= 0 and tp["bottom"] <= tp["vh"] and tp["left"] >= tp["navW"] and tp["right"] <= tp["vw"], tp)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
         pg.locator("#q").click(timeout=6000)
@@ -42216,6 +42225,7 @@ def t_layout4(b, base, code):
             const r = p.getBoundingClientRect(); return { open: true, top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight }; }""")
         ok(f"{T}1440 個股頁按「指標 ▾」→ 面板打開、過了 0.9 秒還在", cp["open"] and cp["top"] >= 0 and cp["top"] < cp["vh"], cp)
         pg.keyboard.press("Escape")
+        t_layout4_batch3(pg, base, code, T)
     finally:
         ctx.close()
 
@@ -42294,6 +42304,129 @@ def t_layout4(b, base, code):
         ctx.close()
     ok(f"{T} 沒有 pageerror", not errs, errs[:5])
 
+
+
+def t_layout4_batch3(pg, base, code, T):
+    """版面 V2 第三批（Andy 2026-10-03 對預覽 preview/layout-v2 的四條）——真的點、驗畫面真的變：
+      ① 頁首只剩「頁名＋台北現在時間」，七個分頁都一樣；時間每秒真的在走、而且是台北時間（不是容器的 UTC）
+      ② 收合鈕在 logo 右側（同一列）；按了左欄真的變窄、再按真的變回來；左欄底部沒有「‹ 收合導覽」文字列
+      ③ 「事件」是導覽最上面一格（在所有頁面上面），保留數字徽章；按了抽屜真的打開
+      ④ 帳號卡：圓形頭像＋「訪客」＋一行小字；沒有設定檔時不放登入鈕；原「★ 自選」「☀」兩顆在電腦版看不到
+         「淺色｜深色」：按淺色 → data-theme、整頁底色、localStorage 真的換；再按淺色不會翻回去；按深色換回來
+      ⑤ 收合時帳號卡只剩頭像、淺色深色剩兩顆圖示，左欄沒有東西溢出 72px
+    """
+    import datetime as _dt
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(900)
+    pg.evaluate("() => { try { localStorage.setItem('tw.layout4.nav', 'full'); localStorage.removeItem('tw.theme'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(900)
+
+    # ① 七個分頁的頁首
+    HEAD = """() => { const h = document.getElementById('l4Head'), c = h && h.querySelector('.l4clock');
+        return { kids: h ? [...h.children].map(e => e.tagName.toLowerCase()) : null, h1: (h && h.querySelector('h1') || {}).textContent,
+          t: c ? c.dataset.t : '', shown: !!c && getComputedStyle(c, '::before').content.replace(/"/g, '') === c.dataset.t,
+          txt: h ? h.innerText.trim() : '' }; }"""
+    bad = []
+    for view, name in (("overview", "總覽"), ("flow", "資金流向"), ("heatmap", "熱力圖"), ("industry", "產業地圖"),
+                       ("market", "市場明細"), ("season", "週期統計"), ("watch", "自選")):
+        pg.locator(f"#tabs .tab[data-view='{view}']").click(timeout=6000)
+        wait_until(pg, f"() => (document.querySelector('#l4Head h1') || {{}}).textContent === '{name}' ? 1 : 0", 6000)
+        hd = pg.evaluate(HEAD)
+        if not (hd["kids"] == ["h1", "time"] and hd["h1"] == name and hd["shown"] and hd["txt"] == name):
+            bad.append({view: hd})
+    ok(f"{T}第三批① 七個分頁的頁首都只剩頁名＋時間（沒有分組小標、說明句、本頁功能）", not bad, bad[:3])
+    t1 = pg.evaluate(HEAD)["t"]
+    pg.wait_for_timeout(1300)
+    t2 = pg.evaluate(HEAD)["t"]
+    ok(f"{T}第三批① 頁首時間每秒真的在走（1.3 秒後字不一樣）", bool(t1) and t1 != t2, (t1, t2))
+    now = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=8)))
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})（(.)）(\d{2}):(\d{2}):(\d{2})$", t2 or "")
+    wk = "一二三四五六日"[now.weekday()]
+    if m:
+        shown = _dt.datetime(*[int(m.group(i)) for i in (1, 2, 3, 5, 6, 7)], tzinfo=now.tzinfo)
+        drift = abs((shown - now).total_seconds())
+    else:
+        drift = None
+    ok(f"{T}第三批① 時間是台北時間（格式 YYYY-MM-DD（週）HH:MM:SS、跟台北現在差 ≤ 5 秒、星期對）",
+       bool(m) and drift is not None and drift <= 5 and m.group(4) == wk, {"畫面": t2, "台北現在": now.strftime("%Y-%m-%d %H:%M:%S"), "差秒": drift, "星期": wk})
+
+    # ② 收合鈕在 logo 右側
+    NB = """() => { const b = document.getElementById('l4NavBtn'), lg = document.querySelector('.brand .logo');
+        const r = b.getBoundingClientRect(), l = lg.getBoundingClientRect(), t = document.querySelector('.topbar').getBoundingClientRect();
+        return { bx: Math.round(r.left), by: Math.round(r.top), bw: Math.round(r.width), bh: Math.round(r.height), lx: Math.round(l.right), ly: Math.round(l.top),
+          lb: Math.round(l.bottom), navW: Math.round(t.width), mini: document.documentElement.classList.contains('l4-mini'),
+          label: b.getAttribute('aria-label'), foot: document.querySelectorAll('.l4foot').length,
+          oldTxt: [...document.querySelectorAll('.topbar *')].some(e => e.children.length === 0 && /收合導覽/.test(e.textContent)) }; }"""
+    a0 = pg.evaluate(NB)
+    ok(f"{T}第三批② 收合鈕在 logo 右側同一列、是一顆小方鈕（≤ 36px）",
+       a0["bx"] > a0["lx"] and abs(a0["by"] - a0["ly"]) <= 12 and a0["bw"] <= 36 and abs(a0["bw"] - a0["bh"]) <= 2 and a0["bx"] + a0["bw"] <= a0["navW"], a0)
+    ok(f"{T}第三批② 左欄底部的「‹ 收合導覽」文字列拿掉了", a0["foot"] == 0 and not a0["oldTxt"], a0)
+    pg.locator("#l4NavBtn").click(timeout=6000); pg.wait_for_timeout(350)
+    a1 = pg.evaluate(NB)
+    ok(f"{T}第三批② 按收合鈕 → 左欄真的變窄（≤ 80）、鈕移到 logo 正下方還按得到", a1["mini"] and a1["navW"] <= 80 and a1["by"] >= a1["lb"] and a1["label"] == "展開導覽", a1)
+    over = pg.evaluate("""() => { const w = document.querySelector('.topbar').getBoundingClientRect().width;
+        return ['#l4NavBtn', '#evToggle', '#l4Acct', '#l4Mode', '#t4Btn'].map(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect();
+          return { s, l: Math.round(r.left), r: Math.round(r.right), ok: r.left >= 0 && r.right <= w + 0.5 && r.width > 0 }; }).filter(x => !x.ok); }""")
+    ok(f"{T}第三批⑤ 收合時事件、帳號卡、淺色深色、外觀都在 72px 左欄裡（沒有溢出）", not over, over)
+    mc = pg.evaluate("""() => { const c = document.getElementById('l4Acct'), m = document.getElementById('l4Mode');
+        const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+        return { av: vis(c.querySelector('.av')), nm: vis(c.querySelector('.nm')), st: vis(c.querySelector('.st')),
+          lbl: [...m.querySelectorAll('.lbl')].some(vis), btns: [...m.querySelectorAll('button')].filter(vis).length }; }""")
+    ok(f"{T}第三批⑤ 收合時帳號卡只剩頭像、淺色深色只剩兩顆圖示", mc["av"] and not mc["nm"] and not mc["st"] and not mc["lbl"] and mc["btns"] == 2, mc)
+    pg.locator("#l4NavBtn").click(timeout=6000); pg.wait_for_timeout(350)
+    a2 = pg.evaluate(NB)
+    ok(f"{T}第三批② 再按 → 左欄展開回來、鈕回到 logo 右側", not a2["mini"] and a2["navW"] >= 200 and a2["bx"] > a2["lx"] and a2["label"] == "收合導覽", a2)
+
+    # ③ 事件在導覽最上面
+    ev = pg.evaluate("""() => { const e = document.getElementById('evToggle'), r = e.getBoundingClientRect();
+        const tabs = [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length).map(t => t.getBoundingClientRect().top);
+        const n = document.getElementById('evCount');
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), firstTab: Math.round(Math.min(...tabs)),
+          search: Math.round(document.querySelector('.topbar .search').getBoundingClientRect().bottom),
+          badge: !!n && n.getClientRects().length > 0 && /^\\d+$/.test(n.textContent.trim()), n: n ? n.textContent : null }; }""")
+    ok(f"{T}第三批③ 「事件」是導覽最上面一格（在搜尋下面、所有頁面上面）、保留數字徽章",
+       ev["top"] >= ev["search"] and ev["bottom"] <= ev["firstTab"] and ev["badge"], ev)
+    pg.locator("#evToggle").click(timeout=6000)
+    opened = wait_until(pg, "() => document.getElementById('side').classList.contains('open') ? 1 : 0", 3000)
+    ok(f"{T}第三批③ 按最上面的「事件」→ 抽屜真的打開", bool(opened))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+
+    # ④ 帳號卡＋淺色深色
+    ac = pg.evaluate("""() => { const c = document.getElementById('l4Acct'), av = c && c.querySelector('.av');
+        const vis = (s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; };
+        const r = av ? av.getBoundingClientRect() : { width: 0, height: 0 };
+        return { card: !!c && c.getClientRects().length > 0, nm: c && c.querySelector('.nm').textContent, st: c && c.querySelector('.st').textContent,
+          round: !!av && getComputedStyle(av).borderRadius === '50%' && Math.abs(r.width - r.height) < 1 && r.width >= 28,
+          login: !!document.getElementById('acctBtn'), wl: vis('#wlBtn'), sun: vis('#themeBtn'), bar: vis('#acctBar'),
+          below: c ? Math.round(c.getBoundingClientRect().top) > Math.round(document.getElementById('tabsWrap').getBoundingClientRect().bottom) - 2 : false }; }""")
+    ok(f"{T}第三批④ 左欄底部有帳號卡：圓形頭像＋「訪客」＋一行小字（在頁面清單下面）",
+       ac["card"] and ac["nm"] == "訪客" and len(ac["st"] or "") >= 4 and ac["round"] and ac["below"], ac)
+    ok(f"{T}第三批④ 沒有會員設定檔時卡片不放「登入」鈕（不放按了沒反應的鈕）", not ac["login"], ac)
+    ok(f"{T}第三批④ 原「★ 自選」「登入」那一列與 ☀ 鈕在電腦版看不到（DOM 還在）",
+       not ac["wl"] and not ac["sun"] and not ac["bar"] and pg.evaluate("() => !!document.getElementById('wlBtn') && !!document.getElementById('themeBtn')"), ac)
+    MS = """() => ({ th: document.documentElement.getAttribute('data-theme') || 'dark', bg: getComputedStyle(document.body).backgroundColor,
+        ls: (() => { try { return localStorage.getItem('tw.theme'); } catch (e) { return 'x'; } })(),
+        pressed: [...document.querySelectorAll('#l4Mode [data-l4m]')].filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.l4m),
+        heat: (() => { const i = window.echarts && echarts.getInstanceByDom(document.getElementById('heat')); return i ? i.id : ''; })() })"""
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    m0 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 一開始是深色、二段式標的是「深色」", m0["th"] == "dark" and m0["pressed"] == ["dark"], m0)
+    pg.locator("#l4Mode [data-l4m='light']").click(timeout=15000); pg.wait_for_timeout(1800)
+    m1 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 按「淺色」→ 主題真的換（data-theme、整頁底色、localStorage、圖表重建、按下去的那顆）",
+       m1["th"] == "light" and m1["bg"] != m0["bg"] and m1["ls"] == "light" and m1["pressed"] == ["light"] and m1["heat"] and m1["heat"] != m0["heat"], {"前": m0, "後": m1})
+    pg.locator("#l4Mode [data-l4m='light']").click(timeout=15000); pg.wait_for_timeout(800)
+    m2 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 再按一次「淺色」不會翻回深色（二段式不是開關）", m2["th"] == "light" and m2["pressed"] == ["light"], m2)
+    pg.locator("#l4Mode [data-l4m='dark']").click(timeout=15000); pg.wait_for_timeout(1800)
+    m3 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 按「深色」→ 換回深色、底色回來、localStorage 寫 dark", m3["th"] == "dark" and m3["bg"] == m0["bg"] and m3["ls"] == "dark" and m3["pressed"] == ["dark"], m3)
+    # 外觀面板切明暗 → 二段式跟著標對（以 <html data-theme> 為準，不管是誰切的）
+    pg.locator("#t4Btn").click(timeout=6000); pg.wait_for_timeout(300)
+    pg.locator("#t4Pop .t4m[data-t4m='light']").click(timeout=6000); pg.wait_for_timeout(1600)
+    ok(f"{T}第三批④ 從外觀面板切淺色 → 二段式也跟著標「淺色」", pg.evaluate(MS)["pressed"] == ["light"], pg.evaluate(MS))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.locator("#l4Mode [data-l4m='dark']").click(timeout=15000); pg.wait_for_timeout(1200)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
 
 
 # ===================================================================== 個股頁下方分頁改版（2026-10-02，DECISIONS #294）
