@@ -15818,8 +15818,10 @@ def t_stock_tabs0926(pg, base, code):
             click(pg, '#stockTabs button[data-t="inst"]', 1200)
             click(pg, '#chipWin button[data-v="250"]', 1200)
             e = probe_all(c, reload=False)
-            ne = {v["n"] for v in e["charts"].values()}
-            ok(f"【{tag}】切「1 年」→ 三頁一起變長（≥ 3 個月、≤ 250）", len(ne) == 1 and n0 <= min(ne) <= 250, ne)
+            # 2026-10-03（#302）：大戶散戶頁只留 4 週／3 個月，存著 1 年時退回 3 個月 → 一起變長的只剩法人、資券兩頁
+            ne = {v["n"] for k_, v in e["charts"].items() if k_ != "holderChart"}
+            ok(f"【{tag}】切「1 年」→ 法人、資券兩頁一起變長（≥ 3 個月、≤ 250）", len(ne) == 1 and n0 <= min(ne) <= 250, ne)
+            ok(f"【{tag}】切「1 年」→ 大戶散戶頁退回 3 個月（{n0} 個交易日），不跟著變長", e["charts"]["holderChart"]["n"] == n0, e["charts"]["holderChart"]["n"])
             click(pg, '#stockTabs button[data-t="inst"]', 1200)
             xl = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('instChart')); const seen = new Set();"
                              " return c.getModel().getComponent('xAxis', 0).axis.getViewLabels().map(l => l.formattedLabel).filter(t => { if (seen.has(t)) return false; seen.add(t); return true; }); }")
@@ -19011,6 +19013,42 @@ def t_stock_tabs_1002(pg, base, code):
     lo = (_dt.date.fromisoformat(ho[-1][0][:10]) - _dt.timedelta(days=80)).isoformat() if ho else ""
     in3m = [r for r in ho if str(r[0])[:10] >= lo]
     ok(f"{tag}大戶散戶圖（預設 3 個月）畫出 3 個月內的 {len(in3m)} 個公布日，沒有被前端截短", pts == len(in3m), (pts, len(in3m)))
+
+    # ---------------------------------------------------------------- ④b 大戶散戶區間鈕只留 4 週／3 個月（DECISIONS #302）
+    #   Andy 2026-10-03：大戶散戶資料不付費、自然累積（約 11/27 滿 13 週），6 個月、1 年拿掉；法人、資券的四顆鈕不准動。
+    WINBTN = "() => [...document.querySelectorAll('#chipWin button')].map(b => b.textContent.trim())"
+    WINON = "() => [...document.querySelectorAll('#chipWin button.on')].map(b => b.textContent.trim())"
+    HOX = "() => { const el = document.getElementById('holderChart'); const c = el && echarts.getInstanceByDom(el); if (!c) return 0; const a = c.getOption().xAxis; return (a[a.length - 1].data || []).length; }"
+    for w in (1440, 800, 390):
+        goto(w)
+        if w == 390 and count(pg, '#mbTabs button[data-t="full"]'):
+            click(pg, '#mbTabs button[data-t="full"]', 1200)
+        # 預存 1 年（在法人頁選的）→ 進大戶散戶要退回 3 個月；這一步一定是「重新載入頁面後第一次進來」
+        pg.evaluate("() => { try { localStorage.setItem('tw.chipWin', '250'); } catch (e) {} }")
+        goto(w)
+        if w == 390 and count(pg, '#mbTabs button[data-t="full"]'):
+            click(pg, '#mbTabs button[data-t="full"]', 1200)
+        if not ok(f"{tag}{w} 預存 1 年後切得到「holders」分頁", tab("holders", 1500)):
+            continue
+        ok(f"★ {tag}{w} 大戶散戶只有「4 週」「3 個月」兩顆區間鈕", pg.evaluate(WINBTN) == ["4 週", "3 個月"], pg.evaluate(WINBTN))
+        ok(f"★ {tag}{w} 預存 1 年 → 進大戶散戶退回「3 個月」（亮的是 3 個月、不是 1 年）", pg.evaluate(WINON) == ["3 個月"], pg.evaluate(WINON))
+        n63 = pg.evaluate(HOX)
+        ok(f"{tag}{w} 退回 3 個月 → 圖的 x 軸天數 ≤ 63（沒有畫 250 天）", 0 < n63 <= 63, n63)
+        ok(f"{tag}{w} 退回時沒有改寫 localStorage（回法人頁仍是 1 年）", pg.evaluate("() => localStorage.getItem('tw.chipWin')") == "250")
+        if w == 1440:
+            click(pg, '#chipWin button[data-v="20"]', 900)
+            n20 = pg.evaluate(HOX)
+            ok(f"★ {tag}1440 大戶散戶按「4 週」→ x 軸真的變短（{n63} → {n20}），亮在 4 週", 0 < n20 < n63 and pg.evaluate(WINON) == ["4 週"], (n63, n20))
+            click(pg, '#chipWin button[data-v="63"]', 900)
+            ok(f"{tag}1440 大戶散戶按回「3 個月」→ 回到 {n63} 天", pg.evaluate(HOX) == n63, pg.evaluate(HOX))
+        # 法人、資券不准動：四顆鈕都在，而且這時存著 1 年會亮在「1 年」
+        pg.evaluate("() => { try { localStorage.setItem('tw.chipWin', '250'); } catch (e) {} }")
+        for t, nm in (("inst", "法人"), ("margin", "資券")):
+            if ok(f"{tag}{w} 切得到「{t}」分頁", tab(t, 1500)):
+                ok(f"★ {tag}{w} {nm}分頁仍有原本的四顆鈕（4 週｜3 個月｜6 個月｜1 年）", pg.evaluate(WINBTN) == ["4 週", "3 個月", "6 個月", "1 年"], pg.evaluate(WINBTN))
+                ok(f"{tag}{w} {nm}分頁存 1 年時亮在「1 年」（沒被大戶散戶的限制影響）", pg.evaluate(WINON) == ["1 年"], pg.evaluate(WINON))
+        pg.evaluate("() => { try { localStorage.removeItem('tw.chipWin'); } catch (e) {} }")
+    goto(1440)
 
     # ---------------------------------------------------------------- ⑤ 三種寬度：五個分頁不重疊、不溢出
     #   ?svg=1：chart() 改用 SVG renderer，圖裡的字變成真的 <text> 節點，圖內壓字才量得到（線上版照樣是 canvas）
