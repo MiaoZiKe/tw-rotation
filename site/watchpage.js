@@ -7,7 +7,7 @@
      所以「本機 localStorage／登入後雲端」兩條路自動都對。
    · 版面：上面一排清單分頁（最多 5 頁：新增、改名＝雙擊或 ✎、刪除要先確認、桌機可拖曳排序），
      中間一個搜尋框（代號或名稱，Enter 加入第一筆），下面是這一頁的股票表：
-     Logo＋名稱＋代號、現價、漲跌幅、小走勢（有 sparks 資料才出現）、成交值、✕ 移除；點一列進個股頁。
+     Logo＋名稱＋代號、小走勢（點了在下面展開大圖）、現價、漲跌幅、成交值、✕ 移除；點一列進個股頁。
    · 現價／漲跌幅標了 data-live，盤中即時層（live.js）會直接更新這兩格，跟站上其他表格同一套。
    · 為什麼是新檔：app.js 同時有好幾位 agent 在改（個股頁、搜尋、K 線），整頁 UI 放在自己的檔案裡撞檔面積最小；
      app.js 只多了路由那一行。樣式也由本檔自己注入（同 watchlists.js 的做法）。
@@ -19,7 +19,8 @@
   const A = () => window.App;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const isM = () => window.matchMedia('(max-width: 640px)').matches;
-  const P = { editing: null, confirm: false, q: '', hint: '', drag: null };
+  const P = { editing: null, confirm: false, q: '', hint: '', drag: null, exp: null, mode: 'line', tf: '1d' };
+  let expK = null, expSeq = 0;   // 展開圖的 KChart 本人（換列／收起要 destroy）、非同步載入的序號（快速連點只畫最後一次）
   let stocks = null, byCode = new Map();
 
   function loadStocks() {
@@ -31,29 +32,19 @@
       return stocks;
     });
   }
-  /* 小走勢：另一位 agent 正在做 sparks.json（搜尋下拉用）。這裡**不自己去抓** —— 檔案還沒上線前去抓會 404，
-     _preview 會把那一行主控台錯誤當成紅燈。等它被載進 App.D.sparks（搜尋那邊載過一次就有）才畫，沒有就整欄不出現。
-     接受兩種形狀：{代號: [收盤…]} 或 {data: {代號: [收盤…]}}。*/
-  function sparkOf(code) {
-    const a = A(), d = a && a.D && a.D.sparks;
-    if (!d || typeof d !== 'object') return null;
-    const src = d.data && typeof d.data === 'object' ? d.data : d;
-    const v = src[code];
-    const arr = Array.isArray(v) ? v : (v && Array.isArray(v.c) ? v.c : null);
-    return arr && arr.filter((x) => typeof x === 'number' && isFinite(x)).length >= 2 ? arr.filter((x) => typeof x === 'number' && isFinite(x)) : null;
-  }
-  function sparkSVG(arr) {
-    const w = 72, h = 22, lo = Math.min(...arr), hi = Math.max(...arr), sp = hi - lo || 1;
-    const pts = arr.map((v, i) => `${(i / (arr.length - 1) * w).toFixed(1)},${(h - 2 - (v - lo) / sp * (h - 4)).toFixed(1)}`).join(' ');
-    const up = arr[arr.length - 1] >= arr[0];
-    return `<svg class="wpspark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(${up ? '--rise' : '--fall'})" stroke-width="1.4"/></svg>`;
+  /* 小走勢（2026-10-01 改，DECISIONS #282）：直接用搜尋下拉那一支（App.sparkSVG ＋ data/sparks.json）——
+     分時優先、沒分時用近 20 日收盤，顏色、口徑跟搜尋一模一樣。sparks.json 是每次部署產出的靜態檔，
+     不加任何抓取頻率、不碰 mis。App.sparkLoad 對 404 也安靜回空，所以沒有主控台紅字的問題了。*/
+  function sparkCell(c) {
+    const a = A(), svg = a && a.sparkSVG ? a.sparkSVG(c) : '';
+    return `<span class="spkw" data-spk="${esc(c)}">${svg}</span>`;
   }
 
   function injectCSS() {
     if (document.getElementById('wpCss')) return;
     const s = document.createElement('style'); s.id = 'wpCss';
     s.textContent = `
-#v-watch .wpcard{max-width:1100px;margin:0 auto}
+#v-watch .wpcard{margin:0}
 .wphd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .wphd h2{margin:0;font-size:20px}
 .wphd .wpmode{font-size:13px;color:var(--ink-2)}
@@ -98,19 +89,50 @@
 .wptbl td.nm{text-align:left;max-width:0;width:40%}
 .wptbl td.nm .in{display:flex;align-items:center;gap:8px;min-width:0}
 .wptbl td.nm .t{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.wptbl td.nm .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wptbl td.nm .t small{margin-left:0}
 .wptbl td.nm small{margin-left:6px;color:var(--ink-2);font-size:12px}
 .wptbl td.nm .grp{display:block;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis}
 .wptbl .del{border:0;background:none;color:var(--ink-2);font-size:15px;cursor:pointer;min-width:32px;min-height:32px}
 .wptbl .del:hover{color:#ff6b7a}
 .wpempty{padding:28px 12px;text-align:center;color:var(--ink-2);font-size:14px}
+.wptbl td.c-sp{width:96px;padding:4px 8px;text-align:center}
+.wpspk{display:inline-flex;align-items:center;justify-content:center;width:88px;height:32px;padding:0;border:1px solid transparent;border-radius:7px;background:none;cursor:pointer}
+.wpspk:hover,.wpspk[aria-expanded="true"]{border-color:var(--line-2);background:var(--panel-2)}
+.wpspk[aria-expanded="true"]{border-color:var(--cyan)}
+.wpspk .spkw{display:inline-flex;width:72px;height:22px}
+.wpspk .spk{width:72px;height:22px;display:block;overflow:visible}
+.wpspk .spk polyline{fill:none;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.wpspk .spk.up polyline{stroke:var(--rise)}
+.wpspk .spk.down polyline{stroke:var(--fall)}
+.wpspk .spk.flat polyline{stroke:var(--ink-3)}
+.wpspk .spkw:empty::after{content:'—';color:var(--ink-3);font-size:12px}
+.wptbl tr.wpexp{cursor:default}
+.wptbl tr.wpexp:hover{background:none}
+.wptbl tr.wpexp>td{padding:6px 8px 12px;text-align:left;white-space:normal;background:var(--panel-2)}
+.wpxbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.wpxbar .grp{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.wpxbar button{height:30px;min-width:44px;padding:0 10px;border:0;background:var(--panel);color:var(--ink-2);font-size:13px;cursor:pointer}
+.wpxbar button.on{background:var(--panel-3);color:var(--ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--cyan)}
+.wpxbar .note{font-size:12px;color:var(--ink-3)}
+.wpxc{height:290px;position:relative}
+.wpxc .empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:13px}
 .wpfoot{margin-top:10px;font-size:12px;color:var(--ink-3)}
 @media (max-width:640px){
   .wphd h2{font-size:18px}
   .wptab .wpname{max-width:7.5em}
   .wptbl{font-size:14px}
-  .wptbl .c-vol,.wptbl .c-sp{display:none}
+  .wptbl .c-vol{display:none}
+  .wptbl td.c-sp{width:52px;padding:4px 2px}
+  .wpspk{width:50px}
+  .wptbl td.num{padding:8px 3px}
+  .wpspk .spkw,.wpspk .spk{width:48px;height:18px}
+  .wpxc{height:260px}
+  .wptbl tr.wpexp>td{padding:6px 4px 10px}
   .wptbl td,.wptbl th{padding:8px 4px}
-  .wptbl td.nm{width:auto}
+  .wptbl td.nm{width:auto;min-width:104px}
+  .wptbl td.nm .slogo{display:none}
+  .wptbl .del{min-width:28px}
   .wpadd{max-width:none}
 }`;
     document.head.appendChild(s);
@@ -137,6 +159,7 @@
     }
     paint();
     loadStocks().then(() => { paintList(); paintRes(); });
+    { const a = A(); if (a && a.sparkLoad) a.sparkLoad().then(() => { const b = document.getElementById('wpList'); if (b) b.querySelectorAll('.spkw[data-spk]:empty').forEach((x) => { x.innerHTML = a.sparkSVG(x.dataset.spk); }); }); }
     const a = A(); if (a && a.logoMapLoad) a.logoMapLoad().then(() => { if (a.logoUpgrade) a.logoUpgrade(el()); });
   }
 
@@ -181,22 +204,95 @@
       return;
     }
     const f = a && a.fmt;
-    const anySpark = t.codes.some((c) => sparkOf(c));
+    if (P.exp && !t.codes.includes(P.exp)) P.exp = null;
     const rows = t.codes.map((c) => {
       const r = byCode.get(c) || { code: c, name: c };
       const cls = f ? f.cls(r.chg_pct) : '';
-      const sp = anySpark ? sparkOf(c) : null;
-      return `<tr data-go="${esc(c)}" tabindex="0">
-        <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b>${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
+      const on = P.exp === c;
+      return `<tr data-go="${esc(c)}" tabindex="0"${on ? ' class="on"' : ''}>
+        <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b class="wpgo">${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
+        <td class="c-sp"><button type="button" class="wpspk" data-exp="${esc(c)}" aria-expanded="${on}" aria-label="展開 ${esc(r.name || c)} 的走勢圖" title="點一下在下面展開大圖，再點一次收起">${sparkCell(c)}</button></td>
         <td class="num" data-live="close" data-lc="${esc(c)}">${r.close == null || !f ? '—' : f.n(r.close)}</td>
         <td class="num ${cls}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !f ? '—' : f.pct(r.chg_pct, 2)}</td>
-        ${anySpark ? `<td class="c-sp">${sp ? sparkSVG(sp) : ''}</td>` : ''}
         <td class="num c-vol">${r.turnover == null || !f ? '—' : f.yi(r.turnover)}</td>
-        <td><button type="button" class="del" data-del="${esc(c)}" aria-label="從「${esc(t.name)}」移除 ${esc(r.name || c)}" title="從這一頁移除">✕</button></td></tr>`;
+        <td><button type="button" class="del" data-del="${esc(c)}" aria-label="從「${esc(t.name)}」移除 ${esc(r.name || c)}" title="從這一頁移除">✕</button></td></tr>`
+        + (on ? expRow(c) : '');
     }).join('');
-    box.innerHTML = `<table class="wptbl" id="wpTbl"><thead><tr><th>股票</th><th>現價</th><th>漲跌幅</th>${anySpark ? '<th class="c-sp">走勢</th>' : ''}<th class="c-vol">成交值</th><th><span class="sr" style="position:absolute;left:-9999px">移除</span></th></tr></thead><tbody>${rows}</tbody></table>`;
+    killExp();
+    box.innerHTML = `<table class="wptbl" id="wpTbl"><thead><tr><th>股票</th><th class="c-sp">走勢</th><th>現價</th><th>漲跌幅</th><th class="c-vol">成交值</th><th><span class="sr" style="position:absolute;left:-9999px">移除</span></th></tr></thead><tbody>${rows}</tbody></table>`;
+    if (P.exp) drawExp();
     if (a && a.logoUpgrade) a.logoUpgrade(box);
   }
+
+  /* 展開圖（2026-10-01，Andy：點走勢圖在那一列下方展開放大一點的圖，可切走勢／K 線、K 線要能切週期）。
+     同時只展開一列；再點同一格就收起。資料全部走個股頁那條路（Industry.watchBars：stock/<代號>.json、m60/<代號>.json），
+     只在使用者點開的那一檔才載，沒有輪詢。
+       走勢＝有 60 分 K 就畫最近 5 個交易日的每小時收盤（看得到這週盤中怎麼走），沒有就畫最近 60 日收盤；
+       K 線＝KChart（個股頁四週期小圖同一個元件、mini 模式），週期 日／週／1時／4時。*/
+  const TFS = [['1d', '日'], ['1w', '週'], ['60m', '1時'], ['240m', '4時']];
+  function expRow(c) {
+    const mb = (m, t) => `<button type="button" data-xm="${m}" class="${P.mode === m ? 'on' : ''}" aria-pressed="${P.mode === m}">${t}</button>`;
+    const tb = TFS.map(([k, t]) => `<button type="button" data-xtf="${k}" class="${P.tf === k ? 'on' : ''}" aria-pressed="${P.tf === k}">${t}</button>`).join('');
+    return `<tr class="wpexp" data-exp-row="${esc(c)}"><td colspan="6"><div class="wpxbar"><span class="grp" role="group" aria-label="圖的種類">${mb('line', '走勢')}${mb('k', 'K 線')}</span>`
+      + (P.mode === 'k' ? `<span class="grp" role="group" aria-label="K 線週期">${tb}</span>` : '')
+      + `<span class="note" id="wpxNote"></span></div><div class="wpxc" id="wpxC"></div></td></tr>`;
+  }
+  function killExp() {
+    if (expK) { try { expK.destroy(); } catch (e) { /* 已銷毀 */ } expK = null; }
+    const c = document.getElementById('wpxC');
+    if (c && window.echarts) { const i = window.echarts.getInstanceByDom(c); if (i) i.dispose(); }
+  }
+  async function drawExp() {
+    const code = P.exp, box = document.getElementById('wpxC'), note = document.getElementById('wpxNote');
+    const I = window.Industry, a = A();
+    if (!box || !code) return;
+    if (!I || !I.watchBars) { box.innerHTML = '<div class="empty">圖表元件還沒載入，請重新整理</div>'; return; }
+    const seq = ++expSeq;
+    box.dataset.state = 'loading';
+    box.innerHTML = '<div class="empty">載入中…</div>';
+    const tf = P.mode === 'k' ? P.tf : '1d';
+    const r = await I.watchBars(code, tf);
+    if (seq !== expSeq || P.exp !== code || document.getElementById('wpxC') !== box) return;
+    killExp(); box.innerHTML = '';
+    box.dataset.mode = P.mode; box.dataset.tf = P.mode === 'k' ? tf : '';
+    if (P.mode === 'line') {
+      let pts, lbl;
+      const h = r.h60 || [];
+      if (h.length >= 6) {
+        const days = [...new Set(h.map((x) => String(x[0]).slice(0, 10)))].slice(-5);
+        pts = h.filter((x) => days.includes(String(x[0]).slice(0, 10))).map((x) => [String(x[0]).slice(5, 16).replace('T', ' '), +x[4]]);
+        lbl = `最近 ${days.length} 個交易日・每小時收盤`;
+      } else {
+        pts = (r.daily || []).slice(-60).map((x) => [String(x[0]).slice(5), +x[4]]);
+        lbl = `最近 ${pts.length} 個交易日收盤（這檔沒有 1 小時分 K）`;
+      }
+      if (note) note.textContent = lbl;
+      if (pts.length < 2) { box.innerHTML = '<div class="empty">這檔還沒有走勢資料</div>'; box.dataset.state = 'empty'; return; }
+      const up = pts[pts.length - 1][1] >= pts[0][1];
+      const col = getComputedStyle(document.documentElement).getPropertyValue(up ? '--rise' : '--fall').trim() || (up ? '#ff4d5e' : '#22c55e');
+      const vals = pts.map((p) => p[1]), lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.08 || 1;
+      const ax = (a && a.axisStyle) || {};
+      a.chart(box, {
+        animation: false, grid: { left: 8, right: 54, top: 10, bottom: 24, containLabel: false },
+        tooltip: { trigger: 'axis', valueFormatter: (v) => (a.fmt ? a.fmt.n(v) : v) },
+        xAxis: Object.assign({}, ax, { type: 'category', data: pts.map((p) => p[0]), boundaryGap: false, axisLabel: Object.assign({}, ax.axisLabel || {}, { fontSize: 11, hideOverlap: true }) }),
+        yAxis: Object.assign({}, ax, { type: 'value', position: 'right', min: +(lo - pad).toFixed(2), max: +(hi + pad).toFixed(2), axisLabel: Object.assign({}, ax.axisLabel || {}, { fontSize: 11 }) }),
+        series: [{ type: 'line', data: vals, showSymbol: false, lineStyle: { width: 1.6, color: col }, areaStyle: { color: col, opacity: 0.08 } }],
+      });
+      box.dataset.n = String(pts.length);
+    } else {
+      const bars = r.bars || [];
+      if (note) note.textContent = bars.length >= 2 ? `${bars.length} 根・滾輪可縮放` : '';
+      if (bars.length < 2 || !window.KChart) { box.innerHTML = `<div class="empty">${esc(r.why || '這個週期尚無資料')}</div>`; box.dataset.state = 'empty'; box.dataset.n = '0'; return; }
+      expK = new window.KChart(box, { mini: true, tf, fit: (kc) => kc.defaultView() });
+      expK.setBars(bars, tf);
+      expK.applyIndicators({ ma: [5, 20], vol: true });
+      box.dataset.n = String(bars.length);
+    }
+    box.dataset.state = 'ok';
+    box.dataset.seq = String(seq);
+  }
+  function toggleExp(c) { P.exp = P.exp === c ? null : c; paintList(); }
 
   function paintRes() {
     const ul = document.getElementById('wpRes'), T = W(); if (!ul || !T) return;
@@ -237,6 +333,10 @@
     if (ad && !ad.disabled) { T.add(ad.dataset.add); P.q = ''; const i = document.getElementById('wpQ'); if (i) { i.value = ''; i.focus(); } paintRes(); return; }
     const dl = q('button[data-del]'); if (dl) { e.stopPropagation(); T.remove(dl.dataset.del); return; }
     if (q('#wpRename') || q('input')) return;
+    const sx = q('button[data-exp]'); if (sx) { toggleExp(sx.dataset.exp); return; }
+    const xm = q('button[data-xm]'); if (xm) { if (P.mode !== xm.dataset.xm) { P.mode = xm.dataset.xm; paintList(); } return; }
+    const xt = q('button[data-xtf]'); if (xt) { if (P.tf !== xt.dataset.xtf) { P.tf = xt.dataset.xtf; paintList(); } return; }
+    if (q('tr.wpexp')) return;                  // 展開圖裡面點哪裡都不帶走
     const tr = q('tr[data-go]'); if (tr) go(tr.dataset.go);
   }
   function onDbl(e) {

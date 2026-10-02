@@ -635,6 +635,15 @@ small{font-size:12.5px}
 .mbwres .spk.down polyline{stroke:var(--fall)}
 .mbwres .spk.flat polyline{stroke:var(--ink-3)}
 .sugg .nm + .sgdel{margin-left:auto}
+/* 2026-10-01（Andy：熱門股票的小走勢圖起點不齊、還壓到名稱）：代號、名稱給固定寬度，
+   名稱超長就省略號 —— 走勢圖的 left 就只由「logo＋代號＋名稱」三個固定寬決定，每一列都一樣。
+   右側的成交值、漲跌幅也給固定寬並靠右，數字的個位數才會上下對齊。近期搜尋、比對結果同一套。DECISIONS #282 */
+.sugg .sgrow > .slogo{flex:none}
+.sugg .code{width:4.2em;flex:0 0 4.2em}
+.sugg .nm{flex:0 0 6.5em;width:6.5em}
+.sugg .tv{width:5.2em;text-align:right}
+.sugg .chg{width:66px;min-width:66px}
+@media (max-width:640px){.sugg .sgrow{gap:6px}.sugg .code{width:3.6em;flex-basis:3.6em}.sugg .nm{width:4.8em;flex-basis:4.8em}.sugg .tv{width:4.2em}.sugg .chg{width:56px;min-width:56px}}
 .sugg .sgempty{margin:0;padding:var(--sp-1) var(--sp-3) var(--sp-2);font-size:13px;color:var(--ink-3);line-height:1.5}
 @media (max-width:640px){.sugg .sgempty{padding:6px 12px 10px}}
 /* 公司 Logo（2026-09-26）：圓角方形；沒有圖／圖壞掉時是字母頭像（字由 ::before 畫，不進 DOM 文字）。

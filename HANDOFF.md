@@ -1,5 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 搜尋下拉走勢圖對齊＋自選頁滿寬／每列走勢圖／點了原地展開（2026-10-01 12:00，台北，UI 專家，分支 `claude/watch-spark`，**未推 main**）
+
+- [x] 搜尋下拉：代號、名稱、成交值、漲跌幅改固定寬（名稱超長省略號）→ 熱門／近期／比對三種列的走勢圖起點一致（`site/index.html`）
+- [x] 自選頁 `.wpcard` 拿掉 1100px 置中，吃滿內容寬；走勢欄搬到「股票」與「現價」之間，改用 `App.sparkSVG`（原本那支等 `App.D.sparks` 永遠等不到，整欄從沒出現過）
+- [x] 點走勢格 → 那一列下方展開 290px（手機 260px）：走勢／K 線、K 線週期 日／週／1時／4時；同時只展開一列、再點收起；點名稱照舊進個股頁（`site/watchpage.js`）
+- [x] 新增 `Industry.watchBars(code, tf)`：走個股頁同一條載入路（stock JSON ＋ m60 ＋ groupBars），不接即時、不打 mis（`site/industry.js`）
+- **這批只驗了**：`_uitest.py --sections 自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單,搜尋近期熱門Logo,輪盤只留點與自選分頁`（新段落 1730／800／390 三寬）＋ `_preview.py`
+- 已知限制：展開圖的日 K 最後一根是上一個交易日（刻意不接 withToday，見 DECISIONS #282）；手機 390 自選表的公司 Logo 藏起來讓名稱有 112px。
+
 ## 夜盤 520 根因確定：期交所拒絕經 Cloudflare Worker 的請求；Worker 改回 502 JSON 講斷點（2026-10-01 00:50，台北，爬蟲專家，分支 `claude/night-worker-520`）
 
 - 證據全文在 DECISIONS #281。一句話：從 Actions 帶 Worker **逐字元相同**的標頭直連期交所 200；
