@@ -1,5 +1,23 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 個股總覽改三欄＋AI 卡分頁籤＋指標左右並排（2026-10-03 02:25，台北，UI 專家，分支 `claude/stock-ov-3col`，**未推 main**，DECISIONS #297）
+
+- Andy（10-02 23:xx）看了 #294 上線版說「誤解了」。基於 main 5acc47f 開分支；交付前再 `git merge origin/main`（期間 main 沒有新 commit）。
+- [x] 總覽：桌機三欄（基本面｜籌碼快照｜AI 卡，1 : 1 : 1.2，頂端對齊、自然高度）；容器 790～1080（視窗約 820～1110）兩欄＝基本面＋籌碼左欄、AI 右欄；更窄一欄。
+- [x] 籌碼快照卡內四塊一律由上往下（法人 → 集保 → 信用與借券（含當沖率）→ 量比）。
+- [x] AI 四面向併成一張卡（`StockAI.ovCard`）：標題＋緊貼的免責 → 一行重點 → `.seg` 膠囊分頁籤（每顆帶判讀）→ 一次一面；預設技術面、存 `tw.ovAiTab`、方向鍵可換。
+- [x] 頂部 #skAi 收合時點小標籤 → 捲到總覽 AI 卡並切到那一面（`gotoFacet` → `setOvTab`）。
+- [x] 指標分頁：拿掉「資料不足」區；符合（左）／未符合（右）並排、欄內往下排；視窗 ≤820 上下排。
+- [x] 會員權限 `stock.ai` 選擇器沒改、照樣鎖得到（#ovAiBrief＝重點那一行、#ovFacets [data-ai]＝三個 AI 面）；分頁籤不鎖，關掉 AI 時照樣切得到技術面訊號。
+- 改的函式：`site/industry.js` `tabOverview`（三欄外殼、右欄改叫 ovCard）、`tabTags`（拿掉資料不足、左右兩欄 #tagCols、0 項佔位）；`chipCard` 的 JS 沒改（垂直排列是 CSS）。
+  `site/blocks/stock_ai.js` `gotoFacet`（捲到 AI 卡＋切籤）、`ovCss`（AI 卡樣式）、`brief`（只剩一行重點）、新增 `readOvTab`／`setOvTab`／`ovCard`、`bindOverview`（籤＝卡內切換＋方向鍵）、`facetHead` 拿掉；`facetCards` 沒改。
+  `site/index.html`：`.skov3`／`.skovkpi`／`.mixes`／`.skfacets`／`.tagcols`／`.tagnone` 與拿掉 `.tagtile.na`。`site/features.js`、`site/modules.js` 只改註解與 tests 清單。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 個股總覽三欄1002,個股總覽1002,個股頂部1002,個股AI分析0926,個股,會員權限開關,手機,新-版面等高與多寬度` 全部 0 個問題（452 秒）；
+  另跑 `積木-個股三卡`（比技術面訊號 outerHTML）0。新段落「個股總覽三欄1002」（1440／1100／800／390）反向驗證：拿掉三欄 display:contents＋籌碼改橫排＋不寫 tw.ovAiTab → 紅 34 條。
+  「個股總覽1002」改的斷言：資料不足區改驗「不存在」；符合／未符合改驗 >820 左右、≤820 上下；四張細節卡並排改驗「只有一張 AI 卡、一次一面」；點標籤改驗卡內切換（籤仍在畫面裡，不比 scrollY —— 換成較短的一面時頁面變矮、瀏覽器會夾 scrollY）。
+  「個股頂部1002」「個股AI分析0926」的小標籤斷言改成「AI 卡進畫面、閃一下、而且切到那一面」（多驗切籤）。沒跑 pytest（只動 site/、scripts/_uitest.py、文件）。
+- 已知限制：① 1101～1110 視窗仍是兩欄（斷點量容器）；② 390 手機只有「完整版」看得到這個總覽（手機原生分頁沒動）；③ 淺色主題只用 `_show.py --ls tw.theme=light` 截圖看過 AI 卡（選中籤的判讀小膠囊讀得到），沒有寫進驗收。
+
 ## 總覽四張摘要卡即時：補位進每 5 秒那一批、共用各頁即時公式、右上角日期＝即時開關（2026-10-02，台北，UI 專家，分支 `claude/ov-kpi-live`，**未推 main**）
 
 - Andy（15:36）：「這都需要具備即時功能」（漲跌家數／資金輪盤／資金去向／熱門題材四張卡右上角都寫 10/01）→ DECISIONS #296（推翻 #277「摘要卡刻意不加即時」那一句）。
