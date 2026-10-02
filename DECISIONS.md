@@ -4782,6 +4782,9 @@ Andy 2026-10-02：「把分支 `claude/elegant-pasteur-ggwgnb`（V2）的『版�
   取代 `.mpager` 的整塊反白與 `.mspine` 的發光）、`.mpager` 改 sticky 黏在頂欄（總覽黏在四步列，高度由 JS 量進 `--l4-spine-h`）底下、z-index 5（讓總覽輪盤的點旁說明框 z 6 蓋得過它）。
   點分段換段、換段回到最上面都是 app.js 原本的行為。沒有分段列又有兩張以上卡片的頁面（目前是市場明細）才出 `#l4Jump`（黏在頂欄 52px 底下、可橫向滑）。
 - **事件抽屜（≤820）**：改滿高（top 0、蓋過頂欄與底部導覽），遮罩也從頂端起；開關、遮罩／Esc／× 都是 app.js 原本的 setSide()。
+- ⚠ **手機不准設 `scroll-padding-top`**：第一版給手機設了 104px（想讓 app 自己的 scrollIntoView 讓出跳轉列），結果「手機按鈕普查」個股頁
+  「指標 ▾」浮層重開失敗、多一顆「沒反應」—— 普查用 scrollIntoView 置中，整頁捲動的落點全部偏了 52px。改回 0 之後個股頁 216 顆 0 問題（origin/main 213 顆 0 問題）。
+  手機既有的捲動（總覽卡片 scroll-margin-top 124 等）都是照「沒有 padding」算的；跳轉列自己的捲動由 layout4.js 扣位移，不靠 scroll-padding。
 - 跳轉列的卡片標題順手拿掉「偏多／4多2空」這類小標籤（`[class*="tag"]`）與 data-warn 小字（個股頁合進 main 之後多了四張面向卡，膠囊寫成「技術面 偏多」太長）。
 - 驗收：「版面v2結構」補 390 與 768 兩段（細目見 HANDOFF）。反向驗證：拿掉桌機段、只跑手機與 768 對 origin/main 的 site，12 條紅後中途爆掉（#l4Jump 不存在）。
 
