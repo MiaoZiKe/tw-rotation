@@ -5102,9 +5102,14 @@
     $$('#revWin button', el).forEach(b => b.onclick = () => { rwin = +b.dataset.v; lsSet('tw.revWin', String(rwin)); drawRev(); });
     drawRev();
     const yr = (rv.yearly || []).slice(-6); let mode = 'm';
-    const drawYear = () => { const yc = A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { show: false }, grid: { left: 60, right: 20, top: 10, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } },
+    const drawYear = () => { const yc = A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { show: false, type: 'scroll' }, grid: { left: 60, right: 20, top: 10, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } },
       series: yr.map((y, i) => { let acc = 0, broke = false; const d = Array.from({ length: 12 }, (_, m) => { const v = y.by_month[m + 1]; if (v == null) { broke = true; return null; } if (mode === 'c') { if (broke) return null; acc += v; return acc; } return v; }); /* ★ 2026-09-28：累計遇缺月就停（跳過缺月繼續加，後面每個月都少算一個月，線會系統性偏低）*/ return { name: String(y.year), type: 'line', data: d, smooth: .2, symbolSize: 5, lineStyle: { width: i === yr.length - 1 ? 3 : 1.5, color: A.PALETTE[i] }, itemStyle: { color: A.PALETTE[i] } }; }) });
-      const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下就自己換到下一行，仍在圖外）
+      /* ★ 2026-10-02（DECISIONS #295）：營收改三欄之後這張卡只剩約 430px 寬，六個年份的 HTML 圖例放不進標題列，
+         退回 ECharts 圖例時會折成兩行、第二行（2026）壓到 Y 軸最上面的「14.0 億」。退回時改成單行可捲（type:'scroll'）、色樣縮小，永遠只佔一行。
+         ⚠ 一開始的 option 就要寫 legend.type:'scroll'：plain 跟 scroll 是兩種元件，退回時才換 type 會整個換掉圖例元件，
+         藏起來的年份（legend.selected）就丟了 —— _uitest「設計v4第二批2B」⑧（800→1000→800 來回後 2021 要仍藏著）抓到的。*/
+      const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement, { fb: { top: 0, type: 'scroll', itemWidth: 14, itemGap: 8,
+        pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } } }); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下退回圖內單行）
     $$('#revMode button').forEach(b => b.onclick = () => { $$('#revMode button').forEach(x => x.classList.toggle('on', x === b)); mode = b.dataset.v; drawYear(); });
     drawYear();
   }
@@ -5652,13 +5657,19 @@
       $$('#profitMode button', el).forEach(b => b.classList.toggle('on', b.dataset.v === (isY ? 'y' : 'q')));
       const tt = $('#profitTblTtl', el); if (tt) tt.textContent = isY ? '年度明細' : '季報明細';
       const tb = $('#profitTbl', el); if (tb) tb.innerHTML = isY ? tblY() : tblQ();
-      const pc = A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : p.seriesName === 'EPS' ? A.fmt.n(p.value, 2) + ' 元' : A.fmt.n(p.value, 1) + '%'}`).join('<br>') }, legend: { show: false }, grid: { left: 50, right: 50, top: 10, bottom: 30 },
+      const pc = A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.value == null ? '—' : p.seriesName === 'EPS' ? A.fmt.n(p.value, 2) + ' 元' : A.fmt.n(p.value, 1) + '%'}`).join('<br>') }, legend: { show: false, type: 'scroll' }, grid: { left: 50, right: 50, top: 10, bottom: 30 },
         xAxis: { ...A.axisStyle, type: 'category', data: X, axisLabel: { color: A.CH.ink3, hideOverlap: true } }, yAxis: [{ ...A.axisStyle }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
         series: [{ name: 'EPS', type: 'bar', itemStyle: { color: 'rgba(255,77,109,.7)' }, data: E.map(v => ({ value: v, itemStyle: { color: v >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: M('gm', 2), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#ffd166' }, itemStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: M('om', 3), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#3ee0ff' }, itemStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: M('nm', 4), smooth: .3, showSymbol: isY, connectNulls: false, lineStyle: { color: '#8b7bff' }, itemStyle: { color: '#8b7bff' } }] }, { notMerge: true });
       /* 設計 v4 2B：圖例搬到標題列最右端（季／年後面，放不下自己換行）；原本寫在左軸頂上的「EPS」字樣（佔繪圖區上方一行）併進圖例：EPS（元，左軸） */
       const pm = $('#profitMode', el);
+      /* ★ 2026-10-02（DECISIONS #295）：放不下退回 ECharts 圖例時，以前會把左軸頂上的「EPS」還原 ——
+         390 寬圖例佔滿整行，那個「EPS」跟圖例第一顆「EPS」疊在一起（_uitest「個股分頁版面1002」用 SVG 量到）。
+         改成跟 HTML 圖例同一個講法：軸名不畫、圖例第一顆寫「EPS（元，左軸）」；圖例單行可捲，不會折兩行壓到繪圖區。
+         （option 一開始就是 legend.type:'scroll'，理由同營收「逐年同月比較」：退回時換 type 會丟掉藏起來的那幾條。）*/
       if (pm) extLegend(pc, pm.parentElement, { labels: { EPS: 'EPS（元，左軸）' }, dual: { EPS: ['rgba(255,77,109,.7)', 'rgba(46,229,157,.7)'] },
-        fbOpt: { yAxis: [{ name: 'EPS' }, {}] }, okOpt: { yAxis: [{ name: '' }, {}] } });   // 放不下退回改前時，左軸頂上的「EPS」也還原
+        fb: { top: 0, type: 'scroll', itemWidth: 14, itemGap: 8, formatter: (n) => (n === 'EPS' ? 'EPS（元，左軸）' : n),
+          pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } },
+        fbOpt: { yAxis: [{ name: '' }, {}] }, okOpt: { yAxis: [{ name: '' }, {}] } });
     };
     $$('#profitMode button', el).forEach(b => b.onclick = () => {
       pmode = b.dataset.v;
@@ -5914,8 +5925,9 @@
   }
   const chipSeg = (id, list, lbl) => `<div class="seg" id="${id}" role="group" aria-label="${lbl}">${list.map(x => `<button type="button" data-v="${x.v}">${x.t}</button>`).join('')}</div>`;
   /* ★ 2026-10-02（Andy #stock/1709，DECISIONS #295）：三頁「上圖下長表」→ 左圖右表並排（.skduo），明細表自成一張卡（.tblcard），
-     高度跟左邊圖卡一樣、表在卡裡捲；≤1100 疊成上下。三頁共用這一組（chipTbl／chipCardHtml），版型一致。*/
-  const chipTbl = (id, title) => `<div class="card tblcard" id="${id}Card"><h3>${title || '每日明細'}</h3><div class="tw chipTbl" id="${id}"></div></div>`;
+     高度跟左邊圖卡一樣、表在卡裡捲；≤1100 疊成上下。三頁共用這一組（chipTbl／chipCardHtml），版型一致。
+     foot＝接在表下面的一句（大戶散戶的「目前累積 N 週，每週五自動增加」放這裡：講的就是右邊這張表為什麼只有這幾列）。*/
+  const chipTbl = (id, title, foot) => `<div class="card tblcard" id="${id}Card"><h3>${title || '每日明細'}</h3><div class="tw chipTbl" id="${id}"></div>${foot || ''}</div>`;
   const chipK = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
   /* 資料還不到 CHIP_MIN 天：不畫一條兩點的假斜線，直接列最新數字 */
   const chipNums = (key, title, sub, kvs, why) => `<div class="card"><h3>${title} <small data-readout>${sub}</small> ${hq(key, title)}</h3>${hbox(key, ['資料天數還不夠畫走勢，先列最新數字'])}
@@ -6068,7 +6080,7 @@
        DOM 順序是「標題、日期、色塊」：窄的時候先換行的是色塊（日期留在標題那一行），寬的時候 CSS 用 order 把色塊排到中間。*/
     const body = `<div class="skduo chipduo" id="hoDuo"><div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
       ${hbox('skho', ['上方色塊＝圖例，按一下隱藏／顯示那一條', '千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
-      <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${growing}${insNote}</div>${chipTbl('hoTbl', '每週明細')}</div>`;
+      <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${insNote}</div>${chipTbl('hoTbl', '每週明細', growing)}</div>`;
     /* 設計 v4 2B：手機（≤640）三顆色塊維持改前的位置（標題列下面獨佔一列）—— 手機版面這一批不動。
        chipPage 會先把 body 寫進去再畫圖，所以在第一次畫圖之前（draw 的最前面）搬一次就好。*/
     let hoPlaced = false;

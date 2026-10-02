@@ -17944,6 +17944,33 @@ TABS1002_SCAN = r"""() => {
   const tiny = rs.filter(x => parseFloat(getComputedStyle(x.e).fontSize) < 11).map(x => [x.e.textContent.trim().slice(0, 16), getComputedStyle(x.e).fontSize]).slice(0, 5);
   return { ov: ov.slice(0, 8), out: out.slice(0, 8), tiny, sx: document.documentElement.scrollWidth, vw: innerWidth, n: rs.length }; }"""
 
+# 圖裡的字（?svg=1 才有 <text>）：同一張圖裡兩段字的外框交集蓋掉小的那塊 1/4 以上＝壓字（口徑同 _preview.py 的 CHART_TEXT_JS）
+TABS1002_CHARTTXT = r"""() => { const out = { n: 0, ov: [] };
+  for (const host of document.querySelectorAll('#stockTab [_echarts_instance_]')) { const hr = host.getBoundingClientRect();
+    if (hr.width < 20 || hr.height < 20) continue;
+    const bs = [...host.querySelectorAll('svg text')].filter(t => (t.textContent || '').trim().length)
+      .map(t => ({ t: t.textContent.trim().slice(0, 16), r: t.getBoundingClientRect() })).filter(b => b.r.width > 1 && b.r.height > 1);
+    out.n += bs.length;
+    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].r, b = bs[j].r;
+      const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ox <= 1 || oy <= 1) continue;
+      if (ox * oy > 0.25 * Math.min(a.width * a.height, b.width * b.height)) out.ov.push([host.id, bs[i].t, bs[j].t]); } }
+  out.ov = out.ov.slice(0, 6); return out; }"""
+
+# 圖內圖例（HTML 圖例放不下、退回 ECharts 圖例時）不准伸進繪圖區：圖例外框底 ≤ 最上面那個 grid 的頂 − 6px（Y 軸最上面那個刻度字的半高）。
+# 只比字壓字抓不到「圖例色樣壓到 Y 軸刻度字」—— 營收三欄後逐年同月的圖例折成兩行就是這樣（色樣蓋在「14.0 億」上，字沒有相交）。
+TABS1002_LEGIN = r"""() => { const bad = [], seen = [];
+  for (const host of document.querySelectorAll('#stockTab [_echarts_instance_]')) { const c = echarts.getInstanceByDom(host); if (!c) continue;
+    const hr = host.getBoundingClientRect(); if (hr.width < 20 || hr.height < 20) continue;
+    const m = c.getModel(), lm = m.getComponent('legend'); if (!lm || lm.get('show') === false) continue;
+    const v = c.getViewOfComponentModel(lm); if (!v || !v.group) continue;
+    v.group.updateTransform(); const r = v.group.getBoundingRect().clone(); if (v.group.transform) r.applyTransform(v.group.transform);
+    if (r.height <= 0) continue;
+    let gy = Infinity; m.eachComponent('grid', g => { const gr = g.coordinateSystem && g.coordinateSystem.getRect(); if (gr) gy = Math.min(gy, gr.y); });
+    seen.push(host.id);
+    if (isFinite(gy) && r.y + r.height > gy - 6) bad.push([host.id, Math.round(r.y + r.height), Math.round(gy)]); }
+  return { bad, seen }; }"""
+
 
 def _lake_weeks(code):
     """資料湖 shareholding_weekly 裡這一檔有幾個不同的週（驗收 ④ 的基準；讀不到就回 None）。"""
@@ -17967,10 +17994,10 @@ def t_stock_tabs_1002(pg, base, code):
     pg.goto(f"{base}#overview", wait_until="networkidle")
     pg.evaluate("() => { try { ['tw.peLineW','tw.chipWin','tw.periver'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
-    def goto(w):
+    def goto(w, svg=False):
         pg.set_viewport_size({"width": w, "height": 950})
         pg.goto("about:blank")
-        pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        pg.goto(f"{base}{'?svg=1' if svg else ''}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(2400)
 
     def tab(t, wait=1600):
         if not count(pg, f'#stockTabs button[data-t="{t}"]'):
@@ -18072,7 +18099,7 @@ def t_stock_tabs_1002(pg, base, code):
                 ok(f"★ {tag}800「{t}」疊成上下（圖在上、表在下）", b["t"] >= a["b"] and abs(a["l"] - b["l"]) <= 1, (a, b))
             ok(f"{tag}{w}「{t}」沒有橫向捲軸", d["sx"] <= d["vw"] + 1, (d["sx"], d["vw"]))
         # 切區間（4 週 → 1 年）：法人表列數真的跟著變、版面仍並排同高
-        if w == 1440 and tab("inst"):
+        if w == 1440 and ok(f"{tag}1440 回到「inst」分頁切區間", tab("inst")):
             click(pg, '#chipWin button[data-v="20"]', 900)
             r20 = pg.evaluate(TABS1002_DUO, ["instChartDuo"])["instChartDuo"]
             click(pg, '#chipWin button[data-v="250"]', 1200)
@@ -18102,8 +18129,9 @@ def t_stock_tabs_1002(pg, base, code):
     ok(f"{tag}大戶散戶圖（預設 3 個月）畫出 3 個月內的 {len(in3m)} 個公布日，沒有被前端截短", pts == len(in3m), (pts, len(in3m)))
 
     # ---------------------------------------------------------------- ⑤ 三種寬度：五個分頁不重疊、不溢出
+    #   ?svg=1：chart() 改用 SVG renderer，圖裡的字變成真的 <text> 節點，圖內壓字才量得到（線上版照樣是 canvas）
     for w in (1440, 800, 390):
-        goto(w)
+        goto(w, svg=True)
         if w == 390:
             if count(pg, '#mbTabs button[data-t="full"]'):
                 click(pg, '#mbTabs button[data-t="full"]', 1200)
@@ -18116,6 +18144,10 @@ def t_stock_tabs_1002(pg, base, code):
             ok(f"★ {tag}{w}「{t}」沒有文字重疊", not s.get("ov"), s.get("ov"))
             ok(f"★ {tag}{w}「{t}」沒有橫向溢出（頁面不橫捲、卡片不出框）", s["sx"] <= s["vw"] + 1 and not s["out"], (s["sx"], s["vw"], s["out"]))
             ok(f"{tag}{w}「{t}」看得到的字都 ≥ 11px", not s["tiny"], s["tiny"])
+            c = pg.evaluate(TABS1002_CHARTTXT)
+            ok(f"★ {tag}{w}「{t}」圖裡的字沒有互相壓到（SVG 量）", c["n"] > 0 and not c["ov"], (c["n"], c["ov"]))
+            lg = pg.evaluate(TABS1002_LEGIN)
+            ok(f"★ {tag}{w}「{t}」圖內圖例沒有伸進繪圖區（不壓 Y 軸頂的刻度）", not lg["bad"], lg)
         if w == 390:
             pg.evaluate("() => { try { Object.keys(localStorage).filter(k => /sk\\.tab$/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
     pg.set_viewport_size({"width": 1440, "height": 950})
@@ -39974,16 +40006,28 @@ def t_design_v4_2b(b, base, code):
         ok("⑦ 主圖高 ≥ 可視高度 55%（01 §4.1）", k["main"] >= 0.55 * k["vh"], k)
 
     # ---- ① 營收
+    # ★ 2026-10-02（DECISIONS #295）營收改三欄並排：1440 每張卡只剩約 430px，標題列（標題＋兩組切換鈕）放不下 HTML 圖例，
+    #   照 2B 的規則退回 ECharts 圖例（跟 ②／⑧ 同一個判準）。HTML 圖例的點擊行為改到 800（一欄、放得下）驗，覆蓋不變。
     tab("revenue")
     r = ch(["revBar", "revYear"])
     for cid in ("revBar", "revYear"):
         c = r[cid]
         if ok(f"① {cid} 畫出來了", bool(c), c):
-            ok(f"① {cid}：ECharts 圖例不畫、繪圖區頂 ≤ 12（改前 30）", not c["legShown"] and c["gtop"] is not None and c["gtop"] <= 12, c)
-            ok(f"① {cid}：1440 放得下 → HTML 圖例跟標題列同一行、在圖的上緣之上", bool(c["leg"]) and c["leg"]["n"] >= 2 and c["leg"]["fit"] == "row"
-               and c["leg"]["above"] and c["leg"]["inHead"] and c["leg"]["vis"], c["leg"])
+            lg1 = c["leg"] or {}
+            st1 = ((lg1.get("fit") == "row" and lg1.get("vis") and lg1.get("above") and lg1.get("inHead") and not c["legShown"] and c["gtop"] <= 12)
+                   or (lg1.get("fit") == "wrap" and lg1.get("hidden") and c["legShown"] and c["gtop"] >= 28))
+            ok(f"① {cid}：1440 圖例放得下就在標題列（繪圖區頂 ≤ 12）、放不下就照改前畫在圖內（三欄後的常態）", bool(st1), c)
     ok("① 月走勢長條不再自動標原值（改前 12 根兩組柱標「+514805337000」疊成一團）", bool(r["revBar"]) and not r["revBar"]["barLab"], r["revBar"] and r["revBar"]["barLab"])
     ok("① 1440 營收分頁沒有橫向捲軸", r["_sw"] <= r["_iw"] + 1, r)
+    pg.set_viewport_size({"width": 800, "height": 900})
+    pg.goto("about:blank"); pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    tab("revenue")
+    r8 = ch(["revBar", "revYear"])
+    for cid in ("revBar", "revYear"):
+        c = r8[cid]
+        if ok(f"① [800] {cid} 畫出來了", bool(c), c):
+            ok(f"① [800] {cid}：一欄放得下 → ECharts 圖例不畫、繪圖區頂 ≤ 12、HTML 圖例跟標題列同一行", not c["legShown"] and c["gtop"] is not None and c["gtop"] <= 12
+               and bool(c["leg"]) and c["leg"]["n"] >= 2 and c["leg"]["fit"] == "row" and c["leg"]["above"] and c["leg"]["inHead"] and c["leg"]["vis"], c)
     scroll_to(pg, "revBar")
     h0 = canvas_hash(pg, "#revBar")
     click(pg, '.chlegend[data-for="revBar"] button[data-n="YoY"]', 700)
@@ -39999,6 +40043,8 @@ def t_design_v4_2b(b, base, code):
     r3 = ch(["revBar"])["revBar"]
     ok("① 切「年度走勢」：圖例換成年營收／年增率", bool(r3["leg"]) and r3["leg"]["names"] == ["年營收", "年增率"], r3["leg"])
     click(pg, '#revView button[data-v="m"]', 700)
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto("about:blank"); pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
 
     # ---- ② 獲利
     tab("profit")
@@ -40085,19 +40131,22 @@ def t_design_v4_2b(b, base, code):
             ok(f"⑧ [{w}] {t}：圖例放得下就在標題列、放不下就照改前畫（不多佔一行）、沒有橫向捲軸",
                all(v == "ok" for v in st.values()) and rr["_sw"] <= rr["_iw"] + 1, {"st": st, "sw": rr["_sw"], "iw": rr["_iw"]})
     # 視窗寬度來回：放不下退回改前、放得下又搬回標題列（選取狀態兩邊同步）
-    pg.set_viewport_size({"width": 1440, "height": 900})
+    # ★ 2026-10-02（DECISIONS #295）營收三欄之後 1440 本來就放不下，改成「800（一欄放得下）→ 1000（兩欄放不下）→ 800」來回
+    pg.set_viewport_size({"width": 800, "height": 900})
     pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
     tab("revenue")
     click(pg, '.chlegend[data-for="revYear"] button[data-n="2021"]', 600)
     pg.set_viewport_size({"width": 1000, "height": 900}); pg.wait_for_timeout(1200)
     a = ch(["revYear"])["revYear"]
-    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(1200)
+    pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(1200)
     z = ch(["revYear"])["revYear"]
-    ok("⑧ 縮到 1000 再拉回 1440：圖例回到標題列同一行、2021 仍然是藏起來的",
-       bool(z and z["leg"]) and z["leg"]["fit"] == "row" and not z["legShown"] and z["sel"].get("2021") is False
+    ok("⑧ 800 縮到 1000（放不下）再拉回 800：圖例回到標題列同一行、2021 仍然是藏起來的",
+       bool(a and a["leg"]) and a["leg"]["fit"] == "wrap" and a["legShown"]
+       and bool(z and z["leg"]) and z["leg"]["fit"] == "row" and not z["legShown"] and z["sel"].get("2021") is False
        and 'aria-pressed="false"' in pg.evaluate("() => document.querySelector('.chlegend[data-for=\"revYear\"] button[data-n=\"2021\"]').outerHTML"),
-       {"1000": a and (a["leg"], a["legShown"], a["gtop"]), "1440": z and (z["leg"], z["legShown"], z["sel"])})
+       {"1000": a and (a["leg"], a["legShown"], a["gtop"]), "800": z and (z["leg"], z["legShown"], z["sel"])})
     click(pg, '.chlegend[data-for="revYear"] button[data-n="2021"]', 400)
+    pg.set_viewport_size({"width": 1440, "height": 900})
 
     # ---- ⑩ 2B 收尾：產業地圖／產業鏈（族群總覽、關聯圖）—— 一整列一個元件的東西收進既有的列
     GP_PLACE = """() => { const q = s => document.querySelector(s);
@@ -40183,10 +40232,12 @@ def t_design_v4_2b(b, base, code):
             tag = f"{th}・{'深' if md == 'dark' else '淺'}"
             r = p2.evaluate("() => ({ t4: document.documentElement.getAttribute('data-theme4'), sw: document.documentElement.scrollWidth, iw: innerWidth })")
             ok(f"⑨ {tag}：主題真的掛上、1440 沒有橫向捲軸", r["t4"] == th and r["sw"] <= r["iw"] + 1, r)
+            # ★ 2026-10-02（DECISIONS #295）營收三欄後 1440 的 HTML 圖例一律退回圖內（量不到 HTML 字色）→ 縮到 800（一欄、放得下）再量
+            p2.set_viewport_size({"width": 800, "height": 900}); p2.wait_for_timeout(1400)
             scroll_to(p2, "revBar"); p2.wait_for_timeout(300)
             cr = p2.evaluate(V4_CONTRAST_JS, ['.chlegend[data-for="revBar"] button', '.chlegend[data-for="revYear"] button'])
             bad = {k2: v for k2, v in cr.items() if v is None or v < 4.5}
-            ok(f"⑨ {tag}：營收圖例字對比 ≥ 4.5", not bad, cr)
+            ok(f"⑨ {tag}：營收圖例字對比 ≥ 4.5（800 寬量）", not bad, cr)
             c2.close()
 
 

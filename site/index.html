@@ -811,20 +811,29 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .seg button.off.on{background:var(--line-2);color:var(--ink-2);text-decoration:none;opacity:1}
 /* ★ 2026-10-02（Andy #stock/1709，DECISIONS #295）：個股頁「圖＋明細表」一律並排，不再上圖下長表。
    · .skduo：法人／資券／大戶散戶三頁共用 —— 左＝圖卡（1.75 份），右＝明細表卡（最窄 300px）；≤1100 疊成上下（圖在上）。
-   · .skrev3：營收分頁三張卡（營收走勢｜逐年同月｜月營收明細），桌機三欄＝跟總覽的 .g3 同一套；≤1100 兩欄、明細表跨滿一列；≤820 一欄。
+   · .skrev3：營收分頁三張卡（營收走勢｜逐年同月｜月營收明細），桌機三欄並排（明細表那欄 1.2 份，理由見下）；≤1100 兩欄、明細表跨滿一列；≤820 一欄。
    · .tblcard：並排時明細表卡 contain:size —— **表格的長度不參與決定這一列多高**（不然 36 個月的表會把旁邊兩張圖卡撐成 1000px），
      高度＝同列的圖卡高度（stretch），表在卡裡自己捲（.tw flex:1）。
      單獨一列（≤1100 疊起來）時拿掉 contain：卡片照內容長、表自己最多 380px 再捲 ——
      不然大戶散戶那種只有 4 週的短表也會被撐成一張 300px 的空卡（空狀態不留黑方塊）。*/
 .skduo{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);gap:var(--gap-card,16px);align-items:stretch}
 .skduo>*,.skrev3>*{min-width:0}
-.skrev3{grid-template-columns:repeat(3,minmax(0,1fr))}
+/* 營收第三欄 1.2 份：月營收明細有 7 欄（年/月、月營收、去年同期、YoY、MoM、累計營收、累計 YoY），
+   三欄等寬時第三欄內寬只剩約 410px，量過 1709 的表自然寬約 450px —— 一定要橫捲。1.2 份給到約 490px，
+   一般股票 7 欄放得下；台積電這種「累計營收 3,386,870」九位數的還是會超出，就在表裡橫捲、年/月那一欄釘在左邊（下面 #revTbl）。*/
+.skrev3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)}
 .tblcard{display:flex;flex-direction:column;contain:size;min-height:300px}
-.tblcard>h3{flex:none}
-.tblcard>.tw{flex:1 1 0;min-height:0;max-height:none!important;margin-top:8px;scrollbar-width:thin}
-/* 明細表在窄欄（營收第三欄約 430px）裡：格距收一點，7 欄的月營收表在 1440 不必橫捲 */
-.tblcard>.tw table{font-size:13.5px}
+.tblcard>h3,.tblcard>.note{flex:none}
+/* 表框照內容長、比卡片高才縮（flex:0 1 auto＋min-height:0 → 在卡裡捲）：
+   短表（大戶散戶目前 4 週）不會被撐成一個下半截全空的表框，下面接「目前累積 N 週」那句；長表（36 個月）照樣在卡裡捲。*/
+.tblcard>.tw{flex:0 1 auto;min-height:0;max-height:none!important;margin-top:8px;scrollbar-width:thin}
+/* 明細表在窄欄裡：格距收一點（字級維持 14px 不縮）；表頭不加字距 */
 .tblcard>.tw th,.tblcard>.tw td{padding:6px 10px}
+.tblcard>.tw #revTbl th,.tblcard>.tw #revTbl td{padding:5px 7px}
+.tblcard>.tw #revTbl th{letter-spacing:0}
+#revTbl th:first-child,#revTbl td:first-child{position:sticky;left:0;background:var(--panel-2);z-index:2}
+#revTbl th:first-child{z-index:3;background:var(--panel-3)}
+#revTbl tbody tr:hover td:first-child{background:var(--row-hover)}
 @media (max-width:1100px){.skduo{grid-template-columns:minmax(0,1fr)} .skrev3{grid-template-columns:repeat(2,minmax(0,1fr))} .skrev3>.tblcard{grid-column:1 / -1}
   .skduo>.tblcard,.skrev3>.tblcard{contain:none;min-height:0}
   .skduo>.tblcard>.tw,.skrev3>.tblcard>.tw{flex:none;max-height:380px!important}}
