@@ -17693,6 +17693,8 @@ SECTIONS = {
     # ★ 2026-09-28 Andy：首頁資金輪盤只留點、點旁說明框、點背景關；自選獨立成最後一個分頁（取代交付清單，交付清單改走頁尾）
     "輪盤只留點與自選分頁": lambda pg, b, base, code: t_wheel_watch_0928(b, base, code),
     "會員雲端路徑":        lambda pg, b, base, code: t_account_cloud(b, base),
+    # ★ 2026-10-02 Andy：會員功能開放制度 —— #admin/perm 依 email 開關功能、方案範本、關掉的功能顯示鎖頭（DECISIONS #288，⚠ 一律 --workers 1）
+    "會員權限開關":        lambda pg, b, base, code: t_member_perm(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -38755,6 +38757,286 @@ def t_account_cloud(b, base):
         ok("手機會員 390：登入後沒有橫向捲軸", r["sw"] <= r["iw"] + 1, r)
         c3.close()
         ok("會員：整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        dev.terminate()
+        try:
+            dev.wait(timeout=3)
+        except Exception:  # noqa: BLE001
+            dev.kill()
+
+
+# ===================================================================== 會員權限開關（2026-10-02，DECISIONS #288）
+# Andy：「之後會分付費和免費會員…針對每個會員的 Email 設定可以用哪些功能」。
+# 本機起**真的 worker.js**（devserver.mjs，跟「會員雲端路徑」同一套假 Google），走完：
+#   ① 管理者在 #admin/perm 撥開關 → 真的送出 /v1/admin/perm/put、重新整理後狀態還在；全關、存成範本、套範本
+#   ② 測試帳號登入 → 被關掉的功能真的蓋上鎖頭（::after 文字、內容 inert）、沒關的不受影響；分頁鈕 🔒、週期鈕按了不動
+#   ③ 管理者打開 → 測試帳號重新整理後鎖頭真的不見
+#   ④ 390 手機：鎖頭字 ≥ 11px、沒有橫向捲軸、手機個股分頁也上鎖；管理頁在 390 可操作
+#   ⑤ 訪客（沒登入）＝上線預設全開，畫面上一個鎖頭都沒有
+# ⚠ 測試帳號的 email 只准出現在這裡（驗收的假資料），經 --person 帶給 devserver，不寫進 repo 其他地方。
+PERM_TEST_EMAIL = "andy01010909@gmail.com"
+
+
+def t_member_perm(b, base, code):
+    import urllib.request
+    errs: list[str] = []
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    port = _free_port()
+    dbg = bool(os.environ.get("TW_DEV_LOG"))
+    dev = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(port), "--origin", origin,
+                            "--person", f"tester={PERM_TEST_EMAIL}=權限測試帳號"],
+                           stdout=None if dbg else subprocess.DEVNULL, stderr=None if dbg else subprocess.DEVNULL,
+                           env={**os.environ, "DEV_LOG": "1"} if dbg else None)
+    api = f"http://127.0.0.1:{port}"
+    T = "會員權限"
+    try:
+        up = False
+        for _ in range(40):
+            try:
+                up = json.loads(urllib.request.urlopen(api + "/health", timeout=1).read()).get("configured") is True
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok(f"{T}：本機 account-api（devserver）起得來", up):
+            return
+
+        def new_ctx(width=1440):
+            c = b.new_context(viewport={"width": width, "height": 900})
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            return c
+
+        def login(pg, who):
+            if pg.viewport_size["width"] <= 640:
+                pg.click("#moreBtn"); pg.click("#mmAcct")
+            else:
+                pg.click("#acctBtn")
+            with pg.expect_popup() as pi:
+                pg.click("#acctGo")
+            pop = pi.value
+            pop.wait_for_selector("#as-" + who, timeout=8000)
+            pop.click("#as-" + who)
+            wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+
+        def perm_ready(pg, want_locked=None):
+            js = "() => window.TwPerm && TwPerm.state().src === 'server'"
+            if want_locked:
+                js = "() => window.TwPerm && TwPerm.state().src === 'server' && " + json.dumps(want_locked) + ".every(x => TwPerm.locked().includes(x))"
+            return wait_until(pg, js, 10000)
+
+        LOCK = """(sel) => { const el = document.querySelector(sel); if (!el) return null;
+            const a = getComputedStyle(el, '::after');
+            return { attr: el.getAttribute('data-plk') || '', inert: !!el.inert, content: a.content || '', fs: parseFloat(a.fontSize),
+                     vis: el.getClientRects().length > 0, blur: el.firstElementChild ? getComputedStyle(el.firstElementChild).filter : '' }; }"""
+
+        # ================= ① 管理者 Andy 在 #admin/perm 設定測試帳號
+        ca = new_ctx()
+        ad = ca.new_page()
+        ad.on("pageerror", lambda e: errs.append("admin: " + str(e)))
+        ad.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.getElementById('acctBtn')", 8000)
+        login(ad, "andy")
+        ok(f"{T}：管理者登入後自己沒有任何鎖頭（上線預設全開）", perm_ready(ad) and ad.evaluate("() => TwPerm.locked().length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
+           ad.evaluate("() => window.TwPerm && TwPerm.locked()"))
+        ad.click("#acctBtn")
+        ok(f"{T}：管理者選單有「會員功能權限」", "會員功能權限" in ad.inner_text("#acctMenu"))
+        ad.click("#acctMenu [data-a='perm']")
+        wait_until(ad, "() => location.hash === '#admin/perm' && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
+        nf = ad.evaluate("() => ({ cats: TwFeatures.cats.length, bools: TwFeatures.list.filter(f => f.kind === 'bool').length, limits: TwFeatures.list.filter(f => f.kind === 'limit').length })")
+        ok(f"{T}：#admin/perm 依分類列出全部功能（{nf['cats']} 類）", ad.locator("#pmCats .pmcat").count() == nf["cats"], ad.locator("#pmCats .pmcat").count())
+        ok(f"{T}：每個開關類功能一個 Switch、上限類一個下拉", ad.locator("#pmCats input[role=switch]").count() == nf["bools"] and ad.locator("#pmCats select[data-f]").count() == nf["limits"],
+           (ad.locator("#pmCats input[role=switch]").count(), nf))
+        ok(f"{T}：還沒選人之前開關是停用的（不會誤存到不知道誰）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => i.disabled)"))
+        ok(f"{T}：每類都有「全開／全關」", ad.locator("#pmCats button[data-all='1']").count() == nf["cats"] and ad.locator("#pmCats button[data-all='0']").count() == nf["cats"])
+        ok(f"{T}：管理頁寫明鎖頭擋不住直接讀 JSON（誠實限制）", "資料檔" in ad.inner_text("#v-admin") and "DECISIONS #288" in ad.inner_text("#v-admin"))
+        # 預設方案：訪客、免費會員都在，而且是空的（全開）
+        plans = ad.evaluate("() => TwAccount.call('/v1/admin/plans/get', {})")
+        ok(f"{T}：預設方案有「訪客」「免費會員」且全開", {p["id"]: p["feats"] for p in plans["plans"]}.get("guest") == {} and {p["id"]: p["feats"] for p in plans["plans"]}.get("free") == {},
+           plans)
+        # 輸入 email → 讀取
+        ad.fill("#pmEmail", PERM_TEST_EMAIL.upper())
+        ad.press("#pmEmail", "Enter")
+        wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
+        ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && i.checked)"))
+
+        def flip(fid, want_checked):
+            sel = f"#pmCats input[data-f='{fid}']"
+            with ad.expect_response(lambda r: "/v1/admin/perm/put" in r.url, timeout=6000) as ri:
+                ad.click(sel)
+            r = ri.value
+            body = json.loads(r.request.post_data or "{}")
+            wait_until(ad, f"() => document.querySelector(\"{sel}\").checked === {str(want_checked).lower()} && /已儲存/.test(document.getElementById('pmStat').textContent)", 4000)
+            return r.status, body
+
+        st, body = flip("ov.heat", False)
+        ok(f"{T}：撥掉「資金熱力圖」→ 真的送出 /v1/admin/perm/put（200、email、over 帶 ov.heat:false）",
+           st == 200 and body.get("email") == PERM_TEST_EMAIL and body.get("over", {}).get("ov.heat") is False, (st, body))
+        ok(f"{T}：撥完寫「已儲存（台北時間）」且那一列標「微調」", "已儲存" in ad.inner_text("#pmStat") and "微調" in ad.inner_text("#pmCats .pmrow[data-f='ov.heat']"),
+           ad.inner_text("#pmStat"))
+        flip("stock.revenue", False)
+        flip("stock.k_hour", False)
+        flip("stock.ai", False)
+        # 資金流向「全關」
+        with ad.expect_response(lambda r: "/v1/admin/perm/put" in r.url, timeout=6000) as ri:
+            ad.click("#pmCats .pmcat[data-cat='flow'] button[data-all='0']")
+        fb = json.loads(ri.value.request.post_data or "{}")
+        wait_until(ad, "() => [...document.querySelectorAll(\"#pmCats .pmcat[data-cat='flow'] input[role=switch]\")].every(i => !i.checked)", 4000)
+        ok(f"{T}：「資金流向」全關 → 一次送出、四個開關都關", all(fb.get("over", {}).get(k) is False for k in ("flow.rot", "flow.sankey", "flow.inst", "flow.conc"))
+           and ad.evaluate("() => [...document.querySelectorAll(\"#pmCats .pmcat[data-cat='flow'] input[role=switch]\")].every(i => !i.checked)"), fb)
+        # 自選分頁上限 → 2
+        with ad.expect_response(lambda r: "/v1/admin/perm/put" in r.url, timeout=6000):
+            ad.select_option("#pmCats select[data-f='watch.tabs']", "2")
+        # 重新整理 → 狀態還在
+        ad.reload(wait_until="domcontentloaded")
+        wait_until(ad, "() => document.querySelectorAll('#pmCats .pmcat').length > 0 && !!document.getElementById('pmEmail')", 10000)
+        ad.fill("#pmEmail", PERM_TEST_EMAIL); ad.click("#pmLoad")
+        wait_until(ad, "() => (document.getElementById('pmWho') || {}).textContent.includes('@') && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled", 6000)
+        saved = ad.evaluate("""() => { const g = (f) => document.querySelector(`#pmCats input[data-f='${f}'], #pmCats select[data-f='${f}']`);
+            return { heat: g('ov.heat').checked, rev: g('stock.revenue').checked, hour: g('stock.k_hour').checked, ai: g('stock.ai').checked,
+                     theme: g('ov.theme').checked, rot: g('flow.rot').checked, tabs: g('watch.tabs').value }; }""")
+        ok(f"{T}：重新整理後再讀同一個 email，剛才撥的開關狀態都還在",
+           saved == {"heat": False, "rev": False, "hour": False, "ai": False, "theme": True, "rot": False, "tabs": "2"}, saved)
+        ok(f"{T}：「已經個別設定過的會員」清單列出測試帳號", PERM_TEST_EMAIL in ad.inner_text("#pmListBody"), ad.inner_text("#pmListBody")[:200])
+        # 存成範本 → 套到這位會員（個別微調清空、內容搬進範本）
+        ad.fill("#pmNewName", "付費測試")
+        with ad.expect_response(lambda r: "/v1/admin/perm/put" in r.url, timeout=6000):
+            ad.click("#pmSaveAs")
+        wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent)", 5000)
+        ok(f"{T}：「把這組存成新範本」→ 新範本出現、這位會員改套新範本、微調歸零",
+           "付費測試" in ad.inner_text("#pmWho") and "個別微調 0 項" in ad.inner_text("#pmWho")
+           and ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked"), ad.inner_text("#pmWho"))
+        ad.click("#pmMode button[data-m='plan']")
+        ad.select_option("#pmPlanSel", label="付費測試")
+        wait_until(ad, "() => !!document.querySelector(\"#pmCats input[data-f='ov.heat']\") && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled", 4000)
+        ok(f"{T}：方案範本模式選「付費測試」→ 開關顯示範本內容（資金熱力圖關、熱門題材開）",
+           ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked && document.querySelector(\"#pmCats input[data-f='ov.theme']\").checked"))
+        ok(f"{T}：內建「訪客」範本的「刪除範本」是停用的",
+           (ad.select_option("#pmPlanSel", "guest") and ad.evaluate("() => document.getElementById('pmPlanDel').disabled")))
+        ad.click("#pmMode button[data-m='member']")
+
+        # ================= ② 測試帳號登入 → 鎖頭
+        ct = new_ctx()
+        tp = ct.new_page()
+        tp.on("pageerror", lambda e: errs.append("tester: " + str(e)))
+        tp.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(tp, "() => !!document.getElementById('acctBtn')", 8000)
+        ok(f"{T}：測試帳號登入前（訪客）畫面上沒有鎖頭", perm_ready(tp) and tp.evaluate("() => !document.querySelector('[data-plk]')"))
+        login(tp, "tester")
+        ok(f"{T}：測試帳號登入後抓到自己的權限（ov.heat、stock.ai… 被關）", perm_ready(tp, ["ov.heat", "stock.ai", "stock.revenue", "stock.k_hour", "flow.rot"]),
+           tp.evaluate("() => TwPerm.state()"))
+        wait_until(tp, "() => !!document.querySelector('#ovHeatCard[data-plk]')", 5000)
+        lk = tp.evaluate(LOCK, "#ovHeatCard")
+        ok(f"{T}：總覽「資金熱力圖」蓋上鎖頭與「此功能需開通」（::after 真的有字、內容 inert＋模糊）",
+           lk and "此功能需開通" in lk["attr"] and "此功能需開通" in lk["content"] and lk["inert"] and "blur" in lk["blur"], lk)
+        ok(f"{T}：沒被關的「熱門題材」照常（沒有鎖頭）", tp.evaluate("() => !document.querySelector('#ovThemeCard').hasAttribute('data-plk')"))
+        ok(f"{T}：鎖住的卡片沒有整個消失（還佔版面）", tp.evaluate("() => document.querySelector('#ovHeatCard').getBoundingClientRect().height") > 90)
+        tp.goto(base + "#flow", wait_until="domcontentloaded")
+        wait_until(tp, "() => !!document.querySelector('#flowRotCard[data-plk]') && !!document.querySelector('#flowSankeyCard[data-plk]')", 6000)
+        ok(f"{T}：資金流向四張卡都上鎖（全關）", tp.evaluate("() => ['#flowRotCard','#flowSankeyCard','#flowInstCard','#flowConcCard'].every(s => document.querySelector(s).hasAttribute('data-plk'))"))
+        tp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
+        wait_until(tp, "() => !!document.querySelector('#stockTabs button[data-t=revenue]') && !!document.querySelector('#tfSeg button[data-tf]')", 15000)
+        tp.wait_for_timeout(300)
+        ok(f"{T}：個股「營收」分頁鈕掛上 🔒（照樣點得到）", tp.evaluate("() => document.querySelector('#stockTabs button[data-t=revenue]').getAttribute('data-plkb') === 'mark' && getComputedStyle(document.querySelector('#stockTabs button[data-t=revenue]'), '::after').content.includes('🔒')"))
+        tp.click("#stockTabs button[data-t=revenue]")
+        wait_until(tp, "() => !!document.querySelector('#stockTab[data-plk]')", 4000)
+        ok(f"{T}：點「營收」→ 內容區蓋上鎖頭（不是空白、不是報錯）", "此功能需開通" in (tp.evaluate(LOCK, "#stockTab") or {}).get("content", ""), tp.evaluate(LOCK, "#stockTab"))
+        tp.click("#stockTabs button[data-t=inst]")
+        wait_until(tp, "() => !document.querySelector('#stockTab[data-plk]')", 4000)
+        ok(f"{T}：切到沒被關的「法人」→ 鎖頭拿掉、內容正常", tp.evaluate("() => !document.querySelector('#stockTab').hasAttribute('data-plk') && !document.querySelector('#stockTab').inert"))
+        ok(f"{T}：AI 分析上鎖", tp.evaluate("() => { const e = document.querySelector('#skAi'); return !e || e.hasAttribute('data-plk'); }"))
+        h = tp.locator("#tfSeg button[data-tf='60m']")
+        if h.count():
+            before = tp.evaluate("() => (document.querySelector('#tfSeg button.on') || {}).dataset.tf")
+            h.click(); tp.wait_for_timeout(400)
+            after = tp.evaluate("() => (document.querySelector('#tfSeg button.on') || {}).dataset.tf")
+            ok(f"{T}：按被關掉的「1H」→ 週期沒換、跳出「此功能需開通」", before == after and after != "60m" and "此功能需開通" in (tp.inner_text("#permToast") if tp.locator("#permToast").count() else ""),
+               (before, after))
+            ok(f"{T}：沒被關的週期照樣能切（日 K）", (tp.click("#tfSeg button[data-tf='1d']") or True) and wait_until(tp, "() => (document.querySelector('#tfSeg button.on') || {}).dataset.tf === '1d'", 4000))
+        else:
+            notes.append(f"{T}：{code} 的週期列上沒有 60m 鈕（使用者把它取消勾選了？），1H 鎖頭那條略過")
+        sw = tp.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{T}：1440 鎖頭沒有造成橫向捲軸", sw <= 1, sw)
+        tp.goto(base + "#watch", wait_until="domcontentloaded")
+        wait_until(tp, "() => !!document.getElementById('wpCnt')", 8000)
+        ok(f"{T}：自選分頁上限被設成 2 → 自選頁顯示「／2 頁」", "／2 頁" in tp.inner_text("#wpCnt") and tp.evaluate("() => TwWatch.MAX_TABS") == 2, tp.inner_text("#wpCnt"))
+        tp.evaluate("() => { TwWatch.newTab('A'); TwWatch.newTab('B'); TwWatch.newTab('C'); }")
+        ok(f"{T}：上限 2 頁時第三頁新增不進去", tp.evaluate("() => TwWatch.tabs().length") <= 2, tp.evaluate("() => TwWatch.tabs().length"))
+
+        # ================= ③ 管理者打開 → 測試帳號重新整理後恢復
+        ad.fill("#pmEmail", PERM_TEST_EMAIL); ad.click("#pmLoad")
+        wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent) && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled", 6000)
+        flip("ov.heat", True)
+        with ad.expect_response(lambda r: "/v1/admin/perm/put" in r.url, timeout=6000):
+            ad.click("#pmCats .pmcat[data-cat='flow'] button[data-all='1']")
+        tp.goto(base + "#overview", wait_until="domcontentloaded")
+        tp.reload(wait_until="domcontentloaded")
+        perm_ready(tp)
+        wait_until(tp, "() => TwPerm.state().src === 'server' && !TwPerm.locked().includes('ov.heat')", 8000)
+        tp.wait_for_timeout(300)
+        ok(f"{T}：管理者打開「資金熱力圖」→ 測試帳號重新整理後鎖頭不見", tp.evaluate("() => !document.querySelector('#ovHeatCard').hasAttribute('data-plk') && !document.querySelector('#ovHeatCard').inert"),
+           tp.evaluate("() => TwPerm.locked()"))
+        tp.goto(base + "#flow", wait_until="domcontentloaded")
+        tp.wait_for_timeout(500)
+        ok(f"{T}：「資金流向」全開 → 四張卡都恢復", tp.evaluate("() => !document.querySelector('#v-flow [data-plk]')"))
+        ok(f"{T}：沒被打開的 AI 分析仍然鎖著", tp.evaluate("() => TwPerm.locked().includes('stock.ai')"))
+
+        # ================= ④ 390 手機：鎖頭字級、橫向捲軸、手機個股分頁、管理頁
+        cm = new_ctx(width=390)
+        mp = cm.new_page()
+        mp.on("pageerror", lambda e: errs.append("mobile: " + str(e)))
+        mp.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(mp, "() => !!window.TwAccount && TwAccount.on()", 8000)
+        login(mp, "tester")
+        perm_ready(mp, ["stock.ai"])
+        mp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
+        wait_until(mp, "() => !!document.querySelector('#mbTabs button[data-t=rev]')", 15000)
+        mp.wait_for_timeout(300)
+        ok(f"{T} 390：手機個股「營收」分頁鈕有 🔒", mp.evaluate("() => document.querySelector('#mbTabs button[data-t=rev]').hasAttribute('data-plkb')"))
+        mp.click("#mbTabs button[data-t=rev]")
+        wait_until(mp, "() => !!document.querySelector('#mbBody[data-plk]')", 4000)
+        lk = mp.evaluate(LOCK, "#mbBody")
+        ok(f"{T} 390：點進去內容蓋上鎖頭、字 ≥ 11px", lk and "此功能需開通" in lk["content"] and lk["fs"] >= 11, lk)
+        mp.click("#mbTabs button[data-t=inst]")
+        wait_until(mp, "() => !document.querySelector('#mbBody[data-plk]')", 4000)
+        ok(f"{T} 390：切到「法人」鎖頭拿掉", mp.evaluate("() => !document.querySelector('#mbBody').hasAttribute('data-plk')"))
+        sw = mp.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{T} 390：沒有橫向捲軸", sw <= 1, sw)
+        cm.close()
+        cam = new_ctx(width=390)
+        am = cam.new_page()
+        am.on("pageerror", lambda e: errs.append("admin390: " + str(e)))
+        am.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(am, "() => !!window.TwAccount && TwAccount.on()", 8000)
+        login(am, "andy")
+        am.goto(base + "#admin/perm", wait_until="domcontentloaded")
+        wait_until(am, "() => document.querySelectorAll('#pmCats .pmcat').length > 0 && !!document.getElementById('pmEmail')", 10000)
+        am.fill("#pmEmail", PERM_TEST_EMAIL); am.press("#pmEmail", "Enter")
+        wait_until(am, "() => !document.querySelector(\"#pmCats input[data-f='ov.theme']\").disabled", 6000)
+        r = am.evaluate("""() => { const s = document.querySelector("#pmCats input[data-f='ov.theme']").closest('label').getBoundingClientRect();
+            const small = [...document.querySelectorAll('#v-admin small, #v-admin .pmtx b')].filter(e => e.getClientRects().length).map(e => parseFloat(getComputedStyle(e).fontSize));
+            const wide = [...document.querySelectorAll('body *')].filter(e => !e.closest('#side') && e.getClientRects().length && e.getBoundingClientRect().right > innerWidth + 1)
+              .slice(0, 6).map(e => e.tagName + '#' + e.id + '.' + String(e.className).slice(0, 30) + ':' + Math.round(e.getBoundingClientRect().right));
+            return { sw: document.documentElement.scrollWidth - innerWidth, w: s.width, h: s.height, minfs: Math.min(...small), wide }; }""")
+        ok(f"{T} 390：管理頁沒有橫向捲軸、Switch 夠大（≥ 40×22）、字 ≥ 11px", r["sw"] <= 1 and r["w"] >= 40 and r["h"] >= 22 and r["minfs"] >= 11, r)
+        with am.expect_response(lambda x: "/v1/admin/perm/put" in x.url, timeout=6000) as ri:
+            am.click("#pmCats input[data-f='ov.theme']")
+        ok(f"{T} 390：手機上撥開關也真的送出", ri.value.status == 200 and json.loads(ri.value.request.post_data).get("over", {}).get("ov.theme") is False)
+        cam.close()
+
+        # ================= ⑤ 訪客：上線預設全開
+        cg = new_ctx()
+        gp = cg.new_page()
+        gp.on("pageerror", lambda e: errs.append("guest: " + str(e)))
+        gp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
+        perm_ready(gp)
+        gp.wait_for_timeout(800)
+        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
+           gp.evaluate("() => [TwPerm.state(), TwPerm.locked()]"))
+        cg.close()
+        ct.close(); ca.close()
+        ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
     finally:
         dev.terminate()
         try:

@@ -142,8 +142,12 @@
   }
 
   // ------------------------------------------------------------------ 操作
+  /* ★ 2026-10-02 會員功能權限（DECISIONS #288）：「自選分頁數上限」由管理者依方案設定（預設 5＝跟以前一樣）。
+     只擋「新增」，已經建好的頁不刪 —— 降級的人清單不會不見。對外的 MAX_TABS 改成 getter，watchpage.js 的「N／上限 頁」跟著走。*/
+  const capTabs = () => { const P = window.TwPerm; const n = P ? P.limit('watch.tabs', MAX_TABS) : MAX_TABS; return Math.max(0, Math.min(MAX_TABS, n)); };
   const API = {
-    MAX_TABS, MAX_CODES,
+    get MAX_TABS() { return capTabs(); }, MAX_CODES,
+    capLocked: () => capTabs() < MAX_TABS,
     tabs: () => S.tabs.map((t) => ({ id: t.id, name: t.name, codes: t.codes.slice() })),
     cur: () => curTab().id,
     curTab: () => { const t = curTab(); return { id: t.id, name: t.name, codes: t.codes.slice() }; },
@@ -178,7 +182,7 @@
       commit(); return true;
     },
     newTab(name) {
-      if (S.tabs.length >= MAX_TABS) return null;
+      if (S.tabs.length >= capTabs()) { if (capTabs() < MAX_TABS) setMsg(`🔒 目前方案最多 ${capTabs()} 頁自選清單，要更多頁需開通`); return null; }
       let n = cleanName(name);
       if (!n) { let i = S.tabs.length + 1; while (S.tabs.some((t) => t.name === '自選 ' + i)) i++; n = '自選 ' + i; }
       const t = { id: newId(), name: n, codes: [] };
@@ -350,12 +354,12 @@
     const tabs = S.tabs.map((x) => P.editing === x.id
       ? `<input id="wlRename" value="${esc(x.name)}" maxlength="${MAX_NAME}" aria-label="新的清單名稱">`
       : `<button type="button" role="tab" data-tab="${esc(x.id)}" class="${x.id === t.id ? 'on' : ''}" aria-selected="${x.id === t.id}" title="${esc(x.name)}（${x.codes.length} 檔）">${esc(x.name)}<small>${x.codes.length}</small></button>`).join('')
-      + (S.tabs.length < MAX_TABS ? `<button type="button" class="wlnew" id="wlNew" title="新增一頁（最多 ${MAX_TABS} 頁）" aria-label="新增清單">＋</button>` : '');
+      + (S.tabs.length < capTabs() ? `<button type="button" class="wlnew" id="wlNew" title="新增一頁（最多 ${capTabs()} 頁）" aria-label="新增清單">＋</button>` : '');
     p.innerHTML = `<div class="wlhd"><b>自選清單</b><span class="wlmode" id="wlMode">${esc(mode)}</span><button type="button" class="wlx" id="wlClose" aria-label="關閉">✕</button></div>
       <div class="wltabs" role="tablist" id="wlTabs">${tabs}</div>
       <div class="wlact" id="wlAct">${P.confirm
         ? `<span class="wlconf">確定刪除「${esc(t.name)}」（${t.codes.length} 檔）？</span><button type="button" class="danger" id="wlDelYes">刪除</button><button type="button" id="wlDelNo">取消</button>`
-        : `<button type="button" id="wlRen">改名</button><button type="button" class="danger" id="wlDel">刪除這一頁</button><span style="flex:1"></span><small style="color:var(--ink-2);font-size:12px">${S.tabs.length}／${MAX_TABS} 頁</small>`}</div>
+        : `<button type="button" id="wlRen">改名</button><button type="button" class="danger" id="wlDel">刪除這一頁</button><span style="flex:1"></span><small style="color:var(--ink-2);font-size:12px">${S.tabs.length}／${capTabs()} 頁</small>`}</div>
       <div class="wladd"><input type="search" id="wlQ" placeholder="加入股票：代號或名稱，例如 2330 或 台積電" autocomplete="off" aria-label="搜尋要加入的股票" value="${esc(P.q)}"><ul class="wlres" id="wlRes"></ul></div>
       <div class="wlmsg" id="wlMsg" ${S.msg ? '' : 'hidden'}>${esc(S.msg)}</div>
       <ul class="wllist" id="wlList"></ul>
@@ -465,7 +469,7 @@
     const nm = (stocks || []).find((r) => r.code === K2.code);
     k.innerHTML = `<div class="pkhd"><span>把 ${esc(nm ? nm.name : '')} <span class="num">${esc(K2.code)}</span> 加進…</span><button type="button" class="wlx" id="pkClose" aria-label="關閉">✕</button></div>`
       + S.tabs.map((t) => `<label><input type="checkbox" data-pk="${esc(t.id)}" ${t.codes.includes(K2.code) ? 'checked' : ''}>${esc(t.name)}<small>${t.codes.length} 檔</small></label>`).join('')
-      + (S.tabs.length < MAX_TABS ? `<div class="pknew"><input id="pkName" maxlength="${MAX_NAME}" placeholder="新清單名稱" aria-label="新清單名稱"><button type="button" id="pkAdd">＋ 新增並加入</button></div>` : '')
+      + (S.tabs.length < capTabs() ? `<div class="pknew"><input id="pkName" maxlength="${MAX_NAME}" placeholder="新清單名稱" aria-label="新清單名稱"><button type="button" id="pkAdd">＋ 新增並加入</button></div>` : '')
       + `<div class="pkfoot">勾選＝放進那一頁，取消勾選＝從那一頁拿掉。${S.mode === 'cloud' ? '已同步到你的帳號。' : ''}</div>`;
     if (!stocks) loadStocks().then(() => { if (!k.hidden) paintPick(); });
   }

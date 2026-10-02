@@ -183,7 +183,7 @@
     v.innerHTML = `<div class="card wpcard">
       <div class="wphd"><h2>自選</h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
       <div class="wptabs" role="tablist" id="wpTabs">${tabH}
-        <button type="button" class="wpnew" id="wpNew" ${full ? 'disabled aria-disabled="true"' : ''} title="${full ? `最多 ${T.MAX_TABS} 頁` : '新增一頁清單'}">＋ 新增分頁</button>
+        <button type="button" class="wpnew" id="wpNew" ${full ? 'disabled aria-disabled="true"' : ''} title="${full ? (T.capLocked && T.capLocked() ? `目前方案最多 ${T.MAX_TABS} 頁（需開通）` : `最多 ${T.MAX_TABS} 頁`) : '新增一頁清單'}">＋ 新增分頁${full && T.capLocked && T.capLocked() ? ' 🔒' : ''}</button>
         <span class="wphint" id="wpHint" ${P.hint ? '' : 'hidden'}>${esc(P.hint)}</span></div>
       ${P.confirm ? `<div class="wpconf" id="wpConf"><span>確定刪除「${esc(cur.name)}」（${cur.codes.length} 檔）？</span><button type="button" class="danger" id="wpDelYes">刪除</button><button type="button" id="wpDelNo">取消</button></div>` : ''}
       <div class="wpadd"><input type="search" id="wpQ" placeholder="加入股票：代號或名稱，例如 2330 或 台積電" autocomplete="off" aria-label="搜尋要加入的股票" value="${esc(P.q)}"><ul class="wpres" id="wpRes" hidden></ul></div>
@@ -327,7 +327,7 @@
     if (q('#wpDelYes')) { P.confirm = false; T.delTab(T.cur()); return; }
     if (q('#wpNew')) {
       const id = T.newTab('');
-      if (!id) { setHint(`最多 ${T.MAX_TABS} 頁，要新增請先刪掉一頁`); return; }
+      if (!id) { setHint(T.capLocked && T.capLocked() ? `🔒 目前方案最多 ${T.MAX_TABS} 頁，要更多頁需開通` : `最多 ${T.MAX_TABS} 頁，要新增請先刪掉一頁`); return; }
       setHint(''); P.editing = id; paint(); return;
     }
     const ad = q('button[data-add]');
@@ -377,6 +377,8 @@
   }
 
   window.addEventListener('tw:watch', () => { if (visible() && !P.editing) paint(); });
+  /* 會員權限換了（登入、管理者改了上限，DECISIONS #288）：「N／上限 頁」與新增鈕跟著重畫 */
+  window.addEventListener('tw:perm', () => { if (visible() && !P.editing) paint(); });
   // watchlists.js 的提示（雲端衝突、放不下）也顯示在這一頁
   window.addEventListener('tw:watchmsg', (e) => { const m = document.getElementById('wpMsg'); if (m) { m.textContent = (e.detail && e.detail.msg) || ''; m.hidden = !m.textContent; } });
   window.TwWatchPage = { render, paint };
