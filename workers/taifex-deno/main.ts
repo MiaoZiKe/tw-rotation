@@ -163,9 +163,11 @@ async function relay(which: 'fut' | 'futchart', session: string, url: string, bo
  * ★ 實測紀錄（sse-probe.yml）
  *   run 37051808940（台北 10-03 03:05～03:20）：5 條 × 15 分鐘，每條 179／180 筆、0 次中斷、最大間隔 5.77 秒，
  *   全部落在同一個 isolate（region ord）；上游 15 分鐘只抓 178 次（＝經過秒數 ÷ 5，不是 ×5 條）→ 共用成立。
- *   這一筆 commit 本身就是第二輪的實驗：部署換版時正在連線的讀者會怎樣（被切掉多久、能不能重連）。
+ *   run 37053561833（台北 03:21～03:28）：3 條 × 7 分鐘，中途 03:22 推了新版（deploy-deno run 37053647708 成功）——
+ *   每條 83／84 筆、0 次中斷，三條從頭到尾都在舊的 isolate ff12f219：換版不會切掉已連著的串流，新連線才去新版。
  */
-const SSE_TEST_ENABLED = true;
+// 2026-10-03 實測完畢 → 停用（回 410）。程式碼留著：之後做正式推播時沿用同一套共用上游＋上限的寫法（DECISIONS #299）
+const SSE_TEST_ENABLED = false;
 const SSE_TEST_UNTIL = Date.parse('2026-10-04T16:00:00Z');   // 台北 10-05 00:00 之後自動停用
 const SSE_MAX_CONN = 8;
 const SSE_MAX_MS = 16 * 60 * 1000;
