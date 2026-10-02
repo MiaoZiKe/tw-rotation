@@ -4055,8 +4055,8 @@ h3 .howbtn.pop{font-family:inherit}
   .skov3[data-cols="3"] #ovAiCard{contain:size;min-height:0}
   .skov3[data-cols="3"] #ovAiCard>#ovFacets{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:4px}
   .skov3[data-cols="3"] #skFundCard{display:flex;flex-direction:column}
-  .skov3[data-cols="3"] #skFundCard>.kvs.skfund{flex:1 1 auto;grid-auto-rows:1fr}
-  .skov3[data-cols="3"] #skFundCard>.kvs.skfund>.k{display:flex;flex-direction:column;justify-content:center}
+  /* #305：基本面卡改成「小格窄欄｜大格寬欄」之後，撐開交給兩欄各自的 flex（小格平均分窄欄、大格依內容再平均分多出來的高度）*/
+  .skov3[data-cols="3"] #skFundCard>.kvs.skfund{flex:1 1 auto}
   .skov3[data-cols="3"] #skFundCard>.note{margin-top:10px!important;padding:8px 10px;border-radius:9px;background:var(--panel-3)}
 }
 /* 擋掉兩支 AI 積木（只剩基本面、籌碼快照）：兩張並排 */
@@ -4114,6 +4114,77 @@ h3 .howbtn.pop{font-family:inherit}
 .gauge .gfill{fill:none;stroke:var(--cyan);stroke-width:7;stroke-linecap:round}
 .gaugev small{font-size:12px;color:var(--ink-3);font-weight:400}
 .kvs .k .v small{font-size:12px;color:var(--ink-3);font-weight:400}
+/* ==================================================================================
+   ★ 2026-10-03 基本面卡「小格窄欄｜大格寬欄」（Andy：「純數字的格子做成小格縱向堆在一窄欄、有圖表的做成大格放旁邊並補充詳細」，DECISIONS #305）
+   · 小格（EPS、ROE、月營收 YoY、殖利率）：內距 7px 10px、數字 17px，平均分掉窄欄高度、內容垂直置中
+   · 大格（本益比位置、毛利率、營運動能）：標題列＝名稱｜大數字，下面是圖與細項
+   · 版面 V2（左側導覽列，#291）上線後 1440 的三欄裡這張卡內寬只剩約 330px：照樣「窄欄｜寬欄」，窄欄最少 86px、內距再收一點（卡片內寬 ≤ 380px）
+   · 手機（≤640）或卡片內寬 < 270px：小格 2×2 在上、大格在下（寬欄不到 180px 時營運動能那幾列會擠到截字）
+   ================================================================================== */
+#skFundCard{container:skfc / inline-size}
+#skFundCard>.kvs.skfund{display:grid;grid-template-columns:minmax(86px,.7fr) minmax(0,1.6fr);gap:8px;align-items:stretch}
+#skFundCard .fsm,#skFundCard .fbig{display:flex;flex-direction:column;gap:8px;min-width:0}
+#skFundCard .fsm{gap:6px}
+#skFundCard .k{min-width:0}
+#skFundCard .ksm{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:7px 10px}
+#skFundCard .ksm .v{font-size:17px;line-height:22px;overflow-wrap:anywhere}
+#skFundCard .k .s{font-size:11.5px;line-height:1.35;color:var(--ink-3)}
+#skFundCard .kbig{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:9px 11px}
+#skFundCard .kbig .kh{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+#skFundCard .kbig .kh .l{font-size:12.5px;color:var(--ink-2);font-weight:600}
+#skFundCard .kbig .kh .v{font-family:var(--mono);font-size:18px;font-weight:600;white-space:nowrap}
+#skFundCard .kbig .meter{margin-top:0}
+#skFundCard .kbig .gaugev{align-items:center}
+@container skfc (max-width:380px){
+  #skFundCard>.kvs.skfund{gap:6px}
+  #skFundCard .ksm{padding:6px 8px}
+  #skFundCard .ksm .v{font-size:16px;line-height:21px}
+  #skFundCard .kbig{padding:8px 9px}
+}
+@container skfc (max-width:270px){
+  #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
+  #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
+  #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* 本益比位置（peStand，總覽基本面卡與獲利分頁共用）：0～100 分位條，10／50／90 刻度，●＝目前、◆＝族群中位 */
+.pestand{display:flex;flex-direction:column;gap:4px;min-width:0}
+.psbar{position:relative;height:9px;margin:5px 7px 0;border-radius:99px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--cyan) 70%,transparent),color-mix(in srgb,var(--ink-3) 35%,transparent) 50%,color-mix(in srgb,var(--amber) 80%,transparent))}
+.psbar .pst{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:1px;background:var(--ink-3)}
+.psbar .pst.pmid{background:var(--ink-2)}
+.psbar .psdot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--panel-3);z-index:2}
+.psbar .psgm{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;transform:rotate(45deg);background:var(--violet);box-shadow:0 0 0 2px var(--panel-3);z-index:1}
+.pslab{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.pslab b{font-family:var(--mono);font-weight:600;color:var(--ink-2)}
+.psnote{font-size:12px;line-height:1.45;color:var(--ink-2)}
+.psnote b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.psgmk{display:inline-block;width:8px;height:8px;transform:rotate(45deg);background:var(--violet);margin:0 6px 1px 2px}
+/* 毛利率：前一季／去年同季兩列（增減 pp，紅＝毛利率上升、綠＝下降，本站紅漲綠跌）＋近 8 季小趨勢 */
+.gmrs{display:flex;flex-direction:column;gap:2px}
+.gmr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:baseline;font-size:12px;line-height:17px;color:var(--ink-3)}
+.gmr>span:nth-child(2){font-family:var(--mono);color:var(--ink-2)}
+.gmr b{font:600 12px var(--mono);white-space:nowrap;text-align:right;color:var(--ink-2)}
+.gmr b.up{color:var(--rise)} .gmr b.down{color:var(--fall)}
+.gmspark{min-width:0}
+.gmsv{position:relative;height:30px}
+.gmsv svg{display:block;width:100%;height:30px;overflow:visible}
+.gmsv .gml{fill:none;stroke:var(--cyan);stroke-width:1.8;stroke-linejoin:round}
+.gmsv .gmd{position:absolute;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 2px var(--panel-3)}
+.gmspark .minil{margin-top:1px}
+/* 營運動能組成：一列＝子項｜數值｜加減分；起始 50 分與夾在 0～100 那一列淡色 */
+.momps{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mpr{display:grid;grid-template-columns:minmax(0,1fr) auto 46px;gap:8px;align-items:baseline;font-size:12px;line-height:17px;color:var(--ink-3)}
+.mpr>span:nth-child(2){font-family:var(--mono);color:var(--ink-2);white-space:nowrap}
+.mpr b{font:600 12px var(--mono);text-align:right;color:var(--ink-2)}
+.mpr b.up{color:var(--rise)} .mpr b.down{color:var(--fall)}
+.mpr.cap{border-top:1px dashed var(--line);padding-top:2px;margin-top:1px}
+/* 獲利分頁「本益比（每季）」卡上方的本益比位置小區塊（跟總覽同一支 peStand）*/
+.psprof{padding:8px 11px;margin:4px 0 6px;border-radius:9px;background:var(--panel-3)}
+.psprof .psh{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.psprof .psh small{font-size:12px;font-weight:400;color:var(--ink-3);margin-left:6px}
 /* 擋掉 stock_ai.js 時右欄只剩技術面訊號那一張（#ovFacets 單卡外殼）；AI 卡本身的樣式在 blocks/stock_ai.js 的 ovCss */
 .skfacets{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr);min-width:0}
 /* 「指標」分頁：方塊卡片，左欄符合、右欄未符合（#297：改前上下兩區；資料不足那一區拿掉）。
@@ -4142,9 +4213,6 @@ h3 .howbtn.pop{font-family:inherit}
 .tagtile.on .tagnm{color:var(--rise)}
 .tagtile.off{opacity:.72}
 .tagtile.off .tagnm{color:var(--ink-2);font-weight:600}
-/* 資券分頁最上面一列「最新數字」的日期小字 */
-.mgkpi .mgd{font:11px/1 var(--mono);color:var(--ink-3);margin-left:4px}
-.mgkpi .v small{font-size:12px;color:var(--ink-3);font-weight:400}
 @media (max-width:640px){
   .mix{padding:9px 10px}
   .mixn{gap:6px 8px}
@@ -4792,6 +4860,7 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbtbl th.sel{color:var(--cyan)}
   body.m3on .mbtbl td.sel{background:color-mix(in srgb,var(--cyan) 7%,transparent);font-weight:700}
   body.m3on .mbfoot{font-size:12px;color:var(--ink-3);margin:10px 0 4px;line-height:1.5}
+  body.m3on .mbtbl td.mbna{color:var(--ink-3);font-size:12px;font-family:inherit}  /* #304 資料源未提供（不是 0） */
   body.m3on .mbempty{padding:28px 8px;text-align:center;color:var(--ink-3);font-size:14px;line-height:1.6}
   body.m3on .mbalt{font-size:12.5px;color:var(--ink-2);line-height:1.5;margin:0 0 8px;padding:7px 10px;border-radius:8px;
     border:1px dashed var(--amber);background:color-mix(in srgb,var(--amber) 7%,transparent)}
