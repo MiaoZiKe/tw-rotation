@@ -3187,7 +3187,8 @@
     /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：總覽這張**一律不畫軌跡與腳印**，
        不再跟資金流向頁的「顯示腳印」偏好（ROT.trail）走 —— 那個開關只屬於資金流向頁（DECISIONS #269 第 2 條講的是那一頁），
        兩頁的差別寫在 DECISIONS #274。上面兩段 09-26 的註解是當時的歷史，留著讓人知道為什麼以前是跟著偏好走。*/
-    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: false });
+    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: false, live: ovcRotPt() });
+    OVC_ROT.f3 = f3 || null; ovcDecor('ovrot');
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
     // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
     whenNear($('#ovFlow'), () => renderOvFlow(sd));
@@ -3598,9 +3599,10 @@
         + `% ＝ 佔這些板塊加總（不拿估算值去除全市場真實成交值）；「〇〇・其他」自動桶不進分母。點下去看到的「昨日資金去向」仍是盤後那一天。` },
     };
   }
-  function ovlTheme() {
+  /* 題材「成分股即時漲跌（成交值加權）」—— 摘要卡（ovlTheme）與熱門題材熱力圖的即時顏色（DECISIONS #298）共用這一支。
+     回 { ts, rows（夠格的題材，由高到低）, at, hitAll }。*/
+  function ovlThemeRows() {
     const ts = (OVS.src && OVS.src.th && OVS.src.th.themes) || [];
-    if (!ts.length) return { err: '尚無題材資料' };
     let at = '', hitAll = new Set();
     const rows = ts.map(t => {
       const ms = t.members || [];
@@ -3614,6 +3616,11 @@
       // 成分股有 6 成以上拿到報價才排：2 檔裡只抓到 1 檔的題材，漲跌其實是那 1 檔的漲跌
       return (n >= Math.max(2, Math.ceil(ms.length * 0.6)) && w > 0) ? { id: t.id, name: t.name, chg: cw / w, n, up, of: ms.length } : null;
     }).filter(Boolean).sort((a, b) => b.chg - a.chg);
+    return { ts, rows, at, hitAll };
+  }
+  function ovlTheme() {
+    const { ts, rows, at, hitAll } = ovlThemeRows();
+    if (!ts.length) return { err: '尚無題材資料' };
     if (!rows.length) return { err: '題材成分股的即時報價還不夠（每個題材至少要 6 成成分股有報價）' };
     const top = rows.slice(0, 3), t0 = top[0];
     return {
@@ -3952,13 +3959,25 @@
   let heatFocus = null;
   /* 第二行寫「顏色是依什麼上的色」：有資金流向就寫資金；沒有的族群（新板塊還沒累積到 20 日）顏色是用漲跌幅換算的，
      這時第二行老實寫「漲跌 +9.9%」—— 以前寫「資金 —」卻塗成大紅，看的人會以為是資金大量流入。*/
-  const heatVal = (d) => (d && d.gid ? (d.rot != null ? '資金 ' + (d.rot > 0 ? '+' : '') + d.rot.toFixed(1) + 'pp'
-    : (d.chg != null ? '漲跌 ' + fmt.pct(d.chg) : '資金 —')) : '');
-  function heatOption(gt, rot, chain, big, focus) {
+  /* ★ 2026-10-03 即時（DECISIONS #298）：lvm＝這張圖現在畫的是即時；lv＝族群即時漲跌（%），沒有即時報價的（自動桶）寫「無即時」。*/
+  const heatVal = (d) => (d && d.gid ? (d.lvm ? (d.lv != null ? '即時 ' + fmt.pct(d.lv) : '無即時')
+    : d.rot != null ? '資金 ' + (d.rot > 0 ? '+' : '') + d.rot.toFixed(1) + 'pp'
+      : (d.chg != null ? '漲跌 ' + fmt.pct(d.chg) : '資金 —')) : '');
+  /* live＝null（盤後）或 { map: gid → { chg（%）, n（拿到報價的成分股數） } }（ovcHeatCalc 算的）。
+     即時時顏色換成「族群即時漲跌」（漲跌幅 7 格色階，圖例跟著換成「漲跌幅」）：資金流向（5 日 vs 20 日佔比變化）是盤後才算得出來的，
+     盤中不能假裝它在動。方塊大小**刻意不換**（仍是盤後成交值）：每 5 秒重新切一次版面，方塊會跳來跳去、點不到。
+     自動桶（ind_*，成分股上百檔、即時抓不完）畫成「無資料」灰、第二行寫「無即時」—— 不拿盤後的顏色混進來充數。*/
+  function heatOption(gt, rot, chain, big, focus, live) {
     const rotMap = {}; (rot || []).forEach(r => { rotMap[r.group_id] = r.rotation; });
     const chains = {}; gt.forEach(g => { const c = g.chain || 'industry'; (chains[c] = chains[c] || []).push(g); });
     const mk = (g) => {
       const rv = rotMap[g.group_id];
+      if (live) {
+        const L = live.map[g.group_id];
+        return { name: g.group_name, value: g.turnover, gid: g.group_id, chg: g.chg_pct, chain: chainLabel(g.chain || 'industry'),
+          rot: rv, share: g.turnover_share, lvm: true, lv: L ? L.chg : null, ln: L ? L.n : 0,
+          ...hmItem(L ? hmBin(L.chg, 'chg') : -1, 'chg', focus) };
+      }
       const bin = hmBin(rv != null ? rv : (g.chg_pct != null ? g.chg_pct / 3 : null), 'flow');
       return { name: g.group_name, value: g.turnover, gid: g.group_id, chg: g.chg_pct, chain: chainLabel(g.chain || 'industry'),
         rot: rv, share: g.turnover_share, ...hmItem(bin, 'flow', focus) };
@@ -3973,6 +3992,12 @@
       tooltip: { ...hmTipOpt(), formatter: p => {
         const d = p.data || {};
         if (!d.gid) return hmTip(p.name, '', [], '點一下只看這條產業鏈');
+        if (d.lvm) return hmTip(p.name, d.chain, [
+          { k: '即時漲跌', v: d.lv != null ? fmt.pct(d.lv, 2) : '—', c: upDown(d.lv), dot: hmColor(hmBin(d.lv, 'chg'), 'chg') },
+          { k: '即時估算', v: d.lv != null ? `${d.ln} 檔成分股（成交值加權）` : '自動桶沒有即時報價' },
+          { k: '盤後漲跌', v: fmt.pct(d.chg, 2), c: upDown(d.chg) },
+          { k: '成交值（盤後）', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
+        ], '方塊大小是盤後成交值・點一下看成分股');
         const fb = d.rot == null ? hmBin(d.chg != null ? d.chg / 3 : null, 'flow') : hmBin(d.rot, 'flow');
         return hmTip(p.name, d.chain, [
           { k: '漲跌幅', v: fmt.pct(d.chg, 2), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
@@ -4044,9 +4069,12 @@
   }
 
   let heatNoRot = 0;               // 還沒有 5 日 vs 20 日資金流向、改用漲跌上色的族群數（給 HOW.heat 讀）
+  let HEAT_SRC = null;              // 最後一次畫的那一份（即時每 5 秒只換資料時要用，DECISIONS #298）
   function renderHeat(gt, rot) {
     if (!gt || !gt.length) return empty('heat');
-    const { chains, inChain, option } = heatOption(gt, rot, heatChain, false, heatFocus);
+    HEAT_SRC = { gt, rot };
+    const hl = ovcLive('ovheat');      // 即時那一份（null＝盤後）
+    const { chains, inChain, option } = heatOption(gt, rot, heatChain, false, heatFocus, hl);
     if (heatChain && !chains[heatChain]) heatChain = null;
     heatChips(chains, $('#heatCtl'), heatChain, (c) => { heatChain = c; renderHeat(gt, rot); }, 'heatDD');
     const list = inChain || gt.filter(g => !g.group_id.startsWith('ind_'));
@@ -4055,10 +4083,12 @@
        圖下那排「族群」連結列、圖例前面「N 塊標『漲跌』＝依漲跌上色」那句都拿掉。
        · 族群一樣點得到：點方塊就在原地列出成分股（#heatPanel），面板上有「進族群頁 →」。
        · 「依漲跌上色」的口徑搬進「?」（HOW.heat 最下面那行小字，數字即時算，見 heatNoRot）。*/
-    hmLegend('heat', 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
+    hmLegend('heat', hl ? 'chg' : 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
     heatNoRot = list.filter(g => !(rot || []).some(r => r.group_id === g.group_id)).length;
     const dp = $('#heatDate'); if (dp) dp.innerHTML = hmDate(gt[0] && gt[0].date);
     const c = chart('heat', option);
+    const hel = $('#heat'); if (hel) hel.dataset.lv = hl ? '1' : '0';
+    ovcDecor('ovheat');
     hmRelabel(c, heatVal);
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
@@ -4071,7 +4101,7 @@
     if (zb) zb.onclick = () => openZoom('資金熱力圖', (body, chipBox) => {
       let ch = heatChain;
       const draw = () => {
-        const r = heatOption(gt, rot, ch, true, heatFocus);
+        const r = heatOption(gt, rot, ch, true, heatFocus, ovcLive('ovheat'));
         heatChips(r.chains, chipBox, ch, (c2) => { ch = c2; draw(); }, 'heatZoomDD');
         const bc = chart(body, r.option);
         hmRelabel(bc, heatVal);
@@ -4461,12 +4491,11 @@
        不然盤中畫的點和收盤後重算出來的點會對不起來。
      ★ 大盤報酬**不做 1/n 拆分**：`rrg.market_index()` 是逐檔成交值加權，
        那張表裡一檔股票就是一列，沒有「掛在幾個族群」這回事。*/
-  function rlvCompute(rrg, q) {
-    const P = rrg && rrg.live_params;
-    if (!P || !P.rs_smooth || !P.rs_base || !P.mom_roc) {
-      throw new Error('即時續算資料準備中，請等下一次盤後更新');
-    }
-    const det = D.groups_detail || {};
+  /* ★ 2026-10-03 從 rlvCompute 抽出來（DECISIONS #298）：「族群今日報酬」的即時口徑 ——
+     報價 → 每檔估算成交值（價 × 量）與真實漲跌幅 → 族群報酬＝成交值加權、1/n 拆分（＝後端 compute/flow.py 的 chg_pct 口徑）。
+     總覽「資金熱力圖」的即時顏色要的就是這個數；拆成兩支讓輪動時鐘的續算與熱力圖吃**同一支**，不另外算一套。
+     glvAgg：整批報價彙總一次（大盤代理報酬也在這裡）；glvRet：某一個族群的報酬（一檔都沒有＝null）。*/
+  function glvAgg(q) {
     const w = sklWeights();                        // 和資金去向共用同一份 1/n 權重
     const stv = {}, chg = {};
     let uni = 0, at = '', hit = 0;
@@ -4481,8 +4510,28 @@
     });
     let mw = 0, mc = 0;
     Object.keys(stv).forEach(c => { if (chg[c] == null) return; mw += stv[c]; mc += chg[c] * stv[c]; });
-    if (!(mw > 0)) throw new Error('報價回來了，但沒有一檔同時有價、量、漲跌幅，算不出大盤報酬');
-    const mkt = mc / mw;                           // 大盤今日報酬（代理值，見誠實界線 2）
+    return { w, stv, chg, uni, at, hit, mkt: mw > 0 ? mc / mw : null };
+  }
+  function glvRet(gid, A) {
+    let gw = 0, gc = 0, n = 0;
+    (((D.groups_detail || {})[gid] || {}).members || []).forEach(m => {
+      const c = String(m.code);
+      if (A.stv[c] == null || A.chg[c] == null) return;
+      const ww = A.stv[c] / Math.max(1, A.w[c] || 1);
+      gw += ww; gc += A.chg[c] * ww; n++;
+    });
+    return gw > 0 ? { ret: gc / gw, n, gw } : null;
+  }
+
+  function rlvCompute(rrg, q) {
+    const P = rrg && rrg.live_params;
+    if (!P || !P.rs_smooth || !P.rs_base || !P.mom_roc) {
+      throw new Error('即時續算資料準備中，請等下一次盤後更新');
+    }
+    const A = glvAgg(q);
+    const { uni, at, hit } = A;
+    if (A.mkt == null) throw new Error('報價回來了，但沒有一檔同時有價、量、漲跌幅，算不出大盤報酬');
+    const mkt = A.mkt;                             // 大盤今日報酬（代理值，見誠實界線 2）
     const alpha = 2 / (P.rs_smooth + 1);
     const pt = {};
     let skipped = 0;
@@ -4492,15 +4541,9 @@
       if (isAutoBucket(p.group_id)) { skipped++; return; }
       const t = p.trail || [];
       if (t.length <= P.mom_roc) { skipped++; return; }   // 軌跡不夠長就算不出 y（ROC 的分母）
-      let gw = 0, gc = 0, n = 0;
-      ((det[p.group_id] || {}).members || []).forEach(m => {
-        const c = String(m.code);
-        if (stv[c] == null || chg[c] == null) return;
-        const ww = stv[c] / Math.max(1, w[c] || 1);
-        gw += ww; gc += chg[c] * ww; n++;
-      });
-      if (!(gw > 0)) { skipped++; return; }              // 這個族群一檔都沒抓到 → 維持盤後位置
-      const gr = gc / gw;                                 // 族群今日報酬（成交值加權）
+      const G = glvRet(p.group_id, A);
+      if (!G) { skipped++; return; }                      // 這個族群一檔都沒抓到 → 維持盤後位置
+      const gr = G.ret, n = G.n;                          // 族群今日報酬（成交值加權）
       const xPrev = t[t.length - 1 - P.mom_roc][1];
       if (!(xPrev > 0)) { skipped++; return; }
       /* 續算一步。`ret` 帶進來的相對報酬只影響第 ① 步，其餘完全一樣，
@@ -5687,10 +5730,15 @@
     /* `!compact`：總覽頁那張小時鐘**不套用即時**。它旁邊沒有狀態列、沒有那排數字，
        也沒有「即時」鈕 —— 點默默跑到另一個位置，使用者無從得知那是即時還是盤後。
        誠實標示和圖是一組的，標示放不下就不要畫那張圖。*/
-    const liveOn = !!(RLV.on && !RLV.err && !compact && frame === 0 && Object.keys(RLV.pt).length);
+    /* ★ 2026-10-03（Andy：「總覽頁面，所有功能都需要有切換即時功能」，DECISIONS #298）：小時鐘也可以即時了 ——
+       上面那段「旁邊沒有狀態列、沒有即時鈕」的理由不成立了：卡片標題列有「即時」開關（HH:MM:SS · 5秒），
+       圖下有一行口徑（幾個族群續算、幾個維持盤後）。即時座標由呼叫端（opts.live＝rlvCompute 的 pt）給，
+       跟資金流向頁那張**同一支續算**；只是小時鐘不畫「慣性虛線＋亮色箭頭」（300px 的盤放不下那組說明），點直接移到即時位置。*/
+    const LP = compact ? (opts.live || null) : ((RLV.on && !RLV.err) ? RLV.pt : null);
+    const liveOn = !!(LP && frame === 0 && Object.keys(LP).length);
     if (liveOn) {
       top0 = top0.map(r => {
-        const v = RLV.pt[r.gid];
+        const v = LP[r.gid];
         if (!v || r.isStock) return r;
         /* `moved` 沿用既有那條「換段就發光」的路（shadowBlur）——
            即時模式下「換段」的意思換成「盤中跨過象限」，語意一致，不必再長一套樣式。*/
@@ -5904,7 +5952,7 @@
     /* 即時模式要畫的那幾條「上一個收盤 → 現在」。
        只收**真的有續算結果**的族群 —— 沒抓到報價的那幾個就維持盤後位置、不畫箭頭，
        畫一條長度 0 的線只會讓人以為「它今天沒動」，而事實是「我們沒拿到它的報價」。*/
-    const liveArr = liveOn ? top.filter(r => r.p0 && r.live) : [];
+    const liveArr = liveOn && !compact ? top.filter(r => r.p0 && r.live) : [];
 
     /* ---------------- 設計系統 v2 第 5 批（規格 §3.2；常數與理由在 ROT_FOCUS_MAX 那一段）---------------- */
     const lt = theme() === 'light';
@@ -6729,6 +6777,7 @@
       { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail, tmode: ids.tmode,
         // 象限卡只長在資金流向頁那張時鐘上（總覽小圖太小、放大視窗是另一份 DOM）
         quads: !!ids.quads,
+        live: ids.live || null,          // 總覽小時鐘的即時座標（#298）
         // 量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
         expose: !!ids.expose });
   }
@@ -6980,11 +7029,44 @@
   const OVTZ = { open: false };     // 放大視窗那顆題材下拉的開合（跟卡片上那顆各自記，值 OVT.sel 共用）
   /* 題材熱力圖的資料與提示框（卡片與放大視窗共用 —— 兩邊畫出來的一定是同一張圖，跟 heatOption 同一個道理）。
      sel＝目前選的題材 id（'' ＝ 題材層）。回傳 null 代表這一層沒有東西可畫。*/
-  function ovThemeModel(th, sel, focus) {
+  /* ★ 2026-10-03 即時（DECISIONS #298）：live＝null（盤後）或 ovcThemeCalc() 那一份 { map: 題材 id → {chg, n, of}, mem: 代號 → 即時漲跌 }。
+     即時時題材層的顏色換成「成分股即時漲跌（成交值加權，摘要卡同一支 ovlThemeRows）」——熱度（法人、新聞）是盤後分數，盤中不會動；
+     成分股層的顏色換成每一檔的即時漲跌。方塊大小不換（盤後成交值），版面才不會每 5 秒跳一次。
+     成分股 6 成以上沒有報價的題材、沒有報價的個股畫成「無資料」灰、寫「無即時」。*/
+  function ovThemeModel(th, sel, focus, live) {
     const themes = th.themes.slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
     const cur = themes.find(t => t.id === sel) || null;
     let data, kind, valOf, tipOf;
-    if (!cur) {
+    if (live) {
+      kind = 'chg';
+      const lvTxt = (d) => (d.lv != null ? '即時 ' + fmt.pct(d.lv) : '無即時');
+      if (!cur) {
+        data = themes.map(t => { const L = live.map[t.id];
+          return { name: t.name, value: t.turnover || 0, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, n: t.n,
+            lvm: true, lv: L ? L.chg : null, ln: L ? L.n : 0, lof: L ? L.of : (t.members || []).length,
+            ...hmItem(L ? hmBin(L.chg, 'chg') : -1, 'chg', focus) }; });
+        valOf = (d) => (d && d.id ? lvTxt(d) : '');
+        tipOf = (p) => { const d = p.data || {};
+          return hmTip(p.name, `${d.n || 0} 檔`, [
+            { k: '成分股即時漲跌', v: d.lv != null ? fmt.pct(d.lv, 2) : '—', c: upDown(d.lv), dot: hmColor(hmBin(d.lv, 'chg'), 'chg') },
+            { k: '即時估算', v: d.lv != null ? `${d.ln}／${d.lof} 檔有報價（成交值加權）` : '成分股報價不到 6 成，不排' },
+            { k: '熱度（盤後）', v: d.heat != null ? String(d.heat) : '—' },
+            { k: '成交值（盤後）', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
+          ], '方塊大小是盤後成交值・點一下看這個題材的成分股'); };
+      } else {
+        const ms = (cur.members || []).filter(m => m && m.code);
+        data = ms.map(m => { const v = live.mem[String(m.code)];
+          return { name: m.name || L.cname[m.code] || m.code, value: Math.max(m.turnover || 0, 1), id: m.code, code: m.code, chg: m.chg_pct,
+            lvm: true, lv: v != null ? v : null, ...hmItem(v != null ? hmBin(v, 'chg') : -1, 'chg', focus) }; });
+        valOf = (d) => (d && d.code ? lvTxt(d) : '');
+        tipOf = (p) => { const d = p.data || {};
+          return hmTip(p.name, d.code, [
+            { k: '即時漲跌', v: d.lv != null ? fmt.pct(d.lv, 2) : '—（還沒有今天的報價）', c: upDown(d.lv), dot: hmColor(hmBin(d.lv, 'chg'), 'chg') },
+            { k: '盤後漲跌', v: fmt.pct(d.chg, 2), c: upDown(d.chg) },
+            { k: '成交值（盤後）', v: fmt.yi(p.value) },
+          ], '點一下進個股頁'); };
+      }
+    } else if (!cur) {
       kind = 'heat';
       data = themes.map(t => ({ name: t.name, value: t.turnover || 0, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7, n: t.n,
         ...hmItem(hmBin(t.heat, 'heat'), 'heat', focus) }));
@@ -7026,10 +7108,13 @@
         ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(M.cur && M.cur.id === t.id) }))),
       onPick });
   }
+  let OVT_SRC = null;               // 最後一次畫的那一份 themes（即時每 5 秒只換資料時要用，DECISIONS #298）
   function renderOvThemes(th) {
     const host = $('#ovTheme'); if (!host) return;
+    OVT_SRC = th || null;
     if (!th || !th.themes || !th.themes.length) { const c = $('#ovThemeCtl'); if (c) c.innerHTML = ''; return empty('ovTheme', '尚無題材資料'); }
-    const M = ovThemeModel(th, OVT.sel, OVT.focus);
+    const tl = ovcLive('ovtheme');
+    const M = ovThemeModel(th, OVT.sel, OVT.focus, tl);
     if (!M.cur) OVT.sel = '';
     // ---- 下拉（.rotdd 那一套外觀；開合自己管，不跟資金輪動卡的 rotMenu 共用狀態）
     /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
@@ -7047,7 +7132,7 @@
     const zb = $('#ovThemeZoom');
     if (zb) zb.onclick = () => openZoom('熱門題材', (body, chipBox, close) => {
       const draw = () => {
-        const Z = ovThemeModel(th, OVT.sel, null);
+        const Z = ovThemeModel(th, OVT.sel, null, ovcLive('ovtheme'));
         ovThemeDD(chipBox, th, Z, 'ovThemeZoomDD', OVTZ, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); draw(); });
         if (!Z.data.length) { const i = echarts.getInstanceByDom(body); if (i) i.dispose(); body.innerHTML = '<div class="empty">這個題材目前沒有成分股資料</div>'; return; }
         const bc = chart(body, Z.option, { notMerge: true });
@@ -7067,6 +7152,8 @@
     hmRelabel(c, M.valOf);
     hmLegend('ovTheme', M.kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
     host.dataset.level = M.cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
+    host.dataset.lv = tl ? '1' : '0'; host.dataset.lvSel = OVT.sel || '';   // 即時每 5 秒只換資料的前提：同一個模式、同一層（#298）
+    ovcDecor('ovtheme');
     /* ★ 2026-09-26（Andy：「縮放功能呢？沒有設置到」）：跟資金熱力圖同一套滾輪縮放（wheelZoom：滾輪放大、拖曳移動、
        雙擊或按「還原」回 1×）；點擊交給 zoomClick，拖曳結束那一下不會誤觸進題材／個股。*/
     wheelZoom($('#ovThemeWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#ovTheme')); if (i) i.resize(); } });
@@ -7320,8 +7407,18 @@
       <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
         ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一級沒有股票</span>'}</div>`;
   }
-  function renderUpDown(stocks, heat) {
+  /* 目前畫在圖上的那一份（提示框與點直條列名單讀這裡，不讀 renderUpDown 的區域變數）——
+     即時每 5 秒只換直條資料、不重建選項（DECISIONS #298），提示框與點擊才不會拿到上一輪、甚至盤後那一份的家數。*/
+  const UDV = { cnt: [], pool: [], bins: [], src: null };
+  function renderUpDown(stocks, heat, light) {
     const el = $('#breadth'); if (!el) return;
+    UDV.src = { stocks, heat };
+    /* ★ 2026-10-03 即時（DECISIONS #298）：「即時」開著而且輪完一圈 → 直條換成人工族群成分股（＝摘要卡「漲跌家數」與市場明細「即時」
+       同一份名單 mudCodes）的即時漲跌；級距同一套 udBin、上市／上櫃分段照舊。不是全市場 —— 卡片下面那行寫清楚。*/
+    const ul = ovcLive('ovud');
+    const lvMode = ul ? '1' : '0';
+    if (light && el.dataset.lv !== lvMode) light = false;     // 換模式（盤後↔即時）一定整張重畫一次（圖例、提示、名單口徑都換）
+    stocks = ul ? ul.rows : stocks;
     const seg = $('#udMkt');
     if (seg && !seg.dataset.wired) {
       seg.dataset.wired = '1';
@@ -7329,7 +7426,7 @@
         if (b.dataset.m === udMkt) return;
         udMkt = b.dataset.m;
         try { localStorage.setItem('tw.udMkt', udMkt); } catch (e) { /* 私密視窗：不記，但這次照樣切 */ }
-        renderUpDown(stocks, heat);
+        renderUpDown(UDV.src.stocks, UDV.src.heat);
       });
     }
     if (seg) $$('#udMkt button').forEach(x => { const on = x.dataset.m === udMkt; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -7345,20 +7442,31 @@
     const bins = UD_BINS.map(() => []);
     pool.forEach(r => bins[udBinOf(r)].push(r));
     const cnt = bins.map(b => b.length);
+    UDV.cnt = cnt; UDV.pool = pool; UDV.bins = bins;
     const up = cnt.slice(6).reduce((a, b) => a + b, 0), dn = cnt.slice(0, 5).reduce((a, b) => a + b, 0), fl = cnt[5];
     const nBy = { twse: 0, tpex: 0, other: 0 }; every.forEach(r => { nBy[udMktOf(r)]++; });
     udStat = { n: pool.length, up, dn, fl, mkt: udMkt, nAll: every.length, ...nBy,
       heatN: heat ? (heat.advancers || 0) + (heat.decliners || 0) + (heat.unchanged || 0) : null };
-    if (sum) sum.innerHTML = `共 <b>${pool.length}</b> 檔`;
+    const sumHtml = ul ? `即時 <b>${pool.length}</b> 檔` : `共 <b>${pool.length}</b> 檔`;
+    if (sum && sum.innerHTML !== sumHtml) sum.innerHTML = sumHtml;
     el.dataset.total = String(pool.length);                 // 驗收用：直條加總要等於這個數
     el.dataset.mkt = udMkt;
-    el.style.height = '300px'; el.style.minHeight = '300px';
     // 顏色：紅漲綠跌，越極端越飽和（讀 CH，切主題會跟著換）；平盤用中性灰
     const col = (i) => { const m = UD_BINS[i].m; if (!m) return CH.ink3;
       const a = .38 + .62 * Math.min(1, Math.abs(m) / 10); return hexA(m > 0 ? CH.up : CH.down, a); };
+    const barData = cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), borderRadius: [3, 3, 0, 0] } }));
+    const rowsOf = (i) => UDV.bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
+    const inst = light && window.echarts ? echarts.getInstanceByDom(el) : null;
+    if (inst) {
+      /* 即時每 5 秒：只換直條的值（同一個 ECharts 實例、同一份選項），名單開著就原地換成這一輪的那一級 */
+      inst.setOption({ series: [{ data: barData }] });
+      if (box && !box.hidden && box.dataset.bin != null) { const i = +box.dataset.bin; if (i >= 0 && i < UD_BINS.length) udPanelFill(box, i, rowsOf(i)); }
+      return;
+    }
+    el.style.height = '300px'; el.style.minHeight = '300px';
     const c = chart('breadth', {
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
-        formatter: (ps) => { const i = ps[0].dataIndex;
+        formatter: (ps) => { const i = ps[0].dataIndex; const cnt = UDV.cnt, pool = UDV.pool;
           const lab = i === 0 ? '跌停（≤ -9.5%）' : i === 10 ? '漲停（≥ +9.5%）' : i === 5 ? '平盤' : UD_BINS[i].k + '%';
           return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
       grid: { left: 44, right: 12, top: 26, bottom: 28 },
@@ -7367,10 +7475,11 @@
       // 縱軸不寫「家數」：直條頂端本來就標了家數，軸名在 1280～1920 都會戳出容器上緣 2px（_preview 抓到的）
       yAxis: { ...axisStyle, axisLabel: { color: CH.ink3, fontSize: 12 } },
       series: [{ type: 'bar', barWidth: '66%', cursor: 'pointer',
-        data: cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), borderRadius: [3, 3, 0, 0] } })),
+        data: barData,
         label: { show: true, position: 'top', color: CH.ink2, fontSize: 12, formatter: (q) => (q.value ? String(q.value) : '') } }],
     }, { notMerge: true });
-    const rowsOf = (i) => bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
+    el.dataset.lv = lvMode;
+    ovcDecor('ovud');
     // 點外面／Esc 關；按市場分段鈕不算「點外面」—— 清單要留著、原地換成新市場的那一級
     const arm = () => dismissable(box, () => { box.hidden = true; }, { ignore: ['#udMkt'] });
     if (c) c.off('click').on('click', (p) => {

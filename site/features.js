@@ -54,6 +54,11 @@
       veil: tfs.map(function (t) { return ['#chartWrap', '#tfSeg button[data-tf="' + t + '"].on']; }),
       mark: [], block: tfs.map(function (t) { return '#tfSeg button[data-tf="' + t + '"]'; }) };
   }
+  /* 某張卡的「即時」子權限（#298）：只鎖那顆開關（按了跳「此功能需開通」），不蓋卡片 —— 卡片照常顯示盤後資料 */
+  function lv(id, name, btn, desc) {
+    return { id: id, name: name, cat: 'global', def: true, kind: 'bool', desc: desc + '；關掉＝開關蓋鎖頭、卡片停在盤後資料',
+      veil: [], mark: [], block: [btn] };
+  }
   function box(id, cat, name, sel, desc) {
     return { id: id, name: name, cat: cat, def: true, kind: 'bool', desc: desc, veil: sel.map(function (s) { return [s]; }), mark: [], block: [] };
   }
@@ -123,6 +128,19 @@
     // ---- 即時與全站工具
     { id: 'live.tick', name: '盤中即時（5 秒）', cat: 'global', def: true, kind: 'bool',
       desc: '盤中每 5 秒更新報價；關掉＝看盤後資料（卡片上的「即時」鈕按了不動作）', veil: [], mark: [], block: ['.livetg-b', '.ovl-tg'] },   // .ovl-tg＝總覽摘要卡右上角的即時開關（DECISIONS #296）
+    /* ★ 2026-10-03（Andy：「總覽頁面，所有功能都需要有切換即時功能，這是給之後會員使用」，DECISIONS #298）：
+       總覽每一張卡的「即時」子權限。關掉＝那張卡的「即時」開關蓋鎖頭、按了只跳「此功能需開通」，卡片照常顯示盤後資料；
+       其他卡不受影響。上面的 live.tick 仍是總開關（關了等於這些全部關）。對應表在 live.js 的 CARD_PERM。
+       昨日資金去向、今日事件是盤後性質（開關本來就停用、寫「此項為盤後資料，盤中不變」），子權限先留著，
+       之後真的接上盤中來源時不必再改功能清單（id 上線後不能改名）。*/
+    lv('ov.summary.live', '總覽：摘要卡即時', '#hero .ovl-tg', '大盤圖上方四張摘要卡的即時估算（右上角日期鈕）'),
+    lv('ov.index.live', '總覽：大盤三張圖即時', '#m3Frame .livetg-b', '加權／櫃買／台指期的 5 秒當下值與分時'),
+    lv('ov.heat.live', '總覽：資金熱力圖即時', '#ovHeatCard .livetg-b', '熱力圖顏色改成族群即時漲跌'),
+    lv('ov.theme.live', '總覽：熱門題材即時', '#ovThemeCard .livetg-b', '題材熱力圖顏色改成成分股即時漲跌'),
+    lv('ov.rot.live', '總覽：資金輪盤即時', '#ovRotHead .livetg-b', '輪盤上的族群點用即時報價續算位置'),
+    lv('ov.breadth.live', '總覽：漲跌家數分佈即時', '#ovBreadthCard .livetg-b', '漲跌分級直條改成人工族群成分股的即時漲跌'),
+    lv('ov.flow.live', '總覽：昨日資金去向即時', '#ovFlowHead .livetg-b', '盤後資料，目前開關停用（預留）'),
+    lv('ov.events.live', '總覽：今日事件即時', '#ovEvents .livetg-b', '手機總覽的今日事件卡；新聞由管線定時抓，目前開關停用（預留）'),
     { id: 'events', name: '今日事件中心', cat: 'global', def: true, kind: 'bool', desc: '新聞／法說／總經事件抽屜',
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
