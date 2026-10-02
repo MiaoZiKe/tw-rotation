@@ -180,12 +180,22 @@
     if (opt && opt.series && opt.series[0]) walk(opt.series[0].data);
     return out;
   }
+  /* 即時那一份（方塊帶 lv＝即時漲跌 %）：漲最多、跌最多兩個極端 */
+  function liveLede(L) {
+    const V = L.filter(n => n.lv != null && Number.isFinite(+n.lv));
+    if (!V.length) return '';
+    const hi = V.reduce((a, c) => (+c.lv > +a.lv ? c : a), V[0]), lo = V.reduce((a, c) => (+c.lv < +a.lv ? c : a), V[0]);
+    return `即時<b>漲最多</b>：${hi.name} <span class="${cls(+hi.lv)}">${sgn(+hi.lv, 2, '%')}</span>`
+      + (lo !== hi ? `；<b>跌最多</b>：${lo.name} <span class="${cls(+lo.lv)}">${sgn(+lo.lv, 2, '%')}</span>` : '');
+  }
   const LEDES = {
     /* 資金熱力圖：方塊上寫的就是「資金 ±pp」（rot）或「漲跌 ±%」（chg），方塊大小＝成交值佔比（share）。
        句子只挑兩個極端：佔比最大的那塊、資金 pp 增加最多的那塊 —— 兩個數字都是方塊自己帶的欄位。 */
     ovHeatCard() {
       const L = leaves(ec('heat')).filter(n => Number.isFinite(+n.share));
       if (!L.length) return '';
+      /* ★ 2026-10-03（DECISIONS #298）：熱力圖即時時（方塊帶 lvm），這一句改講即時漲跌 —— 不然圖是即時、句子還在講盤後的資金 pp */
+      if (L.some(n => n.lvm)) return liveLede(L);
       const big = L.reduce((a, c) => (+c.share > +a.share ? c : a), L[0]);
       const R = L.filter(n => Number.isFinite(+n.rot));
       const hot = R.length ? R.reduce((a, c) => (+c.rot > +a.rot ? c : a), R[0]) : null;
@@ -195,7 +205,9 @@
     },
     /* 熱門題材：方塊上寫「熱度 N」（heat），大小＝成交值佔比（share） */
     ovThemeCard() {
-      const L = leaves(ec('ovTheme')).filter(n => Number.isFinite(+n.heat));
+      const LA = leaves(ec('ovTheme'));
+      if (LA.some(n => n.lvm)) return liveLede(LA);      // 題材即時（#298）：講成分股即時漲跌，熱度是盤後分數
+      const L = LA.filter(n => Number.isFinite(+n.heat));
       if (!L.length) return '';
       const hot = L.reduce((a, c) => (+c.heat > +a.heat ? c : a), L[0]);
       const S = L.filter(n => Number.isFinite(+n.share));

@@ -18002,10 +18002,13 @@ def t_live5s_0929(b, base, code):
     OTC = "#m3Grid .m3-card[data-id='OTC'] .m3-px"
     ok("[即時5秒] 大盤三張圖的工具列有「即時」開關（預設開）",
        pg.evaluate("() => document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"] .livetg-b').getAttribute('aria-pressed')") == "true")
-    # ★ 2026-10-02（DECISIONS #296）：摘要卡列改成即時了，但它的開關是每張卡右上角那顆日期鈕（.ovl-tg，「總覽摘要卡即時」段驗），
-    #   不是 .livetg —— 所以「.livetg 只有大盤卡那一顆」照樣成立；題材熱力圖、輪盤這些仍然不加。
-    ok("[即時5秒] 總覽畫面上只有一顆 .livetg 即時開關（摘要卡列的開關是右上角日期鈕，題材、輪盤這些不加）",
-       pg.evaluate("() => [...document.querySelectorAll('.livetg')].filter(e => e.getClientRects().length > 0).length") == 1)
+    # ★ 2026-10-02（DECISIONS #296）：摘要卡列改成即時了，但它的開關是每張卡右上角那顆日期鈕（.ovl-tg，「總覽摘要卡即時」段驗）。
+    # ★ 2026-10-03（DECISIONS #298，Andy：「總覽頁面，所有功能都需要有切換即時功能」）：推翻上面那句「題材、輪盤這些仍然不加」——
+    #   總覽每張功能卡都有一顆 .livetg：大盤三張圖、資金熱力圖、熱門題材、資金輪盤、昨日資金去向（盤後性質，停用）、漲跌家數分佈。
+    #   各卡的即時行為由「總覽全卡即時」段驗，這裡只確認數量與歸屬。
+    ovk = pg.evaluate("() => [...document.querySelectorAll('.livetg')].filter(e => e.getClientRects().length > 0).map(e => e.dataset.livekey).sort()")
+    ok("[即時5秒] 總覽每張功能卡都有一顆 .livetg 即時開關（大盤、熱力圖、題材、輪盤、資金去向、漲跌分佈）",
+       ovk == sorted(["m3", "ovheat", "ovtheme", "ovrot", "ovflow", "ovud"]), ovk)
     c1 = changes_within(pg, TSE); c2 = changes_within(pg, TSE)
     ok("★ [即時5秒] 加權卡數字 6.5 秒內換了、而且再換一次（吃 live.js 那一批的 t00，零額外請求）",
        c1[2] is not None and c2[2] is not None and c2[1] != c1[1], [c1, c2])
@@ -18331,7 +18334,10 @@ def t_ov_kpi_live_1002(b, base, code):
         pg.route("https://fake-worker.test/quote?*", fake_quote)
         pg.route("https://fake-worker.test/chart?*", fake_chart)
         pg.goto(base + "#overview", wait_until="domcontentloaded")
-        pg.evaluate("""() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch (e) {} }""")
+        # ★ 2026-10-03（DECISIONS #298）：總覽下面四張卡（熱力圖／題材／輪盤／漲跌分佈）也吃同一圈補位，任何一張開著就塞。
+        #   這一段驗的是「摘要卡自己的開關」（關掉＝不再塞），所以先把那四張關掉，隔離成 #296 當時的情境；四張卡的開關由「總覽全卡即時」段驗。
+        pg.evaluate("""() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test');
+          ['ovheat','ovtheme','ovrot','ovud'].forEach(k => localStorage.setItem('tw.live.card.' + k, '0')); } catch (e) {} }""")
         pg.goto("about:blank")
         pg.goto(base + "#overview", wait_until="load")
         wait_until(pg, "() => document.querySelectorAll('#hero .osc .ovl-tg').length === 4", 12000)
@@ -18522,6 +18528,337 @@ def t_ov_kpi_live_1002(b, base, code):
     ok("[摘要卡即時] 盤後不塞補位代號（盤後畫的是 JSON，不需要那 455 檔）", not toks_a or max(toks_a) <= 12, toks_a)
     ctx.close()
 
+
+
+# ===================================================================== 總覽全卡即時（2026-10-03，DECISIONS #298）
+# Andy（台北 10/03 凌晨）：「總覽頁面，所有功能都需要有切換即時功能，這是給之後會員使用」。
+# 用**假時鐘＋假報價**（跟「總覽摘要卡即時」同一套），深夜也驗得到盤中：
+#   ① 總覽每張功能卡都有「即時」開關（大盤、熱力圖、題材、輪盤、資金去向、漲跌分佈；摘要卡是右上角日期鈕）
+#   ② 盤中：一圈之後熱力圖／題材／輪盤／漲跌分佈換成即時（開關寫 HH:MM:SS · 5秒、卡下寫「即時估算」、圖例換口徑），
+#      之後每 5 秒圖的資料真的變，而且圖的節點、ECharts 實例都是同一個（只換資料、不整張卡重建），圖容器裡 0 個 DOM 變動
+#   ③ 盤後性質的卡（昨日資金去向）：開關停用、旁邊寫「此項為盤後資料，盤中不變」、提示寫為什麼；按了不會變
+#   ④ 關掉某一張：那張原地換回盤後（跟剛打開時一模一樣）、11 秒不再動、別張照常即時；重新整理仍是關的；再打開馬上回即時
+#   ⑤ 任何 5 秒內 mis ≤ 3、每個請求 ≤ 110 個代號（全部共用摘要卡那一圈補位，不多打）
+#   ⑥ 子權限：ov.theme.live 關掉 → 只有熱門題材的開關蓋鎖頭、寫「需開通」、按了跳「此功能需開通」、圖停在盤後；別張照常即時
+#   ⑦ 1440／390：開關不壓到標題列其他東西、字 ≥ 11px、沒有橫向捲軸
+#   ⑧ 盤後時鐘：四張卡是盤後資料、開關寫「盤後 MM/DD」、不塞補位
+# ⚠ 一律 --workers 1（會改 localStorage 與視窗寬）。
+OVA_LIVE_KEYS = ["ovheat", "ovtheme", "ovrot", "ovud"]
+OVA_TG = """() => [...document.querySelectorAll('#v-overview .livetg[data-livekey]')].map(w => { const b = w.querySelector('.livetg-b'), t = w.querySelector('.livetg-t');
+  return { k: w.dataset.livekey, vis: w.getClientRects().length > 0, p: b ? b.getAttribute('aria-pressed') : '', t: t ? t.textContent : '', dis: !!(b && b.disabled),
+           cls: w.className, tip: b ? b.title || '' : '', plkb: b ? b.getAttribute('data-plkb') || '' : '',
+           fs: Math.min(b ? parseFloat(getComputedStyle(b).fontSize) : 99, t ? parseFloat(getComputedStyle(t).fontSize) : 99) }; })"""
+OVA_SIG = r"""() => { const I = (id) => { const el = document.getElementById(id); return el && window.echarts ? echarts.getInstanceByDom(el) : null; };
+  const ds = (id) => { const el = document.getElementById(id); return el ? (el.dataset.lv || '') : null; };
+  const out = { lv: { heat: ds('heat'), theme: ds('ovTheme'), rot: ds('rotClockMini'), ud: ds('breadth') }, ids: {} };
+  const h = I('heat');
+  if (h) { const leaves = []; const walk = (a) => (a || []).forEach(d => { if (d.children) walk(d.children); else leaves.push(d); });
+    walk(h.getOption().series[0].data);
+    out.heat = leaves.map(d => (d.lv == null ? 'x' : (+d.lv).toFixed(2)) + '/' + ((d.itemStyle || {}).color || '')).join(',');
+    out.heatAuto = leaves.filter(d => /^ind_/.test(d.gid || '')).map(d => d.lv == null);
+    out.heatMan = leaves.filter(d => !/^ind_/.test(d.gid || '')).map(d => d.lv != null);
+    const lab = document.getElementById('heat')._hmLab || {};
+    out.heatLab = Object.values(lab).filter(m => /即時 [-+−]?\d/.test(m.text || '')).length;
+    out.ids.heat = h.id; }
+  const t = I('ovTheme');
+  if (t) { out.theme = t.getOption().series[0].data.map(d => (d.lv == null ? 'x' : (+d.lv).toFixed(2)) + '/' + ((d.itemStyle || {}).color || '')).join(',');
+    out.themeLab = Object.values(document.getElementById('ovTheme')._hmLab || {}).filter(m => /即時 [-+−]?\d/.test(m.text || '')).length;
+    out.ids.theme = t.id; }
+  const r = I('rotClockMini');
+  if (r) { const s = r.getOption().series.find(x => x.type === 'scatter'); out.rot = s ? JSON.stringify(s.data.map(d => d.value)) : ''; out.ids.rot = r.id; }
+  const u = I('breadth');
+  if (u) { out.ud = JSON.stringify(u.getOption().series[0].data.map(d => (d && typeof d === 'object') ? d.value : d)); out.ids.ud = u.id;
+    out.udTotal = +document.getElementById('breadth').dataset.total; out.udSum = (document.getElementById('udSum') || {}).textContent || ''; }
+  const lg = (id) => { const e = document.getElementById(id + 'Legend'); return e ? e.dataset.kind : ''; };
+  out.legend = { heat: lg('heat'), theme: lg('ovTheme') };
+  out.notes = {}; ['ovheat', 'ovtheme', 'ovrot', 'ovud'].forEach(k => { const n = document.getElementById('ovln-' + k);
+    out.notes[k] = n ? { vis: !n.hidden && n.getClientRects().length > 0, t: n.textContent, fs: parseFloat(getComputedStyle(n).fontSize) } : null; });
+  out.dim = { heat: !!document.querySelector('#heatDate.livedim'), theme: !!document.querySelector('#ovThemeDate.livedim') };
+  return out; }"""
+OVA_LIVE_RE = re.compile(r"^\d\d:\d\d:\d\d · 5秒$")
+
+
+def t_ov_all_live_1003(b, base, code):
+    import json as _json
+    import time as _time
+    from urllib.parse import urlparse, parse_qs
+
+    T = "總覽全卡即時"
+    S = {"k": 0, "fail": False, "log": [], "toks": []}
+
+    def hhmmss(sec):
+        sec = 10 * 3600 + 30 * 60 + sec
+        return "%02d:%02d:%02d" % (sec // 3600, sec // 60 % 60, sec % 60)
+
+    def fake_quote(route):
+        ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+        toks = [t for t in ex.split("|") if t]
+        S["log"].append((_time.time(), "/quote")); S["toks"].append((_time.time(), len(toks)))
+        if S["fail"]:
+            route.fulfill(status=502, content_type="application/json", body='{"error":"upstream failed"}'); return
+        S["k"] += 1; k = S["k"]
+        arr = []
+        for tok in toks:
+            try:
+                c = tok.split("_", 1)[1].split(".")[0]
+            except IndexError:
+                continue
+            if c == "t00":
+                z, y = 20100 + k, 20000
+            elif c == "o00":
+                z, y = 300 + k / 10, 299
+            else:
+                h = sum(ord(ch) * (i + 3) for i, ch in enumerate(c))
+                y = 100.0
+                chg = (((h * 7 + k * 3) % 21) - 10) * 0.5          # 每一輪每一檔換一格（-5%～+5%），四張圖才會一輪一輪真的變
+                z = round(y * (1 + chg / 100), 2)
+            vol = 1000 + (sum(map(ord, c)) % 50) * 100 + k * 10
+            arr.append({"c": c, "n": "測試" + c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y:.2f}", "o": f"{y:.2f}",
+                        "h": f"{max(z, y) + 1:.2f}", "l": f"{min(z, y) - 1:.2f}", "v": str(vol), "t": hhmmss(5 * k), "d": "20260929",
+                        "tlong": str(int(_time.time() * 1000))})
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+
+    def fake_chart(route):
+        S["log"].append((_time.time(), "/chart"))
+        cid = (parse_qs(urlparse(route.request.url).query).get("id") or ["TSE"])[0]
+        base_v = {"TSE": 20000.0, "OTC": 299.0, "FUT": 20000.0}.get(cid, 100.0)
+        t0 = 1790643660000
+        pts = [{"t": str(t0 + i * 60000), "ts": "%02d%02d00" % ((541 + i) // 60, (541 + i) % 60),
+                "c": f"{base_v + i * 0.5:.2f}", "s": "100"} for i in range(90)]
+        info = {"n": cid, "d": "20260929", "t": "10:30:00", "y": f"{base_v:.2f}", "o": f"{base_v:.2f}",
+                "h": f"{base_v + 60:.2f}", "l": f"{base_v - 5:.2f}", "z": f"{base_v + 44.5:.2f}", "v": "300000"}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"infoArray": [info], "ohlcArray": pts, "staticObj": {"tv": "123456"}}))
+
+    def other(route):
+        S["log"].append((_time.time(), urlparse(route.request.url).path))
+        route.fulfill(status=404, content_type="application/json", body='{"error":"not found"}')
+
+    def open_page(clock, vp=None, mobile=False, perm=None):
+        kw = {"viewport": vp or {"width": 1440, "height": 1000}, "timezone_id": "Asia/Taipei"}
+        if mobile:
+            kw.update(is_mobile=True, has_touch=True, device_scale_factor=2)
+        ctx = b.new_context(**kw)
+        if perm is not None:
+            # 子權限：用 perm.js 的快取（未登入＝訪客那一份）把某幾項關掉；帳號 API 指到一台永遠 503 的假主機 ——
+            # perm.js 連不到時保留快取（寧可多給、但快取是同一個人的就照快取），所以鎖頭會穩穩掛著
+            ctx.add_init_script("window.TW_ACCOUNT_OVERRIDE = { api: 'https://fake-acct.test' };"
+                                "try { localStorage.setItem('tw.perm', " + _json.dumps(_json.dumps({"k": "guest", "who": "guest", "feats": perm})) + "); } catch (e) {}")
+            ctx.route("https://fake-acct.test/**", lambda r: r.fulfill(status=503, content_type="application/json", body="{}"))
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"{T} pageerror: {str(e)[:160]}"))
+        pg.clock.install(time=clock)
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("https://fake-worker.test/**", other)
+        pg.route("https://fake-worker.test/quote?*", fake_quote)
+        pg.route("https://fake-worker.test/chart?*", fake_chart)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("""() => { try { const p = localStorage.getItem('tw.perm'); localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test');
+          if (p) localStorage.setItem('tw.perm', p); } catch (e) {} }""")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="load")
+        wait_until(pg, "() => document.querySelectorAll('#v-overview .livetg[data-livekey]').length >= 6 && !!(window.echarts && echarts.getInstanceByDom(document.getElementById('heat')))", 15000)
+        return ctx, pg
+
+    def render_all(pg):
+        """熱門題材、漲跌分佈是捲近才畫（whenNear）：捲到底再回來，四張圖都有實例。"""
+        pg.evaluate("() => window.scrollTo(0, document.documentElement.scrollHeight)")
+        wait_until(pg, "() => ['ovTheme', 'breadth'].every(id => !!echarts.getInstanceByDom(document.getElementById(id)))", 8000)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+
+    def tgs(pg):
+        return {x["k"]: x for x in pg.evaluate(OVA_TG)}
+
+    def reqs(since, paths=None):
+        return [(t, p) for t, p in S["log"] if t >= since and (paths is None or p in paths)]
+
+    def max_in_window(since, paths=("/quote", "/chart"), win=4.8):
+        ts = sorted(t for t, p in reqs(since, paths))
+        return max([sum(1 for u in ts[i:] if u - t < win) for i, t in enumerate(ts)] or [0])
+
+    ALL4_LIVE = ("() => { const w = [...document.querySelectorAll('#v-overview .livetg[data-livekey]')]; const ks = " + _json.dumps(OVA_LIVE_KEYS) + ";"
+                 " return ks.every(k => { const e = w.find(x => x.dataset.livekey === k); return e && /^\\d\\d:\\d\\d:\\d\\d · 5秒$/.test(e.querySelector('.livetg-t').textContent); })"
+                 " && ['heat','ovTheme','rotClockMini','breadth'].every(id => (document.getElementById(id) || {dataset:{}}).dataset.lv === '1'); }")
+
+    # ------------------------------------------------------------------ ① 每張卡都有開關（盤中 1440）
+    ctx, pg = open_page(LV5_INTRA)
+    render_all(pg)
+    G = tgs(pg)
+    ok(f"★ [{T}] 總覽每張功能卡都有「即時」開關（大盤、熱力圖、題材、輪盤、昨日資金去向、漲跌分佈）",
+       sorted(k for k, v in G.items() if v["vis"]) == sorted(["m3", "ovheat", "ovtheme", "ovrot", "ovflow", "ovud"]), sorted(G))
+    ok(f"[{T}] 摘要卡四張也有開關（右上角日期鈕）", count(pg, "#hero .osc button.ovl-tg") == 4)
+    ok(f"[{T}] 可即時的四張預設開著（aria-pressed=true）", all(G.get(k, {}).get("p") == "true" for k in OVA_LIVE_KEYS), {k: G.get(k, {}).get("p") for k in OVA_LIVE_KEYS})
+    ok(f"[{T}] 剛打開（還沒輪完一圈）開關寫「載入中」，不是假的 HH:MM:SS",
+       all(G[k]["t"].startswith("載入中") for k in OVA_LIVE_KEYS if k in G), {k: G.get(k, {}).get("t") for k in OVA_LIVE_KEYS})
+    fl = G.get("ovflow", {})
+    ok(f"★ [{T}] 昨日資金去向（盤後性質）：開關停用、旁邊寫「此項為盤後資料，盤中不變」",
+       fl.get("dis") is True and fl.get("t") == "此項為盤後資料，盤中不變" and "eod" in fl.get("cls", ""), fl)
+    ok(f"[{T}] 昨日資金去向：提示框寫明為什麼（收盤結算、盤中沒有來源）", "收盤結算" in fl.get("tip", "") and "盤中不變" in fl.get("tip", ""), fl.get("tip", "")[:120])
+    pg.click("#ovFlowHead .livetg-b", force=True); pg.wait_for_timeout(300)
+    ok(f"[{T}] 昨日資金去向：按了也不會打開（不假裝即時、不寫 localStorage）",
+       tgs(pg)["ovflow"]["p"] == "false" and pg.evaluate("() => localStorage.getItem('tw.live.card.ovflow')") is None)
+    eod = pg.evaluate(OVA_SIG)
+    ok(f"[{T}] 盤後那一份：熱力圖圖例是資金流向、題材圖例是熱度、四張圖都標成盤後（data-lv=0）",
+       eod["legend"] == {"heat": "flow", "theme": "heat"} and all(v == "0" for v in eod["lv"].values()), [eod["legend"], eod["lv"]])
+
+    # ------------------------------------------------------------------ ② 一圈之後換成即時
+    t0 = _time.time()
+    live_ok = wait_until(pg, ALL4_LIVE, 55000, 300)
+    ok(f"★ [{T}] 盤中：55 秒內熱力圖／題材／輪盤／漲跌分佈都換成即時（開關寫 HH:MM:SS · 5秒）", bool(live_ok),
+       {"秒": round(_time.time() - t0, 1), "tg": {k: tgs(pg).get(k, {}).get("t") for k in OVA_LIVE_KEYS}, "lv": pg.evaluate(OVA_SIG)["lv"]})
+    if not live_ok:
+        ctx.close(); return
+    L1 = pg.evaluate(OVA_SIG)
+    ok(f"★ [{T}] 每張即時卡下面都寫「即時估算」口徑（看得到）",
+       all(L1["notes"][k] and L1["notes"][k]["vis"] and "即時估算" in L1["notes"][k]["t"] for k in OVA_LIVE_KEYS), L1["notes"])
+    ok(f"[{T}] 熱力圖即時：圖例換成漲跌幅、日期膠囊反灰、方塊第二行寫「即時 ±x%」",
+       L1["legend"]["heat"] == "chg" and L1["dim"]["heat"] and L1.get("heatLab", 0) > 0, [L1["legend"], L1["dim"], L1.get("heatLab")])
+    ok(f"[{T}] 熱力圖即時：自動桶（ind_*）一律「無即時」，人工族群大多有即時漲跌（≥ 7 成）",
+       L1["heatAuto"] and all(L1["heatAuto"]) and sum(L1["heatMan"]) >= 0.7 * len(L1["heatMan"]), [sum(L1["heatAuto"]), len(L1["heatAuto"]), sum(L1["heatMan"]), len(L1["heatMan"])])
+    ok(f"[{T}] 熱門題材即時：圖例換成漲跌幅、日期反灰、方塊寫「即時 ±x%」",
+       L1["legend"]["theme"] == "chg" and L1["dim"]["theme"] and L1.get("themeLab", 0) > 0, [L1["legend"], L1["dim"], L1.get("themeLab")])
+    ok(f"[{T}] 四張圖的資料跟盤後那一份不一樣（真的換成即時）", all(L1[k] != eod[k] for k in ("heat", "theme", "rot", "ud")),
+       {k: L1[k] == eod[k] for k in ("heat", "theme", "rot", "ud")})
+    hero_n = pg.evaluate("() => +document.getElementById('hero').dataset.udN")
+    ok(f"[{T}] 漲跌分佈即時：右上角寫「即時 N 檔」，N＝直條加總＝摘要卡「漲跌家數」的 N（同一份名單）",
+       L1["udSum"].startswith("即時") and str(L1["udTotal"]) in L1["udSum"] and sum(_json.loads(L1["ud"])) == L1["udTotal"] and abs(L1["udTotal"] - hero_n) <= 3,
+       [L1["udSum"], L1["udTotal"], hero_n])
+    tip = tgs(pg)["ovheat"]["tip"]
+    ok(f"[{T}] 開關提示寫出口徑與「不多打」", all(x in tip for x in ("口徑", "族群即時漲跌", "不多打")), tip[:200])
+
+    # --- 再一輪：圖真的變、節點與實例不變、圖容器 0 個 DOM 變動、盤後的卡（資金去向）沒被碰
+    pg.evaluate("""() => { window.__ovaMut = { chart: 0, flow: 0 };
+      ['heat','ovTheme','rotClockMini','breadth','ovHeatCard','ovThemeCard','ovRotCard','ovBreadthCard'].forEach(id => { const e = document.getElementById(id); if (e) e.__ova = 1; });
+      ['heat','ovTheme','rotClockMini','breadth'].forEach(id => { const e = document.getElementById(id), c = e && e.querySelector('canvas'); if (c) c.__ova = 1;
+        new MutationObserver(m => { window.__ovaMut.chart += m.filter(x => x.type === 'childList').length; }).observe(e, { childList: true, subtree: true }); });
+      const f = document.getElementById('ovFlow'); if (f) new MutationObserver(m => { window.__ovaMut.flow += m.length; }).observe(f, { childList: true, subtree: true, attributes: true }); }""")
+    changed = {k: False for k in ("heat", "theme", "rot", "ud")}
+    t1 = _time.time()
+    while _time.time() - t1 < 11 and not all(changed.values()):
+        pg.wait_for_timeout(400)
+        cur = pg.evaluate(OVA_SIG)
+        for k in changed:
+            changed[k] = changed[k] or cur[k] != L1[k]
+    ok(f"★ [{T}] 11 秒內四張圖的資料都真的變了（跟著每 5 秒那一批）", all(changed.values()), changed)
+    L2 = pg.evaluate(OVA_SIG)
+    kept = pg.evaluate("""() => ({ el: ['heat','ovTheme','rotClockMini','breadth','ovHeatCard','ovThemeCard','ovRotCard','ovBreadthCard'].every(id => (document.getElementById(id) || {}).__ova === 1),
+      cv: ['heat','ovTheme','rotClockMini','breadth'].every(id => { const c = document.getElementById(id).querySelector('canvas'); return c && c.__ova === 1; }), mut: window.__ovaMut })""")
+    ok(f"★ [{T}] 不整張卡重建：卡片、圖容器、canvas 都是同一個節點，ECharts 實例 id 不變", kept["el"] and kept["cv"] and L2["ids"] == L1["ids"], [kept, L1["ids"], L2["ids"]])
+    ok(f"★ [{T}] 只換資料：更新期間四個圖容器裡 0 個 DOM 節點增刪", kept["mut"]["chart"] == 0, kept["mut"])
+    ok(f"[{T}] 不重畫無關的卡：盤後的「昨日資金去向」更新期間一個 DOM 變動都沒有", kept["mut"]["flow"] == 0, kept["mut"])
+    ok(f"[{T}] 開關的時間跟著跳（HH:MM:SS · 5秒）", all(OVA_LIVE_RE.match(tgs(pg)[k]["t"]) for k in OVA_LIVE_KEYS), {k: tgs(pg)[k]["t"] for k in OVA_LIVE_KEYS})
+
+    # --- ⑤ 請求：不多打
+    t_q = _time.time(); pg.wait_for_timeout(15200)
+    nq = len(reqs(t_q, ("/quote",))); toks = [n for t, n in S["toks"] if t >= t_q]
+    ok(f"★ [{T}] 不多打請求：15 秒內 /quote 只有 3～4 次（五張卡共用摘要卡那一圈補位）", 3 <= nq <= 4, nq)
+    ok(f"★ [{T}] 每個請求 ≤ 110 個代號", toks and max(toks) <= 110, toks)
+    ok(f"★ [{T}] 任何 5 秒內打到 mis（/quote＋/chart）≤ 3（節流閥）", max_in_window(t_q) <= 3, max_in_window(t_q))
+
+    # ------------------------------------------------------------------ ④ 關掉熱力圖：原地換回盤後、別張照常
+    pg.evaluate("() => window.scrollTo(0, 0)")
+    pg.click("#ovHeatCard .livetg-b"); pg.wait_for_timeout(700)
+    H = pg.evaluate(OVA_SIG); g = tgs(pg)
+    ok(f"★ [{T}] 關掉熱力圖：開關寫「靜態」、aria-pressed=false、存進 localStorage",
+       g["ovheat"]["p"] == "false" and g["ovheat"]["t"] == "靜態" and pg.evaluate("() => localStorage.getItem('tw.live.card.ovheat')") == "0", g["ovheat"])
+    ok(f"★ [{T}] 關掉熱力圖：圖原地換回盤後那一份（跟剛打開時一模一樣）、圖例回資金流向、口徑那行收起、日期不反灰",
+       H["heat"] == eod["heat"] and H["lv"]["heat"] == "0" and H["legend"]["heat"] == "flow" and not H["notes"]["ovheat"]["vis"] and not H["dim"]["heat"],
+       [H["heat"] == eod["heat"], H["lv"], H["legend"], H["notes"]["ovheat"], H["dim"]])
+    ok(f"[{T}] 關掉熱力圖：ECharts 實例仍是同一個（換回盤後也不重建節點）", H["ids"]["heat"] == L1["ids"]["heat"], [H["ids"], L1["ids"]])
+    ok(f"[{T}] 關掉熱力圖：其他三張仍是即時", all(H["lv"][k] == "1" for k in ("theme", "rot", "ud")) and all(OVA_LIVE_RE.match(g[k]["t"]) for k in ("ovtheme", "ovrot", "ovud")),
+       [H["lv"], {k: g[k]["t"] for k in OVA_LIVE_KEYS}])
+    pg.wait_for_timeout(11000)
+    H2 = pg.evaluate(OVA_SIG)
+    ok(f"★ [{T}] 關掉之後 11 秒：熱力圖一格都沒動", H2["heat"] == eod["heat"] and H2["lv"]["heat"] == "0", H2["lv"])
+    ok(f"[{T}] 同一段時間其他圖照樣在變（只關了那一張）", H2["theme"] != H["theme"] or H2["rot"] != H["rot"] or H2["ud"] != H["ud"])
+    pg.reload(wait_until="load")
+    wait_until(pg, "() => document.querySelectorAll('#v-overview .livetg[data-livekey]').length >= 6", 12000)
+    render_all(pg)
+    ok(f"[{T}] 重新整理之後熱力圖的即時仍是關的", tgs(pg)["ovheat"]["p"] == "false" and tgs(pg)["ovheat"]["t"] == "靜態", tgs(pg)["ovheat"])
+    back3 = wait_until(pg, "() => ['ovTheme','rotClockMini','breadth'].every(id => document.getElementById(id).dataset.lv === '1')", 55000, 300)
+    ok(f"[{T}] 重新整理之後：其他三張一圈後又是即時，熱力圖仍是盤後", bool(back3) and pg.evaluate(OVA_SIG)["lv"]["heat"] == "0", pg.evaluate(OVA_SIG)["lv"])
+    pg.click("#ovHeatCard .livetg-b")
+    on_again = wait_until(pg, "() => document.getElementById('heat').dataset.lv === '1'", 8000, 200)
+    ok(f"★ [{T}] 再打開熱力圖：別張開著時報價本來就在輪，8 秒內就回到即時（不用再等一圈）", bool(on_again), pg.evaluate(OVA_SIG)["lv"])
+
+    # ------------------------------------------------------------------ ⑦ 版面：1440、390 開關不壓字、字 ≥ 11、沒有橫向捲軸
+    LAY = r"""() => { const out = [];
+      document.querySelectorAll('#v-overview .livetg[data-livekey]').forEach(w => { if (!w.getClientRects().length) return;
+        const r = w.getBoundingClientRect(), p = w.parentElement, card = w.closest('.card');
+        const sib = [...p.children].filter(e => e !== w && e.getClientRects().length && !e.hidden).map(e => { const q = e.getBoundingClientRect();
+          const ix = Math.min(r.right, q.right) - Math.max(r.left, q.left), iy = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top);
+          return ix > 1 && iy > 1 ? (e.id || e.className || e.tagName) : null; }).filter(Boolean);
+        const cr = card ? card.getBoundingClientRect() : r;
+        out.push({ k: w.dataset.livekey, hit: sib, inCard: r.left >= cr.left - 1 && r.right <= cr.right + 1, fs: Math.min(...[...w.querySelectorAll('.livetg-b, .livetg-t')].map(e => parseFloat(getComputedStyle(e).fontSize))) }); });
+      const notes = [...document.querySelectorAll('#v-overview .ovlnote')].filter(n => !n.hidden && n.getClientRects().length).map(n => parseFloat(getComputedStyle(n).fontSize));
+      return { tg: out, notes, sx: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+    lay = pg.evaluate(LAY)
+    ok(f"[{T} 1440] 開關不壓到標題列的其他東西、不超出卡片", all(not x["hit"] and x["inCard"] for x in lay["tg"]), lay["tg"])
+    ok(f"[{T} 1440] 開關與口徑字 ≥ 11px、沒有橫向捲軸", all(x["fs"] >= 11 for x in lay["tg"]) and all(f >= 11 for f in lay["notes"]) and lay["sx"] <= lay["vw"], lay)
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(1500)
+    seen, bad = {}, []
+    spine = pg.locator("#v-overview > .mspine > *")
+    nsp = spine.count()
+    for i in range(max(1, nsp)):
+        if nsp:
+            spine.nth(i).click(); pg.wait_for_timeout(500)
+        pager = pg.locator("#v-overview > .mpager > *")
+        npg = pager.count()
+        for j in range(max(1, npg)):
+            if npg:
+                try:
+                    pager.nth(j).click(); pg.wait_for_timeout(450)
+                except Exception:  # noqa: BLE001
+                    continue
+            l3 = pg.evaluate(LAY)
+            for x in l3["tg"]:
+                seen[x["k"]] = x
+                if x["hit"] or not x["inCard"] or x["fs"] < 11:
+                    bad.append(x)
+            if l3["sx"] > l3["vw"] or any(f < 11 for f in l3["notes"]):
+                bad.append({"sx": l3["sx"], "vw": l3["vw"], "notes": l3["notes"]})
+    ok(f"[{T} 390] 手機翻過總覽每一段：看得到熱力圖、題材、輪盤、漲跌分佈的開關", all(k in seen for k in OVA_LIVE_KEYS), sorted(seen))
+    ok(f"★ [{T} 390] 手機：開關不壓字、不超出卡片、字 ≥ 11px、口徑字 ≥ 11px、沒有橫向捲軸", not bad, bad[:4])
+    ctx.close()
+
+    # ------------------------------------------------------------------ ⑥ 子權限：只鎖熱門題材的即時
+    ctx, pg = open_page(LV5_INTRA, perm={"ov.theme.live": False})
+    render_all(pg)
+    wait_until(pg, "() => !!document.querySelector('#ovThemeCard .livetg-b[data-plkb=\"block\"]')", 8000)
+    g = tgs(pg)
+    ok(f"[{T} 權限] TwPerm 真的只鎖 ov.theme.live", pg.evaluate("() => window.TwPerm && TwPerm.locked()") == ["ov.theme.live"], pg.evaluate("() => window.TwPerm && TwPerm.locked()"))
+    ok(f"★ [{T} 權限] 熱門題材的開關蓋鎖頭（data-plkb=block）、寫「需開通」；其他卡的開關沒有鎖頭",
+       g["ovtheme"]["plkb"] == "block" and g["ovtheme"]["t"] == "需開通" and all(not g[k]["plkb"] for k in g if k != "ovtheme"), {k: (g[k]["plkb"], g[k]["t"]) for k in g})
+    lock_after = pg.evaluate("() => getComputedStyle(document.querySelector('#ovThemeCard .livetg-b'), '::after').content")
+    ok(f"[{T} 權限] 鎖頭真的畫出來（::after 🔒）", "🔒" in (lock_after or ""), lock_after)
+    pg.click("#ovThemeCard .livetg-b"); pg.wait_for_timeout(400)
+    toast = pg.evaluate("() => { const t = document.getElementById('permToast'); return t && !t.hidden ? t.textContent : ''; }")
+    ok(f"★ [{T} 權限] 按熱門題材的開關：只跳「此功能需開通」，開關沒有被切換", "此功能需開通" in toast and tgs(pg)["ovtheme"]["p"] == "false"
+       and pg.evaluate("() => localStorage.getItem('tw.live.card.ovtheme')") is None, [toast, tgs(pg)["ovtheme"]])
+    lv_ok = wait_until(pg, "() => ['heat','rotClockMini','breadth'].every(id => document.getElementById(id).dataset.lv === '1')", 55000, 300)
+    P = pg.evaluate(OVA_SIG)
+    ok(f"★ [{T} 權限] 其他三張照常換成即時，熱門題材停在盤後（圖例仍是熱度、口徑那行不出現）",
+       bool(lv_ok) and P["lv"]["theme"] == "0" and P["legend"]["theme"] == "heat" and not (P["notes"]["ovtheme"] or {}).get("vis"), [P["lv"], P["legend"], P["notes"]["ovtheme"]])
+    feats = pg.evaluate("""() => { const want = ['ov.summary.live','ov.index.live','ov.heat.live','ov.theme.live','ov.rot.live','ov.breadth.live','ov.flow.live','ov.events.live'];
+      return { ok: want.every(id => { const f = TwFeatures.byId(id); return f && f.cat === 'global' && f.def === true && f.kind === 'bool' && (f.block || []).length === 1; }),
+               cat: (TwFeatures.cats.find(c => c.id === 'global') || {}).name, n: TwFeatures.inCat('global').filter(f => want.includes(f.id)).length }; }""")
+    ok(f"[{T} 權限] 八個「即時」子權限都在 features.js 的「即時與全站工具」分類、預設開", feats["ok"] and feats["cat"] == "即時與全站工具" and feats["n"] == 8, feats)
+    ctx.close()
+
+    # ------------------------------------------------------------------ ⑧ 盤後時鐘：盤後資料、開關寫「盤後 MM/DD」、不塞補位
+    S["toks"].clear(); S["log"].clear()
+    ctx, pg = open_page(LV5_AFTER)
+    render_all(pg)
+    pg.wait_for_timeout(5000)
+    g = tgs(pg); A = pg.evaluate(OVA_SIG)
+    ok(f"★ [{T} 盤後] 四張卡是盤後那一份（data-lv=0、圖例資金流向／熱度），開關寫「盤後 MM/DD」、仍是開的",
+       all(A["lv"][k] == "0" for k in A["lv"]) and A["legend"] == {"heat": "flow", "theme": "heat"}
+       and all(re.match(r"^盤後 \d\d/\d\d$", g[k]["t"]) and g[k]["p"] == "true" for k in OVA_LIVE_KEYS), [A["lv"], A["legend"], {k: g[k]["t"] for k in OVA_LIVE_KEYS}])
+    ok(f"[{T} 盤後] 盤後跟盤中剛打開時是同一份盤後資料", A["heat"] == eod["heat"] and A["ud"] == eod["ud"])
+    toks_a = [n for t, n in S["toks"]]
+    ok(f"[{T} 盤後] 盤後不塞補位代號", not toks_a or max(toks_a) <= 12, toks_a)
+    ctx.close()
 
 
 # ===================================================================== 個股分頁版面 1002（claude/stock-tabs-4，DECISIONS #295）
@@ -19132,6 +19469,7 @@ SECTIONS = {
     "即時5秒0929":         lambda pg, b, base, code: t_live5s_0929(b, base, code),
     # ★ 2026-10-02 Andy：「這都需要具備即時功能」—— 總覽四張摘要卡跟著每 5 秒那一批即時（補位、不多打請求；假時鐘＋假報價，⚠ 一律 --workers 1）
     "總覽摘要卡即時":      lambda pg, b, base, code: t_ov_kpi_live_1002(b, base, code),
+    "總覽全卡即時":        lambda pg, b, base, code: t_ov_all_live_1003(b, base, code),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     # ★ 2026-09-28 Andy：今日事件預設隱藏、浮層抽屜、點背景關、關掉再開回到預設、修寬度 bug
@@ -40799,6 +41137,12 @@ def t_member_perm(b, base, code):
         ok(f"{T}：#admin/perm 依分類列出全部功能（{nf['cats']} 類）", ad.locator("#pmCats .pmcat").count() == nf["cats"], ad.locator("#pmCats .pmcat").count())
         ok(f"{T}：每個開關類功能一個 Switch、上限類一個下拉", ad.locator("#pmCats input[role=switch]").count() == nf["bools"] and ad.locator("#pmCats select[data-f]").count() == nf["limits"],
            (ad.locator("#pmCats input[role=switch]").count(), nf))
+        # ★ 2026-10-03（DECISIONS #298）：總覽每張卡的「即時」子權限自動列在「即時與全站工具」那一類
+        ovl = ad.evaluate("""() => ['ov.summary.live','ov.index.live','ov.heat.live','ov.theme.live','ov.rot.live','ov.breadth.live','ov.flow.live','ov.events.live']
+            .map(id => { const r = document.querySelector(`#pmCats .pmrow[data-f='${id}']`); const c = r && r.closest('.pmcat');
+              return { id, row: !!r, cat: c ? c.dataset.cat : '', h: c ? c.querySelector('h3').firstChild.textContent : '', sw: !!(r && r.querySelector('input[role=switch]')) }; })""")
+        ok(f"{T}：#admin/perm 列出總覽八個「即時」子權限，都在「即時與全站工具」分類、各一個 Switch",
+           all(x["row"] and x["cat"] == "global" and x["h"].strip() == "即時與全站工具" and x["sw"] for x in ovl), ovl)
         ok(f"{T}：還沒選人之前開關是停用的（不會誤存到不知道誰）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => i.disabled)"))
         ok(f"{T}：每類都有「全開／全關」", ad.locator("#pmCats button[data-all='1']").count() == nf["cats"] and ad.locator("#pmCats button[data-all='0']").count() == nf["cats"])
         ok(f"{T}：管理頁寫明鎖頭擋不住直接讀 JSON（誠實限制）", "資料檔" in ad.inner_text("#v-admin") and "DECISIONS #288" in ad.inner_text("#v-admin"))

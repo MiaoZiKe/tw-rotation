@@ -4160,6 +4160,16 @@ h3 .howbtn.pop{font-family:inherit}
 .osc-d.lv.stale{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 55%,var(--line))}
 .osc-d.lv.stale .ovl-dot{animation:none}
 .osc-d.off{border-style:dashed}
+/* ★ 2026-10-03（DECISIONS #298）總覽每張卡的即時：
+   · .ovlnote：卡片即時時那一行口徑（「即時估算：…幾檔、怎麼估、哪些沒有即時」）；盤後收起來。手機也顯示、字 12px。
+   · 日期膠囊反灰（#283 liveDim 同一個做法）：卡片畫的是即時資料時，標題列那顆「盤後資料日期」不再代表這張圖。
+   · .lvslot：只是 live.js 插「即時」開關的位置標記，本身不佔寬。*/
+.ovlnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3)}
+.ovlnote b{color:var(--ink-2);font-weight:600}
+.ovlnote[hidden]{display:none}
+#heatDate.livedim,#ovThemeDate.livedim{opacity:.38;filter:grayscale(1)}
+.lvslot{display:inline-block;width:0;height:0;overflow:hidden}
+#ovRotHead .livetg{margin-left:auto}
 @keyframes ovlPulse{0%,100%{opacity:1}50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.osc-d.lv .ovl-dot{animation:none}}
 .osc:hover .osc-more{color:var(--cyan)}
@@ -4947,7 +4957,7 @@ h3 .howbtn.pop{font-family:inherit}
           <div class="howtxt" id="how-themeov" hidden></div>
           <div class="zwrap" id="ovThemeWrap"><div id="ovTheme" class="chart"></div></div></div>
       </div>
-      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>資金輪盤 <button class="howbtn pop" data-how="rotm" aria-label="資金輪盤怎麼看">?</button></h3></div>
+      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>資金輪盤 <button class="howbtn pop" data-how="rotm" aria-label="資金輪盤怎麼看">?</button></h3><!-- ★ 2026-10-03（DECISIONS #298）：「即時」開關的插入點（live.js MOUNTS 插在它前面），標題列右側 --><span class="lvslot" aria-hidden="true"></span></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
         <!-- ★ 2026-09-28（Andy）：點圓圈 → 圓圈旁的簡短說明框（取代 09-26 的成分股覆蓋卡 #ovRotPanel）。位置由 app.js ovRotPop() 算。 -->

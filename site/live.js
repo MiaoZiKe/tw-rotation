@@ -163,6 +163,7 @@
        每輪輪一段）。它**不會多打任何一個請求**、也不會擠掉畫面上的代號：主批次本來就是一個請求最多 110 檔，
        總覽平常只用掉 2～10 檔，剩下的空位每 5 秒塞下一段，約 25 秒輪完一圈。*/
     fills: {},
+    fillOn: {},          // key -> fn()：這份補位現在該不該塞（沒給＝看 cardOn(key)）
     fillSent: {},        // 這一輪真的塞進請求的補位代號：key -> [code]（跟 tw:live 一起送出去，登記的人才知道輪到哪）
     cardAt: {},          // 卡片 key -> 這張卡最後一次真的拿到新報價的時間（卡上那行「更新 HH:MM:SS」）
     metaAt: 0,           // 上一次比對 meta.json 的時間（見 META_EVERY_MS）
@@ -222,7 +223,22 @@
   /* ★ 2026-10-02 會員功能權限（DECISIONS #288）：「盤中即時（5 秒）」被管理者關掉的人＝所有卡片都當作「即時」關著。
      market3.js（m3On）、livek.js（cardOn）都是問這一支，所以只要這裡一行就全站一致。預設全開，沒載入 perm.js 也是開。*/
   const permLive = () => !window.TwPerm || window.TwPerm.can('live.tick');
-  const cardOn = (k) => permLive() && ls.get(KEY_CARD(k), '1') !== '0';
+  /* ★ 2026-10-03（Andy：「總覽頁面，所有功能都需要有切換即時功能，這是給之後會員使用」，DECISIONS #298）：
+     每張卡的「即時」多一層子權限（features.js 的 ov.*.live，分類「即時與全站工具」）。
+     live.tick 是總開關（關了＝全站都不即時）；子權限關掉＝只有那一張卡當作「即時」關著、開關蓋鎖頭（perm.js 的 block），
+     卡片照常顯示盤後資料，其他卡不受影響。沒列在這裡的卡（個股、自選）只看總開關。*/
+  const CARD_PERM = { m3: 'ov.index.live', ovs: 'ov.summary.live', ovheat: 'ov.heat.live', ovtheme: 'ov.theme.live',
+    ovrot: 'ov.rot.live', ovud: 'ov.breadth.live', ovflow: 'ov.flow.live', ovev: 'ov.events.live' };
+  const permCard = (k) => !window.TwPerm || !CARD_PERM[k] || window.TwPerm.can(CARD_PERM[k]);
+  /* 盤後性質的卡：開關照樣有（Andy 要「每一張」都有），但做成停用，旁邊直接寫「此項為盤後資料，盤中不變」——
+     不准假裝即時（DECISIONS #298）。提示框寫為什麼。*/
+  const EOD_NOTE = {
+    ovflow: '昨日資金去向：這張圖畫的是最近一個交易日「收盤結算」的族群成交值（Andy 2026-09-23 指定「資料是昨日（盤後結算）」），'
+      + '盤中沒有可以續算它的來源，所以盤中不變、開關停用。\n要看盤中的錢往哪跑：最上面「資金去向」摘要卡、資金流向頁的資金去向「即時」。',
+    ovev: '今日事件：新聞、法說、目標價由每天盤後的資料管線抓（台北 15:30／18:30／21:30 三輪），不是報價，'
+      + '盤中不會跟著每 5 秒更新，所以開關停用。',
+  };
+  const cardOn = (k) => permLive() && permCard(k) && !EOD_NOTE[k] && ls.get(KEY_CARD(k), '1') !== '0';
   const keyOf = (el) => { const c = el.closest && el.closest('[data-livekey]'); return c ? c.dataset.livekey : ''; };
   /** 這個元素現在該不該被即時層動到：沒有歸屬卡片的照舊（一律跟著全站自動更新），有歸屬的看那張卡的開關。 */
   const elOn = (el) => { if (!permLive()) return false; const k = keyOf(el); return !k || cardOn(k); };
@@ -257,7 +273,11 @@
       state.fillSent = {};
       let tok = 0; out.forEach(c => { tok += exch(c).length; });
       Object.keys(state.fills).forEach(k => {
-        if (!cardOn(k)) return;
+        /* ★ 2026-10-03（#298）：補位可以自帶「什麼時候算開著」（opts.on）—— 總覽那一圈 455 檔是摘要卡、熱力圖、
+           熱門題材、資金輪盤、漲跌分佈五張卡共用的同一份報價，任何一張開著就要塞；全部關掉才不塞。*/
+        const onF = state.fillOn[k];
+        let on = false; try { on = onF ? !!onF() : cardOn(k); } catch (e) { on = false; }
+        if (!on || !permLive()) return;
         const room = MAX_CODES - out.length;
         if (room <= 0 || tok >= MAX_CODES) return;
         let list = [];
@@ -792,8 +812,19 @@
     { key: 'watch', card: '#wlPanel', at: '.wlhd .wlx', pos: 'before' },
     { key: 'watch', card: '#mbWatch' },
     { key: 'm3', card: '#m3Frame', at: '.m3-bar .howbtn[data-how="m3"]', pos: 'after' },
+    /* ★ 2026-10-03（DECISIONS #298）：總覽其餘每一張卡。開關都放在卡片標題列右側（日期膠囊前面）——
+       跟大盤卡同一顆元件、同一套狀態字（HH:MM:SS · 5秒／靜態／重試中）。資金輪盤與昨日資金去向在同一張卡（#ovRotCard），
+       所以各掛在自己的標題列（#ovRotHead、#ovFlowHead）當「卡片」，一張卡兩顆開關、各管各的。
+       卡片裡沒有 [data-lc] 格子：data-livekey 只用來標歸屬，數字與圖由 app.js 依 tw:live 更新。*/
+    { key: 'ovheat', card: '#ovHeatCard', at: '#heatDate', pos: 'before' },
+    { key: 'ovtheme', card: '#ovThemeCard', at: '#ovThemeDate', pos: 'before' },
+    { key: 'ovrot', card: '#ovRotHead', at: '.lvslot', pos: 'before' },
+    { key: 'ovflow', card: '#ovFlowHead', at: '.howbtn[data-how="ovflow"]', pos: 'after' },
+    { key: 'ovud', card: '#ovBreadthCard', at: '#udSum', pos: 'before' },
+    { key: 'ovev', card: '#ovEvents', at: 'h3 small', pos: 'before' },
   ];
-  const TG_NAME = { stock: '個股報價與分時', watch: '自選清單', m3: '大盤三張圖', ovs: '總覽摘要卡' };
+  const TG_NAME = { stock: '個股報價與分時', watch: '自選清單', m3: '大盤三張圖', ovs: '總覽摘要卡',
+    ovheat: '資金熱力圖', ovtheme: '熱門題材', ovrot: '資金輪盤', ovflow: '昨日資金去向', ovud: '漲跌家數分佈', ovev: '今日事件' };
 
   function injectCss() {
     if (document.getElementById('liveTgCss')) return;
@@ -813,6 +844,9 @@
 .livetg.mb .livetg-b::before{display:none}
 .livetg.mb .livetg-t{font-size:12px}
 .livetg.mb .livetg-b[aria-pressed="true"] .livetg-l::before{content:'● '}
+.livetg.eod .livetg-b{border-style:dashed;opacity:.55;cursor:not-allowed}
+.livetg.eod .livetg-t{color:var(--ink-3)}
+.livetg.lock .livetg-t{color:var(--ink-3)}
 `;
     document.head.appendChild(st);
   }
@@ -833,7 +867,11 @@
       w.appendChild(b); w.appendChild(t);
     }
     if (cls === 'mb') w.appendChild(b);
-    b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); setCard(key, !cardOn(key)); });
+    b.addEventListener('click', (e) => {
+      e.stopPropagation(); e.preventDefault();
+      if (EOD_NOTE[key] || !permCard(key)) return;     // 盤後性質的卡（停用）、沒開通的卡（perm.js 已經攔下並跳「此功能需開通」）
+      setCard(key, !cardOn(key));
+    });
     return w;
   }
 
@@ -841,7 +879,7 @@
     MOUNTS.forEach(sp => {
       document.querySelectorAll(sp.card).forEach(card => {
         if (card.dataset.livekey !== sp.key) card.dataset.livekey = sp.key;
-        if (!sp.at || card.querySelector('.livetg')) return;
+        if (!sp.at || card.querySelector(`.livetg[data-livekey="${sp.key}"]`)) return;
         const a = card.querySelector(sp.at);
         if (!a || !a.parentNode) return;
         const tg = makeToggle(sp.key, sp.cls);
@@ -864,7 +902,22 @@
       const name = TG_NAME[k] || '這張卡';
       const err = meta.err || ((k === 'stock' || k === 'watch') && state.slow ? state.lastErr : '');
       let txt, tip, cls = '';
-      if (!on) {
+      /* ★ 2026-10-03（#298）：三種新狀態 ——
+         ① 盤後性質（EOD_NOTE）：停用、旁邊寫「此項為盤後資料，盤中不變」、提示框寫為什麼；
+         ② 子權限沒開通：寫「需開通」（鎖頭與「此功能需開通」由 perm.js 的 block 處理）；
+         ③ 卡片自己給字（meta.txt／meta.tip）：總覽那幾張卡要等報價輪完一圈才換成即時、盤後顯示收盤快照或盤後日期，
+            這幾種狀態 live.js 不知道，由 app.js 用 Live.stampCard(key, {txt, tip}) 告訴它；沒給就照下面的通用寫法。*/
+      const eod = !!EOD_NOTE[k], lock = !eod && permLive() && !permCard(k);
+      if (eod) {
+        txt = '此項為盤後資料，盤中不變'; cls = 'eod';
+        tip = EOD_NOTE[k];
+      } else if (lock) {
+        txt = '需開通'; cls = 'lock';
+        tip = `${name}的即時更新：此功能需開通。卡片照常顯示盤後資料。`;
+      } else if (on && meta.txt) {
+        txt = meta.txt; cls = meta.cls || '';
+        tip = meta.tip || `${name}：${meta.txt}`;
+      } else if (!on) {
         txt = '靜態'; cls = 'off';
         tip = `${name}：即時已關，停在盤後資料、不再打報價端點。\n按一下打開＝盤中每 5 秒更新、盤後每 30 分鐘。`;
       } else if (!at && err) {
@@ -881,13 +934,24 @@
           + (intr ? '盤中每 5 秒更新一次（證交所報價本身就是 5 秒一張快照）' : '現在不是盤中（現貨 09:00–13:30），盤後每 30 分鐘對一次')
           + (err ? `\n上一次抓失敗：${err}（自動退避重試中）` : '')
           + (stale && !err ? '\n⚠ 已經超過平常間隔很久沒有新資料' : '')
+          + (meta.tipx ? '\n' + meta.tipx : '')          // 卡片自己的口徑說明（總覽那幾張：幾檔、怎麼估）
           + '\n按一下關掉＝靜態（退回盤後資料）。';
       }
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.title = tip;
-      b.setAttribute('aria-label', `${name}即時更新：${on ? '開' : '關'}`);
-      if (t.textContent !== txt) t.textContent = txt;
-      t.title = tip;
+      /* 只寫有變的：每 5 秒叫一次、總覽一頁八顆開關，不准白寫 DOM（DECISIONS #284 效能分支的原則）*/
+      const pr = on ? 'true' : 'false';
+      if (b.getAttribute('aria-pressed') !== pr) b.setAttribute('aria-pressed', pr);
+      if (b.title !== tip) b.title = tip;
+      const al = eod ? `${name}：此項為盤後資料，盤中不變（即時開關停用）` : `${name}即時更新：${lock ? '需開通' : on ? '開' : '關'}`;
+      if (b.getAttribute('aria-label') !== al) b.setAttribute('aria-label', al);
+      if (b.disabled !== eod) b.disabled = eod;
+      if (eod) { if (b.getAttribute('aria-disabled') !== 'true') b.setAttribute('aria-disabled', 'true'); }
+      else if (b.hasAttribute('aria-disabled')) b.removeAttribute('aria-disabled');
+      /* 改字只改文字節點本身（characterData），不換節點（childList）—— 全站的 MutationObserver（本檔 mountAll、perm.js）
+         只看 childList，每 5 秒跳一次的時間才不會每一輪都把它們叫醒去掃整頁（#298，效能分支 #284 的原則）。*/
+      if (t.textContent !== txt) { const n = t.firstChild; if (n && n.nodeType === 3 && !n.nextSibling) n.data = txt; else t.textContent = txt; }
+      if (t.title !== tip) t.title = tip;
+      w.classList.toggle('eod', cls === 'eod');
+      w.classList.toggle('lock', cls === 'lock');
       w.classList.toggle('off', cls === 'off');
       w.classList.toggle('bad', cls === 'bad');
       w.classList.toggle('stale', cls === 'stale');
@@ -896,6 +960,7 @@
 
   /** 開／關一張卡的即時。關＝那張卡裡被即時層改過的格子退回原本的靜態值。 */
   function setCard(k, on) {
+    if (EOD_NOTE[k]) return;                       // 盤後性質的卡沒有「即時」可以開（#298）
     ls.set(KEY_CARD(k), on ? '1' : '0');
     if (!on) {
       document.querySelectorAll('[data-live][data-lc]').forEach(el => {
@@ -954,6 +1019,8 @@
     get coolStats() { const o = {}; Object.keys(cool).forEach(k => { o[k] = { n: cool[k].n, waitMs: backoffMs(cool[k].n) }; }); return o; },
     get slotStats() { const now = Date.now(); return { recent: slotHist.filter(t => now - t < MIS_WINDOW_MS).length, queued: slotQ.length, max: MIS_MAX, windowMs: MIS_WINDOW_MS }; },
     cardOn, setCard, stampCards, mountAll, hms,
+    cardPerm: permCard,                        // 這張卡的「即時」子權限開著嗎（#298；沒有子權限的卡一律 true）
+    isEodCard: (k) => !!EOD_NOTE[k],           // 盤後性質的卡（開關停用）
     /** 卡片登記「畫面上沒有格子、但我要」的代號（大盤卡登記 t00／o00）。
      *  codes 可以是陣列，或每一輪才問的函式（回陣列；看不到那張卡時回 []）。給 null／空陣列＝撤銷。
      *  ★ 2026-10-02（DECISIONS #296）：opts.fill＝true 是「補位」—— codes 必須是函式 fn(room)，
@@ -962,6 +1029,7 @@
     want(key, codes, opts) {
       if (opts && opts.fill) {
         if (typeof codes === 'function') state.fills[key] = codes; else delete state.fills[key];
+        if (typeof opts.on === 'function') state.fillOn[key] = opts.on; else delete state.fillOn[key];
         return;
       }
       if (typeof codes === 'function') state.wants[key] = codes;
@@ -1009,6 +1077,8 @@
       // 並且把 SSE 的訂閱換成新的那一組（不換的話新頁面的格子永遠不會動）
       window.addEventListener('hashchange', () => setTimeout(() => { mountAll(); tick(false); syncStream(); }, 800));
       window.addEventListener('pagehide', () => closeStream(true));
+      // 權限換了（登入、管理者改設定）：每顆開關的「需開通」狀態馬上重寫，不等下一輪報價（#298）
+      window.addEventListener('tw:perm', () => stampCards());
       tick(false);
       openStream();
     },
