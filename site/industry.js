@@ -5105,11 +5105,12 @@
     const drawYear = () => { const yc = A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { show: false, type: 'scroll' }, grid: { left: 60, right: 20, top: 10, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } },
       series: yr.map((y, i) => { let acc = 0, broke = false; const d = Array.from({ length: 12 }, (_, m) => { const v = y.by_month[m + 1]; if (v == null) { broke = true; return null; } if (mode === 'c') { if (broke) return null; acc += v; return acc; } return v; }); /* ★ 2026-09-28：累計遇缺月就停（跳過缺月繼續加，後面每個月都少算一個月，線會系統性偏低）*/ return { name: String(y.year), type: 'line', data: d, smooth: .2, symbolSize: 5, lineStyle: { width: i === yr.length - 1 ? 3 : 1.5, color: A.PALETTE[i] }, itemStyle: { color: A.PALETTE[i] } }; }) });
       /* ★ 2026-10-02（DECISIONS #295）：營收改三欄之後這張卡只剩約 430px 寬，六個年份的 HTML 圖例放不進標題列，
-         退回 ECharts 圖例時會折成兩行、第二行（2026）壓到 Y 軸最上面的「14.0 億」。退回時改成單行可捲（type:'scroll'）、色樣縮小，永遠只佔一行。
+         退回 ECharts 圖例時會折成兩行、第二行（2026）壓到 Y 軸最上面的「14.0 億」。退回時改成單行可捲（type:'scroll'）、色樣縮小，永遠只佔一行；繪圖區頂 30 → 36（可捲圖例外框底約 25px，
+         Y 軸最上面那個刻度字半高約 7px，30 只剩 5px 會貼在一起 —— _uitest「個股分頁版面1002」的圖例越界檢查量的）。
          ⚠ 一開始的 option 就要寫 legend.type:'scroll'：plain 跟 scroll 是兩種元件，退回時才換 type 會整個換掉圖例元件，
          藏起來的年份（legend.selected）就丟了 —— _uitest「設計v4第二批2B」⑧（800→1000→800 來回後 2021 要仍藏著）抓到的。*/
       const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement, { fb: { top: 0, type: 'scroll', itemWidth: 14, itemGap: 8,
-        pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } } }); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下退回圖內單行）
+        pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } }, fbTop: 36 }); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下退回圖內單行）
     $$('#revMode button').forEach(b => b.onclick = () => { $$('#revMode button').forEach(x => x.classList.toggle('on', x === b)); mode = b.dataset.v; drawYear(); });
     drawYear();
   }
@@ -5669,7 +5670,7 @@
       if (pm) extLegend(pc, pm.parentElement, { labels: { EPS: 'EPS（元，左軸）' }, dual: { EPS: ['rgba(255,77,109,.7)', 'rgba(46,229,157,.7)'] },
         fb: { top: 0, type: 'scroll', itemWidth: 14, itemGap: 8, formatter: (n) => (n === 'EPS' ? 'EPS（元，左軸）' : n),
           pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } },
-        fbOpt: { yAxis: [{ name: '' }, {}] }, okOpt: { yAxis: [{ name: '' }, {}] } });
+        fbTop: 36, fbOpt: { yAxis: [{ name: '' }, {}] }, okOpt: { yAxis: [{ name: '' }, {}] } });
     };
     $$('#profitMode button', el).forEach(b => b.onclick = () => {
       pmode = b.dataset.v;
