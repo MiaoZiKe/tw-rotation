@@ -4770,7 +4770,7 @@ Andy 原話：「之後會分付費和免費會員，要一個新分頁，用 Sw
 5. 工作量估計：管線＋R2 上傳 0.5～1 天、Worker 端點＋存取測試 0.5 天、前端改讀取路徑與驗收 1～1.5 天（要跟改 industry.js 的人排開），合計 **2～3 個工作天**；
    需要 Andy 在 Cloudflare 開 R2（免費 10 GB）與一個 API token 權限。
 
-## #289 專家 Agent 的模型分配：部署／美編／產業改 Sonnet，審核與口徑、資安、技術分析固定 Opus（Andy 2026-10-02 拍板「套用」）
+## #292 專家 Agent 的模型分配：部署／美編／產業改 Sonnet，審核與口徑、資安、技術分析固定 Opus（Andy 2026-10-02 拍板「套用」）
 
 - `deployer`、`visual-designer`、`industry-analyst` → `model: sonnet`（規則清楚、量大的工作，省額度與時間）。
 - `reviewer`、`smc-technical`、`security-privacy`、`finance-quant` → `model: opus`（釘死，不跟著主對話的模型走）。

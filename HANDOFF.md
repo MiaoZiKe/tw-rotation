@@ -3613,6 +3613,6 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 20:11 手動觸發 pages.yml（每日管線今天被 GitHub 延遲），把全市場的 m60 帶上線。
 - 部署 pages #234（workflow_dispatch，7e19ddd）：台北 20:22 完成，deploy-pages 回報 success，Pages 部署的 sha 也相符。部署包 128.7 MB（上一輪 90.4 MB）。m60 檔數只數到下限 787：log 前半段讀不到（MCP 只回最後 5,000 行，下載原始檔被代理擋）。用資料湖交叉比對，預期約 2,059 支，部署包多出的大小也對得上，但這個數字是推算，不是從上傳清單數出來的。
 
-### 10-02 15:1x 合併上線：會員功能權限開關（#288）＋專家模型分配（DECISIONS 最新一條）
+### 10-02 15:1x 合併上線：會員功能權限開關（#288）＋專家模型分配（DECISIONS #292）
 - 會員權限：Worker 已部署（14:43）；前端 b123ee4 合併。這批驗了：_preview（合併後）；分支上 _uitest「會員與自選五分頁、會員雲端路徑、設定面板、會員權限開關、盤中即時、自選走勢與搜尋對齊」0 問題、Worker 測試 26 條全過。
 - 專家模型：deployer／visual-designer／industry-analyst 改 sonnet；reviewer／smc-technical／security-privacy／finance-quant 釘 opus。
