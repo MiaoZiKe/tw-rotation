@@ -18145,13 +18145,22 @@ def t_ov_kpi_live_1002(b, base, code):
     pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(800)
 
     # --- ⑦a 開著的頁面跨過收盤（台北 13:40）：右上角改回日期（今天的收盤快照），數字不往回拉到盤後 JSON 那一天
-    v_close = vals(pg)
+    # ⚠ 不拿「跳時鐘之前」量的數字比：跳之前已經送出去、跳之後才回來的那一輪是合法的盤中資料（會重算一次）；
+    #   機器忙的時候兩行 Python 之間就隔好幾秒（2026-10-02 合併後重跑，負載 22 時抓到過）。
+    #   要驗的是：① 跨過收盤之後數字就不再動 ② 不是換回前一天的盤後資料。
     pg.clock.set_system_time("2026-09-29T05:40:00Z")
     gone = wait_until(pg, "() => { const c = [...document.querySelectorAll('#hero .ovl-tg .ovl-t')]; return c.length === 4 && c.every(e => /^\\d\\d\\/\\d\\d$/.test(e.textContent)); }", 12000, 250)
     after = pg.evaluate(OVL_CHIPS)
     ok("★ [摘要卡即時] 跨過收盤：右上角從「即時 HH:MM:SS」改回日期", bool(gone), [c["t"] for c in after])
     ok("[摘要卡即時] 跨過收盤時盤後資料還沒產出 → 顯示今天（09/29）的收盤快照、提示寫明", all(c["t"] == "09/29" and "收盤快照" in c["tip"] for c in after), after)
-    ok("[摘要卡即時] 跨過收盤：數字停在收盤那一刻（不往回拉到前一天的盤後資料）", vals(pg) == v_close, [v_close, vals(pg)])
+    pg.wait_for_timeout(1500)
+    v_close = vals(pg); sig_close = pg.evaluate(OVL_SIG)
+    pg.wait_for_timeout(11000)          # 盤後主批次 30 分鐘才一輪；這 11 秒裡就算有晚到的回應也不准再改數字
+    ok("★ [摘要卡即時] 跨過收盤之後數字就停住（11 秒一格都沒動）", vals(pg) == v_close and pg.evaluate(OVL_SIG) == sig_close, [v_close, vals(pg)])
+    ok("[摘要卡即時] 跨過收盤：不是換回前一天的盤後資料（仍是今天的收盤快照、底線照寫即時估算）",
+       v_close != eod_v and pg.evaluate("() => +document.getElementById('hero').dataset.udN") == v_close["udN"] and v_close["udN"] <= 443
+       and all("即時估算" in t for t in pg.evaluate("() => [...document.querySelectorAll('#hero .osc .osc-f')].map(e => e.textContent)")),
+       [v_close, eod_v])
     ctx.close()
 
     # --- ⑦b 盤後（台北 20:30）新開的頁面：盤後資料、右上角是日期、不塞補位
