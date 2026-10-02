@@ -13,23 +13,24 @@ FRONT, BACK = v15.FRONT, v15.BACK   # 上＝基本、左＝技術、右＝產業
 
 # ---------- 規格（512 畫布；PNG 輸出 1024 = 2 倍）----------
 W = 512
-LX, LY = 238, 234          # 六角（立方）中心：往左上放，讓把手伸到右下角
-R = 150                    # 立方外接半徑 = 鏡框中心線的外接半徑
-FRAME = 23                 # 鏡框線寬（延用 v15 樣式）
+LX, LY = 252, 246          # 六角（立方）中心：參考圖的立方幾乎置中，只往左上偏一點讓把手有位置
+R = 175                    # 立方外接半徑＝鏡框中心線；寬 2R·cos30° = 303 ≈ 畫布 59%（參考圖量到立方佔寬 55～60%、高 67%）
+FRAME = 24                 # 鏡框線寬（延用 v15 樣式）
 R_IN = R - FRAME/2
 ROT = -15                  # 整顆繞中心旋轉（SVG 角度，負＝逆時針）
 BASE_ANG = 60              # 未旋轉時把手垂直於右下邊的方向
-RING_IN, TICK_L, TICK_S = 178, 16, 9    # 刻度環內緣、長刻度、短刻度
-BR, BR_L, BR_W = 42, 70, 20             # 角框：中心線距邊 42（外緣距邊 32）、臂長、線寬
-HW = 23                    # 握把半徑
-COLLAR0, COLLAR1 = 3, 38   # 金屬環：從鏡框中心線往外 3～38（鏡框外緣在 +11.5 → 壓進 8.5）
-WOOD1 = 172                # 端面中心距根部
+RING_IN, TICK_L, TICK_S = 196, 16, 9    # 刻度環緊貼立方外圍：內緣 196（鏡框外緣頂點 187）；外徑 424 ≈ 畫布 83%（參考圖量到 81%）
+BR, BR_L, BR_W = 34, 62, 20             # 角框靠近四角：中心線距邊 34（外緣距邊 24）、臂長、線寬 20
+# 把手照參考圖：短而粗的胡桃木柄＋根部一圈銀色金屬環＋圓頭（參考圖量到：木柄長約畫布 26%、直徑約 10%、軸線 45°）
+HW = 25                    # 握把半徑（直徑 50 ≈ 畫布 10%）
+COLLAR0, COLLAR1 = 3, 26   # 金屬環：從鏡框中心線往外 3～26（鏡框外緣在 +12 → 壓進 9）
+WOOD1 = 150                # 木柄圓頭最外點距根部（金屬環＋木柄 ≈ 147 ≈ 畫布 29%；木頭本身 124 ≈ 24%）
 
 S3 = math.cos(math.radians(30))
 P = dict(bg0='#ffffff', bg1='#eaf3fa', bracket='#1d3557', tick='#2c4b6c',
          frame='#24557b', frame_hi='#6fb3e2', hi='#ffffff',
          top='#eef9fe', left='#cdeaf9', right='#b4dcf3', base='#dcf0fa', face_op=.6, base_op=.95,
-         hidden_op=.8, back_op=.62)
+         hidden_op=.8, back_op=.5)
 
 
 def rot(p, deg=ROT, c=(LX, LY)):
@@ -40,11 +41,11 @@ def rot(p, deg=ROT, c=(LX, LY)):
 def defs(u):
     d = [f'<linearGradient id="{u}bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{P["bg0"]}"/><stop offset="1" stop-color="{P["bg1"]}"/></linearGradient>',
          f'<linearGradient id="{u}glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{P["top"]}"/><stop offset=".55" stop-color="{P["base"]}"/><stop offset="1" stop-color="{P["right"]}"/></linearGradient>',
-         f'<linearGradient id="{u}wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b47a4c"/><stop offset=".22" stop-color="#e2a96c"/>'
-         f'<stop offset=".45" stop-color="#f6c48a"/><stop offset=".62" stop-color="#facd91"/><stop offset=".85" stop-color="#d39a5e"/><stop offset="1" stop-color="#9c6a40"/></linearGradient>',
+         f'<linearGradient id="{u}wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8c5735"/><stop offset=".22" stop-color="#c08a5a"/>'
+         f'<stop offset=".45" stop-color="#d4a06c"/><stop offset=".7" stop-color="#bb8859"/><stop offset="1" stop-color="#7d4a2b"/></linearGradient>',
          f'<radialGradient id="{u}cap" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#f7c88f"/><stop offset=".7" stop-color="#e0a468"/><stop offset="1" stop-color="#c08452"/></radialGradient>',
-         f'<linearGradient id="{u}metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d4f99"/><stop offset=".3" stop-color="#3d9bf0"/>'
-         f'<stop offset=".5" stop-color="#bfe3ff"/><stop offset=".7" stop-color="#1474d3"/><stop offset="1" stop-color="#0a3d78"/></linearGradient>',
+         f'<linearGradient id="{u}metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3ad"/><stop offset=".3" stop-color="#e9edf1"/>'
+         f'<stop offset=".5" stop-color="#ffffff"/><stop offset=".75" stop-color="#c3cad3"/><stop offset="1" stop-color="#7f8994"/></linearGradient>',
          f'<clipPath id="{u}clip"><polygon points="{pts(hexagon(LX, LY, R_IN))}"/></clipPath>']
     return '<defs>' + ''.join(d) + '</defs>'
 
@@ -75,12 +76,19 @@ def brackets():
     return f'<path d="{d}" fill="none" stroke="{P["bracket"]}" stroke-width="{BR_W}" stroke-linecap="round" stroke-linejoin="round"/>'
 
 
-def cube_glass(cb, u, yw=6.5, sw=1.8):
+def place(cb, k, front):
+    """立方放大到 R=175 後，v14 的預設比例讓頂面走勢圖的縱軸太粗、背面淡圖太搶眼，這裡收小一點"""
+    if k in ('top', 'bottom'):
+        return cb.matrix_flat(k, .52 if front else .38)
+    return cb.matrix(k, .13 if front else .31)
+
+
+def cube_glass(cb, u, yw=7, sw=1.5):
     """框內的冰藍玻璃立方（未旋轉座標；外面整組再轉 −15°）"""
     C = cb.C
     o = [f'<polygon points="{pts(cb.hex)}" fill="url(#{u}glass)" fill-opacity="{P["base_op"]}"/>']
     for k, fn in BACK.items():
-        o.append(f'<g opacity="{P["back_op"]}" transform="{cb.place(k, .27)}">{glyph(fn, sw)}</g>')
+        o.append(f'<g opacity="{P["back_op"]}" transform="{place(cb, k, False)}">{glyph(fn, sw)}</g>')
     o.append(f'<path d="M{C[0]:.1f} {C[1]:.1f}L{cb.T[0]:.1f} {cb.T[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.LL[0]:.1f} {cb.LL[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.LR[0]:.1f} {cb.LR[1]:.1f}" '
              f'stroke="{P["hi"]}" stroke-width="{yw*.45:.1f}" stroke-opacity="{P["hidden_op"]}" stroke-linecap="round"/>')
     for k in ('top', 'left', 'right'):
@@ -96,7 +104,7 @@ def cube_glass(cb, u, yw=6.5, sw=1.8):
     o.append(f'<g clip-path="url(#{u}clip)"><polygon points="{pts(band(R_IN*.9, 16))}" fill="#ffffff" opacity=".4"/>'
              f'<polygon points="{pts(band(R_IN*.74, 6))}" fill="#ffffff" opacity=".3"/></g>')
     for k, fn in FRONT.items():
-        o.append(f'<g transform="{cb.place(k, .11)}">{glyph(fn, sw)}</g>')
+        o.append(f'<g transform="{place(cb, k, True)}">{glyph(fn, sw)}</g>')
     o.append(f'<path d="M{C[0]:.1f} {C[1]:.1f}L{cb.UL[0]:.1f} {cb.UL[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.UR[0]:.1f} {cb.UR[1]:.1f}M{C[0]:.1f} {C[1]:.1f}L{cb.B[0]:.1f} {cb.B[1]:.1f}" '
              f'stroke="{P["hi"]}" stroke-width="{yw:.1f}" stroke-opacity=".95" stroke-linecap="round"/>')
     return ''.join(o)
@@ -116,13 +124,28 @@ def handle_root():
 
 
 def handle(u):
+    """參考圖風格的短粗木柄（局部座標：x 沿把手軸線往外，0＝鏡框中心線上的右下邊中點）"""
     m = handle_root()
+    x0, x1 = COLLAR1 - 2, WOOD1                 # 木頭起點、圓頭最外點
+    rx = HW*.8                                  # 圓頭的半橢圓深度
+    xe = x1 - rx
+    wood = f'M{x0} {-HW}H{xe}A{rx} {HW} 0 0 1 {xe} {HW}H{x0}Z'
+    groove = xe - HW*.35                        # 靠近端頭的一圈溝（參考圖有）
+    grain = (f'M{x0 + 4} {-HW*.55:.1f}C{x0 + 30} {-HW*.85:.1f} {x0 + 52} {-HW*.2:.1f} {x0 + 80} {-HW*.5:.1f}S{xe - 6} {-HW*.75:.1f} {xe + 10} {-HW*.35:.1f}'
+             f'M{x0 + 6} {HW*.35:.1f}C{x0 + 28} {HW*.1:.1f} {x0 + 46} {HW*.7:.1f} {x0 + 74} {HW*.45:.1f}S{xe - 10} {HW*.2:.1f} {xe + 8} {HW*.55:.1f}'
+             f'M{x0 + 14} {-HW*.05:.1f}C{x0 + 36} {-HW*.3:.1f} {x0 + 58} {HW*.15:.1f} {x0 + 88} {-HW*.02:.1f}')
+    knot = f'<ellipse cx="{x0 + 52}" cy="{HW*.12:.1f}" rx="13" ry="{HW*.32:.1f}" fill="none"/><ellipse cx="{x0 + 52}" cy="{HW*.12:.1f}" rx="6" ry="{HW*.14:.1f}" fill="none"/>'
     return (f'<g transform="translate({m[0]:.2f} {m[1]:.2f}) rotate({BASE_ANG})">'
-            f'<rect x="{COLLAR1 - 3}" y="{-HW}" width="{WOOD1 - COLLAR1 + 3}" height="{2*HW}" rx="4" fill="url(#{u}wood)"/>'
-            f'<path d="M{COLLAR1 + 4} {-HW*.42:.1f}H{WOOD1 - 12}" stroke="#fff3df" stroke-width="4" stroke-linecap="round" opacity=".55"/>'
-            f'<ellipse cx="{WOOD1}" cy="0" rx="{HW*.5:.1f}" ry="{HW}" fill="url(#{u}cap)" stroke="#8a5a34" stroke-width="2"/>'
-            f'<rect x="{COLLAR0}" y="{-HW*.8:.1f}" width="{COLLAR1 - COLLAR0}" height="{HW*1.6:.1f}" rx="5" fill="url(#{u}metal)" stroke="#0a3566" stroke-width="2"/>'
-            f'<path d="M{COLLAR1} {-HW:.1f}V{HW:.1f}" stroke="#5a3218" stroke-width="4"/>'
+            f'<clipPath id="{u}woodclip"><path d="{wood}"/></clipPath>'
+            f'<path d="{wood}" fill="url(#{u}wood)"/>'
+            f'<g clip-path="url(#{u}woodclip)" stroke="#7a4626" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".75">'
+            f'<path d="{grain}"/>{knot}'
+            f'<path d="M{xe - 2} {-HW*.75:.1f}A{rx*.55:.1f} {HW*.6:.1f} 0 0 1 {xe - 2} {HW*.75:.1f}"/>'          # 圓頭上的年輪
+            f'</g>'
+            f'<path d="M{x0 + 6} {-HW*.5:.1f}H{groove - 8}" stroke="#ffe9c9" stroke-width="5" stroke-linecap="round" opacity=".35"/>'   # 高光
+            f'<path d="M{groove} {-HW}A{HW*.32:.1f} {HW} 0 0 1 {groove} {HW}" fill="none" stroke="#4a2a16" stroke-width="3.2"/>'          # 端頭的溝
+            f'<path d="{wood}" fill="none" stroke="#4a2a16" stroke-width="3.6" stroke-linejoin="round"/>'                                   # 深咖啡外框
+            f'<rect x="{COLLAR0}" y="{-HW*.86:.1f}" width="{COLLAR1 - COLLAR0}" height="{HW*1.72:.1f}" rx="7" fill="url(#{u}metal)" stroke="#4a2a16" stroke-width="3.2"/>'  # 銀色金屬環
             f'</g>')
 
 
@@ -140,12 +163,12 @@ def check():
     edge = (h[3][0] - h[2][0], h[3][1] - h[2][1]); el = math.hypot(*edge)
     ax = (math.cos(math.radians(handle_axis())), math.sin(math.radians(handle_axis())))
     m = rot(handle_root())
-    cap = (m[0] + ax[0]*WOOD1, m[1] + ax[1]*WOOD1)
-    far = [(cap[0] + ax[0]*HW*.5, cap[1] + ax[1]*HW*.5), (cap[0] - ax[1]*HW, cap[1] + ax[0]*HW), (cap[0] + ax[1]*HW, cap[1] - ax[0]*HW)]
+    cap = (m[0] + ax[0]*(WOOD1 - HW*.8), m[1] + ax[1]*(WOOD1 - HW*.8))
+    far = [(m[0] + ax[0]*WOOD1, m[1] + ax[1]*WOOD1), (cap[0] - ax[1]*HW, cap[1] + ax[0]*HW), (cap[0] + ax[1]*HW, cap[1] - ax[0]*HW)]
     hx_out = [rot(p) for p in hexagon(LX, LY, R + FRAME/2)]
     print(f'旋轉後右下邊單位向量 ({edge[0]/el:.3f}, {edge[1]/el:.3f})，把手軸線 {handle_axis()}° ({ax[0]:.3f}, {ax[1]:.3f})，內積 {(ax[0]*edge[0] + ax[1]*edge[1])/el:.1e}')
     print(f'把手根部 {m[0]:.1f},{m[1]:.1f}；金屬環從鏡框中心線往外 {COLLAR0}～{COLLAR1}，鏡框外緣 +{FRAME/2} → 壓進 {FRAME/2 - COLLAR0:.1f}')
-    print(f'端面中心 {cap[0]:.1f},{cap[1]:.1f}（1024：{cap[0]*2:.0f},{cap[1]*2:.0f}）；端面最外點（1024）：' + '、'.join(f'{x*2:.0f},{y*2:.0f}' for x, y in far))
+    print(f'圓頭中心 {cap[0]:.1f},{cap[1]:.1f}（1024：{cap[0]*2:.0f},{cap[1]*2:.0f}）；端面最外點（1024）：' + '、'.join(f'{x*2:.0f},{y*2:.0f}' for x, y in far))
     print(f'鏡框外緣頂點（含旋轉）x {min(p[0] for p in hx_out):.0f}～{max(p[0] for p in hx_out):.0f}、y {min(p[1] for p in hx_out):.0f}～{max(p[1] for p in hx_out):.0f}')
     print(f'刻度環 {RING_IN}～{RING_IN + TICK_L}，與鏡框外緣頂點留白 {RING_IN - R - FRAME/2:.1f}；刻度環外緣：上 {LY - RING_IN - TICK_L - 3.5:.0f}、左 {LX - RING_IN - TICK_L - 3.5:.0f}、右 {W - LX - RING_IN - TICK_L - 3.5:.0f}、下 {W - LY - RING_IN - TICK_L - 3.5:.0f}')
     for nm, (bx, by) in (('左上角框臂端', (BR + BR_L, BR)), ('左上角框臂端(直)', (BR, BR + BR_L)), ('右上角框臂端', (W - BR - BR_L, BR)), ('右上角框臂端(直)', (W - BR, BR + BR_L)), ('左下角框臂端', (BR + BR_L, W - BR)), ('左下角框臂端(直)', (BR, W - BR - BR_L))):
