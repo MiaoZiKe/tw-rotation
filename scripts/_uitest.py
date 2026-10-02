@@ -7235,6 +7235,82 @@ def ind_expand(pg, k):
     return pg.evaluate(f"() => {{ const b = document.querySelector('#cfgPop .indrow[data-k=\"{k}\"] .ibody'); return !!b && !b.hidden; }}")
 
 
+# ===================================================================== 個股頁畫線工具列：點之前先確定它真的在畫面上
+# ★ 2026-10-03（flaky 修正）：「個股」段偶發一整串「點不下去 #drawBar …：element is not visible」，
+#   接著 `ws[-1]` 爆 IndexError 讓整段中斷；同分支重跑就綠。
+#   查到的事實（不是推測）：
+#   · 工具列**沒有**「游標移入才展開」這回事 —— 它只在兩種情況被藏起來：
+#     ① `.chartwrap.tickmode>.drawbar{display:none!important}`（週期是「分時」時，手繪線沒有 K 棒座標可掛）
+#     ② ≤820px 且沒按「✎ 畫線」（手機預設收起）。驗收跑 1500px，所以只會是 ①。
+#   · 失敗那輪的順序是「按『全部清除』成功 → 確認鈕點不到（沒有 not visible，是根本找不到）→
+#     之後每一顆都 not visible」，而且「清空後 localStorage 也乾淨了」那條反而是綠的 ——
+#     也就是清除真的做了，接著頁面回到預設週期「分時」。前端能把週期改回分時的只有
+#     「整頁重新載入」（state 歸零）與「換股票時 tickFb」兩條路；同一檔不會走後者。
+#   · 前端會自己 location.reload() 的地方只有 live.js 的 reloadIfRedeployed（另外兩處要使用者點）：
+#     盤後發現 data/meta.json 的 generated_at 跟頁面載入時不一樣就重載。本機好幾個工作目錄共用同一份
+#     site/data（symlink），別的 agent 剛好在跑 build_payload 時就會撞上 —— 這是**最可能**的來源，
+#     但沒有在本機重現出來（4 支平行、CPU 降速 6 倍各跑過，畫線這串都沒出現），所以下面的處理不賭這個推論：
+#     不管是誰讓頁面重載，都分得出來、都救得回來。若真是它，那是驗收環境的問題不是網站 bug
+#     （盤後自動換新版正是 reloadIfRedeployed 設計要的行為）。
+#   追根因到這裡超過 10 分鐘，照規矩改成「不依賴機制」的做法：
+#   每次點工具列之前先確認它看得見；看不見就像真人一樣把它弄出來（切回日線），
+#   並且分清楚兩種情況 ——
+#   · 頁面**自己重新載入過**（我們放的標記不見了）→ 環境因素，印一行說明、不記失敗；
+#   · 標記還在、週期卻自己跑回分時 → 那是網站真的把使用者選的週期改掉了，**記失敗**。
+_DRAW_MARK = "() => { window.__uitDrawMark = 1; return 1; }"
+_DRAW_DIAG = """() => { const b = document.getElementById('drawBar'), w = document.getElementById('chartWrap');
+    const d = (window.Industry && window.Industry._dbg) ? window.Industry._dbg() : {};
+    return { vis: !!b && b.getClientRects().length > 0 && b.offsetWidth > 0,
+             mark: !!window.__uitDrawMark, tf: d.tf || null,
+             tick: !!w && w.classList.contains('tickmode'), drawon: !!w && w.classList.contains('drawon'),
+             w: innerWidth }; }"""
+
+
+def _draw_ready(pg, why: str = "") -> bool:
+    """確定 #drawBar 看得見；看不見就像使用者一樣把它叫出來。回傳最後是否看得見。"""
+    try:
+        st = pg.evaluate(_DRAW_DIAG)
+    except Exception:  # noqa: BLE001 —— 正在換頁，等一下再看
+        pg.wait_for_timeout(600)
+        st = wait_until(pg, _DRAW_DIAG, 3000) or {}
+    if st.get("vis"):
+        return True
+    if not st.get("mark"):
+        print(f"  （個股／畫線）頁面在操作中途自己重新載入了（{why}；多半是共用的 site/data 被別人重建、"
+              f"live.js 偵測到 meta.json 換新而 reload）→ 週期回到預設，照使用者的做法切回日線再繼續：{st}")
+    elif st.get("tf") == "tick" or st.get("tick"):
+        ok(f"★ [畫線] 頁面沒重新載入，週期卻自己跑回「分時」把畫線工具列收掉了（{why}）", False, st)
+    if st.get("tf") != "1d" or st.get("tick"):
+        click(pg, '#tfSeg button[data-tf="1d"]', 900)
+        wait_until(pg, "() => { const d = window.Industry._dbg(); return d.tf === '1d' && d.hasChart ? 1 : null; }", 6000)
+    if st.get("w", 1500) <= 820 and not st.get("drawon"):
+        click(pg, "#drawTgl", 400)
+    try:
+        pg.locator("#drawBar").wait_for(state="visible", timeout=6000)
+    except Exception:  # noqa: BLE001 —— 叫不出來就交給下面的 click 記「點不下去」
+        pass
+    pg.evaluate(_DRAW_MARK)
+    pg.evaluate("document.getElementById('lwc') && document.getElementById('lwc').scrollIntoView({block:'center'})")
+    pg.wait_for_timeout(300)
+    return bool((wait_until(pg, _DRAW_DIAG, 1500) or {}).get("vis"))
+
+
+def dclick(pg, sel: str, wait: int = 300) -> bool:
+    """點畫線工具列上的東西：先 `_draw_ready`，再用一般的 `click`（點不到照樣記失敗）。
+
+    「全部清除」的確認框是點了清除鈕才長出來的；如果剛剛才把頁面救回來（重載過），
+    確認框早就不在了 —— 那就照真人的做法再按一次「全部清除」把它叫出來，再點確認。"""
+    try:
+        fast = bool(pg.evaluate(_DRAW_DIAG).get("vis"))
+    except Exception:  # noqa: BLE001 —— 正在換頁
+        fast = False
+    if not fast:
+        _draw_ready(pg, sel)
+        if "dt-confirm" in sel and not count(pg, "#drawBar .dt-confirm"):
+            click(pg, "#drawBar .dtool[data-a=clear]", 400)
+    return click(pg, sel, wait)
+
+
 def t_stock(pg, base, code):
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
     ok("個股頁有標題", len(text(pg, "#stockPage h2")) > 2, text(pg, "#stockPage h2"))
@@ -7677,7 +7753,8 @@ def t_stock(pg, base, code):
 
     # --- 繪圖工具：每一種都真的用滑鼠畫一次
     pg.evaluate("try{Object.keys(localStorage).filter(k=>k.startsWith('tw.draw.')).forEach(k=>localStorage.removeItem(k))}catch(e){}")
-    click(pg, '#drawBar .dtool[data-t=cursor]', 200)
+    pg.evaluate(_DRAW_MARK)     # 標記「這一頁是驗收自己載入的」—— 標記不見＝頁面自己重載過（見 _draw_ready）
+    dclick(pg, '#drawBar .dtool[data-t=cursor]', 200)
     pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
     tools = pg.evaluate("[...document.querySelectorAll('#drawBar .dtool[data-t]')].map(b => b.dataset.t)")
     ok("繪圖工具列有 ≥ 6 個工具", len(tools) >= 6, tools)
@@ -7685,7 +7762,7 @@ def t_stock(pg, base, code):
     for i, t in enumerate(tools):
         if t in ("cursor", "erase"):
             continue
-        click(pg, f'#drawBar .dtool[data-t={t}]', 250)
+        dclick(pg, f'#drawBar .dtool[data-t={t}]', 250)
         r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height,vh:innerHeight}; }")
         if r["y"] < 0 or r["y"] + r["h"] * 0.6 > r["vh"]:
             pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(400)
@@ -7720,6 +7797,7 @@ def t_stock(pg, base, code):
     # ★ 2026-09-30：重新整理後週期回到預設「分時」；2330 有 60 分 K 時分時不會自動退回日線，
     #   使用者要看剛剛畫在日線上的線，本來就要再按一次「日」—— 照做（線存在「每檔每週期」的 key 上）
     click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    pg.evaluate(_DRAW_MARK)     # 上面那次 reload 是驗收自己按的，重新放標記
     ok("重新整理後手繪線還在", pg.evaluate("() => window.Industry._dbg().shapes") == len(drawn),
        pg.evaluate("() => window.Industry._dbg()"))
 
@@ -7727,19 +7805,19 @@ def t_stock(pg, base, code):
     pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
     n0 = pg.evaluate("() => window.Industry._dbg().shapes")
     if count(pg, "#drawBar .dtool[data-a=undo]"):
-        click(pg, "#drawBar .dtool[data-a=undo]", 500)
+        dclick(pg, "#drawBar .dtool[data-a=undo]", 500)
         changed("按「復原」真的少一筆", n0, pg.evaluate("() => window.Industry._dbg().shapes"))
     n1 = pg.evaluate("() => window.Industry._dbg().shapes")
-    click(pg, "#drawBar .dtool[data-a=clear]", 400)
+    dclick(pg, "#drawBar .dtool[data-a=clear]", 400)
     # ★ 2026-10-02：「全部清除」要二次確認 —— 只按第一下不可以清掉
     ok("★ 只按「全部清除」第一下不會清掉（要二次確認）", pg.evaluate("() => window.Industry._dbg().shapes") == n1,
        pg.evaluate("() => window.Industry._dbg().shapes"))
-    click(pg, "#drawBar .dt-confirm [data-ok]", 600)
+    dclick(pg, "#drawBar .dt-confirm [data-ok]", 600)
     ok("按「清空」真的歸零", pg.evaluate("() => window.Industry._dbg().shapes") == 0, n1)
     left = pg.evaluate("""() => Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'))
         .reduce((n,x)=>n+JSON.parse(localStorage.getItem(x)||'[]').length, 0)""")
     ok("清空後 localStorage 也乾淨了", left == 0, left)
-    click(pg, "#drawBar .dtool[data-t=cursor]", 250)
+    dclick(pg, "#drawBar .dtool[data-t=cursor]", 250)
 
     # --- ★ Andy 2026-09-15 那四項：游標資訊框 / MACD 背離 / Shift 鎖水平 / 五段粗細＋方框填滿
     pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
@@ -7785,7 +7863,7 @@ def t_stock(pg, base, code):
 
     # 3) ★ 按住 Shift 拉線 = 水平
     pg.evaluate("try{Object.keys(localStorage).filter(k=>k.startsWith('tw.draw.')).forEach(k=>localStorage.removeItem(k))}catch(e){}")
-    click(pg, "#drawBar .dtool[data-t=trend]", 300)
+    dclick(pg, "#drawBar .dtool[data-t=trend]", 300)
     # 中間切過指標，圖的位置會變，重新量一次再拉
     pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
     r = main_rect(pg)
@@ -7804,7 +7882,7 @@ def t_stock(pg, base, code):
        shp and abs(shp["ap"] - shp["bp"]) < 1e-9, shp)
     ok("而且時間兩端不同（真的有拉出長度）", shp and shp["at"] != shp["bt"], shp)
     # 不按 Shift 就不該是水平（★ 2026-10-02：畫完會自動回到「選取」，所以要再選一次趨勢線）
-    click(pg, "#drawBar .dtool[data-t=trend]", 300)
+    dclick(pg, "#drawBar .dtool[data-t=trend]", 300)
     pg.mouse.move(x0, y0 + 10); pg.mouse.down()
     pg.mouse.move(r["x"] + r["w"] * 0.58, r["y"] + r["h"] * 0.62, steps=8); pg.mouse.up()
     pg.wait_for_timeout(600)
@@ -7815,27 +7893,35 @@ def t_stock(pg, base, code):
 
     # 4) ★ 五段粗細 + 方框填滿／透明
     # ★ 2026-10-02（DECISIONS #289）：粗細搬進圖上的屬性列（選了工具就出現）
-    click(pg, "#drawBar .dtool[data-t=trend]", 300)
+    dclick(pg, "#drawBar .dtool[data-t=trend]", 300)
     ws = pg.evaluate("() => [...document.querySelectorAll('#lwc .dt-props .dw')].map(b => +b.dataset.w)")
     ok("畫線粗細有 5 段", len(ws) == 5, ws)
-    click(pg, f'#lwc .dt-props .dw[data-w="{ws[-1]}"]', 400)
-    ok("選最粗那一段之後按鈕亮起來",
-       pg.evaluate(f"() => document.querySelector('#lwc .dt-props .dw[data-w=\"{ws[-1]}\"]').classList.contains('on')"))
-    pg.mouse.move(x0, y0 + 24); pg.mouse.down()
-    pg.mouse.move(r["x"] + r["w"] * 0.55, r["y"] + r["h"] * 0.40, steps=6); pg.mouse.up()
-    pg.wait_for_timeout(600)
-    w_used = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
-        const all = k.flatMap(x => JSON.parse(localStorage.getItem(x)||'[]'));
-        return all.length ? all[all.length-1].w : null; }""")
-    ok("★ 新畫的線真的用選的那個粗細", w_used == ws[-1], f"選 {ws[-1]} 畫出來 {w_used}")
-    style = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.draw.style')||'{}'); } catch(e){ return null; } }")
-    ok("粗細選擇存進 localStorage", style and style.get("w") == ws[-1], style)
+    # ★ 2026-10-03：屬性列沒出現時 ws 是空的，以前 `ws[-1]` 直接 IndexError 把整段「個股」打斷，
+    #   後面十幾條（分隔線拖曳、SMC、重設縮放…）全部沒驗到。改成記一筆失敗、跳過粗細這幾條，其他照驗。
+    if ws:
+        click(pg, f'#lwc .dt-props .dw[data-w="{ws[-1]}"]', 400)
+        ok("選最粗那一段之後按鈕亮起來",
+           pg.evaluate(f"() => {{ const b = document.querySelector('#lwc .dt-props .dw[data-w=\"{ws[-1]}\"]'); return !!b && b.classList.contains('on'); }}"))
+        pg.mouse.move(x0, y0 + 24); pg.mouse.down()
+        pg.mouse.move(r["x"] + r["w"] * 0.55, r["y"] + r["h"] * 0.40, steps=6); pg.mouse.up()
+        pg.wait_for_timeout(600)
+        w_used = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
+            const all = k.flatMap(x => JSON.parse(localStorage.getItem(x)||'[]'));
+            return all.length ? all[all.length-1].w : null; }""")
+        ok("★ 新畫的線真的用選的那個粗細", w_used == ws[-1], f"選 {ws[-1]} 畫出來 {w_used}")
+        style = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.draw.style')||'{}'); } catch(e){ return null; } }")
+        ok("粗細選擇存進 localStorage", style and style.get("w") == ws[-1], style)
+    else:
+        ok("[畫線] 選了趨勢線工具，圖上的屬性列（粗細）沒出現 → 粗細那幾條沒驗到", False, ws)
 
     # ★ 2026-10-02：方框的填滿／透明搬進屬性列（選了方框工具就在同一處）
-    click(pg, "#drawBar .dtool[data-t=rect]", 300)
-    fill0 = pg.evaluate("() => document.querySelector('#lwc .dt-props .dt-fillseg [data-fill=\"1\"]').classList.contains('on')")
+    dclick(pg, "#drawBar .dtool[data-t=rect]", 300)
+    _FILL_ON = "() => { const b = document.querySelector('#lwc .dt-props .dt-fillseg [data-fill=\"1\"]'); return b ? b.classList.contains('on') : null; }"
+    fill0 = pg.evaluate(_FILL_ON)
+    if fill0 is None:
+        ok("[畫線] 選了方框工具，屬性列的「填滿／透明」沒出現", False)
     click(pg, f'#lwc .dt-props .dt-fillseg [data-fill="{0 if fill0 else 1}"]', 400)
-    fill1 = pg.evaluate("() => document.querySelector('#lwc .dt-props .dt-fillseg [data-fill=\"1\"]').classList.contains('on')")
+    fill1 = pg.evaluate(_FILL_ON)
     changed("方框填滿／透明按得動", fill0, fill1)
     hb = canvas_hash(pg, "#lwc")
     pg.mouse.move(r["x"] + r["w"] * 0.32, r["y"] + r["h"] * 0.62); pg.mouse.down()
@@ -7849,7 +7935,7 @@ def t_stock(pg, base, code):
 
     # 5) Andy 2026-09-15「下方MACD KD 成交量等範圍上下可以拉大」
     #    真的用滑鼠把主圖與成交量之間的分隔線往上拖，看高度有沒有變、有沒有存起來
-    click(pg, "#drawBar .dtool[data-t=cursor]", 250)
+    dclick(pg, "#drawBar .dtool[data-t=cursor]", 250)
     pg.evaluate("try{localStorage.removeItem('tw.kcfg.paneH')}catch(e){}")
     pg.evaluate("""() => { try { const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}');
         delete c.paneH; localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch(e){} }""")
@@ -7902,10 +7988,10 @@ def t_stock(pg, base, code):
     ok("按「重設縮放」把拖過的高度還原", back is None, back)
 
     # 收拾
-    click(pg, "#drawBar .dtool[data-a=clear]", 400)
+    dclick(pg, "#drawBar .dtool[data-a=clear]", 400)
     if count(pg, "#drawBar .dt-confirm [data-ok]"):
-        click(pg, "#drawBar .dt-confirm [data-ok]", 500)
-    click(pg, "#drawBar .dtool[data-t=cursor]", 250)
+        dclick(pg, "#drawBar .dt-confirm [data-ok]", 500)
+    dclick(pg, "#drawBar .dtool[data-t=cursor]", 250)
     pg.evaluate("try{localStorage.removeItem('tw.draw.style')}catch(e){}")
 
     # --- SMC 供需區
@@ -18507,6 +18593,31 @@ def t_ov_kpi_live_1002(b, base, code):
 
     S = {"k": 0, "fail": False, "rewind": False, "log": [], "toks": []}
 
+    # ★ 2026-10-03（flaky 修正）：假時鐘的「今天」從 payload 推，不再寫死 09/29。
+    #   以前寫死 2026-09-29：本機 payload（site/data/meta.json 的 data_date）早於 09/29 時，假時鐘是
+    #   「盤後資料之後的交易日」，跟真實世界一樣；payload 一更新到 10/01，假時鐘就變成「比盤後資料還早」，
+    #   ⑦a 跨過收盤那兩條（右上角＝今天收盤快照、不是換回盤後那一份）就假紅 ——
+    #   驗收結果取決於本機哪天建的 payload，跟網站對不對無關。
+    #   改成：今天＝data_date 之後的第一個平日（網站的 isIntraday 也只看星期幾、不管國定假日，見 live.js），
+    #   假報價的 d、假分時的起點、跨收盤的時刻全部跟著它走。讀不到 meta 就退回原本的 09/29。
+    import datetime as _dt
+    _dd = ""
+    try:
+        _dd = _json.loads((SITE / "data" / "meta.json").read_text(encoding="utf-8")).get("data_date") or ""
+        day = _dt.date.fromisoformat(_dd[:10]) + _dt.timedelta(days=1)
+        while day.weekday() >= 5:
+            day += _dt.timedelta(days=1)
+    except Exception:  # noqa: BLE001
+        day = _dt.date(2026, 9, 29)
+    DAY = day.isoformat()                                   # 例：2026-10-02
+    DAY8 = DAY.replace("-", "")                             # 假報價的 d 欄位（mis 的格式）
+    DAY_MD = day.strftime("%m/%d")                          # 右上角「收盤快照」那天
+    CLK_INTRA = f"{DAY}T02:30:00Z"                          # 台北 10:30（盤中）
+    CLK_CLOSE = f"{DAY}T05:40:00Z"                          # 台北 13:40（剛收盤）
+    CLK_AFTER = f"{DAY}T12:30:00Z"                          # 台北 20:30（盤後）
+    CHART_T0 = int(_dt.datetime.fromisoformat(f"{DAY}T01:01:00+00:00").timestamp() * 1000)   # 台北 09:01
+    print(f"  （摘要卡即時）payload data_date={_dd or '讀不到'} → 假時鐘的今天＝{DAY}")
+
     def hhmmss(sec):
         sec = 10 * 3600 + 30 * 60 + sec
         return "%02d:%02d:%02d" % (sec // 3600, sec // 60 % 60, sec % 60)
@@ -18538,7 +18649,7 @@ def t_ov_kpi_live_1002(b, base, code):
             # rewind＝晚到的舊回應：撮合時間比前面已經收過的都早（09:00:05），而且每一檔都是跌停附近 —— 被收下的話四張卡會一片綠
             t = "09:00:05" if S["rewind"] else hhmmss(5 * k)
             arr.append({"c": c, "n": "測試" + c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y:.2f}", "o": f"{y:.2f}",
-                        "h": f"{max(z, y) + 1:.2f}", "l": f"{min(z, y) - 1:.2f}", "v": str(vol), "t": t, "d": "20260929",
+                        "h": f"{max(z, y) + 1:.2f}", "l": f"{min(z, y) - 1:.2f}", "v": str(vol), "t": t, "d": DAY8,
                         "tlong": str(int(_time.time() * 1000))})
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
@@ -18547,10 +18658,10 @@ def t_ov_kpi_live_1002(b, base, code):
         S["log"].append((_time.time(), "/chart"))
         cid = (parse_qs(urlparse(route.request.url).query).get("id") or ["TSE"])[0]
         base_v = {"TSE": 20000.0, "OTC": 299.0, "FUT": 20000.0}.get(cid, 100.0)
-        t0 = 1790643660000          # 2026-09-29 09:01 台北
+        t0 = CHART_T0               # 假時鐘那天的 09:01 台北
         pts = [{"t": str(t0 + i * 60000), "ts": "%02d%02d00" % ((541 + i) // 60, (541 + i) % 60),
                 "c": f"{base_v + i * 0.5:.2f}", "s": "100"} for i in range(90)]
-        info = {"n": cid, "d": "20260929", "t": "10:30:00", "y": f"{base_v:.2f}", "o": f"{base_v:.2f}",
+        info = {"n": cid, "d": DAY8, "t": "10:30:00", "y": f"{base_v:.2f}", "o": f"{base_v:.2f}",
                 "h": f"{base_v + 60:.2f}", "l": f"{base_v - 5:.2f}", "z": f"{base_v + 44.5:.2f}", "v": "300000"}
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps({"infoArray": [info], "ohlcArray": pts, "staticObj": {"tv": "123456"}}))
@@ -18594,7 +18705,7 @@ def t_ov_kpi_live_1002(b, base, code):
     ALL_LIVE = "() => { const c = [...document.querySelectorAll('#hero .osc .ovl-tg .ovl-t')]; return c.length === 4 && c.every(e => /^即時 \\d\\d:\\d\\d:\\d\\d$/.test(e.textContent)); }"
 
     # ------------------------------------------------------------------ ① 盤中 1440
-    ctx, pg = open_page(LV5_INTRA)
+    ctx, pg = open_page(CLK_INTRA)
     ok("[摘要卡即時] 假時鐘在盤中（台北 10:30）", pg.evaluate("() => window.Live.isIntraday()") is True)
     eod_chips = pg.evaluate(OVL_CHIPS)
     eod_v = vals(pg)
@@ -18734,11 +18845,11 @@ def t_ov_kpi_live_1002(b, base, code):
     # ⚠ 不拿「跳時鐘之前」量的數字比：跳之前已經送出去、跳之後才回來的那一輪是合法的盤中資料（會重算一次）；
     #   機器忙的時候兩行 Python 之間就隔好幾秒（2026-10-02 合併後重跑，負載 22 時抓到過）。
     #   要驗的是：① 跨過收盤之後數字就不再動 ② 不是換回前一天的盤後資料。
-    pg.clock.set_system_time("2026-09-29T05:40:00Z")
+    pg.clock.set_system_time(CLK_CLOSE)
     gone = wait_until(pg, "() => { const c = [...document.querySelectorAll('#hero .ovl-tg .ovl-t')]; return c.length === 4 && c.every(e => /^\\d\\d\\/\\d\\d$/.test(e.textContent)); }", 12000, 250)
     after = pg.evaluate(OVL_CHIPS)
     ok("★ [摘要卡即時] 跨過收盤：右上角從「即時 HH:MM:SS」改回日期", bool(gone), [c["t"] for c in after])
-    ok("[摘要卡即時] 跨過收盤時盤後資料還沒產出 → 顯示今天（09/29）的收盤快照、提示寫明", all(c["t"] == "09/29" and "收盤快照" in c["tip"] for c in after), after)
+    ok(f"[摘要卡即時] 跨過收盤時盤後資料還沒產出 → 顯示今天（{DAY_MD}）的收盤快照、提示寫明", all(c["t"] == DAY_MD and "收盤快照" in c["tip"] for c in after), after)
     pg.wait_for_timeout(1500)
     v_close = vals(pg); sig_close = pg.evaluate(OVL_SIG)
     pg.wait_for_timeout(11000)          # 盤後主批次 30 分鐘才一輪；這 11 秒裡就算有晚到的回應也不准再改數字
@@ -18751,7 +18862,7 @@ def t_ov_kpi_live_1002(b, base, code):
 
     # --- ⑦b 盤後（台北 20:30）新開的頁面：盤後資料、右上角是日期、不塞補位
     S["toks"].clear(); S["log"].clear()
-    ctx, pg = open_page(LV5_AFTER)
+    ctx, pg = open_page(CLK_AFTER)
     pg.wait_for_timeout(6000)
     ac = pg.evaluate(OVL_CHIPS)
     ok("★ [摘要卡即時] 盤後時鐘：右上角是盤後資料的日期（不是「即時」），而且即時開關仍是開的",
