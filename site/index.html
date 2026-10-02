@@ -4331,6 +4331,38 @@ h3 .howbtn.pop{font-family:inherit}
   .distpick{flex:none}
   .distpick .dplist{max-height:360px}
 }
+/* ---- 市場明細「漲跌家數」兩大欄並排（2026-10-03，Andy 截 #market，DECISIONS #300）----
+   左＝漲跌分佈圖卡（1 份），右＝分頁表格卡（1.2 份：漲停｜跌停｜漲幅前段｜跌幅前段｜成交值前段，五欄 股票／族群／漲跌／收盤／成交值）。
+   · 兩欄等高、表格高度跟著圖卡走：右卡 contain:size —— 表的長度（一頁最多 60～200 列）**不參與決定這一列多高**，
+     列高＝左卡（標題列＋圖）的自然高度，右卡 stretch 到一樣高；表在卡裡自己捲，表頭 th 本來就 sticky（全站表格規則），捲動時固定。
+     這招跟個股頁 .skduo／.tblcard 同一套（#295）。圖的高度由 #chgDist 的 min-height 決定，那就是整列的高度。
+   · 名單（下鑽，.distpick）在並排時（>1100）改排到圖的下面、不再擠在圖的右邊：左欄約 590px，名單 340px 一放進去圖只剩 240px，12 根長條讀不了。
+     ⚠ 名單打開時左卡變高、右卡跟著變高（兩欄一直等高）；收起時回到原本的高度。
+   · ≤1100px 欄寬不夠（右欄的表 5 欄最窄約 480px，加上左欄至少 420px 的圖）→ 疊回上下排：圖卡在上、表格卡在下，
+     表格卡拿掉 contain、照內容長但最多 460px 再捲；圖回到 260px、名單回到圖的右邊（卡片疊起來後寬度夠）。
+     斷點 1100 是量出來的（見 DECISIONS #300）。*/
+.mktduo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:var(--gap-card,16px);align-items:stretch;margin:10px 0 0}
+.mktduo>*{min-width:0}
+.mktdist{display:flex;flex-direction:column}
+.mktdist .distlay{flex:1 1 auto;margin-top:6px}
+.mktdist .distlay>#chgDistBox{flex:1 1 auto}
+.mktdist #chgDist{min-height:260px}   /* 以前寫在 inline style；搬進 CSS 才蓋得過（inline 比任何選擇器都大） */
+@media (min-width:1101px){
+  .mktdist .distlay{flex-direction:column}
+  .mktdist #chgDist{min-height:400px;height:100%}
+  .mktdist .distpick{flex:none}
+  .mktdist .distpick .dplist{max-height:240px}
+}
+.mktlist{display:flex;flex-direction:column;contain:size;min-height:300px;padding:12px 14px}
+.mktlist>#mktTabs{flex:none;align-self:flex-start;max-width:100%}
+.mktlist>#mktInner{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-top:10px}
+.mktlist>#mktInner>.kpinote{flex:none}
+.mktlist>#mktInner>.tw{flex:0 1 auto;min-height:0;max-height:none;scrollbar-width:thin}
+@media (max-width:1100px){
+  .mktduo{grid-template-columns:minmax(0,1fr)}
+  .mktlist{contain:none;min-height:0}
+  .mktlist>#mktInner>.tw{flex:none;max-height:460px}
+}
 
 /* ---- 法人卡「滾輪放大」徽章：淺色主題原本是深底配灰字、再疊在淺底上 → 灰底灰字看不見（審查 R1）---- */
 :root[data-theme="light"] .zwrap>.zbadge{background:rgba(255,255,255,.92);color:var(--ink-2);border-color:var(--line-2)}
@@ -4604,8 +4636,9 @@ h3 .howbtn.pop{font-family:inherit}
 /* ---- 手機 v3 E：市場明細分段、週期統計設定抽屜（mobile3.js 的 E 段）---- */
 @media (max-width:640px){
   body.m3on #mMktSeg{margin:6px 0 8px}
-  body.m3on #mktBody.mseg-list>.card{display:none!important}
-  body.m3on #mktBody.mseg-dist>#mktTabs,body.m3on #mktBody.mseg-dist>#mktInner{display:none!important}
+  /* 2026-10-03（#300）：漲跌家數的圖卡與表格卡包進 .mktduo 之後，「名單」段藏的是 .mktdist、「分佈圖」段藏的是 .mktlist（舊的 >.card 規則仍管站上均線那頁的卡） */
+  body.m3on #mktBody.mseg-list>.card,body.m3on #mktBody.mseg-list .mktduo>.mktdist{display:none!important}
+  body.m3on #mktBody.mseg-dist .mktduo>.mktlist{display:none!important}
   body.m3on #seasonCtl.mhide:not(.min){display:none!important}
   body.m3on #mSeasonBtn{max-width:100%;margin:4px 0 6px}
   body.m3on .msheet #seasonCtl{display:flex;flex-direction:column;align-items:flex-start;gap:10px}

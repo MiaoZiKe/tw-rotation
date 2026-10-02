@@ -86,6 +86,12 @@
     lot(v) { if (v === null || v === undefined) return '—'; const a = Math.abs(v); if (a >= 1e4) return (v / 1e4).toFixed(1) + ' 萬張'; return fmt.i(v) + ' 張'; },
     cls(v) { return v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; },
     esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); },
+    /* ★ 2026-10-03（DECISIONS #300，Andy：「TPEX 就是上櫃，改成上櫃」）：交易所代號 → 畫面上的中文。
+       資料欄位（stocks.json／個股 JSON 的 market）仍是 TWSE／TPEX，**只在給人看的地方翻成中文**，
+       內部比對（篩選、報價代號、udMktOf）一律照舊用代號。
+       不分大小寫：以前篩選鈕那一行寫成 'TPEx'（大小寫對不上資料裡的 'TPEX'），翻譯落空，畫面才會看到英文「TPEX」。
+       認不得的代號（日後若出現興櫃）原樣顯示，不要默默吞掉。*/
+    mkt(m) { const k = String(m ?? '').toUpperCase(); return k === 'TWSE' || k === 'TSE' ? '上市' : k === 'TPEX' || k === 'OTC' ? '上櫃' : String(m ?? ''); },
   };
   const upDown = (v) => (v > 0 ? CH.up : v < 0 ? CH.down : CH.ink3);
   // #rrggbb + 透明度 → rgba()：色票只寫一份，要半透明時就地調
@@ -2508,7 +2514,7 @@
     const markets = [...new Set(all.map(r => r.market).filter(Boolean))];
     box.innerHTML = `<div class="seg tiny" id="distMkt">
         <button data-m="" class="${DIST.market ? '' : 'on'}">全部</button>
-        ${markets.map(m => `<button data-m="${m}" class="${DIST.market === m ? 'on' : ''}">${m === 'TWSE' ? '上市' : m === 'TPEx' ? '上櫃' : m}</button>`).join('')}
+        ${markets.map(m => `<button data-m="${m}" class="${DIST.market === m ? 'on' : ''}">${fmt.mkt(m)}</button>`).join('')}
       </div>
       <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2)">
         <input type="checkbox" id="distEtf" ${DIST.etf ? 'checked' : ''}>含 ETF</label>
@@ -3033,14 +3039,19 @@
             <button data-m="live" class="${MUD.on ? 'on' : ''}">⚡ 即時</button></div>
         </div>
         <div id="mktLive" class="note livenote" ${MUD.on ? '' : 'hidden'}></div>
-        <div class="card" style="margin:10px 0 14px;padding:12px 14px">
+        <div class="mktduo" id="mktDuo">
+        <div class="card mktdist" style="padding:12px 14px">
           <div class="row spread"><h3 style="margin:0">漲跌分佈 <small id="distSub"></small></h3>
             <div class="row" id="distFilter" style="gap:8px;flex-wrap:wrap"></div></div>
-          <div class="distlay"><div id="chgDistBox"><div id="chgDist" class="chart" style="min-height:260px"></div></div>
+          <div class="distlay"><div id="chgDistBox"><div id="chgDist" class="chart"></div></div>
             <div class="distpick" id="distPick" role="region" hidden aria-label="這一段的個股"></div></div></div>`
-        + `<div class="seg" id="mktTabs">${sets.map((t, i) =>
+        /* ★ 2026-10-03（Andy 截 #market：「兩大欄位並排」，DECISIONS #300）：
+           漲跌分佈圖卡＋分頁表格（漲停｜跌停｜漲幅前段｜跌幅前段｜成交值前段）桌機左右並排；
+           表格卡自己捲、表頭固定，高度＝圖卡高度（CSS `.mktlist` 的 contain:size，表的長度不參與決定列高）。
+           ≤1100px 疊回上下（那時表格卡拿掉 contain、自己最多 460px 再捲）。元素 id（#mktTabs／#mktInner）沿用。*/
+        + `<div class="card mktlist" id="mktList"><div class="seg" id="mktTabs">${sets.map((t, i) =>
         `<button data-i="${i}" class="${i === mktTab ? 'on' : ''}">${t[0]} <em>${t[1].length}</em></button>`).join('')}</div>`
-        + `<div id="mktInner" style="margin-top:10px"></div>`;
+        + `<div id="mktInner"></div></div></div>`;
       $$('#mktMode button').forEach(b => b.onclick = () => {
         const want = b.dataset.m === 'live';
         if (want === MUD.on) return;              // 已經在這個模式就不要白重畫一次
