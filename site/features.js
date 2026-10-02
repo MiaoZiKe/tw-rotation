@@ -122,7 +122,7 @@
     stab('stock.news', '公告／新聞', 'news', ['news'], '重大訊息與新聞'),
     // ---- 即時與全站工具
     { id: 'live.tick', name: '盤中即時（5 秒）', cat: 'global', def: true, kind: 'bool',
-      desc: '盤中每 5 秒更新報價；關掉＝看盤後資料（卡片上的「即時」鈕按了不動作）', veil: [], mark: [], block: ['.livetg-b'] },
+      desc: '盤中每 5 秒更新報價；關掉＝看盤後資料（卡片上的「即時」鈕按了不動作）', veil: [], mark: [], block: ['.livetg-b', '.ovl-tg'] },   // .ovl-tg＝總覽摘要卡右上角的即時開關（DECISIONS #296）
     { id: 'events', name: '今日事件中心', cat: 'global', def: true, kind: 'bool', desc: '新聞／法說／總經事件抽屜',
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',

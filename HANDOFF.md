@@ -27,6 +27,120 @@
 - 改了既有驗收一條：「今日事件浮層」的「預設主內容吃滿全寬」改成「吃滿左欄以外的寬度」。
 - 待處理：① industry.js 的 trackPop 若改成量跳轉列（不量 `.topbar`），layout4.css 的 49px 繞法可以拿掉 ② 手機頂欄與頁首都寫頁名（任務單兩樣都要），嫌重複就拿掉頁首的 h1
 
+## 總覽四張摘要卡即時：補位進每 5 秒那一批、共用各頁即時公式、右上角日期＝即時開關（2026-10-02，台北，UI 專家，分支 `claude/ov-kpi-live`，**未推 main**）
+
+- Andy（15:36）：「這都需要具備即時功能」（漲跌家數／資金輪盤／資金去向／熱門題材四張卡右上角都寫 10/01）→ DECISIONS #296（推翻 #277「摘要卡刻意不加即時」那一句）。
+- [x] 報價：`live.js` 新增「補位」`Live.want(key, fn, {fill:true})` —— 主批次一個 /quote 最多 110 檔、總覽平常只用 2～10 檔，空位每 5 秒塞下一段 455 檔裡的下一批（約 25 秒一圈）。**請求數、5 秒節奏、節流閥不變**；`tw:live` 多帶 `detail.fill`、每一輪多吼 `tw:livetick`。
+- [x] 口徑：漲跌家數＝`mudCodes`×`udBin`（市場明細即時同一份）；資金輪盤＝`rlvCompute`；資金去向＝從 `sklFetch` 抽出的 `sklCodes`／`sklCompute`（sklFetch 改呼叫它們）；
+  熱門題材的熱度做不到即時（法人、新聞是日資料）→ 盤中改排成分股即時漲跌（成交值加權）。每張卡底線寫「即時估算（N 檔）」，手機也打開。
+- [x] 右上角日期改成按鈕（`.osc-d.ovl-tg`，四張共用 `'ovs'` 開關）：盤中「即時 HH:MM:SS」、盤後／關掉顯示日期；只准往前（舊撮合時間不收）；盤後 JSON 還沒產出時留今天的收盤快照（不往回拉）。
+- [x] 不整張卡重畫：`ovsMorph` 逐節點只改字與屬性；`features.js` 的 `live.tick` 鎖頭多鎖 `.ovl-tg`；`docs/realtime_5s.md` 表格更新；`modules.js` market.kpi 多一段驗收。
+- 改的函式（app.js）：`ovsDate`（改成鈕）、`ovsCard`（存盤後那一份）、`renderOvSummary`（組法抽成 `ovsUdParts`／`ovsRotParts`／`ovsFlowVariant`，結尾補登記補位與補回即時）、
+  新增 `ovlUni`／`ovlFill`／`ovlMerge`／`ovlUD`／`ovlRot`／`ovlFlow`／`ovlTheme`／`ovsMorph`／`ovsApply`／`ovlEod`／`ovlUpdate`／`ovlStamp`／`ovlToggle` 與三個事件監聽；`sklFetch` 拆出 `sklCodes`／`sklCompute`。
+  live.js：`codesOnScreen(forFetch)`、`tick`、`want`、`TG_NAME`。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 總覽摘要卡即時,總覽,新-大盤三張圖,今日事件,資金流向,新-輪動時鐘,即時推送,盤中即時,總覽摘要卡列,即時5秒0929`
+  → 前九段全部 0 個問題（新段落「總覽摘要卡即時」155 秒；第一次跑抓到 390 熱門題材「+2.2%即時」被切掉，拿掉數字後的「即時」小字後綠）；
+  `即時5秒0929`（額外加跑，因為動了 live.js）1 條紅：「漲跌家數即時：狀態列寫每 5 秒更新」—— 市場明細即時第一輪 15 秒內沒輪完（5 個請求、節流閥每 5 秒 3 個）。
+  查證：同一把鎖裡 main 跑同一段是綠的 → 是這批造成的。根因：「大盤卡即時關掉」時以前主批次整個不打，補位讓它照樣每 5 秒一次（摘要卡即時還開著），
+  上一步「大盤卡關 11 秒再打開」排隊的 3 個分時檔就佔掉市場明細第一輪一個 5 秒窗（實測第一輪 16.5 秒；大盤卡一直開著時兩版一樣 10.6～10.7 秒）。
+  那一條驗的是狀態列的字（速度由下一條「16 秒內往前走」驗），等待放寬 15 → 20 秒並寫明原因，重跑 `即時5秒0929` 0 個問題。
+  另外加跑 `桑基展開與即時`（sklFetch 拆成 sklCodes／sklCompute）0 個問題；`新-資金流向` 2 條紅＝「800px 沒有橫向捲軸」「800px 面板沒有超出視窗」，跟 2026-10-01 那批記的既有紅燈同一組（這批沒動資金流向版面）。
+  **合併 origin/main（6bd284f）之後重跑**：`_preview.py` 全綠；`總覽摘要卡即時`／`總覽摘要卡列`／`新-輪動時鐘`／`總覽`／`新-大盤三張圖`／`今日事件`／`即時推送`／`盤中即時` 0 個問題。
+  `資金流向` 兩次各紅 1 條、而且每次不同（一次「資金集中度有畫出來」、一次「拉不同天數族群×法人日期範圍不一樣」），同一把鎖裡 6bd284f 跑同一段 0 個問題；
+  那幾輪機器負載 15～22（別的 agent 的瀏覽器同時在跑，輪盤補間量到 2.7 fps），這批沒有碰集中度與族群×法人 → 判斷是負載造成的計時假紅；負載降到 6 時本分支單獨重跑 `資金流向` 0 個問題（20:24 台北）。
+  **再合併 origin/main（26d7745：台指期 Deno 代理、個股頂部版面、個股分時即時）之後**：`_uitest --workers 1 --sections 總覽摘要卡即時,盤中即時,新-大盤三張圖,即時5秒0929,總覽` 全部 0 個問題、`_preview.py` 全綠（20:50 台北）。
+  沒跑 pytest（只動 site/、scripts/_uitest.py、文件）。
+- 已知限制：見 DECISIONS #296（每檔報價最舊約一圈 25～40 秒；熱度盤中做不到；收盤快照是估算樣本不是全市場）。
+## 個股頁五個分頁版面：營收三卡並排、河流圖線寬＋讀數小資訊塊、法人／資券／大戶散戶圖表並排、大戶散戶週數查證（2026-10-02 20:25，台北，UI 專家，分支 `claude/stock-tabs-4`，**未推 main**，已合併 main 12ccd0a）
+
+- 接手前一位被停掉的半成品 `claude/wip-stock-layout`（5a9a11e，草稿號 #285 作廢）；基於最新 main（d859d7f）重開分支，**拿掉 AI 分析展開那段**（歸 `claude/stock-head-layout`）。
+  總覽分頁、指標分頁、分頁順序（歸 `claude/stock-overview-mini`）一行都沒碰。細節與理由：DECISIONS #295。
+- [x] 營收：營收走勢｜逐年同月比較｜月營收明細三欄並排（明細那欄 1.2 份、表在卡裡捲、年/月欄釘左）；≤1100 兩欄＋明細跨列、≤820 依序往下排。逐年同月圖例退回圖內時改單行可捲（三欄後會壓到 Y 軸）。
+- [x] 獲利：本益比河流圖「線寬」滑桿 1～5px（緊接透明度、存 `tw.peLineW`，沒調過＝改前 1.8px）；圖下讀數改四個並排小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜色帶說明）。
+- [x] 法人／資券／大戶散戶：同一套 `.skduo`（左圖卡 1.6、右明細表卡 1，同高、表在卡裡捲、第一欄釘左）；≤1100 疊成上下。資券頁 #294 的「最新餘額」那一列留在並排區塊上方，7 欄每日表在 1440 右欄放得下。大戶散戶「目前累積 N 週，每週五自動增加」搬到每週明細表下面。
+- [x] 大戶散戶 4 週的根因：**資料湖本來就只有 4 週**（09-04／09-11／09-18／09-24，表第一次進湖是 09-11 那輪），payload 與前端都沒截短。
+  集保開放資料只留當週、官網逐檔查詢頁是網頁表單（不在白名單、不碰）、FinMind 歷史表要付費等級 → **沒動 pipeline、沒改 run_backfill**。約 2026-11-27 那週自然累積滿 13 週。
+- `site/industry.js` 改到的函式：`tabRevenue`（三卡 HTML、逐年同月圖例退回參數）、新增 `peLineW`／`PE_LW_KEY`、`drawPeRiver`（收盤線與外框線寬）、`tabProfit`（線寬滑桿、`paint` 的讀數小資訊塊、滑桿事件）、
+  `chipTbl`／`chipCardHtml`（並排外殼、foot 參數）、`tabInst`／`tabMargin`（表卡標題；tabMargin 合併時保留 #294 的 kpis）、`tabHolders`（並排、說明句搬位置與改寫）。
+- **這批驗了**（最後一輪＝合併 main 12ccd0a 之後；payload 在合併 304fe44 時重算過，12ccd0a 沒動 pipeline）：`_preview.py` 全綠；
+  `_uitest.py --workers 1 --sections 個股,排序,新-產業與個股,新-版面等高與多寬度,手機` 全 0；新段落 `個股分頁版面1002`（1440／1100／800／390，含圖內 SVG 壓字與圖例越界）0；
+  另跑 `個股總覽1002`、`個股頂部1002`（兩個兄弟分支，0）、`籌碼基本0926`、`個股籌碼分頁0928`、`營收河流0928`、`設計v4第二批2B`（改到它們的斷言）。
+  紅燈只剩 3 條、**main 12ccd0a 原封不動跑同樣 3 條**（基準線實測）：2B「⑦ 讀得到 K 線（有副圖）」、基本0926「季節圖 ≥ 280px（271.5）」、
+  籌碼分頁0928「K 線卡與 AI 區沒有內部說明字樣（資料湖）」—— 都不在這批的五個分頁裡。
+  反向驗證：拿掉 `.tblcard` 的 contain／營收改兩欄／線寬不讀 localStorage → 新段落紅 12 條；EPS 軸名還原 → 390 壓字紅；逐年同月圖例退回成兩行 → 圖例越界紅（外框底 46px＞繪圖區頂）。
+  沒跑 pytest：這批改動只有 `site/**`、`scripts/_uitest.py`、DECISIONS、HANDOFF（沒有 pipeline／tests）。
+  之後又合併 main 26d7745（個股分時 #287，只有文件衝突）：`個股分頁版面1002`＋`個股` 同一個分頁接著跑、`_preview.py` 再確認一次。
+  那一輪抓到新段落的跨段落污染（「個股」先把 tw.kcfg 的本益比線寬調成 4 → 河流圖「沒調過」的預設變 4.8px，斷言寫死 1.8）→ 期望值改從 tw.kcfg 讀、開頭多清幾個 tw.* 鍵，重跑 0。
+  「個股」那一輪有 1 條「本益比河流圖滾輪還原時整頁被帶走（scrollY 1014→1654）」—— 同一份網站程式在前五輪都 0，單獨重跑「個股」也 0（21:01）→ 滾輪計時型的飄，不是這批弄壞的。
+- 已知限制：① 台積電這類九位數營收的明細表在 1440 第三欄仍要橫捲（年/月欄釘住）；② 390 手機版要點分頁列「完整版」才看得到這五頁的桌機版型（手機原生分頁沒動）；
+  ③ 大戶散戶要等每週累積，補不回歷史。
+
+## 個股分時一路即時：逐分鐘聚合 mis 報價、缺口斷線＋虛線標「此段等待資料」、Yahoo 盤中每 2 分鐘重抓（2026-10-02 20:15，台北，UI 專家，分支 `claude/stock-tick-live`，**未推 main**，DECISIONS #287）
+
+- Andy 10:26（#stock/2409）：「個股分時需要有即時走勢」。前一位做到 10:57 中斷，半成品在 `claude/wip-stock-tick-live`（94e04aa）；這次帶到最新 main（含 draw-tools、stock-overview-mini、spark-precise、stock-head-layout）上做完。
+- [x] `livek.js`：`minuteSeries()` 逐分鐘挑來源（連續在收的分鐘用報價疊、量＝累計張數差分；半分鐘讓 Yahoo；都沒有才用報價）、缺口分三種（開盤頭段 lead／打開頁面前 open／背景或斷線 idle）、
+  Yahoo 盤中每 2 分鐘重抓（`refreshHist`，打 Worker 的 /y，**不增加 mis 請求**）、每筆報價多記收到時間 `q`、今天開盤後清掉前幾天的 `tw.livek.*`。
+- [x] `chart.js` `TickChart`：缺口那幾分鐘主線**真的斷開**（圖表庫 v5.2.1 不會在空白點斷線 —— 改成缺口後每段各一條面積線）、淡色虛線連缺口兩端、
+  斜線底紋＋「此段等待資料」小標（缺口比字窄也標，字塊夾在價格區內）、13:30 右緣錨點（不然盤中時間軸只畫到最後一筆、09:00 被推到圖中間）。
+- [x] `industry.js`：`tickData` 盤中改用 `minuteSeries`；`tickLiveNote` 說明照時間逐段寫（09:00～10:10 Yahoo；10:11～10:29 打開頁面前暫無資料；10:30 之後本頁即時累積）、盤後不再寫「每 5 秒更新」。
+- [x] Fugle 等補缺口來源：要金鑰、而且轉給公開網站訪客可能落在證交所「轉傳」範圍 → **沒接**，查證寫在 DECISIONS #287。
+- 動到的函式（只動分時那段）：`chart.js` TickChart 的 constructor／`_areaOpts`（新）／`normalize`／`setData`／`_placeGapTags`（新）／`destroy`；
+  `livek.js` 的 `loadHistory`（記 histAt）／`refreshHist`（新）／`poll`（多叫 refreshHist）／`pushTick`（多記 q）／`pruneOld`（新）／`save`／`minuteSeries`（新）／對外 `LiveK.minuteSeries`；
+  `industry.js` 的 `TICK_GAP_WHY`／`tickGapLabel`／`tickGapTitle`／`tickLiveNote`（新）、`tickData`（盤中分支）、`applyTick` 裡 setLiveNote 那一行；
+  `index.html` 只加 `#lwc .tk-gap`／`.tk-gap span` 兩條 CSS；`modules.js` stock.kline 的 tests 多「分時一路即時」。個股頁頂部、五個分頁、繪圖工具一行都沒碰。
+- **這批驗了**：`_preview.py` 全綠（0 重疊）；`_uitest.py --workers 1 --sections 個股即時分K,分時預設與搜尋走勢,盤中即時,個股,繪圖工具1002,分時一路即時`：
+  - 新段「分時一路即時」0 問題：假時鐘＋假 mis（每 5 秒撮合時間 +5 秒、價 +0.5、累計 +7 張）＋假 Yahoo，驗同一分鐘只更新最後一根、跨分鐘多一根、量是差分、缺口主線空白＋虛線＋小標、
+    **像素掃描缺口內沒有主線色**（反向：改前 161 px）、Yahoo 重抓後缺口縮小、Yahoo 蓋過半分鐘那根改用 Yahoo、缺口補滿小標與虛線一起拿掉、重新整理（報價故意失敗）累積還在、隔天清掉、
+    開盤頭段 09:00～09:27 只標字不畫虛線、800／390 小標在價格區內字 ≥ 11px。
+  - 個股即時分K 0；分時預設與搜尋走勢 1 紅＝「C 找得到一檔沒有 60 分 K 的股票來驗」，origin/main 同一份資料跑也是這 1 條（本機 10-01 資料的條件，不是這批）。
+  - 第一輪是在別人的瀏覽器測試同時跑、沒拿到鎖的情況下跑的：盤中即時 1、繪圖工具1002 19、個股 1 —— 單獨重跑：盤中即時 0、繪圖工具1002 0；
+    個股的 1 條是「本益比河流圖還原成原始大小時整頁不會被帶著往下」：app.js `wheelZoom` 還原後只留 450ms 緩衝，機器忙時下一個滾輪事件晚到就漏給頁面。
+    加了診斷（每個 wheel 事件的時間與有沒有被吃掉、長任務）：那一刻 tf＝日線、沒有任何 TickChart 活著，這批的程式碼不會執行；同時跑分支與 main 各一次都是 0。**判定是計時型假紅，不是這批造成的**，但這條在負載高時會間歇紅，值得另案把緩衝改成「停手才解除」。
+  - 沒跑 pytest（沒動 pipeline／tests／.github，只改 site/** 與 scripts/_uitest.py）。
+- 瀏覽器鎖 `/tmp/claude-0/browser.lock` 整個晚上都被別的 agent 排隊佔著（等滿 5 分鐘拿不到），照規定換埠（8797／8798）不加鎖直接跑。
+- 已知限制：① 缺口一定存在（打開頁面之前、分頁在背景時沒收到的分鐘），只能等 Yahoo 追上來（延遲約 20 分鐘）；② `bars('1m'/'5m'/'15m')` K 線週期的接縫（根因 3）沒改，另案；
+  ③ 全部用假時間驗，**沒有在真盤中驗過**（容器連不到 mis 與 Worker）—— 請下週一盤中打開個股分時看一眼；④ 收盤後才打開頁面時，那一筆收盤報價不再蓋掉 Yahoo 的 13:30（尾盤集合競價量保住）。
+
+## 個股頁 K 線上方版面：AI 預設只看重點、展開收合左側不動、左右分隔線可拖、標籤搬到週期鈕那一行（2026-10-02，台北，UI 專家，分支 `claude/stock-head-layout`，**未推 main**）
+
+- Andy 15:19（#stock/3189 景碩三張截圖）＋同日「上方的 AI 分析只寫重點」→ DECISIONS #293。前一位的半成品 `claude/wip-stock-layout`（5a9a11e）只沿用「AI 區 contain:size」「單欄內容區改浮層」兩個想法，其他四項（營收三欄、本益比線寬、籌碼並排、大戶週數）沒帶進來。
+- 分支已合進最新 main（9268a82，含 stock-overview-mini 的總覽重點與台指期 Deno），合併回 main 應該只剩文件衝突。
+- [x] ① AI 區：預設收合＝一行結論＋四顆面向小標籤（點了捲到下面「總覽」的細節卡 #ovFacets），按「展開」才看各週期細節；
+  展開時撐滿右欄＋`contain:size`、保底高度 `--aiH` 掛在分隔線上 → 展開／收合／換面向左側與 K 線一個像素都不動；≤820 內容區是浮層（進頁面收著、不寫 tw.aiOpen）
+- [x] ② 分隔線 `#skSplit`：拖曳（col-resize）、存 `tw.aiSplit`（比例）、雙擊還原 44%、←／→ 鍵 2%；左欄最小寬＝工具列一行放得下；≤820 不出現（上下排）
+- [x] ③ 技術分／本益比／同業分位／營收 YoY／分 K 等級搬到工具列 `#skTags`（「指標」與「四週期同看」之間），放不下收進「⋯ N」；現價列只剩現價、漲跌、即時徽章；手機不顯示
+- [x] 附帶：兩欄時短註 #liveNote 固定佔一行（不然分時資料非同步到達時 K 線自己跳 18px）；641～760 工具列可橫滑；「⋯ N」小框改 position:fixed
+- 動到的函式與選擇器（給同時改 industry.js 的人對照）：industry.js `setLiveNote`（多一個 title）、`renderStock` 模板（#skPx、#skTools）、新增 `stockTags`／`tagPopClose`／`tagPopFill`／`fitTags`／`wireTags`；
+  stock_ai.js `css()`（#skChartCard.aiside 格線、#skSplit、#skAi 收合／展開、膠囊、單欄 .aibody 浮層、#liveNote）、`readOpen`（預設收合＋換版清一次）、`html`（結論改 briefText）、
+  `setOpen`／`userOpen`／`modeOf`／`leftMin`／`innerW`／`aiPx`／`sizeAi`／`wireSplit`／`watchWidth`／`mount`（小標籤點擊）／新增 `gotoFacet`；
+  index.html 新增 `#skTools`／`.sktags`／`.sktmore`／`.sktagpop` 規則；modules.js 兩塊積木的 tests 加「個股頂部1002」。
+- **這批驗了**（瀏覽器指令全包在 flock 裡；沒跑 pytest：只動 site/**、_uitest.py、文件）：
+  - 合併 main＋總覽重點、改「預設只看重點」之後最後一輪（19:05 台北）：`_uitest.py --workers 1 --sections 個股頂部1002,個股AI分析0926,新-版面等高與多寬度` 全 0；`_preview.py` 全綠（0 重疊）。
+  - 同一份程式碼（窄右欄膠囊那一刀之前）：`--sections 個股,K線縮放,新-產業與個股,新-版面等高與多寬度,手機` 全 0；`--sections 個股總覽1002` 0；
+    `--sections 個股籌碼分頁0928` 1 條紅＝「K 線卡裡有『資料湖』三個字」—— **改前就紅**（stock-overview-mini 的 HANDOFF 記過），
+    字串在 industry.js applyTick 的分時短註「（資料湖的 60 分 K，即時來源連不上時的備援）」，屬分時即時那一塊，這批沒動它（另一位 agent 正在改分時）。
+  - 新段落「個股頂部1002」驗：預設重點（結論一行＋小標籤一行、≤ 約 2 行）、展開／收合／換面向／點小標籤時名稱・產業鏈・價格・漲跌・即時徽章・標籤・週期鈕・K 線 top/left 差 < 2px（1440／1100／800）、
+    小標籤捲到總覽細節卡、800 浮層（Esc／點外面收、不寫 tw.aiOpen）、分隔線（col-resize、拖 100px 右欄真的寬 100px、拖到底左欄停在最小寬、重新整理還在、雙擊還原、← 鍵）、
+    標籤與週期鈕同一行（top 差 < 6px）、「⋯ N」點開／Esc／點外面、1440／1100／800／390 無溢出無重疊。
+
+## 台指期改走 Deno 代理：期交所經 Deno 日盤夜盤全 200，網站台指期先打 Deno、失敗才退回 Worker（2026-10-02 19:00，台北，爬蟲專家，分支 `claude/taifex-deno`，**未推 main**，DECISIONS #286）
+
+- [x] **期交所經 Deno 回 200（兩輪實測）**：Deno 網址 `https://tw-taifex.miaozike.deno.net`（CLI 的 productionUrl）。
+  run 36955532108（10:25，push 84d55bc）與 run 36995563974（18:28，workflow_dispatch，**夜盤交易中**）：`/health`、`/fut` 日盤、`/fut` 夜盤、`/futchart` TXFJ6-F、TXFJ6-M **全部 200**，回的是期交所原始 JSON。
+- [x] `site/live.js`：常數 `TAIFEX_PROXY` ＋ `Live.taifexProxy()`。
+- [x] `site/market3.js`：新 `futGet()` —— 台指期 `/fut`（日盤 5 秒、夜盤 60 秒）與 `/futchart` 先打 Deno（6 秒逾時），非 2xx／連不上 → 退回 Worker；
+  兩條都壞時說明寫「Deno 回 HTTP 520，Worker 也回 HTTP 502」。加權、櫃買、台指期日盤分時的 `/chart`（mis.twse）一行沒動；`/futstream`（SSE，預設關）仍只走 Worker。
+- [x] `scripts/_uitest.py` 新段落 `台指期Deno優先`（A Deno 好→夜盤＋夜盤點、Worker 0 次；B Deno 520→退回 Worker；B2 Deno 連不上→退回；D 兩條都壞→日盤＋兩邊原因），`site/modules.js` 的 `index.board` 登記。
+  反向驗證四種植入缺陷各紅 10／6／2／2 條，還原後綠（表在 DECISIONS #286）。
+- [x] `docs/v3_sources_spec.md` 第 7 節那句「前端經 Worker 讀」補上 Deno。
+- 接手的狀況：前一位停在反向驗證中途（`claude/wip-taifex-deno` 那份 `market3.js` 還留著植入的 `const deno = '';  // PLANTED`），這一批已還原並重寫 `futGet()`（原因要跟著回應走、兩條都壞要講兩邊），測試補 B2 與 D。
+- **這批驗了**：`_uitest.py --workers 1 --sections 夜盤盤後0930,夜盤推送,即時推送,新-大盤三張圖,總覽,台指期Deno優先,積木清單`
+  → 前六段 0 問題；積木清單 3 條＝main 既有的那 3 條（手機 #stock「AI 分析」「財報籌碼」、擋掉 modules.js），跟這批無關。`_preview.py` 全綠。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件；`tests/` 不 import `_uitest.py`）。瀏覽器鎖被占超過 5 分鐘，改用 `TW_UITEST_PORT=8791`／`TW_PREVIEW_PORT=8792` 不加 flock 跑；本機 `site/data` 是 symlink 到主 checkout（10-01 資料）。
+- 已知限制：① Deno 免費層據 WebSearch 摘要（第三方、低信心）每月 100 萬請求，一個讀者整天開總覽約每月 11～12 萬次，**同時整天開著的讀者超過約 8 個就會碰頂**（碰頂會退回 Worker→顯示日盤＋原因，不白屏）。
+  ② 瀏覽器從 `miaozike.github.io` 打 Deno 的 CORS 沒在真瀏覽器驗過（容器連不到外網）；`main.ts` 有放行 github.io，合併上線後請開總覽確認夜盤。③ 台灣讀者到 Deno 的延遲沒實測（runner 在美國，`region: ord`）。
+- 下一步：合併 `claude/taifex-deno` 到 main（只動前端，`pages.yml` 會部署）；上線後夜盤時段開總覽，台指期小標應是「夜盤」。
+
 ## 「個股」段 2 個紅燈＝本機資料過舊造成的假紅，不是線上 bug（2026-10-02 17:10，台北，審核專家，分支 `claude/fix-stock-k`，只改 HANDOFF）
 
 - 紅燈：`_uitest.py --sections 個股 --workers 1` 的「個股頁 K 線有畫出來」與「沒劃掉的週期 tick 點下去真的畫得出來 ← {'canvas': 0, 'empty': True}」。
@@ -153,6 +267,7 @@
 - 這批驗了：`pytest tests/ -q` 899 passed／4 skipped／1 xfailed、Worker 離線驗收 `fut_fail_check.mjs` 69 條（含新舊比對）、`worker_closed` 綠、`worker_check` 3 輪有 1 輪「三條新連線共用上游」紅（計時型、舊版 4 輪全綠，/stream 程式碼沒動）、
   `futstream_check` 2 條紅（舊版同樣 2 條，既有）。沒改 site/，沒跑 `_preview`／`_uitest`。部署後 probe run 36745792375、worker-watch run 36745796387 實測：日盤 `/quote` 200、`/fut?session=day` 502（上游 520）、夜盤兩支 502（上游 520）。
 - **待處理**：① **夜盤要回來只能換不經 Cloudflare 的代理**（Deno Deploy／Netlify・Vercel Node 函式／Apps Script／自己的 VM，代價表在 #281），都要 Andy 開帳號，還沒選。
+  → 2026-10-02 已選 Deno Deploy 並實測 200，前端接上在分支 `claude/taifex-deno`（DECISIONS #286，見本檔最上面那節）。
   ② 前端 `fetchFut()`／`fetchFutChart()` 讀 502 JSON 的 `upstream_status`，說明改寫成「期交所經代理回 520」；要同時改 `_uitest.py`，不在這批範圍。
   ③ 日盤 `fastTick()`（每 5 秒 `/fut?session=day`）同樣被擋，靠 `m3fut` 退避與 `/chart` 分時撐著。
 
@@ -3721,3 +3836,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 10-02 16:5x 合併上線：K 線繪圖工具改版（#289）
 - 合併後驗了：_preview 綠；_uitest 繪圖工具1002 0、繪圖成交量分佈1002 0、會員權限開關 0、個股 2 紅。
 - 個股那 2 紅（「個股頁 K 線有畫出來」「tick 點下去畫得出來 canvas 0」）在合併前的 origin/main 上用同一份本機資料跑也一樣 2 紅 → 既有，不是這批造成；待查（疑似本機 stock/*.json 過舊或分時預設改動後的斷言）。
+
+### 10-02 21:4x 合併上線：個股五分頁並排（#295）
+- 合併後驗了：_preview 綠；_uitest 個股 0、手機 0、個股分頁版面1002 0、個股頂部1002 0、個股總覽1002 0、總覽摘要卡即時 2 紅。
+- 總覽摘要卡即時那 2 紅（「跨過收盤 → 顯示今天的收盤快照」）：驗收用假時鐘 09/29，但本機 payload 已重算到 10/01（比假「今天」還新），前端判定盤後資料已產出、不走快照分支 → 驗收依賴本機資料日期的假紅；這批沒動 app.js。待修：該段改用 route 把 meta 日期釘成假今天的前一天。
