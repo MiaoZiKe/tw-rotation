@@ -11,9 +11,17 @@ name: 部署網站
 # 資料湖沒變、pipeline 沒變，算出來的 JSON 一模一樣。
 # 快取的 key 就是這三樣東西的內容雜湊，命中就直接沿用上一次的產出。
 
+# 2026-10-03 分支預覽（DECISIONS #301，說明見 docs/preview.md）：
+#   · main 有 push → 照舊部署正式站，**同時**把 origin 上所有 preview/* 分支的 site/ 放到 preview/<名稱>/。
+#   · preview/* 有 push → 這次的 run 不部署（github-pages 環境只准 main 部署），
+#     只用 workflow_dispatch 叫 main 重跑一次；真正的部署永遠在 main 上做，正式站只會是 main 的程式碼。
+#     ⚠ 這條只在「那個 preview 分支裡的 pages.yml 也有這段」時才會觸發（push 事件讀的是被推的那個分支的工作流）。
+#       從舊 main 拉出來的分支沒有 → 推完手動跑一次 workflow_dispatch（docs/preview.md 有寫）。
+#   · 刪掉 preview/* 分支 → delete 事件（讀 main 的工作流）重新部署，那份預覽就消失。
 on:
+  delete:
   push:
-    branches: [main]
+    branches: [main, "preview/**"]
     paths:
       - "site/**"
       - "pipeline/**"
@@ -30,12 +38,34 @@ permissions:
   pages: write
   id-token: write
 
+# 正式部署的群組照舊是 pages。preview/* 推送那種 run 只是轉呼叫 main，放在自己的群組，
+# 不要排在正在跑的部署後面空等（cancel-in-progress 一律 false，CLAUDE.md 絕對不准改）。
+# ⚠ 刪掉「非 preview」分支（claude/* 之類）也會觸發 delete 事件、什麼都不做 ——
+#   那種 run 一定要放別的群組：同一群組裡新排進來的 run 會把「還在排隊的正式部署」擠掉，
+#   等於刪一個分支就讓網站停在舊版。
 concurrency:
-  group: pages
+  group: ${{ startsWith(github.ref, 'refs/heads/preview/') && format('pages-relay-{0}', github.ref) || (github.event_name == 'delete' && !(github.event.ref_type == 'branch' && startsWith(github.event.ref, 'preview/'))) && format('pages-noop-{0}', github.event.ref) || 'pages' }}
   cancel-in-progress: false
 
 jobs:
+  # preview/* 推上來 → 叫 main 重新部署（main 那一輪會把所有 preview/* 一起裝進去）
+  relay-preview:
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/preview/') }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: 叫 main 重新部署（預覽版會一起更新）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run pages.yml --repo "${{ github.repository }}" --ref main
+          N="${GITHUB_REF_NAME#preview/}"
+          echo "已排入 main 的部署；完成後預覽網址：https://miaozike.github.io/tw-rotation/preview/${N//\//-}/"
+
   deploy:
+    # main 的 push／手動執行，或刪掉的是 preview/* 分支時才部署。其他分支刪除、preview 推送一律不跑。
+    if: ${{ !startsWith(github.ref, 'refs/heads/preview/') && (github.event_name != 'delete' || (github.event.ref_type == 'branch' && startsWith(github.event.ref, 'preview/'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
@@ -86,7 +116,8 @@ jobs:
           # 等於從 UTC 00:00（台北 08:00）起算 —— 台北 00:00～08:00 的部署都沒被數到
           # （2026-09-24 deployer 實測：沒編碼回 2、編碼後回 8；也是 09-23「推 14 看到 5」的原因）。
           SINCE=$(TZ=Asia/Taipei date +%Y-%m-%d)T00:00:00%2B08:00
-          N=$(gh api "repos/${{ github.repository }}/actions/workflows/pages.yml/runs?created=%3E%3D${SINCE}&per_page=100" --jq '.total_count' 2>/dev/null || echo "")
+          # &branch=main：preview/* 推送的轉呼叫 run 不算正式站的一版（2026-10-03 分支預覽）
+          N=$(gh api "repos/${{ github.repository }}/actions/workflows/pages.yml/runs?branch=main&created=%3E%3D${SINCE}&per_page=100" --jq '.total_count' 2>/dev/null || echo "")
           echo "今天（台北 ${SINCE/\%2B/+}）第 ${N:-?} 次部署"
           echo "n=${N}" >> "$GITHUB_OUTPUT"
 
@@ -116,6 +147,16 @@ jobs:
           else
             echo "會員功能：沒設 ACCOUNT_API_URL，維持關閉（設定步驟見 docs/login_setup.md）"
           fi
+      # 2026-10-03 分支預覽（DECISIONS #301）：origin 上每個 preview/* 分支的 site/（不含 data/）
+      # 放到 site/preview/<名稱>/，資料讀正式站的 ../../data/，所以每份只多約 7MB。
+      # 放在會員設定之後：預覽版沿用這裡已經填好的 account_config.js。失敗不擋正式站部署。
+      - name: 分支預覽（preview/* → preview/<名稱>/）
+        continue-on-error: true
+        env:
+          TW_BUILD_SEQ: ${{ steps.seq.outputs.n }}
+        run: |
+          python scripts/preview_inject.py
+          echo "部署包大小：$(du -sh site | cut -f1)（其中預覽 $(du -sh site/preview 2>/dev/null | cut -f1 || echo 0)）"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
