@@ -39208,12 +39208,55 @@ WS_ST = """() => { const t = document.getElementById('wpTbl'); const card = docu
       seq: c ? c.dataset.seq : null,
       canvas: c ? c.querySelectorAll('canvas').length : 0, ec: c && window.echarts ? !!echarts.getInstanceByDom(c) : false,
       sw: document.documentElement.scrollWidth, vw: innerWidth, hash: location.hash }; }"""
+# 2026-10-02（DECISIONS #290）小走勢精確化：每一張 svg.spk 的輔助繪製與數值口徑
+#   fr＝外框、bl＝基準虛線（要真的有 dasharray）、ar＝面積、dot＝終點圓點、n＝點數、
+#   Y 範圍（data-ymin／ymax）要包含基準、而且至少基準的 3%（小波動不准撐滿整格）、
+#   圓點要在折線最後一點上、虛線的 y 要等於用基準價算出來的 y。
+WS_SPK = """(sel) => [...document.querySelectorAll(sel)].map(s => {
+    const W = +s.getAttribute('width'), H = +s.getAttribute('height');
+    const fr = s.querySelector('rect.fr'), bl = s.querySelector('line.bl'), ar = s.querySelector('polygon.ar'),
+          pl = s.querySelector('polyline'), dot = s.querySelector('circle.dot');
+    const pts = pl ? pl.getAttribute('points').trim().split(' ').map(x => x.split(',').map(Number)) : [];
+    const lastP = pts[pts.length - 1] || [NaN, NaN];
+    const ymin = +s.dataset.ymin, ymax = +s.dataset.ymax, bse = +s.dataset.base;
+    const ybCalc = H - 1.5 - (bse - ymin) / (ymax - ymin) * (H - 3);
+    const cs = (e, k) => e ? getComputedStyle(e)[k] : '';
+    const row = s.closest('tr[data-go]'), cell = row ? row.querySelector('[data-live="close"]') : null;
+    return { code: (s.closest('[data-spk]') || {}).dataset?.spk || '', W, H, n: +s.dataset.n, k: s.dataset.k,
+      fr: !!fr, frStroke: cs(fr, 'stroke'), frOp: +cs(fr, 'strokeOpacity'),
+      bl: !!bl, dash: cs(bl, 'strokeDasharray'), blY: bl ? +bl.getAttribute('y1') : NaN, ybCalc,
+      ar: !!ar, arOp: +cs(ar, 'fillOpacity'), dot: !!dot,
+      dotOnLast: dot ? Math.abs(+dot.getAttribute('cx') - lastP[0]) < 0.2 && Math.abs(+dot.getAttribute('cy') - lastP[1]) < 0.2 : false,
+      npl: pts.length, ymin, ymax, base: bse, last: +s.dataset.last, first: +s.dataset.first,
+      stroke: cs(pl, 'stroke'), tip: s.dataset.tip || '',
+      rowPx: cell ? parseFloat(cell.textContent.replace(/,/g, '')) : null }; })"""
+
+
+def ws_spk_check(T, W, lst, where):
+    """小走勢的共用斷言（搜尋下拉與自選列都用這一組）。"""
+    ok(f"{T}{W} {where}小走勢都有外框與基準虛線", bool(lst) and all(x["fr"] and x["bl"] and x["dash"] not in ("", "none") for x in lst),
+       [(x["code"], x["fr"], x["bl"], x["dash"]) for x in lst][:6])
+    ok(f"{T}{W} {where}外框看得見（描邊不透明度 > 0.2）", all(x["frStroke"] not in ("", "none") and x["frOp"] > 0.2 for x in lst),
+       [(x["code"], x["frStroke"], x["frOp"]) for x in lst][:4])
+    ok(f"{T}{W} {where}小走勢點數 ≥ 30（不是只剩幾個轉折）", all(x["n"] >= 30 and x["npl"] == x["n"] for x in lst),
+       [(x["code"], x["k"], x["n"], x["npl"]) for x in lst])
+    ok(f"{T}{W} {where}Y 範圍包含基準線", all(x["ymin"] <= x["base"] <= x["ymax"] and 0 <= x["blY"] <= x["H"] for x in lst),
+       [(x["code"], x["ymin"], x["base"], x["ymax"], x["blY"]) for x in lst][:6])
+    ok(f"{T}{W} {where}基準虛線畫在基準價的位置", all(abs(x["blY"] - x["ybCalc"]) <= 0.15 for x in lst),
+       [(x["code"], x["blY"], round(x["ybCalc"], 2)) for x in lst][:6])
+    ok(f"{T}{W} {where}Y 範圍至少基準 ±1.5%（小波動不撐滿整格）", all(x["ymax"] - x["ymin"] >= x["base"] * 0.03 - 1e-6 for x in lst),
+       [(x["code"], round((x["ymax"] - x["ymin"]) / x["base"] * 100, 2)) for x in lst][:6])
+    ok(f"{T}{W} {where}有線下面積與終點圓點（圓點就在最後一點）", all(x["ar"] and 0 < x["arOp"] < 0.5 and x["dot"] and x["dotOnLast"] for x in lst),
+       [(x["code"], x["ar"], x["arOp"], x["dotOnLast"]) for x in lst][:6])
+    ok(f"{T}{W} {where}提示框文字寫了期間、起訖、漲跌幅", all("交易日" in x["tip"] and "起 " in x["tip"] and "訖 " in x["tip"] and "%" in x["tip"] for x in lst),
+       [x["tip"] for x in lst][:2])
 
 
 def t_watch_spark(b, base):
     T = "[自選走勢1001]"
     errs: list[str] = []
-    for W in (1730, 800, 390):
+    # 2026-10-02：Andy 這次的截圖是 1440；800 保留（窄畫面）、390 手機
+    for W in (1440, 800, 390):
         ctx = b.new_context(viewport={"width": W, "height": 1000})
         pg = ctx.new_page()
         pg.on("pageerror", lambda e: errs.append(f"{W}: {e}"))
@@ -39237,6 +39280,17 @@ def t_watch_spark(b, base):
                 ok(f"{T}{W} 成交值、漲跌幅右緣對齊", len(s["tvR"]) >= 5 and max(s["tvR"]) - min(s["tvR"]) <= 0.5
                    and max(s["chgR"]) - min(s["chgR"]) <= 0.5, s)
                 ok(f"{T}{W} 搜尋下拉不撐出橫向捲軸", s["sw"] <= s["vw"], s)
+                # 2026-10-02（#290）：熱門股票的小走勢＝外框＋基準虛線＋面積＋終點圓點、≥30 點、Y 範圍含基準
+                ws_spk_check(T, W, pg.evaluate(WS_SPK, "#sugg .sgrow[data-c] .spkw svg.spk"), "搜尋下拉")
+                # 滑上去 → 提示框真的出現、寫的是那一張的期間與漲跌（390 是觸控寬度，桌機才驗）
+                if W >= 800:
+                    pg.hover("#sugg .sgrow[data-c] .spkw svg.spk"); pg.wait_for_timeout(150)
+                    tip = pg.evaluate("""() => { const t = document.querySelector('.spktip'); const s = document.querySelector('#sugg .sgrow[data-c] .spkw svg.spk');
+                        if (!t || t.hidden) return null; const r = t.getBoundingClientRect();
+                        return { txt: t.textContent, want: s.dataset.tip.split('\\n')[0], vis: r.width > 40 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1 }; }""")
+                    ok(f"{T}{W} 滑到搜尋小走勢 → 提示框出現、寫那一張的期間與漲跌", bool(tip) and tip["vis"] and tip["want"] in tip["txt"] and "%" in tip["txt"], tip)
+                    pg.mouse.move(2, 2); pg.wait_for_timeout(100)
+                    ok(f"{T}{W} 滑開 → 提示框收起", pg.evaluate("() => { const t = document.querySelector('.spktip'); return !t || t.hidden; }"), "提示框沒收")
                 pg.keyboard.press("Escape")
             except Exception as e:
                 ok(f"{T}{W} 搜尋下拉打得開", False, str(e)[:200])
@@ -39250,6 +39304,13 @@ def t_watch_spark(b, base):
         ok(f"{T}{W} 自選列都有走勢圖", st["rows"] == 3 and st["spk"] == 3, st)
         ok(f"{T}{W} 自選卡片用滿內容寬（不再是置中窄卡）", st["cardW"] >= st["mainW"] - 40, st)
         ok(f"{T}{W} 自選頁沒有橫向捲軸", st["sw"] <= st["vw"], st)
+        wl = pg.evaluate(WS_SPK, "#wpTbl .wpspk svg.spk")
+        ws_spk_check(T, W, wl, "自選列")
+        ok(f"{T}{W} 自選列小走勢最後一點跟列上現價差 < 1%",
+           all(x["rowPx"] and abs(x["last"] / x["rowPx"] - 1) < 0.01 for x in wl), [(x["code"], x["last"], x["rowPx"]) for x in wl])
+        ok(f"{T}{W} 自選列小走勢用實際像素畫（沒被 CSS 拉伸，圓點不會變橢圓）",
+           all(abs(pg.evaluate("(c) => document.querySelector(`#wpTbl .wpspk[data-exp='${c}'] svg.spk`).getBoundingClientRect().width", x["code"]) - x["W"]) < 0.6 for x in wl),
+           [(x["code"], x["W"]) for x in wl])
 
         # ---- ③ 點走勢圖 → 那一列下方展開一張圖（預設走勢）
         pg.click('#wpTbl .wpspk[data-exp="2330"]')
@@ -39258,6 +39319,19 @@ def t_watch_spark(b, base):
         ok(f"{T}{W} 點走勢圖在那一列下方展開", st["exp"] == "2330" and st["prev"] == "2330" and st["nexp"] == 1, st)
         ok(f"{T}{W} 展開圖高 250～330、真的畫了線", 250 <= st["h"] <= 330 and st["mode"] == "line" and st["ec"] and st["n"] >= 2, st)
         ok(f"{T}{W} 展開不離開自選頁", st["hash"] == "#watch", st)
+        # 2026-10-02（#290）：展開大圖跟列上小圖同一份資料、同一段期間 —— 點數、第一點、最後一點、基準逐一相同
+        xs = pg.evaluate("""() => { const c = document.getElementById('wpxC'), s = document.querySelector('#wpTbl .wpspk[data-exp="2330"] svg.spk');
+            const i = echarts.getInstanceByDom(c), o = i.getOption(), sr = o.series[0];
+            const ml = ((sr.markLine || {}).data || []).find(d => d.yAxis != null);
+            return { n: +c.dataset.n, first: +c.dataset.first, last: +c.dataset.last, base: +c.dataset.base, ymin: +c.dataset.ymin, ymax: +c.dataset.ymax,
+              sn: +s.dataset.n, sfirst: +s.dataset.first, slast: +s.dataset.last, sbase: +s.dataset.base,
+              ml: ml ? ml.yAxis : null, data: sr.data.length, note: document.getElementById('wpxNote').textContent }; }""")
+        ok(f"{T}{W} 展開大圖與列上小圖同一份資料（點數／起／訖／基準相同）",
+           xs["n"] == xs["sn"] == xs["data"] and xs["n"] >= 30 and abs(xs["first"] - xs["sfirst"]) < 1e-6
+           and abs(xs["last"] - xs["slast"]) < 1e-6 and abs(xs["base"] - xs["sbase"]) < 1e-6, xs)
+        ok(f"{T}{W} 展開大圖有昨收虛線、Y 軸包含它", xs["ml"] is not None and abs(xs["ml"] - xs["base"]) < 1e-6
+           and xs["ymin"] <= xs["base"] <= xs["ymax"], xs)
+        ok(f"{T}{W} 展開大圖小註寫出期間、起訖與漲跌幅", "交易日" in xs["note"] and "起 " in xs["note"] and "訖 " in xs["note"] and "%" in xs["note"], xs["note"])
         # Y 軸刻度標籤彼此不重疊（以前手算 min／max 會在 4,900 底下多冒一個 4,878 疊在一起）
         yov = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('wpxC'));
             const ys = i.getModel().getComponent('yAxis').axis.getTicksCoords().map(t => t.coord).sort((a, b) => a - b);
@@ -39297,6 +39371,26 @@ def t_watch_spark(b, base):
         pg.click('#wpTbl tr[data-go="2454"] .wpgo')
         wait_until(pg, "() => location.hash.startsWith('#stock/')", 4000)
         ok(f"{T}{W} 點名稱進個股頁", pg.evaluate("() => location.hash") == "#stock/2454", pg.evaluate("() => location.hash"))
+        # ---- ⑨ 淺色主題：小走勢的線色跟著主題換（紅漲綠跌吃 --rise／--fall），外框照樣看得見
+        if W == 1440:
+            def _spk_cols():
+                return pg.evaluate("""() => { const r = getComputedStyle(document.documentElement);
+                    const tok = (k) => { const d = document.createElement('i'); d.style.color = r.getPropertyValue(k); document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };
+                    const s = [...document.querySelectorAll('#wpTbl svg.spk')];
+                    return { theme: document.documentElement.getAttribute('data-theme') || 'dark', rise: tok('--rise'), fall: tok('--fall'),
+                      lines: s.map(x => [x.classList.contains('up') ? 'up' : x.classList.contains('down') ? 'down' : 'flat', getComputedStyle(x.querySelector('polyline')).stroke]),
+                      fr: s.map(x => { const f = x.querySelector('rect.fr'); return f ? +getComputedStyle(f).strokeOpacity : 0; }) }; }""")
+            pg.goto(base + "#watch", wait_until="networkidle")
+            wait_until(pg, "() => document.querySelectorAll('#wpTbl .wpspk svg.spk').length >= 3", 6000)
+            c1 = _spk_cols()
+            dg_set_theme(pg, "light" if c1["theme"] != "light" else "dark", 600)
+            wait_until(pg, "() => document.querySelectorAll('#wpTbl .wpspk svg.spk').length >= 3", 6000)
+            c2 = _spk_cols()
+            for c in (c1, c2):
+                ok(f"{T}{W} {c['theme']} 主題小走勢紅漲綠跌、外框看得見",
+                   all((k != "up" or st_ == c["rise"]) and (k != "down" or st_ == c["fall"]) for k, st_ in c["lines"]) and all(o > 0.2 for o in c["fr"]), c)
+            changed(f"{T}{W} 切主題後小走勢線色真的換了", [x[1] for x in c1["lines"]], [x[1] for x in c2["lines"]])
+            dg_set_theme(pg, c1["theme"], 300)
         ctx.close()
     ok(f"{T} 沒有 pageerror", not errs, errs[:5])
 
