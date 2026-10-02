@@ -17886,12 +17886,13 @@ def t_live5s_0929(b, base, code):
     # ------------------------------------------------------------------ A. 個股頁（桌機 1440，盤中）
     ctx, pg = open_page(LV5_INTRA, f"stock/{code}")
     wait_until(pg, "() => !!document.getElementById('pxNow') && !!document.querySelector('.livetg[data-livekey=\"stock\"]')", 10000)
-    st = pg.evaluate("() => ({ intra: window.Live.isIntraday(), per: window.Live.periodMs, n: document.querySelectorAll('.livetg').length,"
+    st = pg.evaluate("() => ({ intra: window.Live.isIntraday(), per: window.Live.periodMs, n: [...document.querySelectorAll('.livetg')].filter(e => e.getClientRects().length > 0).length,"
                      " inPx: !!document.querySelector('#skPx .livetg[data-livekey=\"stock\"]'),"
                      " pressed: (%s || {querySelector(){return null}}).querySelector('.livetg-b').getAttribute('aria-pressed') })" % (TG % "stock"))
     ok("[即時5秒] 假時鐘真的在盤中（台北 10:30）", st["intra"] is True, st)
     ok("★ [即時5秒] 盤中計時器排的是每 5 秒（改前 60 秒）", st["per"] == 5000, st)
     ok("[即時5秒] 個股報價列有一顆「即時」開關，而且預設是開的", st["inPx"] and st["pressed"] == "true", st)
+    # ★ 2026-10-03（#298）：只數看得到的 —— 總覽開機就畫好、藏在 #v-overview 的那幾張卡也各有一顆開關，那不是個股頁的
     ok("[即時5秒] 個股頁只有一顆即時開關（營收、財報、籌碼這些歷史資料的卡片不加）", st["n"] == 1, st)
     b1, a1, s1 = changes_within(pg, "#pxNow")
     ok("★ [即時5秒] 開著即時：6.5 秒內現價真的換了", s1 is not None, [b1, a1, s1])
@@ -41154,7 +41155,7 @@ def t_member_perm(b, base, code):
         # ★ 2026-10-03（DECISIONS #298）：總覽每張卡的「即時」子權限自動列在「即時與全站工具」那一類
         ovl = ad.evaluate("""() => ['ov.summary.live','ov.index.live','ov.heat.live','ov.theme.live','ov.rot.live','ov.breadth.live','ov.flow.live','ov.events.live']
             .map(id => { const r = document.querySelector(`#pmCats .pmrow[data-f='${id}']`); const c = r && r.closest('.pmcat');
-              return { id, row: !!r, cat: c ? c.dataset.cat : '', h: c ? c.querySelector('h3').firstChild.textContent : '', sw: !!(r && r.querySelector('input[role=switch]')) }; })""")
+              return { id, row: !!r, cat: c ? c.dataset.cat : '', h: c ? [...c.querySelector('h3').childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('') : '', sw: !!(r && r.querySelector('input[role=switch]')) }; })""")
         ok(f"{T}：#admin/perm 列出總覽八個「即時」子權限，都在「即時與全站工具」分類、各一個 Switch",
            all(x["row"] and x["cat"] == "global" and x["h"].strip() == "即時與全站工具" and x["sw"] for x in ovl), ovl)
         ok(f"{T}：還沒選人之前開關是停用的（不會誤存到不知道誰）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => i.disabled)"))
