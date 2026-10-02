@@ -11826,29 +11826,122 @@
     t.remove();
   }, true);
 
-  // ---------------------------------------------------------------- 搜尋下拉的迷你走勢（2026-09-28）
-  /* Andy：「搜尋欄位的對應股票旁需要出現小小的分時走勢圖，只要走勢圖就好不用數據因為只是參考」。
-     每一列名稱旁一張 48×16 的小折線：只畫線，不畫軸、不印數字；顏色跟漲跌（紅漲綠跌、平盤灰）。
-     資料 data/sparks.json（build_payload → compute/sparks.py）：一檔一個字串＝種類＋方向＋64 階的點。
-       · 'i'＝最近一個交易日的分時（資料湖 60 分 K：開盤＋每小時收盤，一天 6 點，x 軸照 09:00～13:30 的真實時間排）；
-       · 'd'＝沒有分時的股票改用最近 20 個交易日的日收盤（等距排；顏色看這 20 天的頭尾，跟線的走向一致）。
-     第一次打開下拉才抓（不拖慢首頁）；抓回來之前先留空位（寬度固定，列不會跳），回來後把已經畫好的列補上。
-     盤中即時價接到最後一點（任務單標「可選」）這一版沒做：檔案只存形狀（64 階），不存價位，接不上真實價。*/
+  // ---------------------------------------------------------------- 迷你走勢（搜尋下拉／自選頁／手機加入清單共用）
+  /* 2026-09-28 起：搜尋下拉每一列名稱旁一張小走勢（Andy：「只要走勢圖就好不用數據因為只是參考」）。
+     2026-10-02 v2（DECISIONS #290，Andy：「走勢小圖有點不精確，幫我精確點，並需要有外框或其他繪製輔助走勢圖，
+     不然看起來只有一條線很怪」）。v1 不精確的三個根因：
+       ① 分時一天只有 6 點（開盤＋5 根 60 分 K），只剩幾個轉折；
+       ② 小圖畫「最近一天」，自選展開大圖畫「最近 5 個交易日」—— 期間不同，形狀對不起來；
+       ③ sparks.json 只存 64 階形狀、不存價位：每一檔都把自己的最低～最高撐滿整格，0.3% 的波動看起來像暴漲，
+          也畫不出基準線、算不出漲跌幅。
+     v2：資料與期間跟展開大圖**逐點相同**（trendSeries 是兩邊共用的口徑，compute/sparks.py 是它的 Python 版）——
+       分時＝最近 5 個交易日、每天 09:00 開盤＋每根 60 分 K 收盤（一天 6 點、共 30 點），最後一點換成正式收盤；
+       沒有分時＝最近 60 個交易日收盤。基準虛線＝昨收（日線倒數第二天），方向＝最後一點對昨收（紅漲綠跌）——
+       跟列上的「漲跌幅」同一件事、同一個顏色；期間漲跌（訖／起）寫在提示框。
+     畫法：淡色底框＋細外框、基準水平虛線、線下半透明面積、最後一點小圓點、日分隔線（夠寬才畫）；
+     Y 軸一定包含基準線，而且至少涵蓋基準 ±1.5%（trendRange）—— 小波動不會被撐滿整格。
+     滑鼠移上去（.spktip）顯示期間、起訖價、漲跌幅。不加任何抓取：sparks.json 是部署時產出的靜態檔。*/
   let SPARKS = null, _spkP = null;
-  function sparkSVG(code) {
-    const s = SPARKS && SPARKS.s && SPARKS.s[code];
-    if (!s || s.length < 4) return '';
-    const abc = SPARKS.abc || '', kind = s[0], dir = s[1];
-    const v = Array.from(s.slice(2)).map(ch => Math.max(0, abc.indexOf(ch)));
-    const n = v.length, top = Math.max(1, abc.length - 1), W = 48, H = 16, P = 1.5;
-    const X = kind === 'i' && n === 6 ? [0, 60, 120, 180, 240, 270].map(m => m / 270) : v.map((_, i) => i / (n - 1));
-    const pts = v.map((y, i) => `${(P + X[i] * (W - 2 * P)).toFixed(1)},${(H - P - y / top * (H - 2 * P)).toFixed(1)}`).join(' ');
-    const cls = dir === '+' ? 'up' : dir === '-' ? 'down' : 'flat';
-    const t = kind === 'i' ? '最近一個交易日的分時走勢' : '最近 20 個交易日的收盤走勢（這檔沒有分時資料）';
-    return `<svg class="spk ${cls}" data-k="${kind}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${t}"><title>${t}</title><polyline points="${pts}"/></svg>`;
+  const _pxNF = new Intl.NumberFormat('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const pxFmt = (v) => (v == null || !isFinite(v) ? '—' : _pxNF.format(Math.round(v * 100) / 100));
+  // 60 分 K 的時間標的是 K 棒開始（09:00…13:00）；畫的是那根的收盤，所以標成收盤時間（13:00 那根收在 13:30）
+  const _m60End = (hm) => { const h = +hm.slice(0, 2), m = +hm.slice(3, 5), t = Math.min(h * 60 + m + 60, 13 * 60 + 30);
+    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  const _md = (d) => (d && d.length >= 10 ? d.slice(5, 7) + '/' + d.slice(8, 10) : '');
+  /* 走勢的口徑（自選展開大圖用它；compute/sparks.py 是同一套的 Python 版，改一邊一定要改另一邊）。
+     h60＝[ISO 時間, 開, 高, 低, 收, 量]、daily＝[日期, 開, 高, 低, 收, 量]（個股頁同一份資料）。*/
+  const TREND_DAYS = 5, TREND_DAILY = 60;
+  function trendSeries(h60, daily) {
+    daily = (daily || []).filter(r => r && +r[4] > 0);
+    // 基準＝昨收（日線倒數第二天；還原價在除權息當天就等於參考價）—— 跟列上「漲跌幅」同一件事、同一個顏色
+    const prevClose = () => (daily.length >= 2 ? { base: +daily[daily.length - 2][4], bd: _md(String(daily[daily.length - 2][0])) } : null);
+    const dLast = daily.length ? String(daily[daily.length - 1][0]).slice(0, 10) : '';
+    const h = (h60 || []).filter(r => r && String(r[0]).slice(0, 10) <= dLast);
+    if (dLast && h.length && String(h[h.length - 1][0]).slice(0, 10) === dLast) {
+      const byDay = new Map();
+      h.forEach(r => { const d = String(r[0]).slice(0, 10); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(r); });
+      const days = [...byDay.keys()].sort(), win = days.slice(-TREND_DAYS);
+      const pts = [], per = [];
+      win.forEach(d => {
+        const bs = byDay.get(d).slice().sort((a, b) => String(a[0]) < String(b[0]) ? -1 : 1);
+        const p = [[_md(d) + ' 09:00', +bs[0][1]]].concat(bs.map(b => [_md(d) + ' ' + _m60End(String(b[0]).slice(11, 16)), +b[4]]))
+          .filter(x => x[1] > 0 && isFinite(x[1]));
+        pts.push(...p); per.push(p.length);
+      });
+      if (pts.length) pts[pts.length - 1][1] = +daily[daily.length - 1][4];   // 60 分 K 不含收盤集合競價 → 換成正式收盤
+      if (pts.length >= 2) return Object.assign({ kind: 'i', pts, d0: _md(win[0]), d1: _md(win[win.length - 1]), per }, prevClose() || { base: pts[0][1], bd: '' });
+    }
+    const tail = daily.slice(-TREND_DAILY);
+    if (tail.length < 2) return null;
+    return Object.assign({ kind: 'd', pts: tail.map(r => [_md(String(r[0])), +r[4]]), d0: _md(String(tail[0][0])), d1: _md(String(tail[tail.length - 1][0])), per: [] },
+      prevClose());
   }
+  /* Y 軸範圍：包含資料與基準線；振幅小於基準 3%（±1.5%）時撐到 3% 並置中 —— 不讓 0.3% 的小波動撐滿整格；上下再留 8%。*/
+  function trendRange(lo, hi, base) {
+    let a = Math.min(lo, base), b = Math.max(hi, base);
+    const minSpan = Math.abs(base) * 0.03;
+    if (b - a < minSpan) { const c = (a + b) / 2; a = c - minSpan / 2; b = c + minSpan / 2; }
+    const pad = (b - a) * 0.08 || Math.abs(base) * 0.01 || 1;
+    return [a - pad, b + pad];
+  }
+  // 期間、起訖、漲跌的文字（小圖提示框與展開大圖的小註同一套說法）
+  //   per＝畫的是哪一段；se＝起訖價＋期間漲跌（訖／起）；chg＝最後一天對昨收（＝列上的漲跌幅，顏色也看它）
+  function trendText(t) {
+    const pct = t.base ? (t.last / t.base - 1) * 100 : 0, ppct = t.first ? (t.last / t.first - 1) * 100 : 0;
+    const per = t.kind === 'i' ? `最近 ${t.nd || TREND_DAYS} 個交易日・每小時（${t.d0}～${t.d1}）` : `最近 ${t.n} 個交易日收盤（${t.d0}～${t.d1}）`;
+    return { per, pct, ppct, se: `起 ${pxFmt(t.first)} → 訖 ${pxFmt(t.last)}（期間 ${fmt.pct(ppct, 2)}）`,
+      chg: t.bd ? `${t.d1} ${fmt.pct(pct, 2)}（對昨收 ${t.bd} ${pxFmt(t.base)}）` : `${fmt.pct(pct, 2)}（對期間起點 ${pxFmt(t.base)}）` };
+  }
+  // sparks.json 的一檔 → 價位序列（v2：[形狀, 最低, 最高, 基準, 起, 訖, 起日, 訖日, 基準日, 每天點數]；v1 只有形狀字串）
+  function sparkData(code) {
+    const e = SPARKS && SPARKS.s && SPARKS.s[code];
+    if (!e) return null;
+    const abc = SPARKS.abc || '', top = Math.max(1, abc.length - 1);
+    const s = Array.isArray(e) ? e[0] : e;
+    if (typeof s !== 'string' || s.length < 4) return null;
+    const lv = Array.from(s.slice(2)).map(ch => Math.max(0, abc.indexOf(ch)));
+    if (!Array.isArray(e)) {   // v1 舊檔（部署前的本機資料）：只有形狀，沒有價位 → 用階數當價位、基準取第一點
+      return { kind: s[0], dir: s[1], v: lv, lo: 0, hi: top, base: lv[0], first: lv[0], last: lv[lv.length - 1], d0: '', d1: '', bd: '', per: [], v1: true };
+    }
+    const lo = +e[1], hi = +e[2];
+    const v = lv.map(l => lo + l / top * (hi - lo));
+    v[0] = +e[4]; v[v.length - 1] = +e[5];
+    return { kind: s[0], dir: s[1], v, lo, hi, base: +e[3], first: +e[4], last: +e[5], d0: e[6] || '', d1: e[7] || '', bd: e[8] || '',
+      per: String(e[9] || '').split('').map(Number).filter(n => n > 0) };
+  }
+  /* 畫一張小走勢。opt.w／opt.h＝實際像素（viewBox 跟像素 1:1，圓點不會被拉成橢圓）。*/
+  function sparkSVG(code, opt) {
+    const d = sparkData(code);
+    if (!d || d.v.length < 2) return '';
+    const W = Math.round((opt && opt.w) || 48), H = Math.round((opt && opt.h) || 18);
+    const n = d.v.length, P = 2.5, R = W >= 64 ? 2.2 : 1.8;
+    const [y0, y1] = d.v1 ? [d.lo - 1, d.hi + 1] : trendRange(d.lo, d.hi, d.base);
+    const X = (i) => P + i / (n - 1) * (W - 2 * P - R);
+    const Y = (v) => H - 1.5 - (v - y0) / (y1 - y0) * (H - 3);
+    const xy = d.v.map((v, i) => [X(i), Y(v)]);
+    const pts = xy.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const yb = Y(d.base), [xl, yl] = xy[n - 1];
+    const cls = d.dir === '+' ? 'up' : d.dir === '-' ? 'down' : 'flat';
+    let dv = '';
+    if (d.kind === 'i' && d.per.length > 1 && W >= 64) {   // 日分隔線：只在夠寬的格子畫（48px 塞 5 條會變成柵欄）
+      let k = 0;
+      d.per.slice(0, -1).forEach(c => { k += c; const x = ((X(k - 1) + X(k)) / 2).toFixed(1); dv += `<line class="dv" x1="${x}" x2="${x}" y1="1.5" y2="${H - 1.5}"/>`; });
+    }
+    const t = d.v1 ? null : trendText({ kind: d.kind, nd: d.per.length, n, d0: d.d0, d1: d.d1, bd: d.bd, base: d.base, first: d.first, last: d.last });
+    const lab = t ? `${t.per}　${t.se}　${t.chg}` : (d.kind === 'i' ? '最近的分時走勢' : '最近的收盤走勢');
+    const tip = t ? ` data-tip="${fmt.esc([t.per, t.se, t.chg].join('\n'))}"` : '';
+    return `<svg class="spk ${cls}" data-k="${d.kind}" data-n="${n}" data-base="${d.base}" data-last="${d.last}" data-first="${d.first}"`
+      + ` data-ymin="${y0}" data-ymax="${y1}" data-yb="${yb.toFixed(2)}"${tip} viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${fmt.esc(lab)}">`
+      + `<rect class="fr" x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="2.5"/>${dv}`
+      + `<polygon class="ar" points="${X(0).toFixed(1)},${H - 1} ${pts} ${xl.toFixed(1)},${H - 1}"/>`
+      + `<line class="bl" x1="1" x2="${W - 1}" y1="${yb.toFixed(1)}" y2="${yb.toFixed(1)}"/>`
+      + `<polyline points="${pts}"/><circle class="dot" cx="${xl.toFixed(1)}" cy="${yl.toFixed(1)}" r="${R}"/></svg>`;
+  }
+  // 佔位格（.spkw）帶自己的尺寸：sparks.json 晚到時補畫，用同一個大小
   function sparkUpgrade(root) {
-    $$('.spkw[data-spk]:empty', root).forEach(el => { el.innerHTML = sparkSVG(el.dataset.spk); });
+    $$('.spkw[data-spk]:empty', root).forEach(el => {
+      el.innerHTML = sparkSVG(el.dataset.spk, el.dataset.w ? { w: +el.dataset.w, h: +el.dataset.h } : null);
+    });
   }
   function sparkLoad() {
     if (_spkP) return _spkP;
@@ -11860,6 +11953,26 @@
       .then(d => { SPARKS = d && d.s ? d : { s: {}, abc: '' }; sparkUpgrade(); return SPARKS; });
     return _spkP;
   }
+  /* 提示框：全站一個 .spktip，滑到任何一張 svg.spk[data-tip] 就顯示（搜尋下拉、自選頁、手機抽屜共用）。
+     不用 SVG <title>：瀏覽器原生提示要停一秒才出來、字很小、深淺主題也不跟著換。*/
+  let _spkTip = null;
+  document.addEventListener('pointerover', (e) => {
+    const s = e.target && e.target.closest ? e.target.closest('svg.spk[data-tip]') : null;
+    if (!s) { if (_spkTip && !_spkTip.hidden && !(e.target.closest && e.target.closest('.spktip'))) _spkTip.hidden = true; return; }
+    if (e.pointerType === 'touch') return;
+    if (!_spkTip) { _spkTip = document.createElement('div'); _spkTip.className = 'spktip'; _spkTip.setAttribute('role', 'tooltip'); document.body.appendChild(_spkTip); }
+    const [a, b, c] = String(s.dataset.tip).split('\n');
+    const cls = s.classList.contains('up') ? 'up' : s.classList.contains('down') ? 'down' : 'flat';
+    const hint = s.closest('[data-tiphint]');
+    _spkTip.innerHTML = `<div class="p">${fmt.esc(a)}</div><div>${fmt.esc(b || '')}</div><div class="${cls}">${fmt.esc(c || '')}</div>`
+      + (hint ? `<div class="h">${fmt.esc(hint.dataset.tiphint)}</div>` : '');
+    _spkTip.hidden = false;
+    const r = s.getBoundingClientRect(), tw = _spkTip.offsetWidth, th = _spkTip.offsetHeight;
+    const left = Math.max(6, Math.min(innerWidth - tw - 6, r.left + r.width / 2 - tw / 2));
+    const top = r.bottom + 6 + th > innerHeight ? r.top - th - 6 : r.bottom + 6;
+    _spkTip.style.left = left + 'px'; _spkTip.style.top = Math.max(6, top) + 'px';
+  });
+  document.addEventListener('scroll', () => { if (_spkTip) _spkTip.hidden = true; }, true);
 
   // ---------------------------------------------------------------- 近期搜尋紀錄
   /* 「從搜尋結果點進個股、或直接開 #stock/<code>」都算一筆 —— 所以記錄點放在路由（route），不放在搜尋框。
@@ -12154,7 +12267,8 @@
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
       logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
-      logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG,
+      logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG, sparkData,
+      trendSeries, trendRange, trendText, pxFmt,   // 迷你走勢與自選展開大圖共用的口徑（DECISIONS #290）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置

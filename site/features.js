@@ -105,9 +105,13 @@
     { id: 'stock.draw', name: '畫線工具', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上畫趨勢線、水平線',
       veil: [['#drawBar']], mark: [], block: ['#drawTgl'] },
     { id: 'stock.ai', name: 'AI 分析', cat: 'stockk', def: true, kind: 'bool', desc: '技術／籌碼／基本／消息四面向的規則式分析',
-      veil: [['#skAi'], ['#aiCard'], ['#mbBody[data-tab="ai"]']], mark: ['#mbTabs button[data-t="ai"]'], block: [] },
+      /* 2026-10-02（#294）：個股「總覽」分頁也有一份 AI 分析（重點卡 #ovAiBrief ＋ 技術面／基本面／消息面三張細節卡 [data-ai]），一起上鎖；
+         技術面訊號那一張是積木 stock.signal，跟著「總覽」分頁這一項走，不跟 AI 分析 */
+      veil: [['#skAi'], ['#aiCard'], ['#mbBody[data-tab="ai"]'], ['#ovAiBrief'], ['#ovFacets [data-ai]']], mark: ['#mbTabs button[data-t="ai"]'], block: [] },
     // ---- 個股頁：分頁
-    stab('stock.overview', '總覽（技術訊號）', 'overview', [], '個股分頁「總覽」：技術面訊號卡、同業比較'),
+    // 2026-10-02：排列順序跟著個股分頁的新順序（基本資料搬到總覽旁邊，#294）；id 一個都沒改（改了＝所有人的設定歸零）
+    stab('stock.overview', '總覽（技術訊號）', 'overview', [], '個股分頁「總覽」：基本面與籌碼小圖、技術面訊號卡、同業比較'),
+    stab('stock.basics', '基本資料', 'basics', ['basic'], '公司基本資料'),
     stab('stock.tags', '指標', 'tags', ['tag'], '個股分頁「指標」'),
     stab('stock.revenue', '營收', 'revenue', ['rev'], '月營收、年增率'),
     stab('stock.profit', '獲利', 'profit', ['profit', 'fin'], '季獲利、三率、本益比（手機的「財務」也算這一項）'),
@@ -115,7 +119,6 @@
     stab('stock.inst', '法人', 'inst', ['inst'], '三大法人買賣超'),
     stab('stock.margin', '資券', 'margin', ['margin'], '融資融券'),
     stab('stock.holders', '大戶／散戶', 'holders', ['big'], '集保大戶與散戶持股'),
-    stab('stock.basics', '基本資料', 'basics', ['basic'], '公司基本資料'),
     stab('stock.news', '公告／新聞', 'news', ['news'], '重大訊息與新聞'),
     // ---- 即時與全站工具
     { id: 'live.tick', name: '盤中即時（5 秒）', cat: 'global', def: true, kind: 'bool',
