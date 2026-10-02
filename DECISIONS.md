@@ -5704,3 +5704,41 @@ Andy（台北 2026-10-03）四件（C 項中途改口：資券 KPI 不改成比�
 - ≤820 頂部 AI 是 2×2 而不是四列直排（四列會把 K 線推下去約 90px）。
 - 手機 AI 分段的內容區改成一進來就打開（以前收著要按標籤才開）—— 沒有展開鈕之後，收著就沒有別的方式打開，而那一段本來就是「看完整 AI 分析」的地方。
 - 小格在三欄等高時每格約 118px 高（數字＋一兩行小字），因為卡片高度由籌碼快照決定（約 633px），窄欄 4 格要分掉那個高度。
+
+## #307 重新整理＝圖表設定回預設：整頁載入時清掉「圖表檢視設定」類的 localStorage 鍵（UI 專家，2026-10-03，分支 `claude/reset-on-reload`；原本寫 #304，合併 main 時撞到當沖封印的 #304；#305 是個股基本面卡、#306 是剖析圖整理（claude/diagram-tidy），改號 #307）
+
+Andy：「需要新增一個功能，當重新整理後，全部圖表設定回 Default」。
+
+- **這條推翻以前所有「選過就記住、重新整理還在」的檢視設定**（例如 #50 產業鏈區塊收合狀態、#135 指標面板高度、
+  區間鈕／線寬滑桿「選過就記住」、輪動時鐘腳印開關、剖析圖 2D/3D、籌碼區間、AI 面板分隔線…）。
+  **同一次瀏覽**（hash 換頁、換股票、切分頁）仍然記得 —— 只有整頁載入（重新整理、重新打開網站）才回預設。
+- **做法**：新檔 `site/viewreset.js`，`index.html` 裡排在所有 script 最前面（預覽版的 `preview_boot.js` 除外，它更早）。
+  載入那一刻列舉 localStorage，把被分類成「重設」的鍵刪掉，後面的程式讀不到就走各自的預設值；設定照舊寫 localStorage。
+  - 為什麼不是「改存記憶體」：七十幾個設定散在 15 支檔案，而且很多模組換頁重畫時會**重新去 localStorage 讀**
+    （換股票時籌碼區間從 `tw.chipWin` 讀回來）。逐一改成記憶體變數要動幾十處，還會弄丟「同一次瀏覽切頁仍保留」。
+  - **沒分類的鍵預設保留**（寧可少清，不可誤刪使用者的東西）；`_uitest.py`「重新整理回預設1003」第 ① 步掃全站原始碼裡
+    每個 `'tw.'` 鍵，沒分類就紅燈 —— 以後新增設定的人一定要在 `viewreset.js` 決定它屬於哪一邊。
+- **保留（不清）**：`tw.theme`／`tw.theme4`（深淺與風格）、`tw.layout4.*`（版面 V2 側欄收合等，整族前綴保留）、`tw.dg3d.pal`（剖析圖配色）、
+  `tw.acct.*`／`tw.sess`（登入）、`tw.perm`（權限快取）、`tw.watch`／`tw.watchlists`／`tw.watchlists.u`／`tw.watchcur`（自選與目前第幾頁）、
+  `tw.draw.<代號>.<週期>` 與 `tw.draw.style`（手繪物件與畫筆樣式）、`tw.live.on`／`tw.live.card.*`／`tw.live.proxy`／`tw.sse`（即時開關與來源）、
+  `tw.consent`／`tw.tour`／`tw.footDetail`（同意條款、導覽看過、頁尾規範展開）、`tw.search.recent`（最近搜尋）、
+  資料快取 `tw.livek.*`／`m3.last.*`／`tw.m3.nightpts`／`tw.m3.futsym`。
+- **重設（清掉）**：區間與日期滑桿（`tw.chipWin`、`tw.inst.*`、`tw.pe.*`、`tw.rot.days`、`tw.sankey.day`、`tw.ms.years`、`tw.revWin`）、
+  檢視切換（`tw.revView`、`tw.profitMode`、`tw.periver`、`tw.season.*`、`tw.instSeg`、`tw.mgSeg`、`tw.hoLines`、`tw.conc.ma`）、
+  2D/3D 與剖析圖（`tw.dg3d`、`tw.dg3d.drag`、`tw.dg3d.exp`、`tw.dgOpen`、`tw.dgPartOpen`、`tw.dganim`）、動畫（`tw.flowtopo.motion`）、
+  篩選（`tw.candGroups`、`tw.udMkt`、`tw.hmGroup`、`tw.themeColor`、`tw.rot.filter`）、腳印／水波／掃描（`tw.rot.*`）、
+  收合展開（`tw.chainFold`、`tw.segExpand`、`tw.relOpen`、`tw.drawbar`）、AI 面板（`tw.aiTab`、`tw.ovAiTab`、`tw.aiSplit`；
+  `tw.aiOpen`／`tw.aiOpenV` 在 #305 拿掉「展開」後已不讀寫，列在重設＝清掉舊瀏覽器留下的值）、
+  產業地圖「地圖／清單」`tw.indView`（預覽分支 `claude/industry-map-v2` 的新鍵，還沒進 main，先分好）、
+  線寬（`tw.peLineW`）、大盤三張圖與手機版分段（`tw.m3.*`，資料快取除外）、手機分段記憶（`tw.mia.*`）。
+  **`tw.kcfg`（K 線指標設定）整包重設，只留 `tfs`（使用者自己新增的自訂週期，例如「3 日」）**：指標開關、參數、顏色、線寬、K 棒寬、
+  週期勾選（`tfOn`）、四週期各格（`mtfTfs`）、副圖高度全部回預設。
+- **預覽版**：`preview_boot.js` 先把 localStorage 換成加前綴的殼，`viewreset.js` 透過殼列舉，所以只清那份預覽自己的鍵；
+  正式站列舉到的 `twpv:...` 鍵不符合任何規則 → 保留。兩個方向都在驗收第 ⑥ 步實測。
+- **驗收後門**：`window.TW_KEEP_VIEW === true` 時不清。只有 `_uitest.py` 的開機腳本會設（幾百處「先寫 localStorage 再 reload」是在布置情境，
+  不是在驗記憶）。要驗真的重新整理用 `real_reload(pg)`（sessionStorage 一次性記號 → 那一次載入不設後門）；
+  `TW_UITEST_REALRESET=1` 整輪不設後門，用來找還在假設「重新整理會記住」的舊斷言。`_preview.py` 不設後門（量的是正式站行為）。
+- **Andy 可以一次否決的判斷**（都在 `viewreset.js` 一行就能改）：
+  ① K 線指標的**顏色**也一起重設（跟線寬同一包 `st`，Andy 點名線寬要重設）；② `tw.kcfg.tfOn` 週期勾選重設、自訂週期保留；
+  ③ `tw.watchcur`（自選目前在第幾頁）、`tw.layout4.nav`（側欄收合）、`tw.dg3d.pal`（剖析圖配色）、`tw.footDetail`（頁尾規範展開）保留；
+  ④ `tw.live.card.*`（每張卡的即時開關）保留；⑤ `tw.draw.style`（畫筆顏色粗細）保留、但 `tw.drawbar`（手機畫線工具列開關）重設。
