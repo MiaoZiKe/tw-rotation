@@ -809,6 +809,45 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* 這個週期這檔沒有資料：灰掉但還是點得下去，點了會說明為什麼沒有 */
 .seg button.off{color:var(--ink-3);opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
 .seg button.off.on{background:var(--line-2);color:var(--ink-2);text-decoration:none;opacity:1}
+/* ★ 2026-10-02（Andy #stock/1709，DECISIONS #295）：個股頁「圖＋明細表」一律並排，不再上圖下長表。
+   · .skduo：法人／資券／大戶散戶三頁共用 —— 左＝圖卡（1.6 份），右＝明細表卡（最窄 320px）；≤1100 疊成上下（圖在上）。
+   · .skrev3：營收分頁三張卡（營收走勢｜逐年同月｜月營收明細），桌機三欄並排（明細表那欄 1.2 份，理由見下）；≤1100 兩欄、明細表跨滿一列；≤820 一欄。
+   · .tblcard：並排時明細表卡 contain:size —— **表格的長度不參與決定這一列多高**（不然 36 個月的表會把旁邊兩張圖卡撐成 1000px），
+     高度＝同列的圖卡高度（stretch），表在卡裡自己捲（.tw flex:1）。
+     單獨一列（≤1100 疊起來）時拿掉 contain：卡片照內容長、表自己最多 380px 再捲 ——
+     不然大戶散戶那種只有 4 週的短表也會被撐成一張 300px 的空卡（空狀態不留黑方塊）。*/
+/* 1.6 : 1（不是 1.75）：資券的每日表 2026-10-02 補成 7 欄（#294 對帳：融資餘額／增減、融券餘額／增減、當沖、借券賣出），右欄要約 480px 才放得下 */
+.skduo{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:var(--gap-card,16px);align-items:stretch}
+.skduo>*,.skrev3>*{min-width:0}
+/* 營收第三欄 1.2 份：月營收明細有 7 欄（年/月、月營收、去年同期、YoY、MoM、累計營收、累計 YoY），
+   三欄等寬時第三欄內寬只剩約 410px，量過 1709 的表自然寬約 450px —— 一定要橫捲。1.2 份給到約 490px，
+   一般股票 7 欄放得下；台積電這種「累計營收 3,386,870」九位數的還是會超出，就在表裡橫捲、年/月那一欄釘在左邊（下面 #revTbl）。*/
+.skrev3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)}
+.tblcard{display:flex;flex-direction:column;contain:size;min-height:300px}
+.tblcard>h3,.tblcard>.note{flex:none}
+/* 表框照內容長、比卡片高才縮（flex:0 1 auto＋min-height:0 → 在卡裡捲）：
+   短表（大戶散戶目前 4 週）不會被撐成一個下半截全空的表框，下面接「目前累積 N 週」那句；長表（36 個月）照樣在卡裡捲。*/
+.tblcard>.tw{flex:0 1 auto;min-height:0;max-height:none!important;margin-top:8px;scrollbar-width:thin}
+/* 明細表在窄欄裡：格距收一點（字級維持 14px 不縮）、表頭不加字距；還是放不下（台積電九位數營收、資券 7 欄）就在表裡橫捲，
+   第一欄（年/月、日期、公布日）釘在左邊，捲到右邊也知道是哪一列。 */
+.tblcard>.tw th,.tblcard>.tw td{padding:5px 7px}
+.tblcard>.tw th{letter-spacing:0}
+.tblcard>.tw th:first-child,.tblcard>.tw td:first-child{position:sticky;left:0;background:var(--panel-2);z-index:2}
+.tblcard>.tw th:first-child{z-index:3;background:var(--panel-3)}
+.tblcard>.tw tbody tr:hover td:first-child{background:var(--row-hover)}
+@media (max-width:1100px){.skduo{grid-template-columns:minmax(0,1fr)} .skrev3{grid-template-columns:repeat(2,minmax(0,1fr))} .skrev3>.tblcard{grid-column:1 / -1}
+  .skduo>.tblcard,.skrev3>.tblcard{contain:none;min-height:0}
+  .skduo>.tblcard>.tw,.skrev3>.tblcard>.tw{flex:none;max-height:380px!important}}
+@media (max-width:820px){.skrev3{grid-template-columns:minmax(0,1fr)}}
+/* 本益比河流圖下方讀數：四個並排的小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜讀法），取代改前一整行「·」串起來的長句 */
+.pekvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px}
+.pekvs .k{background:var(--panel-3);border-radius:9px;padding:6px 10px;min-width:0}
+.pekvs .k .l{font-size:12px;color:var(--ink-3)}
+.pekvs .k .v{font-size:14px;font-weight:600;color:var(--ink);line-height:1.45;overflow-wrap:anywhere}
+.pekvs .k .v small{font-size:12px;font-weight:400;color:var(--ink-3)}
+.pekvs .zsw{display:inline-flex;gap:2px;vertical-align:middle;margin-right:6px}
+.pekvs .zsw i{width:12px;height:10px;border-radius:2px;display:inline-block}
+
 /* ★ 2026-10-02 個股 K 線卡工具列（Andy #stock/3189 截圖三，DECISIONS #293）：
    · 一律一行（nowrap）：週期鈕、＋、指標、四週期同看、? 都不縮（flex:none）；中間的標籤區 #skTags 吃剩下的寬，
      放不下的從右邊收進「⋯ N」（industry.js fitTags），**不准折行把週期鈕擠下去**。
