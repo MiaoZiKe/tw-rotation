@@ -73,6 +73,7 @@
   const SPLIT_W = 20;      // 分隔線那一欄的寬（跟 CSS grid-template-columns 第二欄同一個數字）
   const LEFT_FLOOR = 360;  // 左欄最小寬的下限（現價＋漲跌＋即時徽章一行約 330px）
   const TAG_MIN = 46;      // 工具列標籤區最窄＝「⋯ N」那一顆（industry.js fitTags；CSS .sktmore 寬度不超過這個數）
+  const BODY_MIN = 90;     // 兩欄時內容區至少留多高（約 4 行字）；AI 區保底高度 --aiH＝標題＋結論＋標籤的實際高度＋這個數
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   /* ★ 2026-09-28（Andy：「將 "AI分析" 內容替換掉 籌碼 -> 技術面訊號」）：第二顆標籤「籌碼面」換成「技術面訊號」。
      理由：籌碼已經拆成個股頁下方「法人｜資券｜大戶／散戶」三個獨立分頁，AI 區再放一份籌碼摘要是重複；
@@ -121,13 +122,20 @@
         改前：AI 區高度＝內容高度，左欄矮（例如沒有短註、標籤搬走之後）時展開就把左欄與 K 線往下推，收合又彈回來。
      ② 分隔線可拖，拖完存 tw.aiSplit（右欄占「左＋右」的比例）；雙擊還原預設 44%。左欄最窄＝工具列一行放得下的寬度。
      ③ ≤820 不出現分隔線、改單欄上下排（見下面 :not(.aiside) 那段）。*/
-#skChartCard.aiside{display:grid;grid-template-columns:minmax(0,1fr) 20px var(--aiW,44%);column-gap:0;align-items:start}
+#skChartCard.aiside{display:grid;grid-template-columns:minmax(0,1fr) 20px var(--aiW,44%);column-gap:0;align-items:start;
+  grid-template-rows:1fr auto auto}
 #skChartCard.aiside>*{grid-column:1 / -1;min-width:0}
 #skChartCard.aiside>#skHead{grid-column:1;grid-row:1;align-self:start}
 /* 工具列貼在左欄底部＝緊貼 K 線；AI 區保底高度比左欄高時多出來的空白落在名稱區與工具列之間，不落在工具列與 K 線之間 */
 #skChartCard.aiside>#skTools{grid-column:1;grid-row:2;align-self:end}
-/* 短註（此檔暫無分時資料／分時來源）住在左欄工具列下面（設計 v4 ⑤b，theme4.css 也有同一條；這裡寫一份是為了不依賴主題檔） */
-#skChartCard.aiside>#liveNote{grid-column:1;grid-row:3;align-self:end}
+/* 短註（此檔暫無分時資料／分時來源）住在左欄工具列下面（設計 v4 ⑤b，theme4.css 也有同一條；這裡寫一份是為了不依賴主題檔）。
+   ★ 2026-10-02（#293）：兩欄時短註**固定佔一行**——只顯示一行（太長出「…」，滑過看全文、點一下展開），沒有短註時也留著那一行（看不見）。
+   理由：左欄現在決定格線高度，短註「藏 ↔ 一行 ↔ 兩行」會直接推 K 線；而它是非同步變的（分時資料最多等 8 秒才知道有沒有、
+   沒有就自動改日 K 換一句話）—— 驗收實測 3026 一進頁 K 線自己往上跳 18px。改前 AI 區比左欄高，把這個跳動吃掉了，所以以前看不到。
+   格線第一列給 1fr：AI 區保底高度比左欄高時，多出來的空白落在名稱區與工具列之間，工具列與短註照舊貼著 K 線。*/
+#skChartCard.aiside>#liveNote{grid-column:1;grid-row:3;align-self:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#skChartCard.aiside>#liveNote.open{white-space:normal;cursor:default}
+#skChartCard.aiside>#liveNote[hidden]{display:block;visibility:hidden}
 #skChartCard.aiside>#skSplit{grid-column:2;grid-row:1 / span 3;align-self:stretch}
 /* 右欄不畫外框，左邊那條線由分隔線畫（拖曳的把手就是那條線） */
 #skChartCard.aiside>#skAi{grid-column:3;grid-row:1 / span 3;align-self:stretch;margin-top:0;padding-left:4px;
@@ -146,8 +154,8 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
    改前是「內容區保底 132px、AI 區用內容撐高格線」，左欄矮的時候展開就推 K 線（Andy 要拿掉的那個跳動）。
    單欄時內容區是浮層（見 .aibody 那段），--aibh 只剩手機以外的退路用得到。*/
 /* container：AI 區自己多寬決定標籤排法（兩欄時跟著卡片寬窄變、手機搬進 #aiCard 又是另一個寬度，看視窗寬猜不準）*/
-/* --aiH 190：兩欄時 AI 區的保底高度（固定部分＝標題＋結論＋標籤約 95px，內容區至少約 95px ≈ 4～5 行）。
-   左欄比它高（有短註那一行時約 195px）就照左欄走、K 線不被它推；左欄比它矮時 K 線比左欄低一點，但**展開收合都是同一個位置**。*/
+/* --aiH：兩欄時 AI 區的保底高度＝標題＋結論＋標籤的實際高度＋內容區 90px（JS sizeAi 量好寫在 #skAi 上；190 只是量到之前的預設）。
+   左欄比它高（有短註那一行時約 200px）就照左欄走、K 線不被它推；左欄比它矮時 K 線比左欄低一點，但**展開收合都是同一個位置**。*/
 #skAi{--aibh:132px;--aiH:190px;display:flex;flex-direction:column;gap:5px;min-width:0;container:aibox / inline-size}
 #skChartCard:not(.aiside)>#skAi{--aibh:110px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 /* 單欄（退路）：標題與結論併成同一列（標題｜結論｜收合），省下一整列 ≈ 25px。
@@ -406,6 +414,18 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     return Math.max(AI_MIN, Math.min(max, Math.round(ratio * avail)));
   }
 
+  /* AI 區保底高度：量「標題＋結論＋四顆標籤」實際多高（AI 區越窄，結論越容易折成兩行），再加 BODY_MIN 給內容區。
+     只在版面變（視窗、卡片、分隔線）時量，**展開／收合不量** —— 量了就會隨狀態變，那正是要拿掉的跳動。
+     改前（這批第一版）是 CSS 寫死 190px：1440 剛好，1100 右欄被左欄最小寬壓到約 390px、結論折兩行，內容區只剩 64px。*/
+  function sizeAi(card, host) {
+    if (!card.classList.contains('aiside')) { host.style.removeProperty('--aiH'); return; }
+    const last = host.querySelector('#aiTabs') || host.querySelector('#skAiLine');
+    if (!last || !last.getClientRects().length) return;
+    const fixed = last.getBoundingClientRect().bottom - host.getBoundingClientRect().top;
+    const gap = parseFloat(getComputedStyle(host).rowGap) || 5;
+    host.style.setProperty('--aiH', Math.ceil(fixed + gap + BODY_MIN) + 'px');
+  }
+
   /* 分隔線（#skSplit）：拖曳改右欄寬、放開存 tw.aiSplit；雙擊還原；鍵盤左右鍵每次 2%。
      只在 .aiside（兩欄）時看得到（CSS），≤820 與手機不出現。*/
   function wireSplit(card, host, fit) {
@@ -424,6 +444,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       const avail = innerW(card) - SPLIT_W;
       const px = aiPx(card, r);
       card.style.setProperty('--aiW', px + 'px');
+      sizeAi(card, host);
       sp.setAttribute('aria-valuenow', String(Math.round((1 - px / avail) * 100)));   // 左欄占幾 %（separator 的值＝前一塊的大小）
       if (save) saveSplit(px / avail);
       return px / avail;
@@ -476,6 +497,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       else card.style.removeProperty('--aiW');
       const mode = modeOf(host);
       if (host._mode !== mode) { host._mode = mode; setOpen(host, mode === 'stack' ? false : readOpen()); }
+      sizeAi(card, host);
       moreHint(host);
     };
     setRatio = wireSplit(card, host, fit);

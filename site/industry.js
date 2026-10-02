@@ -29,6 +29,8 @@
     if (!el) return;
     el.hidden = !txt;
     el.textContent = txt || '';
+    el.title = txt || '';      // 桌機兩欄時短註只顯示一行（stock_ai.js #293），滑過看全文
+    if (!txt) el.classList.remove('open');
     /* 手機上短註只佔一行（CSS 見 body.m3on.mbon #liveNote）→ 點一下展開全文、再點收回。
        桌機是完整換行的，class 切了也沒有差別，所以不分寬度一律掛上。*/
     if (!el.onclick) el.onclick = () => el.classList.toggle('open');
@@ -3742,17 +3744,18 @@
     const pop = document.getElementById('skTagPop'), more = document.getElementById('skTagMore');
     if (pop) pop.hidden = true;
     if (more) more.setAttribute('aria-expanded', 'false');
+    window.removeEventListener('scroll', tagPopClose, true);
+    window.removeEventListener('resize', tagPopClose);
   }
   function tagPopFill() {
     const pop = document.getElementById('skTagPop'), more = document.getElementById('skTagMore');
     if (!pop || !more) return;
     const hid = $$('#skTags>.pill[data-tag]').filter(t => t.hidden);
     pop.innerHTML = hid.map(t => `<span class="${A.fmt.esc(t.className)}"${t.title ? ` title="${A.fmt.esc(t.title)}"` : ''}>${A.fmt.esc(t.textContent)}</span>`).join('');
-    // 框的左緣對齊「⋯ N」那顆（框是工具列的絕對定位子元素）；太靠右就往左收，不超出工具列
-    const tb = document.getElementById('skTools');
-    if (!tb) return;
-    const x = more.getBoundingClientRect().left - tb.getBoundingClientRect().left;
-    pop.style.left = Math.max(0, Math.min(x, tb.clientWidth - pop.offsetWidth)) + 'px';
+    // 框是 position:fixed（窄畫面工具列可以橫向滑，絕對定位會被裁掉）：左緣對齊「⋯ N」、在它正下方；太靠右就往左收，不超出視窗
+    const r = more.getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+    pop.style.top = Math.round(r.bottom + 6) + 'px';
   }
   /* 量一次：先全部放回去，還是超出就從最右邊一顆一顆收，收到放得下為止（最多 5 輪排版，很便宜）。
      工具列的寬由欄寬決定（拖分隔線、開關事件欄、縮放視窗都會變），週期鈕被勾掉／加上會改標籤可用的寬 → 兩者都觀察。*/
@@ -3787,6 +3790,9 @@
       pop.hidden = false; more.setAttribute('aria-expanded', 'true');
       tagPopFill();
       if (A.dismissable) A.dismissable(pop, tagPopClose, { also: [more] });
+      // 固定定位的小框不跟著頁面走：一捲動（頁面或工具列）、一縮放視窗就收，免得框留在原地跟「⋯ N」分家
+      window.addEventListener('scroll', tagPopClose, true);
+      window.addEventListener('resize', tagPopClose);
     };
     if (tagRO) tagRO.disconnect();
     if (window.ResizeObserver) {

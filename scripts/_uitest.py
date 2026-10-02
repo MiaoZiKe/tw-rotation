@@ -17420,7 +17420,7 @@ HEAD1002 = r"""() => {
     open: !!body && !body.hidden && body.getClientRects().length > 0, bodyPos: body ? getComputedStyle(body).position : '',
     aiside: !!card && card.classList.contains('aiside'), split: R(sp), splitCursor: sp ? getComputedStyle(sp).cursor : '',
     head: R(q('#skHead')), tools: R(tb), tb: tb ? { sw: tb.scrollWidth, cw: tb.clientWidth } : null,
-    tbRows: tb ? [...tb.children].filter(e => e.getClientRects().length && getComputedStyle(e).position !== 'absolute')
+    tbRows: tb ? [...tb.children].filter(e => e.getClientRects().length && e.getBoundingClientRect().height > 0 && !['absolute', 'fixed'].includes(getComputedStyle(e).position))
       .map(e => { const r = e.getBoundingClientRect(); return [e.id || e.className, Math.round(r.top), Math.round(r.bottom)]; }) : [],
     pxPills: document.querySelectorAll('#skPx .pill').length,
     pxKids: q('#skPx') ? [...q('#skPx').children].filter(e => e.getClientRects().length).map(e => (e.className || '') + ':' + (e.textContent || '').trim().slice(0, 12)) : [],
@@ -17589,15 +17589,18 @@ def t_stock_head_1002(pg, base, code):
         sy = pg.evaluate("() => scrollY")
         sx_, sy_ = s0["split"]["l"] + s0["split"]["w"] / 2, s0["split"]["t"] - sy + min(60, s0["split"]["h"] / 2)
         pg.mouse.move(sx_, sy_); pg.mouse.down()
+        # 1440 預設右欄 596px、左欄 758px；左欄最小寬約 621px（工具列一行），所以往左最多拖得動約 137px —— 這裡拖 100px
         for i in range(1, 11):
-            pg.mouse.move(sx_ - 20 * i, sy_); pg.wait_for_timeout(16)
+            pg.mouse.move(sx_ - 10 * i, sy_); pg.wait_for_timeout(16)
         mid = snap()
         pg.mouse.up(); pg.wait_for_timeout(500)
         s1 = snap()
         ok(f"★ {tag}拖曳中整頁游標是 col-resize（body.sksplitting）", "sksplitting" in mid["bodyCls"], mid["bodyCls"])
         ok(f"{tag}放開後拿掉拖曳狀態", "sksplitting" not in s1["bodyCls"], s1["bodyCls"])
-        ok(f"★ {tag}分隔線往左拖 200px → 右欄 AI 真的變寬約 200px", abs((s1["ai"]["w"] - s0["ai"]["w"]) - 200) <= 6, (s0["ai"]["w"], s1["ai"]["w"]))
-        ok(f"★ {tag}分隔線往左拖 → 左欄真的變窄", s1["head"]["w"] <= s0["head"]["w"] - 190, (s0["head"]["w"], s1["head"]["w"]))
+        ok(f"★ {tag}分隔線往左拖 100px → 右欄 AI 真的變寬約 100px", abs((s1["ai"]["w"] - s0["ai"]["w"]) - 100) <= 6, (s0["ai"]["w"], s1["ai"]["w"]))
+        ok(f"★ {tag}分隔線往左拖 → 左欄真的變窄約 100px", abs((s0["head"]["w"] - s1["head"]["w"]) - 100) <= 6, (s0["head"]["w"], s1["head"]["w"]))
+        ok(f"{tag}拖曳時左側價格與 K 線的上緣不動（只改寬度）", abs(s1["left"]["px"]["t"] - s0["left"]["px"]["t"]) < 2 and abs(s1["left"]["chart"]["t"] - s0["left"]["chart"]["t"]) < 2,
+           (s0["left"]["px"], s1["left"]["px"], s0["left"]["chart"]["t"], s1["left"]["chart"]["t"]))
         ok(f"★ {tag}拖完寬度寫進 localStorage（tw.aiSplit）", s1["ls"]["tw.aiSplit"] not in (None, ""), s1["ls"])
         ok(f"{tag}左欄變窄 → 放得下的標籤變少（或一樣少），工具列照樣一行、不溢出", len(s1["tagsShown"]) <= len(s0["tagsShown"])
            and s1["tb"]["sw"] <= s1["tb"]["cw"] + 1, (s0["tagsShown"], s1["tagsShown"], s1["tb"]))
