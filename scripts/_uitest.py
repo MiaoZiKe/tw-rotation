@@ -18372,6 +18372,9 @@ SECTIONS = {
     # ★ 2026-09-30 Andy 23:26「為何沒有顯示夜盤」：盤後（live.js 判定）＋日盤報價失敗＋日盤退避中，夜盤兩支有資料 → 小標必須是「夜盤」、畫夜盤的點；
     #   夜盤兩支都回 520 → 小標「日盤」且說明講出 HTTP 520（DECISIONS #280）
     "夜盤盤後0930":        lambda pg, b, base, code: t_night_afterhours_0930(b, base),
+    # ★ 2026-10-02 台指期改走 Deno 代理（DECISIONS #286）：Deno 好 → 只打 Deno、Worker 一次都不碰；
+    #   Deno 回 520 → 退回 Worker、畫面照樣有夜盤；加權／櫃買的 /chart 永遠不打 Deno
+    "台指期Deno優先":      lambda pg, b, base, code: t_taifex_deno(b, base),
     # ★ 2026-09-23 桌面版介面精修第一階段九項（tabular-nums／token 對比／分頁溢出／
     #   動效與按下回饋／關動效兜底／鍵盤焦點／小字下限／表格）。
     #   最後一段同時證明「手機那一套沒有被這一批動到」。
@@ -31968,6 +31971,175 @@ def t_night_afterhours_0930(b, base):
        "HTTP 520" in r["why"] and "HTTP 520" in r["title"], {"why": r["why"], "title": r["title"]})
     ok("說明是純文字（不帶 <code> 之類的標籤殘渣）", "<" not in r["title"], r["title"])
     ok("頁面沒爆", not boom, boom)
+    ctx.close()
+
+
+# ===================================================================== 台指期Deno優先
+def t_taifex_deno(b, base):
+    """台指期（期交所 /fut、/futchart）先打 Deno 代理、失敗才退回 Worker（2026-10-02，DECISIONS #286）。
+
+    為什麼要有這一段
+    ----------------
+    期交所在 Cloudflare 後面、拒絕所有經 Cloudflare Worker 來的請求（上游 520，#281），
+    所以台指期改成優先走 Deno Deploy（`Live.taifexProxy()`）。這一段用**主機名**把兩條路分開計數，
+    驗的是讀者真的會遇到的四種狀況（全部用假的 Deno／Worker 回應，不打真的網路）：
+      A. Deno 好 → 小標「夜盤」、畫出夜盤點（最後一點＝fixture 收盤）、`futVia === 'deno'`、
+         Worker 的 /fut、/futchart 一次都沒被打；加權／櫃買的 /chart（mis.twse）一次都沒打到 Deno
+      B. Deno 回 520（＝哪天 Deno 也被擋）→ 退回 Worker、夜盤照樣畫出來、`futVia === 'worker'`
+      B2. Deno 連不上（連線中斷／逾時，fetch 丟例外）→ 一樣退回 Worker、夜盤照樣畫出來
+      D. Deno 520、Worker 也 502（＝2026-10-01 Worker 的真實回應形狀）→ 小標「日盤」，
+         而且說明**同時講出兩條路各回了什麼**（不然讀者以為新的那條路根本沒去試）
+    時鐘釘在 fixture 夜盤最後一筆的兩分鐘後（跟 `夜盤盤後0930` 同一套），forceClock('night')。
+    """
+    import json as _json
+    import datetime as _dt
+    fx = _json.loads((ROOT / "docs/fixtures/taifex_night_probe.json").read_text(encoding="utf-8"))
+    S = {r["id"]: r for r in fx["results"]}
+    FUT_NIGHT = S["taifex_quotelist_night"]["sample"]
+    CHART_NIGHT = S["taifex_chartdata_1m_night"]["sample"]
+    _ticks = ((CHART_NIGHT.get("RtData") or {}).get("Ticks") or [])
+    assert _ticks, "fixture 裡沒有 Ticks，這一段的前提不成立"
+    LAST = int(float(_ticks[-1][4]))
+    _t = str(_ticks[-1][0]).zfill(6)
+    _d = str(((CHART_NIGHT.get("RtData") or {}).get("Quote") or {}).get("CDate") or "20260930")
+    _base = _dt.datetime(int(_d[:4]), int(_d[4:6]), int(_d[6:8]), int(_t[:2]), int(_t[2:4]))
+    if int(_t[:2]) < 6:
+        _base += _dt.timedelta(days=1)
+    FIXED = (_base + _dt.timedelta(minutes=2) - _dt.timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ERR520 = "error code: 520\n"
+    # Worker 2026-10-01 起對上游 5xx 回的真實形狀（DECISIONS #281，run 36745792375）
+    W502 = _json.dumps({"error": "upstream", "upstream_status": 520, "colo": "PDX",
+                        "elapsed_ms": 982, "head": ERR520})
+    DENO_URL = "https://tw-taifex.miaozike.deno.net"
+
+    # 靜態前提：常數真的是部署出來的那個網址（deploy-deno.yml run 36955532108／36995563974 印出的 productionUrl）
+    live_src = (ROOT / "site/live.js").read_text(encoding="utf-8")
+    ok("[前提] live.js 的 TAIFEX_PROXY 就是 Deno 的正式網址",
+       f"const TAIFEX_PROXY = '{DENO_URL}';" in live_src)
+
+    PROBE = """() => { const el = document.getElementById('m3c-FUT'), ss = document.getElementById('futSess');
+        let last = null;
+        try { const i = echarts.getInstanceByDom(el);
+          if (i) { const d = (i.getOption().series || [])[0];
+            if (d) { const v = (d.data || []).filter(x => x != null); last = v.length ? v[v.length - 1] : null; } } } catch (e) {}
+        return { shown: window.Market3.shown, via: window.Market3.futVia, dwhy: window.Market3.futDenoWhy,
+          label: ss ? ss.textContent.trim() : '', why: ss ? (ss.dataset.why || '') : '', title: ss ? ss.title : '', last,
+          tp: (window.Live && window.Live.taifexProxy) ? window.Live.taifexProxy() : null,
+          e1: window.Market3.state.futChartErr, e2: window.Market3.state.futNightErr }; }"""
+
+    def lastnum(v):
+        if isinstance(v, dict):
+            v = v.get("value")
+        if isinstance(v, list):
+            v = v[-1] if v else None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    def open_page(deno_mode, worker_mode="ok"):
+        """deno_mode：'ok' 給 fixture／'520' 回 520／'abort' 連線中斷；worker_mode：'ok' 給 fixture／'502' 回 Worker 的 502 JSON。"""
+        ctx = b.new_context(viewport={"width": 1500, "height": 1000}, timezone_id="Asia/Taipei")
+        pg = ctx.new_page()
+        boom: list[str] = []
+        pg.on("pageerror", lambda e: boom.append(str(e)[:200]))
+        pg.clock.install(time=FIXED)
+        hits = {"deno": 0, "worker": 0, "deno_chart": 0}
+
+        def on_taifex(route):
+            u = route.request.url
+            if "deno.net" in u:
+                hits["deno"] += 1
+                if deno_mode == "520":
+                    route.fulfill(status=520, content_type="application/json; charset=utf-8", body=ERR520)
+                    return
+                if deno_mode == "abort":
+                    route.abort("connectionreset")
+                    return
+            else:
+                hits["worker"] += 1
+                if worker_mode == "502":
+                    route.fulfill(status=502, content_type="application/json; charset=utf-8", body=W502)
+                    return
+            body = CHART_NIGHT if "/futchart?" in u else FUT_NIGHT
+            if "session=day" in u:      # 日盤這裡不關心，回空清單
+                body = {"RtCode": "0", "RtData": {"QuoteList": []}}
+            route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(body))
+
+        def on_chart(route):
+            if "deno.net" in route.request.url:
+                hits["deno_chart"] += 1
+            route.fulfill(status=200, content_type="application/json",
+                          body='{"RtCode":"0","RtData":{"QuoteList":[]}}')
+
+        pg.route("**/futstream?*", lambda r: r.abort("failed"))
+        pg.route("**/futchart?*", on_taifex)
+        pg.route("**/fut?*", on_taifex)
+        pg.route("**/chart?*", on_chart)
+        pg.route("**/quote?*", lambda r: r.fulfill(
+            status=200, content_type="application/json", body='{"msgArray":[],"rtcode":"0000"}'))
+        pg.route("**/stream?*", lambda r: r.abort("failed"))
+        pg.route("**/y?*", lambda r: r.abort("failed"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("""() => { try {
+            ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.m3.fut','tw.m3.nightpts','tw.m3.futsym','tw.sse']
+              .forEach(k => localStorage.removeItem(k));
+            localStorage.setItem('tw.live.proxy','https://fake-worker.test');
+          } catch (e) {} }""")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="networkidle")
+        pg.wait_for_timeout(1500)
+        pg.evaluate("() => window.Market3.forceClock('night')")
+        pg.wait_for_timeout(1800)
+        return ctx, pg, hits, boom
+
+    def drew_night(r):
+        lv = lastnum(r["last"])
+        return r["label"] == "夜盤" and r["shown"] == "night" and lv is not None and abs(lv - LAST) < 0.5
+
+    # ---------------- A. Deno 好 → 只走 Deno
+    ctx, pg, hits, boom = open_page("ok")
+    r = pg.evaluate(PROBE)
+    ok("Live.taifexProxy() 回 Deno 網址", r["tp"] == DENO_URL, r["tp"])
+    ok("★ A. Deno 正常 → 台指期的請求真的打到 Deno（/fut 夜盤＋/futchart）", hits["deno"] >= 2, hits)
+    ok("★ A. Deno 正常 → Worker 的 /fut、/futchart 一次都沒被打", hits["worker"] == 0, hits)
+    ok(f"★ A. 夜盤時段小標變成「夜盤」並畫出夜盤點（最後一點＝fixture 收盤 {LAST}）", drew_night(r), r)
+    ok("A. Market3.futVia 是 'deno'、沒有 Deno 失敗原因", r["via"] == "deno" and r["dwhy"] == "", r)
+    ok("A. 有夜盤資料時小標不帶失敗原因", r["why"] == "", r["why"])
+    ok("★ A. 加權／櫃買的 /chart（mis.twse）沒有任何一次打到 Deno", hits["deno_chart"] == 0, hits)
+    ok("A. 頁面沒爆", not boom, boom)
+    ctx.close()
+
+    # ---------------- B. Deno 回 520 → 退回 Worker
+    ctx, pg, hits, boom = open_page("520")
+    r = pg.evaluate(PROBE)
+    ok("B. Deno 那條路有先被試過", hits["deno"] >= 1, hits)
+    ok("★ B. Deno 520 → 退回 Worker（Worker 的 /fut、/futchart 有被打）", hits["worker"] >= 1, hits)
+    ok(f"★ B. 退回之後夜盤照樣畫出來（小標「夜盤」、最後一點＝fixture 收盤 {LAST}）", drew_night(r), r)
+    ok("B. Market3.futVia 是 'worker'，而且記得 Deno 回了 520", r["via"] == "worker" and "520" in r["dwhy"], r)
+    ok("B. 頁面沒爆", not boom, boom)
+    ctx.close()
+
+    # ---------------- B2. Deno 連不上（fetch 丟例外）→ 一樣退回 Worker
+    ctx, pg, hits, boom = open_page("abort")
+    r = pg.evaluate(PROBE)
+    ok("★ B2. Deno 連不上 → 退回 Worker、夜盤照樣畫出來",
+       hits["deno"] >= 1 and hits["worker"] >= 1 and drew_night(r), {"hits": hits, "r": r})
+    ok("B2. futVia 是 'worker'、原因寫「Deno 連不上」", r["via"] == "worker" and "Deno 連不上" in r["dwhy"], r)
+    ok("B2. 頁面沒爆", not boom, boom)
+    ctx.close()
+
+    # ---------------- D. 兩條路都壞 → 顯示日盤，說明講出兩條路各回了什麼
+    ctx, pg, hits, boom = open_page("520", "502")
+    r = pg.evaluate(PROBE)
+    ok("D. 兩條路都有被試過", hits["deno"] >= 1 and hits["worker"] >= 1, hits)
+    ok("★ D. Deno 520＋Worker 502 → 小標退回「日盤」、卡片沒有畫夜盤那一份",
+       r["label"] == "日盤" and r["shown"] != "night", r)
+    ok("★ D. 小標的說明同時講出「Deno 回 HTTP 520」與「Worker 也回 HTTP 502」",
+       "Deno 回 HTTP 520" in r["why"] and "Worker 也回 HTTP 502" in r["why"], {"why": r["why"], "title": r["title"]})
+    ok("D. 滑鼠移上去（title）也看得到同一個原因", "Deno 回 HTTP 520" in r["title"], r["title"])
+    ok("D. 頁面沒爆", not boom, boom)
     ctx.close()
 
 

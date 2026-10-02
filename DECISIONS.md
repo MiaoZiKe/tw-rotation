@@ -4980,3 +4980,57 @@ Andy 2026-10-02 15:19（#stock/3189 景碩，三張截圖）。三件一起做�
    - 舊的 `tw.aiOpen=1`（改前按過收合再展開就會寫）會蓋掉新預設，所以換版時清一次（記號 `tw.aiOpenV=2`），之後使用者自己按的照樣記住。
 5. 驗收：新段落 `個股頂部1002`（登記在 modules.js 的 K 線與 AI 分析兩塊積木）。`個股AI分析0926` 跟著改：預設改驗「只看重點」再按展開、內容區下限 120 → 80、800 寬改驗「上下排＋浮層收著」、收合時按標籤改驗「捲到總覽細節卡」；`個股籌碼分頁0928` 點技術面訊號前先按展開。
    industry.js 的 `setLiveNote` 多寫一個 title（兩欄短註只顯示一行，滑過看全文）。
+
+## #286 台指期（期交所 /fut、/futchart）改成先走 Deno Deploy 代理 `https://tw-taifex.miaozike.deno.net`，失敗才退回 Worker；加權、櫃買那條 mis.twse 不動（爬蟲專家，2026-10-02；合併時若撞號請改號）
+
+接 #281 的「夜盤要回來，只剩不經 Cloudflare 出口的路」。Andy 開了 Deno Deploy（組織 `miaozike`）、設好 Secret `DENO_DEPLOY_TOKEN`，
+main 84d55bc 放上 `workers/taifex-deno/main.ts`（只做 `/fut`、`/futchart`、`/health`）與 `.github/workflows/deploy-deno.yml`（部署完當場實測）。
+
+### 證據（兩輪，都在 GitHub Actions 上打，結果寫在各自的 log 與 step summary）
+
+| 時間（台北） | run | 觸發 | /health | /fut 日盤 | /fut 夜盤 | /futchart 日盤（TXFJ6-F） | /futchart 夜盤（TXFJ6-M） |
+|---|---|---|---|---|---|---|---|
+| 10-02 10:25 | [36955532108](https://github.com/MiaoZiKe/tw-rotation/actions/runs/36955532108) | push（84d55bc，第一次建 App） | 200 | 200 | 200 | 200 | 200（Info.Status 4＝夜盤收盤中） |
+| 10-02 18:28 | [36995563974](https://github.com/MiaoZiKe/tw-rotation/actions/runs/36995563974) | workflow_dispatch（6bd284f，**夜盤交易中**） | 200 | 200 | 200 | 200 | 200（Info.Status 0、Sessions 1500～0500） |
+
+- 正式網址來自 CLI 的 `productionUrl`（`deno deploy create --region global` 成功，第二輪是 `deno deploy --prod` 更新）。
+- 回應是期交所原始 JSON（`{"RtCode":"0","RtMsg":"","RtData":{"QuoteList":[{"SymbolID":"TXF-P",…`），跟 Worker 以前成功時同一個形狀，前端解析不用改。
+- `/health` 回 `region: "ord"`：那是 GitHub runner（美國）打到的節點；台灣讀者會打到哪一區**沒有實測**。
+- 對照組：同一時期經 Cloudflare Worker 的 `/fut`、`/futchart` 全部 502（`upstream_status: 520`，#281）。所以「換一條不經 Cloudflare 出口的路」這個假設成立。
+
+### 定案（不要重新討論）
+
+1. **網址寫成常數**：`site/live.js` 的 `TAIFEX_PROXY = 'https://tw-taifex.miaozike.deno.net'`，經 `Live.taifexProxy()` 給 `market3.js`。
+   不放進 ⚙ 設定面板：這台只有台指期兩支、讀者沒有理由改它；Worker 那台（`tw.live.proxy`）照舊可以在面板改。
+2. **`market3.js` 的 `futGet()`**：台指期的 `/fut`（日盤每 5 秒的 `fastTick()`、夜盤 60 秒的 `pullNight()`）與 `/futchart` **一律先打 Deno**，
+   6 秒沒回（`FUT_DENO_TIMEOUT_MS`）、回非 2xx、或連不上（例外）→ **退回 Worker 同一條路徑**。不重試（#256、#281：一直壞的東西重試只會加倍請求量）。
+3. **兩條都壞時，說明要同時講出兩邊各回了什麼**：「Deno 回 HTTP 520，Worker 也回 HTTP 502」／「Deno 連不上（TypeError），Worker 連不上（…）」。
+   只講 Worker 那半，讀者會以為新的那條路根本沒去試。只走 Worker（Deno 沒試）時維持原本的「代理回 HTTP 502」字樣，`nightWhy()` 與既有驗收都認它。
+   `404／400 → NOFUT`、`404 → NOFUTCHART`（＝Worker 是舊版）只在 Deno 沒失敗過時才這樣判讀；Deno 先失敗過，那兩個代碼的說明（「去 Cloudflare 重貼 Worker」）就是錯的。
+4. **不動的東西**：加權 `t00`、櫃買 `o00`、台指期日盤分時（`/chart?id=FUT`）走 mis.twse，經 Worker 實測 200，一律不改；`/quote`、`/stream`、`livek.js` 都不碰。
+   夜盤推送 `/futstream`（SSE，`tw.sse` 預設關閉）Deno 沒有做，仍然只走 Worker —— 60 秒輪詢本來就是底線（#255），輪詢現在走 Deno。
+5. **Worker 的 `/fut`、`/futchart` 保留不刪**：Deno 掛掉、額度用完、被公司網路擋時至少還有第二條路可以試（雖然 2026-10-02 當下那條也是壞的）。
+
+### 驗收與反向驗證
+
+`_uitest.py` 新段落 **`台指期Deno優先`**（`t_taifex_deno`，登記在 `site/modules.js` 的 `index.board`），全部用假回應、用主機名把兩條路分開計數：
+A. Deno 好 → 小標「夜盤」、畫出夜盤點（最後一點＝fixture 收盤）、Worker 的 `/fut`、`/futchart` 0 次、`/chart` 0 次打到 Deno；
+B. Deno 520 → 退回 Worker、夜盤照樣畫出來；B2. Deno 連線中斷 → 同上；D. Deno 520＋Worker 502（#281 的真實形狀）→ 小標「日盤」、說明同時有「Deno 回 HTTP 520」與「Worker 也回 HTTP 502」。
+
+| 植入的缺陷（`site/market3.js`） | 結果 |
+|---|---|
+| Deno 從來不試（`const deno = ''`） | **紅 10 條**（A 打不到 Deno、Worker 被打 4 次…） |
+| Deno 回非 2xx 不退回 Worker | **紅 6 條**（B 沒退回、小標變日盤；D 說明只剩 Deno） |
+| Deno 丟例外不退回 Worker | **紅 2 條**（B2） |
+| 兩條都壞時說明只寫 Worker 的狀態 | **紅 2 條**（D 的說明與 title） |
+| 還原 | 綠（0 個問題） |
+
+### 代價與還沒做的
+
+- **額度**：Deno Deploy 免費層據 WebSearch 摘要（第三方整理 bejamas／freetier，**不是官方頁、低信心**）是每月 100 萬請求。
+  一個讀者整天開著總覽：日盤 `fastTick()` 每 5 秒（08:40～13:55）約 3,780 次＋夜盤兩支每 60 秒（15:00～05:00）約 1,680 次 ≈ 每天 5,500 次、每月約 11～12 萬次，
+  也就是**同時整天開著總覽的讀者超過 8 個左右就會碰到上限**。碰到之後 Deno 回錯 → 退回 Worker（也壞）→ 畫面顯示日盤並講出兩邊的原因，不會白屏。
+  要省的話是把 `fastTick()` 放慢，或在 Deno 端用共用快取（只省期交所那側，不省請求數）；這一批沒做。
+- 台灣讀者到 Deno 的延遲沒有實測（runner 在美國）。
+- 前端驗收全是假回應；**瀏覽器真的從 `miaozike.github.io` 打 Deno 的 CORS 沒有在瀏覽器裡驗過**（這個容器連不到外網）。
+  `main.ts` 的 `ALLOW_ORIGINS` 有 `https://miaozike.github.io`，而 `deploy-deno.yml` 的實測帶 `Origin: https://miaozike.github.io`、把 `Access-Control-Allow-Origin` 寫進 step summary —— 合併上線後請看一眼 step summary 或直接開總覽確認夜盤。

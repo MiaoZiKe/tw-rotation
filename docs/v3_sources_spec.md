@@ -264,7 +264,9 @@ Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源，�
 
 - 來源：`config.MIS_CHART_FILES` —— `mis_ohlc_TSE.txt`（t00）、`mis_ohlc_OTC.txt`（o00）、
   `futures_chart.txt`（台指期日盤）。三個都是 DECISIONS #121 登記過的、跟 `getStockInfo.jsp` 同一台主機。
-  期交所 `mis.taifex.com.tw` 的夜盤分時**沒有進管線白名單**，不抓（前端經 Worker 讀的那條不受影響）。
+  期交所 `mis.taifex.com.tw` 的夜盤分時**沒有進管線白名單**，不抓（前端經代理讀的那條不受影響；
+  2026-10-02 起前端的台指期報價與分時先走 Deno Deploy 代理 `tw-taifex.miaozike.deno.net`、失敗才退回 Worker，
+  因為期交所拒絕經 Cloudflare Worker 來的請求，見 DECISIONS #281、#286。管線不經過這兩台代理）。
 - 函式：`mis.parse_index_chart(symbol, payload)`（純解析，可測）、`mis.index_minute_bars()`（抓三個檔，各自可失敗）；
   `run_daily.collect_index_minute()` 包成 `step("mis.index_minute")`，**每一個 phase 都跑**
   （含週末與清晨 news：那時檔案是上一個交易日的殘留，照內容歸日、去重，多一次保險）。
