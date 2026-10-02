@@ -1,5 +1,22 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 台指期日盤 15 秒（過渡）＋ Deno 推播（SSE）實測（2026-10-03 03:40，台北，爬蟲專家，DECISIONS #299）
+
+- [x] **A. 日盤 `/fut?session=day` 每 5 秒 → 每 15 秒**：分支 `claude/fut-15s`，**未推 main**。`market3.js` 新常數 `MS_FUT_DAY`；加權／櫃買 5 秒、夜盤 60 秒、分時檔 10 秒都沒動。
+  大盤卡即時開關短字「· 5/15秒」、提示框分開講三個節奏（`Live.stampCard` 多收選填 `lbl`／`tip`）、「?」說明補一句、`docs/realtime_5s.md` 表格改。
+  一個讀者整天開總覽：每天 5,460 → 2,940 次請求，免費層撐的整天讀者約 8 → 15 個。
+- **A 這批驗了**：`_uitest.py --sections 台指期Deno優先,新-大盤三張圖,即時5秒0929,總覽 --workers 1`
+  → 第一輪 `台指期Deno優先` 0、`總覽` 0、`即時5秒0929` 1 紅（「族群即時模式的重試間隔 ≈ 10、20 秒」量到 14.3 —— 漲跌家數那一塊，這批沒碰）、
+  `新-大盤三張圖` 8 秒就爆（`Market3` 還沒載入就呼叫 forceClock）。同一份 main（fcde1a2）跑這兩段 0；本分支重跑這兩段 **0／0** → 判定是第一輪機器負載造成的計時假紅。
+  `_preview.py` 全綠。反向驗證：計時器改回 5 秒 → `台指期Deno優先` 紅 2 條（E 段量到 7 次），還原 0。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。瀏覽器鎖被占，第二輪起改用 `TW_UITEST_PORT=8793`／`TW_PREVIEW_PORT=8794` 不加鎖跑；`site/data` 是 symlink 到主 checkout（10-01 資料）。
+- [x] **B. Deno 長連線實測**（已推 main：3377274、c45109a、0eb5258、af1275c，每個 commit 只動一個範圍）：
+  run [37051808940](https://github.com/MiaoZiKe/tw-rotation/actions/runs/37051808940) 5 條 × 15 分鐘每條 179／180 筆、0 中斷、上游只抓 178 次（共用成立）；
+  run [37053561833](https://github.com/MiaoZiKe/tw-rotation/actions/runs/37053561833) 3 條 × 7 分鐘、中途推新版也 0 中斷。`/sse-test` 已停用（410），部署 run 37054455160 成功。
+- 結論：技術上 Deno 可以當推播中樞（一個讀者日盤從 1,260 次降到約 10 次）；**但法遵 `docs/legal/realtime_redistribution.md` C2 說沒簽約不要擴大中央推播** —— 要 Andy 先決定那一關。
+- 下一步：① 合併 `claude/fut-15s` 到 main（只動前端，`pages.yml` 會部署）② 法遵決定後再做正式 Deno `/futstream`（估 1～1.5 天，見 #299 建議架構）。
+- 已知限制：重連路徑沒被觸發過（兩輪 0 中斷）；台灣讀者落在哪一區沒實測；SSE 是否 1 條算 1 次請求是依官方定義推論，官方沒明講。
+
 ## 大戶／散戶分頁區間鈕只留 4 週、3 個月（2026-10-03，台北，UI 專家，分支 `claude/holders-range`，**未推 main**，DECISIONS #302）
 
 - Andy 決定大戶散戶資料不付費、自然累積（約 11/27 滿 13 週），區間鈕只留「4 週」「3 個月」。基於 main 151463f；開工與交付前各合併 origin/main。
