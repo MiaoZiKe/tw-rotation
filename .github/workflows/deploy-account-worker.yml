@@ -65,7 +65,7 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
-            [ -z "$ADMINS" ] && echo "::warning::沒設 ACCOUNT_ADMIN_EMAILS：部署照做，但沒有人看得到 #admin 管理頁"
+            if [ -z "$ADMINS" ]; then echo "::warning::沒設 ACCOUNT_ADMIN_EMAILS：部署照做，但沒有人看得到 #admin 管理頁"; fi
           fi
 
       - name: 部署（含 Durable Object 與三個 Secret）
