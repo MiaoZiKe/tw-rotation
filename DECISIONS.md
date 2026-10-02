@@ -4728,3 +4728,44 @@ Andy 2026-10-01：「當點選即時功能，旁邊的日期以及時間拉Bar �
   理由：讓使用者自己決定離開即時，而不是被一個不明顯的副作用退出；畫面也不會出現「拉Bar 停在 20 天前、畫的卻是即時」的矛盾。
 - **盤點結果**（2026-10-01 grep）：有即時開關＋時間拉Bar 同排的只有輪動時鐘（資金流向排行與時鐘共用 `#rotBack`）與資金去向（桑基 `#sankeyDays`）。
   總覽的大盤三張圖（`m3`）、個股卡（`stock`）、自選（`watch`）、族群面板（`#gpLiveBtn`）、市場明細（`#mktMode`）旁邊都沒有日期拉Bar，所以沒有東西要反灰。
+
+## #288 會員功能開放制度：功能清單 site/features.js ＋ #admin/perm 依 email 開關＋方案範本；前端鎖頭只擋畫面（UI 專家，2026-10-02）
+Andy 原話：「之後會分付費和免費會員，要一個新分頁，用 Switch 或勾選，針對每個會員的 Email 設定可以用哪些功能」。
+
+定案（不要重新討論）：
+1. **功能清單只有一份：`site/features.js`**（47 項、9 類；id／名稱／分類／說明／預設值／要上鎖的選擇器）。
+   盤點方式：grep `index.html` 的 view／card id、`modules.js` 的 27 塊積木、`industry.js` 的 `STOCK_TABS`／`TF_BUILTIN`、
+   `mobile3.js` 的 `SK_TABS`、`live.js` 的「即時」鈕、`theme4.js` 外觀面板、`watchlists.js` 分頁上限。
+   Worker **不抄白名單**，只驗鍵的格式（`^[a-z][a-z0-9_.]{1,39}$`）與值（布林或 0～99 整數、最多 120 鍵）——
+   前端加功能不必重新部署 Worker。代價：打錯字的鍵 Worker 收得進去，前端認不得就當沒設（＝照預設開）。**id 上線後不准改名**（改了＝所有人那一項的設定歸零）。
+2. **合併順序**：`features.js` 預設值 ← 方案範本 ← 個別微調（後蓋前）。範本只存「跟預設不同」、微調只存「跟範本不同」——
+   之後新增的功能，沒有人設過就一律照預設（開），不會因為加功能突然鎖住誰。
+3. **上線不能讓任何人突然看不到**：所有預設值是 true（上限類＝最大值）；內建範本「訪客」「免費會員」與第一次種的「付費會員」都是空的。
+   要收費是管理者到 #admin/perm 把「訪客」或「免費會員」範本關掉，不是改 `features.js` 的預設。
+4. **以 email 為鍵、不是 uid**：管理者要能先替還沒登入過的人設好（付費後才登入）。email 一律小寫。會員不能被指定成「訪客」方案；
+   方案被刪的人退回「免費會員」（保留個別微調）；本人「刪除我的資料」時權限設定一起刪（代價：付費會員刪帳號再登入要重設；隱私權政策已加一列）。
+5. **存取控制（R7，跟 R1～R6 同一個標準）**：一般人只有 `/v1/perm/me`（不收 email 參數，沒有讀別人的路徑）、**沒有任何寫入端點**
+   （所以「改自己的權限」在物理上不存在）；`/v1/admin/perm/get|put|list`、`/v1/admin/plans/get|put` 只有 ADMIN_EMAILS。
+   測試 19 → 26 條，反向驗證拿掉管理者檢查會紅 3 條。⚠ `deploy-account-worker.yml` 的步驟名稱仍寫「19 條」（沒動 .github，免得多跑 pytest），實際跑 26 條。
+6. **前端套用（site/perm.js）**：鎖頭畫在原本區塊的 `::after`（`data-plk` 屬性），內容模糊＋`inert`，不刪節點、不整頁消失、不報錯。
+   用屬性而不是插 `<div>`：那些區塊大多會被各自的程式整個 innerHTML 重畫。三種形態：`veil`（蓋區塊，可帶「只在某顆鈕 .on 時」的條件）、
+   `mark`（分頁鈕掛 🔒、照樣點得進去看到鎖頭說明）、`block`（工具鈕掛 🔒、捕獲階段攔下點擊、跳一句「此功能需開通」）。
+   一個都沒鎖時不掛 MutationObserver、不攔點擊（現有使用者零成本）。會員功能沒設定（account_config.js 空的）時完全不連外、全開。
+   連不到 Worker 而且沒有這個人的快取 → 全開（寧可多給，不要誤鎖）。
+7. 只動別人檔案的最小呼叫：`live.js`（`cardOn`／`elOn`／`tick` 問 `TwPerm.can('live.tick')`，market3.js 與 livek.js 都經過它，所以不必改那兩支）、
+   `watchlists.js`（`MAX_TABS` 改 getter＝`min(5, TwPerm.limit('watch.tabs'))`，只擋新增、已建的不刪）、`watchpage.js`（上限文字＋`tw:perm` 重畫）。
+   **industry.js、market3.js 一行都沒改**：個股分頁與週期鈕靠選擇器＋捕獲階段攔點擊就做得到。
+
+### ⚠ 誠實的限制：這個鎖頭擋不住懂技術的人
+這是 GitHub Pages 靜態站，`site/data/*.json`（個股、營收、籌碼、熱力圖…）是**公開檔案**。前端鎖頭只擋一般使用者的畫面；
+打開開發者工具、或直接打 `https://miaozike.github.io/tw-rotation/data/stock/2330.json`，照樣全部讀得到。所以**在做完下面這一步之前，不要把它當成真正的付費牆來收費**。
+
+**真正保護付費內容的下一步（設計方案，這次不做）**：
+1. 把「付費」那幾份資料從 Pages 拿掉：`build_payload` 照算，但付費項（例如 AI 分析、1H/4H 分 K、籌碼分頁）改寫進 **Cloudflare R2**（或 Workers KV），
+   不再放進 `site/data/`（pages.yml 部署前刪掉那幾支、`.gitignore` 本來就不進版控）。
+2. 會員 Worker 新增 `/v1/data/<路徑>`：驗權杖 → 查 R7 的 `effective(email)` → 該功能開著才從 R2 讀出來回傳（`cache-control: private`），否則 403。
+   訪客走訪客範本；回應加 `Vary: Authorization` 防 CDN 快取外流。
+3. 前端 `industry.js`／`market3.js` 讀付費資料的地方改走 `TwAccount.call('/v1/data/...')`（帶權杖），403 時畫鎖頭。
+4. 額度：Workers 免費每天 10 萬次請求（跟報價代理、會員心跳共用），付費資料每次換頁都要過 Worker —— 會員一多就要升級 Workers Paid（US$5／月）。
+5. 工作量估計：管線＋R2 上傳 0.5～1 天、Worker 端點＋存取測試 0.5 天、前端改讀取路徑與驗收 1～1.5 天（要跟改 industry.js 的人排開），合計 **2～3 個工作天**；
+   需要 Andy 在 Cloudflare 開 R2（免費 10 GB）與一個 API token 權限。

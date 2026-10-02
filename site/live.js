@@ -199,10 +199,13 @@
    * 一張卡片＝一個 key（'stock' 個股報價＋分時、'watch' 自選清單、'm3' 大盤三張圖）。
    * 卡片的外框帶 data-livekey，裡面的 [data-live][data-lc] 就跟著那顆開關走：
    * 關掉＝那些格子不查、不改，而且**退回頁面原本的靜態值**（盤後資料）。*/
-  const cardOn = (k) => ls.get(KEY_CARD(k), '1') !== '0';
+  /* ★ 2026-10-02 會員功能權限（DECISIONS #288）：「盤中即時（5 秒）」被管理者關掉的人＝所有卡片都當作「即時」關著。
+     market3.js（m3On）、livek.js（cardOn）都是問這一支，所以只要這裡一行就全站一致。預設全開，沒載入 perm.js 也是開。*/
+  const permLive = () => !window.TwPerm || window.TwPerm.can('live.tick');
+  const cardOn = (k) => permLive() && ls.get(KEY_CARD(k), '1') !== '0';
   const keyOf = (el) => { const c = el.closest && el.closest('[data-livekey]'); return c ? c.dataset.livekey : ''; };
   /** 這個元素現在該不該被即時層動到：沒有歸屬卡片的照舊（一律跟著全站自動更新），有歸屬的看那張卡的開關。 */
-  const elOn = (el) => { const k = keyOf(el); return !k || cardOn(k); };
+  const elOn = (el) => { if (!permLive()) return false; const k = keyOf(el); return !k || cardOn(k); };
   /** 看得到嗎。display:none 的分頁、收起來的面板 getClientRects() 是空的。
    *  ★ 沒有 data-live 的純標記（例如總覽那個看不見的 [data-lc=t00]）不看可見度 —— 它本來就是「看不見但要抓」。*/
   const visible = (el) => !el.dataset.live || el.getClientRects().length > 0;
@@ -619,6 +622,7 @@
   // ---------------------------------------------------------------- 一輪
   async function tick(manual) {
     if (state.busy) return;
+    if (!permLive()) return;                       // 會員權限關掉即時：不打 mis（DECISIONS #288）
     if (manual) {
       // manual＝「再試一次」（以前是按「更新」鈕；鈕 2026-09-24 拿掉了，這條路留給 Live.tick(true) 呼叫端）。
       state.tries = 0; state.slow = false;

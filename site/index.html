@@ -5092,6 +5092,10 @@ h3 .howbtn.pop{font-family:inherit}
 <script src="watchlists.js"></script>
 <script src="account_config.js"></script>
 <script src="account.js"></script>
+<!-- ★ 2026-10-02 會員功能權限（DECISIONS #288）：features.js＝功能清單（資料）、perm.js＝依「我」的權限蓋鎖頭。
+     要在 account.js 之後（perm.js 問 TwAccount 我是誰）；會員功能沒設定時全部照預設＝全開，不連任何地方。 -->
+<script src="features.js"></script>
+<script src="perm.js"></script>
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="flowtopo.js"></script>
 <script src="app.js"></script>

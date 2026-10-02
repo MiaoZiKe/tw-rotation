@@ -1,5 +1,24 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 會員功能開放制度：#admin/perm 依 email 開關功能＋方案範本＋鎖頭（2026-10-02，台北，UI 專家，分支 `claude/member-perm`；Worker 已上 main）
+
+- [x] **Worker（已部署）**：main dbfc523 → deploy-account-worker run 36974835747 成功（14:43 台北；部署與「驗證真的活著」兩步都成功）。
+  新 API：`/v1/perm/me`（一般人只讀自己／訪客）、`/v1/admin/perm/get|put|list`、`/v1/admin/plans/get|put`（只有管理者）。存取測試 19 → 26 條全綠。
+- [x] **前端（在分支，等合併）**：`site/features.js`（47 項 9 類功能清單）、`site/perm.js`（鎖頭）、`site/admin.js`（#admin/perm 管理頁）、
+  `account.js`（選單多「會員功能權限」、告知多一行）、`legal.js`（隱私權政策多一列）、`live.js`／`watchlists.js`／`watchpage.js`（最小權限檢查）、`index.html`（兩支 script）。
+- 上線當下：所有範本是空的＝**全部人照舊全開**，畫面上不會出現任何鎖頭。
+- **Andy 的操作步驟（前端合併並部署之後）**：
+  1. 打開 <https://miaozike.github.io/tw-rotation/>，右上角「登入」→ 用**管理者帳號**（Secret `ACCOUNT_ADMIN_EMAILS` 裡那個 Google 帳號）登入。
+  2. 點右上角頭像 → 「管理頁：會員功能權限」（或直接開 `#admin/perm`）。
+  3. 上方選「會員 email」→ 輸入測試帳號的 email（就是 `scripts/_uitest.py` 裡 `PERM_TEST_EMAIL` 那一個；repo 是 public，email 刻意只寫在驗收假資料裡）→ 按「讀取」（還沒登入過也可以先設）。
+  4. 「方案範本」下拉選要套的範本（免費會員／付費會員…），再在下面各分類逐項撥 Switch，或按某一類的「全開／全關」。每撥一下就自動存，上方會寫「已儲存（台北時間）」。
+  5. 用另一個瀏覽器（或無痕視窗）以測試帳號登入 → 被關掉的功能會蓋鎖頭「此功能需開通」。之後改設定，對方重新整理就生效。
+  6. 想把一整組設定變成範本：在會員畫面右側輸入名稱按「把這組存成新範本」；或切到「方案範本」直接改「訪客」「免費會員」「付費會員」。
+- **這批驗了**：`node --test workers/account-api/tests/account.test.mjs` 26 條全綠（反向：拿掉管理者檢查紅 3 條）；
+  `_uitest.py --workers 1 --sections 會員與自選五分頁,會員雲端路徑,設定面板,會員權限開關,盤中即時,自選走勢與搜尋對齊`（新段落「會員權限開關」含 1440＋390；反向：鎖頭失效時紅 10 條）＋ `_preview.py`。沒跑 pytest（沒動 .github／pipeline）。
+- 已知限制（寫在 DECISIONS #288）：① **鎖頭只擋畫面**，`site/data/*.json` 是公開檔，懂技術的人照樣讀得到；真正的付費牆要改由 Worker 驗身分後才給資料（設計與 2～3 天工作量在 #288），這次沒做。
+  ② `deploy-account-worker.yml` 步驟名稱還寫「19 條」（實際 26 條），沒動 .github。③ 鎖頭裡的 🔒 是 emoji，極少數沒有 emoji 字型的系統會顯示方框（文字照常）。
+
 ## 搜尋下拉走勢圖對齊＋自選頁滿寬／每列走勢圖／點了原地展開（2026-10-01 12:00，台北，UI 專家，分支 `claude/watch-spark`，**未推 main**）
 
 - [x] 搜尋下拉：代號、名稱、成交值、漲跌幅改固定寬（名稱超長省略號）→ 熱門／近期／比對三種列的走勢圖起點一致（`site/index.html`）
