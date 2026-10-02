@@ -1878,7 +1878,8 @@
      所以每一次切換都補一輪 resize，而且補兩次（第二次讓版面先安定）。*/
   function miaResize() {
     try { resizeAllCharts(); } catch (e) { /* 忽略 */ }
-    try { window.dispatchEvent(new Event('resize')); } catch (e) { /* 忽略 */ }
+    // twEcho＝「這是分段自己派的回聲」：下面 applyMobileIA 的 resize 監聽認得它、不再回頭重排一次（#284，見那裡的註解）
+    try { const ev = new Event('resize'); ev.twEcho = 'mia'; window.dispatchEvent(ev); } catch (e) { /* 忽略 */ }
   }
 
   function miaClearPager(host) {
@@ -2253,10 +2254,12 @@
     const mroot = document.querySelector('main');
     if (mroot) mo.observe(mroot, { childList: true, subtree: true }); }
   { let rt = null;
-    /* ★ 2026-10-02 卡頓（#284）：只認真的視窗變動（e.isTrusted）。站上自己派的 resize（miaResize、大盤三張圖、手機 m3go…）
-       是叫圖表重新量寬度用的，視窗寬度沒變，不必重排分段 —— 以前它們會形成迴圈：resize → 220ms → applyMobileIA → miaPager
-       → 30／300ms 後 miaResize 再派 resize → …，手機寬度下頁面永遠停不下來（390 寬停在總覽 20 秒派了 150 次）。*/
-    window.addEventListener('resize', (e) => { if (!e.isTrusted) return; clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
+    /* ★ 2026-10-02 卡頓（DECISIONS #284）：不理「分段自己派的回聲」（e.twEcho）。以前這裡會形成迴圈：
+       resize → 220ms → applyMobileIA → miaPager → 30／300ms 後 miaResize 再派 resize → 又 applyMobileIA → …；
+       另一圈是 mobile3.js 的 apply() → m3go() → resize → 這裡 → miaResize → mobile3 又 apply() → …。
+       手機寬度下頁面永遠停不下來（390 寬停在總覽 20 秒派了 226 次 resize）。回聲＝視窗沒變、分段剛排完，再排一次只是重複；
+       真的視窗變動、其他程式派的 resize（大盤三張圖、手機分頁切換…）照舊會重排。*/
+    window.addEventListener('resize', (e) => { if (e.twEcho) return; clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
   let _miaKey = 'overview';
 
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
