@@ -2246,7 +2246,10 @@
      ⚠ `miaMore()` 寫成冪等的（鈕已經在就不重插、字一樣就不重寫），
        所以第二次跑產生 0 個 mutation，迴圈自己會停。*/
   { let mt = null;
-    const mo = new MutationObserver((recs) => { if (!mIsM() || mutPingOnly(recs)) return; clearTimeout(mt); mt = setTimeout(miaMore, 250); });
+    /* ★ 2026-10-02 卡頓（#284）：「是不是手機寬度」改到防抖之後才問。mIsM() 讀 window.innerWidth，
+       在 DOM 剛被改過的當下讀會逼瀏覽器同步排版一次 —— 以前是每一批 DOM 變動都讀一次
+       （390 寬停在總覽 60 秒，光這一行 3.2 秒，是手機上最大的一筆）。現在 250ms 只讀一次，結果一樣：手機才補「限筆」。*/
+    const mo = new MutationObserver((recs) => { if (mutPingOnly(recs)) return; clearTimeout(mt); mt = setTimeout(() => { if (mIsM()) miaMore(); }, 250); });
     const mroot = document.querySelector('main');
     if (mroot) mo.observe(mroot, { childList: true, subtree: true }); }
   { let rt = null;
