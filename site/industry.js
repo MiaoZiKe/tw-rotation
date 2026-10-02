@@ -5224,6 +5224,8 @@
     const epsQ = qi >= 0 && q[qi][5] != null ? `單季 ${A.fmt.esc(q[qi][0])} ${A.fmt.n(q[qi][5])} 元` : '';
     const pbT = f.pb != null && isFinite(f.pb) ? `股價淨值比 ${A.fmt.n(f.pb, 1)} 倍` : '';
     const yoyT = f.rev_ym ? `${A.fmt.esc(f.rev_ym)}${f.rev_yoy_note ? '（' + A.fmt.esc(f.rev_yoy_note) + '）' : ''}${f.rev_yoy_3m != null && isFinite(f.rev_yoy_3m) ? `・近 3 月 ${A.fmt.pct(f.rev_yoy_3m)}` : ''}` : '';
+    /* 月營收 YoY 小基期會到 +41,420%（1438 實測）：窄欄只有約 80px，≥1000% 改成整數加千分位（「+41,421%」），不帶小數 */
+    const yoyV = f.rev_yoy != null && isFinite(f.rev_yoy) && Math.abs(f.rev_yoy) >= 1000 ? (f.rev_yoy > 0 ? '+' : '−') + A.fmt.i(Math.round(Math.abs(f.rev_yoy))) + '%' : A.fmt.pct(f.rev_yoy);
     const dvT = dv.cash_ttm != null && dv.cash_ttm > 0 ? `近四次現金 ${A.fmt.n(dv.cash_ttm)} 元` : '';
     // 大格 ①：本益比位置
     const ps = peStand(pg);
@@ -5257,7 +5259,7 @@
       + `<div class="fsm">`
       + ks('eps', '近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—', epsQ)
       + ks('roe', 'ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—', pbT)
-      + ks('yoy', '月營收 YoY', A.fmt.pct(f.rev_yoy), yoyT, A.fmt.cls(f.rev_yoy))
+      + ks('yoy', '月營收 YoY', yoyV, yoyT, A.fmt.cls(f.rev_yoy))
       + ks('yld', '殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—', dvT)
       + `</div><div class="fbig">`
       + kb('pe', '本益比', ps.cur != null ? A.fmt.n(ps.cur, 1) + ' <small>倍</small>' : '—', peStandHTML(ps, 'peStandOv'))

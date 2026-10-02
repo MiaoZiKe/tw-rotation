@@ -4118,15 +4118,16 @@ h3 .howbtn.pop{font-family:inherit}
    ★ 2026-10-03 基本面卡「小格窄欄｜大格寬欄」（Andy：「純數字的格子做成小格縱向堆在一窄欄、有圖表的做成大格放旁邊並補充詳細」，DECISIONS #305）
    · 小格（EPS、ROE、月營收 YoY、殖利率）：內距 7px 10px、數字 17px，平均分掉窄欄高度、內容垂直置中
    · 大格（本益比位置、毛利率、營運動能）：標題列＝名稱｜大數字，下面是圖與細項
-   · 卡片內寬 < 380px（手機）：小格 2×2 在上、大格在下（窄欄只剩 110px 時「單季 2026Q2 19.50 元」會折三行）
+   · 版面 V2（左側導覽列，#291）上線後 1440 的三欄裡這張卡內寬只剩約 330px：照樣「窄欄｜寬欄」，窄欄最少 86px、內距再收一點（卡片內寬 ≤ 380px）
+   · 手機（≤640）或卡片內寬 < 270px：小格 2×2 在上、大格在下（寬欄不到 180px 時營運動能那幾列會擠到截字）
    ================================================================================== */
 #skFundCard{container:skfc / inline-size}
-#skFundCard>.kvs.skfund{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.55fr);gap:8px;align-items:stretch}
+#skFundCard>.kvs.skfund{display:grid;grid-template-columns:minmax(86px,.7fr) minmax(0,1.6fr);gap:8px;align-items:stretch}
 #skFundCard .fsm,#skFundCard .fbig{display:flex;flex-direction:column;gap:8px;min-width:0}
 #skFundCard .fsm{gap:6px}
 #skFundCard .k{min-width:0}
 #skFundCard .ksm{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:7px 10px}
-#skFundCard .ksm .v{font-size:17px;line-height:22px}
+#skFundCard .ksm .v{font-size:17px;line-height:22px;overflow-wrap:anywhere}
 #skFundCard .k .s{font-size:11.5px;line-height:1.35;color:var(--ink-3)}
 #skFundCard .kbig{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:9px 11px}
 #skFundCard .kbig .kh{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
@@ -4135,6 +4136,16 @@ h3 .howbtn.pop{font-family:inherit}
 #skFundCard .kbig .meter{margin-top:0}
 #skFundCard .kbig .gaugev{align-items:center}
 @container skfc (max-width:380px){
+  #skFundCard>.kvs.skfund{gap:6px}
+  #skFundCard .ksm{padding:6px 8px}
+  #skFundCard .ksm .v{font-size:16px;line-height:21px}
+  #skFundCard .kbig{padding:8px 9px}
+}
+@container skfc (max-width:270px){
+  #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
+  #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
   #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
   #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -4155,7 +4166,7 @@ h3 .howbtn.pop{font-family:inherit}
 .gmrs{display:flex;flex-direction:column;gap:2px}
 .gmr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:baseline;font-size:12px;line-height:17px;color:var(--ink-3)}
 .gmr>span:nth-child(2){font-family:var(--mono);color:var(--ink-2)}
-.gmr b{font:600 12px var(--mono);min-width:76px;text-align:right;color:var(--ink-2)}
+.gmr b{font:600 12px var(--mono);white-space:nowrap;text-align:right;color:var(--ink-2)}
 .gmr b.up{color:var(--rise)} .gmr b.down{color:var(--fall)}
 .gmspark{min-width:0}
 .gmsv{position:relative;height:30px}
