@@ -39,9 +39,9 @@
    整張卡約 560px。兩欄比例 2:1 → 1.1:1，給輪盤卡多一點寬度；卡自己黏在跳轉列底下（sticky），捲動左欄兩張卡時它一直在眼前。
    要不要黏：左欄（熱力圖＋熱門題材）比它高 400px 左右，不黏的話右下會空一大塊。 */
 @media (min-width:1101px) and (max-height:1000px){
-  :root.l4 .ovmain{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+  :root.l4 .ovmain{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
   :root.l4 #ovRotCard{align-self:start;position:sticky;top:61px;
-    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:var(--sp-4,16px);align-content:start}
+    display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr);column-gap:var(--sp-4,16px);align-content:start}
   :root.l4 #ovRotCard>#ovRotHead,:root.l4 #ovRotCard>#how-rotm{grid-column:1/-1}
   :root.l4 #ovRotCard>#ovRotHead{grid-row:1}
   :root.l4 #ovRotCard>#how-rotm{grid-row:2}
