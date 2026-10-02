@@ -5218,3 +5218,33 @@ Andy 2026-10-02（#stock/1709 和益）四件。前一位 agent 的半成品快�
      這句從圖卡底下搬到右邊「每週明細」表的下面 —— 它講的就是這張表為什麼只有這幾列，也順便填掉短表下面的空白。
      要滿 3 個月（13 週）只有兩條路：① 不做任何事，每週五基準日、次一輪每日管線自動進湖，約 2026-11-27 那一週滿 13 週；
      ② 升級 FinMind 贊助方案 —— `run_backfill` 的 holding 任務已經寫好，封印後每隔 24 小時（`UNAVAILABLE_RETRY_HOURS`）自動拿 5 檔探一次，升級後最慢一天內就開始補。
+
+## #301 分支預覽：`preview/<名稱>` 分支部署到 `/tw-rotation/preview/<名稱>/`，資料讀正式站、localStorage 加前綴隔離（效率規劃師，2026-10-03，分支 `claude/branch-preview`；合併時若撞號請改號）
+
+**決策**：要給 Andy 看的半成品一律推 `preview/<名稱>`，不推 main。部署永遠在 main 上跑：正式站照舊，
+`scripts/preview_inject.py` 再把 origin 上每個 `preview/*` 分支的 `site/`（不含 `data/`）放到 `site/preview/<名稱>/`，
+並在那份 index.html 的 `<head>` 最前面注入 `scripts/preview_boot.js`。說明書：`docs/preview.md`。
+
+**理由**：Andy 2026-10-03「直接開分支給我一版可操作的，以後都這樣，避免覆蓋到原版本」。截圖（`_show.py`）不能操作；
+推 main 會覆蓋正式站。
+
+**怎麼做、為什麼這樣做**：
+- **preview/* 推送不直接部署**：`github-pages` 環境預設只准預設分支部署，從 preview 分支跑會被環境規則擋。
+  所以那種 run 只跑 `relay-preview`（`gh workflow run pages.yml --ref main`，GITHUB_TOKEN 觸發的 workflow_dispatch 是官方允許的例外），
+  真正的部署在 main 上做 → **正式站的內容永遠只來自 main**。
+- **concurrency**：正式部署（main push／dispatch／刪 preview 分支）群組照舊 `pages`；preview 推送的轉呼叫用 `pages-relay-<ref>`；
+  刪「非 preview」分支（delete 事件不支援 branches 篩選，刪任何分支都會觸發）用 `pages-noop-<分支>`、job 全部跳過。
+  理由：同一群組裡新排進來的 run 會把「還在排隊」的那個擠掉 —— 刪一個 claude/* 分支不准擠掉排隊中的正式部署。
+  `cancel-in-progress` 維持 false（CLAUDE.md 絕對不要做 #6）。
+- **資料不複製**：瀏覽器端改寫 fetch，`<預覽>/data/...` → `/tw-rotation/data/...`。每份預覽只多約 7.5MB。
+  不用 symlink：upload-pages-artifact 打包時會跟著連結走，等於照樣複製。
+- **localStorage 隔離**：在所有程式之前把 `window.localStorage`／`sessionStorage` 換成 Proxy 殼，鍵前綴 `twpv:<名稱>:`。
+  選這個而不是改 140 處呼叫點：正式站一個字都不用動，零風險。
+- **會員雲端寫入在預覽擋下**（lists/put、delete、beat、admin 寫入回 403）：登入是同一個帳號，不擋就會改到正式站的雲端自選。
+- **預覽不註冊 SW**：兩邊快取都叫 `tw-*`，activate 時會互刪。
+- 版號序號查詢加 `branch=main`，preview 推送的轉呼叫 run 不算正式站的一版。
+
+**代價／限制**：預覽版看的是正式站資料（分支改 JSON 格式看不到）；要另外登入一次；從舊 main 拉出的分支推 preview 不會自動觸發
+（它自己的 pages.yml 沒有 preview 觸發），要手動 dispatch 一次或先合 main。
+
+— `.github/workflows/pages.yml`、`scripts/preview_inject.py`、`scripts/preview_boot.js`、`tests/test_preview_inject.py`、`docs/preview.md`、`CLAUDE.md`

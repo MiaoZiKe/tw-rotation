@@ -1,5 +1,19 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 分支預覽機制：preview/* → /tw-rotation/preview/<名稱>/（2026-10-03 03:20，台北，效率規劃師，分支 `claude/branch-preview`，**未推 main，等審核專家審 pages.yml**，DECISIONS #301）
+
+- 做了什麼：`pages.yml` 加 `preview/**` push 觸發（只轉呼叫 main 部署）＋ `delete` 觸發（刪 preview 分支就重部署）＋ 條件式 concurrency 群組
+  （正式部署照舊 `pages`；`cancel-in-progress` 維持 false）；`scripts/preview_inject.py` 在 main 部署時把每個 preview/* 的 site/（不含 data）
+  裝到 `site/preview/<名稱>/`；`scripts/preview_boot.js` 只在預覽頁載入：localStorage／sessionStorage 前綴 `twpv:<名稱>:`、
+  data/ 改讀正式站 `/tw-rotation/data/`、會員雲端寫入擋下、不註冊 SW、黃色橫幅。說明書 `docs/preview.md`，CLAUDE.md 工作規則加一條。
+- `preview/layout-v2` 已推（= `claude/layout-v2-desktop` 175a5a2）。**機制要合併到 main 後才會出現在線上**；
+  因為那個分支的 pages.yml 沒有 preview 觸發，合併後的第一次 main 部署就會把它一起裝上（不必另外 dispatch）。
+- 這批驗了哪幾段：pytest 全套 909 passed／1 xfailed；本機模擬部署（Playwright，真資料）確認預覽頁橫幅、資料 16 支請求全走正式站 data、
+  0 支打到預覽目錄的 data、localStorage 前綴隔離（預覽改 tw.theme 正式站不變）、會員寫入回 403、sendBeacon 被吞、K 線畫得出來；
+  `_uitest --sections 總覽,資金流向,個股,手機 --workers 1` 全綠（site/ 沒改，正式站行為不變）。`_preview.py` 沒跑：這批沒有任何 site/** 改動。
+  ⚠ 第一次用 `--only 總覽,資金流向,個股,手機` 跑（子字串比對帶到 28 段）跑到 30 分鐘被背景時限砍掉，中段一串「1 個問題（0s）」看起來是瀏覽器長跑後的連鎖失敗；改用 `--sections` 精準跑四段全綠。
+- 合併後要確認三件事：deploy-pages success、步驟「分支預覽」的輸出有 `preview/layout-v2/`、「部署包大小」只比原本多約 7.5MB。
+
 ## 總覽四張摘要卡即時：補位進每 5 秒那一批、共用各頁即時公式、右上角日期＝即時開關（2026-10-02，台北，UI 專家，分支 `claude/ov-kpi-live`，**未推 main**）
 
 - Andy（15:36）：「這都需要具備即時功能」（漲跌家數／資金輪盤／資金去向／熱門題材四張卡右上角都寫 10/01）→ DECISIONS #296（推翻 #277「摘要卡刻意不加即時」那一句）。
