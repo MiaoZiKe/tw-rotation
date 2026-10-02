@@ -204,12 +204,14 @@
   :root.l4 .layout{min-height:100vh}
 }
 
-/* =============================== 3. 頁首＋「本頁功能」跳轉列（≥821px） ===============================
+/* =============================== 3. 頁首＋「本頁功能」跳轉列（≥641px；手機版在第 5 段） ===============================
    layout4.js 產生兩塊，放在 <main> 外面、#layout 前面（body 的直接子元素 —— sticky 才黏得住整頁；
    它們跟導覽一樣是「導覽」不是內容）。
    高度刻意壓低（v4 的痛點是「間隔太大導致圖被壓縮」）：小標一行＋「頁名｜一句話」同一行，約 64px；
-   跳轉列 48px，捲下去之後只剩它黏在最上面。 */
-@media (min-width:821px){
+   跳轉列 48px，捲下去之後只剩它黏在最上面。
+   641～820（桌機縮半邊、平板直放）也用這一套：那個寬度的頁面跟桌機一樣是整頁卡片（沒有手機的分段導覽），
+   只是頂欄還在 —— 跳轉列改黏在頂欄（58px）底下。 */
+@media (min-width:641px){
   /* 所有 scrollIntoView（app 自己的也算）都要讓出跳轉列，不然捲過去的標題會被它蓋住 */
   :root.l4{scroll-padding-top:60px}
   :root.l4 #l4Head{display:block;padding:var(--sp-4) var(--sp-4) var(--sp-1)}
@@ -249,11 +251,52 @@
 @keyframes l4hit{0%,35%{box-shadow:0 0 0 2px var(--t4-accent-solid,var(--cyan))}100%{box-shadow:var(--t4-card-sh,none)}}
 @media (prefers-reduced-motion:reduce){ :root.l4 .card.l4-hit{animation:none} }
 
+/* =============================== 4b. 641～820（桌機縮半邊、平板） ===============================
+   判斷（Andy 讓我挑「左側圖示列」或「手機版底部分頁列」）：選**底部分頁列，改成一列七顆線條圖示**。理由：
+     · 這個寬度最常見的是平板直放（觸控），拇指搆得到底部、搆不到左上角；電腦縮半邊時底部一列也一樣好按。
+     · 七頁一列放得下（641 ÷ 7 ＝ 91px／顆，最長的「資金流向」四個字 48px），不用像手機那樣把三頁收進「更多」。
+     · 高度從兩列 102px 降到一列 58px，多出來的 44px 還給內容；左側圖示列則會再吃掉 72px 寬（641 只剩 569）。
+     · 頂欄（品牌、搜尋、自選、⋯ 清單裡的事件與明暗）原封不動 —— ≤820 的「⋯」入口、外觀鈕收進清單（theme4.css）都照舊，
+       舊的驗收（今日事件從「⋯」開）也照舊。
+   頁首、跳轉列見第 3 段（跳轉列黏在頂欄 58px 底下）；事件抽屜跟手機一樣改滿高。 */
+@media (min-width:641px) and (max-width:820px){
+  :root.l4{scroll-padding-top:114px}
+  :root.l4 #l4Jump{top:58px}
+  :root.l4 .tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;flex-wrap:nowrap;
+    padding:0 0 env(safe-area-inset-bottom);height:calc(58px + env(safe-area-inset-bottom))}
+  :root.l4 .tab{flex:none;min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;background:none;box-shadow:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--fs-min);line-height:1.2;
+    color:var(--ink-3);font-weight:600;white-space:nowrap}
+  :root.l4 .tab::before{content:"";flex:none;width:22px;height:22px;background-color:currentColor;
+    -webkit-mask:var(--l4-ic,none) center/22px 22px no-repeat;mask:var(--l4-ic,none) center/22px 22px no-repeat}
+  :root.l4 .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
+  :root.l4 .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
+  :root.l4 .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
+  :root.l4 .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
+  :root.l4 .tab[data-view="market"]{--l4-ic:var(--l4-ic-market)}
+  :root.l4 .tab[data-view="season"]{--l4-ic:var(--l4-ic-season)}
+  :root.l4 .tab[data-view="watch"]{--l4-ic:var(--l4-ic-watch)}
+  :root.l4 .tab[data-view="delivery"]{--l4-ic:var(--l4-ic-delivery)}
+  :root.l4 .tab:hover{background:none;color:var(--ink)}
+  :root.l4 .tab.on{color:var(--t4-accent-solid,var(--cyan));box-shadow:none;
+    background:radial-gradient(closest-side,color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 18%,transparent) 99%,transparent) no-repeat center 5px/56px 32px}
+  /* 事件抽屜：滿高（蓋過頂欄），遮罩也從頂端起 */
+  :root.l4 aside#side,:root.l4 .sideback{top:0}
+}
+
 /* =============================== 5. 手機（≤640px，body.m3on） ===============================
-   手機有自己一套結構（mobile3.js：頂欄 52、主軸動線、分段列、底部五顆 58px），每一頁都算過「一屏看完」的高度預算，
-   所以這一段**只換長相、一個 px 的高度都不加**：
-     · 頂欄：站名的位置改寫「分組＋目前頁名」（layout4.js 產生 .l4pt），一看就知道自己在哪；logo 不動
-     · 底部五顆：文字符號（◎ ⇄ ▦ ▤ ≡）換成跟桌機同一套線條圖示；按鈕高度 58 不變（圖示 22 ＋ 字 14 ＋ 間距 2 ＝ 38，原本 18 ＋ 14 ＋ 2） */
+   手機有自己一套結構（mobile3.js：頂欄 52、主軸動線、分段列、底部五顆 58px），每一頁都算過「一屏看完」的高度預算：
+     · 頂欄：站名的位置改寫「分組＋目前頁名」（layout4.js 產生 .l4pt），一看就知道自己在哪；logo 不動，高度不變
+     · 底部五顆：文字符號（◎ ⇄ ▦ ▤ ≡）換成跟桌機同一套線條圖示；按鈕高度 58 不變（圖示 22 ＋ 字 14 ＋ 間距 2 ＝ 38，原本 18 ＋ 14 ＋ 2）
+     · 頁首（第二批，Andy「手機版本一併處理」）：壓成**一行**（分組小標｜頁名｜說明，說明超出就省略），約 34px；
+       主內容上緣從 14 收到 6，所以實際只多 26px —— 量過：總覽輪盤（加兩檔觀察）底 730 → 756，預算 786 仍有 30px。
+       個股頁不放：那一頁的頁首就是券商式報價列（#mbHead，◀ 名稱／代號／市場別 ▶，sticky），再疊一條會把 K 線推出第一屏
+       （量過只剩 37px 餘裕，「手機個股券商式」的「K 線圖＋報價列在同一屏」會紅），而且頂欄已經寫了「族群與個股｜股名 代號」。
+     · 「本頁功能」：手機每一頁幾乎都已經有分段列（.mspine 第一層四步、.mpager 第二層分段 —— 一屏一段，換段用點的），
+       那兩排就是手機的「本頁功能」，不另外做第二排：統一成跟桌機跳轉列同一種膠囊（亮起＝主色淡底＋主色字），
+       分段列改 sticky 黏在頂欄（總覽是黏在四步列）底下。沒有分段列、又有兩張以上卡片的頁面（例如市場明細）才出 #l4Jump。
+     · 今日事件抽屜：從右側滑出、滿高（蓋過頂欄與底部導覽），遮罩也從頂端起；開關仍是 app.js 的 setSide()（遮罩／Esc／× 都關）。 */
+
 @media (max-width:640px){
   :root.l4 body.m3on .brand>div:not(.logo)>b{display:none}
   :root.l4 body.m3on .brand .l4pt{display:flex;flex-direction:column;font-size:16px;font-weight:700;line-height:1.15;color:var(--ink);
@@ -274,4 +317,48 @@
   :root.l4 body.m3on .tab.on,:root.l4 body.m3on .mtabmore.on{color:var(--t4-accent-solid,var(--cyan));
     background:radial-gradient(closest-side,color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 18%,transparent) 99%,transparent) no-repeat center 5px/56px 32px}
   :root.l4 body.m3on .tab.on::before,:root.l4 body.m3on .mtabmore.on::before{text-shadow:none}
+
+  /* ---- 頁首：一行 ---- */
+  :root.l4 body.m3on #l4Head{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;padding:var(--sp-2) 14px 2px}
+  :root.l4 body.m3on #l4Head[hidden],:root.l4 body.m3on.mbon #l4Head{display:none}
+  :root.l4 body.m3on #l4Head .eyebrow{flex:none;font-size:var(--fs-min);font-weight:700;letter-spacing:.1em;line-height:24px;
+    color:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 body.m3on #l4Head .ttl{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;flex:1 1 auto}
+  :root.l4 body.m3on #l4Head h1{flex:none;margin:0;font-size:17px;line-height:24px;font-weight:var(--t4-h-w,700);color:var(--ink);white-space:nowrap}
+  :root.l4 body.m3on #l4Head h1 .sub1{display:none}
+  :root.l4 body.m3on #l4Head p{flex:1 1 auto;min-width:0;margin:0;font-size:var(--fs-min);line-height:24px;color:var(--ink-3);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.l4 body.m3on:not(.mbon) main{padding-top:6px}
+
+  /* ---- 本頁功能：沒有分段列的頁面才出現的跳轉列（黏在頂欄 52px 底下、可橫向滑） ---- */
+  :root.l4{scroll-padding-top:104px}
+  :root.l4 body.m3on #l4Jump{display:flex;align-items:center;gap:var(--sp-2);position:sticky;top:52px;z-index:30;
+    padding:6px 14px;background:var(--bg);box-shadow:0 8px 12px -10px var(--drop)}
+  :root.l4 body.m3on #l4Jump[hidden]{display:none}
+  :root.l4 body.m3on #l4Jump .lbl{display:none}
+  :root.l4 body.m3on #l4Jump .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto;
+    -webkit-overflow-scrolling:touch}
+  :root.l4 body.m3on #l4Jump .chips::-webkit-scrollbar{display:none}
+
+  /* ---- 分段膠囊統一：.mspine（第一層四步）、.mpager（第二層分段）、#l4Jump 同一種樣子 ----
+     沒選＝控制項底＋細框；選中＝主色淡底＋主色字＋主色框（取代原本 .mpager 的整塊反白、.mspine 的發光）。 */
+  :root.l4 body.m3on #l4Jump button,:root.l4 body.m3on .mpager>button{flex:none;display:inline-flex;align-items:center;gap:6px;
+    min-height:36px;padding:0 14px;border-radius:var(--r-sm);border:1px solid var(--t4-ctl-edge,var(--line-2));
+    background:var(--t4-ctl,var(--panel));color:var(--ink-2);font-size:13px;white-space:nowrap;box-shadow:none}
+  :root.l4 body.m3on #l4Jump button i{font-style:normal;font-family:var(--mono);font-size:var(--fs-min);color:var(--ink-3)}
+  :root.l4 body.m3on #l4Jump button.on,:root.l4 body.m3on .mpager>button.on,:root.l4 body.m3on .mspine>button.on{
+    border-color:var(--t4-accent-solid,var(--cyan));color:var(--t4-accent-solid,var(--cyan));font-weight:700;box-shadow:none;
+    background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,var(--t4-ctl,var(--panel)))}
+  :root.l4 body.m3on #l4Jump button.on i,:root.l4 body.m3on .mspine>button.on em,:root.l4 body.m3on .mspine>button.on b{color:inherit}
+  :root.l4 body.m3on .mspine>button{background:var(--t4-ctl,var(--panel));border-color:var(--t4-ctl-edge,var(--line-2));box-shadow:none}
+  /* 分段列黏在頂欄底下（總覽有四步列：黏在四步列底下，四步列高度由 layout4.js 量進 --l4-spine-h）。
+     z-index 5：要蓋過捲上來的卡片內容，但要讓總覽輪盤的點旁說明框（#mOvPop，z 6）蓋得過它。 */
+  :root.l4 body.m3on .view.on>.mpager{position:sticky;top:52px;z-index:5;background:var(--bg);
+    margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px;box-shadow:0 8px 12px -10px var(--drop)}
+  :root.l4 body.m3on .view.on:has(>.mspine)>.mpager{top:calc(52px + var(--l4-spine-h,56px))}
+
+  /* ---- 今日事件抽屜：滿高 ---- */
+  :root.l4 body.m3on aside#side,:root.l4 body.m3on .sideback{top:0}
+  :root.l4 body.m3on aside#side{z-index:50}
+  :root.l4 body.m3on .sideback{z-index:49}
 }

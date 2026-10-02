@@ -103,16 +103,27 @@
     const h = card.querySelector('h3, h2');
     if (!h || h.closest('.card') !== card) return '';
     const c = h.cloneNode(true);
-    c.querySelectorAll('button, select, input, small, svg, img, .howbtn, .pill, .muted, .note, [hidden], .rotdd, .seg, .n, .ticon').forEach((x) => x.remove());
+    c.querySelectorAll('button, select, input, small, svg, img, .howbtn, .pill, .muted, .note, [hidden], .rotdd, .seg, .n, .ticon, [class*="tag"], [data-warn]').forEach((x) => x.remove());
     let t = c.textContent.replace(/\s+/g, ' ').trim().replace(/[?？]$/, '').trim();
     if (t.length > 14) t = t.slice(0, 13) + '…';
     return t;
   }
   let cards = [], lastSig = '';
+  const MOB = () => window.innerWidth <= 640 && document.body.classList.contains('m3on');
+  const shown = (e) => !!e && !e.hidden && e.getClientRects().length > 0;
   function scanCards() {
-    if (!jump || !DESK()) return;
+    if (!jump) return;
     const view = $('.view.on');
-    const list = view ? $$('.card', view).filter((c) => {
+    /* 手機：分段列（.mspine 四步／.mpager 分段）就是這一頁的「本頁功能」，個股頁的是券商式分頁列（#mbHead）——
+       有其中一個就不再出第二排膠囊（Andy：「不要做出兩排功能重複的膠囊」）。
+       總覽的分段列要黏在四步列底下，四步列多高這裡量給 CSS（--l4-spine-h）。 */
+    let own = false;
+    if (MOB() && view) {
+      const sp = view.querySelector(':scope > .mspine');
+      if (shown(sp)) root.style.setProperty('--l4-spine-h', Math.round(sp.getBoundingClientRect().height) + 'px');
+      own = shown(sp) || shown(view.querySelector(':scope > .mpager')) || document.body.classList.contains('mbon');
+    }
+    const list = view && !own ? $$('.card', view).filter((c) => {
       if (c.parentElement && c.parentElement.closest('.card')) return false;        // 只要最外層
       if (!c.getClientRects().length) return false;                                  // 看不見的不列
       return c.getBoundingClientRect().height > 40;
@@ -138,7 +149,8 @@
     const it = cards[i]; if (!it || !it.c.isConnected) { lastSig = ''; scanCards(); return; }
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     // 自己算位置（扣掉跳轉列高度＋一點呼吸），不靠 scroll-padding 與各卡片 scroll-margin 疊加 —— 兩者會相加，落點不一
-    const off = (jump.getBoundingClientRect().height || 48) + 12;
+    const stickTop = parseFloat(getComputedStyle(jump).top) || 0;        // 桌機 0、641～820 黏在頂欄 58 下、手機 52 下
+    const off = stickTop + (jump.getBoundingClientRect().height || 48) + 12;
     window.scrollTo({ top: Math.max(0, it.c.getBoundingClientRect().top + window.scrollY - off), behavior: reduce ? 'auto' : 'smooth' });
     it.c.classList.remove('l4-hit'); void it.c.offsetWidth; it.c.classList.add('l4-hit');
     setTimeout(() => it.c.classList.remove('l4-hit'), 1300);
@@ -164,8 +176,9 @@
     if (spyRaf) return;
     spyRaf = requestAnimationFrame(() => {
       spyRaf = 0;
-      if (!cards.length || !DESK() || !jump) return;
-      jump.classList.toggle('stuck', jump.getBoundingClientRect().top <= 1 && window.scrollY > 10);
+      if (!cards.length || !jump || jump.hidden) return;
+      const stickTop = parseFloat(getComputedStyle(jump).top) || 0;
+      jump.classList.toggle('stuck', jump.getBoundingClientRect().top <= stickTop + 1 && window.scrollY > 10);
       if (!force && Date.now() < lockUntil) return;   // 剛點過膠囊：捲動動畫跑完之前不要被偵測改掉
       const line = jump.getBoundingClientRect().bottom + 24;
       let best = 0, bestTop = -Infinity;
