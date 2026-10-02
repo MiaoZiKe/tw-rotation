@@ -14698,7 +14698,7 @@ def t_chips_basic0926(pg, base, code):
     # ★ 2026-09-28（Andy：「補不了要在頁面上用讀者看得懂的一句話講原因」）：短註改成講「為什麼只有這幾週」
     if len(raw) < 52:
         ok(f"★ [籌碼0926] 卡片短註講清楚為什麼只有 {len(raw)} 週（集保只公開最新一週、無法補回、從 {raw[0][0]} 起累積）",
-           "無法補回" in h["note"] and f"從 {raw[0][0]} 起每週累積，目前 {len(raw)} 週" in h["note"], h["note"])
+           "無法補回" in h["note"] and f"目前累積 {len(raw)} 週，每週五自動增加" in h["note"] and f"從 {raw[0][0]} 起" in h["note"], h["note"])   # 2026-10-02 #295 改寫成 Andy 指定的句子
     ok("[籌碼0926] 卡片上沒有「?」以外的附註鈕（短註是讀數，不是說明鈕）",
        pg.evaluate("() => !document.querySelector('#stockTab .hoNote button')"))
     # 真的滑過一個點：提示框要出現、而且有週變化（改前 dataIndex 1 → 改後用第 2 個公布日在日期軸上的位置）
@@ -16598,7 +16598,7 @@ def t_stock_tabs0928(pg, base, code):
         # 歷史補不回來：一句讀者聽得懂的話
         if len(ho) < 52:
             ok(f"★ {tag}資料只有 {len(ho)} 週 → 頁面講清楚原因（集保只公開最新一週、無法補回、從哪一週起累積）",
-               "無法補回" in g["txt"] and f"從 {ho[0][0]} 起每週累積，目前 {len(ho)} 週" in g["txt"], [l for l in g["txt"].split("\n") if "集保" in l][:2])
+               "無法補回" in g["txt"] and f"目前累積 {len(ho)} 週，每週五自動增加" in g["txt"] and f"從 {ho[0][0]} 起" in g["txt"], [l for l in g["txt"].split("\n") if "集保" in l][:2])   # #295 新句子
 
     # ---- ④⑥①：全部分頁掃一遍，禁用字（內部說明、股東人數、主力、股利政策／公告）一個都不准出現
     #   掃「畫面上看得到的字」＋「點開每一顆 ? 的說明」＋「滑過會跳的 title」三處
@@ -17398,6 +17398,246 @@ def t_intraday_all(pg, base, code):
         pg.unroute(f"**/data/stock/{c}.json*")
 
 
+
+# ===================================================================== 個股分頁版面 1002（claude/stock-tabs-4，DECISIONS #295）
+# Andy 2026-10-02（#stock/1709 和益）四件，只動營收／獲利／法人／資券／大戶散戶五個分頁的內容：
+#   ① 營收三卡並排：1440 三張卡同一列（top 一致：走勢｜逐年同月｜明細，明細在第三欄、卡裡捲）；1100 兩欄＋明細跨列；800 依序往下排。
+#   ② 本益比河流圖中間那條線粗細可調（1～5px，跟透明度同一列）：拉了之後 ECharts 線寬真的變、canvas 真的變、
+#      localStorage 真的寫、重新整理還在；圖下讀數改成四個並排小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜色帶說明）。
+#   ③ 法人／資券／大戶散戶：圖卡與明細表卡左右並排（1440），800 疊成上下；三頁同一套版型（.skduo）。
+#   ④ 大戶散戶：表的週數＝個股 JSON 的週數＝資料湖該檔的週數，畫面寫「目前累積 N 週，每週五自動增加」。
+#   ⑤ 1440／800／390 三種寬度：五個分頁都沒有文字重疊、沒有橫向溢出（390 走手機分頁列的「完整版」才看得到這五頁）。
+# ⚠ 一律 --workers 1（會改 localStorage 與視窗寬）。
+TABS1002_DUO = r"""(ids) => { const R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top + scrollY), b: Math.round(r.bottom + scrollY), h: Math.round(r.height), w: Math.round(r.width) }; };
+  const out = {};
+  for (const id of ids) { const box = document.getElementById(id); if (!box) { out[id] = null; continue; }
+    const kids = [...box.children].filter(e => e.getClientRects().length > 0);
+    const tw = box.querySelector('.tblcard .tw');
+    out[id] = { n: kids.length, rs: kids.map(R), tbl: !!box.querySelector('.tblcard'), tblLast: kids.length ? kids[kids.length - 1].classList.contains('tblcard') : false,
+      twSH: tw ? tw.scrollHeight : 0, twCH: tw ? tw.clientHeight : 0, twSW: tw ? tw.scrollWidth : 0, twCW: tw ? tw.clientWidth : 0,
+      rows: tw ? tw.querySelectorAll('tbody tr').length : 0 }; }
+  out.sx = document.documentElement.scrollWidth; out.vw = innerWidth; return out; }"""
+
+PE1002 = r"""() => { const el = document.getElementById('peChart'); const c = el && echarts.getInstanceByDom(el); const o = c && c.getOption();
+  const s = o ? o.series.find(x => x.name === '收盤') : null; const lw = document.getElementById('peLw');
+  const ks = [...document.querySelectorAll('#peNote .k')].map(k => { const r = k.getBoundingClientRect(); return { k: k.dataset.k || '', t: Math.round(r.top), l: Math.round(r.left), txt: k.textContent.replace(/\s+/g, ' ').trim() }; });
+  let ls = null; try { ls = localStorage.getItem('tw.peLineW'); } catch (e) {}
+  const opa = document.getElementById('peOpa');
+  return { w: s ? s.lineStyle.width : null, slider: lw ? lw.value : null, min: lw ? lw.min : null, max: lw ? lw.max : null, lbl: (document.getElementById('peLwV') || {}).textContent || '',
+    sameRow: !!lw && !!opa && lw.closest('.row') === opa.closest('.row'),
+    nextToOpa: !!lw && !!opa && opa.closest('label').nextElementSibling === lw.closest('label'), ks, ls }; }"""
+
+# #stockTab 裡的文字重疊＋橫向溢出（口徑照 _preview.py 的 OVERLAP_JS：跟每個會裁切的祖先取交集、折行的行內元素逐行比）
+TABS1002_SCAN = r"""() => {
+  const root = document.getElementById('stockTab'); if (!root) return { none: true, ov: [], out: [], tiny: [], sx: 0, vw: 0 };
+  const els = [...root.querySelectorAll('*')].filter(e => { if (!(e instanceof HTMLElement)) return false;
+    if (['SCRIPT','STYLE','CANVAS','SVG','INPUT','BUTTON'].includes(e.tagName)) return false;
+    if (![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) return false;
+    const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+    return r.width > 6 && r.height > 6 && cs.visibility !== 'hidden' && cs.display !== 'none'; });
+  const clip = (e) => { let r = e.getBoundingClientRect(); r = { top: r.top, left: r.left, bottom: r.bottom, right: r.right };
+    for (let p = e.parentElement; p; p = p.parentElement) { const cs = getComputedStyle(p);
+      if (!/auto|scroll|hidden/.test(cs.overflowY + cs.overflowX)) continue; const pr = p.getBoundingClientRect();
+      const t = Math.max(r.top, pr.top), l = Math.max(r.left, pr.left), b = Math.min(r.bottom, pr.bottom), rt = Math.min(r.right, pr.right);
+      if (b <= t || rt <= l) return null; r = { top: t, left: l, bottom: b, right: rt }; }
+    r.width = r.right - r.left; r.height = r.bottom - r.top; return r; };
+  const wrapOnly = (p, q) => { const multi = (e) => getComputedStyle(e).display === 'inline' && e.getClientRects().length > 1;
+    if (!multi(p) && !multi(q)) return false;
+    for (const a of p.getClientRects()) for (const b of q.getClientRects()) {
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) return false; }
+    return true; };
+  const rs = els.map(e => ({ e, r: clip(e) })).filter(x => x.r && x.r.width > 6 && x.r.height > 6);
+  const ov = [];
+  for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) { const a = rs[i], b = rs[j];
+    if (a.e.contains(b.e) || b.e.contains(a.e)) continue;
+    const x = Math.max(0, Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left)), y = Math.max(0, Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top));
+    const inter = x * y, small = Math.min(a.r.width * a.r.height, b.r.width * b.r.height);
+    if (inter > 0.3 * small && inter > 40 && !wrapOnly(a.e, b.e)) ov.push([a.e.textContent.trim().slice(0, 24), b.e.textContent.trim().slice(0, 24)]); }
+  /* 溢出：卡片（與卡片裡的圖、表框、讀數列）不准超出視窗；表格本身可以在 .tw 裡橫捲 */
+  const vw = document.documentElement.clientWidth, out = [];
+  root.querySelectorAll('.card, .chart, .tw, .pekvs, .kvs').forEach(e => { const r = e.getBoundingClientRect();
+    if (r.width > 0 && (r.right > vw + 1 || r.left < -1)) out.push([e.id || String(e.className).slice(0, 30), Math.round(r.left), Math.round(r.right)]); });
+  /* 小字：看得到的字不准小於 11px（Andy 的手機門檻） */
+  const tiny = rs.filter(x => parseFloat(getComputedStyle(x.e).fontSize) < 11).map(x => [x.e.textContent.trim().slice(0, 16), getComputedStyle(x.e).fontSize]).slice(0, 5);
+  return { ov: ov.slice(0, 8), out: out.slice(0, 8), tiny, sx: document.documentElement.scrollWidth, vw: innerWidth, n: rs.length }; }"""
+
+
+def _lake_weeks(code):
+    """資料湖 shareholding_weekly 裡這一檔有幾個不同的週（驗收 ④ 的基準；讀不到就回 None）。"""
+    try:
+        import pandas as pd
+        fs = list((ROOT / "data" / "shareholding_weekly").rglob("*.parquet"))
+        if not fs:
+            return None
+        df = pd.concat([pd.read_parquet(f, columns=["date", "code"]) for f in fs])
+        return int(df[df["code"].astype(str) == str(code)]["date"].astype(str).nunique())
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def t_stock_tabs_1002(pg, base, code):
+    import datetime as _dt
+    tag = "【分頁1002】"
+    cd = "1709" if (SITE / "data" / "stock" / "1709.json").exists() else (code or "2330")
+    j = json.loads((SITE / "data" / "stock" / f"{cd}.json").read_text(encoding="utf-8"))
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { ['tw.peLineW','tw.chipWin','tw.periver'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+
+    def goto(w):
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+
+    def tab(t, wait=1600):
+        if not count(pg, f'#stockTabs button[data-t="{t}"]'):
+            return False
+        click(pg, f'#stockTabs button[data-t="{t}"]', wait)
+        return pg.evaluate("() => (document.querySelector('#stockTabs button.on') || {dataset: {}}).dataset.t || ''") == t
+
+    # ---------------------------------------------------------------- ① 營收三卡並排
+    for w in (1440, 1100, 800):
+        goto(w)
+        tab("revenue")
+        d = pg.evaluate(TABS1002_DUO, ["revGrid"])
+        g = d.get("revGrid")
+        if not ok(f"{tag}{w} 營收分頁有三張卡（走勢｜逐年同月｜明細）、明細是最後一張", bool(g) and g["n"] == 3 and g["tblLast"], g):
+            continue
+        rs = g["rs"]
+        if w == 1440:
+            ok(f"★ {tag}1440 營收三張卡 top 一致、由左到右（明細表在第三欄）",
+               len({r["t"] for r in rs}) == 1 and rs[0]["r"] <= rs[1]["l"] and rs[1]["r"] <= rs[2]["l"], rs)
+            ok(f"★ {tag}1440 明細表卡跟兩張圖卡一樣高（不被 36 列撐高）", abs(rs[2]["h"] - rs[0]["h"]) <= 2 and abs(rs[1]["h"] - rs[0]["h"]) <= 2, rs)
+            ok(f"★ {tag}1440 明細表在卡裡上下捲（內容比框高）", g["rows"] > 8 and g["twSH"] > g["twCH"] + 20, (g["rows"], g["twSH"], g["twCH"]))
+            ok(f"{tag}1440 第三欄放得下 7 欄明細，不必橫捲", g["twSW"] <= g["twCW"] + 1, (g["twSW"], g["twCW"]))
+            before = pg.evaluate("() => document.querySelector('#revTblCard .tw').scrollTop")
+            pg.hover("#revTblCard .tw tbody tr:nth-child(3)"); pg.mouse.wheel(0, 300); pg.wait_for_timeout(350)
+            after = pg.evaluate("() => document.querySelector('#revTblCard .tw').scrollTop")
+            ok(f"★ {tag}1440 滾輪在明細表上 → 表在卡裡往下捲", after > before, (before, after))
+            # 切 12 月＋累計：版面不准跳（三張卡仍同一列、同高）
+            click(pg, '#revWin button[data-v="12"]', 700)
+            click(pg, '#revMode button[data-v="c"]', 700)
+            d2 = pg.evaluate(TABS1002_DUO, ["revGrid"])["revGrid"]
+            ok(f"{tag}1440 切 12 月＋累計之後三張卡仍同一列、同高", len({r["t"] for r in d2["rs"]}) == 1
+               and max(r["h"] for r in d2["rs"]) - min(r["h"] for r in d2["rs"]) <= 2, d2["rs"])
+            click(pg, '#revMode button[data-v="m"]', 500)
+        elif w == 1100:
+            ok(f"{tag}1100 兩張圖並排、明細表跨滿下一列", rs[0]["t"] == rs[1]["t"] and rs[2]["t"] >= rs[0]["b"] and rs[2]["w"] >= rs[0]["w"] * 1.8, rs)
+        else:
+            ok(f"★ {tag}800 營收三張卡依序往下排（走勢 → 逐年 → 明細）", rs[1]["t"] >= rs[0]["b"] and rs[2]["t"] >= rs[1]["b"]
+               and abs(rs[0]["l"] - rs[2]["l"]) <= 1, rs)
+            ok(f"{tag}800 明細表單獨一列時表在卡裡捲（框 ≤ 380px）", g["twCH"] <= 381 and g["twSH"] > g["twCH"], (g["twSH"], g["twCH"]))
+        ok(f"{tag}{w} 營收分頁沒有橫向捲軸", d["sx"] <= d["vw"] + 1, (d["sx"], d["vw"]))
+
+    # ---------------------------------------------------------------- ② 河流圖線寬＋讀數小資訊塊
+    goto(1440)
+    tab("profit", 1800)
+    p0 = pg.evaluate(PE1002)
+    if ok(f"{tag}獲利分頁有河流圖與線寬滑桿（1～5px）", p0["w"] is not None and p0["min"] == "1" and p0["max"] == "5", p0):
+        ok(f"{tag}線寬滑桿就在透明度旁邊（同一列、緊接在後）", p0["sameRow"] and p0["nextToOpa"], p0)
+        ok(f"{tag}沒調過 → 收盤線寬＝改前口徑（設定線寬＋0.8，預設 1.8px）、tw.peLineW 沒寫", abs(p0["w"] - 1.8) < 0.05 and p0["ls"] is None, p0)
+        h0 = canvas_hash(pg, "#peChart")
+        pg.evaluate("() => { const s = document.getElementById('peLw'); s.value = '4'; s.dispatchEvent(new Event('input', { bubbles: true })); }")
+        pg.wait_for_timeout(900)
+        p1 = pg.evaluate(PE1002)
+        ok(f"★ {tag}線寬拉到 4 → 收盤線的 ECharts 線寬真的變 4", p1["w"] == 4, p1)
+        ok(f"★ {tag}線寬拉到 4 → localStorage tw.peLineW＝4、旁邊數字寫 4px", p1["ls"] == "4" and p1["lbl"] == "4px", (p1["ls"], p1["lbl"]))
+        changed(f"{tag}線寬拉到 4 → 河流圖畫面真的變了", h0, canvas_hash(pg, "#peChart"))
+        click(pg, '#peMode button[data-v="fill"]', 1200)
+        ok(f"{tag}切到「填滿」線寬照樣是 4（三種畫法共用）", pg.evaluate(PE1002)["w"] == 4)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+        tab("profit", 1800)
+        p2 = pg.evaluate(PE1002)
+        ok(f"★ {tag}重新整理後線寬仍是 4（滑桿也停在 4）", p2["w"] == 4 and p2["slider"] == "4", p2)
+        # 真的用滑鼠拖：按住滑桿往最左拖 → 值到 1、線寬到 1
+        pg.locator("#peLw").scroll_into_view_if_needed()
+        box = pg.locator("#peLw").bounding_box()
+        pg.mouse.move(box["x"] + box["width"] * 0.75, box["y"] + box["height"] / 2); pg.mouse.down()
+        pg.mouse.move(box["x"] - 20, box["y"] + box["height"] / 2, steps=8); pg.mouse.up(); pg.wait_for_timeout(700)
+        p3 = pg.evaluate(PE1002)
+        ok(f"★ {tag}滑鼠把線寬拖到最左 → 線寬真的變 1、localStorage＝1", p3["w"] == 1 and p3["ls"] == "1", (p3["w"], p3["ls"], p3["slider"]))
+        click(pg, '#peMode button[data-v="band"]', 1000)
+        p4 = pg.evaluate(PE1002)
+        keys = [k["k"] for k in p4["ks"]]
+        ok(f"★ {tag}圖下讀數是四個小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜色帶說明）", keys == ["pe", "zone", "mult", "how"], p4["ks"])
+        if len(p4["ks"]) == 4:
+            ok(f"★ {tag}1440 四個資訊塊並排在同一列", len({k["t"] for k in p4["ks"]}) == 1, p4["ks"])
+            ok(f"{tag}讀數內容：本益比寫「倍」、區名寫「區」、倍數帶有數字、色帶說明有低到高",
+               "倍" in p4["ks"][0]["txt"] and "區" in p4["ks"][1]["txt"] and any(ch.isdigit() for ch in p4["ks"][2]["txt"])
+               and "色帶" in p4["ks"][3]["txt"] and "→" in p4["ks"][3]["txt"], p4["ks"])
+            click(pg, '#peMode button[data-v="mult"]', 1000)
+            p5 = pg.evaluate(PE1002)
+            ok(f"{tag}切到「倍數線」第四塊換成倍數線說明", len(p5["ks"]) == 4 and "倍數線" in p5["ks"][3]["txt"], p5["ks"][3:])
+            click(pg, '#peMode button[data-v="band"]', 800)
+        pg.evaluate("() => { try { localStorage.removeItem('tw.peLineW'); localStorage.removeItem('tw.periver'); } catch (e) {} }")
+
+    # ---------------------------------------------------------------- ③ 法人／資券／大戶散戶 並排
+    for w in (1440, 800):
+        goto(w)
+        for t, duo in (("inst", "instChartDuo"), ("margin", "marginChartDuo"), ("holders", "hoDuo")):
+            if not ok(f"{tag}{w} 切到「{t}」分頁", tab(t)):
+                continue
+            d = pg.evaluate(TABS1002_DUO, [duo])
+            g = d.get(duo)
+            if not ok(f"{tag}{w}「{t}」是「圖卡＋明細表卡」兩塊（同一套版型 .skduo）", bool(g) and g["n"] == 2 and g["tblLast"], g):
+                continue
+            a, b = g["rs"]
+            if w == 1440:
+                ok(f"★ {tag}1440「{t}」圖在左、明細表在右，同一列", a["t"] == b["t"] and a["r"] <= b["l"] and b["w"] >= 280, (a, b))
+                ok(f"★ {tag}1440「{t}」明細表卡跟圖卡一樣高（表在卡裡捲，不撐長）", abs(a["h"] - b["h"]) <= 2, (a["h"], b["h"]))
+            else:
+                ok(f"★ {tag}800「{t}」疊成上下（圖在上、表在下）", b["t"] >= a["b"] and abs(a["l"] - b["l"]) <= 1, (a, b))
+            ok(f"{tag}{w}「{t}」沒有橫向捲軸", d["sx"] <= d["vw"] + 1, (d["sx"], d["vw"]))
+        # 切區間（4 週 → 1 年）：法人表列數真的跟著變、版面仍並排同高
+        if w == 1440 and tab("inst"):
+            click(pg, '#chipWin button[data-v="20"]', 900)
+            r20 = pg.evaluate(TABS1002_DUO, ["instChartDuo"])["instChartDuo"]
+            click(pg, '#chipWin button[data-v="250"]', 1200)
+            r250 = pg.evaluate(TABS1002_DUO, ["instChartDuo"])["instChartDuo"]
+            ok(f"★ {tag}1440 法人切 4 週 → 1 年：明細表列數真的變多、圖表仍同列同高",
+               r250["rows"] > r20["rows"] and abs(r250["rs"][0]["h"] - r250["rs"][1]["h"]) <= 2 and r250["rs"][0]["t"] == r250["rs"][1]["t"],
+               (r20["rows"], r250["rows"], r250["rs"]))
+            pg.evaluate("() => { try { localStorage.removeItem('tw.chipWin'); } catch (e) {} }")
+
+    # ---------------------------------------------------------------- ④ 大戶散戶週數＝個股 JSON＝資料湖
+    goto(1440)
+    tab("holders")
+    ho = [r for r in (j.get("holders") or []) if r and (r[1] is not None or r[2] is not None or r[3] is not None)]
+    n_tbl = pg.evaluate("() => document.querySelectorAll('#hoTbl tbody tr').length")
+    note = pg.evaluate("() => (document.querySelector('#stockTab .hoNote') || {}).textContent || ''")
+    lake = _lake_weeks(cd)
+    ok(f"★ {tag}大戶散戶每週明細列數＝個股 JSON 的週數（{len(ho)}）", n_tbl == len(ho), (n_tbl, len(ho)))
+    if ok(f"{tag}讀得到資料湖 shareholding_weekly", lake is not None, lake):
+        ok(f"★ {tag}個股 JSON 的週數＝資料湖該檔週數（{lake}；payload 沒有截短，上限 104 週）", len(ho) == min(lake, 104), (len(ho), lake))
+    if len(ho) < 52:
+        ok(f"★ {tag}畫面寫「目前累積 {len(ho)} 週，每週五自動增加」", f"目前累積 {len(ho)} 週，每週五自動增加" in note, note)
+    # 預設區間（3 個月）裡畫得到 3 個月內的每一個公布日：前端沒有把週資料截短
+    pts = pg.evaluate("""() => { const el = document.getElementById('holderChart'); const c = el && echarts.getInstanceByDom(el); if (!c) return -1;
+        const s = c.getOption().series[0]; return (s.data || []).filter(v => v != null).length; }""")
+    lo = (_dt.date.fromisoformat(ho[-1][0][:10]) - _dt.timedelta(days=80)).isoformat() if ho else ""
+    in3m = [r for r in ho if str(r[0])[:10] >= lo]
+    ok(f"{tag}大戶散戶圖（預設 3 個月）畫出 3 個月內的 {len(in3m)} 個公布日，沒有被前端截短", pts == len(in3m), (pts, len(in3m)))
+
+    # ---------------------------------------------------------------- ⑤ 三種寬度：五個分頁不重疊、不溢出
+    for w in (1440, 800, 390):
+        goto(w)
+        if w == 390:
+            if count(pg, '#mbTabs button[data-t="full"]'):
+                click(pg, '#mbTabs button[data-t="full"]', 1200)
+            ok(f"{tag}390 手機分頁列切到「完整版」看得到桌機分頁列",
+               pg.evaluate("() => { const e = document.getElementById('stockTabs'); return !!e && e.getClientRects().length > 0; }"))
+        for t in ("revenue", "profit", "inst", "margin", "holders"):
+            if not ok(f"{tag}{w} 切得到「{t}」分頁", tab(t, 1500)):
+                continue
+            s = pg.evaluate(TABS1002_SCAN)
+            ok(f"★ {tag}{w}「{t}」沒有文字重疊", not s.get("ov"), s.get("ov"))
+            ok(f"★ {tag}{w}「{t}」沒有橫向溢出（頁面不橫捲、卡片不出框）", s["sx"] <= s["vw"] + 1 and not s["out"], (s["sx"], s["vw"], s["out"]))
+            ok(f"{tag}{w}「{t}」看得到的字都 ≥ 11px", not s["tiny"], s["tiny"])
+        if w == 390:
+            pg.evaluate("() => { try { Object.keys(localStorage).filter(k => /sk\\.tab$/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
@@ -17647,6 +17887,8 @@ SECTIONS = {
     # ★ 2026-09-28 Andy：個股頁籌碼拆「法人／資券／大戶散戶」三頁、大戶散戶三條線可勾選、股東人數與主力替代拿掉、
     #   讀者看不懂的內部說明全清、基本面 ? 逐欄說明、AI 分析籌碼面 → 技術面訊號（claude/stock-tabs-0928）
     "個股籌碼分頁0928":    lambda pg, b, base, code: t_stock_tabs0928(pg, base, code),
+    # ★ 2026-10-02 Andy（#stock/1709）：營收三卡並排、河流圖線寬＋讀數小資訊塊、籌碼三頁圖表並排、大戶散戶週數＝資料湖（DECISIONS #295，⚠ 一律 --workers 1）
+    "個股分頁版面1002":    lambda pg, b, base, code: t_stock_tabs_1002(pg, base, code),
     "收尾0925-週期統計提示框": lambda pg, b, base, code: t_wrap_season_tip(pg, base, code),
     "收尾0925-R4方塊標籤":  lambda pg, b, base, code: t_wrap_r4_label(pg, base, code),
     "收尾0925-R2小項":      lambda pg, b, base, code: t_wrap_r2(pg, base, code),
