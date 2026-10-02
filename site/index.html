@@ -1103,6 +1103,11 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
   display:inline-flex;align-items:center;justify-content:center;transition:.15s}
 .rbar .pb:hover:not(:disabled){border-color:var(--cyan);color:var(--ink)}
 .rbar .pb:disabled{opacity:.35;cursor:default}
+/* 即時模式反灰（DECISIONS #283）：拉桿、日期、− ＋ ▶ 全部停用，只留「即時」那顆。
+   用 grayscale＋opacity 兩樣一起，深色與淺色主題都看得出「現在不能動」，不是只靠顏色。 */
+.rbar.livedim > *:not(.livebtn){opacity:.32;filter:grayscale(1);pointer-events:none;cursor:not-allowed}
+.rbar.livedim{cursor:not-allowed}
+.rbar.livedim .livebtn{pointer-events:auto;cursor:pointer}
 .rbar .pb.play{width:30px;font-size:12px}
 .rbar.playing .pb.play{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}
 /* 「即時」鈕（Andy 2026-09-21）。比 ＋／−／▶ 寬，因為它是兩個中文字不是一個符號；
