@@ -159,6 +159,11 @@ async function relay(which: 'fut' | 'futchart', session: string, url: string, bo
  *   - 每個 isolate 同時最多 SSE_MAX_CONN 條；每條最長 SSE_MAX_MS（到了伺服器主動結束）；
  *     每個 isolate 這輩子最多開 SSE_MAX_TOTAL 條（防有人狂重連）。超過回 429。
  *   - 上游 body 一樣寫死（期交所 getQuoteList），不能被拿去打任意網址。
+ *
+ * ★ 實測紀錄（sse-probe.yml）
+ *   run 37051808940（台北 10-03 03:05～03:20）：5 條 × 15 分鐘，每條 179／180 筆、0 次中斷、最大間隔 5.77 秒，
+ *   全部落在同一個 isolate（region ord）；上游 15 分鐘只抓 178 次（＝經過秒數 ÷ 5，不是 ×5 條）→ 共用成立。
+ *   這一筆 commit 本身就是第二輪的實驗：部署換版時正在連線的讀者會怎樣（被切掉多久、能不能重連）。
  */
 const SSE_TEST_ENABLED = true;
 const SSE_TEST_UNTIL = Date.parse('2026-10-04T16:00:00Z');   // 台北 10-05 00:00 之後自動停用
