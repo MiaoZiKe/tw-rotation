@@ -173,9 +173,16 @@
      所以拆成兩條：
        · 分時檔（整條線、每分鐘多一個點）維持 MS_LIVE＝10 秒（＝Worker 的快取時間，問更密沒有新東西）。
        · 加權／櫃買的**當下值**吃 live.js 每 5 秒那一批（登記 t00／o00，**零額外請求**），
-         台指期日盤的當下值每 5 秒問一次期交所報價（/fut?session=day，不是 mis，不佔證交所的額度）。
+         台指期日盤的當下值問期交所報價（/fut?session=day，不是 mis，不佔證交所的額度）——
+         原本也是 5 秒，2026-10-03 起改 15 秒（見下面 MS_FUT_DAY）。
        拿到的當下值只准往前蓋（撮合時間比分時檔新才蓋，見 patchLive），不會把數字往回拉。*/
   const MS_FAST = 5 * 1000;
+  /* ★ 2026-10-03（Andy 同意，DECISIONS #299）：台指期日盤的當下值改成每 15 秒問一次，不再跟加權／櫃買一起 5 秒。
+     原因是額度不是速度：/fut 自 #286 起先打 Deno Deploy，免費層每月 100 萬次請求（deno.com/deploy/pricing 與第三方整理兩個來源一致，見 #299），
+     一個讀者整天開著總覽光日盤 fastTick 就要 08:40～13:55 × 每 5 秒 ≈ 3,780 次／天；改 15 秒 ≈ 1,260 次，省三分之二。
+     這是過渡做法 —— 正解是「Deno 中央抓一次、用推播（SSE）發給所有讀者」，實測與架構見 DECISIONS #299。
+     加權／櫃買的當下值吃 live.js 那一批（零額外請求）照舊每 5 秒；夜盤 60 秒、/futchart 分時節奏都不動。*/
+  const MS_FUT_DAY = 15 * 1000;
   const m3On = () => !window.Live || !window.Live.cardOn || window.Live.cardOn('m3');
   /* ★ 2026-09-29 順手修：`#m3` 寫死在 index.html 的總覽區塊裡，**換到別頁它還在 DOM 裡**（只是 .view 被 display:none）。
      所以以前那句「不在總覽就不用抓」（`!getElementById('m3')`）從來沒成立過 —— 實測在 #market、#flow 也照樣
@@ -244,7 +251,7 @@
     }
     // 登記成「函式」：live.js 每一輪問一次 —— 總覽看得到才要 t00／o00，換到別頁自動不問（零額外請求的前提）
     if (window.Live && window.Live.want) window.Live.want('m3', () => (m3Shown() ? ['t00', 'o00'] : []));
-    if (isIntraday()) { if (!state.fTimer) state.fTimer = setInterval(fastTick, MS_FAST); }
+    if (isIntraday()) { if (!state.fTimer) state.fTimer = setInterval(fastTick, MS_FUT_DAY); }
     else if (state.fTimer) { clearInterval(state.fTimer); state.fTimer = null; }
     /* ★ 只有「節奏真的變了」才重設計時器。
        檔案最下面有一個每 60 秒呼叫 schedule() 的迴圈（用來跨越開盤／收盤換節奏）——
@@ -1122,7 +1129,7 @@
     if (moved.length) { state.liveAt = Date.now(); drawLive(moved); m3Stamp(); }
     return moved.length > 0;
   }
-  /** 台指期日盤的當下值：每 5 秒問一次期交所報價（夜盤另有自己那條路，不在這裡）。*/
+  /** 台指期日盤的當下值：每 15 秒問一次期交所報價（MS_FUT_DAY；夜盤另有自己那條路，不在這裡）。*/
   async function fastTick() {
     if (document.hidden || !m3Shown() || !m3On() || !isIntraday()) return;
     if (state.fBusy || nightHas()) return;
@@ -1145,7 +1152,10 @@
     if (!window.Live || !window.Live.stampCard) return;
     const allBad = IDX.every(x => state.err[x.id]);
     window.Live.stampCard('m3', { at: Math.max(state.at || 0, state.liveAt || 0),
-      err: allBad ? (state.err.TSE || '分時抓不到') : '', every: isIntraday() ? MS_FAST : MS_AFTER });
+      err: allBad ? (state.err.TSE || '分時抓不到') : '', every: isIntraday() ? MS_FAST : MS_AFTER, lbl: '5/15秒',
+      // 這張卡裡三個數字的節奏不一樣（DECISIONS #299）：卡上的短字寫最快那個，提示框把三條分開講清楚
+      tip: '盤中：加權、櫃買每 5 秒更新（證交所報價本身就是 5 秒一張快照）；台指期日盤每 15 秒更新（期交所報價，'
+        + '經 Deno 代理，放慢是為了省免費額度）；整條分時走勢線每 10 秒對一次' });
   }
   window.addEventListener('tw:live', () => { patchFromLive(); });
   window.addEventListener('tw:livecard', (e) => {
@@ -1841,6 +1851,8 @@
     if (note) {
       note.textContent = state.mode !== 'k'
         ? '紅／綠對照昨收；下方是每分鐘成交量。時間軸固定到收盤，空白＝還沒走到。'
+          // 2026-10-03（DECISIONS #299）：三個數字的更新節奏不一樣，「?」裡講清楚（卡上只寫「5/15秒」）
+          + '盤中更新：加權、櫃買每 5 秒；台指期日盤每 15 秒（省 Deno 免費額度）；夜盤每 60 秒。'
         : srcNote() + (histDef(state.tf) ? lakeSpan() : '');
     }
     // 台指期的日盤／夜盤鈕：選中的要亮起來（以前藏在 drawFutNight 裡，拆掉之後移到這裡）

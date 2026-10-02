@@ -18011,15 +18011,18 @@ def t_live5s_0929(b, base, code):
     c1 = changes_within(pg, TSE); c2 = changes_within(pg, TSE)
     ok("★ [即時5秒] 加權卡數字 6.5 秒內換了、而且再換一次（吃 live.js 那一批的 t00，零額外請求）",
        c1[2] is not None and c2[2] is not None and c2[1] != c1[1], [c1, c2])
-    f1 = changes_within(pg, FUT)
-    ok("★ [即時5秒] 台指期日盤數字 6.5 秒內換了（每 5 秒問期交所報價）", f1[2] is not None, f1)
+    # ★ 2026-10-03（DECISIONS #299）：台指期日盤改成 15 秒問一次期交所報價（省 Deno 免費額度）→ 等待 6.5 → 16 秒。
+    #   只改這一條的等待時間（＝新的節奏＋1 秒），加權／櫃買的 6.5 秒與其他門檻一律不動。
+    f1 = changes_within(pg, FUT, 16000)
+    ok("★ [即時5秒] 台指期日盤數字 16 秒內換了（2026-10-03 起每 15 秒問期交所報價）", f1[2] is not None, f1)
     o1 = changes_within(pg, OTC)
     ok("[即時5秒] 櫃買卡數字 6.5 秒內換了（o00）", o1[2] is not None, o1)
     ms = pg.evaluate("() => window.Market3 && window.Market3.state ? window.Market3.state.data.TSE.points.slice(-1)[0] : null")
     ok("[即時5秒] 走勢線最右端跟著當下值走（最後一點＝卡上的數字）",
        ms is not None and abs(float(ms["c"]) - float(text(pg, TSE).replace(",", ""))) < 0.011, [ms, text(pg, TSE)])
     stp = text(pg, "#m3Frame .livetg[data-livekey='m3'] .livetg-t")
-    ok("[即時5秒] 大盤卡印最後更新時間（HH:MM:SS · 5秒）", bool(re.search(r"^\d\d:\d\d:\d\d · 5秒$", stp)), stp)
+    # 2026-10-03：大盤卡裡加權／櫃買 5 秒、台指期 15 秒，卡上短字改寫「5/15秒」（DECISIONS #299）
+    ok("[即時5秒] 大盤卡印最後更新時間（HH:MM:SS · 5/15秒）", bool(re.search(r"^\d\d:\d\d:\d\d · 5/15秒$", stp)), stp)
     pg.click("#m3Frame .livetg[data-livekey='m3'] .livetg-b"); pg.wait_for_timeout(500)
     t_o = _time.time(); v_off = [text(pg, TSE), text(pg, FUT)]
     pg.wait_for_timeout(11000)
@@ -33008,17 +33011,35 @@ def t_taifex_deno(b, base):
         except (TypeError, ValueError):
             return None
 
-    def open_page(deno_mode, worker_mode="ok"):
-        """deno_mode：'ok' 給 fixture／'520' 回 520／'abort' 連線中斷；worker_mode：'ok' 給 fixture／'502' 回 Worker 的 502 JSON。"""
+    # E 段用的日盤報價（形狀照期交所 getQuoteList；每問一次價格 +1，證明真的有在問）
+    DAYQ = {"k": 0}
+
+    def day_quote():
+        DAYQ["k"] += 1
+        k = DAYQ["k"]
+        sec = 10 * 3600 + 30 * 60 + 5 * k
+        return {"RtCode": "0", "RtData": {"QuoteList": [{
+            "SymbolID": "TXFJ6-F", "DispCName": "臺指期", "CLastPrice": str(20150 + k), "CRefPrice": "20000",
+            "COpenPrice": "20010", "CHighPrice": str(20300 + k), "CLowPrice": "19990", "CTotalVolume": "50000",
+            "OpenInterest": "80000", "CTime": "%02d%02d%02d" % (sec // 3600, sec // 60 % 60, sec % 60),
+            "CDate": "20260929"}]}}
+
+    def open_page(deno_mode, worker_mode="ok", clock=None, night=True):
+        """deno_mode：'ok' 給 fixture／'520' 回 520／'abort' 連線中斷；worker_mode：'ok' 給 fixture／'502' 回 Worker 的 502 JSON。
+        clock／night：E 段要盤中（台北 10:30）而且不釘夜盤，日盤報價回真的一筆（不然 fastTick 會進退避、少問幾次，量不準）。"""
         ctx = b.new_context(viewport={"width": 1500, "height": 1000}, timezone_id="Asia/Taipei")
         pg = ctx.new_page()
         boom: list[str] = []
         pg.on("pageerror", lambda e: boom.append(str(e)[:200]))
-        pg.clock.install(time=FIXED)
-        hits = {"deno": 0, "worker": 0, "deno_chart": 0}
+        pg.clock.install(time=clock or FIXED)
+        hits = {"deno": 0, "worker": 0, "deno_chart": 0, "day": 0, "day_deno": 0}
 
         def on_taifex(route):
             u = route.request.url
+            if "session=day" in u:
+                hits["day"] += 1
+                if "deno.net" in u:
+                    hits["day_deno"] += 1
             if "deno.net" in u:
                 hits["deno"] += 1
                 if deno_mode == "520":
@@ -33033,8 +33054,8 @@ def t_taifex_deno(b, base):
                     route.fulfill(status=502, content_type="application/json; charset=utf-8", body=W502)
                     return
             body = CHART_NIGHT if "/futchart?" in u else FUT_NIGHT
-            if "session=day" in u:      # 日盤這裡不關心，回空清單
-                body = {"RtCode": "0", "RtData": {"QuoteList": []}}
+            if "session=day" in u:      # 日盤：A～D 不關心，回空清單；E 要量 fastTick 的頻率，回真的一筆
+                body = day_quote() if not night else {"RtCode": "0", "RtData": {"QuoteList": []}}
             route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(body))
 
         def on_chart(route):
@@ -33061,7 +33082,8 @@ def t_taifex_deno(b, base):
         pg.goto("about:blank")
         pg.goto(base + "#overview", wait_until="networkidle")
         pg.wait_for_timeout(1500)
-        pg.evaluate("() => window.Market3.forceClock('night')")
+        if night:
+            pg.evaluate("() => window.Market3.forceClock('night')")
         pg.wait_for_timeout(1800)
         return ctx, pg, hits, boom
 
@@ -33111,6 +33133,34 @@ def t_taifex_deno(b, base):
        "Deno 回 HTTP 520" in r["why"] and "Worker 也回 HTTP 502" in r["why"], {"why": r["why"], "title": r["title"]})
     ok("D. 滑鼠移上去（title）也看得到同一個原因", "Deno 回 HTTP 520" in r["title"], r["title"])
     ok("D. 頁面沒爆", not boom, boom)
+    ctx.close()
+
+    # ---------------- E. 日盤報價每 15 秒（2026-10-03，DECISIONS #299：省 Deno 免費額度）
+    #   假時鐘釘在週二台北 10:30（盤中），一秒一秒往前推 30 秒（每推一秒讓真實時間走 0.1 秒，讓假回應有時間回來，
+    #   不然 fastTick 的 fBusy 會把下一輪擋掉、少算次數），數 /fut?session=day 被打了幾次：
+    #   15 秒一次 → 30 秒內 2～3 次（看起點落在哪個相位）；改前 5 秒一次會是 6～7 次。下限 2 同時證明它真的有在跑。
+    m3_src = (ROOT / "site/market3.js").read_text(encoding="utf-8")
+    ok("[前提] market3.js 的台指期日盤節奏常數是 15 秒（MS_FUT_DAY = 15 * 1000），fastTick 的計時器用它",
+       "const MS_FUT_DAY = 15 * 1000;" in m3_src and "setInterval(fastTick, MS_FUT_DAY)" in m3_src)
+    ctx, pg, hits, boom = open_page("ok", clock="2026-09-29T02:30:00Z", night=False)
+    st = pg.evaluate("() => ({ intra: window.Live.isIntraday(), shown: window.Market3.shown })")
+    ok("[前提] E. 假時鐘在盤中（台北 10:30）", st["intra"] is True, st)
+    t_start = pg.evaluate("() => Date.now()")
+    n0 = hits["day"]
+    for _ in range(30):
+        pg.clock.run_for(1000)
+        pg.wait_for_timeout(100)
+    t_end = pg.evaluate("() => Date.now()")
+    n_day = hits["day"] - n0
+    span = round((t_end - t_start) / 1000, 1)
+    ok(f"★ E. 假時鐘走 30 秒（實際 {span} 秒）內 /fut?session=day 只打 2～3 次（15 秒一次；改前 5 秒一次是 6～7 次）",
+       2 <= n_day <= 3, {"n_day": n_day, "span_s": span, "hits": hits})
+    ok("E. 日盤報價也是先走 Deno（Deno 正常時 Worker 一次都沒被打）",
+       hits["day_deno"] == hits["day"] and hits["worker"] == 0, hits)
+    tip = pg.evaluate("() => { const b = document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"] .livetg-b'); return b ? b.title : ''; }")
+    ok("E. 大盤卡即時開關的提示寫出「台指期日盤每 15 秒」、加權櫃買仍是每 5 秒",
+       "台指期日盤每 15 秒" in tip and "加權、櫃買每 5 秒" in tip, tip[:200])
+    ok("E. 頁面沒爆", not boom, boom)
     ctx.close()
 
 
