@@ -198,6 +198,8 @@
     futSession: 'day', futNight: null, futNightErr: '', nightPts: [], nightDate: '',
     // 期交所 getChartData1M 回來的**真正的分時序列**（2026-09-20 接上）
     futChart: null, futChartErr: '',
+    // 台指期最後一次走哪條路（'deno'／'worker'）與 Deno 沒用上的原因（DECISIONS #286；只給除錯與驗收看）
+    futVia: '', futDenoWhy: '',
     /* 「這兩份資料各自是什麼時候拿到的」。用途只有一個：`nightSeries()` 要決定
        官方分時的最後一根（＝還沒收的那一分鐘）該不該被更新的報價改寫。
        只有「報價比分時新」才准改 —— 不然會把線往回拉，那比慢一分鐘更糟。*/
@@ -623,12 +625,62 @@
     state.futSession = want;
     return true;
   }
-  async function fetchFut(session) {
+  /* ---- 台指期的兩支（/fut、/futchart）先打 Deno 代理，失敗才退回 Worker（DECISIONS #286）----
+     為什麼：期交所在 Cloudflare 後面，拒絕所有經 Cloudflare Worker 來的請求（上游 520，#281），
+     Worker 那條路日盤夜盤一起壞；Deno Deploy 不走 Cloudflare 出口，2026-10-02 兩輪實測
+     （10:25 日盤、18:28 夜盤交易中）/fut 日夜盤、/futchart 日夜盤四支全 200。
+     兩邊回的是**同一份期交所原始 JSON**（main.ts 原文照轉），所以下游解析一個字都不用改。
+     退回 Worker 留著當保險：哪天 Deno 掛了、額度用完或被公司網路擋，至少還有第二條路可以試
+     （雖然 2026-10-02 當下那條也是壞的）。
+     ⚠ 只有台指期這兩支走這裡；加權、櫃買（以及台指期日盤分時）的 /chart 走 mis.twse，照舊只走 Worker。
+     ⚠ 夜盤推送（/futstream，預設關閉）Deno 沒有做，仍然只走 Worker；輪詢那條 60 秒的才是底線。 */
+  const FUT_DENO_TIMEOUT_MS = 6000;   // Deno 6 秒沒回就換 Worker：寧可快速換路，不讓讀者等到瀏覽器逾時（#256）
+  function taifexProxy() {
+    return (window.Live && window.Live.taifexProxy) ? String(window.Live.taifexProxy() || '') : '';
+  }
+  /** 打一次台指期端點。回 `{ r, deno }`：
+   *    r    ＝ 拿來解析的那個 Response（成功的那一個，或最後一條路的失敗回應）
+   *    deno ＝ Deno 那一趟為什麼沒用上（成功或沒試就是空字串）；兩條路都壞時要一起講出來，
+   *           不然畫面只寫得出 Worker 的 502，讀者會以為新的那條路根本沒去試。
+   *  兩條路都連不上（例外）就丟一個把兩個原因串起來的錯誤。 */
+  async function futGet(path) {
+    const deno = taifexProxy();
     const base = proxy();
+    let why = '';
+    if (deno) {
+      try {
+        const opt = { cache: 'no-store' };
+        if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opt.signal = AbortSignal.timeout(FUT_DENO_TIMEOUT_MS);
+        const r = await fetch(deno + path, opt);
+        if (r.ok) { state.futVia = 'deno'; state.futDenoWhy = ''; return { r, deno: '' }; }
+        why = 'Deno 回 HTTP ' + r.status;
+        // 沒有 Worker 可以退：直接把 Deno 的回應交給呼叫端照原本的規則解讀
+        if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; return { r, deno: '' }; }
+      } catch (e) {
+        why = 'Deno 連不上（' + ((e && e.name) || e) + '）';
+        if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; throw new Error(why); }
+      }
+    }
     if (!base) throw new Error('還沒設定即時來源');
-    const r = await fetch(`${base}/fut?session=${session}&t=${Date.now()}`, { cache: 'no-store' });
-    if (r.status === 404 || r.status === 400) throw new Error('NOFUT');
-    if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
+    state.futVia = 'worker';
+    state.futDenoWhy = why;
+    try {
+      return { r: await fetch(base + path, { cache: 'no-store' }), deno: why };
+    } catch (e) {
+      if (!why) throw e;
+      throw new Error(why + '，Worker 連不上（' + ((e && e.message) || e) + '）');
+    }
+  }
+  /** 兩條路都沒拿到時的說明。只走 Worker 時維持原本的「代理回 HTTP 502」字樣（既有驗收與 nightWhy 都認它）。*/
+  function futFailText(g) {
+    return g.deno ? `${g.deno}，Worker 也回 HTTP ${g.r.status}` : '代理回 HTTP ' + g.r.status;
+  }
+  async function fetchFut(session) {
+    const g = await futGet(`/fut?session=${session}&t=${Date.now()}`);
+    const r = g.r;
+    // 404／400＝Worker 還是舊版（沒有 /fut）。Deno 先失敗過的話這個判讀不成立，改講兩條路各回了什麼
+    if (!g.deno && (r.status === 404 || r.status === 400)) throw new Error('NOFUT');
+    if (!r.ok) throw new Error(futFailText(g));
     return parseFutQuote(await r.json(), session);
   }
 
@@ -747,14 +799,12 @@
   }
 
   async function fetchFutChart(symbol) {
-    const base = proxy();
-    if (!base) throw new Error('還沒設定即時來源');
     if (!/^[A-Za-z0-9]{3,8}-[FM]$/.test(String(symbol || ''))) throw new Error('NOSYMBOL');
-    const r = await fetch(`${base}/futchart?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`,
-                          { cache: 'no-store' });
-    // 404＝Worker 還是舊版（沒有 /futchart），要 Andy 去 Cloudflare 重貼一次
-    if (r.status === 404) throw new Error('NOFUTCHART');
-    if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
+    const g = await futGet(`/futchart?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`);
+    const r = g.r;
+    // 404＝Worker 還是舊版（沒有 /futchart），要 Andy 去 Cloudflare 重貼一次（Deno 先失敗過就不是這個原因）
+    if (!g.deno && r.status === 404) throw new Error('NOFUTCHART');
+    if (!r.ok) throw new Error(futFailText(g));
     const j = await r.json();
     if (String(j.RtCode || '0') !== '0') throw new Error('期交所回 RtCode ' + j.RtCode);
     const out = parseFutChart(j);
@@ -2574,6 +2624,8 @@
       return o;
     },
     get futChart() { return state.futChart; },   // 驗收用：期交所分時序列接到了沒
+    get futVia() { return state.futVia || ''; },  // 驗收用：最後一次台指期是走 'deno' 還是退回 'worker'（#286）
+    get futDenoWhy() { return state.futDenoWhy || ''; },  // 驗收用：最後一次 Deno 為什麼沒用上（空＝用上了或沒試）
     /* 驗收用：夜盤現在走推送還是輪詢、收了幾筆、退回過幾次、為什麼退回。
        `mode` 就是畫面上那個「推送／輪詢」小標籤讀的同一個值 —— 驗的是同一件事。*/
     get futStream() {

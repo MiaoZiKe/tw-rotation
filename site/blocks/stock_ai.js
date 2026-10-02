@@ -33,11 +33,21 @@
      卡片 < 600 才退回單欄：AI 區排在名稱區下面、工具列上面，內容區改矮一點（見 CSS 的 --aibh）。
      手機（≤640，mobile v3 分段）：app.js 的 miaStock 把 #skAi 整個節點搬進分段用的空殼 #aiCard
      （「AI 分析」那一段），內容區不限高、不在區內捲（它自己就是一整段，捲頁面就好，不要捲中捲）。
+   ★ 2026-10-02 改版（Andy #stock/3189 三張截圖，DECISIONS #293；上面量測表是改前的數字）：
+     · AI 區的高度**不再由內容決定**（contain:size），格線高度只看左欄（保底 --aiH）：展開／收合左欄與 K 線一個像素都不動。
+     · 兩欄中間多一條可拖的分隔線 #skSplit（存 tw.aiSplit，雙擊還原 44%），左欄最小寬＝工具列一行放得下。
+     · 兩欄的門檻改成「視窗 > 820 而且卡片放得下」；≤820 上下排，內容區改成往下開的浮層（不推 K 線，進頁面收著）。
+     · 現價列的五顆標籤（技術分…分 K 完整）搬到工具列（industry.js #skTags），左欄因此少一行。
+     · 預設改成「只看重點」（Andy「上方的 AI 分析只寫重點」）：收合＝標題列＋一行結論（跟總覽的 briefText 同一句）＋四顆面向膠囊，
+       點膠囊捲到下面「總覽」分頁的細節卡（#ovFacets）；按「展開」才看各週期細節（兩欄撐滿右欄、單欄是浮層，都不推左側）。
+       保底高度改掛在分隔線上（--aiH 寫在卡片），收合時 AI 區只有內容那麼高。
 
    狀態（兩個 localStorage）：
-     · tw.aiOpen：內容區收合／展開。收合時只留結論列＋四顆標籤小字。沒記過：桌機展開、手機收起。
-       收合時按任何一顆標籤＝展開並切到那一面（標籤本身就是入口，不另外放一顆「展開分析」）。
+     · tw.aiOpen：內容區收合／展開。收合時只留結論列＋四顆標籤小字。沒記過：一律收起（2026-10-02 起，改前桌機展開；換版時清一次舊記錄，記號 tw.aiOpenV＝2）。
+       收合時按標籤：K 線卡裡（桌機）＝捲到下面「總覽」的細節卡；手機（#aiCard）＝展開並切到那一面。
      · tw.aiTab：選中的面向（tech／sig／fund／news），重新整理後還在。沒記過＝技術面。
+     · tw.aiSplit（2026-10-02）：兩欄時右欄占「左欄＋右欄」的比例（0～1），拖分隔線時寫、雙擊分隔線刪掉＝回預設。
+     ⚠ 單欄（≤820）的浮層不讀也不寫 tw.aiOpen：浮層是點了才開的，進頁面一律收著。
 
    ⚠ 誠實標示：內容全部來自 payload 的 `analysis`（pipeline/compute/analysis.py），
      是寫死的規則＋數字組出來的，**不是大型語言模型**。標題寫「AI 分析」是 Andy 要的字樣，
@@ -54,7 +64,19 @@
 
   const KEY = 'tw.aiOpen';
   const TAB_KEY = 'tw.aiTab';
-  const WIDE = 600;        // K 線卡寬度 ≥ 這個值才走「右欄跨兩列」（量測表在檔頭；窄卡片兩欄比單欄少推 K 線約 100px）
+  /* ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）兩欄的判準改了：
+     改前：卡片 ≥ 600px 就兩欄（800 寬也是兩欄，左欄 400px，現價列與工具列各折兩三行）。
+     改後：① 視窗 > NARROW（820）才兩欄 —— ≤820 照 Andy 說的「上下排列」，分隔線也不出現；
+           ② 卡片要放得下「左欄最小寬（工具列一行放得下）＋分隔線＋右欄 AI_MIN」，放不下（例如右側事件欄開著）一樣退單欄。
+     右欄寬度＝tw.aiSplit（右欄占「左＋右」的比例，拖分隔線時寫）；沒存過＝AI_DEF（跟改前的 44% 一樣，沒拖過的人看不出差別）。*/
+  const SPLIT_KEY = 'tw.aiSplit';
+  const NARROW = 820;
+  const AI_MIN = 300;      // 右欄最窄：四顆標籤疊成兩行後每顆約 70px 放得下
+  const AI_DEF = 0.44;
+  const SPLIT_W = 20;      // 分隔線那一欄的寬（跟 CSS grid-template-columns 第二欄同一個數字）
+  const LEFT_FLOOR = 360;  // 左欄最小寬的下限（現價＋漲跌＋即時徽章一行約 330px）
+  const TAG_MIN = 46;      // 工具列標籤區最窄＝「⋯ N」那一顆（industry.js fitTags；CSS .sktmore 寬度不超過這個數）
+  const BODY_MIN = 90;     // 兩欄時內容區至少留多高（約 4 行字）；AI 區保底高度 --aiH＝標題＋結論＋標籤的實際高度＋這個數
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   /* ★ 2026-09-28（Andy：「將 "AI分析" 內容替換掉 籌碼 -> 技術面訊號」）：第二顆標籤「籌碼面」換成「技術面訊號」。
      理由：籌碼已經拆成個股頁下方「法人｜資券｜大戶／散戶」三個獨立分頁，AI 區再放一份籌碼摘要是重複；
@@ -66,9 +88,13 @@
   const toneCls = (lb) => lb === '偏多' ? 'pos' : lb === '偏空' ? 'neg' : lb === '留意' ? 'warn' : '';
   const stanceCls = (s) => s === '可留意' ? 'A' : s === '偏空' ? 'N' : 'W';
 
+  /* ★ 2026-10-02（Andy「上方的 AI 分析只寫重點」，DECISIONS #293）：預設改成**收合＝只看重點**（一行結論＋四顆面向小標籤），
+     桌機手機都一樣；改前桌機預設展開。舊版自動記下的 tw.aiOpen=1（改前只要按過一次收合再展開就會寫）會蓋掉新預設，
+     所以換版時清一次（tw.aiOpenV＝2 當記號，只清一次；之後使用者自己按的照樣記住）。*/
+  try { if (localStorage.getItem('tw.aiOpenV') !== '2') { localStorage.removeItem(KEY); localStorage.setItem('tw.aiOpenV', '2'); } } catch (e) { /* 私密視窗 */ }
   function readOpen() {
     try { const v = localStorage.getItem(KEY); if (v === '1' || v === '0') return v === '1'; } catch (e) { /* 私密視窗 */ }
-    return !(window.innerWidth <= 640);
+    return false;
   }
   function saveOpen(v) { try { localStorage.setItem(KEY, v ? '1' : '0'); } catch (e) { /* 忽略 */ } }
   function readTab() {
@@ -76,26 +102,70 @@
     return 'tech';
   }
   function saveTab(v) { try { localStorage.setItem(TAB_KEY, v); } catch (e) { /* 忽略 */ } }
+  function readSplit() {
+    try { const v = parseFloat(localStorage.getItem(SPLIT_KEY)); if (v > 0.05 && v < 0.95) return v; } catch (e) { /* 私密視窗 */ }
+    return null;
+  }
+  function saveSplit(v) { try { localStorage.setItem(SPLIT_KEY, String(Math.round(v * 1000) / 1000)); } catch (e) { /* 忽略 */ } }
+  function clearSplit() { try { localStorage.removeItem(SPLIT_KEY); } catch (e) { /* 忽略 */ } }
+  /* AI 區現在是哪一種版面：side＝K 線卡右欄（兩欄）／stack＝K 線卡單欄（內容區是浮層）／away＝手機搬進 #aiCard。
+     只有 stack 的展開收合不讀也不寫 tw.aiOpen（浮層是點了才開的東西，進頁面就攤開會蓋住工具列與 K 線）。*/
+  function modeOf(host) {
+    const card = document.getElementById('skChartCard');
+    if (!card || host.parentElement !== card) return 'away';
+    return card.classList.contains('aiside') ? 'side' : 'stack';
+  }
 
   function css() {
     if (document.getElementById('stockAiCss')) return;
     const st = document.createElement('style');
     st.id = 'stockAiCss';
     st.textContent = `
-/* ---- K 線卡兩欄（卡片夠寬時，JS 加 .aiside）：右欄 #skAi 跨「名稱區」與「工具列」兩列 */
-/* 右欄最窄 300px：四顆標籤疊成兩行後每顆約 70px 放得下；最寬 44%，左欄（名稱／現價／工具列）至少留一半多 */
-#skChartCard.aiside{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,44%);column-gap:20px;align-items:start}
+/* ---- K 線卡兩欄（視窗 > 820、卡片放得下左欄最小寬＋分隔線＋右欄 300px 時，JS 加 .aiside）----
+   三欄格線：左欄（名稱／現價／工具列／短註）｜分隔線 #skSplit（20px，可拖）｜右欄 #skAi（寬度＝--aiW，JS 算好寫進來）。
+   ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）：
+     ① AI 區 contain:size —— **它的內容高度不參與決定格線多高**，格線高度只由左欄決定（再保底 --aiH）；
+        AI 區 stretch 撐滿那個高度，內容在區內捲。展開／收合／換面向都只改 AI 區裡面，左欄與 K 線一個像素都不動。
+        改前：AI 區高度＝內容高度，左欄矮（例如沒有短註、標籤搬走之後）時展開就把左欄與 K 線往下推，收合又彈回來。
+     ② 分隔線可拖，拖完存 tw.aiSplit（右欄占「左＋右」的比例）；雙擊還原預設 44%。左欄最窄＝工具列一行放得下的寬度。
+     ③ ≤820 不出現分隔線、改單欄上下排（見下面 :not(.aiside) 那段）。*/
+#skChartCard.aiside{display:grid;grid-template-columns:minmax(0,1fr) 20px var(--aiW,44%);column-gap:0;align-items:start;
+  grid-template-rows:1fr auto auto}
 #skChartCard.aiside>*{grid-column:1 / -1;min-width:0}
 #skChartCard.aiside>#skHead{grid-column:1;grid-row:1;align-self:start}
-/* 工具列貼在左欄底部＝緊貼 K 線；AI 區比左欄高時多出來的空白落在名稱區與工具列之間，不落在工具列與 K 線之間 */
+/* 工具列貼在左欄底部＝緊貼 K 線；AI 區保底高度比左欄高時多出來的空白落在名稱區與工具列之間，不落在工具列與 K 線之間 */
 #skChartCard.aiside>#skTools{grid-column:1;grid-row:2;align-self:end}
-/* 右欄不畫外框（外框＋內距要多吃 22px 高度＝K 線多被推 22px），只用左側一條分隔線跟名稱區分開 */
-#skChartCard.aiside>#skAi{grid-column:2;grid-row:1 / span 2;align-self:stretch;margin-top:0;
-  border-left:1px solid var(--line);padding-left:18px}
-/* 內容區高度：兩欄時 132px（量過：1440 左欄＝名稱區 121＋工具列 50 ＝ 171px，AI 區固定部分約 95px，
-   132 讓 K 線最多被推約 55px；卡片再窄一點工具列會折行，左欄變高、內容區自動吃掉多出來的高度）。
-   單欄（卡片 < WIDE＝600，只剩「右側事件欄開著＋視窗很窄」會走到）時 AI 區只能排在名稱區下面、一定會推 K 線，所以壓到 110px（約 5～6 行，底部淡出提示還能捲）。*/
+/* 短註（此檔暫無分時資料／分時來源）住在左欄工具列下面（設計 v4 ⑤b，theme4.css 也有同一條；這裡寫一份是為了不依賴主題檔）。
+   ★ 2026-10-02（#293）：兩欄時短註**固定佔一行**——只顯示一行（太長出「…」，滑過看全文、點一下展開），沒有短註時也留著那一行（看不見）。
+   理由：左欄現在決定格線高度，短註「藏 ↔ 一行 ↔ 兩行」會直接推 K 線；而它是非同步變的（分時資料最多等 8 秒才知道有沒有、
+   沒有就自動改日 K 換一句話）—— 驗收實測 3026 一進頁 K 線自己往上跳 18px。改前 AI 區比左欄高，把這個跳動吃掉了，所以以前看不到。
+   格線第一列給 1fr：AI 區保底高度比左欄高時，多出來的空白落在名稱區與工具列之間，工具列與短註照舊貼著 K 線。*/
+#skChartCard.aiside>#liveNote{grid-column:1;grid-row:3;align-self:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#skChartCard.aiside>#liveNote.open{white-space:normal;cursor:default}
+#skChartCard.aiside>#liveNote[hidden]{display:block;visibility:hidden}
+/* 保底高度 --aiH 掛在分隔線上（它永遠跨三列、永遠在）：格線高度＝max(左欄, --aiH)，跟 AI 區展開收合無關 */
+#skChartCard.aiside>#skSplit{grid-column:2;grid-row:1 / span 3;align-self:stretch;min-height:var(--aiH,190px)}
+/* 右欄不畫外框，左邊那條線由分隔線畫（拖曳的把手就是那條線） */
+/* 收合（重點模式）：AI 區只有內容那麼高（標題＋一行結論＋膠囊，一定比格線矮，不會撐高格線）；
+   展開：撐滿格線（stretch）＋contain:size（內容再長也不參與決定格線高度），內容區在區內捲 */
+#skChartCard.aiside>#skAi{grid-column:3;grid-row:1 / span 3;align-self:start;margin-top:0;padding-left:4px}
+#skChartCard.aiside>#skAi.aiopen{align-self:stretch;contain:size}
+/* 分隔線：20px 寬的拖曳區，中間畫 1px 的線；滑過／拖曳中／鍵盤聚焦變成青色、中間出現握把 */
+#skSplit{display:none}
+#skChartCard.aiside>#skSplit{display:block;position:relative;cursor:col-resize;touch-action:none;outline:none;min-width:0}
+#skSplit::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;transform:translateX(-50%);background:var(--line)}
+#skSplit::after{content:'';position:absolute;left:50%;top:50%;width:4px;height:30px;border-radius:2px;transform:translate(-50%,-50%);
+  background:var(--ink-3);opacity:0;transition:opacity .15s}
+#skSplit:hover::before,#skSplit.drag::before,#skSplit:focus-visible::before{width:2px;background:var(--cyan)}
+#skSplit:hover::after,#skSplit.drag::after,#skSplit:focus-visible::after{opacity:.85;background:var(--cyan)}
+/* 拖曳中：整頁游標都是 col-resize、不准選到字（滑鼠跑出分隔線外也一樣） */
+body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none!important;-webkit-user-select:none!important}
+/* 內容區高度（2026-10-02 起，#293）：兩欄時＝AI 區高度（左欄高度，保底 --aiH）扣掉標題／結論／標籤，不再是固定 132px；
+   改前是「內容區保底 132px、AI 區用內容撐高格線」，左欄矮的時候展開就推 K 線（Andy 要拿掉的那個跳動）。
+   單欄時內容區是浮層（見 .aibody 那段），--aibh 只剩手機以外的退路用得到。*/
 /* container：AI 區自己多寬決定標籤排法（兩欄時跟著卡片寬窄變、手機搬進 #aiCard 又是另一個寬度，看視窗寬猜不準）*/
+/* --aiH：兩欄時 AI 區的保底高度＝標題＋結論＋標籤的實際高度＋內容區 90px（JS sizeAi 量好寫在卡片上、由分隔線 #skSplit 的 min-height 撐住格線；190 只是量到之前的預設）。
+   左欄比它高（有短註那一行時約 200px）就照左欄走、K 線不被它推；左欄比它矮時 K 線比左欄低一點，但**展開收合都是同一個位置**。*/
 #skAi{--aibh:132px;display:flex;flex-direction:column;gap:5px;min-width:0;container:aibox / inline-size}
 #skChartCard:not(.aiside)>#skAi{--aibh:110px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 /* 單欄（退路）：標題與結論併成同一列（標題｜結論｜收合），省下一整列 ≈ 25px。
@@ -126,12 +196,42 @@
 #skAi .aitab .aitag{font-weight:500}
 #skAi:not(.aiopen) .aitab.on{font-weight:400;border-bottom-color:transparent;color:var(--ink-2)}
 #skAi:not(.aiopen) .aitabs{border-bottom-color:transparent}
+/* ★ 2026-10-02 重點模式（Andy「上方的 AI 分析只寫重點」，#293）：K 線卡裡的 AI 區收合時（＝預設）只有
+   「標題列＋一行結論＋四顆面向小標籤（膠囊）」，點膠囊＝捲到下面「總覽」分頁對應的細節卡（#ovFacets），按「展開」才看各週期細節。
+   單欄（≤820）不論展開收合都是膠囊 —— 展開的內容是浮層，標籤列的高度不能跟著狀態變，不然會推 K 線。手機（#aiCard 裡）不套，照舊是標籤頁。*/
+#skChartCard>#skAi:not(.aiopen) .aitabs,#skChartCard:not(.aiside)>#skAi .aitabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:0}
+#skChartCard>#skAi:not(.aiopen) .aitab,#skChartCard:not(.aiside)>#skAi .aitab{flex:none;flex-direction:row;flex-wrap:nowrap;gap:5px;
+  min-height:24px;padding:2px 7px;margin:0;border:1px solid var(--line-2);border-radius:999px;background:var(--panel-3);font-size:12px;font-weight:400;color:var(--ink-2)}
+#skChartCard>#skAi:not(.aiopen) .aitab .aitag,#skChartCard:not(.aiside)>#skAi .aitab .aitag{background:none;padding:0;font-size:12px}
+#skChartCard>#skAi:not(.aiopen) .aitab:hover,#skChartCard:not(.aiside)>#skAi .aitab:hover{border-color:var(--cyan);color:var(--ink)}
+/* 單欄展開時選中的那顆只換框色與字色、不加粗（加粗會變寬、膠囊可能換行，標籤列一長高就推 K 線） */
+#skChartCard:not(.aiside)>#skAi.aiopen .aitab.on{border-color:var(--cyan);color:var(--ink);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
+/* 兩欄展開、但右欄窄（AI 區 ≤ 440px，例如 1100 寬右欄被左欄最小寬壓到約 390px）：標籤頁也用膠囊（一行排得下），
+   不用四欄等寬的標籤頁 —— 那個在 390px 會把「判讀小字」擠到第二行、標籤列變兩倍高，保底高度跟著多 20px，左欄工具列就被推離價格一段。*/
+@container aibox (max-width:440px){
+  #skChartCard>#skAi .aitabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:0}
+  #skChartCard>#skAi .aitab{flex:none;flex-direction:row;flex-wrap:nowrap;gap:5px;min-height:24px;padding:2px 7px;margin:0;
+    border:1px solid var(--line-2);border-radius:999px;background:var(--panel-3);font-size:12px;font-weight:400;color:var(--ink-2)}
+  #skChartCard>#skAi .aitab .aitag{background:none;padding:0;font-size:12px}
+  #skChartCard>#skAi.aiopen .aitab.on{border-color:var(--cyan);color:var(--ink);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
+}
+/* K 線卡裡的結論一律只佔一行（太長出「…」，滑過看全文；完整原因在展開後的技術面裡）。
+   展開時也不換行：兩欄的保底高度是照「展開時標題＋結論＋標籤」量的，結論在 1100 寬會折成兩三行，保底就多出 40px、左欄工具列被推離價格一大段（截圖看到的）。*/
+#skChartCard>#skAi .aibrief{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aitag{padding:1px 7px;border-radius:6px;font-size:12px;background:var(--panel-3);color:var(--ink-2);white-space:nowrap}
 .aitag.pos{background:rgba(255,77,109,.16);color:var(--rise)} .aitag.neg{background:rgba(46,229,157,.16);color:var(--fall)}
 .aitag.warn{background:rgba(255,180,84,.16);color:var(--amber)}
 /* 內容區：固定高度、區內捲動（不撐高標題列）。收合＝整個 hidden */
 #skAi .aibody{height:var(--aibh);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px;min-width:0}
-#skChartCard.aiside>#skAi .aibody{flex:1 1 var(--aibh);height:auto;min-height:var(--aibh)}
+/* 兩欄：內容區吃 AI 區剩下的高度（AI 區高度由左欄決定，見上面 contain:size），比內容矮就在區內捲 */
+#skChartCard.aiside>#skAi .aibody{flex:1 1 0;height:auto;min-height:0}
+/* 單欄（≤820，或卡片放不下兩欄）：內容區改成**浮層**往下展開、蓋在工具列與 K 線上面，不佔版面 ——
+   展開／收合 K 線都不動（同一條 #293）。浮層是「點了才開」的東西：進頁面一律收著（不讀 tw.aiOpen、也不寫），
+   點外面／按 Esc／再按「收合 ▴」就收。*/
+#skChartCard:not(.aiside)>#skAi{position:relative}
+#skChartCard:not(.aiside)>#skAi>.aibody{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:40;height:auto;max-height:min(340px,60vh);
+  background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;
+  box-shadow:0 18px 36px -14px rgba(0,0,0,.6)}
 /* 下面還有字 → 底部淡出一條，提示「區內還能往下捲」（捲到底就拿掉）*/
 #skAi .aibody.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);mask-image:linear-gradient(#000 calc(100% - 22px),transparent)}
 #skAi .aisec h4{margin:0 0 4px;font-size:13px;font-weight:400;color:var(--ink-2)}
@@ -256,12 +356,13 @@
     const v = (pg && pg.verdict) || {};
     const open = readOpen();
     const cur = readTab();
+    /* ★ 2026-10-02（#293）預設只看重點：說明第一條講「點小標籤看細節、展開看各週期」，其餘照舊（「?」最多 5 條） */
     const how = window.App && window.App.howHTML ? window.App.howHTML('這一塊：四個面向的規則式判讀。', [
+      '一行結論；點小標籤捲到下面總覽的細節卡',
+      '「展開」看各週期、支撐壓力等完整內容',
       '「AI 分析」是寫死的規則算的，非語言模型',
-      '技術：SMC 結構、均線、RSI、支撐壓力',
       '狀態＝回檔、突破兩套型態條件是否成立',
-      '訊號＝均線、RSI、KD 等九顆燈；基本看估值營收',
-      '消息只數公告新聞；四面向不加總、非建議',
+      '四面向各自判讀、不加總，非建議',
     ]) : '';
     const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="這一塊由固定規則與公開資料自動產生（技術評分、SMC 結構、回檔與突破兩套條件、九顆技術燈號、本益比分位、營收與 EPS、公告新聞則數），不是大型語言模型，也不是任何人的投資建議。同一份資料永遠得到同一段文字。">規則式自動判讀，非投資建議</small>
         <button class="howbtn pop" data-how="ai" type="button" aria-label="AI 分析怎麼看">?</button></h3>
@@ -269,8 +370,9 @@
       <div class="howtxt" id="how-ai" hidden>${how}</div>`;
     const hd = (an && an.headline) || {};
     const stance = hd.stance || v.verdict || '—';
-    const brief = hd.brief || ((v.reasons || [])[0] || '');
-    const sum = `<div class="aisum" id="skAiLine" data-readout><span class="grade ${stanceCls(stance)}" id="skAiStance">${esc(stance)}</span><span class="aibrief">${esc(brief)}</span></div>`;
+    // 一行結論跟「總覽」分頁的 AI 分析重點同一句（briefText：回檔 a/6、突破 b/5；停損 x%），兩處不會講不一樣的話
+    const brief = an ? briefText(pg) : (hd.brief || ((v.reasons || [])[0] || ''));
+    const sum = `<div class="aisum" id="skAiLine" data-readout><span class="grade ${stanceCls(stance)}" id="skAiStance">${esc(stance)}</span><span class="aibrief" title="${esc(brief)}">${esc(brief)}</span></div>`;
     if (!an) {
       const sm = pg && pg.mtf && pg.mtf.summary;
       return head + `<div class="aisum" id="skAiLine" data-readout><span class="aibrief">${sm && sm.headline ? esc(sm.headline) : '資料不足'}</span></div>
@@ -294,7 +396,16 @@
     if (body) body.hidden = !v;
     if (tgl) { tgl.textContent = v ? '收合 ▴' : '展開 ▾'; tgl.setAttribute('aria-expanded', String(v)); }
     host.classList.toggle('aiopen', !!v);
+    /* 單欄的浮層：點外面、按 Esc 就收（全站共用的 dismissable）。點 AI 區自己（標籤、收合鈕）不算外面。*/
+    if (v && body && modeOf(host) === 'stack' && window.App && window.App.dismissable) {
+      window.App.dismissable(body, () => { if (modeOf(host) === 'stack') setOpen(host, false); }, { also: [host] });
+    }
     moreHint(host);
+  }
+  /* 使用者按了展開／收合（收合鈕或收合時按標籤）：兩欄與手機照舊記進 tw.aiOpen；單欄浮層不記。*/
+  function userOpen(host, v) {
+    if (modeOf(host) !== 'stack') saveOpen(v);
+    setOpen(host, v);
   }
 
   function setTab(host, k) {
@@ -308,19 +419,134 @@
     b.classList.toggle('more', !b.hidden && b.scrollTop + b.clientHeight < b.scrollHeight - 4);
   }
 
-  /* 卡片寬窄 → 兩欄／單欄。量的是 K 線卡本身（右側事件欄開關、⤢ 寬版都會改它），不是視窗寬。
-     ⚠ 手機（≤640）#skAi 已被搬去 #aiCard，這裡一律拿掉 .aiside，免得卡片留一個空的右欄。*/
+  /* 左欄最小寬＝工具列「一行放得下」要的寬度：週期鈕、＋、指標、四週期同看、?（看得見的才算）＋標籤區收成「⋯」那顆＋間距。
+     週期鈕的顆數是使用者自己勾的（＋ 自訂週期），所以每次都量，不寫死。量不到（工具列還沒畫）就用下限。*/
+  function leftMin(card) {
+    const tb = card.querySelector('#skTools');
+    if (!tb) return LEFT_FLOOR;
+    const gap = parseFloat(getComputedStyle(tb).columnGap) || 8;
+    let w = 0, n = 0;
+    for (const el of tb.children) {
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed') continue;
+      n++;
+      if (el.classList.contains('sp')) continue;                       // 彈簧：寬 0，但吃一個間距
+      // 標籤區最少要留「⋯ N」那一顆的寬；用固定值不用量的 —— 量的話「⋯」出現／消失會讓門檻跳幾 px，卡在門檻上會兩欄單欄來回切
+      if (el.id === 'skTags') { w += TAG_MIN; continue; }
+      w += el.getBoundingClientRect().width;
+    }
+    return Math.max(LEFT_FLOOR, Math.ceil(w + gap * Math.max(0, n - 1)));
+  }
+  function innerW(card) {
+    const cs = getComputedStyle(card);
+    return card.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  }
+  // 比例 → 右欄像素，夾在 [AI_MIN, 卡片內寬 − 分隔線 − 左欄最小寬] 之間
+  function aiPx(card, ratio) {
+    const avail = innerW(card) - SPLIT_W;
+    const max = avail - leftMin(card);
+    return Math.max(AI_MIN, Math.min(max, Math.round(ratio * avail)));
+  }
+
+  /* AI 區保底高度：量「標題＋結論＋四顆標籤」實際多高（AI 區越窄，結論越容易折成兩行），再加 BODY_MIN 給內容區。
+     只在版面變（視窗、卡片、分隔線）時量，**展開／收合不量** —— 量了就會隨狀態變，那正是要拿掉的跳動。
+     改前（這批第一版）是 CSS 寫死 190px：1440 剛好，1100 右欄被左欄最小寬壓到約 390px、結論折兩行，內容區只剩 64px。*/
+  function sizeAi(card, host) {
+    if (!card.classList.contains('aiside')) { card.style.removeProperty('--aiH'); return; }
+    /* 量「展開時」的標籤列（收合時是膠囊，高度不一樣）：收著就暫時掛上 .aiopen 量完拿掉 ——
+       同一段同步程式裡掛上又拿掉，瀏覽器不會畫出中間那一格，畫面不閃。*/
+    const was = host.classList.contains('aiopen');
+    if (!was) host.classList.add('aiopen');
+    const last = host.querySelector('#aiTabs') || host.querySelector('#skAiLine');
+    const fixed = last && last.getClientRects().length ? last.getBoundingClientRect().bottom - host.getBoundingClientRect().top : 0;
+    const gap = parseFloat(getComputedStyle(host).rowGap) || 5;
+    if (!was) host.classList.remove('aiopen');
+    if (fixed > 0) card.style.setProperty('--aiH', Math.ceil(fixed + gap + BODY_MIN) + 'px');
+  }
+
+  /* 分隔線（#skSplit）：拖曳改右欄寬、放開存 tw.aiSplit；雙擊還原；鍵盤左右鍵每次 2%。
+     只在 .aiside（兩欄）時看得到（CSS），≤820 與手機不出現。*/
+  function wireSplit(card, host, fit) {
+    let sp = card.querySelector('#skSplit');
+    if (!sp) {
+      sp = document.createElement('div');
+      sp.id = 'skSplit';
+      sp.tabIndex = 0;
+      sp.setAttribute('role', 'separator');
+      sp.setAttribute('aria-orientation', 'vertical');
+      sp.setAttribute('aria-label', '拖曳調整左右寬度（雙擊還原）');
+      sp.title = '拖曳調整左右寬度・雙擊還原';
+      card.insertBefore(sp, host);
+    }
+    const setRatio = (r, save) => {
+      const avail = innerW(card) - SPLIT_W;
+      const px = aiPx(card, r);
+      card.style.setProperty('--aiW', px + 'px');
+      sizeAi(card, host);
+      sp.setAttribute('aria-valuenow', String(Math.round((1 - px / avail) * 100)));   // 左欄占幾 %（separator 的值＝前一塊的大小）
+      if (save) saveSplit(px / avail);
+      return px / avail;
+    };
+    sp.setAttribute('aria-valuemin', '0'); sp.setAttribute('aria-valuemax', '100');
+    sp.onpointerdown = (e) => {
+      if (e.button !== 0 || !card.classList.contains('aiside')) return;
+      e.preventDefault();
+      try { sp.setPointerCapture(e.pointerId); } catch (er) { /* 舊瀏覽器 */ }
+      const cs = getComputedStyle(card);
+      const right = card.getBoundingClientRect().right - (parseFloat(cs.borderRightWidth) || 0) - (parseFloat(cs.paddingRight) || 0);
+      const avail = innerW(card) - SPLIT_W;
+      let cur = null;
+      sp.classList.add('drag'); document.body.classList.add('sksplitting');
+      const move = (ev) => {
+        // 游標在分隔線中間：右欄寬＝內容區右緣 − 游標 x − 半條分隔線
+        cur = setRatio((right - ev.clientX - SPLIT_W / 2) / avail, false);
+      };
+      const up = () => {
+        sp.removeEventListener('pointermove', move); sp.removeEventListener('pointerup', up); sp.removeEventListener('pointercancel', up);
+        sp.classList.remove('drag'); document.body.classList.remove('sksplitting');
+        if (cur != null) saveSplit(cur);
+        moreHint(host);
+      };
+      sp.addEventListener('pointermove', move); sp.addEventListener('pointerup', up); sp.addEventListener('pointercancel', up);
+    };
+    sp.ondblclick = (e) => { e.preventDefault(); clearSplit(); fit(); };
+    sp.onkeydown = (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const avail = innerW(card) - SPLIT_W;
+      const now = (parseFloat(card.style.getPropertyValue('--aiW')) || AI_DEF * avail) / avail;
+      setRatio(now + (e.key === 'ArrowLeft' ? 0.02 : -0.02), true);   // 往左＝分隔線往左＝右欄變寬
+    };
+    return setRatio;
+  }
+
+  /* 卡片寬窄 → 兩欄／單欄。量的是 K 線卡本身（右側事件欄開關、⤢ 寬版都會改它）＋視窗寬（≤820 一律單欄）。
+     ⚠ 手機（≤640）#skAi 已被搬去 #aiCard，這裡一律拿掉 .aiside，免得卡片留一個空的右欄。
+     版面換了（兩欄 ↔ 單欄 ↔ 手機）就重套展開狀態：兩欄／手機讀 tw.aiOpen，單欄浮層一律收著。*/
   function watchWidth(host) {
     const card = document.getElementById('skChartCard');
     if (!card) return;
+    let setRatio = null;
     const fit = () => {
-      const on = host.parentElement === card && window.innerWidth > 640 && card.clientWidth >= WIDE;
+      const lm = leftMin(card);
+      const on = host.parentElement === card && window.innerWidth > NARROW && innerW(card) >= lm + SPLIT_W + AI_MIN;
       if (card.classList.contains('aiside') !== on) card.classList.toggle('aiside', on);
+      if (on) { const r = readSplit(); setRatio(r == null ? AI_DEF : r, false); }
+      else card.style.removeProperty('--aiW');
+      const mode = modeOf(host);
+      if (host._mode !== mode) { host._mode = mode; setOpen(host, mode === 'stack' ? false : readOpen()); }
+      sizeAi(card, host);
       moreHint(host);
     };
+    setRatio = wireSplit(card, host, fit);
     fit();
     if (card._aiRO) card._aiRO.disconnect();
-    if (window.ResizeObserver) { card._aiRO = new ResizeObserver(fit); card._aiRO.observe(card); }
+    if (window.ResizeObserver) {
+      card._aiRO = new ResizeObserver(fit);
+      card._aiRO.observe(card);
+      // 週期鈕被勾掉／加上、指標鈕的「已開 N」變長 → 左欄最小寬跟著變，卡片本身的大小卻沒變，所以這幾顆也要看
+      ['#tfSeg', '#indBtn', '#mtfBtn'].forEach(s => { const e = card.querySelector(s); if (e) card._aiRO.observe(e); });
+    }
     card._aiFit = fit;
   }
 
@@ -328,20 +554,26 @@
     if (!host) return;
     css();
     host.innerHTML = html(pg, fmt);
-    setOpen(host, readOpen());
+    host._mode = null;           // 新內容：讓 watchWidth 的第一次 fit 依版面重套展開狀態
     const tgl = host.querySelector('#aiTgl');
-    if (tgl) tgl.onclick = () => { const v = host.querySelector('#aiBody').hidden; saveOpen(v); setOpen(host, v); };
+    if (tgl) tgl.onclick = () => { userOpen(host, host.querySelector('#aiBody').hidden); };
     host.querySelectorAll('.aitab').forEach(b => b.onclick = () => {
       const k = b.dataset.facet;
       saveTab(k); setTab(host, k);
-      // 收合時按標籤＝展開並看那一面（標籤就是入口）
-      if (host.querySelector('#aiBody') && host.querySelector('#aiBody').hidden) { saveOpen(true); setOpen(host, true); }
+      const shut = host.querySelector('#aiBody') && host.querySelector('#aiBody').hidden;
+      /* ★ 2026-10-02（#293）K 線卡裡（桌機兩欄／單欄）收合時的小標籤＝捲到下面「總覽」分頁那一張細節卡（原地捲，不換頁）；
+         展開時才是切換面向的標籤頁。手機（#aiCard 裡）照舊：收合時按標籤＝展開並看那一面。*/
+      if (shut && modeOf(host) !== 'away') { gotoFacet(host, k); return; }
+      if (shut) userOpen(host, true);
     });
     // 標籤列支援方向鍵（WAI-ARIA tabs 的慣例）
     const tl = host.querySelector('#aiTabs');
     if (tl) tl.onkeydown = (e) => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      // 重點模式（收合）時標籤是「捲到細節卡」的按鈕，不是標籤頁：方向鍵只移焦點、不觸發捲動
+      const brief = host.querySelector('#aiBody') && host.querySelector('#aiBody').hidden && modeOf(host) !== 'away';
       const bs = [...tl.querySelectorAll('.aitab')]; const i = bs.indexOf(document.activeElement);
+      if (brief) { if (i >= 0) { bs[(i + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length].focus(); e.preventDefault(); } return; }
       if (i < 0) return;
       const n = bs[(i + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length];
       n.focus(); n.click(); e.preventDefault();
@@ -362,6 +594,30 @@
     if (bd) bd.addEventListener('scroll', () => moreHint(host), { passive: true });
     watchWidth(host);
     requestAnimationFrame(() => moreHint(host));
+  }
+
+  /* 小標籤 → 下面「總覽」分頁裡對應的細節卡（#ovFacets [data-facet]，tabOverview 畫的；技術面訊號那張是 stock.signal 的出口）。
+     不在總覽分頁就先按「總覽」鈕切過去（分頁內容是非同步畫的，最多等 1.5 秒）；捲到卡片上緣並閃一下（跟總覽裡的小標籤同一個 flash）。
+     那一面沒有細節卡（例如資料缺、或擋掉了 stock.signal）就退回原地展開看那一面，不讓點擊落空。*/
+  function gotoFacet(host, k) {
+    const find = () => document.querySelector(`#ovFacets [data-facet="${k}"]`);
+    const go = (c) => {
+      try { c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { c.scrollIntoView(); }
+      c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
+      clearTimeout(c._ovT); c._ovT = setTimeout(() => c.classList.remove('flash'), 1500);
+    };
+    let c = find();
+    if (c) { go(c); return; }
+    const ob = document.querySelector('#stockTabs button[data-t="overview"]');
+    if (ob && !ob.classList.contains('on')) ob.click();
+    const t0 = Date.now();
+    const wait = () => {
+      c = find();
+      if (c) { go(c); return; }
+      if (Date.now() - t0 < 1500) { setTimeout(wait, 60); return; }
+      userOpen(host, true);                                  // 找不到細節卡：原地展開看那一面
+    };
+    setTimeout(wait, 30);
   }
 
   // app.js miaStock 搬完節點後叫一次，讓兩欄／單欄立刻跟上（不必等 ResizeObserver）
@@ -572,5 +828,5 @@
     });
   }
 
-  window.StockAI = { id: 'stock.mtf', html, mount, refit, brief, briefText, facetCards, facetHead, bindOverview, _key: KEY, _tabKey: TAB_KEY };
+  window.StockAI = { id: 'stock.mtf', html, mount, refit, brief, briefText, facetCards, facetHead, bindOverview, _key: KEY, _tabKey: TAB_KEY, _splitKey: SPLIT_KEY };
 })();

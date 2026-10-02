@@ -29,6 +29,8 @@
     if (!el) return;
     el.hidden = !txt;
     el.textContent = txt || '';
+    el.title = txt || '';      // 桌機兩欄時短註只顯示一行（stock_ai.js #293），滑過看全文
+    if (!txt) el.classList.remove('open');
     /* 手機上短註只佔一行（CSS 見 body.m3on.mbon #liveNote）→ 點一下展開全文、再點收回。
        桌機是完整換行的，class 切了也沒有差別，所以不分寬度一律掛上。*/
     if (!el.onclick) el.onclick = () => el.classList.toggle('open');
@@ -3723,6 +3725,84 @@
       <div class="card" style="margin-top:var(--gap-card)"><div class="note">資料更新到 <b>${A.fmt.esc((A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新）。${A.L.back()}</div></div>`;
   }
 
+  /* ★ 2026-10-02（Andy #stock/3189 截圖三，DECISIONS #293）個股 K 線卡工具列的五顆資訊標籤。
+     改前住在現價那一行（現價｜漲跌｜即時｜技術分｜本益比｜同業分位｜營收 YoY｜分 K 完整），1440 寬右欄 AI 區一占，
+     「分 K 完整」就自己掉到第二行，左欄多一整行；800 寬更是三行。
+     改後住在工具列「指標 ▾」與「四週期同看」之間的空白：工具列**一律一行**，放不下的從最右邊一顆一顆收進「⋯ N」，
+     點「⋯ N」原地展開一個小框列出收起來的那幾顆（點外面／Esc 收）。每顆：[鍵, 字, 額外 class, 滑過說明]。*/
+  function stockTags(s, tier) {
+    return [
+      ['tech', `技術分 ${A.fmt.n(s.tech_score, 0)}`, '', ''],
+      ['pe', `本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}`, '', ''],
+      ['pct', `同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}`, '', ''],
+      ['yoy', `營收 YoY ${A.fmt.pct(s.rev_yoy)}`, '', ''],
+      ['tier', tier[0], tier[1], tier[2]],
+    ];
+  }
+  let tagRO = null;
+  function tagPopClose() {
+    const pop = document.getElementById('skTagPop'), more = document.getElementById('skTagMore');
+    if (pop) pop.hidden = true;
+    if (more) more.setAttribute('aria-expanded', 'false');
+    window.removeEventListener('scroll', tagPopClose, true);
+    window.removeEventListener('resize', tagPopClose);
+  }
+  function tagPopFill() {
+    const pop = document.getElementById('skTagPop'), more = document.getElementById('skTagMore');
+    if (!pop || !more) return;
+    const hid = $$('#skTags>.pill[data-tag]').filter(t => t.hidden);
+    pop.innerHTML = hid.map(t => `<span class="${A.fmt.esc(t.className)}"${t.title ? ` title="${A.fmt.esc(t.title)}"` : ''}>${A.fmt.esc(t.textContent)}</span>`).join('');
+    // 框是 position:fixed（窄畫面工具列可以橫向滑，絕對定位會被裁掉）：左緣對齊「⋯ N」、在它正下方；太靠右就往左收，不超出視窗
+    const r = more.getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+    pop.style.top = Math.round(r.bottom + 6) + 'px';
+  }
+  /* 量一次：先全部放回去，還是超出就從最右邊一顆一顆收，收到放得下為止（最多 5 輪排版，很便宜）。
+     工具列的寬由欄寬決定（拖分隔線、開關事件欄、縮放視窗都會變），週期鈕被勾掉／加上會改標籤可用的寬 → 兩者都觀察。*/
+  function fitTags() {
+    const box = document.getElementById('skTags'), more = document.getElementById('skTagMore');
+    if (!box || !more) return;
+    const tags = $$('#skTags>.pill[data-tag]');
+    tags.forEach(t => { t.hidden = false; });
+    more.hidden = true;
+    if (!box.getClientRects().length) { tagPopClose(); return; }      // 手機（CSS 藏起來）或還沒排版
+    const over = () => box.scrollWidth > box.clientWidth + 1;
+    if (!over()) { tagPopClose(); return; }
+    more.hidden = false;
+    let n = 0;
+    for (let i = tags.length - 1; i >= 0; i--) {
+      tags[i].hidden = true; n++;
+      more.textContent = '⋯ ' + n;
+      if (!over()) break;
+    }
+    const names = tags.filter(t => t.hidden).map(t => t.textContent).join('、');
+    more.title = `還有 ${n} 個標籤：${names}（點一下展開）`;
+    more.setAttribute('aria-label', `還有 ${n} 個標籤：${names}`);
+    const pop = document.getElementById('skTagPop');
+    if (pop && !pop.hidden) tagPopFill();
+  }
+  function wireTags() {
+    const tb = document.getElementById('skTools'), more = document.getElementById('skTagMore'), pop = document.getElementById('skTagPop');
+    if (!tb || !more || !pop) return;
+    more.onclick = (e) => {
+      e.stopPropagation();
+      if (!pop.hidden) { tagPopClose(); return; }
+      pop.hidden = false; more.setAttribute('aria-expanded', 'true');
+      tagPopFill();
+      if (A.dismissable) A.dismissable(pop, tagPopClose, { also: [more] });
+      // 固定定位的小框不跟著頁面走：一捲動（頁面或工具列）、一縮放視窗就收，免得框留在原地跟「⋯ N」分家
+      window.addEventListener('scroll', tagPopClose, true);
+      window.addEventListener('resize', tagPopClose);
+    };
+    if (tagRO) tagRO.disconnect();
+    if (window.ResizeObserver) {
+      tagRO = new ResizeObserver(() => fitTags());
+      tagRO.observe(tb);
+      ['#tfSeg', '#indBtn', '#mtfBtn'].forEach(s => { const e = document.querySelector(s); if (e) tagRO.observe(e); });
+    }
+    fitTags();
+  }
+
   // ================================================================ Level 2：個股頁
   async function renderStock(code, im, sc, gd) {
     /* ★ 2026-09-26（Andy：「下方產業鏈位置表格 拿掉」）：個股頁最下面那張「產業鏈位置」卡
@@ -3766,7 +3846,9 @@
         <div class="row spread" id="skHead">
           <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
-            <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
+            <!-- ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）：現價列只留現價、漲跌、即時徽章與時間（徽章由 live.js 插在漲跌後面）；
+                 技術分／本益比／同業分位／營收 YoY／分 K 完整五顆標籤搬到下面工具列（#skTags），左欄少一行。-->
+            <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span></div></div>
         </div>
         <!-- ★ 2026-09-27（Andy：「AI 分析 需要在右上角出現，並且技術面 籌碼面 基本面 消息面 用標籤頁切換」）：
              改前右上只有一行結論（#skAiLine），完整分析是 K 線與分頁之間的長卡（#aiCard）；
@@ -3780,6 +3862,10 @@
                以前這裡是一整排指標晶片＋右邊一顆「⚙ 設定」開獨立的「圖表設定」面板，兩處管同一件事。
                合成一顆下拉：清單每列＝一個指標（左開關、右 ▸ 就地展開該指標的參數與樣式）。-->
           <button class="btn small inddd" id="indBtn" type="button" aria-haspopup="true" aria-expanded="false" title="指標：開關、參數、顏色與線寬">指標 ▾ <span class="indn" id="indN"></span></button>
+          <!-- ★ 2026-10-02（Andy #stock/3189 截圖三，DECISIONS #293）：五顆資訊標籤從現價列搬來「指標」與「四週期同看」中間的空白。
+               工具列一律一行（不准折行把週期鈕擠下去）：放不下的標籤從右邊收進「⋯ N」，點開看全部（fitTags）。手機不顯示（手機的數字在「指標」「財務」分頁）。-->
+          <div class="sktags" id="skTags" role="group" aria-label="這一檔的關鍵數字">${stockTags(s, tier).map(t => `<span class="pill${t[2] ? ' ' + t[2] : ''}" data-tag="${t[0]}"${t[3] ? ` title="${A.fmt.esc(t[3])}"` : ''}>${t[1]}</span>`).join('')}<button type="button" class="pill sktmore" id="skTagMore" aria-haspopup="true" aria-expanded="false" aria-controls="skTagPop" hidden>⋯</button></div>
+          <div class="sktagpop" id="skTagPop" role="dialog" aria-label="其他標籤" hidden></div>
           <div class="sp"></div>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
 
@@ -3817,6 +3903,7 @@
       <div class="subtabs" id="stockTabs">${STOCK_TABS.map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div id="stockTab"></div>`;
     setupChart(pg);
+    wireTags();
     if (window.StockAI) window.StockAI.mount(pg, $('#skAi'), A.fmt);
     $$('#stockTabs button').forEach(b => b.onclick = () => { $$('#stockTabs button').forEach(x => x.classList.toggle('on', x === b)); state.tab = b.dataset.t; renderTab(pg, state.tab); });
     renderTab(pg, state.tab);
@@ -4011,6 +4098,44 @@
        ② 資料湖的 60 分 K（payload 的 intraday['60m']）最近一個交易日 —— 一天 6 點（開盤＋每小時收盤），
           只在即時層拿不到時當備援，而且那一天必須就是日線的最新交易日（落後的不拿，免得把前天當成今天）。
      昨收：盤中用報價的昨收（證交所的參考價，除權息當天也對）；其他情況用日線裡「那一天之前」的最後一根收盤。*/
+  /* 分時說明（2026-10-02，DECISIONS #287）：照實講每一段是哪裡來的，時間寫出來 ——
+     「09:00～10:06 來自 Yahoo（延遲）；10:07～10:25 在你打開頁面之前，暫無資料；10:26 之後是本頁即時累積，每 5 秒更新」。
+     以前寫「最近一段是證交所即時報價每 5 秒更新」，畫面上卻是 10:06 一條直線跳到 10:26 —— 說明跟圖對不上。
+     分段照時間排（livek.minuteSeries 的 segs），所以「中途切到背景又回來」那種兩段即時中間夾一段缺口也講得對。*/
+  const TICK_GAP_WHY = {
+    lead: '開盤到你打開頁面之前，Yahoo（延遲約 20 分鐘）還沒給今天的 1 分 K',
+    open: '在你打開頁面之前',
+    idle: '頁面在背景或連線中斷、沒收到報價',
+  };
+  function tickGapLabel(g, wait) {
+    // 小標只寫一句短的：Yahoo 還會追上來＝「等待」；這檔 Yahoo 根本沒有分 K（冷門股）＝「沒有」，不可以叫人等一個不會來的東西
+    return wait ? '此段等待資料' : '此段沒有資料';
+  }
+  function tickGapTitle(g, wait) {
+    return `${TICK_GAP_WHY[g[2]] || '沒收到資料'}，${wait ? '暫無資料（Yahoo 每 2 分鐘重抓，追上來後自動補上）' : '這一檔 Yahoo 沒有 1 分 K，這段補不回來'}`;
+  }
+  function tickLiveNote(d) {
+    const hm = (t) => KUtil.fmtTime(t, '1m').slice(11, 16);
+    const rng = (sg) => (sg.a === sg.b ? hm(sg.a) : `${hm(sg.a)}～${hm(sg.b)}`);
+    const segs = d.segs || [];
+    const lastLive = segs.map(sg => sg.k).lastIndexOf('live');
+    const parts = segs.map((sg, i) => {
+      if (sg.k === 'yahoo') return `${rng(sg)} 來自 Yahoo（延遲約 20 分鐘，每 2 分鐘重抓一次）`;
+      if (sg.k === 'live') {
+        // 盤後（13:35 以後）不再每 5 秒更新，不可以還寫「之後…每 5 秒更新」
+        if (i === lastLive && i === segs.length - 1) {
+          return d.intraday === false ? `${rng(sg)} 是本頁開著時即時累積的（已收盤，量是累計成交量相減）`
+            : `${hm(sg.a)} 之後是本頁即時累積，每 5 秒更新、量是累計成交量相減`;
+        }
+        return `${rng(sg)} 是本頁即時累積`;
+      }
+      const why = sg.why === 'lead' ? 'Yahoo 還沒給今天的 1 分 K（延遲約 20 分鐘）'
+        : sg.why === 'idle' ? '頁面在背景或連線中斷、沒收到報價' : '在你打開頁面之前';
+      return `${rng(sg)} ${why}，${d.yahooWait === false ? '這檔 Yahoo 沒有 1 分 K、補不回來' : '暫無資料（圖上斜線那段；Yahoo 追上來後自動補上）'}`;
+    });
+    if (!parts.length) parts.push('今天的分時');
+    return '今天的分時：' + parts.join('；') + '。虛線＝昨收，線在虛線上面＝漲、下面＝跌。';
+  }
   function tickData(pg) {
     const L = window.LiveK;
     const daily = pg.daily && pg.daily.length ? pg.daily : (pg.ohlcv || []);
@@ -4019,8 +4144,21 @@
       return null;
     };
     if (L && L.bars && L.session) {
-      const b = L.bars('1m') || [];
       const ses = L.session();
+      /* ★ 2026-10-02（Andy：「個股分時需要有即時走勢」，DECISIONS #287）：今天有盤就改用 minuteSeries ——
+         逐分鐘挑來源（一直開著收的那幾分鐘用報價疊、其他用 Yahoo），並帶出 Yahoo 跟報價都沒涵蓋到的缺口，
+         讓 TickChart 畫虛線、標「此段等待資料」，不再一條直線從 Yahoo 最後一根拉到第一筆報價。*/
+      const ms = ses && ses.live && L.minuteSeries ? L.minuteSeries() : null;
+      if (ms && ms.bars.length >= 1) {
+        const pc = L.state && +L.state.prevClose;
+        const wait = ms.yahooWait !== false;
+        return { pts: ms.bars.map(x => [x[0], +x[4], +x[5] || 0]), prev: pc > 0 ? pc : prevOf(ms.date), date: ms.date,
+                 live: true, src: 'live', minute: true,
+                 gaps: ms.gaps.map(g => [g[0], g[1], tickGapLabel(g, wait), tickGapTitle(g, wait)]),
+                 segs: ms.segs, yahooWait: ms.yahooWait, yahoo: ms.yahoo, liveSeg: ms.live,
+                 intraday: L.isIntraday ? L.isIntraday() : true };
+      }
+      const b = L.bars('1m') || [];
       if (b.length >= 2 && ses && ses.date) {
         const pc = L.state && +L.state.prevClose;
         const prev = ses.live && pc > 0 ? pc : prevOf(ses.date);
@@ -4474,7 +4612,7 @@
       setLiveNote(d.src === 'm60'
         ? `最近交易日 ${d.date} 的分時：每小時一點（資料湖的 60 分 K，即時來源連不上時的備援）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`
         : d.live
-          ? '今天的分時：早盤每分鐘一點來自 Yahoo（延遲約 20 分鐘），最近一段是證交所即時報價每 5 秒更新。虛線＝昨收，線在虛線上面＝漲、下面＝跌。'
+          ? tickLiveNote(d)
           : `最近交易日 ${d.date}（非即時）的分時；今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`);
       const legend = $('#legendOv');
       const rows = tchart.pts;
