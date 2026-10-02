@@ -1,5 +1,39 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 整體卡頓：量測＋修五項（2026-10-02 21:20，台北，效能，分支 `claude/perf-jank`，**未推 main**，DECISIONS #284）
+
+- 接手兩次中斷的半成品（`claude/wip-perf-jank` 5e85c63、`claude/wip-perf-jank2` 03eb0ac），基於 main 6bd284f 開 `claude/perf-jank` 重做；WIP 的三個修法（☆、產業 dispose、大盤 drawLive）都帶進來並重量。
+- [x] 量測工具：`python scripts/_perf.py --jank [--cpu 4] [--width 1440|390] [--only load,dwell,switch,hover] [--prof]`（本體 `scripts/_perf_jank.py`）。用法、怎麼比修前修後寫在 DECISIONS #284。
+- [x] ① 手機寬度 resize 迴圈拆掉（app.js 分段 ↔ miaResize、mobile3.js apply ↔ m3go；改成回聲標記 `twEcho`）—— 390 總覽停留忙碌 39.0% → 3.4%、資金流向 24.5% → 1.4%
+- [x] ② 大盤三張圖盤中更新走 `drawLive(ids)`，只補有變的那張 —— 1440 總覽 draw 15.9 秒／分 → 5.2 秒、setOption 每 5 秒 8.2 → 4.5
+- [x] ③ 個股 ☆ `paintStar()` 字沒變不寫 —— 1440 個股停留 38.3% → 12.5%
+- [x] ④ 全頁觀察者不被無關變動叫醒（icons.js relevant()、live.js／theme4.js／app.js 略過只有 .rotping 的批次、手機限筆觀察者防抖後才讀 innerWidth）
+- [x] ⑤ 切頁 ECharts dispose（industry.js disposeCharts、app.js drawMarket）—— 10 輪脫離圖表 36 → 0
+- 改到的函式（給同時在改這幾支檔的人對照）：
+  - `site/market3.js`：refresh()（結尾一行）、patchFromLive()、fastTick()（一行）、新增 drawLive()／axisDec、patchLine()（一條判斷）、drawLine()（H.dec、formatter）
+  - `site/app.js`：drawMarket()（開頭 dispose）、新增 mutPingOnly()、initSwipeHints()（觀察者一行）、miaResize()、applyMobileIA 下方的 miaMore 觀察者與 resize 監聽
+  - `site/mobile3.js`：檔頭 resize 監聽、m3go()（最後一行）
+  - `site/live.js`：start()（觀察者）｜`site/theme4.js`：boot()（觀察者）｜`site/icons.js`：fit()、新增 relevant()／onMut()、start()
+  - `site/industry.js`：新增 disposeCharts()，呼叫點在 renderHeat()／renderMap()／renderChain()｜`site/watchlists.js`：paintStar()
+  - 個股頁頂部、五個分頁、分時即時、總覽 KPI、台指期、版面那幾段一行都沒碰。
+- **這批驗了**：`_preview.py` 兩次全綠（改手機迴圈前後各一次）；
+  `_uitest.py --workers 1 --sections` 總覽、大盤三張圖、新-大盤三張圖、即時5秒0929、盤中即時、市場明細、市場明細下鑽0928、產業、族群頁、產業鏈導覽、熱力圖v2、熱力圖R4、
+  會員與自選五分頁、標題圖示、設計v4主題、掃描光束、時鐘水波、新-輪動時鐘、手機、縮放掃描；改完手機迴圈之後再跑 手機、手機改版、手機一屏、手機v3、手機個股券商式、
+  手機總覽指數觀察清單、手機按鈕普查、手機v4二批、桌機零差異、新-版面等高與多寬度、縮放掃描、大盤三張圖。
+  紅燈全部跟 main 對過（同一份 payload、同一時間同時跑）：
+  - 標題圖示 26、熱力圖v2 4（提示框 .92 不透明）、掃描光束 2／時鐘水波 1（fps，容器負載）、新-輪動時鐘 1（最外圈族群）、手機改版 2（#mmTheme）—— **main 一模一樣**，不是這批造成的。
+  - 產業 1～2、產業鏈導覽 3～8（點不下去、截圖逾時）：負載高時 main 跟這批**同時跑一模一樣紅**（10 條逐字相同），負載低時 main 單獨跑 0 個 —— 是容器負載，不是這批。
+  - 設計v4主題 1、即時5秒0929 1：第一輪紅、同順序重跑 0 個（排在前面的段落留下的狀態＋負載）。
+  沒跑 pytest（只改 site/ 與 scripts/ 的量測工具）。
+- **合併提醒**：做這批期間 main 又進了台指期 Deno、個股頂部、分時即時、總覽 KPI 即時（a9f75e2）。`git merge-tree origin/main claude/perf-jank` 沒有衝突；
+  main 對 market3.js 的改動只在 futGet()／fetchFut()／fetchFutChart()（台指期改走 Deno），跟 drawLive 不重疊。合併後建議重跑 總覽、大盤三張圖、即時5秒0929、手機 幾段。
+- 還沒修（排行與數字在 DECISIONS #284）：ECharts 更新補間每次約 12 幀重畫（關掉＝畫面行為改變）、資金流向／熱力圖首屏 1 秒以上的長任務、
+  live.js taipeiNow() 每次新建 ICU 格式器（改成建一次的 `Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', year/month/day/hour/minute/second: 'numeric' })`，
+  輸出逐字相同，量到 0.53 → 0.31 秒／分，投報率低沒收）、切頁後 CDP 節點計數每輪 +600、滑圖時 ECharts 提示框強制排版。
+- ⚠ 共用暫存區事故（已處理）：這批一開始誤把 `ln -s` 指到已存在的資料夾，在主 checkout 的 `site/data/` 裡生出一個指回自己的 `data` 符號連結（10:28 UTC），
+  21:00 前已 `unlink` 移除；另外共用暫存區的 `scratchpad/base/site` 被我用 origin/main 6bd284f 的 site 蓋過一次（那個資料夾原本是別的 agent 的基準），
+  `base/scripts/_uitest.py` 也被換成 6bd284f 版。之後我只用自己的 `scratchpad/pj_base`、`scratchpad/fix_*`。
+
 ## 「個股」段 2 個紅燈＝本機資料過舊造成的假紅，不是線上 bug（2026-10-02 17:10，台北，審核專家，分支 `claude/fix-stock-k`，只改 HANDOFF）
 
 - 紅燈：`_uitest.py --sections 個股 --workers 1` 的「個股頁 K 線有畫出來」與「沒劃掉的週期 tick 點下去真的畫得出來 ← {'canvas': 0, 'empty': True}」。
