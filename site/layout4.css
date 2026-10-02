@@ -23,7 +23,7 @@
    ================================================================================== */
 
 /* ---------------- 線條圖示（24×24、stroke 1.8）：mask 畫，顏色跟著 currentColor ---------------- */
-:root.l4{
+:root.l4,:root.l4m{
   --l4-ic-overview:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='9' rx='1.6'/%3E%3Crect x='14' y='3' width='7' height='5' rx='1.6'/%3E%3Crect x='14' y='12' width='7' height='9' rx='1.6'/%3E%3Crect x='3' y='16' width='7' height='5' rx='1.6'/%3E%3C/svg%3E");
   --l4-ic-flow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.5 12a8.5 8.5 0 0 1-14.8 5.7'/%3E%3Cpath d='M3.5 12A8.5 8.5 0 0 1 18.3 6.3'/%3E%3Cpath d='M18.6 2.6v3.9h-3.9'/%3E%3Cpath d='M5.4 21.4v-3.9h3.9'/%3E%3C/svg%3E");
   --l4-ic-heatmap:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2.2'/%3E%3Cpath d='M12 3v18M3 13h9M12 9h9M16.5 9v12'/%3E%3C/svg%3E");
@@ -251,6 +251,11 @@
 @keyframes l4hit{0%,35%{box-shadow:0 0 0 2px var(--t4-accent-solid,var(--cyan))}100%{box-shadow:var(--t4-card-sh,none)}}
 @media (prefers-reduced-motion:reduce){ :root.l4 .card.l4-hit{animation:none} }
 
+/* ★★ 2026-10-03 手機版暫停（Andy：「手機版先停擺，等電腦版 OK 之後再做。電腦版要先上線」）：
+   下面 4b（641～820）與 5（≤640）兩段原本掛在 :root.l4 底下，現在改掛 :root.l4m —— 一個**目前沒有任何程式會掛上去**的旗標 class，
+   所以這兩段全部不生效，≤820 的畫面跟 main 一模一樣。程式留著，以後要接回來：layout4.js 的 MOBILE 旗標改 true（它會在 ≤820 掛 l4m），
+   並把 <head> 那段小 script 的 820 門檻一起改掉。
+   ⚠ l4 本身也只在 >820 才掛（<head> 小 script ＋ layout4.js 的 resize），所以第 3 段雖然寫 min-width:641，實際只在桌機生效。 */
 /* =============================== 4b. 641～820（桌機縮半邊、平板） ===============================
    判斷（Andy 讓我挑「左側圖示列」或「手機版底部分頁列」）：選**底部分頁列，改成一列七顆線條圖示**。理由：
      · 這個寬度最常見的是平板直放（觸控），拇指搆得到底部、搆不到左上角；電腦縮半邊時底部一列也一樣好按。
@@ -260,28 +265,28 @@
        舊的驗收（今日事件從「⋯」開）也照舊。
    頁首、跳轉列見第 3 段（跳轉列黏在頂欄 58px 底下）；事件抽屜跟手機一樣改滿高。 */
 @media (min-width:641px) and (max-width:820px){
-  :root.l4{scroll-padding-top:114px}
-  :root.l4 #l4Jump{top:58px}
-  :root.l4 .tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;flex-wrap:nowrap;
+  :root.l4m{scroll-padding-top:114px}
+  :root.l4m #l4Jump{top:58px}
+  :root.l4m .tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;flex-wrap:nowrap;
     padding:0 0 env(safe-area-inset-bottom);height:calc(58px + env(safe-area-inset-bottom))}
-  :root.l4 .tab{flex:none;min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;background:none;box-shadow:none;
+  :root.l4m .tab{flex:none;min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;background:none;box-shadow:none;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--fs-min);line-height:1.2;
     color:var(--ink-3);font-weight:600;white-space:nowrap}
-  :root.l4 .tab::before{content:"";flex:none;width:22px;height:22px;background-color:currentColor;
+  :root.l4m .tab::before{content:"";flex:none;width:22px;height:22px;background-color:currentColor;
     -webkit-mask:var(--l4-ic,none) center/22px 22px no-repeat;mask:var(--l4-ic,none) center/22px 22px no-repeat}
-  :root.l4 .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
-  :root.l4 .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
-  :root.l4 .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
-  :root.l4 .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
-  :root.l4 .tab[data-view="market"]{--l4-ic:var(--l4-ic-market)}
-  :root.l4 .tab[data-view="season"]{--l4-ic:var(--l4-ic-season)}
-  :root.l4 .tab[data-view="watch"]{--l4-ic:var(--l4-ic-watch)}
-  :root.l4 .tab[data-view="delivery"]{--l4-ic:var(--l4-ic-delivery)}
-  :root.l4 .tab:hover{background:none;color:var(--ink)}
-  :root.l4 .tab.on{color:var(--t4-accent-solid,var(--cyan));box-shadow:none;
+  :root.l4m .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
+  :root.l4m .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
+  :root.l4m .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
+  :root.l4m .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
+  :root.l4m .tab[data-view="market"]{--l4-ic:var(--l4-ic-market)}
+  :root.l4m .tab[data-view="season"]{--l4-ic:var(--l4-ic-season)}
+  :root.l4m .tab[data-view="watch"]{--l4-ic:var(--l4-ic-watch)}
+  :root.l4m .tab[data-view="delivery"]{--l4-ic:var(--l4-ic-delivery)}
+  :root.l4m .tab:hover{background:none;color:var(--ink)}
+  :root.l4m .tab.on{color:var(--t4-accent-solid,var(--cyan));box-shadow:none;
     background:radial-gradient(closest-side,color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 18%,transparent) 99%,transparent) no-repeat center 5px/56px 32px}
   /* 事件抽屜：滿高（蓋過頂欄），遮罩也從頂端起 */
-  :root.l4 aside#side,:root.l4 .sideback{top:0}
+  :root.l4m aside#side,:root.l4m .sideback{top:0}
 }
 
 /* =============================== 5. 手機（≤640px，body.m3on） ===============================
@@ -298,68 +303,68 @@
      · 今日事件抽屜：從右側滑出、滿高（蓋過頂欄與底部導覽），遮罩也從頂端起；開關仍是 app.js 的 setSide()（遮罩／Esc／× 都關）。 */
 
 @media (max-width:640px){
-  :root.l4 body.m3on .brand>div:not(.logo)>b{display:none}
-  :root.l4 body.m3on .brand .l4pt{display:flex;flex-direction:column;font-size:16px;font-weight:700;line-height:1.15;color:var(--ink);
+  :root.l4m body.m3on .brand>div:not(.logo)>b{display:none}
+  :root.l4m body.m3on .brand .l4pt{display:flex;flex-direction:column;font-size:16px;font-weight:700;line-height:1.15;color:var(--ink);
     letter-spacing:.02em;white-space:nowrap;max-width:52vw;overflow:hidden;text-overflow:ellipsis}
-  :root.l4 body.m3on .brand .l4pt>span{overflow:hidden;text-overflow:ellipsis}
-  :root.l4 body.m3on .brand .l4pt i{font-style:normal;font-size:var(--fs-min);font-weight:700;letter-spacing:.12em;color:var(--t4-accent-solid,var(--cyan));margin-bottom:2px}
+  :root.l4m body.m3on .brand .l4pt>span{overflow:hidden;text-overflow:ellipsis}
+  :root.l4m body.m3on .brand .l4pt i{font-style:normal;font-size:var(--fs-min);font-weight:700;letter-spacing:.12em;color:var(--t4-accent-solid,var(--cyan));margin-bottom:2px}
   /* 「有新資料 ↻」出現時頂欄要擠三行 —— 把分組小標讓出來，頁名＋那顆鈕兩行剛好 */
-  :root.l4 body.m3on .brand:has(#freshBtn:not([hidden])) .l4pt i{display:none}
+  :root.l4m body.m3on .brand:has(#freshBtn:not([hidden])) .l4pt i{display:none}
   /* 底部導覽：圖示改遮罩；選中那顆加一顆主色淡底膠囊（遮罩只能畫單色，所以膠囊畫在按鈕自己的背景上，對準圖示） */
-  :root.l4 body.m3on .tab::before,:root.l4 body.m3on .mtabmore::before{content:""!important;width:22px;height:22px;font-size:0;
+  :root.l4m body.m3on .tab::before,:root.l4m body.m3on .mtabmore::before{content:""!important;width:22px;height:22px;font-size:0;
     background-color:currentColor;text-shadow:none;
     -webkit-mask:var(--l4-ic,var(--l4-ic-more)) center/22px 22px no-repeat;mask:var(--l4-ic,var(--l4-ic-more)) center/22px 22px no-repeat}
-  :root.l4 body.m3on .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
-  :root.l4 body.m3on .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
-  :root.l4 body.m3on .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
-  :root.l4 body.m3on .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
-  :root.l4 body.m3on .mtabmore{--l4-ic:var(--l4-ic-more)}
-  :root.l4 body.m3on .tab.on,:root.l4 body.m3on .mtabmore.on{color:var(--t4-accent-solid,var(--cyan));
+  :root.l4m body.m3on .tab[data-view="overview"]{--l4-ic:var(--l4-ic-overview)}
+  :root.l4m body.m3on .tab[data-view="flow"]{--l4-ic:var(--l4-ic-flow)}
+  :root.l4m body.m3on .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
+  :root.l4m body.m3on .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
+  :root.l4m body.m3on .mtabmore{--l4-ic:var(--l4-ic-more)}
+  :root.l4m body.m3on .tab.on,:root.l4m body.m3on .mtabmore.on{color:var(--t4-accent-solid,var(--cyan));
     background:radial-gradient(closest-side,color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 18%,transparent) 99%,transparent) no-repeat center 5px/56px 32px}
-  :root.l4 body.m3on .tab.on::before,:root.l4 body.m3on .mtabmore.on::before{text-shadow:none}
+  :root.l4m body.m3on .tab.on::before,:root.l4m body.m3on .mtabmore.on::before{text-shadow:none}
 
   /* ---- 頁首：一行 ---- */
-  :root.l4 body.m3on #l4Head{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;padding:var(--sp-2) 14px 2px}
-  :root.l4 body.m3on #l4Head[hidden],:root.l4 body.m3on.mbon #l4Head{display:none}
-  :root.l4 body.m3on #l4Head .eyebrow{flex:none;font-size:var(--fs-min);font-weight:700;letter-spacing:.1em;line-height:24px;
+  :root.l4m body.m3on #l4Head{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;padding:var(--sp-2) 14px 2px}
+  :root.l4m body.m3on #l4Head[hidden],:root.l4m body.m3on.mbon #l4Head{display:none}
+  :root.l4m body.m3on #l4Head .eyebrow{flex:none;font-size:var(--fs-min);font-weight:700;letter-spacing:.1em;line-height:24px;
     color:var(--t4-accent-solid,var(--cyan))}
-  :root.l4 body.m3on #l4Head .ttl{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;flex:1 1 auto}
-  :root.l4 body.m3on #l4Head h1{flex:none;margin:0;font-size:17px;line-height:24px;font-weight:var(--t4-h-w,700);color:var(--ink);white-space:nowrap}
-  :root.l4 body.m3on #l4Head h1 .sub1{display:none}
-  :root.l4 body.m3on #l4Head p{flex:1 1 auto;min-width:0;margin:0;font-size:var(--fs-min);line-height:24px;color:var(--ink-3);
+  :root.l4m body.m3on #l4Head .ttl{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0;flex:1 1 auto}
+  :root.l4m body.m3on #l4Head h1{flex:none;margin:0;font-size:17px;line-height:24px;font-weight:var(--t4-h-w,700);color:var(--ink);white-space:nowrap}
+  :root.l4m body.m3on #l4Head h1 .sub1{display:none}
+  :root.l4m body.m3on #l4Head p{flex:1 1 auto;min-width:0;margin:0;font-size:var(--fs-min);line-height:24px;color:var(--ink-3);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  :root.l4 body.m3on:not(.mbon) main{padding-top:6px}
+  :root.l4m body.m3on:not(.mbon) main{padding-top:6px}
 
   /* ---- 本頁功能：沒有分段列的頁面才出現的跳轉列（黏在頂欄 52px 底下、可橫向滑） ---- */
   /* 手機不設 scroll-padding：既有的捲動（總覽卡片的 scroll-margin-top 124、按鈕普查的置中捲動）都是照「沒有 padding」算的；跳轉列自己的捲動由 layout4.js 算位移 */
-  :root.l4{scroll-padding-top:0}
-  :root.l4 body.m3on #l4Jump{display:flex;align-items:center;gap:var(--sp-2);position:sticky;top:52px;z-index:30;
+  :root.l4m{scroll-padding-top:0}
+  :root.l4m body.m3on #l4Jump{display:flex;align-items:center;gap:var(--sp-2);position:sticky;top:52px;z-index:30;
     padding:6px 14px;background:var(--bg);box-shadow:0 8px 12px -10px var(--drop)}
-  :root.l4 body.m3on #l4Jump[hidden]{display:none}
-  :root.l4 body.m3on #l4Jump .lbl{display:none}
-  :root.l4 body.m3on #l4Jump .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto;
+  :root.l4m body.m3on #l4Jump[hidden]{display:none}
+  :root.l4m body.m3on #l4Jump .lbl{display:none}
+  :root.l4m body.m3on #l4Jump .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto;
     -webkit-overflow-scrolling:touch}
-  :root.l4 body.m3on #l4Jump .chips::-webkit-scrollbar{display:none}
+  :root.l4m body.m3on #l4Jump .chips::-webkit-scrollbar{display:none}
 
   /* ---- 分段膠囊統一：.mspine（第一層四步）、.mpager（第二層分段）、#l4Jump 同一種樣子 ----
      沒選＝控制項底＋細框；選中＝主色淡底＋主色字＋主色框（取代原本 .mpager 的整塊反白、.mspine 的發光）。 */
-  :root.l4 body.m3on #l4Jump button,:root.l4 body.m3on .mpager>button{flex:none;display:inline-flex;align-items:center;gap:6px;
+  :root.l4m body.m3on #l4Jump button,:root.l4m body.m3on .mpager>button{flex:none;display:inline-flex;align-items:center;gap:6px;
     min-height:36px;padding:0 14px;border-radius:var(--r-sm);border:1px solid var(--t4-ctl-edge,var(--line-2));
     background:var(--t4-ctl,var(--panel));color:var(--ink-2);font-size:13px;white-space:nowrap;box-shadow:none}
-  :root.l4 body.m3on #l4Jump button i{font-style:normal;font-family:var(--mono);font-size:var(--fs-min);color:var(--ink-3)}
-  :root.l4 body.m3on #l4Jump button.on,:root.l4 body.m3on .mpager>button.on,:root.l4 body.m3on .mspine>button.on{
+  :root.l4m body.m3on #l4Jump button i{font-style:normal;font-family:var(--mono);font-size:var(--fs-min);color:var(--ink-3)}
+  :root.l4m body.m3on #l4Jump button.on,:root.l4m body.m3on .mpager>button.on,:root.l4m body.m3on .mspine>button.on{
     border-color:var(--t4-accent-solid,var(--cyan));color:var(--t4-accent-solid,var(--cyan));font-weight:700;box-shadow:none;
     background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,var(--t4-ctl,var(--panel)))}
-  :root.l4 body.m3on #l4Jump button.on i,:root.l4 body.m3on .mspine>button.on em,:root.l4 body.m3on .mspine>button.on b{color:inherit}
-  :root.l4 body.m3on .mspine>button{background:var(--t4-ctl,var(--panel));border-color:var(--t4-ctl-edge,var(--line-2));box-shadow:none}
+  :root.l4m body.m3on #l4Jump button.on i,:root.l4m body.m3on .mspine>button.on em,:root.l4m body.m3on .mspine>button.on b{color:inherit}
+  :root.l4m body.m3on .mspine>button{background:var(--t4-ctl,var(--panel));border-color:var(--t4-ctl-edge,var(--line-2));box-shadow:none}
   /* 分段列黏在頂欄底下（總覽有四步列：黏在四步列底下，四步列高度由 layout4.js 量進 --l4-spine-h）。
      z-index 5：要蓋過捲上來的卡片內容，但要讓總覽輪盤的點旁說明框（#mOvPop，z 6）蓋得過它。 */
-  :root.l4 body.m3on .view.on>.mpager{position:sticky;top:52px;z-index:5;background:var(--bg);
+  :root.l4m body.m3on .view.on>.mpager{position:sticky;top:52px;z-index:5;background:var(--bg);
     margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px;box-shadow:0 8px 12px -10px var(--drop)}
-  :root.l4 body.m3on .view.on:has(>.mspine)>.mpager{top:calc(52px + var(--l4-spine-h,56px))}
+  :root.l4m body.m3on .view.on:has(>.mspine)>.mpager{top:calc(52px + var(--l4-spine-h,56px))}
 
   /* ---- 今日事件抽屜：滿高 ---- */
-  :root.l4 body.m3on aside#side,:root.l4 body.m3on .sideback{top:0}
-  :root.l4 body.m3on aside#side{z-index:50}
-  :root.l4 body.m3on .sideback{z-index:49}
+  :root.l4m body.m3on aside#side,:root.l4m body.m3on .sideback{top:0}
+  :root.l4m body.m3on aside#side{z-index:50}
+  :root.l4m body.m3on .sideback{z-index:49}
 }

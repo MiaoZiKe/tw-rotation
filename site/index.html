@@ -24,7 +24,9 @@
 <!-- ★ 2026-10-02 版面 v2 結構搬到 v4（DECISIONS #291，layout4.css／layout4.js）：桌機頂欄改成可收合的左側導覽。
      l4＝套用新版面（拿掉這個 class 就回到舊頂欄）；l4-mini＝收成圖示列。跟主題一樣要在畫面畫出來之前決定，
      不然收合過的人每次開頁都會先看到展開的左欄、再縮回去。沒按過收合時，視窗 ≤1180 預設收合（layout4.js 同一個門檻）。 -->
-<script>(function(){var c=document.documentElement.classList;c.add('l4');try{var v=localStorage.getItem('tw.layout4.nav');if(v?v==='mini':innerWidth<=1180)c.add('l4-mini');}catch(e){}})();</script>
+<!-- ★ 2026-10-03（Andy：「手機版先停擺，等電腦版 OK 之後再做」）：只有視窗寬 > 820 才掛 l4 —— ≤820（平板與手機）完全是 main 原本的樣子。
+     視窗之後被拉寬／縮窄跨過 821，由 layout4.js 的 resize 掛上或撤掉。 -->
+<script>(function(){if(innerWidth<=820)return;var c=document.documentElement.classList;c.add('l4');try{var v=localStorage.getItem('tw.layout4.nav');if(v?v==='mini':innerWidth<=1180)c.add('l4-mini');}catch(e){}})();</script>
 <!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
      ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），

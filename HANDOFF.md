@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 版面 v2 結構「只上電腦版」（2026-10-03，台北，UI 專家，分支 `claude/layout-v2-desktop`，**未推 main，等 CEO 合併**，DECISIONS #291）
+- Andy：「手機版先停擺，等電腦版 OK 之後再做。電腦版要先上線」。從 `claude/layout-v2-on-v4` 開出來、先合併 origin/main。
+- ≥821：第一批（左側分組導覽可收合、頁首、本頁功能跳轉列、事件抽屜）。≤820：完全是 main 的樣子（不掛 l4、不插節點、不寫 style）；跨過 821 會掛上／撤掉。
+- 第二批（手機頁首、膠囊統一、黏頂、抽屜滿高、641～820 一列七顆）留在檔案裡用旗標關掉：CSS `:root.l4m`、JS `MOBILE = false`。
+- 這批驗了：見回報（_preview.py＋_uitest 指定 13 段）。
+
 ## 版面 v2 結構搬到設計 v4（2026-10-02，台北，UI 專家，分支 `claude/layout-v2-on-v4`，**未推 main**，DECISIONS #291）
 
 **第一批（18:20）桌機＋手機頂欄**

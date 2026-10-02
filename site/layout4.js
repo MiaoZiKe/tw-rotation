@@ -23,8 +23,15 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗，忽略 */ } },
   };
   const DESK = () => window.innerWidth > 820;
+  /* ★ 2026-10-03 手機版暫停（Andy：「手機版先停擺，等電腦版 OK 之後再做。電腦版要先上線」）：
+     MOBILE＝false 時，視窗 ≤820 這支**什麼都不做**：不掛 l4、不插任何節點（#l4Head／#l4Jump／.l4foot／.brand .l4pt）、
+     不寫任何 inline style、不動分頁的 title／aria-label —— ≤820 的畫面與 DOM 跟 main 一樣。
+     視窗被拉寬／縮窄跨過 821 時，activate()／deactivate() 會把東西整套掛上或撤乾淨。
+     第二批的手機程式（一行頁首、分段列統一、.l4pt）都還在，MOBILE 改 true 就會在 ≤820 也掛上（另外掛 l4m 旗標，CSS 那兩段吃它）。 */
+  const MOBILE = false;
+  const WANT = () => DESK() || MOBILE;
+  let active = false;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  root.classList.add('l4');            // <head> 那段已經掛過；保險再掛一次（例如 head 的 script 被擋）
 
   /* ---------------- 每一頁「這頁回答什麼」 ----------------
      判斷順序是網站的核心：M1 資金面 → M2 基本面 → M3 技術面 → M4 事件面（CLAUDE.md 第一段）。
@@ -82,7 +89,7 @@
     if (sig === lastHead) return;
     lastHead = sig;
     // 手機：頁首整塊不顯示（每頁有一屏高度預算），改把「分組＋頁名」放進頂欄原本寫站名的位置 —— 一個 px 都不多佔
-    const bt = $('.brand > div:not(.logo)');
+    const bt = MOBILE ? $('.brand > div:not(.logo)') : null;   // 頂欄頁名是手機版的東西（暫停中）
     if (bt) {
       let mpt = $('.l4pt', bt);
       if (!mpt) { mpt = document.createElement('span'); mpt.className = 'l4pt'; bt.insertBefore(mpt, bt.firstChild); }
@@ -204,6 +211,7 @@
      （1180 沿用 V2 的門檻：1180 − 224 ＝ 956，再窄兩欄的卡片就開始擠）。 */
   const NAV_KEY = 'tw.layout4.nav';
   function applyNav() {
+    if (!active) return;
     const pref = LS.get(NAV_KEY);
     const mini = pref ? pref === 'mini' : (window.innerWidth <= 1180);
     const was = root.classList.contains('l4-mini');
@@ -245,7 +253,7 @@
     fitRaf = requestAnimationFrame(() => {
       fitRaf = 0;
       const bar = $('.topbar'), tw = $('#tabsWrap');
-      if (!bar || !tw || !DESK()) { root.style.removeProperty('--l4-tabs-h'); return; }
+      if (!active || !bar || !tw || !DESK()) return;
       const cur = tw.getBoundingClientRect().height;
       let last = tw.getBoundingClientRect().bottom;
       Array.from(bar.children).forEach((c) => {
@@ -262,7 +270,7 @@
      搬到左欄底部之後面板會整塊掉到視窗外。不改那兩支（不是這一批的檔），在它們打開之後的下一幀改座標：
      面板左緣貼左欄右緣、下緣對齊按鈕下緣（夾在視窗內）。手機與 641～820 不動（那兩個寬度還是頂欄）。 */
   function besideNav(pop, btn) {
-    if (!pop || pop.hidden || !btn || !DESK()) return;
+    if (!active || !pop || pop.hidden || !btn || !DESK()) return;
     const r = btn.getBoundingClientRect(), h = pop.offsetHeight;
     const navW = $('.topbar').getBoundingClientRect().width;
     pop.style.left = Math.round(navW + 8) + 'px';
@@ -279,13 +287,33 @@
     window.addEventListener('resize', () => { besideNav($('#t4Pop'), $('#t4Btn')); besideNav($('#acctMenu'), $('#acctBtn')); });
   }
 
-  function init() {
-    if (!build()) return;
-    buildFoot();
+  /* 掛上：桌機（或手機旗標打開時）才有的整套東西 */
+  function activate() {
+    active = true;
+    root.classList.add('l4');
+    if (!DESK()) root.classList.add('l4m');
+    build(); buildFoot();
+    lastHead = ''; lastSig = '';
     applyNav();
-    wirePopups();
     renderHead(); scanCards();
     fitNav();
+  }
+  /* 撤掉：回到 main 原本的頂欄 —— 插過的節點、掛過的 class、寫過的 inline style、補過的 title／aria-label 全部拿掉 */
+  function deactivate() {
+    active = false;
+    ['#l4Head', '#l4Jump', '.l4foot', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    head = jump = chips = null; cards = []; lastHead = ''; lastSig = '';
+    root.classList.remove('l4', 'l4-mini', 'l4m');
+    root.style.removeProperty('--l4-tabs-h'); root.style.removeProperty('--l4-spine-h');
+    if (root.getAttribute('style') === '') root.removeAttribute('style');
+    $$('.tab').forEach((t) => { t.removeAttribute('title'); t.removeAttribute('aria-label'); });
+    $$('.l4-hit').forEach((e) => e.classList.remove('l4-hit'));
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 60);   // 版面換回頂欄，讓圖表與分頁列重量一次
+  }
+
+  function init() {
+    if (WANT()) activate(); else deactivate();
+    wirePopups();
     const bar = $('.topbar');
     if (bar) new MutationObserver(fitNav).observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitNav);
@@ -295,15 +323,16 @@
        換頁（.view.on 換人、產業頁改 display）另外由 hashchange 補掃三次。 */
     if (main) new MutationObserver(queueScan).observe(main, { childList: true, subtree: true });
     window.addEventListener('hashchange', () => {
+      if (!active) return;
       lastHead = ''; lastSig = '';
       [60, 700, 2000].forEach((t) => setTimeout(() => { renderHead(); scanCards(); }, t));
     });
-    window.addEventListener('scroll', () => spy(), { passive: true });
-    let wasDesk = DESK();
+    window.addEventListener('scroll', () => { if (active) spy(); }, { passive: true });
     window.addEventListener('resize', () => {
+      const w = WANT();
+      if (w !== active) { if (w) activate(); else deactivate(); return; }
+      if (!active) return;
       if (!LS.get(NAV_KEY)) applyNav();
-      const d = DESK();
-      if (d !== wasDesk) { wasDesk = d; applyNav(); lastSig = ''; }
       queueScan(); spy(); fitNav();
     });
   }

@@ -41717,12 +41717,9 @@ def t_layout4(b, base, code):
       ⑤ 事件抽屜：打開（從視窗頂端起、遮罩不蓋左欄）、點遮罩關、Esc 關、× 關
       ⑥ 左欄底部的「外觀」面板與搜尋下拉都完整在視窗內
       ⑦ 1100（沒按過收合）預設收成圖示列；圖示列的頁面有滑鼠提示
-      ⑧ 手機 390：頂欄顯示目前頁名（換頁跟著換、個股頁寫股名）；底部五顆是線條圖示；底部列高度不大於改前
-         （「改前」＝同一頁拿掉 html.l4 當場量，等於舊版 CSS —— 不是寫死的數字）
-      ⑨ 手機第二批（Andy「手機版本一併處理」）：一行頁首（分組｜頁名｜說明省略）跟著路由換；
-         有分段列的頁面不出第二排膠囊、分段列樣式統一並黏在頂欄（總覽黏在四步列）底下、點分段真的換段；
-         市場明細（沒有分段列）的跳轉列點了捲過去、捲回頂端亮回第 1 顆；事件抽屜滿高、遮罩／Esc／× 都關；個股頁不疊頁首
-      ⑩ 768：底部分頁列一列七顆圖示、高度不大於改前、沒有橫向捲軸；點分頁換路由＋頁首換；跳轉列黏在頂欄下、點了捲過去、滾輪捲回亮回；抽屜滿高、Esc 關
+      ⑧ ≤820（手機版暫停，Andy 2026-10-03）：390（總覽／資金流向／個股）與 768（總覽／個股）沒有任何 l4 痕跡 ——
+         html 沒有 l4 class、沒有 #l4 開頭的節點、底部列高度＝停用 layout4.css 時當場量的高度；手機底部仍是文字符號、分段列不是 sticky；
+         768 → 拉寬 1440 整套掛回來、再縮到 800 撤乾淨。（第二批手機斷言的量測字串 L4_MHEAD／L4_MPAGER／L4_SIDE 留著，手機版接回來時用）
     """
     T = "[版面v2結構]"
     errs: list[str] = []
@@ -41886,156 +41883,62 @@ def t_layout4(b, base, code):
     finally:
         ctx.close()
 
-    # ---------------- 手機 390 ----------------
+    # ---------------- ≤820：手機版暫停（Andy 2026-10-03「手機版先停擺，等電腦版 OK 之後再做」）----------------
+    # 驗「沒有任何 l4 痕跡」：html 沒有 l4／l4m／l4-mini、沒有 #l4 開頭的節點、沒有 .l4pt／.l4foot、html 沒被寫 inline style、
+    # 分頁沒被補 title／aria-label；底部列高度＝把 layout4.css 整張停用之後當場量的高度（＝main 的樣子，不是寫死的數字）。
+    NOL4 = """() => { const h = document.documentElement, t = document.getElementById('tabs');
+        const sheet = [...document.styleSheets].find(x => (x.href || '').indexOf('layout4.css') >= 0);
+        const tabsH = Math.round(t.getBoundingClientRect().height);
+        let rawH = null; if (sheet) { sheet.disabled = true; rawH = Math.round(t.getBoundingClientRect().height); sheet.disabled = false; }
+        return { cls: [...h.classList].filter(c => /^l4/.test(c)), ids: [...document.querySelectorAll('[id^="l4"]')].map(e => e.id),
+          extra: document.querySelectorAll('.l4pt, .l4foot').length, style: h.getAttribute('style'),
+          tabAttr: [...document.querySelectorAll('#tabs .tab')].filter(x => x.hasAttribute('title') || x.hasAttribute('aria-label')).length,
+          tabsH, rawH, sheet: !!sheet, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }; }"""
+    def no_l4(tag, st):
+        ok(f"{T}{tag} 沒有任何 l4 痕跡（class／#l4 節點／.l4pt／.l4foot／inline style／分頁 title）",
+           not st["cls"] and not st["ids"] and st["extra"] == 0 and not st["style"] and st["tabAttr"] == 0, st)
+        ok(f"{T}{tag} 底部分頁列高度＝停用 layout4.css 時的高度（跟 main 一樣）", st["sheet"] and st["tabsH"] == st["rawH"], st)
+        ok(f"{T}{tag} 沒有橫向捲軸", st["sw"] <= st["cw"] + 1, st)
+
     ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     pg = ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(f"390: {e}"))
     try:
-        pg.goto(f"{base}#overview", wait_until="networkidle")
-        wait_until(pg, "() => document.body.classList.contains('m3on') && !!document.getElementById('mTabMore')", 8000)
-        pg.wait_for_timeout(600)
-        MT = """() => { const p = document.querySelector('.brand .l4pt'), b = document.querySelector('.brand b'), t = document.getElementById('tabs');
-            const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
-            return { pt: vis(p) ? p.innerText.replace(/\\s+/g, ' ').trim() : null, site: vis(b),
-              fs: p ? parseFloat(getComputedStyle(p.querySelector('span') || p).fontSize) : 0,
-              tabsH: Math.round(t.getBoundingClientRect().height), topH: Math.round(document.querySelector('.topbar').getBoundingClientRect().height),
-              head: !!document.getElementById('l4Head') && document.getElementById('l4Head').getClientRects().length > 0,
-              icons: [...t.querySelectorAll('.tab, .mtabmore')].filter(vis).map(x => /svg/.test(getComputedStyle(x, '::before').maskImage || getComputedStyle(x, '::before').webkitMaskImage || '')),
-              sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, hash: location.hash }; }"""
-        m1 = pg.evaluate(MT)
-        ok(f"{T}390 頂欄寫目前頁名（今日市場／總覽），站名收掉", m1["pt"] and "總覽" in m1["pt"] and "今日市場" in m1["pt"] and not m1["site"], m1)
-        ok(f"{T}390 頁名字級 ≥ 11px", m1["fs"] >= 11, m1)
-        ok(f"{T}390 底部五顆都是線條圖示（遮罩圖，不是文字符號）", len(m1["icons"]) == 5 and all(m1["icons"]), m1)
-        ok(f"{T}390 沒有橫向捲軸", m1["sw"] <= m1["cw"] + 1, m1)
-        # 改前：同一頁拿掉 html.l4（＝舊版 CSS）當場量
-        old = pg.evaluate("""() => { const c = document.documentElement.classList; c.remove('l4');
-            const h = Math.round(document.getElementById('tabs').getBoundingClientRect().height),
-                  th = Math.round(document.querySelector('.topbar').getBoundingClientRect().height);
-            c.add('l4'); return { tabsH: h, topH: th }; }""")
-        ok(f"{T}390 底部分頁列高度不大於改前", m1["tabsH"] <= old["tabsH"] and old["tabsH"] > 0, {"改前": old, "改後": m1["tabsH"]})
-        ok(f"{T}390 頂欄高度不變", m1["topH"] <= old["topH"], {"改前": old, "改後": m1["topH"]})
-        # ---- 手機頁首：一行（分組小標｜頁名｜說明，說明超出省略）----
-        hd = pg.evaluate(L4_MHEAD)
-        ok(f"{T}390 總覽頁首：分組小標「今日市場」＋頁名「總覽」＋一句說明，只佔一行（≤ 40px）",
-           bool(hd) and hd["eb"] == "今日市場" and hd["h1"] == "總覽" and len(hd["p"]) >= 10 and hd["h"] <= 40 and hd["oneLine"], hd)
-        ok(f"{T}390 說明太長時省略（不換行、不撐出橫向捲軸）", bool(hd) and hd["ell"] and hd["sw"] <= hd["cw"] + 1, hd)
-        ok(f"{T}390 頁首字級 ≥ 11px", bool(hd) and hd["minFs"] >= 11, hd)
-        # ---- 總覽：分段列就是本頁功能 → 不出第二排膠囊；分段列樣式跟跳轉列一致 ----
-        pz = pg.evaluate(L4_MPAGER)
-        ok(f"{T}390 總覽有四步列＋分段列時，不再多一排「本頁功能」膠囊", pz["jump"] is False and pz["pager"] and pz["spine"], pz)
-        ok(f"{T}390 分段列選中那顆＝主色字＋主色框（跟跳轉列同一種樣子，不再整塊反白）", pz["onUnified"], pz)
-        ok(f"{T}390 總覽分段列黏在四步列底下（sticky、top＝52＋四步列高）", pz["pos"] == "sticky" and abs(pz["stTop"] - (52 + pz["spineH"])) <= 1, pz)
-        # ---- 換頁：頁首與頂欄頁名都跟著換 ----
-        pg.locator("#tabs .tab[data-view='flow']").tap(timeout=6000)
-        got = wait_until(pg, "() => location.hash.startsWith('#flow') && ((document.querySelector('.brand .l4pt') || {}).innerText || '').indexOf('資金流向') >= 0"
-                             " && ((document.querySelector('#l4Head h1') || {}).textContent || '') === '資金流向'", 6000)
-        ok(f"{T}390 點底部「資金流向」→ 頂欄頁名與頁首頁名都跟著換", bool(got), {"頂欄": pg.evaluate(MT)["pt"], "頁首": pg.evaluate(L4_MHEAD)})
-        # 分段列 sticky：捲下去之後黏在頂欄（52px）底下
-        pg.wait_for_timeout(600)
-        pg.evaluate("() => window.scrollTo(0, 700)"); pg.wait_for_timeout(400)
-        pf = pg.evaluate(L4_MPAGER)
-        ok(f"{T}390 資金流向捲下去 → 分段列黏在頂欄底下（top＝52）", pf["pager"] and pf["sy"] > 120 and abs(pf["top"] - 52) <= 1 and pf["jump"] is False, pf)
-        # 點分段 → 真的換段（app.js 原本的行為：換段回到這一段最上面）
-        names = pg.evaluate("() => [...document.querySelectorAll('.view.on > .mpager > button')].map(b => b.textContent.trim())")
-        if len(names) >= 2:
-            pg.locator(".view.on > .mpager > button").nth(1).tap(timeout=6000); pg.wait_for_timeout(700)
-            pf2 = pg.evaluate(L4_MPAGER)
-            ok(f"{T}390 點分段列第 2 顆 → 換到那一段、捲回最上面、那顆亮起", pf2["on"] == names[1] and pf2["sy"] == 0, {"分段": names, **pf2})
-        else:
-            ok(f"{T}390 資金流向有兩段以上的分段（前提）", False, names)
-        # ---- 沒有分段列、又有兩張卡的頁面（市場明細）：跳轉列出來、點了捲過去、捲動時亮起 ----
-        pg.goto(f"{base}#market", wait_until="networkidle")
-        wait_until(pg, "() => document.querySelectorAll('#l4Jump .chips button').length >= 2", 8000); pg.wait_for_timeout(500)
-        mj0 = pg.evaluate(L4_JUMP)
-        ok(f"{T}390 市場明細（沒有分段列）出現本頁功能膠囊、亮第 1 顆", bool(mj0) and mj0["shown"] and mj0["n"] >= 2 and mj0["on"] == 0, mj0)
-        jt = pg.evaluate("() => parseFloat(getComputedStyle(document.getElementById('l4Jump')).top)")
-        ok(f"{T}390 跳轉列黏在頂欄底下（sticky top＝52）", abs(jt - 52) <= 1, jt)
-        pg.locator("#l4Jump .chips button[data-i='1']").tap(timeout=6000)
-        hit = wait_until(pg, """() => { const j = document.getElementById('l4Jump').getBoundingClientRect();
-            const c = [...document.querySelectorAll('.card')].find(x => x.classList.contains('l4-hit'));
-            if (!c || scrollY < 30) return null; const t = c.getBoundingClientRect().top;
-            return (t >= j.bottom - 2 && t <= j.bottom + 40) ? { t: Math.round(t), jb: Math.round(j.bottom) } : null; }""", 4000)
-        mj1 = pg.evaluate(L4_JUMP)
-        ok(f"{T}390 點第 2 顆 → 捲到第 2 張卡（卡頂落在跳轉列正下方）、那顆亮起", bool(hit) and mj1["on"] == 1, {"hit": hit, **mj1})
-        pg.wait_for_timeout(1000)
-        pg.evaluate("() => window.scrollBy(0, -5000)"); pg.wait_for_timeout(500)
-        mj2 = pg.evaluate(L4_JUMP)
-        ok(f"{T}390 捲回頂端 → 亮起的膠囊跟著換回第 1 顆", mj2["on"] == 0 and mj2["sy"] == 0, mj2)
-
-        # ---- 事件抽屜：右側滑出、滿高；點遮罩／Esc／× 都關 ----
-        def m_open():
-            pg.locator("#moreBtn").tap(timeout=6000); pg.wait_for_timeout(450)
-            if pg.locator("#mmEvents").is_visible():
-                pg.locator("#mmEvents").tap(timeout=6000)
-            else:
-                pg.locator(".mrow[data-m='events']").first.tap(timeout=6000)
-            pg.wait_for_timeout(650)
-        m_open()
-        wait_until(pg, "() => { const r = document.getElementById('side').getBoundingClientRect(); return Math.round(r.right) === innerWidth; }", 4000)
-        sd = pg.evaluate(L4_SIDE)
-        ok(f"{T}390 事件抽屜從右側滑出、滿高（從頂端到底）", sd["open"] and sd["top"] == 0 and sd["bottom"] == sd["vh"] and sd["right"] == sd["vw"] and sd["back"], sd)
-        pg.touchscreen.tap(max(4, sd["left"] // 2), 420); pg.wait_for_timeout(600)
-        ok(f"{T}390 點遮罩 → 抽屜關掉", not pg.evaluate(L4_SIDE)["open"], pg.evaluate(L4_SIDE))
-        m_open(); pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
-        ok(f"{T}390 按 Esc → 抽屜關掉", not pg.evaluate(L4_SIDE)["open"], pg.evaluate(L4_SIDE))
-        m_open(); pg.locator("#evClose").tap(timeout=6000); pg.wait_for_timeout(600)
-        ok(f"{T}390 點 × → 抽屜關掉", not pg.evaluate(L4_SIDE)["open"], pg.evaluate(L4_SIDE))
-        # ---- 個股頁：頁首就是券商式報價列（不再疊一條，K 線留在第一屏）；頂欄寫股名 ----
-        pg.goto(f"{base}#stock/{code}", wait_until="networkidle")
-        got = wait_until(pg, f"() => ((document.querySelector('.brand .l4pt') || {{}}).innerText || '').indexOf('{code}') >= 0", 8000)
-        ok(f"{T}390 個股頁頂欄寫股名＋代號", bool(got), pg.evaluate(MT))
-        sk = pg.evaluate("() => ({ head: document.getElementById('l4Head').getClientRects().length > 0, mb: !!document.getElementById('mbHead'), jump: document.getElementById('l4Jump').getClientRects().length > 0 })")
-        ok(f"{T}390 個股頁不疊頁首與跳轉列（券商式報價列＋分頁列就是這一頁的頁首與本頁功能）", not sk["head"] and sk["mb"] and not sk["jump"], sk)
+        for h in ("overview", "flow", f"stock/{code}"):
+            pg.goto(f"{base}#{h}", wait_until="networkidle")
+            wait_until(pg, "() => document.body.classList.contains('m3on') && !!document.getElementById('mTabMore')", 8000)
+            pg.wait_for_timeout(1200)
+            no_l4(f"390 #{h}", pg.evaluate(NOL4))
+        # 手機原本的長相：底部圖示仍是文字符號（不是 layout4 的遮罩圖）、分段列不是 sticky、頂欄仍寫站名
+        mo = pg.evaluate("""() => { const t = document.querySelector('#tabs .tab[data-view=overview]');
+            location.hash = '#flow'; return { before: getComputedStyle(t, '::before').content,
+              mask: getComputedStyle(t, '::before').maskImage || getComputedStyle(t, '::before').webkitMaskImage || 'none',
+              site: !!document.querySelector('.brand b') && document.querySelector('.brand b').getClientRects().length > 0 }; }""")
+        ok(f"{T}390 底部圖示是 main 的文字符號、頂欄寫站名", mo["before"] not in ("none", '""', "normal") and "svg" not in mo["mask"] and mo["site"], mo)
+        wait_until(pg, "() => !!document.querySelector('#v-flow.on > .mpager')", 6000); pg.wait_for_timeout(600)
+        mp = pg.evaluate("() => getComputedStyle(document.querySelector('#v-flow.on > .mpager')).position")
+        ok(f"{T}390 資金流向分段列是 main 的樣子（沒有被改成 sticky）", mp == "static", mp)
     finally:
         ctx.close()
 
-    # ---------------- 768（桌機縮半邊／平板）：頂欄＋一列七顆線條圖示的底部分頁列 ----------------
+    # 768：一進來就沒有痕跡；1440 → 縮到 768 要撤乾淨、再拉回 1440 要整套回來
     ctx = b.new_context(viewport={"width": 768, "height": 900})
     pg = ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(f"768: {e}"))
     try:
-        pg.goto(f"{base}#overview", wait_until="networkidle")
-        wait_until(pg, "() => document.querySelectorAll('#l4Jump .chips button').length >= 3", 8000); pg.wait_for_timeout(500)
-        TB = """() => { const t = document.getElementById('tabs'), tabs = [...t.querySelectorAll('.tab')].filter(x => x.getClientRects().length);
-            return { h: Math.round(t.getBoundingClientRect().height), n: tabs.length, rows: new Set(tabs.map(x => Math.round(x.getBoundingClientRect().top))).size,
-              icons: tabs.filter(x => /svg/.test(getComputedStyle(x, '::before').maskImage || getComputedStyle(x, '::before').webkitMaskImage || '')).length,
-              minFs: Math.min(...tabs.map(x => parseFloat(getComputedStyle(x).fontSize))),
-              sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }; }"""
-        t1 = pg.evaluate(TB)
-        old = pg.evaluate("""() => { const c = document.documentElement.classList; c.remove('l4');
-            const h = Math.round(document.getElementById('tabs').getBoundingClientRect().height); c.add('l4'); return h; }""")
-        ok(f"{T}768 底部分頁列一列七顆、每顆都有線條圖示、字 ≥ 11px", t1["n"] == 7 and t1["rows"] == 1 and t1["icons"] == 7 and t1["minFs"] >= 11, t1)
-        ok(f"{T}768 底部分頁列高度不大於改前（兩列 → 一列）", t1["h"] <= old, {"改前": old, "改後": t1["h"]})
-        ok(f"{T}768 沒有橫向捲軸", t1["sw"] <= t1["cw"] + 1, t1)
-        hd = pg.evaluate("() => ({ h1: (document.querySelector('#l4Head h1') || {}).textContent, eb: (document.querySelector('#l4Head .eyebrow') || {}).textContent })")
-        ok(f"{T}768 有頁首（今日市場／總覽）", hd["h1"] == "總覽" and hd["eb"] == "今日市場", hd)
+        for h in ("overview", f"stock/{code}"):
+            pg.goto(f"{base}#{h}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+            no_l4(f"768 #{h}", pg.evaluate(NOL4))
         pg.locator("#tabs .tab[data-view='market']").click(timeout=6000)
-        got = wait_until(pg, "() => location.hash.startsWith('#market') && !!document.querySelector('#v-market.on') && (document.querySelector('#l4Head h1') || {}).textContent === '市場明細'", 6000)
-        ok(f"{T}768 點底部「市場明細」→ 路由換了、頁首頁名跟著換", bool(got), pg.evaluate("() => [location.hash, (document.querySelector('#l4Head h1') || {}).textContent]"))
-        pg.locator("#tabs .tab[data-view='overview']").click(timeout=6000)
-        wait_until(pg, "() => location.hash.startsWith('#overview') && document.querySelectorAll('#l4Jump .chips button').length >= 3", 6000)
-        pg.wait_for_timeout(800)
-        jt = pg.evaluate("() => parseFloat(getComputedStyle(document.getElementById('l4Jump')).top)")
-        ok(f"{T}768 跳轉列黏在頂欄（58px）底下", abs(jt - 58) <= 1, jt)
-        pg.locator("#l4Jump .chips button[data-i='1']").click(timeout=6000)
-        hit = wait_until(pg, """() => { const j = document.getElementById('l4Jump').getBoundingClientRect();
-            const c = [...document.querySelectorAll('.card')].find(x => x.classList.contains('l4-hit'));
-            if (!c || scrollY < 50) return null; const t = c.getBoundingClientRect().top;
-            return (t >= j.bottom - 2 && t <= j.bottom + 40) ? { t: Math.round(t), jb: Math.round(j.bottom) } : null; }""", 4000)
-        j1 = pg.evaluate(L4_JUMP)
-        ok(f"{T}768 點第 2 顆膠囊 → 捲到那張卡（卡頂落在跳轉列正下方）、那顆亮起", bool(hit) and j1["on"] == 1, {"hit": hit, **j1})
-        pg.wait_for_timeout(1000)
-        lb = pg.locator("#l4Jump .lbl").bounding_box(); pg.mouse.move(lb["x"] + 5, lb["y"] + 5)
-        pg.mouse.wheel(0, -8000); pg.wait_for_timeout(900)
-        j2 = pg.evaluate(L4_JUMP)
-        ok(f"{T}768 用滾輪捲回頂端 → 亮回第 1 顆", j2["on"] == 0 and j2["sy"] == 0, j2)
-        pg.locator("#moreBtn").click(timeout=6000); pg.wait_for_timeout(400)
-        pg.locator("#mmEvents").click(timeout=6000)
-        wait_until(pg, "() => { const r = document.getElementById('side').getBoundingClientRect(); return Math.round(r.right) === innerWidth; }", 4000)
-        sd = pg.evaluate(L4_SIDE)
-        ok(f"{T}768 事件抽屜（從「⋯」打開）滿高、貼右", sd["open"] and sd["top"] == 0 and sd["bottom"] == sd["vh"] and sd["right"] == sd["vw"], sd)
-        pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
-        ok(f"{T}768 按 Esc → 抽屜關掉", not pg.evaluate(L4_SIDE)["open"], pg.evaluate(L4_SIDE))
+        ok(f"{T}768 底部分頁列照樣能換頁", bool(wait_until(pg, "() => location.hash.startsWith('#market') && !!document.querySelector('#v-market.on')", 5000)),
+           pg.evaluate("() => location.hash"))
+        pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
+        up = pg.evaluate("""() => ({ l4: document.documentElement.classList.contains('l4'), head: !!document.getElementById('l4Head'),
+            nav: !!document.getElementById('l4NavBtn'), pos: getComputedStyle(document.querySelector('.topbar')).position,
+            h1: (document.querySelector('#l4Head h1') || {}).textContent })""")
+        ok(f"{T}768 → 拉寬到 1440：左側導覽、頁首整套掛回來（頁名＝市場明細）", up["l4"] and up["head"] and up["nav"] and up["pos"] == "fixed" and up["h1"] == "市場明細", up)
+        pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(900)
+        no_l4("1440 → 縮到 800", pg.evaluate(NOL4))
     finally:
         ctx.close()
     ok(f"{T} 沒有 pageerror", not errs, errs[:5])
