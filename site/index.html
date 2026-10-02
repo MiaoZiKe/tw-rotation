@@ -15,6 +15,11 @@
 <meta name="apple-mobile-web-app-title" content="台股輪動">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
+<!-- ★ 2026-10-03（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #304）：
+     整頁載入的那一刻，在所有程式讀 localStorage 之前把「圖表檢視設定」類的鍵清掉。
+     一定要排在所有 script 最前面（預覽版的 preview_boot.js 除外，它會插得更早、先把 localStorage 換成加前綴的殼）。
+     主題、自選、登入、手繪線這些不清 —— 分類與理由寫在 viewreset.js 開頭。 -->
+<script src="viewreset.js"></script>
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
 <script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <!-- ★ 2026-09-28 設計 v4 正式套用（Andy「V4執行」）：版面風格 casual 親和休閒／hud 科技 HUD／pro 專業有力，存 tw.theme4。

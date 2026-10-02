@@ -7379,7 +7379,7 @@ def t_stock(pg, base, code):
         ok("「填滿」真的寫進 localStorage", st2["ls"] == "fill", st2)
         ok("說明文字跟著換成填滿的讀法", "填滿" in st2["note"], st2["note"][-60:])
 
-        # B2 透明度：拉了之後圖要變，而且值要留下來（換股票／重新整理都還在）
+        # B2 透明度：拉了之後圖要變，而且值要留下來（同一次瀏覽換股票還在；2026-10-03 起重新整理回預設，見 #304）
         o0 = canvas_hash(pg, "#peChart")
         pg.evaluate("""() => { const s = document.getElementById('peOpa');
             s.value = s.value === '100' ? '20' : '100';
@@ -13713,19 +13713,18 @@ def t_chain_fold(pg, base):
         ok(f"點標籤 {code} → 右側資訊欄打開", bool(box) and box["w"] > 100 and box["h"] > 40, box)
         tip = pg.evaluate(f"() => {{ const t = document.querySelector('#chainMap .co.chip[data-code=\"{code}\"] title'); return t ? t.textContent : ''; }}")
         ok("滑過標籤的提示有價格與漲跌（%）", "%" in tip and code in tip, tip)
-    # ---- 重新整理記得狀態：先全部展開再重整 → 還是展開
+    # ---- ★ 2026-10-03 改前→改後（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #304）：
+    #   改前：重新整理之後記得「全部展開」／「全部收合」。
+    #   改後：同一次瀏覽換頁仍記得（tw.chainFold 照寫），**重新整理一律回到預設的全部收合**、鍵被清掉。
     click(pg, '#chainMap .foldbar [data-fold="none"]', 700)
-    pg.reload(wait_until="networkidle")
+    e0 = pg.evaluate(CF_STATE, None)
+    ok("按「全部展開」→ 全部變大卡、localStorage 記下來（同一次瀏覽用）", e0["chips"] == 0 and bool(e0["ls"]), e0)
+    real_reload(pg)
     wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
     pg.wait_for_timeout(500)
     e = pg.evaluate(CF_STATE, None)
-    ok("重新整理之後記得「全部展開」（沒有被預設收合蓋掉）", e["chips"] == 0 and e["cards"] == s0["chips"], e)
-    click(pg, '#chainMap .foldbar [data-fold="all"]', 700)
-    pg.reload(wait_until="networkidle")
-    wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
-    pg.wait_for_timeout(500)
-    f = pg.evaluate(CF_STATE, None)
-    ok("重新整理之後記得「全部收合」", f["cards"] == 0 and f["chips"] == s0["chips"], f)
+    ok("★ 重新整理之後回到預設「全部收合」、tw.chainFold 被清掉（#304）",
+       e["cards"] == 0 and e["chips"] == s0["chips"] and e["ls"] is None, e)
 
 
 def t_rel_list(pg, base):
@@ -15309,15 +15308,18 @@ def t_ud_market(pg, base):
        [x + y for x, y in zip(a1["vals"], a2["vals"])] == a0["vals"], (a1["vals"], a2["vals"], a0["vals"]))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     ok("清單按 Esc 收得起來", pg.evaluate("() => document.getElementById('udPanel').hidden"))
-    # ---- 重新整理：記得上櫃
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1600)
+    # ---- ★ 2026-10-03 改前→改後（DECISIONS #304「重新整理＝圖表設定回預設」）：
+    #   改前：重新整理 → 記得上櫃。改後：重新整理 → 回到預設「全部」，tw.udMkt 被清掉。
+    real_reload(pg, wait_ms=1600)
     scroll_to(pg, "breadth"); pg.wait_for_timeout(800)
     a3 = pg.evaluate(UD_PROBE)
-    ok("★ 重新整理 → 還是上櫃（按鈕、長條、共 N 檔都對）", a3["on"] == ["tpex"] and a3["total"] == ud["tpex"]["n"] and a3["vals"] == ud["tpex"]["counts"], a3)
+    ok("★ 重新整理 → 回到預設「全部」（按鈕、長條、共 N 檔都跟一開始一樣，#304）",
+       a3["on"] == ["all"] and a3["total"] == a0["total"] and a3["vals"] == a0["vals"] and a3.get("ls") in (None, ""), a3)
     # ---- 切回全部：完整還原
     a4 = _ud_click_seg(pg, "all")
     ok("★ 按全部 → 長條與共 N 檔還原成一開始的樣子", a4["vals"] == a0["vals"] and a4["total"] == a0["total"] and a4["pill"] == a0["pill"], (a4["total"], a0["total"]))
-    ok("按全部 → localStorage 記成 all", a4["ls"] == "all", a4["ls"])
+    # ★ 2026-10-03（#304）：重新整理後本來就是「全部」，再按一次全部不會寫 localStorage（沒有改變）——讀不到也算對
+    ok("按全部 → localStorage 是 all 或沒寫（已經是預設的全部）", a4["ls"] in ("all", None), a4["ls"])
     # 「?」說明寫出三組的家數
     pg.eval_on_selector('button.howbtn[data-how="breadth"]', "b => b.click()"); pg.wait_for_timeout(500)
     how = pg.evaluate("() => { const p = document.getElementById('howPop'); return ((p && !p.hidden && p.textContent) || (document.getElementById('how-breadth') || {}).textContent || ''); }")
@@ -15815,9 +15817,10 @@ def t_stock_tabs0926(pg, base, code):
         ip3 = next((p for p in b["charts"]["instChart"]["pts"] if p["name"] == "外資"), None)
         ok(f"【{tag}】{c} 4 週的法人柱數＝視窗內法人資料天數（{len(iv3)}）", bool(ip3) and len(ip3["dates"]) == len(iv3), [ip3 and len(ip3["dates"]), len(iv3)])
         if c == code:
-            # 重新整理 → 記得 4 週
+            # ★ 2026-10-03 改前→改後（#304）：改前「重新整理 → 記得 4 週」；改後「重新整理 → 回到預設 3 個月」
+            pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
             d = probe_all(c)
-            ok(f"★【{tag}】重新整理後仍是 4 週（三頁都是）", d["on"] == ["4 週"] and all(v["n"] == n3 for v in d["charts"].values()),
+            ok(f"★【{tag}】重新整理後回到預設「3 個月」（三頁都是，#304）", d["on"] == ["3 個月"] and all(v["n"] == n0 for v in d["charts"].values()),
                {"on": d["on"], "n": {k: v["n"] for k, v in d["charts"].items()}})
             click(pg, '#stockTabs button[data-t="inst"]', 1200)
             click(pg, '#chipWin button[data-v="250"]', 1200)
@@ -16058,8 +16061,11 @@ def t_stock_quarter_audit0927(pg, base, code):
        b.get("mode") == "y" and len(b.get("x") or []) == len(pf.get("yearly") or []) and b.get("ttl") == "年度明細"
        and b.get("rows") == len(pf.get("yearly") or []) and b.get("ls") == "y", b)
     changed(f"【{tag}】按「年」之後 EPS 圖真的重畫", h0, canvas_hash(pg, "#profitChart"))
+    # ★ 2026-10-03 改前→改後（#304）：改前「重新整理後仍是年」；改後「重新整理回到預設季、tw.profitMode 被清掉」
+    pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
     goto(c, "profit")
-    ok(f"【{tag}】重新整理後仍是「年」", (pg.evaluate(PX) or {}).get("mode") == "y")
+    r5 = pg.evaluate(PX) or {}
+    ok(f"【{tag}】重新整理後回到預設「季」（#304）", r5.get("mode") == "q" and r5.get("ls") is None, {"mode": r5.get("mode"), "ls": r5.get("ls")})
     click(pg, '#profitMode button[data-v="q"]', 800)
     ok(f"【{tag}】切回「季」", (pg.evaluate(PX) or {}).get("mode") == "q")
 
@@ -16961,12 +16967,19 @@ def t_index_kline_0928(pg, base):
     p4 = pg.evaluate(VP)
     ok("★ 換到 4 小時（三張圖重建）→ 量副圖還是剛才拖的比例",
        all(p4.get(i) and abs(p4[i] - p2["saved"]) <= 0.02 for i in ("TSE", "OTC", "FUT")), [p2["saved"], p4])
-    # 重新整理：讀回存的比例
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
+    # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+    #   改前：重新整理之後讀回存的比例。改後：重新整理 → tw.m3.volr 被清掉、三張回到一開始（沒拖過）的比例。
+    real_reload(pg, wait_ms=2000)
     pg.evaluate("() => window.Market3.forceClock('day')"); pg.wait_for_timeout(600)
+    # 線圖／K 線（tw.m3.mode）也跟著回預設「線」，週期下拉只在 K 線模式出現 → 先切回 K 線再量
+    ok("★ 重新整理之後大盤三張圖回到預設的「線」模式（tw.m3.mode 被清掉，#304）",
+       pg.evaluate("() => localStorage.getItem('tw.m3.mode')") is None
+       and pg.evaluate("() => (document.querySelector('#m3Mode button.on') || {dataset: {}}).dataset.m") != "k")
+    click(pg, "#m3Mode button[data-m='k']", 900)
     pick("D")
     p5 = pg.evaluate(VP)
-    ok("★ 重新整理之後三張的量副圖仍是剛才的比例", all(p5.get(i) and abs(p5[i] - p2["saved"]) <= 0.02 for i in ("TSE", "OTC", "FUT")), [p2["saved"], p5])
+    ok("★ 重新整理之後三張的量副圖回到預設比例（跟拖之前一樣）、存的比例被清掉（#304）",
+       all(p5.get(i) and p0.get(i) and abs(p5[i] - p0[i]) <= 0.02 for i in ("TSE", "OTC", "FUT")) and not p5.get("saved"), [p0, p5])
     # 拖過頭：夾在 45%，三張（含被拖的那張）一樣
     drag_sep("OTC", -400)
     p6 = pg.evaluate(VP)
@@ -17317,13 +17330,16 @@ def t_stock_tabs0928(pg, base, code):
         click(pg, '#hoTgls .hoTgl[data-k="3"]', 900)
         e = pg.evaluate(CHIP0928_PROBE)
         ok(f"★ {tag}從「全部隱藏」再打開一條 → 圖回來、畫那一條", not e["empty"] and (e["charts"].get("holderChart") or {}).get("n") == 1, e["charts"].get("holderChart"))
-        # 重新整理 → 記得只開 ≤10 張
+        # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+        #   改前：重新整理 → 記得只開 ≤10 張。改後：重新整理 → 三條全開（預設）、tw.hoLines 被清掉。
+        pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
         goto(code, "holders")
         f = pg.evaluate(CHIP0928_PROBE)
-        ok(f"★ {tag}重新整理後仍只顯示「≤10 張」一條", (f["charts"].get("holderChart") or {}).get("n") == 1 and f["hoLines"] == "3", (f["charts"].get("holderChart"), f["hoLines"]))
-        click(pg, '#hoTgls .hoTgl[data-k="1"]', 700); click(pg, '#hoTgls .hoTgl[data-k="2"]', 900)
+        ok(f"★ {tag}重新整理後回到預設三條全開、tw.hoLines 被清掉（#304）", (f["charts"].get("holderChart") or {}).get("n") == 3
+           and f["hoLines"] == "1,2,3" and f["ls"] is None, (f["charts"].get("holderChart"), f["hoLines"], f["ls"]))
+        click(pg, '#hoTgls .hoTgl[data-k="1"]', 700); click(pg, '#hoTgls .hoTgl[data-k="1"]', 900)
         g = pg.evaluate(CHIP0928_PROBE)
-        ok(f"{tag}全部打開回來 → 三條", (g["charts"].get("holderChart") or {}).get("n") == 3 and g["ls"] == "1,2,3", (g["charts"].get("holderChart"), g["ls"]))
+        ok(f"{tag}按掉再按回「千張以上」→ 三條、記成 1,2,3", (g["charts"].get("holderChart") or {}).get("n") == 3 and g["ls"] == "1,2,3", (g["charts"].get("holderChart"), g["ls"]))
         # 歷史補不回來：一句讀者聽得懂的話
         if len(ho) < 52:
             ok(f"★ {tag}資料只有 {len(ho)} 週 → 頁面講清楚原因（集保只公開最新一週、無法補回、從哪一週起累積）",
@@ -18946,10 +18962,12 @@ def t_stock_tabs_1002(pg, base, code):
         changed(f"{tag}線寬拉到 4 → 河流圖畫面真的變了", h0, canvas_hash(pg, "#peChart"))
         click(pg, '#peMode button[data-v="fill"]', 1200)
         ok(f"{tag}切到「填滿」線寬照樣是 4（三種畫法共用）", pg.evaluate(PE1002)["w"] == 4)
-        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+        # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+        #   改前：重新整理後線寬仍是 4。改後：重新整理 → tw.peLineW 與 tw.kcfg 的樣式都被清掉，線寬回到預設 1.8px。
+        real_reload(pg, wait_ms=2400)
         tab("profit", 1800)
         p2 = pg.evaluate(PE1002)
-        ok(f"★ {tag}重新整理後線寬仍是 4（滑桿也停在 4）", p2["w"] == 4 and p2["slider"] == "4", p2)
+        ok(f"★ {tag}重新整理後線寬回到預設 1.8px、tw.peLineW 被清掉（#304）", abs((p2["w"] or 0) - 1.8) < 0.05 and p2["ls"] is None, p2)
         # 真的用滑鼠拖：按住滑桿往最左拖 → 值到 1、線寬到 1
         pg.locator("#peLw").scroll_into_view_if_needed()
         box = pg.locator("#peLw").bounding_box()
@@ -19362,15 +19380,9 @@ def t_stock_head_1002(pg, base, code):
            and abs((s2["left"]["px"]["t"] + s2["left"]["px"]["h"]) - (s2["left"]["chg"]["t"] + s2["left"]["chg"]["h"])) < 14, (s2["left"]["px"], s2["left"]["chg"]))
         ov = pg.evaluate(HEAD1002_OVL)
         ok(f"{tag}拖到最左：頂部沒有任何元素互相重疊", ov["bad"] == [] and ov["clipped"] == [], ov)
-        # 重新整理還在
-        pg.reload(wait_until="networkidle")
-        wait_until(pg, "() => !!document.getElementById('skSplit') && document.getElementById('skChartCard').classList.contains('aiside')", 12000)
-        pg.wait_for_timeout(900)
-        s3 = snap()
-        ok(f"★ {tag}重新整理後右欄寬度還在（±2px）", abs(s3["ai"]["w"] - s2["ai"]["w"]) <= 2, (s2["ai"]["w"], s3["ai"]["w"]))
-        # 雙擊還原
-        sp3 = s3["split"]
-        pg.mouse.dblclick(sp3["l"] + sp3["w"] / 2, sp3["t"] - pg.evaluate("() => scrollY") + min(60, sp3["h"] / 2)); pg.wait_for_timeout(500)
+        # 雙擊還原（2026-10-03 起排在重新整理之前：重新整理本身就會回預設，雙擊要在「拖過」的狀態下驗才有意義）
+        sp2 = s2["split"]
+        pg.mouse.dblclick(sp2["l"] + sp2["w"] / 2, sp2["t"] - pg.evaluate("() => scrollY") + min(60, sp2["h"] / 2)); pg.wait_for_timeout(500)
         s4 = snap()
         ok(f"★ {tag}雙擊分隔線 → 還原預設寬度（跟一進來一樣，±2px）、tw.aiSplit 刪掉", abs(s4["ai"]["w"] - s0["ai"]["w"]) <= 2 and s4["ls"]["tw.aiSplit"] is None,
            (s0["ai"]["w"], s4["ai"]["w"], s4["ls"]))
@@ -19378,6 +19390,14 @@ def t_stock_head_1002(pg, base, code):
         pg.focus("#skSplit"); pg.keyboard.press("ArrowLeft"); pg.wait_for_timeout(300)
         s5 = snap()
         ok(f"{tag}鍵盤聚焦分隔線按 ← → 右欄變寬、寫進 localStorage", s5["ai"]["w"] > s4["ai"]["w"] + 10 and s5["ls"]["tw.aiSplit"] is not None, (s4["ai"]["w"], s5["ai"]["w"], s5["ls"]))
+        # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+        #   改前：重新整理後右欄寬度還在。改後：重新整理 → tw.aiSplit 被清掉、右欄回到預設寬度。
+        real_reload(pg)
+        wait_until(pg, "() => !!document.getElementById('skSplit') && document.getElementById('skChartCard').classList.contains('aiside')", 12000)
+        pg.wait_for_timeout(900)
+        s3 = snap()
+        ok(f"★ {tag}重新整理後右欄回到預設寬度（跟一進來一樣，±2px）、tw.aiSplit 被清掉（#304）",
+           abs(s3["ai"]["w"] - s0["ai"]["w"]) <= 2 and s3["ls"]["tw.aiSplit"] is None, (s0["ai"]["w"], s5["ai"]["w"], s3["ai"]["w"], s3["ls"]))
         pg.evaluate("() => { try { localStorage.removeItem('tw.aiSplit'); } catch (e) {} }")
 
     # ---------------------------------------------------------------- ④ 四種寬度：沒有溢出、沒有重疊（桌機展開與收合兩種狀態都掃）
@@ -19741,6 +19761,9 @@ SECTIONS = {
     # ★ 2026-10-03 Andy 三件（DECISIONS #303，⚠ 一律 --workers 1）：總覽三欄等高、本益比（每季）修畫壞（虧損季／極端值）、獲利分頁並排
     "個股總覽等高1003":    lambda pg, b, base, code: t_stock_ov_eq_1003(b, base, code),
     "獲利並排本益比1003":  lambda pg, b, base, code: t_profit_pe_1003(b, base, code),
+    # ★ 2026-10-03 Andy：「當重新整理後，全部圖表設定回 Default」—— 改設定 → 切頁還在 → 重新整理回預設；
+    #   主題／自選／手繪線／自訂週期保留；預覽版前綴（DECISIONS #304，⚠ 一律 --workers 1）
+    "重新整理回預設1003":  lambda pg, b, base, code: t_view_reset_1003(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -21490,12 +21513,20 @@ def t_stock_ai_0926(pg, base, code):
         s1 = pg.evaluate(AI_SNAP)
         ok("★ [AI分析] 技術面內容比內容區長 → 滾輪在區內捲（scrollTop 變大），頁面沒有跟著捲", s1["bodyTop"] > 0 and s1["sy"] == s0["sy"],
            (s0["bodyTop"], s1["bodyTop"], s0["sy"], s1["sy"]))
-    # ---------------------------------------------------------------- 選中的標籤重新整理後還在
+    # ---------------------------------------------------------------- ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）
+    #   改前：選「基本面」→ 重新整理後仍選基本面。改後：重新整理 → tw.aiTab／tw.aiOpen 被清掉，回到預設（收合、技術面）。
     click(pg, '#skAi .aitab[data-facet="fund"]', 350)
+    ok("[AI分析] 選「基本面」→ 寫進 localStorage（同一次瀏覽用）", pg.evaluate(AI_SNAP)["lt"] == "fund")
+    real_reload(pg, wait_ms=2200)
+    sr = pg.evaluate(AI_SNAP)
+    ok("★ [AI分析] 重新整理 → 回到預設（收合、技術面）、tw.aiTab／tw.aiOpen 被清掉（#304）",
+       sr["lt"] is None and sr["ls"] is None and not sr["open"] and [t["k"] for t in sr["tabs"] if t["on"]] == ["tech"],
+       (sr["lt"], sr["ls"], sr["open"], [t["k"] for t in sr["tabs"] if t["on"]]))
+    # 下面的收合／展開要從「展開、基本面」開始：照舊用布置的方式寫回去再載入一次（驗收後門開著，不會被清）
+    pg.evaluate("() => { localStorage.setItem('tw.aiOpen', '1'); localStorage.setItem('tw.aiTab', 'fund'); }")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
     s2 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 選「基本面」→ 重新整理後仍選基本面、內容區顯示基本面", s2["lt"] == "fund" and [t["k"] for t in s2["tabs"] if t["on"]] == ["fund"]
-       and s2["shown"] == ["fund"], (s2["lt"], s2["shown"]))
+    ok("[AI分析] 布置成「展開、基本面」（前提）", s2["open"] and s2["shown"] == ["fund"], (s2["open"], s2["shown"]))
     # ---------------------------------------------------------------- 收合／展開
     base_h = s2["rAi"]["h"]
     click(pg, "#aiTgl", 400)
@@ -21506,12 +21537,13 @@ def t_stock_ai_0926(pg, base, code):
        (s3["lineVis"], [t["t"] for t in s3["tabs"]], s3["shown"]))
     ok("[AI分析] 收合狀態寫進 localStorage（tw.aiOpen=0）、按鈕變「展開 ▾」", s3["ls"] == "0" and "展開" in (pg.evaluate("() => document.getElementById('aiTgl').innerText") or ""), s3["ls"])
     ok("[AI分析] 收合後 K 線頂端沒有往下掉", s3["rChart"]["t"] <= s2["rChart"]["t"] + 2, (s2["rChart"]["t"], s3["rChart"]["t"]))
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+    # ★ 2026-10-03（#304）：重新整理 → 收合是預設，所以畫面仍是收合；但 tw.aiOpen／tw.aiTab 都被清掉了
+    real_reload(pg, wait_ms=2200)
     s4 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 重新整理後仍是收合（真的記住）", not s4["open"] and s4["ls"] == "0", (s4["open"], s4["ls"]))
+    ok("★ [AI分析] 重新整理後是收合（預設就是收合）、tw.aiOpen 被清掉（#304）", not s4["open"] and s4["ls"] is None, (s4["open"], s4["ls"]))
     click(pg, "#aiTgl", 400)
     s5 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 再按「展開 ▾」→ 內容區回來、仍是剛才選的基本面", s5["open"] and s5["ls"] == "1" and s5["shown"] == ["fund"], (s5["open"], s5["ls"], s5["shown"]))
+    ok("★ [AI分析] 再按「展開 ▾」→ 內容區回來、是預設的技術面（基本面的選擇已隨重新整理清掉）", s5["open"] and s5["ls"] == "1" and s5["shown"] == ["tech"], (s5["open"], s5["ls"], s5["shown"]))
     click(pg, "#aiTgl", 400)
     # ★ 2026-10-02 改前：收合時按標籤＝直接展開看那一面 → 改後（#293，Andy「上方的 AI 分析只寫重點」）：
     #   收合（重點模式）的小標籤＝捲到下面「總覽」分頁裡那一張細節卡（#ovFacets），AI 區照舊收著；要看各週期細節按「展開」。
@@ -21851,16 +21883,19 @@ def t_stock_0926(pg, base, code):
     ok("[0926-①] 收起來後按鈕標成收合", pg.get_attribute("#indBtn", "aria-expanded") == "false")
     click(pg, "#indBtn", 450); pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
     ok("[0926-①] 按 Esc 也會關", not pg.evaluate(IND_POP_OPEN))
-    # 重新整理後記住（等圖真的畫好、副圖標題出來才讀，不然讀到的是「還沒畫」的空白 —— 那不是「記住了」）
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1200)
-    wait_until(pg, "() => /MACD\\(/.test((document.querySelector('#lwc .pane-labels') || {}).innerText || '')", 8000)
+    # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+    #   改前：重新整理後記住（KD 關、MACD 8,26,9）。改後：重新整理 → tw.kcfg 的指標設定整包清掉，回到預設「只開均線＋成交量」。
+    #   （等圖真的畫好才讀，不然讀到的是「還沒畫」的空白）
+    real_reload(pg, wait_ms=1200)
+    # 重新整理後週期回到預設「分時」（不是 K 線、沒有副圖）—— 要看指標副圖得先按「日」
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    wait_until(pg, "() => !!document.querySelector('#lwc canvas') && !!(window.Industry && window.Industry._dbg().paneH)", 8000)
+    pg.wait_for_timeout(600)
     p2 = pg.evaluate(DBG)["paneH"] or {}
-    ok("[0926-①] 重新整理後副圖都畫出來了（前提）", len(p2) >= 3, p2)
-    lab3 = pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''").replace(" ", "")
-    ok("★ [0926-①] 重新整理後 KD 還是關的（沒有 KD 副圖）", "kd" not in p2, p2)
-    ok("★ [0926-①] 重新整理後 MACD 還是 (8,26,9)", "MACD(8,26,9)" in lab3, lab3[-160:])
-    ok("[0926-①] 重新整理後清單裡 KD 沒勾、MACD 摘要是 8,26,9",
-       ind_on(pg, "kd") is False and "8,26,9" in text(pg, '#cfgPop .indrow[data-k="macd"] .isum'))
+    ok("★ [0926-①] 重新整理後回到預設：只有主圖＋成交量（KD、MACD 副圖都沒有，#304）", sorted(p2) == ["main", "vol"], p2)
+    ok("[0926-①] 重新整理後清單裡只勾均線＋成交量、tw.kcfg 沒有指標設定",
+       ind_on(pg, "kd") is False and ind_on(pg, "macd") is False
+       and not (pg.evaluate("() => { try { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); return c.macd || c.kd || null; } catch (e) { return 'ERR'; } }")))
     ind_close(pg)
     # 主圖上沒有 SMC 區塊與 BOS／CHoCH（舊 localStorage 帶著 smc:true 也一樣）
     pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.smc = true; c.marks = true;"
@@ -22051,10 +22086,12 @@ def t_stock_0926_tf(pg, base, code):
     ok("[0926晚-週期] 週期區的摘要跟著變（多了 15分）", "15分" in text(pg, "#tfSum"), text(pg, "#tfSum"))
     click(pg, '#tfSeg button[data-tf="15m"]', 900)
     ok("[0926晚-週期] 新出現的「15分」按得下去（選中、圖切到 15 分）", pg.evaluate(DBG)["tf"] == "15m")
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
-    ok("★ [0926晚-週期] 重新整理後週期列還有「15分」", "15m" in pg.evaluate(TFS), pg.evaluate(TFS))
-    ok("[0926晚-週期] 重新整理後下拉裡 15 分仍是勾的",
-       pg.evaluate("() => { const c = document.querySelector('#cfgPop .tfc[data-tf=\"15m\"] input'); return c ? c.checked : null; }") is True
+    # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+    #   改前：重新整理後週期列還有「15分」、下拉裡仍勾著。改後：週期勾選（tfOn）屬於檢視設定，重新整理回到預設那幾個。
+    real_reload(pg, wait_ms=2200)
+    ok("★ [0926晚-週期] 重新整理後週期列回到預設、「15分」不見了（#304）", "15m" not in pg.evaluate(TFS) and "1d" in pg.evaluate(TFS), pg.evaluate(TFS))
+    ok("[0926晚-週期] 重新整理後下拉裡 15 分沒勾",
+       pg.evaluate("() => { const c = document.querySelector('#cfgPop .tfc[data-tf=\"15m\"] input'); return c ? c.checked : null; }") is False
        if ind_open(pg) else False)
     # ---------------------------------------------------------------- ⑤ 取消目前的週期 → 自動切走
     ind_close(pg)
@@ -22593,6 +22630,28 @@ def t_wrap_r2(pg, base, code):
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+# ★ 2026-10-03「重新整理＝圖表設定回預設」（DECISIONS #304，site/viewreset.js）：
+#   正式站每次整頁載入都會清掉「圖表檢視設定」類的鍵。但這支驗收裡有幾百處是
+#   「先 localStorage.setItem 布置情境 → reload」（例如先寫 tw.dg3d='0' 讓剖析圖從 2D 開始），
+#   那些不是在驗「重新整理會不會記住」，只是在布置 —— 全部改寫不划算也容易改壞。
+#   所以預設替每一頁設 window.TW_KEEP_VIEW=true（viewreset.js 看到就不清）。
+#   要驗「真的重新整理」時用 real_reload(pg)：它先在 sessionStorage 放一次性的記號，
+#   這段開機腳本看到記號就**不設**後門、並把記號吃掉 → 那一次載入走正式站的清除流程，下一次又回到布置模式。
+#   環境變數 TW_UITEST_REALRESET=1 ＝ 整輪都不設後門（用來找「還在假設重新整理會記住」的舊斷言）。
+KEEPVIEW_PRESET = ("try{if(sessionStorage.getItem('__tw_real_reset')==='1'){sessionStorage.removeItem('__tw_real_reset');}"
+                   "else{window.TW_KEEP_VIEW=true;}}catch(e){window.TW_KEEP_VIEW=true;}")
+if os.environ.get("TW_UITEST_REALRESET") != "1":
+    CONSENT_PRESET += KEEPVIEW_PRESET
+
+
+def real_reload(pg, wait_until="networkidle", wait_ms=0):
+    """真的重新整理：這一次載入不設驗收後門，viewreset.js 照正式站的規則清掉圖表設定。"""
+    pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
+    pg.reload(wait_until=wait_until)
+    if wait_ms:
+        pg.wait_for_timeout(wait_ms)
+
+
 # ★ 2026-09-26 晚改前→改後（Andy：「先退回到有腳印那版本」）：
 #   改前：「顯示腳印」預設關，所以這裡有一條 FEET_PRESET 替每一段預寫 tw.rot.feet='1'（＝勾過腳印），
 #     讓既有幾十段驗腳印本身的段落（時鐘v2、足跡輪盤全部腳印、補間…）照舊看得到腳印。
@@ -36596,17 +36655,24 @@ def t_rot_dots_only(pg, b, base):
         ok("★ 勾掉「顯示腳印」→ 卡片只剩圓圈（0 腳印、0 條看得到的軌跡）", feet_n(st) == 0 and st["vis"] == 0 and st["n"] > 6,
            st and [st["vis"], feet_n(st), st["n"]])
         ok("勾掉之後記成 '0'", d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "0")
-        # 重新整理：'0' 仍然被尊重（使用者自己關的）
-        d.reload(wait_until="networkidle"); d.wait_for_timeout(2600)
-        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(600)
-        st = d.evaluate(CLK_STATE, "rotClock")
-        ok("★ 重新整理之後仍然是關的（勾選框不勾、0 個腳印）—— 使用者自己關的要記住",
-           d.evaluate(chk_js) is False and feet_n(st) == 0 and st["vis"] == 0, st and [d.evaluate(chk_js), feet_n(st)])
+        # 同一次瀏覽換頁：總覽小輪盤也只剩圓圈
         d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
         scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
         ms = d.evaluate(CLK_STATE, "rotClockMini")
         ok("關著時總覽小輪盤也只剩圓圈（兩張一致）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0,
            ms and [ms["vis"], feet_n(ms)])
+        # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+        #   改前：重新整理之後 '0' 仍然被尊重。改後：重新整理 → tw.rot.feet 被清掉、回到預設「勾選、有腳印」。
+        #   （這一頁的開機腳本是 CONSENT_PRESET，含驗收後門，所以要用 real_reload 才是正式站的重新整理）
+        d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(1500)
+        real_reload(d, wait_ms=2600)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(600)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("★ 重新整理之後回到預設：勾選框打勾、有腳印、tw.rot.feet 被清掉（#304）",
+           d.evaluate(chk_js) is True and feet_n(st) > 0 and d.evaluate("() => localStorage.getItem('tw.rot.feet')") is None,
+           st and [d.evaluate(chk_js), feet_n(st)])
+        # 再勾掉一次，下面「勾回來」照舊從關的狀態開始
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1200)
         # 勾回來 → 記 '1'、腳印回來；回總覽也跟上
         d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
         scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
@@ -38633,12 +38699,19 @@ def t_dg_2d3d(pg, base):
         pg.wait_for_timeout(900)
         m3 = pg.evaluate(DG_MODE)
         ok(f"{T} 換到 HBM 分頁：仍然是 2D（2D 亮、沒有 3D 畫布）", m3["tab"] == "hbm" and m3["on"] == ["2D"] and m3["svg"] and m3["canvas"] == 0, m3)
-        # 重新整理 → 仍是 2D
-        pg.reload(wait_until="networkidle")
+        # ★ 2026-10-03 改前→改後（#304「重新整理＝圖表設定回預設」）：
+        #   改前：（2D 時）重新整理 → 仍是 2D、tw.dg3d＝'0'。
+        #   改後：先切 3D 再重新整理 → 回到預設 2D、tw.dg3d 被清掉（從 3D 開始才看得出「回預設」不是「記住」）。
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 400)
+        wait_until(pg, "() => document.querySelectorAll('#prod3d canvas').length === 1", 12000)
+        m3b = pg.evaluate(DG_MODE)
+        ok(f"{T} 先切到 3D（前提）：3D 亮、tw.dg3d＝'1'", m3b["on"] == ["3D"] and m3b["ls"] == "1", m3b)
+        real_reload(pg)
         wait_until(pg, "() => { const s = document.getElementById('dg3d'); return !!s && !s.hidden; }", 8000)
         pg.wait_for_timeout(1200)
         m4 = pg.evaluate(DG_MODE)
-        ok(f"{T} 重新整理：仍然是 2D", m4["on"] == ["2D"] and m4["svg"] and m4["canvas"] == 0 and m4["ls"] == "0", m4)
+        # 載入時 tw.dg3d 被清掉 → 讀不到＝預設 2D；setMode(false) 會照舊寫回 '0'（那是「現在是 2D」的紀錄，不是上次的選擇）
+        ok(f"{T} 切 3D 後重新整理：回到預設 2D（#304）", m4["on"] == ["2D"] and m4["svg"] and m4["canvas"] == 0 and m4["ls"] in (None, "0"), m4)
         if width <= 820:
             ov = pg.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
             ok(f"{T} 分段鈕沒有撐出整頁橫向捲軸", ov <= 1, ov)
@@ -43124,6 +43197,246 @@ def t_profit_pe_1003(b, base, code):
     except Exception as ex:  # noqa: BLE001
         ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
     ctx.close()
+    ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
+
+# ===================================================================== 2026-10-03：重新整理＝圖表設定回預設（DECISIONS #304）
+VR_LS = """(ks) => { const o = {}; ks.forEach(k => { try { o[k] = localStorage.getItem(k); } catch (e) { o[k] = 'ERR'; } }); return o; }"""
+VR_STATE = """() => {
+  const on = (sel) => [...document.querySelectorAll(sel + ' button.on')].map(b => b.dataset.v || b.dataset.m || b.textContent.trim());
+  return { chip: on('#chipWin'), rev: on('#revView'), tfs: [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf),
+           theme: document.documentElement.getAttribute('data-theme') || 'dark',
+           shapes: (window.Industry && window.Industry._dbg) ? window.Industry._dbg().shapes : null,
+           view: window.TwView ? { skipped: window.TwView.skipped, cleared: window.TwView.cleared.slice() } : null }; }"""
+VR_SEASON_ON = "() => [...document.querySelectorAll('#seasonView button.on')].map(b => b.dataset.v)"
+VR_FEET = "() => { const c = document.querySelector('#rotTools input.rot-trail'); return c ? c.checked : null; }"
+
+
+def _vr_go(pg, h, wait=2400):
+    """站內換頁（只改 hash，不整頁載入 —— 跟使用者點導覽一樣）。"""
+    pg.evaluate("(h) => { location.hash = h; }", h)
+    pg.wait_for_timeout(wait)
+
+
+def _vr_tab(pg, t, ready, wait=1600):
+    click(pg, f'#stockTabs button[data-t="{t}"]', wait)
+    wait_until(pg, ready, 8000)
+
+
+VR_CHIP_READY = "() => document.querySelectorAll('#chipWin button').length >= 3"
+VR_REV_READY = "() => document.querySelectorAll('#revView button').length >= 2"
+VR_K_READY = "() => !!document.querySelector('#lwc canvas') && document.querySelectorAll('#tfSeg button').length > 3"
+
+
+def t_view_reset_1003(b, base, code):
+    """Andy 2026-10-03：「當重新整理後，全部圖表設定回 Default」。site/viewreset.js 在整頁載入時清掉圖表檢視設定。
+
+      ① 靜態：全站原始碼裡每一個 'tw.' 鍵都被 viewreset.js 分到「保留」或「重設」（沒分類＝紅燈，逼新設定的人決定）
+      ② 驗收後門自檢：一般 reload（有 TW_KEEP_VIEW）不清；real_reload 才清 —— 確定下面量到的是正式站的行為
+      ③ 真的操作改設定：籌碼區間「4 週」、營收「年度走勢」、指標 KD 開關、加一個自訂週期「3 日」、
+         輪動時鐘「顯示腳印」勾掉、季節性換檢視、總覽漲跌家數「上櫃」；
+         同時建立「要保留的」：切成淺色主題、自選加一檔、日 K 上畫一條線
+      ④ 同一次瀏覽切頁（hash 換頁）：設定都還在
+      ⑤ 重新整理：每一個圖表設定回到乾淨載入時的預設（畫面＋localStorage），
+         自訂週期、淺色主題、自選、手繪線都還在
+      ⑥ 預覽版前綴：正式站載入不碰 twpv:<名稱>: 的鍵；預覽版（preview_boot.js）載入只清自己前綴的、不碰正式站的鍵"""
+    T = "[重新整理回預設]"
+    errs: list[str] = []
+
+    # ---------------------------------------------------------------- ① 靜態：每個鍵都有分類
+    src = ""
+    for f in sorted(SITE.glob("*.js")) + sorted((SITE / "blocks").glob("*.js")) + sorted((SITE / "dg").glob("*.js")) + [SITE / "index.html"]:
+        src += f.read_text(encoding="utf-8") + "\n"
+    lits = sorted(set(re.findall(r"""['"`]((?:tw\.[A-Za-z0-9_.]+)|m3\.last\.)""", src)))
+    # 'tw.kcfg.vol' 只出現在註解裡（指 tw.kcfg 這包 JSON 的 vol 欄位），不是一個鍵
+    NOT_KEYS = {"tw.kcfg.vol"}
+    ctx = b.new_context(viewport={"width": 1440, "height": 1000})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
+        cls = pg.evaluate("(ks) => ks.map(k => [k, window.TwView.classify(k.endsWith('.') ? k + 'x' : k)])",
+                          [k for k in lits if k not in NOT_KEYS])
+        unk = [k for k, c in cls if c is None]
+        ok(f"{T} 全站 {len(cls)} 個 localStorage 鍵都分到「保留」或「重設」（沒分類的要去 site/viewreset.js 決定）", not unk, unk)
+        lists = pg.evaluate("() => ({ keep: TwView.KEEP.map(k => TwView.classify(k)), reset: TwView.RESET.map(k => TwView.classify(k)) })")
+        ok(f"{T} 保留清單與重設清單沒有互相吃到", all(c == "keep" for c in lists["keep"]) and all(c == "reset" for c in lists["reset"]), lists)
+        must_keep = ["tw.theme", "tw.theme4", "tw.watchlists", "tw.watch", "tw.watchcur", "tw.acct.tok", "tw.acct.user", "tw.perm",
+                     "tw.draw.2330.1d", "tw.draw.style", "tw.live.on", "tw.live.card.ovs", "tw.consent", "tw.livek.2026-10-01.2330"]
+        must_reset = ["tw.chipWin", "tw.revView", "tw.rot.feet", "tw.rot.days", "tw.season.view", "tw.udMkt", "tw.dg3d", "tw.dganim",
+                      "tw.aiSplit", "tw.aiTab", "tw.m3.tf", "tw.m3.sk.tab", "tw.mia.overview", "tw.sankey.day", "tw.peLineW", "tw.flowtopo.motion"]
+        c2 = pg.evaluate("(a) => [a[0].map(k => TwView.classify(k)), a[1].map(k => TwView.classify(k))]", [must_keep, must_reset])
+        ok(f"{T} 登入／自選／主題／手繪線／即時開關／資料快取一律保留", all(c == "keep" for c in c2[0]), dict(zip(must_keep, c2[0])))
+        ok(f"{T} 區間、週期、2D/3D、動畫、篩選、腳印、分頁籤、AI 分隔線一律重設", all(c == "reset" for c in c2[1]), dict(zip(must_reset, c2[1])))
+
+        # ---------------------------------------------------------------- ② 後門自檢
+        pg.evaluate("() => localStorage.setItem('tw.chipWin', '20')")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(400)
+        v = pg.evaluate("() => ({ s: TwView.skipped, ls: localStorage.getItem('tw.chipWin') })")
+        ok(f"{T} 驗收後門：一般 reload 不清（給其他段落布置情境用）", v["s"] is True and v["ls"] == "20", v)
+        real_reload(pg, wait_ms=400)
+        v = pg.evaluate("() => ({ s: TwView.skipped, ls: localStorage.getItem('tw.chipWin'), c: TwView.cleared })")
+        ok(f"{T} real_reload 走正式站流程：tw.chipWin 被清掉、TwView.cleared 記得它", v["s"] is False and v["ls"] is None and "tw.chipWin" in v["c"], v)
+
+        # ---------------------------------------------------------------- ③ 乾淨載入的預設
+        _vr_go(pg, f"#stock/{code}", 1200)
+        pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.draw.')).forEach(k => localStorage.removeItem(k));"
+                    " localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+        real_reload(pg)
+        wait_until(pg, VR_K_READY, 12000)
+        pg.wait_for_timeout(800)
+        kd0 = ind_on(pg, "kd"); ind_close(pg)
+        tf0 = pg.evaluate(VR_STATE)["tfs"]
+        _vr_tab(pg, "holders", VR_CHIP_READY)
+        chip0 = pg.evaluate(VR_STATE)["chip"]
+        _vr_tab(pg, "revenue", VR_REV_READY)
+        rev0 = pg.evaluate(VR_STATE)["rev"]
+        ok(f"{T} 乾淨載入的預設讀得到（籌碼區間、營收月／年、KD 開關、週期列）", bool(chip0) and bool(rev0) and kd0 is not None and len(tf0) >= 3,
+           {"chip": chip0, "rev": rev0, "kd": kd0, "tfs": tf0})
+
+        # ---------------------------------------------------------------- ③ 真的改設定
+        click(pg, '#revView button[data-v="y"]', 900)
+        _vr_tab(pg, "holders", VR_CHIP_READY)
+        click(pg, '#chipWin button[data-v="20"]', 1000)
+        _vr_tab(pg, "overview", VR_K_READY, 1200)
+        ind_toggle(pg, "kd", 900); kd1 = ind_on(pg, "kd"); ind_close(pg)
+        # 自訂週期（使用者建立的東西，要保留）
+        click(pg, "#tfAdd", 450)
+        pg.evaluate("() => { const n = document.getElementById('tfN'); if (n) { n.value = 3; n.dispatchEvent(new Event('input', { bubbles: true })); } }")
+        click(pg, "#tfOk", 1100)
+        tf1 = pg.evaluate(VR_STATE)["tfs"]
+        cust = [t for t in tf1 if t not in tf0]
+        ok(f"{T} 真的改了：KD 開關反過來、多一個自訂週期", kd1 is (not kd0) and len(cust) == 1, {"kd": [kd0, kd1], "cust": cust})
+        # 日 K 上畫一條線（手繪物件要保留）
+        click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+        pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
+        tools = pg.evaluate("[...document.querySelectorAll('#drawBar .dtool[data-t]')].map(b => b.dataset.t)")
+        tool = next((t for t in ("trend", "line", "ray", "rect") if t in tools),
+                    next((t for t in tools if t not in ("cursor", "erase", "text")), None))
+        r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+        if tool:
+            click(pg, f'#drawBar .dtool[data-t={tool}]', 250)
+            pg.mouse.move(r["x"] + r["w"] * 0.3, r["y"] + r["h"] * 0.3); pg.mouse.down()
+            pg.mouse.move(r["x"] + r["w"] * 0.5, r["y"] + r["h"] * 0.5, steps=6); pg.mouse.up(); pg.wait_for_timeout(400)
+            click(pg, '#drawBar .dtool[data-t=cursor]', 250)
+        sh1 = pg.evaluate(VR_STATE)["shapes"]
+        ok(f"{T} 日 K 上真的畫了一條線（工具 {tool}）", (sh1 or 0) >= 1, sh1)
+        # 自選加一檔、切淺色主題（要保留）
+        pg.evaluate("() => window.TwWatch && TwWatch.add('2303')")
+        dg_set_theme(pg, "light", 1200)
+        # 資金流向：輪動時鐘「顯示腳印」反過來
+        _vr_go(pg, "#flow", 2600)
+        wait_until(pg, "() => !!document.querySelector('#rotTools input.rot-trail')", 8000)
+        feet0 = pg.evaluate(VR_FEET)
+        pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(900)
+        # 季節性：換另一種檢視
+        _vr_go(pg, "#season", 2400)
+        wait_until(pg, "() => document.querySelectorAll('#seasonView button').length >= 2", 8000)
+        sea0 = pg.evaluate(VR_SEASON_ON)
+        alt = "line" if sea0 != ["line"] else "heat"
+        click(pg, f'#seasonView button[data-v="{alt}"]', 1200)
+        # 總覽：漲跌家數切「上櫃」
+        _vr_go(pg, "#overview", 2400)
+        wait_until(pg, "() => !!document.querySelector('#udMkt button[data-m=\"tpex\"]')", 8000)
+        scroll_to(pg, "breadth"); pg.wait_for_timeout(500)
+        ud0 = pg.evaluate(UD_PROBE)
+        ud1 = _ud_click_seg(pg, "tpex")
+        KEYS = ["tw.chipWin", "tw.revView", "tw.kcfg", "tw.rot.feet", "tw.season.view", "tw.udMkt"]
+        ls1 = pg.evaluate(VR_LS, KEYS)
+        ok(f"{T} 每個設定都真的寫進 localStorage（同一次瀏覽要用）",
+           ls1["tw.chipWin"] == "20" and ls1["tw.revView"] == "y" and bool(ls1["tw.kcfg"]) and ls1["tw.rot.feet"] == ("0" if feet0 else "1")
+           and ls1["tw.season.view"] == alt and ls1["tw.udMkt"] == "tpex", ls1)
+        ok(f"{T} 漲跌家數按上櫃 → 按鈕真的換", ud1["on"] == ["tpex"] and ud0["on"] != ["tpex"], (ud0["on"], ud1["on"]))
+
+        # ---------------------------------------------------------------- ④ 同一次瀏覽切頁：設定還在
+        _vr_go(pg, f"#stock/{code}", 2600)
+        _vr_tab(pg, "holders", VR_CHIP_READY)
+        s4 = pg.evaluate(VR_STATE)
+        ok(f"{T} 同一次瀏覽換頁回來：籌碼區間還是「4 週」（只有重新整理才回預設）", s4["chip"] == ["20"], s4["chip"])
+        _vr_go(pg, "#season", 2200)
+        sea4 = pg.evaluate(VR_SEASON_ON)
+        ok(f"{T} 同一次瀏覽換頁回來：季節性還是剛剛選的「{alt}」", sea4 == [alt], sea4)
+
+        # ---------------------------------------------------------------- ⑤ 重新整理 → 回預設，要保留的都還在
+        _vr_go(pg, f"#stock/{code}", 1500)
+        real_reload(pg)
+        wait_until(pg, VR_K_READY, 12000)
+        pg.wait_for_timeout(800)
+        s5 = pg.evaluate(VR_STATE)
+        ls5 = pg.evaluate(VR_LS, KEYS + ["tw.theme", "tw.watchlists"])
+        ok(f"{T} 重新整理：這次載入真的清了（TwView.cleared 含六個設定）", bool(s5["view"]) and not s5["view"]["skipped"]
+           and all(k in s5["view"]["cleared"] for k in KEYS), s5["view"])
+        ok(f"{T} 重新整理：籌碼／營收／腳印／季節性／漲跌家數的設定鍵都不見了",
+           all(ls5[k] is None for k in ["tw.chipWin", "tw.revView", "tw.rot.feet", "tw.season.view", "tw.udMkt"]), ls5)
+        kc = json.loads(ls5["tw.kcfg"] or "{}")
+        ok(f"{T} 重新整理：K 線設定只留下自訂週期（指標開關、參數、顏色、線寬全部回預設）",
+           list(kc.keys()) == ["tfs"] and bool(cust) and cust[0] in kc["tfs"], kc)
+        kd5 = ind_on(pg, "kd"); ind_close(pg)
+        ok(f"{T} 重新整理：KD 開關回到預設（{kd0}）", kd5 is kd0, [kd0, kd1, kd5])
+        ok(f"{T} 重新整理：自訂週期「{cust[0] if cust else '?'}」還在週期列上（使用者建立的不清）", bool(cust) and cust[0] in s5["tfs"], s5["tfs"])
+        ok(f"{T} 重新整理：淺色主題還在", s5["theme"] == "light" and ls5["tw.theme"] == "light", [s5["theme"], ls5["tw.theme"]])
+        ok(f"{T} 重新整理：自選清單還在（2303）", pg.evaluate("() => !!(window.TwWatch && TwWatch.has('2303'))"), ls5["tw.watchlists"])
+        click(pg, '#tfSeg button[data-tf="1d"]', 1400)
+        sh5 = pg.evaluate(VR_STATE)["shapes"]
+        ok(f"{T} 重新整理：日 K 上的手繪線還在", sh5 == sh1 and (sh5 or 0) >= 1, [sh1, sh5])
+        _vr_tab(pg, "revenue", VR_REV_READY)
+        rev5 = pg.evaluate(VR_STATE)["rev"]
+        _vr_tab(pg, "holders", VR_CHIP_READY)
+        chip5 = pg.evaluate(VR_STATE)["chip"]
+        ok(f"{T} 重新整理：籌碼區間回到預設 {chip0}（剛剛是 4 週）", chip5 == chip0 and chip5 != ["20"], [chip0, chip5])
+        ok(f"{T} 重新整理：營收回到預設 {rev0}（剛剛是年度走勢）", rev5 == rev0 and rev5 != ["y"], [rev0, rev5])
+        _vr_go(pg, "#flow", 2600)
+        wait_until(pg, "() => !!document.querySelector('#rotTools input.rot-trail')", 8000)
+        feet5 = pg.evaluate(VR_FEET)
+        ok(f"{T} 重新整理：輪動時鐘「顯示腳印」回到預設（{feet0}）", feet5 is feet0, [feet0, feet5])
+        _vr_go(pg, "#season", 2400)
+        wait_until(pg, "() => document.querySelectorAll('#seasonView button').length >= 2", 8000)
+        sea5 = pg.evaluate(VR_SEASON_ON)
+        ok(f"{T} 重新整理：季節性回到預設 {sea0}", sea5 == sea0, [sea0, alt, sea5])
+        _vr_go(pg, "#overview", 2400)
+        wait_until(pg, "() => !!document.querySelector('#udMkt button.on')", 8000)
+        scroll_to(pg, "breadth"); pg.wait_for_timeout(500)
+        ud5 = pg.evaluate(UD_PROBE)
+        ok(f"{T} 重新整理：漲跌家數回到預設 {ud0['on']}（長條也一樣）", ud5["on"] == ud0["on"] and ud5["vals"] == ud0["vals"], [ud0["on"], ud5["on"]])
+    finally:
+        ctx.close()
+
+    # ---------------------------------------------------------------- ⑥ 預覽版前綴
+    raw = getattr(type(b), "_tw_raw_new_context", None)
+    ctx = raw(b, viewport={"width": 1280, "height": 900}) if raw else b.new_context(viewport={"width": 1280, "height": 900})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append("預覽: " + str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        # 只預寫同意條款，不設驗收後門 —— 這一段量的是正式站與預覽版真正的載入流程
+        pg.add_init_script(CONSENT_PRESET.replace(KEEPVIEW_PRESET, ""))
+        pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(400)
+        pg.evaluate("""() => { localStorage.setItem('tw.rot.days', '7'); localStorage.setItem('tw.theme', 'light');
+            localStorage.setItem('twpv:uit:tw.rot.days', '5'); localStorage.setItem('twpv:uit:tw.theme', 'light');
+            localStorage.setItem('twpv:uit:tw.consent', localStorage.getItem('tw.consent') || '{}'); localStorage.setItem('twpv:uit:tw.tour', '*'); }""")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(400)
+        g = pg.evaluate(VR_LS, ["tw.rot.days", "tw.theme", "twpv:uit:tw.rot.days", "twpv:uit:tw.theme"])
+        ok(f"{T} 正式站重新整理：清掉自己的 tw.rot.days、不碰預覽版的 twpv:uit:*", g["tw.rot.days"] is None and g["tw.theme"] == "light"
+           and g["twpv:uit:tw.rot.days"] == "5" and g["twpv:uit:tw.theme"] == "light", g)
+        boot = (ROOT / "scripts" / "preview_boot.js").read_text(encoding="utf-8")
+        pg.add_init_script("window.TW_PREVIEW = { name: 'uit' };\n" + boot)
+        pg.evaluate("() => localStorage.setItem('tw.rot.days', '7')")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(600)
+        # 頁面裡的 localStorage 已經被 preview_boot.js 換成加前綴的殼，讀不到真正的鍵 → 從瀏覽器的儲存狀態直接讀
+        real = {}
+        for o in (ctx.storage_state().get("origins") or []):
+            if base.startswith(o.get("origin", "\0")):
+                real = {e["name"]: e["value"] for e in o.get("localStorage", [])}
+        g2 = pg.evaluate("""() => ({ theme: document.documentElement.getAttribute('data-theme'),
+                                     inPv: localStorage.getItem('tw.theme'), banner: !!window.TW_PREVIEW,
+                                     cleared: window.TwView ? window.TwView.cleared : null })""")
+        g2.update({"prod": real.get("tw.rot.days"), "pvDays": real.get("twpv:uit:tw.rot.days"), "pvTheme": real.get("twpv:uit:tw.theme")})
+        ok(f"{T} 預覽版重新整理：清掉 twpv:uit:tw.rot.days、預覽版的淺色主題留著、正式站的 tw.rot.days 不動",
+           g2["pvDays"] is None and g2["pvTheme"] == "light" and g2["theme"] == "light" and g2["prod"] == "7"
+           and "tw.rot.days" in (g2["cleared"] or []), g2)
+    finally:
+        ctx.close()
     ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
 
 if __name__ == "__main__":
