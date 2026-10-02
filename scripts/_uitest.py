@@ -285,6 +285,45 @@ def _dg_mouse_click(pg, sel: str, wait: int = 300):
     return True
 
 
+def theme_flip(pg, wait: int = 300):
+    """真的用滑鼠切一次明暗。
+
+    ★ 2026-10-03 版面 V2 第三批（Andy：「登入模式可以參考圖三下方」）：電腦版（>820，掛 l4）的 ☀ 鈕（#themeBtn）
+    改成左欄底部的「淺色｜深色」二段式切換（#l4Mode），#themeBtn 藏起來（DOM 留著，二段式按下去其實就是去按它）。
+    所以這裡：看得到 #l4Mode 就點「不是目前那一邊」的那顆；看不到（≤820、或沒掛新版面）照舊點 #themeBtn。
+    兩條路最後都是 app.js 的 applyTheme(…, true)，斷言（底色、圖表重畫、localStorage）一個字都不用改。
+    """
+    if pg.evaluate("() => { const m = document.getElementById('l4Mode'); return !!m && m.getClientRects().length > 0; }"):
+        other = "dark" if pg.evaluate("() => document.documentElement.getAttribute('data-theme')") == "light" else "light"
+        click(pg, f"#l4Mode [data-l4m='{other}']", wait)
+    else:
+        click(pg, "#themeBtn", wait)
+
+
+L4_SUB_KEY = {"rot": "flow-rotation", "sankey": "flow-sankey", "inst": "flow-inst", "conc": "flow-inst",
+              "industry": "heat-industry", "theme": "heat-theme"}
+
+
+def l4_sub(pg, sub: str, wait: int = 1200) -> bool:
+    """電腦版子分頁：要操作的卡在別的子分頁時，先**真的點側欄那一格**切過去。
+
+    ★ 2026-10-03 版面 V2（Andy：「資金流向」拆成 ①資金輪動 ②資金去向 ③族群×法人＋資金集中度、「熱力圖」拆成 產業／題材）：
+    電腦版（掛 l4）同一時間只看得到一個子分頁的卡，其他子分頁的卡 display:none、而且還沒畫（露出來才畫）。
+    既有段落裡依賴「同一頁有全部四張卡」的地方，改成先呼叫這支切到那張卡所在的子分頁再驗 —— 斷言本身一個字都不改。
+    sub 用卡的短名：rot／sankey／inst（＝conc）／industry／theme，或直接給 data-l4sub（flow-rotation…）。
+    ≤820（手機版暫停）沒有子分頁：什麼都不做、回 False，舊的路照走。
+    """
+    k = L4_SUB_KEY.get(sub, sub)
+    need = pg.evaluate("""(k) => !!document.querySelector(`.l4subtab[data-l4sub="${k}"]`)
+        && document.documentElement.getAttribute('data-l4sub') !== k""", k)
+    if not need:
+        return False
+    pg.locator(f'.l4subtab[data-l4sub="{k}"]').click(timeout=6000)
+    wait_until(pg, f"() => document.documentElement.getAttribute('data-l4sub') === '{k}' ? 1 : 0", 5000)
+    pg.wait_for_timeout(wait)
+    return True
+
+
 def click_moving(pg, sel: str, wait: int = 300):
     """點一個「一直在動」的東西（會飄的剖析圖零件）。
 
@@ -1958,11 +1997,14 @@ def t_market(pg, base):
 def t_flow(pg, base):
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2200)
     # 2026-09-18（Andy 圖四）：名次變化整張拿掉，那一格改放輪動時鐘
+    # 2026-10-03 電腦版拆子分頁：每張先切到它所在的子分頁（l4_sub）再驗
+    _FSUB = {"rankFlow": "rot", "rotClock": "rot", "sankey": "sankey", "instGroups": "inst", "conc": "inst"}
     for cid, name in (("rankFlow", "資金流向排行"), ("rotClock", "足跡輪盤"),
                       # 2026-09-20：族群佔比河流（#river）已依 Andy 指示整張移除
                       ("sankey", "資金去向"),
                       # ★ 2026-09-23 D3：估值散布圖（`#valScatter`）隨「估值篩選」整張卡一起移除
                       ("instGroups", "族群 × 法人"), ("conc", "資金集中度")):
+        l4_sub(pg, _FSUB[cid], 1800)
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty'), msg: ((e.querySelector('.empty')||{{}}).textContent||'').trim() }} : null; }}")
         # 法人比價量晚一輪落地（價量 15:30、法人 18:30）：當天下午「本週」那一段本來就還沒有法人。
         # 那時不該畫圖，但要**講清楚為什麼**，所以接受「有解釋的空狀態」，不接受空白或制式的一句話。
@@ -1970,6 +2012,7 @@ def t_flow(pg, base):
                    and "還沒出" in has["msg"] and "18:30" in has["msg"])
         ok(f"資金流向「{name}」有畫出來（或說清楚為什麼還沒有）",
            bool(has) and ((has["canvas"] and not has["empty"]) or excused), has)
+    l4_sub(pg, "rot")
 
     # --- ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）
     #     原本這裡驗的是那一列期間鈕（本週／上週／…／近三月）。那張卡整個拿掉了，
@@ -2008,7 +2051,9 @@ def t_flow(pg, base):
     rot_seek(pg, 0, 700)          # 回放回到最新
     for v in (5, 20, 30):
         # ★ 2026-09-24：排行的天數＝足跡輪盤那支單一拉Bar「N 天前」（`rot_span`）
+        l4_sub(pg, "rot", 600)
         rot_span(pg, v, 900)
+        l4_sub(pg, "inst", 900)          # 族群×法人在 ③：切過去才拉得到、才畫得出來（排行的副標與圖不會因為藏起來而消失）
         set_range(pg, "#instDays input[type=range]", v, 900)
         seenb[v] = snap()
         ok(f"拉到 {v} 天：排行圖有畫出來", seenb[v]["rank"], seenb[v])
@@ -2031,6 +2076,7 @@ def t_flow(pg, base):
            return y.some(v => /[↑↓]/.test(String(v))); }"""))
     # ★ 2026-09-20：原本這裡會把期間切回「本週」，讓後面幾段從乾淨狀態開始。
     #   期間卡拿掉之後改成把兩支拉 Bar 復位 —— 用意一樣，都是不要把狀態留給下一段。
+    l4_sub(pg, "rot", 600)
     rot_span(pg, 20, 600)          # ★ 2026-09-24：排行的天數＝單一拉Bar「N 天前」
 
     # --- 每張圖的「怎麼看」：按下去要真的展開白話說明，再按要收起來
@@ -2053,6 +2099,7 @@ def t_flow(pg, base):
         #   先把前一顆可能還開著的跳出說明關掉，再用 instant 捲到畫面中間才點（和 _pop_cycle 同一套）
         if pg.evaluate("() => { const p = document.getElementById('howPop'); return !!p && !p.hidden; }"):
             pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+        l4_sub(pg, h if h in L4_SUB_KEY else "rot", 600)     # 2026-10-03：問號鈕在它那張卡的子分頁裡
         pg.eval_on_selector(f'#v-flow .howbtn[data-how="{h}"]', "b => b.scrollIntoView({block:'center', behavior:'instant'})")
         pg.wait_for_timeout(200)
         click(pg, f'#v-flow .howbtn[data-how="{h}"]', 400)
@@ -2075,6 +2122,7 @@ def t_flow(pg, base):
     #     移除本身就是需求，要有人守，不是刪掉不管。
     #     四個階段的資訊沒有消失：它搬到時鐘上的四顆象限卡（`.rotquads .rq`），
     #     那一整組的真人操作驗收在新的 `批次30-兩層下拉與象限卡` 段落。
+    l4_sub(pg, "rot", 600)
     gone_rot = pg.evaluate("() => ['rotBoard','rotCycle','rotMove'].filter(id => !!document.getElementById(id))")
     ok("W7：舊的輪動階段看板／循環列／換階段那一排三塊都不在 DOM 了", gone_rot == [], gone_rot)
     ok("W7：四個階段搬到時鐘上的象限卡，而且剛好四顆",
@@ -2171,6 +2219,7 @@ def t_flow(pg, base):
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1800)
 
     # --- 資金集中度：前 5 / 前 10 切換要真的換一條線
+    l4_sub(pg, "inst", 1500)
     concs = pg.evaluate("[...document.querySelectorAll('#concSeg button')].map(b => b.dataset.v)")
     if len(concs) >= 2:
         name0 = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('conc')); return c ? c.getOption().series[0].name : null; }")
@@ -2203,6 +2252,7 @@ def t_flow(pg, base):
     #      那正是他要求換掉的東西，留著只會每天報一次假紅燈。
     # ★ 2026-09-24：桌機預設改成拓撲版（flowtopo.js，由「資金去向拓撲」那段驗），
     #   這裡驗的是經典版（手機與「經典版」鈕仍在用的 ECharts 樹），所以先切過去、驗完切回來。
+    l4_sub(pg, "sankey", 1500)
     sk_classic(pg, True)
     sk = pg.evaluate("""() => { const el = document.getElementById('sankey'); if (!el) return null;
         const c = echarts.getInstanceByDom(el); if (!c) return null;
@@ -2244,6 +2294,7 @@ def t_flow(pg, base):
     # ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）：下限 0 → 1。
     #   0 以前代表「跟著上方期間走」，期間卡拿掉之後那個值沒有意義了，
     #   留著只會讓人拉到一個什麼都不會發生的位置。
+    l4_sub(pg, "inst", 1500)
     ib = pg.evaluate("""() => { const i = document.querySelector('#instDays input[type=range]');
         return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
     ok("族群×法人有天數拉 Bar", bool(ib), ib)
@@ -2269,6 +2320,7 @@ def t_flow(pg, base):
     #     `sb` 會是 None，五條一起紅。他當初要的「不要方方角角、看得出是一個循環」並沒有消失，
     #     它換了載體：四顆象限卡直接排在時鐘的四個象限上（時鐘本身就是那個循環）。
     #     所以改成量**新載體**上的同一件事，而且量的是 computed style 不是 class。
+    l4_sub(pg, "rot", 900)
     sb = pg.evaluate("""() => { const qs = [...document.querySelectorAll('#rotClock .rotquads .rq')];
         if (!qs.length) return null;
         const cs = qs.map(q => getComputedStyle(q));
@@ -2287,9 +2339,10 @@ def t_flow(pg, base):
     ok("四顆象限卡都落在時鐘的矩形裡（不是飄在圖外面）", bool(sb) and sb["inside"] == 4, sb)
     ok("象限卡的字 ≥ 11px（手機也讀得到）", bool(sb) and sb["minFs"] >= 11, sb)
 
-    for w, lb in (("rankFlowWrap", "資金流向排行"),
-                  ("rotClockWrap", "輪動時鐘"), ("sankeyWrap", "資金去向"),
-                  ("instGroupsWrap", "族群 × 法人")):
+    for w, lb, sb_ in (("rankFlowWrap", "資金流向排行", "rot"),
+                       ("rotClockWrap", "輪動時鐘", "rot"), ("sankeyWrap", "資金去向", "sankey"),
+                       ("instGroupsWrap", "族群 × 法人", "inst")):
+        l4_sub(pg, sb_, 900)
         check_nozoom(pg, w, lb)
 
 
@@ -4713,6 +4766,7 @@ def _sk_native_tree(pg, base, on: bool = True):
         pg.set_viewport_size({"width": 1500, "height": 1000})
         pg.goto("about:blank")
         pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        l4_sub(pg, "sankey", 1800)       # 2026-10-03 電腦版：資金去向在 ②
         sk_classic(pg, True)
 
 
@@ -4729,6 +4783,7 @@ def t_new_flow(pg, base):
     pg.goto(f"{base}#overview", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.sankey.day'); } catch (e) {} }")
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    l4_sub(pg, "sankey", 1800)           # 2026-10-03 電腦版：資金去向在 ②（資金流向拆子分頁）
     # ★ 2026-09-24：桌機預設是拓撲版（「資金去向拓撲」那段驗）；這一段整段驗經典版的 ECharts 樹
     #   （手機與「經典版」鈕仍在用），所以先切過去，最後切回拓撲版。
     sk_classic(pg, True)
@@ -4951,6 +5006,7 @@ def t_new_flow(pg, base):
     # ★ 2026-09-24：改前是區間桿的左把手（input.lo）→ 改後是單一拉Bar「N 天前」（input.days）
     ok("排行的天數拉Bar 還在（拿掉的只有播放，搬家不等於拿掉）",
        pg.evaluate("() => !!document.querySelector('#rotBack input.days')"))
+    l4_sub(pg, "rot", 1500)              # 2026-10-03 電腦版：④⑤ 在資金輪動那張卡（①）
     rot_seek(pg, 0, 700)
     rot_span(pg, 20, 900)
     sub0 = text(pg, "#rankSub")
@@ -5040,6 +5096,7 @@ def t_new_flow(pg, base):
     # 驗的是畫面真的因此改變：面板真的開、列出的檔數 > 0、**真的照成交值由大到小**
     #（讀 data-tv 的數值比大小，不是看有沒有 render）、而且清單真的捲得動。
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    l4_sub(pg, "sankey", 1800)           # 2026-10-03 電腦版：資金去向在 ②
     SKP = """() => { const b = document.getElementById('sankeyPanel');
         if (!b || b.hidden) return null; const ms = b.querySelector('.ms'); if (!ms) return null;
         const tv = [...ms.querySelectorAll('a')].map(a => +a.dataset.tv);
@@ -5150,6 +5207,7 @@ def t_new_flow(pg, base):
     # 即時模式的佔比真的加總到 100%、自動桶真的被標成盤後。
     pg.goto(f"{base}#flow", wait_until="networkidle")
     pg.wait_for_timeout(2800)
+    l4_sub(pg, "sankey", 1800)           # 2026-10-03 電腦版：資金去向在 ②
     pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
     pg.wait_for_timeout(300)
 
@@ -5462,6 +5520,7 @@ def t_new_flow(pg, base):
                                           && d.itemStyle.opacity < 0.5).length; }"""
     IDD = '.ddrow[data-for="instGroups"]'
     # 族群×法人在頁面下方，畫得比較晚（忙的時候超過 3 秒）：先捲過去、等那一排下拉真的出現再量
+    l4_sub(pg, "inst", 1500)             # 2026-10-03 電腦版：族群×法人在 ③
     pg.evaluate("() => { const e = document.getElementById('flowInstCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
     wait_until(pg, f"() => document.querySelectorAll('{IDD} .rotdd[data-dd=group] [data-g]').length > 1", 8000)
     ig = pg.evaluate(f"""() => [...document.querySelectorAll('{IDD} .rotdd[data-dd="group"] [data-g]')]
@@ -7062,7 +7121,10 @@ def t_themes(pg, base):
     ok("題材資金熱力與題材細節都搬進熱力圖分頁", st["inHeat"], st)
     ok("題材那一塊放在全市場熱力圖**下面**", st["order"] is True, st)
     ok("題材熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
-    ok("全市場熱力圖也還在（合併不是取代）", pg.evaluate("() => !!document.querySelector('#indTree canvas')"))
+    # 2026-10-03 電腦版：熱力圖拆成「產業／題材」子分頁，全市場熱力圖在「產業」—— 這條挪到 ③ 前面切過去驗（這裡切會多一筆歷史，上一頁那條就驗不準）
+    _heat_sub = pg.evaluate("() => !!document.querySelector('.l4subtab[data-l4sub=\"heat-industry\"]')")
+    if not _heat_sub:
+        ok("全市場熱力圖也還在（合併不是取代）", pg.evaluate("() => !!document.querySelector('#indTree canvas')"))
     tm = pg.evaluate("() => { const r = document.getElementById('themeMapCard').getBoundingClientRect(); return { t: Math.round(r.top), vh: innerHeight }; }")
     ok("從舊網址進來會捲到題材那一塊（不然只看得到上面那張全市場熱力圖，會以為連結壞了）",
        0 <= tm["t"] <= tm["vh"] * 0.5, tm)
@@ -7076,6 +7138,11 @@ def t_themes(pg, base):
     ok("還沒選題材時，細節區寫著怎麼用（點方塊展開剖析圖）",
        "點「題材資金熱力」" in text(pg, "#themeDetail") and count(pg, "#themeDiagram") == 0,
        text(pg, "#themeDetail")[:60])
+
+    if _heat_sub:
+        l4_sub(pg, "industry", 2200)
+        ok("全市場熱力圖也還在（合併不是取代；電腦版在「產業」子分頁）", pg.evaluate("() => !!document.querySelector('#indTree canvas')"))
+        l4_sub(pg, "theme", 1500)
 
     # ---- ③ 真的用滑鼠點熱力方塊 → 下方就地展開那個題材，不離開這一頁、上面那張 treemap 不重畫
     before = text(pg, "#themeDetail")[:60]
@@ -7455,7 +7522,7 @@ def t_stock(pg, base, code):
         ok("「填滿」真的寫進 localStorage", st2["ls"] == "fill", st2)
         ok("說明文字跟著換成填滿的讀法", "填滿" in st2["note"], st2["note"][-60:])
 
-        # B2 透明度：拉了之後圖要變，而且值要留下來（同一次瀏覽換股票還在；2026-10-03 起重新整理回預設，見 #306）
+        # B2 透明度：拉了之後圖要變，而且值要留下來（同一次瀏覽換股票還在；2026-10-03 起重新整理回預設，見 #307）
         o0 = canvas_hash(pg, "#peChart")
         pg.evaluate("""() => { const s = document.getElementById('peOpa');
             s.value = s.value === '100' ? '20' : '100';
@@ -8385,6 +8452,7 @@ def t_batch3(pg, base):
     """批次3（Andy 2026-09-18 圖六／七／八／資金集中度）的真人操作驗收。"""
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    l4_sub(pg, "inst", 1800)             # 2026-10-03 電腦版：族群×法人＋資金集中度在 ③
 
     # ---- 圖八：族群 × 法人的「截止日」回放
     if pg.evaluate("() => !!document.querySelector('#instEnd input[type=range]')"):
@@ -8444,7 +8512,7 @@ def t_batch3(pg, base):
             return { open: !!b && !b.hidden, gs: document.querySelectorAll('#concGs button').length,
                      hash: location.hash }; }""")
         ok("點集中度圖的某一天，旁邊列出那天的族群", st["open"] and st["gs"] > 0, st)
-        ok("點某一天不會跳頁", st["hash"] == "#flow", st["hash"])
+        ok("點某一天不會跳頁", st["hash"] in ("#flow", "#flow/inst"), st["hash"])   # 2026-10-03 電腦版在 ③ 子分頁
         if st["gs"]:
             pg.eval_on_selector("#concGs button", "b => b.click()")
             pg.wait_for_timeout(1200)
@@ -8453,7 +8521,7 @@ def t_batch3(pg, base):
                 hash: location.hash })""")
             ok("點族群會原地展開那天的成分股（或明講那天沒留）",
                st2["ms"] > 0 or st2["empty"], st2)
-            ok("點族群不會跳頁（只有股票才連個股頁）", st2["hash"] == "#flow", st2["hash"])
+            ok("點族群不會跳頁（只有股票才連個股頁）", st2["hash"] in ("#flow", "#flow/inst"), st2["hash"])
 
     # ---- 圖七B：個股頁本益比河流的區間拉Bar，而且滾輪放大不能因此失效
     pg.goto(f"{base}#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -11439,7 +11507,7 @@ def t_theme(pg, base):
     # ECharts 的畫布本身是透明的，換主題後像素差異很小；改成驗「實例真的被重建」
     heat0 = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('heat')); return i ? i.id : ''; }")
 
-    click(pg, "#themeBtn", 1800)
+    theme_flip(pg, 1800)
     ok("切過去之後 data-theme 真的是 light",
        pg.evaluate("() => document.documentElement.getAttribute('data-theme')") == "light")
     bg1 = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
@@ -11488,7 +11556,7 @@ def t_theme(pg, base):
     ok("明亮主題下 K 線圖底色是亮的",
        pg.evaluate("""() => { const c = getComputedStyle(document.getElementById('lwc')).backgroundColor;
            const m = c.match(/\\d+/g) || [0,0,0]; return (+m[0]+ +m[1]+ +m[2])/3 > 200; }"""))
-    click(pg, "#themeBtn", 2500)
+    theme_flip(pg, 2500)
     ok("切回深色", pg.evaluate("() => window.App.theme()") == "dark")
     k1 = canvas_hash(pg, "#lwc")
     changed("個股 K 線真的跟著重畫", k0, k1)
@@ -13799,7 +13867,7 @@ def t_chain_fold(pg, base):
         ok(f"點標籤 {code} → 右側資訊欄打開", bool(box) and box["w"] > 100 and box["h"] > 40, box)
         tip = pg.evaluate(f"() => {{ const t = document.querySelector('#chainMap .co.chip[data-code=\"{code}\"] title'); return t ? t.textContent : ''; }}")
         ok("滑過標籤的提示有價格與漲跌（%）", "%" in tip and code in tip, tip)
-    # ---- ★ 2026-10-03 改前→改後（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #306）：
+    # ---- ★ 2026-10-03 改前→改後（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #307）：
     #   改前：重新整理之後記得「全部展開」／「全部收合」。
     #   改後：同一次瀏覽換頁仍記得（tw.chainFold 照寫），**重新整理一律回到預設的全部收合**、鍵被清掉。
     click(pg, '#chainMap .foldbar [data-fold="none"]', 700)
@@ -13809,7 +13877,7 @@ def t_chain_fold(pg, base):
     wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
     pg.wait_for_timeout(500)
     e = pg.evaluate(CF_STATE, None)
-    ok("★ 重新整理之後回到預設「全部收合」、tw.chainFold 被清掉（#306）",
+    ok("★ 重新整理之後回到預設「全部收合」、tw.chainFold 被清掉（#307）",
        e["cards"] == 0 and e["chips"] == s0["chips"] and e["ls"] is None, e)
 
 
@@ -15394,17 +15462,17 @@ def t_ud_market(pg, base):
        [x + y for x, y in zip(a1["vals"], a2["vals"])] == a0["vals"], (a1["vals"], a2["vals"], a0["vals"]))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     ok("清單按 Esc 收得起來", pg.evaluate("() => document.getElementById('udPanel').hidden"))
-    # ---- ★ 2026-10-03 改前→改後（DECISIONS #306「重新整理＝圖表設定回預設」）：
+    # ---- ★ 2026-10-03 改前→改後（DECISIONS #307「重新整理＝圖表設定回預設」）：
     #   改前：重新整理 → 記得上櫃。改後：重新整理 → 回到預設「全部」，tw.udMkt 被清掉。
     real_reload(pg, wait_ms=1600)
     scroll_to(pg, "breadth"); pg.wait_for_timeout(800)
     a3 = pg.evaluate(UD_PROBE)
-    ok("★ 重新整理 → 回到預設「全部」（按鈕、長條、共 N 檔都跟一開始一樣，#306）",
+    ok("★ 重新整理 → 回到預設「全部」（按鈕、長條、共 N 檔都跟一開始一樣，#307）",
        a3["on"] == ["all"] and a3["total"] == a0["total"] and a3["vals"] == a0["vals"] and a3.get("ls") in (None, ""), a3)
     # ---- 切回全部：完整還原
     a4 = _ud_click_seg(pg, "all")
     ok("★ 按全部 → 長條與共 N 檔還原成一開始的樣子", a4["vals"] == a0["vals"] and a4["total"] == a0["total"] and a4["pill"] == a0["pill"], (a4["total"], a0["total"]))
-    # ★ 2026-10-03（#306）：重新整理後本來就是「全部」，再按一次全部不會寫 localStorage（沒有改變）——讀不到也算對
+    # ★ 2026-10-03（#307）：重新整理後本來就是「全部」，再按一次全部不會寫 localStorage（沒有改變）——讀不到也算對
     ok("按全部 → localStorage 是 all 或沒寫（已經是預設的全部）", a4["ls"] in ("all", None), a4["ls"])
     # 「?」說明寫出三組的家數
     pg.eval_on_selector('button.howbtn[data-how="breadth"]', "b => b.click()"); pg.wait_for_timeout(500)
@@ -15903,10 +15971,10 @@ def t_stock_tabs0926(pg, base, code):
         ip3 = next((p for p in b["charts"]["instChart"]["pts"] if p["name"] == "外資"), None)
         ok(f"【{tag}】{c} 4 週的法人柱數＝視窗內法人資料天數（{len(iv3)}）", bool(ip3) and len(ip3["dates"]) == len(iv3), [ip3 and len(ip3["dates"]), len(iv3)])
         if c == code:
-            # ★ 2026-10-03 改前→改後（#306）：改前「重新整理 → 記得 4 週」；改後「重新整理 → 回到預設 3 個月」
+            # ★ 2026-10-03 改前→改後（#307）：改前「重新整理 → 記得 4 週」；改後「重新整理 → 回到預設 3 個月」
             pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
             d = probe_all(c)
-            ok(f"★【{tag}】重新整理後回到預設「3 個月」（三頁都是，#306）", d["on"] == ["3 個月"] and all(v["n"] == n0 for v in d["charts"].values()),
+            ok(f"★【{tag}】重新整理後回到預設「3 個月」（三頁都是，#307）", d["on"] == ["3 個月"] and all(v["n"] == n0 for v in d["charts"].values()),
                {"on": d["on"], "n": {k: v["n"] for k, v in d["charts"].items()}})
             click(pg, '#stockTabs button[data-t="inst"]', 1200)
             click(pg, '#chipWin button[data-v="250"]', 1200)
@@ -16147,11 +16215,11 @@ def t_stock_quarter_audit0927(pg, base, code):
        b.get("mode") == "y" and len(b.get("x") or []) == len(pf.get("yearly") or []) and b.get("ttl") == "年度明細"
        and b.get("rows") == len(pf.get("yearly") or []) and b.get("ls") == "y", b)
     changed(f"【{tag}】按「年」之後 EPS 圖真的重畫", h0, canvas_hash(pg, "#profitChart"))
-    # ★ 2026-10-03 改前→改後（#306）：改前「重新整理後仍是年」；改後「重新整理回到預設季、tw.profitMode 被清掉」
+    # ★ 2026-10-03 改前→改後（#307）：改前「重新整理後仍是年」；改後「重新整理回到預設季、tw.profitMode 被清掉」
     pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
     goto(c, "profit")
     r5 = pg.evaluate(PX) or {}
-    ok(f"【{tag}】重新整理後回到預設「季」（#306）", r5.get("mode") == "q" and r5.get("ls") is None, {"mode": r5.get("mode"), "ls": r5.get("ls")})
+    ok(f"【{tag}】重新整理後回到預設「季」（#307）", r5.get("mode") == "q" and r5.get("ls") is None, {"mode": r5.get("mode"), "ls": r5.get("ls")})
     click(pg, '#profitMode button[data-v="q"]', 800)
     ok(f"【{tag}】切回「季」", (pg.evaluate(PX) or {}).get("mode") == "q")
 
@@ -16392,8 +16460,8 @@ def t_design_v4(b, base, code):
     ok("③ 重整後面板標的是親和休閒", pg.evaluate("() => document.querySelector('#t4Pop .t4o[data-t4=\"casual\"]').getAttribute('aria-pressed') === 'true'"))
     pg.mouse.click(700, 600); pg.wait_for_timeout(300)
     ok("③ 點面板外面會收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
-    click(pg, "#themeBtn", 1400)
-    ok("③ 頂欄 ☀ 鈕照舊切得動明暗", st()["mode"] == "light")
+    theme_flip(pg, 1400)
+    ok("③ 頂欄 ☀ 鈕（電腦版是左欄「淺色｜深色」）照舊切得動明暗", st()["mode"] == "light")
     click(pg, "#t4Btn", 300)
     ok("③ ☀ 切完之後面板的「淺色」是按下去的", pg.evaluate("() => document.querySelector('#t4Pop .t4m[data-t4m=\"light\"]').getAttribute('aria-pressed') === 'true'"))
     pg.keyboard.press("Escape")
@@ -17053,18 +17121,18 @@ def t_index_kline_0928(pg, base):
     p4 = pg.evaluate(VP)
     ok("★ 換到 4 小時（三張圖重建）→ 量副圖還是剛才拖的比例",
        all(p4.get(i) and abs(p4[i] - p2["saved"]) <= 0.02 for i in ("TSE", "OTC", "FUT")), [p2["saved"], p4])
-    # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+    # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
     #   改前：重新整理之後讀回存的比例。改後：重新整理 → tw.m3.volr 被清掉、三張回到一開始（沒拖過）的比例。
     real_reload(pg, wait_ms=2000)
     pg.evaluate("() => window.Market3.forceClock('day')"); pg.wait_for_timeout(600)
     # 線圖／K 線（tw.m3.mode）也跟著回預設「線」，週期下拉只在 K 線模式出現 → 先切回 K 線再量
-    ok("★ 重新整理之後大盤三張圖回到預設的「線」模式（tw.m3.mode 被清掉，#306）",
+    ok("★ 重新整理之後大盤三張圖回到預設的「線」模式（tw.m3.mode 被清掉，#307）",
        pg.evaluate("() => localStorage.getItem('tw.m3.mode')") is None
        and pg.evaluate("() => (document.querySelector('#m3Mode button.on') || {dataset: {}}).dataset.m") != "k")
     click(pg, "#m3Mode button[data-m='k']", 900)
     pick("D")
     p5 = pg.evaluate(VP)
-    ok("★ 重新整理之後三張的量副圖回到預設比例（跟拖之前一樣）、存的比例被清掉（#306）",
+    ok("★ 重新整理之後三張的量副圖回到預設比例（跟拖之前一樣）、存的比例被清掉（#307）",
        all(p5.get(i) and p0.get(i) and abs(p5[i] - p0[i]) <= 0.02 for i in ("TSE", "OTC", "FUT")) and not p5.get("saved"), [p0, p5])
     # 拖過頭：夾在 45%，三張（含被拖的那張）一樣
     drag_sep("OTC", -400)
@@ -17416,12 +17484,12 @@ def t_stock_tabs0928(pg, base, code):
         click(pg, '#hoTgls .hoTgl[data-k="3"]', 900)
         e = pg.evaluate(CHIP0928_PROBE)
         ok(f"★ {tag}從「全部隱藏」再打開一條 → 圖回來、畫那一條", not e["empty"] and (e["charts"].get("holderChart") or {}).get("n") == 1, e["charts"].get("holderChart"))
-        # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+        # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
         #   改前：重新整理 → 記得只開 ≤10 張。改後：重新整理 → 三條全開（預設）、tw.hoLines 被清掉。
         pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
         goto(code, "holders")
         f = pg.evaluate(CHIP0928_PROBE)
-        ok(f"★ {tag}重新整理後回到預設三條全開、tw.hoLines 被清掉（#306）", (f["charts"].get("holderChart") or {}).get("n") == 3
+        ok(f"★ {tag}重新整理後回到預設三條全開、tw.hoLines 被清掉（#307）", (f["charts"].get("holderChart") or {}).get("n") == 3
            and f["hoLines"] == "1,2,3" and f["ls"] is None, (f["charts"].get("holderChart"), f["hoLines"], f["ls"]))
         click(pg, '#hoTgls .hoTgl[data-k="1"]', 700); click(pg, '#hoTgls .hoTgl[data-k="1"]', 900)
         g = pg.evaluate(CHIP0928_PROBE)
@@ -19072,12 +19140,12 @@ def t_stock_tabs_1002(pg, base, code):
         changed(f"{tag}線寬拉到 4 → 河流圖畫面真的變了", h0, canvas_hash(pg, "#peChart"))
         click(pg, '#peMode button[data-v="fill"]', 1200)
         ok(f"{tag}切到「填滿」線寬照樣是 4（三種畫法共用）", pg.evaluate(PE1002)["w"] == 4)
-        # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+        # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
         #   改前：重新整理後線寬仍是 4。改後：重新整理 → tw.peLineW 與 tw.kcfg 的樣式都被清掉，線寬回到預設 1.8px。
         real_reload(pg, wait_ms=2400)
         tab("profit", 1800)
         p2 = pg.evaluate(PE1002)
-        ok(f"★ {tag}重新整理後線寬回到預設 1.8px、tw.peLineW 被清掉（#306）", abs((p2["w"] or 0) - 1.8) < 0.05 and p2["ls"] is None, p2)
+        ok(f"★ {tag}重新整理後線寬回到預設 1.8px、tw.peLineW 被清掉（#307）", abs((p2["w"] or 0) - 1.8) < 0.05 and p2["ls"] is None, p2)
         # 真的用滑鼠拖：按住滑桿往最左拖 → 值到 1、線寬到 1
         pg.locator("#peLw").scroll_into_view_if_needed()
         box = pg.locator("#peLw").bounding_box()
@@ -19494,13 +19562,13 @@ def t_stock_head_1002(pg, base, code):
         pg.focus("#skSplit"); pg.keyboard.press("ArrowLeft"); pg.wait_for_timeout(300)
         s5 = snap()
         ok(f"{tag}鍵盤聚焦分隔線按 ← → 右欄變寬、寫進 localStorage", s5["ai"]["w"] > s4["ai"]["w"] + 10 and s5["ls"]["tw.aiSplit"] is not None, (s4["ai"]["w"], s5["ai"]["w"], s5["ls"]))
-        # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+        # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
         #   改前：重新整理後右欄寬度還在。改後：重新整理 → tw.aiSplit 被清掉、右欄回到預設寬度。
         real_reload(pg)
         wait_until(pg, "() => !!document.getElementById('skSplit') && document.getElementById('skChartCard').classList.contains('aiside')", 12000)
         pg.wait_for_timeout(900)
         s3 = snap()
-        ok(f"★ {tag}重新整理後右欄回到預設寬度（跟一進來一樣，±2px）、tw.aiSplit 被清掉（#306）",
+        ok(f"★ {tag}重新整理後右欄回到預設寬度（跟一進來一樣，±2px）、tw.aiSplit 被清掉（#307）",
            abs(s3["ai"]["w"] - s0["ai"]["w"]) <= 2 and s3["ls"]["tw.aiSplit"] is None, (s0["ai"]["w"], s5["ai"]["w"], s3["ai"]["w"], s3["ls"]))
         pg.evaluate("() => { try { localStorage.removeItem('tw.aiSplit'); } catch (e) {} }")
 
@@ -19964,7 +20032,7 @@ SECTIONS = {
     # ★ 2026-10-03 Andy：頂部 AI 直排＋拿掉展開、基本面卡小格／大格＋細項、獲利分頁本益比位置、營收／資券 KPI 列拿掉（DECISIONS #305）
     "個股基本面卡1003":    lambda pg, b, base, code: t_stock_fund_1003(b, base, code),
     # ★ 2026-10-03 Andy：「當重新整理後，全部圖表設定回 Default」—— 改設定 → 切頁還在 → 重新整理回預設；
-    #   主題／自選／手繪線／自訂週期保留；預覽版前綴（DECISIONS #306，⚠ 一律 --workers 1）
+    #   主題／自選／手繪線／自訂週期保留；預覽版前綴（DECISIONS #307，⚠ 一律 --workers 1）
     "重新整理回預設1003":  lambda pg, b, base, code: t_view_reset_1003(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
@@ -21712,15 +21780,15 @@ def t_stock_ai_0926(pg, base, code):
 
     cd = codes[0]
     pg.goto(f"{base}#stock/{cd}", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    # ---------------------------------------------------------------- ★ 2026-10-03（#306「重新整理＝圖表設定回預設」）
-    #   改前（#306 之前）：選的面向重新整理後還在。改後：上方 AI 選的面向（tw.aiTab）與總覽 AI 卡的分頁籤（tw.ovAiTab）屬於檢視設定，
+    # ---------------------------------------------------------------- ★ 2026-10-03（#307「重新整理＝圖表設定回預設」）
+    #   改前（#307 之前）：選的面向重新整理後還在。改後：上方 AI 選的面向（tw.aiTab）與總覽 AI 卡的分頁籤（tw.ovAiTab）屬於檢視設定，
     #   重新整理一律清掉、回到預設。（#305 拿掉了「展開」，tw.aiOpen 不再讀寫，這裡不再驗收合／展開。）
     click(pg, '#skAi .aitab[data-facet="fund"]', 600)
     lsA = pg.evaluate("() => ({ t: localStorage.getItem('tw.aiTab'), o: localStorage.getItem('tw.ovAiTab') })")
     ok("[AI分析] 點「基本面」→ 選擇寫進 localStorage（同一次瀏覽用）", lsA["t"] == "fund" or lsA["o"] == "fund", lsA)
     real_reload(pg, wait_ms=2200)
     lsB = pg.evaluate("() => ({ t: localStorage.getItem('tw.aiTab'), o: localStorage.getItem('tw.ovAiTab'), c: (window.TwView || {}).cleared || [] })")
-    ok("★ [AI分析] 重新整理 → tw.aiTab／tw.ovAiTab 被清掉、回到預設（#306）", lsB["t"] is None and lsB["o"] is None
+    ok("★ [AI分析] 重新整理 → tw.aiTab／tw.ovAiTab 被清掉、回到預設（#307）", lsB["t"] is None and lsB["o"] is None
        and any(k in lsB["c"] for k in ("tw.aiTab", "tw.ovAiTab")), lsB)
     # ---------------------------------------------------------------- 「?」說明
     click(pg, '#skAi .howbtn[data-how="ai"]', 450)
@@ -22033,7 +22101,7 @@ def t_stock_0926(pg, base, code):
     ok("[0926-①] 收起來後按鈕標成收合", pg.get_attribute("#indBtn", "aria-expanded") == "false")
     click(pg, "#indBtn", 450); pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
     ok("[0926-①] 按 Esc 也會關", not pg.evaluate(IND_POP_OPEN))
-    # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+    # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
     #   改前：重新整理後記住（KD 關、MACD 8,26,9）。改後：重新整理 → tw.kcfg 的指標設定整包清掉，回到預設「只開均線＋成交量」。
     #   （等圖真的畫好才讀，不然讀到的是「還沒畫」的空白）
     real_reload(pg, wait_ms=1200)
@@ -22042,7 +22110,7 @@ def t_stock_0926(pg, base, code):
     wait_until(pg, "() => !!document.querySelector('#lwc canvas') && !!(window.Industry && window.Industry._dbg().paneH)", 8000)
     pg.wait_for_timeout(600)
     p2 = pg.evaluate(DBG)["paneH"] or {}
-    ok("★ [0926-①] 重新整理後回到預設：只有主圖＋成交量（KD、MACD 副圖都沒有，#306）", sorted(p2) == ["main", "vol"], p2)
+    ok("★ [0926-①] 重新整理後回到預設：只有主圖＋成交量（KD、MACD 副圖都沒有，#307）", sorted(p2) == ["main", "vol"], p2)
     ok("[0926-①] 重新整理後清單裡只勾均線＋成交量、tw.kcfg 沒有指標設定",
        ind_on(pg, "kd") is False and ind_on(pg, "macd") is False
        and not (pg.evaluate("() => { try { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); return c.macd || c.kd || null; } catch (e) { return 'ERR'; } }")))
@@ -22236,10 +22304,10 @@ def t_stock_0926_tf(pg, base, code):
     ok("[0926晚-週期] 週期區的摘要跟著變（多了 15分）", "15分" in text(pg, "#tfSum"), text(pg, "#tfSum"))
     click(pg, '#tfSeg button[data-tf="15m"]', 900)
     ok("[0926晚-週期] 新出現的「15分」按得下去（選中、圖切到 15 分）", pg.evaluate(DBG)["tf"] == "15m")
-    # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+    # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
     #   改前：重新整理後週期列還有「15分」、下拉裡仍勾著。改後：週期勾選（tfOn）屬於檢視設定，重新整理回到預設那幾個。
     real_reload(pg, wait_ms=2200)
-    ok("★ [0926晚-週期] 重新整理後週期列回到預設、「15分」不見了（#306）", "15m" not in pg.evaluate(TFS) and "1d" in pg.evaluate(TFS), pg.evaluate(TFS))
+    ok("★ [0926晚-週期] 重新整理後週期列回到預設、「15分」不見了（#307）", "15m" not in pg.evaluate(TFS) and "1d" in pg.evaluate(TFS), pg.evaluate(TFS))
     ok("[0926晚-週期] 重新整理後下拉裡 15 分沒勾",
        pg.evaluate("() => { const c = document.querySelector('#cfgPop .tfc[data-tf=\"15m\"] input'); return c ? c.checked : null; }") is False
        if ind_open(pg) else False)
@@ -22780,7 +22848,7 @@ def t_wrap_r2(pg, base, code):
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
-# ★ 2026-10-03「重新整理＝圖表設定回預設」（DECISIONS #306，site/viewreset.js）：
+# ★ 2026-10-03「重新整理＝圖表設定回預設」（DECISIONS #307，site/viewreset.js）：
 #   正式站每次整頁載入都會清掉「圖表檢視設定」類的鍵。但這支驗收裡有幾百處是
 #   「先 localStorage.setItem 布置情境 → reload」（例如先寫 tw.dg3d='0' 讓剖析圖從 2D 開始），
 #   那些不是在驗「重新整理會不會記住」，只是在布置 —— 全部改寫不划算也容易改壞。
@@ -36811,14 +36879,14 @@ def t_rot_dots_only(pg, b, base):
         ms = d.evaluate(CLK_STATE, "rotClockMini")
         ok("關著時總覽小輪盤也只剩圓圈（兩張一致）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0,
            ms and [ms["vis"], feet_n(ms)])
-        # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+        # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
         #   改前：重新整理之後 '0' 仍然被尊重。改後：重新整理 → tw.rot.feet 被清掉、回到預設「勾選、有腳印」。
         #   （這一頁的開機腳本是 CONSENT_PRESET，含驗收後門，所以要用 real_reload 才是正式站的重新整理）
         d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(1500)
         real_reload(d, wait_ms=2600)
         scroll_to(d, "rotClockWrap"); d.wait_for_timeout(600)
         st = d.evaluate(CLK_STATE, "rotClock")
-        ok("★ 重新整理之後回到預設：勾選框打勾、有腳印、tw.rot.feet 被清掉（#306）",
+        ok("★ 重新整理之後回到預設：勾選框打勾、有腳印、tw.rot.feet 被清掉（#307）",
            d.evaluate(chk_js) is True and feet_n(st) > 0 and d.evaluate("() => localStorage.getItem('tw.rot.feet')") is None,
            st and [d.evaluate(chk_js), feet_n(st)])
         # 再勾掉一次，下面「勾回來」照舊從關的狀態開始
@@ -38849,7 +38917,7 @@ def t_dg_2d3d(pg, base):
         pg.wait_for_timeout(900)
         m3 = pg.evaluate(DG_MODE)
         ok(f"{T} 換到 HBM 分頁：仍然是 2D（2D 亮、沒有 3D 畫布）", m3["tab"] == "hbm" and m3["on"] == ["2D"] and m3["svg"] and m3["canvas"] == 0, m3)
-        # ★ 2026-10-03 改前→改後（#306「重新整理＝圖表設定回預設」）：
+        # ★ 2026-10-03 改前→改後（#307「重新整理＝圖表設定回預設」）：
         #   改前：（2D 時）重新整理 → 仍是 2D、tw.dg3d＝'0'。
         #   改後：先切 3D 再重新整理 → 回到預設 2D、tw.dg3d 被清掉（從 3D 開始才看得出「回預設」不是「記住」）。
         _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 400)
@@ -38861,7 +38929,7 @@ def t_dg_2d3d(pg, base):
         pg.wait_for_timeout(1200)
         m4 = pg.evaluate(DG_MODE)
         # 載入時 tw.dg3d 被清掉 → 讀不到＝預設 2D；setMode(false) 會照舊寫回 '0'（那是「現在是 2D」的紀錄，不是上次的選擇）
-        ok(f"{T} 切 3D 後重新整理：回到預設 2D（#306）", m4["on"] == ["2D"] and m4["svg"] and m4["canvas"] == 0 and m4["ls"] in (None, "0"), m4)
+        ok(f"{T} 切 3D 後重新整理：回到預設 2D（#307）", m4["on"] == ["2D"] and m4["svg"] and m4["canvas"] == 0 and m4["ls"] in (None, "0"), m4)
         if width <= 820:
             ov = pg.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
             ok(f"{T} 分段鈕沒有撐出整頁橫向捲軸", ov <= 1, ov)
@@ -40762,7 +40830,14 @@ def t_watchlists_guest(b, base):
     #   面板的程式留著但站上沒有入口 —— 所以這裡改成**在整頁上**做同樣的事（新增／改名／五頁上限／刪除確認／搜尋加入／移除／點列進個股頁）。
     #   儲存照舊是 TwWatch（localStorage tw.watchlists），斷言的資料口徑一個字都沒改。
     # ② 按頂欄「★ 自選」→ 到自選分頁
-    pg.click("#wlBtn")
+    #   ★ 2026-10-03 版面 V2 第三批（Andy：「原『自選』『登入』兩顆鈕整併進去」）：電腦版（掛 l4）的「★ 自選」藏起來，
+    #   自選就是左側導覽「專案」組那一格 —— 這裡改點那一格；≤820 沒掛新版面時照舊點 #wlBtn（⑫ 的 800 寬就是那條路）。
+    if pg.evaluate("() => document.documentElement.classList.contains('l4')"):
+        ok("自選：電腦版的「★ 自選」鈕藏起來（DOM 還在，併進左側導覽）",
+           pg.evaluate("() => { const b = document.getElementById('wlBtn'); return !!b && b.getClientRects().length === 0; }"))
+        pg.click("#tabs .tab[data-view='watch']")
+    else:
+        pg.click("#wlBtn")
     wait_until(pg, "() => location.hash === '#watch' && document.getElementById('v-watch').classList.contains('on') && !!document.getElementById('wpTbl')", 8000)
     ok("自選：按頂欄「自選」到自選分頁（#watch）", pg.evaluate("() => location.hash") == "#watch", pg.evaluate("() => location.hash"))
     ok("自選：自選分頁列出第 1 頁的兩檔", pg.locator("#wpList tr[data-go]").count() == 2, pg.locator("#wpList tr").count())
@@ -42247,9 +42322,9 @@ L4_NAV = """() => { const t = document.querySelector('.topbar'), m = document.qu
     const r = t.getBoundingClientRect(), cs = getComputedStyle(t);
     return { mini: document.documentElement.classList.contains('l4-mini'), l4: document.documentElement.classList.contains('l4'),
       navW: Math.round(r.width), barH: Math.round(r.height), pos: cs.position, left: Math.round(r.left),
-      // 左欄看得到的範圍：底色畫在 .topbar::before（從上到下），最底下是「收合導覽」鈕
+      // 左欄看得到的範圍：底色畫在 .topbar::before（從上到下）。2026-10-03 第三批起最底下是「淺色｜深色」（#l4Mode）
       bgH: (() => { const b = getComputedStyle(t, '::before'); return b.position === 'fixed' && b.top === '0px' && b.bottom === '0px' ? innerHeight : 0; })(),
-      footB: (() => { const f = document.getElementById('l4NavBtn'); return f ? Math.round(f.getBoundingClientRect().bottom) : -1; })(), vh: innerHeight,
+      footB: (() => { const f = document.getElementById('l4Mode'); return f ? Math.round(f.getBoundingClientRect().bottom) : -1; })(), vh: innerHeight,
       mainL: Math.round(m.getBoundingClientRect().left), mainW: Math.round(m.getBoundingClientRect().width),
       pref: (() => { try { return localStorage.getItem('tw.layout4.nav'); } catch (e) { return 'x'; } })(),
       sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, hash: location.hash }; }"""
@@ -42284,7 +42359,8 @@ def t_layout4(b, base, code):
     """V2 分支的版面結構搬到設計 v4（Andy 2026-10-02：「只做排版，不改配色、不改功能」）。
 
     每一項都用真的滑鼠／觸控操作，驗「畫面真的因此改變了」：
-      ① 桌機 1440：左側導覽固定在左邊、主內容讓出導覽寬；分組順序＝今日市場／錢往哪裡跑／族群與個股／歷史規律／專案
+      ① 桌機 1440：左側導覽固定在左邊、主內容讓出導覽寬；分組順序＝今日市場／資金流水／族群與個股／歷史規律／專案
+         （2026-10-03 Andy：「錢往哪裡跑」改名「資金流水」）
       ② 點分組裡的頁面 → 路由真的換了（hash、.tab.on、.view.on、頁首的頁名與分組小標都跟著換）
       ③ 收合 → 導覽寬度真的變窄、主內容真的變寬、localStorage 記住；重新整理後還是收合；展開再重新整理也記得
       ④ 「本頁功能」膠囊：點了捲到對應卡片（卡片頂端落在跳轉列下面）、那顆亮起；用滾輪捲回去，亮起的膠囊跟著變
@@ -42309,7 +42385,7 @@ def t_layout4(b, base, code):
         wait_until(pg, "() => !!document.getElementById('l4NavBtn') && !!document.querySelector('#l4Head h1')", 8000)
         n0 = pg.evaluate(L4_NAV)
         ok(f"{T}1440 掛上新版面、沒按過收合時是展開的", n0["l4"] and not n0["mini"], n0)
-        ok(f"{T}1440 導覽固定在左邊、底色從上到下整個視窗高、收合鈕貼在視窗底部", n0["pos"] == "fixed" and n0["left"] == 0
+        ok(f"{T}1440 導覽固定在左邊、底色從上到下整個視窗高、最底下的「淺色｜深色」貼在視窗底部", n0["pos"] == "fixed" and n0["left"] == 0
            and 200 <= n0["navW"] <= 240 and n0["bgH"] == n0["vh"] and n0["vh"] - 40 <= n0["footB"] <= n0["vh"], n0)
         # .topbar 的盒子只能是「頂端被蓋住的那一條」（＝跳轉列高）：industry.js 的指標面板拿它的下緣判斷按鈕有沒有被蓋住
         ok(f"{T}1440 .topbar 盒子高＝頂端那一條（≤ 60px，不是整個視窗高）", n0["barH"] <= 60, n0)
@@ -42323,21 +42399,24 @@ def t_layout4(b, base, code):
               n: tabs.length }; }""")
         ok(f"{T}1440 頁面依分組排：總覽｜資金流向、熱力圖｜產業地圖、市場明細｜週期統計｜自選",
            grp["order"] == ["overview", "flow", "heatmap", "industry", "market", "season", "watch"], grp)
-        ok(f"{T}1440 分組標題依序是 今日市場／錢往哪裡跑／族群與個股／歷史規律／專案",
-           grp["labels"] == ["今日市場", "錢往哪裡跑", "族群與個股", "歷史規律", "專案"], grp)
+        ok(f"{T}1440 分組標題依序是 今日市場／資金流水／族群與個股／歷史規律／專案",
+           grp["labels"] == ["今日市場", "資金流水", "族群與個股", "歷史規律", "專案"], grp)
         ok(f"{T}1440 每一頁都有線條圖示", grp["icons"] == grp["n"], grp)
 
         # ② 點分組裡的頁面 → 切路由
-        for view, name, g in (("flow", "資金流向", "錢往哪裡跑"), ("heatmap", "熱力圖", "錢往哪裡跑"),
+        for view, name, g in (("flow", "資金流向", "資金流水"), ("heatmap", "熱力圖", "資金流水"),
                               ("season", "週期統計", "歷史規律"), ("overview", "總覽", "今日市場")):
             pg.locator(f"#tabs .tab[data-view='{view}']").click(timeout=6000)
             got = wait_until(pg, f"""() => location.hash.startsWith('#{view}') && document.querySelector('#v-{view}.on')
-                && (document.querySelector('#l4Head h1') || {{}}).textContent === '{name}' ? 1 : 0""", 6000)
+                && ((document.querySelector('#l4Head h1') || {{}}).firstChild || {{}}).textContent === '{name}' ? 1 : 0""", 6000)
             st = pg.evaluate("""() => ({ hash: location.hash, on: (document.querySelector('#tabs .tab.on') || {}).dataset?.view,
                 view: (document.querySelector('.view.on') || {}).id, h1: (document.querySelector('#l4Head h1') || {}).textContent,
-                eb: (document.querySelector('#l4Head .eyebrow') || {}).textContent, p: (document.querySelector('#l4Head p') || {}).textContent })""")
-            ok(f"{T}1440 點導覽「{name}」→ 路由真的換到 #{view}（分頁亮、頁面換、頁首換）",
-               bool(got) and st["on"] == view and st["eb"] == g and len(st["p"] or "") >= 10, st)
+                kids: [...document.querySelectorAll('#l4Head > *')].map(e => e.tagName.toLowerCase() + (e.className ? '.' + e.className : '')),
+                clock: (document.querySelector('#l4Head .l4clock') || { dataset: {} }).dataset.t || '' })""")
+            # 2026-10-03 第三批（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
+            # 改前驗「分組小標＝{g}、說明句 ≥ 10 字」→ 改後驗頁首只剩 h1＋時間兩樣
+            ok(f"{T}1440 點導覽「{name}」→ 路由真的換到 #{view}（分頁亮、頁面換、頁首換）、頁首只剩頁名＋時間",
+               bool(got) and st["on"] == view and st["kids"] == ["h1", "time.l4clock"] and len(st["clock"]) >= 19, st)
 
         # ③ 收合／展開，寬度真的變、重新整理後還在
         pg.locator("#l4NavBtn").click(timeout=6000)
@@ -42345,7 +42424,7 @@ def t_layout4(b, base, code):
         pg.wait_for_timeout(250)
         n1 = pg.evaluate(L4_NAV)
         ok(f"{T}1440 按「收合導覽」→ 導覽真的變窄（只剩圖示）", n1["mini"] and n1["navW"] <= 80 and n1["navW"] < n0["navW"] - 100, {"前": n0, "後": n1})
-        ok(f"{T}1440 收合後收合鈕仍貼在視窗底部（中間清單高度重算過）", n1["vh"] - 40 <= n1["footB"] <= n1["vh"], n1)
+        ok(f"{T}1440 收合後最底下的「淺色｜深色」仍貼在視窗底部（中間清單高度重算過）", n1["vh"] - 60 <= n1["footB"] <= n1["vh"], n1)
         ok(f"{T}1440 收合後主內容真的變寬", n1["mainW"] >= n0["mainW"] + 100 and abs(n1["mainL"] - n1["navW"]) <= 2, {"前": n0["mainW"], "後": n1["mainW"]})
         ok(f"{T}1440 收合狀態寫進 localStorage", n1["pref"] == "mini", n1)
         tip = pg.evaluate("() => [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length).map(t => t.title)")
@@ -42360,37 +42439,22 @@ def t_layout4(b, base, code):
         n4 = pg.evaluate(L4_NAV)
         ok(f"{T}1440 重新整理後還是展開（記得的是使用者按的，不是視窗寬）", not n4["mini"] and abs(n4["navW"] - n0["navW"]) <= 2, n4)
 
-        # ④ 本頁功能膠囊：點了捲過去、捲動時亮起的跟著變
-        pg.goto(f"{base}#flow", wait_until="networkidle")
-        wait_until(pg, "() => document.querySelectorAll('#l4Jump .chips button').length >= 3", 8000)
-        pg.wait_for_timeout(800)
-        j0 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 本頁功能膠囊列出現、編號 01 起、至少 3 節", j0 and j0["shown"] and j0["n"] >= 3 and j0["labels"][0].startswith("01"), j0)
-        ok(f"{T}#flow 剛進來亮第 1 顆", j0 and j0["on"] == 0, j0)
-        # 點第 2 顆（第 3、4 顆在頁尾那一排，頁面捲到底也頂不到跳轉列下緣 —— 那是頁面不夠長，不是膠囊沒作用）
-        k = 1
-        pg.locator(f"#l4Jump .chips button[data-i='{k}']").click(timeout=6000)
-        hit = wait_until(pg, f"""() => {{ const j = document.getElementById('l4Jump').getBoundingClientRect();
-            const c = [...document.querySelectorAll('.card')].find(x => x.classList.contains('l4-hit'));
-            if (!c || scrollY < 50) return null; const t = c.getBoundingClientRect().top;
-            return (t >= j.bottom - 2 && t <= j.bottom + 40) ? {{ t: Math.round(t), jb: Math.round(j.bottom),
-              ttl: (c.querySelector('h3') || {{}}).textContent }} : null; }}""", 4000)
-        j1 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 點第 2 顆膠囊 → 真的捲到那張卡（卡片頂端落在跳轉列正下方、標題對得上）",
-           bool(hit) and j1["sy"] > 50 and j0["labels"][1][2:].rstrip("…") in (hit or {}).get("ttl", ""), {"hit": hit, **(j1 or {})})
-        ok(f"{T}#flow 點了之後那顆亮起", j1 and j1["on"] == k, j1)
-        ok(f"{T}#flow 捲下去之後跳轉列黏在視窗頂端", j1 and j1["top"] == 0, j1)
-        pg.wait_for_timeout(1000)                          # 等點擊鎖（900ms）解除，之後才是純捲動偵測
-        # 用滾輪捲 —— 滑鼠放在跳轉列的標籤上（不是圖上：輪盤、熱力圖會自己吃滾輪拿去縮放）
-        lb = pg.locator("#l4Jump .lbl").bounding_box()
-        pg.mouse.move(lb["x"] + 5, lb["y"] + 5)
-        pg.mouse.wheel(0, -8000); pg.wait_for_timeout(900)
-        j2 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 用滾輪捲回頂端 → 亮起的膠囊跟著換回第 1 顆", j2 and j2["on"] == 0 and j2["sy"] == 0, {"捲前": j1, "捲後": j2})
-        pg.mouse.wheel(0, 20000); pg.wait_for_timeout(900)
-        j3 = pg.evaluate(L4_JUMP)
-        ok(f"{T}#flow 用滾輪捲到底 → 亮起最後一顆", j3 and j3["on"] == j3["n"] - 1 and j3["sy"] > j1["sy"], {"捲前": j1, "捲後": j3})
-        pg.mouse.wheel(0, -8000); pg.wait_for_timeout(600)
+        # ④ 2026-10-03 第三批（Andy：「紅框處 只留下 總覽 及當下日期時間」）：
+        #   改前：「本頁功能」膠囊點了捲過去、捲動時亮起的跟著變 → 改後：那一排拿掉（DOM 留著、看不到），
+        #   頁首（頁名＋時間）頂替它黏在視窗最上面 —— 捲下去之後頁首還在頂端、而且 .topbar 盒子高＝頁首高（trackPop 的前提）
+        # 總覽夠長（資金流向拆子分頁後單一子分頁不一定捲得到 900px）
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
+        jh = pg.evaluate("""() => { const j = document.getElementById('l4Jump'); return { dom: !!j, seen: !!j && j.getClientRects().length > 0 }; }""")
+        ok(f"{T}#overview 「本頁功能」那一排看不到（只藏不刪：DOM 還在）", jh["dom"] and not jh["seen"], jh)
+        pg.mouse.move(700, 20)
+        pg.evaluate("() => window.scrollTo({ top: 900, behavior: 'instant' })"); pg.wait_for_timeout(500)
+        hs = pg.evaluate("""() => { const h = document.getElementById('l4Head').getBoundingClientRect();
+            return { top: Math.round(h.top), h: Math.round(h.height), sy: Math.round(scrollY),
+              bar: Math.round(document.querySelector('.topbar').getBoundingClientRect().height),
+              stuck: document.getElementById('l4Head').classList.contains('stuck') }; }""")
+        ok(f"{T}#overview 捲下去之後頁首（頁名＋時間）黏在視窗頂端、畫出下框線", hs["sy"] > 300 and hs["top"] == 0 and hs["stuck"], hs)
+        ok(f"{T}#overview 頁首高＝.topbar 盒子高（≤ 60，指標面板 trackPop 的前提沒變）", abs(hs["h"] - hs["bar"]) <= 1 and hs["h"] <= 60, hs)
+        pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(300)
 
         # ⑤ 事件抽屜
         SD = """() => { const s = document.getElementById('side'), k = document.getElementById('sideBack'), r = s.getBoundingClientRect();
@@ -42420,7 +42484,7 @@ def t_layout4(b, base, code):
         tp = pg.evaluate("""() => { const p = document.getElementById('t4Pop'); if (!p || p.hidden) return null; const r = p.getBoundingClientRect();
             return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right), vh: innerHeight, vw: innerWidth,
               navW: Math.round(document.querySelector('.topbar').getBoundingClientRect().width) }; }""")
-        ok(f"{T}1440 左欄底部「外觀」→ 面板打開而且整塊在視窗內、貼在左欄右邊",
+        ok(f"{T}1440 左欄底部「外觀」（調色盤小鈕）→ 面板打開而且整塊在視窗內、貼在左欄右邊",
            bool(tp) and tp["top"] >= 0 and tp["bottom"] <= tp["vh"] and tp["left"] >= tp["navW"] and tp["right"] <= tp["vw"], tp)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
         pg.locator("#q").click(timeout=6000)
@@ -42439,6 +42503,7 @@ def t_layout4(b, base, code):
             const r = p.getBoundingClientRect(); return { open: true, top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight }; }""")
         ok(f"{T}1440 個股頁按「指標 ▾」→ 面板打開、過了 0.9 秒還在", cp["open"] and cp["top"] >= 0 and cp["top"] < cp["vh"], cp)
         pg.keyboard.press("Escape")
+        t_layout4_batch3(pg, base, code, T)
     finally:
         ctx.close()
 
@@ -42517,6 +42582,252 @@ def t_layout4(b, base, code):
         ctx.close()
     ok(f"{T} 沒有 pageerror", not errs, errs[:5])
 
+
+
+def t_layout4_batch3(pg, base, code, T):
+    """版面 V2 第三批（Andy 2026-10-03 對預覽 preview/layout-v2 的四條）——真的點、驗畫面真的變：
+      ① 頁首只剩「頁名＋台北現在時間」，七個分頁都一樣；時間每秒真的在走、而且是台北時間（不是容器的 UTC）
+      ② 收合鈕在 logo 右側（同一列）；按了左欄真的變窄、再按真的變回來；左欄底部沒有「‹ 收合導覽」文字列
+      ③ 「事件」是導覽最上面一格（在所有頁面上面），保留數字徽章；按了抽屜真的打開
+      ④ 帳號卡：圓形頭像＋「訪客」＋一行小字；沒有設定檔時不放登入鈕；原「★ 自選」「☀」兩顆在電腦版看不到
+         「淺色｜深色」：按淺色 → data-theme、整頁底色、localStorage 真的換；再按淺色不會翻回去；按深色換回來
+      ⑤ 收合時帳號卡只剩頭像、淺色深色剩兩顆圖示，左欄沒有東西溢出 72px
+    """
+    import datetime as _dt
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(900)
+    pg.evaluate("() => { try { localStorage.setItem('tw.layout4.nav', 'full'); localStorage.removeItem('tw.theme'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(900)
+
+    # ① 七個分頁的頁首
+    HEAD = """() => { const h = document.getElementById('l4Head'), c = h && h.querySelector('.l4clock');
+        return { kids: h ? [...h.children].map(e => e.tagName.toLowerCase()) : null, h1: ((h && h.querySelector('h1') || {}).firstChild || {}).textContent,
+          t: c ? c.dataset.t : '', shown: !!c && getComputedStyle(c, '::before').content.replace(/"/g, '') === c.dataset.t,
+          txt: h ? h.innerText.trim() : '' }; }"""
+    bad = []
+    for view, name in (("overview", "總覽"), ("flow", "資金流向"), ("heatmap", "熱力圖"), ("industry", "產業地圖"),
+                       ("market", "市場明細"), ("season", "週期統計"), ("watch", "自選")):
+        pg.locator(f"#tabs .tab[data-view='{view}']").click(timeout=6000)
+        wait_until(pg, f"() => ((document.querySelector('#l4Head h1') || {{}}).firstChild || {{}}).textContent === '{name}' ? 1 : 0", 6000)
+        hd = pg.evaluate(HEAD)
+        # 資金流向／熱力圖的頁名後面接子分頁名（例：資金流向 資金輪動）—— 那也是頁名的一部分，不是說明句
+        sub_ok = hd["txt"] == name or (view in ("flow", "heatmap") and hd["txt"].startswith(name) and len(hd["txt"]) <= len(name) + 12)
+        if not (hd["kids"] == ["h1", "time"] and hd["h1"] == name and hd["shown"] and sub_ok):
+            bad.append({view: hd})
+    ok(f"{T}第三批① 七個分頁的頁首都只剩頁名＋時間（沒有分組小標、說明句、本頁功能）", not bad, bad[:3])
+    t1 = pg.evaluate(HEAD)["t"]
+    pg.wait_for_timeout(1300)
+    t2 = pg.evaluate(HEAD)["t"]
+    ok(f"{T}第三批① 頁首時間每秒真的在走（1.3 秒後字不一樣）", bool(t1) and t1 != t2, (t1, t2))
+    now = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=8)))
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})（(.)）(\d{2}):(\d{2}):(\d{2})$", t2 or "")
+    wk = "一二三四五六日"[now.weekday()]
+    if m:
+        shown = _dt.datetime(*[int(m.group(i)) for i in (1, 2, 3, 5, 6, 7)], tzinfo=now.tzinfo)
+        drift = abs((shown - now).total_seconds())
+    else:
+        drift = None
+    ok(f"{T}第三批① 時間是台北時間（格式 YYYY-MM-DD（週）HH:MM:SS、跟台北現在差 ≤ 5 秒、星期對）",
+       bool(m) and drift is not None and drift <= 5 and m.group(4) == wk, {"畫面": t2, "台北現在": now.strftime("%Y-%m-%d %H:%M:%S"), "差秒": drift, "星期": wk})
+
+    # ② 收合鈕在 logo 右側
+    NB = """() => { const b = document.getElementById('l4NavBtn'), lg = document.querySelector('.brand .logo');
+        const r = b.getBoundingClientRect(), l = lg.getBoundingClientRect(), t = document.querySelector('.topbar').getBoundingClientRect();
+        return { bx: Math.round(r.left), by: Math.round(r.top), bw: Math.round(r.width), bh: Math.round(r.height), lx: Math.round(l.right), ly: Math.round(l.top),
+          lb: Math.round(l.bottom), navW: Math.round(t.width), mini: document.documentElement.classList.contains('l4-mini'),
+          label: b.getAttribute('aria-label'), foot: document.querySelectorAll('.l4foot').length,
+          oldTxt: [...document.querySelectorAll('.topbar *')].some(e => e.children.length === 0 && /收合導覽/.test(e.textContent)) }; }"""
+    a0 = pg.evaluate(NB)
+    ok(f"{T}第三批② 收合鈕在 logo 右側同一列、是一顆小方鈕（≤ 36px）",
+       a0["bx"] > a0["lx"] and abs(a0["by"] - a0["ly"]) <= 12 and a0["bw"] <= 36 and abs(a0["bw"] - a0["bh"]) <= 2 and a0["bx"] + a0["bw"] <= a0["navW"], a0)
+    ok(f"{T}第三批② 左欄底部的「‹ 收合導覽」文字列拿掉了", a0["foot"] == 0 and not a0["oldTxt"], a0)
+    pg.locator("#l4NavBtn").click(timeout=6000); pg.wait_for_timeout(350)
+    a1 = pg.evaluate(NB)
+    ok(f"{T}第三批② 按收合鈕 → 左欄真的變窄（≤ 80）、鈕移到 logo 正下方還按得到", a1["mini"] and a1["navW"] <= 80 and a1["by"] >= a1["lb"] and a1["label"] == "展開導覽", a1)
+    over = pg.evaluate("""() => { const w = document.querySelector('.topbar').getBoundingClientRect().width;
+        return ['#l4NavBtn', '#evToggle', '#l4Acct', '#l4Mode', '#t4Btn'].map(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect();
+          return { s, l: Math.round(r.left), r: Math.round(r.right), ok: r.left >= 0 && r.right <= w + 0.5 && r.width > 0 }; }).filter(x => !x.ok); }""")
+    ok(f"{T}第三批⑤ 收合時事件、帳號卡、淺色深色、外觀都在 72px 左欄裡（沒有溢出）", not over, over)
+    mc = pg.evaluate("""() => { const c = document.getElementById('l4Acct'), m = document.getElementById('l4Mode');
+        const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+        return { av: vis(c.querySelector('.av')), nm: vis(c.querySelector('.nm')), st: vis(c.querySelector('.st')),
+          lbl: [...m.querySelectorAll('.lbl')].some(vis), btns: [...m.querySelectorAll('button')].filter(vis).length }; }""")
+    ok(f"{T}第三批⑤ 收合時帳號卡只剩頭像、淺色深色只剩兩顆圖示", mc["av"] and not mc["nm"] and not mc["st"] and not mc["lbl"] and mc["btns"] == 2, mc)
+    pg.locator("#l4NavBtn").click(timeout=6000); pg.wait_for_timeout(350)
+    a2 = pg.evaluate(NB)
+    ok(f"{T}第三批② 再按 → 左欄展開回來、鈕回到 logo 右側", not a2["mini"] and a2["navW"] >= 200 and a2["bx"] > a2["lx"] and a2["label"] == "收合導覽", a2)
+
+    # ③ 事件在導覽最上面
+    ev = pg.evaluate("""() => { const e = document.getElementById('evToggle'), r = e.getBoundingClientRect();
+        const tabs = [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length).map(t => t.getBoundingClientRect().top);
+        const n = document.getElementById('evCount');
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), firstTab: Math.round(Math.min(...tabs)),
+          search: Math.round(document.querySelector('.topbar .search').getBoundingClientRect().bottom),
+          badge: !!n && n.getClientRects().length > 0 && /^\\d+$/.test(n.textContent.trim()), n: n ? n.textContent : null }; }""")
+    ok(f"{T}第三批③ 「事件」是導覽最上面一格（在搜尋下面、所有頁面上面）、保留數字徽章",
+       ev["top"] >= ev["search"] and ev["bottom"] <= ev["firstTab"] and ev["badge"], ev)
+    pg.locator("#evToggle").click(timeout=6000)
+    opened = wait_until(pg, "() => document.getElementById('side').classList.contains('open') ? 1 : 0", 3000)
+    ok(f"{T}第三批③ 按最上面的「事件」→ 抽屜真的打開", bool(opened))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+
+    # ④ 帳號卡＋淺色深色
+    ac = pg.evaluate("""() => { const c = document.getElementById('l4Acct'), av = c && c.querySelector('.av');
+        const vis = (s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; };
+        const r = av ? av.getBoundingClientRect() : { width: 0, height: 0 };
+        return { card: !!c && c.getClientRects().length > 0, nm: c && c.querySelector('.nm').textContent, st: c && c.querySelector('.st').textContent,
+          round: !!av && getComputedStyle(av).borderRadius === '50%' && Math.abs(r.width - r.height) < 1 && r.width >= 28,
+          login: !!document.getElementById('acctBtn'), wl: vis('#wlBtn'), sun: vis('#themeBtn'), bar: vis('#acctBar'),
+          below: c ? Math.round(c.getBoundingClientRect().top) > Math.round(document.getElementById('tabsWrap').getBoundingClientRect().bottom) - 2 : false }; }""")
+    ok(f"{T}第三批④ 左欄底部有帳號卡：圓形頭像＋「訪客」＋一行小字（在頁面清單下面）",
+       ac["card"] and ac["nm"] == "訪客" and len(ac["st"] or "") >= 4 and ac["round"] and ac["below"], ac)
+    ok(f"{T}第三批④ 沒有會員設定檔時卡片不放「登入」鈕（不放按了沒反應的鈕）", not ac["login"], ac)
+    ok(f"{T}第三批④ 原「★ 自選」「登入」那一列與 ☀ 鈕在電腦版看不到（DOM 還在）",
+       not ac["wl"] and not ac["sun"] and not ac["bar"] and pg.evaluate("() => !!document.getElementById('wlBtn') && !!document.getElementById('themeBtn')"), ac)
+    MS = """() => ({ th: document.documentElement.getAttribute('data-theme') || 'dark', bg: getComputedStyle(document.body).backgroundColor,
+        ls: (() => { try { return localStorage.getItem('tw.theme'); } catch (e) { return 'x'; } })(),
+        pressed: [...document.querySelectorAll('#l4Mode [data-l4m]')].filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.l4m),
+        heat: (() => { const i = window.echarts && echarts.getInstanceByDom(document.getElementById('heat')); return i ? i.id : ''; })() })"""
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    m0 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 一開始是深色、二段式標的是「深色」", m0["th"] == "dark" and m0["pressed"] == ["dark"], m0)
+    pg.locator("#l4Mode [data-l4m='light']").click(timeout=15000); pg.wait_for_timeout(1800)
+    m1 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 按「淺色」→ 主題真的換（data-theme、整頁底色、localStorage、圖表重建、按下去的那顆）",
+       m1["th"] == "light" and m1["bg"] != m0["bg"] and m1["ls"] == "light" and m1["pressed"] == ["light"] and m1["heat"] and m1["heat"] != m0["heat"], {"前": m0, "後": m1})
+    pg.locator("#l4Mode [data-l4m='light']").click(timeout=15000); pg.wait_for_timeout(800)
+    m2 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 再按一次「淺色」不會翻回深色（二段式不是開關）", m2["th"] == "light" and m2["pressed"] == ["light"], m2)
+    pg.locator("#l4Mode [data-l4m='dark']").click(timeout=15000); pg.wait_for_timeout(1800)
+    m3 = pg.evaluate(MS)
+    ok(f"{T}第三批④ 按「深色」→ 換回深色、底色回來、localStorage 寫 dark", m3["th"] == "dark" and m3["bg"] == m0["bg"] and m3["ls"] == "dark" and m3["pressed"] == ["dark"], m3)
+    # 外觀面板切明暗 → 二段式跟著標對（以 <html data-theme> 為準，不管是誰切的）
+    pg.locator("#t4Btn").click(timeout=6000); pg.wait_for_timeout(300)
+    pg.locator("#t4Pop .t4m[data-t4m='light']").click(timeout=6000); pg.wait_for_timeout(1600)
+    ok(f"{T}第三批④ 從外觀面板切淺色 → 二段式也跟著標「淺色」", pg.evaluate(MS)["pressed"] == ["light"], pg.evaluate(MS))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.locator("#l4Mode [data-l4m='dark']").click(timeout=15000); pg.wait_for_timeout(1200)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
+    t_layout4_subs(pg, base, T)
+
+
+# 子分頁量測：哪幾張卡看得到、哪幾張圖真的畫了（有 ECharts 實例＝畫過；沒有＝根本沒畫，不是只是藏起來）
+L4_SUBST = """() => { const vis = (id) => { const e = document.getElementById(id); return !!e && e.getClientRects().length > 0 && e.getBoundingClientRect().height > 20; };
+    const inst = (id) => { const e = document.getElementById(id); return !!(e && window.echarts && echarts.getInstanceByDom(e)); };
+    const on = [...document.querySelectorAll('.l4subtab.on')].map(b => b.dataset.l4sub);
+    const h1 = document.querySelector('#l4Head h1');
+    return { hash: location.hash, sub: document.documentElement.getAttribute('data-l4sub'), on,
+      tabOn: (document.querySelector('#tabs .tab.on') || { dataset: {} }).dataset.view,
+      cards: { rot: vis('flowRotCard'), sankey: vis('flowSankeyCard'), inst: vis('flowInstCard'), conc: vis('flowConcCard'),
+               ind: vis('indHeat'), theme: vis('themeMapCard') },
+      drawn: { rot: inst('rotClock'), rank: inst('rankFlow'), sankey: !!document.querySelector('#sankey .ftstage')   /* 資金去向是 flowtopo.js 畫的（不是 ECharts） */, inst: inst('instGroups'), conc: inst('conc'), theme: inst('themeMap') },
+      head: h1 ? h1.textContent : '', sy: Math.round(scrollY) }; }"""
+
+
+def t_layout4_subs(pg, base, T):
+    """版面 V2 子分頁（Andy 2026-10-03）：「資金流向」拆成 ①資金輪動 ②資金去向 ③族群×法人＋資金集中度、「熱力圖」拆成 產業／題材。
+    真的點側欄子項，驗：hash 真的換、側欄那格亮、畫面只出現那個子分頁的卡、**其他子分頁的圖根本沒畫**（沒有 ECharts 實例）、
+    舊網址 #flow／#heatmap 導到第一個子分頁、分組名「資金流水」、收合時子項是兩個字的短名而且點得到。"""
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
+    pg.evaluate("() => { try { localStorage.setItem('tw.layout4.nav', 'full'); } catch (e) {} }")
+    # 從別頁點父頁「資金流向」：一進資金流向就是全新的一輪（重新整理，確保別的子分頁的圖真的還沒畫過）
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(800)
+    lbl = pg.evaluate("() => getComputedStyle(document.querySelector('#tabs .tab[data-view=flow]'), '::before').content.replace(/\"/g, '')")
+    ok(f"{T}子分頁 側欄分組名改成「資金流水」", lbl == "資金流水", lbl)
+    subs = pg.evaluate("() => [...document.querySelectorAll('#tabs .l4subtab')].map(b => ({ k: b.dataset.l4sub, t: b.querySelector('.lbl').textContent, "
+                       "x: Math.round(b.getBoundingClientRect().left), px: Math.round(document.querySelector(`#tabs .tab[data-view=${b.dataset.parent}]`).getBoundingClientRect().left), "
+                       "y: Math.round(b.getBoundingClientRect().top), py: Math.round(document.querySelector(`#tabs .tab[data-view=${b.dataset.parent}]`).getBoundingClientRect().top), "
+                       "pl: parseFloat(getComputedStyle(b).paddingLeft) }))")
+    ok(f"{T}子分頁 側欄有 5 個縮排子項（資金輪動／資金去向／族群×法人＋集中度、產業／題材），排在各自父頁正下方",
+       [x["t"] for x in subs] == ["資金輪動", "資金去向", "族群×法人＋集中度", "產業", "題材"]
+       and all(x["y"] > x["py"] and x["pl"] >= 30 for x in subs), subs)
+    ok(f"{T}子分頁 子項不算進 .tab（手機版、分頁列、驗收數的都是 .tab）", pg.evaluate("() => document.querySelectorAll('#tabs .tab.l4subtab, .l4subtab.tab').length") == 0)
+
+    pg.locator("#tabs .tab[data-view='flow']").click(timeout=6000)
+    wait_until(pg, "() => location.hash === '#flow/rotation' && !!(window.echarts && echarts.getInstanceByDom(document.getElementById('rotClock'))) ? 1 : 0", 10000)
+    pg.wait_for_timeout(3200)                       # 閒置補畫的上限是 2.5 秒：等過它，才證明「藏起來的不會偷畫」
+    s1 = pg.evaluate(L4_SUBST)
+    ok(f"{T}子分頁 點「資金流向」→ 導到 ①資金輪動（#flow/rotation）、那格亮、父頁仍是資金流向",
+       s1["hash"] == "#flow/rotation" and s1["on"] == ["flow-rotation"] and s1["tabOn"] == "flow" and "資金輪動" in s1["head"], s1)
+    ok(f"{T}子分頁 ①只出現資金輪動卡（去向、法人、集中度看不到）",
+       s1["cards"]["rot"] and not s1["cards"]["sankey"] and not s1["cards"]["inst"] and not s1["cards"]["conc"], s1)
+    ok(f"{T}子分頁 ①輪盤與排行畫了；資金去向、族群×法人、集中度等了 3 秒仍沒畫（只渲染自己的卡）",
+       s1["drawn"]["rot"] and s1["drawn"]["rank"] and not s1["drawn"]["sankey"] and not s1["drawn"]["inst"] and not s1["drawn"]["conc"], s1)
+
+    pg.mouse.wheel(0, 600); pg.wait_for_timeout(300)
+    pg.locator(".l4subtab[data-l4sub='flow-sankey']").click(timeout=6000)
+    wait_until(pg, "() => location.hash === '#flow/sankey' && !!document.querySelector('#sankey .ftstage') ? 1 : 0", 10000)
+    pg.wait_for_timeout(500)
+    s2 = pg.evaluate(L4_SUBST)
+    ok(f"{T}子分頁 點「資金去向」→ hash 換成 #flow/sankey、那格亮、頁首寫「資金去向」、回到頁首",
+       s2["hash"] == "#flow/sankey" and s2["on"] == ["flow-sankey"] and "資金去向" in s2["head"] and s2["sy"] == 0, s2)
+    ok(f"{T}子分頁 ②只出現資金去向卡、而且資金去向真的畫出來了",
+       s2["cards"]["sankey"] and not s2["cards"]["rot"] and not s2["cards"]["inst"] and not s2["cards"]["conc"] and s2["drawn"]["sankey"], s2)
+    ok(f"{T}子分頁 ②族群×法人、集中度仍沒畫", not s2["drawn"]["inst"] and not s2["drawn"]["conc"], s2)
+
+    pg.locator(".l4subtab[data-l4sub='flow-inst']").click(timeout=6000)
+    wait_until(pg, """() => location.hash === '#flow/inst' && window.echarts && echarts.getInstanceByDom(document.getElementById('instGroups'))
+        && echarts.getInstanceByDom(document.getElementById('conc')) ? 1 : 0""", 10000)
+    pg.wait_for_timeout(500)
+    s3 = pg.evaluate(L4_SUBST)
+    ok(f"{T}子分頁 點「族群×法人＋集中度」→ hash 換成 #flow/inst、那格亮",
+       s3["hash"] == "#flow/inst" and s3["on"] == ["flow-inst"], s3)
+    ok(f"{T}子分頁 ③族群×法人與資金集中度兩張都出現、都畫了；輪動與去向卡看不到",
+       s3["cards"]["inst"] and s3["cards"]["conc"] and s3["drawn"]["inst"] and s3["drawn"]["conc"] and not s3["cards"]["rot"] and not s3["cards"]["sankey"], s3)
+    # 回到 ①：之前畫過的圖還在（切回來不是空白）
+    pg.locator(".l4subtab[data-l4sub='flow-rotation']").click(timeout=6000); pg.wait_for_timeout(900)
+    s4 = pg.evaluate(L4_SUBST)
+    rot_h = pg.evaluate("() => Math.round(document.getElementById('rotClock').getBoundingClientRect().height)")
+    ok(f"{T}子分頁 切回 ①資金輪動 → 輪盤還在、有高度（不是空白）", s4["cards"]["rot"] and s4["drawn"]["rot"] and rot_h > 200, {"s": s4, "h": rot_h})
+    # 舊網址 #flow 直接打 → 導到 ①
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    ok(f"{T}子分頁 舊網址 #flow → 導到 #flow/rotation", bool(wait_until(pg, "() => location.hash === '#flow/rotation' ? 1 : 0", 5000)), pg.evaluate("() => location.hash"))
+
+    # 熱力圖：產業／題材
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(600)
+    pg.locator("#tabs .tab[data-view='heatmap']").click(timeout=6000)
+    wait_until(pg, "() => location.hash === '#heatmap/industry' ? 1 : 0", 6000)
+    pg.wait_for_timeout(3200)
+    h1s = pg.evaluate(L4_SUBST)
+    ok(f"{T}子分頁 點「熱力圖」→ 導到 產業（#heatmap/industry）、那格亮、只出現全市場熱力圖",
+       h1s["hash"] == "#heatmap/industry" and h1s["on"] == ["heat-industry"] and h1s["cards"]["ind"] and not h1s["cards"]["theme"], h1s)
+    ok(f"{T}子分頁 產業子分頁沒畫題材熱力（等了 3 秒仍沒有實例）", not h1s["drawn"]["theme"], h1s)
+    pg.locator(".l4subtab[data-l4sub='heat-theme']").click(timeout=6000)
+    wait_until(pg, "() => location.hash === '#heatmap/theme' && !!(window.echarts && echarts.getInstanceByDom(document.getElementById('themeMap'))) ? 1 : 0", 10000)
+    pg.wait_for_timeout(500)
+    h2s = pg.evaluate(L4_SUBST)
+    ok(f"{T}子分頁 點「題材」→ hash 換成 #heatmap/theme、那格亮、只出現題材熱力而且畫了",
+       h2s["hash"] == "#heatmap/theme" and h2s["on"] == ["heat-theme"] and h2s["cards"]["theme"] and not h2s["cards"]["ind"] and h2s["drawn"]["theme"], h2s)
+    pg.locator(".l4subtab[data-l4sub='heat-industry']").click(timeout=6000)
+    wait_until(pg, "() => location.hash === '#heatmap/industry' ? 1 : 0", 6000); pg.wait_for_timeout(600)
+    h3s = pg.evaluate(L4_SUBST)
+    ok(f"{T}子分頁 切回「產業」→ 全市場熱力圖回來、題材藏起來", h3s["cards"]["ind"] and not h3s["cards"]["theme"] and h3s["on"] == ["heat-industry"], h3s)
+    pg.goto(f"{base}#heatmap", wait_until="networkidle")
+    ok(f"{T}子分頁 舊網址 #heatmap → 導到 #heatmap/industry", bool(wait_until(pg, "() => location.hash === '#heatmap/industry' ? 1 : 0", 5000)), pg.evaluate("() => location.hash"))
+
+    # 收合：子項變兩個字的短名、在 72px 裡、點得到
+    pg.locator("#l4NavBtn").click(timeout=6000); pg.wait_for_timeout(400)
+    mn = pg.evaluate("""() => { const w = document.querySelector('.topbar').getBoundingClientRect().width;
+        return [...document.querySelectorAll('.l4subtab')].map(b => { const r = b.getBoundingClientRect(), sh = b.querySelector('.sh');
+          return { k: b.dataset.l4sub, sh: sh.getClientRects().length ? sh.textContent : '', lbl: b.querySelector('.lbl').getClientRects().length > 0,
+            inside: r.left >= 0 && r.right <= w + 0.5 && r.height > 10, fs: parseFloat(getComputedStyle(sh).fontSize) }; }); }""")
+    ok(f"{T}子分頁 收合時子項是兩個字的短名（輪動／去向／法人／產業／題材）、在 72px 裡、字 ≥ 11px",
+       [x["sh"] for x in mn] == ["輪動", "去向", "法人", "產業", "題材"] and all(x["inside"] and not x["lbl"] and x["fs"] >= 11 for x in mn), mn)
+    pg.locator(".l4subtab[data-l4sub='flow-sankey']").click(timeout=6000)
+    ok(f"{T}子分頁 收合時點「去向」→ 到 #flow/sankey", bool(wait_until(pg, "() => location.hash === '#flow/sankey' ? 1 : 0", 6000)), pg.evaluate("() => location.hash"))
+    pg.locator("#l4NavBtn").click(timeout=6000); pg.wait_for_timeout(300)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
+
+    # ≤820（手機版暫停）：沒有子分頁，#flow 不導向，四張卡都在
+    pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(900)
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    nm = pg.evaluate(L4_SUBST)
+    ok(f"{T}子分頁 800 寬：#flow 不導向、沒有 data-l4sub、側欄子項不存在、資金去向與族群×法人照舊在同一頁",
+       nm["hash"] == "#flow" and not nm["sub"] and pg.evaluate("() => document.querySelectorAll('.l4subtab').length") == 0
+       and nm["cards"]["sankey"] and nm["cards"]["inst"], nm)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
+    ok(f"{T}子分頁 800 → 拉回 1440：#flow 導到 #flow/rotation、側欄子項回來",
+       bool(wait_until(pg, "() => location.hash === '#flow/rotation' && document.querySelectorAll('.l4subtab').length === 5 ? 1 : 0", 5000)),
+       pg.evaluate("() => [location.hash, document.querySelectorAll('.l4subtab').length]"))
 
 
 # ===================================================================== 個股頁下方分頁改版（2026-10-02，DECISIONS #294）
@@ -43574,7 +43885,7 @@ def t_profit_pe_1003(b, base, code):
     ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
 
 
-# ===================================================================== 2026-10-03：重新整理＝圖表設定回預設（DECISIONS #306）
+# ===================================================================== 2026-10-03：重新整理＝圖表設定回預設（DECISIONS #307）
 VR_LS = """(ks) => { const o = {}; ks.forEach(k => { try { o[k] = localStorage.getItem(k); } catch (e) { o[k] = 'ERR'; } }); return o; }"""
 VR_STATE = """() => {
   const on = (sel) => [...document.querySelectorAll(sel + ' button.on')].map(b => b.dataset.v || b.dataset.m || b.textContent.trim());
