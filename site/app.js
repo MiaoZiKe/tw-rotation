@@ -1775,6 +1775,13 @@
     const can = el.scrollWidth > el.clientWidth + 4;
     el.classList.toggle('sk-end', !can || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
   }
+  /* ★ 2026-10-02 卡頓（Andy：「整體畫面卡頓有點多」，DECISIONS #284）：輪動時鐘掃描時，每掃過一個族群點就加一顆聲納圓圈
+     （.rotping，CSS 動畫，0.9 秒後拿掉）—— 資金流向頁停著不動也每秒好幾筆 DOM 變動，盯著整頁的觀察者（這支檔兩個、
+     live.js、theme4.js、icons.js）每一筆都醒來重做一輪。整批變動「只有聲納圓圈進出」時，這些觀察者要做的事都不受影響，直接略過。*/
+  function mutPingOnly(recs) {
+    return recs.every(r => { const ns = [...r.addedNodes, ...r.removedNodes];
+      return ns.length > 0 && ns.every(n => n.classList && n.classList.contains('rotping')); });
+  }
   function initSwipeHints() {
     const scan = () => {
       document.querySelectorAll(SWIPE_SEL).forEach(el => {
@@ -1794,7 +1801,8 @@
     };
     window.twSwipeScan = scan;          // 換頁／重畫之後由 route() 再叫一次
     let t = null;
-    const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 200); });
+    // ★ 2026-10-02 卡頓（#284）：整批只是輪動時鐘的聲納圓圈（.rotping）加／拿 → 不重掃（它是 0×0 的絕對定位，不改任何捲動寬度）
+    const mo = new MutationObserver((recs) => { if (mutPingOnly(recs)) return; clearTimeout(t); t = setTimeout(scan, 200); });
     const m = document.querySelector('main');
     if (m) mo.observe(m, { childList: true, subtree: true });
     window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(scan, 200); });
@@ -2238,7 +2246,7 @@
      ⚠ `miaMore()` 寫成冪等的（鈕已經在就不重插、字一樣就不重寫），
        所以第二次跑產生 0 個 mutation，迴圈自己會停。*/
   { let mt = null;
-    const mo = new MutationObserver(() => { if (!mIsM()) return; clearTimeout(mt); mt = setTimeout(miaMore, 250); });
+    const mo = new MutationObserver((recs) => { if (!mIsM() || mutPingOnly(recs)) return; clearTimeout(mt); mt = setTimeout(miaMore, 250); });
     const mroot = document.querySelector('main');
     if (mroot) mo.observe(mroot, { childList: true, subtree: true }); }
   { let rt = null;
