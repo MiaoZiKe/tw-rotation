@@ -19,6 +19,12 @@
 - Andy 的工作方式：**他只重新整理網頁、不按任何本機指令**。程式碼由 Claude 透過 GitHub API 推上 main，
   資料由 Actions 自己 commit。本機 `.bat/.ps1` 只是初次安裝用。
 
+- **★★★★★★★★★ 2026-10-03：設監察委員、維護確認帳本、半成品一律給預覽網址**（Andy 原話：「我交代的事情都沒處理好……新增監察委員 Agent 監督 CEO 是否確實完成，不要每次都我提醒，要交代也是交代重點，就算我之後給你新任務，也要提醒之前要我確認的項目，聊天室就一個」）：
+  1. `docs/confirm_ledger.md` 是唯一的待辦／待確認帳本。**每一則回報的最後都要附「待 Andy 確認」最新清單**，即使他在講別的新任務。
+  2. 每批回報前派 `inspector`（監察委員）稽核：逐條比對 Andy 原話與實際狀態，抓漏做、做錯、卡住（agent 檔案逾 60 分鐘沒動）、回報不實。
+  3. 回報只講重點：做了什麼、哪裡看、要他確認什麼。不灌細節。
+  4. 要給 Andy 看的半成品一律推 `preview/<名稱>` 並附預覽網址，不推 main（見 docs/preview.md）。
+
 ## 開始工作前，依序讀這三個檔
 
 1. **`AGENTS.md`** — 九個專家 Agent 與 CEO 的分工、產出格式、審核清單（怎麼做事）
@@ -28,6 +34,13 @@
 之後才看 `docs/v3_sources_spec.md`（資料源規格）與程式碼。
 
 ## 工作規則
+
+- **★★★★★★★★ 2026-10-03：要給 Andy 看的半成品，一律推 `preview/<名稱>` 並附預覽網址，不推 main。**
+  Andy 原話：「直接開分支給我一版可操作的，以後都這樣，避免覆蓋到原版本」。
+  `git push origin <分支>:preview/<名稱>` → 部署後網址是 `https://miaozike.github.io/tw-rotation/preview/<名稱>/`
+  （頁首黃色橫幅標「預覽版」；localStorage 跟正式站分開；資料讀正式站的；會員雲端寫入被擋）。
+  收掉：`git push origin --delete preview/<名稱>`。細節、限制與「推了沒動」的處理見 `docs/preview.md`（DECISIONS #301）。
+  ⚠ 預覽版吃的是**正式站的資料**：分支若改了 JSON 格式（`pipeline/build_payload.py`），預覽看不出來。
 
 - **★ 開工第一件事：先確認「推得上去」，再開始改東西。**
   `git push --dry-run origin deploy:main`。如果回 `access denied by the git proxy: ... not in this

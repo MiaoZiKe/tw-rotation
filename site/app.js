@@ -86,6 +86,12 @@
     lot(v) { if (v === null || v === undefined) return '—'; const a = Math.abs(v); if (a >= 1e4) return (v / 1e4).toFixed(1) + ' 萬張'; return fmt.i(v) + ' 張'; },
     cls(v) { return v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; },
     esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); },
+    /* ★ 2026-10-03（DECISIONS #300，Andy：「TPEX 就是上櫃，改成上櫃」）：交易所代號 → 畫面上的中文。
+       資料欄位（stocks.json／個股 JSON 的 market）仍是 TWSE／TPEX，**只在給人看的地方翻成中文**，
+       內部比對（篩選、報價代號、udMktOf）一律照舊用代號。
+       不分大小寫：以前篩選鈕那一行寫成 'TPEx'（大小寫對不上資料裡的 'TPEX'），翻譯落空，畫面才會看到英文「TPEX」。
+       認不得的代號（日後若出現興櫃）原樣顯示，不要默默吞掉。*/
+    mkt(m) { const k = String(m ?? '').toUpperCase(); return k === 'TWSE' || k === 'TSE' ? '上市' : k === 'TPEX' || k === 'OTC' ? '上櫃' : String(m ?? ''); },
   };
   const upDown = (v) => (v > 0 ? CH.up : v < 0 ? CH.down : CH.ink3);
   // #rrggbb + 透明度 → rgba()：色票只寫一份，要半透明時就地調
@@ -1775,6 +1781,13 @@
     const can = el.scrollWidth > el.clientWidth + 4;
     el.classList.toggle('sk-end', !can || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
   }
+  /* ★ 2026-10-02 卡頓（Andy：「整體畫面卡頓有點多」，DECISIONS #284）：輪動時鐘掃描時，每掃過一個族群點就加一顆聲納圓圈
+     （.rotping，CSS 動畫，0.9 秒後拿掉）—— 資金流向頁停著不動也每秒好幾筆 DOM 變動，盯著整頁的觀察者（這支檔兩個、
+     live.js、theme4.js、icons.js）每一筆都醒來重做一輪。整批變動「只有聲納圓圈進出」時，這些觀察者要做的事都不受影響，直接略過。*/
+  function mutPingOnly(recs) {
+    return recs.every(r => { const ns = [...r.addedNodes, ...r.removedNodes];
+      return ns.length > 0 && ns.every(n => n.classList && n.classList.contains('rotping')); });
+  }
   function initSwipeHints() {
     const scan = () => {
       document.querySelectorAll(SWIPE_SEL).forEach(el => {
@@ -1794,7 +1807,8 @@
     };
     window.twSwipeScan = scan;          // 換頁／重畫之後由 route() 再叫一次
     let t = null;
-    const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 200); });
+    // ★ 2026-10-02 卡頓（#284）：整批只是輪動時鐘的聲納圓圈（.rotping）加／拿 → 不重掃（它是 0×0 的絕對定位，不改任何捲動寬度）
+    const mo = new MutationObserver((recs) => { if (mutPingOnly(recs)) return; clearTimeout(t); t = setTimeout(scan, 200); });
     const m = document.querySelector('main');
     if (m) mo.observe(m, { childList: true, subtree: true });
     window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(scan, 200); });
@@ -1870,7 +1884,8 @@
      所以每一次切換都補一輪 resize，而且補兩次（第二次讓版面先安定）。*/
   function miaResize() {
     try { resizeAllCharts(); } catch (e) { /* 忽略 */ }
-    try { window.dispatchEvent(new Event('resize')); } catch (e) { /* 忽略 */ }
+    // twEcho＝「這是分段自己派的回聲」：下面 applyMobileIA 的 resize 監聽認得它、不再回頭重排一次（#284，見那裡的註解）
+    try { const ev = new Event('resize'); ev.twEcho = 'mia'; window.dispatchEvent(ev); } catch (e) { /* 忽略 */ }
   }
 
   function miaClearPager(host) {
@@ -2238,11 +2253,19 @@
      ⚠ `miaMore()` 寫成冪等的（鈕已經在就不重插、字一樣就不重寫），
        所以第二次跑產生 0 個 mutation，迴圈自己會停。*/
   { let mt = null;
-    const mo = new MutationObserver(() => { if (!mIsM()) return; clearTimeout(mt); mt = setTimeout(miaMore, 250); });
+    /* ★ 2026-10-02 卡頓（#284）：「是不是手機寬度」改到防抖之後才問。mIsM() 讀 window.innerWidth，
+       在 DOM 剛被改過的當下讀會逼瀏覽器同步排版一次 —— 以前是每一批 DOM 變動都讀一次
+       （390 寬停在總覽 60 秒，光這一行 3.2 秒，是手機上最大的一筆）。現在 250ms 只讀一次，結果一樣：手機才補「限筆」。*/
+    const mo = new MutationObserver((recs) => { if (mutPingOnly(recs)) return; clearTimeout(mt); mt = setTimeout(() => { if (mIsM()) miaMore(); }, 250); });
     const mroot = document.querySelector('main');
     if (mroot) mo.observe(mroot, { childList: true, subtree: true }); }
   { let rt = null;
-    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
+    /* ★ 2026-10-02 卡頓（DECISIONS #284）：不理「分段自己派的回聲」（e.twEcho）。以前這裡會形成迴圈：
+       resize → 220ms → applyMobileIA → miaPager → 30／300ms 後 miaResize 再派 resize → 又 applyMobileIA → …；
+       另一圈是 mobile3.js 的 apply() → m3go() → resize → 這裡 → miaResize → mobile3 又 apply() → …。
+       手機寬度下頁面永遠停不下來（390 寬停在總覽 20 秒派了 226 次 resize）。回聲＝視窗沒變、分段剛排完，再排一次只是重複；
+       真的視窗變動、其他程式派的 resize（大盤三張圖、手機分頁切換…）照舊會重排。*/
+    window.addEventListener('resize', (e) => { if (e.twEcho) return; clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
   let _miaKey = 'overview';
 
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
@@ -2508,7 +2531,7 @@
     const markets = [...new Set(all.map(r => r.market).filter(Boolean))];
     box.innerHTML = `<div class="seg tiny" id="distMkt">
         <button data-m="" class="${DIST.market ? '' : 'on'}">全部</button>
-        ${markets.map(m => `<button data-m="${m}" class="${DIST.market === m ? 'on' : ''}">${m === 'TWSE' ? '上市' : m === 'TPEx' ? '上櫃' : m}</button>`).join('')}
+        ${markets.map(m => `<button data-m="${m}" class="${DIST.market === m ? 'on' : ''}">${fmt.mkt(m)}</button>`).join('')}
       </div>
       <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2)">
         <input type="checkbox" id="distEtf" ${DIST.etf ? 'checked' : ''}>含 ETF</label>
@@ -2964,6 +2987,12 @@
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
     const gt = D.groups_today || [], cands = D.candidates || [], gd = D.groups_detail || {};
     const body = $('#mktBody'); const title = $('#mktTitle');
+    /* ★ 2026-10-02 卡頓（DECISIONS #284）：下面每一條路都會把 #mktBody 整塊換掉（innerHTML）。
+       換之前先把裡面的 ECharts 實例（漲跌分佈 #chgDist）dispose —— 不收的話 ECharts 的實例表一直抓著舊容器、畫布、事件，
+       回收不掉：實測每進一次市場明細漏 1 張；「⚡ 即時」開著時每 5 秒重畫一次，等於每 5 秒漏 1 張。畫面不變。*/
+    if (body && typeof echarts !== 'undefined') body.querySelectorAll('[_echarts_instance_]').forEach(d => {
+      try { const i = echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已經沒了 */ }
+    });
     const PCT = ['漲跌', r => `<span class="${fmt.cls(r.chg_pct)}">${fmt.pct(r.chg_pct, 2)}</span>`];
     const CLOSE = ['收盤', r => fmt.n(r.close)];
     const TO = ['成交值', r => fmt.yi(r.turnover)];
@@ -3033,14 +3062,19 @@
             <button data-m="live" class="${MUD.on ? 'on' : ''}">⚡ 即時</button></div>
         </div>
         <div id="mktLive" class="note livenote" ${MUD.on ? '' : 'hidden'}></div>
-        <div class="card" style="margin:10px 0 14px;padding:12px 14px">
+        <div class="mktduo" id="mktDuo">
+        <div class="card mktdist" style="padding:12px 14px">
           <div class="row spread"><h3 style="margin:0">漲跌分佈 <small id="distSub"></small></h3>
             <div class="row" id="distFilter" style="gap:8px;flex-wrap:wrap"></div></div>
-          <div class="distlay"><div id="chgDistBox"><div id="chgDist" class="chart" style="min-height:260px"></div></div>
+          <div class="distlay"><div id="chgDistBox"><div id="chgDist" class="chart"></div></div>
             <div class="distpick" id="distPick" role="region" hidden aria-label="這一段的個股"></div></div></div>`
-        + `<div class="seg" id="mktTabs">${sets.map((t, i) =>
+        /* ★ 2026-10-03（Andy 截 #market：「兩大欄位並排」，DECISIONS #300）：
+           漲跌分佈圖卡＋分頁表格（漲停｜跌停｜漲幅前段｜跌幅前段｜成交值前段）桌機左右並排；
+           表格卡自己捲、表頭固定，高度＝圖卡高度（CSS `.mktlist` 的 contain:size，表的長度不參與決定列高）。
+           ≤1100px 疊回上下（那時表格卡拿掉 contain、自己最多 460px 再捲）。元素 id（#mktTabs／#mktInner）沿用。*/
+        + `<div class="card mktlist" id="mktList"><div class="seg" id="mktTabs">${sets.map((t, i) =>
         `<button data-i="${i}" class="${i === mktTab ? 'on' : ''}">${t[0]} <em>${t[1].length}</em></button>`).join('')}</div>`
-        + `<div id="mktInner" style="margin-top:10px"></div>`;
+        + `<div id="mktInner"></div></div></div>`;
       $$('#mktMode button').forEach(b => b.onclick = () => {
         const want = b.dataset.m === 'live';
         if (want === MUD.on) return;              // 已經在這個模式就不要白重畫一次
@@ -7567,14 +7601,14 @@
        最下面一行小字放口徑細節。原本卡片上的長副標、圖下註腳一律搬進來，**只搬家＋改短，不刪資訊**。
        rot／rotm 兩段不在這一批（另一支 agent 在改資金輪動卡與總覽小輪盤）。*/
     mkt: howHTML('這一頁回答：總覽上方那排數字背後是哪些股票。', [
-      '漲跌家數：點長條，右邊列出那一段的個股',
+      '漲跌家數：左圖點長條，圖下列出那一段的個股；右表是漲停、跌停等排行',
       '法人連買賣：法人連續買賣誰、力道增減',
       '站上均線：拆到族群，看誰在撐誰在拖',
       '今日候選：技術面最後一關，方向估值先過',
       '盤後＝收盤全市場；即時＝抓得到的那批',
     ], '「⚡ 即時」只抓有人工分族群的成分股聯集（約 440 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
       + '漲跌幅是真值（現價 vs 昨收），成交值是「現價 × 累計張數」估算，和盤後那一版不是同一個東西；非盤中按下去畫的是最後一次報價快照。'
-      + '漲停＝漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7～10.0）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），右邊（手機在下面）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
+      + '漲停＝漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7～10.0）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），圖的下面或右邊（看視窗寬度）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
       + '站上均線的條越長＝越多成分股站在 20 日均線之上。今日候選：A＝回檔承接、B＝突破追進；沒有 A／B 的日子（大盤走弱時很常見）列綜合分前 40 當觀察名單，不是進場訊號（總覽的「今日候選」表 2026-09-24 已拿掉，名單只在這一頁）。'
       + '每一列都點得進個股頁，族群名稱點得進族群頁。'),
     heat: () => howHTML('這張圖回答：今天的錢集中在哪些族群。', [

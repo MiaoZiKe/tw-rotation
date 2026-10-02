@@ -866,7 +866,7 @@
       let txt, tip, cls = '';
       if (!on) {
         txt = '靜態'; cls = 'off';
-        tip = `${name}：即時已關，停在盤後資料、不再打報價端點。\n按一下打開＝盤中每 5 秒更新、盤後每 30 分鐘。`;
+        tip = `${name}：即時已關，停在盤後資料、不再打報價端點。\n按一下打開＝${meta.tip || '盤中每 5 秒更新'}；盤後每 30 分鐘。`;
       } else if (!at && err) {
         txt = '重試中'; cls = 'bad';
         tip = `${name}：還沒拿到即時報價（${err}）。失敗會自動退避重試（10、20、40…秒，最慢 5 分鐘一次）。`;
@@ -875,10 +875,11 @@
         tip = `${name}：即時開著，還沒拿到第一筆報價。`;
       } else {
         const stale = Date.now() - at > Math.max(every * 3, 20000);
-        txt = hms(at) + (intr ? ' · 5秒' : ' · 盤後');
+        // meta.lbl／meta.tip：卡片裡各數字節奏不一樣時（大盤卡：台指期 15 秒，DECISIONS #299），卡片自己講清楚
+        txt = hms(at) + (intr ? ' · ' + (meta.lbl || '5秒') : ' · 盤後');
         cls = err ? 'bad' : (stale ? 'stale' : '');
         tip = `${name}：最後更新 ${hms(at)}（台北時間）\n`
-          + (intr ? '盤中每 5 秒更新一次（證交所報價本身就是 5 秒一張快照）' : '現在不是盤中（現貨 09:00–13:30），盤後每 30 分鐘對一次')
+          + (intr ? (meta.tip || '盤中每 5 秒更新一次（證交所報價本身就是 5 秒一張快照）') : '現在不是盤中（現貨 09:00–13:30），盤後每 30 分鐘對一次')
           + (err ? `\n上一次抓失敗：${err}（自動退避重試中）` : '')
           + (stale && !err ? '\n⚠ 已經超過平常間隔很久沒有新資料' : '')
           + '\n按一下關掉＝靜態（退回盤後資料）。';
@@ -978,7 +979,11 @@
       mountAll();
       try {
         let mt = null;
-        new MutationObserver(() => { if (mt) return; mt = setTimeout(() => { mt = null; mountAll(); }, 150); })
+        /* ★ 2026-10-02 卡頓（DECISIONS #284）：輪動時鐘的聲納圓圈（.rotping，每秒好幾顆、加一次拿一次）不會洗掉任何開關，
+           整批都是它就不必重掛 —— 以前資金流向頁停著不動，光它就讓 mountAll＋stampCards 每 150ms 跑一輪。*/
+        const pingOnly = (recs) => recs.every(r => { const ns = [...r.addedNodes, ...r.removedNodes];
+          return ns.length > 0 && ns.every(n => n.classList && n.classList.contains('rotping')); });
+        new MutationObserver((recs) => { if (mt || pingOnly(recs)) return; mt = setTimeout(() => { mt = null; mountAll(); }, 150); })
           .observe(document.body, { childList: true, subtree: true });
       } catch (e) { /* 沒有 MutationObserver 的瀏覽器：換頁時 hashchange 那一輪仍會掛 */ }
       /* ★ 2026-09-24：「更新」鈕與 ⚙ 設定面板拿掉了，這裡不再綁它們。

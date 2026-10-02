@@ -138,6 +138,172 @@ async function relay(which: 'fut' | 'futchart', session: string, url: string, bo
   }
 }
 
+/* ================================================================== /sse-test（實驗端點，DECISIONS #299）
+ *
+ * ★ 要回答的問題：Deno Deploy 能不能當「中央抓一次、推給所有讀者」的推播中樞？
+ *   現在每個讀者每 15 秒自己打一次 /fut（#286、#299），讀者一多就吃掉免費層每月 100 萬次請求。
+ *   改成推播（SSE）的話，一個讀者只連一次，額度就從「每 N 秒一次」變成「每次開頁一次（＋斷線重連）」。
+ *   這支端點只是實驗：量 Deploy 會不會把長連線切掉、多久切、同一個 isolate 能不能共用一份上游結果。
+ *
+ * ★ 行為
+ *   - 每 5 秒推一筆 `event: tick`，帶序號（id＝這條連線的第幾筆，斷線重連時 client 會帶 Last-Event-ID）、
+ *     伺服器時間、這個 isolate 的隨機代號、同 isolate 目前有幾條連線、共用上游抓了第幾次、上游狀態與近月成交價。
+ *   - **同一個 isolate 只有一個計時器**：有人連著才每 5 秒打一次期交所（日盤或夜盤看台北時間），
+ *     結果推給這個 isolate 上所有連線；最後一條斷了計時器就收掉。所以 up_seq 應該約等於「經過秒數 ÷ 5」，
+ *     而不是再乘上連線數 —— 那就是「中央抓一次」在單一 isolate 內成立的證據。
+ *   - work_ms：這個 isolate 為推播實際花在同步程式碼上的毫秒數（解析上游 JSON＋組字串），拿來估 CPU。
+ *
+ * ★ 防濫用（public 網址，誰都打得到）
+ *   - SSE_TEST_ENABLED＝false 時一律 410（實測完就關）；另有到期時間 SSE_TEST_UNTIL，過了也是 410，
+ *     忘了關也不會一直開著。
+ *   - 每個 isolate 同時最多 SSE_MAX_CONN 條；每條最長 SSE_MAX_MS（到了伺服器主動結束）；
+ *     每個 isolate 這輩子最多開 SSE_MAX_TOTAL 條（防有人狂重連）。超過回 429。
+ *   - 上游 body 一樣寫死（期交所 getQuoteList），不能被拿去打任意網址。
+ *
+ * ★ 實測紀錄（sse-probe.yml）
+ *   run 37051808940（台北 10-03 03:05～03:20）：5 條 × 15 分鐘，每條 179／180 筆、0 次中斷、最大間隔 5.77 秒，
+ *   全部落在同一個 isolate（region ord）；上游 15 分鐘只抓 178 次（＝經過秒數 ÷ 5，不是 ×5 條）→ 共用成立。
+ *   run 37053561833（台北 03:21～03:28）：3 條 × 7 分鐘，中途 03:22 推了新版（deploy-deno run 37053647708 成功）——
+ *   每條 83／84 筆、0 次中斷，三條從頭到尾都在舊的 isolate ff12f219：換版不會切掉已連著的串流，新連線才去新版。
+ */
+// 2026-10-03 實測完畢 → 停用（回 410）。程式碼留著：之後做正式推播時沿用同一套共用上游＋上限的寫法（DECISIONS #299）
+const SSE_TEST_ENABLED = false;
+const SSE_TEST_UNTIL = Date.parse('2026-10-04T16:00:00Z');   // 台北 10-05 00:00 之後自動停用
+const SSE_MAX_CONN = 8;
+const SSE_MAX_MS = 16 * 60 * 1000;
+const SSE_MAX_TOTAL = 80;
+const SSE_TICK_MS = 5000;
+
+const ISOLATE_ID = crypto.randomUUID().slice(0, 8);
+const ISOLATE_BORN = Date.now();
+type Sub = { id: number; ctl: ReadableStreamDefaultController<Uint8Array>; seq: number; t0: number; timer?: ReturnType<typeof setTimeout> };
+type UpLast = { at: number; status: number; ms: number; price: string; time: string; session: string; err: string };
+const sse = {
+  subs: new Set<Sub>(),
+  total: 0,              // 這個 isolate 開過幾條
+  nextId: 1,
+  timer: null as ReturnType<typeof setInterval> | null,   // 共用的那一個 5 秒計時器
+  upSeq: 0,              // 共用上游抓了幾次
+  upOk: 0,
+  workMs: 0,             // 同步程式碼累計毫秒
+  last: null as UpLast | null,
+};
+const enc = new TextEncoder();
+
+function cpuMs(): number | null {
+  // 盡力而為：Deploy 上 node:process 的 cpuUsage 可能是整個行程、也可能拿不到；拿不到回 null，不影響推播
+  try {
+    // deno-lint-ignore no-explicit-any
+    const p = (globalThis as any).process;
+    if (p && typeof p.cpuUsage === 'function') { const u = p.cpuUsage(); return Math.round((u.user + u.system) / 1000); }
+  } catch { /* 拿不到就算了 */ }
+  return null;
+}
+
+function taipeiMin(): number {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+
+async function sseUpstream(): Promise<void> {
+  const m = taipeiMin();
+  const night = !(m >= 8 * 60 + 45 && m <= 13 * 60 + 45);
+  const t0 = Date.now();
+  sse.upSeq++;
+  try {
+    const r = await upstream(TAIFEX_QUOTE, TAIFEX_BODY(night));
+    const txt = await r.text();
+    const w0 = performance.now();
+    let price = '', time = '';
+    try {
+      const j = JSON.parse(txt);
+      // deno-lint-ignore no-explicit-any
+      const list = ((j.RtData || {}).QuoteList || []).filter((q: any) => q.SymbolID && !/-[SP]$/.test(q.SymbolID));
+      // deno-lint-ignore no-explicit-any
+      list.sort((a: any, b: any) => (parseFloat(b.CTotalVolume) || 0) - (parseFloat(a.CTotalVolume) || 0));
+      if (list[0]) { price = String(list[0].CLastPrice || ''); time = String(list[0].CTime || ''); }
+    } catch { /* 解析失敗就只記狀態碼 */ }
+    sse.workMs += performance.now() - w0;
+    if (r.ok) sse.upOk++;
+    sse.last = { at: Date.now(), status: r.status, ms: Date.now() - t0, price, time, session: night ? 'night' : 'day',
+                 err: r.ok ? '' : txt.slice(0, 80) };
+  } catch (e) {
+    sse.last = { at: Date.now(), status: 0, ms: Date.now() - t0, price: '', time: '', session: night ? 'night' : 'day',
+                 err: String(e).slice(0, 80) };
+  }
+}
+
+function sseSend(s: Sub, event: string, data: unknown): boolean {
+  try {
+    s.seq++;
+    s.ctl.enqueue(enc.encode(`id: ${s.seq}\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+    return true;
+  } catch {
+    return false;   // 連線已經關了（client 走掉）
+  }
+}
+
+function sseDrop(s: Sub, close: boolean) {
+  if (!sse.subs.has(s)) return;
+  sse.subs.delete(s);
+  if (s.timer) clearTimeout(s.timer);
+  if (close) { try { s.ctl.close(); } catch { /* 已關 */ } }
+  if (!sse.subs.size && sse.timer) { clearInterval(sse.timer); sse.timer = null; }
+}
+
+async function sseTick() {
+  await sseUpstream();
+  const w0 = performance.now();
+  const now = Date.now();
+  for (const s of [...sse.subs]) {
+    const ok = sseSend(s, 'tick', {
+      conn: s.id, t: now, up_t: sse.last?.at || 0,
+      iso: ISOLATE_ID, iso_age_s: Math.round((now - ISOLATE_BORN) / 1000), region: region(),
+      conns: sse.subs.size, total: sse.total,
+      up_seq: sse.upSeq, up_ok: sse.upOk, up: sse.last,
+      work_ms: Math.round(sse.workMs * 10) / 10, cpu_ms: cpuMs(),
+    });
+    if (!ok) sseDrop(s, false);
+  }
+  sse.workMs += performance.now() - w0;
+}
+
+function sseTest(request: Request, origin: string): Response {
+  if (!SSE_TEST_ENABLED || Date.now() > SSE_TEST_UNTIL) {
+    return json({ error: 'sse-test disabled', why: '實驗端點已停用（DECISIONS #299）' }, 410, origin);
+  }
+  if (sse.subs.size >= SSE_MAX_CONN || sse.total >= SSE_MAX_TOTAL) {
+    return json({ error: 'too many', conns: sse.subs.size, total: sse.total, iso: ISOLATE_ID }, 429, origin);
+  }
+  sse.total++;
+  const resumed = request.headers.get('Last-Event-ID') || '';
+  let me: Sub | null = null;
+  const body = new ReadableStream<Uint8Array>({
+    start(ctl) {
+      const s: Sub = { id: sse.nextId++, ctl, seq: 0, t0: Date.now() };
+      me = s;
+      sse.subs.add(s);
+      // retry：瀏覽器 EventSource 斷線後 3 秒重連；hello 先讓 client 知道連上了哪個 isolate
+      ctl.enqueue(enc.encode('retry: 3000\n\n'));
+      sseSend(s, 'hello', { conn: s.id, iso: ISOLATE_ID, iso_age_s: Math.round((Date.now() - ISOLATE_BORN) / 1000),
+                            region: region(), conns: sse.subs.size, total: sse.total, resumed_from: resumed,
+                            max_ms: SSE_MAX_MS, tick_ms: SSE_TICK_MS });
+      s.timer = setTimeout(() => { sseSend(s, 'bye', { why: 'max_ms', conn: s.id }); sseDrop(s, true); }, SSE_MAX_MS);
+      if (!sse.timer) sse.timer = setInterval(sseTick, SSE_TICK_MS);
+    },
+    cancel() { if (me) sseDrop(me, false); },
+  });
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'X-Accel-Buffering': 'no',
+      ...cors(origin),
+    },
+  });
+}
+
 export async function handler(request: Request): Promise<Response> {
   const origin = request.headers.get('Origin') || '';
   const url = new URL(request.url);
@@ -150,7 +316,13 @@ export async function handler(request: Request): Promise<Response> {
   }
   if (url.pathname === '/' || url.pathname === '/health') {
     return json({ ok: true, service: 'tw-rotation taifex-deno', upstream: 'mis.taifex.com.tw',
-                  features: ['fut', 'futchart'], region: region() }, 200, origin);
+                  features: ['fut', 'futchart'], region: region(),
+                  sse_test: SSE_TEST_ENABLED && Date.now() <= SSE_TEST_UNTIL }, 200, origin);
+  }
+  if (url.pathname === '/sse-test') {
+    // 實驗端點：不擋沒有 Origin 的請求（GitHub Actions 的探測沒有 Origin），有 Origin 就要在白名單
+    if (origin && !ALLOW_ORIGINS.includes(origin)) return json({ error: 'origin not allowed', origin }, 403, '');
+    return sseTest(request, origin);
   }
   if (url.pathname !== '/fut' && url.pathname !== '/futchart') {
     return json({ error: 'not found' }, 404, origin);

@@ -1,0 +1,203 @@
+name: 推播長連線實測（Deno SSE）
+
+# 為什麼要有這條（DECISIONS #299）：
+# 想知道 Deno Deploy 能不能當「中央抓一次期交所、用推播（SSE）發給所有讀者」的中樞。
+# 這個容器連不到外網，所以在 GitHub Actions 上同時開 N 條連線到 workers/taifex-deno 的 /sse-test，
+# 各撐 M 分鐘，記錄每條收到幾筆、有沒有中斷、斷在第幾秒、重連花多久、連到哪幾個 isolate、
+# 同一個 isolate 的共用上游是不是只抓一次（up_seq 的增量 ≈ 經過秒數 ÷ 5，不是再乘連線數）。
+#
+# ★ 只讀不寫：不 commit、不碰資料湖，所以不用跟每日管線排同一個寫入佇列（concurrency 自己一組）。
+# ★ 沒有任何金鑰：/sse-test 不需要認證（靠到期時間、每 isolate 連線上限擋濫用，見 main.ts）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      conns:
+        description: "同時開幾條連線（3～5）"
+        default: "5"
+      minutes:
+        description: "每條撐幾分鐘（10～15）"
+        default: "15"
+      base:
+        description: "Deno 網址"
+        default: "https://tw-taifex.miaozike.deno.net"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sse-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: 健康檢查（/sse-test 有沒有開）
+        env:
+          BASE: ${{ inputs.base }}
+        run: |
+          curl -sS --max-time 20 "$BASE/health" | head -c 400; echo
+
+      - name: 同時開 N 條 SSE 連線、各撐 M 分鐘
+        env:
+          BASE: ${{ inputs.base }}
+          CONNS: ${{ inputs.conns }}
+          MINUTES: ${{ inputs.minutes }}
+        run: |
+          cat > probe.py <<'PY'
+          import json, os, socket, threading, time, http.client
+          from urllib.parse import urlparse
+
+          BASE = os.environ["BASE"].rstrip("/")
+          N = max(1, min(5, int(os.environ.get("CONNS", "5"))))
+          MIN = max(0.5, min(15, float(os.environ.get("MINUTES", "15"))))
+          u = urlparse(BASE)
+          T0 = time.time()
+          DEADLINE = T0 + MIN * 60
+          STALL_S = 30          # 30 秒一個位元組都沒收到 → 當成卡死，自己斷掉重連
+          RETRY_S = 3           # 跟伺服器 retry: 3000 一樣（瀏覽器 EventSource 的行為）
+
+          def rel(t): return round(t - T0, 1)
+
+          def worker(i, out):
+              st = out[i] = {"conn": i, "ticks": 0, "hellos": 0, "byes": 0, "sessions": [], "gaps": [],
+                             "disconnects": [], "reconnect_s": [], "isos": [], "last_id": "", "max_gap_s": 0,
+                             "first_tick": None, "last_tick": None, "http": []}
+              last_id = ""
+              down_at = None
+              while time.time() < DEADLINE:
+                  sess = {"start": rel(time.time()), "ticks": 0, "iso": "", "end": None, "why": ""}
+                  try:
+                      c = (http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection)(u.hostname, u.port or (443 if u.scheme == "https" else 80), timeout=STALL_S)
+                      h = {"Accept": "text/event-stream", "Cache-Control": "no-cache"}
+                      if last_id: h["Last-Event-ID"] = last_id
+                      c.request("GET", f"/sse-test?probe={i}", headers=h)
+                      r = c.getresponse()
+                      st["http"].append(r.status)
+                      if r.status != 200:
+                          sess["why"] = f"HTTP {r.status}: {r.read(200)!r}"
+                          raise RuntimeError(sess["why"])
+                      ev, data, last_rx = "", "", time.time()
+                      while time.time() < DEADLINE:
+                          line = r.fp.readline()
+                          if not line:
+                              sess["why"] = "伺服器關閉串流（EOF）"; break
+                          last_rx = time.time()
+                          line = line.decode("utf-8", "replace").rstrip("\r\n")
+                          if line.startswith("id:"): last_id = line[3:].strip()
+                          elif line.startswith("event:"): ev = line[6:].strip()
+                          elif line.startswith("data:"): data += line[5:].strip()
+                          elif line == "" and ev:
+                              now = time.time()
+                              try: d = json.loads(data or "{}")
+                              except Exception: d = {}
+                              if ev == "hello":
+                                  st["hellos"] += 1
+                                  sess["iso"] = d.get("iso", "")
+                                  if d.get("iso") and d["iso"] not in st["isos"]: st["isos"].append(d["iso"])
+                                  if down_at is not None:
+                                      st["reconnect_s"].append(round(now - down_at, 2)); down_at = None
+                                  sess["hello"] = d
+                              elif ev == "tick":
+                                  if st["last_tick"] is not None:
+                                      g = now - st["last_tick"]
+                                      st["max_gap_s"] = max(st["max_gap_s"], round(g, 2))
+                                      if g > 7.5: st["gaps"].append({"at": rel(now), "gap_s": round(g, 1)})
+                                  st["last_tick"] = now
+                                  if st["first_tick"] is None: st["first_tick"] = now
+                                  st["ticks"] += 1; sess["ticks"] += 1
+                                  if d.get("iso") and d["iso"] not in st["isos"]: st["isos"].append(d["iso"])
+                                  sess.setdefault("first", d); sess["last"] = d
+                              elif ev == "bye":
+                                  st["byes"] += 1
+                              ev, data = "", ""
+                      else:
+                          sess["why"] = "到時間，自己結束"
+                  except (socket.timeout, TimeoutError):
+                      sess["why"] = f"{STALL_S} 秒沒有任何位元組（卡死）"
+                  except Exception as e:
+                      sess["why"] = sess["why"] or f"{type(e).__name__}: {str(e)[:120]}"
+                  finally:
+                      try: c.close()
+                      except Exception: pass
+                  sess["end"] = rel(time.time())
+                  st["sessions"].append(sess)
+                  if time.time() >= DEADLINE: break
+                  st["disconnects"].append({"at": sess["end"], "why": sess["why"], "after_s": round(sess["end"] - sess["start"], 1)})
+                  down_at = time.time()
+                  time.sleep(RETRY_S)
+              st["last_id"] = last_id
+
+          out = [None] * N
+          th = [threading.Thread(target=worker, args=(i, out), daemon=True) for i in range(N)]
+          for k, t in enumerate(th):
+              t.start(); time.sleep(0.5)
+          for t in th: t.join(MIN * 60 + 90)
+
+          # 共用上游：同一個 isolate 的 up_seq 增量 vs 經過時間
+          iso_span = {}
+          for st in out:
+              for s in st["sessions"]:
+                  f, l = s.get("first"), s.get("last")
+                  if not f or not l: continue
+                  k = f.get("iso")
+                  a = iso_span.setdefault(k, {"t0": f["t"], "t1": l["t"], "up0": f["up_seq"], "up1": l["up_seq"],
+                                              "work0": f.get("work_ms"), "work1": l.get("work_ms"),
+                                              "cpu0": f.get("cpu_ms"), "cpu1": l.get("cpu_ms"),
+                                              "max_conns": 0, "region": f.get("region"), "up_status": set()})
+                  if f["t"] < a["t0"]: a.update(t0=f["t"], up0=f["up_seq"], work0=f.get("work_ms"), cpu0=f.get("cpu_ms"))
+                  if l["t"] > a["t1"]: a.update(t1=l["t"], up1=l["up_seq"], work1=l.get("work_ms"), cpu1=l.get("cpu_ms"))
+                  a["max_conns"] = max(a["max_conns"], f.get("conns", 0), l.get("conns", 0))
+                  for d in (f, l):
+                      if d.get("up"): a["up_status"].add(d["up"].get("status"))
+          for k, a in iso_span.items():
+              el = (a["t1"] - a["t0"]) / 1000
+              a["elapsed_s"] = round(el, 1)
+              a["up_fetches"] = a["up1"] - a["up0"]
+              a["expected_if_shared"] = round(el / 5)
+              a["work_ms_delta"] = None if a["work0"] is None else round(a["work1"] - a["work0"], 1)
+              a["cpu_ms_delta"] = None if a["cpu0"] is None or a["cpu1"] is None else a["cpu1"] - a["cpu0"]
+              a["up_status"] = sorted(x for x in a["up_status"] if x is not None)
+
+          for st in out:
+              st.pop("first_tick", None); st.pop("last_tick", None)
+              for s in st["sessions"]:
+                  s.pop("first", None); s.pop("last", None)
+          res = {"base": BASE, "conns": N, "minutes": MIN, "t0_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(T0)),
+                 "expected_ticks_per_conn": int(MIN * 60 / 5), "per_conn": out, "isolates": iso_span}
+          json.dump(res, open("sse_probe.json", "w"), ensure_ascii=False, indent=1)
+
+          L = [f"## Deno SSE 長連線實測（{N} 條 × {MIN:g} 分鐘，開始 {res['t0_utc']}）", "",
+               f"理論每條約 {res['expected_ticks_per_conn']} 筆（每 5 秒一筆）。", "",
+               "| 連線 | 收到筆數 | 中斷次數 | 最大間隔（秒） | >7.5 秒的缺口 | 重連花的秒數 | 連過的 isolate | HTTP |",
+               "|---|---|---|---|---|---|---|---|"]
+          for st in out:
+              L.append(f"| {st['conn']} | {st['ticks']} | {len(st['disconnects'])} | {st['max_gap_s']} | {len(st['gaps'])} | "
+                       f"{st['reconnect_s'] or '—'} | {', '.join(st['isos'])} | {sorted(set(st['http']))} |")
+          L += ["", "### 中斷明細"]
+          any_d = False
+          for st in out:
+              for d in st["disconnects"]:
+                  any_d = True; L.append(f"- 連線 {st['conn']}：第 {d['at']} 秒斷（這段撐了 {d['after_s']} 秒）—— {d['why']}")
+          if not any_d: L.append("- 沒有任何中斷")
+          L += ["", "### 共用上游（同一個 isolate 只抓一次？）",
+                "| isolate | 區域 | 同時連線（最多） | 經過秒數 | 上游實際抓幾次 | 若共用應約 | 推播同步程式碼 ms | 行程 CPU ms | 上游狀態碼 |",
+                "|---|---|---|---|---|---|---|---|---|"]
+          for k, a in iso_span.items():
+              L.append(f"| {k} | {a['region'] or '—'} | {a['max_conns']} | {a['elapsed_s']} | {a['up_fetches']} | {a['expected_if_shared']} | "
+                       f"{a['work_ms_delta']} | {a['cpu_ms_delta']} | {a['up_status']} |")
+          md = "\n".join(L)
+          print(md)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f: f.write(md + "\n")
+          PY
+          python3 probe.py
+
+      - name: 上傳原始結果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sse-probe
+          path: sse_probe.json
+          if-no-files-found: ignore

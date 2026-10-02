@@ -3,6 +3,16 @@
 (function () {
   'use strict';
   const $ = (s, r) => (r || document).querySelector(s);
+  /* ★ 2026-10-01 卡頓（DECISIONS #284）：換掉一塊 innerHTML 之前，先把裡面的 ECharts 實例 dispose。
+     不 dispose 的話，ECharts 自己的實例表一直抓著舊容器（脫離畫面的 DOM、畫布、事件），永遠回收不掉 ——
+     實測切頁 10 輪：每進一次產業地圖漏 2 張（gpBar／gpPie）、熱力圖漏 1 張（indTree），
+     JS 記憶體 24 → 55MB、事件監聽每輪 +138。只釋放「即將被換掉的那一塊」裡的圖，畫面行為不變。*/
+  function disposeCharts(root) {
+    if (!root || !window.echarts) return;
+    root.querySelectorAll('[_echarts_instance_]').forEach(d => {
+      try { const i = echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已經沒了 */ }
+    });
+  }
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   let A;                                   // window.App（app.js 提供）
   /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
@@ -131,6 +141,7 @@
     if (!el) return;
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     if (heatGroup === null) heatGroup = A.hmLS('tw.hmGroup', 'chain') === 'flat' ? 'flat' : 'chain';
+    disposeCharts(el);
     /* ★ 2026-09-24 說明精簡（Andy：「已經有說明就把表上補充文字拿掉」）：
        原本標題下那段「這張圖回答／怎麼用」搬進「怎麼看 ?」，卡片只留一行短副標。*/
     el.innerHTML = `<div class="card"><div class="row spread"><h3>整個台股一次看 <button class="howbtn pop" data-how="indheat" type="button" aria-label="整個台股一次看怎麼看">?</button></h3>
@@ -252,8 +263,9 @@
     /* 產業鏈頁的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 這些 id 會同時出現兩份
        （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個 ——
        畫面上按的是後面那個，程式改的卻是前面那個。所以換層級一定要把另一邊清掉。*/
-    const cn = $('#indChain'); if (cn) cn.innerHTML = '';
+    const cn = $('#indChain'); if (cn) { disposeCharts(cn); cn.innerHTML = ''; }
     const el = $('#indMap');
+    disposeCharts(el);
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     const groups = [];
     (im.chains || []).forEach(c => (c.groups || []).forEach(g => groups.push(g)));
@@ -1119,8 +1131,9 @@
       + `</div>`;
     /* 產業地圖那一層的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 會同時出現兩份
        （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個。*/
-    { const mp = $('#indMap'); if (mp) mp.innerHTML = ''; }
+    { const mp = $('#indMap'); if (mp) { disposeCharts(mp); mp.innerHTML = ''; } }
     gpStopLive();
+    disposeCharts(el);
     el.innerHTML = `
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">
@@ -3699,7 +3712,7 @@
       <div class="card" style="margin-top:var(--gap-card)">
         <div class="row spread">
           <div><h2>${A.logo ? A.logo(code, known.name, 32, 'sklogo') : ''}${A.fmt.esc(known.name || '')} <span class="mono cyan">${code}</span>
-            <small class="muted" style="font-size:13px">${known.market === 'TPEX' ? '上櫃' : known.market === 'TWSE' ? '上市' : (known.market || '')}</small></h2>
+            <small class="muted" style="font-size:13px">${A.fmt.mkt(known.market)}</small></h2>
             <div class="row" style="gap:6px 12px;margin-top:4px;font-size:13.5px">
               <span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}
               <span class="muted">族群</span>${gid ? A.L.group(gid, (mem && mem.group_name) || known.group) : '—'}
@@ -3844,7 +3857,7 @@
     el.innerHTML = `
       <div class="card" id="skChartCard" style="margin-top:var(--gap-card)">
         <div class="row spread" id="skHead">
-          <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
+          <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${A.fmt.mkt(m.market)}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
             <!-- ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）：現價列只留現價、漲跌、即時徽章與時間（徽章由 live.js 插在漲跌後面）；
                  技術分／本益比／同業分位／營收 YoY／分 K 完整五顆標籤搬到下面工具列（#skTags），左欄少一行。-->
@@ -5290,16 +5303,22 @@
           滿寬之後基本面七格排成一列，籌碼快照三張小圖在寬畫面（容器 ≥900px）也排成一列，窄畫面才往下排
        ③ 各面向細節四張並排（桌機一列四張、窄畫面依序往下排）：技術面、技術面訊號、基本面、消息面。
           技術面訊號那一張就是積木 stock.signal 的出口（StockSignal.view），其他三張是 stock.mtf 的 facetCards。
-     擋掉任何一支積木檔，只少那幾張，其他照常（積木原則三）。K 線卡右上角那一份 #skAi（頂部、另一支分支在改）這裡不動。*/
+     擋掉任何一支積木檔，只少那幾張，其他照常（積木原則三）。K 線卡右上角那一份 #skAi（頂部、另一支分支在改）這裡不動。
+     ★ 2026-10-02 深夜（Andy 看了上線版說「誤解了」，DECISIONS #297）：改成**桌機三欄並排**（#skOv3）：
+       左欄＝基本面卡｜中欄＝籌碼快照卡（卡內四塊由上往下：法人近 20 日 → 集保 → 信用與借券（含當沖率）→ 量比）｜
+       右欄＝AI 卡（StockAI.ovCard：標題＋免責 → 一行重點 → 膠囊分頁籤 → 一次一面，技術面訊號那一面照舊是 StockSignal.view 的出口）。
+       欄寬 1 : 1 : 1.2（右欄字多）；頂端對齊、各自自然高度（理由見 #297：切 AI 分頁時左、中兩欄不跟著變高）。
+       容器 1080～790px（視窗約 1100～820）兩欄：基本面＋籌碼疊成左欄、AI 右欄；更窄一欄、依序往下排。
+       .skovkpi 這層包裝留著（三欄時 display:contents 讓兩張卡各佔一欄；兩欄時它就是左欄）—— 積木驗收用 `.skovkpi > .card` 找 stock.fund 那兩張。
+       擋掉 stock_ai.js：右欄只剩技術面訊號那一張（舊樣式的 #ovFacets 單卡）；兩支都擋：右欄整個不出現，左、中兩欄照常。
+     ★ 2026-10-03（Andy：「三欄改成固定、等高」，DECISIONS #303）：三欄時改等高、底部對齊（高度＝籌碼快照自然高度，下限 560px），
+       AI 卡 contain:size、分頁內容在卡裡捲（切籤三欄高度不變）；基本面格子平均撐開、族群中位那一句釘卡底。全部是 CSS（index.html），這支沒改。*/
   function tabOverview(pg, el) {
     const AI = window.StockAI, SG = window.StockSignal;
-    const brief = AI && AI.brief ? AI.brief(pg, A.fmt) : '';
-    const fc = (AI && AI.facetCards ? AI.facetCards(pg, A.fmt) : null) || {};
     const sig = SG ? SG.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt, { tag: true, id: 'ovF-sig' }) : '';
-    const cards = [fc.tech, sig, fc.fund, fc.news].filter(Boolean);
-    el.innerHTML = `<div class="skov" id="skOv">${brief}
-      <div class="skovkpi">${fundCard(pg)}${chipCard(pg)}</div>
-      ${cards.length ? `${fc.tech && AI.facetHead ? AI.facetHead() : ''}<div class="skfacets" id="ovFacets" data-n="${cards.length}">${cards.join('')}</div>` : ''}</div>`;
+    const right = AI && AI.ovCard ? AI.ovCard(pg, A.fmt, sig) : (sig ? `<div class="skfacets" id="ovFacets" data-n="1">${sig}</div>` : '');
+    el.innerHTML = `<div class="skov" id="skOv"><div class="skov3" id="skOv3" data-cols="${right ? 3 : 2}">
+      <div class="skovkpi">${fundCard(pg)}${chipCard(pg)}</div>${right}</div></div>`;
     if (AI && AI.bindOverview) AI.bindOverview(el);
   }
   /* ★ 2026-09-27「指標」分頁（Andy 給的券商 App「符合 65 項指標」截圖）：
@@ -5311,24 +5330,26 @@
          再點收回 —— 不跳頁、不開彈窗。
        · 題材、族群兩列移到最上面當標籤（點了照舊進題材／族群頁）。
        · 改前「未符合」收在 <details> 裡要多點一下才看得到；改後兩區都直接攤開，一眼看得出「6 項成立、2 項沒有」。
-     #tagN（符合數）、#tagCard 這兩個 id 不變（別的驗收在讀）。*/
+     #tagN（符合數）、#tagCard 這兩個 id 不變（別的驗收在讀）。
+     ★ 2026-10-02 深夜（Andy：「誤解了」，DECISIONS #297）：
+       · 「資料不足、無法判斷」那一區整區拿掉（不顯示、也不計入標題的 N ／ M）—— 那些條件既不成立也不是不成立，攤出來只是佔版面。
+       · 「符合」「未符合」改成**左右並排兩欄**（#tagCols）：左＝符合、右＝未符合，欄內方塊一塊一塊往下排；視窗 ≤820px 才上下排。
+       · 其中一區是 0 項時照樣佔一欄、寫一句「沒有…的條件」，不讓另一欄孤零零地撐滿（也不留空方塊）。*/
   function tabTags(pg, el) {
     const tg = (pg.tags || {}).items || [];
     const code = pg.meta.code;
     const th = A.L.themesOf ? A.L.themesOf(code) : '';
     const grp = (pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('');
-    const hit = tg.filter(t => t.hit === true), miss = tg.filter(t => t.hit === false), na = tg.filter(t => t.hit == null);
+    const hit = tg.filter(t => t.hit === true), miss = tg.filter(t => t.hit === false);
     const tile = (t, cls) => `<button type="button" class="tagtile ${cls}" data-hit="${cls}" data-id="${A.fmt.esc(t.id || '')}" aria-expanded="false" title="${A.fmt.esc((t.label || '') + (t.detail ? '｜' + t.detail : ''))}">`
       + `<b class="tagnm">${A.fmt.esc(t.label)}</b><span class="tagd">${t.detail ? A.fmt.esc(t.detail) : '—'}</span></button>`;
-    const zone = (id, cls, title, list) => list.length ? `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
-      + `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div></section>` : '';
+    const zone = (id, cls, title, list) => `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
+      + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
     el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
-      ${zone('tagHit', 'on', '符合', hit)}
-      ${zone('tagMiss', 'off', '未符合', miss)}
-      ${zone('tagNa', 'na', '資料不足、無法判斷', na)}
-      ${!tg.length ? '<div class="empty">這一檔的月營收／季報資料準備中</div>' : ''}
+      ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}
+      ${!hit.length && !miss.length ? '<div class="empty">這一檔的月營收／季報資料準備中</div>' : ''}
     </div>`;
     /* 點方塊＝原地展開那一行判斷數字的全文（再點收回）；同一時間可以開好幾塊，方便對照 */
     $$('.tagtile', el).forEach(b => b.onclick = () => { const o = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(o)); b.classList.toggle('open', o); });
@@ -5915,6 +5936,71 @@
     place();
   }
 
+  /* ★ 2026-10-03（Andy：「本益比（每季）部分個股畫壞」，DECISIONS #303）
+     根因（抽樣 3105 穩懋、3081 聯亞、3707 漢磊、6919 康霈、2330 台積電對照；管線 pe_history 算得是對的，壞在畫法）：
+       ① 線中間斷段：虧損季（近四季 EPS ≤ 0）管線給 pe＝null，線就斷開，圖上卻什麼都沒寫 ——
+          3105 的 2023Q2～Q4、2025Q2 四季，3081 的 2023Q3～2024Q4 六季。讀者看到的是「資料壞了」，不是「這幾季在虧錢」。
+       ② 衝到 500 的帶狀尖峰：TTM EPS 只剩一點點（3105 2025Q3 的 TTM 0.74 元），本益比對股價極度敏感；
+          帶的上緣＝那一季每天本益比的最高（收盤從 120 漲到 390.5 → 527.7 倍），線卻是那一季第一天（162.2 倍），
+          ECharts 自動 Y 軸就被撐到 600，其他季（15～100 倍）全擠在底部。3707 2021Q3 的 TTM 0.01 元更到 16,550 倍。
+     修法（前端，管線不動）：
+       · 灰底＋「虧損」：虧損季整格灰底、只在每一段連續虧損的第一格寫字；提示框寫「虧損（近四季 EPS -0.53 元），不計本益比」
+       · 圖上限 cap＝max(200, 近 5 年第 75 百分位 × 1.5)，最多 1000：一般股票永遠不會被截（200 倍以下照畫）；
+         整段歷史就是高本益比的（3081 近一年 240～350 倍）上限跟著抬到 435，不會整段貼在天花板；只有真正的離群值被截。
+         超過的值（線或帶）畫在上限、上面放 ▲；提示框照寫實際值與「超出圖上限」。
+       · 線與帶同一口徑：本來就是同一條逐日本益比（同一個 TTM，線＝第一天、帶＝整季高低），
+         現在兩者一起被截、一起在虧損季留空 —— 不會出現「線在 160、帶衝到 527」那種一個被截一個沒被截的畫面。*/
+  const PEQ_FLOOR = 200, PEQ_CEIL = 1000;
+  function peQModel(pe) {
+    const ok = pe.filter(r => r.pe != null && isFinite(r.pe)).map(r => +r.pe).sort((a, b) => a - b);
+    const qtl = (p) => { if (!ok.length) return null; const i = (ok.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return ok[lo] + (ok[hi] - ok[lo]) * (i - lo); };
+    const p75 = qtl(0.75), med = qtl(0.5);
+    const cap = Math.round(Math.min(PEQ_CEIL, Math.max(PEQ_FLOOR, p75 != null ? p75 * 1.5 : PEQ_FLOOR)));
+    const clip = (v) => (v == null || !isFinite(v) ? null : Math.min(+v, cap));
+    const loss = pe.map(r => r.pe == null);
+    const over = pe.map(r => !!r && r.pe != null && Math.max(+r.pe, r.pe_high != null ? +r.pe_high : 0) > cap);
+    return { cap, med, loss, over, clip, nLoss: loss.filter(Boolean).length, nOver: over.filter(Boolean).length };
+  }
+  function drawPeQ(pe, el) {
+    const nt = $('#peQNote', el);
+    if (!pe.length) { A.empty('peQ', '需要四季連續財報'); if (nt) nt.textContent = ''; return; }
+    const m = peQModel(pe);
+    const x = (v) => (v == null ? '—' : A.fmt.n(v, 1));
+    const lo = pe.map(r => m.clip(r.pe_low)), hi = pe.map(r => m.clip(r.pe_high));
+    /* 虧損季：一根填滿整格的淡灰長條（隱藏的第二個 Y 軸 0～1，值 1＝頂到圖頂）。markArea 在類目軸上只能從格中心畫到格中心，
+       單獨一季會變成 0 寬，所以用 barWidth 100% 的長條。字只寫在每段連續虧損的第一格（相鄰的格各寫一次會疊字）。*/
+    const lossBar = m.loss.map((L, i) => (L ? { value: 1, label: { show: !(i > 0 && m.loss[i - 1]) } } : null));
+    const el0 = document.getElementById('peQ');
+    if (el0) { el0.dataset.cap = m.cap; el0.dataset.nloss = m.nLoss; el0.dataset.nover = m.nOver; }
+    A.chart('peQ', {
+      tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = pe[ps[0].dataIndex]; if (!r) return '';
+        if (r.pe == null) return `<b>${r.period}</b><br>虧損（近四季 EPS ${r.ttm_eps != null ? A.fmt.n(r.ttm_eps, 2) + ' 元' : '—'}），不計本益比`;
+        const ov = m.over[ps[0].dataIndex];
+        return `<b>${r.period}</b><br>本益比 ${x(r.pe)} 倍${r.pe > m.cap ? `（超出圖上限 ${m.cap} 倍，圖上畫在上緣 ▲）` : ''}<br>`
+          + `這一季每天的區間 ${x(r.pe_low)}–${x(r.pe_high)} 倍${ov && !(r.pe > m.cap) ? `（上緣超出圖上限 ${m.cap} 倍）` : ''}<br>`
+          + `近四季 EPS ${r.ttm_eps != null ? A.fmt.n(r.ttm_eps, 2) + ' 元' : '—'}${r.from ? `<br><small>線＝${r.from} 收盤（財報可用日）</small>` : ''}`; } },
+      grid: { left: 50, right: 20, top: 20, bottom: 30 },
+      xAxis: { ...A.axisStyle, type: 'category', data: pe.map(r => r.period), axisLabel: { color: A.CH.ink3, hideOverlap: true } },
+      yAxis: [{ ...A.axisStyle, scale: true }, { type: 'value', min: 0, max: 1, show: false }],
+      series: [
+        { name: '虧損', type: 'bar', yAxisIndex: 1, data: lossBar, barWidth: '100%', barGap: '-100%', silent: true, z: 1,
+          itemStyle: { color: 'rgba(140,150,175,.16)' },
+          label: { position: 'insideTop', formatter: '虧損', color: A.CH.ink3, fontSize: 11, distance: 4 } },
+        { name: '區間', type: 'line', data: lo, lineStyle: { opacity: 0 }, stack: 'pe', showSymbol: false, z: 2 },
+        { name: '高低', type: 'line', data: hi.map((h, i) => (h != null && lo[i] != null ? h - lo[i] : null)), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(139,123,255,.2)' }, showSymbol: false, z: 2 },
+        { name: '本益比', type: 'line', data: pe.map(r => m.clip(r.pe)), connectNulls: false, lineStyle: { color: '#8b7bff', width: 2 }, itemStyle: { color: '#8b7bff' }, symbolSize: 5, z: 3 },
+        { name: '超出範圍', type: 'scatter', data: m.over.map(o => (o ? m.cap : null)), symbol: 'triangle', symbolSize: 10, itemStyle: { color: A.CH.amber }, z: 4 },
+      ],
+    }, { notMerge: true });
+    /* 圖下一行：中位數（跟自己的過去比）＋這張圖哪裡被特別處理（有才寫） */
+    if (nt) {
+      const parts = [m.med != null ? `近 ${pe.length} 季本益比中位 <b>${x(m.med)}</b> 倍` : `近 ${pe.length} 季都在虧損，算不出本益比`];
+      if (m.nLoss) parts.push(`灰底＝虧損季 ${m.nLoss} 季，不計本益比`);
+      if (m.nOver) parts.push(`▲＝超過圖上限 ${m.cap} 倍 ${m.nOver} 季，游標移上去看實際值`);
+      nt.innerHTML = parts.join('；');
+    }
+  }
+
   function tabProfit(pg, el) {
     const q = (pg.profit || {}).quarters || [];
     /* ★ 2026-09-26（小數點普查）：3504、6226 各有一季 ttm_eps 捨入後是 0.00、本益比卻是 5.3e+18 ——
@@ -5934,7 +6020,7 @@
       : tm.status === 'missing' ? `⚠ 法定期限已過、應有 ${tm.expected}，目前只到 ${tm.latest || '—'}`
       : `⚠ ${tm.latest} 的季底還沒到，資料有誤`) : '';
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${lastQ[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${last[2] == null ? "—" : A.fmt.n(last[2], 2) + "%"}</div></div><div class="k"><div class="l">營益率</div><div class="v">${last[3] == null ? "—" : A.fmt.n(last[3], 2) + "%"}</div></div><div class="k"><div class="l">淨利率</div><div class="v">${last[4] == null ? "—" : A.fmt.n(last[4], 2) + "%"}</div></div></div>
-      <div class="card"><div class="row spread"><h3>本益比河流圖 ${hq('pe', '本益比河流圖')}</h3>
+      <div class="grid skprof" id="profGrid"><div class="card" id="peRiverCard"><div class="row spread"><h3>本益比河流圖 ${hq('pe', '本益比河流圖')}</h3>
         <div class="row" style="gap:10px;align-items:center">
           <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
           <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
@@ -5955,8 +6041,9 @@
           '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="pekvs" id="peNote" data-readout></div></div>
-      <div class="grid g2" style="margin-top:var(--gap-card)"><div class="card"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['每季一點＝財報可用日收盤 ÷ 近四季 EPS', '虧損（EPS ≤ 0）那季不算', '跟自己的過去比，看現在貴不貴'])}<div id="peQ" class="chart"></div></div></div>
-      <div class="card" style="margin-top:var(--gap-card)"><h3 id="profitTblTtl">季報明細</h3><div class="tw" style="max-height:360px" id="profitTbl"></div></div>`;
+      <div class="card" id="peQCard"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['線＝財報可用日收盤 ÷ 近四季 EPS', '帶＝同一季每天的本益比高低', '灰底＝虧損季（EPS ≤ 0），不計', '▲＝超過圖上限，游標看實際值', '跟自己的過去比，看現在貴不貴'], '線與帶是同一條逐日本益比：線取那一季第一天（財報可用日），帶是那一季每天的最低～最高。圖上限＝max(200 倍, 近 5 年第 75 百分位 × 1.5)，最多 1000 倍。')}<div id="peQ" class="chart"></div><div class="note" id="peQNote" data-readout></div></div>
+      <div class="card" id="profitCard"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div>
+      <div class="card tblcard" id="profitTblCard"><h3 id="profitTblTtl">季報明細</h3><div class="tw" style="max-height:360px" id="profitTbl"></div></div></div>`;
     const pct = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
     const tblQ = () => `<table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${r[1] == null ? '—' : A.fmt.yi(r[1])}</td><td class="num">${pct(r[2])}</td><td class="num">${pct(r[3])}</td><td class="num">${pct(r[4])}</td><td class="num">${r[8] == null ? '—' : A.fmt.yi(r[8])}</td><td class="num">${r[5] == null ? '—' : A.fmt.n(r[5])}</td><td class="num">${r[6] == null ? '—' : A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table>`;
     const tblY = () => `<table><thead><tr><th class="l">年度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>季數</th></tr></thead><tbody>${yr.slice().reverse().map(y => `<tr><td class="l mono">${ylab(y)}</td><td class="num">${y.revenue == null ? '—' : A.fmt.yi(y.revenue)}</td><td class="num">${pct(y.gm)}</td><td class="num">${pct(y.om)}</td><td class="num">${pct(y.nm)}</td><td class="num">${y.net_income == null ? '—' : A.fmt.yi(y.net_income)}</td><td class="num">${y.eps == null ? '—' : A.fmt.n(y.eps)}</td><td class="num">${y.quarters}</td></tr>`).join('')}</tbody></table>`;
@@ -5992,10 +6079,7 @@
       drawProfit();
     });
     drawProfit();
-    if (pe.length) A.chart('peQ', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = pe[ps[0].dataIndex]; const x = (v) => (v == null ? '—' : A.fmt.n(v, 1));
-        return `<b>${r.period}</b><br>本益比 ${x(r.pe)} 倍（區間 ${x(r.pe_low)}–${x(r.pe_high)}）<br>近四季 EPS ${r.ttm_eps != null ? A.fmt.n(r.ttm_eps, 2) + ' 元' : '—'}`; } }, grid: { left: 50, right: 20, top: 20, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: pe.map(r => r.period), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, scale: true },
-      series: [{ name: '區間', type: 'line', data: pe.map(r => r.pe_low), lineStyle: { opacity: 0 }, stack: 'pe', showSymbol: false }, { name: '高低', type: 'line', data: pe.map(r => r.pe_high != null && r.pe_low != null ? r.pe_high - r.pe_low : null), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(139,123,255,.2)' }, showSymbol: false }, { name: '本益比', type: 'line', data: pe.map(r => r.pe), lineStyle: { color: '#8b7bff', width: 2 }, symbolSize: 5 }] });
-    else A.empty('peQ', '需要四季連續財報');
+    drawPeQ(pe, el);
 
     // ---- 河流圖：兩種模式，選過就記住（換股票、重新整理都沿用）
     const river = peRiver(pg);
@@ -6216,10 +6300,15 @@
     return { dayLbl, xCat, showLbl: win <= 63 };      // 3 個月以內才在點／柱上標數字，1 年標上去會疊成一片
   }
   /* 三頁共用的外殼：上方區間鈕＋日期範圍，下面是這一頁的卡片；draw(dates, win) 由各頁自己畫 */
-  function chipPage(pg, el, kind, body, draw) {
+  /* ★ 2026-10-03（Andy，DECISIONS #302）：opts.wins＝這一頁允許的區間值。大戶／散戶資料只有約 6 週（集保每週才一筆、要 11/27 才滿 13 週），
+     6 個月、1 年的圖只是一小段線後面一片空白，所以只留 4 週、3 個月。存著的區間不在允許清單（例如在法人頁選了 1 年）
+     → 這一頁退回 3 個月，**不改寫 localStorage**（回到法人頁仍是原本選的 1 年）。沒傳 opts 的頁（法人、資券）行為完全不變。*/
+  function chipPage(pg, el, kind, body, draw, opts) {
+    const wins = opts && opts.wins ? CHIP_WINS.filter(w => opts.wins.includes(w.v)) : CHIP_WINS;
     let win = chipWinGet();
+    if (!wins.some(w => w.v === win)) win = CHIP_DEFAULT;
     el.innerHTML = `<div class="row chipBar" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-        <div class="seg" id="chipWin" role="group" aria-label="區間">${CHIP_WINS.map(w => `<button type="button" data-v="${w.v}">${w.t}</button>`).join('')}</div>
+        <div class="seg" id="chipWin" role="group" aria-label="區間">${wins.map(w => `<button type="button" data-v="${w.v}">${w.t}</button>`).join('')}</div>
         <span class="note" id="chipRange" data-readout></span></div>${body}`;
     el.dataset.chip = kind;
     const redraw = () => {
@@ -6460,7 +6549,7 @@
           return `<td class="num${on.has(L.k) ? ' sel' : ''}">${r[L.k] == null ? '—' : A.fmt.n(r[L.k], 2) + '%'}<small class="${ppCls(w) === 'dn' ? 'down' : ppCls(w) === 'up' ? 'up' : 'muted'}" style="margin-left:6px">${w == null ? '' : pp(w)}</small></td>`; };
         ht.innerHTML = `<table><thead><tr><th class="l">公布日</th>${HO_LINES.map(L => `<th${on.has(L.k) ? ' class="sel"' : ''}>${L.name}</th>`).join('')}</tr></thead><tbody>${ho.slice().reverse().map(r => `<tr><td class="l mono">${String(r[0])}</td>${HO_LINES.map(L => cell(r, L)).join('')}</tr>`).join('')}</tbody></table><div class="note" style="margin-top:4px">持股比例＝該級距持股 ÷ 總股數；小字＝跟上一週比（pp＝百分點）</div>`;
       }
-    });
+    }, { wins: [20, 63] });   // 大戶／散戶只留 4 週、3 個月（#302）
     $$('#hoTgls .hoTgl', el).forEach(b => b.onclick = () => {
       const k = +b.dataset.k;
       if (on.has(k)) on.delete(k); else on.add(k);
@@ -6471,7 +6560,7 @@
   function tabBasics(pg, el) {
     const b = pg.basics || {}; const f = pg.fundamental || {};
     const indLink = b.industry ? (A.L.gname['ind_' + b.industry] ? A.L.group('ind_' + b.industry, b.industry) : A.fmt.esc(b.industry)) : null;
-    const rows = [['公司全名', b.full_name], ['市場', b.market], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).length ? `<span class="tagrow">${(pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('')}</span>` : null, true], ['題材', A.L.themesOf(pg.meta.code) ? `<span class="tagrow">${A.L.themesOf(pg.meta.code)}</span>` : null, true]];
+    const rows = [['公司全名', b.full_name], ['市場', A.fmt.mkt(b.market)], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).length ? `<span class="tagrow">${(pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('')}</span>` : null, true], ['題材', A.L.themesOf(pg.meta.code) ? `<span class="tagrow">${A.L.themesOf(pg.meta.code)}</span>` : null, true]];
     /* ★ 2026-09-26（Andy：「將過往歷史數據移動到圖三那位置」）：基本資料表只佔左半，右半一大塊空白，
        「1–12 月平均漲幅」卻排在整張表下面要往下捲才看得到。改成兩欄並排（.skBasics，桌機等高），≤900px 疊成上下。
        季節卡是 flex 直欄、圖吃掉剩下的高度，跟左邊基本資料表一樣高。 */

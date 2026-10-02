@@ -845,6 +845,23 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
   .skduo>.tblcard,.skrev3>.tblcard{contain:none;min-height:0}
   .skduo>.tblcard>.tw,.skrev3>.tblcard>.tw{flex:none;max-height:380px!important}}
 @media (max-width:820px){.skrev3{grid-template-columns:minmax(0,1fr)}}
+/* ★ 2026-10-03（Andy：「獲利分頁全部並排」，DECISIONS #303）：比照營收分頁 .skrev3，四張卡一個 grid（#profGrid）：
+   · 桌機三欄：第一列＝本益比河流圖（跨兩欄，工具列＋線寬滑桿＋四個資訊塊要寬度）｜本益比（每季）；
+             第二列＝EPS 與三率｜季報／年度明細（跨兩欄，9 欄的表要約 700px 才不必橫捲）。
+     同一列 stretch 等高：本益比（每季）的圖 flex 撐滿卡（chart() 的 ResizeObserver 會跟著重畫）；明細表卡 .tblcard contain:size，
+     表的長度不撐高這一列、在卡裡捲（同營收）。
+   · ≤1100 兩欄：河流圖、明細表各自滿寬，中間「本益比（每季）｜EPS 與三率」並排；明細表拿掉 contain、最多 360px 再捲。
+   · ≤820 一欄依序往下。 */
+.skprof{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.skprof>#peRiverCard,.skprof>#profitTblCard{grid-column:span 2}
+.skprof>#peQCard,.skprof>#profitCard{display:flex;flex-direction:column}
+.skprof>#peQCard>#peQ,.skprof>#profitCard>#profitChart{flex:1 1 auto}
+.skprof>#peQCard>#peQ.isempty{flex:none}
+#peQNote{margin-top:6px}
+@media (max-width:1100px){.skprof{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .skprof>#peRiverCard,.skprof>#profitTblCard{grid-column:1 / -1}
+  .skprof>.tblcard{contain:none;min-height:0} .skprof>.tblcard>.tw{flex:none;max-height:360px!important}}
+@media (max-width:820px){.skprof{grid-template-columns:minmax(0,1fr)} .skprof>*{grid-column:1 / -1!important}}
 /* 本益比河流圖下方讀數：四個並排的小資訊塊（目前本益比｜落在哪一區｜歷史倍數帶｜讀法），取代改前一整行「·」串起來的長句 */
 .pekvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px}
 .pekvs .k{background:var(--panel-3);border-radius:9px;padding:6px 10px;min-width:0}
@@ -4011,13 +4028,42 @@ h3 .howbtn.pop{font-family:inherit}
    色條加粗到 10px（6px 看不出斜紋，賣超就認不出來）。字一律 ≥11.5px（手機 11px 下限）。
    ================================================================================== */
 .skov{container:skov / inline-size}
-/* 基本面、籌碼快照上下兩張滿寬（並排時基本面卡下半截是空的）；籌碼快照三張小圖在容器 ≥900px 排成一列、等高，量比橫跨在下面 */
-.skovkpi{display:flex;flex-direction:column;gap:var(--gap-card,16px)}
-.mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-@container skov (min-width:900px){
-  .mixes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
-  .mixes>.mixvr{grid-column:1 / -1;width:min(100%,560px)}
+/* ★ 2026-10-02 深夜（Andy：「誤解了」，DECISIONS #297）總覽三欄：基本面｜籌碼快照｜AI 卡，欄寬 1 : 1 : 1.2。
+   改前（#294）是基本面、籌碼快照上下兩張滿寬，下面四張 AI 面向卡一列 —— Andy 要的是三欄並排。
+   · 頂端對齊、各自自然高度（align-items:start）：AI 卡切分頁時高度會變（技術面最長、技術面訊號最短），
+     等高的話左、中兩欄會跟著一下長一下短，而且基本面卡內容最少，拉齊會在卡底留一大塊空白。
+   · 斷點量的是分頁內容區（container skov，個股頁內容區＝視窗 − 32px）：容器 ≥1080（視窗約 >1110）三欄；
+     790～1080（視窗約 820～1110，含 Andy 說的 1100～820）兩欄＝基本面＋籌碼疊成左欄、AI 右欄；更窄一欄依序往下。
+   · .skovkpi 三欄時 display:contents（兩張卡各自當一欄）、兩欄時就是左欄、一欄時照順序往下。 */
+.skov3{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr);align-items:start}
+.skovkpi{display:flex;flex-direction:column;gap:var(--gap-card,16px);min-width:0}
+@container skov (min-width:790px){ .skov3[data-cols="3"]{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)} }
+@container skov (min-width:1080px){
+  .skov3[data-cols="3"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)}
+  .skov3[data-cols="3"]>.skovkpi{display:contents}
 }
+/* ★ 2026-10-03（Andy：「三欄改成固定、等高」，DECISIONS #303，推翻 #297 第 2 條「頂端對齊、自然高度」）：
+   三欄時三張卡同高、底部對齊。高度＝籌碼快照卡的自然高度（量過 10 檔，1440 全是 617～633px），下限 560px：
+   · AI 卡 contain:size —— 它的內容**不參與**決定這一列多高（技術面 534px、技術面訊號 241px，切籤不准帶著整列變高變矮），
+     高度＝同列 stretch 來的高度；分頁內容（#ovFacets）在卡裡捲。
+   · 基本面卡（約 426px）：格子平均撐開（grid-auto-rows:1fr、內容垂直置中），「同族群本益比中位」那一句釘在卡底，
+     不留一大塊空白。
+   · 下限 560px：籌碼快照缺資料（只剩「資料準備中」）時卡會變很矮，AI 卡最長那一面（技術面 534px）照樣不必捲。
+   兩欄（1100）、一欄（≤820）不強制等高，照 #297 各自長。 */
+@container skov (min-width:1080px){
+  .skov3[data-cols="3"]{align-items:stretch;grid-template-rows:minmax(560px,auto)}
+  .skov3[data-cols="3"] #ovAiCard{contain:size;min-height:0}
+  .skov3[data-cols="3"] #ovAiCard>#ovFacets{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:4px}
+  .skov3[data-cols="3"] #skFundCard{display:flex;flex-direction:column}
+  .skov3[data-cols="3"] #skFundCard>.kvs.skfund{flex:1 1 auto;grid-auto-rows:1fr}
+  .skov3[data-cols="3"] #skFundCard>.kvs.skfund>.k{display:flex;flex-direction:column;justify-content:center}
+  .skov3[data-cols="3"] #skFundCard>.note{margin-top:10px!important;padding:8px 10px;border-radius:9px;background:var(--panel-3)}
+}
+/* 擋掉兩支 AI 積木（只剩基本面、籌碼快照）：兩張並排 */
+@container skov (min-width:790px){ .skov3[data-cols="2"]>.skovkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start} }
+/* 籌碼快照卡內四塊（法人 → 集保 → 信用與借券（含當沖率）→ 量比）一律由上往下排：中欄只有約 430px 寬，
+   改前在寬容器排成三欄、量比橫跨下面；三欄版面裡它自己就是一欄，再橫排會擠成每格不到 120px */
+.mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .mix{display:flex;flex-direction:column;gap:7px;padding:10px 12px;border-radius:10px;background:var(--panel-3);min-width:0}
 .mixh{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .mixt{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
@@ -4068,15 +4114,14 @@ h3 .howbtn.pop{font-family:inherit}
 .gauge .gfill{fill:none;stroke:var(--cyan);stroke-width:7;stroke-linecap:round}
 .gaugev small{font-size:12px;color:var(--ink-3);font-weight:400}
 .kvs .k .v small{font-size:12px;color:var(--ink-3);font-weight:400}
-/* 各面向細節：桌機一列四張（技術面那張寬一點，它的週期敘述最長）、中寬兩張一列、窄畫面依序往下排。
-   量的是分頁內容區本身（container skov），右側事件欄開關、視窗寬窄都跟著走 */
-.skfacets{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr)}
-@container skov (min-width:640px){ .skfacets{grid-template-columns:repeat(2,minmax(0,1fr))} }
-@container skov (min-width:1060px){
-  .skfacets[data-n="4"]{grid-template-columns:minmax(0,1.45fr) repeat(3,minmax(0,1fr))}
-  .skfacets[data-n="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-/* 「指標」分頁：方塊卡片，分符合／未符合兩區 */
+/* 擋掉 stock_ai.js 時右欄只剩技術面訊號那一張（#ovFacets 單卡外殼）；AI 卡本身的樣式在 blocks/stock_ai.js 的 ovCss */
+.skfacets{display:grid;gap:var(--gap-card,16px);grid-template-columns:minmax(0,1fr);min-width:0}
+/* 「指標」分頁：方塊卡片，左欄符合、右欄未符合（#297：改前上下兩區；資料不足那一區拿掉）。
+   欄內方塊一塊一塊往下排（每塊整欄寬，判斷數字一行放得下就不必點開）；視窗 ≤820px 才上下排 */
+.tagcols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;align-items:start}
+.tagcols .taggrid{grid-template-columns:minmax(0,1fr)}
+.tagnone{font-size:13px;color:var(--ink-3);padding:10px 12px;border:1px dashed var(--line);border-radius:10px}
+@media (max-width:820px){ .tagcols{grid-template-columns:minmax(0,1fr)} }
 .tagmeta{display:flex;flex-direction:column;gap:6px;margin:8px 0 4px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .tagmr{display:flex;gap:10px;align-items:baseline;min-width:0}
 .tagmr .tagk{flex:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:12.5px;color:var(--ink-2)}
@@ -4095,9 +4140,8 @@ h3 .howbtn.pop{font-family:inherit}
 .tagtile.open .tagd{white-space:normal;overflow:visible}
 .tagtile.on{border-color:color-mix(in srgb,var(--rise) 55%,var(--line));background:color-mix(in srgb,var(--rise) 9%,var(--panel-3))}
 .tagtile.on .tagnm{color:var(--rise)}
-.tagtile.off,.tagtile.na{opacity:.72}
-.tagtile.off .tagnm,.tagtile.na .tagnm{color:var(--ink-2);font-weight:600}
-.tagtile.na{border-style:dashed}
+.tagtile.off{opacity:.72}
+.tagtile.off .tagnm{color:var(--ink-2);font-weight:600}
 /* 資券分頁最上面一列「最新數字」的日期小字 */
 .mgkpi .mgd{font:11px/1 var(--mono);color:var(--ink-3);margin-left:4px}
 .mgkpi .v small{font-size:12px;color:var(--ink-3);font-weight:400}
@@ -4336,6 +4380,38 @@ h3 .howbtn.pop{font-family:inherit}
   .distlay{flex-direction:column}
   .distpick{flex:none}
   .distpick .dplist{max-height:360px}
+}
+/* ---- 市場明細「漲跌家數」兩大欄並排（2026-10-03，Andy 截 #market，DECISIONS #300）----
+   左＝漲跌分佈圖卡（1 份），右＝分頁表格卡（1.2 份：漲停｜跌停｜漲幅前段｜跌幅前段｜成交值前段，五欄 股票／族群／漲跌／收盤／成交值）。
+   · 兩欄等高、表格高度跟著圖卡走：右卡 contain:size —— 表的長度（一頁最多 60～200 列）**不參與決定這一列多高**，
+     列高＝左卡（標題列＋圖）的自然高度，右卡 stretch 到一樣高；表在卡裡自己捲，表頭 th 本來就 sticky（全站表格規則），捲動時固定。
+     這招跟個股頁 .skduo／.tblcard 同一套（#295）。圖的高度由 #chgDist 的 min-height 決定，那就是整列的高度。
+   · 名單（下鑽，.distpick）在並排時（>1100）改排到圖的下面、不再擠在圖的右邊：左欄約 590px，名單 340px 一放進去圖只剩 240px，12 根長條讀不了。
+     ⚠ 名單打開時左卡變高、右卡跟著變高（兩欄一直等高）；收起時回到原本的高度。
+   · ≤1100px 欄寬不夠（右欄的表 5 欄最窄約 480px，加上左欄至少 420px 的圖）→ 疊回上下排：圖卡在上、表格卡在下，
+     表格卡拿掉 contain、照內容長但最多 460px 再捲；圖回到 260px、名單回到圖的右邊（卡片疊起來後寬度夠）。
+     斷點 1100 是量出來的（見 DECISIONS #300）。*/
+.mktduo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:var(--gap-card,16px);align-items:stretch;margin:10px 0 0}
+.mktduo>*{min-width:0}
+.mktdist{display:flex;flex-direction:column}
+.mktdist .distlay{flex:1 1 auto;margin-top:6px}
+.mktdist .distlay>#chgDistBox{flex:1 1 auto}
+.mktdist #chgDist{min-height:260px}   /* 以前寫在 inline style；搬進 CSS 才蓋得過（inline 比任何選擇器都大） */
+@media (min-width:1101px){
+  .mktdist .distlay{flex-direction:column}
+  .mktdist #chgDist{min-height:400px;height:100%}
+  .mktdist .distpick{flex:none}
+  .mktdist .distpick .dplist{max-height:240px}
+}
+.mktlist{display:flex;flex-direction:column;contain:size;min-height:300px;padding:12px 14px}
+.mktlist>#mktTabs{flex:none;align-self:flex-start;max-width:100%}
+.mktlist>#mktInner{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-top:10px}
+.mktlist>#mktInner>.kpinote{flex:none}
+.mktlist>#mktInner>.tw{flex:0 1 auto;min-height:0;max-height:none;scrollbar-width:thin}
+@media (max-width:1100px){
+  .mktduo{grid-template-columns:minmax(0,1fr)}
+  .mktlist{contain:none;min-height:0}
+  .mktlist>#mktInner>.tw{flex:none;max-height:460px}
 }
 
 /* ---- 法人卡「滾輪放大」徽章：淺色主題原本是深底配灰字、再疊在淺底上 → 灰底灰字看不見（審查 R1）---- */
@@ -4610,8 +4686,9 @@ h3 .howbtn.pop{font-family:inherit}
 /* ---- 手機 v3 E：市場明細分段、週期統計設定抽屜（mobile3.js 的 E 段）---- */
 @media (max-width:640px){
   body.m3on #mMktSeg{margin:6px 0 8px}
-  body.m3on #mktBody.mseg-list>.card{display:none!important}
-  body.m3on #mktBody.mseg-dist>#mktTabs,body.m3on #mktBody.mseg-dist>#mktInner{display:none!important}
+  /* 2026-10-03（#300）：漲跌家數的圖卡與表格卡包進 .mktduo 之後，「名單」段藏的是 .mktdist、「分佈圖」段藏的是 .mktlist（舊的 >.card 規則仍管站上均線那頁的卡） */
+  body.m3on #mktBody.mseg-list>.card,body.m3on #mktBody.mseg-list .mktduo>.mktdist{display:none!important}
+  body.m3on #mktBody.mseg-dist .mktduo>.mktlist{display:none!important}
   body.m3on #seasonCtl.mhide:not(.min){display:none!important}
   body.m3on #mSeasonBtn{max-width:100%;margin:4px 0 6px}
   body.m3on .msheet #seasonCtl{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
