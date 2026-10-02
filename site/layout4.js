@@ -12,6 +12,12 @@
      · 「自選」放進「專案」組（DECISIONS #274：自選是導覽最後一格，取代交付清單）；
      · 外觀面板、帳號選單是 theme4.js／account.js 用「按鈕下緣＋8px」定位的 —— 按鈕搬到左欄底部之後會掉出視窗，
        這裡在它們打開之後改放到左欄右邊（只改 style.top／left，面板內容與行為不動）。
+   ★ 2026-10-03 第三批（Andy 對預覽 preview/layout-v2 的四條，只作用在 >820 的電腦版）：
+     ① 頁首只剩「頁名＋台北現在時間」、黏在最上面；分組小標、說明句拿掉，「本頁功能」那排只藏不刪（CSS）
+     ② 收合鈕從左欄最底下的文字列，改成 logo 右側一顆側欄圖示小方鈕（#l4NavBtn）
+     ③ 「事件」移到導覽最上面一格（CSS grid 換位置，DOM 不動）
+     ④ 左欄底部改成帳號卡（#l4Acct，account.js 的 #acctBtn 本人搬進來當「登入」／名字那顆）＋「淺色｜深色」二段式（#l4Mode）
+        ＋外觀調色盤小鈕（#t4Btn）；「★ 自選」與 ☀ 鈕在電腦版藏起來（≤820 照舊）
    ================================================================================== */
 (function () {
   'use strict';
@@ -38,8 +44,8 @@
      這裡一句話講清楚每一頁在那個順序裡的位置，讓第一次來的人知道從哪裡開始看。 */
   const PAGES = {
     overview: { grp: '今日市場', t: '總覽', d: '今天大盤怎麼走、錢集中在哪幾個族群、題材在做什麼 —— 從這裡開始，一頁看完今天的重點。' },
-    flow: { grp: '錢往哪裡跑', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金去向看錢從哪裡流到哪裡。' },
-    heatmap: { grp: '錢往哪裡跑', t: '熱力圖', d: '全市場與題材的冷熱一眼看完：方塊越大錢越多、越紅漲越多；點方塊看成分股。' },
+    flow: { grp: '資金流水', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金去向看錢從哪裡流到哪裡。' },
+    heatmap: { grp: '資金流水', t: '熱力圖', d: '全市場與題材的冷熱一眼看完：方塊越大錢越多、越紅漲越多；點方塊看成分股。' },
     industry: { grp: '族群與個股', t: '產業地圖', d: '每條產業鏈的強弱與上下游：先挑產業鏈，再看族群與零件，最後點個股看 K 線與基本面。' },
     stock: { grp: '族群與個股', t: '個股', d: 'K 線與多週期技術面、營收與獲利、籌碼與除權息 —— 決定「什麼時候進場」與「現在貴不貴」。' },
     market: { grp: '族群與個股', t: '市場明細', d: '完整名單：漲跌分佈、站上均線、法人動向與各項排行，可以排序篩選，找出符合條件的個股。' },
@@ -48,6 +54,21 @@
     delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
   };
   const ALIAS = { themes: 'heatmap', tasks: 'delivery' };
+  /* ★ 2026-10-03（Andy：「資金流向」四個本頁功能拆成三個側欄子分頁、「熱力圖」拆產業／題材）：
+     側欄縮排子項。路由與「這一頁顯示哪幾張卡」在 app.js route()（<html data-l4sub>）＋ layout4.css；這裡只畫側欄那幾格、亮目前那格。
+     短名（s）是收合成圖示列時顯示的兩個字。 */
+  const SUBS = {
+    flow: [
+      { k: 'flow-rotation', h: '#flow/rotation', t: '資金輪動', s: '輪動' },
+      { k: 'flow-sankey', h: '#flow/sankey', t: '資金去向', s: '去向' },
+      { k: 'flow-inst', h: '#flow/inst', t: '族群×法人＋集中度', s: '法人' },
+    ],
+    heatmap: [
+      { k: 'heat-industry', h: '#heatmap/industry', t: '產業', s: '產業' },
+      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', s: '題材' },
+    ],
+  };
+  const subKey = () => root.getAttribute('data-l4sub') || '';
   /* 卡片標題讀出來不像「這一節」的，指定名字（大盤三張圖的外框第一個標題是「加權指數」，但這一節是三張圖） */
   const CARD_NAME = { m3Frame: '大盤走勢' };
 
@@ -85,6 +106,7 @@
     const k = curKey(), p = PAGES[k];
     let sub = '';
     if (p && (k === 'industry' || k === 'stock') && /^#(industry\/|stock\/)/.test(location.hash)) sub = chainName();
+    if (p && SUBS[k]) { const it = SUBS[k].find((x) => x.k === subKey()); if (it) sub = it.t; }
     const sig = [k, sub].join('|');
     if (sig === lastHead) return;
     lastHead = sig;
@@ -98,9 +120,40 @@
     }
     head.hidden = !p;
     if (!p) { head.innerHTML = ''; return; }
-    head.innerHTML = `<div class="eyebrow">${esc(p.grp)}</div>`
-      + `<div class="ttl"><h1>${esc(p.t)}${sub && sub !== p.t ? `<span class="sub1">${esc(sub)}</span>` : ''}</h1>`
-      + `<p>${esc(p.d)}</p></div>`;
+    /* ★ 2026-10-03（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
+       分組小標（eyebrow）、說明句（p）拿掉，只留頁名＋台北現在時間。「本頁功能」那排見 CSS（只藏不刪）。 */
+    head.innerHTML = `<h1>${esc(p.t)}${sub && sub !== p.t ? `<span class="sub1">${esc(sub)}</span>` : ''}</h1>`
+      + '<time class="l4clock" aria-live="off"></time>';
+    tick();
+  }
+
+  /* ---------------- 頁首的現在時間（台北） ----------------
+     容器、使用者的電腦都可能不在 UTC+8，所以一律用 Intl 指定 Asia/Taipei，不靠本機時區。
+     ★ 每秒寫的是 data-t「屬性」，字由 CSS 的 ::before 畫：全站有兩支掛在 body 上的 MutationObserver
+     （icons.js 看 childList＋characterData、live.js 看 childList），寫文字節點會讓它們每秒各掃一輪
+     （DECISIONS #284 的卡頓就是這種東西造成的）；兩支都不看屬性，改屬性它們完全不會被叫醒。 */
+  const CLOCK_FMT = (() => {
+    try {
+      return new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
+        weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    } catch (e) { return null; }
+  })();
+  function clockText(d) {
+    if (!CLOCK_FMT) return '';
+    const o = {}; CLOCK_FMT.formatToParts(d).forEach((x) => { o[x.type] = x.value; });
+    // 例：2026-10-03（五）14:05:33 —— 星期拿 Intl 的「週五」去掉「週」
+    return `${o.year}-${o.month}-${o.day}（${String(o.weekday || '').replace(/^週|^星期/, '')}）${o.hour}:${o.minute}:${o.second}`;
+  }
+  let clockT = 0;
+  function tick() {
+    const c = head && $('.l4clock', head);
+    if (c) {
+      const now = new Date(), t = clockText(now);
+      c.setAttribute('data-t', t); c.setAttribute('datetime', now.toISOString());
+      c.setAttribute('aria-label', '台北時間 ' + t); c.title = '台北時間（每秒更新）';
+    }
+    clearTimeout(clockT);
+    if (active) clockT = setTimeout(tick, 1000 - (Date.now() % 1000) + 5);   // 對齊整秒，跳秒不會忽快忽慢
   }
 
   /* 「本頁功能」：目前這一頁、看得見的、最外層卡片的標題。
@@ -206,6 +259,38 @@
     scanT = setTimeout(() => { scanT = 0; renderHead(); scanCards(); }, 300);
   }
 
+  /* ---------------- 側欄子分頁（資金流向三格、熱力圖兩格） ----------------
+     插在 #tabs 裡、各自的父頁後面；class 是 l4subtab（**不是 .tab**）—— 手機版、app.js 的分頁列、驗收腳本都是數 .tab，
+     不能讓它們多算。≤820 deactivate() 整批拿掉。點了只是換 hash，其餘交給 app.js 的 route()。 */
+  function buildSubs() {
+    const tabs = $('#tabs'); if (!tabs || $('.l4subtab', tabs)) return;
+    Object.keys(SUBS).forEach((v) => {
+      const parent = $(`.tab[data-view="${v}"]`, tabs); if (!parent) return;
+      let after = parent;
+      SUBS[v].forEach((it) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'l4subtab'; b.dataset.l4sub = it.k; b.dataset.parent = v;
+        b.innerHTML = `<span class="lbl">${esc(it.t)}</span><span class="sh" aria-hidden="true">${esc(it.s)}</span>`;
+        b.title = (PAGES[v] ? PAGES[v].t + '・' : '') + it.t;
+        b.onclick = () => {
+          // 熱力圖題材子分頁：已經在題材（可能還帶著 /<題材 id>）就不動網址，不要把展開中的題材收掉
+          if (subKey() === it.k) return;
+          location.hash = it.h;
+        };
+        after.after(b); after = b;
+      });
+    });
+    markSubs();
+  }
+  function markSubs() {
+    const k = subKey();
+    $$('.l4subtab').forEach((b) => {
+      const on = b.dataset.l4sub === k;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+  }
+
   /* ---------------- 左側導覽收合（寬 ↔ 圖示列） ----------------
      使用者按過就記住（tw.layout4.nav＝mini／full）；沒按過時，視窗 ≤1180px 自動收成圖示列，讓內容有地方放
      （1180 沿用 V2 的門檻：1180 − 224 ＝ 956，再窄兩欄的卡片就開始擠）。 */
@@ -231,15 +316,83 @@
     if (was !== mini) setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
     fitNav();
   }
-  function buildFoot() {
+  /* ★ 2026-10-03（Andy：「收合導覽改成圖三那樣」，參考 assetmetra）：收合鈕從左欄最底下的「‹ 收合導覽」文字列，
+     改成 logo 右側一顆小方鈕（側欄圖示，像 lucide panel-left）。它是 .topbar 的直接子元素（不放進 .brand：
+     .brand 本身有 onclick 回總覽，放進去會點一下同時收合又換頁）。 */
+  function buildNavBtn() {
     const bar = $('.topbar'); if (!bar || $('#l4NavBtn')) return;
-    const foot = document.createElement('div'); foot.className = 'l4foot';
-    foot.innerHTML = '<button type="button" id="l4NavBtn"><span class="ic"></span><span class="lbl">收合導覽</span></button>';
-    bar.appendChild(foot);
-    $('#l4NavBtn').onclick = () => {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.id = 'l4NavBtn'; btn.className = 'l4navbtn';
+    btn.innerHTML = '<span class="ic" aria-hidden="true"></span>';
+    const brand = $('.brand', bar);
+    bar.insertBefore(btn, brand ? brand.nextSibling : bar.firstChild);
+    btn.onclick = (e) => {
+      e.stopPropagation();
       LS.set(NAV_KEY, root.classList.contains('l4-mini') ? 'full' : 'mini');
       applyNav();
     };
+  }
+
+  /* ---------------- 左欄底部：帳號卡＋「淺色｜深色」切換（Andy：「登入模式可以參考圖三下方」） ----------------
+     原本底部是「★ 自選｜登入」兩顆、「外觀」鈕、☀ 鈕。改成：
+       · 帳號卡：圓形頭像＋名稱＋一行小字。未登入＝「訪客」＋「登入」小鈕；已登入＝頭像、名字、信箱，點了開帳號選單。
+       · 「淺色｜深色」二段式切換，取代 ☀ 鈕；「外觀」鈕縮成切換右邊一顆調色盤小鈕（三套風格只有它進得去，不能拿掉）。
+       · 「★ 自選」整併：導覽「專案」組本來就有「自選」，這顆在電腦版藏起來（DOM 留著，≤820 的頂欄照舊用它）。
+     ★ 不重寫登入邏輯：卡片右邊的「登入」／名字那顆**就是 account.js 的 #acctBtn 本人**（搬進卡片，id、onclick 都不變），
+       所以登入、帳號選單、登出、刪除資料全部走原本那條路；這裡只負責頭像、名稱、小字這幾個「讀出來」的字。
+       視窗縮到 ≤820（deactivate）時把它搬回 .acctbar。account.js 沒開會員功能（沒有設定檔）時不會有 #acctBtn ——
+       卡片就只寫「訪客／自選存在這台瀏覽器」，不放一顆按了沒反應的登入鈕。 */
+  function buildBottom() {
+    const bar = $('.topbar'); if (!bar || $('#l4Acct')) return;
+    const card = document.createElement('div');
+    card.id = 'l4Acct'; card.className = 'l4acct';
+    card.innerHTML = '<button type="button" class="av" tabindex="-1" aria-hidden="true"></button>'
+      + '<b class="nm">訪客</b><small class="st"></small><span class="act"></span>';
+    // 收合時只剩頭像：點頭像＝按「登入」（未登入）／打開帳號選單（已登入的頭像就是 #acctBtn 本人，不會走到這裡）
+    $('.av', card).onclick = (e) => { e.stopPropagation(); const ab = $('#acctBtn'); if (ab) ab.click(); };
+    const mode = document.createElement('div');
+    mode.id = 'l4Mode'; mode.className = 'l4mode'; mode.setAttribute('role', 'group'); mode.setAttribute('aria-label', '明暗');
+    mode.innerHTML = '<button type="button" data-l4m="light"><span class="ic" aria-hidden="true"></span><span class="lbl">淺色</span></button>'
+      + '<button type="button" data-l4m="dark"><span class="ic" aria-hidden="true"></span><span class="lbl">深色</span></button>';
+    mode.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-l4m]'); if (!b) return;
+      const want = b.dataset.l4m, cur = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      // 跟 ☀ 鈕走同一條路（app.js 的 themeBtn.onclick → applyTheme(…, true)：重畫圖表、寫 tw.theme、通知外觀面板）；
+      // 已經是這一邊就什麼都不做（二段式切換按目前那一邊不該翻過去）
+      if (want !== cur) { const tb = $('#themeBtn'); if (tb) tb.click(); }
+      syncMode();
+    });
+    bar.appendChild(card); bar.appendChild(mode);
+    syncAcct(); syncMode();
+  }
+  function syncMode() {
+    const m = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    $$('#l4Mode [data-l4m]').forEach((b) => {
+      const on = b.dataset.l4m === m;
+      b.setAttribute('aria-pressed', String(on));
+      const nm = b.dataset.l4m === 'light' ? '淺色' : '深色';
+      b.title = on ? `目前是${nm}` : `切換成${nm}`;
+    });
+  }
+  let acctSig = '';
+  function syncAcct() {
+    const card = $('#l4Acct'); if (!card || !active) return;
+    const ab = $('#acctBtn'), act = $('.act', card);
+    if (ab && ab.parentNode !== act) act.appendChild(ab);                // 搬進卡片（已經在就不動，免得觸發自己的觀察器）
+    const A = window.TwAccount, u = A && A.user ? A.user() : null, on = !!(A && A.on && A.on()) && !!ab;
+    const n = A && A.online ? A.online() : null;
+    let nm = '訪客', st = '自選存在這台瀏覽器', ini = '';
+    if (u) { nm = u.name || u.email || '會員'; st = u.email || '已登入'; ini = nm.trim().charAt(0).toUpperCase(); }
+    else if (on) st = n != null ? `${n} 人在線・登入同步自選` : '登入後自選跨裝置同步';
+    const sig = [!!u, on, nm, st].join('|');
+    if (sig === acctSig) return;
+    acctSig = sig;
+    card.classList.toggle('in', !!u);
+    card.classList.toggle('noacct', !on);
+    $('.nm', card).textContent = nm;
+    const s = $('.st', card); s.textContent = st; s.title = st;
+    const av = $('.av', card); av.textContent = ini; av.title = u ? nm : (on ? '登入' : '訪客');
+    card.title = u ? `${nm}（${u.email || ''}）` : '';
   }
 
   /* ---------------- 左欄中間（頁面清單）那一列的高度 ----------------
@@ -292,16 +445,22 @@
     active = true;
     root.classList.add('l4');
     if (!DESK()) root.classList.add('l4m');
-    build(); buildFoot();
+    build(); buildNavBtn(); buildBottom(); buildSubs();
     lastHead = ''; lastSig = '';
     applyNav();
-    renderHead(); scanCards();
+    renderHead(); scanCards(); syncAcct(); syncMode();
     fitNav();
   }
   /* 撤掉：回到 main 原本的頂欄 —— 插過的節點、掛過的 class、寫過的 inline style、補過的 title／aria-label 全部拿掉 */
   function deactivate() {
     active = false;
-    ['#l4Head', '#l4Jump', '.l4foot', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    clearTimeout(clockT);
+    // #acctBtn 是 account.js 的那顆（被搬進帳號卡），拆卡片之前先放回原本的 .acctbar，不然會跟著被刪掉
+    const ab = $('#acctBtn'), abar = $('#acctBar');
+    if (ab && abar && ab.parentNode !== abar) abar.appendChild(ab);
+    acctSig = '';
+    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '#l4Acct', '#l4Mode', '.l4subtab', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    root.removeAttribute('data-l4sub');      // 子分頁只有電腦版有；手機版要看到整頁（app.js route() 掛的）
     head = jump = chips = null; cards = []; lastHead = ''; lastSig = '';
     root.classList.remove('l4', 'l4-mini', 'l4m');
     root.style.removeProperty('--l4-tabs-h'); root.style.removeProperty('--l4-spine-h');
@@ -315,7 +474,17 @@
     if (WANT()) activate(); else deactivate();
     wirePopups();
     const bar = $('.topbar');
-    if (bar) new MutationObserver(fitNav).observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
+    /* 帳號鈕被 account.js 建出來／換字（登入、登出、線上人數）都在 .topbar 裡發生：順手把它搬進帳號卡、重寫卡片的字。
+       syncAcct 有簽章比對，自己寫進去的變動再叫一次它也不會再寫，不會無限循環。 */
+    if (bar) new MutationObserver(() => { fitNav(); if (active) syncAcct(); }).observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class', 'title'] });
+    window.addEventListener('tw:account', () => { if (active) syncAcct(); });
+    // 明暗：不管是誰切的（這裡的二段式、外觀面板、≤820 的「⋯」清單），都以 <html data-theme> 為準
+    // 子分頁：app.js route() 一改 data-l4sub（含第一次進站、replace 導向）就亮對的那格、頁首補上子分頁名
+    new MutationObserver((recs) => {
+      if (!active) return;
+      if (recs.some((r) => r.attributeName === 'data-theme')) syncMode();
+      if (recs.some((r) => r.attributeName === 'data-l4sub')) { markSubs(); renderHead(); }
+    }).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-l4sub'] });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitNav);
     const main = $('main');
     /* 只看「節點增減」：卡片出現／消失一定伴隨 childList。不看 class／style ——
@@ -325,12 +494,28 @@
     window.addEventListener('hashchange', () => {
       if (!active) return;
       lastHead = ''; lastSig = '';
-      [60, 700, 2000].forEach((t) => setTimeout(() => { renderHead(); scanCards(); }, t));
+      markSubs();
+      [60, 700, 2000].forEach((t) => setTimeout(() => { markSubs(); renderHead(); scanCards(); }, t));
     });
-    window.addEventListener('scroll', () => { if (active) spy(); }, { passive: true });
+    window.addEventListener('scroll', () => {
+      if (!active) return;
+      spy();
+      // 頁首黏在最上面：捲下去之後才畫下框線（toggle 值沒變時不會改 DOM）
+      if (head) head.classList.toggle('stuck', window.scrollY > 4);
+    }, { passive: true });
     window.addEventListener('resize', () => {
       const w = WANT();
-      if (w !== active) { if (w) activate(); else deactivate(); return; }
+      if (w !== active) {
+        if (w) activate(); else deactivate();
+        /* 子分頁只有電腦版有：拉寬要把 #flow 導到子分頁，縮窄要讓 app.js 把「別的子分頁」那幾張卡補畫出來
+           （手機版是整頁）—— 用 hashchange 請 route() 再跑一次，不另外寫一套 */
+        /* 縮窄時資金流向不必重跑：拿掉 data-l4sub 之後藏起來的卡全部露出來，whenNear 的 IntersectionObserver 自己會把它們畫出來；
+           重跑路由反而會讓資金去向在換寬度的同一刻被重新排一次（小圓點那層量到舊寬度，_uitest「新-資金流向」800px 抓到的）。
+           熱力圖的題材／產業是 route() 裡直接畫的（沒有走 whenNear），所以縮窄時仍要重跑一次。 */
+        const hp = location.hash || '';
+        if (w ? /^#(flow|heatmap)(\/|$)/.test(hp) : /^#heatmap(\/|$)/.test(hp)) setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 0);
+        return;
+      }
       if (!active) return;
       if (!LS.get(NAV_KEY)) applyNav();
       queueScan(); spy(); fitNav();

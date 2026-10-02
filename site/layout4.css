@@ -35,6 +35,11 @@
   --l4-ic-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E");
   --l4-ic-bell:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9a6 6 0 1 1 12 0c0 6.5 2.6 8.3 2.6 8.3H3.4S6 15.5 6 9z'/%3E%3Cpath d='M10 20.5a2.1 2.1 0 0 0 4 0'/%3E%3C/svg%3E");
   --l4-ic-palette:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.3 17 3 12 3z'/%3E%3Ccircle cx='7.5' cy='11.5' r='1'/%3E%3Ccircle cx='10' cy='7.5' r='1'/%3E%3Ccircle cx='14.5' cy='7.5' r='1'/%3E%3C/svg%3E");
+  /* 2026-10-03 第三批：收合鈕（側欄圖示，像 lucide panel-left）、帳號卡的訪客頭像、淺色／深色切換 */
+  --l4-ic-panel:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2.5'/%3E%3Cpath d='M9 3v18'/%3E%3C/svg%3E");
+  --l4-ic-user:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7'/%3E%3C/svg%3E");
+  --l4-ic-sun:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+  --l4-ic-moon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'/%3E%3C/svg%3E");
   --l4-ic-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E");
   --l4-ic-more:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='1.8'/%3E%3Ccircle cx='17' cy='17' r='3.5'/%3E%3C/svg%3E");
   /* 導覽寬：展開 224（最長的頁名四個字＋分組標題「錢往哪裡跑」五個字，量過放得下）、收合 72（圖示 21＋左右各 ~25） */
@@ -62,8 +67,8 @@
      backdrop-filter 一定要關：它會讓 .topbar 變成 fixed 子孫的定位基準，::before 就只剩 49px 高。 */
   :root.l4 .topbar{position:fixed;left:0;top:0;bottom:auto;width:var(--l4-nav-w);height:var(--l4-bar-h,49px);z-index:40;
     display:grid;grid-template-columns:minmax(0,1fr) auto;
-    grid-template-rows:auto auto var(--l4-tabs-h,calc(100vh - 380px)) auto auto auto auto;align-content:start;
-    grid-template-areas:"brand brand" "search search" "tabs tabs" "acct acct" "ev ev" "t4 theme" "foot foot";
+    grid-template-rows:auto auto auto var(--l4-tabs-h,calc(100vh - 380px)) auto auto;align-content:start;
+    grid-template-areas:"brand nav" "search search" "ev ev" "tabs tabs" "acct acct" "mode t4";
     align-items:stretch;gap:0;padding:var(--sp-4) var(--sp-3) var(--sp-3);
     border:0;background:transparent;overflow:visible;-webkit-backdrop-filter:none;backdrop-filter:none}
   :root.l4 .topbar::before{content:"";position:fixed;left:0;top:0;bottom:0;width:var(--l4-nav-w);z-index:-1;pointer-events:none;
@@ -73,11 +78,15 @@
   :root.l4 .topbar>.brand small{white-space:normal;line-height:1.3}
   :root.l4 .topbar>.search{grid-area:search;margin:0 0 var(--sp-3)}
   :root.l4 .topbar>.tabswrap{grid-area:tabs}
-  :root.l4 .topbar>.acctbar{grid-area:acct}
+  :root.l4 .topbar>#l4NavBtn{grid-area:nav}
   :root.l4 .topbar>#evToggle{grid-area:ev}
+  :root.l4 .topbar>#l4Acct{grid-area:acct}
+  :root.l4 .topbar>#l4Mode{grid-area:mode}
   :root.l4 .topbar>#t4Btn{grid-area:t4}
-  :root.l4 .topbar>#themeBtn{grid-area:theme}
-  :root.l4 .topbar>.l4foot{grid-area:foot}
+  /* 2026-10-03 第三批：「★ 自選｜登入」那一列（.acctbar）、☀ 鈕（#themeBtn）在電腦版藏起來 —— 不刪：
+     自選在導覽「專案」組、登入鈕（#acctBtn）被 layout4.js 搬進帳號卡、☀ 由「淺色｜深色」取代（按它其實是去按 #themeBtn）。
+     ≤820 不掛 l4，頂欄照舊用這幾顆。 */
+  :root.l4 .topbar>.acctbar,:root.l4 .topbar>#themeBtn{display:none!important}
 
   /* 搜尋：吃滿導覽寬；放大鏡從文字 ⌕ 換線條圖示（各平台字型畫出來大小不一） */
   :root.l4 .topbar .search input{width:100%;height:36px}
@@ -131,34 +140,111 @@
     position:absolute;left:var(--sp-3);top:-21px;font-size:var(--fs-min);font-weight:600;letter-spacing:.12em;
     color:var(--ink-3);pointer-events:none;white-space:nowrap;line-height:16px}
   :root.l4 .tab[data-view="overview"]::before{content:"今日市場"}
-  :root.l4 .tab[data-view="flow"]::before{content:"錢往哪裡跑"}
+  /* 2026-10-03（Andy：「側欄分組名『錢往哪裡跑』改成『資金流水』」） */
+  :root.l4 .tab[data-view="flow"]::before{content:"資金流水"}
   :root.l4 .tab[data-view="industry"]::before{content:"族群與個股"}
   :root.l4 .tab[data-view="season"]::before{content:"歷史規律"}
   :root.l4 .tab[data-view="watch"]::before{content:"專案"}
 
-  /* ---- 底部工具：自選／登入、今日事件、外觀｜明暗、收合 ---- */
-  :root.l4 .topbar>.acctbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px;padding-top:var(--sp-2);border-top:1px solid var(--t4-card-edge,var(--line))}
-  :root.l4 .topbar>.acctbar .abtn{flex:1 1 auto;justify-content:center}
-  :root.l4 .topbar>#evToggle{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 6px;text-align:left}
-  :root.l4 #evToggle::before{content:"";flex:none;width:18px;height:18px;background:currentColor;
+  /* ---- logo 右側的收合鈕（Andy：「收合導覽改成圖三那樣」）：30px 方鈕、側欄圖示 ---- */
+  :root.l4 .topbar>#l4NavBtn{align-self:start;display:inline-grid;place-items:center;width:30px;height:30px;margin:3px 0 0 var(--sp-2);padding:0;
+    border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel));color:var(--ink-3);cursor:pointer}
+  :root.l4 .topbar>#l4NavBtn:hover{color:var(--ink);border-color:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 #l4NavBtn .ic{width:17px;height:17px;background:currentColor;
+    -webkit-mask:var(--l4-ic-panel) center/contain no-repeat;mask:var(--l4-ic-panel) center/contain no-repeat}
+
+  /* ---- 事件：導覽最上面一格（Andy：「事件移到最上方選項」），長得跟頁面那幾格一樣，右邊保留數字徽章 ---- */
+  :root.l4 .topbar>#evToggle{display:flex;align-items:center;gap:var(--sp-3);width:100%;height:auto;margin:0 0 var(--sp-2);
+    padding:var(--sp-2) var(--sp-3);border:0;border-radius:var(--r-md);background:transparent;box-shadow:none;
+    color:var(--ink-2);font-size:var(--fs-body);text-align:left;white-space:nowrap}
+  :root.l4 .topbar>#evToggle:hover,:root.l4 .topbar>#evToggle[aria-expanded="true"]{background:var(--panel-2);color:var(--ink)}
+  :root.l4 #evToggle::before{content:"";flex:none;width:19px;height:19px;background:currentColor;opacity:.85;
     -webkit-mask:var(--l4-ic-bell) center/contain no-repeat;mask:var(--l4-ic-bell) center/contain no-repeat}
   :root.l4 #evToggle .n{margin-left:auto}
-  :root.l4 .topbar>#t4Btn{display:flex;align-items:center;gap:10px;margin:0 6px 0 0;text-align:left;min-width:0}
-  :root.l4 #t4Btn::before{content:"";flex:none;width:18px;height:18px;background:currentColor;
+
+  /* ---- 帳號卡（Andy：「登入模式可以參考圖三下方」）：圓形頭像｜名稱／一行小字｜右邊「登入」小鈕 ----
+     已登入（.in）：#acctBtn 本人（account.js 畫的頭像＋名字＋▾）撐滿第一列，信箱寫在第二列、對齊名字。 */
+  :root.l4 #l4Acct{display:grid;grid-template-columns:32px minmax(0,1fr) auto;grid-template-areas:"av nm act" "av st act";
+    column-gap:10px;row-gap:1px;align-items:center;margin:var(--sp-2) 0;padding:var(--sp-2) 10px;
+    border:1px solid var(--t4-card-edge,var(--line));border-radius:var(--r-md);background:var(--panel-2);min-width:0}
+  :root.l4 #l4Acct .av{grid-area:av;width:32px;height:32px;padding:0;border-radius:50%;border:1px solid var(--t4-ctl-edge,var(--line-2));
+    background:var(--t4-ctl,var(--panel));color:var(--ink-3);cursor:pointer;display:grid;place-items:center;font-size:var(--fs-sm);font-weight:700}
+  :root.l4 #l4Acct .av:empty::before{content:"";width:18px;height:18px;background:currentColor;
+    -webkit-mask:var(--l4-ic-user) center/contain no-repeat;mask:var(--l4-ic-user) center/contain no-repeat}
+  :root.l4 #l4Acct.noacct .av{cursor:default}
+  :root.l4 #l4Acct .nm{grid-area:nm;min-width:0;font-size:var(--fs-sm);font-weight:700;color:var(--ink);line-height:18px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.l4 #l4Acct .st{grid-area:st;min-width:0;font-size:var(--fs-min);color:var(--ink-3);line-height:16px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.l4 #l4Acct .act{grid-area:act;display:flex;min-width:0}
+  :root.l4 #l4Acct .act:empty{display:none}
+  /* 「登入」小鈕（未登入時的 #acctBtn） */
+  :root.l4 #l4Acct #acctBtn{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;margin:0;
+    border:1px solid var(--t4-accent-solid,var(--cyan));border-radius:var(--r-sm);background:transparent;
+    color:var(--t4-accent-solid,var(--cyan));font-size:var(--fs-min);font-weight:700;cursor:pointer;white-space:nowrap}
+  :root.l4 #l4Acct #acctBtn:hover{background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,transparent)}
+  /* 已登入 */
+  :root.l4 #l4Acct.in{grid-template-areas:"act act act" ". st st"}
+  :root.l4 #l4Acct.in .av,:root.l4 #l4Acct.in .nm{display:none}
+  :root.l4 #l4Acct.in #acctBtn{width:100%;height:auto;min-height:32px;padding:0;gap:10px;border:0;background:transparent;
+    color:var(--ink-3);font-size:var(--fs-sm);font-weight:400}
+  :root.l4 #l4Acct.in #acctBtn:hover{background:transparent;color:var(--ink)}
+  :root.l4 #l4Acct.in #acctBtn img,:root.l4 #l4Acct.in #acctBtn .ini{width:32px;height:32px;flex:none;border-radius:50%;object-fit:cover}
+  :root.l4 #l4Acct.in #acctBtn .ini{display:inline-grid;place-items:center;background:var(--t4-accent);color:var(--on-accent);font-size:var(--fs-sm);font-weight:700}
+  :root.l4 #l4Acct.in #acctBtn .anm{flex:1 1 auto;min-width:0;max-width:none;text-align:left;color:var(--ink);font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ---- 「淺色｜深色」二段式切換＋外觀（調色盤）小鈕 ---- */
+  :root.l4 #l4Mode{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;min-width:0;
+    border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel))}
+  :root.l4 #l4Mode button{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 6px;min-width:0;
+    border:0;border-radius:calc(var(--r-sm) - 2px);background:transparent;color:var(--ink-3);font-size:var(--fs-sm);cursor:pointer;white-space:nowrap}
+  :root.l4 #l4Mode button:hover{color:var(--ink)}
+  :root.l4 #l4Mode button[aria-pressed="true"]{background:var(--panel-3,var(--panel-2));color:var(--ink);font-weight:700;
+    box-shadow:0 0 0 1px var(--t4-card-edge,var(--line))}
+  :root.l4 #l4Mode .ic{width:15px;height:15px;flex:none;background:currentColor;
+    -webkit-mask:var(--l4-ic-sun) center/contain no-repeat;mask:var(--l4-ic-sun) center/contain no-repeat}
+  :root.l4 #l4Mode [data-l4m="dark"] .ic{-webkit-mask-image:var(--l4-ic-moon);mask-image:var(--l4-ic-moon)}
+  :root.l4 .topbar>#t4Btn{display:inline-grid;place-items:center;width:34px;height:34px;margin:0 0 0 6px;padding:0;
+    font-size:0;border-radius:var(--r-sm);align-self:center}
+  :root.l4 #t4Btn::before{content:"";width:17px;height:17px;background:currentColor;
     -webkit-mask:var(--l4-ic-palette) center/contain no-repeat;mask:var(--l4-ic-palette) center/contain no-repeat}
-  :root.l4 .topbar>#themeBtn{min-width:36px}
   :root.l4 .topbar>.morebtn,:root.l4 .topbar>.morepop{display:none!important}
-  :root.l4 .l4foot{display:flex;margin-top:var(--sp-2);padding-top:var(--sp-2);border-top:1px solid var(--t4-card-edge,var(--line))}
-  :root.l4 .l4foot button{flex:1 1 auto;display:inline-flex;align-items:center;gap:var(--sp-2);height:32px;padding:0 var(--sp-3);
-    border:0;border-radius:var(--r-sm);background:transparent;color:var(--ink-3);font-size:var(--fs-sm);cursor:pointer;white-space:nowrap}
-  :root.l4 .l4foot button:hover{background:var(--panel-2);color:var(--ink)}
-  :root.l4 .l4foot .ic{width:16px;height:16px;flex:none;background:currentColor;
-    -webkit-mask:var(--l4-ic-chev) center/contain no-repeat;mask:var(--l4-ic-chev) center/contain no-repeat}
+
+  /* ---- 子分頁（2026-10-03，Andy：資金流向拆三格、熱力圖拆產業／題材）：父頁下面的縮排子項 ----
+     layout4.js 插在 #tabs 裡、父頁按鈕後面（class l4subtab，不是 .tab）；order 跟父頁一樣，同 order 時照 DOM 順序 → 緊跟在父頁下面。
+     左邊一條細線對齊父頁圖示中心，像樹狀目錄；目前那格＝主色淡底＋主色字＋主色線（跟分頁「實心反白」區分：這是「在哪一段」）。 */
+  :root.l4 .tabs>.l4subtab[data-parent="flow"]{order:2}
+  :root.l4 .tabs>.l4subtab[data-parent="heatmap"]{order:3}
+  :root.l4 .l4subtab{position:relative;display:flex;align-items:center;width:100%;min-width:0;margin:0;padding:5px var(--sp-3) 5px 40px;
+    border:0;border-radius:var(--r-md);background:transparent;color:var(--ink-3);font-size:var(--fs-sm);line-height:20px;text-align:left;
+    white-space:nowrap;cursor:pointer}
+  :root.l4 .l4subtab .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  :root.l4 .l4subtab .sh{display:none}
+  :root.l4 .l4subtab::before{content:"";position:absolute;left:21px;top:0;bottom:0;width:1px;background:var(--t4-card-edge,var(--line))}
+  :root.l4 .l4subtab:hover{background:var(--panel-2);color:var(--ink)}
+  :root.l4 .l4subtab.on{color:var(--t4-accent-solid,var(--cyan));font-weight:700;
+    background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,transparent)}
+  :root.l4 .l4subtab.on::before{left:20px;width:3px;border-radius:2px;background:var(--t4-accent-solid,var(--cyan))}
+  /* 有子分頁亮著時，父頁不再實心反白（同一個位置不要亮兩格），改成粗體字表示「在這一頁裡」 */
+  :root.l4[data-l4sub^="flow-"] .tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tab[data-view="heatmap"].on{
+    background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
+
+  /* 子分頁只顯示自己的卡（<html data-l4sub> 由 app.js route() 掛；藏起來的卡由 whenNear 等露出來才畫）。
+     #v-flow：①資金輪動＝#flowRotCard ②資金去向＝#flowSankeyCard ③族群×法人＋資金集中度＝包著兩張卡的那一格 grid
+     #v-heatmap：產業＝#indHeat（全市場 treemap）  題材＝#themeMapCard＋#themeDetail */
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-rotation"]) #flowRotCard,
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-sankey"]) #flowSankeyCard,
+  :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-inst"]) #v-flow>:has(>#flowInstCard),
+  :root.l4[data-l4sub="heat-industry"] #themeMapCard,:root.l4[data-l4sub="heat-industry"] #themeDetail,
+  :root.l4[data-l4sub="heat-theme"] #indHeat{display:none!important}
 
   /* =============================== 2. 收合成圖示列（72px） =============================== */
-  :root.l4.l4-mini .topbar{grid-template-columns:minmax(0,1fr);
-    grid-template-areas:"brand" "search" "tabs" "acct" "ev" "t4" "theme" "foot";padding:var(--sp-4) var(--sp-2) var(--sp-3)}
-  :root.l4.l4-mini .topbar>.brand{justify-content:center;padding:0 0 var(--sp-4)}
+  :root.l4.l4-mini .topbar{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto var(--l4-tabs-h,calc(100vh - 420px)) auto auto auto;
+    grid-template-areas:"brand" "nav" "search" "ev" "tabs" "acct" "mode" "t4";padding:var(--sp-4) var(--sp-2) var(--sp-3)}
+  /* 收合鈕：logo 正下方置中（72px 放不下並排） */
+  :root.l4.l4-mini .topbar>#l4NavBtn{justify-self:center;margin:0 0 var(--sp-3)}
+  :root.l4.l4-mini .topbar>.brand{justify-content:center;padding:0 0 var(--sp-2)}
   /* 收合時站名與版號收掉；「有新資料 ↻」（#freshBtn）出現時照樣看得到（部署過要重新整理的唯一入口，不准藏） */
   :root.l4.l4-mini .topbar>.brand>div:not(.logo){display:none}
   :root.l4.l4-mini .topbar>.brand:has(#freshBtn:not([hidden])){flex-direction:column}
@@ -179,19 +265,28 @@
   :root.l4.l4-mini .tab[data-view="season"],:root.l4.l4-mini .tab[data-view="watch"]{margin-top:26px}
   :root.l4.l4-mini .tab[data-view="overview"]{margin-top:6px}
   :root.l4.l4-mini .tab[data-view="overview"]::before{display:none}
-  :root.l4.l4-mini .topbar>.acctbar{flex-direction:column;align-items:stretch}
-  :root.l4.l4-mini .topbar>.acctbar .abtn{padding:0;justify-content:center;font-size:var(--fs-min)}
-  :root.l4.l4-mini .topbar>.acctbar .abtn:not(#acctBtn){font-size:0}
-  :root.l4.l4-mini .topbar>.acctbar .abtn:not(#acctBtn) b{font-size:15px}
-  :root.l4.l4-mini .topbar>.acctbar .anm,:root.l4.l4-mini .topbar>.acctbar .aonline span{display:none}
-  /* 事件顆數：收合時放在鈴鐺正下方（掛在角落會蓋到上面那顆鈕；1123 這種四位數也放得下 56px） */
+  /* 事件：只剩鈴鐺，顆數放在鈴鐺正下方（掛在角落會蓋到上面那顆鈕；1123 這種四位數也放得下 56px） */
   :root.l4.l4-mini .topbar>#evToggle{flex-direction:column;justify-content:center;gap:2px;padding:6px 0;font-size:0}
+  :root.l4.l4-mini #evToggle::before{width:21px;height:21px}
   :root.l4.l4-mini #evToggle .n{margin:0;font-size:var(--fs-min);padding:0 5px;line-height:16px}
-  :root.l4.l4-mini .topbar>#t4Btn{justify-content:center;margin:0 0 6px;padding-left:0;padding-right:0;font-size:0}
-  :root.l4.l4-mini .topbar>#themeBtn{justify-self:stretch}
-  :root.l4.l4-mini .l4foot button{justify-content:center;padding:0}
-  :root.l4.l4-mini .l4foot .lbl{display:none}
-  :root.l4.l4-mini .l4foot .ic{transform:rotate(180deg)}
+  /* 帳號卡：只剩頭像（未登入＝訪客圖示，點了＝登入；已登入＝ #acctBtn 本人只露頭像） */
+  :root.l4.l4-mini #l4Acct{grid-template-columns:minmax(0,1fr);grid-template-areas:"av";justify-items:center;padding:6px 0}
+  :root.l4.l4-mini #l4Acct .nm,:root.l4.l4-mini #l4Acct .st{display:none}
+  :root.l4.l4-mini #l4Acct:not(.in) .act{display:none}
+  :root.l4.l4-mini #l4Acct.in{grid-template-areas:"act"}
+  :root.l4.l4-mini #l4Acct.in .act{justify-content:center}
+  :root.l4.l4-mini #l4Acct.in #acctBtn{width:auto;font-size:0;gap:0}
+  :root.l4.l4-mini #l4Acct.in #acctBtn .anm{display:none}
+  /* 子分頁：收合時改寫兩個字的短名（輪動／去向／法人、產業／題材），不畫樹狀線 */
+  :root.l4.l4-mini .l4subtab{justify-content:center;padding:4px 0;font-size:var(--fs-min);line-height:16px}
+  :root.l4.l4-mini .l4subtab .lbl{display:none}
+  :root.l4.l4-mini .l4subtab .sh{display:inline}
+  :root.l4.l4-mini .l4subtab::before{display:none}
+  /* 淺色／深色：上下兩顆圖示 */
+  :root.l4.l4-mini #l4Mode{grid-template-columns:minmax(0,1fr)}
+  :root.l4.l4-mini #l4Mode .lbl{display:none}
+  :root.l4.l4-mini #l4Mode .ic{width:17px;height:17px}
+  :root.l4.l4-mini .topbar>#t4Btn{justify-self:stretch;width:auto;margin:6px 0 0}
 
   /* =============================== 4. 今日事件抽屜（v4 的浮層，只改上緣與遮罩範圍） ===============================
      v4 的抽屜從頂欄下緣（top:58px）滑出、遮罩也從那裡開始蓋 —— 理由是「頂欄的『事件』鈕照樣按得到」（DECISIONS #271）。
@@ -214,16 +309,23 @@
 @media (min-width:641px){
   /* 所有 scrollIntoView（app 自己的也算）都要讓出跳轉列，不然捲過去的標題會被它蓋住 */
   :root.l4{scroll-padding-top:60px}
-  :root.l4 #l4Head{display:block;padding:var(--sp-4) var(--sp-4) var(--sp-1)}
+  /* ★ 2026-10-03 第三批（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
+     頁首只剩「頁名＋台北現在時間」一行，高度＝--l4-bar-h（49px），黏在視窗最上面 —— 頂替原本「本頁功能」跳轉列的位置，
+     所以 .topbar 盒子的高度（＝頂端被蓋住的那一條，industry.js 的 trackPop 拿它判斷按鈕有沒有被蓋住）跟以前是同一件事。
+     時間的字由 ::before 讀 data-t 畫（layout4.js 每秒寫屬性、不寫文字節點，理由見 tick()）。 */
+  :root.l4 #l4Head{display:flex;align-items:center;gap:var(--sp-4);position:sticky;top:0;z-index:35;box-sizing:border-box;
+    height:var(--l4-bar-h,49px);padding:0 var(--sp-4);background:var(--t4-topbar,var(--topbar));
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid transparent}
+  :root.l4 #l4Head.stuck{border-bottom-color:var(--t4-card-edge,var(--line))}
   :root.l4 #l4Head[hidden]{display:none}
-  :root.l4 #l4Head .eyebrow{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-min);font-weight:700;
-    letter-spacing:.14em;color:var(--t4-accent-solid,var(--cyan));line-height:16px;margin-bottom:var(--sp-1)}
-  :root.l4 #l4Head .eyebrow::before{content:"";width:16px;height:2px;border-radius:2px;background:currentColor}
-  :root.l4 #l4Head .ttl{display:flex;align-items:baseline;gap:var(--sp-2) var(--sp-4);min-width:0;flex-wrap:wrap}
-  :root.l4 #l4Head h1{margin:0;font-size:var(--fs-h2);line-height:var(--lh-tight);font-weight:var(--t4-h-w,700);
-    letter-spacing:var(--t4-h-ls,.02em);color:var(--ink);white-space:nowrap}
+  :root.l4 #l4Head h1{flex:0 1 auto;min-width:0;margin:0;font-size:var(--fs-h2);line-height:var(--lh-tight);font-weight:var(--t4-h-w,700);
+    letter-spacing:var(--t4-h-ls,.02em);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   :root.l4 #l4Head h1 .sub1{font-weight:500;color:var(--ink-3);font-size:var(--fs-h3);margin-left:var(--sp-2)}
-  :root.l4 #l4Head p{margin:0;flex:1 1 320px;min-width:0;color:var(--ink-2);font-size:var(--fs-sm);line-height:20px}
+  :root.l4 #l4Head .l4clock{flex:none;margin-left:auto;font-family:var(--mono);font-size:var(--fs-sm);color:var(--ink-2);
+    font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:.02em}
+  :root.l4 #l4Head .l4clock::before{content:attr(data-t)}
+  /* 「本頁功能」跳轉列：Andy 要拿掉。只藏不刪 —— layout4.js 照樣產生、照樣掃卡片（之後要接回來改這一行就好） */
+  :root.l4 #l4Jump{display:none!important}
 
   :root.l4 #l4Jump{display:flex;align-items:center;gap:var(--sp-2);position:sticky;top:0;z-index:35;
     padding:var(--sp-2) var(--sp-4);background:var(--t4-topbar,var(--topbar));
