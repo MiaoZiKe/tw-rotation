@@ -1046,7 +1046,11 @@
       mountAll();
       try {
         let mt = null;
-        new MutationObserver(() => { if (mt) return; mt = setTimeout(() => { mt = null; mountAll(); }, 150); })
+        /* ★ 2026-10-02 卡頓（DECISIONS #284）：輪動時鐘的聲納圓圈（.rotping，每秒好幾顆、加一次拿一次）不會洗掉任何開關，
+           整批都是它就不必重掛 —— 以前資金流向頁停著不動，光它就讓 mountAll＋stampCards 每 150ms 跑一輪。*/
+        const pingOnly = (recs) => recs.every(r => { const ns = [...r.addedNodes, ...r.removedNodes];
+          return ns.length > 0 && ns.every(n => n.classList && n.classList.contains('rotping')); });
+        new MutationObserver((recs) => { if (mt || pingOnly(recs)) return; mt = setTimeout(() => { mt = null; mountAll(); }, 150); })
           .observe(document.body, { childList: true, subtree: true });
       } catch (e) { /* 沒有 MutationObserver 的瀏覽器：換頁時 hashchange 那一輪仍會掛 */ }
       /* ★ 2026-09-24：「更新」鈕與 ⚙ 設定面板拿掉了，這裡不再綁它們。

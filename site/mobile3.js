@@ -250,7 +250,11 @@
   }
   let rt = null;
   let wasM = isM();
-  window.addEventListener('resize', () => {
+  /* ★ 2026-10-02 卡頓（DECISIONS #284）：不理自己 apply() 裡 m3go(…, quiet) 派的回聲（e.twEcho === 'm3'）——
+     以前 apply() → m3go() → 40ms 後派 resize → 200ms 後又 apply() → …，手機寬度下每 0.25 秒一輪停不下來。
+     其他 resize（真的視窗變動、app.js 分段排完派的那一下、使用者切卡片／分頁）照舊會 apply()。*/
+  window.addEventListener('resize', (e) => {
+    if (e.twEcho === 'm3') return;
     clearTimeout(rt);
     rt = setTimeout(() => { const now = isM(); if (now !== wasM || now) { wasM = now; apply(); } }, 200);
   });
@@ -795,7 +799,8 @@
     if (pos) { pos.dataset.pos = i + 1; pos.dataset.of = M3IDS.length;
       pos.innerHTML = M3IDS.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('') + `<span>${i + 1} / ${M3IDS.length}　左右滑切換</span>`; }
     if (!quiet) LS.set('idx', id);
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 40);
+    // quiet＝apply() 自己帶的那一次：派出去的 resize 標成回聲（twEcho），apply() 與分段都不再因為它重跑（#284）
+    setTimeout(() => { const ev = new Event('resize'); if (quiet) ev.twEcho = 'm3'; window.dispatchEvent(ev); }, 40);
   }
   function unMarket() {
     ['mM3Sw', 'mM3Pos'].forEach(x => { const e = document.getElementById(x); if (e) e.remove(); });

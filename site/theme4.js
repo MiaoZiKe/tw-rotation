@@ -288,7 +288,11 @@
     syncMeta();
     // 圖表是非同步畫的：換頁、改篩選、重畫都會動到 main，量到變化就重寫一次結論（250ms 去抖）
     const main = document.querySelector('main');
-    if (main && window.MutationObserver) new MutationObserver(schedule).observe(main, { childList: true, subtree: true });
+    /* ★ 2026-10-02 卡頓（DECISIONS #284）：輪動時鐘的聲納圓圈（.rotping）加一次拿一次都會進來，但它不改任何數字 ——
+       整批都是它就不重寫結論（以前資金流向頁停著不動，每 250ms 就把七張卡的結論重算一次）。*/
+    const pingOnly = (recs) => recs.every(r => { const ns = [...r.addedNodes, ...r.removedNodes];
+      return ns.length > 0 && ns.every(n => n.classList && n.classList.contains('rotping')); });
+    if (main && window.MutationObserver) new MutationObserver((recs) => { if (!pingOnly(recs)) schedule(); }).observe(main, { childList: true, subtree: true });
     window.addEventListener('hashchange', schedule);
     window.addEventListener('tw:theme', schedule);
     schedule();

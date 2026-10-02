@@ -111,7 +111,9 @@
       veil: [['#drawBar']], mark: [], block: ['#drawTgl'] },
     { id: 'stock.ai', name: 'AI 分析', cat: 'stockk', def: true, kind: 'bool', desc: '技術／籌碼／基本／消息四面向的規則式分析',
       /* 2026-10-02（#294）：個股「總覽」分頁也有一份 AI 分析（重點卡 #ovAiBrief ＋ 技術面／基本面／消息面三張細節卡 [data-ai]），一起上鎖；
-         技術面訊號那一張是積木 stock.signal，跟著「總覽」分頁這一項走，不跟 AI 分析 */
+         技術面訊號那一張是積木 stock.signal，跟著「總覽」分頁這一項走，不跟 AI 分析
+         2026-10-02 深夜（#297）：四張併成右欄一張 AI 卡（#ovAiCard），選擇器不變：#ovAiBrief＝卡裡那一行重點、
+         #ovFacets [data-ai]＝技術面／基本面／消息面三面。卡片標題與分頁籤不鎖 —— 鎖了就切不到技術面訊號那一面 */
       veil: [['#skAi'], ['#aiCard'], ['#mbBody[data-tab="ai"]'], ['#ovAiBrief'], ['#ovFacets [data-ai]']], mark: ['#mbTabs button[data-t="ai"]'], block: [] },
     // ---- 個股頁：分頁
     // 2026-10-02：排列順序跟著個股分頁的新順序（基本資料搬到總覽旁邊，#294）；id 一個都沒改（改了＝所有人的設定歸零）

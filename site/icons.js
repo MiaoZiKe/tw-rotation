@@ -316,7 +316,8 @@
     var key = fitKey(h, p);
     if (h._tiFit === key) return;
     var cs = getComputedStyle(p);
-    if (cs.display.indexOf('flex') < 0 || cs.flexWrap === 'nowrap' || cs.flexDirection.indexOf('row') < 0) { h._tiFit = key; return; }
+    if (cs.display.indexOf('flex') < 0 || cs.flexWrap === 'nowrap' || cs.flexDirection.indexOf('row') < 0) { h._tiFit = key; p._tiRow = 0; return; }
+    p._tiRow = 1;                      // 這一列真的會量（見 relevant()：列裡的字變了才需要重量）
     if (h.getAttribute('data-ti-fit')) {
       h.style.maxWidth = ''; h.style.columnGap = ''; p.style.columnGap = ''; h.removeAttribute('data-ti-fit'); fixGap(h, sp);
     }
@@ -375,6 +376,32 @@
     watched.add(p); ro.observe(p);
   }
   function schedule() { if (!pending) pending = requestAnimationFrame(scan); }
+  /* ★ 2026-10-02 卡頓（Andy：「整體畫面卡頓有點多」，DECISIONS #284）：只有「可能影響圖示」的變動才排一次 scan。
+     以前整頁任何一個 DOM 變動都排 —— 盤中每 5 秒的價格格子、卡片「即時」開關的時間字、輪動時鐘的聲納圓圈（每顆加一次、拿一次）、
+     滑鼠在圖上移動時 ECharts 提示框每一幀換內容……每一次都是一輪 querySelectorAll ＋ 每個標題查一遍 RULES ＋ fitAll 量寬度。
+     scan 本身只依賴三件事，所以只看這三件：
+       ① 變動落在某個標題裡（標題字、標題裡的 span 換了 → 圖示可能要換）
+       ② 變動落在「會量寬度的那一列」裡（fit() 的 fitKey 含整列字數；只有 flex 可換行的列才會量，見 _tiRow），
+          或標題那一列自己的子元素多了／少了（那一列可能從「只有標題」變成「標題＋篩選器」，要重新判斷）
+       ③ 新加進來的元素本身是標題、或裡面有標題／摘要卡圖示格（整塊 innerHTML 重畫就是這種）
+     列寬變了照舊由 ResizeObserver 排（不受這裡影響）。scan 做的事一樣，只是少跑沒有意義的那幾輪。*/
+  var NEW_SEL = AUTO + ', .osc-ic';
+  function relevant(recs) {
+    for (var i = 0; i < recs.length; i++) {
+      var r = recs[i], t = r.target, el = t.nodeType === 1 ? t : t.parentElement;
+      if (!el) continue;
+      if (el.closest(AUTO)) return true;                                     // ①
+      if (watched && watched.has(el)) return true;                           // ② 標題那一列自己多了／少了東西（例如旁邊補上一顆鈕）
+      for (var a = el; a && a !== document.body; a = a.parentElement) if (a._tiRow) return true;   // ②
+      var ad = r.addedNodes;
+      for (var j = 0; j < ad.length; j++) {                                  // ③
+        var n = ad[j];
+        if (n.nodeType === 1 && (n.matches(NEW_SEL) || n.querySelector(NEW_SEL))) return true;
+      }
+    }
+    return false;
+  }
+  function onMut(recs) { if (!pending && relevant(recs)) schedule(); }
 
   /* ---- 樣式（色票＋動效）；跟著這支檔走，不必改 index.html 的大樣式段 ---- */
   var CSS = [
@@ -457,7 +484,7 @@
     injectCss();
     injectDefs();
     scan();
-    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(onMut).observe(document.body, { childList: true, subtree: true, characterData: true });
     document.addEventListener('pointerdown', onTap, { passive: true, capture: true });
     // 版面斷點會改標題的 display／gap（手機版），換寬度後重算一次距離
     window.addEventListener('resize', function () {

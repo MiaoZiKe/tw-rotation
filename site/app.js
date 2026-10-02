@@ -1775,6 +1775,13 @@
     const can = el.scrollWidth > el.clientWidth + 4;
     el.classList.toggle('sk-end', !can || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
   }
+  /* ★ 2026-10-02 卡頓（Andy：「整體畫面卡頓有點多」，DECISIONS #284）：輪動時鐘掃描時，每掃過一個族群點就加一顆聲納圓圈
+     （.rotping，CSS 動畫，0.9 秒後拿掉）—— 資金流向頁停著不動也每秒好幾筆 DOM 變動，盯著整頁的觀察者（這支檔兩個、
+     live.js、theme4.js、icons.js）每一筆都醒來重做一輪。整批變動「只有聲納圓圈進出」時，這些觀察者要做的事都不受影響，直接略過。*/
+  function mutPingOnly(recs) {
+    return recs.every(r => { const ns = [...r.addedNodes, ...r.removedNodes];
+      return ns.length > 0 && ns.every(n => n.classList && n.classList.contains('rotping')); });
+  }
   function initSwipeHints() {
     const scan = () => {
       document.querySelectorAll(SWIPE_SEL).forEach(el => {
@@ -1794,7 +1801,8 @@
     };
     window.twSwipeScan = scan;          // 換頁／重畫之後由 route() 再叫一次
     let t = null;
-    const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 200); });
+    // ★ 2026-10-02 卡頓（#284）：整批只是輪動時鐘的聲納圓圈（.rotping）加／拿 → 不重掃（它是 0×0 的絕對定位，不改任何捲動寬度）
+    const mo = new MutationObserver((recs) => { if (mutPingOnly(recs)) return; clearTimeout(t); t = setTimeout(scan, 200); });
     const m = document.querySelector('main');
     if (m) mo.observe(m, { childList: true, subtree: true });
     window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(scan, 200); });
@@ -1870,7 +1878,8 @@
      所以每一次切換都補一輪 resize，而且補兩次（第二次讓版面先安定）。*/
   function miaResize() {
     try { resizeAllCharts(); } catch (e) { /* 忽略 */ }
-    try { window.dispatchEvent(new Event('resize')); } catch (e) { /* 忽略 */ }
+    // twEcho＝「這是分段自己派的回聲」：下面 applyMobileIA 的 resize 監聽認得它、不再回頭重排一次（#284，見那裡的註解）
+    try { const ev = new Event('resize'); ev.twEcho = 'mia'; window.dispatchEvent(ev); } catch (e) { /* 忽略 */ }
   }
 
   function miaClearPager(host) {
@@ -2248,11 +2257,19 @@
      ⚠ `miaMore()` 寫成冪等的（鈕已經在就不重插、字一樣就不重寫），
        所以第二次跑產生 0 個 mutation，迴圈自己會停。*/
   { let mt = null;
-    const mo = new MutationObserver(() => { if (!mIsM()) return; clearTimeout(mt); mt = setTimeout(miaMore, 250); });
+    /* ★ 2026-10-02 卡頓（#284）：「是不是手機寬度」改到防抖之後才問。mIsM() 讀 window.innerWidth，
+       在 DOM 剛被改過的當下讀會逼瀏覽器同步排版一次 —— 以前是每一批 DOM 變動都讀一次
+       （390 寬停在總覽 60 秒，光這一行 3.2 秒，是手機上最大的一筆）。現在 250ms 只讀一次，結果一樣：手機才補「限筆」。*/
+    const mo = new MutationObserver((recs) => { if (mutPingOnly(recs)) return; clearTimeout(mt); mt = setTimeout(() => { if (mIsM()) miaMore(); }, 250); });
     const mroot = document.querySelector('main');
     if (mroot) mo.observe(mroot, { childList: true, subtree: true }); }
   { let rt = null;
-    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
+    /* ★ 2026-10-02 卡頓（DECISIONS #284）：不理「分段自己派的回聲」（e.twEcho）。以前這裡會形成迴圈：
+       resize → 220ms → applyMobileIA → miaPager → 30／300ms 後 miaResize 再派 resize → 又 applyMobileIA → …；
+       另一圈是 mobile3.js 的 apply() → m3go() → resize → 這裡 → miaResize → mobile3 又 apply() → …。
+       手機寬度下頁面永遠停不下來（390 寬停在總覽 20 秒派了 226 次 resize）。回聲＝視窗沒變、分段剛排完，再排一次只是重複；
+       真的視窗變動、其他程式派的 resize（大盤三張圖、手機分頁切換…）照舊會重排。*/
+    window.addEventListener('resize', (e) => { if (e.twEcho) return; clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
   let _miaKey = 'overview';
 
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
@@ -2974,6 +2991,12 @@
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
     const gt = D.groups_today || [], cands = D.candidates || [], gd = D.groups_detail || {};
     const body = $('#mktBody'); const title = $('#mktTitle');
+    /* ★ 2026-10-02 卡頓（DECISIONS #284）：下面每一條路都會把 #mktBody 整塊換掉（innerHTML）。
+       換之前先把裡面的 ECharts 實例（漲跌分佈 #chgDist）dispose —— 不收的話 ECharts 的實例表一直抓著舊容器、畫布、事件，
+       回收不掉：實測每進一次市場明細漏 1 張；「⚡ 即時」開著時每 5 秒重畫一次，等於每 5 秒漏 1 張。畫面不變。*/
+    if (body && typeof echarts !== 'undefined') body.querySelectorAll('[_echarts_instance_]').forEach(d => {
+      try { const i = echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已經沒了 */ }
+    });
     const PCT = ['漲跌', r => `<span class="${fmt.cls(r.chg_pct)}">${fmt.pct(r.chg_pct, 2)}</span>`];
     const CLOSE = ['收盤', r => fmt.n(r.close)];
     const TO = ['成交值', r => fmt.yi(r.turnover)];
