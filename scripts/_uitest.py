@@ -17126,6 +17126,9 @@ def t_stock_tabs0928(pg, base, code):
     ok(f"★ {tag}AI 分析第二顆標籤是「技術面訊號」、沒有「籌碼面」", [t[1] for t in ai["tabs"]] == ["技術面", "技術面訊號", "基本面", "消息面"], ai["tabs"])
     if any(t[0] == "sig" for t in ai["tabs"]):
         pg.evaluate("() => { try { localStorage.setItem('tw.aiOpen', '1'); } catch (e) {} }")
+        # ★ 2026-10-02（#293）頂部 AI 預設只看重點（收合），收合時的小標籤是「捲到總覽細節卡」—— 先按「展開」，標籤才是切換面向的標籤頁
+        if pg.evaluate("() => { const b = document.getElementById('aiBody'); return !!b && b.hidden; }"):
+            click(pg, "#aiTgl", 400)
         before = pg.evaluate("() => { const p = [...document.querySelectorAll('#skAi .aipanel')].find(x => !x.hidden); return p ? p.innerText : ''; }")
         click(pg, '#skAi .aitab[data-facet="sig"]', 500)
         s = pg.evaluate("""() => { const p = document.getElementById('aiPanel-sig'); return p ? { vis: !p.hidden && p.getBoundingClientRect().height > 0,
@@ -17942,6 +17945,30 @@ HEAD1002_OVL = r"""() => {
   return { bad, clipped, n: els.length };
 }"""
 
+# 重點模式（收合）量：結論那一行多高、小標籤排成幾行、「結論＋小標籤」多高、整塊 AI 區多高、細節有沒有藏起來
+HEAD1002_BRIEF = r"""() => { const h = document.getElementById('skAi'), l = document.getElementById('skAiLine'), t = document.getElementById('aiTabs'), b = document.getElementById('aiBody');
+  const R = (e) => e && e.getClientRects().length ? e.getBoundingClientRect() : null;
+  const rl = R(l), rt = R(t), rh = R(h), br = l ? l.querySelector('.aibrief') : null, tf = document.getElementById('aiTfs');
+  return { hostH: rh ? Math.round(rh.height) : 0, lineH: rl ? Math.round(rl.height) : 0,
+    lh: br ? (parseFloat(getComputedStyle(br).lineHeight) || parseFloat(getComputedStyle(br).fontSize) * 1.45) : 0,
+    chips: t ? [...t.querySelectorAll('.aitab')].map(x => Math.round(x.getBoundingClientRect().top)) : [],
+    briefH: rl && rt ? Math.round(rt.bottom - rl.top) : 0, bodyHidden: !!b && b.hidden, tfsVis: !!tf && tf.getClientRects().length > 0,
+    ellipsis: br ? getComputedStyle(br).textOverflow : '', full: br ? (br.title || '') : '' }; }"""
+# 小標籤 → 下面「總覽」分頁那一張細節卡：卡片上緣進到畫面、閃一下、總覽分頁是選中的（FACET 換成面向 id）
+HEAD1002_FACET = r"""() => { const c = document.querySelector('#ovFacets [data-facet="FACET"]'); const ob = document.querySelector('#stockTabs button[data-t="overview"]');
+  if (!c) return null; const r = c.getBoundingClientRect(); if (r.top < -2 || r.top > innerHeight - 40) return null;
+  return { top: Math.round(r.top), vh: innerHeight, flash: c.classList.contains('flash'), ov: !!ob && ob.classList.contains('on') }; }"""
+
+
+def _head1002_rows(tops):
+    """小標籤排成幾行：上緣差 > 4px 才算不同行（次像素四捨五入會差 1px）。"""
+    rows = []
+    for t in sorted(tops):
+        if not rows or t - rows[-1] > 4:
+            rows.append(t)
+    return len(rows)
+
+
 HEAD1002_LEFT = ("name", "meta", "px", "chg", "live", "tf", "ind", "tags", "mtf", "chart")
 
 
@@ -18021,50 +18048,79 @@ def t_stock_head_1002(pg, base, code):
         pg.mouse.click(hr["l"] + 20, hr["t"] - pg.evaluate("() => scrollY") + hr["h"] - 6); pg.wait_for_timeout(400)
         ok(f"{tag}點小框外面 → 收起來", not snap()["pop"]["vis"])
 
-    # ---------------------------------------------------------------- ① 兩欄（1440／1100）：展開／收合／點標籤，左側與 K 線一個像素都不動
+    # ---------------------------------------------------------------- ① 兩欄（1440／1100）：預設只看重點；展開／收合／點標籤，左側與 K 線一個像素都不動
+    # ★ 同一天第二個要求（Andy「上方的 AI 分析只寫重點」）：預設＝收合＝一行結論＋四顆面向小標籤（約 2 行），
+    #   點小標籤捲到下面「總覽」分頁的細節卡（#ovFacets），按「展開」才看各週期細節。
     for w in (1440, 1100):
         pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); localStorage.removeItem('tw.aiSplit'); } catch (e) {} }")
         goto(w)
         s0 = snap()
-        if not ok(f"{tag}{w} K 線卡兩欄、中間有分隔線、AI 預設展開", s0["aiside"] and s0["split"] is not None and s0["open"], (s0["aiside"], s0["split"], s0["open"])):
+        if not ok(f"{tag}{w} K 線卡兩欄、中間有分隔線", s0["aiside"] and s0["split"] is not None, (s0["aiside"], s0["split"])):
             continue
         ok(f"{tag}{w} 價格、週期鈕、K 線都量得到（下面的比較才有意義）", all(s0["left"][k] for k in ("px", "tf", "chart", "name")), s0["left"])
+        bf = pg.evaluate(HEAD1002_BRIEF)
+        rows = _head1002_rows(bf["chips"])
+        ok(f"★ {tag}{w} 預設只看重點：內容區收著、看不到各週期細節", not s0["open"] and bf["bodyHidden"] and not bf["tfsVis"], bf)
+        ok(f"★ {tag}{w} 重點的結論只佔一行（太長出「…」、滑過看全文）", bf["lineH"] <= bf["lh"] * 1.6 + 2 and bf["ellipsis"] == "ellipsis" and len(bf["full"]) > 4, bf)
+        ok(f"★ {tag}{w} 四顆面向小標籤{'一行' if w == 1440 else '最多兩行'}", rows == 1 if w == 1440 else 1 <= rows <= 2, (rows, bf["chips"]))
+        ok(f"★ {tag}{w} 頂部 AI 預設的高度不超過約 2 行（結論＋小標籤 ≤ {64 if w == 1440 else 92}px；整塊含標題列 ≤ {100 if w == 1440 else 130}px）",
+           bf["briefH"] <= (64 if w == 1440 else 92) and bf["hostH"] <= (100 if w == 1440 else 130), bf)
         click(pg, "#aiTgl", 450)
         s1 = snap()
-        ok(f"★ {tag}{w} 按「收合」→ 內容區真的收起來、tw.aiOpen=0", not s1["open"] and s1["ls"]["tw.aiOpen"] == "0", (s1["open"], s1["ls"]))
-        ok(f"★ {tag}{w} 收合前後：名稱、產業鏈列、價格、漲跌、即時徽章、標籤、週期鈕、K 線的 top/left 都不變（< 2px）",
+        ok(f"★ {tag}{w} 按「展開」→ 看得到完整內容、tw.aiOpen=1", s1["open"] and s1["ls"]["tw.aiOpen"] == "1", (s1["open"], s1["ls"]))
+        ok(f"★ {tag}{w} 展開前後：名稱、產業鏈列、價格、漲跌、即時徽章、標籤、週期鈕、K 線的 top/left 都不變（< 2px）",
            not _head1002_moved(s0, s1), _head1002_moved(s0, s1))
-        ok(f"{tag}{w} 收合前後 AI 區外框高度不變（高度跟左欄走，不跟內容伸縮）", abs(s1["ai"]["h"] - s0["ai"]["h"]) <= 1, (s0["ai"]["h"], s1["ai"]["h"]))
         click(pg, '#skAi .aitab[data-facet="sig"]', 450)
         s2 = snap()
-        ok(f"★ {tag}{w} 收合時按「技術面訊號」→ 展開，左側與 K 線仍不動", s2["open"] and not _head1002_moved(s0, s2), (s2["open"], _head1002_moved(s0, s2)))
+        ok(f"★ {tag}{w} 展開時按「技術面訊號」→ 換面向，左側與 K 線仍不動", s2["open"] and not _head1002_moved(s0, s2), (s2["open"], _head1002_moved(s0, s2)))
         click(pg, '#skAi .aitab[data-facet="tech"]', 450)
         s3 = snap()
-        ok(f"{tag}{w} 換到最長的技術面 → 左側與 K 線仍不動、內容在區內捲（內容區 ≥ 60px）",
-           not _head1002_moved(s0, s3) and s3["body"] and s3["body"]["h"] >= 60, (_head1002_moved(s0, s3), s3["body"]))
+        ok(f"{tag}{w} 換到最長的技術面 → 左側與 K 線仍不動、內容在區內捲（內容區 ≥ 80px）",
+           not _head1002_moved(s0, s3) and s3["body"] and s3["body"]["h"] >= 80, (_head1002_moved(s0, s3), s3["body"]))
         ok(f"{tag}{w} AI 區在分隔線右邊、不壓到左欄", s3["ai"]["l"] >= s3["split"]["r"] - 1 and s3["head"]["r"] <= s3["split"]["l"] + 1, (s3["head"], s3["split"], s3["ai"]))
+        click(pg, "#aiTgl", 450)
+        s4 = snap()
+        ok(f"★ {tag}{w} 再按「收合」→ 回到重點、tw.aiOpen=0，左側與 K 線仍不動", not s4["open"] and s4["ls"]["tw.aiOpen"] == "0" and not _head1002_moved(s0, s4),
+           (s4["open"], s4["ls"], _head1002_moved(s0, s4)))
+        if w == 1440:
+            # 重點模式的小標籤：捲到下面「總覽」分頁的細節卡（原地捲，不換頁），上面的 AI 區不展開、左側不動
+            click(pg, '#skAi .aitab[data-facet="tech"]', 400)
+            got = wait_until(pg, HEAD1002_FACET.replace("FACET", "tech"), 4000)
+            s5 = snap()
+            ok(f"★ {tag}重點模式點「技術面」小標籤 → 捲到下面「總覽」的技術面細節卡（進到畫面、閃一下）", bool(got) and got["ov"] and got["flash"], got)
+            ok(f"★ {tag}點小標籤後上面的 AI 區還是重點模式、左側與 K 線位置不變", not s5["open"] and not _head1002_moved(s0, s5), (s5["open"], _head1002_moved(s0, s5)))
+            pg.evaluate("() => window.scrollTo(0, 0)")
 
-    # ---------------------------------------------------------------- ① 單欄（800）：浮層展開，不推 K 線；不讀也不寫 tw.aiOpen
+    # ---------------------------------------------------------------- ① 單欄（800）：重點兩行；浮層展開，不推 K 線；不讀也不寫 tw.aiOpen
     pg.evaluate("() => { try { localStorage.setItem('tw.aiOpen', '1'); } catch (e) {} }")
     goto(800)
     s0 = snap()
     if ok(f"{tag}800 上下排（沒有兩欄）、沒有分隔線", not s0["aiside"] and s0["split"] is None, (s0["aiside"], s0["split"])):
         ok(f"★ {tag}800 tw.aiOpen=1 也一樣進頁面是收著的（浮層不會一進來就蓋住工具列）", not s0["open"], s0["open"])
+        bf = pg.evaluate(HEAD1002_BRIEF)
+        ok(f"★ {tag}800 重點＝兩行：標題｜一行結論｜展開 一行、四顆小標籤一行（AI 區 ≤ 80px）",
+           _head1002_rows(bf["chips"]) == 1 and bf["lineH"] <= bf["lh"] * 1.6 + 2 and bf["hostH"] <= 80, bf)
         click(pg, "#aiTgl", 450)
         s1 = snap()
         ok(f"★ {tag}800 按「展開」→ 內容區是浮層（position:absolute）、真的蓋到工具列／K 線上", s1["open"] and s1["bodyPos"] == "absolute"
            and s1["body"]["b"] > s1["tools"]["t"], (s1["open"], s1["bodyPos"], s1["body"], s1["tools"]))
-        ok(f"★ {tag}800 展開前後：左側與 K 線的 top/left 都不變（< 2px）", not _head1002_moved(s0, s1), _head1002_moved(s0, s1))
+        ok(f"★ {tag}800 展開前後：左側與 K 線的 top/left 都不變（< 2px）、AI 區高度不變", not _head1002_moved(s0, s1) and abs(s1["ai"]["h"] - s0["ai"]["h"]) < 2,
+           (_head1002_moved(s0, s1), s0["ai"]["h"], s1["ai"]["h"]))
+        click(pg, '#skAi .aitab[data-facet="news"]', 400)
+        ok(f"{tag}800 浮層開著時按「消息面」→ 浮層裡換成消息面", pg.evaluate("() => { const p = document.getElementById('aiPanel-news'); return !!p && !p.hidden && p.getClientRects().length > 0; }"))
         pg.keyboard.press("Escape"); pg.wait_for_timeout(350)
         s2 = snap()
         ok(f"★ {tag}800 按 Esc → 浮層收起、K 線仍不動", not s2["open"] and not _head1002_moved(s0, s2), (s2["open"], _head1002_moved(s0, s2)))
-        click(pg, '#skAi .aitab[data-facet="fund"]', 450)
+        click(pg, '#skAi .aitab[data-facet="tech"]', 400)
+        got = wait_until(pg, HEAD1002_FACET.replace("FACET", "tech"), 4000)
+        ok(f"★ {tag}800 收著時按「技術面」小標籤 → 捲到下面「總覽」的技術面細節卡、浮層不打開", bool(got) and got["ov"] and not snap()["open"], got)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        click(pg, "#aiTgl", 450)
         s3 = snap()
-        ok(f"{tag}800 收著時按「基本面」標籤 → 浮層展開到基本面", s3["open"], s3["open"])
         hr = s3["head"]
         pg.mouse.click(hr["r"] - 12, hr["t"] - pg.evaluate("() => scrollY") + 8); pg.wait_for_timeout(450)
         s4 = snap()
-        ok(f"★ {tag}800 點浮層外面 → 收起來", not s4["open"], s4["open"])
+        ok(f"★ {tag}800 點浮層外面 → 收起來", s3["open"] and not s4["open"], (s3["open"], s4["open"]))
         ok(f"{tag}800 浮層開關都沒有寫 tw.aiOpen（還是進來前的 1）", s4["ls"]["tw.aiOpen"] == "1", s4["ls"])
     pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); } catch (e) {} }")
 
@@ -20094,6 +20150,12 @@ AI_NOAI_CHART_TOP = r"""() => { const ai = document.getElementById('skAi'), card
   ai.style.display = d;
   return { withAi, noAi, bare, push: withAi - noAi, cost: withAi - bare, back: top(), aiside: side }; }"""
 
+# ★ 2026-10-02（#293）收合時按小標籤 → 捲到「總覽」分頁裡的細節卡：卡片上緣進到畫面裡、閃一下、總覽分頁是選中的
+AI_OVSIG_IN_VIEW = """() => { const c = document.querySelector('#ovFacets [data-facet="sig"]'); if (!c) return false;
+  const r = c.getBoundingClientRect(); return r.top >= -2 && r.top < innerHeight - 40; }"""
+AI_OVSIG = """() => { const c = document.querySelector('#ovFacets [data-facet="sig"]'); const ob = document.querySelector('#stockTabs button[data-t="overview"]');
+  if (!c) return null; const r = c.getBoundingClientRect();
+  return { top: Math.round(r.top), vh: innerHeight, flash: c.classList.contains('flash'), ov: !!ob && ob.classList.contains('on') }; }"""
 AI_WORDS_BANNED = ("買進", "賣出", "建議", "追進", "加碼", "減碼")
 
 
@@ -20133,6 +20195,11 @@ def t_stock_ai_0926(pg, base, code):
         st = pg.evaluate(AI_SNAP)
         if not ok(f"{tag} 個股頁有「AI 分析」區（#skAi）", st["ai"], st):
             continue
+        # ★ 2026-10-02（Andy「上方的 AI 分析只寫重點」，DECISIONS #293）：改前桌機沒記過＝預設展開 → 改後一律預設收合（只看重點），
+        #   按「展開」才看各週期細節。下面的內容檢查都是「展開之後」的內容，所以先驗預設是重點、再按一次展開。
+        ok(f"★ {tag} 桌機沒記過 → 預設只看重點（內容區收著、tw.aiOpen 沒寫）", not st["open"] and st["ls"] is None and st["lineVis"], (st["open"], st["ls"]))
+        click(pg, "#aiTgl", 450)
+        st = pg.evaluate(AI_SNAP)
         ok(f"{tag} 標題寫「AI 分析」", "AI 分析" in st["title"], st["title"])
         ok(f"★ {tag} 標題緊接「規則式自動判讀，非投資建議」", "規則式自動判讀" in st["warn"] and "非投資建議" in st["warn"], st["warn"])
         ok(f"{tag} 滑過小字說明寫清楚：不是大型語言模型、依哪些規則與資料", "不是大型語言模型" in st["warnTitle"] and "SMC" in st["warnTitle"], st["warnTitle"])
@@ -20155,7 +20222,7 @@ def t_stock_ai_0926(pg, base, code):
         ok(f"★ {tag} AI 區不再有「籌碼面」標籤與面板", all(t["k"] != "chip" for t in st["tabs"]) and not pg.evaluate("() => !!document.getElementById('aiPanel-chip')"), [t["k"] for t in st["tabs"]])
         ok(f"{tag} 四顆標籤排在同一列、都在 AI 區裡", len({t["r"]["t"] for t in st["tabs"]}) == 1
            and all(a["l"] - 1 <= t["r"]["l"] and t["r"]["r"] <= a["r"] + 1 for t in st["tabs"]), [t["r"] for t in st["tabs"]])
-        ok(f"{tag} 桌機沒記過 → 預設展開、預設技術面、一次只顯示技術面", st["open"] and st["ls"] is None and st["shown"] == ["tech"], st)
+        ok(f"{tag} 按「展開」→ 內容區打開、預設技術面、一次只顯示技術面、tw.aiOpen=1", st["open"] and st["ls"] == "1" and st["shown"] == ["tech"], st)
         # ---- 內容區固定高度、區內捲動
         # ★ 2026-10-02 改前：內容區保底 132px（下限驗 120）→ 改後（#293）：AI 區高度＝左欄高度（保底 190px），內容區吃剩下的，
         #   1440 約 95～105px（左欄有沒有短註那一行會差 37px）。下限改 80：低於這個就只剩三行字，等於壞了。
@@ -20220,10 +20287,19 @@ def t_stock_ai_0926(pg, base, code):
     s5 = pg.evaluate(AI_SNAP)
     ok("★ [AI分析] 再按「展開 ▾」→ 內容區回來、仍是剛才選的基本面", s5["open"] and s5["ls"] == "1" and s5["shown"] == ["fund"], (s5["open"], s5["ls"], s5["shown"]))
     click(pg, "#aiTgl", 400)
+    # ★ 2026-10-02 改前：收合時按標籤＝直接展開看那一面 → 改後（#293，Andy「上方的 AI 分析只寫重點」）：
+    #   收合（重點模式）的小標籤＝捲到下面「總覽」分頁裡那一張細節卡（#ovFacets），AI 區照舊收著；要看各週期細節按「展開」。
     click(pg, '#skAi .aitab[data-facet="sig"]', 400)
+    wait_until(pg, AI_OVSIG_IN_VIEW, 4000)
     s6 = pg.evaluate(AI_SNAP)
-    ok("★ [AI分析] 收合時按「技術面訊號」標籤 → 直接展開並顯示技術面訊號", s6["open"] and s6["shown"] == ["sig"] and s6["ls"] == "1" and s6["lt"] == "sig",
-       (s6["open"], s6["shown"], s6["ls"], s6["lt"]))
+    g6 = pg.evaluate(AI_OVSIG)
+    ok("★ [AI分析] 收合時按「技術面訊號」小標籤 → 捲到下面「總覽」的技術面訊號細節卡（卡片進到畫面裡、閃一下）",
+       bool(g6) and g6["ov"] and -2 <= g6["top"] < g6["vh"] - 40 and g6["flash"], g6)
+    ok("★ [AI分析] 按小標籤不會把上面的 AI 區展開（重點模式不變）、記住選了技術面訊號", not s6["open"] and s6["ls"] == "0" and s6["lt"] == "sig",
+       (s6["open"], s6["ls"], s6["lt"]))
+    click(pg, "#aiTgl", 400)
+    s6b = pg.evaluate(AI_SNAP)
+    ok("[AI分析] 再按「展開」→ 顯示剛才點的技術面訊號", s6b["open"] and s6b["shown"] == ["sig"], (s6b["open"], s6b["shown"]))
     # ---------------------------------------------------------------- 「?」說明、逐條條件、重大訊息
     click(pg, '#skAi .howbtn[data-how="ai"]', 450)
     how = pg.evaluate("() => { const b = document.getElementById('how-ai'); return b ? { open: !b.hidden && b.getBoundingClientRect().height > 10, t: b.innerText } : null; }")
@@ -20263,6 +20339,8 @@ def t_stock_ai_0926(pg, base, code):
         ok(f"★ {tg} 四顆標籤的字都沒有溢出按鈕（沒有壓到隔壁）", spill == [], spill)
         ok(f"{tg} 四顆標籤同一列、都在 AI 區裡", len({t["r"]["t"] for t in s["tabs"]}) == 1
            and all(s["rAi"]["l"] - 1 <= t["r"]["l"] and t["r"]["r"] <= s["rAi"]["r"] + 1 for t in s["tabs"]), [t["r"] for t in s["tabs"]])
+        if not s["open"]:
+            click(pg, "#aiTgl", 400)      # 800 是浮層、進頁面收著；1100 照 tw.aiOpen —— 先展開，下面才是標籤頁
         click(pg, '#skAi .aitab[data-facet="fund"]', 350)
         s_ = pg.evaluate(AI_SNAP)
         ok(f"{tg} 點「基本面」→ 一次只顯示基本面", s_["shown"] == ["fund"], s_["shown"])
