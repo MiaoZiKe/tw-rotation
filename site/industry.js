@@ -4108,7 +4108,7 @@
     idle: '頁面在背景或連線中斷、沒收到報價',
   };
   function tickGapLabel(g, wait) {
-    // 小標只寫四個字：Yahoo 還會追上來＝「等待」；這檔 Yahoo 根本沒有分 K（冷門股）＝「沒有」，不可以叫人等一個不會來的東西
+    // 小標只寫一句短的：Yahoo 還會追上來＝「等待」；這檔 Yahoo 根本沒有分 K（冷門股）＝「沒有」，不可以叫人等一個不會來的東西
     return wait ? '此段等待資料' : '此段沒有資料';
   }
   function tickGapTitle(g, wait) {
@@ -4122,9 +4122,12 @@
     const parts = segs.map((sg, i) => {
       if (sg.k === 'yahoo') return `${rng(sg)} 來自 Yahoo（延遲約 20 分鐘，每 2 分鐘重抓一次）`;
       if (sg.k === 'live') {
-        return i === lastLive && i === segs.length - 1
-          ? `${hm(sg.a)} 之後是本頁即時累積，每 5 秒更新、量是累計成交量相減`
-          : `${rng(sg)} 是本頁即時累積`;
+        // 盤後（13:35 以後）不再每 5 秒更新，不可以還寫「之後…每 5 秒更新」
+        if (i === lastLive && i === segs.length - 1) {
+          return d.intraday === false ? `${rng(sg)} 是本頁開著時即時累積的（已收盤，量是累計成交量相減）`
+            : `${hm(sg.a)} 之後是本頁即時累積，每 5 秒更新、量是累計成交量相減`;
+        }
+        return `${rng(sg)} 是本頁即時累積`;
       }
       const why = sg.why === 'lead' ? 'Yahoo 還沒給今天的 1 分 K（延遲約 20 分鐘）'
         : sg.why === 'idle' ? '頁面在背景或連線中斷、沒收到報價' : '在你打開頁面之前';
@@ -4152,7 +4155,8 @@
         return { pts: ms.bars.map(x => [x[0], +x[4], +x[5] || 0]), prev: pc > 0 ? pc : prevOf(ms.date), date: ms.date,
                  live: true, src: 'live', minute: true,
                  gaps: ms.gaps.map(g => [g[0], g[1], tickGapLabel(g, wait), tickGapTitle(g, wait)]),
-                 segs: ms.segs, yahooWait: ms.yahooWait, yahoo: ms.yahoo, liveSeg: ms.live };
+                 segs: ms.segs, yahooWait: ms.yahooWait, yahoo: ms.yahoo, liveSeg: ms.live,
+                 intraday: L.isIntraday ? L.isIntraday() : true };
       }
       const b = L.bars('1m') || [];
       if (b.length >= 2 && ses && ses.date) {

@@ -1,5 +1,31 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 個股分時一路即時：逐分鐘聚合 mis 報價、缺口斷線＋虛線標「此段等待資料」、Yahoo 盤中每 2 分鐘重抓（2026-10-02 20:15，台北，UI 專家，分支 `claude/stock-tick-live`，**未推 main**，DECISIONS #287）
+
+- Andy 10:26（#stock/2409）：「個股分時需要有即時走勢」。前一位做到 10:57 中斷，半成品在 `claude/wip-stock-tick-live`（94e04aa）；這次帶到最新 main（含 draw-tools、stock-overview-mini、spark-precise、stock-head-layout）上做完。
+- [x] `livek.js`：`minuteSeries()` 逐分鐘挑來源（連續在收的分鐘用報價疊、量＝累計張數差分；半分鐘讓 Yahoo；都沒有才用報價）、缺口分三種（開盤頭段 lead／打開頁面前 open／背景或斷線 idle）、
+  Yahoo 盤中每 2 分鐘重抓（`refreshHist`，打 Worker 的 /y，**不增加 mis 請求**）、每筆報價多記收到時間 `q`、今天開盤後清掉前幾天的 `tw.livek.*`。
+- [x] `chart.js` `TickChart`：缺口那幾分鐘主線**真的斷開**（圖表庫 v5.2.1 不會在空白點斷線 —— 改成缺口後每段各一條面積線）、淡色虛線連缺口兩端、
+  斜線底紋＋「此段等待資料」小標（缺口比字窄也標，字塊夾在價格區內）、13:30 右緣錨點（不然盤中時間軸只畫到最後一筆、09:00 被推到圖中間）。
+- [x] `industry.js`：`tickData` 盤中改用 `minuteSeries`；`tickLiveNote` 說明照時間逐段寫（09:00～10:10 Yahoo；10:11～10:29 打開頁面前暫無資料；10:30 之後本頁即時累積）、盤後不再寫「每 5 秒更新」。
+- [x] Fugle 等補缺口來源：要金鑰、而且轉給公開網站訪客可能落在證交所「轉傳」範圍 → **沒接**，查證寫在 DECISIONS #287。
+- 動到的函式（只動分時那段）：`chart.js` TickChart 的 constructor／`_areaOpts`（新）／`normalize`／`setData`／`_placeGapTags`（新）／`destroy`；
+  `livek.js` 的 `loadHistory`（記 histAt）／`refreshHist`（新）／`poll`（多叫 refreshHist）／`pushTick`（多記 q）／`pruneOld`（新）／`save`／`minuteSeries`（新）／對外 `LiveK.minuteSeries`；
+  `industry.js` 的 `TICK_GAP_WHY`／`tickGapLabel`／`tickGapTitle`／`tickLiveNote`（新）、`tickData`（盤中分支）、`applyTick` 裡 setLiveNote 那一行；
+  `index.html` 只加 `#lwc .tk-gap`／`.tk-gap span` 兩條 CSS；`modules.js` stock.kline 的 tests 多「分時一路即時」。個股頁頂部、五個分頁、繪圖工具一行都沒碰。
+- **這批驗了**：`_preview.py` 全綠（0 重疊）；`_uitest.py --workers 1 --sections 個股即時分K,分時預設與搜尋走勢,盤中即時,個股,繪圖工具1002,分時一路即時`：
+  - 新段「分時一路即時」0 問題：假時鐘＋假 mis（每 5 秒撮合時間 +5 秒、價 +0.5、累計 +7 張）＋假 Yahoo，驗同一分鐘只更新最後一根、跨分鐘多一根、量是差分、缺口主線空白＋虛線＋小標、
+    **像素掃描缺口內沒有主線色**（反向：改前 161 px）、Yahoo 重抓後缺口縮小、Yahoo 蓋過半分鐘那根改用 Yahoo、缺口補滿小標與虛線一起拿掉、重新整理（報價故意失敗）累積還在、隔天清掉、
+    開盤頭段 09:00～09:27 只標字不畫虛線、800／390 小標在價格區內字 ≥ 11px。
+  - 個股即時分K 0；分時預設與搜尋走勢 1 紅＝「C 找得到一檔沒有 60 分 K 的股票來驗」，origin/main 同一份資料跑也是這 1 條（本機 10-01 資料的條件，不是這批）。
+  - 第一輪是在別人的瀏覽器測試同時跑、沒拿到鎖的情況下跑的：盤中即時 1、繪圖工具1002 19、個股 1 —— 單獨重跑：盤中即時 0、繪圖工具1002 0；
+    個股的 1 條是「本益比河流圖還原成原始大小時整頁不會被帶著往下」：app.js `wheelZoom` 還原後只留 450ms 緩衝，機器忙時下一個滾輪事件晚到就漏給頁面。
+    加了診斷（每個 wheel 事件的時間與有沒有被吃掉、長任務）：那一刻 tf＝日線、沒有任何 TickChart 活著，這批的程式碼不會執行；同時跑分支與 main 各一次都是 0。**判定是計時型假紅，不是這批造成的**，但這條在負載高時會間歇紅，值得另案把緩衝改成「停手才解除」。
+  - 沒跑 pytest（沒動 pipeline／tests／.github，只改 site/** 與 scripts/_uitest.py）。
+- 瀏覽器鎖 `/tmp/claude-0/browser.lock` 整個晚上都被別的 agent 排隊佔著（等滿 5 分鐘拿不到），照規定換埠（8797／8798）不加鎖直接跑。
+- 已知限制：① 缺口一定存在（打開頁面之前、分頁在背景時沒收到的分鐘），只能等 Yahoo 追上來（延遲約 20 分鐘）；② `bars('1m'/'5m'/'15m')` K 線週期的接縫（根因 3）沒改，另案；
+  ③ 全部用假時間驗，**沒有在真盤中驗過**（容器連不到 mis 與 Worker）—— 請下週一盤中打開個股分時看一眼；④ 收盤後才打開頁面時，那一筆收盤報價不再蓋掉 Yahoo 的 13:30（尾盤集合競價量保住）。
+
 ## 個股頁 K 線上方版面：AI 預設只看重點、展開收合左側不動、左右分隔線可拖、標籤搬到週期鈕那一行（2026-10-02，台北，UI 專家，分支 `claude/stock-head-layout`，**未推 main**）
 
 - Andy 15:19（#stock/3189 景碩三張截圖）＋同日「上方的 AI 分析只寫重點」→ DECISIONS #293。前一位的半成品 `claude/wip-stock-layout`（5a9a11e）只沿用「AI 區 contain:size」「單欄內容區改浮層」兩個想法，其他四項（營收三欄、本益比線寬、籌碼並排、大戶週數）沒帶進來。
