@@ -5721,7 +5721,7 @@
     const cs = getComputedStyle(el);
     const hk = parseFloat(cs.getPropertyValue('--rot-hk')) || 0.8;
     const hmax = parseFloat(cs.getPropertyValue('--rot-hmax')) || 640;
-    /* ★ 2026-10-03 一屏看完（DECISIONS #306）：盤高再受「卡高上限 − 卡裡盤以外的東西」限制，下限 340（再小標籤就擠在一起）。
+    /* ★ 2026-10-03 一屏看完（DECISIONS #308）：盤高再受「卡高上限 − 卡裡盤以外的東西」限制，下限 340（再小標籤就擠在一起）。
        只在卡本來就比一屏高的視窗（1440×900 可視 ~800：664 → ~545）才縮；1920×1080 以上（盤 664 放得下）一個 px 不變。
        盤的左右是方的：高縮了、寬不變，盤在欄裡置中、兩旁多出空白。 */
     if (window.Fit && !el._fitWatch) el._fitWatch = Fit.on(() => { if (el.isConnected && el.offsetParent && el._rotRelayout) el._rotRelayout(); }, el);   // 卡裡其他東西晚一步長出來 → 重算

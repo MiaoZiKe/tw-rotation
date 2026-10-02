@@ -5709,12 +5709,27 @@ def t_new_layout(pg, base):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
         hs = pg.evaluate("""() => { const g = (id) => { const e = document.getElementById(id); if (!e) return null;
-                const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) }; };
-            return { left: g('ovLeft'), rot: g('ovRotCard'), theme: g('ovThemeCard') }; }""")
-        good = all(hs.get(k) for k in ("left", "rot", "theme"))
-        ok(f"[{w}px] 熱門題材所在的左欄／右欄資金輪盤兩欄等高（上緣、下緣都差 ≤ 2px，題材卡跟右欄齊底）",
-           good and abs(hs["left"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["left"]["b"] - hs["rot"]["b"]) <= 2
-           and abs(hs["theme"]["b"] - hs["rot"]["b"]) <= 2, hs)
+                const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right) }; };
+            return { left: g('ovLeft'), rot: g('ovRotCard'), theme: g('ovThemeCard'), heat: g('ovHeatCard'),
+                     fit: matchMedia('(min-width:1101px) and (max-height:1000px)').matches }; }""")
+        good = all(hs.get(k) for k in ("left", "rot", "theme", "heat"))
+        # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：
+        #   改前：左欄 #ovLeft（熱力圖＋題材疊起來 972px）與右欄 #ovRotCard 上下緣對齊、題材卡跟右欄齊底。
+        #   改後：可視高 ≤ 1000 時（fit.css）#ovLeft 改 display:contents，總覽下半變兩列 ——
+        #         第 1 列 資金熱力圖｜資金輪盤（上緣、下緣都差 ≤ 2px，各約 541～569px），第 2 列熱門題材吃滿全寬、在第 1 列下面。
+        #   理由：左欄疊起來 972px 比一屏高，右欄 541px，兩欄等高就得把卡拉成 972px 或右欄下面空 430px，都不是一屏。
+        #   「框格一樣大」的要求沒放寬：同一列的兩張卡一樣是 ≤ 2px；可視高 > 1000 時仍照原本的左右欄等高驗。
+        if good and hs["fit"]:
+            ok(f"[{w}px] ★ 一屏看完：資金熱力圖與資金輪盤同一列等高（上緣、下緣都差 ≤ 2px），熱門題材在它們下面、吃滿全寬",
+               abs(hs["heat"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["heat"]["b"] - hs["rot"]["b"]) <= 2
+               and hs["theme"]["t"] >= max(hs["heat"]["b"], hs["rot"]["b"]) - 1
+               and abs(hs["theme"]["l"] - hs["heat"]["l"]) <= 2 and abs(hs["theme"]["r"] - hs["rot"]["r"]) <= 2, hs)
+            ok(f"[{w}px] ★ 一屏看完：熱力圖／輪盤／題材三張卡都不比一屏（視窗高 − 73）高",
+               max(hs["heat"]["h"], hs["rot"]["h"], hs["theme"]["h"]) <= 1000 - 73, hs)
+        else:
+            ok(f"[{w}px] 熱門題材所在的左欄／右欄資金輪盤兩欄等高（上緣、下緣都差 ≤ 2px，題材卡跟右欄齊底）",
+               good and abs(hs["left"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["left"]["b"] - hs["rot"]["b"]) <= 2
+               and abs(hs["theme"]["b"] - hs["rot"]["b"]) <= 2, hs)
         ok(f"[{w}px] 熱門題材卡的高度沒有被內容撐爆（≤ 720px）",
            good and hs["theme"]["h"] <= 722, hs)
 

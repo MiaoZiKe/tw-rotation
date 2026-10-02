@@ -514,7 +514,7 @@
     const gaps = 0.5 * Math.max(0, chains.length - 1);
     let extra = 0;
     chains.forEach(c => c.kids.forEach(g => { if (g.open) extra += Math.max(0, g.kids.length * CFG.EL_LEAF_SP + 16 - CFG.EL_SLOT_MAX); }));
-    /* ★ 2026-10-03 一屏看完（DECISIONS #306）：整張卡要落在一屏內，畫布最高＝fitMax（視窗高 − 卡裡其他東西），不再固定 1040。
+    /* ★ 2026-10-03 一屏看完（DECISIONS #308）：整張卡要落在一屏內，畫布最高＝fitMax（視窗高 − 卡裡其他東西），不再固定 1040。
        代表股預設收起（leafHover）時，一格只要放得下族群膠囊（17px）＋上下各 2px 縫，下限從 36 放寬到 EL_SLOT_FIT（22）；
        滑過族群才長出的那三檔代表股畫在另一欄、一次只一個族群，不會跟鄰格疊字。點開展開（extra > 0）時照舊允許長高。
        視窗夠高（fitMax ≥ 舊上限）或手機（Fit.desk 為假）時，這一段算出來跟改前一模一樣。 */
