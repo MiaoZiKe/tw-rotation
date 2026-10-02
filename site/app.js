@@ -3218,7 +3218,14 @@
   };
   const ovsIcon = (name, color) => `<span class="osc-ic" data-icon="${name}" style="--ic:${color}" aria-hidden="true">`
     + `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${OVS_ICON[name]}</svg></span>`;
-  const ovsDate = (d) => d ? `<span class="osc-d" title="資料日期（交易日）"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${fmt.esc(String(d).slice(5).replace('-', '/'))}</span>` : '';
+  const OVS_CAL = '<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>';
+  /* 'YYYY-MM-DD'（盤後 JSON）或 'YYYYMMDD'（mis 報價）→ 'MM/DD' */
+  const ovsMd = (d) => { const s = String(d || '').replace(/-/g, ''); return /^\d{8}/.test(s) ? s.slice(4, 6) + '/' + s.slice(6, 8) : ''; };
+  /* ★ 2026-10-02（Andy：「這都需要具備即時功能」，DECISIONS #296）：右上角的日期改成一顆鈕 ——
+     它同時是「即時」開關（四張卡共用 live.js 的 'ovs' 開關）與狀態：盤中顯示「即時 HH:MM:SS」、盤後／關掉顯示收盤日期。
+     字與樣式由 ovlStamp() 寫；這裡只給第一次畫的樣子（盤後日期），所以盤中剛打開那 20～40 秒仍看得到資料是哪一天。*/
+  const ovsDate = (k, d) => `<button type="button" class="osc-d ovl-tg arm" data-k="${k}" aria-pressed="true" title="資料日期（交易日）">`
+    + `<i class="ovl-dot" aria-hidden="true"></i>${OVS_CAL}<span class="ovl-t">${fmt.esc(ovsMd(d) || '—')}</span></button>`;
   // 比例條的一段：flex-grow＝數值（0 的段不畫，不然會留一條看不見的縫）
   const ovsSeg = (v, color, tip, cls) => v > 0 ? `<i${cls ? ` class="${cls}"` : ''} style="flex-grow:${v};background:${color}" title="${fmt.esc(tip)}"></i>` : '';
   /* 百分比放在名稱那一行（「上漲 36.7%」），數字那一行只放數字：卡片放不下四張時每張固定 262px、分三欄每欄約 80px，
@@ -3226,18 +3233,61 @@
   const ovsNum = (label, val, pct, cls, extra) => `<div class="osn"${extra || ''}><small>${label}${pct != null ? ` <em>${pct}</em>` : ''}</small>`
     + `<span class="osn-v"><b class="${cls || ''}">${val}</b></span></div>`;
 
+  /* 盤後那一份（每張卡的比例條／數字／底線／aria／日期）存起來：即時關掉、盤後、或某張卡即時算不出來時，
+     **原地**換回這一份（ovsApply），不是整張卡重畫。ds＝寫在 #hero 上給驗收讀的讀數（udN／rotN／flowTop／themeTop）。*/
+  const OVS = { src: null, eod: {} };
   function ovsCard(k, o) {
+    OVS.eod[k] = { bar: o.bar || '<i class="osc-none"></i>', barCls: o.barCls || '', nums: o.nums, foot: o.foot || '&nbsp;',
+      aria: o.aria, date: o.date || '', title: o.title, ds: o.ds || {} };
     return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}">`
-      + `<div class="osc-h">${ovsIcon(o.icon, o.color)}<b class="osc-t">${o.title}</b>${ovsDate(o.date)}<span class="osc-more" aria-hidden="true">›</span></div>`
+      + `<div class="osc-h">${ovsIcon(o.icon, o.color)}<b class="osc-t">${o.title}</b>${ovsDate(k, o.date)}<span class="osc-more" aria-hidden="true">›</span></div>`
       + `<div class="osc-bar${o.barCls ? ' ' + o.barCls : ''}">${o.bar || '<i class="osc-none"></i>'}</div>`
       + `<div class="osc-n">${o.nums}</div>`
       + `<div class="osc-f">${o.foot || '&nbsp;'}</div></div>`;
   }
 
+  /* 四張卡的「比例條＋數字」組法抽出來 —— 盤後與即時用**同一支**組，兩邊長相（欄位、顏色、data-v）不會分岔，
+     即時更新時 ovsMorph 才能逐格對上、只改數字。*/
+  const ovsPct = (v, n) => (n ? fmt.n(v / n * 100, 1) + '%' : '—');
+  function ovsUdParts(up, fl, dn) {
+    const n = up + fl + dn;
+    return {
+      bar: ovsSeg(up, 'var(--rise)', `上漲 ${up} 檔`) + ovsSeg(fl, 'var(--flat)', `平盤 ${fl} 檔`) + ovsSeg(dn, 'var(--fall)', `下跌 ${dn} 檔`),
+      nums: n ? ovsNum('上漲', up, ovsPct(up, n), 'up', ' data-v="up"') + ovsNum('平盤', fl, ovsPct(fl, n), 'flat', ' data-v="flat"')
+        + ovsNum('下跌', dn, ovsPct(dn, n), 'down', ' data-v="down"') : '<span class="muted">尚無漲跌資料</span>',
+    };
+  }
+  const OVS_ROT_ORDER = ['leading', 'improving', 'weakening', 'lagging'];
+  const OVS_ROT_COL = { leading: 'var(--rise)', improving: 'var(--cyan)', weakening: 'var(--amber)', lagging: 'var(--fall)' };
+  function ovsRotParts(all) {
+    const cnt = {}; OVS_ROT_ORDER.forEach(k => { cnt[k] = 0; });
+    all.forEach(r => { if (cnt[r.stage] != null) cnt[r.stage]++; });
+    const best = all.slice(0, 10).sort((a, b) => (b.rs || 0) - (a.rs || 0))[0];
+    return {
+      cnt, best,
+      bar: OVS_ROT_ORDER.map(k => ovsSeg(cnt[k], OVS_ROT_COL[k], `${STAGE[k].name} ${cnt[k]} 個族群：${STAGE[k].sub}`)).join(''),
+      nums: all.length ? OVS_ROT_ORDER.map(k => ovsNum(STAGE[k].name, cnt[k], null, '', ` data-v="${k}" style="--c:${OVS_ROT_COL[k]}"`)).join('')
+        : '<span class="muted">資金輪盤需要至少 20 個交易日</span>',
+    };
+  }
+  const OVS_FLOW_COL = ['var(--cyan)', 'var(--violet)', 'var(--amber)'];
+  function ovsFlowVariant(items, total, topG, cls) {
+    const REST = 'color-mix(in srgb,var(--ink-3) 45%,transparent)';
+    const rest = Math.max(0, total - items.slice(0, 3).reduce((a, x) => a + x.v, 0));
+    return {
+      bar: items.slice(0, 3).map((x, i) => ovsSeg(x.v, OVS_FLOW_COL[i], `${x.name} ${ovsPct(x.v, total)}`, cls)).join('')
+        + ovsSeg(rest, REST, `其他 ${ovsPct(rest, total)}`, cls),
+      nums: items.slice(0, 3).map((x, i) => ovsNum(fmt.esc(x.name), ovsPct(x.v, total), null, '', ` data-v="${fmt.esc(x.cid)}" style="--c:${OVS_FLOW_COL[i]}"`)
+        .replace('<div class="osn"', cls ? `<div class="osn ${cls}"` : '<div class="osn"')).join(''),
+      foot: topG ? `<span${cls ? ` class="${cls}"` : ''}>最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${ovsPct(topG.v, total)}</span></span>` : '',
+    };
+  }
+
   function renderOvSummary(src) {
     const host = $('#hero'); if (!host) return;
+    OVS.src = src || null;
     const { heat, stocks, f3, sd, th } = src || {};
-    const pct = (v, n) => (n ? fmt.n(v / n * 100, 1) + '%' : '—');
+    const pct = ovsPct;
     const cards = [];
 
     /* ① 漲跌家數 —— 口徑＝總覽下方「漲跌家數」分佈卡的「全部」（stocks.json 逐檔、級距 udBinOf，DECISIONS #258-8／#263）：
@@ -3245,7 +3295,8 @@
        ⚠ 刻意不用 market_heat 的 advancers／decliners（證交所當日收盤口徑）：兩者可能差幾十檔（#258-8），
          同一頁上下兩個「漲跌家數」對不起來比哪一個更準更糟。這裡固定看「全部」，不跟著下方卡的上市／上櫃切換走 ——
          摘要卡講的是整個市場；要分市場就到下面那張卡切。
-       逐檔資料缺席（舊 payload）才退回 market_heat 的三個數（host.dataset.udFrom＝'heat' 讓驗收分得出來）。*/
+       逐檔資料缺席（舊 payload）才退回 market_heat 的三個數（host.dataset.udFrom＝'heat' 讓驗收分得出來）。
+       ★ 盤中即時版（DECISIONS #296）在 ovlUD()：市場明細「即時」同一份名單（mudCodes），卡上寫「即時估算（N 檔）」。*/
     {
       let up = 0, dn = 0, fl = 0, from = 'stocks';
       (stocks || []).forEach(r => { if (!r) return; const b = udBinOf(r); if (b == null) return;
@@ -3254,15 +3305,14 @@
       const n = up + dn + fl;
       const to = heat && heat.turnover != null ? fmt.yi(heat.turnover) : null;
       const ma = heat && heat.turnover_ma20 ? fmt.yi(heat.turnover_ma20) : null;
+      const P = ovsUdParts(up, fl, dn);
       cards.push(ovsCard('updown', {
         title: '漲跌家數', icon: 'pulse', color: 'var(--rise)', date: heat && heat.date,
         aria: `漲跌家數：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下看市場明細`,
-        bar: ovsSeg(up, 'var(--rise)', `上漲 ${up} 檔`) + ovsSeg(fl, 'var(--flat)', `平盤 ${fl} 檔`) + ovsSeg(dn, 'var(--fall)', `下跌 ${dn} 檔`),
-        nums: n ? ovsNum('上漲', up, pct(up, n), 'up', ' data-v="up"') + ovsNum('平盤', fl, pct(fl, n), 'flat', ' data-v="flat"')
-          + ovsNum('下跌', dn, pct(dn, n), 'down', ' data-v="down"') : '<span class="muted">尚無漲跌資料</span>',
+        bar: P.bar, nums: P.nums,
         foot: to ? `成交值 <b>${to}</b>${ma ? `<span class="muted">・20 日均 ${ma}</span>` : ''}` : '',
+        ds: { udN: n, udFrom: from },
       }));
-      host.dataset.udN = String(n); host.dataset.udFrom = from;
     }
 
     /* ② 資金輪盤 —— 四段數＝**全部族群**（flow_v3 rrg.points，階段＝後端 quadrant，沒有才用 stageOf 算），四段加總＝族群總數。
@@ -3271,23 +3321,19 @@
          使用者一定以為其中一個錯了。桌機小輪盤的四角不寫數字，所以改成全部族群兩邊都對得起來；
          而「強弱循環四段各有幾個族群」本來就該問整個市場，不是只問前 10。
        「最強」＝成交值前 10 大族群裡相對大盤強度（RS-Ratio，x）最高的 —— 不從全部挑：
-         成交值很小的族群 RS 容易暴衝，挑到它當「最強」沒有代表性；前 10 也正是桌機小輪盤盤上那幾顆，點過去看得到它。*/
+         成交值很小的族群 RS 容易暴衝，挑到它當「最強」沒有代表性；前 10 也正是桌機小輪盤盤上那幾顆，點過去看得到它。
+       ★ 盤中即時版（DECISIONS #296）在 ovlRot()：資金流向頁「即時」同一支續算（rlvCompute），只換有即時座標的族群。*/
     {
       const all = rotRows(f3 && f3.rrg, 5);
-      const ORDER = ['leading', 'improving', 'weakening', 'lagging'];
-      const cnt = {}; ORDER.forEach(k => { cnt[k] = 0; });
-      all.forEach(r => { if (cnt[r.stage] != null) cnt[r.stage]++; });
-      const COL = { leading: 'var(--rise)', improving: 'var(--cyan)', weakening: 'var(--amber)', lagging: 'var(--fall)' };
-      const best = all.slice(0, 10).sort((a, b) => (b.rs || 0) - (a.rs || 0))[0];
+      const P = ovsRotParts(all);
+      const best = P.best;
       cards.push(ovsCard('rot', {
         title: '資金輪盤', icon: 'compass', color: 'var(--cyan)', date: f3 && f3.date,
-        aria: `資金輪盤：${ORDER.map(k => STAGE[k].name + ' ' + cnt[k]).join('、')}。點一下捲到資金輪盤`,
-        bar: ORDER.map(k => ovsSeg(cnt[k], COL[k], `${STAGE[k].name} ${cnt[k]} 個族群：${STAGE[k].sub}`)).join(''),
-        nums: all.length ? ORDER.map(k => ovsNum(STAGE[k].name, cnt[k], null, '', ` data-v="${k}" style="--c:${COL[k]}"`)).join('')
-          : '<span class="muted">資金輪盤需要至少 20 個交易日</span>',
+        aria: `資金輪盤：${OVS_ROT_ORDER.map(k => STAGE[k].name + ' ' + P.cnt[k]).join('、')}。點一下捲到資金輪盤`,
+        bar: P.bar, nums: P.nums,
         foot: best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）・成交值前 10 大中</span>` : '',
+        ds: { rotN: all.length },
       }));
-      host.dataset.rotN = String(all.length);
     }
 
     /* ③ 資金去向 —— 桌機口徑＝下面「昨日資金去向」同一份 sankey_daily、同一天（dates 最後一天）、同一條公式：
@@ -3297,20 +3343,9 @@
          它吃的是 flow_v3.sankey（分母＝台股成交值，含「其他族群」，「其他」永遠排最後）——
          同一天兩份口徑差很多（例：桌機 半導體 39.6%／AI 伺服器 37.7%，手機 AI 伺服器 20.7%／半導體 19.4%，連名次都反過來）。
          卡片數字要跟「點下去看到的那張」對得起來，所以兩份都算、用 CSS 依寬度只顯示一份（.ovs-dk 桌機／.ovs-mb 手機），
-         不動手機那張長條本身的口徑。*/
+         不動手機那張長條本身的口徑。
+       ★ 盤中即時版（DECISIONS #296）在 ovlFlow()：資金去向「即時」同一支公式（sklCompute），桌機手機同一份（兩張大圖盤中都不是即時）。*/
     {
-      const COL = ['var(--cyan)', 'var(--violet)', 'var(--amber)'];
-      const REST = 'color-mix(in srgb,var(--ink-3) 45%,transparent)';
-      const variant = (items, total, topG, cls) => {
-        const rest = Math.max(0, total - items.slice(0, 3).reduce((a, x) => a + x.v, 0));
-        return {
-          bar: items.slice(0, 3).map((x, i) => ovsSeg(x.v, COL[i], `${x.name} ${pct(x.v, total)}`, cls)).join('')
-            + ovsSeg(rest, REST, `其他 ${pct(rest, total)}`, cls),
-          nums: items.slice(0, 3).map((x, i) => ovsNum(fmt.esc(x.name), pct(x.v, total), null, '', ` data-v="${fmt.esc(x.cid)}" style="--c:${COL[i]}"`)
-            .replace('<div class="osn"', `<div class="osn ${cls}"`)).join(''),
-          foot: topG ? `<span class="${cls}">最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${pct(topG.v, total)}</span></span>` : '',
-        };
-      };
       // 桌機：sankey_daily
       let items = [], day = null, total = 0, topG = null;
       if (sd && (sd.dates || []).length && (sd.groups || []).length) {
@@ -3330,21 +3365,23 @@
       const mItems = L1.filter(l => !isOther(l.target) && l.value > 0).map(l => ({ cid: l.target, name: l.target, v: l.value })).sort((a, b) => b.v - a.v);
       const chains = new Set(L1.map(l => l.target));
       const mTop = Lk.filter(l => chains.has(l.source) && !isOther(l.target) && l.value > 0).sort((a, b) => b.value - a.value)[0];
-      const D = variant(items, total, topG, 'ovs-dk');
-      const M = mItems.length ? variant(mItems, mTotal, mTop ? { name: mTop.target, v: mTop.value } : null, 'ovs-mb') : D;
+      const Dv = ovsFlowVariant(items, total, topG, 'ovs-dk');
+      const M = mItems.length ? ovsFlowVariant(mItems, mTotal, mTop ? { name: mTop.target, v: mTop.value } : null, 'ovs-mb') : Dv;
       const has = items.length || mItems.length;
       cards.push(ovsCard('flow', {
         title: '資金去向', icon: 'git-branch', color: 'var(--violet)', date: day || (f3 && f3.date),
         aria: `資金去向：${items.slice(0, 3).map(x => x.name + ' ' + pct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
-        bar: D.bar + (M !== D ? M.bar : ''),
-        nums: has ? D.nums + (M !== D ? M.nums : '') : '<span class="muted">資金去向還沒產出</span>',
-        foot: D.foot + (M !== D ? M.foot : ''),
+        bar: Dv.bar + (M !== Dv ? M.bar : ''),
+        nums: has ? Dv.nums + (M !== Dv ? M.nums : '') : '<span class="muted">資金去向還沒產出</span>',
+        foot: Dv.foot + (M !== Dv ? M.foot : ''),
+        ds: { flowTop: items.length ? items[0].cid : '' },
       }));
-      host.dataset.flowTop = items.length ? items[0].cid : '';
     }
 
     /* ④ 熱門題材 —— 口徑＝themes.json 的 heat（0～100，資金佔比變化＋法人＋新聞，跟熱門題材熱力圖的顏色同一個數）。
-         依熱度排前三；比例條＝第一名的熱度（滿格 100）。點題材名＝在下面那張熱力圖直接打開那個題材（OVT.sel）。*/
+         依熱度排前三；比例條＝第一名的熱度（滿格 100）。點題材名＝在下面那張熱力圖直接打開那個題材（OVT.sel）。
+       ★ 盤中即時版（DECISIONS #296）在 ovlTheme()：熱度是盤後才算得出來的分數（法人、新聞都是日資料），
+         盤中改排「成分股即時漲跌（成交值加權）」，卡上寫明口徑。*/
     {
       const ts = ((th && th.themes) || []).filter(t => t && t.heat != null).slice().sort((a, b) => b.heat - a.heat);
       const top = ts.slice(0, 3);
@@ -3358,8 +3395,8 @@
           + `<span class="osn-v"><b>${fmt.n(t.heat, 0)}</b><em>熱度</em></span></div>`).join('')
           : '<span class="muted">尚無題材資料</span>',
         foot: ts.length ? `熱度 ≥ 70 <b>${hot}</b><span class="muted"> 個題材（共 ${ts.length} 個）</span>` : '',
+        ds: { themeTop: top.length ? top[0].id : '' },
       }));
-      host.dataset.themeTop = top.length ? top[0].id : '';
     }
 
     host.classList.add('ovsum');
@@ -3367,11 +3404,13 @@
     host.setAttribute('aria-label', '今日摘要：漲跌家數、資金輪盤、資金去向、熱門題材');
     /* ⚠ 最後那個看不見的 [data-lc="t00"]：以前 KPI 細列的「加權指數」格帶著它，live.js 靠掃畫面上的 [data-lc] 決定要跟 mis 要哪些報價
        （codesOnScreen）。那一格拿掉之後總覽上就沒有人要加權 —— 手機指數列（mobile3.js hmLiveIdx）讀的 window.Live.quotes.t00
-       會永遠停在盤後值。留一個標記讓 live.js 照舊把加權抓回來；它沒有 data-live，所以 live.js 不會去改它的字。*/
+       會永遠停在盤後值。留一個標記讓 live.js 照舊把加權抓回來；它沒有 data-live，所以 live.js 不會去改它的字。
+       ⚠ 刻意**不**在 #hero 上掛 data-livekey="ovs"：掛了這個 t00 標記就會跟著摘要卡的開關走，關掉摘要卡即時＝手機指數列也停了。*/
     host.innerHTML = `<div class="ovsum-track" id="ovSumTrack">${cards.join('')}</div>`
       + `<button type="button" class="ovsum-nav prev" id="ovSumPrev" aria-label="往左看摘要卡" hidden>‹</button>`
       + `<button type="button" class="ovsum-nav next" id="ovSumNext" aria-label="往右看更多摘要卡" hidden>›</button>`
       + `<span class="ovsum-live" data-lc="t00" hidden></span>`;
+    Object.keys(OVS.eod).forEach(k => Object.entries(OVS.eod[k].ds || {}).forEach(([a, v]) => { host.dataset[a] = String(v); }));
 
     const track = $('#ovSumTrack');
     const go = (k, e) => {
@@ -3386,8 +3425,15 @@
       if (k === 'flow') ovsJump('資金去向', 'ovFlowHead', true);
     };
     $$('.osc', host).forEach(c => {
-      c.onclick = (e) => go(c.dataset.k, e);
-      c.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(c.dataset.k, e); } };
+      c.onclick = (e) => {
+        // 右上角那顆＝即時開關（DECISIONS #296）：按它不換頁、不捲動
+        if (e.target && e.target.closest && e.target.closest('.ovl-tg')) { e.stopPropagation(); ovlToggle(); return; }
+        go(c.dataset.k, e);
+      };
+      c.onkeydown = (e) => {
+        if (e.target && e.target.closest && e.target.closest('.ovl-tg')) return;   // 鍵盤停在開關上：Enter／空白鍵交給按鈕自己（不然會同時換頁）
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(c.dataset.k, e); }
+      };
     });
     // 左右翻：一次翻一張卡的寬度；到頭／到尾就藏那一顆（按了不會動的鈕是雜訊）
     const step = () => { const c = track.querySelector('.osc'); return c ? c.getBoundingClientRect().width + 10 : 240; };
@@ -3396,7 +3442,340 @@
     track.addEventListener('scroll', ovsNav, { passive: true });
     if (!host._ovsRO && typeof ResizeObserver !== 'undefined') { host._ovsRO = new ResizeObserver(() => ovsNav()); host._ovsRO.observe(host); }
     ovsNav();
+    /* 即時：登記補位（live.js 比 app.js 晚載入，所以每次畫都登記一次，重複登記等於覆蓋同一支）；
+       整列重畫（切主題、回到總覽）之後，即時中的卡片原地換回即時那一份，不要閃回盤後。*/
+    if (window.Live && window.Live.want) window.Live.want('ovs', ovlFill, { fill: true });
+    Object.keys(OVL.live).forEach(k => { if (OVL.live[k] && OVL.html[k]) ovsApply(k, OVL.html[k], false); });
+    ovlStamp();
   }
+
+  /* ================================================================ 總覽摘要卡即時（DECISIONS #296，2026-10-02）
+     Andy（台北 10/02 15:36，截了四張摘要卡、右上角都寫 10/01）：「這都需要具備即時功能」。
+
+     ── 報價從哪來：跟大盤三張圖**同一個請求**，不多打一個 ──
+       四張卡要的是 455 檔（人工族群成分股 443 ＋ 題材裡不在人工族群的 12 檔）。一般做法是 4～5 個請求一輪，
+       但 DECISIONS #277 的節流閥是每 5 秒最多 3 個、總覽本來就用掉 2～3 個。所以改成「補位」：
+       live.js 每 5 秒那一批（加權 t00、櫃買 o00、畫面上的代號）一個請求最多 110 檔，總覽平常只用 2～10 檔 ——
+       剩下的空位每一輪塞下一段（Live.want('ovs', ovlFill, {fill:true})），約 5 輪（25 秒）輪完一圈。
+       **請求數、5 秒節奏、節流閥都沒變**；代價是每一檔的報價最舊約 25 秒（卡上的時間是「卡片最後一次重算」，提示框寫一圈多久）。
+       ⚠ 這推翻了 #277「總覽摘要卡列刻意不加即時」—— 那時的理由是「沒有位置放涵蓋率與口徑」，這次把口徑寫在卡片底線
+         （「即時估算（N 檔）」，手機也顯示）與右上角那顆鈕的提示框。
+
+     ── 四張卡的口徑：一律共用資金流向／市場明細那幾個「即時」模式的同一支公式，不另外算一套 ──
+       · 漲跌家數：mudCodes()（市場明細「即時」同一份名單）× udBin（同一套級距）—— 只算拿到今天報價的那幾檔，卡上寫 N 檔
+       · 資金輪盤：rlvCompute()（輪動時鐘「即時」同一支續算）—— 有即時座標的族群換成即時階段，其餘（自動桶等）維持盤後
+       · 資金去向：sklCompute()（資金去向「即時」同一支公式，1/n 拆分、自動桶不進分母）
+       · 熱門題材：熱度是盤後分數（法人、新聞都是日資料）→ 盤中改排「成分股即時漲跌（成交值加權）」，卡上寫口徑
+
+     ── 什麼時候算即時、什麼時候不算 ──
+       · 盤中（live.js isIntraday，09:00–13:35）、「即時」開著、總覽看得到 → 每一輪 tw:live 重算一次
+       · 剛打開：要等每一檔都問過一次（一圈）才換成即時數字；之前顯示盤後資料、右上角仍是日期（不准拿半圈的樣本充數）
+       · 只收「今天」的報價（mis 的 d 欄＝台北今天）：假日、開盤前 mis 回的是上一個交易日，那不是即時
+       · 只准往前：同一檔的報價撮合時間比手上的舊就不收（Worker 快取或晚到的回應不會把數字拉回去）
+       · 盤後：手上有今天的收盤快照、而且比盤後 JSON 新（JSON 還沒產出）→ 留著、右上角寫收盤那天的日期；
+         否則換回盤後 JSON。新 JSON 部署後 live.js 會在盤後自動重新載入，到時就是正式收盤資料。
+       · 「即時」關掉 → 四張卡原地換回盤後那一份，不再塞補位代號、數字不再動。
+
+     ── 不整張卡重畫 ──
+       每一輪只把新的比例條／數字／底線跟畫面上那一份逐節點比對（ovsMorph），只改變了的字與屬性；
+       卡片節點、點擊處理、捲動位置都不動。（另一位 agent 正在處理全站卡頓，這裡不准每 5 秒重建 DOM。）*/
+  const OVL = {
+    q: {},              // code → 今天最新的報價（live.js normalise 的形狀；只准往前）
+    asked: new Set(),   // 這一圈已經問過的代號（湊滿 uni 才算 ready）
+    ptr: 0,             // 補位輪到 uni 的第幾檔
+    uni: null, uniSrc: null,
+    ready: false,       // 至少輪完一圈
+    live: {},           // k → 這張卡現在畫的是不是即時
+    html: {},           // k → 最後一次即時那一份（整列重畫後原地補回）
+    info: {},           // k → 提示框要的讀數（N 檔、口徑、報價時間、算不出來的原因）
+    at: 0,              // 最後一次有任何一張卡重算成功的時間
+    cardAt: {},         // k → 這張卡最後一次即時重算成功的時間（右上角「即時 HH:MM:SS」寫的就是它）
+    batch: 0,           // 上一輪塞了幾檔（估一圈多久）
+    snapDay: '',        // 手上報價的交易日（YYYYMMDD）
+    err: '', errAt: 0,  // live.js 那一輪抓失敗的原因
+    today: '',
+  };
+  const OVL_STALE_MS = 20 * 1000;      // 超過這麼久沒有新的一輪 → 右上角轉警示色（數字停在最後一次，不往回拉）
+  const ovlCardOn = () => !!(window.Live && window.Live.cardOn && window.Live.cardOn('ovs'));
+  const ovlIntra = () => !!(window.Live && window.Live.isIntraday && window.Live.isIntraday());
+  const ovlHms = (ms) => (window.Live && window.Live.hms ? window.Live.hms(ms) : new Date(ms).toTimeString().slice(0, 8));
+  function ovsShown() { const h = $('#hero'); return !!h && h.classList.contains('ovsum') && h.getClientRects().length > 0; }
+  const TPE_YMD = (() => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }); } catch (e) { return null; } })();
+  const ovlToday = () => (TPE_YMD ? TPE_YMD.format(new Date()) : new Date().toISOString().slice(0, 10)).replace(/-/g, '');
+
+  /* 這一圈要輪哪些代號：市場明細「即時」那一份（mudCodes，人工族群成分股）＋題材成分股裡不在人工族群的。
+     輪動時鐘（rlvCodes）與資金去向（sklCodes）的名單都是 mudCodes 的子集合，不用另外加。*/
+  function ovlUni() {
+    const th = OVS.src && OVS.src.th;
+    if (OVL.uni && OVL.uniSrc && OVL.uniSrc[0] === D.groups_detail && OVL.uniSrc[1] === th) return OVL.uni;
+    const base = mudCodes();
+    const seen = new Set(base), out = base.slice();
+    ((th && th.themes) || []).forEach(t => (t.members || []).forEach(m => {
+      const c = String(m.code); if (c && !seen.has(c)) { seen.add(c); out.push(c); } }));
+    OVL.uni = out; OVL.uniSrc = [D.groups_detail, th];
+    OVL.ptr = 0; OVL.asked = new Set(); OVL.ready = false;
+    return out;
+  }
+  /* live.js 每一輪問「還有 room 個空位，要塞誰」。盤後、看不到總覽 → 不塞（盤後顯示 JSON，不需要這 455 檔）。*/
+  function ovlFill(room) {
+    if (!ovlIntra() || !ovsShown()) return [];
+    const U = ovlUni(); if (!U.length) return [];
+    const n = Math.min(room, U.length), out = [];
+    for (let i = 0; i < n; i++) out.push(U[(OVL.ptr + i) % U.length]);
+    return out;
+  }
+  /* 收一筆報價：只收今天的、只准往前。*/
+  function ovlMerge(c, nq) {
+    if (!nq || nq.price == null) return;
+    if (nq.date && nq.date !== OVL.today) return;
+    const o = OVL.q[c];
+    if (o) {
+      const od = o.date || '', nd = nq.date || '';
+      if (od > nd) return;
+      if (od === nd && String(nq.time || '') < String(o.time || '')) return;
+    }
+    OVL.q[c] = nq;
+  }
+
+  /* ---- 四張卡的即時版：回 { html: {bar, barCls, nums, foot, aria, ds}, info } 或 { err } ---- */
+  function ovlUD() {
+    const codes = mudCodes();
+    let up = 0, fl = 0, dn = 0, at = '';
+    codes.forEach(c => { const q = OVL.q[c]; if (!q || q.chgPct == null) return;
+      const b = udBin(q.chgPct); if (b > 5) up++; else if (b < 5) dn++; else fl++;
+      if (q.time && q.time > at) at = q.time; });
+    const n = up + fl + dn;
+    if (!n) return { err: '還沒拿到任何一檔今天的報價' };
+    const P = ovsUdParts(up, fl, dn), all = ((OVS.src && OVS.src.stocks) || []).length;
+    return {
+      html: { bar: P.bar, nums: P.nums,
+        foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・人工族群成分股，非全市場</span>`,
+        aria: `漲跌家數（即時估算 ${n} 檔人工族群成分股，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下看市場明細`,
+        ds: { udN: n, udFrom: 'live' } },
+      info: { n, at, tip: `口徑：市場明細「即時」同一份名單 —— 人工族群成分股 ${codes.length} 檔裡拿到今天報價的 ${n} 檔，`
+        + `漲跌＝現價 vs 昨收（真值）。這不是全市場（全市場 ${all || '約 2300'} 檔要盤後才有），這一批偏中大型、偏電子。` },
+    };
+  }
+  function ovlRot() {
+    const rrg = OVS.src && OVS.src.f3 && OVS.src.f3.rrg;
+    if (!rrg || !(rrg.points || []).length) return { err: '輪動資料還沒載入' };
+    const { codes } = rlvCodes(rrg);
+    const q = {}; codes.forEach(c => { if (OVL.q[c]) q[c] = OVL.q[c]; });
+    let r;
+    try { r = rlvCompute(rrg, q); } catch (e) { return { err: String((e && e.message) || e).slice(0, 80) }; }
+    const all = rotRows(rrg, 5).map(row => { const p = r.pt[row.gid];
+      return p ? Object.assign({}, row, { rs: p.x, mo: p.y, stage: p.stage }) : row; });
+    const P = ovsRotParts(all), best = P.best, liveN = Object.keys(r.pt).length;
+    return {
+      html: { bar: P.bar, nums: P.nums,
+        foot: `<span class="muted">即時估算 ${liveN} 族群・</span>`
+          + (best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）</span>` : ''),
+        aria: `資金輪盤（即時估算，${liveN} 個族群用即時報價續算）：${OVS_ROT_ORDER.map(k => STAGE[k].name + ' ' + P.cnt[k]).join('、')}。點一下捲到資金輪盤`,
+        ds: { rotN: all.length } },
+      info: { n: r.hit, at: r.at, tip: `口徑：資金流向頁輪動時鐘「即時」同一支續算 —— ${liveN} 個人工族群用 ${r.hit} 檔即時報價往前推一步，`
+        + `${r.skipped} 個（含「〇〇・其他」自動桶）維持盤後位置。權重是「價 × 量」估算、漲跌是真的；大盤是這一批的代理值（${fmt.pct((r.mkt || 0) * 100, 2)}）。` },
+    };
+  }
+  function ovlFlow() {
+    const sd = OVS.src && OVS.src.sd;
+    if (!sd || !(sd.groups || []).length) return { err: '資金去向還沒產出' };
+    const r = sklCompute(sd, OVL.q);
+    const by = {}; let total = 0, topG = null;
+    sd.groups.forEach(g => { const v = r.tv[g.gid]; if (!(v > 0)) return;
+      const cid = g.chain || 'other';
+      (by[cid] = by[cid] || { cid, name: g.chain_name || chainLabel(cid), v: 0 }).v += v;
+      total += v; if (!topG || v > topG.v) topG = { name: g.name, v }; });
+    const items = Object.values(by).sort((a, b) => b.v - a.v);
+    if (!items.length) return { err: '報價回來了，但沒有一個板塊算得出成交值' };
+    const V = ovsFlowVariant(items, total, null, ''), hit = Object.keys(r.stv).length, boards = Object.keys(r.tv).length;
+    return {
+      html: { bar: V.bar, nums: V.nums,
+        foot: `<span class="muted">即時估算（${hit} 檔）・</span>`
+          + (topG ? `最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${ovsPct(topG.v, total)}</span>` : ''),
+        aria: `資金去向（即時估算，${boards} 個板塊、價×量）：${items.slice(0, 3).map(x => x.name + ' ' + ovsPct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
+        ds: { flowTop: items[0].cid } },
+      info: { n: hit, at: r.at, tip: `口徑：資金去向「即時」同一支公式 —— ${boards} 個手寫板塊、${hit} 檔的「價 × 量」估算成交值（一檔掛幾個板塊就拆幾份），`
+        + `% ＝ 佔這些板塊加總（不拿估算值去除全市場真實成交值）；「〇〇・其他」自動桶不進分母。點下去看到的「昨日資金去向」仍是盤後那一天。` },
+    };
+  }
+  function ovlTheme() {
+    const ts = (OVS.src && OVS.src.th && OVS.src.th.themes) || [];
+    if (!ts.length) return { err: '尚無題材資料' };
+    let at = '', hitAll = new Set();
+    const rows = ts.map(t => {
+      const ms = t.members || [];
+      let w = 0, cw = 0, n = 0, up = 0;
+      ms.forEach(m => { const c = String(m.code), q = OVL.q[c];
+        if (!q || q.chgPct == null || q.price == null || q.volume == null) return;
+        const v = q.price * q.volume * 1000; if (!(v > 0)) return;
+        w += v; cw += q.chgPct * v; n++; hitAll.add(c);
+        if (Math.round(q.chgPct * 100) / 100 > 0) up++;
+        if (q.time && q.time > at) at = q.time; });
+      // 成分股有 6 成以上拿到報價才排：2 檔裡只抓到 1 檔的題材，漲跌其實是那 1 檔的漲跌
+      return (n >= Math.max(2, Math.ceil(ms.length * 0.6)) && w > 0) ? { id: t.id, name: t.name, chg: cw / w, n, up, of: ms.length } : null;
+    }).filter(Boolean).sort((a, b) => b.chg - a.chg);
+    if (!rows.length) return { err: '題材成分股的即時報價還不夠（每個題材至少要 6 成成分股有報價）' };
+    const top = rows.slice(0, 3), t0 = top[0];
+    return {
+      html: { barCls: 'track',
+        bar: `<i class="heat" style="width:${Math.max(2, Math.round(t0.up / t0.n * 100))}%" title="${fmt.esc(t0.name)}：成分股 ${t0.up}／${t0.n} 檔上漲"></i>`,
+        nums: top.map(t => `<div class="osn osn-t" data-theme="${fmt.esc(t.id)}" title="在熱門題材熱力圖打開「${fmt.esc(t.name)}」"><small>${fmt.esc(t.name)}</small>`
+          + `<span class="osn-v"><b class="${fmt.cls(t.chg)}">${fmt.pct(t.chg, 1)}</b><em>即時</em></span></div>`).join(''),
+        foot: `<span class="muted">即時估算（${hitAll.size} 檔）・</span>依成分股即時漲跌排<span class="muted">（成交值加權）</span>`,
+        aria: `熱門題材（盤中依成分股即時漲跌排，成交值加權）：${top.map(t => t.name + ' ' + fmt.pct(t.chg, 1)).join('、')}。點一下捲到熱門題材`,
+        ds: { themeTop: t0.id } },
+      info: { n: hitAll.size, at, tip: `口徑：熱度（資金佔比變化＋法人 5 日＋新聞）是盤後才算得出來的分數，盤中算不出來，`
+        + `所以盤中改排「成分股即時漲跌（成交值加權，價 × 量估權重）」—— 成分股 6 成以上有報價的題材才排（${rows.length}／${ts.length} 個）。`
+        + `比例條＝第一名的成分股上漲比例（${t0.up}／${t0.n}）。盤後換回熱度。` },
+    };
+  }
+
+  /* 逐節點比對：把 html 跟 el 底下現有的節點一格一格對，只改不一樣的字與屬性；節點數或種類對不上才換掉那一層。
+     flash＝數字（.osn-v b）的字真的變了就閃一下（Web Animations，不用 offsetWidth 強制重排）。*/
+  function ovsMorph(el, html, flash) {
+    const t = document.createElement('template'); t.innerHTML = html;
+    ovsMorphKids(el, t.content, flash);
+  }
+  function ovsMorphKids(a, b, flash) {
+    const A = Array.from(a.childNodes), B = Array.from(b.childNodes);
+    if (A.length !== B.length) { a.replaceChildren(...B); return; }
+    for (let i = 0; i < A.length; i++) {
+      const x = A[i], y = B[i];
+      if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) { a.replaceChild(y, x); continue; }
+      if (x.nodeType === 3) {
+        if (x.nodeValue !== y.nodeValue) {
+          x.nodeValue = y.nodeValue;
+          const p = a.closest ? a.closest('.osn-v b') : null;
+          if (flash && p && p.animate) { try { p.animate([{ background: 'rgba(62,224,255,.35)' }, { background: 'transparent' }], { duration: 1100, easing: 'ease-out' }); } catch (e) { /* 舊瀏覽器 */ } }
+        }
+        continue;
+      }
+      if (x.nodeType !== 1) continue;
+      Array.from(x.attributes).forEach(at => { if (!y.hasAttribute(at.name)) x.removeAttribute(at.name); });
+      Array.from(y.attributes).forEach(at => { if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value); });
+      ovsMorphKids(x, y, flash);
+    }
+  }
+  /* 一張卡換成 h（即時那一份）或 null（盤後那一份）。只動比例條／數字／底線三格與 aria。*/
+  function ovsApply(k, h, flash) {
+    const host = $('#hero'); const c = host && host.querySelector(`.osc[data-k="${k}"]`);
+    const m = h || OVS.eod[k];
+    if (!c || !m) return;
+    const bar = c.querySelector('.osc-bar'), nums = c.querySelector('.osc-n'), foot = c.querySelector('.osc-f');
+    if (bar) { const cls = 'osc-bar' + (m.barCls ? ' ' + m.barCls : ''); if (bar.className !== cls) bar.className = cls; ovsMorph(bar, m.bar || '<i class="osc-none"></i>', false); }
+    if (nums) ovsMorph(nums, m.nums || '', !!(h && flash !== false));
+    if (foot) ovsMorph(foot, m.foot || '&nbsp;', false);
+    if (m.aria && c.getAttribute('aria-label') !== m.aria) c.setAttribute('aria-label', m.aria);
+    c.classList.toggle('ovl', !!h);
+    Object.entries(m.ds || {}).forEach(([a, v]) => { if (host.dataset[a] !== String(v)) host.dataset[a] = String(v); });
+  }
+  function ovlEod(keep) {
+    Object.keys(OVL.live).forEach(k => { if (OVL.live[k] && !(keep && keep(k))) { ovsApply(k, null); OVL.live[k] = false; } });
+  }
+
+  /* 每一輪 tw:live（live.js 那一批回來）之後：收報價 → 盤中而且輪完一圈 → 四張卡重算、原地換字。*/
+  function ovlUpdate(fresh) {
+    if (!OVS.src || !ovsShown()) return;
+    if (!ovlCardOn()) { ovlEod(); ovlStamp(); return; }
+    if (!ovlIntra()) {
+      /* 盤後：今天的收盤快照比盤後 JSON 新（JSON 還沒產出）就留著，否則換回 JSON —— 不准把數字往回拉到昨天 */
+      ovlEod(k => OVL.snapDay && OVL.snapDay > String((OVS.eod[k] || {}).date || '').replace(/-/g, ''));
+      ovlStamp(); return;
+    }
+    if (!fresh || !OVL.ready) { ovlStamp(); return; }
+    // 過了一夜（開著網頁到隔天）：昨天的報價不算今天的即時
+    Object.keys(OVL.q).forEach(c => { const d = OVL.q[c].date; if (d && d !== OVL.today) delete OVL.q[c]; });
+    const M = { updown: ovlUD(), rot: ovlRot(), flow: ovlFlow(), theme: ovlTheme() };
+    let any = false;
+    Object.keys(M).forEach(k => {
+      const m = M[k] || {};
+      if (m.html) { ovsApply(k, m.html, true); OVL.live[k] = true; OVL.html[k] = m.html; OVL.info[k] = m.info || {}; OVL.cardAt[k] = Date.now(); any = true; }
+      /* 已經在即時、這一輪卻算不出來：**留著最後一次的即時數字**（換回盤後＝往回拉），時間不更新 → 20 秒後右上角自己轉警示色 */
+      else if (OVL.live[k]) { OVL.info[k] = Object.assign({}, OVL.info[k], { err: m.err || '' }); }
+      else { OVL.info[k] = { err: m.err || '' }; }
+    });
+    if (any) {
+      OVL.at = Date.now();
+      let d = ''; Object.keys(OVL.q).forEach(c => { const x = OVL.q[c].date || ''; if (x > d) d = x; });
+      OVL.snapDay = d || OVL.today;
+    }
+    ovlStamp();
+  }
+
+  /* 右上角那顆：字、顏色、提示框、aria-pressed。只寫有變的（每 5 秒叫一次，不准白寫 DOM）。*/
+  function ovlStamp() {
+    const host = $('#hero'); if (!host) return;
+    const on = ovlCardOn(), intra = ovlIntra(), now = Date.now();
+    const U = OVL.uni || [], cyc = OVL.batch ? Math.ceil(U.length / OVL.batch) * 5 : 25;
+    $$('.ovl-tg', host).forEach(b => {
+      const k = b.dataset.k, e = OVS.eod[k] || {}, inf = OVL.info[k] || {}, live = !!OVL.live[k];
+      const nm = e.title || '摘要卡', md = ovsMd(e.date) || '—';
+      let txt, cls, tip;
+      if (!on) {
+        txt = md; cls = 'off';
+        tip = `${nm}：即時已關，停在 ${md} 的盤後資料（靜態）。\n按一下打開＝盤中跟大盤三張圖同一批報價、每 5 秒更新。`;
+      } else if (live && intra) {
+        const at = OVL.cardAt[k] || OVL.at, stale = now - at > OVL_STALE_MS;
+        txt = '即時 ' + ovlHms(at); cls = stale ? 'lv stale' : 'lv';
+        tip = `${nm}：即時估算，最後更新 ${ovlHms(at)}（台北時間）`
+          + (inf.at ? `，報價時間 ${inf.at}` : '') + '\n' + (inf.tip || '')
+          + `\n更新節奏：跟大盤三張圖同一個請求（不多打），每 5 秒一批、這一批塞 ${OVL.batch} 檔，全部 ${U.length} 檔約 ${cyc} 秒輪完一圈。`
+          + (stale ? `\n⚠ 已經 ${Math.round((now - at) / 1000)} 秒沒有新報價${OVL.err || inf.err ? `（${OVL.err || inf.err}）` : ''}，數字停在最後一次、不會往回拉。` : '')
+          + `\n按一下關掉＝靜態（換回 ${md} 盤後資料）。`;
+      } else if (live) {
+        txt = ovsMd(OVL.snapDay) || md; cls = 'arm';
+        tip = `${nm}：盤後。顯示今天的收盤快照（${ovsMd(OVL.snapDay)}，盤中即時報價的最後一筆、估算）——盤後資料還沒產出，`
+          + `產出後網頁會自動重新載入、換成正式收盤資料。\n${inf.tip || ''}`;
+      } else if (intra) {
+        txt = md; cls = 'arm';
+        tip = !OVL.ready
+          ? `${nm}：即時報價載入中（已問 ${OVL.asked.size}／${U.length} 檔），每一檔都問過一次（約 ${cyc} 秒）才換成即時數字；現在顯示的是 ${md} 的盤後資料。`
+          : `${nm}：即時算不出來（${inf.err || '今天還沒有盤中報價：假日或還沒開盤'}），顯示 ${md} 的盤後資料。`;
+      } else {
+        txt = md; cls = 'arm';
+        tip = `${nm}：盤後，顯示 ${md} 的收盤資料。盤中（09:00–13:30）會自動切成即時（跟大盤報價同一批、每 5 秒）。`;
+      }
+      const t = b.querySelector('.ovl-t');
+      if (t && t.textContent !== txt) t.textContent = txt;
+      const c2 = 'osc-d ovl-tg ' + cls;
+      if (b.className !== c2) b.className = c2;
+      const pr = on ? 'true' : 'false';
+      if (b.getAttribute('aria-pressed') !== pr) b.setAttribute('aria-pressed', pr);
+      if (b.title !== tip) b.title = tip;
+      const al = `${nm}即時更新：${on ? '開' : '關'}（${txt}）`;
+      if (b.getAttribute('aria-label') !== al) b.setAttribute('aria-label', al);
+    });
+  }
+  function ovlToggle() {
+    if (window.Live && window.Live.setCard) window.Live.setCard('ovs', !ovlCardOn());
+  }
+  window.addEventListener('tw:live', (e) => {
+    const d = (e && e.detail) || {};
+    const sent = (d.fill && d.fill.ovs) || [];
+    if (sent.length) {
+      const U = ovlUni();
+      OVL.ptr = U.length ? (OVL.ptr + sent.length) % U.length : 0;
+      OVL.today = ovlToday();
+      const Q = (window.Live && window.Live.quotes) || {};
+      sent.forEach(c => { OVL.asked.add(c); ovlMerge(c, Q[c]); });
+      OVL.batch = sent.length; OVL.err = '';
+      if (!OVL.ready) OVL.ready = U.length > 0 && U.every(c => OVL.asked.has(c));
+    }
+    ovlUpdate(sent.length > 0);
+  });
+  window.addEventListener('tw:livetick', (e) => {
+    const d = (e && e.detail) || {};
+    if (!d.ok) OVL.err = d.err || '這一輪沒抓到';
+    if (OVS.src && ovsShown()) ovlStamp();
+  });
+  window.addEventListener('tw:livecard', (e) => {
+    const d = (e && e.detail) || {};
+    if (d.key !== 'ovs') return;
+    // 關掉：原地換回盤後；打開：重新輪一圈才算數（手上的報價可能已經放了很久）
+    OVL.asked = new Set(); OVL.ready = false;
+    if (!d.on) ovlEod();
+    ovlStamp();
+  });
   function ovsNav() {
     const t = $('#ovSumTrack'); if (!t) return;
     const max = t.scrollWidth - t.clientWidth;
@@ -9423,21 +9802,22 @@
     return n;
   }
 
-  async function sklFetch(sd) {
-    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+  /* 這張圖上的手寫板塊（自動桶跳過）與它們的成分股（去重）。
+     ★ 2026-10-02 從 sklFetch 抽出來（DECISIONS #296）：總覽「資金去向」摘要卡的即時版要用**同一份名單、同一條公式**，
+       不另外算一套 —— 所以名單（sklCodes）與公式（sklCompute）拆成兩支，sklFetch 與總覽各自餵報價進來。*/
+  function sklCodes(sd) {
     const det = D.groups_detail || {};
     const gids = ((sd && sd.groups) || []).map(g => g.gid).filter(g => !isAutoBucket(g));
     const codes = [], seen = new Set();
     gids.forEach(gid => ((det[gid] || {}).members || []).forEach(m => {
       const c = String(m.code); if (c && !seen.has(c)) { seen.add(c); codes.push(c); }
     }));
-    if (!codes.length) throw new Error('這張圖上的板塊還沒有成分股資料，抓不了即時');
-    const q = {};
-    let reqs = 0;
-    for (let i = 0; i < codes.length; i += SKL_BATCH) {
-      Object.assign(q, await window.Live.fetchQuotes(codes.slice(i, i + SKL_BATCH)));
-      reqs++;
-    }
+    return { gids, codes };
+  }
+  /* 報價（code → {price, volume, time}）→ 每個板塊的估算成交值（1/n 拆分）。口徑見上面「盤中即時資金去向」那一段。*/
+  function sklCompute(sd, q) {
+    const det = D.groups_detail || {};
+    const { gids, codes } = sklCodes(sd);
     const w = sklWeights();
     const stv = {}, tv = {};
     let at = '';
@@ -9456,6 +9836,20 @@
       });
       if (hit) tv[gid] = sum;
     });
+    return { tv, stv, at, codes, gids };
+  }
+
+  async function sklFetch(sd) {
+    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+    const { codes } = sklCodes(sd);
+    if (!codes.length) throw new Error('這張圖上的板塊還沒有成分股資料，抓不了即時');
+    const q = {};
+    let reqs = 0;
+    for (let i = 0; i < codes.length; i += SKL_BATCH) {
+      Object.assign(q, await window.Live.fetchQuotes(codes.slice(i, i + SKL_BATCH)));
+      reqs++;
+    }
+    const { tv, stv, at } = sklCompute(sd, q);
     if (!Object.keys(tv).length) throw new Error('報價回來了，但沒有一個板塊算得出成交值');
     /* 分母那一格：Market3 有多久沒更新就自己叫它一次。使用者開過「總覽」的話
        它本來就每分鐘在跑（零額外請求）；沒開過的話這裡會多 3 個請求，

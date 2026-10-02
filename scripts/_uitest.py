@@ -17170,7 +17170,9 @@ def t_live5s_0929(b, base, code):
     OTC = "#m3Grid .m3-card[data-id='OTC'] .m3-px"
     ok("[即時5秒] 大盤三張圖的工具列有「即時」開關（預設開）",
        pg.evaluate("() => document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"] .livetg-b').getAttribute('aria-pressed')") == "true")
-    ok("[即時5秒] 總覽畫面上只有一顆即時開關（摘要卡列、題材這些不加）",
+    # ★ 2026-10-02（DECISIONS #296）：摘要卡列改成即時了，但它的開關是每張卡右上角那顆日期鈕（.ovl-tg，「總覽摘要卡即時」段驗），
+    #   不是 .livetg —— 所以「.livetg 只有大盤卡那一顆」照樣成立；題材熱力圖、輪盤這些仍然不加。
+    ok("[即時5秒] 總覽畫面上只有一顆 .livetg 即時開關（摘要卡列的開關是右上角日期鈕，題材、輪盤這些不加）",
        pg.evaluate("() => [...document.querySelectorAll('.livetg')].filter(e => e.getClientRects().length > 0).length") == 1)
     c1 = changes_within(pg, TSE); c2 = changes_within(pg, TSE)
     ok("★ [即時5秒] 加權卡數字 6.5 秒內換了、而且再換一次（吃 live.js 那一批的 t00，零額外請求）",
@@ -17398,6 +17400,283 @@ def t_intraday_all(pg, base, code):
         pg.unroute(f"**/data/stock/{c}.json*")
 
 
+# ===================================================================== 總覽摘要卡即時（2026-10-02，DECISIONS #296）
+# Andy（台北 10/02 15:36）：「這都需要具備即時功能」—— 總覽 K 線上方四張摘要卡（漲跌家數／資金輪盤／資金去向／熱門題材）右上角都寫 10/01。
+# 這一段用**假時鐘＋假報價**（跟「即時5秒0929」同一套），深夜也驗得到盤中：
+#   ① 盤中：每一檔問過一輪後四張卡換成即時（右上角「即時 HH:MM:SS」、底線寫「即時估算（N 檔）」），之後每 5 秒數字或色條真的變
+#   ② 不整張卡重畫：卡片節點與數字節點在更新前後是同一個（只改字）
+#   ③ 不多打請求：/quote 仍是 5 秒一次、每個請求 ≤ 110 個代號（Worker 上限 140）、任何 5 秒內打 mis ≤ 3 個（節流閥）
+#   ④ 只准往前：晚到的舊報價（撮合時間比手上的早）不會把數字拉回去
+#   ⑤ 關掉「即時」（點右上角那顆）：四張卡原地換回盤後、不換頁、數字不再動、補位代號不再塞；重新整理仍是關的
+#   ⑥ 抓不到：右上角 20 秒後轉警示色，數字停在最後一次
+#   ⑦ 盤後時鐘：開著的頁面跨過收盤 → 右上角改回日期（今天的收盤快照）；盤後新開的頁面 → 盤後資料與日期，不塞補位
+#   ⑧ 手機 390：即時那一份底線看得到口徑、字 ≥ 11px、卡片 ≤ 120px、沒有橫向捲軸
+OVL_SIG = """() => { const h = document.getElementById('hero'); if (!h) return '';
+  return [...h.querySelectorAll('.osc')].map(c => [...c.querySelectorAll('.osc-bar i')].map(i => i.getAttribute('style') || '').join(',')
+    + '|' + [...c.querySelectorAll('.osn-v b')].map(b => b.textContent).join(',')).join('#'); }"""
+OVL_HIDE = """(h) => { if (h) { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+                          Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); }
+                   else { delete document.hidden; delete document.visibilityState; }
+                   document.dispatchEvent(new Event('visibilitychange')); }"""
+OVL_CHIPS = """() => [...document.querySelectorAll('#hero .osc .ovl-tg')].map(b => ({ k: b.dataset.k, t: (b.querySelector('.ovl-t') || {}).textContent || '',
+  cls: b.className, p: b.getAttribute('aria-pressed'), tip: b.title || '' }))"""
+
+
+def t_ov_kpi_live_1002(b, base, code):
+    import json as _json
+    import time as _time
+    from urllib.parse import urlparse, parse_qs
+
+    S = {"k": 0, "fail": False, "rewind": False, "log": [], "toks": []}
+
+    def hhmmss(sec):
+        sec = 10 * 3600 + 30 * 60 + sec
+        return "%02d:%02d:%02d" % (sec // 3600, sec // 60 % 60, sec % 60)
+
+    def fake_quote(route):
+        ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+        toks = [t for t in ex.split("|") if t]
+        S["log"].append((_time.time(), "/quote")); S["toks"].append((_time.time(), len(toks)))
+        if S["fail"]:
+            route.fulfill(status=502, content_type="application/json", body='{"error":"upstream failed"}'); return
+        S["k"] += 1; k = S["k"]
+        arr = []
+        for tok in toks:
+            try:
+                c = tok.split("_", 1)[1].split(".")[0]
+            except IndexError:
+                continue
+            if c == "t00":
+                z, y = 20100 + k, 20000
+            elif c == "o00":
+                z, y = 300 + k / 10, 299
+            else:
+                h = sum(ord(ch) * (i + 3) for i, ch in enumerate(c))
+                y = 100.0
+                # 每一輪每一檔的漲跌都換一格（-5%～+5%），四張卡的家數、族群階段、板塊佔比、題材漲跌才會一輪一輪真的變
+                chg = -9.9 if S["rewind"] else (((h * 7 + k * 3) % 21) - 10) * 0.5
+                z = round(y * (1 + chg / 100), 2)
+            vol = 1000 + (sum(map(ord, c)) % 50) * 100 + k * 10
+            # rewind＝晚到的舊回應：撮合時間比前面已經收過的都早（09:00:05），而且每一檔都是跌停附近 —— 被收下的話四張卡會一片綠
+            t = "09:00:05" if S["rewind"] else hhmmss(5 * k)
+            arr.append({"c": c, "n": "測試" + c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y:.2f}", "o": f"{y:.2f}",
+                        "h": f"{max(z, y) + 1:.2f}", "l": f"{min(z, y) - 1:.2f}", "v": str(vol), "t": t, "d": "20260929",
+                        "tlong": str(int(_time.time() * 1000))})
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+
+    def fake_chart(route):
+        S["log"].append((_time.time(), "/chart"))
+        cid = (parse_qs(urlparse(route.request.url).query).get("id") or ["TSE"])[0]
+        base_v = {"TSE": 20000.0, "OTC": 299.0, "FUT": 20000.0}.get(cid, 100.0)
+        t0 = 1790643660000          # 2026-09-29 09:01 台北
+        pts = [{"t": str(t0 + i * 60000), "ts": "%02d%02d00" % ((541 + i) // 60, (541 + i) % 60),
+                "c": f"{base_v + i * 0.5:.2f}", "s": "100"} for i in range(90)]
+        info = {"n": cid, "d": "20260929", "t": "10:30:00", "y": f"{base_v:.2f}", "o": f"{base_v:.2f}",
+                "h": f"{base_v + 60:.2f}", "l": f"{base_v - 5:.2f}", "z": f"{base_v + 44.5:.2f}", "v": "300000"}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"infoArray": [info], "ohlcArray": pts, "staticObj": {"tv": "123456"}}))
+
+    def other(route):
+        S["log"].append((_time.time(), urlparse(route.request.url).path))
+        route.fulfill(status=404, content_type="application/json", body='{"error":"not found"}')
+
+    def open_page(clock, vp=None, mobile=False, keep_ls=False):
+        kw = {"viewport": vp or {"width": 1440, "height": 1000}, "timezone_id": "Asia/Taipei"}
+        if mobile:
+            kw.update(is_mobile=True, has_touch=True, device_scale_factor=2)
+        ctx = b.new_context(**kw)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"總覽摘要卡即時 pageerror: {str(e)[:160]}"))
+        pg.clock.install(time=clock)            # ★ 一定要在 goto 之前
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("https://fake-worker.test/**", other)
+        pg.route("https://fake-worker.test/quote?*", fake_quote)
+        pg.route("https://fake-worker.test/chart?*", fake_chart)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("""() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch (e) {} }""")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="load")
+        wait_until(pg, "() => document.querySelectorAll('#hero .osc .ovl-tg').length === 4", 12000)
+        return ctx, pg
+
+    def reqs(since, paths=None):
+        return [(t, p) for t, p in S["log"] if t >= since and (paths is None or p in paths)]
+
+    def max_in_window(since, paths=("/quote", "/chart"), win=4.8):
+        ts = sorted(t for t, p in reqs(since, paths))
+        return max([sum(1 for u in ts[i:] if u - t < win) for i, t in enumerate(ts)] or [0])
+
+    def vals(pg):
+        m = pg.evaluate(OVS_M) or {}
+        return {"ud": m.get("ud"), "rot": m.get("rot"), "flow": m.get("flow"), "theme": m.get("theme"), "udN": m.get("udN")}
+
+    LIVE_RE = re.compile(r"^即時 \d\d:\d\d:\d\d$")
+    DATE_RE = re.compile(r"^\d\d/\d\d$")
+    ALL_LIVE = "() => { const c = [...document.querySelectorAll('#hero .osc .ovl-tg .ovl-t')]; return c.length === 4 && c.every(e => /^即時 \\d\\d:\\d\\d:\\d\\d$/.test(e.textContent)); }"
+
+    # ------------------------------------------------------------------ ① 盤中 1440
+    ctx, pg = open_page(LV5_INTRA)
+    ok("[摘要卡即時] 假時鐘在盤中（台北 10:30）", pg.evaluate("() => window.Live.isIntraday()") is True)
+    eod_chips = pg.evaluate(OVL_CHIPS)
+    eod_v = vals(pg)
+    ok("[摘要卡即時] 剛打開（還沒輪完一圈）：右上角是盤後資料的日期 MM/DD，不是假的「即時」",
+       len(eod_chips) == 4 and all(DATE_RE.match(c["t"]) for c in eod_chips), eod_chips)
+    ok("[摘要卡即時] 右上角那顆是按鈕、預設即時開著（aria-pressed=true）",
+       all(c["p"] == "true" for c in eod_chips) and count(pg, "#hero .osc button.ovl-tg") == 4, [c["p"] for c in eod_chips])
+    t_live0 = _time.time()
+    live_ok = wait_until(pg, ALL_LIVE, 50000, 250)
+    t_ready = round(_time.time() - t_live0, 1)
+    chips = pg.evaluate(OVL_CHIPS)
+    ok("★ [摘要卡即時] 盤中：50 秒內四張卡右上角都換成「即時 HH:MM:SS」（每一檔問過一輪才換）", bool(live_ok), {"秒": t_ready, "chips": [c["t"] for c in chips]})
+    if not live_ok:
+        ctx.close(); return
+    st = pg.evaluate("""() => { const h = document.getElementById('hero');
+        return { from: h.dataset.udFrom, udN: +h.dataset.udN, feet: [...h.querySelectorAll('.osc .osc-f')].map(e => e.textContent.trim()),
+                 ovl: [...h.querySelectorAll('.osc')].filter(c => c.classList.contains('ovl')).length,
+                 lv: [...h.querySelectorAll('.ovl-tg')].filter(b => b.classList.contains('lv')).length }; }""")
+    v1 = vals(pg)
+    ok("★ [摘要卡即時] 四張卡底線都寫「即時估算」（口徑：不是全市場、不是盤後那一份）",
+       len(st["feet"]) == 4 and all("即時估算" in f for f in st["feet"]), st["feet"])
+    ok("[摘要卡即時] 漲跌家數換成即時那一份：三數加總＝卡片自報的 N 檔，N 在 1～443（人工族群成分股），不是全市場",
+       st["from"] == "live" and v1["ud"] and None not in v1["ud"] and sum(v1["ud"]) == st["udN"] and 0 < st["udN"] <= 443, [v1["ud"], st])
+    ok("[摘要卡即時] 漲跌家數卡底線寫出「N 檔」的 N（跟三數加總同一個數）", str(st["udN"]) in st["feet"][0], [st["udN"], st["feet"][0]])
+    ok("[摘要卡即時] 資金輪盤四段加總＝全部族群數（即時那一份只換階段、不少族群）",
+       v1["rot"] and None not in v1["rot"] and sum(v1["rot"]) == pg.evaluate("() => +document.getElementById('hero').dataset.rotN") > 0, v1["rot"])
+    ok("[摘要卡即時] 資金去向：前三大產業鏈的即時佔比（0～100、由大到小）",
+       v1["flow"] and len(v1["flow"]) == 3 and None not in v1["flow"] and all(0 < x <= 100 for x in v1["flow"]) and v1["flow"] == sorted(v1["flow"], reverse=True), v1["flow"])
+    ok("[摘要卡即時] 熱門題材：盤中改排成分股即時漲跌（由高到低，單位是 %）",
+       v1["theme"] and len(v1["theme"]) == 3 and None not in v1["theme"] and v1["theme"] == sorted(v1["theme"], reverse=True)
+       and all("%" in x for x in pg.evaluate("() => [...document.querySelectorAll('#hero .osc[data-k=\"theme\"] .osn-v b')].map(b => b.textContent)")), v1["theme"])
+    tip = next((c["tip"] for c in chips if c["k"] == "updown"), "")
+    ok("[摘要卡即時] 右上角提示寫出口徑、台北時間、5 秒、一圈多久、不多打請求",
+       all(s in tip for s in ("即時估算", "台北", "5 秒", "輪完一圈", "不多打")), tip[:200])
+
+    # --- ② 再等一輪：數字或色條真的變、右上角時間跟著跳，而且卡片／數字節點是同一個（只改字，不整張重畫）
+    pg.evaluate("() => { document.querySelectorAll('#hero .osc, #hero .osc .osn-v b, #hero .osc .osc-bar').forEach(e => { e.__ovlMark = 1; }); }")
+    sig0 = pg.evaluate(OVL_SIG); chip0 = chips[0]["t"]
+    try:
+        pg.wait_for_function("(s) => (" + OVL_SIG + ")() !== s", arg=sig0, timeout=7500, polling=150)
+        moved = True
+    except Exception:
+        moved = False
+    ok("★ [摘要卡即時] 7.5 秒內四張卡的數字或色條真的換了（跟著每 5 秒那一批）", moved, sig0[:160])
+    pg.wait_for_timeout(300)
+    chip1 = pg.evaluate(OVL_CHIPS)[0]["t"]
+    ok("★ [摘要卡即時] 右上角「即時 HH:MM:SS」跟著跳", LIVE_RE.match(chip1) and chip1 != chip0, [chip0, chip1])
+    kept = pg.evaluate("""() => { const h = document.getElementById('hero');
+        const all = (s) => [...h.querySelectorAll(s)]; return { osc: all('.osc').every(e => e.__ovlMark === 1), n: all('.osc').length,
+          b: all('.osc .osn-v b').filter(e => e.__ovlMark === 1).length, bn: all('.osc .osn-v b').length,
+          bar: all('.osc .osc-bar').every(e => e.__ovlMark === 1) }; }""")
+    ok("★ [摘要卡即時] 不整張卡重畫：更新前後卡片、比例條、數字都是同一個節點（只改字與色條）",
+       kept["osc"] and kept["bar"] and kept["n"] == 4 and kept["b"] == kept["bn"] and kept["bn"] >= 12, kept)
+
+    # --- ③ 請求：不多打、每個請求塞得下、節流閥
+    t_q = _time.time(); pg.wait_for_timeout(15200)
+    nq = len(reqs(t_q, ("/quote",)))
+    toks = [n for t, n in S["toks"] if t >= t_q]
+    ok("★ [摘要卡即時] 不多打請求：15 秒內 /quote 只有 3～4 次（每 5 秒一次，跟沒有摘要卡即時時一樣）", 3 <= nq <= 4, nq)
+    ok("★ [摘要卡即時] 每個請求 ≤ 110 個代號（Worker 一個請求最多 140；補位塞的是主批次的空位）", toks and max(toks) <= 110, toks)
+    ok("[摘要卡即時] 補位真的有塞（每個請求帶的代號明顯多於畫面上那幾檔）", toks and min(toks) >= 50, toks)
+    ok("★ [摘要卡即時] 任何 5 秒內打到 mis（/quote＋/chart）≤ 3（節流閥）", max_in_window(t_q) <= 3, max_in_window(t_q))
+    ok("[摘要卡即時] 卡片仍在即時（右上角 lv、不是警示色）",
+       pg.evaluate("() => [...document.querySelectorAll('#hero .ovl-tg')].every(b => b.classList.contains('lv') && !b.classList.contains('stale'))"),
+       [c["cls"] for c in pg.evaluate(OVL_CHIPS)])
+
+    # --- ④ 只准往前：晚到的舊回應（撮合時間更早、而且一片跌停）不准把數字拉回去
+    pg.wait_for_timeout(5200)          # 先讓它停在一個乾淨的一輪之後
+    v_pre = vals(pg); sig_pre = pg.evaluate(OVL_SIG)
+    S["rewind"] = True; t_rw = _time.time()
+    pg.wait_for_timeout(11000)
+    S["rewind"] = False
+    v_rw = vals(pg)
+    ok("[摘要卡即時] 舊回應那兩輪真的有打（不是沒送到）", len(reqs(t_rw, ("/quote",))) >= 2, len(reqs(t_rw, ("/quote",))))
+    ok("★ [摘要卡即時] 只准往前：撮合時間比手上早的回應一筆都不收 —— 四張卡數字原封不動（沒有被拉成一片跌停）",
+       v_rw == v_pre and pg.evaluate(OVL_SIG) == sig_pre, {"前": v_pre, "後": v_rw})
+
+    # --- ⑤ 關掉（點資金輪盤那張的右上角）：原地換回盤後、不換頁、不再變、不再塞補位
+    pg.evaluate("() => window.scrollTo(0, 0)")
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    pg.click('#hero .osc[data-k="rot"] .ovl-tg')
+    pg.wait_for_timeout(500)
+    off = pg.evaluate(OVL_CHIPS)
+    v_off = vals(pg)
+    ok("★ [摘要卡即時] 點右上角那顆：四張卡一起關（aria-pressed=false、虛線框）、右上角回到盤後日期",
+       all(c["p"] == "false" and "off" in c["cls"] and DATE_RE.match(c["t"]) for c in off), off)
+    ok("[摘要卡即時] 關掉時右上角日期＝剛打開時的盤後日期（換回同一份盤後資料）",
+       [c["t"] for c in off] == [c["t"] for c in eod_chips], [[c["t"] for c in off], [c["t"] for c in eod_chips]])
+    ok("★ [摘要卡即時] 關掉：四張卡的數字換回盤後那一份（跟剛打開時一模一樣）", v_off == eod_v, {"關掉後": v_off, "盤後": eod_v})
+    ok("[摘要卡即時] 按右上角不會換頁、不會捲走（它是開關，不是卡片的連結）",
+       pg.evaluate("() => location.hash") == "#overview" and abs(pg.evaluate("() => Math.round(scrollY)") - y0) <= 2,
+       [pg.evaluate("() => location.hash"), y0, pg.evaluate("() => Math.round(scrollY)")])
+    ok("[摘要卡即時] 開關存進 localStorage（tw.live.card.ovs=0）", pg.evaluate("() => localStorage.getItem('tw.live.card.ovs')") == "0")
+    ok("[摘要卡即時] 大盤三張圖的即時開關不受影響（仍是開的）",
+       pg.evaluate("() => { const b = document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"] .livetg-b'); return !b || b.getAttribute('aria-pressed') === 'true'; }"))
+    t_off = _time.time(); sig_off = pg.evaluate(OVL_SIG)
+    pg.wait_for_timeout(11000)
+    toks_off = [n for t, n in S["toks"] if t >= t_off]
+    ok("★ [摘要卡即時] 關掉之後 11 秒：數字與色條一格都沒動", pg.evaluate(OVL_SIG) == sig_off and vals(pg) == eod_v, vals(pg))
+    ok("★ [摘要卡即時] 關掉之後不再塞補位代號（每個請求只剩畫面上那幾檔）", toks_off and max(toks_off) <= 12, toks_off)
+    pg.reload(wait_until="load")
+    wait_until(pg, "() => document.querySelectorAll('#hero .osc .ovl-tg').length === 4", 12000)
+    pg.wait_for_timeout(1500)
+    ok("[摘要卡即時] 重新整理之後仍是關的（記住使用者的選擇）",
+       all(c["p"] == "false" for c in pg.evaluate(OVL_CHIPS)), [c["p"] for c in pg.evaluate(OVL_CHIPS)])
+    pg.click('#hero .osc[data-k="updown"] .ovl-tg')
+    back = wait_until(pg, ALL_LIVE, 50000, 250)
+    ok("★ [摘要卡即時] 再打開：一圈之後四張卡又是即時", bool(back), [c["t"] for c in pg.evaluate(OVL_CHIPS)])
+    ok("[摘要卡即時] 打開時也沒有換頁", pg.evaluate("() => location.hash") == "#overview")
+
+    # --- ⑥ 抓不到：20 秒後右上角轉警示色，數字停在最後一次
+    v_ok = vals(pg); S["fail"] = True
+    # 失敗會退避（10、20、40 秒才再試一次），所以「超過 20 秒沒有新的一輪」最晚在第三次失敗（約 35 秒）那一輪才會被印出來
+    stale = wait_until(pg, "() => [...document.querySelectorAll('#hero .ovl-tg')].every(b => b.classList.contains('stale'))", 48000, 300)
+    ok("[摘要卡即時] 報價一直抓不到：右上角轉成警示色（stale）、提示寫出幾秒沒更新", bool(stale)
+       and "沒有新報價" in pg.evaluate(OVL_CHIPS)[0]["tip"], [c["cls"] for c in pg.evaluate(OVL_CHIPS)])
+    ok("[摘要卡即時] 抓不到的時候數字停在最後一次（不清空、不往回拉）", vals(pg) == v_ok, [v_ok, vals(pg)])
+    S["fail"] = False
+    # 退避中的下一次可能要等 40 秒：跟真人一樣「切走再切回來」（live.js 切回前景會馬上補一輪、退避歸零）
+    pg.evaluate(OVL_HIDE, True); pg.wait_for_timeout(300); pg.evaluate(OVL_HIDE, False)
+    rec = wait_until(pg, "() => [...document.querySelectorAll('#hero .ovl-tg')].every(b => b.classList.contains('lv') && !b.classList.contains('stale'))", 15000, 300)
+    ok("[摘要卡即時] 通了之後警示色拿掉、又是即時", bool(rec), [c["cls"] for c in pg.evaluate(OVL_CHIPS)])
+
+    # --- ⑧ 手機 390（同一頁縮窄，即時狀態不用重輪）
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(1500)
+    wait_until(pg, ALL_LIVE, 8000)
+    k = pg.evaluate(OVS_M)
+    feet = pg.evaluate("() => [...document.querySelectorAll('#hero .osc')].map(c => { const f = c.querySelector('.osc-f'); return { vis: !!f && f.getClientRects().length > 0, t: f ? f.textContent.trim() : '', fs: f ? parseFloat(getComputedStyle(f).fontSize) : 0 }; })")
+    ok("★ [摘要卡即時 390] 手機也看得到「即時估算」口徑（平常收起來的底線在即時時打開）",
+       all(f["vis"] and "即時估算" in f["t"] for f in feet), feet)
+    ok("[摘要卡即時 390] 字 ≥ 11px（含右上角「即時 HH:MM:SS」與底線）", k["minFs"] >= 11 and all(f["fs"] >= 11 for f in feet), [k["minFs"], [f["fs"] for f in feet]])
+    ok("[摘要卡即時 390] 卡片仍 ≤ 120px、標題與數字沒有被切掉", max(k["ch"]) <= 120 and not k["over"], [k["ch"], k["over"]])
+    ok("[摘要卡即時 390] 沒有橫向捲軸", not k["sideways"], k["sideways"])
+    pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(800)
+
+    # --- ⑦a 開著的頁面跨過收盤（台北 13:40）：右上角改回日期（今天的收盤快照），數字不往回拉到盤後 JSON 那一天
+    v_close = vals(pg)
+    pg.clock.set_system_time("2026-09-29T05:40:00Z")
+    gone = wait_until(pg, "() => { const c = [...document.querySelectorAll('#hero .ovl-tg .ovl-t')]; return c.length === 4 && c.every(e => /^\\d\\d\\/\\d\\d$/.test(e.textContent)); }", 12000, 250)
+    after = pg.evaluate(OVL_CHIPS)
+    ok("★ [摘要卡即時] 跨過收盤：右上角從「即時 HH:MM:SS」改回日期", bool(gone), [c["t"] for c in after])
+    ok("[摘要卡即時] 跨過收盤時盤後資料還沒產出 → 顯示今天（09/29）的收盤快照、提示寫明", all(c["t"] == "09/29" and "收盤快照" in c["tip"] for c in after), after)
+    ok("[摘要卡即時] 跨過收盤：數字停在收盤那一刻（不往回拉到前一天的盤後資料）", vals(pg) == v_close, [v_close, vals(pg)])
+    ctx.close()
+
+    # --- ⑦b 盤後（台北 20:30）新開的頁面：盤後資料、右上角是日期、不塞補位
+    S["toks"].clear(); S["log"].clear()
+    ctx, pg = open_page(LV5_AFTER)
+    pg.wait_for_timeout(6000)
+    ac = pg.evaluate(OVL_CHIPS)
+    ok("★ [摘要卡即時] 盤後時鐘：右上角是盤後資料的日期（不是「即時」），而且即時開關仍是開的",
+       len(ac) == 4 and all(DATE_RE.match(c["t"]) and c["p"] == "true" and "lv" not in c["cls"] for c in ac)
+       and [c["t"] for c in ac] == [c["t"] for c in eod_chips], ac)
+    ok("[摘要卡即時] 盤後時鐘：四張卡是盤後那一份（跟盤中剛打開時同一份）", vals(pg) == eod_v, [vals(pg), eod_v])
+    ok("[摘要卡即時] 盤後時鐘：提示寫「盤中會自動切成即時」", "盤中" in ac[0]["tip"] and "自動" in ac[0]["tip"], ac[0]["tip"][:120])
+    toks_a = [n for t, n in S["toks"]]
+    ok("[摘要卡即時] 盤後不塞補位代號（盤後畫的是 JSON，不需要那 455 檔）", not toks_a or max(toks_a) <= 12, toks_a)
+    ctx.close()
+
+
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
@@ -17407,6 +17686,8 @@ SECTIONS = {
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     # ★ 2026-09-29 Andy：「即時…至少 5S 更新一次」＋可即時的卡片加「即時」開關與最後更新時間（假時間＋假報價，深夜也能驗）
     "即時5秒0929":         lambda pg, b, base, code: t_live5s_0929(b, base, code),
+    # ★ 2026-10-02 Andy：「這都需要具備即時功能」—— 總覽四張摘要卡跟著每 5 秒那一批即時（補位、不多打請求；假時鐘＋假報價，⚠ 一律 --workers 1）
+    "總覽摘要卡即時":      lambda pg, b, base, code: t_ov_kpi_live_1002(b, base, code),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     # ★ 2026-09-28 Andy：今日事件預設隱藏、浮層抽屜、點背景關、關掉再開回到預設、修寬度 bug

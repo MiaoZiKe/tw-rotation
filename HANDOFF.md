@@ -1,5 +1,19 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 總覽四張摘要卡即時：補位進每 5 秒那一批、共用各頁即時公式、右上角日期＝即時開關（2026-10-02，台北，UI 專家，分支 `claude/ov-kpi-live`，**未推 main**）
+
+- Andy（15:36）：「這都需要具備即時功能」（漲跌家數／資金輪盤／資金去向／熱門題材四張卡右上角都寫 10/01）→ DECISIONS #296（推翻 #277「摘要卡刻意不加即時」那一句）。
+- [x] 報價：`live.js` 新增「補位」`Live.want(key, fn, {fill:true})` —— 主批次一個 /quote 最多 110 檔、總覽平常只用 2～10 檔，空位每 5 秒塞下一段 455 檔裡的下一批（約 25 秒一圈）。**請求數、5 秒節奏、節流閥不變**；`tw:live` 多帶 `detail.fill`、每一輪多吼 `tw:livetick`。
+- [x] 口徑：漲跌家數＝`mudCodes`×`udBin`（市場明細即時同一份）；資金輪盤＝`rlvCompute`；資金去向＝從 `sklFetch` 抽出的 `sklCodes`／`sklCompute`（sklFetch 改呼叫它們）；
+  熱門題材的熱度做不到即時（法人、新聞是日資料）→ 盤中改排成分股即時漲跌（成交值加權）。每張卡底線寫「即時估算（N 檔）」，手機也打開。
+- [x] 右上角日期改成按鈕（`.osc-d.ovl-tg`，四張共用 `'ovs'` 開關）：盤中「即時 HH:MM:SS」、盤後／關掉顯示日期；只准往前（舊撮合時間不收）；盤後 JSON 還沒產出時留今天的收盤快照（不往回拉）。
+- [x] 不整張卡重畫：`ovsMorph` 逐節點只改字與屬性；`features.js` 的 `live.tick` 鎖頭多鎖 `.ovl-tg`；`docs/realtime_5s.md` 表格更新；`modules.js` market.kpi 多一段驗收。
+- 改的函式（app.js）：`ovsDate`（改成鈕）、`ovsCard`（存盤後那一份）、`renderOvSummary`（組法抽成 `ovsUdParts`／`ovsRotParts`／`ovsFlowVariant`，結尾補登記補位與補回即時）、
+  新增 `ovlUni`／`ovlFill`／`ovlMerge`／`ovlUD`／`ovlRot`／`ovlFlow`／`ovlTheme`／`ovsMorph`／`ovsApply`／`ovlEod`／`ovlUpdate`／`ovlStamp`／`ovlToggle` 與三個事件監聽；`sklFetch` 拆出 `sklCodes`／`sklCompute`。
+  live.js：`codesOnScreen(forFetch)`、`tick`、`want`、`TG_NAME`。
+- **這批驗了**：（跑完補）
+- 已知限制：見 DECISIONS #296（每檔報價最舊約一圈 25～40 秒；熱度盤中做不到；收盤快照是估算樣本不是全市場）。
+
 ## 會員功能開放制度：#admin/perm 依 email 開關功能＋方案範本＋鎖頭（2026-10-02，台北，UI 專家，分支 `claude/member-perm`；Worker 已上 main）
 
 - [x] **Worker（已部署）**：main dbfc523 → deploy-account-worker run 36974835747 成功（14:43 台北；部署與「驗證真的活著」兩步都成功）。

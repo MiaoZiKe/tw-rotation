@@ -71,6 +71,13 @@
  *   ④ **錯誤退避**：連續失敗 n 次 → 間隔 5 秒 × 2ⁿ（10、20、40、80、160 秒，封頂 5 分鐘），
  *      通了立刻回 5 秒；分頁切到背景完全不打（document.hidden），切回來補一輪。
  * 盤後維持每 30 分鐘（數字不會再變）。
+ *
+ * 2026-10-02：總覽摘要卡四張也即時（DECISIONS #296）—— 「補位」，不多打請求
+ * ------------------------------------------------------------------------
+ * Andy：「這都需要具備即時功能」（漲跌家數、資金輪盤、資金去向、熱門題材四張摘要卡）。
+ * 那四張要的是 455 檔成分股的報價，照一般做法要多 4～5 個請求一輪。這裡改成「補位」：
+ * 主批次一個請求本來就塞得下 110 檔、總覽平常只用 2～10 檔，剩下的空位每 5 秒塞下一段（Live.want(key, fn, {fill:true})），
+ * 約 25 秒輪完一圈。請求數、5 秒節奏、節流閥一個都沒變，變的只是每個請求多帶幾十檔。
  */
 (function () {
   'use strict';
@@ -144,6 +151,12 @@
     // ---- 2026-09-29 每 5 秒＋卡片開關
     raw: {},             // code -> { m: mis 原始那一列, at }：個股分 K（livek.js）與大盤卡（market3.js）直接吃這一份，不再各打一次
     wants: {},           // 卡片登記「畫面上沒有 [data-lc]、但我要」的代號：key -> [code]
+    /* ★ 2026-10-02（DECISIONS #296）：「補位」登記 —— key -> fn(room)。跟 wants 的差別：
+       wants 是「一定要」（大盤卡的 t00／o00），補位是「這一批還有空位才塞」（總覽摘要卡要的 455 檔成分股，
+       每輪輪一段）。它**不會多打任何一個請求**、也不會擠掉畫面上的代號：主批次本來就是一個請求最多 110 檔，
+       總覽平常只用掉 2～10 檔，剩下的空位每 5 秒塞下一段，約 25 秒輪完一圈。*/
+    fills: {},
+    fillSent: {},        // 這一輪真的塞進請求的補位代號：key -> [code]（跟 tw:live 一起送出去，登記的人才知道輪到哪）
     cardAt: {},          // 卡片 key -> 這張卡最後一次真的拿到新報價的時間（卡上那行「更新 HH:MM:SS」）
     metaAt: 0,           // 上一次比對 meta.json 的時間（見 META_EVERY_MS）
     reqs: 0,             // 驗收用：這個分頁總共打了幾次 /quote
@@ -213,7 +226,7 @@
   /** 掃畫面上有哪些代號要更新。這就是「只更新看得到的」的實作。
    *  ★ 2026-09-29：加上兩條 —— 看不見的格子不查、卡片「即時」關掉的不查；
    *    再併進各卡片用 Live.want() 登記的代號（大盤卡要 t00／o00，畫面上沒有對應的格子）。*/
-  function codesOnScreen() {
+  function codesOnScreen(forFetch) {
     const seen = [];
     const add = (c) => { if (c && seen.indexOf(c) < 0) seen.push(c); };
     Object.keys(state.wants).forEach(k => {
@@ -227,7 +240,33 @@
       if (!elOn(el) || !visible(el)) return;
       add(el.dataset.lc);
     });
-    return seen.slice(0, MAX_CODES);
+    const out = seen.slice(0, MAX_CODES);
+    /* ★ 2026-10-02（DECISIONS #296）：補位 —— 只在「真的要去抓」的那一次（tick）才塞，SSE 訂閱（streamIds）不塞：
+       推送訂的是畫面上那幾格，一份每 5 秒換一段的名單訂上去只會讓連線一直重開。
+       預算用 ex_ch 的「個數」算、不是代號數：上市上櫃不明的代號會變成兩個（tse_＋otc_），
+       Worker 一個請求最多收 140 個（workers/quote-proxy MAX_TOKENS），這裡守在 MAX_CODES（110）以內。
+       補位**排在畫面代號後面**，所以永遠不會把畫面上的格子擠出請求。*/
+    if (forFetch) {
+      state.fillSent = {};
+      let tok = 0; out.forEach(c => { tok += exch(c).length; });
+      Object.keys(state.fills).forEach(k => {
+        if (!cardOn(k)) return;
+        const room = MAX_CODES - out.length;
+        if (room <= 0 || tok >= MAX_CODES) return;
+        let list = [];
+        try { list = state.fills[k](room) || []; } catch (e) { list = []; }
+        const sent = [];
+        for (const c of list) {
+          if (!c) continue;
+          if (out.indexOf(c) >= 0) { sent.push(c); continue; }      // 畫面上本來就有：算它這一輪問過了（不重複塞）
+          const t = exch(c).length;
+          if (out.length >= MAX_CODES || tok + t > MAX_CODES) break;  // 塞滿就停；沒塞進去的留到下一輪（登記的人照 sent 的長度往前推）
+          out.push(c); sent.push(c); tok += t;
+        }
+        if (sent.length) state.fillSent[k] = sent;
+      });
+    }
+    return out;
   }
 
   /* ---------------------------------------------------------------- 節流閥
@@ -635,8 +674,10 @@
     if (state.timer && !state.slow && state.mode !== 'sse' && state.period !== intervalMs()) reschedule();
     // 分頁在背景就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
     if (!manual && document.hidden) return;
-    const codes = codesOnScreen();
+    const codes = codesOnScreen(true);
+    const fill = state.fillSent;                    // 這一輪塞了哪些補位代號（await 期間別人呼叫 codesOnScreen 也不會蓋掉這一份）
     state.busy = true; stamp();
+    let tickOk = false;
     try {
       if (proxy() && codes.length) {
         const got = await fetchQuotes(codes, { prio: 0 });
@@ -645,7 +686,9 @@
         if (state.slow) { state.slow = false; reschedule(); }     // 通了 → 回到正常間隔
         /* 通知吃同一批報價的模組（livek.js 個股分 K、market3.js 大盤卡）：
            它們用 Live.raw() 拿原始那一列，不必各自再打一次 mis —— 這就是「一批查完」。*/
-        window.dispatchEvent(new CustomEvent('tw:live', { detail: { at: state.lastOk, codes: Object.keys(got) } }));
+        /* ★ 2026-10-02：多帶 fill（這一輪塞進去的補位代號，DECISIONS #296）—— 總覽摘要卡靠它知道輪到哪一段、哪些代號問過了。*/
+        tickOk = true;
+        window.dispatchEvent(new CustomEvent('tw:live', { detail: { at: state.lastOk, codes: Object.keys(got), fill } }));
       } else if (!proxy()) {
         state.lastErr = '還沒設定代理網址';
       }
@@ -678,6 +721,9 @@
         try { await reloadIfRedeployed(manual); } catch (e) { /* 自己有 try；這層只是保險 */ }
       }
       state.busy = false; stamp(); stampCards();
+      /* ★ 2026-10-02：每一輪（成功或失敗）都吼一聲。總覽摘要卡的「即時 HH:MM:SS」靠它在抓不到時轉成警示色 ——
+         失敗的那幾輪沒有 tw:live，不吼的話卡上的時間會安靜地停住，看起來像一切正常（DECISIONS #296）。*/
+      try { window.dispatchEvent(new CustomEvent('tw:livetick', { detail: { ok: tickOk, err: state.lastErr, at: state.lastOk } })); } catch (e) { /* 舊瀏覽器 */ }
     }
   }
 
@@ -740,7 +786,7 @@
     { key: 'watch', card: '#mbWatch' },
     { key: 'm3', card: '#m3Frame', at: '.m3-bar .howbtn[data-how="m3"]', pos: 'after' },
   ];
-  const TG_NAME = { stock: '個股報價與分時', watch: '自選清單', m3: '大盤三張圖' };
+  const TG_NAME = { stock: '個股報價與分時', watch: '自選清單', m3: '大盤三張圖', ovs: '總覽摘要卡' };
 
   function injectCss() {
     if (document.getElementById('liveTgCss')) return;
@@ -901,11 +947,18 @@
     get slotStats() { const now = Date.now(); return { recent: slotHist.filter(t => now - t < MIS_WINDOW_MS).length, queued: slotQ.length, max: MIS_MAX, windowMs: MIS_WINDOW_MS }; },
     cardOn, setCard, stampCards, mountAll, hms,
     /** 卡片登記「畫面上沒有格子、但我要」的代號（大盤卡登記 t00／o00）。
-     *  codes 可以是陣列，或每一輪才問的函式（回陣列；看不到那張卡時回 []）。給 null／空陣列＝撤銷。 */
-    want(key, codes) {
+     *  codes 可以是陣列，或每一輪才問的函式（回陣列；看不到那張卡時回 []）。給 null／空陣列＝撤銷。
+     *  ★ 2026-10-02（DECISIONS #296）：opts.fill＝true 是「補位」—— codes 必須是函式 fn(room)，
+     *    room＝這一批還剩幾個空位；回傳的代號只在有空位時塞、**不會多打一個請求**、排在畫面代號後面。
+     *    真的塞了哪幾檔，tw:live 的 detail.fill[key] 會告訴你（登記的人照它往前輪）。key 的「即時」開關關著就不塞。*/
+    want(key, codes, opts) {
+      if (opts && opts.fill) {
+        if (typeof codes === 'function') state.fills[key] = codes; else delete state.fills[key];
+        return;
+      }
       if (typeof codes === 'function') state.wants[key] = codes;
       else if (codes && codes.length) state.wants[key] = codes.slice();
-      else delete state.wants[key];
+      else { delete state.wants[key]; delete state.fills[key]; }
     },
     /** mis 原始那一列（maxAge 毫秒內才回；沒有就 null）。個股分 K 與大盤卡用它，不另外打端點。 */
     raw(code, maxAge) { const r = state.raw[code]; return r && (!maxAge || Date.now() - r.at <= maxAge) ? r : null; },

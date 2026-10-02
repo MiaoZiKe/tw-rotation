@@ -3959,6 +3959,22 @@ h3 .howbtn.pop{font-family:inherit}
 .osc-more{flex:none;font-size:17px;line-height:1;color:var(--ink-3);margin-left:2px}
 .osc-d + .osc-more{margin-left:0}
 .osc-t + .osc-more{margin-left:auto}
+/* ★ 2026-10-02（DECISIONS #296，Andy：「這都需要具備即時功能」）：右上角日期＝四張卡共用的「即時」開關＋狀態（app.js ovlStamp）。
+   lv＝盤中即時（點會呼吸、字是「即時 HH:MM:SS」）；arm＝即時開著、但現在畫的是收盤／盤後資料（顯示日期）；
+   off＝即時關掉（虛線框）；stale＝超過 20 秒沒有新的一輪（琥珀色，數字停在最後一次、不往回拉）。
+   紅用 --rise，跟全站「即時」鈕（.livetg）同一個顏色；顏色全走主題變數，深淺主題都跟著換。*/
+.osc-d.ovl-tg{background:transparent;cursor:pointer;margin-top:0;margin-bottom:0;transition:border-color .15s,color .15s}
+.osc-d.ovl-tg:hover{border-color:var(--cyan);color:var(--cyan)}
+.osc-d.ovl-tg:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.osc-d .ovl-dot{display:none;flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
+.osc-d.lv{color:var(--rise);border-color:color-mix(in srgb,var(--rise) 55%,var(--line))}
+.osc-d.lv .ovl-dot{display:inline-block;animation:ovlPulse 2s ease-in-out infinite}
+.osc-d.lv svg{display:none}
+.osc-d.lv.stale{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 55%,var(--line))}
+.osc-d.lv.stale .ovl-dot{animation:none}
+.osc-d.off{border-style:dashed}
+@keyframes ovlPulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.osc-d.lv .ovl-dot{animation:none}}
 .osc:hover .osc-more{color:var(--cyan)}
 .osc-bar{display:flex;gap:2px;height:6px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--ink-3) 16%,transparent)}
 .osc-bar i{display:block;height:100%;min-width:3px}
@@ -4003,6 +4019,9 @@ h3 .howbtn.pop{font-family:inherit}
   .osn-v b{font-size:16px;line-height:19px}
   .osn-v em{font-size:11px}
   .osc-f{display:none}
+  /* ★ 2026-10-02（DECISIONS #296）：即時那一份的底線寫的是口徑（「即時估算（N 檔）」），手機也要看得到 —— 少了它，
+     「上漲 250」會被讀成全市場。卡片多 19px，仍 ≤ 120px（_uitest「總覽摘要卡列」的上限）。*/
+  .osc.ovl .osc-f{display:block;font-size:11px;line-height:14px}
   .ovsum-nav{display:none}
 }
 /* 資金去向卡兩份口徑依寬度只顯示一份（app.js renderOvSummary ③）：桌機＝昨日資金去向分流圖，手機＝手機版資金去向長條。
