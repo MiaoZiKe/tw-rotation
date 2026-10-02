@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><radialGradient id="bg" cx="45%" cy="40%" r="75%"><stop offset="0" stop-color="#0d1b30"/><stop offset="1" stop-color="#060b14"/></radialGradient><filter id="gl" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect x="4" y="4" width="504" height="504" rx="116" fill="url(#bg)" stroke="#57e3ff" stroke-opacity="0.35" stroke-width="6"/>
+<g filter="url(#gl)"><polygon points="117.7,298.0 232.0,364.0 346.3,298.0 232.0,232.0" fill="#57e3ff" fill-opacity="0.05"/>
+<polygon points="232.0,232.0 346.3,298.0 346.3,166.0 232.0,100.0" fill="#57e3ff" fill-opacity="0.05"/>
+<polygon points="117.7,298.0 232.0,232.0 232.0,100.0 117.7,166.0" fill="#57e3ff" fill-opacity="0.05"/>
+<path d="M117.7 298.0 L232.0 232.0" stroke="#8ff0ff" stroke-width="6.6" stroke-dasharray="13.2 13.2" stroke-linecap="round" opacity=".7"/>
+<path d="M232.0 232.0 L232.0 100.0" stroke="#8ff0ff" stroke-width="6.6" stroke-dasharray="13.2 13.2" stroke-linecap="round" opacity=".7"/>
+<path d="M232.0 232.0 L346.3 298.0" stroke="#8ff0ff" stroke-width="6.6" stroke-dasharray="13.2 13.2" stroke-linecap="round" opacity=".7"/>
+<polygon points="117.7,166.0 232.0,232.0 346.3,166.0 232.0,100.0" fill="#57e3ff" fill-opacity="0.16"/>
+<polygon points="117.7,298.0 232.0,364.0 232.0,232.0 117.7,166.0" fill="#3a8dff" fill-opacity="0.16"/>
+<polygon points="232.0,364.0 346.3,298.0 346.3,166.0 232.0,232.0" fill="#2fc6e0" fill-opacity="0.16"/>
+<path d="M117.7 298.0 L117.7 166.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M117.7 298.0 L232.0 364.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M232.0 364.0 L346.3 298.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M232.0 364.0 L232.0 232.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M117.7 166.0 L232.0 100.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M117.7 166.0 L232.0 232.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M232.0 232.0 L346.3 166.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M346.3 298.0 L346.3 166.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/>
+<path d="M232.0 100.0 L346.3 166.0" stroke="#8ff0ff" stroke-width="12.0" stroke-linecap="round"/></g>
+<polygon points="232.0,100.0 346.3,166.0 346.3,298.0 232.0,364.0 117.7,298.0 117.7,166.0" fill="none" stroke="#57e3ff" stroke-width="24" stroke-linejoin="round" filter="url(#gl)"/>
+<circle cx="232" cy="232" r="18" fill="#ffb44d"/>
+<path d="M336 336 L430 430" stroke="#57e3ff" stroke-width="40" stroke-linecap="round"/>
+</svg>

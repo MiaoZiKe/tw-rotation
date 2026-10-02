@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1100"><defs><radialGradient id="bg" cx="50%" cy="50%" r="70%"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f2f5fa"/></radialGradient><filter id="gl" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="0.01" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><clipPath id="lc"><polygon points="900.0,260.0 1159.8,410.0 1159.8,710.0 900.0,860.0 640.2,710.0 640.2,410.0"/></clipPath></defs>
+<rect width="1800" height="1100" fill="url(#bg)"/>
+<path d="M0 0H1800M0 50H1800M0 100H1800M0 150H1800M0 200H1800M0 250H1800M0 300H1800M0 350H1800M0 400H1800M0 450H1800M0 500H1800M0 550H1800M0 600H1800M0 650H1800M0 700H1800M0 750H1800M0 800H1800M0 850H1800M0 900H1800M0 950H1800M0 1000H1800M0 1050H1800M0 0V1100M50 0V1100M100 0V1100M150 0V1100M200 0V1100M250 0V1100M300 0V1100M350 0V1100M400 0V1100M450 0V1100M500 0V1100M550 0V1100M600 0V1100M650 0V1100M700 0V1100M750 0V1100M800 0V1100M850 0V1100M900 0V1100M950 0V1100M1000 0V1100M1050 0V1100M1100 0V1100M1150 0V1100M1200 0V1100M1250 0V1100M1300 0V1100M1350 0V1100M1400 0V1100M1450 0V1100M1500 0V1100M1550 0V1100M1600 0V1100M1650 0V1100M1700 0V1100M1750 0V1100" stroke="#2f63e0" stroke-width="1" opacity="0.06"/>
+<text x="70" y="96" font-family="WenQuanYi Zen Hei" font-size="46" font-weight="600" letter-spacing="8" fill="#1b2433">台股立方｜六個面，各看一件事</text>
+<text x="72" y="140" font-family="DejaVu Sans Mono" font-size="22" letter-spacing="6" fill="#2f63e0">TW·STOCK·CUBE  //  6-FACE SCAN  //  FRONT = 實線　THROUGH = 透視（虛線）</text>
+<path d="M1260.0 560.0L1238.0 560.0M1259.5 578.8L1249.5 578.3M1258.0 597.6L1248.1 596.6M1255.6 616.3L1245.7 614.8M1252.1 634.8L1242.4 632.8M1247.7 653.2L1238.1 650.6M1242.4 671.2L1232.9 668.2M1236.1 689.0L1226.8 685.4M1228.9 706.4L1219.7 702.4M1220.8 723.4L1211.9 718.9M1211.8 740.0L1192.7 729.0M1201.9 756.1L1193.5 750.6M1191.2 771.6L1183.2 765.7M1179.8 786.6L1172.0 780.3M1167.5 800.9L1160.1 794.2M1154.6 814.6L1147.5 807.5M1140.9 827.5L1134.2 820.1M1126.6 839.8L1120.3 832.0M1111.6 851.2L1105.7 843.2M1096.1 861.9L1090.6 853.5M1080.0 871.8L1069.0 852.7M1063.4 880.8L1058.9 871.9M1046.4 888.9L1042.4 879.7M1029.0 896.1L1025.4 886.8M1011.2 902.4L1008.2 892.9M993.2 907.7L990.6 898.1M974.8 912.1L972.8 902.4M956.3 915.6L954.8 905.7M937.6 918.0L936.6 908.1M918.8 919.5L918.3 909.5M900.0 920.0L900.0 898.0M881.2 919.5L881.7 909.5M862.4 918.0L863.4 908.1M843.7 915.6L845.2 905.7M825.2 912.1L827.2 902.4M806.8 907.7L809.4 898.1M788.8 902.4L791.8 892.9M771.0 896.1L774.6 886.8M753.6 888.9L757.6 879.7M736.6 880.8L741.1 871.9M720.0 871.8L731.0 852.7M703.9 861.9L709.4 853.5M688.4 851.2L694.3 843.2M673.4 839.8L679.7 832.0M659.1 827.5L665.8 820.1M645.4 814.6L652.5 807.5M632.5 800.9L639.9 794.2M620.2 786.6L628.0 780.3M608.8 771.6L616.8 765.7M598.1 756.1L606.5 750.6M588.2 740.0L607.3 729.0M579.2 723.4L588.1 718.9M571.1 706.4L580.3 702.4M563.9 689.0L573.2 685.4M557.6 671.2L567.1 668.2M552.3 653.2L561.9 650.6M547.9 634.8L557.6 632.8M544.4 616.3L554.3 614.8M542.0 597.6L551.9 596.6M540.5 578.8L550.5 578.3M540.0 560.0L562.0 560.0M540.5 541.2L550.5 541.7M542.0 522.4L551.9 523.4M544.4 503.7L554.3 505.2M547.9 485.2L557.6 487.2M552.3 466.8L561.9 469.4M557.6 448.8L567.1 451.8M563.9 431.0L573.2 434.6M571.1 413.6L580.3 417.6M579.2 396.6L588.1 401.1M588.2 380.0L607.3 391.0M598.1 363.9L606.5 369.4M608.8 348.4L616.8 354.3M620.2 333.4L628.0 339.7M632.5 319.1L639.9 325.8M645.4 305.4L652.5 312.5M659.1 292.5L665.8 299.9M673.4 280.2L679.7 288.0M688.4 268.8L694.3 276.8M703.9 258.1L709.4 266.5M720.0 248.2L731.0 267.3M736.6 239.2L741.1 248.1M753.6 231.1L757.6 240.3M771.0 223.9L774.6 233.2M788.8 217.6L791.8 227.1M806.8 212.3L809.4 221.9M825.2 207.9L827.2 217.6M843.7 204.4L845.2 214.3M862.4 202.0L863.4 211.9M881.2 200.5L881.7 210.5M900.0 200.0L900.0 222.0M918.8 200.5L918.3 210.5M937.6 202.0L936.6 211.9M956.3 204.4L954.8 214.3M974.8 207.9L972.8 217.6M993.2 212.3L990.6 221.9M1011.2 217.6L1008.2 227.1M1029.0 223.9L1025.4 233.2M1046.4 231.1L1042.4 240.3M1063.4 239.2L1058.9 248.1M1080.0 248.2L1069.0 267.3M1096.1 258.1L1090.6 266.5M1111.6 268.8L1105.7 276.8M1126.6 280.2L1120.3 288.0M1140.9 292.5L1134.2 299.9M1154.6 305.4L1147.5 312.5M1167.5 319.1L1160.1 325.8M1179.8 333.4L1172.0 339.7M1191.2 348.4L1183.2 354.3M1201.9 363.9L1193.5 369.4M1211.8 380.0L1192.7 391.0M1220.8 396.6L1211.9 401.1M1228.9 413.6L1219.7 417.6M1236.1 431.0L1226.8 434.6M1242.4 448.8L1232.9 451.8M1247.7 466.8L1238.1 469.4M1252.1 485.2L1242.4 487.2M1255.6 503.7L1245.7 505.2M1258.0 522.4L1248.1 523.4M1259.5 541.2L1249.5 541.7" stroke="#2f63e0" stroke-width="2" opacity=".55"/>
+<circle cx="900" cy="560" r="372" fill="none" stroke="#2f63e0" stroke-dasharray="3 12" stroke-width="2" opacity=".45"/>
+<g filter="url(#gl)"><polygon points="850.8,752.4 1055.6,656.9 915.5,567.5 739.2,622.7" fill="#2f63e0" fill-opacity="0.03"/>
+<g opacity="0.32"><polygon points="856.9,687.7 876.9,653.6 913.9,649.0 914.0,601.3 981.1,648.8 866.4,697.1" fill="#2f63e0" opacity=".22"/>
+<polyline points="856.9,687.7 876.9,653.6 913.9,649.0 914.0,601.3" stroke="#2f63e0" stroke-width="8.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="864.5,684.5 860.3,682.5 854.8,682.3 850.1,684.2 847.9,687.5 849.1,690.8 853.4,693.0 858.9,693.1 863.7,691.1 865.8,687.8" fill="#2f63e0"/>
+<polygon points="883.8,651.0 879.8,649.2 874.8,649.1 870.5,650.7 868.6,653.5 869.9,656.3 873.9,658.1 879.0,658.3 883.3,656.6 885.1,653.8" fill="#2f63e0"/>
+<polygon points="920.4,646.4 916.4,644.7 911.4,644.6 907.3,646.2 905.7,648.9 907.2,651.6 911.3,653.5 916.4,653.6 920.5,651.9 922.0,649.2" fill="#2f63e0"/>
+<polygon points="919.8,599.3 916.2,597.9 911.8,597.9 908.3,599.1 906.8,601.2 908.2,603.3 911.8,604.7 916.3,604.8 919.9,603.5 921.2,601.4" fill="#2f63e0"/></g>
+<polygon points="915.5,567.5 1055.6,656.9 1085.2,422.4 918.9,379.6" fill="#2f63e0" fill-opacity="0.03"/>
+<g opacity="0.32"><polygon points="942.8,491.3 956.0,497.3 957.9,454.2 944.3,449.1" fill="#e5384f"/>
+<polygon points="964.3,501.1 978.6,507.7 976.9,536.0 962.9,528.8" fill="#16a46c"/>
+<polygon points="987.6,511.8 1003.2,519.0 1008.4,451.9 991.9,446.3" fill="#e5384f"/>
+<polygon points="1013.0,523.4 1030.0,531.3 1033.3,497.2 1015.8,490.2" fill="#e5384f"/>
+<polyline points="937.7,488.9 1037.1,534.5" stroke="#2f63e0" stroke-width="8.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+<polygon points="739.2,622.7 915.5,567.5 918.9,379.6 714.8,405.6" fill="#2f63e0" fill-opacity="0.03"/>
+<g opacity="0.32"><polyline points="764.9,513.9 803.7,505.1 813.7,449.8 832.5,545.6 843.0,476.0 854.5,493.6 889.3,485.7" stroke="#2f63e0" stroke-width="8.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="883.2,457.7 881.7,452.6 877.7,450.1 872.8,451.0 868.8,455.1 867.3,460.8 869.0,465.8 873.0,468.3 877.8,467.3 881.7,463.2" fill="#f08a3c"/></g>
+<path d="M739.2 622.7 L915.5 567.5" stroke="#1b2433" stroke-width="5.0" stroke-dasharray="9.9 9.9" stroke-linecap="round" opacity=".7"/>
+<path d="M915.5 567.5 L918.9 379.6" stroke="#1b2433" stroke-width="5.0" stroke-dasharray="9.9 9.9" stroke-linecap="round" opacity=".7"/>
+<path d="M915.5 567.5 L1055.6 656.9" stroke="#1b2433" stroke-width="5.0" stroke-dasharray="9.9 9.9" stroke-linecap="round" opacity=".7"/>
+<polygon points="841.7,472.0 1085.2,422.4 918.9,379.6 714.8,405.6" fill="#2f63e0" fill-opacity="0.09"/>
+<g opacity="1"><polyline points="848.1,427.1 857.8,428.7 868.6,429.8 880.1,430.5 891.9,430.7 903.8,430.4 915.1,429.6 925.7,428.3 935.0,426.7 943.0,424.7 949.2,422.5 953.8,420.1 956.4,417.6 957.3,415.0 956.4,412.5" stroke="#2f63e0" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="952.2,406.6 974.7,412.2 938.0,412.8" fill="#2f63e0"/>
+<polyline points="926.8,401.9 918.0,400.8 908.7,400.0 899.1,399.6 889.3,399.4 879.5,399.7 869.9,400.2 860.7,401.1 852.1,402.3 844.3,403.8 837.5,405.5 831.9,407.5 827.6,409.8 824.8,412.2 823.7,414.7" stroke="#2f63e0" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="823.0,421.2 804.8,415.0 842.5,414.4" fill="#2f63e0"/>
+<polygon points="901.4,411.9 896.2,410.8 889.6,410.5 883.2,411.0 878.6,412.2 877.2,413.8 879.3,415.3 884.5,416.4 891.4,416.7 898.0,416.2 902.5,414.9 903.7,413.4" fill="#f08a3c"/></g>
+<polygon points="739.2,622.7 850.8,752.4 841.7,472.0 714.8,405.6" fill="#1b2433" fill-opacity="0.09"/>
+<g opacity="1"><polyline points="760.3,601.5 753.9,534.4" stroke="#e5384f" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="753.2,582.8 765.1,594.7 761.4,553.8 749.2,543.1" fill="#e5384f"/>
+<polyline points="780.8,603.9 774.1,520.9" stroke="#16a46c" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="772.9,583.6 786.6,596.5 782.9,547.1 768.8,535.7" fill="#16a46c"/>
+<polyline points="805.2,611.7 798.5,504.6" stroke="#e5384f" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="796.4,588.4 812.3,602.6 808.0,527.7 791.4,515.9" fill="#e5384f"/></g>
+<polygon points="850.8,752.4 1055.6,656.9 1085.2,422.4 841.7,472.0" fill="#2f63e0" fill-opacity="0.09"/>
+<g opacity="1"><polyline points="905.5,562.4 970.7,583.5" stroke="#2f63e0" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polyline points="904.6,647.7 970.7,583.5" stroke="#2f63e0" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polyline points="970.7,583.5 1033.4,513.4" stroke="#2f63e0" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polyline points="970.7,583.5 1023.9,610.1" stroke="#2f63e0" stroke-width="10.0" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".85"/>
+<polygon points="920.8,557.7 920.0,552.2 917.5,547.9 913.5,545.2 908.4,544.6 903.0,546.2 897.8,549.8 893.5,554.9 890.7,561.0 889.7,567.2 890.7,572.8 893.5,577.0 897.6,579.5 902.7,579.8 908.0,578.1 913.0,574.6 917.1,569.6 919.8,563.7" fill="#2f63e0"/>
+<polygon points="919.0,642.1 918.2,637.4 915.8,633.8 912.1,631.8 907.3,631.8 902.2,633.7 897.3,637.4 893.3,642.3 890.7,647.9 889.8,653.5 890.7,658.3 893.3,661.8 897.2,663.5 901.9,663.4 906.9,661.4 911.6,657.7 915.5,652.9 918.0,647.5" fill="#2f63e0"/>
+<polygon points="1045.2,509.9 1045.1,504.8 1043.5,500.7 1040.8,498.1 1037.0,497.3 1032.8,498.5 1028.7,501.5 1025.1,506.0 1022.5,511.3 1021.3,517.0 1021.5,522.1 1023.2,526.1 1026.1,528.6 1029.9,529.2 1034.0,527.9 1038.0,524.9 1041.5,520.6 1044.0,515.4" fill="#2f63e0"/>
+<polygon points="1035.1,605.7 1034.9,601.3 1033.4,598.0 1030.7,596.1 1027.2,595.9 1023.3,597.4 1019.3,600.5 1016.0,604.8 1013.6,609.7 1012.5,614.7 1012.7,619.1 1014.4,622.3 1017.1,624.1 1020.7,624.1 1024.6,622.5 1028.3,619.5 1031.6,615.3 1033.9,610.5" fill="#2f63e0"/>
+<polygon points="989.1,577.2 988.5,570.2 985.8,564.8 981.2,561.5 975.3,560.9 968.7,563.1 962.3,567.8 956.9,574.4 953.2,582.2 951.7,590.1 952.5,597.2 955.6,602.4 960.4,605.3 966.3,605.6 972.7,603.2 978.8,598.6 983.9,592.2 987.5,584.8" fill="#f08a3c"/></g>
+<path d="M739.2 622.7 L714.8 405.6" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M739.2 622.7 L850.8 752.4" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M850.8 752.4 L1055.6 656.9" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M850.8 752.4 L841.7 472.0" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M714.8 405.6 L918.9 379.6" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M714.8 405.6 L841.7 472.0" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M841.7 472.0 L1085.2 422.4" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M1055.6 656.9 L1085.2 422.4" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/>
+<path d="M918.9 379.6 L1085.2 422.4" stroke="#1b2433" stroke-width="9.0" stroke-linecap="round"/></g>
+<polygon points="900.0,260.0 1159.8,410.0 1159.8,710.0 900.0,860.0 640.2,710.0 640.2,410.0" fill="none" stroke="#1b2433" stroke-width="16" stroke-linejoin="round" filter="url(#gl)"/>
+<circle cx="900.0" cy="260.0" r="8" fill="#f08a3c"/>
+<circle cx="1159.8" cy="410.0" r="8" fill="#f08a3c"/>
+<circle cx="1159.8" cy="710.0" r="8" fill="#f08a3c"/>
+<circle cx="900.0" cy="860.0" r="8" fill="#f08a3c"/>
+<circle cx="640.2" cy="710.0" r="8" fill="#f08a3c"/>
+<circle cx="640.2" cy="410.0" r="8" fill="#f08a3c"/>
+<polyline points="890,414 1100,250 1310,250" fill="none" stroke="#2f63e0" stroke-width="2.5" opacity=".9"/>
+<circle cx="890" cy="414" r="9" fill="none" stroke="#f08a3c" stroke-width="3"/><circle cx="890" cy="414" r="3.5" fill="#f08a3c"/>
+<rect x="1330" y="180" width="400" height="220" rx="10" fill="#ffffff" fill-opacity="0.9" stroke="#2f63e0" stroke-opacity=".6" stroke-width="2"/>
+<path d="M1324 192V174H1342 M1718 174H1736V192 M1736 388V406H1718 M1342 406H1324V388" stroke="#2f63e0" stroke-width="3" fill="none" opacity=".8"/>
+<text x="1354" y="226" font-family="DejaVu Sans Mono" font-size="22" fill="#f08a3c">01</text>
+<text x="1400" y="228" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#1b2433">資金面</text>
+<text x="1708" y="226" text-anchor="end" font-family="DejaVu Sans Mono" font-size="20" letter-spacing="3" fill="#2f63e0">FLOW</text>
+<text x="1354" y="270" font-family="WenQuanYi Zen Hei" font-size="24" fill="#2f63e0">回答：錢往哪裡跑</text>
+<text x="1354" y="308" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 資金流向排行</text>
+<text x="1354" y="338" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 資金輪盤（輪動四象限）</text>
+<text x="1354" y="368" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 雷達・熱力圖</text>
+<text x="1708" y="382" text-anchor="end" font-family="DejaVu Sans Mono" font-size="18" fill="#5b6779">#flow  #heatmap</text>
+<polyline points="971,584 1140,560 1310,560" fill="none" stroke="#2f63e0" stroke-width="2.5" opacity=".9"/>
+<circle cx="971" cy="584" r="9" fill="none" stroke="#f08a3c" stroke-width="3"/><circle cx="971" cy="584" r="3.5" fill="#f08a3c"/>
+<rect x="1330" y="490" width="400" height="220" rx="10" fill="#ffffff" fill-opacity="0.9" stroke="#2f63e0" stroke-opacity=".6" stroke-width="2"/>
+<path d="M1324 502V484H1342 M1718 484H1736V502 M1736 698V716H1718 M1342 716H1324V698" stroke="#2f63e0" stroke-width="3" fill="none" opacity=".8"/>
+<text x="1354" y="536" font-family="DejaVu Sans Mono" font-size="22" fill="#f08a3c">02</text>
+<text x="1400" y="538" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#1b2433">產業面</text>
+<text x="1708" y="536" text-anchor="end" font-family="DejaVu Sans Mono" font-size="20" letter-spacing="3" fill="#2f63e0">CHAIN</text>
+<text x="1354" y="580" font-family="WenQuanYi Zen Hei" font-size="24" fill="#2f63e0">回答：上下游誰最強</text>
+<text x="1354" y="618" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 2D／3D 產業地圖</text>
+<text x="1354" y="648" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 產業鏈關聯圖</text>
+<text x="1354" y="678" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 剖析圖</text>
+<text x="1708" y="692" text-anchor="end" font-family="DejaVu Sans Mono" font-size="18" fill="#5b6779">#industry</text>
+<polyline points="983,510 1147,870 1310,870" fill="none" stroke="#5b6779" stroke-width="2.5" stroke-dasharray="8 8" opacity=".9"/>
+<circle cx="983" cy="510" r="9" fill="none" stroke="#f08a3c" stroke-width="3"/><circle cx="983" cy="510" r="3.5" fill="#f08a3c"/>
+<rect x="1330" y="800" width="400" height="220" rx="10" fill="#ffffff" fill-opacity="0.9" stroke="#5b6779" stroke-opacity=".6" stroke-width="2" stroke-dasharray="8 8"/>
+<path d="M1324 812V794H1342 M1718 794H1736V812 M1736 1008V1026H1718 M1342 1026H1324V1008" stroke="#2f63e0" stroke-width="3" fill="none" opacity=".8"/>
+<text x="1354" y="846" font-family="DejaVu Sans Mono" font-size="22" fill="#f08a3c">03</text>
+<text x="1400" y="848" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#1b2433">籌碼面</text>
+<text x="1708" y="846" text-anchor="end" font-family="DejaVu Sans Mono" font-size="20" letter-spacing="3" fill="#5b6779">CHIPS·透視</text>
+<text x="1354" y="890" font-family="WenQuanYi Zen Hei" font-size="24" fill="#2f63e0">回答：誰在買、誰在賣</text>
+<text x="1354" y="928" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 法人買賣超</text>
+<text x="1354" y="958" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 集保大戶增減</text>
+<text x="1708" y="1002" text-anchor="end" font-family="DejaVu Sans Mono" font-size="18" fill="#5b6779">#stock 籌碼</text>
+<polyline points="778,566 634,250 490,250" fill="none" stroke="#2f63e0" stroke-width="2.5" opacity=".9"/>
+<circle cx="778" cy="566" r="9" fill="none" stroke="#f08a3c" stroke-width="3"/><circle cx="778" cy="566" r="3.5" fill="#f08a3c"/>
+<rect x="70" y="180" width="400" height="220" rx="10" fill="#ffffff" fill-opacity="0.9" stroke="#2f63e0" stroke-opacity=".6" stroke-width="2"/>
+<path d="M64 192V174H82 M458 174H476V192 M476 388V406H458 M82 406H64V388" stroke="#2f63e0" stroke-width="3" fill="none" opacity=".8"/>
+<text x="94" y="226" font-family="DejaVu Sans Mono" font-size="22" fill="#f08a3c">04</text>
+<text x="140" y="228" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#1b2433">技術面</text>
+<text x="448" y="226" text-anchor="end" font-family="DejaVu Sans Mono" font-size="20" letter-spacing="3" fill="#2f63e0">TECH</text>
+<text x="94" y="270" font-family="WenQuanYi Zen Hei" font-size="24" fill="#2f63e0">回答：什麼時候進場</text>
+<text x="94" y="308" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ K 線・分 K</text>
+<text x="94" y="338" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 多週期 SMC</text>
+<text x="94" y="368" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 技術評分</text>
+<text x="448" y="382" text-anchor="end" font-family="DejaVu Sans Mono" font-size="18" fill="#5b6779">#stock</text>
+<polyline points="831,499 660,560 490,560" fill="none" stroke="#5b6779" stroke-width="2.5" stroke-dasharray="8 8" opacity=".9"/>
+<circle cx="831" cy="499" r="9" fill="none" stroke="#f08a3c" stroke-width="3"/><circle cx="831" cy="499" r="3.5" fill="#f08a3c"/>
+<rect x="70" y="490" width="400" height="220" rx="10" fill="#ffffff" fill-opacity="0.9" stroke="#5b6779" stroke-opacity=".6" stroke-width="2" stroke-dasharray="8 8"/>
+<path d="M64 502V484H82 M458 484H476V502 M476 698V716H458 M82 716H64V698" stroke="#2f63e0" stroke-width="3" fill="none" opacity=".8"/>
+<text x="94" y="536" font-family="DejaVu Sans Mono" font-size="22" fill="#f08a3c">05</text>
+<text x="140" y="538" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#1b2433">事件面</text>
+<text x="448" y="536" text-anchor="end" font-family="DejaVu Sans Mono" font-size="20" letter-spacing="3" fill="#5b6779">EVENT·透視</text>
+<text x="94" y="580" font-family="WenQuanYi Zen Hei" font-size="24" fill="#2f63e0">回答：有沒有理由不進場</text>
+<text x="94" y="618" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 今日事件</text>
+<text x="94" y="648" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 新聞・除權息</text>
+<text x="94" y="678" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 總經指標</text>
+<text x="448" y="692" text-anchor="end" font-family="DejaVu Sans Mono" font-size="18" fill="#5b6779">#overview</text>
+<polyline points="890,639 690,870 490,870" fill="none" stroke="#5b6779" stroke-width="2.5" stroke-dasharray="8 8" opacity=".9"/>
+<circle cx="890" cy="639" r="9" fill="none" stroke="#f08a3c" stroke-width="3"/><circle cx="890" cy="639" r="3.5" fill="#f08a3c"/>
+<rect x="70" y="800" width="400" height="220" rx="10" fill="#ffffff" fill-opacity="0.9" stroke="#5b6779" stroke-opacity=".6" stroke-width="2" stroke-dasharray="8 8"/>
+<path d="M64 812V794H82 M458 794H476V812 M476 1008V1026H458 M82 1026H64V1008" stroke="#2f63e0" stroke-width="3" fill="none" opacity=".8"/>
+<text x="94" y="846" font-family="DejaVu Sans Mono" font-size="22" fill="#f08a3c">06</text>
+<text x="140" y="848" font-family="WenQuanYi Zen Hei" font-size="34" font-weight="600" fill="#1b2433">基本面</text>
+<text x="448" y="846" text-anchor="end" font-family="DejaVu Sans Mono" font-size="20" letter-spacing="3" fill="#5b6779">FUND·透視</text>
+<text x="94" y="890" font-family="WenQuanYi Zen Hei" font-size="24" fill="#2f63e0">回答：現在貴不貴</text>
+<text x="94" y="928" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 月營收・獲利</text>
+<text x="94" y="958" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 本益比河流</text>
+<text x="94" y="988" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">▸ 週期統計（歷史）</text>
+<text x="448" y="1002" text-anchor="end" font-family="DejaVu Sans Mono" font-size="18" fill="#5b6779">#season</text>
+<text x="900.0" y="1060" text-anchor="middle" font-family="WenQuanYi Zen Hei" font-size="22" fill="#5b6779">前三面（實線）是主力：資金・產業・技術；後三面（虛線）透過玻璃看得到：籌碼・事件・基本 —— 判斷順序：資金＋基本定方向 → 技術抓時機 → 事件否決</text>
+</svg>
