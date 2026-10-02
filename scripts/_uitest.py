@@ -19735,6 +19735,11 @@ SECTIONS = {
     # ★ 2026-10-03 Andy 三件（DECISIONS #303，⚠ 一律 --workers 1）：總覽三欄等高、本益比（每季）修畫壞（虧損季／極端值）、獲利分頁並排
     "個股總覽等高1003":    lambda pg, b, base, code: t_stock_ov_eq_1003(b, base, code),
     "獲利並排本益比1003":  lambda pg, b, base, code: t_profit_pe_1003(b, base, code),
+    # ★ 2026-10-03 Andy 兩件（DECISIONS #304，⚠ 一律 --workers 1）：題材產品剖析圖縮到原尺寸（不再被放大 1.37 倍）、
+    #   供應鏈關聯圖每個環節加細框（膠囊／卡片在框內、連線停在框邊）
+    "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
+    # ★ 2026-10-03 Andy 再兩件（DECISIONS #304，⚠ 一律 --workers 1）：關聯圖只留上方剖析圖有的環節（對不上整塊不顯示）、3D 初始大小 70%
+    "關聯圖對應與3D大小1003": lambda pg, b, base, code: t_rel_scope_3d_1003(b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -42838,6 +42843,349 @@ def t_profit_pe_1003(b, base, code):
                     ok(f"{tg} 「虧損」標籤螢幕上 ≥ 11px", min(fs) >= 10.9, fs)
                 lg = pg.evaluate(TABS1002_LEGIN)
                 ok(f"{tg} 圖內圖例沒有伸進繪圖區", not lg["bad"], lg)
+    except Exception as ex:  # noqa: BLE001
+        ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
+    ctx.close()
+    ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
+
+# ===================================================================== 剖析圖縮小與環節外框1003
+# Andy 2026-10-03 兩句話：
+#   ①「題材這邊的文字圖片大小比例再調整一下，太大了」—— 題材產品剖析圖（.dg3）在 1440 被放大 1.37 倍。
+#   ②「供應鏈關聯圖族群需要框線框起來比較簡潔」—— 每個環節（族群）一個細框，膠囊在框裡、連線停在框邊。
+DGT_THEME = """() => {
+  const card = document.querySelector('#themeDetail .card'), wrap = document.querySelector('#themeDiagram');
+  const svg = wrap && wrap.querySelector('svg.dg3'); if (!svg || !card) return null;
+  const cw = +svg.dataset.cw || 0, vb = svg.viewBox.baseVal, sr = svg.getBoundingClientRect();
+  const cs = getComputedStyle(wrap), inner = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const ctm = svg.getScreenCTM(), k = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+  const fs = (sel) => { const n = svg.querySelector(sel); return n ? +(parseFloat(getComputedStyle(n).fontSize) * k).toFixed(2) : 0; };
+  const all = [...svg.querySelectorAll('text')].filter(t => (t.textContent || '').trim())
+    .map(t => ({ t: t.textContent.trim().slice(0, 12), fs: parseFloat(getComputedStyle(t).fontSize) * k, r: t.getBoundingClientRect() }));
+  const ov = [];
+  for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) { const a = all[i].r, b = all[j].r;
+    if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2 && ov.length < 4) ov.push(all[i].t + ' X ' + all[j].t); }
+  // 站名／說明／膠囊不准跑出自己那一格（字變大之後最容易出事的地方）
+  const out = [];
+  svg.querySelectorAll('g.stn').forEach(g => { const sl = g.querySelector('rect.slot').getBoundingClientRect();
+    g.querySelectorAll('text').forEach(t => { const r = t.getBoundingClientRect();
+      if (r.right > sl.right + 1 || r.left < sl.left - 1 || r.bottom > sl.bottom + 1) out.push(t.textContent.trim().slice(0, 12)); }); });
+  return { cw, vbW: vb.width, vbH: vb.height, w: sr.width, h: sr.height, inner, cardH: card.getBoundingClientRect().height,
+           // 改前的畫法：寬度撐滿容器 → 高度＝viewBox 高 × 容器寬 / 畫布寬
+           hUp: vb.height * Math.max(inner, cw) / cw,
+           lbl: fs('g.stn .lbl'), sub: fs('g.stn .sub'), chip: fs('.scode text'), step: fs('g.step .lbl'),
+           minFs: Math.min(...all.map(a => a.fs)), ov, out: out.slice(0, 4),
+           docW: document.documentElement.scrollWidth, winW: innerWidth,
+           scrollW: wrap.scrollWidth, clientW: wrap.clientWidth }; }"""
+
+DGT_MAP = """() => {
+  const host = document.querySelector('#chainMap'); const svg = host && host.querySelector('svg'); if (!svg) return null;
+  const R = (n) => n.getBoundingClientRect();
+  const inside = (a, b, t) => a.left >= b.left - t && a.right <= b.right + t && a.top >= b.top - t && a.bottom <= b.bottom + t;
+  const titles = [...svg.querySelectorAll('g.segtitle')], boxes = [...svg.querySelectorAll('rect.segbox')];
+  const bad = []; let nIn = 0;
+  titles.forEach(tg => { const s = tg.dataset.seg, bx = svg.querySelector('rect.segbox[data-seg="' + s + '"]');
+    if (!bx) { bad.push('沒有框 ' + s); return; }
+    const cs = getComputedStyle(bx), br = R(bx);
+    if (!(parseFloat(cs.strokeWidth) >= 0.9) || cs.stroke === 'none' || cs.display === 'none' || !br.width) bad.push('框看不見 ' + s);
+    if (!inside(R(tg.querySelector('rect')), br, 0.6)) bad.push('標題在框外 ' + s);
+    svg.querySelectorAll('g.co[data-segment="' + s + '"] > rect:first-of-type').forEach(r => { nIn++; if (!inside(R(r), br, 0.6)) bad.push('膠囊在框外 ' + s); });
+    svg.querySelectorAll('g.segnote[data-seg="' + s + '"] text').forEach(r => { if (!inside(R(r), br, 0.6)) bad.push('說明在框外 ' + s); });
+  });
+  svg.querySelectorAll('g.co').forEach(g => { const r = R(g.querySelector('rect')); g.querySelectorAll(':scope > text').forEach(t => {
+    if (R(t).right > r.right + 1) bad.push('字超出卡片 ' + t.textContent.slice(0, 12)); }); });
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) { const a = R(boxes[i]), b = R(boxes[j]);
+    if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) bad.push('框疊在一起 ' + boxes[i].dataset.seg + '/' + boxes[j].dataset.seg); }
+  // 連線的兩個端點：不准落在任何一個框的「裡面」（離框邊 > 1.5px）—— 要停在框邊
+  const ctm = svg.getScreenCTM(); let ein = 0, nE = 0; const eBad = [];
+  svg.querySelectorAll('path.edge').forEach(p => { const L = p.getTotalLength(); nE++;
+    [0, L].forEach(at => { const q = p.getPointAtLength(at), x = q.x * ctm.a + ctm.e, y = q.y * ctm.d + ctm.f;
+      boxes.forEach(bx => { const r = R(bx); if (x > r.left + 1.5 && x < r.right - 1.5 && y > r.top + 1.5 && y < r.bottom - 1.5) { ein++; if (eBad.length < 3) eBad.push(bx.dataset.seg + '@' + Math.round(x) + ',' + Math.round(y)); } }); }); });
+  // 框線看得清楚：把框線色（含透明度）疊到關聯圖底色上，跟底色的亮度對比
+  const rgb = (c) => { const m = (c || '').match(/[\\d.]+/g) || []; return m.map(Number); };
+  const lum = (a) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(a[0]) + 0.7152 * f(a[1]) + 0.0722 * f(a[2]); };
+  let contrast = 0;
+  if (boxes[0]) { const bg = rgb(getComputedStyle(host).backgroundColor), st = rgb(getComputedStyle(boxes[0]).stroke);
+    const al = st.length > 3 ? st[3] : 1, mix = [0, 1, 2].map(i => st[i] * al + bg[i] * (1 - al));
+    const l1 = lum(mix), l2 = lum(bg); contrast = +((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2); }
+  return { nSeg: titles.length, nBox: boxes.length, nIn, bad: bad.slice(0, 6), nBad: bad.length, nE, ein, eBad, contrast,
+           folded: !!svg.querySelector('g.co.chip'), docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+
+
+def t_dg_tidy_1003(b, base):
+    """題材產品剖析圖縮小＋供應鏈關聯圖環節外框（Andy 2026-10-03，DECISIONS #304）的真人操作驗收。
+
+      ① 題材剖析圖（heavy_electric／cowos／ai_server）在 1440：畫布寬 ≤ data-cw（不再放大）、
+         圖高 ≤ 改前畫法（撐滿容器）的 80%、卡片高度比改前矮；螢幕上站名 ≈15、說明 ≈13、膠囊 ≈12px；
+         站名／說明／膠囊不出格、不重疊；滑鼠真的點一格 → 選起來；滑鼠真的點膠囊 → 進個股頁。
+      ② 800／390：頁面不橫捲（圖在框裡左右滑）、SVG 字螢幕上 ≥ 11px、不重疊。
+      ③ 關聯圖（semiconductor／ai_server／electronics）1440 收合（預設）與按「全部展開」之後、800 展開版、深淺兩主題：
+         每個環節都有框、框看得見（對比 ≥ 1.15）、標題／膠囊／卡片／說明都在框內、框不互疊、
+         連線端點沒有一個落在框裡面；滑鼠真的點環節標題 → 那個框真的變色（.sel ＋ 實際框線色改變）。"""
+    T = "[剖析圖縮小與環節外框1003]"
+    errs: list[str] = []
+    ctx = b.new_context(viewport={"width": 1440, "height": 1000})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)[:200]))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        pg.goto(base + "#season", wait_until="load")
+        pg.evaluate("() => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.chainFold'); } catch (e) {} }")
+
+        def open_theme(tid):
+            pg.goto("about:blank")
+            pg.goto(base + f"#heatmap/theme/{tid}", wait_until="load")
+            return wait_until(pg, "() => { const s = document.querySelector('#themeDiagram svg.dg3'); return !!s && !!s.querySelector('g.art[transform]'); }", 12000)
+
+        # ---------------------------------------------------------------- ① 1440 題材剖析圖
+        for tid in ("heavy_electric", "cowos", "ai_server"):
+            tg = f"{T}題材 {tid}·1440"
+            if not ok(f"{tg} 剖析圖畫出來了", bool(open_theme(tid))):
+                continue
+            pg.wait_for_timeout(500)
+            z = pg.evaluate(DGT_THEME)
+            if not ok(f"{tg} 量得到剖析圖", bool(z), z):
+                continue
+            ok(f"★ {tg} 畫布原尺寸、不再被放大：螢幕寬 {z['w']:.0f} ≤ 畫布 {z['cw']}（容器 {z['inner']:.0f}）",
+               z["w"] <= z["cw"] + 1 and z["inner"] > z["cw"] + 100, z)
+            ok(f"★ {tg} 圖高 {z['h']:.0f} ≤ 改前畫法（撐滿容器）{z['hUp']:.0f} 的 80%", z["h"] <= z["hUp"] * 0.8, z)
+            if tid == "heavy_electric":
+                # 改前實測 672px（DECISIONS #304），改後 511
+                ok(f"★ {tg} 整張卡變矮：{z['cardH']:.0f}px < 600（改前 672）", z["cardH"] < 600, z["cardH"])
+            ok(f"★ {tg} 螢幕字級：站名 {z['lbl']}≈15、說明 {z['sub']}≈13、膠囊 {z['chip']}≈12、流程格 {z['step']}≈14",
+               14.5 <= z["lbl"] <= 15.5 and 12.5 <= z["sub"] <= 13.5 and 11.5 <= z["chip"] <= 12.5 and 13.5 <= z["step"] <= 14.5, z)
+            ok(f"{tg} 字都 ≥ 11px（螢幕上）", z["minFs"] >= 10.9, z["minFs"])
+            ok(f"★ {tg} 站名／說明／膠囊都在自己那一格裡", not z["out"], z["out"])
+            ok(f"★ {tg} 圖上的字沒有互相壓到", not z["ov"], z["ov"])
+            ok(f"{tg} 頁面不橫捲", z["docW"] <= z["winW"] + 1, (z["docW"], z["winW"]))
+        # 真的點：點一格 → 那一格選起來；點膠囊 → 進個股頁
+        if open_theme("heavy_electric"):
+            # 等畫面穩定再點：剛插進來的那一秒內題材區可能再畫一次，點到被換掉的舊節點會被當成「點外面」而收起
+            pg.wait_for_timeout(1500)
+            snap = ("() => { const g = document.querySelectorAll('#themeDiagram g.stn')[1]; const sl = g && g.querySelector('rect.slot');"
+                    " return g ? { cls: g.getAttribute('class'), fill: getComputedStyle(sl).fill, stroke: getComputedStyle(sl).stroke } : null; }")
+            b0 = pg.evaluate(snap)
+            box = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn')[1]; g.scrollIntoView({ block: 'center' });"
+                              " const r = g.querySelector('rect.slot').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + 20 }; }")
+            pg.mouse.click(box["x"], box["y"]); pg.wait_for_timeout(600)
+            b1 = pg.evaluate(snap)
+            ok(f"★ {T}題材 滑鼠真的點第 2 格 → 那一格真的選起來（class 與框色都變）",
+               bool(b0) and bool(b1) and b0["cls"] != b1["cls"] and (b0["fill"] != b1["fill"] or b0["stroke"] != b1["stroke"]),
+               (b0, b1, pg.evaluate("() => location.hash")))
+            code = pg.evaluate("() => { const c = document.querySelector('#themeDiagram .scode[data-code]'); if (!c) return null; c.scrollIntoView({ block: 'center' }); return c.dataset.code; }")
+            if ok(f"{T}題材 圖上有代號膠囊", bool(code), code):
+                pg.wait_for_timeout(300)
+                r = pg.evaluate("(c) => { const n = document.querySelector('#themeDiagram .scode[data-code=\"' + c + '\"] rect').getBoundingClientRect();"
+                                " return { x: n.left + n.width / 2, y: n.top + n.height / 2 }; }", code)
+                pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(1200)
+                ok(f"★ {T}題材 滑鼠真的點膠囊 {code}（縮小後仍點得到）→ 網址變成個股頁", pg.evaluate("() => location.hash") == f"#stock/{code}",
+                   pg.evaluate("() => location.hash"))
+        # ---------------------------------------------------------------- ② 800／390
+        for W in (800, 390):
+            pg.set_viewport_size({"width": W, "height": 1000})
+            tg = f"{T}題材 heavy_electric·{W}"
+            if not ok(f"{tg} 剖析圖畫出來了", bool(open_theme("heavy_electric"))):
+                continue
+            pg.wait_for_timeout(500)
+            z = pg.evaluate(DGT_THEME)
+            if not ok(f"{tg} 量得到剖析圖", bool(z), z):
+                continue
+            ok(f"★ {tg} 頁面不橫捲（圖在框裡左右滑）", z["docW"] <= z["winW"] + 1, (z["docW"], z["winW"]))
+            ok(f"{tg} 畫布維持原尺寸 {z['cw']}（窄畫面不壓小）", abs(z["w"] - z["cw"]) <= 1, z["w"])
+            ok(f"★ {tg} 字都 ≥ 11px（螢幕上）", z["minFs"] >= 10.9, z["minFs"])
+            ok(f"★ {tg} 字沒有互相壓到、沒有跑出格子", not z["ov"] and not z["out"], (z["ov"], z["out"]))
+
+        # ---------------------------------------------------------------- ③ 關聯圖環節外框
+        def open_map(chain, W):
+            pg.set_viewport_size({"width": W, "height": 1000})
+            pg.goto("about:blank")
+            pg.goto(base + f"#industry/{chain}", wait_until="load")
+            wait_until(pg, "() => !!document.querySelector('#chainMap')", 12000)
+            pg.evaluate("() => { const m = document.querySelector('#chainMap'); if (m) m.scrollIntoView({ block: 'start' }); }")
+            return wait_until(pg, "() => !!document.querySelector('#chainMap svg rect.segbox')", 10000)
+
+        for theme in ("dark", "light"):
+            pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.chainFold'); } catch (e) {} }", theme)
+            lab = "深色" if theme == "dark" else "淺色"
+            for chain in ("semiconductor", "ai_server", "electronics"):
+                if theme == "light" and chain != "semiconductor":
+                    continue          # 淺色只看最大的那條鏈，三種畫法都跑
+                for W, mode in ((1440, "收合"), (1440, "展開"), (800, "窄")):
+                    tg = f"{T}關聯圖 {chain}·{W}·{mode}·{lab}"
+                    pg.evaluate("() => { try { localStorage.removeItem('tw.chainFold'); } catch (e) {} }")
+                    if not ok(f"{tg} 關聯圖畫出來了、而且有環節外框", bool(open_map(chain, W))):
+                        continue
+                    pg.wait_for_timeout(400)
+                    if mode == "展開":
+                        before = pg.evaluate("() => document.querySelectorAll('#chainMap g.co.chip').length")
+                        btn = pg.query_selector('#chainMap .foldtg[data-fold="none"]')
+                        if ok(f"{tg} 有「全部展開」鈕", bool(btn)):
+                            btn.click(); pg.wait_for_timeout(700)
+                        after = pg.evaluate("() => document.querySelectorAll('#chainMap g.co.chip').length")
+                        ok(f"★ {tg} 按「全部展開」→ 膠囊真的變成公司卡（{before} → {after}）", before > 0 and after == 0, (before, after))
+                    m = pg.evaluate(DGT_MAP)
+                    if not ok(f"{tg} 量得到關聯圖", bool(m), m):
+                        continue
+                    ok(f"★ {tg} 每個環節都有框（{m['nBox']}／{m['nSeg']}）而且看得見",
+                       m["nSeg"] > 0 and m["nBox"] == m["nSeg"] and not any(x.startswith(("沒有框", "框看不見")) for x in m["bad"]), m["bad"])
+                    ok(f"★ {tg} 標題、{m['nIn']} 個膠囊／公司卡、說明都在框內；框不互疊；卡片文字不出卡", m["nBad"] == 0 and m["nIn"] > 0, m["bad"])
+                    ok(f"★ {tg} {m['nE']} 條連線的端點沒有一個穿進框裡（停在框邊）", m["ein"] == 0, m["eBad"])
+                    ok(f"★ {tg} 框線看得清楚（疊在底色上的對比 {m['contrast']} ≥ 1.15）", m["contrast"] >= 1.15, m["contrast"])
+                    ok(f"{tg} 頁面不橫捲", m["docW"] <= m["winW"] + 1, (m["docW"], m["winW"]))
+            # 真的點環節標題：那個框要 .sel、框線色真的變
+            pg.evaluate("() => { try { localStorage.removeItem('tw.chainFold'); } catch (e) {} }")
+            if open_map("semiconductor", 1440):
+                pg.wait_for_timeout(400)
+                seg = pg.evaluate("() => { const t = document.querySelectorAll('#chainMap g.segtitle')[2]; if (!t) return null; t.scrollIntoView({ block: 'center' }); return t.dataset.seg; }")
+                q = "(s) => { const b = document.querySelector('#chainMap rect.segbox[data-seg=\"' + s + '\"]'); return b ? { cls: b.getAttribute('class'), st: getComputedStyle(b).stroke } : null; }"
+                s0 = pg.evaluate(q, seg)
+                pg.wait_for_timeout(300)
+                r = pg.evaluate("(s) => { const n = document.querySelector('#chainMap g.segtitle[data-seg=\"' + s + '\"] text').getBoundingClientRect(); return { x: n.left + 10, y: n.top + n.height / 2 }; }", seg)
+                pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(700)
+                s1 = pg.evaluate(q, seg)
+                ok(f"★ {T}關聯圖·{lab} 滑鼠真的點環節標題「{seg}」→ 那個框真的被選起來（.sel、框線色改變）",
+                   bool(s0) and bool(s1) and "sel" in (s1["cls"] or "") and s0["st"] != s1["st"], (s0, s1))
+        pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    except Exception as ex:  # noqa: BLE001
+        ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
+    ctx.close()
+    ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
+
+# ===================================================================== 關聯圖對應與3D大小1003
+# Andy 2026-10-03 再兩句：
+#   E「這兩張圖關係要對上，若無關則下方不需顯示」—— 一般電子 → CNC 工具機：上面是工具機拆解圖，下面關聯圖卻是 IC 設計、面板……
+#     規則：關聯圖只留「上方剖析圖真的掛了 data-seg 的環節」（跟這條鏈的環節取交集）；交集是空的就整塊不顯示。
+#   F「3D 圖片初始大小再小一點」→「調整原尺寸 70% 試試看先」—— 3D 初始取景距離 ÷ 0.7。
+REL_SCOPE = """() => {
+  const rs = document.querySelector('#relSec');
+  const diag = [...new Set([...document.querySelectorAll('#prodDiagram [data-seg]')].map(n => n.dataset.seg))];
+  const map = [...document.querySelectorAll('#chainMap g.segtitle')].map(n => n.dataset.seg);
+  const cos = [...document.querySelectorAll('#chainMap g.co')].map(n => n.dataset.segment);
+  return { relVis: !!rs && rs.getClientRects().length > 0 && getComputedStyle(rs).display !== 'none',
+           diag, map, cosOut: cos.filter(s => map.indexOf(s) < 0).length, nCo: cos.length,
+           dd: [...document.querySelectorAll('#segChips .segchip[data-seg]')].filter(c => c.offsetParent !== null || getComputedStyle(c).display !== 'none').map(c => c.dataset.seg),
+           tab: (document.querySelector('#dgPick .segchip.sel') || {}).textContent || '', hash: location.hash }; }"""
+
+D3_FIT = """() => {
+  const v = window.Rack3D && window.Rack3D.current; if (!v || !v.fit || !v.modelRect) return null;
+  const f = v.fit(), m = v.modelRect();
+  const cv = document.querySelector('#prod3d canvas'); const cr = cv ? cv.getBoundingClientRect() : null;
+  const dots = [...document.querySelectorAll('#prod3d .lead3d .ld-dot')].filter(d => getComputedStyle(d).display !== 'none' && +getComputedStyle(d).opacity > 0.05)
+    .map(d => { const r = d.getBoundingClientRect(); return { x: r.left + r.width / 2 - cr.left, y: r.top + r.height / 2 - cr.top }; });
+  const off = dots.filter(p => p.x < m.l - 8 || p.x > m.r + 8 || p.y < m.t - 8 || p.y > m.b + 8 || p.x < 0 || p.y < 0 || p.x > m.w || p.y > m.h);
+  return { fill: f.fill, dist: f.dist, now: f.now, scale: f.scale, m, nDot: dots.length, off: off.slice(0, 3), nOff: off.length }; }"""
+
+
+def t_rel_scope_3d_1003(b, base):
+    """關聯圖跟上方剖析圖對上（Andy 2026-10-03 E）＋ 3D 初始大小 70%（F）的真人操作驗收（DECISIONS #304）。
+
+      E ① 每條鏈先開「族群總覽」量整條鏈的環節 S；再逐一用滑鼠點二層分頁的每一張剖析圖：
+           關聯圖的環節＝剖析圖上的 data-seg ∩ S；公司卡都屬於這幾格；「環節 ▾」下拉只留這幾格；
+           交集是空的（CNC 工具機、工業自動化、寬能隙、矽晶圓）→ 整塊「供應鏈關聯圖」看不到
+        ② 點回「族群總覽」→ 關聯圖真的回到整條鏈
+      F ③ ai_server 機櫃、CNC 工具機兩個 3D 場景：初始取景距離＝改前填滿距離 ÷ 0.7（±3%）、
+           模型外接盒整個落在畫布內而且四邊都留白、可見的引線端點都落在模型範圍裡；
+           真的拖一下再按「重設視角」→ 距離回到同一個 70%"""
+    T = "[關聯圖對應與3D大小1003]"
+    errs: list[str] = []
+    ctx = b.new_context(viewport={"width": 1440, "height": 1000})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)[:200]))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        pg.goto(base + "#season", wait_until="load")
+        pg.evaluate("() => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.relOpen'); } catch (e) {} }")
+
+        def settle_map():
+            pg.evaluate("() => { const m = document.querySelector('#relSec'); if (m && m.getClientRects().length) m.scrollIntoView({ block: 'start' }); }")
+            pg.wait_for_timeout(900)
+
+        for chain in ("electronics", "semiconductor", "ai_server", "software"):
+            pg.goto("about:blank")
+            pg.goto(base + f"#industry/{chain}/overview", wait_until="load")
+            wait_until(pg, "() => !!document.querySelector('#dgPick')", 12000)
+            settle_map()
+            wait_until(pg, "() => document.querySelectorAll('#chainMap g.segtitle').length > 0", 8000)
+            full = pg.evaluate(REL_SCOPE)
+            S = set(full["map"])
+            if not ok(f"{T}{chain} 族群總覽：關聯圖畫整條鏈（{len(S)} 格）而且看得到", full["relVis"] and len(S) > 0, full):
+                continue
+            tabs = pg.evaluate("() => [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(a => a.dataset.dgid)")
+            for slot in tabs:
+                tg = f"{T}{chain}/{slot}"
+                pg.evaluate("() => scrollTo(0, 0)")
+                pg.wait_for_timeout(200)
+                loc = pg.locator(f'#dgPick .segchip[data-dgid="{slot}"]')
+                loc.scroll_into_view_if_needed()
+                loc.click()          # 真的用滑鼠點二層分頁
+                wait_until(pg, f"() => location.hash.endsWith('/dg/{slot}') && !!document.querySelector('#prodDiagram svg')", 12000)
+                settle_map()
+                # 關聯圖在剖析圖下面是「捲近了才畫」（perf-2），看得到的話等它真的畫出來再量
+                wait_until(pg, "() => { const rs = document.querySelector('#relSec'); return !rs || !rs.getClientRects().length"
+                               " || document.querySelectorAll('#chainMap g.segtitle').length > 0; }", 8000)
+                z = pg.evaluate(REL_SCOPE)
+                want = sorted(set(z["diag"]) & S)
+                if not want:
+                    ok(f"★ {tg} 剖析圖跟這條鏈的環節對不上任何一格（圖上 {z['diag'][:4]}）→ 整塊供應鏈關聯圖不顯示",
+                       not z["relVis"], z)
+                    continue
+                ok(f"★ {tg} 關聯圖看得到，而且只畫剖析圖上有的 {len(want)} 格（{want[:5]}）",
+                   z["relVis"] and sorted(z["map"]) == want, {"圖上": z["diag"], "關聯圖": z["map"], "應為": want})
+                ok(f"{tg} 關聯圖上的 {z['nCo']} 張公司卡都屬於這幾格", z["cosOut"] == 0 and z["nCo"] > 0, z)
+                ok(f"{tg} 「環節 ▾」下拉只留這幾格", sorted(z["dd"]) == want, (z["dd"], want))
+            # ② 點回族群總覽 → 整條鏈
+            pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(200)
+            pg.locator('#dgPick .segchip[data-dgtab="overview"]').click()
+            wait_until(pg, "() => location.hash.endsWith('/overview')", 8000)
+            settle_map()
+            wait_until(pg, f"() => document.querySelectorAll('#chainMap g.segtitle').length >= {len(S)}", 8000)
+            back = pg.evaluate(REL_SCOPE)
+            ok(f"★ {T}{chain} 點回「族群總覽」→ 關聯圖真的回到整條鏈（{len(back['map'])}／{len(S)} 格）",
+               back["relVis"] and set(back["map"]) == S, (back["map"], sorted(S)))
+
+        # ---------------------------------------------------------------- F 3D 初始大小 70%
+        for chain, slot in (("ai_server", "ai_server"), ("electronics", "machine_tool")):
+            tg = f"{T}3D {slot}"
+            pg.goto("about:blank")
+            pg.goto(base + f"#industry/{chain}/dg/{slot}", wait_until="load")
+            wait_until(pg, "() => !!document.querySelector('#dg3d') && !document.querySelector('#dg3d').hidden", 12000)
+            if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
+                ok(f"{tg} 這台瀏覽器有 WebGL（沒有就驗不了 3D）", False, "no webgl")
+                continue
+            pg.evaluate("() => { const s = document.getElementById('dgSec') || document.getElementById('dgBody'); if (s) s.scrollIntoView({ block: 'start' }); }")
+            pg.wait_for_timeout(300)
+            btn = pg.locator('#dg3d button[data-dm="3d"]')
+            if btn.get_attribute("aria-pressed") != "true":
+                btn.click()
+            wait_until(pg, "() => !!document.querySelector('#prod3d canvas') && !!(window.Rack3D.current && window.Rack3D.current.fit)", 12000)
+            pg.wait_for_timeout(1500)
+            z = pg.evaluate(D3_FIT)
+            if not ok(f"{tg} 3D 場景掛起來了", bool(z) and z["fill"] > 0, z):
+                continue
+            ratio = z["fill"] / z["dist"]
+            ok(f"★ {tg} 初始大小＝改前的 {ratio:.3f}（要 0.70 ±0.02；距離 {z['dist']:.1f} vs 填滿 {z['fill']:.1f}）",
+               abs(ratio - 0.7) <= 0.02 and abs(z["now"] - z["dist"]) / z["dist"] <= 0.03, z)
+            m = z["m"]
+            mx, my = m["w"] * 0.02, m["h"] * 0.02
+            ok(f"★ {tg} 整台模型落在畫布內、四邊留白（模型 {m['l']:.0f}～{m['r']:.0f} × {m['t']:.0f}～{m['b']:.0f}，畫布 {m['w']:.0f}×{m['h']:.0f}）",
+               m["l"] >= mx and m["t"] >= my and m["r"] <= m["w"] - mx and m["b"] <= m["h"] - my, m)
+            ok(f"★ {tg} {z['nDot']} 條可見引線的零件端都落在模型範圍裡（對得到零件）", z["nDot"] > 0 and z["nOff"] == 0, z["off"])
+            # 真的拖一下再重設
+            cv = pg.evaluate("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
+            pg.mouse.move(cv["x"], cv["y"]); pg.mouse.down(); pg.mouse.move(cv["x"] + 200, cv["y"] + 30, steps=12); pg.mouse.up()
+            pg.mouse.wheel(0, -400); pg.wait_for_timeout(700)
+            moved = pg.evaluate("() => window.Rack3D.current.fit().now")
+            rb = pg.locator("#dgReset")
+            if rb.is_visible():
+                rb.click()
+            else:            # 視角鈕被捲出畫面／收起時，走畫面上寫的另一條路：在 3D 畫面上點兩下
+                pg.mouse.dblclick(cv["x"], cv["y"] - 140)
+            pg.wait_for_timeout(1200)
+            z2 = pg.evaluate(D3_FIT)
+            ok(f"★ {tg} 拖曳＋滾輪之後按「重設視角」→ 距離回到 70% 那一個（{moved:.1f} → {z2['now']:.1f}，應為 {z2['dist']:.1f}）",
+               abs(moved - z2["dist"]) / z2["dist"] > 0.03 and abs(z2["now"] - z2["dist"]) / z2["dist"] <= 0.03 and abs(z2["fill"] / z2["dist"] - 0.7) <= 0.02,
+               (moved, z2))
     except Exception as ex:  # noqa: BLE001
         ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
     ctx.close()

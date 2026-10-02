@@ -9242,6 +9242,8 @@
 
     /* 相機距離用「把整個場景包起來的球」算出來，不要寫死：
        寫死的話換一個場景、或畫面比例一變，機櫃頭尾就被切掉（第一版就是這樣）。 */
+    let fitInfo = { fill: 0, dist: 0 };   // 給驗收讀：改前的「填滿」距離與現在的初始距離
+    const INIT_SCALE_3D = 0.7;    // 初始模型大小＝改前「填滿」取景的 70%（Andy 2026-10-03，DECISIONS #304）
     const fitCamera = () => {
       /* ★ 2026-09-23：取景一律用「**拆開之後**」的外接盒。
          進場改成收攏（#246）之後，`reset()` 在收攏狀態重算會得到比較小的盒子 →
@@ -9264,12 +9266,18 @@
       /* 2026-09-22 第二輪（Andy：「畫布要把中欄填滿」）：模型要吃到畫布高度的 ~90%。
          以前是「外接盒 ＋ 整個半深度 ＋ 6% 邊」，機櫃只佔六成、四周一大片黑。
          現在外接盒佔 94%、轉動的深度餘量只留三分之一（最靠近相機的那一角偶爾會貼邊，接受）。*/
-      const dist = (Math.max(halfH / Math.tan(vfov / 2), halfW / Math.tan(hfov / 2)) / 0.94 + halfD * 0.33) * (spec.fit || 1);
+      const fill = (Math.max(halfH / Math.tan(vfov / 2), halfW / Math.tan(hfov / 2)) / 0.94 + halfD * 0.33) * (spec.fit || 1);
+      /* ★ 2026-10-03（Andy：「3D 圖片初始大小再小一點」→「調整原尺寸 70% 試試看先」）：
+         初始畫面的模型縮成改前的 70%（透視投影下螢幕大小 ∝ 1／距離，所以距離 ÷ 0.7）。
+         四周留出白邊，轉動時最靠近相機的那一角也不會再貼到畫布邊。「重設視角」走同一支，回到的也是 70%。
+         拉近的下限仍照改前的「填滿」距離算（fill × 0.28），使用者滾輪拉近時能看到的細節跟以前一樣多。*/
+      const dist = fill / INIT_SCALE_3D;
+      fitInfo = { fill, dist };
       const dir = new THREE.Vector3(spec.camera[0], spec.camera[1], spec.camera[2])
         .sub(new THREE.Vector3(spec.target[0], spec.target[1], spec.target[2])).normalize();
       controls.target.copy(sph.center);
       camera.position.copy(sph.center).addScaledVector(dir, dist);
-      controls.minDistance = dist * 0.28; controls.maxDistance = dist * 2.6;
+      controls.minDistance = fill * 0.28; controls.maxDistance = dist * 2.6;
       camera.updateProjectionMatrix();
       controls.update();
       if (keepT !== 1) applyExplode(keepT);       // 還原成量之前的展開程度
@@ -10566,8 +10574,20 @@
     };
     const colorOf = (id) => { const p = findP(id); return p ? p.elColor : null; };
     const partsOf = (seg) => byIdx.filter(x => x && x.seg === seg).map(x => x.part);
+    /* 2026-10-03：給驗收量「初始大小＝改前 70%」用 —— 模型（整個 root）外接盒八個角投到畫布上的範圍（相對畫布左上角，px）。*/
+    const modelRect = () => {
+      const box = new THREE.Box3().setFromObject(root), r = renderer.domElement.getBoundingClientRect();
+      let l = Infinity, t = Infinity, rr = -Infinity, b = -Infinity; const v = new THREE.Vector3();
+      for (let i = 0; i < 8; i++) {
+        v.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(camera);
+        const x = (v.x + 1) / 2 * r.width, y = (-v.y + 1) / 2 * r.height;
+        l = Math.min(l, x); rr = Math.max(rr, x); t = Math.min(t, y); b = Math.max(b, y);
+      }
+      return { l, t, r: rr, b, w: r.width, h: r.height };
+    };
+    const fit = () => ({ fill: fitInfo.fill, dist: fitInfo.dist, scale: INIT_SCALE_3D, now: camera.position.distanceTo(controls.target) });
     const view = {
-      highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf,
+      highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf, modelRect, fit,
       /* 2026-09-26 細緻化第二批：給截圖／驗收用的「把相機擺到某個位置、看向某一點」（唯讀場景，不改任何零件）。
          拍局部特寫（捲邊、束腰、熱屏）要能指定視角，靠滾輪湊很不穩。*/
       look: (t, pos) => { controls.target.set(t[0], t[1], t[2]); camera.position.set(pos[0], pos[1], pos[2]); controls.update(); markDirty(); layoutLabels(); },

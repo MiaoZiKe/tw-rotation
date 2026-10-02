@@ -1263,6 +1263,23 @@
       }
     }
     let segFilter = opts.seg || null;
+    /* ★ 2026-10-03（Andy 看「一般電子 → CNC 工具機」：上面是工具機拆解圖，下面關聯圖卻是 IC 設計、面板、被動元件……
+       原話：「這兩張圖關係要對上，若無關則下方不需顯示」）。
+       關聯圖的範圍＝上方這張剖析圖上**真的掛了 data-seg 的環節**，再跟這條鏈在 supply_chain.yaml 的環節取交集：
+         · 族群總覽分頁（沒有剖析圖）→ null，整條鏈照舊
+         · 交集非空 → 關聯圖、手機環節清單、「環節 ▾」下拉都只留那幾格
+         · 交集是空的（CNC 工具機、工業自動化、寬能隙、矽晶圓這幾張圖刻意一個 data-seg 都不掛，
+           因為 supply_chain.yaml 沒有對應的環節）→ 整塊「供應鏈關聯圖」藏起來，不顯示一張無關的圖
+       ⚠ 只用既有資料過濾，不新增、不推測任何供應關係（不會因為「工具機會用到馬達」就去拉別的環節進來）。*/
+    let relScope = null;
+    let applyRelScope = () => {};       // 有關聯圖時在下面接上；swapDiagram（換圖不換網址）也會呼叫它
+    const relScopeNow = () => {
+      if (!dgId) return null;
+      const host = $('#prodDiagram', el); if (!host) return null;
+      const inChain = new Set(segs.map(s => s.id)), on = new Set();
+      $$('[data-seg]', host).forEach(n => { if (inChain.has(n.dataset.seg)) on.add(n.dataset.seg); });
+      return on;
+    };
     /* ★ 2026-09-23 第二批（Andy 點名）：下方那張「成分股」卡片整塊移除。
        連同 renderMembers／COLS／排序記憶／市場別 seg／展開更多／放寬蓋住事件面板 一起拿掉 ——
        它們只服務那張表，留著就是留一堆沒有人看得到的程式碼。
@@ -1504,7 +1521,9 @@
       /* 點個股標籤：原地開右側資訊欄（不跳頁，N7），同時把它所屬的環節選起來。
          noscroll ＝ 使用者的眼睛就停在剛剛點的那張標籤上，不要把頁面捲走。*/
       const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); };
-      const stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick });
+      relScope = relScopeNow();
+      const scopeOnly = () => relScope;
+      let stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick, only: scopeOnly });
       const mapHost = $('#chainMap', el);
       try { localStorage.removeItem('tw.relView'); } catch (e) { /* 私密視窗：讀不到也寫不了，本來就不會用它 */ }
       /* ★ 2026-09-24 說明精簡：圖的說明改成條列，住在「怎麼看 ?」（#how-rel）裡；圖例口徑放最下面一行小字。
@@ -1527,6 +1546,7 @@
         if (!mapHost) return;
         lastW = mapHost.clientWidth;
         drawChainMap(mapHost, sc, ch.id, im, {
+          only: scopeOnly,
           onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = partSel = null; syncHighlight({ quiet: true }); },
           /* 點公司＝連同它所屬的**環節**一起選起來（不是族群）：一家公司只有一個 segment，
              卻可能掛好幾個族群，選族群就得替他猜一個。環節推族群是自動成立的（A.L.sgroups）。*/
@@ -1534,7 +1554,9 @@
           onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
         });
         const hint = $('#relHint', el) || document.getElementById('relHint');   // 「?」彈窗開著時盒子在 #howPop 裡
-        if (hint) hint.innerHTML = HINT.layer(`這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
+        if (hint) hint.innerHTML = HINT.layer(relScope
+          ? `跟上方剖析圖對得上的 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係（換回「族群總覽」看整條鏈）`
+          : `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
          以前跟剖析圖在同一個任務裡畫：drawMap 一開頭讀 clientWidth，逼整頁（含剛插進去的剖析圖）當場排版，
@@ -1544,6 +1566,24 @@
          上面有剖析圖（桌機、這條鏈有圖）時關聯圖一定在首屏以下，直接交給 IntersectionObserver ＋ 閒置補畫；
          沒有剖析圖或手機寬時照舊當場畫。*/
       const mapBelow = !!(mapHost && hasSlots && dgId && window.innerWidth > 640);
+      /* 範圍的三個出口：整塊藏起來（交集是空的）、只留那幾格、整條鏈。只有範圍真的變了才重畫。*/
+      let relKey = relScope ? [...relScope].sort().join(',') : '*';
+      const paintRelScope = () => {
+        const rs = $('#relSec', el);
+        if (rs) rs.hidden = !!relScope && relScope.size === 0;
+        $$('#segChips .segchip[data-seg]', el).forEach(c => { c.style.display = (relScope && !relScope.has(c.dataset.seg)) ? 'none' : ''; });
+      };
+      paintRelScope();
+      applyRelScope = () => {
+        relScope = relScopeNow();
+        paintRelScope();
+        const key = relScope ? [...relScope].sort().join(',') : '*';
+        if (key === relKey) return;
+        relKey = key;
+        if (segFilter && relScope && !relScope.has(segFilter)) segFilter = null;   // 篩的那一格已經不在範圍裡
+        stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick, only: scopeOnly });
+        if (lastW >= 0 && !(relScope && relScope.size === 0)) drawMap();          // 還沒畫過（延後畫）就等輪到它
+      };
       if (mapBelow) deferNear(mapHost, () => { if (!mapHost.isConnected) return; drawMap(); syncHighlight({ quiet: true, noscroll: true }); });
       else drawMap();
       // 滑過環節的說明框（圖上的環節標題、沒有台股那格的說明共用一個）
@@ -1740,6 +1780,7 @@
         host.hidden = false; host.innerHTML = ''; host.style.opacity = '1';
         paintDgMode();
         swapping = false;
+        applyRelScope();      // 回族群總覽 → 關聯圖回到整條鏈
         return;
       }
       paintDgTitle();
@@ -1760,6 +1801,7 @@
         did3d = dgOpen;       // 收合時換的圖 3D 還沒接線 → 展開時 paintFold 要補接
         host.style.opacity = '1';
         swapping = false;
+        applyRelScope();      // 換了一張圖 → 關聯圖的範圍跟著換（2026-10-03）
         syncHighlight({ quiet: true, noscroll: true });
       }, 180);
     }
@@ -2399,6 +2441,7 @@
     bare.forEach(n => n.classList.toggle('sel-part', !!DG.partHit && DG.partHit(n, part)));
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
+    $$('.chainmap .segbox', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));   // 環節外框跟著標題一起亮（2026-10-03）
     /* 環節卡清單（2026-09-23 C5 退版之後回來了）：選到的那一格 `.sel`、其餘 `.dim`。
        手機上還要順手把那張卡攤開 —— 不然「選起來了」但個股標籤還收著，看起來像沒反應。
 */
@@ -3014,7 +3057,9 @@
   function drawSegList(host, sc, chainId, im, handlers) {
     if (!host) return { nSeg: 0, nTw: 0, nEdge: 0 };
     // 依 layer 排序＝由上游排到下游；同一層維持 YAML 的順序（那是人工校訂過的）
-    const segs = chainSegments(sc, chainId).slice().sort((a, b) => (a.layer || 0) - (b.layer || 0));
+    /* handlers.only()：關聯圖目前的範圍（跟上方剖析圖對得上的環節，見 renderChain 的 relScopeNow）；null＝整條鏈 */
+    const only = handlers && typeof handlers.only === 'function' ? handlers.only() : null;
+    const segs = chainSegments(sc, chainId).filter(s => !only || only.has(s.id)).slice().sort((a, b) => (a.layer || 0) - (b.layer || 0));
     const segIds = new Set(segs.map(s => s.id));
     const cos = sc.companies.filter(c => segIds.has(c.segment));
     const inChain = new Set(cos.map(c => c.id));
@@ -3163,7 +3208,11 @@
 
   function drawChainMap(host, sc, chainId, im, handlers) {
     if (!host) return;
-    const segs = chainSegments(sc, chainId);
+    /* ★ 2026-10-03（Andy：「這兩張圖關係要對上，若無關則下方不需顯示」）：
+       handlers.only() 回傳「上方這張剖析圖上真的出現的環節」，關聯圖只畫那幾格（與它們之間的邊）。
+       null＝族群總覽分頁（沒有剖析圖），照舊畫整條鏈。範圍是空集合時 renderChain 直接把整塊關聯圖藏起來，不會走到這裡。*/
+    const only = handlers && typeof handlers.only === 'function' ? handlers.only() : null;
+    const segs = chainSegments(sc, chainId).filter(s => !only || only.has(s.id));
     const layers = [...new Set(segs.map(s => s.layer))].sort((a, b) => a - b);
     const cos = sc.companies.filter(c => segs.some(s => s.id === c.segment));
     const priceOf = {}; (im ? im.chains.flatMap(c => c.groups).concat(im.industries || []) : []).forEach(g => (g.members || []).forEach(m => { priceOf[m.code] = m; }));
@@ -3195,7 +3244,13 @@
        依**字寬**斷行：中文與全形標點約 11px、英數約 6.5px（11px 字級量出來的）。
        以前一律當成一字 11px，所以「CoWoS/SoIC」這種英數混排會被切得特別碎。
        快滿的時候（最後 3 個字以內）剛好遇到「，」「）」「、」就在那裡斷，不把詞從中間切開。*/
-    const NOTE_W = colW - 10, NOTE_LH = 16, NOTE_MAX = 5;   // 文字從欄左 +6 開始，右邊留 4px；5 行（高度已算進 noteLines）
+    /* ★ 2026-10-03（Andy：「供應鏈關聯圖族群需要框線框起來比較簡潔」）：每個環節包一個 1px 細框（.segbox）。
+       框的外緣＝欄的外緣（x 到 x＋colW），**不往欄距外擴** —— 欄距最窄只有 18px，走線的通道（gapMid）就在那裡，
+       外擴會讓豎線貼著或穿過隔壁的框。所以改成「框不動、裡面的東西往內縮 SEG_IN」：
+       標題色塊內縮 3px、晶片與公司卡內縮 6px、說明文字從 +10 開始。
+       連線端點仍接在 coPos（＝框的左右緣），所以線停在框邊、不會伸進框裡。*/
+    const SEG_IN = 6, inW = colW - SEG_IN * 2;
+    const NOTE_W = inW - 4, NOTE_LH = 16, NOTE_MAX = 5;   // 文字從欄左 +6 開始，右邊留 4px；5 行（高度已算進 noteLines）
     /* 字寬用畫布真的量（字級沿用這個框實際吃到的字型；量不到就退回「中文 13、英數 7.5」的估計）。
        ⚠ 這段 SVG 文字沒有自己的字級規則，吃的是繼承下來的 13px，不是註解上寫的 11px —— 用猜的會溢出欄寬。*/
     const cs0 = (() => { try { return getComputedStyle(host); } catch (e) { return null; } })();
@@ -3242,18 +3297,18 @@
          超出的話量到的內容寬度會比欄寬寬，置中就歪了（1100px 實測偏 1.1%）。*/
       let n = Math.min(6, c.name.length), nm = c.name;
       const cut = (k) => (k >= c.name.length ? c.name : c.name.slice(0, Math.max(1, k - 1)) + '…');
-      nm = cut(n); while (n > 2 && cw + nmW(nm) > colW) { n--; nm = cut(n); }
-      return { nm, code, w: Math.min(colW, Math.ceil(cw + nmW(nm))) };
+      nm = cut(n); while (n > 2 && cw + nmW(nm) > inW) { n--; nm = cut(n); }
+      return { nm, code, w: Math.min(inW, Math.ceil(cw + nmW(nm))) };
     };
     const chipLay = (list) => {             // 依欄寬把晶片一排一排排下去，回傳各自相對位置與總高
       let x = 0, row = 0; const out = [];
-      list.forEach(c => { const k = chipW(c); if (x && x + k.w > colW) { x = 0; row++; }
+      list.forEach(c => { const k = chipW(c); if (x && x + k.w > inW) { x = 0; row++; }
         out.push(Object.assign({ dx: x, dy: row * (CHIP_H + CHIP_GY) }, k)); x += k.w + CHIP_GX; });
       return { items: out, h: list.length ? (row + 1) * (CHIP_H + CHIP_GY) - CHIP_GY + 4 : 0 };
     };
     const segBodyH = (s, list) => (list.length && isFolded(s.id)
       ? 4 + chipLay(list).h + 18
-      : list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18);
+      : list.length * (cardH + gapY) + (list.length ? 0 : noteLines(s, list) * NOTE_LH + 6) + 18);   // 沒台股只有說明的環節多 6px：說明最後一行的字腳才不會貼在外框底線上（2026-10-03）
     const colH = cols.map(col => col.reduce((t, s) => t + 24 + segBodyH(s, bySeg[s.id] || []), 0));
     const bodyH = Math.max.apply(null, colH.concat([0]));
     cols.forEach((col, ci) => { let y = padY + Math.round((bodyH - colH[ci]) / 2); col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + segBodyH(s, list); }); maxH = Math.max(maxH, y); });
@@ -3276,13 +3331,22 @@
        再加原生 tooltip 會兩個框疊在一起。字寬用 12px（.seg-title 的字級）＋ .06em 字距真的量。*/
     const ctx12 = (() => { try { const c = document.createElement('canvas').getContext('2d');
       c.font = `12px ${(cs0 && cs0.fontFamily) || 'sans-serif'}`; return c; } catch (e) { return null; } })();
+    /* 公司卡第二行（.co .sub）的等寬字：index.html 寫 11px、theme4.css（v4 骨架）在桌機拉到 12px，取大的那個量 —— 寧可多切一個字也不要印出卡片。*/
+    const ctx11 = (() => { try { const c = document.createElement('canvas').getContext('2d');
+      c.font = `12px ${getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'monospace'}`; return c; } catch (e) { return null; } })();
     const titleW = (t) => { let w1 = 0; for (const ch of t) w1 += (ctx12 ? ctx12.measureText(ch).width : (/[\u0000-ÿ]/.test(ch) ? 7 : 12)) + 0.72; return w1; };
     const fitTitle = (t, maxW) => { t = String(t || ''); if (titleW(t) <= maxW) return t;
       let a = [...t]; while (a.length > 1 && titleW(a.join('') + '…') > maxW) a.pop(); return a.join('').trimEnd() + '…'; };
     let nodes = '';
+    const segBoxes = [];                      // 每個環節外框的範圍：走線的匯流道要從框底下過，不能切過框
     segs.forEach(s => { const p = pos[s.id]; if (!p) return; const col = segColor(s.id);
-      const tMax = colW - 19 - (foldOn && p.list.length ? 26 : 4);
-      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax))}</text></g>`;
+      const tMax = colW - 25 - (foldOn && p.list.length ? 29 : 7);
+      /* 外框：頂端比標題色塊高 4px、底端在最後一列內容下方 6px（segBodyH 的 18px 段距裡，框吃掉 2px、框與框之間留 16px）。
+         畫在最前面，標題、晶片、卡片都疊在它上面。*/
+      const fy = p.y - 24, fh = segBodyH(s, p.list) + 8;
+      segBoxes.push({ x: p.x, y: fy, w: colW, h: fh });
+      nodes += `<rect class="segbox" data-seg="${s.id}" x="${p.x + 0.5}" y="${fy + 0.5}" width="${colW - 1}" height="${fh - 1}" rx="8" style="--c:${col}"/>`;
+      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x + 3}" y="${p.y - 21}" width="${colW - 6}" height="19" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 13}" cy="${p.y - 11.5}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 22}" y="${p.y - 7}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax))}</text></g>`;
       /* 沒有台股的環節：有 note 就講 note，不要一律寫「台股無直接對應」。
          2026-09-19 踩到：三家設備商搬去 pkg_equipment 之後，「先進封裝 CoWoS/SoIC」變成空的，
          但 CoWoS 明明是台積電自己做的 —— 寫「台股無直接對應」是錯的。*/
@@ -3296,25 +3360,33 @@
            SVG 的 fill 讀得到 CSS 變數，所以直接指到 token 就好。*/
         // 說明全文改由 wireSegTip 的說明框顯示（原生 <title> 寬度管不到，會窄到逐字斷行）
         nodes += `<g class="segnote" data-seg="${s.id}">` + shown.map((w, i) =>
-          `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="var(--ink-3)">${A.fmt.esc(w)}</text>`).join('') + '</g>';
+          `<text class="sub" x="${p.x + SEG_IN + 4}" y="${p.y + 15 + i * NOTE_LH}" fill="var(--ink-3)">${A.fmt.esc(w)}</text>`).join('') + '</g>';
       }
       if (foldOn && p.list.length) {
         const fd = isFolded(s.id);
-        nodes += `<g class="segfold" data-seg="${s.id}" data-folded="${fd ? 1 : 0}"><rect x="${p.x + colW - 24}" y="${p.y - 20}" width="24" height="20" rx="5" fill="transparent"/><text x="${p.x + colW - 12}" y="${p.y - 6}" fill="${col}">${fd ? '▸' : '▾'}</text><title>${fd ? '展開這個環節（每檔一張卡）' : '收合這個環節（只留個股標籤）'}</title></g>`;
+        nodes += `<g class="segfold" data-seg="${s.id}" data-folded="${fd ? 1 : 0}"><rect x="${p.x + colW - 27}" y="${p.y - 21}" width="24" height="19" rx="5" fill="transparent"/><text x="${p.x + colW - 15}" y="${p.y - 7}" fill="${col}">${fd ? '▸' : '▾'}</text><title>${fd ? '展開這個環節（每檔一張卡）' : '收合這個環節（只留個股標籤）'}</title></g>`;
       }
       if (p.list.length && isFolded(s.id)) {
         /* 收合：走線的端點接到「整個環節的晶片區塊」左右緣，不是個別晶片 ——
            晶片擠成一排排，線接到中間那顆會從隔壁晶片上穿過去。*/
         const lay = chipLay(p.list), bh = lay.h;
-        p.list.forEach((c, i) => { const it = lay.items[i]; const x = p.x + it.dx, y = p.y + 4 + it.dy;
+        p.list.forEach((c, i) => { const it = lay.items[i]; const x = p.x + SEG_IN + it.dx, y = p.y + 4 + it.dy;
           coPos[c.id] = { x: p.x, y: p.y + 2, w: colW, h: Math.max(bh, CHIP_H) };
           const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
           const tip = `${c.name}${c.tw_code ? ' ' + c.tw_code : '（外商）'}${m ? ` · ${A.fmt.n(m.close)} ${A.fmt.pct(chg)}` : ''}${deg[c.id] ? '' : ' · 還沒有上下游關聯'}`;
           nodes += `<g class="co chip ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col};--ud:${chg == null ? 'var(--line-2)' : A.upDown(chg)}"><rect x="${x}" y="${y}" width="${it.w}" height="${CHIP_H}" rx="11"/><text x="${x + 8}" y="${y + 15}">${A.fmt.esc(it.nm)} <tspan class="sub">${it.code}</tspan></text><title>${A.fmt.esc(tip)}</title></g>`; });
         return;
       }
+      /* 展開的公司卡畫在框裡（左右各內縮 SEG_IN），但 coPos 仍記框的左右緣：線停在框邊，不穿進框裡碰到卡片。*/
+      const cx0 = p.x + SEG_IN;
+      /* 卡片內縮之後少了 12px，「應用材料 Applied…」「Intel x86 CPU · Intel Foundry」這種第二行（技術）會直接印出卡片右緣。
+         兩行都改成量過再切：第一行＝名稱（12.5px）＋代號（11px 等寬），第二行＝技術（11px 等寬）；右邊留 ? 標記的位置。*/
+      const textMax = inW - 12 - 8;
+      const lineFit = (txt, maxW, fw) => { const t = [...String(txt || '')]; const w = (a) => a.reduce((t1, ch) => t1 + fw(ch), 0);
+        if (w(t) <= maxW) return t.join(''); while (t.length > 1 && w(t) + fw('…') > maxW) t.pop(); return t.join('').trimEnd() + '…'; };
+      const fwName = (ch) => chW(ch) * 12.5 / 13, fwMono = (ch) => (ctx11 ? ctx11.measureText(ch).width : (/[\u0000-ÿ]/.test(ch) ? 6.7 : 11));
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
-        nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${p.x + colW - 12}" cy="${y + 12}" r="6.5"/><text x="${p.x + colW - 12}" y="${y + 15.5}">?</text><title>這家還沒有上下游關聯（supply_chain.yaml 的 edges 待補）</title></g>`}</g>`; }); });
+        nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${cx0}" y="${y}" width="${inW}" height="${cardH}" rx="7"/><rect x="${cx0}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${cx0 + 12}" y="${y + 15}">${A.fmt.esc(lineFit(c.name.length > 12 ? c.name.slice(0, 11) + '…' : c.name, textMax - (deg[c.id] ? 0 : 16) - fwName(' ') - [...(c.tw_code || '外商')].reduce((t1, ch) => t1 + fwMono(ch), 0), fwName))}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${cx0 + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc(lineFit((c.tech || []).slice(0, 2).join(' · '), textMax, fwMono))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${cx0 + inW - 12}" cy="${y + 12}" r="6.5"/><text x="${cx0 + inW - 12}" y="${y + 15.5}">?</text><title>這家還沒有上下游關聯（supply_chain.yaml 的 edges 待補）</title></g>`}</g>`; }); });
     /* 圖十（Andy 2026-09-19：「供應鏈關聯圖 連線對不起來」）。
        以前每一條邊都寫死「來源右緣 → 目標左緣」，於是目標在左邊的邊整條倒著走、
        從卡片底下穿過去，看起來就像連錯人；邊又排在 nodes 之前，被卡片蓋掉一半。
@@ -3352,6 +3424,9 @@
       const xl = Math.min(xa, xb), xr = Math.max(xa, xb);
       let base = Math.max(ay, by) + 12;
       allCards.forEach(c => { if (c.x < xr - 1 && c.x + c.w > xl + 1) base = Math.max(base, c.y + c.h + 10); });
+      /* ★ 2026-10-03：環節加了外框之後，橫越的匯流道也要從**框底下**過（框底比最後一列內容低 6px），
+         只看卡片的話線會從框的下緣那一條切過去，看起來像穿進框裡。*/
+      segBoxes.forEach(f => { if (f.x < xr - 1 && f.x + f.w > xl + 1) base = Math.max(base, f.y + f.h + 6); });
       const k = Math.round(base);
       const y = base + 4 + (((laneUse[k] = (laneUse[k] || 0) + 1) - 1) % 6) * 7;
       laneMax = Math.max(laneMax, y); return y;
@@ -3396,7 +3471,10 @@
        SVG 是 block 元素，撐不滿就靠左。現在寬度已經等於容器寬度，width:100% 剛好 1:1。
        `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
        也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
-    const empty = nEdge0 ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>';
+    /* 範圍縮到「上方剖析圖對得上的幾格」時（only），沒有邊的意思是「這幾格之間」沒有，不是整條鏈沒有 —— 講法要分開（2026-10-03）。*/
+    const empty = nEdge0 ? '' : (only
+      ? '<div class="mapempty">上方這張剖析圖對應的環節之間，supply_chain.yaml 沒有具名的供貨關係，下面只列出這幾格有哪些公司；回「族群總覽」看整條鏈的上下游。</div>'
+      : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>');
     /* ★ 2026-09-26 晚（Andy：「收合 展開合併」）：「全部收合」「全部展開」兩顆鈕合併成**一顆切換鈕**。
        兩顆並排時永遠有一顆是「按了沒反應」的（已經全收了還能按全收），使用者要先讀懂現在是哪個狀態才知道該按哪顆。
        現在鈕上只寫「按下去會發生的那件事」：全部展開中 → 「全部收合」；只要有任何一個環節收著 → 「全部展開」。
