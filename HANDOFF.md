@@ -1,5 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 產業地圖「地圖」檢視（2026-10-03，台北，產品設計，分支 `claude/industry-map-v2`，預覽 `preview/industry-map`，**未推 main**，DECISIONS #304）
+
+- Andy：「產業地圖需要圖案結合 Map 概念」。`#industry` 全市場分頁加「地圖」檢視（**預設**），舊的長條＋圓餅保留成「清單」，右上「地圖｜清單」切換（`tw.indView`）。≤820 一律清單、沒有切換鈕。
+- [x] 地圖（新檔 `site/indmap.js`，自繪 SVG）：產業鏈＝島（7 鏈＋法定產業別）、族群＝街區（大小＝成交值，預設開根號可切等比；顏色＝今日漲跌，可切資金熱度＝flow_v3 w0 占比差 pp）、
+  島內左→右＝上游→中游→下游、每島與每街區都有圖示（75 種自畫＋icons.js 的 board）、道路＝supply_chain 跨區供應邊（實線，盾牌寫邊數）＋共用成分股（虛線）。
+  點島 → `#industry/<chain>`、點街區 → `#industry/group/<gid>`、滑過有數字、道路滑過把兩端相關族群標亮。深淺＋v4 三主題只換變數。
+- 改到的檔：`site/indmap.js`（新）、`site/industry.js`（`renderMap` 分流地圖／清單、新 `renderMapView`、`indView`、跨 820 自動切、`Industry._view` 驗收鉤子；route 把 `sc` 傳進 renderMap）、
+  `site/index.html`（多一行 `<script src="indmap.js">`，在 industry.js 前）、`site/modules.js`（chain.map 的 note／tests）、`scripts/_uitest.py`（新段落 `產業地圖Map`、`CONSENT_PRESET` 預寫 `tw.indView='list'`）。
+- **這批驗了**：`_preview.py` 全綠；`_uitest.py --workers 1 --sections 產業,族群頁,產業鏈導覽,新-產業與個股,產業地圖Map` → 第一輪在機器負載 29（別的 agent 同時跑三組驗收）時 37 紅，全是 3D／截圖／點擊逾時（產業段 611 秒）＋地圖段 1100 寬重畫晚到；地圖段補「等 W 對上容器寬」之後，負載 14 時重跑**五段全部 0 個問題**（產業 514s、族群頁 9s、產業鏈導覽 17s、新-產業與個股 84s、產業地圖Map 37s）。沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。`site/data` 是 symlink 到主 checkout（2026-10-01 資料）。
+- ⚠ 其他段落現在預設看清單（預寫 tw.indView='list'）—— 以後要驗全市場分頁的「地圖」行為，寫在 `產業地圖Map` 段，或在段落裡自己 `localStorage.setItem('tw.indView','map')`。
+- 下一步：Andy 在預覽網址確認 → 合併 main。待他決定的：預設面積（壓縮／等比）、要不要補「產業常識的路」（要的話正路是補 supply_chain.yaml 的 edges，見 #304 第 4 點）。
+
 ## 10-03 04:15 合併狀態（CEO）
 
 - **#303 已推 main（faae730）**。合併後這批驗了：`_preview.py` 全綠；`_uitest --sections 個股總覽等高1003,獲利並排本益比1003,個股總覽三欄1002,市場明細兩欄1003,個股` 全 0。

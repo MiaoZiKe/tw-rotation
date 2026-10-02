@@ -226,9 +226,10 @@
     { "id": "chain.map", "name": "產業地圖", "question": "知識", "ask": "台股分成哪幾條產業鏈，各自現在強弱如何",
       "tier": "免費", "law": "🟢",
       "at": [
-        { "page": "industry", "selector": ["#indMap", "#chainSwitch"] }
+        { "page": "industry", "selector": ["#indMap", "#chainSwitch"],
+          "note": "2026-10-02 起全市場分頁預設是「地圖」檢視（site/indmap.js：產業鏈＝島、族群＝街區、道路＝跨區供應邊），長條＋圓餅保留成「清單」檢視（tw.indView）；≤820 一律清單。" }
       ],
-      "tests": ["產業", "產業鏈導覽"] },
+      "tests": ["產業", "產業鏈導覽", "產業地圖Map"] },
 
     { "id": "chain.diagram", "name": "產業鏈剖析圖（2D＋3D）", "question": "知識", "ask": "這個產品／製程裡面到底有什麼零件，台廠站在哪幾格",
       "tier": "免費看／399 匯出／799 商用授權", "law": "🟢",

@@ -92,7 +92,7 @@
       }
       renderChain(im, sc, gd, { seg: rest[1] || null }); return;
     }
-    state.level = 0; state.chain = null; state.group = null; state.dg = null; renderMap(im);
+    state.level = 0; state.chain = null; state.group = null; state.dg = null; renderMap(im, sc);
   }
   function chainOfGroup(im, gid) {
     if (!im) return null;
@@ -253,8 +253,93 @@
     scrollTabIntoView(strip);
   }
 
-  // ================================================================ Level 0：產業地圖（族群總覽）
-  function renderMap(im) {
+  // ================================================================ Level 0：產業地圖（地圖｜清單）
+  /* ★ 2026-10-02（Andy：「產業地圖需要圖案結合 Map 概念」）：全市場分頁多一個「地圖」檢視（site/indmap.js），
+     **預設地圖**、舊的「族群漲跌長條＋成交值圓餅」保留成「清單」檢視，右上切換，記在 localStorage（tw.indView）。
+     手機與窄畫面（≤820）一律清單 —— 地圖上的字是真的像素大小（不縮放），820 以下塞不下 95 個街區的名字，
+     而且那個寬度沒有滑鼠可以滑過看數字。跨過 820 時（縮放瀏覽器）自動換。*/
+  const IND_VIEW_KEY = 'tw.indView', IND_COLOR_KEY = 'tw.indMapColor', IND_SIZE_KEY = 'tw.indMapSize';
+  const indNarrow = () => { try { return window.matchMedia('(max-width:820px)').matches; } catch (e) { return false; } };
+  const imLsGet = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+  const imLsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只影響記不記得 */ } };
+  function indView() { if (indNarrow() || !window.IndMap) return 'list'; return imLsGet(IND_VIEW_KEY, 'map') === 'list' ? 'list' : 'map'; }
+  let mapLast = null, mapApi = null, mapGen = 0;
+  const viewSegHtml = (v) => `<span class="seg imview" id="imView" role="group" aria-label="產業地圖檢視">`
+    + `<button type="button" data-v="map" class="${v === 'map' ? 'on' : ''}" aria-pressed="${v === 'map'}" title="地圖：每條產業鏈一塊區域，族群是街區，道路是跨區的供應關係">地圖</button>`
+    + `<button type="button" data-v="list" class="${v === 'list' ? 'on' : ''}" aria-pressed="${v === 'list'}" title="清單：族群漲跌長條＋成交值占比圓餅">清單</button></span>`;
+  function wireViewSeg(root) {
+    $$('#imView button', root).forEach(b => b.onclick = () => {
+      const v = b.dataset.v;
+      if (v === indView()) return;
+      imLsSet(IND_VIEW_KEY, v);
+      if (mapLast) renderMap(mapLast.im, mapLast.sc);
+    });
+  }
+  {
+    let mq = null; try { mq = window.matchMedia('(max-width:820px)'); } catch (e) { /* 舊瀏覽器 */ }
+    if (mq && mq.addEventListener) mq.addEventListener('change', () => {
+      const mp = document.getElementById('indMap');
+      if (state.level === 0 && mapLast && /^#industry\/?$/.test(location.hash || '') && mp && mp.style.display !== 'none') renderMap(mapLast.im, mapLast.sc);
+    });
+  }
+  async function renderMapView(host, im, sc) {
+    const gen = ++mapGen;
+    const color0 = imLsGet(IND_COLOR_KEY, 'chg') === 'flow' ? 'flow' : 'chg';
+    const size0 = imLsGet(IND_SIZE_KEY, 'sqrt') === 'lin' ? 'lin' : 'sqrt';
+    const nReg = (im.chains || []).length + ((im.industries || []).length ? 1 : 0);
+    const nGrp = (im.chains || []).reduce((s, c) => s + c.groups.length, 0);
+    const segBtn = (id, cur, opts, lbl) => `<span class="imlbl">${lbl}</span><span class="seg" id="${id}" role="group" aria-label="${lbl}">`
+      + opts.map(([v, t, tt]) => `<button type="button" data-v="${v}" class="${v === cur ? 'on' : ''}" aria-pressed="${v === cur}" title="${tt}">${t}</button>`).join('') + '</span>';
+    host.innerHTML = `<div class="row spread gphead imhead">
+        <h4 style="min-width:0;margin:0">全市場產業地圖<button class="howbtn pop" data-how="indmap" type="button" aria-label="產業地圖怎麼看">?</button>
+          <small class="muted">　${nReg} 個產業區 · ${nGrp} 個族群街區</small></h4>
+        <div class="row imctl">${A.hmDate(im.date)}
+          ${segBtn('imColor', color0, [['chg', '今日漲跌', '顏色＝今日漲跌幅（成交值加權），紅漲綠跌'], ['flow', '資金熱度', '顏色＝本週成交占比 − 上週（pp）：紅＝錢流進來、綠＝錢流出去']], '顏色')}
+          ${segBtn('imSize', size0, [['sqrt', '壓縮', '面積＝成交值開根號：大的仍然大，小族群也點得到'], ['lin', '等比', '面積＝成交值等比（極小的族群保留最小一格）']], '面積')}
+          ${viewSegHtml('map')}
+        </div>
+      </div>
+      <div class="howtxt" id="how-indmap" hidden>${A.howHTML('這張地圖回答：今天全市場的錢在哪一區、哪一區在漲，區和區之間怎麼連。', [
+        '每一塊島＝一條產業鏈（最後一塊是法定產業別）',
+        '島上的方塊＝族群，大小＝成交值，顏色＝漲跌或資金熱度',
+        '島內由左到右＝上游 → 中游 → 下游',
+        '道路＝資料裡真的有的跨區關係，盾牌上的數字＝幾條',
+        '點島進產業鏈、點方塊看族群個股，滑過看數字',
+      ], '實線道路＝supply_chain 的公司供應關係兩端落在不同區（含海外公司）；虛線小路＝同一家公司同時是兩區族群的成分股。沒有道路的島＝資料裡沒有跨區關係（不是沒畫）。'
+        + '面積預設開根號（壓縮），所以小族群放大了、大族群縮小了，數字一律看提示框；「等比」才是成交值的真實比例。資金熱度＝flow_v3 本週與上週的成交占比差（pp）。')}</div>
+      <div class="imwrap" id="imMapWrap"><svg id="imMap" role="img" aria-label="全市場產業地圖"></svg><div class="imtip" id="imTip" hidden></div></div>
+      <div class="imfoot"><div class="imkeys"><span><i></i>道路＝跨區供應關係</span><span><i class="sh"></i>小路＝共用成分股</span>
+        <span>面積＝成交值</span><span class="muted">完整版圖：</span><a class="lk" href="#heatmap" title="方塊大小＝成交值，一眼看出錢集中在哪">產業熱力圖 →</a></div>
+        <span id="imLgAnchor"></span></div>`;
+    wireViewSeg(host);
+    const [gt, flow] = await Promise.all([
+      A.load('groups_today').catch(() => []),
+      color0 === 'flow' ? A.load('flow_v3').catch(() => null) : Promise.resolve(null),
+    ]);
+    if (gen !== mapGen || !host.isConnected) return;
+    let focus = null, color = color0;
+    const legend = () => A.hmLegend('imLgAnchor', color === 'flow' ? 'flow' : 'chg', focus, (f) => { focus = f; if (mapApi) mapApi.setFocus(f); legend(); });
+    mapApi = window.IndMap.render(host, { im, sc, gt, flow, color: color0, size: size0 });
+    legend();
+    // 提示框的「資金熱度」那一列要 flow_v3：等瀏覽器閒下來再拿（總覽來過就已經在快取裡），只更新數字不重畫
+    if (!flow) (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(() => {
+      A.load('flow_v3').then(f => { if (gen === mapGen && mapApi && color === 'chg') mapApi.setFlow(f, false); }).catch(() => {});
+    }, { timeout: 3000 });
+    const segWire = (id, fn) => $$(`#${id} button`, host).forEach(b => b.onclick = () => {
+      $$(`#${id} button`, host).forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
+      fn(b.dataset.v);
+    });
+    segWire('imColor', async (v) => {
+      imLsSet(IND_COLOR_KEY, v); color = v; focus = null;
+      if (v === 'flow') { const f = await A.load('flow_v3').catch(() => null); if (gen !== mapGen) return; if (mapApi) mapApi.setFlow(f); }
+      if (mapApi) mapApi.setColor(v);
+      legend();
+    });
+    segWire('imSize', (v) => { imLsSet(IND_SIZE_KEY, v); if (mapApi) mapApi.setSize(v); });
+  }
+  function renderMap(im, sc) {
+    if (sc === undefined && mapLast) sc = mapLast.sc;
+    mapLast = { im, sc };
     /* ★ 2026-09-23：Andy「將產業地圖移到分頁名稱上」。
        分頁本身已經叫「產業地圖」了，底下再寫一次同樣四個字是重複的，
        而且它佔掉一整列。所以**第 0 層不畫麵包屑**。
@@ -274,10 +359,16 @@
        不是 Excel 那種「分頁貼著內容上緣、連成一片」。產業鏈頁用的是同一套（見 renderChain）。*/
     el.innerHTML = `${chainTabsHtml(im, '_all')}<div class="card nbcard" id="gpHost"></div>`;
     wireChainTabs(el, '_all');
+    const view = indView();
+    if (view === 'map') { gpStopLive(); renderMapView($('#gpHost', el), im, sc); return; }
+    mapGen++; mapApi = null;
     renderGroupPanel($('#gpHost', el), {
       scope: '全市場', groups: groups, asOf: (im && im.date) || '',
       tail: '<span class="muted">完整版圖：</span><a class="lk" href="#heatmap" title="方塊大小＝成交值，一眼看出錢集中在哪">產業熱力圖 →</a>',
     });
+    // 清單檢視也要切得回地圖：切換鈕塞進族群總覽標題列的右邊（「即時」左邊），不另佔一列。窄畫面沒有地圖，不放。
+    const lv = $('#gpHost .gplive', el);
+    if (lv && !indNarrow() && window.IndMap) { lv.insertAdjacentHTML('afterbegin', viewSegHtml('list')); wireViewSeg(lv); }
   }
   /* ================================================================ 族群總覽：長條圖 ＋ 圓餅圖
      Andy 2026-09-23：「產業地圖 以及 產業地圖裡面的族群如半導體，Default 是各族群漲幅的長條圖
@@ -1016,7 +1107,7 @@
   function renderChain(im, sc, gd, opts) {
     opts = opts || {};
     const ch = chainData(im, state.chain);
-    if (!ch) { show(true, false, false); renderMap(im); return; }
+    if (!ch) { show(true, false, false); renderMap(im, sc); return; }
     show(false, true, false); crumbs([{ label: '產業地圖', href: '#industry' }, { label: ch.name }]);
     const el = $('#indChain');
     /* 重畫這一頁之前先把上一個 3D 場景收掉。
@@ -6788,6 +6879,8 @@
   }
   window.Industry = { route, routeHeat,
     watchBars,
+    // 驗收用：產業地圖現在是哪個檢視（map／list），地圖的狀態見 window.IndMap.state()
+    _view: () => indView(),
     // 驗收用：族群總覽現在是什麼狀態（族群／個股、幾條、即時開沒開、滑到誰、onLive 被呼叫幾次）
     _gp: () => Object.assign({}, gpDbg, { timer: !!gpTimer }),
     // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」

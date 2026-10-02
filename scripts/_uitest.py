@@ -19442,6 +19442,8 @@ SECTIONS = {
     # R3 審查（2026-09-25）產業頁異常：獨立成一段 —— 掛在「產業」尾巴的話，前面 3D 截圖逾時就整段跑不到
     "產業R3審查":          lambda pg, b, base, code: t_r3_industry(pg, base),
     "產業鏈導覽":          lambda pg, b, base, code: t_chainnav(pg, base),
+    # ★ 2026-10-02 Andy：「產業地圖需要圖案結合 Map 概念」—— 全市場分頁的地圖檢視（預設）＋清單切換、hover 數字、點區域／族群（⚠ 一律 --workers 1）
+    "產業地圖Map":         lambda pg, b, base, code: t_industry_map_1002(b, base, code),
     "一般電子鏈":          lambda pg, b, base, code: t_electronics(pg, base),
     "新-大盤三張圖":       lambda pg, b, base, code: t_new_market3(pg, base),
     # ★ 2026-09-28 Andy：櫃買 1H／4H 有歷史、加權 15／30／1H 真實成交值、量副圖拖一張另外兩張連動
@@ -22592,7 +22594,11 @@ def t_wrap_r2(pg, base, code):
 
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
-                  "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+                  "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');"
+                  # ★ 2026-10-02 產業地圖預設改成「地圖」檢視（site/indmap.js）。既有幾十段驗的是全市場分頁的長條＋圓餅
+                  #   （#gpBar／#gpPie、點長條下鑽、即時…），那一套現在叫「清單」檢視 —— 預寫 tw.indView='list' 讓它們照舊驗清單；
+                  #   「預設是地圖」與地圖本身由「產業地圖Map」段用原版 new_context（不預寫）驗。只在沒有值時才寫，段落自己切的不會被蓋。
+                  "if(!localStorage.getItem('tw.indView'))localStorage.setItem('tw.indView','list');}catch(e){}")
 # ★ 2026-09-26 晚改前→改後（Andy：「先退回到有腳印那版本」）：
 #   改前：「顯示腳印」預設關，所以這裡有一條 FEET_PRESET 替每一段預寫 tw.rot.feet='1'（＝勾過腳印），
 #     讓既有幾十段驗腳印本身的段落（時鐘v2、足跡輪盤全部腳印、補間…）照舊看得到腳印。
@@ -22619,6 +22625,180 @@ def _preset_consent() -> None:
     Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx
     Browser.new_page, Browser.new_context = new_page, new_context
     Browser._tw_consent = True
+
+
+# ★ 2026-10-02 產業地圖「地圖」檢視（Andy：「產業地圖需要圖案結合 Map 概念」，site/indmap.js）。
+#   #industry 全市場分頁多一個「地圖」檢視、預設地圖；舊的長條＋圓餅是「清單」檢視（tw.indView）。
+#   ⚠ 其他段落一律預寫 tw.indView='list'（見 CONSENT_PRESET）—— 它們驗的是清單那一套（#gpBar／#gpPie），
+#     預設改成地圖之後不預寫就會全部找不到長條。所以「預設是地圖」只能在這一段用原版 new_context（沒有預寫）驗。
+IM_ST = "() => window.IndMap && window.IndMap.state()"
+IM_BLK = """(gid) => { const e = document.querySelector(`#imMap .imb[data-gid="${gid}"] rect.blk`); if (!e) return null;
+  const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+  fill: getComputedStyle(e).fill, bin: e.parentNode.dataset.bin }; }"""
+IM_TIP = "() => { const t = document.getElementById('imTip'); return t && !t.hidden ? t.innerText : ''; }"
+# 每一塊街區的字都要在自己的方塊裡、每一塊街區都要在自己的島裡（1100 寬第一版就踩到「一般電子三欄放不下、方塊跑出島外」）
+IM_FIT = """() => { const out = { txt: [], blk: [], n: 0, t: 0 };
+  document.querySelectorAll('#imMap .im-reg').forEach(rg => {
+    const land = rg.querySelector('.im-land').getBBox();
+    rg.querySelectorAll('.imb').forEach(g => { out.n++;
+      const r = g.querySelector('rect.blk').getBBox();
+      if (r.x < land.x - 1 || r.y < land.y - 1 || r.x + r.width > land.x + land.width + 1 || r.y + r.height > land.y + land.height + 1)
+        out.blk.push(g.dataset.gid);
+      g.querySelectorAll('text').forEach(t => { out.t++; const b = t.getBBox();
+        if (b.x < r.x - 1 || b.y < r.y - 1 || b.x + b.width > r.x + r.width + 1.5 || b.y + b.height > r.y + r.height + 1.5)
+          out.txt.push(g.dataset.gid + '「' + t.textContent + '」'); });
+    }); });
+  return out; }"""
+
+
+def _im_hover(pg, sel):
+    bb = pg.locator(sel).first.bounding_box()
+    if not bb:
+        return False
+    pg.mouse.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2)
+    pg.wait_for_timeout(250)
+    return True
+
+
+def t_industry_map_1002(b, base, code):
+    """產業地圖「地圖」檢視：真的切、真的滑、真的點，每一步驗畫面因此改變了。"""
+    import json as _json
+    im = _json.loads((ROOT / "site" / "data" / "industry_map.json").read_text(encoding="utf-8"))
+    fd = next((g for c in im["chains"] for g in c["groups"] if g["id"] == "foundry"), None)
+    raw = getattr(type(b), "_tw_raw_new_context", None)
+    ctx = raw(b, viewport={"width": 1440, "height": 950}) if raw else b.new_context(viewport={"width": 1440, "height": 950})
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    # 原版 context 沒有預寫同意條款 —— 只補同意條款與導覽，**不寫 tw.indView**（要量的就是「沒設過的人」看到什麼）
+    pg.add_init_script("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',JSON.stringify({v:'*',at:'test'}));"
+                       "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');localStorage.setItem('tw.live.on','0');}catch(e){}")
+    T = "[產業地圖Map]"
+    try:
+        pg.goto(f"{base}#industry", wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#imMap .imb').length > 40", 8000)
+        st = pg.evaluate(IM_ST) or {}
+        ok(f"{T} 沒設定過的人一進 #industry 預設就是地圖（不是長條清單）",
+           pg.evaluate("() => window.Industry._view()") == "map" and count(pg, "#imMap") == 1 and count(pg, "#gpBar") == 0,
+           (pg.evaluate("() => window.Industry._view()"), count(pg, "#imMap"), count(pg, "#gpBar")))
+        n_chain = len(im["chains"])
+        ok(f"{T} 每條產業鏈一塊區域（＋法定產業別一塊）", len(st.get("regions", [])) == n_chain + 1, len(st.get("regions", [])))
+        n_grp = sum(len([g for g in c["groups"] if (g.get("turnover") or 0) > 0]) for c in im["chains"])
+        ok(f"{T} 族群全部畫成街區（產業鏈 {n_grp} 個＋法定產業別前 11＋其餘一塊）", st.get("blocks", 0) >= n_grp + 2, st.get("blocks"))
+        ok(f"{T} 每塊區域有自己的產業圖示徽章", count(pg, "#imMap .im-reg .im-bico") == len(st.get("regions", [])), count(pg, "#imMap .im-bico"))
+        # 太小的方塊（< 15px）刻意什麼都不放（滑過一樣有提示），所以量「至少一半的街區有圖案」而不是每一塊
+        ok(f"{T} 街區裡有圖案（大方塊的地標圖示＋小方塊的小圖示，至少一半的街區）",
+           count(pg, "#imMap .imb .wm") + count(pg, "#imMap .imb .ic") >= st.get("blocks", 999) * 0.5,
+           (count(pg, "#imMap .imb .wm"), count(pg, "#imMap .imb .ic")))
+        roads = st.get("roads", [])
+        ok(f"{T} 產業之間有道路（資料裡的跨區供應邊／共用成分股），半導體 ⇄ AI 伺服器那條在",
+           any(r["key"] == "ai_server|semiconductor" and r["supply"] > 0 for r in roads) and count(pg, "#imMap .im-rd") == len(roads), roads)
+        ok(f"{T} 主控台沒有錯誤", not errs, errs[:3])
+
+        # ---- 滑過：族群、道路、區域都要有數字
+        _im_hover(pg, "#imMap .imb[data-gid='foundry']")
+        tip = pg.evaluate(IM_TIP)
+        want = (("+" if fd["chg_pct"] > 0 else "") + f"{round(fd['chg_pct'], 1):.1f}%") if fd else "%"
+        ok(f"{T} 滑過「晶圓代工」街區 → 提示框寫出名稱、漲跌（跟 industry_map.json 一致）、成交值",
+           "晶圓代工" in tip and want in tip and "成交值" in tip and "億" in tip, (want, tip[:120]))
+        _im_hover(pg, "#imMap .im-shield[data-road='ai_server|semiconductor']")
+        tip = pg.evaluate(IM_TIP)
+        sup = next((r["supply"] for r in roads if r["key"] == "ai_server|semiconductor"), -1)
+        hi = pg.evaluate("() => ({ hi: document.querySelectorAll('#imMap .imb.hi').length, dim: document.querySelectorAll('#imMap .imb.dim').length })")
+        ok(f"{T} 滑過道路盾牌 → 提示框寫出幾條供應關係（{sup}）、兩端相關族群標亮、其餘壓暗",
+           "供應關係" in tip and f"{sup} 條" in tip and hi["hi"] > 0 and hi["dim"] > 0, (tip[:80], hi))
+        _im_hover(pg, "#imMap .im-reg[data-cid='financial'] .im-plate")
+        tip = pg.evaluate(IM_TIP)
+        ok(f"{T} 滑過區域標題牌 → 提示框寫出區域名稱與加權漲跌", "金融" in tip and "加權漲跌" in tip, tip[:80])
+        pg.mouse.move(5, 5); pg.wait_for_timeout(200)
+        ok(f"{T} 滑出地圖 → 提示框收掉、壓暗還原", pg.evaluate(IM_TIP) == "" and count(pg, "#imMap .imb.dim") == 0)
+
+        # ---- 顏色：今日漲跌 → 資金熱度
+        b0 = pg.evaluate("() => [...document.querySelectorAll('#imMap .imb')].map(e => e.dataset.bin).join(',')")
+        click(pg, "#imColor button[data-v='flow']", 1500)
+        wait_until(pg, "() => window.IndMap.state().color === 'flow'", 6000)
+        b1 = pg.evaluate("() => [...document.querySelectorAll('#imMap .imb')].map(e => e.dataset.bin).join(',')")
+        ok(f"{T} 按「資金熱度」→ 街區顏色真的換了、圖例換成資金流向 pp、記進 localStorage",
+           b0 != b1 and pg.evaluate("() => (document.querySelector('.imfoot .hmlegend')||{}).dataset.kind") == "flow"
+           and pg.evaluate("() => localStorage.getItem('tw.indMapColor')") == "flow",
+           (b0[:40], b1[:40]))
+        click(pg, "#imColor button[data-v='chg']", 800)
+        ok(f"{T} 按回「今日漲跌」→ 顏色回到原本那一組", pg.evaluate("() => [...document.querySelectorAll('#imMap .imb')].map(e => e.dataset.bin).join(',')") == b0)
+
+        # ---- 面積：壓縮 → 等比
+        a0 = pg.evaluate(IM_BLK, "foundry")
+        click(pg, "#imSize button[data-v='lin']", 900)
+        a1 = pg.evaluate(IM_BLK, "foundry")
+        ok(f"{T} 按「等比」→ 晶圓代工（成交值最大）那一塊真的變大、記進 localStorage",
+           a0 and a1 and a1["w"] * a1["h"] > a0["w"] * a0["h"] * 1.2 and pg.evaluate("() => localStorage.getItem('tw.indMapSize')") == "lin", (a0, a1))
+        click(pg, "#imSize button[data-v='sqrt']", 900)
+
+        # ---- 圖例：點一格只亮那一級
+        pg.locator(".imfoot .hmlegend .hmcell").nth(6).click(); pg.wait_for_timeout(500)
+        d1 = count(pg, "#imMap .imb.dim")
+        on6 = count(pg, "#imMap .imb[data-bin='6']:not(.dim)")
+        pg.locator(".imfoot .hmlegend .hmcell").nth(6).click(); pg.wait_for_timeout(500)
+        ok(f"{T} 點圖例「>3」→ 其他級的街區壓暗、>3 的照亮；再點一次還原",
+           d1 > 0 and on6 == count(pg, "#imMap .imb[data-bin='6']") and count(pg, "#imMap .imb.dim") == 0, (d1, on6))
+
+        # ---- 版面：字不出方塊、方塊不出島、整頁沒有橫向捲軸
+        for w in (1440, 1100):
+            pg.set_viewport_size({"width": w, "height": 950}); pg.wait_for_timeout(700)
+            # 重畫是 ResizeObserver＋120ms 去抖動；機器忙的時候會晚到，等它對上容器寬再量
+            wait_until(pg, "() => Math.abs(window.IndMap.state().W - document.getElementById('imMapWrap').clientWidth) <= 8", 6000)
+            f = pg.evaluate(IM_FIT)
+            sw = pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]")
+            st2 = pg.evaluate(IM_ST)
+            ok(f"{T} {w} 寬：街區的字全部在自己的方塊裡、街區全部在自己的島裡（{f['n']} 塊、{f['t']} 段字）",
+               not f["txt"] and not f["blk"] and f["n"] > 40, (f["txt"][:4], f["blk"][:4]))
+            ok(f"{T} {w} 寬：地圖跟著寬度重畫（W＝容器寬）、整頁沒有橫向捲軸",
+               abs(st2["W"] - pg.evaluate("() => document.getElementById('imMapWrap').clientWidth")) <= 8 and sw[0] <= sw[1] + 1, (st2["W"], sw))
+        pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(600)
+
+        # ---- 清單 ⇄ 地圖
+        click(pg, "#imView button[data-v='list']", 1500)
+        ok(f"{T} 按「清單」→ 換成族群長條＋圓餅、地圖不見、記進 localStorage、切換鈕跟著在標題列",
+           count(pg, "#gpBar") == 1 and count(pg, "#imMap") == 0 and pg.evaluate("() => localStorage.getItem('tw.indView')") == "list"
+           and count(pg, ".gplive #imView button.on[data-v='list']") == 1, (count(pg, "#gpBar"), count(pg, "#imMap")))
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+        ok(f"{T} 重新整理 → 還是清單（記得住）", count(pg, "#gpBar") == 1 and count(pg, "#imMap") == 0)
+        click(pg, "#imView button[data-v='map']", 1500)
+        wait_until(pg, "() => document.querySelectorAll('#imMap .imb').length > 40", 6000)
+        ok(f"{T} 按「地圖」→ 地圖回來、長條不見", count(pg, "#imMap") == 1 and count(pg, "#gpBar") == 0)
+
+        # ---- 點：族群 → 族群頁；區域 → 產業鏈頁；鍵盤 Enter 也進得去
+        click(pg, "#imMap .imb[data-gid='foundry']", 1500)
+        ok(f"{T} 點「晶圓代工」街區 → 進族群頁 #industry/group/foundry", pg.evaluate("location.hash") == "#industry/group/foundry", pg.evaluate("location.hash"))
+        pg.goto(f"{base}#industry", wait_until="networkidle"); wait_until(pg, "() => document.querySelectorAll('#imMap .imb').length > 40", 6000)
+        click(pg, "#imMap .im-reg[data-cid='ai_server'] .im-plate", 1500)
+        ok(f"{T} 點「AI 伺服器」區域 → 進產業鏈頁 #industry/ai_server", pg.evaluate("location.hash") == "#industry/ai_server", pg.evaluate("location.hash"))
+        pg.goto(f"{base}#industry", wait_until="networkidle"); wait_until(pg, "() => document.querySelectorAll('#imMap .imb').length > 40", 6000)
+        pg.evaluate("() => document.querySelector(\"#imMap .imb[data-gid='hbm']\").focus()")
+        pg.keyboard.press("Enter"); pg.wait_for_timeout(1200)
+        ok(f"{T} 鍵盤：街區聚焦按 Enter → 進族群頁", pg.evaluate("location.hash") == "#industry/group/hbm", pg.evaluate("location.hash"))
+
+        # ---- 窄畫面（≤820）不換頁就自動退回清單、沒有切換鈕
+        pg.goto(f"{base}#industry", wait_until="networkidle"); wait_until(pg, "() => document.querySelectorAll('#imMap .imb').length > 40", 6000)
+        pg.set_viewport_size({"width": 800, "height": 950}); pg.wait_for_timeout(1500)
+        ok(f"{T} 視窗縮到 800 → 自動換成清單（手機與窄畫面維持清單）、沒有地圖／清單切換鈕",
+           count(pg, "#gpBar") == 1 and count(pg, "#imMap") == 0 and count(pg, "#imView") == 0, (count(pg, "#gpBar"), count(pg, "#imMap"), count(pg, "#imView")))
+        pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(1500)
+        ok(f"{T} 視窗拉回 1440 → 地圖回來", count(pg, "#imMap") == 1)
+
+        # ---- 淺色主題：同一套骨架換皮（海、陸地、字色都跟著主題變數走）
+        def skin():
+            return pg.evaluate("""() => { const q = (s) => document.querySelector(s);
+              return { sea: getComputedStyle(q('#imMapWrap')).getPropertyValue('--im-sea').trim(), land: getComputedStyle(q('#imMap .im-land')).fill,
+                       name: getComputedStyle(q('#imMap .im-rname')).fill, blk: getComputedStyle(q('#imMap .imb rect.blk')).fill }; }""")
+        dk = skin()
+        pg.evaluate("() => { localStorage.setItem('tw.theme','light'); }")
+        pg.reload(wait_until="networkidle"); wait_until(pg, "() => document.querySelectorAll('#imMap .imb').length > 40", 6000)
+        lt = skin()
+        ok(f"{T} 淺色主題：陸地、區域名稱字色真的換了（不是寫死的深色）、地圖照樣畫得出來",
+           lt["land"] != dk["land"] and lt["name"] != dk["name"] and count(pg, "#imMap .imb") > 40, (dk, lt))
+    finally:
+        ctx.close()
 
 
 def main() -> int:
