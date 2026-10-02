@@ -5303,16 +5303,20 @@
           滿寬之後基本面七格排成一列，籌碼快照三張小圖在寬畫面（容器 ≥900px）也排成一列，窄畫面才往下排
        ③ 各面向細節四張並排（桌機一列四張、窄畫面依序往下排）：技術面、技術面訊號、基本面、消息面。
           技術面訊號那一張就是積木 stock.signal 的出口（StockSignal.view），其他三張是 stock.mtf 的 facetCards。
-     擋掉任何一支積木檔，只少那幾張，其他照常（積木原則三）。K 線卡右上角那一份 #skAi（頂部、另一支分支在改）這裡不動。*/
+     擋掉任何一支積木檔，只少那幾張，其他照常（積木原則三）。K 線卡右上角那一份 #skAi（頂部、另一支分支在改）這裡不動。
+     ★ 2026-10-02 深夜（Andy 看了上線版說「誤解了」，DECISIONS #297）：改成**桌機三欄並排**（#skOv3）：
+       左欄＝基本面卡｜中欄＝籌碼快照卡（卡內四塊由上往下：法人近 20 日 → 集保 → 信用與借券（含當沖率）→ 量比）｜
+       右欄＝AI 卡（StockAI.ovCard：標題＋免責 → 一行重點 → 膠囊分頁籤 → 一次一面，技術面訊號那一面照舊是 StockSignal.view 的出口）。
+       欄寬 1 : 1 : 1.2（右欄字多）；頂端對齊、各自自然高度（理由見 #297：切 AI 分頁時左、中兩欄不跟著變高）。
+       容器 1080～790px（視窗約 1100～820）兩欄：基本面＋籌碼疊成左欄、AI 右欄；更窄一欄、依序往下排。
+       .skovkpi 這層包裝留著（三欄時 display:contents 讓兩張卡各佔一欄；兩欄時它就是左欄）—— 積木驗收用 `.skovkpi > .card` 找 stock.fund 那兩張。
+       擋掉 stock_ai.js：右欄只剩技術面訊號那一張（舊樣式的 #ovFacets 單卡）；兩支都擋：右欄整個不出現，左、中兩欄照常。*/
   function tabOverview(pg, el) {
     const AI = window.StockAI, SG = window.StockSignal;
-    const brief = AI && AI.brief ? AI.brief(pg, A.fmt) : '';
-    const fc = (AI && AI.facetCards ? AI.facetCards(pg, A.fmt) : null) || {};
     const sig = SG ? SG.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt, { tag: true, id: 'ovF-sig' }) : '';
-    const cards = [fc.tech, sig, fc.fund, fc.news].filter(Boolean);
-    el.innerHTML = `<div class="skov" id="skOv">${brief}
-      <div class="skovkpi">${fundCard(pg)}${chipCard(pg)}</div>
-      ${cards.length ? `${fc.tech && AI.facetHead ? AI.facetHead() : ''}<div class="skfacets" id="ovFacets" data-n="${cards.length}">${cards.join('')}</div>` : ''}</div>`;
+    const right = AI && AI.ovCard ? AI.ovCard(pg, A.fmt, sig) : (sig ? `<div class="skfacets" id="ovFacets" data-n="1">${sig}</div>` : '');
+    el.innerHTML = `<div class="skov" id="skOv"><div class="skov3" id="skOv3" data-cols="${right ? 3 : 2}">
+      <div class="skovkpi">${fundCard(pg)}${chipCard(pg)}</div>${right}</div></div>`;
     if (AI && AI.bindOverview) AI.bindOverview(el);
   }
   /* ★ 2026-09-27「指標」分頁（Andy 給的券商 App「符合 65 項指標」截圖）：
@@ -5324,24 +5328,26 @@
          再點收回 —— 不跳頁、不開彈窗。
        · 題材、族群兩列移到最上面當標籤（點了照舊進題材／族群頁）。
        · 改前「未符合」收在 <details> 裡要多點一下才看得到；改後兩區都直接攤開，一眼看得出「6 項成立、2 項沒有」。
-     #tagN（符合數）、#tagCard 這兩個 id 不變（別的驗收在讀）。*/
+     #tagN（符合數）、#tagCard 這兩個 id 不變（別的驗收在讀）。
+     ★ 2026-10-02 深夜（Andy：「誤解了」，DECISIONS #297）：
+       · 「資料不足、無法判斷」那一區整區拿掉（不顯示、也不計入標題的 N ／ M）—— 那些條件既不成立也不是不成立，攤出來只是佔版面。
+       · 「符合」「未符合」改成**左右並排兩欄**（#tagCols）：左＝符合、右＝未符合，欄內方塊一塊一塊往下排；視窗 ≤820px 才上下排。
+       · 其中一區是 0 項時照樣佔一欄、寫一句「沒有…的條件」，不讓另一欄孤零零地撐滿（也不留空方塊）。*/
   function tabTags(pg, el) {
     const tg = (pg.tags || {}).items || [];
     const code = pg.meta.code;
     const th = A.L.themesOf ? A.L.themesOf(code) : '';
     const grp = (pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('');
-    const hit = tg.filter(t => t.hit === true), miss = tg.filter(t => t.hit === false), na = tg.filter(t => t.hit == null);
+    const hit = tg.filter(t => t.hit === true), miss = tg.filter(t => t.hit === false);
     const tile = (t, cls) => `<button type="button" class="tagtile ${cls}" data-hit="${cls}" data-id="${A.fmt.esc(t.id || '')}" aria-expanded="false" title="${A.fmt.esc((t.label || '') + (t.detail ? '｜' + t.detail : ''))}">`
       + `<b class="tagnm">${A.fmt.esc(t.label)}</b><span class="tagd">${t.detail ? A.fmt.esc(t.detail) : '—'}</span></button>`;
-    const zone = (id, cls, title, list) => list.length ? `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
-      + `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div></section>` : '';
+    const zone = (id, cls, title, list) => `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
+      + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
     el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
-      ${zone('tagHit', 'on', '符合', hit)}
-      ${zone('tagMiss', 'off', '未符合', miss)}
-      ${zone('tagNa', 'na', '資料不足、無法判斷', na)}
-      ${!tg.length ? '<div class="empty">這一檔的月營收／季報資料準備中</div>' : ''}
+      ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}
+      ${!hit.length && !miss.length ? '<div class="empty">這一檔的月營收／季報資料準備中</div>' : ''}
     </div>`;
     /* 點方塊＝原地展開那一行判斷數字的全文（再點收回）；同一時間可以開好幾塊，方便對照 */
     $$('.tagtile', el).forEach(b => b.onclick = () => { const o = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(o)); b.classList.toggle('open', o); });
