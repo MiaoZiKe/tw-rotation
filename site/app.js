@@ -871,8 +871,17 @@
     const ric = window.requestIdleCallback || ((f) => setTimeout(f, 120));
     _nearIdle = ric(() => {
       _nearIdle = 0;
-      const first = _near.keys().next();
-      if (!first.done) runNear(first.value);
+      /* ★ 2026-10-03 電腦版子分頁：資金流向／熱力圖裡「別的子分頁」的卡是 display:none —— 閒下來也不偷畫，
+         等切到那個子分頁、卡片露出來（IntersectionObserver 會叫）才畫，這才是「各子分頁只畫自己的卡」。
+         只限掛 l4 的電腦版、只限這兩頁：手機分段導覽藏起來的段落照舊閒下來就補畫（行為不變）。 */
+      const sub = document.documentElement.classList.contains('l4') && document.documentElement.hasAttribute('data-l4sub');
+      let pick = null;
+      for (const el of _near.keys()) {
+        if (sub && !el.getClientRects().length && el.closest('#v-flow, #v-heatmap')) continue;
+        pick = el; break;
+      }
+      if (!pick) return;                 // 剩下的全是藏起來的子分頁卡：等 IntersectionObserver
+      runNear(pick);
       nearIdle();
     }, { timeout: NEAR_IDLE_MAX });
   }
@@ -1594,6 +1603,8 @@
      `#themes` 這個網址仍然有效，route() 一進來就導到 `#heatmap/theme`，見那裡的註解。*/
   // 2026-09-28：'watch'＝自選分頁（導覽列最後一格，取代交付清單的入口；'delivery' 路由照舊留著）
   const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'tasks', 'delivery', 'watch'];
+  // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
+  const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
   /* ★ 2026-09-23：頂層分頁多了「熱力圖」「交付清單」之後，1440 以下這一排就放不下了。
      放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
@@ -2331,6 +2342,24 @@
       window.scrollTo({ top: 0 });
       return;
     }
+    /* ★ 2026-10-03 版面 V2（Andy：「資金流向」拆三個側欄子分頁、「熱力圖」拆產業／題材兩個子分頁）—— **只在電腦版（掛 l4）**：
+       · #flow → #flow/rotation（資金輪動）、#flow/sankey（資金去向）、#flow/inst（族群×法人＋資金集中度）
+       · #heatmap → #heatmap/industry（產業）、#heatmap/theme[/<id>]（題材；沿用 2026-09-24 起就有的網址，外面存的連結不會壞）
+       沒帶子分頁（或帶了認不得的）一律 replace 到第一個子分頁：不多留一筆歷史，上一頁才按得出去（跟 #themes 同一個理由）。
+       子分頁只決定「這一頁顯示哪幾張卡」（<html data-l4sub>，layout4.css 依它藏其他卡），**計算邏輯一行都沒改**；
+       藏起來的卡由 whenNear 延後到真的露出來才畫（見 nearIdle 與 renderFlow 的註解）。
+       ≤820（手機版暫停中）不掛 l4：這段整個不跑，#flow／#heatmap 跟以前一模一樣。*/
+    const l4on = document.documentElement.classList.contains('l4');
+    let l4sub = '';
+    if (l4on && head === 'flow') {
+      if (!FLOW_SUBS.includes(rest[0])) { location.replace('#flow/' + FLOW_SUBS[0]); return; }
+      l4sub = 'flow-' + rest[0];
+    } else if (l4on && head === 'heatmap') {
+      if (rest[0] !== 'theme' && rest[0] !== 'industry') { location.replace('#heatmap/industry'); return; }
+      l4sub = 'heat-' + rest[0];
+    }
+    if (l4sub) document.documentElement.setAttribute('data-l4sub', l4sub);
+    else document.documentElement.removeAttribute('data-l4sub');
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     /* 近期搜尋（2026-09-26）：進個股頁就記一筆 —— 不管是從搜尋點進來、從別的圖點進來、還是直接貼網址。
        只記全市場索引裡找得到的代號（打錯的代號會走「找不到代號」，不該留在紀錄裡）。*/
@@ -2359,7 +2388,9 @@
        「同一頁」的定義＝hash 的頁面部分（第一段 ＋ 鏈 id／個股代號）一樣。
        ⚠ 不是把捲動關掉：`#industry/semiconductor` → `#industry/ai_server` 仍然會捲，
          `#flow` → `#overview` 也會 —— 驗收有一條就是反過來證明這件事。*/
-    const pageKey = (hd, rs) => (hd === 'industry' || hd === 'stock') ? hd + '/' + (rs[0] || '') : hd;
+    // 2026-10-03：電腦版資金流向的三個子分頁各算一頁（換子分頁要回到頁首，跟換頁一樣）；熱力圖兩個子分頁維持同一頁 ——
+    // pageChanged 在那裡決定「全市場 treemap 要不要整張重畫」，產業↔題材來回切不該每次重畫
+    const pageKey = (hd, rs) => (hd === 'industry' || hd === 'stock') ? hd + '/' + (rs[0] || '') : (hd === 'flow' && l4on) ? 'flow/' + (rs[0] || '') : hd;
     const key = pageKey(head, rest);
     const pageChanged = key !== _lastPageKey;       // 熱力圖分頁要用它判斷「換題材」還是「剛進來」
     /* ★ 2026-09-25 效能（perf-2）：**第一次進站**那一次改到下一幀開頭才捲。
@@ -2390,9 +2421,12 @@
             點題材方塊只會改 `#heatmap/theme/<id>` 的後半段，不該把上面那張 treemap 重畫一次。
          ② 題材那張第一次進來才畫，之後換題材只重畫下面的細節（跟舊的 #themes 頁同一套）。*/
       const tid = wantTheme ? (rest[1] || '') : '';
-      if (pageChanged || !rendered.heatmap) { rendered.heatmap = true; await window.Industry.routeHeat(); }
-      if (!rendered.themes) { rendered.themes = true; await renderThemes(tid); }
-      else if (D.themes && D.themes.themes) renderThemeDetail(D.themes, tid);
+      /* 2026-10-03 電腦版子分頁：只畫看得到的那一半（產業＝全市場 treemap、題材＝題材熱力＋細節），另一半等切過去才畫。
+         手機（沒有子分頁）照舊兩半都畫。 */
+      const wantInd = !l4on || !wantTheme, wantThm = !l4on || wantTheme;
+      if (wantInd && (pageChanged || !rendered.heatmap)) { rendered.heatmap = true; await window.Industry.routeHeat(); }
+      if (wantThm && !rendered.themes) { rendered.themes = true; await renderThemes(tid); }
+      else if (wantThm && D.themes && D.themes.themes) renderThemeDetail(D.themes, tid);
       /* ★ 2026-09-24（審查 R4）：題材熱力的外框是頁面上的固定元素，縮放倍率掛在它身上（box._zoom），
          不重置的話離開再回來還是 1.6×、再滾就從 1.6 接著放大到 2.3×。剛進這一頁就還原成 1 倍；
          同一頁內換題材（pageChanged＝false）不動，使用者正在放大看的東西不會被收掉。
@@ -2411,13 +2445,17 @@
          70 ＝ 頂欄 58 ＋ 一點呼吸空間（scrollIntoView 會讓標題壓在釘住的頂欄底下）。
          手機不在這裡捲：那邊是分段導覽，`prefer` 已經把題材那一段翻出來了（點擊處理自己會捲）。*/
       if (wantTheme && !mIsM()) {
-        setTimeout(() => {
+        const toTheme = (force) => {
           const e = document.getElementById(tid ? 'themeDetail' : 'themeMapCard'); if (!e) return;
           const top = e.getBoundingClientRect().top;
-          if (pageChanged || (tid && (top < 58 || top > window.innerHeight * 0.5))) {
+          if (force || (tid && (top < 58 || top > window.innerHeight * 0.5))) {
             window.scrollTo({ top: Math.max(0, top + window.scrollY - 70) });
           }
-        }, 80);
+        };
+        setTimeout(() => toTheme(pageChanged), 80);
+        /* 2026-10-03 電腦版「題材」子分頁：上面不再有全市場熱力圖撐高度，80ms 那一刻剖析圖還沒長出來、頁面不夠長捲不到位 ——
+           剖析圖畫好之後（約半秒）再看一次，還不在畫面上半部才補捲（已經到位就不動，不會無故跳一下）。 */
+        if (tid && l4on) setTimeout(() => toTheme(false), 600);
       }
       return;
     }
@@ -7844,7 +7882,8 @@
     let instDays = null;   // ★ D1：rankDays 已併進 rotBackBar（雙把手區間桿），不再是獨立的一支
     const DEFAULT_DAYS = 20;   // 約一個月的交易日；以前 0（跟著上方期間）的替代預設值
     const drawPeriod = () => {
-      drawRankDays(ROT.days);
+      /* 2026-10-03：排行也走 whenNear —— 看得到時跟以前一樣當場畫；電腦版在別的子分頁（卡片藏著）就等切過來才畫 */
+      whenNear($('#rankFlow'), () => drawRankDays(ROT.days));
       // 族群 × 法人在首屏下方：捲近了（或閒下來）才畫；已經在畫面裡就當場畫（見 whenNear）
       whenNear($('#instGroups'), () => drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS));
     };
@@ -8118,7 +8157,9 @@
        換主題／換頁回來時這裡會再跑一次，`rlvMountBtn()` 內部會把「亮起來」的樣子補回去。*/
     rlvMountBtn();
     wireRotTrailToggle(() => drawRot(rotFrame));
-    drawRot(rotFrame);
+    /* 2026-10-03：第一次畫輪盤改走 whenNear（看得到＝當場畫，跟以前一樣；電腦版從別的子分頁進資金流向時等切過來才畫）。
+       之後所有重畫（篩選、拉 Bar、即時）照舊直接 drawRot —— 那些都是使用者在這張卡上操作才會發生。 */
+    whenNear($('#rotClock'), () => drawRot(rotFrame));
     /* ★ 2026-09-25 效能（perf-2）：輪盤畫完先讓瀏覽器畫一幀、喘口氣，再畫排行與下面那幾張。
        首次開資金流向時輪盤＋排行在同一個任務裡（實測 722ms，4 倍降速 2.3 秒），這段整頁點不動。
        跟總覽「熱力圖畫完讓一幀再畫輪盤」同一個做法；總工作量不變，只是拆成兩段。*/
@@ -8157,7 +8198,8 @@
          留三倍以上的餘裕才不會播到一半卡住。
        ⚠ 這一頁其餘三支拉Bar（排行、族群×法人、法人截止日）**維持沒有播放鈕**，
          那是 2026-09-20 上午拍板要移除的，不要順手一起加回去。*/
-    load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
+    /* 2026-10-03：資金去向整張（載入 sankey_daily＋畫＋拉 Bar）走 whenNear：電腦版在別的子分頁時不載也不畫 */
+    whenNear($('#flowSankeyCard'), () => load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
       const n = (sd && sd.dates && sd.dates.length) || 0;
       renderSankey(sd, n ? n - 1 : 0);
       if (n > 1) {
@@ -8170,7 +8212,7 @@
       // ★「即時」鈕掛在同一列（Andy：「在紅框那排」）。playBar 會換掉整個容器的
       //   innerHTML，所以一定要等它建完才 append。
       sklMountBtn();
-    });
+    }));
     /* ★ 2026-09-20（Andy：「圖四五 將時間週期以及族群佔比河流圖移除」）：
        「族群佔比河流」整塊（圖表 ＋ 它的『最近 N 天』時間週期拉Bar ＋ 截止日回放）
        已從 index.html 與這裡一起移除。河流圖回答的問題（這 60 天主流換過幾次）
@@ -9615,8 +9657,14 @@
       if (document.hidden) { if (raf) { cancelAnimationFrame(raf); raf = null; } }
       else if (alive && !raf) raf = requestAnimationFrame(step);
     };
+    /* ★ 2026-10-03：迴圈只在「看得到」時才 sizeTo()，所以容器在看不到的時候變寬變窄（換視窗寬、電腦版子分頁藏起來），
+       這層 canvas 會停在舊尺寸 —— 它是絕對定位，舊的 1210px 會把整頁撐出橫向捲軸（_uitest「新-資金流向」800px 抓到的）。
+       容器尺寸一變就當場跟著改尺寸（只改 canvas 大小、不畫；下一幀看得到時照常畫）。 */
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => { if (alive) sizeTo(); }); ro.observe(el); }
     function stop() {
       alive = false;
+      if (ro) { ro.disconnect(); ro = null; }
       if (io) { io.disconnect(); io = null; }
       if (raf) { cancelAnimationFrame(raf); raf = null; }
       document.removeEventListener('visibilitychange', onVis);
