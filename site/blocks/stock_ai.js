@@ -206,6 +206,15 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #skChartCard>#skAi:not(.aiopen) .aitab:hover,#skChartCard:not(.aiside)>#skAi .aitab:hover{border-color:var(--cyan);color:var(--ink)}
 /* 單欄展開時選中的那顆只換框色與字色、不加粗（加粗會變寬、膠囊可能換行，標籤列一長高就推 K 線） */
 #skChartCard:not(.aiside)>#skAi.aiopen .aitab.on{border-color:var(--cyan);color:var(--ink);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
+/* 兩欄展開、但右欄窄（AI 區 ≤ 440px，例如 1100 寬右欄被左欄最小寬壓到約 390px）：標籤頁也用膠囊（一行排得下），
+   不用四欄等寬的標籤頁 —— 那個在 390px 會把「判讀小字」擠到第二行、標籤列變兩倍高，保底高度跟著多 20px，左欄工具列就被推離價格一段。*/
+@container aibox (max-width:440px){
+  #skChartCard>#skAi .aitabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:0}
+  #skChartCard>#skAi .aitab{flex:none;flex-direction:row;flex-wrap:nowrap;gap:5px;min-height:24px;padding:2px 7px;margin:0;
+    border:1px solid var(--line-2);border-radius:999px;background:var(--panel-3);font-size:12px;font-weight:400;color:var(--ink-2)}
+  #skChartCard>#skAi .aitab .aitag{background:none;padding:0;font-size:12px}
+  #skChartCard>#skAi.aiopen .aitab.on{border-color:var(--cyan);color:var(--ink);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
+}
 /* K 線卡裡的結論一律只佔一行（太長出「…」，滑過看全文；完整原因在展開後的技術面裡）。
    展開時也不換行：兩欄的保底高度是照「展開時標題＋結論＋標籤」量的，結論在 1100 寬會折成兩三行，保底就多出 40px、左欄工具列被推離價格一大段（截圖看到的）。*/
 #skChartCard>#skAi .aibrief{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
