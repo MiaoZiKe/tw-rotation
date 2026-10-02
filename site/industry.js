@@ -4012,14 +4012,37 @@
           只在即時層拿不到時當備援，而且那一天必須就是日線的最新交易日（落後的不拿，免得把前天當成今天）。
      昨收：盤中用報價的昨收（證交所的參考價，除權息當天也對）；其他情況用日線裡「那一天之前」的最後一根收盤。*/
   /* 分時說明（2026-10-02，DECISIONS #287）：照實講每一段是哪裡來的，時間寫出來 ——
-     「09:00～10:06 來自 Yahoo（延遲）；10:26 之後是本頁即時累積，每 5 秒更新；10:07～10:25 在你打開頁面前，暫無資料」。
-     以前寫「最近一段是證交所即時報價每 5 秒更新」，畫面上卻是 10:06 一條直線跳到 10:26 —— 說明跟圖對不上。*/
+     「09:00～10:06 來自 Yahoo（延遲）；10:07～10:25 在你打開頁面之前，暫無資料；10:26 之後是本頁即時累積，每 5 秒更新」。
+     以前寫「最近一段是證交所即時報價每 5 秒更新」，畫面上卻是 10:06 一條直線跳到 10:26 —— 說明跟圖對不上。
+     分段照時間排（livek.minuteSeries 的 segs），所以「中途切到背景又回來」那種兩段即時中間夾一段缺口也講得對。*/
+  const TICK_GAP_WHY = {
+    lead: '開盤到你打開頁面之前，Yahoo（延遲約 20 分鐘）還沒給今天的 1 分 K',
+    open: '在你打開頁面之前',
+    idle: '頁面在背景或連線中斷、沒收到報價',
+  };
+  function tickGapLabel(g, wait) {
+    // 小標只寫四個字：Yahoo 還會追上來＝「等待」；這檔 Yahoo 根本沒有分 K（冷門股）＝「沒有」，不可以叫人等一個不會來的東西
+    return wait ? '此段等待資料' : '此段沒有資料';
+  }
+  function tickGapTitle(g, wait) {
+    return `${TICK_GAP_WHY[g[2]] || '沒收到資料'}，${wait ? '暫無資料（Yahoo 每 2 分鐘重抓，追上來後自動補上）' : '這一檔 Yahoo 沒有 1 分 K，這段補不回來'}`;
+  }
   function tickLiveNote(d) {
     const hm = (t) => KUtil.fmtTime(t, '1m').slice(11, 16);
-    const parts = [];
-    if (d.yahoo) parts.push(`${hm(d.yahoo[0])}～${hm(d.yahoo[1])} 來自 Yahoo（延遲約 20 分鐘，每 2 分鐘重抓一次）`);
-    if (d.liveSeg) parts.push(`${hm(d.liveSeg[0])} 之後是本頁即時累積，每 5 秒更新、量是累計成交量相減`);
-    (d.gaps || []).forEach(g => parts.push(`${hm(g[0])}～${hm(g[1])} 在你打開頁面之前，暫無資料（圖上斜線那段；Yahoo 追上來後自動補上）`));
+    const rng = (sg) => (sg.a === sg.b ? hm(sg.a) : `${hm(sg.a)}～${hm(sg.b)}`);
+    const segs = d.segs || [];
+    const lastLive = segs.map(sg => sg.k).lastIndexOf('live');
+    const parts = segs.map((sg, i) => {
+      if (sg.k === 'yahoo') return `${rng(sg)} 來自 Yahoo（延遲約 20 分鐘，每 2 分鐘重抓一次）`;
+      if (sg.k === 'live') {
+        return i === lastLive && i === segs.length - 1
+          ? `${hm(sg.a)} 之後是本頁即時累積，每 5 秒更新、量是累計成交量相減`
+          : `${rng(sg)} 是本頁即時累積`;
+      }
+      const why = sg.why === 'lead' ? 'Yahoo 還沒給今天的 1 分 K（延遲約 20 分鐘）'
+        : sg.why === 'idle' ? '頁面在背景或連線中斷、沒收到報價' : '在你打開頁面之前';
+      return `${rng(sg)} ${why}，${d.yahooWait === false ? '這檔 Yahoo 沒有 1 分 K、補不回來' : '暫無資料（圖上斜線那段；Yahoo 追上來後自動補上）'}`;
+    });
     if (!parts.length) parts.push('今天的分時');
     return '今天的分時：' + parts.join('；') + '。虛線＝昨收，線在虛線上面＝漲、下面＝跌。';
   }
@@ -4038,8 +4061,11 @@
       const ms = ses && ses.live && L.minuteSeries ? L.minuteSeries() : null;
       if (ms && ms.bars.length >= 1) {
         const pc = L.state && +L.state.prevClose;
+        const wait = ms.yahooWait !== false;
         return { pts: ms.bars.map(x => [x[0], +x[4], +x[5] || 0]), prev: pc > 0 ? pc : prevOf(ms.date), date: ms.date,
-                 live: true, src: 'live', minute: true, gaps: ms.gaps, yahoo: ms.yahoo, liveSeg: ms.live };
+                 live: true, src: 'live', minute: true,
+                 gaps: ms.gaps.map(g => [g[0], g[1], tickGapLabel(g, wait), tickGapTitle(g, wait)]),
+                 segs: ms.segs, yahooWait: ms.yahooWait, yahoo: ms.yahoo, liveSeg: ms.live };
       }
       const b = L.bars('1m') || [];
       if (b.length >= 2 && ses && ses.date) {

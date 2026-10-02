@@ -487,19 +487,28 @@
    *      09:31～10:26 Yahoo 明明有，卻被丟掉、畫成一條直線；
    *    · Yahoo 最後一根（例 10:06）到第一筆報價（10:26）之間，join() 直接把兩點連起來，看起來像走勢，其實是空的。
    *  這裡改成逐分鐘決定：
-   *    ① 那一分鐘的報價是「從上一分鐘就一直在收」（full）→ 用報價疊的（即時、量是累計量差分，比 Yahoo 準）；
+   *    ① 那一分鐘的報價是「從上一分鐘就一直在收」（full：這一分鐘的第一筆跟上一筆連得上）→ 用報價疊的
+   *      （即時、量是累計量差分，比 Yahoo 準）；
    *    ② 否則 Yahoo 有那一分鐘 → 用 Yahoo；
    *    ③ 都沒有、但報價有半分鐘（剛打開頁面那一分鐘）→ 用報價。
+   *  ⚠ full 只看「連得上」，不看「這一分鐘頭幾秒就收到」：剛打開頁面那一分鐘、或盤後打開時收到的那一筆收盤價，
+   *    前面那段的成交量根本沒看到（第一筆沒有上一筆可以相減，量是 0）。這種半分鐘讓 Yahoo 優先 ——
+   *    不然 13:30 那根尾盤集合競價的大量會被一筆量 0 的收盤報價蓋掉（offBars 那段講過同一件事）。
    *  兩邊都沒涵蓋到的分鐘＝缺口（gaps），交給 TickChart 畫虛線、標「此段等待資料」，不准畫成實線冒充走勢。
-   *  回 {bars:[[epoch+8h, o, h, l, c, 量(股)]], gaps:[[起分鐘, 迄分鐘]]（epoch+8h，含頭含尾）,
-   *      yahoo:[首, 末]|null, live:[首, 末]|null（即時疊出來的那段，epoch+8h）, ticks: 筆數}。*/
+   *  開盤頭 20 分鐘 Yahoo 還沒有今天的 K 棒時，09:00 到第一根之間也是缺口（lead；左邊沒有點可以連，只標字不畫虛線）。
+   *  回 {bars:[[epoch+8h, o, h, l, c, 量(股)]], src:['yahoo'|'live'...]（每一根是哪裡來的）,
+   *      gaps:[[起分鐘, 迄分鐘, 種類]]（epoch+8h，含頭含尾；種類 'lead'＝開盤到第一根、'open'＝打開頁面之前、'idle'＝打開之後沒收到）,
+   *      segs:[{k:'yahoo'|'live'|'gap', a, b, why}]（照時間排好，說明文字用）,
+   *      yahoo:[首, 末]|null, live:[首, 末]|null（即時疊出來的那段，epoch+8h）, ticks: 筆數, yahooWait: Yahoo 還可能追上來}。*/
   function minuteSeries() {
     const ses = session();
     if (!ses.live || !ses.date) return null;
     const day = ses.date;
     const day0 = Date.parse(day + 'T00:00:00Z') / 1000 - 8 * 3600;     // 台北那天 00:00 的真 epoch
     const OPEN = 9 * 60, CLOSE = 13 * 60 + 30;
+    const K_OPEN = day0 / 60 + OPEN;                                    // 09:00 的分鐘鍵
     const mOf = (k) => k - day0 / 60;                                   // 分鐘鍵 → 當天第幾分鐘
+    const T = (k) => k * 60 + 8 * 3600;                                 // 分鐘鍵 → 圖上的時間（epoch+8h）
     // Yahoo
     const yb = new Map();
     for (const b of state.hist) if (b.d === day) yb.set(Math.floor(b.s / 60), b);
@@ -519,8 +528,7 @@
       let c = tb.get(k);
       if (!c) {
         const o = cont ? prev.p : t.p;
-        // full：這一分鐘開始之前就在收（上一筆連得上），或這一分鐘的頭 10 秒內就收到了
-        c = { o, h: Math.max(o, t.p), l: Math.min(o, t.p), c: t.p, v: dv, full: cont || t.s - k * 60 <= 10 };
+        c = { o, h: Math.max(o, t.p), l: Math.min(o, t.p), c: t.p, v: dv, full: cont };
         tb.set(k, c);
       } else {
         c.h = Math.max(c.h, t.p); c.l = Math.min(c.l, t.p); c.c = t.p; c.v += dv;
@@ -529,33 +537,52 @@
     }
     // 逐分鐘挑來源
     const keys = [...new Set(yKeys.concat([...tb.keys()]))].sort((a, b) => a - b);
-    const out = []; let liveA = null, liveB = null;
+    const out = [], src = []; let liveA = null, liveB = null;
     for (const k of keys) {
       const m = mOf(k); if (m < OPEN || m > CLOSE) continue;
       const t = tb.get(k), y = yb.get(k);
       if (t && (t.full || !y)) {
-        out.push([k * 60 + 8 * 3600, t.o, t.h, t.l, t.c, t.v]);
+        out.push([T(k), t.o, t.h, t.l, t.c, t.v]); src.push('live');
         if (liveA == null) liveA = k; liveB = k;
-      } else if (y) out.push([k * 60 + 8 * 3600, y.o, y.h, y.l, y.c, y.v]);
+      } else if (y) { out.push([T(k), y.o, y.h, y.l, y.c, y.v]); src.push('yahoo'); }
     }
+    const firstRun = runs.length ? Math.floor(runs[0].a / 60) : null;
     // 缺口：第一根到最後一根之間，Yahoo 跟報價都沒涵蓋到的分鐘
-    const covered = (k) => (yFirst != null && k >= Math.min(yFirst, day0 / 60 + OPEN) && k <= yLast)
+    const covered = (k) => (yFirst != null && k >= Math.min(yFirst, K_OPEN) && k <= yLast)
       || runs.some(r => k >= Math.floor(r.a / 60) && k <= Math.floor(r.b / 60));
     const gaps = [];
     if (out.length >= 2) {
       const k0 = (out[0][0] - 8 * 3600) / 60, k1 = (out[out.length - 1][0] - 8 * 3600) / 60;
       let g = null;
       for (let k = k0 + 1; k < k1; k++) {
-        if (!covered(k)) { if (!g) { g = [k, k]; gaps.push(g); } else g[1] = k; }
-        else g = null;
+        if (!covered(k)) {
+          if (!g) { g = [k, k, firstRun != null && k < firstRun ? 'open' : 'idle']; gaps.push(g); } else g[1] = k;
+        } else g = null;
       }
     }
-    const T = (k) => k * 60 + 8 * 3600;
+    // 開盤到第一根：Yahoo 還沒有今天的 K 棒（開盤頭 20 分鐘），09:00～第一根之前也是空的
+    if (out.length && yFirst == null) {
+      const k0 = (out[0][0] - 8 * 3600) / 60;
+      if (k0 > K_OPEN) gaps.unshift([K_OPEN, k0 - 1, 'lead']);
+    }
+    /* Yahoo 還會不會追上來：Yahoo 回「這一檔真的沒有分 K」（EMPTY）或 Worker 舊版（NOYAHOO）就不會；
+       其他（還沒抓、網路失敗、單純延遲）盤中每 2 分鐘還會再試（refreshHist）。*/
+    const yahooWait = !(state.histErr === 'EMPTY' && yFirst == null) && state.histErr !== 'NOYAHOO' && !!proxy();
+    // 說明用的分段：連續、同來源的併成一段，缺口插在中間
+    const segs = [];
+    out.forEach((x, i) => {
+      const k = (x[0] - 8 * 3600) / 60, last = segs[segs.length - 1];
+      const brk = gaps.some(g => g[0] > (last ? last.b : -1) && g[1] < k);
+      if (last && last.k === src[i] && !brk) last.b = k; else segs.push({ k: src[i], a: k, b: k });
+    });
+    gaps.forEach(g => segs.push({ k: 'gap', a: g[0], b: g[1], why: g[2] }));
+    segs.sort((p, q) => p.a - q.a);
     return {
-      bars: out, gaps: gaps.map(g => [T(g[0]), T(g[1])]),
+      bars: out, src, gaps: gaps.map(g => [T(g[0]), T(g[1]), g[2]]),
+      segs: segs.map(sg => ({ k: sg.k, a: T(sg.a), b: T(sg.b), why: sg.why })),
       yahoo: yFirst != null ? [T(yFirst), T(yLast)] : null,
       live: liveA != null ? [T(liveA), T(liveB)] : null,
-      ticks: tk.length, date: day,
+      ticks: tk.length, date: day, yahooWait,
     };
   }
 
