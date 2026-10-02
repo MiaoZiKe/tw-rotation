@@ -51,6 +51,18 @@ short_change=Today−Yesterday, margin_buy=MarginPurchaseBuy, margin_sell=Margin
 short_sell=ShortSaleSell, short_cover=ShortSaleBuy, offset=OffsetLoanAndShort`。
 既有 `margin_daily` 的欄位就是這 9 個 + date/code，請對齊（看 `pipeline/sources/twse.py` 的 MI_MARGN 轉換）。
 
+**2026-10-03 每日來源分工（DECISIONS #304）**：上市＝`run_daily` 每天從證交所 OpenAPI `MI_MARGN` 全量抓（一個請求）；
+**上櫃＝沒有每日全量來源**，改由 `run_backfill.refresh_stale_inst` 的每日續補（`FRESH_TABLES` 的 `margin`）走這支
+`margin_history` 逐檔補（挑落後的、每天有上限）。在這之前上櫃只靠計畫裡一次性的 `holding+margin@2021-01-01`，
+09-24 起 `margin_daily` 每天只剩上市 1,298 檔。櫃買 OpenAPI 雖有融資融券表，但對雲端 IP 常回 403（`sources/tpex.py` 開頭），
+而且欄位沒有實測過，這一批不接。
+
+當沖（`TaiwanStockDayTrading`→`daytrade_daily`）、借券賣出（`TaiwanDailyShortSaleBalances`→`sbl_daily`）同樣只有每日續補這一條路；
+`run_daily` 沒有抓。FinMind 這兩個資料集**本身沒壞**（09-25 起斷更是我們自己誤封印，見 #304），所以這一批沒有換來源。
+候選（**只有 WebSearch 摘要、沒有實測**，容器連不到 openapi.twse.com.tw）：證交所 OpenAPI 可能有 `exchangeReport/TWTB4U`
+（上市當日沖銷交易標的及統計，全市場一個請求）與 `exchangeReport/TWT93U`（融券／借券賣出餘額）。要接之前先用 `probe.yml`
+在 Actions 上打一次、把實際欄位存進 `docs/fixtures/`，才能寫解析（上櫃仍要另找）。
+
 ### 1.4 `holding_history(code, start)` → 既有表 `shareholding_weekly`（key `["date","code","level"]`）
 dataset `TaiwanStockHoldingSharesPer`（瀏覽器實測 CORS 失敗、無法取樣；依 FinMind 文件欄位為
 `date, stock_id, HoldingSharesLevel, people, percent, unit`）。

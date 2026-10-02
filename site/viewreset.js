@@ -1,4 +1,4 @@
-/* 重新整理＝圖表設定回預設（DECISIONS #304，2026-10-03）。
+/* 重新整理＝圖表設定回預設（DECISIONS #306，2026-10-03）。
  *
  * Andy：「需要新增一個功能，當重新整理後，全部圖表設定回 Default」。
  *
@@ -14,7 +14,7 @@
  * ★ 分類原則（Andy 交代：偏向「保留使用者建立的內容，重設檢視狀態」）：
  *   保留：登入與帳號、會員權限快取、自選清單、深淺主題與外觀（風格、側欄收合、剖析圖配色）、
  *         K 線上的手繪物件與畫筆樣式、即時開關（含每張卡的即時開關）、同意條款／導覽看過、
- *         最近搜尋、資料快取（5 秒 K、夜盤報價點、大盤分時快取）、一次性的版本遷移記號。
+ *         最近搜尋、資料快取（5 秒 K、夜盤報價點、大盤分時快取）。
  *   重設：其他所有「怎麼看這張圖」的選擇。
  *   沒有被列進任何一邊的鍵**預設保留**（寧可少清，不可誤刪使用者的東西）；
  *   `scripts/_uitest.py` 的「重新整理回預設1003」會掃全站原始碼裡每個 'tw.' 鍵，
@@ -39,8 +39,7 @@
     'tw.consent', 'tw.tour', 'tw.footDetail',                          // 同意條款、新手導覽看過、頁尾規範展開
     'tw.live.proxy', 'tw.live.on', 'tw.sse',                           // 即時來源與開關
     'tw.m3.nightpts', 'tw.m3.futsym',                                  // 資料快取（夜盤報價點、近月合約代號）
-    'tw.search.recent',                                                // 最近搜尋
-    'tw.aiOpenV'                                                       // 一次性遷移記號（清掉會讓舊遷移重跑）
+    'tw.search.recent'                                                 // 最近搜尋
   ];
   /* 保留：前綴 */
   var KEEP_PREFIX = [
@@ -51,7 +50,9 @@
   ];
   /* 重設：完全相同的鍵 */
   var RESET = [
-    'tw.aiOpen', 'tw.aiSplit', 'tw.aiTab', 'tw.ovAiTab',               // 個股 AI 面板：開合、分隔線寬、分頁籤
+    'tw.aiSplit', 'tw.aiTab', 'tw.ovAiTab',                            // 個股 AI 面板：分隔線寬、分頁籤
+    'tw.aiOpen', 'tw.aiOpenV',                                         // #305 拿掉「展開」後已不讀寫：列在這裡＝把舊瀏覽器留下的值清掉
+    'tw.indView',                                                      // 產業地圖「地圖／清單」（預覽分支 claude/industry-map-v2 的新鍵，先分好）
     'tw.candGroups', 'tw.udMkt', 'tw.hmGroup', 'tw.themeColor',        // 篩選與熱力圖分組／配色依據
     'tw.chainFold', 'tw.segExpand', 'tw.relOpen', 'tw.relView',        // 產業鏈／關聯圖的收合展開
     'tw.dgOpen', 'tw.dgPartOpen', 'tw.dganim',                         // 剖析圖：展開、零件卡、動畫

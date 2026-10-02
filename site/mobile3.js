@@ -1479,10 +1479,22 @@
       .concat(hasCol.sl ? [{ h: '借券賣', f: r => [r.sl == null ? '—' : int(r.sl)] }] : [])
       .concat(!hasCol.dt && !hasCol.sl ? [{ h: '資餘', f: r => [int(r.mb)] }, { h: '券餘', f: r => [int(r.sb)] }] : []);
     const sel = cols.findIndex(c => c.h === nm);
+    /* ★ 2026-10-03（#304，跟桌機 tabMargin 同一個規則）：pg.margin_asof＝資券三個來源全市場最新到哪天。
+       某個來源比其他舊＝資料源自己停在那天 → 那之後的格子寫「未提供」（不是 0），表下寫「更新到 MM-DD」。*/
+    const AS = pg.margin_asof || {};
+    const asRef = [AS.margin, AS.daytrade, AS.sbl].filter(Boolean).sort().pop() || '';
+    const CUT = { dt: AS.daytrade && AS.daytrade < asRef ? AS.daytrade : null, sl: AS.sbl && AS.sbl < asRef ? AS.sbl : null };
+    for (const c of cols) {
+      const k = c.h === '當沖' ? 'dt' : c.h === '借券賣' ? 'sl' : null;
+      if (!k || !CUT[k]) continue;
+      const f0 = c.f; c.f = r => (r[k] == null && String(r.d).slice(0, 10) > CUT[k] ? ['未提供', 'mbna'] : f0(r));
+    }
+    const srcFoot = [hasCol.dt && CUT.dt && `當沖資料只更新到 ${md(CUT.dt)}`, hasCol.sl && CUT.sl && `借券賣出資料只更新到 ${md(CUT.sl)}`].filter(Boolean).join('、');
+    const srcTxt = srcFoot ? `<span class="mbsrc" data-src-cut="1">${srcFoot}；之後寫「未提供」，不是 0。</span>` : '';
     const cap = '單位：張；融資／融券＝當日增減（紅＝增加、綠＝減少）' + (hasCol.dt ? '；當沖＝當沖成交張數' : '') + (hasCol.sl ? '；借券賣＝當日借券賣出張數（向借券系統借來賣，多為法人避險，不是融券）' : '；資餘／券餘＝餘額');
     const tbl = table(cols, rows.slice().reverse(), sel, cap);
     if ((seg === 'dt' || seg === 'sl') && !hasData[seg]) {
-      body.innerHTML = segBar('margin', SEG, seg) + `<div class="mbwhy"><b>${nm}：這一檔還沒有資料</b>${WHY[seg]}</div>` + tbl + `<div class="mbfoot">資料到 ${esc(last.d)}。</div>`;
+      body.innerHTML = segBar('margin', SEG, seg) + `<div class="mbwhy"><b>${nm}：這一檔還沒有資料</b>${WHY[seg]}</div>` + tbl + `<div class="mbfoot">資料到 ${esc(last.d)}。${srcTxt}</div>`;
       wireSeg(body, 'margin'); return;
     }
     const k = seg === 'm' ? [[`${md(last.d)} 融資增減`, sInt(last.mc), uc(last.mc)], ['融資餘額', int(last.mb) + ' 張'], ['5 日', sInt(sum('mc', 5)), uc(sum('mc', 5))], ['券資比', ratio != null ? ratio.toFixed(1) + '%' : '—']]
@@ -1492,7 +1504,7 @@
     const line = seg === 'dt' && rows.some(r => r.dr != null) ? [{ name: '當沖率', data: rows.map(r => r.dr), color: CH.amber }]
       : seg === 'sl' && rows.some(r => r.slb != null) ? [{ name: '借券賣出餘額', data: rows.map(r => r.slb), color: CH.amber }] : [];
     const lg = line.length ? legend([[seg === 'dt' ? '當沖張數（左軸）' : '借券賣出（張，左軸）', CH.violet], [seg === 'dt' ? '當沖率（%，右軸）' : '借券賣出餘額（張，右軸）', CH.amber, 1]]) : '';
-    body.innerHTML = segBar('margin', SEG, seg) + chartBox(kpi(k) + lg) + tbl + `<div class="mbfoot">資料到 ${esc(last.d)}。券資比＝融券餘額 ÷ 融資餘額。</div>`;
+    body.innerHTML = segBar('margin', SEG, seg) + chartBox(kpi(k) + lg) + tbl + `<div class="mbfoot">資料到 ${esc(last.d)}。券資比＝融券餘額 ÷ 融資餘額。${srcTxt}</div>`;
     const signedSeg = seg === 'm' || seg === 's';
     const key = { m: 'mc', s: 'sc', dt: 'dt', sl: 'sl' }[seg];
     const draw = () => barChart({ x: rows.map(r => md(r.d)), full: rows.map(r => r.d),
