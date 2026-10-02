@@ -477,7 +477,11 @@
   function paintStar() {
     const b = document.getElementById('wlStar'); if (!b) return;
     const c = stockCode(), on = !!c && API.has(c);
-    b.textContent = on ? '★' : '☆'; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    /* ★ 2026-10-01 卡頓（DECISIONS #284）：字沒變就不要寫。寫 textContent 本身就是一次 childList 變動，
+       會叫醒下面 watchStock 盯著 #v-industry 的 MutationObserver → 下一幀 mountStar → paintStar → 又寫一次……
+       個股頁停著不動也每秒跑約 37 輪（連帶 icons.js 的 scan／fitAll 每幀強制排版）。*/
+    const t = on ? '★' : '☆'; if (b.textContent !== t) b.textContent = t;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
     b.title = on ? '已在自選清單（點一下選要放哪幾頁）' : '加入自選清單'; b.setAttribute('aria-label', b.title);
   }
   function mountStar() {

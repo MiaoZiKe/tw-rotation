@@ -3,6 +3,16 @@
 (function () {
   'use strict';
   const $ = (s, r) => (r || document).querySelector(s);
+  /* ★ 2026-10-01 卡頓（DECISIONS #284）：換掉一塊 innerHTML 之前，先把裡面的 ECharts 實例 dispose。
+     不 dispose 的話，ECharts 自己的實例表一直抓著舊容器（脫離畫面的 DOM、畫布、事件），永遠回收不掉 ——
+     實測切頁 10 輪：每進一次產業地圖漏 2 張（gpBar／gpPie）、熱力圖漏 1 張（indTree），
+     JS 記憶體 24 → 55MB、事件監聽每輪 +138。只釋放「即將被換掉的那一塊」裡的圖，畫面行為不變。*/
+  function disposeCharts(root) {
+    if (!root || !window.echarts) return;
+    root.querySelectorAll('[_echarts_instance_]').forEach(d => {
+      try { const i = echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已經沒了 */ }
+    });
+  }
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   let A;                                   // window.App（app.js 提供）
   /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
@@ -129,6 +139,7 @@
     if (!el) return;
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     if (heatGroup === null) heatGroup = A.hmLS('tw.hmGroup', 'chain') === 'flat' ? 'flat' : 'chain';
+    disposeCharts(el);
     /* ★ 2026-09-24 說明精簡（Andy：「已經有說明就把表上補充文字拿掉」）：
        原本標題下那段「這張圖回答／怎麼用」搬進「怎麼看 ?」，卡片只留一行短副標。*/
     el.innerHTML = `<div class="card"><div class="row spread"><h3>整個台股一次看 <button class="howbtn pop" data-how="indheat" type="button" aria-label="整個台股一次看怎麼看">?</button></h3>
@@ -250,8 +261,9 @@
     /* 產業鏈頁的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 這些 id 會同時出現兩份
        （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個 ——
        畫面上按的是後面那個，程式改的卻是前面那個。所以換層級一定要把另一邊清掉。*/
-    const cn = $('#indChain'); if (cn) cn.innerHTML = '';
+    const cn = $('#indChain'); if (cn) { disposeCharts(cn); cn.innerHTML = ''; }
     const el = $('#indMap');
+    disposeCharts(el);
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     const groups = [];
     (im.chains || []).forEach(c => (c.groups || []).forEach(g => groups.push(g)));
@@ -1117,8 +1129,9 @@
       + `</div>`;
     /* 產業地圖那一層的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 會同時出現兩份
        （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個。*/
-    { const mp = $('#indMap'); if (mp) mp.innerHTML = ''; }
+    { const mp = $('#indMap'); if (mp) { disposeCharts(mp); mp.innerHTML = ''; } }
     gpStopLive();
+    disposeCharts(el);
     el.innerHTML = `
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">

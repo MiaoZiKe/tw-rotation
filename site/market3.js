@@ -1031,7 +1031,7 @@
     await Promise.all(jobs);
     state.busy = false; state.at = Date.now();
     state.fails = IDX.every(x => state.err[x.id]) ? state.fails + 1 : 0;
-    draw();
+    if (manual) draw(); else drawLive();        // 計時器那一輪走輕量版（見 drawLive）；手動／掛載那一次照舊整張畫
     m3Stamp();
   }
 
@@ -1069,7 +1069,7 @@
       if (z === null) return;                        // 指數兩次撮合之間 z 可能是 '-'，不拿買價那套去猜
       if (patchLive(id, { last: z, high: num(m.h), low: num(m.l), time: m.t, date: m.d })) any = true;
     });
-    if (any) { state.liveAt = Date.now(); draw(); m3Stamp(); }
+    if (any) { state.liveAt = Date.now(); drawLive(); m3Stamp(); }
     return any;
   }
   /** 台指期日盤的當下值：每 5 秒問一次期交所報價（夜盤另有自己那條路，不在這裡）。*/
@@ -1083,7 +1083,7 @@
     try {
       const q = await fetchFut('day');
       const t = String(q.time || '').replace(/:/g, '');
-      if (patchLive('FUT', { last: q.last, high: q.high, low: q.low, time: t, date: q.date })) { state.liveAt = Date.now(); draw(); }
+      if (patchLive('FUT', { last: q.last, high: q.high, low: q.low, time: t, date: q.date })) { state.liveAt = Date.now(); drawLive(); }
       state.fErr = '';
       if (L && L.report) L.report('m3fut', true);
     } catch (e) { state.fErr = String(e.message || e); if (L && L.report) L.report('m3fut', false, t0); }
@@ -2042,6 +2042,39 @@
        · 日盤／夜盤換邊（時間軸整條不一樣）
        · 參考價變了（markLine 的位置與標籤要跟著換）
      寧可閃一下，也不要讓線和軸對不上。*/
+  // 價格軸刻度的小數位數（看振幅）：drawLine 的 formatter 與 patchLine 的「要不要整張重畫」共用這一支
+  const axisDec = (span) => (span < 10 ? 2 : span < 100 ? 1 : 0);
+
+  /* ★ 2026-10-01 卡頓（Andy：「整體畫面卡頓有點多」，DECISIONS #284）：盤中每 5 秒那一輪的輕量版。
+     以前 live.js 每 5 秒一批報價回來（patchFromLive）、台指期每 5 秒（fastTick）、分時每 10 秒（refresh）
+     都走 draw()：三張圖各自 drawLine() 整張重建（notMerge，軸、tooltip、markLine、漸層全部重來），
+     最後還 dispatch 一次假的 window resize —— 等於每 5 秒叫醒全站所有 resize 監聽（每張圖 resize 檢查、
+     標題圖示重量 fitAll…）。這裡改成：每張先試 patchLine()（只換線與量的資料、價／量軸範圍），
+     標題數字照舊整塊換（cardHead）；**任何一張的前提不符就整個退回 draw()**（K 線模式、夜盤、
+     參考價變了、軸刻度小數位數要換、容器不是走勢圖、還沒有資料…），畫面與資料口徑跟以前一樣，只是少做事。
+     頻率不變（仍是每 5 秒），只減少每一輪做的工作。*/
+  function drawLive() {
+    const grid = document.getElementById('m3Grid');
+    if (!grid || state.mode !== 'line' || state.futSession === 'night' || IDX.some(isNight)) { draw(); return; }
+    const todo = [];
+    for (const x of IDX) {
+      const el = document.getElementById('m3c-' + x.id);
+      const card = grid.querySelector(`.m3-card[data-id="${x.id}"]`);
+      const d = state.data[x.id];
+      if (!card) continue;
+      if (!el || !d || !d.points || !d.points.length || el.dataset.kind !== 'line' || !el._m3line) { draw(); return; }
+      todo.push([x, d, el, card]);
+    }
+    for (const [x, d, el, card] of todo) {
+      if (card.style.display === 'none') continue;          // 展開別張時被藏起來的那兩張：draw() 也只是畫一張看不見的圖
+      if (!patchLine(x, d, el)) { draw(); return; }
+      const head = card.querySelector('.m3-nums');
+      if (head) { const h = cardHead(x); if (head.outerHTML !== h) head.outerHTML = h; }
+      syncFb(x, card);
+    }
+    $$('#m3Mode button').forEach(b => b.classList.toggle('on', b.dataset.m === state.mode));
+  }
+
   function patchLine(x, d, el) {
     if (!el || el.dataset.kind !== 'line') return false;
     if (typeof echarts === 'undefined') return false;
@@ -2050,6 +2083,7 @@
     if (!inst || !H || H.night !== !!d.night || H.prev !== d.prev) return false;
     const L = lineData(x, d);
     if (L.cats.length !== H.cats.length) return false;
+    if (H.dec != null && H.dec !== axisDec(L.hi - L.lo)) return false;   // 軸刻度小數位數要換 → 整張畫（2026-10-01）
     // tooltip 與量柱顏色的 callback 讀的是這個盒子（不是閉包裡那份陣列）——
     // 就地換掉，滑鼠移上去看到的才是最新的值，而不是上一輪的殘影。
     H.price = L.price; H.vol = L.vol; H.d = d;
@@ -2083,7 +2117,7 @@
     /* tooltip 的 formatter 與量柱的顏色 callback 是**留在圖上一直被呼叫**的，
        如果它們直接抓上面那幾個 const，`patchLine()` 換完資料之後它們讀到的還是舊陣列。
        所以統一從這個掛在容器上的盒子裡讀 —— 補資料時就地換掉它的欄位就好。*/
-    const H = el._m3line = { cats, price, vol, d, night: !!d.night, prev: d.prev, s0 };
+    const H = el._m3line = { cats, price, vol, d, night: !!d.night, prev: d.prev, s0, dec: axisDec(hi - lo) };
     A.chart(el, {
       /* ★ 2026-09-24（Andy：「走勢圖／K 線左右擴充到適當範圍，不要留太多空白」）：
          左 14→2、右 58→4（containLabel 會自己把右側價格軸的字算進來，不必再多留 54px）。*/
@@ -2118,7 +2152,7 @@
         // 小數位數看振幅決定：櫃買一天的區間不到 10 點，寫成整數會變成「396 396 395 395」
         Object.assign({}, A.axisStyle, { gridIndex: 0, min: lo, max: hi, position: 'right', splitNumber: 4,
           axisLabel: { color: A.CH.ink3, fontSize: 10, hideOverlap: true, showMinLabel: false,
-            formatter: (v) => f.n(v, (hi - lo) < 10 ? 2 : (hi - lo) < 100 ? 1 : 0) },
+            formatter: (v) => f.n(v, axisDec(hi - lo)) },
           splitLine: { lineStyle: { color: A.CH.grid } } }),
         // 量軸只有 44px 高，放三個刻度一定疊在一起 —— interval 設成最大值等於只留「頂」那一格
         Object.assign({}, A.axisStyle, { gridIndex: 1, position: 'right', splitLine: { show: false },
