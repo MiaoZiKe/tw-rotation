@@ -44955,22 +44955,33 @@ def t_rel_scope_3d_1003(b, base):
                    z["cap"] is not None and z["secBot"] - z["secTop"] <= z["cap"], (z["secTop"], z["secBot"], z["cap"]))
 
         def open3d(chain, slot, VW, VH):
-            pg.set_viewport_size({"width": VW, "height": VH})
-            pg.goto("about:blank")
-            pg.goto(base + f"#industry/{chain}/dg/{slot}", wait_until="load")
-            wait_until(pg, "() => !!document.querySelector('#dg3d') && !document.querySelector('#dg3d').hidden", 30000)
-            if not pg.evaluate("() => !!document.querySelector('#dg3d') && !document.querySelector('#dg3d').hidden"):
-                return None                # 機器太忙 30 秒還沒接好 3D 鈕：交給下面「3D 場景掛起來了」那條報紅，不要整段爆掉
-            if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
-                return "nowebgl"
-            btn = pg.locator('#dg3d button[data-dm="3d"]')
-            if btn.get_attribute("aria-pressed") != "true":
-                btn.click()
-            wait_until(pg, "() => !!document.querySelector('#prod3d canvas') && !!(window.Rack3D.current && window.Rack3D.current.fit)", 30000)
-            pg.evaluate("() => scrollTo(0, 0)")
-            pg.mouse.move(2, 2)            # 游標不要停在 3D 上（#246 滑進去會展開爆炸圖）
-            pg.wait_for_timeout(1800)
-            return pg.evaluate(D3_FIT)
+            # 機器很忙時（本機軟體 WebGL、多個驗收同時跑）偶爾整頁還沒接好就被量 —— 同一個網址最多重開一次
+            for attempt in (1, 2):
+                try:
+                    # 先回到 2D 再打開（跟使用者重新整理之後一樣，#307）：記著 3D 的話一載入就建場景，
+                    # 軟體 WebGL 建 AI 伺服器機櫃要卡主執行緒 20 秒以上（main 基準實測一樣），按鈕查詢會一起等到逾時
+                    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
+                    pg.set_viewport_size({"width": VW, "height": VH})
+                    pg.goto("about:blank")
+                    pg.goto(base + f"#industry/{chain}/dg/{slot}", wait_until="load")
+                    wait_until(pg, "() => !!document.querySelector('#dg3d button[data-dm=\"3d\"]') && !document.querySelector('#dg3d').hidden", 30000)
+                    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
+                        return "nowebgl"
+                    btn = pg.locator('#dg3d button[data-dm="3d"]')
+                    if btn.get_attribute("aria-pressed", timeout=15000) != "true":
+                        btn.click(timeout=15000)
+                    wait_until(pg, "() => !!document.querySelector('#prod3d canvas') && !!(window.Rack3D.current && window.Rack3D.current.fit)", 60000)
+                    pg.evaluate("() => scrollTo(0, 0)")
+                    pg.mouse.move(2, 2)            # 游標不要停在 3D 上（#246 滑進去會展開爆炸圖）
+                    pg.wait_for_timeout(1800)
+                    z = pg.evaluate(D3_FIT)
+                    if z or attempt == 2:
+                        return z
+                except Exception as ex:  # noqa: BLE001
+                    if attempt == 2:
+                        notes.append(f"{T}3D {slot}·{VW}×{VH} 重開兩次都沒接好：{repr(ex)[:160]}")
+                        return None
+            return None
 
         for chain, slot in ((("semiconductor", "foundry"), ("ai_server", "ai_server"), ("electronics", "machine_tool")) if part != "rel" else ()):
             for VW, VH in ((1440, 900), (1920, 1080), (1366, 768)):
