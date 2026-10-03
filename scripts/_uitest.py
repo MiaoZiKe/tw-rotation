@@ -2943,6 +2943,15 @@ def t_chainnav(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+# ★ 2026-10-03（DECISIONS #310）：桌機（>820）的環節詳情 #segBox 是空的（Andy 29149fc 拿掉、renderSegBox 在 >820 直接清空），
+#   「這一格有誰」的現行答案是關聯圖上的浮動卡 #relList 裡亮著的那一節（.rlseg.on）；手機（≤820）照舊是 #segBox。
+#   一般電子鏈這段一直在 1500px 讀 #segBox，所以從那次改版之後就是 0 檔（8 條紅），這支照寬度挑對的那一塊讀。
+SEG_DETAIL = """() => { const desk = innerWidth > 820;
+  const box = desk ? document.querySelector('#relList .rlseg.on') : document.getElementById('segBox');
+  if (!box) return { desk, codes: [], text: '' };
+  return { desk, codes: [...box.querySelectorAll('a[href^="#stock/"]')].map(a => a.getAttribute('href').slice(7)), text: box.innerText || '' }; }"""
+
+
 def t_electronics(pg, base):
     """一般電子鏈：2026-09-19 從「一個環節都沒有」補成 8 個環節 ＋ 16 家公司 ＋ 6 條邊。
 
@@ -2989,8 +2998,7 @@ def t_electronics(pg, base):
         if not pg.evaluate(f"() => !!document.querySelector({chip!r})"):
             continue
         _cg_chip(pg, chip, 1000)
-        side = pg.evaluate("() => [...document.querySelectorAll('#segBox a.lk')].map(a => a.getAttribute('href') || '')")
-        who += [h.replace("#stock/", "") for h in side if h.startswith("#stock/")]
+        who += pg.evaluate(SEG_DETAIL)["codes"]          # 改前讀 #segBox a.lk（桌機永遠是空的），#310
         _cg_chip(pg, chip, 800)
     ok("鴻海 2317 在一般電子鏈上看得到（節點在 assembly，靠 CHAIN_EXTRA 拉進來）", "2317" in who, who[:12])
     ok("智邦 2345 在一般電子鏈上看得到（節點在 switch）", "2345" in who, who[:12])
@@ -3000,15 +3008,16 @@ def t_electronics(pg, base):
     # ★ 2026-09-23 第二批（W3-2）：成分股表移除，這一條改量環節詳情 `#segBox`。
     #   語意跟舊的相反（沒選環節時是 0，選了才長出來），但驗的事情一樣：
     #   **點下去畫面真的換了一批股票，再點一次真的收回去。**
-    n_all = seg_stocks(pg)
+    # （2026-10-03 #310：桌機的「環節詳情」是關聯圖上的 #relList 浮動卡，讀 SEG_DETAIL；門檻沒動）
+    n_all = len(pg.evaluate(SEG_DETAIL)["codes"])
     ok("沒有選環節時，環節詳情是空的", n_all == 0, n_all)
     if pg.query_selector("#segChips .segchip[data-seg='passive_comp']"):
         _cg_chip(pg, "#segChips .segchip[data-seg='passive_comp']", 900)
-        n_sel = seg_stocks(pg)
-        ok("點「被動元件」環節，圖下方真的列出那一格的台股", n_sel > 0, f"{n_all} → {n_sel}")
+        n_sel = len(pg.evaluate(SEG_DETAIL)["codes"])
+        ok("點「被動元件」環節，環節詳情（桌機：圖上的浮動卡）真的列出那一格的台股", n_sel > 0, f"{n_all} → {n_sel}")
         ok("而且那一格真的亮起來", count(pg, "#segChips .segchip.sel") == 1)
         _cg_chip(pg, "#segChips .segchip[data-seg='passive_comp']", 900)   # 再按一次取消
-        ok("再按一次取消，環節詳情真的收回去", seg_stocks(pg) == 0, seg_stocks(pg))
+        ok("再按一次取消，環節詳情真的收回去", len(pg.evaluate(SEG_DETAIL)["codes"]) == 0, pg.evaluate(SEG_DETAIL)["codes"])
 
     # --- 2. 只有外商的兩格：點下去要列得出族群（FALLBACK）
     # ★ 2026-09-21：期望值本來寫死「面板」「手機供應鏈」。110 個板塊上線之後
@@ -3025,11 +3034,22 @@ def t_electronics(pg, base):
         ok(f"「{seg}」這一格在 FALLBACK 裡真的接到了台股族群（不是接到一個已經不存在的 id）",
            bool(fb) and len(fb["names"]) > 0 and len(fb["names"]) == len(fb["gids"]), fb)
         _cg_chip(pg, f"#segChips .segchip[data-seg='{seg}']", 900)
-        box = pg.evaluate("() => (document.getElementById('segBox')||{}).innerText || ''")
+        # （2026-10-03 #310：桌機讀圖上浮動卡 #relList 亮著那一節；那一節原本只有外商名字、沒有台股族群 ——
+        #   真的缺口，industry.js renderSegPicker 補上「相關台股族群」那一列，下面兩條照原門檻驗）
+        box = pg.evaluate(SEG_DETAIL)["text"]
         ok(f"點只有外商的「{seg}」，說明框不是空白", len(box.strip()) > 10, box[:80])
         want = (fb or {}).get("names") or []
         ok(f"而且接到了對應族群「{'／'.join(want)}」（app.js 的 FALLBACK）",
            bool(want) and any(w in box for w in want), box[:160])
+        if seg == "display_material" and pg.evaluate("() => innerWidth > 820"):
+            # ★ #310：桌機補上的「相關台股族群」要點得到底 —— 真的用滑鼠點那顆族群連結，網址換到族群頁
+            gsel = "#relList .rlseg.on .rlfb a.lk-group"
+            g_href = pg.evaluate(f"() => {{ const a = document.querySelector('{gsel}'); return a ? a.getAttribute('href') : null; }}")
+            if ok("[桌機] 只有外商的環節，浮動卡上有「相關台股族群」連結（#310）", bool(g_href), g_href):
+                click(pg, gsel, 1200)
+                ok("[桌機] 點「相關台股族群」→ 真的進到那個族群頁", pg.evaluate("location.hash") == g_href, [g_href, pg.evaluate("location.hash")])
+                pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+                continue
         _cg_chip(pg, f"#segChips .segchip[data-seg='{seg}']", 600)
 
     # --- 2026-09-20 Andy 拍板的族群搬動：要驗「名單真的變了」，不是驗註解有寫
@@ -3078,7 +3098,17 @@ def t_electronics(pg, base):
         #   **不是**改讀整個 #v-heatmap（那會把上面全市場熱力圖的字也算進去，等於放寬）。
         body = pg.evaluate("() => ['themeMapCard', 'themeDetail'].map(i => (document.getElementById(i) || {}).innerText || '').join('\\n')")
         ok(f"新題材 {tid} 的頁面打得開而且不是空的", len(body.strip()) > 40, body[:80])
-        ok(f"新題材 {tid} 列得出成分股 {want}", want in body, body[:160])
+        # ★ 2026-10-03（過時斷言，#310）改前→改後：
+        #   改前：在「題材資金熱力＋題材細節」的字裡找成分股代號。
+        #   改後：題材頁的成員表 09-23 Andy 要求整張拿掉（「題材這頁 將中間這兩個表格拿掉」），沒有剖析圖的題材
+        #     連佔位卡也拿掉（「題材頁面 下方處可以移除」），只留一行「尚無剖析圖」提示（app.js renderThemeDetail）。
+        #     畫面上本來就不會有代號 —— 所以改驗兩件還成立的事：① 點進來有那行提示（不是一片空白）
+        #     ② 前端吃的 themes.json 這個題材的成員裡真的有這一檔（題材熱力圖的成交值／熱度就是用這份名單算的）。
+        hint = pg.evaluate(f"() => !!document.querySelector('#themeDetail [data-nodg=\"{tid}\"]') || !!document.querySelector('#themeDetail svg')")
+        mem = pg.evaluate("""async (tid) => { const r = await fetch('data/themes.json'); const d = await r.json();
+            const t = (d.themes || []).find(x => x.id === tid); return t ? (t.members || []).map(m => String(m.code || m)) : null; }""", tid)
+        ok(f"新題材 {tid} 點進來題材細節有東西（剖析圖或「尚無剖析圖」提示）", hint, body[-120:])
+        ok(f"新題材 {tid} 的成員名單（themes.json）有 {want}", bool(mem) and want in mem, (mem or [])[:12])
     # ★ 2026-10-03（DECISIONS #306）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
     pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
 

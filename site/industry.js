@@ -2875,8 +2875,14 @@
         const label = gid ? A.L.group(gid, gn, { cls: 'rlgn' }) : `<span class="rlgn muted">${gn ? A.fmt.esc(gn) : '未歸族群'}</span>`;
         return `<div class="rlgrp"><div class="rlgh">${label}<span class="n">${byG[gn].length} 檔</span></div>${byG[gn].map(row).join('')}</div>`;
       };
+      /* ★ 2026-10-03（DECISIONS #310）：只有外商的環節（面板材料＝康寧、終端品牌＝Apple／SpaceX）在桌機右欄只剩一行外商名字，
+         點進來沒有任何東西可以往下點 —— 09-19 補一般電子鏈時要的是「點只有外商的那一格要接得到台股族群」（app.js FALLBACK），
+         手機的環節詳情 #segBox 一直有「相關族群」那一列，桌機 #segBox 拿掉（29149fc）之後這一列沒有搬過來。
+         補回來：沒有台股時列出 A.L.sgroups 的族群連結（跟 #segBox 同一份資料、同一個 A.L.group 連結）。有台股的環節不加（族群已經是分組標題）。*/
+      const fbG = tw.length ? [] : ((A.L.sgroups || {})[s2.id] || []);
       const body = order.map(grp).join('')
         + (fo.length ? `<div class="rlfo"><span class="fo">外商</span>${fo.map(c => A.fmt.esc(c.name)).join('、')}</div>` : '')
+        + (fbG.length ? `<div class="rlfo rlfb"><span class="fo">相關台股族群</span>${fbG.map(g => A.L.group(g)).join(' ')}</div>` : '')
         + (tw.length || fo.length ? '' : `<div class="rlnt">${A.fmt.esc(s2.note || '台股無直接對應')}</div>`);
       return `<div class="rlseg" data-seg="${s2.id}" style="--c:${segColor(s2.id)}">`
         + `<div class="rlsh"><i></i><b>${A.fmt.esc(s2.name)}</b><span class="n">${tw.length ? tw.length + ' 檔' : (fo.length ? '外商 ' + fo.length : '—')}</span>`
