@@ -6605,7 +6605,12 @@ def t_new_clock(pg, base):
     #   被動元件 MLCC 31 天裡 31 天都被硬夾在盤緣、矽晶圓 28/31 —— 整段播放半徑動也不動。
     # 修法是盤緣外留一條壓縮過的緩衝帶（CLOCK_TAIL=0.18），今天的畫面一個像素都沒動。
     # 這裡量兩件事：① 今天最外圈只有一個 ② 被夾過的那幾個現在真的會動。
-    rot_seek(pg, 1, 1600)
+    # ★ 2026-10-03（過時斷言，DECISIONS #310）改前→改後：
+    #   改前：rot_seek(pg, 1) —— 從 set_range(拉Bar=1) 機械式改寫過來，但 rotReplay 的 1 是「1 天前（9/30）」，不是今天。
+    #     尺凍結在**今天**（app.js renderRotClock：u＝偏離 ÷ 今天最大偏離），所以只有今天保證恰好一顆 r＝1；
+    #     昨天最遠的那顆是 0.961（沒有人比今天的最大值更遠）→ 「r ≥ 1 只有一個」變成 0 個而紅，網站沒壞。
+    #   改後：回放到 0（今天），跟這一段註解「① 今天最外圈只有一個」一致。門檻沒動（第二名 ≤ 0.97、最大最小差 3 倍）。
+    rot_seek(pg, 0, 1600)
     rr = pg.evaluate("() => ((window.App && window.App._rotPts) || []).map(p => ({ n: p.name, r: p.r }))")
     if ok("讀得到每顆點的半徑", len(rr) > 5, len(rr)):
         rr.sort(key=lambda x: -x["r"])
@@ -22219,6 +22224,21 @@ def t_stock_0926(pg, base, code):
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
     if not ok("[0926] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
         return
+    # ★ 2026-10-03 改前→改後（過時斷言，DECISIONS #310）：
+    #   改前：這一段假設「清空設定 → 選中日線、週期列 1時／4時／日／週／月」。
+    #   改後：09-28 分時走勢上線（Andy 要當預設），TF_DEFAULT_ON 最前面多了「分時」（tick）、清空設定後選中的是分時；
+    #     分時是折線、沒有副圖，KD／MACD／重設縮放都要在 K 線週期才看得到 —— 真人也是先按「日」。
+    #     所以先驗新預設（分時、週期列六顆），再用滑鼠按「日」，下面 ①～④ 的斷言一條沒動。
+    #     ⚠ 週期本身不存檔（tw.kcfg 沒有目前週期），每次整頁重載都回到分時，下面每次 reload 之後都要再按一次「日」。
+    tfs0 = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+    ok("★ [0926晚-週期] 清空設定 → 週期列是 分時／1時／4時／日／週／月（09-28 起分時排第一）",
+       tfs0 == ["tick", "60m", "240m", "1d", "1w", "1M"], tfs0)
+    ok("[0926晚-週期] 清空設定 → 選中的是分時（09-28 起的預設）", pg.evaluate(DBG)["tf"] == "tick" and text(pg, "#tfSeg button.on") == "分時",
+       text(pg, "#tfSeg button.on"))
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    wait_until(pg, "() => !!(window.Industry && window.Industry._dbg().paneH)", 8000)
+    ok("[0926晚-週期] 按「日」→ 切到日線（下面 ①～④ 都在日線上驗）", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日",
+       text(pg, "#tfSeg button.on"))
 
     # ---------------------------------------------------------------- ① 指標下拉
     btn0 = text(pg, "#indBtn")
@@ -22230,10 +22250,7 @@ def t_stock_0926(pg, base, code):
     rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
     ok("[0926-①] 最上面一列是「整體」（線寬／K 棒寬度）", bool(rows) and rows[0] == "base", rows)
     ok("[0926-③] 清單裡沒有 SMC 區間、BOS/CHoCH", "smc" not in rows and "marks" not in rows, rows)
-    # ---- 09-26 晚：清空設定之後的預設（週期列只有 1時／4時／日／週／月、指標只開均線＋成交量）
-    tfs0 = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
-    ok("★ [0926晚-週期] 清空設定 → 週期列只有 1時／4時／日／週／月", tfs0 == ["60m", "240m", "1d", "1w", "1M"], tfs0)
-    ok("[0926晚-週期] 清空設定 → 選中的是日線", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日", text(pg, "#tfSeg button.on"))
+    # ---- 09-26 晚：清空設定之後的預設（指標只開均線＋成交量；週期列的預設在上面開頁時驗過了）
     on_rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow input.ion')].filter(c => c.checked).map(c => c.dataset.k)")
     ok("★ [0926晚-預設] 清空設定 → 指標只開均線＋成交量", sorted(on_rows) == ["ma", "vol"], on_rows)
     pd = pg.evaluate(DBG)["paneH"] or {}
@@ -22243,9 +22260,9 @@ def t_stock_0926(pg, base, code):
     ok("[0926晚-週期] 週期區在「整體」下面、指標上面", rows[:1] == ["base"] and pg.evaluate(
         "() => { const r = [...document.querySelectorAll('#cfgPop .indrow')].map(x => x.dataset.k); return r[1] === 'tf'; }"))
     tfc = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .tfc input')].map(c => [c.dataset.tf, c.checked])")
-    ok("[0926晚-週期] 週期區九個勾選（5秒～月），勾起來的正好是預設五個",
-       [t for t, _ in tfc] == ["5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
-       and [t for t, c in tfc if c] == ["60m", "240m", "1d", "1w", "1M"], tfc)
+    ok("[0926晚-週期] 週期區十個勾選（分時、5秒～月），勾起來的正好是預設六個（含 09-28 起的分時）",
+       [t for t, _ in tfc] == ["tick", "5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
+       and [t for t, c in tfc if c] == ["tick", "60m", "240m", "1d", "1w", "1M"], tfc)
     # ★ 2026-09-26 晚改：預設只開均線＋成交量，KD 預設關 —— 先打開（副圖多一格），再關（副圖少一格）
     pa = pg.evaluate(DBG)["paneH"] or {}
     ok("[0926-①] KD 預設是關的、沒有 KD 副圖（前提，09-26 晚改的預設）", ind_on(pg, "kd") is False and "kd" not in pa, pa)
@@ -22316,6 +22333,7 @@ def t_stock_0926(pg, base, code):
     pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.smc = true; c.marks = true;"
                 " c.zone = { fill: 40 }; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)      # 重載回到分時（沒有 SMC 也沒有重設鈕）→ 按「日」才是在驗 K 線主圖
     wait_until(pg, "() => !!document.getElementById('fitBtn') && !!document.querySelector('#lwc canvas')", 6000)
     d = pg.evaluate(DBG)
     ok("★ [0926-③] 舊存檔寫著 smc／marks:true，主圖照樣沒有 SMC 區塊、區間標籤、BOS／CHoCH／掃蕩標記",
@@ -22416,6 +22434,7 @@ def t_stock_0926(pg, base, code):
         route.fulfill(response=resp, body=json.dumps(j, ensure_ascii=False), headers={**resp.headers, "content-type": "application/json; charset=utf-8"})
     pg.route(f"**/data/stock/{code}.json*", feed60)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1000)      # 重載回到分時，先回日線再開四週期（跟上面同一條路）
     click(pg, "#mtfBtn", 2000)
     pg.select_option("#mtfGrid select.mtfsel >> nth=0", "60m"); pg.wait_for_timeout(1200)
     pg.select_option("#mtfGrid select.mtfsel >> nth=1", "240m"); pg.wait_for_timeout(1200)
@@ -22435,6 +22454,7 @@ def t_stock_0926(pg, base, code):
     for vw in (800, 390):
         pg.set_viewport_size({"width": vw, "height": 900})
         pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        click(pg, '#tfSeg button[data-tf="1d"]', 1200)  # 預設是分時（沒有重設縮放鈕），下面量重設鈕要在 K 線上
         click(pg, "#indBtn", 500)
         for k in ("base", "ma", "macd"):
             ind_expand(pg, k)
@@ -22495,7 +22515,8 @@ def t_stock_0926_tf(pg, base, code):
     # ---------------------------------------------------------------- ⑤ 勾 15 分 → 週期列出現、重新整理記住
     tf_click("15m")
     ok("★ [0926晚-週期] 在週期區勾 15 分 → 週期列真的多出「15分」", "15m" in pg.evaluate(TFS), pg.evaluate(TFS))
-    ok("[0926晚-週期] 15 分排在 5 分之後、1 時之前（照原本順序，不是加在最後）", pg.evaluate(TFS)[:2] == ["15m", "60m"], pg.evaluate(TFS))
+    # （2026-10-03：09-28 起週期列最前面是「分時」，所以量前三顆；順序規則沒變 —— #310）
+    ok("[0926晚-週期] 15 分排在 5 分之後、1 時之前（照原本順序，不是加在最後）", pg.evaluate(TFS)[:3] == ["tick", "15m", "60m"], pg.evaluate(TFS))
     ok("[0926晚-週期] 勾選寫進 tw.kcfg.tfOn", "15m" in (pg.evaluate(KCFG).get("tfOn") or []), pg.evaluate(KCFG).get("tfOn"))
     ok("[0926晚-週期] 下拉還開著（勾週期不會把面板關掉）", pg.evaluate(IND_POP_OPEN))
     ok("[0926晚-週期] 週期區的摘要跟著變（多了 15分）", "15分" in text(pg, "#tfSum"), text(pg, "#tfSum"))
@@ -22522,14 +22543,20 @@ def t_stock_0926_tf(pg, base, code):
     tfs_now = pg.evaluate(TFS)
     ok("★ [0926晚-週期] 再取消日線（沒有日線可退）→ 切到剩下的第一個", pg.evaluate(DBG)["tf"] == tfs_now[0] and "1d" not in tfs_now,
        [pg.evaluate(DBG)["tf"], tfs_now])
-    tf_click("1d", 900); tf_click("1w", 900); tf_click("15m", 900)
-    ok("[0926晚-週期] 勾回日／週、取消 15 分 → 回到預設五個", pg.evaluate(TFS) == ["60m", "240m", "1d", "1w", "1M"], pg.evaluate(TFS))
+    # ★ 2026-10-03（#310）改前→改後：
+    #   改前：勾回日／週之後再按一次 15 分「取消」—— 那是 #307 之前寫的：當時重新整理會記得 15 分，走到這裡它還勾著。
+    #   改後：#307 起重新整理把週期勾選清回預設（上面那條驗過「15 分不見了」），走到這裡 15 分本來就沒勾，
+    #     再按一次反而把它勾回來（實測週期列多出 15m，四週期下拉跟著多一格、下一條「勾 15 分多一格」也跟著反向）。所以只勾回日／週。
+    tf_click("1d", 900); tf_click("1w", 900)
+    ok("[0926晚-週期] 勾回日／週 → 回到預設六個（含 09-28 起的分時；15 分在重新整理時已清掉，#307／#310）",
+       pg.evaluate(TFS) == ["tick", "60m", "240m", "1d", "1w", "1M"], pg.evaluate(TFS))
     click(pg, '#tfSeg button[data-tf="1d"]', 900)
     ind_close(pg)
     # ---------------------------------------------------------------- ⑤ 四週期同看的每格下拉只列勾起來的
     click(pg, "#mtfBtn", 2400)
     opts = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
-    ok("★ [0926晚-週期] 四週期同看：每一格的週期下拉只列勾起來的五個", bool(opts) and len(opts) == 4
+    # （週期列勾著六個，但「分時」是折線、不是 K 棒週期，四週期小圖本來就不列它 —— 所以每格是五個）
+    ok("★ [0926晚-週期] 四週期同看：每一格的週期下拉只列勾起來的五個（分時不列）", bool(opts) and len(opts) == 4
        and all(o == ["60m", "240m", "1d", "1w", "1M"] for o in opts), opts)
     tf_click("15m", 2000)
     opts2 = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
@@ -22538,7 +22565,8 @@ def t_stock_0926_tf(pg, base, code):
     ind_close(pg)
     click(pg, "#mtfBtn", 1600)
     # ---------------------------------------------------------------- ⑤ 最後一個勾不掉
-    pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.tfOn = ['1d']; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
+    # （2026-10-03：要一起寫 tickMig:1 —— 沒有它的話 loadCfg 會把「分時」補勾回去（09-28 給舊存檔的一次性遷移），週期列變兩顆，#310）
+    pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.tfOn = ['1d']; c.tickMig = 1; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
     ok("[0926晚-週期] 只勾日線時週期列只剩一顆「日」（前提）", pg.evaluate(TFS) == ["1d"], pg.evaluate(TFS))
     ind_open(pg)
@@ -22552,6 +22580,7 @@ def t_stock_0926_tf(pg, base, code):
     pg.evaluate("""() => { localStorage.setItem('tw.kcfg', JSON.stringify({ macd: { f: 12, s: 26, g: 9 }, macdDiv: true, lines: true,
         smc: true, marks: true, ma: [5, 20], vol: true })); }""")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1000)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1000)      # 重載回到分時（折線沒有 MACD 副圖）→ 按「日」（#310）
     wait_until(pg, "() => /MACD\\(/.test((document.querySelector('#lwc .pane-labels') || {}).innerText || '')", 8000)
     d = pg.evaluate(DBG)
     ok("[0926晚-拿掉] 舊存檔的 MACD 照樣畫出來（前提：MACD 本身保留）", "macd" in (d.get("paneH") or {}), d.get("paneH"))
@@ -37063,7 +37092,12 @@ def t_rot_dots_only(pg, b, base):
         d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
         scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
         ms = d.evaluate(CLK_STATE, "rotClockMini")
-        ok("★ 總覽小輪盤預設也畫腳印（焦點族群）", bool(ms) and ms["n"] > 0 and feet_n(ms) > 0, ms and [ms["n"], feet_n(ms)])
+        # ★ 2026-10-03 改前→改後（過時斷言，DECISIONS #274／#310）：
+        #   改前：「總覽小輪盤預設也畫腳印（焦點族群）」—— 那是 09-26 晚的行為。
+        #   改後：09-28 Andy「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」，app.js 對 rotClockMini 一律傳 trail:false
+        #     （#274），總覽這張不管開關怎麼設都只有點。所以這裡改驗「有點、0 腳印、0 條看得到的軌跡」。
+        ok("★ 總覽小輪盤只有點、沒有腳印與軌跡（#274：首頁輪盤只標點）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0,
+           ms and [ms["n"], feet_n(ms), ms["vis"]])
         # 勾掉「顯示腳印」→ 卡片只剩圓圈、記成 '0'
         d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
         scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
@@ -37102,17 +37136,24 @@ def t_rot_dots_only(pg, b, base):
         d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
         scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
         ms = d.evaluate(CLK_STATE, "rotClockMini")
-        ok("勾回來之後回到總覽，小輪盤的腳印也回來（不是停在舊的那一張）", bool(ms) and feet_n(ms) > 0, ms and feet_n(ms))
+        # （改前驗「勾回來之後小輪盤的腳印也回來」；#274 起總覽這張不跟資金流向頁的開關走 —— 勾回來仍然只有點）
+        ok("勾回來之後回到總覽，小輪盤照舊只有點（不跟資金流向頁的開關走，#274）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0,
+           ms and [ms["n"], feet_n(ms)])
     finally:
         d.close()
     # 手機 390：沒有值 → 兩張雷達都畫腳印；'0'（桌機勾掉過）→ 不畫；「?」點開沒有附註段
     m = fresh(390, 844, mobile=True)
     try:
-        for route, box in (("flow", "#mRadarFlow"), ("overview", "#mRadarOv")):
+        # ★ 2026-10-03（過時斷言，#274）：總覽那張雷達 mobile3.js 傳 feet:false（首頁輪盤只標點），只有資金流向那張畫腳印。
+        for route, box, want_feet in (("flow", "#mRadarFlow", True), ("overview", "#mRadarOv", False)):
             m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2600)
             r = m.evaluate(MOB_RADAR_FEET, box)
-            ok(f"★ 手機 {route} 雷達：圓點照畫、佔比前 3 名身後有小腳印（改前：0 個）",
-               bool(r) and r["dots"] > 3 and r["feet"] > 0, r)
+            if want_feet:
+                ok(f"★ 手機 {route} 雷達：圓點照畫、佔比前 3 名身後有小腳印（改前：0 個）",
+                   bool(r) and r["dots"] > 3 and r["feet"] > 0, r)
+            else:
+                ok(f"★ 手機 {route} 雷達：圓點照畫、沒有腳印（#274：首頁輪盤只標點）",
+                   bool(r) and r["dots"] > 3 and r["feet"] == 0, r)
         m.evaluate("() => localStorage.setItem('tw.rot.feet', '0')")
         m.goto(f"{base}#flow", wait_until="networkidle"); m.reload(wait_until="networkidle"); m.wait_for_timeout(2600)
         r = m.evaluate(MOB_RADAR_FEET, "#mRadarFlow")
