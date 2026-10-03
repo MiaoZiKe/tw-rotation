@@ -16592,7 +16592,7 @@ def t_design_v4(b, base, code):
     pg.mouse.click(700, 600); pg.wait_for_timeout(300)
     ok("③ 點面板外面會收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
     theme_flip(pg, 1400)
-    ok("③ 頂欄 ☀ 鈕（電腦版是左欄「淺色｜深色」）照舊切得動明暗", st()["mode"] == "light")
+    ok("③ ☀ 鈕（電腦版在頁首右上角）照舊切得動明暗", st()["mode"] == "light")
     click(pg, "#t4Btn", 300)
     ok("③ ☀ 切完之後面板的「淺色」是按下去的", pg.evaluate("() => document.querySelector('#t4Pop .t4m[data-t4m=\"light\"]').getAttribute('aria-pressed') === 'true'"))
     pg.keyboard.press("Escape")

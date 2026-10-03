@@ -5987,3 +5987,4 @@ Andy 看正式站（電腦版）的回饋，附圖兩張：
 - 新增 `t_layout4_login`：注入假的 https 會員網址並攔截所有請求（不連外、不真的登入），1440／1100／900 右上角最右邊是「登入」；有打 /v1/beat；
   按「登入」→ 告知 → 按「用 Google 帳號登入」→ 小視窗網址是 `<api>/auth/start?n=…&mode=popup` → 原頁面顯示「等待 Google 登入完成」；縮到 800 → #acctBtn 回 .acctbar。
 - 反向驗證：新的「版面v2結構」對 origin/main（d1c9e54）的 site 跑，15 條紅後中途爆掉（#l4Login 不存在）。
+- 結果：`_preview.py` 全綠；上面那組 9 段 `_uitest`（--workers 1）除 設計v4主題 一條計時型假紅外全 0（單獨重跑 0）；main 基準同組全 0。沒跑 pytest（只動 site/、_uitest、文件）。
