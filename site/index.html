@@ -1504,6 +1504,31 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .shhead button.now:not(.on){box-shadow:inset 0 -2px 0 var(--cyan)}
 .sncav{color:var(--amber)!important}
 #seasonCtl{flex-wrap:wrap;gap:8px;justify-content:flex-end}
+/* ★ 2026-10-03 週期統計長條圖：族群多選下拉＋色票列（只作用在 #v-season） */
+#v-season .snlinectl{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:var(--sp-2)}
+#v-season .snlinectl[hidden]{display:none}
+#v-season #seasonGroupDD .ddpanel{width:320px;max-height:min(420px,calc(100vh - 220px))}
+#v-season #seasonGroupDD .sndd-q{margin:2px 2px 6px;padding:6px 9px;border-radius:7px;border:1px solid var(--line-2);
+  background:var(--panel-2);color:var(--ink);font:12.5px/1.2 inherit;font-family:inherit;min-width:0}
+#v-season #seasonGroupDD .sndd-q:focus{outline:none;border-color:var(--cyan)}
+#v-season #seasonGroupDD .ddopt.chk em{margin-left:auto;font-style:normal;color:var(--ink-3);font-size:11px;font-family:var(--mono);flex:none}
+#v-season .snkey{display:flex;flex-wrap:wrap;gap:4px 6px;min-width:0}
+#v-season .snk{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;border:1px solid var(--line-2);
+  background:transparent;color:var(--ink-2);font:12px/1.4 inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
+#v-season .snk i{width:10px;height:10px;border-radius:2px;background:var(--c,var(--ink-3));flex:none}
+#v-season .snk.avg{cursor:default}
+#v-season .snk.avg i{height:2px;width:14px;border-radius:1px;background:var(--ink-2)}
+#v-season button.snk:hover{border-color:var(--c);color:var(--ink)}
+#v-season .snk b{font-weight:400;color:var(--ink-3);font-size:12px}
+#v-season #seasonBarWarn{margin:0;font-size:12px;flex-basis:100%}
+#v-season #seasonBarWarn .linkbtn{appearance:none;border:0;background:none;padding:0 2px;color:var(--cyan);font:inherit;cursor:pointer;text-decoration:underline}
+/* 手機：這排新控制項照全站手機慣例給 40px 觸控高（色票、下拉鈕、提醒裡的「熱力圖」） */
+@media (max-width:820px){
+  #v-season .snk{min-height:40px;padding:0 11px}
+  #v-season #seasonGroupDD .ddbtn{min-height:40px}
+  #v-season #seasonBarWarn .linkbtn{min-height:40px;padding:0 6px}
+  #v-season #seasonGroupDD .ddopt.chk label{min-height:40px}
+}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 點開的族群：底下原地插一列成分股膠囊 */
@@ -5375,11 +5400,12 @@ h3 .howbtn.pop{font-family:inherit}
           <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>
           <!-- J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）：
                熱力圖看得出「哪一格特別紅」，但看不出「一整年怎麼走」；曲線圖補的就是後者。 -->
-          <div class="seg" id="seasonView"><button data-v="heat" class="on">熱力圖</button><button data-v="line">曲線圖</button></div>
+          <!-- ★ 2026-10-03（Andy：「曲線圖改成長條圖表示」）：只改畫面上的字，data-v="line" 刻意不動（localStorage tw.season.view、驗收都認它）。 -->
+          <div class="seg" id="seasonView"><button data-v="heat" class="on">熱力圖</button><button data-v="line">長條圖</button></div>
           <!-- 熱力圖專用：列數與格內數字（預設不印數字 —— Andy：「新增顯示數字選項（所以 Default 是沒有）」） -->
           <div class="seg" id="seasonRows" data-for="heat"><button data-v="20" class="on">前 20 名</button><button data-v="all">全部</button></div>
           <div class="seg" id="seasonNum" data-for="heat"><button data-v="num" aria-pressed="false" title="在格子裡印出數值；格子太小放不下的會略過（不疊字）">顯示數字</button></div>
-          <!-- 曲線圖專用：快捷挑線（圖例點選加減照舊可以用） -->
+          <!-- 長條圖專用：快捷挑族群（會同步下面「族群」下拉的勾選） -->
           <div class="seg" id="seasonPick" data-for="line" style="display:none"><button data-v="top">本月最強 5</button><button data-v="bot">本月最弱 5</button><button data-v="none">只留平均線</button></div>
         </div>
       </div>
@@ -5393,7 +5419,23 @@ h3 .howbtn.pop{font-family:inherit}
         <div class="shhead" id="seasonHeatHead" role="group" aria-label="依月份排序"></div>
         <div id="seasonHeat" class="chart"></div>
       </div>
-      <div id="seasonLine" class="chart" style="min-height:560px" hidden></div>
+      <!-- ★ 2026-10-03（Andy：「上方改成下拉清單篩選」）：長條圖的族群改用可搜尋的多選下拉挑（取代 ECharts 那排要翻頁的圖例），
+           旁邊是已選族群的色票（點一下拿掉）與「選太多」的提醒。只在長條圖檢視出現。 -->
+      <div class="row snlinectl" id="seasonLineCtl" hidden>
+        <div class="rotdd wide" id="seasonGroupDD" data-dd="sngroup">
+          <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false" title="挑要比較的族群（可搜尋、可複選）">族群：<b>已選 0 個</b><i aria-hidden="true">▾</i></button>
+          <div class="ddpanel" aria-label="族群（可複選）" hidden>
+            <input type="search" class="sndd-q" placeholder="搜尋族群名稱" aria-label="搜尋族群名稱" autocomplete="off">
+            <div class="ddbar"><span class="muted sndd-n"></span>
+              <button type="button" class="btn small dd-all">全選</button>
+              <button type="button" class="btn small dd-none">全不選</button></div>
+            <div class="ddlist"></div>
+          </div>
+        </div>
+        <div class="snkey" id="seasonKey" aria-label="已選族群的顏色（點一下拿掉）"></div>
+        <p class="note sncav" id="seasonBarWarn" hidden></p>
+      </div>
+      <div id="seasonLine" class="chart" style="min-height:340px" hidden></div>
       <div class="note" id="seasonNote" style="margin-top:8px"></div>
     </div>
   </section>
