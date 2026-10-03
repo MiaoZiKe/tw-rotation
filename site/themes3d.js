@@ -20,16 +20,31 @@
      所以 1440 一個畫面看得到的內容比改版前多，不是只有字變小。
      ⚠ 零件建造函式一支都沒動 —— 這一輪只改版面配置。*/
   const BAND_Y = 86;                    // 上游／中游／下游 標題列的文字基線
-  const ART_T = 104, ART_B = 200;       // 零件框：fit() 把每個零件等比縮進這個框並置中
+  /* ★ 2026-10-03（Andy：「太大了」）：零件框 96 → 82 高、站名基線跟著上提 14px。
+     畫布改成 1:1 原尺寸之後（見 nativeWidth），1440 版面 v2 的欄寬 1140 原本把圖放大 1.16 倍（零件框螢幕上 112px），
+     只拿掉放大的話卡片只矮 12%；零件框再收一階，圖片螢幕高度＝改前的 73%，跟 Andy 要的 70～75% 對得上。*/
+  const ART_T = 104, ART_B = 186;       // 零件框：fit() 把每個零件等比縮進這個框並置中
   const ART_C = (ART_T + ART_B) / 2, ART_MH = ART_B - ART_T;
-  const CAP_Y = 220;                    // 站點標題基線
+  const CAP_Y = 206;                    // 站點標題基線
   /* 說明文字：第一行基線與列距。個股標籤的起點不寫死，由 chainScene 依**斷行後**的實際行數算（CY），
      不然爆炸圖搬過來的「圖上：…」那一行會直接撞上標籤。*/
-  const SUB_Y0 = CAP_Y + 18, SUB_LH = 15;
+  const SUB_Y0 = CAP_Y + 19, SUB_LH = 17;
+  // 說明字 13px 的估寬：全形字 13px、半形字 7.3px（12px 時代是 12／6.7，等比放大）
+  const SUB_FW = 13, SUB_HW = 7.3;
   /* 題材圖自己的字級，只在 .dg3 生效（產業鏈剖析圖不受影響）。
      標題 16→14、站名 12.5→12；**內文維持 12px，那是字級下限（CLAUDE.md／DECISIONS #226），不准再往下**。
      真正讓畫面變小的是上面那組版面數字，不是字級。*/
-  const TH_STYLE = `<style>.dg.dg3{--dg-fs-ttl:14px;--dg-fs-hd:12.5px;--dg-fs-lbl:12px;--dg-fs-min:12px}</style>`;
+  /* ★ 2026-10-03（Andy：「題材這邊的文字圖片大小比例再調整一下，太大了」）：
+     太大的根因不是字級，是**畫布被放大**：SVG 是 width:100%，1440 螢幕上卡片 1340px 寬、畫布 980，
+     整張圖（零件、字、膠囊、流程格）一起被放大 1.37 倍 —— 12px 的字在螢幕上是 16.4px。
+     修法：fit() 的 nativeWidth 加 max-width＝畫布寬，**畫布固定 1:1 原尺寸**（同產業鏈剖析圖 .dgm 的 984 上限），
+     整張卡高度直接變成 980/1340＝73%。字級在原尺寸下重新指定成 Andy 要的螢幕大小：
+       站名（.lbl）15px、說明（.stn .sub）13px、代號膠囊 12px（＝--dg-fs-min，不動）、
+       圖標題 16px、上中下游色帶 13px、流程格名稱 14px／副字 12px。
+     ⚠ 說明字從 12 改 13，wrapSub 的估寬（SUB_FW／SUB_HW）與列距 SUB_LH 要跟著改 —— 三個數字是同一組。*/
+  const TH_STYLE = `<style>.dg.dg3{--dg-fs-ttl:16px;--dg-fs-hd:12.5px;--dg-fs-lbl:15px;--dg-fs-min:12px}
+    .dg.dg3 .stn .sub{font-size:13px} .dg.dg3 .band text{font-size:13px}
+    .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px}</style>`;
   const BANDS = ['上游：關鍵材料與設備', '中游：核心元件與製造', '下游：系統、模組與應用'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -61,12 +76,12 @@
   const isHalf = (ch) => ch.charCodeAt(0) < 0x2e80;
   const NO_HEAD = '）」』、，。：；？！》〉·,.:;?!';   // 不准出現在行首的字
   const NO_TAIL = '（「『《〈';                        // 不准出現在行尾的字
-  const runW = (t) => { let w = 0; for (const c of t) w += isHalf(c) ? 6.7 : 12; return w; };
+  const runW = (t) => { let w = 0; for (const c of t) w += isHalf(c) ? SUB_HW : SUB_FW; return w; };
   function wrapSub(t, maxW) {
     const s = String(t == null ? '' : t), out = [];
     let line = '', w = 0;
     for (let i = 0; i < s.length; i++) {
-      const ch = s[i], cw = isHalf(ch) ? 6.7 : 12;
+      const ch = s[i], cw = isHalf(ch) ? SUB_HW : SUB_FW;
       if (w + cw > maxW && line) {
         let cut = line.length;
         // 正要在一串英數字中間斷掉 → 往回退到這串的開頭（退太多就算了，寧可切）
@@ -128,18 +143,19 @@
         <text x="${x + 13}" y="${BAND_Y - 1}">${BANDS[b]}</text></g>`;
     }).join('');
     const sy = CY + maxRows * CHIP_ROW + 26;
-    const H = sy + 78;
+    const H = sy + 80;
     const steps = (o.steps || []).length;
     const sw = steps ? Math.floor((CANW - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
     const strip = (o.steps || []).map((s, i) => {
       const x = PADX + i * (sw + 10);
-      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="38" rx="8"/>
-        <circle class="num" cx="${x + 17}" cy="${sy + 19}" r="10"/><text class="nn" x="${x + 17}" y="${sy + 23.5}" text-anchor="middle">${i + 1}</text>
-        <text class="lbl" x="${x + 34}" y="${sy + 16}">${esc(s.t)}</text>
-        <text class="sub" x="${x + 34}" y="${sy + 31}">${esc(s.s || '')}</text></g>`
+      // ★ 2026-10-03：名稱 14px＋副字 12px 疊兩行，格高 38 → 40（基線 17／33），兩行之間才不會貼在一起
+      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="40" rx="8"/>
+        <circle class="num" cx="${x + 17}" cy="${sy + 20}" r="10"/><text class="nn" x="${x + 17}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
+        <text class="lbl" x="${x + 34}" y="${sy + 17}">${esc(s.t)}</text>
+        <text class="sub" x="${x + 34}" y="${sy + 33}">${esc(s.s || '')}</text></g>`
         // ★ 2026-09-23：改吃 --dg-accent-2d（「不屬於任何零件」的強調色）。
         // 原本是寫死的青色色碼，在淺色主題下過亮；token 在深淺兩套各有一組值。
-        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 19} L${x + sw + 10},${sy + 19}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
     }).join('');
     /* o.unit ＝ 這張圖「該怎麼讀」那一行。爆炸圖時代寫的是「由上而下」的拆解順序，
        改成水平之後方向語意跟著換成「由左到右」，每一張各自照自己的鏈重寫（見各 T.* 的那一行）。*/
@@ -1523,7 +1539,13 @@
     root.style.overflowX = 'auto';
     root.style.overflowY = 'hidden';
     // 每張圖的畫布寬可能不一樣（AI 伺服器收到 980），沒寫 data-cw 的就是預設 1180
-    svg.style.minWidth = ((+svg.dataset.cw || CW)) + 'px';
+    const cw = (+svg.dataset.cw || CW) + 'px';
+    svg.style.minWidth = cw;
+    /* ★ 2026-10-03（Andy：「太大了」）：另一邊也擋住 —— 欄位比畫布寬時不再放大，固定原尺寸置中。
+       1440 螢幕的卡片 1340px，不擋的話整張圖放大 1.37 倍（字 12px → 16.4px、零件框 96 → 131px）。
+       跟產業鏈剖析圖 `.dgwrap svg.dgm{max-width:984px}` 同一個道理（index.html 那段註解有實測）。*/
+    svg.style.maxWidth = cw;
+    svg.style.marginInline = 'auto';
   }
 
   window.ThemeDiagrams = T;

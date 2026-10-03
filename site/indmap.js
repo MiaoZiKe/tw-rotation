@@ -577,6 +577,7 @@
   /* ---------------------------------------------------------------- 畫 */
   const BIN_VAR = ['--hm-n3', '--hm-n2', '--hm-n1', '--hm-0', '--hm-p1', '--hm-p2', '--hm-p3'];
   let cur = null;      // 目前畫面上那一張地圖的狀態（驗收讀它）
+  let fitOff = null;   // 目前那張地圖的 Fit.on 訂閱（換頁重畫時先取消上一張的）
 
   function valOf(g, colorMode) { return colorMode === 'flow' ? g._flow : g.chg_pct; }
   function binOf(v, colorMode) {
@@ -834,9 +835,18 @@
     const st = { model, color: ctx.color || 'chg', size: ctx.size || 'sqrt', focus: null, W: 0, H: 0, hover: null, roads: [] };
     cur = st;
 
+    /* 高度：寬 × 0.56（500～760），再壓在「一屏看完」的上限內（DECISIONS #308／#309）——
+       整張地圖卡（標題列＋地圖＋圖例列）高度 ≤ 視窗可視高，不必捲動就看得到全部的島與道路。
+       Fit.room(svg) ＝ 卡高上限 − 卡裡 svg 以外的東西（標題列、圖例列、內距）；下限 420：
+       再矮法定產業別與一般電子那兩塊窄島的街區就只剩色塊沒有字，寧可卡超出一點。
+       手機與窄畫面（≤820）本來就沒有地圖，Fit.room 在那裡回 Infinity，不影響。 */
     function measureSize() {
       const W = Math.max(600, Math.round(wrap.clientWidth || 1000));
-      const H = clamp(Math.round(W * 0.56), 500, 760);
+      let H = clamp(Math.round(W * 0.56), 500, 760);
+      if (window.Fit && svg.isConnected) {
+        const room = window.Fit.room(svg, { min: 420 });
+        if (isFinite(room)) H = Math.min(H, room);
+      }
       return { W, H };
     }
     function paint() {
@@ -929,6 +939,19 @@
         rT = setTimeout(() => { const w = Math.round(wrap.clientWidth); if (w > 0 && Math.abs(w - lastW) > 6) { lastW = w; paint(); } }, 120);
       });
       ro.observe(wrap); wrap._imRO = ro;
+    }
+
+    // 視窗「高度」變了（F11、拉矮視窗）寬度沒變，上面的 ResizeObserver 不會醒 → 交給 Fit.on 重算；
+    // 卡裡別的東西晚一步長高（圖例列）也會叫醒它。paint 是冪等的：同一個高度再畫一次就收斂。
+    // 上一張地圖（換頁回來重畫）的訂閱先取消，不然 Fit 的清單會留著已經離開畫面的舊 svg。
+    if (fitOff) { try { fitOff(); } catch (e) { /* 已經取消 */ } fitOff = null; }
+    if (window.Fit) {
+      const off = window.Fit.on(() => {
+        if (!svg.isConnected) { off(); if (fitOff === off) fitOff = null; return; }
+        const { H } = measureSize();
+        if (Math.abs(H - st.H) > 2) paint();
+      }, svg);
+      fitOff = off;
     }
 
     const api = {
