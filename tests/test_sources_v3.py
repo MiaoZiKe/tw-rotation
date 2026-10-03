@@ -619,7 +619,7 @@ def test_backfill_otc_marks_unavailable_after_empties(monkeypatch):
                          "symbol": ["OTC"] * 4})
     monkeypatch.setattr(store, "read", lambda t: days if t == "index_ohlc" else pd.DataFrame())
     monkeypatch.setattr(http, "finmind_budget_left", lambda: 500)
-    monkeypatch.setattr(http, "finmind_last_error", lambda: None)
+    monkeypatch.setattr(http, "finmind_last_error", lambda *a, **k: None)
     calls = []
     monkeypatch.setattr(finmind, "index_kbar", lambda d, i, **k: calls.append((d, i)) or pd.DataFrame())
     flag = {}

@@ -15,6 +15,25 @@
 - 進行中：產業地圖預覽換新底（#309）、兩個疑似點不到的真 bug（#310）、回補排程稀疏與當沖補回（#311）。
 
 ## 一屏看完：每張圖表卡 ≤ 一屏可視高（2026-10-03，台北，設計美編，分支 `claude/fit-screen`，****已上 main 35f1bd5 09:12**，等 CEO 合併**，DECISIONS #308，規格 `docs/fit_screen_spec.md`）
+## 回補排程稀疏＋當沖借券續補排第一＋FinMind 錯誤以資料集為範圍（2026-10-03，台北，爬蟲專家，分支 `claude/backfill-cadence`，**未合併 main，等 CEO 合併**，DECISIONS #311）
+
+- **排程為什麼稀疏（證據）**：GitHub 端延後／丟棄排程事件，不是守門也不是 concurrency。backfill 寫每小時，run 165～172 一天只來 4 輪（間隔 4～6 小時、不在 :20）；
+  同 repo 的盤中巡檢（01:17 那班 07:03 才跑）、Worker 巡檢、每日管線（一天 7 班只跑 3 次）全都一樣；10-01 12:00 UTC 後沒有任何 cancelled；守門只跳過 run 170（當天續補確實做完了）。
+- **#304 合併後**：run 172 解封了當沖／借券（`unavailable` 只剩 holding、台積電反證寫了 09-29～10-02），但法人續補排第一、上限 1,200，吃光額度（還剩 661）→ 當沖一次都沒輪到。
+  10-03 09:33 手動觸發 run 173（main 舊順序）：法人再寫約 568 檔、還剩 462，**當沖／借券仍一檔都沒寫**。資料湖 09-25 之後 daytrade／sbl 仍只有 2330。
+- [x] `pipeline/run_backfill.py`：`FRESH_TABLES` 順序改 當沖 → 借券 → 上櫃融資券 → 法人（基本上限 400／400／300／400）、`FRESH_BOOST` 2→4；
+  `refresh_stale_inst` 兩段：先給上櫃融資券 10%、法人 15% 保底，剩下照順序（當沖先做完再借券）；新增 `FINMIND_DATASET` 對照表，封印理由只看該資料集自己的錯誤。
+- [x] `pipeline/util/http.py`：`_last_errors[dataset]`＋`finmind_last_error(dataset)`，該資料集成功一次就清掉；不帶參數＝舊行為。`run_backfill`／`sources/finmind.py` 所有拿錯誤做判斷的地方改帶資料集。
+- [x] 測試：新檔 `tests/test_backfill_cadence_1003.py`（10 條）、新檔 `tests/conftest.py`（每支測試前清空錯誤紀錄）；`test_backfill_market.py`「法人最優先」改「當沖、借券最優先」；
+  `test_backfill_seal_1003.py` 上限加倍那條改 `min(名單, 1×BOOST)`；`test_index_kline_0928.py`／`test_sources_v3.py` 三處假 `finmind_last_error` 改成接受參數。
+- **這批驗了**：`pytest tests/ -q` 926 passed／4 skipped／1 xfailed（11 分 29 秒）。沒跑 `_preview.py`／`_uitest.py`（沒動 `site/**` 與 `build_payload.py`）。反向驗證：`run_backfill.py` 換回 main 版 → 新測試 6 條紅（封印理由、對照表、順序與保底、上限設定），換回來全綠。
+  `http.py` 換回 main 版時新測試在 conftest 就報錯（舊版沒有 `_last_errors`），所以 http 那兩條的反向驗證只算間接。
+- **沒做（要 Andy／CEO 決定）**：`backfill.yml` 加「接力」工作（這輪做不完就睡到下一個額度視窗、用 GITHUB_TOKEN 派下一輪；concurrency 掛到 backfill job、不動 cancel-in-progress、派之前看每日管線有沒有在排隊、避開 UTC 9～10 點、最多 30 棒）。
+  要給工作流 `actions: write`、讓工作流自己觸發自己，被這個 session 的權限分類器擋下，**沒動 backfill.yml**。做了的話一天可用額度約 4 倍、合併後半天內補齊。
+- **補齊預估（台北，每輪約 505 次、一天約 4 輪）**：合併後當沖約 10-04 晚上、借券約 10-05 晚上～10-06、上櫃融資券與法人 10-02 缺口約 10-05；不合併當沖約 10-05、借券約 10-06～10-07。
+- 待處理：① 接力（上面）；② MI_MARGN 10-02（週五）還沒進湖（`margin_daily` 10-02 只有 1 列），上櫃融資券續補名單會暫時多出約 1,298 檔上市股（排在上櫃後面）；週一的每日管線應該會補，若沒有要查 `twse.margin_daily` 的日期邏輯。
+
+## 一屏看完：每張圖表卡 ≤ 一屏可視高（2026-10-03，台北，設計美編，分支 `claude/fit-screen`，**未合併 main，等 CEO 合併**，DECISIONS #308，規格 `docs/fit_screen_spec.md`）
 
 - Andy：「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表，幫我上下寬度調整窄一點適當」（附圖：資金去向桑基樹要捲好幾屏、資金輪盤很大右邊排行很長）。
 - 前兩位專家被容器重啟打斷，這一棒接 `4762ad2` 完成：新檔 `site/fit.js`／`site/fit.css`（`Fit.cap/room/on`）、輪盤（`rotFitH`）、資金去向桑基（`flowtopo.js` `slotPlan`／`fitMax`）、
