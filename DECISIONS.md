@@ -5931,3 +5931,59 @@ CEO 派工：main 的 `_uitest` 有約 40 條沒人認領的紅，其中兩條�
 ### 別順手改回去
 - 不要把 `placeRelCol` 的上界改回圖框頂：切換列一直在圖框左上角，卡片一貼左就會蓋到。
 - 不要把驗收的入口改回 `#industry/<鏈>`：那個網址是第一張剖析圖的範圍（#306），驗整條鏈的段落要開 `/overview`。
+
+## #312 版面 V2 第四批（電腦版）：登入、明暗、外觀搬到頁首右上角；收合鈕騎在側欄分隔線上；子分頁各自的圖示（UI 專家，2026-10-03，分支 `claude/topbar-acct`；合併時若撞號請改號）
+
+Andy 看正式站（電腦版）的回饋，附圖兩張：
+1. 「這個登入功能不見了」—— 側欄左下帳號卡只寫「訪客／自選存在這台瀏覽器」，沒有登入鈕。
+2. 「明暗用原來的圖示即可，並且都放在右上」—— 拿掉側欄底部「淺色｜深色」二段式，改回單顆 ☀／🌙；登入與明暗都放頁面右上角。
+3. 「圖案換個圖案，畫在線上」—— logo 右側的收合鈕換圖示，騎在側欄與內容之間的分隔線上。
+4. （CEO 追加，同一批）側欄子分頁「資金輪動、資金去向、族群×法人＋集中度、產業、題材」每一個都要有自己的圖示，收合時只顯示圖示。
+
+只作用在電腦版（>820，掛 l4）；≤820 不動（手機版暫停，#291）。檔案：`site/layout4.js`、`site/layout4.css`、`scripts/_uitest.py`。沒改任何 id／data-*，沒改 account.js 的登入流程。
+
+**1. 為什麼判成「沒有會員設定檔」——查到哪裡、查不到哪裡**
+- 前端判斷本身沒有錯：本機用跟正式站同一種設定（`account_config.js` 填 `https://…workers.dev`、會員 API 由 Playwright 攔下來回假資料）重跑第三批的程式，
+  帳號卡會出現「3 人在線・登入同步自選」＋「登入」鈕。載入順序也對：account_config.js → account.js（boot 在 DOMContentLoaded、S.on 同步設好）→ layout4.js（init 在它之後）。
+- 正式站畫面寫的「訪客／自選存在這台瀏覽器」是 `TwAccount.on()` 為 false 才會出的字，也就是**那一刻正式站的 account.js 沒有拿到會員網址**。
+  這個容器連不到 miaozike.github.io（CONNECT 403）、讀不到 Actions 日誌（GitHub 把日誌放在別的主機，被代理擋掉）、也讀不到 repo Secret 清單（403），
+  pages.yml「會員功能設定」那一步只 echo、不留 annotation —— 所以**沒辦法從這邊證實部署產物裡 account_config.js 有沒有填到網址**。
+  ACCOUNT_API_URL 是 deploy-account-worker.yml 成功後「最後一步」才要 Andy 手動設的 Secret（10-02 那次 Worker 部署成功，Secret 有沒有接著設，這邊看不到）。
+- 處理（兩條都做）：
+  ① layout4.js 多聽 `tw:account-config`，設定晚到也會補上真的 #acctBtn；
+  ② **會員功能關著時，右上角照樣有一顆「登入」（#l4Login，不是 #acctBtn）**，按了跳出一小段字：
+     「會員登入目前沒有開啟：網站這次部署沒有讀到會員伺服器的設定，所以暫時不能登入。自選清單照樣可以用，會存在這台瀏覽器。」
+  推翻第三批「沒有設定檔時不放登入鈕」：那條讓入口整個消失，Andy 看到的就是「功能不見了」，而且沒有任何線索可查。現在入口一定在，
+  而且**按下去就知道是哪一種情況**：有設定檔 → 跳出 account.js 原本的登入告知；沒有 → 這段說明。正式站上線後 Andy 按一下就能分辨。
+  ⚠ 如果他按了看到「沒有開啟」，代表 repo Secret `ACCOUNT_API_URL` 沒設或不是 https 開頭（設定見 docs/login_setup.md、deploy-account-worker.yml 最後一步的提示），不是前端的問題。
+  ⚠ 建議（不在 UI 專家的檔案範圍，沒做）：pages.yml 那一步改成 `echo "::notice::會員功能：開啟"`，以後從 annotations API 就查得到這次部署有沒有開。
+
+**2. 頁首右上角（#l4Tools）**
+- 頁首一列：頁名｜（右邊）台北時間｜☀／🌙｜外觀調色盤｜線上人數｜登入。黏頂、高 49 不變（`.topbar` 盒子＝頁首高，trackPop 的前提沒變）。
+- 全部是**搬節點不是做新鈕**：#themeBtn（☀／🌙 由 app.js applyTheme 寫字、onclick 是 app.js 的）、#t4Btn（theme4.js）、#acctOnline、#acctBtn（account.js）本人搬進來；
+  ≤820（deactivate）先放回原位再拆頁首（☀ 回到「⋯」前面、外觀回到 ☀ 前面、帳號兩顆回 .acctbar），≤820 的頂欄排列跟 main 一樣。
+- 外觀面板、帳號選單本來就是「按鈕下緣＋8px、右緣對齊」定位，按鈕在右上角剛好對，所以第三批那段「挪到左欄右邊」（besideNav／wirePopups）整段拿掉。
+- 頁首不再整塊藏起來：法律頁、管理頁（#admin 要先登入）也要按得到右上角，所以只把頁名那格清空。renderHead 只重寫 h1，不再重寫 innerHTML（會把按鈕本人刪掉）。
+- 已登入：頭像＋名字＋▾（account.js 畫的），點開是原本帳號選單。搬出 .acctbar 之後 account.js 的 `.acctbar .abtn` 樣式吃不到，所以 layout4.css 自己寫一份（只用 v4 變數）。
+- 左欄底部帳號卡（#l4Acct）、「淺色｜深色」（#l4Mode）整段拿掉；左欄最底下就是頁面清單（中間那列高度照舊由 fitNav 量）。
+
+**3. 收合鈕騎在分隔線上**
+- 24px 圓鈕，`position:absolute`（.topbar 是 fixed，定位基準就是它），`left: calc(var(--l4-nav-w) − 12px)` → 中心＝左欄右緣；收合／展開跟著 --l4-nav-w 走，鈕永遠在線上。
+  垂直：展開時對齊 logo 中心（top＝sp-4＋10），收合時 logo 置中變高一點（top＝sp-4＋3）。z-index 高過黏頂頁首（一半伸進內容區）。
+- 圖示：雙箭頭（Lucide chevrons-left 的路徑），展開 «、收合時轉 180° 成 »。第三批收合時把鈕擠到 logo 正下方那一列拿掉。
+
+**4. 子分頁圖示**
+- 圖示鍵（site/icons.js 的 Lucide，同一套線寬）：資金輪動＝compass（羅盤）、資金去向＝split（分流箭頭）、族群×法人＝landmark（法人＝機構）、產業＝treemap（格狀方塊）、題材＝flame（跟題材卡標題同一個）。
+  icons.js 被擋時退回 layout4.js 內嵌的同一組路徑。16px（主項目 19px），字左邊；收合時只剩圖示（17px，置中），取代第三批的兩字短名，滑過有 title、讀屏有 aria-label。
+- 是真的 `<svg>` 節點（不是遮罩偽元素），驗收才數得到「五個子項都有 svg」。
+
+**localStorage**：這批沒有新增任何鍵（viewreset.js 不必改）。
+
+**驗收**（`_uitest.py`「版面v2結構」）：
+- 改既有：頁首子元素多一塊 `div.l4tools`；左欄最底下改量 #tabsWrap；外觀面板改驗「在右上角按鈕下面、在視窗內、不蓋左欄」；`theme_flip` 回到一律點 #themeBtn。
+- 新增（第三批②④⑤改寫）：收合鈕中心 x 在左欄右緣 ±4px、垂直在 logo 列 ±12px、圓形、最上層點得到、展開不轉／收合轉 180°；按了左欄真的收合、鈕仍在新邊線上；
+  右上角三顆跟頁名同一列、靠右；帳號卡與二段式不存在；按 ☀ → data-theme／底色／localStorage／圖表重建都換、圖示變 🌙，再按回來；外觀面板切淺色 → ☀ 鈕跟著變；
+  沒有設定檔按 #l4Login → 說明出現在按鈕下、Esc 關、沒冒出 #acctBtn；五個子項都有 svg 圖示（在字左邊、比主項目小、五個都不一樣）；收合只剩圖示、置中、title、點圖示換頁。
+- 新增 `t_layout4_login`：注入假的 https 會員網址並攔截所有請求（不連外、不真的登入），1440／1100／900 右上角最右邊是「登入」；有打 /v1/beat；
+  按「登入」→ 告知 → 按「用 Google 帳號登入」→ 小視窗網址是 `<api>/auth/start?n=…&mode=popup` → 原頁面顯示「等待 Google 登入完成」；縮到 800 → #acctBtn 回 .acctbar。
+- 反向驗證：新的「版面v2結構」對 origin/main（d1c9e54）的 site 跑，15 條紅後中途爆掉（#l4Login 不存在）。
