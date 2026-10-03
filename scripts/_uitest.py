@@ -44831,7 +44831,8 @@ def t_rel_scope_3d_1003(b, base):
             pg.evaluate("() => { const m = document.querySelector('#relSec'); if (m && m.getClientRects().length) m.scrollIntoView({ block: 'start' }); }")
             pg.wait_for_timeout(900)
 
-        for chain in ("electronics", "semiconductor", "ai_server", "software"):
+        part = os.environ.get("TW_REL3D_PART", "")   # rel／3d：只跑其中一半（機器很忙時分開重跑用；不設＝兩半都跑）
+        for chain in (("electronics", "semiconductor", "ai_server", "software") if part != "3d" else ()):
             pg.goto("about:blank")
             pg.goto(base + f"#industry/{chain}/overview", wait_until="load")
             wait_until(pg, "() => !!document.querySelector('#dgPick')", 12000)
@@ -44904,35 +44905,36 @@ def t_rel_scope_3d_1003(b, base):
             ok(f"★ {T}{chain} 點回「族群總覽」→ 關聯圖整條鏈（{len(back['map'])}／{len(S)} 格）、反亮全部拿掉、下拉沒有「圖上」",
                back["relVis"] and set(back["map"]) == S and back["anyCls"] == 0 and not back["ddFoc"], (back["map"], back["anyCls"], back["ddFoc"]))
 
-        # 窄一點的視窗（關聯圖框要左右滑時）→ 框自己捲到反亮那幾欄（只捲框、不捲整頁）
-        pg.set_viewport_size({"width": 900, "height": 900})
-        pg.goto("about:blank")
-        pg.goto(base + "#industry/ai_server/dg/ai_server", wait_until="load")
-        wait_until(pg, "() => !!document.querySelector('#prodDiagram svg')", 12000)
-        sy0 = pg.evaluate("() => scrollY")
-        settle_map()
-        wait_until(pg, "() => document.querySelectorAll('#chainMap rect.segbox.relfocus').length > 0", 8000)
-        pg.wait_for_timeout(500)
-        c = pg.evaluate("""() => { const m = document.querySelector('#chainMap'); const mr = m.getBoundingClientRect();
-          let l = 1e9, r = -1e9; document.querySelectorAll('#chainMap rect.segbox.relfocus').forEach(b => { const q = b.getBoundingClientRect(); l = Math.min(l, q.left); r = Math.max(r, q.right); });
-          return { sw: m.scrollWidth, cw: m.clientWidth, sl: m.scrollLeft, mid: (l + r) / 2 - mr.left, l: l - mr.left, r: r - mr.left }; }""")
-        ok(f"{T}打開剖析圖分頁時整頁沒有被捲走（scrollY {sy0}）", sy0 == 0, sy0)
-        if c["sw"] > c["cw"] + 2:
-            ok(f"★ {T}900 寬關聯圖要左右滑 → 框自己捲到反亮那幾欄（可見範圍內 {c['l']:.0f}～{c['r']:.0f}／{c['cw']}）",
-               c["l"] >= -4 and (c["r"] <= c["cw"] + 4 or abs(c["mid"] - c["cw"] / 2) <= 40), c)
-        else:
-            ok(f"{T}900 寬關聯圖不用左右滑（{c['sw']}／{c['cw']}），反亮的幾欄都在框裡", c["l"] >= -1 and c["r"] <= c["cw"] + 1, c)
+        if part != "3d":
+            # 窄一點的視窗（關聯圖框要左右滑時）→ 框自己捲到反亮那幾欄（只捲框、不捲整頁）
+            pg.set_viewport_size({"width": 900, "height": 900})
+            pg.goto("about:blank")
+            pg.goto(base + "#industry/ai_server/dg/ai_server", wait_until="load")
+            wait_until(pg, "() => !!document.querySelector('#prodDiagram svg')", 12000)
+            sy0 = pg.evaluate("() => scrollY")
+            settle_map()
+            wait_until(pg, "() => document.querySelectorAll('#chainMap rect.segbox.relfocus').length > 0", 8000)
+            pg.wait_for_timeout(500)
+            c = pg.evaluate("""() => { const m = document.querySelector('#chainMap'); const mr = m.getBoundingClientRect();
+              let l = 1e9, r = -1e9; document.querySelectorAll('#chainMap rect.segbox.relfocus').forEach(b => { const q = b.getBoundingClientRect(); l = Math.min(l, q.left); r = Math.max(r, q.right); });
+              return { sw: m.scrollWidth, cw: m.clientWidth, sl: m.scrollLeft, mid: (l + r) / 2 - mr.left, l: l - mr.left, r: r - mr.left }; }""")
+            ok(f"{T}打開剖析圖分頁時整頁沒有被捲走（scrollY {sy0}）", sy0 == 0, sy0)
+            if c["sw"] > c["cw"] + 2:
+                ok(f"★ {T}900 寬關聯圖要左右滑 → 框自己捲到反亮那幾欄（可見範圍內 {c['l']:.0f}～{c['r']:.0f}／{c['cw']}）",
+                   c["l"] >= -4 and (c["r"] <= c["cw"] + 4 or abs(c["mid"] - c["cw"] / 2) <= 40), c)
+            else:
+                ok(f"{T}900 寬關聯圖不用左右滑（{c['sw']}／{c['cw']}），反亮的幾欄都在框裡", c["l"] >= -1 and c["r"] <= c["cw"] + 1, c)
 
-        # 手機 390：環節清單整條鏈、反亮的那幾格有 relfocus
-        pg.set_viewport_size({"width": 390, "height": 844})
-        pg.goto("about:blank")
-        pg.goto(base + "#industry/semiconductor/dg/foundry", wait_until="load")
-        wait_until(pg, "() => document.querySelectorAll('#chainList .segcard').length > 0", 12000)
-        mz = pg.evaluate(REL_SCOPE)
-        ok(f"★ {T}手機 390 晶圓代工：環節清單列整條鏈（{len(mz['list'])} 格）、反亮 {mz['listFoc']}、色標整條鏈",
-           len(mz["list"]) >= 10 and mz["listFoc"] == ["foundry"] and len(mz["dd"]) == len(mz["list"]),
-           (mz["list"], mz["listFoc"], mz["dd"]))
-        ok(f"{T}手機 390 不橫捲", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+            # 手機 390：環節清單整條鏈、反亮的那幾格有 relfocus
+            pg.set_viewport_size({"width": 390, "height": 844})
+            pg.goto("about:blank")
+            pg.goto(base + "#industry/semiconductor/dg/foundry", wait_until="load")
+            wait_until(pg, "() => document.querySelectorAll('#chainList .segcard').length > 0", 12000)
+            mz = pg.evaluate(REL_SCOPE)
+            ok(f"★ {T}手機 390 晶圓代工：環節清單列整條鏈（{len(mz['list'])} 格）、反亮 {mz['listFoc']}、色標整條鏈",
+               len(mz["list"]) >= 10 and mz["listFoc"] == ["foundry"] and len(mz["dd"]) == len(mz["list"]),
+               (mz["list"], mz["listFoc"], mz["dd"]))
+            ok(f"{T}手機 390 不橫捲", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
 
         # ---------------------------------------------------------------- ① 3D 回 1.0、一屏看完
         def d3_check(tg, z, need_screen=True):
@@ -44970,7 +44972,7 @@ def t_rel_scope_3d_1003(b, base):
             pg.wait_for_timeout(1800)
             return pg.evaluate(D3_FIT)
 
-        for chain, slot in (("semiconductor", "foundry"), ("ai_server", "ai_server"), ("electronics", "machine_tool")):
+        for chain, slot in ((("semiconductor", "foundry"), ("ai_server", "ai_server"), ("electronics", "machine_tool")) if part != "rel" else ()):
             for VW, VH in ((1440, 900), (1920, 1080), (1366, 768)):
                 tg = f"{T}3D {slot}·{VW}×{VH}"
                 z = open3d(chain, slot, VW, VH)
