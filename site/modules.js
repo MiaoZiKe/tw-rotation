@@ -48,7 +48,7 @@
         { "page": "overview", "step": 1, "seg": "資金輪盤", "ord": 10,
           "selector": ["#ovRotCard", "#ovRotHead", "#ovRotKpi", "#how-rotm", "#rotClockMiniWrap"],
           "note": "第①步的主圖。它就是「錢往哪個族群跑」最直接的一張圖，以前是總覽中段的一張卡、要捲 1911px 才看得到。#ovRotCard 是跟「資金去向」共用的卡片外殼：桌機一張卡兩件事（量到 1059px），手機拆兩段；兩段都要列外殼，不然另一段會留下一個 34px 高的空卡片（實測）。#ovRotKpi 是手機才長出來的四象限計數（miaRotKpi）。" },
-        { "page": "flow", "seg": "輪動", "ord": 10, "selector": ["#flowRotCard"],
+        { "page": "flow", "seg": "資金輪動", "ord": 10, "selector": ["#flowRotCard"],
           "note": "跟 flow.rank 合併在同一張卡（2026-09-21 Andy：兩張圖合併、共用篩選），所以兩塊積木宣告同一段。" }
       ],
       "tests": ["新-輪動時鐘", "資金輪動合併", "輪動時鐘即時", "輪動象限面板", "批次30-兩層下拉與象限卡", "總覽", "足跡輪盤全部腳印"] },
@@ -56,7 +56,7 @@
     { "id": "flow.rank", "name": "資金流向排行", "question": "①", "ask": "這一段時間誰把錢吸走了（成交值／法人淨額的族群排名）",
       "tier": "免費", "law": "🟡",
       "at": [
-        { "page": "flow", "seg": "輪動", "ord": 10, "selector": ["#flowRotCard"] }
+        { "page": "flow", "seg": "資金輪動", "ord": 10, "selector": ["#flowRotCard"] }
       ],
       "tests": ["資金流向", "新-資金流向", "資金輪動合併", "批次7"] },
 
@@ -80,7 +80,7 @@
     { "id": "flow.inst", "name": "族群 × 法人", "question": "①", "ask": "三大法人的錢進了哪些族群（淨買超張數）",
       "tier": "免費", "law": "🟡",
       "at": [
-        { "page": "flow", "seg": "法人", "ord": 30, "selector": ["#flowInstCard"] }
+        { "page": "flow", "seg": "族群×法人", "ord": 30, "selector": ["#flowInstCard"] }
       ],
       "tests": ["新-資金流向", "批次2"] },
 
@@ -94,7 +94,7 @@
     { "id": "market.treemap", "name": "全市場熱力圖", "question": "①", "ask": "整個台股一次看，錢在哪一塊",
       "tier": "免費", "law": "🟡",
       "at": [
-        { "page": "heatmap", "seg": "產業熱力", "ord": 10, "selector": ["#indHeat"] }
+        { "page": "heatmap", "seg": "產業", "ord": 10, "selector": ["#indHeat"] }
       ],
       "tests": ["熱力圖v2", "批次29-產業分頁"] },
 
@@ -103,8 +103,8 @@
       "at": [
         { "page": "overview", "step": 1, "seg": "熱門題材", "ord": 40, "selector": ["#ovThemeCard"],
           "note": "2026-09-24 起總覽上是題材熱力圖（renderOvThemes：方塊＝題材成交值、顏色＝熱度，下拉或點方塊換成成分股），放在資金熱力圖正下方。" },
-        { "page": "heatmap", "seg": "題材熱力", "ord": 20, "selector": ["#themeMapCard"],
-          "note": "2026-09-24 題材併進熱力圖分頁。段名沿用舊的「題材熱力」—— route() 的 prefer 是用段名找段落的。" }
+        { "page": "heatmap", "seg": "題材", "ord": 20, "selector": ["#themeMapCard"],
+          "note": "2026-09-24 題材併進熱力圖分頁。段名沿用舊的「題材熱力」—— route() 的 prefer 是用段名找段落的。2026-10-03 手機 V2（#314）：手機分段名改成跟電腦版側欄子分頁同名（產業／題材；資金流向＝資金輪動／資金去向／族群×法人／集中度），route() 的 prefer 一起改。" }
       ],
       "tests": ["題材", "熱力圖v2", "總覽"] },
 

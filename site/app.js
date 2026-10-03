@@ -586,6 +586,36 @@
     const nt = { ...t, valueFormatter: (v) => tipNum(v, pctAx ? '%' : '') };
     return { ...o, tooltip: Array.isArray(t0) ? [nt, ...t0.slice(1)] : nt };
   }
+  /* ★ 2026-10-03 手機 V2（Andy：「左右不要浪費太多空白」，DECISIONS #314）：手機（≤820）的 ECharts 圖吃滿寬。
+     各圖的 grid 左右邊距是照桌機寫死的像素（left 60／right 50…，給「6000 億」這種刻度留位子），390 寬一張圖左右就吃掉 110px。
+     手機改成 containLabel（ECharts 自己量刻度字多寬，只留剛好的位子）＋左右各 4px；座標軸字 12 → 11（全站下限 11）。
+     只動「單一 grid、有直角座標軸」的圖；不碰：多個 grid（上下對齊靠固定左邊距）、軸字放在圖內（inside）、
+     右邊有系列標籤（endLabel／markLine 的字畫在 grid 外，containLabel 量不到，收掉會被切）—— 那幾種照原樣。
+     桌機（>820）不走這裡，一個 px 都不變。 */
+  function mobileChartOpt(o) {
+    try {
+      if (!o || typeof o !== 'object' || !o.grid || Array.isArray(o.grid)) return o;
+      const g = o.grid;
+      const xs = Array.isArray(o.xAxis) ? o.xAxis : o.xAxis ? [o.xAxis] : [];
+      const ys = Array.isArray(o.yAxis) ? o.yAxis : o.yAxis ? [o.yAxis] : [];
+      if (!xs.length || !ys.length) return o;
+      if (typeof g.left !== 'number' && typeof g.right !== 'number') return o;
+      const ser = Array.isArray(o.series) ? o.series : o.series ? [o.series] : [];
+      if ([...xs, ...ys].some(a => a && a.axisLabel && a.axisLabel.inside)) return o;
+      const sideLabels = ser.some(s => s && ((s.endLabel && s.endLabel.show) || (s.markLine && s.markLine.label && s.markLine.label.show !== false && s.markLine.data)));
+      // 系列自己有數值標籤（橫條圖尾巴的「+8.9%」之類）：那些字畫在 grid 外緣，containLabel 量不到 —— 整張照原樣（只縮軸字）
+      const valLabels = ser.some(s => s && ((s.label && s.label.show) || (Array.isArray(s.data) && s.data.some(d => d && d.label && d.label.show))));
+      const ax0 = (a) => (a && typeof a === 'object' && !(a.axisLabel && typeof a.axisLabel.fontSize === 'number' && a.axisLabel.fontSize < 11))
+        ? { ...a, axisLabel: { ...(a.axisLabel || {}), fontSize: 11 } } : a;
+      if (valLabels) return { ...o, xAxis: Array.isArray(o.xAxis) ? xs.map(ax0) : ax0(xs[0]), yAxis: Array.isArray(o.yAxis) ? ys.map(ax0) : ax0(ys[0]) };
+      const ng = { ...g, containLabel: true };
+      if (typeof g.left === 'number') ng.left = Math.min(g.left, 4);
+      if (typeof g.right === 'number' && !sideLabels) ng.right = Math.min(g.right, 6);
+      const ax = (a) => (a && typeof a === 'object' && !(a.axisLabel && typeof a.axisLabel.fontSize === 'number' && a.axisLabel.fontSize < 11))
+        ? { ...a, axisLabel: { ...(a.axisLabel || {}), fontSize: 11 } } : a;
+      return { ...o, grid: ng, xAxis: Array.isArray(o.xAxis) ? xs.map(ax) : ax(xs[0]), yAxis: Array.isArray(o.yAxis) ? ys.map(ax) : ax(ys[0]) };
+    } catch (e) { return o; }
+  }
   function chart(id, option, opts) {
     const el = typeof id === 'string' ? document.getElementById(id) : id; if (!el) return null;
     if (typeof echarts === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return null; }
@@ -602,6 +632,7 @@
       c._soft = true;
     }
     if (window.T4 && window.T4.normalize) option = window.T4.normalize(option);   // 設計 v4 §4：只留水平格線、圖例不壓繪圖區（theme4.js）
+    if (window.innerWidth <= 820) option = mobileChartOpt(option);                 // 手機 V2（#314）：圖吃滿寬（見 mobileChartOpt）
     let full = withTipFmt(Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option));
     /* ★ 2026-09-24 效能：**圖表第一次出現不播進場動畫**（長條長出來、扇形轉開那一段 0.24～0.5 秒）。
        首次開總覽時七八張圖同時進場，每一幀都要把每張圖重畫一次 —— 實測把進場動畫拿掉，
@@ -2415,7 +2446,11 @@
     /* 熱力圖分頁（手機分段）：網址帶了 `theme` 就翻到題材那一段；
        再帶了題材 id（從題材熱力圖點一格進來的）就直接翻到「題材細節」。*/
     const wantTheme = view === 'heatmap' && rest[0] === 'theme';
-    const prefer = wantTheme ? (rest[1] ? '題材細節' : '題材熱力') : null;
+    /* 2026-10-03 手機 V2（#314）：電腦版子分頁網址（#flow/sankey、#heatmap/industry…）在手機直接翻到同名的那一段，
+       分享出去的連結兩邊落在同一個地方。段名跟電腦版側欄同名（modules.js）。*/
+    const FLOW_SEG = { rotation: '資金輪動', sankey: '資金去向', inst: '族群×法人' };
+    const prefer = wantTheme ? (rest[1] ? '題材細節' : '題材') : (view === 'heatmap' && rest[0] === 'industry') ? '產業'
+      : (view === 'flow' && FLOW_SEG[rest[0]]) ? FLOW_SEG[rest[0]] : null;
     const mia = () => { try { applyMobileIA(mk, prefer); } catch (e) { /* 忽略 */ } };
     if (view === 'heatmap') {
       /* ★ 2026-09-24：這一頁現在有兩張熱力圖（全市場 ＋ 題材）＋ 就地展開的題材細節。

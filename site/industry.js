@@ -712,7 +712,8 @@
       });
       const b = build();
       const n = Math.max(barData.length, 6);
-      const h = Math.max(320, Math.min(660, n * 26 + 56));
+      // 手機 V2（#314，一屏看完）：手機一列 20px（桌機 26 不變），18 個族群 524 → 416px，長條＋標題一屏看完
+      const h = Math.max(320, Math.min(660, n * (window.innerWidth <= 820 ? 20 : 26) + 56));
       /* ★ 2026-09-24 甜甜圈改版：圖例搬到圖下方（兩欄），圖本身讓出那一塊，兩張卡片仍然一樣高。*/
       const legRows = Math.ceil(Math.min(6, (pieData.length || 1)) / 2);
       const legH = legRows * 24 + 12;

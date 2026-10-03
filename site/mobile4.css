@@ -138,3 +138,28 @@
   body.m3on #skChartCard>#skAi .aitab{flex-direction:row;justify-content:space-between;align-items:center;gap:6px;min-height:34px;padding:2px 6px 2px 9px}
   body.m3on #skChartCard>#skAi .aitab .nm,body.m3on #skChartCard>#skAi .aitab .aitag{font-size:13px}
 }
+
+/* ---------------- 5. 一屏看完：產業地圖兩張圖二選一（mobile3.js gpSeg） ---------------- */
+@media (max-width:820px){
+  body.m3on .m4gpseg{margin:6px 0 6px}
+  body.m3on .gpgrid[data-m4gp="0"]>.gpcard:nth-child(2),body.m3on .gpgrid[data-m4gp="1"]>.gpcard:nth-child(1){display:none!important}
+  body.m3on .gpgrid[data-m4gp]>.gpcard>h5{display:none}
+}
+
+/* ---------------- 6. 一屏看完：各頁圖高跟視窗高度走（視窗 − 頁首 52 − 底部 58 − 分段列 − 卡內其他） ---------------- */
+@media (max-width:820px){
+  /* 熱力圖・產業：treemap 560 固定 → 跟視窗走（844 高 ≈ 510），下限 320 */
+  body.m3on #indTree{min-height:0!important;height:clamp(320px,calc(100vh - 52px - 58px - 54px - 176px),560px)!important}
+  /* 週期統計：「設定」「排序」兩顆鈕併成一行（改前各佔一行，多 60px） */
+  body.m3on #mSeasonBtn,body.m3on #mSeasonSort{display:inline-flex;align-items:center;vertical-align:middle;margin:4px 6px 6px 0}
+  body.m3on #mSeasonBtn{max-width:calc(100% - 132px)}
+  body.m3on #seasonHeatCard>.row.spread{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;column-gap:0}
+  body.m3on #seasonHeatCard>.row.spread>h3{flex:1 1 100%}
+  /* 總覽・資金熱力圖：420 → 跟視窗走（頂上黏著四步列 108、卡內標題＋一句結論＋圖例約 280） */
+  body.m3on #ovHeatCard #heat{height:clamp(300px,calc(100vh - 108px - 58px - 280px),420px)!important;min-height:0!important}
+  body.m3on #ovHeatCard #heatWrap>.zpane{height:auto!important}
+  /* 個股・獲利「本益比河流圖」340、大戶／散戶 420 → 跟視窗走（下面那塊讀數／勾選要跟圖同一屏） */
+  body.m3on.mbon #peChart{height:clamp(220px,calc(100vh - var(--mbtop,160px) - 74px - 410px),340px)!important;min-height:0!important}
+  body.m3on.mbon #holderChart{min-height:0!important;height:clamp(260px,calc(100vh - var(--mbtop,160px) - 74px - 272px),420px)!important}
+  body.m3on #seasonHeatCard>.row.spread>#mSeasonBtn,body.m3on #seasonHeatCard>.row.spread>#mSeasonSort{flex:0 1 auto;width:auto}
+}

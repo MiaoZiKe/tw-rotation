@@ -725,13 +725,17 @@
        使用者只會覺得「壞掉了」。改成跟總覽同一套：點一下只看那一段、再點一次還原。
        不寫進 localStorage：它是「這一眼要看哪一段」的暫時聚焦，不是篩選條件（篩選在抽屜裡，那個才會記住）。*/
     let chain = LS.get('flow.chain', ''), pk = LS.get('flow.period', periods[0] && periods[0].key), sel = null, quad = null, quadNew = false;
+    /* 2026-10-03 手機 V2（#314，一屏看完）：排行預設只列前 5 名（輪盤＋焦點條＋前 5 名剛好一屏），
+       第 6～8 名收在「看全部 8 名 ›」後面 —— 收起來不是刪掉，按一下原地展開；換篩選、換期間回到前 5 名。*/
+    let rankAll = false;
     if (!periods.some(p => p.key === pk)) pk = periods[0] && periods[0].key;
     /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
        改前「?」排在這一列最右邊（篩選鈕後面）→ 改後跟總覽一樣住在標題「資金輪動」文字的右側，彈窗標題才讀得到卡片名稱。*/
     box.innerHTML = `<div class="mhead"><h3>資金輪動<button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3>`
       + `<span class="sp"></span><button type="button" class="mfilt" id="mFlowFilt"></button></div>`
       + `<div class="mrhost" id="mRadarFlow"></div><div class="mfhost"></div>`
-      + `<div class="mhead sm"><h3>資金排行</h3><small id="mRankSub"></small><span class="sp"></span></div><ul class="mrank" id="mRank"></ul>`;
+      + `<div class="mhead sm"><h3>資金排行</h3><small id="mRankSub"></small><span class="sp"></span></div><ul class="mrank" id="mRank"></ul>`
+      + `<button type="button" class="mmore" id="mRankMore" hidden></button>`;
     const draw = () => {
       const pts = f.rrg.points.filter(p => !chain || p.chain === chain);
       const per = periods.find(p => p.key === pk) || { label: '', groups: [], from: '', to: '' };
@@ -739,7 +743,7 @@
       const fb = $('#mFlowFilt', box);
       fb.textContent = '篩選 · ' + (chain ? (chainName[chain] || chain) : '全部') + ' · ' + per.label;
       fb.classList.toggle('on', !!chain || pk !== (periods[0] && periods[0].key));
-      const r = radar($('#mRadarFlow', box), pts, { sel, quad, max: 340, fitBelow: 65 + 42 + 5 * 36 + 34,
+      const r = radar($('#mRadarFlow', box), pts, { sel, quad, max: 340, fitBelow: 65 + 42 + 5 * 36 + 44 + 34,
         onPick: (p) => { sel = p.group_id; draw(); },
         onQuad: (q) => { quad = quad === q ? null : q; quadNew = !!quad; draw(); } });
       /* 剛點角落時，焦點條換成那一段盤上佔比最大的一顆（不然焦點條還寫著別段的族群，跟盤面對不起來）。
@@ -756,12 +760,15 @@
         : `<div class="mfocus"><span class="nm">${esc((gs.find(g => g.group_id === sel) || {}).group_name || '')}</span><span class="note">不在這個篩選的輪盤上</span></div>`;
       const mx = gs.length ? gs[0].share : 1;
       $('#mRankSub', box).textContent = `${per.label}　${(per.from || '').slice(5)}～${(per.to || '').slice(5)}`;
-      $('#mRank', box).innerHTML = gs.map((g, i) => `<li data-g="${esc(g.group_id)}" class="${g.group_id === sel ? 'on' : ''}" style="--c:${stc((f.rrg.points.find(x => x.group_id === g.group_id) || {}).quadrant)}">`
+      const mb = $('#mRankMore', box), cut = gs.length > 5 && !rankAll;
+      mb.hidden = !cut; if (cut) mb.textContent = `看全部 ${gs.length} 名 ›`;
+      $('#mRank', box).innerHTML = (cut ? gs.slice(0, 5) : gs).map((g, i) => `<li data-g="${esc(g.group_id)}" class="${g.group_id === sel ? 'on' : ''}" style="--c:${stc((f.rrg.points.find(x => x.group_id === g.group_id) || {}).quadrant)}">`
         + `<span class="r">${i + 1}</span><span class="bar" style="width:calc((100% - 140px) * ${(g.share / mx).toFixed(3)})"></span>`
         + `<span class="n">${esc(g.group_name)}</span><span class="v">${g.share.toFixed(1)}%<small class="${ucls(g.share_chg)}">${sgn(g.share_chg)}</small></span></li>`).join('');
       box.dataset.n = pts.length; box.dataset.chain = chain; box.dataset.sel = sel || '';
     };
     $('#mRank', box).addEventListener('click', (e) => { const li = e.target.closest('li[data-g]'); if (!li) return; sel = li.dataset.g; draw(); });
+    $('#mRankMore', box).onclick = () => { rankAll = true; draw(); };
     $('#mFlowFilt', box).onclick = () => {
       const chains = [...new Set(f.rrg.points.map(p => p.chain))];
       const sh = openSheet(`<div class="mshhead"><b>篩選與期間</b></div>
@@ -772,7 +779,7 @@
         const a = e.target.closest('[data-c],[data-p]'); if (!a) return;
         if (a.dataset.c != null) { chain = a.dataset.c; LS.set('flow.chain', chain); sel = null; }
         if (a.dataset.p) { pk = a.dataset.p; LS.set('flow.period', pk); }
-        closeSheet(); draw();
+        rankAll = false; closeSheet(); draw();
       };
     };
     box._redraw = draw;
@@ -1002,6 +1009,38 @@
     }
   }
   hooks.push({ on: eOn, off: () => { unMarketSeg(); unSeasonCtl(); } });
+
+  /* ---- 產業地圖：「族群漲跌幅｜成交值占比」兩張圖改成二選一（2026-10-03 手機 V2，#314，一屏看完）----
+     電腦版兩張並排；手機上下疊是 1,293px（長條 18 列＋圓餅），要捲兩屏才看完。改成上面一排分段鈕，一次看一張，
+     兩張都還在（收起來不是刪掉）。industry.js 換鏈會整塊重寫 .gpgrid，所以用觀察者補插（冪等：已經有就不動）。
+     選哪一張不寫 localStorage（只是這一眼要看哪一張）；換鏈回到「族群漲跌幅」。*/
+  function gpSeg() {
+    const grid = document.querySelector('#v-industry .gpgrid');
+    if (!grid || !isM()) return;
+    if (grid.previousElementSibling && grid.previousElementSibling.classList.contains('m4gpseg')) return;
+    const cards = grid.querySelectorAll(':scope > .gpcard');
+    if (cards.length < 2) return;
+    const bar = document.createElement('div');
+    bar.className = 'mbseg m4gpseg'; bar.setAttribute('role', 'tablist');
+    const names = [...cards].map(c => ((c.querySelector('h5') || {}).textContent || '').trim());
+    bar.innerHTML = names.map((n, i) => `<button type="button" role="tab" data-i="${i}" class="${i ? '' : 'on'}" aria-selected="${!i}">${esc(n)}</button>`).join('');
+    grid.dataset.m4gp = '0';
+    bar.onclick = (e) => {
+      const b = e.target.closest('button[data-i]'); if (!b) return;
+      grid.dataset.m4gp = b.dataset.i;
+      bar.querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 30);   // 圓餅剛從 display:none 回來，量一次寬度
+    };
+    grid.before(bar);
+  }
+  function gpSegOff() {
+    document.querySelectorAll('.m4gpseg').forEach(e => e.remove());
+    document.querySelectorAll('.gpgrid[data-m4gp]').forEach(g => delete g.dataset.m4gp);
+  }
+  { let gt = 0;
+    const vi = document.getElementById('v-industry');
+    if (vi) new MutationObserver(() => { clearTimeout(gt); gt = setTimeout(() => { if (isM()) gpSeg(); }, 150); }).observe(vi, { childList: true, subtree: true }); }
+  hooks.push({ on: (v) => { if (v === 'industry') gpSeg(); }, off: gpSegOff });
 
 
   /* ====================================================================== F 個股頁（券商 App 式）
