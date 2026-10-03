@@ -67,8 +67,8 @@
   /* contain:size：圖的畫布高度不算進容器的「內容高度」。不加的話列高被畫布撐著、只會長高不會縮（棘輪：卡一長高畫布跟著長、再撐高卡）；
      高度只吃 flex 分到的，下限由 #ovThemeWrap 的 min-height:300 保證（同一招 #308 在排行圖用過）。 */
   :root.l4 #ovThemeCard>#ovThemeWrap>.zpane{flex:1 1 auto;min-height:0;contain:size}
-  /* app.js renderOvThemes 會在 #ovTheme 上寫 inline height:300px，所以這裡要 !important 才蓋得過（只在卡片裡；放大視窗裡的那一份不吃） */
-  :root.l4 #ovThemeCard #ovTheme{height:100%!important}
+  /* app.js renderOvThemes 會在 #ovTheme 上寫 inline height:300px，所以這裡要 !important 才蓋得過（只在卡片的 .zpane 裡：圖還沒掛上滾輪縮放框之前、以及放大視窗裡的那一份，照舊吃 inline 的 300px） */
+  :root.l4 #ovThemeCard>#ovThemeWrap>.zpane>#ovTheme{height:100%!important}
   /* 資金輪盤卡：標題、輪盤（置中）；盤是正圓，高度由 app.js rotFitH 算（欄寬、卡高上限） */
   :root.l4 #ovRotCard{display:flex;flex-direction:column}
   :root.l4 #ovRotCard>#rotClockMiniWrap{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center}
