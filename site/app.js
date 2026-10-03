@@ -11516,47 +11516,136 @@
       writeNote();
     };
 
-    /* ---------------- 曲線圖 ---------------- */
+    /* ---------------- 長條圖（路由與 data-v 沿用 "line"） ----------------
+       ★ 2026-10-03（Andy：「上方改成下拉清單篩選」「曲線圖改成長條圖表示」）。
+       改前：上方一長排 ECharts 圖例（分 6 頁用 ◀ 3/6 ▶ 翻）＋ 12 個月的多條折線、右側端點標籤。
+         問題一：要加減族群得一頁一頁翻圖例找名字；問題二：線一多就纏在一起，「這個月誰比較強」要自己沿線追。
+       改後：
+         · 選族群＝一個可搜尋的多選下拉（全選／全不選／已選幾個；第一項是「全部族群平均」）。
+           「本月最強 5／最弱 5／只留平均線」三顆快捷鈕保留，按了會同步下拉的勾選；勾下拉＝快捷鈕全部不亮（自訂）。
+         · 圖＝分組長條：X 軸 12 個月、每月一組、每個已選族群一根（顏色＝在已選清單裡的順序配色，跟下拉的色條、圖下的色票同色），
+           「全部族群平均」是一條細灰線疊在長條上面 —— 長條高過灰線＝那個月比整體強。
+         · 長條每根至少 SN_BAR_MIN px：選太多、這個寬度放不下時只畫前面幾個並明講沒畫幾個（不讓長條疊在一起或細成一條線），
+           並提示「比較很多族群請改看熱力圖」（附一顆直接切過去的鈕）。
+       點長條＝進那個族群的族群頁（跟改版前點線一樣）。*/
     const pickNames = (all) => {
       const valid = all.filter(r => r.m[sortM] && r.m[sortM][metric] != null);
       if (pick === 'top') return valid.slice(0, 5).map(r => r.name);
       if (pick === 'bot') return valid.slice(-5).reverse().map(r => r.name);
       if (pick === 'none') return [];
-      return [...lineSel];
+      const has = new Set(all.map(r => r.name));
+      return [...lineSel].filter(n => has.has(n));
+    };
+    const SN_BAR_MIN = 4;                   // 一根長條最窄幾 px（再窄就只是一條線，看不出高低）
+    let ddQ = '';                           // 下拉的搜尋字（重建清單時保留）
+    const snColor = (i) => PALETTE[SEASON_LINE_IDX[i % SEASON_LINE_IDX.length]];
+    /* 多選下拉：只建一次（按鈕、搜尋框、全選鈕的事件掛一次），之後每次畫圖只重建清單內容與摘要，
+       所以勾一個不會把面板關掉、搜尋字與捲動位置也都留著。開合沿用全站 `.rotdd` 那套（點別處／Esc 收起來）。*/
+    const ddBuild = () => {
+      const dd = $('#seasonGroupDD'); if (!dd || dd._built) return dd;
+      dd._built = true;
+      const btn = dd.querySelector('.ddbtn'), pan = dd.querySelector('.ddpanel'), q = dd.querySelector('.sndd-q');
+      btn.onclick = (ev) => {
+        ev.stopPropagation();
+        const willOpen = pan.hidden;
+        rotCloseMenus();
+        if (willOpen) { rotMenu = { rf: 'season', kind: 'sngroup' }; pan.hidden = false; dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+      };
+      dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); rotCloseMenus(); btn.focus(); } };
+      q.oninput = () => { ddQ = q.value.trim(); ddFilter(); };
+      const visNames = () => $$('.ddlist .ddopt[data-n]', dd).filter(o => o.style.display !== 'none').map(o => o.dataset.n);
+      dd.querySelector('.dd-all').onclick = () => {
+        const add = visNames(); const cur = [...lineSel];
+        lineSel = new Set([...cur, ...add.filter(n => !cur.includes(n))]);
+        pick = 'custom'; paintPick(); drawLine(); writeNote();
+      };
+      dd.querySelector('.dd-none').onclick = () => {
+        const rm = new Set(ddQ ? visNames() : [...lineSel]);
+        lineSel = new Set([...lineSel].filter(n => !rm.has(n)));
+        pick = 'custom'; paintPick(); drawLine(); writeNote();
+      };
+      dd.querySelector('.ddlist').addEventListener('change', (ev) => {
+        const c = ev.target; if (!c || c.type !== 'checkbox') return;
+        if (c.dataset.avg) avgOn = c.checked;
+        else {
+          const n = c.dataset.n;
+          // 保留原本的順序（顏色才不會整組換），新勾的接在最後
+          if (c.checked) lineSel = new Set([...lineSel, n]); else lineSel = new Set([...lineSel].filter(x => x !== n));
+          pick = 'custom';
+        }
+        paintPick(); drawLine(); writeNote();
+      });
+      return dd;
+    };
+    const ddFilter = () => {
+      const dd = $('#seasonGroupDD'); if (!dd) return;
+      const k = ddQ.toLowerCase();
+      $$('.ddlist .ddopt[data-n]', dd).forEach(o => { o.style.display = !k || o.dataset.n.toLowerCase().includes(k) ? '' : 'none'; });
+      const av = dd.querySelector('.ddlist .ddopt[data-avgrow]'); if (av) av.style.display = !k || AVG.includes(ddQ) ? '' : 'none';
+    };
+    const ddSync = (all, colorOf) => {
+      const dd = ddBuild(); if (!dd) return;
+      const lst = dd.querySelector('.ddlist'), top = lst.scrollTop;
+      const val = (r) => { const c = r.m[sortM]; return c && c[metric] != null ? fmtV(c[metric], metric) : '—'; };
+      lst.innerHTML = `<div class="ddopt chk" data-avgrow="1" style="--c:${CH.ink3}"><label><input type="checkbox" data-avg="1"${avgOn ? ' checked' : ''}>`
+          + `<span class="nm">${AVG}</span></label></div>`
+        + all.map(r => { const on = lineSel.has(r.name);
+          return `<div class="ddopt chk${on ? ' on' : ''}" data-n="${fmt.esc(r.name)}" style="--c:${on ? colorOf[r.name] : hexA(CH.ink3, .45)}">`
+            + `<label><input type="checkbox" data-n="${fmt.esc(r.name)}"${on ? ' checked' : ''}><span class="nm">${fmt.esc(r.name)}</span>`
+            + `<em title="${mLabel(sortM)}的值">${val(r)}</em></label>`
+            + (r.gid ? `<a class="go" href="#industry/group/${r.gid}" title="進族群頁">→</a>` : '') + '</div>'; }).join('');
+      lst.scrollTop = top;
+      $$('.go', lst).forEach(a => a.onclick = () => rotCloseMenus());
+      ddFilter();
+      const n = lineSel.size;
+      dd.querySelector('.sndd-n').textContent = `依${mLabel(sortM)}排序 · 共 ${all.length} 個 · 已選 ${n} 個`;
+      dd.querySelector('.ddbtn b').textContent = n ? `已選 ${n} 個${avgOn ? '＋平均' : ''}` : (avgOn ? '只看平均' : '未選');
+      dd.dataset.n = n;
     };
     const drawLine = () => {
       const P = s3.periods[period]; if (!P) return empty('seasonLine');
       const el = $('#seasonLine');
-      const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.resize();
       const all = ordered(P, sortM);
       const sel = pickNames(all); lineSel = new Set(sel);
       const isWin = metric === 'win_rate';
       const mob = mIsM();
-      // 線色依「在已選清單裡的順序」配，所以畫出來的那幾條一定是彼此分得開的顏色
-      const colorOf = {}; sel.forEach((n, i) => { colorOf[n] = PALETTE[SEASON_LINE_IDX[i % SEASON_LINE_IDX.length]]; });
+      /* 圖高：桌機照 #308 一屏看完 —— 卡高 ≤ 可視高（Fit.room 扣掉卡裡其他東西），上限 560、下限 340；手機 420。*/
+      const hFit = !mob && window.Fit ? Fit.room(el, { min: 340 }) : Infinity;
+      el.style.height = (mob ? 420 : Math.max(340, Math.min(560, hFit))) + 'px';
+      el.style.minHeight = '0';
+      const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.resize();
+      // 色：依「在已選清單裡的順序」配，畫出來的那幾根一定是彼此分得開的顏色
+      const colorOf = {}; sel.forEach((n, i) => { colorOf[n] = snColor(i); });
       const avg = MONTHS.map((_, k) => { const vs = all.map(r => r.m[k + 1] && r.m[k + 1][metric]).filter(v => v != null);
         return vs.length ? +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2) : null; });
-      const selected = { [AVG]: avgOn }; all.forEach(r => { selected[r.name] = lineSel.has(r.name); });
-      const gridR = mob ? 86 : 132;
-      const series = [{ name: AVG, type: 'line', smooth: false, symbol: 'none', z: 1, data: avg,
-        lineStyle: { width: 4.5, color: hexA(CH.ink3, 0.85) }, itemStyle: { color: CH.ink3 },
-        markLine: { silent: true, symbol: 'none', label: { show: false },
-          lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed', width: 1 }, data: [{ yAxis: isWin ? 50 : 0 }] } }]
-        .concat(all.map(r => { const col = colorOf[r.name] || CH.ink3;
-          return { name: r.name, type: 'line', smooth: false, symbol: 'circle', symbolSize: 6, showSymbol: true, z: 3,
-            connectNulls: false, emphasis: { focus: 'series' },
-            data: Array.from({ length: 12 }, (_, k) => { const cl = r.m[k + 1]; const v = cl ? cl[metric] : null; return v == null ? null : +v.toFixed(2); }),
-            lineStyle: { width: 2.4, color: col }, itemStyle: { color: col } }; }));
+      const gridL = 52, gridR = mob ? 12 : 20;
+      /* 這個寬度最多放得下幾根：每個月那一格扣掉組間空白（桌機 22%、手機 16%）給長條，每根 ≥ 最窄寬度（桌機 4、手機 3）、根與根之間留 1px。
+         手機 390 寬一個月只有 ~25px，桌機的 4px 只放得下 3 根，預設的 5 個都會被砍掉 —— 手機放寬到 3px、組間 16%，剛好 5 根。*/
+      const catGap = mob ? 0.16 : 0.22, barMin = mob ? 3 : SN_BAR_MIN;
+      const plotW = Math.max(120, (el.clientWidth || 800) - gridL - gridR);
+      const maxBars = Math.max(1, Math.floor((plotW / 12) * (1 - catGap) / (barMin + 1)));
+      const drawn = sel.slice(0, maxBars);
+      const byName = {}; all.forEach(r => { byName[r.name] = r; });
+      const zero = { silent: true, symbol: 'none', label: { show: false },
+        lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed', width: 1 }, data: [{ yAxis: isWin ? 50 : 0 }] };
+      const series = drawn.map((n, i) => { const r = byName[n]; const col = colorOf[n];
+        return { name: n, type: 'bar', barGap: '12%', barCategoryGap: Math.round(catGap * 100) + '%', barMaxWidth: 16, z: 2,
+          label: { show: false },                         // 一定要寫：不寫的話全站圓滑化會替 ≤16 根的長條自動補數值標籤
+          emphasis: { focus: 'series' }, itemStyle: { color: col },
+          ...(i === 0 ? { markLine: zero } : {}),
+          data: Array.from({ length: 12 }, (_, k) => { const cl = r.m[k + 1]; const v = cl ? cl[metric] : null; return v == null ? null : +v.toFixed(2); }) }; });
+      if (avgOn) series.push({ name: AVG, type: 'line', smooth: false, symbol: 'circle', symbolSize: 5, z: 5, data: avg,
+        lineStyle: { width: 2, color: hexA(CH.ink2, 0.9) }, itemStyle: { color: CH.ink2 }, ...(series.length ? {} : { markLine: zero }) });
+      if (!series.length) series.push({ name: '', type: 'line', data: MONTHS.map(() => null), markLine: zero, silent: true });
       const c = chart('seasonLine', {
         animation: false,
-        tooltip: { ...tip, trigger: 'axis',
+        tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
           formatter: ps => { const avgP = ps.find(q => q.seriesName === AVG);
-            const rest = ps.filter(q => q.seriesName !== AVG && q.value != null).sort((a, b) => b.value - a.value).slice(0, 12);
+            const rest = ps.filter(q => q.seriesName && q.seriesName !== AVG && q.value != null).sort((a, b) => b.value - a.value).slice(0, 12);
             /* ★ 2026-09-25（Andy 待處理：「本月最強」提示框加上中位數與勝率，排序不改）：
                平均數會被一兩年的暴漲拉高 —— 旁邊擺「報酬中位數」與「勝率」，一眼看得出是年年都強還是靠一年撐起來。
                勝率跟著目前的指標走：看超額報酬時是「超額勝率」（跑贏基準的年數比例），其餘是「上漲的年數比例」；
                指標本身就是勝率時只補中位數（不重複印同一個數字）。排序仍照目前指標，不動。*/
-            const byName = {}; all.forEach(r => { byName[r.name] = r; });
             const extra = (q) => { const r = byName[q.seriesName], cl = r && r.m[q.dataIndex + 1]; if (!cl) return '';
               const bits = [`中位 ${fmtV(cl.median_return, 'avg_return')}`];
               if (metric === 'avg_excess') bits.push(`超額勝率 ${fmtV(cl.excess_win_rate, 'excess_win_rate')}`);
@@ -11567,67 +11656,35 @@
               + rest.map(q => `<br>${q.marker}${q.seriesName} ${fmtV(q.value, metric)}`
                 + (avgP && avgP.value != null ? `<span style="color:${CH.ink3}">（${q.value >= avgP.value ? '高於' : '低於'}平均）</span>` : '')
                 + extra(q)).join(''); } },
-        legend: { type: 'scroll', top: 0, data: [AVG].concat(all.map(r => r.name)), selected,
-          textStyle: { color: CH.ink2, fontSize: 12 }, pageTextStyle: { color: CH.ink3, fontSize: 12 }, inactiveColor: hexA(CH.ink3, .5) },
-        grid: { left: 52, right: gridR, top: 40, bottom: 28 },
-        xAxis: { ...axisStyle, type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: CH.ink2, fontSize: 12 } },
+        legend: { show: false },
+        grid: { left: gridL, right: gridR, top: 16, bottom: 28 },
+        xAxis: { ...axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12 } },
         yAxis: { ...axisStyle, ...(isWin ? { min: 0, max: 100, interval: 25 } : { scale: true }),
           axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => (isWin ? v + '%' : (v > 0 ? '+' : '') + v + '%') } },
         series,
       }, { notMerge: true });
-      if (!c) return;
-      el._endSig = ''; layoutEnd(c, gridR, colorOf);
-      // 點圖例走 legendselectchanged；程式（或鍵盤輔助）送 legendSelect／legendUnSelect 走另外兩個事件 —— 三個都接，
-      // 不然端點標籤跟線色會停在舊的選擇上
-      const onLegend = (e) => {
-        avgOn = e.selected[AVG] !== false;
-        // 保留原本的順序（顏色才不會整組換），新點的接在後面
-        const now = Object.keys(e.selected).filter(k => k !== AVG && e.selected[k]);
-        lineSel = new Set([...[...lineSel].filter(n => now.includes(n)), ...now.filter(n => !lineSel.has(n))]);
-        pick = 'custom'; paintPick(); setTimeout(drawLine, 0);
-      };
-      ['legendselectchanged', 'legendselected', 'legendunselected'].forEach(ev => c.off(ev).on(ev, onLegend));
-      c.off('click').on('click', q => { if (q.seriesName === AVG) return; const r = all.find(x => x.name === q.seriesName);
-        if (r && r.gid) location.hash = '#industry/group/' + r.gid; });
-      if (!el._endFin) { el._endFin = true;
-        c.on('finished', () => { if (c.isDisposed() || !el._endRe) return;
-          if (el._endSig !== c.getWidth() + 'x' + c.getHeight()) el._endRe(); }); }
-      el._endRe = () => layoutEnd(c, gridR, colorOf);
-    };
-    /* 右側端點標籤：ECharts 的 endLabel ＋ moveOverlap 在線很多、端點很近時仍會疊（Andy 截圖），
-       所以自己排：取每條「顯示中」的線最後一個點的像素 y，由上往下排、至少隔 16px，
-       超出底邊再由下往上推回來；放不下的（線太多）寧可不標，也不准疊字。
-       標籤與端點之間拉一條細線，被推開的標籤也對得回自己那條線。*/
-    const layoutEnd = (c, gridR, colorOf) => {
-      const el = c.getDom(); const LH = 16;
-      const opt = c.getOption(); const sel = (opt.legend && opt.legend[0] && opt.legend[0].selected) || {};
-      const H = c.getHeight(), Wd = c.getWidth(), top = 40, bot = H - 28;
-      const items = [];
-      opt.series.forEach(s => { if (sel[s.name] === false) return;
-        const d = s.data || []; let k = d.length - 1; while (k >= 0 && d[k] == null) k--; if (k < 0) return;
-        const p = c.convertToPixel({ gridIndex: 0 }, [k, d[k]]); if (!p) return;
-        items.push({ name: s.name, x0: p[0], y0: p[1], y: p[1], color: s.name === AVG ? CH.ink2 : (colorOf[s.name] || CH.ink2) }); });
-      const maxN = Math.max(1, Math.floor((bot - top) / LH) + 1);
-      const keep = items.slice(0, maxN);          // series 順序＝平均線先 → 平均線一定有標籤
-      keep.sort((a, b) => a.y - b.y);
-      for (let i = 1; i < keep.length; i++) if (keep[i].y < keep[i - 1].y + LH) keep[i].y = keep[i - 1].y + LH;
-      for (let i = keep.length - 1; i >= 0; i--) {
-        const lim = i === keep.length - 1 ? bot : keep[i + 1].y - LH;
-        if (keep[i].y > lim) keep[i].y = lim;
+      el.dataset.sel = sel.length; el.dataset.drawn = drawn.length; el.dataset.maxbars = maxBars;
+      ddSync(all, colorOf);
+      // 圖下的色票：哪個顏色是誰（取代原本那排要翻頁的圖例）；點一個＝把它從比較裡拿掉
+      const key = $('#seasonKey');
+      if (key) {
+        key.innerHTML = (avgOn ? `<span class="snk avg" title="全部族群平均（細灰線）"><i></i>平均</span>` : '')
+          + drawn.map(n => `<button type="button" class="snk" data-n="${fmt.esc(n)}" style="--c:${colorOf[n]}" title="從比較中拿掉 ${fmt.esc(n)}"><i></i>${fmt.esc(n)}<b aria-hidden="true">×</b></button>`).join('');
+        $$('button.snk', key).forEach(b => b.onclick = () => {
+          lineSel = new Set([...lineSel].filter(x => x !== b.dataset.n)); pick = 'custom'; paintPick(); drawLine(); writeNote(); });
       }
-      const x = Wd - gridR + 10, maxW = gridR - 14;
-      const clip = (t) => { if (hmTextW(t, 12) <= maxW) return t; const ch = Array.from(t);
-        for (let k = ch.length - 1; k >= 1; k--) { const u = ch.slice(0, k).join('') + '…'; if (hmTextW(u, 12) <= maxW) return u; } return ch[0] + '…'; };
-      const children = [];
-      keep.forEach(it => {
-        children.push({ type: 'line', silent: true, shape: { x1: it.x0 + 5, y1: it.y0, x2: x - 3, y2: it.y },
-          style: { stroke: hexA(it.color, .6), lineWidth: 1 } });
-        children.push({ type: 'text', silent: true, x, y: it.y,
-          style: { text: clip(it.name === AVG ? '平均' : it.name), fill: it.color, font: `${it.name === AVG ? 700 : 600} 12px Noto Sans TC, sans-serif`, verticalAlign: 'middle' } });
-      });
-      el._endSig = Wd + 'x' + H;
-      el.dataset.endlab = JSON.stringify(keep.map(it => ({ n: it.name, y: Math.round(it.y) })));
-      c.setOption({ graphic: [{ id: 'snEnd', type: 'group', children }] }, { replaceMerge: ['graphic'] });
+      const warn = $('#seasonBarWarn');
+      if (warn) {
+        const cut = sel.length - drawn.length;
+        const msg = cut > 0 ? `已選 ${sel.length} 個，這個寬度每根至少 ${barMin}px 只畫得下前 ${drawn.length} 個（另 ${cut} 個沒畫）。`
+          : sel.length > 8 ? `已選 ${sel.length} 個，長條會很細。` : '';
+        warn.innerHTML = msg ? `${msg}比較很多族群請改看<button type="button" class="linkbtn" data-goheat="1">熱力圖</button>` : '';
+        warn.hidden = !msg;
+        const gb = warn.querySelector('[data-goheat]'); if (gb) gb.onclick = () => { const h = $('#seasonView button[data-v="heat"]'); if (h) h.click(); };
+      }
+      if (!c) return;
+      c.off('click').on('click', q => { if (!q.seriesName || q.seriesName === AVG) return; const r = byName[q.seriesName];
+        if (r && r.gid) location.hash = '#industry/group/' + r.gid; });
     };
 
     /* ---------------- 共用：說明、提醒、按鈕狀態 ---------------- */
@@ -11649,11 +11706,11 @@
           '紅＝強、綠＝弱、灰＝持平，越亮越極端',
           `排最上面、${M}又是紅色＝歷史順風`,
           '綠色的要有資金或基本面理由才進場'])
-        : howHTML('這張圖回答：同一個族群一整年裡哪幾個月強、哪幾個月弱。', [
-          '灰色粗線＝全部族群平均',
-          '線在灰線之上＝那個月比整體強',
-          '看你關心的族群接下來 1～2 個月',
-          `預設只畫${M}最強 5 個，按鈕或圖例加減`,
+        : howHTML('這張圖回答：挑出來的幾個族群，每個月誰比較強、強過整體多少。', [
+          '每個月一組長條，一根＝一個族群（顏色看圖下色票）',
+          '細灰線＝全部族群平均；長條高過灰線＝那個月比整體強',
+          '看你關心的族群接下來 1～2 個月是不是連續高過灰線',
+          `預設只畫${M}最強 5 個；用「族群」下拉搜尋、勾選加減，色票點一下拿掉`,
           ...(metric === 'avg_excess' ? ['超額報酬的平均本來就貼著 0 軸'] : [])]);
       // 樣本少時勝率只有幾種值：講出來，不要讓人把「0 → 67 → 33」看成趨勢
       const n = Math.max(0, ...P.cells.map(c => c.samples || 0));
@@ -11691,6 +11748,8 @@
     const paintView = () => {
       $('#seasonHeatBox').hidden = view !== 'heat';
       $('#seasonLine').hidden = view !== 'line';
+      const lc = $('#seasonLineCtl'); if (lc) lc.hidden = view !== 'line';
+      if (view !== 'line') rotCloseMenus();
       const lg = document.getElementById('seasonHeatBoxLegend'); if (lg) lg.style.display = view === 'heat' ? '' : 'none';
       // `.seg` 是 display:inline-flex，會蓋掉 [hidden]，所以用 style.display
       $$('#seasonCtl [data-for]').forEach(e => { e.style.display = e.dataset.for === view ? '' : 'none'; });
@@ -11742,11 +11801,14 @@
       let lastW = hcard.clientWidth;
       hbox._ro = new ResizeObserver(() => { const w = hcard.clientWidth;
         if (!w || Math.abs(w - lastW) < 16) return; lastW = w;
-        if (view === 'heat') { drawHeat(); } });
+        if (view === 'heat') { drawHeat(); } else drawLine(); });   // 長條圖：這個寬度放得下幾根是依寬度算的
       hbox._ro.observe(hcard);
     }
     /* ★ 2026-10-03 一屏看完：列高跟視窗高度走（drawHeat 的 Fit.room）；視窗高度變了卡片寬度沒變，上面那個 ResizeObserver 不會醒 */
     if (hbox && window.Fit) { if (hbox._offFit) hbox._offFit(); hbox._offFit = Fit.on(() => { if (hbox.isConnected && hbox.offsetParent && view === 'heat') drawHeat(); }, hbox); }
+    // 長條圖同理（圖高＝Fit.room，上限 560）
+    const lnEl = $('#seasonLine');
+    if (lnEl && window.Fit) { if (lnEl._offFit) lnEl._offFit(); lnEl._offFit = Fit.on(() => { if (lnEl.isConnected && lnEl.offsetParent && view === 'line') drawLine(); }, lnEl); }
     draw();
   }
 
