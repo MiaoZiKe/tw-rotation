@@ -2570,7 +2570,15 @@ def t_industry(pg, base):
         before = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
             dim: document.querySelectorAll('#chainMap .co.dim').length })""")
         b_rows = seg_stocks(pg)
-        _cg_chip(pg, "#segChips .segchip:not(.nomem)", 800)
+        # ★ 2026-10-03（DECISIONS #310）改前→改後：
+        #   改前：點 DOM 裡第一顆 `.segchip:not(.nomem)`。#306 之後剖析圖分頁的「環節 ▾」下拉只留這張圖對得上的環節，
+        #     其餘設 display:none —— 這一頁（AI 伺服器整機剖析圖）DOM 第一顆是 CCL 材料（ccl_material），正好被藏起來，
+        #     於是「點不下去／element is not visible」連帶後面 4 條全紅。不是網站壞：1440／1100／900 打開下拉，
+        #     看得到的 11 顆每一顆中心點 elementFromPoint 都是它自己。
+        #   改後：挑「下拉裡看得到、而且有台股」的第一顆（真人也只點得到看得到的那幾顆），斷言一條沒動。
+        vis_seg = pg.evaluate("""() => { const c = [...document.querySelectorAll('#segChips .segchip[data-seg]:not(.nomem)')]
+            .find(n => n.style.display !== 'none'); return c ? c.dataset.seg : null; }""")
+        _cg_chip(pg, f'#segChips .segchip[data-seg="{vis_seg}"]' if vis_seg else "#segChips .segchip:not(.nomem)", 800)
         after = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
             selSeg: [...document.querySelectorAll('#segChips .segchip.sel')].map(e => e.dataset.seg),
             dim: document.querySelectorAll('#chainMap .co.dim').length })""")
@@ -2935,6 +2943,15 @@ def t_chainnav(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+# ★ 2026-10-03（DECISIONS #310）：桌機（>820）的環節詳情 #segBox 是空的（Andy 29149fc 拿掉、renderSegBox 在 >820 直接清空），
+#   「這一格有誰」的現行答案是關聯圖上的浮動卡 #relList 裡亮著的那一節（.rlseg.on）；手機（≤820）照舊是 #segBox。
+#   一般電子鏈這段一直在 1500px 讀 #segBox，所以從那次改版之後就是 0 檔（8 條紅），這支照寬度挑對的那一塊讀。
+SEG_DETAIL = """() => { const desk = innerWidth > 820;
+  const box = desk ? document.querySelector('#relList .rlseg.on') : document.getElementById('segBox');
+  if (!box) return { desk, codes: [], text: '' };
+  return { desk, codes: [...box.querySelectorAll('a[href^="#stock/"]')].map(a => a.getAttribute('href').slice(7)), text: box.innerText || '' }; }"""
+
+
 def t_electronics(pg, base):
     """一般電子鏈：2026-09-19 從「一個環節都沒有」補成 8 個環節 ＋ 16 家公司 ＋ 6 條邊。
 
@@ -2981,8 +2998,7 @@ def t_electronics(pg, base):
         if not pg.evaluate(f"() => !!document.querySelector({chip!r})"):
             continue
         _cg_chip(pg, chip, 1000)
-        side = pg.evaluate("() => [...document.querySelectorAll('#segBox a.lk')].map(a => a.getAttribute('href') || '')")
-        who += [h.replace("#stock/", "") for h in side if h.startswith("#stock/")]
+        who += pg.evaluate(SEG_DETAIL)["codes"]          # 改前讀 #segBox a.lk（桌機永遠是空的），#310
         _cg_chip(pg, chip, 800)
     ok("鴻海 2317 在一般電子鏈上看得到（節點在 assembly，靠 CHAIN_EXTRA 拉進來）", "2317" in who, who[:12])
     ok("智邦 2345 在一般電子鏈上看得到（節點在 switch）", "2345" in who, who[:12])
@@ -2992,15 +3008,16 @@ def t_electronics(pg, base):
     # ★ 2026-09-23 第二批（W3-2）：成分股表移除，這一條改量環節詳情 `#segBox`。
     #   語意跟舊的相反（沒選環節時是 0，選了才長出來），但驗的事情一樣：
     #   **點下去畫面真的換了一批股票，再點一次真的收回去。**
-    n_all = seg_stocks(pg)
+    # （2026-10-03 #310：桌機的「環節詳情」是關聯圖上的 #relList 浮動卡，讀 SEG_DETAIL；門檻沒動）
+    n_all = len(pg.evaluate(SEG_DETAIL)["codes"])
     ok("沒有選環節時，環節詳情是空的", n_all == 0, n_all)
     if pg.query_selector("#segChips .segchip[data-seg='passive_comp']"):
         _cg_chip(pg, "#segChips .segchip[data-seg='passive_comp']", 900)
-        n_sel = seg_stocks(pg)
-        ok("點「被動元件」環節，圖下方真的列出那一格的台股", n_sel > 0, f"{n_all} → {n_sel}")
+        n_sel = len(pg.evaluate(SEG_DETAIL)["codes"])
+        ok("點「被動元件」環節，環節詳情（桌機：圖上的浮動卡）真的列出那一格的台股", n_sel > 0, f"{n_all} → {n_sel}")
         ok("而且那一格真的亮起來", count(pg, "#segChips .segchip.sel") == 1)
         _cg_chip(pg, "#segChips .segchip[data-seg='passive_comp']", 900)   # 再按一次取消
-        ok("再按一次取消，環節詳情真的收回去", seg_stocks(pg) == 0, seg_stocks(pg))
+        ok("再按一次取消，環節詳情真的收回去", len(pg.evaluate(SEG_DETAIL)["codes"]) == 0, pg.evaluate(SEG_DETAIL)["codes"])
 
     # --- 2. 只有外商的兩格：點下去要列得出族群（FALLBACK）
     # ★ 2026-09-21：期望值本來寫死「面板」「手機供應鏈」。110 個板塊上線之後
@@ -3017,11 +3034,22 @@ def t_electronics(pg, base):
         ok(f"「{seg}」這一格在 FALLBACK 裡真的接到了台股族群（不是接到一個已經不存在的 id）",
            bool(fb) and len(fb["names"]) > 0 and len(fb["names"]) == len(fb["gids"]), fb)
         _cg_chip(pg, f"#segChips .segchip[data-seg='{seg}']", 900)
-        box = pg.evaluate("() => (document.getElementById('segBox')||{}).innerText || ''")
+        # （2026-10-03 #310：桌機讀圖上浮動卡 #relList 亮著那一節；那一節原本只有外商名字、沒有台股族群 ——
+        #   真的缺口，industry.js renderSegPicker 補上「相關台股族群」那一列，下面兩條照原門檻驗）
+        box = pg.evaluate(SEG_DETAIL)["text"]
         ok(f"點只有外商的「{seg}」，說明框不是空白", len(box.strip()) > 10, box[:80])
         want = (fb or {}).get("names") or []
         ok(f"而且接到了對應族群「{'／'.join(want)}」（app.js 的 FALLBACK）",
            bool(want) and any(w in box for w in want), box[:160])
+        if seg == "display_material" and pg.evaluate("() => innerWidth > 820"):
+            # ★ #310：桌機補上的「相關台股族群」要點得到底 —— 真的用滑鼠點那顆族群連結，網址換到族群頁
+            gsel = "#relList .rlseg.on .rlfb a.lk-group"
+            g_href = pg.evaluate(f"() => {{ const a = document.querySelector('{gsel}'); return a ? a.getAttribute('href') : null; }}")
+            if ok("[桌機] 只有外商的環節，浮動卡上有「相關台股族群」連結（#310）", bool(g_href), g_href):
+                click(pg, gsel, 1200)
+                ok("[桌機] 點「相關台股族群」→ 真的進到那個族群頁", pg.evaluate("location.hash") == g_href, [g_href, pg.evaluate("location.hash")])
+                pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+                continue
         _cg_chip(pg, f"#segChips .segchip[data-seg='{seg}']", 600)
 
     # --- 2026-09-20 Andy 拍板的族群搬動：要驗「名單真的變了」，不是驗註解有寫
@@ -3070,7 +3098,17 @@ def t_electronics(pg, base):
         #   **不是**改讀整個 #v-heatmap（那會把上面全市場熱力圖的字也算進去，等於放寬）。
         body = pg.evaluate("() => ['themeMapCard', 'themeDetail'].map(i => (document.getElementById(i) || {}).innerText || '').join('\\n')")
         ok(f"新題材 {tid} 的頁面打得開而且不是空的", len(body.strip()) > 40, body[:80])
-        ok(f"新題材 {tid} 列得出成分股 {want}", want in body, body[:160])
+        # ★ 2026-10-03（過時斷言，#310）改前→改後：
+        #   改前：在「題材資金熱力＋題材細節」的字裡找成分股代號。
+        #   改後：題材頁的成員表 09-23 Andy 要求整張拿掉（「題材這頁 將中間這兩個表格拿掉」），沒有剖析圖的題材
+        #     連佔位卡也拿掉（「題材頁面 下方處可以移除」），只留一行「尚無剖析圖」提示（app.js renderThemeDetail）。
+        #     畫面上本來就不會有代號 —— 所以改驗兩件還成立的事：① 點進來有那行提示（不是一片空白）
+        #     ② 前端吃的 themes.json 這個題材的成員裡真的有這一檔（題材熱力圖的成交值／熱度就是用這份名單算的）。
+        hint = pg.evaluate(f"() => !!document.querySelector('#themeDetail [data-nodg=\"{tid}\"]') || !!document.querySelector('#themeDetail svg')")
+        mem = pg.evaluate("""async (tid) => { const r = await fetch('data/themes.json'); const d = await r.json();
+            const t = (d.themes || []).find(x => x.id === tid); return t ? (t.members || []).map(m => String(m.code || m)) : null; }""", tid)
+        ok(f"新題材 {tid} 點進來題材細節有東西（剖析圖或「尚無剖析圖」提示）", hint, body[-120:])
+        ok(f"新題材 {tid} 的成員名單（themes.json）有 {want}", bool(mem) and want in mem, (mem or [])[:12])
     # ★ 2026-10-03（DECISIONS #306）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
     pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
 
@@ -6597,7 +6635,12 @@ def t_new_clock(pg, base):
     #   被動元件 MLCC 31 天裡 31 天都被硬夾在盤緣、矽晶圓 28/31 —— 整段播放半徑動也不動。
     # 修法是盤緣外留一條壓縮過的緩衝帶（CLOCK_TAIL=0.18），今天的畫面一個像素都沒動。
     # 這裡量兩件事：① 今天最外圈只有一個 ② 被夾過的那幾個現在真的會動。
-    rot_seek(pg, 1, 1600)
+    # ★ 2026-10-03（過時斷言，DECISIONS #310）改前→改後：
+    #   改前：rot_seek(pg, 1) —— 從 set_range(拉Bar=1) 機械式改寫過來，但 rotReplay 的 1 是「1 天前（9/30）」，不是今天。
+    #     尺凍結在**今天**（app.js renderRotClock：u＝偏離 ÷ 今天最大偏離），所以只有今天保證恰好一顆 r＝1；
+    #     昨天最遠的那顆是 0.961（沒有人比今天的最大值更遠）→ 「r ≥ 1 只有一個」變成 0 個而紅，網站沒壞。
+    #   改後：回放到 0（今天），跟這一段註解「① 今天最外圈只有一個」一致。門檻沒動（第二名 ≤ 0.97、最大最小差 3 倍）。
+    rot_seek(pg, 0, 1600)
     rr = pg.evaluate("() => ((window.App && window.App._rotPts) || []).map(p => ({ n: p.name, r: p.r }))")
     if ok("讀得到每顆點的半徑", len(rr) > 5, len(rr)):
         rr.sort(key=lambda x: -x["r"])
@@ -13873,7 +13916,13 @@ CF_STATE = """(seg) => {
 def t_chain_fold(pg, base):
     """關聯圖環節收合：預設收合、單一環節展開／收合、全部展開／收合、點晶片開資訊欄、重新整理記得。"""
     pg.set_viewport_size({"width": 1440, "height": 1100})
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+    # ★ 2026-10-03（DECISIONS #310）改前→改後：
+    #   改前：開 `#industry/semiconductor`。#306 之後那個網址的 Default 是第一張剖析圖（先進封裝），
+    #     關聯圖只剩那張圖對得上的幾格（實測 4 檔標籤），「預設全收合 ≥ 20 個標籤」第一條就紅、整段 return，
+    #     後面的「全部展開／收合」一顆鈕都沒按到 —— HANDOFF 記的「全部展開鈕被 h3 擋住」其實是這個早退造成的錯覺：
+    #     用 elementFromPoint 在 1440／1100／900 量過，那顆鈕在畫面上時最上層就是它自己（見 #310）。
+    #   改後：開「族群總覽」分頁（/overview，整條鏈，跟 產業鏈導覽／一般電子鏈 #306 的改法一樣），門檻一條沒動。
+    pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.chainFold'); localStorage.setItem('tw.relView','layer');"
                 " localStorage.setItem('tw.relOpen','1'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
@@ -13921,6 +13970,39 @@ def t_chain_fold(pg, base):
         ok(f"點標籤 {code} → 右側資訊欄打開", bool(box) and box["w"] > 100 and box["h"] > 40, box)
         tip = pg.evaluate(f"() => {{ const t = document.querySelector('#chainMap .co.chip[data-code=\"{code}\"] title'); return t ? t.textContent : ''; }}")
         ok("滑過標籤的提示有價格與漲跌（%）", "%" in tip and code in tip, tip)
+        # ★ 2026-10-03（DECISIONS #310）資訊卡不可以蓋住「全部展開／收合」切換鈕。
+        #   改前：1440 點右半邊的公司（台積電 2330 屬晶圓代工，在右半）→ 卡片貼左、上緣在圖框頂 +8px，
+        #     正好疊在切換鈕上（elementFromPoint 讀到卡片的 h3），下一步「全部展開」用真滑鼠點不下去。
+        #   改後：卡片從切換列下緣開始放。三個寬度各點幾檔右半邊／左半邊的公司，量鈕的中心與兩角最上層都是它自己。
+        cover = []
+        for vw in (1440, 1100, 900):
+            pg.set_viewport_size({"width": vw, "height": 1100})
+            pg.wait_for_timeout(500)
+            picks = pg.evaluate("""() => { const m = document.getElementById('chainMap'), M = m.getBoundingClientRect();
+                const cs = [...m.querySelectorAll('.co.chip[data-code]')].filter(n => n.dataset.code);
+                const R = cs.filter(n => n.getBoundingClientRect().left > M.left + M.width / 2).map(n => n.dataset.code);
+                const L = cs.filter(n => n.getBoundingClientRect().left <= M.left + M.width / 2).map(n => n.dataset.code);
+                return [...R.slice(0, 3), ...L.slice(0, 1)]; }""")
+            for c in picks:
+                # 先按 Esc 關掉上一張卡（真人也是）：不然上一張卡可能蓋在下一檔標籤上
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+                pg.eval_on_selector(f'#chainMap .co.chip[data-code="{c}"]', "e => { const r = e.getBoundingClientRect();"
+                                    " window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); }")
+                pg.wait_for_timeout(200)
+                click(pg, f'#chainMap .co.chip[data-code="{c}"]', 600)
+                pg.evaluate("() => { const e = document.querySelector('#chainMap .foldbar button'); const r = e.getBoundingClientRect();"
+                            " window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); }")
+                pg.wait_for_timeout(250)
+                h = pg.evaluate("""() => { const e = document.querySelector('#chainMap .foldbar button'), r = e.getBoundingClientRect();
+                    const box = document.getElementById('coBox');
+                    const pts = [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 3, r.top + 3], [r.right - 3, r.bottom - 3]];
+                    return { open: !!box, top: pts.map(([x, y]) => { const t = document.elementFromPoint(x, y);
+                        return t === e || e.contains(t) ? 'self' : (t ? t.tagName + '.' + (t.closest('.relcol') ? 'relcol' : String(t.className || '')) : null); }) }; }""")
+                if not h["open"] or any(x != "self" for x in h["top"]):
+                    cover.append({"寬": vw, "代號": c, **h})
+        pg.set_viewport_size({"width": 1440, "height": 1100})
+        pg.wait_for_timeout(500)
+        ok("★ [1440／1100／900] 點公司標籤開資訊卡之後，「全部展開／收合」鈕最上層仍是它自己（卡片不蓋鈕，#310）", not cover, cover[:4])
     # ---- ★ 2026-10-03 改前→改後（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #307）：
     #   改前：重新整理之後記得「全部展開」／「全部收合」。
     #   改後：同一次瀏覽換頁仍記得（tw.chainFold 照寫），**重新整理一律回到預設的全部收合**、鍵被清掉。
@@ -22172,6 +22254,21 @@ def t_stock_0926(pg, base, code):
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
     if not ok("[0926] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
         return
+    # ★ 2026-10-03 改前→改後（過時斷言，DECISIONS #310）：
+    #   改前：這一段假設「清空設定 → 選中日線、週期列 1時／4時／日／週／月」。
+    #   改後：09-28 分時走勢上線（Andy 要當預設），TF_DEFAULT_ON 最前面多了「分時」（tick）、清空設定後選中的是分時；
+    #     分時是折線、沒有副圖，KD／MACD／重設縮放都要在 K 線週期才看得到 —— 真人也是先按「日」。
+    #     所以先驗新預設（分時、週期列六顆），再用滑鼠按「日」，下面 ①～④ 的斷言一條沒動。
+    #     ⚠ 週期本身不存檔（tw.kcfg 沒有目前週期），每次整頁重載都回到分時，下面每次 reload 之後都要再按一次「日」。
+    tfs0 = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+    ok("★ [0926晚-週期] 清空設定 → 週期列是 分時／1時／4時／日／週／月（09-28 起分時排第一）",
+       tfs0 == ["tick", "60m", "240m", "1d", "1w", "1M"], tfs0)
+    ok("[0926晚-週期] 清空設定 → 選中的是分時（09-28 起的預設）", pg.evaluate(DBG)["tf"] == "tick" and text(pg, "#tfSeg button.on") == "分時",
+       text(pg, "#tfSeg button.on"))
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    wait_until(pg, "() => !!(window.Industry && window.Industry._dbg().paneH)", 8000)
+    ok("[0926晚-週期] 按「日」→ 切到日線（下面 ①～④ 都在日線上驗）", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日",
+       text(pg, "#tfSeg button.on"))
 
     # ---------------------------------------------------------------- ① 指標下拉
     btn0 = text(pg, "#indBtn")
@@ -22183,10 +22280,7 @@ def t_stock_0926(pg, base, code):
     rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
     ok("[0926-①] 最上面一列是「整體」（線寬／K 棒寬度）", bool(rows) and rows[0] == "base", rows)
     ok("[0926-③] 清單裡沒有 SMC 區間、BOS/CHoCH", "smc" not in rows and "marks" not in rows, rows)
-    # ---- 09-26 晚：清空設定之後的預設（週期列只有 1時／4時／日／週／月、指標只開均線＋成交量）
-    tfs0 = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
-    ok("★ [0926晚-週期] 清空設定 → 週期列只有 1時／4時／日／週／月", tfs0 == ["60m", "240m", "1d", "1w", "1M"], tfs0)
-    ok("[0926晚-週期] 清空設定 → 選中的是日線", pg.evaluate(DBG)["tf"] == "1d" and text(pg, "#tfSeg button.on") == "日", text(pg, "#tfSeg button.on"))
+    # ---- 09-26 晚：清空設定之後的預設（指標只開均線＋成交量；週期列的預設在上面開頁時驗過了）
     on_rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow input.ion')].filter(c => c.checked).map(c => c.dataset.k)")
     ok("★ [0926晚-預設] 清空設定 → 指標只開均線＋成交量", sorted(on_rows) == ["ma", "vol"], on_rows)
     pd = pg.evaluate(DBG)["paneH"] or {}
@@ -22196,9 +22290,9 @@ def t_stock_0926(pg, base, code):
     ok("[0926晚-週期] 週期區在「整體」下面、指標上面", rows[:1] == ["base"] and pg.evaluate(
         "() => { const r = [...document.querySelectorAll('#cfgPop .indrow')].map(x => x.dataset.k); return r[1] === 'tf'; }"))
     tfc = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .tfc input')].map(c => [c.dataset.tf, c.checked])")
-    ok("[0926晚-週期] 週期區九個勾選（5秒～月），勾起來的正好是預設五個",
-       [t for t, _ in tfc] == ["5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
-       and [t for t, c in tfc if c] == ["60m", "240m", "1d", "1w", "1M"], tfc)
+    ok("[0926晚-週期] 週期區十個勾選（分時、5秒～月），勾起來的正好是預設六個（含 09-28 起的分時）",
+       [t for t, _ in tfc] == ["tick", "5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
+       and [t for t, c in tfc if c] == ["tick", "60m", "240m", "1d", "1w", "1M"], tfc)
     # ★ 2026-09-26 晚改：預設只開均線＋成交量，KD 預設關 —— 先打開（副圖多一格），再關（副圖少一格）
     pa = pg.evaluate(DBG)["paneH"] or {}
     ok("[0926-①] KD 預設是關的、沒有 KD 副圖（前提，09-26 晚改的預設）", ind_on(pg, "kd") is False and "kd" not in pa, pa)
@@ -22269,6 +22363,7 @@ def t_stock_0926(pg, base, code):
     pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.smc = true; c.marks = true;"
                 " c.zone = { fill: 40 }; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)      # 重載回到分時（沒有 SMC 也沒有重設鈕）→ 按「日」才是在驗 K 線主圖
     wait_until(pg, "() => !!document.getElementById('fitBtn') && !!document.querySelector('#lwc canvas')", 6000)
     d = pg.evaluate(DBG)
     ok("★ [0926-③] 舊存檔寫著 smc／marks:true，主圖照樣沒有 SMC 區塊、區間標籤、BOS／CHoCH／掃蕩標記",
@@ -22369,6 +22464,7 @@ def t_stock_0926(pg, base, code):
         route.fulfill(response=resp, body=json.dumps(j, ensure_ascii=False), headers={**resp.headers, "content-type": "application/json; charset=utf-8"})
     pg.route(f"**/data/stock/{code}.json*", feed60)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1000)      # 重載回到分時，先回日線再開四週期（跟上面同一條路）
     click(pg, "#mtfBtn", 2000)
     pg.select_option("#mtfGrid select.mtfsel >> nth=0", "60m"); pg.wait_for_timeout(1200)
     pg.select_option("#mtfGrid select.mtfsel >> nth=1", "240m"); pg.wait_for_timeout(1200)
@@ -22388,6 +22484,7 @@ def t_stock_0926(pg, base, code):
     for vw in (800, 390):
         pg.set_viewport_size({"width": vw, "height": 900})
         pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        click(pg, '#tfSeg button[data-tf="1d"]', 1200)  # 預設是分時（沒有重設縮放鈕），下面量重設鈕要在 K 線上
         click(pg, "#indBtn", 500)
         for k in ("base", "ma", "macd"):
             ind_expand(pg, k)
@@ -22448,7 +22545,8 @@ def t_stock_0926_tf(pg, base, code):
     # ---------------------------------------------------------------- ⑤ 勾 15 分 → 週期列出現、重新整理記住
     tf_click("15m")
     ok("★ [0926晚-週期] 在週期區勾 15 分 → 週期列真的多出「15分」", "15m" in pg.evaluate(TFS), pg.evaluate(TFS))
-    ok("[0926晚-週期] 15 分排在 5 分之後、1 時之前（照原本順序，不是加在最後）", pg.evaluate(TFS)[:2] == ["15m", "60m"], pg.evaluate(TFS))
+    # （2026-10-03：09-28 起週期列最前面是「分時」，所以量前三顆；順序規則沒變 —— #310）
+    ok("[0926晚-週期] 15 分排在 5 分之後、1 時之前（照原本順序，不是加在最後）", pg.evaluate(TFS)[:3] == ["tick", "15m", "60m"], pg.evaluate(TFS))
     ok("[0926晚-週期] 勾選寫進 tw.kcfg.tfOn", "15m" in (pg.evaluate(KCFG).get("tfOn") or []), pg.evaluate(KCFG).get("tfOn"))
     ok("[0926晚-週期] 下拉還開著（勾週期不會把面板關掉）", pg.evaluate(IND_POP_OPEN))
     ok("[0926晚-週期] 週期區的摘要跟著變（多了 15分）", "15分" in text(pg, "#tfSum"), text(pg, "#tfSum"))
@@ -22475,14 +22573,20 @@ def t_stock_0926_tf(pg, base, code):
     tfs_now = pg.evaluate(TFS)
     ok("★ [0926晚-週期] 再取消日線（沒有日線可退）→ 切到剩下的第一個", pg.evaluate(DBG)["tf"] == tfs_now[0] and "1d" not in tfs_now,
        [pg.evaluate(DBG)["tf"], tfs_now])
-    tf_click("1d", 900); tf_click("1w", 900); tf_click("15m", 900)
-    ok("[0926晚-週期] 勾回日／週、取消 15 分 → 回到預設五個", pg.evaluate(TFS) == ["60m", "240m", "1d", "1w", "1M"], pg.evaluate(TFS))
+    # ★ 2026-10-03（#310）改前→改後：
+    #   改前：勾回日／週之後再按一次 15 分「取消」—— 那是 #307 之前寫的：當時重新整理會記得 15 分，走到這裡它還勾著。
+    #   改後：#307 起重新整理把週期勾選清回預設（上面那條驗過「15 分不見了」），走到這裡 15 分本來就沒勾，
+    #     再按一次反而把它勾回來（實測週期列多出 15m，四週期下拉跟著多一格、下一條「勾 15 分多一格」也跟著反向）。所以只勾回日／週。
+    tf_click("1d", 900); tf_click("1w", 900)
+    ok("[0926晚-週期] 勾回日／週 → 回到預設六個（含 09-28 起的分時；15 分在重新整理時已清掉，#307／#310）",
+       pg.evaluate(TFS) == ["tick", "60m", "240m", "1d", "1w", "1M"], pg.evaluate(TFS))
     click(pg, '#tfSeg button[data-tf="1d"]', 900)
     ind_close(pg)
     # ---------------------------------------------------------------- ⑤ 四週期同看的每格下拉只列勾起來的
     click(pg, "#mtfBtn", 2400)
     opts = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
-    ok("★ [0926晚-週期] 四週期同看：每一格的週期下拉只列勾起來的五個", bool(opts) and len(opts) == 4
+    # （週期列勾著六個，但「分時」是折線、不是 K 棒週期，四週期小圖本來就不列它 —— 所以每格是五個）
+    ok("★ [0926晚-週期] 四週期同看：每一格的週期下拉只列勾起來的五個（分時不列）", bool(opts) and len(opts) == 4
        and all(o == ["60m", "240m", "1d", "1w", "1M"] for o in opts), opts)
     tf_click("15m", 2000)
     opts2 = pg.evaluate("() => [...document.querySelectorAll('#mtfGrid select.mtfsel')].map(s => [...s.options].map(o => o.value))")
@@ -22491,7 +22595,8 @@ def t_stock_0926_tf(pg, base, code):
     ind_close(pg)
     click(pg, "#mtfBtn", 1600)
     # ---------------------------------------------------------------- ⑤ 最後一個勾不掉
-    pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.tfOn = ['1d']; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
+    # （2026-10-03：要一起寫 tickMig:1 —— 沒有它的話 loadCfg 會把「分時」補勾回去（09-28 給舊存檔的一次性遷移），週期列變兩顆，#310）
+    pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.tfOn = ['1d']; c.tickMig = 1; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
     ok("[0926晚-週期] 只勾日線時週期列只剩一顆「日」（前提）", pg.evaluate(TFS) == ["1d"], pg.evaluate(TFS))
     ind_open(pg)
@@ -22505,6 +22610,7 @@ def t_stock_0926_tf(pg, base, code):
     pg.evaluate("""() => { localStorage.setItem('tw.kcfg', JSON.stringify({ macd: { f: 12, s: 26, g: 9 }, macdDiv: true, lines: true,
         smc: true, marks: true, ma: [5, 20], vol: true })); }""")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1000)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1000)      # 重載回到分時（折線沒有 MACD 副圖）→ 按「日」（#310）
     wait_until(pg, "() => /MACD\\(/.test((document.querySelector('#lwc .pane-labels') || {}).innerText || '')", 8000)
     d = pg.evaluate(DBG)
     ok("[0926晚-拿掉] 舊存檔的 MACD 照樣畫出來（前提：MACD 本身保留）", "macd" in (d.get("paneH") or {}), d.get("paneH"))
@@ -37016,7 +37122,12 @@ def t_rot_dots_only(pg, b, base):
         d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
         scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
         ms = d.evaluate(CLK_STATE, "rotClockMini")
-        ok("★ 總覽小輪盤預設也畫腳印（焦點族群）", bool(ms) and ms["n"] > 0 and feet_n(ms) > 0, ms and [ms["n"], feet_n(ms)])
+        # ★ 2026-10-03 改前→改後（過時斷言，DECISIONS #274／#310）：
+        #   改前：「總覽小輪盤預設也畫腳印（焦點族群）」—— 那是 09-26 晚的行為。
+        #   改後：09-28 Andy「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」，app.js 對 rotClockMini 一律傳 trail:false
+        #     （#274），總覽這張不管開關怎麼設都只有點。所以這裡改驗「有點、0 腳印、0 條看得到的軌跡」。
+        ok("★ 總覽小輪盤只有點、沒有腳印與軌跡（#274：首頁輪盤只標點）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0,
+           ms and [ms["n"], feet_n(ms), ms["vis"]])
         # 勾掉「顯示腳印」→ 卡片只剩圓圈、記成 '0'
         d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
         scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
@@ -37055,17 +37166,24 @@ def t_rot_dots_only(pg, b, base):
         d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
         scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
         ms = d.evaluate(CLK_STATE, "rotClockMini")
-        ok("勾回來之後回到總覽，小輪盤的腳印也回來（不是停在舊的那一張）", bool(ms) and feet_n(ms) > 0, ms and feet_n(ms))
+        # （改前驗「勾回來之後小輪盤的腳印也回來」；#274 起總覽這張不跟資金流向頁的開關走 —— 勾回來仍然只有點）
+        ok("勾回來之後回到總覽，小輪盤照舊只有點（不跟資金流向頁的開關走，#274）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0,
+           ms and [ms["n"], feet_n(ms)])
     finally:
         d.close()
     # 手機 390：沒有值 → 兩張雷達都畫腳印；'0'（桌機勾掉過）→ 不畫；「?」點開沒有附註段
     m = fresh(390, 844, mobile=True)
     try:
-        for route, box in (("flow", "#mRadarFlow"), ("overview", "#mRadarOv")):
+        # ★ 2026-10-03（過時斷言，#274）：總覽那張雷達 mobile3.js 傳 feet:false（首頁輪盤只標點），只有資金流向那張畫腳印。
+        for route, box, want_feet in (("flow", "#mRadarFlow", True), ("overview", "#mRadarOv", False)):
             m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2600)
             r = m.evaluate(MOB_RADAR_FEET, box)
-            ok(f"★ 手機 {route} 雷達：圓點照畫、佔比前 3 名身後有小腳印（改前：0 個）",
-               bool(r) and r["dots"] > 3 and r["feet"] > 0, r)
+            if want_feet:
+                ok(f"★ 手機 {route} 雷達：圓點照畫、佔比前 3 名身後有小腳印（改前：0 個）",
+                   bool(r) and r["dots"] > 3 and r["feet"] > 0, r)
+            else:
+                ok(f"★ 手機 {route} 雷達：圓點照畫、沒有腳印（#274：首頁輪盤只標點）",
+                   bool(r) and r["dots"] > 3 and r["feet"] == 0, r)
         m.evaluate("() => localStorage.setItem('tw.rot.feet', '0')")
         m.goto(f"{base}#flow", wait_until="networkidle"); m.reload(wait_until="networkidle"); m.wait_for_timeout(2600)
         r = m.evaluate(MOB_RADAR_FEET, "#mRadarFlow")
