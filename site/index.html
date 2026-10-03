@@ -2204,6 +2204,18 @@ tbody tr:last-child td{border-bottom:0}
    選取／滑過那個環節時框改成環節色（跟標題色塊同一個語意）。框不吃滑鼠，點擊照舊落在標題與卡片上。*/
 .chainmap .segbox{fill:color-mix(in srgb,var(--c) 5%,transparent);stroke:var(--t4-card-edge,var(--line-2));stroke-width:1;pointer-events:none}
 .chainmap .segbox.sel{stroke:color-mix(in srgb,var(--c) 70%,transparent)}
+/* ★ 2026-10-03 晚（Andy：「需要有對應那族群的所有關聯圖，並且反亮那族群」，DECISIONS #317）：剖析圖分頁的關聯圖畫整條鏈，
+   上方剖析圖畫到的環節 .relfocus（亮框 2px 環節色＋亮底 16%＋標題色塊加深），其餘 .relout 透明度 0.6（降 40%，字仍讀得到、仍點得到）。
+   連線只淡掉「兩端都不在反亮範圍」的；選取（.sel／.dim）照舊疊在上面（.co.dim 特異度較高，選了別格時仍是 .28）。*/
+.chainmap .segbox.relfocus{stroke:var(--c);stroke-width:2;fill:color-mix(in srgb,var(--c) 16%,transparent)}
+.chainmap .segtitle.relfocus rect{fill-opacity:.34}
+.chainmap .relout{opacity:.6}
+.chainmap .edge.relout{stroke-opacity:.22}
+.seglist .segcard.relfocus{background:color-mix(in srgb,var(--c) 12%,var(--panel-3));box-shadow:0 0 0 2px var(--c) inset}
+.seglist .segcard.relout:not(.sel):not(.dim){opacity:.6}
+#segChips .segchip.relfocus{box-shadow:0 0 0 1px var(--c) inset}
+#segChips .segchip.relfocus::after{content:attr(data-focus);flex:none;margin-left:6px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:600;line-height:17px;
+  color:var(--c);border:1px solid color-mix(in srgb,var(--c) 60%,transparent);background:color-mix(in srgb,var(--c) 12%,transparent)}
 .chainmap .segtitle{cursor:pointer} .chainmap .segtitle.sel rect{fill-opacity:.4}
 .chainmap .segtitle:hover rect{fill-opacity:.3}
 /* 畫布底改讀 --dg-bg（預設就是 var(--illus)，所以科技配色下外觀零變化）。

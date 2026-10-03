@@ -44748,18 +44748,36 @@ def t_dg_tidy_1003(b, base):
 
 
 # ===================================================================== 關聯圖對應與3D大小1003
-# Andy 2026-10-03 再兩句：
-#   E「這兩張圖關係要對上，若無關則下方不需顯示」—— 一般電子 → CNC 工具機：上面是工具機拆解圖，下面關聯圖卻是 IC 設計、面板……
-#     規則：關聯圖只留「上方剖析圖真的掛了 data-seg 的環節」（跟這條鏈的環節取交集）；交集是空的就整塊不顯示。
-#   F「3D 圖片初始大小再小一點」→「調整原尺寸 70% 試試看先」—— 3D 初始取景距離 ÷ 0.7。
+# Andy 2026-10-03 兩輪：
+#   第一輪（#306）E「這兩張圖關係要對上，若無關則下方不需顯示」、F「3D 初始大小 70%」。
+#   第二輪（#317，推翻 #306 第 3 節的「只留交集」與第 4 節的 70%）：
+#     ①「這頁 3D 回到之前那樣的大小，並且需要打開這頁就能看到完整頁面」
+#       → 3D 初始＝填滿取景的 1.0；畫布高度依可視高（打開不用捲就看到整個剖析圖區）；模型、左右標籤卡都在畫布內
+#     ②「下方的關聯圖為何其他的都不見了，需要有對應那族群的所有關聯圖，並且反亮那族群」
+#       → 剖析圖分頁的關聯圖畫整條鏈（環節數＝族群總覽），剖析圖畫到的環節 .relfocus 亮框亮底、其餘 .relout 降透明；
+#         交集是空的（CNC 工具機、工業自動化、寬能隙、矽晶圓）照舊整塊不顯示；「環節 ▾」下拉列整條鏈、反亮的加「圖上」。
 REL_SCOPE = """() => {
   const rs = document.querySelector('#relSec');
   const diag = [...new Set([...document.querySelectorAll('#prodDiagram [data-seg]')].map(n => n.dataset.seg))];
   const map = [...document.querySelectorAll('#chainMap g.segtitle')].map(n => n.dataset.seg);
-  const cos = [...document.querySelectorAll('#chainMap g.co')].map(n => n.dataset.segment);
+  const box = [...document.querySelectorAll('#chainMap rect.segbox')];
+  const op = (n) => { let o = 1, e = n; while (e && e.tagName && e.tagName.toLowerCase() !== 'svg') { o *= +getComputedStyle(e).opacity; e = e.parentNode; } return o; };
+  const foc = box.filter(b => b.classList.contains('relfocus')).map(b => b.dataset.seg);
+  const outs = box.filter(b => b.classList.contains('relout'));
+  const focSt = box.filter(b => b.classList.contains('relfocus')).map(b => ({ seg: b.dataset.seg, sw: parseFloat(getComputedStyle(b).strokeWidth), op: op(b),
+      fillA: (getComputedStyle(b).fill.match(/[\\d.]+(?=\\))/) || [1])[0] }));
+  const outOp = outs.map(op), coOut = [...document.querySelectorAll('#chainMap g.co.relout')], coFoc = [...document.querySelectorAll('#chainMap g.co.relfocus')];
+  const chips = [...document.querySelectorAll('#segChips .segchip[data-seg]')];
+  const cards = [...document.querySelectorAll('#chainList .segcard')];
   return { relVis: !!rs && rs.getClientRects().length > 0 && getComputedStyle(rs).display !== 'none',
-           diag, map, cosOut: cos.filter(s => map.indexOf(s) < 0).length, nCo: cos.length,
-           dd: [...document.querySelectorAll('#segChips .segchip[data-seg]')].filter(c => c.offsetParent !== null || getComputedStyle(c).display !== 'none').map(c => c.dataset.seg),
+           diag, map, foc, nOut: outs.length, focSt, outOpMin: outOp.length ? Math.min(...outOp) : null, outOpMax: outOp.length ? Math.max(...outOp) : null,
+           coOutOp: coOut.length ? +getComputedStyle(coOut[0]).opacity : null, nCoOut: coOut.length, nCoFoc: coFoc.length,
+           coOutCode: (coOut.find(c => c.dataset.code) || {dataset: {}}).dataset.code || '',
+           dd: chips.filter(c => getComputedStyle(c).display !== 'none').map(c => c.dataset.seg),
+           ddFoc: chips.filter(c => c.classList.contains('relfocus')).map(c => c.dataset.seg),
+           ddMark: chips.filter(c => c.classList.contains('relfocus')).map(c => getComputedStyle(c, '::after').content),
+           list: cards.map(c => c.dataset.seg), listFoc: cards.filter(c => c.classList.contains('relfocus')).map(c => c.dataset.seg),
+           anyCls: document.querySelectorAll('#relSec .relfocus, #relSec .relout').length,
            tab: (document.querySelector('#dgPick .segchip.sel') || {}).textContent || '', hash: location.hash }; }"""
 
 D3_FIT = """() => {
@@ -44770,19 +44788,35 @@ D3_FIT = """() => {
   const dots = [...document.querySelectorAll('#prod3d .lead3d .ld-dot, #prod3d .lead3d .ld-no')].filter(d => getComputedStyle(d).display !== 'none' && +getComputedStyle(d).opacity > 0.05)
     .map(d => { const r = d.getBoundingClientRect(); return { x: r.left + r.width / 2 - cr.left, y: r.top + r.height / 2 - cr.top }; });
   const off = dots.filter(p => p.x < m.l - 8 || p.x > m.r + 8 || p.y < m.t - 8 || p.y > m.b + 8 || p.x < 0 || p.y < 0 || p.x > m.w || p.y > m.h);
-  return { fill: f.fill, dist: f.dist, now: f.now, scale: f.scale, m, nDot: dots.length, off: off.slice(0, 3), nOff: off.length }; }"""
+  // 左右標籤卡（欄位模式）：每一張都要落在畫布的上下範圍裡；底下那一排（.dgstage-b）有卡片＝有卡片被擠出畫布
+  const lab = [...document.querySelectorAll('#prod3d .dgstage-l > *, #prod3d .dgstage-r > *')].filter(c => c.getClientRects().length && !c.classList.contains('hid'))
+    .map(c => { const r = c.getBoundingClientRect(); return { t: r.top - cr.top, b: r.bottom - cr.top }; });
+  const labOut = lab.filter(q => q.t < -1 || q.b > cr.height + 1);
+  const bl = document.querySelector('#prod3d .dgstage-b');
+  const sec = document.querySelector('#dgSec'), sr = sec ? sec.getBoundingClientRect() : null;
+  const pc = document.querySelector('#partCard');
+  return { fill: f.fill, dist: f.dist, now: f.now, scale: f.scale, m, nDot: dots.length, off: off.slice(0, 3), nOff: off.length,
+           nLab: lab.length, labOut: labOut.slice(0, 3), nLabOut: labOut.length, nBelow: bl && !bl.hidden ? bl.children.length : 0,
+           cvTop: cr.top + scrollY, cvBot: cr.bottom + scrollY, cvH: cr.height, secTop: sr ? sr.top + scrollY : 0, secBot: sr ? sr.bottom + scrollY : 0,
+           pcOpen: !!pc && !pc.hidden, ih: innerHeight, cap: window.Fit ? window.Fit.cap() : null, sy: scrollY,
+           docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
 
 
 def t_rel_scope_3d_1003(b, base):
-    """關聯圖跟上方剖析圖對上（Andy 2026-10-03 E）＋ 3D 初始大小 70%（F）的真人操作驗收（DECISIONS #306）。
+    """關聯圖整條鏈＋反亮（Andy 2026-10-03 第二輪 ②）＋ 3D 回 1.0、一屏看完整個剖析圖區（①）的真人操作驗收（DECISIONS #317，取代 #306 的口徑）。
 
-      E ① 每條鏈先開「族群總覽」量整條鏈的環節 S；再逐一用滑鼠點二層分頁的每一張剖析圖：
-           關聯圖的環節＝剖析圖上的 data-seg ∩ S；公司卡都屬於這幾格；「環節 ▾」下拉只留這幾格；
+      ② 每條鏈先開「族群總覽」量整條鏈的環節 S（不准有任何反亮 class）；再逐一用滑鼠點二層分頁的每一張剖析圖：
            交集是空的（CNC 工具機、工業自動化、寬能隙、矽晶圓）→ 整塊「供應鏈關聯圖」看不到
-        ② 點回「族群總覽」→ 關聯圖真的回到整條鏈
-      F ③ ai_server 機櫃、CNC 工具機兩個 3D 場景：初始取景距離＝改前填滿距離 ÷ 0.7（±3%）、
-           模型外接盒整個落在畫布內而且四邊都留白、可見的引線端點都落在模型範圍裡；
-           真的拖一下再按「重設視角」→ 距離回到同一個 70%"""
+           其餘 → 關聯圖畫整條鏈（環節數＝S）；反亮的環節＝剖析圖上的 data-seg ∩ S，亮框（≥ 1.8px）亮底；
+                  其餘環節框透明度 0.55～0.65（降 35～45%）；「環節 ▾」下拉列整條鏈、反亮那幾顆有「圖上」標記；手機環節清單同一組
+           每條鏈挑一張：真的點一張「淡掉的」公司卡 → 浮動卡打開（淡掉的仍點得到）
+           點回「族群總覽」→ 反亮全部拿掉
+      ① 晶圓代工、AI 伺服器整機、CNC 工具機三個 3D 場景 × 1440×900／1920×1080／1366×768：
+           初始取景＝填滿的 1.0（±0.03）；模型外接盒在畫布內；可見引線端點都落在模型上；
+           打開不捲動：畫布底與整個剖析圖區（#dgSec）底都 ≤ 視窗高；剖析圖區高 ≤ Fit.cap()；
+           左右標籤卡都在畫布上下範圍內、底下那一排沒有被擠出去的卡片；頁面不橫捲
+         1440×900 再把視窗縮到 768 高（不重新載入）→ 畫布跟著變矮、仍然一屏看完；
+         真的拖一下＋滾輪再按「重設視角」→ 回到 1.0"""
     T = "[關聯圖對應與3D大小1003]"
     errs: list[str] = []
     ctx = b.new_context(viewport={"width": 1440, "height": 1000})
@@ -44805,9 +44839,10 @@ def t_rel_scope_3d_1003(b, base):
             wait_until(pg, "() => document.querySelectorAll('#chainMap g.segtitle').length > 0", 8000)
             full = pg.evaluate(REL_SCOPE)
             S = set(full["map"])
-            if not ok(f"{T}{chain} 族群總覽：關聯圖畫整條鏈（{len(S)} 格）而且看得到", full["relVis"] and len(S) > 0, full):
+            if not ok(f"{T}{chain} 族群總覽：關聯圖畫整條鏈（{len(S)} 格）、看得到、沒有任何反亮", full["relVis"] and len(S) > 0 and full["anyCls"] == 0, full):
                 continue
             tabs = pg.evaluate("() => [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(a => a.dataset.dgid)")
+            clicked_dim = False
             for slot in tabs:
                 tg = f"{T}{chain}/{slot}"
                 pg.evaluate("() => scrollTo(0, 0)")
@@ -44819,83 +44854,151 @@ def t_rel_scope_3d_1003(b, base):
                 settle_map()
                 # 關聯圖在剖析圖下面是「捲近了才畫」（perf-2），看得到的話等它真的畫出來再量
                 wait_until(pg, "() => { const rs = document.querySelector('#relSec'); return !rs || !rs.getClientRects().length"
-                               " || document.querySelectorAll('#chainMap g.segtitle').length > 0; }", 8000)
+                               " || document.querySelectorAll('#chainMap rect.segbox.relfocus').length > 0; }", 8000)
                 z = pg.evaluate(REL_SCOPE)
                 want = sorted(set(z["diag"]) & S)
                 if not want:
                     ok(f"★ {tg} 剖析圖跟這條鏈的環節對不上任何一格（圖上 {z['diag'][:4]}）→ 整塊供應鏈關聯圖不顯示",
                        not z["relVis"], z)
                     continue
-                ok(f"★ {tg} 關聯圖看得到，而且只畫剖析圖上有的 {len(want)} 格（{want[:5]}）",
-                   z["relVis"] and sorted(z["map"]) == want, {"圖上": z["diag"], "關聯圖": z["map"], "應為": want})
-                ok(f"{tg} 關聯圖上的 {z['nCo']} 張公司卡都屬於這幾格", z["cosOut"] == 0 and z["nCo"] > 0, z)
-                ok(f"{tg} 「環節 ▾」下拉只留這幾格", sorted(z["dd"]) == want, (z["dd"], want))
-            # ② 點回族群總覽 → 整條鏈
+                ok(f"★ {tg} 關聯圖看得到，而且畫整條鏈 {len(z['map'])}／{len(S)} 格（跟族群總覽一樣）",
+                   z["relVis"] and set(z["map"]) == S and len(z["map"]) == len(S), {"關聯圖": sorted(z["map"]), "整條鏈": sorted(S)})
+                ok(f"★ {tg} 反亮的環節＝剖析圖畫到的 {len(want)} 格（{want[:5]}）",
+                   sorted(z["foc"]) == want, {"反亮": sorted(z["foc"]), "應為": want, "圖上": z["diag"]})
+                ok(f"★ {tg} 反亮的框是亮框（≥ 1.8px）亮底、沒被降透明",
+                   all(x["sw"] >= 1.8 and x["op"] >= 0.99 for x in z["focSt"]) and len(z["focSt"]) == len(want), z["focSt"][:3])
+                if len(S) > len(want):
+                    ok(f"★ {tg} 其餘 {z['nOut']} 格降透明 35～45%（框 {z['outOpMin']}～{z['outOpMax']}；公司卡 {z['coOutOp']}）",
+                       z["nOut"] == len(S) - len(want) and z["outOpMin"] is not None and 0.55 <= z["outOpMin"] and z["outOpMax"] <= 0.65
+                       and (z["coOutOp"] is None or 0.55 <= z["coOutOp"] <= 0.65), z)
+                ok(f"★ {tg} 「環節 ▾」下拉列整條鏈（{len(z['dd'])} 顆），反亮那 {len(z['ddFoc'])} 顆有「圖上」標記",
+                   set(z["dd"]) == S and sorted(z["ddFoc"]) == want and all("圖上" in (m or "") for m in z["ddMark"]), (z["dd"], z["ddFoc"], z["ddMark"][:2]))
+                ok(f"{tg} 環節清單（手機那份）也是整條鏈、反亮同一組",
+                   set(z["list"]) == S and sorted(z["listFoc"]) == want, (z["list"], z["listFoc"]))
+                # 淡掉的仍點得到：真的點一張淡掉的公司卡 → 浮動卡打開
+                if not clicked_dim and z["nCoOut"] > 0:
+                    clicked_dim = True
+                    r = pg.evaluate("""() => { const n = [...document.querySelectorAll('#chainMap g.co.relout')].find(g => { const q = g.getBoundingClientRect(); return q.width > 0; });
+                      if (!n) return null; n.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = n.getBoundingClientRect();
+                      return { x: q.left + Math.min(30, q.width / 2), y: q.top + q.height / 2, id: n.dataset.id }; }""")
+                    if ok(f"{tg} 找得到一張淡掉的公司卡", bool(r), r):
+                        pg.wait_for_timeout(200)
+                        r = pg.evaluate("(id) => { const n = document.querySelector('#chainMap g.co[data-id=\"' + id + '\"]'); const q = n.getBoundingClientRect(); return { x: q.left + Math.min(30, q.width / 2), y: q.top + q.height / 2, id }; }", r["id"])
+                        top = pg.evaluate("(p) => { const e = document.elementFromPoint(p.x, p.y); const g = e && e.closest && e.closest('g.co'); return g ? g.dataset.id : (e ? e.tagName + '.' + e.getAttribute('class') : null); }", r)
+                        pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(700)
+                        opened = pg.evaluate("() => { const b = document.querySelector('#coBox'); return !!b && b.getClientRects().length > 0 && (b.textContent || '').length > 4; }")
+                        ok(f"★ {tg} 滑鼠真的點淡掉的公司卡（{r['id']}，該點最上層是 {top}）→ 浮動卡打開", top == r["id"] and opened, (top, opened))
+                        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+            # 點回族群總覽 → 整條鏈、沒有反亮
             pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(200)
             pg.locator('#dgPick .segchip[data-dgtab="overview"]').click()
             wait_until(pg, "() => location.hash.endsWith('/overview')", 8000)
             settle_map()
             wait_until(pg, f"() => document.querySelectorAll('#chainMap g.segtitle').length >= {len(S)}", 8000)
+            pg.wait_for_timeout(300)
             back = pg.evaluate(REL_SCOPE)
-            ok(f"★ {T}{chain} 點回「族群總覽」→ 關聯圖真的回到整條鏈（{len(back['map'])}／{len(S)} 格）",
-               back["relVis"] and set(back["map"]) == S, (back["map"], sorted(S)))
+            ok(f"★ {T}{chain} 點回「族群總覽」→ 關聯圖整條鏈（{len(back['map'])}／{len(S)} 格）、反亮全部拿掉、下拉沒有「圖上」",
+               back["relVis"] and set(back["map"]) == S and back["anyCls"] == 0 and not back["ddFoc"], (back["map"], back["anyCls"], back["ddFoc"]))
 
-        # ---------------------------------------------------------------- F 3D 初始大小 70%
-        # ★ 2026-10-03（CEO：版面 V2 第三批之後工具機 1440 底部超出畫布 39px）：取景改成照畫布長寬比精確塞進去再 ×0.7，
-        #   所以三個寬度都各自重新載入量一次；1440 那次再把視窗縮到 900（不重新載入）—— 還停在預設視角時要跟著重新取景。
-        def d3_check(tg, z):
+        # 窄一點的視窗（關聯圖框要左右滑時）→ 框自己捲到反亮那幾欄（只捲框、不捲整頁）
+        pg.set_viewport_size({"width": 900, "height": 900})
+        pg.goto("about:blank")
+        pg.goto(base + "#industry/ai_server/dg/ai_server", wait_until="load")
+        wait_until(pg, "() => !!document.querySelector('#prodDiagram svg')", 12000)
+        sy0 = pg.evaluate("() => scrollY")
+        settle_map()
+        wait_until(pg, "() => document.querySelectorAll('#chainMap rect.segbox.relfocus').length > 0", 8000)
+        pg.wait_for_timeout(500)
+        c = pg.evaluate("""() => { const m = document.querySelector('#chainMap'); const mr = m.getBoundingClientRect();
+          let l = 1e9, r = -1e9; document.querySelectorAll('#chainMap rect.segbox.relfocus').forEach(b => { const q = b.getBoundingClientRect(); l = Math.min(l, q.left); r = Math.max(r, q.right); });
+          return { sw: m.scrollWidth, cw: m.clientWidth, sl: m.scrollLeft, mid: (l + r) / 2 - mr.left, l: l - mr.left, r: r - mr.left }; }""")
+        ok(f"{T}打開剖析圖分頁時整頁沒有被捲走（scrollY {sy0}）", sy0 == 0, sy0)
+        if c["sw"] > c["cw"] + 2:
+            ok(f"★ {T}900 寬關聯圖要左右滑 → 框自己捲到反亮那幾欄（可見範圍內 {c['l']:.0f}～{c['r']:.0f}／{c['cw']}）",
+               c["l"] >= -4 and (c["r"] <= c["cw"] + 4 or abs(c["mid"] - c["cw"] / 2) <= 40), c)
+        else:
+            ok(f"{T}900 寬關聯圖不用左右滑（{c['sw']}／{c['cw']}），反亮的幾欄都在框裡", c["l"] >= -1 and c["r"] <= c["cw"] + 1, c)
+
+        # 手機 390：環節清單整條鏈、反亮的那幾格有 relfocus
+        pg.set_viewport_size({"width": 390, "height": 844})
+        pg.goto("about:blank")
+        pg.goto(base + "#industry/semiconductor/dg/foundry", wait_until="load")
+        wait_until(pg, "() => document.querySelectorAll('#chainList .segcard').length > 0", 12000)
+        mz = pg.evaluate(REL_SCOPE)
+        ok(f"★ {T}手機 390 晶圓代工：環節清單列整條鏈（{len(mz['list'])} 格）、反亮 {mz['listFoc']}、色標整條鏈",
+           len(mz["list"]) >= 10 and mz["listFoc"] == ["foundry"] and len(mz["dd"]) == len(mz["list"]),
+           (mz["list"], mz["listFoc"], mz["dd"]))
+        ok(f"{T}手機 390 不橫捲", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+
+        # ---------------------------------------------------------------- ① 3D 回 1.0、一屏看完
+        def d3_check(tg, z, need_screen=True):
             ratio = z["fill"] / z["dist"]
-            ok(f"★ {tg} 初始大小＝整台塞滿的 {ratio:.3f}（要 0.70 ±0.02；距離 {z['dist']:.1f} vs 塞滿 {z['fill']:.1f}）",
-               abs(ratio - 0.7) <= 0.02 and abs(z["now"] - z["dist"]) / z["dist"] <= 0.03, z)
+            ok(f"★ {tg} 初始大小＝整台塞滿的 {ratio:.3f}（要 1.00 ±0.03；距離 {z['dist']:.1f} vs 塞滿 {z['fill']:.1f}）",
+               abs(ratio - 1.0) <= 0.03 and abs(z["now"] - z["dist"]) / z["dist"] <= 0.03, z)
             m = z["m"]
-            mx, my = m["w"] * 0.02, m["h"] * 0.02
-            ok(f"★ {tg} 整台模型落在畫布內、四邊留白（模型 {m['l']:.0f}～{m['r']:.0f} × {m['t']:.0f}～{m['b']:.0f}，畫布 {m['w']:.0f}×{m['h']:.0f}）",
-               m["l"] >= mx and m["t"] >= my and m["r"] <= m["w"] - mx and m["b"] <= m["h"] - my, m)
-            ok(f"★ {tg} {z['nDot']} 個可見引線端點／編號圓點都落在模型範圍裡（對得到零件）", z["nDot"] > 0 and z["nOff"] == 0, z["off"])
+            ok(f"★ {tg} 整台模型落在畫布內（模型 {m['l']:.0f}～{m['r']:.0f} × {m['t']:.0f}～{m['b']:.0f}，畫布 {m['w']:.0f}×{m['h']:.0f}）",
+               m["l"] >= 0 and m["t"] >= 0 and m["r"] <= m["w"] and m["b"] <= m["h"], m)
+            ok(f"{tg} {z['nDot']} 個可見引線端點／編號圓點都落在模型範圍裡（對得到零件）", z["nDot"] > 0 and z["nOff"] == 0, z["off"])
+            ok(f"★ {tg} 左右 {z['nLab']} 張標籤卡都在畫布上下範圍內、沒有被擠到畫布底下",
+               z["nLab"] > 0 and z["nLabOut"] == 0 and z["nBelow"] == 0, (z["labOut"], z["nBelow"]))
+            ok(f"{tg} 頁面不橫捲", z["docW"] <= z["winW"] + 1, (z["docW"], z["winW"]))
+            if need_screen:
+                ok(f"★ {tg} 打開不捲動就看到整個剖析圖區（畫布底 {z['cvBot']:.0f}、剖析圖區底 {z['secBot']:.0f} ≤ 視窗高 {z['ih']}）",
+                   z["sy"] == 0 and not z["pcOpen"] and z["cvBot"] <= z["ih"] and z["secBot"] <= z["ih"], z)
+                ok(f"★ {tg} 剖析圖區高 {z['secBot'] - z['secTop']:.0f} ≤ 一屏可視高 {z['cap']}",
+                   z["cap"] is not None and z["secBot"] - z["secTop"] <= z["cap"], (z["secTop"], z["secBot"], z["cap"]))
 
-        for chain, slot in (("ai_server", "ai_server"), ("electronics", "machine_tool")):
-          for VW in (1440, 1100, 900):
-            tg = f"{T}3D {slot}·{VW}"
-            pg.set_viewport_size({"width": VW, "height": 1000})
+        def open3d(chain, slot, VW, VH):
+            pg.set_viewport_size({"width": VW, "height": VH})
             pg.goto("about:blank")
             pg.goto(base + f"#industry/{chain}/dg/{slot}", wait_until="load")
             wait_until(pg, "() => !!document.querySelector('#dg3d') && !document.querySelector('#dg3d').hidden", 12000)
             if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
-                ok(f"{tg} 這台瀏覽器有 WebGL（沒有就驗不了 3D）", False, "no webgl")
-                continue
-            pg.evaluate("() => { const s = document.getElementById('dgSec') || document.getElementById('dgBody'); if (s) s.scrollIntoView({ block: 'start' }); }")
-            pg.wait_for_timeout(300)
+                return "nowebgl"
             btn = pg.locator('#dg3d button[data-dm="3d"]')
             if btn.get_attribute("aria-pressed") != "true":
                 btn.click()
-            wait_until(pg, "() => !!document.querySelector('#prod3d canvas') && !!(window.Rack3D.current && window.Rack3D.current.fit)", 12000)
-            pg.wait_for_timeout(1500)
-            z = pg.evaluate(D3_FIT)
-            if not ok(f"{tg} 3D 場景掛起來了", bool(z) and z["fill"] > 0, z):
-                continue
-            d3_check(tg, z)
-            if VW != 1440:
-                continue
-            # 視窗縮到 900（不重新載入）：還在預設視角 → 跟著重新取景，整台仍在畫布內
-            pg.set_viewport_size({"width": 900, "height": 1000}); pg.wait_for_timeout(1500)
-            zr = pg.evaluate(D3_FIT)
-            if ok(f"{tg} 縮到 900 之後量得到 3D", bool(zr), zr):
-                d3_check(f"{T}3D {slot}·1440→900（沒重新載入）", zr)
-            pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(1500)
-            # 真的拖一下再重設
-            cv = pg.evaluate("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
-            pg.mouse.move(cv["x"], cv["y"]); pg.mouse.down(); pg.mouse.move(cv["x"] + 200, cv["y"] + 30, steps=12); pg.mouse.up()
-            pg.mouse.wheel(0, -400); pg.wait_for_timeout(700)
-            moved = pg.evaluate("() => window.Rack3D.current.fit().now")
-            try:
-                pg.locator("#dgReset").click(timeout=4000)
-            except Exception:  # noqa: BLE001  視角鈕點不到時，走畫面上寫的另一條路：在 3D 畫面上點兩下
-                pg.mouse.dblclick(cv["x"], cv["y"] - 140)
-            pg.wait_for_timeout(1200)
-            z2 = pg.evaluate(D3_FIT)
-            ok(f"★ {tg} 拖曳＋滾輪之後按「重設視角」→ 距離回到 70% 那一個（{moved:.1f} → {z2['now']:.1f}，應為 {z2['dist']:.1f}）",
-               abs(moved - z2["dist"]) / z2["dist"] > 0.03 and abs(z2["now"] - z2["dist"]) / z2["dist"] <= 0.03 and abs(z2["fill"] / z2["dist"] - 0.7) <= 0.02,
-               (moved, z2))
+            wait_until(pg, "() => !!document.querySelector('#prod3d canvas') && !!(window.Rack3D.current && window.Rack3D.current.fit)", 15000)
+            pg.evaluate("() => scrollTo(0, 0)")
+            pg.mouse.move(2, 2)            # 游標不要停在 3D 上（#246 滑進去會展開爆炸圖）
+            pg.wait_for_timeout(1800)
+            return pg.evaluate(D3_FIT)
+
+        for chain, slot in (("semiconductor", "foundry"), ("ai_server", "ai_server"), ("electronics", "machine_tool")):
+            for VW, VH in ((1440, 900), (1920, 1080), (1366, 768)):
+                tg = f"{T}3D {slot}·{VW}×{VH}"
+                z = open3d(chain, slot, VW, VH)
+                if z == "nowebgl":
+                    ok(f"{tg} 這台瀏覽器有 WebGL（沒有就驗不了 3D）", False, "no webgl")
+                    break
+                if not ok(f"{tg} 3D 場景掛起來了", bool(z) and z["fill"] > 0, z):
+                    continue
+                d3_check(tg, z)
+                if (VW, VH) != (1440, 900):
+                    continue
+                h0 = z["cvH"]
+                # 視窗縮矮（不重新載入）：畫布跟著變矮，仍然一屏看完、模型仍在畫布內、仍是 1.0
+                pg.set_viewport_size({"width": 1440, "height": 768}); pg.wait_for_timeout(1800)
+                pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(300)
+                zr = pg.evaluate(D3_FIT)
+                if ok(f"{tg} 縮到 1440×768 之後量得到 3D", bool(zr), zr):
+                    ok(f"★ {tg} 縮到 768 高（沒重新載入）→ 畫布真的變矮（{h0:.0f} → {zr['cvH']:.0f}）", zr["cvH"] < h0 - 20, (h0, zr["cvH"]))
+                    d3_check(f"{T}3D {slot}·1440×900→768（沒重新載入）", zr)
+                pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(1800)
+                # 真的拖一下＋滾輪再重設
+                cv = pg.evaluate("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
+                pg.mouse.move(cv["x"], cv["y"]); pg.mouse.down(); pg.mouse.move(cv["x"] + 200, cv["y"] + 30, steps=12); pg.mouse.up()
+                pg.mouse.wheel(0, -400); pg.wait_for_timeout(700)
+                moved = pg.evaluate("() => window.Rack3D.current.fit().now")
+                try:
+                    pg.locator("#dgReset").click(timeout=4000)
+                except Exception:  # noqa: BLE001  視角鈕點不到時，走畫面上寫的另一條路：在 3D 畫面上點兩下
+                    pg.mouse.dblclick(cv["x"], cv["y"] - 140)
+                pg.wait_for_timeout(1200)
+                z2 = pg.evaluate(D3_FIT)
+                ok(f"★ {tg} 拖曳＋滾輪之後按「重設視角」→ 距離回到 1.0 那一個（{moved:.1f} → {z2['now']:.1f}，應為 {z2['dist']:.1f}）",
+                   abs(moved - z2["dist"]) / z2["dist"] > 0.03 and abs(z2["now"] - z2["dist"]) / z2["dist"] <= 0.03 and abs(z2["fill"] / z2["dist"] - 1.0) <= 0.03,
+                   (moved, z2))
         pg.set_viewport_size({"width": 1440, "height": 1000})
     except Exception as ex:  # noqa: BLE001
         ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])

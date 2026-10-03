@@ -8596,7 +8596,18 @@
     // 機櫃是直立的，畫面比例太扁會把上下切掉；0.62 是讓 42U 機櫃連同標籤都塞得下的比例
     // hk：畫面高度佔寬度的比例。機櫃是直立的要高（0.62）；封裝剖面又寬又扁，
     // 給它一樣高只會上下留一大片空白，所以那個場景自己指定 0.46。
-    const H = () => Math.max(340, Math.round(Math.min(700, el.clientWidth * (spec.hk || 0.62))));
+    /* ★ 2026-10-03 晚（Andy：「這頁 3D 回到之前那樣的大小，並且需要打開這頁就能看到完整頁面」，DECISIONS #317）：
+       高度另外受呼叫端給的上限 o.maxH() 管（industry.js 用 Fit 量「打開頁面、不捲動時畫布最多能多高」）。
+       寬度決定的高度（寬 × hk，340～700）比上限高才壓；壓到 MIN_H 為止（再矮模型與卡片欄都擠不下，寧可捲一點）。
+       上限只在 readCap() 讀（掛載時、onResize、refit）：H() 每幀都會被 layoutLabels 叫到，每幀量版面會逼瀏覽器重排。*/
+    const MIN_H = 340;
+    let capH = Infinity;
+    let tightCap = Infinity;     // 「收掉上下空白」之後的高度（tighten() 算的），只在有上限（桌機產業鏈頁）時才會 < Infinity
+    const readCap = () => { let v = NaN; try { v = o.maxH ? +o.maxH() : NaN; } catch (e) { /* 量不到就不限 */ } capH = isFinite(v) && v > 0 ? v : Infinity; };
+    readCap();
+    const H = () => { const base = Math.max(MIN_H, Math.round(Math.min(700, el.clientWidth * (spec.hk || 0.62))));
+      const cap = Math.min(capH, tightCap);
+      return cap < base ? Math.max(MIN_H, Math.round(cap)) : base; };
     /* ★ 2026-09-22 響應式的卡片欄（Andy：「版面需要左右對齊，適當分配左右間隔，讓版面更滿…
        並且會依據螢幕大小變化」）。斷點看**視窗寬度**（跟 style-system 的 media query 同一組數字），
        欄寬看**容器寬度**（側欄開著時容器比較窄，欄就照 grid 的解縮到下限 220）：
@@ -9242,8 +9253,11 @@
 
     /* 相機距離用「把整個場景包起來的球」算出來，不要寫死：
        寫死的話換一個場景、或畫面比例一變，機櫃頭尾就被切掉（第一版就是這樣）。 */
-    let fitInfo = { fill: 0, dist: 0 };   // 給驗收讀：「整台剛好塞進畫布」的距離與現在的初始距離（＝fill ÷ 0.7）
-    const INIT_SCALE_3D = 0.7;    // 初始模型大小＝改前「填滿」取景的 70%（Andy 2026-10-03，DECISIONS #306）
+    let fitInfo = { fill: 0, dist: 0 };   // 給驗收讀：「整台剛好塞進畫布」的距離與現在的初始距離（＝fill ÷ INIT_SCALE_3D）
+    /* 初始模型大小＝「填滿」取景的幾成。#306 試過 0.7（Andy：「調整原尺寸 70% 試試看先」），
+       同日晚 Andy 看過之後：「這頁 3D 回到之前那樣的大小」→ 回 1.0（DECISIONS #317）。
+       「填滿」仍照 #306 第二輪的精確算法（依畫布長寬比、寬或高先頂到就以那邊為準），所以 1.0 也不會頂出畫布。*/
+    const INIT_SCALE_3D = 1.0;
     const fitCamera = () => {
       /* ★ 2026-09-23：取景一律用「**拆開之後**」的外接盒。
          進場改成收攏（#246）之後，`reset()` 在收攏狀態重算會得到比較小的盒子 →
@@ -9285,10 +9299,8 @@
         exact = Math.max(exact, Math.max(Math.abs(q.dot(right)) / tx, Math.abs(q.dot(upv)) / ty) + q.dot(back));
       }
       const fill = Math.max(est, exact);
-      /* ★ 2026-10-03（Andy：「3D 圖片初始大小再小一點」→「調整原尺寸 70% 試試看先」）：
-         初始畫面的模型縮成改前的 70%（透視投影下螢幕大小 ∝ 1／距離，所以距離 ÷ 0.7）。
-         四周留出白邊，轉動時最靠近相機的那一角也不會再貼到畫布邊。「重設視角」走同一支，回到的也是 70%。
-         拉近的下限仍照改前的「填滿」距離算（fill × 0.28），使用者滾輪拉近時能看到的細節跟以前一樣多。*/
+      /* 初始距離＝fill ÷ INIT_SCALE_3D（透視投影下螢幕大小 ∝ 1／距離）。#306 是 0.7，#317 回到 1.0。
+         「重設視角」走同一支。拉近的下限照「填滿」距離算（fill × 0.28），滾輪拉近能看到的細節不變。*/
       const dist = fill / INIT_SCALE_3D;
       fitInfo = { fill, dist, est, exact };
       controls.target.copy(sph.center);
@@ -9305,6 +9317,44 @@
     let fitPose = null;
     const atFitPose = () => !!fitPose && camera.position.distanceTo(fitPose.p) < 1e-3 && controls.target.distanceTo(fitPose.t) < 1e-3;
     fitCamera();
+
+    /* ★ 2026-10-03 晚（DECISIONS #317，CEO 規格：「模型 fit 在畫布內、四周不要大片空白」）：收掉上下空白，**但模型不准因此變小**。
+       畫布高度先照上限（打開頁面一屏看得完）給滿；又寬又扁的模型（晶圓代工、面板）是被**寬度**頂住的 ——
+       畫布再高，模型也只佔中間一條，上下各空 150～200px（Andy 附圖那種）。
+       被寬度頂住時，畫布變矮不會讓模型變小（水平視角跟著長寬比變大，模型在螢幕上的寬度不變）；
+       一旦變成被**高度**頂住，再矮模型就跟著縮。所以：在 [左右標籤卡要的高度, 上限] 之間二分搜尋
+       「模型螢幕比例（畫布高 ÷ 取景距離）還維持原本 99.5% 的最矮高度」，比原本矮 16px 以上才採用；
+       收矮之後若有卡片被擠到畫布底下那一排，退回原本高度。
+       ⚠ 第一版用「模型外接盒投影高 ÷ 0.9」當目標，結果晶圓代工被壓到 340、模型反而縮成一小塊（進場是收攏狀態、
+       外接盒量的是拆開狀態），所以改成直接守住「模型不變小」這一條。
+       只在桌機產業鏈頁（有 o.maxH、capH 有限）、欄位模式、使用者還沒動過相機時做；手機與題材頁一個 px 都不變。*/
+    const sizeNow = () => { camera.aspect = W() / H(); camera.updateProjectionMatrix(); renderer.setSize(W(), H()); };
+    const labNeed = () => {
+      let L = 0, R = 0, nL = 0, nR = 0, nB = 0;
+      byIdx.forEach(p => {
+        if (!p || !p.el || p.el.classList.contains('hid')) return;
+        const hh = p.hhC || 30;
+        if (p.el.parentNode === colL) { L += hh; nL++; } else if (p.el.parentNode === colR) { R += hh; nR++; } else if (p.el.parentNode === below) nB++;
+      });
+      if (nB) return Infinity;                      // 已經有卡片被擠到底下：不收
+      return Math.max(L + GAP * Math.max(0, nL - 1) + 8, R + GAP * Math.max(0, nR - 1) + 8 + topRv);
+    };
+    const tighten = () => {
+      if (!isFinite(capH) || !el.clientWidth || mode() === 'below' || touched) return;
+      tightCap = Infinity; sizeNow(); fitCamera();
+      const h0 = H(), lab = labNeed();
+      if (!isFinite(lab) || !(fitInfo.dist > 0)) return;
+      const s0 = h0 / fitInfo.dist;
+      let lo = Math.max(MIN_H, Math.ceil(lab)), hi = h0, best = h0;
+      if (lo >= h0 - 16) return;
+      const okAt = (h) => { tightCap = h; sizeNow(); fitCamera(); return H() / fitInfo.dist >= s0 * 0.995; };
+      if (okAt(lo)) best = lo;
+      else for (let k = 0; k < 8 && hi - lo > 6; k++) { const mid = Math.round((lo + hi) / 2); if (okAt(mid)) { best = mid; hi = mid; } else lo = mid; }
+      tightCap = best < h0 - 16 ? best : Infinity;
+      sizeNow(); fitCamera(); layoutLabels();
+      if (!below.hidden && below.children.length) { tightCap = Infinity; sizeNow(); fitCamera(); layoutLabels(); }
+      markDirty();
+    };
 
     /* ================================================================ 真陰影的兩件事（規格書一-2）
        ① shadow camera 要**貼著模型的外接盒**收緊。1024 的貼圖攤在預設的 ±5 正交範圍上
@@ -9395,6 +9445,7 @@
       return pick && owner(pick.object);
     };
     renderer.domElement.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY }; hold(); });
+    renderer.domElement.addEventListener('wheel', () => { touched = true; }, { passive: true });   // 滾輪拉近也算動過（#317 tighten 不再改畫布高）
     const onUp = (e) => {
       const from = labelDown; labelDown = null;
       release();
@@ -9428,6 +9479,9 @@
        動態＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；靜止＝一律不動。
        使用者一動手就先把自轉停掉（不然會跟他搶方向），放開兩秒半再接回去。*/
     let anim = o.anim !== false, userHold = false, holdT = null;
+    /* touched：使用者在這個場景裡動過相機沒有（拖、滾輪、觸控都會先走 hold()）。
+       「還停在預設視角」不能只看相機位置 —— 動畫開著時自轉一直在繞，位置每幀都不一樣（#317）。*/
+    let touched = false;
     let expAnim = null;
     const reduced = (() => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } })();
 
@@ -9491,7 +9545,7 @@
        所以「關動畫要把顏色還原」這件事只在場景真的建好之後才做。*/
     let hiReady = false;
     const applyAuto = () => { controls.autoRotate = motionOn() && !userHold; };
-    function hold() { userHold = true; if (holdT) clearTimeout(holdT); applyAuto(); }
+    function hold() { userHold = true; touched = true; if (holdT) clearTimeout(holdT); applyAuto(); }
     function release() {
       if (holdT) clearTimeout(holdT);
       holdT = setTimeout(() => { userHold = false; applyAuto(); }, 2500);
@@ -10272,6 +10326,9 @@
       if (!alive) return;
       const cw0 = el.clientWidth;
       if (!cw0) { sizedW = 0; return; }             // ① 收起來了：什麼都不量，等展開
+      readCap();                                    // 視窗高度變了 → 畫布高度上限跟著變（#317）
+      const fitNow = !touched;                      // 使用者沒動過相機（自轉不算）
+      if (fitNow) tightCap = Infinity;              // 先回到上限，量完再收空白（tighten）
       const wasHidden = sizedW === 0;
       sizedW = cw0;
       camera.aspect = W() / H(); camera.updateProjectionMatrix();
@@ -10279,7 +10336,7 @@
       // 卡片欄的模式變了（例如從兩欄變成底下一欄），模型能用的寬度也變了 → 重新取景
       const before = lastMode;
       layoutLabels();
-      if (before !== lastMode || wasHidden || atFitPose()) { fitCamera(); layoutLabels(); }
+      if (before !== lastMode || wasHidden || fitNow || atFitPose()) { fitCamera(); layoutLabels(); tighten(); }
       markDirty();
       // 陰影跟著寬度開關（≥960 才開）：窄畫面關掉是效能的備案，不是「壞了」
       applyShadowMode();
@@ -10304,7 +10361,7 @@
     }) : null;
     if (ro) ro.observe(el);
     tick();
-    if (el.clientWidth) layoutLabels();
+    if (el.clientWidth) { layoutLabels(); tighten(); }
 
     function dispose() {
       alive = false;
@@ -10607,9 +10664,12 @@
       }
       return { l, t, r: rr, b, w: r.width, h: r.height };
     };
-    const fit = () => ({ fill: fitInfo.fill, dist: fitInfo.dist, scale: INIT_SCALE_3D, now: camera.position.distanceTo(controls.target) });
+    const fit = () => ({ fill: fitInfo.fill, dist: fitInfo.dist, scale: INIT_SCALE_3D, now: camera.position.distanceTo(controls.target), capH, h: H() });
+    /* refit()：呼叫端覺得「畫布高度上限可能變了」（說明文字換行、上方分頁列折行、Fit 的卡高變了）時叫。
+       重讀上限；高度真的變了才走 onResize（會重設畫布、還停在預設視角就重新取景），沒變什麼都不做（#317）。*/
+    const refit = () => { if (!alive || !el.clientWidth) return; const c0 = capH; readCap(); if (capH !== c0) onResize(); };
     const view = {
-      highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf, modelRect, fit,
+      highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf, modelRect, fit, refit,
       /* 2026-09-26 細緻化第二批：給截圖／驗收用的「把相機擺到某個位置、看向某一點」（唯讀場景，不改任何零件）。
          拍局部特寫（捲邊、束腰、熱屏）要能指定視角，靠滾輪湊很不穩。*/
       look: (t, pos) => { controls.target.set(t[0], t[1], t[2]); camera.position.set(pos[0], pos[1], pos[2]); controls.update(); markDirty(); layoutLabels(); },
