@@ -943,8 +943,21 @@ def t_overview(pg, base):
         b = document.getElementById('ovThemeCard').getBoundingClientRect(), r = document.getElementById('ovRotCard').getBoundingClientRect();
         return { below: b.top >= a.bottom - 1, sameCol: Math.abs(a.left - b.left) < 2 && Math.abs(a.width - b.width) < 2,
                  leftOfRot: b.right <= r.left + 1, gapBottom: Math.round(Math.abs(b.bottom - r.bottom)) }; }""")
-    ok("★ 熱門題材在資金熱力圖正下方（同一欄）", pos["below"] and pos["sameCol"] and pos["leftOfRot"], pos)
-    ok("左欄（熱力圖＋題材）跟右邊足跡輪盤底部對齊（差 ≤ 24px）", pos["gapBottom"] <= 24, pos)
+    # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：
+    #   改前：熱門題材在資金熱力圖正下方（同一欄、都在輪盤左邊），左欄與右邊輪盤底部對齊 ≤ 24px。
+    #   改後：可視高 ≤ 1000 且寬 ≥ 1101（fit.css）時總覽下半改兩列 —— 第 1 列 熱力圖｜輪盤，第 2 列 熱門題材全寬在它們下面
+    #         （左欄疊起來 972px 比一屏高）。這時改驗「題材在熱力圖與輪盤的下面、左緣＝熱力圖左緣、右緣＝輪盤右緣」，
+    #         「熱力圖與輪盤同列等高」在 `新-版面等高與多寬度` 逐寬度驗。可視高 > 1000 的視窗仍照原本斷言。
+    fit2 = pg.evaluate("() => matchMedia('(min-width:1101px) and (max-height:1000px)').matches")
+    if fit2:
+        pos2 = pg.evaluate("""() => { const a = document.getElementById('ovHeatCard').getBoundingClientRect(),
+            b = document.getElementById('ovThemeCard').getBoundingClientRect(), r = document.getElementById('ovRotCard').getBoundingClientRect();
+            return { below: b.top >= Math.max(a.bottom, r.bottom) - 1, left: Math.abs(a.left - b.left) < 2, right: Math.abs(b.right - r.right) < 2,
+                     sameRow: Math.abs(a.top - r.top) < 2 && Math.abs(a.bottom - r.bottom) < 2 }; }""")
+        ok("★ 一屏看完：熱門題材在資金熱力圖與資金輪盤（同一列）的正下方、吃滿全寬", pos2["below"] and pos2["left"] and pos2["right"] and pos2["sameRow"], pos2)
+    else:
+        ok("★ 熱門題材在資金熱力圖正下方（同一欄）", pos["below"] and pos["sameCol"] and pos["leftOfRot"], pos)
+        ok("左欄（熱力圖＋題材）跟右邊足跡輪盤底部對齊（差 ≤ 24px）", pos["gapBottom"] <= 24, pos)
     TL = """() => { const e = document.getElementById('ovTheme'); const c = echarts.getInstanceByDom(e);
         const s = c ? (c.getOption().series || [])[0] : null;
         return { level: e.dataset.level, n: s ? (s.data || []).length : 0, roam: s ? s.roam : null,
@@ -1254,8 +1267,12 @@ def t_overview(pg, base):
     ok("總覽也有輪動時鐘", bool(mini) and mini["canvas"] and mini["pts"] > 0, mini)
     # D6：「⤢ 放大」移除、圓圈放大（量的是容器真的變高，不是看有沒有那顆鈕）
     ok("D6：總覽輪動階段上方那顆「⤢ 放大」已移除", bool(mini) and not mini["zoomBtn"], mini)
-    ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px）",
-       bool(mini) and mini["h"] >= 355, mini and mini["h"])
+    # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：可視高 ≤ 1000 且寬 ≥ 1101 時輪盤卡改「盤｜昨日資金去向」左右並排，
+    #   盤只剩左欄 0.8fr 的寬（1440 約 270px → 容器高 300），不再疊在桑基上面佔滿卡寬；這時下限改 ≥ 280（比改前舊的小輪盤 260 還大），
+    #   1920 寬並排時盤較寬、實際比 355 大（沒有另外斷言）。疊成一欄（可視高 > 1000）照舊 ≥ 355。
+    fit3 = pg.evaluate("() => matchMedia('(min-width:1101px) and (max-height:1000px)').matches")
+    ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px；一屏看完並排版面 ≥ 280px）",
+       bool(mini) and mini["h"] >= (280 if fit3 else 355), mini and mini["h"])
     # D7：昨日資金去向分流圖
     # ★ 2026-09-26 改前→改後：讀 ECharts tree（type tree、animation false、initialTreeDepth 2）
     #   → 桌機改成 flowtopo 緊湊光纖版（Andy 09-26：UI 跟資金流向頁經典光纖一樣、功能照舊），改讀畫布探針：
