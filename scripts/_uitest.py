@@ -40674,7 +40674,7 @@ def t_mobile_broker(b, base, code):
     DT = """() => ({ mbt: document.body.dataset.mbt || '', on: (document.querySelector('#stockTabs button.on') || { dataset: {} }).dataset.t || '',
         vis: document.getElementById('stockTab').getClientRects().length > 0, barVis: document.getElementById('stockTabs').getClientRects().length > 0,
         kVis: document.getElementById('skChartCard').getClientRects().length > 0, txt: document.getElementById('stockTab').innerText.slice(0, 160),
-        ls: (() => { try { return localStorage.getItem('tw.m3.sk.tab'); } catch (e) { return null; } })(), sw: document.documentElement.scrollWidth }); }"""
+        ls: (() => { try { return localStorage.getItem('tw.m3.sk.tab'); } catch (e) { return null; } })(), sw: document.documentElement.scrollWidth })"""
     keys = [("overview", "總覽"), ("basics", "基本資料"), ("tags", "指標"), ("revenue", "營收"), ("profit", "獲利"), ("dividend", "除權息"),
             ("inst", "法人"), ("margin", "資券"), ("holders", "大戶／散戶"), ("news", "公告／新聞")]
     prev = None
@@ -42658,7 +42658,7 @@ def t_layout4(b, base, code):
         #   底部是線條圖示（mobile4.css 的 --m4-ic-*）、頂欄寫頁名（#mHd），站名藏起來；上面 no_l4 已驗沒有任何 l4 痕跡
         mo = pg.evaluate("""() => { const t = document.querySelector('#tabs .tab[data-view=overview]');
             location.hash = '#flow'; return { mask: getComputedStyle(t, '::before').maskImage || getComputedStyle(t, '::before').webkitMaskImage || 'none',
-              site: !!document.querySelector('.brand b') && document.querySelector('.brand b').getClientRects().length > 0, mhd: !!document.querySelector('#mHd .mpt') }; }""")
+              site: !!document.querySelector('.brand > div:not(.logo) > b') && document.querySelector('.brand > div:not(.logo) > b').getClientRects().length > 0, mhd: !!document.querySelector('#mHd .mpt') }; }""")
         ok(f"{T}390 手機 V2：底部是手機自己的線條圖示、頂欄寫頁名（#mHd）不寫站名", "svg" in mo["mask"] and not mo["site"] and mo["mhd"], mo)
         wait_until(pg, "() => !!document.querySelector('#v-flow.on > .mpager')", 6000); pg.wait_for_timeout(600)
         mp = pg.evaluate("() => getComputedStyle(document.querySelector('#v-flow.on > .mpager')).position")
