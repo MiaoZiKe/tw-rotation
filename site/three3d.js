@@ -9328,7 +9328,6 @@
        ⚠ 第一版用「模型外接盒投影高 ÷ 0.9」當目標，結果晶圓代工被壓到 340、模型反而縮成一小塊（進場是收攏狀態、
        外接盒量的是拆開狀態），所以改成直接守住「模型不變小」這一條。
        只在桌機產業鏈頁（有 o.maxH、capH 有限）、欄位模式、使用者還沒動過相機時做；手機與題材頁一個 px 都不變。*/
-    const sizeNow = () => { camera.aspect = W() / H(); camera.updateProjectionMatrix(); renderer.setSize(W(), H()); };
     const labNeed = () => {
       let L = 0, R = 0, nL = 0, nR = 0, nB = 0;
       byIdx.forEach(p => {
@@ -9339,20 +9338,31 @@
       if (nB) return Infinity;                      // 已經有卡片被擠到底下：不收
       return Math.max(L + GAP * Math.max(0, nL - 1) + 8, R + GAP * Math.max(0, nR - 1) + 8 + topRv);
     };
+    /* 二分搜尋時只改相機長寬比再取景，**不碰 renderer.setSize**：同一個工作裡連續重配畫布緩衝區 8～9 次，
+       實測（軟體 WebGL）之後整頁再也截不到圖（Playwright 的頁面截圖一直等不到新的一幀），換成只改相機就好了。
+       高度真的要變才在最後 setSize 一次。*/
+    const aspectOnly = () => { camera.aspect = W() / H(); camera.updateProjectionMatrix(); };
     const tighten = () => {
       if (!isFinite(capH) || !el.clientWidth || mode() === 'below' || touched) return;
-      tightCap = Infinity; sizeNow(); fitCamera();
+      const hPrev = H();
+      tightCap = Infinity; aspectOnly(); fitCamera();
       const h0 = H(), lab = labNeed();
-      if (!isFinite(lab) || !(fitInfo.dist > 0)) return;
-      const s0 = h0 / fitInfo.dist;
-      let lo = Math.max(MIN_H, Math.ceil(lab)), hi = h0, best = h0;
-      if (lo >= h0 - 16) return;
-      const okAt = (h) => { tightCap = h; sizeNow(); fitCamera(); return H() / fitInfo.dist >= s0 * 0.995; };
-      if (okAt(lo)) best = lo;
-      else for (let k = 0; k < 8 && hi - lo > 6; k++) { const mid = Math.round((lo + hi) / 2); if (okAt(mid)) { best = mid; hi = mid; } else lo = mid; }
+      let best = h0;
+      if (isFinite(lab) && fitInfo.dist > 0) {
+        const s0 = h0 / fitInfo.dist;
+        let lo = Math.max(MIN_H, Math.ceil(lab)), hi = h0;
+        if (lo < h0 - 16) {
+          const okAt = (h) => { tightCap = h; aspectOnly(); fitCamera(); return H() / fitInfo.dist >= s0 * 0.995; };
+          if (okAt(lo)) best = lo;
+          else for (let k = 0; k < 8 && hi - lo > 6; k++) { const mid = Math.round((lo + hi) / 2); if (okAt(mid)) { best = mid; hi = mid; } else lo = mid; }
+        }
+      }
       tightCap = best < h0 - 16 ? best : Infinity;
-      sizeNow(); fitCamera(); layoutLabels();
-      if (!below.hidden && below.children.length) { tightCap = Infinity; sizeNow(); fitCamera(); layoutLabels(); }
+      aspectOnly(); fitCamera();
+      if (H() !== hPrev) { renderer.setSize(W(), H()); layoutLabels(); }
+      if (!below.hidden && below.children.length && isFinite(tightCap)) {
+        tightCap = Infinity; aspectOnly(); fitCamera(); renderer.setSize(W(), H()); layoutLabels();
+      }
       markDirty();
     };
 

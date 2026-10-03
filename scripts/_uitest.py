@@ -44878,16 +44878,20 @@ def t_rel_scope_3d_1003(b, base):
                 # 淡掉的仍點得到：真的點一張淡掉的公司卡 → 浮動卡打開
                 if not clicked_dim and z["nCoOut"] > 0:
                     clicked_dim = True
-                    r = pg.evaluate("""() => { const n = [...document.querySelectorAll('#chainMap g.co.relout')].find(g => { const q = g.getBoundingClientRect(); return q.width > 0; });
-                      if (!n) return null; n.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = n.getBoundingClientRect();
-                      return { x: q.left + Math.min(30, q.width / 2), y: q.top + q.height / 2, id: n.dataset.id }; }""")
-                    if ok(f"{tg} 找得到一張淡掉的公司卡", bool(r), r):
+                    # 挑一張「中心點最上層就是它自己」的淡掉公司卡（右側浮動卡 #relList 可能蓋住一部分圖，那些不算）
+                    r = pg.evaluate("""() => { for (const g of document.querySelectorAll('#chainMap g.co.relout')) {
+                        g.scrollIntoView({ block: 'center', behavior: 'instant' });
+                        const q = g.getBoundingClientRect(); if (!q.width) continue;
+                        const x = q.left + Math.min(30, q.width / 2), y = q.top + q.height / 2;
+                        const e = document.elementFromPoint(x, y), hit = e && e.closest && e.closest('g.co');
+                        if (hit === g) return { x, y, id: g.dataset.id }; }
+                      return null; }""")
+                    if ok(f"{tg} 找得到一張淡掉、而且沒被蓋住的公司卡", bool(r), r):
                         pg.wait_for_timeout(200)
-                        r = pg.evaluate("(id) => { const n = document.querySelector('#chainMap g.co[data-id=\"' + id + '\"]'); const q = n.getBoundingClientRect(); return { x: q.left + Math.min(30, q.width / 2), y: q.top + q.height / 2, id }; }", r["id"])
                         top = pg.evaluate("(p) => { const e = document.elementFromPoint(p.x, p.y); const g = e && e.closest && e.closest('g.co'); return g ? g.dataset.id : (e ? e.tagName + '.' + e.getAttribute('class') : null); }", r)
                         pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(700)
                         opened = pg.evaluate("() => { const b = document.querySelector('#coBox'); return !!b && b.getClientRects().length > 0 && (b.textContent || '').length > 4; }")
-                        ok(f"★ {tg} 滑鼠真的點淡掉的公司卡（{r['id']}，該點最上層是 {top}）→ 浮動卡打開", top == r["id"] and opened, (top, opened))
+                        ok(f"★ {tg} 滑鼠真的點淡掉的公司卡（{r['id']}，該點最上層是 {top}）→ 浮動卡打開", top == r["id"] and opened and "#industry/" in pg.evaluate("location.hash"), (top, opened))
                         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
             # 點回族群總覽 → 整條鏈、沒有反亮
             pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(200)
@@ -44952,13 +44956,15 @@ def t_rel_scope_3d_1003(b, base):
             pg.set_viewport_size({"width": VW, "height": VH})
             pg.goto("about:blank")
             pg.goto(base + f"#industry/{chain}/dg/{slot}", wait_until="load")
-            wait_until(pg, "() => !!document.querySelector('#dg3d') && !document.querySelector('#dg3d').hidden", 12000)
+            wait_until(pg, "() => !!document.querySelector('#dg3d') && !document.querySelector('#dg3d').hidden", 30000)
+            if not pg.evaluate("() => !!document.querySelector('#dg3d') && !document.querySelector('#dg3d').hidden"):
+                return None                # 機器太忙 30 秒還沒接好 3D 鈕：交給下面「3D 場景掛起來了」那條報紅，不要整段爆掉
             if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
                 return "nowebgl"
             btn = pg.locator('#dg3d button[data-dm="3d"]')
             if btn.get_attribute("aria-pressed") != "true":
                 btn.click()
-            wait_until(pg, "() => !!document.querySelector('#prod3d canvas') && !!(window.Rack3D.current && window.Rack3D.current.fit)", 15000)
+            wait_until(pg, "() => !!document.querySelector('#prod3d canvas') && !!(window.Rack3D.current && window.Rack3D.current.fit)", 30000)
             pg.evaluate("() => scrollTo(0, 0)")
             pg.mouse.move(2, 2)            # 游標不要停在 3D 上（#246 滑進去會展開爆炸圖）
             pg.wait_for_timeout(1800)
