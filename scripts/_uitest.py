@@ -2570,7 +2570,15 @@ def t_industry(pg, base):
         before = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
             dim: document.querySelectorAll('#chainMap .co.dim').length })""")
         b_rows = seg_stocks(pg)
-        _cg_chip(pg, "#segChips .segchip:not(.nomem)", 800)
+        # ★ 2026-10-03（DECISIONS #310）改前→改後：
+        #   改前：點 DOM 裡第一顆 `.segchip:not(.nomem)`。#306 之後剖析圖分頁的「環節 ▾」下拉只留這張圖對得上的環節，
+        #     其餘設 display:none —— 這一頁（AI 伺服器整機剖析圖）DOM 第一顆是 CCL 材料（ccl_material），正好被藏起來，
+        #     於是「點不下去／element is not visible」連帶後面 4 條全紅。不是網站壞：1440／1100／900 打開下拉，
+        #     看得到的 11 顆每一顆中心點 elementFromPoint 都是它自己。
+        #   改後：挑「下拉裡看得到、而且有台股」的第一顆（真人也只點得到看得到的那幾顆），斷言一條沒動。
+        vis_seg = pg.evaluate("""() => { const c = [...document.querySelectorAll('#segChips .segchip[data-seg]:not(.nomem)')]
+            .find(n => n.style.display !== 'none'); return c ? c.dataset.seg : null; }""")
+        _cg_chip(pg, f'#segChips .segchip[data-seg="{vis_seg}"]' if vis_seg else "#segChips .segchip:not(.nomem)", 800)
         after = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
             selSeg: [...document.querySelectorAll('#segChips .segchip.sel')].map(e => e.dataset.seg),
             dim: document.querySelectorAll('#chainMap .co.dim').length })""")
