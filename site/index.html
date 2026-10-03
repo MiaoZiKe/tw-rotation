@@ -5125,7 +5125,12 @@ h3 .howbtn.pop{font-family:inherit}
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
         <!-- ★ 2026-09-28（Andy）：點圓圈 → 圓圈旁的簡短說明框（取代 09-26 的成分股覆蓋卡 #ovRotPanel）。位置由 app.js ovRotPop() 算。 -->
-        <div class="rotpop" id="ovRotPop" role="dialog" aria-label="族群說明" hidden></div>
+        <div class="rotpop" id="ovRotPop" role="dialog" aria-label="族群說明" hidden></div></div>
+      <!-- ★ 2026-10-04（Andy：「這回到之前設定，左邊上下都是熱力圖，右邊都是資金輪盤和流水」，DECISIONS #315）：
+           「昨日資金去向」從資金輪盤卡裡拆成自己的一張卡（右欄上下兩張，才能跟左欄兩張熱力圖逐列對齊、每張卡都不超過一屏）。
+           節點與 id 全部原封不動，只是換了外殼：#ovFlowHead／#how-ovflow／#ovFlowWrap／#ovFlow／#ovFlowSub 都在。
+           手機（≤640）的分段導覽（modules.js flow.sankey）改列 #ovFlowCard 當這一段的外殼，畫面跟以前同一張卡一樣。 -->
+      <div class="card" id="ovFlowCard">
         <!-- #ovFlowSub 不上畫面：它是「幾號盤後、幾個族群、合計多少」的讀數，2026-09-25 起搬進「昨日資金去向」自己的「?」（HOW.ovflow 會讀它）。 -->
         <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <button class="howbtn pop" data-how="ovflow" aria-label="昨日資金去向怎麼看">?</button> <small id="ovFlowSub" hidden></small></h4>
         <div class="howtxt" id="how-ovflow" hidden></div>
