@@ -19840,6 +19840,25 @@ FIT1003_CARDS = """() => { const H = innerHeight; const rows = [];
   return { H, sx: document.documentElement.scrollWidth, vw: innerWidth, rows }; }"""
 
 
+# ★ 2026-10-03（DECISIONS #313）資金去向「打開就看全部」：量初始畫面（不捲動、不點展開）每個節點標籤的外框（視窗座標）。
+#   標籤外框取 FlowTopo.probe 的 lab（畫布座標）＋畫布在視窗的位置；只算根／產業鏈／族群三層（代表股預設收起、滑過才顯示）。
+FIT1003_SANKEY = """() => {
+  const host = document.getElementById('sankey'); const P = window.FlowTopo && host && FlowTopo.probe(host);
+  const card = document.getElementById('flowSankeyCard'); const cr = card ? card.getBoundingClientRect() : null;
+  if (!P || !cr) return { err: 'no-probe' };
+  const cv = host.querySelector('canvas'); const sr = (cv ? cv.parentElement : host).getBoundingClientRect();
+  const L = P.nodes.filter(n => n.lv <= 2 && n.lab).map(n => ({ name: n.name, lv: n.lv, x: sr.left + n.lab.x, y: sr.top + n.lab.y, w: n.lab.w, h: n.lab.h }));
+  const nodesWithoutLab = P.nodes.filter(n => n.lv <= 2 && !n.lab).map(n => n.name);
+  const outside = L.filter(l => l.x < -0.5 || l.y < -0.5 || l.x + l.w > innerWidth + 0.5 || l.y + l.h > innerHeight + 0.5).map(l => [l.name, Math.round(l.x), Math.round(l.y), Math.round(l.y + l.h)]);
+  const overlap = [];
+  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j];
+    if (a.x < b.x + b.w - 0.5 && b.x < a.x + a.w - 0.5 && a.y < b.y + b.h - 0.5 && b.y < a.y + a.h - 0.5) overlap.push([a.name, b.name]); }
+  const trunc = L.filter(l => /…$/.test((P.nodes.find(n => n.name === l.name) || {}).text || '')).map(l => l.name);
+  return { H: innerHeight, W: innerWidth, cardBottom: Math.round(cr.bottom), cardH: Math.round(cr.height), canvasH: P.H, slot: P.slot,
+    groups: P.nodes.filter(n => n.lv === 2).length, labels: L.length, nodesWithoutLab, outside, overlap, trunc, minFont: P.minFont,
+    minLabH: L.length ? Math.min(...L.map(l => l.h)) : 0, sx: document.documentElement.scrollWidth }; }"""
+
+
 def t_fit_screen_1003(pg, base, code):
     """★ 2026-10-03 一屏看完（DECISIONS #308）：Andy「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」。
 
@@ -19906,6 +19925,26 @@ def t_fit_screen_1003(pg, base, code):
     land(1080, 1920, "flow/rotation")
     rc = pg.evaluate("() => { const e = document.getElementById('rotClock'); return e ? Math.round(e.getBoundingClientRect().height) : 0; }")
     ok(f"{tag}1920×1080 輪盤盤面 ≥ 500（沒有被壓得太小）", rc >= 500, rc)
+
+    # ④ ★ 2026-10-03（DECISIONS #313）資金去向「一打開（不捲動、不點展開）就看得到整棵樹的全部節點與標籤」：
+    #    1440×900／1920×1080／1366×768 三種螢幕，以及扣掉瀏覽器工具列後的可視高（800／950／660），
+    #    再加兩個常見的縮放後尺寸（Windows 125% 的 1152×640、150% 的 1280×600）。
+    #    斷言：每一個族群（含產業鏈、根）的標籤外框都在視窗可視範圍內、彼此不重疊、沒被截成「…」；整張卡的下緣也在視窗內；
+    #          槽高 ≥ 16（點擊熱區下限）、字級 ≥ 12。
+    for (w, h) in ((1440, 900), (1440, 800), (1920, 1080), (1920, 950), (1366, 768), (1366, 660), (1152, 640), (1280, 600)):
+        land(h, w, "flow/sankey")
+        wait_until(pg, "() => { const e = document.getElementById('sankey'); const P = window.FlowTopo && e && FlowTopo.probe(e); return !!(P && P.nodes && P.nodes.some(n => n.lv === 2 && n.lab)); }", 12000)
+        pg.wait_for_timeout(1500)   # 卡高收斂：Fit.on 的 80ms 去抖動＋重排＋控制列長出來
+        m = pg.evaluate(FIT1003_SANKEY)
+        if m.get("err"):
+            ok(f"★ {tag}資金去向 {w}×{h}：量得到標籤外框", False, m); continue
+        ok(f"★ {tag}資金去向 {w}×{h}：整棵樹有畫出來（族群 ≥ 1、每個節點都有標籤）", m["groups"] >= 1 and not m["nodesWithoutLab"], m)
+        ok(f"★ {tag}資金去向 {w}×{h}：初始畫面所有族群／產業鏈／根的標籤都在視窗可視範圍內（{m['labels']} 個）", m["outside"] == [], m["outside"])
+        ok(f"★ {tag}資金去向 {w}×{h}：標籤彼此不重疊", m["overlap"] == [], m["overlap"])
+        ok(f"{tag}資金去向 {w}×{h}：標籤沒有被截成「…」", m["trunc"] == [], m["trunc"])
+        ok(f"★ {tag}資金去向 {w}×{h}：整張卡下緣（{m['cardBottom']}）在視窗（{m['H']}）內、不用捲", m["cardBottom"] <= m["H"], m)
+        ok(f"{tag}資金去向 {w}×{h}：槽高 {m['slot']} ≥ 16（點擊熱區）、標籤高 ≥ 17、字級 ≥ 12、無橫向捲軸",
+           m["slot"] >= 16 and m["minLabH"] >= 17 and (m["minFont"] or 12) >= 12 and m["sx"] <= m["W"] + 1, m)
 
     # 手機不動
     for hs in ("overview", "flow/rotation", f"stock/{code}"):
