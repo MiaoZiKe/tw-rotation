@@ -54,7 +54,7 @@ def test_tse_minute_bad_columns_or_empty(monkeypatch):
     from pipeline.util import http
     calls = []
     monkeypatch.setattr(http, "finmind_get", lambda ds, **k: calls.append(ds) or ([] if ds == finmind.TSE_5S_TRADE else _px()))
-    monkeypatch.setattr(http, "finmind_last_error", lambda: None)
+    monkeypatch.setattr(http, "finmind_last_error", lambda *a, **k: None)
     assert finmind.tse_minute_bars("2026-09-24").empty      # 成交統計拿不到 → 整天不給（不拿沒量的 K 棒充數）
     assert calls == [finmind.TSE_5S_PRICE, finmind.TSE_5S_TRADE]
 
@@ -152,7 +152,7 @@ def test_backfill_tse_minute_denied_and_cap(monkeypatch):
     # 沒權限：記下來、算完成，之後不再打
     monkeypatch.setattr(finmind, "tse_minute_bars", lambda d, **k: pd.DataFrame())
     monkeypatch.setattr(http, "finmind_last_error",
-                        lambda: {"dataset": finmind.TSE_5S_PRICE, "status": 400, "msg": "Your level is register"})
+                        lambda *a, **k: {"dataset": finmind.TSE_5S_PRICE, "status": 400, "msg": "Your level is register"})
     flag = {}
     assert run_backfill._backfill_tse_minute(flag, pd.DataFrame()) is True
     assert flag.get("tse1m_unavailable")

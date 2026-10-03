@@ -685,7 +685,7 @@ def futures_ticks(day: str, data_id: str = "TX", *, wait: bool = False) -> pd.Da
     data = http.finmind_get("TaiwanFuturesTick", data_id=data_id, start_date=day,
                             wait_when_exhausted=wait)
     if not data:
-        err = http.finmind_last_error() or {}
+        err = http.finmind_last_error("TaiwanFuturesTick") or {}
         log.warning("FinMind 台指期逐筆 %s 回空（上游：%s）", day,
                     f"{err.get('status')} {err.get('msg')}" if err else "無錯誤訊息／當天無交易")
         return pd.DataFrame()
@@ -733,7 +733,7 @@ def _kbar_get(dataset: str, data_id: str, day: str, wait: bool, what: str) -> pd
     data = http.finmind_get(dataset, data_id=data_id, start_date=day, end_date=day,
                             wait_when_exhausted=wait)
     if not data:
-        err = http.finmind_last_error() or {}
+        err = http.finmind_last_error(dataset) or {}
         log.warning("FinMind %s %s %s 回空（上游：%s）", what, data_id, day,
                     f"{err.get('status')} {err.get('msg')}" if err else "無錯誤訊息／當天無交易")
         return pd.DataFrame()
@@ -774,13 +774,13 @@ def tse_minute_bars(day: str, *, wait: bool = False) -> pd.DataFrame:
     """加權指數某一天的 1 分 K（真實高低＋真實每分鐘成交金額）。失敗／休市／沒權限回空並記 log。"""
     px = http.finmind_get(TSE_5S_PRICE, start_date=day, end_date=day, wait_when_exhausted=wait)
     if not px:
-        err = http.finmind_last_error() or {}
+        err = http.finmind_last_error(TSE_5S_PRICE) or {}
         log.warning("FinMind %s %s 回空（上游：%s）", TSE_5S_PRICE, day,
                     f"{err.get('status')} {err.get('msg')}" if err.get("dataset") == TSE_5S_PRICE else "休市或無資料")
         return pd.DataFrame()
     tr = http.finmind_get(TSE_5S_TRADE, start_date=day, end_date=day, wait_when_exhausted=wait)
     if not tr:
-        err = http.finmind_last_error() or {}
+        err = http.finmind_last_error(TSE_5S_TRADE) or {}
         log.warning("FinMind %s %s 回空（上游：%s）", TSE_5S_TRADE, day,
                     f"{err.get('status')} {err.get('msg')}" if err.get("dataset") == TSE_5S_TRADE else "休市或無資料")
         return pd.DataFrame()

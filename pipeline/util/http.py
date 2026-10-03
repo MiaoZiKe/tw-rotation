@@ -182,10 +182,42 @@ def _is_rate_limited(payload: dict) -> bool:
 #: 沒有人能判斷是 token 失效還是資料集不開放 —— 把原文留下來，上層才寫得進進度檔。
 _last_error: dict | None = None
 
+#: ★ 2026-10-03（DECISIONS #311）：**每個資料集各自**最近一次的錯誤。
+#: 只有上面那一個全域變數時，封印理由會撿到「別的資料集」的錯誤 ——
+#: 例如 inst 剛撞到 402 限流，接著 holding 整組回空，封印理由就被寫成「HTTP 402」，
+#: 下一個人照著理由去查額度，方向整個錯掉（#304 的測試裡看得到 holding 被記成 402）。
+#: 改成以資料集為範圍：要判定某個資料集的人只看得到那個資料集自己的錯誤；
+#: 而且這個資料集之後只要成功回過一次 200，舊錯誤就清掉（它已經不代表現況）。
+_last_errors: dict[str, dict] = {}
 
-def finmind_last_error() -> dict | None:
-    """最近一次 FinMind 非 200 的回應（含 dataset / data_id / status / msg）。"""
-    return dict(_last_error) if _last_error else None
+
+def finmind_last_error(dataset: str | None = None) -> dict | None:
+    """FinMind 最近一次非 200 的回應（含 dataset / data_id / status / msg）。
+
+    dataset 不給：整個程序最近一次的錯誤（舊行為，只適合寫進「最後發生了什麼」的診斷 log）。
+    dataset 給了：**只回這個資料集自己的**最近一次錯誤；這個資料集之後成功過就回 None。
+    要拿錯誤當「判定這個資料集怎麼了」的依據（封印理由、沒權限判斷）一律要給 dataset。"""
+    if dataset is None:
+        return dict(_last_error) if _last_error else None
+    err = _last_errors.get(dataset)
+    if err is None and _last_error and _last_error.get("dataset") == dataset:
+        # 測試或舊程式碼直接設 _last_error 的情況：那筆剛好就是這個資料集的，照樣算數
+        err = _last_error
+    return dict(err) if err else None
+
+
+def finmind_clear_errors() -> None:
+    """清掉所有資料集的錯誤紀錄（測試隔離用；正式流程靠「成功一次就清」）。"""
+    global _last_error
+    _last_error = None
+    _last_errors.clear()
+
+
+def _forget_error(dataset: str) -> None:
+    global _last_error
+    _last_errors.pop(dataset, None)
+    if _last_error and _last_error.get("dataset") == dataset:
+        _last_error = None
 
 
 def finmind_get(dataset: str, *, data_id: str | None = None,
@@ -232,6 +264,7 @@ def finmind_get(dataset: str, *, data_id: str | None = None,
         global _last_error
         _last_error = {"dataset": dataset, "data_id": data_id,
                        "status": payload.get("status"), "msg": str(payload.get("msg"))[:200]}
+        _last_errors[dataset] = dict(_last_error)
         if _is_rate_limited(payload):
             log.warning("FinMind 伺服器端額度用盡（%s/%s）：%s",
                         dataset, data_id, payload.get("msg"))
@@ -240,6 +273,7 @@ def finmind_get(dataset: str, *, data_id: str | None = None,
         log.warning("FinMind %s/%s 回應狀態 %s：%s",
                     dataset, data_id, payload.get("status"), payload.get("msg"))
         return None
+    _forget_error(dataset)
     return payload.get("data") or []
 
 

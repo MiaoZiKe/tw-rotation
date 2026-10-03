@@ -180,7 +180,8 @@ def test_續補納入上櫃融資券且計畫補齊時上限加倍(sandbox, monk
     monkeypatch.setattr(run_backfill.finmind, "margin_history", fake)
     run_backfill._save_progress({"done": {}, "complete": {"plan:default": {"done": True, "month": "2026-10"}}})
     assert run_backfill.refresh_stale_inst(run_backfill._progress(), date(2026, 10, 2)) is True
-    assert len(asked) == 1 * run_backfill.FRESH_BOOST, "計畫本月補齊 → 上限 ×FRESH_BOOST"
+    # 2026-10-03（#311）FRESH_BOOST 2 → 4：名單只有 3 檔，上限 1×4 會把 3 檔都放進來
+    assert len(asked) == min(len(codes), 1 * run_backfill.FRESH_BOOST) > 1, "計畫本月補齊 → 上限 ×FRESH_BOOST"
     assert {s for _, s in asked} == {"2026-09-17"}, "從 09-23 往回 14 天前的 09-17 起抓（取兩者較早）"
     m = store.read("margin_daily")
     assert (m["date"].astype(str) == "2026-10-01").sum() == len(asked)

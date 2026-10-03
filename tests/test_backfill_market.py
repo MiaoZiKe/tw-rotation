@@ -151,7 +151,9 @@ def test_續補起始日有上下限():
 def test_每日續補上限總量控制在額度內():
     total = sum(cap for _, _, cap in run_backfill.FRESH_TABLES)
     assert total <= 1500, "每小時約 510 次，續補一天最多吃 3 輪，其餘留給歷史回補"
-    assert [k for k, _, _ in run_backfill.FRESH_TABLES][0] == "inst", "法人最優先"
+    # 2026-10-03（DECISIONS #311）：順序改成當沖 → 借券 → 上櫃融資券 → 法人。
+    #   當沖／借券沒有任何每日來源；法人前 500 名由每日管線顧好。法人的保底份額見 FRESH_SHARE。
+    assert [k for k, _, _ in run_backfill.FRESH_TABLES][:2] == ["daytrade", "sbl"], "當沖、借券最優先"
 
 
 # ------------------------------------------------------------------ 4. backfill.yml 守門納入新鍵

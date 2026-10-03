@@ -46,6 +46,18 @@ FINANCIAL_KEYS = {"per", "revenue", "financial", "balance", "dividend", "divresu
 # 「補到了」，無從分辨哪些其實是空的。舊進度檔裡既有的 True 無法回溯區分，只從這版開始分。
 NO_DATA = "no_data"
 
+# 回補資料集鍵 → FinMind 的 dataset 名稱（2026-10-03，DECISIONS #311）。
+# 封印理由要拿「**這個**資料集自己」最近一次的錯誤（http.finmind_last_error(dataset)），
+# 不能拿全域最後一次 —— 那可能是上一個資料集撞到的 402，會把封印理由寫錯。
+FINMIND_DATASET = {
+    "price": "TaiwanStockPrice", "inst": "TaiwanStockInstitutionalInvestorsBuySell",
+    "per": "TaiwanStockPER", "revenue": "TaiwanStockMonthRevenue",
+    "financial": "TaiwanStockFinancialStatements", "balance": "TaiwanStockBalanceSheet",
+    "dividend": "TaiwanStockDividend", "divresult": "TaiwanStockDividendResult",
+    "margin": "TaiwanStockMarginPurchaseShortSale", "holding": "TaiwanStockHoldingSharesPer",
+    "daytrade": "TaiwanStockDayTrading", "sbl": "TaiwanDailyShortSaleBalances",
+}
+
 # 排程用的預設回補計畫：依序執行，某一步額度用盡就停下，下一小時從那一步接續。
 # scope=universe → target_codes(limit)（**會吃 --limit**：手動觸發預設 500 時只剩成交值前 500 檔）；
 # scope=market   → market_codes()：全市場上市＋上櫃普通股，**刻意不吃 --limit**（見 market_codes 說明）；
@@ -562,7 +574,8 @@ def run(datasets: str, limit: int | None, start: str, *,
                      key, len(keys), "、".join(dk.rsplit(":", 1)[-1] for dk in keys[:30])
                      + ("…" if len(keys) > 30 else ""))
         else:
-            err = http.finmind_last_error() or {}
+            # ★ 只看這個資料集自己的錯誤（#311）：全域的「最後一次錯誤」可能是別的資料集撞到的 402
+            err = http.finmind_last_error(FINMIND_DATASET.get(key, key)) or {}
             reason = f"HTTP {err.get('status')}：{err.get('msg')}" if err else "整組回空"
             first = seal_dataset(prog, key, reason)
             log.warning("%s 這一輪 %d 檔全部回空 —— 判定為該資料集不開放（而不是這些股票沒資料），"
@@ -667,9 +680,28 @@ FRESH_MAX_LOOKBACK = 90   # 落後很久的股票最多往回補幾天（歷史�
 #   2. 基本上限仍是每天 1,500 次（inst 600 ＋ margin 300 ＋ daytrade 300 ＋ sbl 300）；
 #      **計畫（PLAN_DEFAULT）本月已補齊時乘以 FRESH_BOOST** —— 那時候已經沒有歷史步驟需要讓額度，
 #      原本「其餘留給歷史回補」的理由不成立，額度閒著不用只會讓續補多拖幾天。
-FRESH_TABLES = (("inst", "inst_daily", 600), ("margin", "margin_daily", 300),
-                ("daytrade", "daytrade_daily", 300), ("sbl", "sbl_daily", 300))
-FRESH_BOOST = 2
+#
+# ★ 2026-10-03 晚（DECISIONS #311）順序與分配再改：
+#   證據：GitHub 的排程大量延遲／丟棄（backfill.yml 寫每小時，實際 10-01～10-02 一天只跑 4 輪、間隔 4～6 小時；
+#   同一個 repo 的盤中巡檢 01:17 的排程 07:03 才跑），每輪約 505 次額度 → 一天實際只有約 2,000 次，
+#   而每個交易日的續補需求是 法人 ~1,475 ＋ 當沖 ~1,750 ＋ 借券 ~1,900 ＋ 上櫃融資券 ~530 ≈ 5,650 次。
+#   舊順序（法人第一、上限 ×2＝1,200）讓法人每輪把額度吃光：#304 合併後第一輪（run 172）
+#   法人寫了 499 檔就用盡，當沖續補一次都沒輪到，資料湖 09-25 之後還是只有 2330（反證寫的那 4 天）。
+#   1. **順序改成 當沖 → 借券 → 上櫃融資券 → 法人**：當沖／借券沒有任何每日來源（全靠這裡），
+#      法人前 500 名已經由每日管線顧好、上市融資券由 MI_MARGN 顧好，缺的時候傷害比較小。
+#   2. **每輪先給上櫃融資券、法人各一份保底（FRESH_SHARE），剩下的照順序補**（refresh_stale_inst）：
+#      純粹照順序的話，平日需求是供給的 2.5 倍，排後面的會一整週一檔都輪不到；
+#      法人保底 15% 讓前 500 名以外的平日也約 4～5 個交易日更新一次、上櫃融資券 10%
+#      （一次請求把缺口整段補回，不會有洞）。其餘 75% 照順序：當沖先做完、再借券。
+#   3. 基本上限仍是每天 1,500 次（測試釘住）；計畫本月補齊時 ×FRESH_BOOST＝4 ——
+#      一天的上限要蓋得住全市場的需求，不然當天那一輪名單做完就被守門判定「今天補齊」，
+#      剩下的排程整天空跑、額度閒著（上限只決定「今天最多問幾檔」，真正的節流閥是 FinMind 額度）。
+FRESH_TABLES = (("daytrade", "daytrade_daily", 400), ("sbl", "sbl_daily", 400),
+                ("margin", "margin_daily", 300), ("inst", "inst_daily", 400))
+FRESH_BOOST = 4
+# 每輪額度的保底（佔這一輪額度的比例）。沒列的（當沖、借券）不設保底，直接吃第二段的剩餘額度、照順序排第一第二 ——
+# 它們沒有任何每日來源，缺口最大；保底只是確保排後面的兩張表每輪都有前進。
+FRESH_SHARE = {"margin": 0.10, "inst": 0.15}
 
 
 def stale_inst_codes(inst: pd.DataFrame, price: pd.DataFrame, universe: list[str],
@@ -739,11 +771,9 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
     if boost > 1:
         log.info("計畫本月已補齊 —— 每日續補上限 ×%d", boost)
     # 當沖、借券賣出（2026-09-27）同一套：歷史步驟補過的股票，之後每天在這裡續補
+    lists: list[tuple[str, list[str], str, str]] = []     # (key, 名單, 起始日, 最新交易日)
     for key, table, cap in FRESH_TABLES:
         cap = cap * boost
-        if http.finmind_budget_left() <= 1:
-            ok = False
-            break
         tbl = store.read(table)
         lt, codes = stale_inst_codes(tbl, price, universe, cap=cap)
         latest = latest or lt
@@ -753,11 +783,35 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
         last = tbl.assign(code=tbl["code"].astype(str), date=tbl["date"].astype(str)).groupby("code")["date"].max()
         start = fresh_start(lt, [last[c] for c in codes])
         log.info("%s 每日續補：%d 檔落後於 %s（每日上限 %d，從 %s 起抓）", key, len(codes), lt, cap, start)
-        s = run(key, None, start, codes=codes, datasets_key=f"{key}@fresh{lt}",
-                tag=f"fresh{lt}", respect_time=False)
+        lists.append((key, codes, start, lt))
+
+    def _run(key: str, codes: list[str], start: str, lt: str) -> dict:
+        return run(key, None, start, codes=codes, datasets_key=f"{key}@fresh{lt}",
+                   tag=f"fresh{lt}", respect_time=False)
+
+    # ★ 2026-10-03（#311）第一段：這一輪的額度不夠把所有名單做完時，先給有保底的表（上櫃融資券、法人）
+    #   各做名單最前面（落後最久）的一份。這樣不管排程一天跑幾輪，排後面的表每輪都有前進，
+    #   不會出現「排第一的那張每輪吃光額度、後面的整天輪不到」（run 172／173 的法人就是這樣把當沖擠掉）。
+    budget = http.finmind_budget_left()
+    need = sum(len(c) for _, c, _, _ in lists)
+    if lists and need > budget > 1:
+        log.info("續補名單共 %d 檔、這一輪額度約 %d —— 先做保底份額：%s，其餘照順序", need, budget,
+                 {k: int(budget * FRESH_SHARE[k]) for k, _, _, _ in lists if k in FRESH_SHARE})
+        for key, codes, start, lt in lists:
+            share = int(budget * FRESH_SHARE.get(key, 0))
+            if share <= 0:
+                continue                       # 沒有保底的（當沖、借券）在第二段照順序吃剩餘額度
+            if http.finmind_budget_left() <= 1:
+                break
+            # 名單比份額短也在這裡整份做完 —— 留到第二段的話會排在當沖、借券後面被吃光
+            if _run(key, codes[:share], start, lt).get("exhausted"):
+                break
+    # 第二段：剩下的額度照 FRESH_TABLES 的順序把**整份名單**做完（第一段做過的有 done 鍵，不會重問）。
+    #   額度已經用完時仍然每張表走一次：run() 會立刻停在第 1 檔，但會把「這張表還剩幾檔」寫進完成旗標，
+    #   進度檔才看得出每張表各自補到哪（不然只會留下第一段那一小段的數字）。
+    for key, codes, start, lt in lists:
+        s = _run(key, codes, start, lt)
         ok = ok and bool(s.get("finished"))
-        if s.get("exhausted"):
-            break
     prog = _progress()
     # 續補的 done 鍵一天一組（<key>@fresh<日期>:<代號>），舊的留著只會讓進度檔每天多 1,500 個鍵
     prog["done"] = {k: v for k, v in (prog.get("done") or {}).items()
@@ -799,15 +853,15 @@ def backfill_indices(prog: dict, start: str = INDEX_START) -> bool:
     total = 0
     # 每個來源要求哪些 symbol 都齊了才算數：index_ohlc 是一支函式抓兩個指數，
     # 只回到加權、櫃買失敗時它仍然是「非空」的 —— 那樣標成 done 會讓櫃買永遠只有 40 天。
-    for label, fn, need in (("指數", finmind.index_ohlc, {"TSE", "OTC"}),
-                            ("台指期", finmind.futures_ohlc, {"FUT"})):
+    for label, fn, need, ds in (("指數", finmind.index_ohlc, {"TSE", "OTC"}, "TaiwanStockPrice"),
+                                ("台指期", finmind.futures_ohlc, {"FUT"}, "TaiwanFuturesDaily")):
         try:
             df = fn(start, wait=False)
         except Exception as exc:  # noqa: BLE001
             log.warning("%s 歷史抓取失敗：%s", label, exc)
             return False
         if df is None or df.empty:
-            err = http.finmind_last_error() or {}
+            err = http.finmind_last_error(ds) or {}
             log.warning("%s 歷史回空 —— 不標 done，下一輪重試（上游最近一次錯誤：%s）",
                         label, f"HTTP {err.get('status')} {err.get('msg')}" if err else "無")
             return False
@@ -892,13 +946,13 @@ def backfill_index_intraday(prog: dict, days: int = FUT_TICK_DAYS) -> bool:
             if not flag.get("tick_unavailable"):
                 bars = ticks_to_60m(finmind.futures_ticks(d))
                 if bars.empty and _dataset_denied("TaiwanFuturesTick"):
-                    flag["tick_unavailable"] = _err_text()
+                    flag["tick_unavailable"] = _err_text("TaiwanFuturesTick")
             if bars.empty:
                 # 逐筆沒權限就試期貨分 K（2026-09 FinMind 新增的 TaiwanFuturesKBar）
                 bars = kbar_to_60m(finmind.futures_kbar(d), futures=True)
                 if bars.empty and _dataset_denied("TaiwanFuturesKBar"):
-                    log.warning("台指期逐筆與分 K 都不可用（%s），記下來不再重試", _err_text())
-                    flag["fut_unavailable"] = _err_text()
+                    log.warning("台指期逐筆與分 K 都不可用（%s），記下來不再重試", _err_text("TaiwanFuturesKBar"))
+                    flag["fut_unavailable"] = _err_text("TaiwanFuturesKBar")
                     break
             if bars.empty:
                 continue
@@ -953,8 +1007,9 @@ def _backfill_tse_minute(flag: dict, have: pd.DataFrame) -> bool:
         n += 1
         if bars.empty:
             if _dataset_denied(finmind.TSE_5S_PRICE) or _dataset_denied(finmind.TSE_5S_TRADE):
-                log.warning("加權 5 秒資料不可用（%s），記下來不再重試", _err_text())
-                flag["tse1m_unavailable"] = _err_text()
+                ds = finmind.TSE_5S_PRICE if _dataset_denied(finmind.TSE_5S_PRICE) else finmind.TSE_5S_TRADE
+                log.warning("加權 5 秒資料不可用（%s），記下來不再重試", _err_text(ds))
+                flag["tse1m_unavailable"] = _err_text(ds)
                 return True
             empt[d] = empt.get(d, 0) + 1
             continue
@@ -966,13 +1021,14 @@ def _backfill_tse_minute(flag: dict, have: pd.DataFrame) -> bool:
 
 
 def _dataset_denied(dataset: str) -> bool:
-    """上一次 FinMind 請求是不是「這個資料集沒權限／不存在」（402/429 是額度，不算）。"""
-    err = http.finmind_last_error() or {}
+    """這個資料集最近一次是不是「沒權限／不存在」（402/429 是額度，不算）。
+    以資料集為範圍（#311）：這個資料集之後成功過一次，舊的拒絕就不算數。"""
+    err = http.finmind_last_error(dataset) or {}
     return err.get("dataset") == dataset and err.get("status") not in (None, 402, 429)
 
 
-def _err_text() -> str:
-    err = http.finmind_last_error() or {}
+def _err_text(dataset: str | None = None) -> str:
+    err = http.finmind_last_error(dataset) or {}
     return f"{err.get('dataset')} {err.get('status')} {err.get('msg')}"[:200]
 
 
@@ -1010,14 +1066,14 @@ def _backfill_otc_kbar(flag: dict, have: pd.DataFrame, days: int) -> bool:
             denied += _dataset_denied("TaiwanStockKBar")
         if bars.empty:
             if denied == len(ids):
-                log.warning("櫃買分 K 不可用（%s），記下來不再重試", _err_text())
-                flag["otc_unavailable"] = _err_text()
+                log.warning("櫃買分 K 不可用（%s），記下來不再重試", _err_text("TaiwanStockKBar"))
+                flag["otc_unavailable"] = _err_text("TaiwanStockKBar")
                 return True
             empties += 1
             if empties >= 3 and not got and len(ids) > 1:
                 # 代號不對時 FinMind 可能回 200 空陣列、沒有錯誤碼 —— 不設這道閘就會每小時燒一輪額度
                 log.warning("櫃買分 K 連續 %d 個交易日所有代號都回空，視為不可用", empties)
-                flag["otc_unavailable"] = f"連續 {empties} 個交易日回空（{_err_text()}）"
+                flag["otc_unavailable"] = f"連續 {empties} 個交易日回空（{_err_text('TaiwanStockKBar')}）"
                 return True
             continue
         store.append("index_intraday", bars)
@@ -1119,7 +1175,7 @@ def finmind_reachable(prog: dict) -> bool:
         df = None
         log.warning("FinMind 健檢拋出例外：%s", exc)
     ok = df is not None and not df.empty
-    err = http.finmind_last_error() or {}
+    err = http.finmind_last_error("TaiwanStockPrice") or {}
     prog["finmind_health"] = {
         "ok": ok,
         "at": _now().isoformat(),
