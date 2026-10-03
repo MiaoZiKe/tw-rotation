@@ -80,6 +80,11 @@
 @media (min-width:821px) and (max-width:900px){
   :root.l4 #ovFlowCard>#ovFlowHead{margin-top:0;padding-top:0;border-top:0}
 }
+/* 641～820（平板直向，沒有手機的分段導覽、輪盤與資金去向照舊上下排）：資金去向現在是獨立的一張卡，
+   原本「跟上面輪盤隔開」的分隔線變成卡片最上面一條孤線，拿掉。≤640 手機分段導覽一次只露一張卡，維持原樣一個 px 不動。 */
+@media (min-width:641px) and (max-width:820px){
+  #ovFlowCard>#ovFlowHead{margin-top:0;padding-top:0;border-top:0}
+}
 
 /* ==================================================================================
    資金去向（#flow/sankey）再縮小（2026-10-03，DECISIONS #313）

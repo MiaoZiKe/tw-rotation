@@ -938,21 +938,27 @@ def t_overview(pg, base):
         b = document.getElementById('ovThemeCard').getBoundingClientRect(), r = document.getElementById('ovRotCard').getBoundingClientRect();
         return { below: b.top >= a.bottom - 1, sameCol: Math.abs(a.left - b.left) < 2 && Math.abs(a.width - b.width) < 2,
                  leftOfRot: b.right <= r.left + 1, gapBottom: Math.round(Math.abs(b.bottom - r.bottom)) }; }""")
-    # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：
-    #   改前：熱門題材在資金熱力圖正下方（同一欄、都在輪盤左邊），左欄與右邊輪盤底部對齊 ≤ 24px。
-    #   改後：可視高 ≤ 1000 且寬 ≥ 1101（fit.css）時總覽下半改兩列 —— 第 1 列 熱力圖｜輪盤，第 2 列 熱門題材全寬在它們下面
-    #         （左欄疊起來 972px 比一屏高）。這時改驗「題材在熱力圖與輪盤的下面、左緣＝熱力圖左緣、右緣＝輪盤右緣」，
-    #         「熱力圖與輪盤同列等高」在 `新-版面等高與多寬度` 逐寬度驗。可視高 > 1000 的視窗仍照原本斷言。
-    fit2 = pg.evaluate("() => matchMedia('(min-width:1101px) and (max-height:1000px)').matches")
-    if fit2:
-        pos2 = pg.evaluate("""() => { const a = document.getElementById('ovHeatCard').getBoundingClientRect(),
-            b = document.getElementById('ovThemeCard').getBoundingClientRect(), r = document.getElementById('ovRotCard').getBoundingClientRect();
-            return { below: b.top >= Math.max(a.bottom, r.bottom) - 1, left: Math.abs(a.left - b.left) < 2, right: Math.abs(b.right - r.right) < 2,
-                     sameRow: Math.abs(a.top - r.top) < 2 && Math.abs(a.bottom - r.bottom) < 2 }; }""")
-        ok("★ 一屏看完：熱門題材在資金熱力圖與資金輪盤（同一列）的正下方、吃滿全寬", pos2["below"] and pos2["left"] and pos2["right"] and pos2["sameRow"], pos2)
+    # ★ 2026-10-04 改前 → 改後（DECISIONS #315，蓋掉 10-03 #308 的「可視高 ≤ 1000 改兩列」）：
+    #   改前（#308）：可視高 ≤ 1000 且寬 ≥ 1101 時總覽下半兩列 —— 第 1 列 熱力圖｜輪盤，第 2 列 熱門題材全寬；其餘視窗左欄疊兩張、右欄一張輪盤卡。
+    #   改後：所有可視高同一種版面（寬 ≥ 901，theme4.css 兩欄的寬度）：2×2 格線 ——
+    #         左欄 資金熱力圖（上）／熱門題材（下）上下疊、同寬同左緣；右欄 資金輪盤（上）／昨日資金去向（下）上下兩張、同寬同左緣；
+    #         同一列兩張卡上緣、下緣都差 ≤ 2px（左上對右上、左下對右下，兩欄底線對齊）；左欄在右欄的左邊。
+    #   門檻沒放寬：一樣驗「題材在熱力圖正下方（同一欄）」「左右底部對齊」（改前 ≤ 24px，現在逐列 ≤ 2px，更嚴）。
+    two_col = pg.evaluate("() => innerWidth >= 901")
+    if two_col:
+        pos2 = pg.evaluate("""() => { const g = (id) => document.getElementById(id).getBoundingClientRect();
+            const a = g('ovHeatCard'), b = g('ovThemeCard'), r = g('ovRotCard'), f = g('ovFlowCard');
+            return { leftStack: b.top >= a.bottom - 1 && Math.abs(a.left - b.left) < 2 && Math.abs(a.width - b.width) < 2,
+                     rightStack: f.top >= r.bottom - 1 && Math.abs(r.left - f.left) < 2 && Math.abs(r.width - f.width) < 2,
+                     leftOfRight: Math.max(a.right, b.right) <= Math.min(r.left, f.left) + 1,
+                     row1: Math.abs(a.top - r.top) <= 2 && Math.abs(a.bottom - r.bottom) <= 2,
+                     row2: Math.abs(b.top - f.top) <= 2 && Math.abs(b.bottom - f.bottom) <= 2 }; }""")
+        ok("★ 總覽下半左欄：熱門題材在資金熱力圖正下方（同一欄、同寬）", pos2["leftStack"], pos2)
+        ok("★ 總覽下半右欄：昨日資金去向在資金輪盤正下方（同一欄、同寬），兩張各自是一張卡", pos2["rightStack"], pos2)
+        ok("★ 總覽下半：左欄（熱力圖＋題材）整個在右欄（輪盤＋資金去向）的左邊", pos2["leftOfRight"], pos2)
+        ok("★ 總覽下半：左上對右上、左下對右下（同一列兩張卡上緣、下緣都差 ≤ 2px，兩欄底線對齊）", pos2["row1"] and pos2["row2"], pos2)
     else:
-        ok("★ 熱門題材在資金熱力圖正下方（同一欄）", pos["below"] and pos["sameCol"] and pos["leftOfRot"], pos)
-        ok("左欄（熱力圖＋題材）跟右邊足跡輪盤底部對齊（差 ≤ 24px）", pos["gapBottom"] <= 24, pos)
+        ok("★ 熱門題材在資金熱力圖正下方（同一欄）", pos["below"] and pos["sameCol"], pos)
     TL = """() => { const e = document.getElementById('ovTheme'); const c = echarts.getInstanceByDom(e);
         const s = c ? (c.getOption().series || [])[0] : null;
         return { level: e.dataset.level, n: s ? (s.data || []).length : 0, roam: s ? s.roam : null,
@@ -1262,12 +1268,10 @@ def t_overview(pg, base):
     ok("總覽也有輪動時鐘", bool(mini) and mini["canvas"] and mini["pts"] > 0, mini)
     # D6：「⤢ 放大」移除、圓圈放大（量的是容器真的變高，不是看有沒有那顆鈕）
     ok("D6：總覽輪動階段上方那顆「⤢ 放大」已移除", bool(mini) and not mini["zoomBtn"], mini)
-    # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：可視高 ≤ 1000 且寬 ≥ 1101 時輪盤卡改「盤｜昨日資金去向」左右並排，
-    #   盤只剩左欄 0.8fr 的寬（1440 約 270px → 容器高 300），不再疊在桑基上面佔滿卡寬；這時下限改 ≥ 280（比改前舊的小輪盤 260 還大），
-    #   1920 寬並排時盤較寬、實際比 355 大（沒有另外斷言）。疊成一欄（可視高 > 1000）照舊 ≥ 355。
-    fit3 = pg.evaluate("() => matchMedia('(min-width:1101px) and (max-height:1000px)').matches")
-    ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px；一屏看完並排版面 ≥ 280px）",
-       bool(mini) and mini["h"] >= (280 if fit3 else 355), mini and mini["h"])
+    # ★ 2026-10-04 改前 → 改後（DECISIONS #315，蓋掉 10-03 #308）：#308 的「輪盤卡矮螢幕改盤｜昨日資金去向左右並排、下限放寬 ≥ 280」拿掉 ——
+    #   輪盤與昨日資金去向現在是右欄上下兩張卡，盤吃整張卡寬（1440 約 517px），門檻回到原本的 ≥ 355，沒有放寬。
+    ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px）",
+       bool(mini) and mini["h"] >= 355, mini and mini["h"])
     # D7：昨日資金去向分流圖
     # ★ 2026-09-26 改前→改後：讀 ECharts tree（type tree、animation false、initialTreeDepth 2）
     #   → 桌機改成 flowtopo 緊湊光纖版（Andy 09-26：UI 跟資金流向頁經典光纖一樣、功能照舊），改讀畫布探針：
@@ -5761,31 +5765,30 @@ def t_new_layout(pg, base):
     #   理由同上：今日候選移除之後，熱門題材的「隔壁」是右欄的資金輪盤卡；
     #         index.html 的 `.ovcol>#ovHeatCard{flex:1 1 auto}`（≥1101px）就是為了讓兩欄齊底才撐滿的。
     #   門檻沒放寬：一樣 ≤ 2px、題材卡一樣 ≤ 722px；三個寬度一樣是 1280／1440／1920（都在 ≥1101 兩欄的範圍內）。
+    # ★ 2026-10-04 改前 → 改後（DECISIONS #315，蓋掉上面兩段 #308 的兩列版本）：
+    #   改前（#308）：可視高 ≤ 1000 時第 1 列 熱力圖｜輪盤等高、第 2 列題材全寬；可視高 > 1000 時左欄 #ovLeft 與右欄 #ovRotCard 上下緣對齊。
+    #   改後：所有可視高都是 2×2 —— 左欄 熱力圖／題材 上下疊、右欄 資金輪盤／昨日資金去向 上下兩張（#ovFlowCard 是新拆出的一張卡）；
+    #         同一列兩張卡上緣、下緣都差 ≤ 2px（左上對右上、左下對右下，兩欄總高因此相等）；
+    #         「一屏看完」放寬成每一張卡 ≤ 視窗高 − 49（不是整個兩欄 ≤ 一屏）。
+    #   門檻沒放寬：等高一樣 ≤ 2px、題材卡一樣 ≤ 722px；三個寬度一樣是 1280／1440／1920。
     for w in (1280, 1440, 1920):
-        pg.set_viewport_size({"width": w, "height": 1000})
+        VH = 1000
+        pg.set_viewport_size({"width": w, "height": VH})
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
         hs = pg.evaluate("""() => { const g = (id) => { const e = document.getElementById(id); if (!e) return null;
                 const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right) }; };
-            return { left: g('ovLeft'), rot: g('ovRotCard'), theme: g('ovThemeCard'), heat: g('ovHeatCard'),
-                     fit: matchMedia('(min-width:1101px) and (max-height:1000px)').matches }; }""")
-        good = all(hs.get(k) for k in ("left", "rot", "theme", "heat"))
-        # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：
-        #   改前：左欄 #ovLeft（熱力圖＋題材疊起來 972px）與右欄 #ovRotCard 上下緣對齊、題材卡跟右欄齊底。
-        #   改後：可視高 ≤ 1000 時（fit.css）#ovLeft 改 display:contents，總覽下半變兩列 ——
-        #         第 1 列 資金熱力圖｜資金輪盤（上緣、下緣都差 ≤ 2px，各約 541～569px），第 2 列熱門題材吃滿全寬、在第 1 列下面。
-        #   理由：左欄疊起來 972px 比一屏高，右欄 541px，兩欄等高就得把卡拉成 972px 或右欄下面空 430px，都不是一屏。
-        #   「框格一樣大」的要求沒放寬：同一列的兩張卡一樣是 ≤ 2px；可視高 > 1000 時仍照原本的左右欄等高驗。
-        if good and hs["fit"]:
-            ok(f"[{w}px] ★ 一屏看完：資金熱力圖與資金輪盤同一列等高（上緣、下緣都差 ≤ 2px），熱門題材在它們下面、吃滿全寬",
-               abs(hs["heat"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["heat"]["b"] - hs["rot"]["b"]) <= 2
-               and hs["theme"]["t"] >= max(hs["heat"]["b"], hs["rot"]["b"]) - 1
-               and abs(hs["theme"]["l"] - hs["heat"]["l"]) <= 2 and abs(hs["theme"]["r"] - hs["rot"]["r"]) <= 2, hs)
-            ok(f"[{w}px] ★ 一屏看完：熱力圖／輪盤／題材三張卡都不比一屏（視窗高 − 73）高",
-               max(hs["heat"]["h"], hs["rot"]["h"], hs["theme"]["h"]) <= 1000 - 73, hs)
-        else:
-            ok(f"[{w}px] 熱門題材所在的左欄／右欄資金輪盤兩欄等高（上緣、下緣都差 ≤ 2px，題材卡跟右欄齊底）",
-               good and abs(hs["left"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["left"]["b"] - hs["rot"]["b"]) <= 2
-               and abs(hs["theme"]["b"] - hs["rot"]["b"]) <= 2, hs)
+            return { rot: g('ovRotCard'), flow: g('ovFlowCard'), theme: g('ovThemeCard'), heat: g('ovHeatCard') }; }""")
+        good = all(hs.get(k) for k in ("flow", "rot", "theme", "heat"))
+        ok(f"[{w}px] ★ 左上對右上：資金熱力圖與資金輪盤上緣、下緣都差 ≤ 2px",
+           good and abs(hs["heat"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["heat"]["b"] - hs["rot"]["b"]) <= 2, hs)
+        ok(f"[{w}px] ★ 左下對右下：熱門題材與昨日資金去向上緣、下緣都差 ≤ 2px（兩欄底線對齊）",
+           good and abs(hs["theme"]["t"] - hs["flow"]["t"]) <= 2 and abs(hs["theme"]["b"] - hs["flow"]["b"]) <= 2, hs)
+        ok(f"[{w}px] ★ 左欄上下是兩張熱力圖（題材在熱力圖正下方、同左緣）、右欄上下是輪盤與資金去向（同左緣），左欄在右欄左邊",
+           good and hs["theme"]["t"] >= hs["heat"]["b"] - 1 and abs(hs["theme"]["l"] - hs["heat"]["l"]) <= 2
+           and hs["flow"]["t"] >= hs["rot"]["b"] - 1 and abs(hs["flow"]["l"] - hs["rot"]["l"]) <= 2
+           and max(hs["heat"]["r"], hs["theme"]["r"]) <= min(hs["rot"]["l"], hs["flow"]["l"]) + 1, hs)
+        ok(f"[{w}px] ★ 一屏看完（放寬成每一張卡）：四張卡都不比一屏（視窗高 − 49）高",
+           good and max(hs[k]["h"] for k in ("heat", "theme", "rot", "flow")) <= VH - 49, hs)
         ok(f"[{w}px] 熱門題材卡的高度沒有被內容撐爆（≤ 720px）",
            good and hs["theme"]["h"] <= 722, hs)
 
@@ -19859,6 +19862,37 @@ FIT1003_SANKEY = """() => {
     minLabH: L.length ? Math.min(...L.map(l => l.h)) : 0, sx: document.documentElement.scrollWidth }; }"""
 
 
+# ★ 2026-10-04（DECISIONS #315）總覽下半 2×2：四張卡的位置、輪盤容器、資金去向標籤、四張圖的字級，一次量完。
+FIT_OV2COL = """() => {
+  const g = (id) => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect();
+    return { t: Math.round(r.top + scrollY), b: Math.round(r.bottom + scrollY), l: Math.round(r.left), r: Math.round(r.right), w: Math.round(r.width), h: Math.round(r.height) }; };
+  const out = { H: innerHeight, W: innerWidth, heat: g('ovHeatCard'), theme: g('ovThemeCard'), rot: g('ovRotCard'), flow: g('ovFlowCard'), mini: g('rotClockMini'),
+    sx: document.documentElement.scrollWidth };
+  /* 輪盤：容器高 ≤ 容器寬（盤是正圓，容器沒被拉成橫的），畫布跟容器同大 */
+  const cv = document.querySelector('#rotClockMini canvas'); out.cv = cv ? { w: Math.round(cv.getBoundingClientRect().width), h: Math.round(cv.getBoundingClientRect().height) } : null;
+  /* 資金去向標籤：都在 #ovFlow 容器內、不重疊、沒被截成「…」 */
+  const host = document.getElementById('ovFlow'); const P = window.FlowTopo && host && FlowTopo.probe(host);
+  if (P && P.nodes) { const c2 = host.querySelector('canvas'); const sr = (c2 ? c2.parentElement : host).getBoundingClientRect(); const hr = host.getBoundingClientRect();
+    const L = P.nodes.filter(n => n.lab).map(n => ({ name: n.name, x: sr.left + n.lab.x, y: sr.top + n.lab.y, w: n.lab.w, h: n.lab.h }));
+    out.flowLabels = L.length;
+    out.flowOutside = L.filter(l => l.x < hr.left - 0.5 || l.y < hr.top - 0.5 || l.x + l.w > hr.right + 0.5 || l.y + l.h > hr.bottom + 0.5).map(l => l.name);
+    out.flowOverlap = []; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j];
+      if (a.x < b.x + b.w - 0.5 && b.x < a.x + a.w - 0.5 && a.y < b.y + b.h - 0.5 && b.y < a.y + a.h - 0.5) out.flowOverlap.push([a.name, b.name]); }
+    out.flowTrunc = P.nodes.filter(n => n.lab && /…$/.test(n.text || '')).map(n => n.name);
+    out.flowMinFont = P.minFont; }
+  /* 字級：四張卡裡看得見的 HTML 文字 ≥ 11；三張 ECharts 圖的 option 裡所有 fontSize ≥ 11 */
+  let minFs = 99; const small = [];
+  ['ovHeatCard', 'ovThemeCard', 'ovRotCard', 'ovFlowCard'].forEach(id => { const c = document.getElementById(id); if (!c) return;
+    c.querySelectorAll('*').forEach(e => { if (e.children.length || !(e.textContent || '').trim() || !e.getClientRects().length) return;
+      if (e.closest('[hidden],.howtxt,canvas,svg')) return; const f = parseFloat(getComputedStyle(e).fontSize);
+      if (f < minFs) minFs = f; if (f < 11) small.push((e.id || e.className || e.tagName) + ':' + f); }); });
+  out.minFs = minFs; out.small = small.slice(0, 6);
+  const fsOf = (id) => { const e = document.getElementById(id); const ec = e && window.echarts && echarts.getInstanceByDom(e); if (!ec) return null;
+    const m = []; JSON.stringify(ec.getOption(), (k, v) => { if (k === 'fontSize' && typeof v === 'number') m.push(v); return v; }); return m.length ? Math.min(...m) : null; };
+  out.chartFs = { heat: fsOf('heat'), theme: fsOf('ovTheme'), rot: fsOf('rotClockMini') };
+  return out; }"""
+
+
 def t_fit_screen_1003(pg, base, code):
     """★ 2026-10-03 一屏看完（DECISIONS #308）：Andy「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」。
 
@@ -19945,6 +19979,38 @@ def t_fit_screen_1003(pg, base, code):
         ok(f"★ {tag}資金去向 {w}×{h}：整張卡下緣（{m['cardBottom']}）在視窗（{m['H']}）內、不用捲", m["cardBottom"] <= m["H"], m)
         ok(f"{tag}資金去向 {w}×{h}：槽高 {m['slot']} ≥ 16（點擊熱區）、標籤高 ≥ 17、字級 ≥ 12、無橫向捲軸",
            m["slot"] >= 16 and m["minLabH"] >= 17 and (m["minFont"] or 12) >= 12 and m["sx"] <= m["W"] + 1, m)
+
+    # ⑤ ★ 2026-10-04（DECISIONS #315，蓋掉 #308 第 5 條「可視高 ≤ 1000 改兩列」）：總覽下半 2×2，所有可視高同一種版面。
+    #    左欄 資金熱力圖（上）／熱門題材（下），右欄 資金輪盤（上）／昨日資金去向（下，#ovFlowCard 是新拆出的卡）；
+    #    左上對右上、左下對右下（同列兩張卡上緣下緣 ≤ 2px，兩欄底線對齊）；「一屏看完」放寬成每一張卡 ≤ 視窗高 − 49；
+    #    圖完整：輪盤容器是方的（高 ≤ 寬）、資金去向標籤全在圖裡、不重疊、不截斷；字級 ≥ 11（HTML 文字與三張 ECharts 的 option）。
+    for (w, h) in ((1440, 900), (1920, 1080), (1366, 768)):
+        land(h, w, "overview")
+        pg.eval_on_selector("#ovFlowCard", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
+        wait_until(pg, """() => { const e = document.getElementById('ovFlow'); const P = window.FlowTopo && e && FlowTopo.probe(e);
+            return !!(P && !P.pending && P.nodes && P.nodes.some(n => n.lab)) && !!(echarts.getInstanceByDom(document.getElementById('ovTheme'))); }""", 12000)
+        pg.wait_for_timeout(1800)
+        m = pg.evaluate(FIT_OV2COL)
+        t_ = f"{tag}總覽 {w}×{h}："
+        if not ok(f"{t_}四張卡都量得到（#ovFlowCard 存在）", all(m.get(k) for k in ("heat", "theme", "rot", "flow")), m):
+            continue
+        ok(f"★ {t_}左欄上＝資金熱力圖、下＝熱門題材（同左緣、同寬）；右欄上＝資金輪盤、下＝昨日資金去向（同左緣、同寬）；左欄在右欄左邊",
+           m["theme"]["t"] >= m["heat"]["b"] - 1 and abs(m["theme"]["l"] - m["heat"]["l"]) <= 2 and abs(m["theme"]["w"] - m["heat"]["w"]) <= 2
+           and m["flow"]["t"] >= m["rot"]["b"] - 1 and abs(m["flow"]["l"] - m["rot"]["l"]) <= 2 and abs(m["flow"]["w"] - m["rot"]["w"]) <= 2
+           and max(m["heat"]["r"], m["theme"]["r"]) <= min(m["rot"]["l"], m["flow"]["l"]) + 1, m)
+        ok(f"★ {t_}左上對右上、左下對右下：同列兩張卡上緣、下緣都差 ≤ 2px（兩欄底線對齊）",
+           abs(m["heat"]["t"] - m["rot"]["t"]) <= 2 and abs(m["heat"]["b"] - m["rot"]["b"]) <= 2
+           and abs(m["theme"]["t"] - m["flow"]["t"]) <= 2 and abs(m["theme"]["b"] - m["flow"]["b"]) <= 2, m)
+        ok(f"★ {t_}每一張卡 ≤ 可視高 − 49（{h - 49}）：{[m[k]['h'] for k in ('heat', 'theme', 'rot', 'flow')]}",
+           max(m[k]["h"] for k in ("heat", "theme", "rot", "flow")) <= h - 49, m)
+        ok(f"{t_}輪盤是正圓：容器高 ≤ 寬 + 2（{m['mini']['h']}×{m['mini']['w']}）、畫布與容器同大、≥ 355",
+           m["mini"]["h"] <= m["mini"]["w"] + 2 and m["mini"]["h"] >= 355 and bool(m["cv"]) and abs(m["cv"]["h"] - m["mini"]["h"]) <= 3, m)
+        ok(f"★ {t_}資金去向標籤（{m.get('flowLabels')} 個）全在圖裡、彼此不重疊、沒有被截成「…」",
+           bool(m.get("flowLabels")) and m["flowOutside"] == [] and m["flowOverlap"] == [] and m["flowTrunc"] == [],
+           {k: m.get(k) for k in ("flowLabels", "flowOutside", "flowOverlap", "flowTrunc")})
+        ok(f"★ {t_}字級 ≥ 11：HTML 文字最小 {m['minFs']}、圖表 option 最小 {m['chartFs']}、資金去向 {m.get('flowMinFont')}",
+           m["minFs"] >= 11 and not m["small"] and all((v or 12) >= 11 for v in m["chartFs"].values()) and (m.get("flowMinFont") or 12) >= 11, m)
+        ok(f"{t_}頁面沒有橫向捲軸", m["sx"] <= m["W"] + 1, (m["sx"], m["W"]))
 
     # 手機不動
     for hs in ("overview", "flow/rotation", f"stock/{code}"):
