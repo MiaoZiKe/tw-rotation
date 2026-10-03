@@ -5652,7 +5652,7 @@
          Y 軸最上面那個刻度字半高約 7px，30 只剩 5px 會貼在一起 —— _uitest「個股分頁版面1002」的圖例越界檢查量的）。
          ⚠ 一開始的 option 就要寫 legend.type:'scroll'：plain 跟 scroll 是兩種元件，退回時才換 type 會整個換掉圖例元件，
          藏起來的年份（legend.selected）就丟了 —— _uitest「設計v4第二批2B」⑧（800→1000→800 來回後 2021 要仍藏著）抓到的。*/
-      const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement, { fb: { top: 0, type: 'scroll', itemWidth: 14, itemGap: 8,
+      const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement, { fb: { top: 0, type: 'scroll', itemWidth: 10, itemGap: 5,
         pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } }, fbTop: 36 }); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下退回圖內單行）
     $$('#revMode button').forEach(b => b.onclick = () => { $$('#revMode button').forEach(x => x.classList.toggle('on', x === b)); mode = b.dataset.v; drawYear(); });
     drawYear();
