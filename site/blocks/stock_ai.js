@@ -256,7 +256,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 }
 /* 手機分段用的空殼：桌機永遠是空的，不留一塊空卡 */
 #aiCard:empty{display:none}
-@media (max-width:640px){
+@media (max-width:820px){
   #aiCard>#skAi{margin-top:0;border:0;padding:0}
   /* 標籤疊法、標題列不折行等窄版規則在上面的 @container（AI 區 ≤380px 就套，手機一定套到）*/
   #skAi .aibody{height:auto;max-height:none;overflow:visible}
@@ -680,7 +680,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 .ovnews a{color:var(--cyan)}
 .ovnews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
 .ovasof{margin-top:8px;font-size:12px;color:var(--ink-3)}
-@media (max-width:640px){#ovAiCard .ovline{font-size:14.5px}}`;
+@media (max-width:820px){#ovAiCard .ovline{font-size:14.5px}}`;
     document.head.appendChild(st);
   }
 

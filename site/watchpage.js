@@ -18,7 +18,7 @@
   const W = () => window.TwWatch;
   const A = () => window.App;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const isM = () => window.matchMedia('(max-width: 640px)').matches;
+  const isM = () => window.matchMedia('(max-width: 820px)').matches;
   const P = { editing: null, confirm: false, q: '', hint: '', drag: null, exp: null, mode: 'line', tf: '1d' };
   let expK = null, expSeq = 0;   // 展開圖的 KChart 本人（換列／收起要 destroy）、非同步載入的序號（快速連點只畫最後一次）
   let stocks = null, byCode = new Map();
@@ -119,7 +119,7 @@
 .wpxc{height:290px;position:relative}
 .wpxc .empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:13px}
 .wpfoot{margin-top:10px;font-size:12px;color:var(--ink-3)}
-@media (max-width:640px){
+@media (max-width:820px){
   .wphd h2{font-size:18px}
   .wptab .wpname{max-width:7.5em}
   .wptbl{font-size:14px}

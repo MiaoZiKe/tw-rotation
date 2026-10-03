@@ -163,7 +163,7 @@
 .drawbar{position:relative}
 .drawbar .dtool.dt-danger{color:var(--rise,#ff4d6d)}
 @media (max-width:760px){.dt-confirm{left:0;top:calc(100% + 6px)}.chartwrap.drawon>.adjtag{top:calc(var(--dtbar-h,0px) + 14px)}}
-@media (max-width:640px){.dt-props{gap:3px;padding:4px;max-width:calc(100% - 70px)}.dt-props .dt-c{width:22px;height:22px}
+@media (max-width:820px){.dt-props{gap:3px;padding:4px;max-width:calc(100% - 70px)}.dt-props .dt-c{width:22px;height:22px}
   .dt-props button{min-height:28px}.dt-props .dt-w{width:28px}.dt-props input[type=range]{width:64px}}
 `;
     document.head.appendChild(st);
@@ -997,7 +997,7 @@
       /* 位置：桌機放在左上角圖例正下方；手機（≤640）圖例本身就佔掉三行，再疊一條屬性列會把整個主圖上半部蓋掉，
          所以手機改放主圖底部（右下角是「重設縮放」，屬性列靠左，不會撞到）。*/
       const lg = this.kc.legendRect ? this.kc.legendRect() : null;
-      let narrow = false; try { narrow = global.matchMedia('(max-width:640px)').matches; } catch (e) { /* 忽略 */ }
+      let narrow = false; try { narrow = global.matchMedia('(max-width:820px)').matches; } catch (e) { /* 忽略 */ }
       const top = narrow ? Math.max(8, this._paneH() - el.offsetHeight - 10) : (lg ? lg.y + lg.h + 6 : 8);
       el.style.top = Math.round(top) + 'px';
     }

@@ -267,7 +267,7 @@
 .wlpick .pknew button{height:32px;padding:0 10px;border:1px solid var(--cyan);border-radius:7px;background:var(--panel-2);color:var(--cyan);font-size:13px;cursor:pointer}
 .wlpick .pkfoot{font-size:12px;color:var(--ink-2);padding:6px 4px 0}
 .morepop #mmWatch{border-top:1px solid var(--line);border-radius:0 0 9px 9px;margin-top:2px}
-@media (max-width:640px){ .acctbar{display:none} }
+@media (max-width:820px){ .acctbar{display:none} }
 @media (max-width:820px){
   .wlpanel{top:auto;bottom:0;left:0;right:0;width:auto;max-height:82vh;border-radius:14px 14px 0 0;font-size:15px}
   .wllist li{grid-template-columns:minmax(0,1fr) auto auto auto;padding:10px 6px}

@@ -21,7 +21,7 @@
    ============================================================================ */
 (function () {
   'use strict';
-  const MAX = 640;
+  const MAX = 820;   // 2026-10-03 手機 V2（DECISIONS #314）：手機版統一 ≤820（原 640）
   const isM = () => window.innerWidth <= MAX;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => [...(r || document).querySelectorAll(s)];

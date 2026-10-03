@@ -479,7 +479,7 @@
     /*  手機（≤640）也不留：手機的 K 線本來就矮（360～620px），再從主圖拿一條會讓 K 棒被壓扁，手機版面歸 mobile-ui 另外定。*/
     _lblStrip() {
       if (this.opts.mini || this.opts.compact) return 0;
-      try { if (!window.matchMedia('(min-width:641px)').matches) return 0; } catch (e) { /* 沒有 matchMedia 就照桌機 */ }
+      try { if (!window.matchMedia('(min-width:821px)').matches) return 0; } catch (e) { /* 沒有 matchMedia 就照桌機 */ }
       return KChart.LBL_STRIP;
     }
     /* 滾輪在價格軸上：縮放上下寬度（TradingView 手感）；圖區內滾輪維持時間縮放。

@@ -1991,7 +1991,7 @@
 (function () {
   'use strict';
   if (!window.DG) return;
-  const isM = () => window.innerWidth <= 640 && !!window.M3;
+  const isM = () => window.innerWidth <= 820 && !!window.M3;
   const $$ = (s, r) => [].slice.call((r || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const MIN = 30;                                    // 兩顆編號中心的最小距離（28px 鈕＋2px 縫）

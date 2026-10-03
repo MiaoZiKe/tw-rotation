@@ -76,7 +76,7 @@
   /* ★ 2026-09-29 設計 v4 第二批 2C（docs/design_v4/05_第二批2C.md）：這份舊樣式段裡尺度外的 margin／padding／gap
      （5／6／7／9／10／11／13／14／15／18／20／22）一律就地改成 v4 尺度 var(--sp-1..5)＝4／8／12／16／24。
      ⚠ 手機一屏版（≤640）刻意不動：凡是會涵蓋到 ≤640 的規則，改完之後**緊接在後面**有一行
-       `@media (max-width:640px){ 同一個選擇器{ 原值 } }` —— 緊接在後＝層疊順序跟原本一樣，手機算出來的值逐字相同
+       `@media (max-width:820px){ 同一個選擇器{ 原值 } }` —— 緊接在後＝層疊順序跟原本一樣，手機算出來的值逐字相同
        （390 寬八頁像素比對 0 差異）。手機那一批要改用 v4 尺度時，把這些行刪掉即可。
      機械轉換的腳本：docs/design_v4/tools/spacing_apply.py；普查：spacing_audit.py。
      v4 間距尺度也寫在這裡一份（值跟 theme4.css 骨架段一樣），就算 <html> 沒掛 data-theme4 也解得出值。 */
@@ -553,9 +553,9 @@ small{font-size:12.5px}
 /* ---------------- 頂部列 ---------------- */
 .topbar{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:var(--topbar);
   border-bottom:1px solid var(--line);display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-4);height:58px}
-@media (max-width:640px){.topbar{gap:14px;padding:0 18px}}
+@media (max-width:820px){.topbar{gap:14px;padding:0 18px}}
 .brand{display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;white-space:nowrap}
-@media (max-width:640px){.brand{gap:10px}}
+@media (max-width:820px){.brand{gap:10px}}
 .brand .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet));
   box-shadow:var(--glow);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:var(--ontop);font-size:13px}
 .brand b{font-size:16px;letter-spacing:.02em}
@@ -593,7 +593,7 @@ small{font-size:12.5px}
 @media (max-width:820px){ .tabswrap{display:contents} .tabnav{display:none!important} }
 .tab{padding:var(--sp-2) var(--sp-3);border:0;background:transparent;color:var(--ink-2);font-size:15px;border-radius:9px;
   cursor:pointer;white-space:nowrap;transition:.15s}
-@media (max-width:640px){.tab{padding:8px 14px}}
+@media (max-width:820px){.tab{padding:8px 14px}}
 .tab:hover{color:var(--ink);background:var(--panel-2)}
 .tab.on{color:var(--ontop);background:var(--cyan);font-weight:700;box-shadow:var(--glow)}
 .search{position:relative}
@@ -619,13 +619,13 @@ small{font-size:12.5px}
 .sugg .chg{font-family:var(--mono);font-size:13px;font-weight:600;min-width:62px;text-align:right;flex:none}
 .sugg .sghd{display:flex;align-items:center;gap:8px;padding:var(--sp-2) var(--sp-3) var(--sp-1);font-size:12px;font-weight:700;
   color:var(--ink-3);letter-spacing:.04em;cursor:default}
-@media (max-width:640px){.sugg .sghd{padding:10px 12px 4px}}
+@media (max-width:820px){.sugg .sghd{padding:10px 12px 4px}}
 .sugg .sghd + .sgrow{margin-top:2px}
 .sugg .sgrow + .sghd{border-top:1px solid var(--line);margin-top:4px}
 .sugg .sghd small{font-weight:400;font-size:12px;letter-spacing:0;margin-left:auto}
 .sugg .sgclr{margin-left:auto;border:0;background:transparent;color:var(--cyan);font-size:12px;cursor:pointer;
   padding:2px var(--sp-1);border-radius:6px}
-@media (max-width:640px){.sugg .sgclr{padding:2px 6px}}
+@media (max-width:820px){.sugg .sgclr{padding:2px 6px}}
 .sugg .sgclr:hover{background:var(--panel-3)}
 .sugg .sgdel{flex:none;width:24px;height:24px;margin-left:4px;border:0;border-radius:6px;background:transparent;
   color:var(--ink-3);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
@@ -664,10 +664,10 @@ svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
 .sugg .chg{width:66px;min-width:66px}
 /* 欄寬固定之後一列約 430px：原本下拉只有 340px 寬，最右邊的漲跌幅整欄被擠出框外（overflow:auto 把它藏起來，
    看起來像「沒有漲跌幅」）。桌機改 440px；max-width 照舊保證窄畫面不出畫面，手機另有自己的欄寬（下一條）。 */
-@media (min-width:641px){.sugg{width:max(100%,440px)}}
-@media (max-width:640px){.sugg .sgrow{gap:6px}.sugg .code{width:3.6em;flex-basis:3.6em}.sugg .nm{width:4.8em;flex-basis:4.8em}.sugg .tv{width:4.2em}.sugg .chg{width:56px;min-width:56px}}
+@media (min-width:821px){.sugg{width:max(100%,440px)}}
+@media (max-width:820px){.sugg .sgrow{gap:6px}.sugg .code{width:3.6em;flex-basis:3.6em}.sugg .nm{width:4.8em;flex-basis:4.8em}.sugg .tv{width:4.2em}.sugg .chg{width:56px;min-width:56px}}
 .sugg .sgempty{margin:0;padding:var(--sp-1) var(--sp-3) var(--sp-2);font-size:13px;color:var(--ink-3);line-height:1.5}
-@media (max-width:640px){.sugg .sgempty{padding:6px 12px 10px}}
+@media (max-width:820px){.sugg .sgempty{padding:6px 12px 10px}}
 /* 公司 Logo（2026-09-26）：圓角方形；沒有圖／圖壞掉時是字母頭像（字由 ::before 畫，不進 DOM 文字）。
    ::after 疊一圈 1px 淡框在圖的**上面** —— 白底 Logo 在淺色主題才看得到邊。
    圖本身墊白底：多數公司 Logo 是照白底設計的，透明 PNG 疊在深色底上會糊掉。*/
@@ -679,12 +679,12 @@ svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
 .slogo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;
   padding:calc(var(--lz) * .08);box-sizing:border-box}
 .slogo.sklogo{margin-right:var(--sp-2);vertical-align:-6px}
-@media (max-width:640px){.slogo.sklogo{margin-right:10px}}
+@media (max-width:820px){.slogo.sklogo{margin-right:10px}}
 .evbtn{border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);padding:var(--sp-2) var(--sp-3);
   border-radius:9px;cursor:pointer;font-size:14px;white-space:nowrap}
-@media (max-width:640px){.evbtn{padding:7px 12px}}
+@media (max-width:820px){.evbtn{padding:7px 12px}}
 .evbtn.theme{padding:var(--sp-2) var(--sp-2);font-size:15px;line-height:1}
-@media (max-width:640px){.evbtn.theme{padding:7px 10px}}
+@media (max-width:820px){.evbtn.theme{padding:7px 10px}}
 .evbtn.theme:hover{color:var(--ink);border-color:var(--cyan)}
 /* 事件側欄的日期改成下拉選單（Andy 2026-09-15：「日期那邊可以變成清單選項選擇日期」）。
    清單裡最新一則不是今天就用琥珀色提醒，不是預設的灰。 */
@@ -693,7 +693,7 @@ svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
 
 /* ---------------- 盤中即時（live.js） ---------------- */
 .livebox{position:relative;display:flex;align-items:center;gap:var(--sp-2)}
-@media (max-width:640px){.livebox{gap:6px}}
+@media (max-width:820px){.livebox{gap:6px}}
 /* ★ 2026-09-23 UI 精修 #4（A14）：即時徽章**不准因為錯誤訊息變長就把導覽分頁擠掉**。
    量到的事實：#flow 的分頁溢出 352px，比其他頁多 190px，差的就是這顆吐出
    `Failed to fetch` 的徽章。一個次要的抓取失敗不該有比整個導覽更大的視覺權重。
@@ -725,7 +725,7 @@ svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
    --ontop 在深色是 #061018 → 5.82，在淺色是 #ffffff 印在 #5f4ddb 上 → 5.88，
    一個 token 同時把兩個主題都修好。字級 11 → 12px（本專案的下限）。*/
 .evbtn .n{background:var(--violet);color:var(--ontop);font-size:12px;padding:1px var(--sp-2);border-radius:9px;margin-left:var(--sp-1);font-family:var(--mono)}
-@media (max-width:640px){.evbtn .n{padding:1px 7px;margin-left:6px}}
+@media (max-width:820px){.evbtn .n{padding:1px 7px;margin-left:6px}}
 
 /* ---------------- 版面 ---------------- */
 /* ★ 2026-09-28（Andy：「今日事件 Default 先隱藏…他不會擠壓到整體版面，並且點擊背景後可以消失」）：
@@ -736,7 +736,7 @@ svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
    舊的 `.layout.noside`（桌機收欄）與 `body.kwide aside`（K 線寬版收欄）兩套邏輯一起拿掉。*/
 .layout{display:block;min-height:calc(100vh - 58px)}
 main{padding:var(--sp-4) var(--sp-5) 80px;min-width:0}
-@media (max-width:640px){main{padding:20px 22px 80px}}
+@media (max-width:820px){main{padding:20px 22px 80px}}
 /* 抽屜：頂欄下方貼右、寬 min(420px, 92vw)。
    關著時用 visibility:hidden（跟著 transition 延後生效），裡面的連結不會被 Tab 走到、也點不到。
    overflow-x:hidden 是保險 —— 真正的修法是 `.ev .m` 換行（見事件列那段），不是把溢出藏起來。*/
@@ -776,14 +776,14 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* ---------------- 卡片 / 格線 ---------------- */
 .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--r);
   padding:var(--sp-4) var(--sp-4);box-shadow:var(--shadow);min-width:0;position:relative}
-@media (max-width:640px){.card{padding:16px 18px}}
+@media (max-width:820px){.card{padding:16px 18px}}
 .card.tight{padding:var(--sp-3) var(--sp-3)}
-@media (max-width:640px){.card.tight{padding:12px 14px}}
+@media (max-width:820px){.card.tight{padding:12px 14px}}
 .card h3{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
-@media (max-width:640px){.card h3{gap:10px}}
+@media (max-width:820px){.card h3{gap:10px}}
 .card h3 small{color:var(--ink-3);font-weight:400}
 .card .sub{color:var(--ink-3);font-size:13px;margin:2px 0 var(--sp-2)}
-@media (max-width:640px){.card .sub{margin:2px 0 10px}}
+@media (max-width:820px){.card .sub{margin:2px 0 10px}}
 .grid{display:grid;gap:16px} .grid>*{min-width:0}
 .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
 .g21{grid-template-columns:2fr 1fr} .g12{grid-template-columns:1fr 2fr}
@@ -804,10 +804,10 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 @media (max-width:900px){ #sankey{min-height:520px} }
 /* 2026-09-26（晚）：資金去向版面三選一分段鈕（.skseg／#sankeyStyleSeg）拿掉 —— Andy「只留下經典光纖版本」。*/
 .empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:var(--sp-4)}
-@media (max-width:640px){.empty{padding:20px}}
+@media (max-width:820px){.empty{padding:20px}}
 .pill{display:inline-flex;align-items:center;gap:var(--sp-2);padding:3px var(--sp-2);border-radius:999px;font-size:12.5px;
   background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
-@media (max-width:640px){.pill{gap:6px;padding:3px 10px}}
+@media (max-width:820px){.pill{gap:6px;padding:3px 10px}}
 .pill.cyan{background:rgba(62,224,255,.12);border-color:rgba(62,224,255,.4);color:var(--cyan)}
 .pill.violet{background:rgba(139,123,255,.14);border-color:rgba(139,123,255,.45);color:#c3baff}
 .pill.up{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.4);color:var(--rise)}
@@ -815,7 +815,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .pill.amber{background:rgba(255,180,84,.12);border-color:rgba(255,180,84,.45);color:var(--amber)}
 .seg{display:inline-flex;background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;color:var(--ink-2);padding:var(--sp-1) var(--sp-3);border-radius:7px;cursor:pointer;font-size:13.5px}
-@media (max-width:640px){.seg button{padding:5px 11px}}
+@media (max-width:820px){.seg button{padding:5px 11px}}
 .seg button.on{background:var(--cyan);color:var(--ontop);font-weight:700}
 /* 這個週期這檔沒有資料：灰掉但還是點得下去，點了會說明為什麼沒有 */
 .seg button.off{color:var(--ink-3);opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
@@ -910,13 +910,13 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
   #skTools{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   #skTools::-webkit-scrollbar{display:none}
 }
-@media (max-width:640px){#skTools>.sktags,#skTools>.sktagpop{display:none!important}}
+@media (max-width:820px){#skTools>.sktags,#skTools>.sktagpop{display:none!important}}
 /* ★ 2026-09-28 個股「法人／資券／大戶散戶」三頁：表格裡「目前選中的那一段」欄位反白，對得上上面的圖 */
 .chipTbl th.sel{color:var(--cyan)}
 .chipTbl td.sel{background:color-mix(in srgb,var(--cyan) 7%,transparent);font-weight:700}
 /* 大戶／散戶持股：三顆色塊＝圖例兼開關（按掉那一條就收掉那一格）。顏色由 --hc 帶進來（青／琥珀／紫，避開紅綠） */
 .hoTgls{display:flex;flex-wrap:wrap;gap:8px;margin:var(--sp-2) 0 var(--sp-1)}
-@media (max-width:640px){.hoTgls{margin:10px 0 4px}}
+@media (max-width:820px){.hoTgls{margin:10px 0 4px}}
 .hoTgl{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:4px 12px;border-radius:10px;cursor:pointer;
   border:2px solid var(--hc);background:color-mix(in srgb,var(--hc) 12%,var(--panel-2));color:var(--ink);font:inherit;font-size:14px}
 .hoTgl .sw{width:22px;height:4px;border-radius:2px;background:var(--hc);flex:none}
@@ -928,7 +928,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .hoTgl.off .nm{text-decoration:line-through;text-decoration-thickness:1px}
 /* K 線設定面板：指標樣式列 */
 .cfgpop .strow{align-items:center;gap:var(--sp-2)}
-@media (max-width:640px){.cfgpop .strow{gap:7px}}
+@media (max-width:820px){.cfgpop .strow{gap:7px}}
 .cfgpop .strow>label{min-width:74px;font-size:12.5px;color:var(--ink-2)}
 .cfgpop .cwrap{display:inline-flex;align-items:center;gap:3px}
 .cfgpop .cwrap em{font-style:normal;font-size:11px;color:var(--ink-3);font-family:var(--mono)}
@@ -938,10 +938,10 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* 放大罩：熱力圖／剖析圖看不清楚時全螢幕看 */
 .zoomov{position:fixed;inset:0;z-index:80;background:rgba(5,8,18,.96);backdrop-filter:blur(6px);
   display:flex;flex-direction:column;padding:var(--sp-3) var(--sp-4) var(--sp-4)}
-@media (max-width:640px){.zoomov{padding:14px 16px 18px}}
+@media (max-width:820px){.zoomov{padding:14px 16px 18px}}
 .zoomov[hidden]{display:none}
 .zoomov .zh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:var(--sp-2)}
-@media (max-width:640px){.zoomov .zh{margin-bottom:10px}}
+@media (max-width:820px){.zoomov .zh{margin-bottom:10px}}
 /* ★ 2026-09-24（審查 R4）：罩底固定深色（不隨主題變），標題字色也要固定淺色 ——
    以前吃 var(--ink)，淺色主題下變成深字壓深底，「題材資金熱力」幾乎隱形。*/
 .zoomov .zh b{font-size:17px;color:#E8EEFF}
@@ -959,22 +959,22 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .zoomov .ztools{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;max-height:44vh;overflow:auto}
 .zoomov .ztools:empty{display:none}
 .zoomov .ztools .linkrow{margin-top:var(--sp-1)}
-@media (max-width:640px){.zoomov .ztools .linkrow{margin-top:6px}}
+@media (max-width:820px){.zoomov .ztools .linkrow{margin-top:6px}}
 .zoomov .ztools .rotfilter{margin:0 0 2px}
 /* 熱力圖點方塊後在原地列出成分股，不用跳頁 */
 .hpanel{margin-top:12px;padding:var(--sp-3) var(--sp-3);border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2)}
-@media (max-width:640px){.hpanel{padding:12px 14px}}
+@media (max-width:820px){.hpanel{padding:12px 14px}}
 .hpanel[hidden]{display:none}
 .hpanel .hh{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
-@media (max-width:640px){.hpanel .hh{gap:10px}}
+@media (max-width:820px){.hpanel .hh{gap:10px}}
 .hpanel .hh b{font-size:15.5px}
 .hpanel .hh .m{font-family:var(--mono);font-size:12.5px;color:var(--ink-3)}
 .hpanel .hh .sp{flex:1}
 .hpanel .ms{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:var(--sp-2);margin-top:var(--sp-2)}
-@media (max-width:640px){.hpanel .ms{gap:6px;margin-top:10px}}
+@media (max-width:820px){.hpanel .ms{gap:6px;margin-top:10px}}
 .hpanel .ms a{display:flex;align-items:baseline;gap:var(--sp-2);padding:var(--sp-1) var(--sp-2);border-radius:8px;background:var(--panel-2);
   border:1px solid transparent;transition:.15s;color:var(--ink)}
-@media (max-width:640px){.hpanel .ms a{gap:6px;padding:6px 9px}}
+@media (max-width:820px){.hpanel .ms a{gap:6px;padding:6px 9px}}
 .hpanel .ms a:hover{border-color:var(--cyan)}
 .hpanel .ms a .c{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .hpanel .ms a .g{margin-left:auto;font-family:var(--mono);font-size:12px}
@@ -1024,7 +1024,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 #ovRotCard{position:relative}
 .rotpop{position:absolute;z-index:6;width:max-content;max-width:210px;padding:var(--sp-2) var(--sp-2) var(--sp-2);border-radius:9px;
   background:var(--panel-2);border:1px solid var(--line-2);box-shadow:0 10px 28px rgba(0,0,0,.45);font-size:12.5px;line-height:1.45;color:var(--ink)}
-@media (max-width:640px){.rotpop{padding:8px 10px 7px}}
+@media (max-width:820px){.rotpop{padding:8px 10px 7px}}
 .rotpop[hidden]{display:none}
 .rotpop .rp-h{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
 .rotpop .rp-h b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
@@ -1034,14 +1034,14 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .rotpop .rp-kv dd{margin:0;text-align:right;font-family:var(--mono)}
 .rotpop .rp-was{margin-top:3px;color:var(--ink-2);font-size:12px}
 .rotpop .rp-ms{display:flex;flex-wrap:wrap;gap:3px 4px;margin-top:var(--sp-1)}
-@media (max-width:640px){.rotpop .rp-ms{margin-top:5px}}
+@media (max-width:820px){.rotpop .rp-ms{margin-top:5px}}
 .rotpop .rp-ms a{display:inline-flex;align-items:baseline;gap:4px;padding:1px var(--sp-1);border-radius:6px;background:var(--panel-3);
   color:var(--ink);text-decoration:none;font-size:12px;line-height:1.5;max-width:100%;white-space:nowrap}
-@media (max-width:640px){.rotpop .rp-ms a{padding:1px 6px}}
+@media (max-width:820px){.rotpop .rp-ms a{padding:1px 6px}}
 .rotpop .rp-ms a:hover{outline:1px solid var(--cyan)}
 .rotpop .rp-ms a span{font-family:var(--mono);font-size:11.5px}
 .rotpop .rp-go{display:inline-block;margin-top:var(--sp-1);font-size:12.5px;color:var(--cyan);text-decoration:none}
-@media (max-width:640px){.rotpop .rp-go{margin-top:5px}}
+@media (max-width:820px){.rotpop .rp-go{margin-top:5px}}
 .rotpop .rp-go:hover{text-decoration:underline}
 .hpanel .ms a.sub .c{flex:none}
 .hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
@@ -1082,7 +1082,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* 放大只在框內發生：捲動層 .zpane 在放大時高度鎖死，卡片與整頁版面完全不受影響 */
 /* 圖表旁邊的透明度滑桿（本益比河流圖）。Andy 2026-09-16 要「可以調整透明度」。 */
 .opabox{display:inline-flex;align-items:center;gap:var(--sp-2);font-size:12.5px;color:var(--ink-2);white-space:nowrap}
-@media (max-width:640px){.opabox{gap:6px}}
+@media (max-width:820px){.opabox{gap:6px}}
 .opabox input[type=range]{width:82px}
 .opabox .val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:34px;text-align:right}
 .opabox input:disabled{opacity:.35}
@@ -1096,7 +1096,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
    點名字＝只看那個族群（兩張圖同步），點箭頭才是進族群頁 ——
    以前整顆是連結，所以「點了就跳走」，根本沒辦法拿來篩選。*/
 .linkrow.gchips{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2)}
-@media (max-width:640px){.linkrow.gchips{gap:5px 6px}}
+@media (max-width:820px){.linkrow.gchips{gap:5px 6px}}
 /* ★ 2026-09-23：`.rotfilter` 裡的族群晶片列與產業鏈 seg 已換成兩層下拉（見下面的 .rotdd），
    原本那五條專屬樣式（`.rotfilter .linkrow.gchips` / `.rotfilter .seg.rotchain` /
    `.rotfilter .gchip*` 與 `[data-sync="n2"]` 的高度上限）全部刪掉，不留死樣式。
@@ -1115,7 +1115,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .rotdd .ddbtn{appearance:none;display:inline-flex;align-items:center;gap:var(--sp-2);max-width:min(340px,100%);
   padding:var(--sp-1) var(--sp-2);border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
   color:var(--ink-2);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
-@media (max-width:640px){.rotdd .ddbtn{gap:6px;padding:4px 10px}}
+@media (max-width:820px){.rotdd .ddbtn{gap:6px;padding:4px 10px}}
 .rotdd .ddbtn b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .rotdd .ddbtn i{font-style:normal;color:var(--ink-3);font-size:11px}  /* R2 #4：10 → 11px（全站字級下限） */
 .rotdd .ddbtn:hover{border-color:var(--cyan);color:var(--ink)}
@@ -1124,11 +1124,11 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
   max-width:calc(100vw - 32px);max-height:290px;overflow:hidden;display:flex;flex-direction:column;
   padding:var(--sp-1);border-radius:10px;border:1px solid var(--line-2);background:var(--panel);
   box-shadow:0 10px 26px rgba(0,0,0,.35)}
-@media (max-width:640px){.rotdd .ddpanel{padding:6px}}
+@media (max-width:820px){.rotdd .ddpanel{padding:6px}}
 .rotdd .ddpanel[hidden]{display:none}
 .rotdd .ddbar{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:2px var(--sp-1) var(--sp-1);
   border-bottom:1px solid var(--line-2);margin-bottom:4px}
-@media (max-width:640px){.rotdd .ddbar{gap:6px;padding:2px 4px 6px}}
+@media (max-width:820px){.rotdd .ddbar{gap:6px;padding:2px 4px 6px}}
 .rotdd .ddbar .muted{font-size:11px}
 .rotdd .ddbar .btn{margin-left:auto}
 .rotdd .ddbar .btn+.btn{margin-left:0}
@@ -1140,22 +1140,22 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .rotdd .ddpanel>.ddopt,.rotdd .ddlist>.ddopt:not(.chk):not(.one){display:flex;align-items:center;gap:8px;width:100%;appearance:none;border:0;
   background:transparent;color:var(--ink-2);font-size:12.5px;font-family:inherit;text-align:left;
   padding:var(--sp-1) var(--sp-2);border-radius:7px;cursor:pointer}
-@media (max-width:640px){.rotdd .ddpanel>.ddopt,.rotdd .ddlist>.ddopt:not(.chk):not(.one){padding:6px 9px}}
+@media (max-width:820px){.rotdd .ddpanel>.ddopt,.rotdd .ddlist>.ddopt:not(.chk):not(.one){padding:6px 9px}}
 .rotdd .ddpanel>.ddopt em,.rotdd .ddlist>.ddopt:not(.chk):not(.one) em{margin-left:auto;font-style:normal;color:var(--ink-3);font-size:11px;font-family:var(--mono)}
 .rotdd .ddpanel>.ddopt:hover,.rotdd .ddlist>.ddopt:not(.chk):not(.one):hover{background:var(--panel-2);color:var(--ink)}
 .rotdd .ddpanel>.ddopt.on,.rotdd .ddlist>.ddopt:not(.chk):not(.one).on{background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--ink);font-weight:600}
 /* 第二層（族群）：checkbox ＋ 族群顏色點 ＋ 「→ 進族群頁」。
    `→` 刻意放在 <label> 外面，不然點它會連帶把勾選也切掉（瀏覽器原生行為）。*/
 .rotdd .ddopt.chk{display:flex;align-items:center;gap:var(--sp-2);border-radius:7px;padding:0 var(--sp-1) 0 0}
-@media (max-width:640px){.rotdd .ddopt.chk{gap:6px;padding:0 6px 0 0}}
+@media (max-width:820px){.rotdd .ddopt.chk{gap:6px;padding:0 6px 0 0}}
 .rotdd .ddopt.chk:hover{background:var(--panel-2)}
 .rotdd .ddopt.chk label{display:flex;align-items:center;gap:var(--sp-2);flex:1 1 auto;min-width:0;
   padding:var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-2);cursor:pointer;font-size:12.5px;color:var(--ink-2)}
-@media (max-width:640px){.rotdd .ddopt.chk label{gap:7px;padding:5px 4px 5px 8px}}
+@media (max-width:820px){.rotdd .ddopt.chk label{gap:7px;padding:5px 4px 5px 8px}}
 .rotdd .ddopt.chk input{accent-color:var(--c,var(--cyan));flex:none;margin:0}
 .rotdd .ddopt.chk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   border-left:3px solid var(--c,var(--cyan));padding-left:var(--sp-1)}
-@media (max-width:640px){.rotdd .ddopt.chk .nm{padding-left:6px}}
+@media (max-width:820px){.rotdd .ddopt.chk .nm{padding-left:6px}}
 .rotdd .ddopt.chk label:hover .nm{color:var(--ink)}
 .rotdd .ddopt.chk .go{flex:none;color:var(--ink-3);text-decoration:none;padding:3px 4px;font-size:12px}
 .rotdd .ddopt.chk .go:hover{color:var(--ink)}
@@ -1163,16 +1163,16 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
    所以不需要 checkbox —— 這張圖從第一天起就是「一次只看一個族群」，
    放 checkbox 會讓人以為可以多選。左邊那條族群色的粗邊是唯一的「顏色線索」。*/
 .rotdd .ddopt.one{display:flex;align-items:center;gap:var(--sp-2);width:100%;border-radius:7px;padding:0 var(--sp-1) 0 0}
-@media (max-width:640px){.rotdd .ddopt.one{gap:6px;padding:0 6px 0 0}}
+@media (max-width:820px){.rotdd .ddopt.one{gap:6px;padding:0 6px 0 0}}
 .rotdd .ddopt.one:not(.row){appearance:none;border:0;background:transparent;color:var(--ink-2);
   font-size:12.5px;font-family:inherit;text-align:left;padding:var(--sp-1) var(--sp-2);cursor:pointer}
-@media (max-width:640px){.rotdd .ddopt.one:not(.row){padding:6px 9px}}
+@media (max-width:820px){.rotdd .ddopt.one:not(.row){padding:6px 9px}}
 .rotdd .ddopt.one:hover{background:var(--panel-2)}
 .rotdd .ddopt.one .nm{flex:1 1 auto;min-width:0;appearance:none;border:0;background:transparent;
   color:var(--ink-2);font-size:12.5px;font-family:inherit;text-align:left;cursor:pointer;
   padding:var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   border-left:3px solid var(--c,var(--cyan))}
-@media (max-width:640px){.rotdd .ddopt.one .nm{padding:6px 4px 6px 8px}}
+@media (max-width:820px){.rotdd .ddopt.one .nm{padding:6px 4px 6px 8px}}
 .rotdd .ddopt.one .nm:hover{color:var(--ink)}
 .rotdd .ddopt.one.on{background:color-mix(in srgb,var(--c,var(--cyan)) 20%,transparent)}
 .rotdd .ddopt.one.on .nm{color:var(--ink);font-weight:600}
@@ -1185,7 +1185,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
   border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,transparent);font-size:12px}
 .gchip .pick{appearance:none;border:0;background:transparent;color:var(--ink-2);
   padding:3px var(--sp-1) 3px var(--sp-2);cursor:pointer;font-size:12px;font-family:inherit}
-@media (max-width:640px){.gchip .pick{padding:3px 4px 3px 9px}}
+@media (max-width:820px){.gchip .pick{padding:3px 4px 3px 9px}}
 .gchip .go{color:var(--ink-3);text-decoration:none;padding:3px 8px 3px 4px;
   border-left:1px solid color-mix(in srgb,var(--c) 26%,transparent)}
 .gchip:hover{border-color:var(--c)}
@@ -1200,9 +1200,9 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
   display:flex;flex-direction:column;gap:var(--sp-2);justify-content:center;
   background:color-mix(in srgb,var(--violet) 9%,transparent);
   border:1px solid color-mix(in srgb,var(--violet) 26%,transparent)}
-@media (max-width:640px){.m3-night{padding:12px 14px;gap:6px}}
+@media (max-width:820px){.m3-night{padding:12px 14px;gap:6px}}
 .m3-night .m3-q{display:flex;align-items:baseline;gap:var(--sp-2)}
-@media (max-width:640px){.m3-night .m3-q{gap:10px}}
+@media (max-width:820px){.m3-night .m3-q{gap:10px}}
 .m3-night .m3-q b{font-size:15px}
 .m3-night .note{font-size:12px;color:var(--ink-2);line-height:1.6}
 .m3-night .note b{color:var(--ink)}
@@ -1210,7 +1210,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
    warn 用琥珀色，跟退回日線那行同一個語彙：畫面上有東西，但要講清楚它是什麼。*/
 .m3-tag{margin-left:8px;padding:1px var(--sp-2);border-radius:999px;font-size:11px;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   background:color-mix(in srgb,var(--violet) 18%,transparent);color:var(--ink-2)}
-@media (max-width:640px){.m3-tag{padding:1px 7px}}
+@media (max-width:820px){.m3-tag{padding:1px 7px}}
 .m3-tag.warn{background:color-mix(in srgb,var(--amber) 18%,transparent);color:var(--amber)}
 @media (max-width:900px){ .m3-night .note{font-size:11.5px} }
 /* 大盤三張圖：這個週期沒來源而自動退回日線時，在圖上方標一行（N11）。
@@ -1235,10 +1235,10 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* 「即時」鈕（Andy 2026-09-21）。比 ＋／−／▶ 寬，因為它是兩個中文字不是一個符號；
    開著的時候整顆亮起來 —— 使用者一定要看得出「現在畫的不是收盤那一張」。 */
 .rbar .pb.livebtn{width:auto;padding:0 var(--sp-2);font-size:12px;letter-spacing:.5px}
-@media (max-width:640px){.rbar .pb.livebtn{padding:0 10px}}
+@media (max-width:820px){.rbar .pb.livebtn{padding:0 10px}}
 .rbar .pb.livebtn.on{border-color:var(--rise);color:var(--rise);box-shadow:var(--glow)}
 .livenote{margin-top:var(--sp-1);line-height:1.7}
-@media (max-width:640px){.livenote{margin-top:6px}}
+@media (max-width:820px){.livenote{margin-top:6px}}
 .livenote .live{color:var(--rise)}
 .livenote .warn{color:var(--amber)}
 .livenote .bad{color:var(--rise)}
@@ -1269,14 +1269,14 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
    所以給一顆真的按鈕）。放右上角：三張熱力圖的徽章在左下、法人連買的徽章在右下，不會疊在一起。*/
 .zwrap>.zreset{position:absolute;right:8px;top:8px;z-index:6;height:26px;padding:0 var(--sp-3);border-radius:999px;
   border:1px solid rgba(62,224,255,.45);background:rgba(10,16,32,.9);color:#E8EEFF;font-size:12px;cursor:pointer}
-@media (max-width:640px){.zwrap>.zreset{padding:0 11px}}
+@media (max-width:820px){.zwrap>.zreset{padding:0 11px}}
 .zwrap>.zreset:hover{border-color:var(--cyan);color:var(--cyan)}
 .zwrap>.zreset[hidden]{display:none}
 .chainchips{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin:var(--sp-3) 0 var(--sp-1)}
-@media (max-width:640px){.chainchips{gap:6px;margin:12px 0 6px}}
+@media (max-width:820px){.chainchips{gap:6px;margin:12px 0 6px}}
 .chainchips button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
   padding:var(--sp-1) var(--sp-3);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:var(--sp-2);transition:.15s}
-@media (max-width:640px){.chainchips button{padding:5px 13px;gap:7px}}
+@media (max-width:820px){.chainchips button{padding:5px 13px;gap:7px}}
 .chainchips button em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .chainchips button:hover{border-color:var(--cyan);color:var(--ink)}
 /* 站上均線：成分股 < 5 檔的族群標「樣本少」（琥珀色，跟其他數字的灰色分開） */
@@ -1288,7 +1288,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 /* 輪動階段看板 */
 .cyclebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
 .cyclebar .st{padding:var(--sp-1) var(--sp-3);border-radius:999px;font-weight:700;font-size:13.5px}
-@media (max-width:640px){.cyclebar .st{padding:5px 13px}}
+@media (max-width:820px){.cyclebar .st{padding:5px 13px}}
 .cyclebar .ar{color:var(--ink-3);font-size:13px}
 /* ★ 2026-09-23：`.rotmove` 一整組已移除 —— 它只服務「最近 5 個交易日換階段的族群」那一排（Andy 指定拿掉）。 */
 /* 輪動階段（F1，Andy 2026-09-18：「我覺得很醜，幫我想其他方式呈現，不夠直觀，不要那麼方方角角」）。
@@ -1311,7 +1311,7 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .rotlivetag{display:inline-flex;align-items:center;gap:var(--sp-1);height:22px;padding:0 8px;border-radius:999px;cursor:pointer;
   font-size:12px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--rise) 12%,var(--panel-2));
   border:1px solid color-mix(in srgb,var(--rise) 45%,transparent)}
-@media (max-width:640px){.rotlivetag{gap:5px}}
+@media (max-width:820px){.rotlivetag{gap:5px}}
 .rotlivetag[hidden]{display:none}
 .rotlivetag i{width:6px;height:6px;border-radius:50%;background:var(--rise)}
 .rotlivetag.warn{background:color-mix(in srgb,var(--amber) 12%,var(--panel-2));border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
@@ -1322,11 +1322,11 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
   padding:var(--sp-2) var(--sp-3);border-radius:10px;background:var(--tip-bg,var(--panel));border:1px solid var(--tip-line,var(--line-2));
   box-shadow:var(--tip-sh,0 8px 24px -8px rgba(0,0,0,.55));font-size:12.5px;font-weight:400;line-height:1.7;color:var(--ink-2);
   display:none}
-@media (max-width:640px){.rotlivetip{padding:10px 12px}}
+@media (max-width:820px){.rotlivetip{padding:10px 12px}}
 .rotlivewrap:hover .rotlivetip:not([hidden]),.rotlivewrap:focus-within .rotlivetip:not([hidden]),
 .rotlivetag.open+.rotlivetip:not([hidden]){display:block}
 .rotlivetip .live{color:var(--rise)} .rotlivetip .warn{color:var(--amber)} .rotlivetip .bad{color:var(--rise)}
-@media (max-width:640px){ .rotlivewrap{position:static} .rotlivetip{left:16px;right:16px;width:auto} }
+@media (max-width:820px){ .rotlivewrap{position:static} .rotlivetip{left:16px;right:16px;width:auto} }
 /* 水波疊層（2026-09-24）：蓋在時鐘上、不吃滑鼠，點與提示框照常可以滑可以點 */
 canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
 /* ★ 2026-09-24 效能：足跡輪盤的掃描光束與聲納改成 DOM ＋ 合成器動畫（以前每一幀整張重畫 canvas，見 app.js rotFxBeam）。
@@ -1353,14 +1353,14 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
      色相與語意一個字都沒改，只是讓底色退後一點點。*/
   color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--panel));
   border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
-@media (max-width:640px){.rotquads .rq{gap:5px;padding:3px 9px}}
+@media (max-width:820px){.rotquads .rq{gap:5px;padding:3px 9px}}
 .rotquads .rq em{font-style:normal;font-weight:600;font-size:11px;font-family:var(--mono);color:var(--ink-2)}
 .rotquads .rq:hover{background:color-mix(in srgb,var(--c) 26%,var(--panel));border-color:var(--c)}
 .rotquads .rq.on{background:color-mix(in srgb,var(--c) 34%,var(--panel));border-color:var(--c);
   color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 28%,transparent)}
 .rotquads .rq.on em{color:var(--ink)}
 @media (max-width:900px){ .rotquads .rq{font-size:12px;padding:2px var(--sp-2)}
-@media (max-width:640px){.rotquads .rq{padding:2px 7px}} }
+@media (max-width:820px){.rotquads .rq{padding:2px 7px}} }
 /* ★ 2026-09-24 晚：足跡輪盤桌機版照 Andy 的參考檔換長相（理由寫在 app.js ROT_GRAD_V2 上面）。
    象限徽章＝深底膠囊＋1.2px 象限色框；數字 12px（參考檔 11px 低於全站下限，補到 12）。
    ⚠ 象限名**仍然用象限色**，不照參考檔改白字：四顆一樣白的話只剩框色在分，
@@ -1385,7 +1385,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stagepanel .ph .n{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
 .stagepanel .ph .sp{flex:1}
 .stagepanel .sd{font-size:12px;margin:var(--sp-1) 0 2px;line-height:1.55}
-@media (max-width:640px){.stagepanel .sd{margin:6px 0 2px}}
+@media (max-width:820px){.stagepanel .sd{margin:6px 0 2px}}
 /* 清單本體：一列一個族群，和原本看板那四格的 li 用同一套（.stage ul li 的樣式在下面）
 
    ★★ 2026-09-23 修版面壞掉（Andy：「資金輪動領先 改善 落後 轉若 裡面的內容跑掉需要重新排版」）
@@ -1425,7 +1425,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stagepanel ul.ms{display:block;max-height:280px;overflow-y:auto;overflow-x:hidden;margin:8px 0 0;padding:0 4px 0 0;list-style:none}
 .stagepanel ul.ms li{display:grid;grid-template-columns:minmax(0,1fr) 40px 40px 38px 12px;column-gap:var(--sp-2);
   align-items:center;padding:var(--sp-1) var(--sp-2);border-radius:7px;cursor:pointer;font-size:12.5px;line-height:18px;color:var(--ink-2)}
-@media (max-width:640px){.stagepanel ul.ms li{column-gap:6px;padding:5px 8px}}
+@media (max-width:820px){.stagepanel ul.ms li{column-gap:6px;padding:5px 8px}}
 .stagepanel ul.ms li>*{white-space:nowrap}
 .stagepanel ul.ms li+li:not(.cols){border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
 .stagepanel ul.ms li:not(.cols):hover{background:var(--panel-2);color:var(--ink)}
@@ -1437,7 +1437,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stagepanel ul.ms li.cols>span:nth-child(n+2){text-align:right}
 .stagepanel ul.ms li.cols>span:last-child{text-align:center}
 .stagepanel ul.ms li .gc{display:flex;align-items:center;gap:var(--sp-1);min-width:0}
-@media (max-width:640px){.stagepanel ul.ms li .gc{gap:5px}}
+@media (max-width:820px){.stagepanel ul.ms li .gc{gap:5px}}
 .stagepanel ul.ms li .g{font-weight:600;color:var(--ink);min-width:3.2em;flex:0 1 auto;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stagepanel ul.ms li .v{text-align:right;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
@@ -1447,9 +1447,9 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stagepanel ul.ms li .ar.fl{color:var(--ink-3)}
 .stagepanel ul.ms li .jmp{flex:none;font-size:12px;line-height:16px;padding:0 var(--sp-1);border-radius:999px;color:var(--c);
   border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 12%,transparent)}
-@media (max-width:640px){.stagepanel ul.ms li .jmp{padding:0 5px}}
+@media (max-width:820px){.stagepanel ul.ms li .jmp{padding:0 5px}}
 .stageboard{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-4);margin-top:var(--sp-4);padding-top:16px}
-@media (max-width:640px){.stageboard{gap:18px;margin-top:20px}}
+@media (max-width:820px){.stageboard{gap:18px;margin-top:20px}}
 .stageboard::before{content:"";position:absolute;left:2%;right:2%;top:4px;height:6px;border-radius:999px;
   background:linear-gradient(90deg,var(--fall),var(--cyan),var(--rise),var(--amber),var(--fall));opacity:.5}
 /* ★ 2026-09-23：`.stageboard.compact` 的專屬規則已移除 —— 它只服務總覽的 `#rotMini`，
@@ -1457,7 +1457,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stage{position:relative;border:1px solid color-mix(in srgb,var(--c) 34%,transparent);border-radius:20px;
   padding:var(--sp-3) var(--sp-4) var(--sp-3);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 11%,var(--panel-3)),var(--panel-3));
   box-shadow:0 10px 26px -22px var(--c)}
-@media (max-width:640px){.stage{padding:14px 15px 13px}}
+@media (max-width:820px){.stage{padding:14px 15px 13px}}
 /* 軌道上的節點：每一段頭上一顆圓點，坐在漸層軌上 */
 .stage::before{content:"";position:absolute;left:24px;top:-19px;width:13px;height:13px;border-radius:999px;
   background:var(--c);box-shadow:0 0 0 4px var(--bg),0 0 12px var(--c)}
@@ -1471,14 +1471,14 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stage .sh .n{font-family:var(--mono);font-size:12px;color:var(--ink-3);background:var(--panel-2);
   border-radius:999px;padding:1px 8px}
 .stage .sd{color:var(--ink-3);font-size:12.5px;margin:var(--sp-1) 0 var(--sp-2);line-height:1.55}
-@media (max-width:640px){.stage .sd{margin:5px 0 9px}}
+@media (max-width:820px){.stage .sd{margin:5px 0 9px}}
 .stage .sd em{font-style:normal;color:var(--ink-2)}
 /* 2026-09-18（Andy 圖五）：四格改成固定高度＋自己的捲軸。
    以前是「只列前 12 個、其餘寫一句還有 N 個」，看不到的就是看不到；
    現在全部列出來，格子高度固定所以四格永遠等高，版面也不會被撐長。*/
 .stage ul{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:var(--sp-1);
   max-height:380px;overflow-y:auto;scrollbar-width:thin}
-@media (max-width:640px){.stage ul{gap:5px}}
+@media (max-width:820px){.stage ul{gap:5px}}
 /* ---- 週期統計（#season）的熱力圖外框 ----
    ★ 2026-09-24（Andy：約 100 個族群擠在 600px 高、每列 5～6px、名字只顯示每 4～5 列一個）：
    列高改成固定值（桌機 24、手機 20），圖高＝列數 × 列高，所以每個族群名稱都印得出來；
@@ -1487,7 +1487,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
    （原本 `#seasonBoard` 的兩條規則跟著「本月歷史最強族群」那張卡一起拿掉了。）*/
 .shbox{position:relative;margin-top:var(--sp-2);max-height:680px;overflow-y:auto;overscroll-behavior:contain;
   border-radius:10px;scrollbar-width:thin;max-width:100%}
-@media (max-width:640px){.shbox{margin-top:10px}}
+@media (max-width:820px){.shbox{margin-top:10px}}
 /* ★ 2026-09-24（docs/season_grid_spec.md）：桌機的外框寬由 app.js 設成「名稱欄＋12 格」的表格寬，整張表靠左；
    `max-width:100%` 是保險 —— 算錯也不准撐出卡片、不准出現橫向捲軸。手機不設寬，照舊撐滿。*/
 .shbox[hidden]{display:none}
@@ -1510,12 +1510,12 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stage li.open{border-color:var(--c);background:var(--panel)}
 .stage li.mem{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);padding:var(--sp-2) var(--sp-2);border-radius:12px;cursor:default;
   background:color-mix(in srgb,var(--c) 9%,transparent);border:1px solid color-mix(in srgb,var(--c) 26%,transparent)}
-@media (max-width:640px){.stage li.mem{gap:4px 6px;padding:7px 10px}}
+@media (max-width:820px){.stage li.mem{gap:4px 6px;padding:7px 10px}}
 .stage li.mem:hover{transform:none;background:color-mix(in srgb,var(--c) 9%,transparent)}
 .stage li.mem .go{margin-left:auto}
 .stage li{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1) var(--sp-3);border-radius:999px;background:var(--panel-2);
   cursor:pointer;transition:.15s;flex-wrap:wrap;border:1px solid transparent}
-@media (max-width:640px){.stage li{gap:6px;padding:6px 12px}}
+@media (max-width:820px){.stage li{gap:6px;padding:6px 12px}}
 /* ★ 2026-09-23 UI 精修 #5：拿掉 translateX(2px)。密集清單裡整列往右跳，
    滑鼠往下掃過去就是一連串連鎖抖動，看起來像畫面在壞掉而不是回饋。
    回饋改由底色與邊框色負責（而且現在有 120ms 的過場，不再是硬跳）。*/
@@ -1532,25 +1532,25 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .kpi.on{border-color:var(--cyan);box-shadow:var(--glow)}
 .kpi .l .more{float:right;font-size:11.5px;color:var(--cyan);opacity:.8}
 .kpinote{color:var(--ink-3);font-size:13px;margin:var(--sp-2) 0;line-height:1.7}
-@media (max-width:640px){.kpinote{margin:10px 0}}
+@media (max-width:820px){.kpinote{margin:10px 0}}
 #mktSeg2 button,#mktTabs button{padding:var(--sp-1) var(--sp-3)}
-@media (max-width:640px){#mktSeg2 button,#mktTabs button{padding:6px 13px}}
+@media (max-width:820px){#mktSeg2 button,#mktTabs button{padding:6px 13px}}
 #mktTabs button em{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75;margin-left:3px}
 .magrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--sp-2)}
-@media (max-width:640px){.magrid{gap:10px}}
+@media (max-width:820px){.magrid{gap:10px}}
 .magrid .ma{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:var(--sp-2) var(--sp-3);cursor:pointer;transition:.15s}
-@media (max-width:640px){.magrid .ma{padding:10px 12px}}
+@media (max-width:820px){.magrid .ma{padding:10px 12px}}
 .magrid .ma:hover{border-color:var(--cyan)}
 .magrid .ma .n{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;font-weight:600}
 .magrid .ma .n em{font-style:normal;font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
 .magrid .ma .bar{height:7px;border-radius:4px;background:var(--panel);margin:var(--sp-2) 0 var(--sp-1);overflow:hidden}
-@media (max-width:640px){.magrid .ma .bar{margin:8px 0 6px}}
+@media (max-width:820px){.magrid .ma .bar{margin:8px 0 6px}}
 .magrid .ma .bar i{display:block;height:100%;border-radius:4px}
 .magrid .ma .v{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between}
 .magrid .ma .v span{color:var(--ink-3)}
 .top5grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
 .top5grid .t5{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:var(--sp-3) var(--sp-3)}
-@media (max-width:640px){.top5grid .t5{padding:11px 13px}}
+@media (max-width:820px){.top5grid .t5{padding:11px 13px}}
 .top5grid .t5 .h{display:flex;justify-content:space-between;align-items:baseline;font-weight:600}
 .top5grid .t5 .h em{font-style:normal;font-family:var(--mono);color:var(--cyan);font-size:13px}
 .top5grid .t5 .m{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:4px 0 8px}
@@ -1560,15 +1560,15 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .periodbar .pnote{color:var(--ink-3);font-size:13px;margin-top:4px;font-family:var(--mono)}
 .howbtn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
   padding:var(--sp-1) var(--sp-3);font-size:12.5px;cursor:pointer;white-space:nowrap}
-@media (max-width:640px){.howbtn{padding:4px 11px}}
+@media (max-width:820px){.howbtn{padding:4px 11px}}
 .howbtn:hover{border-color:var(--cyan);color:var(--cyan)}
 .howbtn.on{background:var(--cyan);color:var(--ontop);border-color:var(--cyan);font-weight:700}
 .howtxt{margin:var(--sp-2) 0 2px;padding:var(--sp-3) var(--sp-3);border-radius:10px;background:var(--panel-3);
   border:1px solid var(--line-2);border-left:3px solid var(--cyan);color:var(--ink-2);font-size:13.5px;line-height:1.75}
-@media (max-width:640px){.howtxt{margin:10px 0 2px;padding:11px 14px}}
+@media (max-width:820px){.howtxt{margin:10px 0 2px;padding:11px 14px}}
 .howtxt b{color:var(--ink-1)} .howtxt em{color:var(--cyan);font-style:normal}
 .howtxt ul{margin:var(--sp-1) 0 0;padding-left:var(--sp-4)}
-@media (max-width:640px){.howtxt ul{margin:6px 0 0;padding-left:18px}} .howtxt li{margin:3px 0}
+@media (max-width:820px){.howtxt ul{margin:6px 0 0;padding-left:18px}} .howtxt li{margin:3px 0}
 /* ★ 2026-09-24 說明精簡：「怎麼看 ?」統一成「一句問題 → 條列」（app.js howHTML；最下面那行小字口徑 2026-09-26 拿掉） */
 .howtxt .howq{display:block;color:var(--ink)}
 /* 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：「?」只留標題＋條列。
@@ -1576,9 +1576,9 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
    另一支 agent 正在改那一塊，這一批不碰它），一律不顯示。*/
 .howtxt .howfine,#howPop .howfine{display:none!important}
 .qlegend{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-3);margin-top:var(--sp-2);font-size:12.5px;color:var(--ink-3)}
-@media (max-width:640px){.qlegend{gap:6px 14px;margin-top:10px}}
+@media (max-width:820px){.qlegend{gap:6px 14px;margin-top:10px}}
 .qlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:var(--sp-1)}
-@media (max-width:640px){.qlegend i{margin-right:5px}}
+@media (max-width:820px){.qlegend i{margin-right:5px}}
 /* ★ 2026-09-23：`.vfilters` 一整組已移除 —— 它只服務「估值篩選」那張卡（Andy 指定拿掉）。 */
 .seg button:hover:not(.on){background:var(--panel-2);color:var(--ink)}
 /* K 線工具：重設縮放的小方框圖示、繪圖工具列、設定浮層 */
@@ -1589,7 +1589,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .chartwrap{display:flex;gap:8px;align-items:stretch}
 .drawbar{display:flex;flex-direction:column;gap:4px;padding:var(--sp-1);border:1px solid var(--line-2);
   border-radius:10px;background:var(--panel-3);align-self:flex-start}
-@media (max-width:640px){.drawbar{padding:5px}}
+@media (max-width:820px){.drawbar{padding:5px}}
 .dtool{width:28px;height:28px;display:grid;place-items:center;border:1px solid transparent;background:transparent;
   color:var(--ink-2);border-radius:7px;cursor:pointer;padding:0}
 .dtool svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
@@ -1605,26 +1605,26 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 #indBtn.tickdim{opacity:.7}
 #drawTgl:disabled{opacity:.45;cursor:not-allowed}
 .indpop .tknote{margin:0 0 var(--sp-1);color:var(--amber,#ffb454)}
-@media (max-width:640px){.indpop .tknote{margin:0 0 6px}}
+@media (max-width:820px){.indpop .tknote{margin:0 0 6px}}
 /* 設定面板固定用 JS 擺在按鈕旁邊（placePop）。position:fixed 是刻意的：
    以前是 absolute + right:18px，錨點是最近的 positioned 祖先、跟按鈕無關，
    結果常常飄到整張 K 線圖下面或畫面另一邊（Andy 2026-09-15 截圖）。*/
 .cfgpop{position:fixed;z-index:60;width:376px;max-width:calc(100vw - 24px);max-height:78vh;overflow-y:auto;
   background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:var(--sp-3) var(--sp-3);
   box-shadow:0 18px 46px var(--drop)}
-@media (max-width:640px){.cfgpop{padding:12px 14px}}
+@media (max-width:820px){.cfgpop{padding:12px 14px}}
 .cfgpop .ttl{font-weight:700;margin-bottom:var(--sp-1)}
-@media (max-width:640px){.cfgpop .ttl{margin-bottom:6px}}
+@media (max-width:820px){.cfgpop .ttl{margin-bottom:6px}}
 .cfgpop .ttl2{font-weight:600;font-size:13px;color:var(--ink-2);margin:var(--sp-2) 0 var(--sp-1)}
-@media (max-width:640px){.cfgpop .ttl2{margin:10px 0 4px}}
+@media (max-width:820px){.cfgpop .ttl2{margin:10px 0 4px}}
 .cfgpop .frow{display:flex;align-items:center;gap:8px;margin:var(--sp-1) 0}
-@media (max-width:640px){.cfgpop .frow{margin:5px 0}}
+@media (max-width:820px){.cfgpop .frow{margin:5px 0}}
 .cfgpop .frow label{font-size:13px;color:var(--ink-2);min-width:64px}
 .cfgpop .val{font-family:var(--mono);font-size:12px;color:var(--cyan)}
 .cfgpop input[type=color]{width:30px;height:24px;padding:0;border:1px solid var(--line-2);border-radius:6px;background:none;cursor:pointer}
 .cfgpop input[type=number],.cfgpop select{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);
   border-radius:7px;padding:var(--sp-1) var(--sp-2);font-size:13px}
-@media (max-width:640px){.cfgpop input[type=number],.cfgpop select{padding:4px 7px}}
+@media (max-width:820px){.cfgpop input[type=number],.cfgpop select{padding:4px 7px}}
 .cfgpop .note{font-size:12px;color:var(--ink-3);line-height:1.5}
 @media (max-width:760px){.chartwrap{flex-direction:column}.drawbar{flex-direction:row;flex-wrap:wrap;align-self:stretch}.dsep{height:auto;width:1px;margin:2px 3px}}
 /* 今日候選的族群篩選：Excel 欄位篩選那種勾選下拉 */
@@ -1632,18 +1632,18 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .cgwrap .btn.on{border-color:var(--cyan);color:var(--cyan);background:rgba(62,224,255,.1)}
 .cgpop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:280px;max-width:calc(100vw - 32px);
   background:var(--panel);border:1px solid var(--line-2);border-radius:11px;padding:var(--sp-2);box-shadow:0 18px 46px var(--drop)}
-@media (max-width:640px){.cgpop{padding:10px}}
+@media (max-width:820px){.cgpop{padding:10px}}
 .cgpop[hidden]{display:none}
 .cgpop #cgSearch{width:100%;background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);
   border-radius:8px;padding:var(--sp-1) var(--sp-2);font-size:13.5px}
-@media (max-width:640px){.cgpop #cgSearch{padding:6px 10px}}
+@media (max-width:820px){.cgpop #cgSearch{padding:6px 10px}}
 .cgpop #cgSearch:focus{outline:0;border-color:var(--cyan)}
 .cgpop .cgact{display:flex;align-items:center;gap:var(--sp-2);margin:var(--sp-2) 0 var(--sp-1)}
-@media (max-width:640px){.cgpop .cgact{gap:6px;margin:8px 0 6px}}
+@media (max-width:820px){.cgpop .cgact{gap:6px;margin:8px 0 6px}}
 .cgpop .cgact .muted{margin-left:auto;font-family:var(--mono);font-size:12px}
 .cglist{max-height:300px;overflow:auto;scrollbar-width:thin;display:flex;flex-direction:column;gap:1px}
 .cglist label{display:flex;align-items:center;gap:8px;padding:var(--sp-1) var(--sp-2);border-radius:7px;cursor:pointer;font-size:13.5px}
-@media (max-width:640px){.cglist label{padding:5px 7px}}
+@media (max-width:820px){.cglist label{padding:5px 7px}}
 .cglist label:hover{background:var(--panel-3)}
 .cglist label[hidden]{display:none}
 .cglist input{accent-color:var(--cyan);width:15px;height:15px;flex:none}
@@ -1652,74 +1652,74 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .facets{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
 .facets button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:9px;
   padding:var(--sp-1) var(--sp-3);cursor:pointer;font-size:13.5px;display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.25}
-@media (max-width:640px){.facets button{padding:6px 12px}}
+@media (max-width:820px){.facets button{padding:6px 12px}}
 .facets button b{font-weight:700}
 .facets button em{font-style:normal;font-size:11px;color:var(--ink-3);letter-spacing:.02em}
 .facets button:hover{border-color:var(--cyan)}
 .facets button.on{border-color:var(--cyan);background:rgba(62,224,255,.12);color:var(--ink)}
 .facets button.on em{color:var(--cyan)}
 .hint{margin:0 0 var(--sp-2);color:var(--ink-3);font-size:12.5px;line-height:1.5}
-@media (max-width:640px){.hint{margin:0 0 10px}}
+@media (max-width:820px){.hint{margin:0 0 10px}}
 tr.whyrow>td{padding:2px var(--sp-2) var(--sp-2);border-top:0}
-@media (max-width:640px){tr.whyrow>td{padding:2px 10px 10px}}
+@media (max-width:820px){tr.whyrow>td{padding:2px 10px 10px}}
 .why{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
-@media (max-width:640px){.why{gap:6px}}
+@media (max-width:820px){.why{gap:6px}}
 .why span{font-size:12px;padding:3px 8px;border-radius:7px;border:1px solid var(--line-2);color:var(--ink-2);
   background:var(--panel-3);max-width:100%}
 .why span.pro{border-color:rgba(46,229,157,.35);color:#9df0cd}
 .why span.con{border-color:rgba(255,180,84,.35);color:#ffd39a}
 .btn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:var(--sp-2) var(--sp-3);border-radius:9px;
   cursor:pointer;font-size:14px}
-@media (max-width:640px){.btn{padding:7px 13px}}
+@media (max-width:820px){.btn{padding:7px 13px}}
 .btn:hover{border-color:var(--cyan)}
 .btn.primary{background:var(--cyan);color:var(--ontop);border-color:transparent;font-weight:700}
 .btn.small{padding:var(--sp-1) var(--sp-2);font-size:12.5px}
-@media (max-width:640px){.btn.small{padding:4px 9px}}
+@media (max-width:820px){.btn.small{padding:4px 9px}}
 .kpi{display:flex;flex-direction:column;gap:2px}
 .kpi .l{font-size:12.5px;color:var(--ink-3);letter-spacing:.06em}
 .kpi .v{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1.1}
 .kpi .d{font-size:13px;color:var(--ink-2)}
 .hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-3)}
-@media (max-width:640px){.hero{gap:14px}}
+@media (max-width:820px){.hero{gap:14px}}
 
 /* ---------------- 大盤三張圖（加權 / 櫃買 / 台指期） ---------------- */
 #m3{margin-bottom:var(--gap-card)}
 .m3-bar{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2)}
-@media (max-width:640px){.m3-bar{gap:10px;margin-bottom:10px}}
+@media (max-width:820px){.m3-bar{gap:10px;margin-bottom:10px}}
 .m3-bar .note{flex:1;min-width:200px}
 .seg.tiny button{padding:3px 8px;font-size:12.5px}
 .minisel{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;
   padding:var(--sp-1) var(--sp-2);font-size:12.5px;font-family:inherit;cursor:pointer}
-@media (max-width:640px){.minisel{padding:4px 7px}}
+@media (max-width:820px){.minisel{padding:4px 7px}}
 .minisel:hover{border-color:var(--cyan)}
 .m3-tfsel{display:inline-flex;align-items:center;gap:var(--sp-2);font-size:13px;color:var(--ink-3)}
-@media (max-width:640px){.m3-tfsel{gap:6px}}
+@media (max-width:820px){.m3-tfsel{gap:6px}}
 .m3-tfsel select{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:9px;
   padding:var(--sp-1) var(--sp-2);font-size:13.5px;font-family:inherit;cursor:pointer}
-@media (max-width:640px){.m3-tfsel select{padding:5px 9px}}
+@media (max-width:820px){.m3-tfsel select{padding:5px 9px}}
 .m3-tfsel select:hover{border-color:var(--cyan)}
 .m3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-3)}
-@media (max-width:640px){.m3-grid{gap:14px}}
+@media (max-width:820px){.m3-grid{gap:14px}}
 .m3-grid.big{grid-template-columns:1fr}
 .m3-card{padding:var(--sp-3) var(--sp-3) var(--sp-2)}
-@media (max-width:640px){.m3-card{padding:12px 14px 10px}}
+@media (max-width:820px){.m3-card{padding:12px 14px 10px}}
 .m3-h{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .m3-h h3{font-size:15px}
 /* min-height 是為了讓三張圖的起點對齊：加權的數字比較長會折成兩行，沒有它三張圖會高高低低 */
 /* 即時分 K 的來源說明（個股頁）。資料是兩個來源接起來的，口徑一定要寫在畫面上 */
 .livenote{margin:var(--sp-1) 0 0;padding:var(--sp-1) var(--sp-2);border-radius:8px;border:1px solid var(--line-2);
   background:color-mix(in srgb,var(--amber) 8%,var(--panel));color:var(--ink-2)}
-@media (max-width:640px){.livenote{margin:6px 0 0;padding:6px 10px}}
+@media (max-width:820px){.livenote{margin:6px 0 0;padding:6px 10px}}
 .seg button.livetf::after{content:"●";margin-left:var(--sp-1);font-size:8px;color:var(--rise);vertical-align:2px}
-@media (max-width:640px){.seg button.livetf::after{margin-left:5px}}
+@media (max-width:820px){.seg button.livetf::after{margin-left:5px}}
 .seg button.livetf.on::after{color:var(--ontop)}
 /* 非交易時段（週末、休市、開盤前）：即時週期畫的是最近交易日 → 灰點＝非即時（Andy 2026-09-26） */
 .seg button.livetf.offhrs::after{color:var(--ink-3)}
 .seg button.livetf.offhrs.on::after{color:var(--ontop);opacity:.55}
 .mtf-cell .cap .mtfoff{font-size:11px;color:var(--ink-3);margin-right:var(--sp-1)}
-@media (max-width:640px){.mtf-cell .cap .mtfoff{margin-right:6px}}
+@media (max-width:820px){.mtf-cell .cap .mtfoff{margin-right:6px}}
 .m3-nums{display:flex;flex-direction:column;gap:1px;margin:var(--sp-1) 0 var(--sp-2);min-height:108px}
-@media (max-width:640px){.m3-nums{margin:6px 0 8px}}
+@media (max-width:820px){.m3-nums{margin:6px 0 8px}}
 .m3-px{font-family:var(--mono);font-size:27px;font-weight:700;line-height:1.1}
 .m3-chg{font-family:var(--mono);font-size:14px;font-weight:600}
 /* 讓它自己換行，不要用省略號 —— 「昨收 46,184…」少了尾數等於沒講 */
@@ -1737,9 +1737,9 @@ tr.whyrow>td{padding:2px var(--sp-2) var(--sp-2);border-top:0}
 .m3-grid.big .m3-chart{height:clamp(420px,calc(100vh - 420px),760px)}
 @media(max-width:1100px){.m3-grid{grid-template-columns:1fr}.m3-chart{height:260px}}
 .legend{display:flex;gap:var(--sp-3);flex-wrap:wrap;font-size:12.5px;color:var(--ink-3)}
-@media (max-width:640px){.legend{gap:14px}}
+@media (max-width:820px){.legend{gap:14px}}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:var(--sp-1);vertical-align:-1px}
-@media (max-width:640px){.legend i{margin-right:5px}}
+@media (max-width:820px){.legend i{margin-right:5px}}
 .crumbs{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink-3);margin-bottom:12px;flex-wrap:wrap}
 .crumbs a{cursor:pointer;color:var(--ink-2)} .crumbs a:hover{color:var(--cyan)}
 .crumbs .cur{color:var(--ink);font-weight:700}
@@ -1747,7 +1747,7 @@ tr.whyrow>td{padding:2px var(--sp-2) var(--sp-2);border-top:0}
 
 /* ---------------- 全站互通連結 ---------------- */
 a.lk{display:inline-flex;align-items:center;gap:var(--sp-1);cursor:pointer;color:var(--ink);border-bottom:1px dotted transparent;line-height:1.3;white-space:nowrap}
-@media (max-width:640px){a.lk{gap:5px}}
+@media (max-width:820px){a.lk{gap:5px}}
 a.lk:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
 a.lk-stock{font-weight:600}
 /* ★ 2026-09-23 UI 精修 #8：股票代號從相對字級 .82em 改成固定 12px。
@@ -1770,24 +1770,24 @@ a.lk.sm{font-size:12px;font-weight:500}
    這條是給「手機載入後拉寬成桌機」那種情況保底）。手機照舊。 */
 @media (min-width:821px){#segBox,.linkrow.chainothers{display:none!important}}
 .linkrow{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-3);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px;align-items:center}
-@media (max-width:640px){.linkrow{gap:6px 12px}}
+@media (max-width:820px){.linkrow{gap:6px 12px}}
 .linkrow>.muted{font-size:12px;letter-spacing:.06em}
 .linkrow a.lk{padding:2px 8px;border-radius:999px;background:var(--panel-3);border:1px solid var(--line);border-bottom-width:1px;font-size:12.5px}
 .linkrow a.lk:hover{border-color:var(--c,var(--cyan))}
 /* E5：產業鏈頁最上方的類別切換列 —— 換一條鏈不用退回產業地圖。橫向可捲，手機也放得下 */
 .chainsw{display:flex;gap:var(--sp-2);overflow-x:auto;padding-bottom:8px;margin-bottom:var(--sp-2);
   border-bottom:1px solid var(--line);scrollbar-width:thin}
-@media (max-width:640px){.chainsw{gap:6px;margin-bottom:10px}}
+@media (max-width:820px){.chainsw{gap:6px;margin-bottom:10px}}
 .chainsw button{flex:0 0 auto;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);
   padding:var(--sp-1) var(--sp-3);border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap;transition:.15s}
-@media (max-width:640px){.chainsw button{padding:5px 12px}}
+@media (max-width:820px){.chainsw button{padding:5px 12px}}
 .chainsw button em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:var(--sp-1)}
-@media (max-width:640px){.chainsw button em{margin-left:6px}}
+@media (max-width:820px){.chainsw button em{margin-left:6px}}
 .chainsw button:hover{border-color:var(--cyan);color:var(--ink)}
 .chainsw button.on{background:rgba(62,224,255,.12);border-color:var(--cyan);color:var(--cyan);font-weight:600}
 .chainsw button.on em{color:var(--cyan)}
 .chainsw button[data-dg]::before{content:'◧';margin-right:var(--sp-1);font-size:11px;opacity:.75}
-@media (max-width:640px){.chainsw button[data-dg]::before{margin-right:5px}}
+@media (max-width:820px){.chainsw button[data-dg]::before{margin-right:5px}}
 
 /* ---------------- 活頁簿分頁（Andy 2026-09-23：「像是 EXCEL 活頁簿那樣，但是位置在上方」）
    為什麼不是既有的膠囊（.chainsw 原本那種）：膠囊看起來像「篩選鈕」，
@@ -1803,11 +1803,11 @@ a.lk.sm{font-size:12px;font-weight:500}
 .nbsw>button,.nbsw>a{flex:0 0 auto;display:inline-flex;align-items:center;gap:var(--sp-2);cursor:pointer;white-space:nowrap;
   margin-top:var(--sp-1);padding:var(--sp-1) var(--sp-3) var(--sp-2);border:1px solid var(--line-2);border-bottom:0;border-radius:9px 9px 0 0;
   background:var(--panel-3);color:var(--ink-2);font-size:13.5px;transition:background .15s,color .15s,margin-top .15s}
-@media (max-width:640px){.nbsw>button,.nbsw>a{gap:6px;margin-top:6px;padding:6px 13px 7px}}
+@media (max-width:820px){.nbsw>button,.nbsw>a{gap:6px;margin-top:6px;padding:6px 13px 7px}}
 .nbsw>button:hover,.nbsw>a:hover{background:var(--panel-2);color:var(--ink);border-color:var(--cyan)}
 .nbsw>button.on,.nbsw>a.on{margin-top:0;padding:var(--sp-2) var(--sp-4) var(--sp-2);background:var(--panel);color:var(--cyan);font-weight:700;
   border-color:var(--line);border-bottom:0;box-shadow:inset 0 3px 0 var(--cyan)}
-@media (max-width:640px){.nbsw>button.on,.nbsw>a.on{padding:8px 15px 9px}}
+@media (max-width:820px){.nbsw>button.on,.nbsw>a.on{padding:8px 15px 9px}}
 .nbsw>button em,.nbsw>a em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .nbsw>button.on em,.nbsw>a.on em{color:var(--cyan)}
 .nbsw>button[data-dg]::before{content:'◧';font-size:11px;opacity:.75}
@@ -1816,13 +1816,13 @@ a.lk.sm{font-size:12px;font-weight:500}
    兩者的左上角都不能有圓角 —— 有圓角就看得出分頁跟內容是兩塊，活頁簿的錯覺就破了。*/
 .nbcard{border-radius:0 var(--r) var(--r) var(--r)}
 .nbbody{border:1px solid var(--line);border-radius:0 10px 10px 10px;background:var(--panel-2);padding:var(--sp-2) var(--sp-3) var(--sp-3);position:relative;z-index:1;margin-bottom:12px}
-@media (max-width:640px){.nbbody{padding:10px 12px 14px}}
+@media (max-width:820px){.nbbody{padding:10px 12px 14px}}
 .nbsw.lv2>a.on,.nbsw.lv2>button.on{background:var(--panel-2)}
 /* 二層（剖析圖）比一層小一號，視覺上才看得出是子分頁 */
 .nbsw.lv2>button,.nbsw.lv2>a{font-size:12.5px;padding:var(--sp-1) var(--sp-3) var(--sp-1)}
-@media (max-width:640px){.nbsw.lv2>button,.nbsw.lv2>a{padding:5px 11px 6px}}
+@media (max-width:820px){.nbsw.lv2>button,.nbsw.lv2>a{padding:5px 11px 6px}}
 .nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:var(--sp-2) var(--sp-3) var(--sp-2)}
-@media (max-width:640px){.nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:7px 13px 8px}}
+@media (max-width:820px){.nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:7px 13px 8px}}
 
 /* ---------------- 族群總覽：左長條（漲跌幅）＋右圓餅（占比） ---------------- */
 /* ⚠ 兩個 minmax(0,…) 與 min-width:0 一個都不能省：ECharts 的畫布是**絕對定位在容器裡、
@@ -1836,17 +1836,17 @@ a.lk.sm{font-size:12px;font-weight:500}
    ⚠ `min-width:0` 一個都不能省（理由同上面那段：ECharts 的畫布寬度是寫死的像素）。*/
 .gpcard{min-width:0;background:var(--panel-3);border:1px solid var(--line-2);border-radius:12px;
   padding:var(--sp-2) var(--sp-3) var(--sp-2);display:flex;flex-direction:column}
-@media (max-width:640px){.gpcard{padding:10px 12px 8px}}
+@media (max-width:820px){.gpcard{padding:10px 12px 8px}}
 .gpcard>h5{margin:0 0 4px;font-size:14px;font-weight:700;color:var(--ink);line-height:1.5}
 .gpcard>h5>small{font-weight:400;font-size:12px;color:var(--ink-3);margin-left:var(--sp-1)}
-@media (max-width:640px){.gpcard>h5>small{margin-left:6px}}
+@media (max-width:820px){.gpcard>h5>small{margin-left:6px}}
 /* 2026-09-24 甜甜圈改版：圖例在圖下方、兩欄，「● 名稱 ……… 42.0%」（百分比等寬、靠右）。
    滑過一列＝滑過那一塊扇形（中心字跟著換），點一列＝點那一塊（進族群）。「其他」只看不點。*/
 .gplegend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px var(--sp-3);margin:2px 4px 2px}
-@media (max-width:640px){.gplegend{gap:2px 14px}}
+@media (max-width:820px){.gplegend{gap:2px 14px}}
 .gplegend .lg{display:flex;align-items:center;gap:var(--sp-2);min-width:0;height:22px;padding:0 var(--sp-1);border:0;border-radius:6px;
   background:transparent;color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer;text-align:left}
-@media (max-width:640px){.gplegend .lg{gap:7px;padding:0 6px}}
+@media (max-width:820px){.gplegend .lg{gap:7px;padding:0 6px}}
 .gplegend .lg.other{cursor:default}
 .gplegend .lg:hover,.gplegend .lg.on{background:var(--panel-2);color:var(--ink)}
 .gplegend .lg i{flex:none;width:8px;height:8px;border-radius:50%}
@@ -1854,7 +1854,7 @@ a.lk.sm{font-size:12px;font-weight:500}
 .gplegend .lg .pc{flex:none;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
 .gpgrid .chart{min-height:360px;min-width:0;overflow:hidden;flex:1 1 auto}
 .gphead{gap:var(--sp-2);flex-wrap:wrap;align-items:flex-start;min-width:0;max-width:100%}
-@media (max-width:640px){.gphead{gap:10px}}
+@media (max-width:820px){.gphead{gap:10px}}
 /* 2026-09-26 晚（「點擊後位置跑掉」）：族群名／即時提示再長都只准往下折行，不准把這塊撐得比卡片寬
    （撐寬就是整頁長出橫向捲軸、可以被帶著往左偏的起點）。圖表那一格用 clip：畫布是寫死像素寬的，
    縮窄的那一瞬間會比格子寬，clip 只裁掉那一點、而且不會變成「可以被程式捲走」的捲動框（hidden 會）。*/
@@ -1862,59 +1862,59 @@ a.lk.sm{font-size:12px;font-weight:500}
 .gpgrid{overflow-x:clip}
 .gphead h4{font-size:15px}
 .gplive{display:inline-flex;gap:var(--sp-2);align-items:center}
-@media (max-width:640px){.gplive{gap:6px}}
+@media (max-width:820px){.gplive{gap:6px}}
 .gpnote{margin-top:8px}
 /* 窄畫面：兩張卡片上下堆疊，不要硬擠成兩欄（390 擠成兩欄的話圓餅只剩指甲大小） */
 @media (max-width:820px){ .gpgrid{grid-template-columns:minmax(0,1fr)} .gpgrid .chart{min-height:320px} }
 .qtag{font-size:11.5px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:var(--sp-1)}
-@media (max-width:640px){.qtag{margin-left:6px}}
+@media (max-width:820px){.qtag{margin-left:6px}}
 .qtag.leading{background:rgba(255,77,109,.16);color:var(--rise)} .qtag.improving{background:rgba(62,224,255,.14);color:var(--cyan)}
 .qtag.weakening{background:rgba(255,180,84,.14);color:var(--amber)} .qtag.lagging{background:rgba(46,229,157,.14);color:var(--fall)}
 .tile .lks{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);margin-top:8px;font-size:12.5px}
-@media (max-width:640px){.tile .lks{gap:4px 10px}}
+@media (max-width:820px){.tile .lks{gap:4px 10px}}
 .tile .lks a.lk{color:var(--ink-2);font-weight:500}
 .tile.colored{border-left:4px solid var(--c,var(--line-2))}
 .tile.colored.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--panel-3));box-shadow:0 0 0 1px var(--c) inset}
 /* 同族群一次全部攤開，不要橫向拉 bar（拉 bar 看不到後面有哪些同業，等於沒列） */
 .sibs{display:flex;flex-wrap:wrap;gap:var(--sp-2);padding:var(--sp-1) 0 var(--sp-1);margin-top:8px;max-height:200px;overflow-y:auto}
-@media (max-width:640px){.sibs{gap:6px;padding:6px 0 4px}}
+@media (max-width:820px){.sibs{gap:6px;padding:6px 0 4px}}
 .sibs a.lk{flex:none;padding:var(--sp-1) var(--sp-2);border-radius:9px;background:var(--panel-3);border:1px solid var(--line);font-size:13px}
-@media (max-width:640px){.sibs a.lk{padding:5px 10px}}
+@media (max-width:820px){.sibs a.lk{padding:5px 10px}}
 .sibs a.lk.cur{border-color:var(--cyan);background:rgba(62,224,255,.12);color:var(--cyan)}
 .sibs a.lk .chg{font-family:var(--mono);font-size:12px;margin-left:4px}
 .segchips{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-2)}
-@media (max-width:640px){.segchips{gap:6px;margin-top:10px}}
+@media (max-width:820px){.segchips{gap:6px;margin-top:10px}}
 .segchip{display:inline-flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1) var(--sp-3);border-radius:999px;border:1px solid var(--line-2);background:var(--panel-3);
   color:var(--ink-2);font-size:13px;cursor:pointer;transition:.15s;user-select:none}
-@media (max-width:640px){.segchip{gap:7px;padding:5px 11px}}
+@media (max-width:820px){.segchip{gap:7px;padding:5px 11px}}
 .segchip i{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex:none}
 .segchip:hover{border-color:var(--c);color:var(--ink)}
 .segchip.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--panel-3));color:var(--ink);font-weight:700}
 .segchip .n{font-family:var(--mono);font-size:11px;color:var(--ink-3)} .segchip.sel .n{color:var(--ink-2)}
 .segchip.nomem{opacity:.6;border-style:dashed}
 .segbox{margin-top:var(--sp-2);padding:var(--sp-2) var(--sp-3);border-radius:10px;border:1px solid var(--c,var(--line-2));background:color-mix(in srgb,var(--c,#8ea0c4) 8%,var(--panel));font-size:13.5px}
-@media (max-width:640px){.segbox{margin-top:10px;padding:10px 14px}}
+@media (max-width:820px){.segbox{margin-top:10px;padding:10px 14px}}
 .segbox b.t{color:var(--c)}
 a.lk.out{opacity:.55} a.lk.out .code{opacity:.6}
 .segbox .row{gap:var(--sp-1) var(--sp-3);margin-top:var(--sp-1)}
-@media (max-width:640px){.segbox .row{gap:6px 14px;margin-top:6px}}
+@media (max-width:820px){.segbox .row{gap:6px 14px;margin-top:6px}}
 /* E6：跨產業鏈的環節（ABF 載板等）—— 兩條鏈各一張架構圖縮圖，加上各自的上下游與族群 */
 .xchains{margin-top:var(--sp-2);padding-top:var(--sp-2);border-top:1px dashed var(--line-2);
   display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-@media (max-width:640px){.xchains{margin-top:10px;padding-top:10px}}
+@media (max-width:820px){.xchains{margin-top:10px;padding-top:10px}}
 .xchains .xhd{grid-column:1/-1;font-size:13px;color:var(--ink-2)}
 .xchain{border:1px solid var(--line-2);border-radius:10px;padding:var(--sp-2) var(--sp-3);background:var(--panel-3)}
-@media (max-width:640px){.xchain{padding:9px 11px}}
+@media (max-width:820px){.xchain{padding:9px 11px}}
 .xchain.cur{border-color:var(--c,var(--cyan))}
 .xchain{min-width:0}          /* grid item 預設 min-width:auto，會撐開不讓裡面的圖縮小 */
 /* 外框只負責裁切，實際縮放由 JS 量完再用 transform 套在 .xinner 上
    （理由見 industry.js fitMini 的註解：窄畫面時 CSS 算不對這張 SVG 的寬度）。 */
 .xchain .xmini{position:relative;width:100%;margin:var(--sp-2) 0;padding:0;overflow:hidden}
-@media (max-width:640px){.xchain .xmini{margin:7px 0}}
+@media (max-width:820px){.xchain .xmini{margin:7px 0}}
 .xchain .xmini .xinner{position:absolute;top:0;left:0;transform-origin:0 0}
 .xchain .xmini svg{display:block}
 .xchain .xrow{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);align-items:center;margin-top:var(--sp-1);font-size:12.5px}
-@media (max-width:640px){.xchain .xrow{gap:5px 10px;margin-top:5px}}
+@media (max-width:820px){.xchain .xrow{gap:5px 10px;margin-top:5px}}
 .xchain .xrow>.muted{font-size:11.5px;letter-spacing:.06em;min-width:28px}
 .xchain .xrow .pill{font-size:11.5px;padding:2px 8px}
 /* 縮圖只是定位用的，點它沒有意義；真的要過去請按「切到這條鏈看」 */
@@ -1922,7 +1922,7 @@ a.lk.out{opacity:.55} a.lk.out .code{opacity:.6}
 /* 亮起／壓暗沿用剖析圖自己那套（diagrams.js 的 STYLE），這裡只把壓暗再壓一點，對比才拉得開 */
 .xchain .xmini [data-seg].dim{opacity:.16}
 .gdot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c,var(--ink-3));margin-right:var(--sp-1);vertical-align:-1px}
-@media (max-width:640px){.gdot{margin-right:6px}}
+@media (max-width:820px){.gdot{margin-right:6px}}
 
 /* ---------------- 表格 ---------------- */
 .tw{overflow:auto;border-radius:10px;border:1px solid var(--line)}
@@ -1947,7 +1947,7 @@ tr.ghead td{background:var(--panel-3);color:var(--ink-2);font-size:12.5px;font-w
    數字欄本來就靠右（`th,td` 預設 text-align:right，文字欄才加 `.l`），這一版維持。*/
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{padding:var(--sp-2) var(--sp-3);text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-@media (max-width:640px){th,td{padding:9px 11px}}
+@media (max-width:820px){th,td{padding:9px 11px}}
 td{line-height:1.45}
 th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-2);font-weight:600;font-size:12.5px;letter-spacing:.04em;z-index:1;cursor:pointer;
   box-shadow:0 1px 0 var(--line-2)}
@@ -1960,13 +1960,13 @@ tbody tr:active{background:var(--panel-3)}
 tbody tr:nth-child(5n) td{border-bottom-color:var(--line-2)}
 tbody tr:last-child td{border-bottom:0}
 .grade{display:inline-block;padding:2px var(--sp-2);border-radius:6px;font-weight:700;font-size:12.5px;font-family:var(--mono)}
-@media (max-width:640px){.grade{padding:2px 9px}}
+@media (max-width:820px){.grade{padding:2px 9px}}
 .grade.A{background:rgba(255,77,109,.18);color:var(--rise)} .grade.B{background:rgba(255,180,84,.16);color:var(--amber)}
 .grade.W{background:var(--panel-3);color:var(--ink-3)}
 
 /* ---------------- 個股：圖表面板 ---------------- */
 .toolbar{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap;margin-bottom:var(--sp-2)}
-@media (max-width:640px){.toolbar{gap:10px;margin-bottom:10px}}
+@media (max-width:820px){.toolbar{gap:10px;margin-bottom:10px}}
 .toolbar .sp{flex:1}
 /* ★ 2026-09-26 個股 K 線的「指標 ▾」下拉（取代整排指標晶片＋獨立的「圖表設定」面板）。
    面板本身沿用 .cfgpop（fixed、JS 貼在按鈕旁、夾進視窗、內部捲動），這裡只管清單列的長相。
@@ -1974,15 +1974,15 @@ tbody tr:last-child td{border-bottom:0}
 .inddd .indn{font-family:var(--mono);font-size:12px;color:var(--cyan)}
 .inddd[aria-expanded="true"]{border-color:var(--cyan);color:var(--cyan)}
 .cfgpop.indpop{width:392px;padding:var(--sp-2) var(--sp-2) var(--sp-3)}
-@media (max-width:640px){.cfgpop.indpop{padding:10px 10px 12px}}
+@media (max-width:820px){.cfgpop.indpop{padding:10px 10px 12px}}
 .indpop .ttl{display:flex;align-items:baseline;gap:8px;padding:0 4px}
 .indpop .ttl small{font-weight:400;font-size:12px;color:var(--ink-3)}
 .indrow{border-top:1px solid var(--line)}
 .indrow:first-child{border-top:0}
 .indrow .ihead{display:flex;align-items:center;gap:var(--sp-2);min-height:38px}
-@media (max-width:640px){.indrow .ihead{gap:6px}}
+@media (max-width:820px){.indrow .ihead{gap:6px}}
 .indrow .isw{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:var(--sp-1) var(--sp-1);cursor:pointer;border-radius:7px;user-select:none}
-@media (max-width:640px){.indrow .isw{padding:6px 4px}}
+@media (max-width:820px){.indrow .isw{padding:6px 4px}}
 .indrow .isw:hover{background:var(--panel-3)}
 .indrow .isw input{accent-color:var(--cyan);width:16px;height:16px;margin:0;flex:none;cursor:pointer}
 .indrow .isw i{width:9px;height:9px;border-radius:50%;flex:none}
@@ -1996,7 +1996,7 @@ tbody tr:last-child td{border-bottom:0}
 .indrow .iexp:hover{border-color:var(--line-2);color:var(--cyan)}
 .indrow.open .iexp{transform:rotate(90deg);color:var(--cyan)}
 .indrow .ibody{padding:2px var(--sp-1) var(--sp-2) 28px}
-@media (max-width:640px){.indrow .ibody{padding:2px 6px 10px 28px}}
+@media (max-width:820px){.indrow .ibody{padding:2px 6px 10px 28px}}
 .indrow .ibody .frow{flex-wrap:wrap}
 .indrow .ibody input[type=number]{width:62px}
 .indrow .ibody .plab{font-size:12px;color:var(--ink-3);min-width:0}
@@ -2006,31 +2006,31 @@ tbody tr:last-child td{border-bottom:0}
 .indrow.tfrow .isum{white-space:normal}
 .indrow .tfbody{padding-top:0}
 .tfchk{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
-@media (max-width:640px){.tfchk{gap:6px}}
+@media (max-width:820px){.tfchk{gap:6px}}
 .tfchk .tfc{display:inline-flex;align-items:center;gap:var(--sp-1);padding:var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-2);border:1px solid var(--line-2);border-radius:7px;
   font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none;min-height:28px}
-@media (max-width:640px){.tfchk .tfc{gap:5px;padding:4px 9px 4px 7px}}
+@media (max-width:820px){.tfchk .tfc{gap:5px;padding:4px 9px 4px 7px}}
 .tfchk .tfc input{accent-color:var(--cyan);width:14px;height:14px;margin:0;cursor:pointer}
 .tfchk .tfc.on{border-color:var(--cyan);color:var(--ink)}
 .tfchk .tfc.last{border-style:dashed;cursor:not-allowed}
 .tfchk .tfc:hover{background:var(--panel-3)}
 .indrow .tfnote{margin-top:var(--sp-1)}
-@media (max-width:640px){.indrow .tfnote{margin-top:6px}}
+@media (max-width:820px){.indrow .tfnote{margin-top:6px}}
 .indpop .ifoot{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 4px 0;border-top:1px solid var(--line)}
-@media (max-width:640px){.cfgpop.indpop{width:calc(100vw - 20px)}.indrow .ibody{padding-left:8px}}
+@media (max-width:820px){.cfgpop.indpop{width:calc(100vw - 20px)}.indrow .ibody{padding-left:8px}}
 /* 基本資料的題材／族群連結：以前黏成「#AI 伺服器#高階 PCB」一串，看不出哪裡斷 */
 .tagrow{display:inline-flex;flex-wrap:wrap;gap:4px 12px}
 /* 2026-09-27 個股「指標」分頁：一列一條（左邊類別框、右邊內容＋判斷用的數字） */
 .taglist{display:flex;flex-direction:column}
 .tagln{display:flex;gap:12px;align-items:flex-start;padding:var(--sp-2) 2px;border-bottom:1px solid var(--line)}
-@media (max-width:640px){.tagln{padding:10px 2px}}
+@media (max-width:820px){.tagln{padding:10px 2px}}
 .tagln .tagk{flex:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:13px;color:var(--ink2)}
 .tagln .tagb{min-width:0;flex:1}.tagln .tagd{margin-top:3px;font-size:12px}
 .tagmore>summary{cursor:pointer;color:var(--ink3);font-size:13px}
 /* 週期統計「自填 年」：以前沒套樣式，深色主題裡是一塊白底 */
 .opabox input[type=number]{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);border-radius:6px;
   padding:3px var(--sp-1);font-family:var(--mono);font-size:12.5px;color-scheme:light dark}
-@media (max-width:640px){.opabox input[type=number]{padding:3px 6px}}
+@media (max-width:820px){.opabox input[type=number]{padding:3px 6px}}
 .opabox input[type=number]:focus{outline:0;border-color:var(--cyan)}
 /* 個股「基本資料」分頁：基本資料表＋1–12 月平均漲幅並排（2026-09-26）。季節卡是直欄 flex，圖吃掉剩下的高度，
    兩張卡等高；≤900px 疊成上下（.g2 全站是 ≤820 才疊，這裡欄寬到 900 以下，季節圖的 12 個月份標籤就開始擠）。 */
@@ -2053,7 +2053,7 @@ tbody tr:last-child td{border-bottom:0}
 #lwc .ohlcbox{position:absolute;z-index:7;pointer-events:none;min-width:148px;
   background:var(--ovl);border:1px solid var(--line-2);border-radius:9px;padding:var(--sp-2) var(--sp-2);
   box-shadow:0 10px 26px var(--drop);font-family:var(--mono);font-size:11.5px;line-height:1.5}
-@media (max-width:640px){#lwc .ohlcbox{padding:7px 9px}}
+@media (max-width:820px){#lwc .ohlcbox{padding:7px 9px}}
 #lwc .ohlcbox .oh{font-weight:700;color:var(--ink);margin-bottom:4px;letter-spacing:.02em}
 /* 全站表格有自己的 padding，這裡要蓋掉，不然八列會拉成一根長條蓋住半張圖 */
 #lwc .ohlcbox table{border-collapse:collapse;width:100%;line-height:1.45}
@@ -2071,7 +2071,7 @@ tbody tr:last-child td{border-bottom:0}
 .dtool.dfill.on{color:var(--cyan)}
 #lwc .pane-labels div{position:absolute;left:12px;z-index:5;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);pointer-events:none;
   text-shadow:var(--ovl-sh);background:var(--ovl);padding:2px var(--sp-2);border-radius:5px}
-@media (max-width:640px){#lwc .pane-labels div{padding:2px 7px}}
+@media (max-width:820px){#lwc .pane-labels div{padding:2px 7px}}
 #lwc .pane-labels b{color:var(--ink)}
 /* 2026-10-02 分時缺口（DECISIONS #287）：Yahoo 之後、打開頁面之前沒有資料的那段 —— 斜線底紋＋置中小標，一眼看出「這裡是空的」 */
 #lwc .tk-gap{position:absolute;top:0;height:72%;z-index:2;pointer-events:auto;display:flex;align-items:center;justify-content:center;
@@ -2087,7 +2087,7 @@ tbody tr:last-child td{border-bottom:0}
 .mtf-cell{background:var(--chartbg);border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative}
 .mtf-cell .cap select.mtfsel{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);
   border-radius:7px;padding:2px var(--sp-1);font-size:12.5px;font-family:inherit;cursor:pointer;margin-right:var(--sp-1)}
-@media (max-width:640px){.mtf-cell .cap select.mtfsel{padding:2px 6px;margin-right:6px}}
+@media (max-width:820px){.mtf-cell .cap select.mtfsel{padding:2px 6px;margin-right:6px}}
 .mtf-cell .cap select.mtfsel:hover{border-color:var(--cyan)}
 .mtf-cell .cap{position:absolute;left:10px;top:8px;z-index:5;font-size:12.5px;color:var(--ink-2);font-family:var(--mono);text-shadow:var(--ovl-sh)}
 .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px);position:relative}
@@ -2106,26 +2106,26 @@ tbody tr:last-child td{border-bottom:0}
 .mtf-cell .kfit svg{width:13px;height:13px}
 .verdict{border-left:3px solid var(--cyan);padding:12px 16px;background:rgba(62,224,255,.05);border-radius:0 10px 10px 0}
 .verdict h3{margin-bottom:var(--sp-1)}
-@media (max-width:640px){.verdict h3{margin-bottom:6px}}
+@media (max-width:820px){.verdict h3{margin-bottom:6px}}
 .verdict ul{margin:var(--sp-1) 0 0;padding-left:var(--sp-4);color:var(--ink-2)}
-@media (max-width:640px){.verdict ul{margin:6px 0 0;padding-left:18px}} .verdict li{margin:3px 0}
+@media (max-width:820px){.verdict ul{margin:6px 0 0;padding-left:18px}} .verdict li{margin:3px 0}
 .lights{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 .light{padding:var(--sp-1) var(--sp-2);border-radius:7px;font-size:12.5px;background:var(--panel-3);color:var(--ink-2)}
-@media (max-width:640px){.light{padding:4px 10px}}
+@media (max-width:820px){.light{padding:4px 10px}}
 .light.pos{background:rgba(255,77,109,.16);color:var(--rise)} .light.neg{background:rgba(46,229,157,.16);color:var(--fall)}
 .subtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:var(--sp-4) 0 var(--sp-3);overflow-x:auto;scrollbar-width:none}
-@media (max-width:640px){.subtabs{margin:18px 0 14px}}
+@media (max-width:820px){.subtabs{margin:18px 0 14px}}
 .subtabs button{border:0;background:transparent;color:var(--ink-2);padding:var(--sp-2) var(--sp-3);font-size:14.5px;cursor:pointer;
   border-bottom:2px solid transparent;white-space:nowrap}
-@media (max-width:640px){.subtabs button{padding:9px 14px}}
+@media (max-width:820px){.subtabs button{padding:9px 14px}}
 .subtabs button.on{color:var(--cyan);border-bottom-color:var(--cyan);font-weight:700}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:var(--sp-1) var(--sp-3);font-size:14px}
-@media (max-width:640px){.kv{gap:6px 14px}}
+@media (max-width:820px){.kv{gap:6px 14px}}
 .kv dt{color:var(--ink-3)} .kv dd{margin:0;font-family:var(--mono)}
 .kvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-2)}
-@media (max-width:640px){.kvs{gap:10px}}
+@media (max-width:820px){.kvs{gap:10px}}
 .kvs .k{background:var(--panel-3);border-radius:9px;padding:var(--sp-2) var(--sp-3)}
-@media (max-width:640px){.kvs .k{padding:8px 11px}}
+@media (max-width:820px){.kvs .k{padding:8px 11px}}
 .kvs .k .l{font-size:12px;color:var(--ink-3)} .kvs .k .v{font-family:var(--mono);font-size:17px;font-weight:600}
 
 /* ---------------- 產業鏈圖 ---------------- */
@@ -2155,20 +2155,20 @@ tbody tr:last-child td{border-bottom:0}
    圖上只有一條線，看得到「有關係」但看不懂「是什麼關係」——
    這一塊把那條線攤開講：誰供什麼給它、它又賣什麼給誰、以及那是官方揭露還是產業推論。 */
 .relbox{margin-top:var(--sp-2);border-top:1px solid var(--line);padding-top:8px}
-@media (max-width:640px){.relbox{margin-top:10px}}
+@media (max-width:820px){.relbox{margin-top:10px}}
 .relbox .rh{font-size:13px;color:var(--ink)}
 .relbox h5{margin:8px 0 4px;font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.04em}
 .relbox ul{list-style:none;margin:0;padding:0}
 .relbox li{padding:var(--sp-1) 0 var(--sp-1) var(--sp-2);border-left:2px solid var(--line-2);margin-bottom:3px;font-size:12.5px}
-@media (max-width:640px){.relbox li{padding:5px 0 5px 9px}}
+@media (max-width:820px){.relbox li{padding:5px 0 5px 9px}}
 .relbox li:hover{border-left-color:var(--cyan)}
 .relbox .rl{color:var(--ink-3);margin-right:var(--sp-1)}
-@media (max-width:640px){.relbox .rl{margin-right:5px}}
+@media (max-width:820px){.relbox .rl{margin-right:5px}}
 .relbox .it{font-size:11.5px;color:var(--ink-2);margin-top:2px}
 .relbox .nt{font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.5}
 /* 依存度：五格小方塊，滿幾格就是 strength 幾 —— 比寫「4」直覺 */
 .relbox .rhd{display:flex;flex-wrap:wrap;align-items:center;gap:3px var(--sp-2);line-height:1.45}
-@media (max-width:640px){.relbox .rhd{gap:3px 6px}}
+@media (max-width:820px){.relbox .rhd{gap:3px 6px}}
 .relbox .rhd .rl{margin-right:0}
 .relbox .depw{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;cursor:help}
 .relbox .depn{font-size:10.5px;color:var(--ink-3)}
@@ -2176,7 +2176,7 @@ tbody tr:last-child td{border-bottom:0}
   background:linear-gradient(to right,var(--cyan) 0,var(--cyan) calc(var(--n,1)*20%),var(--line-2) calc(var(--n,1)*20%))}
 .relbox .cf{font-style:normal;font-size:10.5px;padding:0 var(--sp-1);border-radius:4px;border:1px solid var(--line-2);
   display:inline-block;white-space:nowrap;line-height:1.5}
-@media (max-width:640px){.relbox .cf{padding:0 5px}}
+@media (max-width:820px){.relbox .cf{padding:0 5px}}
 .relbox .nt .cf{margin:0 2px}
 .relbox a.cf-lk{text-decoration:none;cursor:pointer}
 .relbox a.cf-lk:hover{text-decoration:underline;border-color:var(--cyan)}
@@ -2190,7 +2190,7 @@ tbody tr:last-child td{border-bottom:0}
 .relbox li.guess{border-left-color:rgba(217,164,65,.6)}
 .relbox .why{margin-top:4px;padding:var(--sp-1) var(--sp-2);border-radius:6px;font-size:11px;line-height:1.55;
   color:var(--ink-2);background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.28)}
-@media (max-width:640px){.relbox .why{padding:5px 7px}}
+@media (max-width:820px){.relbox .why{padding:5px 7px}}
 .relbox .why b{display:block;color:#d9a441;font-size:11px;margin-bottom:2px}
 .relbox .src{display:inline-block;margin-top:3px;font-size:10.5px;color:var(--cyan);text-decoration:none}
 .relbox .src:hover{text-decoration:underline}
@@ -2210,7 +2210,7 @@ tbody tr:last-child td{border-bottom:0}
    寫死成 var(--illus) 的話，配色切換換不掉底色 —— 那就只剩「零件變色、底色沒變」的半套。*/
 .dgwrap{border-radius:10px;background:var(--dg-bg,var(--illus));border:1px solid var(--line);padding:var(--sp-1);overflow:hidden;
   transition:background .2s}
-@media (max-width:640px){.dgwrap{padding:6px}}
+@media (max-width:820px){.dgwrap{padding:6px}}
 /* 3D 剖析圖：畫布 + 疊在上面的 DOM 標籤（用 DOM 才選得起來，文字重疊驗收也還跑得動） */
 /* ================ 3D 剖析圖的兩種模式（DECISIONS #238，2026-09-22）================
    只放「3D 才有的東西」：畫布底、打光、材質手感、玻璃、流線、卡片。
@@ -2371,7 +2371,7 @@ tbody tr:last-child td{border-bottom:0}
 .lbl3d .chip3d{font-size:var(--dg-fs-min,12px);line-height:1.45;padding:0 var(--sp-1);border-radius:5px;text-decoration:none;
   color:var(--dg-ink-2);background:color-mix(in srgb,var(--card-c) 16%,transparent);
   border:1px solid color-mix(in srgb,var(--card-c) 38%,transparent);cursor:pointer;white-space:nowrap}
-@media (max-width:640px){.lbl3d .chip3d{padding:0 5px}}
+@media (max-width:820px){.lbl3d .chip3d{padding:0 5px}}
 .lbl3d .chip3d:hover{color:var(--dg-ink);background:color-mix(in srgb,var(--card-c) 32%,transparent)}
 .lbl3d u.chips3d s{font-size:var(--dg-fs-min,12px);color:var(--dg-ink-3);text-decoration:none;align-self:center}
 /* A5-b：晶片上方那行「這排台股是哪一群」的小字，要自己占一整行，不要跟晶片擠在同一列 */
@@ -2406,7 +2406,7 @@ tbody tr:last-child td{border-bottom:0}
 .dg3d .dgstage-l,.dg3d .dgstage-r{position:absolute;top:0;bottom:0;width:220px;pointer-events:none}
 .dg3d .dgstage-l{left:0} .dg3d .dgstage-r{right:0}
 .dg3d .dgstage-b{display:grid;grid-template-columns:1fr;gap:var(--sp-2);padding:8px}
-@media (max-width:640px){.dg3d .dgstage-b{gap:6px}}
+@media (max-width:820px){.dg3d .dgstage-b{gap:6px}}
 .dg3d .dgstage-b[hidden]{display:none}
 .dg3d .lbl3d.below{position:relative;left:auto;top:auto;width:auto}
 /* 欄位塞不下時卡片先**收成一行**（標題＋英文＋前兩顆晶片），不掉到畫布底下（Andy 2026-09-22：「不准掉到下面」）。
@@ -2461,7 +2461,7 @@ tbody tr:last-child td{border-bottom:0}
 .dgwrap.dgv2{container-type:inline-size;padding:0}
 .dgv2 .dggrid{position:relative;display:grid;gap:var(--sp-3) var(--sp-4);align-items:start;padding:var(--sp-2) var(--sp-3) var(--sp-3);
   grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "c" "l" "r"}
-@media (max-width:640px){.dgv2 .dggrid{gap:12px 18px;padding:10px 12px 12px}}
+@media (max-width:820px){.dgv2 .dggrid{gap:12px 18px;padding:10px 12px 12px}}
 .dgv2 .dghead{grid-area:head;min-width:0}
 .dgv2 .dghead b{display:block;font-size:var(--dg-fs-ttl);font-weight:700;color:var(--dg-ink);letter-spacing:.02em;line-height:1.35}
 .dgv2 .dghead span{display:block;font-size:var(--dg-fs-min);color:var(--dg-ink-3);line-height:1.55;margin-top:3px}
@@ -2494,7 +2494,7 @@ tbody tr:last-child td{border-bottom:0}
   border:1px solid color-mix(in srgb,var(--card-c) 40%,var(--dg-card-s));border-left:3px solid var(--card-c);
   border-radius:var(--dg-card-r,8px);padding:var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-3);box-shadow:var(--dg-card-box-sh);cursor:pointer;
   font-size:var(--dg-fs-min,12px);line-height:1.5;color:var(--dg-ink-3);transition:border-color .15s,background .15s,opacity .2s}
-@media (max-width:640px){.dgc{gap:0 9px;padding:8px 11px 8px 11px}}
+@media (max-width:820px){.dgc{gap:0 9px;padding:8px 11px 8px 11px}}
 .dgc .no{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;margin-top:1px;
   background:var(--card-c);color:var(--dg-no-ink);font-family:var(--mono);font-size:var(--dg-fs-min,12px);font-weight:700;letter-spacing:0}
 .dgc .bd{min-width:0}
@@ -2523,7 +2523,7 @@ tbody tr:last-child td{border-bottom:0}
 .dgwrap.dgfold .dgc.note{cursor:pointer}
 .dgwrap.dgmeasure .dgc i{display:none!important}
 .dgwrap.dgfold .dgc{padding-top:var(--sp-1);padding-bottom:var(--sp-1)}
-@media (max-width:640px){.dgwrap.dgfold .dgc{padding-top:6px;padding-bottom:6px}}
+@media (max-width:820px){.dgwrap.dgfold .dgc{padding-top:6px;padding-bottom:6px}}
 /* 手機版之後要用的「只留編號」：卡片欄整個藏起來，說明一律靠點編號跳出（資料結構先備好，桌機不會進這個模式）*/
 .dgwrap[data-dglbl="num"] .dgcards,.dgwrap[data-dglbl="num"] .dglead{display:none}
 .dgpop{position:absolute;z-index:6;width:min(300px,calc(100% - 12px));--card-c:var(--dg-accent-2d);
@@ -2531,7 +2531,7 @@ tbody tr:last-child td{border-bottom:0}
   border-left:3px solid var(--card-c);border-radius:var(--dg-card-r,8px);padding:var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
   box-shadow:0 8px 24px color-mix(in srgb,var(--dg-bg) 20%,transparent),var(--dg-card-box-sh);
   font-size:var(--dg-fs-min,12px);line-height:1.55;color:var(--dg-ink-3);cursor:default}
-@media (max-width:640px){.dgpop{padding:8px 10px 9px 11px}}
+@media (max-width:820px){.dgpop{padding:8px 10px 9px 11px}}
 .dgpop[hidden]{display:none}
 .dgpop .hd{display:flex;align-items:flex-start;gap:8px;margin-bottom:3px}
 .dgpop .no{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
@@ -2542,7 +2542,7 @@ tbody tr:last-child td{border-bottom:0}
 .dgpop i{display:block;font-style:normal;margin-top:2px}
 .dgchips{display:flex;flex-wrap:wrap;gap:3px 4px;margin-top:4px;text-decoration:none}
 .dgchips .dgchip{font-size:var(--dg-fs-min,12px);line-height:1.45;padding:0 var(--sp-1);border-radius:5px;text-decoration:none;color:var(--dg-ink-2,var(--text));background:color-mix(in srgb,var(--dg-card-c,var(--c,var(--accent))) 16%,transparent);border:1px solid color-mix(in srgb,var(--dg-card-c,var(--c,var(--accent))) 40%,transparent);cursor:pointer}
-@media (max-width:640px){.dgchips .dgchip{padding:0 5px}}
+@media (max-width:820px){.dgchips .dgchip{padding:0 5px}}
 .dgchips .dgchip:hover{color:var(--dg-ink,var(--text));background:color-mix(in srgb,var(--dg-card-c,var(--c,var(--accent))) 32%,transparent)}
 .dgchips s{font-size:var(--dg-fs-min,12px);text-decoration:none;color:var(--dg-ink-3,var(--muted))}
 .dgpop .dgchips .dgchip{--dg-card-c:var(--card-c)}
@@ -2562,23 +2562,23 @@ tbody tr:last-child td{border-bottom:0}
 
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .tile{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:var(--sp-3) var(--sp-3);cursor:pointer;transition:.15s}
-@media (max-width:640px){.tile{padding:12px 14px}}
+@media (max-width:820px){.tile{padding:12px 14px}}
 .tile:hover{border-color:var(--cyan);transform:translateY(-1px)}
 .tile .t{font-weight:700;font-size:15px} .tile .m{font-size:12.5px;color:var(--ink-3);margin-top:2px}
 .tile .v{font-family:var(--mono);font-size:20px;font-weight:700;margin-top:var(--sp-1)}
-@media (max-width:640px){.tile .v{margin-top:6px}}
+@media (max-width:820px){.tile .v{margin-top:6px}}
 
 /* ---------------- 事件側欄 ---------------- */
 .side-h{display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3) var(--sp-4) var(--sp-2)}
-@media (max-width:640px){.side-h{padding:14px 16px 8px}}
+@media (max-width:820px){.side-h{padding:14px 16px 8px}}
 .side-h h3{font-size:15px}
 .side-filters{display:flex;gap:var(--sp-2);padding:0 var(--sp-4) var(--sp-2);flex-wrap:wrap}
-@media (max-width:640px){.side-filters{gap:6px;padding:0 16px 10px}}
+@media (max-width:820px){.side-filters{gap:6px;padding:0 16px 10px}}
 .side-filters button{border:1px solid var(--line-2);background:transparent;color:var(--ink-2);padding:3px var(--sp-2);border-radius:999px;font-size:12.5px;cursor:pointer}
-@media (max-width:640px){.side-filters button{padding:3px 10px}}
+@media (max-width:820px){.side-filters button{padding:3px 10px}}
 .side-filters button.on{background:var(--violet);border-color:var(--violet);color:#fff}
 .ev{padding:var(--sp-3) var(--sp-4);border-top:1px solid var(--line);min-width:0}
-@media (max-width:640px){.ev{padding:11px 16px}}
+@media (max-width:820px){.ev{padding:11px 16px}}
 .ev a{color:var(--ink);font-size:14px;line-height:1.45;display:block;overflow-wrap:anywhere}
 .ev a:hover{color:var(--cyan)}
 /* ★ 2026-09-28（Andy 截圖「今日事件這邊發現 Bug，請調整適當寬度」）：這一列以前是不換行的 flex，
@@ -2587,7 +2587,7 @@ tbody tr:last-child td{border-bottom:0}
 .ev .m{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;min-width:0}
 .ev .m .lk-stock{white-space:nowrap}
 .ev .cat{padding:0 var(--sp-2);border-radius:999px;background:var(--panel-3);font-size:12px}
-@media (max-width:640px){.ev .cat{padding:0 7px}}/* 精修 #8：11 → 12px */
+@media (max-width:820px){.ev .cat{padding:0 7px}}/* 精修 #8：11 → 12px */
 /* ★ 2026-09-26 個股「公告 / 新聞」合併成一張列表：每列前面一個類型標籤。
    三色刻意避開紅綠（紅綠在這個站是漲跌）；用主題 token，淺色主題自動換成壓深的同色相。 */
 #stockNews .nrow{padding-left:0;padding-right:0}
@@ -2614,32 +2614,32 @@ tbody tr:last-child td{border-bottom:0}
 @media (max-width:820px){
   body{font-size:15px}
   main{padding:var(--sp-3) var(--sp-3) 90px}
-@media (max-width:640px){main{padding:14px 14px 90px}}
+@media (max-width:820px){main{padding:14px 14px 90px}}
   body{overflow-x:hidden}
   /* backdrop-filter 會讓 .topbar 變成 position:fixed 子元素的定位基準，
      底部的分頁列就會貼在 topbar 的下緣而不是視窗底部。手機上關掉它。 */
   .topbar{gap:8px;padding:0 var(--sp-2);overflow:hidden;backdrop-filter:none;background:var(--topbar-m)}
-@media (max-width:640px){.topbar{padding:0 10px}}
+@media (max-width:820px){.topbar{padding:0 10px}}
   .search input{width:104px;padding-left:28px}
   /* 手機：分頁列放到底部（頂部塞不下） */
   .tabs{position:fixed;left:0;right:0;bottom:0;z-index:44;background:var(--topbar-m);border-top:1px solid var(--line);
     padding:var(--sp-1) var(--sp-1) calc(6px + env(safe-area-inset-bottom));justify-content:space-around;backdrop-filter:blur(12px);flex:none}
-@media (max-width:640px){.tabs{padding:6px 6px calc(6px + env(safe-area-inset-bottom))}}
+@media (max-width:820px){.tabs{padding:6px 6px calc(6px + env(safe-area-inset-bottom))}}
   .tab{padding:var(--sp-2) var(--sp-2);font-size:13.5px;flex:1;text-align:center}
-@media (max-width:640px){.tab{padding:7px 9px}}
+@media (max-width:820px){.tab{padding:7px 9px}}
   main{padding-bottom:120px}
   .sibs a.lk{font-size:12.5px}
   .segchip{font-size:12px;padding:var(--sp-1) var(--sp-2)}
-@media (max-width:640px){.segchip{padding:4px 9px}}
+@media (max-width:820px){.segchip{padding:4px 9px}}
   /* 活頁簿分頁在 390px 也不准小於 12px（規格書第一節）；放不下就左右捲 */
   .nbsw>button,.nbsw>a{font-size:12.5px;padding:var(--sp-1) var(--sp-2) var(--sp-1)}
-@media (max-width:640px){.nbsw>button,.nbsw>a{padding:5px 10px 6px}} .nbsw>button.on,.nbsw>a.on{padding:var(--sp-2) var(--sp-3) var(--sp-2)}
-@media (max-width:640px){.nbsw>button.on,.nbsw>a.on{padding:7px 12px 8px}}
+@media (max-width:820px){.nbsw>button,.nbsw>a{padding:5px 10px 6px}} .nbsw>button.on,.nbsw>a.on{padding:var(--sp-2) var(--sp-3) var(--sp-2)}
+@media (max-width:820px){.nbsw>button.on,.nbsw>a.on{padding:7px 12px 8px}}
   .nbsw.lv2>button,.nbsw.lv2>a{font-size:12px;padding:var(--sp-1) var(--sp-2) var(--sp-1)}
-@media (max-width:640px){.nbsw.lv2>button,.nbsw.lv2>a{padding:4px 9px 5px}} .nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:var(--sp-1) var(--sp-3) var(--sp-2)}
-@media (max-width:640px){.nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:6px 11px 7px}}
+@media (max-width:820px){.nbsw.lv2>button,.nbsw.lv2>a{padding:4px 9px 5px}} .nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:var(--sp-1) var(--sp-3) var(--sp-2)}
+@media (max-width:820px){.nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:6px 11px 7px}}
   .nbbody{padding:var(--sp-2) var(--sp-2) var(--sp-3)}
-@media (max-width:640px){.nbbody{padding:10px 8px 12px}}
+@media (max-width:820px){.nbbody{padding:10px 8px 12px}}
   /* 手機上沒有一個字可以小於 12px（代號用 .82em 算出來只有 10.25px，手上看不清楚） */
   .tile .lks{font-size:13px} a.lk .code{font-size:12px} .brand small{font-size:11px}
   /* 窄畫面排成 2×2。★ grid-auto-rows:1fr 不可拿掉：兩列的高度預設各自算，
@@ -2647,7 +2647,7 @@ tbody tr:last-child td{border-bottom:0}
      _uitest 的「[800px] 四格等高」就是在擋這件事）。四格輪動板四格必須等高。 */
   .stageboard{grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
   .cyclebar{font-size:12px} .cyclebar .st{padding:var(--sp-1) var(--sp-2);font-size:12.5px}
-@media (max-width:640px){.cyclebar .st{padding:4px 10px}}
+@media (max-width:820px){.cyclebar .st{padding:4px 10px}}
   .magrid{grid-template-columns:1fr} .top5grid{grid-template-columns:1fr}
   #mktSeg2,#mktTabs{flex-wrap:wrap}
   /* 剖析圖不要壓成手機寬（viewBox 1200 壓到 360 的話標籤只剩 3px，等於看不到）；改成可以左右滑 */
@@ -2655,7 +2655,7 @@ tbody tr:last-child td{border-bottom:0}
   .dgwrap svg{width:auto;min-width:940px}
   .dgwrap.compact svg{max-height:none}
   .evbtn{padding:var(--sp-1) var(--sp-2);font-size:13px}
-@media (max-width:640px){.evbtn{padding:6px 8px}}
+@media (max-width:820px){.evbtn{padding:6px 8px}}
   .g2,.g3,.g4{grid-template-columns:1fr} .mtf-grid{grid-template-columns:1fr}
   .search input{width:130px}
   .brand small{display:none}
@@ -2663,12 +2663,12 @@ tbody tr:last-child td{border-bottom:0}
   .verbadge{display:none}
   #lwc{height:clamp(460px,calc(100vh - 230px),820px)}
   .tw.hide-m{display:none} .cards{display:grid;gap:var(--sp-2)}
-@media (max-width:640px){.cards{gap:10px}}
+@media (max-width:820px){.cards{gap:10px}}
   .scard{background:var(--panel-3);border-radius:10px;padding:var(--sp-3) var(--sp-3);border:1px solid var(--line-2)}
-@media (max-width:640px){.scard{padding:12px 14px}}
+@media (max-width:820px){.scard{padding:12px 14px}}
   .scard .h{display:flex;justify-content:space-between;align-items:baseline}
   .scard .h b{font-size:16px} .scard .r{display:flex;gap:var(--sp-2);font-size:13px;color:var(--ink-2);margin-top:var(--sp-1);flex-wrap:wrap}
-@media (max-width:640px){.scard .r{gap:10px;margin-top:6px}}
+@media (max-width:820px){.scard .r{gap:10px;margin-top:6px}}
 }
 @media (max-width:480px){ .hero{grid-template-columns:1fr 1fr} .kpi .v{font-size:22px} }
 /* 大盤 KPI 固定 6 格：只准排成 6／3／2 欄，不准出現「5 格＋孤兒 1 格」。
@@ -2691,16 +2691,16 @@ tbody tr:last-child td{border-bottom:0}
 .chainrow>.chainpane{flex:1 1 560px;min-width:0}
 .seglist[hidden],.chainmap[hidden]{display:none}
 .seglist{columns:236px;column-gap:var(--sp-2)}
-@media (max-width:640px){.seglist{column-gap:10px}}
+@media (max-width:820px){.seglist{column-gap:10px}}
 .segcard{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
   background:var(--panel-3);border:1px solid var(--line-2);border-left:3px solid var(--c,var(--line-2));
   border-radius:10px;padding:var(--sp-2) var(--sp-2) var(--sp-2);margin:0 0 var(--sp-2);cursor:pointer;transition:.15s}
-@media (max-width:640px){.segcard{padding:7px 10px 8px;margin:0 0 9px}}
+@media (max-width:820px){.segcard{padding:7px 10px 8px;margin:0 0 9px}}
 .segcard:hover{border-color:var(--c)}
 .segcard.sel{background:color-mix(in srgb,var(--c) 12%,var(--panel-3));box-shadow:0 0 0 1px var(--c) inset}
 .segcard.dim{opacity:.42}
 .segcard .sh{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
-@media (max-width:640px){.segcard .sh{gap:6px}}
+@media (max-width:820px){.segcard .sh{gap:6px}}
 .segcard .sh .dot{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex:none}
 .segcard .sh .nm{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.35}
 .segcard .sh .rl{font-size:11px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
@@ -2710,7 +2710,7 @@ tbody tr:last-child td{border-bottom:0}
    切掉的部分在 title 裡完整列出，滑過去看得到 */
 .segcard .sf{display:flex;gap:3px var(--sp-1);align-items:center;margin-top:4px;font-size:11.5px;
   color:var(--ink-3);line-height:1.5;white-space:nowrap;overflow:hidden;min-width:0}
-@media (max-width:640px){.segcard .sf{gap:3px 5px}}
+@media (max-width:820px){.segcard .sf{gap:3px 5px}}
 .segcard .sf .lb{opacity:.8;white-space:nowrap;flex:none}
 /* 名稱可以被擠窄並自己出現省略號 —— 這樣字框**永遠留在卡片裡**。
    用 flex:none 的話溢出去的字框會壓到隔壁欄的卡片（看起來被 overflow 切掉了，
@@ -2724,13 +2724,13 @@ tbody tr:last-child td{border-bottom:0}
    於是 8 家公司就是 8 列。grid 讓每張小卡剛好半欄寬、名稱過長由 CSS 省略號處理，
    列數固定是 ceil(n/2) —— 這是清單能比關聯圖矮的主因。*/
 .segcard .sms{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:var(--sp-1);margin-top:var(--sp-1)}
-@media (max-width:640px){.segcard .sms{gap:5px;margin-top:6px}}
+@media (max-width:820px){.segcard .sms{gap:5px;margin-top:6px}}
 /* 個股小卡：名稱白字、代號小一號的藍字（Andy 附圖就是這個樣子）。
    左邊那條 3px 的色邊是漲跌（紅漲綠跌）—— 不佔寬度，又把關聯圖上原本看得到的漲跌接回來 */
 .segcard .sco{display:flex;align-items:center;gap:3px;min-width:0;text-align:left;
   background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--u,var(--line-2));
   border-radius:7px;padding:3px var(--sp-1);cursor:pointer;font:inherit;line-height:1.3}
-@media (max-width:640px){.segcard .sco{padding:3px 5px}}
+@media (max-width:820px){.segcard .sco{padding:3px 5px}}
 .segcard .sco:hover{border-color:var(--cyan)}
 .segcard .sco .nm{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
@@ -2743,7 +2743,7 @@ tbody tr:last-child td{border-bottom:0}
 .segcard .sco .rel.iso{color:#d9a441;background:transparent;border:1px solid rgba(217,164,65,.45)}
 .segcard .sco.dim{opacity:.35}
 .segcard .nt{margin-top:var(--sp-1);font-size:11.5px;color:var(--ink-3);line-height:1.5}
-@media (max-width:640px){.segcard .nt{margin-top:6px}}
+@media (max-width:820px){.segcard .nt{margin-top:6px}}
 /* 手機：一欄，但小卡仍然兩張一列（grid 的 minmax 在 330px 的卡裡剛好排得下兩張），
    字級往上加到 13.5／15px —— 手機正文不得小於 15px、任何字不得小於 11px */
 @media (max-width:560px){ .seglist{columns:1} .segcard .sco .nm{font-size:13.5px} .segcard .sh .nm{font-size:15px} }
@@ -2758,7 +2758,7 @@ tbody tr:last-child td{border-bottom:0}
 #groupCards .tile{min-width:180px;flex:1 1 200px;max-width:360px}
 /* 成分股表下面那一排：一顆鈕 ＋ 一句「所以我該怎麼用」 */
 .morebar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1) var(--sp-2);margin-top:8px}
-@media (max-width:640px){.morebar{gap:6px 10px}}
+@media (max-width:820px){.morebar{gap:6px 10px}}
 .morebar[hidden]{display:none}
 .morebar .muted{font-size:12px;line-height:1.6;flex:1 1 220px;min-width:0}
 @media (max-width:560px){
@@ -2783,15 +2783,15 @@ tbody tr:last-child td{border-bottom:0}
    窄畫面（800px / 390px）一律允許換行 —— 這一排有 seg ＋ 勾選 ＋ 三顆鈕，
    不換行在 800px 半格寬度下一定會溢出（2026-09-18 E6 就是只驗寬螢幕放過去的）。*/
 .rotfilter{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1) var(--sp-2);margin:var(--sp-1) 0 var(--sp-1)}
-@media (max-width:640px){.rotfilter{gap:6px 8px;margin:6px 0 4px}}
+@media (max-width:820px){.rotfilter{gap:6px 8px;margin:6px 0 4px}}
 .rotfilter .muted{font-size:11.5px}
 .rotchk{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
 .rottools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1) var(--sp-2);margin:2px 0 0;font-size:12px;color:var(--ink-3)}
-@media (max-width:640px){.rottools{gap:6px 10px}}
+@media (max-width:820px){.rottools{gap:6px 10px}}
 .rottools .muted{font-size:11.5px}
 /* 2026-09-21：個股篩選面板（.rotpick / .rotsearch / .rotstocklist）整組移除，樣式一併刪掉，不留死碼 */
 @media (max-width:900px){ .rotfilter{gap:var(--sp-1) var(--sp-2)}
-@media (max-width:640px){.rotfilter{gap:5px 6px}} }
+@media (max-width:820px){.rotfilter{gap:5px 6px}} }
 
 /* ★ 2026-09-21 合併卡（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等」）。
    ★ 2026-09-23 D1：那兩支拉Bar 本身也合併成**一條雙把手的區間桿**（見下面 `.rbar .dual`），
@@ -2800,7 +2800,7 @@ tbody tr:last-child td{border-bottom:0}
    不換行就會凸出卡片（2026-09-18 E6 那次就是只驗寬螢幕放過去的）。
    軌跡開關後面那串說明字很長，所以給它 flex-basis 讓它自己換到下一行。*/
 .rottime{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1) var(--sp-4);margin:2px 0 4px}
-@media (max-width:640px){.rottime{gap:6px 18px}}
+@media (max-width:820px){.rottime{gap:6px 18px}}
 .rottime>#rotBack{flex:0 1 auto}
 .rottime>.rottools{flex:1 1 320px;margin:0}
 
@@ -2817,7 +2817,7 @@ tbody tr:last-child td{border-bottom:0}
 .rbar .dual input[type=range]::-moz-range-track{height:4px;background:transparent;border:none}
 .rbar .dual input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;
   width:13px;height:13px;margin-top:calc(-1 * var(--sp-1));border-radius:999px;background:var(--cyan);border:none;cursor:pointer}
-@media (max-width:640px){.rbar .dual input[type=range]::-webkit-slider-thumb{margin-top:-4.5px}}
+@media (max-width:820px){.rbar .dual input[type=range]::-webkit-slider-thumb{margin-top:-4.5px}}
 .rbar .dual input[type=range]::-moz-range-thumb{pointer-events:auto;
   width:13px;height:13px;border-radius:999px;background:var(--cyan);border:none;cursor:pointer}
 /* 起點那顆用灰色：兩顆同色的話讀不出「哪一顆是我在看的那一天」 */
@@ -2843,7 +2843,7 @@ tbody tr:last-child td{border-bottom:0}
 @media (max-width:1100px){
   .rotstagerow{display:block}
   .rotstagerow>.stagepanel{max-width:none;margin-top:var(--sp-2)}
-@media (max-width:640px){.rotstagerow>.stagepanel{margin-top:10px}}
+@media (max-width:820px){.rotstagerow>.stagepanel{margin-top:10px}}
 }
 
 /* ★ 2026-09-25：輪盤欄標題列（足跡輪盤＋日期區間／放大鈕在右端） */
@@ -2866,11 +2866,11 @@ tbody tr:last-child td{border-bottom:0}
 .stagepanel ul.ms li.ison .g{color:var(--cyan,var(--ink))}
 /* 展開那一列底下的成分股小表：一行一檔，名稱｜代號｜成交值｜佔比｜漲跌｜→ */
 .stagepanel ul.ms li.mem{display:block;cursor:default;padding:2px 0 var(--sp-1) var(--sp-3);border-top:0}
-@media (max-width:640px){.stagepanel ul.ms li.mem{padding:2px 0 6px 14px}}
+@media (max-width:820px){.stagepanel ul.ms li.mem{padding:2px 0 6px 14px}}
 .stagepanel ul.ms li.mem:hover{background:transparent}
 .stagepanel .mt .mr{display:grid;grid-template-columns:minmax(0,1fr) 38px 52px 40px 50px 14px;column-gap:var(--sp-1);
   align-items:center;font-size:11.5px;line-height:1.35;padding:2px 4px;border-radius:5px;cursor:pointer}
-@media (max-width:640px){.stagepanel .mt .mr{column-gap:5px}}
+@media (max-width:820px){.stagepanel .mt .mr{column-gap:5px}}
 .stagepanel .mt .mr>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stagepanel .mt .mr:hover{background:var(--panel-2)}
 .stagepanel .mt .mr .nm{color:var(--ink);font-weight:600}
@@ -2885,13 +2885,13 @@ tbody tr:last-child td{border-bottom:0}
 
 /* ★ D7：總覽「輪動階段」卡片下半的「昨日資金去向」小標與圖 */
 h4.ovflowh{margin-top:var(--sp-3);padding-top:12px;border-top:1px solid var(--line-2)}
-@media (max-width:640px){h4.ovflowh{margin-top:14px}}
+@media (max-width:820px){h4.ovflowh{margin-top:14px}}
 /* 合併之後兩張圖各自需要一行小標（卡片標題已經被「資金輪動」佔走）。
    用 h4 而不是 h3：同一張卡裡的層級要看得出來，而且 h3 的字級會把圖往下推。*/
 .rotpane{display:flex;flex-direction:column;min-width:0}
 h4.subh{margin:0 0 var(--sp-1);font-size:13.5px;color:var(--ink-1);display:flex;flex-wrap:wrap;
   align-items:baseline;gap:4px 8px}
-@media (max-width:640px){h4.subh{margin:0 0 6px}}
+@media (max-width:820px){h4.subh{margin:0 0 6px}}
 h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 圖區在窄畫面退單欄之後，上下兩塊要有間隔（.grid 的 gap 只在格與格之間） */
 @media (max-width:1100px){ .rotpane+.rotpane{margin-top:4px} }
@@ -2937,21 +2937,21 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    刻意用「一張卡一件事」而不是表格：表格在手機上一定要橫捲，
    而 Andy 有時候是在手機上看「到底做完了沒」。 */
 .tkwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--sp-2);margin-top:var(--sp-2)}
-@media (max-width:640px){.tkwrap{gap:10px;margin-top:10px}}
+@media (max-width:820px){.tkwrap{gap:10px;margin-top:10px}}
 .tk{border:1px solid var(--line);border-left-width:3px;border-radius:12px;padding:var(--sp-2) var(--sp-3);background:var(--panel-3)}
-@media (max-width:640px){.tk{padding:10px 12px}}
+@media (max-width:820px){.tk{padding:10px 12px}}
 .tk-h{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .tk-h b{font-family:var(--mono);font-size:13px;color:var(--ink-2)}
 .tk-st{font-size:11.5px;color:var(--ink-3)}
 .tk-t{margin-top:4px;font-size:13.5px;line-height:1.5}
 .tk-n{margin-top:var(--sp-1);font-size:12px;color:var(--ink-3);line-height:1.6}
-@media (max-width:640px){.tk-n{margin-top:6px}}
+@media (max-width:820px){.tk-n{margin-top:6px}}
 .tk-ask{margin-top:var(--sp-1);font-size:12.5px;color:var(--cyan);line-height:1.6}
-@media (max-width:640px){.tk-ask{margin-top:6px}}
+@media (max-width:820px){.tk-ask{margin-top:6px}}
 .tk-f{margin-top:var(--sp-2);display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
-@media (max-width:640px){.tk-f{margin-top:7px;gap:6px}}
+@media (max-width:820px){.tk-f{margin-top:7px;gap:6px}}
 .tk-f code{font-size:11px;color:var(--ink-3);background:var(--panel-2);border-radius:5px;padding:1px var(--sp-1)}
-@media (max-width:640px){.tk-f code{padding:1px 6px}}
+@media (max-width:820px){.tk-f code{padding:1px 6px}}
 .tk-sp{font-size:11px;color:var(--ink-3)}
 /* 左邊那條色帶就是狀態，不用再找圖例 */
 .tk.st-blocked{border-left-color:var(--fall)}
@@ -2980,11 +2980,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .dlvwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px;margin-top:12px}
 .dlv{border:1px solid var(--line);border-left:4px solid var(--line-2);border-radius:12px;
   padding:var(--sp-3) var(--sp-3);background:var(--panel-3);display:flex;flex-direction:column;gap:8px;min-width:0}
-@media (max-width:640px){.dlv{padding:12px 14px}}
+@media (max-width:820px){.dlv{padding:12px 14px}}
 /* 「這是你說的」：引號 ＋ 左色條，一眼分得出哪段是他的話、哪段是我的話 */
 .dlv-q{position:relative;font-size:14.5px;line-height:1.6;color:var(--ink);font-weight:600;
   padding-left:var(--sp-5);word-break:break-word}
-@media (max-width:640px){.dlv-q{padding-left:22px}}
+@media (max-width:820px){.dlv-q{padding-left:22px}}
 .dlv-q::before{content:'\201C';position:absolute;left:0;top:-4px;font-size:26px;line-height:1;
   color:var(--ink-3);font-family:Georgia,serif}
 .dlv-tag{display:block;font-size:12px;/* 精修 #8 */color:var(--ink-3);font-weight:400;letter-spacing:.05em;margin-bottom:2px}
@@ -2992,20 +2992,20 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .dlv-w b{color:var(--ink-3);font-weight:600;font-size:12px;/* 精修 #8 */display:block;margin-bottom:2px}
 .dlv-n{font-size:12px;line-height:1.65;color:var(--ink-3);border-left:2px dashed var(--line-2);
   padding-left:var(--sp-2);word-break:break-word}
-@media (max-width:640px){.dlv-n{padding-left:9px}}
+@media (max-width:820px){.dlv-n{padding-left:9px}}
 .dlv-n b{color:var(--amber);font-weight:600}
 .dlv-f{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);align-items:center;margin-top:auto;
   padding-top:8px;border-top:1px dashed var(--line);font-size:12px}
-@media (max-width:640px){.dlv-f{gap:6px 10px}}
+@media (max-width:820px){.dlv-f{gap:6px 10px}}
 .dlv-ver{font-family:var(--mono);font-size:12px;/* 精修 #8 */color:var(--ink-3)}
 .dlv-go{display:inline-flex;align-items:center;gap:4px;padding:3px var(--sp-2);border-radius:999px;font-size:12px;
   border:1px solid var(--line-2);background:var(--panel);color:var(--cyan);cursor:pointer}
-@media (max-width:640px){.dlv-go{padding:3px 10px}}
+@media (max-width:820px){.dlv-go{padding:3px 10px}}
 .dlv-go:hover{border-color:var(--cyan);box-shadow:var(--glow)}
 .dlv-none{font-size:12px;/* 精修 #8 */color:var(--ink-3)}
 .dlv-b{display:inline-flex;align-items:center;gap:var(--sp-1);padding:2px var(--sp-2);border-radius:999px;/* 精修 #8：11.5 → 12px 下限 */
   font-size:12px;font-weight:600;border:1px solid currentColor}
-@media (max-width:640px){.dlv-b{gap:5px;padding:2px 9px}}
+@media (max-width:820px){.dlv-b{gap:5px;padding:2px 9px}}
 /* 一筆的狀態同時決定左邊色條與徽章顏色 —— 只有一個地方定義 */
 .dlv.s-done{border-left-color:var(--dlv-done)} .dlv-b.s-done{color:var(--dlv-done)}
 .dlv.s-wip{border-left-color:var(--dlv-wip)}   .dlv-b.s-wip{color:var(--dlv-wip)}
@@ -3023,10 +3023,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .dlv.s-ask .dlv-tag,.dlv.s-ask .dlv-n,.dlv.s-ask .dlv-ver,.dlv.s-ask .dlv-none{color:var(--ink-2)}
 /* 摘要列同時就是篩選鈕：一個控制項，不要摘要一排、篩選又一排 */
 .dlvfil{display:flex;flex-wrap:wrap;gap:8px;margin-top:var(--sp-2)}
-@media (max-width:640px){.dlvfil{margin-top:10px}}
+@media (max-width:820px){.dlvfil{margin-top:10px}}
 .dlvfil button{display:inline-flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1) var(--sp-3);border-radius:999px;
   font-size:12.5px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);cursor:pointer}
-@media (max-width:640px){.dlvfil button{gap:6px;padding:5px 12px}}
+@media (max-width:820px){.dlvfil button{gap:6px;padding:5px 12px}}
 .dlvfil button:hover{border-color:var(--cyan);color:var(--ink)}
 .dlvfil button.on{color:var(--ontop);background:var(--cyan);font-weight:700;border-color:var(--cyan)}
 .dlvfil button b{font-family:var(--mono);font-size:12px}
@@ -3052,7 +3052,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   width:30px;height:24px;margin:-2px calc(-1 * var(--sp-1)) -2px 2px;padding:0;border:0;border-radius:6px;
   background:transparent;color:var(--ink-3);font:inherit;font-size:13px;line-height:1;
   cursor:pointer;transition:.15s}
-@media (max-width:640px){.segcard .sx{margin:-2px -6px -2px 2px}}
+@media (max-width:820px){.segcard .sx{margin:-2px -6px -2px 2px}}
 .segcard .sx:hover{color:var(--ink);background:var(--panel)}
 .segcard.open .sx{transform:rotate(180deg)}
 @media (max-width:560px){
@@ -3080,7 +3080,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    #sankeyWrap 一定要 min-width:0，否則 flex 子項的最小內容寬度會撐破卡片
    （ECharts 容器本身沒有內容寬，但 .chart 的 min-height 那條規則不擋這個）。*/
 #sankeyRow{display:flex;gap:var(--sp-3);align-items:flex-start}
-@media (max-width:640px){#sankeyRow{gap:14px}}
+@media (max-width:820px){#sankeyRow{gap:14px}}
 #sankeyRow #sankeyWrap{flex:1 1 auto;min-width:0}
 #sankeyRow #sankeyPanel{flex:0 0 300px;max-width:300px;margin-top:0}
 /* 清單比 .hpanel 預設的 232px 高一點：右欄本來就有整張圖那麼高，
@@ -3117,7 +3117,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   display:block;gap:0;
   background:color-mix(in srgb,var(--chartbg) 90%,transparent);
   border:1px solid color-mix(in srgb,var(--violet) 32%,transparent)}
-@media (max-width:640px){.m3-chart .m3-night{padding:7px 10px}}
+@media (max-width:820px){.m3-chart .m3-night{padding:7px 10px}}
 .m3-chart .m3-night .m3-q b{font-size:12.5px}
 .m3-chart .m3-night .note{font-size:11.5px;line-height:1.5;margin-top:2px}
 /* ② 呼吸燈：三張走勢圖「最新的那一點」。
@@ -3172,7 +3172,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 整條鏈沒有任何上下游時，圖上方明講一句（審查 R3：金融鏈流向圖 0 條帶子、沒有說明，看起來像壞掉） */
 .chainmap .mapempty{margin:var(--sp-2) var(--sp-3) 0;padding:8px 12px;border-radius:8px;border:1px dashed var(--line-2);
   color:var(--ink-2);font-size:13px;line-height:1.6;background:color-mix(in srgb,var(--panel) 60%,transparent)}
-@media (max-width:640px){.chainmap .mapempty{margin:10px 12px 0}}
+@media (max-width:820px){.chainmap .mapempty{margin:10px 12px 0}}
 /* ★ 2026-09-24（審查 R3「大」）：淺色主題下關聯圖以前仍是深藍底（--illus），裡面的公司卡卻吃淺色的 --panel-3（米白），
    環節標題條是深底配暗字 —— 整頁淺色中間挖了一塊黑、字讀不到。
    DECISIONS #239 當初讓 .chainmap 兩個主題都深底，但卡片與字早就跟著主題走了，兩邊對不起來才是問題的根源。
@@ -3270,13 +3270,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .reltip{position:fixed;z-index:60;min-width:240px;max-width:360px;box-sizing:border-box;padding:var(--sp-2) var(--sp-3);border-radius:10px;
   background:var(--tip-bg,var(--panel));border:1px solid var(--tip-line,var(--line-2));box-shadow:var(--tip-sh,none);
   color:var(--ink);font-size:13px;line-height:1.6;white-space:normal;word-break:normal;overflow-wrap:break-word;pointer-events:none}
-@media (max-width:640px){.reltip{padding:10px 12px}}
+@media (max-width:820px){.reltip{padding:10px 12px}}
 .reltip[hidden]{display:none}
 .reltip .rtn{font-size:12px;color:var(--ink-3)}
 .reltip .rtd{margin-top:4px;color:var(--ink-2)}
 .reltip .rtr{margin-top:3px;font-size:12.5px;color:var(--ink-2)}
 .reltip .rtr .k{display:inline-block;min-width:32px;margin-right:var(--sp-1);color:var(--ink-3)}
-@media (max-width:640px){.reltip .rtr .k{margin-right:6px}}
+@media (max-width:820px){.reltip .rtr .k{margin-right:6px}}
 /* hover 一張公司卡時，跟它有上下游關係的另一端一起提亮（只有線會看不出通到誰）*/
 .chainmap .co.near rect{stroke:var(--cyan);stroke-opacity:.9}
 .chainmap .co.near text{fill:var(--ink)}
@@ -3289,15 +3289,15 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .chainmap .segfold text{font-size:12px;text-anchor:middle;pointer-events:none}
 .chainmap .segfold:hover rect{fill:var(--line-2)}
 .chainmap .foldbar{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap;margin:8px 12px 0;font-size:12px}
-@media (max-width:640px){.chainmap .foldbar{gap:6px}}
+@media (max-width:820px){.chainmap .foldbar{gap:6px}}
 .chainmap .foldbar button{font-size:12px;padding:3px var(--sp-2);border-radius:6px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
-@media (max-width:640px){.chainmap .foldbar button{padding:3px 10px}}
+@media (max-width:820px){.chainmap .foldbar button{padding:3px 10px}}
 .chainmap .foldbar button:hover{border-color:var(--cyan)}
 .chainmap .foldbar .sub{color:var(--ink-3)}
 /* 環節詳情：Default 是空的（高度 0），點色標或環節卡才展開 —— 這就是 Andy 說的「點擊後才會跳出下拉清單」 */
 #segBox:empty{display:none}
 #segBox{margin-top:var(--sp-2)}
-@media (max-width:640px){#segBox{margin-top:10px}}
+@media (max-width:820px){#segBox{margin-top:10px}}
 /* ---- 剖析圖設定列：跟標題**同一列、靠右**（Andy 2026-09-23：「設定列改到右上角」）----
    ★ 第一版是絕對定位浮在畫布的右上角內緣，`_preview.py` 當場量到文字重疊：
      圖的右上角本來就有「產品剖析圖 <圖名>」那一行標題，浮上去就是跟它搶同一塊。
@@ -3308,7 +3308,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      所以「展開剖析圖」那顆鈕不可能跟著消失。*/
 #dgSec{position:relative}
 .dgsechead{gap:var(--sp-2) var(--sp-2);align-items:flex-start}
-@media (max-width:640px){.dgsechead{gap:8px 10px}}
+@media (max-width:820px){.dgsechead{gap:8px 10px}}
 /* ★ 2026-09-23 修：標題的自然寬度（含 #dgTitle 那串完整圖名）實測 872px，
    設定列 587px，兩個加起來 1459px 遠大於容器 972px —— 於是設定列被擠到**第二行**，
    靠左排，看起來就不在右上角了（實測 qx 0.21、離右緣 385px）。
@@ -3328,7 +3328,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    這樣「跟標題同一列、靠右」在 1440 與 1100 都成立。 */
 #dgTools{display:flex;gap:var(--sp-2);flex-wrap:wrap;justify-content:flex-end;align-items:center;
   min-width:0;flex:0 1 auto;margin-left:auto}
-@media (max-width:640px){#dgTools{gap:6px}}
+@media (max-width:820px){#dgTools{gap:6px}}
 #dgTools[hidden]{display:none}
 /* ★ 2026-09-26：2D｜3D 分段鈕（取代「3D 立體」開關，見 industry.js wire3D 的 paintMode）。
    .seg 自己宣告 display:inline-flex，會蓋掉 [hidden] 的 UA 預設 —— 沒有 3D 場景的圖一定要真的藏起來。
@@ -3352,7 +3352,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   padding:4px;border-radius:999px;background:color-mix(in srgb,var(--panel) 62%,transparent);
   border:1px solid color-mix(in srgb,var(--line-2) 70%,transparent);
   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 10px rgba(0,0,0,.18)}
-@media (max-width:640px){.dg3dctl{gap:6px}}
+@media (max-width:820px){.dg3dctl{gap:6px}}
 .dg3dctl[hidden]{display:none!important}
 .dg3dctl .pill{cursor:pointer;font-size:12.5px;line-height:1.35;
   background:color-mix(in srgb,var(--panel-3) 78%,transparent)}
@@ -3432,17 +3432,17 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .morepop{position:absolute;top:calc(100% + 6px);right:8px;z-index:60;width:min(260px,calc(100vw - 24px));
   background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:var(--sp-1);
   box-shadow:0 18px 46px var(--drop)}
-@media (max-width:640px){.morepop{padding:6px}}
+@media (max-width:820px){.morepop{padding:6px}}
 .morepop[hidden]{display:none}
 .morepop button{display:flex;align-items:center;gap:var(--sp-2);width:100%;min-height:44px;padding:8px 12px;
   border:0;background:transparent;color:var(--ink);font-size:14.5px;text-align:left;border-radius:9px;cursor:pointer}
-@media (max-width:640px){.morepop button{gap:10px}}
+@media (max-width:820px){.morepop button{gap:10px}}
 .morepop button:hover,.morepop button:focus-visible{background:var(--panel-2)}
 .morepop button .ic{width:22px;text-align:center;color:var(--cyan);font-size:15px;flex:none}
 .morepop button .n{margin-left:auto;background:var(--violet);color:var(--ontop);font-size:12px;/* 同上：白字對 --violet 只有 3.29 */
   padding:1px 8px;border-radius:9px;font-family:var(--mono)}
 .morepop .hint{font-size:12px;color:var(--ink-3);padding:var(--sp-1) var(--sp-3) var(--sp-1);line-height:1.5}
-@media (max-width:640px){.morepop .hint{padding:4px 12px 6px}}
+@media (max-width:820px){.morepop .hint{padding:4px 12px 6px}}
 @media (max-width:820px){
   .topbar{overflow:visible}
   .livebox,#themeBtn,#evToggle{display:none}
@@ -3465,7 +3465,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 @media (max-width:820px){
   .tabs{flex-wrap:wrap;justify-content:flex-start;gap:4px;overflow:visible;
     padding:var(--sp-1) var(--sp-1) calc(5px + env(safe-area-inset-bottom))}
-@media (max-width:640px){.tabs{padding:5px 6px calc(5px + env(safe-area-inset-bottom))}}
+@media (max-width:820px){.tabs{padding:5px 6px calc(5px + env(safe-area-inset-bottom))}}
   .tab{flex:1 0 calc(25% - 3px);min-height:44px;display:flex;align-items:center;justify-content:center;
     padding:4px 2px;font-size:12.5px;line-height:1.2}
   /* ★ 2026-09-24：「題材」併進「熱力圖」之後剩七顆 ＝ 上排四顆、下排三顆。
@@ -3489,7 +3489,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 @media (max-width:820px){
   .m3-grid{display:flex!important;gap:var(--sp-2);overflow-x:auto;scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
-@media (max-width:640px){.m3-grid{gap:10px}}
+@media (max-width:820px){.m3-grid{gap:10px}}
   .m3-grid::-webkit-scrollbar{display:none}
   .m3-grid>*{flex:0 0 88%;min-width:0;scroll-snap-align:start}
 }
@@ -3687,7 +3687,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mpager{display:flex;gap:var(--sp-2);margin:0 0 var(--sp-2);padding:var(--sp-2) 2px;
     overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     background:var(--bg);box-shadow:0 6px 10px -8px rgba(0,0,0,.55)}
-@media (max-width:640px){.mpager{gap:6px;margin:0 0 10px;padding:7px 2px}}
+@media (max-width:820px){.mpager{gap:6px;margin:0 0 10px;padding:7px 2px}}
   /* ⚠ 2026-09-24 修：`miaPager` 用 `bar.hidden = subs.length < 2` 想把
      「只有一段」的分頁列收掉（程式註解寫得很清楚：「一顆孤單的晶片是雜訊」），
      但 `display:flex` 的權重 (0,1,0) 蓋過瀏覽器內建的 `[hidden]{display:none}` (0,0,0)，
@@ -3699,7 +3699,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mpager>button{flex:0 0 auto;min-height:44px;padding:var(--sp-1) var(--sp-3);border-radius:999px;
     border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);
     font-size:13px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
-@media (max-width:640px){.mpager>button{padding:6px 14px}}
+@media (max-width:820px){.mpager>button{padding:6px 14px}}
   .mpager>button.on{background:var(--panel-3);color:var(--ink);
     border-color:var(--focus);box-shadow:inset 0 0 0 1px var(--focus)}
   /* ---- ①-b 主軸動線（`.mspine`）：四個問題排成一條線 ------------------------
@@ -3713,12 +3713,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mspine{position:sticky;top:58px;z-index:31;display:flex;gap:var(--sp-2);margin:0 0 var(--sp-1);padding:var(--sp-2) 2px var(--sp-1);
     overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     background:var(--bg);box-shadow:0 8px 12px -10px rgba(0,0,0,.6)}
-@media (max-width:640px){.mspine{gap:6px;margin:0 0 6px;padding:8px 2px 6px}}
+@media (max-width:820px){.mspine{gap:6px;margin:0 0 6px;padding:8px 2px 6px}}
   .mspine::-webkit-scrollbar{display:none}
   .mspine>button{flex:0 0 auto;min-height:52px;max-width:200px;padding:var(--sp-1) var(--sp-3);border-radius:12px;
     border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);
     text-align:left;display:flex;flex-direction:column;gap:1px;line-height:1.25}
-@media (max-width:640px){.mspine>button{padding:6px 13px}}
+@media (max-width:820px){.mspine>button{padding:6px 13px}}
   .mspine>button b{font-size:13.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
   .mspine>button em{font-size:12px;font-style:normal;color:var(--ink-3);white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis;max-width:176px}
@@ -3736,7 +3736,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mnext{display:block;width:100%;min-height:48px;margin:var(--sp-3) 0 var(--sp-1);padding:12px;
     border:1px solid var(--focus);border-radius:12px;background:var(--panel-2);
     color:var(--ink);font-size:14px;font-weight:700;letter-spacing:.02em}
-@media (max-width:640px){.mnext{margin:14px 0 4px}}
+@media (max-width:820px){.mnext{margin:14px 0 4px}}
   .mnext:active{background:var(--panel-3)}
 
   /* ---- ①-c 第①步的關鍵數字：四個象限各有幾個族群 ---------------------------
@@ -3744,19 +3744,19 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      （桌機的設計，不准動），所以手機在標題下面補這一列。
      顏色吃 `--c`（由 JS 帶入 `STAGE[k].color`），紅漲綠跌那一套沒有動。*/
   .rotkpi{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:var(--sp-1) 0 2px}
-@media (max-width:640px){.rotkpi{gap:6px;margin:6px 0 2px}}
+@media (max-width:820px){.rotkpi{gap:6px;margin:6px 0 2px}}
   .rotkpi .rk{display:inline-flex;align-items:center;gap:var(--sp-1);min-height:32px;padding:var(--sp-1) var(--sp-2);
     border-radius:999px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
     background:color-mix(in srgb,var(--c) 12%,transparent);
     color:var(--ink-2);font-size:12.5px;font-weight:600}
-@media (max-width:640px){.rotkpi .rk{gap:5px;padding:4px 10px}}
+@media (max-width:820px){.rotkpi .rk{gap:5px;padding:4px 10px}}
   .rotkpi .rk b{color:var(--c);font-size:15px;font-variant-numeric:tabular-nums}
 
   /* ---- ④ 今日事件卡（手機專屬，資料與抽屜同一份）---------------------------- */
   .ovev{display:flex;flex-direction:column;gap:2px;margin-top:var(--sp-1)}
-@media (max-width:640px){.ovev{margin-top:6px}}
+@media (max-width:820px){.ovev{margin-top:6px}}
   .ovev .ev{display:block;padding:var(--sp-2) 2px;border-bottom:1px solid var(--line);min-height:44px}
-@media (max-width:640px){.ovev .ev{padding:9px 2px}}
+@media (max-width:820px){.ovev .ev{padding:9px 2px}}
   .ovev .ev .t{display:block;color:var(--ink);font-size:13.5px;line-height:1.45}
   .ovev .ev .m{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;color:var(--ink-3);font-size:12px}
   .ovev .ev .m .cat{color:var(--ink-2)}
@@ -3774,7 +3774,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mmore{display:block;width:100%;min-height:44px;margin:8px 0 2px;padding:var(--sp-2) var(--sp-3);
     border:1px dashed var(--line);border-radius:10px;background:var(--panel-2);
     color:var(--ink-2);font-size:13px;font-weight:600}
-@media (max-width:640px){.mmore{padding:10px 12px}}
+@media (max-width:820px){.mmore{padding:10px 12px}}
   .mmore:active{background:var(--panel-3)}
 
   /* ---- ③ 長說明收合 -------------------------------------------------------- */
@@ -3817,7 +3817,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          而且它也**不能**用 `.hsc`（那是 mask，會讓釘住的列半透明）。淡出改由下面的
          `#skPx::after` 不透明蓋片畫。*/
     flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-@media (max-width:640px){body.miaon #skPx{margin:0 -18px;padding:8px 18px}}
+@media (max-width:820px){body.miaon #skPx{margin:0 -18px;padding:8px 18px}}
   body.miaon #skPx::-webkit-scrollbar{display:none}
   body.miaon #skPx>*{flex:0 0 auto}
   /* ★ 2026-09-24 修：這一列**藏了 442px 的內容**（scrollWidth 802 / clientWidth 360，
@@ -3840,7 +3840,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      全部留著、一顆都沒少，只是排成一條可以滑的帶子（`.hsc` 會補淡出與「左右滑」提示）。*/
   body.miaon #skTools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     gap:var(--sp-2);padding-bottom:4px}
-@media (max-width:640px){body.miaon #skTools{gap:6px}}
+@media (max-width:820px){body.miaon #skTools{gap:6px}}
   body.miaon #skTools::-webkit-scrollbar{display:none}
   body.miaon #skTools>*{flex:0 0 auto}
   body.miaon #skTools .sp{display:none}                 /* 「把剩下的空間吃掉」的彈簧在可捲的列裡沒有意義 */
@@ -3915,14 +3915,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    ================================================================================== */
 /* 圖例：圖的右下、圖底往下 16px；左邊標題 12px、右邊一條膠囊，7 格等寬、格間 0。 */
 .hmlegend{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:var(--sp-2) var(--sp-2);margin-top:var(--s5)}
-@media (max-width:640px){.hmlegend{gap:8px 10px}}
+@media (max-width:820px){.hmlegend{gap:8px 10px}}
 .hmlegend .hmttl{font-size:12px;color:var(--ink-3);white-space:nowrap}
 .hmlegend .hmbar{display:inline-flex;border-radius:var(--r-pill);overflow:hidden;border:1px solid var(--line);flex:none}
 .hmlegend .hmcell{min-width:44px;height:24px;display:inline-flex;align-items:center;justify-content:center;
   padding:0 var(--sp-1);border:0;margin:0;font:600 12px/1 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   color:#fff;cursor:pointer;background:var(--c);font-variant-numeric:tabular-nums;white-space:nowrap;
   transition:opacity var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease)}
-@media (max-width:640px){.hmlegend .hmcell{padding:0 6px}}
+@media (max-width:820px){.hmlegend .hmcell{padding:0 6px}}
 .hmlegend .hmcell.na{color:var(--ink)}
 .hmlegend .hmcell.dk{color:var(--hm-ink-dark)}   /* 暖金／湖水藍最亮的兩格配深字 */
 /* 點一格＝只亮這一級：其他格退到 35%（圖上的方塊退到 25%），被選的那格內框一圈白線 */
@@ -3952,12 +3952,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 卡片標題列右側的控制項：下拉與日期膠囊（只顯示、不能改）。高 28、膠囊。 */
 .hmctl{display:inline-flex;align-items:center;gap:var(--sp-2);height:28px;padding:0 12px;border-radius:var(--r-pill);
   border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:12px;white-space:nowrap}
-@media (max-width:640px){.hmctl{gap:6px}}
+@media (max-width:820px){.hmctl{gap:6px}}
 .hmctl select{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--ink);
   font:inherit;font-weight:600;padding:0 var(--sp-3) 0 0;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
   background-position:calc(100% - 6px) 55%,calc(100% - 2px) 55%;background-size:4px 4px;background-repeat:no-repeat}
-@media (max-width:640px){.hmctl select{padding:0 14px 0 0}}
+@media (max-width:820px){.hmctl select{padding:0 14px 0 0}}
 .hmctl select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .hmctl.date{font-family:var(--mono);color:var(--ink-3)}
 .hmctl.date svg{flex:none}
@@ -3973,23 +3973,23 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 高度壓到跟旁邊的勾選框同一行（21px）：像素比對量到用一般 .seg.tiny（約 30px 高）會把整張卡往下推 8px */
 .rottools .rot-tmode{padding:1px;border-radius:var(--r-pill);vertical-align:middle}
 .rottools .rot-tmode button{padding:0 var(--sp-2);font-size:12px;line-height:17px;border-radius:var(--r-pill)}
-@media (max-width:640px){.rottools .rot-tmode button{padding:0 9px}}
+@media (max-width:820px){.rottools .rot-tmode button{padding:0 9px}}
 /* 編號模式（時鐘容器 < 560px）的名字清單：依象限分四組，每格「編號 名字」，點一下＝在圖上只亮它。
    字 12～13px、編號是 18px 圓（跟圖上的編號同一個數字），焦點族群的名字粗體。*/
 .rotnums{margin-top:8px;display:flex;flex-direction:column;gap:var(--sp-2)}
-@media (max-width:640px){.rotnums{gap:6px}}
+@media (max-width:820px){.rotnums{gap:6px}}
 .rotnums .rnh{font-size:12px;color:var(--ink-3)}
 .rotnums .rnh small{font-size:12px}
 .rotnums .rnq{display:flex;align-items:flex-start;gap:8px;padding:var(--sp-1) var(--sp-2);border-radius:var(--r-sm,10px);
   background:color-mix(in srgb,var(--c) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
-@media (max-width:640px){.rotnums .rnq{padding:6px 8px}}
+@media (max-width:820px){.rotnums .rnq{padding:6px 8px}}
 .rotnums .rnq>b{flex:none;font-size:13px;color:var(--c);line-height:24px;min-width:2.2em}
 .rotnums .rnl{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);min-width:0}
-@media (max-width:640px){.rotnums .rnl{gap:4px 10px}}
+@media (max-width:820px){.rotnums .rnl{gap:4px 10px}}
 .rotnums .rni{appearance:none;border:0;background:none;padding:2px 4px;margin:0;font:inherit;font-size:13px;
   color:var(--ink-2);display:inline-flex;align-items:center;gap:var(--sp-1);cursor:pointer;border-radius:6px;min-height:24px;
   text-align:left;max-width:100%}
-@media (max-width:640px){.rotnums .rni{gap:5px}}
+@media (max-width:820px){.rotnums .rni{gap:5px}}
 .rotnums .rni.f{color:var(--ink);font-weight:700}
 .rotnums .rni i{font-style:normal;flex:none;min-width:18px;height:18px;border-radius:9px;padding:0 4px;
   display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--mono);
@@ -4004,7 +4004,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
 /* ★ 2026-09-24 晚：版號在標題下面（取代原本「YYYY-MM-DD 盤後」那行；資料日期與資料狀態在它的滑鼠提示裡）。 */
 #asof{display:flex;align-items:center;gap:var(--sp-2);white-space:nowrap}
-@media (max-width:640px){#asof{gap:6px}}
+@media (max-width:820px){#asof{gap:6px}}
 #asof .verline{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.02em}
 #asof .freshbtn{font:600 12px/1 "Noto Sans TC",system-ui,sans-serif;color:var(--amber);background:none;border:1px solid var(--line-2);
   border-radius:var(--r-pill);padding:2px 8px;cursor:pointer}
@@ -4012,7 +4012,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .livebox[hidden]{display:none!important}
 @media (max-width:820px){
   #asof .freshbtn{font-size:0;padding:2px var(--sp-1)}
-@media (max-width:640px){#asof .freshbtn{padding:2px 6px}} #asof .freshbtn::before{content:"↻";font-size:13px}
+@media (max-width:820px){#asof .freshbtn{padding:2px 6px}} #asof .freshbtn::before{content:"↻";font-size:13px}
   #asof .verline{font-size:12px}
 }
 
@@ -4030,14 +4030,14 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
 /* ---- 標題旁的「?」：一顆 22px 圓鈕，點了跳出說明（#howPop），點背景（#howBack）關 ---- */
 .howbtn.pop{min-height:0;width:22px;height:22px;padding:0;border-radius:50%;font-size:12.5px;font-weight:700;
   display:inline-flex;align-items:center;justify-content:center;vertical-align:2px;margin-left:var(--sp-1);line-height:1}
-@media (max-width:640px){.howbtn.pop{margin-left:6px}}
+@media (max-width:820px){.howbtn.pop{margin-left:6px}}
 h3 .howbtn.pop{font-family:inherit}
 .m3-bar .howbtn.pop{margin-left:0}
 /* 欄位名稱旁的小「?」（個股頁籌碼快照，2026-09-28）：比標題那顆小一號，免得六格名稱被六顆大圓鈕搶走目光；
    觸控範圍用 ::after 往外撐到 32px，手機上手指點得到（畫面上仍是 18px 的小圓）。 */
 .kvs .k[data-chip] .l{display:flex;align-items:center;gap:0;min-width:0}
 .kvs .k .l .howbtn.kq{position:relative;flex:none;width:18px;height:18px;font-size:11px;margin-left:var(--sp-1);vertical-align:0;font-family:inherit}
-@media (max-width:640px){.kvs .k .l .howbtn.kq{margin-left:5px}}
+@media (max-width:820px){.kvs .k .l .howbtn.kq{margin-left:5px}}
 .kvs .k .l .howbtn.kq::after{content:'';position:absolute;inset:-7px}
 /* ==================================================================================
    ★ 2026-10-02 個股「總覽」分頁的小圖（Andy 五張截圖，DECISIONS #294；程式在 industry.js chipCard／fundCard／tabTags）
@@ -4163,7 +4163,7 @@ h3 .howbtn.pop{font-family:inherit}
   #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
   #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-@media (max-width:640px){
+@media (max-width:820px){
   #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
   #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -4231,7 +4231,7 @@ h3 .howbtn.pop{font-family:inherit}
 .tagtile.on .tagnm{color:var(--rise)}
 .tagtile.off{opacity:.72}
 .tagtile.off .tagnm{color:var(--ink-2);font-weight:600}
-@media (max-width:640px){
+@media (max-width:820px){
   .mix{padding:9px 10px}
   .mixn{gap:6px 8px}
   .mixi b{font-size:14px}
@@ -4244,9 +4244,9 @@ h3 .howbtn.pop{font-family:inherit}
   width:min(520px,calc(100vw - 32px));max-height:min(72vh,640px);overflow:auto;
   background:var(--panel);border:1px solid var(--line-2);border-radius:14px;padding:var(--sp-3) var(--sp-4) var(--sp-3);
   box-shadow:0 18px 50px rgba(0,0,0,.45)}
-@media (max-width:640px){#howPop{padding:14px 16px 12px}}
+@media (max-width:820px){#howPop{padding:14px 16px 12px}}
 #howPop .hp-h{font-size:15px;margin-bottom:var(--sp-1);color:var(--ink)}
-@media (max-width:640px){#howPop .hp-h{margin-bottom:6px}}
+@media (max-width:820px){#howPop .hp-h{margin-bottom:6px}}
 #howPop .howtxt{margin:0;border-left-width:3px}
 
 /* ---- ① 總覽摘要卡列（2026-09-28，取代 KPI 細列；Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉」）----
@@ -4262,16 +4262,16 @@ h3 .howbtn.pop{font-family:inherit}
 #m3Frame #hero.ovsum{margin:0}
 .ovsum-track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:var(--sp-2);min-width:0;
   overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;padding:1px}
-@media (max-width:640px){.ovsum-track{gap:10px}}
+@media (max-width:820px){.ovsum-track{gap:10px}}
 .ovsum-track::-webkit-scrollbar{display:none}
 .osc{scroll-snap-align:start;min-width:0;display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3) var(--sp-2);box-sizing:border-box;
   border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel-3) 55%,transparent);
   cursor:pointer;transition:border-color .15s,background-color .15s}
-@media (max-width:640px){.osc{gap:7px;padding:10px 12px 9px}}
+@media (max-width:820px){.osc{gap:7px;padding:10px 12px 9px}}
 .osc:hover{border-color:color-mix(in srgb,var(--cyan) 45%,var(--line));background:color-mix(in srgb,var(--cyan) 6%,var(--panel-3))}
 .osc:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .osc-h{display:flex;align-items:center;gap:var(--sp-2);min-width:0;height:22px}
-@media (max-width:640px){.osc-h{gap:7px}}
+@media (max-width:820px){.osc-h{gap:7px}}
 .osc-ic{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;color:var(--ic);
   background:color-mix(in srgb,var(--ic) 16%,transparent)}
 .osc-ic svg{display:block}
@@ -4309,7 +4309,7 @@ h3 .howbtn.pop{font-family:inherit}
 .osn small{font-size:11.5px;line-height:15px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .osn[style*="--c"] small::before{content:'';display:inline-block;width:7px;height:7px;border-radius:2px;background:var(--c);margin-right:4px;vertical-align:1px}
 .osn-v{display:flex;align-items:baseline;gap:var(--sp-1);white-space:nowrap;min-width:0;overflow:hidden}
-@media (max-width:640px){.osn-v{gap:5px}}
+@media (max-width:820px){.osn-v{gap:5px}}
 .osn-v b{font:700 18px/22px var(--mono);color:var(--ink)}
 .osn-v b.up{color:var(--rise)} .osn-v b.down{color:var(--fall)} .osn-v b.flat{color:var(--ink-2)}
 .osn-v em,.osn small em{font-style:normal;font:11.5px/1 var(--mono);color:var(--ink-3)}
@@ -4350,27 +4350,27 @@ h3 .howbtn.pop{font-family:inherit}
 /* 資金去向卡兩份口徑依寬度只顯示一份（app.js renderOvSummary ③）：桌機＝昨日資金去向分流圖，手機＝手機版資金去向長條。
    斷點跟 mobile3.js 的 isM()（≤640）一致 —— 它決定點卡片後看到的是哪一張。 */
 .osc .ovs-mb{display:none!important}
-@media (max-width:640px){ .osc .ovs-dk{display:none!important} .osc .ovs-mb{display:revert!important} .osc .osn.ovs-mb{display:flex!important} }
+@media (max-width:820px){ .osc .ovs-dk{display:none!important} .osc .ovs-mb{display:revert!important} .osc .osn.ovs-mb{display:flex!important} }
 /* 捲到下面那幾張卡時，頂欄（sticky 58px）不要蓋住卡片標題；手機還有一條 sticky 的四步列 */
 #ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:68px}
-@media (max-width:640px){ #ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:124px} }
+@media (max-width:820px){ #ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:124px} }
 
 /* ---- 大盤三張圖：一個大方框、三格用細線隔開、工具列在框內左上 ---- */
 #m3{margin-bottom:0}
 .m3-frame{padding:var(--sp-2) 0 var(--sp-1)}
-@media (max-width:640px){.m3-frame{padding:10px 0 6px}}
+@media (max-width:820px){.m3-frame{padding:10px 0 6px}}
 .m3-frame .m3-bar{padding:0 var(--sp-3);margin-bottom:4px;gap:8px}
-@media (max-width:640px){.m3-frame .m3-bar{padding:0 14px}}
+@media (max-width:820px){.m3-frame .m3-bar{padding:0 14px}}
 .m3-frame .m3-bar .seg button{padding:4px 12px;font-size:13px}
 .m3-card{min-width:0}
 .m3-card>.m3-h{align-items:center;gap:var(--sp-2)}
-@media (max-width:640px){.m3-card>.m3-h{gap:6px}}
+@media (max-width:820px){.m3-card>.m3-h{gap:6px}}
 .m3-card>.m3-h h3{font-size:15px;margin:0}
 .m3-card>.m3-h .m3-big{margin-left:auto}
 .m3-sess{padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line-2);color:var(--ink-2);background:var(--panel-3)}
 .m3-sess[data-s="night"]{color:var(--violet,#b69cff);border-color:color-mix(in srgb,var(--violet,#b69cff) 45%,transparent)}
 .m3-nums{flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);margin:2px 0 4px;min-height:0;cursor:help}
-@media (max-width:640px){.m3-nums{gap:4px 10px}}
+@media (max-width:820px){.m3-nums{gap:4px 10px}}
 .m3-nums .m3-px{font-size:24px}
 .m3-nums .m3-chg{font-size:13.5px}
 .m3-nums .m3-tag{margin-left:0;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -4429,7 +4429,7 @@ h3 .howbtn.pop{font-family:inherit}
 /* 市場明細「法人連買賣」分頁的控制列（2026-09-28 從總覽搬過來）：窄畫面換行，不撐出橫向捲軸 */
 .mktstreakbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:0 0 8px}
 .mktstreakbar .row{gap:var(--sp-2);flex-wrap:wrap}
-@media (max-width:640px){.mktstreakbar .row{gap:6px}}
+@media (max-width:820px){.mktstreakbar .row{gap:6px}}
 
 /* ---- 市場明細：漲跌分佈下鑽（2026-09-28，Andy「點擊長條圖後，會顯示個股在右邊可以看」）----
    ⚠ 名單容器用 div 不用 aside：全站的 `aside` 規則是今日事件抽屜（position:fixed 貼右邊），用 aside 會整塊飛到畫面外。
@@ -4439,7 +4439,7 @@ h3 .howbtn.pop{font-family:inherit}
 .distlay>#chgDistBox{flex:1 1 auto;min-width:0}
 .distpick{flex:0 0 340px;min-width:0;display:flex;flex-direction:column;padding:var(--sp-2) var(--sp-3);border-radius:10px;
   background:var(--panel-3);border:1px solid var(--line-2)}
-@media (max-width:640px){.distpick{padding:10px 12px}}
+@media (max-width:820px){.distpick{padding:10px 12px}}
 .distpick[hidden]{display:none}
 .distpick .dph{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .distpick .dph b{font-size:14px}
@@ -4448,13 +4448,13 @@ h3 .howbtn.pop{font-family:inherit}
   width:28px;height:28px;line-height:1;font-size:16px;cursor:pointer}
 .distpick .dph .x:hover{color:var(--ink);border-color:var(--cyan)}
 .distpick .dpsort{margin-top:var(--sp-1)}
-@media (max-width:640px){.distpick .dpsort{margin-top:6px}}
+@media (max-width:820px){.distpick .dpsort{margin-top:6px}}
 .distpick .dplist{margin-top:8px;overflow:auto;max-height:300px;flex:1 1 auto}
 .distpick table{width:100%;border-collapse:collapse;font-size:12.5px}
 .distpick th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-3);font-weight:500;text-align:right;padding:var(--sp-1) var(--sp-1);z-index:1}
-@media (max-width:640px){.distpick th{padding:4px 6px}}
+@media (max-width:820px){.distpick th{padding:4px 6px}}
 .distpick td{padding:var(--sp-1) var(--sp-1);text-align:right;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
-@media (max-width:640px){.distpick td{padding:4px 6px}}
+@media (max-width:820px){.distpick td{padding:4px 6px}}
 .distpick th.l,.distpick td.l{text-align:left}
 .distpick td.l{white-space:normal}
 .distpick td.cd{color:var(--ink-2)}
@@ -4462,7 +4462,7 @@ h3 .howbtn.pop{font-family:inherit}
 .distpick tr[data-code]:hover td{background:var(--panel-2)}
 .distpick td a{color:var(--ink);text-decoration:none}
 .distpick td a:hover{color:var(--cyan);text-decoration:underline}
-@media (max-width:640px){
+@media (max-width:820px){
   .distlay{flex-direction:column}
   .distpick{flex:none}
   .distpick .dplist{max-height:360px}
@@ -4514,13 +4514,13 @@ h3 .howbtn.pop{font-family:inherit}
 .adjtag{position:absolute;top:6px;right:72px;z-index:6;font-size:11.5px;font-weight:700;line-height:1;
   padding:var(--sp-1) var(--sp-2);border-radius:6px;cursor:help;color:var(--amber);letter-spacing:.06em;
   background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent)}
-@media (max-width:640px){.adjtag{padding:4px 7px}}
+@media (max-width:820px){.adjtag{padding:4px 7px}}
 .adjtag:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 .adjtag .adjtip{display:none;position:absolute;top:calc(100% + 6px);right:0;width:max-content;max-width:300px;
   padding:var(--sp-2) var(--sp-3);border-radius:9px;background:var(--panel);border:1px solid var(--line-2);color:var(--ink-2);
   font-size:12.5px;font-weight:400;line-height:1.55;letter-spacing:0;white-space:normal;text-align:left;
   box-shadow:0 10px 30px rgba(0,0,0,.35)}
-@media (max-width:640px){.adjtag .adjtip{padding:9px 11px}}
+@media (max-width:820px){.adjtag .adjtip{padding:9px 11px}}
 .adjtag .adjtip b{color:var(--ink);font-weight:700}
 .adjtag .adjtip>span{display:block;margin-top:4px}
 .adjtag .adjtip .adjn{color:var(--ink-3);font-size:12px}
@@ -4531,12 +4531,12 @@ h3 .howbtn.pop{font-family:inherit}
 #zoomBody .rotquads .rq{pointer-events:none;cursor:default}
 /* ==================================================================================
    ★ 手機版 v3（規格 docs/mobile_v3_spec.md；原型 docs/mobile_v3_proto/proto.css）
-   ⚠⚠ 全部包在 `@media (max-width:640px)`，而且掛在 `body.m3on`（mobile3.js 只在 ≤640px 掛）底下 ——
+   ⚠⚠ 全部包在 `@media (max-width:820px)`，而且掛在 `body.m3on`（mobile3.js 只在 ≤640px 掛）底下 ——
      桌機一個像素都不准變（Andy 2026-09-23：「除了桌面不可以遷就手機」）。
      641～820px（桌機縮半邊）照舊吃第一、二版的規則（兩列分頁等），這裡一條都不碰。
    放在樣式表最後面：同權重下後寫的贏，才蓋得掉前面 ≤820px 那幾批。
    ================================================================================== */
-@media (max-width:640px){
+@media (max-width:820px){
   /* ---- B 頂欄 52px：logo＋站名＋搜尋鈕＋「⋯」；版號收進底部「更多」 ---- */
   body.m3on .topbar{height:52px}
   /* 版號那一行收進「更多」；「有新資料 ↻」那顆（#freshBtn）照樣會出現在站名底下，不准藏 */
@@ -4636,9 +4636,9 @@ h3 .howbtn.pop{font-family:inherit}
   .msheet .mshnav span{text-align:center;font:600 13px var(--mono);color:var(--ink-3)}
 }
 /* 桌機（>640）：手機才插的節點就算殘留也一律不顯示（mobile3.js 回桌機會拆掉；這一條是第二道保險）*/
-@media (min-width:641px){ .mtabmore,.msearchbtn,.msearchx,.msheet,.msheetback{display:none!important} }
+@media (min-width:821px){ .mtabmore,.msearchbtn,.msearchx,.msheet,.msheetback{display:none!important} }
 /* ---- 手機 v3 C：總覽＋資金流向（mobile3.js 的 C 段）---- */
-@media (max-width:640px){
+@media (max-width:820px){
   /* 手機專屬內容插在既有卡片裡（.m3keep），卡片（.m3host）其餘的桌機內容先藏；「完整版 ›」（.mfull）叫回來 */
   body.m3on .m3host:not(.mfull)>:not(.m3keep):not(.m3keep-h){display:none!important}
   body.m3on .m3host.mfull>.m3keep:not(.mfullbtn){display:none!important}
@@ -4734,10 +4734,10 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mpos i{width:6px;height:6px;border-radius:50%;background:var(--line-2)}
   body.m3on .mpos i.on{background:var(--cyan);width:16px;border-radius:3px}
 }
-@media (max-width:640px) and (prefers-reduced-motion:reduce){ body.m3on .mrscan{animation:none;display:none} }
-@media (min-width:641px){ .m3keep,.mfullbtn,#mM3Sw,#mM3Pos{display:none!important} }
+@media (max-width:820px) and (prefers-reduced-motion:reduce){ body.m3on .mrscan{animation:none;display:none} }
+@media (min-width:821px){ .m3keep,.mfullbtn,#mM3Sw,#mM3Pos{display:none!important} }
 /* ---- 手機 v3 D：剖析圖只留編號（diagrams.js DG.mobileNums／mobileNums3d）---- */
-@media (max-width:640px){
+@media (max-width:820px){
   /* 設定列只留：怎麼看 ?、3D 立體（拖曳：一指轉兩指移本來就是手機的預設；動畫與收合在手機不放）*/
   body.m3on #dgDrag,body.m3on #dgReset,body.m3on #dgAnim,body.m3on #dgFold{display:none!important}
   body.m3on .mdgbar{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap}
@@ -4770,7 +4770,7 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on #dg3dNote{display:none}
 }
 /* ---- 手機 v3 E：市場明細分段、週期統計設定抽屜（mobile3.js 的 E 段）---- */
-@media (max-width:640px){
+@media (max-width:820px){
   body.m3on #mMktSeg{margin:6px 0 8px}
   /* 2026-10-03（#300）：漲跌家數的圖卡與表格卡包進 .mktduo 之後，「名單」段藏的是 .mktdist、「分佈圖」段藏的是 .mktlist（舊的 >.card 規則仍管站上均線那頁的卡） */
   body.m3on #mktBody.mseg-list>.card,body.m3on #mktBody.mseg-list .mktduo>.mktdist{display:none!important}
@@ -4779,12 +4779,12 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on #mSeasonBtn{max-width:100%;margin:4px 0 6px}
   body.m3on .msheet #seasonCtl{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 }
-@media (min-width:641px){ #mMktSeg,#mSeasonBtn{display:none!important} }
+@media (min-width:821px){ #mMktSeg,#mSeasonBtn{display:none!important} }
 /* ---- 手機 v3 F：個股頁券商式（mobile3.js 的 F 段；Andy 2026-09-27「依據我提供的手機頁面，將手機版也設計類似這樣」）----
    頂部固定報價列＋可橫捲分頁列（#mbHead，sticky 在頂欄 52px 下面）→ 分段鈕 → 關鍵數字 → 柱狀圖 → 每日表。
    K 線分頁沿用 #skChartCard（藏標題列與舊的現價列）；其他分頁藏掉 #stockPage 整塊，改看 #mbBody。
    整頁不准橫捲：只有 .mbtabs 與 .mbseg 自己可以橫捲，表格用 table-layout:fixed 塞進 390。*/
-@media (max-width:640px){
+@media (max-width:820px){
   body.m3on.mbon #indCrumbs,body.m3on.mbon #v-industry>.mpager,body.m3on.mbon #v-industry>.mspine,body.m3on.mbon #v-industry>.mnext{display:none!important}
   /* K 線分頁看 #skChartCard；「完整版」分頁看桌機那一組分頁（#stockTabs＋#stockTab）；其他分頁全部藏，改看 #mbBody */
   body.m3on.mbon #stockPage>*:not(#skChartCard):not(#stockTabs):not(#stockTab):not(#aiCard){display:none!important}
@@ -4978,11 +4978,11 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mbwres button:disabled em{color:var(--ink-3)}
   body.m3on .mbwnone{padding:14px 6px;color:var(--ink-3);font-size:14px}
 }
-@media (min-width:641px){ #mbHead,#mbBody,#mbHome{display:none!important} }
+@media (min-width:821px){ #mbHead,#mbBody,#mbHome{display:none!important} }
 /* ★ 2026-09-27 手機按鈕普查（Andy：「手機版介面 幫我確實驗證所有按鈕功能，我發現有部分功能無法點選」）。
    量測在 scripts/_mobile_tap_audit.py；這裡只修「點不到／沒反應」，不改視覺風格（設計總監接著要重做整站版面）。
    ⚠ 全部在 ≤640px、掛在 body.m3on 底下，桌機一條都碰不到。 */
-@media (max-width:640px){
+@media (max-width:820px){
   /* 今日事件抽屜的個股連結換行：2026-09-28 起改成全寬度共用的規則（見 `.ev .m`），這裡不再單獨寫。 */
 }
 </style>

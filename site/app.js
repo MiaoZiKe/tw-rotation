@@ -1852,7 +1852,7 @@
      800px 有足夠的寬度一次看完，不需要分段。
      **分段／限筆／收合這一套只給真正的手機寬度（≤640px）**；
      820px 那一批（左右滑提示、底部兩列分頁、字級）維持原樣不動。*/
-  const MIA_MAX = 640;
+  const MIA_MAX = 820;   // 2026-10-03 手機 V2（#314）：跟 mobile3.js 同一條 ≤820
   const mIsM = () => window.innerWidth <= MIA_MAX;
 
   /* 分段表：key ＝ route() 算出來的 `pageKey`（見下面 applyMobileIA 的呼叫點）。
@@ -2838,7 +2838,7 @@
       if (ci) ci.setOption({ series: [{ data: barData() }] });
       dismissable(pickBox, closePick);
       // 手機名單排在圖下面：打開時捲到看得到名單頂端（已經看得到就不動）
-      if (window.innerWidth <= 640) {
+      if (window.innerWidth <= 820) {
         const r = pickBox.getBoundingClientRect();
         if (r.top > window.innerHeight - 80) pickBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
@@ -7859,7 +7859,7 @@
       /* ★ 手機 v3（≤640px，docs/mobile_v3_spec.md R2）：補充文字一律是「?」氣泡 ——
          就地展開的那幾顆（產業鏈的 nb／gp／dg／rel）在手機也走跳出式，位置由 mobile3.js 貼到「?」正下方。
          桌機（>640）這一行永遠不成立，行為一個字都沒變。*/
-      if (b.classList.contains('pop') || window.innerWidth <= 640) { howPop(b, box); return; }
+      if (b.classList.contains('pop') || window.innerWidth <= 820) { howPop(b, box); return; }
       const open = box.hidden;
       const src = HOW[b.dataset.how];
       if (open && src != null && (typeof src === 'function' || !box.dataset.filled)) {

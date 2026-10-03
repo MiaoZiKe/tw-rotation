@@ -1705,7 +1705,7 @@
          兩邊都是在整份文件裡找，節點搬到哪裡都找得到 —— 不用多維護第二套、也不會有兩份數字對不上。
        · 手機（≤640px，mobile3.js 的斷點）維持原位：手機的分段導覽（modules.js 的 #hero 選擇器）與版面都沒動，
          所以窄到手機寬就搬回 #m3 前面；放寬再搬進來（matchMedia 監聽，縮放視窗也跟著走）。*/
-  const KPI_MOBILE = window.matchMedia ? window.matchMedia('(max-width:640px)') : null;
+  const KPI_MOBILE = window.matchMedia ? window.matchMedia('(max-width:820px)') : null;
   function placeKpi() {
     const hero = document.getElementById('hero'), host = document.getElementById('m3');
     const slot = document.getElementById('m3Kpis');

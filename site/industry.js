@@ -362,7 +362,7 @@
        只搬位置，元素、id、內容、行為都不變（寫入的程式碼照 id 找）。手機（≤640）維持改前的順序：
        視窗跨過 640 時 matchMedia 來回搬；這個族群總覽被重畫（元素離開 DOM）就把監聽拿掉。*/
     {
-      const mq = window.matchMedia ? window.matchMedia('(min-width:641px)') : null;
+      const mq = window.matchMedia ? window.matchMedia('(min-width:821px)') : null;
       const head = $('.gphead', host), live = head && $('.gplive', head), grid = $('.gpgrid', host);
       const foc = $('#gpFocus', host), tail = $('.gptail', host), barCard = barEl.parentElement;
       const place = () => {
@@ -1565,7 +1565,7 @@
       /* ⚠ 不用 App.whenNear：它一進來就讀 getBoundingClientRect 判斷「在不在首屏」—— 那本身就是這裡要避開的強制排版。
          上面有剖析圖（桌機、這條鏈有圖）時關聯圖一定在首屏以下，直接交給 IntersectionObserver ＋ 閒置補畫；
          沒有剖析圖或手機寬時照舊當場畫。*/
-      const mapBelow = !!(mapHost && hasSlots && dgId && window.innerWidth > 640);
+      const mapBelow = !!(mapHost && hasSlots && dgId && window.innerWidth > 820);
       /* 範圍的三個出口：整塊藏起來（交集是空的）、只留那幾格、整條鏈。只有範圍真的變了才重畫。*/
       let relKey = relScope ? [...relScope].sort().join(',') : '*';
       const paintRelScope = () => {
@@ -1592,7 +1592,7 @@
          而 Default 真正要給人看的是下面那份環節卡清單（有上下游與個股標籤）。
          桌機預設展開；選擇記在 localStorage，跟剖析圖那顆是同一種做法。*/
       const foldRel = $('#relFold', el);
-      let relOpen = window.innerWidth >= 640;
+      let relOpen = window.innerWidth > 820;
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
@@ -1648,7 +1648,7 @@
          收起來不是把功能拿掉：鈕就在標題旁邊，按一下就展開，而且會記住。
          640px 這條線刻意比 820px（手機版面斷點）低 —— 800px 的筆電半視窗仍然直接看得到圖。*/
       const foldBtn = $('#dgFold', el), dgBody = $('#dgBody', el);
-      dgOpen = window.innerWidth >= 640;
+      dgOpen = window.innerWidth > 820;
       try { const v = localStorage.getItem('tw.dgOpen'); if (v != null) dgOpen = v === '1'; } catch (e) { /* 忽略 */ }
       /* ★ 直接走到某一張圖自己的網址（#industry/<chain>/dg/<slot>）＝使用者明確說
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
@@ -1658,7 +1658,7 @@
          當初收合的理由是「字卡把圖撐到 1000px 以上」；手機 v3 字卡拿掉、只留編號之後圖只剩約 300px，
          收合反而讓這一頁的主角要多點一下才看得到。手機上「收合圖」那顆鈕也一起藏起來（index.html）。
          桌機（>640）不走這一行。*/
-      if (window.innerWidth <= 640) dgOpen = true;
+      if (window.innerWidth <= 820) dgOpen = true;
       did3d = false;
       const dgSecEl = $('#dgSec', el);
       /* ★ 2026-09-23 第二批（W3-1 ＋ W3-9）：設定列改到**右上角**，
@@ -1942,7 +1942,7 @@
       .partcard .cf-verified{color:var(--fall);border-color:color-mix(in srgb,var(--fall) 45%,transparent)}
       .partcard .cf-estimated{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
       /* 窄畫面（筆電半視窗與手機）：間距收一點，字級仍然守住 12px 下限 */
-      @media (max-width:640px){
+      @media (max-width:820px){
         .partcard{padding:9px 10px;font-size:12.5px}
         .partcard .pc-t{font-size:13px}
         .partcard .pc-row{gap:5px 7px}
@@ -2971,7 +2971,7 @@
     if (!card) return;
     const head = card.querySelector(':scope>.nbhead'), sw = card.querySelector(':scope>#dgPick');
     card.classList.remove('nbinl');
-    if (!head || !sw || !(window.innerWidth > 640)) return;
+    if (!head || !sw || !(window.innerWidth > 820)) return;
     card.classList.add('nbinl');
     if (sw.scrollWidth > sw.clientWidth + 1) card.classList.remove('nbinl');
   }
@@ -5122,7 +5122,7 @@
     // 被擠到下一行＝圖例的頂端已經在同一列第一個東西的底下（留 2px 誤差）
     /* 手機（≤640）一律照改前畫（ECharts 圖例在圖裡）：這一批手機版面不動，而且 390 寬標題列加了標題圖示之後
        HTML 圖例一定被擠到下一行（驗收「標題圖示」390 個股／資券、大戶／散戶抓到標題列 44 → 84）。*/
-    const wrapped = (window.innerWidth || 1440) <= 640 || !!(fb && bb.width > 0 && bb.top >= fb.bottom - 2);
+    const wrapped = (window.innerWidth || 1440) <= 820 || !!(fb && bb.width > 0 && bb.top >= fb.bottom - 2);
     if (wrapped === r.wrapped) { r.box.hidden = wrapped; return; }
     r.wrapped = wrapped;
     r.box.hidden = wrapped;
@@ -5140,7 +5140,7 @@
     const o = opt || {};
     /* 手機（≤640）不搬：這一批手機版面不動，DOM 要跟改前一模一樣（標題列裡連一個藏起來的圖例都不放）——
        只把 option 裡關掉的 ECharts 圖例照改前打開。驗收「標題圖示」390 抓到標題列在加了圖示之後變高（44 → 84）。*/
-    if ((window.innerWidth || 1440) <= 640) {
+    if ((window.innerWidth || 1440) <= 820) {
       const id0 = c.getDom().id, old = document.querySelector(`.chlegend[data-for="${id0}"]`);
       if (old) old.remove();
       delete extLegRec[id0];
@@ -6740,7 +6740,7 @@
        chipPage 會先把 body 寫進去再畫圖，所以在第一次畫圖之前（draw 的最前面）搬一次就好。*/
     let hoPlaced = false;
     const hoPlace = () => { if (hoPlaced) return; hoPlaced = true;
-      if ((window.innerWidth || 1440) > 640) return;
+      if ((window.innerWidth || 1440) > 820) return;
       const t = $('#hoTgls', el), hb = $('#how-skho', el); if (t && hb) hb.after(t); };
     const redraw = chipPage(pg, el, 'holders', body, (dates, win) => {
       hoPlace();

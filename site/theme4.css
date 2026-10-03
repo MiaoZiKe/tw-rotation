@@ -43,7 +43,7 @@
   /* 表格 */
   --t4-row-h:32px; --t4-row-h-m:40px;
 }
-@media (max-width:640px){ :root[data-theme4]{ --gap-card:8px } }
+@media (max-width:820px){ :root[data-theme4]{ --gap-card:8px } }
 
 /* ---- 頁面與卡片 ---- */
 [data-theme4] body{background:var(--t4-page,var(--bg));background-attachment:fixed;line-height:var(--lh-body)}
@@ -77,7 +77,7 @@
 
 /* 641～820（平板、瀏覽器縮成半邊）：現行套的是手機那套 16/18 內距。v4 收到 12/14，頁邊 14 → 12。
    ≤640 的手機一屏版不動（那一段歸 mobile-ui，另一位 agent 正在改手機按鈕）。 */
-@media (min-width:641px) and (max-width:820px){
+@media (min-width:821px) and (max-width:820px){
   [data-theme4] main{padding-left:12px;padding-right:12px}
   [data-theme4] .card{padding:var(--sp-3) var(--sp-3)}
 }
@@ -93,7 +93,7 @@
   background:var(--t4-accent-solid,var(--cyan))}
 [data-theme4] .t4-lede b{color:var(--ink);font-weight:700}
 [data-theme4] .t4-lede .up{color:var(--rise)} [data-theme4] .t4-lede .down{color:var(--fall)}
-@media (max-width:640px){ [data-theme4] .t4-lede{font-size:var(--fs-sm)} }
+@media (max-width:820px){ [data-theme4] .t4-lede{font-size:var(--fs-sm)} }
 
 /* ---- 三頁的版面收斂（骨架的一部分；三個主題共用）---- */
 @media (min-width:821px){
@@ -156,13 +156,13 @@
 .chlegend{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px 4px;margin-left:auto}
 .chlegend button{appearance:none;display:inline-flex;align-items:center;gap:var(--sp-1);min-height:28px;padding:0 var(--sp-1);border:0;background:none;
   color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer;border-radius:var(--r-sm,6px)}
-@media (max-width:640px){.chlegend button{gap:5px;padding:0 6px}}
+@media (max-width:820px){.chlegend button{gap:5px;padding:0 6px}}
 .chlegend button:hover{color:var(--ink)}
 .chlegend button i,.concmain i{display:inline-block;width:12px;height:8px;border-radius:2px}
 .chlegend button[aria-pressed="false"]{color:var(--ink-3);text-decoration:line-through}
 .chlegend button[aria-pressed="false"] i{opacity:.25}
 .concmain{display:inline-flex;align-items:center;gap:var(--sp-1);color:var(--ink-2);margin-right:var(--sp-1)}
-@media (max-width:640px){.concmain{gap:5px;margin-right:6px}}
+@media (max-width:820px){.concmain{gap:5px;margin-right:6px}}
 .concmain i{height:3px;border-radius:2px}
 /* ⑤ 族群 × 法人／資金集中度兩張卡等高時，較矮那張的圖撐滿（改前集中度底下空一條） */
 @media (min-width:821px){
@@ -181,7 +181,7 @@
    最後一行常被切掉半截（CEO 2026-09-27 看 1440 截圖指出「週線」那行只露上半截）。
    原本的提示是 22px 的遮罩淡出，太淺、看起來像切壞。v4 改成：遮罩拿掉，改在捲動區底部釘一條
    36px 的漸層＋「▾ 往下捲還有」小字（position:sticky，跟著捲動區底部走；捲到底時 .more 會被 stock_ai.js 拿掉，提示跟著消失）。 */
-@media (min-width:641px){
+@media (min-width:821px){
   [data-theme4] #skAi .aibody.more{-webkit-mask-image:none;mask-image:none}
   [data-theme4] #skAi .aibody.more::after{content:"▾ 往下捲還有";position:sticky;bottom:0;display:block;height:36px;margin-top:-36px;
     padding-top:var(--sp-4);box-sizing:border-box;text-align:right;font-size:12px;line-height:18px;color:var(--ink-3);pointer-events:none;
@@ -197,12 +197,12 @@
 /* ⚠ Lightweight Charts 的 K 線本身就是一張 <table>（窗格、價格軸、分隔線都是 td），
    表格規則一律排除 .tv-lightweight-charts 裡面的，不然 K 線的窗格分隔線會被撐成 32px 高（原型第一版踩到）。 */
 [data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){padding:0 var(--sp-2);height:var(--t4-row-h)}
-@media (max-width:640px){[data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){padding:0 10px}}
+@media (max-width:820px){[data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){padding:0 10px}}
 [data-theme4] th:not(.tv-lightweight-charts *){background:var(--t4-th-bg,var(--panel-3));font-size:var(--fs-min);font-weight:600;color:var(--ink-2);letter-spacing:.02em;
   box-shadow:inset 0 -1px 0 var(--line-2)}
 [data-theme4] td.num,[data-theme4] td .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 [data-theme4] tbody tr:nth-child(5n) td:not(.tv-lightweight-charts *){border-bottom-color:var(--line-2)}
-@media (max-width:640px){ [data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){height:var(--t4-row-h-m);padding:0 8px} }
+@media (max-width:820px){ [data-theme4] th:not(.tv-lightweight-charts *),[data-theme4] td:not(.tv-lightweight-charts *){height:var(--t4-row-h-m);padding:0 8px} }
 
 /* ---- 頂欄、分頁、控制項：只換外觀 ---- */
 [data-theme4] .topbar{background:var(--t4-topbar,var(--topbar));border-bottom:1px solid var(--t4-card-edge,var(--line))}
@@ -409,10 +409,10 @@
 .t4pop[hidden]{display:none}
 .t4pop h4{margin:0 0 8px;font-size:13px;color:var(--ink-2)}
 .t4pop .t4opts{display:grid;gap:var(--sp-2)}
-@media (max-width:640px){.t4pop .t4opts{gap:6px}}
+@media (max-width:820px){.t4pop .t4opts{gap:6px}}
 .t4pop button.t4o{display:grid;grid-template-columns:28px 1fr;gap:2px var(--sp-2);align-items:center;text-align:left;width:100%;
   min-height:44px;padding:var(--sp-1) var(--sp-2);border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer}
-@media (max-width:640px){.t4pop button.t4o{gap:2px 10px;padding:6px 10px}}
+@media (max-width:820px){.t4pop button.t4o{gap:2px 10px;padding:6px 10px}}
 .t4pop button.t4o .sw{grid-row:span 2;width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2)}
 .t4pop button.t4o b{font-size:14px}
 .t4pop button.t4o small{font-size:12px;color:var(--ink-3)}
@@ -421,7 +421,7 @@
 .t4pop h4+.t4opts{margin-bottom:12px}
 /* 明暗兩顆：跟風格選項同一種按鈕語言，但一列兩顆 */
 .t4pop .t4modes{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2)}
-@media (max-width:640px){.t4pop .t4modes{gap:6px}}
+@media (max-width:820px){.t4pop .t4modes{gap:6px}}
 .t4pop button.t4m{min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:14px}
 .t4pop button.t4m[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset;font-weight:700}
 .morepop .t4mm button[aria-pressed="true"]{background:var(--panel-2);font-weight:700}
@@ -441,8 +441,8 @@
 .chlegend.skleg{gap:0 2px}
 .chlegend.skleg button{min-height:24px;padding:0 4px;gap:4px}
 .chlegend.skleg[hidden]{display:none}
-@media (max-width:640px){ .chlegend.skleg button{min-height:32px} }
-@media (min-width:641px){ [data-theme4] #lwc .pane-labels div{font-size:12px;line-height:18px;padding:0 var(--sp-1)} }
+@media (max-width:820px){ .chlegend.skleg button{min-height:32px} }
+@media (min-width:821px){ [data-theme4] #lwc .pane-labels div{font-size:12px;line-height:18px;padding:0 var(--sp-1)} }
 #hoHead>.hoTgls{margin:0}
 @media (min-width:1101px){ #hoHead>.hoTgls{order:1} #hoHead>small{order:2} }
 @media (min-width:821px){
@@ -458,7 +458,7 @@
       b. 「此檔暫無分時資料／分時來源」那行短註（#liveNote）從「整行、K 線上方」搬進左欄工具列下面：
          兩欄時右邊 AI 區（固定內容高 132px）本來就比左欄高，左欄底下那塊空白正好放得下這行字，K 線整個往上移一行（≈33px）。
          單欄（卡片 < 600，.aiside 沒掛）時照舊整行。 */
-@media (min-width:641px){
+@media (min-width:821px){
   [data-theme4] #skPx{column-gap:8px}
   [data-theme4] #skPx .pill{font-size:12px;padding:2px 8px;min-height:0}
   [data-theme4] #skChartCard.aiside>#skAi{grid-row:1 / span 3}
@@ -483,7 +483,7 @@
 @container ovsum (max-width:560px){
   .osc-d,.osn small,.osn small em,.osn-v em{font-size:12px}
 }
-@media (max-width:640px){
+@media (max-width:820px){
   .zoomov .zh{min-width:0;flex-wrap:nowrap}
   .zoomov .zh #zoomTitle{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .zoomov .zh .chainchips{min-width:0;flex:1 1 auto}
@@ -538,7 +538,7 @@
    ★ 設計 v4 第二批 2B 收尾（2026-09-29）：產業地圖／產業鏈（族群總覽、關聯圖）—— 04_第二批2B.md §0 ⑧～⑫
    全部只在 ≥641（手機這一批不動）；元素只換位置，id、內容、事件不變（搬位置的是 industry.js 的 matchMedia）。
    ================================================================================== */
-@media (min-width:641px){
+@media (min-width:821px){
   /* ⑧ 族群總覽：資料狀態（#gpNote）、「完整版圖：產業熱力圖 →」併進標題列；滑過讀數（#gpFocus）搬到長條卡標題列右半邊 */
   .gpdesk>.gphead{justify-content:flex-start;align-items:center;column-gap:12px;row-gap:var(--sp-1)}
   .gpdesk>.gphead>h4{flex:0 1 auto;margin:0}
