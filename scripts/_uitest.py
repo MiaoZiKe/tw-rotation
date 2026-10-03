@@ -9484,12 +9484,41 @@ def t_season(pg, base):
            gm.get("n") == 12 and gm.get("theme") == th and len(gm.get("gapH") or []) >= 8 and len(gm.get("gapV") or []) >= 4, gm)
         ok(f"★ [{tag}] 格子彼此的間距 ≥ 3px（橫向與直向都量；改版前 1px）",
            bool(gm.get("gapH")) and min(gm["gapH"]) >= 3 and bool(gm.get("gapV")) and min(gm["gapV"]) >= 3, gm)
-        ok(f"★ [{tag}] 格寬 ≤ 72px，而且 ≥ 最寬的數字 + 8px（改版前每格約 100px、數字小小一個在中間）",
-           bool(gm.get("cellW")) and max(gm["cellW"]) <= 72 and min(gm["cellW"]) >= gm["textW"] + 8, gm)
-        ok(f"★ [{tag}] 表格總寬 < 卡片寬（靠左、不再把 12 個月撐滿整張卡片）",
-           bool(gm.get("tableW")) and gm["tableW"] < gm["cardW"] and gm["tableW"] < gm["cardInner"] - 100, gm)
+        # ★ 2026-10-03（Andy：「這邊幫我調整適當左右寬度」）：09-24 的「格寬 ≤ 72、整張表靠左」被這次取代 ——
+        #   改驗「格子放得下最寬的數字」＋「表格吃滿卡片內寬（≥ 95%）」。
+        ok(f"★ [{tag}] 格寬 ≥ 最寬的數字 + 8px（數字塞得進格子）",
+           bool(gm.get("cellW")) and min(gm["cellW"]) >= gm["textW"] + 8, gm)
+        ok(f"★ [{tag}] 表格總寬 ≥ 卡片內寬 95%（12 個月吃滿卡片，右邊不再留一大片空白）",
+           bool(gm.get("tableW")) and gm["tableW"] >= gm["cardInner"] * 0.95 and gm["tableW"] <= gm["cardInner"] + 2, gm)
     _sn_theme("dark")
     pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch(e){} }")
+    # ---- ③-3 ★ 2026-10-03 吃滿寬度：1440×900、1920×1080、1100×800 三種視窗各量一次
+    #      ① 熱力格（格子框）寬 ≥ 卡片內寬 95%、② 族群名稱一個都沒被截（用畫布上同一個字型量每個名字 ≤ y 軸標籤寬）
+    #      ③ 圖例右緣對齊格子框右緣、④ 卡高 ≤ 可視高 − 49（#308）、⑤ 頁面沒有橫向捲軸
+    FILL = """() => { const e = document.getElementById('seasonHeat'), b = document.getElementById('seasonHeatBox'), card = document.getElementById('seasonHeatCard');
+        const c = echarts.getInstanceByDom(e); if (!c) return null; const o = c.getOption();
+        const cs = getComputedStyle(card), cr = card.getBoundingClientRect(), inner = cr.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const ax = o.yAxis[0], lab = ax.axisLabel || {}, ff = (o.textStyle && o.textStyle.fontFamily) || 'sans-serif';
+        const m = document.createElement('canvas').getContext('2d'); m.font = `${lab.fontWeight || 'normal'} ${lab.fontSize || 12}px ${lab.fontFamily || ff}`;
+        const cut = ax.data.filter(n => m.measureText(String(n)).width > (lab.width || 0)).slice(0, 5);
+        const lg = document.getElementById('seasonHeatBoxLegend');
+        const br = b.getBoundingClientRect();
+        return { inner: Math.round(inner), grid: Math.round(e.getBoundingClientRect().width), box: Math.round(br.width), colw: +e.dataset.colw,
+          names: ax.data.length, cut, labW: lab.width, lgR: lg ? Math.round(lg.getBoundingClientRect().right) : null, boxR: Math.round(br.right),
+          cardH: Math.round(cr.height), cap: innerHeight - 49, over: document.documentElement.scrollWidth - innerWidth }; }"""
+    for vw, vh in ((1440, 900), (1920, 1080), (1100, 800)):
+        pg.set_viewport_size({"width": vw, "height": vh}); pg.wait_for_timeout(1300)
+        fm = pg.evaluate(FILL) or {}
+        tg = f"{vw}×{vh}"
+        ok(f"★ [吃滿 {tg}] 熱力格寬 ≥ 卡片內寬 95%（改前 1440 只佔約 70%）",
+           bool(fm) and fm["grid"] >= fm["inner"] * 0.95 and fm["box"] >= fm["inner"] * 0.95, fm)
+        ok(f"★ [吃滿 {tg}] 族群名稱一個都沒被截（每個名字的字寬 ≤ y 軸標籤寬）", bool(fm) and fm["names"] > 0 and not fm["cut"], fm)
+        ok(f"[吃滿 {tg}] 圖例右緣對齊格子框右緣（±2px）、卡高 ≤ 可視高 − 49、頁面沒有橫向捲軸",
+           bool(fm) and fm["lgR"] is not None and abs(fm["lgR"] - fm["boxR"]) <= 2 and fm["cardH"] <= fm["cap"] and fm["over"] <= 1, fm)
+    pg.set_viewport_size({"width": 900, "height": 800}); pg.wait_for_timeout(1300)
+    fm = pg.evaluate(FILL) or {}
+    ok("[吃滿 900×800] 頁面沒有橫向捲軸（窄的時候只准格子框自己橫捲）、名稱沒被截", bool(fm) and fm["over"] <= 1 and not fm["cut"], fm)
+    pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(1200)
     # ---- ④ 顯示數字：預設關；按一下真的印出來、localStorage 真的寫入；再按一下真的消失
     ok("★ 格子裡預設不印數字（Andy：Default 是沒有）", h0 and not h0["show"] and h0["nlab"] == 0 and h0["ls"] is None, h0)
     c0 = canvas_hash(pg, "#seasonHeat")

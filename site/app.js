@@ -11356,10 +11356,12 @@
   /* 格內數字的字族。★ 2026-09-24：以前畫布上只寫 'JetBrains Mono' 一個字，沒裝這個字的電腦（Windows 預設就沒有）
      會退回瀏覽器預設的襯線體，數字變成細細的 Times；跟全站 `--mono` 用同一串退路，量字寬與畫字也用同一串。*/
   const SN_MONO = MONO_FF;
-  const snTextW = (s) => {           // 格內數字用等寬字，跟 hmTextW（粗體黑體）量法不同，分開量
+  // 桌機熱力圖的欄寬下限（含 4px 縫）：表頭「12 月」要 40、最寬的數字「+12.3」約 38＋左右各 4 —— 再窄就改框內橫捲
+  const SN_COL_MIN = 48;
+  const snTextW = (s, fs = 12) => {  // 格內數字用等寬字，跟 hmTextW（粗體黑體）量法不同，分開量
     if (!_snCtx) { try { _snCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _snCtx = null; } }
-    if (!_snCtx) return String(s).length * 7.5;
-    _snCtx.font = '600 12px ' + SN_MONO;
+    if (!_snCtx) return String(s).length * 7.5 * fs / 12;
+    _snCtx.font = `600 ${fs}px ` + SN_MONO;
     return _snCtx.measureText(String(s)).width;
   };
 
@@ -11418,29 +11420,34 @@
          20 列＋預設視窗 1440×900（可視 ~800）量到 28 → 27。視窗夠高時照舊 28。 */
       const fitRow = !mob && window.Fit ? Math.floor((Fit.room(el, { min: rows.length * 20 + 8 }) - 8) / Math.max(1, rows.length)) : Infinity;
       const rowH = mob ? 20 : Math.max(20, Math.min(24 + GAP, fitRow));
-      // 名稱欄寬：量最長的名字；手機上限 112（超過截成「…」，全名在提示框），桌機上限 180
-      const nameW = Math.ceil(Math.max(40, ...rows.map(r => hmTextW(r.name, 12)))) + 12;
-      const left = Math.min(nameW, mob ? 112 : 180), right = 4;
+      /* 名稱欄寬：量最長的名字。手機上限 112（超過截成「…」，全名在提示框）。
+         ★ 2026-10-03（Andy：「這邊幫我調整適當左右寬度」—— 1440 寬時 12 欄只佔卡片左邊約 70%，右邊一大片空白）：
+         桌機改成**不設上限、不截字**，而且量的是「全部族群」不是只量畫出來的這幾列 ——
+         切「前 20／全部」、換月份排序時名稱欄才不會忽寬忽窄（格子跟著跳）。量字用粗體（比畫上去的一般字重寬），只會偏寬不會截。*/
+      const nameW = Math.ceil(Math.max(40, ...(mob ? rows : all).map(r => hmTextW(r.name, 12)))) + (mob ? 12 : 16);
+      const left = mob ? Math.min(nameW, 112) : nameW, right = 4;
       el.style.height = (rows.length * rowH + 8) + 'px';
       let colW, cellW;
       if (mob) {
-        box.style.width = '';
+        box.style.width = ''; box.style.overflowX = ''; el.style.width = ''; head.style.width = '';
         const W = box.clientWidth || el.clientWidth || 600;
         colW = (W - left - right) / 12; cellW = colW - GAP;
       } else {
-        /* 格寬＝「這個指標所有格子裡最寬的那個數字」＋左右各 8px，夾在 56～64 之間：
-           用全部族群量（不是只量畫出來的前 20 名），切「前 20／全部」時格寬才不會跳。*/
-        let maxT = 0;
-        all.forEach(r => { for (let m = 1; m <= 12; m++) { const c = r.m[m]; const v = c ? c[metric] : null;
-          if (v != null) maxT = Math.max(maxT, snTextW(cellTxt(v, metric))); } });
-        const want = Math.min(64, Math.max(56, Math.ceil(maxT) + 16)) + GAP;
-        // 可用寬度＝卡片內容寬（外框本身被設成表格寬，量它會量到自己）；扣掉「全部」時的捲軸寬
+        /* ★ 2026-10-03 起：12 個月欄**平均分掉名稱欄以外的全部寬度**（吃滿卡片），取代 09-24「格寬 56～64、整張表靠左」
+           （docs/season_grid_spec.md 那一版；Andy 這次看到的就是那片右側空白）。縫 4px、圓角、列高、字級規則不變。
+           欄寬下限 SN_COL_MIN：再窄表頭的「12 月」就印不下、數字也塞不進去 —— 窄桌機（約 900 寬＋側欄）
+           放不下時改成**格子容器內橫捲**（名稱欄＋12 欄維持下限寬），頁面本身不橫捲。*/
         const host = box.parentElement, cs = getComputedStyle(host);
-        const avail = host.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
-        const sb = Math.max(0, box.offsetWidth - box.clientWidth);
-        colW = Math.min(want, (avail - sb - left - right) / 12);   // 窄桌機放不下 12 × 64 時才縮，照舊撐滿
+        const avail = Math.floor(host.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0));
+        box.style.width = avail + 'px';
+        const sb = Math.max(0, box.offsetWidth - box.clientWidth);   // 「全部」時框內直向捲軸的寬
+        colW = Math.max(SN_COL_MIN, (avail - sb - left - right) / 12);
         cellW = colW - GAP;
-        box.style.width = Math.floor(left + 12 * colW + right + sb) + 'px';
+        const tableW = Math.ceil(left + 12 * colW + right);
+        const over = tableW > avail - sb + 0.5;
+        box.style.overflowX = over ? 'auto' : 'hidden';
+        el.style.width = over ? tableW + 'px' : '';
+        head.style.width = over ? tableW + 'px' : '';
       }
       const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.resize();
       // 月份表頭（HTML、sticky）：跟格子看得到的那一塊對齊（左右各內縮半條縫、欄距＝縫）；點一下＝依那個月排序
@@ -11465,7 +11472,9 @@
         }
       });
       // 放得下才印：列高至少 16（12px 字＋上下各 2）；手機寬度扣 6px 邊，桌機是「字寬＋左右各 4 ≤ 格子看得到的寬」
-      const fits = (t) => !!t && rowH >= 16 && (mob ? snTextW(t) <= colW - 6 : snTextW(t) + 8 <= cellW);
+      /* 數字字級：格子吃滿之後在 1440 以上每格 90～120px，12px 的數字縮在中間顯得太小 → 格寬 ≥ 72 且列高 ≥ 22 時用 13px（Andy：不變大太多）。*/
+      const numFs = !mob && cellW >= 72 && rowH >= 22 ? 13 : 12;
+      const fits = (t) => !!t && rowH >= 16 && (mob ? snTextW(t) <= colW - 6 : snTextW(t, numFs) + 8 <= cellW);
       const nFit = data.filter(d => fits(cellTxt(d.value[2], metric))).length;
       const nLab = showNum ? nFit : 0;
       /* 一格都放不下（手機 390px：每欄約 17px，最短的「0%」也要 20px）→「顯示數字」這顆整個收起來，
@@ -11493,7 +11502,7 @@
         series: [{ type: 'heatmap', data, cursor: 'default',
           itemStyle: { borderColor: CH.card, borderWidth: GAP, borderRadius: mob ? 3 : 3 + GAP / 2 },
           emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: mob ? 1.5 : 2 } },
-          label: { show: showNum, fontSize: 12, fontWeight: 600, fontFamily: SN_MONO, color: '#fff',
+          label: { show: showNum, fontSize: numFs, fontWeight: 600, fontFamily: SN_MONO, color: '#fff', align: 'center', verticalAlign: 'middle',
             formatter: (p) => { const t = cellTxt(p.data.value[2], metric); return fits(t) ? t : ''; } } }],
       }, { notMerge: true });
       // ★ 點格子只出提示框（ECharts 預設就會），不做別的事：逐年明細那張卡已經拿掉，不留一個點了沒反應的入口
@@ -11501,7 +11510,7 @@
       const lg = hmLegend('seasonHeatBox', K, focus, (f) => { focus = f; drawHeat(); });
       if (lg) {
         lg.style.display = view === 'heat' ? '' : 'none';
-        // 桌機：圖例的寬跟表格一樣寬 → 圖例右緣對齊最後一欄（「圖的右下」這條規則不變，只是圖變窄了）
+        // 桌機：圖例的寬＝格子框的寬 → 圖例靠右、右緣對齊最後一欄（2026-10-03 起表格吃滿，所以就是卡片內容右緣）
         lg.style.width = mob ? '' : box.style.width;
       }
       writeNote();
