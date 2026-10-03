@@ -1,0 +1,59 @@
+/* ==================================================================================
+   一屏看完（2026-10-03，分支 claude/fit-screen，DECISIONS #308；規格 docs/fit_screen_spec.md）
+
+   Andy 原話：「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表，幫我上下寬度調整窄一點適當」。
+   規格：1920×1080（瀏覽器可視高約 950）與 1440×900（約 800）下，每張圖表卡（含標題列與控制列）完整落在一屏可視高度內。
+        卡高上限 ＝ 視窗高 − 跳轉列 49 − 上下邊距各 12（fit.js 的 Fit.cap()；CSS 這邊寫成 --fit-cap）。
+
+   ★ 只調「高度與間距」：不改任何功能、id、data-*、配色、路由與側欄。顏色一個都不寫。
+   ★ 只動桌機（≥821px，:root.l4）。手機（≤820）一個 px 都不動。
+   ★ 矮於一屏的卡（熱力圖、市場明細、自選…）一個 px 不變：這份只處理「原本就比一屏高」的圖。
+   ★ 圖本身的高度（ECharts／Canvas）要在 JS 算（fit.js 的 Fit.room）：輪盤（app.js rotFitH）、桑基樹（flowtopo.js slotPlan）、
+     週期統計熱力圖（app.js drawHeat）。這裡只放 CSS 能解的：K 線高度、總覽輪盤卡的排法、讓 JS 能縮到的 min-height。
+   ================================================================================== */
+@media (min-width:821px){
+  :root.l4{--fit-cap:calc(100vh - 73px)}
+
+  /* 輪盤的容器原本有 inline min-height（440／360），盤高要能縮到 340／260 以下就得放掉；下限由 JS 的 Fit.room(min) 保證 */
+  :root.l4 #rotClock{min-height:340px!important}
+  :root.l4 #rotClockMini{min-height:260px!important}
+
+  /* 個股 K 線：原本 clamp(640px, 100vh − 185px, 1500px)，1440×900（可視 ~800）時固定 640 → 整張卡 918px，要捲一下才看得到時間軸。
+     卡裡 K 線以外的東西（名稱列／價格列／週期＆指標工具列／即時說明列／內距）量到 278～290px，所以
+     K 線高 ＝ 100vh − 73（卡高上限）− 290，下限 420（再矮副圖與價格軸擠在一起）。
+     1440×900：640 → 437；1920×1080（可視 ~950）：765 → 587；螢幕再高（可視 ≥ 1200）仍會長到原本的高度。 */
+  :root.l4 #lwc{height:clamp(420px,calc(var(--fit-cap) - 290px),1500px)}
+}
+
+/* 資金流向・輪動卡右欄的「資金流向排行」：兩欄並排（≥1101）時它是 flex:1 撐滿整欄，高度理應由左欄（輪盤）決定。
+   但 ECharts 把畫布高度寫成固定 px 放在容器裡，容器的「內容高度」就成了畫布高度 —— 左欄縮了（輪盤變矮）右欄仍被
+   上一次的畫布撐著、不肯跟著縮（棘輪：只會長高不會縮）。contain:size 讓容器不把內容高度算進去，高度只吃 flex 分到的。
+   （同一招在市場明細兩欄用過，DECISIONS #300。）下限仍是原本的 min-height 420。 */
+@media (min-width:1101px){
+  :root.l4 .rotright>#rankFlowWrap>#rankFlow{contain:size}
+  :root.l4 .rotright>#rankFlowWrap{contain:size}
+}
+
+/* 總覽「資金輪盤」卡（輪盤＋昨日資金去向）：1440×900 時疊成一欄要 ≥ 880px（盤 360＋桑基 442＋標題），比一屏高。
+   矮螢幕（可視高 ≤ 1000）改兩招：
+   ① 卡內左右兩欄：盤放左、昨日資金去向放右（桑基本來就有窄版排法）。右欄要夠寬，昨日資金去向的族群名才不會被截成「…」
+      （右半卡 1.2 倍寬、卡內 0.8:1），整張卡約 541px。
+   ② 總覽下半的版面改成「兩列」：第 1 列 資金熱力圖｜資金輪盤（兩張一樣高、各約 541px），第 2 列 熱門題材吃滿全寬（約 420px）。
+      做法：#ovLeft 改 display:contents，讓裡面兩張卡直接排進 .ovmain 這個 grid（DOM、id 都沒動）。
+      為什麼不是「左欄疊兩張、右欄輪盤黏頂」：左欄疊起來 972px，右欄只有 541px，要嘛右欄下面空 430px、要嘛卡被拉成 972px，
+      兩種都不是一屏。兩列排法每張卡都 ≤ 541px，而且同一列的兩張卡上下緣對齊（原本「框格一樣大」的要求還在）。 */
+@media (min-width:1101px) and (max-height:1000px){
+  :root.l4 .ovmain{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+  :root.l4 #ovLeft{display:contents}
+  :root.l4 #ovHeatCard{grid-column:1;grid-row:1}
+  :root.l4 #ovThemeCard{grid-column:1/-1;grid-row:2}
+  :root.l4 #ovRotCard{grid-column:2;grid-row:1;
+    display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr);column-gap:var(--sp-4,16px);align-content:start}
+  :root.l4 #ovRotCard>#ovRotHead,:root.l4 #ovRotCard>#how-rotm{grid-column:1/-1}
+  :root.l4 #ovRotCard>#ovRotHead{grid-row:1}
+  :root.l4 #ovRotCard>#how-rotm{grid-row:2}
+  :root.l4 #ovRotCard>#rotClockMiniWrap{grid-column:1;grid-row:3/span 3;align-self:center}
+  :root.l4 #ovRotCard>#ovFlowHead{grid-column:2;grid-row:3;margin-top:0}
+  :root.l4 #ovRotCard>#how-ovflow{grid-column:2;grid-row:4}
+  :root.l4 #ovRotCard>#ovFlowWrap{grid-column:2;grid-row:5}
+}

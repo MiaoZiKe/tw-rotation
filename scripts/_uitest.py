@@ -943,8 +943,21 @@ def t_overview(pg, base):
         b = document.getElementById('ovThemeCard').getBoundingClientRect(), r = document.getElementById('ovRotCard').getBoundingClientRect();
         return { below: b.top >= a.bottom - 1, sameCol: Math.abs(a.left - b.left) < 2 && Math.abs(a.width - b.width) < 2,
                  leftOfRot: b.right <= r.left + 1, gapBottom: Math.round(Math.abs(b.bottom - r.bottom)) }; }""")
-    ok("★ 熱門題材在資金熱力圖正下方（同一欄）", pos["below"] and pos["sameCol"] and pos["leftOfRot"], pos)
-    ok("左欄（熱力圖＋題材）跟右邊足跡輪盤底部對齊（差 ≤ 24px）", pos["gapBottom"] <= 24, pos)
+    # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：
+    #   改前：熱門題材在資金熱力圖正下方（同一欄、都在輪盤左邊），左欄與右邊輪盤底部對齊 ≤ 24px。
+    #   改後：可視高 ≤ 1000 且寬 ≥ 1101（fit.css）時總覽下半改兩列 —— 第 1 列 熱力圖｜輪盤，第 2 列 熱門題材全寬在它們下面
+    #         （左欄疊起來 972px 比一屏高）。這時改驗「題材在熱力圖與輪盤的下面、左緣＝熱力圖左緣、右緣＝輪盤右緣」，
+    #         「熱力圖與輪盤同列等高」在 `新-版面等高與多寬度` 逐寬度驗。可視高 > 1000 的視窗仍照原本斷言。
+    fit2 = pg.evaluate("() => matchMedia('(min-width:1101px) and (max-height:1000px)').matches")
+    if fit2:
+        pos2 = pg.evaluate("""() => { const a = document.getElementById('ovHeatCard').getBoundingClientRect(),
+            b = document.getElementById('ovThemeCard').getBoundingClientRect(), r = document.getElementById('ovRotCard').getBoundingClientRect();
+            return { below: b.top >= Math.max(a.bottom, r.bottom) - 1, left: Math.abs(a.left - b.left) < 2, right: Math.abs(b.right - r.right) < 2,
+                     sameRow: Math.abs(a.top - r.top) < 2 && Math.abs(a.bottom - r.bottom) < 2 }; }""")
+        ok("★ 一屏看完：熱門題材在資金熱力圖與資金輪盤（同一列）的正下方、吃滿全寬", pos2["below"] and pos2["left"] and pos2["right"] and pos2["sameRow"], pos2)
+    else:
+        ok("★ 熱門題材在資金熱力圖正下方（同一欄）", pos["below"] and pos["sameCol"] and pos["leftOfRot"], pos)
+        ok("左欄（熱力圖＋題材）跟右邊足跡輪盤底部對齊（差 ≤ 24px）", pos["gapBottom"] <= 24, pos)
     TL = """() => { const e = document.getElementById('ovTheme'); const c = echarts.getInstanceByDom(e);
         const s = c ? (c.getOption().series || [])[0] : null;
         return { level: e.dataset.level, n: s ? (s.data || []).length : 0, roam: s ? s.roam : null,
@@ -1254,8 +1267,12 @@ def t_overview(pg, base):
     ok("總覽也有輪動時鐘", bool(mini) and mini["canvas"] and mini["pts"] > 0, mini)
     # D6：「⤢ 放大」移除、圓圈放大（量的是容器真的變高，不是看有沒有那顆鈕）
     ok("D6：總覽輪動階段上方那顆「⤢ 放大」已移除", bool(mini) and not mini["zoomBtn"], mini)
-    ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px）",
-       bool(mini) and mini["h"] >= 355, mini and mini["h"])
+    # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：可視高 ≤ 1000 且寬 ≥ 1101 時輪盤卡改「盤｜昨日資金去向」左右並排，
+    #   盤只剩左欄 0.8fr 的寬（1440 約 270px → 容器高 300），不再疊在桑基上面佔滿卡寬；這時下限改 ≥ 280（比改前舊的小輪盤 260 還大），
+    #   1920 寬並排時盤較寬、實際比 355 大（沒有另外斷言）。疊成一欄（可視高 > 1000）照舊 ≥ 355。
+    fit3 = pg.evaluate("() => matchMedia('(min-width:1101px) and (max-height:1000px)').matches")
+    ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px；一屏看完並排版面 ≥ 280px）",
+       bool(mini) and mini["h"] >= (280 if fit3 else 355), mini and mini["h"])
     # D7：昨日資金去向分流圖
     # ★ 2026-09-26 改前→改後：讀 ECharts tree（type tree、animation false、initialTreeDepth 2）
     #   → 桌機改成 flowtopo 緊湊光纖版（Andy 09-26：UI 跟資金流向頁經典光纖一樣、功能照舊），改讀畫布探針：
@@ -5567,7 +5584,13 @@ def t_new_flow(pg, base):
                     回 true 會讓「排版沒壞」在元件消失時照樣通過 ＝ 假綠。*/
                  chipsIn: (() => { const row = document.querySelector('.ddrow[data-for="sankey"]');
                    if (!row) return false; const rr = row.getBoundingClientRect();
-                   return rr.right <= window.innerWidth + 1; })() }; }""")
+                   return rr.right <= window.innerWidth + 1; })() ,
+                 /* ★ 2026-10-03 診斷：橫捲軸紅燈時一併列出「右緣超出視窗、又不是 fixed」的元素（最多 8 個），不用再手動二分 */
+                 wide: [...document.querySelectorAll('body *')].filter(e => {
+                   const r = e.getBoundingClientRect(); if (!(r.width > 0) || r.right <= window.innerWidth + 1) return false;
+                   for (let p = e; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).position === 'fixed') return false;
+                   return true; }).slice(0, 8).map(e => e.tagName + '#' + e.id + '.' + String(e.className && e.className.baseVal === undefined ? e.className : '').slice(0, 30) + ' r=' + Math.round(e.getBoundingClientRect().right)
+                   + ' ← ' + (e.parentElement ? e.parentElement.tagName + '#' + e.parentElement.id + '.' + String(e.parentElement.className).slice(0, 30) : '') + ' 「' + (e.textContent || '').trim().slice(0, 24) + '」' + (e.getAttribute('style') || '').slice(0, 220)) }; }""")
     ok("800px 沒有橫向捲軸", nw["pageW"] <= nw["winW"] + 1, nw)
     ok("800px 資金去向還畫得出來", nw["chart"], nw)
     ok("800px 小圓點那一層跟著縮（不會蓋到隔壁）",
@@ -5709,12 +5732,27 @@ def t_new_layout(pg, base):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
         hs = pg.evaluate("""() => { const g = (id) => { const e = document.getElementById(id); if (!e) return null;
-                const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) }; };
-            return { left: g('ovLeft'), rot: g('ovRotCard'), theme: g('ovThemeCard') }; }""")
-        good = all(hs.get(k) for k in ("left", "rot", "theme"))
-        ok(f"[{w}px] 熱門題材所在的左欄／右欄資金輪盤兩欄等高（上緣、下緣都差 ≤ 2px，題材卡跟右欄齊底）",
-           good and abs(hs["left"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["left"]["b"] - hs["rot"]["b"]) <= 2
-           and abs(hs["theme"]["b"] - hs["rot"]["b"]) <= 2, hs)
+                const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right) }; };
+            return { left: g('ovLeft'), rot: g('ovRotCard'), theme: g('ovThemeCard'), heat: g('ovHeatCard'),
+                     fit: matchMedia('(min-width:1101px) and (max-height:1000px)').matches }; }""")
+        good = all(hs.get(k) for k in ("left", "rot", "theme", "heat"))
+        # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：
+        #   改前：左欄 #ovLeft（熱力圖＋題材疊起來 972px）與右欄 #ovRotCard 上下緣對齊、題材卡跟右欄齊底。
+        #   改後：可視高 ≤ 1000 時（fit.css）#ovLeft 改 display:contents，總覽下半變兩列 ——
+        #         第 1 列 資金熱力圖｜資金輪盤（上緣、下緣都差 ≤ 2px，各約 541～569px），第 2 列熱門題材吃滿全寬、在第 1 列下面。
+        #   理由：左欄疊起來 972px 比一屏高，右欄 541px，兩欄等高就得把卡拉成 972px 或右欄下面空 430px，都不是一屏。
+        #   「框格一樣大」的要求沒放寬：同一列的兩張卡一樣是 ≤ 2px；可視高 > 1000 時仍照原本的左右欄等高驗。
+        if good and hs["fit"]:
+            ok(f"[{w}px] ★ 一屏看完：資金熱力圖與資金輪盤同一列等高（上緣、下緣都差 ≤ 2px），熱門題材在它們下面、吃滿全寬",
+               abs(hs["heat"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["heat"]["b"] - hs["rot"]["b"]) <= 2
+               and hs["theme"]["t"] >= max(hs["heat"]["b"], hs["rot"]["b"]) - 1
+               and abs(hs["theme"]["l"] - hs["heat"]["l"]) <= 2 and abs(hs["theme"]["r"] - hs["rot"]["r"]) <= 2, hs)
+            ok(f"[{w}px] ★ 一屏看完：熱力圖／輪盤／題材三張卡都不比一屏（視窗高 − 73）高",
+               max(hs["heat"]["h"], hs["rot"]["h"], hs["theme"]["h"]) <= 1000 - 73, hs)
+        else:
+            ok(f"[{w}px] 熱門題材所在的左欄／右欄資金輪盤兩欄等高（上緣、下緣都差 ≤ 2px，題材卡跟右欄齊底）",
+               good and abs(hs["left"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["left"]["b"] - hs["rot"]["b"]) <= 2
+               and abs(hs["theme"]["b"] - hs["rot"]["b"]) <= 2, hs)
         ok(f"[{w}px] 熱門題材卡的高度沒有被內容撐爆（≤ 720px）",
            good and hs["theme"]["h"] <= 722, hs)
 
@@ -19531,7 +19569,11 @@ def t_stock_head_1002(pg, base, code):
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
 
     # ---------------------------------------------------------------- ② 分隔線：拖、存、重新整理還在、左欄最小寬、雙擊還原、方向鍵
-    goto(1440)
+    # ★ 2026-10-03 改前 → 改後（一屏看完，DECISIONS #308）：改前 goto(1440)。版面 V2 加了 224px 左側導覽之後，1440 的 K 線卡內寬只剩
+    #   右欄 497／左欄 633，左欄最小寬 621（工具列一行）→ 往左最多只拖得動 12px，「拖 100px 變寬約 100px」這條在 1440 物理上不成立
+    #   （不是分隔線壞了：到最小寬就該停，下面「拖到最左」那組就是驗這個）。改成 1680：左欄約 758、可拖約 137px，跟這段原本的前提一樣。
+    #   斷言（±6px）沒放寬；1440 的行為由「拖到最左：左欄停在最小寬」那一組照舊驗。
+    goto(1680)
     s0 = snap()
     if ok(f"{tag}分隔線看得到", s0["split"] is not None and s0["aiside"], s0["split"]):
         ok(f"★ {tag}分隔線游標是 col-resize", s0["splitCursor"] == "col-resize", s0["splitCursor"])
@@ -19709,6 +19751,91 @@ def t_margin_src_1003(pg, base, code):
         ok(f"{tag}390 頁面沒有橫向捲軸", m["sx"] <= m["vw"] + 1, (m["sx"], m["vw"]))
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.evaluate("() => { try { ['tw.mgSeg'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+
+
+FIT1003_CARDS = """() => { const H = innerHeight; const rows = [];
+  document.querySelectorAll('.card, .skcard, .tblcard').forEach(c => {
+    const r = c.getBoundingClientRect(); if (!(r.width > 120 && r.height > 40)) return;
+    const cs = getComputedStyle(c); if (cs.visibility === 'hidden' || cs.display === 'none') return;
+    if (c.closest('[hidden],aside,#l4Jump')) return;
+    const t = (c.querySelector('h2,h3,.ttl,.title') || {}).textContent || '';
+    rows.push({ id: c.id || String(c.className).slice(0, 20), t: t.trim().slice(0, 12), h: Math.round(r.height), w: Math.round(r.width) }); });
+  return { H, sx: document.documentElement.scrollWidth, vw: innerWidth, rows }; }"""
+
+
+def t_fit_screen_1003(pg, base, code):
+    """★ 2026-10-03 一屏看完（DECISIONS #308）：Andy「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」。
+
+    規格：桌機每張圖表卡（含標題列與控制列）高度 ≤ 視窗可視高 − 49（黏在最上面的跳轉列），整張卡不必捲動就看得完。
+    驗法：① 1440×900、1920×1080 兩種視窗，逐頁量每張可見卡的高度；頁面不出橫向捲軸。
+          ② 視窗高度「縮矮」（900 → 700）卡跟著縮（資金去向／輪盤／個股 K 線是用視窗高度算的），不是只在載入時算一次。
+          ③ 視窗夠高（1920×1080）時，改前本來就放得下的圖不變矮（輪盤卡、K 線卡不被過度壓縮：K 線 ≥ 560、輪盤盤面 ≥ 500）。
+    手機（≤820）不動：390 寬下總覽的輪盤高度與改前同一個公式，這裡只驗頁面沒有橫向捲軸。
+    """
+    tag = "【一屏看完】"
+    ROUTES = [("overview", "總覽"), ("flow/rotation", "資金流向・輪動"), ("flow/sankey", "資金流向・資金去向"), ("flow/inst", "資金流向・法人集中度"),
+              ("heatmap/industry", "熱力圖・產業"), ("heatmap/theme", "熱力圖・題材"), ("industry", "產業地圖"), ("market", "市場明細"),
+              ("season", "週期統計"), ("watch", "自選")]
+    STOCK_TABS = ["overview", "basics", "tags", "revenue", "profit", "dividend", "inst", "margin", "holders", "news"]
+
+    def land(h, w, hash_):
+        pg.set_viewport_size({"width": w, "height": h})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#{hash_}", wait_until="networkidle")
+        pg.wait_for_timeout(1500)
+
+    def check(label, h, w):
+        m = pg.evaluate(FIT1003_CARDS)
+        bad = [r for r in m["rows"] if r["h"] > m["H"] - 49]
+        ok(f"★ {tag}{label} {w}×{h}：每張卡高度 ≤ 可視高 − 49（{m['H'] - 49}），整張看得完", bad == [], bad)
+        ok(f"{tag}{label} {w}×{h}：頁面沒有橫向捲軸", m["sx"] <= m["vw"] + 1, (m["sx"], m["vw"]))
+        return m
+
+    for (w, h) in ((1440, 900), (1920, 1080)):
+        for hs, label in ROUTES:
+            land(h, w, hs)
+            check(label, h, w)
+        land(h, w, f"stock/{code}")
+        wait_until(pg, "() => !!document.getElementById('skChartCard')", 12000)
+        pg.wait_for_timeout(1200)
+        for t in STOCK_TABS:
+            if not count(pg, f'#stockTabs button[data-t="{t}"]'):
+                ok(f"{tag}個股分頁鈕 {t} 存在", False, t); continue
+            pg.eval_on_selector(f'#stockTabs button[data-t="{t}"]', "b => b.click()"); pg.wait_for_timeout(1300)
+            check(f"個股・{t}", h, w)
+
+    # ② 視窗高度縮矮：資金去向、輪盤、個股 K 線的圖高要跟著重算
+    def hts():
+        return pg.evaluate("""() => { const g = (s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().height) : null; };
+            return { H: innerHeight, sk: g('#flowSankeyCard'), rot: g('#flowRotCard'), kl: g('#skChartCard') }; }""")
+    land(1000, 1440, "flow/sankey"); a = hts()
+    pg.set_viewport_size({"width": 1440, "height": 700}); pg.wait_for_timeout(900); b = hts()
+    ok(f"★ {tag}資金去向：視窗從 1000 縮到 700 高，卡跟著縮（{a['sk']} → {b['sk']}）且 ≤ 700 − 49",
+       a["sk"] and b["sk"] and b["sk"] < a["sk"] - 20 and b["sk"] <= 700 - 49, (a, b))
+    land(1000, 1440, "flow/rotation"); a = hts()
+    pg.set_viewport_size({"width": 1440, "height": 700}); pg.wait_for_timeout(900); b = hts()
+    ok(f"★ {tag}資金輪動：視窗從 1000 縮到 700 高，卡跟著縮（{a['rot']} → {b['rot']}）且 ≤ 700 − 49",
+       a["rot"] and b["rot"] and b["rot"] < a["rot"] - 20 and b["rot"] <= 700 - 49, (a, b))
+    land(1000, 1440, f"stock/{code}"); wait_until(pg, "() => !!document.getElementById('skChartCard')", 12000); pg.wait_for_timeout(1200); a = hts()
+    # K 線本體有下限 420（再矮副圖與價格軸擠在一起），所以個股頁最矮驗到 800（規格尺寸；700 時 420 ＋ 卡內其他 290 ＝ 710 放不下，是設計取捨）
+    pg.set_viewport_size({"width": 1440, "height": 800}); pg.wait_for_timeout(900); b = hts()
+    ok(f"★ {tag}個股 K 線卡：視窗從 1000 縮到 800 高，卡跟著縮（{a['kl']} → {b['kl']}）且 ≤ 800 − 49",
+       a["kl"] and b["kl"] and b["kl"] < a["kl"] - 20 and b["kl"] <= 800 - 49, (a, b))
+
+    # ③ 夠高的視窗不被過度壓縮
+    land(1080, 1920, f"stock/{code}"); wait_until(pg, "() => !!document.getElementById('lwc')", 12000); pg.wait_for_timeout(1200)
+    kl = pg.evaluate("() => Math.round(document.getElementById('lwc').getBoundingClientRect().height)")
+    ok(f"{tag}1920×1080 個股 K 線本體 ≥ 560（沒有被壓得太矮）", kl >= 560, kl)
+    land(1080, 1920, "flow/rotation")
+    rc = pg.evaluate("() => { const e = document.getElementById('rotClock'); return e ? Math.round(e.getBoundingClientRect().height) : 0; }")
+    ok(f"{tag}1920×1080 輪盤盤面 ≥ 500（沒有被壓得太小）", rc >= 500, rc)
+
+    # 手機不動
+    for hs in ("overview", "flow/rotation", f"stock/{code}"):
+        land(844, 390, hs)
+        sx = pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]")
+        ok(f"{tag}390 手機 #{hs} 沒有橫向捲軸（手機版面不動）", sx[0] <= sx[1] + 1, sx)
+    pg.set_viewport_size({"width": 1440, "height": 950})
 
 
 SECTIONS = {
@@ -20055,6 +20182,8 @@ SECTIONS = {
     "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
     # ★ 2026-10-03 Andy 再兩件（DECISIONS #306，⚠ 一律 --workers 1）：關聯圖只留上方剖析圖有的環節（對不上整塊不顯示）、3D 初始大小 70%
     "關聯圖對應與3D大小1003": lambda pg, b, base, code: t_rel_scope_3d_1003(b, base),
+    # ★ 2026-10-03 Andy：「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」—— 每張圖表卡 ≤ 一屏可視高、視窗縮矮跟著縮（DECISIONS #308，⚠ 一律 --workers 1）
+    "一屏看完1003":        lambda pg, b, base, code: t_fit_screen_1003(pg, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 

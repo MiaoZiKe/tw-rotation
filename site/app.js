@@ -5700,7 +5700,15 @@
       if (!rotDesk()) { if (el.style.height) el.style.height = ''; return; }
       const w0 = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
       if (!(w0 > 0)) return;
-      const h0 = Math.round(Math.max(300, Math.min(560, w0)));
+      let h0 = Math.round(Math.max(300, Math.min(560, w0)));
+      /* ★ 2026-10-03 一屏看完：輪盤卡（輪盤＋下面的昨日資金去向）疊成一欄時，盤的高度＝一屏扣掉卡裡其他東西（下限 260）。
+         並排（卡是 grid，fit.css 在矮螢幕把盤跟桑基放兩欄）時兩者不疊，不用讓。 */
+      const fcard = el.closest && el.closest('.card');
+      if (window.Fit && fcard && getComputedStyle(fcard).display !== 'grid') {
+        const wrap = el.parentNode, cb = fcard.getBoundingClientRect().bottom - wrap.getBoundingClientRect().bottom;
+        const r = Fit.room(el, { mode: 'above', below: Math.max(0, cb - (parseFloat(getComputedStyle(fcard).paddingBottom) || 0)), min: 260 });
+        if (isFinite(r)) h0 = Math.min(h0, r);
+      }
       if (Math.abs((el.clientHeight || 0) - h0) > 2) el.style.height = h0 + 'px';
       return;
     }
@@ -5713,9 +5721,24 @@
     const cs = getComputedStyle(el);
     const hk = parseFloat(cs.getPropertyValue('--rot-hk')) || 0.8;
     const hmax = parseFloat(cs.getPropertyValue('--rot-hmax')) || 640;
-    const h = Math.round(Math.max(440, Math.min(hmax, w * hk)));
+    /* ★ 2026-10-03 一屏看完（DECISIONS #308）：盤高再受「卡高上限 − 卡裡盤以外的東西」限制，下限 340（再小標籤就擠在一起）。
+       只在卡本來就比一屏高的視窗（1440×900 可視 ~800：664 → ~545）才縮；1920×1080 以上（盤 664 放得下）一個 px 不變。
+       盤的左右是方的：高縮了、寬不變，盤在欄裡置中、兩旁多出空白。 */
+    if (window.Fit && !el._fitWatch) el._fitWatch = Fit.on(() => { if (el.isConnected && el.offsetParent && el._rotRelayout) el._rotRelayout(); }, el);   // 卡裡其他東西晚一步長出來 → 重算
+    const room = window.Fit ? Fit.room(el, { mode: 'above', min: 340 }) : Infinity;
+    const h = Math.round(Math.max(Math.min(440, room), Math.min(hmax, w * hk, room)));
     if (Math.abs((el.clientHeight || 0) - h) > 2) el.style.height = h + 'px';
   }
+  /* ★ 2026-10-03 一屏看完：盤高跟視窗高度走（rotFitH 的 Fit.room）。視窗高度變了、盤容器沒變 → 各自的 ResizeObserver 不會醒，在這裡補一槍。 */
+  const fitRot = () => {
+    ['rotClock', 'rotClockMini'].forEach(i => {
+      const e = document.getElementById(i);
+      if (!e || !e.offsetParent) return;
+      const f = i === 'rotClock' ? e._rotRelayout : e._miniRelayout;
+      if (f) f();
+    });
+  };
+  if (window.Fit) Fit.on(fitRot);
   function renderRotClock(rows, back, id, compact, opts) {
     opts = opts || {};
     const el = $('#' + id); if (!el) return;
@@ -6735,16 +6758,18 @@
        不然視窗拉寬之後盤還停在舊尺寸。只看寬度決定高度，不會來回觸發；120ms 去抖動。*/
     if (c && compact && id === 'rotClockMini' && !el._miniRO && typeof ResizeObserver !== 'undefined') {
       let t = 0, lw = el.clientWidth;
+      const miniRelayout = () => {
+        const cur = window.echarts && echarts.getInstanceByDom(el); if (!cur || !el.isConnected) return;
+        rotFitH(el, id, true);
+        const G = rotGeo(el.clientWidth || 0, el.clientHeight || 0, true);
+        try { cur.setOption({ polar: { center: ['50%', rotCy(true) * 100 + '%'], radius: rotDesk() ? Math.max(10, G.R) : '66%' } }); cur.resize(); } catch (e) { /* 忽略 */ }
+      };
+      el._miniRelayout = miniRelayout;     // ★ 2026-10-03 一屏看完：視窗「高度」變了（Fit.on）也要重算盤高
       el._miniRO = new ResizeObserver(() => {
         const pw = (el.parentNode && el.parentNode.clientWidth) || 0;
         if (pw === lw) return; lw = pw;
         clearTimeout(t);
-        t = setTimeout(() => {
-          const cur = window.echarts && echarts.getInstanceByDom(el); if (!cur || !el.isConnected) return;
-          rotFitH(el, id, true);
-          const G = rotGeo(el.clientWidth || 0, el.clientHeight || 0, true);
-          try { cur.setOption({ polar: { center: ['50%', rotCy(true) * 100 + '%'], radius: rotDesk() ? Math.max(10, G.R) : '66%' } }); cur.resize(); } catch (e) { /* 忽略 */ }
-        }, 120);
+        t = setTimeout(miniRelayout, 120);
       });
       el._miniRO.observe(el.parentNode || el);
     }
@@ -10456,7 +10481,9 @@
 
     // 選項先組成一個物件：拓撲版也要借用同一支提示框內容（tooltip.formatter），不另寫一份
     const skOpt = {
-      tooltip: { ...tip, trigger: 'item', triggerOn: 'mousemove',
+      /* ★ 2026-10-03 一屏看完（DECISIONS #308）：提示框預設 white-space:nowrap，即時模式那段說明（一長句）會撐成一行 ~850px，
+         800px 寬的畫面就把頁面撐出 46px 橫向捲軸（新-資金流向「800px 沒有橫向捲軸」紅燈）。改成可折行、最寬 380px（再窄的視窗就是視窗寬 − 32）。 */
+      tooltip: { ...tip, extraCssText: (tip.extraCssText || '') + 'white-space:normal;max-width:min(380px,calc(100vw - 32px));', trigger: 'item', triggerOn: 'mousemove',
         formatter: (p) => {
           const d = p.data || {};
           if (d.placeholder) return '';
@@ -11387,7 +11414,10 @@
          邊框線以方塊邊緣為中心，寬 GAP 就在相鄰兩格之間留下 GAP 寬的底色；
          圓角要設成 3 + GAP/2，邊框內緣看起來才是 3px 的圓角。*/
       const GAP = mob ? 1 : 4;
-      const rowH = mob ? 20 : 24 + GAP;
+      /* ★ 2026-10-03 一屏看完：列高 28 是「一列最高」；整張卡超過一屏時往下縮（下限 20：格高 16 仍放得下 12px 的數字），
+         20 列＋預設視窗 1440×900（可視 ~800）量到 28 → 27。視窗夠高時照舊 28。 */
+      const fitRow = !mob && window.Fit ? Math.floor((Fit.room(el, { min: rows.length * 20 + 8 }) - 8) / Math.max(1, rows.length)) : Infinity;
+      const rowH = mob ? 20 : Math.max(20, Math.min(24 + GAP, fitRow));
       // 名稱欄寬：量最長的名字；手機上限 112（超過截成「…」，全名在提示框），桌機上限 180
       const nameW = Math.ceil(Math.max(40, ...rows.map(r => hmTextW(r.name, 12)))) + 12;
       const left = Math.min(nameW, mob ? 112 : 180), right = 4;
@@ -11706,6 +11736,8 @@
         if (view === 'heat') { drawHeat(); } });
       hbox._ro.observe(hcard);
     }
+    /* ★ 2026-10-03 一屏看完：列高跟視窗高度走（drawHeat 的 Fit.room）；視窗高度變了卡片寬度沒變，上面那個 ResizeObserver 不會醒 */
+    if (hbox && window.Fit) { if (hbox._offFit) hbox._offFit(); hbox._offFit = Fit.on(() => { if (hbox.isConnected && hbox.offsetParent && view === 'heat') drawHeat(); }, hbox); }
     draw();
   }
 
