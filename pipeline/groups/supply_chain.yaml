@@ -748,7 +748,7 @@ companies:
   # ---- 手機 / 消費電子
   - {id: largan,      ticker: "3008", name: 大立光,   segment: handset_optics,
      tech: [手機光學鏡頭, 潛望式 / 可變光圈鏡頭, CPO 用光纖陣列 FAU],
-     note: "全球智慧型手機鏡頭龍頭。★ 客戶一律不具名：媒體寫「傳代工 i18 可變光圈」「美系大客戶」，公司從不證實，所以**不畫**到 Apple 的邊。第二條線是 CPO：已收到量產型客戶正式規格文件、2026-07 送樣，最快 2026Q3 底試產、2027 年中放量"}
+     note: "全球智慧型手機鏡頭龍頭。★ 客戶一律不具名：媒體寫「傳代工 i18 可變光圈」「美系大客戶」，公司從不證實，所以舊版**不畫**到 Apple 的邊（2026-10-04 更新：Apple 官方名單收錄大立光，已連一條只表達「列名」的邊，品項仍不揭露）。第二條線是 CPO：已收到量產型客戶正式規格文件、2026-07 送樣，最快 2026Q3 底試產、2027 年中放量"}
   - {id: catcher,     ticker: "2474", name: 可成,     segment: metal_casing,
      tech: [筆電金屬機殼, AI 伺服器機構件 / 功能件, CNC 精密加工, 陽極表面處理],
      note: "★ **它已經不是手機機殼廠**：2020 年把泰州兩座 iPhone 機殼廠賣給藍思科技（價金約 410 億元）退出 iPhone 機殼，目前筆電約占營收 8 成。2026-05-29 NVIDIA MGX Ecosystem Ceremony 列名，AI 相關估占全年營收逾兩成、2026H2 才顯著貢獻"}
@@ -1488,6 +1488,22 @@ edges:
   - {from: unimicron_gtw, to: spacex, rel: supplies, item: "低軌衛星本體與地面接收站用高階 HDI 板（合作逾十年）", strength: 4, confidence: reported,
      note: "路透點名的台灣供應商是敬鵬、啟碁、昇達科，華通被其他媒體寫為『也供貨逾十年』—— 不是路透點名名單。多家媒體一致（udn、ETtoday、鉅亨）。低軌衛星占營收比重各篇數字不一，不寫",
      source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5612/9280735"}
+
+  # ================================ Apple 官方供應商名單（2026-10-04）
+  # ★ 上一輪說「唯一官方級佐證是 Apple 的供應商名單，這一輪沒能開到原文，所以不畫」。
+  #   這一輪 WebSearch 摘要確認：Apple 官方 Supplier List（PDF）與 TrendForce、ocacnews 對 2023 名單的整理，
+  #   一致把大立光、晶技、國巨列為 Apple 供應鏈台廠（同名單還有鴻海、和碩、緯創、台積電、可成、台達電、欣興…）。
+  # ⚠ 名單只列公司與廠址，**不列品項與金額**，所以 item 只寫「列名」，strength 一律給 2；
+  #   as_of 以 2023 名單為準（摘要說「continue to be included」，歷年都在），沒讀到最新一版 PDF 原文，所以 reported 不給 verified。
+  - {from: largan, to: apple, rel: supplies, item: "列名 Apple 供應商名單（品項不揭露；大立光為手機鏡頭，媒體一致指向 iPhone 鏡頭）", strength: 2, confidence: reported,
+     note: "★ 舊 note 說『媒體用「傳代工」』仍然成立 —— 具體是哪一支鏡頭、占比多少，公司與 Apple 都不講；這條只表達『Apple 官方名單收錄』。2023 名單口徑",
+     source: "TrendForce 對 Apple 供應商名單的整理", source_url: "https://www.trendforce.com/news/?p=8483"}
+  - {from: txc, to: apple, rel: supplies, item: "列名 Apple 供應商名單（TXC Corporation；品項不揭露）", strength: 2, confidence: reported,
+     note: "石英頻率元件。名單只列名；『客戶含蘋果』的舊新聞與這個一致，但公司法說不具名揭露占比。2023 名單口徑",
+     source: "ocacnews 對 2023 名單的整理", source_url: "https://ocacnews.net/article/321695"}
+  - {from: yageo, to: apple, rel: supplies, item: "列名 Apple 供應商名單（YAGEO；品項不揭露）", strength: 2, confidence: reported,
+     note: "★ 合併口徑：名單上的 YAGEO 可能含 KEMET 等海外子公司廠址。2023 名單口徑",
+     source: "Apple 官方 Supplier List（PDF，摘要層級）", source_url: "https://www.apple.com/mideast/supplier-responsibility/pdf/Apple-Supplier-List.pdf"}
 
   # ================================ 公有雲原廠 → 台廠 MSP（2026-09-23 新增，software 鏈）
   # ★ 這條鏈**只有這三條邊**，而且方向刻意是 `supplies`：原廠把雲端資源與軟體授權賣給台廠，
