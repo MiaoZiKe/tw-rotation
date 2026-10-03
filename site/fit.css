@@ -34,28 +34,60 @@
   :root.l4 .rotright>#rankFlowWrap{contain:size}
 }
 
-/* 總覽「資金輪盤」卡（輪盤＋昨日資金去向）：1440×900 時疊成一欄要 ≥ 880px（盤 360＋桑基 442＋標題），比一屏高。
-   矮螢幕（可視高 ≤ 1000）改兩招：
-   ① 卡內左右兩欄：盤放左、昨日資金去向放右（桑基本來就有窄版排法）。右欄要夠寬，昨日資金去向的族群名才不會被截成「…」
-      （右半卡 1.2 倍寬、卡內 0.8:1），整張卡約 541px。
-   ② 總覽下半的版面改成「兩列」：第 1 列 資金熱力圖｜資金輪盤（兩張一樣高、各約 541px），第 2 列 熱門題材吃滿全寬（約 420px）。
-      做法：#ovLeft 改 display:contents，讓裡面兩張卡直接排進 .ovmain 這個 grid（DOM、id 都沒動）。
-      為什麼不是「左欄疊兩張、右欄輪盤黏頂」：左欄疊起來 972px，右欄只有 541px，要嘛右欄下面空 430px、要嘛卡被拉成 972px，
-      兩種都不是一屏。兩列排法每張卡都 ≤ 541px，而且同一列的兩張卡上下緣對齊（原本「框格一樣大」的要求還在）。 */
-@media (min-width:1101px) and (max-height:1000px){
-  :root.l4 .ovmain{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+/* ==================================================================================
+   總覽下半：左欄兩張熱力圖上下疊、右欄「資金輪盤」＋「昨日資金去向」上下兩張（2026-10-04，DECISIONS #315，蓋掉 #308 第 5 條）
+   Andy 原話：「這回到之前設定，左邊上下都是熱力圖，右邊都是資金輪盤和流水」。
+
+   #308 為了「整個下半一屏看完」把下半拆成兩列（熱力圖｜輪盤、題材全寬在下），而且只在可視高 ≤ 1000 才切，
+   結果 1440×900 與 1920×1080 看到的版面不一樣、題材被拉成全寬一條。現在改成**所有可視高都同一種版面**，
+   而且「一屏」的口徑放寬成「每一張卡 ≤ 可視高」（不是整個兩欄 ≤ 一屏）：
+        ┌──────────── 左欄 1.15 ───────────┐┌──────────── 右欄 1 ─────────────┐
+   第1列 │ 資金熱力圖                        ││ 資金輪盤（正圓）                  │
+   第2列 │ 熱門題材                          ││ 昨日資金去向                      │
+   做法：`.ovmain` 是 2×2 格線，#ovLeft 改 display:contents 讓裡面兩張卡直接排進格線（DOM 與 id 不動）；
+   同一列的兩張卡由格線拉成一樣高 → 左上對右上、左下對右下，兩欄的底線一定對齊。
+   為什麼右欄要拆成兩張卡（#ovFlowCard 是 10-04 新增的外殼）：同一張卡裝輪盤＋資金去向 ≈ 1100px，比一屏高；
+   而且要跟左欄「兩張」逐列對齊，右欄也得是兩張。
+   欄寬 1.15:1：右欄放的是正圓輪盤（寬 ≈ 高）與資金去向樹，欄再寬輪盤也不會變大（上限 560），多出來的寬度只是空白；
+   左欄是兩張矩形熱力圖，寬度直接變成方塊面積。量過 1.0／1.15／1.3／1.5 四種（見 docs/ov2col_1004_spec.md）。
+   只在 ≥901（#ovmain 本來就是兩欄的寬度，theme4.css 第 115 行）；821～900 與手機照原本單欄。
+   ================================================================================== */
+@media (min-width:901px){
+  /* 右欄寬 ＝ 內容寬的 46.5%（＝左右 1.15:1），但最寬 600px：盤上限 560 ＋ 卡內距 32 ＋ 邊框 ≈ 594，再寬盤也不會變大、
+     兩旁只是空白（1920 寬時 768 → 600，盤兩旁的空白 174 → 0，多出來的 168px 還給左欄兩張熱力圖） */
+  :root.l4 .ovmain{grid-template-columns:minmax(0,1fr) minmax(0,min(46.5%,600px));grid-template-rows:auto auto;align-items:stretch}
   :root.l4 #ovLeft{display:contents}
   :root.l4 #ovHeatCard{grid-column:1;grid-row:1}
-  :root.l4 #ovThemeCard{grid-column:1/-1;grid-row:2}
-  :root.l4 #ovRotCard{grid-column:2;grid-row:1;
-    display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr);column-gap:var(--sp-4,16px);align-content:start}
-  :root.l4 #ovRotCard>#ovRotHead,:root.l4 #ovRotCard>#how-rotm{grid-column:1/-1}
-  :root.l4 #ovRotCard>#ovRotHead{grid-row:1}
-  :root.l4 #ovRotCard>#how-rotm{grid-row:2}
-  :root.l4 #ovRotCard>#rotClockMiniWrap{grid-column:1;grid-row:3/span 3;align-self:center}
-  :root.l4 #ovRotCard>#ovFlowHead{grid-column:2;grid-row:3;margin-top:0}
-  :root.l4 #ovRotCard>#how-ovflow{grid-column:2;grid-row:4}
-  :root.l4 #ovRotCard>#ovFlowWrap{grid-column:2;grid-row:5}
+  :root.l4 #ovThemeCard{grid-column:1;grid-row:2}
+  :root.l4 #ovRotCard{grid-column:2;grid-row:1}
+  :root.l4 #ovFlowCard{grid-column:2;grid-row:2}
+  /* 熱門題材：圖原本固定 300px；現在列高由右欄（資金去向）決定，題材卡要跟著撐滿，不留空白（排法同 .fillchart） */
+  :root.l4 #ovThemeCard{display:flex;flex-direction:column}
+  :root.l4 #ovThemeCard>#ovThemeWrap{flex:1 1 auto;min-height:300px;display:flex;flex-direction:column}
+  /* contain:size：圖的畫布高度不算進容器的「內容高度」。不加的話列高被畫布撐著、只會長高不會縮（棘輪：卡一長高畫布跟著長、再撐高卡）；
+     高度只吃 flex 分到的，下限由 #ovThemeWrap 的 min-height:300 保證（同一招 #308 在排行圖用過）。 */
+  :root.l4 #ovThemeCard>#ovThemeWrap>.zpane{flex:1 1 auto;min-height:0;contain:size}
+  /* app.js renderOvThemes 會在 #ovTheme 上寫 inline height:300px，所以這裡要 !important 才蓋得過（只在卡片的 .zpane 裡：圖還沒掛上滾輪縮放框之前、以及放大視窗裡的那一份，照舊吃 inline 的 300px） */
+  :root.l4 #ovThemeCard>#ovThemeWrap>.zpane>#ovTheme{height:100%!important}
+  /* 資金輪盤卡：標題、輪盤（置中）；盤是正圓，高度由 app.js rotFitH 算（欄寬、卡高上限） */
+  :root.l4 #ovRotCard{display:flex;flex-direction:column}
+  :root.l4 #ovRotCard>#rotClockMiniWrap{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center}
+  /* 盤的容器一開始就是方的（高＝卡寬，上限 560，跟 rotFitH 同一條公式）：不然盤要等資料載完、rotFitH 跑過才從 260 長到 517，
+     第 1 列的高度跟著跳，而資金熱力圖的列高是被這張卡撐的 → 熱力圖畫好之後又被重排一次（量到 4.8 秒畫、5.5 秒再 resize，
+     點方塊的驗收剛好卡在這段空檔假紅）。aspect-ratio 讓第一次排版就是最後的尺寸；JS 寫了 inline 高度（短視窗要縮）就照 JS。 */
+  :root.l4 #ovRotCard #rotClockMini{aspect-ratio:1/1;max-height:560px}
+  /* 昨日資金去向卡：它現在是卡裡的第一個東西，原本「跟上面輪盤隔開」的分隔線與上緣留白拿掉 */
+  :root.l4 #ovFlowCard{display:flex;flex-direction:column}
+  :root.l4 #ovFlowCard>#ovFlowHead{margin-top:0;padding-top:0;border-top:0}
+  :root.l4 #ovFlowCard>#ovFlowWrap{flex:1 1 auto}
+}
+@media (min-width:821px) and (max-width:900px){
+  :root.l4 #ovFlowCard>#ovFlowHead{margin-top:0;padding-top:0;border-top:0}
+}
+/* 641～820（平板直向，沒有手機的分段導覽、輪盤與資金去向照舊上下排）：資金去向現在是獨立的一張卡，
+   原本「跟上面輪盤隔開」的分隔線變成卡片最上面一條孤線，拿掉。≤640 手機分段導覽一次只露一張卡，維持原樣一個 px 不動。 */
+@media (min-width:641px) and (max-width:820px){
+  #ovFlowCard>#ovFlowHead{margin-top:0;padding-top:0;border-top:0}
 }
 
 /* ==================================================================================
