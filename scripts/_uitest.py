@@ -16931,11 +16931,16 @@ def _ovs_inview(pg, anchor, timeout=9000):
     #   1440×1000 下資金輪盤卡本來就在第一屏（main 616px、v4 606px，都 < 960），
     #   所以舊寫法在平滑捲動剛起步（scrollY 75～102）就回傳 → 「y > y0 + 150」會依機器快慢間歇性假紅。
     #   改成連續兩次輪詢 scrollY 不變、而且標題在視窗內才回傳（實測兩邊最後都停在 538～548）。
-    pg.evaluate("() => { window.__ovsLastY = -1; }")
+    # ★ 2026-10-04（DECISIONS #315）再補一道：卡「一開始就在第一屏」時（總覽 2×2 之後資金輪盤卡上緣約 587、視窗高 1000），
+    #   點下去到平滑捲動真正起步之間，機器忙的時候會空 0.5～1.6 秒（實測 click_tl：rot 在 ~1.1 秒才動），
+    #   「連續兩次 scrollY 不變且標題在視窗內」會在這段空檔誤判成「捲完了」→ 回傳 y＝起點、假紅。
+    #   改成：scrollY 離開起點 150px 以上（呼叫端的斷言就是 y > 起點 + 150）、或等滿 3.5 秒（真的沒捲才算）才准回傳；原本的「停穩＋標題在視窗」條件照舊。
+    pg.evaluate("() => { window.__ovsLastY = -1; window.__ovsY0 = Math.round(scrollY); window.__ovsT0 = Date.now(); }")
     return wait_until(pg, """() => { const el = document.getElementById('%s'); if (!el || !el.getClientRects().length) return null;
         const r = el.getBoundingClientRect(), y = Math.round(scrollY), prev = window.__ovsLastY; window.__ovsLastY = y;
         if (y !== prev) return null;
         if (r.top < 0 || r.top >= innerHeight - 40) return null;
+        if (y < window.__ovsY0 + 150 && Date.now() - window.__ovsT0 < 3500) return null;   // 呼叫端都斷言 y > 起點 + 150：捲動中途卡一下（主執行緒忙）不算捲完
         return { top: Math.round(r.top), y }; }""" % anchor, timeout)
 
 
@@ -17014,8 +17019,12 @@ def t_ov_summary_0928(pg, b, base, code):
     # 點熱門題材卡裡的題材名 → 下面那張熱力圖直接打開那個題材
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
+    wait_until(pg, "() => document.querySelectorAll('#hero .osn-t').length >= 2", 8000)   # 摘要卡是資料載完才畫的；reload 後固定等 2 秒在機器忙時不夠（實測 hero 還是空的）
     tops = pg.evaluate("() => [...document.querySelectorAll('#hero .osn-t')].map(e => ({ id: e.dataset.theme, n: e.querySelector('small').textContent }))")
-    if ok("[摘要卡] 熱門題材卡列出可點的題材名", len(tops) >= 2, tops):
+    if ok("[摘要卡] 熱門題材卡列出可點的題材名", len(tops) >= 2,
+          {"tops": tops, "osc": pg.evaluate("() => document.querySelectorAll('#hero .osc').length"),
+           "hero": pg.evaluate("() => { const h = document.getElementById('hero'); return h ? [h.innerHTML.length, h.parentElement && h.parentElement.id, h.getClientRects().length] : null; }"),
+           "y": pg.evaluate("() => Math.round(scrollY)"), "hash": pg.evaluate("() => location.hash"), "vw": pg.evaluate("() => innerWidth")}):
         dd0 = text(pg, "#ovThemeDD .ddbtn b")
         pick = next((t for t in tops if t["n"] not in dd0), tops[-1])   # 挑一個「現在下拉不是它」的，才看得出有沒有換
         click(pg, f'#hero .osn-t[data-theme="{pick["id"]}"]', 300)
