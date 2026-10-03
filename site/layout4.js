@@ -18,6 +18,11 @@
      ③ 「事件」移到導覽最上面一格（CSS grid 換位置，DOM 不動）
      ④ 左欄底部改成帳號卡（#l4Acct，account.js 的 #acctBtn 本人搬進來當「登入」／名字那顆）＋「淺色｜深色」二段式（#l4Mode）
         ＋外觀調色盤小鈕（#t4Btn）；「★ 自選」與 ☀ 鈕在電腦版藏起來（≤820 照舊）
+   ★ 2026-10-03 第四批（Andy 看正式站：「這個登入功能不見了」「明暗用原來的圖示即可，並且都放在右上」「圖案換個圖案，畫在線上」
+     ＋「子分頁每一個都要有自己的圖示」，DECISIONS #312）：
+     ④ 的帳號卡與「淺色｜深色」拿掉 → 頁首右上角放 ☀／🌙（#themeBtn 本人）、外觀調色盤（#t4Btn）、登入（#acctBtn 本人；
+        會員功能沒開時是一顆會講原因的 #l4Login）；② 的收合鈕改成騎在側欄分隔線上的圓形 «／» 小鈕；
+        側欄子分頁加各自的圖示，收合時只顯示圖示。
    ================================================================================== */
 (function () {
   'use strict';
@@ -56,18 +61,36 @@
   const ALIAS = { themes: 'heatmap', tasks: 'delivery' };
   /* ★ 2026-10-03（Andy：「資金流向」四個本頁功能拆成三個側欄子分頁、「熱力圖」拆產業／題材）：
      側欄縮排子項。路由與「這一頁顯示哪幾張卡」在 app.js route()（<html data-l4sub>）＋ layout4.css；這裡只畫側欄那幾格、亮目前那格。
-     短名（s）是收合成圖示列時顯示的兩個字。 */
+     短名（s）留給讀屏與滑鼠提示；ic 是圖示（site/icons.js 的 Lucide 鍵）。
+     ★ 第四批（Andy：「子分頁每一個都要有自己的圖示」）：圖示放在字左邊、比主項目小一號（16 vs 19）；
+       收合成圖示列時只顯示圖示（取代第三批的兩字短名），滑過有 title。
+       資金輪動＝羅盤（輪盤看輪動階段）、資金去向＝分流箭頭（錢從哪裡分到哪裡）、族群×法人＝法人機構（landmark，法人＝機構）、
+       產業＝格狀方塊（全市場 treemap 的樣子）、題材＝火焰（題材熱度；跟卡片標題的題材圖示同一個）。 */
   const SUBS = {
     flow: [
-      { k: 'flow-rotation', h: '#flow/rotation', t: '資金輪動', s: '輪動' },
-      { k: 'flow-sankey', h: '#flow/sankey', t: '資金去向', s: '去向' },
-      { k: 'flow-inst', h: '#flow/inst', t: '族群×法人＋集中度', s: '法人' },
+      { k: 'flow-rotation', h: '#flow/rotation', t: '資金輪動', s: '輪動', ic: 'compass' },
+      { k: 'flow-sankey', h: '#flow/sankey', t: '資金去向', s: '去向', ic: 'split' },
+      { k: 'flow-inst', h: '#flow/inst', t: '族群×法人＋集中度', s: '法人', ic: 'landmark' },
     ],
     heatmap: [
-      { k: 'heat-industry', h: '#heatmap/industry', t: '產業', s: '產業' },
-      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', s: '題材' },
+      { k: 'heat-industry', h: '#heatmap/industry', t: '產業', s: '產業', ic: 'treemap' },
+      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', s: '題材', ic: 'flame' },
     ],
   };
+  /* 子分頁圖示：優先用 icons.js（全站同一套 Lucide、同一個線寬）；它被擋掉時退回這裡內嵌的同一組路徑 */
+  const SUB_IC = {
+    compass: '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>',
+    split: '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>',
+    landmark: '<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 20 7H4z"/>',
+    treemap: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+    flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+  };
+  function subIcon(key) {
+    const I = window.TwIcons;
+    if (I && I.svg && I.ICONS && I.ICONS[key]) return I.svg(key, 16).replace('<svg ', '<svg class="ic" ');
+    return '<svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" '
+      + 'stroke-linejoin="round" focusable="false" aria-hidden="true">' + (SUB_IC[key] || '') + '</svg>';
+  }
   const subKey = () => root.getAttribute('data-l4sub') || '';
   /* 卡片標題讀出來不像「這一節」的，指定名字（大盤三張圖的外框第一個標題是「加權指數」，但這一節是三張圖） */
   const CARD_NAME = { m3Frame: '大盤走勢' };
@@ -88,6 +111,8 @@
   function build() {
     const lay = $('#layout'); if (!lay || $('#l4Head')) return !!$('#l4Head');
     head = document.createElement('header'); head.id = 'l4Head';
+    /* 頁首三塊：頁名（每次換頁重寫）｜台北時間（每秒寫屬性）｜右上角工具（☀、外觀、登入 —— 別支檔的按鈕本人，只建一次、不重寫） */
+    head.innerHTML = '<h1></h1><time class="l4clock" aria-live="off"></time><div class="l4tools" id="l4Tools"></div>';
     jump = document.createElement('nav'); jump.id = 'l4Jump'; jump.setAttribute('aria-label', '本頁功能');
     jump.innerHTML = '<span class="lbl">本頁功能</span><div class="chips"></div>';
     chips = $('.chips', jump);
@@ -118,12 +143,15 @@
       const nm = p ? (k === 'stock' && sub ? sub : p.t) : (($('.view.on h1, .view.on h2') || {}).textContent || '').trim();
       mpt.innerHTML = (p ? `<i>${esc(p.grp)}</i>` : '') + `<span>${esc(nm || '台股資金輪動')}</span>`;
     }
-    head.hidden = !p;
-    if (!p) { head.innerHTML = ''; return; }
     /* ★ 2026-10-03（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
-       分組小標（eyebrow）、說明句（p）拿掉，只留頁名＋台北現在時間。「本頁功能」那排見 CSS（只藏不刪）。 */
-    head.innerHTML = `<h1>${esc(p.t)}${sub && sub !== p.t ? `<span class="sub1">${esc(sub)}</span>` : ''}</h1>`
-      + '<time class="l4clock" aria-live="off"></time>';
+       分組小標（eyebrow）、說明句（p）拿掉，只留頁名＋台北現在時間。「本頁功能」那排見 CSS（只藏不刪）。
+       ★ 第四批：頁首右上角放了登入、明暗、外觀 —— 法律頁、管理頁這些不在 PAGES 的頁面也要按得到（#admin 要先登入），
+       所以頁首不再整塊藏起來，只把頁名那一格清空。只重寫 h1，不碰右上角那幾顆（重寫 innerHTML 會把按鈕本人刪掉）。 */
+    const h1 = $('h1', head);
+    if (h1) {
+      h1.hidden = !p;
+      h1.innerHTML = p ? `${esc(p.t)}${sub && sub !== p.t ? `<span class="sub1">${esc(sub)}</span>` : ''}` : '';
+    }
     tick();
   }
 
@@ -270,7 +298,8 @@
       SUBS[v].forEach((it) => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'l4subtab'; b.dataset.l4sub = it.k; b.dataset.parent = v;
-        b.innerHTML = `<span class="lbl">${esc(it.t)}</span><span class="sh" aria-hidden="true">${esc(it.s)}</span>`;
+        b.innerHTML = `${subIcon(it.ic)}<span class="lbl">${esc(it.t)}</span>`;
+        b.setAttribute('aria-label', it.t);
         b.title = (PAGES[v] ? PAGES[v].t + '・' : '') + it.t;
         b.onclick = () => {
           // 熱力圖題材子分頁：已經在題材（可能還帶著 /<題材 id>）就不動網址，不要把展開中的題材收掉
@@ -324,6 +353,9 @@
     const btn = document.createElement('button');
     btn.type = 'button'; btn.id = 'l4NavBtn'; btn.className = 'l4navbtn';
     btn.innerHTML = '<span class="ic" aria-hidden="true"></span>';
+    /* ★ 第四批（Andy：「圖案換個圖案，畫在線上」）：圖示從側欄方框換成雙箭頭（展開時 «、收合時 » —— CSS 轉 180°），
+       位置從 logo 右側的方鈕改成**騎在側欄與內容之間那條分隔線上**的圓形小鈕（垂直在 logo 那一列）。
+       仍是 .topbar 的直接子元素（不放進 .brand：.brand 有 onclick 回總覽），定位改成 absolute（.topbar 是 fixed，就是它的定位基準）。 */
     const brand = $('.brand', bar);
     bar.insertBefore(btn, brand ? brand.nextSibling : bar.firstChild);
     btn.onclick = (e) => {
@@ -333,66 +365,77 @@
     };
   }
 
-  /* ---------------- 左欄底部：帳號卡＋「淺色｜深色」切換（Andy：「登入模式可以參考圖三下方」） ----------------
-     原本底部是「★ 自選｜登入」兩顆、「外觀」鈕、☀ 鈕。改成：
-       · 帳號卡：圓形頭像＋名稱＋一行小字。未登入＝「訪客」＋「登入」小鈕；已登入＝頭像、名字、信箱，點了開帳號選單。
-       · 「淺色｜深色」二段式切換，取代 ☀ 鈕；「外觀」鈕縮成切換右邊一顆調色盤小鈕（三套風格只有它進得去，不能拿掉）。
-       · 「★ 自選」整併：導覽「專案」組本來就有「自選」，這顆在電腦版藏起來（DOM 留著，≤820 的頂欄照舊用它）。
-     ★ 不重寫登入邏輯：卡片右邊的「登入」／名字那顆**就是 account.js 的 #acctBtn 本人**（搬進卡片，id、onclick 都不變），
-       所以登入、帳號選單、登出、刪除資料全部走原本那條路；這裡只負責頭像、名稱、小字這幾個「讀出來」的字。
-       視窗縮到 ≤820（deactivate）時把它搬回 .acctbar。account.js 沒開會員功能（沒有設定檔）時不會有 #acctBtn ——
-       卡片就只寫「訪客／自選存在這台瀏覽器」，不放一顆按了沒反應的登入鈕。 */
-  function buildBottom() {
-    const bar = $('.topbar'); if (!bar || $('#l4Acct')) return;
-    const card = document.createElement('div');
-    card.id = 'l4Acct'; card.className = 'l4acct';
-    card.innerHTML = '<button type="button" class="av" tabindex="-1" aria-hidden="true"></button>'
-      + '<b class="nm">訪客</b><small class="st"></small><span class="act"></span>';
-    // 收合時只剩頭像：點頭像＝按「登入」（未登入）／打開帳號選單（已登入的頭像就是 #acctBtn 本人，不會走到這裡）
-    $('.av', card).onclick = (e) => { e.stopPropagation(); const ab = $('#acctBtn'); if (ab) ab.click(); };
-    const mode = document.createElement('div');
-    mode.id = 'l4Mode'; mode.className = 'l4mode'; mode.setAttribute('role', 'group'); mode.setAttribute('aria-label', '明暗');
-    mode.innerHTML = '<button type="button" data-l4m="light"><span class="ic" aria-hidden="true"></span><span class="lbl">淺色</span></button>'
-      + '<button type="button" data-l4m="dark"><span class="ic" aria-hidden="true"></span><span class="lbl">深色</span></button>';
-    mode.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-l4m]'); if (!b) return;
-      const want = b.dataset.l4m, cur = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-      // 跟 ☀ 鈕走同一條路（app.js 的 themeBtn.onclick → applyTheme(…, true)：重畫圖表、寫 tw.theme、通知外觀面板）；
-      // 已經是這一邊就什麼都不做（二段式切換按目前那一邊不該翻過去）
-      if (want !== cur) { const tb = $('#themeBtn'); if (tb) tb.click(); }
-      syncMode();
-    });
-    bar.appendChild(card); bar.appendChild(mode);
-    syncAcct(); syncMode();
+  /* ---------------- 頁首右上角：明暗鈕＋外觀調色盤＋登入（2026-10-03 第四批，DECISIONS #312） ----------------
+     Andy：「這個登入功能不見了」「明暗用原來的圖示即可，並且都放在右上」。
+     第三批把登入鈕塞進左欄底部的帳號卡、明暗改成「淺色｜深色」二段式 —— 兩樣都拿掉，改成：
+       · 明暗＝**v4 原本那顆 #themeBtn 本人**（☀／🌙 由 app.js applyTheme() 寫字、onclick 也是 app.js 的），只是搬進頁首右上角；
+       · 外觀調色盤＝theme4.js 的 #t4Btn 本人（面板定位本來就是「按鈕下緣＋8px、右緣對齊」，放在右上角剛好不用再挪）；
+       · 登入＝account.js 的 #acctBtn 本人（未登入寫「登入」、已登入是頭像＋名字＋▾，點開是原本的帳號選單；
+         帳號選單也是「按鈕下緣＋6px、右緣對齊」，同樣不用挪）。線上人數 #acctOnline 也一起搬過來，緊貼在登入鈕左邊。
+     ★ 全部是「搬節點」不是「做新鈕」：id、onclick、account.js 的登入流程一行都沒碰；≤820（deactivate）時搬回原位。
+     ★ 沒有會員設定檔（account.js 沒開）時：第三批的規則是「不放按了沒反應的登入鈕」——
+       結果正式站看到的是「訪客／自選存在這台瀏覽器」、沒有任何登入入口，Andy 判斷成「登入功能不見了」，而我們從這個容器
+       連不到正式站、沒辦法確認部署那一刻 account_config.js 到底有沒有填到網址（本機用同樣的設定檔重跑，登入鈕會出現）。
+       所以改成：會員功能關著時，右上角照樣有一顆「登入」（#l4Login，不是 #acctBtn），按了用一小段字講清楚「這次部署沒有讀到
+       會員伺服器設定、暫時不能登入、自選照樣存在這台瀏覽器」—— 入口不消失，原因直接寫在畫面上，下一次就不必猜。
+       account.js 一開（tw:account-config）它就自己拿掉，換成真的 #acctBtn。 */
+  const TOOL_ORDER = ['#themeBtn', '#t4Btn', '#acctOnline', '#acctBtn', '#l4Login'];
+  let tools = null;
+  function acctOn() { const A = window.TwAccount; return !!(A && A.on && A.on()); }
+  function syncTools() {
+    if (!active || !head) return;
+    if (!tools || !tools.isConnected) tools = $('#l4Tools', head);
+    if (!tools) return;
+    // 會員功能關著才放 #l4Login；開了（或 #acctBtn 已經在）就拿掉
+    let lg = $('#l4Login');
+    const real = $('#acctBtn');
+    if (!acctOn() && !real) {
+      if (!lg) {
+        lg = document.createElement('button');
+        lg.type = 'button'; lg.id = 'l4Login'; lg.className = 'l4login';
+        lg.textContent = '登入'; lg.title = '會員登入（目前沒有開啟）';
+        lg.setAttribute('aria-haspopup', 'dialog'); lg.setAttribute('aria-expanded', 'false');
+        lg.onclick = (e) => { e.stopPropagation(); loginTip(); };
+      }
+    } else if (lg) { lg.remove(); closeLoginTip(); lg = null; }
+    // 照固定順序排：已經是這個順序就不動 DOM（避免自己觸發觀察器、也避免按鈕焦點被搬走）
+    const want = TOOL_ORDER.map((s) => (s === '#l4Login' ? lg : $(s))).filter(Boolean);
+    const cur = Array.from(tools.children);
+    if (want.length !== cur.length || want.some((e, i) => cur[i] !== e)) want.forEach((e) => tools.appendChild(e));
   }
-  function syncMode() {
-    const m = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-    $$('#l4Mode [data-l4m]').forEach((b) => {
-      const on = b.dataset.l4m === m;
-      b.setAttribute('aria-pressed', String(on));
-      const nm = b.dataset.l4m === 'light' ? '淺色' : '深色';
-      b.title = on ? `目前是${nm}` : `切換成${nm}`;
-    });
+  /* 會員功能關著時，按「登入」跳出的說明（不是 account.js 的告知對話框 —— 那支沒開就什麼都不畫） */
+  function loginTip() {
+    let tip = $('#l4LoginTip');
+    if (tip && !tip.hidden) { closeLoginTip(); return; }
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'l4LoginTip'; tip.className = 'l4logintip'; tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-label', '會員登入');
+      tip.innerHTML = '<b>會員登入目前沒有開啟</b>'
+        + '<p>網站這次部署沒有讀到會員伺服器的設定，所以暫時不能登入。</p>'
+        + '<p>自選清單照樣可以用，會存在這台瀏覽器。</p>';
+      document.body.appendChild(tip);
+    }
+    tip.hidden = false;
+    const b = $('#l4Login'); if (b) b.setAttribute('aria-expanded', 'true');
+    const r = b ? b.getBoundingClientRect() : { bottom: 49, right: window.innerWidth - 16 };
+    tip.style.top = Math.round(r.bottom + 8) + 'px';
+    tip.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, r.right - tip.offsetWidth))) + 'px';
   }
-  let acctSig = '';
-  function syncAcct() {
-    const card = $('#l4Acct'); if (!card || !active) return;
-    const ab = $('#acctBtn'), act = $('.act', card);
-    if (ab && ab.parentNode !== act) act.appendChild(ab);                // 搬進卡片（已經在就不動，免得觸發自己的觀察器）
-    const A = window.TwAccount, u = A && A.user ? A.user() : null, on = !!(A && A.on && A.on()) && !!ab;
-    const n = A && A.online ? A.online() : null;
-    let nm = '訪客', st = '自選存在這台瀏覽器', ini = '';
-    if (u) { nm = u.name || u.email || '會員'; st = u.email || '已登入'; ini = nm.trim().charAt(0).toUpperCase(); }
-    else if (on) st = n != null ? `${n} 人在線・登入同步自選` : '登入後自選跨裝置同步';
-    const sig = [!!u, on, nm, st].join('|');
-    if (sig === acctSig) return;
-    acctSig = sig;
-    card.classList.toggle('in', !!u);
-    card.classList.toggle('noacct', !on);
-    $('.nm', card).textContent = nm;
-    const s = $('.st', card); s.textContent = st; s.title = st;
-    const av = $('.av', card); av.textContent = ini; av.title = u ? nm : (on ? '登入' : '訪客');
-    card.title = u ? `${nm}（${u.email || ''}）` : '';
+  function closeLoginTip() {
+    const tip = $('#l4LoginTip'); if (tip) tip.hidden = true;
+    const b = $('#l4Login'); if (b) b.setAttribute('aria-expanded', 'false');
+  }
+  /* ≤820（deactivate）：右上角那幾顆搬回原位 —— #themeBtn／#t4Btn 回頂欄（#t4Btn 原本就插在 ☀ 前面），
+     #acctOnline／#acctBtn 回 .acctbar（account.js 當初就是 append 進去的） */
+  function restoreTools() {
+    const bar = $('.topbar'), tb = $('#themeBtn'), t4 = $('#t4Btn'), abar = $('#acctBar'), mb = $('#moreBtn');
+    // ☀ 原本在「⋯」（#moreBtn）前面：放回同一個位置，≤820 的頂欄排列才跟 main 一樣
+    if (bar && tb && tb.parentNode !== bar) bar.insertBefore(tb, mb && mb.parentNode === bar ? mb : null);
+    if (bar && t4 && tb && t4.parentNode !== bar) bar.insertBefore(t4, tb);
+    ['#acctOnline', '#acctBtn'].forEach((s) => { const e = $(s); if (e && abar && e.parentNode !== abar) abar.appendChild(e); });
+    const lg = $('#l4Login'); if (lg) lg.remove();
+    const tip = $('#l4LoginTip'); if (tip) tip.remove();
+    tools = null;
   }
 
   /* ---------------- 左欄中間（頁面清單）那一列的高度 ----------------
@@ -418,48 +461,24 @@
     });
   }
 
-  /* ---------------- 外觀面板、帳號選單：改放到左欄右邊 ----------------
-     theme4.js 的 place() 與 account.js 的 openMenu() 都是「按鈕下緣 ＋ 8px」—— 按鈕在頂欄時正確，
-     搬到左欄底部之後面板會整塊掉到視窗外。不改那兩支（不是這一批的檔），在它們打開之後的下一幀改座標：
-     面板左緣貼左欄右緣、下緣對齊按鈕下緣（夾在視窗內）。手機與 641～820 不動（那兩個寬度還是頂欄）。 */
-  function besideNav(pop, btn) {
-    if (!active || !pop || pop.hidden || !btn || !DESK()) return;
-    const r = btn.getBoundingClientRect(), h = pop.offsetHeight;
-    const navW = $('.topbar').getBoundingClientRect().width;
-    pop.style.left = Math.round(navW + 8) + 'px';
-    pop.style.top = Math.round(Math.max(8, Math.min(r.bottom - h, window.innerHeight - h - 8))) + 'px';
-  }
-  function wirePopups() {
-    // capture：theme4.js 的按鈕處理會 stopPropagation，冒泡階段收不到；在捕獲階段排一幀，等它打開之後再挪
-    document.addEventListener('click', (e) => {
-      const t = e.target.closest && e.target.closest('#t4Btn, #acctBtn');
-      if (!t) return;
-      requestAnimationFrame(() => besideNav(t.id === 't4Btn' ? $('#t4Pop') : $('#acctMenu'), t));
-    }, true);
-    // theme4.js 自己在 resize 時會重新 place()；這支在它之後登記，所以會接著把它挪回左欄旁邊
-    window.addEventListener('resize', () => { besideNav($('#t4Pop'), $('#t4Btn')); besideNav($('#acctMenu'), $('#acctBtn')); });
-  }
-
   /* 掛上：桌機（或手機旗標打開時）才有的整套東西 */
   function activate() {
     active = true;
     root.classList.add('l4');
     if (!DESK()) root.classList.add('l4m');
-    build(); buildNavBtn(); buildBottom(); buildSubs();
+    build(); buildNavBtn(); buildSubs();
     lastHead = ''; lastSig = '';
     applyNav();
-    renderHead(); scanCards(); syncAcct(); syncMode();
+    renderHead(); scanCards(); syncTools();
     fitNav();
   }
   /* 撤掉：回到 main 原本的頂欄 —— 插過的節點、掛過的 class、寫過的 inline style、補過的 title／aria-label 全部拿掉 */
   function deactivate() {
     active = false;
     clearTimeout(clockT);
-    // #acctBtn 是 account.js 的那顆（被搬進帳號卡），拆卡片之前先放回原本的 .acctbar，不然會跟著被刪掉
-    const ab = $('#acctBtn'), abar = $('#acctBar');
-    if (ab && abar && ab.parentNode !== abar) abar.appendChild(ab);
-    acctSig = '';
-    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '#l4Acct', '#l4Mode', '.l4subtab', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    // ☀／外觀／登入／線上人數是別支檔的按鈕本人（被搬進頁首右上角）：拆頁首之前一定要先放回原位，不然會跟著 #l4Head 一起被刪掉
+    restoreTools();
+    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '.l4subtab', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
     root.removeAttribute('data-l4sub');      // 子分頁只有電腦版有；手機版要看到整頁（app.js route() 掛的）
     head = jump = chips = null; cards = []; lastHead = ''; lastSig = '';
     root.classList.remove('l4', 'l4-mini', 'l4m');
@@ -472,19 +491,19 @@
 
   function init() {
     if (WANT()) activate(); else deactivate();
-    wirePopups();
     const bar = $('.topbar');
-    /* 帳號鈕被 account.js 建出來／換字（登入、登出、線上人數）都在 .topbar 裡發生：順手把它搬進帳號卡、重寫卡片的字。
-       syncAcct 有簽章比對，自己寫進去的變動再叫一次它也不會再寫，不會無限循環。 */
-    if (bar) new MutationObserver(() => { fitNav(); if (active) syncAcct(); }).observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class', 'title'] });
-    window.addEventListener('tw:account', () => { if (active) syncAcct(); });
-    // 明暗：不管是誰切的（這裡的二段式、外觀面板、≤820 的「⋯」清單），都以 <html data-theme> 為準
+    /* account.js 把 #acctBtn／#acctOnline 建在 .topbar 裡的 .acctbar、theme4.js 把 #t4Btn 插在 ☀ 前面 —— 都發生在 .topbar 裡：
+       一有節點冒出來就搬到右上角。syncTools 已經是對的順序就不動 DOM，所以搬完觸發的那一次觀察不會再搬，不會無限循環。 */
+    if (bar) new MutationObserver(() => { fitNav(); if (active) syncTools(); }).observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class', 'title'] });
+    /* 會員功能晚一步才開（設定檔晚到）、登入／登出：換掉「沒開」那顆 #l4Login、補上真的 #acctBtn */
+    ['tw:account', 'tw:account-config'].forEach((ev) => window.addEventListener(ev, () => { if (active) syncTools(); }));
+    document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#l4LoginTip, #l4Login')) closeLoginTip(); }, true);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLoginTip(); });
     // 子分頁：app.js route() 一改 data-l4sub（含第一次進站、replace 導向）就亮對的那格、頁首補上子分頁名
     new MutationObserver((recs) => {
       if (!active) return;
-      if (recs.some((r) => r.attributeName === 'data-theme')) syncMode();
       if (recs.some((r) => r.attributeName === 'data-l4sub')) { markSubs(); renderHead(); }
-    }).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-l4sub'] });
+    }).observe(root, { attributes: true, attributeFilter: ['data-l4sub'] });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitNav);
     const main = $('main');
     /* 只看「節點增減」：卡片出現／消失一定伴隨 childList。不看 class／style ——
