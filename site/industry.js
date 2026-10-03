@@ -1313,7 +1313,11 @@
       const shown = segFilter || segHi;
       const segsOn = shown ? [shown] : (state.group ? (A.L.gsegs[state.group] || []) : []);
       const color = shown ? segColor(shown) : (state.group ? A.L.gcolor[state.group] : null);
-      highlightSegments(el, segsOn, color, partHi);
+      /* ★ #317：剖析圖分頁打開時 state.group 常常就是這張圖的族群（晶圓代工、HBM…），以前會把關聯圖上其他環節的公司卡壓到 0.28。
+         現在那幾格已經由「反亮」標出來了，族群帶出來的選取就不再壓關聯圖（只在剖析圖上亮）——
+         不然其餘環節會淡到讀不出字（要的是降 35～45%、仍可讀）。使用者自己點一格（segFilter／segHi）照舊壓。*/
+      const mapOn = (shown || !(relScope && relScope.size)) ? segsOn : [];
+      highlightSegments(el, segsOn, color, partHi, mapOn);
       // 切主題會整頁重畫，選取狀態要有人記得（見上面 `_dgSnap` 那段註解）
       _dgSnap = { dg: dgId, segHi, partHi, partSel, segFilter };
       /* 「這個零件是誰做的」小卡。只有點零件才畫（partSel），
@@ -2408,8 +2412,9 @@
        其餘                              → `.dim`（本來就有的行為）
      單一環節的圖（整張只有一個 data-seg）在 CSS 那邊多一條：次強要退到 --dg-sib-o，
      不然「14 個一起亮」跟「沒點」長得一模一樣。`.haspart` 就是那條規則的開關。*/
-  function highlightSegments(root, segs, color, part) {
+  function highlightSegments(root, segs, color, part, mapSegs) {
     const on = new Set(segs || []);
+    const onMap = mapSegs ? new Set(mapSegs) : on;     // 關聯圖、環節卡清單那一側用的（#317：族群帶出來的選取在有反亮時不壓關聯圖）
     const DG = window.DG || {};
     /* ★ 沒有環節的零件也要亮得起來（2026-09-22）。
        `on` 空的時候（點的是一個沒有 data-seg 的零件）第一個條件永遠 false ——
@@ -2448,16 +2453,16 @@
     $$('#prodDiagram svg', root).forEach(svg => svg.classList.toggle('haspart', anyPart));
     nodes.forEach(n => { n.classList.toggle('sel', onDg.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', onDg.size > 0 && !onDg.has(n.dataset.seg)); if (color && onDg.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
     bare.forEach(n => n.classList.toggle('sel-part', !!DG.partHit && DG.partHit(n, part)));
-    $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
-    $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
-    $$('.chainmap .segbox', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));   // 環節外框跟著標題一起亮（2026-10-03）
+    $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', onMap.size > 0 && !onMap.has(n.dataset.segment)));
+    $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', onMap.has(n.dataset.seg)));
+    $$('.chainmap .segbox', root).forEach(n => n.classList.toggle('sel', onMap.has(n.dataset.seg)));   // 環節外框跟著標題一起亮（2026-10-03）
     /* 環節卡清單（2026-09-23 C5 退版之後回來了）：選到的那一格 `.sel`、其餘 `.dim`。
        手機上還要順手把那張卡攤開 —— 不然「選起來了」但個股標籤還收著，看起來像沒反應。
 */
-    $$('.seglist .segcard', root).forEach(n => { const hit = on.has(n.dataset.seg);
+    $$('.seglist .segcard', root).forEach(n => { const hit = onMap.has(n.dataset.seg);
       n.classList.toggle('sel', hit);
-      n.classList.toggle('dim', on.size > 0 && !hit);
-      if (hit && on.size === 1 && segListReveal) segListReveal(n); });
+      n.classList.toggle('dim', onMap.size > 0 && !hit);
+      if (hit && onMap.size === 1 && segListReveal) segListReveal(n); });
   }
   /* ---------------------------------------------------------------- 3D 剖析圖（Three.js）
      Andy 拍板「先試試看 three.js」。四條硬性驗收都在這裡兌現：
