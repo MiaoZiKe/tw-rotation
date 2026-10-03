@@ -334,13 +334,16 @@ companies:
   #   台股測試介面公認四雄＝穎崴 6515（上面已有）＋旺矽 6223 ＋中華精測 6510 ＋雍智 6683。
   - {id: mpi,     ticker: "6223", name: 旺矽,       segment: test_interface,
      tech: [垂直式探針卡 VPC, 懸臂式探針卡 CPC, MEMS 探針卡, 探針台],
-     note: "台灣第一家上櫃探針卡公司，全球前五大。★ 所有報導講的都是「兩大 ASIC 新客戶」這種不具名寫法，查不到具名對手方，所以不連邊"}
+     note: "台灣第一家上櫃探針卡公司，全球前五大。★ 所有報導講的都是「兩大 ASIC 新客戶」這種不具名寫法，查不到具名對手方，所以不連邊
+       ★ 2026-10-04 更新：MEMS 探針卡通過輝達 Rubin 驗證（多家媒體一致），連一條 designated_by 到 nvidia。⚠ 同一批摘要寫「取得亞馬遜 Trainium 3 兩大測試平台驗證」—— 那兩個平台是 Advantest V93K 與 Teradyne UltraFLEX（**測試機台**），不是亞馬遜，所以**不連到 hyperscaler**"}
   - {id: chpt,    ticker: "6510", name: 中華精測,   segment: test_interface,
      tech: [晶圓測試卡, IC 測試板 Load Board, 中介層載板, MEMS 探針],
-     note: "母公司中華投資、最終母公司中華電信。高階手機 AP 測試板全球市占逾 80%。★ 2026 年的報導一律只講「前三大客戶」「美系客戶逾 55%」，不具名；「已打入台積電 CoWoS 供應鏈」只有傳聞措辭，不畫"}
+     note: "母公司中華投資、最終母公司中華電信。高階手機 AP 測試板全球市占逾 80%。★ 2026 年的報導一律只講「前三大客戶」「美系客戶逾 55%」，不具名；「已打入台積電 CoWoS 供應鏈」只有傳聞措辭，不畫
+       ★ 2026-10-04 更新：多家媒體（udn、uanalyze 等）寫「客戶涵蓋台、日、美系半導體大廠，包括聯發科、高通、超微、輝達、Apple」，連 mtk／amd／nvidia（高通與 Apple 在本檔沒有對應節點或不是供貨關係的主體，不連）。「已打入 CoWoS」仍只有傳聞，不畫"}
   - {id: ksmt,    ticker: "6683", name: 雍智科技,   segment: test_interface,
      tech: [IC 測試載板 Load Board, 老化測試板 Burn-in Board, 探針卡電路板],
-     note: "★ 代號是 6683。測試介面四雄中毛利率最高（約 50.65%）。查不到具名客戶，不連邊"}
+     note: "★ 代號是 6683。測試介面四雄中毛利率最高（約 50.65%）。查不到具名客戶，不連邊
+       ★ 2026-10-04 更新：聯發科是最大客戶、瑞昱為長期主要客戶、世芯-KY 為近兩年成長最快的客戶（多篇媒體一致），連三條邊；「經聯發科切入 Google TPU 供應鏈」是間接關係、媒體寫法為「傳」，不畫 Google"}
   # ---- 前段設備（2026-09-19 新增）
   - {id: marketech, ticker: "6196", name: 帆宣,     segment: fab_equipment,
      tech: [客製化設備 OEM 代工, 設備材料代理銷售, 廠務工程整合, 自動化供應系統],
@@ -417,7 +420,8 @@ companies:
        但**兩家客戶都沒有具名，所以不連任何一條邊**。
        ★『50 層以上伺服器板能力』只見於理財周刊與社群等級深度報告、非公司揭露，
        所以 tech 只寫得出來的產品別，不寫層數上限那個數字。
-       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文"}
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文
+       ★ 2026-10-04 更新：SpaceX 這一條查到了 —— 多家媒體（udn、鉅亨、ETtoday）一致寫它與 SpaceX 合作逾十年、供應衛星本體與地面接收站的高階 HDI 板，連 spacex。美系 AI 主板客戶仍不具名、不連"}
   # ---- CCL（材料）
   - {id: emc,     ticker: "2383", name: 台光電,     segment: ccl,      tech: [M8/M9 高階 CCL],
      note: "高階 CCL 龍頭。做的是 PCB 用高速 CCL，不是 ABF 載板材料（載板的膜是味之素、core 是三菱瓦斯）"}
@@ -460,7 +464,8 @@ companies:
          依 DECISIONS #201 的標準不夠畫線。找到第二個獨立來源（法說、年報、主流媒體具名報導）就可以連。
        ⚠ 它是這一段裡唯一沒有資金流證據的一檔（日均約 1.8 億、資料湖沒有深歷史），
          納入依據是業務事實不是資金流，理由寫在 docs/groups_tide110_evidence.md。
-       ⚠ 證據等級：WebSearch 摘要（鉅亨公司簡介、口袋學堂專文），沒有讀過年報原文，信心中"}
+       ⚠ 證據等級：WebSearch 摘要（鉅亨公司簡介、口袋學堂專文），沒有讀過年報原文，信心中
+       ★ 2026-10-04 更新：udn、鉅亨公司簡介兩個獨立來源都寫它服務健鼎、華通、聯茂（敬鵬只在其中一篇、且敬鵬不在本檔），前一版說的「第二個獨立來源」找到了，連 tripod／unimicron_gtw／iteq 三條邊"}
   - {id: de_hong,  ticker: "5475", name: 德宏,      segment: ccl_material,
      tech: [電子級玻璃纖維布, 電子級石英纖維紗 / 布],
      note: "電子級玻纖布占營收約 97%（2024 年產品別），用於 FR-4 銅箔基板、高頻高速板與封裝基板補強。
@@ -1450,6 +1455,40 @@ edges:
      note: "實體出貨走電源廠，電源廠名稱公司沒揭露（摘要自己補的台達電／光寶不採用）；2026 年法說稱 Vera Rubin 電源 MLCC 預計第四季開始出貨",
      source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5607/9406963"}
 
+  # ================================ 補邊第二批（2026-10-04）：測試介面、銅箔、低軌衛星 PCB
+  # 這一批是 Andy 的「孤立環節都找找看」。上一輪標「不連邊」的節點，逐一重查，查到第二個獨立來源的才連。
+  - {from: ksmt, to: mtk, rel: supplies, item: "IC 測試載板 Load Board／SLT 測試介面（聯發科為最大客戶）", strength: 4, confidence: reported,
+     note: "雍智自己的主要客戶頁（媒體整理）寫聯發科為最大客戶；旗艦 Dimensity 系列的 SLT 與部分探針卡訂單。⚠ 證據等級：搜尋摘要",
+     source: "鉅亨網理財整理（cmnews）", source_url: "https://cmnews.com.tw/article/newsyoudeservetoknow-472a54b5-4f63-11f1-8fe6-21616feae94d"}
+  - {from: ksmt, to: rtk, rel: supplies, item: "IC 測試載板 Load Board（Wi-Fi 7／高階網通晶片）", strength: 3, confidence: reported,
+     note: "兩次不同關鍵字都撈到瑞昱是長期主要客戶；沒有金額或占比，strength 給 3",
+     source: "NOWnews", source_url: "https://www.nownews.com/news/6789212"}
+  - {from: ksmt, to: alchip, rel: supplies, item: "AI ASIC 測試載板（世芯 CSP 專案的測試介面）", strength: 2, confidence: reported,
+     note: "兩次搜尋都把世芯-KY（3661）列為客戶；『成長最快』只出現在一次摘要，所以只給 2。摘要曾把世芯誤譯成 WorldWide Semiconductor，代號 3661 對得上世芯-KY",
+     source: "理財周刊", source_url: "https://www.moneyweekly.com.tw/_Article?AID=249076"}
+  - {from: chpt, to: mtk, rel: supplies, item: "晶圓測試卡／IC 測試板（高階手機 AP 測試板）", strength: 4, confidence: reported,
+     note: "客戶涵蓋台日美系大廠、含聯發科。摘要另有一句『聯發科持有精測約 2.5% 股權』，只有單一來源、未驗證，不採用",
+     source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5607/9478900"}
+  - {from: chpt, to: amd, rel: supplies, item: "晶圓測試卡／測試板", strength: 2, confidence: reported,
+     note: "客戶名單列名（超微），沒有品項與金額", source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5607/9478900"}
+  - {from: chpt, to: nvidia, rel: supplies, item: "AI GPU 測試載板（導熱技術新型探針卡通過美系 GPU 大廠認證）", strength: 3, confidence: reported,
+     note: "客戶名單列名（輝達）；『美系 GPU 大廠認證』沒有點名，兩者合起來才支持這條，所以 reported、strength 3",
+     source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5607/9478900"}
+  - {from: mpi, to: nvidia, rel: designated_by, item: "MEMS 探針卡（通過 Rubin 專案驗證，Rubin 預估 2026 年帶來營收 7～26% 增幅為法人估計）", confidence: reported,
+     note: "驗證≠出貨：這是供應鏈資格（AVL）。實體交易對象是晶片測試廠與輝達的測試端，不是直接賣給輝達",
+     source: "鉅亨網", source_url: "https://news.cnyes.com/news/id/6099629"}
+  - {from: jung_ke, to: tripod, rel: supplies, item: "電解銅箔（RTF／VLP／HVLP）", strength: 3, confidence: reported,
+     note: "來源寫『服務 PCB／CCL 廠』，沒有區分是否經 CCL 廠轉手；金居、榮科都有這個特徵",
+     source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5607/9075210"}
+  - {from: jung_ke, to: unimicron_gtw, rel: supplies, item: "電解銅箔（RTF／VLP／HVLP）", strength: 3, confidence: reported,
+     note: "同上", source: "鉅亨網公司簡介", source_url: "https://www.cnyes.com/twstock/4989/company/profile"}
+  - {from: jung_ke, to: iteq, rel: supplies, item: "電解銅箔（RTF／VLP／HVLP）", strength: 3, confidence: reported,
+     note: "同上。★ 摘要曾把『聯茂』譯成 Unimicron（那是欣興），本檔的聯茂是 6213 iteq，是 CCL 廠，銅箔→CCL 的方向才合理",
+     source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5607/9075210"}
+  - {from: unimicron_gtw, to: spacex, rel: supplies, item: "低軌衛星本體與地面接收站用高階 HDI 板（合作逾十年）", strength: 4, confidence: reported,
+     note: "路透點名的台灣供應商是敬鵬、啟碁、昇達科，華通被其他媒體寫為『也供貨逾十年』—— 不是路透點名名單。多家媒體一致（udn、ETtoday、鉅亨）。低軌衛星占營收比重各篇數字不一，不寫",
+     source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5612/9280735"}
+
   # ================================ 公有雲原廠 → 台廠 MSP（2026-09-23 新增，software 鏈）
   # ★ 這條鏈**只有這三條邊**，而且方向刻意是 `supplies`：原廠把雲端資源與軟體授權賣給台廠，
   #   台廠加上自己的服務再賣給終端客戶 —— 錢的方向與貨（雲端資源）的方向在這一段是一致的，
@@ -1483,6 +1522,7 @@ competitors:
   - {a: auo,    b: innolux,     note: "面板雙虎"}
   - {a: yageo,  b: walsin_tech, note: "被動元件同業（MLCC／晶片電阻）"}
   - {a: viking, b: dayi,        note: "晶片電阻同業"}
+  - {a: mpi,   b: chpt,         note: "探針卡／測試介面同業"}
   - {a: txc,    b: siward,      note: "石英元件同業"}
   - {a: txc,    b: tjs,         note: "石英元件同業"}
   - {a: nichidenbo, b: mws,     note: "被動元件代理同業（代理線不同：日電貿＝三星／Panasonic／KEMET，蜜望實＝太陽誘電）"}
