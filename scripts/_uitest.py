@@ -13873,7 +13873,13 @@ CF_STATE = """(seg) => {
 def t_chain_fold(pg, base):
     """關聯圖環節收合：預設收合、單一環節展開／收合、全部展開／收合、點晶片開資訊欄、重新整理記得。"""
     pg.set_viewport_size({"width": 1440, "height": 1100})
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+    # ★ 2026-10-03（DECISIONS #310）改前→改後：
+    #   改前：開 `#industry/semiconductor`。#306 之後那個網址的 Default 是第一張剖析圖（先進封裝），
+    #     關聯圖只剩那張圖對得上的幾格（實測 4 檔標籤），「預設全收合 ≥ 20 個標籤」第一條就紅、整段 return，
+    #     後面的「全部展開／收合」一顆鈕都沒按到 —— HANDOFF 記的「全部展開鈕被 h3 擋住」其實是這個早退造成的錯覺：
+    #     用 elementFromPoint 在 1440／1100／900 量過，那顆鈕在畫面上時最上層就是它自己（見 #310）。
+    #   改後：開「族群總覽」分頁（/overview，整條鏈，跟 產業鏈導覽／一般電子鏈 #306 的改法一樣），門檻一條沒動。
+    pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.chainFold'); localStorage.setItem('tw.relView','layer');"
                 " localStorage.setItem('tw.relOpen','1'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
@@ -13921,6 +13927,39 @@ def t_chain_fold(pg, base):
         ok(f"點標籤 {code} → 右側資訊欄打開", bool(box) and box["w"] > 100 and box["h"] > 40, box)
         tip = pg.evaluate(f"() => {{ const t = document.querySelector('#chainMap .co.chip[data-code=\"{code}\"] title'); return t ? t.textContent : ''; }}")
         ok("滑過標籤的提示有價格與漲跌（%）", "%" in tip and code in tip, tip)
+        # ★ 2026-10-03（DECISIONS #310）資訊卡不可以蓋住「全部展開／收合」切換鈕。
+        #   改前：1440 點右半邊的公司（台積電 2330 屬晶圓代工，在右半）→ 卡片貼左、上緣在圖框頂 +8px，
+        #     正好疊在切換鈕上（elementFromPoint 讀到卡片的 h3），下一步「全部展開」用真滑鼠點不下去。
+        #   改後：卡片從切換列下緣開始放。三個寬度各點幾檔右半邊／左半邊的公司，量鈕的中心與兩角最上層都是它自己。
+        cover = []
+        for vw in (1440, 1100, 900):
+            pg.set_viewport_size({"width": vw, "height": 1100})
+            pg.wait_for_timeout(500)
+            picks = pg.evaluate("""() => { const m = document.getElementById('chainMap'), M = m.getBoundingClientRect();
+                const cs = [...m.querySelectorAll('.co.chip[data-code]')].filter(n => n.dataset.code);
+                const R = cs.filter(n => n.getBoundingClientRect().left > M.left + M.width / 2).map(n => n.dataset.code);
+                const L = cs.filter(n => n.getBoundingClientRect().left <= M.left + M.width / 2).map(n => n.dataset.code);
+                return [...R.slice(0, 3), ...L.slice(0, 1)]; }""")
+            for c in picks:
+                # 先按 Esc 關掉上一張卡（真人也是）：不然上一張卡可能蓋在下一檔標籤上
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+                pg.eval_on_selector(f'#chainMap .co.chip[data-code="{c}"]', "e => { const r = e.getBoundingClientRect();"
+                                    " window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); }")
+                pg.wait_for_timeout(200)
+                click(pg, f'#chainMap .co.chip[data-code="{c}"]', 600)
+                pg.evaluate("() => { const e = document.querySelector('#chainMap .foldbar button'); const r = e.getBoundingClientRect();"
+                            " window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); }")
+                pg.wait_for_timeout(250)
+                h = pg.evaluate("""() => { const e = document.querySelector('#chainMap .foldbar button'), r = e.getBoundingClientRect();
+                    const box = document.getElementById('coBox');
+                    const pts = [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 3, r.top + 3], [r.right - 3, r.bottom - 3]];
+                    return { open: !!box, top: pts.map(([x, y]) => { const t = document.elementFromPoint(x, y);
+                        return t === e || e.contains(t) ? 'self' : (t ? t.tagName + '.' + (t.closest('.relcol') ? 'relcol' : String(t.className || '')) : null); }) }; }""")
+                if not h["open"] or any(x != "self" for x in h["top"]):
+                    cover.append({"寬": vw, "代號": c, **h})
+        pg.set_viewport_size({"width": 1440, "height": 1100})
+        pg.wait_for_timeout(500)
+        ok("★ [1440／1100／900] 點公司標籤開資訊卡之後，「全部展開／收合」鈕最上層仍是它自己（卡片不蓋鈕，#310）", not cover, cover[:4])
     # ---- ★ 2026-10-03 改前→改後（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #307）：
     #   改前：重新整理之後記得「全部展開」／「全部收合」。
     #   改後：同一次瀏覽換頁仍記得（tw.chainFold 照寫），**重新整理一律回到預設的全部收合**、鍵被清掉。

@@ -2918,7 +2918,14 @@
     const pad = 8, gap = 10;
     // 圖框的可視範圍（扣掉圖自己的捲軸），換成 .relmain 的座標
     const fL = M.left - R.left + pad, fR = M.left - R.left + map.clientWidth - pad;
-    const fT = M.top - R.top + pad, fB = M.top - R.top + map.clientHeight - pad;
+    let fT = M.top - R.top + pad;
+    const fB = M.top - R.top + map.clientHeight - pad;
+    /* ★ 2026-10-03（DECISIONS #310）：圖框最上面那一列是「全部展開／全部收合」切換鈕（.foldbar，整張圖共用的控制）。
+       改前：卡片上緣夾在圖框頂 + 8px，1440 寬點右半邊的公司（台積電、南亞科、日月光…）→ 卡片貼左、正好蓋住那顆鈕，
+       elementFromPoint 量到的是卡片裡的 h3 —— 卡片開著時「全部展開」按不到（13 檔抽樣 8 檔被蓋）。
+       改後：可放的範圍從切換列的下緣開始，卡片永遠在它下面；切換列只有一行字高，卡片的可用高度只少約 30px。*/
+    const fbar = map.querySelector(':scope > .foldbar');
+    if (fbar) { const B = fbar.getBoundingClientRect(); if (B.height > 0) fT = Math.max(fT, B.bottom - R.top + 6); }
     const w = Math.round(Math.max(200, Math.min(fR - fL, Math.max(260, Math.min(320, R.width * 0.26)))));
     const maxH = Math.round(Math.max(180, Math.min(fB - fT, 560, window.innerHeight - 120)));
     col.style.width = w + 'px';
