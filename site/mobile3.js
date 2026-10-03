@@ -426,7 +426,7 @@
       else {
         const vtop = el.getBoundingClientRect().top;
         if (vtop < window.innerHeight) {
-          S = Math.max(260, Math.min(S, Math.floor(window.innerHeight - NAV_H - (vtop + window.scrollY) - opts.fitBelow)));
+          S = Math.max(window.innerHeight < 820 ? 205 : 260, Math.min(S, Math.floor(window.innerHeight - NAV_H - (vtop + window.scrollY) - opts.fitBelow)));   // 手機 V2（#314）：矮手機（360×780 這類）下限 260 → 205，輪盤＋前 5 名才擠得進一屏
           el._radarKey = key; el._radarS = S; el._radarTop = vtop + window.scrollY;
         }
       }
