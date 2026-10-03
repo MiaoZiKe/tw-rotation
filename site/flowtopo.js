@@ -119,7 +119,7 @@
        係數對每條線一樣，所以「最密／最疏」的比例（驗收 ×6）不變；「每條線至少一顆」的下限不受影響。*/
     CL_P_BUDGET: 380,
     /* ★ 2026-09-26（第二版）黃金標準 docs/prototypes/flow_perfect_topology.html 的版面數字 */
-    EL_SLOT_MAX: 42, EL_SLOT_MIN: 36, EL_SLOT_FIT: 22, EL_PAD: 22,   // 族群槽位高度（參考稿 Math.min(42, (h−60)/n)）、上下留白
+    EL_SLOT_MAX: 42, EL_SLOT_MIN: 36, EL_SLOT_FIT: 18, EL_PAD: 22, EL_PAD_FIT: 12,   // 族群槽位高度（參考稿 Math.min(42, (h−60)/n)）、上下留白
     EL_LEAF_SP: 13, EL_LEAF_R: 1.8,                 // 代表股間距（12px 字＋1）、小點半徑 1.8
     EL_BADGE_H: 17,                                 // 標籤膠囊高 17、圓角 3
     /* 黃金標準每幀先蓋一層 rgba(5,10,20,.38) 再重畫線 → 線條的「看起來的」透明度會累積到穩態
@@ -506,7 +506,7 @@
   /* 這張圖在卡裡最高可以多高（畫布本身，不含說明列）。Fit 沒載入／手機／找不到卡片 ＝ Infinity（不設限，跟改前一樣）。 */
   function fitMax(S) {
     if (!window.Fit || !Fit.desk() || !S.host || S.mini) return Infinity;
-    const r = Fit.room(S.host, { min: 360 });
+    const r = Fit.room(S.host, { min: 340 });
     return isFinite(r) ? r - barH(S) : Infinity;
   }
   function slotPlan(S) {
@@ -515,16 +515,21 @@
     let extra = 0;
     chains.forEach(c => c.kids.forEach(g => { if (g.open) extra += Math.max(0, g.kids.length * CFG.EL_LEAF_SP + 16 - CFG.EL_SLOT_MAX); }));
     /* ★ 2026-10-03 一屏看完（DECISIONS #308）：整張卡要落在一屏內，畫布最高＝fitMax（視窗高 − 卡裡其他東西），不再固定 1040。
-       代表股預設收起（leafHover）時，一格只要放得下族群膠囊（17px）＋上下各 2px 縫，下限從 36 放寬到 EL_SLOT_FIT（22）；
+       代表股預設收起（leafHover）時，一格只要放得下族群膠囊（17px）＋上下各 2px 縫，下限從 36 放寬到 EL_SLOT_FIT（#313 再收到 18）；
        滑過族群才長出的那三檔代表股畫在另一欄、一次只一個族群，不會跟鄰格疊字。點開展開（extra > 0）時照舊允許長高。
        視窗夠高（fitMax ≥ 舊上限）或手機（Fit.desk 為假）時，這一段算出來跟改前一模一樣。 */
     const fit = fitMax(S);
     const hMax = Math.min(CFG.CL_H_MAX, fit);
-    const sMin = fit < CFG.CL_H_MAX && S.leafHover ? CFG.EL_SLOT_FIT : CFG.EL_SLOT_MIN;
-    const slot = Math.max(sMin, Math.min(CFG.EL_SLOT_MAX, (hMax - CFG.EL_PAD * 2 - extra) / (n + gaps)));
+    const squeeze = fit < CFG.CL_H_MAX && S.leafHover;         // 被一屏限制住、而且代表股收起 → 才用緊的下限
+    const sMin = squeeze ? CFG.EL_SLOT_FIT : CFG.EL_SLOT_MIN;
+    /* ★ 2026-10-03（DECISIONS #313）Andy：「資金去向，還是無法打開來就看全部，需要再縮小點」。
+       槽高下限 22 → 18（族群膠囊 17px，上下各剩 0.5px 縫；點擊熱區是整格 18px ≥ 16）、上下留白 22 → 12。
+       18 個族群＋5 條鏈的 2 個鏈間隙共 20 個槽，畫布 ≥ 20×18＋24＝384px 就放得下整棵樹 —— 1366×768 的可視高（約 650）有餘。 */
+    const pad = squeeze ? CFG.EL_PAD_FIT : CFG.EL_PAD;
+    const slot = Math.max(sMin, Math.min(CFG.EL_SLOT_MAX, (hMax - pad * 2 - extra) / (n + gaps)));
     const body = slot * (n + gaps) + chains.reduce((a, c) => a + c.kids.reduce((b, g) => b + (g.open ? Math.max(0, g.kids.length * CFG.EL_LEAF_SP + 16 - slot) : 0), 0), 0);
-    const H = Math.max(Math.min(CFG.CL_H_MIN, hMax), Math.round(body + CFG.EL_PAD * 2));
-    return { slot, body, H };
+    const H = Math.max(Math.min(CFG.CL_H_MIN, hMax), Math.round(body + pad * 2));
+    return { slot, body, H, pad };
   }
   /* 經典光纖的欄位（黃金標準）：根節點貼左、產業鏈 26%、族群 54%、代表股固定在寬度 83%。
      父節點（根、產業鏈）在它第一個與最後一個子節點的正中間（樹狀結構）。*/
@@ -553,7 +558,7 @@
     }
     const plan = slotPlan(S), slot = plan.slot;
     S.step = slot; S.slot = slot;
-    let y = Math.max(CFG.EL_PAD, (H - plan.body) / 2);   // 內容比最低高度矮時垂直置中
+    let y = Math.max(plan.pad, (H - plan.body) / 2);   // 內容比最低高度矮時垂直置中
     chains.forEach((c, ci) => {
       if (ci) y += slot * 0.5;
       c.kids.forEach(g => {
