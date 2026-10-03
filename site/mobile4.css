@@ -1,0 +1,140 @@
+/* ==================================================================================
+   手機 V2（2026-10-03，分支 claude/mobile-v2，DECISIONS #314）
+   Andy：「依據現有版本作手機網頁，記得左右不要浪費太多空白」。
+   把電腦版（版面 V2，>820）的資訊架構搬到手機（≤820）：頁首＝頁名＋時間、右上 登入｜明暗；底部分頁列對應電腦版側欄；
+   左右留白收到最小（頁邊 8、卡片內距 8～10、卡片之間 8）。
+
+   ★ 規矩（為什麼這支一定在 fit.css 之後載入、整支包在 ≤820）：
+     · **規則整段包在 @media (max-width:820px)，而且一律掛 body.m3on**（mobile3.js 只在 ≤820 掛）—— 桌機一個像素都不准變。
+       （最上面的 :root 只是宣告圖示變數，不影響任何畫面。）
+     · 不寫色值：顏色、圓角一律吃 theme4.css 的變數，三套主題 × 深淺自動跟著換。
+     · 線條圖示抄電腦版側欄（layout4.css 的 --l4-ic-*，那支只在 >820 掛 :root.l4，手機讀不到，所以這裡另存一份 --m4-ic-*）。
+       layout4.css／layout4.js 這批一行都沒動（另一位 agent 正在改電腦版）。
+   ================================================================================== */
+:root{
+  --m4-ic-overview:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='9' rx='1.6'/%3E%3Crect x='14' y='3' width='7' height='5' rx='1.6'/%3E%3Crect x='14' y='12' width='7' height='9' rx='1.6'/%3E%3Crect x='3' y='16' width='7' height='5' rx='1.6'/%3E%3C/svg%3E");
+  --m4-ic-flow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.5 12a8.5 8.5 0 0 1-14.8 5.7'/%3E%3Cpath d='M3.5 12A8.5 8.5 0 0 1 18.3 6.3'/%3E%3Cpath d='M18.6 2.6v3.9h-3.9'/%3E%3Cpath d='M5.4 21.4v-3.9h3.9'/%3E%3C/svg%3E");
+  --m4-ic-heatmap:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2.2'/%3E%3Cpath d='M12 3v18M3 13h9M12 9h9M16.5 9v12'/%3E%3C/svg%3E");
+  --m4-ic-industry:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6' r='2.6'/%3E%3Ccircle cx='18' cy='6' r='2.6'/%3E%3Ccircle cx='12' cy='18' r='2.6'/%3E%3Cpath d='M7.2 8.4l3.6 7.2M16.8 8.4l-3.6 7.2M8.6 6h6.8'/%3E%3C/svg%3E");
+  --m4-ic-market:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6h11.5M9 12h11.5M9 18h11.5'/%3E%3Ccircle cx='4.5' cy='6' r='1.1'/%3E%3Ccircle cx='4.5' cy='12' r='1.1'/%3E%3Ccircle cx='4.5' cy='18' r='1.1'/%3E%3C/svg%3E");
+  --m4-ic-season:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.5' width='17' height='16' rx='2.4'/%3E%3Cpath d='M3.5 9.5h17M8 2.5v4M16 2.5v4'/%3E%3Cpath d='M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2'/%3E%3C/svg%3E");
+  --m4-ic-watch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.6l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z'/%3E%3C/svg%3E");
+  --m4-ic-delivery:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='17' height='17' rx='3.2'/%3E%3Cpath d='M8 12.2l2.9 2.9L16.2 9'/%3E%3C/svg%3E");
+  --m4-ic-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E");
+  --m4-ic-bell:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9a6 6 0 1 1 12 0c0 6.5 2.6 8.3 2.6 8.3H3.4S6 15.5 6 9z'/%3E%3Cpath d='M10 20.5a2.1 2.1 0 0 0 4 0'/%3E%3C/svg%3E");
+  --m4-ic-palette:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.3 17 3 12 3z'/%3E%3Ccircle cx='7.5' cy='11.5' r='1'/%3E%3Ccircle cx='10' cy='7.5' r='1'/%3E%3Ccircle cx='14.5' cy='7.5' r='1'/%3E%3C/svg%3E");
+  --m4-ic-panel:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2.5'/%3E%3Cpath d='M9 3v18'/%3E%3C/svg%3E");
+  --m4-ic-user:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7'/%3E%3C/svg%3E");
+  --m4-ic-sun:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+  --m4-ic-moon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'/%3E%3C/svg%3E");
+  --m4-ic-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E");
+  --m4-ic-more:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='1.8'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='1.8'/%3E%3Ccircle cx='17' cy='17' r='3.5'/%3E%3C/svg%3E");
+}
+@media (max-width:820px){
+  /* ---------------- 1. 左右留白：頁邊 8、卡片內距 10／9、卡片之間 8 ----------------
+     改前（390）：頁邊 14＋卡片內距 16～18 ＝ 圖離螢幕邊 30～32px，390 寬只剩 326～330 給圖。
+     改後：8＋9 ＝ 17px，圖多出約 28px 寬。卡片之間本來就是 8（theme4.css --gap-card）。 */
+  body.m3on main{padding-left:8px;padding-right:8px;padding-top:8px}
+  body.m3on main .card{padding:10px 9px}
+  body.m3on main .card.tight{padding:8px 8px}
+  body.m3on main .card .card{padding:8px}
+  body.m3on main .grid{gap:var(--gap-card,8px)}
+
+  /* ---------------- 2. 頁首：頁名＋台北時間（左）｜搜尋・登入・明暗（右），52px ---------------- */
+  body.m3on .topbar{padding:0 8px;gap:6px}
+  body.m3on .brand{flex:1 1 auto;min-width:0;gap:0;cursor:pointer}
+  body.m3on .brand>.logo,body.m3on .brand>div:not(.logo)>b{display:none}
+  body.m3on .brand>div:not(.logo){min-width:0;display:flex;flex-direction:column;justify-content:center}
+  body.m3on .mhd{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+  body.m3on .mhd .mpt{display:block;font-size:17px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.m3on .mhd .mpt i{font-style:normal;font-weight:600;font-size:13px;color:var(--ink-2);margin-left:6px}
+  body.m3on .mhd .mclock{display:block;margin-top:2px;min-height:13px}
+  body.m3on .mhd .mclock::before{content:attr(data-t);font:500 11px/1.2 var(--mono);color:var(--ink-3);white-space:nowrap}
+  /* 「有新資料 ↻」出現時讓出時間那一行（不准藏那顆鈕） */
+  body.m3on .brand:has(#freshBtn:not([hidden])) .mclock{display:none}
+  body.m3on #asof{margin:0}
+  /* 右上三顆：40×40，同一種外框 */
+  body.m3on .msearchbtn,body.m3on #themeBtn,body.m3on #acctBar #acctBtn{width:40px;height:40px;min-height:40px;padding:0;flex:none;
+    display:inline-grid;place-items:center;border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-md,10px);
+    background:var(--t4-ctl,var(--panel));color:var(--ink-2);margin:0}
+  body.m3on .msearchbtn{margin-left:auto;font-size:0;order:1}
+  body.m3on .msearchbtn::before,body.m3on #themeBtn::before{content:"";width:20px;height:20px;background:currentColor;
+    -webkit-mask:var(--m4-ic-search) center/contain no-repeat;mask:var(--m4-ic-search) center/contain no-repeat}
+  body.m3on #themeBtn{font-size:0;order:3}
+  :root:not([data-theme="light"]) body.m3on #themeBtn::before{-webkit-mask-image:var(--m4-ic-sun);mask-image:var(--m4-ic-sun)}
+  :root[data-theme="light"] body.m3on #themeBtn::before{-webkit-mask-image:var(--m4-ic-moon);mask-image:var(--m4-ic-moon)}
+  /* 登入：account.js 的 #acctBtn 本人（只在會員功能開著時才存在；沒開就不放一顆按了沒反應的鈕，跟電腦版一樣）。
+     「★ 自選」與線上人數在手機收掉：自選在「更多」、線上人數在帳號選單裡看得到。 */
+  body.m3on #acctBar{display:flex;align-items:center;gap:0;order:2;flex:none}
+  body.m3on #acctBar #wlBtn,body.m3on #acctBar #acctOnline{display:none!important}
+  body.m3on #acctBar #acctBtn{font-size:12px;font-weight:700;line-height:1;overflow:hidden}
+  body.m3on #acctBar #acctBtn.ame{font-size:0;border-radius:50%}
+  body.m3on #acctBar #acctBtn.ame img,body.m3on #acctBar #acctBtn.ame .ini{width:30px;height:30px;border-radius:50%;font-size:14px;
+    display:grid;place-items:center;margin:0}
+  body.m3on #acctBar #acctBtn .anm{display:none}
+  /* 「⋯」清單的功能都搬走了：事件／自選→底部「更多」、明暗→頂欄、登入→頂欄。按鈕本身留在 DOM（舊入口 #mmEvents 程式還在用） */
+  body.m3on #moreBtn{display:none!important}
+  /* 外觀面板（theme4.js 用「按鈕下緣＋8px」定位，按鈕在手機藏著）：改成貼底部導覽上方、左右各 8 */
+  body.m3on #t4Pop{left:8px!important;right:8px!important;top:auto!important;bottom:calc(66px + env(safe-area-inset-bottom))!important;
+    width:auto!important;max-height:70vh;overflow:auto}
+
+  /* ---------------- 3. 底部分頁列：照電腦版側欄順序（總覽｜資金流向｜熱力圖｜產業地圖｜更多），線條圖示 ---------------- */
+  body.m3on .tab[data-view=overview]{order:1}
+  body.m3on .tab[data-view=flow]{order:2}
+  body.m3on .tab[data-view=heatmap]{order:3}
+  body.m3on .tab[data-view=industry]{order:4}
+  body.m3on .mtabmore{order:9}
+  /* 「產業地圖」四個字放得下（360 寬一顆 72px），不再縮寫成「產業」 */
+  body.m3on .tab[data-view=industry]{font-size:12px}
+  body.m3on .tab[data-view=industry]::after{content:none}
+  body.m3on .tab::before,body.m3on .mtabmore::before{content:""!important;width:22px;height:22px;font-size:0;background:currentColor;
+    -webkit-mask:var(--m4-ic-overview) center/contain no-repeat;mask:var(--m4-ic-overview) center/contain no-repeat;text-shadow:none!important}
+  body.m3on .tab[data-view=flow]::before{-webkit-mask-image:var(--m4-ic-flow);mask-image:var(--m4-ic-flow)}
+  body.m3on .tab[data-view=heatmap]::before{-webkit-mask-image:var(--m4-ic-heatmap);mask-image:var(--m4-ic-heatmap)}
+  body.m3on .tab[data-view=industry]::before{-webkit-mask-image:var(--m4-ic-industry);mask-image:var(--m4-ic-industry)}
+  body.m3on .mtabmore::before{-webkit-mask-image:var(--m4-ic-more);mask-image:var(--m4-ic-more)}
+  body.m3on .tab.on,body.m3on .mtabmore.on{color:var(--t4-accent,var(--cyan))}
+  /* 「更多」抽屜的列圖示 */
+  .msheet .mrow .m4ic{width:20px;height:20px;flex:none;background:var(--t4-accent,var(--cyan));
+    -webkit-mask:var(--m4-ic-more) center/contain no-repeat;mask:var(--m4-ic-more) center/contain no-repeat}
+  .msheet .mrow .m4ic[data-ic=bell]{-webkit-mask-image:var(--m4-ic-bell);mask-image:var(--m4-ic-bell)}
+  .msheet .mrow .m4ic[data-ic=market]{-webkit-mask-image:var(--m4-ic-market);mask-image:var(--m4-ic-market)}
+  .msheet .mrow .m4ic[data-ic=season]{-webkit-mask-image:var(--m4-ic-season);mask-image:var(--m4-ic-season)}
+  .msheet .mrow .m4ic[data-ic=watch]{-webkit-mask-image:var(--m4-ic-watch);mask-image:var(--m4-ic-watch)}
+  .msheet .mrow .m4ic[data-ic=palette]{-webkit-mask-image:var(--m4-ic-palette);mask-image:var(--m4-ic-palette)}
+  .msheet .mrow small{margin-left:32px}
+}
+
+/* ---------------- 4. 個股頁：分頁＝電腦版同一組，內容就是電腦版那一頁（#stockTab）；K 線自成第一頁 ---------------- */
+@media (max-width:820px){
+  body.m3on.mbon:not([data-mbt="k"]) #stockPage>#stockTab{display:block!important;margin-top:8px}
+  body.m3on.mbon #stockPage>#stockTabs{display:none!important}
+  body.m3on.mbon:not([data-mbt="k"]) #mbBody{display:none!important}
+  body.m3on.mbon #stockPage>#aiCard{display:none!important}
+  body.m3on.mbon #stockTab .card{scroll-margin-top:calc(var(--mbtop,160px) + 8px)}
+  /* K 線頁頂端：AI 四個面向 2×2（每格左名右判讀，一格 34px），點一格＝跳「總覽」分頁的 AI 卡那一面 */
+  /* 標題列壓成一行：「AI 分析・規則式自動判讀，非投資建議 ?」左、結論（觀望／偏多…）右；
+     結論後面那句長說明（.aibrief）手機不放（完整原因在「總覽」分頁的 AI 卡，點任一格就跳過去） */
+  body.m3on #skChartCard>#skAi{margin:0 0 6px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:6px}
+  body.m3on #skChartCard>#skAi>.aihead,body.m3on #skChartCard>#skAi>.aitabs,body.m3on #skChartCard>#skAi>.howtxt,body.m3on #skChartCard>#skAi>.aibody{grid-column:1 / -1}
+  body.m3on #skChartCard>#skAi>.aihead{grid-column:1;display:block;min-width:0}
+  body.m3on #skChartCard>#skAi>.aisum{grid-column:2;grid-row:1;margin:0}
+  body.m3on #skChartCard>#skAi>.aisum .aibrief{display:none}
+  body.m3on #skChartCard>#skAi .aihead h3{display:flex;flex-wrap:nowrap;align-items:center;gap:4px;margin:0;font-size:14px;line-height:32px;min-width:0}
+  body.m3on #skChartCard>#skAi .aihead h3 small{order:0;flex:0 1 auto;flex-basis:auto;min-width:0;font-size:11px;font-weight:400;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.m3on #skChartCard>#skAi .aihead h3 .howbtn{flex:none;margin-left:2px}
+  body.m3on #skChartCard>#skAi>.aitabs{margin-top:2px}
+  /* K 線本體高＝可視高（視窗 − 報價列＋分頁列 − 底部導覽 58 − 上下各 8）− 卡片裡其他東西（--m4-kx，mobile3.js skFitK 量的）。
+     下限 260：再矮 K 棒與量會擠成一團（360×640 的小手機會稍微超過一屏，寧可捲一點）。 */
+  body.m3on.mbon #lwc,body.m3on.mbon #skChartCard:has(#liveNote:not([hidden])) #lwc{
+    height:clamp(260px,calc(100vh - var(--mbtop,160px) - 58px - 16px - var(--m4-kx,330px)),620px)}
+  body.m3on #skChartCard>#skTools{margin-top:4px!important;margin-bottom:6px}
+  /* 「怎麼操作這張圖／資料到哪一天 ▾」收合鈕拿掉，「資料更新到 YYYY-MM-DD」一行直接顯示（操作說明 09-24 起已在「?」裡） */
+  body.m3on #mfStockHelp{display:none!important}
+  body.m3on #skChartCard .skhelp.mf-off{display:block!important;margin-top:4px}
+  body.m3on .mbhead{margin:-8px -8px 0}
+  body.m3on #skChartCard>#skAi .aitabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 6px}
+  body.m3on #skChartCard>#skAi .aitab{flex-direction:row;justify-content:space-between;align-items:center;gap:6px;min-height:34px;padding:2px 6px 2px 9px}
+  body.m3on #skChartCard>#skAi .aitab .nm,body.m3on #skChartCard>#skAi .aitab .aitag{font-size:13px}
+}

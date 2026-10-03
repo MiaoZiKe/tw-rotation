@@ -163,30 +163,87 @@
     const b = document.getElementById('mTabMore');
     if (b) b.classList.toggle('on', MORE_VIEWS.includes(curView()));
   }
+  /* ★ 2026-10-03 手機 V2（DECISIONS #314）：「更多」對應電腦版側欄剩下的幾格，順序照側欄（事件在最上面）。
+     明暗與登入搬到頂欄右上（跟電腦版一樣「頁首右上」），這裡不再放「切換主題」；外觀（三套風格）只有這裡進得去，不能拿掉。
+     圖示用電腦版側欄同一套線條圖示（mobile4.css 的 --m4-ic-*），不再用文字符號。*/
   function openMore() {
     const ver = (document.getElementById('buildver') || {}).textContent || '';
     const evn = (document.getElementById('evCount') || {}).textContent || '0';
-    const theme = document.documentElement.dataset.theme === 'light' ? '深色主題' : '明亮主題';
     const v = curView();
-    const row = (id, ic, txt, extra, on) => `<button type="button" class="mrow${on ? ' on' : ''}" data-m="${id}"><span class="ic">${ic}</span>${txt}${extra || ''}</button>`;
+    const row = (id, ic, txt, extra, on) => `<button type="button" class="mrow${on ? ' on' : ''}" data-m="${id}"><span class="ic m4ic" data-ic="${ic}" aria-hidden="true"></span>${txt}${extra || ''}</button>`;
     const sh = openSheet(`<div class="mshhead"><b>更多</b></div>
-      <div class="mgrp">頁面</div>
-      ${row('market', '▦', '市場明細', '<small>漲跌家數、站上均線、完整名單</small>', v === 'market')}
-      ${row('season', '◷', '週期統計', '<small>族群 × 月份的歷史表現</small>', v === 'season')}
-      ${row('watch', '★', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
+      ${row('events', 'bell', '今日事件', `<span class="n">${esc(evn)}</span><small>新聞、法說、券商目標價 —— 進場前最後一關</small>`)}
+      <div class="mgrp">族群與個股</div>
+      ${row('market', 'market', '市場明細', '<small>漲跌家數、站上均線、完整名單</small>', v === 'market')}
+      <div class="mgrp">歷史規律</div>
+      ${row('season', 'season', '週期統計', '<small>族群 × 月份的歷史表現</small>', v === 'season')}
+      <div class="mgrp">專案</div>
+      ${row('watch', 'watch', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
       <div class="mgrp">工具</div>
-      ${row('events', '▤', '今日事件', `<span class="n">${esc(evn)}</span>`)}
-      ${row('theme', '☀', '切換成' + theme)}
+      ${row('look', 'palette', '外觀', '<small>三套風格（科技／專業／輕鬆）</small>')}
       <div class="mver">網頁版號 <span class="mono">${esc(ver.trim() || '—')}</span></div>`, { kind: 'more' });
     sh.querySelectorAll('.mrow').forEach(r => r.onclick = () => {
       const m = r.dataset.m;
       closeSheet();
       if (MORE_VIEWS.includes(m)) { location.hash = '#' + m; return; }
-      // 不重寫邏輯：一律去按桌機原來那顆鈕（跟頂欄「⋯」同一條路，見 app.js initMore）
-      const t = document.getElementById(m === 'events' ? 'evToggle' : 'themeBtn');
+      // 不重寫邏輯：一律去按桌機原來那顆鈕（事件抽屜＝app.js setSide()、外觀面板＝theme4.js）
+      const t = document.getElementById(m === 'events' ? 'evToggle' : m === 'look' ? 't4Btn' : 'themeBtn');
       if (t) t.click();
     });
   }
+
+  /* ---- 頁首（2026-10-03 手機 V2）：跟電腦版一樣「只留頁名＋台北時間」，右上是 搜尋｜登入｜明暗 ----
+     頁名寫進 .brand 原本寫站名的位置（.brand 的 onclick 回總覽照舊）；時間每秒寫在 data-t「屬性」、字由 CSS ::before 畫 ——
+     全站有兩支掛在 body 上的 MutationObserver（icons.js、live.js）看文字節點，寫屬性不會每秒把它們叫醒（#284 卡頓）。
+     電腦版的頁名／分組在 layout4.js（另一位 agent 的檔），這裡抄同一份名字，不去讀它。*/
+  const PAGE_T = { overview: '總覽', flow: '資金流向', heatmap: '熱力圖', industry: '產業地圖', stock: '個股', market: '市場明細',
+    season: '週期統計', watch: '自選', delivery: '交付清單', themes: '熱力圖', tasks: '交付清單' };
+  const CLOCK_FMT = (() => {
+    try {
+      return new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', month: '2-digit', day: '2-digit', weekday: 'short',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    } catch (e) { return null; }
+  })();
+  function clockText(d) {
+    if (!CLOCK_FMT) return '';
+    const o = {}; CLOCK_FMT.formatToParts(d).forEach((x) => { o[x.type] = x.value; });
+    return `${o.month}/${o.day}（${String(o.weekday || '').replace(/^週|^星期/, '')}）${o.hour}:${o.minute}:${o.second}`;
+  }
+  let clockT = 0;
+  function tickClock() {
+    clearTimeout(clockT);
+    const c = document.getElementById('mClock');
+    if (!c || !isM()) return;
+    const now = new Date(), t = clockText(now);
+    c.setAttribute('data-t', t); c.setAttribute('datetime', now.toISOString()); c.setAttribute('aria-label', '台北時間 ' + t);
+    clockT = setTimeout(tickClock, 1000 - (Date.now() % 1000) + 5);
+  }
+  function paintHead() {
+    const hd = document.getElementById('mHd'); if (!hd) return;
+    const h = (location.hash.replace('#', '') || 'overview').split('/');
+    let k = h[0] || 'overview';
+    const v = document.querySelector('main .view.on');
+    let name = PAGE_T[k];
+    if (!name) name = ((v && v.querySelector('h1, h2')) || {}).textContent || '台股資金輪動';
+    // 產業地圖點進一條鏈：頁名後面補那條鏈的名字（麵包屑最後一格，industry.js 畫的；電腦版頁首同一招）
+    let sub = '';
+    if (k === 'industry' && h[1]) { const cur = document.querySelector('#indCrumbs .cur'); sub = cur ? cur.textContent.trim() : ''; }
+    const html = `<b class="mpt">${esc(String(name).trim())}${sub ? `<i>${esc(sub)}</i>` : ''}</b>`;
+    const pt = hd.querySelector('.mptw');
+    if (pt && pt.innerHTML !== html) pt.innerHTML = html;
+  }
+  function buildHead() {
+    const tx = $('.topbar .brand > div:not(.logo)');
+    if (!tx) return;
+    let hd = document.getElementById('mHd');
+    if (!hd) {
+      hd = document.createElement('div'); hd.id = 'mHd'; hd.className = 'mhd';
+      hd.innerHTML = '<span class="mptw"></span><time class="mclock" id="mClock" aria-live="off" title="台北時間（每秒更新）"></time>';
+      tx.insertBefore(hd, tx.firstChild);
+    }
+    paintHead(); tickClock();
+  }
+  window.addEventListener('hashchange', () => { if (!isM()) return; [80, 900, 2200].forEach((t) => setTimeout(paintHead, t)); });
 
   /* ---- 頂欄 52px：搜尋框收成一顆鈕，點了展開成整列 ----
      搜尋框本身（#q 與建議清單 #sugg）一個字都沒改，只是平常藏起來；
@@ -233,7 +290,8 @@
   const hooks = [];                        // C／D 段各自登記「手機要做的事」與「回桌機要拆的東西」
   function teardown() {
     document.body.classList.remove('m3on');
-    ['mTabMore', 'mSearchBtn', 'mSearchX', 'mSheet', 'mSheetBack'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+    ['mTabMore', 'mSearchBtn', 'mSearchX', 'mSheet', 'mSheetBack', 'mHd'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+    clearTimeout(clockT);
     sheet = null; scrim = null;
     const bar = $('.topbar'); if (bar) bar.classList.remove('msearch');
     const hp = document.getElementById('howPop');
@@ -243,7 +301,7 @@
   function apply() {
     if (!isM()) { if (document.body.classList.contains('m3on')) teardown(); return; }
     document.body.classList.add('m3on');
-    buildNav(); buildTop();
+    buildNav(); buildTop(); buildHead();
     /* 先把手機版要用的資料抓進來（瀏覽器會快取）：切到資金流向時不必等網路，雷達與排行當場就畫得出來 */
     load('flow_v3'); load('sankey_daily');
     hooks.forEach(h => { if (h.on) { try { h.on(curView()); } catch (e) { console.warn('[m3]', e); } } });
@@ -974,22 +1032,25 @@
      除權息、法人、資券、大戶／散戶；「AI 分析」照 09-27 的決定留在新聞前面，「完整版」最後。
      改前：K線、指標、法人、資券、大戶／散戶、營收、獲利、財務、基本資料、除權息、AI 分析、新聞、完整版。
      會員權限（features.js）是用 data-t 對 #mbTabs 的鈕，不看位置。*/
+  /* ★★ 2026-10-03 手機 V2（Andy：「依據現有版本作手機網頁」，DECISIONS #314）：分頁改成**跟電腦版同一組**
+     （總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞），內容就是電腦版那一頁本人
+     （industry.js 畫的 #stockTab；這裡只去按藏起來的 #stockTabs 那顆鈕），不再另外畫一套手機版內容 ——
+     兩套內容遲早分岔（09-27 起手機的營收／法人…是另一份程式），桌機加了東西手機就少一塊。
+     手機只多一頁「K線」（電腦版的 K 線卡在分頁上面一直看得到；手機一屏放不下 K 線＋分頁內容，所以 K 線自成第一頁）。
+     拿掉的手機專屬分頁：「財務」（本益比位置、本益比河流在電腦版「獲利」）、「AI 分析」（四個面向 2×2 留在 K 線頁頂端，
+     完整內容在「總覽」的 AI 卡）、「完整版」（現在每一頁都是完整版）。代號＝電腦版的 data-t，會員鎖頭（features.js）兩邊同一個。*/
   const SK_TABS = [
     { t: 'k', n: 'K線' },
-    { t: 'basic', n: '基本資料' },
-    { t: 'tag', n: '指標' },
-    { t: 'rev', n: '營收', has: (pg) => ((pg.revenue && pg.revenue.monthly) || []).length > 0 },
-    { t: 'profit', n: '獲利', has: (pg) => ((pg.profit && pg.profit.quarters) || []).some(r => r[5] != null) },
-    { t: 'fin', n: '財務', has: (pg) => (pg.pe_history || []).some(r => r.pe != null) || ((pg.profit && pg.profit.quarters) || []).length > 0 },
-    { t: 'div', n: '除權息', has: (pg) => { const d = pg.dividends || {}; return (d.by_year || []).some(y => y.n > 0 || y.cash > 0 || y.stock > 0) || (d.upcoming || []).length > 0 || (d.by_period || []).length > 0; } },
-    /* 2026-09-28（Andy）：「籌碼」（集保）與「大戶」（主力替代）兩頁併成「大戶／散戶」一頁（三條持股線）；
-       主力替代與股東人數拿掉。順序跟桌機一樣：法人、資券、大戶／散戶。*/
-    { t: 'inst', n: '法人', has: (pg) => skInstRows(pg).length > 0 },
-    { t: 'margin', n: '資券', has: (pg) => (pg.margin || []).some(r => r[1] != null) },
-    { t: 'big', n: '大戶／散戶', has: (pg) => (pg.holders || []).some(r => r[1] != null) },
-    { t: 'ai', n: 'AI 分析', has: () => !!window.StockAI && !!document.getElementById('aiCard') },
-    { t: 'news', n: '新聞', has: (pg) => (pg.news || []).length > 0 || (pg.material_news || []).length > 0 },
-    { t: 'full', n: '完整版' },
+    { t: 'overview', n: '總覽', d: 1 },
+    { t: 'basics', n: '基本資料', d: 1 },
+    { t: 'tags', n: '指標', d: 1 },
+    { t: 'revenue', n: '營收', d: 1 },
+    { t: 'profit', n: '獲利', d: 1 },
+    { t: 'dividend', n: '除權息', d: 1 },
+    { t: 'inst', n: '法人', d: 1 },
+    { t: 'margin', n: '資券', d: 1 },
+    { t: 'holders', n: '大戶／散戶', d: 1 },
+    { t: 'news', n: '公告／新聞', d: 1 },
   ];
   const SK_WIN = 63;                      // 一季 ≈ 63 個交易日（截圖是 7/02～9/24；跟桌機籌碼預設、docs/stock_page_audit_0927.md 同一個數）
   const SK = { code: null, pg: null, wait: null, tries: 0, card: null, ro: null };
@@ -998,7 +1059,7 @@
   /* 這一檔看得到的分頁（沒有資料的那幾頁整顆不出現）*/
   const skTabs = (pg) => SK_TABS.filter(x => { if (!x.has || !pg) return true; try { return !!x.has(pg); } catch (e) { return false; } });
   // 舊版記住的「籌碼」分頁（chip）已併進「大戶／散戶」（big）
-  const skTab = () => { const t0 = LS.get('sk.tab', 'k'), t = t0 === 'chip' ? 'big' : t0; return skTabs(SK.pg).some(x => x.t === t) ? t : 'k'; };
+  const skTab = () => { const t = LS.get('sk.tab', 'k'); return skTabs(SK.pg).some(x => x.t === t) ? t : 'k'; };
   const skSeg = (t, d) => LS.get('sk.seg.' + t, d);
   const int = (v) => v == null || !isFinite(v) ? '—' : Math.round(v).toLocaleString('en-US');
   const sInt = (v) => v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + int(v);
@@ -1035,7 +1096,7 @@
          兩個互叫就是每 260ms 一輪的無窮迴圈。*/
     if (SK.code === code && SK.pg && document.getElementById('mbHead')) {
       document.body.classList.add('mbon');
-      if (SK.card !== card) { SK.card = card; skPaint(); }
+      if (SK.card !== card) { SK.card = card; skPaint(); skFitK(); }
       return;
     }
     const A = skApp();
@@ -1049,6 +1110,8 @@
   function skOff() {
     clearTimeout(SK.wait);
     ['mbHead', 'mbBody'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+    if (kxRO) { kxRO.disconnect(); kxRO = null; }
+    document.body.style.removeProperty('--m4-kx');
     document.body.classList.remove('mbon');
     delete document.body.dataset.mbt;
     if (SK.ro) { try { SK.ro.disconnect(); } catch (e) { /* 略 */ } SK.ro = null; }
@@ -1087,8 +1150,26 @@
     /* 表頭釘在報價列＋分頁列正下方：高度用量的（字型載入前後會差幾 px），寫進 --mbtop */
     const setTop = () => { const h = head.getBoundingClientRect().height; document.body.style.setProperty('--mbtop', (52 + h) + 'px'); };
     setTop();
-    if (window.ResizeObserver) { if (SK.ro) SK.ro.disconnect(); SK.ro = new ResizeObserver(setTop); SK.ro.observe(head); }
+    if (window.ResizeObserver) { if (SK.ro) SK.ro.disconnect(); SK.ro = new ResizeObserver(() => { setTop(); skFitK(); }); SK.ro.observe(head); }
+    skFitK();
     skPaint();
+  }
+  /* ★ 2026-10-03 手機 V2（#314）：K 線卡整張 ≤ 一屏（報價列＋分頁列下緣 → 底部導覽上緣）。
+     K 線本體的高度＝可視高 − 卡片裡 K 線以外的東西（AI 2×2、週期列、資料讀數…）。那些東西多高要量（AI 結論長短、
+     即時讀數出不出現都會變），所以量「卡高 − K 線高」寫進 --m4-kx，CSS 再用 calc 算（mobile4.css 第 4 段）。
+     卡高 − K 線高跟 K 線本身多高無關，所以不會互相追著跑；差 2px 以內不寫（不觸發重排）。*/
+  let kxRO = null;
+  function skFitK() {
+    const card = document.getElementById('skChartCard'), lwc = document.getElementById('lwc');
+    if (!card || !lwc || !isM()) return;
+    const kx = Math.round(card.getBoundingClientRect().height - lwc.getBoundingClientRect().height);
+    if (!(kx > 0)) return;
+    const cur = parseFloat(document.body.style.getPropertyValue('--m4-kx')) || 0;
+    if (Math.abs(cur - kx) > 2) document.body.style.setProperty('--m4-kx', kx + 'px');
+    if (window.ResizeObserver && (!kxRO || kxRO._card !== card)) {
+      if (kxRO) kxRO.disconnect();
+      kxRO = new ResizeObserver(() => requestAnimationFrame(skFitK)); kxRO._card = card; kxRO.observe(card);
+    }
   }
   /* 即時層（live.js）只改 [data-live] 的字與漲跌幅的 class；現價的顏色與「▼1.00」這個漲跌點數由這裡跟著算 */
   function skQuoteColor() {
@@ -1104,6 +1185,13 @@
     } else dl.textContent = '—';
   }
   window.addEventListener('tw:quotes', () => { if (document.getElementById('mbHead')) skQuoteColor(); });
+  /* K 線頁頂端的 AI 四格：點一格＝跳到「總覽」分頁的 AI 卡那一面（電腦版是原地捲到下面的總覽分頁）。
+     手機的總覽分頁平常藏著，所以在捕獲階段先切到「總覽」，stock_ai.js 自己的 onclick（gotoFacet）接著就找得到 AI 卡、捲過去。*/
+  document.addEventListener('click', (e) => {
+    const b = e.target && e.target.closest && e.target.closest('#skChartCard #skAi .aitab');
+    if (!b || !isM() || !document.getElementById('mbHead') || skTab() === 'overview') return;
+    LS.set('sk.tab', 'overview'); skPaint();
+  }, true);
   /* 同族群的上一檔／下一檔：groups_detail 的成員順序（成交值大到小），頭尾相接；只算有個股頁的 */
   function skNeighbours(pg) {
     const A = skApp(), gid = pg.meta && pg.meta.group_id;
@@ -1156,17 +1244,18 @@
     }
     const body = document.getElementById('mbBody'); if (!body) return;
     body.dataset.tab = t;
-    /* K 線與「完整版」用的是 industry.js 畫好的節點：順手把（藏起來的）第二版分段列切到對應那一段，
+    /* K 線與電腦版分頁都是 industry.js 畫好的節點：順手把（藏起來的）第二版分段列切到對應那一段，
        它掛的 .mp-off 才不會跟這裡打架（K 線卡在「K 線」段、#stockTabs／#stockTab 在「財報籌碼」段）。*/
-    const want = t === 'k' ? 'K 線' : t === 'full' ? '財報籌碼' : t === 'ai' ? 'AI 分析' : null;
+    const def = SK_TABS.find(x => x.t === t) || {};
+    const want = t === 'k' ? 'K 線' : def.d ? '財報籌碼' : null;
     if (want) { const pb = $$('#v-industry > .mpager button').find(x => x.textContent.trim() === want); if (pb && !pb.classList.contains('on')) pb.click(); }
-    if (t === 'k') { body.innerHTML = ''; return; }
-    if (t === 'full') {
-      body.innerHTML = '<div class="mbfoot" style="margin:0 0 8px">完整版＝桌機的個股分頁（總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞），含籌碼小圖、技術面訊號、本益比河流、歷年月報酬等上面各頁沒有的內容。</div>';
-      return;
+    body.innerHTML = '';
+    if (def.d) {
+      // 去按電腦版那一組分頁裡同代號的鈕（industry.js 的 onclick：切 .on、renderTab）；已經是那一頁就不重畫
+      const db = document.querySelector(`#stockTabs button[data-t="${t}"]`);
+      if (db && !db.classList.contains('on')) db.click();
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 60);   // 分頁內容剛從 display:none 回來，圖表重量一次寬度
     }
-    const fn = { ai: skAi, tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, fin: skFin, profit: skProfit, basic: skBasic, div: skDiv, news: skNews }[t];
-    try { fn(pg, body); } catch (e) { console.warn('[m3 個股]', e); body.innerHTML = '<div class="mbempty">這一頁畫不出來（資料格式不對），其他分頁照常。</div>'; }
   }
 
   /* ---- 共用：分段鈕、關鍵數字、柱狀圖、每日表 ---- */

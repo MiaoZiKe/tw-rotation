@@ -2215,8 +2215,10 @@
        名稱區（#skHead）後面。搬節點不重畫：選中的標籤、收合狀態、捲動位置都跟著走。*/
     const ai = document.getElementById('skAi'), aiHome = document.getElementById('aiCard');
     if (ai && aiHome && card) {
-      if (mIsM()) { if (ai.parentElement !== aiHome) aiHome.appendChild(ai); }
-      else if (ai.parentElement !== card) {
+      /* 2026-10-03 手機 V2（#314）：手機也留在 K 線卡裡（四個面向 2×2、點一格跳「總覽」分頁的 AI 卡）——
+         手機的個股分頁改成跟電腦版同一組之後沒有「AI 分析」這一頁了，完整內容在「總覽」的 AI 卡（跟電腦版一樣）。
+         舊版搬進 #aiCard 的（同一次瀏覽從舊狀態來的）一律搬回來。*/
+      if (ai.parentElement !== card) {
         const hd = document.getElementById('skHead');
         card.insertBefore(ai, hd ? hd.nextSibling : card.firstChild);
       }

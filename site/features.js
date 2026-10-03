@@ -44,7 +44,9 @@
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
   function stab(id, name, desk, mob, desc) {
     var veil = [], mark = [];
-    if (desk) { veil.push(['#stockTab', '#stockTabs button[data-t="' + desk + '"].on']); mark.push('#stockTabs button[data-t="' + desk + '"]'); }
+    if (desk) { veil.push(['#stockTab', '#stockTabs button[data-t="' + desk + '"].on']); mark.push('#stockTabs button[data-t="' + desk + '"]');
+      /* 2026-10-03 手機 V2（#314）：手機分頁列（#mbTabs）改用跟桌機同一組代號、內容就是桌機那一頁（#stockTab），鎖頭標記跟著掛 */
+      mark.push('#mbTabs button[data-t="' + desk + '"]'); }
     (mob || []).forEach(function (m) { veil.push(['#mbBody[data-tab="' + m + '"]']); mark.push('#mbTabs button[data-t="' + m + '"]'); });
     return { id: id, name: name, cat: 'stocktab', def: true, kind: 'bool', desc: desc, veil: veil, mark: mark, block: [] };
   }
