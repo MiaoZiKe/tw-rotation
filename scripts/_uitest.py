@@ -9735,6 +9735,17 @@ def t_season(pg, base):
     n8 = pg.evaluate(HM)
     ow = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
     ok("[820px] 每一個族群名都印、沒有橫向捲軸", n8 and n8["ylab"] == n8["rows"] and ow <= 1, {**(n8 or {}), "溢出": ow})
+    # ★ 2026-10-03 長條圖在手機（390）：預設 5 根都畫得下（每根 3px、根與根不留縫）、不重疊、頁面不橫捲、下拉鈕與色票 ≥ 40px 高
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(1200)
+    pg.evaluate("() => { const b = document.querySelector('#seasonView button[data-v=line]'); if (b) b.click(); }"); pg.wait_for_timeout(1400)
+    mb = pg.evaluate(LN) or {}
+    tap = pg.evaluate("""() => ({ dd: Math.round(document.querySelector('#seasonGroupDD .ddbtn').getBoundingClientRect().height),
+        key: Math.min(999, ...[...document.querySelectorAll('#seasonKey .snk')].map(b => Math.round(b.getBoundingClientRect().height))) })""")
+    ok("★ [390px 長條圖] 預設 5 根都畫得下、不重疊、頁面沒有橫向捲軸",
+       mb.get("nb") == 5 and mb.get("drawn") == mb.get("sel") == 5 and mb.get("overlap") == 0 and mb.get("over", 9) <= 1,
+       {k: mb.get(k) for k in ("nb", "sel", "drawn", "maxbars", "overlap", "minW", "over")})
+    ok("[390px 長條圖] 族群下拉鈕與色票觸控高 ≥ 40px", tap["dd"] >= 40 and tap["key"] >= 40, tap)
+    pg.evaluate("() => { const b = document.querySelector('#seasonView button[data-v=heat]'); if (b) b.click(); }"); pg.wait_for_timeout(800)
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(600)
     pg.evaluate("() => { try { ['tw.season.num','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 

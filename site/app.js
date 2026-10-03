@@ -11620,16 +11620,16 @@
         return vs.length ? +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2) : null; });
       const gridL = 52, gridR = mob ? 12 : 20;
       /* 這個寬度最多放得下幾根：每個月那一格扣掉組間空白（桌機 22%、手機 16%）給長條，每根 ≥ 最窄寬度（桌機 4、手機 3）、根與根之間留 1px。
-         手機 390 寬一個月只有 ~25px，桌機的 4px 只放得下 3 根，預設的 5 個都會被砍掉 —— 手機放寬到 3px、組間 16%，剛好 5 根。*/
-      const catGap = mob ? 0.16 : 0.22, barMin = mob ? 3 : SN_BAR_MIN;
+         手機 390 寬一個月只有 ~22px，桌機的規則只放得下 3 根，預設的 5 個都會被砍掉 —— 手機放寬到每根 3px、組間 16%、根與根之間不留縫（貼著但不疊），放得下 6 根。*/
+      const catGap = mob ? 0.16 : 0.22, barMin = mob ? 3 : SN_BAR_MIN, barSep = mob ? 0 : 1;
       const plotW = Math.max(120, (el.clientWidth || 800) - gridL - gridR);
-      const maxBars = Math.max(1, Math.floor((plotW / 12) * (1 - catGap) / (barMin + 1)));
+      const maxBars = Math.max(1, Math.floor((plotW / 12) * (1 - catGap) / (barMin + barSep)));
       const drawn = sel.slice(0, maxBars);
       const byName = {}; all.forEach(r => { byName[r.name] = r; });
       const zero = { silent: true, symbol: 'none', label: { show: false },
         lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed', width: 1 }, data: [{ yAxis: isWin ? 50 : 0 }] };
       const series = drawn.map((n, i) => { const r = byName[n]; const col = colorOf[n];
-        return { name: n, type: 'bar', barGap: '12%', barCategoryGap: Math.round(catGap * 100) + '%', barMaxWidth: 16, z: 2,
+        return { name: n, type: 'bar', barGap: mob ? '0%' : '12%', barCategoryGap: Math.round(catGap * 100) + '%', barMaxWidth: 16, z: 2,
           label: { show: false },                         // 一定要寫：不寫的話全站圓滑化會替 ≤16 根的長條自動補數值標籤
           emphasis: { focus: 'series' }, itemStyle: { color: col },
           ...(i === 0 ? { markLine: zero } : {}),
