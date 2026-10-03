@@ -53,7 +53,9 @@
    只在 ≥901（#ovmain 本來就是兩欄的寬度，theme4.css 第 115 行）；821～900 與手機照原本單欄。
    ================================================================================== */
 @media (min-width:901px){
-  :root.l4 .ovmain{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:auto auto;align-items:stretch}
+  /* 右欄寬 ＝ 內容寬的 46.5%（＝左右 1.15:1），但最寬 600px：盤上限 560 ＋ 卡內距 32 ＋ 邊框 ≈ 594，再寬盤也不會變大、
+     兩旁只是空白（1920 寬時 768 → 600，盤兩旁的空白 174 → 0，多出來的 168px 還給左欄兩張熱力圖） */
+  :root.l4 .ovmain{grid-template-columns:minmax(0,1fr) minmax(0,min(46.5%,600px));grid-template-rows:auto auto;align-items:stretch}
   :root.l4 #ovLeft{display:contents}
   :root.l4 #ovHeatCard{grid-column:1;grid-row:1}
   :root.l4 #ovThemeCard{grid-column:1;grid-row:2}
