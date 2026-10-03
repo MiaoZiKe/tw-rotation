@@ -31473,7 +31473,10 @@ def t_themes_2d(pg, base):
             for tid in THEME_2D_IDS:
                 pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
                 pg.reload(wait_until="networkidle")
-                pg.wait_for_timeout(1200)
+                # ★ 2026-10-04（#316）：固定等 1200ms 改成「等到圖真的畫好（零件 fit 完）」最多 10 秒再量。
+                #   機器忙（load 30～80）時題材資料晚到，1200ms 量到空白 —— main 上同樣會（實測 ai_server 第一次量是空的），不是圖壞了。
+                wait_until(pg, "() => !!document.querySelector('.dg3 g.art[transform]')", 10000)
+                pg.wait_for_timeout(500)
                 z = pg.evaluate(T2D_MEASURE)
                 tag = f"[{tid}·{w}px·{lab0}]"
                 if not z.get("present"):
@@ -31511,7 +31514,7 @@ def t_themes_2d(pg, base):
     picked = 0
     for tid in ("cowos", "ai_server", "robotics"):
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
-        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+        pg.reload(wait_until="networkidle"); wait_until(pg, "() => !!document.querySelector('.dg3 g.art[transform]')", 10000); pg.wait_for_timeout(800)
         SNAP = """(i) => { const gs = [...document.querySelectorAll('.dg3 g.stn')];
             const g = gs[i]; if (!g) return null;
             const slot = g.querySelector('rect.slot');
@@ -31539,7 +31542,7 @@ def t_themes_2d(pg, base):
 
     # ---- ⑥ 個股小卡真的跳到個股頁
     pg.goto(f"{base}#themes/cowos", wait_until="networkidle")
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+    pg.reload(wait_until="networkidle"); wait_until(pg, "() => !!document.querySelector('.dg3 g.art[transform]')", 10000); pg.wait_for_timeout(800)
     code = pg.evaluate("""() => { const c = document.querySelector('.dg3 .scode[data-code]');
         if (!c) return null; c.scrollIntoView({ block: 'center' }); return c.dataset.code; }""")
     if ok("題材圖上找得到個股小卡", bool(code), code):
