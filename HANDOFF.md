@@ -1,5 +1,24 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 10-03 版面 V2 第四批：登入／明暗／外觀搬右上角、收合鈕騎分隔線、子分頁圖示（UI 專家，分支 `claude/topbar-acct`，**未推 main**，DECISIONS #312）
+只作用在電腦版（>820，掛 l4）；手機版（≤820）不動。檔案：`site/layout4.js`、`site/layout4.css`、`scripts/_uitest.py`。沒改 id／data-*、沒改 account.js 登入流程、沒新增 localStorage 鍵。
+- [x] ① 登入不見了：本機用正式站同一種設定（account_config.js 填 https 網址）重跑，第三批的帳號卡**會**出現登入鈕 → 前端判斷沒錯，正式站那一刻 `TwAccount.on()` 是 false（account.js 沒拿到網址）。
+  容器連不到正式站、讀不到 Actions 日誌與 Secret 清單，**沒辦法證實部署產物的 account_config.js 有沒有填到網址**。處理：右上角一定有「登入」——
+  有設定檔＝account.js 的 #acctBtn（按了＝原本的告知→Google 小視窗）；沒有＝#l4Login（按了寫「會員登入目前沒有開啟：這次部署沒有讀到會員伺服器設定」）。另外多聽 `tw:account-config`。
+  ⚠ **待 Andy／CEO**：正式站上線後按右上角「登入」——看到「沒有開啟」就是 repo Secret `ACCOUNT_API_URL` 沒設或不是 https（docs/login_setup.md），不是前端問題。
+  ⚠ 建議（不在 UI 專家檔案範圍，沒做）：pages.yml「會員功能設定」改成 `::notice::`，以後查 annotations 就知道那次部署有沒有開。
+- [x] ② 頁首右上角：時間｜☀／🌙（#themeBtn 本人）｜外觀調色盤（#t4Btn）｜線上人數｜登入（已登入＝頭像＋名字＋▾，點開原本帳號選單）。左欄底部帳號卡、「淺色｜深色」拿掉。≤820 時按鈕放回原位。
+- [x] ③ 收合鈕：24px 圓鈕騎在左欄右緣（分隔線）上、垂直在 logo 那列；展開 «、收合 »；收合後照樣在 72px 欄的邊線上。
+- [x] ④（CEO 追加）子分頁圖示：資金輪動＝羅盤、資金去向＝分流、族群×法人＝法人機構（landmark）、產業＝格狀方塊、題材＝火焰；16px 在字左邊；收合時只剩圖示（取代兩字短名），title 提示。
+- 改了既有驗收：`theme_flip` 回到一律點 #themeBtn；版面v2結構 頁首子元素多 `div.l4tools`、左欄最底下改量 #tabsWrap、外觀面板改驗在右上角按鈕下；第三批②④⑤改寫成第四批（細目見 DECISIONS #312）。
+  新增 `t_layout4_login`（假的 https 會員網址＋攔截請求，不連外不真登入：右上角最右是「登入」、有打 /v1/beat、按了→告知→小視窗開到 `/auth/start?…mode=popup`→等待畫面、縮到 800 回 .acctbar）。
+  反向驗證：新「版面v2結構」對 origin/main 的 site 跑 15 條紅後中途爆掉（#l4Login 不存在）。
+- **這批驗了**：`_preview.py` 全綠（「所有分頁與個股頁正常」）；`_uitest.py --workers 1 --sections 版面v2結構,設定面板,淺色主題,明亮主題,設計v4主題,會員與自選五分頁,會員雲端路徑,重新整理回預設1003,一屏看完1003`：除 設計v4主題 1 條外全 0；那 1 條（⑤ 漲跌家數直向格線，xsplit＝None＝切風格後 1.8 秒內 #breadth 還沒重畫好）是跟 _preview 同時跑、機器忙的計時型假紅，單獨重跑 設計v4主題 0 個問題。main 基準（d1c9e54，同一組段落）全 0。
+  沒跑 pytest（只動 `site/**`、`scripts/_uitest.py`、文件）。瀏覽器沒用 flock，埠 8961（_preview）／8962（_uitest）。
+- 截圖看過：1440／1100／900 × 深／淺（有設定檔、沒設定檔、已登入三種），右上角三顆同一列、不撞時間、沒有橫捲。
+- 已知限制：① 正式站登入是否真的開著，要等上線後 Andy 按一下才知道（見上）；② 量過 830／900 寬的個股頁（「個股 台積電 2330」）：頁名、時間、右上角四顆不重疊、沒有橫捲；股名再長時頁名會先被省略號截掉（h1 有 ellipsis）；
+  ③ 線上人數的綠點改成主題主色（搬出 .acctbar 之後原本 #35d07f 那條吃不到，這裡照「不寫色值」改吃 --t4-accent-solid）。
+
 ## 10-03 05:15～09:12 CEO 合併後驗收紀錄（監察委員第 3 次稽核要求補）
 
 | 合併 | 推 main（台北） | 合併後 CEO 這邊驗了 |
