@@ -5,9 +5,11 @@
      「多主題是同一套骨架換皮」，保留舊骨架等於維護兩套網站。
 
    做四件事，**不改任何功能邏輯、不改資料**：
-   1. 外觀設定面板：頂欄「外觀」鈕（桌機）打開 → 風格三選一＋明暗二選一；手機在「⋯ 更多工具」清單加一段風格
-      （明暗那列本來就在清單裡）。風格存 localStorage `tw.theme4`（casual／hud／pro），明暗照舊存 `tw.theme`
-      （走既有的 App.applyTheme，跟 ☀ 鈕是同一條路，兩邊保證一致）。
+   1. 外觀設定面板：頂欄「外觀」鈕（桌機）打開 → 只有風格三選一；手機在「⋯ 更多工具」清單加一段風格
+      （明暗那列本來就在清單裡）。風格存 localStorage `tw.theme4`（casual／hud／pro）。
+      ★ 2026-10-03（Andy 看著外觀面板與旁邊的 🌙 鈕：「這邊重複到了，改進」）：面板裡原本的「明暗：深色｜淺色」二段式拿掉，
+        明暗只剩右上角 ☀／🌙（#themeBtn，app.js applyTheme，存 `tw.theme`）一個入口 —— 同一件事兩個開關，
+        使用者會懷疑兩個是不是管不同東西；而且 Andy 先前已經指定「明暗用原來的圖示，放右上」。面板說明改成指向那顆鈕。
    2. 切風格後呼叫 App.applyTheme(目前明暗, true)：圖表顏色本來就是 refreshPalette() 從 CSS 變數讀的，重畫一次就全部換色。
    3. 圖表共用規格（§4）：app.js 的 chart() 在 setOption 前呼叫 window.T4.normalize(option)——
       只留水平格線（x 軸是類別／時間軸、或 y 軸全是數值軸的圖，x 軸的直向格線關掉）、
@@ -49,13 +51,6 @@
     window.dispatchEvent(new CustomEvent('tw:theme4', { detail: { theme4: v } }));
     schedule();
   }
-  function setMode(m) {
-    if (m === mode()) { syncButtons(); return; }
-    const tb = $('#themeBtn');
-    if (window.App && window.App.applyTheme) window.App.applyTheme(m, true);
-    else if (tb) tb.click();
-    syncButtons(); syncMeta();
-  }
 
   /* 圖表共用規格（01 §4）：chart() 每次 setOption 前過一次。只調「版面」相關的欄位，不動資料與顏色。 */
   const arr = (x) => (Array.isArray(x) ? x : x ? [x] : []);
@@ -95,12 +90,10 @@
     pop.setAttribute('aria-label', '外觀設定');
     pop.innerHTML = `<h4>版面風格</h4><div class="t4opts">${THEMES.map(t =>
       `<button type="button" class="t4o" data-t4="${t.id}" aria-pressed="false"><span class="sw" style="background:${t.sw}"></span><b>${t.name}</b><small>${t.sub}</small></button>`).join('')}</div>
-      <h4>明暗</h4><div class="t4modes"><button type="button" class="t4m" data-t4m="dark" aria-pressed="false">🌙 深色</button><button type="button" class="t4m" data-t4m="light" aria-pressed="false">☀ 淺色</button></div>
-      <div class="t4hint">每個風格都有深淺兩套；選擇會記在這台瀏覽器。</div>`;
+      <div class="t4hint">每個風格都有深淺兩套，用右上角 ☀／🌙 切換；選擇會記在這台瀏覽器。</div>`;
     document.body.appendChild(pop);
     pop.addEventListener('click', (e) => {
-      const b = e.target.closest('.t4o'); if (b) { set(b.dataset.t4); return; }
-      const m = e.target.closest('.t4m'); if (m) setMode(m.dataset.t4m);
+      const b = e.target.closest('.t4o'); if (b) set(b.dataset.t4);
     });
     return pop;
   }
@@ -112,7 +105,6 @@
   function syncButtons() {
     const v = get(), m = mode();
     document.querySelectorAll('[data-t4]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t4 === v)));
-    document.querySelectorAll('[data-t4m]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t4m === m)));
     const btn = $('#t4Btn');
     if (btn) { const t = THEMES.find(x => x.id === v); btn.title = `外觀設定（目前：${t.name}・${m === 'light' ? '淺色' : '深色'}）`; }
   }
@@ -130,7 +122,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) show(false); });
     window.addEventListener('hashchange', () => show(false));
     window.addEventListener('resize', () => { if (!pop.hidden) place(pop, btn); });
-    // ☀ 鈕切明暗之後，面板裡的明暗兩顆跟著更新
+    // ☀ 鈕切明暗之後，「外觀」鈕的提示字（目前：風格・深／淺）與網址列顏色跟著更新
     window.addEventListener('tw:theme', () => { syncButtons(); syncMeta(); });
     // 手機：「⋯ 更多工具」清單加一段（三顆鈕，直接切；明暗那列清單裡原本就有）
     const mp = $('#morePop');
@@ -285,7 +277,7 @@
     window.addEventListener('tw:theme', schedule);
     schedule();
   }
-  window.T4 = { set, get, setMode, normalize, decorate, THEMES: THEMES.map(t => t.id) };
+  window.T4 = { set, get, normalize, decorate, THEMES: THEMES.map(t => t.id) };
   window.Theme4 = window.T4;   // 原型時期的名字，留著給還在用的驗收腳本
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
