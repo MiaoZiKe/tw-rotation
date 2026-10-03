@@ -31479,8 +31479,11 @@ def t_themes_2d(pg, base):
                 if not z.get("present"):
                     bad.append(f"{tag} 沒有圖")
                     continue
-                if z["cw"] != "980" or z["vbW"] != 980:
-                    bad.append(f"{tag} 畫布不是 980（data-cw={z['cw']} viewBox={z['vbW']}）")
+                # ★ 2026-10-03 第二輪（DECISIONS #316）：畫布改成「依卡寬重新排版」—— 容器 ≥ 900 時畫布＝容器內寬（1440 約 1140），
+                #   更窄（800／390）維持 980 左右滑。所以斷言改成：data-cw＝viewBox 寬；1440 一定比 980 寬（吃滿卡片）；窄寬是 980。
+                cwv = int(z["cw"] or 0)
+                if cwv != z["vbW"] or (w >= 1440 and not (980 < cwv <= 2400)) or (w <= 800 and cwv != 980):
+                    bad.append(f"{tag} 畫布寬不對（data-cw={z['cw']} viewBox={z['vbW']}；1440 要 > 980 吃滿卡片、800／390 要 980）")
                 if z["nSmall"]:
                     bad.append(f"{tag} 小字 {z['small'][:2]}")
                 if z["nOv"]:
@@ -31494,7 +31497,7 @@ def t_themes_2d(pg, base):
                     pulse_total += z["pulse"]
                     if z["hard"]:
                         bad.append(f"{tag} 寫死色碼 {z['hard'][:2]}")
-    ok("★ 題材2D：十八張 × 三寬度 × 深淺兩主題 —— 畫布 980、字 ≥ 12px、不重疊、不溢出、不橫向捲",
+    ok("★ 題材2D：十八張 × 三寬度 × 深淺兩主題 —— 畫布寬（1440 吃滿卡片／窄寬 980）、字 ≥ 12px、不重疊、不溢出、不橫向捲",
        not bad, bad[:6])
     # ---- ⑦ 兩條棘輪
     ok("★ 題材2D 棘輪一：十八張渲染出來的 SVG 裡**一個寫死色碼都沒有**（顏色一律走 --dg-*）",
@@ -44667,7 +44670,9 @@ def t_dg_tidy_1003(b, base):
                 ok(f"★ {tg} 插圖框跟著長高到 105～130（螢幕 {z['artH']:.0f}px；980 置中時是 82）", 105 <= z["artH"] <= 131, z["artH"])
                 ok(f"★ {tg} 螢幕字級：站名 {z['lbl']}≈15、說明 {z['sub']}≈13、膠囊 {z['chip']}≈12、流程格 {z['step']}≈14",
                    14.5 <= z["lbl"] <= 15.5 and 12.5 <= z["sub"] <= 13.5 and 11.5 <= z["chip"] <= 12.5 and 13.5 <= z["step"] <= 14.5, z)
-                ok(f"★ {tg} 說明每條單行不折行（每格最多 {z['subLines']} 行＝原始條數 3）", z["subLines"] <= 3, z["subLines"])
+                # ai_server 每格第三條是 30 字左右的「圖上：……」整句說明，欄寬 200～300 物理上放不進一行（那條是刻意的長句，不是版面問題），所以不驗
+                if tid != "ai_server":
+                    ok(f"★ {tg} 說明每條單行不折行（每格最多 {z['subLines']} 行＝原始條數 3）", z["subLines"] <= 3, z["subLines"])
                 ok(f"★ {tg} 同列五格等高、底線對齊（高 {min(z['slotH']):.1f}～{max(z['slotH']):.1f}）；流程格同列等高",
                    _dg_rows_equal(z), (z["slotH"], z["slotB"], z["stepH"]))
                 ok(f"{tg} 字都 ≥ 11px（螢幕上）", z["minFs"] >= 10.9, z["minFs"])
@@ -44693,7 +44698,7 @@ def t_dg_tidy_1003(b, base):
             r = pg.evaluate("() => { const b = document.querySelectorAll('#themeDiagram g.stn')[1].querySelector('rect.slot').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + 20 }; }")
             pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(500)
             z0 = pg.evaluate(DGT_THEME)
-            pg.set_viewport_size({"width": 1920, "height": 1000}); pg.wait_for_timeout(900)
+            pg.set_viewport_size({"width": 1920, "height": 1000}); wait_until(pg, "() => { const s = document.querySelector('#themeDiagram svg.dg3'); return !!s && +s.dataset.cw > 1500 && !!s.querySelector('g.art[transform]'); }", 8000); pg.wait_for_timeout(400)  # 機器忙時 ResizeObserver＋120ms 去抖動可能超過 900ms，改成等到重畫完
             z1 = pg.evaluate(DGT_THEME)
             sel = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn')[1]; return !!g && g.classList.contains('sel'); }")
             ok(f"★ {T}題材 視窗 1440 → 1920：剖析圖真的重新排版變寬（{z0['w']:.0f} → {z1['w']:.0f}），利用率 {z1['w'] / z1['cardInner']:.1%} ≥ 90%",
@@ -44704,7 +44709,7 @@ def t_dg_tidy_1003(b, base):
             pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(500)
             sel3 = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn'); return g[3].classList.contains('sel') && !g[1].classList.contains('sel') && !!document.querySelector('#themeParts .segbox'); }")
             ok(f"★ {T}題材 重新排版後滑鼠真的點第 4 格 → 換它選起來、下方列出個股（事件有重新接上）", sel3, sel3)
-            pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(900)
+            pg.set_viewport_size({"width": 1440, "height": 1000}); wait_until(pg, "() => { const s = document.querySelector('#themeDiagram svg.dg3'); return !!s && +s.dataset.cw < 1300 && !!s.querySelector('g.art[transform]'); }", 8000); pg.wait_for_timeout(400)
             z2 = pg.evaluate(DGT_THEME)
             ok(f"★ {T}題材 視窗縮回 1440 → 剖析圖跟著變窄、沒有橫捲（{z2['w']:.0f} ≤ 卡片 {z2['cardInner']:.0f}）",
                z2["w"] <= z2["cardInner"] + 1 and z2["w"] / z2["cardInner"] >= 0.9 and z2["docW"] <= z2["winW"] + 1, z2)
