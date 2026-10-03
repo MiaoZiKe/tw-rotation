@@ -19736,6 +19736,91 @@ def t_margin_src_1003(pg, base, code):
     pg.evaluate("() => { try { ['tw.mgSeg'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
 
+FIT1003_CARDS = """() => { const H = innerHeight; const rows = [];
+  document.querySelectorAll('.card, .skcard, .tblcard').forEach(c => {
+    const r = c.getBoundingClientRect(); if (!(r.width > 120 && r.height > 40)) return;
+    const cs = getComputedStyle(c); if (cs.visibility === 'hidden' || cs.display === 'none') return;
+    if (c.closest('[hidden],aside,#l4Jump')) return;
+    const t = (c.querySelector('h2,h3,.ttl,.title') || {}).textContent || '';
+    rows.push({ id: c.id || String(c.className).slice(0, 20), t: t.trim().slice(0, 12), h: Math.round(r.height), w: Math.round(r.width) }); });
+  return { H, sx: document.documentElement.scrollWidth, vw: innerWidth, rows }; }"""
+
+
+def t_fit_screen_1003(pg, base, code):
+    """★ 2026-10-03 一屏看完（DECISIONS #308）：Andy「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」。
+
+    規格：桌機每張圖表卡（含標題列與控制列）高度 ≤ 視窗可視高 − 49（黏在最上面的跳轉列），整張卡不必捲動就看得完。
+    驗法：① 1440×900、1920×1080 兩種視窗，逐頁量每張可見卡的高度；頁面不出橫向捲軸。
+          ② 視窗高度「縮矮」（900 → 700）卡跟著縮（資金去向／輪盤／個股 K 線是用視窗高度算的），不是只在載入時算一次。
+          ③ 視窗夠高（1920×1080）時，改前本來就放得下的圖不變矮（輪盤卡、K 線卡不被過度壓縮：K 線 ≥ 560、輪盤盤面 ≥ 500）。
+    手機（≤820）不動：390 寬下總覽的輪盤高度與改前同一個公式，這裡只驗頁面沒有橫向捲軸。
+    """
+    tag = "【一屏看完】"
+    ROUTES = [("overview", "總覽"), ("flow/rotation", "資金流向・輪動"), ("flow/sankey", "資金流向・資金去向"), ("flow/inst", "資金流向・法人集中度"),
+              ("heatmap/industry", "熱力圖・產業"), ("heatmap/theme", "熱力圖・題材"), ("industry", "產業地圖"), ("market", "市場明細"),
+              ("season", "週期統計"), ("watch", "自選")]
+    STOCK_TABS = ["overview", "basics", "tags", "revenue", "profit", "dividend", "inst", "margin", "holders", "news"]
+
+    def land(h, w, hash_):
+        pg.set_viewport_size({"width": w, "height": h})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#{hash_}", wait_until="networkidle")
+        pg.wait_for_timeout(1500)
+
+    def check(label, h, w):
+        m = pg.evaluate(FIT1003_CARDS)
+        bad = [r for r in m["rows"] if r["h"] > m["H"] - 49]
+        ok(f"★ {tag}{label} {w}×{h}：每張卡高度 ≤ 可視高 − 49（{m['H'] - 49}），整張看得完", bad == [], bad)
+        ok(f"{tag}{label} {w}×{h}：頁面沒有橫向捲軸", m["sx"] <= m["vw"] + 1, (m["sx"], m["vw"]))
+        return m
+
+    for (w, h) in ((1440, 900), (1920, 1080)):
+        for hs, label in ROUTES:
+            land(h, w, hs)
+            check(label, h, w)
+        land(h, w, f"stock/{code}")
+        wait_until(pg, "() => !!document.getElementById('skChartCard')", 12000)
+        pg.wait_for_timeout(1200)
+        for t in STOCK_TABS:
+            if not count(pg, f'#stockTabs button[data-t="{t}"]'):
+                ok(f"{tag}個股分頁鈕 {t} 存在", False, t); continue
+            pg.eval_on_selector(f'#stockTabs button[data-t="{t}"]', "b => b.click()"); pg.wait_for_timeout(1300)
+            check(f"個股・{t}", h, w)
+
+    # ② 視窗高度縮矮：資金去向、輪盤、個股 K 線的圖高要跟著重算
+    def hts():
+        return pg.evaluate("""() => { const g = (s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().height) : null; };
+            return { H: innerHeight, sk: g('#flowSankeyCard'), rot: g('#flowRotCard'), kl: g('#skChartCard') }; }""")
+    land(1000, 1440, "flow/sankey"); a = hts()
+    pg.set_viewport_size({"width": 1440, "height": 700}); pg.wait_for_timeout(900); b = hts()
+    ok(f"★ {tag}資金去向：視窗從 1000 縮到 700 高，卡跟著縮（{a['sk']} → {b['sk']}）且 ≤ 700 − 49",
+       a["sk"] and b["sk"] and b["sk"] < a["sk"] - 20 and b["sk"] <= 700 - 49, (a, b))
+    land(1000, 1440, "flow/rotation"); a = hts()
+    pg.set_viewport_size({"width": 1440, "height": 700}); pg.wait_for_timeout(900); b = hts()
+    ok(f"★ {tag}資金輪動：視窗從 1000 縮到 700 高，卡跟著縮（{a['rot']} → {b['rot']}）且 ≤ 700 − 49",
+       a["rot"] and b["rot"] and b["rot"] < a["rot"] - 20 and b["rot"] <= 700 - 49, (a, b))
+    land(1000, 1440, f"stock/{code}"); wait_until(pg, "() => !!document.getElementById('skChartCard')", 12000); pg.wait_for_timeout(1200); a = hts()
+    # K 線本體有下限 420（再矮副圖與價格軸擠在一起），所以個股頁最矮驗到 800（規格尺寸；700 時 420 ＋ 卡內其他 290 ＝ 710 放不下，是設計取捨）
+    pg.set_viewport_size({"width": 1440, "height": 800}); pg.wait_for_timeout(900); b = hts()
+    ok(f"★ {tag}個股 K 線卡：視窗從 1000 縮到 800 高，卡跟著縮（{a['kl']} → {b['kl']}）且 ≤ 800 − 49",
+       a["kl"] and b["kl"] and b["kl"] < a["kl"] - 20 and b["kl"] <= 800 - 49, (a, b))
+
+    # ③ 夠高的視窗不被過度壓縮
+    land(1080, 1920, f"stock/{code}"); wait_until(pg, "() => !!document.getElementById('lwc')", 12000); pg.wait_for_timeout(1200)
+    kl = pg.evaluate("() => Math.round(document.getElementById('lwc').getBoundingClientRect().height)")
+    ok(f"{tag}1920×1080 個股 K 線本體 ≥ 560（沒有被壓得太矮）", kl >= 560, kl)
+    land(1080, 1920, "flow/rotation")
+    rc = pg.evaluate("() => { const e = document.getElementById('rotClock'); return e ? Math.round(e.getBoundingClientRect().height) : 0; }")
+    ok(f"{tag}1920×1080 輪盤盤面 ≥ 500（沒有被壓得太小）", rc >= 500, rc)
+
+    # 手機不動
+    for hs in ("overview", "flow/rotation", f"stock/{code}"):
+        land(844, 390, hs)
+        sx = pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]")
+        ok(f"{tag}390 手機 #{hs} 沒有橫向捲軸（手機版面不動）", sx[0] <= sx[1] + 1, sx)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
 SECTIONS = {
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
@@ -20080,6 +20165,8 @@ SECTIONS = {
     "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
     # ★ 2026-10-03 Andy 再兩件（DECISIONS #306，⚠ 一律 --workers 1）：關聯圖只留上方剖析圖有的環節（對不上整塊不顯示）、3D 初始大小 70%
     "關聯圖對應與3D大小1003": lambda pg, b, base, code: t_rel_scope_3d_1003(b, base),
+    # ★ 2026-10-03 Andy：「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」—— 每張圖表卡 ≤ 一屏可視高、視窗縮矮跟著縮（DECISIONS #308，⚠ 一律 --workers 1）
+    "一屏看完1003":        lambda pg, b, base, code: t_fit_screen_1003(pg, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
