@@ -20266,6 +20266,8 @@ SECTIONS = {
     "關聯圖對應與3D大小1003": lambda pg, b, base, code: t_rel_scope_3d_1003(b, base),
     # ★ 2026-10-03 Andy：「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」—— 每張圖表卡 ≤ 一屏可視高、視窗縮矮跟著縮（DECISIONS #308，⚠ 一律 --workers 1）
     "一屏看完1003":        lambda pg, b, base, code: t_fit_screen_1003(pg, base, code),
+    # ★ 2026-10-03 手機 V2（Andy：「依據現有版本作手機網頁，記得左右不要浪費太多空白」，DECISIONS #314，⚠ 一律 --workers 1）
+    "手機V2版面1003":      lambda pg, b, base, code: t_mobile_v2_1003(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -44757,6 +44759,212 @@ def t_rel_scope_3d_1003(b, base):
         ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
     ctx.close()
     ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
+
+# ======================================================================================
+# 手機V2版面1003（DECISIONS #314）：電腦版的資訊架構搬到手機（≤820）、左右留白最小、一屏看完
+# ======================================================================================
+M4_MEAS = r"""() => {
+ const vw = innerWidth, de = document.documentElement;
+ const tabs = document.getElementById('tabs'); const bot = tabs ? tabs.getBoundingClientRect().top : innerHeight;
+ let top = 0;
+ ['.topbar', '#mbHead', '.view.on > .mpager', '.view.on > .mspine'].forEach(s => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return;
+   const cs = getComputedStyle(e);
+   if (cs.position === 'fixed') top = Math.max(top, e.getBoundingClientRect().bottom);
+   else if (cs.position === 'sticky') top = Math.max(top, (parseFloat(cs.top) || 0) + e.getBoundingClientRect().height); });
+ const cards = [...document.querySelectorAll('main .view.on .card')].filter(c => c.getClientRects().length && !(c.parentElement && c.parentElement.closest('.card')) && c.getBoundingClientRect().height > 40);
+ let gl = 999, gr = 999; cards.forEach(c => { const b = c.getBoundingClientRect(); if (b.width < 100) return; gl = Math.min(gl, b.left); gr = Math.min(gr, vw - b.right); });
+ const charts = cards.filter(c => [...c.querySelectorAll('canvas, svg')].some(x => { const r = x.getBoundingClientRect(); return r.width > 120 && r.height > 100; }))
+   .map(c => ({ id: c.id || String(c.className).slice(0, 20), h: Math.round(c.getBoundingClientRect().height) }));
+ return { sw: de.scrollWidth, cw: de.clientWidth, gl: Math.round(gl), gr: Math.round(gr), avail: Math.round(bot - top), charts, n: cards.length };
+}"""
+
+
+def t_mobile_v2_1003(b, base, code):
+    """手機 V2（Andy 2026-10-03：「依據現有版本作手機網頁，記得左右不要浪費太多空白」）。
+
+    390（is_mobile＋has_touch＋DPR2）為主，360／768 抽驗；每一條都驗「畫面真的因此改變了」：
+      ① 每頁（含每個分段、個股每個分頁）沒有橫向捲軸、卡片左右留白 4～12px
+      ② 頁首＝頁名＋台北時間（時間真的每秒在走）、右上是搜尋與明暗；明暗真的切換、寫進 localStorage
+      ③ 底部分頁列照電腦版側欄順序（總覽｜資金流向｜熱力圖｜產業地圖｜更多），每一顆點了路由真的換、頁名跟著換
+      ④「更多」抽屜：事件（抽屜真的打開）、市場明細／週期統計／自選（真的換頁）、外觀（面板真的打開、在視窗內）
+      ⑤ 分段名＝電腦版子分頁名；電腦版子分頁網址（#flow/sankey、#heatmap/theme）在手機翻到同名那一段
+      ⑥ 一屏看完：圖表卡高 ≤ 可視高（頁首／黏著列 → 底部導覽之間），逐頁逐分段量；資金排行「看全部」真的展開；產業地圖兩張圖真的切
+      ⑦ 個股：分頁＝K線＋電腦版十頁，點每一頁 → 電腦版那一頁真的換成它、內容真的出現；AI 四格 2×2、點一格跳到總覽 AI 卡
+      ⑧ 桌機（1440）完全沒有手機 V2 的痕跡（#mHd、.m4gpseg 不存在，mobile4.css 規則一條都沒命中）
+    """
+    T = "[手機V2版面1003]"
+    errs: list[str] = []
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    try:
+        # ---------- ② 頁首 ----------
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        wait_until(pg, "() => !!document.querySelector('#mHd .mpt') && !!(document.getElementById('mClock') || {dataset:{}}).dataset", 8000)
+        pg.wait_for_timeout(400)
+        h0 = pg.evaluate("""() => { const c = document.getElementById('mClock'), hd = document.getElementById('mHd');
+            const vis = (s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none'; };
+            const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)]; };
+            return { pt: hd ? hd.querySelector('.mpt').textContent : '', t: c ? c.getAttribute('data-t') : '', fs: c ? parseFloat(getComputedStyle(c, '::before').fontSize) : 0,
+              logo: vis('.brand > .logo'), site: vis('.brand > div:not(.logo) > b'), more: vis('#moreBtn'), search: r('#mSearchBtn'), theme: r('#themeBtn'), bar: r('.topbar') }; }""")
+        ok(f"{T}390 頁首左邊＝頁名「總覽」＋台北時間（MM/DD（週）HH:MM:SS）、站名 logo 與「⋯」收掉",
+           h0["pt"] == "總覽" and re.match(r"^\d\d/\d\d（.）\d\d:\d\d:\d\d$", h0["t"] or "") and h0["fs"] >= 11 and not h0["logo"] and not h0["site"] and not h0["more"], h0)
+        ok(f"{T}390 右上搜尋、明暗兩顆 ≥ 40×40、都在頂欄裡、明暗在最右",
+           h0["search"] and h0["theme"] and h0["search"][2] >= 40 and h0["theme"][3] >= 40 and h0["theme"][0] > h0["search"][0]
+           and h0["theme"][0] + h0["theme"][2] <= 390 and h0["bar"][3] <= 56, h0)
+        pg.wait_for_timeout(1300)
+        t1 = pg.evaluate("() => document.getElementById('mClock').getAttribute('data-t')")
+        ok(f"{T}390 頁首時間真的在走（1.3 秒後換了）", t1 and t1 != h0["t"], [h0["t"], t1])
+        th0 = pg.evaluate("() => document.documentElement.getAttribute('data-theme') || 'dark'")
+        pg.tap("#themeBtn"); pg.wait_for_timeout(700)
+        th1 = pg.evaluate("() => [document.documentElement.getAttribute('data-theme'), localStorage.getItem('tw.theme')]")
+        ok(f"{T}390 點右上明暗 → 真的切換、寫進 localStorage", th1[0] != th0 and th1[1] == th1[0], [th0, th1])
+        pg.tap("#themeBtn"); pg.wait_for_timeout(700)
+        # 登入鈕（會員功能在本機是關的 → 塞一顆假的 #acctBtn 量位置：要在搜尋與明暗中間、40×40）
+        lg = pg.evaluate("""() => { const bar = document.getElementById('acctBar'); if (!bar) return null;
+            const b = document.createElement('button'); b.id = 'acctBtn'; b.className = 'abtn'; b.textContent = '登入'; bar.appendChild(b);
+            const r = (s) => document.querySelector(s).getBoundingClientRect();
+            const o = { a: r('#acctBtn'), s: r('#mSearchBtn'), t: r('#themeBtn') }; b.remove();
+            return { w: Math.round(o.a.width), h: Math.round(o.a.height), between: o.a.left > o.s.left && o.a.left < o.t.left, top: Math.round(o.a.top) }; }""")
+        ok(f"{T}390 登入鈕（會員功能開著時）在搜尋與明暗中間、40×40", lg and lg["w"] >= 40 and lg["h"] >= 40 and lg["between"], lg)
+
+        # ---------- ③ 底部分頁列 ----------
+        nav = pg.evaluate("""() => [...document.querySelectorAll('#tabs > .tab, #tabs > .mtabmore')].filter(t => t.getClientRects().length)
+            .map(t => ({ v: t.dataset.view || 'more', x: Math.round(t.getBoundingClientRect().left), h: Math.round(t.getBoundingClientRect().height),
+              txt: t.textContent.trim(), ic: (getComputedStyle(t, '::before').maskImage || getComputedStyle(t, '::before').webkitMaskImage || '').indexOf('svg') >= 0 }))
+            .sort((a, b) => a.x - b.x)""")
+        ok(f"{T}390 底部分頁照電腦版側欄順序：總覽｜資金流向｜熱力圖｜產業地圖｜更多（線條圖示、≥ 44px 高、「產業地圖」四個字）",
+           [x["v"] for x in nav] == ["overview", "flow", "heatmap", "industry", "more"] and all(x["ic"] and x["h"] >= 44 for x in nav)
+           and [x["txt"] for x in nav][3] == "產業地圖", nav)
+        for v, nm in (("flow", "資金流向"), ("heatmap", "熱力圖"), ("industry", "產業地圖"), ("overview", "總覽")):
+            pg.tap(f"#tabs .tab[data-view='{v}']")
+            got = wait_until(pg, f"() => location.hash.startsWith('#{v}') && !!document.querySelector('#v-{v}.on') && (document.querySelector('#mHd .mpt') || {{}}).textContent === '{nm}' ? 1 : 0", 6000)
+            ok(f"{T}390 點底部「{nm}」→ 路由真的換、頁首頁名跟著換", bool(got),
+               pg.evaluate("() => [location.hash, (document.querySelector('.view.on') || {}).id, (document.querySelector('#mHd .mpt') || {}).textContent]"))
+
+        # ---------- ④「更多」抽屜 ----------
+        for m, v, nm in (("market", "market", "市場明細"), ("season", "season", "週期統計"), ("watch", "watch", "自選")):
+            pg.tap("#mTabMore"); wait_until(pg, "() => { const s = document.getElementById('mSheet'); return s && !s.hidden && s.dataset.kind === 'more'; }", 3000)
+            rows = pg.evaluate("() => [...document.querySelectorAll('#mSheet .mrow')].map(r => r.dataset.m)")
+            if m == "market":
+                ok(f"{T}390「更多」抽屜依電腦版側欄順序列出 事件｜市場明細｜週期統計｜自選｜外觀", rows == ["events", "market", "season", "watch", "look"], rows)
+            pg.tap(f"#mSheet .mrow[data-m='{m}']")
+            got = wait_until(pg, f"() => !!document.querySelector('#v-{v}.on') && (document.querySelector('#mHd .mpt') || {{}}).textContent === '{nm}' && document.getElementById('mTabMore').classList.contains('on') ? 1 : 0", 6000)
+            ok(f"{T}390「更多 → {nm}」真的換頁、頁名換、「更多」亮起", bool(got), pg.evaluate("() => [location.hash, (document.querySelector('#mHd .mpt') || {}).textContent]"))
+        pg.tap("#mTabMore"); pg.wait_for_timeout(400); pg.tap("#mSheet .mrow[data-m='events']"); pg.wait_for_timeout(700)
+        ev = pg.evaluate("() => { const s = document.getElementById('side'); const r = s.getBoundingClientRect(); return { hid: s.getAttribute('aria-hidden'), l: Math.round(r.left), r: Math.round(r.right) }; }")
+        ok(f"{T}390「更多 → 今日事件」→ 事件抽屜真的打開、在視窗內", ev["hid"] == "false" and ev["l"] >= -1 and ev["r"] <= 391, ev)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+        pg.tap("#mTabMore"); pg.wait_for_timeout(400); pg.tap("#mSheet .mrow[data-m='look']"); pg.wait_for_timeout(600)
+        lk = pg.evaluate("() => { const p = document.getElementById('t4Pop'); if (!p) return null; const r = p.getBoundingClientRect(); return { hid: p.hidden, l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), n: p.querySelectorAll('.t4o').length }; }")
+        ok(f"{T}390「更多 → 外觀」→ 三套風格面板真的打開、整塊在視窗內（不壓到底部導覽）", lk and not lk["hid"] and lk["n"] == 3 and lk["l"] >= 0 and lk["r"] <= 390 and lk["t"] >= 0 and lk["b"] <= 844 - 58, lk)
+        pg.keyboard.press("Escape"); pg.mouse.click(5, 300); pg.wait_for_timeout(300)
+
+        # ---------- ⑤ 分段名＝電腦版子分頁名、電腦版網址翻到同名那一段 ----------
+        for h, want, cur in (("#flow/sankey", ["資金輪動", "資金去向", "族群×法人", "集中度"], "資金去向"),
+                             ("#flow/inst", None, "族群×法人"), ("#heatmap/theme", ["產業", "題材", "題材細節"], "題材"), ("#heatmap/industry", None, "產業")):
+            pg.goto(f"{base}{h}", wait_until="networkidle")
+            wait_until(pg, "() => document.querySelectorAll('.view.on > .mpager > button').length >= 2", 8000); pg.wait_for_timeout(700)
+            st = pg.evaluate("() => ({ segs: [...document.querySelectorAll('.view.on > .mpager > button')].map(b => b.textContent.trim()), on: (document.querySelector('.view.on > .mpager > button.on') || {}).textContent })")
+            ok(f"{T}390 開電腦版網址 {h} → 手機翻到「{cur}」那一段" + ("（分段名＝電腦版子分頁名）" if want else ""),
+               (want is None or st["segs"] == want) and (st["on"] or "").strip() == cur, st)
+
+        # ---------- ① ⑥ 每頁每段：橫捲、左右留白、圖表卡 ≤ 可視高 ----------
+        # 量不到「一張卡一件事」的兩頁另外記：產業鏈頁的剖析圖卡（剖析圖＋逐段說明＋關聯圖是同一張大卡）、題材細節（剖析圖整頁）——列在 HANDOFF 下一版
+        SKIP = {"nbcard", "themeDetail"}
+        for rt in ("overview", "flow", "heatmap", "industry", "market", "season", "watch"):
+            pg.goto(f"{base}#{rt}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+            steps = pg.evaluate("() => document.querySelectorAll('.view.on > .mspine > button').length") or 1
+            for s in range(steps):
+                if steps > 1:
+                    pg.evaluate(f"() => document.querySelectorAll('.view.on > .mspine > button')[{s}].click()"); pg.wait_for_timeout(800)
+                segs = pg.evaluate("() => [...document.querySelectorAll('.view.on > .mpager > button')].map(b => b.textContent.trim())") or ["-"]
+                for i, nm in enumerate(segs):
+                    if nm != "-":
+                        pg.evaluate(f"() => document.querySelectorAll('.view.on > .mpager > button')[{i}].click()"); pg.wait_for_timeout(1100)
+                    me = pg.evaluate(M4_MEAS)
+                    tag = f"{rt}/{nm}"
+                    ok(f"{T}390 {tag} 沒有橫向捲軸", me["sw"] <= me["cw"] + 1, me)
+                    if me["n"]:
+                        ok(f"{T}390 {tag} 卡片左右留白 4～12px", 4 <= me["gl"] <= 12 and 4 <= me["gr"] <= 12, me)
+                    over = [c for c in me["charts"] if c["h"] > me["avail"] and not any(k in c["id"] for k in SKIP)]
+                    ok(f"{T}390 {tag} 圖表卡高 ≤ 可視高（{me['avail']}px）", not over, me)
+        # 資金排行「看全部」真的展開、產業地圖兩張圖真的切
+        pg.goto(f"{base}#flow/rotation", wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#mRank li').length > 0", 8000)
+        r0 = pg.evaluate("() => [document.querySelectorAll('#mRank li').length, !document.getElementById('mRankMore').hidden]")
+        pg.tap("#mRankMore"); pg.wait_for_timeout(500)
+        r1 = pg.evaluate("() => [document.querySelectorAll('#mRank li').length, !document.getElementById('mRankMore').hidden]")
+        ok(f"{T}390 資金排行預設前 5 名、按「看全部」→ 真的展開成全部、按鈕收掉", r0 == [5, True] and r1[0] > 5 and not r1[1], [r0, r1])
+        pg.goto(f"{base}#industry", wait_until="networkidle")
+        wait_until(pg, "() => !!document.querySelector('.m4gpseg')", 8000)
+        g0 = pg.evaluate("() => [...document.querySelectorAll('.gpgrid > .gpcard')].map(c => c.getClientRects().length > 0)")
+        pg.tap(".m4gpseg button[data-i='1']"); pg.wait_for_timeout(600)
+        g1 = pg.evaluate("() => [[...document.querySelectorAll('.gpgrid > .gpcard')].map(c => c.getClientRects().length > 0), Math.round(document.getElementById('gpPie').getBoundingClientRect().width)]")
+        ok(f"{T}390 產業地圖「族群漲跌幅｜成交值占比」一次一張、點分段真的換成圓餅（圓餅有寬度）", g0 == [True, False] and g1[0] == [False, True] and g1[1] > 200, [g0, g1])
+
+        # ---------- ⑦ 個股 ----------
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 10", 15000); pg.wait_for_timeout(800)
+        tabs = pg.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].map(b => [b.dataset.t, b.textContent.trim()])")
+        ok(f"{T}390 個股分頁＝K線＋電腦版十頁（同名、同順序）", [x[1] for x in tabs] == ["K線", "總覽", "基本資料", "指標", "營收", "獲利", "除權息", "法人", "資券", "大戶／散戶", "公告／新聞"]
+           and [x[0] for x in tabs[1:]] == pg.evaluate("() => [...document.querySelectorAll('#stockTabs button[data-t]')].map(b => b.dataset.t)"), tabs)
+        ai = pg.evaluate("""() => { const t = [...document.querySelectorAll('#skChartCard > #skAi .aitab')].filter(b => b.getClientRects().length).map(b => b.getBoundingClientRect());
+            return { n: t.length, rows: new Set(t.map(r => Math.round(r.top))).size, cols: new Set(t.map(r => Math.round(r.left))).size, h: t.length ? Math.round(t[0].height) : 0 }; }""")
+        ok(f"{T}390 K 線頁頂端 AI 四面向 2×2（兩列兩欄、每格 ≥ 32px）", ai == {**ai, "n": 4, "rows": 2, "cols": 2} and ai["h"] >= 32, ai)
+        me = pg.evaluate(M4_MEAS)
+        ok(f"{T}390 K 線卡 ≤ 可視高（報價列＋分頁列 → 底部導覽）", me["charts"] and all(c["h"] <= me["avail"] for c in me["charts"]), me)
+        lw = pg.evaluate("() => [Math.round(document.getElementById('lwc').getBoundingClientRect().width), Math.round(document.getElementById('skChartCard').getBoundingClientRect().width)]")
+        ok(f"{T}390 K 線吃滿卡寬（左右各 ≤ 12px）", lw[1] - lw[0] <= 24, lw)
+        prev = ""
+        for t, nm in tabs[1:]:
+            pg.tap(f"#mbTabs button[data-t='{t}']")
+            got = wait_until(pg, f"""() => document.body.dataset.mbt === '{t}' && (document.querySelector('#stockTabs button.on') || {{dataset:{{}}}}).dataset.t === '{t}'
+                && document.getElementById('stockTab').getClientRects().length > 0 && document.getElementById('stockTab').innerText.trim().length > 20 ? 1 : 0""", 8000)
+            sig = pg.evaluate("() => document.getElementById('stockTab').innerText.slice(0, 200)")
+            me = pg.evaluate(M4_MEAS)
+            ok(f"{T}390 個股「{nm}」→ 電腦版那一頁真的換成它、內容出現（跟上一頁不同）、K 線卡收起來", bool(got) and sig != prev
+               and not pg.evaluate("() => document.getElementById('skChartCard').getClientRects().length > 0"), [t, sig[:60]])
+            ok(f"{T}390 個股「{nm}」沒有橫向捲軸、左右留白 ≤ 12px", me["sw"] <= me["cw"] + 1 and me["gl"] <= 12 and me["gr"] <= 12, me)
+            ok(f"{T}390 個股「{nm}」圖表卡 ≤ 可視高", all(c["h"] <= me["avail"] for c in me["charts"]), me)
+            prev = sig
+        pg.tap("#mbTabs button[data-t='k']"); pg.wait_for_timeout(800)
+        pg.tap("#skChartCard #aiTab-fund"); pg.wait_for_timeout(1500)
+        j = pg.evaluate("() => { const c = document.getElementById('ovAiCard'); const r = c ? c.getBoundingClientRect() : null; return { mbt: document.body.dataset.mbt, top: r ? Math.round(r.top) : null, vis: !!c && c.getClientRects().length > 0, on: (document.querySelector('#ovFacets > .on, #ovAiCard [aria-selected=true]') || {}).textContent || '' }; }")
+        ok(f"{T}390 點 K 線頁的 AI「基本面」→ 切到「總覽」、AI 卡捲進畫面", j["mbt"] == "overview" and j["vis"] and j["top"] is not None and 0 <= j["top"] < 844 - 58, j)
+    finally:
+        ctx.close()
+
+    # ---------- 360、768 抽驗 ----------
+    for w, h in ((360, 780), (768, 1024)):
+        c2 = b.new_context(viewport={"width": w, "height": h}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        p2 = c2.new_page()
+        p2.on("pageerror", lambda e: errs.append(f"{w}: {e}"))
+        try:
+            for rt in ("overview", "flow", "heatmap", "industry", "market", "season", "watch", f"stock/{code}"):
+                p2.goto(f"{base}#{rt}", wait_until="networkidle"); p2.wait_for_timeout(1400)
+                me = p2.evaluate(M4_MEAS)
+                hd = p2.evaluate("() => { const e = document.querySelector('#mHd .mpt'); const t = document.getElementById('themeBtn').getBoundingClientRect(); return [e ? e.textContent : '', Math.round(t.right)]; }")
+                ok(f"{T}{w} #{rt} 手機版頁首（頁名）、沒有橫向捲軸、左右留白 4～12px、明暗鈕在視窗內",
+                   hd[0] and me["sw"] <= me["cw"] + 1 and 4 <= me["gl"] <= 12 and 4 <= me["gr"] <= 12 and hd[1] <= w, [hd, me])
+        finally:
+            c2.close()
+
+    # ---------- ⑧ 桌機零痕跡 ----------
+    c3 = b.new_context(viewport={"width": 1440, "height": 900})
+    p3 = c3.new_page()
+    try:
+        for rt in ("overview", "flow", "industry", f"stock/{code}"):
+            p3.goto(f"{base}#{rt}", wait_until="networkidle"); p3.wait_for_timeout(1200)
+            d = p3.evaluate("""() => { let hits = 0; const sh = [...document.styleSheets].find(s => (s.href || '').indexOf('mobile4.css') >= 0);
+                if (sh) [...sh.cssRules].forEach(r => { if (r.media) [...r.cssRules].forEach(x => { try { if (x.selectorText && document.querySelector(x.selectorText)) { if (matchMedia(r.media.mediaText).matches) hits++; } } catch (e) {} }); });
+                return { mhd: !!document.getElementById('mHd'), seg: !!document.querySelector('.m4gpseg'), m3on: document.body.classList.contains('m3on'), sheet: !!sh, hits }; }""")
+            ok(f"{T}1440 #{rt} 桌機沒有手機 V2 的痕跡（沒有 #mHd／.m4gpseg、mobile4.css 一條規則都沒生效）", d["sheet"] and not d["mhd"] and not d["seg"] and not d["m3on"] and d["hits"] == 0, d)
+    finally:
+        c3.close()
+    ok(f"{T}整段沒有頁面錯誤", not errs, errs[:5])
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
