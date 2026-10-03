@@ -16512,8 +16512,10 @@ def t_design_v4(b, base, code):
 
     驗「畫面真的因此改變了」，不是驗元素存在：
       ① 沒存過任何偏好＝科技 HUD・深色；骨架數字真的生效（卡片間距 12、卡片內距 12/16、頁邊 16、行高 1.55、標題列一行）
-      ② 真的在外觀設定面板點三套風格 × 深淺：data-theme4／data-theme 換掉、CSS 變數真的變（六組 --bg 互不相同）、
+      ② 真的在外觀設定面板點三套風格、用右上角 ☀／🌙 切深淺：data-theme4／data-theme 換掉、CSS 變數真的變（六組 --bg 互不相同）、
          localStorage 真的寫進去、圖表色票（App.CH.ink）跟著換、關鍵文字對比 ≥ 4.5
+         ★ 2026-10-03（Andy：「這邊重複到了，改進」）：面板裡的「明暗：深色｜淺色」拿掉，明暗只剩右上角 ☀／🌙 一個入口 ——
+           所以驗「面板裡沒有任何明暗控制、說明指向 ☀／🌙」，深淺改成真的按 #themeBtn。
       ③ 重新整理後保留；面板裡「按下去的那顆」也對；☀ 鈕照舊能切明暗
       ④ 舊使用者相容：只存了 tw.theme=light（沒有 tw.theme4）→ 科技 HUD・淺，字看得見；存了不認得的風格 → 科技 HUD
       ⑤ 圖表共用規格：軸字 12、提示框 13、HUD 虛線／專業實線、直向格線關掉
@@ -16557,20 +16559,35 @@ def t_design_v4(b, base, code):
     click(pg, "#t4Btn", 400)
     ok("② 按「外觀」面板真的出現", pg.evaluate("""() => { const p = document.getElementById('t4Pop'); if (!p || p.hidden) return false;
         const r = p.getBoundingClientRect(); return r.width > 100 && r.bottom < innerHeight + 2 && r.right <= innerWidth + 1; }"""))
-    ok("② 面板裡三套風格＋深淺兩顆", count(pg, "#t4Pop .t4o") == 3 and count(pg, "#t4Pop .t4m") == 2)
+    ok("② 面板裡三套風格", count(pg, "#t4Pop .t4o") == 3)
+    # ★ 2026-10-03 去重：面板裡不准再有任何明暗控制（舊的 .t4m／data-t4m、標題「明暗」、寫著深色／淺色的按鈕），說明指向右上角 ☀／🌙
+    dd = pg.evaluate("""() => { const p = document.getElementById('t4Pop');
+        return { t4m: p.querySelectorAll('.t4m, [data-t4m], .t4modes').length,
+                 h4: [...p.querySelectorAll('h4')].map(h => h.textContent.trim()),
+                 modeBtns: [...p.querySelectorAll('button')].filter(b => /深色|淺色|明暗/.test(b.textContent)).length,
+                 hint: (p.querySelector('.t4hint') || {}).textContent || '' }; }""")
+    ok("② 去重：外觀面板裡沒有明暗控制（沒有 .t4m／data-t4m、沒有「明暗」標題、沒有寫深色／淺色的按鈕）",
+       dd["t4m"] == 0 and dd["h4"] == ["版面風格"] and dd["modeBtns"] == 0, dd)
+    ok("② 去重：面板說明改成「用右上角 ☀／🌙 切換」", "右上角" in dd["hint"] and "☀／🌙" in dd["hint"] and "這台瀏覽器" in dd["hint"], dd)
     seen = {}
     KEY_SEL = ["main .card h3", "#ovHeatCard .t4-lede", ".topbar .tab:not(.on)", "#t4Btn", "#m3Kpis, #hero"]
     for th in ["casual", "hud", "pro"]:
         for md in ["dark", "light"]:
             _v4_popclick(pg, f'#t4Pop .t4o[data-t4="{th}"]', 900)
-            _v4_popclick(pg, f'#t4Pop .t4m[data-t4m="{md}"]', 1400)
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+            # 深淺只剩右上角 ☀／🌙：目前不是要的那一邊才按一下（真的用滑鼠按 #themeBtn）
+            if st()["mode"] != md:
+                theme_flip(pg, 1400)
             wait_until(pg, "() => !!document.querySelector('#ovHeatCard .t4-lede')", 5000)
             s = st(); tag = f"{th}・{'深' if md == 'dark' else '淺'}"
             ok(f"② {tag}：data-theme4／data-theme 真的換掉", s["t4"] == th and s["mode"] == md, s)
             ok(f"② {tag}：localStorage 寫進去", s["ls"].get("t4") == th and s["ls"].get("t") == md, s["ls"])
             ok(f"② {tag}：圖表色票跟著 CSS 變數換（App.CH.ink == --ink）", (s["ch"] or "").lower() == s["ink"].lower(), s)
-            ok(f"② {tag}：面板按下去的是這兩顆", pg.evaluate(f"""() => document.querySelector('#t4Pop .t4o[data-t4="{th}"]').getAttribute('aria-pressed') === 'true'
-                && document.querySelector('#t4Pop .t4m[data-t4m="{md}"]').getAttribute('aria-pressed') === 'true'"""))
+            ok(f"② {tag}：右上角圖示對（深色顯示 ☀、淺色顯示 🌙）",
+               pg.evaluate("() => document.getElementById('themeBtn').textContent.trim()") == ("☀" if md == "dark" else "🌙"))
+            click(pg, "#t4Btn", 300)
+            ok(f"② {tag}：面板按下去的是這套風格（只有一顆）", pg.evaluate(f"""() => document.querySelector('#t4Pop .t4o[data-t4="{th}"]').getAttribute('aria-pressed') === 'true'
+                && document.querySelectorAll('#t4Pop .t4o[aria-pressed="true"]').length === 1"""))
             seen[tag] = s["bg"]
             pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
             ok(f"② {tag}：按 Esc 面板收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
@@ -16583,7 +16600,9 @@ def t_design_v4(b, base, code):
 
     # ---- ③ 重新整理保留
     _v4_popclick(pg, '#t4Pop .t4o[data-t4="casual"]', 900)
-    _v4_popclick(pg, '#t4Pop .t4m[data-t4m="dark"]', 1200)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    if st()["mode"] != "dark":
+        theme_flip(pg, 1200)
     pg.goto("about:blank"); pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
     s = st()
     ok("③ 重新整理後還是親和休閒・深", s["t4"] == "casual" and s["mode"] == "dark", s)
@@ -16594,7 +16613,9 @@ def t_design_v4(b, base, code):
     theme_flip(pg, 1400)
     ok("③ ☀ 鈕（電腦版在頁首右上角）照舊切得動明暗", st()["mode"] == "light")
     click(pg, "#t4Btn", 300)
-    ok("③ ☀ 切完之後面板的「淺色」是按下去的", pg.evaluate("() => document.querySelector('#t4Pop .t4m[data-t4m=\"light\"]').getAttribute('aria-pressed') === 'true'"))
+    ok("③ ☀ 切完明暗之後面板的風格不變（還是親和休閒）、「外觀」鈕提示字寫淺色",
+       pg.evaluate("""() => document.querySelector('#t4Pop .t4o[data-t4="casual"]').getAttribute('aria-pressed') === 'true'
+           && document.documentElement.getAttribute('data-theme4') === 'casual' && /淺色/.test(document.getElementById('t4Btn').title)"""))
     pg.keyboard.press("Escape")
 
     # ---- ⑤ 圖表共用規格
@@ -16645,6 +16666,24 @@ def t_design_v4(b, base, code):
     ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
     ok("⑥ 390：沒有橫向捲軸", ov <= 1, ov)
     ok("⑥ 390：頂欄「外觀」鈕收起來（入口在清單裡）", p.evaluate("() => getComputedStyle(document.getElementById('t4Btn')).display") == "none")
+    # ★ 2026-10-03 去重：手機的風格段也不准有明暗控制；明暗入口仍在頁首右上（「⋯」→「明亮／深色主題」），而且按了真的換
+    if p.evaluate("() => document.getElementById('morePop').hidden"):
+        p.locator("#moreBtn").click(timeout=6000); p.wait_for_timeout(400)
+    mm = p.evaluate("""() => { const box = document.getElementById('mmT4'), mb = document.getElementById('moreBtn'), r = mb.getBoundingClientRect(),
+        tb = document.querySelector('.topbar').getBoundingClientRect(), th = document.getElementById('mmTheme');
+        return { t4m: box.querySelectorAll('.t4m, [data-t4m]').length,
+                 modeBtns: [...box.querySelectorAll('button')].filter(b => /深色|淺色|明暗/.test(b.textContent)).length,
+                 more: { right: Math.round(r.right), vw: innerWidth, top: Math.round(r.top), bot: Math.round(r.bottom), tbB: Math.round(tb.bottom), w: Math.round(r.width) },
+                 theme: !!th && th.getClientRects().length > 0 && th.getBoundingClientRect().height >= 40,
+                 mode: document.documentElement.getAttribute('data-theme') || 'dark' }; }""")
+    ok("⑥ 390 去重：「⋯」清單的風格段沒有明暗控制", mm["t4m"] == 0 and mm["modeBtns"] == 0, mm)
+    ok("⑥ 390：明暗入口仍在頁首右上（「⋯」在頂欄右半、清單裡「明亮／深色主題」看得到）",
+       mm["more"]["w"] > 0 and mm["more"]["right"] > mm["more"]["vw"] * 0.6 and mm["more"]["right"] <= mm["more"]["vw"]
+       and mm["more"]["bot"] <= mm["more"]["tbB"] + 2 and mm["theme"], mm)
+    p.locator("#mmTheme").click(timeout=6000); p.wait_for_timeout(1200)
+    m2 = p.evaluate("() => [document.documentElement.getAttribute('data-theme') || 'dark', localStorage.getItem('tw.theme'), document.documentElement.getAttribute('data-theme4')]")
+    ok("⑥ 390：按「明亮／深色主題」→ 明暗真的換、記住，風格不受影響（還是專業有力）",
+       m2[0] != mm["mode"] and m2[1] == m2[0] and m2[2] == "pro", {"前": mm["mode"], "後": m2})
     c.close()
 
 
@@ -43099,13 +43138,26 @@ def t_layout4_batch3(pg, base, code, T):
     pg.locator("#l4Head #themeBtn").click(timeout=15000); pg.wait_for_timeout(1800)
     m3 = pg.evaluate(MS)
     ok(f"{T}第四批④ 再按一次 → 換回深色、底色回來、localStorage 寫 dark、圖示回 ☀", m3["th"] == "dark" and m3["bg"] == m0["bg"] and m3["ls"] == "dark" and m3["ic"] == "☀", m3)
-    # 外觀面板切明暗 → 右上角 ☀ 鈕的圖示跟著換（app.js applyTheme 寫的，不管是誰切的）
+    # ★ 2026-10-03 去重（Andy：「這邊重複到了，改進」）：外觀面板只剩版面風格，明暗只有右上角 ☀／🌙 一個入口。
+    #   原本這裡驗「從外觀面板切淺色 → ☀ 跟著變」，那個入口已拿掉，改驗：面板沒有明暗控制、面板切風格照舊會換、而且不動到明暗。
     pg.locator("#l4Head #t4Btn").click(timeout=6000); pg.wait_for_timeout(300)
-    pg.locator("#t4Pop .t4m[data-t4m='light']").click(timeout=6000); pg.wait_for_timeout(1600)
-    ok(f"{T}第四批④ 從右上角外觀面板切淺色 → ☀ 鈕跟著變 🌙", pg.evaluate(MS)["ic"] == "🌙", pg.evaluate(MS))
+    pp = pg.evaluate("""() => { const p = document.getElementById('t4Pop'), r = p.getBoundingClientRect();
+        return { open: !p.hidden && r.width > 100, t4m: p.querySelectorAll('.t4m, [data-t4m], .t4modes').length,
+                 modeBtns: [...p.querySelectorAll('button')].filter(b => /深色|淺色|明暗/.test(b.textContent)).length,
+                 h4: [...p.querySelectorAll('h4')].map(h => h.textContent.trim()), opts: p.querySelectorAll('.t4o').length,
+                 hint: (p.querySelector('.t4hint') || {}).textContent || '' }; }""")
+    ok(f"{T}第四批④ 去重：右上角外觀面板只剩「版面風格」三選一（沒有明暗二段式），說明寫「用右上角 ☀／🌙 切換」",
+       pp["open"] and pp["t4m"] == 0 and pp["modeBtns"] == 0 and pp["h4"] == ["版面風格"] and pp["opts"] == 3 and "☀／🌙" in pp["hint"], pp)
+    t0 = pg.evaluate("() => [document.documentElement.getAttribute('data-theme4') || 'hud', document.documentElement.getAttribute('data-theme') || 'dark', getComputedStyle(document.body).backgroundColor]")
+    want = "pro" if t0[0] != "pro" else "casual"
+    pg.locator(f"#t4Pop .t4o[data-t4='{want}']").click(timeout=6000); pg.wait_for_timeout(1600)
+    t1 = pg.evaluate("() => [document.documentElement.getAttribute('data-theme4'), document.documentElement.getAttribute('data-theme') || 'dark', getComputedStyle(document.body).backgroundColor, localStorage.getItem('tw.theme4'), document.getElementById('themeBtn').textContent.trim()]")
+    ok(f"{T}第四批④ 面板切風格照舊：data-theme4／localStorage／底色都換，明暗不動、☀ 圖示不變",
+       t1[0] == want and t1[3] == want and t1[2] != t0[2] and t1[1] == t0[1] and t1[4] == m3["ic"], {"前": t0, "後": t1})
+    back = t0[0]
+    pg.locator(f"#t4Pop .t4o[data-t4='{back}']").click(timeout=6000); pg.wait_for_timeout(1200)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
-    pg.locator("#l4Head #themeBtn").click(timeout=15000); pg.wait_for_timeout(1200)
-    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.theme4'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
     t_layout4_subs(pg, base, T)
 
 
@@ -43167,6 +43219,10 @@ def t_layout4_subs(pg, base, T):
     pg.locator(".l4subtab[data-l4sub='flow-sankey']").click(timeout=6000)
     wait_until(pg, "() => location.hash === '#flow/sankey' && !!document.querySelector('#sankey .ftstage') ? 1 : 0", 10000)
     pg.wait_for_timeout(500)
+    # ★ 2026-10-03 去重那批量到：點完子項之後 scrollY 先停在 49（黏頂頁首高）、再平滑捲回 0，
+    #   這段在 main 與分支上一樣要 150～600ms 不等（重複量 8 次）；固定等 500ms 會偶發量到 49 → 假紅。
+    #   「回到頁首」要驗的是最後停在 0，所以最多再等 2.5 秒讓它捲完，斷言本身一個字不改。
+    wait_until(pg, "() => Math.round(scrollY) === 0 ? 1 : 0", 2500)
     s2 = pg.evaluate(L4_SUBST)
     ok(f"{T}子分頁 點「資金去向」→ hash 換成 #flow/sankey、那格亮、頁首寫「資金去向」、回到頁首",
        s2["hash"] == "#flow/sankey" and s2["on"] == ["flow-sankey"] and "資金去向" in s2["head"] and s2["sy"] == 0, s2)

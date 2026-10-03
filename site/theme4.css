@@ -419,11 +419,6 @@
 .t4pop button.t4o[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
 .t4pop .t4hint{margin-top:8px;font-size:12px;color:var(--ink-3)}
 .t4pop h4+.t4opts{margin-bottom:12px}
-/* 明暗兩顆：跟風格選項同一種按鈕語言，但一列兩顆 */
-.t4pop .t4modes{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2)}
-@media (max-width:640px){.t4pop .t4modes{gap:6px}}
-.t4pop button.t4m{min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:14px}
-.t4pop button.t4m[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset;font-weight:700}
 .morepop .t4mm button[aria-pressed="true"]{background:var(--panel-2);font-weight:700}
 /* 手機（≤820）頂欄的 ☀／事件已經收進「⋯」清單，「風格」鈕跟著收（清單裡有「版面風格」那一段） */
 @media (max-width:820px){ #t4Btn{display:none} }
