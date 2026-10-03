@@ -1265,12 +1265,14 @@
     let segFilter = opts.seg || null;
     /* ★ 2026-10-03（Andy 看「一般電子 → CNC 工具機」：上面是工具機拆解圖，下面關聯圖卻是 IC 設計、面板、被動元件……
        原話：「這兩張圖關係要對上，若無關則下方不需顯示」）。
-       關聯圖的範圍＝上方這張剖析圖上**真的掛了 data-seg 的環節**，再跟這條鏈在 supply_chain.yaml 的環節取交集：
-         · 族群總覽分頁（沒有剖析圖）→ null，整條鏈照舊
-         · 交集非空 → 關聯圖、手機環節清單、「環節 ▾」下拉都只留那幾格
+       relScope ＝上方這張剖析圖上**真的掛了 data-seg 的環節** ∩ 這條鏈在 supply_chain.yaml 的環節：
+         · 族群總覽分頁（沒有剖析圖）→ null，整條鏈、沒有反亮
          · 交集是空的（CNC 工具機、工業自動化、寬能隙、矽晶圓這幾張圖刻意一個 data-seg 都不掛，
            因為 supply_chain.yaml 沒有對應的環節）→ 整塊「供應鏈關聯圖」藏起來，不顯示一張無關的圖
-       ⚠ 只用既有資料過濾，不新增、不推測任何供應關係（不會因為「工具機會用到馬達」就去拉別的環節進來）。*/
+       ★★ 同日晚（Andy：「下方的關聯圖為何其他的都不見了，需要有對應那族群的所有關聯圖，並且反亮那族群」，DECISIONS #317）：
+         交集非空時**不再只留那幾格**（#306 第 3 節的「只留交集」推翻）—— 關聯圖、手機環節清單、「環節 ▾」下拉一律畫整條鏈，
+         relScope 改當「反亮」用：那幾格亮框亮底、其餘降到 60% 透明度（仍可讀、可點），關聯圖框自己捲到反亮的那幾欄。
+       ⚠ 只用既有資料，不新增、不推測任何供應關係。*/
     let relScope = null;
     let applyRelScope = () => {};       // 有關聯圖時在下面接上；swapDiagram（換圖不換網址）也會呼叫它
     const relScopeNow = () => {
@@ -1311,7 +1313,11 @@
       const shown = segFilter || segHi;
       const segsOn = shown ? [shown] : (state.group ? (A.L.gsegs[state.group] || []) : []);
       const color = shown ? segColor(shown) : (state.group ? A.L.gcolor[state.group] : null);
-      highlightSegments(el, segsOn, color, partHi);
+      /* ★ #317：剖析圖分頁打開時 state.group 常常就是這張圖的族群（晶圓代工、HBM…），以前會把關聯圖上其他環節的公司卡壓到 0.28。
+         現在那幾格已經由「反亮」標出來了，族群帶出來的選取就不再壓關聯圖（只在剖析圖上亮）——
+         不然其餘環節會淡到讀不出字（要的是降 35～45%、仍可讀）。使用者自己點一格（segFilter／segHi）照舊壓。*/
+      const mapOn = (shown || !(relScope && relScope.size)) ? segsOn : [];
+      highlightSegments(el, segsOn, color, partHi, mapOn);
       // 切主題會整頁重畫，選取狀態要有人記得（見上面 `_dgSnap` 那段註解）
       _dgSnap = { dg: dgId, segHi, partHi, partSel, segFilter };
       /* 「這個零件是誰做的」小卡。只有點零件才畫（partSel），
@@ -1522,8 +1528,8 @@
          noscroll ＝ 使用者的眼睛就停在剛剛點的那張標籤上，不要把頁面捲走。*/
       const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); };
       relScope = relScopeNow();
-      const scopeOnly = () => relScope;
-      let stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick, only: scopeOnly });
+      const scopeFocus = () => relScope;      // 反亮的那幾格（null＝族群總覽，沒有反亮）
+      let stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick, focus: scopeFocus });
       const mapHost = $('#chainMap', el);
       try { localStorage.removeItem('tw.relView'); } catch (e) { /* 私密視窗：讀不到也寫不了，本來就不會用它 */ }
       /* ★ 2026-09-24 說明精簡：圖的說明改成條列，住在「怎麼看 ?」（#how-rel）裡；圖例口徑放最下面一行小字。
@@ -1546,7 +1552,7 @@
         if (!mapHost) return;
         lastW = mapHost.clientWidth;
         drawChainMap(mapHost, sc, ch.id, im, {
-          only: scopeOnly,
+          focus: scopeFocus,
           onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = partSel = null; syncHighlight({ quiet: true }); },
           /* 點公司＝連同它所屬的**環節**一起選起來（不是族群）：一家公司只有一個 segment，
              卻可能掛好幾個族群，選族群就得替他猜一個。環節推族群是自動成立的（A.L.sgroups）。*/
@@ -1554,8 +1560,8 @@
           onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
         });
         const hint = $('#relHint', el) || document.getElementById('relHint');   // 「?」彈窗開著時盒子在 #howPop 裡
-        if (hint) hint.innerHTML = HINT.layer(relScope
-          ? `跟上方剖析圖對得上的 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係（換回「族群總覽」看整條鏈）`
+        if (hint) hint.innerHTML = HINT.layer(relScope && relScope.size
+          ? `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係；亮框亮底的 ${relScope.size} 格＝上方這張剖析圖畫到的環節，其餘淡一點但一樣可以點`
           : `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
@@ -1566,12 +1572,19 @@
          上面有剖析圖（桌機、這條鏈有圖）時關聯圖一定在首屏以下，直接交給 IntersectionObserver ＋ 閒置補畫；
          沒有剖析圖或手機寬時照舊當場畫。*/
       const mapBelow = !!(mapHost && hasSlots && dgId && window.innerWidth > 640);
-      /* 範圍的三個出口：整塊藏起來（交集是空的）、只留那幾格、整條鏈。只有範圍真的變了才重畫。*/
+      /* 範圍的兩個出口：整塊藏起來（交集是空的）、整條鏈＋反亮那幾格（DECISIONS #317）。只有反亮的範圍真的變了才重畫。*/
       let relKey = relScope ? [...relScope].sort().join(',') : '*';
       const paintRelScope = () => {
         const rs = $('#relSec', el);
         if (rs) rs.hidden = !!relScope && relScope.size === 0;
-        $$('#segChips .segchip[data-seg]', el).forEach(c => { c.style.display = (relScope && !relScope.has(c.dataset.seg)) ? 'none' : ''; });
+        /* 「環節 ▾」下拉（手機是那排色標）列整條鏈，反亮的那幾格加 .relfocus（CSS 在後面補一顆「圖上」標記）。
+           不再 display:none —— 那是 #306「只留交集」的做法。*/
+        $$('#segChips .segchip[data-seg]', el).forEach(c => {
+          c.style.display = '';
+          const on = !!(relScope && relScope.has(c.dataset.seg));
+          c.classList.toggle('relfocus', on);
+          if (on) c.setAttribute('data-focus', '圖上'); else c.removeAttribute('data-focus');
+        });
       };
       paintRelScope();
       applyRelScope = () => {
@@ -1580,9 +1593,9 @@
         const key = relScope ? [...relScope].sort().join(',') : '*';
         if (key === relKey) return;
         relKey = key;
-        if (segFilter && relScope && !relScope.has(segFilter)) segFilter = null;   // 篩的那一格已經不在範圍裡
-        stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick, only: scopeOnly });
+        stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick, focus: scopeFocus });
         if (lastW >= 0 && !(relScope && relScope.size === 0)) drawMap();          // 還沒畫過（延後畫）就等輪到它
+        syncHighlight({ quiet: true, noscroll: true });
       };
       if (mapBelow) deferNear(mapHost, () => { if (!mapHost.isConnected) return; drawMap(); syncHighlight({ quiet: true, noscroll: true }); });
       else drawMap();
@@ -2399,8 +2412,9 @@
        其餘                              → `.dim`（本來就有的行為）
      單一環節的圖（整張只有一個 data-seg）在 CSS 那邊多一條：次強要退到 --dg-sib-o，
      不然「14 個一起亮」跟「沒點」長得一模一樣。`.haspart` 就是那條規則的開關。*/
-  function highlightSegments(root, segs, color, part) {
+  function highlightSegments(root, segs, color, part, mapSegs) {
     const on = new Set(segs || []);
+    const onMap = mapSegs ? new Set(mapSegs) : on;     // 關聯圖、環節卡清單那一側用的（#317：族群帶出來的選取在有反亮時不壓關聯圖）
     const DG = window.DG || {};
     /* ★ 沒有環節的零件也要亮得起來（2026-09-22）。
        `on` 空的時候（點的是一個沒有 data-seg 的零件）第一個條件永遠 false ——
@@ -2439,16 +2453,16 @@
     $$('#prodDiagram svg', root).forEach(svg => svg.classList.toggle('haspart', anyPart));
     nodes.forEach(n => { n.classList.toggle('sel', onDg.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', onDg.size > 0 && !onDg.has(n.dataset.seg)); if (color && onDg.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
     bare.forEach(n => n.classList.toggle('sel-part', !!DG.partHit && DG.partHit(n, part)));
-    $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
-    $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
-    $$('.chainmap .segbox', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));   // 環節外框跟著標題一起亮（2026-10-03）
+    $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', onMap.size > 0 && !onMap.has(n.dataset.segment)));
+    $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', onMap.has(n.dataset.seg)));
+    $$('.chainmap .segbox', root).forEach(n => n.classList.toggle('sel', onMap.has(n.dataset.seg)));   // 環節外框跟著標題一起亮（2026-10-03）
     /* 環節卡清單（2026-09-23 C5 退版之後回來了）：選到的那一格 `.sel`、其餘 `.dim`。
        手機上還要順手把那張卡攤開 —— 不然「選起來了」但個股標籤還收著，看起來像沒反應。
 */
-    $$('.seglist .segcard', root).forEach(n => { const hit = on.has(n.dataset.seg);
+    $$('.seglist .segcard', root).forEach(n => { const hit = onMap.has(n.dataset.seg);
       n.classList.toggle('sel', hit);
-      n.classList.toggle('dim', on.size > 0 && !hit);
-      if (hit && on.size === 1 && segListReveal) segListReveal(n); });
+      n.classList.toggle('dim', onMap.size > 0 && !hit);
+      if (hit && onMap.size === 1 && segListReveal) segListReveal(n); });
   }
   /* ---------------------------------------------------------------- 3D 剖析圖（Three.js）
      Andy 拍板「先試試看 three.js」。四條硬性驗收都在這裡兌現：
@@ -2458,7 +2472,29 @@
   // 動畫偏好（平面圖與 3D 共用同一個開關）；沒設定過就是開
   const animPref = () => { try { return localStorage.getItem('tw.dganim') !== '0'; } catch (e) { return true; } };
 
-  function dispose3D() { if (view3d) { try { view3d.dispose(); } catch (e) { /* 忽略 */ } view3d = null; } }
+  let fit3dOff = null;               // Fit.on 的取消函式（3D 畫布高度跟著視窗高度走，#317）
+  function dispose3D() {
+    if (fit3dOff) { try { fit3dOff(); } catch (e) { /* 忽略 */ } fit3dOff = null; }
+    if (view3d) { try { view3d.dispose(); } catch (e) { /* 忽略 */ } view3d = null; }
+  }
+  /* ★ 2026-10-03 晚（Andy：「這頁 3D 回到之前那樣的大小，並且需要打開這頁就能看到完整頁面」，DECISIONS #317）：
+     3D 畫布最多能多高 ＝ 打開頁面（不捲動）時，畫布上緣到視窗底之間、扣掉畫布底下那行 3D 說明與 #dgSec 的下內距、再留 8px。
+     另外整個剖析圖區（#dgSec）本身也不超過 Fit.cap()（一屏可視高 − 跳轉列 − 上下邊距，#308）。
+     手機（≤820，Fit.desk() 為假）不限，照舊用寬度算的高度。零件小卡（#partCard）是點了才出現的，不算進去 ——
+     點零件不應該讓畫布縮一下。three3d.js 拿這個值當上限，再跟「寬 × hk」取小、下限 340。*/
+  function dg3dCap(el, host) {
+    const F = window.Fit;
+    if (!F || !F.desk() || !host || !host.getClientRects().length) return Infinity;
+    const sec = $('#dgSec', el); if (!sec) return Infinity;
+    const hr = host.getBoundingClientRect(), sr = sec.getBoundingClientRect();
+    const note = $('#dg3dNote', el);
+    const noteB = note && !note.hidden && note.getClientRects().length ? note.getBoundingClientRect().bottom : hr.bottom;
+    const cs = getComputedStyle(sec);
+    const below = Math.max(0, noteB - hr.bottom) + (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+    const byPage = window.innerHeight - (hr.top + window.scrollY) - below - 8;
+    const byCard = F.cap() - (hr.top - sr.top) - below;
+    return Math.floor(Math.min(byPage, byCard));
+  }
 
   /* ================================================================ 剖析圖配色（2D ＋ 3D）
      2026-09-21 深夜改（Andy：「幫我圖片色系色調多個休閒風格，更平易近人」
@@ -2623,6 +2659,8 @@
           pal: palPref(),                // 圖九 2-2：三種配色，記在 localStorage
           // 右上角那組「拖曳／重設視角」的高度：右欄卡片從它下面開始排，不會被鈕壓住（2026-09-26）
           reserveTR: () => (ctl && !ctl.hidden ? Math.ceil(ctl.getBoundingClientRect().height) + 8 : 0),
+          // 畫布高度上限：打開頁面不用捲就看到整個剖析圖區（#317，見 dg3dCap）
+          maxH: () => dg3dCap(el, host),
         });
       } catch (err) {
         // 起不來就要講出來，不能停在「載入 3D 中…」讓人以為當掉了
@@ -2659,6 +2697,12 @@
          這裡只剩「3D 剛掛好，把目前選的配色套上去」，而 R.mount 的 pal: palPref()
          已經做掉了，所以這裡什麼都不用做。*/
       note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點兩下回到預設視角、點零件看供應商`;
+      /* 說明從「載入 3D 中…」一行變成完整說明（1440 寬是兩行），畫布底下多出來的那一行要從畫布高度扣掉；
+         之後上方分頁列折行、視窗高度變了（Fit.on 盯 .nbcard 的高度與視窗尺寸）也重算一次。refit 高度沒變就什麼都不做。*/
+      if (v.refit) {
+        v.refit();
+        if (window.Fit && window.Fit.on) fit3dOff = window.Fit.on(() => { if (view3d === v && v.refit) v.refit(); }, host);
+      }
       sync();
     };
     /* 點「2D」或「3D」那一格＝切到那個模式；點的是已經亮著的那一格就什麼都不做（分段鈕的慣例，不是開關）。
@@ -3070,9 +3114,11 @@
   function drawSegList(host, sc, chainId, im, handlers) {
     if (!host) return { nSeg: 0, nTw: 0, nEdge: 0 };
     // 依 layer 排序＝由上游排到下游；同一層維持 YAML 的順序（那是人工校訂過的）
-    /* handlers.only()：關聯圖目前的範圍（跟上方剖析圖對得上的環節，見 renderChain 的 relScopeNow）；null＝整條鏈 */
-    const only = handlers && typeof handlers.only === 'function' ? handlers.only() : null;
-    const segs = chainSegments(sc, chainId).filter(s => !only || only.has(s.id)).slice().sort((a, b) => (a.layer || 0) - (b.layer || 0));
+    /* handlers.focus()：要反亮的環節（上方剖析圖畫到的那幾格，見 renderChain 的 relScopeNow）；null／空＝沒有反亮。
+       ★ 2026-10-03 晚（DECISIONS #317）：清單一律列整條鏈，不再只留那幾格（#306 的 only 拿掉）。*/
+    const focus0 = handlers && typeof handlers.focus === 'function' ? handlers.focus() : null;
+    const focus = focus0 && focus0.size ? focus0 : null;
+    const segs = chainSegments(sc, chainId).slice().sort((a, b) => (a.layer || 0) - (b.layer || 0));
     const segIds = new Set(segs.map(s => s.id));
     const cos = sc.companies.filter(c => segIds.has(c.segment));
     const inChain = new Set(cos.map(c => c.id));
@@ -3081,9 +3127,7 @@
       .forEach(g => (g.members || []).forEach(m => { priceOf[m.code] = m; }));
     /* 度數與環節層級的上下游，都只算「兩端都在這條鏈上」的邊 —— 跟關聯圖同一個口徑，
        不然同一家公司在圖上沒有線、在清單上卻掛著一個數字，兩邊會對不起來。*/
-    /* ★ 2026-10-03：範圍縮到「剖析圖對得上的幾格」時，度數（「?」＝沒有任何上下游關聯）與每格的上下游
-       仍照**整條鏈**算 —— 一家公司的客戶剛好不在這張圖上，不代表它沒有上下游；照範圍算會冒出一堆錯的「?」。
-       nEdge 是圖上真的畫得出來的邊（兩端都在範圍裡），給「怎麼看 ?」那行數字用。*/
+    /* 度數（「?」＝沒有任何上下游關聯）與每格的上下游照**整條鏈**算；nEdge 是兩端都在這條鏈上的邊，給「怎麼看 ?」那行數字用。*/
     const fullSegIds = new Set(chainSegments(sc, chainId).map(s => s.id));
     const coSegAll = {}; sc.companies.forEach(c => { if (fullSegIds.has(c.segment)) coSegAll[c.id] = c.segment; });
     const deg = {}, upS = {}, dnS = {}; let nEdge = 0;
@@ -3134,7 +3178,8 @@
        ★ 為什麼是「整段 DOM 拆下來」而不是 display:none：隱藏起來的標籤**版面框還在**，
          `_uitest.py` 量的就是這些框，會判成「標籤跑出環節卡」。*/
     const MOBILE_OPEN = 4;
-    const openIds = new Set(segs.slice()
+    /* 有反亮（剖析圖分頁）時，手機預設展開的是「反亮的那幾格」裡台股最多的前 4 格 —— 使用者是從那張圖下來的（DECISIONS #317）。*/
+    const openIds = new Set(segs.filter(s => !focus || focus.has(s.id))
       .map((s, i) => ({ id: s.id, i, n: cos.filter(c => c.segment === s.id && c.tw_code).length }))
       .sort((a, b) => (b.n - a.n) || (a.i - b.i)).slice(0, MOBILE_OPEN).map(x => x.id));
     let nTw = 0;
@@ -3148,7 +3193,7 @@
         + `${list.length ? '' : `<div class="nt">${A.fmt.esc(s.note || '（台股無直接對應）')}</div>`}`;
       // 沒有公司的環節只有一段說明文字，收起來反而什麼都不剩 —— 那種卡片不給收合鈕
       const foldable = list.length > 0;
-      return `<div class="segcard${openIds.has(s.id) ? ' pin' : ''}" data-seg="${s.id}" data-n="${list.length}" style="--c:${segColor(s.id)}">
+      return `<div class="segcard${openIds.has(s.id) ? ' pin' : ''}${focus ? (focus.has(s.id) ? ' relfocus' : ' relout') : ''}" data-seg="${s.id}" data-n="${list.length}" style="--c:${segColor(s.id)}">
         <div class="sh"><i class="dot"></i><b class="nm">${A.fmt.esc(s.name)}</b>${ROLE[s.role] ? `<span class="rl">${ROLE[s.role]}</span>` : ''}<span class="cnt">${tw.length ? tw.length + ' 檔' : (fo.length ? '外商 ' + fo.length : '—')}</span>${foldable ? '<button type="button" class="sx" aria-expanded="true">▾</button>' : ''}</div>
         <div class="sb">${body}</div></div>`;
     }).join('');
@@ -3226,11 +3271,12 @@
 
   function drawChainMap(host, sc, chainId, im, handlers) {
     if (!host) return;
-    /* ★ 2026-10-03（Andy：「這兩張圖關係要對上，若無關則下方不需顯示」）：
-       handlers.only() 回傳「上方這張剖析圖上真的出現的環節」，關聯圖只畫那幾格（與它們之間的邊）。
-       null＝族群總覽分頁（沒有剖析圖），照舊畫整條鏈。範圍是空集合時 renderChain 直接把整塊關聯圖藏起來，不會走到這裡。*/
-    const only = handlers && typeof handlers.only === 'function' ? handlers.only() : null;
-    const segs = chainSegments(sc, chainId).filter(s => !only || only.has(s.id));
+    /* ★ 2026-10-03 晚（Andy：「下方的關聯圖為何其他的都不見了，需要有對應那族群的所有關聯圖，並且反亮那族群」，DECISIONS #317）：
+       一律畫整條鏈。handlers.focus() 回傳「上方這張剖析圖上真的出現的環節」—— 那幾格反亮（亮框亮底）、其餘淡一點（paintRelFocus）。
+       null／空＝族群總覽分頁（沒有剖析圖），沒有反亮。交集是空集合時 renderChain 直接把整塊關聯圖藏起來，不會走到這裡。*/
+    const focus0 = handlers && typeof handlers.focus === 'function' ? handlers.focus() : null;
+    const focus = focus0 && focus0.size ? focus0 : null;
+    const segs = chainSegments(sc, chainId);
     const layers = [...new Set(segs.map(s => s.layer))].sort((a, b) => a - b);
     const cos = sc.companies.filter(c => segs.some(s => s.id === c.segment));
     const priceOf = {}; (im ? im.chains.flatMap(c => c.groups).concat(im.industries || []) : []).forEach(g => (g.members || []).forEach(m => { priceOf[m.code] = m; }));
@@ -3490,10 +3536,7 @@
        SVG 是 block 元素，撐不滿就靠左。現在寬度已經等於容器寬度，width:100% 剛好 1:1。
        `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
        也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
-    /* 範圍縮到「上方剖析圖對得上的幾格」時（only），沒有邊的意思是「這幾格之間」沒有，不是整條鏈沒有 —— 講法要分開（2026-10-03）。*/
-    const empty = nEdge0 ? '' : (only
-      ? '<div class="mapempty">上方這張剖析圖對應的環節之間，supply_chain.yaml 沒有具名的供貨關係，下面只列出這幾格有哪些公司；回「族群總覽」看整條鏈的上下游。</div>'
-      : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>');
+    const empty = nEdge0 ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>';
     /* ★ 2026-09-26 晚（Andy：「收合 展開合併」）：「全部收合」「全部展開」兩顆鈕合併成**一顆切換鈕**。
        兩顆並排時永遠有一顆是「按了沒反應」的（已經全收了還能按全收），使用者要先讀懂現在是哪個狀態才知道該按哪顆。
        現在鈕上只寫「按下去會發生的那件事」：全部展開中 → 「全部收合」；只要有任何一個環節收著 → 「全部展開」。
@@ -3502,6 +3545,7 @@
     const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" class="foldtg" data-fold="${anyFolded ? 'none' : 'all'}" title="${anyFolded ? '把每個環節都展開成一檔一張卡' : '把每個環節都收成個股標籤'}">${anyFolded ? '全部展開' : '全部收合'}</button><span class="sub">收合＝只留個股標籤；▸／▾ 可單獨切換</span></div>` : '';
     host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
+    paintRelFocus(host, focus, cos);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
        舊版只提亮線 —— 線一多（半導體鏈 140 條）就看不出那條線通到誰，
        使用者還要自己用眼睛沿著線找過去，那正是「看不懂」的典型形態。
@@ -3541,6 +3585,7 @@
        原本用 scrollIntoView，它會一路往上找每一個可捲的祖先，連 document 也算。
        在個股頁把產業鏈搬到最下面之後（Andy 2026-09-20），那一下等於把整頁拉到底，
        使用者一進個股頁就看不到 K 線 —— 剛好把這次要修的東西反過來弄壞。*/
+    if (focus && !state.code) centerRelFocus(host);
     if (state.code) {
       const sel = $(`.co[data-code="${state.code}"]`, host);
       if (sel && sel.getBBox) setTimeout(() => {
@@ -3554,6 +3599,38 @@
         } catch (e) { /* 收合狀態下 getBBox 量不到，忽略 */ }
       }, 50);
     }
+  }
+  /* ★ 2026-10-03 晚（DECISIONS #317）：關聯圖畫整條鏈，上方剖析圖畫到的環節（focus）反亮。
+     反亮＝亮框（環節色 2px）＋亮底（環節色 16%），標題色塊加深；其餘環節的框、標題、說明、公司卡掛 .relout（CSS 透明度 0.6，
+     降 40%：仍讀得到字、仍點得到）。連線：兩端都不在反亮範圍的才淡掉，碰到反亮那幾格的維持原樣 —— 「它賣給誰／誰供貨給它」要看得清楚。
+     跟選取（.sel／.dim）是兩套 class：使用者點一格選起來時，選取照舊疊在上面。*/
+  function paintRelFocus(host, focus, cos) {
+    const f = focus && focus.size ? focus : null;
+    const svg = host.querySelector('svg'); if (svg) svg.classList.toggle('hasfocus', !!f);
+    const tog = (n, seg) => { const on = !!f && f.has(seg); n.classList.toggle('relfocus', on); n.classList.toggle('relout', !!f && !on); };
+    $$('.segbox, .segtitle, .segnote, .segfold', host).forEach(n => tog(n, n.dataset.seg));
+    $$('.co', host).forEach(n => tog(n, n.dataset.segment));
+    const segOf = {}; (cos || []).forEach(c => { segOf[c.id] = c.segment; });
+    $$('.edge', host).forEach(e => {
+      const a = segOf[e.dataset.from], b = segOf[e.dataset.to];
+      const touch = !!f && (f.has(a) || f.has(b));
+      e.classList.toggle('relfocus', touch); e.classList.toggle('relout', !!f && !touch);
+    });
+  }
+  /* 關聯圖框比容器寬（窄視窗時 SVG 有 min-width，要左右滑）時，框自己捲到反亮那幾欄的正中間。
+     只捲關聯圖自己的框，**不動整頁** —— 打開剖析圖分頁要先看到上面的整張剖析圖（Andy 同一則回饋的第 1 點）。*/
+  function centerRelFocus(host) {
+    setTimeout(() => {
+      try {
+        if (!host.isConnected || host.hidden || host.scrollWidth <= host.clientWidth + 2) return;
+        const hr = host.getBoundingClientRect();
+        let l = Infinity, r = -Infinity;
+        $$('.segbox.relfocus', host).forEach(b => { const q = b.getBoundingClientRect(); if (q.width) { l = Math.min(l, q.left); r = Math.max(r, q.right); } });
+        if (!(r > l)) return;
+        const mid = (l + r) / 2 - hr.left + host.scrollLeft;
+        host.scrollTo({ left: Math.max(0, Math.round(mid - host.clientWidth / 2)), behavior: 'instant' });
+      } catch (e) { /* 量不到（收合中）就算了 */ }
+    }, 60);
   }
   /* 關掉外商小面板。換頁（route）與點下一家公司之前都會呼叫，
      這樣 #coBox 永遠不會活過它所屬的那一頁。*/
