@@ -10302,8 +10302,9 @@ def t_mobile(b, base, code):
             pager: [...document.querySelectorAll('#v-heatmap .mpager button')].map(b => b.textContent.trim()) })""")
         ok("手機分頁列按得動（按熱力圖真的換到熱力圖那一頁）",
            st["hash"].startswith("#heatmap") and st["view"] == "v-heatmap", st)
-        ok("手機熱力圖分頁的分段裡有題材那兩段（題材熱力、題材細節）",
-           any("題材熱力" in x for x in st["pager"]) and any("題材細節" in x for x in st["pager"]), st)
+        # 2026-10-03 手機 V2（#314）：分段名改成跟電腦版側欄子分頁同名（產業｜題材｜題材細節；改前 產業熱力｜題材熱力｜題材細節）
+        ok("手機熱力圖分頁的分段＝產業｜題材｜題材細節（題材那兩段都在）",
+           st["pager"] == ["產業", "題材", "題材細節"], st)
     m.close()
 
 
@@ -42653,12 +42654,12 @@ def t_layout4(b, base, code):
             wait_until(pg, "() => document.body.classList.contains('m3on') && !!document.getElementById('mTabMore')", 8000)
             pg.wait_for_timeout(1200)
             no_l4(f"390 #{h}", pg.evaluate(NOL4))
-        # 手機原本的長相：底部圖示仍是文字符號（不是 layout4 的遮罩圖）、分段列不是 sticky、頂欄仍寫站名
+        # 2026-10-03 手機 V2（#314）：手機的頂欄與底部圖示由 mobile3.js／mobile4.css 自己做（不是 layout4 的 l4 那一套）——
+        #   底部是線條圖示（mobile4.css 的 --m4-ic-*）、頂欄寫頁名（#mHd），站名藏起來；上面 no_l4 已驗沒有任何 l4 痕跡
         mo = pg.evaluate("""() => { const t = document.querySelector('#tabs .tab[data-view=overview]');
-            location.hash = '#flow'; return { before: getComputedStyle(t, '::before').content,
-              mask: getComputedStyle(t, '::before').maskImage || getComputedStyle(t, '::before').webkitMaskImage || 'none',
-              site: !!document.querySelector('.brand b') && document.querySelector('.brand b').getClientRects().length > 0 }; }""")
-        ok(f"{T}390 底部圖示是 main 的文字符號、頂欄寫站名", mo["before"] not in ("none", '""', "normal") and "svg" not in mo["mask"] and mo["site"], mo)
+            location.hash = '#flow'; return { mask: getComputedStyle(t, '::before').maskImage || getComputedStyle(t, '::before').webkitMaskImage || 'none',
+              site: !!document.querySelector('.brand b') && document.querySelector('.brand b').getClientRects().length > 0, mhd: !!document.querySelector('#mHd .mpt') }; }""")
+        ok(f"{T}390 手機 V2：底部是手機自己的線條圖示、頂欄寫頁名（#mHd）不寫站名", "svg" in mo["mask"] and not mo["site"] and mo["mhd"], mo)
         wait_until(pg, "() => !!document.querySelector('#v-flow.on > .mpager')", 6000); pg.wait_for_timeout(600)
         mp = pg.evaluate("() => getComputedStyle(document.querySelector('#v-flow.on > .mpager')).position")
         ok(f"{T}390 資金流向分段列是 main 的樣子（沒有被改成 sticky）", mp == "static", mp)
@@ -42673,8 +42674,9 @@ def t_layout4(b, base, code):
         for h in ("overview", f"stock/{code}"):
             pg.goto(f"{base}#{h}", wait_until="networkidle"); pg.wait_for_timeout(1500)
             no_l4(f"768 #{h}", pg.evaluate(NOL4))
-        pg.locator("#tabs .tab[data-view='market']").click(timeout=6000)
-        ok(f"{T}768 底部分頁列照樣能換頁", bool(wait_until(pg, "() => location.hash.startsWith('#market') && !!document.querySelector('#v-market.on')", 5000)),
+        # 2026-10-03 手機 V2（#314）：768 也是手機版，市場明細收在底部「更多」裡
+        pg.locator("#mTabMore").click(timeout=6000); pg.locator("#mSheet .mrow[data-m='market']").click(timeout=6000)
+        ok(f"{T}768 底部「更多 → 市場明細」照樣能換頁", bool(wait_until(pg, "() => location.hash.startsWith('#market') && !!document.querySelector('#v-market.on')", 5000)),
            pg.evaluate("() => location.hash"))
         pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
         up = pg.evaluate("""() => ({ l4: document.documentElement.classList.contains('l4'), head: !!document.getElementById('l4Head'),
@@ -43031,9 +43033,11 @@ def t_layout4_subs(pg, base, T):
     pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(900)
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1500)
     nm = pg.evaluate(L4_SUBST)
-    ok(f"{T}子分頁 800 寬：#flow 不導向、沒有 data-l4sub、側欄子項不存在、資金去向與族群×法人照舊在同一頁",
+    # 2026-10-03 手機 V2（#314）：≤820 統一走手機版 —— 四張卡改由同一頁的分段列切（分段名＝電腦版子分頁名），不再四張疊在一起
+    segs = pg.evaluate("() => [...document.querySelectorAll('#v-flow.on > .mpager > button')].map(b => b.textContent.trim())")
+    ok(f"{T}子分頁 800 寬：#flow 不導向、沒有 data-l4sub、側欄子項不存在、四張卡在同一頁的手機分段列裡（資金輪動｜資金去向｜族群×法人｜集中度）",
        nm["hash"] == "#flow" and not nm["sub"] and pg.evaluate("() => document.querySelectorAll('.l4subtab').length") == 0
-       and nm["cards"]["sankey"] and nm["cards"]["inst"], nm)
+       and segs == ["資金輪動", "資金去向", "族群×法人", "集中度"], [nm, segs])
     pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(900)
     ok(f"{T}子分頁 800 → 拉回 1440：#flow 導到 #flow/rotation、側欄子項回來",
        bool(wait_until(pg, "() => location.hash === '#flow/rotation' && document.querySelectorAll('.l4subtab').length === 5 ? 1 : 0", 5000)),
