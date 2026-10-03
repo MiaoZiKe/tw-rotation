@@ -72,6 +72,10 @@
   /* 資金輪盤卡：標題、輪盤（置中）；盤是正圓，高度由 app.js rotFitH 算（欄寬、卡高上限） */
   :root.l4 #ovRotCard{display:flex;flex-direction:column}
   :root.l4 #ovRotCard>#rotClockMiniWrap{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center}
+  /* 盤的容器一開始就是方的（高＝卡寬，上限 560，跟 rotFitH 同一條公式）：不然盤要等資料載完、rotFitH 跑過才從 260 長到 517，
+     第 1 列的高度跟著跳，而資金熱力圖的列高是被這張卡撐的 → 熱力圖畫好之後又被重排一次（量到 4.8 秒畫、5.5 秒再 resize，
+     點方塊的驗收剛好卡在這段空檔假紅）。aspect-ratio 讓第一次排版就是最後的尺寸；JS 寫了 inline 高度（短視窗要縮）就照 JS。 */
+  :root.l4 #ovRotCard #rotClockMini{aspect-ratio:1/1;max-height:560px}
   /* 昨日資金去向卡：它現在是卡裡的第一個東西，原本「跟上面輪盤隔開」的分隔線與上緣留白拿掉 */
   :root.l4 #ovFlowCard{display:flex;flex-direction:column}
   :root.l4 #ovFlowCard>#ovFlowHead{margin-top:0;padding-top:0;border-top:0}
