@@ -23,12 +23,25 @@
   /* ★ 2026-10-03（Andy：「太大了」）：零件框 96 → 82 高、站名基線跟著上提 14px。
      畫布改成 1:1 原尺寸之後（見 nativeWidth），1440 版面 v2 的欄寬 1140 原本把圖放大 1.16 倍（零件框螢幕上 112px），
      只拿掉放大的話卡片只矮 12%；零件框再收一階，圖片螢幕高度＝改前的 73%，跟 Andy 要的 70～75% 對得上。*/
-  const ART_T = 104, ART_B = 186;       // 零件框：fit() 把每個零件等比縮進這個框並置中
-  const ART_C = (ART_T + ART_B) / 2, ART_MH = ART_B - ART_T;
-  const CAP_Y = 206;                    // 站點標題基線
-  /* 說明文字：第一行基線與列距。個股標籤的起點不寫死，由 chainScene 依**斷行後**的實際行數算（CY），
-     不然爆炸圖搬過來的「圖上：…」那一行會直接撞上標籤。*/
-  const SUB_Y0 = CAP_Y + 19, SUB_LH = 17;
+  const ART_T = 104, ART_MH0 = 82;      // 零件框上緣、980 畫布時的框高：fit() 把每個零件等比縮進這個框並置中
+  /* ★ 2026-10-03 第二輪（Andy：「字體縮小了但空白版面太多…需要適當填滿旁邊空白」，DECISIONS #316）：
+     畫布不再固定 980 置中，改成**依卡寬重新排版**：畫布寬＝容器內寬（fit() 量完再畫一次），
+     欄寬跟著分、零件框跟著欄寬長高（82 → 最高 128），字級完全不動（SVG 仍是 1:1，螢幕字＝設定的 px，
+     不是把整張 SVG 等比放大 —— 那是 #306 修掉的「太大」）。
+     所以「零件框／站名／說明」的 y 不再是常數，由 geo() 依欄寬算；欄寬 178（980 畫布）時跟 #306 一模一樣。*/
+  const ART_MAX = 128;
+  const SUB_LH = 17;                    // 說明列距（13px 字）
+  function geo(W) {
+    const mh = W <= 178 ? ART_MH0 : Math.min(ART_MAX, Math.round(ART_MH0 + (W - 178) * 1.3));
+    const ART_B = ART_T + mh;
+    /* 站名基線＝框底 +20；說明第一行基線＝站名 +19。個股標籤的起點不寫死，由 chainScene 依**斷行後**的實際行數算（CY），
+       不然爆炸圖搬過來的「圖上：…」那一行會直接撞上標籤。*/
+    return { ART_MH: mh, ART_B, ART_C: (ART_T + ART_B) / 2, CAP_Y: ART_B + 20, SUB_Y0: ART_B + 39 };
+  }
+  // 畫布寬的上下限：下限 900（容器再窄就維持 900 左右滑，#226 字級守住優先），上限 2400（超寬螢幕再置中）
+  const CW_MIN = 900, CW_MAX = 2400;
+  let ctxW = 0;      // fit() 量到的容器內寬；0＝還沒量（app.js 第一次輸出字串時），就用 o.cw（980）
+  let curTid = '';   // 正在畫哪一個題材（包在 T.* 外面設定），寫進 svg 的 data-tid，fit() 才知道怎麼重畫
   // 說明字 13px 的估寬：全形字 13px、半形字 7.3px（12px 時代是 12／6.7，等比放大）
   const SUB_FW = 13, SUB_HW = 7.3;
   /* 題材圖自己的字級，只在 .dg3 生效（產業鏈剖析圖不受影響）。
@@ -108,23 +121,33 @@
     const st = o.stations, n = st.length;
     /* ★ 2026-09-23：畫布寬可以自己決定。1440 螢幕上題材頁放圖的那一欄只有 996px，
        1180 的畫布永遠要左右滑；十八張一起收到 980，1440 下一次看完。*/
-    const CANW = o.cw || CW;
-    const W = Math.floor((CANW - PADX * 2 - GAPX * (n - 1)) / n);
+    /* ★ 2026-10-03 第二輪：fit() 量到容器內寬（ctxW）就照它排 —— 圖吃滿卡片，不再 980 置中、兩側留大片空白。
+       還沒量（app.js 第一次插字串）時照舊用 o.cw（980），fit() 進 DOM 後馬上依實際寬度重畫一次。*/
+    const CANW = ctxW ? Math.max(CW_MIN, Math.min(CW_MAX, ctxW)) : (o.cw || CW);
+    // 欄距跟著畫布寬放一點（12 → 最多 20），1920 時五格之間的彩帶才有地方走
+    const GX = CANW > 980 ? Math.min(20, Math.round(GAPX + (CANW - 980) / 80)) : GAPX;
+    const W = Math.floor((CANW - PADX * 2 - GX * (n - 1)) / n);
+    const { ART_MH, ART_B, ART_C, CAP_Y, SUB_Y0 } = geo(W);
     /* 每一格的說明先斷好行，行數決定個股標籤從哪裡開始（最長的那一格說了算）。
-       行數不寫死，不然搬過來的「圖上：…」會直接撞上標籤（processBar 那個老毛病）。*/
+       行數不寫死，不然搬過來的「圖上：…」會直接撞上標籤（processBar 那個老毛病）。
+       欄寬夠（1440 以上）時每一條說明都是單行，不會折。*/
     const subs = st.map(s => (s.sub || []).reduce((a, t) => a.concat(wrapSub(t, W - 2)), []));
     const nsub = Math.max(2, ...subs.map(a => a.length));
     const CY = SUB_Y0 + nsub * SUB_LH - 3;
-    const slot = (i) => PADX + i * (W + GAPX);
-    let maxRows = 1;
+    const slot = (i) => PADX + i * (W + GX);
+    /* ★ 2026-10-03 第二輪（Andy：「也不可以發生表格長度不一樣」）：五格一律等高、底線對齊。
+       膠囊先全部排好，取最多列的那一格當整排的高度；膠囊少的那格留白在下方（膠囊都從同一條 CY 開始）。*/
+    const chs = st.map((s, i) => chips(s.codes, slot(i), CY, W));
+    const maxRows = Math.max(1, ...chs.map(c => c.rows));
+    const slotH = CY - BAND_Y - 8 + maxRows * CHIP_ROW;
     const body = st.map((s, i) => {
       const x = slot(i), cx = x + W / 2;
-      const ch = chips(s.codes, x, CY, W); maxRows = Math.max(maxRows, ch.rows);
+      const ch = chs[i];
       const sub = subs[i].map((t, j) => `<text class="sub" x="${x}" y="${SUB_Y0 + j * SUB_LH}">${esc(t)}</text>`).join('');
       /* 零件外面包一層 g.art 並帶上框的尺寸：fit()（SVG 進 DOM 之後）會量 bbox 再等比縮進框裡。
          transform 先寫一個保底值，萬一 fit() 沒被呼叫也不會整排零件疊在原點。*/
       return `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
-        <rect class="slot" x="${x - 7}" y="${BAND_Y + 12}" width="${W + 14}" height="${CY - BAND_Y - 8 + ch.rows * CHIP_ROW}" rx="10"/>
+        <rect class="slot" x="${x - 7}" y="${BAND_Y + 12}" width="${W + 14}" height="${slotH}" rx="10"/>
         <g class="art" data-cx="${cx}" data-cy="${ART_C}" data-mw="${W - 8}" data-mh="${ART_MH}" data-k="${s.k || 1}"
            transform="translate(${cx},${ART_B - 14}) scale(${Math.min(1, s.k || 1)})">${s.art()}</g>
         <text class="lbl" x="${x}" y="${CAP_Y}">${esc(s.label)}</text>${sub}${ch.svg}</g>`;
@@ -160,7 +183,7 @@
     /* o.unit ＝ 這張圖「該怎麼讀」那一行。爆炸圖時代寫的是「由上而下」的拆解順序，
        改成水平之後方向語意跟著換成「由左到右」，每一張各自照自己的鏈重寫（見各 T.* 的那一行）。*/
     const unit = o.unit ? `<text class="cap" x="${PADX}" y="64">${esc(o.unit)}</text>` : '';
-    return `<svg class="dg dg3" data-cw="${CANW}" viewBox="0 0 ${CANW} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}
+    return `<svg class="dg dg3" data-cw="${CANW}"${curTid ? ` data-tid="${curTid}"` : ''} viewBox="0 0 ${CANW} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}
       <text class="ttl" x="${PADX}" y="24">${esc(o.title)}</text>
       <text class="cap" x="${PADX}" y="45">${esc(o.cap)}</text>
       ${unit}${bands}${ribbon}${body}
@@ -1503,8 +1526,67 @@
      不是靠每張圖各自手調倍率，那種做法十八張就有十八套數字，下次又會跑掉。
      data-k 是作者原本給的相對倍率，這裡只准把零件**縮小**（clamp 到 1 以下）：
      框本來就已經被填滿，再放大只會撞到隔壁那一格。*/
-  function fit(root) {
+  /* ★ 2026-10-03 第二輪（DECISIONS #316）：fit(root, rewire)
+       1. 量容器內寬 → 跟畫布寬不一樣就依這個寬度**重畫一次**（chainScene 依寬度重新分欄、零件框長高；字級不動）。
+          app.js 插進來的第一版是 980，fit() 在 wireThemeDiagram 之前跑，所以第一次重畫不必重新接事件。
+       2. 之後視窗／側欄改變容器寬（ResizeObserver，120ms 去抖動）也重畫；重畫會換掉節點，
+          所以呼叫 rewire（app.js 傳進來的 wireThemeDiagram）重新接點擊與 --c，原本選起來的那一格再點回去。
+       3. 只在容器寬 ≥ 900 時跟著寬度走；更窄（手機、800 視窗）維持 980 原尺寸左右滑（#226）。
+       ⚠ 變寬要差 24px 以上才重畫、變窄一律重畫：頁面捲軸出現／消失會讓容器差 15px，
+         不擋的話「變窄 → 卡變高 → 捲軸出現 → 變窄……」會來回重畫。*/
+  const GROW_MIN = 24;
+  function availW(root) {
+    const cs = getComputedStyle(root);
+    return Math.floor(root.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0));
+  }
+  // 0＝容器比下限窄（或還看不到），照舊用作者寫的 o.cw（980）
+  const wantW = (root) => { const a = availW(root); return a >= CW_MIN ? Math.min(CW_MAX, a) : 0; };
+  function rerender(root, w) {
+    const svg = root.querySelector('svg.dg3'), tid = svg && svg.dataset.tid;
+    if (!tid || typeof T[tid] !== 'function') return false;
+    ctxW = w;
+    let html;
+    try { html = T[tid](); } finally { ctxW = 0; }
+    root.innerHTML = html;
+    return true;
+  }
+  function refit(root) {
+    if (!root.isConnected) { if (root._dg3ro) root._dg3ro.disconnect(); root._dg3ro = null; return; }
+    const svg = root.querySelector('svg.dg3'); if (!svg) return;
+    const w = wantW(root), cur = +svg.dataset.cw || 0, want = w ? Math.max(CW_MIN, w) : 980;
+    if (want === cur || (want > cur && want - cur < GROW_MIN)) return;
+    const selN = root.querySelector('.p3.stn.sel');
+    const sel = selN && selN.dataset.part;
+    if (!rerender(root, w)) return;
+    layout(root);
+    if (typeof root._dg3Rewire === 'function') root._dg3Rewire();
+    if (sel) {
+      const n = root.querySelector(`.p3.stn[data-part="${sel}"]`);
+      if (n) n.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+  }
+  function watch(root) {
+    if (root._dg3ro || typeof ResizeObserver === 'undefined') return;
+    let t = 0, lastW = root.clientWidth;
+    root._dg3ro = new ResizeObserver(() => {
+      if (root.clientWidth === lastW) return;       // 只看寬度；重畫讓高度變了不算
+      lastW = root.clientWidth;
+      clearTimeout(t); t = setTimeout(() => refit(root), 120);
+    });
+    root._dg3ro.observe(root);
+  }
+  function fit(root, rewire) {
     if (!root) return;
+    if (typeof rewire === 'function') root._dg3Rewire = rewire;
+    const svg = root.querySelector('svg.dg3');
+    if (svg) {
+      const w = wantW(root), want = w ? Math.max(CW_MIN, w) : 980;
+      if (want !== (+svg.dataset.cw || 0)) rerender(root, w);
+    }
+    layout(root);
+    watch(root);
+  }
+  function layout(root) {
     nativeWidth(root);
     root.querySelectorAll('.p3.stn > g.art').forEach(art => {
       const cx = +art.dataset.cx, cy = +art.dataset.cy;
@@ -1515,7 +1597,8 @@
       let bb;
       try { bb = art.getBBox(); } catch (e) { return; }
       if (!bb || !bb.height || !bb.width) return;
-      const k = Math.max(.3, Math.min(1.7, Math.min(mh / bb.height, mw / bb.width))) * hint;
+      // 上限 1.7 → 2.4：畫布變寬之後框最高 128px、寬到約 290px，零件要能跟著放大，不然框長高了圖還是小小一顆
+      const k = Math.max(.3, Math.min(2.4, Math.min(mh / bb.height, mw / bb.width))) * hint;
       const tx = cx - (bb.x + bb.width / 2) * k;
       const ty = cy - (bb.y + bb.height / 2) * k;
       art.setAttribute('transform', `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${k.toFixed(3)})`);
@@ -1545,9 +1628,15 @@
        1440 螢幕的卡片 1340px，不擋的話整張圖放大 1.37 倍（字 12px → 16.4px、零件框 96 → 131px）。
        跟產業鏈剖析圖 `.dgwrap svg.dgm{max-width:984px}` 同一個道理（index.html 那段註解有實測）。*/
     svg.style.maxWidth = cw;
+    svg.style.width = cw;
     svg.style.marginInline = 'auto';
   }
 
+  // 每一支 T.* 外面包一層：畫的時候把題材 id 記在 curTid，chainScene 寫進 svg 的 data-tid，fit() 才知道怎麼重畫
+  Object.keys(T).forEach(k => {
+    const f = T[k];
+    T[k] = () => { const prev = curTid; curTid = k; try { return f(); } finally { curTid = prev; } };
+  });
   window.ThemeDiagrams = T;
   window.ThemeDiagrams.fit = fit;
 })();
