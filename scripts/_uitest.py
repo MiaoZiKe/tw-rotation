@@ -31628,14 +31628,20 @@ def t_themes_2d(pg, base):
             for tid in THEME_2D_IDS:
                 pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
                 pg.reload(wait_until="networkidle")
-                pg.wait_for_timeout(1200)
+                # ★ 2026-10-04（#316）：固定等 1200ms 改成「等到圖真的畫好（零件 fit 完）」最多 10 秒再量。
+                #   機器忙（load 30～80）時題材資料晚到，1200ms 量到空白 —— main 上同樣會（實測 ai_server 第一次量是空的），不是圖壞了。
+                wait_until(pg, "() => !!document.querySelector('.dg3 g.art[transform]')", 10000)
+                pg.wait_for_timeout(500)
                 z = pg.evaluate(T2D_MEASURE)
                 tag = f"[{tid}·{w}px·{lab0}]"
                 if not z.get("present"):
                     bad.append(f"{tag} 沒有圖")
                     continue
-                if z["cw"] != "980" or z["vbW"] != 980:
-                    bad.append(f"{tag} 畫布不是 980（data-cw={z['cw']} viewBox={z['vbW']}）")
+                # ★ 2026-10-03 第二輪（DECISIONS #316）：畫布改成「依卡寬重新排版」—— 容器 ≥ 900 時畫布＝容器內寬（1440 約 1140），
+                #   更窄（800／390）維持 980 左右滑。所以斷言改成：data-cw＝viewBox 寬；1440 一定比 980 寬（吃滿卡片）；窄寬是 980。
+                cwv = int(z["cw"] or 0)
+                if cwv != z["vbW"] or (w >= 1440 and not (980 < cwv <= 2400)) or (w <= 800 and cwv != 980):
+                    bad.append(f"{tag} 畫布寬不對（data-cw={z['cw']} viewBox={z['vbW']}；1440 要 > 980 吃滿卡片、800／390 要 980）")
                 if z["nSmall"]:
                     bad.append(f"{tag} 小字 {z['small'][:2]}")
                 if z["nOv"]:
@@ -31649,7 +31655,7 @@ def t_themes_2d(pg, base):
                     pulse_total += z["pulse"]
                     if z["hard"]:
                         bad.append(f"{tag} 寫死色碼 {z['hard'][:2]}")
-    ok("★ 題材2D：十八張 × 三寬度 × 深淺兩主題 —— 畫布 980、字 ≥ 12px、不重疊、不溢出、不橫向捲",
+    ok("★ 題材2D：十八張 × 三寬度 × 深淺兩主題 —— 畫布寬（1440 吃滿卡片／窄寬 980）、字 ≥ 12px、不重疊、不溢出、不橫向捲",
        not bad, bad[:6])
     # ---- ⑦ 兩條棘輪
     ok("★ 題材2D 棘輪一：十八張渲染出來的 SVG 裡**一個寫死色碼都沒有**（顏色一律走 --dg-*）",
@@ -31663,7 +31669,7 @@ def t_themes_2d(pg, base):
     picked = 0
     for tid in ("cowos", "ai_server", "robotics"):
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
-        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+        pg.reload(wait_until="networkidle"); wait_until(pg, "() => !!document.querySelector('.dg3 g.art[transform]')", 10000); pg.wait_for_timeout(800)
         SNAP = """(i) => { const gs = [...document.querySelectorAll('.dg3 g.stn')];
             const g = gs[i]; if (!g) return null;
             const slot = g.querySelector('rect.slot');
@@ -31691,7 +31697,7 @@ def t_themes_2d(pg, base):
 
     # ---- ⑥ 個股小卡真的跳到個股頁
     pg.goto(f"{base}#themes/cowos", wait_until="networkidle")
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+    pg.reload(wait_until="networkidle"); wait_until(pg, "() => !!document.querySelector('.dg3 g.art[transform]')", 10000); pg.wait_for_timeout(800)
     code = pg.evaluate("""() => { const c = document.querySelector('.dg3 .scode[data-code]');
         if (!c) return null; c.scrollIntoView({ block: 'center' }); return c.dataset.code; }""")
     if ok("題材圖上找得到個股小卡", bool(code), code):
@@ -44740,7 +44746,22 @@ DGT_THEME = """() => {
            lbl: fs('g.stn .lbl'), sub: fs('g.stn .sub'), chip: fs('.scode text'), step: fs('g.step .lbl'),
            minFs: Math.min(...all.map(a => a.fs)), ov, out: out.slice(0, 4),
            docW: document.documentElement.scrollWidth, winW: innerWidth,
-           scrollW: wrap.scrollWidth, clientW: wrap.clientWidth }; }"""
+           scrollW: wrap.scrollWidth, clientW: wrap.clientWidth,
+           // #316：卡寬利用率（剖析圖螢幕寬 ÷ 卡片內容寬）、五格卡片高度差、流程格高度差、零件框（插圖）螢幕高
+           cardInner: (() => { const c = getComputedStyle(card); return card.clientWidth - parseFloat(c.paddingLeft) - parseFloat(c.paddingRight); })(),
+           slotH: [...svg.querySelectorAll('g.stn rect.slot')].map(r => +r.getBoundingClientRect().height.toFixed(2)),
+           slotB: [...svg.querySelectorAll('g.stn rect.slot')].map(r => +r.getBoundingClientRect().bottom.toFixed(2)),
+           stepH: [...svg.querySelectorAll('g.step > rect')].map(r => +r.getBoundingClientRect().height.toFixed(2)),
+           stepT: [...svg.querySelectorAll('g.step > rect')].map(r => +r.getBoundingClientRect().top.toFixed(2)),
+           artH: Math.max(...[...svg.querySelectorAll('g.stn g.art')].map(a => a.getBoundingClientRect().height)),
+           subLines: Math.max(...[...svg.querySelectorAll('g.stn')].map(g => g.querySelectorAll('text.sub').length)),
+           tid: svg.dataset.tid || '' }; }"""
+
+# #316：同一列卡片等高、底線對齊；流程格同列等高、頂線對齊（差 ≤ 1px）
+def _dg_rows_equal(z):
+    sh, sb, th, tt = z["slotH"], z["slotB"], z["stepH"], z["stepT"]
+    return (bool(sh) and max(sh) - min(sh) <= 1 and max(sb) - min(sb) <= 1
+            and (not th or (max(th) - min(th) <= 1 and max(tt) - min(tt) <= 1)))
 
 DGT_MAP = """() => {
   const host = document.querySelector('#chainMap'); const svg = host && host.querySelector('svg'); if (!svg) return null;
@@ -44779,8 +44800,10 @@ DGT_MAP = """() => {
 def t_dg_tidy_1003(b, base):
     """題材產品剖析圖縮小＋供應鏈關聯圖環節外框（Andy 2026-10-03，DECISIONS #306）的真人操作驗收。
 
-      ① 題材剖析圖（heavy_electric／cowos／ai_server）在 1440：畫布寬 ≤ data-cw（不再放大）、
-         圖高 ≤ 改前畫法（撐滿容器）的 80%、卡片高度比改前矮；螢幕上站名 ≈15、說明 ≈13、膠囊 ≈12px；
+      ① 題材剖析圖（heavy_electric／cowos／ai_server）在 1440、1920（#316 新規格）：卡寬利用率 ≥ 90%、仍是 1:1
+         （不是整張等比放大）、卡片 ≤ #306 前被放大時的高度、插圖框 105～130、同列五格等高、流程格等高、說明單行；
+         18 張在 1440 全部量等高；視窗 1440 → 1920 → 1440 真的重新排版、選取保留、重畫後點擊照樣有效；
+         螢幕上站名 ≈15、說明 ≈13、膠囊 ≈12px；
          站名／說明／膠囊不出格、不重疊；滑鼠真的點一格 → 選起來；滑鼠真的點膠囊 → 進個股頁。
       ② 800／390：頁面不橫捲（圖在框裡左右滑）、SVG 字螢幕上 ≥ 11px、不重疊。
       ③ 關聯圖（semiconductor／ai_server／electronics）1440 收合（預設）與按「全部展開」之後、800 展開版、深淺兩主題：
@@ -44801,30 +44824,74 @@ def t_dg_tidy_1003(b, base):
             pg.goto(base + f"#heatmap/theme/{tid}", wait_until="load")
             return wait_until(pg, "() => { const s = document.querySelector('#themeDiagram svg.dg3'); return !!s && !!s.querySelector('g.art[transform]'); }", 12000)
 
-        # ---------------------------------------------------------------- ① 1440 題材剖析圖
-        for tid in ("heavy_electric", "cowos", "ai_server"):
-            tg = f"{T}題材 {tid}·1440"
-            if not ok(f"{tg} 剖析圖畫出來了", bool(open_theme(tid))):
-                continue
-            pg.wait_for_timeout(500)
+        # ---------------------------------------------------------------- ① 1440／1920 題材剖析圖
+        # ★ 2026-10-03 第二輪（Andy：「空白版面太多…適當填滿旁邊空白」「也不可以發生表格長度不一樣」，DECISIONS #316）：
+        #   「1:1 不放大」的斷言改成新規格 —— 圖依卡寬重新排版、吃滿卡片（利用率 ≥ 90%），但仍是 1:1（螢幕字＝設定字級 13～15），
+        #   不是靠整張 SVG 等比放大；同列五格等高、底線對齊；流程格同列等高。
+        for W in (1440, 1920):
+            pg.set_viewport_size({"width": W, "height": 1000})
+            for tid in ("heavy_electric", "cowos", "ai_server"):
+                tg = f"{T}題材 {tid}·{W}"
+                if not ok(f"{tg} 剖析圖畫出來了", bool(open_theme(tid))):
+                    continue
+                pg.wait_for_timeout(500)
+                z = pg.evaluate(DGT_THEME)
+                if not ok(f"{tg} 量得到剖析圖", bool(z), z):
+                    continue
+                util = z["w"] / z["cardInner"] if z["cardInner"] else 0
+                ok(f"★ {tg} 吃滿卡片：剖析圖 {z['w']:.0f} ÷ 卡片內容寬 {z['cardInner']:.0f} ＝ {util:.1%} ≥ 90%（改前 980 置中，1440 是 85%、1920 是 60%）",
+                   util >= 0.90 and z["w"] <= z["cardInner"] + 1, z)
+                ok(f"★ {tg} 仍是 1:1、不是整張等比放大：螢幕寬 {z['w']:.0f}＝畫布 {z['cw']}、螢幕高 {z['h']:.0f}＝畫布高 {z['vbH']:.0f}",
+                   abs(z["w"] - z["cw"]) <= 1 and abs(z["h"] - z["vbH"]) <= 1, z)
+                # 改前（版面 v2，1440 欄寬 1140、圖被放大 1.16 倍）實測卡片高度：heavy_electric 573／cowos 602／ai_server 637（DECISIONS #306）
+                before = {"heavy_electric": 573, "cowos": 602, "ai_server": 637}[tid]
+                ok(f"★ {tg} 卡片高 {z['cardH']:.0f} ≤ #306 之前被放大時的 {before}（吃滿寬度但沒有變回「太大」）", z["cardH"] <= before, z["cardH"])
+                ok(f"★ {tg} 插圖框跟著長高到 105～130（螢幕 {z['artH']:.0f}px；980 置中時是 82）", 105 <= z["artH"] <= 131, z["artH"])
+                ok(f"★ {tg} 螢幕字級：站名 {z['lbl']}≈15、說明 {z['sub']}≈13、膠囊 {z['chip']}≈12、流程格 {z['step']}≈14",
+                   14.5 <= z["lbl"] <= 15.5 and 12.5 <= z["sub"] <= 13.5 and 11.5 <= z["chip"] <= 12.5 and 13.5 <= z["step"] <= 14.5, z)
+                # ai_server 每格第三條是 30 字左右的「圖上：……」整句說明，欄寬 200～300 物理上放不進一行（那條是刻意的長句，不是版面問題），所以不驗
+                if tid != "ai_server":
+                    ok(f"★ {tg} 說明每條單行不折行（每格最多 {z['subLines']} 行＝原始條數 3）", z["subLines"] <= 3, z["subLines"])
+                ok(f"★ {tg} 同列五格等高、底線對齊（高 {min(z['slotH']):.1f}～{max(z['slotH']):.1f}）；流程格同列等高",
+                   _dg_rows_equal(z), (z["slotH"], z["slotB"], z["stepH"]))
+                ok(f"{tg} 字都 ≥ 11px（螢幕上）", z["minFs"] >= 10.9, z["minFs"])
+                ok(f"★ {tg} 站名／說明／膠囊都在自己那一格裡", not z["out"], z["out"])
+                ok(f"★ {tg} 圖上的字沒有互相壓到", not z["ov"], z["ov"])
+                ok(f"{tg} 頁面不橫捲", z["docW"] <= z["winW"] + 1, (z["docW"], z["winW"]))
+        # 等高：18 張全部在 1440 量一次（膠囊數最不平均的 CoWoS「IC 設計 3 顆／晶圓代工 1 顆」也在裡面）
+        pg.set_viewport_size({"width": 1440, "height": 1000})
+        uneq = []
+        for tid in ("cowos", "hbm_memory", "pcb_ccl", "glass_substrate", "asic_ip", "ai_server", "power_bbu", "thermal", "silicon_photonics",
+                    "semi_equipment", "apple_chain", "edge_ai_pc", "robotics", "drone", "satellite", "ev_auto", "defense", "heavy_electric"):
+            if not open_theme(tid):
+                uneq.append(tid + ' 沒畫出來'); continue
+            pg.wait_for_timeout(250)
             z = pg.evaluate(DGT_THEME)
-            if not ok(f"{tg} 量得到剖析圖", bool(z), z):
-                continue
-            ok(f"★ {tg} 畫布原尺寸、不再被放大：螢幕寬 {z['w']:.0f} ≤ 畫布 {z['cw']}（容器 {z['inner']:.0f}）",
-               z["w"] <= z["cw"] + 1 and z["inner"] > z["cw"] + 100, z)
-            # 改前（版面 v2，1440 欄寬 1140、圖被放大 1.16 倍）實測卡片高度：heavy_electric 573／cowos 602／ai_server 637（DECISIONS #306）
-            before = {"heavy_electric": 573, "cowos": 602, "ai_server": 637}[tid]
-            ok(f"★ {tg} 圖是 1:1（螢幕高 {z['h']:.0f}＝畫布高 {z['vbH']:.0f}），卡片 {z['cardH']:.0f} ≤ 改前 {before} 的 90%",
-               abs(z["h"] - z["vbH"]) <= 1 and z["cardH"] <= before * 0.9, z)
-            if tid == "heavy_electric":
-                # 改前實測：舊版面 672px、版面 v2 573px（DECISIONS #306）
-                ok(f"★ {tg} 整張卡變矮：{z['cardH']:.0f}px < 520（改前 573／舊版面 672）", z["cardH"] < 520, z["cardH"])
-            ok(f"★ {tg} 螢幕字級：站名 {z['lbl']}≈15、說明 {z['sub']}≈13、膠囊 {z['chip']}≈12、流程格 {z['step']}≈14",
-               14.5 <= z["lbl"] <= 15.5 and 12.5 <= z["sub"] <= 13.5 and 11.5 <= z["chip"] <= 12.5 and 13.5 <= z["step"] <= 14.5, z)
-            ok(f"{tg} 字都 ≥ 11px（螢幕上）", z["minFs"] >= 10.9, z["minFs"])
-            ok(f"★ {tg} 站名／說明／膠囊都在自己那一格裡", not z["out"], z["out"])
-            ok(f"★ {tg} 圖上的字沒有互相壓到", not z["ov"], z["ov"])
-            ok(f"{tg} 頁面不橫捲", z["docW"] <= z["winW"] + 1, (z["docW"], z["winW"]))
+            if not z or not _dg_rows_equal(z) or z["ov"] or z["out"] or z["w"] / max(1, z["cardInner"]) < 0.9:
+                uneq.append((tid, z and z["slotH"], z and z["ov"], z and z["out"]))
+        ok(f"★ {T}題材 18 張·1440 同列卡片等高、流程格等高、字不重疊不出格、利用率 ≥ 90%", not uneq, uneq[:4])
+        # 真的拉寬視窗：1440 → 1920 圖跟著重新排版吃滿；點選中的那一格重畫後仍選著、點擊照樣有效
+        if open_theme("cowos"):
+            pg.wait_for_timeout(1200)
+            pg.evaluate("() => document.querySelectorAll('#themeDiagram g.stn')[1].scrollIntoView({ block: 'center', behavior: 'instant' })")
+            r = pg.evaluate("() => { const b = document.querySelectorAll('#themeDiagram g.stn')[1].querySelector('rect.slot').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + 20 }; }")
+            pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(500)
+            z0 = pg.evaluate(DGT_THEME)
+            pg.set_viewport_size({"width": 1920, "height": 1000}); wait_until(pg, "() => { const s = document.querySelector('#themeDiagram svg.dg3'); return !!s && +s.dataset.cw > 1500 && !!s.querySelector('g.art[transform]'); }", 8000); pg.wait_for_timeout(400)  # 機器忙時 ResizeObserver＋120ms 去抖動可能超過 900ms，改成等到重畫完
+            z1 = pg.evaluate(DGT_THEME)
+            sel = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn')[1]; return !!g && g.classList.contains('sel'); }")
+            ok(f"★ {T}題材 視窗 1440 → 1920：剖析圖真的重新排版變寬（{z0['w']:.0f} → {z1['w']:.0f}），利用率 {z1['w'] / z1['cardInner']:.1%} ≥ 90%",
+               z1["w"] > z0["w"] + 300 and z1["w"] / z1["cardInner"] >= 0.9, (z0["w"], z1["w"], z1["cardInner"]))
+            ok(f"★ {T}題材 重新排版後，剛剛點選的第 2 格仍然選著", sel, sel)
+            pg.evaluate("() => document.querySelectorAll('#themeDiagram g.stn')[3].scrollIntoView({ block: 'center', behavior: 'instant' })")
+            r = pg.evaluate("() => { const b = document.querySelectorAll('#themeDiagram g.stn')[3].querySelector('rect.slot').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + 20 }; }")
+            pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(500)
+            sel3 = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn'); return g[3].classList.contains('sel') && !g[1].classList.contains('sel') && !!document.querySelector('#themeParts .segbox'); }")
+            ok(f"★ {T}題材 重新排版後滑鼠真的點第 4 格 → 換它選起來、下方列出個股（事件有重新接上）", sel3, sel3)
+            pg.set_viewport_size({"width": 1440, "height": 1000}); wait_until(pg, "() => { const s = document.querySelector('#themeDiagram svg.dg3'); return !!s && +s.dataset.cw < 1300 && !!s.querySelector('g.art[transform]'); }", 8000); pg.wait_for_timeout(400)
+            z2 = pg.evaluate(DGT_THEME)
+            ok(f"★ {T}題材 視窗縮回 1440 → 剖析圖跟著變窄、沒有橫捲（{z2['w']:.0f} ≤ 卡片 {z2['cardInner']:.0f}）",
+               z2["w"] <= z2["cardInner"] + 1 and z2["w"] / z2["cardInner"] >= 0.9 and z2["docW"] <= z2["winW"] + 1, z2)
         # 真的點：點一格 → 那一格選起來；點膠囊 → 進個股頁
         if open_theme("heavy_electric"):
             # 等畫面穩定再點：剛插進來的那一秒內題材區可能再畫一次，點到被換掉的舊節點會被當成「點外面」而收起
@@ -44848,7 +44915,7 @@ def t_dg_tidy_1003(b, base):
                 ok(f"★ {T}題材 滑鼠真的點膠囊 {code}（縮小後仍點得到）→ 網址變成個股頁", pg.evaluate("() => location.hash") == f"#stock/{code}",
                    pg.evaluate("() => location.hash"))
         # ---------------------------------------------------------------- ② 800／390
-        for W in (800, 390):
+        for W in (1100, 800, 390):
             pg.set_viewport_size({"width": W, "height": 1000})
             tg = f"{T}題材 heavy_electric·{W}"
             if not ok(f"{tg} 剖析圖畫出來了", bool(open_theme("heavy_electric"))):
@@ -44858,6 +44925,10 @@ def t_dg_tidy_1003(b, base):
             if not ok(f"{tg} 量得到剖析圖", bool(z), z):
                 continue
             ok(f"★ {tg} 頁面不橫捲（圖在框裡左右滑）", z["docW"] <= z["winW"] + 1, (z["docW"], z["winW"]))
+            ok(f"★ {tg} 同列五格等高、流程格等高", _dg_rows_equal(z), (z["slotH"], z["stepH"]))
+            if W == 1100:
+                ok(f"★ {tg} 1100 寬：圖照卡寬排（{z['w']:.0f}／卡片 {z['cardInner']:.0f}），框裡不必左右滑",
+                   z["w"] <= z["cardInner"] + 1 and z["scrollW"] <= z["clientW"] + 1, (z["w"], z["cardInner"], z["scrollW"], z["clientW"]))
             ok(f"{tg} 畫布維持原尺寸 {z['cw']}（窄畫面不壓小）", abs(z["w"] - z["cw"]) <= 1, z["w"])
             ok(f"★ {tg} 字都 ≥ 11px（螢幕上）", z["minFs"] >= 10.9, z["minFs"])
             ok(f"★ {tg} 字沒有互相壓到、沒有跑出格子", not z["ov"] and not z["out"], (z["ov"], z["out"]))

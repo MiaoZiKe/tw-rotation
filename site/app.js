@@ -11210,7 +11210,8 @@
       : '';   // 沒有剖析圖 → 整區留白（Andy 2026-09-23 指定，見上面那段）
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列
-      if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el));
+      // ★ 2026-10-03（#316）：fit 會依卡寬重畫；之後視窗寬度變了再重畫時要重新接點擊，所以把 wireThemeDiagram 交給它
+      if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el), () => wireThemeDiagram(el, t));
       // 剖析圖不加滾輪縮放（跟產業／個股剖析圖一致，DECISIONS #84；Andy 09-13 再確認）
       // 要看大圖按右上角「放大」，那是明確的按鈕，不會搶走頁面捲動
       wireThemeDiagram(el, t);
