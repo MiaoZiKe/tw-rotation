@@ -57,3 +57,22 @@
   :root.l4 #ovRotCard>#how-ovflow{grid-column:2;grid-row:4}
   :root.l4 #ovRotCard>#ovFlowWrap{grid-column:2;grid-row:5}
 }
+
+/* ==================================================================================
+   資金去向（#flow/sankey）再縮小（2026-10-03，DECISIONS #313）
+   Andy：「資金去向，還是無法打開來就看全部，需要再縮小點」。
+   卡裡「圖以外」的東西原本佔 119px（上內距 12 ＋ 標題列 32 ＋ 產業鏈／族群下拉 35 ＋ 看哪一天 26 ＋ 下內距 12 ＋ 列間距），
+   三列各自獨立一行。改成可折行的一排：標題＋下拉＋看哪一天依序排，放得下就同一行（1630px 以上的內容寬），
+   放不下才折到下一行（1440 寬、側欄打開時內容寬 1150：標題＋下拉一行、看哪一天靠右一行）。
+   只動 DOM 順序不動：#how-sankey／#sankeyLive／#sankeyRow 仍各佔一整列，說明展開、即時狀態列出現時照舊推開圖，
+   圖高（flowtopo.js slotPlan）依卡裡其他東西的高度自己扣，所以這些列長出來時槽高自動縮、不會超出一屏。
+   ⚠ 只在桌機（≥821）；手機一個 px 不動。layout4.css 的「非資金去向子分頁就 display:none!important」仍然蓋得過這裡的 display:flex。
+   ================================================================================== */
+@media (min-width:821px){
+  :root.l4 #flowSankeyCard{display:flex;flex-wrap:wrap;align-items:center;column-gap:var(--sp-3,12px);row-gap:0;
+    padding-top:8px;padding-bottom:8px}
+  :root.l4 #flowSankeyCard>*{flex:0 0 100%;min-width:0}
+  :root.l4 #flowSankeyCard>.row.spread:first-child{flex:0 1 auto}
+  :root.l4 #flowSankeyCard>.ddrow{flex:0 0 auto;margin:0}
+  :root.l4 #flowSankeyCard>#sankeyDays{flex:0 0 auto;margin-left:auto}
+}
