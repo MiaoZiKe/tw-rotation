@@ -11,7 +11,40 @@
   const D = window.DG; if (!D) return;
   /* ★ 2026-09-23：新零件庫要畫剖面（onXZ）與直接算螢幕座標（P3），所以多取這兩支；
      同時**拿掉 cells** —— 它會自動加 `lit pulse`，正是 Andy 講過三次的「螢光感太重」的來源。*/
-  const { STYLE, px, py, P3, onTop, onXZ, box, cyl, panel, wire } = D;
+  const { STYLE, px, py, P3, onTop, onXZ, onYZ, box: box0, cyl: cyl0, panel, wire } = D;
+  /* ★ 2026-10-03 第二輪（Andy：「安排人員設計題材圖片，需要再優化細緻度」，DECISIONS #316）：
+     十八張圖共用同一組光影 —— 主光固定在左上方（頂面最亮 f1、右面中 f2、左面最暗 f3，原本就有），這裡再補三樣：
+       · hl  頂面朝觀者的兩條前緣＋前方那根直角：一道細邊光（產品插畫的 rim light），看得出「這是有厚度的實體」
+       · ao  落地那兩條底邊：一道接觸暗線，零件才「站」在地上而不是飄著
+       · spec 圓柱側面靠左一條直向反光，金屬罐／電芯／套管才有圓的感覺
+     只包在題材圖這支檔案裡（box／cyl 換成這兩支），產業鏈剖析圖（diagrams.js）一個 px 都不動。
+     顏色全部是 token（--dg-hl／--dg-spec／--dg-ao-ln，深淺兩組值在 index.html）；線寬不跟著 fit() 的縮放變（non-scaling-stroke）。
+     太小的東西（引腳、錫球、細柱）不加，不然整張變成一堆白點。*/
+  function box(x, y, z, w, d, h, inner) {
+    let s = box0(x, y, z, w, d, h, '');
+    if (w >= 6 && d >= 6) {
+      s += `<path class="hl" d="M${P3(x, y + d, z + h)} L${P3(x + w, y + d, z + h)} L${P3(x + w, y, z + h)}${h >= 4 ? ` M${P3(x + w, y + d, z + h)} L${P3(x + w, y + d, z)}` : ''}"/>`;
+      if (h >= 3) s += `<path class="ao" d="M${P3(x, y + d, z)} L${P3(x + w, y + d, z)} L${P3(x + w, y, z)}"/>`;
+    }
+    return s + (inner ? onTop(z + h, inner) : '');
+  }
+  function cyl(x, y, z, r, h, inner) {
+    let s = cyl0(x, y, z, r, h, '');
+    if (r >= 4) {
+      const cx = px(x, y), ty = py(x, y, z + h), by = py(x, y, z), rx = r * 1.2247, ry = r * 0.7071;
+      const L = (cx - rx).toFixed(1), R = (cx + rx).toFixed(1), A = `A${rx.toFixed(1)},${ry.toFixed(1)} 0 0 0`;
+      s += `<path class="hl" d="M${L},${ty.toFixed(1)} ${A} ${R},${ty.toFixed(1)}"/>`;
+      if (h >= 4) s += `<path class="ao" d="M${L},${by.toFixed(1)} ${A} ${R},${by.toFixed(1)}"/>`;
+      // 反光條只給夠高的圓柱：晶圓、法蘭這種扁圓盤加了會變成垂在下面的一小塊亮斑
+      if (h >= 10) {
+        const sx = (cx - rx * .5).toFixed(1), k = ry * .866;
+        s += `<path class="spec" d="M${sx},${(ty + k).toFixed(1)} V${(by + k).toFixed(1)}" stroke-width="${(rx * .2).toFixed(1)}"/>`;
+      }
+    }
+    return s + (inner ? onTop(z + h, `<g transform="translate(${x},${y})">${inner}</g>`) : '');
+  }
+  // 每次輸出唯一的 clipPath id（晶圓邊緣殘缺晶粒要用）；同一頁只會有一張題材圖，但重畫時舊的 id 不能撞
+  let clipSeq = 0;
 
   const CW = 1180, PADX = 22, GAPX = 12;
   /* ★ 2026-09-23 批次 0923-D（Andy 原話：「題材一律統一水平」「字體圖片版面在小一點 符合正常範圍，有點太大了」）：
@@ -57,7 +90,19 @@
      ⚠ 說明字從 12 改 13，wrapSub 的估寬（SUB_FW／SUB_HW）與列距 SUB_LH 要跟著改 —— 三個數字是同一組。*/
   const TH_STYLE = `<style>.dg.dg3{--dg-fs-ttl:16px;--dg-fs-hd:12.5px;--dg-fs-lbl:15px;--dg-fs-min:12px}
     .dg.dg3 .stn .sub{font-size:13px} .dg.dg3 .band text{font-size:13px}
-    .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px}</style>`;
+    .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px}
+    .dg3 .hl{fill:none;stroke:var(--dg-hl);stroke-width:1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
+    .dg3 .ao{fill:none;stroke:var(--dg-ao-ln);stroke-width:1.2;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}
+    .dg3 .spec{fill:none;stroke:var(--dg-spec);stroke-linecap:round;pointer-events:none}
+    .dg3 .shadow.soft{fill:url(#dg3sh)}
+    .dg3 .sheen{fill:var(--dg-spec);stroke:none;pointer-events:none}
+    .dg3 .dead{fill:var(--dg-sh0);fill-opacity:.28;stroke:none}
+    .dg3 .weave{fill:none;stroke:var(--dg-weave);stroke-width:.9;stroke-opacity:.9}
+    .dg3 .weave2{fill:none;stroke:var(--dg-yarn);stroke-width:.9;stroke-opacity:.85}
+    .dg3 .bump{fill:var(--dg-sn);stroke:none;fill-opacity:.9}
+    .dg3 .cuv{fill:var(--dg-cu);stroke:none}
+    .dg3 .cul{fill:none;stroke:var(--dg-cu);stroke-width:1.3;stroke-linecap:round}
+    .dg3 .blade{stroke:var(--dg-sh0);stroke-opacity:.5;stroke-width:.5}</style>`;
   const BANDS = ['上游：關鍵材料與設備', '中游：核心元件與製造', '下游：系統、模組與應用'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -184,6 +229,7 @@
        改成水平之後方向語意跟著換成「由左到右」，每一張各自照自己的鏈重寫（見各 T.* 的那一行）。*/
     const unit = o.unit ? `<text class="cap" x="${PADX}" y="64">${esc(o.unit)}</text>` : '';
     return `<svg class="dg dg3" data-cw="${CANW}"${curTid ? ` data-tid="${curTid}"` : ''} viewBox="0 0 ${CANW} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}
+      <defs><radialGradient id="dg3sh"><stop offset="0" style="stop-color:var(--dg-drop)"/><stop offset=".55" style="stop-color:var(--dg-drop);stop-opacity:.7"/><stop offset="1" style="stop-color:var(--dg-drop);stop-opacity:0"/></radialGradient></defs>
       <text class="ttl" x="${PADX}" y="24">${esc(o.title)}</text>
       <text class="cap" x="${PADX}" y="45">${esc(o.cap)}</text>
       ${unit}${bands}${ribbon}${body}
@@ -206,8 +252,61 @@
   const grid2 = (x, y, w, d, n, m) => { const a = []; for (let i = 1; i < n; i++) a.push(`M${x + w * i / n},${y} V${y + d}`); for (let j = 1; j < m; j++) a.push(`M${x},${y + d * j / m} H${x + w}`); return `<path class="etch" d="${a.join(' ')}"/>`; };
   const holes = (x, y, w, d, n, m, r) => { const a = []; for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) a.push(`<circle class="etch" cx="${(x + w * (i + .5) / n).toFixed(1)}" cy="${(y + d * (j + .5) / m).toFixed(1)}" r="${r || 2.4}"/>`); return a.join(''); };
   const trace = (x, y, w, d, n) => { const a = []; for (let j = 0; j < n; j++) { const yy = y + d * (j + .5) / n; a.push(`M${x + 5},${yy} H${x + w * .45} M${x + w * .55},${yy} H${x + w - 5}`); } return `<path class="etch" d="${a.join(' ')}" stroke-dasharray="6 4"/>`; };
-  const blades = (r, n) => { const a = []; n = n || 7; for (let i = 0; i < n; i++) { const t = i * 2 * Math.PI / n; a.push(`M0,0 q${(Math.cos(t) * r * .8).toFixed(1)},${(Math.sin(t) * r * .8).toFixed(1)} ${(Math.cos(t + .5) * r).toFixed(1)},${(Math.sin(t + .5) * r).toFixed(1)}`); } return `<path class="etch spin" d="${a.join(' ')}"/>`; };
-  const pad = (w, d) => onTop(0, `<ellipse class="shadow" cx="0" cy="0" rx="${w}" ry="${d}"/>`);
+  /* 扇葉（#316 重畫）：以前是七條細弧線，縮到 30px 就糊成一團。改成**實心的彎刀形葉片＋輪轂＋輪轂蓋**，
+     葉片前緣彎、後緣寬 —— 這是「風扇」最強的識別特徵（Andy 09-16：「看到風扇就要有扇片與輪轂」）。
+     整組仍掛 .spin（動態模式會轉、靜止模式停）。*/
+  const blades = (r, n) => {
+    n = n || 7;
+    const rh = r * .3, sw = Math.PI * 2 / n * .64, a = [];
+    const p = (rr, tt) => `${(Math.cos(tt) * rr).toFixed(1)},${(Math.sin(tt) * rr).toFixed(1)}`;
+    for (let i = 0; i < n; i++) {
+      const t = i * 2 * Math.PI / n;
+      a.push(`M${p(rh, t)} Q${p(r * .72, t + sw * .12)} ${p(r, t + sw * .5)} L${p(r * .98, t + sw)} Q${p(r * .62, t + sw * .74)} ${p(rh, t + sw * .5)}Z`);
+    }
+    return `<g class="spin"><path class="part f1 blade" d="${a.join('')}"/><circle class="part f2" r="${rh.toFixed(1)}"/>`
+      + `<circle class="etch" r="${(rh * .45).toFixed(1)}" fill="none"/></g>`;
+  };
+  /* 織紋（#316）：玻纖布是經緯「一上一下」交織的，所以畫成虛線列、相鄰兩列錯開半格 —— 一眼就是布，不是實心塑膠。
+     weaveTop 貼在頂面（模型座標）；weaveFace 貼在立面（onXZ／onYZ 的局部座標 u 沿面、v 往上）。*/
+  const weaveTop = (x, y, w, d, p) => {
+    p = p || 4; const a = [], b = [];
+    for (let j = 0, yy = y + p / 2; yy < y + d; j++, yy += p) a.push(`<path class="weave" d="M${x},${yy.toFixed(1)} H${x + w}" stroke-dasharray="${p} ${p}" stroke-dashoffset="${j % 2 ? p : 0}"/>`);
+    for (let i = 0, xx = x + p / 2; xx < x + w; i++, xx += p) b.push(`<path class="weave2" d="M${xx.toFixed(1)},${y} V${y + d}" stroke-dasharray="${p} ${p}" stroke-dashoffset="${i % 2 ? 0 : p}"/>`);
+    return a.join('') + b.join('');
+  };
+  const weaveFace = (len, v0, v1, p) => {
+    p = p || 4; const a = [];
+    for (let j = 0, v = v0 + 1.4; v < v1 - .6; j++, v += 2.4) a.push(`<path class="${j % 2 ? 'weave2' : 'weave'}" d="M1,${v.toFixed(1)} H${len - 1}" stroke-dasharray="${p} ${p * .6}" stroke-dashoffset="${j % 2 ? p * .8 : 0}"/>`);
+    return a.join('');
+  };
+  // 立面（x = x0 的那一面，沿 +y 展開）：onYZ 只回開標籤，跟 faceXZ 一樣包好收尾
+  const faceYZ = (x0, y0, inner) => onYZ(x0, y0) + inner + '</g>';
+  /* 躺著的圓柱（軸沿 x）：D.cyl 只會畫直立的，布捲、電纜這種「躺著」的東西要自己畫。
+     作法：兩個端面圓各取 36 點投到螢幕 → 取凸包當柱身（f2），靠觀者那一端（x1）畫端面（f1）＋同心捲層。
+     rings＝端面上幾圈捲層的半徑比例；最後一圈是紙管芯（畫成孔）。*/
+  const hcylX = (x0, x1, y, z, r, rings) => {
+    const ring = (x, k) => { const a = []; for (let i = 0; i < 36; i++) { const t = i * Math.PI / 18; a.push([px(x, y + Math.cos(t) * r * k), py(x, y + Math.cos(t) * r * k, z + Math.sin(t) * r * k)]); } return a; };
+    const pts = ring(x0, 1).concat(ring(x1, 1)).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    pts.forEach(p => { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); });
+    pts.slice().reverse().forEach(p => { while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); });
+    const hull = lo.slice(0, -1).concat(up.slice(0, -1));
+    const poly = (a, cls) => `<path class="${cls}" d="M${a.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L')}Z"/>`;
+    const rs = rings || [];
+    return poly(hull, 'part f2') + poly(ring(x1, 1), 'part f1')
+      + rs.map((k, i) => i === rs.length - 1 ? poly(ring(x1, k), 'm-hole') : poly(ring(x1, k), 'etch')).join('')
+      + `<path class="spec" d="M${P3(x0 + 2, y - r * .2, z + r * .95)} L${P3(x1 - 2, y - r * .2, z + r * .95)}" stroke-width="${(r * .25).toFixed(1)}"/>`;
+  };
+  // 一排小凸塊（C4／微凸塊）：沿模型座標一條線排開，畫在兩層之間的縫裡
+  const bumpRow = (x0, y0, x1, y1, z, n, r) => {
+    const a = [];
+    for (let i = 0; i < n; i++) { const t = n === 1 ? 0 : i / (n - 1), x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+      a.push(`<ellipse class="bump" cx="${px(x, y).toFixed(1)}" cy="${py(x, y, z).toFixed(1)}" rx="${(r || 1.4).toFixed(1)}" ry="${((r || 1.4) * .7).toFixed(1)}"/>`); }
+    return a.join('');
+  };
+  // 落地陰影：中心濃、邊緣淡出的柔影（漸層 #dg3sh 在 chainScene 的 defs），比一塊實心橢圓更像「放在桌上」
+  const pad = (w, d) => onTop(0, `<ellipse class="shadow soft" cx="2" cy="2" rx="${(w * 1.14).toFixed(1)}" ry="${(d * 1.14).toFixed(1)}"/>`);
 
   /* ================================================================ 零件庫（2026-09-23 全題材改版）
      改版前的問題（Andy 看 AI 伺服器那張時指出的）：五層都是同一塊格子板換五種顏色，
@@ -316,25 +415,46 @@
 
   /* ---------------- 材料與晶圓 ---------------- */
   // 單晶棒切晶圓：一根帶錐頭的圓柱 ＋ 旁邊切下來的三片薄片（「還是材料」的樣子）
-  const dIngot = () => pad(40, 24)
-    + mat('m-si', cyl(-16, -4, 0, 19, 46, '') + cyl(-16, -4, 46, 12, 10, ''))
-    + mat('m-si', [0, 1, 2].map(i => cyl(18 + i * 3, 10 + i * 9, 2 + i * 3, 16, 2.6, '')).join(''));
-  // 晶圓：圓盤 ＋ 棋盤狀晶粒 ＋ 定位缺口（缺口是「這是晶圓不是盤子」的關鍵）
+  /* #316：晶棒＝帶錐肩的圓柱＋頂上細細的晶種頸；側面一條從頭到尾的軸向 notch 溝（silicon_wafer.md §3-A C5：
+     溝是整根的，不是只在一端點一個洞）；旁邊切下來的三片薄晶圓，最上面那片已經看得到晶粒格。*/
+  const dIngot = () => {
+    const sx = 19 * 1.2247 * .62;   // notch 溝畫在側面偏右（靠觀者）那一側
+    return pad(40, 24)
+      + mat('m-si', cyl(-16, -4, 0, 19, 44, '') + cyl(-16, -4, 44, 14, 5, '') + cyl(-16, -4, 49, 8, 5, '') + cyl(-16, -4, 54, 2.6, 7, ''))
+      + `<path class="ai-seam" d="M${(px(-16, -4) + sx).toFixed(1)},${(py(-16, -4, 44) + 9.4).toFixed(1)} V${(py(-16, -4, 0) + 9.4).toFixed(1)}"/>`
+      + mat('m-si', [0, 1, 2].map(i => cyl(18 + i * 3, 10 + i * 9, 2 + i * 3.4, 16, 2.4, i === 2 ? grid2(-11, -11, 22, 22, 4, 4) + '<circle class="etch" r="13.5" fill="none"/>' : '')).join(''));
+  };
+  /* 晶圓（#316 重畫）：細的晶粒格（9×9、每格 6.2）＋ 邊緣**切不完整的殘缺晶粒**（較暗，silicon_wafer.md 的第 13 項）
+     ＋ 邊緣排除環 ＋ 定位缺口 ＋ 一道斜向反光。缺口與殘缺邊是「這是晶圓不是盤子」的兩個關鍵。*/
   const dWafer = () => {
-    const d = [];
-    for (let x = -30; x < 30; x += 10) for (let y = -30; y < 30; y += 10)
-      if ((x + 5) * (x + 5) + (y + 5) * (y + 5) < 810) d.push(`<rect class="etch" x="${x}" y="${y}" width="8.4" height="8.4" rx=".6" fill="none"/>`);
-    d.push('<path class="etch" d="M-4,-31 l4,7 l4,-7" fill="none"/>');
-    return pad(42, 26) + mat('m-si', cyl(0, 0, 0, 32, 6, d.join('')));
+    const R = 32, P = 7, id = 'dg3wc' + (++clipSeq), full = [], dead = [];
+    for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
+      const x = -31.5 + i * P, y = -31.5 + j * P;
+      const cs = [[x, y], [x + 6.2, y], [x, y + 6.2], [x + 6.2, y + 6.2]].map(c => Math.hypot(c[0], c[1]));
+      const r = `x="${x}" y="${y}" width="6.2" height="6.2" rx=".5"`;
+      if (Math.max(...cs) < R - 3) full.push(`<rect class="etch" ${r} fill="none"/>`);
+      else if (Math.min(...cs) < R - 1.2) dead.push(`<rect class="dead" ${r}/>`);
+    }
+    const inner = `<defs><clipPath id="${id}"><circle r="${R - 1.2}"/></clipPath></defs><g clip-path="url(#${id})">${dead.join('')}</g>${full.join('')}`
+      + `<circle class="etch" r="${R - 2.2}" fill="none" stroke-opacity=".45"/>`
+      + `<ellipse class="sheen" cx="-4" cy="-4" rx="${R * .82}" ry="4.5" transform="rotate(-45)" opacity=".7"/>`
+      + `<path class="m-hole" d="M-3.4,${-R + .2} L0,${-R + 4.6} L3.4,${-R + .2}Z"/>`;
+    return pad(42, 26) + mat('m-si', cyl(0, 0, 0, R, 4, inner));
   };
   // 磊晶片：晶圓上再長幾層越縮越小的薄膜，邊緣看得到台階（磊晶＝長出來的層）
   const dEpiWafer = () => pad(42, 26) + mat('m-si', cyl(0, 0, 0, 31, 6, ''))
     + [0, 1, 2].map(i => mat('m-epi', cyl(0, 0, 6 + i * 3, 28 - i * 5, 3, i === 2 ? `<circle class="etch" r="16" fill="none"/>` : ''))).join('');
   // 玻纖布捲 ＋ 樹脂桶：一捲帶經緯紋理的布，旁邊一個圓桶（PCB 的原料就是這兩樣）
-  const dClothRoll = () => pad(42, 26)
-    + mat('m-cloth', cyl(-16, -10, 6, 18, 0, '') + box(-42, -18, 0, 54, 16, 30, ''))
-    + mat('m-cloth', faceXZ(-42, -18, `<path class="etch" d="M4,6 H50 M4,14 H50 M4,22 H50 M12,3 V28 M24,3 V28 M36,3 V28 M48,3 V28"/>`))
-    + mat('m-res', cyl(26, 20, 0, 15, 32, `<circle class="etch" r="10" fill="none"/>`));
+  /* #316 重畫：以前是一個直立圓盤＋一塊方塊，看不出是「布捲」。改成**躺著的布捲**（橫向圓柱，端面一圈圈捲層＋紙管芯），
+     從捲的下緣拉出一段攤平的布、頂面看得到經緯織紋；旁邊的樹脂桶帶桶蓋與兩道加強箍。*/
+  const dClothRoll = () => {
+    const Y = -14, Z = 14, R = 14, X0 = -44, X1 = 8;
+    const sheet = box(-30, Y + 4, 0, 38, 40, 1.6, weaveTop(-30, Y + 4, 38, 40, 4));
+    return pad(44, 27)
+      + mat('m-cloth', sheet + hcylX(X0, X1, Y, Z, R, [.78, .56, .36]))
+      + mat('m-res', cyl(28, 16, 0, 14, 30, `<circle class="etch" r="10.5" fill="none"/><circle class="m-hole" cx="6" cy="-4" r="2"/>`))
+      + [9, 22].map(z => `<path class="etch" d="M${(px(28, 16) - 14 * 1.2247).toFixed(1)},${py(28, 16, z).toFixed(1)} A${(14 * 1.2247).toFixed(1)},${(14 * .7071).toFixed(1)} 0 0 0 ${(px(28, 16) + 14 * 1.2247).toFixed(1)},${py(28, 16, z).toFixed(1)}" fill="none"/>`).join('');
+  };
   // 玻璃板：兩片半透明薄板疊著 ＋ 表面斜向高光（透光才像玻璃，實心方塊不像）
   const dGlassPane = () => {
     const hl = [];
@@ -415,18 +535,29 @@
     return pad(40, 25) + mat('m-st', cyl(0, 0, 0, 36, 4, '')) + mat('m-si', s);
   };
   // CoWoS 封裝：中央大邏輯晶粒 ＋ 兩側各四疊 HBM ＋ 底下矽中介層 ＋ 一排錫球（見 vaPackage）
-  const dCowosPkg = () => pad(44, 27)
-    + mat('m-pcb', box(-42, -28, 0, 84, 56, 5, trace(-42, -28, 84, 56, 4)))
-    + aiBalls(-34, 27, 34, 27, 9)
-    + mat('m-si', box(-36, -23, 5, 72, 46, 3, ''))
-    + mat('m-emc', box(-11, -16, 8, 22, 32, 11, grid2(-11, -16, 22, 32, 2, 3)))
-    + [[-32, -20], [-21, -20], [-32, 2], [-21, 2], [14, -20], [25, -20], [14, 2], [25, 2]]
-      .map(p => mat('m-si', aiPile(p[0], p[1], 8, 9, 18, 4, 2.2, .9))).join('');
+  /* #316 重畫，由下而上（層別順序照 hbm_stack.md 區 C／semiconductor() 的 CoWoS 剖面）：
+     載板（表面走線、邊上幾顆被動元件、底下錫球）→ C4 凸塊（看得到的一排小球）→ 矽中介層（露出的邊上有 RDL 走線）
+     → 正中央邏輯晶粒（核心格）＋ 左右各 4 疊 HBM（每疊＝底下一片 base die ＋ 6 層 core die，看得出是一疊）。
+     HBM 疊的總高 ≈ 邏輯晶粒高（實物兩者都約 0.7～0.8mm，CoWoS 才能共用一片上蓋／散熱器）。*/
+  const dCowosPkg = () => {
+    const hbm = (x, y) => mat('m-emc', box(x, y, 9.4, 9, 18, 1.6, '')) + mat('m-si', aiPile(x, y, 11.4, 9, 18, 6, 1.3, .5));
+    return pad(44, 27)
+      + mat('m-pcb', box(-42, -28, 0, 84, 56, 5, trace(-42, -28, 84, 56, 4)))
+      + aiBalls(-34, 27, 34, 27, 9)
+      + mat('m-cer', [[-41, -27], [-41, 22], [36, -27], [-30, 24.5], [26, 24.5]].map(p => box(p[0], p[1], 5, 4, 2.4, 1.8, '')).join(''))
+      + bumpRow(-34, 23.4, 34, 23.4, 5.8, 14, 1.2) + bumpRow(36.4, -21, 36.4, 21, 5.8, 9, 1.2)
+      + mat('m-si', box(-36, -23, 6.6, 72, 46, 2.8, `<path class="cul" d="M-9,-19 H-30 M-9,19 H-30 M9,-19 H30 M9,19 H30" stroke-width=".6"/>`))
+      + mat('m-emc', box(-11, -16, 9.4, 22, 32, 1.4, ''))
+      + mat('m-si', box(-10.5, -15.5, 10.8, 21, 31, 9.6, grid2(-10.5, -15.5, 21, 31, 3, 4) + `<rect class="sheen" x="-9" y="-14" width="6" height="28" rx="1" opacity=".5"/>`))
+      + [[-33, -21], [-22, -21], [-33, 2], [-22, 2], [13, -21], [24, -21], [13, 2], [24, 2]].map(p => hbm(p[0], p[1])).join('');
+  };
   // 封裝成品：載板 ＋ 金屬上蓋 ＋ 底部整排錫球（有上蓋＝封裝好了，跟裸露的封裝分得開）
   const dSubstrateBga = () => pad(44, 27)
     + mat('m-pcb', box(-40, -28, 0, 80, 56, 6, ''))
     + aiBalls(-32, 27, 32, 27, 9) + aiBalls(38, -20, 38, 20, 7)
-    + mat('m-al', box(-34, -22, 6, 68, 44, 10, ''))
+    // #316：上蓋周圍一圈去耦電容（載板上真的有，封裝成品的辨識點之一）＋ 上蓋頂面一道反光
+    + mat('m-cer', [-30, -18, -6, 6, 18].map(x => box(x, -26.6, 6, 4, 2.4, 1.8, '')).join('') + [-16, -4, 8].map(y => box(35, y, 6, 2.4, 4, 1.8, '')).join(''))
+    + mat('m-al', box(-34, -22, 6, 68, 44, 10, `<rect class="sheen" x="-30" y="-18" width="10" height="36" rx="2" opacity=".6"/>`))
     + mat('m-au', onTop(6, aiGold(-32, 24, 60, 5, 10)));
   // 控制 IC：方形黑體 ＋ 四邊露出的引腳 ＋ 第一腳圓點（QFN 的樣子）
   const dQfnChip = () => {
@@ -440,28 +571,80 @@
       + mat('m-sn', pins.join(''));
   };
   // HBM 堆疊：一疊薄晶粒（層與層之間留得出接縫）＋ 貫穿的 TSV 銅柱 ＋ 底下邏輯基底
-  const dHbmStack = () => pad(36, 23)
-    + mat('m-pcb', box(-30, -24, 0, 60, 48, 5, ''))
-    + mat('m-si', box(-26, -20, 5, 52, 40, 5, '') + aiPile(-24, -18, 10, 48, 36, 8, 3.4, 1.4))
-    + [[-14, -8], [0, 4], [12, -10]].map(p => wire([[p[0], p[1], 5], [p[0], p[1], 48]], '', 'var(--dg-cu)', 2)).join('');
+  /* #316 重畫（hbm_stack.md 區 A 的層別）：中介層 → 對外凸塊 → 最底下 base die（邏輯，顏色較深）
+     → 8 層 core die（同色同厚）→ 每兩層之間一排微凸塊 → 正面切開看得到貫穿每一層的 TSV 銅柱。
+     以前的 TSV 是三條畫在整疊「前面」的線，看起來像插在外面的棍子；改成畫在切開的那一面上（剖面語言）。*/
+  const dHbmStack = () => {
+    const X = -24, Y = -18, W = 48, D = 36, T = 2.6, G = 1.1, Z0 = 9.4;
+    let s = pad(36, 23)
+      + mat('m-pcb', box(-30, -24, 0, 60, 48, 5, ''))
+      + bumpRow(X + 2, Y + D + .6, X + W - 2, Y + D + .6, 5.8, 12, 1.1)
+      + mat('m-emc', box(X - 1, Y - 1, 6.6, W + 2, D + 2, 2.8, ''));
+    for (let i = 0; i < 8; i++) s += mat('m-si', box(X, Y, Z0 + i * (T + G), W, D, T, ''));
+    const top = Z0 + 7 * (T + G) + T;
+    // 切開面＝右前方那一面（x = X+W，沿 +y）：TSV 是貫穿的銅柱，微凸塊夾在每兩層之間
+    let cut = '';
+    [7, 15, 23, 31].forEach(u => {
+      cut += `<rect class="cuv" x="${u - .9}" y="${Z0 - 2.6}" width="1.8" height="${(top - Z0 + 2.6).toFixed(1)}"/>`;
+      for (let i = 0; i < 8; i++) cut += `<ellipse class="bump" cx="${u}" cy="${(Z0 + i * (T + G) - G / 2).toFixed(2)}" rx="1.5" ry=".55"/>`;
+    });
+    return s + faceYZ(X + W, Y, cut);
+  };
   // 記憶體模組：一條長板 ＋ 一排顆粒 ＋ 板緣金手指（長條加金手指＝插進插槽的模組）
-  const dDimm = () => pad(44, 26)
-    + mat('m-pcb', box(-44, -6, 0, 88, 12, 28, ''))
-    + mat('m-emc', [0, 1, 2, 3].map(i => box(-36 + i * 19, -7, 8, 14, 2, 13, '')).join(''))
-    + mat('m-au', faceXZ(-44, -6, aiGold(8, 1, 72, 5, 14) + `<rect class="ai-seam" x="34" y="0" width="5" height="7" fill="none"/>`));
+  /* #316 重畫：板子改薄（實物 DIMM 是 1.3mm 厚的長條板，以前 12 厚像一塊磚），顆粒、標籤、金手指全部搬到
+     **看得到的正面**（以前畫在背面再蓋上來，前後關係是錯的）。顆粒 4 → 8 顆（左右各 4）＋ 中間一顆小的暫存器 RCD，
+     板緣一整排金手指＋偏一邊的防呆缺口（缺口不在正中央＝插反插不進去，這是 DIMM 的識別特徵）。*/
+  const dDimm = () => {
+    const FY = 2;   // 正面（y = 2 那一面）
+    return pad(44, 20)
+      + mat('m-pcb', box(-44, -2, 0, 88, 4, 30, ''))
+      + mat('m-emc', [0, 1, 2, 3, 5, 6, 7, 8].map(i => box(-41.5 + i * 9.3, FY, 9, 7.8, 1.6, 12, '')).join('') + box(-3.4, FY, 12, 6.8, 1.6, 6, ''))
+      + mat('m-res', box(-34, FY, 23, 26, .6, 4.5, ''))
+      + mat('m-au', faceXZ(-44, FY, aiGold(3, .8, 46, 6, 15) + aiGold(53, .8, 32, 6, 10)))
+      + faceXZ(-44, FY, `<rect class="m-hole" x="49.4" y="-.2" width="3.2" height="4.4" rx=".8"/>`);
+  };
   // CCL 銅箔基板：上下兩片銅箔夾著膠片的三明治，側邊看得出三層（單層板畫不出這個剖面）
-  const dCcl = () => pad(44, 27)
-    + mat('m-cu', box(-40, -28, 0, 80, 56, 3, ''))
-    + mat('m-pp', box(-40, -28, 3, 80, 56, 9, ''))
-    + mat('m-cu', box(-40, -28, 12, 80, 56, 3, ''))
-    + mat('m-pp', faceXZ(-40, 28, `<path class="etch" d="M4,4 H66 M4,9 H66 M14,3 V14 M30,3 V14 M46,3 V14 M62,3 V14"/>`))
-    + mat('m-cu', box(-32, -20, 15, 24, 16, 2.4, '') + box(6, 4, 15, 24, 16, 2.4, ''));
+  /* #316 重畫：銅箔／含浸樹脂的玻纖布（介電層）／銅箔，**上層銅箔往上掀開**（爆炸一格）——
+     中間那層頂面與兩個側面都看得到玻纖織紋（pcb_stackup.md：玻纖布要「看得出經緯兩個方向」、不是實心），
+     兩片銅箔頂面有斜向反光；四根細虛線說明「這片是壓回去的」。層別順序 Cu／介電／Cu 不變。*/
+  const dCcl = () => {
+    const X = -40, Y = -28, W = 80, D = 56;
+    const lift = 24, foil = `<path class="sheen" d="M-34,-24 L-18,-24 L-30,24 L-40,24 L-40,-4Z" opacity=".55"/><path class="sheen" d="M-6,-28 L2,-28 L-10,28 L-18,28Z" opacity=".35"/>`;
+    return pad(44, 27)
+      + mat('m-cu', box(X, Y, 0, W, D, 2.6, ''))
+      + mat('m-pp', box(X, Y, 2.6, W, D, 10, weaveTop(X + 1, Y + 1, W - 2, D - 2, 4)))
+      + mat('m-pp', faceXZ(X, Y + D, weaveFace(W, 2.6, 12.6, 4)))
+      + mat('m-pp', faceYZ(X + W, Y, weaveFace(D, 2.6, 12.6, 4)))
+      + [[X, Y + D], [X + W, Y + D], [X + W, Y]].map(p => `<path class="ai-seam" stroke-dasharray="2 2" d="M${P3(p[0], p[1], 12.8)} L${P3(p[0], p[1], 12.6 + lift)}"/>`).join('')
+      + mat('m-cu', box(X, Y, 12.6 + lift, W, D, 2.2, foil));
+  };
   // ABF 載板：厚核心層 ＋ 往上兩階增層 ＋ 頂面晶片接點陣列 ＋ 貫穿核心的銅柱
-  const dAbfSub = () => pad(42, 26)
-    + mat('m-core', box(-38, -26, 0, 76, 52, 12, ''))
-    + mat('m-abf', box(-34, -23, 12, 68, 46, 4, '') + box(-30, -20, 16, 60, 40, 4, ''))
-    + mat('m-au', onTop(20, padArr(-22, -14, 44, 28, 6, 4)))
-    + [[-28, -20], [0, 0], [26, 18]].map(p => wire([[p[0], p[1], 0], [p[0], p[1], 20]], '', 'var(--dg-cu)', 1.4)).join('');
+  /* #316 結構修正＋重畫（abf_substrate.md §2、§4）：載板是**以 core 為中心、上下對稱長出來**的 ——
+     以前畫成「core 在最底、上面兩階增層」，那是錯的（少了下半邊，而且不對稱＝會翹曲，跟右邊在講的事自相矛盾）。
+     現在由下而上：BGA 錫球 → 下增層 ×3 → core（全圖最厚、唯一有織紋）→ 上增層 ×3 → 頂面 bump pad 陣列。
+     右前方那一面當剖面：core 裡兩根鍍銅貫孔（PTH），每一層增層一個朝 core 收窄的錐形微孔（上下兩側都朝 core）。
+     上表面才有 bump pad、下表面才有錫球，兩者不對調。*/
+  const dAbfSub = () => {
+    const X = -38, Y = -26, W = 76, D = 52, L = 2.4, C0 = 3 * L, C1 = C0 + 10, TOP = C1 + 3 * L;
+    let s = pad(42, 26);
+    for (let i = 0; i < 3; i++) s += mat('m-abf', box(X, Y, i * L, W, D, L, ''));
+    s += mat('m-core', box(X, Y, C0, W, D, 10, ''));
+    for (let i = 0; i < 3; i++) s += mat('m-abf', box(X, Y, C1 + i * L, W, D, L, ''));
+    s += mat('m-au', onTop(TOP, padArr(-26, -16, 52, 32, 8, 5))) + aiBalls(-30, 25, 30, 25, 8) + aiBalls(37, -18, 37, 18, 6);
+    // 剖面（x = X+W 那一面，沿 +y）：織紋只在 core；增層之間一條銅線；微孔是梯形、窄的那頭朝 core
+    let cut = weaveFace(D, C0, C1, 3.4);
+    for (let i = 0; i <= 6; i++) { const v = i < 3 ? (i + 1) * L : C1 + (i - 3) * L; if (i !== 3) cut += `<path class="cul" d="M2,${v} H${D - 2}" stroke-width=".7"/>`; }
+    [14, 38].forEach(u => { cut += `<rect class="cuv" x="${u - 1.6}" y="${C0}" width="3.2" height="10"/><rect class="m-hole" x="${u - .8}" y="${C0}" width="1.6" height="10"/>`; });
+    [8, 26, 44].forEach((u, k) => {
+      for (let i = 0; i < 3; i++) {
+        const lo = C1 + i * L, hi = lo + L, dl = 1.0, dh = 1.8, uu = u + (i % 2) * 2;
+        cut += `<path class="cuv" d="M${uu - dl},${lo} L${uu + dl},${lo} L${uu + dh},${hi} L${uu - dh},${hi}Z"/>`;
+        const blo = C0 - (i + 1) * L, bhi = blo + L;
+        cut += `<path class="cuv" d="M${uu - dh},${blo} L${uu + dh},${blo} L${uu + dl},${bhi} L${uu - dl},${bhi}Z"/>`;
+      }
+    });
+    return s + faceYZ(X + W, Y, cut);
+  };
   // TGV 玻璃通孔：玻璃板打滿貫穿孔，其中幾個孔壁已經鍍上銅（玻璃基板的門檻就在這）
   const dTgvPane = () => pad(44, 27)
     + mat('m-gl', box(-40, -28, 0, 80, 56, 10, holes(-40, -28, 80, 56, 7, 5, 2.6)))
@@ -528,7 +711,9 @@
     + `<path class="m-fib" d="M${P3(36, 14, 7)} L${P3(58, 24, 16)} L${P3(76, 24, 10)}"/>`;
   // 光收發模組：長方鋁殼 ＋ 前端兩個光口與插著的光纖 ＋ 後端金手指 ＋ 拉環（拉環最好認）
   const dOsfp = () => pad(42, 24)
-    + mat('m-al', box(-42, -14, 0, 74, 28, 16, grid2(-42, -14, 74, 28, 5, 2)))
+    // #316：OSFP 頂上一整排縱向散熱鰭片（OSFP 跟 QSFP-DD 最大的外觀差別就是自帶鰭片）
+    + mat('m-al', box(-42, -14, 0, 74, 28, 12, ''))
+    + mat('m-al', [0, 1, 2, 3, 4, 5, 6].map(i => box(-40, -12.5 + i * 4, 12, 66, 1.4, 5, '')).join(''))
     + mat('m-al', box(32, -12, 2, 8, 24, 12, ''))
     + mat('m-res', cyl(38, -5, 8, 4, 7, '') + cyl(38, 5, 8, 4, 7, ''))
     + `<path class="m-fib" d="M${P3(42, -5, 12)} L${P3(66, -14, 20)}"/><path class="m-fib" d="M${P3(42, 5, 12)} L${P3(66, 6, 20)}"/>`
@@ -646,8 +831,9 @@
     + mat('m-al', aiFins(6, -12, 0, 30, 24, 10, 10))
     + mat('m-cu', box(-20, -4, 9, 54, 8, 3, ''));
   // 水冷板：表面蛇行流道 ＋ 兩顆快接頭（藍進橘出，語意色在兩個主題都固定）
+  // #316：底板改銅（貼晶片吸熱的那面本來就是銅）、四角固定螺絲孔；上蓋仍吃環節色，表面看得到蛇行流道
   const dColdPlate = () => pad(42, 26)
-    + box(-40, -30, 0, 80, 60, 5, '')
+    + mat('m-cu', box(-40, -30, 0, 80, 60, 5, bolt([[-35, -25], [35, -25], [-35, 25], [35, 25]], 2.2)))
     + box(-36, -26, 5, 72, 52, 9, aiSerpent(-36, -26, 72, 52, 5))
     + mat('m-st', cyl(-22, -30, 14, 7, 13, '') + cyl(24, -30, 14, 7, 13, '') + cyl(-22, -30, 12, 9, 3, '') + cyl(24, -30, 12, 9, 3, ''))
     + wire([[-22, -30, 27], [-22, -62, 31]], 'flow', 'var(--dg-cold)', 2.8)
@@ -678,7 +864,7 @@
   // 變壓器：油箱 ＋ 兩側散熱片 ＋ 頂上三根陶瓷套管（三根套管一眼就是變壓器）
   const dTransformer = () => pad(36, 23)
     + mat('m-oil', box(-30, -22, 0, 60, 44, 40, grid2(-30, -22, 60, 44, 2, 2)))
-    + mat('m-st', aiFins(-36, -20, 4, 6, 40, 32, 2, 2.6) + aiFins(30, -20, 4, 6, 40, 32, 2, 2.6))
+    + mat('m-st', aiFins(-39, -20, 4, 9, 40, 32, 4, 1.2) + aiFins(30, -20, 4, 9, 40, 32, 4, 1.2))
     + mat('m-cer', [-16, 0, 16].map(x => cyl(x, 0, 40, 5, 9, '') + cyl(x, 0, 49, 7, 3, '') + cyl(x, 0, 52, 6, 3, '') + cyl(x, 0, 55, 5, 4, '')).join(''))
     + wire([[30, 18, 20], [54, 18, 20]], 'flow', 'var(--dg-pwr)', 2.4);
   // 開關配電盤：三個並排的櫃體 ＋ 面板儀表與操作把手 ＋ 頂部銅母線槽（一排櫃＋把手＝配電盤）
@@ -719,11 +905,17 @@
     const RX = -28, RY = -22, RW = 56, RD = 44;
     let s = pad(32, 21) + box(RX, RY, 0, RW, RD, 6, '') + box(RX, RY, 6, 6, RD, 78, '')
       + box(RX + RW - 6, RY, 6, 6, RD, 78, '') + box(RX, RY, 6, RW, 5, 78, '');
+    /* #316：每一層刀鋒（1U／2U 伺服器）前面板＝左右兩支把手耳＋中間一整片進風孔＋一顆狀態燈；
+       最上面一層換成 ToR 交換器（一排埠），立柱前緣一排 U 孔 —— 看得出是「很多台疊起來、頂上一台網通」。*/
+    const vent = (w) => { const a = []; for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) a.push(`<circle class="ai-vent" cx="${(8 + i * (w - 18) / 8).toFixed(1)}" cy="${2.4 + j * 3.2}" r=".9"/>`); return a.join(''); };
     for (let i = 0; i < 6; i++) {
-      const z = 10 + i * 12;
+      const z = 10 + i * 12, top = i === 5;
       s += box(RX + 6, RY + 5, z, RW - 12, RD - 9, 8, '')
-        + aiFace(RX + 6, RY + RD - 4, z, `<rect class="ai-port" x="4" y="2" width="14" height="4" rx="1"/><circle class="ai-led" cx="${RW - 20}" cy="4" r="2"/>`);
+        + aiFace(RX + 6, RY + RD - 4, z, `<rect class="ai-port" x="1" y="1" width="3" height="6" rx=".6"/><rect class="ai-port" x="${RW - 16}" y="1" width="3" height="6" rx=".6"/>`
+          + (top ? [0, 1, 2, 3, 4, 5, 6].map(k => `<rect class="ai-port" x="${7 + k * 3.8}" y="2.4" width="2.8" height="3" rx=".4"/>`).join('') : vent(RW - 12))
+          + `<circle class="ai-led" cx="${RW - 21}" cy="5.6" r="1.3"/>`);
     }
+    s += aiFace(RX + RW - 6, RY + RD, 6, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(k => `<rect class="ai-port" x="1.6" y="${3 + k * 6.3}" width="2" height="1.6"/>`).join(''));
     return s + box(RX, RY, 84, RW, RD, 6, '');
   };
 
@@ -1147,7 +1339,7 @@
       + box(-19, -27, 10, 38, 54, 16, grid2(-19, -27, 38, 54, 3, 4))
       // 左右各四疊 HBM（2 欄 × 2 列），每疊四片 → 看得出來是「一疊」而不是一塊方糖
       + [[-57, -35], [-38, -35], [-57, 3], [-38, 3], [23, -35], [42, -35], [23, 3], [42, 3]]
-        .map(([x, y]) => aiPile(x, y, 10, 16, 32, 4, 3.2)).join('');
+        .map(([x, y]) => box(x, y, 10, 16, 32, 1.6, '') + aiPile(x, y, 12, 16, 32, 7, 1.5, .5)).join('');
   }
 
   // ---- 第 2 層：板材、載板與連接 ------------------------------------------
