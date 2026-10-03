@@ -524,9 +524,9 @@ groups:
     name: 日本被動元件
     tier: upstream
     chain: electronics
-    note: "日系被動元件在台股的對應標的。台股沒有日商被動元件製造廠掛牌，唯一對得上的是日系被動元件的台灣代理商。"
-    codes: ["3090"]
-    # 3090 日電貿
+    note: "日系被動元件在台股的對應標的。台股沒有日商被動元件製造廠掛牌，對得上的是被動元件的台灣代理商：蜜望實（太陽誘電）、日電貿（Panasonic、Chemi-Con、Kyocera AVX，另代理韓系三星 MLCC 與國巨旗下 KEMET）。2026-10-04 補進蜜望實並更正舊說法「唯一是日電貿」。"
+    codes: ["3090", "8043"]
+    # 3090 日電貿、8043 蜜望實
   capacitor:
     name: 電容器
     tier: upstream

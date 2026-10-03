@@ -214,6 +214,35 @@ segments:
   - {id: fin_securities, name: "證券金控", layer: 1, chain: financial,
      note: "對應 groups.yaml 的 securities_fhc 族群。獲利跟著台股成交量與自營部位評價走，不是靠利差。"}
 
+  # ================================================================ 被動元件擴充（2026-10-04 新增）
+  # ★ 為什麼補：Andy 看到「一般電子 → 被動元件」剖析圖底下的關聯圖只剩一格
+  #   （MLCC／電阻：國巨、華新科、凱美、禾伸堂、信昌電），提示寫「沒有具名的供貨關係」，
+  #   要我去找「他供應給誰、原物料是誰」。查證結果與逐條來源在 docs/groups_passive_supply_evidence.md。
+  # ★ 四個新環節都加在檔案尾端：color_idx 吃 YAML 原始順序，插在中間會洗掉既有環節的顏色
+  #   （DECISIONS #48）。layer 才決定畫面上的上下游位置。
+  # ★ 為什麼不是塞進既有的 passive_comp：它的名字是「MLCC / 電阻」。把電感廠或石英廠塞進去，
+  #   網站就等於在宣稱「臺慶科做 MLCC」—— 跟「金像電被放進 ABF 載板」同一條錯。
+  #   power_inductor 剖析圖（site/dg/power_inductor.js）的電感欄與石英欄當初沒掛 data-seg，
+  #   理由正是「整份 supply_chain.yaml 一家都沒有」；現在有節點了，之後那兩欄可以接 data-seg
+  #   passive_inductor／passive_crystal（site/ 這一批不動）。
+  - {id: mlcc_powder,       name: "MLCC 介電陶瓷粉體", layer: 0, chain: electronics, role: material,
+     material_of: [passive_comp],
+     note: "MLCC 的核心原料（鈦酸鋇基配方粉）：它是 MLCC 元件裡介電層的材料，不是獨立元件。
+       ★ 台股沒有純粉體廠 —— 信昌電 6173 自產粉體，但營收主體是 MLCC（約 68%、粉體約 12%），所以節點留在被動元件那一格，
+       這一格只有外商。全球粉體以日系為主（堺化學、日本化學工業、富士鈦工業等），這一格只放「查得到與台廠具名供貨關係」的國瓷材料；
+       堺化學等日系廠查不到供給台廠的具名關係，所以不放節點（放了會是孤立的外商，沒有資訊量）"}
+  - {id: passive_inductor,  name: "電感 / 磁性元件", layer: 1, chain: electronics,
+     note: "功率電感、一體成型電感、磁珠、共模濾波器、網路變壓器。對應 groups.yaml 的 power_inductor 族群。
+       ★ 國巨的磁性元件（含 2022 年併入的奇力新 Chilisin、美商 Pulse Electronics）在國巨的合併報表裡，不另開節點；
+       奇力新已被國巨收購（2022-01 完成，品牌併入 Pulse Electronics），不是台股節點"}
+  - {id: passive_crystal,   name: "石英頻率元件", layer: 1, chain: electronics,
+     note: "石英晶體（Crystal）、石英振盪器（XO／TCXO／OCXO）、SAW／BAW 濾波器。對應 groups.yaml 的 crystal 族群。
+       全球產能約 65～70% 在日本（Epson、NDK 等），台廠合計不到 10%（理財周刊報導摘要，口徑為產量）"}
+  - {id: component_dist,    name: "元件通路 / 代理商", layer: 2, chain: electronics,
+     note: "買斷或代理原廠元件再賣給組裝與品牌客戶。★ 它的營收看庫存週期與原廠漲價，不看自有產品 —— 跟 passive_comp 的『製造商』是不同的生意。
+       這一格同時放被動元件專業代理（日電貿 3090、蜜望實 8043）與綜合型 IC／元件通路（大聯大 3702）；
+       大聯大的主體是半導體 IC 代理，放這裡只因為它的官網產品線頁具名代理信昌電，不代表它是被動元件通路"}
+
 # ---------------------------------------------------------------- 產品 / 技術
 products:
   - id: cowos
@@ -587,7 +616,14 @@ companies:
   # ---- 被動元件
   - {id: yageo,       ticker: "2327", name: 國巨,     segment: passive_comp,
      tech: [MLCC, 晶片電阻, 電感],
-     note: "台廠被動元件龍頭。★ 2026 年所有報導講的都是「AI 伺服器外溢訂單」「高階 MLCC 量價齊揚」這種需求面題材，沒有任何一篇寫「國巨供貨給 X」，所以只放節點不連邊"}
+     note: "台廠被動元件龍頭。★ 2026-10-04 更正：舊 note 寫「查不到任何一篇寫國巨供貨給 X」，**查得到** ——
+       董事長陳泰銘在股東會／法說自己講「輝達或 AI 伺服器代工廠都是國巨客戶」「美國採用 GPU 與 ASIC 的雲端算力企業都是客戶」，
+       所以連了 nvidia 與 hyperscaler 兩條邊（見邊區塊）。ODM 那一句**沒有點名**是哪幾家，所以不連到鴻海／廣達／緯創。
+       ★ 合併口徑：國巨集團的產品線是併購拼起來的 —— 美商 KEMET（2020 完成，鉭質電容／車用 MLCC）、美商 Pulse Electronics
+       （2018 完成，磁性元件）、奇力新 Chilisin（2022-01 完成，電感，已併入 Pulse 品牌、不再是台股）、君耀（保護元件）。
+       這些都在國巨的合併報表裡，不另開節點；日電貿 3090 代理的 KEMET 鉭電就是國巨自己的產品。
+       營收結構（2024Q3 國巨法說摘要）：磁性元件 29%、MLCC 19%、鉭質電容 19%、電阻 14%、電感 9%；
+       AI 營收占比：董事長該場談話時約 5%（那場的年份沒確認）、2026Q1 約 15%（媒體引述，口徑隨期別變動）"}
   - {id: walsin_tech, ticker: "2492", name: 華新科,   segment: passive_comp,
      tech: [MLCC, 晶片電阻, 晶片排阻, 射頻元件],
      note: "★ 英文名 Walsin Technology，不要跟華新麗華 Walsin Lihwa 1605（電線電纜）搞混。公司自估 AI 相關的 MLCC 與電阻約占 2025 年營收 12～15%、2026 年目標 15～20%。同樣查不到具名客戶"}
@@ -597,8 +633,13 @@ companies:
        2026-09-21 更正：舊 note 寫「主體是鋁質電解電容」已經過期 ——
        依 2025H1 的公開整理，營收 27.7 億創高而**晶片電阻佔比約 49%**、是最大且成長最快的一塊
        （旗下 RALEC 旺詮晶片電阻與 ASJ 電阻），鋁質電解電容與馬達風扇是另外兩塊。
-       2019 年智寶與凱美合併、智寶為存續公司並更名為凱美電機；國巨為第一大股東
-       （持股比例只查到投資平台整理、非公司揭露，所以不寫數字）。
+       2019 年智寶與凱美合併、智寶為存續公司並更名為凱美電機。
+       ★ 2026-10-04 更正：舊 note 寫「國巨為第一大股東」，**查證後對不上**：2019 年合併案報導寫智寶持有凱美約 43%、
+       國巨只持有智寶約 12%、「合併後國巨持股將下滑至 5% 左右」；2020～2021 年媒體稱凱美為「國巨集團成員」
+       （陳泰銘家族投資體系，不是國巨本體持股）。所以這裡只寫「國巨集團成員」，不寫「第一大股東」，也不畫成邊
+       （schema 沒有 subsidiary_of，畫成 supplies 會被讀成供貨）。
+       來源：technews 2020-11-19 https://finance.technews.tw/2020/11/19/yageo-member-jamicon-continue-to-be-the-largest-shareholder/ ；
+       合併換股比例與持股數字出自搜尋摘要（cnyes 合併案報導，網址待補），信心中。
        ⚠ 證據等級：WebSearch 摘要，沒有讀過原文或財報，佔比數字只當量級看"}
   - {id: holystone,   ticker: "3026", name: 禾伸堂,   segment: passive_comp,
      tech: [MLCC, 高壓 MLCC 1kV 以上, NP0 / C0G 溫度特性],
@@ -606,12 +647,89 @@ companies:
        自主粉末配方 ＋ 1kV 以上高壓 MLCC；高毛利的高壓 NP0 比重在拉高。
        2026-09 的報導把它列為村田 MLCC 料號 EOL 的受惠者之一，理由是村田短期不切入 NP0。
        ⚠ 證據等級：WebSearch 摘要，沒有讀過原文。同樣查不到具名客戶，所以只放節點不連邊"}
+  # ⚠ id 叫 chilisin_elec，但本體是**信昌電 Prosperity Dielectrics（PDC）6173**，不是奇力新 Chilisin
+  #   （奇力新是另一家，已被國巨收購、不是台股節點）。id 因為 site/dg/ai_adv_packaging.js 兩處引用（cos 清單）而不能改，
+  #   改名要同時動 site/ —— 這一批不碰前端，記在 HANDOFF 待處理。
   - {id: chilisin_elec, ticker: "6173", name: 信昌電, segment: passive_comp,
      tech: [MLCC, 諧振電容, DC BIOS, 介電瓷粉],
      note: "★ 2026-09-21 補進來（原因同禾伸堂）。華新科集團旗下，從**粉末到元件自製**，
        著重車規 MLCC；諧振電容類產品約佔 10.5%，DC BIOS 是容量高於一般品的特殊品。
        2026-09 的報導同樣把它列為村田 EOL 的受惠者。
-       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文。查不到具名客戶，只放節點不連邊"}
+       ★ 2026-10-04 補：它是這一格唯一「上下游都查得到具名對手方」的公司 ——
+       上游自產介電瓷粉（營收約 12%、MLCC 約 68%，2026Q1 法說），瓷粉約一半供給華新科集團、另一半以日本客戶為主（日本客戶未具名）；
+       華新科是它的母公司（最大股東）。下游：品佳（大聯大）官網產品線頁列它為代理線；
+       客戶端只講到「國內二大電源廠」，未具名（那是 AI 伺服器電源，不要猜成台達電／光寶）。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文。"}
+  # ---- 被動元件擴充（2026-10-04）：電阻、電感、石英、通路、外商。逐家理由與來源見 docs/groups_passive_supply_evidence.md
+  - {id: viking,      ticker: "3624", name: 光頡,     segment: passive_comp,
+     tech: [晶片電阻, 高功率電阻, 車規電阻],
+     note: "★ 2026-10-04 補進來（groups.yaml 的 resistor_protect 早就有，供應鏈這一格漏了）。電阻占營收約九成（2025 前三季，媒體整理），
+       是台廠裡最純的電阻廠。AI（伺服器／GPU／交換器／電源）2026Q1 占營收約 12%；公司說已通過 GPU 大廠與 CSP 的認證，
+       ★ 兩者都**不具名**，所以不連邊。上游（氧化鋁基板、釕／銀／鈀漿料）查不到具名供應商，只查到貴金屬漲價是 2026 年調價理由。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文"}
+  - {id: dayi,        ticker: "2478", name: 大毅,     segment: passive_comp,
+     tech: [晶片電阻, 精密電阻, 電流感測電阻],
+     note: "★ 2026-10-04 補進來（同光頡）。電阻占營收約五成（2025，媒體整理）。2026 年與國巨、華新科同步調漲晶片電阻價格（理由是貴金屬）。
+       查不到具名客戶或具名上游，不連邊。⚠ 證據等級：WebSearch 摘要"}
+  - {id: taitech,     ticker: "3357", name: 臺慶科,   segment: passive_inductor,
+     tech: [一體成型電感, 繞線電感, 共模濾波器, 網路變壓器, 晶片磁珠, TLVR 電感],
+     note: "一體成型電感約占營收 40%，為最大單一產品線；2025 年 AI 占營收約 10%、車用約 39%。
+       ★ 客戶一律不具名：「美系客戶」「GPU 大廠、CSP」「國內電源大廠」。TLVR 電感正與美國原廠共同開發下一代 AI 伺服器用產品，
+       摘要明講沒有點名輝達 —— 所以不連到 nvidia。對代理商調漲磁珠價格，代理商也沒有具名。
+       ⚠ 有一個搜尋摘要把「新聿科」的客戶（智邦、廣達、緯穎、緯創、鴻海）寫成臺慶科的客戶 ——
+       名稱對不上、查不到原文，視為摘要自己補的對應，**不採用**。⚠ 證據等級：WebSearch 摘要"}
+  - {id: qianru,      ticker: "3236", name: 千如,     segment: passive_inductor,
+     tech: [電感器, 晶片電感, 濾波器, 變壓器],
+     note: "電感器約占營收 96%（營收結構整理）。查不到具名客戶與具名上游，不連邊。⚠ 證據等級：WebSearch 摘要"}
+  - {id: kingcore,    ticker: "6155", name: 鈞寶,     segment: passive_inductor,
+     tech: [磁芯 CORE, 晶片電感／磁珠 CHIP, 繞線電感 COIL],
+     note: "營收結構：磁芯（以鐵芯為主的磁性材料）約 58%、晶片電感／磁珠約 25%、繞線類約 15%。
+       ★ 一半以上營收是**磁性材料**（磁芯賣給電感廠），所以它既是電感廠的上游材料商、也是電感廠；
+       磁芯的具名買方查不到，不連邊。⚠ 證據等級：WebSearch 摘要"}
+  - {id: txc,         ticker: "3042", name: 晶技,     segment: passive_crystal,
+     tech: [石英晶體 Crystal, 石英振盪器 XO, TCXO, OCXO],
+     note: "營收結構：石英晶體約 69%、振盪器約 15%。全球前三大頻率元件廠之一。
+       ★ 客戶只查到類別與傳聞：媒體稱客戶含蘋果、聯發科、鴻海、華為（較舊的新聞，公司法說沒有具名揭露）；
+       低軌衛星則是「美系低軌衛星大廠納入設計」，公司不具名，SpaceX 概念股名單（數位時代、商周）把它列進去但那是概念股名單、
+       不是供貨證據 —— 都不畫邊。⚠ 證據等級：WebSearch 摘要"}
+  - {id: siward,      ticker: "2484", name: 希華,     segment: passive_crystal,
+     tech: [石英晶體, 石英振盪器 OSC, TCXO, 水晶原料與晶片],
+     note: "石英元件約占營收 88%；從原料與晶片到成品垂直整合。2025 年應用別：網通 40%、IoT／穿戴 21%、PC／消費 20%、手機 15%、車用 4%。
+       查不到具名客戶。⚠ 證據等級：WebSearch 摘要"}
+  - {id: tjs,         ticker: "3221", name: 台嘉碩,   segment: passive_crystal,
+     tech: [SAW／BAW 濾波器, 石英晶體／振盪器, 天線, 陶瓷濾波器],
+     note: "頻率元件約占營收 95%（2025）。2025Q3 應用別：網通 36%、車用 29%、手機與 IoT 20%。查不到具名客戶。⚠ 證據等級：WebSearch 摘要"}
+  - {id: nichidenbo,  ticker: "3090", name: 日電貿,   segment: component_dist,
+     tech: [被動元件代理（MLCC、固態／電解／鉭質電容）],
+     note: "台灣最大被動元件代理商，電容器占營收 85% 以上（2026Q2 法說摘要）。代理線：三星 MLCC、KEMET（國巨子公司）鉭電、
+       Panasonic 固態高分子電容、Nippon Chemi-Con、Kyocera AVX。★ 它**不代理**村田與太陽誘電（太陽誘電在蜜望實）。
+       groups.yaml 的 jp_passive 舊 note 寫它是「唯一對得上的日系被動元件代理」—— 已更正（蜜望實 8043 補進族群，且它最大代理線是韓系三星）"}
+  - {id: mws,         ticker: "8043", name: 蜜望實,   segment: component_dist,
+     tech: [太陽誘電 MLCC 代理, 電感代理],
+     note: "日商太陽誘電在台代理商，MLCC 約占營收九成；AI 相關營收約 40%（2025 媒體整理）。2025 年全年營收 54.26 億元。
+       ★ 太陽誘電曾是它的大股東、後來出清持股（cmoney 快訊摘要）—— 代理關係仍在。⚠ 證據等級：WebSearch 摘要"}
+  - {id: wpg,         ticker: "3702", name: 大聯大,   segment: component_dist,
+     tech: [半導體與元件通路（品佳、世平、詮鼎、友尚）],
+     note: "★ 主體是半導體 IC 通路（groups.yaml 的 ic_distribution 族群），不是被動元件通路。
+       放這一格只因為品佳官網『代理產線』頁具名列出信昌電（PDC）。其他被動元件原廠（國巨、華新科）是否在它的產線，這一輪查不到，不畫"}
+  # ---- 被動元件外商（只在「台廠的具名對手方就是它」時才加）
+  - {id: sinocera,    ticker: "SZ:300285", name: "國瓷材料 Sinocera", segment: mlcc_powder, foreign: true,
+     tech: [MLCC 介電陶瓷粉體（水熱法鈦酸鋇）, 配方粉, 電子漿料],
+     note: "山東國瓷，深圳上市。★ 不是台股、也**不是 5434** —— 5434 是崇越科技（半導體材料通路）。
+       多家中文財經媒體（財聯社、新浪財經、同花順）寫它的主要客戶含三星電機、風華高科、國巨、三環／三和集團；
+       全球市占各家說法 10%～30% 不一（口徑不同），不寫數字。⚠ 證據等級：WebSearch 摘要，沒有讀過年報原文"}
+  - {id: semco,       ticker: "KRX:009150", name: "三星電機 Samsung Electro-Mechanics", segment: passive_comp, foreign: true,
+     tech: [MLCC],
+     note: "全球第二大 MLCC 廠。出現在這張圖上是因為它是日電貿最大的代理線、也是國瓷材料的客戶"}
+  - {id: panasonic_ind, ticker: "TYO:6752", name: "Panasonic（工業元件）", segment: passive_comp, foreign: true,
+     tech: [固態高分子電容, 鉭電容],
+     note: "母公司 Panasonic Holdings。出現的原因：日電貿主力代理 Panasonic 固態高分子電容"}
+  - {id: chemicon,    ticker: "TYO:6997", name: "Nippon Chemi-Con", segment: passive_comp, foreign: true,
+     tech: [鋁質電解電容, 固態電容], note: "出現的原因：日電貿代理線之一"}
+  - {id: kyocera_avx, ticker: "TYO:6971", name: "京瓷 AVX Kyocera AVX", segment: passive_comp, foreign: true,
+     tech: [MLCC, 高分子鉭質電容], note: "出現的原因：日電貿代理線之一"}
+  - {id: taiyo_yuden, ticker: "TYO:6976", name: 太陽誘電, segment: passive_comp, foreign: true,
+     tech: [MLCC, 電感], note: "出現的原因：蜜望實為其台灣代理商。2026 年多次調漲被動元件報價（工商時報）"}
   # ---- 面板
   - {id: auo,         ticker: "2409", name: 友達,     segment: panel_mfg,
      tech: [TFT-LCD 面板, 車用顯示 Tier 1, Micro LED, 玻璃核心基板 GCS / TGV / RDL],
@@ -1240,6 +1358,8 @@ edges:
   # ★ 這一區「不畫的」比「畫的」重要，所以先記不畫的理由：
   #   · 國巨／華新科／凱美 → 任何人：2026 年的報導一律是「AI 外溢訂單」「MLCC 漲價」
   #     這種需求面題材，沒有一句「A 賣給 B」。
+  #     ★ 2026-10-04 更正：國巨這一句**錯了** —— 董事長在股東會／法說自己點名「輝達」與「美國 GPU／ASIC 雲端算力企業」是客戶
+  #       （見「被動元件」邊區塊）。華新科、凱美、光頡、大毅、禾伸堂的客戶端仍然都不具名。
   #   · 友達／群創／彩晶 → 客戶：友達董事長在法說會明講「不方便說和誰合作」，
   #     彩晶只講「國際品牌客戶」。這是公司自己拒絕具名，不是查不到。
   #   · 聯詠 3034 → 面板雙虎：找到的全是〈面板報價反彈 聯詠、瑞鼎、天鈺跟著熱〉
@@ -1275,6 +1395,61 @@ edges:
      note: "同 pegatron → apple 的依據，一樣待人工覆核。★ 這條邊要在一般電子鏈上看得到，site/industry.js 的 CHAIN_EXTRA.electronics 必須含 assembly（鴻海的節點在那一格）"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
 
+  # ================================ 被動元件（2026-10-04 補，Andy：「只有單一個，幫我找他供應給誰、原物料是誰」）
+  # ★ 這一區的信心度（沿用本檔三級：verified＝高、reported＝中、estimated＝低）：
+  #     verified  公司自己講（董事長談話、法說、官網產品線頁）且名稱被多個獨立來源逐字轉述
+  #     reported  兩個以上獨立媒體講同一件事，但沒讀到公司原文
+  #   本區沒有 estimated —— 推論一律不畫，寫進 docs/groups_passive_supply_evidence.md 的「查不到」。
+  # ★ 查證環境限制：只有 WebSearch 摘要，容器擋掉原文抓取；摘要會自己「補」對應關係
+  #   （例：把 AI 伺服器 ODM 三雄補成臺慶科的客戶、把電源廠補成台達電／光寶），這類一律不採用。
+  # ---- 上游材料 → MLCC 廠
+  - {from: sinocera, to: yageo, rel: supplies, item: "MLCC 介電陶瓷粉體（配方粉）", strength: 3, confidence: reported,
+     note: "國瓷材料客戶名單被財聯社、新浪財經、同花順等多家中文媒體逐字寫出（三星電機、風華高科、國巨、三環／三和集團）。
+       ★ 國巨使用多家粉體，國瓷只是其中之一，strength 因此只給 3；沒有讀到國瓷年報原文，所以不給 verified",
+     source: "財聯社", source_url: "https://www.cls.cn/detail/2440778"}
+  - {from: sinocera, to: semco, rel: supplies, item: "MLCC 介電陶瓷粉體（配方粉）", strength: 4, confidence: reported,
+     note: "同上來源；三星電機是國瓷材料名單裡最常被點名的客戶",
+     source: "新浪財經（MLCC 喧嚣）", source_url: "https://cj.sina.com.cn/articles/view/1644983660/620c756c02001tc2c"}
+  - {from: chilisin_elec, to: walsin_tech, rel: supplies, item: "介電陶瓷粉體（MLCC 核心原料）", strength: 4, confidence: reported,
+     note: "信昌電自產瓷粉，約一半供給華新科集團、另一半以日本客戶為主（日本客戶未具名）；華新科為信昌電母公司（最大股東）。
+       ★ 這條同時是母子關係：schema 沒有 subsidiary_of，先用 supplies 承載（比照日東紡→建榮）。
+       數字口徑差異：2018～2020 年的摘要寫『約一半』、另一篇寫『華新科所需粉末八成由信昌電供應』—— 兩者不矛盾（分母不同），但都沒讀到原文，所以不寫百分比。
+       2005 年 DigiTimes 就報導華新科與信昌電策略聯盟。",
+     source: "中央社 2026-05-15", source_url: "https://www.cna.com.tw/news/afe/202605150122.aspx"}
+  # ---- MLCC／電容原廠 → 通路
+  - {from: taiyo_yuden, to: mws, rel: supplies, item: "太陽誘電 MLCC 與電感（台灣代理）", strength: 5, confidence: verified,
+     note: "蜜望實 1989 年成立即為太陽誘電在台代理，MLCC 占營收約九成。多家媒體（聯合報、工商時報、MoneyDJ）一致寫法",
+     source: "聯合新聞網", source_url: "https://udn.com/news/story/7240/9442043"}
+  - {from: semco, to: nichidenbo, rel: supplies, item: "三星 MLCC（日電貿最大代理線）", strength: 4, confidence: verified,
+     note: "日電貿法說：2025 前三季前五大產品線中三星 MLCC 居首。多家來源（富果法說備忘、理財周刊、MoneyDJ）一致",
+     source: "富果法說備忘錄（日電貿）", source_url: "https://blog.fugle.tw/post/earnings-call-3090-2025-12-08"}
+  - {from: yageo, to: nichidenbo, rel: supplies, item: "KEMET 高分子鉭質電容（KEMET 為國巨 2020 年併入的子公司）", strength: 3, confidence: verified,
+     note: "★ 合併口徑：KEMET 在國巨的合併報表裡，這條邊的『出貨方』實際是國巨集團的美國子公司，不是台灣國巨本體。日電貿同時代理 KEMET 的 MLCC",
+     source: "聯合新聞網", source_url: "https://udn.com/news/story/7240/9168035"}
+  - {from: panasonic_ind, to: nichidenbo, rel: supplies, item: "Panasonic 固態高分子電容", strength: 3, confidence: verified,
+     note: "日電貿與堡達是 Panasonic 元件在台兩大代理商，日電貿主力代理固態高分子電容",
+     source: "聯合新聞網", source_url: "https://udn.com/news/story/7240/9168035"}
+  - {from: chemicon, to: nichidenbo, rel: supplies, item: "鋁質電解電容與固態電容", strength: 3, confidence: verified,
+     note: "日電貿公司簡介與法說的前五大產品線之一", source: "MoneyDJ 理財網", source_url: "https://www.moneydj.com/kmdj/wiki/wikiviewer.aspx?keyid=a9d84274-c87e-4490-9e8d-2047570bd026"}
+  - {from: kyocera_avx, to: nichidenbo, rel: supplies, item: "京瓷 MLCC、AVX 高分子鉭質電容", strength: 2, confidence: verified,
+     note: "日電貿前五大產品線之一（2025 前三季約 8%，媒體整理）", source: "MoneyDJ 理財網", source_url: "https://www.moneydj.com/kmdj/wiki/wikiviewer.aspx?keyid=a9d84274-c87e-4490-9e8d-2047570bd026"}
+  - {from: chilisin_elec, to: wpg, rel: supplies, item: "信昌電 MLCC 與電阻（品佳代理產線）", strength: 2, confidence: verified,
+     note: "品佳（大聯大旗下）官網『代理產線』頁列有信昌電子陶瓷。官網只列產品線，沒有占比或金額，strength 只給 2",
+     source: "品佳集團官網", source_url: "https://www.wpgholdings.com/sacg/pline_detail/zhtw/PDC"}
+  # ---- MLCC 廠 → 終端（AI）
+  - {from: yageo, to: nvidia, rel: supplies, item: "MLCC／晶片電阻／電感（AI 伺服器；董事長稱輝達為客戶）", strength: 3, confidence: verified,
+     note: "董事長陳泰銘：『目前輝達或 AI 伺服器代工廠都是國巨客戶』，美系客戶上一代與新一代 AI 伺服器都已導入國巨產品。
+       ★ 同一句的 ODM 部分沒有點名是哪幾家，所以不連鴻海／廣達／緯創（摘要自己補的『鴻海、緯創、廣達是 AI 代工大廠』不是國巨的客戶揭露）。
+       其他轉述：cnyes 5725076、udn 9528629、ctee 20260527701059",
+     source: "科技新報", source_url: "https://technews.tw/?p=1286196"}
+  - {from: yageo, to: hyperscaler, rel: supplies, item: "被動元件（美國採用 GPU／ASIC 的雲端算力企業皆為客戶，董事長語）", strength: 2, confidence: verified,
+     note: "同上談話：『美國採用 GPU 和 ASIC 等 AI 伺服器應用的雲端算力企業，都是國巨客戶』。實體出貨走 ODM／板卡廠，這條只表達客戶關係，所以 strength 只給 2",
+     source: "科技新報", source_url: "https://technews.tw/?p=1286196"}
+  - {from: holystone, to: nvidia, rel: designated_by,
+     item: "高客製 AI 電源 MLCC（透過電源管理大廠導入輝達供應鏈，試產階段）", confidence: reported,
+     note: "實體出貨走電源廠，電源廠名稱公司沒揭露（摘要自己補的台達電／光寶不採用）；2026 年法說稱 Vera Rubin 電源 MLCC 預計第四季開始出貨",
+     source: "聯合新聞網", source_url: "https://money.udn.com/money/story/5607/9406963"}
+
   # ================================ 公有雲原廠 → 台廠 MSP（2026-09-23 新增，software 鏈）
   # ★ 這條鏈**只有這三條邊**，而且方向刻意是 `supplies`：原廠把雲端資源與軟體授權賣給台廠，
   #   台廠加上自己的服務再賣給終端客戶 —— 錢的方向與貨（雲端資源）的方向在這一段是一致的，
@@ -1307,6 +1482,10 @@ competitors:
   - {a: avc,   b: auras,  note: "水冷板同業"}
   - {a: auo,    b: innolux,     note: "面板雙虎"}
   - {a: yageo,  b: walsin_tech, note: "被動元件同業（MLCC／晶片電阻）"}
+  - {a: viking, b: dayi,        note: "晶片電阻同業"}
+  - {a: txc,    b: siward,      note: "石英元件同業"}
+  - {a: txc,    b: tjs,         note: "石英元件同業"}
+  - {a: nichidenbo, b: mws,     note: "被動元件代理同業（代理線不同：日電貿＝三星／Panasonic／KEMET，蜜望實＝太陽誘電）"}
   - {a: gemtek, b: zyxel,       note: "電信 / ISP CPE 設備同業"}
   - {a: gemtek, b: sercomm,     note: "寬頻 CPE 同業"}
   - {a: delta, b: liteon, note: "伺服器電源同業"}
