@@ -388,7 +388,10 @@
     const ver = (D.meta && D.meta.generated_at) || '';
     _loading[name] = (async () => {
       try {
-        const r = await fetch(`data/${name}.json?v=${ver}`, ver ? {} : { cache: 'no-store' });
+        /* 2026-10-04：opt.low ＝ 這份不是用來「畫」首屏的（例如 groups_detail 只給點方塊後的面板），用低優先權讓頻寬先給要畫圖的檔。
+           只影響排隊順序，不影響內容與快取。*/
+        const fo = ver ? {} : { cache: 'no-store' }; if (opt && opt.low) fo.priority = 'low';
+        const r = await fetch(`data/${name}.json?v=${ver}`, fo);
         if (!r.ok) throw new Error(r.status);
         D[name] = await r.json(); _loaded[name] = true;
       } catch (e) { console.warn('載入失敗', name, e); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
@@ -3353,11 +3356,27 @@
     /* ★ 2026-09-24 總覽改版：多載 `stocks`（漲跌家數分佈要逐檔的漲跌幅，跟市場明細的「漲跌分佈」同一份）。
        `candidates` 仍然載 —— 法人卡的 tooltip 靠它查中文名（今日候選表本身已經拿掉）。*/
     /* ★ 2026-09-28：「法人連續買賣超」搬到市場明細（#market/streak），總覽不再載 trust_streak／inst_streak。*/
-    const [heat, gt, rot, cands, f3, th, gdForPanels, sd, stocks] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('groups_detail'), load('sankey_daily', { fallback: null }), load('stocks', { fallback: [] })]);
+    /* ★ 2026-10-04 首屏效能（Andy：「處理開啟頁面延遲，打開後快速看到資訊」）：
+       以前這裡是**一個** Promise.all 等九份檔全部到齊才開始畫任何一張卡 —— 熱力圖只要 groups_today（42KB）＋rotation（11KB），
+       卻要陪 stocks、groups_detail 這些大檔一起等（實測數字見 commit 訊息）。
+       現在九份照舊**同時**發出去（平行，不是序列），但每張卡只等**它自己用到的那幾份**，誰的資料先到誰先畫：
+         · 熱力圖：groups_today ＋ rotation
+         · 資金輪盤：flow_v3
+         · 摘要卡列：market_heat ＋ stocks ＋ flow_v3 ＋ sankey_daily ＋ themes（口徑不變：仍然要 stocks 逐檔才算，不退回 heat 的家數）
+         · 首屏下方三張（資金去向／熱門題材／漲跌家數）：捲近了才畫，畫的時候才等自己的檔
+       groups_detail 與 candidates 沒有任何一張卡在「畫」的時候用到（只有點方塊後的成分股面板、tooltip 查名字與即時層讀 D），
+       照舊預先載入，但不再擋著畫圖。 */
+    const P = { heat: load('market_heat'), gt: load('groups_today'), rot: load('rotation'), cands: load('candidates'),
+      f3: load('flow_v3'), th: load('themes'), gd: load('groups_detail', { low: true }), sd: load('sankey_daily', { fallback: null }), stocks: load('stocks', { fallback: [] }) };
+    const tasks = [];
+    // ① 熱力圖：資料最小、最常先到
+    tasks.push((async () => { const [gt, rot] = await Promise.all([P.gt, P.rot]); renderHeat(gt, rot); })());
+    // ② 資金去向的高度先定（不等它的圖），避免熱力圖畫完又被同一排撐高重畫
+    tasks.push(P.sd.then((sd) => {
     /* ★ 2026-09-24 效能：資金去向（#ovFlow）延後畫，但它的**高度**現在就定下來（跟 renderOvFlow 同一條公式）。
        這張圖跟熱力圖在同一排：它畫完才把自己撐高的話，熱力圖會跟著被拉長（實測 617 → 800px），
        等於熱力圖剛畫完又得整張重畫一次（resize ＋ 重排標籤）。先把高度給它，熱力圖第一次就畫在最後的尺寸上。*/
-    { const ovf = $('#ovFlow');
+      { const ovf = $('#ovFlow');
       if (ovf && sd && (sd.dates || []).length && (sd.groups || []).length) {
         const k = sd.dates.length - 1;
         const vs = sd.groups.map(g => (g.tv || [])[k] || 0).filter(v => v > 0);
@@ -3367,6 +3386,7 @@
           if (sub) sub.textContent = ovFlowSubText(sd.dates[k], vs.length, vs.reduce((a, v) => a + v, 0) || 1);
         }
       } }
+    }));
     /* ---- 摘要卡列（Andy 2026-09-28，取代原本那條 KPI 細列「加權指數｜成交值｜漲跌家數｜前五族群佔比」）。
        他的原話：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
                   現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」。
@@ -3375,11 +3395,9 @@
          那張卡的百分比分母是族群成交值（1/n 拆分後的合計），跟全市場成交值不是同一個數，擺在一起會被讀成「佔 7756 億的 39%」。
        · 前五族群佔比：資金去向卡的比例條就是同一件事的更完整版本（前幾大去向各佔多少）；完整的集中度圖仍在資金流向頁。
        節點沿用 #hero（market3.js 的 placeKpi 會把它搬進大盤三張圖卡片裡、手機由 mobile3.js 放到指數列下面），內容整個換掉。*/
-    renderOvSummary({ heat, stocks, f3, sd, th });
-    renderHeat(gt, rot);
-    /* ★ 2026-09-24 效能：熱力圖畫完先讓瀏覽器畫一幀、喘口氣（處理點擊與捲動），再畫輪盤。
-       以前兩張連同整頁一起在同一個任務裡畫完，那一個任務就是 Andy 說的「開啟就卡一陣子」。*/
-    await yieldFrame();
+    tasks.push((async () => { const [heat, stocks, f3, sd, th] = await Promise.all([P.heat, P.stocks, P.f3, P.sd, P.th]);
+      renderOvSummary({ heat, stocks, f3, sd, th }); })());
+    /* ★ 2026-09-24 效能：熱力圖畫完先讓瀏覽器畫一幀、喘口氣（處理點擊與捲動），再畫輪盤（2026-10-04 起輪盤另外等自己的 flow_v3，仍先讓一幀）。*/
     /* ★ 2026-09-23（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點」）。
        · `#rotMiniZoomBtn` 整顆移除（連同這裡的接線）——「放大」這個能力沒有消失：
          點卡片標題旁邊的分頁「資金流向」就是同一張時鐘的完整版（有拉Bar、篩選、播放）。
@@ -3397,12 +3415,14 @@
     /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：總覽這張**一律不畫軌跡與腳印**，
        不再跟資金流向頁的「顯示腳印」偏好（ROT.trail）走 —— 那個開關只屬於資金流向頁（DECISIONS #269 第 2 條講的是那一頁），
        兩頁的差別寫在 DECISIONS #274。上面兩段 09-26 的註解是當時的歷史，留著讓人知道為什麼以前是跟著偏好走。*/
-    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: false });
+    tasks.push((async () => { const f3 = await P.f3; await yieldFrame();
+      renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: false }); })());
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
-    // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
-    whenNear($('#ovFlow'), () => renderOvFlow(sd));
-    whenNear($('#ovTheme'), () => renderOvThemes(th));
-    whenNear($('#breadth'), () => renderUpDown(stocks, heat));
+    // 以下幾張在首屏下方：等首屏那幾張畫完（版面定了）才登記，捲近了（或瀏覽器閒下來）才畫（見 whenNear）；畫的時候才等自己的檔（2026-10-04）
+    await Promise.all(tasks);
+    whenNear($('#ovFlow'), () => P.sd.then(renderOvFlow));
+    whenNear($('#ovTheme'), () => P.th.then(renderOvThemes));
+    whenNear($('#breadth'), () => Promise.all([P.stocks, P.heat]).then(([stocks, heat]) => renderUpDown(stocks, heat)));
     // 法人連續買賣超 2026-09-28 搬到市場明細「法人連買賣」分頁（drawMarket 的 streak 分支），這裡只留 #ovTrustLink 指路
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
@@ -12009,7 +12029,7 @@
     } catch (e) { return new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); }
   };
   async function renderEvents() {
-    const [news, bv] = await Promise.all([load('news'), load('broker_views')]);
+    const [news, bv] = await Promise.all([load('news', { low: true }), load('broker_views')]);   // news 359KB：事件欄不擋首屏，低優先權
     const items = (news || []).map(n => ({ ...n, cat: n.category || '台股' }));
     /* 「券商」那一類由積木 `broker.views` 自己決定長相與欄位（site/blocks/broker_views.js）——
        這裡只負責把它跟新聞排在同一份清單裡。那支檔沒載入時這一類就是空的，抽屜照常。 */
@@ -12746,11 +12766,22 @@
       // 下鑽狀態（驗收「點背景回復預設」用）
       drillState: () => ({ gid: DRILL.gid, chain: DRILL.chain, open: [...DRILL.open],
         stocks: [...DRILL.stocks], sel: sankeySel }) };
+    /* ★ 2026-10-04 首屏效能：開的是總覽時，總覽首屏那幾張卡要的檔**先**發出去，不要排在下面這批全站共用大檔
+       （industry_map 844KB、candidates 708KB、stocks 533KB…）跟事件欄（news 359KB）後面才開始抓。
+       實測（修前）總覽的 groups_today／rotation／market_heat 要等這些全部抓完、解析完、route() 才發出去。
+       load() 會共用同一個 promise，renderOverview 之後再要同一份不會重抓。 */
+    const h0 = (location.hash || '').replace(/^#/, '').split('/')[0];
+    if (!h0 || h0 === 'overview') ['groups_today', 'rotation', 'market_heat'].forEach(k => load(k));   // 只發小檔（共 110KB）：flow_v3（1MB）不擠進 L.init 的關鍵路徑
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
     logoMapLoad();              // Logo 對照表不擋開站：沒到之前一律字母頭像，到了再把畫好的補上圖
-    await Promise.all([renderEvents(), initSearch()]);
+    /* ★ 2026-10-04 首屏效能：事件欄（news.json 359KB）與搜尋索引不再擋著畫頁 —— 以前要等它們做完才 route()。
+       兩者照舊同時開始，route() 不必等；盤中即時層仍等三者都好才啟動（順序跟以前一樣是最後一個）。 */
+    const side = Promise.all([renderEvents(), initSearch()]);
     await route();
+    await side;
+    // 手機總覽的「今日事件」卡讀的是 renderEvents 產的那一份；route() 不再等它，事件到了補畫一次
+    { const hv = (location.hash || '').replace(/^#/, '').split('/')[0]; if (!hv || hv === 'overview') { try { miaEvents(); } catch (e) { /* 忽略 */ } } }
     // 盤中即時層。放在 route() 之後：畫面上先有代號，Live 才知道要抓哪些。
     if (window.Live) window.Live.start();
   }
