@@ -3879,6 +3879,8 @@ def t_new_market3(pg, base):
     #   改後：這一段明確攔截 index_intraday.json 回空物件 ——「湖裡沒有」是這一段要驗的前提，
     #   所以用攔截把前提寫死，而不是依賴本機資料湖剛好是空的。讀湖的情況在下面「資料湖」那一段另外驗。
     pg.route("**/data/index_intraday.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="{}"))
+    # 2026-10-04 起盤後一開頁就會先讀湖（seedLake），App.load 會把真的湖快取起來 —— 攔截之後要重進一次頁面，前提才真的是「湖是空的」
+    fresh(sess="day")
     pg.evaluate("() => { window.Market3.state.lakeIntra = undefined; }")
     click(pg, "#m3Mode button[data-m='k']", 900)
     _m3_tf(pg, "H1")
@@ -4164,10 +4166,18 @@ def t_new_market3(pg, base):
         const c = document.querySelector("#m3Grid .m3-card[data-id='" + id + "']");
         return { id, kind: e.dataset.kind, fb: e.dataset.fallback || '', txt: e.innerText.slice(0, 60),
                  px: (c.querySelector('.m3-px') || {}).textContent || '' }; })""")
-    ok("★ 分時連不到 → 三張都退到資料湖日 K（畫得出 K 棒，不是一行錯誤）", all(x["kind"] == "k" for x in lk), lk)
+    # ★ 2026-10-04：非交易時段（這段跑在真時鐘上）改成「先畫資料湖最近完整交易日的走勢」（Andy：開頁不要先閃日 K），
+    #   盤中分時連不到才照舊退日 K。兩種時段各驗各的，不是放寬。
+    intra = pg.evaluate("() => window.Market3.isIntraday()")
+    if intra:
+        ok("★ 分時連不到 → 三張都退到資料湖日 K（畫得出 K 棒，不是一行錯誤）", all(x["kind"] == "k" for x in lk), lk)
+    else:
+        seeded = pg.evaluate("() => ['TSE','OTC','FUT'].map(id => !!(window.Market3.state.data[id] || {}).seed)")
+        ok("★ 非交易時段分時連不到 → 有湖種子的卡畫最近交易日走勢，沒有的退日 K",
+           all(x["kind"] == ("line" if sd else "k") for x, sd in zip(lk, seeded)), [lk, seeded])
     ok("★ 台指期的大數字也補上資料湖收盤（不再是「—」）", all(x["px"].strip() not in ("", "—") for x in lk), lk)
     ok("★ 錯誤訊息一律中文（畫面上不准出現 Failed to fetch）",
-       not any("Failed" in (x["fb"] + x["txt"]) for x in lk) and all("資料湖" in x["fb"] for x in lk), lk)
+       not any("Failed" in (x["fb"] + x["txt"]) for x in lk) and all("資料湖" in x["fb"] for x in lk if x["kind"] == "k"), lk)
 
     # --- ★ 游標：走勢圖讀得到價格＋該分鐘量；K 線每個週期讀得到開高低收＋量（Andy：部分圖不能顯示、還會報錯）
     pg.unroute("**/chart?*")
@@ -18632,6 +18642,12 @@ def t_m3_sunday(b, base, code):
         if not got:
             ctx.close(); return
         pg.wait_for_timeout(6000)
+        for _ in range(30):                       # live.js 第一輪報價偶爾晚到（節流閥排隊）—— 最多再等 15 秒
+            if K["n"] >= 1 and sc == "B":
+                pg.wait_for_timeout(1500); break
+            if sc == "A":
+                break
+            pg.wait_for_timeout(500)
         pg.click("#m3Mode button[data-m=line]"); pg.wait_for_timeout(800)
         r = pg.evaluate("""() => { const o = {}; ['TSE','OTC'].forEach(id => {
             const d = window.Market3.state.data[id], el = document.getElementById('m3c-' + id);

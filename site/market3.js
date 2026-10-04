@@ -1345,6 +1345,7 @@
         state.lakeIntra = all || {};
       } catch (e) { state.lakeIntra = {}; }
       state.lakeIntraBusy = false;
+      state.lakeIntraP = null;            // 只共用「進行中」的那一次；之後有人把 lakeIntra 清回 undefined 就重抓
       draw();
     })();
     return state.lakeIntraP;
@@ -1366,7 +1367,7 @@
    *  多日的部分由呼叫端拿資料湖的 H1／H4 用 mergeLake() 接上。 */
   function synthBars(x, tf) {
     const d = seriesOf(x);
-    const b15 = (d && d.points && d.points.length) ? toBars(d.points, 15, volUnit(x)) : [];
+    const b15 = (d && !d.seed && d.points && d.points.length) ? toBars(d.points, 15, volUnit(x)) : [];
     b15.sort((a, b) => a[0] - b[0]);
     const out = []; let cur = null, key = null;
     for (const b of b15) {
@@ -1816,6 +1817,7 @@
         const ymd = L.date.slice(0, 4) + '-' + L.date.slice(4, 6) + '-' + L.date.slice(6);
         const pb = rows.filter(b => String(b[0]) < ymd);
         if (pb.length) L.prev = pb[pb.length - 1][4];
+        L.seed = true;                       // 只給走勢圖與數字列用；分 K 合成不吃它（見 synthBars）
         state.data[x.id] = L;
       });
     } catch (e) { /* 種不起來就照舊等 refresh */ }
@@ -2409,6 +2411,8 @@
   const pulseId = (x, d) => x.id + (d && d.night ? 'N' : '');
   /** 記一次「這條線有沒有往前走」。第一次看到只記身分、不算走過（見上面最後一句）。 */
   function markMove(x, d) {
+    // 資料湖種子（盤後先畫的最近交易日）不是「往前走」—— 不記身分，真的分時回來那一次才算第一次看到
+    if (d && d.seed) return;
     const k = tipKey(d);
     if (!k) return;
     const id = pulseId(x, d);
@@ -2609,7 +2613,7 @@
          現在 15 分＝湖的 15 分 K 接今天（同一個 mergeLake 規則，今天那一盤以證交所分時為準），
          30 分＝同一份 15 分 K 兩根併一根。1／5 分湖裡沒有，照舊只有今天。夜盤接 FUT_N（期交所逐筆，2026-09-26 起）。*/
       const n = +state.tf;
-      const today = (d && d.points && d.points.length) ? toBars(d.points, n, volUnit(x)) : [];
+      const today = (d && !d.seed && d.points && d.points.length) ? toBars(d.points, n, volUnit(x)) : [];
       // ★ 2026-09-26：夜盤也接湖（期交所逐筆合成的 FUT_N 15 分 K）；湖裡沒有夜盤時 M15 是空的，照舊只有今晚。
       if ((n === 15 || n === 30) && state.lakeIntra === undefined) loadLakeIntra();
       const m15 = (n === 15 || n === 30) ? (((state.lakeIntra || {})[(d && d.night) ? 'FUT_N' : x.id] || {}).M15 || []) : [];
