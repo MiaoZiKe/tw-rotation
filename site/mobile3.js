@@ -144,6 +144,9 @@
   /* ★ 2026-09-28（Andy：「"自選分頁替代"交付清單」）：「更多」裡的交付清單換成自選（#watch）。
      交付清單的網址 #delivery 照樣打得開，只是入口收掉（桌機導覽列同一件事）。*/
   const MORE_VIEWS = ['market', 'season', 'watch'];
+  /* ★ 2026-10-04「會員權限」（#admin/perm）：跟電腦版側欄同一條規則 —— 只有登入且 Worker 回報 admin=true 才「畫」這一列，
+     訪客與一般會員的清單 HTML 裡根本沒有它。清單每次打開都重畫，所以登入／登出之後下一次打開就對。 */
+  const isAdmin = () => { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); };
   function buildNav() {
     const tabs = document.getElementById('tabs');
     if (!tabs) return;
@@ -174,6 +177,7 @@
       ${row('market', '▦', '市場明細', '<small>漲跌家數、站上均線、完整名單</small>', v === 'market')}
       ${row('season', '◷', '週期統計', '<small>族群 × 月份的歷史表現</small>', v === 'season')}
       ${row('watch', '★', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
+      ${isAdmin() ? row('perm', '⛨', '會員權限', '<small>只有管理者看得到</small>', /^#admin\/perm\b/.test(location.hash)) : ''}
       <div class="mgrp">工具</div>
       ${row('events', '▤', '今日事件', `<span class="n">${esc(evn)}</span>`)}
       ${row('theme', '☀', '切換成' + theme)}
@@ -182,6 +186,7 @@
       const m = r.dataset.m;
       closeSheet();
       if (MORE_VIEWS.includes(m)) { location.hash = '#' + m; return; }
+      if (m === 'perm') { location.hash = '#admin/perm'; return; }
       // 不重寫邏輯：一律去按桌機原來那顆鈕（跟頂欄「⋯」同一條路，見 app.js initMore）
       const t = document.getElementById(m === 'events' ? 'evToggle' : 'themeBtn');
       if (t) t.click();
