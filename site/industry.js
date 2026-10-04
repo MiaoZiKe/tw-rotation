@@ -5766,7 +5766,9 @@
     $$('#revWin button', el).forEach(b => b.onclick = () => { rwin = +b.dataset.v; lsSet('tw.revWin', String(rwin)); drawRev(); });
     drawRev();
     const yr = (rv.yearly || []).slice(-6); let mode = 'm';
-    const drawYear = () => { const yc = A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { show: false, type: 'scroll' }, grid: { left: 60, right: 20, top: 10, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.yi(v) } },
+    /* ★ 2026-10-04（Andy 截圖 6182：「逐年同月比較 Y 軸從 0 開始，資料都擠在上半部」）：
+       Y 軸改依資料極值上下各留 8% 邊（scale:true），曲線置中；單月與累計同一套，切換時各自重算。*/
+    const drawYear = () => { const yc = A.chart('revYear', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue} 月</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.yi(p.value)}`).join('<br>') }, legend: { show: false, type: 'scroll' }, grid: { left: 60, right: 20, top: 10, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: Array.from({ length: 12 }, (_, i) => i + 1), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, scale: true, min: (e) => e.min - (e.max - e.min) * 0.08, max: (e) => e.max + (e.max - e.min) * 0.08, axisLabel: { formatter: v => A.fmt.yi(v) } },
       series: yr.map((y, i) => { let acc = 0, broke = false; const d = Array.from({ length: 12 }, (_, m) => { const v = y.by_month[m + 1]; if (v == null) { broke = true; return null; } if (mode === 'c') { if (broke) return null; acc += v; return acc; } return v; }); /* ★ 2026-09-28：累計遇缺月就停（跳過缺月繼續加，後面每個月都少算一個月，線會系統性偏低）*/ return { name: String(y.year), type: 'line', data: d, smooth: .2, symbolSize: 5, lineStyle: { width: i === yr.length - 1 ? 3 : 1.5, color: A.PALETTE[i] }, itemStyle: { color: A.PALETTE[i] } }; }) });
       /* ★ 2026-10-02（DECISIONS #295）：營收改三欄之後這張卡只剩約 430px 寬，六個年份的 HTML 圖例放不進標題列，
          退回 ECharts 圖例時會折成兩行、第二行（2026）壓到 Y 軸最上面的「14.0 億」。退回時改成單行可捲（type:'scroll'）、色樣縮小，永遠只佔一行；繪圖區頂 30 → 36（可捲圖例外框底約 25px，
@@ -6099,10 +6101,15 @@
   /* 河流圖的「看哪一段」拉Bar（Andy 2026-09-18 圖七要播放與 ＋ −）。
      兩支：一支調**視窗長度**（看多長一段），一支調**截止位置**（看到哪一天為止，可播放）。
      只建一次；重畫時只更新視窗值，不要重建（重建會把播放中的計時器孤兒化）。*/
-  let peWired = false;
+  /* ★ 2026-10-04（Andy：「本益比河流圖滾輪縮放後，上方『看多長／截止』那一列不見、右側多了『警示』」）：
+     根因：改前用一個模組層級的 peWired 旗標「整個網頁只接一次」。獲利分頁每次進來（切分頁回來、換股票、重畫）都會重建
+     #peLen／#peEnd 兩個空殼，但旗標已是 true → 新的空殼永遠沒人填，控制列整列消失；peWin 又停在上一次的視窗，
+     畫面變成「沒有控制列、範圍跟上次不一樣」（右側標籤因此多出「警示」那一帶）。
+     修法：旗標改掛在這一次的 #peEnd 元素上（box._peWired）——同一個元素只接一次（不重建、不孤兒化計時器），
+     新建的元素一定會被接上，並由 apply() 把 peWin 重設成這一次的預設視窗。*/
   function wirePeWin(el, r, redraw) {
-    if (peWired || !r || !r.dates || r.dates.length < 30) return;
-    const box = $('#peEnd', el); if (!box) return;
+    if (!r || !r.dates || r.dates.length < 30) return;
+    const box = $('#peEnd', el); if (!box || box._peWired) return;
     const lenBox = $('#peLen', el);
     const N = r.dates.length;
     let len = 60, end = 100;                          // len＝幾個交易日，end＝截止百分比
@@ -6120,7 +6127,7 @@
     A.playBar(box, { min: 10, max: 100, value: 100, key: 'tw.pe.end',
       label: '截止', fmt: (v) => (v >= 100 ? '最新' : (r.dates[Math.round((v / 100) * (N - 1))] || '')),
       onChange: (v) => { end = v; apply(); } });
-    peWired = true;
+    box._peWired = true;
     apply();
   }
 
@@ -6235,8 +6242,14 @@
   function peSideLabels(inst, items) {
     if (!inst || !items.length) return;
     let sig = '';
+    /* ★ 2026-10-04（Andy：「河流圖縮放後右側多了『警示』」）：根因是上一次呼叫留下的計時器（150ms 去抖動）還沒跑，
+       它拿的是上一次（全段、Y 軸較大）的 items，晚一步把標籤蓋回舊的（少了「警示」）；之後任何重排（滾輪縮放、切分頁）
+       才由新的 items 排對，看起來就像「縮放後多了一個標籤」。每次呼叫發一個世代號，舊世代的 place 一律不做事。*/
+    const gen = inst._peSideGen = (inst._peSideGen || 0) + 1;
+    clearTimeout(inst._peSideT);
     const place = () => {
       if (inst.isDisposed && inst.isDisposed()) return;
+      if (inst._peSideGen !== gen) return;
       const H = inst.getHeight(), W = inst.getWidth();
       const top = 26, bot = H - 36, gap = 15;          // 設計 v4 2B：字 11 → 12px，行距 14 → 15（不互疊）
       let xs; try { xs = inst.convertToPixel({ xAxisIndex: 0 }, inst.getOption().xAxis[0].data.length - 1); } catch (e) { return; }
@@ -6290,42 +6303,54 @@
     const over = pe.map(r => !!r && r.pe != null && Math.max(+r.pe, r.pe_high != null ? +r.pe_high : 0) > cap);
     return { cap, med, loss, over, clip, nLoss: loss.filter(Boolean).length, nOver: over.filter(Boolean).length };
   }
-  function drawPeQ(pe, el) {
+  /* ★ 2026-10-04（Andy：「虧損可以呈現負值上去」）：虧損季不再灰底留空，改畫負本益比＝財報可用日收盤 ÷ 近四季 EPS（EPS<0 → 負值）。
+     · 管線 pe_history 對虧損季給 pe＝null（只留 ttm_eps 與 from），所以負值在前端用日 K 收盤自己算；管線不動。
+       from 那天不是交易日 → 取那天之前最近一個收盤；EPS 剛好 0 → 除不了，照舊留空。
+     · 負值同樣有上限：EPS 只剩 -0.07 元時會到 -2000 倍，下限＝−cap，超過的畫在下緣、放綠色 ▼，提示框照寫實際值。
+     · 負值點用綠色（台股慣例綠＝不好），提示框註明「虧損（近四季 EPS 為負）」；帶（每天高低）仍只畫獲利季。
+     · 中位數仍只拿獲利季算（負本益比沒有「便宜／貴」的意義），所以 peQModel 不動。*/
+  function drawPeQ(pe, el, daily) {
     const nt = $('#peQNote', el);
     if (!pe.length) { A.empty('peQ', '需要四季連續財報'); if (nt) nt.textContent = ''; return; }
     const m = peQModel(pe);
     const x = (v) => (v == null ? '—' : A.fmt.n(v, 1));
     const lo = pe.map(r => m.clip(r.pe_low)), hi = pe.map(r => m.clip(r.pe_high));
-    /* 虧損季：一根填滿整格的淡灰長條（隱藏的第二個 Y 軸 0～1，值 1＝頂到圖頂）。markArea 在類目軸上只能從格中心畫到格中心，
-       單獨一季會變成 0 寬，所以用 barWidth 100% 的長條。字只寫在每段連續虧損的第一格（相鄰的格各寫一次會疊字）。*/
-    const lossBar = m.loss.map((L, i) => (L ? { value: 1, label: { show: !(i > 0 && m.loss[i - 1]) } } : null));
+    const dd = daily || [];
+    const closeAt = (d) => { if (!d) return null; let c = null; for (const b of dd) { if (String(b[0]).slice(0, 10) > d) break; if (b[4] != null) c = +b[4]; } return c; };
+    const neg = pe.map(r => (r && r.pe == null && r.ttm_eps != null && r.ttm_eps < 0 ? (() => { const c = closeAt(r.from); return c != null ? c / r.ttm_eps : null; })() : null));
+    const negClip = neg.map(v => (v == null ? null : Math.max(v, -m.cap)));
+    const nNeg = neg.filter(v => v != null).length, nUnder = neg.filter(v => v != null && v < -m.cap).length;
+    /* 線：獲利季畫正值、虧損季畫負值，連成同一條（Andy 要看到「掉到負的」那段走勢） */
+    const line = pe.map((r, i) => (r.pe != null ? m.clip(r.pe) : negClip[i]));
     const el0 = document.getElementById('peQ');
-    if (el0) { el0.dataset.cap = m.cap; el0.dataset.nloss = m.nLoss; el0.dataset.nover = m.nOver; }
+    if (el0) { el0.dataset.cap = m.cap; el0.dataset.nloss = m.nLoss; el0.dataset.nover = m.nOver; el0.dataset.nneg = nNeg; }
     A.chart('peQ', {
-      tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = pe[ps[0].dataIndex]; if (!r) return '';
-        if (r.pe == null) return `<b>${r.period}</b><br>虧損（近四季 EPS ${r.ttm_eps != null ? A.fmt.n(r.ttm_eps, 2) + ' 元' : '—'}），不計本益比`;
-        const ov = m.over[ps[0].dataIndex];
+      tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const i = ps[0].dataIndex, r = pe[i]; if (!r) return '';
+        if (r.pe == null) return `<b>${r.period}</b><br>${neg[i] != null ? `本益比 <b style="color:${A.CH.down || '#2fbf71'}">${x(neg[i])}</b> 倍${neg[i] < -m.cap ? `（超出圖下限 −${m.cap} 倍，畫在下緣 ▼）` : ''}<br>` : ''}虧損（近四季 EPS 為負${r.ttm_eps != null ? '，' + A.fmt.n(r.ttm_eps, 2) + ' 元' : ''}）${r.from ? `<br><small>＝${r.from} 收盤 ÷ 近四季 EPS</small>` : ''}`;
+        const ov = m.over[i];
         return `<b>${r.period}</b><br>本益比 ${x(r.pe)} 倍${r.pe > m.cap ? `（超出圖上限 ${m.cap} 倍，圖上畫在上緣 ▲）` : ''}<br>`
           + `這一季每天的區間 ${x(r.pe_low)}–${x(r.pe_high)} 倍${ov && !(r.pe > m.cap) ? `（上緣超出圖上限 ${m.cap} 倍）` : ''}<br>`
           + `近四季 EPS ${r.ttm_eps != null ? A.fmt.n(r.ttm_eps, 2) + ' 元' : '—'}${r.from ? `<br><small>線＝${r.from} 收盤（財報可用日）</small>` : ''}`; } },
       grid: { left: 50, right: 20, top: 20, bottom: 30 },
       xAxis: { ...A.axisStyle, type: 'category', data: pe.map(r => r.period), axisLabel: { color: A.CH.ink3, hideOverlap: true } },
-      yAxis: [{ ...A.axisStyle, scale: true }, { type: 'value', min: 0, max: 1, show: false }],
+      yAxis: { ...A.axisStyle, scale: true },
       series: [
-        { name: '虧損', type: 'bar', yAxisIndex: 1, data: lossBar, barWidth: '100%', barGap: '-100%', silent: true, z: 1,
-          itemStyle: { color: 'rgba(140,150,175,.16)' },
-          label: { position: 'insideTop', formatter: '虧損', color: A.CH.ink3, fontSize: 11, distance: 4 } },
         { name: '區間', type: 'line', data: lo, lineStyle: { opacity: 0 }, stack: 'pe', showSymbol: false, z: 2 },
         { name: '高低', type: 'line', data: hi.map((h, i) => (h != null && lo[i] != null ? h - lo[i] : null)), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(139,123,255,.2)' }, showSymbol: false, z: 2 },
-        { name: '本益比', type: 'line', data: pe.map(r => m.clip(r.pe)), connectNulls: false, lineStyle: { color: '#8b7bff', width: 2 }, itemStyle: { color: '#8b7bff' }, symbolSize: 5, z: 3 },
+        { name: '本益比', type: 'line', data: line, connectNulls: false, lineStyle: { color: '#8b7bff', width: 2 },
+          itemStyle: { color: (p) => (neg[p.dataIndex] != null ? (A.CH.down || '#2fbf71') : '#8b7bff') }, symbolSize: 6, z: 3,
+          markLine: nNeg ? { silent: true, symbol: 'none', label: { show: false }, lineStyle: { color: A.CH.ink3, type: 'dashed', width: 1 }, data: [{ yAxis: 0 }] } : undefined },
         { name: '超出範圍', type: 'scatter', data: m.over.map(o => (o ? m.cap : null)), symbol: 'triangle', symbolSize: 10, itemStyle: { color: A.CH.amber }, z: 4 },
+        { name: '低於下限', type: 'scatter', data: neg.map(v => (v != null && v < -m.cap ? -m.cap : null)), symbol: 'triangle', symbolRotate: 180, symbolSize: 10, itemStyle: { color: A.CH.down || '#2fbf71' }, z: 4 },
       ],
     }, { notMerge: true });
     /* 圖下一行：中位數（跟自己的過去比）＋這張圖哪裡被特別處理（有才寫） */
     if (nt) {
-      const parts = [m.med != null ? `近 ${pe.length} 季本益比中位 <b>${x(m.med)}</b> 倍` : `近 ${pe.length} 季都在虧損，算不出本益比`];
-      if (m.nLoss) parts.push(`灰底＝虧損季 ${m.nLoss} 季，不計本益比`);
-      if (m.nOver) parts.push(`▲＝超過圖上限 ${m.cap} 倍 ${m.nOver} 季，游標移上去看實際值`);
+      const parts = [m.med != null ? `近 ${pe.length} 季中位 <b>${x(m.med)}</b> 倍` : `近 ${pe.length} 季都在虧損，算不出本益比中位`];
+      if (nNeg) parts.push(`綠點＝虧損 ${nNeg} 季（負值）`);
+      if (m.nLoss > nNeg) parts.push(`${m.nLoss - nNeg} 季 EPS 為 0，留空`);
+      if (m.nOver) parts.push(`▲＝超過圖上限 ${m.cap} 倍`);
+      if (nUnder) parts.push(`▼＝低於 −${m.cap} 倍`);
       nt.innerHTML = parts.join('；');
     }
   }
@@ -6374,7 +6399,7 @@
           '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="pekvs" id="peNote" data-readout></div></div>
-      <div class="card" id="peQCard"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['線＝財報可用日收盤 ÷ 近四季 EPS', '帶＝同一季每天的本益比高低', '灰底＝虧損季（EPS ≤ 0），不計', '▲＝超過圖上限，游標看實際值', '跟自己的過去比，看現在貴不貴'], '線與帶是同一條逐日本益比：線取那一季第一天（財報可用日），帶是那一季每天的最低～最高。圖上限＝max(200 倍, 近 5 年第 75 百分位 × 1.5)，最多 1000 倍。')}${psProf}<div id="peQ" class="chart"></div><div class="note" id="peQNote" data-readout></div></div>
+      <div class="card" id="peQCard"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['線＝財報可用日收盤 ÷ 近四季 EPS', '帶＝同一季每天的本益比高低', '綠點＝虧損季（EPS < 0），本益比畫成負值', '▲＝超過圖上限，游標看實際值', '跟自己的過去比，看現在貴不貴'], '線與帶是同一條逐日本益比：線取那一季第一天（財報可用日），帶是那一季每天的最低～最高。圖上限＝max(200 倍, 近 5 年第 75 百分位 × 1.5)，最多 1000 倍。')}${psProf}<div id="peQ" class="chart"></div><div class="note" id="peQNote" data-readout></div></div>
       <div class="card" id="profitCard"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div>
       <div class="card tblcard" id="profitTblCard"><h3 id="profitTblTtl">季報明細</h3><div class="tw" style="max-height:360px" id="profitTbl"></div></div></div>`;
     const pct = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
@@ -6412,7 +6437,7 @@
       drawProfit();
     });
     drawProfit();
-    drawPeQ(pe, el);
+    drawPeQ(pe, el, pg.daily);
 
     // ---- 河流圖：兩種模式，選過就記住（換股票、重新整理都沿用）
     const river = peRiver(pg);

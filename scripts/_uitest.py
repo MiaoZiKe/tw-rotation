@@ -20542,6 +20542,9 @@ SECTIONS = {
     "關聯圖對應與3D大小1003": lambda pg, b, base, code: t_rel_scope_3d_1003(b, base),
     # ★ 2026-10-03 Andy：「版面上下太大，希望是一個電腦螢幕大小可看到完整圖表」—— 每張圖表卡 ≤ 一屏可視高、視窗縮矮跟著縮（DECISIONS #308，⚠ 一律 --workers 1）
     "一屏看完1003":        lambda pg, b, base, code: t_fit_screen_1003(pg, base, code),
+    # ★ 2026-10-04 Andy 截圖 6182 六件：基本面卡版面、逐年同月 Y 軸、本益比（每季）虧損畫負值、大戶頁預設 4 週、
+    #   河流圖縮放後控制列消失、題材點擊後下方成員面板拿掉（後兩件另由「題材」與「獲利並排本益比1003」守）
+    "個股六修1004":        lambda pg, b, base, code: t_stock_fix_1004(b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -44221,8 +44224,9 @@ def t_stock_ov_eq_1003(b, base, code):
                 sm_, bg_ = g0["sm"], g0["bg"]
                 hsm = {k["h"] for k in sm_}
                 ok(f"★ {tag} 基本面小格（4 格）一樣高 ±1px、大格 3 格", len(sm_) == 4 and len(bg_) == 3 and max(hsm) - min(hsm) <= 1, (sorted(hsm), len(bg_)))
-                ok(f"★ {tag} 基本面兩欄底部對齊（窄欄最後一格與寬欄最後一格底差 ≤2px）", bool(sm_ and bg_) and abs(sm_[-1]["b"] - bg_[-1]["b"]) <= 2,
-                   (sm_ and sm_[-1], bg_ and bg_[-1]))
+                # ★ 2026-10-04（Andy 截圖 6182「基本面卡版面奇怪」）：改成上層小格、下層大格整寬；小格不再被拉高
+                ok(f"★ {tag} 基本面小格在上、大格在下且整寬（小格高 ≤ 95px，不再被拉高留白）", bool(sm_ and bg_) and max(k["h"] for k in sm_) <= 95
+                   and all(x["t"] > max(y["b"] for y in sm_) for x in bg_), (sm_, bg_))
                 last_b = max(k["b"] for k in ks) if ks else 0
                 ok(f"★ {tag} 基本面卡底沒有一大塊空白：最後一列格子＋族群中位那一句貼著卡底（剩 ≤ 40px）",
                    bool(g0["note"]) and g0["note"]["t"] >= last_b and f_["b"] - g0["note"]["b"] <= 40, (last_b, g0["note"], f_["b"], len(rows)))
@@ -44249,9 +44253,7 @@ PEQ1003 = r"""() => { const el = document.getElementById('peQ'); const c = el &&
   const o = c.getOption(), S = (n) => o.series.find(s => s.name === n) || { data: [] };
   const v = (d) => (d == null ? null : (typeof d === 'object' ? d.value : d));
   const ext = c.getModel().getComponent('yAxis', 0).axis.scale.getExtent();
-  const loss = S('虧損').data.map(d => d != null && v(d) != null);
-  const lab = S('虧損').data.map(d => !!(d && d.label && d.label.show));
-  return { x: o.xAxis[0].data, ymax: ext[1], ymin: ext[0], cap: +el.dataset.cap, loss, lab,
+  return { x: o.xAxis[0].data, ymax: ext[1], ymin: ext[0], cap: +el.dataset.cap, nneg: +el.dataset.nneg,
     line: S('本益比').data.map(v), hi: S('高低').data.map(v), lo: S('區間').data.map(v), over: S('超出範圍').data.map(v),
     note: (document.getElementById('peQNote') || {}).textContent || '', h: Math.round(el.getBoundingClientRect().height) }; }"""
 PEQ1003_PX = r"""(i) => { const el = document.getElementById('peQ'); const c = echarts.getInstanceByDom(el); const o = c.getOption();
@@ -44328,15 +44330,13 @@ def t_stock_fund_1003(b, base, code):
                 # ---- ① 小格／大格
                 ok(f"★ {tag} 基本面：小格 4 格（EPS、ROE、月營收 YoY、殖利率）、大格 3 格（本益比、毛利率、營運動能）",
                    [x["f"] for x in sm] == ["eps", "roe", "yoy", "yld"] and [x["f"] for x in bg] == ["pe", "gm", "mom"], ([x["f"] for x in sm], [x["f"] for x in bg]))
-                if W > 640:
-                    ok(f"★ {tag} 小格與大格尺寸不同：小格比大格窄（寬 {sm[0]['w']} < {bg[0]['w']}）、面積小", sm[0]["w"] < bg[0]["w"] - 40
-                       and max(x["w"] * x["h"] for x in sm) < min(x["w"] * x["h"] for x in bg), ([(x["w"], x["h"]) for x in sm], [(x["w"], x["h"]) for x in bg]))
-                    ok(f"★ {tag} 小格縱向堆在一窄欄（左緣一樣、由上往下），大格在旁邊", len({x["l"] for x in sm}) == 1 and all(sm[i + 1]["t"] > sm[i]["t"] for i in range(3))
-                       and bg[0]["l"] > sm[0]["r"], (sm, bg))
-                    ok(f"{tag} 兩欄底部對齊（≤2px）", abs(sm[-1]["b"] - bg[-1]["b"]) <= 2, (sm[-1]["b"], bg[-1]["b"]))
-                else:
-                    ok(f"★ {tag} 手機：小格 2×2 在上、大格滿寬在下", len({x["t"] for x in sm}) == 2 and len({x["l"] for x in sm}) == 2
-                       and all(x["t"] > max(y["b"] for y in sm) for x in bg) and all(abs(x["w"] - g["card"]["w"]) < 60 for x in bg), (sm, bg))
+                # ★ 2026-10-04（Andy 截圖 6182「基本面卡版面奇怪」）：小格窄欄被拉高、內容擠上面 → 改成上層小格（一列 4 格或 2×2）、下層大格整寬
+                ok(f"★ {tag} 小格在上（一列或 2×2、同列等高 ±1px、高 ≤ 95px 不被拉高）、大格整寬在下",
+                   len({x["t"] for x in sm}) in (1, 2) and max(x["h"] for x in sm) <= 95
+                   and all(max(y["h"] for y in sm if y["t"] == x["t"]) - x["h"] <= 1 for x in sm)
+                   and all(x["t"] > max(y["b"] for y in sm) for x in bg) and all(abs(x["w"] - bg[0]["w"]) <= 1 for x in bg)
+                   and bg[0]["w"] >= max(y["r"] for y in sm) - min(y["l"] for y in sm) - 2, (sm, bg))
+                ok(f"{tag} 小格面積比大格小", max(x["w"] * x["h"] for x in sm) < min(x["w"] * x["h"] for x in bg), ([(x["w"], x["h"]) for x in sm], [(x["w"], x["h"]) for x in bg]))
                 ok(f"{tag} 小格內距收緊（上下 ≤ 8px、左右 ≤ 11px）", all(x["pad"][0] <= 8 and x["pad"][1] <= 11 for x in sm), [x["pad"] for x in sm])
                 ok(f"★ {tag} 整張卡沒有「資料不足」字樣（缺的子項整行不出現）", "資料不足" not in g["txt"], g["txt"][:200])
                 ok(f"{tag} 卡底保留「同族群…本益比中位」那一句", "本益比" in g["note"], g["note"])
@@ -44424,6 +44424,67 @@ def t_stock_fund_1003(b, base, code):
     ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
 
 
+def t_stock_fix_1004(b, base):
+    """Andy 2026-10-04 截圖 6182 合晶的真人操作驗收：
+      ② 營收分頁「逐年同月比較」：Y 軸不從 0 開始，依資料極值留邊（單月、切累計都一樣）
+      ④ 大戶／散戶分頁：先在法人頁選 3 個月（寫進 tw.chipWin）→ 進大戶頁仍預設 4 週；在大戶頁切 3 個月 → 法人頁不受影響
+      ⑤ 本益比河流圖：滾輪放大後、切到別的分頁再回來，「看多長／截止」控制列都還在；右側標籤三個時點一致（版面不跳）
+    """
+    T = "[個股六修1004]"
+    cd = "6182" if (SITE / "data" / "stock" / "6182.json").exists() else "2330"
+    ctx = b.new_context(viewport={"width": 1440, "height": 1000})
+    pg = ctx.new_page()
+    errs: list[str] = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        pg.goto(base + f"#stock/{cd}", wait_until="networkidle")
+        wait_until(pg, "() => !!document.querySelector('#stockTabs button[data-t=\"revenue\"]')", 15000)
+        # ---- ② 逐年同月 Y 軸
+        click(pg, '#stockTabs button[data-t="revenue"]', 1500)
+        YR = "() => { const c = echarts.getInstanceByDom(document.getElementById('revYear')); if (!c) return null; const e = c.getModel().getComponent('yAxis', 0).axis.scale.getExtent();" \
+             " const v = c.getOption().series.flatMap(s => s.data).map(d => (d && typeof d === 'object' ? d.value : d)).filter(x => x != null && isFinite(x)); return { lo: e[0], hi: e[1], dmin: Math.min(...v), dmax: Math.max(...v) }; }"
+        y = pg.evaluate(YR)
+        ok(f"★ {T}逐年同月（單月）Y 軸依資料縮放：下緣 {y and y['lo']} > 0 且 ≤ 最小值 {y and y['dmin']}", bool(y) and y["lo"] > 0 and y["lo"] <= y["dmin"] and y["hi"] >= y["dmax"], y)
+        click(pg, '#revMode button[data-v="c"]', 900)
+        y2 = pg.evaluate(YR)
+        ok(f"{T}逐年同月切「累計」→ Y 軸仍包住資料（下緣 ≤ 最小、上緣 ≥ 最大）", bool(y2) and y2["lo"] <= y2["dmin"] and y2["hi"] >= y2["dmax"] and y2 != y, y2)
+        # ---- ④ 大戶頁預設 4 週
+        pg.evaluate("() => { localStorage.removeItem('tw.chipWinHo'); }")
+        click(pg, '#stockTabs button[data-t="inst"]', 1200)
+        click(pg, '#chipWin button[data-v="63"]', 600)
+        ok(f"{T}法人頁切 3 個月 → tw.chipWin 寫 63", pg.evaluate("() => localStorage.getItem('tw.chipWin')") == "63")
+        click(pg, '#stockTabs button[data-t="holders"]', 1500)
+        w = pg.evaluate("() => ({ win: (document.querySelector('[data-chip=\"holders\"]') || {}).dataset?.win, on: (document.querySelector('#chipWin button.on') || {}).textContent })")
+        ok(f"★ {T}大戶／散戶頁預設 4 週（法人頁存的 3 個月不會蓋過來）", w["win"] == "20" and "4" in (w["on"] or ""), w)
+        click(pg, '#chipWin button[data-v="63"]', 600)
+        ok(f"{T}大戶頁切 3 個月 → 記在 tw.chipWinHo、畫面真的換成 63", pg.evaluate("() => [localStorage.getItem('tw.chipWinHo'), document.querySelector('[data-chip=\"holders\"]').dataset.win]") == ["63", "63"])
+        pg.evaluate("() => localStorage.setItem('tw.chipWin', '250')")
+        click(pg, '#stockTabs button[data-t="inst"]', 1200)
+        ok(f"{T}回法人頁仍是它自己的 1 年（大戶頁的選擇不影響法人頁）", pg.evaluate("() => document.querySelector('[data-chip=\"inst\"]').dataset.win") == "250")
+        pg.evaluate("() => { localStorage.removeItem('tw.chipWinHo'); localStorage.removeItem('tw.chipWin'); }")
+        # ---- ⑤ 河流圖控制列
+        ST = "() => { const c = echarts.getInstanceByDom(document.getElementById('peChart')); return { len: (document.getElementById('peLen') || {}).childElementCount || 0," \
+             " end: (document.getElementById('peEnd') || {}).childElementCount || 0, side: c && c._peSide ? c._peSide.map(x => x.t).join() : '', top: Math.round(document.getElementById('peWrap').getBoundingClientRect().top + scrollY) }; }"
+        click(pg, '#stockTabs button[data-t="profit"]', 1800)
+        a = pg.evaluate(ST)
+        ok(f"{T}河流圖一開始有「看多長／截止」控制列", a["len"] > 0 and a["end"] > 0, a)
+        bx = pg.locator("#peWrap").bounding_box()
+        pg.mouse.move(bx["x"] + 300, bx["y"] + 150)
+        for _ in range(3):
+            pg.mouse.wheel(0, -200); pg.wait_for_timeout(200)
+        pg.wait_for_timeout(700)
+        zb = pg.evaluate(ST)
+        ok(f"★ {T}滾輪放大後控制列仍在、圖的位置不跳、右側標籤不變", zb["len"] > 0 and zb["end"] > 0 and zb["top"] == a["top"] and zb["side"] == a["side"], (a, zb))
+        click(pg, '#stockTabs button[data-t="revenue"]', 1200)
+        click(pg, '#stockTabs button[data-t="profit"]', 1800)
+        c = pg.evaluate(ST)
+        ok(f"★ {T}切到別的分頁再回來 → 控制列還在（改前兩格是空的）、右側標籤跟第一次一樣", c["len"] > 0 and c["end"] > 0 and c["side"] == a["side"], (a, c))
+        ok(f"{T}過程中沒有 JS 錯誤", not errs, errs)
+    finally:
+        ctx.close()
+
+
 def t_profit_pe_1003(b, base, code):
     """獲利分頁並排＋本益比（每季）修畫壞（Andy 2026-10-03，DECISIONS #303）的真人操作驗收。
 
@@ -44477,21 +44538,22 @@ def t_profit_pe_1003(b, base, code):
             ok(f"★ {tg} 圖上限＝{cap} 倍（max(200, P75×1.5)，最多 1000；跟前端同口徑）", q["cap"] == cap, (q["cap"], cap))
             raw_max = max([float(r.get("pe_high") or 0) for r in rows] + [float(r.get("pe") or 0) for r in rows])
             ok(f"★ {tg} Y 軸上限合理：≤ 圖上限 × 1.3（原始最大 {raw_max:g} 倍）", q["ymax"] <= cap * 1.3, (q["ymax"], cap, raw_max))
-            ok(f"★ {tg} 灰底只出現在虧損季（{sum(loss)} 季），線在那幾季留空", q["loss"] == loss and all((q["line"][i] is None) == loss[i] for i in range(len(loss))),
-               (q["loss"], loss))
-            runs = [i for i in range(len(loss)) if loss[i] and not (i > 0 and loss[i - 1])]
-            ok(f"{tg} 「虧損」字只寫在每段連續虧損的第一格（{len(runs)} 段）", [i for i, s in enumerate(q["lab"]) if s] == runs, (q["lab"], runs))
+            # ★ 2026-10-04（Andy：「虧損可以呈現負值上去」）：灰底「虧損」拿掉，虧損季（近四季 EPS < 0）改畫負本益比；EPS＝0 照舊留空
+            negx = [bool(loss[i]) and rows[i].get("ttm_eps") is not None and float(rows[i]["ttm_eps"]) < 0 for i in range(len(rows))]
+            ok(f"★ {tg} 虧損季（EPS<0，{sum(negx)} 季）的線畫成負值、獲利季為正、EPS＝0 留空",
+               all((q["line"][i] is not None and q["line"][i] < 0) if negx[i] else (q["line"][i] is None if loss[i] else (q["line"][i] is None or q["line"][i] > 0)) for i in range(len(rows)))
+               and q["nneg"] == sum(negx) and (not any(negx) or q["ymin"] < 0), (q["line"], negx, q["ymin"]))
             ok(f"★ {tg} 超出上限的季（{sum(over)} 季）▲ 標在上限；線與帶都截在上限（同一口徑）",
                [o is not None for o in q["over"]] == over and all(o == cap for o in q["over"] if o is not None)
                and all(v is None or v <= cap + 1e-6 for v in q["line"])
                and all(q["lo"][i] is None or q["hi"][i] is None or q["lo"][i] + q["hi"][i] <= cap + 1e-6 for i in range(len(rows))),
                (q["over"], over))
             ok(f"{tg} 圖下那一行寫中位數{'、虧損季' if any(loss) else ''}{'、超出上限' if any(over) else ''}",
-               "中位" in q["note"] and (("虧損" in q["note"]) == any(loss)) and (("超過圖上限" in q["note"]) == any(over)), q["note"])
+               "中位" in q["note"] and (("虧損" in q["note"]) == any(negx)) and (("超過圖上限" in q["note"]) == any(over)), q["note"])
             # 真的把滑鼠移上去讀提示框
             pg.locator("#peQ").scroll_into_view_if_needed()
             pg.wait_for_timeout(300)
-            for kind, idxs in (("虧損", [i for i, L in enumerate(loss) if L][:1]), ("超出", [i for i, o in enumerate(over) if o][:1]),
+            for kind, idxs in (("虧損", [i for i, L in enumerate(negx) if L][:1]), ("超出", [i for i, o in enumerate(over) if o][:1]),
                                ("一般", [i for i in range(len(rows)) if not loss[i] and not over[i]][-1:])):
                 for i in idxs:
                     p = pg.evaluate(PEQ1003_PX, i)
@@ -44499,8 +44561,8 @@ def t_profit_pe_1003(b, base, code):
                     tip = pg.evaluate("() => { const t = [...document.querySelectorAll('#peQ div')].filter(d => /本益比|虧損/.test(d.textContent) && getComputedStyle(d).display !== 'none' && d.offsetParent !== null).pop(); return t ? t.innerText : ''; }")
                     r = rows[i]
                     if kind == "虧損":
-                        ok(f"★ {tg} 滑鼠移到 {r['period']}（虧損季）→ 提示框寫「虧損（近四季 EPS {r.get('ttm_eps')} 元），不計本益比」",
-                           r["period"] in tip and "虧損" in tip and "不計本益比" in tip, tip)
+                        ok(f"★ {tg} 滑鼠移到 {r['period']}（虧損季）→ 提示框寫負的本益比與「虧損（近四季 EPS 為負）」",
+                           r["period"] in tip and "近四季 EPS 為負" in tip and "本益比 -" in tip.replace("−", "-"), tip)
                     elif kind == "超出":
                         real = r["pe"] if float(r["pe"]) > cap else r.get("pe_high")
                         ok(f"★ {tg} 滑鼠移到 {r['period']}（超出上限）→ 提示框寫實際值 {real} 倍與「超出圖上限 {cap} 倍」",

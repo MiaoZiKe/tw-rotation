@@ -4185,7 +4185,9 @@ h3 .howbtn.pop{font-family:inherit}
    數字擠在上面留一大片空白，寬欄又擠。改成上下兩層：上層四張小格一列（容器窄時自動 2×2，auto-fit 依寬度換行，
    每格高度一致只靠內容），下層三張大格整寬由上往下排、平分多出來的高度 —— 留白分散到大格裡，不再集中在小格。*/
 #skFundCard>.kvs.skfund{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;gap:8px;align-items:stretch}
-#skFundCard .fsm{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px;min-width:0;align-content:start}
+#skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:6px;min-width:0;align-content:start}
+/* 卡內寬夠（≥560px）才排成一列 4 格；不用 auto-fit，避免 1100 寬時變成「3＋1」的破格；grid-auto-rows:1fr 讓兩列一樣高 */
+@container skfc (min-width:560px){ #skFundCard .fsm{grid-template-columns:repeat(4,minmax(0,1fr))} }
 #skFundCard .fbig{display:flex;flex-direction:column;gap:8px;min-width:0}
 #skFundCard .k{min-width:0}
 #skFundCard .ksm{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:7px 10px}
@@ -4198,7 +4200,6 @@ h3 .howbtn.pop{font-family:inherit}
 #skFundCard .kbig .meter{margin-top:0}
 #skFundCard .kbig .gaugev{align-items:center}
 @container skfc (max-width:380px){
-  #skFundCard .fsm{grid-template-columns:repeat(2,minmax(0,1fr))}
   #skFundCard .ksm{padding:6px 8px}
   #skFundCard .ksm .v{font-size:16px;line-height:21px}
   #skFundCard .kbig{padding:8px 9px}
