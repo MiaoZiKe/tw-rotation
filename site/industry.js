@@ -4393,7 +4393,38 @@
     const j = await A.load('m60/' + pg.meta.code, { fallback: null });
     const bars = expandM60(j);
     pg.m60Failed = !bars.length;          // 標成有卻載不到（網路斷、檔案不在）：講清楚是載入失敗，不是沒資料
-    if (bars.length) pg.intraday = Object.assign({}, pg.intraday || {}, { '60m': bars });
+    if (bars.length) pg.intraday = Object.assign({}, pg.intraday || {}, { '60m': fixM60(bars, pg) });
+  }
+  /* ★ 2026-10-04（Andy 截圖：合晶 6182 分時「為何這麼奇怪」）：Yahoo 的 60 分 K 有兩個系統性缺口，
+     全市場最近一天 2,062 檔裡 1,613 檔中招：
+       ① 09:00 那一根量＝0（Yahoo 把開盤第一小時的量吃掉了）→ 分時／1 時 K 的量柱開頭一片空白；
+       ② 沒有 13:30 收盤撮合 → 最後一點停在 13:25 的價，跟日線收盤對不上（6182：134.5 vs 135）。
+     修法：用同一天日線（證交所口徑，權威）回補 —— 量缺的那一根＝日量 − 其他根量合計（含收盤撮合量，
+     拆不開，所以一起算在開盤那根，註解講明）；最後一根的收盤改成日線收盤、高低跟著撐開。*/
+  function fixM60(bars, pg) {
+    const daily = (pg.daily && pg.daily.length ? pg.daily : pg.ohlcv) || [];
+    const dmap = {};
+    daily.forEach(r => { dmap[String(r[0])] = r; });
+    const byDay = {};
+    bars.forEach((b, i) => { const d = String(b[0]).slice(0, 10); (byDay[d] = byDay[d] || []).push(i); });
+    const out = bars.map(b => b.slice());
+    // 日線是「還原權值」：最後一次除權息（因子≠1）之前的日子，日線價已乘上因子，跟分 K 原始價不能直接比 → 只修之後的日子
+    const ev = ((pg.price_adjust && pg.price_adjust.daily_adjusted && pg.price_adjust.events) || []).filter(e => +e[1] !== 1);
+    const cut = ev.length ? String(ev[ev.length - 1][0]) : '';
+    Object.keys(byDay).forEach(d => {
+      const r = dmap[d]; if (!r || d < cut) return;
+      const idx = byDay[d], dv = +r[5], dc = +r[4];
+      const zero = idx.filter(i => !(+out[i][5] > 0));
+      if (zero.length === 1 && dv > 0) {
+        const rest = idx.reduce((s, i) => s + (+out[i][5] || 0), 0);
+        if (dv > rest) out[zero[0]][5] = dv - rest;
+      }
+      const last = out[idx[idx.length - 1]];
+      if (dc > 0 && Math.abs(+last[4] - dc) / dc < 0.1) {   // 差超過一成不是收盤撮合，是除權息或資料錯，不碰
+        last[4] = dc; last[2] = Math.max(+last[2], dc); last[3] = Math.min(+last[3], dc);
+      }
+    });
+    return out;
   }
   function m60Why(pg) {
     const st = pg && pg.meta && pg.meta.m60;
