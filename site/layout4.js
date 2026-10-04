@@ -335,8 +335,9 @@
     if (!b) {
       const parent = $('.tab[data-view="watch"]', tabs); if (!parent) return;
       b = document.createElement('button');
-      b.type = 'button'; b.id = 'l4Perm'; b.className = 'l4subtab l4perm'; b.dataset.parent = 'watch';
-      b.innerHTML = `${subIcon('shield')}<span class="lbl">會員權限</span>`;
+      // ★ 2026-10-04 23:50 Andy：「是指在自選下方，不是列在自選裡面」→ 改成跟「自選」同一層的 .tab（不縮排、同字級、自己的圖示）
+      b.type = 'button'; b.id = 'l4Perm'; b.className = 'tab l4perm';
+      b.textContent = '會員權限';
       b.setAttribute('aria-label', '會員權限'); b.title = '專案・會員權限（只有管理者看得到）';
       b.onclick = () => { if (!/^#admin\/perm\b/.test(location.hash || '')) location.hash = '#admin/perm'; };
       parent.after(b);
