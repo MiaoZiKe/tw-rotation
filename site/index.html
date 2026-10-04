@@ -4550,6 +4550,12 @@ h3 .howbtn.pop{font-family:inherit}
 .mktlist>#mktInner{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-top:10px}
 .mktlist>#mktInner>.kpinote{flex:none}
 .mktlist>#mktInner>.tw{flex:0 1 auto;min-height:0;max-height:none;scrollbar-width:thin}
+/* ★ 2026-10-04 修：1101px（並排的最窄寬度）右欄只有 483px，5 欄表要 542px → 表格在卡內橫捲。
+   族群名與股名是最長的兩欄而且都有連結可點進去看全名，所以這兩欄超長就截斷（title 仍是全名），格距也收窄，
+   不動斷點 —— 斷點往上推會讓 1101～1280 的桌機失去並排。*/
+.mktlist #mktInner td,.mktlist #mktInner th{padding-left:6px;padding-right:6px}
+.mktlist #mktInner td.l>.lk-group{display:inline-block;max-width:6.5em;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.mktlist #mktInner td.l>.lk-stock{display:inline-block;max-width:10em;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 @media (max-width:1100px){
   .mktduo{grid-template-columns:minmax(0,1fr)}
   .mktlist{contain:none;min-height:0}

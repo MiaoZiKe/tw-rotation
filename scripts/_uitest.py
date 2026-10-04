@@ -4235,7 +4235,30 @@ def t_new_market3(pg, base):
         # 2026-09-28：指數的分時量是成交值（mis 的 s 是百萬元）→ 游標寫「該分成交值 N 億／萬」；台指期照舊「該分量 N 口」
         want_w = "該分量" if idx == "FUT" else "該分成交值"
         ok(f"★ 走勢圖 {idx} 游標讀得到價格與該分鐘量（{want_w}）", ("指數" in tipx or "價" in tipx) and want_w in tipx
-           and (idx == "FUT" or "張" not in tipx), tipx[:80])
+           and (idx == "FUT" or "張" not in tipx), tipx[:80] or pg.evaluate("""(id) => { const e = document.getElementById('m3c-' + id); const H = e && e._m3line;
+               const tip = [...e.querySelectorAll('div')].filter(d => d.offsetParent !== null && /尚未|指數/.test(d.innerText || '')).map(d => d.innerText).pop() || '';
+               return { kind: e && e.dataset.kind, fb: e && e.dataset.fallback, n: H ? H.price.length : null, filled: H ? H.price.filter(v => v != null).length : null,
+                        firstIdx: H ? H.price.findIndex(v => v != null) : null, night: H && H.night, tip: tip.replace(/\\s+/g, ' ').slice(0, 60),
+                        hit: (() => { const r = e.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width * .45, r.top + r.height * .35);
+                          return t ? (t.tagName + '#' + t.id + '.' + String(t.className).slice(0, 40) + (e.contains(t) ? '(在圖內)' : '(圖外)')) : null; })(),
+                        rect: (() => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), innerHeight]; })() }; }""", idx))
+    # ★ 2026-10-04：台指期畫的是日盤時，圖表容器裡不准留著夜盤那塊說明面板（.m3-night）—— 改前它蓋在日盤走勢上、吃掉游標（上面 FUT 那條的根因）
+    nb = pg.evaluate("() => { const e = document.getElementById('m3c-FUT'); const H = e && e._m3line; return { night: !!(H && H.night), n: e ? e.querySelectorAll(':scope > .m3-night').length : -1 }; }")
+    if not nb["night"]:
+        ok("★ 台指期畫日盤時，圖上沒有殘留的夜盤說明面板（不會蓋住走勢、吃掉游標）", nb["n"] == 0, nb)
+    # ★ 2026-10-04：資料湖 15 分 K 種的走勢（非交易時段開頁，d.sparse）游標停在兩點之間 → 貼回左邊那一點、量寫「—」，
+    #   不准寫「尚未成交」（那幾分鐘明明有成交）。只有在當下真的是種子資料時才量得到（盤中是即時分時、沒有空隙）。
+    sp = pg.evaluate("""() => ['TSE','OTC','FUT'].map(id => { const e = document.getElementById('m3c-' + id); const H = e && e._m3line;
+        if (!H || !H.d || !H.d.sparse) return null;
+        const nn = H.price.map((v, i) => v != null ? i : -1).filter(i => i >= 0); if (nn.length < 2) return null;
+        const mid = nn[0] + 1; if (H.price[mid] != null) return null;
+        const f = echarts.getInstanceByDom(e).getOption().tooltip[0].formatter;
+        return { id, t: String(f([{ dataIndex: mid }])).replace(/<[^>]+>/g, ' ') }; }).filter(Boolean)""")
+    for x in sp:
+        ok(f"★ 走勢圖 {x['id']}（資料湖種子）游標停在兩個 15 分點之間 → 讀得到左邊那一點的價格，不寫「尚未成交」、量不寫假的 0",
+           "尚未成交" not in x["t"] and ("指數" in x["t"]) and "—" in x["t"], x["t"][:80])
+    if not sp:
+        notes.append("走勢圖資料湖種子的游標貼點：這一輪三張都不是種子資料（盤中），沒量到")
     click(pg, "#m3Mode button[data-m='k']", 900)
     for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
         _m3_tf(pg, tf); pg.wait_for_timeout(1300)
@@ -12390,7 +12413,7 @@ _SK_STUB = """(boost) => {
 def _sk_expand_round(pg, base, w):
     """在寬度 w 下真的操作一次「點族群 → 展開 → 收回」。"""
     pg.set_viewport_size({"width": w, "height": 1000})
-    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle")   # 10-02 版面 V2：資金去向住在 #flow/sankey 子分頁（桌機 #flow 只顯示輪動）
     pg.wait_for_timeout(2800)
     sk_classic(pg, True)          # 驗經典版（桌機預設是拓撲版，那一套由「資金去向拓撲」驗）
     pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
@@ -12486,7 +12509,7 @@ def t_sankey_expand_live(pg, base):
     #   這一段本來在驗「超過 20 檔只畫前 20 ＋ 其餘 N 檔」，現在改成驗
     #   **成分股最多的那個族群一定是自動桶，而且點它不會展開、但右邊清單要開得起來**。
     pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle")   # 10-02 版面 V2：資金去向住在 #flow/sankey 子分頁（桌機 #flow 只顯示輪動）
     pg.wait_for_timeout(2800)
     sk_classic(pg, True)
     pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
@@ -13078,9 +13101,13 @@ def t_mlcc(pg, base):
     hit = pg.evaluate("() => { const c = document.querySelector('#segChips .segchip[data-seg=\"passive_comp\"]');"
                       " if (!c) return false; c.click(); return true; }")
     pg.wait_for_timeout(900)
-    r3 = rows(pg)
-    ok("點「被動元件 MLCC / 電阻」環節色標 → 圖下方真的列出那一格的台股（而且是套用，不是只亮）",
-       hit and r3 and r3 != base_rows and seg_applied(pg), f"{base_rows!r} → {r3!r}")
+    # ★ 2026-10-04 改前→改後（驗收過時）：改前驗「圖下方 #segBox 列出那一格的台股＋『已只看這一格』」。
+    #   09-25 Andy 拿掉桌機（>820）圖下方的環節面板（industry.js renderSegBox 在桌機直接清空，理由：右側 #relList
+    #   已經列出那一格的台股，是第三份重複），10-04 再要求剖析圖點擊後下方面板拿掉 —— 這條在 1440 必紅。
+    #   改後：驗使用者現在真的看得到的東西 —— 右側 #relList 那一格被選起來、看得見、而且有可點的台股連結。
+    rl = pg.evaluate(REL_ON)
+    ok("點「被動元件 MLCC / 電阻」環節色標 → 右側清單真的選起那一格、列出可點的台股（圖下方面板 09-25 已拿掉）",
+       hit and any(x["seg"] == "passive_comp" and x["vis"] and x["links"] > 0 for x in rl), rl)
 
     # ---------------- 6. 3D：真的進 WebGL，不是退回平面圖
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -13243,6 +13270,16 @@ def t_mlcc(pg, base):
             #   4-worker 平行跑時會汙染別的寬度。用現成的 force_open()
             #   （它會避開「選單模式下亂按收合鈕」那個自製假紅）。
             force_open(pg)
+            # ★ 2026-10-04 改前→改後（驗收過時）：手機 v3 R3（Andy 2026-09-24「剖析圖手機只留編號」，docs/mobile_v3_spec.md §10-4）
+            #   起 390 預設是「整張」模式：SVG 縮到欄寬（約 0.42 倍），圖內字約 5px 是規格寫明的代價，
+            #   要讀的東西改由 HTML 編號鈕＋底部抽屜承擔、要看原圖字按「放大」。改前在「整張」量 SVG 字必紅。
+            #   改後在 390：① 整張模式量 HTML 編號鈕字級 ≥ 11px（使用者在整張模式真正讀的東西）
+            #   ② 真的按「放大」→ 再量 SVG 每一個字 ≥ 12px（下面那條原斷言，門檻沒放寬）。
+            if w == 390 and pg.evaluate("() => !!document.querySelector('#prodDiagram.mnum2d')"):
+                nb = pg.evaluate("() => [...document.querySelectorAll('#prodDiagram .mnumlayer button')].filter(b => b.getClientRects().length).map(b => parseFloat(getComputedStyle(b).fontSize))")
+                ok(f"[390px] {what}：整張模式的編號鈕看得到、字級 ≥ 11px", bool(nb) and min(nb) >= 11, nb[:6])
+                click(pg, "#prodDiagram ~ .mdgbar .mdgzoom button[data-z='big'], .mdgbar .mdgzoom button[data-z='big']", 900)
+                ok(f"[390px] {what}：按「放大」真的切到放大模式", pg.evaluate("() => !!document.querySelector('#prodDiagram.mbig')"))
             z = pg.evaluate(TYPO)
             if not ok(f"[{w}px] {what} 的剖析圖畫得出來", z.get("present"), z):
                 continue
@@ -22904,7 +22941,13 @@ HOWPOP_OPENED = r"""(i) => {
   if (!b) return null;
   const box = document.getElementById('how-' + b.dataset.how);
   const hd = b.closest('h2, h3, h4, h5');
-  const exp = b.dataset.ttl || (hd ? ((hd.childNodes[0] && hd.childNodes[0].textContent) || '').trim() : '');
+  // ★ 2026-10-04 改前→改後（驗收過時）：改前讀 hd.childNodes[0]；09-29 標題圖示（span.ticon，只有 SVG）插到每個標題最前面後，
+  //   childNodes[0] 永遠是空字串 → 預期標題變空、全站紅。app.js 的 howTitle 早就跳過圖示，這裡照同一套規則算預期值。
+  const ttlOf = (h) => { for (const n of h.childNodes) { if (n === b) break;
+      if (n.nodeType === 1 && n.contains(b)) return n.textContent.replace(b.textContent, '').trim();
+      if (n.nodeType === 1 && n.classList.contains('ticon')) continue;
+      const t = (n.textContent || '').trim(); if (t) return t; } return ''; };
+  const exp = b.dataset.ttl || (hd ? ttlOf(hd) : '');
   // 「?」前面那段字（標題文字）的最後一個行框：要在「?」左邊、而且跟「?」同一行
   const cont = b.closest('h2, h3, h4, h5, .dgsectitle');
   let pos = null;
@@ -33360,7 +33403,10 @@ def t_mobile_v2(b, base, code):
         .map(e => ({ t: e.textContent.replace(/\s+/g,' ').trim(), h: Math.round(e.getBoundingClientRect().height) }))""")
     # ★ 2026-09-24 改口徑（Andy：「按鈕更新、設定 版都移除」）：桌機的「更新」「⚙」拿掉了，
     #   清單裡去按它們的兩列一定要一起拿掉（留著就是點了沒反應）。剩下的兩件事照舊要在、名字照舊跟電腦版一樣。
-    ok("[390px] 清單裡剩「今日事件」「主題」兩件事，名字跟電腦版一樣", len(rows) == 2 and
+    # ★ 2026-10-04 改前→改後（驗收過時）：改前要求清單「只剩兩列」；之後設計 v4 把外觀三套主題（親和休閒／科技 HUD／專業有力）
+    #   與「自選清單」也放進這張清單（各自有自己的驗收段），變成 6 列。這條真正要守的是「今日事件」「主題」兩件事還在、
+    #   名字跟電腦版一樣 —— 只拿掉「剛好兩列」的數量限制，下面「更新／即時來源設定不准回來」那條照舊。
+    ok("[390px] 清單裡有「今日事件」「主題」兩件事，名字跟電腦版一樣",
        any("今日事件" in r["t"] for r in rows) and any("主題" in r["t"] for r in rows), rows)
     ok("[390px] 「更新（即時報價）」「即時來源設定」兩列跟著桌機的鈕一起拿掉了",
        not any("更新" in r["t"] or "即時來源設定" in r["t"] for r in rows)
@@ -33381,7 +33427,12 @@ def t_mobile_v2(b, base, code):
 
     # 主題：真的切過去、再切回來
     th0 = m.evaluate("() => document.documentElement.dataset.theme")
-    m.click("#moreBtn"); m.wait_for_timeout(250); m.click("#mmTheme"); m.wait_for_timeout(700)
+    # ★ 2026-10-04：上面剛把今日事件抽屜打開 —— 改前「更多」清單開在抽屜底下，#mmTheme 被 #evFilters 蓋住點不到（真 bug）。
+    #   改後：按「更多」先收抽屜。這裡驗「抽屜收了」＋「主題那列在最上層（elementFromPoint 打得到它自己）」。
+    m.click("#moreBtn"); m.wait_for_timeout(250)
+    top = m.evaluate("() => { const e = document.getElementById('mmTheme'), r = e.getBoundingClientRect(); const t = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { side: document.querySelector('aside').classList.contains('open'), hit: !!t && e.contains(t) }; }")
+    ok("★ [390px] 今日事件抽屜開著時按「更多」→ 抽屜先收起、「主題」那列沒被蓋住", not top["side"] and top["hit"], top)
+    m.click("#mmTheme"); m.wait_for_timeout(700)
     th1 = m.evaluate("() => document.documentElement.dataset.theme")
     ok("[390px] 點「明亮／深色主題」畫面真的換主題了", th0 != th1, {"before": th0, "after": th1})
     m.click("#moreBtn"); m.wait_for_timeout(250); m.click("#mmTheme"); m.wait_for_timeout(700)
@@ -33403,7 +33454,9 @@ def t_mobile_v2(b, base, code):
     ok("[390px] 底部導覽高 58px（改版前兩列 102px）", 54 <= nh <= 62, nh)
     ok("[390px] 七個分頁一個都沒少（三顆收進「更多」，DOM 裡還在）",
        m.evaluate("() => document.querySelectorAll('#tabs .tab').length") == 7)
-    for v, want in (("season", "#season"), ("delivery", "#delivery"), ("market", "#market")):
+    # ★ 2026-10-04 改前→改後（驗收過時）：交付清單的入口已從「更多」收掉（mobile3.js openMore 註解：#delivery 照樣打得開，只是入口收掉），
+    #   改前去點不存在的那列 → 等 30 秒逾時、整段中斷。改後換成清單裡現在有的「自選」。
+    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market")):
         m.tap("#mTabMore"); m.wait_for_timeout(400)
         m.tap(f'#mSheet .mrow[data-m={v}]'); m.wait_for_timeout(1600)
         st = m.evaluate("""() => ({ hash: location.hash,
@@ -33471,6 +33524,9 @@ def t_mobile_v2(b, base, code):
 
     # ---------- G8：個股頁的畫線工具列 ----------
     m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3600)
+    # ★ 2026-10-04 改前→改後（驗收過時，DECISIONS #310）：09-28 起個股頁預設週期是「分時」，分時不能畫線、「✎ 畫線」是 disabled
+    #   （title：切到 K 線週期才能畫），改前直接點 → 逾時中斷整段。真人也是先切到日線，這裡照做，下面斷言不動。
+    m.tap('#tfSeg button[data-tf="1d"]'); m.wait_for_timeout(1200)
     d0 = m.evaluate("""() => ({ tgl: getComputedStyle(document.getElementById('drawTgl')).display,
         bar: getComputedStyle(document.getElementById('drawBar')).display })""")
     ok("[390px] 畫線工具列預設收起來（改版前 20 顆 20×20 的鈕整排攤在手機上）",
@@ -33947,6 +34003,11 @@ def t_night_fixture(b, base):
         return { sess: window.Market3.session, series, last,
           px: (document.querySelector("#m3Grid .m3-card[data-id='FUT'] .m3-px") || {}).textContent || '',
           nums: (document.querySelector("#m3Grid .m3-card[data-id='FUT'] .m3-nums") || {}).innerText || '',
+          // ★ 2026-10-04：夜盤／合約代號已不在數字列的字裡 —— 「日盤／夜盤」在標題旁小標 #futSess（#258 第 1 條），
+          //   合約代號在數字列的 title（滑過看得到）。改前讀 .m3-nums innerText 找「夜盤」「TXFJ6-M」必紅。
+          sess2: (document.getElementById('futSess') || {}).textContent || '',
+          sessTip: (document.getElementById('futSess') || {}).title || '',
+          numsTip: (document.querySelector("#m3Grid .m3-card[data-id='FUT'] .m3-nums") || {}).title || '',
           canvas: el.querySelectorAll('canvas').length,
           txt: (el.innerText || '').replace(/\\s+/g, ' '),
           fb: el.dataset.fallback || '', e1: s.futChartErr, e2: s.futNightErr }; }"""
@@ -34002,8 +34063,8 @@ def t_night_fixture(b, base):
         ok(f"{tag} 線的最後一點就是 fixture 裡那個收盤價 {LAST}",
            r["last"] is not None and abs(float(r["last"]) - LAST) < 0.5, r["last"])
         ok(f"{tag} 卡片上的成交價也是 {LAST}", LAST_TXT in r["px"], r["px"])
-        ok(f"{tag} 標成夜盤、而且是 fixture 裡那支近月合約 TXFJ6-M",
-           "夜盤" in r["nums"] and "TXFJ6-M" in r["nums"], r["nums"][:120])
+        ok(f"{tag} 標成夜盤（標題旁小標）、而且是 fixture 裡那支近月合約 TXFJ6-M（數字列 title）",
+           r["sess2"] == "夜盤" and "TXFJ6-M" in r["numsTip"], [r["sess2"], r["numsTip"][-40:]])
         ok(f"{tag} 沒有拿日盤冒充夜盤（fallback 那行字不准出現）", r["fb"] == "", r["fb"])
         ok(f"{tag} 頁面沒爆", not r["boom"], r["boom"])
 
@@ -34018,7 +34079,7 @@ def t_night_fixture(b, base):
        r["last"] is not None and abs(float(r["last"]) - LAST) < 0.5, r["last"])
     ok("★ 只靠 /futchart 時，上排數字也要有（不是「—」）", LAST_TXT in r["px"], r["px"])
     ok("推算出來的近月代號就是 TXFJ6-M（2026-09-23 已過第三個星期三 → 滾到 10 月）",
-       "TXFJ6-M" in r["nums"], r["nums"][:120])
+       "TXFJ6-M" in r["numsTip"], r["numsTip"][-60:])
 
     # ---------------- ③ /fut 回的是日盤那一份（時段外打 MarketType=1 會這樣）
     #    不准拿它的開高低收去填「夜盤」那排數字，也不准因為合約代號對不上就把序列丟掉。
@@ -34028,13 +34089,15 @@ def t_night_fixture(b, base):
     ok(f"/fut 回日盤合約時，上排數字要走夜盤序列自己帶的 Quote（{LAST_TXT}，不是日盤那個數字）",
        LAST_TXT in r["px"], r["px"])
 
-    # ---------------- ④ 兩支都掛 → 還是要空白（Andy 2026-09-23：「若沒有資訊則空白」）
+    # ---------------- ④ 兩支都掛
+    # ★ 2026-10-04 改前→改後（驗收過時，DECISIONS #258 第 1 條推翻 #255 ①「夜盤拿不到就空白」）：
+    #   改前驗「一張 canvas 都沒有、寫『夜盤資料未取得』、上排留白」。#258（09-24～25）拍板：拿不到夜盤就**整張顯示日盤**，
+    #   標題旁小標 #futSess 標「日盤」—— 標籤永遠跟著畫的那一份走，所以不是冒充；#280（09-30）再要求小標的說明
+    #   講出夜盤為什麼沒拿到。改後驗的正是 #255 真正反對的那件事：**不准標著夜盤、畫著日盤**。
     r = shot("Asia/Taipei", "fail", "fail")
-    ok("兩支都掛：一張 canvas 都沒有（不准退回日盤）", r["canvas"] == 0, r["canvas"])
-    ok("兩支都掛：畫面講出原因，而且整段文字不出現「日盤」",
-       "夜盤資料未取得" in r["txt"] and "日盤" not in r["txt"], r["txt"][:140])
-    ok("兩支都掛：上排數字留白", "—" in r["px"], r["px"])
-    ok("兩支都掛：徽章寫「夜盤報價未取得」", "夜盤報價未取得" in r["nums"], r["nums"][:120])
+    ok("兩支都掛：小標寫「日盤」（標籤跟著畫的那一份走，不冒充夜盤）", r["sess2"] == "日盤", [r["sess2"], r["sessTip"][:60]])
+    ok("兩支都掛：小標說明講出「夜盤時段，但還沒拿到夜盤資料」", "夜盤時段" in r["sessTip"] and "還沒拿到夜盤資料" in r["sessTip"], r["sessTip"][:120])
+    ok("兩支都掛：數字列沒有夜盤合約代號（不准拿日盤數字掛夜盤合約）", "TXFJ6-M" not in r["numsTip"], r["numsTip"][-60:])
 
 
 # ===================================================================== 夜盤推送
@@ -36010,6 +36073,21 @@ def t_block_registry(b, base, code):
     ok(f"【{tag}】頁面上拿得到清單產生的分段表（{len(gen or {})} 頁）", bool(gen), gen)
     for page, segs in (gen or {}).items():
         m.goto("about:blank"); m.goto(url(page), wait_until="networkidle"); m.wait_for_timeout(1800)
+        # ★ 2026-10-04 改前→改後（驗收過時）：手機個股頁 09-27 起由「券商式」版面接手（mobile3.js skBuild，body.mbon），
+        #   自己一排分頁 #mbTabs（K線／營收／獲利…／AI 分析／新聞），清單產生的 .mpager 整條藏起來（CSS display:none），
+        #   改前照舊去點看不見的分段鈕、量 #aiCard／#stockTabs 必紅。modules.js 這一頁的分段仍是「券商式接不上時」
+        #   （簡版個股頁）的備援，所以清單不動；這裡改驗使用者真的看得到的那一排：AI 分析與財報類分頁都在、按得到、真的換內容。
+        if page == "stock" and m.evaluate("() => document.body.classList.contains('mbon')"):
+            tabs = m.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].map(b => b.textContent.trim())")
+            ok(f"【{tag}】手機個股頁（券商式）：分段列收起、自己的分頁列有「AI 分析」與財報類（營收／獲利）",
+               m.evaluate("() => { const p = document.querySelector('.view.on > .mpager'); return !p || getComputedStyle(p).display === 'none'; }")
+               and "AI 分析" in tabs and ("營收" in tabs or "獲利" in tabs), tabs)
+            for t in ("ai", "rev"):
+                if m.evaluate(f"() => !!document.querySelector('#mbTabs button[data-t=\"{t}\"]')"):
+                    m.tap(f'#mbTabs button[data-t="{t}"]'); m.wait_for_timeout(700)
+                    st_ = m.evaluate("() => ({ t: document.body.dataset.mbt || '', h: Math.round(Math.max(...['mbBody', 'stockPage'].map(i => { const e = document.getElementById(i); return e ? e.getBoundingClientRect().height : 0; }))) })")
+                    ok(f"【{tag}】手機個股頁（券商式）：點「{t}」分頁 → 真的切過去、內容不是空白", st_["t"] == t and st_["h"] > 80, st_)
+            continue
         steps = sorted({g.get("s", 0) for g in segs})
         for st in steps:
             if st:
@@ -36056,10 +36134,12 @@ def t_block_registry(b, base, code):
     m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1800)
     st = m.evaluate("""() => ({ mods: typeof window.TwModules, pager: document.querySelectorAll('.view.on > .mpager').length,
         off: document.querySelectorAll('.view.on .mp-off').length,
-        shown: ['#ovHeatCard', '#ovBreadthCard', '#ovCandCard'].filter(s => { const e = document.querySelector(s);
+        shown: ['#ovHeatCard', '#ovBreadthCard'].filter(s => { const e = document.querySelector(s);
           return e && e.getBoundingClientRect().height > 0; }).length })""")
-    ok(f"【{tag}】擋掉 modules.js：沒有分段列、沒有被收起的卡、熱力／法人／候選三張卡都照常顯示",
-       st["mods"] == "undefined" and st["pager"] == 0 and st["off"] == 0 and st["shown"] == 3, st)
+    # ★ 2026-10-04 改前→改後（驗收過時）：總覽「今日候選」#ovCandCard 整張拿掉了（index.html 總覽區塊的註解 ②），
+    #   改前數三張必定只有 2。改後只數還在的兩張，其餘條件不動。
+    ok(f"【{tag}】擋掉 modules.js：沒有分段列、沒有被收起的卡、熱力／漲跌家數兩張卡都照常顯示",
+       st["mods"] == "undefined" and st["pager"] == 0 and st["off"] == 0 and st["shown"] == 2, st)
     ok(f"【{tag}】擋掉 modules.js 之後沒有 JS 錯誤", not errs, errs[:2])
     ctx.close()
 
@@ -39047,7 +39127,7 @@ def t_flowtopo_reduced(b, base):
     ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
     pg = ctx.new_page()
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle")   # 10-02 版面 V2：資金去向住在 #flow/sankey 子分頁（桌機 #flow 只顯示輪動）
     pg.evaluate("() => { try { localStorage.setItem('tw.sankey.mode', 'topo'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
     wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
@@ -41134,6 +41214,10 @@ def _ov_fix_0926b_body(pg, base, code):
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
     DBG = "() => window.Industry._dbg()"
     if ok("[0926b-①] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
+        # ★ 2026-10-04 改前→改後（驗收過時，DECISIONS #310）：09-28 起個股頁預設週期是「分時」（折線、沒有副圖），
+        #   改前直接量 paneH 必紅；真人也是先按「日」才看得到量副圖 —— 這裡照做，下面斷言不動。
+        click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+        wait_until(pg, "() => !!(window.Industry && window.Industry._dbg().paneH)", 8000)
         ok("[0926b-①] 個股頁預設有成交量副圖（前提）", "vol" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
         ind_toggle(pg, "vol", 900)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
@@ -41159,8 +41243,10 @@ def _ov_fix_0926b_body(pg, base, code):
         let n = 0; try { n = vs ? vs.data().filter(p => p.value > 0).length : 0; } catch (e) { n = -1; }
         let h = 0; try { const ps = k.chart.panes(); h = k.paneIndex.vol != null && ps[k.paneIndex.vol] ? Math.round(ps[k.paneIndex.vol].getHeight()) : 0; } catch (e) {}
         return { id, ok: !!(k.paneIndex && k.paneIndex.vol != null) && n > 0 && h >= 25, key: String(k._m3key || '').split('|').slice(1, 3).join('|'), bars: (k.data || []).length, volBars: n, volH: h }; })"""
-    for tf, lab in (("D", "日 K"), ("1", "1 分"), ("5", "5 分"), ("15", "15 分"), ("30", "30 分"),
-                    ("H1", "1 小時"), ("H4", "4 小時"), ("W", "週 K"), ("M", "月 K")):
+    # ★ 2026-10-04 改前→改後（驗收過時）：總覽三張圖的週期下拉只剩 日／週／月（Andy：「週期只留下 日周月」，claude/fix-m3）。
+    #   改前這裡還用 forceTf 驗 1／5／15／30 分與 1H／4H —— 使用者已經選不到，櫃買 30 分／1 小時量柱 0 不會出現在任何人的畫面上。
+    #   改後只驗使用者選得到的三個週期。
+    for tf, lab in (("D", "日 K"), ("W", "週 K"), ("M", "月 K")):
         _m3_tf(pg, tf)
         wait_until(pg, "(tf) => ['TSE','OTC','FUT'].every(id => { const k = window.Market3.state.kcharts[id]; return k && String(k._m3key).split('|')[1] === tf; })".replace("(tf) =>", "() =>").replace("=== tf", f"=== '{tf}'"), 6000)
         pg.wait_for_timeout(500)
@@ -41170,6 +41256,7 @@ def _ov_fix_0926b_body(pg, base, code):
     # 個股頁把成交量打開回來 → 個股頁的量副圖要回來（個股頁不能因為這次修改壞掉）
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
     if count(pg, "#lwc canvas") > 0:
+        click(pg, '#tfSeg button[data-tf="1d"]', 1200)     # 同上：預設分時沒有副圖，先按「日」
         ind_toggle(pg, "vol", 900)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
         ok("[0926b-①] 個股頁把成交量打開 → 量副圖回來", "vol" in (pg.evaluate(DBG)["paneH"] or {}), pg.evaluate(DBG)["paneH"])
@@ -42775,16 +42862,23 @@ def t_design_v4_2a(b, base, code):
     pg = ctx.new_page()
     pg.goto(base + "#flow", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.theme4'); localStorage.removeItem('tw.theme'); localStorage.setItem('tw.flowtopo.motion', '1'); } catch(e){} }")
-    pg.goto("about:blank"); pg.goto(base + "#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
-    scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
+    # ★ 2026-10-04 改前→改後（驗收過時）：10-02 版面 V2 起桌機 #flow 拆成三個子分頁（#flow/rotation／sankey／inst，
+    #   layout4.css 只顯示當下子分頁的卡），改前一次 #flow 量全部 —— 資金去向、族群×法人都是 display:none、圖沒畫 → ④⑤ 全紅。
+    #   改後：①②③ 在 #flow/rotation 量、④ 到 #flow/sankey、⑤⑥ 到 #flow/inst；斷言本身一條沒放寬（① 盤高見下）。
+    pg.goto("about:blank"); pg.goto(base + "#flow/rotation", wait_until="networkidle"); pg.wait_for_timeout(3000)
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
     m = pg.evaluate(V4_2A_M)
     ok("① [1440] 「資金輪盤」小標跟時間拉 Bar 在同一行（頂端差 ≤ 6px）",
        bool(m["chead"] and m["time"]) and abs(m["chead"]["t"] - m["time"]["t"]) <= 6 and m["chead"]["r"] <= m["time"]["l"], m)
-    ok("① [1440] 輪盤高＝min(欄寬, 664)（改前 0.8 × 欄寬、上限 640；≥1101 上限 664）", abs(m["clock"]["h"] - min(664, m["clock"]["w"])) <= 3, m["clock"])
+    # ★ 2026-10-04 改前→改後（驗收過時，DECISIONS #308「一屏看完」）：10-03 起盤高再受「卡高上限 − 卡裡其他東西」限制（下限 340），
+    #   1440×900 量到 645 < 664 是設計行為。改成：不超過 min(欄寬, 664)、不低於 340。
+    ok("① [1440] 輪盤高 ≤ min(欄寬, 664) 且 ≥ 340（#308 一屏看完會再縮）", 340 - 3 <= m["clock"]["h"] <= min(664, m["clock"]["w"]) + 3, m["clock"])
     ok("① [1440] 兩欄：排行在右欄", m["right"]["l"] > m["left"]["r"] - 1 and abs(m["right"]["t"] - m["left"]["t"]) < 40, [m["left"], m["right"]])
-    sk = m["sk"]
-    if ok("④ 讀得到資金去向的探針", bool(sk), sk):
+    pg.goto(base + "#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+    sk = pg.evaluate(V4_2A_M)["sk"]
+    if ok("④ 讀得到資金去向的探針（#flow/sankey 子分頁）", bool(sk), sk):
         ok("④ 代表股的字右緣離畫布右緣 ≤ 16px（改前 1440 寬 101px 連滑過都用不到）", sk["leaf"] is not None and 0 <= sk["leaf"] <= 16, sk)
         ok("④ 沒滑過時右側空帶只剩代表股那一欄（≤ 180px；改前 271px）", sk["idle"] <= 180, sk)
         ok("④ 說明列浮在畫布右上角、不佔高度（容器高＝畫布高）", sk["barFloat"] and sk["btnIn"] and abs(sk["total"] - sk["H"]) < 1, sk)
@@ -42794,9 +42888,12 @@ def t_design_v4_2a(b, base, code):
         m1 = pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')")
         ok("④ 浮在右上角的「動態」鈕按得到、真的切換（localStorage 換了）", m0 != m1, [m0, m1])
         click(pg, "#sankeyMotionBtn", 300)
-    inst = m["inst"]
+    pg.goto(base + "#flow/inst", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    scroll_to(pg, "instGroups"); pg.wait_for_timeout(800)
+    mi = pg.evaluate(V4_2A_M)
+    inst = mi["inst"]
     ok("⑤ 族群 × 法人：ECharts 圖例不畫、繪圖區頂端 ≤ 10px（改前 30）", inst["leg"] is False and inst["gtop"] is not None and inst["gtop"] <= 10, inst)
-    ok("⑤ HTML 圖例三顆、在篩選列、在繪圖區外（圖的上緣之上）", bool(m["instLeg"]) and m["instLeg"]["n"] == 3 and m["instLeg"]["inRow"] and m["instLeg"]["outside"], m["instLeg"])
+    ok("⑤ HTML 圖例三顆、在篩選列、在繪圖區外（圖的上緣之上）", bool(mi["instLeg"]) and mi["instLeg"]["n"] == 3 and mi["instLeg"]["inRow"] and mi["instLeg"]["outside"], mi["instLeg"])
     sel = lambda: pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
         const s = (c.getOption().legend[0] || {}).selected || {}; const b = document.querySelector('#instLegend button[data-n="投信"]');
         return { sel: s['投信'] !== false, pressed: b && b.getAttribute('aria-pressed') }; }""")
@@ -42814,9 +42911,9 @@ def t_design_v4_2a(b, base, code):
     click(pg, '#instLegend button[data-n="投信"]', 700)
     s3 = sel()
     ok("⑤ 再點一次「投信」：顯示回來", s3["sel"] and s3["pressed"] == "true", s3)
-    conc = m["conc"]
+    conc = mi["conc"]
     ok("⑥ 資金集中度：ECharts 圖例不畫、繪圖區頂端 ≤ 12px（改前 30）", conc["leg"] is False and conc["gtop"] is not None and conc["gtop"] <= 12, conc)
-    ok("⑥ 主線色樣在均線列（前 5 族群佔比）", "前 5 族群佔比" in m["concMain"], m["concMain"])
+    ok("⑥ 主線色樣在均線列（前 5 族群佔比）", "前 5 族群佔比" in mi["concMain"], mi["concMain"])
     scroll_to(pg, "conc"); pg.wait_for_timeout(200)
     click(pg, '#concSeg button[data-v="10"]', 900)
     t10 = pg.evaluate("() => (document.querySelector('#concMa .concmain') || {}).textContent || ''")
@@ -42824,11 +42921,17 @@ def t_design_v4_2a(b, base, code):
     click(pg, '#concSeg button[data-v="5"]', 600)
     ok("⑦ 軸字 ≥ 12（排行／族群 × 法人／集中度）", all((x or 0) >= 12 for x in (m["rankFs"], inst["fs"], conc["fs"])), [m["rankFs"], inst["fs"], conc["fs"]])
 
-    # ---- ② 1080：兩欄
+    # ---- ② 1080：兩欄（回到輪動子分頁量）
+    pg.goto(base + "#flow/rotation", wait_until="networkidle"); pg.wait_for_timeout(1500)
     pg.set_viewport_size({"width": 1080, "height": 900}); pg.wait_for_timeout(1500)
     m = pg.evaluate(V4_2A_M)
     ok("② [1080] 兩欄（排行在輪盤右邊）", m["right"]["l"] > m["left"]["r"] - 1 and abs(m["right"]["t"] - m["left"]["t"]) < 40, [m["left"], m["right"]])
-    ok("② [1080] 輪盤欄 ≥ 560：名字寫在盤上（不是編號模式、盤下沒有編號清單）", m["clock"]["w"] >= 560 and not m["numList"], [m["clock"], m["numList"]])
+    # ★ 2026-10-04 改前→改後（驗收過時）：2A 的 1060 分界是用「視窗 − 頁邊 − 卡片內距」算輪盤欄 ≥ 560（1080 → 約 585）；
+    #   10-02 版面 V2 起桌機左側多了常駐導覽欄，1080 寬時輪盤欄只剩 542（1080×1100 量也是 542，不是 #308 縮高造成的）。
+    #   欄寬 < 560 走編號模式是 2A 自己定的規則（app.js「編號模式（容器 < 560px）」），所以改驗「規則有照欄寬套用」：
+    #   盤 ≥ 560 → 名字寫在盤上；< 560 → 盤下要有編號清單（名字一個都不能少）。
+    ok("② [1080] 輪盤依欄寬選模式：≥ 560 名字寫在盤上、< 560 走編號模式（盤下有編號清單）",
+       (m["clock"]["w"] >= 560) == (not m["numList"]), [m["clock"], m["numList"]])
     ok("② [1080] 沒有橫向捲軸", m["sw"] <= m["iw"] + 1, m)
     # ---- ③ 1000：單欄
     pg.set_viewport_size({"width": 1000, "height": 900}); pg.wait_for_timeout(1500)
@@ -42849,8 +42952,10 @@ def t_design_v4_2a(b, base, code):
             tag = f"{th}・{'深' if md == 'dark' else '淺'}"
             r = p2.evaluate("() => ({ t4: document.documentElement.getAttribute('data-theme4'), sw: document.documentElement.scrollWidth, iw: innerWidth })")
             ok(f"⑦ {tag}：主題真的掛上、1440 沒有橫向捲軸", r["t4"] == th and r["sw"] <= r["iw"] + 1, r)
+            cr = p2.evaluate(V4_CONTRAST_JS, ["#flowRotCard .rotchead h4"])     # #flow 落在輪動子分頁
+            p2.goto(base + "#flow/inst", wait_until="networkidle"); p2.wait_for_timeout(2000)
             scroll_to(p2, "instGroups"); p2.wait_for_timeout(400)
-            cr = p2.evaluate(V4_CONTRAST_JS, ["#instLegend button", "#concMa .concmain", "#flowRotCard .rotchead h4"])
+            cr.update(p2.evaluate(V4_CONTRAST_JS, ["#instLegend button", "#concMa .concmain"]))
             bad = {k: v for k, v in cr.items() if v is None or v < 4.5}
             ok(f"⑦ {tag}：圖例與小標的字對比 ≥ 4.5", not bad, cr)
             p2.set_viewport_size({"width": 1080, "height": 900}); p2.wait_for_timeout(1200)

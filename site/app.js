@@ -1759,6 +1759,13 @@
     const close = () => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
     btn.onclick = (e) => {
       e.stopPropagation();
+      /* ★ 2026-10-04 修（手機 390）：今日事件抽屜開著時按「更多」，清單會開在抽屜底下（抽屜住在 #layout 的層疊環境、
+         z-index 比清單所在的那層高），「主題」那列被事件篩選列蓋住、點不到。
+         要打開清單就先把抽屜收起來 —— 使用者按「更多」就是要做別的事，留著抽屜只會擋住。*/
+      if (pop.hidden) {
+        const side = document.querySelector('aside.open'), x = document.getElementById('evClose');
+        if (side && x) x.click();
+      }
       pop.hidden = !pop.hidden;
       btn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
     };
