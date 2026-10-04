@@ -125,8 +125,12 @@
   /* 說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點。
      卡片與它指的零件共用同一個 data-part：點卡片亮零件、點零件亮卡片。*/
   const card = (o) => {
-    const s = extRow({ part: o.part, seg: segOf(o.part) || undefined, title: o.title, sub: o.sub, no: o.no, side: o.side,
+    /* 卡片上的台股小標籤（fillChips）的權威來源是 3D 場景的 codes；3D 沒有這個零件時才退回這裡的 data-codes，再退回「整個環節的台股」。
+       掛了環節之後最後那條退路會把整格名單貼到每張卡片上 —— 所以 COS 有指定的零件（含明寫空陣列＝查不到）一律在這裡把名單帶進去。 */
+    const cc = (o.part && Object.prototype.hasOwnProperty.call(COS, o.part)) ? COS[o.part] : null;
+    let s = extRow({ part: o.part, seg: segOf(o.part) || undefined, codes: cc && cc.length ? cc : undefined, title: o.title, sub: o.sub, no: o.no, side: o.side,
       ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
+    if (cc && !cc.length) s = s.replace('<g class="lrow ext" ', '<g class="lrow ext" data-codes="" ');
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
 

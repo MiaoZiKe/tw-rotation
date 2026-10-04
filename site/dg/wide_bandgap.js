@@ -89,9 +89,16 @@
   /* 說明卡片（v2）：卡片離開 SVG 變成 HTML，畫布上只留編號圓點 ＋ 引線。
      ⚠ 這張圖沒有 data-seg，所以 `extRow` 不傳 seg —— 卡片仍然畫得出來，
         只是跟現況一樣點了不會篩成分股（N6 的既定代價，不是壞掉）。*/
+  /* 小卡與卡片上的台股標籤逐件指定（空陣列＝查不到）；沒列的零件走 3D 場景的 codes、再退回整個環節（嘉晶或漢磊）。 */
+  const CODES = { wbg_boule: ['6488'], wbg_flow: ['3016', '3707'], wbg_band: [], wbg_cascode: [], wbg_sic_i: [], wbg_gan_i: [],
+    wbg_sic_jfet: [], wbg_gan_sub: [], wbg_gan_sic_sub: [] };
   const card = (o) => {
-    const s = extRow({ part: o.part, seg: segOf(o.part) || undefined, title: o.title, sub: o.sub, no: o.no,
+    /* 卡片上的台股小標籤（fillChips）的權威來源是 3D 場景的 codes；3D 沒有這個零件時才退回這裡的 data-codes，再退回「整個環節的台股」。
+       掛了環節之後最後那條退路會把整格名單貼到每張卡片上 —— 所以 COS 有指定的零件（含明寫空陣列＝查不到）一律在這裡把名單帶進去。 */
+    const cc = (o.part && Object.prototype.hasOwnProperty.call(CODES, o.part)) ? CODES[o.part] : null;
+    let s = extRow({ part: o.part, seg: segOf(o.part) || undefined, codes: cc && cc.length ? cc : undefined, title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
+    if (cc && !cc.length) s = s.replace('<g class="lrow ext" ', '<g class="lrow ext" data-codes="" ');
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
   /* 一顆沿著路徑跑的電荷。路徑字串跟箭頭是分開的兩條 —— 箭頭是靜止時就看得見的那一條，
