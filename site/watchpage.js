@@ -245,8 +245,10 @@
   }
   async function drawExp() {
     const code = P.exp, box = document.getElementById('wpxC'), note = document.getElementById('wpxNote');
-    const I = window.Industry, a = A();
     if (!box || !code) return;
+    /* 2026-10-04：industry.js 改成用到才載入（index.html 的 lazy-ind），展開 K 線前先等它 */
+    if (!window.Industry && window.TwLazy) { box.innerHTML = '<div class="empty">載入中…</div>'; try { await window.TwLazy.load('ind'); } catch (e) { /* 下面那句會講 */ } }
+    const I = window.Industry, a = A();
     if (!I || !I.watchBars) { box.innerHTML = '<div class="empty">圖表元件還沒載入，請重新整理</div>'; return; }
     const seq = ++expSeq;
     box.dataset.state = 'loading';

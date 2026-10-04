@@ -400,6 +400,16 @@
     })();
     return _loading[name];
   }
+  /* ★ 2026-10-04 首頁瘦身第二階段：總覽的資金輪盤＋摘要卡只用 flow_v3 的 date／rrg／sankey（約 100KB），
+     flow_v3 整份約 1MB（inst_daily、share_daily、periods 是資金流向頁才用的）。build_payload 另外輸出 rrg_lite.json
+     ＝ 那三欄原封不動的拷貝（同一次計算，口徑一模一樣）。讀不到（舊資料、預覽分支吃正式站資料）就退回 flow_v3。
+     已經載過 flow_v3（先去過資金流向頁）就直接用它，不多抓一份。*/
+  async function loadRrgLite() {
+    if (D.flow_v3) return D.flow_v3;
+    const r = await load('rrg_lite', { fallback: null });
+    if (r && r.rrg && (r.rrg.points || []).length) return r;
+    return load('flow_v3');
+  }
   /* ★ 驗收用的 SVG renderer 開關（2026-09-20）。
      線上版一律 canvas（效能）—— 但 canvas 畫出來的字在 DOM 上完全不存在，
      所以 `_preview.py` 的文字重疊掃描對「圖裡的字」是物理性全盲的：
@@ -2143,7 +2153,7 @@
        所以退回到已經載進來的 `D.flow_v3`，**同一個算法**（`rotRows` ＋ `ROT_BOARD_WIN`），
        不是另外寫一套統計。*/
     if (!cnt || !Object.keys(cnt).length) {
-      const f3 = D.flow_v3;
+      const f3 = D.flow_v3 || D.rrg_lite;   // 2026-10-04：總覽只載輪盤小檔 rrg_lite（同一份 rrg）
       const rows = (f3 && f3.rrg) ? rotRows(f3.rrg, ROT_BOARD_WIN) : [];
       if (!rows.length) { if (old) old.remove(); return; }
       cnt = {}; rows.forEach(r => { cnt[r.stage] = (cnt[r.stage] || 0) + 1; });
@@ -2374,6 +2384,18 @@
   function resizeVisibleCharts() { resizeAllCharts(); }   // 藏起來的與尺寸沒變的都跳過（見 resizeIfChanged）
   /* 市場明細「離開過」的旗標：route() 只要看到別的頁面就立起來，drawMarket 回來時看到它就把所有設定回預設。*/
   let mktLeft = false;
+  /* ★ 2026-10-04 首頁瘦身第二階段：剖析圖／3D／產業與個股頁的腳本改成用到才載入（index.html 的 <template id="lazy-*">）。
+     host 給了就在那一頁先放「載入中」骨架，載完拿掉；載入失敗留一句可讀的話，不會出現「Industry is not defined」。
+     回傳 true＝可以用了。 */
+  async function needLazy(g, host) {
+    const L = window.TwLazy;
+    if (!L || L.ready(g)) return true;
+    const el = host ? document.querySelector(host) : null;
+    let sk = null;
+    if (el) { sk = document.createElement('div'); sk.className = 'empty lazyskel'; sk.dataset.lazy = g; sk.textContent = '載入中…'; el.prepend(sk); }
+    try { await L.load(g); if (sk) sk.remove(); return true; }
+    catch (e) { console.warn(e); if (sk) sk.textContent = '這一頁的程式沒有載入成功，請重新整理'; return false; }
+  }
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
     _players.clear();
@@ -2388,6 +2410,7 @@
        2026-09-28 起事件是預設關著的浮層抽屜，換頁不再需要「把事件欄還回來」。*/
     document.body.classList.remove('memwide');
     const h = location.hash.replace('#', '') || 'overview';
+    const h0 = location.hash;   // 等 lazy 腳本時使用者可能又換頁了，回來比對用
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
        法定產業別的族群 id 是中文（ind_半導體業），瀏覽器把 hash 存成百分比編碼，
        不解碼的話 industry.js 的 `g.id === state.group` 永遠比不中 ——
@@ -2516,7 +2539,7 @@
       /* 2026-10-03 電腦版子分頁：只畫看得到的那一半（產業＝全市場 treemap、題材＝題材熱力＋細節），另一半等切過去才畫。
          手機（沒有子分頁）照舊兩半都畫。 */
       const wantInd = !l4on || !wantTheme, wantThm = !l4on || wantTheme;
-      if (wantInd && (pageChanged || !rendered.heatmap)) { rendered.heatmap = true; await window.Industry.routeHeat(); }
+      if (wantInd && (pageChanged || !rendered.heatmap)) { rendered.heatmap = true; if (await needLazy('ind', '#v-heatmap')) await window.Industry.routeHeat(); }
       if (wantThm && !rendered.themes) { rendered.themes = true; await renderThemes(tid); }
       else if (wantThm && D.themes && D.themes.themes) renderThemeDetail(D.themes, tid);
       /* ★ 2026-09-24（審查 R4）：題材熱力的外框是頁面上的固定元素，縮放倍率掛在它身上（box._zoom），
@@ -2551,7 +2574,7 @@
       }
       return;
     }
-    if (view === 'industry') { await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
+    if (view === 'industry') { if (!(await needLazy('ind', '#v-industry'))) return; if (location.hash !== h0) return; await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
     // 自選分頁：第一次進來整頁畫；之後每次回來重畫一次（別頁按 ☆ 改過清單、或換過主題）
     if (view === 'watch' && rendered.watch && window.TwWatchPage) window.TwWatchPage.paint();
@@ -3367,7 +3390,7 @@
        groups_detail 與 candidates 沒有任何一張卡在「畫」的時候用到（只有點方塊後的成分股面板、tooltip 查名字與即時層讀 D），
        照舊預先載入，但不再擋著畫圖。 */
     const P = { heat: load('market_heat'), gt: load('groups_today'), rot: load('rotation'), cands: load('candidates'),
-      f3: load('flow_v3'), th: load('themes'), gd: load('groups_detail', { low: true }), sd: load('sankey_daily', { fallback: null }), stocks: load('stocks', { fallback: [] }) };
+      f3: loadRrgLite(), th: load('themes'), gd: load('groups_detail', { low: true }), sd: load('sankey_daily', { fallback: null }), stocks: load('stocks', { fallback: [] }) };
     const tasks = [];
     // ① 熱力圖：資料最小、最常先到
     tasks.push((async () => { const [gt, rot] = await Promise.all([P.gt, P.rot]); renderHeat(gt, rot); })());
@@ -11283,6 +11306,7 @@
   const themeHash = (id) => '#heatmap/theme/' + id;
   let themeColor = hmLS('tw.themeColor', 'heat'), themeFocus = null;
   async function renderThemes(sel, mapOnly) {
+    await needLazy('thm');   // 2026-10-04：題材剖析圖（themes3d.js）用到才載入；失敗也照畫熱力圖，只是沒有剖析圖
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
     /* 2026-09-26：題材口徑（th.note）原本寫進「?」最下面的 #themeNote 小字；「?」不再放附註，那一格連同這行一起拿掉。*/
     /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，5 格藍→紅（09-25 定案，只留這一組：藍＝冷、紅＝熱）。
@@ -12784,6 +12808,10 @@
     { const hv = (location.hash || '').replace(/^#/, '').split('/')[0]; if (!hv || hv === 'overview') { try { miaEvents(); } catch (e) { /* 忽略 */ } } }
     // 盤中即時層。放在 route() 之後：畫面上先有代號，Live 才知道要抓哪些。
     if (window.Live) window.Live.start();
+    /* 2026-10-04 首頁瘦身第二階段：首頁畫完、事件欄也到了之後，閒下來再把產業／個股頁的腳本先抓好（點進個股不必再等）。
+       刻意排在最後（不是 load 事件後幾秒）：慢網路實測那樣會跟首屏資料搶頻寬，輪盤與摘要卡反而晚好幾秒。 */
+    setTimeout(() => { const go = () => { if (window.TwLazy) window.TwLazy.load('ind').catch(() => {}); };
+      if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 5000 }); else go(); }, 3000);
   }
   boot();
 })();

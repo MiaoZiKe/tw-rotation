@@ -5485,14 +5485,13 @@ h3 .howbtn.pop{font-family:inherit}
 <!-- drawtools.js 要排在 chart.js 前面：KChart.enableDrawing() 與 KUtil.DRAW_* 都從它拿（DECISIONS #289） -->
 <script src="drawtools.js"></script>
 <script src="chart.js"></script>
+<!-- ★ 2026-10-04 首頁瘦身（第二階段）：剖析圖（diagrams.js＋dg/*）、3D（three3d.js、themes3d.js）、產業／個股頁（industry.js）
+     合計約 3.8MB，總覽首屏一支都用不到，改成「用到才載入」：route() 進 #industry／#stock／#heatmap、題材剖析圖、自選展開 K 線前
+     先 await TwLazy.load('ind'|'thm')（期間顯示「載入中」骨架）。清單寫在 <template> 裡而不是 JS 裡，
+     是為了讓 stamp_assets.py 照樣掃到 src= 加版本戳（template 裡的 script 不會執行）；順序＝執行順序（async=false）：
+     diagrams.js 一定在 dg/* 與 themes3d.js 之前、dg/* 一定在 industry.js 之前（它讀 DiagramSlots）。 -->
+<template id="lazy-ind">
 <script src="diagrams.js"></script>
-<!-- ★ 2026-09-21：一張剖析圖一個檔（site/dg/<slot>.js），各自呼叫 window.DG.register。
-     docs/diagram_plan.md 排了 14 張，全塞進 diagrams.js 會變兩千多行，
-     而且多個人同時畫不同的圖就會一直撞在同一個檔上。
-     ★ 14 個檔位**一次寫滿**，所以新增一張圖不必再動這個檔（動了就會跟別人撞）。
-     還沒畫的檔只有一行註解、不呼叫 register，SLOTS 裡不會多出空項目。
-     順序必須在 industry.js 之前 —— 它讀 DiagramSlots 時要已經註冊完。
-     stamp_assets.py 是用正規式掃 src=，所以這些檔會自動加版本戳，不用改它。 -->
 <script src="dg/pcb_rigid.js"></script>
 <script src="dg/ic_substrate.js"></script>
 <script src="dg/ai_adv_packaging.js"></script>
@@ -5513,18 +5512,42 @@ h3 .howbtn.pop{font-family:inherit}
 <script src="dg/machine_tool.js"></script>
 <script src="dg/alum_cap.js"></script>
 <script src="dg/circuit_protection.js"></script>
-<!-- ★ 2026-09-23 W9：軟體與資訊服務（software 鏈）四張族群 2D 圖。
-     Andy 明講「軟體與資訊服務 需補上 2D 圖即可，不用 3D」，所以四支的 scene 都是 null。 -->
 <script src="dg/cyber_security.js"></script>
 <script src="dg/cloud_msp.js"></script>
 <script src="dg/saas.js"></script>
 <script src="dg/ecommerce.js"></script>
-<!-- ★ 2026-09-23 C3：金融（financial 鏈）三張族群 2D 圖。
-     Andy 明講「金融麻煩也生成 2D 圖」，格式跟軟體鏈那四張一樣，所以三支的 scene 都是 null。
-     supply_chain.yaml 裡沒有 financial 這條鏈，所以這三張一個 data-seg 都沒掛（各自的檔頭有寫）。 -->
 <script src="dg/bank.js"></script>
 <script src="dg/life_fhc.js"></script>
 <script src="dg/securities_fhc.js"></script>
+<script src="three3d.js"></script>
+<script src="industry.js"></script>
+</template>
+<template id="lazy-thm">
+<script src="diagrams.js"></script>
+<script src="themes3d.js"></script>
+</template>
+<script>
+/* 用到才載入（見上面的 template）。同一支只抓一次；失敗的那支下次會重抓。 */
+window.TwLazy=(function(){var P={};
+function one(src){if(P[src])return P[src];return P[src]=new Promise(function(ok,ng){var s=document.createElement('script');s.src=src;s.async=false;
+s.onload=function(){if(P[src])P[src]._done=true;ok();};s.onerror=function(){delete P[src];ng(new Error('載入失敗：'+src));};document.body.appendChild(s);});}
+function srcs(g){var t=document.getElementById('lazy-'+g);return t?[].map.call(t.content.querySelectorAll('script[src]'),function(x){return x.getAttribute('src');}):[];}
+function load(g){return Promise.all(srcs(g).map(one)).then(function(){});}
+function ready(g){var a=srcs(g);return a.length>0&&a.every(function(x){return !!P[x]&&P[x]._done;});}
+return {load:load,ready:ready,srcs:srcs};})();
+</script>
+<!-- ★ 2026-09-21：一張剖析圖一個檔（site/dg/<slot>.js），各自呼叫 window.DG.register。
+     docs/diagram_plan.md 排了 14 張，全塞進 diagrams.js 會變兩千多行，
+     而且多個人同時畫不同的圖就會一直撞在同一個檔上。
+     ★ 14 個檔位**一次寫滿**，所以新增一張圖不必再動這個檔（動了就會跟別人撞）。
+     還沒畫的檔只有一行註解、不呼叫 register，SLOTS 裡不會多出空項目。
+     順序必須在 industry.js 之前 —— 它讀 DiagramSlots 時要已經註冊完。
+     stamp_assets.py 是用正規式掃 src=，所以這些檔會自動加版本戳，不用改它。 -->
+<!-- ★ 2026-09-23 W9：軟體與資訊服務（software 鏈）四張族群 2D 圖。
+     Andy 明講「軟體與資訊服務 需補上 2D 圖即可，不用 3D」，所以四支的 scene 都是 null。 -->
+<!-- ★ 2026-09-23 C3：金融（financial 鏈）三張族群 2D 圖。
+     Andy 明講「金融麻煩也生成 2D 圖」，格式跟軟體鏈那四張一樣，所以三支的 scene 都是 null。
+     supply_chain.yaml 裡沒有 financial 這條鏈，所以這三張一個 data-seg 都沒掛（各自的檔頭有寫）。 -->
 <!-- 積木（docs/feature_modules.md §4.1）：一塊一支檔，擋掉任何一支整站照常（原則三）。
      呼叫端都在執行期才讀 window.<積木>，順序只要在 industry.js／app.js 之前就好。 -->
 <script src="blocks/broker_views.js"></script>
@@ -5535,9 +5558,6 @@ h3 .howbtn.pop{font-family:inherit}
 <!-- ★ 2026-09-28 卡片標題小圖示（Andy：「每個標題都新增小圖示，增加互動性，且需要對應配色」）。
      自己掛 MutationObserver，標題晚畫也補得到；規則在 docs/design_title_icons.md。 -->
 <script src="icons.js"></script>
-<script src="themes3d.js"></script>
-<script src="three3d.js"></script>
-<script src="industry.js"></script>
 <script src="livek.js"></script>
 <!-- ★ 2026-09-24 設計系統 v2 第 6 批：頁尾免責聲明、法律頁、同意橫幅、平台導覽。
      開關在 legal_config.js（條款空格填完＋enabled:true 才啟用橫幅）。必須在 app.js 之前：
