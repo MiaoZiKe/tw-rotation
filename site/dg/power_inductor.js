@@ -64,7 +64,13 @@
      **格子裡的畫法一行都沒動** —— 這樣 R1～R5、Q1～Q6 那些用絕對座標寫死的紅線才不會被改壞。*/
   const CW = 660;
   const COLW = 306;                    // 一格的寬（兩格 ＋ 間隙 ＝ 628）
-  const SEG_R = 'passive_comp';        // ★ 整張圖唯一的 data-seg，只掛在電阻欄
+  const SEG_R = 'passive_comp';        // 電阻欄 → 被動元件 MLCC／電阻
+  /* ★ 2026-10-04（DECISIONS #320，接上一批 #318）：電感欄與石英欄原本刻意不掛 data-seg（§7-D2），理由是整份 supply_chain.yaml 一家都沒有。
+     #318 補了兩個專屬環節（passive_inductor 電感／磁性元件、passive_crystal 石英頻率元件），臺慶科／千如／鈞寶與晶技／希華／台嘉碩都有節點了，
+     所以這兩欄現在掛得上去 —— 掛的是**自己的環節**，不是「被動元件 MLCC／電阻」，所以「宣稱國巨那五家做電感」的錯誤不會發生。 */
+  const SEG_L = 'passive_inductor';    // 電感欄
+  const SEG_X = 'passive_crystal';     // 石英欄
+  const segOfPart = (p) => /^ind_/.test(p || '') ? SEG_L : (/^xtal_/.test(p || '') ? SEG_X : '');
 
   /* ================================================================ 小工具 */
   const R = (x, y, w, h, fill, cls, rx) =>
@@ -84,7 +90,7 @@
      card()：說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點；
      卡片與它指的零件**共用同一個 data-part**。`seg` 只有電阻欄有（§7-D2）。*/
   const card = (o) => {
-    const s2 = extRow({ seg: o.seg, part: o.part, title: o.title, sub: o.sub, no: o.no, side: o.side,
+    const s2 = extRow({ seg: o.seg || segOfPart(o.part) || undefined, part: o.part, title: o.title, sub: o.sub, no: o.no, side: o.side,
       ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
     return o.color ? s2.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s2;
   };
@@ -168,15 +174,15 @@
     const w6 = [[96, 481], [96, 495], [110, 488], [188, 481], [188, 495], [174, 488]]
       .map(p => C(p[0], p[1], 6.5, 'var(--dg-cu)', 'part')).join('');
     return `<g>
-      ${part('ind_body', '', slab(66, 330, 150, 84, 'var(--dg-el)', { r: 3 }))}
-      ${part('ind_wind', '', turns.join(''))}
-      ${part('ind_flux', '',
+      ${part('ind_body', SEG_L, slab(66, 330, 150, 84, 'var(--dg-el)', { r: 3 }))}
+      ${part('ind_wind', SEG_L, turns.join(''))}
+      ${part('ind_flux', SEG_L,
     `<path class="leader flow" d="${FLUX}" stroke="var(--dg-accent-2d)" stroke-width="1.6" fill="none" opacity=".85"/>`
     + `<circle r="3.2" fill="var(--dg-accent-2d)"><animateMotion dur="4.2s" repeatCount="indefinite" path="${FLUX}"/></circle>`)}
-      ${part('ind_term', '', R(62, 412, 38, 9, 'var(--dg-sn)', 'part', 1) + R(182, 412, 38, 9, 'var(--dg-sn)', 'part', 1))}
+      ${part('ind_term', SEG_L, R(62, 412, 38, 9, 'var(--dg-sn)', 'part', 1) + R(182, 412, 38, 9, 'var(--dg-sn)', 'part', 1))}
       <g pointer-events="none">${R(52, 421, 180, 9, 'var(--dg-pcb)')}
         ${solder(60, 414, 42, 8)}${solder(180, 414, 42, 8)}</g>
-      ${part('ind_wirewound', '',
+      ${part('ind_wirewound', SEG_L,
     R(72, 448, 140, 9, 'var(--dg-steel)', 'part', 1)
     + R(72, 462, 140, 11, 'var(--dg-emc)', 'part', 1)
     + R(122, 473, 40, 30, 'var(--dg-emc)', 'part')
@@ -226,17 +232,17 @@
   const BASE2 = 'M712,472 L726,472 L726,510 L914,510 L914,472 L928,472 L928,522 L712,522Z';
   function drawC() {
     return `<g>
-      ${part('xtal_cavity', '', R(720, 350, 200, 64, 'var(--dg-bg)', 'part'))}
-      ${part('xtal_base', '', P(BASE, 'var(--dg-cer)', 'part') + R(720, 392, 56, 22, 'var(--dg-cer-cut)', 'part'))}
-      ${part('xtal_blank', '', R(736, 378, 156, 9, 'var(--dg-glass)', 'part'))}
-      ${part('xtal_elec', '', R(774, 374.5, 80, 3.5, 'var(--dg-au)', 'part') + R(774, 387, 80, 3.5, 'var(--dg-au)', 'part'))}
-      ${part('xtal_mount', '', C(740, 389.5, 5, 'var(--dg-resin)', 'part') + C(758, 389.5, 5, 'var(--dg-resin)', 'part'))}
-      ${part('xtal_lid', '', slab(698, 336, 244, 14, 'var(--dg-steel)', { r: 1 })
+      ${part('xtal_cavity', SEG_X, R(720, 350, 200, 64, 'var(--dg-bg)', 'part'))}
+      ${part('xtal_base', SEG_X, P(BASE, 'var(--dg-cer)', 'part') + R(720, 392, 56, 22, 'var(--dg-cer-cut)', 'part'))}
+      ${part('xtal_blank', SEG_X, R(736, 378, 156, 9, 'var(--dg-glass)', 'part'))}
+      ${part('xtal_elec', SEG_X, R(774, 374.5, 80, 3.5, 'var(--dg-au)', 'part') + R(774, 387, 80, 3.5, 'var(--dg-au)', 'part'))}
+      ${part('xtal_mount', SEG_X, C(740, 389.5, 5, 'var(--dg-resin)', 'part') + C(758, 389.5, 5, 'var(--dg-resin)', 'part'))}
+      ${part('xtal_lid', SEG_X, slab(698, 336, 244, 14, 'var(--dg-steel)', { r: 1 })
     + line('M698,350 L942,350', 'var(--dg-cu-lit)', 3)
     + line('M698,336 L698,350 M942,336 L942,350', 'var(--dg-cu-lit)', 2.4))}
-      ${part('xtal_pad', '', [704, 752, 850, 898].map(px => R(px, 430, 38, 9, 'var(--dg-au)', 'part', 1)).join(''))}
+      ${part('xtal_pad', SEG_X, [704, 752, 850, 898].map(px => R(px, 430, 38, 9, 'var(--dg-au)', 'part', 1)).join(''))}
       <g pointer-events="none">${R(688, 439, 264, 9, 'var(--dg-pcb)')}</g>
-      ${part('xtal_osc', '', R(726, 472, 188, 38, 'var(--dg-bg)', 'part')
+      ${part('xtal_osc', SEG_X, R(726, 472, 188, 38, 'var(--dg-bg)', 'part')
     + P(BASE2, 'var(--dg-cer)', 'part')
     + R(710, 462, 220, 10, 'var(--dg-steel)', 'part', 1)
     + line('M710,472 L930,472', 'var(--dg-cu-lit)', 2.4)
@@ -349,7 +355,7 @@
       </style>
       <!-- 標題與導言：v2 搬到 HTML 的 .dghead，SVG 裡不畫（字才不會跟著畫布縮小） -->
       <text class="ttl ext" x="0" y="0">電感·電阻·石英：板子上另外三種一塊錢的零件，各自有一個最容易選錯的規格</text>
-      <text class="cap ext" x="0" y="0">上面是它們同時出現的那一小塊主板（供電與時脈區），下面三格各切開一顆。三者之間沒有上下游關係，所以這張圖刻意不畫任何流程箭頭。左右兩欄的卡片逐件說明，點卡片零件會亮、點零件卡片會亮 —— 只有電阻那一格對得到供應鏈環節，電感與石英目前在供應鏈圖上還沒有自己的一格。</text>
+      <text class="cap ext" x="0" y="0">上面是它們同時出現的那一小塊主板（供電與時脈區），下面三格各切開一顆。三者之間沒有上下游關係，所以這張圖刻意不畫任何流程箭頭。左右兩欄的卡片逐件說明，點卡片零件會亮、點零件卡片會亮 —— 電阻對到「被動元件 MLCC／電阻」、電感對到「電感／磁性元件」、石英對到「石英頻率元件」三個不同的環節。</text>
 
       <!-- ================= 第 1 排：共同舞台（一小塊主板的 2.5D 微斜頂視） ================= -->
       <rect class="frame" x="16" y="16" width="628" height="246" rx="9"/>
@@ -400,9 +406,9 @@
     lines: ['這三種零件之間沒有上下游關係；放在一起是因為它們真的在同一塊板子的同一區。',
       '排成一條流程列會暗示一個不存在的因果順序 —— 那是規格書 §0-B 否決過的畫法。'] })}
       ${note({ side: 'r', order: 98, title: '誰做的（點零件篩到的是「環節」不是族群）',
-    lines: ['功率電感：3357 臺慶科／3236 千如／6155 鈞寶（族群「功率電感」，這一格不掛環節）。',
+    lines: ['功率電感：3357 臺慶科／3236 千如／6155 鈞寶（點這一欄會對到「電感／磁性元件」環節）。',
       '晶片電阻：點這一格會對到「被動元件 MLCC／電阻」環節（2327 國巨／2492 華新科 等）。',
-      '石英：3042 晶技／2484 希華／3221 台嘉碩（族群「石英頻率控制」，這一格不掛環節）。'] })}
+      '石英：3042 晶技／2484 希華／3221 台嘉碩（點這一欄會對到「石英頻率元件」環節）。'] })}
       ${note({ side: 'r', order: 99, title: '這張圖沒有回答的事',
     lines: ['示意圖，非實物比例｜各層厚度與繞組圈數均為示意。',
       '三種零件的 mm 尺寸、良率、單價、市占一律不寫（查不到可引用的來源）。',
@@ -441,18 +447,18 @@
         desc: '用同一個比例把三種零件的外形並排，讓「它們其實差不多大」被看見 —— 這是三合一版面唯一真正的增值。',
         none: '這一塊是比例尺，不是零件。⚠ 三種零件的實際 mm 尺寸這次查不到可引用的通用尺寸表，所以只宣稱同一個比例，不標任何數字（R5：查不到就寫查不到）。',
       },
-      // ---- 欄 A　功率電感（★ 這一欄不掛 data-seg，見檔頭）
+      // ---- 欄 A　功率電感（2026-10-04 起掛 passive_inductor，見 SEG_L）
       ind_body: {
         name: '金屬磁粉壓製的本體（一體成型）',
         desc: '磁芯與外殼是同一塊：金屬磁粉在遠低於鐵氧體燒結的溫度下壓製，可以直接壓在繞組之上而不會熔掉銅線。金屬磁粉的飽和磁通密度比鐵氧體高，同樣體積能扛更大電流，而且是「軟飽和」。',
-        none: '★ 這一欄在 supply_chain.yaml 裡沒有自己的環節，所以點下去不會列出公司。台股做功率電感的在 groups.yaml 的「功率電感」族群：3357 臺慶科、3236 千如、6155 鈞寶 —— 但這三家整份 supply_chain.yaml 一家都沒有，所以不能掛在「被動元件 MLCC / 電阻」那一格（掛了等於宣稱國巨那五家做電感）。',
       },
       ind_wind: {
         name: '扁平銅線繞組（立繞）',
         desc: '扁平線立繞，同樣的空間能塞進更多銅，直流電阻更低。剖面是橫躺的長方形 —— 圓形那是繞線型的圓線，兩種做法從剖面就分得開。',
-        none: '同上欄：電感這一格在供應鏈資料裡還沒有自己的環節。銅線本身的上游（銅箔／漆包線）也不在這張圖的範圍內。',
+        none: '銅線本身的上游（銅箔／漆包線）也不在這張圖的範圍內。',
       },
       ind_flux: {
+        cos: [],
         name: '磁通路徑（封閉迴路）',
         desc: '磁通繞著繞組跑一圈，而且完全走在本體之內 —— 那就是「磁屏蔽」的意思。跑出本體之外就是漏磁，會跟磁屏蔽的說法矛盾。',
         none: '這是一條示意的磁力線，不是零件，沒有對應的公司。',
@@ -460,12 +466,11 @@
       ind_term: {
         name: '引出端子（只在底面）',
         desc: '繞組兩端折出來貼在底面，所以它是表面黏著件。端子只在底面 —— 畫到頂面或整個側面就是別種零件。',
-        none: '同欄 A：電感這一格在供應鏈資料裡還沒有自己的環節。',
       },
       ind_wirewound: {
         name: '對照：繞線型＋鐵氧體磁芯',
         desc: '磁芯、線圈、上蓋是分開的件，所以看得到縫隙與外露的圓線。鐵氧體在電流與溫度升高時比較容易飽和，飽和之後電感值會急降；粉末磁芯的磁通承載力隨溫度幾乎不變。',
-        none: '同欄 A：電感這一格在供應鏈資料裡還沒有自己的環節。台股在 groups.yaml 的「功率電感」族群。',
+        none: '台股在 groups.yaml 的「功率電感」族群。',
       },
       // ---- 欄 B　晶片電阻（★ 只有這一欄真的點得出小卡）
       res_substrate: {
@@ -501,22 +506,19 @@
         desc: '整片金屬合金（錳銅／康銅之類）當電阻體，兩端是明顯更厚的銅端子，沒有陶瓷基板。為了量得準，走電流與量電壓用不同的接點（四端／Kelvin 量測）。專門用在「要知道電流有多大」的地方，不是拿來分壓的。',
         note: '國巨與華新科的 tech 欄有「晶片電阻」，但**這次查不到「哪一家做合金檢流電阻」的具名揭露** —— 所以這裡不挑一家出來講（R5）。',
       },
-      // ---- 欄 C　石英頻率元件（★ 這一欄不掛 data-seg，見檔頭）
+      // ---- 欄 C　石英頻率元件（2026-10-04 起掛 passive_crystal，見 SEG_X）
       xtal_blank: {
         name: '石英晶片（AT 切薄片）',
         desc: '從人工培養的石英晶體上，依特定角度切下來的薄片。常見的 AT 切是把 Y 板轉約 35°15′ 切出來的（來源：AT 切製法專利 US6629342，單一來源）。',
-        none: '★ 這一欄在 supply_chain.yaml 裡沒有自己的環節。台股做石英元件的在 groups.yaml 的「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩 —— 三家整份 supply_chain.yaml 都沒有，所以不掛環節（掛「被動元件」那一格等於宣稱國巨那五家做石英）。',
       },
       xtal_elec: {
         name: '激發電極',
         desc: '上下兩面各一片、中央對齊，靠它把電壓變成機械振動。上下錯開就振不出設計的模態。',
-        none: '同欄 C：石英這一格在供應鏈資料裡還沒有自己的環節。',
       },
       xtal_mount: {
         name: '導電膠固定點（同一端兩點）',
         desc: '石英片只靠同一端的兩點導電膠架著，四周與上下都不能碰到東西 —— 碰到就振不動。',
         note: '⚠ 低信心：這次**查不到任何來源明講「只有兩點、位於同一端」**。圖上照這樣畫是因為那是表達「四周懸空」最直觀的方式；支撐點的數量請當成示意，不要當規格。',
-        none: '同欄 C：石英這一格在供應鏈資料裡還沒有自己的環節。',
       },
       xtal_cavity: {
         name: '密封的空腔',
@@ -526,18 +528,15 @@
       xtal_lid: {
         name: '金屬蓋＋縫焊密封（seam seal）',
         desc: '用電阻加熱把金屬蓋焊在陶瓷底座上，形成一圈連續的焊縫。焊縫畫成一段一段的點就不是縫焊了。',
-        none: '同欄 C：石英這一格在供應鏈資料裡還沒有自己的環節。',
       },
       xtal_pad: {
         name: '底面焊墊',
         desc: '貼在板子上的那一面，常見四墊（兩個訊號、兩個接地）或兩墊。它跟另外兩顆一樣都是表面黏著件。',
-        none: '同欄 C：石英這一格在供應鏈資料裡還沒有自己的環節。',
       },
       xtal_osc: {
         name: '對照：同一封裝多一顆 IC ＝ 振盪器',
         desc: '只有石英片的叫晶體（XTAL）；裡面多一顆振盪電路的叫 XO；再加溫度補償電路的叫 TCXO，用來把溫度造成的頻率漂移補回去（穩定度落在 ppm 等級）。把石英放進恆溫槽的 OCXO 更穩（ppb 等級），但更大更耗電。',
         note: '⚠ 各家給的 TCXO 穩定度數字口徑不一（溫度範圍、含不含老化都沒交代），所以畫面上只寫「ppm 等級」，不寫具體數值。',
-        none: '同欄 C：石英這一格在供應鏈資料裡還沒有自己的環節。',
       },
     },
   });

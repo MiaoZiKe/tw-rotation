@@ -697,10 +697,10 @@ companies:
        自主粉末配方 ＋ 1kV 以上高壓 MLCC；高毛利的高壓 NP0 比重在拉高。
        2026-09 的報導把它列為村田 MLCC 料號 EOL 的受惠者之一，理由是村田短期不切入 NP0。
        ⚠ 證據等級：WebSearch 摘要，沒有讀過原文。同樣查不到具名客戶，所以只放節點不連邊"}
-  # ⚠ id 叫 chilisin_elec，但本體是**信昌電 Prosperity Dielectrics（PDC）6173**，不是奇力新 Chilisin
-  #   （奇力新是另一家，已被國巨收購、不是台股節點）。id 因為 site/dg/ai_adv_packaging.js 兩處引用（cos 清單）而不能改，
-  #   改名要同時動 site/ —— 這一批不碰前端，記在 HANDOFF 待處理。
-  - {id: chilisin_elec, ticker: "6173", name: 信昌電, segment: passive_comp,
+  # ⚠ 2026-10-04 改名：id 原本叫 chilisin_elec（#318 發現本體是信昌電 Prosperity Dielectrics〔PDC〕6173，不是奇力新 Chilisin；
+  #   奇力新是另一家，已被國巨收購、不是台股節點）。id 一直不能改，是因為 site/dg/ai_adv_packaging.js 兩處 cos 清單引用它；
+  #   這一批前端那兩處同步改成 pdc（本檔 1 個節點＋2 條邊）。
+  - {id: pdc, ticker: "6173", name: 信昌電, segment: passive_comp,
      tech: [MLCC, 諧振電容, DC BIOS, 介電瓷粉],
      note: "★ 2026-09-21 補進來（原因同禾伸堂）。華新科集團旗下，從**粉末到元件自製**，
        著重車規 MLCC；諧振電容類產品約佔 10.5%，DC BIOS 是容量高於一般品的特殊品。
@@ -1527,7 +1527,7 @@ edges:
   - {from: sinocera, to: semco, rel: supplies, item: "MLCC 介電陶瓷粉體（配方粉）", strength: 4, confidence: reported,
      note: "同上來源；三星電機是國瓷材料名單裡最常被點名的客戶",
      source: "新浪財經（MLCC 喧嚣）", source_url: "https://cj.sina.com.cn/articles/view/1644983660/620c756c02001tc2c"}
-  - {from: chilisin_elec, to: walsin_tech, rel: supplies, item: "介電陶瓷粉體（MLCC 核心原料）", strength: 4, confidence: reported,
+  - {from: pdc, to: walsin_tech, rel: supplies, item: "介電陶瓷粉體（MLCC 核心原料）", strength: 4, confidence: reported,
      note: "信昌電自產瓷粉，約一半供給華新科集團、另一半以日本客戶為主（日本客戶未具名）；華新科為信昌電母公司（最大股東）。
        ★ 這條同時是母子關係：schema 沒有 subsidiary_of，先用 supplies 承載（比照日東紡→建榮）。
        數字口徑差異：2018～2020 年的摘要寫『約一半』、另一篇寫『華新科所需粉末八成由信昌電供應』—— 兩者不矛盾（分母不同），但都沒讀到原文，所以不寫百分比。
@@ -1550,7 +1550,7 @@ edges:
      note: "日電貿公司簡介與法說的前五大產品線之一", source: "MoneyDJ 理財網", source_url: "https://www.moneydj.com/kmdj/wiki/wikiviewer.aspx?keyid=a9d84274-c87e-4490-9e8d-2047570bd026"}
   - {from: kyocera_avx, to: nichidenbo, rel: supplies, item: "京瓷 MLCC、AVX 高分子鉭質電容", strength: 2, confidence: verified,
      note: "日電貿前五大產品線之一（2025 前三季約 8%，媒體整理）", source: "MoneyDJ 理財網", source_url: "https://www.moneydj.com/kmdj/wiki/wikiviewer.aspx?keyid=a9d84274-c87e-4490-9e8d-2047570bd026"}
-  - {from: chilisin_elec, to: wpg, rel: supplies, item: "信昌電 MLCC 與電阻（品佳代理產線）", strength: 2, confidence: verified,
+  - {from: pdc, to: wpg, rel: supplies, item: "信昌電 MLCC 與電阻（品佳代理產線）", strength: 2, confidence: verified,
      note: "品佳（大聯大旗下）官網『代理產線』頁列有信昌電子陶瓷。官網只列產品線，沒有占比或金額，strength 只給 2",
      source: "品佳集團官網", source_url: "https://www.wpgholdings.com/sacg/pline_detail/zhtw/PDC"}
   # ---- MLCC 廠 → 終端（AI）

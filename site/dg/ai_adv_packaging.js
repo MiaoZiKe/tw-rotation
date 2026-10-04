@@ -942,13 +942,13 @@
     icp_decap: {
       name: '載板正面的去耦電容',
       desc: '晶粒在一瞬間抽大電流時，等主機板送電來不及，所以在載板上就近擺一排電容先頂著。它畫出來一定要有**兩端的端電極**——沒有端電極，它跟電阻、電感在圖上長得一模一樣。',
-      cos: ['yageo', 'walsin_tech', 'holystone', 'chilisin_elec'],
+      cos: ['yageo', 'walsin_tech', 'holystone', 'pdc'],
       note: '被動元件不在半導體鏈的環節名單上，所以按上面那顆「環節」鈕會列出「這個環節的台股不在本鏈成分股裡」—— 那是正確的答案。這四家是做 MLCC 的；同一格的 2375 凱美是以晶片電阻進去的，不做 MLCC，所以沒有列。',
     },
     icp_lsc: {
       name: '背面去耦電容（LSC）',
       desc: '裝在載板**背面**、夾在 BGA 球陣列中間的那幾顆。正面擺不下、或需要更靠近某一路電源時就往背面擺，代價是那一塊的錫球要讓位。',
-      cos: ['yageo', 'walsin_tech', 'holystone', 'chilisin_elec'],
+      cos: ['yageo', 'walsin_tech', 'holystone', 'pdc'],
       note: '同上：被動元件不在半導體鏈的環節名單上，按「環節」鈕會篩到 0 筆。',
     },
     icp_panel: {

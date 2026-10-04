@@ -88,13 +88,24 @@
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
   /* 零件外框。★ 這張圖**一個 data-seg 都不掛**（§0-D 第 2 點），
      所以 `data-part` 一律要自己寫 —— `stampParts()` 只替掛了環節的節點蓋 dgkey。*/
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-10-04（DECISIONS #320）：供應鏈資料補了 motion_parts／cnc_controller／cnc_machine／factory_robot 四個環節，
+     零件掛上去（原本「一個 data-seg 都不掛」是因為 electronics 鏈沒有傳動件）。
+     「做這個的台股」由 COS 逐件指定（跟 3D 場景 motion_axis 的 codes 同一組），不整格列：
+     傳動與氣動元件這一格同時有螺桿、滑軌、減速機、氣動，整格列出來會把上銀當成減速機廠。 */
+  const PART_SEG = { mc_ctrl: 'cnc_controller', mc_drive: 'cnc_controller', mc_fb: 'cnc_controller',
+    mc_machine: 'cnc_machine', mc_robot: 'factory_robot', mc_amhs: 'factory_robot' };
+  const MOTION = ['mc_motor', 'mc_enc', 'mc_coupling', 'mc_bearing', 'mc_screw', 'mc_nut', 'mc_ball', 'mc_return', 'mc_table',
+    'mc_base', 'mc_rail', 'mc_block', 'mc_railball', 'mc_cs', 'mc_fs', 'mc_wg', 'mc_planet', 'mc_crank', 'mc_cyclo', 'mc_pin', 'mc_rv',
+    'mc_trans', 'mc_load', 'mc_air', 'mc_air_frl', 'mc_air_valve', 'mc_air_cyl'];
+  MOTION.forEach((k) => { PART_SEG[k] = 'motion_parts'; });
+  const segOf = (id) => PART_SEG[id] || '';
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   /* ---- 2026-09-23 v2 新增（寫法照 `site/dg/liquid_cooling.js`）----
      card()：說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點；
      卡片與它指的零件**共用同一個 data-part**（這張圖沒有 data-seg，所以只傳 part）。*/
   const card = (o) => {
-    const s2 = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no, side: o.side,
+    const s2 = extRow({ part: o.part, seg: segOf(o.part) || undefined, title: o.title, sub: o.sub, no: o.no, side: o.side,
       ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
     return o.color ? s2.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s2;
   };
@@ -632,7 +643,7 @@
       ${note({ side: 'r', order: 98, title: '這張圖沒有回答的事',
       lines: ['示意圖，非實物比例｜各零件的相對尺寸為誇張放大。',
         '不寫任何導程、精度等級、減速比、額定扭矩與市占率數字。',
-        '「工業自動化」與「CNC 工具機」目前不在供應鏈資料的環節裡，所以下方的「環節色標」篩不到它們；公司對應寫在卡片、零件小卡與第 ① 段。',
+        '點零件會對到「傳動與氣動元件」「CNC 控制器與驅動」「CNC 工具機整機」「機器人與自動化系統」四格之一；各零件的台股逐件指定，查不到的小卡照實寫「查不到」。',
         '氣動、視覺、系統整合三類公司沒有畫在主圖上 —— 見下面兩段。'] })}
 
       <!-- ================= ① 誰做的 ＋ 裝到哪裡去（預設收合） ================= -->
@@ -660,7 +671,7 @@
     mc_motor: {
       name: '伺服馬達（尾端掛編碼器）',
       desc: '轉，並且回報自己轉到哪裡。★ 沒有尾端那顆編碼器就只是一般感應馬達 —— 「會轉」跟「知道自己轉到哪」是兩件事。本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）。',
-      none: '伺服馬達在台股：4576 大銀微系統（線性馬達與傳動，信心：verified）。本圖畫的是旋轉馬達＋螺桿，直接驅動的線性馬達是另一種架構、本圖未畫。★ 這一檔不在 supply_chain.yaml 的環節裡，所以這張小卡的「做這個的台股」欄列不出它 —— 這裡用文字補。',
+      none: '伺服馬達在台股：4576 大銀微系統（線性馬達與傳動，信心：verified）。本圖畫的是旋轉馬達＋螺桿，直接驅動的線性馬達是另一種架構、本圖未畫。',
     },
     mc_enc: {
       name: '編碼器（回授的起點）',
@@ -676,12 +687,12 @@
     mc_screw: {
       name: '滾珠螺桿・螺桿軸',
       desc: '把馬達的「轉」變成工作台的「直線走」。★ 表面的溝槽剖面是圓弧（哥德弧或單圓弧），不是 V 形三角 —— V 形那是鎖緊用的螺絲，走的是滑動摩擦。',
-      none: '滾珠螺桿在台股：2049 上銀（滾珠螺桿與線性滑軌）、4540 全球傳動（線性傳動）。兩家的終端不同 —— 上銀多在工具機、全球傳動在產業機械（信心：中，來源為產業媒體整理）。★ 兩檔都不在 supply_chain.yaml 裡，所以這張小卡列不出它們。',
+      none: '滾珠螺桿在台股：2049 上銀（滾珠螺桿與線性滑軌）、4540 全球傳動（線性傳動）。兩家的終端不同 —— 上銀多在工具機、全球傳動在產業機械（信心：中，來源為產業媒體整理）。',
     },
     mc_nut: {
       name: '滾珠螺桿・螺帽（含循環器）',
       desc: '套在螺桿上的金屬套筒，長度約螺桿全長的六分之一。內壁有對應的圓弧溝槽把鋼珠夾住，外側有法蘭鎖到工作台上。裡面的鋼珠與回流通道見右邊的放大格。',
-      none: '同螺桿軸：2049 上銀、4540 全球傳動。兩檔都不在 supply_chain.yaml 裡。',
+      none: '同螺桿軸：2049 上銀、4540 全球傳動。',
     },
     mc_ball: {
       name: '鋼珠（兩點接觸）',
@@ -698,19 +709,19 @@
     mc_rail: {
       name: '線性滑軌・軌道',
       desc: '凸出來的一條，兩側有圓弧溝。★ 一定是兩條平行軌，而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，工作台會被扭起來。',
-      none: '線性滑軌在台股：2049 上銀（滾珠螺桿與線性滑軌）、1597 直得（線性滑軌）。★ 兩檔都不在 supply_chain.yaml 裡，所以這張小卡列不出它們 —— 這裡用文字補。',
+      none: '線性滑軌在台股：2049 上銀（滾珠螺桿與線性滑軌）、1597 直得（線性滑軌）。',
     },
     mc_block: {
       name: '線性滑軌・滑塊',
       desc: '★ ㄇ 字形，從上方罩下來、包住軌道的兩側。畫成「一個方塊放在軌道上面」就是錯的 —— 那樣的東西吃不了側向力也吃不了拉拔力，而滑軌存在的理由就是吃這兩種力。滑軌不出力，只負責「別歪掉」與承重。',
-      none: '同軌道：2049 上銀、1597 直得。兩檔都不在 supply_chain.yaml 裡。',
+      none: '同軌道：2049 上銀、1597 直得。',
     },
     mc_railball: { name: '滑軌用滾珠', desc: '在軌道的圓弧溝與滑塊的圓弧溝之間，兩側各一列。滾珠在滑塊外面就不是滾動導引了。' },
     mc_cs: { name: '剛輪（circular spline）', desc: '★ 諧波減速機的最外圈，內側有齒、固定不動。三件的順序由外到內是 剛輪 → 柔輪 → 波產生器，順序反了機構就不成立（柔輪要被波產生器從裡面撐開、去咬外面的剛輪）。' },
     mc_fs: {
       name: '柔輪（flex spline）',
       desc: '★ 中間那一圈，壁很薄、被波產生器壓成橢圓：長軸兩端咬住剛輪、短軸兩端脫開。齒數比剛輪少幾齒（常見是 2 齒，但那是常見設計、不是物理必然）。輸出是從柔輪的杯底法蘭出去，不是從剛輪出去。',
-      none: '減速機在台股：4583 台灣精銳（減速機）。★ 查不到它做的是諧波、RV 還是行星，所以諧波與 RV 兩格不指定其中一格（查不到就寫查不到）。4583 不在 supply_chain.yaml 裡。',
+      none: '減速機在台股：4583 台灣精銳（減速機）。★ 查不到它做的是諧波、RV 還是行星，所以諧波與 RV 兩格不指定其中一格（查不到就寫查不到）。',
     },
     mc_wg: { name: '波產生器（wave generator）', desc: '最裡面那一件：一顆橢圓凸輪外面套一圈薄軸承。它從裡面把柔輪撐成橢圓，柔輪的長軸兩端因此去咬剛輪 —— 轉一圈，柔輪相對剛輪只退幾齒，減速比就是這樣來的。' },
     mc_planet: { name: 'RV・前級行星齒輪組', desc: '★ 一定在靠馬達那一端。一組行星輪繞著一個太陽輪、外面是內齒圈 —— 這是 RV 的第一級。只有一級的不是 RV。' },
@@ -720,12 +731,12 @@
     mc_rv: {
       name: 'RV 減速機・輸出法蘭／殼體',
       desc: '★ 兩級（行星＋擺線），大、重，但剛性與壽命好、抗衝擊 → 工業機器人的基座與腰部。同一個比例尺下它的外徑明顯大於諧波 —— 大與重就是它的代價，畫成一樣大就把這格對照的意義畫掉了。',
-      none: '減速機在台股：4583 台灣精銳（減速機）。★ 查不到它做的是諧波還是 RV，所以兩格共用同一句話、不指定其中一格。4583 不在 supply_chain.yaml 裡。',
+      none: '減速機在台股：4583 台灣精銳（減速機）。★ 查不到它做的是諧波還是 RV，所以兩格共用同一句話、不指定其中一格。',
     },
     mc_ctrl: {
       name: '控制器',
       desc: '算出每一軸下一毫秒要走到哪。★ 本圖只畫成方塊 —— 剖開畫裡面的電路板會跟 PCB 與被動元件那兩張撞題。',
-      none: 'CNC 控制器在台股：7750 新代（CNC 控制器，信心：verified）。★ 7750 不在 supply_chain.yaml 裡，所以這張小卡列不出它 —— 這裡用文字補。',
+      none: 'CNC 控制器在台股：7750 新代（CNC 控制器，信心：verified）。',
     },
     mc_drive: { name: '伺服驅動器', desc: '把控制器的命令變成馬達要的電流，同時讀編碼器的回授。本圖只畫成方塊，不剖開畫電路板。' },
     mc_trans: { name: '減速機／滾珠螺桿（傳動段）', desc: '關節轉動走減速機、直線移動走滾珠螺桿 —— 同一條控制鏈上的同一站，換的是機構。' },
@@ -738,27 +749,27 @@
     mc_machine: {
       name: '加工機三軸（X／Y／Z）',
       desc: '一台加工機的每一個軸裡面，裝的就是上面那一整套：馬達 → 聯軸器 → 螺桿 → 滑軌 → 工作台。',
-      none: '整機在台股：4526 東台（綜合加工機）、1583 程泰（車床與加工中心機）、1528 恩德（專用工具機）。★ 6603 富強鑫做的是射出成型機，不在這一格。三檔都不在 supply_chain.yaml 裡。',
+      none: '整機在台股：4526 東台（綜合加工機）、1583 程泰（車床與加工中心機）、1528 恩德（專用工具機）。★ 6603 富強鑫做的是射出成型機，不在這一格。',
     },
     mc_robot: {
       name: '協作型機器人',
       desc: '手腕與小負載關節走諧波減速機（小、輕、精度高）。基座與腰部那種重負載軸走的是 RV。',
-      none: '協作型機器人在台股：4585 達明（協作型機器人）。★ 4585 不在 supply_chain.yaml 裡。',
+      none: '協作型機器人在台股：4585 達明（協作型機器人）。',
     },
     mc_amhs: {
       name: 'AMHS 天車與智慧物流',
       desc: '半導體廠裡把晶圓盒在機台之間搬來搬去的那一套。★ 本圖不畫天車外觀與軌道配置 —— 查不到可引用的資料，不編一個出來。',
-      none: 'AMHS 在台股：2464 盟立（半導體廠 AMHS 與智慧物流系統整合）。★ 2464 不在 supply_chain.yaml 裡。',
+      none: 'AMHS 在台股：2464 盟立（半導體廠 AMHS 與智慧物流系統整合）。',
     },
     mc_inject: {
       name: '射出成型機（★ 不是切削工具機）',
       desc: '★ 這一格刻意單獨列出來：它是把塑料射進模具的機器，跟本圖畫的切削加工機是兩種東西。把族群名當事實照抄就會畫錯 —— 這是「成分表不等於產品事實」的典型坑。',
-      none: '射出成型機在台股：6603 富強鑫（射出成型機）。它在「CNC 工具機」族群裡，但做的不是切削工具機。6603 不在 supply_chain.yaml 裡。',
+      none: '射出成型機在台股：6603 富強鑫（射出成型機）。它在「CNC 工具機」族群裡，但做的不是切削工具機。',
     },
     mc_air: {
       name: '氣動那一路（整段）',
       desc: '三點組 → 電磁閥 → 氣缸。同樣是「讓東西動」，但走的是壓縮空氣，而且沒有編碼器回授 —— 所以停不到任意位置。這就是它跟伺服電動軸的分界。',
-      none: '氣動元件在台股：1590 亞德客-KY（氣動元件，信心：verified）。★ 1590 不在 supply_chain.yaml 裡，所以這張小卡列不出它 —— 這裡用文字補。',
+      none: '氣動元件在台股：1590 亞德客-KY（氣動元件，信心：verified）。',
     },
     mc_air_frl: { name: '三點組（過濾＋調壓＋給油）', desc: '壓縮空氣進氣缸之前先過濾、把壓力調到要的值、再給一點油。順序不能對調 —— 先給油再過濾等於把油濾掉。' },
     mc_air_valve: { name: '電磁閥', desc: '決定壓縮空氣往氣缸的哪一腔走，也就決定活塞往哪邊推。它是氣動那一路的開關。' },
@@ -768,8 +779,20 @@
   WHO.forEach((r, i) => {
     PARTS['mc_who' + i] = {
       name: r[0], desc: r[1],
-      none: '這一列的公司全部不在 supply_chain.yaml 的環節裡，所以「做這個的台股」欄列不出它們 —— 對應寫在這裡。',
     };
+  });
+
+  /* 小卡的「做這個的台股」逐件指定（跟 3D 場景 motion_axis 的 codes 一致）；空陣列＝這一件查不到台股的具名對應。
+     ⚠ mc_enc／mc_coupling 在 2D 原本寫「查不到」、3D 卻列了 4576／4540（官網有對應產品線）—— 這次以 3D 的官網證據為準對齊。 */
+  const COS = { mc_motor: ['4576'], mc_enc: ['4576'], mc_coupling: ['4540'], mc_bearing: ['4540'], mc_screw: ['2049', '4540'],
+    mc_nut: ['2049', '4540'], mc_ball: [], mc_return: [], mc_table: [], mc_base: [], mc_rail: ['2049', '1597'], mc_block: ['2049', '1597'],
+    mc_railball: [], mc_cs: ['4583'], mc_fs: ['4583'], mc_wg: ['4583'], mc_planet: ['4583'], mc_crank: ['4583'], mc_cyclo: ['4583'],
+    mc_pin: ['4583'], mc_rv: ['4583'], mc_trans: ['2049', '4540', '4583'], mc_load: [], mc_air: ['1590'], mc_air_frl: ['1590'],
+    mc_air_valve: ['1590'], mc_air_cyl: ['1590'], mc_ctrl: ['7750'], mc_drive: [], mc_fb: [], mc_robot: ['4585'], mc_amhs: ['2464'] };
+  Object.keys(COS).forEach((k) => {
+    if (!PARTS[k]) return;
+    PARTS[k].cos = COS[k];
+    if (!COS[k].length && !PARTS[k].none) PARTS[k].none = '這一件本圖查不到台股的具名對應 —— 查不到就寫查不到，不編一個對應。';
   });
 
   window.DG.register('factory_automation', {
