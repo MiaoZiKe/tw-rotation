@@ -4376,3 +4376,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ## 2026-10-04 23:44（台北）部署 63dec41
 - 開頁延遲第三階段（index_lastday/news_head/rrg_lite 小檔、JS 延後載入、全站 IndexedDB 先貼上次存檔）＋個股 K 線卡 AI 分析桌機拿掉。
 - 驗了：pytest 940 綠；重算 payload 後 _uitest 總覽、今日事件、新-開頁存檔、產業、個股、題材、季節性 全 0；_preview 綠。
+
+## 2026-10-05 00:16（台北）部署 777dea5：會員權限分頁上線（Andy「上吧」）
+- 入口改成跟「自選」同一層；只有 ADMIN_EMAILS 管理者看得到。預覽分支 preview/perm-nav、preview/fast-ov2 已刪。
+- 驗了：會員權限導覽、會員權限開關、會員雲端路徑、會員與自選五分頁、總覽 全 0；_preview 綠。
