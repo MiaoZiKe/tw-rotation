@@ -2369,6 +2369,8 @@
   /* 換頁後把「看得見的」圖表 resize。藏起來的（display:none 的分頁裡）一律跳過：
      量不到寬度時 ECharts 會把它縮成 100px，等那一頁再被打開時就是一塊空白（2026-09-24 抓到）。*/
   function resizeVisibleCharts() { resizeAllCharts(); }   // 藏起來的與尺寸沒變的都跳過（見 resizeIfChanged）
+  /* 市場明細「離開過」的旗標：route() 只要看到別的頁面就立起來，drawMarket 回來時看到它就把所有設定回預設。*/
+  let mktLeft = false;
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
     _players.clear();
@@ -2447,6 +2449,7 @@
     if (l4sub) document.documentElement.setAttribute('data-l4sub', l4sub);
     else document.documentElement.removeAttribute('data-l4sub');
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
+    if (view !== 'market') { mktLeft = true; }   // 離開市場明細：回來時 mktReset
     /* 近期搜尋（2026-09-26）：進個股頁就記一筆 —— 不管是從搜尋點進來、從別的圖點進來、還是直接貼網址。
        只記全市場索引裡找得到的代號（打錯的代號會走「找不到代號」，不該留在紀錄裡）。*/
     if (head === 'stock' && rest[0] && L.cname[rest[0]]) recentPush(rest[0]);
@@ -2766,23 +2769,45 @@
     }
     const sub = $('#maTrendSub');
     const setSub = () => {
-      if (sub) sub.textContent = `全市場 MA${MAT.ma}／MA${ref}${MAT.on.size ? `　＋ ${MAT.on.size} 個族群` : '　（點圖例或下面的族群疊上去比）'}　·　${mb.dates[0]} ～ ${mb.dates[mb.dates.length - 1]}`;
+      if (sub) sub.textContent = `全市場 MA${MAT.ma}／MA${ref}${MAT.on.size ? `　＋ ${MAT.on.size} 個族群` : '　（用上面的族群下拉或圖例疊上去比）'}　·　${mb.dates[0]} ～ ${mb.dates[mb.dates.length - 1]}`;
     };
     setSub();
-    // 族群鈕（和圖例同步）
-    const gbox = $('#maGroups');
-    const paintChips = () => { if (gbox) $$('button', gbox).forEach(x => x.classList.toggle('on', MAT.on.has(x.dataset.g))); };
-    if (gbox) {
-      gbox.innerHTML = names.map(n =>
-        `<button data-g="${fmt.esc(n)}" class="${MAT.on.has(n) ? 'on' : ''}"${small(n) ? ` title="算得出均線的只有 ${smallN(n)} 檔：一檔翻身就跳 ${Math.round(100 / smallN(n))} 個百分點"` : ''}>${fmt.esc(n)}${small(n) ? '<em class="smallN">樣本少</em>' : ''}</button>`).join('');
-      $$('button', gbox).forEach(b => b.onclick = () => {
-        const g = b.dataset.g;
-        if (MAT.on.has(g)) MAT.on.delete(g); else MAT.on.add(g);
-        paintChips(); setSub();
-        const ci = echarts.getInstanceByDom($('#maTrend'));
-        if (ci) ci.dispatchAction({ type: MAT.on.has(g) ? 'legendSelect' : 'legendUnSelect', name: gname(g) });
+    /* 族群挑選（2026-10-04 Andy：原本一大片晶片佔三四排 → 改成跟週期統計同一個可搜尋多選下拉 msDD）。
+       清單依「目前站上主線那條 MA 的比例」由高到低排、列右側印百分比；樣本少的照舊在列上標。
+       下拉、旁邊的已選標籤、圖例三邊同步（任何一邊改，另外兩邊跟著變）。*/
+    const gcol = (n) => (L.gcolorByName ? L.gcolorByName(n) : PALETTE[names.indexOf(n) % PALETTE.length]);
+    const lastOf = (n) => { const v = (mb.series[n] || {})[MAT.ma] || []; for (let i = v.length - 1; i >= 0; i--) if (v[i] != null) return v[i]; return null; };
+    const byPct = names.slice().sort((a, b) => (lastOf(b) ?? -1) - (lastOf(a) ?? -1));
+    const legendSet = (g, on) => { const ci = echarts.getInstanceByDom($('#maTrend'));
+      if (ci) ci.dispatchAction({ type: on ? 'legendSelect' : 'legendUnSelect', name: gname(g) }); };
+    const setGroups = (next) => {
+      names.forEach(n => { const was = MAT.on.has(n), now = next.has(n); if (was !== now) legendSet(n, now); });
+      MAT.on = new Set(names.filter(n => next.has(n)).concat([...next].filter(n => !names.includes(n))));
+      paintGroups(); setSub();
+    };
+    const dd = $('#maGroupDD');
+    const ms = dd ? msDD(dd, {
+      menu: { rf: 'market', kind: 'magroup' },
+      onToggle: (c) => { const s = new Set(MAT.on); if (c.checked) s.add(c.dataset.n); else s.delete(c.dataset.n); setGroups(s); },
+      onAll: (vis) => setGroups(new Set([...MAT.on, ...vis])),
+      onNone: (vis) => { const rm = new Set(vis || names); setGroups(new Set([...MAT.on].filter(n => !rm.has(n)))); },
+    }) : null;
+    function paintGroups() {
+      if (ms) ms.sync({
+        rows: byPct.map(n => { const v = lastOf(n);
+          return { name: n, on: MAT.on.has(n), color: MAT.on.has(n) ? gcol(n) : hexA(CH.ink3, .45),
+            val: v == null ? '—' : `${fmt.n(v, 0)}%`, valTitle: `目前站上 MA${MAT.ma} 的比例`,
+            badge: small(n) ? '<em class="smallN">樣本少</em>' : '',
+            title: small(n) ? `算得出均線的只有 ${smallN(n)} 檔：一檔翻身就跳 ${Math.round(100 / smallN(n))} 個百分點` : '' }; }),
+        count: `依站上 MA${MAT.ma} 比例排序 · 共 ${names.length} 個 · 已選 ${MAT.on.size} 個`,
+        label: MAT.on.size ? `已選 ${MAT.on.size} 個` : '未選',
+        n: MAT.on.size,
       });
+      const key = $('#maGroupKey');
+      if (key) msTags(key, [...MAT.on].filter(n => names.includes(n)).map(n => ({ name: n, color: gcol(n), title: `從圖上拿掉 ${gname(n)}` })),
+        (n) => { const s = new Set(MAT.on); s.delete(n); setGroups(s); });
     }
+    paintGroups();
     const selected = { [mk1]: true, [mk2]: true };
     names.forEach(n => { selected[gname(n)] = MAT.on.has(n); });
     const c = chart('maTrend', {
@@ -2814,7 +2839,7 @@
       c.off('legendselectchanged');
       c.on('legendselectchanged', (p) => {
         names.forEach(n => { if (p.selected[gname(n)]) MAT.on.add(n); else MAT.on.delete(n); });
-        paintChips(); setSub();
+        paintGroups(); setSub();
       });
     }
   }
@@ -3102,10 +3127,25 @@
     if (!MUD.timer) MUD.timer = setInterval(mudTick, MUD_MS);
   }
 
+  /* ★ 2026-10-04（Andy：「當我在此頁面有更動時，點擊其他分頁後，都需要恢復 Default 值」）：
+     市場明細四個分頁上的設定**全部不保存**，切分頁（頁內四顆）或離開到別的路由再回來，一律回預設：
+     · 漲跌家數：漲跌分佈的市場別、族群篩選、含 ETF、下鑽名單的排序與開著的那一根、下面的名單分頁
+     · 法人連買賣：投信／外資／合計（預設投信）、天數門檻（預設 ≥3 天）
+     · 站上均線：主線 MA 天數（預設 20）、疊上去的族群（預設不選）、圖例分頁（圖重畫就回第一頁）
+     · 今日候選：面向、欄位排序、展開的那一列、族群篩選
+     同一個分頁裡「即時」每 5 秒重畫不會觸發（kind 沒變、也沒離開過）。*/
+  function mktReset() {
+    mktTab = 0;
+    Object.assign(DIST, { market: '', groups: null, etf: false, pick: null, sort: 'chg' });
+    Object.assign(streakState, { who: 'trust', days: 3 });
+    MAT.ma = '20'; MAT.on = null;
+    candFacet = 'all'; candSort = { key: null, dir: 1 }; candOpen = null; candGroups = null;
+  }
   function drawMarket(kind) {
     // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
-    if (kind !== mktKind) { mktTab = 0; DIST.pick = null; }      // 換分頁回來，下鑽名單從收起開始
+    if (kind !== mktKind || mktLeft) mktReset();                 // 換分頁或離開再回來：這頁所有設定回預設（見 mktReset）
+    mktLeft = false;
     mktKind = kind;
     $$('#mktSeg2 button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
@@ -3244,7 +3284,19 @@
       body.innerHTML = `<div class="card" style="margin:0 0 14px;padding:12px 14px">
           <div class="row spread"><h3 style="margin:0">站上均線走勢 <small id="maTrendSub">七條均線疊起來看變化</small></h3></div>
           <div class="row" id="maPick" style="gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin:8px 0"></div>
-          <div class="chainchips" id="maGroups" style="max-height:104px;overflow:auto"></div>
+          <div id="maGroupCtl">
+            <div class="rotdd wide msdd" id="maGroupDD" data-dd="magroup">
+              <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false" title="挑要疊上去比的族群（可搜尋、可複選）">族群：<b>未選</b><i aria-hidden="true">▾</i></button>
+              <div class="ddpanel" aria-label="族群（可複選）" hidden>
+                <input type="search" class="sndd-q" placeholder="搜尋族群名稱" aria-label="搜尋族群名稱" autocomplete="off">
+                <div class="ddbar"><span class="muted sndd-n"></span>
+                  <button type="button" class="btn small dd-all">全選</button>
+                  <button type="button" class="btn small dd-none">全不選</button></div>
+                <div class="ddlist"></div>
+              </div>
+            </div>
+            <div class="snkey" id="maGroupKey" aria-label="已選族群（點 × 拿掉）"></div>
+          </div>
           <div id="maTrendBox"><div id="maTrend" class="chart" style="min-height:300px"></div></div></div>`
         + (gs.length ? `<div class="magrid">${gs.map(g => `<div class="ma" data-gid="${g.group_id}">
             <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
@@ -7335,17 +7387,11 @@
   let candOpen = null;
   /* 族群篩選（Andy：「可勾選特定族群，下拉清單那樣，可以參考 EXCEL」）：
      null ＝ 全部；是 Set 就只看勾起來的那幾個（全部取消勾選＝什麼都不顯示，跟 Excel 一樣）。
-     選擇存 localStorage，重新整理、換面向都還在。 */
-  let candGroups = (() => {
-    try { const v = JSON.parse(localStorage.getItem('tw.candGroups') || 'null'); return Array.isArray(v) ? new Set(v) : null; }
-    catch (e) { return null; }
-  })();
-  const saveCandGroups = () => {
-    try {
-      if (candGroups) localStorage.setItem('tw.candGroups', JSON.stringify([...candGroups]));
-      else localStorage.removeItem('tw.candGroups');
-    } catch (e) { /* 忽略 */ }
-  };
+     ★ 2026-10-04（Andy：「當我在此頁面有更動時，點擊其他分頁後，都需要恢復 Default 值」）：
+       不再存 localStorage —— 換分頁或離開市場明細再回來一律回到「全部」（mktReset）。舊版寫進去的 tw.candGroups 這裡順手清掉。*/
+  let candGroups = null;
+  try { localStorage.removeItem('tw.candGroups'); } catch (e) { /* 私密視窗：本來就沒存 */ }
+  const saveCandGroups = () => {};
 
   function whyHtml(r, facet) {
     const w = (r.why || {})[facet] || {};
@@ -9078,6 +9124,61 @@
       const p = dd.querySelector('.ddpanel'); if (p) p.hidden = true;
       const b = dd.querySelector('.ddbtn'); if (b) b.setAttribute('aria-expanded', 'false');
     });
+  }
+  /* ★ 2026-10-04 共用：可搜尋的族群多選下拉（.rotdd.msdd）。
+     原本只寫在週期統計（#seasonGroupDD）裡；Andy 要「站上均線走勢」也改成同一套，所以抽出來兩邊共用一份，
+     不再各寫一份（以後一邊修 bug 另一邊不會漏）。
+     · 按鈕、搜尋框、全選／全不選的事件只掛一次（dd._ms 記住），之後每次只 sync() 重建清單與摘要 ——
+       勾一個不會把面板關掉、搜尋字與捲動位置都留著。
+     · 狀態一律在呼叫端：這裡只回報「勾了哪個」「全選了哪些（目前看得到的）」，不自己存任何東西。
+     cfg：menu（rotMenu 的值）、onToggle(input)、onAll(看得到的名字)、onNone(有搜尋字時＝看得到的名字，否則 null)、
+          headMatch(q)（清單頂端固定列在搜尋時要不要留，例如週期統計的「平均」）。
+     sync({ head, rows:[{name,on,color,val,valTitle,badge,title,href}], count, label, n })。*/
+  function msDD(dd, cfg) {
+    if (dd._ms) { dd._ms.cfg = cfg; return dd._ms; }
+    const btn = dd.querySelector('.ddbtn'), pan = dd.querySelector('.ddpanel');
+    const qi = dd.querySelector('.sndd-q'), lst = dd.querySelector('.ddlist');
+    const api = { cfg, q: '' };
+    dd._ms = api;
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      const willOpen = pan.hidden;
+      rotCloseMenus();
+      if (willOpen) { rotMenu = api.cfg.menu; pan.hidden = false; dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+    };
+    dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); rotCloseMenus(); btn.focus(); } };
+    const filter = () => {
+      const k = api.q.toLowerCase();
+      $$('.ddopt[data-n]', lst).forEach(o => { o.style.display = !k || o.dataset.n.toLowerCase().includes(k) ? '' : 'none'; });
+      $$('.ddopt[data-headrow]', lst).forEach(o => { o.style.display = !k || (api.cfg.headMatch && api.cfg.headMatch(api.q)) ? '' : 'none'; });
+    };
+    const vis = () => $$('.ddopt[data-n]', lst).filter(o => o.style.display !== 'none').map(o => o.dataset.n);
+    qi.oninput = () => { api.q = qi.value.trim(); filter(); };
+    dd.querySelector('.dd-all').onclick = () => api.cfg.onAll(vis());
+    dd.querySelector('.dd-none').onclick = () => api.cfg.onNone(api.q ? vis() : null);
+    lst.addEventListener('change', (ev) => { const c = ev.target; if (c && c.type === 'checkbox') api.cfg.onToggle(c); });
+    api.reset = () => { api.q = ''; qi.value = ''; lst.scrollTop = 0; };
+    api.sync = (o) => {
+      const top = lst.scrollTop;
+      lst.innerHTML = (o.head || '') + o.rows.map(r =>
+        `<div class="ddopt chk${r.on ? ' on' : ''}" data-n="${fmt.esc(r.name)}" style="--c:${r.color}"${r.title ? ` title="${fmt.esc(r.title)}"` : ''}>`
+        + `<label><input type="checkbox" data-n="${fmt.esc(r.name)}"${r.on ? ' checked' : ''}><span class="nm">${fmt.esc(r.name)}</span>`
+        + (r.badge || '') + `<em${r.valTitle ? ` title="${fmt.esc(r.valTitle)}"` : ''}>${r.val}</em></label>`
+        + (r.href ? `<a class="go" href="${r.href}" title="進族群頁">→</a>` : '') + '</div>').join('');
+      lst.scrollTop = top;
+      $$('.go', lst).forEach(a => a.onclick = () => rotCloseMenus());
+      filter();
+      dd.querySelector('.sndd-n').textContent = o.count;
+      dd.querySelector('.ddbtn b').textContent = o.label;
+      dd.dataset.n = o.n;
+    };
+    return api;
+  }
+  /* 下拉旁邊的已選標籤（色點＋名字＋✕，點一下拿掉那一個）。pre＝排在最前面、不能拿掉的固定標籤（例如「平均」）。*/
+  function msTags(box, items, onRemove, pre) {
+    box.innerHTML = (pre || '') + items.map(it =>
+      `<button type="button" class="snk" data-n="${fmt.esc(it.name)}" style="--c:${it.color}" title="${it.title ? fmt.esc(it.title) : `從比較中拿掉 ${fmt.esc(it.name)}`}"><i></i>${fmt.esc(it.name)}<b aria-hidden="true">×</b></button>`).join('');
+    $$('button.snk', box).forEach(b => b.onclick = () => onRemove(b.dataset.n));
   }
   // 點面板以外的地方就收起來；Esc 不管焦點在哪都收得掉（面板裡的 Esc 由 dd.onkeydown 先接走）
   document.addEventListener('click', (e) => {
@@ -11649,70 +11750,39 @@
       return [...lineSel].filter(n => has.has(n));
     };
     const SN_BAR_MIN = 4;                   // 一根長條最窄幾 px（再窄就只是一條線，看不出高低）
-    let ddQ = '';                           // 下拉的搜尋字（重建清單時保留）
     const snColor = (i) => PALETTE[SEASON_LINE_IDX[i % SEASON_LINE_IDX.length]];
-    /* 多選下拉：只建一次（按鈕、搜尋框、全選鈕的事件掛一次），之後每次畫圖只重建清單內容與摘要，
-       所以勾一個不會把面板關掉、搜尋字與捲動位置也都留著。開合沿用全站 `.rotdd` 那套（點別處／Esc 收起來）。*/
-    const ddBuild = () => {
-      const dd = $('#seasonGroupDD'); if (!dd || dd._built) return dd;
-      dd._built = true;
-      const btn = dd.querySelector('.ddbtn'), pan = dd.querySelector('.ddpanel'), q = dd.querySelector('.sndd-q');
-      btn.onclick = (ev) => {
-        ev.stopPropagation();
-        const willOpen = pan.hidden;
-        rotCloseMenus();
-        if (willOpen) { rotMenu = { rf: 'season', kind: 'sngroup' }; pan.hidden = false; dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
-      };
-      dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); rotCloseMenus(); btn.focus(); } };
-      q.oninput = () => { ddQ = q.value.trim(); ddFilter(); };
-      const visNames = () => $$('.ddlist .ddopt[data-n]', dd).filter(o => o.style.display !== 'none').map(o => o.dataset.n);
-      dd.querySelector('.dd-all').onclick = () => {
-        const add = visNames(); const cur = [...lineSel];
-        lineSel = new Set([...cur, ...add.filter(n => !cur.includes(n))]);
-        pick = 'custom'; paintPick(); drawLine(); writeNote();
-      };
-      dd.querySelector('.dd-none').onclick = () => {
-        const rm = new Set(ddQ ? visNames() : [...lineSel]);
-        lineSel = new Set([...lineSel].filter(n => !rm.has(n)));
-        pick = 'custom'; paintPick(); drawLine(); writeNote();
-      };
-      dd.querySelector('.ddlist').addEventListener('change', (ev) => {
-        const c = ev.target; if (!c || c.type !== 'checkbox') return;
-        if (c.dataset.avg) avgOn = c.checked;
-        else {
-          const n = c.dataset.n;
-          // 保留原本的順序（顏色才不會整組換），新勾的接在最後
-          if (c.checked) lineSel = new Set([...lineSel, n]); else lineSel = new Set([...lineSel].filter(x => x !== n));
-          pick = 'custom';
-        }
-        paintPick(); drawLine(); writeNote();
-      });
-      return dd;
-    };
-    const ddFilter = () => {
-      const dd = $('#seasonGroupDD'); if (!dd) return;
-      const k = ddQ.toLowerCase();
-      $$('.ddlist .ddopt[data-n]', dd).forEach(o => { o.style.display = !k || o.dataset.n.toLowerCase().includes(k) ? '' : 'none'; });
-      const av = dd.querySelector('.ddlist .ddopt[data-avgrow]'); if (av) av.style.display = !k || AVG.includes(ddQ) ? '' : 'none';
-    };
-    const ddSync = (all, colorOf) => {
-      const dd = ddBuild(); if (!dd) return;
-      const lst = dd.querySelector('.ddlist'), top = lst.scrollTop;
+    /* 多選下拉：外觀與行為全在共用的 msDD()（站上均線走勢也用同一支），這裡只交代「勾了要改什麼狀態」。*/
+    const snDD = () => { const dd = $('#seasonGroupDD'); if (!dd) return null;
+      return msDD(dd, {
+        menu: { rf: 'season', kind: 'sngroup' },
+        headMatch: (q) => AVG.includes(q),
+        onAll: (add) => { const cur = [...lineSel];
+          lineSel = new Set([...cur, ...add.filter(n => !cur.includes(n))]);
+          pick = 'custom'; paintPick(); drawLine(); writeNote(); },
+        onNone: (vis) => { const rm = new Set(vis || [...lineSel]);
+          lineSel = new Set([...lineSel].filter(n => !rm.has(n)));
+          pick = 'custom'; paintPick(); drawLine(); writeNote(); },
+        onToggle: (c) => {
+          if (c.dataset.avg) avgOn = c.checked;
+          else { const n = c.dataset.n;
+            // 保留原本的順序（顏色才不會整組換），新勾的接在最後
+            if (c.checked) lineSel = new Set([...lineSel, n]); else lineSel = new Set([...lineSel].filter(x => x !== n));
+            pick = 'custom'; }
+          paintPick(); drawLine(); writeNote(); },
+      }); };
+    const snSync = (all, colorOf) => {
+      const ms = snDD(); if (!ms) return;
       const val = (r) => { const c = r.m[sortM]; return c && c[metric] != null ? fmtV(c[metric], metric) : '—'; };
-      lst.innerHTML = `<div class="ddopt chk" data-avgrow="1" style="--c:${CH.ink3}"><label><input type="checkbox" data-avg="1"${avgOn ? ' checked' : ''}>`
-          + `<span class="nm">${AVG}</span></label></div>`
-        + all.map(r => { const on = lineSel.has(r.name);
-          return `<div class="ddopt chk${on ? ' on' : ''}" data-n="${fmt.esc(r.name)}" style="--c:${on ? colorOf[r.name] : hexA(CH.ink3, .45)}">`
-            + `<label><input type="checkbox" data-n="${fmt.esc(r.name)}"${on ? ' checked' : ''}><span class="nm">${fmt.esc(r.name)}</span>`
-            + `<em title="${mLabel(sortM)}的值">${val(r)}</em></label>`
-            + (r.gid ? `<a class="go" href="#industry/group/${r.gid}" title="進族群頁">→</a>` : '') + '</div>'; }).join('');
-      lst.scrollTop = top;
-      $$('.go', lst).forEach(a => a.onclick = () => rotCloseMenus());
-      ddFilter();
       const n = lineSel.size;
-      dd.querySelector('.sndd-n').textContent = `依${mLabel(sortM)}排序 · 共 ${all.length} 個 · 已選 ${n} 個`;
-      dd.querySelector('.ddbtn b').textContent = n ? `已選 ${n} 個${avgOn ? '＋平均' : ''}` : (avgOn ? '只看平均' : '未選');
-      dd.dataset.n = n;
+      ms.sync({
+        head: `<div class="ddopt chk" data-headrow="1" data-avgrow="1" style="--c:${CH.ink3}"><label><input type="checkbox" data-avg="1"${avgOn ? ' checked' : ''}>`
+          + `<span class="nm">${AVG}</span></label></div>`,
+        rows: all.map(r => ({ name: r.name, on: lineSel.has(r.name), color: lineSel.has(r.name) ? colorOf[r.name] : hexA(CH.ink3, .45),
+          val: val(r), valTitle: `${mLabel(sortM)}的值`, href: r.gid ? `#industry/group/${r.gid}` : '' })),
+        count: `依${mLabel(sortM)}排序 · 共 ${all.length} 個 · 已選 ${n} 個`,
+        label: n ? `已選 ${n} 個${avgOn ? '＋平均' : ''}` : (avgOn ? '只看平均' : '未選'),
+        n,
+      });
     };
     const drawLine = () => {
       const P = s3.periods[period]; if (!P) return empty('seasonLine');
@@ -11778,15 +11848,12 @@
         series,
       }, { notMerge: true });
       el.dataset.sel = sel.length; el.dataset.drawn = drawn.length; el.dataset.maxbars = maxBars;
-      ddSync(all, colorOf);
+      snSync(all, colorOf);
       // 圖下的色票：哪個顏色是誰（取代原本那排要翻頁的圖例）；點一個＝把它從比較裡拿掉
       const key = $('#seasonKey');
-      if (key) {
-        key.innerHTML = (avgOn ? `<span class="snk avg" title="全部族群平均（細灰線）"><i></i>平均</span>` : '')
-          + drawn.map(n => `<button type="button" class="snk" data-n="${fmt.esc(n)}" style="--c:${colorOf[n]}" title="從比較中拿掉 ${fmt.esc(n)}"><i></i>${fmt.esc(n)}<b aria-hidden="true">×</b></button>`).join('');
-        $$('button.snk', key).forEach(b => b.onclick = () => {
-          lineSel = new Set([...lineSel].filter(x => x !== b.dataset.n)); pick = 'custom'; paintPick(); drawLine(); writeNote(); });
-      }
+      if (key) msTags(key, drawn.map(n => ({ name: n, color: colorOf[n] })), (n) => {
+        lineSel = new Set([...lineSel].filter(x => x !== n)); pick = 'custom'; paintPick(); drawLine(); writeNote(); },
+        avgOn ? `<span class="snk avg" title="全部族群平均（細灰線）"><i></i>平均</span>` : '');
       const warn = $('#seasonBarWarn');
       if (warn) {
         const cut = sel.length - drawn.length;
