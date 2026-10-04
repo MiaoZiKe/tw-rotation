@@ -4271,10 +4271,18 @@ h3 .howbtn.pop{font-family:inherit}
 .gmr b{font:600 12px var(--mono);white-space:nowrap;text-align:right;color:var(--ink-2)}
 .gmr b.up{color:var(--rise)} .gmr b.down{color:var(--fall)}
 .gmspark{min-width:0}
-.gmsv{position:relative;height:30px}
-.gmsv svg{display:block;width:100%;height:30px;overflow:visible}
+.gmsv{position:relative;height:44px}
+.gmsv svg{display:block;width:100%;height:44px;overflow:visible}
 .gmsv .gml{fill:none;stroke:var(--cyan);stroke-width:1.8;stroke-linejoin:round}
-.gmsv .gmd{position:absolute;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 2px var(--panel-3)}
+.gmsv .gma{fill:var(--cyan);opacity:.12;stroke:none}
+.gmsv .gmavg{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3;opacity:.7}
+.gmsv .gmp{position:absolute;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--cyan);opacity:.8;cursor:default}
+.gmsv .gmp::after{content:"";position:absolute;inset:-5px}
+.gmsv .gmp:hover{transform:scale(1.6);opacity:1}
+.gmsv .gmd{width:7px;height:7px;margin:-3.5px 0 0 -3.5px;opacity:1;box-shadow:0 0 0 2px var(--panel-3)}
+.gmsv .gmv{position:absolute;font:600 11px/1 var(--mono,monospace);white-space:nowrap;pointer-events:none}
+.gmsv .gmv{color:var(--ink-2)}
+.gmspark .minil .gmavgl{color:var(--ink-3)}
 .gmspark .minil{margin-top:1px}
 /* 營運動能組成：一列＝子項｜數值｜加減分；起始 50 分與夾在 0～100 那一列淡色 */
 .momps{display:flex;flex-direction:column;gap:1px;min-width:0}

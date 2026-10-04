@@ -365,16 +365,27 @@
   /* app.js 的 route() 問這裡：'admin' → 由本檔接手（app.js 關掉其他 view）；null → 不關本檔的事 */
   function route(head) {
     if (head !== 'admin') return null;
+    admKey = '';
     const v = ensureView(); if (!v) return null;
     if (!S.on) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p class="muted">會員功能尚未設定（docs/login_setup.md）。</p></div>'; return 'admin'; }
     if (!S.user) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這一頁只有管理者看得到，請先登入。</p><p><button type="button" class="btn" id="admLogin">登入</button></p></div>';
       v.querySelector('#admLogin').onclick = () => openDlg('notice'); return 'admin'; }
     if (!S.user.admin) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這個帳號不是管理者，看不到使用統計與線上名單。</p></div>'; return 'admin'; }
+    admKey = admKeyNow();
     v.innerHTML = '<div class="card" style="margin-top:16px"><p class="muted">載入管理頁…</p></div>';
     loadAdmin().then(() => { if ((location.hash || '').startsWith('#admin') && window.TwAdmin) window.TwAdmin.render(v, API); });
     return 'admin';
   }
-  window.addEventListener('tw:account', () => { if ((location.hash || '').startsWith('#admin') && S.api) route('admin'); });
+  /* ★ 2026-10-05 修：以前任何一次 tw:account（開頁的 /v1/me 回來、心跳刷新身分）都會整頁重畫管理頁，
+     #admin/perm 上撥到一半、還沒按「儲存」的開關會被默默清掉（實測：撥一個開關後派一次 tw:account，「1 項變更還沒儲存」就不見了）。
+     身分沒變（同一個 email、同樣是不是管理者、同一個網址）就不重畫；登入／登出／換人照舊重畫。 */
+  let admKey = '';
+  const admKeyNow = () => (S.user ? S.user.email + '|' + !!S.user.admin : '-') + '|' + (location.hash || '');
+  window.addEventListener('tw:account', () => {
+    if (!(location.hash || '').startsWith('#admin') || !S.api) return;
+    if (admKey && admKey === admKeyNow()) return;
+    route('admin');
+  });
 
   // ------------------------------------------------------------------ 啟動
   const API = {

@@ -5456,15 +5456,29 @@
   }
   /* 近 8 季毛利率小趨勢：SVG 只畫線與點（沒有字 —— SVG 的字會跟著縮放，手機量不準 11px），頭尾季別寫在 HTML */
   function gmSpark(ser) {
+    /* ★ 2026-10-05（Andy：「走勢圖太單調」）：補上每季的點、最高／最低季數值、近 8 季平均淡虛線、淡面積與中間季別刻度。
+       線、面積、平均線放 SVG（non-scaling-stroke）；點與數字一律用 HTML 疊上去 —— SVG 字會被 preserveAspectRatio=none 拉變形、手機也量不準 11px。
+       滑過每點用 title 顯示「季別 毛利率」，不另掛 tooltip 元件，卡片高度只多 12px。 */
     const pts = ser.map((x, i) => [i, x.v]).filter(x => x[1] != null);
     if (pts.length < 4) return '';
     const vs = pts.map(x => x[1]), lo = Math.min(...vs), hi = Math.max(...vs), pad = Math.max(0.5, (hi - lo) * 0.15);
-    const X = (i) => (ser.length > 1 ? i / (ser.length - 1) * 96 + 2 : 50), Y = (v) => 27 - (v - (lo - pad)) / ((hi + pad) - (lo - pad)) * 24;
+    const avg = vs.reduce((a, b) => a + b, 0) / vs.length, H = 44, T = 13, B = 30;
+    const X = (i) => (ser.length > 1 ? i / (ser.length - 1) * 92 + 4 : 50), Y = (v) => B - (v - (lo - pad)) / ((hi + pad) - (lo - pad)) * (B - T);
     const d = pts.map((p, k) => `${k ? 'L' : 'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ');
-    const L = pts[pts.length - 1];
-    return `<div class="gmspark"><div class="gmsv"><svg viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="近 ${ser.length} 季毛利率：${pts.map(p => ser[p[0]].p + ' ' + A.fmt.n(p[1], 1) + '%').join('、')}" data-n="${pts.length}">`
-      + `<path d="${d}" class="gml" vector-effect="non-scaling-stroke"/></svg><i class="gmd" style="left:${X(L[0]).toFixed(1)}%;top:${(Y(L[1]) / 30 * 100).toFixed(1)}%"></i></div>`
-      + `<div class="minil"><span>${A.fmt.esc(ser[0].p)}</span><span>近 ${ser.length} 季 ${A.fmt.n(lo, 1)}～${A.fmt.n(hi, 1)}%</span><span>${A.fmt.esc(ser[ser.length - 1].p)}</span></div></div>`;
+    const area = `${d} L${X(pts[pts.length - 1][0]).toFixed(1)} ${H} L${X(pts[0][0]).toFixed(1)} ${H} Z`;
+    const iHi = pts.find(p => p[1] === hi)[0], iLo = pts.find(p => p[1] === lo)[0], L = pts[pts.length - 1];
+    const pct = (y) => (y / H * 100).toFixed(1);
+    const dots = pts.map(p => `<i class="gmp${p === L ? ' gmd' : ''}" style="left:${X(p[0]).toFixed(1)}%;top:${pct(Y(p[1]))}%" title="${A.fmt.esc(ser[p[0]].p)} 毛利率 ${A.fmt.n(p[1], 1)}%" data-q="${A.fmt.esc(ser[p[0]].p)}"></i>`).join('');
+    // 最高放點的正上方（上緣留了 13px）；最低放點的正下方（下緣留 14px，放側邊會壓到線、放更低會壓到季別刻度 —— 2026-10-05 截圖實測）
+    const lab = (i, v, cls) => { const x = X(i);
+      const tf = cls === 'hi' ? `${x < 15 ? 'translateX(-4px)' : x > 85 ? 'translateX(calc(-100% + 4px))' : 'translateX(-50%)'} translateY(calc(-100% - 4px))`
+        : `${x < 15 ? 'translateX(-4px)' : x > 85 ? 'translateX(calc(-100% + 4px))' : 'translateX(-50%)'} translateY(4px)`;
+      return `<b class="gmv ${cls}" style="left:${x.toFixed(1)}%;top:${pct(Y(v))}%;transform:${tf}">${A.fmt.n(v, 1)}%</b>`; };
+    const mid = Math.floor((ser.length - 1) / 2);
+    return `<div class="gmspark"><div class="gmsv"><svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" role="img" aria-label="近 ${ser.length} 季毛利率：${pts.map(p => ser[p[0]].p + ' ' + A.fmt.n(p[1], 1) + '%').join('、')}；平均 ${A.fmt.n(avg, 1)}%" data-n="${pts.length}">`
+      + `<path d="${area}" class="gma"/><line x1="0" x2="100" y1="${Y(avg).toFixed(1)}" y2="${Y(avg).toFixed(1)}" class="gmavg" vector-effect="non-scaling-stroke"/>`
+      + `<path d="${d}" class="gml" vector-effect="non-scaling-stroke"/></svg>${dots}${lab(iHi, hi, 'hi')}${iLo !== iHi ? lab(iLo, lo, 'lo') : ''}</div>`
+      + `<div class="minil"><span>${A.fmt.esc(ser[0].p)}</span><span>${A.fmt.esc(ser[mid].p)}</span><span class="gmavgl">平均 ${A.fmt.n(avg, 1)}%</span><span>${A.fmt.esc(ser[ser.length - 1].p)}</span></div></div>`;
   }
   function fundCard(pg) {
     const f = pg.fundamental || {}, dv = pg.dividends || {};

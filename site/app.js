@@ -2543,7 +2543,9 @@
     }
     /* ★ 2026-09-27 管理頁 #admin（使用統計、線上名單）交給 site/account.js（DECISIONS #270）。跟法律頁同一個接法。*/
     if (window.TwAccount && window.TwAccount.route(head) === 'admin') {
-      $$('.tab').forEach(t => t.classList.remove('on'));
+      /* ★ 2026-10-05 修：「會員權限」（#l4Perm）2026-10-04 起是 .tab —— 以前這行一律清掉 on，
+         直接開（或重新整理）#admin/perm 時側欄那一格不會亮。它的 on 交給 layout4 的同一條規則（網址是 #admin/perm 就亮）。*/
+      $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'l4Perm' && /^#admin\/perm\b/.test(location.hash || '')));
       $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-admin'));
       _lastPageKey = 'admin'; _miaKey = 'admin';
       try { applyMobileIA('admin'); } catch (e) { /* 忽略 */ }
