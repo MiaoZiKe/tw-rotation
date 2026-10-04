@@ -5085,6 +5085,12 @@
   /* 非焦點族群的腳印（2026-09-25，Andy：「為何不是每個點都有軌跡」）：
      不透明度 .35（深淺兩種主題下都還讀得出顏色屬於哪一段，但明顯退在焦點後面）、腳印縮成 78%。*/
   const ROT_REST_OP = 0.35;
+  /* 刻度圈的標字（2026-10-04 平方根尺度）：[今天最大偏離的幾成, 字]。半徑＝√f × maxR，所以 25% 落在半徑一半那圈。*/
+  const ROT_RING_LBL = [[0.25, '25%'], [1, '100%']];
+  /* 擁擠時非焦點腳印再退一階：落在半徑 50% 內、而且那一圈裡擠了 ≥ ROT_CROWD_N 顆點時，
+     透明度 ×ROT_CROWD_OP。滑到／點到它（highlightClock）照舊拉到 1，所以「要看的時候看得到」。*/
+  const ROT_CROWD_N = 6;
+  const ROT_CROWD_OP = 0.5;
   const ROT_REST_SZ = 0.78;
   const ROT_REST_GAP = 2;              // 非焦點腳印的間距倍數（每兩步畫一步）
   const ROT_NUM_W = 560;               // 容器窄於這個寬度 → 編號模式
@@ -5854,7 +5860,12 @@
       const dx = ((x || 100) - 100) / sx, dy = ((y || 100) - 100) / sy;
       let a = Math.atan2(dy, dx) * 180 / Math.PI; if (a < 0) a += 360;
       const u = Math.sqrt(dx * dx + dy * dy) / sr;       // 1＝今天偏離最大的那個族群（＝外圈虛線）
-      const k = u <= 1 ? u : 1 + CLOCK_TAIL * (u - 1) / tailSpan;
+      /* ★ 2026-10-04（Andy 截圖：「中心附近的點太擁擠」）：盤內改成**平方根尺度**。
+         線性時大多數族群的 u 落在 0～0.5，全部擠在半徑一半以內；√u 把 0～0.25 拉到 0～0.5，
+         靠圓心那一圈攤開一倍。單調遞增＋只動半徑、不動角度 → 象限判定與遠近排序完全不變。
+         u=1 時 √u=1，跟盤緣外的緩衝帶接得上（連續），外圈虛線的意思不變；
+         內圈虛線（半徑 maxR/2）的意思從「最大偏離的一半」變成「最大偏離的 25%」，圖上與「怎麼看 ?」同步改寫。*/
+      const k = u <= 1 ? Math.sqrt(u) : 1 + CLOCK_TAIL * (u - 1) / tailSpan;
       return [Math.min(CLOCK_MAXR * (1 + CLOCK_TAIL), k * CLOCK_MAXR), a];
     };
     /* 即時模式下一個族群有**三個**位置（見 rlvCompute 的註解）：
@@ -6040,7 +6051,9 @@
          · 「顯示腳印」勾選框照舊控制全部（tmode 'off'）
        總覽小時鐘（compact，300px 高、10 顆點）不跟：那張太小，十串淡腳印只會變成一片灰霧，仍然只畫焦點。*/
     const restDim = tmode === 'focus' && !compact;
-    const trailOp = (r) => (shownTrail(r) ? 1 : (restDim && !r.isStock ? ROT_REST_OP : 0));
+    const crowdN = pts.filter(r => !r.isStock && r.p[0] < CLOCK_MAXR / 2).length;
+    const crowded = (r) => crowdN >= ROT_CROWD_N && r.p[0] < CLOCK_MAXR / 2;
+    const trailOp = (r) => (shownTrail(r) ? 1 : (restDim && !r.isStock ? ROT_REST_OP * (crowded(r) ? ROT_CROWD_OP : 1) : 0));
     // 編號模式（容器 < 560px）：圖上只寫編號，名字在圖下方清單
     const numMode = !compact && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
     rotNum[id] = numMode;
@@ -6407,6 +6420,9 @@
               const sv = (a, dash) => ({ fill: 'none', stroke: hexA(ink, a), lineWidth: 1, ...(dash ? { lineDash: dash } : {}) });
               kids.push({ type: 'circle', shape: { cx, cy, r: maxR / 2 * k }, style: sv(lt ? .16 : .12, [4, 4]) });
               kids.push({ type: 'circle', shape: { cx, cy, r: maxR * k }, style: sv(lt ? .18 : .14, [4, 4]) });
+              ROT_RING_LBL.forEach(([f, t]) => kids.push({ type: 'text', silent: true,
+                style: { x: cx + 4, y: cy - Math.sqrt(f) * maxR * k - 2, text: t, fontSize: 11, fill: hexA(CH.ink3, lt ? .85 : .8),
+                  textVerticalAlign: 'bottom', verticalAlign: 'bottom' } }));
               kids.push({ type: 'circle', shape: { cx, cy, r: R - 0.5 }, style: sv(lt ? .30 : .25, [4, 4]) });
               kids.push({ type: 'line', shape: { x1: cx - R, y1: cy, x2: cx + R, y2: cy }, style: sv(lt ? .16 : .12) });
               kids.push({ type: 'line', shape: { x1: cx, y1: cy - R, x2: cx, y2: cy + R }, style: sv(lt ? .16 : .12) });
@@ -6438,6 +6454,9 @@
             kids.push({ type: 'line', shape: { x1: cx, y1: cy - R, x2: cx, y2: cy + R }, style: st(lt ? .30 : .26) });
             kids.push({ type: 'circle', shape: { cx, cy, r: maxR / 2 * k }, style: st(lt ? .36 : .34, [3, 4]) });
             kids.push({ type: 'circle', shape: { cx, cy, r: maxR * k }, style: st(lt ? .42 : .40, [3, 4]) });
+            ROT_RING_LBL.forEach(([f, t]) => kids.push({ type: 'text', silent: true,
+                style: { x: cx + 4, y: cy - Math.sqrt(f) * maxR * k - 2, text: t, fontSize: 11, fill: hexA(CH.ink3, lt ? .85 : .8),
+                  textVerticalAlign: 'bottom', verticalAlign: 'bottom' } }));
             kids.push({ type: 'circle', shape: { cx, cy, r: R - 0.5 }, style: st(lt ? .34 : .30) });
             // 圓心一個小點
             kids.push({ type: 'circle', shape: { cx, cy, r: 2 }, style: { fill: hexA(CH.ink3, lt ? .55 : .5), stroke: 'none' } });
@@ -7633,7 +7652,7 @@
       <ul><li><b>四段</b>：落後 → 改善 → 領先 → 轉弱，順時針輪一圈。<em>改善</em>＝剛有錢進來、最早布局；
         <em>領先</em>＝主流、回檔找買點；<em>轉弱</em>＝動能在掉、設停利；<em>落後</em>＝別急著抄底。</li>
       <li><b>一顆點＝一個族群</b>：越大＝成交值佔比越高；離圓心越遠＝跟大盤差越多。
-        兩圈虛線＝今天最大偏離的一半／今天偏離最大的那個族群。</li>
+        兩圈虛線＝今天最大偏離的 25%／今天偏離最大的那個族群（100%），圈上有標。<em>距離用平方根尺度</em>：靠圓心的點被拉開，所以內圈只代表 25% 而不是一半 —— 比遠近看「在哪一圈」，不要拿尺量。</li>
       <li><b>小腳印</b>＝這幾天走過的路，越新越清楚，腳尖朝前進的方向。每顆點都有，佔比前 3 ＋ 最近換段的較清楚、
         其他淡；滑到哪顆就提亮哪顆。外圈多一圈色環＝最近 5 天剛換段。</li>
       <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段；<em>▶</em> 從那一天一步一步走回最新。</li>

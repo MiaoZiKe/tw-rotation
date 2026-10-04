@@ -6107,6 +6107,25 @@ def t_new_clock(pg, base):
         return
     ok("範圍 1～30 天（至多 30）", bar["min"] == 1 and bar["max"] == 30, bar)
 
+    # ---------------------------------------------------------- 2026-10-04 中心區不擠（平方根尺度＋標籤避讓）
+    # Andy 截圖：中心附近的點、腳印、名字疊成一團。驗：半徑 50% 內的名字框兩兩不重疊，
+    # 而且刻度圈上真的標了實際值（25%／100%），平方根尺度讓 50% 內至少寫得出幾個名字。
+    cen = pg.evaluate("""() => { const el = document.getElementById('rotClock');
+        const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+        const o = c.getOption(), mx = o.radiusAxis[0].max;
+        const sc = o.series.findIndex(s => s.type === 'scatter');
+        const p0 = c.convertToPixel({ seriesIndex: sc }, [0, 0]), p1 = c.convertToPixel({ seriesIndex: sc }, [mx, 0]);
+        const R = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+        const rs = ((window.App && window.App._rotLabels) || []).filter(a =>
+          Math.hypot(a.x + a.w / 2 - p0[0], a.y + a.h / 2 - p0[1]) < R * 0.5);
+        let hit = null;
+        for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) { const a = rs[i], b = rs[j];
+          if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) hit = hit || [a.name, b.name]; }
+        const txt = []; c.getZr().storage.getDisplayList().forEach(e => { if (e.style && e.style.text) txt.push(String(e.style.text)); });
+        return { n: rs.length, hit, ring: txt.includes('25%') && txt.includes('100%') }; }""")
+    ok("中心區（半徑 50% 內）的族群名字兩兩外框不重疊", bool(cen) and cen["n"] > 0 and cen["hit"] is None, cen)
+    ok("刻度圈標出實際值（25%／100% 最大偏離）", bool(cen) and cen["ring"], cen)
+
     # ---------------------------------------------------------- A4-1 ＋ / − 真的按下去
     ok("拉Bar 旁邊有 ＋ 與 −（A4-1）", bar["steps"] == 2, bar)
     ok("拉Bar 旁邊有播放鈕（A4-5）", bar["play"] == 1, bar)
