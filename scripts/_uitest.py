@@ -18493,6 +18493,118 @@ LV5_INTRA = "2026-09-29T02:30:00Z"      # 台北 10:30（盤中）
 LV5_AFTER = "2026-09-29T12:30:00Z"      # 台北 20:30（盤後）
 
 
+# ===================================================================== 大盤三張圖：週日（非交易日）
+# Andy 2026-10-04（週日）15:14 截圖：加權走勢只剩 13:15～13:30 一小段、從 46,000 暴衝到 51,000，
+# 5 分 K 冒出 14:01～15:00 的棒。重現兩種情境（假時鐘＝台北 2026-10-04 週日 15:14:50）：
+#   A「Yahoo 殘段」：證交所 /chart 回空 → 退 Yahoo，Yahoo 給 13:11～15:00 的亂值（這就是截圖那一種）
+#   B「盤後報價」：/chart 有週五完整一天，但 live.js 的 t00／o00 時間是 13:33（以前會往後補一個 13:3x 的點）
+# 驗：走勢點數涵蓋 09:00～13:30、沒有任何點 > 13:30、5 分 K 沒有 > 13:30 的棒、y 軸包住昨收與現值。
+# ⚠ A 情境退的是資料湖最近一個完整交易日的 15 分 K，所以這段的前提是本機 site/data/index_intraday.json 存在。
+M3SUN_CLOCK = "2026-10-04T07:14:50Z"
+
+
+def t_m3_sunday(b, base, code):
+    import json as _json
+    import datetime as _D
+    from urllib.parse import urlparse, parse_qs
+    TZ8 = _D.timezone(_D.timedelta(hours=8))
+    FRI = int(_D.datetime(2026, 10, 2, 9, 0, tzinfo=TZ8).timestamp() * 1000)
+    PREV = {"TSE": 48475.0, "OTC": 426.0}
+
+    def one(sc):
+        """一個情境一個 closure —— 不能用預設參數綁 sc：Playwright 會把 request 當第二個參數塞進來蓋掉它。"""
+        K = {"n": 0}
+
+        def chart(route):
+            cid = (parse_qs(urlparse(route.request.url).query).get("id") or ["TSE"])[0]
+            y = PREV.get(cid, 48700.0)
+            pts = [] if sc == "A" else [{"t": str(FRI + (i + 1) * 60000), "c": f"{y * (0.999 + (i % 30) * 0.00005):.2f}", "s": "100"}
+                                       for i in range(270)]
+            info = {"n": cid, "d": "20261002", "t": "13:30:00", "y": f"{y}", "o": f"{y}", "h": f"{y * 1.003:.2f}",
+                    "l": f"{y * 0.997:.2f}", "z": f"{y * 0.999:.2f}", "v": "600000"}
+            route.fulfill(status=200, content_type="application/json",
+                          body=_json.dumps({"infoArray": [info], "ohlcArray": pts, "staticObj": {"tv": "1"}}))
+
+        def yahoo(route):
+            sym = (parse_qs(urlparse(route.request.url).query).get("symbol") or ["^TWII"])[0]
+            y = PREV["OTC"] if "TWOII" in sym else PREV["TSE"]
+            t0 = int(_D.datetime(2026, 10, 2, 13, 11, tzinfo=TZ8).timestamp())
+            ts = [t0 + i * 60 for i in range(110)]
+            cl = [y * 0.95 if i == 0 else (y * 1.05 if i < 20 else y * 0.999) for i in range(110)]
+            route.fulfill(status=200, content_type="application/json", body=_json.dumps({"chart": {"result": [{
+                "meta": {"chartPreviousClose": y, "regularMarketPrice": y * 0.999}, "timestamp": ts,
+                "indicators": {"quote": [{"close": cl, "volume": [0] * len(ts)}]}}]}}))
+
+        def quote(route):
+            ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+            K["n"] += 1
+            # B：13:33 —— 離最後一點 13:30 只差 3 分鐘，舊版 patchLive 會當成「新的一分鐘」往後補一個 13:33 的點
+            tt = "13:33:00" if sc == "B" else "14:30:00"
+            arr = []
+            for tok in [t for t in ex.split("|") if t]:
+                try:
+                    c = tok.split("_", 1)[1].split(".")[0]
+                except IndexError:
+                    continue
+                y = PREV["TSE"] if c == "t00" else (PREV["OTC"] if c == "o00" else 1000.0)
+                z = 48427.91 if c == "t00" else y * 0.999
+                arr.append({"c": c, "n": c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y}", "o": f"{y}",
+                            "h": f"{y * 1.003:.2f}", "l": f"{y * 0.997:.2f}", "v": "1", "d": "20261002", "t": tt, "tlong": "0"})
+            route.fulfill(status=200, content_type="application/json",
+                          body=_json.dumps({"rtcode": "0000", "msgArray": arr}))
+
+        ctx = b.new_context(viewport={"width": 1440, "height": 1000}, timezone_id="Asia/Taipei")
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"大盤週日{sc} pageerror: {str(e)[:160]}"))
+        pg.clock.install(time=M3SUN_CLOCK)          # ★ 一定要在 goto 之前
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("https://fake-worker.test/**", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
+        pg.route("https://fake-worker.test/chart?*", chart)
+        pg.route("https://fake-worker.test/y?*", yahoo)
+        pg.route("https://fake-worker.test/quote?*", quote)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch (e) {} }")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="load")
+        tag = "Yahoo 殘段" if sc == "A" else "盤後報價"
+        got = wait_until(pg, "() => { const s = window.Market3 && window.Market3.state; return !!(s && ['TSE','OTC'].every(id =>"
+                             " s.data[id] && s.data[id].points && s.data[id].points.length)); }", 20000)
+        ok(f"[大盤週日-{tag}] 週日 15:14 打開總覽，加權、櫃買都拿到走勢資料", bool(got))
+        if not got:
+            ctx.close(); return
+        pg.wait_for_timeout(6000)
+        pg.click("#m3Mode button[data-m=line]"); pg.wait_for_timeout(800)
+        r = pg.evaluate("""() => { const o = {}; ['TSE','OTC'].forEach(id => {
+            const d = window.Market3.state.data[id], el = document.getElementById('m3c-' + id);
+            const ch = el && window.echarts && echarts.getInstanceByDom(el), y = ch ? ch.getOption().yAxis[0] : {};
+            const ps = d.points.map(p => p.min);
+            o[id] = { n: ps.length, first: Math.min(...ps), last: Math.max(...ps), src: d.src || 'mis',
+                      prev: d.prev, cur: d.last, lo: y.min, hi: y.max }; }); return o; }""")
+        if sc == "B":
+            ok(f"[大盤週日-{tag}] 前提：13:33 的報價真的送進頁面了", K["n"] >= 1, K)
+        for id_, v in r.items():
+            ok(f"★ [大盤週日-{tag}] {id_} 走勢點涵蓋 09:00～13:30（第一點 ≤ 09:15、最後一點 = 13:30）",
+               v["first"] <= 9 * 60 + 15 and v["last"] == 13 * 60 + 30, v)
+            ok(f"★ [大盤週日-{tag}] {id_} 沒有任何點晚於 13:30", v["last"] <= 13 * 60 + 30, v)
+            ok(f"★ [大盤週日-{tag}] {id_} y 軸包住昨收與現值（不是 46,000～51,000 那種亂值撐開的）",
+               v["prev"] is not None and v["lo"] is not None and v["lo"] <= v["prev"] <= v["hi"] and v["lo"] <= v["cur"] <= v["hi"]
+               and (v["hi"] - v["lo"]) <= v["prev"] * 0.06, v)
+        # K 線、5 分：真的點按鈕、真的選週期
+        pg.click("#m3Mode button[data-m=k]")
+        pg.select_option("#m3Tf", "5")
+        pg.wait_for_timeout(1500)
+        k = pg.evaluate("""() => { const o = {}; ['TSE','OTC'].forEach(id => { const c = window.Market3.state.kcharts[id];
+            const ts = c && c.data ? c.data.map(r => typeof r.time === 'number' ? Math.floor((r.time % 86400) / 60) : -1) : [];
+            o[id] = { n: ts.length, max: ts.length ? Math.max(...ts) : null, min: ts.length ? Math.min(...ts) : null }; }); return o; }""")
+        for id_, v in k.items():
+            ok(f"★ [大盤週日-{tag}] {id_} 5 分 K 有棒、而且沒有任何一根晚於 13:30（不再冒出 14:01～15:00）",
+               v["n"] >= 15 and v["max"] is not None and v["max"] <= 13 * 60 + 30 and v["min"] >= 9 * 60, v)
+        ctx.close()
+
+    for sc in ("A", "B"):
+        one(sc)
+
+
 def t_live5s_0929(b, base, code):
     import json as _json
     import time as _time
@@ -20229,6 +20341,8 @@ SECTIONS = {
     "產業鏈導覽":          lambda pg, b, base, code: t_chainnav(pg, base),
     "一般電子鏈":          lambda pg, b, base, code: t_electronics(pg, base),
     "新-大盤三張圖":       lambda pg, b, base, code: t_new_market3(pg, base),
+    # ★ 2026-10-04 Andy 週日截圖：走勢只剩尾段亂跳、5 分 K 冒出收盤後的棒
+    "新-大盤三張圖-週日":  lambda pg, b, base, code: t_m3_sunday(b, base, code),
     # ★ 2026-09-28 Andy：櫃買 1H／4H 有歷史、加權 15／30／1H 真實成交值、量副圖拖一張另外兩張連動
     "大盤K線0928":         lambda pg, b, base, code: t_index_kline_0928(pg, base),
     "新-產業與個股":       lambda pg, b, base, code: t_new_industry(pg, base),
