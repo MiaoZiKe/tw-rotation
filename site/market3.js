@@ -152,10 +152,14 @@
   ];
   const histDef = (id) => HIST.filter(h => h.id === id)[0] || null;
   /** 存進 localStorage 的值可能是舊版的數字，也可能是新的歷史週期代號。 */
+  /* ★ 2026-10-04 Andy：「週期只留下 日周月，需確保數據完整」。
+     分 K（1／5／15／30 分）與 1 小時／4 小時、季 K 從下拉拿掉 —— 盤後／週末那幾個週期最容易畫出殘缺或錯的東西
+     （同一天的週日事故），日／週／月三個都直接吃資料湖日線，三張卡都有 2021 年起的完整歷史。
+     合成程式碼留著（走勢圖、別的驗收還在用），只是使用者選不到。存著被拿掉的週期 → 退回日 K。*/
+  const TF_SHOWN = ['D', 'W', 'M'];
   function normTf(v) {
-    const sv = String(v == null ? '5' : v);
-    if (histDef(sv)) return sv;
-    return TFS.indexOf(+sv) >= 0 ? String(+sv) : '5';
+    const sv = String(v == null ? 'D' : v);
+    return TF_SHOWN.indexOf(sv) >= 0 ? sv : 'D';
   }
 
   /* 自動更新的節奏。
@@ -195,7 +199,7 @@
      期交所行情看板本身是秒級更新，一分鐘問一次已經很客氣。 */
   const MS_NIGHT = 60 * 1000;
 
-  const state = { data: {}, err: {}, liveQ: {}, liveAt: 0, fTimer: null, fBusy: false, fErr: '', lakeHead: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
+  const state = { data: {}, err: {}, liveQ: {}, liveAt: 0, fTimer: null, fBusy: false, fErr: '', lakeHead: {}, mode: 'line', tf: 'D', big: '', kcharts: {}, busy: false, at: 0,
     hist: {}, histErr: {}, histBusy: {}, timer: null, nTimer: null, tickMs: 0, fails: 0,
     // 呼吸燈：tipKey＝上一次看到的「最後一個點」是誰；tipAt＝它最後一次真的往前走的時刻
     tipKey: {}, tipAt: {}, pulses: {}, pTimer: null,
@@ -995,6 +999,61 @@
     };
   }
 
+  /** 台北日期 YYYYMMDD（毫秒時間戳 → 台北牆鐘）。 */
+  const tpeYmd = (ms) => new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+  /** 日盤分時清洗（2026-10-04 週日事故）：只留「最後那一天」、落在交易時段內、價格在當天高低區間內的點。
+   *  證交所分時本身是權威來源，不做價格過濾；備援來源（Yahoo、本機暫存）才拿 live.js 那筆 t00／o00 報價的
+   *  當天高低（同一天才用）去擋亂值。
+   *  Yahoo 自己的 high／low 是拿這些點算出來的，不能拿來驗自己，所以清完一律重算。 */
+  function tidyDay(x, d) {
+    if (!d || !d.points || !d.points.length || !SESSION[x.id]) return d;
+    const [s0, s1] = SESSION[x.id];
+    const days = d.points.map(p => tpeYmd(p.ms));
+    const day = String(d.date || '').length === 8 && days.includes(String(d.date)) ? String(d.date) : days.reduce((a, b) => (b > a ? b : a));
+    let hi = null, lo = null;
+    const code = { TSE: 't00', OTC: 'o00' }[x.id];
+    const r = d.src && code && window.Live && window.Live.raw ? window.Live.raw(code, 864e5) : null;
+    if (r && r.m && String(r.m.d) === day) { hi = num(r.m.h); lo = num(r.m.l); }
+    const pad = (hi != null && lo != null) ? Math.max(hi * 0.002, 1e-9) : 0;
+    const pts = d.points.filter((p, i) => days[i] === day && p.min >= s0 && p.min <= s1 &&
+      (hi == null || lo == null || (p.c <= hi + pad && p.c >= lo - pad)));
+    const out = Object.assign({}, d, { points: pts, date: day });
+    if (d.src && pts.length) {
+      const cs = pts.map(p => p.c); const L = pts[pts.length - 1];
+      out.open = cs[0]; out.high = Math.max.apply(null, cs); out.low = Math.min.apply(null, cs);
+      if (out.last == null || d.src === 'Yahoo') out.last = L.c;
+      out.time = new Date(L.ms + 8 * 3600 * 1000).toISOString().slice(11, 19);
+    }
+    return out;
+  }
+  /** 一份分時算不算「完整的一天」：涵蓋到收盤前 15 分鐘內、點數至少六成時段。盤後只收這種。 */
+  function fullDay(x, d) {
+    const [s0, s1] = SESSION[x.id] || [0, 0];
+    const p = d.points;
+    return p.length >= (s1 - s0) * 0.6 && p[0].min <= s0 + 30 && p[p.length - 1].min >= s1 - 15;
+  }
+  /** 資料湖最近一個交易日的 15 分 K → 走勢圖的點（每 15 分一點，標在該格收盤那一分鐘）。 */
+  function lakeDay(x) {
+    const b = (((state.lakeIntra || {})[x.id] || {}).M15 || []);
+    if (!b.length) return null;
+    const dayOf = (t) => Math.floor(t / 86400);
+    // 最近「完整」的那一天（至少 12 根 15 分 K，約 3 小時）—— 盤後管線偶爾只存到當天頭一兩根，那種不算一天
+    const cnt = new Map(); b.forEach(r => cnt.set(dayOf(r[0]), (cnt.get(dayOf(r[0])) || 0) + 1));
+    const full = [...cnt.entries()].filter(([, n]) => n >= 12).map(([k]) => k);
+    if (!full.length) return null;
+    const last = Math.max.apply(null, full);
+    const rows = b.filter(r => dayOf(r[0]) === last);
+    const [s0, s1] = SESSION[x.id];
+    const pts = rows.map(r => { const m = Math.min(s1, Math.floor((r[0] % 86400) / 60) + 15);
+      return { ms: (r[0] - 8 * 3600 + (m - Math.floor((r[0] % 86400) / 60)) * 60) * 1000, min: m, c: r[4], s: 0 }; })
+      .filter(p => p.min >= s0 && p.min <= s1);
+    if (!pts.length) return null;
+    const cs = pts.map(p => p.c);
+    return { id: x.id, name: x.name, src: '資料湖 15 分', date: tpeYmd(pts[0].ms), time: '收盤',
+      prev: null, open: rows[0][1], high: Math.max.apply(null, rows.map(r => r[2])), low: Math.min.apply(null, rows.map(r => r[3])),
+      last: cs[cs.length - 1], vol: null, amt: null, points: pts, sparse: true };
+  }
+
   /** 備援：Yahoo 1 分鐘線 → 跟 parse() 一樣的形狀。 */
   async function fetchYahoo1m(x) {
     const base = proxy(); if (!base) return null;
@@ -1043,20 +1102,54 @@
        或 15:00（夜盤開）時要自己翻過去，不能等使用者重新整理。*/
     syncSession();
     state.busy = true;
+    if (state.seedP) { try { await state.seedP; } catch (e) {} }
     const jobs = IDX.map(async x => {
       let d = null, err = '';
-      try { d = await fetchOne(x.id); } catch (e) { err = String(e.message || e); }
+      try { d = tidyDay(x, await fetchOne(x.id)); } catch (e) { err = String(e.message || e); }
       if (err === 'OFF') return;                       // 卡片剛被關掉：這一輪什麼都不動（不去打 Yahoo 備援）
+      /* ★ 2026-10-04（週日）Andy 截圖：加權走勢只剩 13:15～13:30 一小段、從 46,000 暴衝到 51,000，
+         5 分 K 冒出 14:01～15:00 的棒。根因：週末證交所分時回空 → 退到 Yahoo 1 分線，
+         Yahoo 在非交易日給的是「收盤前後一小段 ＋ 盤後亂值」，以前**照單全收**。
+         現在兩道關：① tidyDay 只留同一天 09:00～13:30 內、落在當天高低區間的點；
+         ② 不在盤中時，備援來源（Yahoo、本機暫存）要涵蓋大半個交易時段（fullDay）才算數 —— 盤後要畫的是
+         「最近交易日完整的一天」，殘缺的一小段寧可換下一個來源。盤中照舊有多少畫多少。*/
+      const want = (v) => v && v.points.length && (isIntraday() || fullDay(x, v));
+      // 證交所分時是權威來源：有點就用（颱風假半天盤也是真資料），完整度檢查只套在備援來源上
+      let best = null;
       /* ★ 2026-09-24 Andy：「日盤不能重新整理找不到數據就空白，麻煩補上該有數據」。
          證交所分時在收盤後常回空、櫃買那支會回 502 —— 以前就直接留白。
          現在依序退：① Yahoo 1 分鐘線（加權 ^TWII、櫃買 ^TWOII）② 這台瀏覽器存下的當天最後一份。
          退到備援時卡片上會標來源，不假裝是證交所即時。*/
       if ((!d || !d.points.length) && x.yahoo1m) {
-        try { const y = await fetchYahoo1m(x); if (y && y.points.length) { d = y; err = ''; } } catch (e) {}
+        try {
+          const y = tidyDay(x, await fetchYahoo1m(x));
+          if (y && y.points.length) {
+            if (want(y)) { d = y; err = ''; }
+            else if (!best || y.points.length > best.points.length) best = y;
+          }
+        } catch (e) {}
       }
       if (!d || !d.points.length) {
-        const c = cacheGet(x.id); if (c && c.points && c.points.length) { d = Object.assign(c, { src: '本機暫存' }); err = ''; }
+        const c = tidyDay(x, cacheGet(x.id));
+        if (want(c)) { d = Object.assign(c, { src: '本機暫存' }); err = ''; }
       } else if (!d.src) cachePut(x.id, d);
+      // 盤後三個來源都不完整 → 退資料湖最近一個完整交易日的 15 分 K（整天 09:00～13:30 都有）；湖也沒有才用最完整的殘段
+      /* 只在「有來源回了殘段」時才退湖（best 存在）；Worker 根本連不到時維持原本的退日 K（那條路有自己的說明字）。*/
+      if ((!d || !d.points.length) && !isIntraday() && best) {
+        if (state.lakeIntra === undefined) await loadLakeIntra();
+        const L = lakeDay(x);
+        if (L) {
+          // 昨收：資料湖日線裡「那一天之前」最後一根的收盤（沒有昨收就畫不出昨收虛線與對稱的價格軸）
+          try {
+            const all = await window.App.load('index_ohlc', { fallback: {} });
+            const ymd = L.date.slice(0, 4) + '-' + L.date.slice(4, 6) + '-' + L.date.slice(6);
+            const pb = ((all && all[x.id]) || []).filter(b => String(b[0]) < ymd);
+            if (pb.length) L.prev = pb[pb.length - 1][4];
+          } catch (e) {}
+          d = L; err = '';
+        }
+        else { d = best; err = ''; }
+      }
       // ③ 都沒有分時 → 至少把資料湖最後一根日線的收盤放上標題列，不讓數字是「—」
       /* ★ 2026-09-24（審查 R1）：以前這裡寫 `x.id !== 'FUT'` 把台指期排除，但 index_ohlc 裡明明有 FUT，
          於是 Worker 一掛台指期的大數字就只剩「—」。三張一律退到資料湖最後一根日線。*/
@@ -1111,6 +1204,11 @@
     const hh = Math.floor(tNew / 10000), mm = Math.floor(tNew / 100) % 100, ss = tNew % 100;
     const min = hh * 60 + mm + (ss > 0 ? 1 : 0);
     const lp = d.points[d.points.length - 1];
+    /* ★ 2026-10-04：收盤後／週末 live.js 照樣每 5 秒丟 t00／o00 回來（時間會走到 13:3x、14:xx），
+       以前只要「比最後一點新、差 5 分鐘內」就往後補點，於是線一路長到 13:30 之後。
+       現在超出交易時段、或根本不在盤中，就只更新數字，不碰走勢線。*/
+    const ses = SESSION[id];
+    if (!isIntraday() || (ses && (min < ses[0] || min > ses[1]))) { state.liveQ[id] = q; return changed; }
     if (min === lp.min) lp.c = q.last;
     else if (min > lp.min && min - lp.min <= 5) d.points.push({ ms: lp.ms + (min - lp.min) * 60000, min, c: q.last, s: 0, live: true });
     state.liveQ[id] = q;
@@ -1236,15 +1334,21 @@
      ⚠ 這套切法跟 pipeline/compute/intraday_bars.py 的 session_key() 一字不差，改一邊記得改另一邊。 */
 
   /** 資料湖合成好的 1H／4H／15 分（site/data/index_intraday.json）。只載一次；讀不到記成 {}（只畫今天）。 */
-  async function loadLakeIntra() {
-    if (state.lakeIntraBusy) return;
+  /* 回傳同一個 promise：加權、櫃買兩張卡的 refresh 會同時要湖資料（盤後退回 lakeDay），
+     以前第二個呼叫者看到 busy 就直接回來、拿到 undefined，於是只有一張卡退得到湖。*/
+  function loadLakeIntra() {
+    if (state.lakeIntraP) return state.lakeIntraP;
     state.lakeIntraBusy = true;
-    try {
-      const all = window.App ? await window.App.load('index_intraday', { fallback: {} }) : {};
-      state.lakeIntra = all || {};
-    } catch (e) { state.lakeIntra = {}; }
-    state.lakeIntraBusy = false;
-    draw();
+    state.lakeIntraP = (async () => {
+      try {
+        const all = window.App ? await window.App.load('index_intraday', { fallback: {} }) : {};
+        state.lakeIntra = all || {};
+      } catch (e) { state.lakeIntra = {}; }
+      state.lakeIntraBusy = false;
+      state.lakeIntraP = null;            // 只共用「進行中」的那一次；之後有人把 lakeIntra 清回 undefined 就重抓
+      draw();
+    })();
+    return state.lakeIntraP;
   }
 
   /** 一根 K 棒（台北牆鐘秒數）→ 它屬於哪一個 1 小時／4 小時的格子（回傳那一格的開始時間）。 */
@@ -1263,7 +1367,7 @@
    *  多日的部分由呼叫端拿資料湖的 H1／H4 用 mergeLake() 接上。 */
   function synthBars(x, tf) {
     const d = seriesOf(x);
-    const b15 = (d && d.points && d.points.length) ? toBars(d.points, 15, volUnit(x)) : [];
+    const b15 = (d && !d.seed && d.points && d.points.length) ? toBars(d.points, 15, volUnit(x)) : [];
     b15.sort((a, b) => a[0] - b[0]);
     const out = []; let cur = null, key = null;
     for (const b of b15) {
@@ -1634,7 +1738,7 @@
     // 重掛（例如切主題）之前先收掉舊的 Lightweight Charts，不然 ResizeObserver 會留著
     Object.keys(state.kcharts).forEach(killK);
     state.mode = ls.get(KEY_MODE, 'line') === 'k' ? 'k' : 'line';
-    state.tf = normTf(ls.get(KEY_TF, '5'));
+    state.tf = normTf(ls.get(KEY_TF, 'D'));
     state.big = ls.get(KEY_BIG, '');
     if (!IDX.some(x => x.id === state.big)) state.big = '';
     /* ★ 2026-09-26：KPI 橫條（#hero）桌機時住在這個工具列裡（見 placeKpi）。
@@ -1651,8 +1755,7 @@
         <div class="seg" id="m3Mode"><button data-m="line">走勢圖</button><button data-m="k">K 線</button></div>
         <label class="m3-tfsel">週期
           <select id="m3Tf">
-            <optgroup label="分 K（今天；加權 15／30 分含近 60 天）">${TFS.map(n => `<option value="${n}">${n} 分</option>`).join('')}</optgroup>
-            <optgroup label="歷史（1 小時／4 小時由 15 分 K 合成）">${HIST.map(h => `<option value="${h.id}">${h.label}</option>`).join('')}</optgroup>
+            ${HIST.filter(h => TF_SHOWN.indexOf(h.id) >= 0).map(h => `<option value="${h.id}">${h.label}</option>`).join('')}
           </select></label>
         <button class="howbtn pop" data-how="m3" data-ttl="大盤三張圖" aria-label="大盤三張圖怎麼看">?</button>
         <!-- 2026-09-26：這顆不在標題裡，data-ttl 給彈窗標題（改前彈窗標題是預設的「說明」，全站問號普查抓到的） -->
@@ -1672,7 +1775,7 @@
           <div class="m3-chart" id="m3c-${x.id}"></div>
         </div>`).join('')}</div></div>`;
     $$('#m3Mode button').forEach(b => b.onclick = () => { state.mode = b.dataset.m; ls.set(KEY_MODE, state.mode); draw(); });
-    $('#m3Tf').onchange = (e) => { state.tf = e.target.value; ls.set(KEY_TF, state.tf); draw(); };
+    $('#m3Tf').onchange = (e) => { state.tf = normTf(e.target.value); ls.set(KEY_TF, state.tf); draw(); };
     /* 台指期的日盤／夜盤（Andy 2026-09-18 圖一）。
        ★ 2026-09-21 改掉一個會讓人以為壞掉的行為（Andy：「日盤跟夜盤統一一頁，
          到夜盤的週期走勢圖就顯示夜盤的，同理日盤就是日盤」）。
@@ -1693,9 +1796,33 @@
       ls.set(KEY_BIG, state.big); draw();
     });
     placeKpi();
+    /* ★ 2026-10-04 Andy：「每次開啟都會先是 K 線圖，然後才切到走勢圖」。
+       以前掛載當下就 draw()：分時還沒回來＋週末有 sessionHint → 直接退去畫日 K，等 refresh 回來才換走勢圖。
+       現在：非交易時段先用資料湖最近一個完整交易日的 15 分 K 把走勢圖與數字列種好（seedLake），
+       第一幀就是使用者選的模式；第一輪 refresh 也先等種子落地，免得兩邊搶著畫。*/
+    if (!isIntraday()) state.seedP = seedLake();
     draw();
     refresh(true);
     schedule();
+  }
+  async function seedLake() {
+    try {
+      await loadLakeIntra();
+      const all = window.App ? await window.App.load('index_ohlc', { fallback: {} }) : {};
+      IDX.forEach(x => {
+        const cur = state.data[x.id];
+        if (cur && cur.points && cur.points.length) return;
+        const L = lakeDay(x); if (!L) return;
+        const rows = (all && all[x.id]) || [];
+        const ymd = L.date.slice(0, 4) + '-' + L.date.slice(4, 6) + '-' + L.date.slice(6);
+        const pb = rows.filter(b => String(b[0]) < ymd);
+        if (pb.length) L.prev = pb[pb.length - 1][4];
+        L.seed = true;                       // 只給走勢圖與數字列用；分 K 合成不吃它（見 synthBars）
+        state.data[x.id] = L;
+      });
+    } catch (e) { /* 種不起來就照舊等 refresh */ }
+    state.seedP = null;
+    draw();
   }
 
   /* ★ 2026-09-26（Andy：「將我把這內容放進來，並且排版一下」）：總覽頂端那條 KPI 橫條
@@ -1988,7 +2115,8 @@
          （index_ohlc.json，三個代號都有），圖上方用一行字講清楚為什麼、畫的是什麼。
          還在「載入中」（第一輪還沒回來、也沒有錯誤）才先印載入中。*/
       const hint = sessionHint(x, false);
-      if (!err && !hint && !state.at) {
+      // 2026-10-04：第一輪還沒回來（或資料湖種子還在路上）一律先「載入中」，不准先退日 K 再跳成走勢圖
+      if (!err && (!state.at || state.seedP) && state.mode !== 'k') {
         killK(x.id);
         if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
         el.classList.add('isempty'); el.dataset.kind = '';
@@ -2210,7 +2338,8 @@
           axisLabel: { show: false }, axisTick: { show: false }, splitLine: { show: false } }),
         Object.assign({}, A.axisStyle, { type: 'category', data: cats, gridIndex: 1, boundaryGap: false,
           // 台指期的盤比較長（08:45–13:45），每半小時一個刻度會擠成一團
-          axisLabel: { color: A.CH.ink3, fontSize: 10, hideOverlap: true, margin: 8,
+          // alignMinLabel：最左那個「09:00」貼齊左緣往右長，不要置中在軸端而一半跑出卡片（_preview 抓到的溢出）
+          axisLabel: { color: A.CH.ink3, fontSize: 10, hideOverlap: true, margin: 8, alignMinLabel: 'left',
             interval: (i) => (s0 + i) % (cats.length > 280 ? 60 : 30) === 0 },
           axisTick: { show: false }, splitLine: { show: false } }),
       ],
@@ -2228,13 +2357,14 @@
             formatter: (v) => (x.id === 'FUT' ? (v >= 1e4 ? (v / 1e4).toFixed(1) + ' 萬' + unit : f.i(v) + ' ' + unit) : f.yi(v * 1e6)) } }),
       ],
       series: [
-        { type: 'line', data: price, showSymbol: false, connectNulls: false, xAxisIndex: 0, yAxisIndex: 0,
+        // sparse：資料湖 15 分 K 退回來的點每 15 分鐘才一個，不連起來就只剩一顆顆看不見的點
+        { type: 'line', data: price, showSymbol: false, connectNulls: !!d.sparse, xAxisIndex: 0, yAxisIndex: 0,
           lineStyle: { color: col, width: 1.6 },
           areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: hexa(col, .30) }, { offset: 1, color: hexa(col, 0) }]) },
           markLine: { silent: true, symbol: 'none', label: { show: true, position: 'insideEndTop', color: A.CH.ink3, fontSize: 10, formatter: (d.prevLabel || '昨收') + ' ' + f.n(d.prev, dp) },
             lineStyle: { color: A.CH.ink3, type: 'dashed', width: 1 },
-            data: [{ yAxis: d.prev }] } },
+            data: d.prev != null ? [{ yAxis: d.prev }] : [] } },
         { type: 'bar', data: vol, xAxisIndex: 1, yAxisIndex: 1, barWidth: '70%',
           itemStyle: { color: (p) => {
             const i = p.dataIndex; const prev = i > 0 ? H.price[i - 1] : d.prev;   // 同上：讀 H
@@ -2281,6 +2411,8 @@
   const pulseId = (x, d) => x.id + (d && d.night ? 'N' : '');
   /** 記一次「這條線有沒有往前走」。第一次看到只記身分、不算走過（見上面最後一句）。 */
   function markMove(x, d) {
+    // 資料湖種子（盤後先畫的最近交易日）不是「往前走」—— 不記身分，真的分時回來那一次才算第一次看到
+    if (d && d.seed) return;
     const k = tipKey(d);
     if (!k) return;
     const id = pulseId(x, d);
@@ -2465,6 +2597,14 @@
             ? '夜盤日 K 資料湖還沒長出來（FUT_N），先用一般交易時段（日盤）那一條'
             : '這是夜盤（盤後交易時段）的日 K，跟上面的日盤是兩條不同的線');
         }
+        /* ★ 2026-10-04 Andy 16:10 截圖：台指期標頭 49,346（夜盤即時）、K 線右側卻是 48,475.00，跟加權收盤
+           48,475.74 幾乎一樣，懷疑拿錯序列。查證：那根是 FUT_N（夜盤日 K）10-02 那一盤的收盤 48,475，
+           FUT（日盤）是 48,671、加權 48,475.74 —— 三條是各自的資料，數字相近是巧合，序列沒有拿錯。
+           真正讓人誤會的是「沒講這條 K 線是哪一條、資料到哪一天」，所以每張卡都標出來。*/
+        const src = (state.lakeDaily || {})[lakeSym(x)] || [];
+        const lastDay = src.length ? String(src[src.length - 1][0]) : '';
+        const which = x.id === 'FUT' ? (isNight(x) && !state.lakeBack[key] ? '台指期夜盤日 K' : '台指期日盤日 K') : x.short + '日 K';
+        if (lastDay) says.push(`${which}・資料至 ${lastDay}`);
       }
       if (says.length) el.dataset.fallback = says.join('　·　'); else delete el.dataset.fallback;
     } else {
@@ -2473,7 +2613,7 @@
          現在 15 分＝湖的 15 分 K 接今天（同一個 mergeLake 規則，今天那一盤以證交所分時為準），
          30 分＝同一份 15 分 K 兩根併一根。1／5 分湖裡沒有，照舊只有今天。夜盤接 FUT_N（期交所逐筆，2026-09-26 起）。*/
       const n = +state.tf;
-      const today = (d && d.points && d.points.length) ? toBars(d.points, n, volUnit(x)) : [];
+      const today = (d && !d.seed && d.points && d.points.length) ? toBars(d.points, n, volUnit(x)) : [];
       // ★ 2026-09-26：夜盤也接湖（期交所逐筆合成的 FUT_N 15 分 K）；湖裡沒有夜盤時 M15 是空的，照舊只有今晚。
       if ((n === 15 || n === 30) && state.lakeIntra === undefined) loadLakeIntra();
       const m15 = (n === 15 || n === 30) ? (((state.lakeIntra || {})[(d && d.night) ? 'FUT_N' : x.id] || {}).M15 || []) : [];
@@ -2686,5 +2826,9 @@
     parseFutChart, tickMin,                      // 驗收用：時間欄位的坑（046000）有沒有處理對
     futSymbol,                               // 驗收用：/fut 掛掉時推算出來的近月合約代號
     isIntraday,
+    /** 驗收用：2026-10-04 起下拉只剩日／週／月，分 K 與 1H／4H 的合成程式碼還在（走勢圖的點、舊驗收），
+     *  舊驗收改走這裡把週期釘過去 —— 使用者沒有入口碰得到，也不寫進 localStorage。 */
+    forceTf(v) { state.tf = String(v); draw(); },
+    lakeDay(id) { return lakeDay(IDX.find(x => x.id === id)); },   // 驗收用：盤後退回資料湖那一天（2026-10-04）
   };
 })();

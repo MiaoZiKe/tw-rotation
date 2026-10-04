@@ -3157,6 +3157,18 @@ def _want(only: str, name: str) -> bool:
     return any(part.strip() and part.strip() in name for part in only.split(","))
 
 
+
+def _m3_tf(pg, tf):
+    """大盤三張圖切週期。2026-10-04 起下拉只剩 D／W／M（Andy：「週期只留下 日周月」）——
+    下拉裡有的照舊真的去選；被拿掉的（分 K、1H／4H、季 K）走 Market3.forceTf 驗收入口，
+    驗的是還留著的合成程式碼，不是使用者選得到的東西。"""
+    has = pg.evaluate("(v) => !!document.querySelector('#m3Tf option[value=\"' + v + '\"]')", str(tf))
+    if has:
+        pg.select_option("#m3Tf", str(tf))
+    else:
+        pg.evaluate("(v) => window.Market3.forceTf(v)", str(tf))
+
+
 def t_new_market3(pg, base):
     """大盤三張圖（site/market3.js）：夜盤與日盤共用走勢圖、歷史至少三年。
 
@@ -3389,7 +3401,7 @@ def t_new_market3(pg, base):
 
     # --- ★ 夜盤也要有 K 線（跟日盤同一顆鈕、同一個容器）
     click(pg, "#m3Mode button[data-m='k']", 1500)
-    pg.select_option("#m3Tf", "1"); pg.wait_for_timeout(1500)
+    _m3_tf(pg, "1"); pg.wait_for_timeout(1500)
     nk = pg.evaluate("() => { const k = window.Market3.state.kcharts.FUT; return k ? k.data.length : 0; }")
     ok("夜盤在 K 線模式真的畫出 K 棒", nk >= 5, nk)
     ok("夜盤 K 線也是 Lightweight Charts（跟日盤同一套）",
@@ -3439,20 +3451,21 @@ def t_new_market3(pg, base):
         ok(f"{why}的日 K 有三年份（≥ 729 根）", dbars[i] >= 729, dbars)
     ok("歷史夠長時，上方說明會寫出涵蓋到哪一天", "目前日線涵蓋" in text(pg, "#m3Note"), text(pg, "#m3Note")[-60:])
     ok("歷史夠長時不會再出現「回補中」那行警告",
-       pg.evaluate("() => !document.getElementById('m3c-TSE').dataset.fallback"),
+       # 2026-10-04 起每張日 K 都會標「加權日 K・資料至 …」（說明哪一條、到哪天），那不是警告 —— 只擋「回補」字樣
+       pg.evaluate("() => !/回補|不到/.test(document.getElementById('m3c-TSE').dataset.fallback || '')"),
        pg.evaluate("() => document.getElementById('m3c-TSE').dataset.fallback"))
 
     # --- ★ 週 K：三年份至少 100 多根（Andy 的截圖只有 7 根）
-    pg.select_option("#m3Tf", "W"); pg.wait_for_timeout(2000)
+    _m3_tf(pg, "W"); pg.wait_for_timeout(2000)
     wbars = {i: pg.evaluate("(id) => { const k = window.Market3.state.kcharts[id];"
                             " return k ? k.data.length : 0; }", i) for i in ("TSE", "OTC", "FUT")}
     for i, why in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
         ok(f"{why}的週 K 有 100 根以上（三年週線）", wbars[i] >= 100, wbars)
     ok("週 K 的根數大約是日 K 的五分之一", wbars["TSE"] < dbars["TSE"] / 3, f"{dbars['TSE']} → {wbars['TSE']}")
-    pg.select_option("#m3Tf", "M"); pg.wait_for_timeout(2000)
+    _m3_tf(pg, "M"); pg.wait_for_timeout(2000)
     mbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
     ok("月 K 有 30 根以上（三年月線）", mbars >= 30, mbars)
-    pg.select_option("#m3Tf", "Q"); pg.wait_for_timeout(2000)
+    _m3_tf(pg, "Q"); pg.wait_for_timeout(2000)
     qbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
     ok("季 K 有 10 根以上（三年季線）", qbars >= 10, qbars)
 
@@ -3594,7 +3607,7 @@ def t_new_market3(pg, base):
 
     # ---- ★ K 線：也是一整晚，而且高低是真的（不是 max(開, 收) 合成出來的）
     click(pg, "#m3Mode button[data-m='k']", 800)
-    pg.select_option("#m3Tf", "1")
+    _m3_tf(pg, "1")
     kbars = wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT;"
                            " return k && k.data.length > 800 ? k.data.length : 0; }", 8000)
     ok("夜盤 K 線也是一整晚（800 根以上）", (kbars or 0) > 800, kbars)
@@ -3879,9 +3892,11 @@ def t_new_market3(pg, base):
     #   改後：這一段明確攔截 index_intraday.json 回空物件 ——「湖裡沒有」是這一段要驗的前提，
     #   所以用攔截把前提寫死，而不是依賴本機資料湖剛好是空的。讀湖的情況在下面「資料湖」那一段另外驗。
     pg.route("**/data/index_intraday.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="{}"))
+    # 2026-10-04 起盤後一開頁就會先讀湖（seedLake），App.load 會把真的湖快取起來 —— 攔截之後要重進一次頁面，前提才真的是「湖是空的」
+    fresh(sess="day")
     pg.evaluate("() => { window.Market3.state.lakeIntra = undefined; }")
     click(pg, "#m3Mode button[data-m='k']", 900)
-    pg.select_option("#m3Tf", "H1")
+    _m3_tf(pg, "H1")
     h1 = {i: wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '60m' && k.data.length; }" % i, 8000) for i in ("TSE", "OTC", "FUT")}
     pg.wait_for_timeout(400)
     st = {i: pg.evaluate(HOUR, i) for i in ("TSE", "OTC", "FUT")}
@@ -3900,13 +3915,13 @@ def t_new_market3(pg, base):
            st[i] and "尚未累積" in st[i]["fb"] and "只含今日" in st[i]["fb"] and len(st[i]["fb"]) <= 30
            and "已改用" not in st[i]["fb"], st[i])
         ok(f"{nm}：今天的分時有實量 → 量柱照畫、每根 > 0", st[i] and st[i]["vol"] and st[i]["pos"] == st[i]["n"], st[i])
-    pg.select_option("#m3Tf", "H4")
+    _m3_tf(pg, "H4")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.TSE; return k && k.tf === '240m'; }", 8000)
     pg.wait_for_timeout(400)
     h4 = pg.evaluate(HOUR, "TSE")
     ok("★ 4 小時＝一個交易時段一根：湖是空的只有今天 → 1 根（在 09:00），照畫不退回日 K",
        h4 and h4["tf"] == "240m" and h4["n"] == 1 and h4["hours"] == [9], h4)
-    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(800)
+    _m3_tf(pg, "H1"); pg.wait_for_timeout(800)
     # Yahoo 也要一起掛：否則 1 分線備援（fetchYahoo1m）會從假的 /y 拿到 20 天的點，當成「今天的分時」
     Y15["ok"] = False
     pg.unroute("**/chart?*")
@@ -3954,13 +3969,13 @@ def t_new_market3(pg, base):
     pg.route("**/data/index_intraday.json*", fake_intra)
     fresh(sess="day")
     click(pg, "#m3Mode button[data-m='k']", 900)
-    pg.select_option("#m3Tf", "H1")
+    _m3_tf(pg, "H1")
     for i in ("TSE", "OTC", "FUT"):
         wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '60m' && k.data.length > 5; }" % i, 8000)
     pg.wait_for_timeout(400)
     for tf, tfn in (("H1", "60m"), ("H4", "240m")):
         if tf == "H4":
-            pg.select_option("#m3Tf", "H4")
+            _m3_tf(pg, "H4")
             for i in ("TSE", "OTC", "FUT"):
                 wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '240m'; }" % i, 8000)
             pg.wait_for_timeout(400)
@@ -4000,7 +4015,7 @@ def t_new_market3(pg, base):
     pg.route("**/data/index_intraday.json*", fake_intra3)
     fresh(sess="day")                              # App.load 有快取，換湖要重新進頁
     click(pg, "#m3Mode button[data-m='k']", 900)
-    pg.select_option("#m3Tf", "H4")
+    _m3_tf(pg, "H4")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.OTC; return k && k.tf === '240m' && k.data.length === 3; }", 8000)
     pg.wait_for_timeout(300)
     o3 = pg.evaluate(HOUR, "OTC")
@@ -4040,7 +4055,7 @@ def t_new_market3(pg, base):
     pg.route("**/data/index_intraday.json*", fake_intra_tx(True))
     fresh(sess="day")
     click(pg, "#m3Mode button[data-m='k']", 900)
-    pg.select_option("#m3Tf", "H1")
+    _m3_tf(pg, "H1")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m' && k.data.length > 50; }", 8000)
     pg.wait_for_timeout(300)
     tx = pg.evaluate(HOUR, "FUT")
@@ -4050,7 +4065,7 @@ def t_new_market3(pg, base):
     fresh(sess="night")
     wait_until(pg, "() => window.Market3.shown === 'night'", 6000)
     click(pg, "#m3Mode button[data-m='k']", 900)
-    pg.select_option("#m3Tf", "H1")
+    _m3_tf(pg, "H1")
     got_n = wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m' && k.data.length > 100; }", 8000)
     pg.wait_for_timeout(300)
     txn = pg.evaluate(HOUR, "FUT")
@@ -4064,7 +4079,7 @@ def t_new_market3(pg, base):
     fresh(sess="night")
     wait_until(pg, "() => window.Market3.shown === 'night'", 6000)
     click(pg, "#m3Mode button[data-m='k']", 900)
-    pg.select_option("#m3Tf", "H1")
+    _m3_tf(pg, "H1")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.FUT; return k && k.tf === '60m'; }", 8000)
     pg.wait_for_timeout(300)
     txz = pg.evaluate(HOUR, "FUT")
@@ -4075,7 +4090,7 @@ def t_new_market3(pg, base):
     pg.route("**/data/index_intraday.json*", fake_intra)
     fresh(sess="day")
     click(pg, "#m3Mode button[data-m='k']", 900)
-    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(300)
+    _m3_tf(pg, "H1"); pg.wait_for_timeout(300)
 
     # --- ★ 2026-09-25：線上「1H／4H 報 Value is null 約 35 筆、H4 TSE 游標看板沒出現」的重現與防線。
     #     根因：「今天的分時」比湖裡最後一天還舊時被直接接在最後 → 時間倒退 → 圖表庫正式版不驗、畫圖時內部炸掉。
@@ -4113,7 +4128,7 @@ def t_new_market3(pg, base):
         return kt
 
     for tf, tfn in (("H1", "60m"), ("H4", "240m")):
-        pg.select_option("#m3Tf", tf)
+        _m3_tf(pg, tf)
         for i in ("TSE", "OTC", "FUT"):
             wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '%s' && k.data.length > 5; }" % (i, tfn), 8000)
         pg.wait_for_timeout(500)
@@ -4164,10 +4179,18 @@ def t_new_market3(pg, base):
         const c = document.querySelector("#m3Grid .m3-card[data-id='" + id + "']");
         return { id, kind: e.dataset.kind, fb: e.dataset.fallback || '', txt: e.innerText.slice(0, 60),
                  px: (c.querySelector('.m3-px') || {}).textContent || '' }; })""")
-    ok("★ 分時連不到 → 三張都退到資料湖日 K（畫得出 K 棒，不是一行錯誤）", all(x["kind"] == "k" for x in lk), lk)
+    # ★ 2026-10-04：非交易時段（這段跑在真時鐘上）改成「先畫資料湖最近完整交易日的走勢」（Andy：開頁不要先閃日 K），
+    #   盤中分時連不到才照舊退日 K。兩種時段各驗各的，不是放寬。
+    intra = pg.evaluate("() => window.Market3.isIntraday()")
+    if intra:
+        ok("★ 分時連不到 → 三張都退到資料湖日 K（畫得出 K 棒，不是一行錯誤）", all(x["kind"] == "k" for x in lk), lk)
+    else:
+        seeded = pg.evaluate("() => ['TSE','OTC','FUT'].map(id => !!(window.Market3.state.data[id] || {}).seed)")
+        ok("★ 非交易時段分時連不到 → 有湖種子的卡畫最近交易日走勢，沒有的退日 K",
+           all(x["kind"] == ("line" if sd else "k") for x, sd in zip(lk, seeded)), [lk, seeded])
     ok("★ 台指期的大數字也補上資料湖收盤（不再是「—」）", all(x["px"].strip() not in ("", "—") for x in lk), lk)
     ok("★ 錯誤訊息一律中文（畫面上不准出現 Failed to fetch）",
-       not any("Failed" in (x["fb"] + x["txt"]) for x in lk) and all("資料湖" in x["fb"] for x in lk), lk)
+       not any("Failed" in (x["fb"] + x["txt"]) for x in lk) and all("資料湖" in x["fb"] for x in lk if x["kind"] == "k"), lk)
 
     # --- ★ 游標：走勢圖讀得到價格＋該分鐘量；K 線每個週期讀得到開高低收＋量（Andy：部分圖不能顯示、還會報錯）
     pg.unroute("**/chart?*")
@@ -4215,7 +4238,7 @@ def t_new_market3(pg, base):
            and (idx == "FUT" or "張" not in tipx), tipx[:80])
     click(pg, "#m3Mode button[data-m='k']", 900)
     for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
-        pg.select_option("#m3Tf", tf); pg.wait_for_timeout(1300)
+        _m3_tf(pg, tf); pg.wait_for_timeout(1300)
         for idx in ("TSE", "OTC", "FUT"):
             hover(idx, None)
             kt = pg.evaluate("(id) => { const b = document.querySelector('#m3c-' + id + ' .m3-ktip');"
@@ -4298,7 +4321,7 @@ def t_new_market3(pg, base):
     # 哪幾張、哪個週期「本來就有幾根沒量」（照實留空，不估）：加權 1H 前 20 天 × 5 根、4H／日 K 那兩天日線是 0
     NOVOL = {("TSE", "H1"): 20 * 5, ("TSE", "H4"): 2, ("TSE", "D"): 2}
     for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
-        pg.select_option("#m3Tf", tf)
+        _m3_tf(pg, tf)
         tfn = {"H1": "60m", "H4": "240m", "D": "1d", "W": "1d", "M": "1d", "Q": "1d"}.get(tf, tf + "m")
         for i in ("TSE", "OTC", "FUT"):
             wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '%s' && v.pos > 0; }" % (i, tfn), 8000)
@@ -4319,7 +4342,7 @@ def t_new_market3(pg, base):
        all(v15[i] and v15[i]["n"] <= 21 for i in ("OTC", "FUT")), [v15["OTC"], v15["FUT"]])
     ok("30 分：加權一樣是多日（根數約 15 分的一半）",
        vinfo["30"]["TSE"] and v15["TSE"]["n"] * 0.4 < vinfo["30"]["TSE"]["n"] < v15["TSE"]["n"] * 0.7, [v15["TSE"], vinfo["30"]["TSE"]])
-    pg.select_option("#m3Tf", "15")
+    _m3_tf(pg, "15")
     wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '15m'; }", 8000)
     pg.wait_for_timeout(300)
     q15 = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const t = Date.UTC(2026, 7, 26, 10) / 1000;
@@ -4341,7 +4364,7 @@ def t_new_market3(pg, base):
        vinfo["H1"]["TSE"] and vinfo["H1"]["TSE"]["n"] >= 41 * 5, vinfo["H1"]["TSE"])
     ok("★ 加權 4H 一盤一根的量＝當天日線實際總量（≥ 38 天）、日線是 0 的 2 天照實空著、沒有任何估算",
        vinfo["H4"]["TSE"] and vinfo["H4"]["TSE"]["day"] >= 38 and vinfo["H4"]["TSE"]["est"] == 0, vinfo["H4"]["TSE"])
-    pg.select_option("#m3Tf", "H4")
+    _m3_tf(pg, "H4")
     wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '240m'; }", 8000)
     pg.wait_for_timeout(300)
     h4v = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const f = (y, m, d) => {
@@ -4355,7 +4378,7 @@ def t_new_market3(pg, base):
     ok("★ 加權 4H 2026-08-05（日線也是 0）那根照實沒有量，不拿前後日平均補", not h4v["zero"], h4v)
 
     # --- 1H：Yahoo 那 20 天照實沒量，不再用「日總量 × 分布」估
-    pg.select_option("#m3Tf", "H1")
+    _m3_tf(pg, "H1")
     wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '60m'; }", 8000)
     pg.wait_for_timeout(300)
     s1 = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const sum = (d0) => {
@@ -4396,7 +4419,7 @@ def t_new_market3(pg, base):
     ok("★ 游標看板再也沒有「估」字徽章", pg.evaluate("() => document.querySelectorAll('#m3Grid .m3-est').length") == 0)
 
     # --- 日 K：湖裡量是 0 的那兩天照實空著（不補）
-    pg.select_option("#m3Tf", "D")
+    _m3_tf(pg, "D")
     wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '1d'; }", 8000)
     pg.wait_for_timeout(300)
     zd = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; return ['2026-08-05', '2026-08-06', '2026-08-07'].map(t => {
@@ -4404,7 +4427,7 @@ def t_new_market3(pg, base):
     ok("★ 日 K：湖裡量 0 的那兩天照實是 0（不拿前後日平均補），隔天照常有量", zd[:2] == [0, 0] and (zd[2] or 0) > 0, zd)
 
     # --- 台指期：量的單位是「口」；加權分時的 s 是成交金額（百萬元）→ K 棒存「元」
-    pg.select_option("#m3Tf", "1")
+    _m3_tf(pg, "1")
     wait_until(pg, "() => { const v = window.Market3.volInfo('FUT'); return v && v.tf === '1m'; }", 8000)
     pg.wait_for_timeout(300)
     fv = pg.evaluate("() => { const k = window.Market3.state.kcharts.FUT; return k.data.slice(0, 3).map(b => b.volume); }")
@@ -4427,7 +4450,7 @@ def t_new_market3(pg, base):
     pg.set_viewport_size({"width": 390, "height": 860})
     pg.wait_for_timeout(800)
     click(pg, "#v-overview .mspine>button:nth-child(2)", 1200)
-    pg.select_option("#m3Tf", "H1")
+    _m3_tf(pg, "H1")
     for i in ("TSE", "OTC", "FUT"):
         wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '60m' && v.pos > 0; }" % i, 8000)
     pg.wait_for_timeout(500)
@@ -11024,7 +11047,10 @@ def t_live_sse(pg, base):
     pg.evaluate("() => { try { localStorage.setItem('tw.sse', '1'); } catch (e) {} }")
     # ★ 2026-09-24：「更新」鈕拿掉了，要讓輪詢走一輪改成觸發 live.js 自己排的計時器（IV_RECORDER 記下來的那顆）
     pg.add_init_script(IV_RECORDER)
-    pg.reload(wait_until="load")
+    # 不用 reload：這頁跑過三種週期 × 三張圖之後 reload 偶爾讓 Chromium 分頁崩潰（跟功能無關），改走一趟 about:blank
+    url = pg.url
+    pg.goto("about:blank")
+    pg.goto(url, wait_until="load")
     pg.wait_for_timeout(2500)
     px = text(pg, SEL_PX)
     ok("SSE 連不上時畫面照樣拿到即時價（999）", "999" in px, px)
@@ -11302,11 +11328,11 @@ def t_market3(pg, base):
 
     # --- 5. ★ 換週期：K 棒數量真的變了
     bars5 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
-    pg.select_option("#m3Tf", "15"); pg.wait_for_timeout(1200)
+    _m3_tf(pg, "15"); pg.wait_for_timeout(1200)
     bars15 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
     changed("換成 15 分之後 K 棒數量真的變了", bars5, bars15)
     ok("15 分的根數大約是 5 分的三分之一", bars15 * 2 < bars5, f"{bars5} → {bars15}")
-    pg.select_option("#m3Tf", "1"); pg.wait_for_timeout(1200)
+    _m3_tf(pg, "1"); pg.wait_for_timeout(1200)
     bars1 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
     ok("1 分是最多根的", bars1 > bars5 > bars15, f"1分{bars1} / 5分{bars5} / 15分{bars15}")
     ok("1 分 K 有實體（開＝前一分收，不是四價合一的一字線）",
@@ -11347,7 +11373,7 @@ def t_market3(pg, base):
     #     Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據，CEO幫我處理」——
     #     Yahoo 的 ^TWOII 壞掉不代表沒有別條，改用 FinMind 存進資料湖再吐給前端。
     bars_of = "(id) => { const k = window.Market3.state.kcharts[id]; return k ? k.data.length : 0; }"
-    pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(2000)
+    _m3_tf(pg, "D"); pg.wait_for_timeout(2000)
     ok("切到日 K 之後狀態真的是 D", pg.evaluate("() => window.Market3.state.tf") == "D")
     dbars = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
     ok("加權的日 K 真的畫出來了（根數遠多於當天分 K）", dbars["TSE"] > 100, dbars["TSE"])
@@ -11361,14 +11387,14 @@ def t_market3(pg, base):
     # 週／月／季是拿日線合成的，根數要一路遞減
     counts = {}
     for tf, label in (("W", "週"), ("M", "月"), ("Q", "季")):
-        pg.select_option("#m3Tf", tf); pg.wait_for_timeout(1600)
+        _m3_tf(pg, tf); pg.wait_for_timeout(1600)
         counts[tf] = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
         ok(f"{label} K 三張都畫得出來", all(v > 0 for v in counts[tf].values()), counts[tf])
     ok("週 K 根數約為日 K 的五分之一",
        0 < counts["W"]["TSE"] < dbars["TSE"] / 3, f"日 {dbars['TSE']} / 週 {counts['W']['TSE']}")
     ok("月 K 比週 K 少", counts["M"]["TSE"] < counts["W"]["TSE"], counts)
     ok("季 K 又比月 K 少", counts["Q"]["TSE"] < counts["M"]["TSE"], counts)
-    pg.select_option("#m3Tf", "1"); pg.wait_for_timeout(1500)
+    _m3_tf(pg, "1"); pg.wait_for_timeout(1500)
 
     saved = pg.evaluate("() => [localStorage.getItem('tw.m3.mode'), localStorage.getItem('tw.m3.tf')]")
     ok("模式與週期真的存進 localStorage", saved[0] == "k" and saved[1] == "1", saved)
@@ -17565,7 +17591,7 @@ def t_index_kline_0928(pg, base):
                  from: r ? r.from : null, pos: k.data.filter(b => b.volume > 0).length }; }"""
 
     def pick(tf, ids=("TSE", "OTC", "FUT"), tfn=None):
-        pg.select_option("#m3Tf", tf)
+        _m3_tf(pg, tf)
         tfn = tfn or {"H1": "60m", "H4": "240m", "D": "1d"}.get(tf, tf + "m")
         for i in ids:
             wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '%s' && k.data.length; }" % (i, tfn), 10000)
@@ -18737,6 +18763,225 @@ def t_tick_live_lead(b, base):
 #   ⑥ 只有盤中來源的卡片有開關：季節性等歷史資料頁一顆都沒有；盤後節奏維持 30 分鐘
 LV5_INTRA = "2026-09-29T02:30:00Z"      # 台北 10:30（盤中）
 LV5_AFTER = "2026-09-29T12:30:00Z"      # 台北 20:30（盤後）
+
+
+# ===================================================================== 大盤三張圖：週日（非交易日）
+# Andy 2026-10-04（週日）15:14 截圖：加權走勢只剩 13:15～13:30 一小段、從 46,000 暴衝到 51,000，
+# 5 分 K 冒出 14:01～15:00 的棒。重現兩種情境（假時鐘＝台北 2026-10-04 週日 15:14:50）：
+#   A「Yahoo 殘段」：證交所 /chart 回空 → 退 Yahoo，Yahoo 給 13:11～15:00 的亂值（這就是截圖那一種）
+#   B「盤後報價」：/chart 有週五完整一天，但 live.js 的 t00／o00 時間是 13:33（以前會往後補一個 13:3x 的點）
+# 驗：走勢點數涵蓋 09:00～13:30、沒有任何點 > 13:30、5 分 K 沒有 > 13:30 的棒、y 軸包住昨收與現值。
+# ⚠ A 情境退的是資料湖最近一個完整交易日的 15 分 K，所以這段的前提是本機 site/data/index_intraday.json 存在。
+M3SUN_CLOCK = "2026-10-04T07:14:50Z"
+
+def dwm_check(pg):
+    """2026-10-04 Andy：「週期只留下 日周月，需確保數據完整」—— 真的點 K 線、真的切三個週期，驗三張卡的資料。
+    最新交易日讀本機 index_ohlc.json 的加權最後一天（不寫死日期，資料湖往前走這段照樣成立）。"""
+    import json as _json
+    import datetime as _D
+    last_day = _json.loads((SITE / "data" / "index_ohlc.json").read_text(encoding="utf-8"))["TSE"][-1][0]
+    pg.click("#m3Mode button[data-m=k]")
+    pg.wait_for_timeout(600)
+    opts = pg.evaluate("() => [...document.querySelectorAll('#m3Tf option')].map(o => o.value)")
+    ok("★ [日周月] 週期下拉只剩 日 K／週 K／月 K", opts == ["D", "W", "M"], opts)
+    MIN = {"D": 1000, "W": 200, "M": 50}
+    for tf in ("D", "W", "M"):
+        pg.select_option("#m3Tf", tf)
+        pg.wait_for_timeout(1800)
+        r = pg.evaluate("""() => { const o = {}; ['TSE','OTC','FUT'].forEach(id => { const c = window.Market3.state.kcharts[id];
+            const el = document.getElementById('m3c-' + id);
+            const t = (r) => typeof r.time === 'string' ? r.time : (typeof r.time === 'number'
+                ? new Date(r.time * 1000).toISOString().slice(0, 10)
+                : (r.time && r.time.year ? `${r.time.year}-${String(r.time.month).padStart(2,'0')}-${String(r.time.day).padStart(2,'0')}` : ''));
+            const ds = c && c.data ? c.data.map(t) : [];
+            o[id] = { n: ds.length, first: ds[0], last: ds[ds.length - 1], ds: ds, tf: c && c.tf,
+                      vol: c && c.data ? c.data.filter(r => r.volume > 0).length : 0, note: el ? (el.dataset.fallback || '') : '' }; });
+            return o; }""")
+        for id_, v in r.items():
+            ds = v.pop("ds")
+            gap = 0
+            for a, b2 in zip(ds, ds[1:]):
+                try:
+                    gap = max(gap, (_D.date.fromisoformat(b2) - _D.date.fromisoformat(a)).days)
+                except ValueError:
+                    gap = 999
+            lim = {"D": 15, "W": 21, "M": 62}[tf]       # 日：10 個交易日≈14 天（春節最長 9 天休市）；週／月放寬到「沒有整段缺」
+            ok(f"★ [日周月] {id_} {tf}：至少 {MIN[tf]} 根、最後一根＝最新交易日 {last_day}、沒有超過 {lim} 天的斷層、量 > 0",
+               v["n"] >= MIN[tf] and v["last"] == last_day and gap <= lim and v["vol"] >= v["n"] * 0.9,
+               dict(v, gap=gap))
+            if tf == "D":
+                ok(f"[日周月] {id_} 日 K 卡上講清楚是哪一條、資料到哪一天", ("資料至 " + last_day) in v["note"], v["note"])
+    fut = pg.evaluate("() => (document.getElementById('m3c-FUT') || {}).dataset.fallback || ''")
+    ok("★ [日周月] 台指期 K 線標明是日盤或夜盤那一條（不再讓人以為拿到加權的線）",
+       "台指期日盤日 K" in fut or "台指期夜盤日 K" in fut, fut)
+
+
+
+
+def t_m3_sunday(b, base, code):
+    import json as _json
+    import datetime as _D
+    from urllib.parse import urlparse, parse_qs
+    TZ8 = _D.timezone(_D.timedelta(hours=8))
+    FRI = int(_D.datetime(2026, 10, 2, 9, 0, tzinfo=TZ8).timestamp() * 1000)
+    PREV = {"TSE": 48475.0, "OTC": 426.0}
+
+    def one(sc):
+        """一個情境一個 closure —— 不能用預設參數綁 sc：Playwright 會把 request 當第二個參數塞進來蓋掉它。"""
+        K = {"n": 0}
+
+        def chart(route):
+            cid = (parse_qs(urlparse(route.request.url).query).get("id") or ["TSE"])[0]
+            y = PREV.get(cid, 48700.0)
+            pts = [] if sc == "A" else [{"t": str(FRI + (i + 1) * 60000), "c": f"{y * (0.999 + (i % 30) * 0.00005):.2f}", "s": "100"}
+                                       for i in range(270)]
+            info = {"n": cid, "d": "20261002", "t": "13:30:00", "y": f"{y}", "o": f"{y}", "h": f"{y * 1.003:.2f}",
+                    "l": f"{y * 0.997:.2f}", "z": f"{y * 0.999:.2f}", "v": "600000"}
+            route.fulfill(status=200, content_type="application/json",
+                          body=_json.dumps({"infoArray": [info], "ohlcArray": pts, "staticObj": {"tv": "1"}}))
+
+        def yahoo(route):
+            sym = (parse_qs(urlparse(route.request.url).query).get("symbol") or ["^TWII"])[0]
+            y = PREV["OTC"] if "TWOII" in sym else PREV["TSE"]
+            t0 = int(_D.datetime(2026, 10, 2, 13, 11, tzinfo=TZ8).timestamp())
+            ts = [t0 + i * 60 for i in range(110)]
+            cl = [y * 0.95 if i == 0 else (y * 1.05 if i < 20 else y * 0.999) for i in range(110)]
+            route.fulfill(status=200, content_type="application/json", body=_json.dumps({"chart": {"result": [{
+                "meta": {"chartPreviousClose": y, "regularMarketPrice": y * 0.999}, "timestamp": ts,
+                "indicators": {"quote": [{"close": cl, "volume": [0] * len(ts)}]}}]}}))
+
+        def quote(route):
+            ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+            K["n"] += 1
+            # B：13:33 —— 離最後一點 13:30 只差 3 分鐘，舊版 patchLive 會當成「新的一分鐘」往後補一個 13:33 的點
+            tt = "13:33:00" if sc == "B" else "14:30:00"
+            arr = []
+            for tok in [t for t in ex.split("|") if t]:
+                try:
+                    c = tok.split("_", 1)[1].split(".")[0]
+                except IndexError:
+                    continue
+                y = PREV["TSE"] if c == "t00" else (PREV["OTC"] if c == "o00" else 1000.0)
+                z = 48427.91 if c == "t00" else y * 0.999
+                arr.append({"c": c, "n": c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y}", "o": f"{y}",
+                            "h": f"{y * 1.003:.2f}", "l": f"{y * 0.997:.2f}", "v": "1", "d": "20261002", "t": tt, "tlong": "0"})
+            route.fulfill(status=200, content_type="application/json",
+                          body=_json.dumps({"rtcode": "0000", "msgArray": arr}))
+
+        ctx = b.new_context(viewport={"width": 1440, "height": 1000}, timezone_id="Asia/Taipei")
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"大盤週日{sc} pageerror: {str(e)[:160]}"))
+        pg.clock.install(time=M3SUN_CLOCK)          # ★ 一定要在 goto 之前
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("https://fake-worker.test/**", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
+        pg.route("https://fake-worker.test/chart?*", chart)
+        pg.route("https://fake-worker.test/y?*", yahoo)
+        pg.route("https://fake-worker.test/quote?*", quote)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch (e) {} }")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="load")
+        tag = "Yahoo 殘段" if sc == "A" else "盤後報價"
+        got = wait_until(pg, "() => { const s = window.Market3 && window.Market3.state; return !!(s && ['TSE','OTC'].every(id =>"
+                             " s.data[id] && s.data[id].points && s.data[id].points.length)); }", 20000)
+        ok(f"[大盤週日-{tag}] 週日 15:14 打開總覽，加權、櫃買都拿到走勢資料", bool(got))
+        if not got:
+            ctx.close(); return
+        pg.wait_for_timeout(6000)
+        for _ in range(30):                       # live.js 第一輪報價偶爾晚到（節流閥排隊）—— 最多再等 15 秒
+            if K["n"] >= 1 and sc == "B":
+                pg.wait_for_timeout(1500); break
+            if sc == "A":
+                break
+            pg.wait_for_timeout(500)
+        pg.click("#m3Mode button[data-m=line]"); pg.wait_for_timeout(800)
+        r = pg.evaluate("""() => { const o = {}; ['TSE','OTC'].forEach(id => {
+            const d = window.Market3.state.data[id], el = document.getElementById('m3c-' + id);
+            const ch = el && window.echarts && echarts.getInstanceByDom(el), y = ch ? ch.getOption().yAxis[0] : {};
+            const ps = d.points.map(p => p.min);
+            o[id] = { n: ps.length, first: Math.min(...ps), last: Math.max(...ps), src: d.src || 'mis',
+                      prev: d.prev, cur: d.last, lo: y.min, hi: y.max }; }); return o; }""")
+        if sc == "B":
+            ok(f"[大盤週日-{tag}] 前提：13:33 的報價真的送進頁面了", K["n"] >= 1, K)
+        for id_, v in r.items():
+            ok(f"★ [大盤週日-{tag}] {id_} 走勢點涵蓋 09:00～13:30（第一點 ≤ 09:15、最後一點 = 13:30）",
+               v["first"] <= 9 * 60 + 15 and v["last"] == 13 * 60 + 30, v)
+            ok(f"★ [大盤週日-{tag}] {id_} 沒有任何點晚於 13:30", v["last"] <= 13 * 60 + 30, v)
+            ok(f"★ [大盤週日-{tag}] {id_} y 軸包住昨收與現值（不是 46,000～51,000 那種亂值撐開的）",
+               v["prev"] is not None and v["lo"] is not None and v["lo"] <= v["prev"] <= v["hi"] and v["lo"] <= v["cur"] <= v["hi"]
+               and (v["hi"] - v["lo"]) <= v["prev"] * 0.06, v)
+        # 分 K 合成（2026-10-04 起下拉選不到 5 分，但走勢圖的點仍會被合成）：拿畫面上這份點切 5 分，不准有 13:30 之後的棒
+        k = pg.evaluate("""() => { const o = {}; ['TSE','OTC'].forEach(id => { const d = window.Market3.state.data[id];
+            const bs = window.Market3.toBars(d.points, 5, 1);
+            const ts = bs.map(b => Math.floor((b[0] % 86400) / 60));
+            o[id] = { n: ts.length, max: ts.length ? Math.max(...ts) : null, min: ts.length ? Math.min(...ts) : null }; }); return o; }""")
+        for id_, v in k.items():
+            ok(f"★ [大盤週日-{tag}] {id_} 由走勢點合成的 5 分 K 沒有任何一根晚於 13:30（不再冒出 14:01～15:00）",
+               v["n"] >= 15 and v["max"] is not None and v["max"] <= 13 * 60 + 30 and v["min"] >= 9 * 60, v)
+        if sc == "A":
+            dwm_check(pg)
+        ctx.close()
+
+    for sc in ("A", "B"):
+        one(sc)
+
+
+def t_m3_firstframe(b, base, code):
+    """2026-10-04 Andy：「每次開啟都會先是 K 線圖，然後才切到走勢圖」（16:23 截圖：模式鈕是走勢圖，
+    三張卡卻畫日 K、數字列「—」、標「週末休市…先顯示資料湖的日 K」，之後才跳成走勢圖）。
+    在 goto 之前掛 MutationObserver，記下三張卡每一次 data-kind 的變化與當下的數字列 ——
+    驗「第一次畫出來的就是走勢圖、全程沒有出現過 K 線」與「第一幀數字列就有數字」。
+    Worker 故意慢 3 秒才回（/chart 空、Yahoo 殘段），重現「即時來源還沒回來」那段空窗。"""
+    import json as _json
+    import time as _time
+
+    def slow_empty(route):
+        _time.sleep(3)
+        route.fulfill(status=200, content_type="application/json",
+                      body=_json.dumps({"infoArray": [{}], "ohlcArray": [], "staticObj": {}}))
+
+    for vw in (1440, 390):
+        ctx = b.new_context(viewport={"width": vw, "height": 900}, timezone_id="Asia/Taipei")
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"大盤首幀 pageerror: {str(e)[:160]}"))
+        pg.clock.install(time=M3SUN_CLOCK)
+        pg.add_init_script("""(() => {
+          window.__m3k = [];
+          const seen = new WeakSet();
+          const rec = (el) => { const card = el.closest('.m3-card'); const px = card && card.querySelector('.m3-px');
+            window.__m3k.push([el.id.slice(4), el.dataset.kind || '', px ? px.textContent.trim() : '']); };
+          new MutationObserver((ms) => { ms.forEach(m => {
+              if (m.type === 'attributes' && m.target.id && m.target.id.startsWith('m3c-')) rec(m.target); }); })
+            .observe(document, { subtree: true, attributes: true, attributeFilter: ['data-kind'] });
+        })();""")
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("https://fake-worker.test/**", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
+        pg.route("https://fake-worker.test/chart?*", slow_empty)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch (e) {} }")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="load")
+        pg.wait_for_timeout(9000)
+        log = pg.evaluate("() => window.__m3k")
+        for id_ in ("TSE", "OTC", "FUT"):
+            seq = [k for i, k, _ in log if i == id_ and k]
+            first_px = next((px for i, k, px in log if i == id_ and k == "line"), None)
+            ok(f"★ [大盤首幀 {vw}px] {id_} 週日開頁：第一次畫的就是走勢圖、全程沒出現過 K 線",
+               bool(seq) and seq[0] == "line" and "k" not in seq, seq[:8])
+            ok(f"★ [大盤首幀 {vw}px] {id_} 走勢圖第一次出現時數字列已有數字（不是「—」）",
+               first_px not in (None, "", "—"), first_px)
+        btn = pg.evaluate("() => (document.querySelector('#m3Mode button.on') || {}).dataset.m")
+        ok(f"[大盤首幀 {vw}px] 模式鈕預設停在走勢圖", btn == "line", btn)
+        if vw == 1440:
+            # 存著被拿掉的週期（舊版的「5 分」）→ 重新開頁退回日 K（2026-10-04「週期只留下 日周月」）
+            pg.evaluate("() => { try { localStorage.setItem('tw.m3.tf', '5'); } catch (e) {} }")
+            pg.goto("about:blank")
+            pg.goto(base + "#overview", wait_until="load")
+            wait_until(pg, "() => !!document.getElementById('m3Tf')", 15000)
+            pg.wait_for_timeout(500)
+            v = pg.evaluate("() => [document.getElementById('m3Tf') && document.getElementById('m3Tf').value, window.Market3.state.tf]")
+            ok("★ [日周月] localStorage 存著被拿掉的「5 分」→ 退回日 K", v == ["D", "D"], v)
+        ctx.close()
 
 
 def t_live5s_0929(b, base, code):
@@ -20475,6 +20720,9 @@ SECTIONS = {
     "產業鏈導覽":          lambda pg, b, base, code: t_chainnav(pg, base),
     "一般電子鏈":          lambda pg, b, base, code: t_electronics(pg, base),
     "新-大盤三張圖":       lambda pg, b, base, code: t_new_market3(pg, base),
+    # ★ 2026-10-04 Andy 週日截圖：走勢只剩尾段亂跳、5 分 K 冒出收盤後的棒
+    "新-大盤三張圖-週日":  lambda pg, b, base, code: t_m3_sunday(b, base, code),
+    "新-大盤三張圖-首幀":  lambda pg, b, base, code: t_m3_firstframe(b, base, code),
     # ★ 2026-09-28 Andy：櫃買 1H／4H 有歷史、加權 15／30／1H 真實成交值、量副圖拖一張另外兩張連動
     "大盤K線0928":         lambda pg, b, base, code: t_index_kline_0928(pg, base),
     "新-產業與個股":       lambda pg, b, base, code: t_new_industry(pg, base),
@@ -40913,12 +41161,12 @@ def _ov_fix_0926b_body(pg, base, code):
         return { id, ok: !!(k.paneIndex && k.paneIndex.vol != null) && n > 0 && h >= 25, key: String(k._m3key || '').split('|').slice(1, 3).join('|'), bars: (k.data || []).length, volBars: n, volH: h }; })"""
     for tf, lab in (("D", "日 K"), ("1", "1 分"), ("5", "5 分"), ("15", "15 分"), ("30", "30 分"),
                     ("H1", "1 小時"), ("H4", "4 小時"), ("W", "週 K"), ("M", "月 K")):
-        pg.select_option("#m3Tf", tf)
+        _m3_tf(pg, tf)
         wait_until(pg, "(tf) => ['TSE','OTC','FUT'].every(id => { const k = window.Market3.state.kcharts[id]; return k && String(k._m3key).split('|')[1] === tf; })".replace("(tf) =>", "() =>").replace("=== tf", f"=== '{tf}'"), 6000)
         pg.wait_for_timeout(500)
         r = pg.evaluate(VOL, tf)
         ok(f"★ [0926b-①] {lab}：三張 K 線都有量副圖、量柱 > 0（個股頁關掉成交量也一樣）", all(x["ok"] for x in r), r)
-    pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(1500)
+    _m3_tf(pg, "D"); pg.wait_for_timeout(1500)
     # 個股頁把成交量打開回來 → 個股頁的量副圖要回來（個股頁不能因為這次修改壞掉）
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
     if count(pg, "#lwc canvas") > 0:
