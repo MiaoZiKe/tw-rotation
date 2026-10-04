@@ -59,6 +59,16 @@ segments:
   - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
   - {id: ic_design,    name: "IC 設計",             layer: 1, chain: semiconductor}
   - {id: foundry,      name: "晶圓代工",            layer: 2, chain: semiconductor}
+  # ★ 2026-10-04 新增（Andy：「第三類半導體最大廠 穩懋 宏捷科 怎麼都沒有」）。
+  #   查證結論（semi-chain-analyst，docs/compound_semi_evidence.md）：證交所產業別與 PIDA／TrendForce
+  #   都把化合物半導體當成半導體底下的子領域，所以開在半導體鏈裡，不另開一條鏈。
+  #   跟 foundry 分開的理由：材料（GaAs／InP vs 矽）、客戶（Broadcom／Skyworks／Qorvo 的射頻 PA）
+  #   與終端（手機射頻、Wi-Fi、3D 感測 VCSEL）都不同，跟台積電放同一格讀者看不出它是做什麼用的。
+  - {id: compound_semi, name: "化合物 GaAs/InP 射頻", layer: 2, chain: semiconductor,
+     note: "砷化鎵（GaAs）／磷化銦（InP）的磊晶片與晶圓代工。終端：手機射頻功率放大器（PA）、Wi-Fi、3D 感測 VCSEL、光通訊雷射與光偵測器。
+       ★ 4991 環宇-KY（光偵測器 PD 為主）與 4971 英特磊-KY（MBE 磊晶）查不到具名客戶，依孤立節點規矩暫不放節點"}
+  - {id: wide_bandgap,  name: "第三代半導體 SiC/GaN", layer: 2, chain: semiconductor,
+     note: "碳化矽（SiC）／氮化鎵（GaN）功率元件的磊晶與代工。終端：工業、車用與電動車、綠能，題材是 AI 資料中心 800V 高壓直流電源（目前沒有具名訂單）"}
   - {id: adv_pkg,      name: "先進封裝 CoWoS/SoIC", layer: 3, chain: semiconductor,
      note: "CoWoS/SoIC 由台積電自己做（見晶圓代工），日月光承接外溢（見封測）"}
   - {id: osat_test,    name: "封測 / 測試",         layer: 3, chain: semiconductor}
@@ -564,6 +574,24 @@ companies:
      note: "全球最大半導體前段設備商。連續 16 年獲台積電優良供應商獎"}
   - {id: amd,       ticker: "NASDAQ:AMD",  name: AMD,      segment: ic_design, foreign: true}
   - {id: broadcom,  ticker: "NASDAQ:AVGO", name: Broadcom, segment: ic_design, foreign: true}
+  - {id: skyworks,  ticker: "NASDAQ:SWKS", name: Skyworks, segment: ic_design, foreign: true}
+  - {id: qorvo,     ticker: "NASDAQ:QRVO", name: Qorvo,    segment: ic_design, foreign: true}
+  # ---- 化合物半導體（2026-10-04，來源與信心度見 docs/compound_semi_evidence.md）
+  - {id: win,     ticker: "3105", name: 穩懋,   segment: compound_semi,
+     tech: [GaAs 晶圓代工, InP, GaN, 射頻 PA, VCSEL],
+     note: "全球最大 GaAs 晶圓代工廠（英文名 WIN Semiconductors —— 搜尋摘要曾錯寫成 Wyle，不要採用）。最大客戶 Broadcom 約占 2 成"}
+  - {id: awsc,    ticker: "8086", name: 宏捷科, segment: compound_semi,
+     tech: [GaAs 射頻 PA 代工],
+     note: "英文名 Advanced Wireless Semiconductor（摘要曾錯寫成 Transphorm）。中美晶集團轉投資。Skyworks 過去約 8 成、已降到約 5 成"}
+  - {id: vpec,    ticker: "2455", name: 全新,   segment: compound_semi,
+     tech: [GaAs 磊晶片, InP 磊晶片, VCSEL 磊晶],
+     note: "最上游的磊晶片廠。VCSEL 磊晶已通過穩懋製程認證（終端傳為蘋果，屬間接推論）；光電營收占比「4 成以上」只有單一來源"}
+  - {id: episil,  ticker: "3707", name: 漢磊,   segment: wide_bandgap,
+     tech: [SiC 功率代工, GaN 功率代工, 車用 MOSFET, TVS],
+     note: "產品：化合物功率元件 49%、TVS 17%、車用 MOSFET 14%；應用：工業 44%、車用 28%、消費 21%、綠能 7%（理財周刊）。具名客戶查不到"}
+  - {id: epiepi,  ticker: "3016", name: 嘉晶,   segment: wide_bandgap,
+     tech: [矽磊晶, SiC 磊晶, GaN 磊晶],
+     note: "漢磊集團子公司 —— 合併口徑注意，兩家營收不可重複加總"}
   - {id: marvell,   ticker: "NASDAQ:MRVL", name: Marvell,  segment: ic_design, foreign: true}
   - id: skhynix
     ticker: "KRX:000660"
@@ -1011,6 +1039,20 @@ companies:
 #      代號錯了不只是一行字錯：個股頁會去抓完全另一家公司的股價與營收。
 # 查不到出處的一律**不畫**，讓節點維持孤立並在圖上標「?」。畫錯一條線比留一個「?」糟糕得多。
 edges:
+  # ================================ 化合物半導體（2026-10-04，docs/compound_semi_evidence.md）
+  - {from: win,    to: broadcom, rel: supplies, item: "GaAs 射頻 PA 晶圓代工", strength: 4, confidence: reported,
+     source: "CMoney", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=162625"}
+  - {from: win,    to: skyworks, rel: supplies, item: "GaAs 射頻晶圓代工", strength: 2, confidence: reported,
+     source: "CMoney", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=162625"}
+  - {from: win,    to: qorvo,    rel: supplies, item: "GaAs 射頻晶圓代工", strength: 2, confidence: reported,
+     source: "CMoney", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=162625"}
+  - {from: awsc,   to: skyworks, rel: supplies, item: "GaAs 射頻 PA 代工（約占營收 5 成）", strength: 5, confidence: reported,
+     source: "CMoney", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=162625"}
+  - {from: vpec,   to: win,      rel: supplies, item: "VCSEL / GaAs 磊晶片", strength: 2, confidence: reported,
+     source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/%E7%84%A6%E9%BB%9E%E8%82%A1-vcsel%E8%A3%BD%E7%A8%8B%E8%AA%8D%E8%AD%89%E9%80%9A%E9%81%8E-%E5%85%A8%E6%96%B0-2455-%E7%87%9F%E9%81%8B%E8%93%84%E5%8B%A2%E5%BE%85%E7%99%BC-013959543.html"}
+  - {from: epiepi, to: episil,   rel: supplies, item: "SiC / GaN / 矽磊晶片（集團內）", strength: 3, confidence: reported,
+     source: "富果直送（漢磊／嘉晶法說重點）", source_url: "https://blog.fugle.tw/post/episil-earnings-call-q3-2021",
+     note: "同屬漢民集團的母子公司；嘉晶專做磊晶、主要供應漢磊代工"}
   # ================================ 材料 → 載板 / CCL
   - {from: ajinomoto, to: unimicron,  rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported,
      note: "全球 >95% 市占，近乎獨占；占載板 BOM 成本約 25%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
