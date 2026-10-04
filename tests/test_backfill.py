@@ -676,3 +676,62 @@ def test_指數只拿到部分代號不標done(sandbox, monkeypatch):
     prog = {"done": {}, "complete": {}}
     assert run_backfill.backfill_indices(prog) is False
     assert "index_ohlc" not in prog["complete"]
+
+
+# ---------------------------------------------------------------- 全市場日線（2026-10-04）
+# 4561 健椿（2018 上櫃）K 線只有 15 根：價量回補只涵蓋族群成分股。PLAN_DEFAULT 加了
+# price@2000-01-01@market；逐檔 done 鍵跟 groups 那一步同格式，已補過的不能重抓。
+
+def _px(code):
+    return pd.DataFrame(
+        {"date": ["2018-03-01"], "code": [code], "open": [1.0], "high": [1.0], "low": [1.0], "close": [1.0],
+         "change": [0.0], "volume": [1.0], "turnover": [1.0], "transactions": [1.0], "market": ["FINMIND"]})
+
+
+def test_預設計畫有全市場日線步驟():
+    keys = [run_backfill.datasets_key_of(s["datasets"], s["start"], s.get("tag"), s.get("scope"))
+            for s in run_backfill.PLAN_DEFAULT]
+    assert "price@2000-01-01@market" in keys
+    assert "price@2000-01-01" in keys, "族群那一步保留（完成鍵不同，不互相擋）"
+
+
+def test_全市場日線跳過族群已補的並在額度用完時接續(sandbox, monkeypatch, two_step_plan):
+    two_step_plan[:] = [
+        {"datasets": "price", "start": "2000-01-01", "scope": "groups"},
+        {"datasets": "price", "start": "2000-01-01", "scope": "market"},
+    ]
+    monkeypatch.setattr(run_backfill, "market_codes", lambda: ["2330", "3034", "4561", "4562", "4563"])
+    monkeypatch.setattr(run_backfill.finmind, "dividend_events", lambda c, s, wait=False: pd.DataFrame())
+    monkeypatch.setattr(run_backfill.finmind, "dividend_results", lambda c, s, wait=False: pd.DataFrame())
+    served: list[str] = []
+    budget = {"n": 3}                     # 第三次請求撞到額度（402）
+
+    def fetch(code, start, wait=False):
+        served.append(code)
+        budget["n"] -= 1
+        if budget["n"] <= 0:
+            http.finmind_mark_exhausted()
+            return pd.DataFrame()
+        return _px(code)
+
+    monkeypatch.setattr(run_backfill.finmind, "price_history", fetch)
+    r1 = run_backfill.run_plan("default", None, today=date(2026, 10, 4))
+    assert served == ["2330", "3034", "4561"], "族群步驟補 2330/3034，全市場步驟不重抓它們"
+    assert r1["exhausted"] is True and r1["stopped_at"] == "price@2000-01-01@market"
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert "price@2000-01-01:4561" not in prog["done"], "撞額度才空的那檔不能記成做過"
+    step = prog["complete"]["price@2000-01-01@market"]
+    assert step["done"] is False and step["remaining"]["price"] == 3
+
+    # 下一小時：額度恢復，從 4561 接續；2330/3034 一次都不再問
+    served.clear()
+    budget["n"] = 99
+    http._QUOTA_FILE.unlink()
+    run_backfill._cov_cache.clear()
+    r2 = run_backfill.run_plan("default", None, today=date(2026, 10, 4))
+    assert served == ["4561", "4562", "4563"]
+    assert r2["done"] is True
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert prog["done"]["price@2000-01-01:4563"] is True
+    from pipeline.util import store
+    assert {"4561", "4562", "4563"} <= set(store.read("price_daily")["code"])

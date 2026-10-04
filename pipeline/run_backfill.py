@@ -86,6 +86,15 @@ PLAN_DEFAULT = [
     # ★ 2026-09-27（Andy：「除權息時間軸往前拉到 2009」）：股利公告與除權息結果再往前補 2009～2015。
     #   done 鍵是「dividend@2009-01-01:<代號>」，build_payload.dividend_cover_years 看這個鍵決定年度圖從哪年畫起。
     {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "market"},
+    # ★ 2026-10-04（Andy 截圖：自選頁 4561 健椿 2018 年上櫃，K 線只有 15 根）：價量是唯一還沒有
+    #   全市場版的資料集。上面那一步 price@2000-01-01 是 scope=groups，只涵蓋族群成分股（約 445 檔）；
+    #   其餘約 1,760 檔的 price_daily 只有每日管線（openapi）累積的最近十幾個交易日，
+    #   個股頁因此掉成「簡版頁」。逐檔 done 鍵與 groups 那一步**同一個格式**（price@2000-01-01:<代號>），
+    #   所以已補過完整歷史的那幾百檔直接跳過，不會重抓。一檔一次請求（TaiwanStockPrice 一次回整段歷史）。
+    #   放在最後：前面幾步都已補齊（2026-10-04 進度檔實測），不跟它們搶額度。
+    #   build_payload 不必改：個股頁的名單是「日線 ≥ MIN_PAGE_BARS」就升成完整頁，
+    #   還原價（adjust_prices）吃整張 price_daily，更舊的部分自動寫進 data/hist 分頁 —— 補進來就吃得到。
+    {"datasets": "price",                     "start": "2000-01-01", "scope": "market"},
 ]
 # 請求數估算（2026-09-28 以資料湖實測：market_codes() 1,980 檔，扣掉已有逐檔 done 鍵／已補到起始日的；
 # FinMind 一檔一資料集一次請求，每小時可用約 510 次）：
@@ -94,6 +103,8 @@ PLAN_DEFAULT = [
 #   dividend+divresult 1,507 × 2 ＝ 3,014 次
 #   合計 ≈ 7,340 次 ÷ 510 ≈ 15 輪。排程每天 22 輪（避開每日管線那兩小時），約 15～18 小時補完。
 #   補完之前每一輪都會撞到額度上限而停在這幾步，refresh_stale_inst 的每日續補要等補完才開始跑。
+# 2026-10-04 全市場日線（price@2000-01-01@market）：market_codes() 1,980 檔，扣掉已有 done 鍵的
+#   實測剩 1,513 檔 × 1 次 ≈ 1,513 次 ÷ 每輪約 450～500 次（扣健檢與每日續補）≈ 4 輪，約 4～5 小時。
 PLANS = {"default": PLAN_DEFAULT}
 TAIPEI = timezone(timedelta(hours=8))
 
