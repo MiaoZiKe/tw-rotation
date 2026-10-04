@@ -16157,7 +16157,10 @@ def t_stock_tabs0926(pg, base, code):
     code = code or "2330"
     tag = "個股分頁0926"
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    pg.evaluate("() => { try { localStorage.removeItem('tw.chipWin'); } catch (e) {} }")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.chipWin'); localStorage.removeItem('tw.chipWinHo'); } catch (e) {} }")
+    # ★ 2026-10-04（Andy：「大戶那頁 Default 4 周」）：大戶散戶頁改成自己的區間（tw.chipWinHo，預設 4 週），
+    #   不再跟法人／資券共用 —— 下面「三頁一致」改成「法人、資券兩頁一致；大戶頁自己一條（預設 20 個交易日）」。
+    HO_DEF = 20
 
     def goto(c, t, wait=1800):
         pg.goto("about:blank")
@@ -16197,11 +16200,14 @@ def t_stock_tabs0926(pg, base, code):
         if not ch:
             continue
         rng = {k: (v["first"], v["last"], v["n"]) for k, v in ch.items()}
-        ok(f"★【{tag}】{c} 三頁的 x 軸起訖日與天數完全一致", len(set(rng.values())) == 1, rng)
+        rng_ = {k: v for k, v in rng.items() if k != "holderChart"}
+        ok(f"★【{tag}】{c} 法人、資券兩頁的 x 軸起訖日與天數完全一致", len(set(rng_.values())) == 1, rng)
+        ok(f"★【{tag}】{c} 大戶散戶頁預設 4 週（{HO_DEF} 個交易日），最後一天跟另外兩頁同一天",
+           ch["holderChart"]["n"] == HO_DEF and ch["holderChart"]["last"] == ch["instChart"]["last"], rng)
         ok(f"【{tag}】{c} 大戶散戶三格小圖的 x 軸也跟最下面那格同一條", all(v["same"] for v in ch.values()), {k: v["same"] for k, v in ch.items()})
-        n0 = next(iter(ch.values()))["n"]
+        n0 = ch["instChart"]["n"]
         # ★ 2026-09-27（Andy 的券商 App：籌碼時間窗一季）預設改「3 個月」＝最多 63 個交易日
-        ok(f"★【{tag}】{c} 預設「3 個月」：x 軸 > 20、≤ 63 個交易日（逐日）", 20 < n0 <= 63 and a["on"] == ["3 個月"] and set(a["wins"]) == {"63"},
+        ok(f"★【{tag}】{c} 預設「3 個月」：x 軸 > 20、≤ 63 個交易日（逐日）", 20 < n0 <= 63 and a["on"] == ["3 個月"] and a["wins"] == ["63", "63", str(HO_DEF)],
            {"天數": n0, "按鈕": a["on"], "win": a["wins"]})
         last_trade = str((j.get("daily") or [[None]])[-1][0])[:10]
         ok(f"【{tag}】{c} 視窗最後一天＝最新交易日（{last_trade}）", next(iter(ch.values()))["last"] >= last_trade, rng)
@@ -16219,14 +16225,15 @@ def t_stock_tabs0926(pg, base, code):
         ok(f"【{tag}】{c} 三大法人逐日：外資柱的日期＝視窗內法人資料的日期（{len(iv_dates)} 天）", bool(ip) and ip["dates"] == iv_dates,
            {"應有": len(iv_dates), "畫的": ip and len(ip["dates"])})
 
-        # 切「4 週」（在大戶散戶頁按）：三頁一起換、存進 localStorage
+        # 切「4 週」（在法人頁按）：法人、資券一起換、存進 localStorage；大戶頁本來就是 4 週 → 三頁又一致
+        click(pg, '#stockTabs button[data-t="inst"]', 1200)
         click(pg, '#chipWin button[data-v="20"]', 1200)
         b = probe_all(c, reload=False)
         rng2 = {k: (v["first"], v["last"], v["n"]) for k, v in b["charts"].items()}
         ok(f"★【{tag}】{c} 切「4 週」→ 三頁的 x 軸一起換、仍然一致", len(set(rng2.values())) == 1 and set(rng2.values()) != set(rng.values()), {"前": rng, "後": rng2})
         n3 = next(iter(b["charts"].values()))["n"]
         ok(f"【{tag}】{c} 4 週＝最多 20 個交易日、比 3 個月短", n3 <= 20 < n0, {"3 個月": n0, "4 週": n3})
-        for k in ch:
+        for k in [k_ for k_ in ch if k_ != "holderChart"]:
             changed(f"【{tag}】{c} 切 4 週之後 {k} 真的重畫", a["hash"].get(k), b["hash"].get(k))
         ok(f"【{tag}】{c} 選擇存進 localStorage（tw.chipWin＝20）、按鈕亮在 4 週", b["ls"] == "20" and b["on"] == ["4 週"], {"ls": b["ls"], "on": b["on"]})
         iv3 = [str(r[0])[:10] for r in ((j.get("inst_v3") or {}).get("daily") or []) if b["charts"]["instChart"]["first"] <= str(r[0])[:10]]
@@ -16236,7 +16243,7 @@ def t_stock_tabs0926(pg, base, code):
             # ★ 2026-10-03 改前→改後（#307）：改前「重新整理 → 記得 4 週」；改後「重新整理 → 回到預設 3 個月」
             pg.evaluate("() => sessionStorage.setItem('__tw_real_reset', '1')")
             d = probe_all(c)
-            ok(f"★【{tag}】重新整理後回到預設「3 個月」（三頁都是，#307）", d["on"] == ["3 個月"] and all(v["n"] == n0 for v in d["charts"].values()),
+            ok(f"★【{tag}】重新整理後回到預設（法人、資券 3 個月；大戶 4 週，#307）", d["on"] == ["3 個月"] and all(v["n"] == (HO_DEF if k_ == "holderChart" else n0) for k_, v in d["charts"].items()),
                {"on": d["on"], "n": {k: v["n"] for k, v in d["charts"].items()}})
             click(pg, '#stockTabs button[data-t="inst"]', 1200)
             click(pg, '#chipWin button[data-v="250"]', 1200)
@@ -16244,14 +16251,15 @@ def t_stock_tabs0926(pg, base, code):
             # 2026-10-03（#302）：大戶散戶頁只留 4 週／3 個月，存著 1 年時退回 3 個月 → 一起變長的只剩法人、資券兩頁
             ne = {v["n"] for k_, v in e["charts"].items() if k_ != "holderChart"}
             ok(f"【{tag}】切「1 年」→ 法人、資券兩頁一起變長（≥ 3 個月、≤ 250）", len(ne) == 1 and n0 <= min(ne) <= 250, ne)
-            ok(f"【{tag}】切「1 年」→ 大戶散戶頁退回 3 個月（{n0} 個交易日），不跟著變長", e["charts"]["holderChart"]["n"] == n0, e["charts"]["holderChart"]["n"])
+            ok(f"【{tag}】切「1 年」→ 大戶散戶頁不跟著變長（維持自己的 4 週，{HO_DEF} 個交易日）", e["charts"]["holderChart"]["n"] == HO_DEF, e["charts"]["holderChart"]["n"])
             click(pg, '#stockTabs button[data-t="inst"]', 1200)
             xl = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('instChart')); const seen = new Set();"
                              " return c.getModel().getComponent('xAxis', 0).axis.getViewLabels().map(l => l.formattedLabel).filter(t => { if (seen.has(t)) return false; seen.add(t); return true; }); }")
             ok(f"【{tag}】1 年的刻度帶年份（YY/MM/DD，跨年不會撞成同一個日期）", bool(xl) and all(len(t) == 8 and t[2] == "/" for t in xl), xl[:4])
+        click(pg, '#stockTabs button[data-t="inst"]', 1200)
         click(pg, '#chipWin button[data-v="63"]', 900)
         f_ = probe_all(c, reload=False)
-        ok(f"【{tag}】{c} 切回 3 個月 → 回到 {n0} 個交易日", all(v["n"] == n0 for v in f_["charts"].values()), {k: v["n"] for k, v in f_["charts"].items()})
+        ok(f"【{tag}】{c} 在法人頁切回 3 個月 → 法人、資券回到 {n0} 個交易日、大戶頁仍 {HO_DEF}", all(v["n"] == (HO_DEF if k == "holderChart" else n0) for k, v in f_["charts"].items()), {k: v["n"] for k, v in f_["charts"].items()})
     # 390：區間鈕看得見、沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 860}); pg.wait_for_timeout(700)
     pg.evaluate("""() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => ['財報籌碼', '完整版'].includes(x.textContent.trim()) && x.offsetParent);   /* 2026-09-27 手機個股券商式：舊分段列藏起來，改按分頁列的「完整版」 */
