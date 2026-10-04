@@ -130,7 +130,9 @@
   [data-theme4] #flowRotCard .rotleft{flex-flow:row wrap;align-content:flex-start;column-gap:16px}
   [data-theme4] #flowRotCard .rotleft>*{flex:0 0 100%;min-width:0}
   [data-theme4] #flowRotCard .rotleft>.rotchead{order:1;flex:0 0 auto;margin:0 0 var(--sp-1)}
-  [data-theme4] #flowRotCard .rotleft>.rottime{order:2;flex:1 1 auto;width:auto;margin-bottom:var(--sp-1)}
+  /* ★ 2026-10-04 修：flex-basis auto → 320px。拉 Bar 裡的 range input 內容寬撐滿整欄，basis auto 會讓它永遠排不進小標旁邊
+     （1440 量到小標在 177、拉 Bar 掉到 204，兩行）；給 320px 底寬後放得下就同一行、放不下照舊換行。*/
+  [data-theme4] #flowRotCard .rotleft>.rottime{order:2;flex:1 1 320px;width:auto;margin-bottom:var(--sp-1)}
   /* 勾選列原本 flex-basis 320px（整行寬時用來換行），併進同一行後改成照內容寬，不然 1440 寬也會被擠到第二行 */
   [data-theme4] #flowRotCard #rotTools{flex:0 1 auto}
   [data-theme4] #flowRotCard .rotleft>.rotstagerow{order:3}

@@ -523,6 +523,24 @@
 
   /** 收到一筆推送之後**只動台指期那張卡**：那排數字換掉、走勢圖只補最後一根。
    *  不重畫另外兩張圖、不重建整個 option —— 不然十秒閃一次，比不推還糟。 */
+  /* ★ 2026-10-04 修：「日盤／夜盤」小標（#futSess）抽成一支，draw() 與只補台指期那張卡的 paintNight() 都呼叫。
+     改前只有 draw() 會更新它；夜盤資料若是由 paintNight()（推送／輪詢只動台指期那張卡）第一次補進來，
+     圖與數字列已經是夜盤、小標卻還停在先前畫的「日盤」—— 標籤沒跟著畫的那一份走，正是 #258 第 1 條不准的事
+     （夜盤真實 fixture 在 America/New_York 時區量到：線是夜盤收盤價、合約 TXFJ6-M，小標寫「日盤」）。*/
+  function syncFutSess() {
+    const ss = document.getElementById('futSess');
+    /* ★ 2026-09-30（Andy 23:26：「為何沒有顯示夜盤」，DECISIONS #280）：夜盤時段卻顯示日盤時，
+       小標的說明要講出**夜盤那兩支為什麼沒拿到**（例如「代理回 HTTP 520」）。
+       那一晚前端每一條路都有去抓，是 Worker 打期交所回 520 —— 但畫面只寫「還沒拿到夜盤資料」，
+       讀者只能來問，我們也只能從頭查一輪。DECISIONS #255 教訓 3：錯誤訊息要指到真正的斷點。
+       `data-why` 給驗收讀；nightWhy() 回的是 HTML（帶 <code>），title 只能放純文字。*/
+    if (ss) { const n = nightHas(); ss.textContent = n ? '夜盤' : '日盤'; ss.dataset.s = n ? 'night' : 'day';
+      const why = (!n && state.futSession === 'night' && (state.futNightErr || state.futChartErr))
+        ? nightWhy().replace(/<[^>]+>/g, '') : '';
+      ss.dataset.why = why;
+      ss.title = n ? '夜盤（15:00～翌日 05:00）有資料，顯示夜盤' : (state.futSession === 'night'
+        ? '夜盤時段，但還沒拿到夜盤資料 —— 先顯示日盤' + (why ? '\n原因：' + why : '') : '日盤時段（08:45～13:45）'); }
+  }
   function paintNight() {
     const grid = document.getElementById('m3Grid');
     if (!grid) return;
@@ -538,6 +556,7 @@
        （剛從空狀態長出來、切到 K 線、日夜換邊）才整張畫一次；
        K 線那邊 `drawK()` 本來就會沿用同一個實例，縮放不會被彈回去。*/
     if (!(state.mode === 'line' && d && d.night && el && patchLine(x, d, el))) drawOne(x);
+    syncFutSess();
     paintPulses();
   }
 
@@ -1984,18 +2003,7 @@
     }
     // 台指期的日盤／夜盤鈕：選中的要亮起來（以前藏在 drawFutNight 裡，拆掉之後移到這裡）
     // 台指期現在畫的是哪一段（2026-09-24 切換鈕拿掉之後，這個小標是唯一的標示，不准省）
-    const ss = document.getElementById('futSess');
-    /* ★ 2026-09-30（Andy 23:26：「為何沒有顯示夜盤」，DECISIONS #280）：夜盤時段卻顯示日盤時，
-       小標的說明要講出**夜盤那兩支為什麼沒拿到**（例如「代理回 HTTP 520」）。
-       那一晚前端每一條路都有去抓，是 Worker 打期交所回 520 —— 但畫面只寫「還沒拿到夜盤資料」，
-       讀者只能來問，我們也只能從頭查一輪。DECISIONS #255 教訓 3：錯誤訊息要指到真正的斷點。
-       `data-why` 給驗收讀；nightWhy() 回的是 HTML（帶 <code>），title 只能放純文字。*/
-    if (ss) { const n = nightHas(); ss.textContent = n ? '夜盤' : '日盤'; ss.dataset.s = n ? 'night' : 'day';
-      const why = (!n && state.futSession === 'night' && (state.futNightErr || state.futChartErr))
-        ? nightWhy().replace(/<[^>]+>/g, '') : '';
-      ss.dataset.why = why;
-      ss.title = n ? '夜盤（15:00～翌日 05:00）有資料，顯示夜盤' : (state.futSession === 'night'
-        ? '夜盤時段，但還沒拿到夜盤資料 —— 先顯示日盤' + (why ? '\n原因：' + why : '') : '日盤時段（08:45～13:45）'); }
+    syncFutSess();
     grid.classList.toggle('big', !!state.big);
     const one = (x) => {
       const card = grid.querySelector(`.m3-card[data-id="${x.id}"]`);
@@ -2067,6 +2075,11 @@
        它是用 CSS 的 ::before 印出來的，所以不會報錯、只會一直說謊。
        切到日盤時一律先清乾淨，需要的人自己再設。*/
     if (!night) delete el.dataset.fallback;
+    /* ★ 2026-10-04 修：夜盤點數不足時 nightNote() 會在圖表容器裡放一塊說明面板（.m3-night），只有夜盤那條路會收它。
+       從夜盤換回日盤（時段翻頁、夜盤資料沒了退回日盤）時它留在容器裡、蓋在日盤走勢上面 ——
+       游標移上去被它吃掉、讀不到價格（週日驗收「走勢圖 FUT 游標」紅燈的根因：hit-test 打到的是 div.note）。
+       畫日盤一律先把它清掉。*/
+    if (!night) { const nb = el.querySelector(':scope > .m3-night'); if (nb) nb.remove(); }
     let d = night ? seriesOf(x) : state.data[x.id];
     let err = night ? '' : state.err[x.id];
     // 歷史週期不需要今天的分時檔（Worker 沒更新也照樣看得到日線）
@@ -2320,14 +2333,24 @@
       tooltip: Object.assign({}, A.tip, {
         trigger: 'axis', axisPointer: { type: 'cross' },
         formatter: (ps) => {
-          const i = ps[0].dataIndex;
+          let i = ps[0].dataIndex;
           // ★ 一律從 H 讀（不是上面那幾個 const）—— 推送補完資料之後，
           //   閉包抓到的舊陣列會讓 tooltip 顯示上一輪的值。
+          /* ★ 2026-10-04 修：非交易時段開頁是用資料湖 15 分 K 種的走勢（d.sparse，每 15 分鐘才一個點），
+             游標停在兩點之間會寫「尚未成交」—— 那幾分鐘明明有成交，是假話（週日驗收 FUT 游標讀不到價格就是這個）。
+             改成：最後一點之前一律貼回左邊最近的那一點（時間也寫那一點的）；最後一點之後才是真的「尚未成交」。
+             量：湖裡的 15 分 K 種子沒有每分鐘量（s 是 0 佔位），印「—」而不是假的「0 口」。*/
+          const sparse = !!(H.d && H.d.sparse);
+          if (H.price[i] == null && sparse) {
+            let j = i; while (j >= 0 && H.price[j] == null) j--;
+            let k = i; while (k < H.price.length && H.price[k] == null) k++;
+            if (j >= 0 && k < H.price.length) i = j;          // 夾在兩點之間 → 貼回左邊那一點
+          }
           if (H.price[i] == null) return cats[i] + '<br>尚未成交';
           const c = H.price[i], ch = d.prev ? c - d.prev : null;
           return `<b>${cats[i]}</b><br>指數 <b class="mono">${f.n(c, dp)}</b>`
             + (ch != null ? ` <span style="color:${ch >= 0 ? '#ff4d6d' : '#2ee59d'}">${(ch > 0 ? '+' : '') + f.n(ch, dp)}（${f.pct(ch / d.prev * 100, 2)}）</span>` : '')
-            + (() => { const vv = H.vol[i]; const n = +(vv && typeof vv === 'object' ? vv.value : vv);
+            + (() => { const vv = H.vol[i]; const n = sparse ? NaN : +(vv && typeof vv === 'object' ? vv.value : vv);
                 // 量柱有時是 { value, itemStyle } 物件（上色用），直接丟進 f.lot 會印「非數值」（Andy 09-25 截圖）
                 return `<br>該分${x.id === 'FUT' ? '量' : '成交值'} ${Number.isFinite(n) ? sTxt(n) : '—'}`; })();
         },
