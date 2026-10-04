@@ -18968,6 +18968,40 @@ def t_m3_sunday(b, base, code):
         one(sc)
 
 
+def t_swr_second_open(b, base, code):
+    """2026-10-04 晚 Andy：「若是有最後一筆數據，就把它存起來……以後打開就能直接貼上，不用一直取得數據」。
+    同一個瀏覽器設定檔：第一次正常開總覽（寫好存檔）→ 第二次開頁時**所有 data/*.json 延遲 10 秒**。
+    驗：1 秒內熱力圖、大盤三張圖、事件件數都有內容，且頁面標「這是上次存的資料（…），更新中…」；
+    延遲過後網路版到了、標示自己消失。"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, timezone_id="Asia/Taipei")
+    ctx.add_init_script("window.__TW_SNAP__ = 1;")     # 自動化預設關存檔（見 app.js Snap），這段要驗它所以打開
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append(f"開頁存檔 pageerror: {str(e)[:160]}"))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#overview", wait_until="load")
+    wait_until(pg, "() => !!document.querySelector('#heat canvas') && +((document.getElementById('evCount')||{}).textContent||0) > 0", 30000)
+    pg.wait_for_timeout(2500)                     # 讓背景的存檔寫完（IndexedDB）
+    pg.add_init_script("""(() => { const F = window.fetch; window.fetch = function (i, o) {
+        const u = String((i && i.url) || i);
+        if (/(^|\/)data\/[^?]*\.json/.test(u)) return new Promise(r => setTimeout(r, 10000)).then(() => F.call(this, i, o));
+        return F.call(this, i, o); }; })();""")
+    pg.goto("about:blank")
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    pg.wait_for_timeout(1000)
+    st = pg.evaluate("""() => ({ heat: !!document.querySelector('#heat canvas'),
+        m3: ['TSE','OTC','FUT'].filter(i => document.querySelector('#m3c-' + i + ' canvas')).length,
+        ev: +((document.getElementById('evCount') || {}).textContent || 0),
+        tag: (document.getElementById('staleTag') || {}).textContent || '' })""")
+    ok("★ [開頁存檔] data/*.json 慢 10 秒：1 秒內熱力圖已畫出", st["heat"], st)
+    ok("★ [開頁存檔] 1 秒內大盤三張圖都有圖", st["m3"] == 3, st)
+    ok("★ [開頁存檔] 1 秒內事件件數不是 0", st["ev"] > 0, st)
+    ok("★ [開頁存檔] 有標「這是上次存的資料（…），更新中…」", "上次存的資料" in st["tag"] and "更新中" in st["tag"], st["tag"])
+    gone = wait_until(pg, "() => !document.getElementById('staleTag')", 20000)
+    ok("★ [開頁存檔] 網路版到了之後標示自己消失", bool(gone), pg.evaluate("() => (document.getElementById('staleTag')||{}).textContent || ''"))
+    ok("[開頁存檔] 換新之後熱力圖仍在", pg.evaluate("() => !!document.querySelector('#heat canvas')"))
+    ctx.close()
+
+
 def t_m3_firstframe(b, base, code):
     """2026-10-04 Andy：「每次開啟都會先是 K 線圖，然後才切到走勢圖」（16:23 截圖：模式鈕是走勢圖，
     三張卡卻畫日 K、數字列「—」、標「週末休市…先顯示資料湖的日 K」，之後才跳成走勢圖）。
@@ -20765,6 +20799,7 @@ SECTIONS = {
     # ★ 2026-10-04 Andy 週日截圖：走勢只剩尾段亂跳、5 分 K 冒出收盤後的棒
     "新-大盤三張圖-週日":  lambda pg, b, base, code: t_m3_sunday(b, base, code),
     "新-大盤三張圖-首幀":  lambda pg, b, base, code: t_m3_firstframe(b, base, code),
+    "新-開頁存檔":  lambda pg, b, base, code: t_swr_second_open(b, base, code),
     # ★ 2026-09-28 Andy：櫃買 1H／4H 有歷史、加權 15／30／1H 真實成交值、量副圖拖一張另外兩張連動
     "大盤K線0928":         lambda pg, b, base, code: t_index_kline_0928(pg, base),
     "新-產業與個股":       lambda pg, b, base, code: t_new_industry(pg, base),

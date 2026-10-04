@@ -114,6 +114,18 @@ def _clean(obj):
     return obj
 
 
+RRG_LITE_KEYS = ("date", "rrg", "sankey")
+
+
+def rrg_lite(flow_v3: dict) -> dict:
+    """flow_v3 裡總覽首屏用得到的三欄（date／rrg／sankey），原封不動拷貝。
+
+    2026-10-04 首頁瘦身：flow_v3 約 1MB，九成是資金流向頁才用的 inst_daily／share_daily／periods。
+    總覽的資金輪盤、摘要卡（含盤中續算的 live_state／live_params）只讀這三欄，所以另存一份小檔。
+    **不重算、不刪欄位**：同一次計算的同一個物件，口徑跟 flow_v3 一模一樣（有 pytest 釘著）。"""
+    return {k: flow_v3.get(k) for k in RRG_LITE_KEYS if k in flow_v3}
+
+
 def _write(name: str, payload) -> None:
     path = config.SITE_DATA / f"{name}.json"
     path.write_text(json.dumps(_clean(payload), ensure_ascii=False), encoding="utf-8")
@@ -465,12 +477,20 @@ def build() -> None:
         log.warning("index_intraday 合成失敗：%s", exc)
         _write("index_intraday", {})
 
+    # 開頁種子（2026-10-04）：最近一個完整交易日的分時＋昨收，幾 KB，前端第一幀用（大檔背景補）。
+    try:
+        from .compute import lastday
+        _write("index_lastday", lastday.build(lake_intra, out_idx))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("index_lastday 產出失敗：%s", exc)
+        _write("index_lastday", {})
+
     lap("大盤歷史日K")
 
     # ---------------------------------------------------------- v3：資金流向 / 題材 / 產業地圖
     try:
         r3 = rrg.rrg(group_hist, price)
-        _write("flow_v3", {
+        f3 = {
             "date": latest,
             "rrg": r3,
             "sankey": rrg.sankey(today, gdetail),
@@ -482,7 +502,10 @@ def build() -> None:
             # 給 60 天是因為拉到 30 天時比較基準要再往前 30 天（「最近 30 天 vs 前 30 天」）。
             "share_daily": flow.share_daily(group_hist, 60),
             **flow.period_flows(group_hist),
-        })
+        }
+        _write("flow_v3", f3)
+        # 總覽輪盤＋摘要卡只用 date／rrg／sankey：另存小檔（約 100KB vs 1MB），前端讀不到才退回 flow_v3。
+        _write("rrg_lite", rrg_lite(f3))
         # 資金去向的逐日版（圖六的拉Bar＋播放）。
         # ★ 刻意拆成獨立檔：flow_v3 已經是全站最大的一份，再加 60 天 × 12 族群 × 3 檔，
         #   連只想看總覽的人都得先下載它。這一份只有資金流向頁會去載。
@@ -499,6 +522,7 @@ def build() -> None:
         log.warning("資金流向 v3 產出失敗：%s", exc)
         _write("sankey_daily", {"dates": [], "groups": [], "leaves": {}})
         _write("rrg_members", {})
+        _write("rrg_lite", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []}})
         _write("flow_v3", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []},
                            "share": {"dates": [], "series": []},
                            "inst_daily": {"dates": [], "groups": []},
@@ -574,9 +598,13 @@ def build() -> None:
         # 把前端用不到的欄位（summary 每則最多 600 字、keywords）砍掉，體積才不會跟著翻倍
         cols = [c for c in ("news_id", "category", "date", "published_at",
                             "title", "url", "codes", "source") if c in recent.columns]
-        _write("news", recent[cols].to_dict("records"))
+        rec = recent[cols].to_dict("records")
+        _write("news", rec)
+        # 2026-10-04：事件欄的開頁小檔 —— 總件數＋最新 30 則（同一份排序、同樣欄位）。完整版前端背景補。
+        _write("news_head", {"total": len(rec), "items": rec[:30]})
     else:
         _write("news", [])
+        _write("news_head", {"total": 0, "items": []})
 
     # ---------------------------------------------------------- 國際
     intl = store.read("intl_daily")
