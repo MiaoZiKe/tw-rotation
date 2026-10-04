@@ -19,6 +19,14 @@
      refresh()          重抓一次（登入、登出、管理者改了自己的權限之後）
      apply()            立刻重畫一次鎖頭
    事件：window 'tw:perm'（權限換了；watchpage 之類用來重畫上限）
+
+   ★ 2026-10-05（admin-v2，Andy B）族群觀測：功能鍵 grp.<族群鍵>（features.js 的 grpKey）。被關掉的族群：
+     · 族群頁（#industry/group/<gid>）：族群總覽那一塊（#gpSec）模糊＋鎖頭「此族群需開通」
+     · 資金輪動的「族群」下拉：那一列掛 🔒、勾不下去（跟 block 類的鈕同一套攔截）
+     · 熱力圖方塊、資金流向排行長條、輪盤上的族群點：**不模糊**，點了跳「此族群需開通」、不展開成分股。
+       為什麼不模糊：這三張是 ECharts 畫在 canvas 上的，單一方塊沒有 DOM 節點可以掛 ::after；
+       改資料（把那塊從圖上拿掉）又會讓「全市場」的面積與排行名次失真，所以選「看得到名字與大小、點不進去」。
+     清單要等 groups_today.json：只有「真的有族群被關」時才去抓（跟鎖頭一樣，全開時零成本）。
    ============================================================================ */
 (function () {
   'use strict';
@@ -71,7 +79,23 @@
   }
   function msgOf(f) {
     const tail = S.who === 'guest' && acct() && acct().on() ? '登入會員或洽網站管理者開通' : '請洽網站管理者開通';
-    return `🔒 此功能需開通\n${f.name}・${tail}`;
+    return `🔒 ${f.cat === 'grp' ? '此族群需開通' : '此功能需開通'}\n${f.name}・${tail}`;
+  }
+  /* 族群清單：只有權限裡真的有 grp.* 被關時才抓（全開時不多打一支請求）*/
+  let grpLoading = null;
+  function needGroups() {
+    if (grpLoading || F.inCat('grp').length) return;
+    if (!Object.keys(S.feats).some((k) => k.startsWith('grp.') && S.feats[k] === false)) return;
+    grpLoading = fetch('data/groups_today.json').then((r) => r.ok ? r.json() : []).then((d) => { if (F.addGroups(Array.isArray(d) ? d : []) > 0) schedule(); }).catch(() => { grpLoading = null; });
+  }
+  const lockedGrp = () => F.inCat('grp').filter((f) => !can(f.id));
+  /* 給 app.js 的 canvas 圖（熱力圖／排行／輪盤）用：被關的族群回 true 並跳提示，呼叫端就不展開 */
+  function grpBlock(gid, name) {
+    if (!gid) return false;
+    const f = F.byId(F.grpKey(gid));
+    if (!f ? S.feats[F.grpKey(gid)] !== false : can(f.id)) return false;
+    toast('🔒 此族群需開通：' + (name || (f && f.name) || gid));
+    return true;
   }
 
   // ------------------------------------------------------------------ 套用鎖頭
@@ -88,6 +112,17 @@
       (f.mark || []).forEach((sel) => q(sel).forEach((el) => { if (!wantB.has(el)) wantB.set(el, 'mark'); }));
       (f.block || []).forEach((sel) => q(sel).forEach((el) => wantB.set(el, 'block')));
     }
+    /* 族群觀測：族群頁＋族群下拉（canvas 圖走 grpBlock）*/
+    const lg = lockedGrp();
+    if (lg.length) {
+      const m = /^#industry\/group\/([^/?]+)/.exec(location.hash || '');
+      const cur = m ? decodeURIComponent(m[1]) : null;
+      for (const f of lg) {
+        if (cur && f.gid === cur) q('#gpSec').forEach((el) => want.set(el, msgOf(f)));
+        q('.rotdd input[data-g]').forEach((inp) => { if (inp.dataset.g === f.gid) { const row = inp.closest('.ddopt') || inp; wantB.set(row, 'block'); } });
+      }
+    }
+    needGroups();
     /* 只動「該變」的：屬性沒變就不寫（寫屬性會觸發樣式重算；live.js 每 5 秒改一堆格子，這裡每次都會被叫到）*/
     q('[data-plk]').forEach((el) => { if (!want.has(el)) { el.removeAttribute('data-plk'); el.removeAttribute('data-plk-rel'); el.inert = false; el.removeAttribute('aria-label'); } });
     want.forEach((m, el) => {
@@ -120,6 +155,9 @@
     const b = e.target && e.target.closest && e.target.closest('[data-plkb="block"]');
     if (!b) return;
     e.preventDefault(); e.stopImmediatePropagation();
+    const gi = b.querySelector && b.querySelector('input[data-g]');
+    const gf = gi ? F.byId(F.grpKey(gi.dataset.g)) : null;
+    if (gf) { toast('🔒 此族群需開通：' + gf.name); return; }
     const f = lockedList().find((x) => (x.block || []).some((s) => { try { return b.matches(s); } catch (er) { return false; } }));
     toast('🔒 此功能需開通' + (f ? '：' + f.name : ''));
   }, true);
@@ -162,7 +200,9 @@
     return false;
   }
 
-  window.TwPerm = { can, limit, value, state, refresh, apply: () => apply(), locked: () => lockedList().map((f) => f.id) };
+  window.TwPerm = { can, limit, value, state, refresh, apply: () => apply(), locked: () => lockedList().map((f) => f.id), grpBlock,
+    grpOk: (gid) => { const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; } };
+  window.addEventListener('hashchange', schedule);
 
   /* 啟動：account.js 先跑（它決定會員功能開不開），開了會發 tw:account-config；沒開就照預設全開。
      account.js 啟動時驗權杖也會發一次 tw:account —— 同一個人 5 秒內不重抓（不然每次重新整理都打兩次）。*/

@@ -38,7 +38,10 @@
     { id: 'stockk', name: '個股頁：K 線與工具' },
     { id: 'stocktab', name: '個股頁：分頁' },
     { id: 'global', name: '即時與全站工具' },
-    { id: 'watch', name: '自選' }
+    { id: 'watch', name: '自選' },
+    /* 2026-10-05（admin-v2，Andy B）：族群觀測。項目不寫死在這裡 —— 由 groups.yaml 產生的 groups_today.json 決定，
+       管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
+    { id: 'grp', name: '族群觀測' }
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -140,5 +143,43 @@
   function defaults() { var o = {}; LIST.forEach(function (f) { o[f.id] = f.def; }); return o; }
   function inCat(c) { return LIST.filter(function (f) { return f.cat === c; }); }
 
-  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, inCat: inCat };
+  /* ---- 族群鍵（grp.<鍵>）—— Worker 的 FEAT_RE 是 /^[a-z][a-z0-9_.]{1,39}$/，group_id 不一定符合：
+     ① 純小寫英數底線（mlcc、ic_substrate、ai_server_odm…，groups.yaml 手寫的 83 個）→ 原樣：grp.mlcc
+     ② 有大寫的英數（ind_ETF）→ 轉小寫：grp.ind_etf
+     ③ 含中文的自動桶（ind_半導體業、ind_光電業…，build_payload 依法定產業別產生的 34 個）→ 中文那段換成
+        FNV-1a 32 位元雜湊的 8 碼十六進位：ind_半導體業 → grp.ind_x<8 碼>。
+        用雜湊而不是流水號：族群清單增減時，別的族群的鍵不會跟著位移（流水號一位移，所有人的設定就對錯族群）。
+     ④ 太長（> 35 字）→ 前 26 字 ＋ _ ＋ 8 碼雜湊。目前 117 個族群最長 18 字，沒有人走到這條。
+     ★ 鍵一旦上線就不要改算法 —— 改了等於所有範本裡的族群開關全部對不到人（同 features 的 id 規矩）。*/
+  function fnv(s) { var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return ('0000000' + h.toString(16)).slice(-8); }
+  function grpKey(gid) {
+    var g = String(gid == null ? '' : gid);
+    var low = g.toLowerCase();
+    var k;
+    if (/^[a-z][a-z0-9_]*$/.test(low)) k = low;
+    else {
+      var m = /^([a-z][a-z0-9_]*?_)?(.*)$/.exec(low);
+      var pre = m && m[1] && /[^\x00-\x7f]/.test(m[2]) ? m[1] : 'g_';
+      k = pre + 'x' + fnv(g);
+    }
+    if (k.length > 35) k = k.slice(0, 26) + '_' + fnv(g);
+    return 'grp.' + k;
+  }
+  /* groups：[{ group_id, group_name, chain }]（groups_today.json 的列）。重複呼叫只補沒有的；回傳這次新增幾個 */
+  var CHAIN = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '電子', traditional: '傳產', infrastructure: '基礎建設', software: '軟體', financial: '金融', industry: '法定產業別' };
+  function addGroups(groups) {
+    var n = 0;
+    (groups || []).forEach(function (g) {
+      if (!g || !g.group_id) return;
+      var id = grpKey(g.group_id);
+      if (BY[id]) return;
+      var f = { id: id, gid: g.group_id, name: g.group_name || g.group_id, cat: 'grp', def: true, kind: 'bool', chain: g.chain || '',
+        desc: (CHAIN[g.chain] || g.chain || '其他') + '・關掉：族群頁模糊＋鎖頭、下拉清單鎖住、熱力圖／排行／輪盤點了不展開',
+        veil: [], mark: [], block: [] };
+      LIST.push(f); BY[id] = f; n++;
+    });
+    return n;
+  }
+
+  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, inCat: inCat, grpKey: grpKey, addGroups: addGroups };
 })();

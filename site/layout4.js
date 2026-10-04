@@ -337,12 +337,13 @@
       b = document.createElement('button');
       // ★ 2026-10-04 23:50 Andy：「是指在自選下方，不是列在自選裡面」→ 改成跟「自選」同一層的 .tab（不縮排、同字級、自己的圖示）
       b.type = 'button'; b.id = 'l4Perm'; b.className = 'tab l4perm';
-      b.textContent = '會員權限';
-      b.setAttribute('aria-label', '會員權限'); b.title = '專案・會員權限（只有管理者看得到）';
-      b.onclick = () => { if (!/^#admin\/perm\b/.test(location.hash || '')) location.hash = '#admin/perm'; };
+      // 2026-10-05（admin-v2）：改成「管理區」入口 —— 會員權限／會員管理／流量觀測三個子分頁在頁內頂部 tab
+      b.textContent = '管理區';
+      b.setAttribute('aria-label', '管理區'); b.title = '專案・管理區：會員權限／會員管理／流量觀測（只有管理者看得到）';
+      b.onclick = () => { if (!/^#admin\b/.test(location.hash || '')) location.hash = '#admin/perm'; };
       parent.after(b);
     }
-    const on = /^#admin\/perm\b/.test(location.hash || '');
+    const on = /^#admin\b/.test(location.hash || '');            // 管理區三個子分頁都亮這一格
     b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   }

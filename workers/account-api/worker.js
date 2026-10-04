@@ -52,7 +52,9 @@ const ALARM_EVERY_MS = 60 * 60 * 1000; // 每小時清一次過期資料
 /* 功能權限（R7）。功能清單本身在 site/features.js —— Worker 刻意**不**抄一份白名單：
    前端每加一個功能就要重新部署 Worker 太重，而且這裡存的只是「管理者寫的開關」，只驗格式與上限就夠
    （值只准 true／false／0～99 的整數，鍵只准小寫英數與 . _，最多 120 個）。*/
-const MAX_FEAT_KEYS = 120, MAX_PLANS = 20, MAX_PERM_ROWS = 5000, MAX_PLAN_NAME = 20;
+/* 2026-10-05（admin-v2）：120 → 300。功能開關多了「族群」一類（grp.<族群鍵>，groups.yaml 約 117 個），
+   付費範本若把大部分族群關掉，加上原本約 50 項功能就會超過 120。300 項 × 約 30 字元 ≈ 9KB，仍在單次 16KB 的上限內。*/
+const MAX_FEAT_KEYS = 300, MAX_PLANS = 20, MAX_PERM_ROWS = 5000, MAX_PLAN_NAME = 20;
 const FEAT_RE = /^[a-z][a-z0-9_.]{1,39}$/;
 const PLAN_RE = /^[a-z0-9_-]{1,20}$/;
 const EMAIL_RE = /^[^\s@<>"'(),;:\\]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
@@ -69,6 +71,14 @@ export const EVENTS = [
   'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg',
 ];
 const EV_KEYS = new Set([...VIEWS.map((v) => 'pv:' + v), ...EVENTS.map((e) => 'ev:' + e)]);
+/* 細項事件（2026-10-05 admin-v2，docs/account_analytics.md「細項事件」）：[頁面, 元件, 細項, 次數]。
+   · 頁面：VIEWS 白名單。元件：小寫英數與 . _（例如 rot.play、tab.revenue、filter_group）。
+   · 細項：只准族群名、股票代號、元件名、象限名 —— 前端只從「畫面上既有的選項」取值，從不送使用者輸入的文字；
+     這裡再擋一次：最長 24 字、不准 @（不可能是 email）、不准控制字元與 < > " ' ` \ 。
+   · 不帶任何識別碼：一列就是「哪天、哪頁、哪個元件、哪個細項、幾次」，跟 usage 表同一個隱私等級。*/
+export const MAX_E2 = 60, MAX_E2_INC = 50, MAX_E2_ROWS_DAY = 20000;
+const COMP_RE = /^[a-z][a-z0-9_.]{0,31}$/;
+const DETAIL_RE = /^[^\u0000-\u001f\u007f<>"'`\\@]{0,24}$/;
 
 const GOOGLE_AUTH = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN = 'https://oauth2.googleapis.com/token';
@@ -112,6 +122,14 @@ export class Hub {
     /* R7 功能權限：以 email（小寫）為鍵，不是 uid —— 管理者要能先替還沒登入過的人設好（付費後再登入）。*/
     this.q('CREATE TABLE IF NOT EXISTS perm (email TEXT PRIMARY KEY, plan TEXT, over TEXT, updated INTEGER)');
     this.q('CREATE TABLE IF NOT EXISTS plans (id TEXT PRIMARY KEY, name TEXT, feats TEXT, builtin INTEGER, updated INTEGER)');
+    /* 2026-10-05（admin-v2）相容遷移 —— 只加不改，舊資料原封不動：
+       ① perm.expires：付費到期日（毫秒；NULL／0＝不會到期）。過期的人自動退回「免費會員」，不刪設定（續約時改日期就好）。
+       ② ev2：細項事件（頁面＋元件＋細項）。跟 usage 一樣只有「每天的次數」，沒有誰。
+       ③ visits：會員近 30 天造訪次數（uid＋台北日期＋次數）。只記登入者，跟 users 同一個保存期限、刪帳號一起刪。
+       用 PRAGMA table_info 判斷欄位在不在：ALTER TABLE ADD COLUMN 重跑會報錯，Durable Object 每次冷啟動都會進這裡。*/
+    if (!this.q('PRAGMA table_info(perm)').some((c) => c.name === 'expires')) this.q('ALTER TABLE perm ADD COLUMN expires INTEGER');
+    this.q('CREATE TABLE IF NOT EXISTS ev2 (day TEXT, page TEXT, comp TEXT, detail TEXT, n INTEGER, PRIMARY KEY (day, page, comp, detail))');
+    this.q('CREATE TABLE IF NOT EXISTS visits (uid TEXT, day TEXT, n INTEGER, PRIMARY KEY (uid, day))');
     for (const [id, name] of BUILTIN_PLANS) if (!this.q('SELECT 1 FROM plans WHERE id = ?', id).length) this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 1, 0)', id, name, '{}');
     /* 「付費會員」只在第一次啟動時種一份空的範本（＝全開），管理者刪掉就不會再長回來 */
     if (!this.kv('plans_seeded')) {
@@ -333,17 +351,45 @@ export class Hub {
     for (const [k, n] of out) if (!EV_KEYS.has(k) || !Number.isInteger(n) || n < 1 || n > MAX_EV_INC) return null;
     return out;
   }
+  /* 細項事件驗格式：整批任何一項不合格就整批不收（同 cleanEv）。回 [[頁面, 元件, 細項, 次數]…] */
+  cleanE2(e2) {
+    if (e2 == null) return [];
+    if (!Array.isArray(e2) || e2.length > MAX_E2) return null;
+    const out = [];
+    for (const r of e2) {
+      if (!Array.isArray(r) || r.length !== 4) return null;
+      const [pg, comp, det, n] = r;
+      if (!VIEWS.includes(pg) || typeof comp !== 'string' || !COMP_RE.test(comp) || typeof det !== 'string' || !DETAIL_RE.test(det)) return null;
+      if (!Number.isInteger(n) || n < 1 || n > MAX_E2_INC) return null;
+      out.push([pg, comp, det.trim(), n]);
+    }
+    return out;
+  }
   async beat(req, b) {
     if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
     const sid = String(b.sid || '');
     if (!/^[A-Za-z0-9_-]{8,40}$/.test(sid)) return this.json(req, { error: 'bad_sid' }, 400);
     const ev = this.cleanEv(b.ev);
     if (!ev) return this.json(req, { error: 'bad_ev' }, 400);
+    const e2 = this.cleanE2(b.e2);
+    if (!e2) return this.json(req, { error: 'bad_e2' }, 400);
     const v = b.t ? await this.verify(b.t) : null;
     const now = this.now();
     if (ev.length) {
       const day = tpeDay(now);
       for (const [k, n] of ev) this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, ?) ON CONFLICT(day, k) DO UPDATE SET n = n + excluded.n', day, k, n);
+      /* 會員造訪次數：登入狀態下「開啟網站」一次＝造訪一次（session_login 本來就是每個分頁一次）*/
+      const vis = ev.find(([k]) => k === 'ev:session_login');
+      if (vis && v) this.q('INSERT INTO visits (uid, day, n) VALUES (?, ?, ?) ON CONFLICT(uid, day) DO UPDATE SET n = n + excluded.n', v.user.uid, day, vis[1]);
+    }
+    if (e2.length) {
+      const day = tpeDay(now);
+      /* 防灌爆：一天最多 2 萬種（頁面×元件×細項）組合；超過之後「新的」組合併進「其他」，既有的照樣累加 */
+      const full = this.q('SELECT COUNT(*) AS c FROM ev2 WHERE day = ?', day)[0].c >= MAX_E2_ROWS_DAY;
+      for (const [pg, comp, det, n] of e2) {
+        const d = full && !this.q('SELECT 1 FROM ev2 WHERE day = ? AND page = ? AND comp = ? AND detail = ?', day, pg, comp, det).length ? '其他' : det;
+        this.q('INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, ?, ?, ?, ?) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + excluded.n', day, pg, comp, d, n);
+      }
     }
     if (b.leave) this.q('DELETE FROM presence WHERE sid = ?', sid);
     else {
@@ -414,6 +460,7 @@ export class Hub {
     this.q('DELETE FROM lists WHERE uid = ?', uid);
     this.q('DELETE FROM presence WHERE uid = ?', uid);
     this.q('DELETE FROM logins WHERE uid = ?', uid);
+    this.q('DELETE FROM visits WHERE uid = ?', uid);
     /* 權限設定是以 email 存的個人資料，一起刪（代價：付費會員刪帳號後再登入會回到免費預設，要請管理者重設）*/
     if (v.user.email) this.q('DELETE FROM perm WHERE email = ?', String(v.user.email).toLowerCase());
     this.q('DELETE FROM users WHERE uid = ?', uid);
@@ -429,7 +476,11 @@ export class Hub {
     const rows = this.q('SELECT day, k, n FROM usage WHERE day >= ? ORDER BY day', from);
     const total = this.q('SELECT COUNT(*) AS c FROM users')[0].c;
     const recent = this.q('SELECT name, email, created, seen FROM users ORDER BY seen DESC LIMIT 50');
-    return this.json(req, { from, to: tpeDay(this.now()), rows, users: { total, recent }, events: EVENTS, views: VIEWS });
+    /* 細項事件的分組查詢（流量觀測頁）：同一個 (頁面, 元件, 細項) 期間內加總，次數多的在前，最多 3000 列。
+       b.page 有給就只回那一頁（分頁明細切換時用，少傳一點）。*/
+    const pg = VIEWS.includes(b.page) ? b.page : null;
+    const e2 = this.q(`SELECT page, comp, detail, SUM(n) AS n FROM ev2 WHERE day >= ?${pg ? ' AND page = ?' : ''} GROUP BY page, comp, detail ORDER BY n DESC LIMIT 3000`, ...(pg ? [from, pg] : [from]));
+    return this.json(req, { from, to: tpeDay(this.now()), rows, e2, users: { total, recent }, events: EVENTS, views: VIEWS });
   }
   async adminOnline(req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
@@ -467,10 +518,14 @@ export class Hub {
   }
   /* 某個 email 實際生效的權限：方案範本 ← 個別微調（微調蓋過範本）。方案被刪掉的人自動退回「免費會員」。*/
   effective(email) {
-    const row = email ? this.q('SELECT plan, over, updated FROM perm WHERE email = ?', email)[0] : null;
-    const p = (row && this.plan(row.plan)) || this.plan('free');
+    const row = email ? this.q('SELECT plan, over, updated, expires FROM perm WHERE email = ?', email)[0] : null;
+    const expires = row && row.expires ? row.expires : 0;
+    /* 到期日過了：方案退回「免費會員」、個別微調一併不生效（微調通常是付費時加開的）。設定本身保留，管理者改日期就恢復。*/
+    const expired = !!(expires && expires < this.now());
+    const p = (row && !expired && this.plan(row.plan)) || this.plan('free');
     const over = row ? JSON.parse(row.over || '{}') : {};
-    return { plan: p.id, planName: p.name, over, feats: Object.assign({}, p.feats, over), set: !!row, updated: row ? row.updated : 0 };
+    /* plan 回「被指定的那個」（管理頁要顯示他原本是哪個範本）；實際生效的是 feats */
+    return { plan: row && this.plan(row.plan) ? row.plan : p.id, planName: p.name, over, feats: Object.assign({}, p.feats, expired ? {} : over), set: !!row, updated: row ? row.updated : 0, expires, expired };
   }
   async permMe(req, b) {
     /* 刻意不看 b.email／b.plan／b.feats —— 一般人只能拿「權杖裡那個人」或「訪客」的那一份 */
@@ -478,7 +533,7 @@ export class Hub {
     const v = await this.verify(b.t);
     if (!v) return this.json(req, { error: 'auth' }, 401);
     const e = this.effective(String(v.user.email || '').toLowerCase());
-    return this.json(req, { who: 'member', plan: e.plan, planName: e.planName, feats: e.feats });
+    return this.json(req, { who: 'member', plan: e.expired ? 'free' : e.plan, planName: e.planName, feats: e.feats, expired: e.expired });
   }
   async adminPermGet(req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
@@ -497,17 +552,31 @@ export class Hub {
     if (!PLAN_RE.test(plan) || plan === 'guest' || !this.plan(plan)) return this.json(req, { error: 'bad_plan' }, 400);
     const over = this.cleanFeats(b.over);
     if (!over) return this.json(req, { error: 'bad_feats' }, 400);
-    if (!this.q('SELECT 1 FROM perm WHERE email = ?', email).length && this.q('SELECT COUNT(*) AS c FROM perm')[0].c >= MAX_PERM_ROWS) return this.json(req, { error: 'too_many' }, 400);
-    this.q('INSERT INTO perm (email, plan, over, updated) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET plan = excluded.plan, over = excluded.over, updated = excluded.updated',
-      email, plan, JSON.stringify(over), this.now());
+    /* 到期日：沒帶＝維持原值（舊版前端不會帶，不能因為改了一個開關就把到期日清掉）；null／0＝不會到期；
+       其餘必須是 2020～2100 年之間的毫秒整數 */
+    const cur = this.q('SELECT expires FROM perm WHERE email = ?', email)[0];
+    let expires = cur ? cur.expires || 0 : 0;
+    if (b.expires !== undefined) {
+      if (b.expires === null || b.expires === 0) expires = 0;
+      else if (Number.isInteger(b.expires) && b.expires >= 1577836800000 && b.expires <= 4102444800000) expires = b.expires;
+      else return this.json(req, { error: 'bad_expires' }, 400);
+    }
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM perm')[0].c >= MAX_PERM_ROWS) return this.json(req, { error: 'too_many' }, 400);
+    this.q('INSERT INTO perm (email, plan, over, updated, expires) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET plan = excluded.plan, over = excluded.over, updated = excluded.updated, expires = excluded.expires',
+      email, plan, JSON.stringify(over), this.now(), expires || null);
     return this.json(req, { email, ...this.effective(email) });
   }
   async adminPermList(req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
-    const rows = this.q('SELECT email, plan, over, updated FROM perm ORDER BY updated DESC LIMIT 500')
-      .map((r) => ({ email: r.email, plan: r.plan, n: Object.keys(JSON.parse(r.over || '{}')).length, updated: r.updated }));
-    const users = this.q('SELECT name, email FROM users ORDER BY seen DESC LIMIT 300').map((u) => ({ name: u.name, email: String(u.email || '').toLowerCase() }));
-    return this.json(req, { rows, users });
+    const rows = this.q('SELECT email, plan, over, updated, expires FROM perm ORDER BY updated DESC LIMIT 500')
+      .map((r) => ({ email: r.email, plan: r.plan, n: Object.keys(JSON.parse(r.over || '{}')).length, updated: r.updated, expires: r.expires || 0 }));
+    /* 會員管理頁的「所有人員狀況」：最後登入（seen）、加入時間、近 30 天造訪次數（visits 表＝登入狀態下開網站的次數）*/
+    const from30 = tpeDay(this.now() - 29 * 86400 * 1000);
+    const vis = {};
+    this.q('SELECT uid, SUM(n) AS n FROM visits WHERE day >= ? GROUP BY uid', from30).forEach((r) => { vis[r.uid] = r.n; });
+    const users = this.q('SELECT uid, name, email, seen, created FROM users ORDER BY seen DESC LIMIT 1000')
+      .map((u) => ({ name: u.name, email: String(u.email || '').toLowerCase(), seen: u.seen || 0, created: u.created || 0, visits: vis[u.uid] || 0 }));
+    return this.json(req, { rows, users, now: this.now() });
   }
   async adminPlansGet(req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
@@ -547,8 +616,10 @@ export class Hub {
     this.q('DELETE FROM logins WHERE exp < ?', now);
     const d = new Date(now + 8 * 3600 * 1000); d.setUTCMonth(d.getUTCMonth() - USAGE_KEEP_MONTHS);
     this.q('DELETE FROM usage WHERE day < ?', d.toISOString().slice(0, 10));
+    this.q('DELETE FROM ev2 WHERE day < ?', d.toISOString().slice(0, 10));
+    this.q('DELETE FROM visits WHERE day < ?', d.toISOString().slice(0, 10));
     const idle = this.q('SELECT uid FROM users WHERE seen < ?', now - USER_IDLE_DAYS * 86400 * 1000);
-    for (const r of idle) { this.q('DELETE FROM lists WHERE uid = ?', r.uid); this.q('DELETE FROM users WHERE uid = ?', r.uid); }
+    for (const r of idle) { this.q('DELETE FROM lists WHERE uid = ?', r.uid); this.q('DELETE FROM visits WHERE uid = ?', r.uid); this.q('DELETE FROM users WHERE uid = ?', r.uid); }
   }
   async alarm() {
     this.cleanup();

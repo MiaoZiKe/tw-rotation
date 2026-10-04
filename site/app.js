@@ -1349,6 +1349,11 @@
     document.querySelectorAll(`[data-livekey="${d.key}"] .rbar`).forEach(b => liveDim(b, d.on));
   });
 
+  /* ★ 2026-10-05（admin-v2）細項埋點與族群權限的兩個薄包裝：account.js／perm.js 沒載入（或會員功能沒開）時什麼都不做。
+     canvas 圖上的點擊沒有 DOM 可以委派，只有這三處（熱力圖方塊、輪盤族群點、排行長條）需要在這裡直接呼叫；
+     其他元件的埋點全部在 account.js 用委派監聽（docs/account_analytics.md「細項事件」有完整清單）。*/
+  function twT(comp, detail) { try { if (window.TwT) window.TwT(comp, detail); } catch (e) { /* 統計失敗不影響功能 */ } }
+  function twGrpBlock(gid, name) { try { return !!(window.TwPerm && window.TwPerm.grpBlock && window.TwPerm.grpBlock(gid, name)); } catch (e) { return false; } }
   function playBar(box, o) {
     box = typeof box === 'string' ? document.getElementById(box) : box;
     if (!box) return null;
@@ -2545,7 +2550,7 @@
     if (window.TwAccount && window.TwAccount.route(head) === 'admin') {
       /* ★ 2026-10-05 修：「會員權限」（#l4Perm）2026-10-04 起是 .tab —— 以前這行一律清掉 on，
          直接開（或重新整理）#admin/perm 時側欄那一格不會亮。它的 on 交給 layout4 的同一條規則（網址是 #admin/perm 就亮）。*/
-      $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'l4Perm' && /^#admin\/perm\b/.test(location.hash || '')));
+      $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'l4Perm'));      // 2026-10-05：管理區三個子分頁（#admin/perm|members|traffic）都亮同一格
       $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-admin'));
       _lastPageKey = 'admin'; _miaKey = 'admin';
       try { applyMobileIA('admin'); } catch (e) { /* 忽略 */ }
@@ -4418,6 +4423,8 @@
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
+      /* ★ 2026-10-05（admin-v2）埋點＋族群權限：被關掉的族群點了只跳「此族群需開通」，不展開（perm.js 檔頭有寫為什麼不模糊）*/
+      if (p.data.gid) { twT('heat_tile', p.name); if (twGrpBlock(p.data.gid, p.name)) return; }
       if (p.data.gid) heatPanel('heatPanel', p.data.gid, p.name,
         `成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）　${fmt.pct(p.data.chg)}`);
       else if (p.data.cid) { heatChain = p.data.cid; renderHeat(gt, rot); }
@@ -7085,6 +7092,8 @@
     if (c) c.off('click').on('click', q => {
       const r = q.data && q.data.row; if (!r) return;
       if (r.isStock) { if (r.has_page) goStock(r.code); else drillToggleStock(r.code); return; }
+      twT('clock_group', r.name);                              // 2026-10-05 埋點：輪盤上被點的族群
+      if (twGrpBlock(r.gid, r.name)) return;
       /* ★ 2026-09-24（審查 R1：總覽小輪盤點族群沒反應）：`drillOpen` 只會畫進資金流向頁的
          #rankPanel／#sankeyPanel，總覽根本沒有那兩塊 —— 提示框寫「點一下看成分股」，點了卻什麼都沒發生。
          總覽（compact）改走熱力圖那一套 `heatPanel`，畫進輪盤正下方的 #ovRotPanel（原地展開，點外面／Esc 關）。*/
@@ -8732,6 +8741,8 @@
     if (c) c.off('click').on('click', q => {
       const gid = q.data && q.data.gid; if (!gid) return;
       const g = rows.find(x => x.group_id === gid) || {};
+      twT('rank_bar', g.group_name || gid);                    // 2026-10-05 埋點：右側排行被點的族群
+      if (twGrpBlock(gid, g.group_name)) return;
       /* ★ 2026-09-21：這裡展開的清單改成兩階段共用的那一支（drillOpen）——
          以前是 heatPanel，點下去只能連到個股頁；現在同一份清單還可以把個股畫到圖上。
          面板就在圖正下方，所以一樣不自己捲動（heatPanel 的 scroll:false 是同一個理由）。*/

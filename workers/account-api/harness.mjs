@@ -14,7 +14,7 @@ export function makeHub(env = {}) {
   const sql = {
     exec(q, ...args) {
       const st = db.prepare(q);
-      const rows = /^\s*(SELECT|WITH)/i.test(q) ? st.all(...args) : (st.run(...args), []);
+      const rows = /^\s*(SELECT|WITH|PRAGMA)/i.test(q) ? st.all(...args) : (st.run(...args), []);
       return { toArray: () => rows.map((r) => ({ ...r })) };
     },
   };

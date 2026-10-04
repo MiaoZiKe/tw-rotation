@@ -95,3 +95,78 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 | R5 權杖 | HMAC 簽章有效、未過期（60 天，剩一半自動續）、使用者還在、版本號相符 | 刪除帳號後的舊權杖、過期權杖 |
 | R6 登入 | 授權碼＋PKCE（S256）＋ state ＋ nonce ＋ 同瀏覽器 cookie；return 網址在白名單 | 白名單外網址、cookie 不符（別人的回呼網址）、aud／iss／nonce 不符、email 未驗證、過期 |
 | 來源 | 白名單網站發出的 POST | 其他網站、沒有 Origin 的 POST（403） |
+
+
+## 細項事件（2026-10-05 admin-v2）
+
+跟上面的計數並存（舊計數不動），心跳多帶一個 `e2`：`[[頁面, 元件, 細項, 次數], …]`，每批最多 60 列、每列最多 +50。
+Worker 存在 `ev2(day, page, comp, detail, n)`，只有「每天的次數」，**沒有任何識別碼**，保留 13 個月。
+
+- 頁面：上面的頁面白名單（`viewOf`）。管理頁不記。
+- 元件：`^[a-z][a-z0-9_.]{0,31}$` 的固定名字。
+- 細項：族群名／股票代號／元件 id／象限名，**只取畫面上既有的選項**；不存使用者打的字（搜尋只記「有搜尋」）。
+  Worker 再擋一次：≤ 24 字、不准 `@`、控制字元與 `< > " ' \``。
+
+| 元件 | 細項 | 點位 |
+|---|---|---|
+| `view` | 股票代號 | 打開個股頁（換一檔算一次）|
+| `tab.<分頁>`、`kp.<週期>`、`ai_tab`、`mtf`、`indicators`、`draw`、`zoom`… | 個股頁＝代號；其他頁空白 | 既有 HOOKS 擴充 |
+| `how` | 卡片 id | 「?」說明 |
+| `play` | 時間軸容器 id（`rotBack`＝資金輪動）| 播放鈕 |
+| `quad` | 領先／改善／轉弱／落後 | 輪盤象限卡 |
+| `filter_chain` | 產業鏈名 | 資金輪動產業鏈下拉 |
+| `filter_group` | 族群名 | 族群下拉「勾上」 |
+| `filter_group_open`、`filter_top10`、`filter_clear` | 空 | 篩選列 |
+| `rank_bar` | 族群名 | 右側排行長條（app.js 新點位）|
+| `clock_group` | 族群名 | 輪盤族群點（app.js 新點位）|
+| `heat_tile` | 族群名 | 熱力圖方塊（app.js 新點位）|
+| `search` | 空 | 搜尋 Enter |
+
+新增點位只有 app.js 三處 canvas 點擊（`twT`），其餘都是 account.js 的委派監聽。
+查詢：`/v1/admin/stats` 回 `e2`（期間內依 page/comp/detail 加總，可帶 `page` 只看一頁）。
+會員造訪：登入狀態的 `ev:session_login` 另記 `visits(uid, day, n)`，`/v1/admin/perm/list` 回 `seen`、`visits`（近 30 天）、`expires`。
+
+### 圖表選型（流量觀測頁的「？ 圖表怎麼選」）
+- 預設橫向排序長條：類別多、要比大小，長度最準。
+- 圓餅／甜甜圈：只在 ≤ 5 類且加總 100%（登入／訪客開啟比例）。
+- 散佈：只用在兩個數量的關係（個股被觀看次數 × 平均每次用幾次功能）。
+
+## 族群權限鍵對照（features.js `grpKey`）
+純小寫英數底線的 group_id 原樣 → `grp.<id>`；有大寫轉小寫；含中文的 `ind_*` 自動桶 → `grp.ind_x<FNV-1a 8 碼>`。上線後不要改算法。
+
+| group_id | 鍵 |
+|---|---|
+| ind_ETF | `grp.ind_etf` |
+| ind_半導體業 | `grp.ind_x4d6347d4` |
+| ind_光電業 | `grp.ind_xaffe9bb6` |
+| ind_電子零組件業 | `grp.ind_xb717244b` |
+| ind_化學工業 | `grp.ind_x269acfc7` |
+| ind_其他電子業 | `grp.ind_x88b93227` |
+| ind_生技醫療業 | `grp.ind_x4ceef9e8` |
+| ind_其他 | `grp.ind_xe82028fb` |
+| ind_電腦及週邊設備業 | `grp.ind_x206d5a74` |
+| ind_文化創意業 | `grp.ind_xdad9d3e5` |
+| ind_通信網路業 | `grp.ind_xdca044c4` |
+| ind_鋼鐵工業 | `grp.ind_x3737af8e` |
+| ind_汽車工業 | `grp.ind_xdc531606` |
+| ind_食品工業 | `grp.ind_x140977c9` |
+| ind_電機機械 | `grp.ind_x1b8c31ca` |
+| ind_綠能環保 | `grp.ind_xeff95aab` |
+| ind_玻璃陶瓷 | `grp.ind_x84487036` |
+| ind_建材營造 | `grp.ind_xacb9273e` |
+| ind_資訊服務業 | `grp.ind_x9dadf523` |
+| ind_紡織纖維 | `grp.ind_x060d3357` |
+| ind_金融保險 | `grp.ind_x0686a15a` |
+| ind_水泥工業 | `grp.ind_xd1d03aa6` |
+| ind_貿易百貨 | `grp.ind_x5756834b` |
+| ind_運動休閒 | `grp.ind_xd36b5780` |
+| ind_橡膠工業 | `grp.ind_xde3e5aa8` |
+| ind_居家生活 | `grp.ind_x2a747a56` |
+| ind_塑膠工業 | `grp.ind_x94a13d58` |
+| ind_電子通路業 | `grp.ind_x02e736c2` |
+| ind_數位雲端 | `grp.ind_x3c577bd7` |
+| ind_觀光餐旅 | `grp.ind_x786a931f` |
+| ind_電器電纜 | `grp.ind_xfc41fa87` |
+| ind_造紙工業 | `grp.ind_x3efb6a56` |
+| ind_油電燃氣業 | `grp.ind_xb9888cd8` |
+| ind_農業科技業 | `grp.ind_xa885935a` |
