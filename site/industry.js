@@ -4940,6 +4940,11 @@
           if (bits.length) parts.push('本益比 ' + bits.join('　'));
         }
         legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : '');
+        /* 資訊列佔多高，主圖頂端就留多少（kchart.reserveTop，見 chart.js）：K 棒最高點永遠在資訊列下面 */
+        if (kchart.reserveTop && legend.offsetParent) {
+          const r0 = kchart.el.getBoundingClientRect(), r1 = legend.getBoundingClientRect();
+          kchart.reserveTop(Math.max(0, r1.bottom - r0.top));
+        }
         const pl = {};
         if (cfg.vol) pl.vol = `成交量 <b>${A.fmt.lot(d.volume / 1000)}</b>${cfg.volma && at(vals.VOLMA, i) != null ? `　<span style="color:${KUtil.colors.ma[0]}">MA${cfg.volma} ${A.fmt.lot(at(vals.VOLMA, i) / 1000)}</span>` : ''}`;
         if (vals.KD) pl.kd = `KD(${cfg.kd.n},${cfg.kd.m1},${cfg.kd.m2})　<span style="color:${KUtil.colors.k}">K ${A.fmt.n(at(vals.KD.k, i), 1)}</span>　<span style="color:${KUtil.colors.d}">D ${A.fmt.n(at(vals.KD.d, i), 1)}</span>`;
@@ -5014,7 +5019,7 @@
 
     // ---- 「⚙ 設定」鈕與獨立的「圖表設定」面板 2026-09-26 拿掉：內容全部搬進上面的「指標 ▾」下拉
 
-    $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
+    $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); drawBarLock(); };
     /* 2026-09-28：「⤢ 寬版」鈕拿掉 —— 它唯一的作用是收起右側事件欄；事件改成浮層抽屜之後圖本來就吃滿全寬，
        寬版那組較高的圖高也直接收成預設（index.html 的 #lwc）。*/
     /* ★ 2026-09-23 手機優先改版 G8（依據 `docs/mobile_audit.md`）：
@@ -5039,7 +5044,7 @@
       };
       paintDraw();
     }
-    drawBar(); build();
+    drawBar(); build(); drawBarLock();
   }
 
   // 每檔每週期各存一份手繪線，換股或換週期就換一組
@@ -5102,6 +5107,17 @@
       onStyle: (st) => { drawW = st.w; drawFill = st.fill; },
     });
   }
+  /* ★ 2026-10-04（Andy：「開啟四週期同看時，左側畫線工具列要整排反灰」）：四格小圖沒有掛繪圖層，
+     工具列照舊亮著會讓人以為能畫、點了卻沒反應。四週期時整排 disabled＋aria-disabled（disabled 的按鈕點了不會觸發 onclick），
+     CSS 反灰＋not-allowed 游標；切回單一週期恢復。 */
+  function drawBarLock() {
+    const bar = $('#drawBar'); if (!bar) return;
+    const on = !!state.mtfMode;
+    bar.classList.toggle('dt-locked', on);
+    bar.setAttribute('aria-disabled', String(on));
+    bar.title = on ? '四週期同看時不能畫線；切回「單一週期」再畫' : '';
+    bar.querySelectorAll('button').forEach(b => { b.disabled = on; b.setAttribute('aria-disabled', String(on)); });
+  }
   /* 四週期同看。
      Andy 2026-09-15：「同事看4個週期那頁需要新增可以切換週期，不然我看不到我要的」——
      以前四格是程式挑的（有 15 分就 15m/60m/240m/1d，沒有就取最後四個），使用者換不掉。
@@ -5159,6 +5175,8 @@
       const c = new KChart(el, { mini: true, tf: dtf, fit: (kc) => kc.defaultView() });
       c.setBars(bars, dtf);
       c.applyIndicators(miniCfg(cfg));
+      /* 四週期小圖：游標看板（.mtip，兩行）蓋在圖的左上角，頂端同樣留兩行高，K 棒最高點不被蓋住 */
+      if (c.reserveTop) requestAnimationFrame(() => c.reserveTop(38));
       /* 游標看板：滑過哪一根就寫那一根的時間、開高低收與量。小圖沒有大圖那條圖例，
          不寫的話量柱只有高低、看不出是幾張。*/
       const tip = $('#mtip-' + i);

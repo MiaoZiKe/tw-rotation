@@ -867,13 +867,20 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
      表的長度不撐高這一列、在卡裡捲（同營收）。
    · ≤1100 兩欄：河流圖、明細表各自滿寬，中間「本益比（每季）｜EPS 與三率」並排；明細表拿掉 contain、最多 360px 再捲。
    · ≤820 一欄依序往下。 */
-.skprof{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
-.skprof>#peRiverCard,.skprof>#profitTblCard{grid-column:span 2}
+/* ★ 2026-10-04（Andy 截圖 1640：「EPS 與三率太窄、明細表太寬且數字欄留白很多」）：改成 12 欄格線，
+   第一列 河流 8｜本益比（每季）4（＝原本 2:1）；第二列 EPS 與三率 7｜明細 5（58%｜42%），明細表欄寬依內容收緊。 */
+.skprof{grid-template-columns:repeat(12,minmax(0,1fr));align-items:stretch}
+.skprof>#peRiverCard{grid-column:span 8} .skprof>#peQCard{grid-column:span 4}
+.skprof>#profitCard{grid-column:span 7} .skprof>#profitTblCard{grid-column:span 5}
+#profitTbl table{width:100%} #profitTbl td.num{white-space:nowrap;text-align:right}
+#profitTbl th{white-space:normal;line-height:1.2;text-align:right} #profitTbl th.l{text-align:left}
+#profitTbl td.l{white-space:normal;min-width:4.5em}
 .skprof>#peQCard,.skprof>#profitCard{display:flex;flex-direction:column}
 .skprof>#peQCard>#peQ,.skprof>#profitCard>#profitChart{flex:1 1 auto}
 .skprof>#peQCard>#peQ.isempty{flex:none}
 #peQNote{margin-top:6px}
 @media (max-width:1100px){.skprof{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .skprof>#peQCard,.skprof>#profitCard{grid-column:auto}
   .skprof>#peRiverCard,.skprof>#profitTblCard{grid-column:1 / -1}
   .skprof>.tblcard{contain:none;min-height:0} .skprof>.tblcard>.tw{flex:none;max-height:360px!important}}
 @media (max-width:820px){.skprof{grid-template-columns:minmax(0,1fr)} .skprof>*{grid-column:1 / -1!important}}
@@ -930,6 +937,14 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .hoTgl.off{border-color:var(--line-2);background:transparent;color:var(--ink-3)}
 .hoTgl.off .sw{background:var(--line-2)}
 .hoTgl.off .nm{text-decoration:line-through;text-decoration-thickness:1px}
+/* ★ 2026-10-04（Andy：「不要出現換行，讓他們同一排」）：三顆圖例兼開關一律同一列；縮內距與間距，真的放不下（390）就這一列橫捲，不換行。字級不動（≥12px）。 */
+.hoTgls{flex-wrap:nowrap!important;gap:6px;min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin}
+.hoTgl{flex:none;white-space:nowrap;gap:6px;padding:4px 8px}
+.hoTgl .sw{width:16px}
+/* 四週期同看時繪圖工具列整排停用（industry.js drawBarLock） */
+#drawBar.dt-locked{cursor:not-allowed}
+#drawBar.dt-locked .dtool{opacity:.35;cursor:not-allowed;pointer-events:auto}
+#drawBar.dt-locked .dtool.on{background:transparent;box-shadow:none}
 /* K 線設定面板：指標樣式列 */
 .cfgpop .strow{align-items:center;gap:var(--sp-2)}
 @media (max-width:640px){.cfgpop .strow{gap:7px}}
@@ -4131,6 +4146,11 @@ h3 .howbtn.pop{font-family:inherit}
   .skov3[data-cols="3"] #skFundCard{display:flex;flex-direction:column}
   /* #305：基本面卡改成「小格窄欄｜大格寬欄」之後，撐開交給兩欄各自的 flex（小格平均分窄欄、大格依內容再平均分多出來的高度）*/
   .skov3[data-cols="3"] #skFundCard>.kvs.skfund{flex:1 1 auto}
+  /* ★ 2026-10-04（Andy 截圖 1640：基本面卡比較高，籌碼快照被 stretch 拉成同高、量比下面空一大片）：
+     籌碼卡也改 flex 欄，三塊小圖平分多出來的高度、塊內內容上下均分（字級不動），量比那一列維持自然高度。 */
+  .skov3[data-cols="3"] #skChipCard{display:flex;flex-direction:column}
+  .skov3[data-cols="3"] #skChipCard>.mixes{flex:1 1 auto}
+  .skov3[data-cols="3"] #skChipCard .mixes>.mix{flex:1 1 auto;justify-content:space-evenly}
   .skov3[data-cols="3"] #skFundCard>.note{margin-top:10px!important;padding:8px 10px;border-radius:9px;background:var(--panel-3)}
 }
 /* 擋掉兩支 AI 積木（只剩基本面、籌碼快照）：兩張並排 */

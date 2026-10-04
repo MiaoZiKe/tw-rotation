@@ -16724,7 +16724,7 @@ def t_stock_quarter_audit0927(pg, base, code):
         ok(f"【{tag}】{c} 資券 ≥ {QA_MIN['margin']} 個交易日（實際 {len(j.get('margin') or [])}）", len(j.get("margin") or []) >= QA_MIN["margin"])
         ok(f"【{tag}】{c} 三大法人 ≥ {QA_MIN['inst']} 個交易日（實際 {len((j.get('inst_v3') or {}).get('daily') or [])}）",
            len((j.get("inst_v3") or {}).get("daily") or []) >= QA_MIN["inst"])
-        ok(f"【{tag}】{c} 指標標籤有 8 條規則、每條都有 detail", len((j.get("tags") or {}).get("items") or []) == 8
+        ok(f"【{tag}】{c} 指標標籤有 7～8 條規則（2026-10-04 起互相涵蓋的兩條去重、只留一條）、每條都有 detail", len((j.get("tags") or {}).get("items") or []) in (7, 8)
            and all(x.get("detail") for x in j["tags"]["items"]))
 
     # ---------------------------------------------------------------- ② 獲利：季／年切換
@@ -18135,11 +18135,16 @@ def t_stock_tabs0928(pg, base, code):
         for t in ("inst", "margin", "holders"):
             click(pg, f'#stockTabs button[data-t="{t}"]', 1200)
             m = pg.evaluate("""() => { const st = document.getElementById('stockTab'); const r = st.getBoundingClientRect();
-                const tg = [...st.querySelectorAll('.hoTgl')].map(b => b.getBoundingClientRect()).map(q => ({ l: Math.round(q.left), r: Math.round(q.right) }));
-                return { sw: document.documentElement.scrollWidth, vw: innerWidth, h: Math.round(r.height), tg }; }""")
+                const tg = [...st.querySelectorAll('.hoTgl')].map(b => b.getBoundingClientRect()).map(q => ({ l: Math.round(q.left), r: Math.round(q.right), t: Math.round(q.top) }));
+                const box = st.querySelector('#hoTgls'), br = box ? box.getBoundingClientRect() : null;
+                return { sw: document.documentElement.scrollWidth, vw: innerWidth, h: Math.round(r.height), tg,
+                  box: br ? { l: Math.round(br.left), r: Math.round(br.right), sc: box.scrollWidth > box.clientWidth + 1 } : null }; }""")
             ok(f"{tag}{w}px「{t}」分頁看得見、沒有橫向捲軸", m["h"] > 100 and m["sw"] <= m["vw"] + 1, m)
             if t == "holders":
-                ok(f"{tag}{w}px 三顆色塊都在畫面內", len(m["tg"]) == 3 and all(q["l"] >= 0 and q["r"] <= m["vw"] + 1 for q in m["tg"]), m["tg"])
+                # ★ 2026-10-04（Andy：「不要出現換行，讓他們同一排」）：三顆一律同一列；390 真的放不下時那一列自己橫捲（容器在畫面內），不換行
+                ok(f"{tag}{w}px 三顆色塊同一列、外框在畫面內（放不下時在自己那一列橫捲）",
+                   len(m["tg"]) == 3 and len({q["t"] for q in m["tg"]}) == 1 and m["box"] and m["box"]["l"] >= 0 and m["box"]["r"] <= m["vw"] + 1
+                   and (m["box"]["sc"] or all(q["l"] >= 0 and q["r"] <= m["vw"] + 1 for q in m["tg"])), m)
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.evaluate("() => { try { ['tw.hoLines','tw.aiTab','tw.aiOpen'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
@@ -20761,6 +20766,7 @@ SECTIONS = {
     # 點零件 → 「這個零件是誰做的」小卡（docs/diagram_purpose.md §4）
     "零件誰做的":          lambda pg, b, base, code: t_whomakes(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
+    "個股版面1004":        lambda pg, b, base, code: t_stock_lay_1004(pg, base),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
     # ★ 2026-10-02 Andy：「個股分時需要有即時走勢」—— 分鐘聚合、缺口虛線、Yahoo 重抓、重新整理保留、隔天清掉（⚠ --workers 1）
     "分時一路即時":        lambda pg, b, base, code: t_tick_live_1002(b, base, code),
@@ -45952,6 +45958,101 @@ def t_rel_scope_3d_1003(b, base):
         ok(f"{T} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
     ctx.close()
     ok(f"{T} 整段沒有 pageerror", not errs, errs[:4])
+
+
+# ★ 2026-10-04 Andy 個股頁七件版面（6274 台燿、6182）：總覽三欄等高不留白、AI 面向籤不重疊、
+#   獲利 EPS 與三率｜明細 58:42、大戶圖例同一排、指標去重、四週期時繪圖工具列停用、K 線資訊列不蓋 K 棒
+def t_stock_lay_1004(pg, base):
+    T = "[個股版面1004]"
+    def tab(t, w=900):
+        pg.evaluate(f"() => {{ const b = document.querySelector('#stockTabs button[data-t=\"{t}\"]'); if (b) b.click(); }}")
+        pg.wait_for_timeout(w)
+    for code in ("6274", "6182"):
+        for W in (1640, 1440, 1100, 800, 390):
+            pg.set_viewport_size({"width": W, "height": 1000})
+            pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1800)
+            tab("overview", 1200)
+            # ② 面向籤：四顆兩兩外框不相交、字沒被裁
+            r = pg.evaluate("""() => { const bs = [...document.querySelectorAll('#ovAiTags .ovtag')];
+                const R = bs.map(b => b.getBoundingClientRect()); const hit = [];
+                for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) {
+                  const a = R[i], b = R[j]; if (a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) hit.push([i, j]); }
+                const clip = bs.filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.dataset.facet);
+                return { n: bs.length, hit, clip }; }""")
+            if r["n"] >= 2:
+                ok(f"{T} {code} {W}px AI 面向籤 {r['n']} 顆兩兩不重疊、文字沒被裁切", not r["hit"] and not r["clip"], r)
+                pg.evaluate("() => { const b = document.querySelector('#ovAiTags .ovtag[data-facet=\"sig\"]'); if (b) b.click(); }")
+                pg.wait_for_timeout(250)
+                r2 = pg.evaluate("""() => [...document.querySelectorAll('#ovAiTags .ovtag')].filter(b => b.scrollWidth > b.clientWidth + 1).length""")
+                ok(f"{T} {code} {W}px 選中「技術面訊號」後仍無文字裁切", r2 == 0, r2)
+            # ① 三欄時籌碼快照卡底部不留大片空白
+            if W >= 1440:
+                g = pg.evaluate("""() => { const c = document.getElementById('skChipCard'), f = document.getElementById('skFundCard'); if (!c || !f) return null;
+                    const cb = c.getBoundingClientRect(), kids = [...c.querySelectorAll('.mixes>*')];
+                    const last = kids.length ? kids[kids.length - 1].getBoundingClientRect().bottom : cb.top;
+                    return { gap: Math.round(cb.bottom - last), ch: Math.round(cb.height), fh: Math.round(f.getBoundingClientRect().height),
+                      fs: Math.min(...[...c.querySelectorAll('.mixt,.mixi b,.mixf')].map(e => parseFloat(getComputedStyle(e).fontSize))) }; }""")
+                if g:
+                    ok(f"{T} {code} {W}px 籌碼快照與基本面等高、最後一塊下方空白 ≤ 40px、字 ≥ 11px",
+                       abs(g["ch"] - g["fh"]) <= 2 and g["gap"] <= 40 and g["fs"] >= 11, g)
+            # ③ 獲利：EPS 與三率 55～60%、明細 40～45%；≤800 上下堆疊
+            tab("profit", 1500)
+            p = pg.evaluate("""() => { const a = document.getElementById('profitCard'), b = document.getElementById('profitTblCard'); if (!a || !b) return null;
+                const A = a.getBoundingClientRect(), B = b.getBoundingClientRect();
+                const tw = document.querySelector('#profitTbl'); return { aw: A.width, bw: B.width, sameRow: Math.abs(A.top - B.top) < 2, stacked: B.top >= A.bottom - 1,
+                  hs: tw ? tw.scrollWidth > tw.clientWidth + 1 : false }; }""")
+            if p:
+                if W > 1100:
+                    fr = p["aw"] / (p["aw"] + p["bw"])
+                    ok(f"{T} {code} {W}px 獲利第二列 EPS 與三率佔 55～60%（{fr:.2f}）、同一列", p["sameRow"] and 0.55 <= fr <= 0.60, p)
+                if W <= 800:
+                    ok(f"{T} {code} {W}px 獲利 EPS 與三率、明細上下堆疊", p["stacked"], p)
+            # ④ 大戶／散戶圖例三顆同一排
+            tab("holders", 1200)
+            h = pg.evaluate("""() => { const bs = [...document.querySelectorAll('#hoTgls .hoTgl')]; if (!bs.length) return null;
+                const tops = bs.map(b => Math.round(b.getBoundingClientRect().top));
+                return { n: bs.length, rows: new Set(tops).size, fs: Math.min(...bs.map(b => parseFloat(getComputedStyle(b).fontSize))) }; }""")
+            if h:
+                ok(f"{T} {code} {W}px 大戶圖例 {h['n']} 顆同一排、字 ≥ 12px", h["rows"] == 1 and h["fs"] >= 12, h)
+    # ⑤ 指標去重：「連三月營收年增>20%」與「連續 N 個月營收年增」不會同時出現在同一區
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    for code in ("6274", "6182"):
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        tab("tags", 900)
+        # 只有「同一區」才是互相涵蓋：兩條都成立（>20% 推得出連續年增）或兩條都不成立（連續 <3 月推得出 >20% 不成立）。
+        #   「連續 N 月」成立、「>20%」不成立是兩件不同的事，兩條都留。
+        labs = pg.evaluate("() => [...document.querySelectorAll('#tagCols .tagtile')].map(e => [e.dataset.hit, e.querySelector('.tagnm').textContent])")
+        z20 = [h for h, x in labs if "連三月營收年增>20%" in x]; zst = [h for h, x in labs if x.startswith("連續") and "營收年增" in x]
+        ok(f"{T} {code} 指標「>20% 連三月」與「連續 N 月年增」不在同一區同時列出（互相涵蓋）", not (z20 and zst and z20[0] == zst[0]), labs)
+    # ⑥ 四週期同看 → 繪圖工具列整排停用；⑦ K 棒最高點在資訊列下面
+    code = "6274"
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1500)
+    for W in (1640, 1440, 800):
+        pg.set_viewport_size({"width": W, "height": 1000}); pg.wait_for_timeout(900)
+        pg.evaluate("() => { const c = DrawTools.active && DrawTools.active.kc; if (c) c.chart.timeScale().fitContent(); }")
+        pg.mouse.move(5, 5); pg.wait_for_timeout(600)
+        k = pg.evaluate("""() => { const kc = DrawTools.active && DrawTools.active.kc; const lg = document.getElementById('legendOv'); if (!kc || !lg) return null;
+            const r = kc.chart.timeScale().getVisibleLogicalRange(); const d = kc.data; let hi = -1e18;
+            for (let i = Math.max(0, Math.floor(r.from)); i <= Math.min(d.length - 1, Math.ceil(r.to)); i++) hi = Math.max(hi, d[i].high);
+            const y = kc.candle.priceToCoordinate(hi); const lb = lg.getBoundingClientRect().bottom - kc.el.getBoundingClientRect().top;
+            return { y: Math.round(y), legBottom: Math.round(lb) }; }""")
+        if k:
+            ok(f"{T} {W}px K 棒最高點（y={k['y']}）在資訊列底部（{k['legBottom']}）之下", k["y"] > k["legBottom"], k)
+    pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(600)
+    n0 = pg.evaluate("() => document.querySelectorAll('#drawBar button:disabled').length")
+    click(pg, "#mtfBtn", 1500)
+    s = pg.evaluate("""() => { const bs = [...document.querySelectorAll('#drawBar button')];
+        return { n: bs.length, dis: bs.filter(b => b.disabled && b.getAttribute('aria-disabled') === 'true').length,
+          cur: bs.length ? getComputedStyle(bs[0]).cursor : '', op: bs.length ? +getComputedStyle(bs[0]).opacity : 1 }; }""")
+    ok(f"{T} 四週期同看：繪圖工具列 {s['n']} 顆全部 disabled＋aria-disabled、游標 not-allowed、反灰",
+       s["n"] > 0 and s["dis"] == s["n"] and s["cur"] == "not-allowed" and s["op"] < 0.6 and n0 == 0, s)
+    t0 = pg.evaluate("() => Industry._dbg().tool")
+    pg.evaluate("() => { const b = document.querySelector('#drawBar .dtool[data-t=\"rect\"]'); if (b) b.click(); }"); pg.wait_for_timeout(200)
+    ok(f"{T} 四週期時點繪圖工具不動作", pg.evaluate("() => Industry._dbg().tool") == t0)
+    click(pg, "#mtfBtn", 1500)
+    s2 = pg.evaluate("() => document.querySelectorAll('#drawBar button:disabled').length")
+    ok(f"{T} 切回單一週期：繪圖工具列恢復可用", s2 == 0, s2)
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -452,6 +452,18 @@ def stock_tags(rev: pd.DataFrame | None, fin: pd.DataFrame | None, code: str) ->
         else:
             for key in ("q_rev_yoy_3of4_20", "q_om_3of4_10", "q_gm_3of4_30", "eps_pos4"):
                 items[key]["detail"] = "最近四季不連續（有缺季），不判斷"
+    # ★ 2026-10-04（Andy：「>20% 也等於 >10%，不要出現這類重複指標，幫我 CHK 全部類似情況並修正」）：
+    #   逐對檢查八條，唯一「一條成立就必然推出另一條」的組合是
+    #   「連三月營收年增>20%」⇒「連續 N(≥3) 個月營收年增」（三個連續月 YoY>20 必然 YoY>0 且連續 ≥3）。
+    #   · 前者成立 → 後者必成立、是重複：留門檻較嚴的「>20%」，把連續月數 N 併進它的 detail，刪掉後者。
+    #   · 後者不成立（N<3）→ 前者必不成立、也是重複：留「連續 N 個月」（帶 N），刪掉前者。
+    #   其他組合不是包含關係（月 vs 季、營收 vs 利潤率、創新高 vs 年增），都留著。
+    a20, stk = items["rev_yoy3_20"], items["rev_streak"]
+    if a20["hit"] is True and stk["hit"] is True:
+        a20["detail"] += f"（{stk['detail'].split(' ', 1)[-1]}）"
+        items.pop("rev_streak")
+    elif stk["hit"] is False and a20["hit"] is not True:
+        items.pop("rev_yoy3_20")
     out = list(items.values())
     return {"items": out, "n_hit": sum(1 for x in out if x["hit"])}
 

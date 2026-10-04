@@ -312,7 +312,8 @@ def test_指標標籤只陳述事實_符合不符合都回傳():
     assert t["rev_high_q"]["hit"] is True
     assert t["q_rev_yoy_3of4_20"]["hit"] is None, "2025Q3、Q4 沒有去年同季可比 → 不判斷（不是不符合）"
     assert t["q_gm_3of4_30"]["hit"] is True and t["q_om_3of4_10"]["hit"] is True
-    assert t["rev_streak"]["hit"] is True and t["rev_streak"]["label"] == "連續 8 個月營收年增"
+    # 2026-10-04：「連三月>20%」成立 ⇒「連續 N 個月年增」必成立 → 去重，N 併進前者的 detail
+    assert "rev_streak" not in t and "連續 8 個月" in t["rev_yoy3_20"]["detail"]
     assert t["eps_pos4"]["hit"] is True
     assert all(x["kind"] == "指標" for x in t.values())
     empty = stockpage.stock_tags(None, None, "T")
