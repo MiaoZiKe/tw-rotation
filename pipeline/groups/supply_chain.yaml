@@ -67,6 +67,10 @@ segments:
   - {id: compound_semi, name: "化合物 GaAs/InP 射頻", layer: 2, chain: semiconductor,
      note: "砷化鎵（GaAs）／磷化銦（InP）的磊晶片與晶圓代工。終端：手機射頻功率放大器（PA）、Wi-Fi、3D 感測 VCSEL、光通訊雷射與光偵測器。
        ★ 4991 環宇-KY（光偵測器 PD 為主）與 4971 英特磊-KY（MBE 磊晶）查不到具名客戶，依孤立節點規矩暫不放節點"}
+  # Skyworks／Qorvo 是射頻前端 IDM（自有設計、GaAs 部分委外），不放 ic_design：
+  #   ic_design 會被 AI 伺服器鏈一併拉進來（CHAIN_EXTRA），它們在那張圖上沒有邊，會變成孤立節點、也會誤導成 AI 供應鏈
+  - {id: rf_frontend,   name: "射頻前端 IDM（外商）", layer: 3, chain: semiconductor,
+     note: "手機射頻前端（PA／濾波器／開關）大廠，穩懋與宏捷科的 GaAs 代工客戶。台股沒有對應的大廠，這一格只有外商"}
   - {id: wide_bandgap,  name: "第三代半導體 SiC/GaN", layer: 2, chain: semiconductor,
      note: "碳化矽（SiC）／氮化鎵（GaN）功率元件的磊晶與代工。終端：工業、車用與電動車、綠能，題材是 AI 資料中心 800V 高壓直流電源（目前沒有具名訂單）"}
   - {id: adv_pkg,      name: "先進封裝 CoWoS/SoIC", layer: 3, chain: semiconductor,
@@ -574,8 +578,8 @@ companies:
      note: "全球最大半導體前段設備商。連續 16 年獲台積電優良供應商獎"}
   - {id: amd,       ticker: "NASDAQ:AMD",  name: AMD,      segment: ic_design, foreign: true}
   - {id: broadcom,  ticker: "NASDAQ:AVGO", name: Broadcom, segment: ic_design, foreign: true}
-  - {id: skyworks,  ticker: "NASDAQ:SWKS", name: Skyworks, segment: ic_design, foreign: true}
-  - {id: qorvo,     ticker: "NASDAQ:QRVO", name: Qorvo,    segment: ic_design, foreign: true}
+  - {id: skyworks,  ticker: "NASDAQ:SWKS", name: Skyworks, segment: rf_frontend, foreign: true}
+  - {id: qorvo,     ticker: "NASDAQ:QRVO", name: Qorvo,    segment: rf_frontend, foreign: true}
   # ---- 化合物半導體（2026-10-04，來源與信心度見 docs/compound_semi_evidence.md）
   - {id: win,     ticker: "3105", name: 穩懋,   segment: compound_semi,
      tech: [GaAs 晶圓代工, InP, GaN, 射頻 PA, VCSEL],
