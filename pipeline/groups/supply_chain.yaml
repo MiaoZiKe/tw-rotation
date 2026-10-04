@@ -635,12 +635,6 @@ companies:
   - {id: vpec,    ticker: "2455", name: 全新,   segment: compound_semi,
      tech: [GaAs 磊晶片, InP 磊晶片, VCSEL 磊晶],
      note: "最上游的磊晶片廠。VCSEL 磊晶已通過穩懋製程認證（終端傳為蘋果，屬間接推論）；光電營收占比「4 成以上」只有單一來源"}
-  - {id: episil,  ticker: "3707", name: 漢磊,   segment: wide_bandgap,
-     tech: [SiC 功率代工, GaN 功率代工, 車用 MOSFET, TVS],
-     note: "產品：化合物功率元件 49%、TVS 17%、車用 MOSFET 14%；應用：工業 44%、車用 28%、消費 21%、綠能 7%（理財周刊）。具名客戶查不到"}
-  - {id: epiepi,  ticker: "3016", name: 嘉晶,   segment: wide_bandgap,
-     tech: [矽磊晶, SiC 磊晶, GaN 磊晶],
-     note: "漢磊集團子公司 —— 合併口徑注意，兩家營收不可重複加總"}
   - {id: marvell,   ticker: "NASDAQ:MRVL", name: Marvell,  segment: ic_design, foreign: true}
   - id: skhynix
     ticker: "KRX:000660"
@@ -1166,9 +1160,6 @@ edges:
      source: "CMoney", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=162625"}
   - {from: vpec,   to: win,      rel: supplies, item: "VCSEL / GaAs 磊晶片", strength: 2, confidence: reported,
      source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/%E7%84%A6%E9%BB%9E%E8%82%A1-vcsel%E8%A3%BD%E7%A8%8B%E8%AA%8D%E8%AD%89%E9%80%9A%E9%81%8E-%E5%85%A8%E6%96%B0-2455-%E7%87%9F%E9%81%8B%E8%93%84%E5%8B%A2%E5%BE%85%E7%99%BC-013959543.html"}
-  - {from: epiepi, to: episil,   rel: supplies, item: "SiC / GaN / 矽磊晶片（集團內）", strength: 3, confidence: reported,
-     source: "富果直送（漢磊／嘉晶法說重點）", source_url: "https://blog.fugle.tw/post/episil-earnings-call-q3-2021",
-     note: "同屬漢民集團的母子公司；嘉晶專做磊晶、主要供應漢磊代工"}
   # ================================ 材料 → 載板 / CCL
   - {from: ajinomoto, to: unimicron,  rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported,
      note: "全球 >95% 市占，近乎獨占；占載板 BOM 成本約 25%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
