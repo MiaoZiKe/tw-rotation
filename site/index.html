@@ -4334,6 +4334,10 @@ h3 .howbtn.pop{font-family:inherit}
 .osc-more{flex:none;font-size:17px;line-height:1;color:var(--ink-3);margin-left:2px}
 .osc-d + .osc-more{margin-left:0}
 .osc-t + .osc-more{margin-left:auto}
+.osc-h > .howbtn{flex:none}
+/* 手機（≤640）卡片只有約 104px 高、標題列很擠：摘要卡的「?」收起來，免得把卡名擠成「漲跌…」（_uitest 摘要卡即時 390 在量） */
+@media (max-width:640px){.osc-h > .howbtn{display:none}}
+.osc-h > .howbtn + .osc-more{margin-left:auto}
 /* ★ 2026-10-02（DECISIONS #296，Andy：「這都需要具備即時功能」）：右上角日期＝四張卡共用的「即時」開關＋狀態（app.js ovlStamp）。
    lv＝盤中即時（點會呼吸、字是「即時 HH:MM:SS」）；arm＝即時開著、但現在畫的是收盤／盤後資料（顯示日期）；
    off＝即時關掉（虛線框）；stale＝超過 20 秒沒有新的一輪（琥珀色，數字停在最後一次、不往回拉）。

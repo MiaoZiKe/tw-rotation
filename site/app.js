@@ -3150,6 +3150,8 @@
     if (kind !== mktKind || mktLeft) mktReset();                 // 換分頁或離開再回來：這頁所有設定回預設（見 mktReset）
     mktLeft = false;
     mktKind = kind;
+    // 法人連買賣的讀法在那張卡自己的 trust「?」；頁級 mkt 那顆在這一頁藏起來，不讓同一張卡標題出現兩顆內容重疊的「?」
+    { const mb = $('.howbtn[data-how="mkt"]'); if (mb) mb.style.display = kind === 'streak' ? 'none' : ''; }
     $$('#mktSeg2 button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
     const gt = D.groups_today || [], cands = D.candidates || [], gd = D.groups_detail || {};
@@ -3231,7 +3233,8 @@
         <div id="mktLive" class="note livenote" ${MUD.on ? '' : 'hidden'}></div>
         <div class="mktduo" id="mktDuo">
         <div class="card mktdist" style="padding:12px 14px">
-          <div class="row spread"><h3 style="margin:0">漲跌分佈 <small id="distSub"></small></h3>
+          <div class="row spread"><h3 style="margin:0">漲跌分佈 <small id="distSub"></small> <button class="howbtn pop" data-how="mktdist" data-ttl="漲跌分佈" type="button" aria-label="漲跌分佈怎麼看">?</button></h3>
+            <div class="howtxt" id="how-mktdist" hidden></div>
             <div class="row" id="distFilter" style="gap:8px;flex-wrap:wrap"></div></div>
           <div class="distlay"><div id="chgDistBox"><div id="chgDist" class="chart"></div></div>
             <div class="distpick" id="distPick" role="region" hidden aria-label="這一段的個股"></div></div></div>`
@@ -3470,7 +3473,7 @@
     OVS.eod[k] = { bar: o.bar || '<i class="osc-none"></i>', barCls: o.barCls || '', nums: o.nums, foot: o.foot || '&nbsp;',
       aria: o.aria, date: o.date || '', title: o.title, ds: o.ds || {} };
     return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}">`
-      + `<div class="osc-h">${ovsIcon(o.icon, o.color)}<b class="osc-t">${o.title}</b>${ovsDate(k, o.date)}<span class="osc-more" aria-hidden="true">›</span></div>`
+      + `<div class="osc-h">${ovsIcon(o.icon, o.color)}<b class="osc-t">${o.title}</b><button class="howbtn pop" data-how="ovs-${k}" data-ttl="${o.title}" type="button" aria-label="${o.title}怎麼看">?</button>${ovsDate(k, o.date)}<span class="osc-more" aria-hidden="true">›</span></div>`
       + `<div class="osc-bar${o.barCls ? ' ' + o.barCls : ''}">${o.bar || '<i class="osc-none"></i>'}</div>`
       + `<div class="osc-n">${o.nums}</div>`
       + `<div class="osc-f">${o.foot || '&nbsp;'}</div></div>`;
@@ -3639,7 +3642,9 @@
     host.innerHTML = `<div class="ovsum-track" id="ovSumTrack">${cards.join('')}</div>`
       + `<button type="button" class="ovsum-nav prev" id="ovSumPrev" aria-label="往左看摘要卡" hidden>‹</button>`
       + `<button type="button" class="ovsum-nav next" id="ovSumNext" aria-label="往右看更多摘要卡" hidden>›</button>`
-      + `<span class="ovsum-live" data-lc="t00" hidden></span>`;
+      + `<span class="ovsum-live" data-lc="t00" hidden></span>`
+      /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：四格摘要卡各一顆「?」，說明盒放在卡片外（howPop 關的時候搬回這裡）。*/
+      + ['updown', 'rot', 'flow', 'theme'].map(k => `<div class="howtxt" id="how-ovs-${k}" hidden></div>`).join('');
     Object.keys(OVS.eod).forEach(k => Object.entries(OVS.eod[k].ds || {}).forEach(([a, v]) => { host.dataset[a] = String(v); }));
 
     const track = $('#ovSumTrack');
@@ -3658,10 +3663,11 @@
       c.onclick = (e) => {
         // 右上角那顆＝即時開關（DECISIONS #296）：按它不換頁、不捲動
         if (e.target && e.target.closest && e.target.closest('.ovl-tg')) { e.stopPropagation(); ovlToggle(); return; }
+        if (e.target && e.target.closest && e.target.closest('.howbtn')) return;   // 「?」交給全站委派監聽器開說明，不換頁
         go(c.dataset.k, e);
       };
       c.onkeydown = (e) => {
-        if (e.target && e.target.closest && e.target.closest('.ovl-tg')) return;   // 鍵盤停在開關上：Enter／空白鍵交給按鈕自己（不然會同時換頁）
+        if (e.target && e.target.closest && e.target.closest('.ovl-tg, .howbtn')) return;   // 鍵盤停在開關上：Enter／空白鍵交給按鈕自己（不然會同時換頁）
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(c.dataset.k, e); }
       };
     });
@@ -7834,12 +7840,25 @@
        以下每一段都改成同一個格式（howHTML）：一句「這張圖回答什麼」→ 最多 5 條、每條 ≤30 字的讀法 →
        最下面一行小字放口徑細節。原本卡片上的長副標、圖下註腳一律搬進來，**只搬家＋改短，不刪資訊**。
        rot／rotm 兩段不在這一批（另一支 agent 在改資金輪動卡與總覽小輪盤）。*/
-    mkt: howHTML('這一頁回答：總覽上方那排數字背後是哪些股票。', [
-      '漲跌家數：左圖點長條，圖下列出那一段的個股；右表是漲停、跌停等排行',
-      '法人連買賣：法人連續買賣誰、力道增減',
+    /* ★ 2026-10-04（docs/howto_audit_1004.md 第 7 項）：改成函式，依目前分頁（mktKind）只回那一頁的讀法。
+       改前四個分頁打開都是同一段（四個分頁各一條），看不到當前分頁該怎麼讀；
+       「法人連買賣」分頁的讀法在它自己的 trust「?」，那一頁 drawMarket 會把這顆藏起來（不再兩顆重疊）。
+       「站上均線」那一條沿用改前的句子 —— 那張卡正在改版（族群改下拉多選），改版後再核。*/
+    mkt: () => mktKind === 'cand' ? howHTML('這一頁回答：今天哪幾檔值得先看（技術面最後一關）。', [
+      'A＝回檔承接，B＝突破追進',
+      '綜合分＝籌碼、技術、基本面合成，越高越前面',
+      '沒有 A／B 的日子列綜合分前 40，只當觀察名單',
+      '方向與估值要先過，技術面只決定時機',
+      '點一列進個股頁',
+    ]) : mktKind === 'ma' ? howHTML('這一頁回答：有多少股票站在均線上、誰在撐誰在拖。', [
       '站上均線：拆到族群，看誰在撐誰在拖',
-      '今日候選：技術面最後一關，方向估值先過',
-      '盤後＝收盤全市場；即時＝抓得到的那批',
+      '點一列進個股頁，族群名稱點得進族群頁',
+    ]) : howHTML('這一頁回答：今天漲跌家數背後是哪些股票。', [
+      '左圖＝漲跌分佈（讀法看圖標題旁的「?」）',
+      '右表分頁：漲停、跌停、漲幅／跌幅前段、成交值前段',
+      '盤後＝收盤全市場；⚡ 即時＝約 440 檔成分股，非全市場',
+      '漲停＝漲幅 ≥ 9.5%',
+      '點一列進個股頁',
     ], '「⚡ 即時」只抓有人工分族群的成分股聯集（約 440 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
       + '漲跌幅是真值（現價 vs 昨收），成交值是「現價 × 累計張數」估算，和盤後那一版不是同一個東西；非盤中按下去畫的是最後一次報價快照。'
       + '漲停＝漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7～10.0）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），圖的下面或右邊（看視窗寬度）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
@@ -7847,17 +7866,55 @@
       + '每一列都點得進個股頁，族群名稱點得進族群頁。'),
     heat: () => howHTML('這張圖回答：今天的錢集中在哪些族群。', [
       '方塊大小＝族群吃掉多少成交值',
-      '顏色＝資金流入（紅）或流出（綠）',
+      '顏色＝5 日減 20 日成交值佔比（pp），非今天漲跌',
       '紅方塊但今天收綠＝股價回檔，錢還在進',
-      '上排選一條產業鏈，小方塊會變大',
+      '標題旁「產業鏈 ▾」挑一條鏈，只看它的族群',
       '點方塊看成分股，面板上可進族群頁',
     ], '顏色看的是 5 日成交值佔比減 20 日佔比，不是今天的漲跌。'
       + (heatNoRot ? `目前有 ${heatNoRot} 個族群還沒有 5 日 vs 20 日的資金流向，第二行標「漲跌」，顏色改用當日漲跌幅 ÷3 對到同一把尺。` : '')),
+    /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：補「?」的卡。說明只寫畫面上看得到的東西；
+       口徑一律寫進條列（第三參數 fine 從 09-26 起不顯示）。*/
+    mktdist: howHTML('這張圖回答：今天大家都在漲，還是少數幾檔撐盤。', [
+      '每根長條＝落在那一段漲跌幅的家數，紅漲綠跌',
+      '虛線＝用這批樣本自己的平均與標準差畫的常態曲線',
+      '長條高出虛線很多＝那一段特別擠',
+      '點長條列出那一段的個股；點空白、× 或 Esc 收起',
+      '右上切全部／上市／上櫃、含 ETF、族群篩選',
+    ]),
+    'ovs-updown': howHTML('這格回答：今天上漲、下跌、平盤各幾檔。', [
+      '比例條＝上漲（紅）／平盤（灰）／下跌（綠）的家數占比',
+      '最後一行＝大盤成交值，跟 20 日均比',
+      '點這格到市場明細看完整分佈與名單',
+    ]),
+    'ovs-rot': howHTML('這格回答：族群在強弱循環的四段各有幾個。', [
+      '四段＝領先／改善／轉弱／落後，加總＝全部族群',
+      '「最強」＝成交值前 10 大族群裡相對大盤最強的那個',
+      '只從前 10 大挑：小族群強度容易暴衝，沒有代表性',
+      '點這格捲到下面的資金輪盤',
+    ]),
+    'ovs-flow': howHTML('這格回答：昨天收盤，錢分到哪幾條產業鏈。', [
+      '比例條＝前三大產業鏈＋其他，% ＝佔全部族群成交值',
+      '跟下面「昨日資金去向」同一天、同一份資料',
+      '點這格捲到昨日資金去向',
+    ]),
+    'ovs-theme': howHTML('這格回答：哪幾個題材現在最熱。', [
+      '熱度 0～100＝資金佔比變化＋法人買賣＋新聞則數合成',
+      '列熱度前三名；比例條＝第一名的熱度',
+      '最後一行＝熱度 ≥ 70 的題材有幾個',
+      '點題材名＝在下面熱門題材熱力圖打開它',
+    ]),
+    watch: howHTML('這頁回答：你挑出來的股票今天怎麼走。', [
+      '搜尋代號或名稱加入；清單分頁可切換',
+      '「即時 重試中」＝報價這一輪沒抓到，會自動再試',
+      '沒登入時清單只存在這台裝置的瀏覽器',
+      '右上「N／M 頁」＝目前頁數／分頁上限',
+      '點一列進個股頁',
+    ]),
     /* ★ 2026-09-24：總覽「熱門題材」改熱力圖之後的說明（原本卡片上的「熱度＝資金佔比變化＋法人＋新聞」副標搬進來）。*/
     themeov: howHTML('這張圖回答：哪幾個題材現在吸金最多、而且最熱。', [
       '方塊大小＝題材成交值',
-      '顏色＝熱度，越紅越熱',
-      '右上下拉或點方塊＝看它的成分股',
+      '顏色＝熱度 0～100（資金＋法人＋新聞合成）',
+      '標題旁「題材 ▾」或點方塊＝看成分股',
       '成分股層：顏色＝漲跌幅，紅漲綠跌',
       '點成分股方塊進個股頁',
     ], '熱度 0～100＝資金佔比變化＋法人買賣＋近 7 天新聞則數合成。一檔股票可以同時屬於好幾個題材，成交值不拆分，所以題材加總會大於全市場。完整的題材剖析圖在「熱力圖」分頁。'),
@@ -7896,15 +7953,15 @@
     trust: howHTML('這張圖回答：法人在誰身上連續下注、力道在加大還是收手。', [
       '右半＝連買、左半＝連賣，越外側越久',
       '上半＝最後一天比日均大（加碼）',
-      '下半＝最後一天縮手（減碼）',
-      '點越大＝期間累計張數越多',
+      '下半＝最後一天縮手；點越大＝累計張數越多',
+      '右上切投信／外資／合計與天數，預設投信 ≥3 天',
       '滑過看個股，點一下進個股頁',
     ], '力道＝最後一天的買（賣）超張數 ÷ 這段連續期間的日均（對數軸，1× 是中線，超過 5× 或低於 0.2× 畫在邊上）。'
       + '紅＝買超、綠＝賣超。右上切投信／外資／合計與天數門檻（買賣都套用），每邊最多列累計最大的 40 檔。滾輪放大、放大後拖曳，雙擊或按「還原」回原尺寸。'
       + '舊資料沒有「最後一天」欄位時，縱軸改成累計張數。'),
     theme: howHTML('這張圖回答：今天市場在炒哪些題材、哪一個最熱。', [
       '方塊大小＝題材成交值',
-      '顏色＝熱度：藍＝冷、紅＝熱',
+      '顏色＝熱度 0～100（資金＋法人＋新聞），藍冷紅熱',
       '先找又大、又最紅的方塊',
       '右上可把顏色換成平均漲跌（紅漲綠跌）',
       '點方塊展開剖析圖，再點代號進個股',
@@ -7913,8 +7970,8 @@
       '左到右：台股→產業鏈→族群→代表股',
       '線越粗、圓越大＝錢越多',
       '每一層的 % 都是佔它上一層的比重',
-      '拖「看哪一天」回放，盯同一條線粗細',
-      '點族群展開全部成分股，再點收回',
+      '拖「看哪一天」回放；點族群展開成分股',
+      '左上「產業鏈 ▾／族群 ▾」＝只看一條分支',
     ], '篩選：先挑產業鏈、再挑一個族群，圖上就只剩它那一條分支；選「全部族群」或按「清除」回到整張圖。'
       + '桌機版的粒子＝資金流動（「動態」鈕可關）。'
       + '例：「台積電 49.8%」＝吃掉晶圓代工的一半，不是佔全台股一半；滑鼠提示兩種分母都寫。節點旁 ▲▼＝和前一天比（紅增綠減）。'
@@ -11423,7 +11480,7 @@
       '由左到右＝上游 → 中游 → 下游',
       '點環節，看該段有哪幾檔台股',
       '點代號，直接進個股頁',
-      '「收起 ✕」收回；下方可換其他題材',
+      '點卡片外面或按 Esc 收起；點上方熱力圖換題材',
     ], '原創等角示意圖，非實物比例。');
     /* 「就地展開」要收得回去：收起＝回到 `#heatmap/theme`（網址跟著變，上一頁回得來）。
        沒有剖析圖的三個題材整區留白（下面那段），那時也就沒有東西需要收。
@@ -11905,8 +11962,8 @@
           `列依${M}的${nm}由強到弱排`,
           '點上方月份，換一個月排序',
           '紅＝強、綠＝弱、灰＝持平，越亮越極端',
-          `排最上面、${M}又是紅色＝歷史順風`,
-          '綠色的要有資金或基本面理由才進場'])
+          '排最上面又紅＝歷史順風；綠的要有理由才進',
+          '預設只列前 20 名，右上可切全部、顯示數字'])
         : howHTML('這張圖回答：挑出來的幾個族群，每個月誰比較強、強過整體多少。', [
           '每個月一組長條，一根＝一個族群（顏色看圖下色票）',
           '細灰線＝全部族群平均；長條高過灰線＝那個月比整體強',
