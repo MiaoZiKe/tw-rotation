@@ -4101,8 +4101,39 @@
     setupChart(pg);
     wireTags();
     if (window.StockAI) window.StockAI.mount(pg, $('#skAi'), A.fmt);
-    $$('#stockTabs button').forEach(b => b.onclick = () => { $$('#stockTabs button').forEach(x => x.classList.toggle('on', x === b)); state.tab = b.dataset.t; renderTab(pg, state.tab); });
-    renderTab(pg, state.tab);
+    $$('#stockTabs button').forEach(b => b.onclick = () => { $$('#stockTabs button').forEach(x => x.classList.toggle('on', x === b)); state.tab = b.dataset.t; switchTab(pg, state.tab); });
+    renderTab(pg, state.tab);   // 第一次進個股頁：不碰捲動位置（switchTab 只給「點分頁鈕」用）
+  }
+  /* ★ 2026-10-04（Andy：分頁列切換時位置跳動，「切換時分頁標題固定對齊在同一位置（對齊上方）」）：
+     症狀：在「大戶／散戶」（內容很高）捲到分頁列附近，切到「公告 / 新聞」（內容很短）→ 頁面變短，
+     瀏覽器把 scrollY 夾到新的最大值，分頁列在視窗裡往下跑一大段。
+     做法：① 切之前記下分頁列在視窗裡的 top（被捲出頁首上方時改成「貼齊頁首下方」）；
+           ② 內容區給 min-height＝視窗高 − 分頁列底部 −（內容區下面還有的高度）—— 頁面至少長到「分頁列停在原位時視窗還填得滿」，
+              瀏覽器就沒有理由夾 scrollY；
+           ③ 畫完再補捲一次，把分頁列放回原本的 top（圖表非同步長高不影響：分頁列上方的東西沒變）。
+     min-height 只在點分頁時設；第一次進個股頁（renderTab 直接畫）不設、不捲，位置照舊。*/
+  function switchTab(pg, tab) {
+    const bar = $('#stockTabs'), el = $('#stockTab');
+    if (!bar || !el) { renderTab(pg, tab); return; }
+    const tb = document.querySelector('.topbar');
+    const hdr = tb && getComputedStyle(tb).position !== 'static' ? Math.max(0, tb.getBoundingClientRect().bottom) : 0;
+    const top0 = bar.getBoundingClientRect().top;
+    const want = top0 < hdr ? hdr + 8 : top0;
+    let lastY = null;
+    const fit = (late) => {
+      if (late && lastY != null && Math.abs(window.scrollY - lastY) > 1) return;   // 使用者已經自己捲了：不搶回來
+      const r = bar.getBoundingClientRect();
+      const below = Math.max(0, document.documentElement.scrollHeight - (window.scrollY + el.getBoundingClientRect().bottom));
+      el.style.minHeight = Math.max(0, Math.ceil(window.innerHeight - (want + r.height) - below)) + 'px';
+      const d = bar.getBoundingClientRect().top - want;
+      if (Math.abs(d) > 0.5) window.scrollTo({ top: window.scrollY + d, behavior: 'instant' });   // html 有 scroll-behavior:smooth，不指定會用動畫捲、量到的位置是半路
+      lastY = window.scrollY;
+    };
+    el.style.minHeight = Math.ceil(el.getBoundingClientRect().height) + 'px';   // 先撐住舊高度，畫的過程中不先回彈
+    renderTab(pg, tab);
+    fit();
+    requestAnimationFrame(() => fit(true));
+    setTimeout(() => fit(true), 120);   // 圖表 setTimeout(20) 的 resize 之後再對一次
   }
 
   /* ★ 2026-09-25（除權息還原上線後的前端收尾，DECISIONS #261）：K 線與均線已經是**除權息還原價**

@@ -83,7 +83,14 @@
      換成總覽「技術面訊號」卡那九顆燈（均線、結構、RSI、KD、MACD、乖離、BOS、CHoCH、假跌破），燈號從 StockSignal.lights() 拿，兩處永遠一致。
      payload 的 analysis.facets.chip 照舊產出（其他地方可能在讀），這裡不再顯示。
      舊的 tw.aiTab＝'chip' 讀不到 → readTab 退回技術面。*/
-  const FACETS = [['tech', '技術面'], ['sig', '技術面訊號'], ['fund', '基本面'], ['news', '消息面']];
+  /* ★ 2026-10-04（Andy：「技術已經有了，為何還多一個技術面訊號」「這邊需要的是 技術面、籌碼面、基本面、消息面」）：
+     ① 「技術面訊號」併進「技術面」：點技術面＝原本的技術面內容＋九顆訊號燈那一列（均線／結構／RSI／KD／MACD／乖離／BOS／CHoCH／假跌破），
+        徽章照舊是技術面的偏多／偏空，旁邊附燈號計數（5多0空）—— 兩個都在講技術，分成兩顆只是讓人多猜一次差在哪。
+     ② 第二顆換回「籌碼面」：判讀直接用 payload 的 analysis.facets.chip（pipeline/compute/analysis.py chip_facet，規則見 chipHTML 上方註解），
+        前端只補兩條「已在頁面上」的數字（自營商 20 日、當沖率／融券），不改它的判讀、不加新的資料抓取。
+     第三欄是簡稱：寬度不夠時（容器查詢）改顯示「技術／籌碼／基本／消息」。舊的 tw.aiTab＝'sig' 讀不到 → 退回技術面。*/
+  const FACETS = [['tech', '技術面', '技術'], ['chip', '籌碼面', '籌碼'], ['fund', '基本面', '基本'], ['news', '消息面', '消息']];
+  const nmHTML = (nm, sh) => `<span class="nm"><span class="nl">${nm}</span><span class="ns" aria-hidden="true">${sh}</span></span>`;
   // 紅漲綠跌：偏多用 .pos（紅）、偏空用 .neg（綠）；留意＝琥珀色
   const toneCls = (lb) => lb === '偏多' ? 'pos' : lb === '偏空' ? 'neg' : lb === '留意' ? 'warn' : '';
   const stanceCls = (s) => s === '可留意' ? 'A' : s === '偏空' ? 'N' : 'W';
@@ -178,7 +185,12 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 /* 四顆標籤：一列排滿、等寬；每顆＝面向名＋判讀小字 */
 /* 2026-09-28：第二顆從「籌碼面」換成「技術面訊號」（名字多兩個字＋小字「4多2空」），等寬四欄在 1100 寬會溢出壓到隔壁 →
    第二欄給 1.4 倍寬；真的還是放不下時，判讀小字自己換到第二行（flex-wrap），絕不溢出按鈕。*/
-#skAi .aitabs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:4px;border-bottom:1px solid var(--line)}
+/* 2026-10-04：第二顆改回「籌碼面」（跟其他三顆一樣三個字），四欄回到等寬 */
+#skAi .aitabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;border-bottom:1px solid var(--line)}
+/* 面向名：全名／簡稱兩份，平常顯示全名；寬度不夠的容器查詢才換簡稱（見下面 @container）*/
+.aitab .nm .ns,.ovtag .nm .ns{display:none}
+.aicnt{font-size:12px;font-weight:500;color:var(--ink-3);white-space:nowrap}
+.aicnt.pos{color:var(--rise)} .aicnt.neg{color:var(--fall)}
 #skAi .aitab{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 6px;min-width:0;padding:4px 4px 5px;border:0;
   border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
 #skAi .aitab:hover{color:var(--ink)}
@@ -201,7 +213,18 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #skChartCard>#skAi .aitab:hover{background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
 #skChartCard>#skAi .aitab:hover::after{color:var(--cyan)}
 #skChartCard>#skAi .aitab:focus-visible{outline:2px solid var(--focus,var(--cyan));outline-offset:1px}
-#skChartCard:not(.aiside)>#skAi .aitabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px}
+/* ★ 2026-10-04（Andy：「4 個指標需要並排（同一列）」）：單欄從 2×2 改成一列四顆；放不下先縮字、再換簡稱、最後收掉燈號計數 */
+#skChartCard:not(.aiside)>#skAi .aitabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 6px}
+#skChartCard:not(.aiside)>#skAi .aitab{gap:6px;padding:3px 6px 3px 9px}
+#skChartCard:not(.aiside)>#skAi .aitab::after{display:none}
+@container aibox (max-width:760px){
+  #skChartCard:not(.aiside)>#skAi .aitab,#skChartCard:not(.aiside)>#skAi .aitab .nm,#skChartCard:not(.aiside)>#skAi .aitab .aitag{font-size:12.5px}
+  #skChartCard:not(.aiside)>#skAi .aitab .aitag{padding:1px 6px}
+}
+@container aibox (max-width:640px){
+  #skChartCard:not(.aiside)>#skAi .aitab .nl{display:none} #skChartCard:not(.aiside)>#skAi .aitab .ns{display:inline}
+}
+@container aibox (max-width:520px){ #skChartCard:not(.aiside)>#skAi .aitab .aicnt{display:none} }
 /* 桌機（K 線卡裡）內容區一律不顯示：完整內容在下面總覽分頁的 AI 卡（手機搬進 #aiCard 之後才會用到它）*/
 #skChartCard>#skAi>.aibody{display:none!important}
 /* K 線卡裡的結論一律只佔一行（太長出「…」，滑過看全文；完整原因在展開後的技術面裡）。
@@ -251,6 +274,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   #skAi .aihead h3{flex:1 1 auto;min-width:0;row-gap:2px}
   #skAi .aihead h3 small{order:2;flex-basis:100%}
   #skAi .aitab{flex-direction:column;gap:2px;padding:4px 2px 6px}
+  #skAi .aitab .nl{display:none} #skAi .aitab .ns{display:inline} #skAi .aitab .aicnt{display:none}
   #skAi .aitfs{grid-template-columns:auto 1fr} #skAi .aitfs .tfp{grid-column:1 / -1;margin:-2px 0 4px}
   #skAi .ailv{grid-template-columns:1fr}
 }
@@ -274,15 +298,62 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   }
   function tabs(an, cur, sig) {
     const f = (an && an.facets) || {};
-    return FACETS.map(([k, nm]) => {
-      const x = f[k] || {};
-      const lb = k === 'sig' ? sig.label : (x.label || '資料缺');
-      const cls = k === 'sig' ? sig.tone : toneCls(lb);
-      const tip = k === 'sig' ? `九顆技術燈號：偏多 ${sig.pos}、偏空 ${sig.neg}` : (x.why || '');
-      const on = k === cur;
-      return `<button type="button" role="tab" class="aitab${on ? ' on' : ''}" id="aiTab-${k}" data-facet="${k}" aria-selected="${on}" aria-controls="aiPanel-${k}" title="${esc(tip)}">`
-        + `<span class="nm">${nm}</span><span class="aitag ${cls}">${esc(lb)}</span></button>`;
+    return facetList(f, sig).map(t => {
+      const on = t.k === cur;
+      return `<button type="button" role="tab" class="aitab${on ? ' on' : ''}" id="aiTab-${t.k}" data-facet="${t.k}" aria-selected="${on}" aria-controls="aiPanel-${t.k}" title="${esc(t.tip)}">`
+        + `${nmHTML(t.nm, t.sh)}<span class="aitag ${t.cls}">${esc(t.lb)}</span>${t.cnt}</button>`;
     }).join('');
+  }
+  /* 四顆面向的共用描述（K 線卡 #skAi 與總覽 #ovAiCard 同一份）：技術面的徽章＝技術面判讀，旁邊小字＝九顆燈的多空計數 */
+  function facetList(f, sig) {
+    return FACETS.map(([k, nm, sh]) => {
+      const x = f[k] || {};
+      const lb = x.label || '資料缺';
+      let tip = x.why || '';
+      let cnt = '';
+      if (k === 'tech' && sig && sig.L.length) {
+        cnt = `<span class="aicnt ${sig.tone}" data-sigcnt="${sig.pos}-${sig.neg}">${sig.label}</span>`;
+        tip = (tip ? tip + '\n' : '') + `九顆技術燈號：偏多 ${sig.pos}、偏空 ${sig.neg}`;
+      }
+      return { k, nm, sh, lb, cls: toneCls(lb), tip, cnt };
+    });
+  }
+  /* ★ 2026-10-04 籌碼面內容。判讀（偏多／偏空／中性）與前四條一律照 payload analysis.facets.chip（pipeline chip_facet）：
+       · 三大法人 20 日淨買賣超佔同期成交量 ≥ 3% → ±1；5 日同向且 ≥ 5% → 再 ±0.5
+       · 集保千張大戶一週 ±0.3 個百分點 → ±0.5
+       · 融資餘額 20 日 +10%（籌碼往散戶走）→ −0.5；−10% → +0.5
+       · 合計 ≥ 1 偏多、≤ −1 偏空，其餘中性
+     前端只補兩條「參考、不計分」的數字（都是個股頁已載入的 payload，不新抓）：
+       · 自營商 20 日買賣超（inst_v3.daily 第 4 欄，單位股 ÷1000）—— 管線那條只寫外資、投信
+       · 近 5 日平均當沖率、融券餘額 20 日變化（margin 的 daytrade_ratio／short_balance）
+     不計分的理由：當沖率高低沒有方向性，融券增加可能是看空也可能是軋空的燃料 —— 規則寫不出單一方向，就只列數字不下結論。*/
+  function chipExtra(pg) {
+    const out = [];
+    const rows = (pg && pg.inst_v3 && pg.inst_v3.daily) || [];
+    if (rows.length) {
+      const n = Math.min(20, rows.length);
+      const d = rows.slice(-n).reduce((a, r) => a + (Number(r[3]) || 0), 0) / 1000;
+      out.push(`自營商 ${n} 日${d >= 0 ? '買超' : '賣超'} ${Math.abs(Math.round(d)).toLocaleString()} 張`);
+    }
+    const cols = (pg && pg.margin_columns) || [];
+    const mg = (pg && pg.margin) || [];
+    const iD = cols.indexOf('daytrade_ratio'), iS = cols.indexOf('short_balance');
+    const bits = [];
+    if (iD >= 0) {
+      const v = mg.slice(-5).map(r => Number(r[iD])).filter(x => isFinite(x) && x > 0);
+      if (v.length) bits.push(`近 ${v.length} 日平均當沖率 ${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1)}%`);
+    }
+    if (iS >= 0 && mg.length >= 21) {
+      const a = Number(mg[mg.length - 21][iS]), b = Number(mg[mg.length - 1][iS]);
+      if (isFinite(a) && isFinite(b) && a > 0) bits.push(`融券餘額 ${Math.round(b).toLocaleString()} 張（20 日 ${((b - a) / a * 100 >= 0 ? '+' : '')}${((b - a) / a * 100).toFixed(1)}%）`);
+    }
+    if (bits.length) out.push(bits.join('、'));
+    return out;
+  }
+  function chipHTML(pg, x) {
+    if (!x) return '<div class="empty">籌碼面資料缺</div>';
+    const ex = chipExtra(pg);
+    return `${why(x)}${ul(x.points)}${ex.length ? `<div class="aisub">參考（不計入判讀）</div>${ul(ex)}` : ''}`;
   }
   function sigHTML(pg, sig) {
     if (!sig.L.length) return '<div class="empty">技術面訊號資料缺</div>';
@@ -347,13 +418,13 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const cur = readTab();
     /* ★ 2026-10-02（#293）預設只看重點：說明第一條講「點小標籤看細節、展開看各週期」，其餘照舊（「?」最多 5 條） */
     const how = window.App && window.App.howHTML ? window.App.howHTML('這一塊：四個面向的規則式判讀。', [
-      '一行結論；四列＝四個面向的判讀',
-      '點一列捲到下面總覽，看那一面完整內容',
-      '「AI 分析」是寫死的規則算的，非語言模型',
-      '狀態＝回檔、突破兩套型態條件是否成立',
-      '四面向各自判讀、不加總，非建議',
+      '四格＝技術、籌碼、基本、消息面各自判讀',
+      '技術面旁「5多0空」＝九顆技術燈偏多、偏空顆數',
+      '籌碼面＝法人買賣超、融資增減、大戶週變化計分',
+      '點一格捲到下面總覽，看那一面完整內容',
+      '寫死的規則算的，非語言模型；不加總、非建議',
     ]) : '';
-    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="這一塊由固定規則與公開資料自動產生（技術評分、SMC 結構、回檔與突破兩套條件、九顆技術燈號、本益比分位、營收與 EPS、公告新聞則數），不是大型語言模型，也不是任何人的投資建議。同一份資料永遠得到同一段文字。">規則式自動判讀，非投資建議</small>
+    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="這一塊由固定規則與公開資料自動產生（技術評分、SMC 結構、回檔與突破兩套條件、九顆技術燈號、法人買賣超與融資、集保大戶、本益比分位、營收與 EPS、公告新聞則數），不是大型語言模型，也不是任何人的投資建議。同一份資料永遠得到同一段文字。">規則式自動判讀，非投資建議</small>
         <button class="howbtn pop" data-how="ai" type="button" aria-label="AI 分析怎麼看">?</button></h3></div>
       <div class="howtxt" id="how-ai" hidden>${how}</div>`;
     const hd = (an && an.headline) || {};
@@ -371,8 +442,8 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     return head + sum
       + `<div class="aitabs" role="tablist" aria-label="AI 分析面向" id="aiTabs">${tabs(an, cur, sig)}</div>
       <div class="aibody" id="aiBody" data-readout${open ? '' : ' hidden'}>
-        ${panel('tech', cur, techHTML(f.tech, fmt))}
-        ${panel('sig', cur, sigHTML(pg, sig))}
+        ${panel('tech', cur, techHTML(f.tech, fmt) + `<div class="aisub">技術面訊號</div>` + sigHTML(pg, sig))}
+        ${panel('chip', cur, chipHTML(pg, f.chip))}
         ${panel('fund', cur, `${why(f.fund)}${ul((f.fund || {}).points) || '<div class="empty">基本面資料缺</div>'}`)}
         ${panel('news', cur, newsHTML(f.news))}
         <div class="aiasof">資料到 ${esc(an.as_of || '—')}</div>
@@ -641,8 +712,19 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
    卡內寬度 < 430px（手機、或兩欄時右欄很窄）四顆排不下一列 → 2×2，不讓第四顆單獨掉到第二行 */
 /* ★ 2026-10-04（Andy 截圖：選中的「技術面訊號」藥丸蓋住左右的字）：改前 repeat(4,auto)＋min-width:0＋nowrap，
    卡片窄於四顆自然寬度總和時格子被壓、字溢出蓋到隔壁。改成固定 2×2：每顆至少半張卡寬，1640～390 都放得下，不再依容器寬度猜斷點。*/
-#ovAiCard .ovseg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;align-self:stretch;min-width:0}
-#ovAiCard .ovseg .ovtag{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:32px;white-space:nowrap;overflow:hidden}
+/* ★ 2026-10-04（Andy：「4 個指標需要並排（同一列），若會跌到文字就縮小或名稱簡化」）：2×2 → 一列四顆。
+   四面向變成 技術面／籌碼面／基本面／消息面（三個字），技術面多一個燈號計數小字所以給它自然寬（flex:auto），其餘均分。
+   寬度不足依序：① 字縮到 12px（不再小）② 收掉技術面的燈號計數（可有可無的附註，先讓）③ 名稱換簡稱「技術／籌碼／基本／消息」。
+   實測卡片內寬：1640＝508、1440＝433（三欄的右欄）、1100＝535、800＝774 —— 1440 落在 ②，全名保住。任何寬度都不換行、不重疊、不裁切（_uitest 量每顆 scrollWidth）。*/
+#ovAiCard .ovseg{display:flex;flex-wrap:nowrap;gap:4px;align-self:stretch;min-width:0}
+#ovAiCard .ovseg .ovtag{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:32px;white-space:nowrap;padding:0 8px;font-size:13px}
+#ovAiCard .ovseg .ovtag .aicnt{font-size:12px}
+@container ovai (max-width:560px){
+  #ovAiCard .ovseg .ovtag{font-size:12px;padding:0 5px;gap:4px}
+  #ovAiCard .ovseg .ovtag .aitag{padding:0 4px}
+}
+@container ovai (max-width:470px){ #ovAiCard .ovseg .ovtag .aicnt{display:none} }
+@container ovai (max-width:400px){ #ovAiCard .ovseg .ovtag .nl{display:none} #ovAiCard .ovseg .ovtag .ns{display:inline} }
 #ovAiCard .ovseg .ovtag .aitag{font-size:12px;padding:0 6px}
 /* 選中那顆底色是青色：判讀小標改成卡片底色的小膠囊，紅綠字才讀得到（直接疊在青底上對比不夠）*/
 #ovAiCard .ovseg .ovtag.on .aitag{background:var(--panel);font-weight:600}
@@ -651,8 +733,11 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #ovAiCard #ovFacets{min-width:0}
 #ovAiCard #ovFacets>[data-facet]{display:none;background:none;border:0;border-radius:0;box-shadow:none;padding:0;margin:0;min-width:0}
 #ovAiCard #ovFacets[data-cur="tech"]>[data-facet="tech"],#ovAiCard #ovFacets[data-cur="sig"]>[data-facet="sig"],
-#ovAiCard #ovFacets[data-cur="fund"]>[data-facet="fund"],#ovAiCard #ovFacets[data-cur="news"]>[data-facet="news"]{display:block}
+#ovAiCard #ovFacets[data-cur="chip"]>[data-facet="chip"],#ovAiCard #ovFacets[data-cur="fund"]>[data-facet="fund"],#ovAiCard #ovFacets[data-cur="news"]>[data-facet="news"]{display:block}
 #ovAiCard #ovFacets>[data-facet]>h3{display:none}
+/* 技術面訊號（StockSignal.view 那張）併進技術面：技術面那一面顯示時，它接在下面，小標題留著（「技術面訊號 5多0空」）*/
+#ovAiCard #ovFacets[data-cur="tech"]>[data-facet="sig"]{display:block;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+#ovAiCard #ovFacets>[data-facet="sig"]>h3{display:block;margin:0;font-size:12.5px;font-weight:600;color:var(--ink-3)}
 #ovAiCard #ovFacets>[data-facet] .lights{margin-top:0!important}
 .ovfacet h4{margin:0 0 6px;font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5}
 .ovfacet ul{margin:4px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.55}
@@ -703,12 +788,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   function facetTags(pg, fmt) {
     const an = (pg && pg.analysis) || {};
     const f = an.facets || {};
-    const sig = sigCount(pg, fmt);
-    return FACETS.map(([k, nm]) => {
-      const x = f[k] || {};
-      const lb = k === 'sig' ? sig.label : (x.label || '資料缺');
-      return { k, nm, lb, cls: k === 'sig' ? sig.tone : toneCls(lb), tip: k === 'sig' ? `九顆技術燈號：偏多 ${sig.pos}、偏空 ${sig.neg}` : (x.why || '') };
-    });
+    return facetList(f, sigCount(pg, fmt));
   }
   /* 總覽 AI 卡選哪一面（tw.ovAiTab）。跟 K 線卡那一份的 tw.aiTab 分開存：兩份同時在頁面上，
      在總覽切面向不該順手把頂部那一份也換掉（頂部收合時點小標籤會切這一份，見 gotoFacet）。*/
@@ -716,12 +796,14 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   function readOvTab(have) {
     let v = null;
     try { v = localStorage.getItem(OV_TAB_KEY); } catch (e) { /* 私密視窗 */ }
-    if (v && have.includes(v)) return v;
+    if (v === 'sig') v = 'tech';           // 舊值：技術面訊號已併進技術面
+    if (v && v !== 'sig' && have.includes(v)) return v;
     return have.includes('tech') ? 'tech' : have[0];
   }
   /* 切到某一面：改 #ovFacets 的 data-cur（CSS 依它顯示那一面）＋籤的選中態；save＝寫 localStorage。那一面不存在就回 false。*/
   function setOvTab(root, k, save) {
     const fac = root && root.querySelector('#ovFacets');
+    if (k === 'sig') k = 'tech';             // 技術面訊號＝技術面那一面的下半
     if (!fac || !fac.querySelector(`:scope > [data-facet="${k}"]`)) return false;
     fac.dataset.cur = k;
     root.querySelectorAll('#ovAiTags .ovtag').forEach(b => { const on = b.dataset.facet === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
@@ -742,20 +824,24 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     ovCss(); css();
     const an = pg && pg.analysis;
     const fc = facetCards(pg, fmt) || {};
-    const panes = [['tech', fc.tech], ['sig', sig], ['fund', fc.fund], ['news', fc.news]].filter(x => x[1]);
-    const have = panes.map(x => x[0]);
+    /* 技術面訊號那張（StockSignal.view 的出口，一字不改）緊接在技術面後面，CSS 讓它跟技術面同時顯示（data-cur="tech"）。
+       沒有 AI 分析（fc.tech 空）時它自己當技術面那一面。*/
+    const panes = [['tech', fc.tech], ['sig', sig], ['chip', fc.chip], ['fund', fc.fund], ['news', fc.news]].filter(x => x[1]);
+    const have = panes.map(x => x[0]).filter(k => k !== 'sig');
+    if (sig && !fc.tech) have.unshift('tech');
     const cur = have.length ? readOvTab(have) : '';
     const how = window.App && window.App.howHTML ? window.App.howHTML('', [
       '一行重點＝回檔、突破兩套型態成立幾條＋停損距離',
-      '分頁籤＝四個面向，籤上是各自的判讀，點了在卡裡切換',
-      '「AI 分析」是寫死的規則算的，非語言模型',
-      '四面向不加總、不是買賣建議',
+      '四顆籤＝技術、籌碼、基本、消息面，點了切換',
+      '技術面含九顆訊號燈，籤上「5多0空」是燈號計數',
+      '籌碼面看法人、融資、大戶；當沖、融券只列參考',
+      '寫死的規則算的，非語言模型；不加總、非建議',
     ]) : '';
     const tg = facetTags(pg, fmt).filter(t => have.includes(t.k));
     const tabs = tg.length >= 2 ? `<div class="seg ovseg" id="ovAiTags" role="tablist" aria-label="AI 分析四個面向">${tg.map(t => {
       const on = t.k === cur;
       return `<button type="button" class="ovtag${on ? ' on' : ''}" role="tab" data-facet="${t.k}" id="ovT-${t.k}" aria-selected="${on}" tabindex="${on ? 0 : -1}" aria-controls="ovF-${t.k}" title="${esc(t.tip)}">`
-        + `<span class="nm">${t.nm}</span><span class="aitag ${t.cls}">${esc(t.lb)}</span></button>`; }).join('')}</div>` : '';
+        + `${nmHTML(t.nm, t.sh)}<span class="aitag ${t.cls}">${esc(t.lb)}</span>${t.cnt}</button>`; }).join('')}</div>` : '';
     return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn title="由固定規則與公開資料自動產生，不是大型語言模型，也不是任何人的投資建議。">規則式自動判讀，非投資建議</small>`
       + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析怎麼看">?</button>`
       + `${an && an.as_of ? ` <small data-readout>資料到 ${esc(an.as_of)}</small>` : ''}</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
@@ -803,6 +889,13 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       <div class="ovtfs" id="ovTfs">${rows}</div>${ckHTML}${lvHTML}
       <button type="button" class="ovmore" id="ovTechMore" aria-expanded="false" aria-controls="ovTechDet">▸ 看細節：原因・逐條條件・若…則…</button>${det}</div>`;
   }
+  function chipFacet(pg, x) {
+    if (!x) return '';
+    const ex = chipExtra(pg);
+    return `<div class="card ovfacet" id="ovF-chip" data-facet="chip" data-ai><h3>籌碼面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
+      + `${x.why ? `<h4>${esc(x.why)}</h4>` : ''}${ul(x.points) || '<div class="empty">籌碼面資料缺</div>'}`
+      + `${ex.length ? `<div class="ovsub">參考（不計入判讀）</div>${ul(ex)}` : ''}</div>`;
+  }
   function fundFacet(x) {
     if (!x) return '';
     return `<div class="card ovfacet" id="ovF-fund" data-facet="fund" data-ai><h3>基本面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
@@ -824,7 +917,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const an = pg && pg.analysis;
     if (!an) return null;
     const f = an.facets || {};
-    return { tech: techCard(f.tech, fmt), fund: fundFacet(f.fund), news: newsFacet(f.news) };
+    return { tech: techCard(f.tech, fmt), chip: chipFacet(pg, f.chip), fund: fundFacet(f.fund), news: newsFacet(f.news) };
   }
   function bindOverview(root) {
     if (!root) return;
