@@ -7313,8 +7313,10 @@ def t_themes(pg, base):
         if count(pg, "#themeDiagram [data-part][data-codes]"):
             # 零件會緩慢飄動，一般 click 會卡在「等它停下來」逾時 —— 見 click_moving 的說明
             click_moving(pg, "#themeDiagram [data-part][data-codes]", 700)
-            ok(f"題材 {tid} 點零件會列出個股", count(pg, "#themeParts a.lk") > 0,
-               f"#themeParts 連結數 = {count(pg, '#themeParts a.lk')}")
+            # ★ 2026-10-04（Andy：「題材點擊後這下方拿掉」）：點零件後下方不再列成員面板，改驗「那一格選起來、且下方沒有面板」
+            ok(f"題材 {tid} 點零件只高亮、下方不再出現成員面板",
+               count(pg, "#themeDiagram [data-part].sel") > 0 and count(pg, "#themeParts") == 0,
+               (count(pg, "#themeDiagram [data-part].sel"), count(pg, "#themeParts")))
 
     # ---- ★ 2026-09-23：中間兩張卡真的被拿掉了（移除本身就是需求，要有人守）
     pg.goto(f"{base}#themes/{tids[0]}", wait_until="networkidle"); pg.wait_for_timeout(1200)
@@ -44978,8 +44980,8 @@ def t_dg_tidy_1003(b, base):
             pg.evaluate("() => document.querySelectorAll('#themeDiagram g.stn')[3].scrollIntoView({ block: 'center', behavior: 'instant' })")
             r = pg.evaluate("() => { const b = document.querySelectorAll('#themeDiagram g.stn')[3].querySelector('rect.slot').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + 20 }; }")
             pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(500)
-            sel3 = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn'); return g[3].classList.contains('sel') && !g[1].classList.contains('sel') && !!document.querySelector('#themeParts .segbox'); }")
-            ok(f"★ {T}題材 重新排版後滑鼠真的點第 4 格 → 換它選起來、下方列出個股（事件有重新接上）", sel3, sel3)
+            sel3 = pg.evaluate("() => { const g = document.querySelectorAll('#themeDiagram g.stn'); return g[3].classList.contains('sel') && !g[1].classList.contains('sel') && !document.querySelector('#themeParts'); }")
+            ok(f"★ {T}題材 重新排版後滑鼠真的點第 4 格 → 換它選起來（事件有重新接上；下方成員面板已依 Andy 10-04 拿掉）", sel3, sel3)
             pg.set_viewport_size({"width": 1440, "height": 1000}); wait_until(pg, "() => { const s = document.querySelector('#themeDiagram svg.dg3'); return !!s && +s.dataset.cw < 1300 && !!s.querySelector('g.art[transform]'); }", 8000); pg.wait_for_timeout(400)
             z2 = pg.evaluate(DGT_THEME)
             ok(f"★ {T}題材 視窗縮回 1440 → 剖析圖跟著變窄、沒有橫捲（{z2['w']:.0f} ≤ 卡片 {z2['cardInner']:.0f}）",

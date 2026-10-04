@@ -11114,7 +11114,9 @@
   // 題材產品圖：點零件→列出該零件的個股（成員表已於 2026-09-23 移除，所以不再有「滑過成員列」那一端）。
   function wireThemeDiagram(host, t) {
     const root = $('#themeDiagram', host); if (!root) return;
-    const box = $('#themeParts', host);
+    /* ★ 2026-10-04（Andy：「題材點擊後這下方拿掉」）：點環節後在剖析圖下方列出成員的面板整個拿掉，
+       只留點選高亮（sel／dim）；要進個股請點圖上的代號標籤（.scode）。box＝null 讓 paint() 只做高亮。*/
+    const box = null;
     const nodes = $$('[data-part]', root);
     const color = {}, codesOf = {}, used = new Set();
     let i = 0;
@@ -11210,7 +11212,7 @@
          「原創示意圖，非實物比例」**留在卡片上** —— 那是誠實標示，不是操作說明，藏起來等於沒寫。*/
       ? `<div class="card"><div class="row spread">${head}<span class="row" style="gap:8px"><small class="muted">原創示意圖，非實物比例</small>${closeBtn}</span></div>
         <div class="howtxt" id="how-themedg" hidden>${howDg}</div>
-        <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div>${other}</div>`
+        <div id="themeDiagram" class="dgwrap">${dg()}</div>${other}</div>`
       : '';   // 沒有剖析圖 → 整區留白（Andy 2026-09-23 指定，見上面那段）
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列

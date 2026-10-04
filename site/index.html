@@ -4181,11 +4181,14 @@ h3 .howbtn.pop{font-family:inherit}
    · 手機（≤640）或卡片內寬 < 270px：小格 2×2 在上、大格在下（寬欄不到 180px 時營運動能那幾列會擠到截字）
    ================================================================================== */
 #skFundCard{container:skfc / inline-size}
-#skFundCard>.kvs.skfund{display:grid;grid-template-columns:minmax(86px,.7fr) minmax(0,1.6fr);gap:8px;align-items:stretch}
-#skFundCard .fsm,#skFundCard .fbig{display:flex;flex-direction:column;gap:8px;min-width:0}
-#skFundCard .fsm{gap:6px}
+/* ★ 2026-10-04（Andy 截圖 6182：「基本面卡版面奇怪」）：改前「小格窄欄｜大格寬欄」，三欄等高時窄欄四張小格被拉得很高、
+   數字擠在上面留一大片空白，寬欄又擠。改成上下兩層：上層四張小格一列（容器窄時自動 2×2，auto-fit 依寬度換行，
+   每格高度一致只靠內容），下層三張大格整寬由上往下排、平分多出來的高度 —— 留白分散到大格裡，不再集中在小格。*/
+#skFundCard>.kvs.skfund{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;gap:8px;align-items:stretch}
+#skFundCard .fsm{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px;min-width:0;align-content:start}
+#skFundCard .fbig{display:flex;flex-direction:column;gap:8px;min-width:0}
 #skFundCard .k{min-width:0}
-#skFundCard .ksm{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:7px 10px}
+#skFundCard .ksm{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:7px 10px}
 #skFundCard .ksm .v{font-size:17px;line-height:22px;overflow-wrap:anywhere}
 #skFundCard .k .s{font-size:11.5px;line-height:1.35;color:var(--ink-3)}
 #skFundCard .kbig{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:9px 11px}
@@ -4195,18 +4198,10 @@ h3 .howbtn.pop{font-family:inherit}
 #skFundCard .kbig .meter{margin-top:0}
 #skFundCard .kbig .gaugev{align-items:center}
 @container skfc (max-width:380px){
-  #skFundCard>.kvs.skfund{gap:6px}
+  #skFundCard .fsm{grid-template-columns:repeat(2,minmax(0,1fr))}
   #skFundCard .ksm{padding:6px 8px}
   #skFundCard .ksm .v{font-size:16px;line-height:21px}
   #skFundCard .kbig{padding:8px 9px}
-}
-@container skfc (max-width:270px){
-  #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
-  #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media (max-width:640px){
-  #skFundCard>.kvs.skfund{grid-template-columns:minmax(0,1fr)}
-  #skFundCard .fsm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 /* 本益比位置（peStand，總覽基本面卡與獲利分頁共用）：0～100 分位條，10／50／90 刻度，●＝目前、◆＝族群中位 */
 .pestand{display:flex;flex-direction:column;gap:4px;min-width:0}

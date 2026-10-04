@@ -6638,8 +6638,13 @@
      → 這一頁退回 3 個月，**不改寫 localStorage**（回到法人頁仍是原本選的 1 年）。沒傳 opts 的頁（法人、資券）行為完全不變。*/
   function chipPage(pg, el, kind, body, draw, opts) {
     const wins = opts && opts.wins ? CHIP_WINS.filter(w => opts.wins.includes(w.v)) : CHIP_WINS;
+    /* ★ 2026-10-04（Andy：「大戶那頁 Default 4 周」）：opts.key／opts.dflt＝這一頁自己的記憶鍵與預設值。
+       大戶／散戶頁若跟法人、資券共用 tw.chipWin，在法人頁選過 3 個月就會把這頁也蓋掉，預設永遠回不到 4 週；
+       所以這頁改記自己的鍵（tw.chipWinHo），沒存過就用 4 週。法人、資券沒傳 opts，行為不變。*/
+    const wkey = (opts && opts.key) || 'tw.chipWin';
     let win = chipWinGet();
-    if (!wins.some(w => w.v === win)) win = CHIP_DEFAULT;
+    if (opts && opts.key) win = +lsGet(wkey, (v) => wins.some(w => String(w.v) === v), String(opts.dflt || CHIP_DEFAULT));
+    if (!wins.some(w => w.v === win)) win = (opts && opts.dflt) || CHIP_DEFAULT;
     el.innerHTML = `<div class="row chipBar" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <div class="seg" id="chipWin" role="group" aria-label="區間">${wins.map(w => `<button type="button" data-v="${w.v}">${w.t}</button>`).join('')}</div>
         <span class="note" id="chipRange" data-readout></span></div>${body}`;
@@ -6654,7 +6659,7 @@
     };
     $$('#chipWin button', el).forEach(b => b.onclick = () => {
       win = +b.dataset.v;
-      try { localStorage.setItem('tw.chipWin', String(win)); } catch (e) { /* 忽略 */ }
+      try { localStorage.setItem(wkey, String(win)); } catch (e) { /* 忽略 */ }
       redraw();
     });
     redraw();
@@ -6897,7 +6902,7 @@
           return `<td class="num${on.has(L.k) ? ' sel' : ''}">${r[L.k] == null ? '—' : A.fmt.n(r[L.k], 2) + '%'}<small class="${ppCls(w) === 'dn' ? 'down' : ppCls(w) === 'up' ? 'up' : 'muted'}" style="margin-left:6px">${w == null ? '' : pp(w)}</small></td>`; };
         ht.innerHTML = `<table><thead><tr><th class="l">公布日</th>${HO_LINES.map(L => `<th${on.has(L.k) ? ' class="sel"' : ''}>${L.name}</th>`).join('')}</tr></thead><tbody>${ho.slice().reverse().map(r => `<tr><td class="l mono">${String(r[0])}</td>${HO_LINES.map(L => cell(r, L)).join('')}</tr>`).join('')}</tbody></table><div class="note" style="margin-top:4px">持股比例＝該級距持股 ÷ 總股數；小字＝跟上一週比（pp＝百分點）</div>`;
       }
-    }, { wins: [20, 63] });   // 大戶／散戶只留 4 週、3 個月（#302）
+    }, { wins: [20, 63], key: 'tw.chipWinHo', dflt: 20 });   // 大戶／散戶只留 4 週、3 個月（#302），預設 4 週、自己記
     $$('#hoTgls .hoTgl', el).forEach(b => b.onclick = () => {
       const k = +b.dataset.k;
       if (on.has(k)) on.delete(k); else on.add(k);
