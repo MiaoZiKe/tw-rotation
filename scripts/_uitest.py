@@ -21087,6 +21087,7 @@ SECTIONS = {
     "會員權限開關":        lambda pg, b, base, code: t_member_perm(b, base, code),
     # ★ 2026-10-04 Andy：「會員權限」分頁放在自選下、只有管理者看得到；新增會員 email＋方案、儲存／取消、定價範本（page.route 假 Worker）
     "會員權限導覽":        lambda pg, b, base, code: t_perm_nav(b, base),
+    "會員回歸1005":        lambda pg, b, base, code: t_member_regress_1005(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -43045,6 +43046,53 @@ def t_perm_nav(b, base):
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
+def t_member_regress_1005(b, base):
+    """會員系統回歸（2026-10-05，Andy：「會員系統出問題」）：perm-nav ＋ fast-ov3 上線後實際走一次，抓到並修掉兩個 bug：
+      ① 直接開／重新整理 #admin/perm → 側欄「會員權限」（.tab#l4Perm）不亮（app.js 的 admin 路由一律清掉所有 .tab 的 on）
+      ② 任何一次 tw:account（開頁 /v1/me 回來、身分刷新）都整頁重畫管理頁 → #admin/perm 撥到一半的開關（草稿）被默默清掉
+      另外驗：打開存檔機制（__TW_SNAP__）時 IndexedDB 只存 data/*.json、沒有任何會員 API 回應；帳號選單 → 會員功能權限／登出 真的走得通。"""
+    T = "會員回歸1005"
+    errs: list[str] = []
+    c, sent = _pnav_ctx(b, True)
+    c.add_init_script("window.__TW_SNAP__ = 1;")
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#pmListBody tr[data-email]').length > 0 && !!document.getElementById('l4Perm')", 10000)
+    pg.wait_for_timeout(500)
+    ok(f"★ {T}：直接開 #admin/perm → 側欄「會員權限」亮著、其他分頁都不亮",
+       pg.evaluate("() => document.getElementById('l4Perm').classList.contains('on') && [...document.querySelectorAll('.tab.on')].length === 1"),
+       pg.evaluate("() => [...document.querySelectorAll('.tab.on')].map(t => t.id || t.dataset.view)"))
+    pg.click("#pmListBody tr[data-email]")
+    wait_until(pg, "() => !document.querySelector(\"#pmCats input[data-f='heat.theme']\").disabled", 5000)
+    pg.click("#pmCats input[data-f='heat.theme']")
+    ok(f"{T}：撥一個開關 → 出現「1 項變更還沒儲存」", "1 項" in pg.inner_text("#pmDirty"), pg.inner_text("#pmDirty"))
+    pg.evaluate("() => window.dispatchEvent(new CustomEvent('tw:account', { detail: { user: TwAccount.user() } }))")
+    pg.wait_for_timeout(1200)
+    ok(f"★ {T}：身分沒變的 tw:account 不會重畫管理頁、草稿還在", "1 項" in (pg.inner_text("#pmDirty") if pg.is_visible("#pmDirty") else ""), pg.evaluate("() => (document.getElementById('pmDirty') || {}).textContent"))
+    if pg.is_visible("#pmCancel"):
+        pg.click("#pmCancel")
+    # 存檔機制：IndexedDB 裡只有 data/*.json 的名字（不含會員 API、不含 account）
+    pg.goto(base + "#watch", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    names = pg.evaluate("""() => new Promise((res) => { const rq = indexedDB.open('tw-snap', 1);
+        rq.onsuccess = () => { try { const g = rq.result.transaction('f').objectStore('f').getAllKeys(); g.onsuccess = () => res(g.result); g.onerror = () => res(null); } catch (e) { res(String(e)); } }; rq.onerror = () => res(null); })""")
+    ok(f"{T}：存檔機制有存到資料、而且沒有任何會員／權限相關的東西", isinstance(names, list) and len(names) > 0
+       and not any(re.search(r"perm|acct|account|v1|me$|lists", str(n)) for n in names), names)
+    # 帳號選單 → 會員功能權限 → 側欄那格亮；再從選單登出
+    pg.click("#acctBtn"); pg.wait_for_timeout(200)
+    pg.click("#acctMenu [data-a='perm']")
+    wait_until(pg, "() => location.hash === '#admin/perm' && document.querySelectorAll('#pmCats .pmcat').length > 0", 8000)
+    ok(f"{T}：帳號選單「會員功能權限」→ 進 #admin/perm、側欄那格亮", pg.evaluate("() => document.getElementById('l4Perm').classList.contains('on')"))
+    pg.click("#acctBtn"); pg.wait_for_timeout(200)
+    pg.click("#acctMenu [data-a='logout']")
+    wait_until(pg, "() => !TwAccount.user()", 4000)
+    pg.wait_for_timeout(600)
+    ok(f"{T}：從選單登出 → 沒有使用者、側欄「會員權限」移除、管理頁改成請先登入",
+       pg.evaluate("() => !TwAccount.user() && !document.getElementById('l4Perm') && /請先登入/.test(document.getElementById('v-admin').textContent)"),
+       pg.inner_text("#v-admin")[:120])
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
 # ---------------------------------------------------------------------------------------------------
 # ★ 2026-09-28 設計 v4 第二批 2A：資金流向頁（docs/design_v4/03_第二批2A.md）
 V4_2A_M = r"""() => {
@@ -45116,6 +45164,9 @@ FUND1003_GEO = r"""() => { const R = (e) => { if (!e || !e.getClientRects().leng
   return { card: R(card), sm: sm.map(e => ({ f: e.dataset.f, ...R(e), pad: pad(e) })), bg: bg.map(e => ({ f: e.dataset.f, ...R(e) })),
     txt: card.innerText, gmr: [...card.querySelectorAll('.gmr')].map(e => ({ k: e.dataset.k, v: +e.dataset.v, cls: (e.querySelector('b') || {}).className || '', t: e.innerText.replace(/\s+/g, ' ') })),
     spark: card.querySelector('.gmspark svg') ? +card.querySelector('.gmspark svg').dataset.n : 0,
+    sp: (() => { const s = card.querySelector('.gmspark'); if (!s) return null; const rr = (e) => e.getBoundingClientRect();
+      return { pts: [...s.querySelectorAll('.gmp')].map(e => e.title), vals: [...s.querySelectorAll('.gmv')].map(e => ({ t: e.textContent, fs: parseFloat(getComputedStyle(e).fontSize), l: rr(e).left, r: rr(e).right })),
+        avg: !!s.querySelector('line.gmavg'), area: !!s.querySelector('path.gma'), ticks: [...s.querySelectorAll('.minil span')].map(e => e.textContent), box: { l: rr(s).left, r: rr(s).right } }; })(),
     mom: [...card.querySelectorAll('.mpr[data-k]')].map(e => ({ k: e.dataset.k, pts: +e.dataset.pts })), score: card.querySelector('.gauge') ? +card.querySelector('.gauge').dataset.score : null,
     note: (card.querySelector(':scope > .note') || {}).textContent || '' }; }"""
 
@@ -45203,6 +45254,15 @@ def t_stock_fund_1003(b, base, code):
                             ok(f"{tag} 毛利率沒有「{nm}」資料 → 那一列不出現", k not in gm, gm)
                     nq = sum(1 for r in q[max(0, qi - 7):qi + 1] if r[2] is not None)
                     ok(f"{tag} 毛利率小趨勢：有 ≥4 季才畫（{nq} 季）", (g["spark"] == nq) if nq >= 4 else g["spark"] == 0, (g["spark"], nq))
+                    if nq >= 4 and g.get("sp"):
+                        sp = g["sp"]; win = [r for r in q[max(0, qi - 7):qi + 1] if r[2] is not None]
+                        hi, lo = max(r[2] for r in win), min(r[2] for r in win)
+                        # 2026-10-05 Andy「走勢圖太單調」：每季一點（滑過顯示季別＋毛利率）、最高／最低標數值、平均虛線、面積、≥3 個季別刻度
+                        ok(f"★ {tag} 毛利率小趨勢每季一點，滑過顯示「季別 毛利率」", len(sp["pts"]) == nq and all("毛利率" in t and "%" in t for t in sp["pts"]) and win[-1][0] in sp["pts"][-1], sp["pts"])
+                        vt = [v["t"] for v in sp["vals"]]
+                        ok(f"★ {tag} 毛利率小趨勢標出最高 {hi:.1f}%／最低 {lo:.1f}%，字 ≥11px、不出框", f"{hi:.1f}%" in vt and f"{lo:.1f}%" in vt
+                           and all(v["fs"] >= 11 and v["l"] >= sp["box"]["l"] - 1 and v["r"] <= sp["box"]["r"] + 1 for v in sp["vals"]), (vt, sp["vals"], sp["box"]))
+                        ok(f"{tag} 毛利率小趨勢有平均虛線＋面積＋≥3 個季別刻度＋平均值", sp["avg"] and sp["area"] and len(sp["ticks"]) >= 4 and any("平均" in t for t in sp["ticks"]), sp)
                 # ---- ④ 營運動能
                 if f.get("momentum_score") is not None:
                     raw = 50 + sum(x["pts"] for x in g["mom"])
