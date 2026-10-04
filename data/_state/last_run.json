@@ -3,23 +3,23 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.2
+      "seconds": 1.1
     },
     "index_intraday": {
-      "stored": 0
+      "stored": 824
     },
     "taifex.futures_minute": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.1
+      "ok": true,
+      "rows": 824,
+      "seconds": 1.2
     },
     "news.collect": {
       "ok": true,
-      "rows": 126,
-      "seconds": 2.9
+      "rows": 123,
+      "seconds": 2.4
     },
     "news": {
-      "stored": 43
+      "stored": 33
     },
     "news.broker_views": {
       "ok": true,
@@ -32,23 +32,23 @@
     "mops.material_news": {
       "ok": true,
       "rows": 5,
-      "seconds": 1.1
+      "seconds": 1.0
     },
     "material_news": {
-      "stored": 5
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1759,
-      "seconds": 1.5
+      "rows": 1760,
+      "seconds": 1.4
     },
     "intl_daily": {
-      "stored": 0
+      "stored": 1
     },
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.7
+      "seconds": 0.6
     },
     "build_payload": {
       "ok": true
@@ -70,16 +70,22 @@
       "2026-10-02"
     ]
   },
-  "started_at": "2026-10-04T07:35:05.679458+00:00",
-  "finished_at": "2026-10-04T07:45:19.825593+00:00",
-  "duration_seconds": 614.1,
+  "taifex_minute_days": {
+    "FUT_N": [
+      "2026-10-02",
+      "2026-10-03"
+    ]
+  },
+  "started_at": "2026-10-04T16:23:58.793457+00:00",
+  "finished_at": "2026-10-04T16:37:16.138826+00:00",
+  "duration_seconds": 797.3,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 440,
   "tables": [
     {
       "table": "price_daily",
-      "rows": 2473567,
+      "rows": 6909362,
       "latest": "2026-10-02"
     },
     {
@@ -139,7 +145,7 @@
     },
     {
       "table": "news",
-      "rows": 3726,
+      "rows": 3759,
       "latest": "2026-10-04"
     },
     {
@@ -149,8 +155,8 @@
     },
     {
       "table": "intl_daily",
-      "rows": 1879,
-      "latest": "2026-10-02"
+      "rows": 1880,
+      "latest": "2026-10-04"
     },
     {
       "table": "macro",
@@ -179,7 +185,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 185119,
+      "rows": 185943,
       "latest": "—"
     },
     {
