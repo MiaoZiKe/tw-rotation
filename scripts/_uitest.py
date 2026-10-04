@@ -45307,7 +45307,8 @@ def t_stock_fund_1003(b, base, code):
                 # ---- ⑦ 頂部 AI（桌機；沒有 analysis 的簡版頁只有一行結論，沒有四列）
                 if W > 820 and j.get("analysis"):
                     rw = pg.evaluate(AI1003_ROWS)
-                    ok(f"★ {tag} 頂部 AI：四個面向上下排列（4 列）、沒有展開鈕", len(rw["rows"]) == 4 and len({round(r["t"]) for r in rw["rows"]}) == 4 and rw["tgl"] == 0 and not rw["expandTxt"], rw)
+                    # ★ 2026-10-05：Andy 23:25「這邊拿掉」→ 桌機（>640）個股 K 線卡右上的 AI 分析整塊不顯示，改驗「桌機看不到任何一列」
+                    ok(f"★ {tag} 頂部 AI：桌機已拿掉（一列都沒有、沒有展開鈕）", len(rw["rows"]) == 0 and rw["tgl"] == 0, rw)
             except Exception as ex:  # noqa: BLE001
                 ok(f"{tag} 驗收程式跑完沒有出錯", False, repr(ex)[:300])
         ctx.close()
