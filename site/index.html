@@ -4587,6 +4587,8 @@ h3 .howbtn.pop{font-family:inherit}
    不動斷點 —— 斷點往上推會讓 1101～1280 的桌機失去並排。*/
 .mktlist #mktInner td,.mktlist #mktInner th{padding-left:6px;padding-right:6px}
 .mktlist #mktInner td.l>.lk-group{display:inline-block;max-width:6.5em;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+/* ★ 2026-10-05 Andy：「族群旁邊的垂直線拿掉」—— inline-block＋截字時族群色點 <i> 被壓成一條細直線，這張表直接不畫色點 */
+.mktlist #mktInner td.l>.lk-group>i{display:none}
 .mktlist #mktInner td.l>.lk-stock{display:inline-block;max-width:10em;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 @media (max-width:1100px){
   .mktduo{grid-template-columns:minmax(0,1fr)}
