@@ -150,8 +150,8 @@
       <div class="howtxt" id="how-indheat" hidden>${A.howHTML('這張圖回答：今天全市場的錢分佈在哪幾塊、哪一塊在漲。', [
         '方塊大小＝族群成交值（分組時小鏈至少佔 5%）',
         '顏色＝今日漲跌，紅漲綠跌',
-        '又大又紅＝錢多而且在漲',
-        '大而綠＝資金正在退潮的權值區',
+        '又大又紅＝錢多而且在漲；大而綠＝權值區退潮',
+        '右上「分組」預設產業鏈，可改不分組',
         '點鏈標題進產業鏈，點方塊看它的個股',
       ], '要比同一條鏈裡誰漲誰跌，用<a class="lk" href="#industry">產業地圖</a>的長條圖比較快；右上「分組」可以改成不分組平鋪，一眼比大小。')}</div>
       <div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:560px"></div></div></div>`;
@@ -1182,10 +1182,12 @@
           <div class="dgsectitle"><small class="muted" id="dgTitle"></small><button class="howbtn pop" data-how="dg" data-ttl="產品剖析圖" type="button" aria-label="產品剖析圖怎麼看">?</button></div><span class="row" id="dgTools" style="gap:6px"><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
+            /* ★ 2026-10-04（docs/howto_audit_1004.md 第 5 項）：改前五條寫死給所有鏈，傳產這類鏈沒有關聯圖、也沒有 2D/3D，
+               照樣寫「關聯圖會一起亮」「3D 可拖曳」。改成：關聯圖那句只在 hasMap 時出現；
+               3D 那條由 wire3D 在 2D/3D 切換鈕真的出現時才補進這份條列（見 wire3D 的 btn.hidden = false 那段）。*/
             '點零件：看它是誰做的（供應商）',
-            '同色的環節色標、關聯圖會一起亮',
+            ...(hasMap ? ['同色的環節色標、關聯圖會一起亮'] : []),
             '右上可開關動畫、收合圖',
-            '3D 可拖曳轉動；點兩下回到原角度',
             '圖以原尺寸顯示，放不下可左右滑',
           ], '原創示意圖，非實物比例；字不跟著縮小（最小 12px）。')}</div>
           <!-- ★ 2026-09-26（Andy：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」）
@@ -2616,6 +2618,13 @@
       return;
     }
     btn.hidden = false;
+    // 2D/3D 切換鈕真的出現了，才在「?」條列補上 3D 的讀法（2026-10-04 稽核第 5 項：沒有 3D 的鏈不寫這條）
+    { const ul = $('#how-dg ul', el) || (document.getElementById('how-dg') || {}).querySelector?.('ul');
+      if (ul && !ul.querySelector('[data-dg3dhow]')) {
+        const li = document.createElement('li'); li.dataset.dg3dhow = '1';
+        li.textContent = '右上 2D／3D 切換；3D 可拖曳轉動，點兩下回原角度';
+        ul.appendChild(li);
+      } }
     /* ★ 2026-09-26（Andy：「切回 2D 時，顯示 2D，不要都 3D」）：
        以前這是一顆開關「3D 立體」，2D 時寫「3D 立體」、3D 時寫「3D 立體 ✓」——
        不管在哪個模式，眼睛讀到的都是「3D」，看不出現在到底是哪一種。
@@ -4061,11 +4070,11 @@
           <!-- 「重設縮放」鈕 2026-09-26 搬進圖裡（主圖 K 棒區右下角、價格軸左邊），由 KChart 自己掛（opts.fit）-->
         </div>
         <!-- ★ 2026-09-24 說明精簡：圖下那段滑鼠／拖曳操作說明（.skhelp 第一行）整段搬進「怎麼看 ?」 -->
-        <div class="howtxt" id="how-kline" hidden>${A.howHTML('這張圖：這一檔的 K 線、成交量與技術指標。', [
-          '圖內滾輪＝時間縮放',
-          '價格軸上滾輪或拖曳＝調整上下寬度',
-          '雙擊價格軸或按圖右下角 ⌜⌟ 還原',
-          '副圖之間的分隔線可上下拖，會記住',
+        <div class="howtxt" id="how-kline" hidden>${A.howHTML('這張圖：這一檔的走勢（預設分時）、K 線、成交量與技術指標。', [
+          /* ★ 2026-10-04（稽核第 6 項）：預設週期是「分時」（一條價格線＋昨收虛線），改前條列全是 K 線縮放、分時讀法只在不顯示的小字裡 */
+          '預設是分時：線在昨收虛線上＝漲、下＝跌',
+          '切 K 線週期：圖內滾輪縮放、價格軸拖曳調高度',
+          '雙擊價格軸或按右下 ⌜⌟ 還原；副圖分隔線可拖',
           '週期鈕被劃掉＝這檔沒有那個週期資料',
         ], '「分時」：線在虛線（昨收）上面＝今天漲、下面＝跌，最後一段往哪邊走就是尾盤的方向；要看指標或畫線請切到 K 線週期。滑鼠移到劃掉的週期鈕上會說原因。分 K 每日盤後更新；K 棒會跟著上下寬度一起變。')}</div>
         <!-- ★ 2026-09-29 data-readout：這一行是「這一檔此刻畫的是哪一天、哪個來源、量是不是估計值、有沒有分時」的狀態讀數
@@ -5418,8 +5427,13 @@
          · 大格（寬欄）：本益比位置（peStand，跟「獲利」分頁共用）、毛利率（前一季／去年同季增減＋近 8 季小趨勢）、營運動能（儀表＋組成分數）
          · 兩欄底部對齊：小格平均分掉窄欄高度（內容垂直置中）、大格依內容；卡片寬 < 360px（手機）改成小格 2×2 在上、大格在下。
          資料不足的子項整行不出現（不寫「資料不足」）。*/
-    const help = hbox('skfund', ['近四季 EPS＝最近四季每股盈餘相加', 'ROE＝近四季淨利 ÷ 股東權益', '本益比條＝跟自己過去每天比；◆＝族群中位', '便宜／貴＝自己歷史第 10／90 百分位', '毛利率＝最新一季毛利 ÷ 營收，比前季、去年同季', '月營收 YoY＝最新月營收比去年同月增減',
-      '營運動能＝營收成長各項加分，0～100', '殖利率＝近四次現金股利 ÷ 目前股價']);
+    const help = hbox('skfund', [
+      // ★ 2026-10-04（稽核第 11 項）：改前 8 條超過 5 條上限，且卡上的「股價淨值比」沒有說明 —— 兩兩合併、補上淨值比
+      'EPS＝近四季相加；ROE＝近四季淨利 ÷ 權益',
+      '本益比條：◆族群中位；自己第 10／90 百分位＝便宜／貴',
+      '毛利率＝最新季毛利 ÷ 營收；營收 YoY 比去年同月',
+      '營運動能＝營收成長各項加分，0～100',
+      '殖利率＝近四次現金 ÷ 股價；淨值比＝股價 ÷ 每股淨值']);
     const q = (pg.profit || {}).quarters || [];
     const qi = f.latest_period ? q.findIndex(r => r && r[0] === f.latest_period) : -1;
     const sub = (t) => (t ? `<div class="s">${t}</div>` : '');
@@ -5694,7 +5708,7 @@
         <div class="seg" id="revWin" role="group" aria-label="幾個月"><button type="button" data-v="12">12 月</button><button type="button" data-v="24">24 月</button><button type="button" data-v="36">36 月</button></div></div></div>
         ${hbox('skrev', ['月走勢：當月（青）＋去年同期（灰）並排', '線＝MoM、YoY（右軸 %）', '年度走勢：每年合計＋年增率', '今年未滿 12 個月＝跟去年同期幾個月比', '右上切 12／24／36 個月'])}<div id="revBar" class="chart"></div></div>
       <div class="card"><div class="row spread"><h3>逐年同月比較 ${hq('skrevy', '逐年同月比較')}</h3>${hbox('skrevy', ['每條線＝一年，同月份疊在一起比', '最粗那條＝今年', '看哪幾個月固定比較高＝旺季', '右上切單月／累計'])}<div class="seg" id="revMode"><button data-v="m" class="on">單月</button><button data-v="c">累計</button></div></div><div id="revYear" class="chart"></div></div>
-      <div class="card tblcard" id="revTblCard"><h3>月營收明細 <small data-readout>單位：百萬元</small></h3><div class="tw"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div></div>`;
+      <div class="card tblcard" id="revTblCard"><h3>月營收明細 <small data-readout>單位：百萬元</small> ${hq('skrevtbl', '月營收明細')}</h3>${hbox('skrevtbl', ['YoY＝比去年同月；MoM＝比上個月', '累計營收＝今年 1 月加到這個月', '累計 YoY＝今年累計 ÷ 去年同期累計 − 1', '1 月到這個月缺任一月，累計留「—」', '最上面一列是最新公布的月份'])}<div class="tw"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div></div>`;
     /* ★ 2026-10-02（Andy #stock/1709，DECISIONS #295）：改前「營收走勢｜逐年同月」兩欄＋下面一張整列的月營收明細長表；
        改後三張卡並排（#revGrid .skrev3，跟總覽三欄同一套），明細表是第三欄、高度跟兩張圖卡一樣、在卡裡捲（.tblcard）。
        ≤1100 兩欄（明細表跨滿第二列）、≤820 一欄依序往下排。*/
@@ -6395,13 +6409,13 @@
           '每條帶＝近四季 EPS × 倍數，越紅越貴',
           '收盤線落在哪條帶＝市場現在給的評價',
           '倍數用這檔自己的歷史分位，非固定',
-          '拉 Bar 選長度與截止日，▶ 一天天播',
+          '拉 Bar 選長度與截止日，▶ 一天天播；右上三鈕換畫法',
           '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="pekvs" id="peNote" data-readout></div></div>
       <div class="card" id="peQCard"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['線＝財報可用日收盤 ÷ 近四季 EPS', '帶＝同一季每天的本益比高低', '綠點＝虧損季（EPS < 0），本益比畫成負值', '▲＝超過圖上限，游標看實際值', '跟自己的過去比，看現在貴不貴'], '線與帶是同一條逐日本益比：線取那一季第一天（財報可用日），帶是那一季每天的最低～最高。圖上限＝max(200 倍, 近 5 年第 75 百分位 × 1.5)，最多 1000 倍。')}${psProf}<div id="peQ" class="chart"></div><div class="note" id="peQNote" data-readout></div></div>
       <div class="card" id="profitCard"><div class="row spread"><h3>EPS 與三率 <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small> ${hq('skeps', 'EPS 與三率')}</h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div>
-      <div class="card tblcard" id="profitTblCard"><h3 id="profitTblTtl">季報明細</h3><div class="tw" style="max-height:360px" id="profitTbl"></div></div></div>`;
+      <div class="card tblcard" id="profitTblCard"><h3><span id="profitTblTtl">季報明細</span> ${hq('skproftbl', '季報明細')}</h3>${hbox('skproftbl', ['季＝單季數字；年＝四季相加，「季數」不滿 4＝還沒過完', '累計 EPS＝同一年 Q1 起逐季相加，跨年歸零', '中間缺一季，那季起的累計留「—」，不拿缺季湊', 'EPS 年增＝這季 EPS 減去年同季（元）', '營收、淨利的單位寫在數字後（億／萬）'])}<div class="tw" style="max-height:360px" id="profitTbl"></div></div></div>`;
     const pct = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
     const tblQ = () => `<table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${r[1] == null ? '—' : A.fmt.yi(r[1])}</td><td class="num">${pct(r[2])}</td><td class="num">${pct(r[3])}</td><td class="num">${pct(r[4])}</td><td class="num">${r[8] == null ? '—' : A.fmt.yi(r[8])}</td><td class="num">${r[5] == null ? '—' : A.fmt.n(r[5])}</td><td class="num">${r[6] == null ? '—' : A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table>`;
     const tblY = () => `<table><thead><tr><th class="l">年度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>季數</th></tr></thead><tbody>${yr.slice().reverse().map(y => `<tr><td class="l mono">${ylab(y)}</td><td class="num">${y.revenue == null ? '—' : A.fmt.yi(y.revenue)}</td><td class="num">${pct(y.gm)}</td><td class="num">${pct(y.om)}</td><td class="num">${pct(y.nm)}</td><td class="num">${y.net_income == null ? '—' : A.fmt.yi(y.net_income)}</td><td class="num">${y.eps == null ? '—' : A.fmt.n(y.eps)}</td><td class="num">${y.quarters}</td></tr>`).join('')}</tbody></table>`;
@@ -6554,7 +6568,7 @@
     const upTxt = up.length ? '已公告、尚未除權息：' + up.slice(0, 3).map(u => `${A.fmt.esc(u.period || '')} ${u.kind === 'stock' ? '股票' : '現金'} ${d2(u.amount || 0)} 元`
       + (u.ex_date ? `（${u.ex_date} 除${u.kind === 'stock' ? '權' : '息'}）` : '（除權息日未定）')).join('；') : '';
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">近四次現金股利</div><div class="v">${dv.cash_ttm != null ? A.fmt.n(dv.cash_ttm) + ' 元' : '—'}</div></div><div class="k"><div class="l">殖利率</div><div class="v">${dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—'}</div></div><div class="k"><div class="l">最近除息</div><div class="v" style="font-size:15px">${rs[0] ? rs[0].date : '—'}</div></div><div class="k"><div class="l">最近填息</div><div class="v">${rs[0] ? (rs[0].fill_days === -1 ? '一年未填' : rs[0].fill_days != null ? rs[0].fill_days + ' 天' : '進行中') : '—'}</div></div></div>
-      <div class="grid g2"><div class="card" id="divCard"><div class="row spread" id="divHead" style="gap:8px;flex-wrap:wrap"><h3>各年度股利 <small data-readout id="divSub">${divSub}</small> ${hq('skdiv', '各年度股利')}</h3></div>${hbox('skdiv', ['每年一根：琥珀＝現金股利、紫＝股票股利（元／股，當時公告的金額）', '年度＝除權息日所在的年份（實際配發那一年），跟右邊紀錄表對得上', '同一年配好幾次（季配、半年配）加總，滑過看每一次', '「未配」＝那年沒除權息；「待補」＝金額資料準備中', '線＝現金殖利率（右軸）＝現金股利 ÷ 除息前一日收盤', '最右邊是今年，還沒過完'], `${cov.cover_from || 2016} 年以前與上市以前的年份不畫 —— 那些是「沒有資料」，不是「沒配」。季配、半年配的股利可能跨年發放，所以歸在實際配發那一年。`)}<div id="divBar" class="chart"></div>${upTxt ? `<div class="note" data-readout style="margin-top:6px">${upTxt}</div>` : ''}</div>
+      <div class="grid g2"><div class="card" id="divCard"><div class="row spread" id="divHead" style="gap:8px;flex-wrap:wrap"><h3>各年度股利 <small data-readout id="divSub">${divSub}</small> ${hq('skdiv', '各年度股利')}</h3></div>${hbox('skdiv', ['每年一根：琥珀＝現金、紫＝股票股利（元／股）', '年度＝實際除權息那一年，對得上右邊紀錄表', '同一年配好幾次（季配、半年配）加總，滑過看每一次', '「未配」＝沒除權息；「待補」＝資料準備中；最右是今年', '線＝現金殖利率（右軸）＝現金股利 ÷ 除息前一日收盤'], `${cov.cover_from || 2016} 年以前與上市以前的年份不畫 —— 那些是「沒有資料」，不是「沒配」。季配、半年配的股利可能跨年發放，所以歸在實際配發那一年。`)}<div id="divBar" class="chart"></div>${upTxt ? `<div class="note" data-readout style="margin-top:6px">${upTxt}</div>` : ''}</div>
       <div class="card"><h3>除權息紀錄 ${hq('skfill', '除權息紀錄')}</h3>${hbox('skfill', ['每一列＝一次除權或除息', '填息天數＝除息後第一次收回除息前收盤', '天數越短＝市場越認同', '「未填」＝到今天還沒填回'])}<div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody id="divRec">${rs.map(r => `<tr><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num">${r.fill_days === -1 ? '<span class="down">未填</span>' : r.fill_days != null ? r.fill_days + ' 天' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>`;
     /* ★ 2026-09-25（審查 R5）：① 字族用全站 NUM_FONT；② 數值一律最多 2 位；③ 標籤色跟主題走。*/
     if (!bars.length) { A.empty('divBar'); return; }
@@ -6694,7 +6708,8 @@
   /* ★ 2026-10-02（Andy #stock/1709，DECISIONS #295）：三頁「上圖下長表」→ 左圖右表並排（.skduo），明細表自成一張卡（.tblcard），
      高度跟左邊圖卡一樣、表在卡裡捲；≤1100 疊成上下。三頁共用這一組（chipTbl／chipCardHtml），版型一致。
      foot＝接在表下面的一句（大戶散戶的「目前累積 N 週，每週五自動增加」放這裡：講的就是右邊這張表為什麼只有這幾列）。*/
-  const chipTbl = (id, title, foot) => `<div class="card tblcard" id="${id}Card"><h3>${title || '每日明細'}</h3><div class="tw chipTbl" id="${id}"></div>${foot || ''}</div>`;
+  /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：how＝[key, 問句, 條列]，有給才在標題旁出「?」（法人、資券兩張；大戶散戶那張在改版中，先不加）。*/
+  const chipTbl = (id, title, foot, how) => `<div class="card tblcard" id="${id}Card"><h3>${title || '每日明細'}${how ? ' ' + hq(how[0], title || '每日明細') : ''}</h3>${how ? `<div class="howtxt" id="how-${how[0]}" hidden>${A.howHTML(how[1], how[2])}</div>` : ''}<div class="tw chipTbl" id="${id}"></div>${foot || ''}</div>`;
   const chipK = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
   /* 資料還不到 CHIP_MIN 天：不畫一條兩點的假斜線，直接列最新數字 */
   const chipNums = (key, title, sub, kvs, why) => `<div class="card"><h3>${title} <small data-readout>${sub}</small> ${hq(key, title)}</h3>${hbox(key, ['資料天數還不夠畫走勢，先列最新數字'])}
@@ -6714,7 +6729,7 @@
     const imap = new Map(iv.map(r => [String(r[0]).slice(0, 10), r]));
     const body = chipCardHtml('skinst', 'instChart', '三大法人買賣超', chipSeg('instSeg', INST_SEGS, '法人別'),
       ['上方切外資／投信／自營商／合計', '柱＝每日買賣超（紅＝買超、綠＝賣超，張）', '線＝區間累計（從區間第一天起算）', '自營商＝自行買賣＋避險，滑過看拆分', '累計線一路往上＝這段期間持續買進'],
-      chipTbl('instTbl', '每日明細'), 'min-height:340px');
+      chipTbl('instTbl', '每日明細', '', ['skinsttbl', '這張表回答：法人每天各買賣了幾張。', ['單位：張，買超－賣超；紅＝買超、綠＝賣超', '最上面一列是最新一天', '亮起來那一欄＝左圖目前選的法人別', '合計＝外資＋投信＋自營商']]), 'min-height:340px');
     const redraw = chipPage(pg, el, 'inst', body, (dates, win) => {
       const { xCat } = chipAxis(dates, win);
       const seg = INST_SEGS.find(x => x.v === iseg) || INST_SEGS[0];
@@ -6781,8 +6796,8 @@
     let mseg = lsGet('tw.mgSeg', v => MG_SEGS.some(x => x.v === v), 'm');
     const mmap = new Map(mg.map(r => [String(r[0]).slice(0, 10), r]));
     const body = srcNote + chipCardHtml('skmg', 'marginChart', '資券', chipSeg('mgSeg', MG_SEGS, '資券類別'),
-      ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '最新餘額看右邊明細表第一列（同總覽）', '借券賣出多為法人避險，不是融券'],
-      chipTbl('mgTbl', '每日明細'), 'min-height:340px');
+      ['融資／融券：柱＝每日增減（張）、線＝餘額', '當沖：柱＝當沖成交張數、線＝當沖率', '借券賣：柱＝當日借券賣出、線＝借券賣出餘額', '明細表最新一列若是「—」＝資券資料尚未公布（常晚一天）', '借券賣出多為法人避險，不是融券'],
+      chipTbl('mgTbl', '每日明細', '', ['skmgtbl', '這張表回答：融資、融券、當沖、借券每天各多少張。', ['餘額＝當日收盤後；增減＝比前一日多或少', '最新一列若是「—」＝資券資料尚未公布（常晚一天）', '「未提供」＝那天來源沒給，不是 0', '亮起來那一欄＝左圖目前選的類別']]), 'min-height:340px');
     const redraw = chipPage(pg, el, 'margin', body, (dates, win) => {
       const { xCat } = chipAxis(dates, win);
       const nTrade = dates.length;
@@ -6942,7 +6957,7 @@
     /* ★ 2026-09-26（Andy：「將過往歷史數據移動到圖三那位置」）：基本資料表只佔左半，右半一大塊空白，
        「1–12 月平均漲幅」卻排在整張表下面要往下捲才看得到。改成兩欄並排（.skBasics，桌機等高），≤900px 疊成上下。
        季節卡是 flex 直欄、圖吃掉剩下的高度，跟左邊基本資料表一樣高。 */
-    el.innerHTML = `<div class="grid g2 skBasics"><div class="card"><h3>基本資料</h3><dl class="kv" style="margin-top:10px">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1] != null && r[1] !== '' ? (r[2] ? r[1] : A.fmt.esc(r[1])) : '—'}</dd>`).join('')}</dl></div>
+    el.innerHTML = `<div class="grid g2 skBasics"><div class="card"><h3>基本資料 ${hq('skbasic', '基本資料')}</h3>${hbox('skbasic', ['市值＝收盤價 × 股數', '股價淨值比＝股價 ÷ 每股淨值', '股價營收比＝市值 ÷ 近四季營收', '所屬族群、題材點得進該頁', '「—」＝這一項目前沒有資料'])}<dl class="kv" style="margin-top:10px">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1] != null && r[1] !== '' ? (r[2] ? r[1] : A.fmt.esc(r[1])) : '—'}</dd>`).join('')}</dl></div>
       <div class="card msCard" id="msCard"><div class="row spread">
         <h3>1–12 月平均漲幅 <small id="msSub" data-readout></small> ${hq('ms', '1–12 月平均漲幅')}</h3>
         <div class="row" style="gap:10px;align-items:center">

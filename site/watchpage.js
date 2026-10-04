@@ -182,7 +182,7 @@
         + '</span>';
     }).join('');
     v.innerHTML = `<div class="card wpcard">
-      <div class="wphd"><h2>自選</h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
+      <div class="wphd"><h2>自選 <button class="howbtn pop" data-how="watch" data-ttl="自選" type="button" aria-label="自選怎麼看">?</button></h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
       <div class="wptabs" role="tablist" id="wpTabs">${tabH}
         <button type="button" class="wpnew" id="wpNew" ${full ? 'disabled aria-disabled="true"' : ''} title="${full ? (T.capLocked && T.capLocked() ? `目前方案最多 ${T.MAX_TABS} 頁（需開通）` : `最多 ${T.MAX_TABS} 頁`) : '新增一頁清單'}">＋ 新增分頁${full && T.capLocked && T.capLocked() ? ' 🔒' : ''}</button>
         <span class="wphint" id="wpHint" ${P.hint ? '' : 'hidden'}>${esc(P.hint)}</span></div>
@@ -190,6 +190,7 @@
       <div class="wpadd"><input type="search" id="wpQ" placeholder="加入股票：代號或名稱，例如 2330 或 台積電" autocomplete="off" aria-label="搜尋要加入的股票" value="${esc(P.q)}"><ul class="wpres" id="wpRes" hidden></ul></div>
       <div class="wpmsg" id="wpMsg" hidden></div>
       <div id="wpList"></div>
+      <div class="howtxt" id="how-watch" hidden></div>
       <div class="wpfoot">只存股票代號與清單名稱，不存張數、成本或損益。點一列進個股頁；現價與漲跌幅盤中會自動更新，成交值是最近一個交易日盤後的數字。</div>
     </div>`;
     paintList();
