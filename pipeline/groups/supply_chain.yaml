@@ -59,20 +59,6 @@ segments:
   - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
   - {id: ic_design,    name: "IC 設計",             layer: 1, chain: semiconductor}
   - {id: foundry,      name: "晶圓代工",            layer: 2, chain: semiconductor}
-  # ★ 2026-10-04 新增（Andy：「第三類半導體最大廠 穩懋 宏捷科 怎麼都沒有」）。
-  #   查證結論（semi-chain-analyst，docs/compound_semi_evidence.md）：證交所產業別與 PIDA／TrendForce
-  #   都把化合物半導體當成半導體底下的子領域，所以開在半導體鏈裡，不另開一條鏈。
-  #   跟 foundry 分開的理由：材料（GaAs／InP vs 矽）、客戶（Broadcom／Skyworks／Qorvo 的射頻 PA）
-  #   與終端（手機射頻、Wi-Fi、3D 感測 VCSEL）都不同，跟台積電放同一格讀者看不出它是做什麼用的。
-  - {id: compound_semi, name: "化合物 GaAs/InP 射頻", layer: 2, chain: semiconductor,
-     note: "砷化鎵（GaAs）／磷化銦（InP）的磊晶片與晶圓代工。終端：手機射頻功率放大器（PA）、Wi-Fi、3D 感測 VCSEL、光通訊雷射與光偵測器。
-       ★ 4991 環宇-KY（光偵測器 PD 為主）與 4971 英特磊-KY（MBE 磊晶）查不到具名客戶，依孤立節點規矩暫不放節點"}
-  # Skyworks／Qorvo 是射頻前端 IDM（自有設計、GaAs 部分委外），不放 ic_design：
-  #   ic_design 會被 AI 伺服器鏈一併拉進來（CHAIN_EXTRA），它們在那張圖上沒有邊，會變成孤立節點、也會誤導成 AI 供應鏈
-  - {id: rf_frontend,   name: "射頻前端 IDM（外商）", layer: 3, chain: semiconductor,
-     note: "手機射頻前端（PA／濾波器／開關）大廠，穩懋與宏捷科的 GaAs 代工客戶。台股沒有對應的大廠，這一格只有外商"}
-  - {id: wide_bandgap,  name: "第三代半導體 SiC/GaN", layer: 2, chain: semiconductor,
-     note: "碳化矽（SiC）／氮化鎵（GaN）功率元件的磊晶與代工。終端：工業、車用與電動車、綠能，題材是 AI 資料中心 800V 高壓直流電源（目前沒有具名訂單）"}
   - {id: adv_pkg,      name: "先進封裝 CoWoS/SoIC", layer: 3, chain: semiconductor,
      note: "CoWoS/SoIC 由台積電自己做（見晶圓代工），日月光承接外溢（見封測）"}
   - {id: osat_test,    name: "封測 / 測試",         layer: 3, chain: semiconductor}
@@ -301,6 +287,20 @@ segments:
      note: "綜合加工機、車床等切削工具機整機。★ 富強鑫 6603 做的是塑膠射出成型機（不是切削工具機），groups.yaml 把它放在 machine_tool 族群，這一格**不放**它；恩德 1528 的營收約 78% 是電腦數控加工中心與 PCB／木工專用機（其餘是板材）"}
   - {id: factory_robot,  name: "機器人與自動化系統", layer: 1, chain: electronics,
      note: "協作機器人、3D 視覺、半導體廠搬運與智慧物流（AMHS、OHT）等整廠自動化系統。★ 盟立 2464 2026 年產品組合中半導體設備系統約 57%、智慧自動化系統約 16%、光電面板自動化約 11%（媒體整理），主體其實已偏半導體設備"}
+  # ★ 移到 segments 尾端：插在中間會推移既有環節的配色索引（_uitest「新環節排在既有環節後面」）。
+  #   wide_bandgap 這格已由 #320 的 wbg_substrate／wbg_epi／wbg_device／power_idm 取代，刪除。
+  # ★ 2026-10-04 新增（Andy：「第三類半導體最大廠 穩懋 宏捷科 怎麼都沒有」）。
+  #   查證結論（semi-chain-analyst，docs/compound_semi_evidence.md）：證交所產業別與 PIDA／TrendForce
+  #   都把化合物半導體當成半導體底下的子領域，所以開在半導體鏈裡，不另開一條鏈。
+  #   跟 foundry 分開的理由：材料（GaAs／InP vs 矽）、客戶（Broadcom／Skyworks／Qorvo 的射頻 PA）
+  #   與終端（手機射頻、Wi-Fi、3D 感測 VCSEL）都不同，跟台積電放同一格讀者看不出它是做什麼用的。
+  - {id: compound_semi, name: "化合物 GaAs/InP 射頻", layer: 2, chain: semiconductor,
+     note: "砷化鎵（GaAs）／磷化銦（InP）的磊晶片與晶圓代工。終端：手機射頻功率放大器（PA）、Wi-Fi、3D 感測 VCSEL、光通訊雷射與光偵測器。
+       ★ 4991 環宇-KY（光偵測器 PD 為主）與 4971 英特磊-KY（MBE 磊晶）查不到具名客戶，依孤立節點規矩暫不放節點"}
+  # Skyworks／Qorvo 是射頻前端 IDM（自有設計、GaAs 部分委外），不放 ic_design：
+  #   ic_design 會被 AI 伺服器鏈一併拉進來（CHAIN_EXTRA），它們在那張圖上沒有邊，會變成孤立節點、也會誤導成 AI 供應鏈
+  - {id: rf_frontend,   name: "射頻前端 IDM（外商）", layer: 3, chain: semiconductor,
+     note: "手機射頻前端（PA／濾波器／開關）大廠，穩懋與宏捷科的 GaAs 代工客戶。台股沒有對應的大廠，這一格只有外商"}
 
 # ---------------------------------------------------------------- 產品 / 技術
 products:
