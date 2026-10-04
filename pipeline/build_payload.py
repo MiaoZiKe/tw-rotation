@@ -477,6 +477,14 @@ def build() -> None:
         log.warning("index_intraday 合成失敗：%s", exc)
         _write("index_intraday", {})
 
+    # 開頁種子（2026-10-04）：最近一個完整交易日的分時＋昨收，幾 KB，前端第一幀用（大檔背景補）。
+    try:
+        from .compute import lastday
+        _write("index_lastday", lastday.build(lake_intra, out_idx))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("index_lastday 產出失敗：%s", exc)
+        _write("index_lastday", {})
+
     lap("大盤歷史日K")
 
     # ---------------------------------------------------------- v3：資金流向 / 題材 / 產業地圖
@@ -590,9 +598,13 @@ def build() -> None:
         # 把前端用不到的欄位（summary 每則最多 600 字、keywords）砍掉，體積才不會跟著翻倍
         cols = [c for c in ("news_id", "category", "date", "published_at",
                             "title", "url", "codes", "source") if c in recent.columns]
-        _write("news", recent[cols].to_dict("records"))
+        rec = recent[cols].to_dict("records")
+        _write("news", rec)
+        # 2026-10-04：事件欄的開頁小檔 —— 總件數＋最新 30 則（同一份排序、同樣欄位）。完整版前端背景補。
+        _write("news_head", {"total": len(rec), "items": rec[:30]})
     else:
         _write("news", [])
+        _write("news_head", {"total": 0, "items": []})
 
     # ---------------------------------------------------------- 國際
     intl = store.read("intl_daily")

@@ -381,21 +381,108 @@
         （總覽 18 個請求、5.1MB 原始／1.06MB gzip）。版本鍵在每次部署都會換（build_payload 每次都重寫 meta），
         所以新資料一定是新網址、舊快取不可能被拿來冒充新資料。
         ⚠ meta.json 本身（還沒有版本鍵的時候）照舊 no-store —— 版本鍵就是從它來的，它一舊全部都舊。*/
+  /* ★ 2026-10-04 晚（Andy 21:20：「若是有最後一筆數據，就把它存起來，隔天有新的再覆蓋，這樣以後打開就能直接貼上，
+     不用一直取得數據，所有的數據都需要 Follow 這方法」）：全站「先貼上次存的、背景再更新」（stale-while-revalidate）。
+     · 存在哪：IndexedDB（tw-snap／f），一份檔一筆 {name, ver（meta.generated_at）, savedAt, used, size, data}。
+       不用 sw.js 的 Cache Storage —— sw.js 刻意不快取 data/**（見它開頭那條規則），改那裡會動到「新部署一定拿到新檔」的保證。
+     · 怎麼用：load() 同時發兩件事 —— 讀存檔、抓網路。網路先到就照舊；存檔先到就先回存檔給呼叫端畫，
+       頁首掛「這是上次存的資料（日期 時間），更新中…」，網路回來：內容一樣 → 只拿掉標示；不一樣 → 覆蓋存檔、
+       等這一輪所有背景抓取都結束後重畫**目前這一頁一次**（不是每份檔重畫一次；大盤三張圖不重掛，見 renderOverview）。
+     · 網路那一支一律等「新的 meta」拿到版本鍵才發（meta 本身也可以先貼存檔），所以舊存檔不可能讓我們去抓舊網址。
+     · 上限 50MB，超過依最久未用（used）淘汰；SNAP_SCHEMA 換掉＝整批作廢（存檔格式或 payload 口徑大改時改這個字串）。
+     · 私密視窗／IndexedDB 打不開／任何錯誤 → 當作沒有存檔，走原流程，不報錯。
+     · 盤中即時（live.js、market3 的 Worker）不走這裡，照舊即時。*/
+  const SNAP_SCHEMA = 'snap1', SNAP_MAX = 50 * 1024 * 1024;
+  const Snap = (() => {
+    let dbp = null;
+    const open = () => dbp || (dbp = new Promise((res) => {
+      try {
+        /* 自動化驗收（navigator.webdriver）預設不用存檔：_uitest 很多段落是攔截 data/*.json 換成假資料來驗口徑，
+           存檔先到會讓那些段落驗到上一段的資料。要驗存檔本身的段落設 window.__TW_SNAP__ = 1 打開。*/
+        if (!window.indexedDB || /[?&]nosnap=1(&|$)/.test(location.search) || (navigator.webdriver && !window.__TW_SNAP__)) return res(null);
+        const rq = indexedDB.open('tw-snap', 1);
+        rq.onupgradeneeded = () => { try { rq.result.createObjectStore('f', { keyPath: 'name' }); } catch (e) { /* 已存在 */ } };
+        rq.onsuccess = () => res(rq.result); rq.onerror = () => res(null); rq.onblocked = () => res(null);
+        setTimeout(() => res(null), 1500);
+      } catch (e) { res(null); }
+    }));
+    const tx = async (mode, fn) => { const db = await open(); if (!db) return null;
+      return new Promise((res) => { try { const t = db.transaction('f', mode); const st = t.objectStore('f');
+        const r = fn(st); t.oncomplete = () => res(r && 'result' in r ? r.result : true); t.onerror = t.onabort = () => res(null);
+      } catch (e) { res(null); } }); };
+    return {
+      get: async (name) => { const r = await tx('readonly', st => st.get(name));
+        return r && r.schema === SNAP_SCHEMA ? r : null; },
+      put: async (name, ver, data, size) => {
+        await tx('readwrite', st => st.put({ name, schema: SNAP_SCHEMA, ver, savedAt: Date.now(), used: Date.now(), size, data }));
+        // 容量：總和超過上限就從最久沒用的開始刪；schema 不同的一律刪
+        const all = await tx('readonly', st => st.getAll()); if (!all) return;
+        let tot = 0; const keep = [];
+        all.forEach(r => { if (r.schema !== SNAP_SCHEMA) tx('readwrite', st => st.delete(r.name)); else { tot += r.size || 0; keep.push(r); } });
+        keep.sort((x, y) => (x.used || 0) - (y.used || 0));
+        while (tot > SNAP_MAX && keep.length > 1) { const r = keep.shift(); tot -= r.size || 0; if (r.name !== name) await tx('readwrite', st => st.delete(r.name)); }
+      },
+    };
+  })();
+  const STALE = {};            // name → 存檔時間（ms）：目前畫面上這份是存檔、網路版還沒回來
+  let _swrChanged = new Set(), _swrPass = false;
+  function staleTag() {
+    const ks = Object.keys(STALE);
+    let el = document.getElementById('staleTag');
+    if (!ks.length) { if (el) el.remove(); return; }
+    const t = Math.min.apply(null, ks.map(k => STALE[k]));
+    const s = new Date(t).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 16);
+    if (!el) { el = document.createElement('div'); el.id = 'staleTag'; el.className = 'staletag'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = `這是上次存的資料（${s}），更新中…`;
+  }
+  function swrSettle() {
+    staleTag();
+    if (Object.keys(STALE).length || !_swrChanged.size) { if (!Object.keys(STALE).length) _swrChanged.clear(); return; }
+    _swrChanged.clear();
+    // 有份檔真的換了 → 目前這一頁重畫一次（別頁清掉 rendered，下次進去自然用新的）
+    Object.keys(rendered).forEach(k => delete rendered[k]);
+    _swrPass = true;
+    Promise.resolve(route()).catch(() => {}).finally(() => { _swrPass = false;
+      window.dispatchEvent(new CustomEvent('tw:data-refreshed')); });
+  }
+  let _metaNet = null;         // 新的 meta（網路版）—— 其他檔的版本鍵一律等它
   const _loading = {}, _loaded = {};
   function load(name, opt) {
-    if (_loaded[name] || (D[name] && !opt)) return Promise.resolve(D[name]);
+    if (_loaded[name] || STALE[name] || (D[name] && !opt)) return Promise.resolve(D[name]);
     if (_loading[name]) return _loading[name];
-    const ver = (D.meta && D.meta.generated_at) || '';
+    const net = (async () => {
+      let ver = '';
+      if (name !== 'meta') { const m = await (_metaNet || Promise.resolve(D.meta)); ver = (m && m.generated_at) || ''; }
+      /* 2026-10-04：opt.low ＝ 這份不是用來「畫」首屏的（例如 groups_detail 只給點方塊後的面板），用低優先權讓頻寬先給要畫圖的檔。*/
+      const fo = ver ? {} : { cache: 'no-store' }; if (opt && opt.low) fo.priority = 'low';
+      const r = await fetch(`data/${name}.json?v=${ver}`, fo);
+      if (!r.ok) throw new Error(r.status);
+      const txt = await r.text();
+      return { data: JSON.parse(txt), txt, ver: name === 'meta' ? '' : ver };
+    })();
+    if (name === 'meta') _metaNet = net.then(x => x.data, () => null);
+    const snap = Snap.get(name).catch(() => null);
     _loading[name] = (async () => {
-      try {
-        /* 2026-10-04：opt.low ＝ 這份不是用來「畫」首屏的（例如 groups_detail 只給點方塊後的面板），用低優先權讓頻寬先給要畫圖的檔。
-           只影響排隊順序，不影響內容與快取。*/
-        const fo = ver ? {} : { cache: 'no-store' }; if (opt && opt.low) fo.priority = 'low';
-        const r = await fetch(`data/${name}.json?v=${ver}`, fo);
-        if (!r.ok) throw new Error(r.status);
-        D[name] = await r.json(); _loaded[name] = true;
-      } catch (e) { console.warn('載入失敗', name, e); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
-      finally { delete _loading[name]; }
+      let first = null;
+      // 誰先到用誰；網路先到（或沒有存檔）就是原流程
+      try { first = await Promise.race([net.then(x => ({ net: x }), () => ({ netErr: 1 })), snap.then(s => s ? { snap: s } : new Promise(() => {}))]); }
+      catch (e) { first = { netErr: 1 }; }
+      const saveNet = (x) => { Snap.put(name, x.ver, x.data, x.txt.length).catch(() => {}); };
+      if (first.net) { D[name] = first.net.data; _loaded[name] = true; saveNet(first.net); }
+      else if (first.snap) {
+        const sp = first.snap; D[name] = sp.data; STALE[name] = sp.savedAt; staleTag();
+        net.then((x) => {
+          const same = JSON.stringify(sp.data) === JSON.stringify(x.data);
+          D[name] = x.data; _loaded[name] = true; if (!same) { saveNet(x); _swrChanged.add(name); }
+        }, () => { _loaded[name] = true; /* 網路失敗：留著存檔 */ })
+          .finally(() => { delete STALE[name]; swrSettle(); });
+      } else {
+        // 網路先失敗了：還有存檔就用存檔（標示照掛，不冒充新資料）
+        const sp = await snap;
+        if (sp) { D[name] = sp.data; STALE[name] = sp.savedAt; staleTag(); }
+        else { console.warn('載入失敗', name); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
+      }
+      delete _loading[name];
       return D[name];
     })();
     return _loading[name];
@@ -3374,7 +3461,7 @@
   async function renderOverview() {
     wireHowto($('#v-overview'));
     // 最上面三張大盤圖（加權 / 櫃買 / 台指期）。它自己去抓 mis 的當日分時，不等下面的 JSON。
-    if (window.Market3) window.Market3.mount();
+    if (window.Market3 && !(_swrPass && document.getElementById('m3Frame'))) window.Market3.mount();   // 背景換新資料的重畫不重掛大盤三張圖（它有自己的即時流程）
     /* ★ 2026-09-23：多載一份 `sankey_daily` —— 右下角那塊換成「昨日資金去向分流圖」（D7）之後
        總覽也要用到它。它和資金流向頁吃的是**同一份檔案**（同一個口徑，不另外算一份）。 */
     // ★ 2026-09-23：`group_valuation` 不再載入 —— 總覽的「族群估值」散布圖已移除，它是全站最後一個讀者。
@@ -12116,9 +12203,22 @@
       return _tpeFmt.format(ms);
     } catch (e) { return new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); }
   };
+  /* ★ 2026-10-04 晚（Andy 21:19 截圖：事件數 0）：news.json 約 358KB，慢網路要好幾秒才有件數。
+     build_payload 另外切一份 news_head.json（總件數＋最新 30 則，同一份排序、同樣欄位），先畫件數與前幾則；
+     完整清單背景到了再整個重畫一次。讀不到小檔（舊資料）就照舊等完整版。*/
   async function renderEvents() {
-    const [news, bv] = await Promise.all([load('news', { low: true }), load('broker_views')]);   // news 359KB：事件欄不擋首屏，低優先權
+    const full = load('news', { low: true });   // news 359KB：事件欄不擋首屏，低優先權
+    let done = false; full.then(() => { done = true; }, () => {});
+    try {
+      const h = await load('news_head', { fallback: null });
+      if (!done && h && Array.isArray(h.items) && h.items.length) await renderEventsWith(h.items, h.total);
+    } catch (e) { /* 小檔壞了就等完整版 */ }
+    await renderEventsWith(await full);
+  }
+  async function renderEventsWith(news, totalNews) {
+    const bv = await load('broker_views');
     const items = (news || []).map(n => ({ ...n, cat: n.category || '台股' }));
+    const headN = items.length;
     /* 「券商」那一類由積木 `broker.views` 自己決定長相與欄位（site/blocks/broker_views.js）——
        這裡只負責把它跟新聞排在同一份清單裡。那支檔沒載入時這一類就是空的，抽屜照常。 */
     if (window.BrokerViews) items.push(...window.BrokerViews.view(bv, 'feed'));
@@ -12138,7 +12238,9 @@
     };
     items.forEach(i => { i._d = dt(i); });
     items.sort((a, b) => b._d.localeCompare(a._d));
-    $('#evCount').textContent = items.length;
+    // 只有前 30 則時，件數照「總件數」寫（不讓使用者先看到 30 再跳成 1200）
+    const evN = totalNews != null ? totalNews + (items.length - headN) : items.length;
+    $('#evCount').textContent = evN;
     /* 手機第④步「有沒有理由不進場」用的是**同一份**清單（見 miaEvents）——
        抽屜是 position:fixed 的浮層，沒辦法同時當一屏的內容，所以那裡另外長一張卡片，
        但資料只有這一份，不會出現「抽屜寫 43 則、卡片寫別的數字」。*/
@@ -12147,8 +12249,8 @@
     /* 手機版「⋯」清單裡的今日事件也要同一個數字（G1／G9）——
        事件鈕在手機上是被藏起來的，數字只寫在它身上等於手機看不到。*/
     { const mc = $('#mmEvCount'), mb = $('#moreCount');
-      if (mc) mc.textContent = items.length;
-      if (mb) { mb.textContent = items.length; mb.hidden = !items.length; } }
+      if (mc) mc.textContent = evN;
+      if (mb) { mb.textContent = evN; mb.hidden = !evN; } }
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });   // 'YYYY-MM-DD'
     /* 日期改成下拉選單（Andy 2026-09-15：「日期那邊可以變成清單選項選擇日期」，
        而且「保留前 1 個禮拜資訊」）。選項只列最近七天，每個後面帶那一天的筆數 ——
@@ -12206,7 +12308,8 @@
       if (back) back.classList.toggle('on', open);
       $('#evToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
     };
-    setSide(false);
+    // 2026-10-04：先畫前 30 則、完整版到了再畫第二次 —— 第二次不准把使用者已經打開的抽屜關掉
+    if (side.classList.contains('open')) draw(); else setSide(false);
     /* 別的模組（legal.js 的導覽第④步）要打開抽屜指給使用者看，一律走這一支。
        舊的第二個參數 remember 已經沒有意義（不再記偏好），傳了也不影響。*/
     window.twSetSide = (open) => setSide(open);
@@ -12214,11 +12317,12 @@
     $('#evClose').onclick = () => setSide(false);
     if (back) back.onclick = () => setSide(false);
     /* 換頁就收：抽屜裡的個股代號一點就是換到個股頁，抽屜還蓋在右半邊的話，使用者要先關掉才看得到剛點開的頁面。*/
-    window.addEventListener('hashchange', () => setSide(false));
+    if (!renderEventsWith._wired) window.addEventListener('hashchange', () => window.twSetSide(false));
     /* 登記進全站「點了才出現的東西」：點抽屜外面（含遮罩）、按 Esc 都收。
        事件鈕自己要排除，不然「按鈕打開 → 同一下被當成點外面」會立刻關掉。*/
-    dismissable(side, () => setSide(false), { ignore: ['#evToggle', '#mmEvents', '#moreBtn'],
+    if (!renderEventsWith._wired) dismissable(side, () => window.twSetSide(false), { ignore: ['#evToggle', '#mmEvents', '#moreBtn'],
       isOpen: () => side.classList.contains('open') });
+    renderEventsWith._wired = true;
   }
 
   // ---------------------------------------------------------------- 公司 Logo（2026-09-26）

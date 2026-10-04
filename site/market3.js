@@ -1154,7 +1154,8 @@
       } else if (!d.src) cachePut(x.id, d);
       // 盤後三個來源都不完整 → 退資料湖最近一個完整交易日的 15 分 K（整天 09:00～13:30 都有）；湖也沒有才用最完整的殘段
       /* 只在「有來源回了殘段」時才退湖（best 存在）；Worker 根本連不到時維持原本的退日 K（那條路有自己的說明字）。*/
-      if ((!d || !d.points.length) && !isIntraday() && best) {
+      const seeded = !isIntraday() && state.data[x.id] && state.data[x.id].seed && state.data[x.id].points.length >= 20;
+      if ((!d || !d.points.length) && !isIntraday() && best && !seeded) {
         if (state.lakeIntra === undefined) await loadLakeIntra();
         const L = lakeDay(x);
         if (L) {
@@ -1172,7 +1173,7 @@
       // ③ 都沒有分時 → 至少把資料湖最後一根日線的收盤放上標題列，不讓數字是「—」
       /* ★ 2026-09-24（審查 R1）：以前這裡寫 `x.id !== 'FUT'` 把台指期排除，但 index_ohlc 裡明明有 FUT，
          於是 Worker 一掛台指期的大數字就只剩「—」。三張一律退到資料湖最後一根日線。*/
-      if (!d || !d.points.length) {
+      if ((!d || !d.points.length) && !seeded) {
         try {
           const all = await window.App.load('index_ohlc', { fallback: {} });
           const b = (all && all[x.id]) || [];
@@ -1185,6 +1186,7 @@
       }
       if (d && d.points.length) {
         state.data[x.id] = d; state.err[x.id] = '';
+        snapPut(x, d);
         // 分時檔可能比剛剛 5 秒那一輪的當下值舊（Worker 10 秒快取）—— 把較新的當下值蓋回去，數字不往回跳
         if (state.liveQ[x.id]) patchLive(x.id, state.liveQ[x.id]);
       }
@@ -1824,25 +1826,79 @@
     refresh(true);
     schedule();
   }
+  /* ★ 2026-10-04 晚（Andy 21:19 週日截圖：三張圖卡在「載入中…」；21:20：「有最後一筆數據就存起來，以後打開直接貼上」）。
+     以前種子要先下載 index_intraday（944KB）＋ index_ohlc（334KB）才畫得出來。現在依序找、誰新用誰：
+       ① 這台瀏覽器上次真的畫出來的分時（localStorage m3.snap.<id>，存在 snapPut；卡片標「上次存的 日期 時間」）
+       ② index_lastday.json（build_payload 切好的最近一個完整交易日 1 分 K ＋ 該日前一交易日的昨收，約 19KB）
+       兩個都沒有才退回舊流程（大檔）。大檔改成背景補：只有 K 線模式（要多日）才順手去抓。
+     種子只給走勢圖與數字列（d.seed，分 K 合成不吃它）；Worker 的即時資料一回來就整個換掉。*/
+  function snapPut(x, d) {
+    try {
+      if (!d || d.seed || !d.points || d.points.length < 2 || d.night) return;
+      localStorage.setItem('m3.snap.' + x.id, JSON.stringify({ at: Date.now(), d }));
+    } catch (e) { /* 私密視窗／滿了：只是下次少一個種子 */ }
+  }
+  function snapGet(x) {
+    try { const o = JSON.parse(localStorage.getItem('m3.snap.' + x.id) || 'null');
+      return o && o.d && o.d.points && o.d.points.length >= 2 ? o : null; } catch (e) { return null; }
+  }
+  function fromLastday(x, o) {
+    if (!o || !o.points || o.points.length < 2 || !o.date) return null;
+    const y = +o.date.slice(0, 4), mo = +o.date.slice(4, 6) - 1, dd = +o.date.slice(6);
+    const base = Date.UTC(y, mo, dd) - 8 * 3600 * 1000;
+    const pts = o.points.map(p => ({ ms: base + p[0] * 60000, min: p[0], c: p[1], s: 0 }));   // 種子不畫量
+    return { id: x.id, name: x.name, src: '最近交易日 ' + o.date.slice(4, 6) + '/' + o.date.slice(6), date: o.date, time: '收盤',
+      prev: o.prev, open: o.open, high: o.high, low: o.low, last: o.last, vol: null, amt: null, points: pts };
+  }
   async function seedLake() {
     try {
-      await loadLakeIntra();
-      const all = window.App ? await window.App.load('index_ohlc', { fallback: {} }) : {};
+      let ld = null;
+      try { ld = window.App ? await window.App.load('index_lastday', { fallback: null }) : null; } catch (e) {}
       IDX.forEach(x => {
         const cur = state.data[x.id];
         if (cur && cur.points && cur.points.length) return;
-        const L = lakeDay(x); if (!L) return;
-        const rows = (all && all[x.id]) || [];
-        const ymd = L.date.slice(0, 4) + '-' + L.date.slice(4, 6) + '-' + L.date.slice(6);
-        const pb = rows.filter(b => String(b[0]) < ymd);
-        if (pb.length) L.prev = pb[pb.length - 1][4];
-        L.seed = true;                       // 只給走勢圖與數字列用；分 K 合成不吃它（見 synthBars）
-        state.data[x.id] = L;
+        const a = fromLastday(x, ld && ld[x.id]);
+        const sp = snapGet(x);
+        let pick = a;
+        if (sp && (!a || String(sp.d.date || '') > a.date)) {
+          const t = new Date(sp.at).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(5, 16);
+          pick = Object.assign({}, sp.d, { src: '上次存的 ' + t.replace('-', '/') });
+        }
+        if (!pick) return;
+        pick.seed = true;
+        state.data[x.id] = pick;
       });
+      if (!ld || IDX.some(x => !(state.data[x.id] && state.data[x.id].points && state.data[x.id].points.length))) {
+        // 舊資料（沒有小檔）或小檔缺代號 → 原流程：資料湖 15 分 K ＋ 日 K 昨收
+        await loadLakeIntra();
+        const all = window.App ? await window.App.load('index_ohlc', { fallback: {} }) : {};
+        IDX.forEach(x => {
+          const cur = state.data[x.id];
+          if (cur && cur.points && cur.points.length) return;
+          const L = lakeDay(x); if (!L) return;
+          const rows = (all && all[x.id]) || [];
+          const ymd = L.date.slice(0, 4) + '-' + L.date.slice(4, 6) + '-' + L.date.slice(6);
+          const pb = rows.filter(b => String(b[0]) < ymd);
+          if (pb.length) L.prev = pb[pb.length - 1][4];
+          L.seed = true;
+          state.data[x.id] = L;
+        });
+      } else if (state.mode === 'k') {
+        setTimeout(() => { loadLakeIntra(); }, 0);       // K 線要多日：背景補，不擋第一幀
+      }
     } catch (e) { /* 種不起來就照舊等 refresh */ }
     state.seedP = null;
     draw();
   }
+
+  /* 2026-10-04：app.js 先貼存檔、網路版到了且內容不同時發 tw:data-refreshed（app.js 的 swrSettle）。
+     大盤三張圖不重掛（重掛會閃），只把吃資料湖檔的快取清掉、整張重畫一次，讓 K 線／種子換成新檔。*/
+  window.addEventListener('tw:data-refreshed', () => {
+    if (!document.getElementById('m3')) return;
+    state.lakeIntra = undefined;
+    IDX.forEach(x => { const d = state.data[x.id]; if (d && d.seed) delete state.data[x.id]; });
+    state.seedP = seedLake();
+  });
 
   /* ★ 2026-09-26（Andy：「將我把這內容放進來，並且排版一下」）：總覽頂端那條 KPI 橫條
      （加權指數／成交值／漲跌家數／前五族群佔比）搬進這張卡的工具列，排在「?」右邊那段本來空著的地方。
@@ -2129,7 +2185,7 @@
          還在「載入中」（第一輪還沒回來、也沒有錯誤）才先印載入中。*/
       const hint = sessionHint(x, false);
       // 2026-10-04：第一輪還沒回來（或資料湖種子還在路上）一律先「載入中」，不准先退日 K 再跳成走勢圖
-      if (!err && (!state.at || state.seedP) && state.mode !== 'k') {
+      if (!err && state.seedP && state.mode !== 'k') {
         killK(x.id);
         if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
         el.classList.add('isempty'); el.dataset.kind = '';
@@ -2362,7 +2418,7 @@
         Object.assign({}, A.axisStyle, { type: 'category', data: cats, gridIndex: 1, boundaryGap: false,
           // 台指期的盤比較長（08:45–13:45），每半小時一個刻度會擠成一團
           // alignMinLabel：最左那個「09:00」貼齊左緣往右長，不要置中在軸端而一半跑出卡片（_preview 抓到的溢出）
-          axisLabel: { color: A.CH.ink3, fontSize: 10, hideOverlap: true, margin: 8, alignMinLabel: 'left',
+          axisLabel: { color: A.CH.ink3, fontSize: 10, hideOverlap: true, margin: 8, alignMinLabel: 'left', alignMaxLabel: 'right',
             interval: (i) => (s0 + i) % (cats.length > 280 ? 60 : 30) === 0 },
           axisTick: { show: false }, splitLine: { show: false } }),
       ],
@@ -2375,7 +2431,8 @@
         // 量軸只有 44px 高，放三個刻度一定疊在一起 —— interval 設成最大值等於只留「頂」那一格
         Object.assign({}, A.axisStyle, { gridIndex: 1, position: 'right', splitLine: { show: false },
           min: 0, max: vmax, interval: vmax || 1,
-          axisLabel: { color: A.CH.ink3, fontSize: 9, showMinLabel: false,
+          // 沒有量（種子不帶量、vmax 退到 1）就不印量軸刻度 —— 否則會印一個假的「100 萬」還壓到價格軸（2026-10-04）
+          axisLabel: { show: vmax > 1, color: A.CH.ink3, fontSize: 9, showMinLabel: false,
             // 台指期算「口」，指數算「張」—— 單位寫錯 Andy 一眼就看得出來
             formatter: (v) => (x.id === 'FUT' ? (v >= 1e4 ? (v / 1e4).toFixed(1) + ' 萬' + unit : f.i(v) + ' ' + unit) : f.yi(v * 1e6)) } }),
       ],
