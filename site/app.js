@@ -11380,7 +11380,7 @@
     const nowM = new Date().getMonth() + 1;
     let sortM = nowM;                                            // 熱力圖依哪個月排序（點表頭換）
     let rowsMode = hmLS('tw.season.rows', '20') === 'all' ? 'all' : '20';
-    let showNum = hmLS('tw.season.num', '0') === '1';           // ★ 預設不印數字（Andy 指定）
+    let showNum = hmLS('tw.season.num2', '1') === '1';          // ★ 2026-10-04 Andy 改口：「這邊 default 有數字」→ 預設印數字（換新鍵，舊的「關」不沿用）
     let focus = null;                                            // 圖例聚焦的那一級
     let pick = 'top', lineSel = new Set(), avgOn = true;         // 曲線圖：top／bot／none／custom
     let fellBack = false;
@@ -11665,7 +11665,9 @@
                 + extra(q)).join(''); } },
         legend: { show: false },
         grid: { left: gridL, right: gridR, top: 16, bottom: 28 },
-        xAxis: { ...axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12 } },
+        xAxis: { ...axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12 },
+          // ★ 2026-10-04 Andy：「每個月之間新增點微微的線條做區分」—— 類別軸的 splitLine 畫在兩個月的交界（boundaryGap 預設 true）
+          splitLine: { show: true, keep: true, interval: 0, lineStyle: { color: CH.ink2, opacity: 0.18, width: 1, type: 'solid' } } },
         yAxis: { ...axisStyle, ...(isWin ? { min: 0, max: 100, interval: 25 } : { scale: true }),
           axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => (isWin ? v + '%' : (v > 0 ? '+' : '') + v + '%') } },
         series,
@@ -11793,7 +11795,7 @@
       $('#seasonHeatBox').scrollTop = 0; paintView(); drawHeat();
     });
     $$('#seasonNum button').forEach(b => b.onclick = () => {
-      showNum = !showNum; hmLSset('tw.season.num', showNum ? '1' : '0'); paintView(); drawHeat();
+      showNum = !showNum; hmLSset('tw.season.num2', showNum ? '1' : '0'); paintView(); drawHeat();
     });
     $$('#seasonPick button').forEach(b => b.onclick = () => {
       pick = b.dataset.v; if (pick === 'none') avgOn = true; paintPick(); drawLine(); writeNote();

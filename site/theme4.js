@@ -65,6 +65,8 @@
           const cat = x.type === 'category' || x.type === 'time';
           // 已經明確要格線（splitLine.show === true）而且是數值軸的，尊重原圖（例如散佈圖的中線刻意要畫）
           if (x.splitLine && x.splitLine.show === true && !cat) return x;
+          // 類別軸要「每類之間一條分隔線」（週期統計長條圖的月份分隔，Andy 2026-10-04）→ 呼叫端掛 splitLine.keep: true 才保留
+          if (x.splitLine && x.splitLine.show === true && x.splitLine.keep === true) return x;
           if (cat || yAllValue) return { ...x, splitLine: { ...(x.splitLine || {}), show: false } };
           return x;
         });

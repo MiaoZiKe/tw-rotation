@@ -9406,7 +9406,7 @@ def t_season(pg, base):
     每一條都是真的操作之後量畫面（不是驗元素存在）。"""
     pg.goto(base, wait_until="domcontentloaded")
     # 清掉本段會用到的偏好，才驗得到「預設」（預設不印數字、前 20 名、熱力圖）
-    pg.evaluate("() => { try { ['tw.season.num','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.evaluate("() => { try { ['tw.season.num2','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
     ok("週期統計熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
     ok("週期統計頁有區間文字", len(text(pg, "#seasonRange")) > 3, text(pg, "#seasonRange"))
@@ -9434,7 +9434,7 @@ def t_season(pg, base):
           y0: o.yAxis[0].data[0], show: !!o.series[0].label.show, cursor: o.series[0].cursor,
           vis: !box.hidden, boxH: box.clientHeight, boxSH: box.scrollHeight,
           head: [...head.querySelectorAll('button')].map(b => b.classList.contains('on')).indexOf(true) + 1,
-          ls: localStorage.getItem('tw.season.num'), lsRows: localStorage.getItem('tw.season.rows') }; }"""
+          ls: localStorage.getItem('tw.season.num2'), lsRows: localStorage.getItem('tw.season.rows') }; }"""
     h0 = pg.evaluate(HM)
     ok("預設是熱力圖、曲線圖收著",
        h0 and h0["vis"] and pg.evaluate("() => document.getElementById('seasonLine').hidden") is True, h0)
@@ -9531,20 +9531,18 @@ def t_season(pg, base):
     fm = pg.evaluate(FILL) or {}
     ok("[吃滿 900×800] 頁面沒有橫向捲軸（窄的時候只准格子框自己橫捲）、名稱沒被截", bool(fm) and fm["over"] <= 1 and not fm["cut"], fm)
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(1200)
-    # ---- ④ 顯示數字：預設關；按一下真的印出來、localStorage 真的寫入；再按一下真的消失
-    ok("★ 格子裡預設不印數字（Andy：Default 是沒有）", h0 and not h0["show"] and h0["nlab"] == 0 and h0["ls"] is None, h0)
+    # ---- ④ 顯示數字：2026-10-04 Andy 改成「default 有數字」→ 預設開；按一下真的消失、localStorage 真的寫入；再按一下真的回來
+    ok("★ 格子裡預設印數字（Andy 2026-10-04：default 有數字）", h0 and h0["show"] and h0["nlab"] > 0 and h0["ls"] is None, h0)
+    ok("預設印數字也只印放得下的格子（1500px 下欄寬夠）", h0 and h0["nlab"] <= h0["nval"] and h0["colw"] >= 40, h0)
     c0 = canvas_hash(pg, "#seasonHeat")
     click(pg, "#seasonNum button", 700)
     h1 = pg.evaluate(HM)
-    ok("按「顯示數字」→ 格子裡真的有數字，而且記進 localStorage",
-       h1 and h1["show"] and h1["nlab"] > 0 and h1["ls"] == "1", h1)
+    ok("按「顯示數字」→ 數字真的消失，而且記進 localStorage", h1 and not h1["show"] and h1["nlab"] == 0 and h1["ls"] == "0", h1)
     changed("按「顯示數字」畫面真的變了", c0, canvas_hash(pg, "#seasonHeat"))
-    ok("開了也只印放得下的格子（每格欄寬扣邊 ≥ 字寬；1500px 下應該全部放得下）",
-       h1 and h1["nlab"] <= h1["nval"] and h1["colw"] >= 40, h1)
-    ok("按鈕的 aria-pressed 跟著變", pg.evaluate("() => document.querySelector('#seasonNum button').getAttribute('aria-pressed')") == "true")
+    ok("按鈕的 aria-pressed 跟著變", pg.evaluate("() => document.querySelector('#seasonNum button').getAttribute('aria-pressed')") == "false")
     click(pg, "#seasonNum button", 700)
     h2 = pg.evaluate(HM)
-    ok("再按一次 → 數字真的消失、localStorage 記成 0", h2 and not h2["show"] and h2["nlab"] == 0 and h2["ls"] == "0", h2)
+    ok("再按一次 → 數字真的回來、localStorage 記成 1", h2 and h2["show"] and h2["nlab"] > 0 and h2["ls"] == "1", h2)
     # ---- ⑤ 列數切換：全部 → 每個族群都在；外框可捲、表頭 sticky
     click(pg, '#seasonRows button[data-v="all"]', 900)
     h3 = pg.evaluate(HM)
@@ -9759,7 +9757,7 @@ def t_season(pg, base):
     ok("[390px 長條圖] 族群下拉鈕與色票觸控高 ≥ 40px", tap["dd"] >= 40 and tap["key"] >= 40, tap)
     pg.evaluate("() => { const b = document.querySelector('#seasonView button[data-v=heat]'); if (b) b.click(); }"); pg.wait_for_timeout(800)
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(600)
-    pg.evaluate("() => { try { ['tw.season.num','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.evaluate("() => { try { ['tw.season.num2','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
 
 # 量「畫布上跟背景不一樣的像素占多少」。白線畫在白底上 → 這個數字會掉下去。
@@ -33390,7 +33388,7 @@ def t_mobile_oneview(b, base, code):
     #    記著「要顯示」也一個字都不准印（不准疊字）；說明列要講得出數字去哪裡拿。
     #    列高與「每一個族群名都印」也在這裡量（Andy：手機可以少一點但名字不准被略過）。
     m.goto(base, wait_until="domcontentloaded")
-    m.evaluate("() => { try { localStorage.setItem('tw.season.num', '1'); localStorage.removeItem('tw.season.rows'); } catch (e) {} }")
+    m.evaluate("() => { try { localStorage.setItem('tw.season.num2', '1'); localStorage.removeItem('tw.season.rows'); } catch (e) {} }")
     m.goto(f"{base}#season", wait_until="networkidle"); m.reload(wait_until="networkidle"); m.wait_for_timeout(3600)
     HM = """() => { const e = document.getElementById('seasonHeat');
         const i = window.echarts && echarts.getInstanceByDom(e); if (!i) return null;
@@ -33409,7 +33407,7 @@ def t_mobile_oneview(b, base, code):
        hm and "點一格" in hm["note"], {k: hm[k] for k in ("note",)} if hm else hm)
     ok("[390px 週期統計] 每列 ≥ 18px、每一個族群名都印（不隔列省略）、沒有橫向捲軸",
        hm and hm["rowh"] >= 18 and hm["ylab"] == hm["rows"] > 0 and hm["docW"] <= hm["winW"] + 1, hm)
-    m.evaluate("() => { try { localStorage.removeItem('tw.season.num'); } catch (e) {} }")
+    m.evaluate("() => { try { localStorage.removeItem('tw.season.num2'); } catch (e) {} }")
 
     m.close()
 
