@@ -93,6 +93,21 @@ Andy（半導體 → 晶圓代工 3D）：①「這頁 3D 回到之前那樣的�
   反向驗證：新的 `關聯圖對應與3D大小1003` 關聯圖那一半對 main 的 site 跑 → 121 紅。`_preview.py` 全綠（「所有分頁與個股頁正常」）。
   ⚠ 這段驗收很吃時間（3D × 9 種視窗，負載高時 14 分鐘）：`TW_REL3D_PART=rel` 或 `=3d` 可只跑一半。
 - 截圖（容器暫存區，沒進 repo）：晶圓代工／AI 伺服器／面板／工具機 × 1440×900、1920×1080、1366×768 的剖析圖分頁（3D）；1440 三條鏈的關聯圖反亮與「環節 ▾」下拉。
+## 10-04 孤立環節補邊：被動元件擴 4 環節＋測試介面／銅箔／低軌衛星 PCB／Apple 名單，共 27 條有來源的邊（科技產業分析師，分支 `claude/sc-fill-1004`，**未推 main**，DECISIONS #318）
+Andy：「只有單一個，幫我找找他是否有其他公司及族群，例如他供應給誰、原物料是誰」。只動資料（`supply_chain.yaml`、`groups.yaml` 一處）、`scripts/_uitest.py` 的棘輪常數與文件，**沒動 `site/`**（另一位 agent 在改 `industry.js`）。
+- [x] 新增 4 個環節（尾端，顏色不動）：`mlcc_powder`、`passive_inductor`、`passive_crystal`、`component_dist`；新增 17 個被動元件節點（台股 11、外商 6）。
+- [x] 27 條邊：高 9、中 18、低 0（推論一律不畫）。證據與「查不到」：`docs/groups_passive_supply_evidence.md`、`docs/groups_sc_fill_1004_evidence.md`。
+- [x] 更正舊資料：國巨 note「查不到客戶」（董事長點名輝達與美國 CSP）；凱美 note「國巨為第一大股東」（對不上）；`jp_passive`「唯一是日電貿」（補蜜望實 8043）；任務原文「國瓷 5434」（國瓷是深圳 300285，5434 是崇越）。
+- [x] `SC_ISO_MAX` 從 {ai_server 10, semiconductor 3} 往下收成 {5, 0}（實測 `SC_GEOM` iso：ai_server 5、semiconductor 0）。剩 5 個孤立：精成科、瀚宇博、騰輝、德宏、嘉聯益。
+- **這批驗了**：`pytest tests/ -q`（全套）930 passed／1 xfailed（11 分 37 秒）；`SKIP_INTRADAY=1 python -m pipeline.build_payload` 重算（本機約 60 分鐘，要用 `timeout` ≥ 7000 秒；第一、二次因 timeout 1500／3000 被砍在個股頁階段，產業地圖與 supply_chain.json 根本沒寫出來——**那兩次的前端結果不算數**）；
+  `_preview.py` 全綠；`_uitest --sections 批次6-圖十,一般電子鏈,產業,產業關係面板,關聯圖對應與3D大小1003,產業鏈導覽 --workers 1`：**同一組段落跑了 3 次（新資料）**——第 1 次 4 個問題（點零件不會把畫面捲走 499→0／產業中途 screenshot 逾時／E5 3D 畫布／點相關台股族群），
+  第 2 次 1 個問題（同為「捲走」），第 3 次 0；另一次單獨 `--sections 產業`（掛了 scroll 偵錯）0。舊資料基準（origin/main 的 yaml 重算 supply_chain.json）同一組 0。
+  **判斷：間歇性（計時／機器忙）、不是這批資料造成**，但誠實講：我沒找到根因——第 2 次失敗時我同時跑了偵錯腳本搶 CPU；第 1 次沒有。獨立重現三條路徑（#industry/ai_server、/semiconductor、/electronics 點第一個零件、點只有外商環節的「相關台股族群」）都正常。請合併前在乾淨機器上再跑一次那組。
+- 截圖：`docs/sc_fill_1004/electronics_overview_relgraph_1440.png`（一般電子鏈整條關聯圖，新增四格與外商節點都畫出來、環節標題沒有跑出色塊）、`docs/sc_fill_1004/passive_dg_relgraph_1440.png`（被動元件剖析圖分頁；那張圖的顯示方式另一位 agent 正在改，這張只證明資料有進去）。
+- 已知限制：① 全部是搜尋摘要層級證據，沒有讀過任何法說／年報原文；② `chilisin_elec` id 其實是信昌電 6173（非奇力新），`site/dg/ai_adv_packaging.js` 兩處引用所以沒改；③ 華通→SpaceX 是 ai_server 鏈節點連到 electronics 鏈節點，關聯圖是否畫得出來取決於 `industry.js` 的 `CHAIN_EXTRA`；
+  ④ 電感／石英／元件通路三個新環節還沒有任何剖析圖零件掛 `data-seg`（`site/dg/power_inductor.js` 的電感欄與石英欄可以接了，這批不動前端）；⑤ 金融鏈、軟體鏈、彩晶、中磊／正文／合勤、騰輝、嘉聯益、德宏、精成科／瀚宇博 查不到具名關係。
+- 待處理（下一棒）：前端接 `passive_inductor`／`passive_crystal`／`mlcc_powder`／`component_dist` 的 `data-seg`；`chilisin_elec` 改名（要同時改 ai_adv_packaging.js）；鋁質電容（立隆電、鈺邦、立敦…）與堡達（Panasonic 另一代理，代號未查）尚未納入；日電貿／蜜望實的下游客戶查不到。
+
 ## 10-03 版面 V2 第四批：登入／明暗／外觀搬右上角、收合鈕騎分隔線、子分頁圖示（UI 專家，分支 `claude/topbar-acct`，**未推 main**，DECISIONS #312）
 只作用在電腦版（>820，掛 l4）；手機版（≤820）不動。檔案：`site/layout4.js`、`site/layout4.css`、`scripts/_uitest.py`。沒改 id／data-*、沒改 account.js 登入流程、沒新增 localStorage 鍵。
 - [x] ① 登入不見了：本機用正式站同一種設定（account_config.js 填 https 網址）重跑，第三批的帳號卡**會**出現登入鈕 → 前端判斷沒錯，正式站那一刻 `TwAccount.on()` 是 false（account.js 沒拿到網址）。
