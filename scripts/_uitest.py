@@ -8680,16 +8680,18 @@ def t_batch4(pg, base):
        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
            if (!c) return false; const s = (c.getOption().series||[])[0];
            return !!s && (s.data||[]).some(v => v != null); }"""))
-    # 族群複選：拿掉一個，線要變少
+    # 族群複選（2026-10-04 起是可搜尋的多選下拉 #maGroupDD）：勾一個線變多、再取消線變少
     g0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
-        return c ? c.getOption().series.length : 0; }""")
-    on = pg.evaluate("() => { const b = document.querySelector('#maGroups button.on:not([data-g=\"全市場\"])'); return b ? b.dataset.g : null; }")
-    if on:
-        pg.eval_on_selector(f'#maGroups button[data-g="{on}"]', "b => b.click()")
-        pg.wait_for_timeout(1000)
+        const o = c.getOption(), s = o.legend[0].selected || {}; return o.legend[0].data.filter(n => s[n] !== false).length; }""")
+    first = pg.evaluate("() => { const i = document.querySelector('#maGroupDD input[data-n]'); return i ? i.dataset.n : null; }")
+    if first:
+        pg.eval_on_selector("#maGroupDD .ddbtn", "b => b.click()")
+        pg.eval_on_selector(f'#maGroupDD input[data-n="{first}"]', "c => c.click()"); pg.wait_for_timeout(600)
+        pg.eval_on_selector(f'#maGroupDD input[data-n="{first}"]', "c => c.click()"); pg.wait_for_timeout(600)
         g1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
-            return c ? c.getOption().series.length : 0; }""")
-        ok("取消一個族群，線真的變少（圖16）", g1 == g0 - 1, f"{g0} → {g1}")
+            const o = c.getOption(), s = o.legend[0].selected || {}; return o.legend[0].data.filter(n => s[n] !== false).length; }""")
+        ok("勾一個族群再取消，線回到原本條數（圖16）", g1 == g0, f"{g0} → {g1}")
+        pg.keyboard.press("Escape")
 
     # ---- 季節性 N8／N9
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
@@ -14975,12 +14977,131 @@ def t_rank_ratio(pg, b, base):
         ok(f"⑥ [{w}] 排行圖上的字兩兩不重疊（族群名與數字不擠）", m["n"] > 10 and m["hit"] == 0, m)
     pg.set_viewport_size({"width": 1440, "height": 1000})
 
+def t_ma_pick_1004(pg, base):
+    """★ 2026-10-04 站上均線走勢：族群晶片 → 跟週期統計同一個可搜尋多選下拉（msDD）＋可 ✕ 的已選標籤；
+    以及 Andy「此頁面有更動時，點擊其他分頁後，都需要恢復 Default 值」—— 市場明細的設定不存 localStorage、換分頁回來回預設。
+    每一步都驗畫面真的變了（線條數、標籤數、勾選框），不是驗元素存在。"""
+    import json as _json
+    print("\n[站上均線] 族群多選下拉＋換分頁回預設")
+    try:
+        pg.evaluate("() => localStorage.setItem('tw.candGroups', JSON.stringify(['舊值']))")
+    except Exception:
+        pass
+    pg.goto(f"{base}#market/ma", wait_until="networkidle")
+    pg.reload(wait_until="load"); pg.wait_for_timeout(3000)   # 真的重新載入：舊值是在 app.js 載入時清的
+    ok("站上均線：舊版存的 tw.candGroups 被清掉（市場明細不再保存設定）",
+       pg.evaluate("() => localStorage.getItem('tw.candGroups')") is None)
+    SHOWN = """() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend')); if (!c) return null;
+        const o = c.getOption(); const sel = o.legend[0].selected || {};
+        return (o.legend[0].data || []).filter(n => sel[n] !== false); }"""
+    ok("站上均線：原本那一大片族群晶片拿掉了", count(pg, "#maGroups") == 0, count(pg, "#maGroups"))
+    ok("站上均線：有「族群：未選 ▾」下拉鈕", "未選" in text(pg, "#maGroupDD .ddbtn"), text(pg, "#maGroupDD .ddbtn"))
+    s0 = pg.evaluate(SHOWN)
+    ok("站上均線：預設只畫 2 條", bool(s0) and len(s0) == 2, s0)
+    click(pg, "#maGroupDD .ddbtn", 400)
+    ok("站上均線：點下拉鈕真的展開面板", pg.evaluate("() => !document.querySelector('#maGroupDD .ddpanel').hidden"))
+    rows = pg.evaluate("""() => [...document.querySelectorAll('#maGroupDD .ddopt[data-n]')].map(o => ({
+        n: o.dataset.n, v: (o.querySelector('em:not(.smallN)') || {}).textContent || '', s: !!o.querySelector('em.smallN') }))""")
+    ok("站上均線：清單列出所有族群（> 10 個）", len(rows) > 10, len(rows))
+    vals = [float(r["v"].rstrip("%")) for r in rows if r["v"].endswith("%")]
+    ok("站上均線：每列右側有百分比，而且由高到低排", len(vals) >= len(rows) - 2 and vals == sorted(vals, reverse=True), vals[:8])
+    ok("站上均線：樣本少的族群在清單列上有標", any(r["s"] for r in rows), sum(r["s"] for r in rows))
+    # 搜尋
+    kw = rows[0]["n"][:2]
+    pg.fill("#maGroupDD .sndd-q", kw); pg.wait_for_timeout(300)
+    vis = pg.evaluate("() => [...document.querySelectorAll('#maGroupDD .ddopt[data-n]')].filter(o => o.style.display !== 'none').map(o => o.dataset.n)")
+    ok("站上均線：搜尋框真的篩掉不相符的族群", 0 < len(vis) < len(rows) and all(kw.lower() in v.lower() for v in vis), {"關鍵字": kw, "剩": vis})
+    pg.fill("#maGroupDD .sndd-q", ""); pg.wait_for_timeout(200)
+    # 勾兩個
+    a, b2 = rows[0]["n"], rows[1]["n"]
+    for n in (a, b2):
+        pg.eval_on_selector(f'#maGroupDD input[data-n="{n}"]', "c => c.click()"); pg.wait_for_timeout(500)
+    s1 = pg.evaluate(SHOWN)
+    ok("站上均線：勾兩個族群 → 圖上真的變成 4 條", bool(s1) and len(s1) == 4, s1)
+    ok("站上均線：勾完面板還開著（可以連續勾）", pg.evaluate("() => !document.querySelector('#maGroupDD .ddpanel').hidden"))
+    ok("站上均線：下拉鈕寫「已選 2 個」", "已選 2 個" in text(pg, "#maGroupDD .ddbtn"), text(pg, "#maGroupDD .ddbtn"))
+    tags = pg.evaluate("() => [...document.querySelectorAll('#maGroupKey button.snk')].map(b => b.dataset.n)")
+    ok("站上均線：旁邊列出 2 個已選標籤", tags == [a, b2], tags)
+    # ✕ 拿掉一個
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    click(pg, f'#maGroupKey button.snk[data-n="{a}"]', 600)
+    s2 = pg.evaluate(SHOWN)
+    ok("站上均線：點標籤的 ✕ → 圖上少一條、清單取消勾選",
+       bool(s2) and len(s2) == 3 and not pg.evaluate(f"() => document.querySelector('#maGroupDD input[data-n=\"{a}\"]').checked"), s2)
+    # 全選／全不選
+    click(pg, "#maGroupDD .ddbtn", 300); click(pg, "#maGroupDD .dd-all", 800)
+    s3 = pg.evaluate(SHOWN)
+    ok("站上均線：全選 → 每個族群都畫上去", bool(s3) and len(s3) == len(rows) + 2, (len(s3 or []), len(rows)))
+    click(pg, "#maGroupDD .dd-none", 800)
+    ok("站上均線：全不選 → 回到 2 條", len(pg.evaluate(SHOWN) or []) == 2)
+    # 圖例關掉 → 下拉同步
+    pg.eval_on_selector(f'#maGroupDD input[data-n="{b2}"]', "c => c.click()"); pg.wait_for_timeout(500)
+    pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
+        const n = c.getOption().legend[0].data.find(x => x.indexOf({_json.dumps(b2)}) === 0);
+        c.dispatchAction({{ type: 'legendToggleSelect', name: n }}); }}""")
+    pg.wait_for_timeout(500)
+    ok("站上均線：從圖例關掉 → 下拉的勾選與標籤同步拿掉",
+       not pg.evaluate(f"() => document.querySelector('#maGroupDD input[data-n=\"{b2}\"]').checked") and count(pg, "#maGroupKey button.snk") == 0)
+    # 改設定 → 換分頁 → 回來＝預設
+    pg.keyboard.press("Escape")
+    click(pg, '#maSeg button[data-n="60"]', 800)
+    click(pg, "#maGroupDD .ddbtn", 300)
+    pg.eval_on_selector(f'#maGroupDD input[data-n="{a}"]', "c => c.click()"); pg.wait_for_timeout(500)
+    ok("站上均線：改完是 MA60＋1 個族群", len(pg.evaluate(SHOWN) or []) == 3)
+    ls = pg.evaluate("() => Object.keys(localStorage).filter(k => /ma|mkt|cand|streak|dist/i.test(k) && !/theme|watch/i.test(k))")
+    pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    pg.goto(f"{base}#market/ma", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    s4 = pg.evaluate(SHOWN)
+    ok("★ 站上均線：切到別的分頁再回來 → 回預設（MA20、只有 2 條、未選）",
+       s4 == ["全市場 MA20", "全市場 MA60"] and "未選" in text(pg, "#maGroupDD .ddbtn")
+       and pg.evaluate("() => document.querySelector('#maSeg button.on').dataset.n") == "20", s4)
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    pg.goto(f"{base}#market/ma", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    ok("站上均線：離開到別的頁面再回來也是預設", pg.evaluate(SHOWN) == ["全市場 MA20", "全市場 MA60"])
+    ok("站上均線：選取沒有寫進 localStorage", not ls, ls)
+    # 法人連買賣：改投信→外資、天數 → 換分頁回來回預設
+    pg.goto(f"{base}#market/streak", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    click(pg, '#streakWho button[data-w="foreign"]', 500)
+    pg.select_option("#streakDays", "8"); pg.wait_for_timeout(500)
+    pg.goto(f"{base}#market/cand", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    pg.goto(f"{base}#market/streak", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    st = pg.evaluate("() => ({ who: (document.querySelector('#streakWho button.on') || {}).dataset?.w, days: document.getElementById('streakDays').value })")
+    ok("★ 法人連買賣：改成外資／≥8 天 → 換分頁回來回預設（投信／≥3 天）", st == {"who": "trust", "days": "3"}, st)
+    # 漲跌家數：含 ETF 勾起來 → 換分頁回來沒勾
+    pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    if count(pg, "#distEtf"):
+        pg.eval_on_selector("#distEtf", "e => { e.checked = true; e.dispatchEvent(new Event('change',{bubbles:true})); }"); pg.wait_for_timeout(500)
+        pg.goto(f"{base}#market/ma", wait_until="networkidle"); pg.wait_for_timeout(1200)
+        pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(1400)
+        ok("★ 漲跌家數：勾「含 ETF」→ 換分頁回來回預設（不含）", not pg.evaluate("() => document.getElementById('distEtf').checked"))
+    # 今日候選：換面向 → 換分頁回來回「全部」
+    pg.goto(f"{base}#market/cand", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    fb = pg.evaluate("() => [...document.querySelectorAll('#candFacets [data-f]')].map(b => b.dataset.f).filter(Boolean)")
+    other = next((f for f in fb if f != "all"), None)
+    if other:
+        pg.eval_on_selector(f'#candFacets [data-f="{other}"]', "b => b.click()"); pg.wait_for_timeout(500)
+        pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(1000)
+        pg.goto(f"{base}#market/cand", wait_until="networkidle"); pg.wait_for_timeout(1400)
+        on = pg.evaluate("() => (document.querySelector('#candFacets [data-f].on') || {}).dataset?.f")
+        ok("★ 今日候選：換面向 → 換分頁回來回預設（全部）", on == "all", {"改成": other, "回來": on})
+    # 窄畫面：800、390 下拉面板不出界、沒有橫向捲軸
+    for w in (800, 390):
+        pg.set_viewport_size({"width": w, "height": 860})
+        pg.goto(f"{base}#market/ma", wait_until="networkidle"); pg.wait_for_timeout(1600)
+        click(pg, "#maGroupDD .ddbtn", 400)
+        r = pg.evaluate("""() => { const p = document.querySelector('#maGroupDD .ddpanel').getBoundingClientRect();
+            return { l: Math.round(p.left), r: Math.round(p.right), vw: innerWidth, sw: document.documentElement.scrollWidth }; }""")
+        ok(f"站上均線 {w}px：下拉面板在畫面內、沒有橫向捲軸", r["l"] >= 0 and r["r"] <= r["vw"] and r["sw"] <= r["vw"], r)
+        pg.keyboard.press("Escape")
+    pg.set_viewport_size({"width": 1440, "height": 900})
+
+
 def t_r5(pg, base, code):
     """審查 R5（2026-09-25）個股頁／市場明細的前端異常，每一項都**真的操作**再驗畫面變了。
 
     1. 折線的圖例色點要跟線同色（以前只寫 lineStyle.color，圖例圈是 ECharts 預設的藍／綠／黃）
     2. 個股「相關新聞」只列標題或內文提到這檔的；一則都沒有寫「近期無相關新聞」
-    3. 站上均線走勢預設只畫 2 條（全市場 MA20／MA60），族群從圖例或族群鈕疊上去；樣本少要標
+    3. 站上均線走勢預設只畫 2 條（全市場 MA20／MA60），族群從圖例或族群下拉疊上去；樣本少要標
     4. 股東人數 Y 軸刻度不可以全部一樣、集保 X 軸不可以三點都寫同一個月
     5. K 線上的區間標籤／訊號標記／背離字不互相壓住、不壓在圖例底下
     6. 即時分 K 抓不到 Yahoo：畫面是中文，而且先退回有資料的週期（不是一塊空白）
@@ -15072,31 +15193,33 @@ def t_r5(pg, base, code):
     MA_JS = """() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend')); if (!c) return null;
         const o = c.getOption(); const sel = o.legend[0].selected || {};
         return { shown: (o.legend[0].data || []).filter(n => sel[n] !== false), legend: (o.legend[0].data || []).length,
-                 small: document.querySelectorAll('#maGroups em.smallN').length,
+                 small: document.querySelectorAll('#maGroupDD .ddopt em.smallN').length,
                  smallNames: (o.legend[0].data || []).filter(n => /樣本少/.test(n)).length,
                  sub: (document.getElementById('maTrendSub') || {}).textContent || '' }; }"""
     m0 = pg.evaluate(MA_JS)
     ok("★ R5-3 站上均線走勢預設只畫 2 條（全市場 MA20、MA60）",
        bool(m0) and m0["shown"] == ["全市場 MA20", "全市場 MA60"], m0 and m0["shown"])
     ok("R5-3 其他族群都還在圖例裡可以切（不是被刪掉）", bool(m0) and m0["legend"] > 10, m0 and m0["legend"])
-    ok("R5-3 成分股少的族群有標「樣本少」（族群鈕與圖例都有）", bool(m0) and m0["small"] > 0 and m0["smallNames"] == m0["small"], m0)
+    ok("R5-3 成分股少的族群有標「樣本少」（族群下拉與圖例都有）", bool(m0) and m0["small"] > 0 and m0["smallNames"] == m0["small"], m0)
     h0 = canvas_hash(pg, "#maTrend")
-    first_small = pg.evaluate("() => { const e = document.querySelector('#maGroups button em.smallN'); return e ? e.parentElement.dataset.g : null; }")
+    first_small = pg.evaluate("() => { const e = document.querySelector('#maGroupDD .ddopt em.smallN'); return e ? e.closest('.ddopt').dataset.n : null; }")
     if first_small:
-        click(pg, f'#maGroups button[data-g="{first_small}"]', 900)
+        click(pg, "#maGroupDD .ddbtn", 300)
+        pg.eval_on_selector(f'#maGroupDD input[data-n="{first_small}"]', "c => c.click()"); pg.wait_for_timeout(900)
+        pg.keyboard.press("Escape")
         m1 = pg.evaluate(MA_JS)
-        ok("★ R5-3 點族群鈕 → 圖上多一條，而且圖例名字帶「樣本少」",
+        ok("★ R5-3 點族群下拉 → 圖上多一條，而且圖例名字帶「樣本少」",
            bool(m1) and len(m1["shown"]) == 3 and any(first_small in n and "樣本少" in n for n in m1["shown"]), m1 and m1["shown"])
-        changed("R5-3 點族群鈕之後走勢圖真的重畫", h0, canvas_hash(pg, "#maTrend"))
+        changed("R5-3 點族群下拉之後走勢圖真的重畫", h0, canvas_hash(pg, "#maTrend"))
         ok("R5-3 副標跟著寫「＋ 1 個族群」", "1 個族群" in m1["sub"], m1["sub"])
-        # 用圖例關掉它（echarts 的圖例點擊事件），族群鈕要同步熄掉
+        # 用圖例關掉它（echarts 的圖例點擊事件），族群下拉要同步熄掉
         pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
             const n = c.getOption().legend[0].data.find(x => x.indexOf({_json.dumps(first_small)}) === 0);
             c.dispatchAction({{ type: 'legendToggleSelect', name: n }}); }}""")
         pg.wait_for_timeout(600)
-        on = pg.evaluate(f"() => document.querySelector('#maGroups button[data-g=\"{first_small}\"]').classList.contains('on')")
+        on = pg.evaluate(f"() => document.querySelector('#maGroupDD input[data-n=\"{first_small}\"]').checked")
         m2 = pg.evaluate(MA_JS)
-        ok("★ R5-3 從圖例關掉族群 → 族群鈕同步熄掉、回到 2 條", (not on) and len(m2["shown"]) == 2, {"鈕亮": on, "顯示": m2["shown"]})
+        ok("★ R5-3 從圖例關掉族群 → 族群下拉同步熄掉、回到 2 條", (not on) and len(m2["shown"]) == 2, {"鈕亮": on, "顯示": m2["shown"]})
     click(pg, '#maSeg button[data-n="60"]', 1000)
     m3 = pg.evaluate(MA_JS)
     ok("R5-3 主線改選 60 日 → 參考線自動換成 MA20（不會兩條都是 MA60）",
@@ -20241,6 +20364,8 @@ SECTIONS = {
     "新-版面等高與多寬度": lambda pg, b, base, code: t_new_layout(pg, base),
     "題材":                lambda pg, b, base, code: t_themes(pg, base),
     "季節性":              lambda pg, b, base, code: t_season(pg, base),
+    # ★ 2026-10-04 站上均線族群改共用多選下拉（msDD）＋市場明細換分頁回預設、不存 localStorage
+    "站上均線下拉1004":    lambda pg, b, base, code: t_ma_pick_1004(pg, base),
     "批次1":               lambda pg, b, base, code: t_batch1(pg, base),
     "批次2":               lambda pg, b, base, code: t_batch2(pg, base),
     "批次3":               lambda pg, b, base, code: t_batch3(pg, base),
