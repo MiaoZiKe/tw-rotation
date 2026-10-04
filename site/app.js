@@ -1505,6 +1505,88 @@
     return api;
   }
 
+  /* ---------------------------------------------------------------- 日期區間拉Bar（雙把手，2026-10-04）
+     Andy：「族群 × 法人」上方兩條拉桿「最近 N 天」＋「截止 日期」要**合併成一條**。
+     兩條講的是同一段時間的長度與結尾，使用者得自己把「最近 20 天」＋「截止 08-29」
+     換算成「08-01～08-29」—— 這正是「逼使用者做兩步推論」。改成一條桿、兩顆把手：
+       · 左把手＝起日、右把手＝截止日，兩把手之間＝期間（選取帶把那一段塗亮）
+       · 旁邊一行直接寫「YYYY-MM-DD ～ YYYY-MM-DD（N 個交易日）」，不用換算
+     視覺沿用 spanBar 的 `.dual`（同一套雙把手語彙），但軸是**真的日期**而不是「幾天前」，
+     而且刻意**沒有 − ＋ ▶**：族群×法人的播放鈕是 2026-09-20 拍板移除的（見 drawInstDays 附近註解）。
+     互動規則：
+       · 把手撞到另一顆時**推著走**（起日拖過截止日＝兩顆一起移），不會卡死在同一點拖不開
+       · 鍵盤：兩支都是原生 `<input type=range>`，Tab 到把手後 ←→／Home／End 直接可用
+       · 記憶：存「截止日是幾個交易日前」＋「期間幾天」，不存日期字串 —— 明天多一天資料時，
+         選「最新」的人仍然看到最新，而不是被釘在今天
+     onChange(from, to)：兩個都是 dates 的 0-based 索引（含頭含尾）。*/
+  function dateRangeBar(box, o) {
+    box = typeof box === 'string' ? document.getElementById(box) : box;
+    if (!box) return null;
+    const dates = o.dates || [], N = dates.length;
+    if (!N) { box.innerHTML = ''; return null; }
+    const MAXI = N - 1;
+    const readLS = (key, lo, hi) => {
+      if (!key) return null;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw == null || raw === '') return null;
+        const v = +raw;
+        return (isFinite(v) && v >= lo && v <= hi) ? v : null;
+      } catch (e) { return null; }
+    };
+    const ago = readLS(o.keyTo, 0, MAXI);
+    const span0 = readLS(o.keySpan, 1, N);
+    let to = MAXI - (ago != null ? ago : 0);
+    let from = Math.max(0, to - (span0 != null ? span0 : (o.span || 20)) + 1);
+    box.classList.add('rbar', 'drange');
+    box.innerHTML = `${o.label ? `<span class="t">${fmt.esc(o.label)}</span>` : ''}`
+      // 起日那支寫在前面：外面用 `querySelector('input')` 抓到的是「起點」，拖它＝改期間長度
+      + '<div class="dual"><span class="track"></span><span class="sel"></span>'
+      + `<input class="lo" type="range" min="0" max="${MAXI}" step="1" value="${from}" aria-label="期間起日">`
+      + `<input class="hi" type="range" min="0" max="${MAXI}" step="1" value="${to}" aria-label="期間截止日"></div>`
+      + '<span class="val" aria-live="polite"></span>';
+    const lo = box.querySelector('input.lo'), hi = box.querySelector('input.hi');
+    const sel = box.querySelector('.sel'), out = box.querySelector('.val');
+    const paint = () => {
+      lo.value = from; hi.value = to;
+      const a = MAXI ? from / MAXI * 100 : 0, b = MAXI ? to / MAXI * 100 : 100;
+      sel.style.left = a + '%'; sel.style.width = `max(3px, ${b - a}%)`;
+      const n = to - from + 1;
+      out.textContent = `${dates[from]} ～ ${dates[to]}（${n} 個交易日）`;
+      lo.setAttribute('aria-valuetext', `起日 ${dates[from]}`);
+      hi.setAttribute('aria-valuetext', `截止日 ${dates[to]}${to === MAXI ? '（最新）' : ''}`);
+      box.dataset.from = dates[from]; box.dataset.to = dates[to];
+    };
+    const fire = () => { if (o.onChange) o.onChange(from, to); };
+    const save = () => {
+      try {
+        if (o.keyTo) localStorage.setItem(o.keyTo, String(MAXI - to));
+        if (o.keySpan) localStorage.setItem(o.keySpan, String(to - from + 1));
+      } catch (e) { /* 私密視窗 */ }
+    };
+    lo.oninput = () => { from = Math.max(0, Math.min(MAXI, +lo.value)); if (to < from) to = from; paint(); fire(); };
+    hi.oninput = () => { to = Math.max(0, Math.min(MAXI, +hi.value)); if (from > to) from = to; paint(); fire(); };
+    lo.onchange = hi.onchange = save;
+    /* 兩顆疊在一起（期間＝1 天）時只有上層那顆抓得到。預設 DOM 後寫的「截止日」在上層；
+       滑鼠移到兩顆中點的**左邊**就把「起日」抬上來（.lotop），所以疊在一起時往左拖＝拉長期間、
+       往右拖＝挪截止日，兩個方向都拖得開。觸控沒有 hover：疊住時上層是截止日，往左拖會推著起日走，
+       再往右拖就分開了 —— 不會卡死。*/
+    const dual = box.querySelector('.dual');
+    dual.addEventListener('pointermove', (e) => {
+      if (e.buttons) return;                          // 拖曳中不換層，免得拖到一半手上的把手被換掉
+      const r = dual.getBoundingClientRect();
+      const p = r.width > 32 ? (e.clientX - r.left - 16) / (r.width - 32) * MAXI : 0;
+      box.classList.toggle('lotop', p < (from + to) / 2 || (from === to && p < from));
+    });
+    paint();
+    return {
+      get from() { return from; }, get to() { return to; },
+      get days() { return to - from + 1; },
+      set(f, t) { from = Math.max(0, Math.min(MAXI, f)); to = Math.max(from, Math.min(MAXI, t)); paint(); },
+      el: box,
+    };
+  }
+
   /* ---------------------------------------------------------------- 足跡輪盤的單一拉Bar（2026-09-24）
      Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前，拉Bar 長度至多30天，
      旁邊的排行檢端改成 "幾月幾號~今天日期"」。
@@ -7759,21 +7841,28 @@
       + '展開只畫前 20 檔；「〇〇・其他」自動桶不展開。回上一階：麵包屑、「收起 ✕」、ESC 或點空白處。窄畫面先收起代表股那一層。'
       + '「即時」＝手寫板塊每分鐘依當下成交值重新排名、名次變了就換位；成交值是「最後成交價 × 累積張數」估算（雙掛已照 1/n 拆），'
       + '自動桶一律標盤後、排最後、不進分母；台股總成交值是證交所真實值但只作展示；非盤中按下去畫的是最近一次報價快照；拖時間軸會自動退出即時。'),
-    inst: howHTML('這張圖回答：這段時間法人把錢放在哪些族群。', [
-      '三段堆疊＝外資、投信、自營',
-      '向右＝買超，向左＝賣超（單位張）',
-      '投信的錢較黏，連續買超參考性較高',
-      '右上拉 Bar 選天數與截止日',
-      '點任一列看成分股',
+    /* ★ 2026-10-04（Andy：「? 內容跟圖對不上」）逐句對過卡片：
+       · 「右上拉 Bar 選天數與截止日」→ 兩條拉桿已合併成一條區間桿（左＝起日、右＝截止日）
+       · 「點任一列看成分股」→ 實際是點長條**進族群頁**（renderInstPeriod 的 click → #industry/group/）
+       · 缺了「怎麼排、列幾個」「名字後面的 % 是什麼的佔比」「上方兩顆下拉在做什麼」→ 補上
+       · 「投信的錢較黏」是解讀不是圖上看得到的東西；條列上限 5 條，讓位給上面幾條 */
+    inst: howHTML('這張圖回答：選定的這段期間，三大法人把錢放在哪些族群。', [
+      '上方區間拉桿：左把手＝起日、右把手＝截止日',
+      '三色堆疊＝外資／投信／自營，右買超左賣超（張）',
+      '依三者合計由大到小，列最大 8 個與最小 6 個',
+      '名稱後的 %＝佔圖上各列淨買賣超（絕對值）合計',
+      '下拉選產業鏈只列那條鏈、選族群只亮那列；點長條進族群頁',
     ], '篩選：先挑產業鏈，圖上就只列那條鏈的族群；再挑一個族群，就只亮它那一列；選「全部族群」或按「清除」還原。'
       + 'ETF 不列入這張圖：它的法人買賣超幾乎是自營商避險部位，動輒幾百萬張，會把其他族群壓成細線。'),
     conc: howHTML('這張圖回答：現在是少數股票撐盤，還是雨露均霑。', [
-      '線＝前幾大族群吃掉的成交值比例',
-      '往上＝縮圈，買冷門股容易不會動',
-      '往下＝擴散，常是輪動或補漲',
-      '前 5 看主流多獨，前 10 看圈子多大',
-      '兩條走勢分岔＝正在換主流',
-    ], '虛線是它的 20 日平均；往上時主流吃掉更多量，往下時主流反而容易休息。'
+      /* ★ 2026-10-04 對過卡片：「兩條走勢分岔」對不上 —— 圖上同時只有一條主線（前 5 或前 10 擇一）＋勾選的均線；
+         漏寫的「勾均線」「點某一天看那天的族群」補上。縮圈／擴散兩條併成一條。 */
+      '主線＝前 N 大族群吃掉的全市場成交值比例',
+      '往上＝縮圈（冷門股難動）、往下＝擴散（輪動補漲）',
+      '右上切前 5／前 10 大：看主流多獨、圈子多大',
+      '上方勾 5～240 日均線，看現在比平常高還低',
+      '點圖上任一天，右側列出那天的前 N 大族群',
+    ],'虛線是它的 20 日平均；往上時主流吃掉更多量，往下時主流反而容易休息。'
       + '標題旁的讀數：比 20 日均高 0.8pp 以上＝縮圈（冷門股不容易動）、低 0.8pp 以上＝擴散（主流容易休息）、其餘＝沒有明顯方向。'),
   };
   /* 「怎麼看 ?」共用格式：一句問題 → 條列。
@@ -7914,7 +8003,7 @@
       /* 2026-10-03：排行也走 whenNear —— 看得到時跟以前一樣當場畫；電腦版在別的子分頁（卡片藏著）就等切過來才畫 */
       whenNear($('#rankFlow'), () => drawRankDays(ROT.days));
       // 族群 × 法人在首屏下方：捲近了（或閒下來）才畫；已經在畫面裡就當場畫（見 whenNear）
-      whenNear($('#instGroups'), () => drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS));
+      whenNear($('#instGroups'), () => drawInstDays(instDays ? instDays.days : DEFAULT_DAYS));
     };
     /* 圖四（Andy 2026-09-18：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
        並且一樣的設計，也是可以選時間週期拉Bar 1-30 天」）。
@@ -8197,19 +8286,16 @@
     // I1 的拉 Bar 要在 drawPeriod 之前建好（drawPeriod 會讀它的值）
     // ★ 2026-09-20：min 0 → 1、預設 20。0 以前代表「跟著上方期間走」，
     //   期間卡拿掉之後那個值沒有意義了，留著只會讓人拉到一個什麼都不會發生的位置。
-    instDays = rangeBar('instDays', { min: 1, max: 30, value: DEFAULT_DAYS, key: 'tw.inst.days',
-      label: '最近', fmt: (v) => v + ' 天',
-      onChange: () => drawPeriod() });
-    // 圖八的截止日：往回拉看以前的樣子，按 ▶ 一天一天播
+    /* ★ 2026-10-04（Andy：「最近 N 天」與「截止 日期」兩條合併成一條）：一條雙把手的日期區間桿
+       （dateRangeBar，理由寫在它的檔頭）。左把手＝起日、右把手＝截止日；軸是 inst_daily 的全部交易日。
+       localStorage：tw.inst.days＝期間幾天（沿用舊鍵，舊值照樣有效）、tw.inst.to＝截止日是幾個交易日前。
+       舊的 tw.inst.end（1-based 索引）口徑不同，不再讀。 */
     {
       const idl = (f3 && f3.inst_daily && f3.inst_daily.dates) || [];
-      if (idl.length > 5) {
-        /* ★ 2026-09-20（Andy：「圖二族群法人播放功能移除」）：playBar → rangeBar。
-           ＋ − ▶ 三顆鈕整組拿掉，截止日本身還能拖 —— 他要拿掉的是「自己會跑的播放」，
-           不是「看以前那一天」這個能力。*/
-        rangeBar('instEnd', { min: 5, max: idl.length, value: idl.length, key: 'tw.inst.end',
-          label: '截止', fmt: (v) => (v >= idl.length ? '最新' : (idl[v - 1] || v)),
-          onChange: (v) => { instEnd = v; drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS); } });
+      if (idl.length) {
+        instDays = dateRangeBar('instDays', { dates: idl, span: DEFAULT_DAYS, keySpan: 'tw.inst.days', keyTo: 'tw.inst.to',
+          onChange: (a, b) => { instEnd = b + 1; drawInstDays(b - a + 1); } });
+        if (instDays) instEnd = instDays.to + 1;
       }
     }
     /* ★ D1（2026-09-23）：排行的「最近 N 天」拉Bar（`#rankDays`）已經併進上面那條區間桿的

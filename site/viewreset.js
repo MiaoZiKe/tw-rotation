@@ -60,7 +60,7 @@
     'tw.dg3d', 'tw.dg3d.drag', 'tw.dg3d.exp',                          // 2D/3D、3D 拖曳模式、爆炸圖展開
     'tw.flowtopo.motion',                                              // 資金去向動畫
     'tw.chipWin', 'tw.hoLines', 'tw.instSeg', 'tw.mgSeg',              // 籌碼分頁：區間、線、分段
-    'tw.inst.days', 'tw.inst.end', 'tw.conc.ma',                       // 法人與集中度的天數／均線勾選
+    'tw.inst.days', 'tw.inst.to', 'tw.inst.end', 'tw.conc.ma',                       // 法人與集中度的天數／均線勾選
     'tw.revView', 'tw.revWin', 'tw.profitMode', 'tw.periver',          // 營收／獲利／本益比河流圖
     'tw.pe.len', 'tw.pe.end', 'tw.peLineW', 'tw.ms.years',             // 本益比區間、線寬、季節性年數
     'tw.drawbar',                                                      // 繪圖工具列顯示（畫好的線保留）

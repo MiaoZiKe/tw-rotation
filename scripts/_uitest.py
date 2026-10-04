@@ -447,6 +447,16 @@ def set_range(pg, sel: str, value, wait: int = 700):
     pg.wait_for_timeout(wait)
 
 
+def inst_span(pg, days: int, wait: int = 900):
+    """族群 × 法人的日期區間桿（2026-10-04 起一條雙把手，`#instDays input.lo`／`input.hi`）：
+    截止日不動，把**左把手（起日）**拖到「截止日往回 days−1 個交易日」，期間＝days 個交易日。
+    走 set_range ＝ 真的發 input／change，跟手拖是同一條路。"""
+    hi = pg.evaluate("() => { const i = document.querySelector('#instDays input.hi'); return i ? +i.value : null; }")
+    if hi is None:
+        return
+    set_range(pg, "#instDays input.lo", max(0, hi - int(days) + 1), wait)
+
+
 # ===================================================================== 足跡輪盤的單一拉Bar（2026-09-24 取代 D1 的雙把手區間桿）
 # Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前，拉Bar 長度至多30天」。
 #   `#rotBack input.days`＝**N 天前**（1～30）：輪盤畫「N 天前 → 最新」的腳印、排行比的也是這一段。
@@ -2047,14 +2057,15 @@ def t_flow(pg, base):
     #   `g('rankDays')` 會回 None，`bool(None) and …` 直接紅。
     bars = pg.evaluate("""() => { const g = (sel) => { const i = document.querySelector(sel);
         return i ? { min: +i.min, max: +i.max, v: +i.value } : null; };
-        return { rank: g('#rotBack input.days'), inst: g('#instDays input[type=range]'),
+        return { rank: g('#rotBack input.days'), inst: g('#instDays input.lo'), instHi: g('#instDays input.hi'),
                  oldRank: !!document.getElementById('rankDays') }; }""")
     ok("D1：舊的 `#rankDays` 整條拉Bar 已經不在 DOM 裡（併進區間桿了）", not bars["oldRank"], bars)
     # ★ 2026-09-24（Andy：「時間軸拉Bar 只需要留一個…拉Bar 長度至多30天」）：改前＝區間桿左把手（0–29）→ 改後＝單一拉Bar「N 天前」（1–30）
     ok("排行的「這一段有幾天」＝足跡輪盤那支單一拉Bar「N 天前」（1～30）",
        bool(bars["rank"]) and bars["rank"]["min"] == 1 and bars["rank"]["max"] == 30, bars)
-    ok("族群×法人的天數拉 Bar 下限也是 1",
-       bool(bars["inst"]) and bars["inst"]["min"] == 1 and bars["inst"]["max"] == 30, bars)
+    # ★ 2026-10-04：族群×法人改成一條日期區間桿（兩把手同一根軸＝inst_daily 的全部交易日索引）
+    ok("族群×法人是一條雙把手區間桿（起日／截止日同一根軸）",
+       bool(bars["inst"]) and bool(bars["instHi"]) and bars["inst"]["min"] == 0 and bars["inst"]["max"] == bars["instHi"]["max"] >= 20, bars)
 
     snap = lambda: pg.evaluate("""() => ({ sub: (document.getElementById('rankSub')||{}).textContent,
         instSub: (document.getElementById('instSub')||{}).textContent,
@@ -2070,7 +2081,7 @@ def t_flow(pg, base):
         l4_sub(pg, "rot", 600)
         rot_span(pg, v, 900)
         l4_sub(pg, "inst", 900)          # 族群×法人在 ③：切過去才拉得到、才畫得出來（排行的副標與圖不會因為藏起來而消失）
-        set_range(pg, "#instDays input[type=range]", v, 900)
+        inst_span(pg, v, 900)
         seenb[v] = snap()
         ok(f"拉到 {v} 天：排行圖有畫出來", seenb[v]["rank"], seenb[v])
         ok(f"拉到 {v} 天：排行副標寫出日期範圍（期間卡的資訊沒有消失）",
@@ -2311,25 +2322,27 @@ def t_flow(pg, base):
     #   0 以前代表「跟著上方期間走」，期間卡拿掉之後那個值沒有意義了，
     #   留著只會讓人拉到一個什麼都不會發生的位置。
     l4_sub(pg, "inst", 1500)
-    ib = pg.evaluate("""() => { const i = document.querySelector('#instDays input[type=range]');
-        return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
-    ok("族群×法人有天數拉 Bar", bool(ib), ib)
-    ok("範圍是 1–30 天", bool(ib) and ib["min"] == 1 and ib["max"] == 30, ib)
-    ok("拉 Bar 旁邊寫得出「N 天」",
-       "天" in (pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent") or ""),
+    # ★ 2026-10-04：「最近 N 天」＋「截止」合併成一條雙把手日期區間桿（#instDays input.lo／input.hi）
+    ib = pg.evaluate("""() => { const lo = document.querySelector('#instDays input.lo'), hi = document.querySelector('#instDays input.hi');
+        return lo && hi && { lo: +lo.value, hi: +hi.value, max: +hi.max, n: document.querySelectorAll('#instDays input[type=range]').length }; }""")
+    ok("族群×法人有一條區間桿（恰好兩個把手）", bool(ib) and ib["n"] == 2, ib)
+    ok("截止日（右把手）在最新、起日在它左邊", bool(ib) and ib["hi"] == ib["max"] and ib["lo"] <= ib["hi"], ib)
+    ok("區間桿旁邊寫「YYYY-MM-DD ～ YYYY-MM-DD（N 個交易日）」",
+       bool(re.search(r"\d{4}-\d{2}-\d{2} ～ \d{4}-\d{2}-\d{2}（\d+ 個交易日）",
+                      pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent") or "")),
        pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent"))
     i0 = canvas_hash(pg, "#instGroups")
     sub0 = text(pg, "#instSub")
-    set_range(pg, "#instDays input[type=range]", 10, 1200)
+    inst_span(pg, 10, 1200)
     changed("拉到 10 天，族群×法人真的重畫", i0, canvas_hash(pg, "#instGroups"))
-    changed("副標跟著寫「最近 10 個交易日」", sub0, text(pg, "#instSub"))
+    changed("副標跟著寫「（10 日）」", sub0, text(pg, "#instSub"))
+    ok("副標寫的是 10 日", "（10 日）" in text(pg, "#instSub"), text(pg, "#instSub"))
     ok("y 軸的族群名後面帶占比 %", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
         if (!c) return false; const d = c.getOption().yAxis[0].data || [];
         return d.length > 0 && String(d[0]).indexOf('%') >= 0; }"""),
        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
            return c ? (c.getOption().yAxis[0].data || [])[0] : null; }"""))
-    set_range(pg, "#instDays input[type=range]", 0, 1200)
-    ok("拉回 0 會跟著上方期間走", text(pg, "#instSub") != "", text(pg, "#instSub"))
+    inst_span(pg, 20, 900)
 
     # ---- F1 輪動階段不要方方角角（Andy 2026-09-18：「我覺得很醜…不要那麼方方角角」）
     #   ★ 2026-09-23 W7：`#rotBoard` 那四張卡整塊移除，這五條的選擇器全部指向不存在的元素 ——
@@ -5030,7 +5043,7 @@ def t_new_flow(pg, base):
         /* ★ 2026-09-23 D1：`#rankDays` 整條已併進 `#rotBack` 的區間桿。
            留著數它的 `.pb` 會恆為 0、斷言照樣通過 ＝ 假綠，所以改成驗**它真的不在 DOM 裡**。*/
         rank: document.getElementById('rankDays') ? 1 : 0,
-        inst: document.querySelectorAll('#instEnd .pb').length,
+        inst: document.querySelectorAll('#instDays .pb').length + (document.getElementById('instEnd') ? 1 : 0),
         sankey: document.querySelectorAll('#sankeyDays .pb').length,
         river: !!document.getElementById('river'),
         riverDays: !!document.getElementById('riverDays'),
@@ -8536,23 +8549,106 @@ def t_batch2(pg, base):
        pg.evaluate("() => { const e = document.getElementById('rotClockMini'); return e ? e.clientHeight : 0; }"))
 
 
+def _inst_range_drag(pg):
+    """族群 × 法人的日期區間桿：用**滑鼠真的拖**左／右把手 → 區間文字、標題期間、長條數值都要變；
+    鍵盤（Tab 到把手按 ←）也要能動；「?」要講區間桿、不再提「最近 N 天」「截止」兩條拉桿；
+    800／390 寬不溢出、把手觸控區 ≥ 32px。"""
+    ok("族群×法人：舊的「截止」拉桿 #instEnd 已經不在 DOM（併進區間桿）",
+       pg.evaluate("() => !document.getElementById('instEnd')"))
+    inst_span(pg, 20, 900)
+    st = lambda: pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
+        const o = c && c.getOption();
+        return { val: (document.querySelector('#instDays .val')||{}).textContent || '',
+                 sub: (document.getElementById('instSub')||{}).textContent || '',
+                 lo: +document.querySelector('#instDays input.lo').value, hi: +document.querySelector('#instDays input.hi').value,
+                 bars: o ? JSON.stringify(o.series.map(x => (x.data || []).map(d => d && d.value))) : '' }; }""")
+    def thumb_xy(cls):
+        return pg.evaluate("""(cls) => { const i = document.querySelector('#instDays input.' + cls);
+            i.scrollIntoView({ block: 'center', behavior: 'instant' });
+            const r = i.getBoundingClientRect(), th = 32;
+            const f = (+i.value - +i.min) / ((+i.max - +i.min) || 1);
+            return [r.left + th / 2 + f * (r.width - th), r.top + r.height / 2, r.width]; }""", cls)
+    def drag(cls, dx):
+        x, y, w = thumb_xy(cls)
+        pg.mouse.move(x, y); pg.mouse.down()
+        for k in range(1, 9):
+            pg.mouse.move(x + dx * k / 8, y); pg.wait_for_timeout(30)
+        pg.mouse.up(); pg.wait_for_timeout(900)
+    s0 = st()
+    _, _, w = thumb_xy("hi")
+    drag("hi", -w * 0.08)                       # 右把手（截止日）往左拖（少於期間長度，不推到起日）
+    s1 = st()
+    ok("區間桿：滑鼠拖右把手，截止日真的往前挪", s1["hi"] < s0["hi"], [s0["hi"], s1["hi"]])
+    changed("區間桿：拖右把手後旁邊的「起～迄（N 個交易日）」跟著變", s0["val"], s1["val"])
+    changed("區間桿：拖右把手後標題列的期間文字跟著變", s0["sub"], s1["sub"])
+    changed("區間桿：拖右把手後長條數值真的換了", s0["bars"], s1["bars"])
+    drag("lo", -w * 0.15)                       # 左把手（起日）往左拖＝期間變長
+    s2 = st()
+    ok("區間桿：滑鼠拖左把手，起日真的往前、截止日不動", s2["lo"] < s1["lo"] and s2["hi"] == s1["hi"], [s1, s2])
+    changed("區間桿：拖左把手後標題列的期間文字跟著變", s1["sub"], s2["sub"])
+    changed("區間桿：拖左把手後長條數值真的換了", s1["bars"], s2["bars"])
+    m = re.search(r"(\d{4}-\d{2}-\d{2}) ～ (\d{4}-\d{2}-\d{2})（(\d+) 個交易日）", s2["val"])
+    ok("區間桿旁的文字＝「YYYY-MM-DD ～ YYYY-MM-DD（N 個交易日）」，N＝兩把手距離＋1",
+       bool(m) and int(m.group(3)) == s2["hi"] - s2["lo"] + 1, s2["val"])
+    ok("標題列的期間（MM-DD～MM-DD（N 日））跟區間桿講的是同一段",
+       bool(m) and f"{m.group(1)[5:]}～{m.group(2)[5:]}（{m.group(3)} 日）" in s2["sub"], [s2["val"], s2["sub"]])
+    # 鍵盤：focus 右把手按 ← 一次＝截止日往前一天
+    pg.focus("#instDays input.hi"); pg.keyboard.press("ArrowLeft"); pg.wait_for_timeout(800)
+    s3 = st()
+    ok("區間桿：鍵盤 ← 可以挪截止日（而且畫面跟著變）", s3["hi"] == s2["hi"] - 1 and s3["sub"] != s2["sub"], [s2["hi"], s3["hi"]])
+    # 「?」：講的是區間桿，不再提兩條拉桿
+    ht = how_text(pg, "inst")
+    ok("「?」有講「區間」拉桿（左＝起日、右＝截止日）", "區間" in ht and "起日" in ht and "截止日" in ht, ht[:200])
+    ok("「?」不再提「最近 N 天」「天數與截止日」兩條拉桿", "最近" not in ht and "天數與截止" not in ht, ht[:200])
+    ok("「?」寫出 % 是什麼的佔比、排序方式、點長條進族群頁",
+       all(k in ht for k in ("%", "最大 8", "族群頁")), ht[:240])
+    hc = how_text(pg, "conc")
+    ok("資金集中度的「?」不再寫圖上沒有的「兩條走勢分岔」，並講到均線與點某一天",
+       "分岔" not in hc and "均線" in hc and "點圖上" in hc, hc[:200])
+    inst_span(pg, 20, 600)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    # 窄畫面：800 與 390 都不准溢出，把手觸控區 ≥ 32px
+    for wv in (800, 390):
+        pg.set_viewport_size({"width": wv, "height": 900}); pg.wait_for_timeout(900)
+        if wv == 390:
+            # 手機版預設顯示精簡卡，桌機那一份要按「完整版」才出來；沒有完整版連結就跳過這段
+            if not pg.evaluate("() => { const e = document.getElementById('instDays'); return !!e && e.getBoundingClientRect().width > 0; }"):
+                full = pg.query_selector("#flowInstCard .m3full, #flowInstCard [data-m3full], #flowInstCard a.m3more, #flowInstCard button.m3more")
+                if full:
+                    full.click(); pg.wait_for_timeout(900)
+        g = pg.evaluate("""() => { const e = document.getElementById('instDays'), c = document.getElementById('flowInstCard');
+            if (!e || !e.getBoundingClientRect().width) return null;
+            const r = e.getBoundingClientRect(), cr = c.getBoundingClientRect(), i = e.querySelector('input.hi');
+            return { right: r.right, cardR: cr.right, docW: document.documentElement.scrollWidth, vw: innerWidth,
+                     ih: i.getBoundingClientRect().height, fs: parseFloat(getComputedStyle(e.querySelector('.val')).fontSize) }; }""")
+        if g is None:
+            ok(f"{wv}px：手機版這張卡是精簡版（區間桿在完整版裡），跳過", True); continue
+        ok(f"{wv}px：區間桿不凸出卡片、頁面沒有橫向捲軸",
+           g["right"] <= g["cardR"] + 1 and g["docW"] <= g["vw"] + 1, g)
+        ok(f"{wv}px：把手觸控高度 ≥ 32px、區間文字 ≥ 11px", g["ih"] >= 32 and g["fs"] >= 11, g)
+    pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(600)
+
+
 def t_batch3(pg, base):
     """批次3（Andy 2026-09-18 圖六／七／八／資金集中度）的真人操作驗收。"""
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
     l4_sub(pg, "inst", 1800)             # 2026-10-03 電腦版：族群×法人＋資金集中度在 ③
 
-    # ---- 圖八：族群 × 法人的「截止日」回放
-    if pg.evaluate("() => !!document.querySelector('#instEnd input[type=range]')"):
-        set_range(pg, "#instDays input[type=range]", 20, 900)
+    # ---- 圖八：族群 × 法人的「截止日」回放 —— 2026-10-04 起是區間桿的右把手（#instEnd 整條已併進 #instDays）
+    if pg.evaluate("() => !!document.querySelector('#instDays input.hi')"):
+        inst_span(pg, 20, 900)
         sub0 = text(pg, "#instSub")
         i0 = canvas_hash(pg, "#instGroups")
-        set_range(pg, "#instEnd input[type=range]", 30, 1200)
-        changed("族群×法人把截止日往回拉，圖真的重畫（圖八）", i0, canvas_hash(pg, "#instGroups"))
+        hi = pg.evaluate("() => +document.querySelector('#instDays input.hi').value")
+        set_range(pg, "#instDays input.hi", max(0, hi - 30), 1200)
+        changed("族群×法人把截止日（右把手）往回拉，圖真的重畫（圖八）", i0, canvas_hash(pg, "#instGroups"))
         changed("族群×法人的副標跟著寫出那一段日期（圖八）", sub0, text(pg, "#instSub"))
         ok("副標寫的是一段區間不是只有天數", "～" in text(pg, "#instSub"), text(pg, "#instSub"))
-        # 2026-09-20：播放鈕依 Andy 指示移除（「圖二族群法人播放功能移除」），
-        # 截止日拉Bar 保留，上面那三條就是在驗它真的還能用。
+        set_range(pg, "#instDays input.hi", hi, 900)
+
+    # ---- ★ 2026-10-04（Andy）：族群 × 法人兩條拉桿合併成一條雙把手區間桿 —— 真的用滑鼠拖兩顆把手
+    _inst_range_drag(pg)
 
     # ---- 資金集中度：六條均線可勾選、點某天鑽到族群再鑽到個股
     mas = pg.evaluate("() => [...document.querySelectorAll('#concMa input[data-ma]')].map(i => +i.dataset.ma)")
@@ -14676,7 +14772,7 @@ def t_filter_topleft(pg, b, base):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.goto(f"{base}#flow", wait_until="networkidle")
         # 前面段落拖過族群×法人的「截止」：留下很舊的截止日時那張圖是空狀態（本來就沒有篩選列），先清掉再量
-        pg.evaluate("() => { try { ['tw.inst.days', 'tw.inst.end'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        pg.evaluate("() => { try { ['tw.inst.days', 'tw.inst.to', 'tw.inst.end'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
         pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(1500)
         # 下面兩張（資金去向、族群×法人）畫得比較晚：等兩排下拉都出現再量
@@ -42320,7 +42416,7 @@ def t_design_v4_2a(b, base, code):
     s1 = sel(); h1 = canvas_hash(pg, "#instGroups")
     ok("⑤ 點「投信」：圖上的投信真的藏起來（ECharts 選取＝false、圖換了、鈕變成未按下）", not s1["sel"] and s1["pressed"] == "false" and h1 != h0, [s1, h0, h1])
     # 重畫（拉天數拉 Bar）之後狀態還在
-    pg.evaluate("""() => { const i = document.querySelector('#instDays input[type=range]'); if (!i) return;
+    pg.evaluate("""() => { const i = document.querySelector('#instDays input.lo'); if (!i) return;
         i.value = String(Math.max(+i.min || 1, (+i.value || 20) - 5)); i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }""")
     pg.wait_for_timeout(900)
     s2 = sel()

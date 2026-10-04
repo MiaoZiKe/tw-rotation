@@ -727,7 +727,7 @@
     const card = document.getElementById('flowInstCard'); if (!card) return;
     const head = card.querySelector(':scope > .row');
     if (head) head.classList.add('m3keep-h');
-    const box = host(card, 'inst', null, { full: '完整版（看幾天、截止日）', after: head });
+    const box = host(card, 'inst', null, { full: '完整版（拉區間看任一段）', after: head });
     if (box.dataset.done) return;
     if (!box.innerHTML) box.innerHTML = '<div class="msub">載入法人資料中…</div>';
     const f = await load('flow_v3'); if (!f || !f.inst_daily || !box.isConnected) return;
