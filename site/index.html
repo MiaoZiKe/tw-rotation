@@ -1898,6 +1898,8 @@ a.lk.sm{font-size:12px;font-weight:500}
 /* 2026-09-24 甜甜圈改版：圖例在圖下方、兩欄，「● 名稱 ……… 42.0%」（百分比等寬、靠右）。
    滑過一列＝滑過那一塊扇形（中心字跟著換），點一列＝點那一塊（進族群）。「其他」只看不點。*/
 .gplegend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px var(--sp-3);margin:2px 4px 2px}
+/* ★ 2026-10-05 Andy（成交值占比圖例）：「文字置中」—— 圖例不再拉滿整張卡（名字和百分比隔太遠），收成最寬 440px 置中在圓餅正下方 */
+.gplegend{max-width:440px;margin-left:auto;margin-right:auto}
 @media (max-width:640px){.gplegend{gap:2px 14px}}
 .gplegend .lg{display:flex;align-items:center;gap:var(--sp-2);min-width:0;height:22px;padding:0 var(--sp-1);border:0;border-radius:6px;
   background:transparent;color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer;text-align:left}
