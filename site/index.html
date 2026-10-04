@@ -5077,6 +5077,8 @@ h3 .howbtn.pop{font-family:inherit}
 @media (max-width:640px){
   /* 今日事件抽屜的個股連結換行：2026-09-28 起改成全寬度共用的規則（見 `.ev .m`），這裡不再單獨寫。 */
 }
+/* ★ 2026-10-04 23:25 Andy（個股 K 線卡右上 AI 分析）：「這邊拿掉」—— 桌機不顯示 K 線卡裡的 #skAi（總覽分頁的 AI 卡保留）；手機（≤640）由 miaStock 搬去 #aiCard，不受影響（手機工作暫停中） */
+@media (min-width:641px){#skChartCard>#skAi{display:none!important}}
 </style>
 <!-- 設計 v4 的骨架＋三套主題變數（docs/design_v4/01_設計系統.md）。放在內嵌樣式之後才蓋得過（<head> 那段 script 一定會掛 data-theme4）。 -->
 <link rel="stylesheet" href="theme4.css">

@@ -574,7 +574,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     let setRatio = null;
     const fit = () => {
       const lm = leftMin(card);
-      const on = host.parentElement === card && window.innerWidth > NARROW && innerW(card) >= lm + SPLIT_W + AI_MIN;
+      const on = host.parentElement === card && getComputedStyle(host).display !== 'none' && window.innerWidth > NARROW && innerW(card) >= lm + SPLIT_W + AI_MIN;
       if (card.classList.contains('aiside') !== on) card.classList.toggle('aiside', on);
       if (on) { const r = readSplit(); setRatio(r == null ? AI_DEF : r, false); }
       else card.style.removeProperty('--aiW');
