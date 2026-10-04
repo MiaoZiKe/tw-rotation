@@ -326,14 +326,14 @@ def main() -> int:
             ov2 = pg.evaluate(OVERLAP_JS)
             if ov2:
                 problems.append(f"題材 {tid} 文字重疊：{ov2[:3]}")
-        # 點第一個零件，確認會列出個股
+        # 點第一個零件：★ 2026-10-04（Andy：「題材點擊後這下方拿掉」）下方成員面板已移除，改驗「零件選起來、下方沒有面板」
         if tids:
             pg.goto(f"{base}#themes/{tids[0]}", wait_until="networkidle"); pg.wait_for_timeout(900)
             pg.evaluate("document.querySelector('#themeDiagram [data-part][data-codes]').dispatchEvent(new MouseEvent('click', {bubbles:true}))")
             pg.wait_for_timeout(300)
-            tstat["_click"] = pg.evaluate("({ links: document.querySelectorAll('#themeParts a.lk').length, sel: document.querySelectorAll('#themeDiagram .p3.sel').length })")
-            if not tstat["_click"]["links"]:
-                problems.append("點題材產品圖的零件沒有列出個股")
+            tstat["_click"] = pg.evaluate("({ panel: document.querySelectorAll('#themeParts').length, sel: document.querySelectorAll('#themeDiagram [data-part].sel').length })")
+            if tstat["_click"]["panel"] or not tstat["_click"]["sel"]:
+                problems.append(f"點題材產品圖的零件：應只高亮、不出現下方成員面板 {tstat['_click']}")
             pg.screenshot(path=str(out / "v3_theme_diagram.png"), full_page=True)
         state["theme_diagrams"] = tstat
         visit("season", "season")
