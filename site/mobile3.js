@@ -305,7 +305,7 @@
      象限底色離圓心越遠越濃（深色 .12→.27、淺色 .07→.18）、三圈刻度＋兩圈虛線、十字軸、盤緣 72 刻、
      四角膠囊徽章（象限名＋族群數，點了只看那一段）、淡淡的掃描（系統「減少動態效果」就不畫）、
      前掌＋腳跟的小腳印（佔比前 3 的最近 8 天；09-26 稍早拿掉、當晚依 Andy「先退回到有腳印那版本」畫回來）、點＝發光核心＋1px 白外圈、名字＝點右側的小膠囊（佔比前 5＋選到的）。
-     座標換算跟 app.js renderRotation 的 pos() 同一條：兩軸各除以今天的最大偏離，外圈虛線＝今天偏離最大的族群。*/
+     座標換算跟 app.js renderRotation 的 pos() 同一條：兩軸各除以今天的最大偏離，盤內半徑取平方根（2026-10-04），外圈虛線＝今天偏離最大的族群。*/
   const MAXR = 1.25, TAIL = 0.18;
   function radarPos(points) {
     let sx = 1e-6, sy = 1e-6;
@@ -318,7 +318,8 @@
     return (x, y) => {
       const dx = (x - 100) / sx, dy = (y - 100) / sy;
       const u = Math.hypot(dx, dy) / sr;
-      const k = u <= 1 ? u : 1 + TAIL * (u - 1) / span;
+      // 2026-10-04 中心太擠：盤內用 √u（跟 app.js pos() 同一條；內圈虛線＝最大偏離的 25%）
+      const k = u <= 1 ? Math.sqrt(u) : 1 + TAIL * (u - 1) / span;
       return [Math.min(RIM, k * MAXR) / RIM, Math.atan2(dy, dx)];
     };
   }
@@ -409,6 +410,7 @@
     [.25, .5, .75].forEach(f => { g += `<circle cx="${c}" cy="${c}" r="${(R * f).toFixed(1)}" fill="none" stroke="${line}" stroke-opacity=".35" stroke-width=".6"/>`; });
     g += `<circle cx="${c}" cy="${c}" r="${(ringR / 2).toFixed(1)}" fill="none" stroke="${ink3}" stroke-opacity=".55" stroke-dasharray="3 4"/>`;
     g += `<circle cx="${c}" cy="${c}" r="${ringR.toFixed(1)}" fill="none" stroke="${ink3}" stroke-opacity=".7" stroke-dasharray="5 4"/>`;
+    [[ringR / 2, '25%'], [ringR, '100%']].forEach(([rr, t]) => { g += `<text x="${c + 3}" y="${(c - rr - 2).toFixed(1)}" font-size="11" fill="${ink3}" fill-opacity=".85">${t}</text>`; });
     g += `<circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="${line}" stroke-width="1.2"/>`;
     g += `<path d="M${c - R},${c}H${c + R}M${c},${c - R}V${c + R}" stroke="${line}" stroke-width=".8"/>`;
     for (let i = 0; i < 72; i++) {
