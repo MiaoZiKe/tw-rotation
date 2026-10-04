@@ -639,9 +639,10 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #ovAiCard .ovline .ovbrief{min-width:0}
 /* 膠囊分頁籤：外框、底色、選中態都吃全站 .seg（跟「法人」分頁同一組），這裡只補「四顆撐滿一列、每顆帶小判讀」。
    卡內寬度 < 430px（手機、或兩欄時右欄很窄）四顆排不下一列 → 2×2，不讓第四顆單獨掉到第二行 */
-#ovAiCard .ovseg{display:grid;grid-template-columns:repeat(4,auto);justify-content:stretch;align-self:stretch;min-width:0}
-@container ovai (max-width:430px){ #ovAiCard .ovseg{grid-template-columns:repeat(2,minmax(0,1fr))} }
-#ovAiCard .ovseg .ovtag{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:32px;white-space:nowrap}
+/* ★ 2026-10-04（Andy 截圖：選中的「技術面訊號」藥丸蓋住左右的字）：改前 repeat(4,auto)＋min-width:0＋nowrap，
+   卡片窄於四顆自然寬度總和時格子被壓、字溢出蓋到隔壁。改成固定 2×2：每顆至少半張卡寬，1640～390 都放得下，不再依容器寬度猜斷點。*/
+#ovAiCard .ovseg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;align-self:stretch;min-width:0}
+#ovAiCard .ovseg .ovtag{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:32px;white-space:nowrap;overflow:hidden}
 #ovAiCard .ovseg .ovtag .aitag{font-size:12px;padding:0 6px}
 /* 選中那顆底色是青色：判讀小標改成卡片底色的小膠囊，紅綠字才讀得到（直接疊在青底上對比不夠）*/
 #ovAiCard .ovseg .ovtag.on .aitag{background:var(--panel);font-weight:600}

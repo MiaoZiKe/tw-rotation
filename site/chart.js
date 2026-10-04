@@ -449,6 +449,8 @@
     setPaneLabels(map) { this._paneText = map || {}; this._layoutLabels(); }
     _layoutLabels() {
       this._layoutCorner();
+      // 主圖高度變了（視窗縮放、副圖拖大拖小）→ 依同一個資訊列高度重算頂端保留比例（reserveTop）
+      if (this._resPx != null) this.reserveTop(this._resPx);
       if (!this.labels) return;
       const ps = this.chart.panes(); let top = 0; const tops = ps.map(p => { const t = top; top += p.getHeight() + 1; return t; });
       const strip = this._lblStrip();
@@ -474,6 +476,21 @@
             s.priceScale().applyOptions({ scaleMargins: { top: t, bottom: cur.bottom != null ? cur.bottom : 0.08 } }); } catch (e) { /* 圖剛銷毀 */ }
         }
       }
+    }
+    /** ★ 2026-10-04（Andy：「K 線圖需要打開都可以看到，如果被遮住就整體下移」）：
+        主圖左上角的 OHLC／均線資訊列（#legendOv）是蓋在繪圖區上的。把主圖價格軸的 scaleMargins.top 設成
+        「資訊列底緣到主圖頂端的距離 ＋ 6px」÷ 主圖高，K 棒最高點就一定畫在資訊列下面；行數變了（指標開關、視窗變窄折行）
+        由呼叫端量完再呼叫，數值沒變就不動（十字游標移動時不會一直 applyOptions）。上限 0.45，避免把 K 棒壓扁。*/
+    reserveTop(px) {
+      this._resPx = px;
+      try {
+        const ps = this.chart.panes(); const h = ps[0] ? ps[0].getHeight() : 0; if (!(h > 60)) return;
+        const t = Math.max(0.08, Math.min(0.45, (px + 6) / h));
+        if (this._resTop != null && Math.abs(this._resTop - t) < 0.004) return;
+        this._resTop = t;
+        const cur = (this.candle.priceScale().options() || {}).scaleMargins || {};
+        this.candle.priceScale().applyOptions({ scaleMargins: { top: t, bottom: cur.bottom != null ? cur.bottom : 0.08 } });
+      } catch (e) { /* 圖已銷毀 */ }
     }
     /** 副圖標籤帶的高度（px）；總覽小卡、四週期小圖不留（它們的標籤規格另外一套）。*/
     /*  手機（≤640）也不留：手機的 K 線本來就矮（360～620px），再從主圖拿一條會讓 K 棒被壓扁，手機版面歸 mobile-ui 另外定。*/
