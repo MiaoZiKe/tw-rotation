@@ -106,7 +106,18 @@
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
   /* ★ 這張圖一個 data-seg 都不掛（見檔頭），所以 data-part 一律自己寫 ——
      `stampParts()` 只替掛了環節的節點蓋 dgkey。*/
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-10-04（DECISIONS #320）：供應鏈資料補了 cnc_machine／motion_parts／cnc_controller 三個環節，零件掛上去
+     （原本「一個 data-seg 都不掛」是因為 electronics 鏈沒有工具機環節）。
+     ⚠ 掛了環節不等於「做這個的台股」就是整格名單：非結構件（主軸、軸承、刀具、刀庫、換刀手、排屑機…）用 COS 明寫空陣列，
+        卡片照舊講「查不到」，不會把三家整機廠當成它們的製造商。 */
+  const PART_SEG = { mt_x: 'motion_parts', mt_y: 'motion_parts', mt_z: 'motion_parts', mt_rail: 'motion_parts',
+    mt_cnc: 'cnc_controller', mt_drive: 'cnc_controller', mt_panel: 'cnc_controller', mt_bus: 'cnc_controller', mt_fb: 'cnc_controller',
+    mt_bed: 'cnc_machine', mt_col: 'cnc_machine', mt_saddle: 'cnc_machine', mt_table: 'cnc_machine', mt_work: 'cnc_machine',
+    mt_head: 'cnc_machine', mt_spmot: 'cnc_machine', mt_spindle: 'cnc_machine', mt_bear: 'cnc_machine', mt_tool: 'cnc_machine',
+    mt_mag: 'cnc_machine', mt_magmot: 'cnc_machine', mt_atc: 'cnc_machine', mt_conv: 'cnc_machine', mt_coolant: 'cnc_machine',
+    mt_chip: 'cnc_machine', mt_guard: 'cnc_machine', mt_cmp_mill: 'cnc_machine', mt_cmp_lathe: 'cnc_machine' };
+  const segOf = (id) => PART_SEG[id] || '';
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
   // 玻璃材質：跟 AI 伺服器那幾張同一支 D.fx.glass（機殼、鑄件、工作台這種「大塊面」才用）
   const slab = (x, y, w, h, fill, o) => fx.glass(x, y, w, h,
     { fill, cls: 'part' + ((o && o.cls) ? ' ' + o.cls : ''), rx: (o && o.r) || 2, iso: o && o.iso });
@@ -114,8 +125,12 @@
   /* 說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點。
      卡片與它指的零件共用同一個 data-part：點卡片亮零件、點零件亮卡片。*/
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no, side: o.side,
+    /* 卡片上的台股小標籤（fillChips）的權威來源是 3D 場景的 codes；3D 沒有這個零件時才退回這裡的 data-codes，再退回「整個環節的台股」。
+       掛了環節之後最後那條退路會把整格名單貼到每張卡片上 —— 所以 COS 有指定的零件（含明寫空陣列＝查不到）一律在這裡把名單帶進去。 */
+    const cc = (o.part && Object.prototype.hasOwnProperty.call(COS, o.part)) ? COS[o.part] : null;
+    let s = extRow({ part: o.part, seg: segOf(o.part) || undefined, codes: cc && cc.length ? cc : undefined, title: o.title, sub: o.sub, no: o.no, side: o.side,
       ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
+    if (cc && !cc.length) s = s.replace('<g class="lrow ext" ', '<g class="lrow ext" data-codes="" ');
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
 
@@ -411,7 +426,7 @@
        銑削那格用「刀刃上會往下跑的斜虛線 ＋ 鼻端的透視圓環」表示刀在轉；
        車床那格用「夾頭是正面的圓、繞中心轉」表示工件在轉 —— 圓轉起來才是對的。*/
     const mring = `M226,${cy - 22} a14,5 0 1,0 28,0 a14,5 0 1,0 -28,0`;
-    const mc = `<g data-part="mt_cmp_mill">`
+    const mc = `<g data-part="mt_cmp_mill" data-seg="cnc_machine">`
       + `<rect class="part frame" x="28" y="${y0 + 40}" width="296" height="${CH2}" rx="7"/>`
       + T(42, y0 + 62, '綜合加工機（銑削）：刀在轉', 'lbl')
       + R(186, cy + 4, 108, 26, 'var(--dg-mc-cam)', null, 2)
@@ -427,7 +442,7 @@
       + `</g>`;
     const jaw = [0, 1, 2].map((j) => `<g transform="rotate(${j * 120})">`
       + R(-5, -24, 10, 12, 'var(--dg-steel-2)', null, 2) + '</g>').join('');
-    const lt = `<g data-part="mt_cmp_lathe">`
+    const lt = `<g data-part="mt_cmp_lathe" data-seg="cnc_machine">`
       + `<rect class="part frame" x="336" y="${y0 + 40}" width="296" height="${CH2}" rx="7"/>`
       + T(350, y0 + 62, '車床：工件在轉', 'lbl')
       + R(350, cy - 30, 30, 60, 'var(--dg-mc-case)', null, 3)
@@ -552,7 +567,7 @@
       ${note({ side: 'r', warn: true, order: 98, title: '這張圖沒有回答的事',
         lines: ['示意圖，非實物比例；各零件的相對尺寸為誇張放大。',
           '不寫任何刀庫把數、主軸轉速、精度等級、成本占比、市占率與金額 —— 公開來源不足或只有單一出處。',
-          '「CNC 工具機」目前不在供應鏈資料的環節裡，所以下方的「環節色標」篩不到它；公司對應寫在卡片、零件小卡與下面第 ② 段。',
+          '點零件會對到「CNC 工具機整機」「傳動與氣動元件」「CNC 控制器與驅動」三格之一；非結構件（主軸、軸承、刀具、刀庫、換刀手、排屑機）查不到台股的具名對應，小卡照實寫「查不到」。',
           '★ 6603 富強鑫做的是射出成型機，不是切削工具機 —— 它不在這張圖畫的那種機器裡。'] })}
 
       </g>
@@ -578,7 +593,7 @@
        得到一張「少了人卻沒有任何提示」的卡片。公司一律寫進 `none:` 的整句話。*/
   const PARTS = {
     mt_bed: { name: '床身（鑄件）', desc: '整台機器的地基：主軸切下去的力、工作台移動的慣性，最後都由它承受。★ 床身與立柱通常是一體的鑄件，底部是一個連續的 L 形；本圖分成兩個可點的零件只是為了跟 3D 對得上，兩件同色就是在講「它們是同一塊」。鑄件重、運費高、又要時效，所以在地供應本來就比較划算 —— 這是台中工具機聚落的底子。',
-      none: '整機與鑄件在台股：4526 東台精機、1583 程泰機械、1528 恩德科技（三家都是整機廠，鑄件的供應分工查不到具名來源，不編）。★ 這一格不在 supply_chain.yaml 的環節裡，所以「做這個的台股」欄列不出它們 —— 這裡用文字補。' },
+      none: '整機與鑄件在台股：4526 東台精機、1583 程泰機械、1528 恩德科技（三家都是整機廠，鑄件的供應分工查不到具名來源，不編）。' },
     mt_col: { name: '立柱（鑄件，與床身一體）', desc: '站在床身後緣的方柱，正面是兩條線性滑軌的貼合面與一排鎖付孔 —— 主軸頭就掛在那兩條軌道上。★ 它跟床身通常是一體的鑄件：分成兩塊各自站著，剛性就不是一體的了。它的高度與斷面直接決定這台機器能吃多深的刀。' },
     mt_saddle: { name: '鞍座（Y 軸滑座）', desc: '夾在床身與工作台之間的那一層，帶著工作台往畫面的裡外走。三根軸就是這樣疊起來的：床身不動 → 鞍座走 Y → 工作台走 X → 主軸頭走 Z。' },
     mt_table: { name: '工作台（X 軸）', desc: '★ 上面那幾道是 T 型槽：工件、虎鉗與夾治具靠它鎖上去。沒有 T 型槽的平板不是工作台。工作台沿 X 走位，走的距離就是這台機器的 X 行程。' },
@@ -593,36 +608,45 @@
       none: '主軸這一件，本圖查不到台股的具名對應（高階品多為進口）—— 查不到就寫查不到，不編一個對應。' },
     mt_bear: { name: '主軸軸承（前後兩組）', desc: '夾住主軸的那兩圈滾珠。它決定主軸能轉多快、能吃多大的切削力，也是主軸壽命的瓶頸。圖上剖開看得到內環、外環與夾在中間的一圈滾珠。' },
     mt_tool: { name: '刀柄與刀具', desc: '★ 刀柄是錐形的：靠錐面與主軸錐孔的貼合定位，不是靠螺絲鎖 —— 錐面才有辦法在幾秒內重複裝拆又不失精度。中段那一圈溝是給換刀機械手抓的。刀具本身（銑刀、鑽頭）是消耗品，跟機器是兩個產業。',
-      none: '刀具在台股：1528 恩德科技的營業項目含刀具。★ 這一檔不在 supply_chain.yaml 的環節裡，所以這張小卡的「做這個的台股」欄列不出它 —— 這裡用文字補。' },
+      none: '刀具在台股：1528 恩德科技的營業項目含刀具。' },
     mt_coolant: { name: '切削液噴嘴', desc: '降溫、潤滑、把切屑沖走 —— 三件事少一件刀具壽命就掉一截。高階機種會把切削液從主軸中心打出去（中心出水），本圖畫的是外部噴嘴。' },
     mt_chip: { name: '切屑', desc: '切下來的金屬屑。它是「這台機器真的在加工」的證據，也是排屑機存在的理由：切屑堆在機內會頂到工件、也會把熱悶在加工區裡。' },
     mt_conv: { name: '排屑機', desc: '斜著把切屑從加工區運出去、倒進屑車。它不影響精度，但它決定這台機器能不能連續跑而不用有人去清。' },
     mt_guard: { name: '防護鈑金（虛線）', desc: '把加工區圍起來，擋住飛出來的切屑與切削液。畫成虛線是因為這張圖要看得到裡面 —— 實機上它是不透明的鈑金加一片觀察窗。' },
     mt_x: { name: 'X 軸：伺服馬達 ＋ 滾珠螺桿', desc: '工作台左右走的那一根。螺桿上的斜線是螺紋的示意。★ 三根軸的構造完全一樣，只是裝的方向不同 —— 一根軸拆開的樣子（螺帽、鋼珠、回流通道、滑塊）在「工業自動化」那張圖。',
-      none: '滾珠螺桿與線性滑軌在台股：2049 上銀、4540 全球傳動、1597 直得；伺服馬達 4576 大銀微系統。★ 這幾檔屬於「工業自動化」族群，不在這一格，也都不在 supply_chain.yaml 的環節裡。' },
+      none: '滾珠螺桿與線性滑軌在台股：2049 上銀、4540 全球傳動、1597 直得；伺服馬達 4576 大銀微系統。' },
     mt_y: { name: 'Y 軸：鞍座的進給', desc: '帶著工作台往畫面的裡外走。圖上畫成一條斜線，因為在正視圖裡它的方向是朝向觀看者的。' },
     mt_z: { name: 'Z 軸：立柱上的進給', desc: '主軸頭上下的那一根。★ 它是三根軸裡唯一要對抗重力的 —— 所以通常還有配重或煞車，停電時主軸頭不會自己掉下來。本圖不畫配重（各家做法不同，查不到通例）。' },
     mt_rail: { name: '線性滑軌（軌道）', desc: '立柱上兩條、床身上兩條。滑軌不出力，只負責「別歪掉」與承重；出力的是旁邊的螺桿。★ 這一段是台廠自己就很強的一段。',
-      none: '線性滑軌在台股：2049 上銀、1597 直得。★ 兩檔屬於「工業自動化」族群，不在這一格，也不在 supply_chain.yaml 裡。' },
+      none: '線性滑軌在台股：2049 上銀、1597 直得。' },
     mt_cnc: { name: '★ CNC 控制器（整櫃外購）', desc: '這張圖的重點零件：它讀程式、算路徑、把每一軸每一毫秒該走到哪算出來。★ 台灣生產的高階工具機皆搭配進口 CNC 控制器（日本發那科 FANUC、德國西門子 SIEMENS、海德漢 HEIDENHAIN）；國產的新代 Syntec、寶元數控 LNC 在中階與多軸工具機逐步推廣。它是整台機器上成本占比最高的單一零組件之一（公開的占比數字只有單一來源，所以本圖不寫數字）。',
-      none: '控制器在台股：7750 新代科技（興櫃／非本族群成分）。★ 這張圖畫的整機廠四檔都不做控制器；控制器這一格不在 supply_chain.yaml 的環節裡，也不在「CNC 工具機」族群裡 —— 這裡用文字補。' },
+      none: '控制器在台股：7750 新代科技（興櫃／非本族群成分）。' },
     mt_drive: { name: '伺服驅動器 ×3 ＋ 主軸驅動器', desc: '控制器算出來的指令由它們變成馬達的電流。★ 通常跟控制器同一家成套供應 —— 這就是為什麼換控制器品牌這麼難：換的不是一個盒子，是整套控制架構與所有調機參數。' },
     mt_panel: { name: '操作面板（人機介面）', desc: '畫面、手輪與按鍵。操作者對「這台機器」的全部印象其實來自它 —— 廠裡的師傅熟的是某一家控制器的操作邏輯，所以整機廠很難換品牌。' },
     mt_bus: { name: '控制匯流排（控制器 → 驅動器 → 馬達）', desc: '指令往外走的那一條。圖上的流動點是往機器方向跑的。' },
     mt_fb: { name: '位置回授（方向相反的那一條）', desc: '★ 有這條線才叫數值控制：控制器 → 驅動器 → 馬達 → 進給機構 → 位置回授 → 控制器，這個環必須是閉的。只畫單向的指令線等於畫成了開迴路，那是普通的自動機器，不是 CNC。' },
     mt_cmp_mill: { name: '綜合加工機（銑削）：刀在轉', desc: '刀具裝在主軸上旋轉，工件夾在工作台上不動，由工作台沿 X／Y 走位、主軸頭沿 Z 進刀。' },
     mt_cmp_lathe: { name: '車床：工件在轉', desc: '工件夾在主軸上旋轉，刀具不轉、沿著工件的軸向與徑向進給。★ 這是兩種機器唯一的分界 —— 誰在轉。',
-      none: 'CNC 車床在台股：1583 程泰機械（台灣規模最大的 CNC 車床廠之一）、4526 東台精機（車床也做）。兩檔都不在 supply_chain.yaml 裡。' },
+      none: 'CNC 車床在台股：1583 程泰機械（台灣規模最大的 CNC 車床廠之一）、4526 東台精機（車床也做）。' },
   };
   // ① 自製 vs 外購那七列，每一列各給一張小卡
   BUY.forEach((r, i) => {
-    PARTS['mt_buy' + i] = { name: r[0] + '：' + r[2], desc: r[3],
-      none: '這一列的公司全部不在 supply_chain.yaml 的環節裡，所以「做這個的台股」欄列不出它們 —— 對應寫在這裡與各零件的小卡。' };
+    PARTS['mt_buy' + i] = { name: r[0] + '：' + r[2], desc: r[3], };
   });
   // ② 四檔逐家
   CO.forEach((r, i) => {
-    PARTS['mt_co' + i] = { name: r[0], desc: r[1].replace(/\*\*/g, ''),
-      none: '★ 這四檔都不在 supply_chain.yaml 的環節裡（electronics 鏈沒有工具機環節），所以「做這個的台股」欄列不出它們 —— 對應寫在這裡。' };
+    PARTS['mt_co' + i] = { name: r[0], desc: r[1].replace(/\*\*/g, ''), };
+  });
+
+  /* 小卡的「做這個的台股」：沒寫 cos 就是整個環節的名單（整機廠三檔）。結構件照這個；其餘明寫空陣列或指定幾檔。*/
+  const COS = { mt_x: ['2049', '4540'], mt_y: ['2049', '4540'], mt_z: ['2049', '4540'], mt_rail: ['2049', '1597'],
+    mt_cnc: ['7750'], mt_drive: [], mt_panel: [], mt_bus: [], mt_fb: [], mt_work: [], mt_spmot: [], mt_spindle: [], mt_bear: [],
+    mt_tool: [], mt_mag: [], mt_magmot: [], mt_atc: [], mt_conv: [], mt_coolant: [], mt_chip: [], mt_guard: [],
+    mt_cmp_lathe: ['1583', '4526'] };
+  Object.keys(COS).forEach((k) => {
+    if (!PARTS[k]) return;
+    PARTS[k].cos = COS[k];
+    if (!COS[k].length && !PARTS[k].none) PARTS[k].none = '這一件本圖查不到台股的具名對應 —— 查不到就寫查不到，不編一個對應。';
   });
 
   window.DG.register('machine_tool', {

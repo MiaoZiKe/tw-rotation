@@ -257,6 +257,51 @@ segments:
        這一格同時放被動元件專業代理（日電貿 3090、蜜望實 8043）與綜合型 IC／元件通路（大聯大 3702）；
        大聯大的主體是半導體 IC 代理，放這裡只因為它的官網產品線頁具名代理信昌電，不代表它是被動元件通路"}
 
+  # ================================================================ 矽晶圓／第三代半導體／工具機／工業自動化 補環節（2026-10-04）
+  # ★ 為什麼補：Andy 看「產業地圖 → 半導體 → 矽晶圓」剖析圖（3D 柴氏長晶爐），下方完全沒有供應鏈關聯圖，原話
+  #   「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」。根因有兩層：
+  #   ① 這份 YAML **沒有矽晶圓這個環節**（半導體鏈原本 14 格，沒有一格是晶圓、也沒有第三代半導體、工具機、傳動元件），
+  #     所以那四張剖析圖（矽晶圓、CNC 工具機、工業自動化、第三代半導體）的零件都沒有環節可掛，#317 的「反亮」交集為空、整塊關聯圖被藏起來；
+  #   ② 即使有節點，也沒有任何具名邊。
+  #   證據逐條在 docs/groups_wafer_sc_evidence.md。
+  # ★ 全部加在 segments 尾端：color_idx 吃 YAML 原始順序，插在中間會洗掉既有環節的顏色（DECISIONS #48）。
+  # ★ 兩個沒有台股節點的環節（poly_silicon、crystal_equip）**只有 note、沒有公司節點**：
+  #   全球廠商查得到（把名字寫進 note），但查不到任何「具名供貨給台廠」的來源，所以不畫節點也不畫邊。
+  #   理由是半導體鏈的孤立節點棘輪（SC_ISO_MAX semiconductor ＝ 0）—— 畫一個沒有邊的外商節點就會把它頂破，而那種節點本來就沒有資訊量。
+  - {id: poly_silicon,   name: "多晶矽原料", layer: 0, chain: semiconductor, role: material, material_of: [wafer_si],
+     note: "半導體級多晶矽（9N～11N）是矽晶圓的原料，在長晶爐裡熔成熔湯。全球主要廠商：Wacker（德）、Tokuyama（日）、Hemlock（美）、OCI（韓／馬來西亞）（Tokuyama 與 OCI 在馬來西亞砂拉越有合資的半導體級多晶矽廠，IFC 2026-03 新聞稿）。
+       ★ 台股沒有半導體級多晶矽廠；查不到任何一篇寫明『某家多晶矽廠供貨給環球晶／台勝科／合晶』的具名來源（市調報告摘要只有泛稱），所以只列名、不畫節點與邊。
+       ⚠ Wacker 與 Siltronic（德國矽晶圓廠）淵源很深（Siltronic 原為 Wacker 子公司），但兩次搜尋都沒找到兩者之間多晶矽供貨協議的原文，也不畫"}
+  - {id: crystal_equip,  name: "長晶爐與熱場耗材", layer: 0, chain: semiconductor, role: equipment, material_of: [wafer_si],
+     note: "長晶爐（CZ 提拉爐）、石英坩堝、石墨熱場（加熱器、承座、保溫氈）。★ 台股查不到專做這幾項的上市櫃廠。長晶爐可引用的廠商只有 PVA TePla（德，產品目錄列有 EKZ 系列 CZ 提拉爐，最大到 300 mm 晶碇）；
+       石英坩堝與石墨熱場的廠商這次查不到可引用的來源，不列名（不用記憶補名單）。
+       ★ 沒有具名來源可以連到環球晶／台勝科／合晶，所以只寫 note、不畫節點與邊"}
+  - {id: wafer_si,       name: "矽晶圓", layer: 1, chain: semiconductor, role: material, material_of: [foundry, dram_nor],
+     note: "長晶（CZ 提拉）→ 外圓磨 → 切片 → 研磨 → 蝕刻 → 拋光 →（選配）磊晶。是晶圓代工與記憶體廠的原料：台積電年報把 FST（台勝科）、GlobalWafers（環球晶）、SEH（信越半導體）、Siltronic、SK siltron、SUMCO 列為六家原料晶圓供應商，合計供應全球約 9 成以上。
+       ★ 母子口徑：中美晶 5483 持有環球晶約 47%，2026H1 合併營收 405.0 億中環球晶 292.0 億（約 72%，其餘是朋程、台特化、宏捷科等），所以這一格只放環球晶 6488，不重複放中美晶（放了會把同一份晶圓營收算兩次，而且中美晶→環球晶不是買賣、畫不出邊）。
+       再生晶圓 8028 昇陽半導體與 1560 中砂、研磨耗材在『前段製程材料』與再生晶圓支線，本圖查不到具名客戶，所以不放節點"}
+  - {id: wbg_substrate,  name: "SiC／GaN 基板", layer: 0, chain: semiconductor, role: material, material_of: [wbg_epi],
+     note: "碳化矽（SiC）基板用昇華法（PVT）長晶，不是矽晶圓的 CZ 提拉。TrendForce（2025-05 公布）2024 年 N 型 SiC 基板營收市占：Wolfspeed 33.7%、天科合達 TanKeBlue 17.3%、天岳先進 SICC 17.1%、Coherent 13.9%（前四大合計 82%）；ROHM 為垂直整合、未列數字。
+       ★ 台廠：環球晶 6488 也有 6 吋與 8 吋 SiC 基板（公司法說會：客戶以車用與高功率 IDM 為主；節點放在『矽晶圓』環節，主營仍是矽）。GaN 功率元件多長在矽或 SiC 基板上"}
+  - {id: wbg_epi,        name: "SiC／GaN 磊晶", layer: 1, chain: semiconductor, role: material, material_of: [wbg_device],
+     note: "在基板上長出決定耐壓的漂移層（SiC）或 GaN／AlGaN 疊層。這是元件裡的材料層，不是獨立元件。台股只有嘉晶 3016（漢磊持股約 52.5%，主要供應漢磊代工）"}
+  - {id: wbg_device,     name: "第三代半導體元件／代工", layer: 2, chain: semiconductor,
+     note: "SiC（二極體、MOSFET）與 GaN 功率元件的代工與製造。台股在 SiC 是漢磊 3707；GaN 的 8 吋代工台灣是力積電 6770（在晶圓代工環節；Navitas 2025-07 宣布轉單）。
+       ★ 穩懋 3105／宏捷科 8086 做的是 GaAs（砷化鎵）射頻，不是功率用的寬能隙，所以不放在這一格（穩懋另有 GaN 射頻製程，營收主體仍是 GaAs）"}
+  - {id: power_idm,      name: "功率 IDM／GaN 設計商", layer: 3, chain: semiconductor,
+     note: "外商：Infineon、onsemi、STMicroelectronics、Renesas、Navitas。這一格只有外商，是矽晶圓（功率元件用 8 吋）與第三代半導體的下游客戶；它們同時是台廠的終端客戶與同業"}
+  # ---- 一般電子鏈：工業自動化與 CNC 工具機
+  # ★ 為什麼補：同一天 Andy 的『四張都要有關聯圖』。CNC 工具機與工業自動化兩張剖析圖當初沒掛 data-seg，理由是「一般電子鏈 8 格裡沒有一格是傳動件或工具機」。
+  - {id: motion_parts,   name: "傳動與氣動元件", layer: 1, chain: electronics,
+     note: "滾珠螺桿、線性滑軌、聯軸器、減速機（行星／諧波）、線性馬達與定位平台、氣動元件。★ 這一格的台股都查不到具名客戶（全部是標準品、經銷與直銷併行），所以只有節點、沒有邊，圖上會掛『?』—— 是誠實，不是漏畫。
+       國際同業（日系，例如 THK、NSK）查不到與台廠的具名供貨關係，不放節點"}
+  - {id: cnc_controller, name: "CNC 控制器與驅動", layer: 1, chain: electronics,
+     note: "CNC 控制器、伺服驅動器。國際主流是 FANUC（日）、三菱電機、西門子、海德漢，台灣業者有新代 7750、寶元、台達電（寶元與台達電不在本格）。★ 『台灣八成工具機客戶指定發那科』只有單一媒體來源（一則摘要），不寫進圖"}
+  - {id: cnc_machine,    name: "CNC 工具機整機", layer: 2, chain: electronics,
+     note: "綜合加工機、車床等切削工具機整機。★ 富強鑫 6603 做的是塑膠射出成型機（不是切削工具機），groups.yaml 把它放在 machine_tool 族群，這一格**不放**它；恩德 1528 的營收約 78% 是電腦數控加工中心與 PCB／木工專用機（其餘是板材）"}
+  - {id: factory_robot,  name: "機器人與自動化系統", layer: 1, chain: electronics,
+     note: "協作機器人、3D 視覺、半導體廠搬運與智慧物流（AMHS、OHT）等整廠自動化系統。★ 盟立 2464 2026 年產品組合中半導體設備系統約 57%、智慧自動化系統約 16%、光電面板自動化約 11%（媒體整理），主體其實已偏半導體設備"}
+
 # ---------------------------------------------------------------- 產品 / 技術
 products:
   - id: cowos
@@ -684,10 +729,10 @@ companies:
        自主粉末配方 ＋ 1kV 以上高壓 MLCC；高毛利的高壓 NP0 比重在拉高。
        2026-09 的報導把它列為村田 MLCC 料號 EOL 的受惠者之一，理由是村田短期不切入 NP0。
        ⚠ 證據等級：WebSearch 摘要，沒有讀過原文。同樣查不到具名客戶，所以只放節點不連邊"}
-  # ⚠ id 叫 chilisin_elec，但本體是**信昌電 Prosperity Dielectrics（PDC）6173**，不是奇力新 Chilisin
-  #   （奇力新是另一家，已被國巨收購、不是台股節點）。id 因為 site/dg/ai_adv_packaging.js 兩處引用（cos 清單）而不能改，
-  #   改名要同時動 site/ —— 這一批不碰前端，記在 HANDOFF 待處理。
-  - {id: chilisin_elec, ticker: "6173", name: 信昌電, segment: passive_comp,
+  # ⚠ 2026-10-04 改名：id 原本叫 chilisin_elec（#318 發現本體是信昌電 Prosperity Dielectrics〔PDC〕6173，不是奇力新 Chilisin；
+  #   奇力新是另一家，已被國巨收購、不是台股節點）。id 一直不能改，是因為 site/dg/ai_adv_packaging.js 兩處 cos 清單引用它；
+  #   這一批前端那兩處同步改成 pdc（本檔 1 個節點＋2 條邊）。
+  - {id: pdc, ticker: "6173", name: 信昌電, segment: passive_comp,
      tech: [MLCC, 諧振電容, DC BIOS, 介電瓷粉],
      note: "★ 2026-09-21 補進來（原因同禾伸堂）。華新科集團旗下，從**粉末到元件自製**，
        著重車規 MLCC；諧振電容類產品約佔 10.5%，DC BIOS 是容量高於一般品的特殊品。
@@ -1019,6 +1064,73 @@ companies:
        ⚠ 這兩個數字是公司自結公告（經 Yahoo 股市／MoneyDJ 轉載）的**單月累計自結數、非經會計師查核**，
        而且是合併前的子公司別數字，加總不等於金控合併盈餘。所以標成 reported、不印在畫面上。
        ★ 不連邊（見本段開頭）。⚠ 證據等級：WebSearch 摘要（Yahoo 股市轉載之公司自結公告、維基百科），信心中高。"}
+
+  # ================================================================ 矽晶圓／第三代半導體／傳動元件／工具機／自動化（2026-10-04）
+  # ---- 矽晶圓（wafer_si）：台廠三家＋台積電年報列名的四家外商。證據逐條見 docs/groups_wafer_sc_evidence.md
+  - {id: globalwafers, ticker: "6488", name: 環球晶, segment: wafer_si,
+     tech: [3～12 吋矽晶圓（長晶、切片、研磨、拋光、磊晶）, SiC 基板 6／8 吋, 美國德州 Sherman 12 吋廠],
+     note: "全球第三大矽晶圓廠、台灣最大。★ 母子口徑：母公司中美晶 5483 持股約 47%；中美晶 2026H1 合併營收 405.0 億中環球晶 292.0 億，看矽晶圓請看環球晶、不要把兩家加總（udn 經濟日報 2026-08 整理）。
+       客戶（公司與媒體）：台積電（年報列為六家原料晶圓供應商之一）、美光（2026-07 宣布 10 年供貨協議＋5 億美元策略資金）；市占率各篇數字不一（15%～18%），不寫"}
+  - {id: fst, ticker: "3532", name: 台勝科, segment: wafer_si,
+     tech: [8 吋與 12 吋矽晶圓（長晶、切片、研磨、拋光、磊晶）],
+     note: "台塑集團與日本 SUMCO 合資（雲林麥寮）。台積電年報的 F.S.T. 就是它。SUMCO TECHXIV 持股約 43～48%（各篇口徑不同），2026-08-27 減持後約 38%；12 吋 DRAM 應用比重法人估約 60%（單一來源，不入圖）。客戶涵蓋晶圓代工與記憶體兩大類"}
+  - {id: hexagon, ticker: "6182", name: 合晶, segment: wafer_si,
+     tech: [拋光晶圓, 磊晶矽晶圓, SOI 晶圓, 8 吋為主（12 吋 2022 起跨入）],
+     note: "★ 跟環球晶不同的地方：合晶以 6／8 吋功率元件用的拋光與磊晶片為主，12 吋是近年擴產。總經理說明彰化二林 12 吋廠鎖定台積電、聯電、力積電與英飛凌、安森美、意法半導體（媒體摘要）——那是『擴廠對象』，不是已出貨金額"}
+  - {id: sumco, ticker: "TYO:3436", name: "SUMCO", segment: wafer_si, foreign: true,
+     tech: [12 吋矽晶圓], note: "全球第二大矽晶圓廠；台勝科的大股東與技術來源（SUMCO TECHXIV 持股）。台積電年報列名的六家原料晶圓供應商之一"}
+  - {id: shin_etsu_seh, name: "信越半導體 SEH", segment: wafer_si, foreign: true,
+     tech: [矽晶圓], note: "信越化學（4063）的矽晶圓子公司，全球最大的矽晶圓廠之一（媒體整理市占約 28～30%）。台積電年報列名的 SEH 就是它。台灣的代理與材料通路是崇越 5434（主體是半導體材料通路，不放進這一格）"}
+  - {id: siltronic, ticker: "ETR:WAF", name: "Siltronic", segment: wafer_si, foreign: true,
+     tech: [矽晶圓], note: "德國矽晶圓廠。台積電年報列名的六家原料晶圓供應商之一"}
+  - {id: sk_siltron, name: "SK siltron", segment: wafer_si, foreign: true,
+     tech: [矽晶圓], note: "韓國 SK 集團的矽晶圓廠。台積電年報列名（2016 年版只有五家、後來加入）"}
+  # ---- 第三代半導體
+  - {id: episil_prec, ticker: "3016", name: 嘉晶, segment: wbg_epi,
+     tech: [矽磊晶, 化合物磊晶（SiC／GaN）, 8 吋 SiC 磊晶送樣], 
+     note: "漢磊持股約 52.5%，主要供應漢磊代工（法說會與媒體）。2025 上半年化合物磊晶營收年減約 49%（媒體整理）"}
+  - {id: episil, ticker: "3707", name: 漢磊, segment: wbg_device,
+     tech: [功率元件晶圓代工（6／8 吋）, SiC 二極體與 MOSFET, 車用 MOSFET／FRED／TVS, GaN],
+     note: "★ 世界先進 5347 2024-09 認購漢磊私募約 13% 成為最大股東，雙方推 8 吋 SiC：技術由漢磊轉移、量產由世界先進營運，目標 2026 下半年量產（重大訊息）。
+       ★ 世界先進沒有放進 supply_chain.yaml（它的節點在晶圓代工環節會在 AI 伺服器鏈圖上變成孤立節點、頂破棘輪），所以這層關係寫在這裡不畫邊。
+       SiC 主要客戶近兩年來自中國電動車與太陽能（媒體整理），查不到具名客戶"}
+  - {id: wolfspeed, ticker: "NYSE:WOLF", name: "Wolfspeed", segment: wbg_substrate, foreign: true,
+     tech: [SiC 基板與磊晶片（150 mm、200 mm）],
+     share: [{metric: "N 型 SiC 基板營收市占（2024 全年）", value_pct: 33.7, as_of: "2024-12", source: "TrendForce（semiconductor-today 2025-05 轉載）", source_url: "https://www.semiconductor-today.com/news_items/2025/may/trendforce-120525.shtml", confidence: reported}],
+     note: "全球 SiC 基板龍頭。2025 年曾聲請破產重整（媒體），供貨協議現況以公司最新公告為準"}
+  - {id: infineon, ticker: "ETR:IFX", name: "Infineon", segment: power_idm, foreign: true, tech: [功率半導體 IDM, SiC／GaN 功率元件]}
+  - {id: onsemi, ticker: "NASDAQ:ON", name: "onsemi", segment: power_idm, foreign: true, tech: [功率與類比 IDM, SiC]}
+  - {id: stmicro, ticker: "NYSE:STM", name: "STMicroelectronics", segment: power_idm, foreign: true, tech: [功率與類比 IDM, SiC]}
+  - {id: renesas, ticker: "TYO:6723", name: "Renesas", segment: power_idm, foreign: true, tech: [車用 MCU 與功率半導體]}
+  - {id: navitas, ticker: "NASDAQ:NVTS", name: "Navitas", segment: power_idm, foreign: true,
+     tech: [GaN 功率 IC（fabless）], note: "GaN 設計商，沒有自己的晶圓廠：原本主力投片在台積電、2025-07 宣布改由力積電 8 吋代工"}
+  # ---- 一般電子鏈：傳動元件、控制器、工具機整機、機器人
+  - {id: hiwin, ticker: "2049", name: 上銀, segment: motion_parts,
+     tech: [滾珠螺桿, 線性滑軌], note: "滾珠螺桿與線性滑軌；終端含工具機、半導體設備、醫療設備與工業自動化（媒體整理）。查不到具名客戶"}
+  - {id: tbi, ticker: "4540", name: 全球傳動, segment: motion_parts,
+     tech: [滾珠螺桿, 線性傳動, 聯軸器, 螺桿支撐座], note: "TBI MOTION。終端偏產業機械（媒體整理）；官網產品線含撓性聯軸器與螺桿支撐座。查不到具名客戶"}
+  - {id: chieftek, ticker: "1597", name: 直得, segment: motion_parts, tech: [線性滑軌], note: "查不到具名客戶"}
+  - {id: hiwin_mikro, ticker: "4576", name: 大銀微系統, segment: motion_parts,
+     tech: [線性馬達, 精密定位平台, 多軸控制器, 位置量測系統],
+     note: "半導體設備約占營收 30%（媒體整理）；客戶涵蓋應用材料、ASML、科磊（多家媒體，另一端不在這條鏈上，所以沒畫邊）；與上銀合作（馬達與驅動控制＋高真空線性滑軌）做奈米級運動控制（媒體）"}
+  - {id: apex_dynamics, ticker: "4583", name: 台灣精銳, segment: motion_parts,
+     tech: [行星減速機], note: "行星減速機約占營收 73%（媒體整理）；已掌握諧波減速機技術但主力是行星式。查不到具名客戶"}
+  - {id: airtac, ticker: "1590", name: 亞德客-KY, segment: motion_parts, tech: [氣動元件], note: "查不到具名客戶"}
+  - {id: syntec, ticker: "7750", name: 新代, segment: cnc_controller,
+     tech: [CNC 控制器, 智慧製造], note: "台灣主要國產 CNC 控制器廠。2026-05 與程泰、亞崴結盟推 CNC 取放自動化方案"}
+  - {id: tongtai, ticker: "4526", name: 東台, segment: cnc_machine,
+     tech: [綜合加工機, CNC 車床, 半導體／PCB 專用設備], note: "電子事業部約占接單 30%、傳統工具機 70%（法說會，2025-11）；客戶產業含半導體設備、新能源車、航太國防（查不到具名客戶）"}
+  - {id: chengtai, ticker: "1583", name: 程泰, segment: cnc_machine,
+     tech: [CNC 車床, 五軸銑車複合機], note: "產品獲國內汽車零組件與航太大廠採用（媒體，不具名）"}
+  - {id: anderson, ticker: "1528", name: 恩德, segment: cnc_machine,
+     tech: [CNC 加工中心, PCB 專用機, 木工機械, 刀具], note: "自有品牌 ANDERSON。★ 營收約 78% 機械製品（含電腦數控加工中心、PCB 與木工專用機）、約 22% 板材。查不到具名客戶"}
+  - {id: techman, ticker: "4585", name: 達明, segment: factory_robot,
+     tech: [協作型機器人], note: "廣達集團（廣達→廣明→達明）；廣達是主要客戶之一，廣達工廠內約 2,000 台，另有歐姆龍等（媒體）"}
+  - {id: solomon, ticker: "2359", name: 所羅門, segment: factory_robot,
+     tech: [AI 3D 視覺, 機器人視覺系統], note: "媒體整理的客戶名單為國際品牌，沒有具名的台廠關係，所以沒畫邊"}
+  - {id: mirle, ticker: "2464", name: 盟立, segment: factory_robot,
+     tech: [半導體廠 AMHS／OHT／EFEM, 光電面板自動化, 智慧物流],
+     note: "客戶含台積電（CoWoS 先進封裝 EFEM、OHT）、友達、群創（媒體）；2026 年產品組合半導體設備系統約 57%。★ 台積電在半導體鏈、跨鏈的邊畫不出來，所以邊只畫友達與群創"}
 
 # ---------------------------------------------------------------- 邊
 # 2026-09-19 由三位 industry-analyst 查證後重寫。每條標了 confidence：
@@ -1461,7 +1573,7 @@ edges:
   - {from: sinocera, to: semco, rel: supplies, item: "MLCC 介電陶瓷粉體（配方粉）", strength: 4, confidence: reported,
      note: "同上來源；三星電機是國瓷材料名單裡最常被點名的客戶",
      source: "新浪財經（MLCC 喧嚣）", source_url: "https://cj.sina.com.cn/articles/view/1644983660/620c756c02001tc2c"}
-  - {from: chilisin_elec, to: walsin_tech, rel: supplies, item: "介電陶瓷粉體（MLCC 核心原料）", strength: 4, confidence: reported,
+  - {from: pdc, to: walsin_tech, rel: supplies, item: "介電陶瓷粉體（MLCC 核心原料）", strength: 4, confidence: reported,
      note: "信昌電自產瓷粉，約一半供給華新科集團、另一半以日本客戶為主（日本客戶未具名）；華新科為信昌電母公司（最大股東）。
        ★ 這條同時是母子關係：schema 沒有 subsidiary_of，先用 supplies 承載（比照日東紡→建榮）。
        數字口徑差異：2018～2020 年的摘要寫『約一半』、另一篇寫『華新科所需粉末八成由信昌電供應』—— 兩者不矛盾（分母不同），但都沒讀到原文，所以不寫百分比。
@@ -1484,7 +1596,7 @@ edges:
      note: "日電貿公司簡介與法說的前五大產品線之一", source: "MoneyDJ 理財網", source_url: "https://www.moneydj.com/kmdj/wiki/wikiviewer.aspx?keyid=a9d84274-c87e-4490-9e8d-2047570bd026"}
   - {from: kyocera_avx, to: nichidenbo, rel: supplies, item: "京瓷 MLCC、AVX 高分子鉭質電容", strength: 2, confidence: verified,
      note: "日電貿前五大產品線之一（2025 前三季約 8%，媒體整理）", source: "MoneyDJ 理財網", source_url: "https://www.moneydj.com/kmdj/wiki/wikiviewer.aspx?keyid=a9d84274-c87e-4490-9e8d-2047570bd026"}
-  - {from: chilisin_elec, to: wpg, rel: supplies, item: "信昌電 MLCC 與電阻（品佳代理產線）", strength: 2, confidence: verified,
+  - {from: pdc, to: wpg, rel: supplies, item: "信昌電 MLCC 與電阻（品佳代理產線）", strength: 2, confidence: verified,
      note: "品佳（大聯大旗下）官網『代理產線』頁列有信昌電子陶瓷。官網只列產品線，沒有占比或金額，strength 只給 2",
      source: "品佳集團官網", source_url: "https://www.wpgholdings.com/sacg/pline_detail/zhtw/PDC"}
   # ---- MLCC 廠 → 終端（AI）
@@ -1579,6 +1691,70 @@ edges:
 # ---------------------------------------------------------------- 競爭關係
 # 2026-09-19：從 edges 搬出來。圖十不畫競爭關係（那不是上下游，畫了會被誤讀成供貨），
 # 留在 edges 裡只會讓之後讀這份 YAML 的人以為圖上有。
+
+  # ================================ 補邊第三批（2026-10-04）：矽晶圓、第三代半導體、自動化
+  # 這一批是 Andy 的「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」＋四張剖析圖都要有關聯圖。
+  # 規則同上一批：只採公司自己講過（年報／法說／重訊／新聞稿）或兩個以上獨立來源；查不到不畫。逐條來源與信心度見 docs/groups_wafer_sc_evidence.md。
+  # ---- 矽晶圓 → 台積電：台積電年報「原料晶圓」採購段自己列名（2016 年版五家、2022 年版六家，F.S.T.＝台勝科）
+  - {from: globalwafers, to: tsmc, rel: supplies, item: "12 吋矽晶圓（台積電年報列名的六家原料晶圓供應商之一）", strength: 3, confidence: verified,
+     note: "台積電年報寫六家合計供應全球 9 成以上原料晶圓、並向多家採購以分散風險，所以各家占比不詳、strength 給 3。⚠ 證據等級：搜尋摘要讀到年報該頁",
+     source: "台積電 2022 年報（採購）", source_url: "https://investor.tsmc.com/static/annualReports/2022/english/ebook/files/basic-html/page106.html"}
+  - {from: fst, to: tsmc, rel: supplies, item: "12 吋矽晶圓（年報的 F.S.T.）", strength: 3, confidence: verified,
+     note: "同上。年報寫的 F.S.T. 是 Formosa Sumco Technology", source: "台積電 2022 年報（採購）", source_url: "https://investor.tsmc.com/static/annualReports/2022/english/ebook/files/basic-html/page106.html"}
+  - {from: sumco, to: tsmc, rel: supplies, item: "12 吋矽晶圓（年報列名）", strength: 3, confidence: verified, source: "台積電 2022 年報（採購）", source_url: "https://investor.tsmc.com/static/annualReports/2022/english/ebook/files/basic-html/page106.html"}
+  - {from: shin_etsu_seh, to: tsmc, rel: supplies, item: "12 吋矽晶圓（年報的 SEH）", strength: 3, confidence: verified, source: "台積電 2022 年報（採購）", source_url: "https://investor.tsmc.com/static/annualReports/2022/english/ebook/files/basic-html/page106.html"}
+  - {from: siltronic, to: tsmc, rel: supplies, item: "12 吋矽晶圓（年報列名）", strength: 3, confidence: verified, source: "台積電 2022 年報（採購）", source_url: "https://investor.tsmc.com/static/annualReports/2022/english/ebook/files/basic-html/page106.html"}
+  - {from: sk_siltron, to: tsmc, rel: supplies, item: "12 吋矽晶圓（年報列名）", strength: 3, confidence: verified, source: "台積電 2022 年報（採購）", source_url: "https://investor.tsmc.com/static/annualReports/2022/english/ebook/files/basic-html/page106.html"}
+  # ---- 矽晶圓 → 記憶體與其他晶圓廠
+  - {from: globalwafers, to: micron, rel: supplies, item: "12 吋矽晶圓（10 年期供貨協議＋美光 5 億美元策略資金，支持德州 Sherman 廠擴產）", strength: 4, confidence: verified,
+     note: "2026-07-09 兩家公司同步宣布。宣布時寫的是『將簽訂十年期供貨協議』，簽約後以公司公告為準。美光買的是 DRAM／NAND 原料晶圓，不只 HBM —— 節點放在 hbm 格是既有的分類",
+     source: "eeNews Europe 與 Tom's Hardware 對美光新聞稿的報導", source_url: "https://www.eenewseurope.com/en/micron-texas-wafer-supply-globalwafers-500-million/"}
+  - {from: fst, to: umc, rel: supplies, item: "8 吋與 12 吋矽晶圓", strength: 3, confidence: reported,
+     note: "台勝科客戶名單：晶圓代工（台積電、聯電、世界先進、力晶、中芯）與記憶體（南亞科、旺宏、華邦電、美光）。名單出自公司法說會（2017、2018 逐字稿）與 NOWnews 整理，兩者口徑一致；法說是舊的（超過 180 天會自動標 stale）。世界先進、旺宏、中芯沒有節點，所以沒畫",
+     source: "富果研究整理台勝科 2017 法說會", source_url: "https://blog.fugle.tw/post/earnings-call-3532-2017-09-21"}
+  - {from: fst, to: nanya_tech, rel: supplies, item: "12 吋矽晶圓（記憶體）", strength: 3, confidence: reported, note: "同上", source: "NOWnews", source_url: "https://www.nownews.com/news/2611329"}
+  - {from: fst, to: winbond, rel: supplies, item: "矽晶圓（記憶體）", strength: 3, confidence: reported, note: "同上", source: "NOWnews", source_url: "https://www.nownews.com/news/2611329"}
+  - {from: fst, to: micron, rel: supplies, item: "12 吋矽晶圓（記憶體）", strength: 3, confidence: reported, note: "同上", source: "NOWnews", source_url: "https://www.nownews.com/news/2611329"}
+  - {from: hexagon, to: tsmc, rel: supplies, item: "12 吋矽晶圓（彰化二林廠鎖定的客戶）", strength: 3, confidence: reported,
+     note: "★ 來源寫的是總經理說明二林廠『為了』這幾家而擴，是擴廠對象、不是出貨金額，所以 strength 不超過 3。台積電年報的六家原料晶圓供應商名單裡沒有合晶",
+     source: "Yahoo 股市（合晶董座：二林擴廠主供台積電與 IDM 廠）", source_url: "https://tw.stock.yahoo.com/news/%E5%90%88%E6%99%B6%E8%91%A3%E5%BA%A7%E7%9B%B4%E8%A8%80%E5%9B%9E%E5%8D%87%E9%80%9F%E5%BA%A6%E6%B2%92%E6%83%B3%E5%83%8F%E4%B8%AD%E5%BF%AB-%E5%BD%B0%E5%8C%96%E4%BA%8C%E6%9E%97%E6%93%B4%E5%BB%A0%E4%B8%BB%E4%BE%9B%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%88%87idm%E5%BB%A0-005239417.html"}
+  - {from: hexagon, to: umc, rel: supplies, item: "12 吋矽晶圓（二林廠鎖定的客戶）", strength: 3, confidence: reported, note: "同上", source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/%E5%90%88%E6%99%B6%E8%91%A3%E5%BA%A7%E7%9B%B4%E8%A8%80%E5%9B%9E%E5%8D%87%E9%80%9F%E5%BA%A6%E6%B2%92%E6%83%B3%E5%83%8F%E4%B8%AD%E5%BF%AB-%E5%BD%B0%E5%8C%96%E4%BA%8C%E6%9E%97%E6%93%B4%E5%BB%A0%E4%B8%BB%E4%BE%9B%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%88%87idm%E5%BB%A0-005239417.html"}
+  - {from: hexagon, to: psmc, rel: supplies, item: "12 吋矽晶圓（二林廠鎖定的客戶）", strength: 2, confidence: reported, note: "同上；力積電只在其中一次摘要出現，所以 strength 給 2", source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/%E5%90%88%E6%99%B6%E8%91%A3%E5%BA%A7%E7%9B%B4%E8%A8%80%E5%9B%9E%E5%8D%87%E9%80%9F%E5%BA%A6%E6%B2%92%E6%83%B3%E5%83%8F%E4%B8%AD%E5%BF%AB-%E5%BD%B0%E5%8C%96%E4%BA%8C%E6%9E%97%E6%93%B4%E5%BB%A0%E4%B8%BB%E4%BE%9B%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%88%87idm%E5%BB%A0-005239417.html"}
+  - {from: hexagon, to: infineon, rel: supplies, item: "功率元件用矽晶圓（拋光／磊晶）", strength: 3, confidence: reported, note: "同上；三家 IDM（英飛凌、安森美、意法）每次搜尋都一起出現", source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/%E5%90%88%E6%99%B6%E8%91%A3%E5%BA%A7%E7%9B%B4%E8%A8%80%E5%9B%9E%E5%8D%87%E9%80%9F%E5%BA%A6%E6%B2%92%E6%83%B3%E5%83%8F%E4%B8%AD%E5%BF%AB-%E5%BD%B0%E5%8C%96%E4%BA%8C%E6%9E%97%E6%93%B4%E5%BB%A0%E4%B8%BB%E4%BE%9B%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%88%87idm%E5%BB%A0-005239417.html"}
+  - {from: hexagon, to: onsemi, rel: supplies, item: "功率元件用矽晶圓（拋光／磊晶）", strength: 3, confidence: reported, note: "同上", source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/%E5%90%88%E6%99%B6%E8%91%A3%E5%BA%A7%E7%9B%B4%E8%A8%80%E5%9B%9E%E5%8D%87%E9%80%9F%E5%BA%A6%E6%B2%92%E6%83%B3%E5%83%8F%E4%B8%AD%E5%BF%AB-%E5%BD%B0%E5%8C%96%E4%BA%8C%E6%9E%97%E6%93%B4%E5%BB%A0%E4%B8%BB%E4%BE%9B%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%88%87idm%E5%BB%A0-005239417.html"}
+  - {from: hexagon, to: stmicro, rel: supplies, item: "功率元件用矽晶圓（拋光／磊晶）", strength: 3, confidence: reported, note: "同上", source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/%E5%90%88%E6%99%B6%E8%91%A3%E5%BA%A7%E7%9B%B4%E8%A8%80%E5%9B%9E%E5%8D%87%E9%80%9F%E5%BA%A6%E6%B2%92%E6%83%B3%E5%83%8F%E4%B8%AD%E5%BF%AB-%E5%BD%B0%E5%8C%96%E4%BA%8C%E6%9E%97%E6%93%B4%E5%BB%A0%E4%B8%BB%E4%BE%9B%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%88%87idm%E5%BB%A0-005239417.html"}
+  # SUMCO → 台勝科：大股東與技術來源。比照日東紡→建榮：schema 沒有 subsidiary_of，先用 supplies 承載並在 item 寫明，不是單純買賣
+  - {from: sumco, to: fst, rel: supplies, item: "大股東與 12 吋技術來源（SUMCO TECHXIV 持股約 38～48%；台勝科 12 吋擴建導入 SUMCO 技術）", strength: 3, confidence: reported,
+     note: "★ 這條邊真正的語意是股東＋技術導入，不是單純買賣。持股比例各篇口徑不同（43%／48.3%），2026-08-27 減持後約 38%",
+     source: "優分析 uanalyze（SUMCO 減持台勝科至 38%）", source_url: "https://uanalyze.com.tw/articles/4236154143"}
+  # ---- 第三代半導體
+  - {from: episil_prec, to: episil, rel: supplies, item: "矽與 SiC 磊晶片（嘉晶主要供應漢磊代工）", strength: 4, confidence: reported,
+     note: "★ 母子公司：漢磊持股嘉晶約 52.5%。語意是集團內垂直分工，不是對外競爭來的訂單。嘉晶另有外部客戶，名單查不到",
+     source: "優分析 uanalyze（嘉晶、漢磊垂直整合供應鏈）", source_url: "https://uanalyze.com.tw/articles/7456031963"}
+  - {from: psmc, to: navitas, rel: supplies, item: "GaN 功率晶片 8 吋晶圓代工（100V～650V，竹南 8B 廠、0.18µm）", strength: 4, confidence: verified,
+     note: "Navitas 2025-07-01 宣布與力積電建立策略合作；100V 系列預計 2026 上半年先在力積電量產。多家媒體一致（鉅亨、經濟日報、科技新報）",
+     source: "科技新報", source_url: "https://technews.tw/?p=1406816"}
+  - {from: tsmc, to: navitas, rel: supplies, item: "GaN 晶圓代工（台積電將於 2027-07-31 結束 GaN 代工業務）", strength: 3, confidence: reported,
+     note: "兩個獨立來源：科技新報報導台積電退出 GaN、CMoney 與理財周刊寫 Navitas 是台積電的主要 GaN 客戶（占其 GaN 產能一半以上，法人估計）。這條邊是『退場中』的關係，Navitas 已轉向力積電",
+     source: "科技新報（台積電退出氮化鎵）", source_url: "https://technews.tw/2025/07/03/tsmc-withdraws-from-gallium-nitride-business/"}
+  - {from: wolfspeed, to: infineon, rel: supplies, item: "150 mm SiC 晶圓（多年期供貨協議，2018 年簽、後續擴大並延長）", strength: 4, confidence: verified,
+     note: "Wolfspeed 官網新聞稿。這一條與台廠無關，是外商基板商的下游，讓『SiC／GaN 基板』這一格有它供貨給誰",
+     source: "Wolfspeed 新聞稿", source_url: "https://www.wolfspeed.com/company/news-events/news/infineon-and-wolfspeed-expand-and-extend-multi-year-silicon-carbide-sic-150mm-wafer-supply-agreement/zh-tw"}
+  - {from: wolfspeed, to: renesas, rel: supplies, item: "SiC 裸晶圓與磊晶片（10 年、20 億美元，2023-07 宣布）", strength: 4, confidence: verified,
+     note: "2025 年 Wolfspeed 曾聲請破產重整，協議現況以公司最新公告為準",
+     source: "科技新報（Wolfspeed 與瑞薩簽 20 億美元供應合約）", source_url: "https://finance.technews.tw/2023/07/06/wolfspeed-renesas-electronics/"}
+  # ---- 一般電子鏈：自動化與 CNC
+  - {from: techman, to: quanta, rel: supplies, item: "協作型機器人（廣達集團內部使用，廣達工廠約 2,000 台）", strength: 3, confidence: reported,
+     note: "★ 母集團關係：廣達→廣明→達明。多家媒體一致（工商時報、聯合報、財訊）說廣達是達明主要客戶之一；達明另有大股東歐姆龍的採購（兩者合計約 3 成，單一來源）。占比不寫",
+     source: "工商時報", source_url: "https://www.ctee.com.tw/news/20251219700104-439901"}
+  - {from: mirle, to: auo, rel: supplies, item: "光電面板廠自動化搬運與倉儲系統", strength: 2, confidence: reported,
+     note: "2026 年光電面板自動化占盟立產品組合約 11%（媒體整理），傳統客戶友達、群創；名單出自 CMoney 與自由時報兩處，摘要沒有金額",
+     source: "CMoney 投資筆記", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=95411"}
+  - {from: mirle, to: innolux, rel: supplies, item: "光電面板廠自動化搬運與倉儲系統", strength: 2, confidence: reported, note: "同上", source: "CMoney 投資筆記", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=95411"}
+  - {from: syntec, to: chengtai, rel: supplies, item: "CNC 控制器（與程泰、亞崴策略結盟：新代控制器與機器人整合進 CNC 取放自動化方案）", strength: 2, confidence: reported,
+     note: "★ 結盟≠出貨：三家 2026-05 宣布共同開發智慧製造方案，沒有揭露搭載量或金額，所以 strength 只給 2。聯合報、自由時報、工商時報三家一致",
+     source: "自由時報（程泰、新代結盟）", source_url: "https://ec.ltn.com.tw/article/breakingnews/5451254"}
+
 competitors:
   - {a: avc,   b: auras,  note: "水冷板同業"}
   - {a: auo,    b: innolux,     note: "面板雙虎"}
@@ -1591,3 +1767,5 @@ competitors:
   - {a: gemtek, b: zyxel,       note: "電信 / ISP CPE 設備同業"}
   - {a: gemtek, b: sercomm,     note: "寬頻 CPE 同業"}
   - {a: delta, b: liteon, note: "伺服器電源同業"}
+  - {a: globalwafers, b: fst, note: "矽晶圓同業（都在台積電年報的六家原料晶圓供應商名單上）"}
+  - {a: globalwafers, b: hexagon, note: "矽晶圓同業（環球晶以 12 吋為主、合晶以 6／8 吋功率元件為主）"}

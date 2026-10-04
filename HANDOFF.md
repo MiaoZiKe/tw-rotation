@@ -1,5 +1,20 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 10-04 矽晶圓／第三代半導體／CNC 工具機／工業自動化四張剖析圖補環節與關聯圖（科技產業分析師，分支 `claude/sc-fill-wafer`，**未推 main，等 CEO 合併**，DECISIONS #320，證據 `docs/groups_wafer_sc_evidence.md`，截圖 `docs/groups_wafer_sc_1004/`）
+- Andy（附矽晶圓剖析圖、下方完全沒有關聯圖）：「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」。根因兩層：YAML 沒有對應環節；前端零件沒掛真的環節（2D 沒有 data-seg、3D 的 seg 是佔位族群 id）→ #317 反亮交集為空 → 整塊藏起來。
+- [x] `supply_chain.yaml`：新增 11 個環節（半導體 7：poly_silicon／crystal_equip／wafer_si／wbg_substrate／wbg_epi／wbg_device／power_idm；一般電子 4：motion_parts／cnc_controller／cnc_machine／factory_robot）、28 家公司（台股 18、外商 10）、27 條邊（高 10、中 17、低 0）。
+  多晶矽、長晶爐與熱場耗材兩格**只有 note、沒有公司節點**（查不到具名供貨；畫孤立外商節點會頂破 SC_ISO_MAX semiconductor＝0）。不放中美晶（母子口徑）與世界先進（會在 AI 伺服器鏈圖變孤立）。
+- [x] 前端接線：`site/dg/{silicon_wafer,wide_bandgap,machine_tool,motion_control}.js` 的 `part()`／少數直寫 data-part 處加 data-seg；`three3d.js` 四個場景（矽晶圓、第三代、motion_axis、machine_tool）零件的 seg 換成真環節；
+  小卡 `cos`（2D）與 `codes`（3D）逐件指定，非結構件明寫空陣列（不把三家整機廠當成主軸製造商）；過時的「不在 supply_chain.yaml」句子清掉；`app.js` FALLBACK 加 4 個沒有台股的新環節。**`industry.js` 沒改。**
+- [x] 接上一批：`power_inductor.js` 電感欄→`passive_inductor`、石英欄→`passive_crystal`；YAML id `chilisin_elec`→`pdc`（`ai_adv_packaging.js` 兩處同步）。`mlcc_powder`／`component_dist` **沒接**（MLCC 圖在 diagrams.js 且是單一環節圖 dg1；通路不是零件，理由見 #320 第 8 點）。
+- **這批驗了**：`pytest tests/ -q`：928 passed、2 skipped、1 xfailed；`SKIP_INTRADAY=1 python -m pipeline.build_payload` 重算後（約 11 分鐘，不是 60）`_preview.py` 全綠（「所有分頁與個股頁正常」）；
+  `_uitest.py --workers 1 --sections 關聯圖對應與3D大小1003,批次6-圖十,一般電子鏈,產業,產業關係面板,產業鏈導覽` 六段全 0；另跑 `3D零件字彙,批次6-圖九,點背景恢復` 全 0。
+  孤立節點棘輪：`批次6-圖十` 通過＝semiconductor 0、ai_server 5（沒有增加；沒有調 SC_ISO_MAX）。反向驗證：把 silicon_wafer.js 換回 main 的版本重跑 `關聯圖對應與3D大小1003`，立刻紅「圖上 []」。
+  翻正的舊驗收（原本斷言「一個 data-seg 都沒有」）：第三代、矽晶圓、傳動件、RLC X5 與兩條畫面文字斷言；`批次14b-被動RLC／第三代半導體／批次21-矽晶圓／批次22-傳動件` 四段跑起來仍有 24 條紅，**逐條對 origin/main 同組跑過是同樣 24 條**（390px 字級／原尺寸、X1／X3／N1／N3 等舊斷言，不是這批造成；本批沒修）。
+- 已知限制：① 一般電子鏈新增節點孤立 9 檔（上銀、全球傳動、直得、大銀微、台灣精銳、亞德客、東台、恩德、所羅門；查不到具名客戶，圖上掛「?」）；② 跨鏈的邊（盟立→台積電、大銀微→應材）畫不出來，只寫在 note；
+  ③ `groups.yaml` 的 machine_tool 含富強鑫 6603（塑膠射出機，不是工具機）、factory_automation 的和椿／大量／鈦昇／竹陞／精確五檔沒放進節點 —— 只出建議、沒改成分（Andy 校訂）；
+  ④ 摘要層級證據（讀不到原文）；台勝科客戶名單出自 2017／2018 法說會，超過 180 天會自動標 stale；⑤ 2D 的 mc_enc／mc_coupling 原本寫「查不到」、3D 卻列 4576／4540，這次以 3D 官網證據對齊。
+
 ## 10-04 05:38 外觀面板拿掉「明暗」——明暗只剩右上角 ☀／🌙（UI 專家，分支 `claude/theme-dedupe`，**未推 main，等 CEO 合併**，接續 DECISIONS #312）
 - Andy（附圖：外觀面板裡有「版面風格」三選一＋「明暗：深色｜淺色」，旁邊右上角已經有 🌙 鈕）：「這邊重複到了，改進」。
 - [x] `site/theme4.js`：外觀面板拿掉「明暗」標題與深色／淺色兩顆（`.t4m`／`data-t4m`）、`setMode()`（只有那兩顆在用，`T4.setMode` 全 repo 沒有別人呼叫）、syncButtons 裡同步那兩顆的一行。

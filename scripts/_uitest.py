@@ -24492,7 +24492,7 @@ def t_b14b_rlc(pg, base):
         #   現在「沒有 seg 但有 parts[key]」也開得了小卡，所以這一條翻成正向：
         #   **小卡要出現**，但**成分股筆數仍然一動都不動**（DECISIONS #73：零件只亮不篩）。
         card = _b14b_card(pg)
-        ok(f"RLC：★ 點{nm}（不掛環節那一欄）→ 小卡真的出現、而且畫面沒有被聚焦到任何一格",
+        ok(f"RLC：★ 點{nm}（電感欄／石英欄）→ 小卡真的出現、而且畫面沒有被聚焦到任何一格",
            _b14b_rows(pg) == n0 and seg_applied(pg) == f0 and bool(card),
            f"{n0} → {_b14b_rows(pg)}；小卡＝{(card or '沒有')[:36]}")
 
@@ -24564,8 +24564,10 @@ def t_b14b_rlc(pg, base):
     ok("RLC・X4：圖上**沒有任何電容零件**（零件名單裡沒有 mlcc／cap／diel），而且畫面自己講明了這件事",
        not [k for k in d["parts"] if any(w in k for w in ("mlcc", "cap", "diel"))]
        and "不畫任何電容" in txt, d["parts"])
-    ok("RLC・X5：★ 整張圖**只有 passive_comp 一個 data-seg**（電感欄與石英欄一個都沒掛）",
-       set(d["segs"]) == {"passive_comp"}, d["segs"])
+    # ★ 2026-10-04（DECISIONS #320，接 #318）：電感欄、石英欄掛上自己的專屬環節；仍然不准掛「被動元件 MLCC／電阻」
+    #   （那會宣稱國巨那五家做電感）。判準：電阻欄＝passive_comp、電感欄＝passive_inductor、石英欄＝passive_crystal，三者各自獨立。
+    ok("RLC・X5：★ 整張圖的 data-seg 是三種各管一欄（電阻 passive_comp、電感 passive_inductor、石英 passive_crystal）",
+       set(d["segs"]) == {"passive_comp", "passive_inductor", "passive_crystal"}, d["segs"])
     ok("RLC・X6：共同舞台的高度**不超過整張圖的三分之一**",
        st["stageH"] > 0 and st["stageH"] <= d["vbH"] / 3,
        f"舞台 {st['stageH']}px ／ 全圖 {d['vbH']}px")
@@ -24598,8 +24600,8 @@ def t_b14b_rlc(pg, base):
     _b14b_gutter(pg, "RLC", [[322, 338, 16, 292, 948], [644, 660, 338, 292, 948]])
     ok("RLC・N3：兩行誠實性標示都在（非實物比例／環節不等於族群）",
        "示意圖，非實物比例" in txt and "不是整個族群" in txt, "")
-    ok("RLC：★ 畫面上寫清楚「電感與石英在供應鏈圖上還沒有自己的一格」（不寫的話會被讀成那五家做電感）",
-       "還沒有自己的一格" in txt and "不掛環節" in txt, "")
+    ok("RLC：★ 畫面上寫清楚電阻、電感、石英各對到哪一個環節（三個不同的環節，不會被讀成國巨那五家做電感）",
+       "電感／磁性元件" in txt and "石英頻率元件" in txt and "三個不同的環節" in txt, "")
 
     # ---------------- 8/9. 動畫 ＋ 字級／重疊／溢出
     _b14b_anim(pg, "RLC", 1)
@@ -24632,10 +24634,12 @@ def t_b14b_wbg(pg, base):
     d = pg.evaluate(B14B_DG)
     txt = d.get("full", "")
     # ---------------- 2. ★ 反向驗收
-    ok("第三代：★★ 圖上**一個 data-seg 都沒有**（掛 foundry／semi_material 都會產生錯誤宣稱）",
-       d["nSeg"] == 0, f"量到 {d['nSeg']} 個：{d['segs']}")
-    ok("第三代：★ 而且畫面上寫清楚「這一格在供應鏈資料裡還沒有對應環節，點零件不會篩成分股」",
-       "還沒有對應環節" in txt and "不是壞掉" in txt, "")
+    # ★ 2026-10-04（DECISIONS #320）：原本這兩條驗「一個 data-seg 都沒有」，那是供應鏈資料沒有第三代半導體環節時的口徑；
+    #   環節補上之後翻成正向：只准掛這三個專屬環節（掛 foundry／semi_material 仍然會產生錯誤宣稱），而且畫面上講清楚點零件會對到哪一格。
+    ok("第三代：★★ 圖上的 data-seg 只有 wbg_substrate／wbg_epi／wbg_device 三種（不准掛 foundry／semi_material 之類別人的環節）",
+       d["nSeg"] > 0 and set(d["segs"]) == {"wbg_substrate", "wbg_epi", "wbg_device"}, f"量到 {d['nSeg']} 個：{d['segs']}")
+    ok("第三代：★ 而且畫面上寫清楚「點零件會對到哪一格」（基板／磊晶／元件各對哪個環節）",
+       "點零件會對到哪一格" in txt and "SiC／GaN 基板" in txt and "嘉晶" in txt, "")
     ok("第三代：R4／R5 —— 查不到的那三段誠實標成「查不到」，而查得到的兩段寫出公司與代號",
        "查不到台股的具名對應" in txt and "3016 嘉晶" in txt and "3707 漢磊" in txt, "")
     ok("第三代：§7-C7 的踩雷 —— 圖上**沒有**穩懋與宏捷科（那組對應是 WebSearch 摘要自己湊的）",
@@ -24757,8 +24761,9 @@ def t_b14b_wbg(pg, base):
     #   所以這條掃描在這張圖上退場（`docs/batch_0923b_uitest_todo.md` 第一節給的第一個選項）。
     #   **覆蓋沒有留空窗**：章節①兩欄之間真的疊到字的話，下面 `_b14b_typo` 的
     #   「文字兩兩不重疊」會抓到 —— 那一條量的是畫面上的實際外框，比欄位溝更直接。
-    ok("第三代・N3：三行誠實性標示都在（非實物比例／只講功率元件／沒有對應環節）",
-       "示意圖，非實物比例" in txt and "射頻 GaN 與 LED 不在此圖" in txt and "還沒有對應環節" in txt, "")
+    # ★ 2026-10-04（#320）：第三行從「沒有對應環節」改成「點零件會對到哪一格」（環節補上了）
+    ok("第三代・N3：三行誠實性標示都在（非實物比例／只講功率元件／點零件會對到哪一格）",
+       "示意圖，非實物比例" in txt and "射頻 GaN 與 LED 不在此圖" in txt and "點零件會對到哪一格" in txt, "")
 
     # ---------------- 5/6
     _b14b_anim(pg, "第三代", 3)
@@ -25932,10 +25937,12 @@ def t_b21_silicon_wafer(pg, base):
         return
 
     # ---------------- 反向驗收
-    ok("矽晶圓：★★ 圖上**一個 data-seg 都沒有**（掛 semi_material 或 foundry 都會產生錯誤宣稱）",
-       d["nSeg"] == 0, f"量到 {d['nSeg']} 個：{d['segs']}")
-    ok("矽晶圓：★ 而且畫面上寫清楚「半導體鏈 14 個環節裡沒有一格是矽晶圓，點零件不會篩成分股，那不是壞掉」",
-       "沒有一格是矽晶圓" in txt and "那不是壞掉" in txt, "")
+    # ★ 2026-10-04（DECISIONS #320）：翻成正向。原本「一個 data-seg 都沒有」是供應鏈資料沒有矽晶圓環節時的口徑；
+    #   現在只准掛 crystal_equip／poly_silicon／wafer_si 三個專屬環節（掛 semi_material 或 foundry 仍然是錯誤宣稱）。
+    ok("矽晶圓：★★ 圖上的 data-seg 只有 crystal_equip／poly_silicon／wafer_si 三種（不准掛 semi_material 或 foundry）",
+       d["nSeg"] > 0 and set(d["segs"]) == {"crystal_equip", "poly_silicon", "wafer_si"}, f"量到 {d['nSeg']} 個：{d['segs']}")
+    ok("矽晶圓：★ 而且畫面上寫清楚「點零件會對到哪一格」（長晶爐與熱場耗材／矽晶圓／多晶矽原料）",
+       "點零件會對到哪一格" in txt and "長晶爐與熱場耗材" in txt and "多晶矽原料" in txt, "")
     ok("矽晶圓：★ 每個零件都有自己寫死的 data-part（沒有 seg 的圖更要自己寫，不然 key 會退化成 null＋序號）",
        len(d["parts"]) >= 22 and "sw_melt" in d["parts"] and "sw_pull" in d["parts"],
        f"共 {len(d['parts'])} 個")
@@ -26053,8 +26060,8 @@ def t_b21_silicon_wafer(pg, base):
     #   現在「沒有 seg 但有 parts[key]」也點得動、也開得了小卡，
     #   所以這張圖不必為了「不掛錯環節」而變成死的。兩件事同時成立才是對的：
     #   **零件真的被選起來（sel-part > 0），而且一個 data-seg 都沒掛。**
-    ok("矽晶圓：★ 一個 data-seg 都沒掛（不宣稱錯的環節），但零件仍然點得動、選得起來",
-       st1["selpart"] > 0 and st1["nSeg"] == 0,
+    ok("矽晶圓：★ 零件掛的是自己的專屬環節（不是別人的），而且點得動、選得起來",
+       st1["selpart"] > 0 and st1["nSeg"] > 0 and set(st1["segs"]) <= {"crystal_equip", "poly_silicon", "wafer_si"},
        f"sel-part {st1['selpart']}／{st2['selpart']}；data-seg {st1['nSeg']}")
     ok("矽晶圓：★ 代價已經補起來 —— 「誰做的」直接印在畫面上（台股標示線列得出五檔與各自做到哪一段）",
        "6488 環球晶" in txt and "6182 合晶" in txt and "3532 台勝科" in txt
@@ -26786,9 +26793,11 @@ def t_e1_motion(pg, base):
     if not drawn:
         return
     d0 = pg.evaluate(B14B_DG)
-    ok("傳動件・D1：★ 這張圖**一個 data-seg 都沒掛**（工業自動化與 CNC 工具機在供應鏈資料裡沒有對應環節，"
-       "硬掛 passive_comp 或 metal_casing 會列出一群做 MLCC 或做機殼的公司 —— 那是錯的答案）",
-       d0["nSeg"] == 0, d0["segs"])
+    # ★ 2026-10-04（DECISIONS #320）：翻成正向。原本「一個 data-seg 都沒掛」是 electronics 鏈沒有傳動件環節時的口徑；
+    #   現在只准掛 motion_parts／cnc_controller／cnc_machine／factory_robot 四個專屬環節（掛 passive_comp 或 metal_casing 仍然是錯的答案）。
+    ok("傳動件・D1：★ 這張圖的 data-seg 只有 motion_parts／cnc_controller／cnc_machine／factory_robot 四種"
+       "（不准掛 passive_comp 或 metal_casing —— 會列出一群做 MLCC 或做機殼的公司，那是錯的答案）",
+       d0["nSeg"] > 0 and set(d0["segs"]) == {"motion_parts", "cnc_controller", "cnc_machine", "factory_robot"}, d0["segs"])
     ok("傳動件・D1 反面：每一個零件都有 data-part（不掛環節也要點得動、也要開得了小卡）",
        len(d0["parts"]) >= 25, len(d0["parts"]))
 
@@ -26969,8 +26978,9 @@ def t_e1_motion(pg, base):
     for bad in ("潔淨室", "FFU", "矽鋼片", "繞組"):
         ok(f"傳動件・X1／X2：圖上沒有「{bad}」—— 那是晶圓廠廠務／變壓器那兩張的範圍",
            bad not in txt.replace("不畫繞組", ""), "")
-    ok("傳動件・D2：§5-A 那五行誠實性標示全部在畫面上（尤其「環節色標篩不到它們」與富強鑫那兩行）",
-       "示意圖，非實物比例" in txt and "環節色標" in txt and "篩不到它們" in txt
+    # ★ 2026-10-04（#320）：「環節色標篩不到它們」那一行改成「點零件會對到四格之一」（環節補上了）
+    ok("傳動件・D2：§5-A 那五行誠實性標示全部在畫面上（尤其「點零件會對到哪四格」與富強鑫那兩行）",
+       "示意圖，非實物比例" in txt and "點零件會對到" in txt and "四格之一" in txt
        and "板塊成分股證據表" in txt and "沒有畫在主圖上" in txt, "")
 
     # ---------------- 零件小卡（真的點下去，卡片的字真的換人）
@@ -26978,12 +26988,12 @@ def t_e1_motion(pg, base):
     c1 = _b14b_card(pg) or ""
     _b14b_click_part(pg, "mc_inject")
     c2 = _b14b_card(pg) or ""
-    ok("傳動件：★ 點「螺桿軸」→ 小卡真的出現，而且講的是滾珠螺桿與上銀（沒有 data-seg 也開得了卡）",
-       "滾珠螺桿" in c1 and "上銀" in c1 and "4540" in c1, c1[:80])
+    ok("傳動件：★ 點「螺桿軸」→ 小卡真的出現，而且講的是滾珠螺桿與上銀、全球傳動",
+       "滾珠螺桿" in c1 and "上銀" in c1 and "全球傳動" in c1, c1[:80])
     ok("傳動件：★ 再點「射出成型機」那一列 → **小卡的字真的換人**，而且寫的是富強鑫與射出成型機",
        c2 != c1 and "富強鑫" in c2 and "射出成型機" in c2 and "切削工具機" in c2, c2[:80])
-    ok("傳動件：小卡有明講這些公司不在供應鏈資料裡（我們沒有把落差藏起來）",
-       "不在 supply_chain.yaml" in c1 or "不在供應鏈資料" in c1, c1[:80])
+    ok("傳動件：★ 點螺桿軸的小卡寫出的台股只有上銀與全球傳動（逐件指定，不是整格六檔：台灣精銳是減速機、亞德客是氣動）",
+       "上銀" in c1 and "全球傳動" in c1 and "台灣精銳" not in c1 and "亞德客" not in c1, c1[:120])
     rows_before = seg_applied(pg)
     _b14b_click_part(pg, "mc_rail")
     ok("傳動件：點零件**不會**把整張圖聚焦到那一格（DECISIONS #73）",
@@ -45085,6 +45095,23 @@ def t_dg_tidy_1003(b, base):
 #     ②「下方的關聯圖為何其他的都不見了，需要有對應那族群的所有關聯圖，並且反亮那族群」
 #       → 剖析圖分頁的關聯圖畫整條鏈（環節數＝族群總覽），剖析圖畫到的環節 .relfocus 亮框亮底、其餘 .relout 降透明；
 #         交集是空的（CNC 工具機、工業自動化、寬能隙、矽晶圓）照舊整塊不顯示；「環節 ▾」下拉列整條鏈、反亮的加「圖上」。
+#   第三輪（#320，2026-10-04，推翻上面「交集是空的四張整塊不顯示」那半句）：
+#     Andy（附矽晶圓剖析圖、下方完全沒有關聯圖）：「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」
+#       → supply_chain.yaml 補了矽晶圓、第三代半導體、傳動與氣動元件、CNC 控制器、工具機整機、機器人與自動化系統共 11 個環節，
+#         四張圖的零件（2D data-seg、3D seg）都掛到真的環節。現在**每一張剖析圖都要對得到這條鏈的環節**，
+#         四張都要看得到關聯圖、反亮對應的環節、而且圖上對得到的公司在關聯圖上真的有線。
+# 四張原本交集為空的剖析圖：2D 圖上掛到的環節（∩ 這條鏈）、圖上對得到而且關聯圖該有線的公司、以及一個真的去點的零件
+FOUR_SC = {
+    "silicon_wafer": {"segs": {"crystal_equip", "poly_silicon", "wafer_si"}, "cos": ["globalwafers", "fst", "hexagon"],
+                      "part": {"part": "sw_ingot", "seg": "wafer_si"}},
+    "wide_bandgap": {"segs": {"wbg_substrate", "wbg_epi", "wbg_device"}, "cos": ["episil", "episil_prec"],
+                     "part": {"part": "wbg_sic_drift", "seg": "wbg_epi"}},
+    "machine_tool": {"segs": {"cnc_machine", "motion_parts", "cnc_controller"}, "cos": ["chengtai", "syntec"],
+                     "part": {"part": "mt_cnc", "seg": "cnc_controller"}},
+    "factory_automation": {"segs": {"motion_parts", "cnc_controller", "cnc_machine", "factory_robot"}, "cos": ["techman", "mirle", "syntec"],
+                           "part": {"part": "mc_robot", "seg": "factory_robot"}},
+}
+
 REL_SCOPE = """() => {
   const rs = document.querySelector('#relSec');
   const diag = [...new Set([...document.querySelectorAll('#prodDiagram [data-seg]')].map(n => n.dataset.seg))];
@@ -45188,8 +45215,9 @@ def t_rel_scope_3d_1003(b, base):
                 z = pg.evaluate(REL_SCOPE)
                 want = sorted(set(z["diag"]) & S)
                 if not want:
-                    ok(f"★ {tg} 剖析圖跟這條鏈的環節對不上任何一格（圖上 {z['diag'][:4]}）→ 整塊供應鏈關聯圖不顯示",
-                       not z["relVis"], z)
+                    # #320：不再有「對不上就整塊藏起來」的剖析圖 —— 每一張都要掛得到這條鏈的環節（原本四張空的已補齊）
+                    ok(f"★ {tg} 剖析圖一定要對得到這條鏈的環節、關聯圖一定要看得到（圖上 {z['diag'][:4]}）",
+                       False, {"圖上": z["diag"], "整條鏈": sorted(S), "relVis": z["relVis"]})
                     continue
                 ok(f"★ {tg} 關聯圖看得到，而且畫整條鏈 {len(z['map'])}／{len(S)} 格（跟族群總覽一樣）",
                    z["relVis"] and set(z["map"]) == S and len(z["map"]) == len(S), {"關聯圖": sorted(z["map"]), "整條鏈": sorted(S)})
@@ -45205,6 +45233,20 @@ def t_rel_scope_3d_1003(b, base):
                    set(z["dd"]) == S and sorted(z["ddFoc"]) == want and all("圖上" in (m or "") for m in z["ddMark"]), (z["dd"], z["ddFoc"], z["ddMark"][:2]))
                 ok(f"{tg} 環節清單（手機那份）也是整條鏈、反亮同一組",
                    set(z["list"]) == S and sorted(z["listFoc"]) == want, (z["list"], z["listFoc"]))
+                if slot in FOUR_SC:
+                    fx = FOUR_SC[slot]
+                    ok(f"★ {tg}（原本整塊被藏起來的四張之一）反亮＝{sorted(fx['segs'])}、關聯圖看得到",
+                       z["relVis"] and sorted(z["foc"]) == sorted(fx["segs"]) and set(z["diag"]) & S == fx["segs"], {"反亮": z["foc"], "圖上": z["diag"]})
+                    deg = pg.evaluate("(ids) => ids.map(id => document.querySelectorAll(`#chainMap path[data-from=\"${id}\"], #chainMap path[data-to=\"${id}\"]`).length)", fx["cos"])
+                    ok(f"★ {tg} 圖上對得到的公司在關聯圖上真的有線（{fx['cos']} → {deg}）", all(n > 0 for n in deg), deg)
+                    # 真的點一個零件（2D 圖的節點，3D 的 seg 與它同一組）→ 那一格的環節框真的亮起來
+                    pt = fx["part"]
+                    got = pg.evaluate("(p) => { const n = document.querySelector(`#prodDiagram [data-part=\"${p.part}\"]`); if (!n) return null;"
+                                      " n.dispatchEvent(new MouseEvent('click', { bubbles: true })); return n.dataset.seg || ''; }", pt)
+                    pg.wait_for_timeout(500)
+                    selbox = pg.evaluate("() => [...document.querySelectorAll('#chainMap rect.segbox.sel')].map(b => b.dataset.seg)")
+                    ok(f"★ {tg} 點零件 {pt['part']}（data-seg＝{got}）→ 關聯圖上那一格的環節框亮起來（{selbox}）",
+                       got == pt["seg"] and pt["seg"] in selbox, {"got": got, "selbox": selbox})
                 # 淡掉的仍點得到：真的點一張淡掉的公司卡 → 浮動卡打開
                 if not clicked_dim and z["nCoOut"] > 0:
                     clicked_dim = True

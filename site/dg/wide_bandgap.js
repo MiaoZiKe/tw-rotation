@@ -67,7 +67,14 @@
   const P = (d, fill, cls) => `<path${cls ? ` class="${cls}"` : ''} d="${d}" fill="${fill}"/>`;
   const line = (d, col, w2, extra) =>
     `<path d="${d}" stroke="${col}" stroke-width="${w2}" fill="none"${extra || ''}/>`;
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-10-04（DECISIONS #320）：供應鏈資料補了第三代半導體的環節，零件掛上去（原本「一個 data-seg 都不掛」是因為沒有環節）：
+       基板／長晶（昇華法）→ wbg_substrate（SiC／GaN 基板：台股沒有專營廠，環球晶有 SiC 基板產品）
+       磊晶層（漂移層、緩衝層、通道層、阻障層、2DEG）→ wbg_epi（嘉晶）
+       其餘（電極、閘極、body、溝槽、p-GaN、電流、分工帶、流程）→ wbg_device（漢磊） */
+  const SEG_SUB = ['wbg_boule', 'wbg_sic_sub', 'wbg_gan_sub', 'wbg_gan_sic_sub'];
+  const SEG_EPI = ['wbg_sic_drift', 'wbg_gan_buf', 'wbg_gan_ch', 'wbg_gan_bar', 'wbg_2deg'];
+  const segOf = (id) => /^wbg_/.test(id || '') ? (SEG_SUB.indexOf(id) >= 0 ? 'wbg_substrate' : (SEG_EPI.indexOf(id) >= 0 ? 'wbg_epi' : 'wbg_device')) : '';
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
@@ -82,9 +89,16 @@
   /* 說明卡片（v2）：卡片離開 SVG 變成 HTML，畫布上只留編號圓點 ＋ 引線。
      ⚠ 這張圖沒有 data-seg，所以 `extRow` 不傳 seg —— 卡片仍然畫得出來，
         只是跟現況一樣點了不會篩成分股（N6 的既定代價，不是壞掉）。*/
+  /* 小卡與卡片上的台股標籤逐件指定（空陣列＝查不到）；沒列的零件走 3D 場景的 codes、再退回整個環節（嘉晶或漢磊）。 */
+  const CODES = { wbg_boule: ['6488'], wbg_flow: ['3016', '3707'], wbg_band: [], wbg_cascode: [], wbg_sic_i: [], wbg_gan_i: [],
+    wbg_sic_jfet: [], wbg_gan_sub: [], wbg_gan_sic_sub: [] };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    /* 卡片上的台股小標籤（fillChips）的權威來源是 3D 場景的 codes；3D 沒有這個零件時才退回這裡的 data-codes，再退回「整個環節的台股」。
+       掛了環節之後最後那條退路會把整格名單貼到每張卡片上 —— 所以 COS 有指定的零件（含明寫空陣列＝查不到）一律在這裡把名單帶進去。 */
+    const cc = (o.part && Object.prototype.hasOwnProperty.call(CODES, o.part)) ? CODES[o.part] : null;
+    let s = extRow({ part: o.part, seg: segOf(o.part) || undefined, codes: cc && cc.length ? cc : undefined, title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
+    if (cc && !cc.length) s = s.replace('<g class="lrow ext" ', '<g class="lrow ext" data-codes="" ');
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
   /* 一顆沿著路徑跑的電荷。路徑字串跟箭頭是分開的兩條 —— 箭頭是靜止時就看得見的那一條，
@@ -211,7 +225,7 @@
     };
     const bar = (frac0, frac1, yy, fill) =>
       R(X0 + (X1 - X0) * frac0, yy, (X1 - X0) * (frac1 - frac0), 26, fill, 'part', 5);
-    return `<g data-part="wbg_band">
+    return `<g data-part="wbg_band" data-seg="wbg_device">
       <rect class="frame part" x="${x}" y="${y}" width="${w}" height="210" rx="9"/>
       <text class="hd" x="${x + 14}" y="${y + 24}">誰守哪一段（大致的範圍，而且是重疊的）</text>
       <text class="sub" x="${x + 14}" y="${y + 44}">縱軸往上＝切換頻率越高　橫軸往右＝耐壓越高</text>
@@ -235,7 +249,7 @@
       discs.push(E(dx, y + 118, 30, 11, C.si, 'part')
         + E(dx, y + 112, 30, 11, C.si2, 'part'));
     }
-    return `<g data-part="wbg_boule">
+    return `<g data-part="wbg_boule" data-seg="wbg_substrate">
       <rect class="frame part" x="${x}" y="${y}" width="${w}" height="210" rx="9"/>
       <text class="hd" x="${x + 14}" y="${y + 24}">長晶（PVT 昇華法）→ 晶碇 → 切片</text>
       <text class="sub" x="${x + 14}" y="${y + 44}">高溫下原料昇華、在籽晶上重新凝結長成晶碇，再用線鋸切成晶片</text>
@@ -265,7 +279,7 @@
   ];
   function pbar(x, y) {
     const w = 196, gap = 20, cols = 3, rowH = 66;
-    return `<g data-part="wbg_flow">${STEPS.map((s, i) => {
+    return `<g data-part="wbg_flow" data-seg="wbg_device">${STEPS.map((s, i) => {
       const bx = x + (i % cols) * (w + gap), by = y + Math.floor(i / cols) * rowH;
       const off = s[2] === 2;
       const ink = off ? ` style="fill:${C.mute}"` : '';
@@ -401,7 +415,7 @@
       ${card({ part: 'wbg_gan_elec', no: 14, side: 'r', color: C.alu, ax: 578, ay: 175, title: '源／閘／汲：三個都在上表面', sub: ['跟 SiC 最明顯的差別。閘極在中間、源汲在兩側。'] })}
       ${card({ part: 'wbg_pgan', no: 15, side: 'r', color: C.org, ax: 452, ay: 181, title: 'p-GaN 閘（常關做法之一）', sub: ['夾在閘極金屬與 AlGaN 之間，把閘下的 2DEG 耗盡 → 常關。另一種做法是 Cascode（第 ① 段）。'] })}
       ${card({ part: 'wbg_gan_i', no: 16, side: 'r', color: C.cyan, ax: 470, ay: 211, title: '電流：橫向（在 2DEG 裡）', sub: ['與左邊 SiC 那支同樣式、方向差 90 度。'] })}
-      ${note({ side: 'r', order: 0, warn: true, title: '★ 這一格在供應鏈資料裡還沒有對應環節', lines: ['所以點零件不會篩成分股 —— 那不是壞掉。硬掛 foundry／semi_material 會在公開網站上產生錯誤宣稱（例如「漢磊做先進邏輯代工」「光洋科做矽晶圓」），所以一個都不掛。誰做哪一段直接印在第 ③ 段的兩個框裡。'] })}
+      ${note({ side: 'r', order: 0, title: '點零件會對到哪一格', lines: ['基板與長晶 → 「SiC／GaN 基板」（外商 Wolfspeed 為首；環球晶有 SiC 基板產品）；磊晶層 → 「SiC／GaN 磊晶」（嘉晶）；電極、閘極、通道 → 「第三代半導體元件／代工」（漢磊）。', '點了之後下方的關聯圖會反亮那幾格，並看得到：嘉晶供應漢磊、力積電幫 Navitas 代工 GaN、Wolfspeed 供貨給 Infineon 與 Renesas。'] })}
       ${note({ side: 'l', order: 98, title: '示意圖，非實物比例', lines: ['各層厚度均為示意：基板數百 µm、漂移層數十 µm、AlGaN 阻障層數十 nm、2DEG 是原子層級 —— 真實比例畫不出來。'] })}
       ${note({ side: 'l', order: 99, title: '這張圖不畫的事', lines: ['射頻 GaN 與 LED（同樣是 GaN，但應用、客戶與台股完全不同一批）；任何良率、成本與產能數字。', '★ 另有兩檔化合物半導體代工股，一次搜尋摘要把它們直接譯成兩家美國公司 —— 那組對應是摘要自己湊的，沒有獨立查證過，所以這張圖連名字都不寫（§7-C7）。'] })}
 
@@ -436,19 +450,21 @@
       wbg_sic_drift: {
         name: 'n⁻ 漂移層（磊晶長出來的）',
         desc: '這一層的厚度就是耐壓。寬能隙 → 崩潰電場高 → 承受同樣電壓需要的材料更薄 → 電阻低、損耗小、元件可以做小。它比底下的基板薄得多，因為它是長上去的，不是切出來的。',
-        none: '★ 供應鏈資料（supply_chain.yaml）的半導體鏈 14 格裡沒有一格對應第三代半導體，所以這張圖不掛環節、點了不會篩。做這一段（磊晶）的台股是 3016 嘉晶（台灣少數能量產 SiC 與 GaN 磊晶者，信心：中，來源為投資研究平台整理）。',
+        none: '做這一段（磊晶）的台股是 3016 嘉晶（台灣少數能量產 SiC 與 GaN 磊晶者，信心：中，來源為投資研究平台整理）。',
       },
       wbg_sic_sub: {
+        cos: ['6488'],
         name: 'n⁺ SiC 基板',
         desc: '機械支撐＋導電。這一片的品質決定上面能不能長出好磊晶 —— 微管與基面差排這類缺陷在長晶那一步就決定了，後面救不回來。',
-        none: '★ 長晶、切片、研磨拋光這三段，本圖**查不到台股的具名對應**（換了三組關鍵字只撈到「概念股清單」式的整理）。6488 環球晶有 SiC 基板業務，但它在 groups.yaml 掛的是「矽晶圓」族群、不在這一格，所以本圖不把它畫進來（R5：查不到就寫查不到，不編一個對應）。',
+        none: '台股：6488 環球晶有 6／8 吋 SiC 基板（公司法說會：客戶以車用與高功率 IDM 為主；主營仍是矽晶圓，節點放在「矽晶圓」環節）。全球基板商以 Wolfspeed 為首（外商）。',
       },
       wbg_sic_gox: {
         name: '閘極氧化層 ＋ 閘極',
         desc: '氧化層夾在閘極與半導體之間，是全圖最薄的一層之一 —— 沒有這一層就不叫 MOSFET（閘極直接碰到半導體那是 JFET 或 HEMT）。它同時是 SiC 的長期可靠度課題之一。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。做元件製造（含閘極、通道、電極）的台股是 3707 漢磊（SiC／GaN 功率半導體晶圓代工，信心：中）。',
+        none: '做元件製造（含閘極、通道、電極）的台股是 3707 漢磊（SiC／GaN 功率半導體晶圓代工，信心：中）。',
       },
       wbg_sic_jfet: {
+        cos: [],
         name: 'JFET 區（只有平面閘才有）',
         desc: '兩個 p-body 之間被夾成的一條窄路，是平面閘導通電阻的一部分。溝槽閘把閘極垂直挖進去就消掉它、單元節距可以更小 —— 代價是阻斷時溝槽處的電場集中，威脅閘極氧化層的長期可靠度。',
         none: '這是元件結構上的一塊區域，不是一個可以外購的零件。做這一段的是元件代工（見閘極那一條）。',
@@ -456,24 +472,22 @@
       wbg_sic_trench: {
         name: '溝槽閘（Trench）',
         desc: '閘極真的挖進半導體裡的一條溝。消掉 JFET 區、通道遷移率較高、單元可以做更密；代價是溝槽底部的電場集中。這一格**不該有** JFET 區 —— 有就是把兩種結構混在一起了。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。台股在元件製造那一段是 3707 漢磊。',
+        none: '台股在元件製造那一段是 3707 漢磊。',
       },
       wbg_sic_body: {
         name: 'p-body 與 n⁺ 源極區',
         desc: '通道就在 p-body 的表面。n⁺ 源極區一定被 p-body 包住，不能直接碰到 n⁻ 漂移層 —— 碰到就等於把元件短路掉了。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。',
       },
       wbg_sic_src: {
         name: '源極金屬（正面）',
         desc: '蓋住正面大部分，靠兩個接觸窗下去接到 n⁺ 源極與 p-body。它和閘極在同一面、和背面的汲極分屬兩側 —— 這就是「垂直元件」的定義。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。',
       },
       wbg_sic_drain: {
         name: '汲極金屬（背面）',
         desc: '在背面。電流從正面的源極穿過整片晶片到這裡 —— 三個電極畫在同一面就是 GaN HEMT，不是 SiC MOSFET。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。',
       },
       wbg_sic_i: {
+        cos: [],
         name: '電流路徑（垂直）',
         desc: '源極 → 通道 → JFET 區 → 漂移層 → 基板 → 背面汲極。方向是垂直的，耐壓靠的是漂移層的厚度。它跟 GaN 那支箭頭是同一個樣式、方向差 90 度 —— 那一組對比是這張圖最重要的視覺事實。',
         none: '這是一條示意的電流路徑，不是零件。',
@@ -482,66 +496,70 @@
       wbg_2deg: {
         name: '二維電子氣（2DEG）',
         desc: 'AlGaN 與 GaN 貼在一起，界面自己長出一層電子（極化誘發）。它在界面的 **GaN 那一側**，不是在 AlGaN 裡、也不是在兩層正中央。電子跑得快，所以切換可以到 MHz 級。',
-        none: '★ 這一格在供應鏈資料裡沒有對應環節。長 GaN 疊層（磊晶）的台股是 3016 嘉晶。',
+        none: '長 GaN 疊層（磊晶）的台股是 3016 嘉晶。',
       },
       wbg_gan_buf: {
         name: '緩衝層（AlN／AlGaN）',
         desc: 'GaN 長在 Si 上晶格差得多（約 17%），要厚的 AlN／AlGaN 過渡；長在 SiC 上只差約 3.5%，可以薄很多。兩者畫成一樣厚就是把這件事抹掉了。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。台股在磊晶那一段是 3016 嘉晶。',
+        none: '台股在磊晶那一段是 3016 嘉晶。',
       },
       wbg_gan_ch: {
         name: 'GaN 通道層',
         desc: '2DEG 就長在它的上表面。它比上面的 AlGaN 阻障層厚。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。',
       },
       wbg_gan_bar: {
         name: 'AlGaN 阻障層',
         desc: '比底下的 GaN 通道層薄。它和 GaN 的界面就是 2DEG 的所在，三個電極都做在它的上表面。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。',
       },
       wbg_gan_sub: {
+        cos: [],
         name: 'GaN 的基板（Si 或 SiC）',
         desc: 'GaN 功率元件多半長在 Si 或 SiC 基板上。Si 便宜且相容既有 CMOS 廠，但晶格失配大、緩衝層要厚；SiC 導熱好、失配小，但貴。',
-        none: '★ 這一格在供應鏈資料裡沒有對應環節，而且基板（長晶／切片／拋光）那三段本圖查不到台股的具名對應。',
+        none: 'GaN 的基板可以是 Si 或 SiC，查不到台股的具名對應（SiC 基板見前一格）。',
       },
       wbg_gan_elec: {
         name: '源極／閘極／汲極（都在上表面）',
         desc: '三個電極全部做在同一個上表面、背面一個都沒有 —— 這就是「橫向元件」。也正因為是橫向，它受表面崩潰限制，主流停在 650V 級。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。做元件的台股是 3707 漢磊。',
+        none: '做元件的台股是 3707 漢磊。',
       },
       wbg_pgan: {
         name: 'p-GaN 閘（常關做法之一）',
         desc: 'GaN 原生是「常開」的（零偏壓下 2DEG 就導通）。在 AlGaN 上長一層 p 型 GaN，內建電位把閘極底下的 2DEG 耗盡，零偏壓時就不導通了。p-GaN 一定在閘極金屬與 AlGaN 之間。',
-        none: '同上：這一格在供應鏈資料裡沒有對應環節。',
       },
       wbg_cascode: {
+        cos: [],
         name: 'Cascode（常關做法之二）',
         desc: '一顆低壓常關的 Si MOSFET 串一顆常開的 GaN HEMT。**對外控制的是那顆 Si 的閘極**，GaN 的閘極接到 Si 的源極 —— 畫反就把整個電路講錯了。',
         none: '這是一種電路組態，不是單一零件；圖上只畫組態，不畫料號。',
       },
       wbg_gan_sic_sub: {
+        cos: [],
         name: '對照：GaN-on-SiC',
         desc: '同一套疊層長在 SiC 基板上：晶格只差約 3.5%，緩衝層可以薄很多，而且 SiC 的導熱比 Si 好。代價是基板貴。',
-        none: '★ 這一格在供應鏈資料裡沒有對應環節；SiC 基板那一段本圖查不到台股的具名對應。',
+        none: 'GaN-on-SiC 的 SiC 基板見「n⁺ SiC 基板」那一格；GaN 疊層（磊晶）的台股是 3016 嘉晶。',
       },
       wbg_gan_i: {
+        cos: [],
         name: '電流路徑（橫向）',
         desc: '源極 → 2DEG → 汲極，橫著在表面下跑。跟 SiC 那支箭頭同樣式、方向差 90 度 —— 一眼分辨兩種元件就靠這一組。',
         none: '這是一條示意的電流路徑，不是零件。',
       },
       // ---- 其餘
       wbg_band: {
+        cos: [],
         name: '電壓／頻率分工帶',
         desc: 'GaN 大致在 100V–650V 這一帶（1200V 已在送樣但仍屬特殊品）；SiC 大致在 650V–1700V 以上。三條帶**是重疊的**，650V 那一段兩者都在打 —— 畫成井水不犯河水就是錯的。',
         note: '⚠ 兩個來源給的邊界不是同一件事，而且邊界正在移動。所以圖上一律寫「大致在 …」，不寫硬邊界、不寫「一定要選 X」。',
         none: '這是一張分工帶狀圖，不是零件。',
       },
       wbg_boule: {
+        cos: ['6488'],
         name: '長晶 → 晶碇 → 切片',
         desc: 'PVT（物理氣相傳輸／昇華法）在高溫下讓原料昇華、在籽晶上重新凝結長成晶碇，再用多線鋸切片、研磨、化學機械拋光（CMP）到可以長磊晶的表面。微管與基面差排這類缺陷在長晶這一步就決定了。',
-        none: '★ 長晶、切片、研磨拋光這三段，本圖**查不到台股的具名對應**。6488 環球晶有 SiC 基板業務但掛在「矽晶圓」族群，本圖不把它畫進來（R5）。',
+        none: '台股：6488 環球晶有 SiC 基板產品；長晶（昇華法）、切片、研磨拋光三段查不到專營的台股。全球基板商以 Wolfspeed 為首（外商）。',
       },
       wbg_flow: {
+        cos: ['3016', '3707'],
         name: '這條鏈的五段（第六段不在這張圖）',
         desc: '長晶 → 切片 → 研磨拋光 → 磊晶 → 元件製造，順序不准對調：磊晶是長在已經拋好的晶片表面上的。第六格（封裝模組）是灰的，因為那是另一張圖的主題。',
         none: '★ 台股目前指得出名字的是第 ④、⑤ 段：3016 嘉晶（磊晶）、3707 漢磊（元件代工），兩家同屬漢民集團（信心：中，來源為投資研究平台整理，不是公司自己的文件）。第 ①～③ 段查不到具名對應，第 ⑥ 段沒查。',

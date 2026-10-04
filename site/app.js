@@ -1084,7 +1084,11 @@
       const FALLBACK = { hbm: ['hbm'], hyperscaler: ['ai_server_odm'], switch: ['switch_wireless', 'ai_server_odm'], ic_design: ['hpc_network_ic'], foundry: ['foundry'], adv_pkg: ['ai_adv_packaging'], osat_test: ['osat'], abf_pcb: ['ic_substrate'], ccl: ['ic_substrate'], thermal: ['liquid_cooling', 'air_cooling'], power: ['server_psu'], optical: ['optical_module'], assembly: ['ai_server_odm'], ip_eda: ['ip_asic'],
         // 一般電子鏈這兩格只有外商（康寧／Apple／SpaceX），沒有台股節點，
         // 不接 fallback 的話點下去列不出任何東西。
-        display_material: ['panel'], brand_operator: ['smartphone'] };
+        display_material: ['panel'], brand_operator: ['smartphone'],
+        /* 2026-10-04（DECISIONS #320）：矽晶圓／第三代半導體補的環節裡，這四格沒有台股節點（只有 note 或只有外商），
+           不接 fallback 的話點下去列不出任何東西：多晶矽、長晶爐與熱場耗材 → 用它們的矽晶圓族群；SiC／GaN 基板 → 第三代半導體；
+           功率 IDM（Infineon 等外商）→ 類比與功率 IC 設計族群。 */
+        poly_silicon: ['silicon_wafer'], crystal_equip: ['silicon_wafer'], wbg_substrate: ['wide_bandgap'], power_idm: ['analog_power_ic'] };
       Object.entries(FALLBACK).forEach(([seg, gids]) => { if (!L.scolor[seg]) return; gids.filter(g => L.gname[g]).forEach(g => { const b = (L.sgroups[seg] = L.sgroups[seg] || []); if (!b.includes(g)) b.push(g); const a = (L.gsegs[g] = L.gsegs[g] || []); if (!a.includes(seg)) a.push(seg); }); });
       L.recolor();
       L.ready = true;

@@ -6243,3 +6243,49 @@ Andy 看到「一般電子 → 被動元件」剖析圖底下的關聯圖只剩�
 - 不要把 `chilisin_elec` 改名成 `pdc`：`site/dg/ai_adv_packaging.js` 兩處 `cos` 清單引用它（待前端那位一起改）。
 - 不要因為「國巨客戶只講 ODM」就補鴻海／廣達／緯創的邊：董事長只點名輝達與 CSP，ODM 沒有點名。
 - 不要把大聯大（主體是半導體 IC 通路）當成被動元件通路：它在 `component_dist` 只因品佳官網具名代理信昌電。
+
+## #320 矽晶圓、第三代半導體、CNC 工具機、工業自動化四張剖析圖補供應鏈環節與關聯圖（科技產業分析師，2026-10-04，分支 `claude/sc-fill-wafer`；**推翻 #317 的「交集空的四張整塊不顯示」與 #318「別順手改回去」第一條**；合併時若撞號請改號）
+
+Andy（附「產業地圖 → 半導體 → 矽晶圓」剖析圖：3D 柴氏長晶爐＋晶圓，下方完全沒有供應鏈關聯圖）：「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」。
+CEO 的解讀：#317 規定剖析圖分頁下方顯示整條鏈並反亮「圖上標的環節」，交集為空的四張（矽晶圓、CNC 工具機、工業自動化、寬能隙）當時整塊 `#relSec` 隱藏 ——
+那句話代表**四張都要有關聯圖**。證據逐條在 `docs/groups_wafer_sc_evidence.md`。
+
+### 根因
+1. `supply_chain.yaml` 沒有對應環節（半導體鏈 14 格沒有矽晶圓／第三代半導體，一般電子鏈沒有傳動件、控制器、工具機整機、機器人）。
+2. 前端零件沒有掛到真的環節：2D（`site/dg/*.js`）只有 `data-part`、沒有 `data-seg`；3D（`three3d.js`）的 `seg` 是佔位的族群 id（`silicon_wafer`／`wide_bandgap`／`motion_axis`／`machine_tool`）。
+   `industry.js` 的 `relScopeNow()` 取「圖上 `data-seg` ∩ 這條鏈的環節」→ 交集空 → 整塊關聯圖隱藏。**`industry.js` 一個字都沒改**，改的是資料與零件掛的 id。
+
+### 決定
+1. **補 11 個環節，全部加在 `segments:` 尾端**（color_idx 不洗顏色，#48）：半導體鏈 7 個（`poly_silicon`、`crystal_equip`、`wafer_si`、`wbg_substrate`、`wbg_epi`、`wbg_device`、`power_idm`）、
+   一般電子鏈 4 個（`motion_parts`、`cnc_controller`、`cnc_machine`、`factory_robot`）。**環節 id 刻意不跟族群 id 同名**（`wafer_si` 不叫 `silicon_wafer`）：
+   `A.L.sgroups`／`A.L.gsegs` 兩張表一個用環節 id、一個用族群 id，同名會讓 `pickPart(seg)` 分不出來。
+2. **邊 27 條（高 10、中 17、低 0），公司 28 家（台股 18、外商 10）**。高＝台積電年報「原料晶圓」採購段列名的六家（環球晶、台勝科、SUMCO、信越 SEH、Siltronic、SK siltron → 台積電）＋環球晶 → 美光（2026-07 雙方同步宣布）
+   ＋力積電 → Navitas（Navitas 2025-07 宣布）＋ Wolfspeed → Infineon／Renesas（公司新聞稿）。中＝兩個以上獨立來源或公司說法經媒體轉述。**推論一律不畫。**
+3. **兩個環節只有 note、沒有公司節點**（`poly_silicon` 多晶矽、`crystal_equip` 長晶爐與熱場耗材）：全球廠商查得到，但查不到任何具名供貨給台廠的來源；
+   畫一個沒有邊的外商節點會頂破 `SC_ISO_MAX["semiconductor"] = 0`。關聯圖對沒有台股的環節本來就顯示 note。**不憑記憶補名單**：長晶爐只寫查得到產品目錄的 PVA TePla，坩堝與熱場一家都不列。
+4. **母子口徑**：中美晶 5483 持有環球晶約 47%（2026H1 合併營收 405.0 億中環球晶 292.0 億）；`wafer_si` 只放環球晶，不放中美晶（雙重計入；中美晶→環球晶不是買賣，畫不出邊、節點會孤立）。
+   台勝科的 SUMCO 是股東＋技術來源，比照日東紡→建榮用 `supplies` 承載並在 item 寫明；嘉晶→漢磊同理（漢磊持股約 52.5%）。
+5. **世界先進 5347 不放節點**：它在晶圓代工環節，而晶圓代工在 `CHAIN_EXTRA.ai_server` 裡，世界先進的邊另一端（漢磊、台勝科）不在那張圖 → 在 AI 伺服器鏈圖上變孤立節點，頂破 `SC_ISO_MAX["ai_server"]`（現況剛好 5）。
+   它與漢磊的 13% 持股、8 吋 SiC 合作寫在漢磊的 note。
+6. **跨鏈的邊不畫**：盟立 → 台積電（CoWoS EFEM／OHT）、大銀微 → 應材／ASML 都查得到，但一端在一般電子鏈、一端在半導體鏈；`drawChainMap` 的度數只算兩端都在這條鏈的邊，放進 YAML 兩張圖都看不到。改寫在節點 note。
+7. **前端接線**：2D 在 `part()`（以及少數直接寫 `data-part` 的地方）加 `data-seg`；3D 把場景零件的 `seg` 換成真的環節。
+   · 矽晶圓：爐體／加熱器／承座／坩堝 → `crystal_equip`；熔湯／晶碇／籽晶／切片／拋光 → `wafer_si`；流程第 ① 格 → `poly_silicon`。
+   · 第三代半導體：基板與長晶 → `wbg_substrate`；漂移層／緩衝層／通道／阻障層／2DEG → `wbg_epi`；電極／閘極／body／溝槽／p-GaN → `wbg_device`。
+   · CNC 工具機：結構件、主軸、刀庫、換刀手、排屑機 → `cnc_machine`；滑軌與螺桿 → `motion_parts`；控制器櫃 → `cnc_controller`。
+   · 工業自動化：傳動、減速機、氣動 → `motion_parts`；控制器／驅動器 → `cnc_controller`；整機 → `cnc_machine`；協作機器人與 AMHS → `factory_robot`。
+   · **掛了環節不等於「做這個的台股」就是整格名單**：小卡的 `cos`（2D）與 `codes`（3D）逐件指定。非結構件（主軸、軸承、刀具、刀庫、換刀手、排屑機、鋼珠、循環器…）明寫空陣列，
+     照舊講「查不到台股的具名對應」，不會把三家整機廠當成它們的製造商。`motion_parts` 一格同時有螺桿、滑軌、減速機、氣動，整格列出來會把上銀當成減速機廠。
+   · 過時的句子（「不在 supply_chain.yaml」「半導體鏈 14 格沒有一格是矽晶圓」「一個 data-seg 都不掛」）逐句清掉；畫面上的說明卡改成「點零件會對到哪一格」。
+8. **接 #318 留下的 TODO**：`power_inductor.js` 的電感欄接 `passive_inductor`、石英欄接 `passive_crystal`（#318 補的專屬環節；掛的是自己的環節，不是「被動元件 MLCC／電阻」，所以「宣稱國巨那五家做電感」的錯誤不會發生）；
+   YAML id `chilisin_elec`（實為信昌電 6173）改名 `pdc`，`ai_adv_packaging.js` 兩處 `cos` 同步改。
+   **`mlcc_powder`、`component_dist` 沒有接**：MLCC 剖析圖在 `site/diagrams.js`（不在 `dg/*.js`）且是單一環節的圖（`dg1` 兩層高亮、14 個零件全是 `passive_comp`），
+   掛粉體會破壞 `dg1` 與 `MLCC 是單一環節的圖` 那組驗收；通路不是零件，沒有圖上對應物。兩者仍在關聯圖上看得到。
+9. **`_uitest` 驗收口徑翻轉**：`關聯圖對應與3D大小1003` 的「交集空要整塊不顯示」改成「每張都要有關聯圖」；新增四張專屬斷言（反亮集合、圖上公司在關聯圖有線、點零件後環節框真的亮）。
+   連帶把幾條『一個 data-seg 都沒有』的反向驗收（第三代、矽晶圓、傳動件、RLC 的 X5）翻成「只准掛這幾個專屬環節」。
+
+### 別順手改回去
+- 不要把四張圖的零件 `data-seg` 拿掉或掛回 `foundry`／`semi_material`／`passive_comp`／`metal_casing`：掛別人的環節＝宣稱錯的公司對應；掛專屬環節才對。
+- 不要把中美晶 5483、世界先進 5347 加成節點（理由見第 4、5 點）；不要為了「列得出台股」把富強鑫 6603 放進 `cnc_machine`（它是射出機）。
+- 不要把 `cnc_machine` 整格名單套到非結構件的小卡上：`cos: []` 是刻意的。
+- `poly_silicon`／`crystal_equip` 要加外商節點之前，先查到具名的供貨關係並確認不頂破棘輪。
+- 搜尋摘要會自己補對應：這一批抓到「合晶客戶」被譯成三種不同寫法、環球晶 SiC 的「客戶」被亂譯成日月光；Wacker 與 Siltronic 的關係沒有找到供貨協議原文。
