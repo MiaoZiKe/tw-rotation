@@ -83,6 +83,7 @@
     split: '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>',
     landmark: '<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 20 7H4z"/>',
     treemap: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
     flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
   };
   function subIcon(key) {
@@ -291,7 +292,7 @@
      插在 #tabs 裡、各自的父頁後面；class 是 l4subtab（**不是 .tab**）—— 手機版、app.js 的分頁列、驗收腳本都是數 .tab，
      不能讓它們多算。≤820 deactivate() 整批拿掉。點了只是換 hash，其餘交給 app.js 的 route()。 */
   function buildSubs() {
-    const tabs = $('#tabs'); if (!tabs || $('.l4subtab', tabs)) return;
+    const tabs = $('#tabs'); if (!tabs || $('.l4subtab[data-l4sub]', tabs)) return;   // 只看資金流向／熱力圖那幾格（會員權限那格另外管，見 syncPerm）
     Object.keys(SUBS).forEach((v) => {
       const parent = $(`.tab[data-view="${v}"]`, tabs); if (!parent) return;
       let after = parent;
@@ -318,6 +319,31 @@
       b.classList.toggle('on', on);
       if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
+    syncPerm();
+  }
+
+  /* ---------------- 「專案 → 自選 → 會員權限」（2026-10-04，Andy：「多一個分頁，只有我這帳號及特定帳號可以用…分頁放在自選下」）----------------
+     只有「已登入、而且 Worker 回報 admin=true」才**建立**這一格；訪客與一般會員的 DOM 裡根本沒有它（不是 hidden）——
+     管理者名單仍然只在 Worker 的 ADMIN_EMAILS（不寫進 repo）。就算有人自己在網址打 #admin/perm，account.js 的 route 也只給管理者看內容、
+     Worker 的 /v1/admin/* 也只回管理者；這一格只是入口。
+     長相跟資金流向的子分頁一樣（l4subtab、縮排在「自選」下面），但不帶 data-l4sub：它是另一個頁面（#admin/perm），不是自選頁裡的一段。 */
+  function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); }
+  function syncPerm() {
+    const tabs = $('#tabs');
+    let b = $('#l4Perm');
+    if (!active || !tabs || !isAdmin()) { if (b) b.remove(); return; }
+    if (!b) {
+      const parent = $('.tab[data-view="watch"]', tabs); if (!parent) return;
+      b = document.createElement('button');
+      b.type = 'button'; b.id = 'l4Perm'; b.className = 'l4subtab l4perm'; b.dataset.parent = 'watch';
+      b.innerHTML = `${subIcon('shield')}<span class="lbl">會員權限</span>`;
+      b.setAttribute('aria-label', '會員權限'); b.title = '專案・會員權限（只有管理者看得到）';
+      b.onclick = () => { if (!/^#admin\/perm\b/.test(location.hash || '')) location.hash = '#admin/perm'; };
+      parent.after(b);
+    }
+    const on = /^#admin\/perm\b/.test(location.hash || '');
+    b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   }
 
   /* ---------------- 左側導覽收合（寬 ↔ 圖示列） ----------------
@@ -466,7 +492,7 @@
     active = true;
     root.classList.add('l4');
     if (!DESK()) root.classList.add('l4m');
-    build(); buildNavBtn(); buildSubs();
+    build(); buildNavBtn(); buildSubs(); syncPerm();
     lastHead = ''; lastSig = '';
     applyNav();
     renderHead(); scanCards(); syncTools();
@@ -496,7 +522,7 @@
        一有節點冒出來就搬到右上角。syncTools 已經是對的順序就不動 DOM，所以搬完觸發的那一次觀察不會再搬，不會無限循環。 */
     if (bar) new MutationObserver(() => { fitNav(); if (active) syncTools(); }).observe(bar, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class', 'title'] });
     /* 會員功能晚一步才開（設定檔晚到）、登入／登出：換掉「沒開」那顆 #l4Login、補上真的 #acctBtn */
-    ['tw:account', 'tw:account-config'].forEach((ev) => window.addEventListener(ev, () => { if (active) syncTools(); }));
+    ['tw:account', 'tw:account-config'].forEach((ev) => window.addEventListener(ev, () => { if (active) { syncTools(); syncPerm(); } }));
     document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#l4LoginTip, #l4Login')) closeLoginTip(); }, true);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLoginTip(); });
     // 子分頁：app.js route() 一改 data-l4sub（含第一次進站、replace 導向）就亮對的那格、頁首補上子分頁名

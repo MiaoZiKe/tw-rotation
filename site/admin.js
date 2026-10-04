@@ -79,7 +79,18 @@
 #v-admin label.psw input:focus-visible+span{outline:2px solid var(--cyan);outline-offset:2px}
 #v-admin label.psw input:disabled{cursor:not-allowed}
 #v-admin .pmrow select{height:30px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 8px}
-#v-admin table.pmlist{table-layout:fixed}#v-admin .pmlist th,#v-admin .pmlist td{white-space:normal!important;overflow-wrap:anywhere}#v-admin .pmlist th:nth-child(1){width:42%}#v-admin .pmlist th:nth-child(3){width:3.5em}#v-admin .pmlist tr{cursor:pointer}#v-admin .pmlist tr:hover td{background:var(--row-hover)}
+#v-admin table.pmlist{table-layout:fixed;width:100%}#v-admin .pmlist th,#v-admin .pmlist td{white-space:normal!important;overflow-wrap:anywhere}#v-admin .pmlist th:nth-child(1){width:40%}#v-admin .pmlist th.c-n{width:3.5em}
+#v-admin .pmlist td small{display:block;font-size:12px;color:var(--ink-2)}#v-admin .pmlist tr.on td{background:color-mix(in srgb,var(--cyan) 12%,transparent)}
+#v-admin .pmcnt{font-size:13px;color:var(--ink-2)}#v-admin .pmbar input[type=search]{flex:1 1 220px;max-width:360px}
+#v-admin .pmtpl{align-items:flex-start}#v-admin .pmtpl small{flex:1 1 260px;font-size:12.5px;color:var(--ink-2);line-height:1.5}#v-admin .pmtpl span{font-size:13px;color:var(--ink-2)}
+#v-admin .pmtag.new{background:color-mix(in srgb,var(--cyan) 22%,transparent)}#v-admin .pmrow.dirty{box-shadow:inset 3px 0 0 var(--cyan);padding-left:8px}
+#v-admin .pmsave{position:sticky;bottom:12px;z-index:20;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;
+  background:var(--panel,#111a2b);border:1px solid var(--cyan);box-shadow:0 6px 24px rgba(0,0,0,.35);font-size:14px}
+#v-admin .pmsave[hidden]{display:none}#v-admin .pmsave #pmDirty{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+#v-admin .pmsave button{height:34px;font-size:14px;border-radius:8px;padding:0 16px;cursor:pointer;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2)}
+#v-admin .pmsave button.pri{background:var(--cyan);border-color:var(--cyan);color:var(--ontop,#04121a);font-weight:700}
+@media (max-width:600px){#v-admin .pmlist .c-exp,#v-admin .pmlist .c-n{display:none}}
+@media (max-width:820px){#v-admin .pmsave{bottom:72px}}#v-admin .pmlist tr{cursor:pointer}#v-admin .pmlist tr:hover td{background:var(--row-hover)}
 #v-admin .pmwarn{font-size:13px;color:var(--ink-2);line-height:1.6;margin:0}
 @media (max-width:820px){ #v-admin .admgrid{grid-template-columns:minmax(0,1fr)} #v-admin .bars{grid-template-columns:minmax(0,8em) minmax(0,1fr) auto} }`;
     document.head.appendChild(s);
@@ -154,17 +165,30 @@
     S.timer = setInterval(() => { if ((location.hash || '').startsWith('#admin') && document.visibilityState !== 'hidden') paint(); else if (!(location.hash || '').startsWith('#admin')) clearInterval(S.timer); }, 30000);
   }
   /* ==========================================================================
-     #admin/perm 功能權限（Andy 2026-10-02，DECISIONS #288）
+     #admin/perm 功能權限（Andy 2026-10-02，DECISIONS #288；2026-10-04 改版）
      這頁回答一個問題：「這個會員（或這個方案）現在能用哪些功能？」所以我該怎麼用：
-       ① 選「會員 email」→ 輸入或從清單挑一個 email → 先選方案範本（免費／付費…）→ 再逐項微調。
-       ② 選「方案範本」→ 改一整組預設；沒有被個別指定的會員（與訪客）全部跟著變。
-     每撥一個開關就立刻存（不必另外按儲存），存好會寫「已儲存（台北時間）」。
+       ① 「新增會員」：輸入 email ＋ 選方案 → 新增（收費會員就是在這裡幫他開）。
+       ② 會員列表：搜尋 email／方案，點一列載入那個人。
+       ③ 下面的開關依 features.js 分類列出全部功能；撥開關只是「草稿」，按底部「儲存」才送出，「取消」整批放棄。
+          有沒存的變更時，換人、換模式、關分頁都會先問一次。
+       ④ 「方案範本」：改一整組預設；沒被個別指定的會員（與訪客）全部跟著變。
+     2026-10-04 為什麼從「撥一下就存」改成「儲存／取消」：Andy 要「添加會員 mail 與開放功能設定」——
+       幫一個收費會員開通通常一次撥好幾個開關，逐個即存會在中途留下一半的設定給對方看到，也沒辦法反悔。
      資料怎麼合：features.js 的預設值 ← 方案範本 ← 個別微調（後面蓋前面）。
      範本只存「跟預設不同」的項目、微調只存「跟範本不同」的項目 —— 之後新增功能時，沒人設過的一律照預設（開），不會突然鎖住誰。
      ========================================================================== */
-  const PS = { mode: 'member', email: '', rec: null, plans: [], planSel: 'free', list: null, confirmDel: false, A: null, v: null, seq: 0 };
+  const PS = { mode: 'member', email: '', rec: null, plans: [], planSel: 'free', list: null, confirmDel: false, A: null, v: null, seq: 0, draft: null, q: '' };
   const FT = () => window.TwFeatures;
   const tpeTime = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(11, 19);
+  /* 定價規劃（docs/commercialization_plan.md：免費／399／799）對應的範本。
+     ★ 只「建立範本」，不套用到任何人、不改內建的「訪客」「免費會員」、不改 features.js 的 def ——
+       上線不能讓任何人突然看不到功能；要不要把某個會員換成這個範本，由管理者一個一個指定。
+     只寫「關掉」的項目（範本只存跟預設不同的）。免費層「一條產業鏈當展示」「T-1 資料」這兩條開關表達不了，寫在說明裡。 */
+  const PRICE_TPL = [
+    { id: 'pfree', name: '免費', off: ['live.tick', 'stock.tick', 'stock.k_min', 'stock.k_hour', 'ov.theme', 'heat.theme', 'heat.detail', 'ind.groups', 'ind.diagram', 'ind.3d', 'ind.rel'] },
+    { id: 'p399', name: '399 即時', off: ['ov.theme', 'heat.theme', 'heat.detail', 'ind.groups', 'ind.diagram', 'ind.3d', 'ind.rel'] },
+    { id: 'p799', name: '799 題材與產業地圖', off: [] },
+  ];
   function loadFeatures() {
     if (window.TwFeatures) return Promise.resolve();
     return new Promise((res) => {
@@ -172,42 +196,76 @@
     });
   }
   const planOf = (id) => PS.plans.find((p) => p.id === id) || null;
-  /* 目前畫面上要顯示的「基準」（範本）與「實際值」 */
+  /* 會員模式的「現在畫面上的方案／微調」：有草稿用草稿，沒有用已存的 */
+  const mPlan = () => (PS.draft && PS.draft.plan) || (PS.rec ? PS.rec.plan : 'free');
+  const mOver = () => (PS.draft && PS.draft.over) || (PS.rec && PS.rec.over) || {};
   function baseVals() {
     const o = FT().defaults();
-    const p = planOf(PS.mode === 'member' ? (PS.rec ? PS.rec.plan : 'free') : PS.planSel);
-    if (p) Object.assign(o, p.feats);
+    if (PS.mode === 'member') { const p = planOf(mPlan()); if (p) Object.assign(o, p.feats); }
     return o;
   }
   function curVals() {
+    if (PS.mode === 'plan') {
+      const o = FT().defaults(), p = planOf(PS.planSel);
+      Object.assign(o, (PS.draft && PS.draft.feats) || (p && p.feats) || {});
+      return o;
+    }
     const o = baseVals();
-    if (PS.mode === 'member' && PS.rec) Object.assign(o, PS.rec.over || {});
+    if (PS.rec) Object.assign(o, mOver());
     return o;
   }
+  const diffKeys = (a, b) => new Set([...Object.keys(a || {}), ...Object.keys(b || {})].filter((k) => (a || {})[k] !== (b || {})[k])).size;
+  /* 草稿跟已存的差幾項（給「N 項未儲存」） */
+  function dirtyN() {
+    const d = PS.draft; if (!d) return 0;
+    if (PS.mode === 'plan') { const p = planOf(PS.planSel); return diffKeys((p && p.feats) || {}, d.feats || {}); }
+    if (!PS.rec) return 0;
+    return (d.plan !== PS.rec.plan ? 1 : 0) + diffKeys(PS.rec.over || {}, d.over || {});
+  }
+  /* 有沒存的變更時先問；回 true＝可以繼續（沒有變更、或使用者同意放棄） */
+  function guard() {
+    if (!dirtyN()) { PS.draft = null; return true; }
+    if (!window.confirm(`有 ${dirtyN()} 項變更還沒儲存，確定放棄？`)) return false;
+    PS.draft = null; return true;
+  }
+  window.addEventListener('beforeunload', (e) => { if (/^#admin\/perm\b/.test(location.hash || '') && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
   function setStat(msg, cls) { const s = PS.v && PS.v.querySelector('#pmStat'); if (s) { s.textContent = msg; s.className = 'pmstat' + (cls ? ' ' + cls : ''); } }
   const ERR = { forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪' };
-  const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s)) + (r._s === 404 && !r.error ? '' : '');
+  const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s));
+  const EMAIL_OK = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   async function renderPerm(v, A) {
-    PS.v = v; PS.A = A;
+    PS.v = v; PS.A = A; PS.draft = null;
     const u = A.user() || {};
-    v.innerHTML = `<div class="card" style="margin-top:16px"><div class="admtop"><h2>管理頁</h2><small style="color:var(--ink-2)">${esc(u.email || '')}</small>${nav('perm')}</div>
-        <p class="use" style="margin:8px 0 0">替每個會員 email 決定能用哪些功能。關掉的功能在對方畫面上會蓋一個鎖頭與「此功能需開通」（不會整頁消失）。這一頁只有管理者看得到。</p></div>
-      <div class="card" id="pmHead" style="margin-top:14px"><h3>要設定誰？</h3>
-        <p class="use">「會員 email」＝替某一個人設定：先選方案範本，再個別微調。「方案範本」＝改一整組預設：「訪客」給沒登入的人、「免費會員」給登入後沒被指定方案的人。</p>
+    v.innerHTML = `<div class="card" style="margin-top:16px"><div class="admtop"><h2>會員權限</h2><small style="color:var(--ink-2)">${esc(u.email || '')}</small>${nav('perm')}</div>
+        <p class="use" style="margin:8px 0 0">收費會員在這裡開通：新增他的 email、選方案，再逐項微調。關掉的功能在對方畫面上會模糊並蓋一個鎖頭與「此功能需開通」（不會整頁消失）。這一頁只有管理者看得到。</p></div>
+      <div class="card" id="pmAdd" style="margin-top:14px"><h3>① 新增會員</h3>
+        <p class="use">輸入對方登入用的 Google email、選方案，按「新增」。對方還沒登入過也可以先設好，登入後就生效。新增之後下面會直接載入他，可以再逐項微調。</p>
+        <div class="pmbar"><input type="email" id="pmAddEmail" placeholder="member@example.com" autocomplete="off" aria-label="新會員 email">
+          <select id="pmAddPlan" aria-label="新會員的方案"></select><button type="button" class="pri" id="pmAddGo">新增</button></div></div>
+      <div class="card" id="pmList" style="margin-top:14px"><h3>② 會員列表</h3><p class="use">點一列就載入那個人，下面的開關換成他的。沒個別設定過的會員＝套「免費會員」範本。</p>
+        <div class="pmbar"><input type="search" id="pmSearch" placeholder="搜尋 email 或方案" aria-label="搜尋會員" value="${esc(PS.q)}"><span class="pmcnt" id="pmCnt"></span></div>
+        <div id="pmListBody"><div class="empty">載入中…</div></div></div>
+      <div class="card" id="pmHead" style="margin-top:14px"><h3>③ 要設定誰？</h3>
+        <p class="use">「會員 email」＝替某一個人設定：先選方案範本，再個別微調。「方案範本」＝改一整組預設：「訪客」給沒登入的人、「免費會員」給登入後沒被指定方案的人。開關撥完按最下面的「儲存」才會生效。</p>
         <div class="seg" id="pmMode" role="tablist"><button type="button" data-m="member" class="${PS.mode === 'member' ? 'on' : ''}">會員 email</button><button type="button" data-m="plan" class="${PS.mode === 'plan' ? 'on' : ''}">方案範本</button></div>
         <div id="pmTarget"></div>
         <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div>
       <div class="pmcats" id="pmCats"></div>
-      <div class="card" id="pmList" style="margin-top:14px"><h3>已經個別設定過的會員</h3><p class="use">點一列就載入那個人。沒列在這裡的會員＝套「免費會員」範本。</p><div id="pmListBody"><div class="empty">載入中…</div></div></div>
+      <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
       <div class="card" style="margin-top:14px"><h3>這個鎖頭擋得住什麼？</h3><p class="pmwarn">鎖頭只擋一般使用者的畫面。這個網站是 GitHub Pages 靜態站，資料檔（site/data/*.json）是公開的，懂技術的人仍然能直接讀到。
         真正保護付費內容，要讓付費資料改由會員 Worker 驗證身分後才提供 —— 設計與工作量寫在 DECISIONS #288，這一版還沒做。</p></div>`;
     v.querySelector('#pmMode').onclick = (e) => {
-      const b = e.target.closest('button[data-m]'); if (!b || b.dataset.m === PS.mode) return;
+      const b = e.target.closest('button[data-m]'); if (!b || b.dataset.m === PS.mode || !guard()) return;
       PS.mode = b.dataset.m; PS.confirmDel = false;
       v.querySelectorAll('#pmMode button').forEach((x) => x.classList.toggle('on', x === b));
       paintTarget(); paintCats(); setStat('');
     };
+    v.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
+    v.querySelector('#pmAddGo').onclick = addMember;
+    v.querySelector('#pmAddEmail').onkeydown = (e) => { if (e.key === 'Enter') addMember(); };
+    v.querySelector('#pmSaveGo').onclick = saveDraft;
+    v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
     await loadFeatures();
     if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">功能清單（features.js）載入失敗。</p></div>'; return; }
     const [pl, li] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {})]);
@@ -219,13 +277,31 @@
     PS.plans = pl.plans || [];
     if (!planOf(PS.planSel)) PS.planSel = 'free';
     PS.list = li && li._s === 200 ? li : { rows: [], users: [] };
-    paintTarget(); paintCats(); paintList();
+    paintAddPlan(); paintTarget(); paintCats(); paintList();
     if (PS.mode === 'member' && PS.email) loadMember(PS.email);
   }
 
   function planOpts(sel, withGuest) {
     return PS.plans.filter((p) => withGuest || p.id !== 'guest')
-      .map((p) => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}${p.builtin ? '' : ''}</option>`).join('');
+      .map((p) => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  }
+  function paintAddPlan() {
+    const s = PS.v && PS.v.querySelector('#pmAddPlan'); if (!s) return;
+    s.innerHTML = planOpts(s.value || 'free', false);
+  }
+  async function addMember() {
+    const v = PS.v, inp = v.querySelector('#pmAddEmail'), e = (inp.value || '').trim().toLowerCase();
+    if (!EMAIL_OK(e)) { setStat('email 格式不對（例如 member@example.com）', 'bad'); inp.focus(); return; }
+    if (!guard()) return;
+    const plan = v.querySelector('#pmAddPlan').value || 'free';
+    if (PS.mode !== 'member') { PS.mode = 'member'; v.querySelectorAll('#pmMode button').forEach((x) => x.classList.toggle('on', x.dataset.m === 'member')); }
+    setStat('新增中…');
+    const j = await PS.A.call('/v1/admin/perm/put', { email: e, plan, over: {} });
+    if (!j || j._s !== 200) { setStat('新增失敗：' + errText(j), 'bad'); return; }
+    inp.value = '';
+    PS.email = j.email; PS.rec = j; PS.draft = null;
+    afterSave(j.email, `已新增 ${j.email}（方案「${j.planName || plan}」）・下面可以再逐項微調，改完按「儲存」`);
+    const h = v.querySelector('#pmHead'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
   function paintTarget() {
     const v = PS.v, box = v.querySelector('#pmTarget'); if (!box) return;
@@ -236,63 +312,91 @@
       const r = PS.rec;
       box.innerHTML = `<div class="pmbar"><input type="email" id="pmEmail" list="pmEmails" placeholder="輸入或選擇會員 email" autocomplete="off" value="${esc(PS.email)}" aria-label="會員 email">
           <datalist id="pmEmails">${[...emails.entries()].map(([e, l]) => `<option value="${esc(e)}">${esc(l)}</option>`).join('')}</datalist>
-          <button type="button" class="pri" id="pmLoad">讀取</button></div>
-        <div class="pmwho" id="pmWho">${r ? whoLine(r) : '輸入 email 後按「讀取」（或按 Enter）。對方還沒登入過也可以先設好，登入後就生效。'}</div>
-        ${r ? `<div class="pmbar"><label style="font-size:13.5px;color:var(--ink-2)">方案範本 <select id="pmPlan">${planOpts(r.plan, false)}</select></label>
-          <button type="button" id="pmClearOver" ${Object.keys(r.over || {}).length ? '' : 'disabled'}>清除個別微調</button>
+          <button type="button" id="pmLoad">讀取</button></div>
+        <div class="pmwho" id="pmWho">${r ? whoLine(r) : '從上面的列表點一位會員，或在這裡輸入 email 按「讀取」。'}</div>
+        ${r ? `<div class="pmbar"><label style="font-size:13.5px;color:var(--ink-2)">方案範本 <select id="pmPlan">${planOpts(mPlan(), false)}</select></label>
+          <button type="button" id="pmClearOver" ${Object.keys(mOver()).length ? '' : 'disabled'}>清除個別微調</button>
           <input type="text" id="pmNewName" maxlength="20" placeholder="新範本名稱" aria-label="新範本名稱" style="width:9em">
           <button type="button" id="pmSaveAs">把這組存成新範本</button>
           <button type="button" class="danger" id="pmReset" ${r.set ? '' : 'disabled'}>移除此會員設定</button></div>` : ''}`;
-      const go = () => { const e = (v.querySelector('#pmEmail').value || '').trim(); if (e) loadMember(e); };
+      const go = () => { const e = (v.querySelector('#pmEmail').value || '').trim(); if (e && guard()) loadMember(e); };
       v.querySelector('#pmLoad').onclick = go;
       v.querySelector('#pmEmail').onkeydown = (e) => { if (e.key === 'Enter') go(); };
       const ps = v.querySelector('#pmPlan');
-      if (ps) ps.onchange = () => saveMember({ plan: ps.value }, `已套用「${(planOf(ps.value) || {}).name || ps.value}」範本`);
+      if (ps) ps.onchange = () => { draftMember({ plan: ps.value }); setStat(`方案改成「${(planOf(ps.value) || {}).name || ps.value}」（還沒儲存）`); };
       const co = v.querySelector('#pmClearOver');
-      if (co) co.onclick = () => saveMember({ over: {} }, '已清除個別微調，完全照範本');
+      if (co) co.onclick = () => { draftMember({ over: {} }); setStat('已清除個別微調（還沒儲存）'); };
       const rs = v.querySelector('#pmReset');
       if (rs) rs.onclick = async () => {
         if (!PS.confirmDel) { PS.confirmDel = true; rs.textContent = '確定移除？（回到免費會員預設）'; return; }
         PS.confirmDel = false;
         const j = await PS.A.call('/v1/admin/perm/put', { email: PS.rec.email, reset: true });
-        if (j && j._s === 200) { PS.rec = j; afterSave(j.email, '已移除此會員的設定，回到「免費會員」預設'); } else setStat('移除失敗：' + errText(j), 'bad');
+        if (j && j._s === 200) { PS.rec = j; PS.draft = null; afterSave(j.email, '已移除此會員的設定，回到「免費會員」預設'); } else setStat('移除失敗：' + errText(j), 'bad');
       };
       const sa = v.querySelector('#pmSaveAs');
       if (sa) sa.onclick = () => saveAsPlan(v.querySelector('#pmNewName').value);
     } else {
       const p = planOf(PS.planSel);
+      const missing = PRICE_TPL.filter((t) => !planOf(t.id));
       box.innerHTML = `<div class="pmbar"><label style="font-size:13.5px;color:var(--ink-2)">範本 <select id="pmPlanSel">${planOpts(PS.planSel, true)}</select></label>
           <input type="text" id="pmNewName" maxlength="20" placeholder="新範本名稱" aria-label="新範本名稱" style="width:9em">
           <button type="button" id="pmSaveAs">另存為新範本</button>
           <button type="button" class="danger" id="pmPlanDel" ${p && !p.builtin ? '' : 'disabled'} title="${p && p.builtin ? '內建範本不能刪' : '用這個範本的會員會退回免費會員'}">刪除範本</button></div>
-        <div class="pmwho" id="pmWho">${p ? planLine(p) : ''}</div>`;
-      v.querySelector('#pmPlanSel').onchange = (e) => { PS.planSel = e.target.value; PS.confirmDel = false; paintTarget(); paintCats(); setStat(''); };
+        <div class="pmwho" id="pmWho">${p ? planLine(p) : ''}</div>
+        <div class="pmbar pmtpl">${missing.length ? `<button type="button" id="pmTpl">建立定價範本（${missing.map((t) => esc(t.name)).join('／')}）</button>` : '<span>定價範本（免費／399 即時／799 題材與產業地圖）都已建立。</span>'}
+          <small>依定價規劃預先關好對應的功能；<b>只建立範本，不會套用到任何人</b>，也不改「訪客」「免費會員」。免費層的「只開一條產業鏈當展示」「T-1 資料」開關表達不了，要另外處理。</small></div>`;
+      v.querySelector('#pmPlanSel').onchange = (e) => { if (!guard()) { e.target.value = PS.planSel; return; } PS.planSel = e.target.value; PS.confirmDel = false; paintTarget(); paintCats(); setStat(''); };
       v.querySelector('#pmSaveAs').onclick = () => saveAsPlan(v.querySelector('#pmNewName').value);
+      const tb = v.querySelector('#pmTpl'); if (tb) tb.onclick = makePriceTemplates;
       const del = v.querySelector('#pmPlanDel');
       del.onclick = async () => {
         if (!PS.confirmDel) { PS.confirmDel = true; del.textContent = '確定刪除？'; return; }
         PS.confirmDel = false;
         const j = await PS.A.call('/v1/admin/plans/put', { id: PS.planSel, del: true });
-        if (j && j._s === 200) { PS.plans = j.plans; const nm = p.name; PS.planSel = 'free'; paintTarget(); paintCats(); setStat(`已刪除「${nm}」；原本用它的會員退回「免費會員」（個別微調保留）`, 'ok'); refreshList(); }
+        if (j && j._s === 200) { PS.plans = j.plans; const nm = p.name; PS.planSel = 'free'; PS.draft = null; paintAddPlan(); paintTarget(); paintCats(); setStat(`已刪除「${nm}」；原本用它的會員退回「免費會員」（個別微調保留）`, 'ok'); refreshList(); }
         else setStat('刪除失敗：' + errText(j), 'bad');
       };
     }
+    paintSave();
+  }
+  async function makePriceTemplates() {
+    if (!guard()) return;
+    let last = null;
+    for (const t of PRICE_TPL) {
+      if (planOf(t.id)) continue;
+      const feats = {};
+      t.off.forEach((k) => { const f = FT().byId(k); if (f) feats[k] = f.kind === 'limit' ? 0 : false; });
+      const j = await PS.A.call('/v1/admin/plans/put', { id: t.id, name: t.name, feats });
+      if (!j || j._s !== 200) { setStat(`建立「${t.name}」失敗：` + errText(j), 'bad'); return; }
+      PS.plans = j.plans; last = t.id;
+    }
+    if (last) PS.planSel = last;
+    paintAddPlan(); paintTarget(); paintCats(); setStat('已建立定價範本（沒有套用到任何人）', 'ok');
   }
   function whoLine(r) {
-    const n = Object.keys(r.over || {}).length;
-    const who = r.known ? `已登入過：<b>${esc(r.known.name || '')}</b>` : '<b>尚未登入過</b>（先設好，對方登入後就生效）';
-    return `<b>${esc(r.email)}</b>・${who}・目前方案「<b>${esc(r.planName || r.plan)}</b>」・個別微調 <b>${n}</b> 項${r.set ? '' : '（還沒個別設定過＝照免費會員）'}`;
+    const n = Object.keys(mOver()).length, p = planOf(mPlan());
+    const who = r.known ? `已登入過：<b>${esc(r.known.name || '')}</b>${r.known.seen ? `（最後登入 ${dstr(r.known.seen)}）` : ''}` : '<b>尚未登入過</b>（先設好，對方登入後就生效）';
+    return `<b>${esc(r.email)}</b>・${who}・方案「<b>${esc(p ? p.name : (r.planName || r.plan))}</b>」・個別微調 <b>${n}</b> 項${r.set ? '' : '（還沒個別設定過＝照免費會員）'}`;
   }
   function planLine(p) {
-    const n = Object.keys(p.feats || {}).length;
+    const n = Object.keys((PS.draft && PS.draft.feats) || p.feats || {}).length;
     const who = p.id === 'guest' ? '套用對象：所有沒登入的訪客' : p.id === 'free' ? '套用對象：登入後沒被指定方案的會員' : `套用對象：被指定這個方案的會員（目前 ${p.members || 0} 位）`;
     return `${who}・跟預設不同的項目 <b>${n}</b> 項`;
+  }
+  function paintSave() {
+    const bar = PS.v && PS.v.querySelector('#pmSave'); if (!bar) return;
+    const n = dirtyN();
+    bar.hidden = !n;
+    const who = PS.mode === 'plan' ? `範本「${(planOf(PS.planSel) || {}).name || ''}」` : (PS.rec ? PS.rec.email : '');
+    bar.querySelector('#pmDirty').innerHTML = n ? `<b>${n}</b> 項變更還沒儲存・${esc(who)}` : '';
   }
 
   function paintCats() {
     const v = PS.v, box = v.querySelector('#pmCats'); if (!box || !FT()) return;
     const ready = PS.mode === 'plan' ? !!planOf(PS.planSel) : !!PS.rec;
     const cur = curVals(), base = baseVals();
+    const saved = PS.mode === 'plan' ? ((planOf(PS.planSel) || {}).feats || {}) : ((PS.rec && PS.rec.over) || {});
+    const now = PS.mode === 'plan' ? ((PS.draft && PS.draft.feats) || saved) : mOver();
     box.classList.toggle('off', !ready);
     box.innerHTML = FT().cats.map((c) => {
       const fs = FT().inCat(c.id); if (!fs.length) return '';
@@ -300,50 +404,59 @@
       return `<div class="card pmcat" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${fs.length} 項・開 ${nOn}</small></h3>
           <button type="button" data-all="1" data-cat="${esc(c.id)}" ${ready ? '' : 'disabled'}>全開</button><button type="button" data-all="0" data-cat="${esc(c.id)}" ${ready ? '' : 'disabled'}>全關</button></div>`
         + fs.map((f) => {
-          const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(PS.rec.over || {}, f.id)) : val !== f.def;
+          const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(mOver(), f.id)) : val !== f.def;
+          const unsaved = ready && saved[f.id] !== now[f.id];
           const ctl = f.kind === 'limit'
             ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${Array.from({ length: f.max + 1 }, (_, i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i + ' 頁'}</option>`).join('')}</select>`
             : `<label class="psw"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${val !== false ? 'checked' : ''} ${ready ? '' : 'disabled'}><span></span></label>`;
-          const tag = diff ? (PS.mode === 'member' ? `<span class="pmtag" title="跟範本不同（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">微調</span><button type="button" class="pmrev" data-rev="${esc(f.id)}">還原</button>`
-            : `<span class="pmtag" title="跟預設不同">改過</span>`) : '';
-          return `<div class="pmrow" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${esc(f.name)}</b><small>${esc(f.desc)}</small></div><div class="pmside">${tag}</div></div>`;
+          const tag = (unsaved ? '<span class="pmtag new" title="改了還沒按儲存">未存</span>' : '') + (diff ? (PS.mode === 'member' ? `<span class="pmtag" title="跟範本不同（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">微調</span><button type="button" class="pmrev" data-rev="${esc(f.id)}">還原</button>`
+            : `<span class="pmtag" title="跟預設不同">改過</span>`) : '');
+          return `<div class="pmrow${unsaved ? ' dirty' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${esc(f.name)}</b><small>${esc(f.desc)}</small></div><div class="pmside">${tag}</div></div>`;
         }).join('') + '</div>';
     }).join('');
     box.onchange = (e) => {
       const el = e.target.closest('[data-f]'); if (!el) return;
       const f = FT().byId(el.dataset.f); if (!f) return;
-      const val = f.kind === 'limit' ? parseInt(el.value, 10) : !!el.checked;
-      setVals({ [f.id]: val }, `「${f.name}」${f.kind === 'limit' ? '改成 ' + val : val ? '開啟' : '關閉'}`);
+      setVals({ [f.id]: f.kind === 'limit' ? parseInt(el.value, 10) : !!el.checked });
     };
     box.onclick = (e) => {
       const a = e.target.closest('button[data-all]');
       if (a) {
-        const on = a.dataset.all === '1', c = FT().cats.find((x) => x.id === a.dataset.cat);
+        const on = a.dataset.all === '1';
         const ch = {}; FT().inCat(a.dataset.cat).forEach((f) => { ch[f.id] = f.kind === 'limit' ? (on ? f.max : 0) : on; });
-        setVals(ch, `「${c ? c.name : ''}」全部${on ? '開啟' : '關閉'}`);
+        setVals(ch);
         return;
       }
       const r = e.target.closest('button[data-rev]');
-      if (r && PS.rec) {
-        const over = Object.assign({}, PS.rec.over); delete over[r.dataset.rev];
-        const f = FT().byId(r.dataset.rev);
-        saveMember({ over }, `「${f ? f.name : r.dataset.rev}」還原成範本的設定`);
-      }
+      if (r && PS.rec) { const over = Object.assign({}, mOver()); delete over[r.dataset.rev]; draftMember({ over }); }
     };
+    paintSave();
   }
-  /* 把一批「新的實際值」換算成要存的東西：會員存「跟範本不同」的、範本存「跟預設不同」的 */
-  function setVals(ch, label) {
+  function draftMember(patch) {
+    if (!PS.rec) return;
+    PS.draft = Object.assign({ plan: mPlan(), over: Object.assign({}, mOver()) }, patch);
+    if (!dirtyN()) PS.draft = null;
+    paintTarget(); paintCats();
+  }
+  /* 把一批「新的實際值」換算成草稿：會員存「跟範本不同」的、範本存「跟預設不同」的 */
+  function setVals(ch) {
     if (PS.mode === 'member') {
       if (!PS.rec) return;
-      const base = baseVals(), over = Object.assign({}, PS.rec.over || {});
+      const base = baseVals(), over = Object.assign({}, mOver());
       Object.entries(ch).forEach(([k, v2]) => { if (base[k] === v2) delete over[k]; else over[k] = v2; });
-      saveMember({ over }, label);
+      draftMember({ over });
     } else {
       const p = planOf(PS.planSel); if (!p) return;
-      const feats = Object.assign({}, p.feats || {});
+      const feats = Object.assign({}, (PS.draft && PS.draft.feats) || p.feats || {});
       Object.entries(ch).forEach(([k, v2]) => { const f = FT().byId(k); if (f && f.def === v2) delete feats[k]; else feats[k] = v2; });
-      savePlan(p.id, p.name, feats, label);
+      PS.draft = diffKeys(feats, p.feats || {}) ? { feats } : null;
+      paintTarget(); paintCats();
     }
+  }
+  async function saveDraft() {
+    const n = dirtyN(); if (!n) return;
+    if (PS.mode === 'member') await saveMember(PS.draft, `${n} 項變更`);
+    else { const p = planOf(PS.planSel); if (p) await savePlan(p.id, p.name, PS.draft.feats, `${n} 項變更`); }
   }
   async function loadMember(email) {
     const seq = ++PS.seq;
@@ -351,15 +464,15 @@
     const j = await PS.A.call('/v1/admin/perm/get', { email });
     if (seq !== PS.seq) return;
     if (!j || j._s !== 200) { setStat('讀不到：' + errText(j), 'bad'); return; }
-    PS.email = j.email; PS.rec = j; PS.confirmDel = false;
-    paintTarget(); paintCats(); setStat('');
+    PS.email = j.email; PS.rec = j; PS.confirmDel = false; PS.draft = null;
+    paintTarget(); paintCats(); paintList(); setStat('');
   }
   async function saveMember(patch, label) {
     const r = PS.rec; if (!r) return;
     setStat('儲存中…');
     const j = await PS.A.call('/v1/admin/perm/put', { email: r.email, plan: patch.plan || r.plan, over: patch.over || r.over || {} });
-    if (j && j._s === 200) { PS.rec = Object.assign({}, j, { known: r.known }); afterSave(j.email, label + `・已儲存（台北 ${tpeTime()}）`); }
-    else { setStat('儲存失敗：' + errText(j) + '（畫面已還原）', 'bad'); paintTarget(); paintCats(); }
+    if (j && j._s === 200) { PS.rec = Object.assign({}, j, { known: r.known }); PS.draft = null; afterSave(j.email, label + `・已儲存（台北 ${tpeTime()}）`); }
+    else { setStat('儲存失敗：' + errText(j) + '（變更還在，可以再按一次儲存）', 'bad'); }
   }
   function afterSave(email, msg) {
     paintTarget(); paintCats(); setStat(msg, 'ok'); refreshList();
@@ -371,39 +484,47 @@
     setStat('儲存中…');
     const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats });
     if (j && j._s === 200) {
-      PS.plans = j.plans; paintTarget(); paintCats(); setStat(label + `・已儲存到「${name}」範本（台北 ${tpeTime()}）`, 'ok');
+      PS.plans = j.plans; PS.draft = null; paintAddPlan(); paintTarget(); paintCats(); setStat(label + `・已儲存到「${name}」範本（台北 ${tpeTime()}）`, 'ok');
       if (window.TwPerm) window.TwPerm.refresh();     // 改到訪客／免費範本時，自己若吃這份也跟著換
-    } else { setStat('儲存失敗：' + errText(j) + '（畫面已還原）', 'bad'); paintCats(); }
+    } else { setStat('儲存失敗：' + errText(j) + '（變更還在，可以再按一次儲存）', 'bad'); }
   }
   async function saveAsPlan(name) {
     name = String(name || '').trim();
     if (!name) { setStat('先在旁邊輸入新範本的名稱', 'bad'); return; }
-    /* 目前畫面上這一組（範本模式＝這個範本；會員模式＝這個人的實際值）只留「跟預設不同」的項目 */
+    /* 目前畫面上這一組（含沒存的草稿）只留「跟預設不同」的項目 */
     const cur = curVals(), feats = {};
     FT().list.forEach((f) => { if (cur[f.id] !== f.def) feats[f.id] = cur[f.id]; });
     const id = 'p' + Date.now().toString(36).slice(-7);
     const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats });
     if (!j || j._s !== 200) { setStat('另存失敗：' + errText(j), 'bad'); return; }
-    PS.plans = j.plans;
-    if (PS.mode === 'plan') { PS.planSel = id; paintTarget(); paintCats(); setStat(`已另存為新範本「${name}」`, 'ok'); }
+    PS.plans = j.plans; paintAddPlan();
+    if (PS.mode === 'plan') { PS.planSel = id; PS.draft = null; paintTarget(); paintCats(); setStat(`已另存為新範本「${name}」`, 'ok'); }
     else { await saveMember({ plan: id, over: {} }, `已存成新範本「${name}」並套用到這位會員`); }
   }
   async function refreshList() {
     const li = await PS.A.call('/v1/admin/perm/list', {});
     if (li && li._s === 200) { PS.list = li; paintList(); }
   }
+  /* 會員列表：個別設定過的（perm）＋登入過但沒設定的（users，套免費會員）。
+     「到期日」「最後登入」：後端 perm/list 目前沒有這兩欄（Worker 不在這次範圍內），有給就顯示、沒給就「—」，欄位先留好。 */
   function paintList() {
     const box = PS.v && PS.v.querySelector('#pmListBody'); if (!box) return;
-    const rows = (PS.list && PS.list.rows) || [];
     const pn = (id) => (planOf(id) || {}).name || id;
-    box.innerHTML = rows.length ? `<table class="pmlist"><thead><tr><th>email</th><th>方案</th><th>微調</th><th>最後修改（台北）</th></tr></thead><tbody>${rows.map((r) =>
-      `<tr data-email="${esc(r.email)}"><td>${esc(r.email)}</td><td>${esc(pn(r.plan))}</td><td>${r.n}</td><td>${dstr(r.updated)}</td></tr>`).join('')}</tbody></table>`
-      : '<div class="empty">還沒有個別設定過任何會員。</div>';
+    const users = new Map(((PS.list && PS.list.users) || []).map((u) => [u.email, u]));
+    const all = ((PS.list && PS.list.rows) || []).map((r) => Object.assign({ set: true }, r, { name: (users.get(r.email) || {}).name || '', seen: r.seen || (users.get(r.email) || {}).seen || 0 }));
+    const have = new Set(all.map((r) => r.email));
+    users.forEach((u, e) => { if (e && !have.has(e)) all.push({ email: e, name: u.name || '', plan: 'free', n: 0, updated: 0, seen: u.seen || 0, set: false }); });
+    const q = PS.q.trim().toLowerCase();
+    const rows = q ? all.filter((r) => (r.email + ' ' + r.name + ' ' + pn(r.plan)).toLowerCase().includes(q)) : all;
+    const cnt = PS.v.querySelector('#pmCnt'); if (cnt) cnt.textContent = q ? `${rows.length} ／ ${all.length} 位` : `共 ${all.length} 位`;
+    box.innerHTML = rows.length ? `<table class="pmlist"><thead><tr><th>email</th><th>方案</th><th class="c-exp">到期日</th><th class="c-seen">最後登入（台北）</th><th class="c-n">微調</th></tr></thead><tbody>${rows.map((r) =>
+      `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}"><td>${esc(r.email)}${r.name ? `<small>${esc(r.name)}</small>` : ''}</td><td>${esc(pn(r.plan))}${r.set ? '' : '<small>（預設）</small>'}</td><td class="c-exp">${r.expires ? dstr(r.expires).slice(0, 10) : '—'}</td><td class="c-seen">${dstr(r.seen)}</td><td class="c-n">${r.n || 0}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="empty">${q ? '沒有符合「' + esc(PS.q) + '」的會員。' : '還沒有任何會員。用上面的「新增會員」加第一位。'}</div>`;
     box.onclick = (e) => {
-      const tr = e.target.closest('tr[data-email]'); if (!tr) return;
+      const tr = e.target.closest('tr[data-email]'); if (!tr || !guard()) return;
       if (PS.mode !== 'member') { PS.mode = 'member'; PS.v.querySelectorAll('#pmMode button').forEach((x) => x.classList.toggle('on', x.dataset.m === 'member')); }
       PS.email = tr.dataset.email; loadMember(tr.dataset.email);
-      PS.v.querySelector('#pmHead').scrollIntoView({ block: 'start', behavior: 'smooth' });
+      const h = PS.v.querySelector('#pmHead'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
     };
   }
 
