@@ -258,3 +258,9 @@ Andy：流量觀測「即時」要看今天 0–24 時每小時、「使用者�
 4. 舊資料相容：切換之前記在 `other` 底下、元件名帶前綴（`etf.cat`、`explore.topic`、`support.*`、`events.link`）的細項**照舊**回在 `e2`（頁面仍是 `other`），
    Worker 不搬、不合併 —— 管理區的 `classify` 兩種寫法都要認（`other`＋前綴、新頁面），加總起來才是完整期間。`pv:other` 以前的次數無法拆回各頁。
    `claude/style-guide` 分支在本文件加的「流量觀測分頁統計」那節寫「Worker 不必改、一律記在 other」—— 合併後以本節為準：Worker 已收這七頁，前端改用新頁面鍵。
+
+### stats 起訖日（2026-10-06）
+`/v1/admin/stats` 請求多收 `from`、`to`（台北日期 `YYYY-MM-DD`，含頭含尾）；兩個都不帶＝照舊只看 `days`。
+`to` 沒帶＝今天、晚於今天＝今天；`from` 沒帶＝`to` 往前 30 天（含 `to` 共 30 天）；日期格式不對、`from` 晚於 `to`、`from` 比今天早超過 400 天 → 400 `{error:'bad_range'}`。
+回應形狀不變：`from`／`to` 是實際起訖，`rows`、`e2`、`hourly`、`hstat.period` 依起訖重算；`hours`／`hstat.day` 永遠是今天（即時用）；`users` 不受影響。程式在 `worker.js` 檔尾「起訖日區塊」，測試在 `tests/hourly.test.mjs`。
+

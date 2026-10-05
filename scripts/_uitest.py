@@ -45244,9 +45244,12 @@ def t_traffic_1005(b, base, code):
         pg.evaluate("() => { const d = new Date(Date.now() + 8 * 3600000 - 9 * 86400000).toISOString().slice(0, 10), i = document.getElementById('admSince'); i.value = d; i.dispatchEvent(new Event('change', { bubbles: true })); }")
         wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 10", 4000)
         ok(f"{TT}：「起始日期～至今」旁有結束日期欄（預設今天、可改）", pg.evaluate("() => { const u = document.getElementById('admUntil'); return !!u && !u.hidden && u.value === new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); }"))
+        flow0 = int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", ""))
         pg.evaluate("() => { const d = new Date(Date.now() + 8 * 3600000 - 5 * 86400000).toISOString().slice(0, 10), i = document.getElementById('admUntil'); i.value = d; i.dispatchEvent(new Event('change', { bubbles: true })); }")
         wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 5", 4000)
         ok(f"{TT}：起始 9 天前、結束 5 天前 → 上排直條 5 根（結束日生效）", pg.locator("#admDayBars .dc").count() == 5, pg.locator("#admDayBars .dc").count())
+        flow1 = int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", ""))
+        ok(f"{TT}：結束日也送給 Worker（stats 帶 from／to）、分頁統計跟著結束日縮小（資金流向 {flow0} → {flow1}）", flow1 < flow0, (flow0, flow1))
         pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
         # ---- 分頁
         ok(f"{TT}：下方是 .nbsw 分頁：全部＋事件…個股＋使用者；預設亮「全部」",

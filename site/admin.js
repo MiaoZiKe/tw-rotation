@@ -726,14 +726,16 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       return { known: true, days: Array.from({ length: 14 }, (_, k) => ({ day: dayKey(NDAY - 14 + k), visits: 1 + ((k + i) % 3), views: 8 + ((k * 7 + i * 3) % 23), ms: (6 + ((k * 5 + i) % 28)) * 60000 })),
         pages: PAGES.slice(0, 6).map(([k, s], j) => [k, Math.round(s / 400 / (j + 1) + i % 5)]), feats: [['stock', 'tab.revenue', 14], ['flow', 'quad', 9], ['stock', 'kp.60m', 7], ['flow', 'filter_group', 5], ['overview', 'how', 3]], stocks: m.topStock }; };
     /* 依期間組出 /v1/admin/stats：每天一列（頁面瀏覽＋開站），細項依 天數／30 縮放；即時＝今天到目前為止每小時 */
-    const stats = (days, live) => {
-      const n = Math.max(1, Math.min(NDAY, days || 30)), i0 = NDAY - n, rows = [];
+    const stats = (days, live, from, to) => {
+      const idx = (d) => NDAY - 1 - Math.round((Date.parse(END + 'T00:00:00Z') - Date.parse(d + 'T00:00:00Z')) / 86400000);
+      const iA = from ? Math.max(0, idx(from)) : null, iB = to ? Math.min(NDAY - 1, idx(to)) : NDAY - 1;       // 起訖日（Worker 同語意：含頭含尾，to 預設今天）
+      const n = iA != null ? Math.max(1, iB - iA + 1) : Math.max(1, Math.min(NDAY, days || 30)), i0 = iA != null ? iA : NDAY - n, rows = [];
       const hourNow = Math.min(23, new Date(Date.now() + 8 * 3600000).getUTCHours());
-      for (let i = i0; i < NDAY; i++) { const day = dayKey(i), dn = 54000 * W[i] / base30;
+      for (let i = i0; i <= iB; i++) { const day = dayKey(i), dn = 54000 * W[i] / base30;
         PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.88 + ((i * 7 + k.length) % 10) / 40))) }));
         const ss = Math.round(dn * 0.145); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + ((i % 7) / 100))) }); }
       const scale = live ? 1.1 / 30 : n / 30, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
-      const out = { from: dayKey(i0), to: END, rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
+      const out = { from: dayKey(i0), to: dayKey(iB), rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
       const sess = rows.filter((r) => r.k === 'ev:session').reduce((x, r) => x + r.n, 0), lg = rows.filter((r) => r.k === 'ev:session_login').reduce((x, r) => x + r.n, 0);
       const split = [['free', '註冊會員', 0.6, 'var(--cat-1)'], ['demo_basic', '基本方案（月）', 0.22, null], ['demo_pro', '進階方案（年）', 0.13, null], ['demo_team', '旗艦方案', 0.05, null]];
       out.tiers = { est: false, list: split.map(([id, name, f, col]) => ({ id, name, n: Math.round(lg * f), col: col || planCol(id), login: true })).concat([{ id: 'guest', name: '訪客', n: sess - lg, col: 'var(--cat-2)', login: false }]) };
@@ -755,7 +757,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const W = Object.create(A);
     W.__demo = true;
     W.call = async (path, body) => {
-      if (path === '/v1/admin/stats') return ok(DEMO.stats((body || {}).days, (body || {}).live));
+      if (path === '/v1/admin/stats') return ok(DEMO.stats((body || {}).days, (body || {}).live, (body || {}).from, (body || {}).to));
       if (path === '/v1/admin/online') return ok(DEMO.online);
       if (path === '/v1/admin/members') return ok({ members: DEMO.members });
       if (path === '/v1/admin/members/stats') return ok(DEMO.mstats);
@@ -840,7 +842,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   async function paint() {
     const v = S.v, A = S.A; if (!v || !A) return;
     if (S.period === 'since' && !/^\d{4}-\d{2}-\d{2}$/.test(S.since || '')) S.period = '30';
-    const [st, on] = await Promise.all([A.call('/v1/admin/stats', { days: periodDays(), live: S.period === 'live' ? 1 : 0 }), A.call('/v1/admin/online', {})]);
+    const [st, on] = await Promise.all([A.call('/v1/admin/stats', Object.assign({ days: periodDays(), live: S.period === 'live' ? 1 : 0 }, S.period === 'since' ? { from: S.since, to: S.until || todayTpe() } : {})), A.call('/v1/admin/online', {})]);
     if (!(location.hash || '').startsWith('#admin') || tabOf() !== 'traffic' || !v.querySelector('#admBody')) return;
     if (!st || st._s !== 200 || !on || on._s !== 200) {
       v.querySelector('#admBody').innerHTML = `<div class="card" style="margin-top:14px"><p class="err">讀不到報表（${st ? st._s : '連不到伺服器'}）</p></div>`;
