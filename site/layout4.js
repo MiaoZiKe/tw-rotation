@@ -57,7 +57,7 @@
     market: { grp: '族群與個股', t: '市場明細', d: '完整名單：漲跌分佈、站上均線、法人動向與各項排行，可以排序篩選，找出符合條件的個股。' },
     explore: { grp: '族群與個股', t: '選股策略', d: 'Strategy Lab：每張卡是一組公開條件（獲利、估值、成長、技術、法人、股利、動能），列出前 3 檔；點一列看入選原因，點 i 看條件與資料出處。' },
     season: { grp: '歷史規律', t: '週期統計', d: '每個族群在各月份的歷史表現：勝率、報酬中位數與超額報酬，看現在是不是它的旺季。' },
-    etf: { grp: '歷史規律', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
+    etf: { grp: '族群與個股', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
     watch: { grp: '專案', t: '自選', d: '你自己的自選清單（最多五頁）：今天的漲跌與走勢，點走勢圖原地展開、點名稱進個股頁。' },
     delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
   };
@@ -297,13 +297,13 @@
         改成真的按鈕 .l4grp（不是 .tab —— 手機版、app.js、驗收腳本都在數 .tab），點一下收起／展開該組。
      ② 有子項的大項（資金流向、熱力圖）右邊一顆 ▸／▾（.l4car）收展子項；再點一次「已選中的大項」也是收展。
      ③ 狀態記在 localStorage（l4.navFold），讀寫都包 try/catch（LS）。
-     ④ 目前所在頁永遠看得到：收起的群組裡 .on 那格照樣顯示（CSS :not(.on)），標題右邊多一顆點提示「你在這組裡」。
+     ④ 2026-10-06 改（Andy：「收合後應該只會出現母分頁」）：收起就整組（含目前所在頁與它的子項）全部藏起來，只剩群組標題；目前頁在組裡時標題右邊那顆點提示「你在這組裡」。
      ⑤ 收合成圖示列（l4-mini）時整套不作用：標題按鈕藏起來、群組不收（圖示列本來就短，收了反而找不到）。 */
   const GROUPS = [
-    { g: 'today', t: '今日市場', first: 'overview', views: ['overview'] },
+    { g: 'today', t: '今日市場', first: 'overview', views: ['overview', 'earnings'] },
     { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap'] },
-    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore'] },
-    { g: 'hist', t: '歷史規律', first: 'season', views: ['season', 'etf'] },
+    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore', 'etf'] },
+    { g: 'hist', t: '歷史規律', first: 'season', views: ['season'] },
     { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'delivery', 'admin'] },
   ];
   const FOLD_KEY = 'l4.navFold';
@@ -336,6 +336,16 @@
     LS.set(FOLD_KEY, JSON.stringify(f));
     applyFold(); fitNav();
   }
+  /* 2026-10-06（Andy：「管理區也需要收納」）：管理區跟資金流向一樣有 ▸／▾，收合鍵 'admin'。
+     子項清單不寫死 —— CSS 只認 .l4subtab[data-parent="admin"]，另一分支拿掉「會員管理」也不用改這裡；沒有任何子項就不放箭頭。 */
+  function addAdmCar() {
+    const b = $('#l4Perm'); if (!b || $('.l4car', b)) return;
+    if (!$('.l4subtab[data-parent="admin"]', $('#tabs'))) return;
+    const c = document.createElement('span');
+    c.className = 'l4car'; c.dataset.p = 'admin'; c.setAttribute('role', 'button'); c.tabIndex = 0;
+    c.setAttribute('aria-label', '管理區子項收展');
+    b.appendChild(c);
+  }
   function buildFold() {
     const tabs = $('#tabs'); if (!tabs) return;
     GROUPS.forEach((G) => {
@@ -354,6 +364,7 @@
       c.setAttribute('aria-label', (PAGES[v] ? PAGES[v].t : v) + '子項收展');
       t.appendChild(c);
     });
+    addAdmCar();
     if (!tabs._l4fold) {
       tabs._l4fold = true;
       // capture：比 app.js 掛在每顆 .tab 上的「換 hash」先跑；點到箭頭、或再點一次已選中的大項 → 只收展，不導頁
@@ -361,9 +372,9 @@
         if (!active || root.classList.contains('l4-mini')) return;
         const car = e.target.closest('.l4car');
         const tab = e.target.closest('.tab');
-        if (car || (tab && tab.classList.contains('on') && SUBS[tab.dataset.view])) {
+        if (car || (tab && tab.classList.contains('on') && (SUBS[tab.dataset.view] || (tab.id === 'l4Perm' && $('.l4subtab[data-parent="admin"]', tabs))))) {
           e.stopPropagation(); e.preventDefault();
-          toggleFold('s', car ? car.dataset.p : tab.dataset.view);
+          toggleFold('s', car ? car.dataset.p : (tab.id === 'l4Perm' ? 'admin' : tab.dataset.view));
         }
       }, true);
       tabs.addEventListener('keydown', (e) => {
@@ -461,6 +472,7 @@
       x.classList.toggle('on', o);
       if (o) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current');
     });
+    if (root.classList.contains('l4g')) addAdmCar();
   }
 
   /* ---------------- 左側導覽收合（寬 ↔ 圖示列） ----------------

@@ -1564,13 +1564,19 @@ def t_side_fold_1005(pg, b, base):
         names = J("() => [...document.querySelectorAll('#tabs .l4grp')].map(e => e.textContent.trim())")
         ok(f"★ [{tag}] 五個群組標題是可以點的按鈕", names == ["今日市場", "資金流水", "族群與個股", "歷史規律", "專案"], names)
         ok(f"[{tag}] 群組標題不算進 .tab（手機與 app.js 數 .tab）", J("() => document.querySelectorAll('#tabs .tab.l4grp').length") == 0)
-        y_et0 = TOPOF('.tab[data-view="etf"]')
+        # 2026-10-06：財經日曆在今日市場、ETF 在族群與個股（產業地圖、市場明細、選股策略、ETF）
+        ok(f"★ [{tag}] 展開時「總覽」「財經日曆」都看得到、都在今日市場標題下", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]')
+           and TOPOF('.l4grp[data-g="today"]') < TOPOF('.tab[data-view="overview"]') < TOPOF('.tab[data-view="earnings"]') < TOPOF('.l4grp[data-g="money"]'))
+        seq = J("""() => ['industry','market','explore','etf'].map(v => Math.round(document.querySelector(`.tab[data-view='${v}']`).getBoundingClientRect().top))""")
+        ok(f"★ [{tag}] 族群與個股順序：產業地圖、市場明細、選股策略、ETF，且在歷史規律標題上面",
+           seq == sorted(seq) and seq[-1] < TOPOF('.l4grp[data-g="hist"]') and TOPOF('.l4grp[data-g="stock"]') < seq[0], seq)
+        y_et0 = TOPOF('.tab[data-view="season"]')
         lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
-        ok(f"★ [{tag}] 點「族群與個股」→ 產業地圖、市場明細、選股策略都收起來",
-           not VIS('.tab[data-view="industry"]') and not VIS('.tab[data-view="market"]') and not VIS('.tab[data-view="explore"]'))
+        ok(f"★ [{tag}] 點「族群與個股」→ 產業地圖、市場明細、選股策略、ETF 都收起來",
+           not any(VIS(f'.tab[data-view="{v}"]') for v in ("industry", "market", "explore", "etf")))
         ok(f"[{tag}] 標題變 ▸（aria-expanded=false）", J("() => document.querySelector('.l4grp[data-g=stock]').getAttribute('aria-expanded')") == "false")
-        y_et1 = TOPOF('.tab[data-view="etf"]')
-        ok(f"★ [{tag}] 下面的「ETF」真的往上移（畫面因此改變）", y_et1 < y_et0 - 60, (y_et0, y_et1))
+        y_et1 = TOPOF('.tab[data-view="season"]')
+        ok(f"★ [{tag}] 下面的「週期統計」真的往上移（畫面因此改變）", y_et1 < y_et0 - 60, (y_et0, y_et1))
         n0 = NSUB("flow")
         lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
         n1 = NSUB("flow")
@@ -1579,31 +1585,67 @@ def t_side_fold_1005(pg, b, base):
         ok(f"★ [{tag}] 重新整理後：族群與個股仍收起、資金流向子項仍收起",
            not VIS('.tab[data-view="market"]') and NSUB("flow") == 0, J("() => localStorage.getItem('l4.navFold')"))
         lp.goto(f"{base}#market", wait_until="networkidle"); lp.wait_for_timeout(700)
-        ok(f"★ [{tag}] 目前在市場明細：所在的組雖然收起，那一格照樣看得到、標題有提示點",
-           VIS('.tab[data-view="market"]') and not VIS('.tab[data-view="industry"]') and J("() => document.querySelector('.l4grp[data-g=stock]').classList.contains('here')"))
-        lp.goto(f"{base}#flow", wait_until="networkidle"); lp.wait_for_timeout(700)
+        ok(f"★ [{tag}] 目前在市場明細、所在的組收起：整組（含目前那格）全藏，只剩標題＋提示點",
+           not VIS('.tab[data-view="market"]') and not VIS('.tab[data-view="industry"]') and VIS('.l4grp[data-g="stock"]')
+           and J("() => document.querySelector('.l4grp[data-g=stock]').classList.contains('here')"))
+        lp.goto(f"{base}#earnings", wait_until="networkidle"); lp.wait_for_timeout(700)
+        lp.click("#tabs .l4grp[data-g='today']"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 在財經日曆時收起今日市場 → 總覽、財經日曆都藏、標題有提示點",
+           not VIS('.tab[data-view="overview"]') and not VIS('.tab[data-view="earnings"]')
+           and J("() => document.querySelector('.l4grp[data-g=today]').classList.contains('here')"))
+        lp.click("#tabs .l4grp[data-g='today']"); lp.wait_for_timeout(250)
+        ok(f"[{tag}] 再點今日市場 → 總覽、財經日曆都回來", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]'))
+        lp.goto(f"{base}#flow/rotation", wait_until="networkidle"); lp.wait_for_timeout(700)
+        lp.click("#tabs .l4grp[data-g='money']"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 在資金輪動時收起資金流水 → 資金流向、熱力圖與所有子項（含目前那格）全藏",
+           not VIS('.tab[data-view="flow"]') and not VIS('.tab[data-view="heatmap"]') and NSUB("flow") == 0 and NSUB("heatmap") == 0)
+        lp.click("#tabs .l4grp[data-g='money']"); lp.wait_for_timeout(250)
         lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
         a = NSUB("flow"); h0 = J("() => location.hash")
         lp.click(".tab[data-view='flow']", position={"x": 60, "y": 12}); lp.wait_for_timeout(300)
         bc = NSUB("flow")
-        ok(f"★ [{tag}] 已在資金流向時再點一次「資金流向」→ 子項收起（只留目前那格）、網址不變",
-           a == 3 and bc <= 1 and J("() => location.hash") == h0, (a, bc, h0, J("() => location.hash")))
+        ok(f"★ [{tag}] 已在資金流向時再點一次「資金流向」→ 子項全收（含目前那格）、網址不變",
+           a == 3 and bc == 0 and J("() => location.hash") == h0, (a, bc, h0, J("() => location.hash")))
         lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
-        ok(f"[{tag}] 再點「族群與個股」→ 展開回來", VIS('.tab[data-view="industry"]') and VIS('.tab[data-view="explore"]'))
+        ok(f"[{tag}] 再點「族群與個股」→ 展開回來", VIS('.tab[data-view="industry"]') and VIS('.tab[data-view="etf"]'))
         lp.click("#tabs .l4grp[data-g='hist']"); lp.wait_for_timeout(200)
         lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
-        ok(f"★ [{tag}] 收合成圖示列：群組標題藏起、被收起的「週期統計」「ETF」照樣在",
+        ok(f"★ [{tag}] 收合成圖示列：群組標題藏起、被收起的「週期統計」照樣在",
            J("() => document.documentElement.classList.contains('l4-mini')") and not VIS('#tabs .l4grp[data-g="hist"]')
-           and VIS('.tab[data-view="season"]') and VIS('.tab[data-view="etf"]'))
+           and VIS('.tab[data-view="season"]'))
         lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
-        ok(f"[{tag}] 展開側欄回來：歷史規律仍是收起的（狀態沒被圖示列弄掉）", not VIS('.tab[data-view="etf"]'))
-        ok(f"[{tag}] 側欄沒有橫向捲軸", J("() => { const t = document.querySelector('#tabs'); return t.scrollWidth <= t.clientWidth + 1; }"))
+        ok(f"[{tag}] 展開側欄回來：歷史規律仍是收起的（狀態沒被圖示列弄掉）", not VIS('.tab[data-view="season"]'))
+        ok(f"[{tag}] 側欄沒有橫向捲軸", J("() => { const t = document.querySelector('#tabs'); return t.scrollWidth <= t.clientWidth + 1; }"),
+           J("() => { const t = document.querySelector('#tabs'); return [t.scrollWidth, t.clientWidth, [...t.querySelectorAll('*')].filter(e => e.scrollWidth > e.clientWidth + 1 && e.clientWidth).map(e => e.className + ':' + e.scrollWidth + '/' + e.clientWidth).slice(0, 4)]; }"))
     finally:
         try:
             lp.evaluate("() => { try { localStorage.removeItem('l4.navFold'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
         except Exception:
             pass
         lp.close()
+    # 2026-10-06（Andy：「管理區也需要收納」）：管理者 context；子項數不寫死（另一分支會拿掉會員管理）
+    c, _ = _pnav_ctx(b, True)
+    ap = c.new_page(); ap.on("pageerror", lambda e: fails.append(f"{tag} 管理區 pageerror: {e}"))
+    try:
+        ap.goto(f"{base}#admin/perm", wait_until="domcontentloaded")
+        wait_until(ap, "() => !!document.querySelector('#l4Perm .l4car') && document.querySelectorAll('.l4subtab[data-parent=admin]').length > 0", 10000)
+        AN = lambda: ap.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].filter(e => e.getClientRects().length).length")
+        tot = ap.evaluate("() => document.querySelectorAll('.l4subtab[data-parent=admin]').length")
+        n0 = AN()
+        ap.click("#l4Perm .l4car"); ap.wait_for_timeout(250)
+        n1 = AN()
+        ok(f"★ [{tag}] 管理區有 ▸／▾，點了子項全收（含目前那格）、網址不變", tot > 0 and n0 == tot and n1 == 0 and ap.evaluate("() => location.hash") == "#admin/perm", (tot, n0, n1))
+        ap.reload(wait_until="domcontentloaded")
+        wait_until(ap, "() => !!document.querySelector('#l4Perm .l4car')", 10000); ap.wait_for_timeout(400)
+        ok(f"★ [{tag}] 重新整理後管理區子項仍收起", AN() == 0 and ap.evaluate("() => document.querySelector('#l4Perm .l4car').getAttribute('aria-expanded')") == "false")
+        ap.click("#l4Perm .l4car"); ap.wait_for_timeout(250)
+        ok(f"[{tag}] 再點管理區箭頭 → 子項回來", AN() == tot)
+    finally:
+        try:
+            ap.evaluate("() => { try { localStorage.removeItem('l4.navFold'); } catch (e) {} }")
+        except Exception:
+            pass
+        c.close()
 
 
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
