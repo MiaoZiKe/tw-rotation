@@ -648,7 +648,7 @@
         + `<span class="n">${esc(l.target)}</span><span class="v">${yi(l.value)} 億<small>${(l.value / total * 100).toFixed(1)}%</small></span></li>`
         + (isOpen && has ? `<li class="sub"><ul class="mrank lv">${rows(l.target, lv + 1)}</ul></li>` : '');
     }).join(''); };
-    const draw = () => { box.innerHTML = `<div class="msub">${esc((f.date || '').slice(5))}　台股 → 產業鏈 → 族群 → 個股（點 ▸ 往下看）</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
+    const draw = () => { box.innerHTML = `<div class="msub">台股 → 產業鏈 → 族群 → 個股（點 ▸ 往下看）</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
     box.addEventListener('click', (e) => {
       const li = e.target.closest('li[data-k]'); if (!li) return;
       const k = li.dataset.k; open.has(k) ? open.delete(k) : open.add(k); draw();
@@ -708,7 +708,8 @@
       $('.mfhost', box).innerHTML = p ? focusHtml(p, quad ? `只看「${ST[quad]}」：盤上 ${r.shown.length} 個（佔比前 16 名內）· 再點一次角落還原` : '')
         : `<div class="mfocus"><span class="nm">${esc((gs.find(g => g.group_id === sel) || {}).group_name || '')}</span><span class="note">不在這個篩選的輪盤上</span></div>`;
       const mx = gs.length ? gs[0].share : 1;
-      $('#mRankSub', box).textContent = `${per.label}　${(per.from || '').slice(5)}～${(per.to || '').slice(5)}`;
+      // 2026-10-06（DECISIONS #328）：副標不再寫日期區間，只留「本週／上週…」
+      $('#mRankSub', box).textContent = per.label || '';
       $('#mRank', box).innerHTML = gs.map((g, i) => `<li data-g="${esc(g.group_id)}" class="${g.group_id === sel ? 'on' : ''}" style="--c:${stc((f.rrg.points.find(x => x.group_id === g.group_id) || {}).quadrant)}">`
         + `<span class="r">${i + 1}</span><span class="bar" style="width:calc((100% - 140px) * ${(g.share / mx).toFixed(3)})"></span>`
         + `<span class="n">${esc(g.group_name)}</span><span class="v">${g.share.toFixed(1)}%<small class="${ucls(g.share_chg)}">${sgn(g.share_chg)}</small></span></li>`).join('');
@@ -750,7 +751,7 @@
     const KS = [['foreign', '外資'], ['trust', '投信'], ['dealer', '自營'], ['total', '合計']];
     let k = LS.get('inst', 'total');
     box.innerHTML = `<div class="mseg" id="mInstSw">${KS.map(x => `<button type="button" data-k="${x[0]}">${x[1]}</button>`).join('')}</div>`
-      + `<div class="msub" id="mInstSub">${esc(src.dates[last])}　淨買超（張）</div><div class="minst" id="mInst"></div>`;
+      + `<div class="msub" id="mInstSub">淨買超（張）</div><div class="minst" id="mInst"></div>`;
     const fmtN = (v) => Math.round(Math.abs(v)).toLocaleString('en-US');
     const draw = () => {
       $$('#mInstSw button', box).forEach(b => b.classList.toggle('on', b.dataset.k === k));
@@ -1310,7 +1311,7 @@
     const nInd = tags.filter(x => x.k === '指標' && !x.miss).length;
     const li = (x, i) => `<li><button type="button" data-i="${i}"><i class="mbtagk">${esc(x.k)}</i><span class="${x.miss ? '' : x.tone > 0 ? 'up' : x.tone < 0 ? 'dn' : ''}">${esc(x.n)}${x.det ? `<small>${esc(x.det)}</small>` : ''}</span><em aria-hidden="true">›</em></button></li>`;
     const miss = tags.map((x, i) => [x, i]).filter(p => p[0].miss);
-    body.innerHTML = `<div class="mbtaghead"><b>符合 ${nInd} 項指標</b><span>資料時間：${esc(pg.as_of || '—')}</span></div>
+    body.innerHTML = `<div class="mbtaghead"><b>符合 ${nInd} 項指標</b></div>
       <ul class="mbtags">${tags.map((x, i) => x.miss ? '' : li(x, i)).join('')}</ul>
       ${miss.length ? `<details class="mbmiss"><summary>未符合／資料不足 ${miss.length} 項 ›</summary><ul class="mbtags">${miss.map(p => li(p[0], p[1])).join('')}</ul></details>` : ''}
       <div class="mbfoot">指標列依本站資料規則判斷（月營收、財報三率、法人、集保、均線、量比），非投資建議；點一列看對應的圖與表。</div>`;
@@ -1338,7 +1339,7 @@
         .concat(seg === 'p' && (last.ps != null || last.ph != null) ? [['自行買賣', sInt(last.ps), uc(last.ps)], ['避險', sInt(last.ph), uc(last.ph)]] : [])))
       + table([{ h: '日期', f: r => [md(r.d)] }, { h: '外資', f: r => [sInt(r.f), uc(r.f)] }, { h: '投信', f: r => [sInt(r.t), uc(r.t)] },
         { h: '自營商', f: r => [sInt(r.p), uc(r.p)] }, { h: '合計', f: r => [sInt(r.s), uc(r.s)] }], rows.slice().reverse(), SEG.findIndex(x => x[0] === seg) + 1, '單位：張；紅＝買超、綠＝賣超')
-      + `<div class="mbfoot">資料到 ${esc(last.d)}；法人資料比價量晚一個交易日。</div>`;
+      + `<div class="mbfoot">法人資料比價量晚一個交易日。</div>`;
     const draw = () => barChart({ x: rows.map(r => md(r.d)), full: rows.map(r => r.d), bars: [{ name: nm, data: rows.map(r => r[seg] == null ? null : Math.round(r[seg])) }], ytip: (v) => sInt(v) + ' 張' });
     wireSeg(body, 'inst'); wireFold(body, draw); draw();
   }
@@ -1505,7 +1506,7 @@
     const cap = '單位：張；融資／融券＝當日增減（紅＝增加、綠＝減少）' + (hasCol.dt ? '；當沖＝當沖成交張數' : '') + (hasCol.sl ? '；借券賣＝當日借券賣出張數（向借券系統借來賣，多為法人避險，不是融券）' : '；資餘／券餘＝餘額');
     const tbl = table(cols, rows.slice().reverse(), sel, cap);
     if ((seg === 'dt' || seg === 'sl') && !hasData[seg]) {
-      body.innerHTML = segBar('margin', SEG, seg) + `<div class="mbwhy"><b>${nm}：這一檔還沒有資料</b>${WHY[seg]}</div>` + tbl + `<div class="mbfoot">資料到 ${esc(last.d)}。${srcTxt}</div>`;
+      body.innerHTML = segBar('margin', SEG, seg) + `<div class="mbwhy"><b>${nm}：這一檔還沒有資料</b>${WHY[seg]}</div>` + tbl + (srcTxt ? `<div class="mbfoot">${srcTxt}</div>` : '');
       wireSeg(body, 'margin'); return;
     }
     const k = seg === 'm' ? [[`${md(last.d)} 融資增減`, sInt(last.mc), uc(last.mc)], ['融資餘額', int(last.mb) + ' 張'], ['5 日', sInt(sum('mc', 5)), uc(sum('mc', 5))], ['券資比', ratio != null ? ratio.toFixed(1) + '%' : '—']]
@@ -1515,7 +1516,7 @@
     const line = seg === 'dt' && rows.some(r => r.dr != null) ? [{ name: '當沖率', data: rows.map(r => r.dr), color: CH.amber }]
       : seg === 'sl' && rows.some(r => r.slb != null) ? [{ name: '借券賣出餘額', data: rows.map(r => r.slb), color: CH.amber }] : [];
     const lg = line.length ? legend([[seg === 'dt' ? '當沖張數（左軸）' : '借券賣出（張，左軸）', CH.violet], [seg === 'dt' ? '當沖率（%，右軸）' : '借券賣出餘額（張，右軸）', CH.amber, 1]]) : '';
-    body.innerHTML = segBar('margin', SEG, seg) + chartBox(kpi(k) + lg) + tbl + `<div class="mbfoot">資料到 ${esc(last.d)}。券資比＝融券餘額 ÷ 融資餘額。${srcTxt}</div>`;
+    body.innerHTML = segBar('margin', SEG, seg) + chartBox(kpi(k) + lg) + tbl + `<div class="mbfoot">券資比＝融券餘額 ÷ 融資餘額。${srcTxt}</div>`;
     const signedSeg = seg === 'm' || seg === 's';
     const key = { m: 'mc', s: 'sc', dt: 'dt', sl: 'sl' }[seg];
     const draw = () => barChart({ x: rows.map(r => md(r.d)), full: rows.map(r => r.d),
@@ -1596,7 +1597,7 @@
           ['近四季', f.ttm_eps != null ? (+f.ttm_eps).toFixed(2) + ' 元' : '—'], ['毛利率', last[2] != null ? (+last[2]).toFixed(1) + '%' : '—']]) + lg)
         + table([{ h: '季', f: r => [r[0]] }, { h: '毛利率（%）', f: r => [p2(r[2])] }, { h: '淨利率（%）', f: r => [p2(r[4]), r[4] < 0 ? 'dn' : ''] },
           { h: 'EPS', f: r => [p2(r[5]), r[5] < 0 ? 'dn' : ''] }, { h: '累計 EPS', f: r => [p2(r[6]), r[6] < 0 ? 'dn' : ''] }], q.slice().reverse(), 3)
-        + `<div class="mbfoot">圖：近 ${X.length} 季；累計 EPS＝當年度第 1 季起累加${(pg.profit.gaps || []).length ? `；缺季 ${(pg.profit.gaps || []).map(esc).join('、')}（財報沒有，圖上留空）` : ''}。財報到 ${esc(f.latest_period || last[0])}。</div>`;
+        + `<div class="mbfoot">圖：近 ${X.length} 季；累計 EPS＝當年度第 1 季起累加${(pg.profit.gaps || []).length ? `；缺季 ${(pg.profit.gaps || []).map(esc).join('、')}（財報沒有，圖上留空）` : ''}。</div>`;
       const draw = () => barChart({ x: X.map(r => r[0]), bars: [{ name: 'EPS', data: X.map(r => r[5]), color: epsC }],
         lines: [{ name: '毛利率', data: X.map(r => r[2]), color: CH.cyan }, { name: '淨利率', data: X.map(r => r[4]), color: CH.up }], ...opt });
       wireSeg(body, 'profit'); wireFold(body, draw); draw();
@@ -1633,7 +1634,7 @@
           + legend([['本益比（期間平均）', CH.cyan, 1], ['期間最高', CH.up, 1], ['期間最低', CH.down, 1]]))
         + table([{ h: '財報季', f: r => [r.period] }, { h: '近四季 EPS', f: r => [r.ttm_eps == null ? '—' : (+r.ttm_eps).toFixed(2), r.ttm_eps < 0 ? 'dn' : ''] },
           { h: '本益比', f: r => [(+r.pe).toFixed(1)] }, { h: '高', f: r => [r.pe_high == null ? '—' : (+r.pe_high).toFixed(1)] }, { h: '低', f: r => [r.pe_low == null ? '—' : (+r.pe_low).toFixed(1)] }], pe.slice().reverse(), 2)
-        + `<div class="mbfoot">每一季＝該季財報公布後到下一季公布前這段期間的本益比（股價 ÷ 近四季 EPS）；最新一季 ${esc(last.period)}。</div>`;
+        + `<div class="mbfoot">每一季＝該季財報公布後到下一季公布前這段期間的本益比（股價 ÷ 近四季 EPS）。</div>`;
       const draw = () => barChart({ x: pe.map(r => r.period), linesOnly: true, bars: [], scale: true,
         lines: [{ name: '本益比', data: pe.map(r => r.pe), color: CH.cyan, left: true }, { name: '最高', data: pe.map(r => r.pe_high), color: CH.up, left: true }, { name: '最低', data: pe.map(r => r.pe_low), color: CH.down, left: true }],
         yfmt: (v) => Math.round(v) + '', ytip: (v) => (+v).toFixed(1) + ' 倍' });

@@ -482,6 +482,12 @@ def rot_days_ago(pg) -> int:
     return int(v) if v is not None else -1
 
 
+def sub_range(pg, el_id: str) -> str:
+    """2026-10-06 起卡片副標不再寫日期區間（Andy：「這類資訊一律拿掉」，DECISIONS #328）；
+    區間改寫在副標節點的 data-range（機器讀數，畫面不顯示）。驗收要比「拉Bar 之後這一段真的換了」就讀這個。"""
+    return pg.evaluate("(i) => { const e = document.getElementById(i); return e ? (e.dataset.range || '') : ''; }", el_id)
+
+
 def rot_span(pg, days: int, wait: int = 900):
     """把拉Bar 拖到「N 天前」＝ days。"""
     set_range(pg, "#rotBack input.days", int(days), wait)
@@ -1257,7 +1263,9 @@ def t_overview(pg, base):
                  sub: (document.getElementById('ovFlowSub') || {}).textContent || '' }; }""")
     if ok("D7：總覽下方畫得出「昨日資金去向」分流圖（桌機＝光纖緊湊版）", bool(ovf) and ovf["canvas"] and not ovf["empty"]
           and bool(ovt) and ovt["layout"] == "mini", {"dom": ovf, "layout": ovt and ovt.get("layout")}):
-        ok("D7：副標明講資料是盤後結算（不是即時）", "盤後結算" in ovf["sub"], ovf["sub"][:60])
+        # 2026-10-06 改前→改後（DECISIONS #328）：「副標明講資料是盤後結算」→ 副標不寫日期與「盤後結算」
+        ok("D7：副標不寫資料日期與「盤後結算」（2026-10-06 拿掉）", "盤後結算" not in ovf["sub"]
+           and not re.search(r"\d{4}-\d{2}-\d{2}", ovf["sub"]) and "族群合計" in ovf["sub"], ovf["sub"][:60])
         ok("D7（09-26 改）：粒子特效在跑、粒子數在小預算內（≤ 160）", bool(wait_until(pg,
            "() => { const t = window.FlowTopo.probe(document.getElementById('ovFlow')); return t && t.running && t.particles > 0 && t.particles <= 160 ? 1 : 0; }", 5000)),
            (pg.evaluate(OVFX) or {}).get("particles"))
@@ -2089,7 +2097,9 @@ def t_market_live_1005(pg, b, base):
         eod_tabs = lp.evaluate(TABS)
         lim = lp.evaluate("() => { const s = (window.App.D || {}).stocks || []; return { has: s.some(r => 'lim' in r), up: s.filter(r => r.lim === 1).length, dn: s.filter(r => r.lim === -1).length }; }")
         eod_lu = tab("漲停")
-        ok(f"[{tag}] 盤後標題標出資料日期與「盤後」", "盤後" in eod_title and bool(re.search(r"20\d\d-\d\d-\d\d", eod_title)), eod_title)
+        # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #328）：「盤後標題標出資料日期與盤後」→ 標題**不寫**日期與「盤後」
+        ok(f"[{tag}] 盤後標題不寫資料日期與「盤後」、照樣有漲跌家數", "盤後" not in eod_title and not re.search(r"20\d\d-\d\d-\d\d", eod_title)
+           and "漲／" in eod_title, eod_title)
         ok(f"★ [{tag}] 盤後漲停分頁筆數＝stocks.json 的 lim=1 家數（管線 tick 判定）",
            (not lim["has"]) or eod_tabs.get("漲停") == lim["up"], {"tabs": eod_tabs, "lim": lim})
         ok(f"★ [{tag}] 盤後漲停名單只有普通股（4 碼、非 0 開頭；ETF 不列入）",
@@ -2106,10 +2116,11 @@ def t_market_live_1005(pg, b, base):
         lt = text(lp, "#mktTitle")
         stamp = text(lp, "#mktLive")
         lv_tabs = lp.evaluate(TABS)
-        ok(f"★ [{tag}] 切即時 → 標題換成即時（含更新時間與「只涵蓋 N 檔」）",
-           "即時" in lt and "只涵蓋" in lt and bool(re.search(r"\d\d:\d\d:\d\d", lt)) and lt != eod_title, {"盤後": eod_title, "即時": lt})
-        ok(f"★ [{tag}] 狀態列寫「即時只涵蓋 N 檔（族群＋自選＋成交值前段）」與報價時間 10:41:07",
-           bool(re.search(r"即時只涵蓋 \d+ 檔", stamp)) and "成交值前段" in stamp and "10:41:07" in stamp, stamp[:200])
+        ok(f"★ [{tag}] 切即時 → 標題換成即時那一版（寫「只涵蓋 N 檔」口徑，2026-10-06 起不寫更新時間）",
+           "只涵蓋" in lt and not re.search(r"\d\d:\d\d:\d\d", lt) and lt != eod_title, {"盤後": eod_title, "即時": lt})
+        # 2026-10-06 改前→改後（DECISIONS #328）：「…與報價時間 10:41:07」→ 狀態列不寫報價時間與更新時間（口徑照寫）
+        ok(f"★ [{tag}] 狀態列寫「即時只涵蓋 N 檔（族群＋自選＋成交值前段）」，不寫報價時間",
+           bool(re.search(r"即時只涵蓋 \d+ 檔", stamp)) and "成交值前段" in stamp and "10:41:07" not in stamp, stamp[:200])
         lu = tab("漲停")
         ok(f"★ [{tag}] 即時漲停用 tick 判定：昨收 18.7、現價 20.55（+9.89%）→ 漲停", "2317" in lu, lu)
         ok(f"★ [{tag}] 即時漲停：現價 20.5（+9.63%，舊版 ≥9.5% 會算）不算漲停", "2454" not in lu, lu)
@@ -2131,8 +2142,8 @@ def t_market_live_1005(pg, b, base):
         lp.click("#mktMode button[data-m='live']")
         wait_until(lp, "() => /即時抓不到/.test((document.getElementById('mktTitle') || {}).innerText || '')", 30000)
         et = text(lp, "#mktTitle")
-        ok(f"★ [{tag}] 即時抓不到 → 標題寫出原因（HTTP 502）並講明下面是哪天的盤後",
-           "即時抓不到" in et and "502" in et and "盤後" in et, et)
+        ok(f"★ [{tag}] 即時抓不到 → 標題寫出原因（HTTP 502）；2026-10-06 起不寫「哪天的盤後」",
+           "即時抓不到" in et and "502" in et and "盤後" not in et and not re.search(r"20\d\d-\d\d-\d\d", et), et)
         lp.click("#mktMode button[data-m='eod']"); lp.wait_for_timeout(300)
         ok(f"[{tag}] 按回盤後 → 標題還原", text(lp, "#mktTitle") == eod_title, text(lp, "#mktTitle"))
     finally:
@@ -2751,8 +2762,9 @@ def t_market(pg, base):
         rows: document.querySelectorAll('#mktBody tr[data-code]').length,
         on: (document.querySelector('#mktMode button.on')||{dataset:{}}).dataset.m })""")
     ok("★ D4：按「⚡ 即時」→ 那一顆真的亮起來", live["on"] == "live", live["on"])
-    ok("★ D4：標題真的換字（看得出現在畫的是即時，不是收盤統計）",
-       live["title"] != eod["title"] and "即時" in live["title"], {"盤後": eod["title"][:40], "即時": live["title"][:40]})
+    # 2026-10-06 改前→改後（DECISIONS #328）：即時標題不再寫「⚡ 即時 HH:MM:SS」→ 看得出是即時靠「只涵蓋 N 檔（非全市場）」
+    ok("★ D4：標題真的換字（看得出現在畫的是即時那一批，不是收盤統計）",
+       live["title"] != eod["title"] and "只涵蓋" in live["title"] and "非全市場" in live["title"], {"盤後": eod["title"][:40], "即時": live["title"][:40]})
     for kw in ("涵蓋率", "不是全市場", "成交值是估的"):
         ok(f"★ D4：口徑說明誠實寫出「{kw}」（假數字也要標清楚它是什麼）",
            kw in live["liveTxt"], live["liveTxt"][:160])
@@ -2824,8 +2836,8 @@ def t_flow(pg, base):
     ok("族群×法人是一條雙把手區間桿（起日／截止日同一根軸）",
        bool(bars["inst"]) and bool(bars["instHi"]) and bars["inst"]["min"] == 0 and bars["inst"]["max"] == bars["instHi"]["max"] >= 20, bars)
 
-    snap = lambda: pg.evaluate("""() => ({ sub: (document.getElementById('rankSub')||{}).textContent,
-        instSub: (document.getElementById('instSub')||{}).textContent,
+    snap = lambda: pg.evaluate("""() => ({ sub: ((document.getElementById('rankSub')||{}).dataset||{}).range,
+        instSub: ((document.getElementById('instSub')||{}).dataset||{}).range,
         rank: !!document.querySelector('#rankFlow canvas'),
         inst: !!document.querySelector('#instGroups canvas'),
         instMsg: ((document.querySelector('#instGroups .empty')||{}).textContent||'').trim(),
@@ -2841,7 +2853,7 @@ def t_flow(pg, base):
         inst_span(pg, v, 900)
         seenb[v] = snap()
         ok(f"拉到 {v} 天：排行圖有畫出來", seenb[v]["rank"], seenb[v])
-        ok(f"拉到 {v} 天：排行副標寫出日期範圍（期間卡的資訊沒有消失）",
+        ok(f"拉到 {v} 天：排行的區間讀數（data-range）有日期範圍（2026-10-06 起畫面不顯示）",
            "～" in (seenb[v]["sub"] or ""), seenb[v]["sub"])
         ok(f"拉到 {v} 天：法人圖有畫出來（或說清楚為什麼還沒有）",
            seenb[v]["inst"] or ("還沒出" in seenb[v]["instMsg"] and "18:30" in seenb[v]["instMsg"]),
@@ -2932,7 +2944,7 @@ def t_flow(pg, base):
         seenb[v] = pg.evaluate("""() => ({ v: +document.querySelector('#rotBack input.days').value,
             lab: (document.querySelector('#rotBack .val')||{}).textContent,
             move: (document.getElementById('rotMove')||{}).innerText || '',
-            sub: (document.getElementById('rankSub')||{}).textContent || '',
+            sub: ((document.getElementById('rankSub')||{}).dataset||{}).range || '',
             span: ((window.App && window.App._rotFrame) || {}).span })""")
         ok(f"拉到 {v}：讀數寫「{v} 天前」（旁邊備註改成幾天前）", (seenb[v]["lab"] or "").startswith(f"{v} 天前"), seenb[v]["lab"])
         ok(f"拉到 {v}：輪盤的腳印真的畫 {v} 天（span）", seenb[v]["span"] == v, seenb[v])
@@ -3092,8 +3104,8 @@ def t_flow(pg, base):
     sub0 = text(pg, "#instSub")
     inst_span(pg, 10, 1200)
     changed("拉到 10 天，族群×法人真的重畫", i0, canvas_hash(pg, "#instGroups"))
-    changed("副標跟著寫「（10 日）」", sub0, text(pg, "#instSub"))
-    ok("副標寫的是 10 日", "（10 日）" in text(pg, "#instSub"), text(pg, "#instSub"))
+    changed("副標跟著寫「10 日」", sub0, text(pg, "#instSub"))
+    ok("副標寫的是 10 日", "近 10 日" in text(pg, "#instSub"), text(pg, "#instSub"))
     ok("y 軸的族群名後面帶占比 %", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
         if (!c) return false; const d = c.getOption().yAxis[0].data || [];
         return d.length > 0 && String(d[0]).indexOf('%') >= 0; }"""),
@@ -3539,7 +3551,7 @@ def t_r3_industry(pg, base):
         pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle")
         wait_until(pg, "() => !!document.getElementById('gpLiveBtn')", 6000)
         click(pg, "#gpLiveBtn", 300)
-        note = wait_until(pg, "() => { const t = (document.getElementById('gpNote')||{}).innerText || ''; return /抓不到|盤中暫定值/.test(t) ? t : ''; }", 15000)
+        note = wait_until(pg, "() => { const t = (document.getElementById('gpNote')||{}).innerText || ''; return /抓不到|估算/.test(t) ? t : ''; }", 15000)
         ok("R3-4 即時抓不到時說明是中文（沒有 Failed to fetch）",
            bool(note) and "Failed" not in note and "fetch" not in note.lower(), note)
         if note and "抓不到" in note:
@@ -5784,9 +5796,11 @@ def t_new_flow(pg, base):
             changed("按播放之後，拉Bar 真的自己在走", p0, p1)
             ok("播放中按鈕變成暫停的樣子",
                pg.evaluate("() => document.querySelector('#sankeyDays .pb.play').textContent") == "⏸")
-            sub_a = text(pg, "#sankeySub")
+            # 2026-10-06（DECISIONS #328）：副標不再寫日期 → 讀副標的 data-day（機器讀數）
+            SKD = "() => ((document.getElementById('sankeySub')||{}).dataset||{}).day || ''"
+            sub_a = pg.evaluate(SKD)
             pg.wait_for_timeout(1400)
-            changed("播放時圖的副標日期也跟著走（畫面真的在變）", sub_a, text(pg, "#sankeySub"))
+            changed("播放時圖的日期（data-day）也跟著走（畫面真的在變）", sub_a, pg.evaluate(SKD))
             pg.eval_on_selector("#sankeyDays .pb.play", "b => b.click()")
             pg.wait_for_timeout(400)
             p2 = pg.evaluate(f"() => +document.querySelector('{bar}').value")
@@ -5886,9 +5900,9 @@ def t_new_flow(pg, base):
     l4_sub(pg, "rot", 1500)              # 2026-10-03 電腦版：④⑤ 在資金輪動那張卡（①）
     rot_seek(pg, 0, 700)
     rot_span(pg, 20, 900)
-    sub0 = text(pg, "#rankSub")
+    sub0 = sub_range(pg, "rankSub")
     rot_span(pg, 15, 1500)
-    changed("沒有播放鈕，手動拉天數照樣會重畫", sub0, text(pg, "#rankSub"))
+    changed("沒有播放鈕，手動拉天數照樣會重畫", sub0, sub_range(pg, "rankSub"))
     rot_span(pg, 20, 1200)
 
     # ------------------------------------------- ⑤ 族群展開的股票清單固定高度＋拉Bar
@@ -6356,7 +6370,9 @@ def t_new_flow(pg, base):
         pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()")
         pg.wait_for_timeout(2800)
         off = text(pg, "#sankeyLive")
-        ok("非盤中按「即時」有明講現在沒有盤", "不是盤中" in off, off[:120])
+        # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #328）：「非盤中有明講現在沒有盤」→ 狀態列不寫時段（「現在不是盤中…快照」拿掉），口徑照留
+        ok("非盤中按「即時」：狀態列不寫時段與時間、估算口徑照留", "不是盤中" not in off and "快照" not in off
+           and not re.search(r"\d\d:\d\d", off) and "估算" in off, off[:120])
         ok("非盤中也不是一張空圖（圖照樣畫得出來）",
            pg.evaluate("""() => { const el = document.getElementById('sankey');
                const c = echarts.getInstanceByDom(el);
@@ -7891,9 +7907,9 @@ def t_rotmerge(pg, base):
         #   改前：排行結尾跟著「看哪一天」、副標「起～訖（N 個交易日）· 和前 N 個交易日相比 · 截止日跟著…」
         #   改後：排行一律結尾在最新一天、副標只寫「M/D ～ M/D」；拉Bar 改的是「N 天前」＝排行的起點、也是腳印的長度
         rot_span(pg, 8, 1400)
-        s0, sp0 = text(pg, "#rankSub"), pg.evaluate("() => (window.App._rotFrame || {}).span")
+        s0, sp0 = sub_range(pg, "rankSub"), pg.evaluate("() => (window.App._rotFrame || {}).span")
         rot_span(pg, 22, 1400)
-        s1, sp1 = text(pg, "#rankSub"), pg.evaluate("() => (window.App._rotFrame || {}).span")
+        s1, sp1 = sub_range(pg, "rankSub"), pg.evaluate("() => (window.App._rotFrame || {}).span")
         changed(tag + "拖「N 天前」，排行副標的起始日真的變了", s0, s1)
         ok(tag + "同一個動作，輪盤的腳印長度也跟著變（8 → 22 天）", sp0 == 8 and sp1 == 22, [sp0, sp1])
         ok(tag + "排行副標只寫「M/D ～ M/D」（其他補充字拿掉了）",
@@ -7932,9 +7948,9 @@ def t_rotmerge(pg, base):
     reset_rot(pg, base, 2600)
     rot_seek(pg, 4, 1400)
     ok("資金輪動卡上沒有「⤢ 放大」了（2026-09-26）", pg.evaluate("() => !document.getElementById('rotZoomBtn') && !document.getElementById('rotZoomBack')"))
-    sub_before = text(pg, "#rankSub")
+    sub_before = sub_range(pg, "rankSub")
     set_range(pg, "#rotBack input[type=range]", 9, 1600)
-    sub_after = text(pg, "#rankSub")
+    sub_after = sub_range(pg, "rankSub")
     changed("在卡片上改「N 天前」，排行跟著換了那一段", sub_before, sub_after)
     ok("卡片上的拉Bar 停在 9 天前",
        pg.evaluate("() => +(document.querySelector('#rotBack input.days')||{}).value") == 9,
@@ -8323,7 +8339,8 @@ def t_stock(pg, base, code):
     # Andy：「資訊需要定期更新」—— 頁面要自己講清楚更新到哪一天
     fresh = pg.evaluate("""() => { const ns = [...document.querySelectorAll('#stockPage .note')].map(e => e.innerText);
         return ns.find(t => t.includes('資料更新到')) || ''; }""")
-    ok("個股頁有寫資料更新到哪一天", "資料更新到" in fresh and any(c.isdigit() for c in fresh), fresh[:80])
+    # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #328）：「個股頁有寫資料更新到哪一天」→ K 線卡下那行拿掉了
+    ok("個股頁不再寫「資料更新到 YYYY-MM-DD」（新鮮度看全站資料狀態徽章）", not fresh and not count(pg, "#skChartCard .skhelp"), fresh[:80])
 
     # --- K 線圖要夠大（Andy：「K 線圖太小，版面需要擴大」）：高度跟著視窗走，不是寫死 640
     kh = pg.evaluate("""() => { const e = document.getElementById('lwc');
@@ -9206,17 +9223,16 @@ def t_batch2(pg, base):
     rot_seek(pg, 0, 700)
     rot_span(pg, 5, 1200)
     h0 = canvas_hash(pg, "#rankFlow")
-    sub0 = text(pg, "#rankSub")
+    sub0 = sub_range(pg, "rankSub")
     rot_span(pg, 20, 1400)
-    st = pg.evaluate("""() => ({ sub: (document.getElementById('rankSub')||{}).textContent,
+    st = pg.evaluate("""() => ({ sub: ((document.getElementById('rankSub')||{}).dataset||{}).range,
         top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
                if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
     # ★ 2026-09-24（Andy：「排行檢端改成 "幾月幾號~今天日期"」）：副標只寫「M/D ～ M/D」，「20 個交易日」搬進 title
-    ok("拉到 20 天，排行副標寫出日期範圍「M/D ～ M/D」（圖四）",
+    ok("拉到 20 天，排行的區間讀數（data-range）是「M/D ～ M/D」（圖四；2026-10-06 起畫面不顯示）",
        bool(re.fullmatch(r"\d{1,2}/\d{1,2} ～ \d{1,2}/\d{1,2}", (st["sub"] or "").strip())), st["sub"])
-    ok("「20 個交易日」寫在副標的 title 裡（沒有刪掉，只是不佔版面）",
-       "20 個交易日" in (pg.evaluate("() => document.getElementById('rankSub').title") or ""),
-       pg.evaluate("() => document.getElementById('rankSub').title"))
+    # 2026-10-06 改前→改後（DECISIONS #328）：「20 個交易日寫在副標 title」→ 副標畫面上不再顯示日期（區間只在 data-range 機器讀數）
+    ok("排行副標畫面上不顯示日期區間（2026-10-06 拿掉）", not text(pg, "#rankSub").strip(), text(pg, "#rankSub"))
     changed("拉到 20 天，日期範圍真的換了", sub0, st["sub"])
     changed("拉到 20 天，排行圖真的重畫了（不是只有字變）", h0, canvas_hash(pg, "#rankFlow"))
 
@@ -9382,7 +9398,7 @@ def _inst_range_drag(pg):
     st = lambda: pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
         const o = c && c.getOption();
         return { val: (document.querySelector('#instDays .val')||{}).textContent || '',
-                 sub: (document.getElementById('instSub')||{}).textContent || '',
+                 sub: ((document.getElementById('instSub')||{}).dataset||{}).range || '',
                  lo: +document.querySelector('#instDays input.lo').value, hi: +document.querySelector('#instDays input.hi').value,
                  bars: o ? JSON.stringify(o.series.map(x => (x.data || []).map(d => d && d.value))) : '' }; }""")
     def thumb_xy(cls):
@@ -9403,17 +9419,17 @@ def _inst_range_drag(pg):
     s1 = st()
     ok("區間桿：滑鼠拖右把手，截止日真的往前挪", s1["hi"] < s0["hi"], [s0["hi"], s1["hi"]])
     changed("區間桿：拖右把手後旁邊的「起～迄（N 個交易日）」跟著變", s0["val"], s1["val"])
-    changed("區間桿：拖右把手後標題列的期間文字跟著變", s0["sub"], s1["sub"])
+    changed("區間桿：拖右把手後標題列的期間讀數（data-range，2026-10-06 起畫面不顯示）跟著變", s0["sub"], s1["sub"])
     changed("區間桿：拖右把手後長條數值真的換了", s0["bars"], s1["bars"])
     drag("lo", -w * 0.15)                       # 左把手（起日）往左拖＝期間變長
     s2 = st()
     ok("區間桿：滑鼠拖左把手，起日真的往前、截止日不動", s2["lo"] < s1["lo"] and s2["hi"] == s1["hi"], [s1, s2])
-    changed("區間桿：拖左把手後標題列的期間文字跟著變", s1["sub"], s2["sub"])
+    changed("區間桿：拖左把手後標題列的期間讀數（data-range）跟著變", s1["sub"], s2["sub"])
     changed("區間桿：拖左把手後長條數值真的換了", s1["bars"], s2["bars"])
     m = re.search(r"(\d{4}-\d{2}-\d{2}) ～ (\d{4}-\d{2}-\d{2})（(\d+) 個交易日）", s2["val"])
     ok("區間桿旁的文字＝「YYYY-MM-DD ～ YYYY-MM-DD（N 個交易日）」，N＝兩把手距離＋1",
        bool(m) and int(m.group(3)) == s2["hi"] - s2["lo"] + 1, s2["val"])
-    ok("標題列的期間（MM-DD～MM-DD（N 日））跟區間桿講的是同一段",
+    ok("標題列的期間讀數（data-range：MM-DD～MM-DD（N 日））跟區間桿講的是同一段",
        bool(m) and f"{m.group(1)[5:]}～{m.group(2)[5:]}（{m.group(3)} 日）" in s2["sub"], [s2["val"], s2["sub"]])
     # 鍵盤：focus 右把手按 ← 一次＝截止日往前一天
     pg.focus("#instDays input.hi"); pg.keyboard.press("ArrowLeft"); pg.wait_for_timeout(800)
@@ -9461,13 +9477,15 @@ def t_batch3(pg, base):
     # ---- 圖八：族群 × 法人的「截止日」回放 —— 2026-10-04 起是區間桿的右把手（#instEnd 整條已併進 #instDays）
     if pg.evaluate("() => !!document.querySelector('#instDays input.hi')"):
         inst_span(pg, 20, 900)
-        sub0 = text(pg, "#instSub")
+        # 2026-10-06 改前→改後（DECISIONS #328）：副標不再寫日期區間 → 改驗區間桿旁的讀數（#instDays .val）跟著換
+        IVAL = "() => (document.querySelector('#instDays .val')||{}).textContent || ''"
+        sub0 = pg.evaluate(IVAL)
         i0 = canvas_hash(pg, "#instGroups")
         hi = pg.evaluate("() => +document.querySelector('#instDays input.hi').value")
         set_range(pg, "#instDays input.hi", max(0, hi - 30), 1200)
         changed("族群×法人把截止日（右把手）往回拉，圖真的重畫（圖八）", i0, canvas_hash(pg, "#instGroups"))
-        changed("族群×法人的副標跟著寫出那一段日期（圖八）", sub0, text(pg, "#instSub"))
-        ok("副標寫的是一段區間不是只有天數", "～" in text(pg, "#instSub"), text(pg, "#instSub"))
+        changed("族群×法人區間桿旁的讀數跟著寫出那一段日期（圖八）", sub0, pg.evaluate(IVAL))
+        ok("區間讀數是一段區間不是只有天數；副標不寫日期", "～" in pg.evaluate(IVAL) and "～" not in text(pg, "#instSub"), pg.evaluate(IVAL))
         set_range(pg, "#instDays input.hi", hi, 900)
 
     # ---- ★ 2026-10-04（Andy）：族群 × 法人兩條拉桿合併成一條雙把手區間桿 —— 真的用滑鼠拖兩顆把手
@@ -12550,7 +12568,8 @@ def t_livek_offhours(pg, base, code):
         ok("A3 四週期同看：四格都畫得出來（不是空格）",
            len(cells) == 4 and all(c["canvas"] > 0 and not c["empty"] for c in cells), cells)
         ok("★ A3 存檔裡的 5秒 被換成 1 分（沒有任何一格是 5 秒）", all(c["sel"] != "5s" for c in cells), [c["sel"] for c in cells])
-        ok("A3 1分／5分／15分 三格都標「MM-DD 非即時」", all(f"{prev[5:]} 非即時" in c["cap"] for c in cells[:3]), [c["cap"] for c in cells])
+        # 2026-10-06 改前→改後（DECISIONS #328）：「三格都標 MM-DD 非即時」→ 格子標題不再有日期／時段小字（週期鈕的灰點照舊）
+        ok("A3 1分／5分／15分 三格的標題不再寫「MM-DD 非即時」", not any("非即時" in c["cap"] or prev[5:] in c["cap"] for c in cells[:3]), [c["cap"] for c in cells])
         click(pg, "#mtfBtn", 1200)
 
         # ============================================================ B. Yahoo 查無資料（冷門股）
@@ -15822,16 +15841,19 @@ def t_side_merge(pg, b, base):
     # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
     #   改前：量放大鈕在輪盤欄右上角、點它開放大視窗。改後：驗鈕不在；日期區間同步照驗。
     z = pg.evaluate("""() => ({ gone: !document.getElementById('rotZoomBtn'),
-        rot: (document.getElementById('rotSub') || {}).textContent || '', rank: (document.getElementById('rankSub') || {}).textContent || '' })""")
+        rot: ((document.getElementById('rotSub') || {}).dataset || {}).range || '', rank: ((document.getElementById('rankSub') || {}).dataset || {}).range || '' })""")
     ok("★ 輪盤欄右上角沒有「放大」鈕了（2026-09-26 拿掉）", z["gone"], z)
-    ok("★ 足跡輪盤標題後有日期區間，且與排行副標一致", bool(z["rot"]) and "～" in z["rot"] and z["rot"] == z["rank"], z)
+    # 2026-10-06 改前→改後（DECISIONS #328）：畫面上不再顯示日期區間；兩邊的 data-range（機器讀數）仍要一致、仍要跟著拉Bar 變
+    ok("★ 足跡輪盤標題與排行副標畫面上都不顯示日期區間",
+       not pg.evaluate("() => [document.getElementById('rotSub'), document.getElementById('rankSub')].map(e => e ? e.textContent : '').join('')").strip(), z)
+    ok("★ 足跡輪盤與排行的區間讀數（data-range）一致", bool(z["rot"]) and "～" in z["rot"] and z["rot"] == z["rank"], z)
     # 拉Bar 後兩者一起變
     r0 = z["rot"]
     moved = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]'); if (!i) return false;
         const v = +i.value, nv = v > +i.min + 4 ? v - 5 : v + 5; i.value = String(nv);
         i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); return true; }""")
     pg.wait_for_timeout(1500)
-    z2 = pg.evaluate("() => ({ rot: document.getElementById('rotSub').textContent, rank: document.getElementById('rankSub').textContent })")
+    z2 = pg.evaluate("() => ({ rot: document.getElementById('rotSub').dataset.range, rank: document.getElementById('rankSub').dataset.range })")
     ok("★ 拉「N 天前」拉Bar：足跡輪盤日期區間跟著變、仍與排行副標一致", moved and z2["rot"] != r0 and z2["rot"] == z2["rank"], [r0, z2])
 
 
@@ -17344,7 +17366,7 @@ CHIP_AX = r"""() => { const ids = ['instChart', 'marginChart', 'holderChart', 'h
       same: xa.every(x => JSON.stringify(x.data) === JSON.stringify(ax)),
       pts: o.series.map(s => ({ name: s.name, dates: (s.data || []).map((v, i) => val(v) == null ? null : ax[i]).filter(Boolean) })) }; });
   const st = document.getElementById('stockTab');
-  return { charts: out, win: st ? st.dataset.win : null, range: (document.getElementById('chipRange') || {}).textContent || '',
+  return { charts: out, win: st ? st.dataset.win : null, range: ((document.getElementById('chipRange') || {}).dataset || {}).range || '', rangeTxt: (document.getElementById('chipRange') || {}).textContent || '',
            on: [...document.querySelectorAll('#chipWin button.on')].map(b => b.textContent.trim()),
            ls: (() => { try { return localStorage.getItem('tw.chipWin'); } catch (e) { return null; } })(),
            notes: [...document.querySelectorAll('#stockTab .hoNote, #stockTab .hoNote2')].map(e => e.textContent) }; }"""
@@ -17425,7 +17447,7 @@ def t_stock_tabs0926(pg, base, code):
             for cid in r["charts"]:
                 a["hash"][cid] = canvas_hash(pg, f"#{cid}")
             a["charts"].update(r["charts"])
-            for kk in ("win", "range", "on", "ls"):
+            for kk in ("win", "range", "rangeTxt", "on", "ls"):
                 a.setdefault(kk, r[kk])
             a.setdefault("notes", []); a["notes"] += r["notes"]
             a.setdefault("wins", []).append(r["win"])
@@ -17454,7 +17476,9 @@ def t_stock_tabs0926(pg, base, code):
         last_trade = str((j.get("daily") or [[None]])[-1][0])[:10]
         ok(f"【{tag}】{c} 視窗最後一天＝最新交易日（{last_trade}）", next(iter(ch.values()))["last"] >= last_trade, rng)
         first = next(iter(ch.values()))["first"]; last = next(iter(ch.values()))["last"]
-        ok(f"【{tag}】{c} 上方讀數寫出起訖日與交易日數", first in a["range"] and last in a["range"] and f"{n0} 個交易日" in a["range"], a["range"])
+        # 2026-10-06 改前→改後（DECISIONS #328）：起訖日不再顯示在區間鈕旁，改在 #chipRange 的 data-range（機器讀數）
+        ok(f"【{tag}】{c} 區間讀數（data-range）有起訖日與交易日數、畫面上不顯示", first in a["range"] and last in a["range"] and f"{n0} 個交易日" in a["range"]
+           and not a["rangeTxt"].strip(), [a["range"], a["rangeTxt"]])
         # 集保：點落在實際公布日（週資料，不是每日）
         ho_dates = [str(r[0])[:10] for r in (j.get("holders") or []) if first <= str(r[0])[:10] <= last]
         hp = ch.get("holderChart", {}).get("pts", [])
@@ -17719,7 +17743,10 @@ def t_stock_quarter_audit0927(pg, base, code):
     a = pg.evaluate(PX) or {}
     ok(f"★【{tag}】獲利預設「季」：x 軸 {len(pf.get('quarters') or [])} 季、EPS＋毛利率＋淨利率", a.get("mode") == "q"
        and len(a.get("x") or []) == len(pf.get("quarters") or []) and {"EPS", "毛利率", "淨利率"} <= set(a.get("names") or []), a)
-    ok(f"【{tag}】獲利副標寫出法定期限判定", "法定應有到" in (a.get("sub") or ""), a.get("sub"))
+    # 2026-10-06 改前→改後（DECISIONS #328）：正常（ok）時副標不再寫「財報到 X（至 YYYY-MM-DD 法定應有到 X）」；缺季／季底未到的警示照留
+    _st = (pf.get("timing") or {}).get("status")
+    ok(f"【{tag}】獲利副標：正常時不寫財報日期，出錯時才寫警示", ("法定應有到" not in (a.get("sub") or "") and not (a.get("sub") or "").strip()) if _st == "ok"
+       else "⚠" in (a.get("sub") or ""), [_st, a.get("sub")])
     h0 = canvas_hash(pg, "#profitChart")
     click(pg, '#profitMode button[data-v="y"]', 900)
     b = pg.evaluate(PX) or {}
@@ -19920,7 +19947,8 @@ def dwm_check(pg):
                v["n"] >= MIN[tf] and v["last"] == last_day and gap <= lim and v["vol"] >= v["n"] * 0.9,
                dict(v, gap=gap))
             if tf == "D":
-                ok(f"[日周月] {id_} 日 K 卡上講清楚是哪一條、資料到哪一天", ("資料至 " + last_day) in v["note"], v["note"])
+                # 2026-10-06 改前→改後（DECISIONS #328）：「講清楚是哪一條、資料到哪一天」→ 只講是哪一條，不寫「資料至 YYYY-MM-DD」
+                ok(f"[日周月] {id_} 日 K 卡上講清楚是哪一條（不寫資料至哪一天）", "日 K" in v["note"] and "資料至" not in v["note"], v["note"])
     fut = pg.evaluate("() => (document.getElementById('m3c-FUT') || {}).dataset.fallback || ''")
     ok("★ [日周月] 台指期 K 線標明是日盤或夜盤那一條（不再讓人以為拿到加權的線）",
        "台指期日盤日 K" in fut or "台指期夜盤日 K" in fut, fut)
@@ -20353,12 +20381,16 @@ def t_live5s_0929(b, base, code):
     ok("★ [即時5秒] 再等一輪又換了一次（不是只抓第一次）", s2 is not None and a2 != a1, [a1, a2, s2])
     ok("[即時5秒] 兩次更新的間隔落在 5 秒上下（≤ 6.5 秒）", s2 is not None and s2 <= 6.5, s2)
     stamp1 = text(pg, ".livetg[data-livekey='stock'] .livetg-t")
-    ok("★ [即時5秒] 卡上印最後更新時間（台北 HH:MM:SS · 5秒）", bool(re.search(r"^\d\d:\d\d:\d\d · 5秒$", stamp1)), stamp1)
+    # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #328）：鈕旁不再**顯示**「HH:MM:SS · 5秒」；
+    #   .livetg-t 留著當機器讀數（藏起來），狀態改用鈕的顏色，時間在鈕的滑鼠提示。
+    ok("★ [即時5秒] 鈕旁畫面上不顯示更新時間（.livetg-t 藏起來）",
+       pg.evaluate("() => getComputedStyle(document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-t')).display") == "none")
+    ok("★ [即時5秒] 機器讀數仍寫最後更新時間（台北 HH:MM:SS · 5秒）", bool(re.search(r"^\d\d:\d\d:\d\d · 5秒$", stamp1)), stamp1)
     pg.wait_for_timeout(5600)
     stamp2 = text(pg, ".livetg[data-livekey='stock'] .livetg-t")
-    changed("[即時5秒] 更新時間跟著跳（看得出多久更新一次）", stamp1, stamp2)
+    changed("[即時5秒] 更新時間（機器讀數）跟著跳", stamp1, stamp2)
     tip = pg.evaluate("() => document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-b').title")
-    ok("[即時5秒] 開關的提示寫出「台北時間」「每 5 秒」", "台北" in tip and "每 5 秒" in tip, tip[:120])
+    ok("[即時5秒] 開關的提示寫出「台北時間」「每 5 秒」與最後更新時間", "台北" in tip and "每 5 秒" in tip and bool(re.search(r"\d\d:\d\d:\d\d", tip)), tip[:120])
     t_a = _time.time(); pg.wait_for_timeout(10200)
     q10 = len(reqs(t_a, ("/quote",)))
     ok("★ [即時5秒] 同一檔不重複問：10 秒內 /quote 只有 2～3 次（個股分 K 吃 live.js 同一批，改前個股頁是每 5 秒＋每分鐘各打一次）",
@@ -20375,7 +20407,7 @@ def t_live5s_0929(b, base, code):
                       " t: document.querySelector('.livetg[data-livekey=\"stock\"] .livetg-t').textContent,"
                       " px: document.getElementById('pxNow').textContent.trim(), ls: localStorage.getItem('tw.live.card.stock'),"
                       " lk: window.LiveK.ticking })")
-    ok("★ [即時5秒] 按一下關掉：開關變成關、卡上寫「靜態」", off["p"] == "false" and off["t"] == "靜態", off)
+    ok("★ [即時5秒] 按一下關掉：開關變成關（機器讀數＝靜態，畫面只看鈕的顏色）", off["p"] == "false" and off["t"] == "靜態", off)
     ok("★ [即時5秒] 關掉後現價退回盤後靜態值（不是停在最後一筆即時價）", lst is not None and off["px"] == lst.strip(), [lst, off["px"]])
     ok("[即時5秒] 關掉後個股分 K 的輪詢也停了", off["lk"] is False, off)
     ok("[即時5秒] 開關狀態存進 localStorage（tw.live.card.stock=0）", off["ls"] == "0", off)
@@ -20474,13 +20506,16 @@ def t_live5s_0929(b, base, code):
        ms is not None and abs(float(ms["c"]) - float(text(pg, TSE).replace(",", ""))) < 0.011, [ms, text(pg, TSE)])
     stp = text(pg, "#m3Frame .livetg[data-livekey='m3'] .livetg-t")
     # 2026-10-03：大盤卡裡加權／櫃買 5 秒、台指期 15 秒，卡上短字改寫「5/15秒」（DECISIONS #299）
-    ok("[即時5秒] 大盤卡印最後更新時間（HH:MM:SS · 5/15秒）", bool(re.search(r"^\d\d:\d\d:\d\d · 5/15秒$", stp)), stp)
+    ok("[即時5秒] 大盤卡的更新時間只在機器讀數（HH:MM:SS · 5/15秒），畫面上不顯示（2026-10-06）",
+       bool(re.search(r"^\d\d:\d\d:\d\d · 5/15秒$", stp))
+       and pg.evaluate("() => getComputedStyle(document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"] .livetg-t')).display") == "none", stp)
     pg.click("#m3Frame .livetg[data-livekey='m3'] .livetg-b"); pg.wait_for_timeout(500)
     t_o = _time.time(); v_off = [text(pg, TSE), text(pg, FUT)]
     pg.wait_for_timeout(11000)
     ok("★ [即時5秒] 大盤卡關掉：11 秒內不再打分時檔與期貨報價", len(reqs(t_o, ("/chart", "/fut"))) == 0, reqs(t_o))
     ok("★ [即時5秒] 大盤卡關掉：數字不再換", [text(pg, TSE), text(pg, FUT)] == v_off, [v_off, text(pg, TSE), text(pg, FUT)])
-    ok("[即時5秒] 大盤卡關掉：卡上寫「靜態」", text(pg, "#m3Frame .livetg[data-livekey='m3'] .livetg-t") == "靜態")
+    ok("[即時5秒] 大盤卡關掉：機器讀數＝靜態、鈕變成關", text(pg, "#m3Frame .livetg[data-livekey='m3'] .livetg-t") == "靜態"
+       and pg.evaluate("() => document.querySelector('#m3Frame .livetg[data-livekey=\"m3\"] .livetg-b').getAttribute('aria-pressed')") == "false")
     pg.click("#m3Frame .livetg[data-livekey='m3'] .livetg-b")
     c3 = changes_within(pg, TSE, 7000)
     ok("[即時5秒] 大盤卡再打開：數字又開始換", c3[2] is not None, c3)
@@ -20498,8 +20533,10 @@ def t_live5s_0929(b, base, code):
     #   大盤卡一直開著時兩版一樣快（同一套假報價量：本分支 10.7 秒、補位關掉 10.6 秒）。
     wait_until(pg, "() => !!document.querySelector('#mktLive .liveat')", 20000)
     m1 = text(pg, "#mktLive .liveat")
-    ok("[即時5秒] 漲跌家數即時：狀態列寫「每 5 秒更新」與最後更新時間（台北）",
-       "每 5 秒" in text(pg, "#mktLive") and bool(re.search(r"^\d\d:\d\d:\d\d$", m1)), [m1, text(pg, "#mktLive")[:80]])
+    # 2026-10-06 改前→改後（DECISIONS #328）：狀態列不再寫「最後更新 HH:MM:SS（台北）每 5 秒更新」；時間只留藏起來的 .liveat 機器讀數
+    ok("[即時5秒] 漲跌家數即時：狀態列畫面上不寫時間，機器讀數 .liveat 有最後更新時間（台北）",
+       bool(re.search(r"^\d\d:\d\d:\d\d$", m1)) and not re.search(r"\d\d:\d\d", pg.evaluate("() => document.getElementById('mktLive').innerText")),
+       [m1, text(pg, "#mktLive")[:80]])
     m2 = changes_within(pg, "#mktLive .liveat", 16000)
     ok("[即時5秒] 漲跌家數即時：最後更新時間真的往前走（440 檔＝5 個請求一輪，受節流閥限制約 10 秒輪完）", m2[2] is not None, m2)
     ok("★ [即時5秒] 族群即時模式：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
@@ -20555,7 +20592,7 @@ def t_live5s_0929(b, base, code):
     mp = changes_within(pg, "#mbPx")
     ok("★ [即時5秒 手機] 開著即時：6.5 秒內現價真的換了", mp[2] is not None, mp)
     pg.tap("#mbHead .livetg.mb .livetg-b"); pg.wait_for_timeout(400)
-    ok("[即時5秒 手機] 點一下關掉（aria-pressed=false、字變「靜態」）",
+    ok("[即時5秒 手機] 點一下關掉（aria-pressed=false、機器讀數變「靜態」）",
        pg.evaluate("() => document.querySelector('#mbHead .livetg-b').getAttribute('aria-pressed')") == "false"
        and text(pg, "#mbHead .livetg-t") == "靜態", text(pg, "#mbHead .livetg-t"))
     t_m = _time.time(); v_m = text(pg, "#mbPx"); pg.wait_for_timeout(6500)
@@ -20712,7 +20749,9 @@ OVL_HIDE = """(h) => { if (h) { Object.defineProperty(document, 'hidden', { conf
                           Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); }
                    else { delete document.hidden; delete document.visibilityState; }
                    document.dispatchEvent(new Event('visibilitychange')); }"""
-OVL_CHIPS = """() => [...document.querySelectorAll('#hero .osc .ovl-tg')].map(b => ({ k: b.dataset.k, t: (b.querySelector('.ovl-t') || {}).textContent || '',
+# 2026-10-06（DECISIONS #328，Andy：「這類資訊一律拿掉」）：鈕上畫面只寫「即時」；原本的「MM/DD」「即時 HH:MM:SS」改放 data-stamp（機器讀數）。
+#   t＝機器讀數（沿用原本的斷言），vis＝畫面上看得到的字（一律「即時」）。
+OVL_CHIPS = """() => [...document.querySelectorAll('#hero .osc .ovl-tg')].map(b => ({ k: b.dataset.k, t: b.dataset.stamp || '', vis: (b.querySelector('.ovl-t') || {}).textContent || '',
   cls: b.className, p: b.getAttribute('aria-pressed'), tip: b.title || '' }))"""
 
 
@@ -20832,22 +20871,25 @@ def t_ov_kpi_live_1002(b, base, code):
 
     LIVE_RE = re.compile(r"^即時 \d\d:\d\d:\d\d$")
     DATE_RE = re.compile(r"^\d\d/\d\d$")
-    ALL_LIVE = "() => { const c = [...document.querySelectorAll('#hero .osc .ovl-tg .ovl-t')]; return c.length === 4 && c.every(e => /^即時 \\d\\d:\\d\\d:\\d\\d$/.test(e.textContent)); }"
+    ALL_LIVE = "() => { const c = [...document.querySelectorAll('#hero .osc .ovl-tg')]; return c.length === 4 && c.every(e => /^即時 \\d\\d:\\d\\d:\\d\\d$/.test(e.dataset.stamp || '')); }"
 
     # ------------------------------------------------------------------ ① 盤中 1440
     ctx, pg = open_page(CLK_INTRA)
     ok("[摘要卡即時] 假時鐘在盤中（台北 10:30）", pg.evaluate("() => window.Live.isIntraday()") is True)
     eod_chips = pg.evaluate(OVL_CHIPS)
     eod_v = vals(pg)
-    ok("[摘要卡即時] 剛打開（還沒輪完一圈）：右上角是盤後資料的日期 MM/DD，不是假的「即時」",
+    ok("[摘要卡即時] 剛打開（還沒輪完一圈）：機器讀數是盤後資料的日期 MM/DD，不是假的「即時 HH:MM:SS」",
        len(eod_chips) == 4 and all(DATE_RE.match(c["t"]) for c in eod_chips), eod_chips)
+    ok("★ [摘要卡即時] 右上角畫面上只寫「即時」，不顯示日期（2026-10-06 拿掉）",
+       len(eod_chips) == 4 and all(c["vis"] == "即時" for c in eod_chips), [c["vis"] for c in eod_chips])
     ok("[摘要卡即時] 右上角那顆是按鈕、預設即時開著（aria-pressed=true）",
        all(c["p"] == "true" for c in eod_chips) and count(pg, "#hero .osc button.ovl-tg") == 4, [c["p"] for c in eod_chips])
     t_live0 = _time.time()
     live_ok = wait_until(pg, ALL_LIVE, 50000, 250)
     t_ready = round(_time.time() - t_live0, 1)
     chips = pg.evaluate(OVL_CHIPS)
-    ok("★ [摘要卡即時] 盤中：50 秒內四張卡右上角都換成「即時 HH:MM:SS」（每一檔問過一輪才換）", bool(live_ok), {"秒": t_ready, "chips": [c["t"] for c in chips]})
+    ok("★ [摘要卡即時] 盤中：50 秒內四張卡的讀數都換成「即時 HH:MM:SS」（每一檔問過一輪才換；畫面只寫「即時」）", bool(live_ok)
+       and all(c["vis"] == "即時" for c in chips), {"秒": t_ready, "chips": [[c["t"], c["vis"]] for c in chips]})
     if not live_ok:
         ctx.close(); return
     st = pg.evaluate("""() => { const h = document.getElementById('hero');
@@ -20976,7 +21018,7 @@ def t_ov_kpi_live_1002(b, base, code):
     #   機器忙的時候兩行 Python 之間就隔好幾秒（2026-10-02 合併後重跑，負載 22 時抓到過）。
     #   要驗的是：① 跨過收盤之後數字就不再動 ② 不是換回前一天的盤後資料。
     pg.clock.set_system_time(CLK_CLOSE)
-    gone = wait_until(pg, "() => { const c = [...document.querySelectorAll('#hero .ovl-tg .ovl-t')]; return c.length === 4 && c.every(e => /^\\d\\d\\/\\d\\d$/.test(e.textContent)); }", 12000, 250)
+    gone = wait_until(pg, "() => { const c = [...document.querySelectorAll('#hero .ovl-tg')]; return c.length === 4 && c.every(e => /^\\d\\d\\/\\d\\d$/.test(e.dataset.stamp || '')); }", 12000, 250)
     after = pg.evaluate(OVL_CHIPS)
     ok("★ [摘要卡即時] 跨過收盤：右上角從「即時 HH:MM:SS」改回日期", bool(gone), [c["t"] for c in after])
     ok(f"[摘要卡即時] 跨過收盤時盤後資料還沒產出 → 顯示今天（{DAY_MD}）的收盤快照、提示寫明", all(c["t"] == DAY_MD and "收盤快照" in c["tip"] for c in after), after)
@@ -22725,10 +22767,12 @@ def t_live_admin_1006(b, base, code):
         n_tg = pg.evaluate("() => document.querySelectorAll('.livetg').length")
         ok(f"[{T}] {who} 總覽：大盤三張圖的「即時」開關根本不掛進 DOM（不是只藏起來）", n_tg == 0, n_tg)
         ov = pg.evaluate("""() => [...document.querySelectorAll('.ovl-tg')].map(b => ({ c: b.className, t: (b.querySelector('.ovl-t') || b).textContent.trim(),
-            pe: getComputedStyle(b).pointerEvents, al: b.getAttribute('aria-label') || '' }))""")
-        ok(f"★ [{T}] {who} 總覽摘要卡右上角：是單純的資料日期（MM/DD、不是「即時 HH:MM:SS」、不是虛線的「關」、點不到）",
-           len(ov) >= 4 and all(re.fullmatch(r"\d\d/\d\d", x["t"]) and " arm" in " " + x["c"] and "off" not in x["c"].split()
-                                and "lv" not in x["c"].split() and x["pe"] == "none" and "即時" not in x["al"] for x in ov), ov[:4])
+            st: b.dataset.stamp || '', vis: b.getClientRects().length > 0, pe: getComputedStyle(b).pointerEvents, al: b.getAttribute('aria-label') || '' }))""")
+        # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #328）：「訪客看到單純的資料日期 MM/DD、點不到」
+        #   → 訪客整顆看不到（日期膠囊拿掉）；日期只留在 data-stamp 機器讀數，仍不是「即時 HH:MM:SS」、不是虛線的「關」
+        ok(f"★ [{T}] {who} 總覽摘要卡右上角：訪客看不到那顆（不顯示日期、也不是開關）",
+           len(ov) >= 4 and all(not x["vis"] and re.fullmatch(r"\d\d/\d\d", x["st"]) and " arm" in " " + x["c"] and "off" not in x["c"].split()
+                                and "lv" not in x["c"].split() and "即時" not in x["al"] for x in ov), ov[:4])
         m3 = pg.evaluate("""() => { const st = window.Market3 && Market3.state, d = st && st.data && st.data.TSE, el = document.getElementById('m3c-TSE');
             return { seed: !!(d && d.seed), n: d && d.points ? d.points.length : 0, date: d && d.date, empty: !el || el.classList.contains('isempty'),
                      drawn: !!(el && (el.querySelector('canvas') || el.querySelector('svg'))), ticking: !!(window.Market3 && Market3.ticking),
@@ -23323,6 +23367,8 @@ SECTIONS = {
     "重新整理回預設1003":  lambda pg, b, base, code: t_view_reset_1003(b, base, code),
     "預設狀態1006":        lambda pg, b, base, code: t_default_state_1006(b, base),
     "免責小字1006":        lambda pg, b, base, code: t_disclaimer_1006(b, base, code),
+    # ★ 2026-10-06 Andy（圈了「昨天（盤後收盤）資料日期 2026-10-05」）：「這類資訊一律拿掉」（DECISIONS #328，docs/date_chip_audit_1006.md）
+    "日期膠囊拿掉1006":    lambda pg, b, base, code: t_date_chips_1006(b, base, code),
     # ★ 2026-10-03 Andy 兩件（DECISIONS #306，⚠ 一律 --workers 1）：題材產品剖析圖縮到原尺寸（不再被放大 1.37 倍）、
     #   供應鏈關聯圖每個環節加細框（膠囊／卡片在框內、連線停在框邊）
     "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
@@ -24856,9 +24902,11 @@ def t_flow_popq(pg, base, code):
             const [c, k] = x.split(':'); const b = document.querySelector(`#${c} .howbtn.pop[data-how="${k}"]`);
             return !!b && !!b.closest('h3'); })"""), pops)
     # 資料讀數留著：排行的日期區間、法人的區間、集中度的讀數、資金去向的日期與分母
-    ok("[資金流向問號] 排行的日期區間讀數還在（M/D ～ M/D）", bool(re.search(r"\d+/\d+\s*～\s*\d+/\d+", text(pg, "#rankSub"))), text(pg, "#rankSub"))
+    # 2026-10-06 改前→改後（DECISIONS #328）：「排行／法人的日期區間讀數還在」→ 副標**不再**顯示日期區間（區間由拉Bar 自己寫）
+    ok("[資金流向問號] 排行副標不再顯示日期區間（M/D ～ M/D 拿掉）", not re.search(r"\d+/\d+", text(pg, "#rankSub")), text(pg, "#rankSub"))
     ok("[資金流向問號] 資金去向的讀數還在（% 佔上一層）", "佔上一層" in text(pg, "#sankeySub"), text(pg, "#sankeySub"))
-    ok("[資金流向問號] 族群×法人的區間讀數還在", "日" in text(pg, "#instSub") and "～" in text(pg, "#instSub"), text(pg, "#instSub"))
+    ok("[資金流向問號] 族群×法人副標只留天數與單位（不寫日期區間）", "日" in text(pg, "#instSub") and "～" not in text(pg, "#instSub")
+       and "～" in pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent || ''"), text(pg, "#instSub"))
     cs = text(pg, "#concState")
     ok("[資金流向問號] 集中度讀數縮成一行（≤ 26 字、沒有「冷門股／主流容易休息」解讀句）",
        0 < len(cs) <= 26 and "冷門股" not in cs and "休息" not in cs, cs)
@@ -28180,8 +28228,9 @@ def t_rot_live(pg, base):
        "沒有放大" in note, note[:600])
     ok("「箭頭分兩段（慣性 vs 今天推的）」也寫在畫面上 —— 不寫的話使用者會把慣性讀成資金在動",
        "慣性" in note and "分兩段" in note and "平盤" in note, note[:800])
-    ok("盤中／非盤中講清楚（stub 說是盤中，所以要出現「即時」與報價時間）",
-       "即時" in note and "10:31:00" in note, note[:120])
+    # 2026-10-06 改前→改後（DECISIONS #328）：「要出現即時與報價時間」→ 只寫「即時」，不寫報價時間與「最後更新」
+    ok("狀態框開頭只寫「即時」，不寫報價時間與更新時間（2026-10-06）",
+       note.startswith("即時") and "10:31:00" not in note and "最後更新" not in note, note[:120])
     # 走得最多的那一排：數字要印出來，而且點得進成分股
     chips = pg.evaluate("""() => [...document.querySelectorAll('#rotLive .rlvchip')]
         .map(b => ({ g: b.dataset.g, t: b.innerText.replace(/\\s+/g, ' ').trim() }))""")
@@ -28276,10 +28325,10 @@ def t_rot_live(pg, base):
            pg.evaluate("""() => { const b = document.getElementById('rotBack'), i = b.querySelector('input.days');
                return !b.classList.contains('livedim') && !i.disabled && !i.hasAttribute('aria-disabled'); }"""))
         box = pg.evaluate(_rot_drag)
-        sub0 = text(pg, "#rankSub")
+        sub0 = sub_range(pg, "rankSub")
         v2 = _drag(box, 0.15 if box["v"] > 8 else 0.85)
         ok(f"關掉即時後再拖一次，值**真的變了**（{box['v']} → {v2}）", v2 != box["v"], {"前": box["v"], "後": v2})
-        ok("而且排行的日期區間跟著變了（畫面真的換了一段）", text(pg, "#rankSub") != sub0, [sub0, text(pg, "#rankSub")])
+        ok("而且排行的日期區間跟著變了（畫面真的換了一段）", sub_range(pg, "rankSub") != sub0, [sub0, sub_range(pg, "rankSub")])
         rot_seek(pg, 0, 900)
 
     # ---------------------------------------------------------- ⑦ 抓不到報價：有錯誤訊息，而且圖沒有變空白
@@ -35275,8 +35324,10 @@ def t_b29_tabs(pg, base):
     ok("長條圖真的有族群（至少 6 條）", len(g0["names"]) >= 6, g0["names"][:5])
     ok("說明有寫「這張圖回答什麼」而且寫到「所以我該怎麼用」",
        "這張圖回答" in g0["hint"] and "怎麼用" in g0["hint"] and len(g0["hint"]) > 60, g0["hint"][:60])
-    ok("預設是昨天（盤後），而且畫面上寫得出來",
-       "盤後" in g0["note"] and not g0["liveOn"], g0["note"][:60])
+    # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #328）：「預設是昨天（盤後），而且畫面上寫得出來」
+    #   → 預設是盤後，但標題列**不再**寫「昨天（盤後收盤）資料日期 …」（#gpNote 整行不顯示）
+    ok("預設是盤後（即時關著），標題列沒有「昨天（盤後收盤）資料日期」那顆膠囊",
+       not g0["liveOn"] and not re.search(r"盤後|資料日期|昨天|\d{4}-\d{2}-\d{2}", g0["note"]), g0["note"][:60])
 
     # ---------------- ③ 紅漲綠跌（拿真的正／負漲幅的族群驗顏色，不是看設定檔）
     ch = pg.evaluate("() => ({ up: window.App.CH.up, down: window.App.CH.down })")
@@ -35347,7 +35398,8 @@ def t_b29_tabs(pg, base):
         return a ? { tab: a.dataset.dgtab || a.dataset.dgid, i: [...a.parentNode.children].indexOf(a) } : null; }""")
     ok("而且它就是二層分頁的第一頁（族群總覽）",
        bool(seltab) and seltab["tab"] == "overview" and seltab["i"] == 0, seltab)
-    ok("即時鈕預設是關的，畫面寫著昨天（盤後）", (not g3["liveOn"]) and "盤後" in g3["note"], g3["note"][:50])
+    ok("即時鈕預設是關的，標題列沒有日期／時段膠囊（2026-10-06 改）",
+       (not g3["liveOn"]) and not re.search(r"盤後|資料日期|昨天|\d{4}-\d{2}-\d{2}", g3["note"]), g3["note"][:50])
     # 先量 onLive 監聽器：連開關三次，再敲三次 tw:quotes，被呼叫的次數必須剛好是 3
     #   —— 監聽器重複疊加的話會變成 6、12、24（app.js 第 445 行寫過的坑）
     for _ in range(3):
@@ -35363,7 +35415,7 @@ def t_b29_tabs(pg, base):
     g4 = pg.evaluate(B29_GP)
     ok("按下即時：鈕亮起來、而且計時器真的開始跑", g4["liveOn"] and g4["gp"]["timer"], g4["gp"])
     ok("抓不到報價時誠實寫出來（不可以默默畫成收盤值卻說是即時）",
-       "抓不到" in g4["note"] or "盤中暫定值" in g4["note"], g4["note"][:70])
+       "抓不到" in g4["note"] or "估算" in g4["note"], g4["note"][:70])
     click(pg, "#gpLiveBtn", 800)
     ok("按下 B29_STUB 之前先把即時關掉", not pg.evaluate("() => window.Industry._gp().live"))
     pg.evaluate(B29_STUB)
@@ -35371,12 +35423,14 @@ def t_b29_tabs(pg, base):
     click(pg, "#gpLiveBtn", 3000)
     g5 = pg.evaluate(B29_GP)
     changed("切到即時，長條的數字真的換過一輪", v0, g5["vals"])
-    ok("而且畫面標明這是盤中暫定值、成交值是估算的",
-       "盤中暫定值" in g5["note"] and "估算" in g5["note"], g5["note"][:80])
+    # 2026-10-06 改前→改後：「標明這是盤中暫定值、成交值是估算的」→ 只留口徑（估算、涵蓋幾檔），不寫「盤中暫定值」與更新時間
+    ok("而且畫面標明成交值是估算的、涵蓋幾檔（口徑），不再寫「盤中暫定值」與時間",
+       "估算" in g5["note"] and "涵蓋" in g5["note"] and "盤中暫定值" not in g5["note"]
+       and not re.search(r"\d\d:\d\d", g5["note"]), g5["note"][:80])
     click(pg, "#gpLiveBtn", 2000)
     g6 = pg.evaluate(B29_GP)
     changed("再按一次退回昨天，數字也真的換回來", g5["vals"], g6["vals"])
-    ok("退回昨天之後畫面也寫回「盤後」", "盤後" in g6["note"], g6["note"][:50])
+    ok("退回盤後之後那一行收掉（不寫「盤後」）", not g6["note"].strip(), g6["note"][:50])
 
     # ---------------- ① 分頁真的切得動、選中的視覺不同
     t0 = pg.evaluate(B29_GP)["title"]
@@ -37982,8 +38036,9 @@ def t_heatmap_v2(pg, base):
             ok("[#indTree] 重新整理之後還是「不分組」", pg.evaluate("() => document.getElementById('indTreeGroup').value") == "flat")
             pg.select_option("#indTreeGroup", "chain"); pg.wait_for_timeout(1400)
             ok("[#indTree] 切回「產業鏈」又分組了", (pg.evaluate(HM_READ, "indTree") or {}).get("nested") is True)
-            ok("[#indTree] 日期膠囊顯示這份資料的交易日（MM/DD）",
-               bool(pg.evaluate("() => /\\d\\d\\/\\d\\d/.test((document.querySelector('#indHeat .hmctl.date') || {}).textContent || '')")))
+            # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #328）：「日期膠囊顯示交易日」→ 標題列不再有日期膠囊
+            ok("[#indTree] 標題列沒有日期膠囊（.hmctl.date 拿掉）",
+               pg.evaluate("() => !document.querySelector('#indHeat .hmctl.date')"))
         # ---- 題材 ----
         pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
         r = pg.evaluate(HM_READ, "themeMap")
@@ -40069,9 +40124,9 @@ def t_footprint(pg, b, base):
     ok("③ [1440] 預設 16 個族群的圓點重疊 ≤ 5 對（改前 8 對）", ov["pairs"] <= 5, ov)
     # ④ 拉Bar 改天數 → 腳印段數真的變、排行標題日期真的變
     rot_span(pg, 5, 1300)
-    f5, s5 = pg.evaluate(FP_FEET), text(pg, "#rankSub")
+    f5, s5 = pg.evaluate(FP_FEET), sub_range(pg, "rankSub")
     rot_span(pg, 25, 1300)
-    f25, s25 = pg.evaluate(FP_FEET), text(pg, "#rankSub")
+    f25, s25 = pg.evaluate(FP_FEET), sub_range(pg, "rankSub")
     ok("④ 拉Bar 從 5 天前拉到 25 天前，腳印真的變多（走的路變長）", f25 > f5 > 0, [f5, f25])
     changed("④ 同一個動作，排行標題的起始日真的跟著變", s5, s25)
     ok("④ 讀數寫「25 天前」", (text(pg, "#rotBack .val") or "").startswith("25 天前"), text(pg, "#rotBack .val"))
@@ -40249,8 +40304,8 @@ def t_rot_keep(pg, b, base):
         ok("2 勾「只看前 10 大」→ 盤上剩 10 顆", npts() == 10, npts())
         pg.click("#flowRotFilter input.rot-top10"); pg.wait_for_timeout(1200)
     # 3 時間軸（N 天前）＋ 播放
-    rot_span(pg, 8, 1200); sub8 = text(pg, "#rankSub")
-    rot_span(pg, 20, 1200); sub20 = text(pg, "#rankSub")
+    rot_span(pg, 8, 1200); sub8 = sub_range(pg, "rankSub")
+    rot_span(pg, 20, 1200); sub20 = sub_range(pg, "rankSub")
     changed("3 拉「N 天前」→ 排行日期範圍真的變了", sub8, sub20)
     f0 = pg.evaluate("() => window.App.rotFrameNow()")
     pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); b && b.click(); }"); pg.wait_for_timeout(1300)
@@ -41918,12 +41973,13 @@ def t_flowfx(pg, b, base):
     # ---- 換日：拉Bar／－＋／依排名換位的補間
     bar = "#sankeyDays input[type=range]"
     if ok("有「看哪一天」拉Bar", count(pg, bar) == 1):
-        sub0 = text(pg, "#sankeySub")
+        SKD = "() => ((document.getElementById('sankeySub')||{}).dataset||{}).day || ''"   # 2026-10-06：日期不在副標文字裡了（DECISIONS #328）
+        sub0 = pg.evaluate(SKD)
         l3a = [n["text"] for n in _fx_lv(t0, 3)]
         set_range(pg, bar, 0, 1200)
         pg.wait_for_timeout(600)
         t2 = pg.evaluate(TOPO)
-        changed("拉到最舊那天：副標日期換了", sub0, text(pg, "#sankeySub"))
+        changed("拉到最舊那天：日期讀數（data-day）換了", sub0, pg.evaluate(SKD))
         changed("拉到最舊那天：代表股標籤（名單或 %）跟著換", l3a, [n["text"] for n in _fx_lv(t2, 3)])
         ok("拉到最舊那天：仍是經典光纖、四層都在", bool(t2) and t2["layout"] == "classic"
            and len(_fx_lv(t2, 3)) >= len(_fx_lv(t2, 2)) * 2)
@@ -41940,7 +41996,7 @@ def t_flowfx(pg, b, base):
         # ▶ 回放：量幀率（回放中每 650ms 換一天、每一幀都在補間＋重畫底圖與標籤，是這張圖最重的狀態）
         set_range(pg, bar, 0, 900)
         scroll_to(pg, "sankey")
-        sa = text(pg, "#sankeySub")
+        sa = pg.evaluate(SKD)
         pg.evaluate("() => window.FlowTopo.resetMeter(document.getElementById('sankey'))")
         pg.eval_on_selector("#sankeyDays .pb.play", "b => b.click()")
         pg.wait_for_timeout(2600)
@@ -41948,7 +42004,7 @@ def t_flowfx(pg, b, base):
             const f = () => { n++; if (performance.now() - t0 < 1500) requestAnimationFrame(f);
               else res(n / ((performance.now() - t0) / 1000)); }; requestAnimationFrame(f); })""")
         tp2 = pg.evaluate(TOPO)
-        changed("按 ▶ 回放：副標日期一天一天走", sa, text(pg, "#sankeySub"))
+        changed("按 ▶ 回放：日期讀數（data-day）一天一天走", sa, pg.evaluate(SKD))
         ok("回放中仍是經典光纖、動畫迴圈在跑", bool(tp2) and tp2["layout"] == "classic" and tp2["running"], tp2 and tp2.get("running"))
         notes.append(f"經典光纖回放幀率（1440、headless 軟體繪圖）：{tp2['fps']} FPS（同時段整頁 rAF {page_fps:.1f}）、"
                      f"每幀運算 {tp2['avgCostMs']} ms（含補間中重排標籤與重畫底圖）、單次換日重畫 {tp2.get('lastDrawMs')} ms")
@@ -42804,6 +42860,117 @@ def t_kpi_footer_0926(pg, b, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.footDetail'); localStorage.removeItem('tw.side'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
+
+
+# ===================================================================== 日期膠囊拿掉1006
+# Andy 2026-10-06（截圖：產業地圖 → 半導體 → 族群總覽，紅框框住「昨天（盤後收盤）資料日期 2026-10-05」）：「這類資訊一律拿掉」，
+# 隨後再強調「一律拿掉」（不改成小圖示）。普查表在 docs/date_chip_audit_1006.md；規則：卡片標題列／副標／小圖標題上
+# 「這份資料是哪一天／哪個時段」的膠囊與小字全部拿掉，表格欄位本身是日期的不動、拉Bar／區間桿旁的讀數（使用者自己選的值）不動。
+# 這段真的操作：開即時、拖資金去向的「看哪一天」、拖族群×法人的區間桿、切個股籌碼的區間鈕 —— 每一步都驗
+# 「讀數真的換了（data-* 或拉Bar 旁的字）」而「標題列／副標畫面上始終沒有日期」。
+DC_RE = r"\d{4}-\d{2}-\d{2}|(?<![\d,.])\d{1,2}/\d{1,2}(?![\d%])|(?<![\d,.-])\d{2}-\d{2}(?![\d-])|資料日|資料到|資料至|財報到|盤後收盤|盤中暫定|昨天（|最近交易日|最新 \d|\d\d:\d\d:\d\d|非即時"
+# 只量「卡片標題列與副標」：h2~h5 裡的 small、族群總覽標題列、小圖標題、技術分析標題、大盤數字列、即時鈕、熱力圖標題列控制項、各副標節點。
+# 總覽最上方四張摘要卡（.osc-h）右上角那顆即時開關也量（10-06 漲跌連結那批合併後一起改成只寫「即時」）。
+DC_HEAD_JS = """(re) => { const R = new RegExp(re); const vis = (e) => { const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false;
+    for (let p = e; p && p !== document.body; p = p.parentElement) { const cs = getComputedStyle(p); if (cs.display === 'none' || cs.visibility === 'hidden') return false; } return true; };
+  const SEL = 'main .view.on h2 small, main .view.on h3 small, main .view.on h4 small, main .view.on h5 small, .gphead, .mixh, .tthead, .m3-nums, .livetg, '
+    + '.hmctl, #rankSub, #rotSub, #instSub, #sankeySub, #chipRange, #mktTitle, #hoHead, .mtf-cell .cap, #gpNote, #profitSub, .osc-h, #udPanel .hh';
+  return [...document.querySelectorAll(SEL)].filter(vis)
+    .map(e => ({ sel: e.id ? '#' + e.id : e.className.toString().split(' ')[0] || e.tagName, t: (e.innerText || '').replace(/\\s+/g, ' ').trim() }))
+    .filter(x => R.test(x.t)).slice(0, 8); }"""
+
+
+def t_date_chips_1006(b, base, code):
+    T = "[日期膠囊1006]"
+    ctx = b.new_context(viewport={"width": 1440, "height": 950})
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        # ① 普查：每一頁的卡片標題列／副標都沒有日期、時段、更新時間
+        for hs in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme",
+                   "industry", "industry/semiconductor/overview", "market", f"stock/{code}"):
+            pg.goto("about:blank"); pg.goto(f"{base}#{hs}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+            bad = pg.evaluate(DC_HEAD_JS, DC_RE)
+            ok(f"★ {T} #{hs}：標題列／副標沒有資料日期、時段、更新時間的膠囊或小字", bad == [], bad)
+        # ①b 個股頁各分頁（總覽的 AI／籌碼快照、指標、獲利、大戶）
+        for t in ("overview", "tags", "profit", "holders"):
+            if count(pg, f'#stockTabs button[data-t="{t}"]'):
+                pg.eval_on_selector(f'#stockTabs button[data-t="{t}"]', "b => b.click()"); pg.wait_for_timeout(1800)
+                bad = pg.evaluate(DC_HEAD_JS, DC_RE)
+                ok(f"★ {T} 個股・{t}：標題列／副標沒有資料日期（資料到／財報到／最新 YYYY-MM-DD／小圖日期）", bad == [], bad)
+        # ② 族群總覽（Andy 截圖那一張）：盤後整行不顯示；按「即時」只寫口徑（估算／抓不到），不寫日期與時間；再按回去整行收掉
+        pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        GN = "() => { const n = document.getElementById('gpNote'); return n ? { hid: n.hidden || getComputedStyle(n).display === 'none', t: n.innerText.trim() } : null; }"
+        n0 = pg.evaluate(GN)
+        ok(f"★ {T} 族群總覽盤後：#gpNote 不顯示（沒有「昨天（盤後收盤）資料日期」）", bool(n0) and n0["hid"] and not n0["t"], n0)
+        click(pg, "#gpLiveBtn", 300)
+        n1 = wait_until(pg, "() => { const n = document.getElementById('gpNote'); const t = n ? n.innerText.trim() : ''; return /抓不到|估算|抓取中/.test(t) ? t : ''; }", 15000)
+        ok(f"{T} 按「即時」：那一行出現、只寫口徑或狀態（抓不到／估算），沒有日期與時間", bool(n1) and not re.search(DC_RE, n1), n1)
+        click(pg, "#gpLiveBtn", 600)
+        n2 = pg.evaluate(GN)
+        ok(f"{T} 再按一次退回盤後：那一行收掉", n2["hid"] and not n2["t"], n2)
+        # ③ 資金去向：拖「看哪一天」→ 拉Bar 旁的讀數換了（最新 → 某天），副標畫面上始終沒有日期
+        pg.goto(f"{base}#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        if count(pg, "#sankeyDays input[type=range]"):
+            v0 = text(pg, "#sankeyDays .val"); d0 = pg.evaluate("() => document.getElementById('sankeySub').dataset.day")
+            set_range(pg, "#sankeyDays input[type=range]", 0, 1400)
+            v1 = text(pg, "#sankeyDays .val"); d1 = pg.evaluate("() => document.getElementById('sankeySub').dataset.day")
+            changed(f"{T} 資金去向拉到最舊那天：拉Bar 旁的讀數真的換了", v0, v1)
+            changed(f"{T} 資金去向拉到最舊那天：圖的日期（data-day）真的換了", d0, d1)
+            ok(f"★ {T} 資金去向副標畫面上沒有日期（拉到哪天都一樣）", not re.search(DC_RE, text(pg, "#sankeySub")) and "佔上一層" in text(pg, "#sankeySub"), text(pg, "#sankeySub"))
+        else:
+            ok(f"{T} 資金去向有「看哪一天」拉Bar", False)
+        # ④ 族群×法人：拖區間桿左把手 → 區間桿旁讀數換了，副標只寫「近 N 日淨買超（張）」
+        pg.goto(f"{base}#flow/inst", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        if count(pg, "#instDays input.lo"):
+            r0 = text(pg, "#instDays .val"); s0 = text(pg, "#instSub")
+            inst_span(pg, 10, 1300)
+            r1 = text(pg, "#instDays .val"); s1 = text(pg, "#instSub")
+            changed(f"{T} 族群×法人拖成 10 日：區間桿旁的讀數真的換了", r0, r1)
+            ok(f"★ {T} 族群×法人副標寫「近 10 日」、沒有日期區間", "近 10 日" in s1 and not re.search(DC_RE, s1), [s0, s1])
+        # ⑤ 個股法人：切區間鈕 → data-range 換了，畫面上區間鈕旁沒有起訖日
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        if count(pg, '#stockTabs button[data-t="inst"]'):
+            pg.eval_on_selector('#stockTabs button[data-t="inst"]', "b => b.click()"); pg.wait_for_timeout(1600)
+            CR = "() => { const e = document.getElementById('chipRange'); return e ? { t: e.innerText.trim(), r: e.dataset.range || '' } : null; }"
+            c0 = pg.evaluate(CR)
+            btns = pg.evaluate("() => [...document.querySelectorAll('#chipWin button')].map(b => ({ v: b.dataset.v, on: b.classList.contains('on') }))")
+            other = next((x["v"] for x in btns if not x["on"]), None)
+            if c0 and other:
+                click(pg, f'#chipWin button[data-v="{other}"]', 1400)
+                c1 = pg.evaluate(CR)
+                changed(f"{T} 個股法人切區間鈕：區間讀數（data-range）真的換了", c0["r"], c1["r"])
+                ok(f"★ {T} 個股法人：區間鈕旁畫面上不顯示起訖日", not c0["t"] and not c1["t"], [c0, c1])
+                click(pg, f'#chipWin button[data-v="{[x["v"] for x in btns if x["on"]][0]}"]', 600)
+            else:
+                ok(f"{T} 個股法人頁有區間鈕與讀數", False, [c0, btns])
+        # ⑥ 總覽大盤卡的即時鈕：鈕旁不顯示「HH:MM:SS · 盤後」，狀態看鈕（aria-pressed＋顏色），時間在提示
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        # ⑥a 摘要卡右上角那顆：畫面只寫「即時」；點「下跌」打開的漲跌清單標題也不寫「MM/DD 盤後」
+        oc = pg.evaluate("() => [...document.querySelectorAll('#hero .osc .ovl-tg')].map(b => ({ vis: (b.innerText || '').trim(), stamp: b.dataset.stamp || '' }))")
+        ok(f"★ {T} 總覽摘要卡右上角只寫「即時」（日期在 data-stamp 機器讀數）", len(oc) == 4 and all(x["vis"] == "即時" and x["stamp"] for x in oc), oc)
+        if count(pg, '#hero .osc[data-k="updown"] .osn[data-v="down"]'):
+            click(pg, '#hero .osc[data-k="updown"] .osn[data-v="down"]', 200)
+            hh = wait_until(pg, "() => { const p = document.getElementById('udPanel'); const m = p && !p.hidden && p.querySelector('.hh .m'); return m ? m.innerText.trim() : ''; }", 8000)
+            ok(f"{T} 點摘要卡「下跌」→ 清單標題只寫家數，不寫「MM/DD 盤後」", bool(hh) and "檔" in hh and not re.search(DC_RE + "|盤後", hh), hh)
+            pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        lt = pg.evaluate("""() => { const w = document.querySelector('#m3Frame .livetg'); if (!w) return null; const t = w.querySelector('.livetg-t'), b = w.querySelector('.livetg-b');
+            return { shown: !!t && getComputedStyle(t).display !== 'none', vis: (w.innerText || '').trim(), tip: b.title, pressed: b.getAttribute('aria-pressed') }; }""")
+        ok(f"★ {T} 大盤卡即時鈕旁沒有時間與「盤後」字樣（只剩「即時」）", bool(lt) and not lt["shown"] and lt["vis"] == "即時", lt)
+        if lt:
+            click(pg, "#m3Frame .livetg .livetg-b", 500)
+            lt2 = pg.evaluate("() => document.querySelector('#m3Frame .livetg .livetg-b').getAttribute('aria-pressed')")
+            changed(f"{T} 按大盤卡即時鈕：開關狀態真的換了（狀態用鈕的樣子講，不用字）", lt["pressed"], lt2)
+            click(pg, "#m3Frame .livetg .livetg-b", 500)
+        # ⑦ 800 寬（窄畫面）再普查一次 Andy 截圖那一頁與資金流向
+        pg.set_viewport_size({"width": 800, "height": 900})
+        for hs in ("industry/semiconductor/overview", "flow/rotation", "market"):
+            pg.goto("about:blank"); pg.goto(f"{base}#{hs}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+            bad = pg.evaluate(DC_HEAD_JS, DC_RE)
+            ok(f"{T} [800] #{hs}：標題列／副標沒有日期膠囊", bad == [], bad)
+            ok(f"{T} [800] #{hs}：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+    finally:
+        ctx.close()
 
 
 # ===================================================================== 預設狀態1006
@@ -43844,10 +44011,11 @@ def _ov_fix_0926b_body(pg, base, code):
     pg.eval_on_selector("#ovThemeCard", "el => el.scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(400)
     zb = pg.evaluate("""() => { const b = document.getElementById('ovThemeZoom'), d = document.getElementById('ovThemeDate');
         if (!b) return null; const r = b.getBoundingClientRect(), c = document.getElementById('ovThemeCard').getBoundingClientRect();
-        return { txt: b.textContent.trim(), vis: r.width > 0 && r.height > 0, right: c.right - r.right, top: r.top - c.top,
+        return { txt: b.textContent.trim(), vis: r.width > 0 && r.height > 0, right: c.right - r.right, top: r.top - c.top, hasDate: !!d,
                  sameRow: d ? Math.abs((d.getBoundingClientRect().top + d.getBoundingClientRect().height / 2) - (r.top + r.height / 2)) < 12 : false }; }""")
     if ok("[0926b-②] 熱門題材卡右上角有「放大 ⤢」", bool(zb) and zb["vis"] and "放大" in zb["txt"], zb):
-        ok("[0926b-②] 放大鈕跟日期同一列、在卡片右上", zb["sameRow"] and zb["right"] < 40 and zb["top"] < 50, zb)
+        # 2026-10-06：右上角的日期膠囊（#ovThemeDate）拿掉了（DECISIONS #328）→ 只驗放大鈕在卡片右上、日期節點不在
+        ok("[0926b-②] 放大鈕在卡片右上；旁邊不再有日期膠囊", not zb["hasDate"] and zb["right"] < 40 and zb["top"] < 50, zb)
         n_themes = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('ovTheme')); return i ? i.getOption().series[0].data.length : 0; }")
         click(pg, "#ovThemeZoom", 900)
         Z = """() => { const ov = document.getElementById('zoomOv'), b = document.getElementById('zoomBody');
@@ -48560,7 +48728,8 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
                 ok(f"{tag} 信用小圖：融券餘額、借券賣出餘額＝JSON 各自最新（單位張、帶日期）",
                    (not sb or (float(got["sb"]["v"]) == sb[1] and got["sb"]["d"] == sb[0])) and (not sbl or (float(got["sbl"]["v"]) == sbl[1] and got["sbl"]["d"] == sbl[0])),
                    (got.get("sb"), got.get("sbl"), sb and sb[:2], sbl and sbl[:2]))
-                ok(f"{tag} 信用小圖：三項的比例加總 ≈ 100%、標題寫日期", abs(sum(float(x["pct"] or 0) for x in got.values()) - 100) <= 0.1 and m["credit"]["date"] == mb[0][5:],
+                # 2026-10-06 改前→改後（DECISIONS #328）：「標題寫日期」→ 小圖標題列不再有日期（.mixd 拿掉）
+                ok(f"{tag} 信用小圖：三項的比例加總 ≈ 100%、標題不寫日期", abs(sum(float(x["pct"] or 0) for x in got.values()) - 100) <= 0.1 and not m["credit"]["date"],
                    ([x["pct"] for x in got.values()], m["credit"]["date"]))
                 ok(f"{tag} 信用小圖：每個數字都寫「張」", all("張" in got[k]["btxt"] for k in got if got[k]["v"]), [got[k]["btxt"] for k in got])
                 if E.get("dt"):

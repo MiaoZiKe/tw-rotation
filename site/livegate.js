@@ -79,9 +79,11 @@
       'html:not(.live-on) #rotLiveTag,',
       'html:not(.live-on) #rotLive,',
       'html:not(.live-on) [data-live-ui]{display:none!important}',
-      /* 總覽摘要卡右上角那顆同時是「資料日期」標籤：訪客看到的是日期，不是開關 ——
-         點了不切換（點穿到卡片本身＝捲到那一區，跟點卡片其他地方一樣）、游標也不變成手指 */
-      'html:not(.live-on) .osc-d.ovl-tg{pointer-events:none;cursor:default}',
+      /* 總覽摘要卡右上角那顆：管理者是即時開關；訪客原本看到的是資料日期（MM/DD）——
+         2026-10-06 Andy「這類資訊（資料時段＋資料日期膠囊）一律拿掉」（DECISIONS #328）→ 訪客整顆不顯示，
+         「›」箭頭跟著靠右（原本靠這顆把它推過去）。點不到、也就不會切換。 */
+      'html:not(.live-on) .osc-d.ovl-tg{display:none!important}',
+      'html:not(.live-on) .osc-d.ovl-tg + .osc-more{margin-left:auto}',
     ].join('\n');
     (document.head || root).appendChild(st);
   } catch (e) { /* 極舊瀏覽器：各模組自己的判斷仍然擋得住 */ }

@@ -150,7 +150,7 @@
        原本標題下那段「這張圖回答／怎麼用」搬進「怎麼看 ?」，卡片只留一行短副標。*/
     el.innerHTML = `<div class="card"><div class="row spread"><h3>整個台股一次看 <button class="howbtn pop" data-how="indheat" type="button" aria-label="整個台股一次看怎麼看">?</button></h3>
       <div class="row" style="gap:8px"><label class="hmctl" title="方塊要不要依產業鏈分組">分組：<select id="indTreeGroup" aria-label="熱力圖分組方式">
-        <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label>${A.hmDate(im.date)}</div></div>
+        <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label></div></div>
       <div class="howtxt" id="how-indheat" hidden>${A.howHTML('這張圖回答：今天全市場的錢分佈在哪幾塊、哪一塊在漲。', [
         '方塊大小＝族群成交值（分組時小鏈至少佔 5%）',
         '顏色＝今日漲跌，紅漲綠跌',
@@ -353,9 +353,9 @@
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
-           #gpNote 留在卡片上但只寫「現在看的是昨天收盤還是盤中暫定值」一句 —— 那句不能藏（DECISIONS #252 三）。 -->
+           #gpNote 2026-10-06 起盤後不顯示；即時只寫「成交值估算・涵蓋 N / M 檔」（DECISIONS #328，取代 #252 三「寫出昨天收盤／盤中暫定值」那半句）。 -->
       <div class="howtxt" id="how-gp" hidden><div id="gpHint"></div></div>
-      <div class="note livenote gpnote" id="gpNote"></div>
+      <div class="note livenote gpnote" id="gpNote" hidden></div>
       <!-- ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」）：兩張圖各自裝進一張有標題的卡片。
            以前兩張圖裸放在同一片背景上、中間沒有分界 —— 沒有容器，圖就像貼在牆上，
            而且「左邊在講什麼、右邊在講什麼」要靠讀說明才知道。標題直接寫在各自的卡片上。 -->
@@ -587,23 +587,21 @@
     }
 
     function paintNote() {
-      const day = ctx.asOf ? `資料日期 ${ctx.asOf}` : '最新一個交易日';
       /* ★ 2026-09-24 說明精簡：這一行只講「現在是哪一種數字」；估算怎麼算、涵蓋率怎麼讀搬進「怎麼看 ?」。
-         ⚠ 即時時「盤中暫定值」「估算」「涵蓋幾檔」三件事**一定留在畫面上**（DECISIONS #252 三：即時是估算，畫面上一定要寫出來）。*/
-      if (!live) {
-        noteEl.innerHTML = `<b>昨天（盤後收盤）</b>　${day}`;
-        return;
-      }
-      if (busy && !q) { noteEl.innerHTML = '<b class="live">即時</b>　抓取中…'; return; }
+         ★ 2026-10-06（Andy 圈了「昨天（盤後收盤）資料日期 2026-10-05」：「這類資訊一律拿掉」，DECISIONS #328）：
+           · 盤後：整行不顯示（不寫昨天、盤後收盤、資料日期）—— 新鮮度看全站資料狀態徽章與頁首時間。
+           · 即時：不寫「⚡ 盤中暫定值」「最後更新 HH:MM:SS」「報價時間」；只留口徑「成交值估算・涵蓋 N / M 檔」
+             （那是口徑不是時段：少了它盤中的成交值會被讀成真實值，#252 三的那一半仍成立）。
+           · 抓取中／抓不到：狀態訊息照留，但不再寫「仍畫 YYYY-MM-DD 收盤值」。*/
+      const put = (html) => { noteEl.innerHTML = html; noteEl.hidden = !html; };
+      if (!live) { put(''); return; }
+      if (busy && !q) { put('<b class="live">即時</b>　抓取中…'); return; }
       if (liveErr) {
-        noteEl.innerHTML = `<b class="bad">即時抓不到報價</b>　${A.fmt.esc(liveErr)}`
-          + `　<span class="muted">仍畫 ${day} 收盤值；再按「即時」關掉</span>`;
+        put(`<b class="bad">即時抓不到報價</b>　${A.fmt.esc(liveErr)}`
+          + '　<span class="muted">再按「即時」關掉</span>');
         return;
       }
-      /* ★ 2026-09-29：每 5 秒一輪之後要讓人看得出「多久更新一次」—— 印最後一次真的拿到報價的台北時間 */
-      const gpHms = gpOkAt ? (window.Live && window.Live.hms ? window.Live.hms(gpOkAt) : new Date(gpOkAt).toTimeString().slice(0, 8)) : '—';
-      noteEl.innerHTML = `<b class="live">⚡ 盤中暫定值</b>　最後更新 <b class="liveat">${gpHms}</b>（台北）　每 5 秒更新（報價 ${A.fmt.esc(liveAt || '—')}）`
-        + `　<span class="warn">成交值估算</span>　涵蓋 ${cov[0]} / ${cov[1]} 檔`;
+      put(`<span class="warn">成交值估算</span>　涵蓋 ${cov[0]} / ${cov[1]} 檔`);
     }
 
     function paintFocus() {
@@ -4173,7 +4171,7 @@
         </div>
         <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b></div>
+        <!-- ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：圖下「資料更新到 YYYY-MM-DD」那行拿掉；新鮮度看全站資料狀態徽章 -->
       </div>
       <!-- #aiCard：只給手機（≤640，mobile v3 分段的「AI 分析」那一段）用的空殼。
            桌機永遠是空的（CSS #aiCard:empty 收掉，不留黑方塊）；手機由 app.js miaStock 把 #skAi 整個節點搬進來，
@@ -5433,7 +5431,6 @@
       const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf];
       return `<div class="mtf-cell"><div class="cap">
         <select class="mtfsel" data-i="${i}" title="換這一格要看的週期">${opts(tf)}</select>
-        ${isLiveTf(tf) && offDay ? `<span class="mtfoff" title="今天還沒有成交，這一格畫的是最近交易日">${offDay.slice(5)} 非即時</span>` : ''}
         ${t ? `<span style="color:${A.upDown(t.trend)}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
         </div><div class="mtip" id="mtip-${i}" hidden></div><div class="cv" id="mini-${i}"></div></div>`;
     }).join('');
@@ -5806,7 +5803,7 @@
         + `${mp.raw > 100 || mp.raw < 0 ? `<div class="mpr cap"><span>加總 ${A.fmt.n(mp.raw, 1)}，夾在 0～100</span><span></span><b>${A.fmt.n(ms, 0)}</b></div>` : ''}</div></div>`;
     }
     /* 2026-10-06：標題列右側加一行免責（動能分是評分、本益比條有便宜／貴）—— h3 包進 .row.spread 才有「右側」可放 */
-    return `<div class="card" id="skFundCard"><div class="row spread"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small> ${hq('skfund', '基本面')}</h3>${A.disc ? A.disc('fund') : ''}</div>${help}<div class="kvs skfund" style="margin-top:8px">`
+    return `<div class="card" id="skFundCard"><div class="row spread"><h3>基本面 ${hq('skfund', '基本面')}</h3>${A.disc ? A.disc('fund') : ''}</div>${help}<div class="kvs skfund" style="margin-top:8px">`
       + `<div class="fsm">`
       + ks('eps', '近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—', epsQ)
       + ks('roe', 'ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—', pbT)
@@ -5861,8 +5858,10 @@
     const sub = [pct != null ? `${e.pre || '佔'} ${pct}` : '', e.sub || ''].filter(Boolean).map(x => `<span class="nw">${x}</span>`).join('・');
     return `<div class="mixi${e.sell ? ' sell' : ''}" data-k="${k}"${e.attrs || ''} style="--c:${MIX_C[k]}">`
       + `<small>${label}</small><b class="${cls || ''}">${val}</b>${sub ? `<span class="mixsub">${sub}</span>` : ''}</div>`; };
+  /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：小圖標題列的日期（.mixd「09-03～10-02」「09-24」「10-02」）拿掉；
+     dateTxt 參數留著不用（呼叫端三處不必改）。*/
   const mixBox = (key, dateTxt, sumTxt, body) => `<div class="mix" data-mix="${key}"><div class="mixh"><span class="mixt">${CHIP_HELP[key][0]}</span>${mixQ(key)}`
-    + `${dateTxt ? `<span class="mixd" data-readout>${dateTxt}</span>` : ''}${sumTxt ? `<span class="mixs">${sumTxt}</span>` : ''}</div>${body}</div>`;
+    + `${sumTxt ? `<span class="mixs">${sumTxt}</span>` : ''}</div>${body}</div>`;
   const signLot = (v) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + A.fmt.i(Math.abs(v)) + ' 張');
   const pp = (v) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(2) + 'pp');
 
@@ -5878,7 +5877,7 @@
   /* 集保：最新一週 ＋ 比較基準那一週＝34 天內、日期最接近「最新 − 28 天」的那一列（4 週前；遇到休市週可能是 27～34 天）。
      ⚠ 2026-10-02 實測：資料湖的集保週資料目前每一檔都只有 4 筆（09-04～09-24，集保開放資料只給最新一週、從 9 月初才開始累積），
        最早那一筆距最新只有 20 天 —— 硬要「4 週」就永遠是空的。所以基準取「4 週內能拿到的最早一筆」，
-       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化：09-04 → 09-24」），資料滿 4 週之後自動變成「4 週」。
+       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化」；2026-10-06 起不再寫「09-04 → 09-24」兩端日期，DECISIONS #328），資料滿 4 週之後自動變成「4 週」。
        不到 2 週（< 13 天）就不給變化：一週的雜訊太大，寫出來只會被誤讀成趨勢。*/
   function holdMix(pg) {
     const ho = (pg.holders || []).filter(r => r && r[1] != null);
@@ -5936,7 +5935,7 @@
           { attrs: ` data-v="${v[k] != null ? v[k] : ''}" data-ch="${c != null ? c.toFixed(4) : ''}"`, sub: `${hm.weeks || 4} 週 <span class="${c == null ? '' : c > 0 ? 'up' : c < 0 ? 'down' : ''}">${pp(c)}</span>` }); }).join('');
       parts.push(mixBox('hold', md5(L[0]), '<span class="muted">灰＝10～400 張</span>',
         mixBar(segs, `集保持股：≥1,000 張 ${A.fmt.n(v.big, 1)}%、400～1,000 張 ${A.fmt.n(v.mid, 1)}%、≤10 張 ${A.fmt.n(v.ret, 1)}%`)
-        + `<div class="mixn">${items}</div><div class="mixf">${Pv ? `近 ${hm.weeks} 週變化：${md5(Pv[0])} → ${md5(L[0])}${hm.weeks < 4 ? '（集保歷史還不到 4 週）' : ''}` : '週變化：集保歷史不到 2 週'}</div>`));
+        + `<div class="mixn">${items}</div><div class="mixf">${Pv ? `近 ${hm.weeks} 週變化${hm.weeks < 4 ? '（集保歷史還不到 4 週）' : ''}` : '週變化：集保歷史不到 2 週'}</div>`));
     } else parts.push(mixBox('hold', '', '', '<div class="mixf">集保持股資料準備中（每週公布一次）</div>'));
     /* ③ 信用與借券（張）＋ 當沖率 */
     const m = mgLatest(pg);
@@ -5949,7 +5948,7 @@
       const items = mixItem('mb', '融資餘額', pct1(v.mb, tot), A.fmt.i(v.mb) + ' 張', '', { attrs: ` data-v="${v.mb}" data-d="${m.mb.d}" data-pct="${P(v.mb, tot)}"` })
         + mixItem('sb', '融券餘額', m.sb ? pct1(v.sb, tot) : null, m.sb ? A.fmt.i(v.sb) + ' 張' : '—', '', { attrs: ` data-v="${m.sb ? v.sb : ''}" data-d="${m.sb ? m.sb.d : ''}" data-pct="${P(v.sb, tot)}"` })
         + mixItem('sbl', '借券賣出餘額', m.sbl ? pct1(v.sbl, tot) : null, m.sbl ? A.fmt.i(v.sbl) + ' 張' : '—', '',
-          { attrs: ` data-v="${m.sbl ? v.sbl : ''}" data-d="${m.sbl ? m.sbl.d : ''}" data-pct="${P(v.sbl, tot)}"`, sub: m.sbl ? (dTag(m.sbl) ? `資料日 ${md5(m.sbl.d)}` : '') : '資料準備中' });
+          { attrs: ` data-v="${m.sbl ? v.sbl : ''}" data-d="${m.sbl ? m.sbl.d : ''}" data-pct="${P(v.sbl, tot)}"`, sub: m.sbl ? '' : '資料準備中' });
       const ratio = v.mb > 0 && m.sb ? v.sb / v.mb * 100 : null;
       let dtRow = '';
       if (m.dt) {
@@ -5957,7 +5956,7 @@
         const p = dr != null ? Math.max(0, Math.min(100, dr)) : null;
         dtRow = `<div class="mixdt" data-v="${m.dt.v}" data-d="${m.dt.d}" data-r="${dr != null ? dr : ''}"><span class="mixt">${CHIP_HELP.dt[0]}</span>${mixQ('dt')}`
           + `${p != null ? `<div class="meter" style="--p:${p.toFixed(1)}%;--c:var(--amber)" role="img" aria-label="當沖率 ${A.fmt.n(dr, 1)}%"><i></i></div>` : ''}`
-          + `<span class="mixdtv"><b>${p != null ? A.fmt.n(dr, 1) + '%' : '—'}</b> <small>當沖 ${A.fmt.i(m.dt.v)} 張・${md5(m.dt.d)}</small></span></div>`;
+          + `<span class="mixdtv"><b>${p != null ? A.fmt.n(dr, 1) + '%' : '—'}</b> <small>當沖 ${A.fmt.i(m.dt.v)} 張</small></span></div>`;
       }
       parts.push(mixBox('credit', md5(m.mb.d), ratio != null ? `券資比 <b>${A.fmt.n(ratio, 1)}%</b>` : '',
         mixBar(segs, `信用與借券（張）：融資餘額 ${A.fmt.i(v.mb)}、融券餘額 ${A.fmt.i(v.sb)}、借券賣出餘額 ${A.fmt.i(v.sbl)}`)
@@ -6024,7 +6023,7 @@
       + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
     // 2026-10-05：頂部先放技術分析卡（stock_ai.js 的 techCardHTML，與 AI 卡技術面同源），原本的指標卡在其下
     const tech = window.StockAI && window.StockAI.techCardHTML ? window.StockAI.techCardHTML(pg, A.fmt) : '';
-    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3>${A.disc ? A.disc('tag') : ''}<small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
+    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3>${A.disc ? A.disc('tag') : ''}</div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
       ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}
@@ -6722,7 +6721,9 @@
     const yr = (pg.profit || {}).yearly || [];
     const tm = (pg.profit || {}).timing || null;
     const ylab = (y) => y.partial ? `${y.year}（前 ${y.quarters} 季）` : String(y.year);
-    const tmTxt = tm ? (tm.status === 'ok' ? `財報到 ${tm.latest}（至 ${tm.asof} 法定應有到 ${tm.expected}）`
+    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：正常（ok）時副標不再寫「財報到 X（至 YYYY-MM-DD 法定應有到 X）」；
+       只有「法定期限已過卻缺季」「季底還沒到卻有資料」這兩種**資料出錯**的警示留著 —— 那是警告，不是資料日期。*/
+    const tmTxt = tm ? (tm.status === 'ok' ? ''
       : tm.status === 'missing' ? `⚠ 法定期限已過、應有 ${tm.expected}，目前只到 ${tm.latest || '—'}`
       : `⚠ ${tm.latest} 的季底還沒到，資料有誤`) : '';
     /* ★ 2026-10-03（Andy：「本益比（這邊的算法需要新增到獲利那邊）」，DECISIONS #305）：總覽基本面卡的「本益比位置」
@@ -7035,7 +7036,9 @@
     const redraw = () => {
       const dates = chipDates(pg, win);
       const rg = $('#chipRange', el);
-      if (rg) rg.textContent = dates.length ? `${dates[0]} ～ ${dates[dates.length - 1]}，${dates.length} 個交易日` : '';
+      /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：區間鈕旁的「YYYY-MM-DD ～ YYYY-MM-DD，N 個交易日」不再顯示
+         （區間鈕本身寫了 4 週／3 個月）；起訖日改放 data-range 當機器讀數（驗收用），畫面上是空的。*/
+      if (rg) { rg.textContent = ''; rg.dataset.range = dates.length ? `${dates[0]} ～ ${dates[dates.length - 1]}，${dates.length} 個交易日` : ''; }
       el.dataset.win = String(win);
       $$('#chipWin button', el).forEach(b => b.classList.toggle('on', +b.dataset.v === win));
       draw(dates, win);
@@ -7230,7 +7233,7 @@
     /* 設計 v4 2B：三顆色塊（圖例兼開關）從標題下面獨佔的一列（10＋36＋4＝50px）搬進標題列，
        放不下（窄畫面）時整組自己換到下一行，跟改前一樣。id、按鈕、行為都不變。
        DOM 順序是「標題、日期、色塊」：窄的時候先換行的是色塊（日期留在標題那一行），寬的時候 CSS 用 order 把色塊排到中間。*/
-    const body = `<div class="skduo chipduo" id="hoDuo"><div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
+    const body = `<div class="skduo chipduo" id="hoDuo"><div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
       ${hbox('skho', ['上方色塊＝圖例，按一下隱藏／顯示那一條', '千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
       <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${insNote}</div>${chipTbl('hoTbl', '每週明細', growing)}</div>`;
     /* 設計 v4 2B：手機（≤640）三顆色塊維持改前的位置（標題列下面獨佔一列）—— 手機版面這一批不動。
