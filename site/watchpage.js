@@ -191,7 +191,7 @@
       <div class="wpmsg" id="wpMsg" hidden></div>
       <div id="wpList"></div>
       <div class="howtxt" id="how-watch" hidden></div>
-      <div class="wpfoot">只存股票代號與清單名稱，不存張數、成本或損益。點一列進個股頁；現價與漲跌幅盤中會自動更新，成交值是最近一個交易日盤後的數字。</div>
+      <div class="wpfoot" title="現價與漲跌幅盤中自動更新；成交值為最近一個交易日盤後">只存代號與清單名稱，不存張數、成本或損益。成交值為盤後數字。</div>
     </div>`;
     paintList();
     const ri = document.getElementById('wpRename');

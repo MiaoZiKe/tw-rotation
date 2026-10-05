@@ -351,8 +351,8 @@
       const list = S_.filter((s) => s.cat === k && (!ST.tags.length || ST.tags.some((t) => s.tags.includes(t))));
       if (!list.length) return '';
       return `<section class="sl-sec" data-cat="${k}" aria-label="${esc(zh)}">
-        <h3 class="sl-sech"><span class="sl-ici sl-c-${k}">${icon(k)}</span>${esc(zh)}
-          <em class="sl-secn">${list.length} 個策略</em><small>${esc(q)}</small></h3>
+        <h3 class="sl-sech" title="${esc(q)}"><span class="sl-ici sl-c-${k}">${icon(k)}</span>${esc(zh)}
+          <em class="sl-secn">${list.length} 個策略</em></h3>
         <div class="sl-grid">${list.map(cardHTML).join('')}</div></section>`;
     }).join('');
     upgrade($('#slGrid'));
