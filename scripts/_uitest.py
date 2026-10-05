@@ -44836,9 +44836,9 @@ def t_admin_sw_1005(b, base, code):
         wait_until(pg, "() => document.querySelector('table.memtbl tbody tr')", 6000)
         m = pg.evaluate("""() => { const t = document.querySelector('table.memtbl'); if (!t) return null;
           const cells = [...t.querySelectorAll('thead th'), ...t.querySelectorAll('tbody tr:not(.pmdet) > td')];
-          return { n: cells.length, notC: cells.filter(c => getComputedStyle(c).textAlign !== 'center').map(c => c.className).slice(0, 5),
+          return { n: cells.length, notC: cells.filter(c => !c.classList.contains('c-who') && getComputedStyle(c).textAlign !== 'center').map(c => c.className).slice(0, 5), whoL: [...t.querySelectorAll('th.c-who, tbody tr:not(.pmdet) > td.c-who')].every(c => getComputedStyle(c).textAlign === 'left'),
                    bad: [...t.querySelectorAll('tbody tr')].filter(r => r.querySelector('.pdbadge:not(.off)')).map(r => r.querySelector('.c-tpl').textContent).filter(x => /^(訪客|註冊會員)/.test(x)) }; }""")
-        ok(f"{T}：會員名單每個欄位標題與內容都置中", m and m["n"] > 0 and not m["notC"], m)
+        ok(f"{T}：會員名單欄位置中，「會員」（email）欄靠左（Andy 10-05）", m and m["n"] > 0 and not m["notC"] and m["whoL"], m)
         ok(f"{T}：有金色 ★ 的人，方案欄不會寫「訪客／註冊會員」", m and not m["bad"], m)
     # ★ 10-05 預設（DECISIONS）：所有分頁列字級＝產業地圖分頁字級、文字置中
     tq = """(sel) => [...document.querySelectorAll(sel)].filter(b => b.offsetParent).map(b => { const cs = getComputedStyle(b); return [cs.fontSize, cs.justifyContent, b.textContent.trim().slice(0, 8)]; })"""
