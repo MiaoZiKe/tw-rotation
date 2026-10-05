@@ -418,6 +418,12 @@
 #v-admin table.memtbl td.c-who small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-admin table.memtbl th.c-tpl,#v-admin table.memtbl td.c-tpl{width:1%;white-space:nowrap!important}
 #v-admin table.memtbl td.c-tpl small{display:inline;margin-left:2px}
+/* 會員欄一行：▸ email 名字 ★ 排同一排，email 太長才省略（全文在滑過提示）*/
+#v-admin table.memtbl td.c-who .who1{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}
+#v-admin table.memtbl td.c-who .who1 b{flex:0 1 auto;min-width:0;max-width:none}
+#v-admin table.memtbl td.c-who .who1 small{display:inline;flex:0 1 auto;min-width:0}
+#v-admin table.memtbl td.c-who .who1 .car{flex:none;margin-right:0}
+#v-admin table.memtbl td.c-who .pdbadge{flex:none;margin-top:0;padding:0 5px;font-size:11px;line-height:16px}
 /* 名單的 td small 是 display:block（名字那一行用）；展開明細裡的 small 要照原本的行內排法，不然標題、圖例會掉到下一行 */
 #v-admin table.memtbl .mdet small{display:inline;font-size:inherit}
 #v-admin table.memtbl .mdet .mchart h4 small{font-size:12px}
@@ -1368,11 +1374,12 @@
     const key = PS.sort, dir = PS.dir;
     rows = rows.slice().sort((a, b) => { const x = sortVal(a, key), y = sortVal(b, key); return (x > y ? 1 : x < y ? -1 : 0) * dir || a.email.localeCompare(b.email); });
     const top = (a, nm) => (a.length ? a.map(([k, n]) => `<span class="mchip" title="${esc(nm(k))}：${nf(n)} 次"><span class="mcn">${esc(nm(k))}</span><i>${nf(n)}</i></span>`).join('') : '<span class="mdim">—</span>');
-    const badge = (r) => (r.paid ? `<span class="pdbadge" title="付費會員：${esc(r.planName)}">★ ${esc(r.planName)}</span>` : r.tier === 'paid' ? `<span class="pdbadge off" title="付費已過期">${esc(r.planName)}（過期）</span>` : '');
+    /* 付費標示縮成一顆金色 ★（方案名已在「方案」欄；全名在滑過提示），讓會員欄永遠一行（Andy 10-05：所有文字一行）*/
+    const badge = (r) => (r.paid ? `<span class="pdbadge" title="付費會員：${esc(r.planName)}" aria-label="付費會員：${esc(r.planName)}">★</span>` : r.tier === 'paid' ? `<span class="pdbadge off" title="付費已過期：${esc(r.planName)}" aria-label="付費已過期">★</span>` : '');
     const body = rows.map((r) => {
       const open = PS.exp.has(r.email);
       return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
-        + `<td class="c-who"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b>${esc(r.email)}</b>${r.name ? `<small>${esc(r.name)}</small>` : ''}${badge(r)}</td>`
+        + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}</span></td>`
         + `<td class="c-tpl"${r.set ? '' : ' title="還沒個別設定過（照註冊會員預設）"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
         + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`

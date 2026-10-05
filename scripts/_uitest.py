@@ -44676,7 +44676,7 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
             out = {"now": now, "members": mrows()}
         elif path == "/v1/admin/member/detail":
             e = str(body.get("email", "")).lower()
-            days = [{"day": f"2026-09-{21 + i:02d}", "visits": i % 3, "views": (i * 7) % 11, "ms": i * 60000} for i in range(14)]
+            days = [{"day": (__import__("datetime").date(2026, 9, 21) + __import__("datetime").timedelta(days=i)).isoformat(), "visits": i % 3, "views": (i * 7) % 11, "ms": i * 60000} for i in range(14)]
             out = {"email": e, "known": e != "wait@example.com", "pages": [["stock", 50], ["flow", 20]], "feats": [["stock", "tab.revenue", 14], ["flow", "quad", 6]],
                    "stocks": [["2330", 20], ["2317", 5]], "days": days}
         elif path == "/v1/admin/perm/get":
@@ -44859,11 +44859,12 @@ def t_admin_v3(b, base, code):
     ok(f"{T}：註冊會員名單欄位齊全（會員／方案／加入日／到期日／最後上線／累計在線／近 30 天造訪／觀看次數／最常用的功能 Top3／最常看的股票 Top3／狀態）",
        hd == ["會員", "方案", "加入日", "到期日", "最後上線", "累計在線", "近 30 天造訪", "觀看次數", "最常用的功能 Top3", "最常看的股票 Top3", "狀態"], hd)
     rows = pg.evaluate("""() => Object.fromEntries([...document.querySelectorAll('#ptTable tbody tr[data-email]')].map(t => [t.dataset.email,
-        { badge: (t.querySelector('.pdbadge') || {}).textContent || '', on: t.querySelector('.c-on').textContent, vw: t.querySelector('.c-vw').textContent,
+        { badge: (t.querySelector('.pdbadge') || { title: '' }).title, one: Math.round(t.querySelector('td.c-who .who1').getBoundingClientRect().height), on: t.querySelector('.c-on').textContent, vw: t.querySelector('.c-vw').textContent,
           feat: t.querySelector('.c-feat').textContent, stk: t.querySelector('.c-stk').textContent, bg: getComputedStyle(t.querySelector('.pdbadge') || t).backgroundImage }]))""")
     ok(f"{T}：註冊會員名單列出所有註冊會員（含付費的），付費會員金色徽章＋方案名、免費會員沒有徽章",
        set(rows) >= {"a399@example.com", "b799@example.com", "free1@example.com"} and "基本方案" in rows["a399@example.com"]["badge"] and "gradient" in rows["a399@example.com"]["bg"]
        and "進階方案" in rows["b799@example.com"]["badge"] and rows["free1@example.com"]["badge"] == "", rows)
+    ok(f"{T}：會員欄一行（▸ email 名字 ★ 同一排，高度 ≤ 24px；Andy 10-05：所有文字一行）", all(0 < r["one"] <= 24 for r in rows.values()), {k: r["one"] for k, r in rows.items()})
     a = rows.get("a399@example.com", {})
     ok(f"{T}：累計在線（3 小時 12 分）、觀看次數 88、最常用功能 Top3（分頁：營收…）、最常看股票 Top3（2330…）",
        a.get("on") == "3 小時 12 分" and a.get("vw") == "88" and "分頁：營收" in a.get("feat", "") and "14" in a.get("feat", "") and a.get("stk", "").startswith("2330"), a)
