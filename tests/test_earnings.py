@@ -211,12 +211,10 @@ def test_種子檔結構():
         assert k in d
     assert d["universe"]["n"] == len(d["universe"]["list"]) == len(d["companies"]) > 0
     kinds = {e["k"] for e in d["events"]}
-    assert {"fomc", "cpi", "est"} <= kinds
+    assert {"fomc", "cpi"} <= kinds and "est" not in kinds   # 10-05 Andy：財經日曆不放任何推估
     for e in d["events"]:
-        assert len(e["d"]) == 10 and e["status"] in ("公告", "預估", "排程", "期限") and e.get("src")
-        if e["k"] == "est":
-            assert e["status"] == "預估" and e.get("basis")
-        if e.get("code"):
+        assert len(e["d"]) == 10 and e["status"] in ("公告", "排程") and e.get("src")
+        if e.get("code") and e["k"] not in ("invite", "conf"):   # 法說會（invite／conf）收全市場（10-05），其餘公司事件只限市值前 50
             assert e["code"] in d["companies"]
     for c in d["companies"].values():
         for s in c["secs"]:
