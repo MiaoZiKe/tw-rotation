@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import math
 import re
 from datetime import date
 
@@ -162,3 +163,52 @@ def norm_industry(name: object) -> str:
     if s.lower() in _INDUSTRY_JUNK or s.isdigit():
         return "其他"
     return _INDUSTRY_ALIAS.get(s, s)
+
+
+# ---------------------------------------------------------------- 漲跌停價（2026-10-05）
+# Andy 拿券商 App 對漲停名單對不起來：舊版用「漲幅 ≥ 9.5%」判漲停，
+#   · 期街口布蘭特正2（ETF，沒有 10% 限制）+11.33% 被列進漲停；
+#   · 漲停價要照升降單位（tick）向下取整，低價股鎖漲停時漲幅常是 9.8x%，門檻一挪就漏或多。
+# 證交所的定義是「價格＝漲停價」，所以這裡直接把漲停價算出來比對，不再用百分比門檻。
+# 升降單位（普通股，上市上櫃同一套）：<10 0.01｜10~50 0.05｜50~100 0.1｜100~500 0.5｜500~1000 1｜≥1000 5
+_TICKS = ((10, 0.01), (50, 0.05), (100, 0.1), (500, 0.5), (1000, 1.0))
+
+
+def tw_tick(price: float) -> float:
+    """普通股在這個價位的升降單位。"""
+    for hi, t in _TICKS:
+        if price < hi:
+            return t
+    return 5.0
+
+
+def limit_up_price(prev: float) -> float:
+    """漲停價＝昨收 × 1.1，依「漲停價所在價位」的 tick **向下**取整（證交所規則：不得超過 10%）。
+
+    ⚠ 浮點：49.5×1.1 算出 54.45000000000001，直接 floor 會對、但 50×1.1=55.00000000000001 / 0.1
+      這種剛好落在 tick 上的要加一點 epsilon 才不會被 floor 掉一格。"""
+    raw = prev * 1.1
+    t = tw_tick(raw)
+    v = math.floor(raw / t + 1e-6) * t
+    # 跨價位邊界：例如昨收 9.1 → 10.01，落在 10~50 那段（0.05）→ 10.0；若取整後掉回下一段就用那段的 tick 再算一次
+    if tw_tick(v) != t:
+        t = tw_tick(v)
+        v = math.floor(raw / t + 1e-6) * t
+    return round(v, 2)
+
+
+def limit_down_price(prev: float) -> float:
+    """跌停價＝昨收 × 0.9，依 tick **向上**取整（跌幅不得超過 10%）。"""
+    raw = prev * 0.9
+    t = tw_tick(raw)
+    v = math.ceil(raw / t - 1e-6) * t
+    if tw_tick(v) != t:
+        t = tw_tick(v)
+        v = math.ceil(raw / t - 1e-6) * t
+    return round(v, 2)
+
+
+def is_common_stock(code: str | None) -> bool:
+    """普通股：4 碼純數字、不是 0 開頭（0 開頭的 4 碼是 ETF，如 0050）。
+    漲跌停只認普通股 —— ETF／ETN／槓桿反向／權證有的沒有 10% 限制、有的不是個股，Andy：「通常不是個股」。"""
+    return bool(code) and len(code) == 4 and code.isdigit() and not code.startswith("0")

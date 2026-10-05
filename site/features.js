@@ -98,7 +98,7 @@
     box('season.month', 'market', '週期統計', ['#v-season'], '族群在各月份的歷史表現（整頁）'),
     // ---- 個股頁：K 線與工具
     ktf('stock.k_day', 'K 線（日／週／月）', ['1d', '1w', '1M'], '日、週、月 K 週期鈕'),
-    ktf('stock.tick', '分時即時', ['tick', '5s'], '當日分時走勢與 5 秒線'),
+    ktf('stock.tick', '分時即時', ['tick'], '當日分時走勢'),
     ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K'),
     ktf('stock.k_hour', '1H／4H K 線', ['60m', '240m'], '60 分與 240 分 K'),
     { id: 'stock.mtf', name: '四週期同看', cat: 'stockk', def: true, kind: 'bool', desc: '一次看四個週期的小圖',
