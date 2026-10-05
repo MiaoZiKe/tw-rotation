@@ -21579,18 +21579,15 @@ def t_earnings_1005(pg, b, base):
         nc = J("() => [document.querySelectorAll('#earnGrid .chip[data-code]').length, document.querySelectorAll('#earnGrid .chip.kfomc, #earnGrid .chip.kdata').length]")
         lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
         ok(f"★ [{tag}] 篩選「FED／美國數據」→ 沒有公司標籤；「台股公司」→ 沒有 FED 標籤", nf[0] == 0 and nf[1] > 0 and nc[0] > 0 and nc[1] == 0, (nf, nc))
-        # ---- 7. 時間表 → 原地展開 → 個股頁
-        row = J("() => { const r = [...document.querySelectorAll('#earnTbl tr[data-i]')][1]; return r ? r.dataset.code : null; }")
-        h_before = J("() => location.hash")
-        lp.click(f"#earnTbl tr[data-code='{row}']"); lp.wait_for_timeout(500)
-        r = PM()
-        ok(f"★ [{tag}] 時間表點 {row} → 面板原地換成那家公司、沒有換頁、那一列亮", r[0] == "co" and r[1] == row and J("() => location.hash") == h_before
-           and J(f"() => document.querySelector(\"#earnTbl tr[data-code='{row}']\").classList.contains('on')"), (r[:2], J("() => location.hash")))
+        # ---- 7. 大公司時間表已拿掉（Andy 1005 晚：「下方不需要」）→ 不存在；面板「看個股頁」→ 個股頁
+        ok(f"★ [{tag}] 下方「大公司時間表」整張不存在（只留月曆＋右側面板）", count(lp, "#earnListCard, #earnTbl") == 0)
+        lp.click("#earnGrid .chip[data-code] >> nth=0"); lp.wait_for_timeout(300)
+        row = PM()[1]
         lp.click("#earnGoStock")
         ok(f"★ [{tag}] 面板「看個股頁」→ #stock/{row}", wait_until(lp, f"() => location.hash === '#stock/{row}'", 6000), J("() => location.hash"))
         lp.go_back(); wait_until(lp, "() => location.hash === '#earnings'", 5000)
         # ---- 8. 單行
-        hs = J("() => [...document.querySelectorAll('#earnGrid .chip, #earnPanel .erow, #earnTbl tbody td')].map(e => Math.round(e.getBoundingClientRect().height)).filter(h => h > 0)")
+        hs = J("() => [...document.querySelectorAll('#earnGrid .chip, #earnPanel .erow')].map(e => Math.round(e.getBoundingClientRect().height)).filter(h => h > 0)")
         ok(f"[{tag}] 標籤、清單列、表格儲存格都是單行（≤ 40px）", hs and max(hs) <= 40, max(hs) if hs else hs)
         ok(f"[{tag}] 整段沒有 JS 錯誤", not errs, errs[:3])
     finally:
@@ -21607,6 +21604,23 @@ def t_earnings_1005(pg, b, base):
         ok(f"[{tag}] 種子模式月曆照樣有標籤", sp.evaluate("() => document.querySelectorAll('#earnGrid .chip').length") > 0)
     finally:
         sp.close()
+
+    # ---- 9b. 一屏看完（Andy 1005 晚：「整理符合一頁就能看到所有資訊的版面」）：1440×800 沒有垂直捲動、月曆與面板底部都在視窗內
+    for hh in (800, 900):
+        op = b.new_page(viewport={"width": 1440, "height": hh})
+        try:
+            op.goto(f"{base}#earnings", wait_until="networkidle")
+            wait_until(op, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+            op.wait_for_timeout(300)
+            r = op.evaluate("""() => ({ cb: Math.round(document.querySelector('#earnCalCard').getBoundingClientRect().bottom), ih: innerHeight,
+                gb: Math.round(document.querySelector('#earnGrid').getBoundingClientRect().bottom), pb: Math.round(document.querySelector('#earnPanel').getBoundingClientRect().bottom),
+                rh: +document.querySelector('#earnCalCard').dataset.rowh, more: document.querySelectorAll('#earnGrid .more').length,
+                over: [...document.querySelectorAll('#earnGrid .ed')].filter(e => e.scrollHeight > e.clientHeight + 1).length })""")
+            # 全站頁尾（#siteFoot）在每一頁都接在內容下面，不算這頁的內容 → 驗「財報日曆整張卡的底部在第一屏內」
+            ok(f"★ [{tag}] 1440×{hh} 一屏看完：不用往下捲就看到整張卡、月曆與面板底部都在視窗內、格子沒有被標籤撐爆（放不下收成＋N）",
+               r["cb"] <= r["ih"] and r["gb"] <= r["ih"] and r["pb"] <= r["ih"] and r["over"] == 0, r)
+        finally:
+            op.close()
 
     # ---- 10. 窄畫面
     for w in (800, 390):
@@ -21653,8 +21667,7 @@ def t_earnings_1005(pg, b, base):
             q.goto(f"{base}#earnings", wait_until="networkidle")
             wait_until(q, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
             got = wait_until(q, "() => !!document.querySelector('#earnCalCard[data-plk]')", 6000 if want_cal else 1500)
-            lst = q.evaluate("() => !!document.querySelector('#earnListCard[data-plk]')")
-            ok(f"★ [{tag}] 權限 {feats or '全開'} → 月曆卡{'蓋鎖頭' if want_cal else '沒有鎖'}、時間表沒有鎖", bool(got) == want_cal and not lst, (got, lst))
+            ok(f"★ [{tag}] 權限 {feats or '全開'} → 月曆卡{'蓋鎖頭' if want_cal else '沒有鎖'}", bool(got) == want_cal, got)
         finally:
             c.close()
 

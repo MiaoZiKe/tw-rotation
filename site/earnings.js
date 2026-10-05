@@ -64,15 +64,14 @@
     s.textContent = `
 @media (max-width:820px){ .tab[data-view="earnings"]{display:none!important} }
 #v-earnings .edisc{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;border:1px solid var(--line-2);border-left:3px solid var(--amber);
-  border-radius:10px;background:var(--panel-2);color:var(--ink-2);font-size:13px;line-height:1.55;margin-bottom:var(--sp-3)}
+  border-radius:10px;background:var(--panel-2);color:var(--ink-2);font-size:13px;line-height:1.55;margin-bottom:10px;white-space:nowrap;overflow:hidden;padding:6px 14px}
+#v-earnings .edisc>div{overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .edisc b{color:var(--ink)}
 #v-earnings .card{margin-bottom:var(--sp-3)}
 #v-earnings .card h3{flex-wrap:nowrap;white-space:nowrap;min-width:0}
 #v-earnings .card h3 small{overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .row.spread{flex-wrap:nowrap;gap:10px;min-width:0}
-#v-earnings .seg{flex:none}
-#v-earnings .seg button{white-space:nowrap}
-#v-earnings .seg button.on{font-weight:inherit;text-shadow:.35px 0 0 currentColor}
+#v-earnings #earnFilt{flex:none}
 #v-earnings .ewrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;margin-top:6px}
 #v-earnings .ehd{display:flex;align-items:center;gap:8px;margin-bottom:6px;white-space:nowrap;height:32px;min-width:0}
 #v-earnings .ehd b{font-size:16px;width:118px;text-align:center;flex:none}
@@ -156,13 +155,6 @@
 #v-earnings .kv .pv{grid-column:1/-1;font-size:11.5px;color:var(--ink-3);margin-top:-2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-earnings .note{font-size:12.5px;color:var(--ink-3);line-height:1.55}
 #v-earnings .pact{display:flex;gap:8px;margin-top:10px}
-#v-earnings .etbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
-#v-earnings .etbl th{color:var(--ink-3);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#v-earnings .etbl td{text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#v-earnings .etbl td.n{font-family:var(--mono);text-align:right} #v-earnings .etbl th.n{text-align:right}
-#v-earnings .etbl tr[data-code]{cursor:pointer} #v-earnings .etbl tr[data-code]:hover td{background:var(--panel-3)}
-#v-earnings .etbl tr.on td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
-#v-earnings .twrap{max-height:430px;overflow:auto}
 @media (max-width:1100px){#v-earnings .ewrap{grid-template-columns:minmax(0,1fr)}#v-earnings .epanel{height:540px}
   #v-earnings .row.spread{flex-wrap:wrap}}
 @media (max-width:640px){
@@ -175,8 +167,7 @@
   #v-earnings .ehd b{width:96px;font-size:15px}
   #v-earnings .elegend{flex-wrap:wrap;white-space:normal;gap:4px 10px}
   #v-earnings .ehd .btn{padding:0 8px}
-  #v-earnings .etbl .hm{display:none}
-}`;
+  }`;
     document.head.appendChild(s);
   }
 
@@ -207,11 +198,10 @@
     const lg = [['kconf', IC.co, '法說會（公告）'], ['kboard', IC.co, '財報董事會'], ['kinv', IC.co, '受邀法說'], ['kest', IC.co, '預估財報日'],
       ['kfomc', IC.fed, 'FOMC'], ['kdata', IC.data, '美國數據'], ['ktw', IC.tw, '台股期限']];
     root.innerHTML = `
-<div class="edisc" id="earnDisc" role="note"><span aria-hidden="true">ⓘ</span><div><b>純資料整理，不構成投資建議。</b>
-「分析與展望」是規則把資料湖的數字組成句子（月營收、季損益、本益比、法人、新聞標題、FRED），沒有用語言模型，也不預測財報數字；每段都寫了出處與資料日期。</div></div>
+<div class="edisc" id="earnDisc" role="note" title="「分析與展望」是規則把資料湖的數字組成句子（月營收、季損益、本益比、法人、新聞標題、FRED），沒有用語言模型，也不預測財報數字；每段都寫了出處與資料日期。"><span aria-hidden="true">ⓘ</span><div><b>純資料整理，不構成投資建議。</b>分析由規則把資料湖數字組成句子，沒有用語言模型、不預測財報；每段附出處與日期。</div></div>
 <div class="card" id="earnCalCard">
   <div class="row spread"><h3>財報日曆 <small id="earnSub"></small> ${hbtn('earncal', '財報日曆怎麼看')}</h3>
-    <div class="seg" id="earnFilt"><button data-v="all" class="on" type="button">全部</button><button data-v="co" type="button">台股公司</button><button data-v="fed" type="button">FED／美國數據</button></div></div>
+    <div class="nbsw" id="earnFilt" role="tablist"><button data-v="all" class="on" type="button">全部</button><button data-v="co" type="button">台股公司</button><button data-v="fed" type="button">FED／美國數據</button></div></div>
   ${how('earncal', '這張回答：這個月哪幾天有大公司開法說／公布財報、哪幾天有 FED 決議與美國重大數據？點了之後這次財報要看什麼？', [
     '<b>大公司</b>＝市值前 50（收盤 × 最新一季財報的股數，上市＋上櫃普通股，排除 ETF）。資料湖沒有 0050／0051 成分股，所以用市值排名。',
     '<b>實心標籤＝公司已公告</b>（公開資訊觀測站重大訊息：法說會、財報董事會日期）；<b>虛線標籤＝預估</b>：這一季還沒公告日期的公司，先標在法定期限（Q3 是 11/14）。有過去幾季的實際公布日時，改用「平均早於期限幾天」往前推。',
@@ -227,11 +217,7 @@
     <div class="epanel" id="earnPanel" role="region" aria-label="分析面板" aria-live="polite"></div>
   </div>
 </div>
-<div class="card" id="earnListCard">
-  <div class="row spread"><h3>大公司財報時間表 <small id="earnListSub"></small></h3></div>
-  <div class="twrap"><table class="etbl" id="earnTbl"><colgroup><col style="width:44px"><col><col style="width:96px"><col style="width:74px"><col class="hm" style="width:46%"></colgroup>
-    <thead><tr><th>排名</th><th>公司</th><th>下一個日子</th><th>狀態</th><th class="hm">事件</th></tr></thead><tbody></tbody></table></div>
-</div>`;
+`;
   }
 
   /* ------------------------------------------------------------------ 月曆 */
@@ -250,8 +236,7 @@
     const [y, mo] = S.month.split('-').map(Number);
     const first = new Date(Date.UTC(y, mo - 1, 1));
     const by = {}; evs().filter(passF).forEach((e) => { (by[e.d] = by[e.d] || []).push(e); });
-    const narrow = window.innerWidth <= 640;
-    const cap = narrow ? 2 : 3;
+    const cap = fitRows();
     let cells = WD.map((w) => `<div class="wd">${w}</div>`).join('');
     const start = new Date(first); start.setUTCDate(1 - first.getUTCDay());
     let nIn = 0;
@@ -387,36 +372,25 @@
       <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button></div>`;
   }
 
-  /* ------------------------------------------------------------------ 大公司時間表 */
-  function drawList() {
-    const tb = $('#earnTbl tbody'); if (!tb) return;
-    const d = S.data;
-    if (!d) { tb.innerHTML = '<tr><td colspan="5" class="note">資料尚未產出</td></tr>'; return; }
-    const u = (d.universe && d.universe.list) || [];
-    const today = todayTW();
-    const nextOf = (c) => evs().filter((e) => e.code === c && e.d >= today && e.k !== 'invite').sort((a, b) => (a.d < b.d ? -1 : 1))[0]
-      || evs().filter((e) => e.code === c && e.d >= today)[0];
-    const rows = u.map((x) => ({ x, e: nextOf(x.code) })).sort((a, b) => ((a.e ? a.e.d : '9') < (b.e ? b.e.d : '9') ? -1 : (a.e ? a.e.d : '9') > (b.e ? b.e.d : '9') ? 1 : a.x.rank - b.x.rank));
-    tb.innerHTML = rows.map(({ x, e }) => `<tr data-code="${esc(x.code)}"${e ? ` data-i="${idxOf(e)}"` : ''}><td class="n">${x.rank}</td><td>${esc(x.name)} <span class="note">${esc(x.code)}</span></td>
-      <td class="n">${e ? `${md(e.d)}（${wdOf(e.d)}）` : '—'}</td><td>${e ? (e.status === '預估' ? '<span class="badge est">預估</span>' : '<span class="badge ann">已公告</span>') : '—'}</td>
-      <td class="hm" title="${e ? esc(e.title) : ''}">${e ? esc(e.title) : '窗內沒有事件'}</td></tr>`).join('');
-    $('#earnListSub').textContent = `${(d.universe && d.universe.basis) || ''}`;
-    $$('tr[data-code]', tb).forEach((tr) => {
-      tr.onclick = () => {
-        if (tr.dataset.i == null) return;
-        const e = evs()[+tr.dataset.i];
-        if (e && e.d.slice(0, 7) !== S.month) S.month = e.d.slice(0, 7);
-        pick({ t: 'ev', i: +tr.dataset.i });
-        // 原地展開：面板在畫面外就捲到它（不換頁）
-        const p = $('#earnPanel'); const r = p.getBoundingClientRect();
-        if (r.top < 60 || r.top > window.innerHeight * 0.6) window.scrollTo({ top: Math.max(0, r.top + window.scrollY - 70), behavior: 'smooth' });
-      };
-    });
-    markRows();
-  }
-  function markRows() {
-    const e = S.sel.t === 'ev' ? evs()[S.sel.i] : null;
-    $$('#earnTbl tr[data-code]').forEach((tr) => tr.classList.toggle('on', !!(e && e.code === tr.dataset.code)));
+  // 2026-10-05（晚，Andy：「下方不需要」）：大公司時間表整張拿掉，markRows 留空殼讓呼叫端不用改
+  function markRows() {}
+
+  /* 一屏看完（Andy：「整理符合一頁就能看到所有資訊的版面」）：寬版（月曆＋右欄並排）時，
+     格高＝（視窗剩下的高度 − 星期列 − 間距）÷ 6，夾在 56～98px；格內放得下幾個標籤就放幾個，其餘收成「＋N」。
+     窄版（≤1100，面板掉到月曆下方）本來就要捲，不縮格高。 */
+  function fitRows() {
+    const g = $('#earnGrid'), p = $('#earnPanel'), card = $('#earnCalCard');
+    if (!g || !p || !card) return 3;
+    if (window.innerWidth <= 1100) { g.style.gridTemplateRows = ''; p.style.height = ''; return window.innerWidth <= 640 ? 2 : 3; }
+    const top = g.getBoundingClientRect().top + window.scrollY;
+    const padB = parseFloat(getComputedStyle(card).paddingBottom) || 12;
+    const avail = window.innerHeight - top - padB - 14;
+    const rh = Math.max(56, Math.min(98, Math.floor((avail - 20 - ROWS * 4) / ROWS)));
+    g.style.gridTemplateRows = `20px repeat(${ROWS},${rh}px)`;
+    const hd = $('.ehd', card);
+    p.style.height = `${Math.round(g.getBoundingClientRect().bottom - hd.getBoundingClientRect().top)}px`;
+    card.dataset.rowh = String(rh);
+    return Math.max(1, Math.floor((rh - 8 - 17 + 2) / 20));
   }
 
   /* ------------------------------------------------------------------ 入口 */
@@ -439,9 +413,10 @@
         drawCal(); drawPanel(); markRows();
       };
     });
-    drawCal(); drawPanel(); drawList();
+    drawCal(); drawPanel();
     let lastNarrow = window.innerWidth <= 640;
-    window.addEventListener('resize', () => { const n = window.innerWidth <= 640; if (n !== lastNarrow) { lastNarrow = n; drawCal(); } });
+    let rzT = 0;
+    window.addEventListener('resize', () => { lastNarrow = window.innerWidth <= 640; clearTimeout(rzT); rzT = setTimeout(() => { if (document.getElementById('earnGrid') && root.offsetParent) drawCal(); }, 120); });
     root.dataset.ready = !d ? 'empty' : S.seed ? 'seed' : 'full';
   }
   window.TwEarnings = { render, state: S, pick };

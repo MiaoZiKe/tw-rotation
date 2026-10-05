@@ -148,9 +148,8 @@
     box('etf.calendar', 'etf', '配息行事曆', ['#etfCalCard'], '7 欄月曆：除息日、配息金額、當次殖利率與填息天數'),
     box('etf.returns', 'etf', '報酬比較（自選）', ['#etfRetCard'], '各分類內自選最多 8 檔，比較累積報酬、年化與殖利率'),
     // ---- 財報日曆（2026-10-05，site/earnings.js）：預設全開；要收費時管理者在 #admin/perm 關範本
-    box('earn.page', 'earnings', '財報日曆頁（整頁）', ['#v-earnings'], '月曆、右側分析面板與大公司時間表（整頁）'),
+    box('earn.page', 'earnings', '財報日曆頁（整頁）', ['#v-earnings'], '月曆與右側分析面板（整頁）'),
     box('earn.cal', 'earnings', '財報月曆', ['#earnCalCard'], '月曆（法說會／財報日／FOMC／美國數據）與右側分析面板'),
-    box('earn.list', 'earnings', '大公司財報時間表', ['#earnListCard'], '市值前 50 的下一個財報相關日子（已公告／預估）'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,
