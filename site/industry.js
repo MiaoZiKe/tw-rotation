@@ -3749,7 +3749,7 @@
       ${up.length ? `<div class="relcol"><h5>上游 · 誰供給它（${up.length}）</h5><ul>${up.join('')}</ul></div>` : ''}
       ${down.length ? `<div class="relcol"><h5>下游 · 它供給誰（${down.length}）</h5><ul>${down.join('')}</ul></div>` : ''}
       ${rivals.length ? `<div class="relcol"><h5>同業競爭</h5><div class="row" style="gap:6px">${rivals.map(r => r.tw_code ? A.L.stock(r.tw_code, r.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(r.name)}</span>`).join('')}</div></div>` : ''}
-      <div class="nt"><b class="cf cf-estimated">產業推論</b>＝由公開資訊推得，非公司或媒體揭露</div>
+      <div class="nt"><b class="cf cf-estimated" title="${A.fmt.esc(EST_TIP)}">產業推論</b>＝由公開資訊推得，非公司或媒體揭露</div>
     </div>`;
   }
 
