@@ -88,6 +88,22 @@
 #v-admin .ptabs button.on{background:var(--panel);color:var(--ink);border-color:var(--cyan);border-bottom:1px solid var(--panel);box-shadow:inset 0 3px 0 var(--cyan);position:relative;z-index:1}
 #v-admin .ptabs button.add{min-width:52px;align-items:center;justify-content:center;font-size:22px;font-weight:400}
 #v-admin .ptpanel{border:1px solid var(--line-2);border-top:0;border-radius:0 0 10px 10px;padding:4px 14px 12px;background:var(--panel)}
+#v-admin .ptwrap{margin-top:14px}
+#v-admin .ptwrap .ptabs{margin-top:0;padding:0}
+#v-admin .ptwrap .ptabs button{min-height:44px;flex-direction:row;align-items:center;padding:0 18px;border-radius:10px 10px 0 0;margin-bottom:-1px}
+#v-admin .ptwrap .ptabs button.on{border-bottom-color:var(--panel)}
+#v-admin .ptwrap .ptpanel{border-top:1px solid var(--cyan);border-radius:0 10px 10px 10px;padding:0 18px 18px}
+#v-admin .ptwrap .ptsub{margin:0 -18px 12px;padding:0 14px}
+#v-admin .ptwrap .ptsub.one button{cursor:default}
+#v-admin .ptlede{margin:6px 0 0;font-size:12.5px;color:var(--ink-2)}
+#v-admin .ptwhoro{display:flex;align-items:center;gap:10px;min-height:32px}
+#v-admin .ptwhoro .ptwho{flex:1;min-width:0;font-size:13px;color:var(--ink-2)}
+#v-admin .ptgear{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:16px;cursor:pointer}
+#v-admin .ptgear[aria-expanded=true]{border-color:var(--cyan);color:var(--cyan)}
+#v-admin .ptwrap .secttl{margin-top:14px}
+#v-admin .ptwrap .pmgrpbox.card{background:transparent;box-shadow:none}
+#v-admin .ptinner{padding:12px 0 4px}#v-admin .ptinner h3{margin:0 0 4px}
+#v-admin .ptwrap #pmStat:empty{display:none}
 #v-admin .ptabs:has(button.on)+.ptpanel{border-color:var(--cyan)}
 #v-admin .pmcats.card{gap:0;padding:0;overflow:hidden;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
 #v-admin .pmcats.card .pmcat{padding:12px 16px;box-shadow:1px 0 0 color-mix(in srgb,var(--line) 70%,transparent),0 1px 0 color-mix(in srgb,var(--line) 70%,transparent);min-width:0}
@@ -133,6 +149,9 @@
 #v-admin .pmcathd{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-bottom:6px}#v-admin .pmcathd>button[data-all]{flex:none}
 #v-admin .pmcathd h3{margin:0;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-admin .pmcathd h3 small{font-size:12.5px;color:var(--ink-2);font-weight:400;margin-left:6px}
+#v-admin .pmcards .pmcat.card .pmcathd h3{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;font-size:15px;white-space:nowrap;overflow:hidden}
+#v-admin .pmcards .pmcat.card .pmcathd h3 small{flex:none;margin-left:2px}
+#v-admin .pmcards .pmcathd>button[data-all]{height:26px;padding:0 8px;font-size:12.5px}
 #v-admin .pmcathd button{height:30px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
 #v-admin .pmrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 #v-admin .pmrow .pmtx b{display:block;font-size:14px;font-weight:600}
@@ -209,7 +228,7 @@
 #v-admin .pmcats.pmcards{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-top:10px}
 #v-admin .pmcards .pmcat.card{padding:10px 12px;min-width:0}
 #v-admin .pmcards .pmrow:first-of-type{border-top:0}
-#v-admin .pmlimb{width:44px;box-sizing:border-box;text-align:center;font:500 11.5px var(--mono);line-height:20px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-3,#7a879c);opacity:.65;cursor:pointer;white-space:nowrap;overflow:hidden}
+#v-admin .pmlimb{width:44px;box-sizing:border-box;text-align:center;font:500 13px var(--mono);line-height:20px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-3,#7a879c);opacity:.8;cursor:pointer;white-space:nowrap;overflow:hidden}
 #v-admin .pmlimb:hover,#v-admin .pmlimb[aria-expanded=true]{opacity:1;border-color:var(--line-2)}
 #v-admin .pmlimb.set{opacity:1;color:var(--ink);background:color-mix(in srgb,var(--cyan) 16%,transparent)}
 #v-admin .pmlimb.zero{color:#ff6b7a;background:color-mix(in srgb,#ff6b7a 14%,transparent)}
@@ -505,31 +524,32 @@
     PS.v = v; PS.A = A; PS.draft = null; PS.tab = tab;
     PS.mode = tab === 'perm' ? 'plan' : 'member';
     if (tab === 'perm') {
-      v.innerHTML = head(v, A) + `<p class="use" style="margin:8px 0 0">三個大分頁對應三種人。每一頁兩件事：<b>觀看權限</b>（哪些功能開、每天能看幾次）與<b>會員名單</b>（誰在這一層、用得多不多）。
-          關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上有「升級查看」直接帶到訂閱頁。</p></div>
-        <div class="card" id="pmHead" style="margin-top:14px">
+      /* perm-cards（2026-10-05，Andy）：頁籤 → 子分頁 → 內容 連成一個整體 —— 選中的頁籤底下直接接內容框，
+         開放功能表、族群觀測、會員名單都在同一個框內；說明縮成一行小字。 */
+      v.innerHTML = head(v, A) + `<p class="use ptlede">關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上有「升級查看」直接帶到訂閱頁。</p></div>
+        <div class="ptwrap" id="pmHead">
           <div class="ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
           <div class="ptpanel">
-            <div id="pmTarget"></div>
             <div class="ptsub" id="ptSub" role="tablist" aria-label="子分頁"></div>
-            <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div></div>
-        <div id="ptPermBox">
-          <div id="ptGuestSum"></div>
-          <div class="secttl"><h2>開放功能表</h2><small id="ptFor"></small></div>
-          <p class="use pmlimhelp">每一列：左邊開關＝能不能看；名稱旁的小徽章＝每天最多看幾次（<b>∞＝不限</b>，點一下可設定；<b>0＝不能看</b>；名稱旁小圓點＝跟預設不同；個股頁、題材、族群頁算「看了幾個不同的」，其他頁算「開了幾次」）。超過的人會看到「今日已用完」與升級鈕。</p>
-          <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數，點一下設定</span></div>
-          <div class="pmcats pmcards" id="pmCats"></div>
-          ${GRPSEC}</div>
-        <div id="ptListBox" hidden></div>
+            <div id="pmTarget"></div>
+            <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div>
+            <div id="ptPermBox">
+              <div id="ptGuestSum"></div>
+              <div class="secttl"><h2>開放功能表</h2><small id="ptFor"></small></div>
+              <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限，點一下設定（0＝不能看；個股／題材／族群頁算看了幾個不同的）</span></div>
+              <div class="pmcats pmcards" id="pmCats"></div>
+              ${GRPSEC}</div>
+            <div id="ptListBox" hidden></div>
+          </div></div>
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
         ${honest}`;
       v.querySelector('#ptTier').onclick = (e) => {
         const b = e.target.closest('button[role=tab]'); if (!b) return;
         if (b.id === 'ptAddTab') { if (PS.adding || !guard()) return; PS.adding = true; PS.cfg = false; PS.confirmDel = false; paintAll(); setStat(''); return; }
-        const tier = b.dataset.tier;
-        if (!PS.adding && tier === PS.tier) return;
+        const tier = b.dataset.tier, plan = b.dataset.plan || '';
+        if (!PS.adding && tier === PS.tier && (tier !== 'paid' || plan === PS.planSel)) return;
         if (!guard()) return;
-        PS.adding = false; PS.cfg = false; PS.tier = tier; PS.confirmDel = false; pickTierPlan();
+        PS.adding = false; PS.cfg = false; PS.tier = tier; PS.confirmDel = false; if (tier === 'paid') PS.planSel = plan; pickTierPlan();
         if (tier === 'guest') PS.sub = 'perm';
         paintAll(); setStat('');
       };
@@ -586,15 +606,16 @@
   function pickTierPlan() {
     if (PS.tier === 'guest') PS.planSel = 'guest';
     else if (PS.tier === 'free') PS.planSel = 'free';
-    else { const pp = paidPlans(); if (!pp.some((p) => p.id === PS.planSel)) PS.planSel = pp.length ? pp[0].id : ''; }
+    else { const pp = paidPlans(); if (!pp.some((p) => p.id === PS.planSel)) { if (pp.length) PS.planSel = pp[0].id; else { PS.tier = 'free'; PS.planSel = 'free'; } } }
   }
+  /* 頁籤（perm-cards 2026-10-05，Andy）：預設只有「訪客｜註冊會員｜＋」；每個付費範本自己一個頁籤「名稱（月／年）」，
+     不再有「付費會員」母頁籤＋下拉；頁籤上不顯示人數。內建 guest／free 由 paidPlans() 以 id＋builtin 濾掉，不會重複成範本頁籤。 */
+  const tabLabel = (p) => `${p.name}（${p.period === 'year' ? '年' : p.period === 'once' ? '一次' : '月'}）`;
   function paintTabs() {
     const bar = PS.v && PS.v.querySelector('#ptTier'); if (!bar) return;
-    const all = members();
-    const nPaid = all.filter((r) => r.tier === 'paid').length, nReg = all.filter((r) => r.st !== 'new').length;
-    const t = (tier, label, sub) => { const on = !PS.adding && PS.tier === tier;
-      return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"><span>${label}</span><small>${sub}</small></button>`; };
-    bar.innerHTML = t('guest', '訪客', '沒登入的人') + t('free', '註冊會員', nReg + ' 人') + t('paid', '付費會員', `${paidPlans().length} 個範本・${nPaid} 人`)
+    const t = (tier, label, plan) => { const on = !PS.adding && PS.tier === tier && (!plan || PS.planSel === plan);
+      return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"${plan ? ` data-plan="${esc(plan)}" title="${esc(planLabel(planOf(plan)))}"` : ''}><span>${esc(label)}</span></button>`; };
+    bar.innerHTML = t('guest', '訪客') + t('free', '註冊會員') + paidPlans().map((p) => t('paid', tabLabel(p), p.id)).join('')
       + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費範本" title="新增付費範本（名稱、價格、月／年訂閱）">＋</button>`;
   }
   function planOpts(sel, withGuest) {
@@ -694,18 +715,15 @@
     }
     const p = planOf(PS.planSel);
     if (PS.tier === 'paid') {
-      const pp = paidPlans();
-      box.innerHTML = pp.length ? `<div class="pmbar ptpick"><label>範本 <select id="ptPlanSel" aria-label="選付費範本">${pp.map((x) => `<option value="${esc(x.id)}" ${x.id === PS.planSel ? 'selected' : ''}>${esc(planLabel(x))}（${x.members || 0} 人）</option>`).join('')}</select></label>
-            <button type="button" id="ptPlanCfg" aria-expanded="${PS.cfg}">⚙ 範本設定</button><small class="ptwho">被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。</small></div>
-          ${PS.cfg && p ? `<div class="pmbar pmed" id="ptEdit"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
+      box.innerHTML = p ? `<div class="ptwhoro"><span class="ptwho"><b>${esc(planLabel(p))}</b>・被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。</span>
+            <button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${PS.cfg}" title="範本設定（改名／價格／月或年／刪除）" aria-label="範本設定">⚙</button></div>
+          ${PS.cfg ? `<div class="pmbar pmed" id="ptEdit"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
             <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
             <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
             <button type="button" class="pri" id="ptEdSave">儲存</button>
             <button type="button" class="danger" id="pmPlanDel" title="用這個範本的會員會退回註冊會員">刪除這個範本</button>
             <small>金流以範本代號 <code>${esc(p.id)}</code> 對價；改名、改價不影響已指定的會員。</small></div>` : ''}`
-        : '<div class="pmwho">還沒有付費範本 —— 按右上的「＋」新增（填名稱、價格、月或年訂閱）。</div>';
-      const sel = v.querySelector('#ptPlanSel');
-      if (sel) sel.onchange = () => { if (!guard()) { sel.value = PS.planSel; return; } PS.planSel = sel.value; PS.confirmDel = false; paintTarget(); paintCats(); paintList(); setStat(''); };
+        : '<div class="pmwho">還沒有付費範本 —— 按頁籤最右邊的「＋」新增（填名稱、價格、月或年訂閱）。</div>';
       const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.confirmDel = false; paintTarget(); };
       const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
       const del = v.querySelector('#pmPlanDel');
@@ -729,8 +747,9 @@
     const noPlan = PS.adding || (PS.tier === 'paid' && !planOf(PS.planSel));
     if (PS.tier === 'guest') PS.sub = 'perm';
     bar.hidden = noPlan;
+    bar.classList.toggle('one', PS.tier === 'guest');
     bar.innerHTML = `<button type="button" role="tab" data-sub="perm" id="ptSubPerm" class="${PS.sub === 'perm' ? 'on' : ''}" aria-selected="${PS.sub === 'perm'}">觀看權限</button>`
-      + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單<small>${listRows().length}</small></button>`);
+      + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單</button>`);
     const pb = v.querySelector('#ptPermBox'), lb = v.querySelector('#ptListBox');
     if (pb) pb.hidden = noPlan || PS.sub !== 'perm';
     if (lb) lb.hidden = noPlan || PS.sub !== 'list';
@@ -741,7 +760,7 @@
   async function paintGuestSum() {
     const box = PS.v && PS.v.querySelector('#ptGuestSum'); if (!box) return;
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="card" id="ptGuestCard" style="margin-top:14px"><h3>訪客整體流量（近 30 天）</h3><p class="use">訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚；下面關掉的功能，就是訪客想看卻要先登入／升級的東西。</p><div class="kpis" id="ptGuestKpi"><div><b>…</b>載入中</div></div></div>`;
+    box.innerHTML = `<div class="ptinner" id="ptGuestCard"><h3>訪客整體流量（近 30 天）</h3><p class="use">訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚；下面關掉的功能，就是訪客想看卻要先登入／升級的東西。</p><div class="kpis" id="ptGuestKpi"><div><b>…</b>載入中</div></div></div>`;
     const [st, on] = await Promise.all([PS.A.call('/v1/admin/stats', { days: 30 }), PS.A.call('/v1/admin/online', {})]);
     const k = PS.v && PS.v.querySelector('#ptGuestKpi'); if (!k || PS.tier !== 'guest') return;
     if (!st || st._s !== 200) { k.innerHTML = `<div class="err">讀不到流量（${esc(errText(st))}）</div>`; return; }
@@ -1065,7 +1084,7 @@
       const box = PS.v.querySelector('#ptListBox'); if (!box || box.hidden) return;
       const rows = listRows();
       const ttl = PS.tier === 'free' ? '註冊會員' : `付費・${(planOf(PS.planSel) || {}).name || ''}`;
-      box.innerHTML = `<div class="card" id="ptMail" style="margin-top:14px"><h3>${esc(ttl)}・${rows.length} 人</h3><p class="use">${PS.tier === 'free' ? '所有註冊會員（登入過的人）；金色徽章＝付費會員（後面是方案名），過期的付費會員標「過期」。' : '被指定到這個範本的會員。'}點欄位標題排序、點一列展開他的使用紀錄。要新增、改到期日或換範本，到「會員管理」。</p>
+      box.innerHTML = `<div class="ptinner" id="ptMail"><h3>${esc(ttl)}・${rows.length} 人</h3><p class="use">${PS.tier === 'free' ? '所有註冊會員（登入過的人）；金色徽章＝付費會員（後面是方案名），過期的付費會員標「過期」。' : '被指定到這個範本的會員。'}點欄位標題排序、點一列展開他的使用紀錄。要新增、改到期日或換範本，到「會員管理」。</p>
         ${rows.length ? memTable(rows, 'ptTable') : '<div class="empty">這一層目前沒有人。</div>'}
         <div class="pmbar"><a href="#admin/members" id="ptGoMembers">到會員管理新增會員 →</a></div></div>`;
       wireList(box);
