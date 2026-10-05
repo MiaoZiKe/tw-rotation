@@ -1191,63 +1191,29 @@ def t_overview(pg, base):
         " return c ? c.getOption().series[0].roam === false : false; }"))
     heat_dd_pick(pg, "", wait=700)
 
-    # --- 上方數字點得開：點了要去「市場明細」分頁看完整名單
+    # --- 上方摘要卡點得開
     # ★ 2026-09-28 改前：KPI 兩格點得開（漲跌家數 → 市場明細、前五族群佔比 → #flow>conc）
     #   改後：摘要卡四張都點得開；換頁的只有「漲跌家數」（→ 市場明細），其餘三張在總覽同頁捲動（「總覽摘要卡列」段驗）。
+    # ★ 2026-10-06 改前→改後（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：
+    #   改前：點「漲跌家數」→ 換到市場明細分頁（#market/updown），驗 tab＝market、表格有內容、「?」與標題在。
+    #   改後：點「漲跌家數」→ **留在 #overview**、捲到下方「漲跌家數」分佈卡（#ovBreadthCard），分佈卡有內容（直條加總＝共 N 檔）。
+    #   市場明細那一頁本身的內容（標題、「?」、表格）在「市場明細」段驗，這裡不再經過它。
+    #   點上漲／平盤／下跌直接列出那一側、手機、亮一下 → 「漲跌連結1006」段。
     kinds = pg.evaluate("[...document.querySelectorAll('#hero .osc[data-k]')].map(k => k.dataset.k)")
     ok("總覽上方摘要卡四張都點得開", sorted(kinds) == ["flow", "rot", "theme", "updown"], kinds)
-    kinds = ["updown"]
-    for k in kinds:
-        # ★ 2026-09-20：先捲回頁首再點。這一行是平行化之後補的。
-        #   KPI 那一排就長在 #hero，也就是頁面的最上面 —— 真人要點得到它，
-        #   本來就一定在頁首。但**這一段以前是靠「前面某一段剛好把頁面留在頂端」**，
-        #   一旦它變成某個 worker 的第一段、或前一段把頁面捲到 1592，
-        #   「有沒有真的捲到那張圖」就會量到錯的基準而假紅。
-        #   捲回頁首才是忠於使用者真實狀態的做法，不是為了讓測試變綠。
-        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
-        click(pg, f'#hero .osc[data-k="{k}"]', 1400)
-        st = pg.evaluate("""() => ({ hash: location.hash, tab: (document.querySelector('.tab.on')||{dataset:{}}).dataset.view,
-            scrollY: Math.round(window.scrollY),
-            title: (document.getElementById('mktTitle')||{}).innerText,
-            rows: document.querySelectorAll('#mktBody tr[data-code]').length,
-            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5').length,
-            note: ((document.querySelector('#mktBody .kpinote')||{}).textContent || '').length })""")
-        # 2026-09-18（Andy 圖16）：「資金集中」那一頁拿掉了，
-        # 總覽的「前五族群佔比」改導到資金流向頁的集中度圖（功能更完整）。
-        if k.startswith("#"):
-            # data-drill 可以寫成 `#flow>conc`：> 後面是要捲過去的元素 id。
-            # 2026-09-19：「前五族群佔比」以前只換 hash，但集中度圖在頁面 2700px 處，
-            # 使用者點完只看得到資金流向頁的頂端，看起來像「點了沒反應」。
-            page, _, anchor = k.partition(">")
-            ok(f"KPI「{k}」點下去會到那一頁", st["hash"] == page, st)
-            if anchor:
-                # ★ 2026-09-20：原本是 `wait_for_timeout(1400)`。scrollIntoView 是 smooth 的，
-                #   而且圖表畫完之後版面還會再長高、錨點會再往下跑 ——
-                #   固定睡 1400ms 在四個 worker 搶 CPU 時根本不夠，就開始間歇性假紅。
-                #   改成等「錨點真的進到視窗」這個條件成立，快就快走、慢才多等。
-                st2 = wait_until(pg, """() => { const el = document.getElementById('%s'); if (!el) return null;
-                    const r = el.getBoundingClientRect();
-                    if (r.top >= window.innerHeight) return null;   // 還沒捲到，繼續等
-                    return { scrollY: Math.round(window.scrollY), top: Math.round(r.top),
-                             h: window.innerHeight }; }""" % anchor, 8000) or pg.evaluate(
-                    """(a) => { const el = document.getElementById(a); if (!el) return null;
-                    const r = el.getBoundingClientRect();
-                    return { scrollY: Math.round(window.scrollY), top: Math.round(r.top),
-                             h: window.innerHeight }; }""", anchor)
-                ok(f"KPI「{k}」真的捲到 #{anchor} 那張圖（不是停在頁首）",
-                   bool(st2) and st2["scrollY"] > 200 and st2["top"] < st2["h"],
-                   {"點之前 scrollY": st["scrollY"], "量到": st2})
-        else:
-            ok(f"KPI「{k}」點下去會到市場明細分頁", st["tab"] == "market" and st["hash"].endswith(k), st)
-        ok(f"KPI「{k}」的明細真的有內容", st["rows"] > 0 or st["blocks"] > 0, st)
-        # ★ 2026-09-24 說明精簡（Andy：「說明內容需要簡短」）：每一頁上方那行縮成一句定義（例如「漲幅 ≥ 9.5%」9 字），
-        #   檔位／估算口徑搬進「怎麼看 ?」（HOW.mkt）。所以這裡改成「有一句定義」＋「怎麼看的鈕在」，不再要求 >10 字。
-        # ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明」）：盤後那一句定義也搬進「?」，
-        #   這裡只驗「?」那顆在（kpinote 可以沒有；即時模式的警示句另外在 D4 段驗）。
-        ok(f"KPI「{k}」有寫怎麼看", k.startswith("#") or pg.evaluate(
-            "() => !!document.querySelector('#v-market .howbtn.pop[data-how=\"mkt\"]')"), st)
-        ok(f"KPI「{k}」有標題", len(st["title"] or "") > 2, st)
-        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    # ★ 2026-09-20：先捲回頁首再點（KPI 那一排長在頁面最上面，真人要點得到它本來就在頁首；
+    #   不要靠「前面某一段剛好把頁面留在頂端」—— 平行化之後任何一段都可能是 worker 的第一段）。
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    click(pg, '#hero .osc[data-k="updown"]', 200)
+    r = _ovs_inview(pg, "ovBreadthCard")
+    st = pg.evaluate("""() => { const e = document.getElementById('breadth'), c = e && echarts.getInstanceByDom(e);
+        return { hash: location.hash, tab: (document.querySelector('.tab.on') || {dataset: {}}).dataset.view,
+                 total: +(e && e.dataset.total || 0), sum: c ? c.getOption().series[0].data.reduce((a, d) => a + d.value, 0) : 0 }; }""")
+    ok("★ KPI「漲跌家數」點下去留在總覽（不換到市場明細）、捲到下方漲跌家數分佈卡",
+       bool(r) and r["y"] > y0 + 150 and st["hash"] == "#overview", {"y0": y0, "量到": r, **st})
+    ok("KPI「漲跌家數」捲到的分佈卡真的有內容（直條加總＝共 N 檔）", st["total"] > 0 and st["sum"] == st["total"], st)
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
 
     # --- 總覽下方這幾張圖：都不是長條圖了，而且點得動
     # ★ 2026-09-23：「族群估值」`#gval` 整塊移除（Andy 追問後回覆 OK），所以它那一圈拿掉 ——
@@ -16703,6 +16669,198 @@ def t_ud_market(pg, base):
 
 
 
+# ===================================================================== 漲跌連結 1006（claude/updown-link）
+# Andy 2026-10-06（兩張截圖：①總覽頂部「漲跌家數」摘要卡 ②下方「漲跌家數」分佈直條卡）：「漲跌浮點即是連結到下面」，
+#   補一句「而非市場明細分頁」。改前：點摘要卡 → 換頁到 #market/updown。改後：
+#   ① 點摘要卡 → 留在 #overview、捲到下方分佈卡（#ovBreadthCard）、那張卡外框亮一下（.cardspot）又退掉；
+#   ② 點卡上的「上漲」「下跌」數字 → 到了直接列出那一側（上漲＝0~1…漲停、下跌＝跌停…-1~0），清單上方「全部＋各級」分頁可再挑一級；
+#      「平盤」＝平那一級；清單那一段的直條原色、其他淡掉，關掉清單全部恢復；
+#   ③ 摘要卡的數字固定是「全部」市場 → 下方卡停在上市時點數字，要自己切回全部、清單家數＝卡上的數字；
+#   ④ 滑過有提示（整張卡 title「看漲跌分佈」、數字 title「列出…的股票」、名稱底線）；鍵盤停在數字上按 Enter 也一樣；
+#   ⑤ 手機 390：自己切到「② 貴不貴 → 市場寬度」、卡片標題不被頂欄蓋住、整頁沒有橫向捲動。
+UDL_PANEL = """() => { const b = document.getElementById('udPanel'), e = document.getElementById('breadth');
+    const c = e && echarts.getInstanceByDom(e), o = c ? c.getOption() : null;
+    return { open: !b.hidden, bin: b.dataset.bin || '', lv: b.dataset.lv == null ? null : b.dataset.lv, mkt: b.dataset.mkt || '',
+             title: (b.querySelector('.hh b') || {}).textContent || '', txt: (b.querySelector('.hh .m') || {}).textContent || '',
+             tabs: [...b.querySelectorAll('.udlv > button')].map(x => ({ lv: x.dataset.lv, on: x.classList.contains('on'), t: x.textContent.trim() })),
+             codes: [...b.querySelectorAll('a[href^="#stock/"]')].map(a => a.getAttribute('href').slice(7)),
+             vals: o ? o.series[0].data.map(d => d.value) : null,
+             op: o ? o.series[0].data.map(d => (d.itemStyle && d.itemStyle.opacity != null ? d.itemStyle.opacity : 1)) : null,
+             udMkt: ([...document.querySelectorAll('#udMkt button.on')].map(x => x.dataset.m))[0] || '',
+             hash: location.hash }; }"""
+UDL_CARD = """() => { const c = document.querySelector('#hero .osc[data-k="updown"]'); if (!c) return null;
+    const v = (k) => { const b = c.querySelector('.osn[data-v="' + k + '"] .osn-v b'); return b ? +b.textContent.replace(/[^0-9]/g, '') : null; };
+    return { up: v('up'), flat: v('flat'), down: v('down'), live: c.classList.contains('ovl') }; }"""
+
+
+def _udl_count(txt):
+    m = re.match(r"\s*(\d+)\s*檔", txt or "")
+    return int(m.group(1)) if m else None
+
+
+def t_updown_link_1006(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.udMkt'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#hero .osc[data-k=\"updown\"] .osn[data-v]').length === 3", 8000)
+    stocks = pg.evaluate("() => fetch('data/stocks.json', {cache: 'no-store'}).then(r => r.json())")
+    side_of = {}
+    for r in stocks:
+        u = r.get("ud")
+        if isinstance(u, int):
+            side_of[r["code"]] = "up" if u > 5 else "down" if u < 5 else "flat"
+    card = pg.evaluate(UDL_CARD)
+    if not ok("摘要卡「漲跌家數」三個數字都在", bool(card) and None not in (card["up"], card["flat"], card["down"]), card):
+        return
+
+    # ---- ④ 滑過的提示：整張卡、數字各有 title；游標是手指；名稱底線
+    hint = pg.evaluate("""() => { const c = document.querySelector('#hero .osc[data-k="updown"]'), n = c.querySelector('.osn[data-v="down"]');
+        return { title: c.title, cur: getComputedStyle(c).cursor, ntitle: n.title, ncur: getComputedStyle(n).cursor,
+                 role: n.getAttribute('role'), tab: n.tabIndex }; }""")
+    ok("★ [漲跌連結] 摘要卡游標是手指、滑過提示「看漲跌分佈」", hint["title"] == "看漲跌分佈" and hint["cur"] == "pointer", hint)
+    ok("★ [漲跌連結] 「下跌」那一格自己有提示（列出下跌的股票）、手指游標、鍵盤停得到", "下跌" in hint["ntitle"] and "列出" in hint["ntitle"]
+       and hint["ncur"] == "pointer" and hint["role"] == "button" and hint["tab"] == 0, hint)
+    pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(300)
+    pg.hover('#hero .osc[data-k="updown"] .osn[data-v="down"]'); pg.wait_for_timeout(250)
+    ul = pg.evaluate("() => getComputedStyle(document.querySelector('#hero .osc[data-k=\"updown\"] .osn[data-v=\"down\"] small')).textDecorationLine")
+    ok("[漲跌連結] 滑到「下跌」上 → 名稱出現底線（看得出這格點得下去）", "underline" in ul, ul)
+
+    # ---- ②（含「圖還沒畫好就點」那條路）：剛載入、頁首，直接點「下跌」
+    pg.mouse.move(5, 5)
+    pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(250)
+    drawn0 = pg.evaluate("() => !!echarts.getInstanceByDom(document.getElementById('breadth'))")
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    click(pg, '#hero .osc[data-k="updown"] .osn[data-v="down"]', 200)
+    r = _ovs_inview(pg, "ovBreadthCard")
+    ok("★ [漲跌連結] 點「下跌」→ 留在 #overview（不跳市場明細）、捲到下方漲跌家數分佈卡",
+       bool(r) and r["y"] > y0 + 150 and pg.evaluate("() => location.hash") == "#overview", {"y0": y0, "量到": r, "點之前圖已畫": drawn0})
+    p = wait_until(pg, UDL_PANEL.replace("return {", "if (b.hidden || b.dataset.bin !== 'down') return null; return {", 1), 6000) or pg.evaluate(UDL_PANEL)
+    n_down = _udl_count(p["txt"])
+    ok("★ [漲跌連結] 到了直接列出下跌那一側（清單打開、標題寫下跌）", p["open"] and p["bin"] == "down" and p["title"].endswith("下跌"),
+       {k: v for k, v in p.items() if k not in ("codes", "vals")})
+    ok("★ [漲跌連結] 清單家數＝摘要卡的「下跌」＝分佈圖左邊五根直條加總", n_down == card["down"] == sum((p["vals"] or [0] * 11)[:5]),
+       {"清單": n_down, "卡": card["down"], "直條": (p["vals"] or [])[:5]})
+    bad = [c for c in p["codes"] if side_of.get(c) != "down"]
+    ok("★ [漲跌連結] 清單裡每一檔都是下跌股（逐檔對 stocks.json 的級距）", len(p["codes"]) >= 1 and not bad, bad[:6])
+    ok("[漲跌連結] 下跌五根直條原色、其他六根淡掉（看得出清單對應圖上哪幾根）",
+       bool(p["op"]) and all(x == 1 for x in p["op"][:5]) and all(x < 0.5 for x in p["op"][5:]), p["op"])
+    ok("[漲跌連結] 清單上方一排分頁：全部＋跌停…-1~0 五級，預設「全部」亮著",
+       [t["lv"] for t in p["tabs"]] == ["", "0", "1", "2", "3", "4"] and p["tabs"][0]["on"], p["tabs"])
+
+    # ---- 分頁挑一級：清單只剩那一級、家數＝那根直條、直條只剩那一根亮
+    lv = max(range(5), key=lambda i: (p["vals"] or [0] * 11)[i])
+    click(pg, f'#udPanel .udlv button[data-lv="{lv}"]', 500)
+    q = pg.evaluate(UDL_PANEL)
+    ok("★ [漲跌連結] 點分頁「%s」→ 清單換成那一級、家數＝那根直條" % ["跌停", "<-5", "-5~-3", "-3~-1", "-1~0"][lv],
+       q["open"] and q["lv"] == str(lv) and _udl_count(q["txt"]) == q["vals"][lv] and q["tabs"][lv + 1]["on"],
+       {k: v for k, v in q.items() if k not in ("codes",)})
+    ok("[漲跌連結] 挑一級後清單每一檔都在那一級", all(next((r.get("ud") for r in stocks if r["code"] == c), None) == lv for c in q["codes"][:30]),
+       q["codes"][:6])
+    ok("[漲跌連結] 挑一級後只有那一根直條亮", q["op"][lv] == 1 and all(q["op"][i] < 0.5 for i in range(11) if i != lv), q["op"])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    e1 = pg.evaluate(UDL_PANEL)
+    ok("★ [漲跌連結] Esc 收起清單 → 直條全部恢復原色", not e1["open"] and all(x == 1 for x in e1["op"]), e1["op"])
+
+    # ---- ① 點卡片本身（不點數字）：捲過去＋外框亮一下又退掉，不開清單
+    #   ⚠ 回頁首一律 behavior:'instant'：全站 html{scroll-behavior:smooth}，機器忙時 1400px 的平滑捲動 500ms 還沒到頂，
+    #     y0 量到 1438、「y > y0 + 150」就假紅（第一輪 6 段一起跑時實際踩到）。
+    pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(500)
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    click(pg, '#hero .osc[data-k="updown"] .osc-t', 150)
+    spot = wait_until(pg, "() => document.getElementById('ovBreadthCard').classList.contains('cardspot') || null", 4000)
+    r = _ovs_inview(pg, "ovBreadthCard")
+    ok("★ [漲跌連結] 點摘要卡 → 留在 #overview、捲到分佈卡（標題進到視窗）",
+       bool(r) and r["y"] > y0 + 150 and pg.evaluate("() => location.hash") == "#overview", {"y0": y0, "量到": r})
+    ok("★ [漲跌連結] 到了之後分佈卡外框亮一下（.cardspot）", bool(spot), spot)
+    gone = wait_until(pg, "() => !document.getElementById('ovBreadthCard').classList.contains('cardspot') || null", 4500)
+    ok("[漲跌連結] 亮一下就退（不會一直亮著）", bool(gone), gone)
+    ok("[漲跌連結] 點卡片本身（不是數字）不自己開清單", pg.evaluate("() => document.getElementById('udPanel').hidden"))
+
+    # ---- ③ 下方卡停在「上市」時點「上漲」：自己切回全部，家數對得上摘要卡
+    scroll_to(pg, "breadth")
+    pg.eval_on_selector('#udMkt button[data-m="twse"]', "b => b.click()"); pg.wait_for_timeout(600)
+    ok("[漲跌連結] （前置）下方卡切到上市", pg.evaluate(UDL_PANEL)["udMkt"] == "twse")
+    pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(500)
+    click(pg, '#hero .osc[data-k="updown"] .osn[data-v="up"]', 200)
+    u = wait_until(pg, UDL_PANEL.replace("return {", "if (b.hidden || b.dataset.bin !== 'up') return null; return {", 1), 6000) or pg.evaluate(UDL_PANEL)
+    ok("★ [漲跌連結] 點「上漲」→ 列出上漲那一側、下方卡自己切回「全部」（摘要卡的數字是全部市場）",
+       u["open"] and u["bin"] == "up" and u["udMkt"] == "all" and u["mkt"] == "all", {k: v for k, v in u.items() if k not in ("codes", "vals")})
+    ok("★ [漲跌連結] 上漲清單家數＝摘要卡的「上漲」＝右邊五根直條加總", _udl_count(u["txt"]) == card["up"] == sum(u["vals"][6:]),
+       {"清單": u["txt"], "卡": card["up"], "直條": u["vals"][6:]})
+    bad = [c for c in u["codes"] if side_of.get(c) != "up"]
+    ok("★ [漲跌連結] 上漲清單每一檔都是上漲股", len(u["codes"]) >= 1 and not bad, bad[:6])
+    ok("[漲跌連結] 上漲分頁＝全部＋0~1…漲停", [t["lv"] for t in u["tabs"]] == ["", "6", "7", "8", "9", "10"], u["tabs"])
+
+    # ---- 清單開著時點「平盤」：原地換成平盤那一級（不先關掉）
+    pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(500)
+    click(pg, '#hero .osc[data-k="updown"] .osn[data-v="flat"]', 200)
+    f = wait_until(pg, UDL_PANEL.replace("return {", "if (b.hidden || b.dataset.bin !== '5') return null; return {", 1), 6000) or pg.evaluate(UDL_PANEL)
+    ok("★ [漲跌連結] 清單開著時點「平盤」→ 原地換成平盤那一級、家數＝摘要卡＝中間那根直條",
+       f["open"] and f["bin"] == "5" and _udl_count(f["txt"]) == card["flat"] == f["vals"][5], {k: v for k, v in f.items() if k not in ("codes",)})
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+
+    # ---- 鍵盤：Tab 停在「下跌」上按 Enter
+    pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(400)
+    pg.focus('#hero .osc[data-k="updown"] .osn[data-v="down"]'); pg.keyboard.press("Enter")
+    k = wait_until(pg, UDL_PANEL.replace("return {", "if (b.hidden || b.dataset.bin !== 'down') return null; return {", 1), 6000)
+    ok("[漲跌連結] 鍵盤停在「下跌」按 Enter → 一樣列出下跌那一側、留在總覽", bool(k) and k["hash"] == "#overview", k and {kk: v for kk, v in k.items() if kk not in ("codes", "vals")})
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+
+    # ---- 即時開關、「?」照舊不換頁不捲動（只是確認這兩顆沒有被新的點擊路徑吃掉）
+    pg.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); pg.wait_for_timeout(400)
+    pg.eval_on_selector('#hero .osc[data-k="updown"] .howbtn', "b => b.click()"); pg.wait_for_timeout(500)
+    hv = pg.evaluate("() => ({ y: Math.round(scrollY), hash: location.hash, pop: !!(document.getElementById('howPop') && !document.getElementById('howPop').hidden), txt: (document.getElementById('howPop') || {}).textContent || '' })")
+    ok("[漲跌連結] 摘要卡「?」打開說明、不捲動，說明寫「捲到下方漲跌分佈」（不再寫市場明細）",
+       hv["pop"] and hv["y"] < 50 and hv["hash"] == "#overview" and "下方漲跌分佈" in hv["txt"] and "市場明細" not in hv["txt"], hv)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+
+    # ---- ② 的另一條路：分佈圖「還沒畫」時就點（首屏下方的卡是捲近了才畫）→ 要等它畫好再打開，不能點了沒反應。
+    #   上面那次點的時候，瀏覽器閒下來多半已經把圖補畫好了（whenNear 的 idle 補畫），走不到這條路；
+    #   這裡把 requestIdleCallback 換成永遠不叫，圖就只會在捲近時才畫 —— 點之前一定是「還沒畫」。
+    cx = b.new_context(viewport={"width": 1440, "height": 900})
+    cx.add_init_script("window.requestIdleCallback = function () { return 0; };")
+    lz = cx.new_page(); lz.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    lz.goto(f"{base}#overview", wait_until="networkidle")
+    wait_until(lz, "() => document.querySelectorAll('#hero .osc[data-k=\"updown\"] .osn[data-v]').length === 3", 10000)
+    lz.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); lz.wait_for_timeout(300)
+    lz0 = lz.evaluate("() => !!echarts.getInstanceByDom(document.getElementById('breadth'))")
+    click(lz, '#hero .osc[data-k="updown"] .osn[data-v="down"]', 200)
+    lzp = wait_until(lz, UDL_PANEL.replace("return {", "if (b.hidden || b.dataset.bin !== 'down') return null; return {", 1), 8000)
+    ok("★ [漲跌連結] 分佈圖還沒畫就點「下跌」→ 畫好之後自己打開下跌清單（不會點了沒反應）",
+       not lz0 and bool(lzp) and _udl_count(lzp["txt"]) == card["down"], {"點之前已畫": lz0, "清單": lzp and lzp["txt"]})
+    cx.close()
+
+    # ---- ⑤ 手機 390：先停在第①步，點「下跌」→ 自己切到 ② 貴不貴 → 市場寬度、捲到卡、清單是下跌
+    mp = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    mp.goto(f"{base}#overview", wait_until="networkidle")
+    wait_until(mp, "() => document.querySelectorAll('#hero .osc[data-k=\"updown\"] .osn[data-v]').length === 3", 8000)
+    mp.evaluate("() => { const b = document.querySelector('#v-overview > .mspine > button'); if (b && !b.classList.contains('on')) b.click(); }")
+    mp.wait_for_timeout(600)
+    mp.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); mp.wait_for_timeout(300)
+    mp.tap('#hero .osc[data-k="updown"] .osn[data-v="down"]')
+    mm = wait_until(mp, """() => { const b = document.getElementById('udPanel'), c = document.getElementById('ovBreadthCard'); if (b.hidden || b.dataset.bin !== 'down') return null;
+        const r = c.getBoundingClientRect(), y = Math.round(scrollY); if (y !== window.__udlY) { window.__udlY = y; return null; }
+        const hd = document.querySelector('#v-overview > .mspine'), hb = hd ? hd.getBoundingClientRect().bottom : 0;
+        const h3 = c.querySelector('h3').getBoundingClientRect();
+        const fs = [...b.querySelectorAll('*')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
+          .map(e => parseFloat(getComputedStyle(e).fontSize));
+        return { hash: location.hash, top: Math.round(r.top), h3top: Math.round(h3.top), spineBottom: Math.round(hb), vh: innerHeight,
+                 step: ((document.querySelector('#v-overview > .mspine > button.on') || {}).textContent || '').trim(),
+                 seg: ((document.querySelector('#v-overview > .mpager > button.on') || {}).textContent || '').trim(),
+                 n: _n(b.querySelector('.hh .m')), minFs: Math.min(...fs), sideways: document.documentElement.scrollWidth > innerWidth + 1 };
+        function _n(m) { const x = (m && m.textContent || '').match(/(\\d+)\\s*檔/); return x ? +x[1] : null; } }""", 9000)
+    mc = mp.evaluate(UDL_CARD)
+    ok("★ [漲跌連結 手機] 點「下跌」→ 自己切到「② 貴不貴 → 市場寬度」、留在總覽、清單是下跌",
+       bool(mm) and "貴不貴" in mm["step"] and mm["seg"] == "市場寬度" and mm["hash"] == "#overview" and mm["n"] == mc["down"], [mm, mc])
+    ok("★ [漲跌連結 手機] 卡片標題在四步列下面露出來（沒被 sticky 頂欄蓋住）、在視窗內",
+       bool(mm) and mm["h3top"] >= mm["spineBottom"] - 1 and mm["h3top"] < mm["vh"] - 100, mm)
+    ok("[漲跌連結 手機] 整頁沒有橫向捲動、清單字 ≥ 11px", bool(mm) and not mm["sideways"] and mm["minFs"] >= 11, mm)
+    mp.close()
+    pg.evaluate("() => { try { localStorage.removeItem('tw.udMkt'); } catch (e) {} }")
+
+
 # ===================================================================== 籌碼／基本資料 0926（claude/stock-chips-basic）
 # Andy 2026-09-26 個股頁四件：①大戶／散戶持股畫「過去 30 天」、三條各自看得出變化 ②股東人數改成每週增減長條
 # ③「自填」寫清楚填什麼、超出範圍夾值＋提示 ④「1–12 月平均漲幅」搬到基本資料右邊並排。
@@ -18099,18 +18257,20 @@ def t_ov_summary_0928(pg, b, base, code):
     pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(800)
 
     # ---------------------------------------------------------------- 3. 點擊：每張卡都走到對應的完整區塊或頁面
-    click(pg, '#hero .osc[data-k="updown"]', 1600)
-    st = pg.evaluate("""() => ({ hash: location.hash, rows: document.querySelectorAll('#mktBody tr[data-code]').length,
-        blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody .chart').length })""")
-    ok("★ [摘要卡] 點「漲跌家數」→ 市場明細的漲跌家數，而且有內容", st["hash"].startswith("#market/updown") and (st["rows"] > 0 or st["blocks"] > 0), st)
-    for kk, anchor, name in (("rot", "ovRotCard", "資金輪盤"), ("flow", "ovFlowHead", "昨日資金去向"), ("theme", "ovThemeCard", "熱門題材")):
+    # ★ 2026-10-06 改前→改後（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：
+    #   改前：點「漲跌家數」→ 換到市場明細的漲跌家數（#market/updown）而且有內容。
+    #   改後：跟另外三張一樣**同一頁捲動** —— 捲到下方「漲跌家數」分佈卡（#ovBreadthCard），hash 留在 #overview；
+    #   所以併進下面那一圈。點數字直接列出那一側在「漲跌連結1006」段驗。
+    for kk, anchor, name in (("updown", "ovBreadthCard", "漲跌家數分佈"), ("rot", "ovRotCard", "資金輪盤"), ("flow", "ovFlowHead", "昨日資金去向"), ("theme", "ovThemeCard", "熱門題材")):
         # ⚠ 只差 hash 的 goto 不會重新載入頁面（上一張卡的捲動追蹤還在跑）→ goto 之後再 reload 一次，每張卡都從頁首乾淨開始
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
+        # 摘要卡是資料載完才畫的：機器忙時 reload 後 1.8 秒 #hero 還是空的（2026-10-06 漲跌家數排第一張時踩到）→ 等四張都在再點
+        wait_until(pg, "() => document.querySelectorAll('#hero .osc').length === 4", 10000)
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
         y0 = pg.evaluate("() => Math.round(scrollY)")
         click(pg, f'#hero .osc[data-k="{kk}"]', 300)
         r = _ovs_inview(pg, anchor)
-        ok(f"★ [摘要卡] 點「{name.replace('昨日', '')}」→ 同一頁捲到下面的「{name}」（標題進到視窗）",
+        ok(f"★ [摘要卡] 點「{name.replace('昨日', '').replace('分佈', '')}」→ 同一頁捲到下面的「{name}」（標題進到視窗）",
            bool(r) and r["y"] > y0 + 150 and pg.evaluate("() => location.hash") == "#overview", {"y0": y0, "量到": r})
     # 點熱門題材卡裡的題材名 → 下面那張熱力圖直接打開那個題材
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
@@ -21996,6 +22156,8 @@ SECTIONS = {
     "總覽右欄":            lambda pg, b, base, code: t_ov_right(pg, base),
     # ★ 2026-09-26 Andy：總覽「漲跌家數」要分 上市／上櫃／全部（切換、點一級清單、重新整理記住、淺色、手機 390）
     "漲跌家數市場別":      lambda pg, b, base, code: t_ud_market(pg, base),
+    # ★ 2026-10-06 Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」—— 摘要卡 → 下方分佈卡、點上漲／平盤／下跌直接列出那一側（含手機 390）
+    "漲跌連結1006":        lambda pg, b, base, code: t_updown_link_1006(pg, b, base),
     "市場明細":            lambda pg, b, base, code: t_market(pg, base),
     # ★ 2026-09-28 Andy：法人連續買賣超搬到市場明細；漲跌分佈點長條 → 右側列出那一段的個股（⚠ 一律 --workers 1）
     "市場明細下鑽0928":    lambda pg, b, base, code: t_market_drill_0928(pg, b, base),
@@ -41744,9 +41906,14 @@ def t_kpi_footer_0926(pg, b, base):
     k2 = pg.evaluate(IN_BAR)
     ok("★ 大盤卡重掛之後摘要卡列還在、四張都在（沒有被 innerHTML 丟掉）", k2["inBar"] and k2["n"] == 4, k2)
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
-    click(pg, '#m3Kpis .osc[data-k="updown"]', 1600)
-    ok("重掛之後點「漲跌家數」卡照樣打開市場明細", pg.evaluate("() => location.hash").startswith("#market/updown"),
-       pg.evaluate("() => location.hash"))
+    # ★ 2026-10-06 改前→改後（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：
+    #   改前：重掛之後點「漲跌家數」卡照樣打開市場明細（hash 換成 #market/updown）。
+    #   改後：重掛之後點它照樣有反應 —— 留在 #overview、捲到下方「漲跌家數」分佈卡（重掛不會把點擊接線丟掉，這一條的意圖不變）。
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    click(pg, '#m3Kpis .osc[data-k="updown"]', 200)
+    r = _ovs_inview(pg, "ovBreadthCard")
+    ok("重掛之後點「漲跌家數」卡照樣有反應：留在總覽、捲到下方漲跌家數分佈卡",
+       bool(r) and r["y"] > y0 + 150 and pg.evaluate("() => location.hash") == "#overview", {"y0": y0, "量到": r, "hash": pg.evaluate("() => location.hash")})
 
     # ---------------------------------------------------------------- ② 足跡輪盤的放大鈕不存在；其他卡的放大／展開還在
     pg.set_viewport_size({"width": 1440, "height": 1000})

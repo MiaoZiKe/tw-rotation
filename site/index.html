@@ -992,6 +992,13 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .hpanel{margin-top:12px;padding:var(--sp-3) var(--sp-3);border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2)}
 @media (max-width:640px){.hpanel{padding:12px 14px}}
 .hpanel[hidden]{display:none}
+/* 漲跌家數「一側」清單（2026-10-06）：分頁「全部＋各級」貼著下面的名單框（.nbsw 規範：分頁和內容框連在一起） */
+.hpanel .udlv{margin-top:var(--sp-2)}
+.hpanel .udlvbody{margin-bottom:0}
+/* 從別處點過來「到了」的提示（cardSpot）：外框亮一下就退，不改尺寸（只動 box-shadow，版面不晃） */
+@keyframes cardspot{0%{box-shadow:0 0 0 0 transparent}18%,60%{box-shadow:0 0 0 2px var(--accent,var(--cyan)),0 0 22px 2px color-mix(in srgb,var(--accent,var(--cyan)) 38%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+.card.cardspot{animation:cardspot 1.8s ease-out}
+@media (prefers-reduced-motion:reduce){.card.cardspot{animation:none;outline:2px solid var(--accent,var(--cyan));outline-offset:2px}}
 .hpanel .hh{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
 @media (max-width:640px){.hpanel .hh{gap:10px}}
 .hpanel .hh b{font-size:15.5px}
@@ -4416,6 +4423,11 @@ h3 .howbtn.pop{font-family:inherit}
 .osn small em{font-size:11px}
 .osn-t{cursor:pointer;border-radius:6px}
 .osn-t:hover small{color:var(--ink);text-decoration:underline}
+/* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」）：「漲跌家數」卡的上漲／平盤／下跌各自點得到（→ 下方分佈卡直接列出那一側）。
+   滑過＝名稱加底線（跟熱門題材卡的題材名同一種提示），鍵盤停到時有外框。整張卡的滑過樣式（.osc:hover）照舊。*/
+.osc[data-k="updown"] .osn[data-v]{cursor:pointer;border-radius:6px}
+.osc[data-k="updown"] .osn[data-v]:hover small{color:var(--ink);text-decoration:underline}
+.osc[data-k="updown"] .osn[data-v]:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .osc-f{font-size:12px;line-height:16px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .osc-f b{color:var(--ink);font-weight:600}
 .ovsum-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:30px;height:46px;padding:0;
@@ -4452,8 +4464,9 @@ h3 .howbtn.pop{font-family:inherit}
 .osc .ovs-mb{display:none!important}
 @media (max-width:640px){ .osc .ovs-dk{display:none!important} .osc .ovs-mb{display:revert!important} .osc .osn.ovs-mb{display:flex!important} }
 /* 捲到下面那幾張卡時，頂欄（sticky 58px）不要蓋住卡片標題；手機還有一條 sticky 的四步列 */
-#ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:68px}
-@media (max-width:640px){ #ovRotCard,#ovFlowHead,#ovThemeCard{scroll-margin-top:124px} }
+/* 2026-10-06：漲跌家數分佈卡（#ovBreadthCard）也是摘要卡捲過去的目的地，一起排進來 */
+#ovRotCard,#ovFlowHead,#ovThemeCard,#ovBreadthCard{scroll-margin-top:68px}
+@media (max-width:640px){ #ovRotCard,#ovFlowHead,#ovThemeCard,#ovBreadthCard{scroll-margin-top:124px} }
 
 /* ---- 大盤三張圖：一個大方框、三格用細線隔開、工具列在框內左上 ---- */
 #m3{margin-bottom:0}

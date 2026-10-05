@@ -15,6 +15,19 @@
 - 這批驗了：pytest 全套（本機 1027 passed／4 skipped／1 xfailed；雲端 daily.yml 測試步驟也綠）；雲端實跑 phase=news 拿到上面的錯誤字串。沒跑 _preview／_uitest（沒動 site、build_payload）。
 - 順帶發現（非本批）：`tests/test_stage_pipeline_news.py` 沒 mock `collect_index_minute`，在出口被擋的容器裡單檔要 25 分鐘（GitHub 上不受影響），已開建議任務。
 
+## 2026-10-06 04:30 總覽「漲跌家數」摘要卡 → 下方漲跌分佈（分支 `claude/updown-link` → main，DECISIONS #324）
+- Andy：「漲跌浮點即是連結到下面」＋「而非市場明細分頁」。改前點摘要卡換到 `#market/updown`；改後**留在 #overview**、捲到 `#ovBreadthCard`、外框亮一下（`.cardspot`）。
+- 點卡上「上漲／下跌」數字 → 到了直接列出那一側（上漲＝0~1…漲停、下跌＝跌停…-1~0），清單上方 `.nbsw.lv2`「全部＋各級」可原地挑一級；「平盤」＝平那一級。清單那一段直條原色、其他淡掉，關掉恢復。
+  下方卡停在上市／上櫃時點數字 → 自動切回「全部」（摘要卡數字是全部市場，家數才對得上）。圖還沒畫（whenNear）就點 → 畫好自己打開。
+- 滑過提示：卡 `title="看漲跌分佈"`、數字 `title="列出…的股票"`＋名稱底線、鍵盤 Tab 停得到按 Enter。清單標題「N 檔・MM/DD 盤後・列前 60」。
+- 手機：`ovsJump` 加 step 參數（先切「② 貴不貴 → 市場寬度」）、`#ovBreadthCard` 加 scroll-margin-top；分佈圖卡寬 < 520px 時 x 軸刻度斜 45°（改前 390 寬黏成一串）。
+- `_uitest`：新段 `漲跌連結1006`（30 條：點卡／點下跌／分頁挑一級／點上漲時上市切回全部／平盤／鍵盤／「?」文字／圖未畫先點／手機 390）；
+  改三處舊斷言意圖（`總覽`、`總覽摘要卡列`、`KPI工具列頁尾0926`：「→ 市場明細」改成「留在 #overview 並捲到分佈卡」）；modules.js market.kpi／market.breadth 的 tests 加這段。
+- **這批只驗了**：`漲跌連結1006`（四輪皆 0；反向：舊 app.js 跑 27 紅）、`總覽摘要卡列` 0（flock 排隊、負載降下來後）、`市場明細` 0、`漲跌家數市場別`（桌機段 0）、`總覽`／`KPI工具列頁尾0926` 我改的那幾條皆過、`_preview.py`（重疊 0、出界 0，唯一一筆是本機缺 earnings.json 的 404，main 原本就有）。
+- ⚠ 驗收時機器 load average 約 50（4 核，其他 agent 同時跑 build_payload／pytest／_uitest），以下紅燈在**乾淨 origin/main（23104eca）同時段同樣紅**，判定為環境：
+  手機段 `no-spine`／摘要卡手機 n=0、`手機v3` #mTabMore 點不到、`積木清單` DOM 不在畫面、`KPI工具列頁尾0926` 頁尾量不到、`總覽` 小輪盤點族群（smooth 捲動沒停穩就點，base 同樣重現）。
+- 待處理（main 原本就紅，非本批）：`總覽` 段「點直條 → 原地列出那一級」在 origin/main 乾淨 worktree 也紅 —— 前面「點題材方塊 → 換成成分股 → 下拉回全部」之後 `scroll_to('breadth')` 停在 866 捲不到卡（卡底超出視窗），點到 `<html>`。單獨點直條（`漲跌家數市場別`、`漲跌連結1006`）正常。
+
 ## 2026-10-06 02:40 會員 Worker：每小時統計＋頁面白名單補七頁（分支 `claude/worker-hourly`，**Worker 先上，前端待接**）
 - Andy：流量觀測「即時」看今天 0–24 時每小時、「使用者」分頁看每小時使用時段（1H／4H／6H／12H／白天／晚上）；ETF、選股策略、事件、客服、財經日曆要有真的瀏覽數。
 - 後端（`workers/account-api/worker.js` 檔尾 hourly 區塊，只新增、包 prototype）：新表 `hstat(day, h, pv, sess, sess_login, mins)`（台北日期×小時，只有次數、無識別碼，保留 13 個月同 usage）；
