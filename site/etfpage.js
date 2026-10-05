@@ -214,6 +214,7 @@
 #v-etf .callist .plink{font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:pointer}
 #v-etf .callist .plink:hover,#v-etf .callist .plink:focus-visible{text-decoration:underline;color:var(--cyan);outline:none}
 #v-etf .callist .ph .btn{flex:none}
+#v-etf .callist .si{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font:600 12px/1 var(--mono);color:var(--cyan);border:1px solid currentColor;cursor:help;flex:none}
 #v-etf .callist tr[data-code].on td{background:var(--panel-3)}
 #v-etf .nmw{display:flex;align-items:center;gap:6px;min-width:0}
 #v-etf .nmw i{width:9px;height:9px;border-radius:2px;flex:none}
@@ -296,13 +297,12 @@
     root.innerHTML = `
 <div class="card" id="etfCalCard">
   <div class="row spread"><h3 data-icon="calendar" data-tone="yield">配息行事曆 <small id="etfCalSub"></small> ${hbtn('etfcal', '配息行事曆怎麼看')}</h3></div>
-  ${how('etfcal', '這張回答：這個月哪幾天有 ETF 除息、各配多少、多久填息？', [
+  ${how('etfcal', '', [
     '格子裡直接寫當天除息的 ETF 代號與每單位配息（元）；超過 2 檔只列前 2 檔，其餘寫「+N 檔」。藍框＝今天。',
-    '點有除息的格子，右邊列出那天每一檔的配息金額、當次殖利率、發放日與<b>填息天數</b>；再點一次回到整月清單。',
+    '點有除息的格子，右邊列出那天每一檔的配息金額、當次殖利率、發放日與<b>填息天數</b>。',
     '<b>當次殖利率</b>＝該次配息 ÷ 除息前一個交易日收盤；尚未除息的（未來日期）改用最新收盤估算，標「估」。',
     '<b>填息天數</b>＝從除息日當天算第 1 個交易日，收盤第一次回到「除息前一日收盤」是第幾個交易日（與個股除權息分頁同一口徑）。還沒回到的寫「尚未填息（已 N 天）」，還沒除息或行情不足的寫「—」。',
-    '所以：想領某一次的息，要在除息日「前一個交易日」收盤前持有；發放日才是錢入帳的日子。填息天數短＝除息後股價很快補回，長或尚未填息＝領到的息被價差吃掉。',
-    '資料：股利公告與除權息結果；尚無配息資料的 ETF 不會出現在月曆上。'])}
+    '所以：想領某一次的息，要在除息日「前一個交易日」收盤前持有；發放日才是錢入帳的日子。填息天數短＝除息後股價很快補回，長或尚未填息＝領到的息被價差吃掉。'])}
   <div id="etfCal"></div>
 </div>
 
@@ -318,16 +318,16 @@
   <div class="card" id="etfPopCard">
     <div class="row spread"><h3 data-icon="flame" data-tone="heat">最近最受歡迎前 5 ${hbtn('etfpop', '最受歡迎怎麼算')}</h3>
       <div class="seg" id="etfPopSeg"><button data-v="holders">受益人週增</button><button data-v="turnover">成交值</button></div></div>
-    ${how('etfpop', '這張回答：這一類裡，最近人潮與錢往哪幾檔去？', [
+    ${how('etfpop', '', [
       '<b>受益人週增</b>：集保結算所每週公布的受益人數（合計列），最新一週減前一週，增加最多的前 5 檔。代表「新進場的人」。',
       '<b>成交值</b>：最近 20 個交易日成交金額的平均。代表「交易熱度」。',
-      '只在目前這個分類裡排；所以：兩個口徑都在前面的，是人潮與交易都熱的。點一列進個股頁看 K 線。'])}
+      '只在目前這個分類裡排；所以：兩個口徑都在前面的，是人潮與交易都熱的。'])}
     <p class="etfq" id="etfPopSub"></p>
     <div class="rklist" id="etfPop"></div>
   </div>
   <div class="card" id="etfRetTopCard">
     <div class="row spread"><h3 data-icon="arrow-up" data-tone="up">報酬率前 5 <small id="etfRetTopSub"></small> ${hbtn('etfrettop', '報酬率前 5 怎麼排')}</h3></div>
-    ${how('etfrettop', '這張回答：這一類裡，長期抱下來（含配息再投入）誰報酬最高？', [
+    ${how('etfrettop', '', [
       '依<b>含息總報酬年化</b>由高到低排（配息在除息日以當天收盤再投入）。期間跟著上方「報酬率期間」3／5／10 年／自訂。',
       '期間內上市未滿的，改用<b>上市以來</b>年化計算並標「上市以來 N 年」，不和滿期的直接比較。',
       '所以：先看這裡誰長期最好，再到下面「報酬比較」把想比的幾檔勾進去看走勢。'])}
@@ -336,7 +336,7 @@
   </div>
   <div class="card" id="etfYldCard">
     <div class="row spread"><h3 data-icon="coins" data-tone="yield">殖利率前 5 <small>近 12 個月</small> ${hbtn('etfyld', '殖利率前 5 怎麼看')}</h3></div>
-    ${how('etfyld', '這張回答：這一類裡，誰配得最多？配完多久填息？', [
+    ${how('etfyld', '', [
       '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。只看現金配息，不受上方期間影響。',
       '<b>平均填息</b>＝最近 4 次已除息裡「已經填息」那幾次的填息天數平均（交易日）；還沒填息的不算進平均，另外寫「N 次未填」。完全沒有填過的寫「尚未填息」。',
       '填息天數口徑：除息日當天算第 1 天，收盤第一次回到除息前一日收盤是第幾個交易日（與個股除權息分頁相同）。',
@@ -361,7 +361,7 @@
       </div>
       <div class="seg" id="etfBasisSeg"><button data-v="tr">含息</button><button data-v="price">不含息</button></div>
     </div></div>
-  ${how('etfret', '這張回答：我挑的這幾檔，長期抱下來誰報酬好？配息算進去差多少？', [
+  ${how('etfret', '', [
     '用右上「加入比較」挑這個分類裡的 ETF（可搜尋、最多 8 檔）；沒挑過時預設是「報酬率前 5」。每個分類各自記住你挑的。',
     '<b>價格年化（不含息）</b>＝(期末收盤 ÷ 期初收盤)^(1/年數) − 1；分割（例：0050 2025-06 一拆四）已還原，配息不算進去。',
     '<b>含息年化</b>＝配息在除息日以當天收盤再投入（還原權值）後的年化報酬。<b>殖利率</b>＝近 12 個月現金配息 ÷ 最新收盤。',
@@ -375,7 +375,7 @@
   <div class="row spread"><h3 data-icon="table" data-tone="chip">ETF 一覽 <small id="etfCount"></small> ${hbtn('etflist', 'ETF 分類與欄位')}</h3>
     <div class="etfrow"><label class="note" for="etfSort">排序</label>
       <select id="etfSort" class="etsel"><option value="tv">成交值</option><option value="size">規模</option><option value="yield">殖利率</option><option value="chg">今日漲跌</option></select></div></div>
-  ${how('etflist', '這張回答：有哪些 ETF、各是哪一型、殖利率多少？', [
+  ${how('etflist', '', [
     '<b>分類</b>（依序判斷，先符合先歸類）：槓桿反向（代號尾 L/R 或名稱含 正2／反1）→ 債券型（尾 B 或名稱含「債」）→ 其他（期貨／商品／貨幣，尾 U 或「期」開頭）→ 主動式（尾 A）→ 市值型（名稱含 台灣50、台50、中型100、加權、MSCI台灣、摩台）→ 配息型（名稱含 高股息／高息／股息／收益／優息…，或近 400 天除息 ≥ 4 次）→ 其餘股票型為主題型。',
     '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。<b>配息頻率</b>＝近 400 天除息次數（≥10 月配、≥3 季配、2 半年配、1 年配）。',
     '<b>規模</b>＝集保受益權單位數 × 收盤（估算值，不是投信公告的基金淨資產）。<b>成交值</b>＝近 20 日平均。',
@@ -599,6 +599,7 @@
     $$('.cald.has', box).forEach((c) => { c.onclick = () => { S.code = null; S.day = S.day === c.dataset.d ? null : c.dataset.d; drawCal(); }; });
     $$('#etfCalList tr[data-code]', box).forEach((tr) => { tr.onclick = () => { S.code = tr.dataset.code; drawCal(); }; });
     const bk = $('#etfCodeBack', box); if (bk) bk.onclick = () => { S.code = null; drawCal(); };
+    const db = $('#etfDayBack', box); if (db) db.onclick = () => { S.day = null; drawCal(); };
     $$('#etfCalList .plink', box).forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); A().goStock(a.dataset.code); }; });
     $$('#etfRetTbl tr[data-code]').forEach((tr) => { tr.onclick = () => A().goStock(tr.dataset.code); });
   }
@@ -616,7 +617,8 @@
     const CGs = window.CalGrid.svg, all = ((S.data && S.data.calendar) || []).filter((e) => e.code === code).sort((a, b) => (a.ex < b.ex ? -1 : 1));
     const it = byCode().get(code) || { name: code };
     const done = all.filter((e) => e.ex <= (S.data.asof || '9999')), L = (done.length ? done : all).slice(-8);
-    const head = `<div class="ph stk"><button type="button" class="btn small" id="etfCodeBack">← 回清單</button><a class="plink" href="#stock/${esc(code)}" data-code="${esc(code)}" title="看 ${esc(it.name)} ${esc(code)} 個股頁">${esc(it.name)} ${esc(code)}</a><span class="sp"></span></div>`;
+    const src = '出處：證交所／櫃買中心除息紀錄（近 400 天）；當次殖利率＝配息 ÷ 除息前一日收盤（未除息者用最新收盤估算）';
+    const head = `<div class="ph stk"><button type="button" class="btn small" id="etfCodeBack">← 回清單</button><a class="plink" href="#stock/${esc(code)}" data-code="${esc(code)}" title="看 ${esc(it.name)} ${esc(code)} 個股頁">${esc(it.name)} ${esc(code)}</a><span class="sp"></span><span class="si" tabindex="0" role="note" aria-label="出處" title="${esc(src)}">i</span></div>`;
     if (!L.length) return `${head}<p class="note">無除息紀錄</p>`;
     const fills = all.filter((e) => e.fill != null).map((e) => e.fill), avg = fills.length ? Math.round(fills.reduce((a, b) => a + b, 0) / fills.length) : null;
     const last = L[L.length - 1], ys = L.map((e) => (e.y == null ? null : +(e.y * 100).toFixed(2)));
@@ -627,13 +629,12 @@
         <div><small>平均填息</small><b>${avg == null ? '—' : avg + ' 天'}</b></div></div>
       <div class="mini"><div class="mk"><b>${L.length} 次</b><small>近期配息</small></div><div class="mc">${CGs.wrap(bars + ln)}
         <div class="ml"><span>${esc(L[0].ex.slice(2))}</span><span><i style="background:var(--amber)"></i>配息　<i style="background:var(--cyan)"></i>殖利率</span><span>${esc(last.ex.slice(2))}</span></div></div></div>
-      <table class="et" id="etfCodeTbl">${COLS}${THEAD('除息日')}<tbody>${calRows(L.slice().reverse(), true)}</tbody></table>
-      <p class="note">資料：證交所／櫃買除息紀錄（近 400 天）；殖利率＝配息 ÷ 除息前一日收盤（未除息者用最新收盤估算）。</p>`;
+      <table class="et" id="etfCodeTbl">${COLS}${THEAD('除息日')}<tbody>${calRows(L.slice().reverse(), true)}</tbody></table>`;
   }
   function calList(day, L) {
     const wd = WD[new Date(day + 'T00:00:00Z').getUTCDay()];
-    return `<b class="lt">${day}（${wd}）除息 ${L.length} 檔</b><table class="et" id="etfDayTbl">${COLS}${THEAD('ETF')}<tbody>${calRows(L, false)}</tbody></table>
-      <p class="note">再點一次同一格，回到整月清單。</p>`;
+    return `<div class="ph stk"><button type="button" class="btn small" id="etfDayBack">← 回整月</button><b>${day}（${wd}）除息 ${L.length} 檔</b><span class="sp"></span></div>
+      <table class="et" id="etfDayTbl">${COLS}${THEAD('ETF')}<tbody>${calRows(L, false)}</tbody></table>`;
   }
   function monthList(L, y, mo) {
     const head = `<b class="lt">${y} 年 ${mo} 月除息一覽（${L.length} 筆）</b>`;
@@ -729,7 +730,7 @@
     syncDD(sel, colorOf);
     const m = byCode(), pk = perKey();
     if (!sel.length) {
-      body.innerHTML = `<div class="etfprep">還沒選任何 ETF：按右上「加入比較」勾這個分類裡想比的（最多 ${CMP_MAX} 檔）。</div>`;
+      body.innerHTML = '<div class="etfprep">尚未選擇 ETF</div>';
       body.dataset.k = pk; body.dataset.codes = ''; return;
     }
     const rows = sel.map((c) => { const it = m.get(c) || { code: c, name: c, stats: {} }; return { it, st: statOf(it) }; });

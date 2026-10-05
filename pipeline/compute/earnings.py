@@ -22,7 +22,7 @@
 
 FED 與美國重大數據：FOMC（決議＋紀要）來自 pipeline/calendar/macro_events.yaml；CPI／非農／GDP／PCE 公布日
   以 FRED fred/release/dates（資料湖 macro_calendar）為準，抓不到才用 YAML 的退回日程（畫面標出處）。
-  「上次數值」只用 FRED 觀測值（資料湖 macro）；沒有就寫「FRED 資料尚未取得」，不拿別的地方的數字湊。
+  「上次數值」只用 FRED 觀測值（資料湖 macro）；沒有就整格不顯示，不拿別的地方的數字湊。
 
 分析與展望：**全部是規則＋資料湖數字組出來的句子，沒有任何語言模型**（同一份資料永遠產出同一段文字）。
   文字一律描述式（「目前…」「較去年同期…」），不寫買賣建議（證券投資信託及顧問法）。
@@ -427,7 +427,7 @@ def _yoy_series(s: pd.Series, n: int = 12) -> list:
 
 
 def macro_snapshot(macro: pd.DataFrame | None) -> dict:
-    """FED 面板的「上次數值」：全部來自 FRED 觀測值；缺就不給（前端寫「FRED 資料尚未取得」）。"""
+    """FED 面板的「上次數值」：全部來自 FRED 觀測值；缺就不給（前端那一格整個不出現，不寫原因）。"""
     out: dict = {}
     lo, hi = _series(macro, "DFEDTARL"), _series(macro, "DFEDTARU")
     if len(lo) and len(hi):
@@ -501,8 +501,7 @@ def section_focus(rev_rows: list[dict], prof_rows: list[dict], target: str) -> d
         else:
             lines.append(f"{target} 已公布 {mtxt} 月營收：合計 {_yi(cur)}，較去年同期 {_pct(yoy)}、較上一季同期（同樣 {len(have)} 個月）{_pct(qoq)}。")
         tone = 1 if (yoy or 0) > 0 else -1 if (yoy or 0) < 0 else 0
-    else:
-        lines.append(f"{target} 的月營收還沒有公布（第一個月營收在季後第 1 個月 10 日前公告）。")
+    # 2026-10-06（Andy：「沒有 X」否定說明一律刪，資料缺就不顯示）：目標季月營收還沒出 → 這一行不寫
     done = [r for r in prof_rows if _f(r.get("eps")) is not None]
     if done:
         last = done[-1]
@@ -516,6 +515,8 @@ def section_focus(rev_rows: list[dict], prof_rows: list[dict], target: str) -> d
         if om is not None:
             t += f"、營益率 {om:.1f}%"
         lines.append(t + "；這次要比的基準就是這組數字。")
+    if not lines:
+        return None
     return {"key": "focus", "t": "這次財報看什麼", "tone": tone, "lines": lines,
             "src": "月營收（證交所／FinMind）、季損益（證交所／FinMind）",
             "asof": have[-1] if have else (done[-1]["period"] if done else None)}
@@ -593,8 +594,7 @@ def section_valuation(pe_now, pe_hist: list | None, close, close_date: str) -> d
     pe = _f(pe_now)
     vals = [float(x["pe"]) for x in (pe_hist or []) if isinstance(x, dict) and _f(x.get("pe")) and float(x["pe"]) > 0]
     if pe is None or pe <= 0:
-        return {"key": "val", "t": "估值位置", "tone": 0, "lines": ["近四季 EPS 合計不是正數（或季報不連續），不計算本益比。"],
-                "src": "本益比＝收盤 ÷ 近四季 EPS 合計", "asof": close_date}
+        return None   # 2026-10-06：近四季 EPS 合計不是正數 → 整段不顯示（不寫「不計算本益比」這種否定說明）
     lines = [f"收盤 {close:,.2f} 元，本益比 {pe:.1f} 倍（收盤 ÷ 近四季 EPS 合計）。"]
     tone, pos = 0, None
     if len(vals) >= 8:
@@ -604,8 +604,6 @@ def section_valuation(pe_now, pe_hist: list | None, close, close_date: str) -> d
         lines.append(f"落在自己近 {len(vals)} 季本益比的第 {pos} 百分位（0＝最便宜、100＝最貴）→ 位置「{word}」；"
                      f"區間 {min(vals):.1f}～{max(vals):.1f} 倍。")
         tone = -1 if pos >= 80 else 1 if pos <= 20 else 0
-    else:
-        lines.append(f"自己的歷史本益比只有 {len(vals)} 季，少於 8 季不排位置。")
     return {"key": "val", "t": "估值位置", "tone": tone, "pos": pos, "lines": lines, "pe": round(pe, 1),
             "lo": round(min(vals), 1) if vals else None, "hi": round(max(vals), 1) if vals else None,
             "src": "本益比＝收盤 ÷ 近四季 EPS 合計；歷史＝每季公布後第一個收盤的本益比", "asof": close_date}
@@ -642,7 +640,7 @@ def section_news(news_rows: list[dict], mops_rows: list[dict]) -> dict | None:
     items = [{"d": n["date"], "t": n["title"], "s": n.get("source") or "", "u": n.get("url") or ""} for n in news_rows]
     mitems = [{"d": m["date"], "t": m["subject"], "s": "重大訊息"} for m in mops_rows]
     return {"key": "news", "t": "近期消息", "tone": 0, "items": mitems + items,
-            "lines": [f"近 {NEWS_DAYS} 天提到這家公司的新聞 {len(news_rows)} 則（只列標題，不判讀情緒）；重大訊息最新 {len(mops_rows)} 則。"],
+            "lines": [f"近 {NEWS_DAYS} 天新聞 {len(news_rows)} 則、重大訊息 {len(mops_rows)} 則。"],
             "src": "新聞（鉅亨／TechNews RSS，依標題比對代號與簡稱）、重大訊息（公開資訊觀測站）",
             "asof": max([x["d"] for x in mitems + items] or [None])}
 

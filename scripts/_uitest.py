@@ -1785,6 +1785,10 @@ def t_etf_1005(pg, b, base):
             if it["code"] in FAKE_Y:
                 y, fa, fn, fo, fl = FAKE_Y[it["code"]]
                 it.update({"yield_ttm": y, "fill_avg": fa, "fill_n": fn, "fill_open": fo, "fill_last": fl})
+            elif it.get("yield_ttm") is not None and it["yield_ttm"] >= 0.05:
+                # 2026-10-06：真資料的配息回補變完整後，00896／00712 等真殖利率 10～14% 會擠掉假資料那 6 檔，
+                # 「依殖利率排」就驗成資料內容而不是排序邏輯。其他 ETF 的殖利率壓到 5% 以下（仍有值、卡片照樣顯示），只讓假資料互比。
+                it["yield_ttm"] = 0.049
         route.fulfill(response=r, body=_json.dumps(d))
 
     div2330 = _json.loads((SITE / "data" / "stock" / "2330.json").read_text(encoding="utf-8")).get("dividends")
@@ -1909,7 +1913,8 @@ def t_etf_1005(pg, b, base):
         top_list0 = TOP("#etfListCard")
         pick = r3[:2]
         dd_open(); lp.click("#etfCmpDD .dd-none"); lp.wait_for_timeout(250)
-        ok(f"[{tag}] 全不選 → 比較卡寫「還沒選任何 ETF」", "還沒選任何 ETF" in text(lp, "#etfRetBody"))
+        # 2026-10-06 空狀態一句短話（拿掉「按右上加入比較…」操作教學）：「還沒選任何 ETF：…」→「尚未選擇 ETF」
+        ok(f"[{tag}] 全不選 → 比較卡寫「尚未選擇 ETF」", "尚未選擇 ETF" in text(lp, "#etfRetBody"))
         for c in pick:
             dd_tick(c)
         dd_close()
@@ -22128,6 +22133,50 @@ def t_cal_1006(pg, b, base):
         ok(f"★ [{tag}] 本週重點面板底部空白 < 35%（內容撐滿或可內捲）", gap < 0.35, gap)
         ok(f"[{tag}] 財經日曆標題列沒有資料日期", not __import__("re").search(r"\d{4}-\d\d-\d\d", text(lp, "#earnCalCard h3")), text(lp, "#earnCalCard h3"))
         ok(f"[{tag}] 頁首沒有單獨的免責框（併進主卡底部一行小字）", J("() => !document.querySelector('#v-earnings > .edisc') && !!document.querySelector('#earnCalCard #earnDisc')"))
+        # ---- 2026-10-06 第二輪（Andy 1～6 項逐條）
+        # 2 逐字清廢話：怎麼看彈窗不再有「這張回答：…？」自問自答；每一家公司的面板都沒有否定說明／內部口徑
+        ok(f"★ [{tag}] 財經日曆「怎麼看」沒有自問自答（.howq）與「沒有任何推估」這類否定句",
+           J("() => { const h = document.querySelector('#how-earncal'); return !!h && !h.querySelector('.howq') && !/這張回答|沒有任何推估|不限名次/.test(h.innerHTML); }"))
+        D3 = J("() => window.TwEarnings.state.data")
+        idxs = [i for i, e in enumerate(D3["events"]) if e.get("code")][:60]
+        BADW = r"還沒有公布|不計算本益比|少於 8 季|不排位置|不判讀|未含預期|不標偏多|不在市值前|沒有整理|語言模型|資料湖|種子|t187ap|DECISIONS|macro_events|尚未取得"
+        badp = []
+        for i in idxs:
+            J("(i) => window.TwEarnings.pick({ t: 'ev', i })", i)
+            m = J("(re) => { const t = document.querySelector('#earnPanel').innerText + ' ' + [...document.querySelectorAll('#earnPanel [title]')].map(e => e.title).join(' '); const x = t.match(new RegExp(re)); return x ? x[0] : null; }", BADW)
+            if m:
+                badp.append((D3["events"][i]["code"], m))
+        ok(f"★ [{tag}] 逐家點開 {len(idxs)} 個公司事件：面板（含滑過提示）沒有否定說明與內部口徑", len(idxs) > 0 and not badp, badp[:5])
+        # 3 法說公司全部有分析：events 裡每一個有代號的公司都在 companies、而且有段落
+        miss = [e["code"] for e in D3["events"] if e.get("code") and not (D3["companies"].get(e["code"]) or {}).get("secs")]
+        ok(f"★ [{tag}] 所有有事件的公司（含不在前 50 的法說公司）都有分析段落", not miss, sorted(set(miss))[:8])
+        # 4 FED 官方數據連結：發布機關＋FRED 序列頁；FOMC 不判方向 → 不出「偏多偏空規則」段
+        J("() => window.TwEarnings.pick({ t: 'week' })")
+        fi = next((i for i, e in enumerate(D3["events"]) if e["k"] == "fomc"), None)
+        if fi is not None:
+            J("(i) => window.TwEarnings.pick({ t: 'ev', i })", fi); lp.wait_for_timeout(150)
+            fl = J("() => ({ hrefs: [...document.querySelectorAll('#earnPanel .flk a')].map(a => [a.target, a.rel, a.getAttribute('href')]), rule: !!document.querySelector('#earnPanel [data-sec=rule]') })")
+            ok(f"★ [{tag}] FOMC 面板：官方連結（聯準會＋FRED 目標利率序列頁、新分頁、noopener）、沒有「偏多偏空規則」段",
+               any("federalreserve.gov" in h for _, _, h in fl["hrefs"]) and any(h.endswith("/series/DFEDTARU") for _, _, h in fl["hrefs"])
+               and all(t == "_blank" and "noopener" in r for t, r, _ in fl["hrefs"]) and not fl["rule"], fl)
+        ci = next((i for i, e in enumerate(D3["events"]) if e["k"] == "cpi"), None)
+        if ci is not None:
+            J("(i) => window.TwEarnings.pick({ t: 'ev', i })", ci); lp.wait_for_timeout(150)
+            hr = J("() => [...document.querySelectorAll('#earnPanel .flk a')].map(a => a.getAttribute('href'))")
+            ok(f"★ [{tag}] CPI 面板：BLS CPI ＋ FRED CPIAUCSL 連結", any("bls.gov/cpi" in h for h in hr) and any(h.endswith("/series/CPIAUCSL") for h in hr), hr)
+        J("() => window.TwEarnings.pick({ t: 'week' })")
+        # 卡片外不自成一框（同 copy-trim2「無獨立提示框」規則；那段把 #earnings／#etf 交給本分支，這裡自己驗）
+        NOBOX = r"""() => { const v = document.querySelector('main .view.on'); if (!v) return ['no-view']; const out = [];
+          v.querySelectorAll('*').forEach(e => { const r = e.getBoundingClientRect(); if (r.width < 200 || r.height < 14 || r.height > 140) return;
+            if (e.closest('footer, .sitefoot, .empty, .isempty') || (e.parentElement && e.parentElement.closest('.card, .panel, [class*=card]'))) return;
+            const cs = getComputedStyle(e);
+            const boxed = (cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0) || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor);
+            if (!boxed || e.matches('.card, .panel, [class*=card]')) return;
+            if (e.querySelector('canvas, svg, table, button, input, select, img, .card')) return;
+            const t = (e.innerText || '').trim(); if (t.length >= 12) out.push((e.className || e.tagName).toString().slice(0, 30) + '｜' + t.slice(0, 40)); });
+          return out; }"""
+        nb = J(NOBOX)
+        ok(f"[{tag}] #earnings 主內容區沒有卡片外自成一框的備註／免責／提示列", not nb, nb[:4])
         # ---- ETF
         lp.goto(f"{base}#etf", wait_until="domcontentloaded")
         wait_until(lp, "() => document.querySelector('#etfCatSeg button')", 15000)
@@ -22152,6 +22201,30 @@ def t_cal_1006(pg, b, base):
            and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"))
         ok(f"★ [{tag}] ETF 各卡標題列沒有資料日期（行事曆、報酬率前 5、報酬比較、ETF 一覽）", not __import__("re").search(r"\d{4}-\d\d-\d\d", J("() => ['#etfCalCard','#etfRetTopCard','#etfRetCard','#etfListCard'].map(s => { const h = document.querySelector(s + ' h3'); return h ? h.innerText : ''; }).join(' ')")))
         ok(f"[{tag}] 頁首沒有單獨的免責框", J("() => !document.querySelector('#v-etf > .etfdisc') && !!document.querySelector('#etfBody #etfDisc')"))
+        # ---- 2026-10-06 第二輪（Andy 第 7 項）
+        ok(f"★ [{tag}] ETF 預設停在「配息型」、沒有「全部」頁籤", J("() => document.querySelector('#etfCatSeg button.on').dataset.v") == "配息型"
+           and J("() => ![...document.querySelectorAll('#etfCatSeg button')].some(b => /全部/.test(b.textContent))"))
+        ok(f"★ [{tag}] ETF 每個「怎麼看」都沒有「這張回答：…？」自問自答（.howq）",
+           J("() => { const h = [...document.querySelectorAll('#v-etf .howtxt')]; return h.length >= 5 && h.every(x => !x.querySelector('.howq') && !/這張回答|回答：/.test(x.innerHTML)); }"))
+        # 當天清單：「再點一次同一格」教學句換成標題列「← 回整月」鈕，真的按下去要回到整月清單
+        hasd = J("() => { const c = document.querySelector('#etfCalGrid .cald.has'); return c ? c.dataset.d : null; }")
+        if hasd:
+            lp.click(f"#etfCalGrid .cald.has[data-d='{hasd}']"); lp.wait_for_timeout(200)
+            d1 = J("() => ({ day: document.querySelector('#etfCal').dataset.day, back: !!document.querySelector('#etfDayBack'), teach: /再點一次/.test(document.querySelector('#etfCalList').innerText) })")
+            lp.click("#etfDayBack"); lp.wait_for_timeout(200)
+            d2 = J("() => ({ day: document.querySelector('#etfCal').dataset.day, txt: document.querySelector('#etfCalList').innerText.slice(0, 40) })")
+            ok(f"★ [{tag}] 點有除息的格子 → 當天清單標題列有「← 回整月」、不寫「再點一次」；按下去回到整月清單",
+               d1["day"] == hasd and d1["back"] and not d1["teach"] and d2["day"] == "" and "除息一覽" in d2["txt"], (d1, d2))
+            # 單檔明細：整行「資料：…」改成標題列 ⓘ
+            lp.click(f"#etfCalGrid .cald.has[data-d='{hasd}']"); lp.wait_for_timeout(200)
+            lp.click("#etfDayTbl tbody tr[data-code] >> nth=0"); lp.wait_for_timeout(250)
+            cd = J("() => ({ code: document.querySelector('#etfCal').dataset.code, si: !!document.querySelector('#etfCalList .ph .si[title*=出處]'), line: /資料：/.test(document.querySelector('#etfCalList').innerText) })")
+            ok(f"★ [{tag}] 點一檔 → 明細標題列有出處 ⓘ、沒有整行「資料：…」", cd["code"] and cd["si"] and not cd["line"], cd)
+            lp.click("#etfCodeBack"); lp.wait_for_timeout(150)
+        else:
+            ok(f"[{tag}] （本月沒有除息格，略過當天清單驗收）", True)
+        nb2 = J(NOBOX)
+        ok(f"[{tag}] #etf 主內容區沒有卡片外自成一框的備註／免責／提示列", not nb2, nb2[:4])
         ok(f"[{tag}] 沒有 JS 錯誤", not errs, errs[:2])
     except Exception as e:  # noqa: BLE001
         ok(f"【{tag}】操作中途爆掉：{type(e).__name__} {str(e)[:200]}", False)
@@ -22237,8 +22310,10 @@ def t_earnings_1005(pg, b, base):
         p = PM()
         nm = D["companies"][conf["code"]]["name"]
         ok(f"★ [{tag}] 點 {conf['code']} 標籤 → 面板換成那家公司（模式 co、名稱、已公告）", p[0] == "co" and p[1] == conf["code"] and nm in p[2] and "已公告" in p[2], p[:2])
-        ok(f"★ [{tag}] 公司面板有：這次財報看什麼、月營收、獲利、估值、法人、FED 背景，而且每段標題旁有 ⓘ（出處改滑過才顯示）",
-           all(w in p[2] for w in ("這次財報看什麼", "月營收趨勢", "獲利能力", "估值位置", "FED 背景")) and count(lp, "#earnPanel .sec .si") >= 4 and "出處：" not in p[2], p[2][:300])
+        # 2026-10-06：資料缺的段落整段不顯示（例：近四季 EPS 非正就沒有「估值位置」），所以改成「資料裡有的段落全部畫出來」
+        want = [x["t"] for x in D["companies"][conf["code"]]["secs"] if x["key"] != "news"] + (["FED 背景"] if D["fed"].get("next") or D["fed"].get("snap") else [])
+        ok(f"★ [{tag}] 公司面板把資料裡有的段落全部畫出來（{'、'.join(want)}），每段標題旁有 ⓘ（出處改滑過才顯示）",
+           len(want) >= 3 and all(w in p[2] for w in want) and count(lp, "#earnPanel .sec .si") >= 3 and "出處：" not in p[2], (want, p[2][:300]))
         ok(f"[{tag}] 公司面板不寫買賣建議", not any(w in p[2] for w in ("建議買", "建議賣", "買進", "賣出")))
         ok(f"[{tag}] 被點的標籤有框", J(f"() => document.querySelector(\".chip.on\") && document.querySelector('.chip.on').dataset.code") == conf["code"])
         top_before = J("() => scrollY")

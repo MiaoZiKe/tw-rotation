@@ -8,11 +8,12 @@
      · 點公司標籤（或下面時間表的一列）→ 這次財報的分析與展望（每段標題旁 ⓘ 滑過看出處與資料日期）＋ FED 背景
      · 點 FED／美國數據標籤 → 數據說明、上次數值（FRED）、市場關注點、下一次日期
      · 點日期格（或「＋N」）→ 那一天的完整清單
-   月曆下方：市值前 50 大公司「本季財報時間表」，每列可點（右側面板原地展開，不離開這一頁；面板裡才有「看個股頁」）。
+   面板標題列（← 回本週重點＋股票名稱代號＝個股頁連結）釘在面板最上方，捲動不跑；面板底部不放按鈕。
+   （月曆下方的「大公司時間表」10-05 晚 Andy「下方不需要」已拿掉。）
 
    資料：data/earnings.json（pipeline/compute/earnings.py，build_payload 產出）。
    ⚠ 預覽分支吃的是正式站的資料，earnings.json 上正式站之前不存在 —— 那時退回分支內附的種子檔 earnings_seed.json
-     （同一支程式用真資料產出），畫面上明寫「種子資料（資料日 …）」，不冒充最新。
+     （同一支程式用真資料產出）。畫面不寫「種子」「資料日」（10-06 Andy：內部口徑、資料日期膠囊一律拿掉）。
    「分析與展望」是規則＋數字組出來的句子，口徑在 earnings.py 檔頭。
    排版紀律（Andy：「所有文字單行、操作不影響排版」）：標籤、清單列、表格一律 nowrap＋省略號；月曆固定 6 列、
      面板固定高（內容多就在面板裡捲），點任何東西都不會讓整頁上下跳。分頁鈕選中不加粗。
@@ -130,7 +131,7 @@
 #v-earnings .sec h4{margin:0 0 3px;font-size:13.5px;display:flex;gap:6px;align-items:baseline;white-space:nowrap;min-width:0}
 #v-earnings .sec h4 small{font-weight:400;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .sec p{margin:3px 0;font-size:13px;line-height:1.55;color:var(--ink-2)}
-#v-earnings .si{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;margin-left:6px;font:600 11px/1 var(--mono);color:var(--cyan);border:1px solid currentColor;cursor:help;flex:none;vertical-align:middle}
+#v-earnings .si{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;margin-left:6px;font:600 12px/1 var(--mono);color:var(--cyan);border:1px solid currentColor;cursor:help;flex:none;vertical-align:middle}
 #v-earnings .flk{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;white-space:nowrap;overflow:hidden;min-width:0;color:var(--ink-3)}
 #v-earnings .flk svg{width:12px;height:12px;color:var(--cyan);flex:none}
 #v-earnings .flk a{color:var(--cyan);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -141,7 +142,7 @@
 #v-earnings table.mt th:first-child,#v-earnings table.mt td:first-child{text-align:left}
 #v-earnings .nl{list-style:none;margin:4px 0;padding:0}
 #v-earnings .nl li{display:flex;gap:6px;font-size:12.5px;line-height:20px;white-space:nowrap;min-width:0}
-#v-earnings .nl li .d{font:11.5px var(--mono);color:var(--ink-3);flex:none}
+#v-earnings .nl li .d{font:12px var(--mono);color:var(--ink-3);flex:none}
 #v-earnings .nl li .t{overflow:hidden;text-overflow:ellipsis;min-width:0;color:var(--ink-2)}
 #v-earnings .nl li a.t{color:var(--ink-2);text-decoration:none} #v-earnings .nl li a.t:hover{color:var(--cyan)}
 #v-earnings .elist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
@@ -241,12 +242,11 @@
 <div class="card" id="earnCalCard">
   <div class="row spread"><h3>財經日曆 <small id="earnSub"></small> ${hbtn('earncal', '財經日曆怎麼看')}</h3>
     <div class="nbsw" id="earnFilt" role="tablist"><button data-v="all" class="on" type="button">全部</button><button data-v="rep" type="button">公司財報</button><button data-v="conf" type="button">公司法說</button><button data-v="fed" type="button">FED 消息</button></div></div>
-  ${how('earncal', '這張回答：這個月哪幾天有大公司開法說／公布財報、哪幾天有 FED 決議與美國重大數據？點了之後這次財報要看什麼？', [
-    '<b>大公司</b>＝市值前 50（收盤 × 最新一季財報的股數，上市＋上櫃普通股，排除 ETF）；有法說會的公司不限名次，都有分析。',
-    '<b>三大分類</b>：公司財報（市值前 50 公告的財報董事會日期、已公布財報）、<b>公司法說</b>（全部上市櫃公司在重大訊息公告的法說會，時間與地點照公告內文）、FED 消息（FOMC 與美國重大數據的官方公布日）。<b>只放已公告／官方公布的日子，沒有任何推估。</b>上方分頁切換只看某一類。',
-    '<b>FED 與美國數據</b>：FOMC 會議日程（聯準會公布）＋ CPI、非農、PCE、GDP 的公布日（BLS／BEA 公布的日程）。日期是美東日期，台灣時間寫在右側面板。',
-    '點公司標籤 → 右側出現這次財報的分析與展望（營收、獲利、估值、法人、消息、FED 背景）；點 FED 標籤 → 數據說明、上次數值、市場關注點；點日期 → 那天的完整清單。',
-    '所以：月初先看這個月有哪幾家大公司要開法說、FOMC 在哪一天；法說前一週點進去，對照「這次財報看什麼」那段的月營收，就知道營收已經反映多少、要看的是毛利率還是展望。'])}
+  ${how('earncal', '', [
+    '<b>大公司</b>＝市值前 50（收盤 × 最新一季股數，上市＋上櫃普通股，排除 ETF）。',
+    '<b>公司財報</b>＝大公司公告的財報董事會與已公布財報；<b>公司法說</b>＝全部上市櫃公司公告的法說會；<b>FED 消息</b>＝FOMC 與美國重大數據的官方公布日。',
+    '日曆上是美東日期，台灣時間在右側面板。',
+    '所以：月初先看這個月有哪幾家要開法說、FOMC 在哪一天；法說前一週點進去，對照「這次財報看什麼」的月營收，就知道營收已反映多少、要看的是毛利率還是展望。'])}
   <div class="elegend" id="earnLegend"></div>
   <div class="ewrap">
     <div><div class="ehd"><button type="button" class="btn small" id="earnPrev" aria-label="上個月">‹ 上月</button>
@@ -421,7 +421,7 @@
   }
 
 
-  const starsHTML = (n) => `<span class="stars" title="重要性 ${n}／5（固定規則，寫在 macro_events.yaml）" aria-label="重要性 ${n} 星">${'★'.repeat(n)}<i>${'★'.repeat(Math.max(0, 5 - n))}</i></span>`;
+  const starsHTML = (n) => `<span class="stars" title="重要性 ${n}／5" aria-label="重要性 ${n} 星">${'★'.repeat(n)}<i>${'★'.repeat(Math.max(0, 5 - n))}</i></span>`;
   const refYM = (ref) => { let m = /(\d{4})\s*年\s*(\d{1,2})\s*月/.exec(ref || ''); if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}`; m = /(\d{4})\s*Q(\d)/.exec(ref || ''); return m ? `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, '0')}` : null; };
   /* 前值／公布值＋偏多偏空（預期值沒有合法免費來源，不顯示也不編）；沒有 FRED 數字就整格不出現。 */
   function fedNums(e, info) {
@@ -471,7 +471,7 @@
       ${fedCard(e)}
       ${sparks ? `<div class="sec" data-sec="spark"><h4>近期數值走勢${si('FRED（聯準會聖路易分行經濟資料庫）', '')}</h4>${sparks}</div>` : ''}
       ${(info.focus || []).length ? `<div class="sec"><h4>市場關注點</h4>${info.focus.map((t) => `<p>・${esc(t)}</p>`).join('')}</div>` : ''}
-      ${info.rule ? `<div class="sec"><h4>偏多偏空規則</h4><p>${esc(info.rule)}</p></div>` : ''}
+      ${info.rule && info.dir && info.dir !== 'none' ? `<div class="sec" data-sec="rule"><h4>偏多偏空規則</h4><p>${esc(info.rule)}</p></div>` : ''}
       ${nx ? `<div class="sec"><h4>下一次${si(e.src, '')}</h4><p>${nx.d}（${wdOf(nx.d)}）・台灣 ${esc(nx.tw || '')}</p></div>` : ''}`;
   }
   function secHTML(s) {
@@ -501,9 +501,9 @@
     const tags = (c.tags || []).length ? `<div class="tags">${c.tags.map((t) => `<span class="tag">${esc(t.l)}<b class="${toneCls(t.tone)}">${esc(t.v)}</b></span>`).join('')}</div>` : '';
     const f = (S.data && S.data.fed) || {};
     const fn = f.next || {};
-    const fedSec = `<div class="sec" data-sec="fed"><h4>FED 背景</h4>
-      ${fn.fomc ? `<p>下一次 FOMC 利率決議：${md(fn.fomc.d)}（台灣 ${esc(fn.fomc.tw || '')}）${fn.cpi ? `；下一次 CPI：${md(fn.cpi.d)}（台灣 ${esc(fn.cpi.tw || '')}）` : ''}。</p>` : ''}
-      ${fedBlock(['policy', 'cpi_yoy', 'core_pce_yoy', 'unrate'])}</div>`;
+    const fedBody = `${fn.fomc ? `<p>下一次 FOMC 利率決議：${md(fn.fomc.d)}（台灣 ${esc(fn.fomc.tw || '')}）${fn.cpi ? `；下一次 CPI：${md(fn.cpi.d)}（台灣 ${esc(fn.cpi.tw || '')}）` : ''}。</p>` : ''}
+      ${fedBlock(['policy', 'cpi_yoy', 'core_pce_yoy', 'unrate'])}`;
+    const fedSec = fedBody.trim() ? `<div class="sec" data-sec="fed"><h4>FED 背景</h4>${fedBody}</div>` : '';
     return `${head}${basis}${confSec(e)}${tags}<p class="note">對應 <b>${esc(c.target || '')}</b> 財報</p>
       ${(c.secs || []).map(secHTML).join('')}${S.filt === 'all' || S.filt === 'fed' ? fedSec : ''}`;
   }
