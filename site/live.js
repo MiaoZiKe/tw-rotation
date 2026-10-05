@@ -348,6 +348,7 @@
       chgPct: (price !== null && prev) ? (price - prev) / prev * 100 : null,
       open: num(m.o), high: num(m.h), low: num(m.l),
       volume: num(m.v),          // 累計成交張數
+      limitUp: num(m.u), limitDown: num(m.w),   // ★ 2026-10-05：mis 自帶的漲停價／跌停價（市場明細判漲跌停用；沒有就前端照升降單位自己算）
       time: at,                  // 這筆成交的時間（HH:MM:SS）
       date: m.d || '',
       at: Date.now(),

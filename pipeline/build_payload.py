@@ -22,7 +22,7 @@ from .groups import loader
 from .sources import news as news_src
 from .sources import logos as logos_src
 from .util import store
-from .util.roc import is_tradable_security, norm_industry
+from .util.roc import is_common_stock, is_tradable_security, limit_down_price, limit_up_price, norm_industry
 
 log = logging.getLogger(__name__)
 
@@ -1341,8 +1341,12 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         })
     # ★ 2026-09-26 漲跌家數分上市／上櫃／全部：級距由管線決定（flow.updown_bin，唯一權威），
     # 每列帶 `ud`，前端分組直接讀它；updown.json 是三組家數（all／twse／tpex／other）＋加總檢查。
+    # ★ 2026-10-05：每列再帶 `lim`（1 漲停／-1 跌停／沒有就不寫），前端市場明細的漲停分頁與即時模式對照用。
+    lim_today = limit_flags(day, new_listing)
     for it in index:
         it["ud"] = flow.updown_bin(it["chg_pct"], LIMIT_PCT)
+        if lim_today.get(it["code"]):
+            it["lim"] = lim_today[it["code"]]
     _write("stocks", index)
     ud = flow.updown_distribution(index, LIMIT_PCT)
     if not ud["check"]["ok"]:
@@ -1380,6 +1384,35 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 # 用 9.5 當門檻比硬比 10% 準（硬比會漏掉一堆真的漲停）。
 LIMIT_PCT = 9.5
 MOVER_TOP = 60
+# ★ 2026-10-05：上面 LIMIT_PCT 只剩「漲跌分佈分級」在用（flow.updown_bin 的最兩端那格）；
+#   漲停／跌停**名單與家數**改用 limit_flags（價格＝漲停價），見下面。
+LIMIT_ABS_MAX = 10.0 + 1e-6      # 有漲跌幅限制的普通股，漲跌幅不可能超過 10%
+
+
+def limit_flags(day: pd.DataFrame, new_listing: set[str] | None = None) -> dict[str, int]:
+    """每一檔今天是否鎖在漲停（1）／跌停（-1）。只回有命中的。
+
+    判定＝收盤價（盤中則為現價）**等於**漲停價／跌停價，漲停價＝昨收×1.1 依升降單位向下取整
+    （roc.limit_up_price），昨收＝close − change（官方漲跌，除權息日也對得上參考價）。
+    只認普通股（roc.is_common_stock）、排除上市未滿 5 個交易日的新股（沒有漲跌幅限制）。
+    前端即時模式用同一套規則（app.js 的 twLimit），兩邊口徑一致。"""
+    out: dict[str, int] = {}
+    if day is None or day.empty:
+        return out
+    skip = new_listing or set()
+    close = pd.to_numeric(day["close"], errors="coerce")
+    change = pd.to_numeric(day.get("change"), errors="coerce")
+    for code, c, ch in zip(day["code"].astype(str), close, change):
+        if code in skip or not is_common_stock(code) or pd.isna(c) or pd.isna(ch):
+            continue
+        prev = float(c) - float(ch)
+        if prev <= 0 or ch == 0:
+            continue
+        if ch > 0 and abs(float(c) - limit_up_price(prev)) < 1e-6:
+            out[code] = 1
+        elif ch < 0 and abs(float(c) - limit_down_price(prev)) < 1e-6:
+            out[code] = -1
+    return out
 
 
 DIV_DEEP_START = "2009-01-01"      # run_backfill.PLAN_DEFAULT 的股利深度回補起點（2026-09-27）
@@ -1485,15 +1518,22 @@ def movers(day: pd.DataFrame, group_of: dict, names: dict, new_high: list[str],
     up = d[d["chg_pct"] > 0].sort_values("chg_pct", ascending=False)
     down = d[d["chg_pct"] < 0].sort_values("chg_pct")
     flat = d[d["chg_pct"] == 0]
-    limited = ~d["code"].isin(new_listing or set())
-    lu = up[(up["chg_pct"] >= LIMIT_PCT) & limited.reindex(up.index)]
-    ld = down[(down["chg_pct"] <= -LIMIT_PCT) & limited.reindex(down.index)]
+    # ★ 2026-10-05 漲跌停改成「收盤價＝漲停價／跌停價」（limit_flags），不再用 ±9.5% 門檻；只認普通股、排除新股。
+    lim = limit_flags(d, new_listing)
+    lu = up[up["code"].map(lim).eq(1)]
+    ld = down[down["code"].map(lim).eq(-1)]
+    # 漲幅／跌幅前段：只排普通股、而且 |漲跌幅| ≤ 10%（超過 10% 的一定不是有漲跌幅限制的個股：
+    #   槓桿 ETF、新上市前五天……）。Andy：「高過 10% 就不顯示，因為通常不是個股」。
+    #   漲跌「家數」（counts.up/down）照舊含 ETF，不改大盤寬度的口徑。
+    ok_rank = d["code"].map(is_common_stock) & (d["chg_pct"].abs() <= LIMIT_ABS_MAX)
+    up_rank = up[ok_rank.reindex(up.index)]
+    down_rank = down[ok_rank.reindex(down.index)]
     nh = d[d["code"].isin(new_high)].sort_values("turnover", ascending=False)
     return {
         "counts": {"up": int(len(up)), "down": int(len(down)), "flat": int(len(flat)),
                    "limit_up": int(len(lu)), "limit_down": int(len(ld)), "new_high": int(len(new_high))},
         "limit_up": _rows(lu), "limit_down": _rows(ld),
-        "up": _rows(up), "down": _rows(down),
+        "up": _rows(up_rank), "down": _rows(down_rank),
         "turnover": _rows(d.sort_values("turnover", ascending=False)),
         "new_high": _rows(nh),
     }

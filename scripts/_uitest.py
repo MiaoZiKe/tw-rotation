@@ -1540,6 +1540,117 @@ def _drill_check_bin(pg, tag, bars, i):
     return p
 
 
+# ===================================================================== 市場明細即時（2026-10-05）
+# Andy 10/05 10:41 盤中截圖：「盤後｜⚡即時」切到即時後表格仍是 10/02 盤後（漲停 56、跌停 6），
+# 而且漲停名單跟券商 App 對不起來（ETF 期街口布蘭特正2 +11.33% 被列進漲停）。
+# 這一段用 page.route 造 mis 的 /quote 回應（容器連不到 Worker），真的按「⚡ 即時」，驗：
+#   · 標題、狀態列、表格、分佈副標真的換成即時數字（含報價時間、「即時只涵蓋 N 檔」）
+#   · 漲停用 tick 判定：昨收 18.7 → 漲停價 20.55（+9.89%）算漲停；20.5（+9.63%）不算（舊版 ≥9.5% 會算）
+#   · ETF（0050 造 +11%）不在漲停、也不在漲幅前段
+#   · 代理失敗 → 標題直接寫「即時抓不到：原因」，不是默默顯示盤後
+#   · 盤後那一版：漲停名單＝stocks.json 的 lim（管線 tick 判定），沒有 ETF
+def t_market_live_1005(pg, b, base):
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+    tag = "市場明細即時1005"
+    fake = {"fail": False}
+    SPECIAL = {"2317": ("18.7", "20.55"),     # 鎖漲停（tick 0.05 向下取整：18.7×1.1＝20.57 → 20.55）
+               "2454": ("18.7", "20.5"),      # +9.63%：不是漲停（舊版 ≥9.5% 會算進去）
+               "2303": ("18.7", "16.85"),     # 鎖跌停（16.83 → 向上取整 16.85）
+               "0050": ("100", "111")}        # ETF +11%：不算漲停、不進漲幅前段
+
+    def fake_quote(route):
+        if fake["fail"]:
+            route.fulfill(status=502, content_type="text/plain", body="bad gateway"); return
+        ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+        arr, seen = [], set()
+        for tok in [t for t in ex.split("|") if t]:
+            try:
+                code = tok.split("_", 1)[1].split(".")[0]
+            except IndexError:
+                continue
+            if code in seen:
+                continue
+            seen.add(code)
+            y, z = SPECIAL.get(code, ("100", "100.5"))
+            arr.append({"c": code, "n": "測" + code, "ex": tok[:3], "z": z, "y": y, "o": y, "h": z, "l": y,
+                        "v": "1000", "t": "10:41:07", "d": "20261005"})
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+
+    lp = pg.context.browser.new_page(viewport={"width": 1500, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"{tag} pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    lp.route("**/quote?**", fake_quote)
+    lp.route("**/stream?**", lambda r: r.abort())
+    try:
+        lp.goto(f"{base}#market/updown", wait_until="networkidle")
+        wait_until(lp, "() => !!document.querySelector('#mktMode button[data-m=\"live\"]')", 12000)
+        lp.wait_for_timeout(800)
+        TABS = """() => Object.fromEntries([...document.querySelectorAll('#mktTabs button')].map(b =>
+            [b.textContent.replace(/\\s*\\d+$/, '').trim(), +(b.querySelector('em') || {}).textContent]))"""
+        ROWS = "() => [...document.querySelectorAll('#mktInner tr[data-code]')].map(t => t.dataset.code)"
+
+        def tab(name):
+            lp.evaluate("(n) => { const b = [...document.querySelectorAll('#mktTabs button')].find(x => x.textContent.trim().startsWith(n)); if (b) b.click(); }", name)
+            lp.wait_for_timeout(150)
+            return lp.evaluate(ROWS)
+
+        # --- 盤後：漲停名單＝管線 tick 判定（stocks.json lim），沒有 ETF
+        eod_title = text(lp, "#mktTitle")
+        eod_tabs = lp.evaluate(TABS)
+        lim = lp.evaluate("() => { const s = (window.App.D || {}).stocks || []; return { has: s.some(r => 'lim' in r), up: s.filter(r => r.lim === 1).length, dn: s.filter(r => r.lim === -1).length }; }")
+        eod_lu = tab("漲停")
+        ok(f"[{tag}] 盤後標題標出資料日期與「盤後」", "盤後" in eod_title and bool(re.search(r"20\d\d-\d\d-\d\d", eod_title)), eod_title)
+        ok(f"★ [{tag}] 盤後漲停分頁筆數＝stocks.json 的 lim=1 家數（管線 tick 判定）",
+           (not lim["has"]) or eod_tabs.get("漲停") == lim["up"], {"tabs": eod_tabs, "lim": lim})
+        ok(f"★ [{tag}] 盤後漲停名單只有普通股（4 碼、非 0 開頭；ETF 不列入）",
+           all(re.fullmatch(r"[1-9]\d{3}", c) for c in eod_lu), [c for c in eod_lu if not re.fullmatch(r"[1-9]\d{3}", c)])
+        eod_up = tab("漲幅前段")
+        ok(f"[{tag}] 盤後漲幅前段沒有 ETF／非普通股",
+           all(re.fullmatch(r"[1-9]\d{3}", c) for c in eod_up), [c for c in eod_up if not re.fullmatch(r"[1-9]\d{3}", c)])
+        tab("漲停")
+
+        # --- 切即時
+        lp.click("#mktMode button[data-m='live']")
+        wait_until(lp, "() => !!document.getElementById('mktTitleLive')", 30000)
+        lp.wait_for_timeout(400)
+        lt = text(lp, "#mktTitle")
+        stamp = text(lp, "#mktLive")
+        lv_tabs = lp.evaluate(TABS)
+        ok(f"★ [{tag}] 切即時 → 標題換成即時（含更新時間與「只涵蓋 N 檔」）",
+           "即時" in lt and "只涵蓋" in lt and bool(re.search(r"\d\d:\d\d:\d\d", lt)) and lt != eod_title, {"盤後": eod_title, "即時": lt})
+        ok(f"★ [{tag}] 狀態列寫「即時只涵蓋 N 檔（族群＋自選＋成交值前段）」與報價時間 10:41:07",
+           bool(re.search(r"即時只涵蓋 \d+ 檔", stamp)) and "成交值前段" in stamp and "10:41:07" in stamp, stamp[:200])
+        lu = tab("漲停")
+        ok(f"★ [{tag}] 即時漲停用 tick 判定：昨收 18.7、現價 20.55（+9.89%）→ 漲停", "2317" in lu, lu)
+        ok(f"★ [{tag}] 即時漲停：現價 20.5（+9.63%，舊版 ≥9.5% 會算）不算漲停", "2454" not in lu, lu)
+        ok(f"★ [{tag}] 即時漲停：ETF 0050（+11%）不列入", "0050" not in lu, lu)
+        ok(f"★ [{tag}] 即時漲停分頁筆數真的換了（不是盤後那一份）", lv_tabs.get("漲停") == len(lu) and lv_tabs != eod_tabs,
+           {"盤後": eod_tabs, "即時": lv_tabs})
+        ld = tab("跌停")
+        ok(f"★ [{tag}] 即時跌停：昨收 18.7、現價 16.85 → 跌停（向上取整）", "2303" in ld, ld)
+        up = tab("漲幅前段")
+        ok(f"★ [{tag}] 即時漲幅前段排除 >10% 的 ETF（0050 +11%）", "0050" not in up and len(up) > 0, up[:10])
+        tbl = lp.evaluate("() => (document.querySelector('#mktInner tr[data-code=\"2317\"]') || {}).innerText || ''")
+        ok(f"[{tag}] 即時表格數字是即時現價（2317 現價 20.55）", "20.55" in tbl, tbl)
+        sub = text(lp, "#distSub")
+        ok(f"[{tag}] 漲跌分佈副標換成即時", "即時" in sub, sub)
+
+        # --- 代理失敗：標題直接講原因
+        fake["fail"] = True
+        lp.click("#mktMode button[data-m='eod']"); lp.wait_for_timeout(300)
+        lp.click("#mktMode button[data-m='live']")
+        wait_until(lp, "() => /即時抓不到/.test((document.getElementById('mktTitle') || {}).innerText || '')", 30000)
+        et = text(lp, "#mktTitle")
+        ok(f"★ [{tag}] 即時抓不到 → 標題寫出原因（HTTP 502）並講明下面是哪天的盤後",
+           "即時抓不到" in et and "502" in et and "盤後" in et, et)
+        lp.click("#mktMode button[data-m='eod']"); lp.wait_for_timeout(300)
+        ok(f"[{tag}] 按回盤後 → 標題還原", text(lp, "#mktTitle") == eod_title, text(lp, "#mktTitle"))
+    finally:
+        lp.close()
+
+
 def t_market_drill_0928(pg, b, base):
     tag = "市場明細下鑽0928"
     for w in (1440, 800):
@@ -20786,6 +20897,7 @@ SECTIONS = {
     "市場明細":            lambda pg, b, base, code: t_market(pg, base),
     # ★ 2026-09-28 Andy：法人連續買賣超搬到市場明細；漲跌分佈點長條 → 右側列出那一段的個股（⚠ 一律 --workers 1）
     "市場明細下鑽0928":    lambda pg, b, base, code: t_market_drill_0928(pg, b, base),
+    "市場明細即時1005":    lambda pg, b, base, code: t_market_live_1005(pg, b, base),
     # ★ 2026-10-03 Andy 截 #market：漲跌分佈圖卡＋分頁表格卡桌機左右並排（等高、表在卡內捲、表頭固定、≤1100 上下排）＋「TPEX」改「上櫃」（⚠ 一律 --workers 1）
     "市場明細兩欄1003":    lambda pg, b, base, code: t_market_2col_1003(pg, b, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
