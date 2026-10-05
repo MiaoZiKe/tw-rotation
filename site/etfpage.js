@@ -302,7 +302,7 @@
     '<b>當次殖利率</b>＝該次配息 ÷ 除息前一個交易日收盤；尚未除息的（未來日期）改用最新收盤估算，標「估」。',
     '<b>填息天數</b>＝從除息日當天算第 1 個交易日，收盤第一次回到「除息前一日收盤」是第幾個交易日（與個股除權息分頁同一口徑）。還沒回到的寫「尚未填息（已 N 天）」，還沒除息或行情不足的寫「—」。',
     '所以：想領某一次的息，要在除息日「前一個交易日」收盤前持有；發放日才是錢入帳的日子。填息天數短＝除息後股價很快補回，長或尚未填息＝領到的息被價差吃掉。',
-    '資料：FinMind 股利公告（TaiwanStockDividend）與除權息結果，逐檔回補進資料湖；沒回補到的 ETF 不會出現在月曆上。'])}
+    '資料：股利公告與除權息結果；尚無配息資料的 ETF 不會出現在月曆上。'])}
   <div id="etfCal"></div>
 </div>
 
@@ -329,8 +329,7 @@
     <div class="row spread"><h3 data-icon="arrow-up" data-tone="up">報酬率前 5 <small id="etfRetTopSub"></small> ${hbtn('etfrettop', '報酬率前 5 怎麼排')}</h3></div>
     ${how('etfrettop', '這張回答：這一類裡，長期抱下來（含配息再投入）誰報酬最高？', [
       '依<b>含息總報酬年化</b>由高到低排（配息在除息日以當天收盤再投入）。期間跟著上方「報酬率期間」3／5／10 年／自訂。',
-      '期間內上市未滿、或價量歷史還沒回補的不排進來（不拿短期數字跟長期比）。',
-      '整個分類都還沒有配息資料時，暫依<b>價格年化（不含息）</b>排，卡片上會寫明，不拿價格報酬冒充含息報酬。',
+      '期間內上市未滿的，改用<b>上市以來</b>年化計算並標「上市以來 N 年」，不和滿期的直接比較。',
       '所以：先看這裡誰長期最好，再到下面「報酬比較」把想比的幾檔勾進去看走勢。'])}
     <p class="etfq" id="etfRetTopQ"></p>
     <div class="rklist" id="etfRetTop"></div>
@@ -367,7 +366,7 @@
     '<b>價格年化（不含息）</b>＝(期末收盤 ÷ 期初收盤)^(1/年數) − 1；分割（例：0050 2025-06 一拆四）已還原，配息不算進去。',
     '<b>含息年化</b>＝配息在除息日以當天收盤再投入（還原權值）後的年化報酬。<b>殖利率</b>＝近 12 個月現金配息 ÷ 最新收盤。',
     '<b>配息年化</b>＝(1 ＋ 期間累計配息 ÷ 期初收盤)^(1/年數) − 1：只看配息本身每年貢獻多少。',
-    '期間：跟著上方「報酬率期間」。<b>上市未滿</b>或湖裡沒有那段歷史的，一律標「上市未滿 N 年／價量歷史尚未回補」，不以 0 或外插代替。',
+    '期間：跟著上方「報酬率期間」。<b>上市未滿</b>的改用上市以來計算並標「自 YYYY-MM 上市」；不配息的 ETF 含息＝不含息，標「不配息」。',
     '所以：左圖看一路走勢（同起點 = 0%），右圖直接比年化數字；含息與不含息差距越大，代表報酬越依賴配息。'])}
   <div id="etfRetBody"></div>
 </div>
@@ -385,7 +384,7 @@
   <div class="etfgrid" id="etfGrid"></div>
   <div class="etfmore"><button type="button" class="btn small" id="etfMore" hidden>顯示更多</button></div>
 </div>
-<p class="etfdisc" id="etfDisc" role="note">ⓘ 公開資料整理與統計，非投資建議；過去績效不代表未來報酬，資料不足一律標「無資料」。</p>
+<p class="etfdisc" id="etfDisc" role="note">ⓘ 公開資料整理與統計，非投資建議；過去績效不代表未來報酬。</p>
 </div>`;
   }
 
@@ -450,7 +449,7 @@
     const y = it.yield_ttm != null ? pctU(it.yield_ttm) : '—';
     const fq = it.freq || '—';
     // 殖利率／配息頻率還沒有資料時寫「待補」而不是「—」：滑過說明為什麼（配息資料回補中），不拿 0 冒充
-    const pend = '<span class="na" title="配息資料回補中（FinMind 除權息逐檔回補），到位後自動顯示">待補</span>';
+    const pend = '<span class="na">—</span>';
     return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
   <div class="h"><span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span><span class="sp" style="flex:1"></span>
     <span class="etag ${CAT_TONE[it.cat] || 'ink3'}">${esc(it.cat)}</span></div>
@@ -465,13 +464,12 @@
     const list = items().filter((it) => it.cat === S.cat).sort((a, b) => sortVal(b) - sortVal(a));
     $('#etfCount').textContent = `${S.cat} ${list.length} 檔`;
     const g = $('#etfGrid');
-    g.innerHTML = list.slice(0, S.shown).map(cardHTML).join('') || '<div class="etfprep">這個分類目前沒有 ETF。</div>';
+    g.innerHTML = list.slice(0, S.shown).map(cardHTML).join('') || '<div class="etfprep">無資料</div>';
     $$('.etfc', g).forEach((c) => { c.onclick = () => A().goStock(c.dataset.code); });
     const more = $('#etfMore'); more.hidden = list.length <= S.shown;
     more.textContent = `顯示更多（還有 ${Math.max(0, list.length - S.shown)} 檔）`;
     more.onclick = () => { S.shown += PAGE; drawList(); };
-    $('#etfFbNote').innerHTML = S.fallback
-      ? '<span class="note">（ETF 專區資料準備中：目前依名稱暫分，殖利率／配息頻率／規模待資料產出後顯示）</span>' : '';
+    $('#etfFbNote').innerHTML = '';
     g.dataset.n = String(Math.min(list.length, S.shown)); g.dataset.cat = S.cat;
   }
 
@@ -497,10 +495,10 @@
     const P = (S.data && S.data.popular) || {}, wk = P.holders_week || [];
     $('#etfPopSub').innerHTML = S.pop === 'holders' ? '口徑：集保受益人數<b>週增減</b>'
       : '口徑：<b>近 20 個交易日</b>平均成交值';
-    if (S.fallback) { rkPrep(box, '資料準備中：排行要等下一次資料產出（etf.json）後才有。'); return; }
+    if (S.fallback) { rkPrep(box, '資料準備中'); return; }
     const key = S.pop === 'holders' ? 'd_holders' : 'tv20';
     const L = inCat().filter((it) => it[key] != null).sort((a, b) => b[key] - a[key]).slice(0, 5);
-    if (!L.length) { rkPrep(box, S.pop === 'holders' ? '這個分類目前沒有受益人數資料（集保至少要兩週才算得出週增加）。' : '這個分類目前沒有成交值資料。'); return; }
+    if (!L.length) { rkPrep(box, '無資料'); return; }
     rkRows(box, { head: S.pop === 'holders' ? ['受益人週增', '今日漲跌'] : ['日均成交值', '今日漲跌'],
       list: L.map((it) => ({ it,
         v: S.pop === 'holders' ? `${it.d_holders > 0 ? '+' : ''}${A().fmt.i(it.d_holders)}` : yi(it.tv20),
@@ -520,13 +518,13 @@
     const box = $('#etfRetTop'); if (!box || NO_RANK[S.cat]) return;
     $('#etfRetTopSub').textContent = perLabel(true);
     const q = $('#etfRetTopQ');
-    if (S.fallback) { q.innerHTML = ''; rkPrep(box, '資料準備中：報酬率要等 ETF 專區資料產出後才有。'); return; }
+    if (S.fallback) { q.innerHTML = ''; rkPrep(box, '資料準備中'); return; }
     const R = retRank();
     q.innerHTML = R.key === 'tr_ann'
-      ? `依<b>含息年化</b>排${R.nNoTr ? `（${R.nNoTr} 檔配息資料尚未取得，未列入）` : ''}`
-      : '<b>配息資料尚未取得</b>：暫依價格年化（不含息）排';
+      ? '依<b>含息年化</b>排'
+      : '依<b>價格年化</b>（不含息）排';
     if (!R.rows.length) {
-      rkPrep(box, `這段期間沒有任何一檔有完整資料（上市未滿或價量歷史尚未回補；這一類有 ${inCat().length} 檔）。`); return;
+      rkPrep(box, '無資料'); return;
     }
     rkRows(box, { head: R.key === 'tr_ann' ? ['含息年化', '不含息'] : ['價格年化', '期間'],
       list: R.rows.slice(0, 5).map(({ it, st }) => ({ it, tag: st.since ? `上市以來 ${st.years} 年` : '',
@@ -535,16 +533,16 @@
   }
   function drawYld() {
     const box = $('#etfYld'); if (!box || NO_RANK[S.cat]) return;
-    if (S.fallback) { rkPrep(box, '資料準備中：殖利率要等 ETF 專區資料產出後才有。'); return; }
+    if (S.fallback) { rkPrep(box, '資料準備中'); return; }
     const L = inCat().filter((it) => it.yield_ttm != null).sort((a, b) => b.yield_ttm - a.yield_ttm).slice(0, 5);
     if (!L.length) {
-      rkPrep(box, '配息資料尚未取得：這一類的 ETF 除息紀錄還在回補（歷史回補排程的 ETF 步驟），補進資料湖後這裡會自動出現。'); return;
+      rkPrep(box, '無資料'); return;
     }
     const fillCell = (it) => {
       if (it.fill_avg != null) return { v: `${it.fill_avg} 天`, t: `近 ${it.fill_n} 次除息：已填息的平均 ${it.fill_avg} 天${it.fill_open ? `，${it.fill_open} 次尚未填息` : ''}` };
       const w = it.fill_last && it.fill_last[1];
       if (w != null) return { v: '尚未填息', t: `最近一次除息尚未填息（已 ${w} 天）` };
-      return { v: '—', t: '填息資料不足（除息日不在行情裡）' };
+      return { v: '—', t: '無填息資料' };
     };
     rkRows(box, { head: ['殖利率', '平均填息'],
       list: L.map((it) => { const f = fillCell(it); return { it, v: pctU(it.yield_ttm), v2: f.v, title: `${it.name}：殖利率 ${pctU(it.yield_ttm)}；${f.t}` }; }) });
@@ -562,9 +560,7 @@
     S.rh = S.rh || 76; S.capE = Math.min(2, Math.max(1, Math.floor((S.rh - 8 - 16 + 2) / 16)));
     const by = {}; cal.forEach((e) => { (by[e.ex] = by[e.ex] || []).push(e); });
     const nIn = cal.filter((e) => e.ex.slice(0, 7) === S.month).length;
-    const status = S.fallback ? '資料準備中：配息行事曆要等 ETF 專區資料產出後才有'
-      : !cal.length ? '配息資料尚未取得（ETF 除息紀錄回補中）'
-        : `${y} 年 ${mo} 月共 ${nIn} 筆除息`;
+    const status = S.fallback || !cal.length ? '資料準備中' : nIn ? `${y} 年 ${mo} 月共 ${nIn} 筆除息` : '本月無除息';
     $('#etfCalSub').textContent = '';
     let cells = WD.map((w) => `<div class="wd">${w}</div>`).join('');
     const start = new Date(first); start.setUTCDate(1 - first.getUTCDay());
@@ -621,7 +617,7 @@
     const it = byCode().get(code) || { name: code };
     const done = all.filter((e) => e.ex <= (S.data.asof || '9999')), L = (done.length ? done : all).slice(-8);
     const head = `<div class="ph stk"><button type="button" class="btn small" id="etfCodeBack">← 回清單</button><a class="plink" href="#stock/${esc(code)}" data-code="${esc(code)}" title="看 ${esc(it.name)} ${esc(code)} 個股頁">${esc(it.name)} ${esc(code)}</a><span class="sp"></span></div>`;
-    if (!L.length) return `${head}<p class="note">近 400 天沒有除息紀錄。</p>`;
+    if (!L.length) return `${head}<p class="note">無除息紀錄</p>`;
     const fills = all.filter((e) => e.fill != null).map((e) => e.fill), avg = fills.length ? Math.round(fills.reduce((a, b) => a + b, 0) / fills.length) : null;
     const last = L[L.length - 1], ys = L.map((e) => (e.y == null ? null : +(e.y * 100).toFixed(2)));
     const bars = CGs.bars(L.map((e) => +e.amt), { color: () => 'var(--amber)', tip: (i) => `${L[i].ex} 配 ${L[i].amt} 元` });
@@ -641,7 +637,7 @@
   }
   function monthList(L, y, mo) {
     const head = `<b class="lt">${y} 年 ${mo} 月除息一覽（${L.length} 筆）</b>`;
-    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '配息資料回補中（雲端排程逐檔補進，補到的自動出現），這個月先空著。' : '這個月沒有除息紀錄；可切上／下月。'}</p>`;
+    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '資料準備中' : '本月無除息'}</p>`;
     return head + `<table class="et">${COLS}${THEAD('除息日 ETF')}<tbody>${calRows(L, true)}</tbody></table>`;
   }
 
@@ -725,7 +721,7 @@
       b.onclick = () => { S.basis = b.dataset.v; LS.set('tw.etf.basis', S.basis); drawRet(); }; });
     $('#etfRetSub').textContent = `${S.cat}・${perLabel()}`;
     if (S.fallback) {
-      body.innerHTML = '<div class="etfprep">資料準備中：報酬比較要等 ETF 專區資料產出後才有。</div>';
+      body.innerHTML = '<div class="etfprep">資料準備中</div>';
       body.dataset.k = ''; body.dataset.codes = ''; syncDD([], {}); return;
     }
     const sel = getCmp();
@@ -744,8 +740,8 @@
       <thead><tr><th class="nmc">ETF</th><th>期間</th><th>價格年化（不含息）</th><th>含息年化</th><th>殖利率（近 12 月）</th><th>配息年化</th></tr></thead><tbody>
       ${rows.map(({ it, st }) => `<tr data-code="${esc(it.code)}"><td class="nmc"><span class="nmw"><i style="background:${colorOf[it.code]}"></i><span class="nmt" title="${esc(it.name)} ${esc(it.code)}">${esc(it.name)}</span><span class="note">${esc(it.code)}</span></span></td>
         ${st.ok ? `<td>${st.since ? `<span title="上市以來：不和 5 年期直接比較">${esc(st.from)}～ <span class="note">上市以來 ${st.years} 年</span></span>` : `${st.from}～ <span class="note">${st.years} 年</span>`}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>
-        <td class="${cls(st.tr_ann)}">${st.tr_ann == null ? `<span class="na">${esc(st.why_div && !/尚未取得/.test(st.why_div) ? st.why_div : '資料補齊中')}</span>` : `${pct(st.tr_ann, 2)}${st.nodiv ? ' <span class="na">不配息</span>' : ''}`}</td>`
-        : `<td colspan="3"><span class="na">${esc(st.why || '無資料')}</span></td>`}
+        <td class="${cls(st.tr_ann)}">${st.tr_ann == null ? `<span class="na">${'—'}</span>` : `${pct(st.tr_ann, 2)}${st.nodiv ? ' <span class="na">不配息</span>' : ''}`}</td>`
+        : `<td colspan="3"><span class="na">無資料</span></td>`}
         <td>${noDiv(it) ? '<span class="na">不配息</span>' : num(it.yield_ttm, (v) => pctU(v))}</td><td>${st.ok ? (noDiv(it) ? '<span class="na">不配息</span>' : num(st.div_ann, (v) => pctU(v))) : '<span class="na">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;
     body.dataset.k = pk + '|' + S.cat + '|' + S.basis; body.dataset.codes = sel.join(',');
     $$('tr[data-code]', body).forEach((tr) => { tr.onclick = () => A().goStock(tr.dataset.code); });
@@ -768,9 +764,7 @@
     const yrsSpan = Math.max(...rows.map(({ st }) => (st.ok ? +st.years || 0 : 0)), 0.5);
     const SC = SOFT();
     if (!lines.length) {
-      holdEmpty('etfRetLine', !S.series ? '走勢載入中…'
-        : S.basis === 'tr' ? '含息走勢無資料（配息資料尚未取得，或期間內上市未滿）—— 可切「不含息」看價格走勢'
-          : '這段期間你選的 ETF 都沒有完整的價量歷史（見下表理由）');
+      holdEmpty('etfRetLine', !S.series ? '載入中…' : '無資料');
     } else {
       lineEl.innerHTML = '';
       a.chart('etfRetLine', {
@@ -787,7 +781,7 @@
     lineEl.dataset.n = String(lines.length);
     const ok = rows.filter(({ st }) => st.ok);
     const barEl = $('#etfRetBar');
-    if (!ok.length) { holdEmpty('etfRetBar', '這段期間你選的 ETF 都資料不足（見下表理由）'); barEl.dataset.n = '0'; return; }
+    if (!ok.length) { holdEmpty('etfRetBar', '無資料'); barEl.dataset.n = '0'; return; }
     const sorted = ok.slice().sort((x, y) => ((y.st.tr_ann != null ? y.st.tr_ann : y.st.price_ann) - (x.st.tr_ann != null ? x.st.tr_ann : x.st.price_ann)));
     const v = (x) => (x == null ? null : +(x * 100).toFixed(2));
     barEl.innerHTML = '';

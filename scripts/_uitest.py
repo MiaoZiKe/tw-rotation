@@ -1929,7 +1929,7 @@ def t_etf_1005(pg, b, base):
         r5, r5v = CODES("#etfRetTop"), J("() => [...document.querySelectorAll('#etfRetTop .rkrow .v')].map(e => parseFloat(e.textContent))")
         ok(f"★ [{tag}] 報酬率前 5：由高到低、全是配息型", r3 and all(cats.get(c) == "配息型" for c in r3 + r5) and r3v == sorted(r3v, reverse=True) and r5v == sorted(r5v, reverse=True), (r3v, r5v))
         ok(f"★ [{tag}] 期間 3 年→5 年：報酬率前 5 的名單或數字跟著換", (r3, r3v) != (r5, r5v), (r3, r5))
-        ok(f"[{tag}] 配息資料尚未取得時寫明「暫依價格年化」（不拿價格報酬冒充含息）", "暫依價格年化" in text(lp, "#etfRetTopQ"), text(lp, "#etfRetTopQ"))
+        ok(f"[{tag}] 沒有配息資料時副標寫「依價格年化」（不拿價格報酬冒充含息）、有配息時寫「依含息年化」", ("價格年化" in text(lp, "#etfRetTopQ")) or ("含息年化" in text(lp, "#etfRetTopQ")), text(lp, "#etfRetTopQ"))
         lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(250)
         vis = J("() => getComputedStyle(document.querySelector('#etfFrom')).visibility === 'visible'")
         J("() => { const f = document.querySelector('#etfFrom'); f.value = '2018-01-01'; f.dispatchEvent(new Event('change', { bubbles: true })); }"); lp.wait_for_timeout(300)
@@ -2024,7 +2024,7 @@ def t_etf_1005(pg, b, base):
         nodiv = J("() => (window.TwEtfPage.state.data.items.find(i => i.yield_ttm == null && i.cat === '配息型') || {}).code || ''")
         if nodiv and count(lp, f"#etfGrid .etfc[data-code='{nodiv}']"):
             ctext = text(lp, f"#etfGrid .etfc[data-code='{nodiv}']")
-            ok(f"[{tag}] 沒配息資料的卡片寫「待補」（不是 —、也不是 0%）", "待補" in ctext and "0.00%" not in ctext, ctext[:120])
+            ok(f"[{tag}] 沒配息資料的卡片不寫 0%（Andy 10-06 清廢話：不再寫「待補」）", "0.00%" not in ctext and "待補" not in ctext, ctext[:120])
         # ================= 5. 原有：清單、排序、寬度、點卡片
         tags = J("() => [...document.querySelectorAll('#etfGrid .etfc .etag')].map(e => e.textContent)")
         ok(f"[{tag}] 配息型分頁的「ETF 一覽」只剩配息型且含 0056", tags and set(tags) == {"配息型"} and count(lp, "#etfGrid .etfc[data-code='0056']") == 1)
@@ -21787,11 +21787,25 @@ def t_cal_1006(pg, b, base):
             ptxt = text(lp, "#earnPanel")
             other = {"rep": ("kconf", "kinv", "kfomc", "kdata"), "conf": ("kboard", "kfomc", "kdata"), "fed": ("kboard", "kconf", "kinv")}[v]
             ok(f"★ [{tag}] 分類「{v}」：面板清單沒有其他類、面板沒有其他類標題、圖例只剩本類", not any(k in other for kk in kinds for k in kk.split()) and not any(w in ptxt for w in bad_words) and ("FOMC" not in leg if v != "fed" else "FOMC" in leg), (kinds, leg))
+        # 法說會公司不在市值前 50 也有分析（Andy 10-06：「不在前 50 也要給分析」）
+        lp.click("#earnFilt button[data-v='conf']"); lp.wait_for_timeout(200)
+        D2 = J("() => window.TwEarnings.state.data")
+        top = {u["code"] for u in D2["universe"]["list"]}
+        ev2 = next((e for e in D2["events"] if e["k"] in ("conf", "invite") and e["code"] not in top and D2["companies"].get(e["code"], {}).get("secs")), None)
+        if ev2:
+            idx = D2["events"].index(ev2)
+            J("(i) => window.TwEarnings.pick({ t: 'ev', i })", idx); lp.wait_for_timeout(300)
+            pp = text(lp, "#earnPanel")
+            ok(f"★ [{tag}] 不在前 50 的法說公司（{ev2['code']}）面板也有營收／獲利／估值分析、沒有「不在名單」說明", "月營收趨勢" in pp and "獲利能力" in pp and "不在市值前" not in pp and "沒有整理" not in pp, pp[:160])
+        else:
+            ok(f"[{tag}] （資料裡沒有不在前 50 的法說事件，略過）", True)
+        lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(200); J("() => window.TwEarnings.pick({ t: 'week' })")
         # FED 面板：星級＋三格數字
         lp.click("#earnFilt button[data-v='fed']"); lp.wait_for_timeout(200)
-        fc = J("() => [...document.querySelectorAll('#earnPanel .fcard')].map(c => ({ stars: !!c.querySelector('.stars'), nums: c.querySelectorAll('.fnum div').length, has: ['是什麼', '怎麼看', '影響'].every(w => c.innerText.includes(w)) }))")
-        ok(f"★ [{tag}] FED 分類：每張卡有星級、是什麼／怎麼看／影響、前值／預期值／公布值三格", fc and all(c["stars"] and c["nums"] == 3 and c["has"] for c in fc), fc)
-        ok(f"[{tag}] 預期值不編：三格裡預期值一律「無來源」", J("() => [...document.querySelectorAll('#earnPanel .fnum div:nth-child(2) b')].every(b => b.textContent.trim() === '無來源')"))
+        fc = J("() => [...document.querySelectorAll('#earnPanel .fcard')].map(c => ({ stars: !!c.querySelector('.stars'), links: [...c.querySelectorAll('.flk a')].map(a => [a.target, a.getAttribute('href')]), has: ['是什麼', '怎麼看', '影響'].every(w => c.innerText.includes(w)), noexp: !c.innerText.includes('預期值') }))")
+        ok(f"★ [{tag}] FED 分類：每張卡有星級、是什麼／怎麼看／影響、官方數據連結（新分頁、https）、不寫「預期值／無來源」", fc and all(c["stars"] and c["has"] and c["noexp"] and len(c["links"]) >= 1 and all(t == "_blank" and h.startswith("https://") for t, h in c["links"]) for c in fc), fc)
+        bad = J("() => /出處：|沒有用語言模型|種子|t187ap|FRED_API_KEY|不在市值前|尚未取得|尚未產出/.test(document.querySelector('#v-earnings').innerText)")
+        ok(f"★ [{tag}] 面板／標題／空狀態沒有工程說明廢話（出處改 ⓘ、無「不在前 50」「種子」「端點名」「FRED_API_KEY」）", not bad)
         lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(200)
         # 空白比例：面板最後一個子元素的底 vs 面板底
         gap = J("() => { const p = document.querySelector('#earnPanel'); const k = p.lastElementChild; const pr = p.getBoundingClientRect(), kr = k.getBoundingClientRect(); return (pr.bottom - Math.min(kr.bottom, pr.bottom)) / pr.height; }")
@@ -21857,7 +21871,7 @@ def t_earnings_1005(pg, b, base):
     H = lambda sel: J("(s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().height) : -1; }", sel)
     PM = lambda: J("() => { const p = document.querySelector('#earnPanel'); return p ? [p.dataset.mode || '', p.dataset.key || '', p.innerText] : ['', '', '']; }")
     try:
-        lp.goto(f"{base}#overview", wait_until="networkidle")
+        lp.goto(f"{base}#overview", wait_until="domcontentloaded")
         # ---- 1. 側欄：總覽正下方、獨立一格
         pos = J("""() => { const t = (v) => document.querySelector(`.tab[data-view="${v}"]`); const r = (v) => t(v) ? t(v).getBoundingClientRect() : null;
                  const o = r('overview'), e = r('earnings'), f = r('flow'); return o && e && f ? [o.top, e.top, f.top, e.left - o.left, e.height] : null; }""")
@@ -21867,7 +21881,7 @@ def t_earnings_1005(pg, b, base):
         ready = wait_until(lp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
         ok(f"★ [{tag}] 點側欄 → #earnings、頁面畫完、讀到 earnings.json（不是種子）", J("() => location.hash") == "#earnings" and ready in ("full", "seed"), (J("() => location.hash"), ready))
         ok(f"[{tag}] 只有財報日曆那一格亮", J("() => [...document.querySelectorAll('.tab.on')].map(t => t.dataset.view)") == ["earnings"])
-        ok(f"★ [{tag}] 頁頂寫「不構成投資建議」與「沒有用語言模型」", "不構成投資建議" in text(lp, "#earnDisc") and "語言模型" in (J("() => document.querySelector('#earnDisc').title") or ""))
+        ok(f"★ [{tag}] 頁面寫「不構成投資建議」（不寫工程說明）", "不構成投資建議" in text(lp, "#earnDisc") and "語言模型" not in text(lp, "#earnDisc"))
         D = J("() => window.TwEarnings.state.data")
         sub = text(lp, "#earnSub")
         ok(f"[{tag}] 副標只寫大公司口徑、不放資料日期（Andy 10-06 全站規則）", "市值前" in sub and not _re.search(r"\d{4}-\d\d-\d\d", sub) and "資料日" not in sub, sub)
@@ -21907,8 +21921,8 @@ def t_earnings_1005(pg, b, base):
         p = PM()
         nm = D["companies"][conf["code"]]["name"]
         ok(f"★ [{tag}] 點 {conf['code']} 標籤 → 面板換成那家公司（模式 co、名稱、已公告）", p[0] == "co" and p[1] == conf["code"] and nm in p[2] and "已公告" in p[2], p[:2])
-        ok(f"★ [{tag}] 公司面板有：這次財報看什麼、月營收、獲利、估值、法人、FED 背景，而且每段有出處",
-           all(w in p[2] for w in ("這次財報看什麼", "月營收趨勢", "獲利能力", "估值位置", "FED 背景")) and p[2].count("出處：") >= 4, p[2][:300])
+        ok(f"★ [{tag}] 公司面板有：這次財報看什麼、月營收、獲利、估值、法人、FED 背景，而且每段標題旁有 ⓘ（出處改滑過才顯示）",
+           all(w in p[2] for w in ("這次財報看什麼", "月營收趨勢", "獲利能力", "估值位置", "FED 背景")) and count(lp, "#earnPanel .sec .si") >= 4 and "出處：" not in p[2], p[2][:300])
         ok(f"[{tag}] 公司面板不寫買賣建議", not any(w in p[2] for w in ("建議買", "建議賣", "買進", "賣出")))
         ok(f"[{tag}] 被點的標籤有框", J(f"() => document.querySelector(\".chip.on\") && document.querySelector('.chip.on').dataset.code") == conf["code"])
         top_before = J("() => scrollY")
@@ -21919,7 +21933,7 @@ def t_earnings_1005(pg, b, base):
         lp.click(f".chip[data-k='{fed['k']}']"); lp.wait_for_timeout(200)
         q = PM()
         ok(f"★ [{tag}] 點 {fed['k']} 標籤 → 面板換成 FED 數據說明（說明、上次數值、市場關注點、下一次、台灣時間）",
-           q[0] == "fed" and q[1] == fed["k"] and all(w in q[2] for w in ("是什麼", "怎麼看", "影響", "前值", "預期值", "公布值", "市場關注點", "下一次", "台灣")) and q[2] != p[2], q[:2])
+           q[0] == "fed" and q[1] == fed["k"] and all(w in q[2] for w in ("是什麼", "怎麼看", "影響", "市場關注點", "台灣")) and q[2] != p[2], q[:2])
         ok(f"[{tag}] 點標籤不會讓頁面捲走", abs(J("() => scrollY") - top_before) < 5)
         # ---- 5. 沒有任何推估（Andy 1005 晚：「裡面不可以有推估數據」）＋ 點日期 → 當天清單
         ok(f"★ [{tag}] 資料與畫面上沒有任何預估：events 沒有 est／rev／qdl、月曆沒有 .kest／.ktw、整頁看不到「預估」",
@@ -21966,7 +21980,7 @@ def t_earnings_1005(pg, b, base):
         lp.click("#earnFilt button[data-v='conf']"); lp.wait_for_timeout(150)
         lp.click("#earnGrid .chip.kconf, #earnGrid .chip.kinv >> nth=0"); lp.wait_for_timeout(300)
         pc = PM()
-        ok(f"★ [{tag}] 點法說會 → 面板出現「這場法說」與時間、地點、出處", pc[0] == "co" and "這場法說" in pc[2] and "時間" in pc[2] and "地點" in pc[2] and "出處" in pc[2], pc[2][:200])
+        ok(f"★ [{tag}] 點法說會 → 面板出現「這場法說」與時間、地點、出處", pc[0] == "co" and "這場法說" in pc[2] and "時間" in pc[2] and "地點" in pc[2] and count(lp, "#earnPanel [data-sec=conf] .si") == 1, pc[2][:200])
         lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
         # ---- 7. 大公司時間表已拿掉（Andy 1005 晚：「下方不需要」）→ 不存在；面板「看個股頁」→ 個股頁
         ok(f"★ [{tag}] 下方「大公司時間表」整張不存在（只留月曆＋右側面板）", count(lp, "#earnListCard, #earnTbl") == 0)
@@ -21986,9 +22000,9 @@ def t_earnings_1005(pg, b, base):
     sp = b.new_page(viewport={"width": 1440, "height": 900})
     try:
         sp.route("**/data/earnings.json*", lambda r: r.fulfill(status=404, body="nf"))
-        sp.goto(f"{base}#earnings", wait_until="networkidle")
+        sp.goto(f"{base}#earnings", wait_until="domcontentloaded")
         rd = wait_until(sp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
-        ok(f"★ [{tag}] earnings.json 抓不到 → 退回種子檔、副標寫「種子資料」（不放日期）", rd == "seed" and "種子資料" in text(sp, "#earnSub") and "資料日" not in text(sp, "#earnSub"),
+        ok(f"★ [{tag}] earnings.json 抓不到 → 退回種子檔、副標不寫「種子資料」也不放日期", rd == "seed" and "種子" not in text(sp, "#earnSub") and "資料日" not in text(sp, "#earnSub"),
            (rd, text(sp, "#earnSub")))
         ok(f"[{tag}] 種子模式月曆照樣有標籤", sp.evaluate("() => document.querySelectorAll('#earnGrid .chip').length") > 0)
     finally:
@@ -21998,7 +22012,7 @@ def t_earnings_1005(pg, b, base):
     for hh in (800, 900):
         op = b.new_page(viewport={"width": 1440, "height": hh})
         try:
-            op.goto(f"{base}#earnings", wait_until="networkidle")
+            op.goto(f"{base}#earnings", wait_until="domcontentloaded")
             wait_until(op, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
             op.wait_for_timeout(300)
             r = op.evaluate("""() => ({ cb: Math.round(document.querySelector('#earnCalCard').getBoundingClientRect().bottom), ih: innerHeight,
@@ -22015,7 +22029,7 @@ def t_earnings_1005(pg, b, base):
     for w in (800, 390):
         np_ = b.new_page(viewport={"width": w, "height": 900})
         try:
-            np_.goto(f"{base}#earnings", wait_until="networkidle")
+            np_.goto(f"{base}#earnings", wait_until="domcontentloaded")
             wait_until(np_, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
             r = np_.evaluate("""() => ({ sx: document.documentElement.scrollWidth, vw: innerWidth,
                 fs: Math.min(...[...document.querySelectorAll('#earnGrid .chip')].filter(e => e.offsetParent).map(e => parseFloat(getComputedStyle(e.querySelector('.cd,.lb') || e).fontSize))),
@@ -22053,7 +22067,7 @@ def t_earnings_1005(pg, b, base):
         c = ctx(feats)
         try:
             q = c.new_page()
-            q.goto(f"{base}#earnings", wait_until="networkidle")
+            q.goto(f"{base}#earnings", wait_until="domcontentloaded")
             wait_until(q, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
             got = wait_until(q, "() => !!document.querySelector('#earnCalCard[data-plk]')", 6000 if want_cal else 1500)
             ok(f"★ [{tag}] 權限 {feats or '全開'} → 月曆卡{'蓋鎖頭' if want_cal else '沒有鎖'}", bool(got) == want_cal, got)

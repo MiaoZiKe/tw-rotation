@@ -5,7 +5,7 @@
 
    版面：左＝7 欄真月曆（固定 6 列，切月整張卡不會變高）；右＝固定側欄面板（固定高、內部捲動）：
      · 還沒點 → 本週重點（這週一～週日的全部事件＋下一次 FOMC／CPI）
-     · 點公司標籤（或下面時間表的一列）→ 這次財報的分析與展望（規則式，每段附出處與資料日期）＋ FED 背景
+     · 點公司標籤（或下面時間表的一列）→ 這次財報的分析與展望（每段標題旁 ⓘ 滑過看出處與資料日期）＋ FED 背景
      · 點 FED／美國數據標籤 → 數據說明、上次數值（FRED）、市場關注點、下一次日期
      · 點日期格（或「＋N」）→ 那一天的完整清單
    月曆下方：市值前 50 大公司「本季財報時間表」，每列可點（右側面板原地展開，不離開這一頁；面板裡才有「看個股頁」）。
@@ -13,7 +13,7 @@
    資料：data/earnings.json（pipeline/compute/earnings.py，build_payload 產出）。
    ⚠ 預覽分支吃的是正式站的資料，earnings.json 上正式站之前不存在 —— 那時退回分支內附的種子檔 earnings_seed.json
      （同一支程式用真資料產出），畫面上明寫「種子資料（資料日 …）」，不冒充最新。
-   「分析與展望」全部是規則＋數字組出來的句子（沒有語言模型），口徑在 earnings.py 檔頭。
+   「分析與展望」是規則＋數字組出來的句子，口徑在 earnings.py 檔頭。
    排版紀律（Andy：「所有文字單行、操作不影響排版」）：標籤、清單列、表格一律 nowrap＋省略號；月曆固定 6 列、
      面板固定高（內容多就在面板裡捲），點任何東西都不會讓整頁上下跳。分頁鈕選中不加粗。
    驗收：scripts/_uitest.py「財報日曆1005」。
@@ -130,7 +130,11 @@
 #v-earnings .sec h4{margin:0 0 3px;font-size:13.5px;display:flex;gap:6px;align-items:baseline;white-space:nowrap;min-width:0}
 #v-earnings .sec h4 small{font-weight:400;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .sec p{margin:3px 0;font-size:13px;line-height:1.55;color:var(--ink-2)}
-#v-earnings .sec .src{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-earnings .si{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;margin-left:6px;font:600 11px/1 var(--mono);color:var(--cyan);border:1px solid currentColor;cursor:help;flex:none;vertical-align:middle}
+#v-earnings .flk{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;white-space:nowrap;overflow:hidden;min-width:0;color:var(--ink-3)}
+#v-earnings .flk svg{width:12px;height:12px;color:var(--cyan);flex:none}
+#v-earnings .flk a{color:var(--cyan);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-earnings .flk a:hover,#v-earnings .flk a:focus-visible{text-decoration:underline;outline:none}
 #v-earnings table.mt{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;margin:4px 0}
 #v-earnings table.mt th{color:var(--ink-3);font-weight:600;text-align:right;padding:3px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
 #v-earnings table.mt td{text-align:right;padding:3px 4px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -184,7 +188,7 @@
 #v-earnings .fcard .fd{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 4px}
 #v-earnings .fcard p{margin:2px 0;font-size:13px;line-height:1.5;color:var(--ink-2)}
 #v-earnings .fcard p b{color:var(--ink);font-weight:600;margin-right:4px}
-#v-earnings .fnum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:6px 0 2px}
+#v-earnings .fnum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:6px 0 2px}#v-earnings .fnum.n1{grid-template-columns:minmax(0,1fr)}
 #v-earnings .fnum div{border:1px solid var(--line);border-radius:8px;text-align:center;padding:3px 4px;min-width:0;background:var(--panel-2)}
 #v-earnings .fnum small{display:block;font-size:12px;color:var(--ink-3);line-height:16px}
 #v-earnings .fnum b{display:block;font:600 13px var(--mono);line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -224,7 +228,7 @@
   const co = (c) => ((S.data && S.data.companies) || {})[c];
   const passF = (e) => S.filt === 'all' || (KIND[e.k] || {}).g === S.filt;
   const FILT_LAB = { rep: '公司財報', conf: '公司法說', fed: 'FED 消息' };
-  const rankOf = (e) => (e.code && co(e.code) ? co(e.code).rank : 99);
+  const rankOf = (e) => (e.code && co(e.code) ? (co(e.code).rank || 99) : 99);
   const sortEv = (a, b) => (ORDER[a.k] - ORDER[b.k]) || (rankOf(a) - rankOf(b));
   const idxOf = (e) => evs().indexOf(e);
   const label = (e) => (e.code ? `${e.code} ${e.name || ''}` : (KIND[e.k] && KIND[e.k].g === 'fed' ? (e.k === 'fomc' ? 'FOMC 決議' : e.k === 'minutes' ? 'FOMC 紀要' : KIND[e.k].lab) : e.title));
@@ -238,9 +242,9 @@
   <div class="row spread"><h3>財經日曆 <small id="earnSub"></small> ${hbtn('earncal', '財經日曆怎麼看')}</h3>
     <div class="nbsw" id="earnFilt" role="tablist"><button data-v="all" class="on" type="button">全部</button><button data-v="rep" type="button">公司財報</button><button data-v="conf" type="button">公司法說</button><button data-v="fed" type="button">FED 消息</button></div></div>
   ${how('earncal', '這張回答：這個月哪幾天有大公司開法說／公布財報、哪幾天有 FED 決議與美國重大數據？點了之後這次財報要看什麼？', [
-    '<b>大公司</b>＝市值前 50（收盤 × 最新一季財報的股數，上市＋上櫃普通股，排除 ETF）。資料湖沒有 0050／0051 成分股，所以用市值排名。',
+    '<b>大公司</b>＝市值前 50（收盤 × 最新一季財報的股數，上市＋上櫃普通股，排除 ETF）；有法說會的公司不限名次，都有分析。',
     '<b>三大分類</b>：公司財報（市值前 50 公告的財報董事會日期、已公布財報）、<b>公司法說</b>（全部上市櫃公司在重大訊息公告的法說會，時間與地點照公告內文）、FED 消息（FOMC 與美國重大數據的官方公布日）。<b>只放已公告／官方公布的日子，沒有任何推估。</b>上方分頁切換只看某一類。',
-    '<b>FED 與美國數據</b>：FOMC 會議日程（聯準會公布）＋ CPI、非農、PCE、GDP 的公布日（FRED，抓不到時用 BLS／BEA 公布的日程）。日期是美東日期，台灣時間寫在右側面板。',
+    '<b>FED 與美國數據</b>：FOMC 會議日程（聯準會公布）＋ CPI、非農、PCE、GDP 的公布日（BLS／BEA 公布的日程）。日期是美東日期，台灣時間寫在右側面板。',
     '點公司標籤 → 右側出現這次財報的分析與展望（營收、獲利、估值、法人、消息、FED 背景）；點 FED 標籤 → 數據說明、上次數值、市場關注點；點日期 → 那天的完整清單。',
     '所以：月初先看這個月有哪幾家大公司要開法說、FOMC 在哪一天；法說前一週點進去，對照「這次財報看什麼」那段的月營收，就知道營收已經反映多少、要看的是毛利率還是展望。'])}
   <div class="elegend" id="earnLegend"></div>
@@ -251,7 +255,7 @@
       <div class="eg" id="earnGrid"></div></div>
     <div class="epanel" id="earnPanel" role="region" aria-label="分析面板" aria-live="polite"></div>
   </div>
-  <p class="edisc" id="earnDisc" role="note" title="「分析與展望」是規則把資料湖的數字組成句子（月營收、季損益、本益比、法人、新聞標題、FRED），沒有用語言模型，也不預測財報數字；每段都寫了出處與資料日期。">ⓘ 純資料整理，不構成投資建議；分析為規則式組句，每段附出處與資料日期。</p>
+  <p class="edisc" id="earnDisc" role="note">ⓘ 純資料整理，不構成投資建議。</p>
 </div>
 `;
   }
@@ -336,10 +340,9 @@
     const nx = (k) => fed[k] ? `${md(fed[k].d)}（${wdOf(fed[k].d)}）・台灣 ${esc(fed[k].tw || '')}` : '—';
     const ahead = L.length ? '' : (() => {
       const n = evs().filter((e) => e.d > b).filter(passF).slice(0, 6);
-      return `<p class="note">這一週沒有${FILT_LAB[S.filt] || ''}事件。接下來：</p><ul class="elist">${n.map(rowHTML).join('')}</ul>`;
+      return `<p class="note">本週無事件</p>${n.length ? `<span class="lt">接下來</span><ul class="elist">${n.map(rowHTML).join('')}</ul>` : ''}`;
     })();
     return `${phead('本週重點', `<span class="badge sch">${md(a)}–${md(b)}</span>`, { noBack: true })}
-      <div class="ps">點月曆上的公司或 FED 標籤，這裡換成那一項的分析</div>
       ${L.length ? `<ul class="elist" id="earnWeekList">${L.map(rowHTML).join('')}</ul>` : ahead}
       ${S.filt === 'rep' || S.filt === 'conf' ? '' : `<span class="lt">接下來的 FED 與美國數據（星數＝重要性）</span>${upcomingFed(S.filt === 'fed' ? 6 : 2).map((e) => fedCard(e, true)).join('')}`}
       ${S.filt === 'fed' ? '' : (() => { const later = evs().filter((e) => e.d > b).filter(passF).slice(0, S.filt === 'all' ? 6 : 12);
@@ -348,8 +351,7 @@
   function panelDay(d) {
     const L = evs().filter((e) => e.d === d).filter(passF).sort(sortEv);
     return `${phead(`${d}（${wdOf(d)}）`, `<span class="badge sch">${L.length} 項</span>`)}
-      <div class="ps">點一列看分析；再點一次同一個日期回到本週重點</div>
-      ${L.length ? `<ul class="elist" id="earnDayList">${L.map(rowHTML).join('')}</ul>` : '<p class="note">這一天沒有事件。</p>'}`;
+      ${L.length ? `<ul class="elist" id="earnDayList">${L.map(rowHTML).join('')}</ul>` : '<p class="note">當天無事件</p>'}`;
   }
   /* 面板標題列（釘在面板最上方，內容捲動時不動）：左＝「← 回本週重點」，中＝標題（有代號就是連結，進個股頁），右＝徽章 */
   function phead(title, badge, o) {
@@ -357,6 +359,8 @@
     const t = o.code ? `<a class="plink" href="#stock/${esc(o.code)}" data-code="${esc(o.code)}" title="看 ${esc(o.name || '')} ${esc(o.code)} 個股頁">${esc(title)}</a>` : `<b>${esc(title)}</b>`;
     return `<div class="ph stk">${o.noBack ? '' : '<button type="button" class="btn small" id="earnBack">← 回本週重點</button>'}${t}<span class="sp"></span>${badge || ''}</div>`;
   }
+  /* 出處：不整行顯示，改成標題旁小 ⓘ，滑過才顯示出處與資料日期 */
+  const si = (src, asof) => (src || asof ? `<span class="si" tabindex="0" role="note" aria-label="出處" title="${esc('出處：' + (src || '') + (asof ? '（資料 ' + asof + '）' : ''))}">i</span>` : '');
   const toneCls = (t) => (t > 0 ? 'up' : t < 0 ? 'down' : '');
   /* ------------------------------------------------------------------ 小圖（純 SVG，不放文字：標籤用 HTML，字級才守得住 12px 下限） */
   const W = 250, H = 84;
@@ -419,28 +423,33 @@
 
   const starsHTML = (n) => `<span class="stars" title="重要性 ${n}／5（固定規則，寫在 macro_events.yaml）" aria-label="重要性 ${n} 星">${'★'.repeat(n)}<i>${'★'.repeat(Math.max(0, 5 - n))}</i></span>`;
   const refYM = (ref) => { let m = /(\d{4})\s*年\s*(\d{1,2})\s*月/.exec(ref || ''); if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}`; m = /(\d{4})\s*Q(\d)/.exec(ref || ''); return m ? `${m[1]}-${String((+m[2] - 1) * 3 + 1).padStart(2, '0')}` : null; };
-  /* 前值／預期／公布值＋偏多偏空。預期值沒有合法免費來源 → 一律不顯示數字（不編）。 */
+  /* 前值／公布值＋偏多偏空（預期值沒有合法免費來源，不顯示也不編）；沒有 FRED 數字就整格不出現。 */
   function fedNums(e, info) {
     const x = ((S.data.fed || {}).snap || {})[info.main];
-    const na = '<b>—</b>';
-    if (!x) return { html: `<div><small>前值</small>${na}</div><div><small>預期值</small><b title="預期值是商業資料，沒有合法免費來源，不顯示">無來源</b></div><div><small>公布值</small>${na}</div>`, verdict: '', note: 'FRED 資料尚未取得，前值與公布值先不顯示' };
+    if (!x) return { html: '', verdict: '' };
     const released = e.d <= todayTW() && refYM(e.ref) && x.date && x.date.slice(0, 7) === refYM(e.ref);
-    let prevTxt = released ? (x.prev || '—').replace(/^前一期（[^）]*）/, '') : x.value;
-    const pvLab = released ? '前值' : `最近一次（${x.date}）`;
+    const prevTxt = released ? (x.prev || '—').replace(/^前一期（[^）]*）/, '') : x.value;
     let verdict = '';
     if (released && info.dir && info.dir !== 'none' && nz(x.v) && nz(x.pv) && x.v !== x.pv) {
       const up = x.v > x.pv, bull = info.dir === 'up_bull' ? up : !up;
       verdict = `<span class="verd ${bull ? 'bull' : 'bear'}" title="${esc(info.rule || '')}">${bull ? '偏多' : '偏空'}</span>`;
     }
-    return { html: `<div><small>${released ? '前值' : '前值（最近一次）'}</small><b title="${esc(pvLab)}">${esc(prevTxt)}</b></div><div><small>預期值</small><b title="預期值是商業資料，沒有合法免費來源，不顯示">無來源</b></div><div><small>公布值</small><b>${released ? esc(x.value) : '尚未公布'}</b></div>`, verdict, note: '' };
+    const cells = [`<div><small>${released ? '前值' : '最近一次'}</small><b title="${esc(x.label)}（${esc(x.date)}）">${esc(prevTxt)}</b></div>`];
+    if (released) cells.push(`<div><small>公布值</small><b>${esc(x.value)}</b></div>`);
+    return { html: `<div class="fnum n${cells.length}">${cells.join('')}</div>`, verdict };
   }
-  function fedCard(e, full) {
+  const EXT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9 2h5v5M14 2 7.5 8.5M12 9.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  function fedLinks(info) {
+    const L = (info.links || []).filter((l) => /^https:\/\//.test(l.url || ''));
+    return L.length ? `<div class="flk">${EXT}<span>官方數據</span>${L.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.name)}（新分頁開啟）">${esc(l.name)}</a>`).join('')}</div>` : '';
+  }
+  function fedCard(e) {
     const info = ((S.data.fed || {}).info || {})[e.k] || {};
     const n = fedNums(e, info);
     return `<div class="fcard" data-k="${e.k}"><div class="fh">${icOf(e.k)}<b>${esc(e.title)}</b><span class="sp"></span>${n.verdict}${info.stars ? starsHTML(info.stars) : ''}</div>
       <div class="fd">${e.d}（${wdOf(e.d)}，美東）・台灣 ${esc(e.tw || '—')}${e.ref ? '・' + esc(e.ref) : ''}</div>
       ${info.what ? `<p><b>是什麼</b>${esc(info.what)}</p>` : ''}${info.how ? `<p><b>怎麼看</b>${esc(info.how)}</p>` : ''}${info.impact ? `<p><b>影響</b>${esc(info.impact)}</p>` : ''}
-      <div class="fnum">${n.html}</div>${n.note ? `<p class="note">${esc(n.note)}</p>` : ''}</div>`;
+      ${n.html}${fedLinks(info)}</div>`;
   }
   function upcomingFed(limit) {
     const t = todayTW(), seen = {}, out = [];
@@ -448,13 +457,10 @@
     return out;
   }
   function fedBlock(keys) {
-    const f = (S.data && S.data.fed) || {};
-    const snap = f.snap || {};
+    const snap = ((S.data && S.data.fed) || {}).snap || {};
     const have = (keys || []).filter((k) => snap[k]);
-    if (!have.length) {
-      return '<p class="note">FRED 資料尚未取得（資料湖的 FRED 觀測值目前是 0 筆：需要 GitHub Secret <code>FRED_API_KEY</code> 有效）。這裡不拿別的來源的數字湊。</p>';
-    }
-    return `<dl class="kv">${have.map((k) => { const x = snap[k]; return `<dt>${esc(x.label)}（${esc(x.date)}）</dt><dd>${esc(x.value)}</dd>${x.prev ? `<div class="pv">${esc(x.prev)}・${esc(x.src)}</div>` : `<div class="pv">${esc(x.src)}</div>`}`; }).join('')}</dl>`;
+    if (!have.length) return '';
+    return `<dl class="kv">${have.map((k) => { const x = snap[k]; return `<dt>${esc(x.label)}（${esc(x.date)}）</dt><dd>${esc(x.value)}</dd>${x.prev ? `<div class="pv">${esc(x.prev)}</div>` : ''}`; }).join('')}</dl>`;
   }
   function panelFed(e) {
     const info = ((S.data && S.data.fed && S.data.fed.info) || {})[e.k] || {};
@@ -462,14 +468,11 @@
     const nx = evs().filter((x) => x.k === e.k && x.d > e.d)[0];
     const sparks = (info.rel || []).map((k) => sparkFor(snap[k])).filter(Boolean).slice(0, 3).join('');
     return `${phead(e.title, '<span class="badge sch">排程</span>')}
-      <div class="ps">${esc(info.org || '')}</div>
-      ${fedCard(e, true)}
-      ${sparks ? `<div class="sec" data-sec="spark"><h4>近期數值走勢 <small>FRED</small></h4>${sparks}</div>` : ''}
-      <div class="sec"><h4>市場關注點</h4>${(info.focus || []).map((t) => `<p>・${esc(t)}</p>`).join('')}</div>
-      <div class="sec"><h4>偏多偏空規則 <small>公布值 vs 前值</small></h4><p>${esc(info.rule || '—')}</p>
-        <p class="note">預期值（市場共識）是商業資料，沒有合法免費來源，這裡不顯示也不編；以上為資料整理，不構成投資建議。</p></div>
-      <div class="sec"><h4>下一次</h4><p>${nx ? `${nx.d}（${wdOf(nx.d)}）・台灣 ${esc(nx.tw || '')}` : '日程表裡還沒有下一次的日期'}</p>
-        <div class="src">日期出處：${esc(e.src || '')}</div></div>`;
+      ${fedCard(e)}
+      ${sparks ? `<div class="sec" data-sec="spark"><h4>近期數值走勢${si('FRED（聯準會聖路易分行經濟資料庫）', '')}</h4>${sparks}</div>` : ''}
+      ${(info.focus || []).length ? `<div class="sec"><h4>市場關注點</h4>${info.focus.map((t) => `<p>・${esc(t)}</p>`).join('')}</div>` : ''}
+      ${info.rule ? `<div class="sec"><h4>偏多偏空規則</h4><p>${esc(info.rule)}</p></div>` : ''}
+      ${nx ? `<div class="sec"><h4>下一次${si(e.src, '')}</h4><p>${nx.d}（${wdOf(nx.d)}）・台灣 ${esc(nx.tw || '')}</p></div>` : ''}`;
   }
   function secHTML(s) {
     const tbl = s.table ? `<table class="mt"><thead><tr>${s.table.cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((r) =>
@@ -477,38 +480,36 @@
     const items = s.items ? `<ul class="nl">${s.items.map((n) => `<li><span class="d">${esc(md(n.d))}</span>${n.u ? `<a class="t" href="${esc(n.u)}" target="_blank" rel="noopener" title="${esc(n.t)}">${esc(n.t)}</a>` : `<span class="t" title="${esc(n.t)}">${esc(n.t)}</span>`}<span class="d">${esc(n.s === 'cnyes' ? '鉅亨' : n.s === 'technews' ? 'TechNews' : n.s)}</span></li>`).join('')}</ul>` : '';
     const ch = chartFor(s);
     const lines = ch ? s.lines.slice(0, s.key === 'val' || s.key === 'inst' ? 2 : 1) : s.lines;
-    return `<div class="sec" data-sec="${s.key}" data-chart="${ch ? 1 : 0}"><h4>${esc(s.t)}</h4>${ch}${lines.map((t) => `<p>${esc(t)}</p>`).join('')}${ch ? '' : tbl}${items}<div class="src" title="${esc(s.src)}（資料 ${esc(s.asof || '—')}）">出處：${esc(s.src)}（資料 ${esc(s.asof || '—')}）</div></div>`;
+    return `<div class="sec" data-sec="${s.key}" data-chart="${ch ? 1 : 0}"><h4>${esc(s.t)}${si(s.src, s.asof)}</h4>${ch}${s.key === 'news' ? '' : lines.map((t) => `<p>${esc(t)}</p>`).join('')}${ch ? '' : tbl}${items}</div>`;
   }
   /* 法說會這一場的資訊：只放重大訊息內文裡公司自己寫的欄位（日期／時間／地點／擇要），沒寫的欄位就不出現 */
   function confSec(e) {
     if (KIND[e.k].g !== 'conf') return '';
     const r = [['日期', `${e.d}（${wdOf(e.d)}）`], ['時間', e.time], ['地點', e.place], ['內容', e.brief]].filter((x) => x[1]);
-    return `<div class="sec" data-sec="conf"><h4>這場法說 <small>${esc(KIND[e.k].lab)}</small></h4>
-      <dl class="kv">${r.map(([k, v]) => `<dt>${k}</dt><dd title="${esc(v)}">${esc(v)}</dd>`).join('')}</dl>
-      <div class="src">出處：${esc(e.src || '')}（公告日 ${esc(e.ann || '')}）</div></div>`;
+    return `<div class="sec" data-sec="conf"><h4>這場法說 <small>${esc(KIND[e.k].lab)}</small>${si(e.src, e.ann ? '公告日 ' + e.ann : '')}</h4>
+      <dl class="kv">${r.map(([k, v]) => `<dt>${k}</dt><dd title="${esc(v)}">${esc(v)}</dd>`).join('')}</dl></div>`;
   }
   function panelCo(e) {
     const c = co(e.code);
     if (!c) return `${phead(`${e.name || ''} ${e.code}`, '<span class="badge ann">已公告</span>', { code: e.code, name: e.name })}
-      <div class="ps" title="${esc(e.title)}">${esc(e.title)}</div>${confSec(e)}
-      <p class="note">這家公司不在市值前 50 名單裡，這裡只列法說會本身的資訊，沒有整理財報分析。</p>`;
+      <div class="ps" title="${esc(e.title)}">${esc(e.title)}</div>${confSec(e)}`;
     const nxt = c.next;
     const isEst = e.status === '預估';
     const head = `${phead(`${c.name} ${e.code}`, `<span class="badge ${isEst ? 'est' : 'ann'}">${isEst ? '預估' : e.status === '公告' ? '已公告' : esc(e.status || '')}</span>`, { code: e.code, name: c.name })}
-      <div class="ps" title="${esc(e.title)}">${md(e.d)}（${wdOf(e.d)}）${esc((KIND[e.k] || {}).lab || '')}・市值第 ${c.rank} 名・${esc(e.title)}</div>`;
-    const basis = isEst ? `<p class="note">預估依據：${esc(e.basis || '')}。實際日期以公司公告為準。</p>` : '';
+      <div class="ps" title="${esc(e.title)}">${md(e.d)}（${wdOf(e.d)}）${esc((KIND[e.k] || {}).lab || '')}・${c.rank ? '市值第 ' + c.rank + ' 名・' : ''}${esc(e.title)}</div>`;
+    const basis = '';
     const tags = (c.tags || []).length ? `<div class="tags">${c.tags.map((t) => `<span class="tag">${esc(t.l)}<b class="${toneCls(t.tone)}">${esc(t.v)}</b></span>`).join('')}</div>` : '';
     const f = (S.data && S.data.fed) || {};
     const fn = f.next || {};
-    const fedSec = `<div class="sec" data-sec="fed"><h4>FED 背景 <small>跟這次財報同一段時間</small></h4>
+    const fedSec = `<div class="sec" data-sec="fed"><h4>FED 背景</h4>
       ${fn.fomc ? `<p>下一次 FOMC 利率決議：${md(fn.fomc.d)}（台灣 ${esc(fn.fomc.tw || '')}）${fn.cpi ? `；下一次 CPI：${md(fn.cpi.d)}（台灣 ${esc(fn.cpi.tw || '')}）` : ''}。</p>` : ''}
       ${fedBlock(['policy', 'cpi_yoy', 'core_pce_yoy', 'unrate'])}</div>`;
-    return `${head}${basis}${confSec(e)}${tags}<p class="note">這次是 <b>${esc(c.target || '')}</b> 的財報${nxt && nxt.d !== e.d ? `（下一個相關日子 ${md(nxt.d)}，${esc(nxt.status)}）` : ''}。</p>
-      ${c.err ? `<p class="note">${esc(c.err)}</p>` : ''}${(c.secs || []).map(secHTML).join('')}${S.filt === 'all' || S.filt === 'fed' ? fedSec : ''}`;
+    return `${head}${basis}${confSec(e)}${tags}<p class="note">對應 <b>${esc(c.target || '')}</b> 財報</p>
+      ${(c.secs || []).map(secHTML).join('')}${S.filt === 'all' || S.filt === 'fed' ? fedSec : ''}`;
   }
   function drawPanel() {
     const box = $('#earnPanel'); if (!box) return;
-    if (!S.data) { box.innerHTML = '<p class="note">財經日曆資料尚未產出（管線下一輪會建立）。</p>'; return; }
+    if (!S.data) { box.innerHTML = '<p class="note">資料準備中</p>'; return; }
     let html = '', mode = S.sel.t, key = '';
     if (S.sel.t === 'ev') {
       const e = evs()[S.sel.i];
@@ -524,7 +525,7 @@
   }
   function panelTw(e) {
     return `${phead(e.title, '<span class="badge sch">期限</span>')}
-      <div class="ps">${e.d}（${wdOf(e.d)}）</div><div class="sec"><p>${esc(e.note || '')}</p><div class="src">出處：${esc(e.src || '')}</div></div>`;
+      <div class="ps">${e.d}（${wdOf(e.d)}）</div><div class="sec"><p>${esc(e.note || '')}</p></div>`;
   }
 
   // 2026-10-05（晚，Andy：「下方不需要」）：大公司時間表整張拿掉，markRows 留空殼讓呼叫端不用改
@@ -556,8 +557,8 @@
     $('#earnPanel').innerHTML = '<p class="note">載入中…</p>';
     await loadData();
     const d = S.data;
-    $('#earnSub').textContent = !d ? '資料尚未產出'
-      : `${S.seed ? '預覽用種子資料・' : ''}大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
+    $('#earnSub').textContent = !d ? '資料準備中'
+      : `大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
     $('#earnPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)); };
     $('#earnNext').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)); };
     $('#earnToday').onclick = () => go(todayTW().slice(0, 7));

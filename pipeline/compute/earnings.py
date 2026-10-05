@@ -216,7 +216,7 @@ def mops_events(material_news: pd.DataFrame | None, codes: set[str], conf_all: b
             continue
         ev = {"d": d, "k": kind, "code": str(r["code"]), "title": subj[:80], "status": "公告",
               "q": subject_quarter(subj), "ann": ann,
-              "src": "公開資訊觀測站重大訊息（證交所 OpenAPI t187ap04）"}
+              "src": "公開資訊觀測站重大訊息（證交所）"}
         if r.get("name"):
             ev["name"] = str(r["name"])
         ev.update(extra)
@@ -274,7 +274,7 @@ def estimate_events(univ: list[dict], announced: list[dict], asof: str, end: str
             out.append({"d": d, "k": "est", "code": u["code"], "status": "預估", "q": f"{y}Q{q}",
                         "title": f"{y} 年第 {q} 季財報（預估，法定期限 {dl[5:].replace('-', '/')}）",
                         "basis": basis, "deadline": dl,
-                        "src": "法定申報期限（證券交易法第 36 條；DECISIONS #14）"})
+                        "src": "法定申報期限（證券交易法第 36 條）"})
     return out
 
 
@@ -295,7 +295,7 @@ def market_events(start: str, end: str) -> list[dict]:
             dl = deadline(y, q)
             if start <= dl <= end:
                 out.append({"d": dl, "k": "qdl", "status": "期限", "title": f"{y} Q{q} 財報法定期限",
-                            "note": "一般上市櫃公司季報（Q4 為年報）最晚公告日", "src": "法定申報期限（DECISIONS #14）"})
+                            "note": "一般上市櫃公司季報（Q4 為年報）最晚公告日", "src": "法定申報期限"})
     return out
 
 
@@ -517,7 +517,7 @@ def section_focus(rev_rows: list[dict], prof_rows: list[dict], target: str) -> d
             t += f"、營益率 {om:.1f}%"
         lines.append(t + "；這次要比的基準就是這組數字。")
     return {"key": "focus", "t": "這次財報看什麼", "tone": tone, "lines": lines,
-            "src": "月營收（證交所 OpenAPI t187ap05／FinMind）、季損益（證交所 OpenAPI t187ap14／FinMind）",
+            "src": "月營收（證交所／FinMind）、季損益（證交所／FinMind）",
             "asof": have[-1] if have else (done[-1]["period"] if done else None)}
 
 
@@ -557,7 +557,7 @@ def section_revenue(rev_rows: list[dict]) -> dict | None:
     ser = [[r["ym"], _r(_f(r["revenue"]) / 1e8, 1), _r(r.get("yoy"))] for r in rows[-12:]]
     return {"key": "rev", "t": "月營收趨勢", "tone": tone, "trend": trend, "lines": lines, "series": ser,
             "table": {"cols": ["月份", "營收（億）", "年增%", "月增%"], "rows": tbl},
-            "src": "月營收（證交所 OpenAPI t187ap05／FinMind；年增用官方附的去年同月）", "asof": r0["ym"]}
+            "src": "月營收（證交所／FinMind；年增用官方附的去年同月）", "asof": r0["ym"]}
 
 
 def section_profit(prof_rows: list[dict]) -> dict | None:
@@ -586,7 +586,7 @@ def section_profit(prof_rows: list[dict]) -> dict | None:
     tbl = [[r["period"], _r(r.get("eps"), 2), _r(r.get("gross_margin")), _r(r.get("op_margin"))] for r in rows]
     return {"key": "profit", "t": "獲利能力（近 4 季）", "tone": tone, "lines": lines, "series": ser,
             "table": {"cols": ["季別", "EPS", "毛利率%", "營益率%"], "rows": tbl},
-            "src": "季損益（證交所 OpenAPI t187ap14／FinMind，累計值已還原成單季）", "asof": rows[-1]["period"]}
+            "src": "季損益（證交所／FinMind，累計值已還原成單季）", "asof": rows[-1]["period"]}
 
 
 def section_valuation(pe_now, pe_hist: list | None, close, close_date: str) -> dict | None:
@@ -594,7 +594,7 @@ def section_valuation(pe_now, pe_hist: list | None, close, close_date: str) -> d
     vals = [float(x["pe"]) for x in (pe_hist or []) if isinstance(x, dict) and _f(x.get("pe")) and float(x["pe"]) > 0]
     if pe is None or pe <= 0:
         return {"key": "val", "t": "估值位置", "tone": 0, "lines": ["近四季 EPS 合計不是正數（或季報不連續），不計算本益比。"],
-                "src": "本益比＝收盤 ÷ 近四季 EPS 合計（DECISIONS #12）", "asof": close_date}
+                "src": "本益比＝收盤 ÷ 近四季 EPS 合計", "asof": close_date}
     lines = [f"收盤 {close:,.2f} 元，本益比 {pe:.1f} 倍（收盤 ÷ 近四季 EPS 合計）。"]
     tone, pos = 0, None
     if len(vals) >= 8:
@@ -608,7 +608,7 @@ def section_valuation(pe_now, pe_hist: list | None, close, close_date: str) -> d
         lines.append(f"自己的歷史本益比只有 {len(vals)} 季，少於 8 季不排位置。")
     return {"key": "val", "t": "估值位置", "tone": tone, "pos": pos, "lines": lines, "pe": round(pe, 1),
             "lo": round(min(vals), 1) if vals else None, "hi": round(max(vals), 1) if vals else None,
-            "src": "本益比＝收盤 ÷ 近四季 EPS 合計（DECISIONS #12）；歷史＝每季公布後第一個收盤的本益比", "asof": close_date}
+            "src": "本益比＝收盤 ÷ 近四季 EPS 合計；歷史＝每季公布後第一個收盤的本益比", "asof": close_date}
 
 
 def section_inst(inst: pd.DataFrame | None, vol: pd.Series | None) -> dict | None:
@@ -633,7 +633,7 @@ def section_inst(inst: pd.DataFrame | None, vol: pd.Series | None) -> dict | Non
     ik = "inst_total" if "inst_total" in g else fk
     ser = [[str(d)[:10], None if pd.isna(v) else int(round(v))] for d, v in zip(g["date"], pd.to_numeric(g[ik], errors="coerce"))]
     return {"key": "inst", "t": "法人籌碼", "tone": tone, "lines": lines, "series": ser,
-            "src": "三大法人買賣超（證交所 OpenAPI／FinMind；單位：張）", "asof": str(g["date"].iloc[-1])[:10]}
+            "src": "三大法人買賣超（證交所／FinMind；單位：張）", "asof": str(g["date"].iloc[-1])[:10]}
 
 
 def section_news(news_rows: list[dict], mops_rows: list[dict]) -> dict | None:
@@ -704,6 +704,20 @@ def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, p
     y, q = quarter_for(latest)
     default_target = f"{y}Q{q}"
 
+    # 2026-10-06（Andy：「法說會公司不在前 50 也要給分析」）：有事件的公司全部做分析，不限市值前 50
+    ev_codes = {e["code"] for e in events if e.get("code")}
+    extra = sorted(ev_codes - codes)
+    codes = codes | set(extra)
+    vmap = {}
+    if val is not None and not val.empty:
+        vv = val.assign(code=val["code"].astype(str))
+        vmap = {r.code: r for r in vv[vv["code"].isin(extra)].itertuples()}
+    for c in extra:
+        r = vmap.get(c)
+        mc = _f(getattr(r, "market_cap", None)) if r is not None else None
+        univ.append({"code": c, "name": names.get(c) or c, "rank": None, "mcap": _r(mc / 1e8, 0) if mc else None,
+                     "close": _r(getattr(r, "close", None), 2) if r is not None else None, "_extra": True})
+
     def by_code(df, col="code"):
         if df is None or df.empty:
             return {}
@@ -765,7 +779,7 @@ def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, p
     return {
         "v": 2, "asof": latest, "window": [start, end],
         "universe": {"basis": f"市值前 {UNIVERSE_N}（收盤 × 最新一季財報股數；上市＋上櫃普通股，排除 ETF）",
-                     "n": len(univ), "asof": latest, "list": univ},
+                     "n": UNIVERSE_N if len(univ) >= UNIVERSE_N else len(univ), "asof": latest, "list": [u for u in univ if not u.get("_extra")]},
         "mops_since": str(material_news["date"].min())[:10] if material_news is not None and not material_news.empty else None,
         "events": events,
         "companies": companies,
@@ -793,13 +807,14 @@ def build_from_lake(latest: str | None = None) -> dict:
     day_px = price[price["date"] == latest][["code", "close"]]
     val = fundamental.valuation(day_px, fundamental.ttm(financial, shares, latest),
                                 fundamental.latest_balance(store.read("balance_q"), shares, latest))
-    codes = {u["code"] for u in universe(val, names)}
+    mat = store.read("material_news")
+    codes = {u["code"] for u in universe(val, names)} | {e["code"] for e in mops_events(mat, set(), conf_all=True)}
     sub = price[price["code"].astype(str).isin(codes)]
     adj = fundamental.adjust_prices(sub, actions[actions["code"].astype(str).isin(codes)] if not actions.empty else actions, mode="total")
     inst = store.read("inst_daily")
     inst = inst[inst["date"].astype(str) <= latest] if not inst.empty else inst
     return build(val=val, names=names, latest=latest, price=sub, price_adj=adj, revenue=store.read("revenue_monthly"),
-                 financial=financial, inst=inst, news=store.read("news"), material_news=store.read("material_news"),
+                 financial=financial, inst=inst, news=store.read("news"), material_news=mat,
                  macro=store.read("macro"), macro_cal=store.read("macro_calendar"), shares=shares)
 
 

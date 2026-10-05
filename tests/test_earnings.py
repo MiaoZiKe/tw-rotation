@@ -70,7 +70,7 @@ def test_重大訊息分出法說會_受邀_董事會_已公布_並排除更正(
     got = {(e["code"], e["k"], e["d"]) for e in ev}
     assert got == {("2330", "conf", "2026-10-15"), ("3711", "invite", "2026-09-22"),
                    ("2383", "board", "2026-10-28"), ("2454", "report", "2026-08-12")}
-    assert all(e["status"] == "公告" and "t187ap04" in e["src"] for e in ev)
+    assert all(e["status"] == "公告" and "重大訊息" in e["src"] and "t187ap" not in e["src"] for e in ev)
     assert next(e for e in ev if e["code"] == "2383")["q"] == "2026Q3"
 
 
@@ -209,12 +209,15 @@ def test_種子檔結構():
     d = json.loads(SEED.read_text(encoding="utf-8"))
     for k in ("v", "asof", "window", "universe", "events", "companies", "fed"):
         assert k in d
-    assert d["universe"]["n"] == len(d["universe"]["list"]) == len(d["companies"]) > 0
+    # 2026-10-06：companies＝市值前 50 ＋ 所有有事件的公司（法說會公司不在前 50 也有分析）
+    assert d["universe"]["n"] == len(d["universe"]["list"]) > 0
+    top = {u["code"] for u in d["universe"]["list"]}
+    assert top <= set(d["companies"]) and len(d["companies"]) >= len(top)
     kinds = {e["k"] for e in d["events"]}
     assert {"fomc", "cpi"} <= kinds and "est" not in kinds   # 10-05 Andy：財經日曆不放任何推估
     for e in d["events"]:
         assert len(e["d"]) == 10 and e["status"] in ("公告", "排程") and e.get("src")
-        if e.get("code") and e["k"] not in ("invite", "conf"):   # 法說會（invite／conf）收全市場（10-05），其餘公司事件只限市值前 50
+        if e.get("code"):   # 有事件的公司一律有分析（10-06）
             assert e["code"] in d["companies"]
     for c in d["companies"].values():
         for s in c["secs"]:
