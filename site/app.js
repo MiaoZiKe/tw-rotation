@@ -9754,9 +9754,9 @@
     box.innerHTML = `<div class="hh">
         <button class="btn small" data-all="1" title="回到全部產業鏈（按 ESC 也可以）">‹ 全部族群</button>
         <b>› ${fmt.esc(DRILL.chainName)}</b>
-        <span class="m">${rows.length} 個族群 · 依成交值排序</span>
+        <span class="m" title="點族群名稱＝就地展開它的成分股（再點一次收起）；展開後點個股進個股頁；最右邊 ◎＝圖上只看這個族群">${rows.length} 個族群 · 依成交值排序</span>
         </div>
-      <div class="note" style="margin:6px 0 0">點族群名稱＝<b>就地展開</b>它的成分股（再點一次收起來）；展開後點個股就進個股頁；最右邊的 <b>◎</b> 是「圖上只看這個族群」。${extra ? '　' + extra : ''}</div>
+      ${extra ? `<div class="note" style="margin:6px 0 0">${extra}</div>` : ''}
       ${rows.length ? `<div class="ms tree">${li}</div>` : '<div class="empty">這條產業鏈今天沒有量</div>'}`;
     drillDismiss();
     const all = box.querySelector('[data-all]'); if (all) all.onclick = () => drillClose();
@@ -9810,10 +9810,10 @@
     box.innerHTML = `<div class="hh">
         <button class="btn small" data-all="1" title="${DRILL.chain ? '回到「' + fmt.esc(DRILL.chainName) + '」這條產業鏈' : '回到只看族群（按 ESC 也可以）'}">‹ ${DRILL.chain ? fmt.esc(DRILL.chainName) : '全部族群'}</button>
         <b>› ${fmt.esc(gname)}</b>
-        <span class="m">${ms.length} 檔 · 依成交值排序${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
+        <span class="m" title="點名字＝把這一檔畫到圖上（輪盤上是空心圓、資金去向多一個葉節點），再點一次拿掉；最右邊 →＝進個股頁">${ms.length} 檔 · 依成交值排序${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
         <span class="sp"></span>
         <a class="pill cyan" href="#industry/group/${fmt.esc(gid)}">進族群頁 →</a></div>
-      <div class="note" style="margin:6px 0 0">點名字＝把這一檔畫到圖上（輪盤上是<b>空心圓</b>、資金去向是多一個葉節點），再點一次拿掉；點最右邊的 <b>→</b> 進個股頁。${extra ? '　' + extra : ''}${warn ? `<br><span class="muted">${warn}</span>` : ''}</div>
+      ${extra || warn ? `<div class="note" style="margin:6px 0 0">${extra}${extra && warn ? '<br>' : ''}${warn ? `<span class="muted">${warn}</span>` : ''}</div>` : ''}
       ${ms.length ? `<div class="ms">${ms.map(m => {
         const code = String(m.code);
         const on = DRILL.stocks.has(code);
@@ -10934,7 +10934,7 @@
          ⚠ 即時的「估算」兩個字不准拿掉：少了它，盤中的成交值會被讀成真實值。*/
       sub.textContent = `${when}・% 佔上一層`
         + (live ? '・即時換位（成交值估算）' : topo ? '・依排名換位' : '・位置固定')
-        + (narrow ? '・窄版不畫代表股' : topo && !expNode ? '・滑到族群看代表股' : '')
+        + (narrow ? '・窄版不畫代表股' : '')
         + (selName ? `・只看「${selName}」` : '')
         + (expNode
           ? `・已展開「${expNode.gid ? (L.gname[expNode.gid] || expNode.gid) : ''}」${expNode.children.length} 格`
@@ -11666,7 +11666,7 @@
        現在這一頁的主角是兩張熱力圖，一進來就在下面攤一張大剖析圖，等於替使用者選了一個他沒選的題材。
        Andy 描述的行為是「點題材格子會展開題材細節」，所以改成點了才展開，沒點就只留一句怎麼用。*/
     if (!id) {
-      el.innerHTML = `<div class="muted themehint">點「題材資金熱力」任一方塊，這裡展開它的剖析圖</div>`;
+      el.innerHTML = `<div class="muted themehint" title="點上方「題材資金熱力」任一方塊，在這裡展開它的剖析圖">尚未選擇題材</div>`;
       return;
     }
     const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
@@ -11676,7 +11676,7 @@
        Andy 09-23 要拿掉的是那張「還沒有剖析圖」的**佔位卡**，不是提示行；所以這裡只保留同一行提示，
        改寫成「尚無剖析圖」，不加卡片、不佔版面（提示框也同步改寫，見 renderThemes 的 tooltip）。*/
     if (!dg) {
-      el.innerHTML = `<div class="muted themehint" data-nodg="${fmt.esc(t.id)}">「${fmt.esc(t.name)}」尚無剖析圖；點其他方塊看剖析圖</div>`;
+      el.innerHTML = `<div class="muted themehint" data-nodg="${fmt.esc(t.id)}">「${fmt.esc(t.name)}」尚無剖析圖</div>`;
       return;
     }
     // 標題被拿掉了，所以把題材名接到剖析圖的抬頭上 —— 不然使用者看不出現在看的是哪一個題材

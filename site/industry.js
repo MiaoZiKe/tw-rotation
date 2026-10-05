@@ -3916,9 +3916,9 @@
       ${card('相關新聞', `${ns.length} 則`, ns.length ? `<div class="cards">${ns.map(x => `<div class="scard">
           <a href="${A.fmt.esc(x.url || '#')}" target="_blank" rel="noopener">${A.fmt.esc(x.title || '')}</a>
           <div class="r"><span class="muted">${A.fmt.esc(x.date || '')}</span><span class="muted">${A.fmt.esc(x.source || '')}</span></div></div>`).join('')}</div>` : '')}
-      ${card('同族群其他個股', '點進去看完整頁', sibs.length ? `<div class="sibs">${sibs.map(x =>
+      ${card('同族群其他個股', '', sibs.length ? `<div class="sibs">${sibs.map(x =>
           `${A.L.stock(x.code, x.name)}<span class="chg ${A.fmt.cls(x.chg_pct)}">${pct(x.chg_pct, 1)}</span>`).join('')}</div>` : '')}
-      <div class="card" style="margin-top:var(--gap-card)"><div class="note">資料更新到 <b>${A.fmt.esc((A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新）。${A.L.back()}</div></div>`;
+      <div class="muted" style="margin-top:var(--sp-2);font-size:12px">資料更新到 <b>${A.fmt.esc((A.D.meta && A.D.meta.data_date) || '—')}</b>　${A.L.back()}</div>`;
   }
 
   /* ★ 2026-10-02（Andy #stock/3189 截圖三，DECISIONS #293）個股 K 線卡工具列的五顆資訊標籤。
@@ -5034,10 +5034,10 @@
       state.tickSrc = d.src; state.tickDate = d.date;
       tchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · 分時 · ${d.date}${d.live ? '' : '（非即時）'}`);
       setLiveNote(d.src === 'm60'
-        ? `最近交易日 ${d.date} 的分時：每小時一點（資料湖的 60 分 K，即時來源連不上時的備援）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`
+        ? `${d.date} 分時（60 分 K 備援，非即時）`
         : d.live
           ? tickLiveNote(d)
-          : `最近交易日 ${d.date}（非即時）的分時；今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`);
+          : `${d.date} 分時（非即時，開盤後自動換即時）`);
       const legend = $('#legendOv');
       const rows = tchart.pts;
       const show = (r) => {

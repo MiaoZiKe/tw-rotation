@@ -7756,8 +7756,9 @@ def t_themes(pg, base):
     pg.go_forward(); pg.wait_for_timeout(1800)
 
     # ---- ② 還沒選題材：細節那一塊是一句「點方塊會展開」，不是空白也不是替使用者挑一個
-    ok("還沒選題材時，細節區寫著怎麼用（點方塊展開剖析圖）",
-       "點「題材資金熱力」" in text(pg, "#themeDetail") and count(pg, "#themeDiagram") == 0,
+    # 2026-10-06 Andy「網頁不要出現廢話」：卡面只留狀態「尚未選擇題材」，怎麼用移進滑過提示
+    ok("還沒選題材時，細節區寫狀態（尚未選擇題材），怎麼用在滑過提示裡",
+       "尚未選擇題材" in text(pg, "#themeDetail") and "題材資金熱力" in (pg.get_attribute("#themeDetail .themehint", "title") or "") and count(pg, "#themeDiagram") == 0,
        text(pg, "#themeDetail")[:60])
 
     if _heat_sub:
@@ -17676,7 +17677,7 @@ def t_tick_spark(pg, base, code):
            bool(a["tick"]) and a["tick"]["date"] == prev and not a["empty"], a["tick"])
         ok("A 有昨收可比（虛線），線的方向是 -1／0／1 其中之一",
            bool(a["tick"]) and bool(a["tick"]["prev"]) and a["tick"]["dir"] in (-1, 0, 1), a["tick"])
-        ok("A 短註寫清楚：非即時、虛線＝昨收", "非即時" in a["note"] and "昨收" in a["note"], a["note"][:120])
+        ok("A 短註寫清楚：非即時（10-06 讀圖教學已刪）", "非即時" in a["note"], a["note"][:120])
         dt = pg.evaluate("() => { const b = document.getElementById('drawTgl'); return b ? b.disabled : null; }")
         ok("A 分時不能畫線：✎ 畫線鈕停用", dt is True, dt)
         h_tick = canvas_hash(pg, "#lwc")
@@ -17732,7 +17733,7 @@ def t_tick_spark(pg, base, code):
                bool(e["tick"]) and e["tick"]["src"] == "m60" and e["tick"]["pts"] >= 2 and e["canvas"] > 0 and not e["empty"], e["tick"])
             ok("E 備援畫的是資料最後一個交易日、有昨收可比",
                bool(e["tick"]) and e["tick"]["date"] == lastd and bool(e["tick"]["prev"]), {"tick": e["tick"], "最後交易日": lastd})
-            ok("E 短註寫清楚是 60 分 K 備援、虛線＝昨收", "60 分 K" in e["note"] and "備援" in e["note"] and "昨收" in e["note"], e["note"][:120])
+            ok("E 短註寫清楚是 60 分 K 備援（10-06 讀圖教學已刪）", "60 分 K" in e["note"] and "備援" in e["note"], e["note"][:120])
             h_m60 = canvas_hash(pg, "#lwc")
             ok("E 備援分時圖真的有畫出東西", h_m60 not in ("no-canvas", "0"), h_m60)
             click(pg, "#tfSeg button[data-tf='1d']", 1500)
@@ -21436,6 +21437,33 @@ def t_fit_screen_1003(pg, base, code):
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
+# ===================================================================== 無獨立提示框（2026-10-06）
+# Andy：「只要網頁出現這樣的備註，一律不要再多個表格（框），需要納入在大表格內備註，這樣影響感官」。
+# 規則（docs/style_guide.md 七-9）：頁面主內容區裡，備註／免責／提示列不得自成一個框
+# （卡片外、有邊框或底色、純文字的那種）；要放進主卡標題列右側一行小字，或卡內底部一行。
+# 做法：每頁真的打開，掃 main .view.on 底下所有「不在 .card 裡、有框或底色、沒有圖表／按鈕／表格、純文字 ≥12 字」的元素。
+# 白名單：頁尾（footer、.sitefoot）、空狀態（.empty/.isempty）、#earnings 與 #etf（另一分支在改，未列入）。
+NOBOX_ROUTES = ["overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme",
+                "industry", "stock/2330", "market", "explore", "season", "watch"]
+NOBOX_JS = r"""() => { const v = document.querySelector('main .view.on'); if (!v) return ['no-view']; const out = [];
+  const WL = 'footer, .sitefoot, .empty, .isempty';
+  v.querySelectorAll('*').forEach(e => { const r = e.getBoundingClientRect(); if (r.width < 200 || r.height < 14 || r.height > 140) return;
+    if (e.closest(WL) || (e.parentElement && e.parentElement.closest('.card, .panel, [class*=card]'))) return;
+    const cs = getComputedStyle(e);
+    const boxed = (cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0) || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor);
+    if (!boxed || e.matches('.card, .panel, [class*=card]')) return;
+    if (e.querySelector('canvas, svg, table, button, input, select, img, .card')) return;
+    const t = (e.innerText || '').trim(); if (t.length >= 12) out.push((e.className || e.tagName).toString().slice(0, 30) + '｜' + t.slice(0, 40)); });
+  return out; }"""
+
+
+def t_nobox_1006(pg, base):
+    for r in NOBOX_ROUTES:
+        pg.goto(base + "#" + r); pg.wait_for_timeout(2500)
+        bad = pg.evaluate(NOBOX_JS)
+        ok(f"[無獨立提示框] #{r} 主內容區沒有卡片外自成一框的備註／免責／提示列", not bad, bad[:5])
+
+
 def t_explore_1005(pg, base):
     """★ 2026-10-05 第二版（Andy：「改成圖片那樣類似好了，策略但寫成英文……標示原因……附上資料出處」）。
     ★ 第三版（Andy：「中文內容」「版面都要固定大小，不是一大一小」）：主標題中文、所有卡同高（差 ≤ 1px）、
@@ -21464,9 +21492,10 @@ def t_explore_1005(pg, base):
         const r = l && l.getBoundingClientRect();
         return {inH: !!(l && h && h.contains(l)), txt: l ? l.textContent : '', oneLine: r ? r.height < 24 : false,
                 topBar: !!document.querySelector('#v-explore > .xp-legal'), secen: document.querySelectorAll('.sl-secen').length,
-                howto: (h ? h.textContent : '').includes('每張卡'), fs: l ? parseFloat(getComputedStyle(l).fontSize) : 0}; }""")
+                howto: (h ? h.textContent : '').includes('每張卡'), secsm: document.querySelectorAll('.sl-sech small').length, sectt: [...document.querySelectorAll('.sl-sech')].every(x => x.title.length > 4), fs: l ? parseFloat(getComputedStyle(l).fontSize) : 0}; }""")
     ok(f"[{tag}] 免責在標題列內、一行、≥11px、未刪字", lg["inH"] and lg["oneLine"] and lg["fs"] >= 11 and '不構成投資建議' in lg["txt"] and '不是好壞名次' in lg["txt"], lg)
     ok(f"[{tag}] 無頂端提示列、無操作說明句、面向標題無英文", not lg["topBar"] and not lg["howto"] and lg["secen"] == 0, lg)
+    ok(f"[{tag}] 面向副標已移入標題滑過提示（卡面無 small、title 有字）", lg["secsm"] == 0 and lg["sectt"], lg)
     pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
     info = pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => ({
         en: c.querySelector('.sl-en').textContent, zh: c.querySelector('.sl-zh').textContent, h: c.getBoundingClientRect().height,
@@ -21805,6 +21834,7 @@ def location_ok(pg, h):
 SECTIONS = {
     # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
     "選股策略1005":        lambda pg, b, base, code: t_explore_1005(pg, base),
+    "無獨立提示框":        lambda pg, b, base, code: t_nobox_1006(pg, base),
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
