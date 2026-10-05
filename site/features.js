@@ -38,7 +38,8 @@
     { id: 'stockk', name: '個股頁：K 線與工具' },
     { id: 'stocktab', name: '個股頁：分頁' },
     { id: 'global', name: '即時與全站工具' },
-    { id: 'watch', name: '自選' }
+    { id: 'watch', name: '自選' },
+    { id: 'explore', name: '選股探索' }   // 2026-10-05 新分類（docs/explore_page_spec.md）
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -129,6 +130,11 @@
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
       veil: [], mark: [], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button'] },
+    // ---- 選股探索（2026-10-05）：預設全開；要收費時管理者在 #admin/perm 關「訪客／免費會員」範本
+    box('explore.page', 'explore', '選股探索頁', ['#v-explore'], '六個白話問題找公司（整頁）'),
+    box('explore.chart', 'explore', '問題放大鏡（泡泡圖）', ['#xpLens'], '每一題的泡泡圖與門檻切換'),
+    box('explore.combo', 'explore', '條件積木（交集）', ['#xpCombo'], '勾 2～3 題看同時符合的公司（文氏圖）'),
+    box('explore.list', 'explore', '符合名單', ['#xpList'], '每一題符合條件的公司清單'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,

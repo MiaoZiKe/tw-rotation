@@ -20761,7 +20761,92 @@ def t_fit_screen_1003(pg, base, code):
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
+def t_explore_1005(pg, base):
+    """★ 2026-10-05 Andy：參考策略研究中心做「選股探索」，但以白話問題、視覺化為主（docs/explore_page_spec.md）。
+    真的操作：切問題→圖的資料換掉、門檻切嚴格→家數不增、勾兩題→交集數字＝兩集合實際交集、
+    點泡泡→白話卡→看個股頁、「?」→名詞小教室、放寬條件鈕、禁用字掃描、1440／1100 無橫捲。"""
+    tag = "選股探索1005"
+    for w in (1440, 1100):
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(base + "#explore/earn")
+        if not ok(f"[{tag} {w}] 頁面畫出來（六張問題卡＋泡泡圖）",
+                  wait_until(pg, "() => document.querySelectorAll('#xpQgrid .xp-q').length === 6 && !!(document.querySelector('#xpChart')||{})._xpPts", 15000)):
+            return
+        r = pg.evaluate("() => ({sx: document.documentElement.scrollWidth, vw: innerWidth})")
+        ok(f"[{tag} {w}] 整頁沒有橫向捲軸", r["sx"] <= r["vw"] + 1, r)
+    # ① 法遵列與禁用字
+    txt = pg.evaluate("() => document.querySelector('#v-explore').innerText")
+    ok(f"[{tag}] 頁頂有法遵提示", "不構成投資建議" in txt and "非證券投資顧問" in txt)
+    bad = [x for x in ("推薦", "買進", "目標價", "最值得買", "必漲") if x in txt]
+    ok(f"[{tag}] 整頁沒有禁用字", not bad, bad)
+    # ② 切問題 → 圖換
+    a = pg.evaluate("() => JSON.stringify(document.querySelector('#xpChart')._xpPts)")
+    pg.click('#xpQgrid .xp-q[data-q="grow"]')
+    okq = wait_until(pg, "() => (document.querySelector('#xpChart')._xpPts||{}).q === 'grow'", 6000)
+    ok(f"[{tag}] 點「營收變好」→ 網址與圖的題目都換了", okq and location_ok(pg, "#explore/grow"), pg.url)
+    b2 = pg.evaluate("() => JSON.stringify(document.querySelector('#xpChart')._xpPts)")
+    ok(f"[{tag}] 圖上符合的泡泡集合真的換掉", a != b2)
+    ok(f"[{tag}] 標題換成新問題", "營收" in pg.inner_text('#xpLensT'))
+    # ③ 門檻：嚴格不多於標準不多於寬鬆
+    ns = {}
+    for lv in ("loose", "std", "strict"):
+        pg.click(f'#xpLv button[data-lv="{lv}"]'); pg.wait_for_timeout(250)
+        ns[lv] = int(pg.inner_text('#xpHitN'))
+    ok(f"[{tag}] 門檻切換真的改變家數（寬鬆 ≥ 標準 ≥ 嚴格，且不全相等）", ns["loose"] >= ns["std"] >= ns["strict"] and ns["loose"] > ns["strict"], ns)
+    pg.click('#xpLv button[data-lv="std"]'); pg.wait_for_timeout(200)
+    # ④ 條件積木：勾兩題 → 交集數字 = 實際交集
+    # 每點一下名單會整排重畫（舊節點作廢），所以一次點一顆、點到沒有勾為止
+    for _ in range(4):
+        if not pg.evaluate("() => { const x = document.querySelector('#xpPick input:checked'); if (x) x.click(); return !!x; }"):
+            break
+    pg.wait_for_timeout(200)
+    ok(f"[{tag}] 只勾 0 題時顯示提示，不畫圈", pg.is_visible('#xpVenn .xp-vhint'))
+    pg.click('#xpPick input[value="earn"]'); pg.click('#xpPick input[value="grow"]')
+    pg.wait_for_timeout(300)
+    d = pg.evaluate("() => TwExplore.debug()")
+    real = len(set(d["hits"]["earn"]) & set(d["hits"]["grow"]))
+    shown = int(pg.inner_text('#xpInterN'))
+    ok(f"[{tag}] 勾兩題 → 交集家數＝兩集合實際交集", shown == real == len(d["inter"]), [shown, real])
+    pg.click('#xpPick input[value="inst"]'); pg.wait_for_timeout(300)
+    d3 = pg.evaluate("() => TwExplore.debug()")
+    ok(f"[{tag}] 勾第三題 → 文氏圖變三圈、交集不會變多", pg.locator('#xpVenn circle').count() == 3 and len(d3["inter"]) <= real, [len(d3["inter"]), real])
+    pg.click('#xpVenn [data-region="1"]'); pg.wait_for_timeout(250)
+    ok(f"[{tag}] 點文氏圖的一塊 → 清單標題換成「只符合」", "只符合" in pg.inner_text('#xpRegT'))
+    # ⑤ 「?」名詞小教室
+    pg.click('#xpSide .xp-tb >> nth=0')
+    ok(f"[{tag}] 「?」打開名詞小教室，而且有『新手怎麼用』", pg.is_visible('#xpTerm') and "新手怎麼用" in pg.inner_text('#xpTerm'))
+    pg.mouse.click(5, 900); pg.wait_for_timeout(150)
+    ok(f"[{tag}] 點別處關掉名詞小教室", not pg.is_visible('#xpTerm'))
+    # ⑥ 點泡泡 → 白話卡 → 個股頁
+    pg.click('#xpQgrid .xp-q[data-q="earn"]')
+    wait_until(pg, "() => (document.querySelector('#xpChart')._xpPts||{}).q === 'earn'", 6000)
+    pg.wait_for_timeout(400)
+    pt = pg.evaluate("""() => { const el = document.querySelector('#xpChart'), c = echarts.getInstanceByDom(el);
+        const s = c.getOption().series[1].data; const d = s[0]; const p = c.convertToPixel({seriesIndex: 1}, d.value);
+        const r = el.getBoundingClientRect(); return {x: r.left + p[0], y: r.top + p[1], code: d.code}; }""")
+    pg.mouse.click(pt["x"], pt["y"])
+    vis = wait_until(pg, "() => !document.querySelector('#xpCard').hidden && document.querySelector('#xpCard').dataset.code", 4000)
+    ok(f"[{tag}] 點泡泡 → 白話卡打開", bool(vis), pt)
+    if vis:
+        ok(f"[{tag}] 白話卡有「為何符合」與「要小心什麼」", "符合哪幾題" in pg.inner_text('#xpCard') and "要小心" in pg.inner_text('#xpCard'))
+        ok(f"[{tag}] 白話卡讀到公司基本資料", wait_until(pg, "() => !document.querySelector('#xpDo .xp-load')", 5000))
+        code = pg.evaluate("() => document.querySelector('#xpCard').dataset.code")
+        pg.click('#xpGo')
+        ok(f"[{tag}] 「看個股頁」→ 網址變成 #stock/<代號>", wait_until(pg, f"() => location.hash === '#stock/{code}'", 5000), pg.url)
+        ok(f"[{tag}] 離開本頁白話卡自動收起", wait_until(pg, "() => document.querySelector('#xpCard').hidden", 3000))
+    # ⑦ 名單點一列也開白話卡
+    pg.goto(base + "#explore/earn"); wait_until(pg, "() => document.querySelector('#xpTbl tr[data-xcode]')", 10000)
+    pg.click('#xpTbl tr[data-xcode] >> nth=0')
+    ok(f"[{tag}] 點名單一列 → 白話卡", wait_until(pg, "() => !document.querySelector('#xpCard').hidden", 3000))
+
+
+def location_ok(pg, h):
+    return pg.evaluate("() => location.hash") == h
+
+
 SECTIONS = {
+    # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
+    "選股探索1005":        lambda pg, b, base, code: t_explore_1005(pg, base),
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),

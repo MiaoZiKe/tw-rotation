@@ -1788,7 +1788,7 @@
   /* ★ 2026-09-24：'themes' 從這裡拿掉 —— 題材併進熱力圖分頁（Andy：「題材內 熱力圖 放到熱力圖分頁」）。
      `#themes` 這個網址仍然有效，route() 一進來就導到 `#heatmap/theme`，見那裡的註解。*/
   // 2026-09-28：'watch'＝自選分頁（導覽列最後一格，取代交付清單的入口；'delivery' 路由照舊留著）
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'tasks', 'delivery', 'watch'];
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'tasks', 'delivery', 'watch', 'explore'];
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -2674,8 +2674,11 @@
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
     // 自選分頁：第一次進來整頁畫；之後每次回來重畫一次（別頁按 ☆ 改過清單、或換過主題）
     if (view === 'watch' && rendered.watch && window.TwWatchPage) window.TwWatchPage.paint();
+    // 選股探索（2026-10-05，site/explore.js）：第一次整頁畫；之後換題目（#explore/<id>）只重畫圖與名單，不重載資料
+    if (view === 'explore' && rendered.explore && window.TwExplore) { window.TwExplore.show(rest[0]); setTimeout(resizeVisibleCharts, 30); return; }
     if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery,
-      watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); } })[view](); }
+      watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); },
+      explore: () => (window.TwExplore ? window.TwExplore.render(rest[0]) : null) })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(resizeVisibleCharts, 30);
     // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）

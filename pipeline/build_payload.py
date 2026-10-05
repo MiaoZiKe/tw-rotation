@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, delivery_log, indicators
+from .compute import explore
 from .compute import analysis, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
@@ -929,6 +930,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     hist_dir.mkdir(parents=True, exist_ok=True)
     hist_stat = {"codes": 0, "files": 0, "bars": 0}
     hist_pages: dict[str, int] = {}        # 代號 → 這一檔有幾段（給前端的目錄檔）
+    explore_rows: list[list] = []          # 選股探索頁（compute/explore.py）：迴圈裡順手抽，不多抓資料
 
     # ★ 分 K 一律**只讀資料湖、不打 Yahoo**（DECISIONS #155 / #156）。
     #
@@ -1189,6 +1191,14 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                 as_of=latest, code=code, name=row["name"], avg_vol20=_vol20))
         except Exception as exc:  # noqa: BLE001
             log.debug("%s AI 分析失敗：%s", code, exc)
+        # 選股探索頁的一列：讀的全是上面已經算好的東西（還原日 K、pe_history、dividends、法人歷史）
+        try:
+            explore_rows.append(explore.stock_row(
+                code, close=ind["close"], ma20=last.get("ma20"), ma60=last.get("ma60"),
+                turnover=g["turnover"], pe_now=row.get("pe"), pe_hist=page.get("pe_history"),
+                dividends=page.get("dividends"), inst=insth_by.get(code), this_year=int(str(latest)[:4])))
+        except Exception as exc:  # noqa: BLE001
+            log.debug("%s 選股探索欄位失敗：%s", code, exc)
         # 整頁過一次 _clean：任何漏網的 NaN 都會讓瀏覽器 JSON.parse 直接失敗
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False),
                                                 encoding="utf-8")
@@ -1344,6 +1354,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     for it in index:
         it["ud"] = flow.updown_bin(it["chg_pct"], LIMIT_PCT)
     _write("stocks", index)
+    _write("explore", explore.payload(explore_rows, latest))
     ud = flow.updown_distribution(index, LIMIT_PCT)
     if not ud["check"]["ok"]:
         # 不可能發生（all 是三組逐列加出來的），真的發生代表程式被改壞 —— 寫 log，不擋整個 payload
