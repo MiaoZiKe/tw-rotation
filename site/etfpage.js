@@ -13,7 +13,7 @@
 
    資料：data/etf.json（開頁就讀）＋ data/etf_series.json（全部 ETF 的週線走勢，自選比較才讀）。
    ⚠ 預覽分支吃的是正式站的資料，etf.json 上正式站之前不存在 —— 那時退回 stocks.json（ETF 也在裡面）
-     列出卡片清單與名稱分類，其他卡明確標「資料準備中」，不留空白、不編數字。
+     列出卡片清單與名稱分類，其他卡寫「尚無資料」，不留空白、不編數字（10-06 廢話普查：不寫「資料準備中」這種交代排程的話）。
    排版紀律（Andy：「所有文字單行、操作不影響排版」）：所有列都 nowrap＋省略號；月曆固定 6 列、清單固定高；
      比較表保留 8 列的高度；分頁鈕選中不加粗（加粗會變寬、整排往旁邊擠）。
    驗收：scripts/_uitest.py「ETF專區1005」。
@@ -214,7 +214,6 @@
 #v-etf .callist .plink{font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:pointer}
 #v-etf .callist .plink:hover,#v-etf .callist .plink:focus-visible{text-decoration:underline;color:var(--cyan);outline:none}
 #v-etf .callist .ph .btn{flex:none}
-#v-etf .callist .si{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font:600 12px/1 var(--mono);color:var(--cyan);border:1px solid currentColor;cursor:help;flex:none}
 #v-etf .callist tr[data-code].on td{background:var(--panel-3)}
 #v-etf .nmw{display:flex;align-items:center;gap:6px;min-width:0}
 #v-etf .nmw i{width:9px;height:9px;border-radius:2px;flex:none}
@@ -289,6 +288,11 @@
   const byCode = () => { const m = new Map(); items().forEach((it) => m.set(it.code, it)); return m; };
   const inCat = () => items().filter((it) => it.cat === S.cat);
   const sizeKey = (it) => (it.size != null ? it.size : -1) * 1e3 + ((it.tv20 || 0) / 1e12);
+
+  /* 出處 ⓘ：跟全站 App.srcInfo 同一個寫法（claude/copy-trim2 分支，還沒上 main）—— 有就直接用它；沒有就產出同樣的標記
+     （class srcinfo＋title；樣式等 .srcinfo 進 index.html 才有，這之前借既有的 .muted 灰字）。App.srcInfo 上 main 後退回寫法可刪。 */
+  const srcI = (src) => (A().srcInfo ? A().srcInfo(src, '')
+    : (src ? `<span class="srcinfo muted" tabindex="0" role="note" aria-label="出處" title="${esc('出處：' + src)}">ⓘ</span>` : ''));
 
   /* ------------------------------------------------------------------ 骨架 */
   function skeleton(root) {
@@ -417,7 +421,7 @@
   /* 自訂期間：用週序列自己算（起始日早於上市就從上市第一天算起＝上市以來） */
   function rangeStats(it) {
     const s = seriesOf(it.code);
-    if (!s || !s.d || !s.p) return { ok: false, why: S.series ? '價量歷史尚未回補' : '走勢載入中' };
+    if (!s || !s.d || !s.p) return { ok: false, why: S.series ? '無資料' : '走勢載入中' };
     const from = S.cfrom || '', to = S.cto || '9999';
     let i0 = s.d.findIndex((d) => d >= from); if (i0 < 0) return { ok: false, why: '起始日晚於最後一筆資料' };
     let i1 = s.d.length - 1; while (i1 > 0 && s.d[i1] > to) i1--;
@@ -448,7 +452,7 @@
   function cardHTML(it) {
     const y = it.yield_ttm != null ? pctU(it.yield_ttm) : '—';
     const fq = it.freq || '—';
-    // 殖利率／配息頻率還沒有資料時寫「待補」而不是「—」：滑過說明為什麼（配息資料回補中），不拿 0 冒充
+    // 殖利率／配息頻率還沒有資料時寫「—」（不拿 0 冒充）；確定不配息的寫「不配息」
     const pend = '<span class="na">—</span>';
     return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
   <div class="h"><span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span><span class="sp" style="flex:1"></span>
@@ -495,7 +499,7 @@
     const P = (S.data && S.data.popular) || {}, wk = P.holders_week || [];
     $('#etfPopSub').innerHTML = S.pop === 'holders' ? '口徑：集保受益人數<b>週增減</b>'
       : '口徑：<b>近 20 個交易日</b>平均成交值';
-    if (S.fallback) { rkPrep(box, '資料準備中'); return; }
+    if (S.fallback) { rkPrep(box, '尚無資料'); return; }
     const key = S.pop === 'holders' ? 'd_holders' : 'tv20';
     const L = inCat().filter((it) => it[key] != null).sort((a, b) => b[key] - a[key]).slice(0, 5);
     if (!L.length) { rkPrep(box, '無資料'); return; }
@@ -518,7 +522,7 @@
     const box = $('#etfRetTop'); if (!box || NO_RANK[S.cat]) return;
     $('#etfRetTopSub').textContent = perLabel(true);
     const q = $('#etfRetTopQ');
-    if (S.fallback) { q.innerHTML = ''; rkPrep(box, '資料準備中'); return; }
+    if (S.fallback) { q.innerHTML = ''; rkPrep(box, '尚無資料'); return; }
     const R = retRank();
     q.innerHTML = R.key === 'tr_ann'
       ? '依<b>含息年化</b>排'
@@ -533,7 +537,7 @@
   }
   function drawYld() {
     const box = $('#etfYld'); if (!box || NO_RANK[S.cat]) return;
-    if (S.fallback) { rkPrep(box, '資料準備中'); return; }
+    if (S.fallback) { rkPrep(box, '尚無資料'); return; }
     const L = inCat().filter((it) => it.yield_ttm != null).sort((a, b) => b.yield_ttm - a.yield_ttm).slice(0, 5);
     if (!L.length) {
       rkPrep(box, '無資料'); return;
@@ -560,7 +564,7 @@
     S.rh = S.rh || 76; S.capE = Math.min(2, Math.max(1, Math.floor((S.rh - 8 - 16 + 2) / 16)));
     const by = {}; cal.forEach((e) => { (by[e.ex] = by[e.ex] || []).push(e); });
     const nIn = cal.filter((e) => e.ex.slice(0, 7) === S.month).length;
-    const status = S.fallback || !cal.length ? '資料準備中' : nIn ? `${y} 年 ${mo} 月共 ${nIn} 筆除息` : '本月無除息';
+    const status = S.fallback || !cal.length ? '' : nIn ? `${y} 年 ${mo} 月共 ${nIn} 筆除息` : '本月無除息';
     $('#etfCalSub').textContent = '';
     let cells = WD.map((w) => `<div class="wd">${w}</div>`).join('');
     const start = new Date(first); start.setUTCDate(1 - first.getUTCDay());
@@ -617,8 +621,8 @@
     const CGs = window.CalGrid.svg, all = ((S.data && S.data.calendar) || []).filter((e) => e.code === code).sort((a, b) => (a.ex < b.ex ? -1 : 1));
     const it = byCode().get(code) || { name: code };
     const done = all.filter((e) => e.ex <= (S.data.asof || '9999')), L = (done.length ? done : all).slice(-8);
-    const src = '出處：證交所／櫃買中心除息紀錄（近 400 天）；當次殖利率＝配息 ÷ 除息前一日收盤（未除息者用最新收盤估算）';
-    const head = `<div class="ph stk"><button type="button" class="btn small" id="etfCodeBack">← 回清單</button><a class="plink" href="#stock/${esc(code)}" data-code="${esc(code)}" title="看 ${esc(it.name)} ${esc(code)} 個股頁">${esc(it.name)} ${esc(code)}</a><span class="sp"></span><span class="si" tabindex="0" role="note" aria-label="出處" title="${esc(src)}">i</span></div>`;
+    const src = '證交所／櫃買中心除息紀錄（近 400 天）；當次殖利率＝配息 ÷ 除息前一日收盤（未除息者用最新收盤估算）';
+    const head = `<div class="ph stk"><button type="button" class="btn small" id="etfCodeBack">← 回清單</button><a class="plink" href="#stock/${esc(code)}" data-code="${esc(code)}" title="看 ${esc(it.name)} ${esc(code)} 個股頁">${esc(it.name)} ${esc(code)}</a><span class="sp"></span>${srcI(src)}</div>`;
     if (!L.length) return `${head}<p class="note">無除息紀錄</p>`;
     const fills = all.filter((e) => e.fill != null).map((e) => e.fill), avg = fills.length ? Math.round(fills.reduce((a, b) => a + b, 0) / fills.length) : null;
     const last = L[L.length - 1], ys = L.map((e) => (e.y == null ? null : +(e.y * 100).toFixed(2)));
@@ -638,7 +642,7 @@
   }
   function monthList(L, y, mo) {
     const head = `<b class="lt">${y} 年 ${mo} 月除息一覽（${L.length} 筆）</b>`;
-    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '資料準備中' : '本月無除息'}</p>`;
+    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '尚無除息資料' : '本月無除息'}</p>`;
     return head + `<table class="et">${COLS}${THEAD('除息日 ETF')}<tbody>${calRows(L, true)}</tbody></table>`;
   }
 
@@ -722,7 +726,7 @@
       b.onclick = () => { S.basis = b.dataset.v; LS.set('tw.etf.basis', S.basis); drawRet(); }; });
     $('#etfRetSub').textContent = `${S.cat}・${perLabel()}`;
     if (S.fallback) {
-      body.innerHTML = '<div class="etfprep">資料準備中</div>';
+      body.innerHTML = '<div class="etfprep">尚無資料</div>';
       body.dataset.k = ''; body.dataset.codes = ''; syncDD([], {}); return;
     }
     const sel = getCmp();

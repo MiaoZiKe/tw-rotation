@@ -2043,6 +2043,25 @@ def t_etf_1005(pg, b, base):
         ok(f"[{tag}] 普通股（2330）分頁不受影響：仍有營收／獲利、沒有成分股", "營收" in t2330 and "獲利" in t2330 and "成分股" not in t2330, t2330)
     finally:
         lp.close()
+    # ================= 7. 退回模式（etf.json 抓不到 → 只用 stocks.json 列卡片）：空狀態只寫「尚無資料」
+    #   2026-10-06 廢話普查第二輪（style_guide 禁止事項：不寫「資料準備中」這種交代排程的話、不寫回補／資料湖等內部口徑）
+    fp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    try:
+        fp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        fp.route("**/data/etf.json*", lambda r: r.fulfill(status=404, body="nf"))
+        fp.goto(f"{base}#etf", wait_until="domcontentloaded")
+        rd = wait_until(fp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready", 15000)
+        ft = fp.evaluate("""() => { const r = document.querySelector('#v-etf');
+            return { t: r.innerText + ' ' + [...r.querySelectorAll('[title]')].map(e => e.title).join(' '),
+                     pop: (document.querySelector('#etfPop') || {}).innerText || '', ret: (document.querySelector('#etfRetBody') || {}).innerText || '',
+                     cal: (document.querySelector('#etfCalList') || {}).innerText || '', n: document.querySelectorAll('#etfGrid .etfc').length }; }""")
+        import re as _re2
+        bad = _re2.search(r"資料準備中|回補|資料湖|FinMind|etf\.json|種子", ft["t"])
+        ok(f"★ [{tag}] etf.json 抓不到 → 卡片清單照列；前 5／比較卡寫「尚無資料」、月曆清單寫「尚無除息資料」，整頁（含滑過提示）沒有「資料準備中」與內部口徑",
+           rd == "fallback" and ft["n"] > 0 and "尚無資料" in ft["pop"] and "尚無資料" in ft["ret"] and "尚無除息資料" in ft["cal"] and not bad,
+           (rd, ft["n"], ft["pop"][:40], ft["ret"][:40], ft["cal"][:60], bad and bad.group(0)))
+    finally:
+        fp.close()
 
 
 def t_market_live_1005(pg, b, base):
@@ -22093,6 +22112,7 @@ def t_explore_1005(pg, base):
     點 i→浮層出處有來源文字、點 ›→完整名單頁筆數＝debug 集合、禁用字、1440／1100 無橫捲與欄數。"""
     import re as _re
     tag = "選股策略1005"
+    XP_INTERNAL = r"資料湖|管線|回補|種子|資料準備中|還沒產出|FinMind|Taiwan[A-Z][A-Za-z]+|OpenAPI|t187ap|BWIBBU|MI_MARGN|STOCK_DAY|pipeline/|\.py\b|\.ya?ml|docs/|DECISIONS|持股分級"
     for w in (1440, 1100):
         pg.set_viewport_size({"width": w, "height": 950})
         pg.goto(base + "#explore")
@@ -22132,9 +22152,21 @@ def t_explore_1005(pg, base):
         pg.click(f'.sl-chip[data-cat="{k}"]'); pg.wait_for_timeout(200)
         info += pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => ({
         en: c.querySelector('.sl-en').textContent, zh: c.querySelector('.sl-zh').textContent, h: c.getBoundingClientRect().height,
-        rows: c.querySelectorAll('.sl-row').length, date: c.querySelector('.sl-date').textContent}))""")
+        rows: c.querySelectorAll('.sl-row').length, date: !!c.querySelector('.sl-date')}))""")
     pg.click('.sl-chip[data-cat="fund"]'); pg.wait_for_timeout(200)
     ok(f"[{tag}] 每卡 ≤ 3 列", all(x["rows"] <= 3 for x in info), info)
+    # 2026-10-06 廢話普查第二輪：四個面向的卡片牆＋每張卡的 i 浮層（含所有滑過提示）都沒有內部口徑／排程說明
+    badw = []
+    for k in ("fund", "tech", "chip", "news"):
+        pg.click(f'.sl-chip[data-cat="{k}"]'); pg.wait_for_timeout(150)
+        for sid in pg.evaluate("() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => c.dataset.sid)"):
+            pg.click(f'.sl-card[data-sid="{sid}"] .sl-i'); pg.wait_for_timeout(60)
+            m = pg.evaluate("(re) => { const els = [document.querySelector('#v-explore'), document.querySelector('#slPop')].filter(Boolean); const t = els.map(r => r.innerText + ' ' + [...r.querySelectorAll('[title]')].map(e => e.title).join(' ')).join(' '); const x = t.match(new RegExp(re)); return x ? x[0] : null; }", XP_INTERNAL)
+            if m:
+                badw.append((sid, m))
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(40)
+    pg.click('.sl-chip[data-cat="fund"]'); pg.wait_for_timeout(200)
+    ok(f"★ [{tag}] 四個面向的卡片＋每張卡的 i 浮層（含滑過提示）沒有內部口徑（資料湖／管線／FinMind 資料集／端點代碼／程式路徑／資料準備中）", not badw, badw[:5])
     ok(f"[{tag}] 主標題是中文（英文只是小字副標）", all(_re.search(r"[\u4e00-\u9fff]", x["zh"]) and not _re.search(r"[A-Za-z]{3,}", x["zh"]) for x in info), info)
     # ★ 10-05：分類＝產業地圖同一套資料夾分頁（.nbsw）；子標籤＝下拉多選（先打開才看得到選項）
     ok(f"[{tag}] 分類分頁用產業地圖同一個 class（.nbsw）、子標籤是一顆下拉鈕不是一排膠囊",
@@ -22147,7 +22179,8 @@ def t_explore_1005(pg, base):
     ok(f"[{tag}] 頁標題＝選股策略、分類晶片與子標籤是中文", ui["h2"] == "選股策略" and all(_re.search(r"[\u4e00-\u9fff]", c) for c in ui["chips"])
        and ui["tl"] == "子標籤" and sum(1 for t in ui["tags"] if _re.search(r"[\u4e00-\u9fff]", t)) >= len(ui["tags"]) - 2, ui)
     ok(f"[{tag}] 至少 9 張卡有名單列", sum(1 for x in info if x["rows"] > 0) >= 9, info)
-    ok(f"[{tag}] 每卡有資料日期徽章", all(x["date"].strip() for x in info), info)
+    # 2026-10-06 改前→改後（DECISIONS #329 轉交 explore.js）：「每卡有資料日期徽章」→ 卡片標題列一律不放資料日期膠囊
+    ok(f"★ [{tag}] 卡片標題列沒有資料日期膠囊（.sl-date）", not any(x["date"] for x in info) and pg.evaluate("() => !document.querySelector('#v-explore .sl-date')"), info)
     txt = pg.evaluate("() => document.querySelector('#v-explore').innerText")
     ok(f"[{tag}] 頁頂有法遵提示＋非推薦名次", "不構成投資建議" in txt and "非推薦名次" in txt)
     bad = [x for x in ("推薦買", "推薦股", "買進", "目標價", "最值得買", "必漲") if x in txt]
@@ -22187,7 +22220,7 @@ def t_explore_1005(pg, base):
             cards: [...document.querySelectorAll('#slGrid .sl-card')].map(c => [c.dataset.sid, c.querySelectorAll('.sl-row:not(.sl-blank)').length, c.querySelector('.sl-meta').textContent])})""")
         sids = {c[0] for c in v["cards"]}
         ok(f"[{tag}] 點「{k}」晶片 → 只剩那一區，且新策略都在", v["secs"] == [k] and ids <= sids, v)
-        ok(f"[{tag}] 「{k}」新策略：有名單或誠實說明（不是空白）", all(c[1] > 0 or ("資料準備中" in c[2] or "符合 0" in c[2]) for c in v["cards"] if c[0] in ids), v["cards"])
+        ok(f"[{tag}] 「{k}」新策略：有名單或誠實說明（不是空白）", all(c[1] > 0 or ("尚無資料" in c[2] or "符合 0" in c[2]) for c in v["cards"] if c[0] in ids), v["cards"])
     pg.click('.sl-chip[data-cat="news"]'); pg.wait_for_timeout(200)
     if pg.is_visible('.sl-card[data-sid="conf"] .sl-rbtn'):
         pg.click('.sl-card[data-sid="conf"] .sl-rbtn >> nth=0')
@@ -22196,7 +22229,10 @@ def t_explore_1005(pg, base):
         pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
     pg.click('.sl-card[data-sid="buzz"] .sl-i')
     src = pg.inner_text('#slPop .sl-info') if pg.is_visible('#slPop .sl-info') else ""
-    ok(f"[{tag}] 消息面 i → 精簡：篩選條件＋一行資料", "篩選條件" in src and "資料：" in src and "計算方式" not in src, src[:200])
+    si = pg.evaluate("() => [...document.querySelectorAll('#slPop .sl-wt .srcinfo')].map(e => e.title)")
+    # 2026-10-06 改前→改後（廢話普查第二輪）：「篩選條件＋一行『資料：日期・出處』」→ 篩選條件＋標題旁出處 ⓘ（只寫機構名、沒有日期）
+    ok(f"★ [{tag}] 消息面 i → 精簡：篩選條件；出處收在標題旁 ⓘ（鉅亨網…），沒有整行「資料：」", "篩選條件" in src and "資料：" not in src and "計算方式" not in src
+       and len(si) == 1 and si[0].startswith("出處：") and "鉅亨網" in si[0], (src[:200], si))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
     pg.click('.sl-chip[data-cat="fund"]'); pg.wait_for_timeout(200)
     # 原因展開
@@ -22213,9 +22249,13 @@ def t_explore_1005(pg, base):
     h0 = pg.evaluate(hq)
     pg.click('.sl-card[data-sid="accum"] .sl-i')
     src = pg.inner_text('#slPop .sl-info') if pg.is_visible('#slPop .sl-info') else ""
+    si = pg.evaluate("() => [...document.querySelectorAll('#slPop .srcinfo')].map(e => e.title).join(' ')")
     ok(f"[{tag}] 打開 i 不改變卡高", pg.evaluate(hq) == h0)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
-    ok(f"[{tag}] 點 i → 只剩篩選條件＋一行小字資料（10-05 精簡：沒有計算方式／共同門檻／要小心）", "篩選條件" in src and "資料：" in src and "FinMind" in src and not any(w in src for w in ("計算方式", "共同門檻", "要小心", "資料出處")), src[:200])
+    ok(f"[{tag}] 點 i → 只剩篩選條件（10-05 精簡：沒有計算方式／共同門檻／要小心）", "篩選條件" in src and not any(w in src for w in ("計算方式", "共同門檻", "要小心", "資料出處", "資料：")), src[:200])
+    # 2026-10-06 改前→改後（廢話普查第二輪）：出處寫「FinMind TaiwanStockInstitutionalInvestorsBuySell（…官網條款禁止…）」→ 只留機構名
+    ok(f"★ [{tag}] 法人連買的出處 ⓘ 只寫機構名（證交所／櫃買中心），沒有 FinMind 資料集名、端點代碼、程式路徑",
+       "臺灣證券交易所" in si and not _re.search(XP_INTERNAL, si), si)
     # 完整名單
     pg.click('.sl-chip[data-cat="fund"]'); pg.wait_for_timeout(200)
     pg.click('.sl-card[data-sid="quality"] .sl-more')
@@ -22228,7 +22268,14 @@ def t_explore_1005(pg, base):
         rs = pg.inner_text('#slTbl tbody tr >> nth=0')
         ok(f"[{tag}] 名單每列有原因欄（含 ✓ 與數值）", "✓" in rs and "ROE" in rs, rs[:200])
         ok(f"[{tag}] 完整名單頁標題是中文", pg.inner_text('.sl-fhead h2').startswith("高獲利品質"), pg.inner_text('.sl-fhead h2'))
-        ok(f"[{tag}] 完整名單頁有資料出處", "TaiwanStockFinancialStatements" in pg.inner_text('.sl-finfo'))
+        fi = pg.evaluate("() => { const f = document.querySelector('.sl-finfo'); const s = f.querySelector('h3 .srcinfo'); return { t: f.innerText, src: s ? s.title : '', fh: document.querySelector('.sl-fhead').innerText }; }")
+        # 2026-10-06 改前→改後：「資料日期：…」＋「資料出處：」一長串端點／資料集 → 標題旁 ⓘ 只寫機構名；名單頁頂沒有日期膠囊
+        ok(f"★ [{tag}] 完整名單頁：出處收進「篩選條件」標題旁 ⓘ（公開資訊觀測站…），卡內沒有「資料出處／資料日期」整行、頁頂沒有日期膠囊",
+           "公開資訊觀測站" in fi["src"] and "資料出處" not in fi["t"] and "資料日期" not in fi["t"] and "計算方式" in fi["t"]
+           and not _re.search(r"\d{4}-\d\d-\d\d", fi["fh"]), fi)
+        # 整頁（含所有滑過提示）掃一次內部口徑
+        bad = pg.evaluate("(re) => { const r = document.querySelector('#v-explore'); const t = r.innerText + ' ' + [...r.querySelectorAll('[title]')].map(e => e.title).join(' '); const m = t.match(new RegExp(re)); return m ? m[0] : null; }", XP_INTERNAL)
+        ok(f"★ [{tag}] 完整名單頁（含滑過提示）沒有內部口徑字樣", not bad, bad)
         r = pg.evaluate("() => ({sx: document.documentElement.scrollWidth, vw: innerWidth})")
         ok(f"[{tag}] 完整名單頁沒有橫向捲軸", r["sx"] <= r["vw"] + 1, r)
         pg.click('#slTbl tbody tr >> nth=0 >> a.sl-tlink')
@@ -22400,7 +22447,7 @@ def t_cal_1006(pg, b, base):
             # 單檔明細：整行「資料：…」改成標題列 ⓘ
             lp.click(f"#etfCalGrid .cald.has[data-d='{hasd}']"); lp.wait_for_timeout(200)
             lp.click("#etfDayTbl tbody tr[data-code] >> nth=0"); lp.wait_for_timeout(250)
-            cd = J("() => ({ code: document.querySelector('#etfCal').dataset.code, si: !!document.querySelector('#etfCalList .ph .si[title*=出處]'), line: /資料：/.test(document.querySelector('#etfCalList').innerText) })")
+            cd = J("() => ({ code: document.querySelector('#etfCal').dataset.code, si: !!document.querySelector('#etfCalList .ph .srcinfo[title*=出處]'), line: /資料：/.test(document.querySelector('#etfCalList').innerText) })")
             ok(f"★ [{tag}] 點一檔 → 明細標題列有出處 ⓘ、沒有整行「資料：…」", cd["code"] and cd["si"] and not cd["line"], cd)
             lp.click("#etfCodeBack"); lp.wait_for_timeout(150)
         else:
@@ -22495,7 +22542,7 @@ def t_earnings_1005(pg, b, base):
         # 2026-10-06：資料缺的段落整段不顯示（例：近四季 EPS 非正就沒有「估值位置」），所以改成「資料裡有的段落全部畫出來」
         want = [x["t"] for x in D["companies"][conf["code"]]["secs"] if x["key"] != "news"] + (["FED 背景"] if D["fed"].get("next") or D["fed"].get("snap") else [])
         ok(f"★ [{tag}] 公司面板把資料裡有的段落全部畫出來（{'、'.join(want)}），每段標題旁有 ⓘ（出處改滑過才顯示）",
-           len(want) >= 3 and all(w in p[2] for w in want) and count(lp, "#earnPanel .sec .si") >= 3 and "出處：" not in p[2], (want, p[2][:300]))
+           len(want) >= 3 and all(w in p[2] for w in want) and count(lp, "#earnPanel .sec .srcinfo") >= 3 and "出處：" not in p[2], (want, p[2][:300]))
         ok(f"[{tag}] 公司面板不寫買賣建議", not any(w in p[2] for w in ("建議買", "建議賣", "買進", "賣出")))
         ok(f"[{tag}] 被點的標籤有框", J(f"() => document.querySelector(\".chip.on\") && document.querySelector('.chip.on').dataset.code") == conf["code"])
         top_before = J("() => scrollY")
@@ -22508,6 +22555,13 @@ def t_earnings_1005(pg, b, base):
         ok(f"★ [{tag}] 點 {fed['k']} 標籤 → 面板換成 FED 數據說明（說明、上次數值、市場關注點、下一次、台灣時間）",
            q[0] == "fed" and q[1] == fed["k"] and all(w in q[2] for w in ("是什麼", "怎麼看", "影響", "市場關注點", "台灣")) and q[2] != p[2], q[:2])
         ok(f"[{tag}] 點標籤不會讓頁面捲走", abs(J("() => scrollY") - top_before) < 5)
+        # 2026-10-06 廢話普查第二輪：FED 事件的 src 帶著管線的查證紀錄（「（https://…；查證 …（WebSearch 摘要，未讀原文））」
+        #   「FRED 日程未取得時的退回值」）→ 面板 ⓘ 只留發布機關名；面板文字與所有滑過提示都不准出現這些字
+        fq = J("""() => { const p = document.querySelector('#earnPanel');
+            return { t: p.innerText + ' ' + [...p.querySelectorAll('[title]')].map(e => e.title).join(' '),
+                     src: [...p.querySelectorAll('.srcinfo')].map(e => e.title) }; }""")
+        ok(f"★ [{tag}] FED 面板（含 ⓘ 滑過提示）沒有查證紀錄／網址／退回值字樣、出處 ⓘ 用全站 .srcinfo 寫法",
+           not _re.search(r"https?://|查證|WebSearch|未讀原文|退回值|未取得", fq["t"]) and all(x.startswith("出處：") for x in fq["src"]), fq)
         # ---- 5. 沒有任何推估（Andy 1005 晚：「裡面不可以有推估數據」）＋ 點日期 → 當天清單
         ok(f"★ [{tag}] 資料與畫面上沒有任何預估：events 沒有 est／rev／qdl、月曆沒有 .kest／.ktw、整頁看不到「預估」",
            not any(e["k"] in ("est", "rev", "qdl") or e.get("status") == "預估" for e in D["events"])
@@ -22553,7 +22607,7 @@ def t_earnings_1005(pg, b, base):
         lp.click("#earnFilt button[data-v='conf']"); lp.wait_for_timeout(150)
         lp.click("#earnGrid .chip.kconf, #earnGrid .chip.kinv >> nth=0"); lp.wait_for_timeout(300)
         pc = PM()
-        ok(f"★ [{tag}] 點法說會 → 面板出現「這場法說」與時間、地點、出處", pc[0] == "co" and "這場法說" in pc[2] and "時間" in pc[2] and "地點" in pc[2] and count(lp, "#earnPanel [data-sec=conf] .si") == 1, pc[2][:200])
+        ok(f"★ [{tag}] 點法說會 → 面板出現「這場法說」與時間、地點、出處", pc[0] == "co" and "這場法說" in pc[2] and "時間" in pc[2] and "地點" in pc[2] and count(lp, "#earnPanel [data-sec=conf] .srcinfo") == 1, pc[2][:200])
         lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
         # ---- 7. 大公司時間表已拿掉（Andy 1005 晚：「下方不需要」）→ 不存在；面板「看個股頁」→ 個股頁
         ok(f"★ [{tag}] 下方「大公司時間表」整張不存在（只留月曆＋右側面板）", count(lp, "#earnListCard, #earnTbl") == 0)
@@ -22580,6 +22634,18 @@ def t_earnings_1005(pg, b, base):
         ok(f"[{tag}] 種子模式月曆照樣有標籤", sp.evaluate("() => document.querySelectorAll('#earnGrid .chip').length") > 0)
     finally:
         sp.close()
+    # ---- 9a. 兩份都抓不到 → 空狀態只留一句「尚無…」（style_guide 禁止事項：不寫「資料準備中」「管線下一輪會建立」這種交代排程的話）
+    ep = b.new_page(viewport={"width": 1440, "height": 900})
+    try:
+        ep.route("**/data/earnings.json*", lambda r: r.fulfill(status=404, body="nf"))
+        ep.route("**/earnings_seed.json*", lambda r: r.fulfill(status=404, body="nf"))
+        ep.goto(f"{base}#earnings", wait_until="domcontentloaded")
+        rd = wait_until(ep, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+        et = ep.evaluate("() => ({ p: document.querySelector('#earnPanel').innerText.trim(), sub: document.querySelector('#earnSub').textContent.trim(), all: document.querySelector('#v-earnings').innerText })")
+        ok(f"★ [{tag}] earnings.json 與種子檔都抓不到 → 面板只寫「尚無財經日曆資料」、副標空白、整頁沒有「資料準備中」",
+           rd == "empty" and et["p"] == "尚無財經日曆資料" and et["sub"] == "" and "資料準備中" not in et["all"], (rd, et["p"], et["sub"]))
+    finally:
+        ep.close()
 
     # ---- 9b. 一屏看完（Andy 1005 晚：「整理符合一頁就能看到所有資訊的版面」）：1440×800 沒有垂直捲動、月曆與面板底部都在視窗內
     for hh in (800, 900):
