@@ -56,6 +56,7 @@ const ALARM_EVERY_MS = 60 * 60 * 1000; // 每小時清一次過期資料
    付費範本若把大部分族群關掉，加上原本約 50 項功能就會超過 120。300 項 × 約 30 字元 ≈ 9KB，仍在單次 16KB 的上限內。*/
 const MAX_FEAT_KEYS = 300, MAX_PLANS = 20, MAX_PERM_ROWS = 5000, MAX_PLAN_NAME = 20;
 const FEAT_RE = /^[a-z][a-z0-9_.]{1,39}$/;
+const PLAN_PERIODS = ['month', 'year', 'once'];   // 付費範本的計費週期（月／年／一次）
 const PLAN_RE = /^[a-z0-9_-]{1,20}$/;
 const EMAIL_RE = /^[^\s@<>"'(),;:\\]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 /* 內建方案：訪客（沒登入）、免費會員（登入後沒被指定方案的預設）。不能刪，可以改內容。
@@ -128,6 +129,12 @@ export class Hub {
        ③ visits：會員近 30 天造訪次數（uid＋台北日期＋次數）。只記登入者，跟 users 同一個保存期限、刪帳號一起刪。
        用 PRAGMA table_info 判斷欄位在不在：ALTER TABLE ADD COLUMN 重跑會報錯，Durable Object 每次冷啟動都會進這裡。*/
     if (!this.q('PRAGMA table_info(perm)').some((c) => c.name === 'expires')) this.q('ALTER TABLE perm ADD COLUMN expires INTEGER');
+    /* 2026-10-05（admin-v2b）：付費範本要能調價、之後綁金流 → plans 加 price（整數 NT$）與 period（month／year／once）。
+       舊資料庫沒有這兩欄就補上（同上，用 PRAGMA 判斷，重跑不報錯）；舊列 price＝0、period＝month。
+       ★ 金流以 plan id 對價（id 建立後不變），價格一律以後端這裡為準，前端顯示的價格只是顯示。 */
+    const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+    if (!pc.includes('price')) this.q('ALTER TABLE plans ADD COLUMN price INTEGER DEFAULT 0');
+    if (!pc.includes('period')) this.q("ALTER TABLE plans ADD COLUMN period TEXT DEFAULT 'month'");
     this.q('CREATE TABLE IF NOT EXISTS ev2 (day TEXT, page TEXT, comp TEXT, detail TEXT, n INTEGER, PRIMARY KEY (day, page, comp, detail))');
     this.q('CREATE TABLE IF NOT EXISTS visits (uid TEXT, day TEXT, n INTEGER, PRIMARY KEY (uid, day))');
     for (const [id, name] of BUILTIN_PLANS) if (!this.q('SELECT 1 FROM plans WHERE id = ?', id).length) this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 1, 0)', id, name, '{}');
@@ -513,8 +520,9 @@ export class Hub {
     return s.length <= 200 && EMAIL_RE.test(s) ? s : null;
   }
   plan(id) {
-    const r = this.q('SELECT id, name, feats, builtin FROM plans WHERE id = ?', id)[0];
-    return r ? { id: r.id, name: r.name, feats: JSON.parse(r.feats || '{}'), builtin: !!r.builtin } : null;
+    const r = this.q('SELECT id, name, feats, builtin, price, period FROM plans WHERE id = ?', id)[0];
+    return r ? { id: r.id, name: r.name, feats: JSON.parse(r.feats || '{}'), builtin: !!r.builtin,
+      price: Number.isInteger(r.price) ? r.price : 0, period: PLAN_PERIODS.includes(r.period) ? r.period : 'month' } : null;
   }
   /* 某個 email 實際生效的權限：方案範本 ← 個別微調（微調蓋過範本）。方案被刪掉的人自動退回「免費會員」。*/
   effective(email) {
@@ -602,9 +610,14 @@ export class Hub {
     if (!name) return this.json(req, { error: 'bad_name' }, 400);
     const feats = this.cleanFeats(b.feats);
     if (!feats) return this.json(req, { error: 'bad_feats' }, 400);
+    /* 價格／計費週期：沒帶就沿用原值（只改開關的呼叫不會把價格洗成 0）；帶了就嚴格驗證，不默默修正 */
+    const price = b.price === undefined ? (cur ? cur.price : 0) : b.price;
+    if (!Number.isInteger(price) || price < 0 || price > 999999) return this.json(req, { error: 'bad_price' }, 400);
+    const period = b.period === undefined ? (cur ? cur.period : 'month') : b.period;
+    if (!PLAN_PERIODS.includes(period)) return this.json(req, { error: 'bad_period' }, 400);
     if (!cur && this.q('SELECT COUNT(*) AS c FROM plans')[0].c >= MAX_PLANS) return this.json(req, { error: 'too_many' }, 400);
-    this.q('INSERT INTO plans (id, name, feats, builtin, updated) VALUES (?, ?, ?, 0, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, feats = excluded.feats, updated = excluded.updated',
-      id, name, JSON.stringify(feats), this.now());
+    this.q('INSERT INTO plans (id, name, feats, builtin, updated, price, period) VALUES (?, ?, ?, 0, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, feats = excluded.feats, updated = excluded.updated, price = excluded.price, period = excluded.period',
+      id, name, JSON.stringify(feats), this.now(), price, period);
     return await this.adminPlansGet(req, b);
   }
 

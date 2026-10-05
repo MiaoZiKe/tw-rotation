@@ -480,3 +480,41 @@ test('相容遷移：舊版資料庫（perm 沒有 expires 欄）啟動後自動
   assert.ok(cols.includes('expires'));
   assert.equal(db.prepare('SELECT over FROM perm WHERE email = ?').get('old@example.com').over, '{"stock.ai":false}');
 });
+
+/* ======================================================================== admin-v2b（2026-10-05）：付費範本價格／計費週期 */
+test('付費範本價格：price 0～999999 整數、period ∈ month／year／once；plans/get 回傳；只改開關不洗掉價格', async () => {
+  const { hub } = makeHub(env());
+  const t = (await login(hub, 'andy@example.com')).j.tok;
+  const put = async (o) => (await post(hub, '/v1/admin/plans/put', { t, ...o })).status;
+  const get = async (id) => (await (await post(hub, '/v1/admin/plans/get', { t })).json()).plans.find((p) => p.id === id);
+  assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: 399, period: 'month' }), 200);
+  const g0 = await get('pbasic');
+  assert.deepEqual([g0.price, g0.period, g0.name], [399, 'month', '基本方案']);
+  for (const bad of [-1, 1000000, 3.5, '399', null, true]) assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: bad }), 400, 'price=' + JSON.stringify(bad));
+  for (const bad of ['week', '', 'MONTH', 1]) assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, period: bad }), 400, 'period=' + JSON.stringify(bad));
+  assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: 0, period: 'once' }), 200, '0 元合法');
+  assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: 999999, period: 'year' }), 200, '上限合法');
+  assert.equal(await put({ id: 'pbasic', feats: { 'stock.ai': false } }), 200);
+  const g = await get('pbasic');
+  assert.deepEqual([g.price, g.period, g.feats], [999999, 'year', { 'stock.ai': false }], '沒帶 price／period → 沿用原值');
+  assert.equal(await put({ id: 'pnew', name: '新範本', feats: {} }), 200);
+  const gn = await get('pnew');
+  assert.deepEqual([gn.price, gn.period], [0, 'month'], '新範本沒帶價格 → 0／month');
+  const gf = await get('free');
+  assert.deepEqual([gf.price, gf.period], [0, 'month'], '內建範本也有欄位');
+});
+
+test('相容遷移：舊版 plans 表（沒有 price／period）啟動後自動補欄、舊範本保留且 price=0、period=month；重啟不報錯', async () => {
+  const { DatabaseSync } = await import('node:sqlite');
+  const { Hub } = await import('../worker.js');
+  const db = new DatabaseSync(':memory:');
+  db.exec('CREATE TABLE plans (id TEXT PRIMARY KEY, name TEXT, feats TEXT, builtin INTEGER, updated INTEGER)');
+  db.prepare('INSERT INTO plans VALUES (?, ?, ?, ?, ?)').run('p399', '399 即時', '{"ov.theme":false}', 0, 1);
+  const sql = { exec(q, ...a) { const st = db.prepare(q); const rows = /^\s*(SELECT|WITH|PRAGMA)/i.test(q) ? st.all(...a) : (st.run(...a), []); return { toArray: () => rows.map((r) => ({ ...r })) }; } };
+  const state = { storage: { sql, getAlarm: async () => 1, setAlarm: async () => {} } };
+  new Hub(state, env()); const h = new Hub(state, env());
+  const cols = db.prepare('PRAGMA table_info(plans)').all().map((c) => c.name);
+  assert.ok(cols.includes('price') && cols.includes('period'));
+  const p = h.plan('p399');
+  assert.deepEqual([p.name, p.feats, p.price, p.period], ['399 即時', { 'ov.theme': false }, 0, 'month']);
+});

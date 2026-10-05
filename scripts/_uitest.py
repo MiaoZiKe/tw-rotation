@@ -42647,6 +42647,7 @@ def t_member_perm(b, base, code):
         #   「逐人設定」搬到 #admin/members（會員管理）；#admin/perm 改成依層級（訪客／註冊會員／付費會員）編範本。斷言本身不變，只換分頁。
         ad.click("#admTabMembers")
         wait_until(ad, "() => location.hash === '#admin/members' && document.querySelectorAll('#pmCats .pmcat').length > 0 && !!document.getElementById('pmEmail')", 10000)
+        ad.click("#pmExpandAll")    # 2026-10-05 admin-v2b：開放功能表預設只展開第一類；下面要撥其他類的開關，先全部展開
         nf = ad.evaluate("() => ({ cats: TwFeatures.cats.length, bools: TwFeatures.list.filter(f => f.kind === 'bool').length, limits: TwFeatures.list.filter(f => f.kind === 'limit').length })")
         ok(f"{T}：#admin/perm 依分類列出全部功能（{nf['cats']} 類）", ad.locator("#pmCats .pmcat").count() == nf["cats"], ad.locator("#pmCats .pmcat").count())
         ok(f"{T}：每個開關類功能一個 Switch、上限類一個下拉", ad.locator("#pmCats input[role=switch]").count() == nf["bools"] and ad.locator("#pmCats select[data-f]").count() == nf["limits"],
@@ -42696,6 +42697,8 @@ def t_member_perm(b, base, code):
         ok(f"{T}：「資金流向」全關 → 一次送出、四個開關都關", all(fb.get("over", {}).get(k) is False for k in ("flow.rot", "flow.sankey", "flow.inst", "flow.conc"))
            and ad.evaluate("() => [...document.querySelectorAll(\"#pmCats .pmcat[data-cat='flow'] input[role=switch]\")].every(i => !i.checked)"), fb)
         # 自選分頁上限 → 2
+        if not ad.locator("#pmCats select[data-f='watch.tabs']").is_visible():
+            ad.click("#pmExpandAll")
         ad.select_option("#pmCats select[data-f='watch.tabs']", "2")
         save()
         # 重新整理 → 狀態還在
@@ -42984,6 +42987,7 @@ def t_perm_nav(b, base):
     #   新增會員／會員列表／逐人設定在 #admin/members；這裡點頂部「會員管理」tab 過去，斷言不變。
     pg.click("#admTabMembers")
     wait_until(pg, "() => location.hash === '#admin/members' && document.querySelectorAll('#pmListBody tr[data-email]').length > 0 && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
+    pg.click("#pmExpandAll")    # 2026-10-05 admin-v2b：預設只展開第一類，下面要撥熱力圖／即時／自選的開關
     ok(f"{T}：版面四區都在（新增會員／會員列表／要設定誰／功能開關）", pg.evaluate("() => ['#pmAdd','#pmList','#pmHead','#pmCats'].every(s => !!document.querySelector(s))"))
     ok(f"{T}：會員列表合併「設定過的」與「登入過的」（3 位）、列出到期日與最後登入欄",
        pg.locator("#pmListBody tr[data-email]").count() == 3 and "到期日" in pg.inner_text("#pmListBody") and "最後登入" in pg.inner_text("#pmListBody"), pg.inner_text("#pmListBody")[:200])
@@ -43026,8 +43030,9 @@ def t_perm_nav(b, base):
     pg.click("#pmTpl")
     wait_until(pg, "() => /已建立定價範本/.test(document.getElementById('pmStat').textContent)", 5000)
     made = [x[1] for x in sent[n1:] if x[0] == "/v1/admin/plans/put"]
-    ok(f"{T}：「建立定價範本」→ 建出 免費／399 即時／799 題材與產業地圖，而且沒有送任何 perm/put（不套用到任何人）",
-       [m.get("name") for m in made] == ["免費", "399 即時", "799 題材與產業地圖"] and not any(x[0] == "/v1/admin/perm/put" for x in sent[n1:])
+    ok(f"{T}：「建立定價範本」→ 建出 免費方案 0／基本方案 399／進階方案 799（每月），而且沒有送任何 perm/put（不套用到任何人）",
+       [m.get("name") for m in made] == ["免費方案", "基本方案", "進階方案"] and [m.get("price") for m in made] == [0, 399, 799]
+       and all(m.get("period") == "month" for m in made) and not any(x[0] == "/v1/admin/perm/put" for x in sent[n1:])
        and made[1]["feats"].get("heat.theme") is False and "live.tick" not in made[1]["feats"] and made[2]["feats"] == {}, made)
     ok(f"{T}：內建「訪客」「免費會員」範本沒被改", not any(m.get("id") in ("guest", "free") for m in made))
     sw = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
@@ -43078,6 +43083,7 @@ def t_member_regress_1005(b, base):
     pg.goto(base + "#admin/members", wait_until="domcontentloaded")
     wait_until(pg, "() => document.querySelectorAll('#pmListBody tr[data-email]').length > 0 && !!document.getElementById('l4Perm')", 10000)
     pg.wait_for_timeout(500)
+    pg.click("#pmExpandAll")    # 2026-10-05 admin-v2b：預設只展開第一類
     ok(f"★ {T}：直接開 #admin/members → 側欄「管理區」亮著、其他分頁都不亮",
        pg.evaluate("() => document.getElementById('l4Perm').classList.contains('on') && [...document.querySelectorAll('.tab.on')].length === 1"),
        pg.evaluate("() => [...document.querySelectorAll('.tab.on')].map(t => t.id || t.dataset.view)"))
@@ -43131,7 +43137,7 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None):
     st = {"plans": [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "builtin": True, "members": 0},
                     {"id": "free", "name": "免費會員（預設）", "feats": {}, "builtin": True, "members": 0},
                     {"id": "p399", "name": "399 即時", "feats": {"ov.theme": False}, "builtin": False, "members": 1},
-                    {"id": "p799", "name": "799 全功能", "feats": {}, "builtin": False, "members": 2}],
+                    {"id": "p799", "name": "799 全功能", "feats": {}, "builtin": False, "members": 2, "price": 799, "period": "month"}],
           "perm": {"a399@example.com": {"plan": "p399", "over": {}, "updated": now, "expires": now + 30 * 86400000},
                    "b799@example.com": {"plan": "p799", "over": {"stock.ai": False}, "updated": now, "expires": now - 86400000},
                    "c799@example.com": {"plan": "p799", "over": {}, "updated": now, "expires": 0},
@@ -43183,7 +43189,9 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None):
         elif path == "/v1/admin/plans/get":
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/plans/put":
-            st["plans"] = [x for x in st["plans"] if x["id"] != body.get("id")] + [{"id": body["id"], "name": body.get("name", ""), "feats": body.get("feats", {}), "builtin": body.get("id") in ("guest", "free"), "members": 0}]
+            prev = next((x for x in st["plans"] if x["id"] == body.get("id")), {})
+            st["plans"] = [x for x in st["plans"] if x["id"] != body.get("id")] + [{"id": body["id"], "name": body.get("name", ""), "feats": body.get("feats", {}), "builtin": body.get("id") in ("guest", "free"), "members": prev.get("members", 0),
+                           "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month"))}]
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/perm/list":
             out = {"rows": [{"email": e, "plan": r["plan"], "n": len(r["over"]), "updated": r["updated"], "expires": r.get("expires", 0)} for e, r in st["perm"].items()],
@@ -43212,8 +43220,15 @@ def t_admin_v2(b, base, code):
     ok(f"{T}：管理者側欄有「管理區」入口", bool(wait_until(pg, "() => !!document.getElementById('l4Perm') && /管理區/.test(document.getElementById('l4Perm').textContent)", 8000)))
     pg.click("#l4Perm")
     wait_until(pg, "() => location.hash === '#admin/perm' && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
-    ok(f"{T}：頂部三個子分頁（會員權限／會員管理／流量觀測），目前亮「會員權限」",
-       pg.evaluate("() => ['admTabPerm','admTabMembers','admTabTraffic'].every(i => !!document.getElementById(i)) && document.getElementById('admTabPerm').classList.contains('on')"))
+    # ★ 2026-10-05 改前→改後（admin-v2b，Andy：頂部那排搬到左側欄「管理區」下面當縮排子項）：三個 id 不變，但改成 #tabs 裡的 .l4subtab、頁內沒有 #admTabs
+    ok(f"{T}：側欄「管理區」下面三個縮排子項（會員權限／會員管理／流量觀測），目前亮「會員權限」、頁內頂部沒有那排 tab",
+       pg.evaluate("""() => { const ids = ['admTabPerm','admTabMembers','admTabTraffic'], els = ids.map(i => document.getElementById(i));
+         if (els.some(e => !e || !e.classList.contains('l4subtab') || !e.closest('#tabs'))) return false;
+         const p = document.getElementById('l4Perm').getBoundingClientRect(), r = els.map(e => e.getBoundingClientRect());
+         return els[0].classList.contains('on') && !els[1].classList.contains('on') && !document.getElementById('admTabs')
+           && r[0].top >= p.bottom - 1 && r[1].top >= r[0].bottom - 1 && r[2].top >= r[1].bottom - 1 && r[0].left >= p.left
+           && els.map(e => e.textContent.trim()).join() === '會員權限,會員管理,流量觀測'; }"""),
+       pg.evaluate("() => [...document.querySelectorAll('#tabs .l4subtab[data-parent=admin]')].map(e => [e.id, e.className, e.textContent.trim()])"))
     ok(f"{T}：會員權限有三層（訪客｜註冊會員｜付費會員），預設訪客、訪客沒有 Mail 名單",
        pg.evaluate("() => [...document.querySelectorAll('#ptTier button')].map(b => b.dataset.tier).join() === 'guest,free,paid' && document.querySelector('#ptTier button.on').dataset.tier === 'guest' && !document.getElementById('ptMail')"))
     ng = pg.evaluate("() => TwFeatures.inCat('grp').length")
@@ -43225,7 +43240,30 @@ def t_admin_v2(b, base, code):
     wait_until(pg, "() => !!document.getElementById('ptMail')", 4000)
     mail = pg.inner_text("#ptMail")
     ok(f"{T}：註冊會員的 Mail 名單列出沒被指定付費的人（free1、wait），不含付費會員", "free1@example.com" in mail and "wait@example.com" in mail and "a399@example.com" not in mail, mail[:200])
+    # ★ 2026-10-05 admin-v2b：開放功能表可收合 —— 預設只展開第一類（總覽）、族群觀測與它的產業鏈分組都收著；標題寫「已開 N／共 M」
+    fold0 = pg.evaluate("""() => [...document.querySelectorAll('#pmCats .pmcat')].map(c => [c.dataset.cat, !c.querySelector('.pmbody').hidden, (c.querySelector('.pmfoldhd small') || {}).textContent])""")
+    ok(f"{T}：開放功能表預設只展開第一類，其餘收起、標題寫「已開 N／共 M」",
+       fold0[0][1] and not any(x[1] for x in fold0[1:]) and all(re.match(r"^已開 \d+／共 \d+$", x[2] or "") for x in fold0), fold0)
+    pg.click("#pmCats .pmcat[data-cat='heatmap'] .pmfoldhd")
+    ok(f"{T}：點「熱力圖」標題 → 展開、看得到它的開關；再點一次收起",
+       pg.locator("#pmCats .pmcat[data-cat='heatmap'] input[data-f='heat.theme']").is_visible()
+       and pg.get_attribute("#pmCats .pmcat[data-cat='heatmap'] .pmfoldhd", "aria-expanded") == "true")
+    pg.click("#pmCats .pmcat[data-cat='heatmap'] .pmfoldhd")
+    ok(f"{T}：（續）收起後開關看不到", not pg.locator("#pmCats .pmcat[data-cat='heatmap'] input[data-f='heat.theme']").is_visible())
+    pg.click("#pmCats .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd")
+    gch = pg.evaluate("""() => [...document.querySelectorAll("#pmCats .pmcat[data-cat='grp'] .grpch")].map(h => [h.dataset.ch, h.nextElementSibling.hidden, h.querySelector('small').textContent])""")
+    ok(f"{T}：展開「族群觀測」→ 產業鏈分組各自收著、各寫「已開 N／共 M」（{len(gch)} 組）",
+       len(gch) >= 3 and all(x[1] for x in gch) and all(re.match(r"^已開 \d+／共 \d+$", x[2]) for x in gch), gch[:4])
+    pg.click("#pmCollapseAll")
+    ok(f"{T}：「全部收合」→ 每一類都收起來", pg.evaluate("() => [...document.querySelectorAll('#pmCats .pmbody')].every(b => b.hidden)"))
+    pg.click("#pmExpandAll")
+    ok(f"{T}：「全部展開」→ 每一類＋每個產業鏈分組都打開、晶圓代工那一列看得到",
+       pg.evaluate("() => [...document.querySelectorAll('#pmCats .pmbody, #pmCats .grpbody')].every(b => !b.hidden)")
+       and pg.locator("#pmCats input[data-f='grp.foundry']").is_visible())
+    n_on = pg.evaluate("() => +/已開 (\\d+)/.exec(document.querySelector(\"#pmCats .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd small\").textContent)[1]")
     pg.click("#pmCats input[data-f='grp.foundry']")
+    n_on2 = pg.evaluate("() => +/已開 (\\d+)/.exec(document.querySelector(\"#pmCats .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd small\").textContent)[1]")
+    ok(f"{T}：撥掉一個族群 → 族群觀測標題的「已開」少 1、展開狀態沒被重設", n_on2 == n_on - 1 and pg.locator("#pmCats input[data-f='grp.foundry']").is_visible(), (n_on, n_on2))
     ok(f"{T}：撥掉「晶圓代工」族群 → 只是草稿（1 項未存）", "1 項" in pg.inner_text("#pmDirty"), pg.inner_text("#pmDirty"))
     with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
         pg.click("#pmSaveGo")
@@ -43241,6 +43279,24 @@ def t_admin_v2(b, base, code):
     wait_until(pg, "() => /799/.test(document.getElementById('ptFor').textContent)", 3000)
     m799 = pg.inner_text("#ptMail")
     ok(f"{T}：點「799 全功能」→ 名單換成 799 的兩位、過期的那位標「過期」", "b799@example.com" in m799 and "c799@example.com" in m799 and "a399@example.com" not in m799 and "過期" in m799, m799[:200])
+    # ★ 2026-10-05 admin-v2b：範本拆成 名稱／價格（整數 NT$）／計費週期；按鈕顯示「名稱・NT$價格/週期」
+    ok(f"{T}：範本按鈕顯示「名稱・NT$價格/週期」", "799 全功能・NT$799/月" in pg.inner_text("#ptPlans button[data-p='p799']"), pg.inner_text("#ptPlans"))
+    ok(f"{T}：選中的範本有 名稱／價格／計費週期 三個欄位，帶入目前值",
+       pg.input_value("#ptEdName") == "799 全功能" and pg.input_value("#ptEdPrice") == "799" and pg.input_value("#ptEdPeriod") == "month")
+    nput = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.fill("#ptEdPrice", "12.5")
+    pg.click("#ptEdSave")
+    ok(f"{T}：價格填小數 → 擋下、不送出", "整數" in pg.inner_text("#pmStat") and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput, pg.inner_text("#pmStat"))
+    pg.fill("#ptEdName", "進階方案")
+    pg.fill("#ptEdPrice", "8990")
+    pg.select_option("#ptEdPeriod", "year")
+    with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
+        pg.click("#ptEdSave")
+    eb = json.loads(ri.value.request.post_data or "{}")
+    ok(f"{T}：改名「進階方案」、價格 8990、週期 年 → plans/put 帶 id 不變（p799）、price=8990、period=year、開關照舊",
+       eb.get("id") == "p799" and eb.get("name") == "進階方案" and eb.get("price") == 8990 and eb.get("period") == "year" and eb.get("feats") == {}, eb)
+    ok(f"{T}：（續）按鈕換成「進階方案・NT$8,990/年」、選中的還是它",
+       bool(wait_until(pg, "() => /進階方案・NT\\$8,990\\/年/.test((document.querySelector('#ptPlans button.on') || {}).textContent || '')", 3000)), pg.inner_text("#ptPlans"))
     pg.fill("#ptNewName", "1299 法人版")
     with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
         pg.click("#ptNewGo")

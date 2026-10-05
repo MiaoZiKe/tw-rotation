@@ -170,3 +170,10 @@ Worker 存在 `ev2(day, page, comp, detail, n)`，只有「每天的次數」，
 | ind_造紙工業 | `grp.ind_x3efb6a56` |
 | ind_油電燃氣業 | `grp.ind_xb9888cd8` |
 | ind_農業科技業 | `grp.ind_xa885935a` |
+
+## 付費範本的價格與計費週期（2026-10-05 admin-v2b）
+
+- 後端 `plans` 表多兩欄：`price`（整數新台幣，0～999999）、`period`（`month`／`year`／`once`）。舊資料庫啟動時用 `PRAGMA table_info` 判斷、`ALTER TABLE ADD COLUMN` 補欄，舊範本補成 `price=0`、`period=month`。
+- `/v1/admin/plans/put`：`price`、`period` 可省略（省略＝沿用原值，只改開關的呼叫不會把價格洗成 0）；帶了就嚴格驗證，錯誤回 `bad_price`／`bad_period`（400），不默默修正。`/v1/admin/plans/get` 每個範本都回 `price`、`period`。
+- 管理區「會員權限 → 付費會員」：選一個範本後可改「名稱」「價格（整數 NT$）」「計費週期（月／年／一次）」，範本按鈕顯示「名稱・NT$價格/週期」。名稱不寫死價格（定價範本預設「免費方案 0／基本方案 399／進階方案 799」，每月）。
+- ★ **金流以 plan id 對價、價格以後端為準。** plan id（例如 `p399`、`p799`、`p<亂數>`）建立後不變，是日後金流（訂單、Webhook）對應方案的鍵；名稱與價格可以隨時改，不影響已指定的會員。前端顯示的價格只是顯示，結帳金額一律由後端依 plan id 查 `plans.price`，不可相信前端送來的金額。
