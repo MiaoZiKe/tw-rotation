@@ -22793,11 +22793,13 @@ def t_live_admin_1006(b, base, code):
         pg.wait_for_timeout(600)
         mk = pg.evaluate("""() => { const r = document.querySelector('#mktMode').closest('.row');
             return { rowVis: r.getClientRects().length > 0, h: Math.round(r.getBoundingClientRect().height), title: (document.getElementById('mktTitle') || {}).textContent || '' }; }""")
-        ok(f"★ [{T}] {who} 市場明細：漲跌家數「盤後／⚡ 即時」整列藏起來（高度 0、不留空白列），標題是盤後", not mk["rowVis"] and mk["h"] == 0 and "盤後" in mk["title"], mk)
+        # 2026-10-06（DECISIONS #328）：標題不再寫「日期 盤後・」→「標題是盤後那一版」改看「沒有即時那一版的『只涵蓋 N 檔』」
+        ok(f"★ [{T}] {who} 市場明細：漲跌家數「盤後／⚡ 即時」整列藏起來（高度 0、不留空白列），標題是盤後那一版",
+           not mk["rowVis"] and mk["h"] == 0 and "漲／" in mk["title"] and "只涵蓋" not in mk["title"], mk)
         pg.evaluate("() => { const x = document.querySelector('#mktMode button[data-m=\"live\"]'); if (x) x.click(); }")
         pg.wait_for_timeout(1500)
         ok(f"[{T}] {who} 市場明細：硬點藏起來的「⚡ 即時」也打不開（狀態列不出現、標題仍是盤後）",
-           pg.evaluate("() => document.getElementById('mktLive').hidden && /盤後/.test(document.getElementById('mktTitle').textContent)"),
+           pg.evaluate("() => document.getElementById('mktLive').hidden && !/只涵蓋/.test(document.getElementById('mktTitle').textContent)"),
            pg.evaluate("() => ({ live: !document.getElementById('mktLive').hidden, t: document.getElementById('mktTitle').textContent.slice(0, 60) })"))
         vis = pg.evaluate(LIVEADM_VIS)
         ok(f"[{T}] {who} 市場明細：看不到任何即時 UI", not vis, vis)
