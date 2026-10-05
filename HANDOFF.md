@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-05 風格規範＋流量觀測重設計（claude/style-guide）
+- 新增 `docs/style_guide.md`（網站預設風格，DECISIONS #322）；`theme4.css` 加類別色 `--cat-*` 與圖表 token；AGENTS／CLAUDE 各加引用。
+- #admin 流量觀測依規範重做（只在預覽 `preview/style-guide`）：副標一行 ≤20 字、長條 12px／列距 28／單色 `--cat-1` 且貼齊副標、甜甜圈 160＋圖例同排、卡片重新配對（甜甜圈↔線上、散佈↔功能）、表格文字一行省略。
+- 新驗收段 `風格規範`（全站規範自動檢查，STYLE_ROUTES＝industry、admin/traffic）；#explore 有 <12px 字未納入（待修）。
+- 這批只驗：流量觀測1005、風格規範、管理區1005、管理區v3、_preview.py。截圖 docs/style_guide_shots/before|after。
+
 
 
 ## 2026-10-05 fix4-2（台北 17:xx）：分頁統一成共用元件 .nbsw（DECISIONS #321）
