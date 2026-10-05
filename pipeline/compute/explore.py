@@ -20,7 +20,15 @@ import pandas as pd
 
 # 欄位順序 ＝ 前端 explore.js 的 COLS（兩邊一起改）
 COLS = ["code", "vol60", "above20", "above60", "ret60", "pe_pct", "pe_n",
-        "dy", "div_years", "buy_days", "net10", "tv20"]
+        "dy", "div_years", "buy_days", "net10", "tv20",
+        # ★ 2026-10-05 第四版（四大面向）新增：籌碼面兩張、消息面兩張卡要的欄位
+        "big_pct", "big_wchg", "mg_chg5", "ret5", "news7", "news_base", "mops7", "conf"]
+
+# 籌碼沉澱與消息熱度的回看窗：都用「最近 N 個有資料的點」而不是日曆天，避免連假讓分母忽大忽小
+MG_N = 5            # 融資餘額 5 個交易日變化
+NEWS_DAYS = 7       # 近 7 日新聞則數
+NEWS_BASE_DAYS = 28  # 基準：之前 28 天的平均每 7 日則數
+CONF_AHEAD = 30     # 法說會：已公告、會議日在今天前 7 天～後 30 天內
 
 # 本益比歷史位置至少要幾季才算數：少於 8 季（兩年）的位置，一兩季的高低就會讓百分位亂跳
 PE_MIN_Q = 8
@@ -99,9 +107,74 @@ def buy_streak(inst: pd.DataFrame | None) -> tuple[int, float | None]:
     return n, _r(float(s.tail(10).sum()) / 1000, 0)
 
 
+def holder_change(sh: pd.DataFrame | None) -> tuple[float | None, float | None]:
+    """千張大戶（集保分級 15：1,000 張以上）持股比例，以及跟上一週相比的變化（百分點）。
+    集保每週公布一次，少於兩週就只給比例、不給變化（不拿 0 冒充「沒變」）。"""
+    if sh is None or not isinstance(sh, pd.DataFrame) or sh.empty or "level" not in sh:
+        return None, None
+    g = sh[pd.to_numeric(sh["level"], errors="coerce") == 15]
+    g = g.assign(pct=pd.to_numeric(g["pct"], errors="coerce")).dropna(subset=["pct"])
+    g = g.drop_duplicates("date", keep="last").sort_values("date")
+    if g.empty:
+        return None, None
+    now = _r(g["pct"].iloc[-1])
+    if len(g) < 2:
+        return now, None
+    return now, _r(float(g["pct"].iloc[-1]) - float(g["pct"].iloc[-2]))
+
+
+def margin_change(mg: pd.DataFrame | None, n: int = MG_N) -> float | None:
+    """融資餘額近 n 個有資料的交易日變化率（%）。融資餘額太小（< 100 張）不算 —— 分母小，一兩張就變動幾十 %。"""
+    if mg is None or not isinstance(mg, pd.DataFrame) or mg.empty or "margin_balance" not in mg:
+        return None
+    s = pd.to_numeric(mg.drop_duplicates("date", keep="last").sort_values("date")["margin_balance"],
+                      errors="coerce").dropna()
+    if len(s) <= n or float(s.iloc[-1 - n]) < 100:
+        return None
+    return _r((float(s.iloc[-1]) / float(s.iloc[-1 - n]) - 1) * 100, 1)
+
+
+def _days_ago(dates, latest: str) -> list[int]:
+    t0 = pd.Timestamp(str(latest)[:10])
+    d = pd.to_datetime(pd.Series(list(dates), dtype="object").astype(str).str[:10], errors="coerce").dropna()
+    return [(t0 - x).days for x in d]
+
+
+def news_counts(dates, latest: str) -> tuple[int, float]:
+    """近 7 日（含今天）提到這檔的新聞則數，以及之前 28 天的「平均每 7 日則數」當基準。
+    未來日期（時區造成的 +1 天）算進近 7 日。"""
+    ago = _days_ago(dates, latest)
+    n7 = sum(1 for a in ago if a < NEWS_DAYS)
+    base = sum(1 for a in ago if NEWS_DAYS <= a < NEWS_DAYS + NEWS_BASE_DAYS)
+    return n7, _r(base / (NEWS_BASE_DAYS / NEWS_DAYS), 2)
+
+
+def mops_recent(rows: list[dict] | None, latest: str) -> tuple[int, str | None]:
+    """近 7 日重大訊息則數，以及「近期法說會」的會議日（公告標題含『法人說明會』或『法說會』，
+    會議日落在今天前 7 天到後 30 天內；有多場取最近一場）。"""
+    rows = rows or []
+    ago = _days_ago([r.get("date") for r in rows], latest)
+    m7 = sum(1 for a in ago if a < NEWS_DAYS)
+    t0 = pd.Timestamp(str(latest)[:10])
+    best = None
+    for r in rows:
+        subj = str(r.get("subject") or "")
+        if "法人說明會" not in subj and "法說會" not in subj:
+            continue
+        occ = pd.to_datetime(str(r.get("occurred") or "")[:10], errors="coerce")
+        if pd.isna(occ):
+            continue
+        delta = (occ - t0).days
+        if -7 <= delta <= CONF_AHEAD and (best is None or abs(delta) < abs((pd.Timestamp(best) - t0).days)):
+            best = occ.strftime("%Y-%m-%d")
+    return m7, best
+
+
 def stock_row(code: str, *, close: pd.Series, ma20, ma60, turnover: pd.Series,
               pe_now, pe_hist, dividends: dict | None, inst: pd.DataFrame | None,
-              this_year: int) -> list:
+              this_year: int, shareholding: pd.DataFrame | None = None,
+              margin: pd.DataFrame | None = None, news_dates=None, mops: list | None = None,
+              latest: str | None = None) -> list:
     """一檔一列（順序照 COLS）。"""
     c = pd.to_numeric(close, errors="coerce").dropna()
     last = float(c.iloc[-1]) if len(c) else None
@@ -117,7 +190,16 @@ def stock_row(code: str, *, close: pd.Series, ma20, ma60, turnover: pd.Series,
     bd, net10 = buy_streak(inst)
     tv = pd.to_numeric(turnover, errors="coerce").dropna().tail(20)
     tv20 = _r(float(tv.mean()) / 1e6, 1) if len(tv) else None      # 百萬元
-    return [code, volatility(c), a20, a60, ret60, pct, n, dy, dyears, bd, net10, tv20]
+    ret5 = None
+    if len(c) > 5 and c.iloc[-6]:
+        ret5 = _r((last / float(c.iloc[-6]) - 1) * 100, 1)
+    big_pct, big_wchg = holder_change(shareholding)
+    mg5 = margin_change(margin)
+    day = latest or ""   # 沒給最新交易日就不算消息面（不拿執行當下日期當交易日，CLAUDE.md 第 3 條）
+    n7, nbase = news_counts(news_dates or [], day) if day else (0, 0)
+    m7, conf = mops_recent(mops, day) if day else (0, None)
+    return [code, volatility(c), a20, a60, ret60, pct, n, dy, dyears, bd, net10, tv20,
+            big_pct, big_wchg, mg5, ret5, n7, nbase, m7, conf]
 
 
 def payload(rows: list[list], asof: str) -> dict:

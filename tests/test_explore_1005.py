@@ -72,3 +72,54 @@ def test_stock_row_order_matches_cols_and_is_json_safe():
         assert not (isinstance(v, float) and (math.isnan(v) or math.isinf(v)))
     p = explore.payload([row], "2026-10-02")
     assert p["cols"] == explore.COLS and p["asof"] == "2026-10-02"
+
+
+# ---------------- 2026-10-05 第四版（四大面向）新增欄位 ----------------
+
+def test_holder_change_uses_level15_week_over_week():
+    sh = pd.DataFrame([
+        {"date": "2026-09-18", "level": 15, "pct": 60.0}, {"date": "2026-09-18", "level": 14, "pct": 5.0},
+        {"date": "2026-09-25", "level": 15, "pct": 61.25}, {"date": "2026-09-25", "level": 14, "pct": 4.0},
+    ])
+    assert explore.holder_change(sh) == (61.25, 1.25)
+    # 只有一週：給比例、不給變化（不拿 0 冒充「沒變」）
+    assert explore.holder_change(sh[sh["date"] == "2026-09-25"]) == (61.25, None)
+    assert explore.holder_change(None) == (None, None)
+
+
+def test_margin_change_five_days_and_small_base_skipped():
+    mg = pd.DataFrame({"date": [f"2026-09-{d:02d}" for d in range(21, 27)],
+                       "margin_balance": [1000, 990, 980, 970, 960, 900]})
+    assert explore.margin_change(mg) == -10.0
+    small = mg.assign(margin_balance=[50, 40, 30, 20, 10, 5])
+    assert explore.margin_change(small) is None      # 分母太小不算
+    assert explore.margin_change(mg.head(4)) is None  # 不足 6 筆
+
+
+def test_news_counts_week_vs_base():
+    latest = "2026-10-05"
+    dates = ["2026-10-05", "2026-10-04", "2026-09-30",            # 近 7 日：3 則
+             "2026-09-27", "2026-09-20", "2026-09-10", "2026-09-08",  # 之前 28 天：4 則 → 每週 1
+             "2026-08-01"]                                         # 太舊，不算
+    assert explore.news_counts(dates, latest) == (3, 1.0)
+
+
+def test_mops_recent_finds_conference_window():
+    latest = "2026-10-05"
+    rows = [
+        {"date": "2026-09-29", "subject": "公告本公司115年第三季法人說明會將於115年10月15日召開", "occurred": "2026-10-15"},
+        {"date": "2026-10-03", "subject": "公告董事會決議發放股利", "occurred": "2026-10-03"},
+        {"date": "2026-06-01", "subject": "法人說明會", "occurred": "2026-06-10"},   # 太久以前
+    ]
+    m7, conf = explore.mops_recent(rows, latest)
+    assert m7 == 2 and conf == "2026-10-15"
+    assert explore.mops_recent([], latest) == (0, None)
+
+
+def test_stock_row_length_matches_cols():
+    px = pd.Series([100.0 + i for i in range(80)])
+    row = explore.stock_row("1234", close=px, ma20=150, ma60=140, turnover=pd.Series([1e8] * 30),
+                            pe_now=None, pe_hist=None, dividends=None, inst=None, this_year=2026,
+                            latest="2026-10-05")
+    assert len(row) == len(explore.COLS)
+    assert row[explore.COLS.index("ret5")] is not None

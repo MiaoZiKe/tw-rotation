@@ -21104,7 +21104,7 @@ def t_explore_1005(pg, base):
         pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
         g = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#slGrid .sl-card')];
             const hs = cs.map(c => c.getBoundingClientRect().height), ws = cs.map(c => c.getBoundingClientRect().width);
-            return {cols: getComputedStyle(document.querySelector('#slGrid')).gridTemplateColumns.split(' ').length,
+            return {cols: getComputedStyle(document.querySelector('#slGrid .sl-grid')).gridTemplateColumns.split(' ').length,
                     dh: Math.max(...hs) - Math.min(...hs), dw: Math.max(...ws) - Math.min(...ws), hs}; }""")
         ok(f"[{tag} {w}] 欄數固定（1440＝3、1100＝2）", g["cols"] == (3 if w == 1440 else 2), g["cols"])
         ok(f"[{tag} {w}] 所有卡片同高同寬（差 ≤ 1px）", g["dh"] <= 1 and g["dw"] <= 1, g)
@@ -21129,6 +21129,33 @@ def t_explore_1005(pg, base):
     pg.click('.sl-chip[data-cat="tech"]'); pg.wait_for_timeout(200)
     n = pg.evaluate("() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => c.dataset.cat)")
     ok(f"[{tag}] 點 Technicals 晶片 → 只剩技術面卡", 0 < len(n) < len(info) and set(n) == {"tech"}, n)
+    # ★ 第四版（Andy：「需要分成以下大族群：基本面、技術面、籌碼面、消息面」）
+    pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
+    q = pg.evaluate("""() => ({chips: [...document.querySelectorAll('.sl-chip')].map(b => [b.dataset.cat, b.firstChild.textContent.trim(), +b.querySelector('em').textContent]),
+        secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => [x.dataset.cat, x.querySelector('.sl-sech').textContent, x.querySelectorAll('.sl-card').length,
+              [...x.querySelectorAll('.sl-card')].every(c => c.dataset.cat === x.dataset.cat)])})""")
+    ok(f"[{tag}] 晶片＝全部｜基本面｜技術面｜籌碼面｜消息面", [c[1] for c in q["chips"]] == ["全部", "基本面", "技術面", "籌碼面", "消息面"], q["chips"])
+    ok(f"[{tag}] 「全部」分四區、依序、每區卡只屬於該區", [x[0] for x in q["secs"]] == ["fund", "tech", "chip", "news"] and all(x[3] for x in q["secs"]), q["secs"])
+    cnt = {c[0]: c[2] for c in q["chips"]}
+    ok(f"[{tag}] 晶片數量＝各區卡數（基本 7／技術 4／籌碼 4／消息 3）", all(cnt[x[0]] == x[2] for x in q["secs"]) and cnt["all"] == sum(x[2] for x in q["secs"])
+       and [cnt[k] for k in ("fund", "tech", "chip", "news")] == [7, 4, 4, 3], [cnt, q["secs"]])
+    for k, ids in (("chip", {"whale", "settle"}), ("news", {"buzz", "conf", "themeup"})):
+        pg.click(f'.sl-chip[data-cat="{k}"]'); pg.wait_for_timeout(200)
+        v = pg.evaluate("""() => ({secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => x.dataset.cat),
+            cards: [...document.querySelectorAll('#slGrid .sl-card')].map(c => [c.dataset.sid, c.querySelectorAll('.sl-row:not(.sl-blank)').length, c.querySelector('.sl-meta').textContent])})""")
+        sids = {c[0] for c in v["cards"]}
+        ok(f"[{tag}] 點「{k}」晶片 → 只剩那一區，且新策略都在", v["secs"] == [k] and ids <= sids, v)
+        ok(f"[{tag}] 「{k}」新策略：有名單或誠實說明（不是空白）", all(c[1] > 0 or ("資料準備中" in c[2] or "符合 0" in c[2]) for c in v["cards"] if c[0] in ids), v["cards"])
+    pg.click('.sl-chip[data-cat="news"]'); pg.wait_for_timeout(200)
+    if pg.is_visible('.sl-card[data-sid="conf"] .sl-rbtn'):
+        pg.click('.sl-card[data-sid="conf"] .sl-rbtn >> nth=0')
+        why = pg.inner_text('#slPop .sl-why') if pg.is_visible('#slPop .sl-why') else ""
+        ok(f"[{tag}] 消息面「近期法說會」點一列 → 原因寫出距會議日", "法說會" in why and "天" in why and "✓" in why, why)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+    pg.click('.sl-card[data-sid="buzz"] .sl-i')
+    src = pg.inner_text('#slPop .sl-info') if pg.is_visible('#slPop .sl-info') else ""
+    ok(f"[{tag}] 消息面 i → 出處寫明新聞來源", "鉅亨" in src and "資料出處" in src, src[:200])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
     pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
     # 原因展開
     hq = "() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => Math.round(c.getBoundingClientRect().height))"

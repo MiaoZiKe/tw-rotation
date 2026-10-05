@@ -141,3 +141,12 @@
 .sl-pop .sl-src dt{color:var(--ink);font-weight:600}
 .sl-pop .sl-src dd{margin:0;overflow-wrap:anywhere;min-width:0}
 .sl-pop .sl-care{color:var(--amber,#ffb454)}
+
+/* ★ 2026-10-05 第四版：四大面向分區（基本面／技術面／籌碼面／消息面）。每區一個區段標題＋該區卡片牆 */
+#v-explore .sl-c-news{color:#ffa45b}
+#v-explore .sl-sec{margin:0 0 22px}
+#v-explore .sl-sech{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:6px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);font-size:17px;color:var(--ink)}
+#v-explore .sl-sech .sl-ici{align-self:center}
+#v-explore .sl-secen{font-size:12px;font-weight:400;color:var(--ink-3)}
+#v-explore .sl-secn{font-style:normal;font-size:12px;font-weight:600;color:var(--cyan);border:1px solid var(--line-2);border-radius:999px;padding:1px 8px}
+#v-explore .sl-sech small{flex-basis:100%;font-size:12.5px;font-weight:400;color:var(--ink-2)}

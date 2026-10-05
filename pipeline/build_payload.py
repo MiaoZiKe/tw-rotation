@@ -892,6 +892,13 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                     "occurred": n.get("occurred"), "detail": n.get("detail"),
                 })
     news_by_code: dict[str, list] = {}
+    # 選股策略「新聞則數激增」要的是**全部**則數的日期，不是個股頁那最新 8 則（explore.news_counts）
+    news_dates_by_code: dict[str, list] = {}
+    # 「近期法說會」要回看所有近期重訊，不只個股頁那 6 則（explore.mops_recent）
+    mops_all_by_code: dict[str, list] = {}
+    if _mops is not None and not _mops.empty:
+        for c, gg in _mops.groupby(_mops["code"].astype(str)):
+            mops_all_by_code[c] = gg[["date", "subject", "occurred"]].to_dict("records")
     if news_df is not None and not news_df.empty:
         # ★ 2026-09-27（Andy：「新聞列表時間要顯示到時分」）：published_at 是 RFC 2822 字串
         #   （"Fri, 11 Sep 2026 00:48:58 +0800"）。以前直接拿字串排序 ＝ 照星期幾的字母排（Fri < Mon < Thu…），
@@ -904,6 +911,9 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         for _, n in _nd.iterrows():
             t = n.get("_ts")
             for c in str(n.get("codes") or "").split(","):
+                if c:
+                    news_dates_by_code.setdefault(c, []).append(
+                        t.strftime("%Y-%m-%d") if pd.notna(t) else n.get("date"))
                 if c and len(news_by_code.setdefault(c, [])) < 8:
                     news_by_code[c].append({"date": t.strftime("%Y-%m-%d") if pd.notna(t) else n.get("date"),
                                             "time": t.strftime("%H:%M") if pd.notna(t) else None,
@@ -1196,7 +1206,9 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             explore_rows.append(explore.stock_row(
                 code, close=ind["close"], ma20=last.get("ma20"), ma60=last.get("ma60"),
                 turnover=g["turnover"], pe_now=row.get("pe"), pe_hist=page.get("pe_history"),
-                dividends=page.get("dividends"), inst=insth_by.get(code), this_year=int(str(latest)[:4])))
+                dividends=page.get("dividends"), inst=insth_by.get(code), this_year=int(str(latest)[:4]),
+                shareholding=shw_by.get(code), margin=mgn_by.get(code),
+                news_dates=news_dates_by_code.get(code), mops=mops_all_by_code.get(code), latest=str(latest)))
         except Exception as exc:  # noqa: BLE001
             log.debug("%s 選股探索欄位失敗：%s", code, exc)
         # 整頁過一次 _clean：任何漏網的 NaN 都會讓瀏覽器 JSON.parse 直接失敗
