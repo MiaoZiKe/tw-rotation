@@ -56,16 +56,17 @@
 #v-admin .admtop select,#v-admin .admtop button{height:32px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
 #v-admin .kpis{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0 10px}
 #v-admin .kpis div{font-size:13px;color:var(--ink-2)}#v-admin .kpis b{display:block;font-size:26px;color:var(--ink);font-family:var(--mono)}
-#v-admin .bars{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:13.5px}
+#v-admin .bars{display:grid;grid-template-columns:minmax(0,10em) minmax(0,1fr) 6.5em;grid-auto-rows:var(--chart-row-h,28px);column-gap:12px;align-items:center;font-size:var(--fs-sm,13px)}
 #v-admin .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#v-admin .bars .bt{height:14px;background:var(--panel-3);border-radius:4px;overflow:hidden}
-#v-admin .bars .bt i{display:block;height:100%;background:var(--cyan);border-radius:4px}
-#v-admin .bars .bn{font-family:var(--mono);text-align:center;min-width:6.2em;font-variant-numeric:tabular-nums}
+#v-admin .bars .bt{height:var(--chart-bar-h,12px);background:var(--panel-3);border-radius:999px;overflow:hidden}
+#v-admin .bars .bt i{display:block;height:100%;background:var(--cat-1,var(--cyan));border-radius:999px}
+#v-admin .bars .bn small{display:inline-block;width:3em;color:var(--ink-2)}
+#v-admin .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 #v-admin .bars button.bl{background:none;border:0;color:var(--ink);text-align:left;font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
-#v-admin .dayplot{display:flex;gap:6px;flex:1;min-height:170px;margin-top:4px}
+#v-admin .dayplot{display:flex;gap:6px;flex:1;min-height:150px;max-height:170px;margin-top:4px}
 #v-admin .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);padding-bottom:0;min-width:3em}
 #v-admin .days{flex:1;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 50%;padding-top:0}
-#v-admin .days i{flex:1;min-width:2px;max-width:28px;background:var(--violet);border-radius:3px 3px 0 0}
+#v-admin .days i{flex:1;min-width:2px;max-width:28px;background:var(--cat-1,var(--cyan));border-radius:3px 3px 0 0}
 #v-admin .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:4px;padding-left:calc(3em + 6px)}
 #v-admin .dayx .dayno{color:var(--ink-3)}
 /* 流量觀測 1005（Andy：圖表版面重排）：總覽卡＝五格 KPI 平均分寬＋右側期間控制；同排卡同高、卡內內容撐滿；所有表格與 KPI 文字置中 */
@@ -79,8 +80,19 @@
 #admBody .admgrid>.card>h3{display:flex;align-items:center;gap:6px;white-space:nowrap}
 #admBody .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--cyan);flex:none}
 #admBody .admgrid>.card>.use{margin:4px 0 10px}
-#admBody .admgrid>.card>.bars,#admBody .admgrid>.card>table,#admBody .admgrid>.card>.donut,#admBody .admgrid>.card>svg.sc{margin-top:auto;margin-bottom:auto}
-#admBody .admgrid>#trDonut .donut{justify-content:center}
+#admBody .admgrid>.card>.donut,#admBody .admgrid>.card>svg.sc{margin-top:auto;margin-bottom:auto}
+#admBody .admgrid>.card>.use{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
+#admBody .admgrid>.card>h3{font-size:var(--fs-h3,16px)}
+#admBody .donut{display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:nowrap}
+#admBody .donut svg{width:var(--chart-donut,160px);height:var(--chart-donut,160px);flex:none}
+#admBody .donut ul{list-style:none;margin:0;padding:0;display:grid;gap:10px;font-size:var(--fs-body,14px)}
+#admBody .donut li{display:flex;align-items:center;gap:8px;white-space:nowrap}
+#admBody .donut li i{width:12px;height:12px;border-radius:3px;flex:none}
+#admBody .donut li b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#admBody .donut li small{color:var(--ink-2)}
+#admBody svg.sc{max-height:200px}#admBody svg.sc text{font-size:12px;fill:var(--ink-2)}#admBody svg.sc text.lb{fill:var(--ink)}
+#admBody table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+#admBody table td:first-child{max-width:none}
 #admBody .kpis>div,#admBody table th,#admBody table td{text-align:center}
 #admBody .bars .bl,#admBody .bars button.bl{text-align:center}
 #admBody .kpis{justify-content:center}
@@ -569,21 +581,21 @@
           <button type="button" id="admRefresh">重新整理</button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
       <div class="admgrid">
-        <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use">${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。</p>${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div>
-        <div class="card" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use">每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。</p>
+        <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use" title="${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。">${S.days} 天各頁瀏覽・點一頁看明細</p>${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div>
+        <div class="card" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。">每天的頁面瀏覽總次數</p>
           ${dayChart(days, perDay, dmax)}</div>
-        <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use">個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。</p>
+        <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use" title="個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。">個股頁被打開次數，前 10 名</p>
           ${bars(topV.map((r) => [r.detail, r.n]), stockNm, 0, { id: 'trStockBars' })}</div>
-        <div class="card" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use">上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。</p>
+        <div class="card" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use" title="上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。">前 10 檔各自最常用的三個功能</p>
           ${featRows.length ? `<table><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td>${esc(stockNm(r.code))}</td><td>${nf(r.views)}</td><td>${r.top.length ? r.top.map((x) => `${esc(compName(x.comp))} <small style="color:var(--ink-2)">${nf(x.n)}</small>`).join('・') : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div>
-        <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use">散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。</p>${scatter(scat)}</div>
-        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use">只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。</p>${donut([['登入狀態', loginSess, 'var(--cyan)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--violet)']])}</div>
-        <div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use">最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。</p>
+        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。">開啟網站時是否已登入</p>${donut([['登入', loginSess, 'var(--cat-1)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--cat-2)']])}</div>
+        <div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use" title="最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。">近 2.5 分鐘有動作・30 秒更新</p>
           <div class="kpis"><div><b id="admOnN">${on.total}</b>在線（分頁數）</div><div><b>${on.users.length}</b>登入者</div><div><b>${on.guests}</b>訪客</div></div>
           ${on.users.length ? `<table><thead><tr><th>名稱</th><th>email</th><th>在看</th><th>最後動作</th></tr></thead><tbody>${on.users.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(VIEW_NAME[u.route] || u.route)}</td><td>${ago(u.seen)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">目前沒有登入者在線上。</div>'}
           <label class="tg" style="margin-top:12px"><input type="checkbox" id="admPub" ${on.public_online ? 'checked' : ''}>一般訪客看得到「目前 N 人在線」（只有總數，看不到名字）</label></div>
-        <div class="card" id="admEv"><h3>哪個功能最常被用？（全站）</h3><p class="use">${S.days} 天內每個功能被按的總次數（不分頁）。分頁裡的細節看下面「分頁明細」。</p>${bars(evList, EV_NAME, 0)}</div>
-        <div class="card" id="admUsers" style="grid-column:1 / -1"><h3>最近有哪些會員來過？</h3><p class="use">共 ${st.users.total} 位；依最後使用時間排序（最多列 50 位）。要新增、設到期日、看造訪次數，到「會員管理」。</p>
+        <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use" title="散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。">右上＝熱門又被深度使用</p>${scatter(scat)}</div>
+        <div class="card" id="admEv"><h3>哪個功能最常被用？（全站）</h3><p class="use" title="${S.days} 天內每個功能被按的總次數（不分頁）。分頁裡的細節看下面「分頁明細」。">${S.days} 天內每個功能被按的總次數</p>${bars(evList, EV_NAME, 0)}</div>
+        <div class="card" id="admUsers" style="grid-column:1 / -1"><h3>最近有哪些會員來過？</h3><p class="use" title="依最後使用時間排序（最多列 50 位）。要新增、設到期日、看造訪次數，到「會員管理」。">共 ${st.users.total} 位・依最後使用排序</p>
           ${st.users.recent.length ? `<table><thead><tr><th>名稱</th><th>email</th><th>加入</th><th>最後使用（台北）</th></tr></thead><tbody>${st.users.recent.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${dstr(u.created)}</td><td>${dstr(u.seen)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">還沒有會員。</div>'}</div>
       </div>
       <div class="secttl" id="trDetailTtl"><h2>分頁明細</h2><small>選一頁，看那一頁的每個元件被用幾次、細項（哪個族群、哪一檔）是誰</small></div>
@@ -639,17 +651,19 @@
       <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--line-2)"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--line-2)"/>
       <text x="${W - R}" y="${H - 8}" text-anchor="end">被觀看次數 →（最多 ${nf(xm)}）</text><text x="6" y="${T + 4}" transform="rotate(90 6 ${T + 4})">每次觀看用幾次功能 →</text>
       <text x="${L - 4}" y="${H - B + 14}" text-anchor="end">0</text><text x="${L - 4}" y="${T + 10}" text-anchor="end">${ym.toFixed(1)}</text>
-      ${pts.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="5" fill="var(--cyan)" fill-opacity=".75"><title>${esc(p.code)}：觀看 ${p.x}、平均 ${p.y.toFixed(2)} 次功能</title></circle>`
+      ${pts.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="5" fill="var(--cat-1)" fill-opacity=".8"><title>${esc(p.code)}：觀看 ${p.x}、平均 ${p.y.toFixed(2)} 次功能</title></circle>`
         + (lab.includes(p.code) ? `<text class="lb" x="${(X(p.x) > W - 70 ? X(p.x) - 7 : X(p.x) + 7).toFixed(1)}" y="${(Y(p.y) + 4).toFixed(1)}" text-anchor="${X(p.x) > W - 70 ? 'end' : 'start'}">${esc(p.code)}</text>` : '')).join('')}</svg>`;
   }
   function donut(parts) {
     const tot = parts.reduce((s, p) => s + p[1], 0);
     if (!tot) return '<div class="empty">這段期間還沒有開啟紀錄。</div>';
-    const r = 44, c = 2 * Math.PI * r; let off = 0;
-    const arcs = parts.map(([, n, col]) => { const len = n / tot * c; const s = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="20" stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`; off += len; return s; }).join('');
-    return `<div class="donut"><svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="登入與訪客比例">${arcs}<text x="60" y="65" text-anchor="middle" style="font-size:16px;font-weight:700;fill:var(--ink)">${Math.round(parts[0][1] / tot * 100)}%</text></svg>
-      <ul>${parts.map(([nm, n, col]) => `<li><i style="background:${col}"></i>${esc(nm)}　<b>${nf(n)}</b>（${Math.round(n / tot * 100)}%）</li>`).join('')}</ul></div>`;
+    /* 規範：外徑 160、環寬 22（viewBox 120 → r 46／寬 16.5）、12 點鐘起順時針、中心＝第一類佔比＋名稱、圖例同排在右 */
+    const r = 46, w = 16.5, c = 2 * Math.PI * r; let off = 0;
+    const arcs = parts.map(([, n, col]) => { const len = n / tot * c; const s = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="${w}" stroke-dasharray="${Math.max(0, len - 1).toFixed(2)} ${(c - Math.max(0, len - 1)).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`; off += len; return s; }).join('');
+    return `<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${esc(parts.map((p) => p[0]).join('與'))}比例"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--panel-3)" stroke-width="${w}"/>${arcs}<text x="60" y="61" text-anchor="middle" style="font-size:20px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${Math.round(parts[0][1] / tot * 100)}%</text><text x="60" y="78" text-anchor="middle" style="font-size:10px;fill:var(--ink-2)">${esc(parts[0][0])}</text></svg>
+      <ul>${parts.map(([nm, n, col]) => `<li><i style="background:${col}"></i>${esc(nm)}<b>${nf(n)}</b><small>${Math.round(n / tot * 100)}%</small></li>`).join('')}</ul></div>`;
   }
+
 
   /* ==========================================================================
      #admin/perm 會員權限 與 #admin/members 會員管理 —— admin-v3（2026-10-05）簡化版

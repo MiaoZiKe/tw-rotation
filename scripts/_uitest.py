@@ -21802,6 +21802,7 @@ SECTIONS = {
     # ★ 2026-10-05（admin-v3）Andy：「弄得好複雜，看了不清楚」—— 三個大分頁＋子分頁、每個功能的瀏覽次數、會員名單、升級鈕、訂閱頁同步、客服鈕半透明
     "管理區v3":            lambda pg, b, base, code: t_admin_v3(b, base, code),
     "流量觀測1005":        lambda pg, b, base, code: t_traffic_1005(b, base, code),
+    "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
@@ -44611,7 +44612,7 @@ def t_traffic_1005(b, base, code):
         pg.select_option("#admDaysSel", "30")
         wait_until(pg, "() => /30 天/.test(document.getElementById('admPv').textContent)", 4000)
         # 同排同高
-        hh = pg.evaluate("""() => [['admPv','admDays'],['trStockTop','trStockFeat'],['trScatter','trDonut'],['admOnline','admEv']].map(([a,b]) => { const x = document.getElementById(a).getBoundingClientRect(), y = document.getElementById(b).getBoundingClientRect();
+        hh = pg.evaluate("""() => [['admPv','admDays'],['trStockTop','trStockFeat'],['trDonut','admOnline'],['trScatter','admEv']].map(([a,b]) => { const x = document.getElementById(a).getBoundingClientRect(), y = document.getElementById(b).getBoundingClientRect();
             return [a, Math.round(x.height), Math.round(y.height), Math.round(x.top - y.top), Math.round(x.width - y.width)]; })""")
         ok(f"{TT}：同一排的兩張卡等高、頂端對齊、欄寬一致（差 ≤ 1px）", all(abs(r[1] - r[2]) <= 1 and abs(r[3]) <= 1 and abs(r[4]) <= 1 for r in hh), hh)
         d = pg.evaluate("""() => { const c = document.getElementById('admDayBars'), bars = [...c.querySelectorAll('i')], y = [...document.querySelectorAll('#admDays .dayy span')].map(s => s.textContent.trim()),
@@ -44636,6 +44637,23 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：甜甜圈在卡片水平置中（偏差 ≤ 12px）", dn["off"] <= 12, dn)
         ok(f"{TT}：流量觀測內沒有小於 12px 的文字", pg.evaluate("() => [...document.querySelectorAll('#admBody *')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('svg') && parseFloat(getComputedStyle(e).fontSize) < 12).length") == 0)
         ok(f"{TT}：1440 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
+        # ★ 2026-10-05 風格規範（docs/style_guide.md）：重設計後的規格斷言
+        sg = pg.evaluate("""() => { const q = (s) => [...document.querySelectorAll(s)], cs = (e) => getComputedStyle(e), root = cs(document.documentElement);
+            const tok = (n) => root.getPropertyValue(n).trim();
+            const fill = q('#admBody .bars .bt i').map(i => cs(i).backgroundColor), cat1 = (() => { const d = document.createElement('i'); d.style.background = 'var(--cat-1)'; document.body.appendChild(d); const c = cs(d).backgroundColor; d.remove(); return c; })();
+            const bt = q('#admBody .bars .bt').map(e => Math.round(e.getBoundingClientRect().height)), rows = q('#trPvBars .bl').map(e => Math.round(e.getBoundingClientRect().top));
+            const use = q('#admBody .admgrid>.card>.use').map(e => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height), tip: !!e.title }));
+            const dn = document.querySelector('#trDonut .donut svg').getBoundingClientRect(), lg = document.querySelector('#trDonut .donut ul').getBoundingClientRect();
+            const h3 = q('#admBody .admgrid>.card>h3').map(e => parseFloat(cs(e).fontSize));
+            const pvTop = document.querySelector('#trPvBars').getBoundingClientRect().top - document.querySelector('#admPv .use').getBoundingClientRect().bottom;
+            return { toks: ['--cat-1','--cat-2','--cat-other','--chart-bar-h','--chart-row-h','--chart-donut'].map(tok), fill: [...new Set(fill)], cat1, bt: [...new Set(bt)], step: rows.length > 1 ? rows[1] - rows[0] : 0, use, dn: [Math.round(dn.width), Math.round(dn.top + dn.height / 2), Math.round(lg.top + lg.height / 2), Math.round(lg.left - dn.right)], h3: [...new Set(h3)], pvTop: Math.round(pvTop),
+                     dcol: q('#trDonut .donut li i').map(i => i.style.background) }; }""")
+        ok(f"{TT}：規範 token 都有定義（--cat-1／--cat-2／--cat-other／--chart-bar-h／--chart-row-h／--chart-donut）", all(sg["toks"]), sg["toks"])
+        ok(f"{TT}：長條一律類別色 1（同一系列同一色）、條粗 12px、列距 28px", sg["fill"] == [sg["cat1"]] and sg["bt"] == [12] and sg["step"] == 28, sg)
+        ok(f"{TT}：卡片副標一行（≤ 20 字、高 ≤ 22px）、完整說明在滑過提示", all(len(u["t"]) <= 20 and u["h"] <= 22 and u["tip"] for u in sg["use"]) and len(sg["use"]) == 9, sg["use"])
+        ok(f"{TT}：卡片標題同一字級 16px", sg["h3"] == [16.0], sg["h3"])
+        ok(f"{TT}：甜甜圈外徑 160、圖例同一排在右邊（垂直中心差 ≤ 6px、間距 ≥ 16px）、配色＝類別色 1／2", sg["dn"][0] == 160 and abs(sg["dn"][1] - sg["dn"][2]) <= 6 and sg["dn"][3] >= 16 and sg["dcol"] == ["var(--cat-1)", "var(--cat-2)"], sg)
+        ok(f"{TT}：長條圖緊接在副標下方（不浮在卡片中間，間距 ≤ 16px）", 0 <= sg["pvTop"] <= 16, sg["pvTop"])
         shot = os.environ.get("TRAFFIC_SHOT")
         if shot:
             pg.screenshot(path=f"{shot}/traffic_{theme}_1440.png", full_page=True)
@@ -48748,5 +48766,40 @@ def t_stock_tabjump_1004(pg, base):
                 ok(f"★ {T} {W}px {code} {nm}：分頁列 top 前後差 ≤ 2px（{t0} → {t1}）、分頁真的換了", abs(t1 - t0) <= 2 and on == to, (t0, t1, on, h0))
     pg.set_viewport_size({"width": 1440, "height": 1000})
 
+# ===================================================================== 風格規範（2026-10-05，docs/style_guide.md 的自動檢查）
+# Andy 10-05：「我要求不是很多，但該有的細節／制度要有」。這段把規範裡可量測的條目變成紅燈：
+# 字級下限 12、分頁一律 .nbsw 且字級＝產業地圖、分頁文字置中、分頁文字一行、同排卡片同高、左側欄圖示有上色。
+# 範圍：已套用規範的頁面（產業地圖、流量觀測、選股策略）。新頁照規範開發完要把路由加進 STYLE_ROUTES。
+STYLE_ROUTES = ["industry", "admin/traffic"]
+# ⚠ #explore（選股策略）10-05 量到 12px 以下的字（.sl-en 英文副標、卡內 small「營收年增」）——它的分支在別人手上，修完再加回來
+def t_style_guide(b, base, code):
+    T = "風格規範"
+    c, _ = _adm2_ctx(b)
+    pg = c.new_page()
+    pg.goto(base + "#industry", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('.nbsw button, .nbsw a')", 12000)
+    ref = pg.evaluate("() => { const e = document.querySelector('.nbsw button, .nbsw a'), s = getComputedStyle(e); return [s.fontSize, s.height]; }")
+    for r in STYLE_ROUTES:
+        pg.goto(base + "#" + r, wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+        m = pg.evaluate("""() => { const vis = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+            const main = document.querySelector('main') || document.body;
+            const small = [...main.querySelectorAll('*')].filter(e => vis(e) && !e.closest('svg,canvas,.echarts,[_echarts_instance_],.tv-lightweight-charts,sup,sub') && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 12).map(e => e.tagName + '.' + e.className + ':' + e.textContent.trim().slice(0, 12));
+            const tabs = [...main.querySelectorAll('.nbsw:not(.lv2)>button, .nbsw:not(.lv2)>a')].filter(vis);
+            const tabBad = tabs.filter(e => { const s = getComputedStyle(e); return s.justifyContent !== 'center' && s.textAlign !== 'center' || s.whiteSpace !== 'nowrap' && e.getClientRects().length && e.scrollHeight > e.clientHeight + 2; }).map(e => e.textContent.trim());
+            const fonts = [...new Set(tabs.map(e => getComputedStyle(e).fontSize))];
+            const oldTabs = [...main.querySelectorAll('.ptabs, .seg:not(.nbsw)')].filter(vis).length;
+            const icons = [...document.querySelectorAll('nav svg, aside svg')].filter(vis).filter(s => { const c = getComputedStyle(s); return (c.color === 'rgb(0, 0, 0)' && (c.stroke === 'none' || !c.stroke)) ; }).length;
+            const rowsBad = []; [...main.querySelectorAll('.admgrid, .gpgrid')].forEach(g => { const kids = [...g.children].filter(vis), byTop = {}; kids.forEach(k => { const t = Math.round(k.getBoundingClientRect().top); (byTop[t] = byTop[t] || []).push(Math.round(k.getBoundingClientRect().height)); });
+              Object.values(byTop).forEach(hs => { if (Math.max(...hs) - Math.min(...hs) > 1) rowsBad.push(hs); }); });
+            return { small: small.slice(0, 6), nSmall: small.length, tabBad, fonts, oldTabs, icons, rowsBad }; }""")
+        ok(f"{T} #{r}：沒有小於 12px 的文字（圖表內除外）", m["nSmall"] == 0, m["small"])
+        ok(f"{T} #{r}：一層分頁一律 .nbsw、字級＝產業地圖（{ref[0]}）、文字置中一行", (not m["fonts"] or m["fonts"] == [ref[0]]) and not m["tabBad"], m)
+        ok(f"{T} #{r}：沒有舊式自寫分頁（.ptabs／非 .nbsw 的 .seg）", m["oldTabs"] == 0, m["oldTabs"])
+        ok(f"{T} #{r}：同一排卡片同高（差 ≤ 1px）", not m["rowsBad"], m["rowsBad"])
+        ok(f"{T} #{r}：左側欄與導覽圖示都有上色（不是預設黑）", m["icons"] == 0, m["icons"])
+    c.close()
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
+
