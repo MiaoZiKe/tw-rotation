@@ -1,8 +1,8 @@
 /* ============================================================================
    管理區 #admin（只有管理者看得到）—— 2026-10-05 admin-v2 改版（Andy A～E）
    三個子分頁，用網址分（上一頁回得來、可以直接貼網址），頁內頂部一排 tab 切換：
-     #admin/perm      會員權限：訪客｜註冊會員｜付費會員（付費底下可有多個範本，例如 399／799）
-                      每一層：① 開放功能表（features.js 的開關）② 族群觀測 ③ Mail 人員名單（訪客沒有名單）
+     #admin/perm      會員權限（admin-v3 簡化）：訪客｜註冊會員｜付費會員 三個大分頁＋「＋」新增付費範本；
+                      每頁兩個子分頁「觀看權限」（開放功能表＋族群觀測，每個功能一格每日瀏覽次數）「會員名單」（訪客改放流量摘要）
      #admin/members   會員管理：新增會員（email＋層級／範本＋到期日）、所有人員狀況表（可搜尋、排序）、點一列逐項微調
      #admin/traffic   流量觀測：全站總覽（各頁瀏覽、「?」總數、個股被觀看 Top N、熱門個股最常用的功能）＋分頁明細
      #admin           ＝ 流量觀測（舊網址：線上人數徽章、帳號選單都還指著它）
@@ -150,7 +150,6 @@
 #v-admin label.psw input:disabled{cursor:not-allowed}
 #v-admin .pmrow select{height:30px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 8px}
 #v-admin table.pmlist{table-layout:fixed;width:100%}#v-admin .pmlist th,#v-admin .pmlist td{white-space:normal!important;overflow-wrap:anywhere}
-#v-admin .pmlist th:nth-child(1){width:26%}
 #v-admin .pmlist th[data-sort]{cursor:pointer;user-select:none}#v-admin .pmlist th[data-sort]:hover{color:var(--ink)}
 #v-admin .pmlist th.sorted{color:var(--ink);font-weight:700}
 #v-admin .pmlist td small{display:block;font-size:12px;color:var(--ink-2)}#v-admin .pmlist tr.on td{background:color-mix(in srgb,var(--cyan) 12%,transparent)}
@@ -181,7 +180,47 @@
 #v-admin svg.sc text{font-size:12px;fill:var(--ink-2)}#v-admin svg.sc .lb{fill:var(--ink);font-size:12px}
 @media (max-width:1180px){#v-admin .admgrid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:820px){ #v-admin .admgrid,#v-admin .admgrid3,#v-admin .cdgrid{grid-template-columns:minmax(0,1fr)} #v-admin .bars{grid-template-columns:minmax(0,8em) minmax(0,1fr) auto} #v-admin .pmsave{bottom:72px} }
-@media (max-width:600px){#v-admin .pmlist .c-exp,#v-admin .pmlist .c-n,#v-admin .pmlist .c-vis,#v-admin .pmlist .c-tpl{display:none}}`;
+@media (max-width:600px){#v-admin .pmlist .c-exp,#v-admin .pmlist .c-n,#v-admin .pmlist .c-vis,#v-admin .pmlist .c-tpl{display:none}}
+/* ---- admin-v3：三個大分頁＋子分頁、每列瀏覽次數、會員名單（memTable）---- */
+#v-admin .ptsub{display:flex;gap:4px;margin:12px 0 0;border-bottom:1px solid var(--line-2)}
+#v-admin .ptsub[hidden]{display:none}
+#v-admin .ptsub button{height:36px;padding:0 16px;font-size:14.5px;background:none;border:0;border-bottom:3px solid transparent;color:var(--ink-2);cursor:pointer;margin-bottom:-1px}
+#v-admin .ptsub button.on{color:var(--ink);border-bottom-color:var(--cyan);font-weight:700}
+#v-admin .ptsub button small{font-family:var(--mono);font-size:12px;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--panel-3)}
+#v-admin .ptpick select{max-width:min(100%,360px)}#v-admin .ptwho{font-size:12.5px;color:var(--ink-2);flex:1 1 220px}
+#v-admin .pmlimhelp{margin:4px 0 0}
+#v-admin #pmCats.card:has(.pmrow.wlim){grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))}
+#v-admin .pmrow.wlim{grid-template-columns:auto minmax(0,1fr) auto auto}
+#v-admin .pmlimc{display:flex;justify-content:flex-end;min-width:96px}
+#v-admin .pmlimw{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-2)}
+#v-admin .pmlimw input{width:64px;height:28px;font:13px var(--mono);text-align:right;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:7px;padding:0 6px}
+#v-admin .pmlimw input::placeholder{color:var(--ink-3,#7a879c);font-family:inherit}
+#v-admin .pmlimw input.bad{border-color:#ff6b7a;box-shadow:0 0 0 1px #ff6b7a}
+#v-admin .pmlimw.zero input{border-color:color-mix(in srgb,#ff6b7a 70%,transparent);color:#ff6b7a}
+#v-admin .pmlimhd{font-size:12px;color:var(--ink-2);margin-left:auto;padding-left:8px;white-space:nowrap}
+#v-admin .pmcathd .pmlimhd{flex:none}
+#v-admin table.memtbl{table-layout:auto;font-size:13px}
+#v-admin .memtbl th{white-space:nowrap!important}
+#v-admin .memtbl td{vertical-align:top}
+#v-admin .memtbl td.c-who b{font-weight:600;overflow-wrap:anywhere}
+#v-admin .memtbl td.c-who .car{color:var(--ink-2);margin-right:4px}
+#v-admin .memtbl tr.paid td.c-who{box-shadow:inset 3px 0 0 #e8b54a}
+#v-admin .pdbadge{display:inline-block;margin-top:3px;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;color:#2a1a00;background:linear-gradient(135deg,#ffd86b,#e8a93a);white-space:nowrap}
+#v-admin .pdbadge.off{background:var(--panel-3);color:var(--ink-2);font-weight:500}
+#v-admin .mchip{display:inline-flex;align-items:center;gap:4px;margin:0 4px 3px 0;padding:1px 7px;border-radius:8px;background:var(--panel-3);font-size:12px;white-space:nowrap}
+#v-admin .mchip i{font-style:normal;font-family:var(--mono);color:var(--ink-2)}
+#v-admin .mdim{color:var(--ink-3,#7a879c)}
+#v-admin tr.pmdet td{background:color-mix(in srgb,var(--panel-2) 60%,transparent);cursor:default;padding:10px 12px}
+#v-admin .mdet h4{margin:0 0 6px;font-size:13.5px}
+#v-admin .mdgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+#v-admin .mdays{display:flex;align-items:flex-end;gap:3px;height:70px;border-bottom:1px solid var(--line)}
+#v-admin .mdays i{flex:1;background:var(--cyan);border-radius:3px 3px 0 0;min-width:4px}
+#v-admin .bars.sm{grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;font-size:12.5px;gap:4px 8px}
+#v-admin .bars.sm .bt{height:10px}
+@media (max-width:1320px){#v-admin .memtbl .c-cr{display:none}}
+@media (max-width:1180px){#v-admin .memtbl .c-stk,#v-admin .memtbl .c-vw{display:none}#v-admin .mdgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){#v-admin .memtbl .c-feat,#v-admin .memtbl .c-on,#v-admin .memtbl .c-seen{display:none}}
+@media (max-width:600px){#v-admin .memtbl .c-tpl,#v-admin .memtbl .c-exp,#v-admin .memtbl .c-vis{display:none}#v-admin .mdgrid{grid-template-columns:minmax(0,1fr)}#v-admin .pmrow.wlim{grid-template-columns:auto minmax(0,1fr) auto}#v-admin .pmrow.wlim .pmside{display:none}}`;
     document.head.appendChild(s);
   }
   const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? s + ' 秒前' : Math.round(s / 60) + ' 分前'; };
@@ -351,29 +390,28 @@
   }
 
   /* ==========================================================================
-     #admin/perm 會員權限（層級 × 開放功能表 × Mail 名單）與 #admin/members 會員管理（新增、人員狀況、逐人微調）
-     資料怎麼合：features.js 的預設值 ← 方案範本 ← 個別微調（後面蓋前面）；到期日過了就退回「免費會員」（Worker 端判斷）。
-     層級對照：訪客＝內建範本 guest；註冊會員＝內建範本 free；付費會員＝其他所有（自建）範本，例如 399、799。
-     撥開關只是「草稿」，按底部「儲存」才送出，「取消」整批放棄；有沒存的變更時，換人／換層級／換分頁／關分頁都會先問一次。
-     範本只存「跟預設不同」的項目、微調只存「跟範本不同」的項目 —— 之後新增功能時，沒人設過的一律照預設（開），不會突然鎖住誰。
+     #admin/perm 會員權限 與 #admin/members 會員管理 —— admin-v3（2026-10-05）簡化版
+     Andy 看了 admin-v2 預覽：「弄得好複雜，看了不清楚」。改成：
+       · 頂部只有三個大分頁：訪客｜註冊會員｜付費會員，旁邊一顆「＋」新增付費範本（名稱、價格 NT$、月訂閱或年訂閱）。
+       · 付費會員分頁裡有多個範本時，用一個下拉選範本；名稱／價格／週期與「刪除」收在「⚙ 範本設定」裡（不再一大排按鈕）。
+         拿掉：另存成新範本、一次建立定價範本、每個付費範本各一個大頁籤。
+       · 每個分頁（付費會員＝每個範本）裡只有兩個子分頁：「觀看權限」「會員名單」（訪客沒有名單，改放訪客流量摘要）。
+         觀看權限＝開放功能表（一張大卡、細線分隔、不收合）＋族群觀測（可收合）；**每個功能後面一格「瀏覽次數」**（每日上限，
+         留空＝不限、0＝不能看；存在範本的 lims，套用在 perm.js／quota.js）。
+         會員名單＝跟「會員管理」共用的名單元件（memTable）：付費會員金色徽章、加入／到期、最後上線、累計在線、
+         近 30 天造訪、觀看次數、最常用的功能 Top3、最常看的股票 Top3、狀態；點一列原地展開那個人的使用明細。
+     資料怎麼合：features.js 的預設值 ← 方案範本 ← 個別微調（後面蓋前面）；到期日過了就退回「註冊會員」（Worker 端判斷）。
+     撥開關、改次數只是「草稿」，按底部「儲存」才送出，「取消」整批放棄；有沒存的變更時，換分頁／換範本／換人都會先問一次。
+     範本只存「跟預設不同」的項目、微調只存「跟範本不同」的項目 —— 之後新增功能時，沒人設過的一律照預設（開、不限）。
      ========================================================================== */
-  const PS = { mode: 'member', tab: 'members', tier: 'guest', email: '', rec: null, plans: [], planSel: 'guest', list: null, confirmDel: false, A: null, v: null, seq: 0, draft: null, q: '',
-    sort: 'seen', dir: -1, stf: '' };
+  const PS = { mode: 'member', tab: 'members', tier: 'guest', sub: 'perm', email: '', rec: null, plans: [], planSel: 'guest', list: null, mem: null,
+    confirmDel: false, A: null, v: null, seq: 0, draft: null, q: '', sort: 'seen', dir: -1, stf: '', adding: false, cfg: false, exp: new Set(), det: {} };
   const FT = () => window.TwFeatures;
   const tpeTime = () => new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(11, 19);
-  /* 定價規劃（docs/commercialization_plan.md：免費／399／799）對應的範本。只「建立範本」，不套用到任何人、不改內建的「訪客」「免費會員」。*/
-  /* 2026-10-05（admin-v2b，Andy：價格要可調整、之後綁金流）：名稱不再寫死價格，價格與計費週期是範本自己的欄位（後端 plans.price／period）。
-     id（p399／p799）建立後不變，是日後金流對應的鍵 —— 名稱、價格怎麼改都不影響已經指定的會員。 */
-  const PRICE_TPL = [
-    { id: 'pfree', name: '免費方案', price: 0, period: 'month', off: ['live.tick', 'stock.tick', 'stock.k_min', 'stock.k_hour', 'ov.theme', 'heat.theme', 'heat.detail', 'ind.groups', 'ind.diagram', 'ind.3d', 'ind.rel'] },
-    { id: 'p399', name: '基本方案', price: 399, period: 'month', off: ['ov.theme', 'heat.theme', 'heat.detail', 'ind.groups', 'ind.diagram', 'ind.3d', 'ind.rel'] },
-    { id: 'p799', name: '進階方案', price: 799, period: 'month', off: [] },
-  ];
   const PERIOD = { month: '月', year: '年', once: '一次' };
-  /* 「基本方案・NT$399/月」；一次付清寫「NT$399（一次）」；沒有價格欄（舊 Worker）就只寫名稱 */
+  /* 「基本方案・NT$399/月」；一次付清（舊資料）寫「NT$399（一次）」；沒有價格欄（舊 Worker）就只寫名稱 */
   const priceTxt = (p) => (p && Number.isInteger(p.price) ? `NT$${p.price.toLocaleString('en-US')}${p.period === 'once' ? '（一次）' : '/' + (PERIOD[p.period] || '月')}` : '');
   const planLabel = (p) => (p ? p.name + (priceTxt(p) ? '・' + priceTxt(p) : '') : '');
-  const TIER = [['guest', '訪客', '沒登入的人'], ['free', '註冊會員', '登入後沒被指定付費範本的人'], ['paid', '付費會員', '被指定付費範本的人']];
   function loadFeatures() {
     const grp = () => (FT() && !FT().inCat('grp').length ? fetch('data/groups_today.json').then((r) => (r.ok ? r.json() : [])).then((d) => { FT().addGroups(Array.isArray(d) ? d : []); }).catch(() => {}) : Promise.resolve());
     if (window.TwFeatures) return grp();
@@ -403,10 +441,13 @@
     if (PS.rec) Object.assign(o, mOver());
     return o;
   }
+  /* 瀏覽次數上限（只有範本有；逐人微調不改上限 —— 人跟著範本走，Worker 的 /v1/perm/me 也是回範本的 lims）*/
+  const savedLims = () => ((planOf(PS.planSel) || {}).lims || {});
+  const curLims = () => (PS.draft && PS.draft.lims) || savedLims();
   const diffKeys = (a, b) => new Set([...Object.keys(a || {}), ...Object.keys(b || {})].filter((k) => (a || {})[k] !== (b || {})[k])).size;
   function dirtyN() {
     const d = PS.draft; if (!d) return 0;
-    if (PS.mode === 'plan') { const p = planOf(PS.planSel); return diffKeys((p && p.feats) || {}, d.feats || {}); }
+    if (PS.mode === 'plan') { const p = planOf(PS.planSel) || {}; return diffKeys(p.feats || {}, d.feats || {}) + diffKeys(p.lims || {}, d.lims || {}); }
     if (!PS.rec) return 0;
     return (d.plan !== PS.rec.plan ? 1 : 0) + ((d.expires !== undefined && (d.expires || 0) !== (PS.rec.expires || 0)) ? 1 : 0) + diffKeys(PS.rec.over || {}, d.over || {});
   }
@@ -417,7 +458,7 @@
   }
   window.addEventListener('beforeunload', (e) => { if (/^#admin\/(perm|members)\b/.test(location.hash || '') && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
   function setStat(msg, cls) { const s = PS.v && PS.v.querySelector('#pmStat'); if (s) { s.textContent = msg; s.className = 'pmstat' + (cls ? ' ' + cls : ''); } }
-  const ERR = { forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年／一次' };
+  const ERR = { forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年' };
   const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s));
   const EMAIL_OK = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   /* 到期日：畫面上是台北日期（yyyy-mm-dd），存的是「那一天台北 23:59:59」的毫秒 */
@@ -425,51 +466,60 @@
   const msToDate = (ms) => (ms ? new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10) : '');
   const honest = `<div class="card" style="margin-top:14px"><h3>這個鎖頭擋得住什麼？</h3><p class="pmwarn">鎖頭只擋一般使用者的畫面。這個網站是 GitHub Pages 靜態站，資料檔（site/data/*.json）是公開的，懂技術的人仍然能直接讀到。
         真正保護付費內容，要讓付費資料改由會員 Worker 驗證身分後才提供 —— 設計與工作量寫在 DECISIONS #288，這一版還沒做。</p></div>`;
+  /* 在線時間：「3 小時 12 分」「45 分」「—」 */
+  const dur = (ms) => { if (!ms) return '—'; const m = Math.round(ms / 60000); if (m < 1) return '< 1 分'; const h = Math.floor(m / 60); return h ? `${h} 小時${m % 60 ? ' ' + (m % 60) + ' 分' : ''}` : m + ' 分'; };
 
-  /* 2026-10-05（admin-v2c，Andy）：族群觀測獨立成第二大段「② 族群觀測」—— 自己一張大卡、標題旁有自己的「全部展開／全部收合」，
-     整塊預設收合，底下每個產業鏈分組也各自可收合。開放功能表那一段就只剩一般功能（一張大卡、細線分隔、不收合）。 */
-  const GRPSEC = `<div class="secttl" id="pmGrpTtl"><h2>② 族群觀測</h2><small id="pmGrpCnt"></small><span class="pmfold"><button type="button" id="pmExpandAll">全部展開</button><button type="button" id="pmCollapseAll">全部收合</button></span></div>
+  const GRPSEC = `<div class="secttl" id="pmGrpTtl"><h2>族群觀測</h2><small id="pmGrpCnt"></small><span class="pmfold"><button type="button" id="pmExpandAll">全部展開</button><button type="button" id="pmCollapseAll">全部收合</button></span></div>
         <div class="pmcats pmgrpbox card" id="pmGrp"></div>`;
   async function renderPerm(v, A, tab) {
     PS.v = v; PS.A = A; PS.draft = null; PS.tab = tab;
     PS.mode = tab === 'perm' ? 'plan' : 'member';
     if (tab === 'perm') {
-      v.innerHTML = head(v, A) + `<p class="use" style="margin:8px 0 0">每一層一份「開放功能表」：關掉的功能在對方畫面上模糊並蓋鎖頭「此功能需開通」（不會整頁消失）；族群觀測關掉的族群，族群頁蓋鎖頭、下拉鎖住、圖上點了不展開。付費會員底下可以有多個範本（例如 399／799）。</p></div>
-        <div class="card" id="pmHead" style="margin-top:14px"><h3>要設定哪一層？</h3>
-          <div class="ptabs" id="ptTier" role="tablist" aria-label="要設定哪一層"></div>
+      v.innerHTML = head(v, A) + `<p class="use" style="margin:8px 0 0">三個大分頁對應三種人。每一頁兩件事：<b>觀看權限</b>（哪些功能開、每天能看幾次）與<b>會員名單</b>（誰在這一層、用得多不多）。
+          關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上有「升級查看」直接帶到訂閱頁。</p></div>
+        <div class="card" id="pmHead" style="margin-top:14px">
+          <div class="ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
           <div class="ptpanel">
-          <div id="pmTarget"></div>
-          <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div></div>
-        <div class="secttl"><h2>① 開放功能表</h2><small id="ptFor"></small></div>
-        <div class="pmcats card" id="pmCats"></div>
-        ${GRPSEC}
+            <div id="pmTarget"></div>
+            <div class="ptsub" id="ptSub" role="tablist" aria-label="子分頁"></div>
+            <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div></div>
+        <div id="ptPermBox">
+          <div id="ptGuestSum"></div>
+          <div class="secttl"><h2>開放功能表</h2><small id="ptFor"></small></div>
+          <p class="use pmlimhelp">每一列：左邊開關＝能不能看；右邊「瀏覽次數」＝每天最多看幾次（<b>留空＝不限</b>、<b>0＝不能看</b>；個股頁、題材、族群頁算「看了幾個不同的」，其他頁算「開了幾次」）。超過的人會看到「今日已用完」與升級鈕。</p>
+          <div class="pmcats card" id="pmCats"></div>
+          ${GRPSEC}</div>
+        <div id="ptListBox" hidden></div>
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
-        <div id="ptMailWrap"></div>${honest}`;
-      /* 2026-10-05（admin-v2c，Andy）：三層程度完全不同 → 改成大分頁：訪客｜註冊會員｜每個付費方案各一頁｜＋（新增付費方案）。
-         付費方案直接攤在同一排（不再先點「付費會員」再點小晶片）；選中頁籤跟下面的內容框連成一體。 */
+        ${honest}`;
       v.querySelector('#ptTier').onclick = (e) => {
         const b = e.target.closest('button[role=tab]'); if (!b) return;
-        if (b.id === 'ptAddTab') { if (PS.adding || !guard()) return; PS.adding = true; PS.confirmDel = false; paintTabs(); paintTarget(); paintCats(); paintMail(); setStat(''); return; }
-        const tier = b.dataset.tier, pid = b.dataset.p || tier;
-        if (!PS.adding && tier === PS.tier && pid === PS.planSel) return;
+        if (b.id === 'ptAddTab') { if (PS.adding || !guard()) return; PS.adding = true; PS.cfg = false; PS.confirmDel = false; paintAll(); setStat(''); return; }
+        const tier = b.dataset.tier;
+        if (!PS.adding && tier === PS.tier) return;
         if (!guard()) return;
-        PS.adding = false; PS.tier = tier; PS.planSel = pid; PS.confirmDel = false;
-        paintTabs(); paintTarget(); paintCats(); paintMail(); setStat('');
+        PS.adding = false; PS.cfg = false; PS.tier = tier; PS.confirmDel = false; pickTierPlan();
+        if (tier === 'guest') PS.sub = 'perm';
+        paintAll(); setStat('');
+      };
+      v.querySelector('#ptSub').onclick = (e) => {
+        const b = e.target.closest('button[data-sub]'); if (!b || b.dataset.sub === PS.sub) return;
+        PS.sub = b.dataset.sub; paintSub();
       };
     } else {
-      v.innerHTML = head(v, A) + `<p class="use" style="margin:8px 0 0">收費會員在這裡開通：新增他的 email、選層級／範本、設到期日（到期自動退回註冊會員），再逐項微調。下面的表列出所有人員的狀況。</p></div>
+      v.innerHTML = head(v, A) + `<p class="use" style="margin:8px 0 0">收費會員在這裡開通：新增他的 email、選層級／範本、設到期日（到期自動退回註冊會員）。下面的名單是所有人員的狀況，點一列展開他的使用紀錄，並在最下面逐項微調。</p></div>
         <div class="card" id="pmAdd" style="margin-top:14px"><h3>① 新增會員</h3>
           <p class="use">輸入對方登入用的 Google email、選層級（付費會員要選範本）、需要的話填到期日，按「新增」。對方還沒登入過也可以先設好，登入後就生效。</p>
           <div class="pmbar"><input type="email" id="pmAddEmail" placeholder="member@example.com" autocomplete="off" aria-label="新會員 email">
             <select id="pmAddPlan" aria-label="新會員的層級與範本"></select>
             <label>到期日 <input type="date" id="pmAddExp" aria-label="到期日（留空＝不會到期）"></label>
             <button type="button" class="pri" id="pmAddGo">新增</button></div></div>
-        <div class="card" id="pmList" style="margin-top:14px"><h3>② 所有人員狀況</h3><p class="use">設定過的會員＋登入過的人。點欄位標題排序；點一列就載入那個人，在下面逐項微調。狀態：有效＝登入過且沒過期；過期＝到期日已過（已自動退回註冊會員）；未登入過＝先設好、對方還沒來。</p>
+        <div class="card" id="pmList" style="margin-top:14px"><h3>② 所有人員狀況</h3><p class="use">金色徽章＝付費會員（後面是方案名）。點欄位標題排序；點一列展開他的使用紀錄（各分頁瀏覽、功能次數、近 14 天每日活躍），同時在下面「③ 逐人微調」載入他。</p>
           <div class="pmbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
             <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span></div>
           <div id="pmListBody"><div class="empty">載入中…</div></div></div>
         <div class="card" id="pmHead" style="margin-top:14px"><h3>③ 逐人微調</h3>
-          <p class="use">先選層級／範本，再個別微調。開關撥完按最下面的「儲存」才會生效。</p>
+          <p class="use">先選層級／範本，再個別微調。開關撥完按最下面的「儲存」才會生效。瀏覽次數跟著範本走（在「會員權限」設）。</p>
           <div id="pmTarget"></div>
           <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div>
         <div class="pmcats card" id="pmCats"></div>
@@ -486,7 +536,7 @@
     v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
     await loadFeatures();
     if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">功能清單（features.js）載入失敗。</p></div>'; return; }
-    const [pl, li] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {})]);
+    const [pl, li, mm] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {})]);
     if (tabOf() !== tab) return;
     if (!pl || pl._s !== 200) {
       v.querySelector('#pmCats').innerHTML = `<div class="card" style="grid-column:1/-1"><p class="err">讀不到方案範本（${esc(errText(pl))}）。${pl && pl._s === 404 ? '會員 Worker 可能還沒更新成有功能權限的版本（deploy-account-worker.yml）。' : '只有管理者帳號看得到；確認 Worker 的 ADMIN_EMAILS 有你的 email。'}</p></div>`;
@@ -494,29 +544,31 @@
     }
     PS.plans = pl.plans || [];
     PS.list = li && li._s === 200 ? li : { rows: [], users: [] };
-    if (tab === 'perm') { pickTierPlan(true); paintTabs(); }
-    paintAddPlan(); paintTarget(); paintCats(); paintList(); paintMail(); paintTierCnt();
+    PS.mem = mm && mm._s === 200 && Array.isArray(mm.members) ? mm : null;
+    if (tab === 'perm') pickTierPlan();
+    paintAll();
     if (PS.mode === 'member' && PS.email) loadMember(PS.email);
   }
-  /* 層級 → 要編的範本：訪客＝guest、註冊會員＝free、付費＝目前選的付費範本（沒有就第一個）*/
-  function pickTierPlan(keep) {
+  function paintAll() { paintTabs(); paintAddPlan(); paintTarget(); paintSub(); paintCats(); paintList(); }
+  /* 層級 → 要編的範本：訪客＝guest、註冊會員＝free、付費＝下拉選的那個（沒有就第一個；一個都沒有＝付費分頁只顯示「按＋新增」）*/
+  function pickTierPlan() {
     if (PS.tier === 'guest') PS.planSel = 'guest';
     else if (PS.tier === 'free') PS.planSel = 'free';
-    else { const pp = paidPlans(); if (!(keep && pp.some((p) => p.id === PS.planSel)) && !pp.some((p) => p.id === PS.planSel)) PS.planSel = pp.length ? pp[0].id : ''; if (!PS.planSel) { PS.tier = 'free'; PS.planSel = 'free'; } }
+    else { const pp = paidPlans(); if (!pp.some((p) => p.id === PS.planSel)) PS.planSel = pp.length ? pp[0].id : ''; }
   }
   function paintTabs() {
     const bar = PS.v && PS.v.querySelector('#ptTier'); if (!bar) return;
-    const nFree = people().filter((r) => r.tier === 'free').length;
-    const t = (on, attrs, label, sub) => `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" ${attrs}><span>${label}</span>${sub ? `<small>${sub}</small>` : ''}</button>`;
-    bar.innerHTML = t(!PS.adding && PS.tier === 'guest', 'data-tier="guest"', '訪客', '沒登入的人')
-      + t(!PS.adding && PS.tier === 'free', 'data-tier="free"', '註冊會員', nFree + ' 人')
-      + paidPlans().map((x) => t(!PS.adding && PS.tier === 'paid' && PS.planSel === x.id, `data-tier="paid" data-p="${esc(x.id)}"`, esc(planLabel(x)), (x.members || 0) + ' 人')).join('')
-      + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費方案" title="新增付費方案">＋</button>`;
+    const all = members();
+    const nPaid = all.filter((r) => r.tier === 'paid').length, nReg = all.filter((r) => r.st !== 'new').length;
+    const t = (tier, label, sub) => { const on = !PS.adding && PS.tier === tier;
+      return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"><span>${label}</span><small>${sub}</small></button>`; };
+    bar.innerHTML = t('guest', '訪客', '沒登入的人') + t('free', '註冊會員', nReg + ' 人') + t('paid', '付費會員', `${paidPlans().length} 個範本・${nPaid} 人`)
+      + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費範本" title="新增付費範本（名稱、價格、月／年訂閱）">＋</button>`;
   }
   function planOpts(sel, withGuest) {
     const pp = paidPlans();
     return (withGuest ? `<option value="guest" ${sel === 'guest' ? 'selected' : ''}>訪客</option>` : '')
-      + `<option value="free" ${sel === 'free' ? 'selected' : ''}>註冊會員（${esc((planOf('free') || {}).name || '免費會員')}）</option>`
+      + `<option value="free" ${sel === 'free' ? 'selected' : ''}>註冊會員</option>`
       + (pp.length ? `<optgroup label="付費會員">${pp.map((p) => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>付費：${esc(planLabel(p))}</option>`).join('')}</optgroup>` : '');
   }
   function paintAddPlan() {
@@ -527,14 +579,24 @@
   function people() {
     const now = (PS.list && PS.list.now) || Date.now();
     const users = new Map(((PS.list && PS.list.users) || []).map((u) => [u.email, u]));
-    const all = ((PS.list && PS.list.rows) || []).map((r) => { const u = users.get(r.email) || {}; return Object.assign({ set: true }, r, { name: u.name || '', seen: r.seen || u.seen || 0, visits: u.visits || 0, known: users.has(r.email) }); });
+    const all = ((PS.list && PS.list.rows) || []).map((r) => { const u = users.get(r.email) || {}; return Object.assign({ set: true }, r, { name: u.name || '', seen: r.seen || u.seen || 0, created: u.created || 0, visits: u.visits || 0, known: users.has(r.email) }); });
     const have = new Set(all.map((r) => r.email));
-    users.forEach((u, e) => { if (e && !have.has(e)) all.push({ email: e, name: u.name || '', plan: 'free', n: 0, updated: 0, expires: 0, seen: u.seen || 0, visits: u.visits || 0, set: false, known: true }); });
+    users.forEach((u, e) => { if (e && !have.has(e)) all.push({ email: e, name: u.name || '', plan: 'free', n: 0, updated: 0, expires: 0, seen: u.seen || 0, created: u.created || 0, visits: u.visits || 0, set: false, known: true }); });
     all.forEach((r) => {
       r.tier = tierOf(r.plan);
       r.st = r.expires && r.expires < now ? 'exp' : (r.known ? 'ok' : 'new');
     });
     return all;
+  }
+  /* 名單的每一列 = people() ＋ /v1/admin/members 的使用數據（新 Worker 才有；舊的就只有造訪次數）*/
+  function members() {
+    const st = new Map(((PS.mem && PS.mem.members) || []).map((m) => [m.email, m]));
+    return people().map((r) => {
+      const m = st.get(r.email) || {};
+      return Object.assign(r, { paid: r.tier === 'paid' && r.st !== 'exp', planName: (planOf(r.plan) || {}).name || r.plan,
+        onlineMs: m.onlineMs || 0, online30: m.online30 || 0, visits30: m.visits30 != null ? m.visits30 : r.visits || 0, days30: m.days30 || 0,
+        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size });
+    });
   }
   const ST_NAME = { ok: '有效', exp: '過期', new: '未登入過' };
   async function addMember() {
@@ -550,11 +612,6 @@
     inp.value = ''; v.querySelector('#pmAddExp').value = '';
     PS.email = j.email; PS.rec = j; PS.draft = null;
     afterSave(j.email, `已新增 ${j.email}（${TIER_NAME[tierOf(plan)]}「${(planOf(plan) || {}).name || plan}」${expires ? '，到期 ' + expRaw : ''}）・下面可以再逐項微調，改完按「儲存」`);
-    const h = v.querySelector('#pmHead'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
-  }
-  function paintTierCnt() {
-    if (PS.tab !== 'perm' || !PS.v) return;
-    paintTabs();
   }
   function paintTarget() {
     const v = PS.v, box = v.querySelector('#pmTarget'); if (!box) return;
@@ -566,12 +623,10 @@
       box.innerHTML = `<div class="pmbar"><input type="email" id="pmEmail" list="pmEmails" placeholder="輸入或選擇會員 email" autocomplete="off" value="${esc(PS.email)}" aria-label="會員 email">
           <datalist id="pmEmails">${[...emails.entries()].map(([e, l]) => `<option value="${esc(e)}">${esc(l)}</option>`).join('')}</datalist>
           <button type="button" id="pmLoad">讀取</button></div>
-        <div class="pmwho" id="pmWho">${r ? whoLine(r) : '從上面的表點一位會員，或在這裡輸入 email 按「讀取」。'}</div>
+        <div class="pmwho" id="pmWho">${r ? whoLine(r) : '從上面的名單點一位會員，或在這裡輸入 email 按「讀取」。'}</div>
         ${r ? `<div class="pmbar"><label>層級／範本 <select id="pmPlan">${planOpts(mPlan(), false)}</select></label>
           <label>到期日 <input type="date" id="pmExp" value="${msToDate(mExp())}" aria-label="到期日（留空＝不會到期）"></label>
           <button type="button" id="pmClearOver" ${Object.keys(mOver()).length ? '' : 'disabled'}>清除個別微調</button>
-          <input type="text" id="pmNewName" maxlength="20" placeholder="新範本名稱" aria-label="新範本名稱" style="width:9em">
-          <button type="button" id="pmSaveAs">把這組存成新付費範本</button>
           <button type="button" class="danger" id="pmReset" ${r.set ? '' : 'disabled'}>移除此會員設定</button></div>` : ''}`;
       const go = () => { const e = (v.querySelector('#pmEmail').value || '').trim(); if (e && guard()) loadMember(e); };
       v.querySelector('#pmLoad').onclick = go;
@@ -589,42 +644,37 @@
         const j = await PS.A.call('/v1/admin/perm/put', { email: PS.rec.email, reset: true });
         if (j && j._s === 200) { PS.rec = j; PS.draft = null; afterSave(j.email, '已移除此會員的設定，回到「註冊會員」預設'); } else setStat('移除失敗：' + errText(j), 'bad');
       };
-      const sa = v.querySelector('#pmSaveAs');
-      if (sa) sa.onclick = () => saveAsPlan(v.querySelector('#pmNewName').value);
-    } else {
-      const missing = PRICE_TPL.filter((t) => !planOf(t.id));
-      if (PS.adding) {
-        box.innerHTML = `<div class="pmwho"><b>新增付費方案</b>：填名稱、價格、計費週期，建立後會多一個頁籤並切過去（一開始全開，再逐項關掉這個價位不給的功能）。</div>
-          <div class="pmbar" id="ptNewForm"><label>名稱 <input type="text" id="ptNewName" maxlength="20" placeholder="例如 法人方案" aria-label="新付費方案名稱" style="width:12em"></label>
-            <label>價格 NT$ <input type="number" id="ptNewPrice" min="0" max="999999" step="1" inputmode="numeric" value="0" aria-label="價格（整數新台幣）" style="width:7em"></label>
-            <label>計費週期 <select id="ptNewPeriod" aria-label="計費週期">${Object.entries(PERIOD).map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></label>
-            <button type="button" class="pri" id="ptNewGo">建立</button><button type="button" id="ptNewCancel">取消</button></div>
-          <div class="pmbar pmtpl">${missing.length ? `<button type="button" id="pmTpl">一次建立定價範本（${missing.map((t) => esc(planLabel(t))).join('／')}）</button>` : '<span>定價範本（免費方案／基本方案／進階方案）都已建立。</span>'}
-            <small>依定價規劃預先關好對應的功能；<b>只建立範本，不會套用到任何人</b>，也不改「訪客」「註冊會員」。</small></div>`;
-        const forEl = v.querySelector('#ptFor'); if (forEl) forEl.textContent = '';
-        const nn = v.querySelector('#ptNewName');
-        v.querySelector('#ptNewGo').onclick = () => newPaidPlan(nn.value);
-        nn.onkeydown = (e) => { if (e.key === 'Enter') newPaidPlan(nn.value); };
-        v.querySelector('#ptNewCancel').onclick = () => { PS.adding = false; paintTabs(); paintTarget(); paintCats(); paintMail(); };
-        const tb = v.querySelector('#pmTpl'); if (tb) tb.onclick = makePriceTemplates;
-        paintSave(); return;
-      }
-      const p = planOf(PS.planSel);
-      const tierLine = PS.tier === 'guest' ? '<b>訪客</b>：所有沒登入的人都套這一份。'
-        : PS.tier === 'free' ? '<b>註冊會員</b>：登入後沒被指定付費範本的人（以及付費到期的人）都套這一份。'
-          : `<b>付費方案「${esc(p ? p.name : '')}」</b>：在「會員管理」把會員指定到這個方案，或在下面的名單看誰在用。`;
-      box.innerHTML = `<div class="pmwho">${tierLine}</div>
-        ${PS.tier === 'paid' && p && !p.builtin ? `<div class="pmbar pmed" id="ptEdit"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
+      paintSave(); return;
+    }
+    const forEl = v.querySelector('#ptFor');
+    if (PS.adding) {
+      box.innerHTML = `<div class="pmwho"><b>新增付費範本</b>：填名稱、價格、月訂閱或年訂閱，按「建立」。建立後一開始全開、不限次數，再到「觀看權限」關掉這個價位不給的功能。</div>
+        <div class="pmbar" id="ptNewForm"><label>名稱 <input type="text" id="ptNewName" maxlength="20" placeholder="例如 進階方案" aria-label="新付費範本名稱" style="width:12em"></label>
+          <label>價格 NT$ <input type="number" id="ptNewPrice" min="0" max="999999" step="1" inputmode="numeric" value="0" aria-label="價格（整數新台幣）" style="width:7em"></label>
+          <label>訂閱 <select id="ptNewPeriod" aria-label="月訂閱或年訂閱"><option value="month">月訂閱</option><option value="year">年訂閱</option></select></label>
+          <button type="button" class="pri" id="ptNewGo">建立</button><button type="button" id="ptNewCancel">取消</button></div>`;
+      if (forEl) forEl.textContent = '';
+      const nn = v.querySelector('#ptNewName');
+      v.querySelector('#ptNewGo').onclick = () => newPaidPlan(nn.value);
+      nn.onkeydown = (e) => { if (e.key === 'Enter') newPaidPlan(nn.value); };
+      v.querySelector('#ptNewCancel').onclick = () => { PS.adding = false; paintAll(); };
+      paintSave(); return;
+    }
+    const p = planOf(PS.planSel);
+    if (PS.tier === 'paid') {
+      const pp = paidPlans();
+      box.innerHTML = pp.length ? `<div class="pmbar ptpick"><label>範本 <select id="ptPlanSel" aria-label="選付費範本">${pp.map((x) => `<option value="${esc(x.id)}" ${x.id === PS.planSel ? 'selected' : ''}>${esc(planLabel(x))}（${x.members || 0} 人）</option>`).join('')}</select></label>
+            <button type="button" id="ptPlanCfg" aria-expanded="${PS.cfg}">⚙ 範本設定</button><small class="ptwho">被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。</small></div>
+          ${PS.cfg && p ? `<div class="pmbar pmed" id="ptEdit"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
             <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
-            <label>計費週期 <select id="ptEdPeriod" aria-label="計費週期">${Object.entries(PERIOD).map(([k, n]) => `<option value="${k}" ${(p.period || 'month') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-            <button type="button" class="pri" id="ptEdSave">儲存名稱與價格</button>
-            <small>金流以範本代號 <code>${esc(p.id)}</code> 對價、價格以後端為準；改名、改價不影響已指定的會員。</small></div>
-          <div class="pmbar"><input type="text" id="pmNewName" maxlength="20" placeholder="另存名稱" aria-label="另存的範本名稱" style="width:8em">
-            <button type="button" id="pmSaveAs">把這組另存成新方案</button>
-            <button type="button" class="danger" id="pmPlanDel" title="用這個方案的會員會退回註冊會員">刪除這個方案</button></div>` : ''}
-        <div class="pmwho" id="pmWho">${p ? planLine(p) : ''}</div>`;
-      const forEl = v.querySelector('#ptFor'); if (forEl) forEl.textContent = p ? `正在編：${TIER_NAME[PS.tier]}${PS.tier === 'paid' ? '・' + p.name : ''}` : '';
-      const sa = v.querySelector('#pmSaveAs'); if (sa) sa.onclick = () => saveAsPlan(v.querySelector('#pmNewName').value);
+            <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
+            <button type="button" class="pri" id="ptEdSave">儲存</button>
+            <button type="button" class="danger" id="pmPlanDel" title="用這個範本的會員會退回註冊會員">刪除這個範本</button>
+            <small>金流以範本代號 <code>${esc(p.id)}</code> 對價；改名、改價不影響已指定的會員。</small></div>` : ''}`
+        : '<div class="pmwho">還沒有付費範本 —— 按右上的「＋」新增（填名稱、價格、月或年訂閱）。</div>';
+      const sel = v.querySelector('#ptPlanSel');
+      if (sel) sel.onchange = () => { if (!guard()) { sel.value = PS.planSel; return; } PS.planSel = sel.value; PS.confirmDel = false; paintTarget(); paintCats(); paintList(); setStat(''); };
+      const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.confirmDel = false; paintTarget(); };
       const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
       const del = v.querySelector('#pmPlanDel');
       if (del) del.onclick = async () => {
@@ -632,14 +682,44 @@
         PS.confirmDel = false;
         const nm = p.name;
         const j = await PS.A.call('/v1/admin/plans/put', { id: PS.planSel, del: true });
-        if (j && j._s === 200) { PS.plans = j.plans; PS.draft = null; pickTierPlan(); paintTabs(); paintAddPlan(); paintTarget(); paintCats(); setStat(`已刪除「${nm}」；原本用它的會員退回「註冊會員」（個別微調保留）`, 'ok'); refreshList(); }
+        if (j && j._s === 200) { PS.plans = j.plans; PS.draft = null; PS.cfg = false; pickTierPlan(); paintAll(); setStat(`已刪除「${nm}」；原本用它的會員退回「註冊會員」（個別微調保留）`, 'ok'); refreshList(); }
         else setStat('刪除失敗：' + errText(j), 'bad');
       };
+    } else {
+      box.innerHTML = `<div class="pmwho">${PS.tier === 'guest' ? '<b>訪客</b>：所有沒登入的人都套這一份。' : '<b>註冊會員</b>：登入後沒被指定付費範本的人（以及付費到期的人）都套這一份。'}</div>`;
     }
+    if (forEl) forEl.textContent = p ? `正在編：${TIER_NAME[PS.tier]}${PS.tier === 'paid' ? '・' + p.name : ''}` : '';
     paintSave();
   }
-  /* 範本的名稱／價格／計費週期：前端先擋一次（整數 0～999999），後端再驗一次（worker.js adminPlansPut）。
-     只送這三欄＋目前存好的開關（沒存的開關草稿不會被偷偷一起存掉 —— 有草稿就先請他存或取消）。 */
+  /* 子分頁：觀看權限｜會員名單（訪客：觀看權限｜—，名單換成流量摘要放在觀看權限上方）*/
+  function paintSub() {
+    const v = PS.v, bar = v && v.querySelector('#ptSub'); if (!bar) return;
+    const noPlan = PS.adding || (PS.tier === 'paid' && !planOf(PS.planSel));
+    if (PS.tier === 'guest') PS.sub = 'perm';
+    bar.hidden = noPlan;
+    bar.innerHTML = `<button type="button" role="tab" data-sub="perm" id="ptSubPerm" class="${PS.sub === 'perm' ? 'on' : ''}" aria-selected="${PS.sub === 'perm'}">觀看權限</button>`
+      + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單<small>${listRows().length}</small></button>`);
+    const pb = v.querySelector('#ptPermBox'), lb = v.querySelector('#ptListBox');
+    if (pb) pb.hidden = noPlan || PS.sub !== 'perm';
+    if (lb) lb.hidden = noPlan || PS.sub !== 'list';
+    paintGuestSum();
+    paintList();
+  }
+  /* 訪客分頁的流量摘要：近 30 天開啟網站（登入／訪客）、頁面瀏覽、目前在線的訪客 */
+  async function paintGuestSum() {
+    const box = PS.v && PS.v.querySelector('#ptGuestSum'); if (!box) return;
+    if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="card" id="ptGuestCard" style="margin-top:14px"><h3>訪客整體流量（近 30 天）</h3><p class="use">訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚；下面關掉的功能，就是訪客想看卻要先登入／升級的東西。</p><div class="kpis" id="ptGuestKpi"><div><b>…</b>載入中</div></div></div>`;
+    const [st, on] = await Promise.all([PS.A.call('/v1/admin/stats', { days: 30 }), PS.A.call('/v1/admin/online', {})]);
+    const k = PS.v && PS.v.querySelector('#ptGuestKpi'); if (!k || PS.tier !== 'guest') return;
+    if (!st || st._s !== 200) { k.innerHTML = `<div class="err">讀不到流量（${esc(errText(st))}）</div>`; return; }
+    let ses = 0, sl = 0, pv = 0;
+    (st.rows || []).forEach((r) => { if (r.k === 'ev:session') ses += r.n; else if (r.k === 'ev:session_login') sl += r.n; else if (String(r.k).startsWith('pv:')) pv += r.n; });
+    const g = Math.max(0, ses - Math.min(sl, ses));
+    k.innerHTML = `<div><b>${nf(g)}</b>訪客開啟網站</div><div><b>${ses ? Math.round(g / ses * 100) : 0}%</b>佔全部開啟</div><div><b>${nf(pv)}</b>全站頁面瀏覽</div><div><b>${on && on._s === 200 ? nf(on.guests) : '—'}</b>目前在線訪客</div>`;
+  }
+  /* 範本的名稱／價格／月或年：前端先擋一次（整數 0～999999），後端再驗一次（worker.js adminPlansPut）。
+     只送這三欄＋目前存好的開關與次數（沒存的草稿不會被偷偷一起存掉 —— 有草稿就先請他存或取消）。 */
   async function savePlanMeta(p) {
     const v = PS.v; if (!p) return;
     const name = String(v.querySelector('#ptEdName').value || '').trim();
@@ -647,38 +727,24 @@
     const period = v.querySelector('#ptEdPeriod').value;
     if (!name) { setStat('範本名稱不能空白', 'bad'); return; }
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
-    if (PS.draft) { setStat('功能開關還有沒存的變更 —— 先按下面「儲存」或「取消」，再改名稱與價格', 'bad'); return; }
+    if (PS.draft) { setStat('觀看權限還有沒存的變更 —— 先按下面「儲存」或「取消」，再改範本設定', 'bad'); return; }
     setStat('儲存中…');
     const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name, feats: p.feats || {}, price, period });
-    if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintAddPlan(); paintTarget(); paintCats(); paintMail(); setStat(`已儲存「${planLabel(planOf(p.id))}」（台北 ${tpeTime()}）`, 'ok'); }
+    if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintAddPlan(); paintTarget(); paintCats(); setStat(`已儲存「${planLabel(planOf(p.id))}」（台北 ${tpeTime()}）`, 'ok'); }
     else setStat('儲存失敗：' + errText(j), 'bad');
   }
   async function newPaidPlan(name) {
     const v = PS.v; name = String(name || '').trim();
-    if (!name) { setStat('先輸入新方案的名稱（例如 法人方案）', 'bad'); return; }
+    if (!name) { setStat('先輸入新範本的名稱（例如 進階方案）', 'bad'); return; }
     const pe = v.querySelector('#ptNewPrice'), raw = String((pe && pe.value) || '0').trim(), price = Number(raw);
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
-    const period = (v.querySelector('#ptNewPeriod') || {}).value || 'month';
+    const period = (v.querySelector('#ptNewPeriod') || {}).value === 'year' ? 'year' : 'month';
     if (!guard()) return;
     const id = 'p' + Date.now().toString(36).slice(-7);
-    const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats: {}, price, period });
+    const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats: {}, lims: {}, price, period });
     if (!j || j._s !== 200) { setStat('新增失敗：' + errText(j), 'bad'); return; }
-    PS.plans = j.plans; PS.tier = 'paid'; PS.planSel = id; PS.draft = null; PS.adding = false;
-    paintTabs(); paintAddPlan(); paintTarget(); paintCats(); paintMail(); setStat(`已新增付費方案「${planLabel(planOf(id)) || name}」（目前全開，下面逐項關掉這個價位不給的功能）`, 'ok');
-  }
-  async function makePriceTemplates() {
-    if (!guard()) return;
-    let last = null;
-    for (const t of PRICE_TPL) {
-      if (planOf(t.id)) continue;
-      const feats = {};
-      t.off.forEach((k) => { const f = FT().byId(k); if (f) feats[k] = f.kind === 'limit' ? 0 : false; });
-      const j = await PS.A.call('/v1/admin/plans/put', { id: t.id, name: t.name, feats, price: t.price, period: t.period });
-      if (!j || j._s !== 200) { setStat(`建立「${t.name}」失敗：` + errText(j), 'bad'); return; }
-      PS.plans = j.plans; last = t.id;
-    }
-    if (last) { PS.tier = 'paid'; PS.planSel = last; PS.adding = false; }
-    paintTabs(); paintAddPlan(); paintTarget(); paintCats(); paintMail(); setStat('已建立定價範本（沒有套用到任何人）', 'ok');
+    PS.plans = j.plans; PS.tier = 'paid'; PS.planSel = id; PS.draft = null; PS.adding = false; PS.sub = 'perm';
+    paintAll(); setStat(`已新增付費範本「${planLabel(planOf(id)) || name}」（目前全開、不限次數；下面關掉這個價位不給的功能）`, 'ok');
   }
   function whoLine(r) {
     const n = Object.keys(mOver()).length, p = planOf(mPlan()), ex = mExp();
@@ -686,29 +752,12 @@
     const exs = ex ? (ex < Date.now() ? `・<b style="color:#ff6b7a">已於 ${msToDate(ex)} 到期</b>（目前套註冊會員）` : `・到期 <b>${msToDate(ex)}</b>`) : '';
     return `<b>${esc(r.email)}</b>・${who}・${TIER_NAME[tierOf(mPlan())]}「<b>${esc(p ? p.name : (r.planName || r.plan))}</b>」${exs}・個別微調 <b>${n}</b> 項${r.set ? '' : '（還沒個別設定過＝照免費會員）'}`;
   }
-  function planLine(p) {
-    const n = Object.keys((PS.draft && PS.draft.feats) || p.feats || {}).length;
-    const who = p.id === 'guest' ? '套用對象：所有沒登入的訪客' : p.id === 'free' ? '套用對象：登入後沒被指定付費範本的會員' : `套用對象：被指定這個範本的會員（目前 ${p.members || 0} 位）`;
-    return `${who}・跟預設不同的項目 <b>${n}</b> 項`;
-  }
   function paintSave() {
     const bar = PS.v && PS.v.querySelector('#pmSave'); if (!bar) return;
     const n = dirtyN();
     bar.hidden = !n;
     const who = PS.mode === 'plan' ? `${TIER_NAME[PS.tier]}「${(planOf(PS.planSel) || {}).name || ''}」` : (PS.rec ? PS.rec.email : '');
     bar.querySelector('#pmDirty').innerHTML = n ? `<b>${n}</b> 項變更還沒儲存・${esc(who)}` : '';
-  }
-  /* ② Mail 人員名單：屬於這一層／這個範本的會員（訪客沒有名單）*/
-  function paintMail() {
-    const box = PS.v && PS.v.querySelector('#ptMailWrap'); if (!box) return;
-    if (PS.tier === 'guest') { box.innerHTML = ''; return; }
-    const ps = people().filter((r) => (PS.tier === 'free' ? r.tier === 'free' : r.plan === PS.planSel));
-    const ttl = PS.tier === 'free' ? '註冊會員' : `付費・${(planOf(PS.planSel) || {}).name || ''}`;
-    box.innerHTML = `<div class="secttl"><h2>③ Mail 人員名單</h2><small>${esc(ttl)}・${ps.length} 人</small></div>
-      <div class="card" id="ptMail" style="margin-top:10px"><p class="use">${PS.tier === 'free' ? '登入過、沒被指定付費範本的人，加上付費已過期的人（過期的人也列在原本的範本底下，標「過期」）。' : '被指定到這個範本的會員。'}要新增、改到期日或換範本，到「會員管理」。</p>
-        ${ps.length ? `<table class="pmlist"><thead><tr><th>email</th><th>名字</th><th class="c-exp">到期日</th><th>狀態</th></tr></thead><tbody>${ps.map((r) => `<tr><td>${esc(r.email)}</td><td>${esc(r.name || '—')}</td><td class="c-exp">${dday(r.expires)}</td><td><span class="stt ${r.st}">${ST_NAME[r.st]}</span></td></tr>`).join('')}</tbody></table>`
-          : '<div class="empty">這一層目前沒有人。</div>'}
-        <div class="pmbar"><a href="#admin/members" id="ptGoMembers">到會員管理新增會員 →</a></div></div>`;
   }
 
   /* 族群小圖示（admin-v2c）：站上沒有「族群 → 圖示」的現成表（icons.js 是依卡片標題配圖），所以重用 icons.js 的圖示庫（TwIcons.svg，
@@ -725,15 +774,19 @@
     return `<span class="gico" data-ico="${k}">${I.svg(k, 16)}</span>`;
   }
   function catRows(fs, cur, base, saved, now, ready, compact) {
+    const lims = PS.mode === 'plan' ? curLims() : null, sl = PS.mode === 'plan' ? savedLims() : null;
     return fs.map((f) => {
       const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(mOver(), f.id)) : val !== f.def;
-      const unsaved = ready && saved[f.id] !== now[f.id];
+      const unsaved = ready && (saved[f.id] !== now[f.id] || (lims && sl[f.id] !== lims[f.id]));
       const ctl = f.kind === 'limit'
         ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${Array.from({ length: f.max + 1 }, (_, i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i + ' 頁'}</option>`).join('')}</select>`
         : `<label class="psw"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${val !== false ? 'checked' : ''} ${ready ? '' : 'disabled'}><span></span></label>`;
+      /* 瀏覽次數（每日上限）：只有範本有、只有開關類有（自選分頁數本身就是數量上限）*/
+      const lv = lims && Object.prototype.hasOwnProperty.call(lims, f.id) ? lims[f.id] : '';
+      const lim = lims && f.kind !== 'limit' ? `<label class="pmlimw${lv === 0 ? ' zero' : ''}" title="每日瀏覽次數上限：留空＝不限、0＝不能看"><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）" ${ready ? '' : 'disabled'}><small>次/日</small></label>` : '';
       const tag = (unsaved ? '<span class="pmtag new" title="改了還沒按儲存">未存</span>' : '') + (diff ? (PS.mode === 'member' ? `<span class="pmtag" title="跟範本不同（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">微調</span><button type="button" class="pmrev" data-rev="${esc(f.id)}">還原</button>`
         : `<span class="pmtag" title="跟預設不同">改過</span>`) : '');
-      return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${compact ? grpIcon(f) : ''}${esc(f.name)}</b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div><div class="pmside">${tag}</div></div>`;
+      return `<div class="pmrow${compact ? ' sm' : ''}${lims ? ' wlim' : ''}${unsaved ? ' dirty' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${compact ? grpIcon(f) : ''}${esc(f.name)}</b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div><div class="pmside">${tag}</div>${lims ? `<div class="pmlimc">${lim}</div>` : ''}</div>`;
     }).join('');
   }
   function paintCats() {
@@ -743,9 +796,7 @@
     const saved = PS.mode === 'plan' ? ((planOf(PS.planSel) || {}).feats || {}) : ((PS.rec && PS.rec.over) || {});
     const now = PS.mode === 'plan' ? ((PS.draft && PS.draft.feats) || saved) : mOver();
     box.classList.toggle('off', !ready);
-    /* 2026-10-05（admin-v2c，Andy 看過 v2b 截圖）：一般功能分類回到第一版 —— 四欄格狀、不收合，標題「名稱 N 項・開 M」＋右上全開／全關。
-       收合只留給最下面的「族群觀測」（117 個族群全攤開要捲好幾頁）：整塊預設收合，底下每個產業鏈分組也各自可收合；
-       「全部展開／全部收合」只作用在族群觀測，所以放在它的標題列。展開狀態記在 PS.open（換層級／範本／會員不重設）。 */
+    /* 一般功能：一張大卡、細線分隔、不收合（admin-v2c 定案）；族群觀測：整塊預設收合、每個產業鏈分組各自可收合 */
     const cats = FT().cats.filter((c) => FT().inCat(c.id).length);
     if (!PS.open) PS.open = new Set();
     const isOn = (f) => (f.kind === 'limit' ? cur[f.id] > 0 : cur[f.id] !== false);
@@ -765,19 +816,40 @@
       const by = {}; fs.forEach((f) => { (by[f.chain || ''] = by[f.chain || ''] || []).push(f); });
       const chName = (ch) => { const d = (fs.find((f) => f.chain === ch) || {}).desc; return d ? d.split('・')[0] : (ch || '其他'); };
       return `<div class="pmcat${open ? '' : ' shut'}" data-cat="grp"><div class="pmcathd">${fold(k, gc.name, fs, 'h3')}${allBtns('grp')}</div>
-        <p class="use pmfoldnote">族群多，整塊預設收起來；點上面標題或「全部展開」打開，底下每個產業鏈分組也能各自收合。關掉的族群：族群頁模糊＋鎖頭、資金輪動的族群下拉那一列鎖住、熱力圖／排行／輪盤點了只跳「此族群需開通」（canvas 圖上的方塊無法模糊，見 perm.js）。</p>
+        <p class="use pmfoldnote">族群多，整塊預設收起來；點上面標題或「全部展開」打開。關掉的族群：族群頁模糊＋鎖頭、資金輪動的族群下拉那一列鎖住、熱力圖／排行／輪盤點了只跳「此族群需開通」。${PS.mode === 'plan' ? '瀏覽次數＝一天能打開幾個不同族群頁。' : ''}</p>
         <div class="pmbody"${open ? '' : ' hidden'}><div class="grpgrid">`
         + Object.keys(by).map((ch) => { const ck = 'ch:' + ch, co = PS.open.has(ck);
           return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}</div>`
             + `<div class="grpbody" data-ch="${esc(ch)}"${co ? '' : ' hidden'}>${catRows(by[ch], cur, base, saved, now, ready, true)}</div>`; }).join('') + '</div></div></div>';
     })() : '';
     if (gbox) gbox.onchange = (e) => box.onchange(e);
+    if (gbox) gbox.oninput = (e) => box.oninput(e);
     if (gbox) gbox.onclick = (e) => box.onclick(e);
     const ttl = v.querySelector('#pmGrpTtl'); if (ttl) ttl.onclick = (e) => box.onclick(e);
     box.onchange = (e) => {
+      if (e.target.closest('[data-lim]')) return;
       const el = e.target.closest('[data-f]'); if (!el) return;
       const f = FT().byId(el.dataset.f); if (!f) return;
       setVals({ [f.id]: f.kind === 'limit' ? parseInt(el.value, 10) : !!el.checked });
+    };
+    /* 瀏覽次數：邊打邊記進草稿，不重畫（重畫會把游標從輸入框拿走）；空白＝不限、不合法就標紅不收 */
+    box.oninput = (e) => {
+      const inp = e.target.closest('input[data-lim]'); if (!inp) return;
+      const raw = String(inp.value || '').trim();
+      const ok = raw === '' || (/^\d{1,4}$/.test(raw) && +raw <= 9999);
+      inp.classList.toggle('bad', !ok);
+      if (!ok) return;
+      setLim(inp.dataset.lim, raw === '' ? null : +raw);
+      const row = inp.closest('.pmrow'), sl = savedLims(), cl = curLims(), fid = inp.dataset.lim;
+      const lw = inp.closest('.pmlimw'); if (lw) lw.classList.toggle('zero', raw !== '' && +raw === 0);
+      if (row) {
+        const dirty = sl[fid] !== cl[fid] || (((planOf(PS.planSel) || {}).feats || {})[fid] !== ((PS.draft && PS.draft.feats) || {})[fid]);
+        row.classList.toggle('dirty', dirty);
+        const side = row.querySelector('.pmside'), has = side && side.querySelector('.pmtag.new');
+        if (side && dirty && !has) side.insertAdjacentHTML('afterbegin', '<span class="pmtag new" title="改了還沒按儲存">未存</span>');
+        if (side && !dirty && has) has.remove();
+      }
+      paintSave();
     };
     box.onclick = (e) => {
       const fb = e.target.closest('button[data-fold]');
@@ -806,6 +878,10 @@
     if (!dirtyN()) PS.draft = null;
     paintTarget(); paintCats();
   }
+  function planDraft(feats, lims) {
+    const p = planOf(PS.planSel) || {};
+    PS.draft = diffKeys(feats, p.feats || {}) || diffKeys(lims, p.lims || {}) ? { feats, lims } : null;
+  }
   function setVals(ch) {
     if (PS.mode === 'member') {
       if (!PS.rec) return;
@@ -816,14 +892,20 @@
       const p = planOf(PS.planSel); if (!p) return;
       const feats = Object.assign({}, (PS.draft && PS.draft.feats) || p.feats || {});
       Object.entries(ch).forEach(([k, v2]) => { const f = FT().byId(k); if (f && f.def === v2) delete feats[k]; else feats[k] = v2; });
-      PS.draft = diffKeys(feats, p.feats || {}) ? { feats } : null;
+      planDraft(feats, Object.assign({}, curLims()));
       paintTarget(); paintCats();
     }
+  }
+  function setLim(fid, n) {
+    const p = planOf(PS.planSel); if (!p || PS.mode !== 'plan') return;
+    const lims = Object.assign({}, curLims());
+    if (n == null) delete lims[fid]; else lims[fid] = n;
+    planDraft(Object.assign({}, (PS.draft && PS.draft.feats) || p.feats || {}), lims);
   }
   async function saveDraft() {
     const n = dirtyN(); if (!n) return;
     if (PS.mode === 'member') await saveMember(PS.draft, `${n} 項變更`);
-    else { const p = planOf(PS.planSel); if (p) await savePlan(p.id, p.name, PS.draft.feats, `${n} 項變更`); }
+    else { const p = planOf(PS.planSel); if (p) await savePlan(p.id, p.name, PS.draft.feats || {}, PS.draft.lims || {}, `${n} 項變更`); }
   }
   async function loadMember(email) {
     const seq = ++PS.seq;
@@ -848,52 +930,127 @@
     const me = (PS.A.user() || {}).email;
     if (me && String(me).toLowerCase() === email && window.TwPerm) window.TwPerm.refresh();
   }
-  async function savePlan(id, name, feats, label) {
+  async function savePlan(id, name, feats, lims, label) {
     setStat('儲存中…');
-    const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats });
+    const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats, lims });
     if (j && j._s === 200) {
-      PS.plans = j.plans; PS.draft = null; paintAddPlan(); paintTarget(); paintCats(); setStat(label + `・已儲存到「${name}」範本（台北 ${tpeTime()}）`, 'ok');
+      PS.plans = j.plans; PS.draft = null; paintAddPlan(); paintTarget(); paintCats(); setStat(label + `・已儲存到「${(planOf(id) || {}).name || name}」（台北 ${tpeTime()}）`, 'ok');
       if (window.TwPerm) window.TwPerm.refresh();
     } else { setStat('儲存失敗：' + errText(j) + '（變更還在，可以再按一次儲存）', 'bad'); }
   }
-  async function saveAsPlan(name) {
-    name = String(name || '').trim();
-    if (!name) { setStat('先在旁邊輸入新範本的名稱', 'bad'); return; }
-    const cur = curVals(), feats = {};
-    FT().list.forEach((f) => { if (cur[f.id] !== f.def) feats[f.id] = cur[f.id]; });
-    const id = 'p' + Date.now().toString(36).slice(-7);
-    const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats });
-    if (!j || j._s !== 200) { setStat('另存失敗：' + errText(j), 'bad'); return; }
-    PS.plans = j.plans; paintAddPlan();
-    if (PS.mode === 'plan') { PS.tier = 'paid'; PS.planSel = id; PS.draft = null; PS.adding = false; paintTabs(); paintTarget(); paintCats(); paintMail(); setStat(`已另存為新付費範本「${name}」`, 'ok'); }
-    else { await saveMember({ plan: id, over: {} }, `已存成新範本「${name}」並套用到這位會員`); }
-  }
   async function refreshList() {
-    const li = await PS.A.call('/v1/admin/perm/list', {});
-    if (li && li._s === 200) { PS.list = li; paintList(); paintMail(); paintTierCnt(); }
+    const [li, mm] = await Promise.all([PS.A.call('/v1/admin/perm/list', {}), PS.A.call('/v1/admin/members', {})]);
+    if (li && li._s === 200) PS.list = li;
+    if (mm && mm._s === 200 && Array.isArray(mm.members)) PS.mem = mm;
+    paintTabs(); paintList();
+    const sb = PS.v && PS.v.querySelector('#ptSubList small'); if (sb) sb.textContent = listRows().length;
   }
-  /* 所有人員狀況：email、名字、層級、範本、到期日、最後登入、近 30 天造訪、狀態；點標題排序、搜尋、依狀態篩 */
-  const COLS = [['email', 'email', ''], ['tier', '層級', ''], ['plan', '範本', 'c-tpl'], ['expires', '到期日', 'c-exp'], ['seen', '最後登入（台北）', 'c-seen'], ['visits', '近 30 天造訪', 'c-vis num'], ['st', '狀態', '']];
-  function paintList() {
-    const box = PS.v && PS.v.querySelector('#pmListBody'); if (!box) return;
-    const pn = (id) => (planOf(id) || {}).name || id;
-    const all = people();
-    const q = PS.q.trim().toLowerCase();
-    let rows = q ? all.filter((r) => (r.email + ' ' + r.name + ' ' + pn(r.plan) + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : all.slice();
-    if (PS.stf) rows = rows.filter((r) => r.st === PS.stf);
+
+  /* ---------------------------------------------------------------- 會員名單（會員權限的「會員名單」子分頁＋會員管理的「所有人員狀況」共用）
+     欄位與理由（Andy B 要的＋我補的，回報有列）：
+       會員（email、名字、付費金色徽章＋方案名）｜方案｜加入日｜到期日｜最後上線｜累計在線｜近 30 天造訪｜觀看次數（近 30 天頁面瀏覽）｜
+       最常用的功能 Top3｜最常看的股票 Top3｜狀態。展開：近 14 天每日活躍、各分頁瀏覽、功能次數、常看股票、活躍天數、平均每次停留。 */
+  const COLS = [['email', '會員', 'c-who'], ['plan', '方案', 'c-tpl'], ['created', '加入日', 'c-cr'], ['expires', '到期日', 'c-exp'], ['seen', '最後上線', 'c-seen'],
+    ['online', '累計在線', 'c-on num'], ['visits', '近 30 天造訪', 'c-vis num'], ['views', '觀看次數', 'c-vw num'], ['feat', '最常用的功能 Top3', 'c-feat'],
+    ['stock', '最常看的股票 Top3', 'c-stk'], ['st', '狀態', 'c-st']];
+  /* 會員權限 → 會員名單：註冊會員＝所有註冊會員（付費的也在、金色標示）；付費＝這個範本的人 */
+  function listRows() {
+    const all = members();
+    if (PS.mode !== 'plan') return all;
+    if (PS.tier === 'free') return all.filter((r) => r.st !== 'new' || r.tier === 'free');
+    if (PS.tier === 'paid') return all.filter((r) => r.plan === PS.planSel);
+    return [];
+  }
+  function sortVal(r, key) {
+    switch (key) {
+      case 'plan': return (r.paid ? '0' : '1') + r.planName;
+      case 'online': return r.onlineMs; case 'visits': return r.visits30; case 'views': return r.views30;
+      case 'feat': return (r.topFeat[0] || [, 0])[1]; case 'stock': return (r.topStock[0] || [, 0])[1];
+      case 'st': return ['ok', 'new', 'exp'].indexOf(r.st);
+      default: return r[key] == null ? '' : r[key];
+    }
+  }
+  function memTable(rows, id) {
     const key = PS.sort, dir = PS.dir;
-    const val = (r) => key === 'plan' ? pn(r.plan) : key === 'tier' ? ['guest', 'free', 'paid'].indexOf(r.tier) : key === 'st' ? ['ok', 'new', 'exp'].indexOf(r.st) : (r[key] == null ? '' : r[key]);
-    rows.sort((a, b) => { const x = val(a), y = val(b); return (x > y ? 1 : x < y ? -1 : 0) * dir || a.email.localeCompare(b.email); });
+    rows = rows.slice().sort((a, b) => { const x = sortVal(a, key), y = sortVal(b, key); return (x > y ? 1 : x < y ? -1 : 0) * dir || a.email.localeCompare(b.email); });
+    const top = (a, nm) => (a.length ? a.map(([k, n]) => `<span class="mchip" title="${esc(nm(k))}：${nf(n)} 次">${esc(nm(k))}<i>${nf(n)}</i></span>`).join('') : '<span class="mdim">—</span>');
+    const badge = (r) => (r.paid ? `<span class="pdbadge" title="付費會員：${esc(r.planName)}">★ ${esc(r.planName)}</span>` : r.tier === 'paid' ? `<span class="pdbadge off" title="付費已過期">${esc(r.planName)}（過期）</span>` : '');
+    const body = rows.map((r) => {
+      const open = PS.exp.has(r.email);
+      return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
+        + `<td class="c-who"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b>${esc(r.email)}</b>${r.name ? `<small>${esc(r.name)}</small>` : ''}${badge(r)}</td>`
+        + `<td class="c-tpl">${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}${r.set ? '' : '<small>（預設）</small>'}</td>`
+        + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen">${dstr(r.seen)}</td>`
+        + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
+        + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
+        + `<td class="c-st"><span class="stt ${r.st}">${ST_NAME[r.st]}</span></td></tr>`
+        + (open ? `<tr class="pmdet" data-for="${esc(r.email)}"><td colspan="${COLS.length}">${detailHtml(r)}</td></tr>` : '');
+    }).join('');
+    return `<table class="pmlist memtbl" id="${id}"><thead><tr>${COLS.map(([k, n, cls]) => `<th data-sort="${k}" class="${cls}${PS.sort === k ? ' sorted' : ''}" aria-sort="${PS.sort === k ? (PS.dir > 0 ? 'ascending' : 'descending') : 'none'}">${n}${PS.sort === k ? (PS.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+  function miniBars(list, names) {
+    if (!list.length) return '<div class="empty">近 30 天沒有紀錄。</div>';
+    const max = Math.max(1, ...list.map((x) => x[1]));
+    return `<div class="bars sm">${list.map(([k, n]) => `<span class="bl" title="${esc(names(k))}">${esc(names(k))}</span><span class="bt"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span><span class="bn">${nf(n)}</span>`).join('')}</div>`;
+  }
+  function detailHtml(r) {
+    const d = PS.det[r.email];
+    if (!d) return '<div class="mdet"><div class="empty">讀取使用紀錄中…</div></div>';
+    if (d.err) return `<div class="mdet"><div class="empty">${esc(d.err)}</div></div>`;
+    if (!d.known) return '<div class="mdet"><div class="empty">這位還沒登入過，沒有使用紀錄。</div></div>';
+    const days = d.days || [], dmax = Math.max(1, ...days.map((x) => x.views || 0), ...days.map((x) => x.visits || 0));
+    const avg = r.visits30 ? r.online30 / r.visits30 : 0;
+    return `<div class="mdet" data-email="${esc(r.email)}">
+      <div class="kpis"><div><b>${nf(r.days30)}</b>近 30 天活躍天數</div><div><b>${dur(r.online30)}</b>近 30 天在線</div><div><b>${avg ? dur(avg) : '—'}</b>平均每次停留</div><div><b>${nf(r.views30)}</b>近 30 天頁面瀏覽</div></div>
+      <div class="mdgrid">
+        <div><h4>近 14 天每日活躍</h4><div class="mdays" role="img" aria-label="近 14 天每天的頁面瀏覽">${days.map((x) => `<i style="height:${Math.max(x.views || x.visits ? 6 : 0, (Math.max(x.views || 0, x.visits || 0)) / dmax * 100).toFixed(1)}%" title="${esc(x.day)}：造訪 ${x.visits} 次、瀏覽 ${x.views} 頁、在線 ${dur(x.ms)}"></i>`).join('')}</div>
+          <div class="dayx"><span>${esc((days[0] || {}).day || '')}</span><span>${esc((days[days.length - 1] || {}).day || '')}</span></div></div>
+        <div><h4>各分頁瀏覽</h4>${miniBars(d.pages || [], (k) => VIEW_NAME[k] || k)}</div>
+        <div><h4>功能使用次數</h4>${miniBars((d.feats || []).slice(0, 8).map(([pg, c, n]) => [pg + '|' + c, n]), (k) => { const [pg, c] = k.split('|'); return (VIEW_NAME[pg] || pg) + '・' + compName(c); })}</div>
+        <div><h4>最常看的股票</h4>${miniBars(d.stocks || [], (k) => k)}</div></div>
+      ${PS.mode === 'member' ? '<p class="use" style="margin:8px 0 0">這位已載入下面「③ 逐人微調」。</p>' : ''}</div>`;
+  }
+  async function loadDetail(email) {
+    if (PS.det[email] && !PS.det[email].err) return;
+    const j = await PS.A.call('/v1/admin/member/detail', { email });
+    PS.det[email] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '會員 Worker 還沒更新成有使用明細的版本（admin-v3）。' : '讀不到使用紀錄（' + errText(j) + '）' };
+    paintList();
+  }
+  function paintList() {
+    if (!PS.v) return;
+    if (PS.mode === 'plan') {
+      const box = PS.v.querySelector('#ptListBox'); if (!box || box.hidden) return;
+      const rows = listRows();
+      const ttl = PS.tier === 'free' ? '註冊會員' : `付費・${(planOf(PS.planSel) || {}).name || ''}`;
+      box.innerHTML = `<div class="card" id="ptMail" style="margin-top:14px"><h3>${esc(ttl)}・${rows.length} 人</h3><p class="use">${PS.tier === 'free' ? '所有註冊會員（登入過的人）；金色徽章＝付費會員（後面是方案名），過期的付費會員標「過期」。' : '被指定到這個範本的會員。'}點欄位標題排序、點一列展開他的使用紀錄。要新增、改到期日或換範本，到「會員管理」。</p>
+        ${rows.length ? memTable(rows, 'ptTable') : '<div class="empty">這一層目前沒有人。</div>'}
+        <div class="pmbar"><a href="#admin/members" id="ptGoMembers">到會員管理新增會員 →</a></div></div>`;
+      wireList(box);
+      return;
+    }
+    const box = PS.v.querySelector('#pmListBody'); if (!box) return;
+    const pn = (r) => r.planName;
+    const all = members();
+    const q = PS.q.trim().toLowerCase();
+    let rows = q ? all.filter((r) => (r.email + ' ' + r.name + ' ' + pn(r) + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : all.slice();
+    if (PS.stf) rows = rows.filter((r) => r.st === PS.stf);
     const cnt = PS.v.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${rows.length} ／ ${all.length} 位` : `共 ${all.length} 位`;
-    box.innerHTML = rows.length ? `<table class="pmlist" id="pmTable"><thead><tr>${COLS.map(([k, n, cls]) => `<th data-sort="${k}" class="${cls}${PS.sort === k ? ' sorted' : ''}" aria-sort="${PS.sort === k ? (PS.dir > 0 ? 'ascending' : 'descending') : 'none'}">${n}${PS.sort === k ? (PS.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}<th class="c-n">微調</th></tr></thead><tbody>${rows.map((r) =>
-      `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}"><td>${esc(r.email)}${r.name ? `<small>${esc(r.name)}</small>` : ''}</td><td>${TIER_NAME[r.tier]}${r.set ? '' : '<small>（預設）</small>'}</td><td class="c-tpl">${r.tier === 'paid' ? esc(pn(r.plan)) : '—'}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen">${dstr(r.seen)}</td><td class="c-vis num">${nf(r.visits)}</td><td><span class="stt ${r.st}">${ST_NAME[r.st]}</span></td><td class="c-n">${r.n || 0}</td></tr>`).join('')}</tbody></table>`
-      : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '還沒有任何會員。用上面的「新增會員」加第一位。'}</div>`;
+    box.innerHTML = rows.length ? memTable(rows, 'pmTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '還沒有任何會員。用上面的「新增會員」加第一位。'}</div>`;
+    wireList(box);
+  }
+  function wireList(box) {
     box.onclick = (e) => {
       const th = e.target.closest('th[data-sort]');
       if (th) { if (PS.sort === th.dataset.sort) PS.dir = -PS.dir; else { PS.sort = th.dataset.sort; PS.dir = th.dataset.sort === 'email' ? 1 : -1; } paintList(); return; }
-      const tr = e.target.closest('tr[data-email]'); if (!tr || !guard()) return;
-      PS.email = tr.dataset.email; loadMember(tr.dataset.email);
-      const h = PS.v.querySelector('#pmHead'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      if (e.target.closest('tr.pmdet')) return;
+      const tr = e.target.closest('tr[data-email]'); if (!tr) return;
+      const em = tr.dataset.email;
+      if (PS.mode === 'member') {
+        if (!(PS.rec && PS.rec.email === em) && !guard()) return;
+        PS.email = em; if (!(PS.rec && PS.rec.email === em)) loadMember(em);
+      }
+      if (PS.exp.has(em)) PS.exp.delete(em); else { PS.exp.add(em); loadDetail(em); }
+      paintList();
     };
   }
 

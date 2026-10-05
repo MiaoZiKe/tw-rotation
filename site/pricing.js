@@ -1,7 +1,9 @@
 /* ============================================================================
    訂閱頁 #pricing ＋ 帳號選單的方案徽章（sub-v1，2026-10-05）
    ----------------------------------------------------------------------------
-   Andy：參考 stockintelli 的 pricing —— 頂部標語＋四個亮點、月繳／年繳切換、方案卡（最受歡迎／功能最齊）、
+   ★ admin-v3（2026-10-05）：拿掉月繳／年繳切換 —— 每個付費範本本身就是「月訂閱」或「年訂閱」（後端範本決定），
+     方案卡與 #admin/perm 的三個大分頁同一份資料；#pricing/need/<功能鍵> 把能解鎖那個功能的方案標「可解鎖」。
+   Andy：參考 stockintelli 的 pricing —— 頂部標語＋四個亮點、方案卡（最受歡迎／功能最齊）、
    「查看完整權益」、訂閱鈕；帳號選單顯示名字＋方案徽章。
 
    這頁回答一個問題：「每個方案差在哪、我現在是哪一個、要怎麼升級」。
@@ -100,59 +102,69 @@
 .acctmenu .mh.mhx .nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}`);
 
   // ------------------------------------------------------------------ 方案資料
+  /* ★ admin-v3（2026-10-05，Andy D）：方案卡＝會員權限那邊的三個大分頁 —— 訪客、註冊會員、每個付費範本各一張。
+     · 名稱、價格、月／年全部讀後端範本（/v1/plans/public；舊 Worker 沒有這支時，管理者退回 plans/get）。
+     · 連不到後端（會員功能沒設定、公司網路）→ 只畫訪客、註冊會員兩張，**不編一張「付費・洽詢」**
+       （Andy 截圖：付費寫「洽詢」、訪客出現兩次 —— 前者是備用卡、後者是同一個範本被畫兩次；這裡依 id 去重）。
+     · 每張卡列出：每一類開放幾項、有設上限的功能（每日 N 次／不能看）——跟 #admin/perm 的「觀看權限」同一份資料。 */
   const FALLBACK = [
-    { id: 'guest', name: '訪客（未登入）', builtin: true, feats: {}, price: 0 },
-    { id: 'free', name: '免費會員（預設）', builtin: true, feats: {}, price: 0 },
-    { id: 'paid', name: '付費會員', builtin: false, feats: {}, price: null },
+    { id: 'guest', name: '訪客', builtin: true, feats: {}, lims: {}, price: 0 },
+    { id: 'free', name: '註冊會員', builtin: true, feats: {}, lims: {}, price: 0 },
   ];
-  const S = { plans: null, src: 'fallback', period: ls.get('tw.pricing.period') === 'year' ? 'year' : 'month', full: false, loading: null };
+  const S = { plans: null, src: 'fallback', full: false, loading: null, need: '' };
+  const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
+  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? '註冊會員' : p.name);
+  /* 排序＋去重：訪客、註冊會員固定在前；付費依後端順序；同一個 id 只留第一個 */
+  function tidy(list) {
+    const seen = new Set(), out = [];
+    const all = Array.isArray(list) ? list : [];
+    const g = all.find((p) => p && p.id === 'guest') || FALLBACK[0], f = all.find((p) => p && p.id === 'free') || FALLBACK[1];
+    [g, f, ...all.filter((p) => p && p.id !== 'guest' && p.id !== 'free')].forEach((p) => { if (p && p.id && !seen.has(p.id)) { seen.add(p.id); out.push(p); } });
+    return out;
+  }
   async function load() {
     if (S.loading) return S.loading;
     S.loading = (async () => {
       let j = await call('/v1/plans/public', {});
       /* 公開端點還沒部署（舊版 Worker）→ 管理者還可以用 admin 的那支拿到 */
       if ((!j || j._s !== 200) && A() && A().user() && A().user().admin) j = await call('/v1/admin/plans/get', {});
-      if (j && j._s === 200 && Array.isArray(j.plans) && j.plans.length) { S.plans = j.plans; S.src = 'server'; } else { S.plans = FALLBACK; S.src = 'fallback'; }
+      if (j && j._s === 200 && Array.isArray(j.plans) && j.plans.length) { S.plans = tidy(j.plans); S.src = 'server'; } else { S.plans = FALLBACK.slice(); S.src = 'fallback'; }
     })();
     try { await S.loading; } finally { S.loading = null; }
   }
-  const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
-  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? '註冊會員' : p.name);
-  /* 價格：回 { amount, unit, est, note }；amount null＝洽詢 */
-  function priceOf(p, period) {
-    if (tierOf(p) !== 'paid') return { amount: 0, unit: '', est: false, note: '永久免費' };
-    const num = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
-    const per = p.period === 'year' ? 'year' : 'month';
-    const mon = per === 'month' ? num(p.price) : null;
-    if (period === 'month') {
-      if (mon != null) return { amount: mon, unit: '／月', est: false, note: '' };
-      const y = per === 'year' ? num(p.price) : num(p.price_year);
-      return y != null ? { amount: null, unit: '', est: false, note: '只提供年繳' } : { amount: null, unit: '', est: false, note: '' };
-    }
-    const yr = num(p.price_year) != null ? num(p.price_year) : per === 'year' ? num(p.price) : null;
-    if (yr != null) return { amount: yr, unit: '／年', est: false, note: mon ? `約 NT$ ${Math.round(yr / 12).toLocaleString()}／月` : '' };
-    if (mon != null) { const e = Math.round(mon * 12 * 0.83); return { amount: e, unit: '／年', est: true, note: `估算：月價 × 12 × 0.83（省 17%），以專人報價為準` }; }
-    return { amount: null, unit: '', est: false, note: '' };
+  const PER = { month: '月', year: '年', once: '一次' };
+  /* 價格：回 { amount, unit }；訪客／註冊會員＝免費 */
+  function priceOf(p) {
+    if (tierOf(p) !== 'paid') return { amount: 0, unit: '', free: true };
+    const n = Number.isInteger(p.price) ? p.price : (p.price != null && isFinite(+p.price) ? Math.round(+p.price) : 0);
+    return { amount: n, unit: p.period === 'once' ? '（一次）' : '／' + (PER[p.period] || '月'), free: false };
   }
-  /* 這個方案在某個功能上的值（沒寫＝預設）*/
+  /* 這個方案在某個功能上的值（沒寫＝預設）；上限：Infinity＝不限 */
   function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : f.def; return typeof v === 'boolean' ? v : f.def; }
-  const on = (p, f) => { const v = val(p, f); return typeof v === 'number' ? v > 0 : v !== false; };
-  const qtxt = (f, v) => (v >= f.max ? '不限' : v <= 0 ? '不開放' : `每日 ${v} ${f.unit || '次'}`);
+  const limOf = (p, f) => { const v = (p.lims || {})[f.id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; };
+  const on = (p, f) => { if (limOf(p, f) === 0) return false; const v = val(p, f); return typeof v === 'number' ? v > 0 : v !== false; };
+  const ltxt = (n) => (n === Infinity ? '不限' : n === 0 ? '不能看' : `每日 ${n} 次`);
   function catsOf() {
     const Ft = F(); if (!Ft) return [];
-    return Ft.cats.filter((c) => c.id !== 'grp' && c.id !== 'quota').map((c) => ({ c, fs: Ft.inCat(c.id).filter((f) => f.kind === 'bool') }));
+    return Ft.cats.filter((c) => c.id !== 'grp').map((c) => ({ c, fs: Ft.inCat(c.id).filter((f) => f.kind === 'bool') })).filter((x) => x.fs.length);
   }
   function summary(p) {
-    const Ft = F(); if (!Ft) return { lines: [], n: 0, total: 0 };
+    const Ft = F(); if (!Ft) return { lines: [], q: [], n: 0, total: 0 };
     let n = 0, total = 0;
     const lines = catsOf().map(({ c, fs }) => {
       const k = fs.filter((f) => on(p, f)).length; n += k; total += fs.length;
       return { name: c.name, k, t: fs.length };
     });
-    const q = Ft.inCat('quota').map((f) => ({ name: f.name, txt: qtxt(f, val(p, f)) }));
+    /* 瀏覽次數：只列「有設上限而且開關是開的」功能（關掉的已經算在上面的「不開放」）*/
+    const q = Object.keys(p.lims || {}).map((k) => Ft.byId(k)).filter((f) => f && f.cat !== 'grp' && val(p, f) !== false && limOf(p, f) > 0)
+      .map((f) => ({ id: f.id, name: f.name, txt: ltxt(limOf(p, f)) }));
     const wt = Ft.byId('watch.tabs');
     return { lines, q, n, total, watch: wt ? val(p, wt) : null };
   }
+  /* 「我現在」在某功能上的狀態（給 need 標示用）：能不能看、上限 */
+  function mine(f) { const P0 = P(); if (!P0) return { on: true, lim: Infinity }; return { on: P0.can(f.id), lim: P0.lim ? P0.lim(f.id) : Infinity }; }
+  /* 這個方案能不能讓「我」在這個功能上變得更好（開得了、或次數更多）*/
+  function unlocks(p, f) { const m = mine(f); if (!on(p, f)) return false; return !m.on || limOf(p, f) > m.lim; }
 
   // ------------------------------------------------------------------ 畫面
   css('pricingCss', `
@@ -164,34 +176,34 @@
 #v-pricing .prpt{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
 #v-pricing .prpt b{display:block;font-size:15px;margin-bottom:4px}
 #v-pricing .prpt span{font-size:13px;color:var(--ink-2);line-height:1.6}
-#v-pricing .prbar{display:flex;align-items:center;justify-content:center;gap:12px;margin:22px 0 6px;flex-wrap:wrap}
-#v-pricing .prseg{display:inline-flex;border:1px solid var(--line-2);border-radius:999px;padding:3px;background:var(--panel)}
-#v-pricing .prseg button{height:34px;padding:0 20px;border:0;border-radius:999px;background:transparent;color:var(--ink-2);font-size:14px;cursor:pointer}
-#v-pricing .prseg button.on{background:var(--cyan);color:#04121a;font-weight:700}
-#v-pricing .prsave{font-size:12.5px;color:#1a1203;background:var(--amber);border-radius:999px;padding:2px 9px;font-weight:700}
-#v-pricing .prnote{text-align:center;font-size:13.5px;color:var(--ink-2);margin:4px 0 14px}
+#v-pricing .prnote{text-align:center;font-size:13.5px;color:var(--ink-2);margin:18px 0 14px}
 #v-pricing .prnote b{color:var(--amber)}
+#v-pricing .prneed{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;margin:0 auto 16px;max-width:760px;padding:10px 16px;border-radius:12px;
+  border:1px solid color-mix(in srgb,var(--amber) 60%,transparent);background:color-mix(in srgb,var(--amber) 12%,transparent);font-size:14px}
+#v-pricing .prneed b{color:var(--ink)}#v-pricing .prneed a{color:var(--cyan);font-size:13px}
 #v-pricing .prcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;align-items:stretch}
 #v-pricing .prcard{position:relative;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 18px 18px;min-width:0}
 #v-pricing .prcard.hot{border-color:var(--cyan);box-shadow:0 0 0 1px color-mix(in srgb,var(--cyan) 40%,transparent),0 16px 40px -24px color-mix(in srgb,var(--cyan) 80%,transparent)}
+#v-pricing .prcard.need{border-color:var(--amber);box-shadow:0 0 0 2px color-mix(in srgb,var(--amber) 70%,transparent),0 16px 40px -20px color-mix(in srgb,var(--amber) 80%,transparent)}
 #v-pricing .prcard.mine{outline:2px dashed color-mix(in srgb,var(--fall) 60%,transparent);outline-offset:3px}
 #v-pricing .prtag{position:absolute;top:-11px;left:18px;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;background:var(--cyan);color:#04121a}
 #v-pricing .prtag.full{background:var(--violet);color:#fff}
+#v-pricing .prtag.need{background:var(--amber);color:#1a1203}
 #v-pricing .prcard h2{margin:2px 0 2px;font-size:19px}
 #v-pricing .prcard .who{font-size:13px;color:var(--ink-2);min-height:1.5em}
 #v-pricing .prprice{margin:12px 0 2px;font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.1}
 #v-pricing .prprice small{font-size:14px;font-weight:500;color:var(--ink-2);font-family:inherit}
-#v-pricing .prprice.ask{font-size:24px;font-family:inherit}
-#v-pricing .prpnote{font-size:12.5px;color:var(--ink-2);min-height:1.4em;line-height:1.5}
-#v-pricing .prpnote.est{color:var(--amber)}
+#v-pricing .prprice.free{font-family:inherit;font-size:26px}
 #v-pricing .prgo{margin:14px 0 12px;height:40px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:14.5px;font-weight:700;cursor:pointer}
 #v-pricing .prcard.hot .prgo,#v-pricing .prgo.pri{background:var(--cyan);color:#04121a;border-color:transparent}
+#v-pricing .prcard.need .prgo.pri{background:var(--amber);color:#1a1203}
 #v-pricing .prgo[disabled]{opacity:.6;cursor:default}
 #v-pricing .prfs{list-style:none;margin:0;padding:0;font-size:13.5px;display:grid;gap:6px}
 #v-pricing .prfs li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding-bottom:5px}
 #v-pricing .prfs li span:last-child{font-family:var(--mono);color:var(--ink-2);white-space:nowrap}
 #v-pricing .prfs li.all span:last-child{color:var(--fall)}
 #v-pricing .prfs li.none span:last-child{color:var(--ink-3)}
+#v-pricing .prfs li.hl{background:color-mix(in srgb,var(--amber) 16%,transparent);border-radius:6px;padding:2px 6px}
 #v-pricing .prfs .qh{border:0;padding:6px 0 0;color:var(--ink-2);font-size:12.5px}
 #v-pricing .prmore{display:block;margin:18px auto 0;height:38px;padding:0 20px;border-radius:10px;border:1px solid var(--line-2);background:transparent;color:var(--cyan);font-size:14px;cursor:pointer}
 #v-pricing .prfull{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 14px 14px;overflow-x:auto}
@@ -213,73 +225,70 @@
   ];
   function paint() {
     const v = view('v-pricing'); if (!v) return;
-    const plans = (S.plans || FALLBACK).slice();
+    const plans = tidy(S.plans || FALLBACK);
     const paid = plans.filter((p) => tierOf(p) === 'paid');
     const sums = new Map(plans.map((p) => [p.id, summary(p)]));
+    const needF = S.need && F() ? F().byId(S.need) : null;
+    const needIds = needF ? plans.filter((p) => tierOf(p) !== 'guest' && unlocks(p, needF)).map((p) => p.id) : [];
     const hot = paid[0] ? paid[0].id : null;
-    /* 「功能最齊」：付費範本裡開放項目最多的那一張（跟「最受歡迎」同一張時不重複標）*/
     let full = null;
     if (paid.length > 1) { full = paid.slice().sort((a, b) => sums.get(b.id).n - sums.get(a.id).n)[0].id; if (full === hot) full = paid[paid.length - 1].id; }
     const me = myPlan();
-    const anyEst = paid.some((p) => priceOf(p, 'year').est);
     v.innerHTML = `
       <div class="prhero"><h1>選一個適合你的方案</h1>
         <p>從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。</p></div>
       <div class="prpts">${POINTS.map(([t, d]) => `<div class="prpt"><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join('')}</div>
-      <div class="prbar"><div class="prseg" id="prPeriod" role="group" aria-label="計費週期">
-        <button type="button" data-p="month" class="${S.period === 'month' ? 'on' : ''}" aria-pressed="${S.period === 'month'}">月繳</button>
-        <button type="button" data-p="year" class="${S.period === 'year' ? 'on' : ''}" aria-pressed="${S.period === 'year'}">年繳</button></div>
-        <span class="prsave">年繳省 17%</span></div>
-      <p class="prnote"><b>目前為申請制，專人開通；線上付款即將推出。</b>${anyEst && S.period === 'year' ? '　年繳價格標「估算」的是用月價推算，以專人報價為準。' : ''}${S.src === 'fallback' ? '　（暫時拿不到最新方案，以下為預設內容）' : ''}</p>
-      <div class="prcards" id="prCards">${plans.map((p) => card(p, sums.get(p.id), p.id === hot, p.id === full, me)).join('')}</div>
+      <p class="prnote"><b>目前為申請制，專人開通；線上付款即將推出。</b>${S.src === 'fallback' ? '　（暫時讀不到付費方案，以下只列免費的兩種）' : ''}</p>
+      ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
+      <div class="prcards" id="prCards">${plans.map((p) => card(p, sums.get(p.id), p.id === hot, p.id === full, me, needIds.includes(p.id), needF)).join('')}</div>
       <button type="button" class="prmore" id="prMore" aria-expanded="${S.full}">${S.full ? '收起完整權益' : '查看完整權益'}</button>
       <div class="prfull" id="prFull" ${S.full ? '' : 'hidden'}>${S.full ? table(plans) : ''}</div>
       <div class="prlegal">本網站提供的是資料整理與視覺化工具，<b>不是證券投資顧問</b>，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷並承擔風險。
         方案內容與價格以專人開通時的確認為準；申請送出不會扣款。詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
-    v.querySelector('#prPeriod').onclick = (e) => {
-      const b = e.target.closest('button[data-p]'); if (!b || b.dataset.p === S.period) return;
-      S.period = b.dataset.p; ls.set('tw.pricing.period', S.period); paint();
-    };
     v.querySelector('#prMore').onclick = () => { S.full = !S.full; paint(); if (S.full) { const t = document.getElementById('prFull'); if (t) t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } };
     v.querySelectorAll('.prgo[data-go]').forEach((b) => { b.onclick = () => go(plans.find((p) => p.id === b.dataset.go)); });
+    if (needIds.length) { const c = v.querySelector(`.prcard[data-plan="${CSS.escape(needIds[0])}"]`); if (c && c.scrollIntoView) setTimeout(() => c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60); }
   }
-  function card(p, s, hot, full, me) {
-    const t = tierOf(p), pr = priceOf(p, S.period), mine = me.id === p.id;
+  function card(p, s, hot, full, me, need, needF) {
+    const t = tierOf(p), pr = priceOf(p), isMine = me.id === p.id;
     const who = t === 'guest' ? '不用登入，打開就能看' : t === 'free' ? '用 Google 帳號登入即可' : '進階分析與更高的每日次數';
-    const price = pr.amount == null ? '<div class="prprice ask">洽詢</div>' : `<div class="prprice">NT$ ${pr.amount.toLocaleString()}<small>${esc(pr.unit)}</small></div>`;
+    const price = pr.free ? '<div class="prprice free">免費</div>' : `<div class="prprice">NT$ ${pr.amount.toLocaleString('en-US')}<small>${esc(pr.unit)}</small></div>`;
     let btn;
-    if (mine) btn = `<button type="button" class="prgo" disabled>目前方案</button>`;
+    if (isMine) btn = `<button type="button" class="prgo" disabled>目前方案</button>`;
     else if (t === 'guest') btn = `<button type="button" class="prgo" disabled>免費使用</button>`;
-    else if (t === 'free') btn = me.tier === 'guest' ? `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
+    else if (t === 'free') btn = me.tier === 'guest' ? `<button type="button" class="prgo${need ? ' pri' : ''}" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
     else btn = `<button type="button" class="prgo pri" data-go="${esc(p.id)}">申請訂閱</button>`;
     const lines = s.lines.map((l) => `<li class="${l.k === l.t ? 'all' : l.k === 0 ? 'none' : ''}"><span>${esc(l.name)}</span><span>${l.k === l.t ? '全部' : l.k === 0 ? '不開放' : l.k + '／' + l.t + ' 項'}</span></li>`).join('');
-    const q = s.q.map((x) => `<li><span>${esc(x.name)}</span><span>${esc(x.txt)}</span></li>`).join('');
-    return `<div class="prcard${hot ? ' hot' : ''}${mine ? ' mine' : ''}" data-plan="${esc(p.id)}">
-      ${hot ? '<span class="prtag">最受歡迎</span>' : full ? '<span class="prtag full">功能最齊</span>' : ''}
-      <h2>${esc(showName(p))}</h2><div class="who">${esc(who)}</div>
-      ${price}<div class="prpnote${pr.est ? ' est' : ''}">${esc(pr.note)}</div>
-      ${btn}
+    const q = s.q.length ? s.q.map((x) => `<li class="${needF && x.id === needF.id ? 'hl' : ''}"><span>${esc(x.name)}</span><span>${esc(x.txt)}</span></li>`).join('') : '<li class="all"><span>所有功能</span><span>不限</span></li>';
+    const tag = need ? '<span class="prtag need">可解鎖</span>' : hot ? '<span class="prtag">最受歡迎</span>' : full ? '<span class="prtag full">功能最齊</span>' : '';
+    return `<div class="prcard${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
+      ${tag}<h2>${esc(showName(p))}</h2><div class="who">${esc(who)}</div>
+      ${price}${btn}
       <ul class="prfs">${lines}${s.watch != null ? `<li><span>自選清單分頁</span><span>${s.watch ? s.watch + ' 頁' : '不開放'}</span></li>` : ''}
-        <li class="qh"><span>瀏覽次數</span><span></span></li>${q}</ul></div>`;
+        <li class="qh"><span>每日瀏覽次數</span><span></span></li>${q}</ul></div>`;
   }
   function table(plans) {
     const Ft = F(); if (!Ft) return '';
     const head = `<tr><th>功能</th>${plans.map((p) => `<th>${esc(showName(p))}</th>`).join('')}</tr>`;
-    const cell = (p, f) => { const v = val(p, f); if (f.kind === 'limit') return `<td>${esc(f.cat === 'quota' ? qtxt(f, v) : v ? v + ' 頁' : '—')}</td>`; return v !== false ? '<td class="y" aria-label="有">✓</td>' : '<td class="n" aria-label="沒有">—</td>'; };
+    const cell = (p, f) => {
+      if (f.kind === 'limit') { const v = val(p, f); return `<td>${v ? v + ' 頁' : '—'}</td>`; }
+      if (!on(p, f)) return '<td class="n" aria-label="沒有">—</td>';
+      const n = limOf(p, f);
+      return n === Infinity ? '<td class="y" aria-label="有">✓</td>' : `<td class="y">每日 ${n} 次</td>`;
+    };
     let rows = '';
     Ft.cats.filter((c) => c.id !== 'grp').forEach((c) => {
       const fs = Ft.inCat(c.id); if (!fs.length) return;
-      rows += `<tr class="cat"><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + fs.map((f) => `<tr><td title="${esc(f.desc)}">${esc(f.name)}</td>${plans.map((p) => cell(p, f)).join('')}</tr>`).join('');
+      rows += `<tr class="cat"><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + fs.map((f) => `<tr data-f="${esc(f.id)}"><td title="${esc(f.desc)}">${esc(f.name)}</td>${plans.map((p) => cell(p, f)).join('')}</tr>`).join('');
     });
-    /* 族群觀測：117 個族群逐列太長，只給「開放幾個」—— 族群清單要等 groups_today.json，沒載入時寫「依方案」*/
     const g = Ft.inCat('grp');
     rows += `<tr class="cat"><td colspan="${plans.length + 1}">族群觀測</td></tr><tr><td>可展開的族群</td>${plans.map((p) => {
-      const off = Object.keys(p.feats || {}).filter((k) => k.startsWith('grp.') && p.feats[k] === false).length;
+      const off = Object.keys(p.feats || {}).filter((k) => k.startsWith('grp.') && p.feats[k] === false).length + Object.keys(p.lims || {}).filter((k) => k.startsWith('grp.') && p.lims[k] === 0).length;
       return `<td>${off === 0 ? '全部' : g.length ? (g.length - off) + '／' + g.length : '關閉 ' + off + ' 個'}</td>`;
     }).join('')}</tr>`;
     return `<table id="prTable"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
   }
-  /* 訂閱鈕：免費卡＝登入；付費卡＝訂閱申請（要先登入）*/
+  /* 訂閱鈕：免費卡＝登入；付費卡＝訂閱申請（要先登入：沒登入直接跳 Google 登入，登入回來再按一次）*/
   function go(p) {
     if (!p) return;
     const a = A();
@@ -289,31 +298,22 @@
       dialog(`<h3>訂閱申請</h3><p>線上申請暫時無法使用（會員功能尚未開放）。請從右下角「客服」寄信給我們，註明想要的方案「${esc(showName(p))}」。</p><div class="row2"><button type="button" class="pri" data-close>知道了</button></div>`);
       return;
     }
-    if (!u) {
-      dialog(`<h3>先登入再申請</h3><p>訂閱要綁定你的帳號（開通後才知道要替誰打開功能）。登入只需要 Google 帳號，不會拿到你的密碼。</p>
-        <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="subLogin">用 Google 帳號登入</button></div>`,
-      (d) => { d.querySelector('#subLogin').onclick = () => { d.hidden = true; a.login(); }; });
-      return;
-    }
-    let per = S.period;
-    const pm = priceOf(p, 'month'), py = priceOf(p, 'year');
-    const ptxt = (x) => (x.amount == null ? '洽詢' : 'NT$ ' + x.amount.toLocaleString() + x.unit + (x.est ? '（估算）' : ''));
+    if (!u) { toast('申請訂閱要先登入 —— 登入完成後再按一次「申請訂閱」'); a.login(); return; }
+    const pr = priceOf(p);
     dialog(`<h3>訂閱申請：${esc(showName(p))}</h3>
       <p><b>目前為申請制，專人開通；線上付款即將推出。</b>送出後我們會用下面的 email 跟你確認方案與付款方式，<b>送出不會扣款</b>。</p>
-      <label>計費週期</label><div class="seg" id="subPer"><button type="button" data-p="month">月繳　${esc(ptxt(pm))}</button><button type="button" data-p="year">年繳　${esc(ptxt(py))}</button></div>
+      <p>方案價格：<b>NT$ ${pr.amount.toLocaleString('en-US')}${esc(pr.unit)}</b></p>
       <label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200">
       <label for="subNote">備註（選填，例如需要發票抬頭）</label><input type="text" id="subNote" maxlength="300">
       <div class="msg" id="subMsg" role="status"></div>
       <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="subSend">送出申請</button></div>`, (d) => {
-      const seg = d.querySelector('#subPer');
-      const paintSeg = () => seg.querySelectorAll('button').forEach((b) => { b.classList.toggle('on', b.dataset.p === per); b.setAttribute('aria-pressed', String(b.dataset.p === per)); });
-      paintSeg();
-      seg.onclick = (e) => { const b = e.target.closest('button[data-p]'); if (b) { per = b.dataset.p; paintSeg(); } };
       d.querySelector('#subSend').onclick = async () => {
         const msg = d.querySelector('#subMsg'), btn = d.querySelector('#subSend');
         const contact = d.querySelector('#subMail').value.trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = '請填正確的 email'; return; }
         btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
+        /* 週期跟著範本（月或年）；後端 /v1/subscribe/request 只收 month／year，一次付清的範本當「月」送（專人開通時再確認）*/
+        const per = p.period === 'year' ? 'year' : 'month';
         const j = await call('/v1/subscribe/request', { plan: p.id, period: per, contact, note: d.querySelector('#subNote').value.trim() });
         btn.disabled = false;
         if (j && j._s === 200 && j.ok) {
@@ -331,10 +331,19 @@
     if (!S.plans) { v.innerHTML = '<div class="card" style="margin-top:16px"><p class="muted">載入方案…</p></div>'; await load(); }
     if ((location.hash || '').startsWith('#pricing')) paint();
   }
-  routes.push((head) => { if (head !== 'pricing') return null; show(); return 'v-pricing'; });
+  /* #pricing／#pricing/need/<功能鍵>：後者把「能解鎖這個功能」的方案標出來（鎖頭與「今日已用完」上的「升級查看」帶過來的）*/
+  routes.push((head, rest) => {
+    if (head !== 'pricing') return null;
+    const m = /^need\/(.+)$/.exec(Array.isArray(rest) ? rest.join('/') : String(rest || ''));
+    let need = '';
+    if (m) { try { need = decodeURIComponent(m[1]); } catch (e) { need = ''; } }
+    if (!need) { const mh = /^#pricing\/need\/([^?]+)/.exec(location.hash || ''); if (mh) { try { need = decodeURIComponent(mh[1]); } catch (e) { need = ''; } } }
+    S.need = need;
+    show(); return 'v-pricing';
+  });
   /* 登入／登出、權限換了 → 「目前方案」那張卡要跟著換 */
   const again = () => { if ((location.hash || '').startsWith('#pricing') && S.plans) paint(); };
   window.addEventListener('tw:perm', again);
   window.addEventListener('tw:account', () => { S.plans = null; if ((location.hash || '').startsWith('#pricing')) show(); });
-  window.TwPricing = { reload: () => { S.plans = null; return show(); }, priceOf, state: () => ({ period: S.period, src: S.src, plans: S.plans }) };
+  window.TwPricing = { reload: () => { S.plans = null; return show(); }, priceOf, state: () => ({ src: S.src, plans: S.plans, need: S.need }) };
 })();

@@ -35,9 +35,12 @@
   const CATS = [['bug', '錯誤回報'], ['idea', '功能建議'], ['pay', '付款問題'], ['other', '其他']];
 
   css('supportCss', `
-.supfab{position:fixed;right:20px;bottom:20px;z-index:1200;display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px 0 14px;border-radius:999px;border:0;cursor:pointer;
-  background:var(--cyan);color:#04121a;font-size:14.5px;font-weight:700;box-shadow:0 10px 28px -10px rgba(0,0,0,.6)}
-.supfab svg{width:20px;height:20px}
+/* ★ admin-v3（Andy E）：半透明（背景約 80% 不透明＋毛玻璃），看得到後面的底色；深淺主題各自一組前景色 */
+.supfab{position:fixed;right:20px;bottom:20px;z-index:1200;display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 18px 0 12px;border-radius:999px;cursor:pointer;
+  background:color-mix(in srgb,var(--cyan) 80%,transparent);-webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
+  border:1px solid color-mix(in srgb,#fff 35%,transparent);color:var(--ontop,#04121a);font-size:14.5px;font-weight:700;box-shadow:0 10px 28px -10px rgba(0,0,0,.55);transition:transform .15s,background .15s}
+.supfab:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--cyan) 90%,transparent)}
+.supfab svg{width:26px;height:26px}
 .supfab[hidden]{display:none}
 .suppanel{position:fixed;right:20px;bottom:78px;z-index:1201;width:min(400px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 110px));display:flex;flex-direction:column;
   background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:16px;box-shadow:0 24px 60px -20px rgba(0,0,0,.75);overflow:hidden}
@@ -83,7 +86,11 @@
 #v-subadm .fbbody{white-space:pre-wrap;max-width:520px}
 @media (max-width:820px){.supfab{bottom:84px;right:14px;height:42px;padding:0 12px}.supfab span{display:none}.suppanel{right:12px;bottom:134px}}`);
 
-  const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg>';
+  /* ★ admin-v3（Andy E）：圖示改可愛一點 —— 圓角對話泡泡裡一張笑臉（自繪 SVG，stroke＝currentColor，深淺主題都跟字色走）*/
+  const ICON = '<svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M6.5 4.5h15a4 4 0 0 1 4 4v8.5a4 4 0 0 1-4 4h-7.2l-5.1 4.1c-.5.4-1.2 0-1.2-.6v-3.5H6.5a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>'
+    + '<circle cx="10.2" cy="11.4" r="1.45" fill="currentColor"/><circle cx="17.8" cy="11.4" r="1.45" fill="currentColor"/>'
+    + '<path d="M9.8 15.1c1.1 1.5 2.5 2.2 4.2 2.2s3.1-.7 4.2-2.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'
+    + '<circle cx="7.6" cy="14.6" r="1.1" fill="#ff8fa3" fill-opacity=".75"/><circle cx="20.4" cy="14.6" r="1.1" fill="#ff8fa3" fill-opacity=".75"/></svg>';
   let tab = 'faq';
   function ensure() {
     let fab = document.getElementById('supFab');

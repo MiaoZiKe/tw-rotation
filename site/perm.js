@@ -36,7 +36,7 @@
   const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只在這次有效 */ } },
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* 略 */ } } };
-  const S = { who: 'guest', plan: '', planName: '', feats: {}, src: 'default', key: null, obs: null, raf: 0, seq: 0 };
+  const S = { who: 'guest', plan: '', planName: '', feats: {}, lims: {}, src: 'default', key: null, obs: null, raf: 0, seq: 0 };
 
   const acct = () => window.TwAccount || null;
   const meKey = () => { const A = acct(); const u = A && A.on() && A.user(); return u && u.email ? 'u:' + String(u.email).toLowerCase() : 'guest'; };
@@ -47,7 +47,11 @@
     if (f.kind === 'limit') return Number.isInteger(v) ? Math.max(0, Math.min(f.max, v)) : (v === false ? 0 : f.def);
     return typeof v === 'boolean' ? v : f.def;
   }
-  function can(id) { const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }
+  /* ★ admin-v3：瀏覽次數上限 0＝「不能看」，跟關掉開關同一個效果（同一套鎖頭＋升級鈕）；N＞0 的計數在 quota.js */
+  function can(id) { if (S.lims[id] === 0) return false; const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }
+  /* 每日瀏覽次數上限：Infinity＝不限（沒設）、0＝不能看、N＝每日 N 次 */
+  function lim(id) { const v = S.lims[id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; }
+  const routeOk = (f) => !f.route || f.route.test(location.hash || '');
   function limit(id, fb) { const f = F.byId(id); return f ? value(id) : fb; }
   const lockedList = () => F.list.filter((f) => f.kind !== 'limit' && !can(f.id));
 
@@ -57,9 +61,12 @@
     const s = document.createElement('style'); s.id = 'permCss';
     /* isolation:isolate —— 讓 ::after 的 z-index 只在這個區塊裡比，不會蓋到頁面上的下拉、抽屜（DECISIONS #278 同一個原則）*/
     s.textContent = `
-[data-plk]{isolation:isolate;min-height:96px}
+[data-plk]{isolation:isolate;min-height:120px}
 [data-plk][data-plk-rel]{position:relative}
-[data-plk]>*{filter:blur(5px)!important;opacity:.28!important;pointer-events:none!important;user-select:none!important}
+[data-plk]>*:not(.plkgo){filter:blur(5px)!important;opacity:.28!important;pointer-events:none!important;user-select:none!important}
+[data-plk]>.plkgo{position:absolute!important;left:50%;top:76px;transform:translateX(-50%);z-index:31!important;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 16px;
+  border-radius:999px;background:var(--amber,#f5b942);color:#1a1203!important;font:700 13.5px/1 system-ui,sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+[data-plk]>.plkgo:hover{filter:brightness(1.08)}
 [data-plk]::after{content:attr(data-plk)!important;position:absolute!important;inset:0!important;z-index:30!important;display:flex!important;
   align-items:flex-start!important;justify-content:center!important;padding:22px 16px 0!important;box-sizing:border-box!important;
   white-space:pre-line!important;text-align:center!important;font:600 15px/1.6 system-ui,sans-serif!important;color:var(--ink,#e6edf6)!important;
@@ -78,7 +85,7 @@
     t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 3200);
   }
   function msgOf(f) {
-    const tail = S.who === 'guest' && acct() && acct().on() ? '登入會員或洽網站管理者開通' : '請洽網站管理者開通';
+    const tail = S.who === 'guest' && acct() && acct().on() ? '登入或升級方案即可使用' : '升級方案即可使用';
     return `🔒 ${f.cat === 'grp' ? '此族群需開通' : '此功能需開通'}\n${f.name}・${tail}`;
   }
   /* 族群清單：只有權限裡真的有 grp.* 被關時才抓（全開時不多打一支請求）*/
@@ -103,11 +110,12 @@
   function apply() {
     S.raf = 0;
     css();
-    const want = new Map(), wantB = new Map();
+    const want = new Map(), wantB = new Map(), wantF = new Map();
     for (const f of lockedList()) {
+      if (!routeOk(f)) continue;
       for (const [sel, when] of f.veil || []) {
         if (when && !q(when).length) continue;
-        q(sel).forEach((el) => { if (!want.has(el)) want.set(el, msgOf(f)); });
+        q(sel).forEach((el) => { if (!want.has(el)) { want.set(el, msgOf(f)); wantF.set(el, f.id); } });
       }
       (f.mark || []).forEach((sel) => q(sel).forEach((el) => { if (!wantB.has(el)) wantB.set(el, 'mark'); }));
       (f.block || []).forEach((sel) => q(sel).forEach((el) => wantB.set(el, 'block')));
@@ -118,20 +126,20 @@
       const m = /^#industry\/group\/([^/?]+)/.exec(location.hash || '');
       const cur = m ? decodeURIComponent(m[1]) : null;
       for (const f of lg) {
-        if (cur && f.gid === cur) q('#gpSec').forEach((el) => want.set(el, msgOf(f)));
+        if (cur && f.gid === cur) q('#gpSec').forEach((el) => { want.set(el, msgOf(f)); wantF.set(el, f.id); });
         q('.rotdd input[data-g]').forEach((inp) => { if (inp.dataset.g === f.gid) { const row = inp.closest('.ddopt') || inp; wantB.set(row, 'block'); } });
       }
     }
     needGroups();
     /* 只動「該變」的：屬性沒變就不寫（寫屬性會觸發樣式重算；live.js 每 5 秒改一堆格子，這裡每次都會被叫到）*/
-    q('[data-plk]').forEach((el) => { if (!want.has(el)) { el.removeAttribute('data-plk'); el.removeAttribute('data-plk-rel'); el.inert = false; el.removeAttribute('aria-label'); } });
+    q('[data-plk]').forEach((el) => { if (!want.has(el)) unveil(el); });
     want.forEach((m, el) => {
       if (el.getAttribute('data-plk') !== m) {
         el.setAttribute('data-plk', m);
         if (getComputedStyle(el).position === 'static') el.setAttribute('data-plk-rel', '');
-        el.inert = true;
         el.setAttribute('aria-label', m.replace('\n', '：'));
       }
+      veilKids(el, wantF.get(el));
     });
     q('[data-plkb]').forEach((el) => { if (!wantB.has(el)) { el.removeAttribute('data-plkb'); if (el.dataset.plkTitle != null) { el.title = el.dataset.plkTitle; delete el.dataset.plkTitle; } } });
     wantB.forEach((k, el) => {
@@ -142,6 +150,22 @@
       }
     });
     watch(want.size + wantB.size > 0 || lockedList().length > 0);
+  }
+  /* ★ admin-v3（Andy D③）：鎖頭上要有一顆能點的「升級查看」→ #pricing/need/<功能鍵>（訂閱頁把能解鎖它的方案標出來）。
+     原本整塊 inert（連鈕都點不到）→ 改成「外框不 inert、裡面原本的子節點逐一 inert」，只有升級鈕可以點。
+     子節點被各自的程式整個重畫時（innerHTML），MutationObserver 下一個畫格會再進來補 inert 與按鈕。 */
+  function veilKids(el, fid) {
+    let go = el.querySelector(':scope > .plkgo');
+    const href = '#pricing/need/' + encodeURIComponent(fid || '');
+    if (!go) { go = document.createElement('a'); go.className = 'plkgo'; go.textContent = '升級查看 →'; el.appendChild(go); }
+    if (go.getAttribute('href') !== href) go.setAttribute('href', href);
+    if (el.lastElementChild !== go) el.appendChild(go);
+    for (const k of el.children) if (k !== go && !k.inert) { k.inert = true; k.setAttribute('data-plk-in', ''); }
+  }
+  function unveil(el) {
+    el.removeAttribute('data-plk'); el.removeAttribute('data-plk-rel'); el.removeAttribute('aria-label'); el.inert = false;
+    const go = el.querySelector(':scope > .plkgo'); if (go) go.remove();
+    el.querySelectorAll(':scope > [data-plk-in]').forEach((k) => { k.inert = false; k.removeAttribute('data-plk-in'); });
   }
   function schedule() { if (!S.raf) S.raf = requestAnimationFrame(apply); }
   function watch(on) {
@@ -164,14 +188,15 @@
 
   // ------------------------------------------------------------------ 讀取
   function set(d, src) {
-    const before = JSON.stringify([S.who, S.plan, S.feats]);
+    const before = JSON.stringify([S.who, S.plan, S.feats, S.lims]);
     S.who = d.who || 'guest'; S.plan = d.plan || ''; S.planName = d.planName || '';
     S.feats = d.feats && typeof d.feats === 'object' ? d.feats : {};
+    S.lims = d.lims && typeof d.lims === 'object' && !Array.isArray(d.lims) ? d.lims : {};
     S.src = src;
     apply();
-    if (before !== JSON.stringify([S.who, S.plan, S.feats])) window.dispatchEvent(new CustomEvent('tw:perm', { detail: state() }));
+    if (before !== JSON.stringify([S.who, S.plan, S.feats, S.lims])) window.dispatchEvent(new CustomEvent('tw:perm', { detail: state() }));
   }
-  function state() { return { who: S.who, plan: S.plan, planName: S.planName, feats: Object.assign({}, S.feats), src: S.src }; }
+  function state() { return { who: S.who, plan: S.plan, planName: S.planName, feats: Object.assign({}, S.feats), lims: Object.assign({}, S.lims), src: S.src }; }
   async function refresh() {
     const A = acct();
     const key = meKey();
@@ -181,7 +206,7 @@
     const j = await A.call('/v1/perm/me', {});
     if (seq !== S.seq) return;                      // 期間又登入／登出過：以最新那次為準
     if (j && j._s === 200 && j.feats) {
-      ls.set(K_CACHE, JSON.stringify({ k: key, who: j.who, plan: j.plan, planName: j.planName, feats: j.feats }));
+      ls.set(K_CACHE, JSON.stringify({ k: key, who: j.who, plan: j.plan, planName: j.planName, feats: j.feats, lims: j.lims || {} }));
       set(j, 'server');
     } else if (j && j._s === 401) {
       /* account.js 已經把權杖清掉、改回訪客；tw:account 事件會再叫一次 refresh */
@@ -200,7 +225,7 @@
     return false;
   }
 
-  window.TwPerm = { can, limit, value, state, refresh, apply: () => apply(), locked: () => lockedList().map((f) => f.id), grpBlock,
+  window.TwPerm = { can, limit, lim, value, state, refresh, apply: () => apply(), locked: () => lockedList().map((f) => f.id), grpBlock,
     grpOk: (gid) => { const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; } };
   window.addEventListener('hashchange', schedule);
 

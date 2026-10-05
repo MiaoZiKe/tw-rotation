@@ -40,14 +40,14 @@ async function login(hub, email) {
   return (await (await post(hub, '/auth/redeem', { n })).json()).tok;
 }
 
-test('方案公開端點：不必登入、回方案摘要（含價格欄位，沒有就是 null）、不含會員名單', async () => {
+test('方案公開端點：不必登入、回方案摘要（含價格欄位、admin-v3 的瀏覽次數上限 lims）、不含會員名單', async () => {
+  /* ★ 2026-10-05 改前→改後（admin-v3 合併 admin-v2 之後）：plans 表本來就有 price／period（admin-v2 遷移時補 0／month），
+     所以內建範本的價格是 0 而不是 null；這裡改驗「回得到、可改、不含名單」。 */
   const { hub, db } = makeHub(env());
   const { s, j } = await pj(hub, '/v1/plans/public', {});
   assert.equal(s, 200);
   assert.deepEqual(j.plans.map((p) => p.id).sort(), ['free', 'guest', 'paid']);
-  assert.ok(j.plans.every((p) => p.price === null && !('members' in p)));
-  // admin-v2 加上價格欄位之後：照讀
-  db.exec('ALTER TABLE plans ADD COLUMN price INTEGER'); db.exec('ALTER TABLE plans ADD COLUMN period TEXT');
+  assert.ok(j.plans.every((p) => Number.isInteger(p.price) && !('members' in p) && typeof p.lims === 'object'));
   db.prepare("UPDATE plans SET price = 399, period = 'month' WHERE id = 'paid'").run();
   const p = (await pj(hub, '/v1/plans/public', {})).j.plans.find((x) => x.id === 'paid');
   assert.deepEqual([p.price, p.period], [399, 'month']);
@@ -109,7 +109,7 @@ test('每日瀏覽次數：要登入；同一檔一天只算一次；跨日歸�
   const r = (await pj(hub, '/v1/quota/hit', { t: bob, k: 'quota.stock', key: '2317' })).j;
   assert.deepEqual([r.n, r.keys.sort()], [2, ['2317', '2330']]);
   assert.equal((await pj(hub, '/v1/quota/hit', { t: bob, k: 'quota.stock' })).j.n, 2, '不帶 key＝只查');
-  for (const bad of [{ k: 'stock', key: '2330' }, { k: 'quota.stock', key: '<b>' }]) assert.equal((await post(hub, '/v1/quota/hit', { t: bob, ...bad })).status, 400);
+  for (const bad of [{ k: 'Stock!', key: '2330' }, { k: 'quota.stock', key: '<b>' }]) assert.equal((await post(hub, '/v1/quota/hit', { t: bob, ...bad })).status, 400);
   const saved = clock;
   try { clock += 86400 * 1000; assert.equal((await pj(hub, '/v1/quota/hit', { t: bob, k: 'quota.stock' })).j.n, 0, '隔天歸零'); } finally { clock = saved; }
 });

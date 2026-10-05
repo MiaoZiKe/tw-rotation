@@ -854,3 +854,200 @@ Hub.prototype.cleanup = function () {
   this.q('DELETE FROM quota_hits WHERE day < ?', tpeDay(now - 3 * 86400 * 1000));
 };
 /* ============================================================================ sub-v1 區塊結束 */
+
+/* ============================================================================ admin-v3 區塊（2026-10-05）
+   Andy 看了 admin-v2 預覽：「弄得好複雜，看了不清楚」→ 管理頁簡化成 訪客｜註冊會員｜付費會員 三個大分頁，
+   每頁兩個子分頁「觀看權限」「會員名單」。後端要多給三樣東西：
+     ① 每個功能的「瀏覽次數」上限（每日；留空＝不限、0＝不能看）—— plans.lims（JSON：{功能鍵: 次數}）。
+        跟 feats（開關）分開存：開關是「能不能看」，上限是「一天看幾次」，兩者獨立改、獨立驗。
+        /v1/perm/me 多回 lims（生效那個範本的；過期的人退回免費會員的）；/v1/plans/public、plans/get 也帶 lims。
+     ② 會員名單要的使用數據（只給管理者）：累計在線時間、近 30 天造訪／觀看、最常用的功能 Top3、最常看的股票 Top3、近 14 天每日活躍。
+        · 在線時間：每次心跳替「這個人」加上距上次加時的間隔，單次最多 120 秒（前端 60 秒一跳、容許漏一次）；
+          用 users.ob（上次加時時間）而不是每個分頁各算 —— 同一人開三個分頁不會變成三倍。存在 visits.ms（每人每天）。
+        · 個人使用明細：uev（uid、台北日期、頁面、元件、細項、次數）—— 只記**登入者**，訪客仍然只有不具名的 usage／ev2。
+          這是「誰看了什麼」的個人資料（隱私權政策要一起寫）：保留 90 天、刪除帳號一起刪、只有管理者讀得到。
+     ③ /v1/quota/hit 的功能鍵放寬成任何功能鍵（原本只收 quota.*）—— 每個功能都有上限之後，計數也要每個功能各記。
+   ★ 跟 sub-v1 同一個做法：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   相容遷移：plans.lims、visits.ms、users.ob 三欄用 PRAGMA 判斷再 ALTER（重跑不報錯、舊資料原封不動）；uev 新表。
+   ============================================================================ */
+const V3_UEV_KEEP_DAYS = 90;
+const V3_ONLINE_STEP_MS = 120 * 1000;     // 單次心跳最多加 2 分鐘在線時間（防灌水：關機一晚再回來不會加 8 小時）
+const V3_LIM_MAX = 9999;
+const V3_FEAT_K_RE = /^[a-z][a-z0-9_.]{1,39}$/;
+
+Hub.prototype.v3Init = function () {
+  if (this._v3Ok) return;
+  const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+  if (!pc.includes('lims')) this.q("ALTER TABLE plans ADD COLUMN lims TEXT DEFAULT '{}'");
+  const vc = this.q('PRAGMA table_info(visits)').map((c) => c.name);
+  if (!vc.includes('ms')) this.q('ALTER TABLE visits ADD COLUMN ms INTEGER DEFAULT 0');
+  const uc = this.q('PRAGMA table_info(users)').map((c) => c.name);
+  if (!uc.includes('ob')) this.q('ALTER TABLE users ADD COLUMN ob INTEGER DEFAULT 0');
+  this.q('CREATE TABLE IF NOT EXISTS uev (uid TEXT, day TEXT, page TEXT, comp TEXT, detail TEXT, n INTEGER, PRIMARY KEY (uid, day, page, comp, detail))');
+  this._v3Ok = true;
+};
+/* 上限：只收 功能鍵 → 0～9999 的整數；任何一項不合格整批不收（同 cleanFeats）。null／undefined＝{}（全部不限）*/
+Hub.prototype.v3CleanLims = function (l) {
+  if (l == null) return {};
+  if (typeof l !== 'object' || Array.isArray(l)) return null;
+  const ent = Object.entries(l);
+  if (ent.length > MAX_FEAT_KEYS) return null;
+  const out = {};
+  for (const [k, v] of ent) {
+    if (!V3_FEAT_K_RE.test(k) || !Number.isInteger(v) || v < 0 || v > V3_LIM_MAX) return null;
+    out[k] = v;
+  }
+  return out;
+};
+Hub.prototype.v3Lims = function (id) {
+  this.v3Init();
+  const r = this.q('SELECT lims FROM plans WHERE id = ?', id)[0];
+  try { return r ? JSON.parse(r.lims || '{}') || {} : {}; } catch (e) { return {}; }
+};
+/* plan()：多帶 lims —— plans/get、plans/put 的回應都經過它，前端一次拿齊 */
+const v3OrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) {
+  const p = v3OrigPlan.call(this, id);
+  if (p) p.lims = this.v3Lims(id);
+  return p;
+};
+const v3OrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () {
+  return v3OrigPlanRows.call(this).map((p) => ({ ...p, lims: this.v3Lims(p.id) }));
+};
+/* plans/put：先驗 lims（壞的整個請求 400，不會「開關存了、上限沒存」），原本的存完再寫 lims */
+const v3OrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.v3Init();
+  let lims;
+  if (b && b.lims !== undefined && b.del !== true) {
+    lims = this.v3CleanLims(b.lims);
+    if (!lims) return this.json(req, { error: 'bad_lims' }, 400);
+  }
+  const res = await v3OrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || lims === undefined) return res;
+  this.q('UPDATE plans SET lims = ? WHERE id = ?', JSON.stringify(lims), String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* /v1/perm/me：多回 lims（生效的範本；過期退回免費會員）*/
+const v3OrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const res = await v3OrigPermMe.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.lims = this.v3Lims(j.plan || 'free');
+  return this.json(req, j);
+};
+/* 心跳：原本的照跑；成功而且是登入者 → 加在線時間、記個人使用明細 */
+const v3OrigBeat = Hub.prototype.beat;
+Hub.prototype.beat = async function (req, b) {
+  const res = await v3OrigBeat.call(this, req, b);
+  if (res.status !== 200 || !b.t) return res;
+  const v = await this.verify(b.t);
+  if (!v) return res;
+  this.v3Init();
+  const now = this.now(), day = tpeDay(now), uid = v.user.uid;
+  if (!b.leave) {
+    const ob = this.q('SELECT ob FROM users WHERE uid = ?', uid)[0];
+    const gap = ob && ob.ob ? now - ob.ob : 0;
+    /* 上次加時到現在超過「離線」門檻（150 秒）＝中間斷過，這次只算重新開始，不補中間那段 */
+    const add = gap > 0 && gap <= ONLINE_WINDOW_MS ? Math.min(gap, V3_ONLINE_STEP_MS) : 0;
+    if (add) this.q('INSERT INTO visits (uid, day, n, ms) VALUES (?, ?, 0, ?) ON CONFLICT(uid, day) DO UPDATE SET ms = COALESCE(ms, 0) + excluded.ms', uid, day, add);
+    this.q('UPDATE users SET ob = ? WHERE uid = ?', now, uid);
+  }
+  const rows = [];
+  for (const [k, n] of this.cleanEv(b.ev) || []) if (k.startsWith('pv:')) rows.push([k.slice(3), '_pv', '', n]);
+  for (const r of this.cleanE2(b.e2) || []) rows.push(r);
+  for (const [pg, comp, det, n] of rows.slice(0, 80)) {
+    this.q('INSERT INTO uev (uid, day, page, comp, detail, n) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(uid, day, page, comp, detail) DO UPDATE SET n = n + excluded.n', uid, day, pg, comp, det, n);
+  }
+  return res;
+};
+/* 刪帳號：個人使用明細一起刪（visits 原本就會刪）*/
+const v3OrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b);
+  const res = await v3OrigDelete.call(this, req, b);
+  if (v && res.status === 200) { this.v3Init(); this.q('DELETE FROM uev WHERE uid = ?', v.user.uid); }
+  return res;
+};
+const v3OrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  v3OrigCleanup.call(this);
+  this.v3Init();
+  this.q('DELETE FROM uev WHERE day < ?', tpeDay(this.now() - V3_UEV_KEEP_DAYS * 86400 * 1000));
+  this.q('DELETE FROM uev WHERE uid NOT IN (SELECT uid FROM users)');
+};
+
+/* 會員名單（管理者）：設定過的（perm）＋登入過的（users）合成一人一列，帶使用數據。
+   回：{ now, members: [{ email, name, plan, planName, tier, paid, expires, expired, created, seen, st,
+        onlineMs, online30, visits30, days30, views30, topFeat:[[元件, 次數]×3], topStock:[[代號, 次數]×3] }] } */
+Hub.prototype.v3Members = function () {
+  this.v3Init();
+  const now = this.now(), from30 = tpeDay(now - 29 * 86400 * 1000);
+  const plans = {}; this.q('SELECT id, name FROM plans').forEach((r) => { plans[r.id] = r.name; });
+  const users = this.q('SELECT uid, name, email, created, seen FROM users ORDER BY seen DESC LIMIT 2000');
+  const vis = {}; this.q('SELECT uid, SUM(n) AS n, SUM(COALESCE(ms, 0)) AS ms, SUM(CASE WHEN n > 0 OR ms > 0 THEN 1 ELSE 0 END) AS d FROM visits WHERE day >= ? GROUP BY uid', from30).forEach((r) => { vis[r.uid] = r; });
+  const tot = {}; this.q('SELECT uid, SUM(COALESCE(ms, 0)) AS ms FROM visits GROUP BY uid').forEach((r) => { tot[r.uid] = r.ms || 0; });
+  const pv = {}; this.q("SELECT uid, SUM(n) AS n FROM uev WHERE day >= ? AND comp = '_pv' GROUP BY uid", from30).forEach((r) => { pv[r.uid] = r.n; });
+  const feat = {}, stock = {};
+  this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp ORDER BY n DESC", from30)
+    .forEach((r) => { const a = (feat[r.uid] = feat[r.uid] || []); if (a.length < 3) a.push([r.comp, r.n]); });
+  this.q("SELECT uid, detail, SUM(n) AS n FROM uev WHERE day >= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY uid, detail ORDER BY n DESC", from30)
+    .forEach((r) => { const a = (stock[r.uid] = stock[r.uid] || []); if (a.length < 3) a.push([r.detail, r.n]); });
+  const perm = {}; this.q('SELECT email, plan, expires FROM perm').forEach((r) => { perm[r.email] = r; });
+  const row = (email, u) => {
+    const p = perm[email], exp = p && p.expires ? p.expires : 0, expired = !!(exp && exp < now);
+    const plan = p && plans[p.plan] ? p.plan : 'free';
+    const uid = u ? u.uid : null, vv = (uid && vis[uid]) || {};
+    return { email, name: u ? u.name : '', plan, planName: plans[plan] || plan, tier: plan === 'free' ? 'free' : 'paid', paid: plan !== 'free' && !expired,
+      expires: exp, expired, set: !!p, created: u ? u.created || 0 : 0, seen: u ? u.seen || 0 : 0,
+      st: expired ? 'exp' : (u ? 'ok' : 'new'), onlineMs: uid ? tot[uid] || 0 : 0, online30: vv.ms || 0, visits30: vv.n || 0, days30: vv.d || 0,
+      views30: uid ? pv[uid] || 0 : 0, topFeat: uid ? feat[uid] || [] : [], topStock: uid ? stock[uid] || [] : [] };
+  };
+  const out = [], seen = new Set();
+  for (const u of users) { const e = String(u.email || '').toLowerCase(); if (!e || seen.has(e)) continue; seen.add(e); out.push(row(e, u)); }
+  for (const e of Object.keys(perm)) if (!seen.has(e)) { seen.add(e); out.push(row(e, null)); }
+  return { now, members: out };
+};
+/* 某一位會員的詳細使用紀錄（展開那一列用）：各分頁瀏覽、功能次數 Top 15、最常看的股票 Top 10、近 14 天每日（造訪、在線、瀏覽）*/
+Hub.prototype.v3Detail = function (email) {
+  this.v3Init();
+  const now = this.now(), from30 = tpeDay(now - 29 * 86400 * 1000), from14 = tpeDay(now - 13 * 86400 * 1000);
+  const u = this.q('SELECT uid, name, created, seen FROM users WHERE lower(email) = ?', email)[0];
+  if (!u) return { email, known: false, pages: [], feats: [], stocks: [], days: [] };
+  const pages = this.q("SELECT page, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND comp = '_pv' GROUP BY page ORDER BY n DESC", u.uid, from30).map((r) => [r.page, r.n]);
+  const feats = this.q("SELECT page, comp, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY page, comp ORDER BY n DESC LIMIT 15", u.uid, from30).map((r) => [r.page, r.comp, r.n]);
+  const stocks = this.q("SELECT detail, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY detail ORDER BY n DESC LIMIT 10", u.uid, from30).map((r) => [r.detail, r.n]);
+  const vd = {}; this.q('SELECT day, n, COALESCE(ms, 0) AS ms FROM visits WHERE uid = ? AND day >= ?', u.uid, from14).forEach((r) => { vd[r.day] = r; });
+  const pd = {}; this.q("SELECT day, SUM(n) AS n FROM uev WHERE uid = ? AND day >= ? AND comp = '_pv' GROUP BY day", u.uid, from14).forEach((r) => { pd[r.day] = r.n; });
+  const days = [];
+  for (let i = 13; i >= 0; i--) { const d = tpeDay(now - i * 86400 * 1000); days.push({ day: d, visits: (vd[d] || {}).n || 0, ms: (vd[d] || {}).ms || 0, views: pd[d] || 0 }); }
+  return { email, known: true, name: u.name, created: u.created, seen: u.seen, pages, feats, stocks, days };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/members': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    return this.json(req, this.v3Members());
+  },
+  '/v1/admin/member/detail': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    return this.json(req, this.v3Detail(email));
+  },
+  /* 每日瀏覽次數：功能鍵放寬成任何功能鍵（含舊的 quota.*）；其餘規則同 sub-v1（要登入、同一個 key 一天只算一次、最多 500）*/
+  '/v1/quota/hit': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const k = String(b.k || ''), key = String(b.key || '');
+    if (!V3_FEAT_K_RE.test(k) || (key && !QUOTA_KEY_RE.test(key))) return this.json(req, { error: 'bad_input' }, 400);
+    const day = tpeDay(this.now());
+    if (key && this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', v.user.uid, day, k)[0].c < 500) {
+      this.q('INSERT OR IGNORE INTO quota_hits (uid, day, k, key) VALUES (?, ?, ?, ?)', v.user.uid, day, k, key);
+    }
+    const keys = this.q('SELECT key FROM quota_hits WHERE uid = ? AND day = ? AND k = ? LIMIT 500', v.user.uid, day, k).map((r) => r.key);
+    return this.json(req, { day, k, n: keys.length, keys });
+  },
+});
+/* ============================================================================ admin-v3 區塊結束 */
