@@ -417,6 +417,15 @@ def _yoy_pair(s: pd.Series) -> tuple:
     return s.index[-1][:7], yoy(-1), s.index[-2][:7], yoy(-2)
 
 
+def _yoy_series(s: pd.Series, n: int = 12) -> list:
+    out = []
+    for d in s.index[-n:]:
+        b = s.get(f"{int(d[:4]) - 1}{d[4:]}")
+        if b:
+            out.append([d[:7], round((s[d] / b - 1) * 100, 2)])
+    return out
+
+
 def macro_snapshot(macro: pd.DataFrame | None) -> dict:
     """FED 面板的「上次數值」：全部來自 FRED 觀測值；缺就不給（前端寫「FRED 資料尚未取得」）。"""
     out: dict = {}
@@ -437,20 +446,29 @@ def macro_snapshot(macro: pd.DataFrame | None) -> dict:
         p, v, pp, pv = _yoy_pair(_series(macro, sid))
         if v is not None:
             out[key] = {"label": lab, "value": f"{v:.1f}%", "date": p, "prev": f"前一期（{pp}）{pv:.1f}%" if pv is not None else None,
-                        "src": f"FRED {sid}（年增率＝本期 ÷ 去年同期 − 1）"}
+                        "src": f"FRED {sid}（年增率＝本期 ÷ 去年同期 − 1）", "v": v, "pv": pv, "series": _yoy_series(_series(macro, sid))}
     pay = _series(macro, "PAYEMS")
     if len(pay) >= 3:
         d1, d2 = pay.iloc[-1] - pay.iloc[-2], pay.iloc[-2] - pay.iloc[-3]
         out["nfp_change"] = {"label": "非農新增就業", "value": f"{d1:+,.0f} 千人", "date": pay.index[-1][:7],
-                             "prev": f"前一期（{pay.index[-2][:7]}）{d2:+,.0f} 千人", "src": "FRED PAYEMS（本期 − 前期）"}
+                             "prev": f"前一期（{pay.index[-2][:7]}）{d2:+,.0f} 千人", "src": "FRED PAYEMS（本期 − 前期）",
+                             "v": float(d1), "pv": float(d2), "series": [[pay.index[i][:7], float(pay.iloc[i] - pay.iloc[i - 1])] for i in range(max(1, len(pay) - 12), len(pay))]}
     for key, sid, lab, fmt in (("unrate", "UNRATE", "失業率", "{:.1f}%"), ("gdp", "A191RL1Q225SBEA", "實質 GDP 季增年率", "{:+.1f}%"),
                                ("ust10", "DGS10", "美國十年期公債殖利率", "{:.2f}%")):
         s = _series(macro, sid)
         if len(s):
             out[key] = {"label": lab, "value": fmt.format(s.iloc[-1]), "date": s.index[-1][:7] if sid != "DGS10" else s.index[-1],
                         "prev": f"前一期（{s.index[-2][:7] if sid != 'DGS10' else s.index[-2]}）{fmt.format(s.iloc[-2])}" if len(s) > 1 else None,
-                        "src": f"FRED {sid}"}
+                        "src": f"FRED {sid}", "v": float(s.iloc[-1]), "pv": float(s.iloc[-2]) if len(s) > 1 else None,
+                        "series": [[i[:7], float(v)] for i, v in s.tail(12 if sid != "DGS10" else 1).items()] if sid != "DGS10" else []}
     return out
+
+
+def fed_info_merged(cfg: dict | None = None) -> dict:
+    """FED_INFO（程式內建的名稱與關注點）＋ macro_events.yaml 的 info 區塊（是什麼／怎麼看／影響／星級／偏多偏空規則）。"""
+    cfg = cfg if cfg is not None else load_macro_yaml()
+    extra = (cfg or {}).get("info") or {}
+    return {k: {**v, **(extra.get(k) or {})} for k, v in FED_INFO.items()}
 
 
 # ------------------------------------------------------------------ 個股分析與展望（規則式）
@@ -536,15 +554,18 @@ def section_revenue(rev_rows: list[dict]) -> dict | None:
         lines.append(f"已連續 {streak} 個月年增為正。")
     elif _f(r0.get("yoy")) is not None and _f(r0.get("yoy")) <= 0:
         lines.append("最新一個月年增為負。")
-    return {"key": "rev", "t": "月營收趨勢", "tone": tone, "trend": trend, "lines": lines,
+    ser = [[r["ym"], _r(_f(r["revenue"]) / 1e8, 1), _r(r.get("yoy"))] for r in rows[-12:]]
+    return {"key": "rev", "t": "月營收趨勢", "tone": tone, "trend": trend, "lines": lines, "series": ser,
             "table": {"cols": ["月份", "營收（億）", "年增%", "月增%"], "rows": tbl},
             "src": "月營收（證交所 OpenAPI t187ap05／FinMind；年增用官方附的去年同月）", "asof": r0["ym"]}
 
 
 def section_profit(prof_rows: list[dict]) -> dict | None:
-    rows = [r for r in prof_rows if _f(r.get("eps")) is not None][-4:]
+    allrows = [r for r in prof_rows if _f(r.get("eps")) is not None]
+    rows = allrows[-4:]
     if len(rows) < 2:
         return None
+    ser = [[r["period"], _r(r.get("eps"), 2), _r(r.get("gross_margin"))] for r in allrows[-8:]]
     gm = [_f(r.get("gross_margin")) for r in rows]
     om = [_f(r.get("op_margin")) for r in rows]
     lines, tone = [], 0
@@ -563,7 +584,7 @@ def section_profit(prof_rows: list[dict]) -> dict | None:
     if dy is not None:
         lines.append(f"最近一季 EPS 較去年同季 {dy:+.2f} 元。")
     tbl = [[r["period"], _r(r.get("eps"), 2), _r(r.get("gross_margin")), _r(r.get("op_margin"))] for r in rows]
-    return {"key": "profit", "t": "獲利能力（近 4 季）", "tone": tone, "lines": lines,
+    return {"key": "profit", "t": "獲利能力（近 4 季）", "tone": tone, "lines": lines, "series": ser,
             "table": {"cols": ["季別", "EPS", "毛利率%", "營益率%"], "rows": tbl},
             "src": "季損益（證交所 OpenAPI t187ap14／FinMind，累計值已還原成單季）", "asof": rows[-1]["period"]}
 
@@ -585,7 +606,8 @@ def section_valuation(pe_now, pe_hist: list | None, close, close_date: str) -> d
         tone = -1 if pos >= 80 else 1 if pos <= 20 else 0
     else:
         lines.append(f"自己的歷史本益比只有 {len(vals)} 季，少於 8 季不排位置。")
-    return {"key": "val", "t": "估值位置", "tone": tone, "pos": pos, "lines": lines,
+    return {"key": "val", "t": "估值位置", "tone": tone, "pos": pos, "lines": lines, "pe": round(pe, 1),
+            "lo": round(min(vals), 1) if vals else None, "hi": round(max(vals), 1) if vals else None,
             "src": "本益比＝收盤 ÷ 近四季 EPS 合計（DECISIONS #12）；歷史＝每季公布後第一個收盤的本益比", "asof": close_date}
 
 
@@ -608,7 +630,9 @@ def section_inst(inst: pd.DataFrame | None, vol: pd.Series | None) -> dict | Non
             word = "買超" if ratio >= 3 else "賣超" if ratio <= -3 else "差距不大"
             tone = 1 if ratio >= 3 else -1 if ratio <= -3 else 0
             lines.append(f"三大法人 20 日合計佔同期成交量 {ratio:+.1f}% → {word}（±3% 以內算差距不大）。")
-    return {"key": "inst", "t": "法人籌碼", "tone": tone, "lines": lines,
+    ik = "inst_total" if "inst_total" in g else fk
+    ser = [[str(d)[:10], None if pd.isna(v) else int(round(v))] for d, v in zip(g["date"], pd.to_numeric(g[ik], errors="coerce"))]
+    return {"key": "inst", "t": "法人籌碼", "tone": tone, "lines": lines, "series": ser,
             "src": "三大法人買賣超（證交所 OpenAPI／FinMind；單位：張）", "asof": str(g["date"].iloc[-1])[:10]}
 
 
@@ -739,13 +763,13 @@ def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, p
         if e["k"] in FED_INFO and e["d"] >= latest and e["k"] not in nxt:
             nxt[e["k"]] = {"d": e["d"], "tw": e.get("tw"), "title": e["title"]}
     return {
-        "v": 1, "asof": latest, "window": [start, end],
+        "v": 2, "asof": latest, "window": [start, end],
         "universe": {"basis": f"市值前 {UNIVERSE_N}（收盤 × 最新一季財報股數；上市＋上櫃普通股，排除 ETF）",
                      "n": len(univ), "asof": latest, "list": univ},
         "mops_since": str(material_news["date"].min())[:10] if material_news is not None and not material_news.empty else None,
         "events": events,
         "companies": companies,
-        "fed": {"info": FED_INFO, "snap": snap, "next": nxt,
+        "fed": {"info": fed_info_merged(cfg), "snap": snap, "next": nxt,
                 "macro_src": "FRED（聯準會聖路易分行經濟資料庫）" if snap else None},
     }
 
