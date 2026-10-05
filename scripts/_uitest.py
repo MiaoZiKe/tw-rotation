@@ -1862,7 +1862,9 @@ def t_etf_1005(pg, b, base):
         ok(f"[{tag}] 側欄有 ETF 分頁、頁面畫完", ready and count(lp, '.tab[data-view="etf"]') == 1)
         ok(f"★ [{tag}] 頁頂免責（非投顧、不構成建議）", "非投資建議" in text(lp, "#etfDisc") and "過去績效" in text(lp, "#etfDisc"))
         ok(f"[{tag}] 讀到完整 etf.json（不是退回模式）", J("() => document.querySelector('#v-etf').dataset.ready") == "full")
-        cat("all")
+        ok(f"★ [{tag}] 沒有「全部」頁籤、預設選中「配息型」、重新整理回預設（Andy 10-06：「一樣拿掉」）",
+           J("() => [...document.querySelectorAll('#etfCatSeg button')].every(b => b.dataset.v !== 'all')") and J("() => document.querySelector('#etfCatSeg button.on').dataset.v") == "配息型"
+           and J("() => document.querySelector('#v-etf').dataset.cat") == "配息型")
         # ================= 1. 行事曆在最上面、7 欄真月曆
         order = J("() => [...document.querySelectorAll('#v-etf > .card, #v-etf > .etfcatbar, #v-etf > .etftri')].filter(e => !e.hidden).map(e => e.id)")
         ok(f"★ [{tag}] 配息行事曆是免責下方第一張（在分類列與其他卡之上）", order[:2] == ["etfCalCard", "etfCatBar"], order)
@@ -1899,7 +1901,7 @@ def t_etf_1005(pg, b, base):
            (h_cal0, h_cal1, H("#etfCalCard"), top_cat0, TOP("#etfCatBar")))
         lp.click("#etfCalToday"); lp.wait_for_timeout(150)
         # ================= 2. 全部／其他沒有前 5；配息型三張同高並排
-        ok(f"★ [{tag}] 「全部」沒有三張前 5、也沒有報酬比較", J("() => document.querySelector('#etfTri').hidden && document.querySelector('#etfRetCard').hidden"))
+        ok(f"★ [{tag}] 預設「配息型」就有三張前 5 與報酬比較", J("() => !document.querySelector('#etfTri').hidden && !document.querySelector('#etfRetCard').hidden"))
         cat("其他")
         ok(f"★ [{tag}] 「其他」沒有三張前 5（Andy：其他的不用）", J("() => document.querySelector('#etfTri').hidden"))
         cat("槓桿反向")
@@ -1973,8 +1975,8 @@ def t_etf_1005(pg, b, base):
         lp.reload(wait_until="networkidle")
         wait_until(lp, "() => !!document.querySelector('#v-etf[data-ready]')", 15000)
         lp.wait_for_timeout(300)
-        ok(f"★ [{tag}] 重新整理：停在上次的分類（主題型），配息型／市值型的比較清單都還在",
-           J("() => document.querySelector('#v-etf').dataset.cat") == "主題型"
+        ok(f"★ [{tag}] 重新整理：分類回預設（配息型，Andy 10-06），配息型／市值型各自勾選的比較清單都還在",
+           J("() => document.querySelector('#v-etf').dataset.cat") == "配息型"
            and (cat("配息型") or True) and CODES("#etfRetBody") == pick
            and (cat("市值型") or True) and CODES("#etfRetBody") == ["0050"])
         cat("配息型")
@@ -2003,7 +2005,7 @@ def t_etf_1005(pg, b, base):
         cw = J("() => [...new Set([...document.querySelectorAll('#etfGrid .etfc')].map(e => Math.round(e.getBoundingClientRect().width)))]")
         ok(f"[{tag}] ETF 卡片欄寬一致（同一寬度）", len(cw) == 1, cw)
         segs = J("() => [...document.querySelectorAll('#etfCatSeg > button')].map(e => e.dataset.v)")
-        exp = [v for v in ["all", "配息型", "市值型", "主題型", "主動式", "債券型", "槓桿反向", "其他"] if v in segs]
+        exp = [v for v in ["配息型", "市值型", "主題型", "主動式", "債券型", "槓桿反向", "其他"] if v in segs]
         ok(f"★ [{tag}] 分類頁籤順序：債券型在槓桿反向前（Andy 10-06：「槓桿反向與債券型交換」）", segs == exp and len(segs) >= 6, segs)
         nb = J("""() => { const s = document.querySelector('#etfCatSeg'), b = s.querySelector('button'), em = b.querySelector('em');
                  const r = document.querySelector('#v-industry .nbsw > button, .nbsw > button');
@@ -2026,8 +2028,7 @@ def t_etf_1005(pg, b, base):
         # ================= 5. 原有：清單、排序、寬度、點卡片
         tags = J("() => [...document.querySelectorAll('#etfGrid .etfc .etag')].map(e => e.textContent)")
         ok(f"[{tag}] 配息型分頁的「ETF 一覽」只剩配息型且含 0056", tags and set(tags) == {"配息型"} and count(lp, "#etfGrid .etfc[data-code='0056']") == 1)
-        ok(f"[{tag}] 分類記在 localStorage", J("() => localStorage.getItem('tw.etf.cat')") == "配息型")
-        cat("all")
+        cat("市值型")
         lp.select_option("#etfSort", "size"); lp.wait_for_timeout(200)
         ok(f"[{tag}] 排序切「規模」→ 第一張是 0050（集保單位×收盤最大）", J("() => document.querySelector('#etfGrid .etfc').dataset.code") == "0050")
         ok(f"[{tag}] 1440 無橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
@@ -2038,7 +2039,7 @@ def t_etf_1005(pg, b, base):
         lp.click("#etfYld .rkrow[data-code='00919']"); lp.wait_for_timeout(600)
         ok(f"★ [{tag}] 點殖利率前 5 的 00919 → #stock/00919", J("() => location.hash") == "#stock/00919")
         lp.goto(f"{base}#etf", wait_until="networkidle"); wait_until(lp, "() => !!document.querySelector('#v-etf[data-ready]')", 15000)
-        cat("all")
+        cat("市值型")
         lp.click("#etfGrid .etfc[data-code='0050']"); lp.wait_for_timeout(600)
         ok(f"★ [{tag}] 點 0050 卡片 → #stock/0050", J("() => location.hash") == "#stock/0050")
         # ================= 6. ETF 個股頁（00947）
@@ -21795,7 +21796,7 @@ def t_cal_1006(pg, b, base):
         wait_until(lp, "() => document.querySelector('#etfCatSeg button')", 15000)
         lp.wait_for_timeout(1500)
         tabs = J("() => [...document.querySelectorAll('#etfCatSeg button')].map(b => b.dataset.v)")
-        ok(f"★ [{tag}] ETF 分類順序：債券型在槓桿反向之前", "債券型" in tabs and "槓桿反向" in tabs and tabs.index("債券型") < tabs.index("槓桿反向"), tabs)
+        ok(f"★ [{tag}] ETF 分類順序：配息型｜市值型｜主題型｜主動式｜債券型｜槓桿反向｜其他（沒有全部）", tabs == ["配息型", "市值型", "主題型", "主動式", "債券型", "槓桿反向", "其他"], tabs)
         gp = J("() => { const t = document.querySelector('#etfCatSeg button.on').getBoundingClientRect(), b = document.querySelector('#etfBody').getBoundingClientRect(); return Math.abs(t.bottom - b.top); }")
         ok(f"★ [{tag}] 資料夾式分頁：選中頁籤下緣與內容框上緣距離 ≤ 1px", gp <= 1.5, gp)
         ok(f"[{tag}] 前 5／報酬比較／ETF 一覽都在同一個內容框內", J("() => ['etfListCard'].every(i => document.querySelector('#etfBody #' + i))"))

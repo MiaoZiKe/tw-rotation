@@ -4,9 +4,9 @@
 
    版面（2026-10-05 第二版，Andy：「配息行事曆放最上面」「每個分類頁內並排前 5」「自選比較清單」）：
      ① 配息行事曆（7 欄真月曆，格內直接寫當天除息的代號與金額，點格子右側展開當天清單＋填息天數）
-     ② 分類分頁列（全部／配息型／市值型／…）＋期間（3／5／10 年／自訂，只影響報酬率）
+     ② 分類分頁列（配息型／市值型／…，預設配息型，無「全部」）＋期間（3／5／10 年／自訂，只影響報酬率）
      ③ 分類分頁才有、三張同高並排：最近最受歡迎前 5｜報酬率前 5（含息年化）｜殖利率前 5（附平均填息天數）
-        「全部」與「其他」不出這三張（Andy：「其他 ETF 的不用」）。
+        「其他」與「槓桿反向」不出這三張（Andy：「其他 ETF 的不用」）。
      ④ 報酬比較（自選）：「加入比較」可搜尋多選（限該分類、上限 8 檔、預設報酬前 5），依分類分開記在 localStorage
      ⑤ ETF 一覽（卡片清單，點卡片進個股頁）
    舊版的「前五名報酬比較」（只有配息型／市值型兩組）整張由 ③④ 取代。
@@ -29,7 +29,7 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } },
   };
   const CATS = ['配息型', '市值型', '主題型', '主動式', '債券型', '槓桿反向', '其他'];   // 2026-10-06 Andy：「槓桿反向」與「債券型」交換
-  const NO_RANK = { all: 1, 其他: 1, 槓桿反向: 1 };   // 不出「前 5 名」三張卡的分頁（Andy：「其他 ETF 的不用」；10-05 再加槓桿反向：「這兩個都比較少人做」）
+  const NO_RANK = { 其他: 1, 槓桿反向: 1 };   // 不出「前 5 名」三張卡的分頁（Andy：「其他 ETF 的不用」；10-05 再加槓桿反向：「這兩個都比較少人做」）
   const CAT_TONE = { 配息型: 'amber', 市值型: 'cyan', 主題型: 'violet', 債券型: 'lime', 槓桿反向: 'up', 主動式: 'cyan', 其他: 'ink3' };
   const PAGE = 48;   // 一次列幾張卡（「顯示更多」再加）
   const CMP_MAX = 8; // 自選比較上限：再多折線就分不出誰是誰
@@ -56,7 +56,7 @@
     return n ? '主題型' : '其他';
   }
 
-  const S = { data: null, series: null, fallback: false, cat: 'all', sort: 'tv', shown: PAGE, pop: 'holders',
+  const S = { data: null, series: null, fallback: false, cat: '配息型', sort: 'tv', shown: PAGE, pop: 'holders',
     month: null, day: null, per: '5y', from: null, basis: 'tr', cmp: {}, msg: '' };
   const pct = (v, d = 1) => (v == null || Number.isNaN(v) ? '—' : (v > 0 ? '+' : '') + (v * 100).toFixed(d) + '%');
   const pctU = (v, d = 2) => (v == null || Number.isNaN(v) ? '—' : (v * 100).toFixed(d) + '%');
@@ -391,12 +391,12 @@
     const all = items();
     const cnt = {}; all.forEach((it) => { cnt[it.cat] = (cnt[it.cat] || 0) + 1; });
     const seg = $('#etfCatSeg');
-    seg.innerHTML = `<button data-v="all" role="tab">全部<em>${all.length}</em></button>` + CATS.filter((c) => cnt[c])
+    seg.innerHTML = CATS.filter((c) => cnt[c])
       .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
     $$('button', seg).forEach((b) => { b.classList.toggle('on', b.dataset.v === S.cat); b.setAttribute('aria-selected', b.dataset.v === S.cat);
-      b.onclick = () => { if (S.cat === b.dataset.v) return; S.cat = b.dataset.v; S.shown = PAGE; LS.set('tw.etf.cat', S.cat); drawAll(); }; });
+      b.onclick = () => { if (S.cat === b.dataset.v) return; S.cat = b.dataset.v; S.shown = PAGE; drawAll(); }; });
     // 期間只影響報酬率：「全部」沒有報酬卡，期間整組隱形但保留位置（不讓分類鈕跟著左右跳）
-    $('#etfPerBox').classList.toggle('off', S.cat === 'all');
+    $('#etfPerBox').classList.remove('off');
     $$('#etfPerSeg button').forEach((b) => { b.classList.toggle('on', b.dataset.v === S.per);
       b.onclick = () => { S.per = b.dataset.v; LS.set('tw.etf.per', S.per); drawPer(); drawRetTop(); drawRet(); }; });
     drawPer();
@@ -459,8 +459,8 @@
 </button>`;
   }
   function drawList() {
-    const list = items().filter((it) => S.cat === 'all' || it.cat === S.cat).sort((a, b) => sortVal(b) - sortVal(a));
-    $('#etfCount').textContent = `${S.cat === 'all' ? '全部' : S.cat} ${list.length} 檔${S.data.asof ? '・資料日 ' + S.data.asof : ''}`;
+    const list = items().filter((it) => it.cat === S.cat).sort((a, b) => sortVal(b) - sortVal(a));
+    $('#etfCount').textContent = `${S.cat} ${list.length} 檔${S.data.asof ? '・資料日 ' + S.data.asof : ''}`;
     const g = $('#etfGrid');
     g.innerHTML = list.slice(0, S.shown).map(cardHTML).join('') || '<div class="etfprep">這個分類目前沒有 ETF。</div>';
     $$('.etfc', g).forEach((c) => { c.onclick = () => A().goStock(c.dataset.code); });
@@ -638,7 +638,7 @@
   }
   function monthList(L, y, mo) {
     const head = `<b class="lt">${y} 年 ${mo} 月除息一覽（${L.length} 筆）</b>`;
-    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '<b>配息資料尚未取得，這個月先空著。</b><br>原因：ETF 的除息紀錄以前被回補程式當成「財報類」跳過，2026-10-05 已修正，雲端歷史回補排程會逐檔補進來（約 270 檔，預計 1～2 天內補齊）；補到的 ETF 會自動出現在月曆上，不必做任何事。' : '這個月沒有除息紀錄；可切上／下月。'}</p>`;
+    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '配息資料回補中（雲端排程逐檔補進，補到的自動出現），這個月先空著。' : '這個月沒有除息紀錄；可切上／下月。'}</p>`;
     return head + `<table class="et">${COLS}${THEAD('除息日 ETF')}<tbody>${calRows(L, true)}</tbody></table>`;
   }
 
@@ -716,7 +716,7 @@
   }
   function drawRet() {
     const card = $('#etfRetCard'), body = $('#etfRetBody');
-    card.hidden = S.cat === 'all';
+    card.hidden = false;
     if (card.hidden) return;
     $$('#etfBasisSeg button').forEach((b) => { b.classList.toggle('on', b.dataset.v === S.basis);
       b.onclick = () => { S.basis = b.dataset.v; LS.set('tw.etf.basis', S.basis); drawRet(); }; });
@@ -814,7 +814,7 @@
   async function render() {
     injectCSS();
     const root = document.getElementById('v-etf'); if (!root) return;
-    S.cat = LS.get('tw.etf.cat', 'all'); S.pop = LS.get('tw.etf.pop', 'holders');
+    S.cat = '配息型'; S.pop = LS.get('tw.etf.pop', 'holders');
     S.per = LS.get('tw.etf.per', '5y'); S.basis = LS.get('tw.etf.basis', 'tr'); S.cmp = {};
     try { await window.CalGrid.load(); } catch (e) { /* 沒有休市日只標週末 */ }
     skeleton(root);
@@ -822,7 +822,7 @@
     $('#etfGrid').innerHTML = '<div class="etfprep">載入中…</div>';
     await loadData();
     if (!S.fallback) loadSeries().then(() => { drawRetTop(); drawRet(); });
-    if (S.cat !== 'all' && !items().some((it) => it.cat === S.cat)) S.cat = 'all';
+    if (!items().some((it) => it.cat === S.cat)) S.cat = (CATS.find((c) => items().some((it) => it.cat === c)) || S.cat);
     drawCal(); drawAll();
     root.dataset.ready = S.fallback ? 'fallback' : 'full';
   }
