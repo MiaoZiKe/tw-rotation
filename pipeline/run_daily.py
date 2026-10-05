@@ -49,8 +49,15 @@ def step(name: str, fn, *args, **kwargs):
     rows = 0 if df is None or df.empty else len(df)
     RESULT["steps"][name] = {"ok": rows > 0, "rows": rows,
                              "seconds": round(time.time() - t0, 1)}
+    # 來源函式照規矩「失敗回空、不拋例外」，所以失敗原因沒有例外可以接。
+    # 約定：來源把原因掛在回傳值的 attrs["error"]（例如 macro.fred 的「HTTP 400：api_key is not registered」），
+    # 這裡原樣寫進 steps.<名稱>.error —— 否則 last_run.json 只看得到 rows=0，分不出沒金鑰、金鑰失效還是參數錯
+    # （2026-10-06：macro.fred 就這樣空了好幾週）。字串由來源負責去掉金鑰，這裡只截長度。
+    err = (getattr(df, "attrs", None) or {}).get("error") if df is not None else None
+    if err:
+        RESULT["steps"][name]["error"] = str(err)[:500]
     if rows == 0:
-        log.warning("%s 沒有取得資料", name)
+        log.warning("%s 沒有取得資料%s", name, f"：{err}" if err else "")
         RESULT["empty"].append(name)          # ← 不再只寫 log
     return df if df is not None else pd.DataFrame()
 

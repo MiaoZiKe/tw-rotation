@@ -287,7 +287,10 @@ FINANCIAL_DEADLINES = {1: ("05", "15"), 2: ("08", "14"), 3: ("11", "14"), 4: ("0
 REVENUE_DEADLINE_DAY = 10   # 月營收次月 10 日
 
 FRED_API = "https://api.stlouisfed.org/fred/series/observations"
-FRED_KEY = os.environ.get("FRED_API_KEY", "")
+# 前後的空白、換行、引號一律去掉（2026-10-06）：在 GitHub Secrets 網頁貼金鑰很容易多帶一個換行或引號，
+# FRED 對這種一律回 400「not a 32 character alpha-numeric lower-case string」，看起來跟「金鑰失效」一模一樣，
+# 但其實金鑰是對的。只去頭尾、不動中間：真的打錯的金鑰照樣會被 FRED 擋下來、原因照樣寫進 last_run.json。
+FRED_KEY = os.environ.get("FRED_API_KEY", "").strip().strip("\"'").strip()
 FRED_SERIES = {
     "FEDFUNDS": "聯邦基金利率",
     "CPIAUCSL": "美國 CPI",
