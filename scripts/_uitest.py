@@ -22663,6 +22663,7 @@ SECTIONS = {
     #   主題／自選／手繪線／自訂週期保留；預覽版前綴（DECISIONS #307，⚠ 一律 --workers 1）
     "重新整理回預設1003":  lambda pg, b, base, code: t_view_reset_1003(b, base, code),
     "預設狀態1006":        lambda pg, b, base, code: t_default_state_1006(b, base),
+    "免責小字1006":        lambda pg, b, base, code: t_disclaimer_1006(b, base, code),
     # ★ 2026-10-03 Andy 兩件（DECISIONS #306，⚠ 一律 --workers 1）：題材產品剖析圖縮到原尺寸（不再被放大 1.37 倍）、
     #   供應鏈關聯圖每個環節加細框（膠囊／卡片在框內、連線停在框邊）
     "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
@@ -42176,6 +42177,99 @@ def t_default_state_1006(b, base):
             ok(f"{T} 通知下拉打開", pg.evaluate("() => { const d = document.getElementById('ntDrop'); return !!d && !d.hidden; }"))
             pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(1000)
             ok(f"★ {T} 換頁 → 通知下拉收起", pg.evaluate("() => { const d = document.getElementById('ntDrop'); return !d || d.hidden; }"))
+    finally:
+        ctx.close()
+
+
+# ===================================================================== 免責小字1006
+# Andy 2026-10-06（截圖市場明細「今日候選 A 5 檔 / B 22 檔 ?」標題右邊那塊空白）：
+#   「這邊旁邊備註不構成投資建議的相關注意事項提醒」。
+# 有判定／評分／建議意味的卡，標題列右側一行小字免責（app.js DISC → .disc-line）。普查表 docs/disclaimer_audit_1006.md。
+DISC1006 = """() => [...document.querySelectorAll('.disc-line')].filter(e => e.getClientRects().length).map(e => {
+  const r = e.getBoundingClientRect(), cs = getComputedStyle(e), row = e.parentElement;
+  const h3 = row.querySelector(':scope > h3'), hr = h3 ? h3.getBoundingClientRect() : null;
+  const rh = Math.round(row.getBoundingClientRect().height);
+  e.style.display = 'none'; const rh0 = Math.round(row.getBoundingClientRect().height); e.style.display = '';
+  return { k: e.dataset.disc, card: (e.closest('.card, .mcard, section') || {}).id || '', txt: e.textContent, title: e.title || '',
+    fs: parseFloat(cs.fontSize), h: Math.round(r.height), w: Math.round(r.width), nowrap: cs.whiteSpace === 'nowrap',
+    ell: cs.textOverflow === 'ellipsis', inView: r.left >= -1 && r.right <= innerWidth + 1,
+    same: hr ? Math.abs((r.top + r.height / 2) - (hr.top + hr.height / 2)) < 12 : null, rh, rh0 }; })"""
+
+
+def t_disclaimer_1006(b, base, code):
+    T = "[免責小字1006]"
+    ctx = b.new_context(viewport={"width": 1440, "height": 950})
+    pg = ctx.new_page()
+    errs: list[str] = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    SX = "() => document.documentElement.scrollWidth - innerWidth"
+
+    def one(lst, k):
+        return next((d for d in lst if d["k"] == k), None)
+
+    def basic(tag, d, need_same=True, keep_h=True):
+        if not ok(f"{T} {tag} 看得到免責那一行", bool(d), d):
+            return
+        ok(f"{T} {tag} 短句以「不構成投資建議」開頭（窄卡片也至少露出這幾個字）、全文放在 title",
+           d["txt"].startswith("不構成投資建議") and "不構成投資建議" in d["title"] and len(d["title"]) > len(d["txt"]), [d["txt"], d["title"][:40]])
+        ok(f"{T} {tag} 12px 以上、一行不換行、放不下用省略號", d["fs"] >= 12 and d["h"] <= 22 and d["nowrap"] and d["ell"], d)
+        ok(f"{T} {tag} 沒有跑出畫面", d["inView"], d)
+        if need_same:
+            ok(f"{T} {tag} 跟標題在同一行（標題列右側）", d["same"] is True, d)
+        if keep_h:
+            ok(f"{T} {tag} 標題列沒有因為它變高", d["rh"] == d["rh0"], d)
+
+    try:
+        # ① 市場明細：只有「今日候選」那一頁有，換分頁（真的點）會跟著出現／消失
+        pg.goto(base + "#market/updown", wait_until="load")
+        wait_until(pg, "() => document.querySelectorAll('#mktSeg2 button').length >= 3", 10000); pg.wait_for_timeout(800)
+        ok(f"{T} 市場明細「漲跌家數」頁沒有掛免責（事實統計，不是判定）", one(pg.evaluate(DISC1006), "cand") is None)
+        click(pg, '#mktSeg2 button[data-k="cand"]', 1500)
+        d = one(pg.evaluate(DISC1006), "cand")
+        basic("市場明細「今日候選」1440", d)
+        ok(f"{T} 今日候選的全文講到 A／B 是規則判定、非買賣建議", bool(d) and "A＝回檔承接" in d["title"] and "不是買賣建議" in d["title"], d and d["title"])
+        click(pg, '#mktSeg2 button[data-k="ma"]', 1500)
+        ok(f"{T} 從今日候選切到「站上均線」→ 免責跟著收掉", one(pg.evaluate(DISC1006), "cand") is None)
+        ok(f"{T} 市場明細沒有橫向捲軸", pg.evaluate(SX) <= 1)
+
+        # ② 總覽「資金輪盤」、資金流向「資金輪動」
+        pg.goto(base + "#overview", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#ovRotHead .disc-line')", 10000); pg.wait_for_timeout(600)
+        basic("總覽「資金輪盤」1440", one(pg.evaluate(DISC1006), "rot"))
+        pg.goto(base + "#flow", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#flowRotDisc')", 10000); pg.wait_for_timeout(800)
+        d = one(pg.evaluate(DISC1006), "rot")
+        basic("資金流向「資金輪動」1440", d)
+        ok(f"{T} 資金輪動的全文講到短評（回檔找買點、先設好停利）是規則判讀", bool(d) and "回檔找買點" in d["title"] and "不構成投資建議" in d["title"], d and d["title"])
+
+        # ③ 個股：總覽的基本面卡、指標、獲利的本益比河流圖（真的點分頁）
+        pg.goto(base + f"#stock/{code}", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#skFundCard .disc-line')", 15000); pg.wait_for_timeout(800)
+        basic("個股總覽「基本面」1440", one(pg.evaluate(DISC1006), "fund"))
+        click(pg, '#stockTabs button[data-t="tags"]', 1500)
+        wait_until(pg, "() => !!document.querySelector('#tagCard .disc-line')", 8000)
+        basic("個股「指標」1440", one(pg.evaluate(DISC1006), "tag"))
+        click(pg, '#stockTabs button[data-t="profit"]', 1500)
+        wait_until(pg, "() => !!document.querySelector('#peRiverCard .disc-line')", 8000)
+        d = one(pg.evaluate(DISC1006), "pe")
+        # 這一列控制鈕很寬：免責排在控制鈕後面，放不下就自己一行（不跟標題同行、列會長高一行），只要求它看得到、一行、不撐出畫面
+        basic("個股「本益比河流圖」1440", d, need_same=False, keep_h=False)
+        ok(f"{T} 本益比河流圖的全文講到「觀望／警示」只是歷史分位名稱", bool(d) and "觀望" in d["title"] and "警示" in d["title"], d and d["title"])
+        ok(f"{T} 個股頁沒有橫向捲軸", pg.evaluate(SX) <= 1)
+
+        # ④ 手機 390：市場明細今日候選、手機版資金輪動
+        pg.set_viewport_size({"width": 390, "height": 844})
+        pg.goto("about:blank"); pg.goto(base + "#market/cand", wait_until="load")
+        wait_until(pg, "() => !!document.querySelector('#mktDisc:not([hidden])')", 10000); pg.wait_for_timeout(800)
+        d = one(pg.evaluate(DISC1006), "cand")
+        basic("390 市場明細「今日候選」", d, need_same=False, keep_h=False)
+        ok(f"{T} 390 今日候選免責至少寬 8 字（看得到「不構成投資建議」）", bool(d) and d["w"] >= 90, d)
+        ok(f"{T} 390 市場明細沒有橫向捲軸", pg.evaluate(SX) <= 1)
+        pg.goto("about:blank"); pg.goto(base + "#flow", wait_until="load")
+        wait_until(pg, "() => [...document.querySelectorAll('.disc-line')].some(e => e.getClientRects().length)", 10000); pg.wait_for_timeout(800)
+        d = one(pg.evaluate(DISC1006), "rot")
+        basic("390 資金輪動", d, need_same=False, keep_h=False)
+        ok(f"{T} 390 資金輪動免責至少寬 8 字（改前塞在標題列只剩 43px＝「不構…」）", bool(d) and d["w"] >= 90, d)
+        ok(f"{T} 390 資金流向沒有橫向捲軸", pg.evaluate(SX) <= 1)
+        ok(f"{T} 整段沒有 JS 錯誤", not errs, errs[:3])
     finally:
         ctx.close()
 
