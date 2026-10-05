@@ -384,6 +384,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .pmlimb{width:44px;box-sizing:border-box;text-align:center;font:500 13px var(--mono);line-height:20px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-3,#7a879c);opacity:.8;cursor:pointer;white-space:nowrap;overflow:hidden}
 #v-admin .pmlimb:hover,#v-admin .pmlimb[aria-expanded=true]{opacity:1;border-color:var(--line-2)}
 #v-admin .pmlimb.set{opacity:1;color:var(--ink);background:color-mix(in srgb,var(--cyan) 16%,transparent)}
+#v-admin .pmlimb.mixed{opacity:1;color:var(--ink);background:color-mix(in srgb,var(--amber,#e0a93a) 18%,transparent)}
+#v-admin .pmglim{width:auto;min-width:44px;padding:0 8px;flex:none;opacity:1;border-color:var(--line-2)}
+#v-admin .pmglim.dirty{box-shadow:inset 0 0 0 1px var(--amber,#e0a93a)}
+#v-admin .pmgpop{z-index:1500}
 #v-admin .pmlimb.zero{color:#ff6b7a;background:color-mix(in srgb,#ff6b7a 14%,transparent)}
 #v-admin .pmlimb:disabled{cursor:not-allowed}
 #v-admin .pmlimpop{position:absolute;right:0;bottom:calc(100% - 4px);z-index:30;display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap}
@@ -1762,7 +1766,14 @@ html[data-theme="light"] #v-admin{--pgL:40%}
        點下去：目前不是全開 → 整組開；全開 → 整組關。樣式跟列上的 .psw 同尺寸，換狀態版面不動。 */
     const swSt = (fs) => { const n = fs.filter(isOn).length; return n === 0 ? 'false' : n === fs.length ? 'true' : 'mixed'; };
     const triSw = (attr, fs, label) => `<button type="button" class="psw3" role="switch" ${attr} aria-checked="${swSt(fs)}" aria-label="${esc(label)}：整組開／關" title="${esc(label)}：整組開／關" ${ready ? '' : 'disabled'}><span></span></button>`;
-    const allBtns = (id) => triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
+    /* 整組「次數」按鈕（Andy 10-05）：族群觀測大標題與每個分組標題列，總開關旁多一顆「∞／N/日／混合」；點開同款小框一次設整組每日上限 */
+    const gLims = PS.mode === 'plan' ? curLims() : null, gSaved = PS.mode === 'plan' ? savedLims() : null;
+    const gFs = (key) => FT().inCat('grp').filter((f) => f.kind !== 'limit' && (key === 'cat:grp' || f.chain === key.slice(3)));
+    const gLimBtn = (key, label) => { if (!gLims) return ''; const fs = gFs(key); if (!fs.length) return '';
+      const vals = new Set(fs.map((f) => (Object.prototype.hasOwnProperty.call(gLims, f.id) ? gLims[f.id] : null))), mixed = vals.size > 1, v1 = mixed ? null : [...vals][0];
+      const dirty = ready && fs.some((f) => gSaved[f.id] !== gLims[f.id]);
+      return `<button type="button" class="pmlimb pmglim${mixed ? ' mixed' : v1 != null ? ' set' : ''}${v1 === 0 ? ' zero' : ''}${dirty ? ' dirty' : ''}" data-glim="${esc(key)}" title="${esc(label)}：整組每日瀏覽次數上限（點一下設定整組）" aria-label="${esc(label)} 整組每日瀏覽次數：${mixed ? '混合' : v1 == null ? '不限' : v1 + ' 次'}" aria-haspopup="dialog" ${ready ? '' : 'disabled'}>${mixed ? '混合' : v1 == null ? '∞' : v1 + '/日'}</button>`; };
+    const allBtns = (id) => (id === 'grp' ? gLimBtn('cat:grp', '族群觀測') : '') + triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
     const tsw = v.querySelector('#pmAllSw');
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
@@ -1784,7 +1795,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
         <p class="use pmfoldnote">族群多，整塊預設收起來；點上面標題或「全部展開」打開。關掉的族群：族群頁模糊＋鎖頭、資金輪動的族群下拉那一列鎖住、熱力圖／排行／輪盤點了只跳「此族群需開通」。${PS.mode === 'plan' ? '瀏覽次數＝一天能打開幾個不同族群頁。' : ''}</p>
         <div class="pmbody"${open ? '' : ' hidden'}><div class="grpgrid">`
         + Object.keys(by).map((ch) => { const ck = 'ch:' + ch, co = PS.open.has(ck);
-          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}${triSw(`data-allsw="ch" data-ch="${esc(ch)}"`, by[ch], chName(ch))}</div>`
+          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}${gLimBtn('ch:' + ch, chName(ch))}${triSw(`data-allsw="ch" data-ch="${esc(ch)}"`, by[ch], chName(ch))}</div>`
             + `<div class="grpbody" data-ch="${esc(ch)}"${co ? '' : ' hidden'}>${catRows(by[ch], cur, base, saved, now, ready, true)}</div>`; }).join('') + '</div></div></div>';
     })() : '';
     if (gbox) gbox.onchange = (e) => box.onchange(e);
@@ -1818,6 +1829,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       if (PS.limOpen && !e.target.closest('.pmlimpop,button[data-limb]')) { PS.limOpen = null; paintCats(); } }, true); }
     box.onkeydown = (e) => { if (e.target.closest('input[data-lim]') && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); PS.limOpen = null; paintCats(); } };
     box.onclick = (e) => {
+      const gb = e.target.closest('button[data-glim]');
+      if (gb) { e.stopPropagation(); openGLim(gb); return; }
       const lb = e.target.closest('button[data-limb]');
       if (lb) { PS.limOpen = PS.limOpen === lb.dataset.limb ? null : lb.dataset.limb; paintCats();
         const i = box.querySelector('input[data-lim]'); if (i) { i.focus(); i.select(); } return; }
@@ -1869,6 +1882,30 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       planDraft(feats, Object.assign({}, curLims()));
       paintTarget(); paintCats();
     }
+  }
+  /* 整組次數：小框浮在按鈕下方（position:fixed，不被標題列的 overflow 裁掉）；確定 → 組內每個族群一次設成同一值（留空＝不限），整批當一次草稿 */
+  function groupFs(key) { return FT().inCat('grp').filter((f) => f.kind !== 'limit' && (key === 'cat:grp' || f.chain === key.slice(3))); }
+  function setLimMany(fids, n) {
+    const p = planOf(PS.planSel); if (!p || PS.mode !== 'plan') return;
+    const lims = Object.assign({}, curLims());
+    fids.forEach((id) => { if (n == null) delete lims[id]; else lims[id] = n; });
+    planDraft(Object.assign({}, (PS.draft && PS.draft.feats) || p.feats || {}), lims);
+  }
+  function closeGLim() { const o = document.getElementById('pmGPop'); if (o) o.remove(); }
+  function openGLim(btn) {
+    closeGLim();
+    const key = btn.dataset.glim, fs = groupFs(key), lims = curLims();
+    const vals = [...new Set(fs.map((f) => (Object.prototype.hasOwnProperty.call(lims, f.id) ? lims[f.id] : null)))];
+    const pop = document.createElement('div'); pop.id = 'pmGPop'; pop.className = 'pmlimpop pmgpop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', '整組每日瀏覽次數');
+    pop.innerHTML = `<span>每日最多</span><input type="number" min="0" max="9999" step="1" inputmode="numeric" placeholder="${vals.length > 1 ? '混合' : '不限'}" value="${vals.length === 1 && vals[0] != null ? vals[0] : ''}" aria-label="整組每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-g="clr">不限</button><button type="button" class="ok" data-g="ok">確定</button>`;
+    PS.v.appendChild(pop);
+    const r = btn.getBoundingClientRect(), w = pop.offsetWidth; pop.style.position = 'fixed'; pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px'; pop.style.top = (r.bottom + 6) + 'px'; pop.style.right = 'auto'; pop.style.bottom = 'auto';
+    const inp = pop.querySelector('input'); inp.focus(); inp.select();
+    const apply = (n) => { closeGLim(); setLimMany(fs.map((f) => f.id), n); paintTarget(); paintCats(); };
+    const confirm = () => { const raw = inp.value.trim(); if (raw !== '' && !(/^\d{1,4}$/.test(raw) && +raw <= 9999)) { inp.classList.add('bad'); return; } apply(raw === '' ? null : +raw); };
+    pop.onclick = (e) => { const g = e.target.closest('button[data-g]'); if (!g) return; if (g.dataset.g === 'clr') apply(null); else confirm(); };
+    pop.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } else if (e.key === 'Escape') { e.preventDefault(); closeGLim(); btn.focus(); } };
+    setTimeout(() => { const off = (e) => { if (!e.target.closest('#pmGPop,button[data-glim]')) { closeGLim(); document.removeEventListener('pointerdown', off, true); } }; document.addEventListener('pointerdown', off, true); }, 0);
   }
   function setLim(fid, n) {
     const p = planOf(PS.planSel); if (!p || PS.mode !== 'plan') return;

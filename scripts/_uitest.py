@@ -45318,6 +45318,24 @@ def t_admin_v3(b, base, code):
         ok(f"{T}・perm-v4：（續）按「確定刪除」→ plans/put {{id:p399, del:true}}、頁籤消失、a399 退回註冊會員",
            db_.get("id") == "p399" and db_.get("del") is True and bool(wait_until(pg, "() => !document.querySelector(\"#ptTier button[data-plan='p399']\")", 3000)) and st["perm"]["a399@example.com"]["plan"] == "free", db_)
         ok(f"{T}・perm-v4：範本標題下的說明列已拿掉（沒有 .ptnote、沒有「指定這個範本的會員」）", pg.evaluate("() => !document.querySelector('.ptnote') && !/被指定這個範本的會員都套這一份/.test(document.getElementById('v-admin').innerText)"))
+        # ---- 整組「次數」按鈕（族群觀測大標題＋每個分組標題列）
+        pg.click("#ptTier button[data-tier='free']") if False else None
+        pg.click("#ptTier button[data-plan='p799']")
+        pg.click("#pmExpandAll"); wait_until(pg, "() => [...document.querySelectorAll('#pmGrp .grpbody')].every(b => !b.hidden)", 3000)
+        gl = pg.evaluate("() => ({ cat: !!document.querySelector('#pmGrp .pmcathd button[data-glim=\"cat:grp\"]'), ch: document.querySelectorAll('#pmGrp .grpch button[data-glim]').length, chains: document.querySelectorAll('#pmGrp .grpch').length })")
+        ok(f"{T}・perm-v4：族群觀測大標題與每個分組標題列都有「次數」按鈕（∞／N/日／混合）", gl["cat"] and gl["ch"] == gl["chains"] and gl["ch"] >= 2, gl)
+        first = pg.evaluate("() => document.querySelector('#pmGrp .grpch button[data-glim]').dataset.glim")
+        pg.click(f"#pmGrp button[data-glim='{first}']")
+        pg.fill("#pmGPop input", "3"); pg.click("#pmGPop button[data-g=ok]")
+        rows = pg.evaluate("""(k) => { const ch = k.slice(3), body = document.querySelector(`#pmGrp .grpbody[data-ch="${ch}"]`); const bs = [...body.querySelectorAll('button[data-limb]')].map(b => b.textContent.trim()); return { n: bs.length, set: new Set(bs).size, v: bs[0], btn: document.querySelector(`#pmGrp button[data-glim="${k}"]`).textContent.trim(), dirty: [...body.querySelectorAll('.pmrow')].every(r => r.classList.contains('dirty')) }; }""", first)
+        ok(f"{T}・perm-v4：設整組 3 次 → 組內每一列都是 3/日、組按鈕寫 3/日、每列標示未存（琥珀）", rows["n"] >= 2 and rows["set"] == 1 and rows["v"] == "3/日" and rows["btn"] == "3/日" and rows["dirty"], rows)
+        pg.evaluate("(k) => document.querySelector(`#pmGrp .grpbody[data-ch=\"${k.slice(3)}\"] button[data-limb]`).click()", first)
+        pg.fill("#pmGrp .pmlimpop input", "5"); pg.keyboard.press("Enter")
+        ok(f"{T}・perm-v4：改其中一列 → 組按鈕變「混合」", pg.evaluate("(k) => document.querySelector(`#pmGrp button[data-glim=\"${k}\"]`).textContent.trim()", first) == "混合")
+        pg.click(f"#pmGrp button[data-glim='{first}']"); pg.click("#pmGPop button[data-g=clr]")
+        ok(f"{T}・perm-v4：組小框按「不限」→ 整組回 ∞", pg.evaluate("(k) => document.querySelector(`#pmGrp button[data-glim=\"${k}\"]`).textContent.trim()", first) == "∞")
+        if pg.locator("#pmCancel").is_visible():
+            pg.click("#pmCancel")
         c.close()
 
     # ---- ④ 會員名單上方統計 ＋ ⑤ 展開明細 ＋ ⑥ 數字欄寬
