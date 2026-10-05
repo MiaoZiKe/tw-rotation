@@ -451,7 +451,7 @@
       if (!lg) {
         lg = document.createElement('button');
         lg.type = 'button'; lg.id = 'l4Login'; lg.className = 'l4login';
-        lg.textContent = '登入'; lg.title = '會員登入（目前沒有開啟）';
+        lg.textContent = '登入'; lg.title = '會員登入（目前沒有連上線）';
         lg.setAttribute('aria-haspopup', 'dialog'); lg.setAttribute('aria-expanded', 'false');
         lg.onclick = (e) => { e.stopPropagation(); loginTip(); };
       }
@@ -468,8 +468,8 @@
     if (!tip) {
       tip = document.createElement('div');
       tip.id = 'l4LoginTip'; tip.className = 'l4logintip'; tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-label', '會員登入');
-      tip.innerHTML = '<b>會員登入目前沒有開啟</b>'
-        + '<p>網站這次部署沒有讀到會員伺服器的設定，所以暫時不能登入。</p>'
+      tip.innerHTML = '<b>會員系統目前沒有連上線</b>'
+        + '<p>網站暫時連不到會員系統，所以現在不能登入。</p>'
         + '<p>自選清單照樣可以用，會存在這台瀏覽器。</p>';
       document.body.appendChild(tip);
     }

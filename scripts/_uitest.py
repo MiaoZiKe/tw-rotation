@@ -45053,9 +45053,9 @@ def t_admin_sw_1005(b, base, code):
         wait_until(pg, "() => document.querySelector('table.memtbl tbody tr')", 6000)
         m = pg.evaluate("""() => { const t = document.querySelector('table.memtbl'); if (!t) return null;
           const cells = [...t.querySelectorAll('thead th'), ...t.querySelectorAll('tbody tr:not(.pmdet) > td')];
-          return { n: cells.length, notC: cells.filter(c => getComputedStyle(c).textAlign !== 'center').map(c => c.className).slice(0, 5),
+          return { n: cells.length, notC: cells.filter(c => !c.classList.contains('c-who') && getComputedStyle(c).textAlign !== 'center').map(c => c.className).slice(0, 5), whoL: [...t.querySelectorAll('th.c-who, tbody tr:not(.pmdet) > td.c-who')].every(c => getComputedStyle(c).textAlign === 'left'),
                    bad: [...t.querySelectorAll('tbody tr')].filter(r => r.querySelector('.pdbadge:not(.off)')).map(r => r.querySelector('.c-tpl').textContent).filter(x => /^(訪客|註冊會員)/.test(x)) }; }""")
-        ok(f"{T}：會員名單每個欄位標題與內容都置中", m and m["n"] > 0 and not m["notC"], m)
+        ok(f"{T}：會員名單欄位置中，「會員」（email）欄靠左（Andy 10-05）", m and m["n"] > 0 and not m["notC"] and m["whoL"], m)
         ok(f"{T}：有金色 ★ 的人，方案欄不會寫「訪客／註冊會員」", m and not m["bad"], m)
     # ★ 10-05 預設（DECISIONS）：所有分頁列字級＝產業地圖分頁字級、文字置中
     tq = """(sel) => [...document.querySelectorAll(sel)].filter(b => b.offsetParent).map(b => { const cs = getComputedStyle(b); return [cs.fontSize, cs.justifyContent, b.textContent.trim().slice(0, 8)]; })"""
@@ -46288,7 +46288,7 @@ def t_layout4(b, base, code):
               icons: tabs.filter(t => /svg/.test(getComputedStyle(t, '::after').maskImage || getComputedStyle(t, '::after').webkitMaskImage || '')).length,
               n: tabs.length }; }""")
         ok(f"{T}1440 頁面依分組排：總覽｜資金流向、熱力圖｜產業地圖、市場明細｜週期統計｜自選",
-           grp["order"] == ["overview", "flow", "heatmap", "industry", "market", "season", "watch"], grp)
+           [v for v in grp["order"] if v not in ("explore", "etf", "earnings")] == ["overview", "flow", "heatmap", "industry", "market", "season", "watch"], grp)   # 10-05 起選股策略／ETF／財報日曆插在各組內
         ok(f"{T}1440 分組標題依序是 今日市場／資金流水／族群與個股／歷史規律／專案",
            grp["labels"] == ["今日市場", "資金流水", "族群與個股", "歷史規律", "專案"], grp)
         ok(f"{T}1440 每一頁都有線條圖示", grp["icons"] == grp["n"], grp)
@@ -46665,8 +46665,8 @@ def t_layout4_batch3(pg, base, code, T):
     tip = pg.evaluate("""() => { const t = document.getElementById('l4LoginTip'); if (!t || t.hidden) return null; const r = t.getBoundingClientRect();
         return { txt: t.innerText, top: Math.round(r.top), right: Math.round(r.right), vw: innerWidth, acct: !!document.getElementById('acctBtn'),
           exp: document.getElementById('l4Login').getAttribute('aria-expanded') }; }""")
-    ok(f"{T}第四批④ 沒有會員設定檔時按右上角「登入」→ 跳出「會員登入目前沒有開啟」的說明（在按鈕下面、在視窗內、沒有冒出 #acctBtn）",
-       bool(tip) and "沒有開啟" in tip["txt"] and "這台瀏覽器" in tip["txt"] and tip["top"] >= tr0["headB"] - 2 and tip["right"] <= tip["vw"] and not tip["acct"] and tip["exp"] == "true", tip)
+    ok(f"{T}第四批④ 沒有會員設定檔時按右上角「登入」→ 跳出「會員系統目前沒有連上線」的說明（在按鈕下面、在視窗內、沒有冒出 #acctBtn）",
+       bool(tip) and "沒有連上線" in tip["txt"] and "這台瀏覽器" in tip["txt"] and tip["top"] >= tr0["headB"] - 2 and tip["right"] <= tip["vw"] and not tip["acct"] and tip["exp"] == "true", tip)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     ok(f"{T}第四批④ 按 Esc → 說明收起來", pg.evaluate("() => { const t = document.getElementById('l4LoginTip'); return !t || t.hidden; }"))
     MS = """() => ({ th: document.documentElement.getAttribute('data-theme') || 'dark', bg: getComputedStyle(document.body).backgroundColor,
