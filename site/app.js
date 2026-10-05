@@ -6,6 +6,10 @@
   'use strict';
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
+     閘門在 site/livegate.js；這支檔裡的即時入口（漲跌家數「盤後／⚡ 即時」、輪動時鐘與資金去向的「即時」鈕、
+     總覽摘要卡右上角的即時開關）開頭都問它。不是管理者 → 鈕不掛（或整列藏起來）、按了也不動作、不打任何報價端點。*/
+  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
   const D = {};                       // 已載入的 JSON
   const charts = {};                  // ECharts 實例
   /* ★ 2026-09-25（R3 審查）：畫布上的等寬字一律用這一串，跟 CSS `--mono` 同一條退路。
@@ -3282,6 +3286,7 @@
   }
   function mudToggle() {
     if (MUD.on) return mudOff();
+    if (!liveOK()) return;                     // 不是管理者：即時打不開（DECISIONS #326）
     /* ⚠ 這裡**不可以**先把 `MUD.busy` 設成 true —— `mudTick()` 開頭就是
        `if (!MUD.on || MUD.busy) return;`，設了它第一輪會直接被自己擋掉，
        畫面永遠停在「抓取中…」（實測踩過）。*/
@@ -3443,7 +3448,7 @@
       };
       /* ★ D4：模式切換列。盤後是預設（Andy 指定），即時那一顆亮起來的樣子沿用
          全站那顆 `.pb.livebtn`（資金去向、輪動時鐘都是同一顆），不另外發明一種。*/
-      body.innerHTML = `<div class="row" style="gap:8px;align-items:center;margin:0 0 10px">
+      body.innerHTML = `<div class="row" style="gap:8px;align-items:center;margin:0 0 10px" data-live-ui>
           <div class="seg tiny" id="mktMode">
             <button data-m="eod" class="${live || MUD.on ? '' : 'on'}">盤後</button>
             <button data-m="live" class="${MUD.on ? 'on' : ''}">⚡ 即時</button></div>
@@ -4177,7 +4182,11 @@
       const k = b.dataset.k, e = OVS.eod[k] || {}, inf = OVL.info[k] || {}, live = !!OVL.live[k];
       const nm = e.title || '摘要卡', md = ovsMd(e.date) || '—';
       let txt, cls, tip;
-      if (!on) {
+      if (!liveOK()) {
+        // 不是管理者（DECISIONS #326）：這顆只是資料日期，不是開關（CSS 讓它點不到、點穿到卡片本身）
+        txt = md; cls = 'arm';
+        tip = `${nm}：${md} 的盤後資料（交易日）。`;
+      } else if (!on) {
         txt = md; cls = 'off';
         tip = `${nm}：即時已關，停在 ${md} 的盤後資料（靜態）。\n按一下打開＝盤中跟大盤三張圖同一批報價、每 5 秒更新。`;
       } else if (live && intra) {
@@ -4208,11 +4217,12 @@
       const pr = on ? 'true' : 'false';
       if (b.getAttribute('aria-pressed') !== pr) b.setAttribute('aria-pressed', pr);
       if (b.title !== tip) b.title = tip;
-      const al = `${nm}即時更新：${on ? '開' : '關'}（${txt}）`;
+      const al = liveOK() ? `${nm}即時更新：${on ? '開' : '關'}（${txt}）` : `${nm}資料日期 ${txt}`;
       if (b.getAttribute('aria-label') !== al) b.setAttribute('aria-label', al);
     });
   }
   function ovlToggle() {
+    if (!liveOK()) return;                     // 不是管理者：日期標籤不是開關（DECISIONS #326）
     if (window.Live && window.Live.setCard) window.Live.setCard('ovs', !ovlCardOn());
   }
   window.addEventListener('tw:live', (e) => {
@@ -5208,6 +5218,7 @@
 
   function rlvToggle() {
     if (RLV.on) return rlvOff();
+    if (!liveOK()) return;                     // 不是管理者：即時打不開（DECISIONS #326）
     if (RLV.timer) { clearInterval(RLV.timer); RLV.timer = null; }
     RLV.on = true;
     stopAllPlay();                     // 即時和「往回播」是互斥的兩件事，同時跑只會互相蓋
@@ -5232,6 +5243,7 @@
      不然畫的明明是即時資料、鈕看起來卻是關的。*/
   function rlvMountBtn() {
     const box = $('#rotBack'); if (!box) return;
+    if (!liveOK()) return;                     // 不是管理者：「即時」鈕與狀態字都不掛（DECISIONS #326）
     if (!$('#rotLiveBtn')) {
       box.classList.add('rbar');
       const b = document.createElement('button');
@@ -8142,7 +8154,7 @@
       <li><b>篩選</b>：上面兩個下拉（先挑產業鏈、再勾族群，可複選）與「只看前 10 大」，排行與輪盤一起篩。</li>
       <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出；點長條看成分股。</li>
       <li><b>點</b>：象限卡＝列出這一段有誰；圓點＝看成分股，再點成分股就畫到盤上（空心圓）。點面板外面或按 Esc 關閉。</li>
-      <li><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
+      <li data-live-ui><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
         亮色箭頭＝<b>今天真正推出來的</b>（很短是正常的，<b>沒有放大</b>）。
         ⚠ 成交值是「價 × 量」<b>估</b>的（漲跌幅是真的）；盤中的<b>大盤是代理值</b>（只抓得到這批股票）。
         標題旁的狀態字滑上去（手機點一下）看完整說明與涵蓋率。</li>
@@ -10650,6 +10662,7 @@
 
   function sklToggle() {
     if (SKL.on) return sklOff();
+    if (!liveOK()) return;                     // 不是管理者：即時打不開（DECISIONS #326）
     if (SKL.timer) { clearInterval(SKL.timer); SKL.timer = null; }
     SKL.on = true;
     stopAllPlay();                     // 即時和「往回播」是互斥的兩件事，同時跑只會互相蓋
@@ -10664,6 +10677,7 @@
   // 拉Bar 建好之後才掛得上去（playBar 會把整個容器的 innerHTML 換掉）
   function sklMountBtn() {
     const box = $('#sankeyDays'); if (!box || $('#sankeyLiveBtn')) return;
+    if (!liveOK()) return;                     // 不是管理者：「即時」鈕不掛（DECISIONS #326）
     box.classList.add('rbar');         // 沒有拉Bar（只有一天資料）時容器還沒有這個類，鈕會沒有樣式
     const b = document.createElement('button');
     b.type = 'button'; b.id = 'sankeyLiveBtn'; b.className = 'pb livebtn';

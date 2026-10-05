@@ -22466,6 +22466,339 @@ def t_earnings_1005(pg, b, base):
             c.close()
 
 
+# ★ 2026-10-06 Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」（DECISIONS #326，site/livegate.js）
+LIVEADM_API = "https://acct-live.example.test"
+LIVEADM_INTRA = "2026-10-06T02:30:00Z"      # 台北 10:30（週二，盤中）
+# 任何一個即時來源的主機：正式 Worker、台指期 Deno、假 Worker、證交所、Yahoo（瀏覽器端都經 Worker，這裡多列是保險）
+LIVEADM_HOSTS = ("fake-worker.test", "tw-quote.kcq01010909.workers.dev", "tw-taifex.miaozike.deno.net",
+                 "mis.twse.com.tw", "mis.taifex.com.tw", "finance.yahoo.com")
+LIVEADM_VIS = """() => [...document.querySelectorAll('.livetg, .livebtn, #liveState, #rotLiveTag, #mktMode, #gpLiveBtn, #sankeyLiveBtn, #rotLiveBtn, [data-live-ui]')]
+    .filter(e => e.getClientRects().length > 0).map(e => (e.id ? '#' + e.id : '') + '.' + String(e.className || e.tagName).slice(0, 30))"""
+
+
+def t_live_admin_1006(b, base, code):
+    """即時僅管理者（DECISIONS #326）。走真的閘門：不注入 TW_LIVE_OVERRIDE（其他段落預設注入＝管理者視角），
+    用 Browser 的原版 new_context ＋ 假的會員 Worker（/v1/me 回 admin:true／false）＋ 假時鐘（台北週二 10:30 盤中）＋ 假報價。
+
+    ① 訪客 1440：總覽／市場明細／資金流向／產業地圖／個股／自選逐頁走，所有即時 UI 一個都看不到（不是只藏鈕：DOM 裡也不掛開關）、
+       總覽摘要卡右上角是單純的日期、大盤三張圖照樣有圖（資料湖最近交易日）、個股週期列沒有 1分／5分／15分、
+       分時寫「盤後資料」、硬點藏起來的鈕也打不開；整段**對任何即時來源 0 個請求**、[data-live] 格子一個字都沒被改
+    ② 訪客 390 手機：個股券商式分頁列沒有「即時」鈕、總覽沒有橫向捲軸、0 請求
+    ③ 一般會員（登入、admin:false）：跟訪客一樣
+    ④ 管理者（登入、admin:true）：即時 UI 全部出現、真的打報價、格子真的換數字、漲跌家數「⚡ 即時」按得開、
+       資金流向兩顆「即時」在、個股有 1分 並且按下去真的去抓
+    ⑤ 管理者登出 → 整頁重新載入 → 即時全部收掉、之後 0 請求
+    ⑥ 快取寫著管理者、但 Worker 說已經不是 → 重新載入一次就關、不會一直重新載入"""
+    import time as _time
+    from urllib.parse import urlparse, parse_qs
+    T = "即時僅管理者1006"
+    code = "2330"
+    raw = getattr(type(b), "_tw_raw_new_context", None)
+    if not ok(f"[{T}] 拿得到 Browser 原版 new_context（這段要繞開全站的 TW_LIVE_OVERRIDE）", raw is not None):
+        return
+    S = {"me": None, "k": 0}
+    NET: list = []
+    CORS = {"access-control-allow-origin": "*", "content-type": "application/json"}
+
+    def live_route(route):
+        u = route.request.url
+        NET.append((_time.time(), u))
+        p = urlparse(u)
+        if p.path == "/quote":
+            S["k"] += 1
+            k = S["k"]
+            ex = (parse_qs(p.query).get("ex_ch") or [""])[0]
+            arr = []
+            for tok in [t for t in ex.split("|") if t]:
+                try:
+                    c = tok.split("_", 1)[1].split(".")[0]
+                except IndexError:
+                    continue
+                z, y = (20100 + k, 20000) if c == "t00" else ((300 + k / 10, 299) if c == "o00" else (1000 + k, 990))
+                arr.append({"c": c, "n": "測" + c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y:.2f}", "o": f"{y:.2f}",
+                            "h": f"{z + 5:.2f}", "l": f"{y - 5:.2f}", "v": str(10000 + k * 10),
+                            "t": "10:30:%02d" % (k % 60), "d": "20261006"})
+            route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                          body=json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+            return
+        route.fulfill(status=404, content_type="application/json", body='{"error":"not found"}')
+
+    def acct(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*",
+                                                      "access-control-allow-methods": "POST"})
+        out = {}
+        if path == "/v1/me":
+            if S["me"] == "admin":
+                out = {"user": {"email": "andy@example.com", "name": "測試管理者", "admin": True}}
+            elif S["me"] == "member":
+                out = {"user": {"email": "member@example.com", "name": "測試會員", "admin": False}}
+            else:
+                return route.fulfill(status=401, body='{"error":"unauthorized"}', headers=CORS)
+        elif path == "/v1/perm/me":
+            out = {"who": "member", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {}}
+        elif path == "/v1/notices":
+            out = {"notices": []}
+        route.fulfill(status=200, body=json.dumps(out), headers=CORS)
+
+    def open_as(who, hash_, w=1440, h=1000, mobile=False):
+        """who：guest／member／admin（快取寫的身分；Worker 回什麼由 S['me'] 決定）"""
+        kw = dict(viewport={"width": w, "height": h}, timezone_id="Asia/Taipei")
+        if mobile:
+            kw.update(is_mobile=True, has_touch=True, device_scale_factor=2)
+        ctx = raw(b, **kw)
+        ctx.add_init_script(CONSENT_PRESET)          # 同意條款／導覽預寫；刻意**不**注入 TW_LIVE_OVERRIDE
+        user = {"member": {"email": "member@example.com", "name": "測試會員", "admin": False},
+                "admin": {"email": "andy@example.com", "name": "測試管理者", "admin": True}}.get(who)
+        # 登入快取只在這個分頁第一次載入時寫（sessionStorage 記號）：登出後重新載入不會又被寫回去
+        ctx.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": LIVEADM_API}) + ";"
+                            "try{ if(!sessionStorage.getItem('_lvadm')){ sessionStorage.setItem('_lvadm','1');"
+                            "localStorage.setItem('tw.kcfg', JSON.stringify({tfOn:['tick','1m','5m','15m','60m','240m','1d','1w','1M'], tickMig:1}));"
+                            + ("localStorage.setItem('tw.acct.tok','tok-" + who + "');localStorage.setItem('tw.acct.user'," + json.dumps(json.dumps(user)) + ");" if user else "")
+                            + ("localStorage.setItem('tw.live.proxy','https://fake-worker.test');" if who == "admin" else "")
+                            + "} }catch(e){}")
+        ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        ctx.route(LIVEADM_API + "/**", acct)
+        for hst in LIVEADM_HOSTS:
+            ctx.route(f"**://{hst}/**", live_route)
+            ctx.route(f"**://*.{hst}/**", live_route)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"{T} pageerror（{who}）: {str(e)[:160]}"))
+        pg.clock.install(time=LIVEADM_INTRA)       # ★ 一定要在 goto 之前
+        pg.goto(f"{base}#{hash_}", wait_until="load")
+        return ctx, pg
+
+    def live_net(since):
+        return [u for t, u in NET if t >= since]
+
+    def walk_guest(pg, who):
+        """訪客／會員共用：逐頁走、每頁量一次「看得到的即時 UI」；最後回傳整段的請求數。"""
+        t0 = _time.time()
+        wait_until(pg, "() => !!document.getElementById('m3Frame') && document.querySelectorAll('.ovl-tg').length > 0", 15000)
+        g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), st: window.TwLive && TwLive.state(),"
+                        " intra: !!(window.Live && Live.isIntraday()) })")
+        ok(f"[{T}] {who}：假時鐘在盤中（台北 10:30），閘門判定不是管理者、<html> 沒有 live-on", g["intra"] and not g["on"] and g["st"] and not g["st"]["on"], g)
+        hero0 = pg.evaluate("() => [...document.querySelectorAll('[data-live][data-lc]')].map(e => e.textContent.trim())")
+        pg.wait_for_timeout(6500)                 # 超過一輪 5 秒：管理者的話這段時間一定會打報價
+        vis = pg.evaluate(LIVEADM_VIS)
+        ok(f"★ [{T}] {who} 總覽：看不到任何即時 UI（開關、即時鈕、狀態）", not vis, vis)
+        n_tg = pg.evaluate("() => document.querySelectorAll('.livetg').length")
+        ok(f"[{T}] {who} 總覽：大盤三張圖的「即時」開關根本不掛進 DOM（不是只藏起來）", n_tg == 0, n_tg)
+        ov = pg.evaluate("""() => [...document.querySelectorAll('.ovl-tg')].map(b => ({ c: b.className, t: (b.querySelector('.ovl-t') || b).textContent.trim(),
+            pe: getComputedStyle(b).pointerEvents, al: b.getAttribute('aria-label') || '' }))""")
+        ok(f"★ [{T}] {who} 總覽摘要卡右上角：是單純的資料日期（MM/DD、不是「即時 HH:MM:SS」、不是虛線的「關」、點不到）",
+           len(ov) >= 4 and all(re.fullmatch(r"\d\d/\d\d", x["t"]) and " arm" in " " + x["c"] and "off" not in x["c"].split()
+                                and "lv" not in x["c"].split() and x["pe"] == "none" and "即時" not in x["al"] for x in ov), ov[:4])
+        m3 = pg.evaluate("""() => { const st = window.Market3 && Market3.state, d = st && st.data && st.data.TSE, el = document.getElementById('m3c-TSE');
+            return { seed: !!(d && d.seed), n: d && d.points ? d.points.length : 0, date: d && d.date, empty: !el || el.classList.contains('isempty'),
+                     drawn: !!(el && (el.querySelector('canvas') || el.querySelector('svg'))), ticking: !!(window.Market3 && Market3.ticking),
+                     nums: [...document.querySelectorAll('.m3-card[data-id="TSE"] .m3-nums b, .m3-card[data-id="TSE"] .m3-last')].map(e => e.textContent.trim()).slice(0, 3) }; }""")
+        ok(f"★ [{T}] {who} 大盤三張圖：照樣有圖（資料湖最近交易日的盤後分時），不留空洞、自己的計時器沒在跑",
+           m3["seed"] and m3["n"] >= 20 and m3["drawn"] and not m3["empty"] and not m3["ticking"], m3)
+        hero1 = pg.evaluate("() => [...document.querySelectorAll('[data-live][data-lc]')].map(e => e.textContent.trim())")
+        ok(f"[{T}] {who} 總覽：[data-live] 報價格子一個字都沒被改（盤後靜態值）", hero0 == hero1, [hero0[:4], hero1[:4]])
+        # 硬點：用程式點藏起來的摘要卡日期（真人點不到；這裡驗就算點到了也不會打開即时）
+        pg.evaluate("() => { const b = document.querySelector('.ovl-tg'); if (b) b.click(); }")
+        pg.wait_for_timeout(300)
+        ok(f"[{T}] {who} 總覽：硬點摘要卡日期也不會打開即時（仍是日期、沒有請求）",
+           pg.evaluate("() => [...document.querySelectorAll('.ovl-tg')].every(b => b.classList.contains('arm'))") and not live_net(t0))
+
+        # --- 市場明細：漲跌家數「盤後／⚡ 即時」整列藏起來
+        pg.evaluate("() => { location.hash = '#market/updown'; }")
+        wait_until(pg, "() => !!document.querySelector('#mktMode')", 12000)
+        pg.wait_for_timeout(600)
+        mk = pg.evaluate("""() => { const r = document.querySelector('#mktMode').closest('.row');
+            return { rowVis: r.getClientRects().length > 0, h: Math.round(r.getBoundingClientRect().height), title: (document.getElementById('mktTitle') || {}).textContent || '' }; }""")
+        ok(f"★ [{T}] {who} 市場明細：漲跌家數「盤後／⚡ 即時」整列藏起來（高度 0、不留空白列），標題是盤後", not mk["rowVis"] and mk["h"] == 0 and "盤後" in mk["title"], mk)
+        pg.evaluate("() => { const x = document.querySelector('#mktMode button[data-m=\"live\"]'); if (x) x.click(); }")
+        pg.wait_for_timeout(1500)
+        ok(f"[{T}] {who} 市場明細：硬點藏起來的「⚡ 即時」也打不開（狀態列不出現、標題仍是盤後）",
+           pg.evaluate("() => document.getElementById('mktLive').hidden && /盤後/.test(document.getElementById('mktTitle').textContent)"),
+           pg.evaluate("() => ({ live: !document.getElementById('mktLive').hidden, t: document.getElementById('mktTitle').textContent.slice(0, 60) })"))
+        vis = pg.evaluate(LIVEADM_VIS)
+        ok(f"[{T}] {who} 市場明細：看不到任何即時 UI", not vis, vis)
+
+        # --- 資金流向：輪動時鐘與資金去向的「即時」鈕都不掛
+        pg.evaluate("() => { location.hash = '#flow'; }")
+        wait_until(pg, "() => !!document.querySelector('#rotBack .rbar, #rotBack input[type=range], #rotBack button') && !!document.getElementById('sankeyDays')", 15000)
+        pg.wait_for_timeout(1200)
+        fl = pg.evaluate("() => ({ rot: !!document.getElementById('rotLiveBtn'), tag: !!document.getElementById('rotLiveTag') })")
+        vis = pg.evaluate(LIVEADM_VIS)
+        # 資金去向住在 #flow/sankey 子分頁（版面 V2），拉Bar 畫出來（#sankeyDays 有內容）才算真的走到
+        pg.evaluate("() => { location.hash = '#flow/sankey'; }")
+        sd = wait_until(pg, "() => { const d = document.getElementById('sankeyDays'); return !!d && d.innerHTML.length > 0 && d.getClientRects().length > 0; }", 15000)
+        pg.wait_for_timeout(800)
+        fl["skl"] = pg.evaluate("() => !!document.getElementById('sankeyLiveBtn')")
+        ok(f"★ [{T}] {who} 資金流向：輪動時鐘、資金去向的「即時」鈕與狀態字都沒掛上（資金去向的拉Bar 有畫出來）", bool(sd) and not any(fl.values()), [bool(sd), fl])
+        vis += pg.evaluate(LIVEADM_VIS)
+        ok(f"[{T}] {who} 資金流向：看不到任何即時 UI", not vis, vis)
+
+        # --- 產業地圖：族群總覽的「即時」鈕藏起來，硬點也打不開
+        pg.evaluate("() => { location.hash = '#industry'; }")
+        wait_until(pg, "() => !!document.getElementById('gpLiveBtn')", 15000)
+        pg.wait_for_timeout(500)
+        gpv = pg.evaluate("() => { const x = document.getElementById('gpLiveBtn'); return { vis: x.getClientRects().length > 0, wrap: x.parentElement.getClientRects().length > 0 }; }")
+        ok(f"★ [{T}] {who} 產業地圖：族群總覽的「即時」鈕（連外框）藏起來", not gpv["vis"] and not gpv["wrap"], gpv)
+        pg.evaluate("() => document.getElementById('gpLiveBtn').click()")
+        pg.wait_for_timeout(1200)
+        gp = pg.evaluate("() => window.Industry && Industry._gp ? Industry._gp() : null")
+        ok(f"[{T}] {who} 產業地圖：硬點藏起來的「即時」也打不開（計時器沒開、沒有即時狀態）", gp is not None and not gp.get("timer") and not gp.get("live"), gp)
+
+        # --- 個股：週期列沒有 1分／5分／15分（存檔勾著也一樣）、沒有即時開關、分時寫盤後資料
+        pg.evaluate(f"() => {{ location.hash = '#stock/{code}'; }}")
+        wait_until(pg, "() => document.querySelectorAll('#tfSeg button').length > 0 && !!document.getElementById('skChartCard')", 20000)
+        cells0 = pg.evaluate("() => [...document.querySelectorAll('[data-live][data-lc]')].map(e => e.textContent.trim())")
+        pg.wait_for_timeout(6000)
+        cells1 = pg.evaluate("() => [...document.querySelectorAll('[data-live][data-lc]')].map(e => e.textContent.trim())")
+        ok(f"★ [{T}] {who} 個股：報價格子（現價、漲跌幅）停 6 秒一個字都沒被改（盤後靜態值）", len(cells0) >= 2 and cells0 == cells1, [cells0[:4], cells1[:4]])
+        sk = pg.evaluate("""() => ({ tfs: [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf), tg: document.querySelectorAll('#skChartCard .livetg, .livetg').length,
+            chk: [...document.querySelectorAll('#tfChk [data-tf]')].map(e => e.dataset.tf),
+            note: (document.getElementById('liveNote') || document.querySelector('.livenote') || {}).textContent || '',
+            lk: !!(window.LiveK && LiveK.ticking), today: !!(window.LiveK && LiveK.todayBar && LiveK.todayBar()) })""")
+        ok(f"★ [{T}] {who} 個股：週期列沒有 1分／5分／15分（存檔勾著也不列；分時、1時…月照常）",
+           not any(t in sk["tfs"] for t in ("1m", "5m", "15m")) and "1d" in sk["tfs"] and "tick" in sk["tfs"], sk["tfs"])
+        ok(f"[{T}] {who} 個股：週期設定的勾選清單也沒有那三個", not any(t in sk["chk"] for t in ("1m", "5m", "15m")), sk["chk"])
+        ok(f"★ [{T}] {who} 個股：報價列沒有「即時」開關、個股分 K 沒有在輪詢、日 K 沒有接上「今天」那一根", sk["tg"] == 0 and not sk["lk"] and not sk["today"], sk)
+        # 分時（預設週期）：資料湖 60 分 K 的最近交易日，說明寫盤後資料
+        pg.evaluate("() => { const x = document.querySelector('#tfSeg button[data-tf=\"tick\"]'); if (x) x.click(); }")
+        pg.wait_for_timeout(1200)
+        sn = pg.evaluate("() => [...document.querySelectorAll('#skChartCard .note, #skChartCard [id*=Note], #skChartCard .livenote')].map(e => e.textContent).join(' | ')")
+        ok(f"[{T}] {who} 個股分時：畫的是最近交易日（盤後資料），不提「即時來源連不上」", ("盤後資料" in sn or "此檔暫無分時資料" in sn) and "即時來源連不上" not in sn, sn[:160])
+        vis = pg.evaluate(LIVEADM_VIS)
+        ok(f"[{T}] {who} 個股：看不到任何即時 UI", not vis, vis)
+
+        # --- 自選頁
+        pg.evaluate("() => { location.hash = '#watch'; }")
+        pg.wait_for_timeout(1500)
+        ok(f"[{T}] {who} 自選頁：沒有即時開關", pg.evaluate("() => document.querySelectorAll('.livetg').length") == 0)
+        pg.wait_for_timeout(5500)
+        got = live_net(t0)
+        ok(f"★★ [{T}] {who}：走完六頁、停留超過 30 秒，對報價代理／Deno／證交所／Yahoo **0 個請求**", not got, got[:5])
+        st = pg.evaluate("() => ({ reqs: window.Live && Live.reqs, proxy: window.Live && Live.proxy(), deno: window.Live && Live.taifexProxy() })")
+        ok(f"[{T}] {who}：live.js 一次都沒打 /quote、代理網址拿到的是空字串（網路層保險）", st["reqs"] == 0 and st["proxy"] == "" and st["deno"] == "", st)
+
+    # ------------------------------------------------------------------ ① 訪客 1440
+    S["me"] = None
+    ctx, pg = open_as("guest", "overview")
+    try:
+        walk_guest(pg, "訪客")
+    finally:
+        ctx.close()
+
+    # ------------------------------------------------------------------ ② 訪客 390 手機
+    ctx, pg = open_as("guest", f"stock/{code}", w=390, h=844, mobile=True)
+    try:
+        t0 = _time.time()
+        wait_until(pg, "() => !!document.getElementById('mbHead')", 20000)
+        pg.wait_for_timeout(6000)
+        mb = pg.evaluate("() => ({ tg: document.querySelectorAll('#mbHead .livetg, .livetg').length, star: !!document.getElementById('mbStar'), sx: document.documentElement.scrollWidth - innerWidth })")
+        ok(f"★ [{T}] 訪客 390：個股券商式分頁列沒有「即時」鈕（☆ 照常）、沒有橫向捲軸", mb["tg"] == 0 and mb["star"] and mb["sx"] <= 1, mb)
+        pg.evaluate("() => { location.hash = '#overview'; }")
+        pg.wait_for_timeout(3000)
+        vis = pg.evaluate(LIVEADM_VIS)
+        sx = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"[{T}] 訪客 390 總覽：看不到任何即時 UI、沒有橫向捲軸", not vis and sx <= 1, [vis, sx])
+        ok(f"★ [{T}] 訪客 390：0 個即時請求", not live_net(t0), live_net(t0)[:3])
+    finally:
+        ctx.close()
+
+    # ------------------------------------------------------------------ ③ 一般會員（登入、不是管理者）
+    S["me"] = "member"
+    ctx, pg = open_as("member", "overview")
+    try:
+        t0 = _time.time()
+        wait_until(pg, "() => window.TwAccount && TwAccount.user() && TwAccount.user().email === 'member@example.com'", 10000)
+        wait_until(pg, "() => !!document.getElementById('m3Frame')", 15000)
+        pg.wait_for_timeout(6500)
+        g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), st: TwLive.state(), vis: (" + LIVEADM_VIS + ")() })")
+        ok(f"★ [{T}] 一般會員（已登入、admin:false）：跟訪客一樣看不到即時 UI、閘門是關的", not g["on"] and not g["st"]["on"] and not g["vis"], g)
+        ok(f"★ [{T}] 一般會員：0 個即時請求", not live_net(t0), live_net(t0)[:3])
+    finally:
+        ctx.close()
+
+    # ------------------------------------------------------------------ ④ 管理者
+    S["me"] = "admin"
+    ctx, pg = open_as("admin", "overview")
+    try:
+        t0 = _time.time()
+        wait_until(pg, "() => !!document.getElementById('m3Frame')", 15000)
+        # 第一輪 /quote 要排節流閥（大盤卡三個分時檔先佔了每 5 秒 3 個的名額），忙的機器上假時鐘也比真時間慢 —— 給 30 秒
+        a = wait_until(pg, "() => document.documentElement.classList.contains('live-on') && !!document.querySelector('.livetg[data-livekey=\"m3\"]')"
+                           " && window.Live && Live.reqs > 0", 30000)
+        g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), st: TwLive.state(), reqs: Live.reqs,"
+                        " m3tg: (document.querySelector('.livetg[data-livekey=\"m3\"]') || {getClientRects(){return []}}).getClientRects().length > 0 })")
+        ok(f"★ [{T}] 管理者：閘門開、<html> 有 live-on、大盤三張圖的「即時」開關看得到、live.js 真的在打報價",
+           bool(a) and g["on"] and g["st"]["on"] and g["m3tg"] and g["reqs"] > 0, g)
+        ov = pg.evaluate("() => [...document.querySelectorAll('.ovl-tg')].map(b => getComputedStyle(b).pointerEvents)")
+        ok(f"[{T}] 管理者：總覽摘要卡右上角是可以按的即時開關", len(ov) >= 4 and all(x != "none" for x in ov), ov)
+        ok(f"[{T}] 管理者：請求打的是假 Worker 的 /quote", any("fake-worker.test/quote" in u for u in live_net(t0)), live_net(t0)[:3])
+        # 市場明細「⚡ 即時」按得開
+        pg.evaluate("() => { location.hash = '#market/updown'; }")
+        wait_until(pg, "() => !!document.querySelector('#mktMode')", 12000)
+        pg.wait_for_timeout(500)
+        ok(f"[{T}] 管理者 市場明細：「盤後／⚡ 即時」看得到", pg.evaluate("() => document.querySelector('#mktMode').getClientRects().length > 0"))
+        n0 = len(live_net(t0))
+        pg.evaluate("() => document.querySelector('#mktMode button[data-m=\"live\"]').click()")
+        lv = wait_until(pg, "() => !document.getElementById('mktLive').hidden && /即時/.test(document.getElementById('mktTitle').textContent)", 8000)
+        more = pg.evaluate("() => window.Live && Live.reqs")
+        pg.wait_for_timeout(6000)
+        ok(f"★ [{T}] 管理者 市場明細：按「⚡ 即時」→ 狀態列出現、真的多打了報價", bool(lv) and len(live_net(t0)) > n0, [bool(lv), n0, len(live_net(t0)), more])
+        pg.evaluate("() => { const x = document.querySelector('#mktMode button[data-m=\"eod\"]'); if (x) x.click(); }")
+        # 資金流向兩顆即時鈕
+        pg.evaluate("() => { location.hash = '#flow'; }")
+        fr = wait_until(pg, "() => !!document.getElementById('rotLiveBtn') && document.getElementById('rotLiveBtn').getClientRects().length > 0", 15000)
+        pg.evaluate("() => { location.hash = '#flow/sankey'; }")
+        fs = wait_until(pg, "() => !!document.getElementById('sankeyLiveBtn') && document.getElementById('sankeyLiveBtn').getClientRects().length > 0", 15000)
+        ok(f"★ [{T}] 管理者 資金流向：輪動時鐘與資金去向的「即時」鈕都在、看得到", bool(fr) and bool(fs), [fr, fs])
+        # 個股：1 分在、即時開關在、按 1 分真的去抓
+        pg.evaluate(f"() => {{ location.hash = '#stock/{code}'; }}")
+        wait_until(pg, "() => document.querySelectorAll('#tfSeg button').length > 0", 20000)
+        sk = wait_until(pg, "() => !!document.querySelector('#tfSeg button[data-tf=\"1m\"]') && !!document.querySelector('.livetg[data-livekey=\"stock\"]')", 8000)
+        ok(f"★ [{T}] 管理者 個股：週期列有 1分／5分／15分、報價列有「即時」開關",
+           bool(sk), pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)"))
+        # 總覽 1440 的 [data-live] 只有一個看不見的 t00 標記；真正會被改寫的報價格子在個股報價列（#pxNow 等）
+        moved = wait_until(pg, "() => [...document.querySelectorAll('[data-live][data-lc]')].filter(e => e.dataset.lst !== undefined && e.textContent.trim() !== e.dataset.lst.trim()).length", 20000)
+        ok(f"★ [{T}] 管理者 個股：報價格子真的被即時值換掉（不是盤後靜態值）", (moved or 0) > 0,
+           pg.evaluate("() => [...document.querySelectorAll('[data-live][data-lc]')].slice(0, 4).map(e => [e.id, e.dataset.lst, e.textContent.trim()])"))
+        ny = len([u for u in live_net(t0) if "/y?" in u])
+        pg.evaluate("() => document.querySelector('#tfSeg button[data-tf=\"1m\"]').click()")
+        wait_until(pg, "() => window.LiveK && LiveK.settled", 10000)
+        pg.wait_for_timeout(800)
+        ny2 = len([u for u in live_net(t0) if "/y?" in u])
+        ok(f"[{T}] 管理者 個股：個股分 K 有去抓（Yahoo 經 Worker 的 /y）", ny2 >= 1, [ny, ny2])
+        # ⑤ 登出 → 重新載入 → 全部收掉
+        pg.evaluate(f"() => {{ location.hash = '#overview'; }}")
+        pg.wait_for_timeout(1500)
+        with pg.expect_navigation(timeout=8000):
+            pg.evaluate("() => TwAccount.logout()")
+        wait_until(pg, "() => !!document.getElementById('m3Frame') && !!window.TwLive", 15000)
+        t1 = _time.time()
+        pg.wait_for_timeout(6500)
+        g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), st: TwLive.state(), vis: (" + LIVEADM_VIS + ")(),"
+                        " tok: localStorage.getItem('tw.acct.tok') })")
+        ok(f"★ [{T}] 管理者登出 → 整頁重新載入 → 即時 UI 全部收掉、閘門關", not g["on"] and not g["st"]["on"] and not g["vis"] and not g["tok"], g)
+        ok(f"★ [{T}] 登出之後 0 個即時請求", not live_net(t1), live_net(t1)[:3])
+    finally:
+        ctx.close()
+
+    # ------------------------------------------------------------------ ⑥ 快取寫著管理者、Worker 說已經不是 → 重新載入一次就關、不會一直重新載入
+    S["me"] = "member"
+    ctx, pg = open_as("admin", "overview")
+    navs: list = []
+    pg.on("framenavigated", lambda f: navs.append(f.url) if f == pg.main_frame else None)
+    try:
+        off = wait_until(pg, "() => window.TwLive && !document.documentElement.classList.contains('live-on')"
+                             " && /member@/.test(localStorage.getItem('tw.acct.user') || '')", 15000)
+        pg.wait_for_timeout(5000)
+        g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), vis: (" + LIVEADM_VIS + ")() })")
+        ok(f"★ [{T}] 快取寫管理者、Worker 回 admin:false → 關掉（重新載入後依 Worker 的結果）", bool(off) and not g["on"] and not g["vis"], g)
+        ok(f"[{T}] 不會一直重新載入（最多重新載入 1 次）", len(navs) <= 1, navs)
+    finally:
+        ctx.close()
+
+
 def location_ok(pg, h):
     return pg.evaluate("() => location.hash") == h
 
@@ -22483,6 +22816,9 @@ SECTIONS = {
     "即時5秒0929":         lambda pg, b, base, code: t_live5s_0929(b, base, code),
     # ★ 2026-10-02 Andy：「這都需要具備即時功能」—— 總覽四張摘要卡跟著每 5 秒那一批即時（補位、不多打請求；假時鐘＋假報價，⚠ 一律 --workers 1）
     "總覽摘要卡即時":      lambda pg, b, base, code: t_ov_kpi_live_1002(b, base, code),
+    # ★ 2026-10-06 Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」（DECISIONS #326，site/livegate.js）。
+    #   這一段走真的閘門（不注入 TW_LIVE_OVERRIDE）：訪客／會員看不到也不打任何即時來源、管理者全部出現且真的更新、登出收掉（⚠ --workers 1）
+    "即時僅管理者1006":    lambda pg, b, base, code: t_live_admin_1006(b, base, code),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     # ★ 2026-09-28 Andy：今日事件預設隱藏、浮層抽屜、點背景關、關掉再開回到預設、修寬度 bug
@@ -25854,6 +26190,12 @@ KEEPVIEW_PRESET = ("try{if(sessionStorage.getItem('__tw_real_reset')==='1'){sess
                    "else{window.TW_KEEP_VIEW=true;}}catch(e){window.TW_KEEP_VIEW=true;}")
 if os.environ.get("TW_UITEST_REALRESET") != "1":
     CONSENT_PRESET += KEEPVIEW_PRESET
+# ★ 2026-10-06 即時僅管理者（DECISIONS #326，site/livegate.js）：盤中即時改成只有管理者帳號看得到、也只有管理者會打報價。
+#   這支驗收裡有幾十段在驗即時（報價每 5 秒、卡片開關、族群即時模式、大盤卡、夜盤、個股分 K…），寫的時候即時是人人都有 ——
+#   它們驗的正是「管理者看到的樣子」。所以預設替每一頁注入 TW_LIVE_OVERRIDE=true（livegate.js 只在 127.0.0.1／localhost 認這個後門），
+#   不必每段都去模擬登入。訪客／會員／登出那幾種情況由「即時僅管理者1006」一段專門驗（它用 Browser 原版 new_context，不吃這一行）。
+#   ⚠ 用 Browser._tw_raw_new_page／_tw_raw_new_context 開的段落（同意條款、預覽版前綴…）沒有這一行 ＝ 訪客視角。
+LIVE_ADMIN_PRESET = "window.TW_LIVE_OVERRIDE = true;"
 
 
 def real_reload(pg, wait_until="networkidle", wait_ms=0):
@@ -25879,12 +26221,12 @@ def _preset_consent() -> None:
 
     def new_page(self, *a, **k):
         pg = raw_page(self, *a, **k)
-        pg.add_init_script(CONSENT_PRESET)
+        pg.add_init_script(CONSENT_PRESET + LIVE_ADMIN_PRESET)
         return pg
 
     def new_context(self, *a, **k):
         c = raw_ctx(self, *a, **k)
-        c.add_init_script(CONSENT_PRESET)
+        c.add_init_script(CONSENT_PRESET + LIVE_ADMIN_PRESET)
         return c
 
     Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx

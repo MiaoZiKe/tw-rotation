@@ -101,8 +101,10 @@
     box('season.month', 'market', '週期統計', ['#v-season'], '族群在各月份的歷史表現（整頁）'),
     // ---- 個股頁：K 線與工具
     ktf('stock.k_day', 'K 線（日／週／月）', ['1d', '1w', '1M'], '日、週、月 K 週期鈕'),
-    ktf('stock.tick', '分時即時', ['tick'], '當日分時走勢'),
-    ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K'),
+    /* 2026-10-06（DECISIONS #326）：即時只給管理者 —— 非管理者的「分時」是最近交易日的盤後分時（資料湖 60 分 K），名稱拿掉「即時」（id 不改）；
+       1／5／15 分 K 只有即時來源，非管理者整排不列，標 adminOnly（訂閱頁的權益對照表不列，免得寫成付費就有）。*/
+    ktf('stock.tick', '分時走勢', ['tick'], '分時走勢（管理者盤中即時；其他人看最近交易日的盤後分時）'),
+    Object.assign(ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K（即時來源，只有管理者帳號看得到）'), { adminOnly: true }),
     ktf('stock.k_hour', '1H／4H K 線', ['60m', '240m'], '60 分與 240 分 K'),
     { id: 'stock.mtf', name: '四週期同看', cat: 'stockk', def: true, kind: 'bool', desc: '一次看四個週期的小圖',
       veil: [['#chartWrap', '#mtfGrid']], mark: [], block: ['#mtfBtn'] },
@@ -129,8 +131,11 @@
     stab('stock.holders', '大戶／散戶', 'holders', ['big'], '集保大戶與散戶持股'),
     stab('stock.news', '公告／新聞', 'news', ['news'], '重大訊息與新聞'),
     // ---- 即時與全站工具
-    { id: 'live.tick', name: '盤中即時（5 秒）', cat: 'global', def: true, kind: 'bool',
-      desc: '盤中每 5 秒更新報價；關掉＝看盤後資料（卡片上的「即時」鈕按了不動作）', veil: [], mark: [], block: ['.livetg-b', '.ovl-tg'] },   // .ovl-tg＝總覽摘要卡右上角的即時開關（DECISIONS #296）
+    /* ★ 2026-10-06（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）：
+       即時另外有一道「只有管理者」的閘門（site/livegate.js），這個開關只對管理者自己還有意義；對其他人開或關都一樣看不到。
+       adminOnly＝訂閱頁的權益對照表不列。block 拿掉 .ovl-tg：非管理者的那顆只是資料日期標籤，不該掛鎖頭。*/
+    { id: 'live.tick', name: '盤中即時（5 秒）', cat: 'global', def: true, kind: 'bool', adminOnly: true,
+      desc: '盤中每 5 秒更新報價（2026-10-06 起只有管理者帳號看得到；這個開關對其他人沒有作用）', veil: [], mark: [], block: ['.livetg-b'] },
     { id: 'events', name: '今日事件中心', cat: 'global', def: true, kind: 'bool', desc: '新聞／法說／總經事件抽屜',
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
