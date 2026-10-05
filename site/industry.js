@@ -4577,6 +4577,84 @@
              boll: cfg.boll || null, vol: !!cfg.vol, volma: cfg.volma, st: cfg.st };
   }
 
+
+  /* ================================================================ SMC 區域疊圖（2026-10-05）
+     Andy：「AI 分析／技術分析卡裡提到的價位，需要補在上方 K 線圖，並且這是可以開啟關閉的指標，在設定內可以勾選」。
+     ★ 資料一律取 payload 現成的，**前端不另算**（不然圖上跟 AI 卡會出現兩套數字）：
+       · 需求／供給區、BOS／CHoCH 日期：pg.mtf.tf[週期]（compute/mtf.py；與 AI 卡技術面週期列同一份）
+       · 最近支撐／壓力：pg.analysis.facets.tech.levels（AI 卡「支撐／壓力區」那兩欄本人）
+       · 停損：pg.analysis.facets.tech.checks.risk.a.stop（AI 卡「停損距離」那一條）
+     週期對應：看日線畫日線的區域、週線畫週線、月線畫月線；1 時／4 時 只有 payload 有那一格才畫
+     （mtf.py 只對有分 K 的個股算），其餘週期（分時、分 K、自訂 N 日）沒有區域資料 —— 只畫支撐壓力與停損，圖底小字講明。
+     BOS／CHoCH 的線價：payload 只給「突破那根的日期」，沒給被突破的擺動點價位 ——
+     所以線畫在**突破那根的收盤價**，標籤寫明「收」，不假裝那是擺動點價位（要精準價位得改 mtf.py 輸出，另案）。
+     2026-09-26 Andy 曾說「將這兩個指標拿掉」—— 這次是他自己要求加回、而且是**可開關、預設關**，不改變沒開的人的畫面。*/
+  const SMC_KINDS = [['demand', '需求區'], ['supply', '供給區'], ['bos', 'BOS'], ['choch', 'CHoCH'], ['sr', '支撐／壓力'], ['stop', '停損']];
+  const SMC_TFS = ['60m', '240m', '1d', '1w', '1M'];
+  function smcKindsOf(cfg) { return Object.assign({ demand: true, supply: true, bos: true, choch: true, sr: true, stop: true }, cfg.smcKinds || {}); }
+  function smcOverlay(pg, tf, kc, cfg) {
+    if (!kc || !kc.setSmc) return null;
+    if (!cfg.smcOv) { kc.setSmc(null); state.smc = null; return null; }
+    const on = smcKindsOf(cfg), data = kc.data || [];
+    if (!data.length) { kc.setSmc(null); return null; }
+    const tt = KUtil.toTime;
+    const ge = (a, b) => (typeof a === 'number' ? a >= b : String(a) >= String(b));
+    // 這個週期裡第一根 ≥ 該日期的 K 棒（週線的區域 since 是週中某一天，要對到那一週那根）
+    const snap = (date) => { if (!date) return null; const t = tt(String(date)); const d = data.find(x => ge(x.time, t)); return d || null; };
+    const n = (v) => A.fmt.n(v);
+    // 日期：跟最後一根同一年只寫 月-日，跨年寫完整日期（週線的區域常是前一兩年形成的，只寫 06-07 會看錯年）
+    const yr = String((pg.mtf && pg.mtf.tf && pg.mtf.tf['1d'] && pg.mtf.tf['1d'].last_bar) || pg.as_of || '').slice(0, 4);
+    const md = (d) => { const x = String(d || '').slice(0, 10); return x.slice(0, 4) === yr ? x.slice(5) : x; };
+    const mt = pg.mtf && pg.mtf.tf && SMC_TFS.indexOf(tf) >= 0 ? pg.mtf.tf[tf] : null;
+    const tfLab = mt ? (mt.label || tf) : '';
+    const zones = [], lines = [];
+    if (mt) {
+      ['demand', 'supply'].forEach(k => {
+        if (!on[k]) return;
+        (mt[k] || []).forEach(z => {
+          const b = snap(z.since);
+          const nm = k === 'demand' ? '需求區' : '供給區';
+          zones.push({ kind: k, low: z.low, high: z.high, since: b ? b.time : null, sinceDate: z.since, tf: tfLab,
+            label: `${nm} ${tfLab} ${n(z.low)}–${n(z.high)}`,
+            tip: `${nm}（${tfLab}）${n(z.low)}–${n(z.high)}，形成於 ${md(z.since)}` });
+        });
+      });
+      const mk = mt.marks || {};
+      const ch = (mk.choch || []).slice().sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+      if (on.bos && (mk.bos || []).length) {
+        const d = mk.bos.slice().sort().pop(), b = snap(d);
+        if (b) {
+          const prev = ch.filter(c => String(c[0]) <= String(d)).pop();
+          const dir = prev ? prev[1] : (mt.trend || 1);
+          lines.push({ kind: 'bos', price: b.close, t0: b.time, date: d, dir, color: '#ffd166', width: 1.2, dash: [5, 4],
+            label: `BOS ${dir < 0 ? '↓' : '↑'} ${md(d)} 收 ${n(b.close)}` });
+        }
+      }
+      if (on.choch && ch.length) {
+        const c = ch[ch.length - 1], b = snap(c[0]);
+        if (b) lines.push({ kind: 'choch', price: b.close, t0: b.time, date: c[0], dir: c[1], color: '#b39dff', width: 1.2, dash: [2, 3],
+          label: `CHoCH ${c[1] < 0 ? '↓' : '↑'} ${md(c[0])} 收 ${n(b.close)}` });
+      }
+    }
+    const tech = pg.analysis && pg.analysis.facets && pg.analysis.facets.tech;
+    if (tech && on.sr) {
+      const lv = tech.levels || {};
+      const s = (lv.support || [])[0], r = (lv.resistance || [])[0];
+      // 支撐畫在區間上緣（價格回落先碰到的那一邊）、壓力畫在下緣；標籤寫完整區間與來源週期
+      if (s) lines.push({ kind: 'sup', price: s.high, color: '#2ee59d', width: 2.4, label: `最近支撐 ${s.label || ''} ${n(s.low)}–${n(s.high)}` });
+      if (r) lines.push({ kind: 'res', price: r.low, color: '#ff4d6d', width: 2.4, label: `最近壓力 ${r.label || ''} ${n(r.low)}–${n(r.high)}` });
+    }
+    const ra = tech && tech.checks && tech.checks.risk && tech.checks.risk.a;
+    if (on.stop && ra && ra.stop != null) lines.push({ kind: 'stop', price: ra.stop, color: '#ffb020', width: 1.4, dash: [6, 3],
+      label: `停損 ${n(ra.stop)}${ra.pct != null ? `（距現價 ${Number(ra.pct).toFixed(1)}%）` : ''}` });
+    const noTf = !mt ? ` · ${TF_NAME[tf] || tf}線沒有 SMC 區域資料（只畫支撐壓力與停損）` : '';
+    const note = `技術區域僅供研究參考，不構成投資建議${noTf}`;
+    const o = { tf, zones, lines, note, style: { label: true } };
+    kc.setSmc(o);
+    state.smc = o;          // 驗收讀這個（跟 AI 卡比對數字）
+    return o;
+  }
+
   function setupChart(pg) {
     state.cfg = state.cfg || loadCfg();
     /* 即時分 K：切到這一檔就開始收，每收到一筆就重畫（畫面位置由 setBars(..., keepView) 保住）。
@@ -4655,12 +4733,15 @@
       /* 本益比河流：把下方那張河流圖的五條倍數線疊在 K 棒上（需要近四季 EPS，只有日／週／月線畫得出來）。*/
       { k: 'peRiver', label: '本益比河流', color: '#b39dff', mini: MINI_SKIP, on: () => !!cfg.peRiver, toggle: () => { cfg.peRiver = !cfg.peRiver; },
         sum: () => '日週月' },
+      /* SMC 區域（2026-10-05）：AI 卡講的需求／供給區、BOS／CHoCH、最近支撐壓力、停損畫上主圖。預設關；子項勾選存 cfg.smcKinds。*/
+      { k: 'smcOv', label: 'SMC 區域（需求／供給／BOS）', color: '#2ee59d', mini: MINI_SKIP, on: () => !!cfg.smcOv, toggle: () => { cfg.smcOv = !cfg.smcOv; },
+        sum: () => { const o = smcKindsOf(cfg); return SMC_KINDS.filter(x => o[x[0]]).map(x => x[1]).join('・') || '全部不畫'; } },
     ];
     const IDX = {}; IND.forEach(d => { IDX[d.k] = d; });
     const nOn = () => IND.filter(d => !d.base && d.on()).length;
     const indBtn = $('#indBtn');
     const paintBtn = () => { const n = $('#indN'); if (n) n.textContent = `（已開 ${nOn()}）`; };
-    const hasBody = (d) => !!(d.base || d.k === 'ma' || d.k === 'peRiver' || d.params || d.st);
+    const hasBody = (d) => !!(d.base || d.k === 'ma' || d.k === 'peRiver' || d.k === 'smcOv' || d.params || d.st);
     const stVal = (k) => Object.assign({ w: cfg.lineWidth || 1, o: 100 }, STYLE_DEF[k], (cfg.st || {})[k] || {});
     const maRow = (n, i) => `<div class="frow marow" data-i="${i}">
           <input type="number" min="2" max="480" value="${n}" data-f="n" aria-label="第 ${i + 1} 條均線天數">
@@ -4674,6 +4755,11 @@
         const mas = prmOf('ma');
         return `<div class="note">最多 6 條；天數、顏色、粗細都能改。</div><div id="maRows">${mas.map(maRow).join('')}</div>
           <div class="row" style="margin-top:6px"><button class="btn small" id="maAdd" type="button" ${mas.length >= 6 ? 'disabled' : ''}>＋ 新增均線</button></div>`;
+      }
+      if (d.k === 'smcOv') {
+        const o = smcKindsOf(cfg);
+        return `<div class="note">價位與 AI 分析卡同一份（多週期判讀）。日／週／月線畫該週期的區域；1 時／4 時 只有提供分 K 的個股才有；分時、1／5／15 分、自訂週期沒有區域資料，只畫支撐壓力與停損。四週期小圖不畫。</div>
+          <div class="frow" id="smcKinds" style="flex-wrap:wrap;gap:4px 12px">${SMC_KINDS.map(x => `<label class="plab"><input type="checkbox" class="smck" data-s="${x[0]}"${o[x[0]] ? ' checked' : ''}> ${x[1]}</label>`).join('')}</div>`;
       }
       if (d.k === 'peRiver') {
         const pes = peStyle(cfg);
@@ -4776,6 +4862,7 @@
     const wireInd = (pop) => {
       $$('input.tfon', pop).forEach(c => { c.onchange = () => setTfOn(c.dataset.tf, c.checked); });
       $$('input.ion', pop).forEach(c => { c.onchange = () => { IDX[c.dataset.k].toggle(); commit(); }; });
+      $$('input.smck', pop).forEach(c => { c.onchange = () => { cfg.smcKinds = Object.assign(smcKindsOf(cfg), { [c.dataset.s]: c.checked }); commit(); }; });
       const expand = (k) => {
         const r = pop.querySelector(`.indrow[data-k="${k}"]`); if (!r) return;
         const b = $('.ibody', r); if (!b) return;
@@ -5020,6 +5107,7 @@
          幾千筆數字存進去毫無意義）。applyIndicators 會自己去讀 this.peBands。*/
       kchart.peBands = cfg.peRiver ? peBandsForBars(peRiver(pg), bars, peStyle(cfg)) : null;
       kchart.applyIndicators(mainCfg(cfg));
+      smcOverlay(pg, tf, kchart, cfg);
       /* ★ 棒寬只在「換股票／換週期」時套用設定值。
          以前每次 apply() 都套一次 —— 而盤中每幾秒就會 apply() 一次，
          所以使用者滾滾輪放大之後，下一次更新就把棒寬硬拉回 cfg.bar，
@@ -5849,7 +5937,9 @@
       + `<b class="tagnm">${A.fmt.esc(t.label)}</b><span class="tagd">${t.detail ? A.fmt.esc(t.detail) : '—'}</span></button>`;
     const zone = (id, cls, title, list) => `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
       + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
-    el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
+    // 2026-10-05：頂部先放技術分析卡（stock_ai.js 的 techCardHTML，與 AI 卡技術面同源），原本的指標卡在其下
+    const tech = window.StockAI && window.StockAI.techCardHTML ? window.StockAI.techCardHTML(pg, A.fmt) : '';
+    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
       ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}
@@ -7349,6 +7439,11 @@
     // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」
     _apply: () => { if (state._apply) state._apply(); },
     _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool,
+    // 驗收用（2026-10-05 SMC 區域疊圖）：這次畫了哪些區域／線（價位原值）、圖上實際印出哪些標籤、底部小字
+    smc: state.smc && kchart && kchart._smc === state.smc ? { tf: state.smc.tf, note: state.smc.note,
+      zones: state.smc.zones.map(z => ({ kind: z.kind, low: z.low, high: z.high, since: z.sinceDate, tip: z.tip })),
+      lines: state.smc.lines.map(l => ({ kind: l.kind, price: l.price, label: l.label, date: l.date || null })),
+      zoneLabels: (kchart.zones.placed || []).map(x => x.label), lineLabels: (kchart.smcLines.placed || []).map(x => x.label) } : null,
     // 驗收用（2026-09-28 分時走勢）：分時圖在不在、畫了幾個點、哪一天、資料來源、顏色方向、這檔是不是確定沒分時、是不是自動退回的
     tick: tchart ? { pts: (tchart.pts || []).length, rows: (tchart.rows || []).length, date: state.tickDate, src: state.tickSrc,
                      dir: tchart.dir, color: tchart.color, prev: tchart.prev, setData: tchart.stats.setData } : null,

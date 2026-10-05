@@ -5633,6 +5633,12 @@ return {load:load,ready:ready,srcs:srcs};})();
      要在 account.js 之後（perm.js 問 TwAccount 我是誰）；會員功能沒設定時全部照預設＝全開，不連任何地方。 -->
 <script src="features.js"></script>
 <script src="perm.js"></script>
+<!-- ★ 2026-10-05（sub-v1）訂閱頁＋方案徽章（pricing.js，含共用小工具 TwSub，要排第一）、每日瀏覽次數（quota.js）、
+     右下角客服與意見反饋（support.js）、通知中心（notices.js）。要在 perm.js 之後（讀 TwPerm）、app.js 之前（登記 TwSubRoutes）。 -->
+<script src="pricing.js"></script>
+<script src="quota.js"></script>
+<script src="support.js"></script>
+<script src="notices.js"></script>
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="fit.js"></script>
 <script src="flowtopo.js"></script>

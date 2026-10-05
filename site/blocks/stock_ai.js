@@ -246,24 +246,24 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   box-shadow:0 18px 36px -14px rgba(0,0,0,.6)}
 /* 下面還有字 → 底部淡出一條，提示「區內還能往下捲」（捲到底就拿掉）*/
 #skAi .aibody.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);mask-image:linear-gradient(#000 calc(100% - 22px),transparent)}
-#skAi .aisec h4{margin:0 0 4px;font-size:13px;font-weight:400;color:var(--ink-2)}
-#skAi ul{margin:2px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.55}
-#skAi li{margin:2px 0}
-#skAi .aitfs{display:grid;grid-template-columns:auto auto 1fr;gap:4px 10px;align-items:baseline;font-size:13px}
-#skAi .aitfs .tfn{color:var(--ink-3);white-space:nowrap}
-#skAi .aitfs .aitag{justify-self:start}
-#skAi .aitfs .tfp{color:var(--ink-2);line-height:1.5;min-width:0}
-#skAi .aisub{margin-top:8px;font-size:12.5px;color:var(--ink-3);font-weight:600}
-#skAi .ailv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#skAi .ailv .k{background:var(--panel-3);border-radius:9px;padding:5px 9px;margin-top:5px;font-size:12.5px}
-#skAi .ailv .k b{font-family:var(--mono)}
+:is(#skAi,#tagTech) .aisec h4{margin:0 0 4px;font-size:13px;font-weight:400;color:var(--ink-2)}
+:is(#skAi,#tagTech) ul{margin:2px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.55}
+:is(#skAi,#tagTech) li{margin:2px 0}
+:is(#skAi,#tagTech) .aitfs{display:grid;grid-template-columns:auto auto 1fr;gap:4px 10px;align-items:baseline;font-size:13px}
+:is(#skAi,#tagTech) .aitfs .tfn{color:var(--ink-3);white-space:nowrap}
+:is(#skAi,#tagTech) .aitfs .aitag{justify-self:start}
+:is(#skAi,#tagTech) .aitfs .tfp{color:var(--ink-2);line-height:1.5;min-width:0}
+:is(#skAi,#tagTech) .aisub{margin-top:8px;font-size:12.5px;color:var(--ink-3);font-weight:600}
+:is(#skAi,#tagTech) .ailv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+:is(#skAi,#tagTech) .ailv .k{background:var(--panel-3);border-radius:9px;padding:5px 9px;margin-top:5px;font-size:12.5px}
+:is(#skAi,#tagTech) .ailv .k b{font-family:var(--mono)}
 /* 逐條條件用「按鈕＋hidden」而不是 <details>：收起來的 <details> 內容在 Chrome 仍量得到外框，
    _preview 的文字重疊掃描會把它跟下面的支撐壓力區判成重疊（2026-09-26 實測）。*/
-#skAi .aick{margin-top:6px;font-size:12.5px;color:var(--ink-2)}
-#skAi .aickbtn{background:none;border:0;padding:2px 0;color:var(--ink-3);cursor:pointer;font:inherit;text-align:left}
-#skAi .aickbtn:hover{color:var(--cyan)}
-#skAi .ck{display:flex;gap:6px;margin:3px 0} #skAi .ck .m{flex:none;width:14px;font-weight:700}
-#skAi .ck.ok .m{color:var(--rise)} #skAi .ck.no .m{color:var(--ink-3)}
+:is(#skAi,#tagTech) .aick{margin-top:6px;font-size:12.5px;color:var(--ink-2)}
+:is(#skAi,#tagTech) .aickbtn{background:none;border:0;padding:2px 0;color:var(--ink-3);cursor:pointer;font:inherit;text-align:left}
+:is(#skAi,#tagTech) .aickbtn:hover{color:var(--cyan)}
+:is(#skAi,#tagTech) .ck{display:flex;gap:6px;margin:3px 0} :is(#skAi,#tagTech) .ck .m{flex:none;width:14px;font-weight:700}
+:is(#skAi,#tagTech) .ck.ok .m{color:var(--rise)} :is(#skAi,#tagTech) .ck.no .m{color:var(--ink-3)}
 #skAi .ainews a{color:var(--cyan)}
 #skAi .ainews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
 #skAi .aiasof{margin-top:8px;font-size:12px;color:var(--ink-3)}
@@ -278,6 +278,12 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   #skAi .aitfs{grid-template-columns:auto 1fr} #skAi .aitfs .tfp{grid-column:1 / -1;margin:-2px 0 4px}
   #skAi .ailv{grid-template-columns:1fr}
 }
+/* ★ 2026-10-05 指標分頁「技術分析」卡（#tagTech）：同一份 techHTML／sigHTML，完整攤開不限高、不捲動 */
+#tagTech .ttwarn{margin:6px 0 10px;padding:7px 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:13px;font-weight:600}
+#tagTech .tthead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+#tagTech .tthead small{color:var(--ink-3)}
+#tagTech .aickbtn{display:none}
+@media (max-width:820px){#tagTech .aitfs{grid-template-columns:auto 1fr} #tagTech .aitfs .tfp{grid-column:1 / -1;margin:-2px 0 4px} #tagTech .ailv{grid-template-columns:1fr}}
 /* 手機分段用的空殼：桌機永遠是空的，不留一塊空卡 */
 #aiCard:empty{display:none}
 @media (max-width:640px){
@@ -947,5 +953,19 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     });
   }
 
-  window.StockAI = { id: 'stock.mtf', html, mount, refit, brief, briefText, facetCards, ovCard, bindOverview, _key: KEY, _tabKey: TAB_KEY, _ovTabKey: OV_TAB_KEY, _splitKey: SPLIT_KEY };
+  /* ★ 2026-10-05（Andy：「這邊技術面，在上方『指標』需要新增，可以看到技術分析，但記得標明這不構成投資建議」）：
+     個股頁「指標」分頁頂部的技術分析卡。內容＝AI 卡技術面面板同一個 techHTML＋sigHTML（不另寫一份邏輯，兩處永遠一致），
+     差別只在：① 完整攤開（逐條條件直接展開、不限高、不捲動）② 卡頂固定一行免責 ③ id 改 tt 前綴 —— AI 卡同時在頁面上，id 不能撞。*/
+  function techCardHTML(pg, fmt) {
+    css();
+    const an = pg && pg.analysis;
+    const t = an && an.facets && an.facets.tech;
+    const sig = sigCount(pg, fmt);
+    const body = an ? (techHTML(t, fmt) + `<div class="aisub">技術面訊號</div>` + sigHTML(pg, sig))
+      .replace(/id="ai(Tfs|Why|Sig)"/g, 'id="tt$1"').replace('<div class="aickbody" hidden>', '<div class="aickbody">')
+      : '<div class="empty">技術分析資料準備中（下一次盤後更新後出現）</div>';
+    return `<div class="card" id="tagTech"><div class="tthead"><h3>技術分析</h3>${t && t.stance ? `<span class="grade ${stanceCls(t.stance)}">${esc(t.stance)}</span>` : ''}<small>資料到 ${esc((an && an.as_of) || '—')}</small></div>
+      <div class="ttwarn" id="ttWarn">以下為規則式技術指標整理，僅供研究參考，不構成投資建議；本站非證券投資顧問</div>${body}</div>`;
+  }
+  window.StockAI = { id: 'stock.mtf', html, techCardHTML, mount, refit, brief, briefText, facetCards, ovCard, bindOverview, _key: KEY, _tabKey: TAB_KEY, _ovTabKey: OV_TAB_KEY, _splitKey: SPLIT_KEY };
 })();

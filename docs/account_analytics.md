@@ -95,3 +95,97 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 | R5 權杖 | HMAC 簽章有效、未過期（60 天，剩一半自動續）、使用者還在、版本號相符 | 刪除帳號後的舊權杖、過期權杖 |
 | R6 登入 | 授權碼＋PKCE（S256）＋ state ＋ nonce ＋ 同瀏覽器 cookie；return 網址在白名單 | 白名單外網址、cookie 不符（別人的回呼網址）、aud／iss／nonce 不符、email 未驗證、過期 |
 | 來源 | 白名單網站發出的 POST | 其他網站、沒有 Origin 的 POST（403） |
+
+
+## 細項事件（2026-10-05 admin-v2）
+
+跟上面的計數並存（舊計數不動），心跳多帶一個 `e2`：`[[頁面, 元件, 細項, 次數], …]`，每批最多 60 列、每列最多 +50。
+Worker 存在 `ev2(day, page, comp, detail, n)`，只有「每天的次數」，**沒有任何識別碼**，保留 13 個月。
+
+- 頁面：上面的頁面白名單（`viewOf`）。管理頁不記。
+- 元件：`^[a-z][a-z0-9_.]{0,31}$` 的固定名字。
+- 細項：族群名／股票代號／元件 id／象限名，**只取畫面上既有的選項**；不存使用者打的字（搜尋只記「有搜尋」）。
+  Worker 再擋一次：≤ 24 字、不准 `@`、控制字元與 `< > " ' \``。
+
+| 元件 | 細項 | 點位 |
+|---|---|---|
+| `view` | 股票代號 | 打開個股頁（換一檔算一次）|
+| `tab.<分頁>`、`kp.<週期>`、`ai_tab`、`mtf`、`indicators`、`draw`、`zoom`… | 個股頁＝代號；其他頁空白 | 既有 HOOKS 擴充 |
+| `how` | 卡片 id | 「?」說明 |
+| `play` | 時間軸容器 id（`rotBack`＝資金輪動）| 播放鈕 |
+| `quad` | 領先／改善／轉弱／落後 | 輪盤象限卡 |
+| `filter_chain` | 產業鏈名 | 資金輪動產業鏈下拉 |
+| `filter_group` | 族群名 | 族群下拉「勾上」 |
+| `filter_group_open`、`filter_top10`、`filter_clear` | 空 | 篩選列 |
+| `rank_bar` | 族群名 | 右側排行長條（app.js 新點位）|
+| `clock_group` | 族群名 | 輪盤族群點（app.js 新點位）|
+| `heat_tile` | 族群名 | 熱力圖方塊（app.js 新點位）|
+| `search` | 空 | 搜尋 Enter |
+
+新增點位只有 app.js 三處 canvas 點擊（`twT`），其餘都是 account.js 的委派監聽。
+查詢：`/v1/admin/stats` 回 `e2`（期間內依 page/comp/detail 加總，可帶 `page` 只看一頁）。
+會員造訪：登入狀態的 `ev:session_login` 另記 `visits(uid, day, n)`，`/v1/admin/perm/list` 回 `seen`、`visits`（近 30 天）、`expires`。
+
+### 圖表選型（流量觀測頁的「？ 圖表怎麼選」）
+- 預設橫向排序長條：類別多、要比大小，長度最準。
+- 圓餅／甜甜圈：只在 ≤ 5 類且加總 100%（登入／訪客開啟比例）。
+- 散佈：只用在兩個數量的關係（個股被觀看次數 × 平均每次用幾次功能）。
+
+## 族群權限鍵對照（features.js `grpKey`）
+純小寫英數底線的 group_id 原樣 → `grp.<id>`；有大寫轉小寫；含中文的 `ind_*` 自動桶 → `grp.ind_x<FNV-1a 8 碼>`。上線後不要改算法。
+
+| group_id | 鍵 |
+|---|---|
+| ind_ETF | `grp.ind_etf` |
+| ind_半導體業 | `grp.ind_x4d6347d4` |
+| ind_光電業 | `grp.ind_xaffe9bb6` |
+| ind_電子零組件業 | `grp.ind_xb717244b` |
+| ind_化學工業 | `grp.ind_x269acfc7` |
+| ind_其他電子業 | `grp.ind_x88b93227` |
+| ind_生技醫療業 | `grp.ind_x4ceef9e8` |
+| ind_其他 | `grp.ind_xe82028fb` |
+| ind_電腦及週邊設備業 | `grp.ind_x206d5a74` |
+| ind_文化創意業 | `grp.ind_xdad9d3e5` |
+| ind_通信網路業 | `grp.ind_xdca044c4` |
+| ind_鋼鐵工業 | `grp.ind_x3737af8e` |
+| ind_汽車工業 | `grp.ind_xdc531606` |
+| ind_食品工業 | `grp.ind_x140977c9` |
+| ind_電機機械 | `grp.ind_x1b8c31ca` |
+| ind_綠能環保 | `grp.ind_xeff95aab` |
+| ind_玻璃陶瓷 | `grp.ind_x84487036` |
+| ind_建材營造 | `grp.ind_xacb9273e` |
+| ind_資訊服務業 | `grp.ind_x9dadf523` |
+| ind_紡織纖維 | `grp.ind_x060d3357` |
+| ind_金融保險 | `grp.ind_x0686a15a` |
+| ind_水泥工業 | `grp.ind_xd1d03aa6` |
+| ind_貿易百貨 | `grp.ind_x5756834b` |
+| ind_運動休閒 | `grp.ind_xd36b5780` |
+| ind_橡膠工業 | `grp.ind_xde3e5aa8` |
+| ind_居家生活 | `grp.ind_x2a747a56` |
+| ind_塑膠工業 | `grp.ind_x94a13d58` |
+| ind_電子通路業 | `grp.ind_x02e736c2` |
+| ind_數位雲端 | `grp.ind_x3c577bd7` |
+| ind_觀光餐旅 | `grp.ind_x786a931f` |
+| ind_電器電纜 | `grp.ind_xfc41fa87` |
+| ind_造紙工業 | `grp.ind_x3efb6a56` |
+| ind_油電燃氣業 | `grp.ind_xb9888cd8` |
+| ind_農業科技業 | `grp.ind_xa885935a` |
+
+## 付費範本的價格與計費週期（2026-10-05 admin-v2b）
+
+- 後端 `plans` 表多兩欄：`price`（整數新台幣，0～999999）、`period`（`month`／`year`／`once`）。舊資料庫啟動時用 `PRAGMA table_info` 判斷、`ALTER TABLE ADD COLUMN` 補欄，舊範本補成 `price=0`、`period=month`。
+- `/v1/admin/plans/put`：`price`、`period` 可省略（省略＝沿用原值，只改開關的呼叫不會把價格洗成 0）；帶了就嚴格驗證，錯誤回 `bad_price`／`bad_period`（400），不默默修正。`/v1/admin/plans/get` 每個範本都回 `price`、`period`。
+- 管理區「會員權限 → 付費會員」：選一個範本後可改「名稱」「價格（整數 NT$）」「計費週期（月／年／一次）」，範本按鈕顯示「名稱・NT$價格/週期」。名稱不寫死價格（定價範本預設「免費方案 0／基本方案 399／進階方案 799」，每月）。
+- ★ **金流以 plan id 對價、價格以後端為準。** plan id（例如 `p399`、`p799`、`p<亂數>`）建立後不變，是日後金流（訂單、Webhook）對應方案的鍵；名稱與價格可以隨時改，不影響已指定的會員。前端顯示的價格只是顯示，結帳金額一律由後端依 plan id 查 `plans.price`，不可相信前端送來的金額。
+
+## 管理區 v3：瀏覽次數上限、會員名單使用數據（2026-10-05 admin-v3）
+
+Andy 看了 admin-v2 預覽說「弄得好複雜，看了不清楚」，管理區改成三個大分頁（訪客｜註冊會員｜付費會員）＋「＋」新增付費範本，每頁兩個子分頁「觀看權限」「會員名單」。後端（`workers/account-api/worker.js` 檔尾 admin-v3 區塊，只新增、包 prototype，既有函式不動）：
+
+- **瀏覽次數上限 `plans.lims`**（JSON：`{功能鍵: 0～9999}`）。留空（沒有這個鍵）＝不限、0＝不能看、N＝每日 N 次。跟開關 `feats` 分開存。`/v1/admin/plans/put` 可帶 `lims`（省略＝沿用原值；壞值整批 `bad_lims` 400）；`plans/get`、`/v1/plans/public`、`/v1/perm/me` 都回 `lims`（`perm/me` 回的是生效範本的，過期的人退回免費會員的）。
+  前端：`perm.js` 把 0 當成「關掉」（同一個鎖頭＋「升級查看」鈕）；`quota.js` 對 N≥1 計數 —— 個股頁、題材、族群頁算「看了幾個不同的」，其他頁算「這個瀏覽器分頁開過一次」。原本 sub-v1 的三個 `quota.*` 開關拿掉，改成 `stock.page`（整個個股頁）、`stock.ai`、`heat.detail` 的上限。
+- **在線時間 `visits.ms`**：登入者每次心跳加上距上次加時的間隔（單次最多 120 秒；超過 150 秒沒訊號＝斷線，不補中間那段）。用 `users.ob`（上次加時）而不是每個分頁各算，同一人開三個分頁不會加三倍。
+- **個人使用明細 `uev`**（uid、台北日期、頁面、元件、細項、次數）：只記登入者（訪客仍然只有不具名的 `usage`／`ev2`）；頁面瀏覽記成 `comp='_pv'`。保留 90 天、刪除帳號一起刪、只有管理者讀得到（隱私權政策第二條已加「使用紀錄（登入後）」一列）。
+- **`/v1/admin/members`**：一人一列（登入過的＋設定過的），帶 方案、付費與否、加入／到期、最後上線、累計在線、近 30 天造訪／活躍天數／頁面瀏覽、最常用的功能 Top3、最常看的股票 Top3、狀態。**`/v1/admin/member/detail`**：各分頁瀏覽、功能次數 Top 15、常看股票 Top 10、近 14 天每日（造訪、在線、瀏覽）。
+- 相容遷移：`plans.lims`、`visits.ms`、`users.ob` 用 `PRAGMA table_info` 判斷再 `ALTER TABLE ADD COLUMN`，`uev` 是新表；舊資料原封不動、重啟不報錯（`tests/v3.test.mjs`）。
+- `/v1/quota/hit` 的功能鍵放寬成任何功能鍵（原本只收 `quota.*`）。

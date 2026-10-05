@@ -35,7 +35,7 @@
   const rnd = (n) => { const a = crypto.getRandomValues(new Uint8Array(n)); return btoa(String.fromCharCode(...a)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
   const noTrack = () => navigator.doNotTrack === '1' || window.doNotTrack === '1' || navigator.globalPrivacyControl === true;
 
-  const S = { api: null, on: false, tok: ls.get(K_TOK), user: null, online: null, poll: 0, beatT: 0, q: {}, lastPv: '', sid: null };
+  const S = { api: null, on: false, tok: ls.get(K_TOK), user: null, online: null, poll: 0, beatT: 0, q: {}, q2: {}, lastPv: '', sid: null };
   try { S.user = JSON.parse(ls.get(K_USER) || 'null'); } catch (e) { S.user = null; }
   if (!S.tok) S.user = null;
 
@@ -75,12 +75,28 @@
   function bump(k) { S.q[k] = Math.min(50, (S.q[k] || 0) + 1); }
   function track(e) { if (S.on && !noTrack() && EVENTS.includes(e)) bump('ev:' + e); }
   window.TwTrack = track;
+  /* ---- 細項事件（2026-10-05 admin-v2，docs/account_analytics.md「細項事件」）：[頁面, 元件, 細項]
+     · 頁面＝目前這一頁（viewOf，跟頁面瀏覽同一份白名單）；管理頁本身不記。
+     · 元件＝小寫英數與 . _ 的固定名字（play、quad、filter_group、tab.revenue、kp.60m…），全部寫死在這支或 app.js 的三個點位。
+     · 細項＝族群名／股票代號／元件 id／象限名，**只從畫面上既有的選項取**；使用者打的字（搜尋框）一律不送，只記「有搜尋」。
+     跟舊的計數一樣：每分鐘跟心跳一起送、DNT／GPC 開著就不送、不帶任何識別碼。*/
+  const E2_BAD = /[\u0000-\u001f\u007f<>"'`\\@]/g;
+  const cleanDet = (d) => String(d == null ? '' : d).replace(E2_BAD, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  const stockCode = () => { const m = /^#stock\/([0-9A-Z]{4,6})\b/.exec(location.hash || ''); return m ? m[1] : ''; };
+  function t2(comp, detail, page) {
+    if (!S.on || noTrack()) return;
+    const pg = page || viewOf(location.hash); if (!pg || !/^[a-z][a-z0-9_.]{0,31}$/.test(comp)) return;
+    const k = pg + '\t' + comp + '\t' + cleanDet(detail);
+    S.q2[k] = Math.min(50, (S.q2[k] || 0) + 1);
+  }
+  window.TwT = (comp, detail) => t2(comp, detail);
   function pv() {
     const v = viewOf(location.hash); if (!v) return;
     const key = v === 'stock' ? location.hash.split('/').slice(0, 2).join('/') : v;   // 換一檔股票算一次、同一頁內部切換不重算
     if (key === S.lastPv) return;
     S.lastPv = key;
     if (S.on && !noTrack()) bump('pv:' + v);
+    if (v === 'stock' && stockCode()) t2('view', stockCode(), 'stock');     // 個股被觀看：細項＝代號
   }
   function takeQ() {
     const keys = Object.keys(S.q).slice(0, 40), ev = {};
@@ -88,14 +104,18 @@
     return ev;
   }
   function putBack(ev) { Object.entries(ev).forEach(([k, n]) => { S.q[k] = Math.min(50, (S.q[k] || 0) + n); }); }
+  function takeQ2() {
+    return Object.keys(S.q2).slice(0, 60).map((k) => { const n = S.q2[k]; delete S.q2[k]; const [p, c, d] = k.split('\t'); return [p, c, d, n]; });
+  }
+  function putBack2(e2) { e2.forEach(([p, c, d, n]) => { const k = p + '\t' + c + '\t' + d; S.q2[k] = Math.min(50, (S.q2[k] || 0) + n); }); }
   async function beat() {
     clearTimeout(S.beatT);
     if (!S.on || noTrack()) return;
     if (document.visibilityState === 'hidden') return;
     if (!ss.get('tw.sess')) { ss.set('tw.sess', '1'); bump('ev:session'); if (S.user) bump('ev:session_login'); }
-    const ev = takeQ();
-    const j = await call('/v1/beat', { sid: S.sid, r: viewOf(location.hash) || 'other', ev });
-    if (!j || j._s >= 500 || j._s === 429) putBack(ev);
+    const ev = takeQ(), e2 = takeQ2();
+    const j = await call('/v1/beat', Object.assign({ sid: S.sid, r: viewOf(location.hash) || 'other', ev }, e2.length ? { e2 } : {}));
+    if (!j || j._s >= 500 || j._s === 429) { putBack(ev); putBack2(e2); }
     if (j && typeof j.n === 'number') { S.online = j.n; paintOnline(); } else if (j && j._s === 200) { S.online = null; paintOnline(); }
     S.beatT = setTimeout(beat, BEAT_MS);
   }
@@ -103,7 +123,8 @@
      sendBeacon 送 text/plain：跨站時才不會多一次預檢請求。*/
   function leave() {
     if (!S.on || noTrack() || !navigator.sendBeacon) return;
-    const body = JSON.stringify(Object.assign({ sid: S.sid, leave: true, ev: takeQ() }, S.tok ? { t: S.tok } : {}));
+    const e2 = takeQ2();
+    const body = JSON.stringify(Object.assign({ sid: S.sid, leave: true, ev: takeQ() }, e2.length ? { e2 } : {}, S.tok ? { t: S.tok } : {}));
     try { navigator.sendBeacon(S.api + '/v1/beat', new Blob([body], { type: 'text/plain' })); } catch (e) { /* 略 */ }
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(S.beatT); leave(); } else beat(); });
@@ -126,11 +147,39 @@
     ['.mpager button, .mspine button', 'm_seg'],
     ['#sugg [data-c]', 'search'],
   ];
+  /* 細項：舊事件在個股頁一律帶「哪一檔」；K 線週期／個股分頁再細到「哪一個」（元件 kp.60m、tab.revenue）*/
+  const SUBKEY = { k_period: (el) => el.dataset.tf, stock_tab: (el) => el.dataset.t };
+  const QUAD = { leading: '領先', improving: '改善', weakening: '轉弱', lagging: '落後' };
+  const idOf = (el, sel) => { const c = el && el.closest(sel); return c ? c.id : ''; };
+  /* 新增的細項點位（只有這幾個，清單同 docs/account_analytics.md）：都是委派監聽，不改功能本身的程式 */
+  const DETAIL = [
+    ['.pb.play', (el) => ['play', idOf(el, '[id]')]],                                           // 時間軸播放（rotBack＝資金輪動）
+    ['.rotquads .rq', (el) => ['quad', QUAD[el.dataset.k] || el.dataset.k || '']],               // 輪盤四象限卡
+    ['.rotdd[data-dd="chain"] .ddopt[data-c]', (el) => ['filter_chain', el.dataset.c ? (el.firstChild && el.firstChild.textContent || '').trim() : '全部']],
+    ['.rotdd[data-dd="group"] .ddbtn', () => ['filter_group_open', '']],
+    ['.rot-top10', () => ['filter_top10', '']],
+    ['.rot-clear', () => ['filter_clear', '']],
+  ];
   document.addEventListener('click', (e) => {
     if (!S.on || !e.target || !e.target.closest) return;
-    for (const [sel, ev] of HOOKS) if (e.target.closest(sel)) { track(ev); break; }
+    for (const [sel, ev] of HOOKS) {
+      const el = e.target.closest(sel); if (!el) continue;
+      track(ev);
+      const code = stockCode(), sub = SUBKEY[ev] ? SUBKEY[ev](el) : '';
+      const comp = sub && /^[a-z0-9_]{1,16}$/i.test(sub) ? ev + '.' + String(sub).toLowerCase() : ev;
+      t2(comp === 'stock_tab' || comp.startsWith('stock_tab.') ? comp.replace('stock_tab', 'tab') : comp.replace('k_period', 'kp'),
+        code || (ev === 'how' ? idOf(el, '.card[id], section[id], [id]') : ''));
+      break;
+    }
+    for (const [sel, fn] of DETAIL) { const el = e.target.closest(sel); if (el) { const [c, d] = fn(el); t2(c, d); break; } }
   }, true);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target && e.target.id === 'q' && e.target.value.trim()) track('search'); }, true);
+  /* 族群下拉勾選：只記「勾上」那一下，細項＝族群名（取自清單本身的文字，不是使用者輸入）*/
+  document.addEventListener('change', (e) => {
+    const inp = e.target; if (!S.on || !inp || !inp.matches || !inp.matches('.rotdd input[data-g]') || !inp.checked) return;
+    const row = inp.closest('.ddopt'), nm = row && row.querySelector('.nm');
+    t2('filter_group', nm ? nm.textContent : inp.dataset.g);
+  }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target && e.target.id === 'q' && e.target.value.trim()) { track('search'); t2('search', ''); } }, true);
   function watchZoom() {
     const z = document.getElementById('zoomOv');
     if (!z || !window.MutationObserver) return;
@@ -184,7 +233,7 @@
     const bar = window.TwAcctBar ? window.TwAcctBar() : null; if (!bar) return;
     injectCSS();
     let on = document.getElementById('acctOnline');
-    if (!on) { on = document.createElement('button'); on.type = 'button'; on.id = 'acctOnline'; on.className = 'aonline'; on.hidden = true; bar.appendChild(on); on.onclick = () => { if (S.user && S.user.admin) location.hash = '#admin'; }; }
+    if (!on) { on = document.createElement('button'); on.type = 'button'; on.id = 'acctOnline'; on.className = 'aonline'; on.hidden = true; bar.appendChild(on); on.onclick = () => { if (S.user && S.user.admin) location.hash = '#admin/traffic'; }; }
     let b = document.getElementById('acctBtn');
     if (!S.on) { if (b) b.remove(); on.hidden = true; const r = document.getElementById('mmAcct'); if (r) r.remove(); return; }
     if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'acctBtn'; b.className = 'abtn'; bar.appendChild(b); b.onclick = onBtn; }
@@ -227,20 +276,28 @@
     if (!m) {
       m = document.createElement('div'); m.id = 'acctMenu'; m.className = 'acctmenu'; m.setAttribute('role', 'menu'); document.body.appendChild(m);
       m.addEventListener('click', (e) => {
+        if (e.target.closest('.planbadge')) { m.hidden = true; return; }
         const a = e.target.closest('[data-a]'); if (!a) return;
         m.hidden = true;
         if (a.dataset.a === 'watch') location.hash = '#watch';   // 2026-09-28：自選改成整頁（#watch）
-        if (a.dataset.a === 'admin') location.hash = '#admin';
+        if (a.dataset.a === 'admin') location.hash = '#admin/traffic';
         if (a.dataset.a === 'perm') location.hash = '#admin/perm';      // 2026-10-02 會員功能權限（DECISIONS #288）
         if (a.dataset.a === 'privacy') location.hash = '#privacy';
+        if (a.dataset.a === 'pricing') location.hash = '#pricing';            // 2026-10-05 sub-v1
+        if (a.dataset.a === 'feedback') location.hash = '#admin/feedback';
+        if (a.dataset.a === 'notices') location.hash = '#admin/notices';
         if (a.dataset.a === 'delete') openDlg('delete');
         if (a.dataset.a === 'logout') logout();
       });
     }
     const u = S.user || {};
-    m.innerHTML = `<div class="mh"><b>${esc(u.name || '')}</b><small>${esc(u.email || '')}</small></div>`
+    /* 2026-10-05（sub-v1）頂部：頭像字母＋名字＋方案徽章（pricing.js 的 TwPlanBadge，點了到 #pricing）*/
+    const ini = esc((u.name || u.email || '?').trim().charAt(0).toUpperCase());
+    m.innerHTML = `<div class="mh mhx"><span class="av" aria-hidden="true">${ini}</span><span class="nm"><b>${esc(u.name || '')}</b>${window.TwPlanBadge ? window.TwPlanBadge() : ''}</span><small>${esc(u.email || '')}</small></div>`
       + `<button type="button" role="menuitem" data-a="watch">★ 自選清單</button>`
-      + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理頁：使用統計與線上名單</button><button type="button" role="menuitem" data-a="perm">管理頁：會員功能權限</button>` : '')
+      + `<button type="button" role="menuitem" data-a="pricing">訂閱方案</button>`
+      + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
+      + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
       + `<button type="button" role="menuitem" data-a="delete" class="danger">刪除我的資料…</button>`
       + `<button type="button" role="menuitem" data-a="logout">登出</button>`;
@@ -363,8 +420,11 @@
     return adminLoading;
   }
   /* app.js 的 route() 問這裡：'admin' → 由本檔接手（app.js 關掉其他 view）；null → 不關本檔的事 */
+  /* 2026-10-05（sub-v1）：#admin/feedback、#admin/notices 由 support.js／notices.js 自己畫（app.js 的 TwSubRoutes 先攔），
+     這裡不要再把 admin.js 載進來、在藏起來的 #v-admin 裡多畫一份流量觀測（還會多打一支 /v1/admin/stats）。*/
+  const subAdmin = () => /^#admin\/(feedback|notices)\b/.test(location.hash || '');
   function route(head) {
-    if (head !== 'admin') return null;
+    if (head !== 'admin' || subAdmin()) return null;
     admKey = '';
     const v = ensureView(); if (!v) return null;
     if (!S.on) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p class="muted">會員功能尚未設定（docs/login_setup.md）。</p></div>'; return 'admin'; }
