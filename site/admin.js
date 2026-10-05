@@ -60,11 +60,34 @@
 #v-admin .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-admin .bars .bt{height:14px;background:var(--panel-3);border-radius:4px;overflow:hidden}
 #v-admin .bars .bt i{display:block;height:100%;background:var(--cyan);border-radius:4px}
-#v-admin .bars .bn{font-family:var(--mono);text-align:right;min-width:3em}
+#v-admin .bars .bn{font-family:var(--mono);text-align:center;min-width:6.2em;font-variant-numeric:tabular-nums}
 #v-admin .bars button.bl{background:none;border:0;color:var(--ink);text-align:left;font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
-#v-admin .days{display:flex;align-items:flex-end;gap:2px;height:120px;border-bottom:1px solid var(--line);padding-top:6px}
-#v-admin .days i{flex:1;min-width:2px;background:var(--violet);border-radius:3px 3px 0 0}
-#v-admin .dayx{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2);margin-top:4px}
+#v-admin .dayplot{display:flex;gap:6px;flex:1;min-height:170px;margin-top:4px}
+#v-admin .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);padding-bottom:0;min-width:3em}
+#v-admin .days{flex:1;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 50%;padding-top:0}
+#v-admin .days i{flex:1;min-width:2px;max-width:28px;background:var(--violet);border-radius:3px 3px 0 0}
+#v-admin .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:4px;padding-left:calc(3em + 6px)}
+#v-admin .dayx .dayno{color:var(--ink-3)}
+/* 流量觀測 1005（Andy：圖表版面重排）：總覽卡＝五格 KPI 平均分寬＋右側期間控制；同排卡同高、卡內內容撐滿；所有表格與 KPI 文字置中 */
+#v-admin .trkpi{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+#v-admin .trkpi .kpis{flex:1 1 520px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
+#v-admin .trctl{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:18px}
+#v-admin .trctl label{font-size:13.5px;color:var(--ink-2);white-space:nowrap}
+#v-admin .trctl select,#v-admin .trctl button{height:32px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
+#v-admin .qtip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;cursor:help}
+#admBody .admgrid>.card{display:flex;flex-direction:column;min-width:0}
+#admBody .admgrid>.card>h3{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#admBody .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--cyan);flex:none}
+#admBody .admgrid>.card>.use{margin:4px 0 10px}
+#admBody .admgrid>.card>.bars,#admBody .admgrid>.card>table,#admBody .admgrid>.card>.donut,#admBody .admgrid>.card>svg.sc{margin-top:auto;margin-bottom:auto}
+#admBody .admgrid>#trDonut .donut{justify-content:center}
+#admBody .kpis>div,#admBody table th,#admBody table td{text-align:center}
+#admBody .bars .bl,#admBody .bars button.bl{text-align:center}
+#admBody .kpis{justify-content:center}
+#admBody table{width:100%;border-collapse:collapse}
+#admBody table th,#admBody table td{padding:5px 8px;line-height:1.4;font-size:13px}
+#admBody table th{white-space:nowrap}
+@media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}}
 #v-admin table{width:100%;border-collapse:collapse;font-size:13.5px}
 #v-admin th,#v-admin td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
 #v-admin th{color:var(--ink-2);font-weight:500;font-size:12.5px}
@@ -72,9 +95,9 @@
 #v-admin label.tg{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
 #v-admin label.tg input{width:18px;height:18px}
 #v-admin .err{color:#ff6b7a}
-#v-admin .admnav{display:flex;gap:6px;flex-wrap:wrap}
-#v-admin .admnav a{display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--line-2);color:var(--ink-2);text-decoration:none;font-size:14px}
-#v-admin .admnav a.on{background:var(--cyan);border-color:var(--cyan);color:var(--ontop,#04121a);font-weight:700}
+/* 10-05 Andy「會員系統分頁也是，統一」：管理區分頁／範本頁籤／子分頁一律用產業地圖的資料夾分頁 .nbsw（CSS 在 index.html），這裡只補底線 */
+#v-admin .admnav{border-bottom:1px solid var(--line);margin-bottom:0}
+#v-admin .admnav a{text-decoration:none}
 #v-admin .tier{display:flex;gap:0;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;width:max-content;max-width:100%;margin-top:4px}
 #v-admin .tier button{height:36px;padding:0 18px;font-size:14px;background:var(--panel-2);color:var(--ink-2);border:0;border-right:1px solid var(--line-2);cursor:pointer}
 #v-admin .tier button:last-child{border-right:0}
@@ -203,8 +226,7 @@
 /* ---- admin-v3：三個大分頁＋子分頁、每列瀏覽次數、會員名單（memTable）---- */
 #v-admin .ptsub{display:flex;gap:4px;margin:12px 0 0;border-bottom:1px solid var(--line-2)}
 #v-admin .ptsub[hidden]{display:none}
-#v-admin .ptsub button{height:36px;padding:0 16px;font-size:14.5px;background:none;border:0;border-bottom:3px solid transparent;color:var(--ink-2);cursor:pointer;margin-bottom:-1px}
-#v-admin .ptsub button.on{color:var(--ink);border-bottom-color:var(--cyan);font-weight:700}
+#v-admin .ptsub{border-bottom:1px solid var(--line-2)}
 #v-admin .ptsub button small{font-family:var(--mono);font-size:12px;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--panel-3)}
 #v-admin .ptpick select{max-width:min(100%,360px)}#v-admin .ptwho{font-size:12.5px;color:var(--ink-2);flex:1 1 220px}
 #v-admin .pmlimhelp{margin:4px 0 0}
@@ -431,9 +453,29 @@
 #v-admin table.memtbl .mdet .mdonut li small{display:inline-block;font-size:11.5px}
 /* 卡片標題：名稱＋「N 項・開 M」＋全開／全關要擠在 1／4 寬裡 —— 兩顆鈕縮小，名稱放不下才省略（全名在 title）*/
 #v-admin .pmcats.pmcards .pmcathd{gap:4px}
-#v-admin .pmcats.pmcards .pmcathd>button[data-all]{height:24px;padding:0 6px;font-size:12px;border-radius:6px}
+#v-admin button.psw3{position:relative;display:inline-block;width:44px;height:24px;flex:none;padding:0;margin:0 0 0 auto;border-radius:12px;background:var(--panel-3);border:1px solid var(--line-2);cursor:pointer;transition:background .15s}
+#v-admin button.psw3>span{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--ink-2);transition:transform .15s,background .15s}
+#v-admin button.psw3[aria-checked="true"]{background:var(--cyan);border-color:var(--cyan)}
+#v-admin button.psw3[aria-checked="true"]>span{transform:translateX(20px);background:#fff}
+#v-admin button.psw3[aria-checked="mixed"]{background:linear-gradient(90deg,var(--cyan) 50%,var(--panel-3) 50%);border-color:var(--cyan)}
+#v-admin button.psw3[aria-checked="mixed"]>span{transform:translateX(10px);background:#fff}
+#v-admin button.psw3:disabled{cursor:not-allowed;opacity:.5}
+#v-admin button.psw3:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#v-admin .pmcat .grpch{display:flex;align-items:center;gap:6px}
+#v-admin .pmcat .grpch .pmfoldhd{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmallsw{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:13px;color:var(--ink-2);white-space:nowrap}
 #v-admin .pmcats.pmcards .pmcat.card .pmcathd h3{font-size:14.5px;gap:4px}
-#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 small{font-size:12px;margin-left:0}`;
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 small{font-size:12px;margin-left:0}
+/* 會員名單所有欄位標題與內容置中（Andy 10-05：「欄位內文字都置中」）；展開明細那一列不動 */
+#v-admin table.memtbl thead th,#v-admin table.memtbl tbody tr:not(.pmdet)>td{text-align:center}
+#v-admin table.memtbl td.c-who .who1{justify-content:center}
+/* 10-05 Andy「會員分頁字體置中，大小 Follow 產業 Map」：範本頁籤蓋掉舊的 15.5px／44px 高，回到 .nbsw 的字級與內距、置中 */
+#v-admin .ptwrap .ptabs button[role=tab]{font-size:13.5px;font-weight:400;height:auto;min-height:0;justify-content:center;text-align:center;padding:var(--sp-1) var(--sp-3) var(--sp-2)}
+#v-admin .ptwrap .ptabs button[role=tab].on{font-weight:700;padding:var(--sp-2) var(--sp-4) var(--sp-2)}
+#v-admin .ptwrap .ptabs .ptab>button[role=tab]{padding-right:32px}
+#v-admin .ptwrap .ptabs button.ptmore{top:50%;transform:translateY(-50%)}
+#v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
+#v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
     document.head.appendChild(s);
   }
   const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? s + ' 秒前' : Math.round(s / 60) + ' 分前'; };
@@ -455,9 +497,10 @@
   /* ---- 頂部：標題（＋三個子分頁 tab：2026-10-05 起桌機版搬到左側欄「管理區」底下的縮排子項，見 layout4.js syncPerm；
      頁內這排只在沒有左側欄的版面（≤820，layout4 沒啟用）才出現，免得那種寬度沒地方切子頁）。有沒存的權限草稿時，換分頁先問一次 */
   function head(v, A, extra) {
-    const u = A.user() || {}, cur = tabOf();
-    return `<div class="card" style="margin-top:16px"><div class="admtop"><h2>管理區</h2><small style="color:var(--ink-2)">${esc(u.email || '')}</small>
-        ${document.documentElement.classList.contains('l4') ? '' : `<nav class="admnav" id="admTabs" aria-label="管理區分頁">${TABS.map(([k, n, id]) => `<a href="#admin/${k}" id="${id}" data-tab="${k}" class="${cur === k ? 'on' : ''}"${cur === k ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>`}
+    const cur = tabOf();
+    /* 2026-10-05（Andy：「上方管理區那欄位拿掉」）：不再顯示「管理區＋email」標題與使用統計說明；期間／重新整理搬進流量觀測的「全站總覽」卡 */
+    return `<div class="card" id="admHead" style="margin-top:16px"><div class="admtop">
+        ${document.documentElement.classList.contains('l4') ? '' : `<nav class="nbsw admnav" id="admTabs" aria-label="管理區分頁">${TABS.map(([k, n, id]) => `<a href="#admin/${k}" id="${id}" data-tab="${k}" class="${cur === k ? 'on' : ''}"${cur === k ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>`}
         <span class="sp"></span>${extra || ''}</div>`;
   }
   function wireHead(v) {
@@ -477,18 +520,8 @@
      #admin/traffic 流量觀測
      ========================================================================== */
   function renderTraffic(v, A) {
-    v.innerHTML = head(v, A, `<label style="font-size:13.5px;color:var(--ink-2)">期間 <select id="admDaysSel">${[7, 30, 90, 365].map((d) => `<option value="${d}" ${d === S.days ? 'selected' : ''}>近 ${d} 天</option>`).join('')}</select></label>
-        <button type="button" id="admRefresh">重新整理</button>`)
-      + `<p class="use" style="margin:8px 0 0">使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。</p>
-        <details class="trhow" id="trHow"><summary>？ 圖表怎麼選（長條／圓餅／散佈）</summary><ul>
-          <li><b>預設用橫向排序長條</b>：這一頁的問題幾乎都是「哪個最多」—— 類別多、要比大小時，人眼比長度最準，排序之後第一名、最後一名一眼就知道。</li>
-          <li><b>圓餅（甜甜圈）只在「≤ 5 類、加總 = 100%」時用</b>：例如「開網站的人有多少是登入的」。類別一多，扇形角度就比不出誰大。</li>
-          <li><b>散佈圖只用在兩個數量之間的關係</b>：例如個股「被看幾次 × 每次看用了幾個功能」—— 右上角＝又多人看、看的人又用得深。其他問題不用散佈。</li>
-          <li>所以我該怎麼用：先看上面「全站總覽」找出最常被用的頁與股票，再到下面「分頁明細」看那一頁裡哪個按鈕／哪個族群被點最多 —— 常用的放更顯眼，幾乎沒人按的考慮收起來。</li></ul></details></div>
-      <div id="admBody"><div class="card" style="margin-top:14px"><p class="use">載入中…</p></div></div>`;
+    v.innerHTML = `${document.documentElement.classList.contains('l4') ? '' : head(v, A) + '</div>'}<div id="admBody"><div class="card" style="margin-top:14px"><p class="use">載入中…</p></div></div>`;
     wireHead(v);
-    v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
-    v.querySelector('#admRefresh').onclick = () => paint();
     paint();
     clearInterval(S.timer);
     S.timer = setInterval(() => { if (tabOf() === 'traffic' && (location.hash || '').startsWith('#admin') && document.visibilityState !== 'hidden') paint(); else if (!(location.hash || '').startsWith('#admin')) clearInterval(S.timer); }, 30000);
@@ -530,17 +563,19 @@
     if (!pages.includes(S.page)) S.page = pages.includes('flow') ? 'flow' : (pages[0] || 'flow');
     v.querySelector('#admBody').innerHTML = `
       <div class="secttl"><h2>全站總覽</h2><small>${esc(st.from)} ～ ${esc(st.to)}（台北）</small></div>
-      <div class="card" id="trKpi" style="margin-top:10px"><div class="kpis"><div><b>${nf(pvTotal)}</b>頁面瀏覽</div><div><b>${nf(sessions)}</b>開啟網站</div>
-        <div><b>${sessions ? Math.round(loginSess / sessions * 100) : 0}%</b>登入狀態開啟</div><div><b id="trHowN">${nf(howN)}</b>全站「?」點擊</div><div><b>${nf(views.reduce((s, r) => s + r.n, 0))}</b>個股被觀看</div></div></div>
+      <div class="card trkpi" id="trKpi" style="margin-top:10px"><div class="kpis"><div><b>${nf(pvTotal)}</b>頁面瀏覽</div><div><b>${nf(sessions)}</b>開啟網站</div>
+        <div><b>${sessions ? Math.round(loginSess / sessions * 100) : 0}%</b>登入狀態開啟</div><div><b id="trHowN">${nf(howN)}</b>全站「?」點擊</div><div><b>${nf(views.reduce((s, r) => s + r.n, 0))}</b>個股被觀看</div></div>
+        <div class="trctl"><label>期間 <select id="admDaysSel">${[7, 30, 90, 365].map((d) => `<option value="${d}" ${d === S.days ? 'selected' : ''}>近 ${d} 天</option>`).join('')}</select></label>
+          <button type="button" id="admRefresh">重新整理</button>
+          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
       <div class="admgrid">
         <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use">${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。</p>${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div>
         <div class="card" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use">每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。</p>
-          <div class="days" id="admDayBars">${days.map((d) => `<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${perDay[d] || 0} 次"></i>`).join('')}</div>
-          <div class="dayx"><span>${esc(st.from)}</span><span>${esc(st.to)}</span></div></div>
+          ${dayChart(days, perDay, dmax)}</div>
         <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use">個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。</p>
-          ${bars(topV.map((r) => [r.detail, r.n]), (k) => k, 0, { id: 'trStockBars' })}</div>
+          ${bars(topV.map((r) => [r.detail, r.n]), stockNm, 0, { id: 'trStockBars' })}</div>
         <div class="card" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use">上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。</p>
-          ${featRows.length ? `<table><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td>${esc(r.code)}</td><td>${nf(r.views)}</td><td>${r.top.length ? r.top.map((x) => `${esc(compName(x.comp))} <small style="color:var(--ink-2)">${nf(x.n)}</small>`).join('・') : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div>
+          ${featRows.length ? `<table><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td>${esc(stockNm(r.code))}</td><td>${nf(r.views)}</td><td>${r.top.length ? r.top.map((x) => `${esc(compName(x.comp))} <small style="color:var(--ink-2)">${nf(x.n)}</small>`).join('・') : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div>
         <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use">散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。</p>${scatter(scat)}</div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use">只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。</p>${donut([['登入狀態', loginSess, 'var(--cyan)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--violet)']])}</div>
         <div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use">最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。</p>
@@ -553,8 +588,10 @@
       </div>
       <div class="secttl" id="trDetailTtl"><h2>分頁明細</h2><small>選一頁，看那一頁的每個元件被用幾次、細項（哪個族群、哪一檔）是誰</small></div>
       <div class="card" id="trDetail" style="margin-top:10px">
-        <div class="seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
+        <div class="nbsw lv2 seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
         <div id="trPageBody"></div></div>`;
+    v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
+    v.querySelector('#admRefresh').onclick = () => paint();
     const pub = v.querySelector('#admPub');
     pub.onchange = async () => { const r = await A.call('/v1/admin/settings', { public_online: pub.checked }); if (!r || r._s !== 200) pub.checked = !pub.checked; };
     v.querySelector('#trPageSeg').onclick = (e) => { const b = e.target.closest('button[data-p]'); if (!b) return; S.page = b.dataset.p; v.querySelectorAll('#trPageSeg button').forEach((x) => x.classList.toggle('on', x === b)); paintPage(); };
@@ -581,6 +618,16 @@
       <div id="trCompDetail"><h3>${S.comp ? esc(compName(S.comp)) + '：細項 Top 10' : '細項'}</h3><p class="use">${S.comp ? (S.comp === 'how' ? '細項＝被點「?」的那張卡（元件 id）。' : S.comp.startsWith('filter') || ['rank_bar', 'clock_group', 'heat_tile'].includes(S.comp) ? '細項＝族群／產業鏈名稱。排第一的就是大家最想追的族群。' : S.page === 'stock' ? '細項＝股票代號。' : '細項＝元件或名稱。') : '這一頁的元件都沒有細項。'}</p>
         ${S.comp ? bars(det.map((r) => [r.detail, r.n]), (k) => k, 0, { id: 'trDetBars' }) : ''}</div></div>`;
     box.querySelector('#trCompBars').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; S.comp = b.dataset.k; paintPage(); };
+  }
+  /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代，不留空白）；左邊 y 軸 0／一半／最大值＋橫向淡線；每根的值在滑過提示 */
+  function dayChart(days, perDay, dmax) {
+    const i0 = days.findIndex((d) => (perDay[d] || 0) > 0);
+    if (i0 < 0) return '<div class="empty">這段期間還沒有瀏覽紀錄。</div>';
+    const shown = days.slice(i0), mid = Math.round(dmax / 2);
+    const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
+    return `<div class="dayplot"><div class="dayy"><span>${nf(dmax)}</span><span>${nf(mid)}</span><span>0</span></div>
+      <div class="days" id="admDayBars" data-first="${esc(shown[0])}">${shown.map((d) => `<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${nf(perDay[d] || 0)} 次"></i>`).join('')}</div></div>
+      <div class="dayx"><span>${esc(shown[0])}</span>${note ? `<span class="dayno" id="admDayNote">${note}</span>` : ''}<span>${esc(shown[shown.length - 1])}</span></div>`;
   }
   function scatter(pts) {
     if (pts.length < 2) return '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>';
@@ -636,7 +683,12 @@
   }
   const planOf = (id) => PS.plans.find((p) => p.id === id) || null;
   const paidPlans = () => PS.plans.filter((p) => !p.builtin && p.id !== 'guest' && p.id !== 'free');
-  const tierOf = (planId) => (planId === 'guest' ? 'guest' : (!planId || planId === 'free' || !planOf(planId) ? 'free' : 'paid'));
+  /* 付費＝非內建範本（Andy 10-05 回報：名單有金色 ★ 但方案欄寫「訪客」）。根因：舊判斷只看「範本存在」，
+     內建範本（訪客／免費）或被取名成「訪客」「註冊會員」的範本也會被當成付費。現在內建一律不算付費，
+     名字跟層級撞名的範本建立／改名時也擋掉（RESERVED）。 */
+  const RESERVED = /^(訪客|註冊會員|免費會員|付費會員)/;
+  const tierOf = (planId) => { const p = planId && planOf(planId);
+    return planId === 'guest' ? 'guest' : (!p || planId === 'free' || p.builtin || RESERVED.test(p.name || '') ? 'free' : 'paid'); };
   const TIER_NAME = { guest: '訪客', free: '註冊會員', paid: '付費會員' };
   const mPlan = () => (PS.draft && PS.draft.plan) || (PS.rec ? PS.rec.plan : 'free');
   const mOver = () => (PS.draft && PS.draft.over) || (PS.rec && PS.rec.over) || {};
@@ -699,16 +751,16 @@
          拿掉舊版「開放功能表　正在編：付費會員・XX」那一行：它跟範本資訊列講同一件事（#ptFor 搬進資訊列，id 不變）。 */
       v.innerHTML = head(v, A) + `<p class="use ptlede"><span>關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上的「升級查看」直接帶到訂閱頁。</span><span class="pthint" id="ptHint">拖曳頁籤可調整順序；⋮ 可改名或刪除</span></p></div>
         <div class="ptwrap" id="pmHead">
-          <div class="ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
+          <div class="nbsw ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
           <div class="ptpanel">
             <div id="pmTarget"></div>
-            <div class="ptsub" id="ptSub" role="tablist" aria-label="子分頁"></div>
+            <div class="nbsw lv2 ptsub" id="ptSub" role="tablist" aria-label="子分頁"></div>
             <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div>
             <div id="ptPermBox">
               <div id="ptGuestSum"></div>
               <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表</h3>
                 <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限，點一下設定（0＝不能看；個股／題材／族群頁算看了幾個不同的）</span></div>
-                <button type="button" id="pmAllOn" title="開放功能表全部打開（不含族群觀測）">全部開</button><button type="button" id="pmAllOff" title="開放功能表全部關掉（不含族群觀測）">全部關</button></div>
+                <span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
               <div class="pmcats pmcards" id="pmCats"></div>
               ${GRPSEC}</div>
             <div id="ptListBox" hidden></div>
@@ -717,8 +769,7 @@
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
         ${honest}`;
       wireTabs(v);
-      v.querySelector('#pmAllOn').onclick = () => allFeats(true);
-      v.querySelector('#pmAllOff').onclick = () => allFeats(false);
+      v.querySelector('#pmAllSw').onclick = (e) => allFeats(e.currentTarget.getAttribute('aria-checked') !== 'true');
       v.querySelector('#ptTier').onclick = (e) => {
         const mb = e.target.closest('button[data-more]');
         if (mb) { e.stopPropagation(); openMenu(PS.menu === mb.dataset.more ? null : mb.dataset.more, 'list'); return; }
@@ -842,6 +893,7 @@
     const p = planOf(id); name = String(name || '').trim();
     if (!p) return;
     if (!name) { setStat('範本名稱不能空白', 'bad'); return; }
+    if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     setStat('儲存中…');
     /* 只改名：開關與價格照「已存的」送（沒存的草稿不會被一起存掉；草稿留著，存不存照舊由底部儲存列決定）*/
     const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats: p.feats || {}, price: Number.isInteger(p.price) ? p.price : 0, period: p.period || 'month' });
@@ -1092,6 +1144,9 @@
   /* 訪客分頁的流量摘要：近 30 天開啟網站（登入／訪客）、頁面瀏覽、目前在線的訪客 */
   async function paintGuestSum() {
     const box = PS.v && PS.v.querySelector('#ptGuestSum'); if (!box) return;
+    /* Andy 10-05：「這已經有分頁記錄了」—— 訪客的四格流量數字卡拿掉，流量看「流量觀測」分頁。*/
+    box.innerHTML = ''; return;
+    // eslint-disable-next-line no-unreachable
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
     /* perm-v4：訪客流量改成跟會員名單統計同一種數字卡（一排四格），說明併進範本資訊列那一行 —— 不再另起一張有標題、有兩行說明的卡 */
     box.innerHTML = `<div class="mstats" id="ptGuestCard" title="訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚。"><div class="mkpis" id="ptGuestKpi"><div class="mkpi"><b>…</b><span>載入中</span></div></div></div>`;
@@ -1112,6 +1167,7 @@
     const raw = String(v.querySelector('#ptEdPrice').value || '').trim(), price = Number(raw);
     const period = v.querySelector('#ptEdPeriod').value;
     if (!name) { setStat('範本名稱不能空白', 'bad'); return; }
+    if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
     if (PS.draft) { setStat('觀看權限還有沒存的變更 —— 先按下面「儲存」或「取消」，再改範本設定', 'bad'); return; }
     setStat('儲存中…');
@@ -1187,7 +1243,7 @@
     const saved = PS.mode === 'plan' ? ((planOf(PS.planSel) || {}).feats || {}) : ((PS.rec && PS.rec.over) || {});
     const now = PS.mode === 'plan' ? ((PS.draft && PS.draft.feats) || saved) : mOver();
     box.classList.toggle('off', !ready);
-    v.querySelectorAll('#pmAllOn,#pmAllOff').forEach((b) => { b.disabled = !ready; });
+
     /* 一般功能：每個分類各一張卡、四欄格狀（perm-cards 2026-10-05，Andy 要回 10-04 第一版的樣子）；族群觀測：整塊預設收合、每個產業鏈分組各自可收合 */
     const cats = FT().cats.filter((c) => FT().inCat(c.id).length);
     if (!PS.open) PS.open = new Set();
@@ -1195,7 +1251,14 @@
     const cnt = (fs) => `${fs.length} 項・開 ${fs.filter(isOn).length}`;
     const fold = (k, label, fs, tag) => { const o = PS.open.has(k);
       return `<button type="button" class="pmfoldhd" data-fold="${esc(k)}" aria-expanded="${o}"><span class="car" aria-hidden="true">${o ? '▾' : '▸'}</span><${tag}>${esc(label)}</${tag}><small>${cnt(fs)}</small></button>`; };
-    const allBtns = (id) => `<button type="button" data-all="1" data-cat="${esc(id)}" ${ready ? '' : 'disabled'}>全開</button><button type="button" data-all="0" data-cat="${esc(id)}" ${ready ? '' : 'disabled'}>全關</button>`;
+    /* 整組開關（Andy 10-05：「全開 全關 都改成 Switch」「族群觀測需要新增對該族群總開關」）：
+       一顆三態 Switch 取代兩顆鈕 —— 全開＝on、全關＝off、部分開＝aria-checked="mixed"（圓鈕停中間）。
+       點下去：目前不是全開 → 整組開；全開 → 整組關。樣式跟列上的 .psw 同尺寸，換狀態版面不動。 */
+    const swSt = (fs) => { const n = fs.filter(isOn).length; return n === 0 ? 'false' : n === fs.length ? 'true' : 'mixed'; };
+    const triSw = (attr, fs, label) => `<button type="button" class="psw3" role="switch" ${attr} aria-checked="${swSt(fs)}" aria-label="${esc(label)}：整組開／關" title="${esc(label)}：整組開／關" ${ready ? '' : 'disabled'}><span></span></button>`;
+    const allBtns = (id) => triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
+    const tsw = v.querySelector('#pmAllSw');
+    if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
     box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
@@ -1211,7 +1274,7 @@
         <p class="use pmfoldnote">族群多，整塊預設收起來；點上面標題或「全部展開」打開。關掉的族群：族群頁模糊＋鎖頭、資金輪動的族群下拉那一列鎖住、熱力圖／排行／輪盤點了只跳「此族群需開通」。${PS.mode === 'plan' ? '瀏覽次數＝一天能打開幾個不同族群頁。' : ''}</p>
         <div class="pmbody"${open ? '' : ' hidden'}><div class="grpgrid">`
         + Object.keys(by).map((ch) => { const ck = 'ch:' + ch, co = PS.open.has(ck);
-          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}</div>`
+          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}${triSw(`data-allsw="ch" data-ch="${esc(ch)}"`, by[ch], chName(ch))}</div>`
             + `<div class="grpbody" data-ch="${esc(ch)}"${co ? '' : ' hidden'}>${catRows(by[ch], cur, base, saved, now, ready, true)}</div>`; }).join('') + '</div></div></div>';
     })() : '';
     if (gbox) gbox.onchange = (e) => box.onchange(e);
@@ -1260,10 +1323,11 @@
         if (all) { PS.open.add('cat:grp'); FT().inCat('grp').forEach((f) => PS.open.add('ch:' + (f.chain || ''))); }
         paintCats(); return;
       }
-      const a = e.target.closest('button[data-all]');
+      const a = e.target.closest('button[data-allsw]');
       if (a) {
-        const on = a.dataset.all === '1';
-        const ch = {}; FT().inCat(a.dataset.cat).forEach((f) => { ch[f.id] = f.kind === 'limit' ? (on ? f.max : 0) : on; });
+        const on = a.getAttribute('aria-checked') !== 'true';
+        const fs = a.dataset.allsw === 'ch' ? FT().inCat('grp').filter((f) => (f.chain || '') === a.dataset.ch) : FT().inCat(a.dataset.cat);
+        const ch = {}; fs.forEach((f) => { ch[f.id] = f.kind === 'limit' ? (on ? f.max : 0) : on; });
         setVals(ch);
         return;
       }
