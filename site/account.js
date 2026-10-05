@@ -21,7 +21,8 @@
 (function () {
   'use strict';
   /* 使用統計白名單 —— 跟 workers/account-api/worker.js 同一份，測試會比對（改一邊要改另一邊與文件）*/
-  const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other'];
+  /* 跟 Worker 的 VIEWS 完全一致（18 頁、同順序；tests/account.test.mjs 三邊一致測試）。後七頁 2026-10-05（hourly）Worker 先補、這裡跟上 */
+  const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other', 'etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices'];
   const EVENTS = ['session', 'session_login', 'login', 'logout', 'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel', 'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle', 'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg'];
   const K_TOK = 'tw.acct.tok', K_USER = 'tw.acct.user';
   const BEAT_MS = 60 * 1000;
@@ -173,21 +174,26 @@
     ['.rot-top10', () => ['filter_top10', '']],
     ['.rot-clear', () => ['filter_clear', '']],
     /* 2026-10-05 流量觀測分頁統計（Andy 新規格）補的點位：只記次數與固定選項名，不記身分。
-       頁面鍵：etf／explore／support／events 不在 Worker 的頁面白名單裡，所以一律記在 other 底下、元件名帶前綴（etf.cat…），管理區自己再歸回該頁 */
-    ['#etfCatSeg button', (el) => ['etf.cat', (el.textContent || '').replace(/[\s\d,（）()]+$/, '').trim(), 'other']],                       // ETF 分類按鈕
+       頁面鍵：etf／explore／support／events 已在 Worker 白名單（2026-10-05 hourly），細項直接記在各自的頁面下；舊資料（切換前）記在 other＋前綴，管理區兩種都認 */
+    ['#etfCatSeg button', (el) => ['etf.cat', (el.textContent || '').replace(/[\s\d,（）()]+$/, '').trim(), 'etf']],                       // ETF 分類按鈕
     ['#wpNew, #wlNew', () => ['watch_tab_new', '', 'watch']],                                                  // 自選：新增分頁
     ['#wpList .spkw, #wlList .spkw', () => ['watch.chart', '', 'watch']],                                      // 自選：點走勢圖
     ['#wpList [data-tf], #wpList .tfseg button, #wpList .kseg button', () => ['watch.kline', '', 'watch']],    // 自選：展開圖裡切 K 線週期
-    ['#supFab', () => ['support.fab', '', 'other']],                                                           // 客服：打開面板
-    ['#supPanel .sptabs button[data-t]', (el) => ['support.tab', ({ faq: '常見問題', fb: '意見反饋', mail: '寄信' })[el.dataset.t] || '', 'other']],
-    ['#supPanel .faq > button', (el) => ['support.faq', (el.textContent || '').trim().slice(0, 20), 'other']],
-    ['#supPanel #fbSend', () => ['support.send', '', 'other']],
-    ['#supPanel #supMail', () => ['support.mail', '', 'other']],
-    ['#evList .ev a', () => ['events.link', '', 'other']],
+    ['#supFab', () => ['support.fab', '', 'support']],                                                           // 客服：打開面板
+    ['#supPanel .sptabs button[data-t]', (el) => ['support.tab', ({ faq: '常見問題', fb: '意見反饋', mail: '寄信' })[el.dataset.t] || '', 'support']],
+    ['#supPanel .faq > button', (el) => ['support.faq', (el.textContent || '').trim().slice(0, 20), 'support']],
+    ['#supPanel #fbSend', () => ['support.send', '', 'support']],
+    ['#supPanel #supMail', () => ['support.mail', '', 'support']],
+    ['#evList .ev a', () => ['events.link', '', 'events']],
     ['#drawBar .dtool', (el) => ['draw.tool', (el.getAttribute('title') || el.textContent || '').trim().split(/[（(]/)[0].slice(0, 20), 'stock']],   // K 線畫線工具（工具名取自按鈕提示）                                                    // 事件抽屜：點事件連結
   ];
   document.addEventListener('click', (e) => {
     if (!S.on || !e.target || !e.target.closest) return;
+    /* 面板型的頁（今日事件抽屜、客服面板）不換網址，pv() 抓不到：打開那一下算一次瀏覽（關起來的那一下不算） */
+    if (!noTrack()) {
+      const evb = e.target.closest('#evToggle, #mmEvents'), tg = document.getElementById('evToggle'); if (evb && tg && tg.getAttribute('aria-expanded') !== 'true') bump('pv:events');
+      const sfb = e.target.closest('#supFab'); if (sfb) { const pn = document.getElementById('supPanel'); if (!pn || pn.hidden) bump('pv:support'); }
+    }
     for (const [sel, ev] of HOOKS) {
       const el = e.target.closest(sel); if (!el) continue;
       track(ev);

@@ -38,7 +38,7 @@
     if (c.startsWith('kp.')) return 'K 線週期：' + c.slice(3).toUpperCase().replace(/^(\d+)M$/, '$1 分');
     return c;
   };
-  const S = { days: 30, period: '30', since: '', tab: 'all', sub: 'all', timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
+  const S = { days: 30, period: '30', since: '', until: '', tab: 'all', sub: 'all', timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
   const TABS = [['perm', '會員權限', 'admTabPerm'], ['traffic', '流量觀測', 'admTabTraffic']];   // 2026-10-05：會員管理拿掉（新增會員、逐人微調併進會員權限的會員名單）
   const tabOf = () => { const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''); return m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic'; };
 
@@ -63,6 +63,11 @@
 #v-admin .kpis .ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #v-admin .trctl{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:16px}
 #v-admin .trctl label{font-size:13px;color:var(--ink-2);white-space:nowrap}
+#v-admin .trctl .icobtn{width:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;color:var(--accent,var(--cyan))}
+#v-admin .trctl .icobtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#v-admin .trctl .icobtn.spin svg{animation:trspin .24s ease-out}
+@keyframes trspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#v-admin .trctl .icobtn.spin svg{animation:none}}
 #v-admin .trctl select,#v-admin .trctl button{height:32px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
 #v-admin .qtip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;cursor:help}
 #admBody .admgrid>.card{display:flex;flex-direction:column;min-width:0;padding:14px 16px}
@@ -94,18 +99,25 @@
 #admBody .days .dv{font:600 12px/1 var(--mono);color:var(--ink);margin-bottom:4px;white-space:nowrap}
 #admBody .days .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
 #admBody .days.few{margin-bottom:20px}
+#admBody .days .dc.fut{background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--line) 55%,transparent) 4px 5px);opacity:.7}
 #admBody .days.many{gap:1px}#admBody .days.many .dc{min-width:1px}
 #admBody .days.hrs:not(.few){margin-bottom:20px}#admBody .days.hrs .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
 #admBody .days.hrs .dc{max-width:20px}#admBody .days.hrs.few .dc{max-width:64px}
-#admBody .hrmodes{margin-bottom:6px;align-self:flex-start}
+#v-admin .trtabs .nbsw>button.dragging{opacity:.4}#v-admin .trtabs .nbsw>button.dropL{box-shadow:inset 3px 0 0 var(--cyan)}#v-admin .trtabs .nbsw>button.dropR{box-shadow:inset -3px 0 0 var(--cyan)}
+#admBody .hrbar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}#admBody .hrmodes{align-self:flex-start}
+#admBody .days.stk2 .dc{justify-content:flex-end}#admBody .days.stk2 .dc>i{border-radius:0}
+#admBody .hrlg{display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--ink-2);margin-top:22px}#admBody .hrlg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+#admBody .hrnote{font-size:12px;color:var(--ink-3);margin-top:6px}
 #admBody .bigno{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}#admBody .bigno b{font:700 44px/1 var(--mono)}#admBody .bigno span{font-size:14px;color:var(--ink-2)}#admBody .bigno small{font-size:12px;color:var(--ink-3)}
 #admBody .days .avg{position:absolute;left:0;right:0;border-top:1px dashed var(--ink-3,#7a879c);pointer-events:none}
 #admBody .days .avg b{position:absolute;right:4px;top:-17px;font:12px/1 var(--mono);color:var(--ink-2);font-weight:400;background:var(--panel);padding:0 4px;border-radius:3px}
 #admBody .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:6px;padding-left:calc(3em + 8px)}
 #admBody .dayx .dayno{color:var(--ink-3)}
 /* 甜甜圈：外徑隨卡片可用高度放大（160～260）；圖例放圖下方一排，三欄置中 */
-#admBody .dn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:0}
-#admBody .dn svg{flex:1 1 0;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto}
+#admBody .cb{container-type:inline-size}
+/* 甜甜圈：左圖右圖例（Andy：圖表資訊在右手邊，圓餅才不會被壓縮）；圖例一列一項＝色塊｜名稱｜數量｜占比，數字欄右對齊不截斷；卡寬 < 420px 才退回圖例在下方 */
+#admBody .dn{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px;min-height:0}
+#admBody .dn svg{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
 #admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
 #admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
@@ -167,15 +179,19 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trhead .sp{flex:1}
 #v-admin .trhead .trctl{border:0;padding:0}
 #v-admin .trctl input[type=date]{height:32px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 8px}
-#v-admin .trctl input[hidden]{display:none}
-#v-admin .admgrid.trpair{grid-template-columns:minmax(0,3fr) minmax(0,2fr);margin-top:12px}
+#v-admin .trctl input[hidden],#v-admin .trctl .trto[hidden]{display:none}#v-admin .trctl .trto{color:var(--ink-2)}
+#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,3fr) minmax(0,2fr);margin-top:12px}
+#v-admin .admgrid.trtop>.s2{grid-column:auto}
 #v-admin .admgrid.trpair:first-child{margin-top:0}
 #v-admin .trtabs{padding:0;overflow:visible}
 #v-admin .trtabs>#trTabsBox{padding:12px 16px 0}
 #v-admin .trtabs>#trPageBody{padding:0 16px 16px;border-top:1px solid var(--line-2)}
 #v-admin .trtabs .nbsw .tdot,#v-admin .trtabs .nbsw.lv2 .tdot{display:inline-block;width:9px;height:9px;border-radius:3px;flex:none}
 #v-admin .trtabs .nbsw em{margin-left:4px}
-#v-admin .admgrid.trusers{grid-auto-rows:var(--tr-users-h,480px)}
+#v-admin .admgrid.trusers{grid-auto-rows:minmax(var(--tr-row,300px),auto)}
+#v-admin .admgrid.trone{margin-top:12px}#v-admin .admgrid.trone>.card{grid-column:1/-1}
+#admBody .sbody{flex:1;display:flex;gap:24px;align-items:stretch;min-height:240px}#admBody .sbody .bigno{flex:0 0 220px;border-right:1px solid var(--line);padding-right:24px}#admBody .sbody .sch{flex:1;min-width:0;display:flex;flex-direction:column}
+#admBody .dn.clock svg{max-height:320px}
 #v-admin .trusers .tbw{max-height:none}
 #admBody .admgrid>.card>h3,#admBody .admgrid>.card>.use{flex:none}
 #v-admin .trhd{padding-top:12px}
@@ -188,10 +204,12 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #admBody .bars .bt.stk{cursor:pointer}
 #admBody .dn svg circle.arc[data-p]{cursor:pointer}
 #admBody .dn svg circle.arc[data-p]:hover{opacity:.82}
-#admBody .dn ul.lg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 20px;font-size:var(--fs-body,14px)}
+#admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:1 1 0;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
 #admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
-#admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1}
-#admBody .dn ul.lg li small{font:12px var(--mono);color:var(--ink-2)}
+#admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+#admBody .dn ul.lg li b{flex:none;min-width:4.2em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
+#admBody .dn ul.lg li small{flex:none;min-width:3.6em;text-align:right;font:12px var(--mono);color:var(--ink-2)}
+@container (max-width:419px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
 #admBody .dn ul.lg li i{width:12px;height:12px;border-radius:3px;flex:none}
 /* 圖表互動：滑過高亮、其餘變淡；浮動提示（#trTip，掛在 body） */
 #trTip{position:fixed;z-index:1400;pointer-events:none;max-width:280px;padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.5;color:var(--ink);background:var(--panel);border:1px solid var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
@@ -202,8 +220,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25)}
 #v-admin [data-chart].hov .bars>[data-row]:not(.hl),#v-admin .bars.hov>[data-row]:not(.hl),#v-admin .hbars.hov>[data-row]:not(.hl){opacity:.35}
 #v-admin .bars.hov>.hl,#v-admin .hbars.hov>.hl{opacity:1}
-#v-admin [data-chart].hov circle.arc:not(.hl){opacity:.3}
-#v-admin [data-chart].hov circle.arc.hl{filter:brightness(1.18)}
+#v-admin [data-chart].hov .arc:not(.hl){opacity:.3}
+#v-admin [data-chart].hov .arc.hl{filter:brightness(1.18)}
 #v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.45}
 #v-admin [data-chart].hov .sc circle:not(.hl),#v-admin .sc.hov circle:not(.hl),#v-admin [data-chart].hov .vbars rect:not(.hl){opacity:.25}
 #admBody .sc circle.hl{r:8}
@@ -211,7 +229,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .dn svg circle.arc,#v-admin .mdonut svg circle.arc{cursor:default}
 #admBody .dn svg circle.arc[data-p]{cursor:pointer}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
-@media (max-width:1100px){#v-admin .admgrid.trpair{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
+@media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
 #v-admin .card{min-width:0}
@@ -617,7 +635,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .ptwrap .ptabs .ptrn{width:100%;min-width:6em;height:28px;box-sizing:border-box;text-align:center;font:inherit;font-size:13.5px;color:var(--ink);background:var(--panel);border:1px solid var(--cyan);border-radius:6px;padding:0 6px}
 #v-admin .ptwrap.medit>#ptTier{display:none}#v-admin .ptwrap.medit .ptpanel{border-top:1px solid var(--line-2);border-radius:10px}
 #v-admin .pmback{height:32px;font-size:13px;background:var(--panel-2);color:var(--cyan);border:1px solid var(--line-2);border-radius:8px;padding:0 12px;cursor:pointer}
-#v-admin .ptadd{margin:8px 0;flex-wrap:wrap}#v-admin .pmsep{width:1px;height:22px;background:var(--line-2);margin:0 4px}#v-admin #pmTuneEmail{width:16em}
+#v-admin .ptadd{margin:8px 0;flex-wrap:wrap}
+#v-admin .ptpub{margin:10px 2px 4px;font-size:14px}#v-admin .pmsep{width:1px;height:22px;background:var(--line-2);margin:0 4px}#v-admin #pmTuneEmail{width:16em}
 #v-admin .ptmenu .pmwho2{list-style:none;margin:0 0 6px;padding:0 8px;font-size:13px}#v-admin .ptmenu .pmwho2 li{height:24px;white-space:nowrap}#v-admin .ptmenu .pmwho2 a,#v-admin .ptmenu .pmgo{color:var(--cyan)}#v-admin .ptmenu .pmgo{align-self:center;font-size:13px;margin-right:auto}#v-admin .ptmenu .more{color:var(--ink-2)}
 #v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
 #v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
@@ -632,7 +651,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 
   const tp = (html) => ` data-tip="${esc(html)}"`;
   function bars(list, names, total, opt) {
-    if (!list.length) return '<div class="empty">這段期間還沒有紀錄。</div>';
+    if (!list.length) return '<div class="empty">沒有資料</div>';
     const max = Math.max(...list.map((x) => x[1]), 1), o = opt || {};
     const nm = (k) => typeof names === 'function' ? names(k) : (names[k] || k);
     return `<div class="bars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const t = tp(`<b>${esc(nm(k))}</b><br>${nf(n)} 次${total ? `・占 ${(n / total * 100).toFixed(1)}%` : ''}`);
@@ -662,7 +681,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   const IS_PREVIEW = /\/preview\//.test(location.pathname || '');
   const DEMO = (() => {
     let seed = 20261005; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-    const END = '2026-10-04', NDAY = 400;
+    const END = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10), NDAY = 400;      // 示範資料的最後一天＝今天（台北），期間選單與日期欄才對得上
     const dayKey = (i) => new Date(Date.parse(END + 'T00:00:00Z') - (NDAY - 1 - i) * 86400000).toISOString().slice(0, 10);
     /* 頁面 30 天瀏覽量（合計約 5.4 萬）；沒有在 Worker 白名單的頁（etf／explore／events／support）示範時直接給 pv，正式站只會有功能次數 */
     const PAGES = [['flow', 11800], ['stock', 10300], ['overview', 8600], ['industry', 5500], ['heatmap', 4600], ['market', 3900], ['etf', 2200], ['explore', 1900], ['season', 1800], ['watch', 1600], ['events', 1000], ['legal', 320], ['support', 430]];
@@ -721,6 +740,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const HW = [0.4, 0.25, 0.18, 0.15, 0.2, 0.45, 1.1, 2.3, 4.6, 6.4, 6.9, 6.1, 5.2, 5.0, 5.8, 5.6, 4.4, 3.4, 3.1, 3.6, 4.6, 5.2, 4.1, 1.8], hs = HW.reduce((a, b) => a + b, 0);
       out.hourly = HW.map((w) => Math.round(rows.filter((r) => r.k.startsWith('pv:')).reduce((a, r) => a + r.n, 0) * w / hs));
       if (live) { const h = []; for (let k = 0; k < 24; k++) h.push(k > hourNow ? 0 : Math.round(54000 / 30 * 1.1 * (k < 6 ? 0.18 : k < 9 ? 0.7 : k < 14 ? 1.5 : 1.1) / 11 * (0.85 + (k * 5 % 7) / 20))); out.hours = h; }
+      /* hstat（Worker hourly 區塊同形狀）：今天與期間內各時的 開站／登入／訪客／在線分鐘 */
+      const todayH = out.hours || (() => { const h = []; for (let k = 0; k < 24; k++) h.push(k > hourNow ? 0 : Math.round(54000 / 30 * 1.1 * HW[k] / hs * (0.9 + (k * 5 % 7) / 40))); return h; })();
+      const mk = (pvArr) => { const open = pvArr.map((x) => Math.round(x * 0.145)), login = open.map((x, k) => Math.round(x * (0.34 + (k % 5) / 60))); return { pv: pvArr, open, login, guest: open.map((x, k) => Math.max(0, x - login[k])), mins: pvArr.map((x) => Math.round(x * 0.9)) }; };
+      out.hstat = { today: END, hour: hourNow, since: null, day: mk(todayH), period: Object.assign({ from: out.from, to: out.to }, mk(out.hourly)) };
+
       return out;
     };
     return { stats, online, members, mstats, detail, users };
@@ -782,17 +806,16 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   /* 頁面設定：k 鍵、n 名稱、subs（子分頁：k、n、cs＝歸屬的元件，'x.*' 為前綴）、sk＝子分頁開啟事件 sub.<鍵> 的頁面鍵 */
   const PAGES = [
     { k: 'events', n: '事件', simple: true, subs: [] },
+    { k: 'market', n: '市場明細', simple: true, subs: [] },
+    { k: 'season', n: '週期統計', simple: true, subs: [] },
     { k: 'flow', n: '資金流向', sk: 'flow', subs: [{ k: 'rotation', n: '資金輪動', cs: ['play', 'quad', 'filter_*', 'clock_group', 'rank_bar'] }, { k: 'sankey', n: '資金去向', cs: ['sankey.*'] }, { k: 'inst', n: '族群×法人', cs: ['inst.*'] }] },
     { k: 'heatmap', n: '熱力圖', sk: 'heatmap', subs: [{ k: 'industry', n: '產業', cs: ['heat_tile'] }, { k: 'theme', n: '題材', cs: ['theme.*'] }] },
     { k: 'industry', n: '產業地圖', sk: 'industry', subs: [{ k: 'chains', n: '產業鏈總覽', cs: [] }, { k: 'chain', n: '單一產業鏈', cs: [] }, { k: 'group', n: '族群頁', cs: [] }] },
-    { k: 'market', n: '市場明細', simple: true, subs: [] },
     { k: 'explore', n: '選股策略', subs: [] },
-    { k: 'season', n: '週期統計', simple: true, subs: [] },
     { k: 'etf', n: 'ETF', subs: [] },
     { k: 'watch', n: '自選', subs: [] },
     { k: 'support', n: '客服', subs: [] },
     { k: 'stock', n: '個股', subs: [{ k: 'tabs', n: '分頁點擊', cs: ['tab.*'] }, { k: 'kline', n: 'K 線指標', cs: ['ind', 'indicators', 'kp.*', 'draw', 'draw.*', 'mtf', 'ai_tab', 'open_3d'] }] },
-  
     { k: 'users', n: '使用者', sp: 'users', subs: [] },
   ];
     const PAGE_BY = Object.fromEntries(PAGES.map((p) => [p.k, p]));
@@ -803,14 +826,16 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function classify(r) {
     let pg = null, det = r.detail || '';
     if (r.comp === 'events_drawer') { pg = 'events'; det = VIEW_NAME[r.page] || r.page; }
-    else if (r.page === 'other') { const m = /^(etf|explore|support|events)\./.exec(r.comp); pg = m ? m[1] : null; }
+    else if (r.page === 'other') { const m = /^(etf|explore|support|events)\./.exec(r.comp); pg = m ? m[1] : null; }      // 舊資料（切換前記在 other＋前綴）
+    /* 新資料：Worker 已收 etf／explore／support／events 等頁面鍵，PAGE_BY 認得就直接歸該頁（兩種寫法加總才是完整期間） */
     else if (PAGE_BY[r.page]) pg = r.page;
     return pg ? { pg, comp: r.comp, det, n: r.n } : null;
   }
   const pgCol = (i, j, m) => { const hs = m > 6 ? 7 : 14, ls = m > 6 ? 3.2 : 9, dh = m > 1 ? (j - (m - 1) / 2) * hs : 0, dl = m > 1 ? (j - (m - 1) / 2) * ls : 0; return `hsl(${PG_H[i] + dh} 72% calc(var(--pgL,58%) + ${dl}%))`; };
   const sum = (a) => a.reduce((s, x) => s + x, 0);
+  const todayTpe = () => new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
   const periodDays = () => (S.period === 'live' ? 1 : S.period === 'since' ? Math.max(1, Math.min(400, Math.floor((Date.parse(new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10) + 'T00:00:00Z') - Date.parse(S.since + 'T00:00:00Z')) / 86400000) + 1)) : +S.period);
-  const periodTxt = () => (S.period === 'live' ? '即時（今天到現在）' : S.period === 'since' ? `${S.since}～至今` : `近 ${S.period} 天`);
+  const periodTxt = () => (S.period === 'live' ? '即時（今天 0–24 時）' : S.period === 'since' ? `${S.since}～${S.until || '至今'}` : `近 ${S.period} 天`);
 
   async function paint() {
     const v = S.v, A = S.A; if (!v || !A) return;
@@ -818,22 +843,23 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const [st, on] = await Promise.all([A.call('/v1/admin/stats', { days: periodDays(), live: S.period === 'live' ? 1 : 0 }), A.call('/v1/admin/online', {})]);
     if (!(location.hash || '').startsWith('#admin') || tabOf() !== 'traffic' || !v.querySelector('#admBody')) return;
     if (!st || st._s !== 200 || !on || on._s !== 200) {
-      v.querySelector('#admBody').innerHTML = `<div class="card" style="margin-top:14px"><p class="err">讀不到報表（${st ? st._s : '連不到伺服器'}）。只有管理者帳號看得到；若你是管理者，確認 Worker 的 ADMIN_EMAILS 有你的 email（docs/login_setup.md 第 6 步）。</p></div>`;
+      v.querySelector('#admBody').innerHTML = `<div class="card" style="margin-top:14px"><p class="err">讀不到報表（${st ? st._s : '連不到伺服器'}）</p></div>`;
       return;
     }
     S.st = st; S.on = on;
     const pv = {}, ev = {}, perDay = {};
+    const untilDay = S.period === 'since' && S.until && /^\d{4}-\d{2}-\d{2}$/.test(S.until) && S.until < st.to ? S.until : '';      // 結束日（預設＝至今）：只影響上方一排；Worker 只能算到今天，分頁統計仍含到今天
     st.rows.forEach((r) => {
-      const [kind, name] = r.k.split(':');
-      if (kind === 'pv') { pv[name] = (pv[name] || 0) + r.n; perDay[r.day] = (perDay[r.day] || 0) + r.n; } else ev[name] = (ev[name] || 0) + r.n;
+      const [kind, name] = r.k.split(':'), inTop = !untilDay || r.day <= untilDay;
+      if (kind === 'pv') { pv[name] = (pv[name] || 0) + r.n; if (inTop) perDay[r.day] = (perDay[r.day] || 0) + r.n; } else if (inTop) ev[name] = (ev[name] || 0) + r.n;
     });
     const e2 = Array.isArray(st.e2) ? st.e2 : [];
     const pvDay = {}; st.rows.forEach((r) => { if (r.k.startsWith('pv:')) { const k = r.k.slice(3); (pvDay[k] = pvDay[k] || {})[r.day] = (pvDay[k][r.day] || 0) + r.n; } });
     let days = [], dmap = perDay;
-    if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; st.hours.forEach((n, h) => { dmap[days[h]] = n; }); }
-    else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse(st.to + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
+    if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; const nowH = st.hstat && Number.isInteger(st.hstat.hour) ? st.hstat.hour : null; st.hours.forEach((n, h) => { dmap[days[h]] = nowH != null && h > nowH ? null : n; }); }
+    else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse((untilDay || st.to) + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
     const dmax = Math.max(1, ...days.map((d) => dmap[d] || 0));
-    const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions), pvTotal = sum(Object.values(pv));
+    const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions), pvTotal = untilDay ? sum(Object.values(perDay)) : sum(Object.values(pv));
     // 個股相關（個股頁分頁用）：被觀看 Top 10、各自最常用的功能、散佈圖點
     const views = e2.filter((r) => r.page === 'stock' && r.comp === 'view' && r.detail).sort((a, b) => b.n - a.n);
     const useBy = {};
@@ -860,7 +886,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     S.data = data; S.days = periodDays(); S.pvDay = pvDay; S.dayList = st.hours ? [] : days.slice(); S.pvAll = pvTotal;
     data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (st.users && st.users.total) || 0, use: 0, fb: false };
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
-    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2><small>點長條或扇區進入該頁；上方小分頁看子頁</small></div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2></div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
     paintTrTabs();
     bindHover(v.querySelector('#admBody'));
@@ -868,14 +894,14 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
     const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : '每天的頁面瀏覽總次數';
-    return `<div class="secttl trhead"><h2>全站總覽</h2><small>${esc(periodTxt())}・共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
+    return `<div class="secttl trhead"><h2>全站總覽</h2><small>共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
         <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <input type="date" id="admSince" value="${esc(S.since || '')}" max="${esc(st.to)}" aria-label="起始日期" ${S.period === 'since' ? '' : 'hidden'}>
-          <button type="button" id="admRefresh">重新整理</button>
+          <input type="date" id="admSince" value="${esc(S.since || '')}" max="${esc(st.to)}" aria-label="起始日期" ${S.period === 'since' ? '' : 'hidden'}><span class="trto" ${S.period === 'since' ? '' : 'hidden'}>～</span><input type="date" id="admUntil" value="${esc(S.until || todayTpe())}" min="${esc(S.since || '')}" max="${esc(todayTpe())}" aria-label="結束日期（預設至今）" ${S.period === 'since' ? '' : 'hidden'}>
+          <button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
       <div class="admgrid trtop">
-        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="${esc(dsub)}。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live')}</div></div>
-        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員（免費）、各付費方案各一段；登入的幾段相連、與訪客分開。新增付費方案就多一種顏色（依方案 id 固定，不會跳色）。${tiers.est ? '目前 Worker 沒有「開站時的會員等級」，付費與免費是依會員名單比例估算。' : ''}">${tiers.est ? '開站身分（依名單比例估算）' : '開站身分：訪客／註冊／付費方案'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
+        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live')}</div></div>
+        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
       </div>`;
   }
 
@@ -896,7 +922,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     return { list, est: true };
   }
   function loginDonut(list, sessions) {
-    const tot = sum(list.map((t) => t.n)); if (!tot) return '<div class="empty">這段期間還沒有開啟紀錄。</div>';
+    const tot = sum(list.map((t) => t.n)); if (!tot) return '<div class="empty">沒有資料</div>';
     const login = sum(list.filter((t) => t.login).map((t) => t.n));
     const segs = list.map((t) => ({ label: t.name, n: t.n, color: t.col, g: t.login ? 'in' : 'guest', ltxt: `${nf(t.n)}・${(t.n / tot * 100).toFixed(1)}%` }));
     return donutG(segs, { center: ['登入', Math.round(login / tot * 100) + '%'], legendN: 8, legend: segs.map((x) => Object.assign({}, x)), aria: '開站身分占比' });
@@ -904,38 +930,65 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   /* 只統計「有沒有被看」的頁（週期統計、市場明細、事件）：被看幾次、每天趨勢、占全站比；不放子頁與功能細項（Andy 10-05） */
   function simpleHtml(p, d, idx) {
     const pd = (S.pvDay || {})[p.k] || {}, has = Object.keys(pd).length > 0 && S.dayList && S.dayList.length;
-    const tot = d.total, all = Math.max(S.pvAll || 0, tot);
-    const left = has ? dayChart(S.dayList, pd, Math.max(1, ...Object.values(pd)), 'trPgDays') : `<div class="bigno"><b>${nf(tot)}</b><span>${esc(periodTxt())}被看過</span>${d.fb ? '<small>（Worker 沒有這頁的瀏覽數，以功能使用次數計）</small>' : ''}</div>`;
-    const right = donutG([{ label: p.n, n: tot, color: pgCol(idx, 0, 1) }, { label: '其他頁面', n: Math.max(0, all - tot), color: 'var(--cat-other)' }], { center: [p.n, (all ? Math.round(tot / all * 100) : 0) + '%'], legendN: 2, aria: `${p.n}占全站瀏覽` });
-    return `<div class="admgrid trpair">${card('trS1', `${p.n}被看了幾次？`, `${periodTxt()}・共 ${nf(tot)} 次`, left)}${card('trS2', '占全站瀏覽比', `${p.n}與其他頁面`, right)}</div>`;
+    const tot = d.total;
+    const chart = has ? dayChart(S.dayList, pd, Math.max(1, ...Object.values(pd)), 'trPgDays') : '<div class="empty">沒有資料</div>';
+    return `<div class="admgrid trone"><div class="card" id="trS1"><h3>${esc(p.n)}被看了幾次？</h3><p class="use" title="${esc(p.n)}">被看過幾次</p>
+      <div class="cb"><div class="sbody"><div class="bigno"><b>${nf(tot)}</b><span>被看過</span></div><div class="sch">${chart}</div></div></div></div></div>`;
   }
   /* 使用者分頁：使用時段（每小時直條，可切 1H／4H／6H／12H／白天／夜晚）＋ 現在誰在線 ＋ 最近會員 */
   const HR_MODES = [['1', '1H'], ['4', '4H'], ['6', '6H'], ['12', '12H'], ['day', '白天'], ['night', '夜晚']];
-  function hourData(hourly, mode) {
-    const h = (hourly || []).slice(0, 24); while (h.length < 24) h.push(0);
-    const two = (n) => String(n).padStart(2, '0');
-    if (mode === 'day' || mode === 'night') { const hs = mode === 'day' ? Array.from({ length: 12 }, (_, i) => 6 + i) : Array.from({ length: 12 }, (_, i) => (18 + i) % 24); return hs.map((x) => ({ l: two(x), tip: `${two(x)}:00–${two((x + 1) % 24)}:00`, n: h[x] })); }
-    const w = +mode || 1; return Array.from({ length: 24 / w }, (_, i) => ({ l: w === 1 ? two(i) : `${two(i * w)}–${two((i + 1) * w % 24)}`, tip: `${two(i * w)}:00–${two((i + 1) * w % 24)}:00`, n: sum(h.slice(i * w, i * w + w)) }));
+  /* 把 24 小時的數列合併成 1H／4H／6H／12H／白天／夜晚：series＝[{k,name,col,arr:[24]}]（一條＝一種顏色；兩條就堆疊） */
+  function hourData(series, mode) {
+    const two = (n) => String(n).padStart(2, '0'), pad = (a) => { const h = (a || []).slice(0, 24); while (h.length < 24) h.push(0); return h; };
+    const ss = series.map((x) => ({ ...x, arr: pad(x.arr) }));
+    const pick = (hs) => hs.map((x) => ({ l: two(x), tip: `${two(x)}:00–${two((x + 1) % 24)}:00`, v: ss.map((q) => q.arr[x]) }));
+    if (mode === 'day') return pick(Array.from({ length: 12 }, (_, i) => 6 + i));
+    if (mode === 'night') return pick(Array.from({ length: 12 }, (_, i) => (18 + i) % 24));
+    const w = +mode || 1;
+    return Array.from({ length: 24 / w }, (_, i) => ({ l: w === 1 ? two(i) : `${two(i * w)}–${two((i + 1) * w % 24)}`, tip: `${two(i * w)}:00–${two((i + 1) * w % 24)}:00`, v: ss.map((q) => sum(q.arr.slice(i * w, i * w + w))) }));
   }
   function usersBody() {
-    const st = S.st, on = S.on, mode = S.hr || '1', hd = st.hourly ? hourData(st.hourly, mode) : null;
+    const st = S.st, on = S.on, mode = S.hr || '1', hm = S.hm || 'pv', hs = st.hstat || null, live = S.period === 'live';
+    const src = live ? { pv: st.hours, login: hs && hs.day && hs.day.login, guest: hs && hs.day && hs.day.guest } : { pv: st.hourly, login: hs && hs.period && hs.period.login, guest: hs && hs.period && hs.period.guest };
+    const has = hm === 'open' ? !!(src.login && src.guest) : !!src.pv;
+    const series = hm === 'open' ? [{ k: 'guest', name: '訪客開站', col: 'var(--cat-2)', arr: src.guest }, { k: 'login', name: '登入開站', col: 'var(--cat-1)', arr: src.login }] : [{ k: 'pv', name: '頁面瀏覽', col: 'var(--cat-1)', arr: src.pv }];
+    const hd = has ? hourData(series, mode) : null;
     let chart;
-    if (!hd) chart = '<div class="empty">Worker 還沒有「每小時」統計（需新增 hourly 欄位：每天每小時的頁面瀏覽次數）。預覽版有示範資料。</div>';
-    else { const mx = Math.max(1, ...hd.map((x) => x.n)), tot = sum(hd.map((x) => x.n)), few = hd.length <= 7;
+    if (!hd) chart = '<div class="empty">沒有資料</div>';
+    else { const tots = hd.map((x) => sum(x.v)), mx = Math.max(1, ...tots), all = sum(tots), few = hd.length <= 7;
       chart = `<div class="dayplot"><div class="dayy">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(mx * f))}</span>`).join('')}</div>
-        <div class="days hrs${few ? ' few' : ''}" data-chart="days" id="trHrBars">${hd.map((x, i) => `<div class="dc" data-row="${i}"${tp(`<b>${x.tip}</b><br>${nf(x.n)} 次・占 ${(x.n / Math.max(1, tot) * 100).toFixed(1)}%`)}>${few ? `<span class="dv">${nf(x.n)}</span>` : ''}<i style="height:${(x.n / mx * 100).toFixed(1)}%"></i><span class="dd">${x.l}</span></div>`).join('')}</div></div>`; }
-    const modes = `<div class="nbsw lv2 hrmodes" id="trHrModes" role="tablist">${HR_MODES.map(([k, n]) => `<button type="button" role="tab" data-hr="${k}" class="${mode === k ? 'on' : ''}">${n}</button>`).join('')}</div>`;
-    return `<div class="admgrid trusers">
-      <div class="card s2" id="trHours"><h3>什麼時段最多人用？</h3><p class="use" title="每小時的頁面瀏覽次數（台北時間，期間內加總）。白天＝06:00–18:00、夜晚＝18:00–06:00（從 18 時排到隔天 5 時）；1H／4H／6H／12H 是把 24 小時合併成每 N 小時一根。">${esc(periodTxt())}・台北時間・白天 06–18／夜晚 18–06</p><div class="cb">${modes}${chart}</div></div>
-      ${usersHtml(st, on)}</div>`;
+        <div class="days hrs${few ? ' few' : ''}${hm === 'open' ? ' stk2' : ''}" data-chart="days" id="trHrBars">${hd.map((x, i) => { const tot = tots[i];
+          const tip = tp(`<b>${x.tip}</b><br>${hm === 'open' ? `${series.map((q, j) => `${q.name} ${nf(x.v[j])}`).join('・')}<br>合計 ${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%` : `${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%`}`);
+          return `<div class="dc" data-row="${i}"${tip}>${few ? `<span class="dv">${nf(tot)}</span>` : ''}${series.map((q, j) => `<i style="height:${(x.v[j] / mx * 100).toFixed(1)}%;${hm === 'open' ? `background:${q.col}` : ''}"></i>`).join('')}<span class="dd">${x.l}</span></div>`; }).join('')}</div></div>
+        ${hm === 'open' ? `<div class="hrlg"><span><i style="background:var(--cat-2)"></i>訪客開站</span><span><i style="background:var(--cat-1)"></i>登入開站</span></div>` : ''}`; }
+    const since = hs && hs.since && st.from && hs.since > st.from ? `<div class="hrnote">每小時統計從 ${esc(hs.since)} 起</div>` : '';
+    const modes = `<div class="hrbar"><div class="nbsw lv2 hrmodes" id="trHrMetric" role="tablist">${[['pv', '頁面瀏覽'], ['open', '開站（登入／訪客）']].map(([k, n]) => `<button type="button" role="tab" data-hm="${k}" class="${hm === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="nbsw lv2 hrmodes" id="trHrModes" role="tablist">${HR_MODES.map(([k, n]) => `<button type="button" role="tab" data-hr="${k}" class="${mode === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
+    const clock = clockHtml(series.length === 2 ? src.login.map((x, i) => x + (src.guest[i] || 0)) : src.pv, hm === 'open' ? '開站' : '瀏覽');
+    return `<div class="admgrid trpair trusers">
+      <div class="card" id="trHours"><h3>什麼時段最多人用？</h3><p class="use" title="每小時的${hm === 'open' ? '開站次數（登入／訪客堆疊）' : '頁面瀏覽次數'}。白天＝06:00–18:00、夜晚＝18:00–06:00。">白天 06–18／夜晚 18–06</p><div class="cb">${modes}${chart}${since}</div></div>
+      <div class="card" id="trClock"><h3>24 小時時鐘</h3><p class="use" title="0 點在正上方、順時針；長度與顏色深淺＝該小時的${hm === 'open' ? '開站' : '瀏覽'}量；淡黃底＝白天、淡紫底＝夜晚">長度＝使用量</p><div class="cb">${clock}</div></div></div>`;
   }
-  function usersHtml(st, on) {
-    return `<div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use" title="最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。">近 2.5 分鐘有動作・30 秒更新</p>
-          <div class="cb"><div class="okn kpis"><div class="live"><b id="admOnN">${on.total}</b>在線（分頁數）</div><div><b>${on.users.length}</b>登入者</div><div><b>${on.guests}</b>訪客</div></div>
-          ${on.users.length ? `<div class="tbw"><table><thead><tr><th>名稱</th><th>在看</th><th>最後動作</th></tr></thead><tbody>${on.users.map((u) => `<tr><td title="${esc(u.email)}">${esc(u.name)}</td><td>${esc(VIEW_NAME[u.route] || u.route)}</td><td>${ago(u.seen)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">目前沒有登入者在線上。</div>'}
-          <label class="tg"><input type="checkbox" id="admPub" ${on.public_online ? 'checked' : ''}>一般訪客看得到「目前 N 人在線」（只有總數）</label></div></div>
-        <div class="card s3" id="admUsers"><h3>最近有哪些會員來過？</h3><p class="use" title="依最後使用時間排序（最多列 50 位）。要新增、設到期日、看造訪次數，到「會員管理」。">共 ${st.users.total} 位・依最後使用排序</p>
-          <div class="cb">${st.users.recent.length ? `<div class="tbw"><table><thead><tr><th>名稱</th><th>email</th><th>加入</th><th>最後使用（台北）</th></tr></thead><tbody>${st.users.recent.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${dstr(u.created)}</td><td>${dstr(u.seen)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">還沒有會員。</div>'}</div></div>`;
+  /* 時鐘甜甜圈（極座標長條）：24 段、0 點在正上方順時針；每段長度與顏色深淺＝使用量；底環白天（06–18）暖色、夜晚（18–06）紫色；中心＝尖峰時段；圖例在右 */
+  function clockHtml(arr, what) {
+    const h = (arr || []).slice(0, 24); while (h.length < 24) h.push(0);
+    const tot = sum(h); if (!tot) return '<div class="empty">沒有資料</div>';
+    const mx = Math.max(...h), two = (n) => String(n).padStart(2, '0'), R0 = 24, R1 = 44, DAY = 'var(--cat-3)', NIGHT = 'var(--cat-2)';
+    const P = (r, deg) => `${(60 + r * Math.sin(deg * Math.PI / 180)).toFixed(2)} ${(60 - r * Math.cos(deg * Math.PI / 180)).toFixed(2)}`;
+    const wedge = (a0, a1, r1) => `M ${P(R0, a0)} L ${P(r1, a0)} A ${r1} ${r1} 0 0 1 ${P(r1, a1)} L ${P(R0, a1)} A ${R0} ${R0} 0 0 0 ${P(R0, a0)} Z`;
+    const isDay = (x) => x >= 6 && x < 18;
+    let tr = '', vl = '';
+    h.forEach((n, x) => { const a0 = x * 15 + 0.6, a1 = x * 15 + 14.4, col = isDay(x) ? DAY : NIGHT, k = isDay(x) ? 'day' : 'night', pct = (n / tot * 100).toFixed(1) + '%', lab = `${two(x)}:00–${two((x + 1) % 24)}:00`;
+      tr += `<path d="${wedge(a0, a1, R1)}" fill="${col}" fill-opacity=".14"/>`;
+      const r = R0 + Math.max(2.5, (R1 - R0) * n / mx), op = (0.4 + 0.6 * n / mx).toFixed(2);
+      vl += `<path class="arc" data-row="${x}" data-k="${k}" data-lab="${lab}" data-pct="${pct}"${tp(`<b>${lab}</b><br>${nf(n)} 次${what}・占 ${pct}`)} d="${wedge(a0, a1, r)}" fill="${col}" fill-opacity="${op}"/>`; });
+    const dayN = sum(h.filter((_, x) => isDay(x))), nightN = tot - dayN, top = h.map((n, x) => [n, x]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+    const pk = top[0][1], c2 = `${two(pk)}–${two((pk + 1) % 24)}時`;
+    const lbl = [0, 6, 12, 18].map((x) => `<text x="${P(52, x * 15).split(' ')[0]}" y="${(+P(52, x * 15).split(' ')[1] + 2.5).toFixed(2)}" text-anchor="middle" style="font-size:6.5px;fill:var(--ink-2);font-family:var(--mono)">${x}</text>`).join('');
+    const li = (k, col, name, n) => `<li data-k="${k}" data-n="${n}"${tp(`<b>${esc(name)}${k === 'day' ? '（06–18）' : '（18–06）'}</b><br>${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${col}"></i><span>${esc(name)}</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`;
+    return `<div class="dn clock" data-chart="donut"><svg viewBox="0 0 120 120" data-d1="尖峰時段" data-d2="${c2}" role="img" aria-label="24 小時使用時鐘">${tr}${vl}${lbl}
+      <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:7px;fill:var(--ink-2)">尖峰時段</text><text class="c2" x="60" y="68" text-anchor="middle" style="font-size:9.5px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${c2}</text></svg>
+      <ul class="lg">${li('day', DAY, '白天', dayN)}${li('night', NIGHT, '夜晚', nightN)}${top.map(([n, x], i) => `<li data-row="${x}"${tp(`<b>${two(x)}:00–${two((x + 1) % 24)}:00</b><br>${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${isDay(x) ? DAY : NIGHT};opacity:${(0.4 + 0.6 * n / mx).toFixed(2)}"></i><span>${i === 0 ? '尖峰' : i === 1 ? '次忙' : '再次'} ${two(x)} 時</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
   function wireTop(v, A) {
     const apply = () => { S.tab = S.tab || 'all'; paint(); };
@@ -944,12 +997,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       if (S.period === 'since' && !S.since) S.since = new Date(Date.now() + 8 * 3600000 - 29 * 86400000).toISOString().slice(0, 10);
       apply();
     };
-    const di = v.querySelector('#admSince'); if (di) di.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(di.value)) { S.since = di.value; apply(); } };
-    v.querySelector('#admRefresh').onclick = () => paint();
-  }
-  function bindPub() {
-    const v = S.v, A = S.A, pub = v && v.querySelector('#admPub'); if (!pub) return;
-    pub.onchange = async () => { const r = await A.call('/v1/admin/settings', { public_online: pub.checked }); if (!r || r._s !== 200) pub.checked = !pub.checked; };
+    const di = v.querySelector('#admSince'); if (di) di.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(di.value)) { S.since = di.value; if (S.until && S.until < S.since) S.until = ''; apply(); } };
+    const du = v.querySelector('#admUntil'); if (du) du.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(du.value)) { S.until = du.value >= todayTpe() ? '' : du.value; apply(); } else { S.until = ''; apply(); } };
+    v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
+    if (S.spin) { S.spin = false; const rb = v.querySelector('#admRefresh'); if (rb) rb.classList.add('spin'); }
   }
 
 
@@ -973,7 +1024,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       if (idEl && chart.contains(idEl)) {
         chart.classList.add('hov');
         chart.querySelectorAll(`[data-row="${idEl.dataset.row}"]`).forEach((x) => x.classList.add('hl'));
-        if (idEl.matches('circle.arc')) { chart.querySelectorAll(`li[data-k="${CSS.escape(idEl.dataset.k)}"]`).forEach((x) => x.classList.add('hl')); swap = [idEl.dataset.k, (idEl.dataset.tip.match(/（([\d.]+%)）/) || [])[1]]; }
+        if (idEl.matches('.arc')) { chart.querySelectorAll(`li[data-k="${CSS.escape(idEl.dataset.k)}"]`).forEach((x) => x.classList.add('hl')); swap = [idEl.dataset.lab || idEl.dataset.k, idEl.dataset.pct || (idEl.dataset.tip.match(/（([\d.]+%)）/) || [])[1]]; }
       } else if (lg && chart.contains(lg)) {
         chart.classList.add('hov');
         const k = CSS.escape(lg.dataset.k); chart.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.classList.add('hl'));
@@ -987,22 +1038,38 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
 
   /* ---- 分頁統計 ---- */
+  /* 頂層分頁順序：預設照 PAGES；可拖曳排序（「全部」固定第一顆），順序記在 localStorage（tw.adm.trTabs）；沒有刪除鈕（Andy：具備拖曳移動，但不具備刪除） */
+  const TAB_KEY = 'tw.adm.trTabs';
+  function tabOrder() {
+    let saved = []; try { saved = JSON.parse(localStorage.getItem(TAB_KEY) || '[]'); } catch (e) { saved = []; }
+    const known = PAGES.map((p) => p.k), out = (Array.isArray(saved) ? saved : []).filter((k, i, a) => known.includes(k) && a.indexOf(k) === i);
+    known.forEach((k) => { if (!out.includes(k)) out.push(k); });
+    return out;
+  }
+  function saveTabOrder(o) { try { localStorage.setItem(TAB_KEY, JSON.stringify(o)); } catch (e) { /* 無痕視窗存不了就只在這次有效 */ } }
   function paintTrTabs() {
     const v = S.v, box = v && v.querySelector('#trTabsBox'); if (!box || !S.data) return;
     if (S.tab !== 'all' && !PAGE_BY[S.tab]) S.tab = 'all';
-    const d = (k) => S.data[k];
-    box.innerHTML = `<div class="nbsw" id="trTabs" role="tablist"><button type="button" role="tab" data-t="all" class="${S.tab === 'all' ? 'on' : ''}" aria-selected="${S.tab === 'all'}">全部</button>${PAGES.map((p, i) => `<button type="button" role="tab" data-t="${p.k}" class="${S.tab === p.k ? 'on' : ''}" aria-selected="${S.tab === p.k}">${esc(p.n)}<em>${nf(d(p.k).total)}</em></button>`).join('')}</div>`;
-    box.querySelector('#trTabs').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; S.tab = b.dataset.t; S.sub = 'all'; paintTrTabs(); };
+    const d = (k) => S.data[k], ord = tabOrder();
+    box.innerHTML = `<div class="nbsw" id="trTabs" role="tablist" aria-label="頁面分頁（可拖曳調整順序）"><button type="button" role="tab" data-t="all" class="${S.tab === 'all' ? 'on' : ''}" aria-selected="${S.tab === 'all'}">全部</button>${ord.map((k) => { const p = PAGE_BY[k]; return `<button type="button" role="tab" draggable="true" data-t="${p.k}" class="${S.tab === p.k ? 'on' : ''}" aria-selected="${S.tab === p.k}" title="拖曳可調整順序" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight">${esc(p.n)}<em>${nf(d(p.k).total)}</em></button>`; }).join('')}</div>`;
+    const bar = box.querySelector('#trTabs');
+    bar.onclick = (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; S.tab = b.dataset.t; S.sub = 'all'; paintTrTabs(); };
+    const move = (k, toK, after) => { const o = tabOrder().filter((x) => x !== k), i = o.indexOf(toK); o.splice(i + (after ? 1 : 0), 0, k); saveTabOrder(o); paintTrTabs(); };
+    bar.ondragstart = (e) => { const b = e.target.closest('button[data-t]'); if (!b || b.dataset.t === 'all') { e.preventDefault(); return; } S.drag = b.dataset.t; b.classList.add('dragging'); try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', S.drag); } catch (x) { /* 舊瀏覽器 */ } };
+    bar.ondragover = (e) => { const b = e.target.closest('button[data-t]'); if (!b || !S.drag || b.dataset.t === 'all' || b.dataset.t === S.drag) return; e.preventDefault(); const o = tabOrder(), after = o.indexOf(b.dataset.t) > o.indexOf(S.drag); bar.querySelectorAll('button').forEach((x) => x.classList.remove('dropL', 'dropR')); b.classList.add(after ? 'dropR' : 'dropL'); };
+    bar.ondrop = (e) => { const b = e.target.closest('button[data-t]'), from = S.drag; S.drag = null; if (!b || !from || b.dataset.t === 'all' || b.dataset.t === from) { paintTrTabs(); return; } e.preventDefault(); const o = tabOrder(); move(from, b.dataset.t, o.indexOf(b.dataset.t) > o.indexOf(from)); };
+    bar.ondragend = () => { S.drag = null; bar.querySelectorAll('button').forEach((x) => x.classList.remove('dragging', 'dropL', 'dropR')); };
+    bar.onkeydown = (e) => { const b = e.target.closest('button[data-t]'); if (!b || b.dataset.t === 'all' || !e.altKey || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return; e.preventDefault(); const o = tabOrder(), i = o.indexOf(b.dataset.t), j = i + (e.key === 'ArrowLeft' ? -1 : 1); if (j < 0 || j >= o.length) return; move(b.dataset.t, o[j], e.key === 'ArrowRight'); const f = box.querySelector(`#trTabs [data-t="${b.dataset.t}"]`); if (f) f.focus(); };
     paintBody();
   }
   function paintBody() {
     const v = S.v, body = v && v.querySelector('#trPageBody'); if (!body) return;
     body.innerHTML = S.tab === 'all' ? allHtml() : S.tab === 'users' ? usersBody() : pageHtml(S.tab);
-    bindPub();
     body.onclick = (e) => {
       const t = e.target.closest('[data-p]'); if (t && S.tab === 'all') { S.tab = t.dataset.p; S.sub = t.dataset.s || 'all'; paintTrTabs(); return; }
       const sb = e.target.closest('button[data-sub]'); if (sb) { S.sub = sb.dataset.sub; paintBody(); }
       const hb = e.target.closest('button[data-hr]'); if (hb) { S.hr = hb.dataset.hr; paintBody(); }
+      const hm = e.target.closest('button[data-hm]'); if (hm) { S.hm = hm.dataset.hm; paintBody(); }
     };
     v.querySelectorAll('#trTabs .on, #trSubs .on').forEach((b) => { if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
     const sc = body.querySelector('#trSc');
@@ -1018,15 +1085,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const segs = d.subN.filter((s) => s.v > 0), ssum = sum(segs.map((s) => s.v)), w = d.total / mx * 100;
       const inner = segs.length > 1 ? segs.map((s) => `<i style="width:${(s.v / Math.max(ssum, 1) * 100).toFixed(2)}%;background:${s.col}" ${tp(`<b>${esc(p.n)}・${esc(s.n)}</b><br>${nf(s.v)} 次・占該頁 ${(s.v / ssum * 100).toFixed(1)}%・占全站 ${(s.v / tot * 100).toFixed(1)}%`)}></i>`).join('')
         : `<i style="width:100%;background:${pgCol(i, 0, 1)}" ${tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`)}></i>`;
-      const t0 = tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%${d.fb ? '<br>（以功能使用次數計）' : ''}<br>點一下進入該頁`);
+      const t0 = tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`);
       return `<button type="button" class="bl" data-p="${p.k}" data-row="${ri}"${t0}>${esc(p.n)}</button><span class="bt stk" data-p="${p.k}" data-row="${ri}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn" data-row="${ri}" data-p="${p.k}"${t0}>${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
     }).join('');
     const segs = []; list.forEach(({ p, i, d }) => { const ss = d.subN.filter((s) => s.v > 0), ssum = sum(ss.map((s) => s.v));
       if (ss.length > 1 && ssum > 0) ss.forEach((s) => segs.push({ label: p.n, n: d.total * s.v / ssum, color: s.col, lcolor: pgCol(i, 0, 1), tip: `${p.n}・${s.n}`, p: p.k, s: s.k, g: p.k }));
       else segs.push({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k, g: p.k }); });
     const pagesAgg = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1) }));
-    return `<div class="admgrid trpair">${card('trAllBars', '各頁被看了幾次？', '有子頁的頁面依子頁上色・點一條進入該頁', `<div class="bars stkbars" data-chart="bars" id="trAllB">${rows}</div>`)}
-      ${card('trAllDonut', '各頁占比', '外圈顏色＝頁面、同色系＝子頁', donutG(segs, { top5: pagesAgg, legend: pagesAgg, legendN: 10, totalN: tot, aria: '各頁瀏覽占比' }))}</div>`;
+    return `<div class="admgrid trpair">${card('trAllBars', '各頁被看了幾次？', '有子頁的以不同顏色堆疊', `<div class="bars stkbars" data-chart="bars" id="trAllB">${rows}</div>`)}
+      ${card('trAllDonut', '各頁占比', '顏色＝頁面，同色系＝子頁', donutG(segs, { top5: pagesAgg, legend: pagesAgg, legendN: 10, totalN: tot, aria: '各頁瀏覽占比' }))}</div>`;
   }
   /* 單一頁面：上方小分頁（全部＋子頁）、下方 功能使用次數（長條＋圓餅）、被點最多的對象（長條＋圓餅） */
   function pageHtml(k) {
@@ -1047,25 +1114,25 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     let body = '';
     if (k === 'stock' && S.sub === 'tabs') {
       const tl = fl.map(([c, n]) => [c.replace(/^tab\./, ''), n]);
-      body = `<div class="admgrid trpair">${pair('trF', '各分頁被點幾次？', `${periodTxt()}・個股頁下方分頁（含 ETF 成分股）`, tl, (c) => (TAB_NAME[c] || c), false, 12)}</div>`;
+      body = `<div class="admgrid trpair">${pair('trF', '各分頁被點幾次？', '個股頁下方分頁（含 ETF 成分股）', tl, (c) => (TAB_NAME[c] || c), false, 12)}</div>`;
     } else if (k === 'stock' && S.sub === 'kline') {
       /* K 線指標：左＝各項功能（技術指標各自計次＋畫線工具各自計次＋AI 面向／四週期同看／指標面板／3D）；右組＝K 線週期切換，不重複 */
       const it = {}; const add = (nm, n) => { it[nm] = (it[nm] || 0) + n; };
       sel.forEach((r) => { if (r.comp === 'ind') add(r.det || '技術指標', r.n); else if (r.comp === 'draw.tool') add('畫線：' + (r.det || '工具'), r.n); else if (!/^kp\./.test(r.comp)) add(compName(r.comp), r.n); });
       const il = Object.entries(it).sort((a, b) => b[1] - a[1]);
       const pl = fl.filter(([c]) => /^kp\./.test(c));
-      body = `<div class="admgrid trpair">${pair('trF', '各項功能被用了幾次？', `${periodTxt()}・技術指標／畫線／AI／四週期（含本益比河流）`, il, (x) => x, false, 16)}</div>`
-        + (pl.length ? `<div class="admgrid trpair">${pair('trD', 'K 線週期切換', `${periodTxt()}・日／週／月／分 K`, pl, compName)}</div>` : '');
+      body = `<div class="admgrid trpair">${pair('trF', '各項功能被用了幾次？', '技術指標／畫線／AI／四週期（含本益比河流）', il, (x) => x, false, 16)}</div>`
+        + (pl.length ? `<div class="admgrid trpair">${pair('trD', 'K 線週期切換', '日／週／月／分 K', pl, compName)}</div>` : '');
     } else if (k === 'stock' && S.sub === 'all') {
-      body = `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', '30 天內每個功能的次數', fl, compName)}</div>
+      body = `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', '每個功能被用的次數', fl, compName)}</div>
         <div class="admgrid trpair">${pair('trD', '被點最多的個股', '個股頁被打開次數，前 10 名', dl, stockNm)}</div>
-        <div class="admgrid">${card('trStockFeat', '熱門個股的人都在用什麼功能？', '前 10 檔各自最常用的三個功能', S.stk.featRows.length ? stockTable(S.stk.featRows) : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>', 's2')}
-          ${card('trScatter', '哪些股票「又多人看、看的人又用得深」？', '右上＝熱門又被深度使用', S.stk.scat.length < 2 ? '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>' : '<div class="sc" data-chart="sc" id="trSc"></div>')}</div>`;
+        <div class="admgrid">${card('trStockFeat', '熱門個股的人都在用什麼功能？', '前 10 檔各自最常用的三個功能', S.stk.featRows.length ? stockTable(S.stk.featRows) : '<div class="empty">沒有資料</div>', 's2')}
+          ${card('trScatter', '哪些股票「又多人看、看的人又用得深」？', '右上＝熱門又被深度使用', S.stk.scat.length < 2 ? '<div class="empty">沒有資料</div>' : '<div class="sc" data-chart="sc" id="trSc"></div>')}</div>`;
     } else if (!fl.length) {
-      body = `<div class="empty trempty">「${esc(sn)}」這段期間還沒有功能使用紀錄${d.opens && Object.keys(d.opens).length ? '（只有進入次數）' : ''}。</div>`;
+      body = `<div class="empty trempty">沒有資料</div>`;
     } else {
       const nmDet = (x) => (kinds.has('個股') && /^[0-9A-Z]{4,6}$/.test(x) ? stockNm(x) : x);
-      body = (fl.length === 1 && dl.length ? '' : `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', `${periodTxt()}・${sn}`, fl, compName)}</div>`)
+      body = (fl.length === 1 && dl.length ? '' : `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', sn, fl, compName)}</div>`)
         + (dl.length ? `<div class="admgrid trpair">${pair('trD', `被點最多的${[...kinds].join('／')}`, `${sn}・Top 10`, dl, nmDet)}</div>` : '');
     }
     return `<div class="trhd">${subs}</div>${body}`;
@@ -1076,7 +1143,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function dayChart(days, perDay, dmax, idp, full) {
     idp = idp || 'admDayBars';
     const i0 = full ? 0 : days.findIndex((d) => (perDay[d] || 0) > 0);
-    if (i0 < 0) return '<div class="empty">這段期間還沒有瀏覽紀錄。</div>';
+    if (i0 < 0) return '<div class="empty">沒有資料</div>';
     const shown = days.slice(i0), few = shown.length <= 7, dtot = shown.reduce((s, d) => s + (perDay[d] || 0), 0);
     const avg = shown.reduce((s, d) => s + (perDay[d] || 0), 0) / shown.length, mxd = shown.reduce((a, d) => ((perDay[d] || 0) > (perDay[a] || 0) ? d : a), shown[0]);
     const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
@@ -1088,7 +1155,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     }
     const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(dmax * f))}</span>`).join('');
     return `<div class="dayplot"><div class="dayy">${ys}</div>
-      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => `<div class="dc${d === mxd ? ' mx' : ''}" data-row="${di}"${tp(`<b>${esc(d)}${/^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
+      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}" data-row="${di}"${tp(`<b>${esc(d)}${/^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
         ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
       ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${ticks.map(([d, i]) => `<span style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${/^\d\d:00$/.test(d) ? d : d.slice(5)}</span>`).join('')}</div></div>`}
       ${note ? `<div class="dayx"><span class="dayno" id="${idp}Note">${note}</span></div>` : ''}`;
@@ -1123,7 +1190,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   let dnSeq = 0;
   function donutG(segs, o) {
     const tot = sum(segs.map((s) => s.n));
-    if (!tot) return '<div class="empty">這段期間還沒有紀錄。</div>';
+    if (!tot) return '<div class="empty">沒有資料</div>';
     const { R, W, GAP } = DN, C = 2 * Math.PI * R, cap = (W / 2) / R * 180 / Math.PI;
     const groups = []; segs.forEach((s, i) => { const g = s.g != null ? s.g : '_' + i; const last = groups[groups.length - 1]; if (last && last.g === g) last.segs.push(s); else groups.push({ g, segs: [s] }); });
     const single = groups.length === 1, uid = 'dm' + (++dnSeq) + '_';
@@ -1137,7 +1204,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       gr.segs.forEach((s, k) => {
         const sa = b, sb = b + s.n / tot * 360; b = sb;
         const x0 = k === 0 ? v0 : sa, x1 = k === gr.segs.length - 1 ? v1 : sb, len = Math.max(0, (x1 - x0) / 360 * C);
-        arcs += `<circle class="arc" data-row="${arcN++}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）${s.p ? '<br>點一下進入' : ''}`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)">></circle>`;
+        arcs += `<circle class="arc" data-row="${arcN++}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)">></circle>`;
       });
       if (round) {
         const id = uid + gi, A0 = v0 + cap, A1 = v1 - cap;
@@ -1151,11 +1218,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
       <circle r="36.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".7"/>${body}
       <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">${esc(c1)}</text><text class="c2" x="60" y="74" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${esc(c2)}</text></svg>
-      <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span>${o.cls === 'mdonut' ? `<b>${nf(s.n)}</b>` : ''}<small>${s.ltxt || (s.n / (o.totalN || tot) * 100).toFixed(1) + '%'}</small></li>`).join('')}</ul></div>`;
+      <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><b>${nf(Math.round(s.n))}</b><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
   function donut(parts) {
     const tot = parts.reduce((s, p) => s + p[1], 0);
-    if (!tot) return '<div class="empty">這段期間還沒有開啟紀錄。</div>';
+    if (!tot) return '<div class="empty">沒有資料</div>';
     return donutG(parts.map(([nm, n, col]) => ({ label: nm, n, color: col, ltxt: `${nf(n)}・${Math.round(n / tot * 100)}%` })), { center: [parts[0][0], Math.round(parts[0][1] / tot * 100) + '%'], legendN: 2, aria: `${parts.map((p) => p[0]).join('與')}比例` });
   }
 
@@ -1240,8 +1307,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   /* 到期日：畫面上是台北日期（yyyy-mm-dd），存的是「那一天台北 23:59:59」的毫秒 */
   const expToMs = (s) => { if (!s) return null; const t = Date.parse(s + 'T23:59:59+08:00'); return isFinite(t) ? t : null; };
   const msToDate = (ms) => (ms ? new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10) : '');
-  const honest = `<div class="card" style="margin-top:14px"><h3>這個鎖頭擋得住什麼？</h3><p class="pmwarn">鎖頭只擋一般使用者的畫面。這個網站是 GitHub Pages 靜態站，資料檔（site/data/*.json）是公開的，懂技術的人仍然能直接讀到。
-        真正保護付費內容，要讓付費資料改由會員 Worker 驗證身分後才提供 —— 設計與工作量寫在 DECISIONS #288，這一版還沒做。</p></div>`;
+  const honest = '';      // 2026-10-05：整張「這個鎖頭擋得住什麼？」說明卡拿掉（內部口徑），一句話改放開放功能表標題旁的 ⓘ 滑過顯示
+  const LOCK_NOTE = '鎖頭只擋一般使用者的畫面；資料檔是公開的，懂技術的人仍能直接讀到。';
   /* 在線時間：「3 小時 12 分」「45 分」「—」 */
   const dur = (ms) => { if (!ms) return '—'; const m = Math.round(ms / 60000); if (m < 1) return '< 1 分'; const h = Math.floor(m / 60); return h ? `${h} 小時${m % 60 ? ' ' + (m % 60) + ' 分' : ''}` : m + ' 分'; };
 
@@ -1267,7 +1334,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
             <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div>
             <div id="ptPermBox">
               <div id="ptGuestSum"></div>
-              <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表</h3>
+              <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表<span class="qtip pmq" tabindex="0" role="note" aria-label="說明" title="${esc(LOCK_NOTE)}">?</span></h3>
                 <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限，點一下設定（0＝不能看；個股／題材／族群頁算看了幾個不同的）</span></div>
                 <span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
               <div class="pmcats pmcards" id="pmCats"></div>
@@ -1302,11 +1369,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     v.querySelector('#pmSaveGo').onclick = saveDraft;
     v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
     await loadFeatures();
-    if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">功能清單（features.js）載入失敗。</p></div>'; return; }
+    if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">讀不到功能清單</p></div>'; return; }
     const [pl, li, mm] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {})]);
     if (tabOf() !== tab) return;
     if (!pl || pl._s !== 200) {
-      v.querySelector('#pmCats').innerHTML = `<div class="card" style="grid-column:1/-1"><p class="err">讀不到方案範本（${esc(errText(pl))}）。${pl && pl._s === 404 ? '會員 Worker 可能還沒更新成有功能權限的版本（deploy-account-worker.yml）。' : '只有管理者帳號看得到；確認 Worker 的 ADMIN_EMAILS 有你的 email。'}</p></div>`;
+      v.querySelector('#pmCats').innerHTML = `<div class="card" style="grid-column:1/-1"><p class="err">讀不到方案範本（${esc(errText(pl))}）</p></div>`;
       return;
     }
     PS.plans = pl.plans || [];
@@ -1351,7 +1418,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     setStat('順序更新中…');
     const j = await PS.A.call('/v1/admin/plans/sort', { ids });
     if (j && j._s === 200 && Array.isArray(j.plans)) { PS.plans = j.plans; paintTabs(); setStat(`${msg}・已儲存順序（訂閱頁的方案卡也照這個順序，台北 ${tpeTime()}）`, 'ok'); }
-    else { PS.plans = old; paintTabs(); setStat('順序沒存成功：' + (j && j._s === 404 ? '會員 Worker 還沒更新成可排序的版本（perm-v4）' : errText(j)) + '，已換回原本的順序', 'bad'); }
+    else { PS.plans = old; paintTabs(); setStat('順序沒存成功：' + (j && j._s === 404 ? '讀不到' : errText(j)) + '，已換回原本的順序', 'bad'); }
   }
   function moveBy(id, d) {
     const ids = paidIds(), i = ids.indexOf(id), j = i + d;
@@ -1558,7 +1625,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       box.innerHTML = `${PS.editMember ? '<div class="pmbar"><button type="button" id="pmBack" class="pmback">← 回會員名單</button></div>' : ''}<div class="pmbar"><input type="email" id="pmEmail" list="pmEmails" placeholder="輸入或選擇會員 email" autocomplete="off" value="${esc(PS.email)}" aria-label="會員 email">
           <datalist id="pmEmails">${[...emails.entries()].map(([e, l]) => `<option value="${esc(e)}">${esc(l)}</option>`).join('')}</datalist>
           <button type="button" id="pmLoad">讀取</button></div>
-        <div class="pmwho" id="pmWho">${r ? whoLine(r) : '從上面的名單點一位會員，或在這裡輸入 email 按「讀取」。'}</div>
+        <div class="pmwho" id="pmWho">${r ? whoLine(r) : ''}</div>
         ${r ? `<div class="pmbar"><label>層級／範本 <select id="pmPlan">${planOpts(mPlan(), false)}</select></label>
           <label>到期日 <input type="date" id="pmExp" value="${msToDate(mExp())}" aria-label="到期日（留空＝不會到期）"></label>
           <button type="button" id="pmClearOver" ${Object.keys(mOver()).length ? '' : 'disabled'}>清除個別微調</button>
@@ -1584,7 +1651,6 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     }
     if (PS.adding) {
       box.innerHTML = `<div class="ptinfo"><b class="ptname" id="ptFor">新增付費範本</b><span class="ptmeta">名稱・價格・月／年訂閱</span></div>
-        <p class="ptnote">建立後一開始全開、不限次數，再到「觀看權限」關掉這個價位不給的功能。</p>
         <div class="pmbar" id="ptNewForm" style="margin:0 0 6px"><label>名稱 <input type="text" id="ptNewName" maxlength="20" placeholder="例如 進階方案" aria-label="新付費範本名稱" style="width:12em"></label>
           <label>價格 NT$ <input type="number" id="ptNewPrice" min="0" max="999999" step="1" inputmode="numeric" value="0" aria-label="價格（整數新台幣）" style="width:7em"></label>
           <label>訂閱 <select id="ptNewPeriod" aria-label="月訂閱或年訂閱"><option value="month">月訂閱</option><option value="year">年訂閱</option></select></label>
@@ -1639,20 +1705,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   /* 訪客分頁的流量摘要：近 30 天開啟網站（登入／訪客）、頁面瀏覽、目前在線的訪客 */
   async function paintGuestSum() {
     const box = PS.v && PS.v.querySelector('#ptGuestSum'); if (!box) return;
-    /* Andy 10-05：「這已經有分頁記錄了」—— 訪客的四格流量數字卡拿掉，流量看「流量觀測」分頁。*/
-    box.innerHTML = ''; return;
-    // eslint-disable-next-line no-unreachable
+    /* 2026-10-05 Andy：訪客的流量數字卡不要（流量看「流量觀測」）；流量觀測的「現在誰在線上」整塊拿掉後，
+       「一般訪客看得到『目前 N 人在線』」這個開關搬到這裡（訪客的權限就是「訪客能看到什麼」）。 */
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
-    /* perm-v4：訪客流量改成跟會員名單統計同一種數字卡（一排四格），說明併進範本資訊列那一行 —— 不再另起一張有標題、有兩行說明的卡 */
-    box.innerHTML = `<div class="mstats" id="ptGuestCard" title="訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚。"><div class="mkpis" id="ptGuestKpi"><div class="mkpi"><b>…</b><span>載入中</span></div></div></div>`;
-    const [st, on] = await Promise.all([PS.A.call('/v1/admin/stats', { days: 30 }), PS.A.call('/v1/admin/online', {})]);
-    const k = PS.v && PS.v.querySelector('#ptGuestKpi'); if (!k || PS.tier !== 'guest') return;
-    if (!st || st._s !== 200) { k.innerHTML = `<div class="err">讀不到流量（${esc(errText(st))}）</div>`; return; }
-    let ses = 0, sl = 0, pv = 0;
-    (st.rows || []).forEach((r) => { if (r.k === 'ev:session') ses += r.n; else if (r.k === 'ev:session_login') sl += r.n; else if (String(r.k).startsWith('pv:')) pv += r.n; });
-    const g = Math.max(0, ses - Math.min(sl, ses));
-    k.innerHTML = [[nf(g), '近 30 天訪客開啟網站'], [(ses ? Math.round(g / ses * 100) : 0) + '%', '訪客佔全部開啟（近 30 天）'], [nf(pv), '近 30 天全站頁面瀏覽'], [on && on._s === 200 ? nf(on.guests) : '—', '目前在線訪客']]
-      .map(([n, l]) => `<div class="mkpi"><b>${n}</b><span title="${l}">${l}</span></div>`).join('');
+    box.innerHTML = '<label class="tg ptpub" id="ptPubRow"><input type="checkbox" id="admPub" disabled>一般訪客看得到「目前 N 人在線」（只有總數，看不到名字）</label>';
+    const on = await PS.A.call('/v1/admin/online', {});
+    const cb = box.querySelector('#admPub'); if (!cb || PS.tier !== 'guest') return;
+    if (on && on._s === 200) cb.checked = !!on.public_online;
+    cb.disabled = !(on && on._s === 200);
+    cb.onchange = async () => { const r = await PS.A.call('/v1/admin/settings', { public_online: cb.checked }); if (!r || r._s !== 200) cb.checked = !cb.checked; };
   }
   /* 範本的名稱／價格／月或年：前端先擋一次（整數 0～999999），後端再驗一次（worker.js adminPlansPut）。
      只送這三欄＋目前存好的開關與次數（沒存的草稿不會被偷偷一起存掉 —— 有草稿就先請他存或取消）。 */
@@ -1681,11 +1742,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats: {}, lims: {}, price, period });
     if (!j || j._s !== 200) { setStat('新增失敗：' + errText(j), 'bad'); return; }
     PS.plans = j.plans; PS.tier = 'paid'; PS.planSel = id; PS.draft = null; PS.adding = false; PS.sub = 'perm';
-    paintAll(); setStat(`已新增付費範本「${planLabel(planOf(id)) || name}」（目前全開、不限次數；下面關掉這個價位不給的功能）`, 'ok');
+    paintAll(); setStat(`已新增付費範本「${planLabel(planOf(id)) || name}」`, 'ok');
   }
   function whoLine(r) {
     const n = Object.keys(mOver()).length, p = planOf(mPlan()), ex = mExp();
-    const who = r.known ? `已登入過：<b>${esc(r.known.name || '')}</b>${r.known.seen ? `（最後登入 ${dstr(r.known.seen)}）` : ''}` : '<b>尚未登入過</b>（先設好，對方登入後就生效）';
+    const who = r.known ? `已登入過：<b>${esc(r.known.name || '')}</b>${r.known.seen ? `（最後登入 ${dstr(r.known.seen)}）` : ''}` : '<b>尚未登入過</b>';
     const exs = ex ? (ex < Date.now() ? `・<b style="color:#ff6b7a">已於 ${msToDate(ex)} 到期</b>（目前套註冊會員）` : `・到期 <b>${msToDate(ex)}</b>`) : '';
     return `<b>${esc(r.email)}</b>・${who}・${TIER_NAME[tierOf(mPlan())]}「<b>${esc(p ? p.name : (r.planName || r.plan))}</b>」${exs}・個別微調 <b>${n}</b> 項${r.set ? '' : '（還沒個別設定過＝照免費會員）'}`;
   }
@@ -1722,7 +1783,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
          Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */
       const has = lims && Object.prototype.hasOwnProperty.call(lims, f.id), lv = has ? lims[f.id] : '';
       const limOpen = lims && PS.limOpen === f.id;
-      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="每日瀏覽次數上限（點一下設定）" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : '∞'}</button>` : '';
+      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="每日瀏覽次數上限" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : '∞'}</button>` : '';
       const pop = limOpen && f.kind !== 'limit' ? `<div class="pmlimpop" role="dialog" aria-label="${esc(f.name)} 每日瀏覽次數"><span>每日最多</span><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-limclr="${esc(f.id)}">不限</button><button type="button" class="ok" data-limok="1">確定</button></div>` : '';
       /* 改動用顏色表示、不用文字標籤（Andy 10-05 追加）：未存＝淡琥珀底＋左色條（.dirty）、已存的微調／改過＝淡藍左色條（.tuned）。
          色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
@@ -1757,7 +1818,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const gLimBtn = (key, label) => { if (!gLims) return ''; const fs = gFs(key); if (!fs.length) return '';
       const vals = new Set(fs.map((f) => (Object.prototype.hasOwnProperty.call(gLims, f.id) ? gLims[f.id] : null))), mixed = vals.size > 1, v1 = mixed ? null : [...vals][0];
       const dirty = ready && fs.some((f) => gSaved[f.id] !== gLims[f.id]);
-      return `<button type="button" class="pmlimb pmglim${mixed ? ' mixed' : v1 != null ? ' set' : ''}${v1 === 0 ? ' zero' : ''}${dirty ? ' dirty' : ''}" data-glim="${esc(key)}" title="${esc(label)}：整組每日瀏覽次數上限（點一下設定整組）" aria-label="${esc(label)} 整組每日瀏覽次數：${mixed ? '混合' : v1 == null ? '不限' : v1 + ' 次'}" aria-haspopup="dialog" ${ready ? '' : 'disabled'}>${mixed ? '混合' : v1 == null ? '∞' : v1 + '/日'}</button>`; };
+      return `<button type="button" class="pmlimb pmglim${mixed ? ' mixed' : v1 != null ? ' set' : ''}${v1 === 0 ? ' zero' : ''}${dirty ? ' dirty' : ''}" data-glim="${esc(key)}" title="${esc(label)}：整組每日瀏覽次數上限" aria-label="${esc(label)} 整組每日瀏覽次數：${mixed ? '混合' : v1 == null ? '不限' : v1 + ' 次'}" aria-haspopup="dialog" ${ready ? '' : 'disabled'}>${mixed ? '混合' : v1 == null ? '∞' : v1 + '/日'}</button>`; };
     const allBtns = (id) => (id === 'grp' ? gLimBtn('cat:grp', '族群觀測') : '') + triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
     const tsw = v.querySelector('#pmAllSw');
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
@@ -1777,7 +1838,6 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const by = {}; fs.forEach((f) => { (by[f.chain || ''] = by[f.chain || ''] || []).push(f); });
       const chName = (ch) => { const d = (fs.find((f) => f.chain === ch) || {}).desc; return d ? d.split('・')[0] : (ch || '其他'); };
       return `<div class="pmcat${open ? '' : ' shut'}" data-cat="grp"><div class="pmcathd">${fold(k, gc.name, fs, 'h3')}${allBtns('grp')}</div>
-        <p class="use pmfoldnote">族群多，整塊預設收起來；點上面標題或「全部展開」打開。關掉的族群：族群頁模糊＋鎖頭、資金輪動的族群下拉那一列鎖住、熱力圖／排行／輪盤點了只跳「此族群需開通」。${PS.mode === 'plan' ? '瀏覽次數＝一天能打開幾個不同族群頁。' : ''}</p>
         <div class="pmbody"${open ? '' : ' hidden'}><div class="grpgrid">`
         + Object.keys(by).map((ch) => { const ck = 'ch:' + ch, co = PS.open.has(ck);
           return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}${gLimBtn('ch:' + ch, chName(ch))}${triSw(`data-allsw="ch" data-ch="${esc(ch)}"`, by[ch], chName(ch))}</div>`
@@ -1991,14 +2051,14 @@ html[data-theme="light"] #v-admin{--pgL:40%}
      全部是 SVG＋HTML 標籤：每個色塊有 <title>（滑過看數字），文字用文字色、不用系列色；顏色跟著「東西」走（狀態色固定、範本色依 id）。 */
   function donut2(parts, opt) {
     const o = opt || {}, tot = parts.reduce((x, p) => x + p[1], 0), unit = o.unit || '人';
-    if (!tot) return `<div class="empty">${esc(o.empty || '尚無資料')}</div>`;
+    if (!tot) return `<div class="empty">${esc(o.empty || '沒有資料')}</div>`;
     /* 跟流量觀測同一套甜甜圈：直角、非同組扇區間隙一律 2°、細軌道、中心字、滑過連動（donutG）；這裡只是小一號、圖例每列帶人數 */
     const segs = parts.map(([nm, n, col], i) => ({ label: nm, n, color: col, k: o.keys ? o.keys[i] : nm, ltxt: `${nf(n)} ${unit}・${Math.round(n / tot * 100)}%` })).filter((x) => x.n > 0 || true);
     return donutG(segs.filter((x) => x.n > 0), Object.assign({ cls: 'mdonut', id: o.id, center: [unit === '人' ? '合計' : '合計', nf(tot)], legend: segs, legendN: 8, totalN: tot, aria: o.aria || '占比' }));
   }
   function hbars(list, names, opt) {
     const o = opt || {};
-    if (!list.length) return `<div class="empty">${esc(o.empty || '尚無資料')}</div>`;
+    if (!list.length) return `<div class="empty">${esc(o.empty || '沒有資料')}</div>`;
     const max = Math.max(1, ...list.map((x) => x[1])), tot = list.reduce((x, y) => x + y[1], 0);
     return `<div class="hbars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const nm = names(k), t = tp(`<b>${esc(nm)}</b><br>${nf(n)} 次・占 ${(n / tot * 100).toFixed(1)}%`);
       return `<span class="bl" data-row="${r}"${t}>${esc(nm)}</span><svg data-row="${r}"${t}><rect class="tr" width="100%" height="10" rx="5"/><rect class="v" width="${(n / max * 100).toFixed(1)}%" height="10" rx="5"/></svg><span class="bn" data-row="${r}"${t} data-k="${esc(k)}" data-n="${n}">${nf(n)}</span>`; }).join('') + '</div>';
@@ -2006,7 +2066,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   const mmdd = (d) => String(d || '').slice(5).replace('-', '/');
   function vbars(days, opt) {
     const o = opt || {}, unit = o.unit || '人';
-    if (!days.length || !days.some((d) => d.n)) return `<div class="empty">${esc(o.empty || '尚無資料（近 14 天沒有活躍紀錄）')}</div>`;
+    if (!days.length || !days.some((d) => d.n)) return `<div class="empty">${esc(o.empty || '沒有資料')}</div>`;
     const max = Math.max(1, ...days.map((d) => d.n)), W = days.length * 10, H = 100, bw = W / days.length, tot = days.reduce((x, d) => x + d.n, 0);
     /* 跟流量觀測直條同規格：細柱（寬 ≈ 0.45 格）、左側 5 個 Y 刻度＋很淡的水平格線、滑過高亮並顯示提示 */
     return `<div class="vbwrap" data-chart="days"><div class="vby">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(max * f))}</span>`).join('')}</div>
@@ -2026,7 +2086,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (PS.mst[key]) return;
     PS.mst[key] = { loading: true };
     const j = await PS.A.call('/v1/admin/members/stats', key === 'all' ? { scope: 'all' } : { scope: 'plan', plan: key.slice(5) });
-    PS.mst[key] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '會員 Worker 尚未更新' : j && j._s === 200 ? '回應格式不對' : '讀不到：' + errText(j) };
+    PS.mst[key] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '讀不到' : j && j._s === 200 ? '回應格式不對' : '讀不到：' + errText(j) };
     const el = PS.v && PS.v.querySelector('#ptStats');
     if (el && mKey() === key) el.innerHTML = statsHtml(listRows());
   }
@@ -2055,16 +2115,21 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     return `<div class="mkpis">${kp}</div><div class="mcharts" id="msCharts">
       <div class="mchart" data-ch="status"><h4>${PS.tier === 'free' ? '會員狀態｜免費 vs 付費' : '會員狀態'}<small>人數</small></h4>${dn}</div>
       <div class="mchart" data-ch="days"><h4>近 14 天每日活躍人數</h4>${wait ? `<div class="empty">${esc(wait)}</div>` : vbars(days, { id: 'msDays', aria: '近 14 天每天有幾個人活躍' })}</div>
-      <div class="mchart" data-ch="feats"><h4>最常用的功能 Top 8<small>近 30 天合計次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.feats || [], compName, { id: 'msFeat', empty: '尚無資料（近 30 天沒有紀錄）' })}</div>
-      <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8<small>近 30 天觀看次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.stocks || [], stockNm, { id: 'msStock', empty: '尚無資料（近 30 天沒有紀錄）' })}</div></div>`;
+      <div class="mchart" data-ch="feats"><h4>最常用的功能 Top 8<small>近 30 天合計次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.feats || [], compName, { id: 'msFeat', empty: '沒有資料' })}</div>
+      <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8<small>近 30 天觀看次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.stocks || [], stockNm, { id: 'msStock', empty: '沒有資料' })}</div></div>`;
   }
   /* 展開明細（Andy 10-05：數字太大、被上一列擋住、四塊位置亂）：一排四個小數字（≤ 20px）＋一排四張同高圖卡，
      放在表格裡獨立的一列（colspan 全寬、自己的底色與內距），不用任何絕對定位 → 不會蓋到上下列。 */
   function detailHtml(r) {
+    const tune = PS.mode === 'member' ? '' : `<div class="pmbar"><button type="button" class="pri" data-tune="${esc(r.email)}">逐人微調…</button></div>`;
+    const body = detailBody(r);
+    return body.replace(/<\/div>$/, tune + '</div>');
+  }
+  function detailBody(r) {
     const d = PS.det[r.email];
     if (!d) return '<div class="mdet"><div class="empty">讀取使用紀錄中…</div></div>';
     if (d.err) return `<div class="mdet"><div class="empty">${esc(d.err)}</div></div>`;
-    if (!d.known) return '<div class="mdet"><div class="empty">這位還沒登入過，沒有使用紀錄。</div></div>';
+    if (!d.known) return '<div class="mdet"><div class="empty">尚未登入</div></div>';
     const days = (d.days || []).map((x) => ({ day: x.day, n: x.views || 0, tip: `${x.day}：造訪 ${x.visits} 次、瀏覽 ${x.views} 頁、在線 ${dur(x.ms)}` }));
     const avg = r.visits30 ? r.online30 / r.visits30 : 0;
     const pages = (d.pages || []).slice().sort((a, b) => b[1] - a[1]);
@@ -2075,15 +2140,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       <div class="mkpis">${kpi(nf(r.days30), '近 30 天活躍天數')}${kpi(dur(r.online30), '近 30 天在線')}${kpi(avg ? dur(avg) : '—', '平均每次停留')}${kpi(nf(r.views30), '近 30 天頁面瀏覽')}</div>
       <div class="mcharts">
         <div class="mchart" data-ch="days"><h4>近 14 天每日活躍<small>頁面瀏覽</small></h4>${vbars(days, { unit: '頁', aria: '近 14 天每天的頁面瀏覽' })}</div>
-        <div class="mchart" data-ch="pages"><h4>各分頁瀏覽<small>近 30 天</small></h4>${donut2(pp.map(([k, n], i) => [k === '_other' ? '其他' : (VIEW_NAME[k] || k), n, k === '_other' ? 'var(--c0)' : pcol[i]]), { unit: '次', aria: '各分頁瀏覽佔比', empty: '尚無資料（近 30 天沒有紀錄）' })}</div>
-        <div class="mchart" data-ch="feats"><h4>功能使用次數 Top 8</h4>${hbars(feats, (k) => { const [pg, c] = k.split('|'); return (VIEW_NAME[pg] || pg) + '・' + compName(c); }, { empty: '尚無資料（近 30 天沒有紀錄）' })}</div>
-        <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8</h4>${hbars((d.stocks || []).slice(0, 8), stockNm, { empty: '尚無資料（近 30 天沒有紀錄）' })}</div></div>
-      ${PS.mode === 'member' ? '<p class="use">這位已載入下面逐人微調。</p>' : `<div class="pmbar"><button type="button" class="pri" data-tune="${esc(r.email)}">逐人微調…</button><span class="use">改層級／範本、到期日與這個人的個別開關</span></div>`}</div>`;
+        <div class="mchart" data-ch="pages"><h4>各分頁瀏覽<small>近 30 天</small></h4>${donut2(pp.map(([k, n], i) => [k === '_other' ? '其他' : (VIEW_NAME[k] || k), n, k === '_other' ? 'var(--c0)' : pcol[i]]), { unit: '次', aria: '各分頁瀏覽佔比', empty: '沒有資料' })}</div>
+        <div class="mchart" data-ch="feats"><h4>功能使用次數 Top 8</h4>${hbars(feats, (k) => { const [pg, c] = k.split('|'); return (VIEW_NAME[pg] || pg) + '・' + compName(c); }, { empty: '沒有資料' })}</div>
+        <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8</h4>${hbars((d.stocks || []).slice(0, 8), stockNm, { empty: '沒有資料' })}</div></div>
+      </div>`;
   }
   async function loadDetail(email) {
     if (PS.det[email] && !PS.det[email].err) return;
     const j = await PS.A.call('/v1/admin/member/detail', { email });
-    PS.det[email] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '會員 Worker 還沒更新成有使用明細的版本（admin-v3）。' : '讀不到使用紀錄（' + errText(j) + '）' };
+    PS.det[email] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '讀不到使用紀錄' : '讀不到使用紀錄（' + errText(j) + '）' };
     paintList();
   }
   function paintList() {
@@ -2091,7 +2156,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (PS.mode === 'plan') {
       const box = PS.v.querySelector('#ptListBox'); if (!box || box.hidden) return;
       const rows = listRows(), use = (PS.tier === 'free' ? '所有人員（含付費與尚未登入過的）；金色徽章＝付費會員（後面是方案名）、過期的標「過期」。' : '被指定到這個範本的會員。')
-        + '點欄位標題排序、點一列展開使用紀錄，按「逐人微調」改層級／範本、到期日與個別開關。';
+        + '';
       const defPlan = PS.tier === 'paid' ? PS.planSel : 'free';
       /* 殼（統計、新增會員列、搜尋列）只在第一次或換層級／範本時畫，之後打字搜尋只換表格，輸入框不會掉焦點 */
       const shellKey = PS.tier + '|' + PS.planSel;
@@ -2107,7 +2172,6 @@ html[data-theme="light"] #v-admin{--pgL:40%}
             <button type="button" id="pmTuneGo">讀取</button></div>
           <div class="pmbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
             <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span></div>
-          <p class="use" id="ptUse" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></p>
           <div id="ptTableBox"></div></div>`;
         const vv = PS.v; vv.querySelector('#pmStatF').value = PS.stf;
         vv.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
@@ -2123,7 +2187,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       let fr = q ? rows.filter((r) => (r.email + ' ' + r.name + ' ' + r.planName + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : rows.slice();
       if (PS.stf) fr = fr.filter((r) => r.st === PS.stf);
       const cnt = box.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${fr.length} ／ ${rows.length} 位` : `共 ${rows.length} 位`;
-      const ub = box.querySelector('#ptUse'); if (ub) { ub.textContent = use; ub.title = use; }
+      if (cnt) cnt.title = use;
       const tb = box.querySelector('#ptTableBox');
       tb.innerHTML = fr.length ? memTable(fr, 'ptTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '這一層目前沒有人。用上面的「新增會員」加第一位。'}</div>`;
       wireList(tb);
