@@ -327,7 +327,8 @@
      管理者名單仍然只在 Worker 的 ADMIN_EMAILS（不寫進 repo）。就算有人自己在網址打 #admin/perm，account.js 的 route 也只給管理者看內容、
      Worker 的 /v1/admin/* 也只回管理者；這一格只是入口。
      長相跟資金流向的子分頁一樣（l4subtab、縮排在「自選」下面），但不帶 data-l4sub：它是另一個頁面（#admin/perm），不是自選頁裡的一段。 */
-  const ADM_SUBS = [['perm', '會員權限', 'admTabPerm', 'scale'], ['members', '會員管理', 'admTabMembers', 'users'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge']];
+  // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
+  const ADM_SUBS = [['members', '會員管理', 'admTabMembers', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge']];
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); }
   function syncPerm() {
     const tabs = $('#tabs');

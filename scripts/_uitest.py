@@ -42649,11 +42649,11 @@ def t_member_perm(b, base, code):
         wait_until(ad, "() => location.hash === '#admin/members' && document.querySelectorAll('#pmCats .pmcat').length > 0 && !!document.getElementById('pmEmail')", 10000)
         ad.click("#pmExpandAll")    # 2026-10-05 admin-v2b：開放功能表預設只展開第一類；下面要撥其他類的開關，先全部展開
         nf = ad.evaluate("() => ({ cats: TwFeatures.cats.length, bools: TwFeatures.list.filter(f => f.kind === 'bool').length, limits: TwFeatures.list.filter(f => f.kind === 'limit').length })")
-        ok(f"{T}：#admin/perm 依分類列出全部功能（{nf['cats']} 類）", ad.locator("#pmCats .pmcat").count() == nf["cats"], ad.locator("#pmCats .pmcat").count())
-        ok(f"{T}：每個開關類功能一個 Switch、上限類一個下拉", ad.locator("#pmCats input[role=switch]").count() == nf["bools"] and ad.locator("#pmCats select[data-f]").count() == nf["limits"],
-           (ad.locator("#pmCats input[role=switch]").count(), nf))
-        ok(f"{T}：還沒選人之前開關是停用的（不會誤存到不知道誰）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => i.disabled)"))
-        ok(f"{T}：每類都有「全開／全關」", ad.locator("#pmCats button[data-all='1']").count() == nf["cats"] and ad.locator("#pmCats button[data-all='0']").count() == nf["cats"])
+        ok(f"{T}：#admin/perm 依分類列出全部功能（{nf['cats']} 類）", ad.locator("#pmCats .pmcat, #pmGrp .pmcat").count() == nf["cats"], ad.locator("#pmCats .pmcat, #pmGrp .pmcat").count())  # admin-v2c：族群觀測獨立在 #pmGrp
+        ok(f"{T}：每個開關類功能一個 Switch、上限類一個下拉", ad.locator("#pmCats input[role=switch], #pmGrp input[role=switch]").count() == nf["bools"] and ad.locator("#pmCats select[data-f]").count() == nf["limits"],
+           (ad.locator("#pmCats input[role=switch], #pmGrp input[role=switch]").count(), nf))
+        ok(f"{T}：還沒選人之前開關是停用的（不會誤存到不知道誰）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch], #pmGrp input[role=switch]')].every(i => i.disabled)"))
+        ok(f"{T}：每類都有「全開／全關」", ad.locator("#pmCats button[data-all='1'], #pmGrp button[data-all='1']").count() == nf["cats"] and ad.locator("#pmCats button[data-all='0'], #pmGrp button[data-all='0']").count() == nf["cats"])
         ok(f"{T}：管理頁寫明鎖頭擋不住直接讀 JSON（誠實限制）", "資料檔" in ad.inner_text("#v-admin") and "DECISIONS #288" in ad.inner_text("#v-admin"))
         # 預設方案：訪客、免費會員都在，而且是空的（全開）
         plans = ad.evaluate("() => TwAccount.call('/v1/admin/plans/get', {})")
@@ -42724,8 +42724,7 @@ def t_member_perm(b, base, code):
         #   改前「方案範本模式＋下拉選付費測試」→ 改後「會員權限 → 付費會員 → 點『付費測試』範本晶片」；訪客層根本沒有刪除鈕（內建不能刪）。
         ad.click("#admTabPerm")
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
-        ad.click("#ptTier button[data-tier='paid']")
-        ad.locator("#ptPlans button", has_text="付費測試").click()
+        ad.locator("#ptTier button", has_text="付費測試").click()    # admin-v2c：付費方案直接是一個大頁籤
         wait_until(ad, "() => !!document.querySelector(\"#pmCats input[data-f='ov.heat']\") && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled && /付費測試/.test(document.getElementById('ptFor').textContent)", 4000)
         ok(f"{T}：付費會員選「付費測試」範本 → 開關顯示範本內容（資金熱力圖關、熱門題材開）",
            ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked && document.querySelector(\"#pmCats input[data-f='ov.theme']\").checked"))
@@ -43026,7 +43025,7 @@ def t_perm_nav(b, base):
     n1 = len(sent)
     pg.click("#admTabPerm")       # 2026-10-05 admin-v2：定價範本在「會員權限 → 付費會員」
     wait_until(pg, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier')", 8000)
-    pg.click("#ptTier button[data-tier='paid']")
+    pg.click("#ptAddTab")    # admin-v2c：定價範本搬到「＋」新增付費方案頁籤裡
     pg.click("#pmTpl")
     wait_until(pg, "() => /已建立定價範本/.test(document.getElementById('pmStat').textContent)", 5000)
     made = [x[1] for x in sent[n1:] if x[0] == "/v1/admin/plans/put"]
@@ -43221,66 +43220,81 @@ def t_admin_v2(b, base, code):
     pg.click("#l4Perm")
     wait_until(pg, "() => location.hash === '#admin/perm' && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
     # ★ 2026-10-05 改前→改後（admin-v2b，Andy：頂部那排搬到左側欄「管理區」下面當縮排子項）：三個 id 不變，但改成 #tabs 裡的 .l4subtab、頁內沒有 #admTabs
-    ok(f"{T}：側欄「管理區」下面三個縮排子項（會員權限／會員管理／流量觀測），目前亮「會員權限」、頁內頂部沒有那排 tab",
-       pg.evaluate("""() => { const ids = ['admTabPerm','admTabMembers','admTabTraffic'], els = ids.map(i => document.getElementById(i));
+    # ★ admin-v2c（Andy）：順序改成 會員管理 → 會員權限 → 流量觀測；目前在 #admin/perm，所以亮的是第二格
+    ok(f"{T}：側欄「管理區」下面三個縮排子項（會員管理／會員權限／流量觀測），目前亮「會員權限」、頁內頂部沒有那排 tab",
+       pg.evaluate("""() => { const ids = ['admTabMembers','admTabPerm','admTabTraffic'], els = ids.map(i => document.getElementById(i));
          if (els.some(e => !e || !e.classList.contains('l4subtab') || !e.closest('#tabs'))) return false;
          const p = document.getElementById('l4Perm').getBoundingClientRect(), r = els.map(e => e.getBoundingClientRect());
-         return els[0].classList.contains('on') && !els[1].classList.contains('on') && !document.getElementById('admTabs')
+         return els[1].classList.contains('on') && !els[0].classList.contains('on') && !document.getElementById('admTabs')
            && r[0].top >= p.bottom - 1 && r[1].top >= r[0].bottom - 1 && r[2].top >= r[1].bottom - 1 && r[0].left >= p.left
-           && els.map(e => e.textContent.trim()).join() === '會員權限,會員管理,流量觀測'; }"""),
+           && els.map(e => e.textContent.trim()).join() === '會員管理,會員權限,流量觀測'; }"""),
        pg.evaluate("() => [...document.querySelectorAll('#tabs .l4subtab[data-parent=admin]')].map(e => [e.id, e.className, e.textContent.trim()])"))
     ok(f"{T}：會員權限有三層（訪客｜註冊會員｜付費會員），預設訪客、訪客沒有 Mail 名單",
-       pg.evaluate("() => [...document.querySelectorAll('#ptTier button')].map(b => b.dataset.tier).join() === 'guest,free,paid' && document.querySelector('#ptTier button.on').dataset.tier === 'guest' && !document.getElementById('ptMail')"))
+       pg.evaluate("() => [...document.querySelectorAll('#ptTier button[role=tab]')].map(b => b.dataset.p || b.dataset.tier || b.id).join() === 'guest,free,p399,p799,ptAddTab' && document.querySelector('#ptTier button.on').dataset.tier === 'guest' && !document.getElementById('ptMail')"))
     ng = pg.evaluate("() => TwFeatures.inCat('grp').length")
     ok(f"{T}：開放功能表有「族群觀測」一類，列出全部 {ng} 個族群（每個一個 Switch，鍵都是 grp.<鍵>）", ng > 50
-       and pg.locator("#pmCats .pmcat[data-cat='grp'] input[role=switch]").count() == ng
-       and pg.evaluate("() => [...document.querySelectorAll(\"#pmCats .pmcat[data-cat='grp'] input[data-f]\")].every(i => /^grp\\.[a-z][a-z0-9_]{0,34}$/.test(i.dataset.f))"), ng)
+       and pg.locator("#pmGrp .pmcat[data-cat='grp'] input[role=switch]").count() == ng
+       and pg.evaluate("() => [...document.querySelectorAll(\"#pmGrp .pmcat[data-cat='grp'] input[data-f]\")].every(i => /^grp\\.[a-z][a-z0-9_]{0,34}$/.test(i.dataset.f))"), ng)
     # 註冊會員：名單＋關一個族群存起來
     pg.click("#ptTier button[data-tier='free']")
     wait_until(pg, "() => !!document.getElementById('ptMail')", 4000)
     mail = pg.inner_text("#ptMail")
     ok(f"{T}：註冊會員的 Mail 名單列出沒被指定付費的人（free1、wait），不含付費會員", "free1@example.com" in mail and "wait@example.com" in mail and "a399@example.com" not in mail, mail[:200])
-    # ★ 2026-10-05 admin-v2b：開放功能表可收合 —— 預設只展開第一類（總覽）、族群觀測與它的產業鏈分組都收著；標題寫「已開 N／共 M」
-    fold0 = pg.evaluate("""() => [...document.querySelectorAll('#pmCats .pmcat')].map(c => [c.dataset.cat, !c.querySelector('.pmbody').hidden, (c.querySelector('.pmfoldhd small') || {}).textContent])""")
-    ok(f"{T}：開放功能表預設只展開第一類，其餘收起、標題寫「已開 N／共 M」",
-       fold0[0][1] and not any(x[1] for x in fold0[1:]) and all(re.match(r"^已開 \d+／共 \d+$", x[2] or "") for x in fold0), fold0)
-    pg.click("#pmCats .pmcat[data-cat='heatmap'] .pmfoldhd")
-    ok(f"{T}：點「熱力圖」標題 → 展開、看得到它的開關；再點一次收起",
-       pg.locator("#pmCats .pmcat[data-cat='heatmap'] input[data-f='heat.theme']").is_visible()
-       and pg.get_attribute("#pmCats .pmcat[data-cat='heatmap'] .pmfoldhd", "aria-expanded") == "true")
-    pg.click("#pmCats .pmcat[data-cat='heatmap'] .pmfoldhd")
-    ok(f"{T}：（續）收起後開關看不到", not pg.locator("#pmCats .pmcat[data-cat='heatmap'] input[data-f='heat.theme']").is_visible())
-    pg.click("#pmCats .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd")
-    gch = pg.evaluate("""() => [...document.querySelectorAll("#pmCats .pmcat[data-cat='grp'] .grpch")].map(h => [h.dataset.ch, h.nextElementSibling.hidden, h.querySelector('small').textContent])""")
-    ok(f"{T}：展開「族群觀測」→ 產業鏈分組各自收著、各寫「已開 N／共 M」（{len(gch)} 組）",
-       len(gch) >= 3 and all(x[1] for x in gch) and all(re.match(r"^已開 \d+／共 \d+$", x[2]) for x in gch), gch[:4])
-    pg.click("#pmCollapseAll")
-    ok(f"{T}：「全部收合」→ 每一類都收起來", pg.evaluate("() => [...document.querySelectorAll('#pmCats .pmbody')].every(b => b.hidden)"))
+    # ★ 2026-10-05 改前→改後（admin-v2c，Andy）：一般分類回第一版（不收合、標題「N 項・開 M」）；收合只留給族群觀測（預設收合）與它的產業鏈分組
+    fold0 = pg.evaluate("""() => [...document.querySelectorAll('#pmCats .pmcat:not([data-cat=grp])')].map(c => [c.dataset.cat, !!c.querySelector('[data-fold]'), c.querySelector('.pmbody').hidden, (c.querySelector('.pmcathd h3 small') || {}).textContent])""")
+    ok(f"{T}：開放功能表是一張大卡（分類本身沒有卡片外框）、族群觀測獨立在「② 族群觀測」大段",
+       pg.evaluate("() => document.getElementById('pmCats').classList.contains('card') && !document.querySelector('#pmCats .pmcat.card') && !document.querySelector(\"#pmCats .pmcat[data-cat='grp']\") && /② 族群觀測/.test(document.querySelector('#pmGrpTtl h2').textContent) && /③ Mail/.test(document.body.innerText)"))
+    ok(f"{T}：一般分類不可收合、內容全攤開、標題寫「N 項・開 M」（{len(fold0)} 類）",
+       len(fold0) >= 3 and not any(x[1] or x[2] for x in fold0) and all(re.match(r"^\d+ 項・開 \d+$", x[3] or "") for x in fold0)
+       and pg.locator("#pmCats .pmcat[data-cat='heatmap'] input[data-f='heat.theme']").is_visible(), fold0)
+    ok(f"{T}：族群觀測預設收合、「全部展開／全部收合」在「② 族群觀測」標題旁",
+       pg.evaluate("() => { const g = document.querySelector(\"#pmGrp .pmcat[data-cat='grp']\"); return g.querySelector('.pmbody').hidden && !!document.querySelector('#pmGrpTtl #pmExpandAll') && !!document.querySelector('#pmGrpTtl #pmCollapseAll') && document.querySelectorAll('#pmExpandAll').length === 1; }"))
+    pg.click("#pmGrp .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd")
+    gch = pg.evaluate("""() => [...document.querySelectorAll("#pmGrp .pmcat[data-cat='grp'] .grpch")].map(h => [h.dataset.ch, h.nextElementSibling.hidden, h.querySelector('small').textContent])""")
+    ok(f"{T}：點族群觀測標題 → 展開，產業鏈分組各自收著、各寫「N 項・開 M」（{len(gch)} 組）",
+       not pg.evaluate("() => document.querySelector(\"#pmGrp .pmcat[data-cat='grp'] .pmbody\").hidden")
+       and len(gch) >= 3 and all(x[1] for x in gch) and all(re.match(r"^\d+ 項・開 \d+$", x[2]) for x in gch), gch[:4])
+    pg.click("#pmGrp .grpch[data-ch='semiconductor'] .pmfoldhd")
+    ok(f"{T}：點「半導體」分組 → 展開看得到晶圓代工；再點一次收起",
+       pg.locator("#pmGrp input[data-f='grp.foundry']").is_visible())
+    pg.click("#pmGrp .grpch[data-ch='semiconductor'] .pmfoldhd")
+    ok(f"{T}：（續）分組收起後晶圓代工看不到", not pg.locator("#pmGrp input[data-f='grp.foundry']").is_visible())
     pg.click("#pmExpandAll")
-    ok(f"{T}：「全部展開」→ 每一類＋每個產業鏈分組都打開、晶圓代工那一列看得到",
-       pg.evaluate("() => [...document.querySelectorAll('#pmCats .pmbody, #pmCats .grpbody')].every(b => !b.hidden)")
-       and pg.locator("#pmCats input[data-f='grp.foundry']").is_visible())
-    n_on = pg.evaluate("() => +/已開 (\\d+)/.exec(document.querySelector(\"#pmCats .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd small\").textContent)[1]")
-    pg.click("#pmCats input[data-f='grp.foundry']")
-    n_on2 = pg.evaluate("() => +/已開 (\\d+)/.exec(document.querySelector(\"#pmCats .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd small\").textContent)[1]")
-    ok(f"{T}：撥掉一個族群 → 族群觀測標題的「已開」少 1、展開狀態沒被重設", n_on2 == n_on - 1 and pg.locator("#pmCats input[data-f='grp.foundry']").is_visible(), (n_on, n_on2))
+    ico = pg.evaluate("""() => { const rows = [...document.querySelectorAll("#pmGrp .pmcat[data-cat='grp'] .pmrow")];
+        return [rows.length, rows.filter(r => { const s = r.querySelector('.gico svg'); if (!s) return false; const b = s.getBoundingClientRect(); return Math.round(b.width) === 16 && Math.round(b.height) === 16; }).length,
+                new Set(rows.map(r => (r.querySelector('.gico') || {}).dataset ? r.querySelector('.gico').dataset.ico : '')).size]; }""")
+    ok(f"{T}：「全部展開」→ 所有產業鏈分組打開，每個族群都有 16px 小圖示（{ico}）",
+       pg.evaluate("() => [...document.querySelectorAll('#pmGrp .grpbody, #pmCats .pmbody, #pmGrp .pmbody')].every(b => !b.hidden)")
+       and ico[0] > 50 and ico[1] == ico[0] and ico[2] >= 5, ico)
+    pg.click("#pmCollapseAll")
+    ok(f"{T}：「全部收合」只收族群觀測，一般分類照樣攤開",
+       pg.evaluate("() => document.querySelector(\"#pmGrp .pmcat[data-cat='grp'] .pmbody\").hidden && [...document.querySelectorAll('#pmCats .pmcat:not([data-cat=grp]) .pmbody')].every(b => !b.hidden)"))
+    pg.click("#pmExpandAll")
+    n_on = pg.evaluate("() => +/開 (\\d+)/.exec(document.querySelector(\"#pmGrp .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd small\").textContent)[1]")
+    pg.click("#pmGrp input[data-f='grp.foundry']")
+    n_on2 = pg.evaluate("() => +/開 (\\d+)/.exec(document.querySelector(\"#pmGrp .pmcat[data-cat='grp'] > .pmcathd .pmfoldhd small\").textContent)[1]")
+    ok(f"{T}：撥掉一個族群 → 族群觀測標題的「開 M」少 1、展開狀態沒被重設", n_on2 == n_on - 1 and pg.locator("#pmGrp input[data-f='grp.foundry']").is_visible(), (n_on, n_on2))
     ok(f"{T}：撥掉「晶圓代工」族群 → 只是草稿（1 項未存）", "1 項" in pg.inner_text("#pmDirty"), pg.inner_text("#pmDirty"))
     with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
         pg.click("#pmSaveGo")
     body = json.loads(ri.value.request.post_data or "{}")
     ok(f"{T}：按儲存 → plans/put 送到註冊會員範本（free）、feats 正好是 grp.foundry:false", body.get("id") == "free" and body.get("feats") == {"grp.foundry": False}, body)
     # 付費：晶片換範本、名單跟著換、新增範本
-    pg.click("#ptTier button[data-tier='paid']")
-    wait_until(pg, "() => document.querySelectorAll('#ptPlans button[data-p]').length >= 2", 4000)
-    ok(f"{T}：付費會員列出範本晶片（399 即時、799 全功能），預設第一個、名單是 399 的人", pg.evaluate("() => document.querySelector('#ptPlans button.on').dataset.p === 'p399'")
+    # ★ admin-v2c：大分頁 —— 付費方案直接是頁籤（訪客｜註冊會員｜399｜799｜＋），點 399 頁籤
+    pg.click("#ptTier button[data-p='p399']")
+    ok(f"{T}：大分頁：選中頁籤字級 ≥15px、跟下面內容框連成一體（頁籤底邊貼著內容框頂）",
+       pg.evaluate("""() => { const t = document.querySelector('#ptTier button.on'), pn = document.querySelector('#pmHead .ptpanel');
+         const a = t.getBoundingClientRect(), b = pn.getBoundingClientRect();
+         return parseFloat(getComputedStyle(t).fontSize) >= 15 && Math.abs(a.bottom - b.top) <= 2 && t.getAttribute('aria-selected') === 'true'; }"""))
+    ok(f"{T}：付費方案頁籤（399 即時、799 全功能）點 399、名單是 399 的人", pg.evaluate("() => document.querySelector('#ptTier button.on').dataset.p === 'p399'")
        and "a399@example.com" in pg.inner_text("#ptMail") and "c799@example.com" not in pg.inner_text("#ptMail"))
     ok(f"{T}：399 範本的「熱門題材」是關的（顯示範本內容）", pg.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.theme']\").checked"))
-    pg.click("#ptPlans button[data-p='p799']")
+    pg.click("#ptTier button[data-p='p799']")
     wait_until(pg, "() => /799/.test(document.getElementById('ptFor').textContent)", 3000)
     m799 = pg.inner_text("#ptMail")
     ok(f"{T}：點「799 全功能」→ 名單換成 799 的兩位、過期的那位標「過期」", "b799@example.com" in m799 and "c799@example.com" in m799 and "a399@example.com" not in m799 and "過期" in m799, m799[:200])
     # ★ 2026-10-05 admin-v2b：範本拆成 名稱／價格（整數 NT$）／計費週期；按鈕顯示「名稱・NT$價格/週期」
-    ok(f"{T}：範本按鈕顯示「名稱・NT$價格/週期」", "799 全功能・NT$799/月" in pg.inner_text("#ptPlans button[data-p='p799']"), pg.inner_text("#ptPlans"))
+    ok(f"{T}：範本按鈕顯示「名稱・NT$價格/週期」", "799 全功能・NT$799/月" in pg.inner_text("#ptTier button[data-p='p799']"), pg.inner_text("#ptTier"))
     ok(f"{T}：選中的範本有 名稱／價格／計費週期 三個欄位，帶入目前值",
        pg.input_value("#ptEdName") == "799 全功能" and pg.input_value("#ptEdPrice") == "799" and pg.input_value("#ptEdPeriod") == "month")
     nput = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
@@ -43296,13 +43310,20 @@ def t_admin_v2(b, base, code):
     ok(f"{T}：改名「進階方案」、價格 8990、週期 年 → plans/put 帶 id 不變（p799）、price=8990、period=year、開關照舊",
        eb.get("id") == "p799" and eb.get("name") == "進階方案" and eb.get("price") == 8990 and eb.get("period") == "year" and eb.get("feats") == {}, eb)
     ok(f"{T}：（續）按鈕換成「進階方案・NT$8,990/年」、選中的還是它",
-       bool(wait_until(pg, "() => /進階方案・NT\\$8,990\\/年/.test((document.querySelector('#ptPlans button.on') || {}).textContent || '')", 3000)), pg.inner_text("#ptPlans"))
+       bool(wait_until(pg, "() => /進階方案・NT\\$8,990\\/年/.test((document.querySelector('#ptTier button.on') || {}).textContent || '')", 3000)), pg.inner_text("#ptTier"))
+    ntab = pg.locator("#ptTier button[role=tab]").count()
+    pg.click("#ptAddTab")
+    ok(f"{T}：按「＋」頁籤 → 它被選中、出現名稱／價格／週期表單", pg.get_attribute("#ptAddTab", "aria-selected") == "true" and pg.locator("#ptNewForm #ptNewPrice").is_visible())
     pg.fill("#ptNewName", "1299 法人版")
+    pg.fill("#ptNewPrice", "1299")
+    pg.select_option("#ptNewPeriod", "year")
     with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
         pg.click("#ptNewGo")
     nb = json.loads(ri.value.request.post_data or "{}")
-    wait_until(pg, "() => /1299/.test((document.querySelector('#ptPlans button.on') || {}).textContent || '')", 3000)
-    ok(f"{T}：「＋ 新增付費範本」→ plans/put（名稱對、feats 空）、新晶片出現並選起來", nb.get("name") == "1299 法人版" and nb.get("feats") == {} and re.match(r"^p[0-9a-z]+$", nb.get("id", "")), nb)
+    wait_until(pg, "() => /1299/.test((document.querySelector('#ptTier button.on') || {}).textContent || '')", 3000)
+    ok(f"{T}：「＋」新增付費方案 → plans/put（名稱、price=1299、period=year、feats 空）、多一個頁籤並選中它",
+       nb.get("name") == "1299 法人版" and nb.get("feats") == {} and nb.get("price") == 1299 and nb.get("period") == "year" and re.match(r"^p[0-9a-z]+$", nb.get("id", ""))
+       and pg.locator("#ptTier button[role=tab]").count() == ntab + 1 and pg.get_attribute("#ptTier button.on", "data-p") == nb.get("id"), nb)
     # ② 會員管理
     pg.click("#admTabMembers")
     wait_until(pg, "() => location.hash === '#admin/members' && document.querySelectorAll('#pmListBody tr[data-email]').length > 0", 10000)
