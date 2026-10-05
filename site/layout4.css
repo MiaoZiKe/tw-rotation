@@ -186,7 +186,7 @@
   :root.l4 .tabs>.l4subtab[data-parent="flow"]{order:2}
   :root.l4 .tabs>.l4subtab[data-parent="heatmap"]{order:3}
   :root.l4 .tabs>.l4subtab[data-parent="admin"]{order:8}   /* 管理區三個子項（layout4.js syncPerm），跟在「管理區」下面 */
-  :root.l4 .tab.l4perm.l4hassub.on{background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
+  :root.l4 .tabs:not([data-cs~="admin"])>.tab.l4perm.l4hassub.on{background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
   :root.l4 .tab.l4perm{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}   /* 會員權限（只有管理者有這一格，layout4.js syncPerm）緊跟在「自選」下面 */
   :root.l4 .l4subtab{position:relative;display:flex;align-items:center;gap:8px;width:100%;min-width:0;margin:0;padding:5px var(--sp-3) 5px 34px;
     border:0;border-radius:var(--r-md);background:transparent;color:var(--ink-3);font-size:var(--fs-sm);line-height:20px;text-align:left;
@@ -202,7 +202,8 @@
     background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,transparent)}
   :root.l4 .l4subtab.on::before{left:20px;width:3px;border-radius:2px;background:var(--t4-accent-solid,var(--cyan))}
   /* 有子分頁亮著時，父頁不再實心反白（同一個位置不要亮兩格），改成粗體字表示「在這一頁裡」 */
-  :root.l4[data-l4sub^="flow-"] .tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tab[data-view="heatmap"].on{
+  /* 2026-10-06：子項收著時目前那格看不到，母分頁恢復實心反白（只在 .tabs 沒有 data-cs 收合時才讓位給子項） */
+  :root.l4[data-l4sub^="flow-"] .tabs:not([data-cs~="flow"])>.tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tabs:not([data-cs~="heatmap"])>.tab[data-view="heatmap"].on{
     background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
 
   /* 子分頁只顯示自己的卡（<html data-l4sub> 由 app.js route() 掛；藏起來的卡由 whenNear 等露出來才畫）。

@@ -1546,9 +1546,59 @@ def _drill_check_bin(pg, tag, bars, i):
 #   · 盤後那一版：漲停名單＝stocks.json 的 lim（管線 tick 判定），沒有 ETF
 # ===================================================================== 側欄收展（2026-10-05，site/layout4.js buildFold）
 def t_side_fold_1005(pg, b, base):
-    """側欄收展（Andy 截圖圈群組標題與資金流向／熱力圖：「這邊點選可以收展」）。
-    真的點群組標題、點子項箭頭、再點一次已選中的大項；驗格子真的消失／出現、重新整理後記住、收合側欄模式不受影響。"""
+    """側欄收展（Andy 2026-10-05 起四次回報，2026-10-06 定成狀態機）。
+
+    狀態機：每個群組、每個有子項的母分頁（資金流向／熱力圖／管理區）各自一個展開／收合狀態，存 l4.navFold。
+      · 箭頭方向（aria-expanded）永遠＝實際可見性；收起就全藏（含目前所在頁），群組只剩標題＋提示點
+      · 點母分頁名稱：已在該頁 → 切換；不在該頁 → 導過去，收著就展開
+      · 點子項、換頁、重新整理 → 不動任何其他狀態
+
+    情境表（每一步之後都跑 INV：箭頭／群組標題的 aria-expanded 與實際可見性一致、收起群組的提示點正確）：
+      S1  #overview 全展開：總覽、財經日曆都在今日市場；族群與個股順序 產業地圖→市場明細→選股策略→ETF
+      S2  點群組「族群與個股」→ 四格全收、週期統計上移
+      S3  點資金流向箭頭（不在該頁）→ 子項收、網址不變
+      S4  重新整理 → S2、S3 都記住
+      S5  直接開 #market（所在組收著）→ 市場明細也藏、標題有提示點
+      S6  在 #earnings 收今日市場 → 總覽、財經日曆都藏＋提示點；再點展開
+      S7  資金流向收著、從 #overview 點「資金流向」名稱 → 導到 #flow、自動展開
+      S8  在資金流向點自己名稱 → 收（▸、0 個子項、網址不變）；再點 → 展開
+      S9  在資金流向點熱力圖箭頭收起 → 點資金流向名稱收起 → 點熱力圖名稱 → 導到熱力圖、熱力圖展開、資金流向仍收（不互相覆蓋）
+      S10 點子項「題材」→ 換頁，資金流向仍收、熱力圖仍展
+      S11 重新整理 → 同 S10
+      S12 在熱力圖・題材收「資金流水」→ 資金流向、熱力圖、全部子項（含目前頁）都藏＋提示點；再展開 → 各母分頁回到原本的狀態
+      S13 圖示列模式：群組標題藏、收起的格子照樣在；回到寬側欄狀態仍在
+      S14 側欄沒有橫向捲軸
+      A1  管理者 #admin/perm：管理區有箭頭、子項數依實際存在（不寫死）
+      A2  點管理區箭頭 → 收；重新整理記住
+      A3  在管理區點自己名稱 → 展開；再點 → 收
+      A4  #watch 點「管理區」名稱 → 導到入口子項（有會員權限就它，否則第一個實際存在的）、自動展開
+      A5  在管理區收「專案」群組 → 管理區與子項全藏＋提示點"""
     tag = "側欄收展1005"
+    INV_JS = r"""() => {
+      const t = document.querySelector('#tabs'), V = (e) => !!(e && e.getClientRects().length), bad = [];
+      if (document.documentElement.classList.contains('l4-mini')) return bad;
+      const G = { today: ['overview', 'earnings'], money: ['flow', 'heatmap'], stock: ['industry', 'market', 'explore', 'etf'], hist: ['season'], proj: ['watch', 'delivery'] };
+      const curOn = [...t.querySelectorAll('.tab.on')].map((e) => e.id === 'l4Perm' ? 'admin' : e.dataset.view);
+      for (const g of t.querySelectorAll('.l4grp')) {
+        const open = g.getAttribute('aria-expanded') === 'true', vs = G[g.dataset.g].slice();
+        if (g.dataset.g === 'proj') vs.push('admin');
+        for (const v of vs) {
+          const el = v === 'admin' ? document.getElementById('l4Perm') : t.querySelector(`.tab[data-view="${v}"]`);
+          if (el && V(el) !== open) bad.push(`群組${g.dataset.g} ${open ? '▾' : '▸'} 但 ${v} 可見=${V(el)}`);
+        }
+        const here = !open && vs.some((v) => curOn.includes(v));
+        if (g.classList.contains('here') !== here) bad.push(`群組${g.dataset.g} 提示點=${g.classList.contains('here')} 應為 ${here}`);
+      }
+      for (const c of t.querySelectorAll('.l4car')) {
+        const par = c.closest('.tab'), subs = [...t.querySelectorAll(`.l4subtab[data-parent="${c.dataset.p}"]`)], n = subs.filter(V).length;
+        if (!V(par)) { if (n) bad.push(`${c.dataset.p} 母分頁藏著但 ${n} 個子項露出`); continue; }
+        const open = c.getAttribute('aria-expanded') === 'true';
+        if (open && n !== subs.length) bad.push(`${c.dataset.p} ▾ 但只露出 ${n}/${subs.length}`);
+        if (!open && n) bad.push(`${c.dataset.p} ▸ 但露出 ${n} 個子項`);
+      }
+      return bad;
+    }"""
+
     lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
     lp.on("pageerror", lambda e: fails.append(f"{tag} pageerror: {e}"))
     lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -1556,90 +1606,168 @@ def t_side_fold_1005(pg, b, base):
     VIS = lambda sel: J("(s) => { const e = document.querySelector(s); return !!(e && e.getClientRects().length); }", sel)
     NSUB = lambda par: J("(p) => [...document.querySelectorAll(`.l4subtab[data-parent='${p}']`)].filter(e => e.getClientRects().length).length", par)
     TOPOF = lambda sel: J("(s) => Math.round(document.querySelector(s).getBoundingClientRect().top)", sel)
+    EXP = lambda v: J("(v) => document.querySelector(`.tab[data-view='${v}'] .l4car`).getAttribute('aria-expanded')", v)
+    HASH = lambda: J("() => location.hash")
+    READY = "() => document.querySelectorAll('#tabs .l4grp').length === 5 && document.querySelectorAll('#tabs .l4subtab[data-parent]').length >= 5"
+
+    def inv(step):
+        bad = J(INV_JS)
+        ok(f"[{tag}] {step}：箭頭／標題方向＝實際可見性", not bad, bad[:4])
+
+    def go(h):
+        lp.goto(f"{base}{h}", wait_until="domcontentloaded"); wait_until(lp, READY, 10000); lp.wait_for_timeout(600)
+
+    def name(v):   # 點母分頁「名稱」（避開右邊的箭頭）
+        lp.click(f".tab[data-view='{v}']", position={"x": 60, "y": 12}); lp.wait_for_timeout(450)
+
+    def car(v):
+        lp.click(f".tab[data-view='{v}'] .l4car"); lp.wait_for_timeout(300)
+
+    def grp(g):
+        lp.click(f"#tabs .l4grp[data-g='{g}']"); lp.wait_for_timeout(300)
+
     try:
-        lp.goto(f"{base}#overview", wait_until="networkidle")
+        lp.goto(f"{base}#overview", wait_until="domcontentloaded")
         lp.evaluate("() => { try { localStorage.removeItem('l4.navFold'); localStorage.setItem('tw.layout4.nav', 'full'); } catch (e) {} }")
-        lp.reload(wait_until="networkidle")
-        wait_until(lp, "() => document.querySelectorAll('#tabs .l4grp').length === 5", 10000)
+        go("#overview")
         names = J("() => [...document.querySelectorAll('#tabs .l4grp')].map(e => e.textContent.trim())")
         ok(f"★ [{tag}] 五個群組標題是可以點的按鈕", names == ["今日市場", "資金流水", "族群與個股", "歷史規律", "專案"], names)
         ok(f"[{tag}] 群組標題不算進 .tab（手機與 app.js 數 .tab）", J("() => document.querySelectorAll('#tabs .tab.l4grp').length") == 0)
-        # 2026-10-06：財經日曆在今日市場、ETF 在族群與個股（產業地圖、市場明細、選股策略、ETF）
-        ok(f"★ [{tag}] 展開時「總覽」「財經日曆」都看得到、都在今日市場標題下", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]')
+        # S1
+        ok(f"★ [{tag}] S1 展開時「總覽」「財經日曆」都看得到、都在今日市場標題下", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]')
            and TOPOF('.l4grp[data-g="today"]') < TOPOF('.tab[data-view="overview"]') < TOPOF('.tab[data-view="earnings"]') < TOPOF('.l4grp[data-g="money"]'))
         seq = J("""() => ['industry','market','explore','etf'].map(v => Math.round(document.querySelector(`.tab[data-view='${v}']`).getBoundingClientRect().top))""")
-        ok(f"★ [{tag}] 族群與個股順序：產業地圖、市場明細、選股策略、ETF，且在歷史規律標題上面",
+        ok(f"★ [{tag}] S1 族群與個股順序：產業地圖、市場明細、選股策略、ETF，且在歷史規律標題上面",
            seq == sorted(seq) and seq[-1] < TOPOF('.l4grp[data-g="hist"]') and TOPOF('.l4grp[data-g="stock"]') < seq[0], seq)
-        y_et0 = TOPOF('.tab[data-view="season"]')
-        lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
-        ok(f"★ [{tag}] 點「族群與個股」→ 產業地圖、市場明細、選股策略、ETF 都收起來",
-           not any(VIS(f'.tab[data-view="{v}"]') for v in ("industry", "market", "explore", "etf")))
-        ok(f"[{tag}] 標題變 ▸（aria-expanded=false）", J("() => document.querySelector('.l4grp[data-g=stock]').getAttribute('aria-expanded')") == "false")
-        y_et1 = TOPOF('.tab[data-view="season"]')
-        ok(f"★ [{tag}] 下面的「週期統計」真的往上移（畫面因此改變）", y_et1 < y_et0 - 60, (y_et0, y_et1))
-        n0 = NSUB("flow")
-        lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
-        n1 = NSUB("flow")
-        ok(f"★ [{tag}] 點資金流向旁的箭頭 → 三個子項收起、而且沒有換頁", n0 == 3 and n1 == 0 and J("() => location.hash") == "#overview", (n0, n1, J("() => location.hash")))
-        lp.reload(wait_until="networkidle"); wait_until(lp, "() => document.querySelectorAll('#tabs .l4grp').length === 5", 10000)
-        ok(f"★ [{tag}] 重新整理後：族群與個股仍收起、資金流向子項仍收起",
+        inv("S1")
+        # S2
+        y0 = TOPOF('.tab[data-view="season"]')
+        grp("stock")
+        ok(f"★ [{tag}] S2 點「族群與個股」→ 四格全收", not any(VIS(f'.tab[data-view="{v}"]') for v in ("industry", "market", "explore", "etf")))
+        ok(f"★ [{tag}] S2 下面的「週期統計」真的往上移", TOPOF('.tab[data-view="season"]') < y0 - 60)
+        inv("S2")
+        # S3
+        car("flow")
+        ok(f"★ [{tag}] S3 點資金流向箭頭 → 子項收起、沒有換頁", NSUB("flow") == 0 and EXP("flow") == "false" and HASH() == "#overview", (NSUB("flow"), HASH()))
+        inv("S3")
+        # S4
+        lp.reload(wait_until="domcontentloaded"); wait_until(lp, READY, 10000); lp.wait_for_timeout(600)
+        ok(f"★ [{tag}] S4 重新整理後：族群與個股仍收、資金流向子項仍收",
            not VIS('.tab[data-view="market"]') and NSUB("flow") == 0, J("() => localStorage.getItem('l4.navFold')"))
-        lp.goto(f"{base}#market", wait_until="networkidle"); lp.wait_for_timeout(700)
-        ok(f"★ [{tag}] 目前在市場明細、所在的組收起：整組（含目前那格）全藏，只剩標題＋提示點",
-           not VIS('.tab[data-view="market"]') and not VIS('.tab[data-view="industry"]') and VIS('.l4grp[data-g="stock"]')
-           and J("() => document.querySelector('.l4grp[data-g=stock]').classList.contains('here')"))
-        lp.goto(f"{base}#earnings", wait_until="networkidle"); lp.wait_for_timeout(700)
-        lp.click("#tabs .l4grp[data-g='today']"); lp.wait_for_timeout(250)
-        ok(f"★ [{tag}] 在財經日曆時收起今日市場 → 總覽、財經日曆都藏、標題有提示點",
-           not VIS('.tab[data-view="overview"]') and not VIS('.tab[data-view="earnings"]')
-           and J("() => document.querySelector('.l4grp[data-g=today]').classList.contains('here')"))
-        lp.click("#tabs .l4grp[data-g='today']"); lp.wait_for_timeout(250)
-        ok(f"[{tag}] 再點今日市場 → 總覽、財經日曆都回來", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]'))
-        lp.goto(f"{base}#flow/rotation", wait_until="networkidle"); lp.wait_for_timeout(700)
-        lp.click("#tabs .l4grp[data-g='money']"); lp.wait_for_timeout(250)
-        ok(f"★ [{tag}] 在資金輪動時收起資金流水 → 資金流向、熱力圖與所有子項（含目前那格）全藏",
-           not VIS('.tab[data-view="flow"]') and not VIS('.tab[data-view="heatmap"]') and NSUB("flow") == 0 and NSUB("heatmap") == 0)
-        lp.click("#tabs .l4grp[data-g='money']"); lp.wait_for_timeout(250)
-        lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
-        a = NSUB("flow"); h0 = J("() => location.hash")
-        lp.click(".tab[data-view='flow']", position={"x": 60, "y": 12}); lp.wait_for_timeout(300)
-        bc = NSUB("flow")
-        ok(f"★ [{tag}] 已在資金流向時再點一次「資金流向」→ 子項全收（含目前那格）、網址不變",
-           a == 3 and bc == 0 and J("() => location.hash") == h0, (a, bc, h0, J("() => location.hash")))
-        lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
-        ok(f"[{tag}] 再點「族群與個股」→ 展開回來", VIS('.tab[data-view="industry"]') and VIS('.tab[data-view="etf"]'))
-        lp.click("#tabs .l4grp[data-g='hist']"); lp.wait_for_timeout(200)
-        lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
-        ok(f"★ [{tag}] 收合成圖示列：群組標題藏起、被收起的「週期統計」照樣在",
-           J("() => document.documentElement.classList.contains('l4-mini')") and not VIS('#tabs .l4grp[data-g="hist"]')
-           and VIS('.tab[data-view="season"]'))
-        lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
-        ok(f"[{tag}] 展開側欄回來：歷史規律仍是收起的（狀態沒被圖示列弄掉）", not VIS('.tab[data-view="season"]'))
-        ok(f"[{tag}] 側欄沒有橫向捲軸", J("() => { const t = document.querySelector('#tabs'); return t.scrollWidth <= t.clientWidth + 1; }"),
-           J("() => { const t = document.querySelector('#tabs'); return [t.scrollWidth, t.clientWidth, [...t.querySelectorAll('*')].filter(e => e.scrollWidth > e.clientWidth + 1 && e.clientWidth).map(e => e.className + ':' + e.scrollWidth + '/' + e.clientWidth).slice(0, 4)]; }"))
+        inv("S4")
+        # S5
+        go("#market")
+        ok(f"★ [{tag}] S5 在市場明細、所在組收著：整組（含目前那格）全藏，只剩標題＋提示點",
+           not VIS('.tab[data-view="market"]') and VIS('.l4grp[data-g="stock"]') and J("() => document.querySelector('.l4grp[data-g=stock]').classList.contains('here')"))
+        inv("S5")
+        # S6
+        go("#earnings")
+        grp("today")
+        ok(f"★ [{tag}] S6 在財經日曆收今日市場 → 總覽、財經日曆都藏＋提示點",
+           not VIS('.tab[data-view="overview"]') and not VIS('.tab[data-view="earnings"]') and J("() => document.querySelector('.l4grp[data-g=today]').classList.contains('here')"))
+        inv("S6 收")
+        grp("today")
+        ok(f"[{tag}] S6 再點 → 總覽、財經日曆都回來", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]'))
+        inv("S6 展")
+        # S7
+        go("#overview")
+        name("flow")
+        ok(f"★ [{tag}] S7 資金流向收著、從總覽點它的名稱 → 導到資金流向、自動展開",
+           HASH().startswith("#flow") and EXP("flow") == "true" and NSUB("flow") == 3, (HASH(), EXP("flow"), NSUB("flow")))
+        inv("S7")
+        # S8
+        h0 = HASH(); name("flow")
+        ok(f"★ [{tag}] S8 在資金流向點自己名稱 → 收（▸、0 子項、網址不變）", EXP("flow") == "false" and NSUB("flow") == 0 and HASH() == h0, (EXP("flow"), NSUB("flow"), HASH()))
+        SIG = "() => { const c = getComputedStyle(document.querySelector('.tab[data-view=flow]')); return [c.backgroundColor, c.backgroundImage, c.boxShadow, c.color].join('|'); }"
+        sig_shut = J(SIG)
+        inv("S8 收")
+        name("flow")
+        ok(f"★ [{tag}] S8 再點 → 展開", EXP("flow") == "true" and NSUB("flow") == 3 and HASH() == h0)
+        sig_open = J(SIG)
+        ok(f"[{tag}] S8 子項收著時母分頁改回反白（跟展開時讓位給子項的樣子不同，看得出目前在這頁）", sig_shut != sig_open, (sig_shut, sig_open))
+        inv("S8 展")
+        # S9
+        car("heatmap"); name("flow")
+        ok(f"[{tag}] S9 前置：熱力圖收、資金流向收", EXP("heatmap") == "false" and EXP("flow") == "false")
+        name("heatmap")
+        ok(f"★ [{tag}] S9 點熱力圖名稱 → 導過去、熱力圖展開、資金流向仍收（不互相覆蓋）",
+           HASH().startswith("#heatmap") and EXP("heatmap") == "true" and NSUB("heatmap") == 2 and EXP("flow") == "false" and NSUB("flow") == 0,
+           (HASH(), EXP("heatmap"), NSUB("heatmap"), EXP("flow"), NSUB("flow")))
+        inv("S9")
+        # S10
+        lp.click(".l4subtab[data-l4sub='heat-theme']"); lp.wait_for_timeout(500)
+        ok(f"★ [{tag}] S10 點子項「題材」→ 換頁，資金流向仍收、熱力圖仍展",
+           J("() => document.documentElement.dataset.l4sub") == "heat-theme" and EXP("flow") == "false" and EXP("heatmap") == "true" and NSUB("heatmap") == 2)
+        inv("S10")
+        # S11
+        lp.reload(wait_until="domcontentloaded"); wait_until(lp, READY, 10000); lp.wait_for_timeout(600)
+        ok(f"★ [{tag}] S11 重新整理 → 狀態不變", EXP("flow") == "false" and EXP("heatmap") == "true" and NSUB("flow") == 0 and NSUB("heatmap") == 2)
+        inv("S11")
+        # S12
+        grp("money")
+        ok(f"★ [{tag}] S12 在熱力圖・題材收「資金流水」→ 母分頁與全部子項（含目前頁）都藏＋提示點",
+           not VIS('.tab[data-view="flow"]') and not VIS('.tab[data-view="heatmap"]') and NSUB("flow") == 0 and NSUB("heatmap") == 0
+           and J("() => document.querySelector('.l4grp[data-g=money]').classList.contains('here')"))
+        inv("S12 收")
+        grp("money")
+        ok(f"[{tag}] S12 再展開 → 各母分頁回到原本狀態（資金流向收、熱力圖展）", EXP("flow") == "false" and NSUB("flow") == 0 and EXP("heatmap") == "true" and NSUB("heatmap") == 2)
+        inv("S12 展")
+        # S13
+        grp("hist")
+        lp.click("#l4NavBtn"); lp.wait_for_timeout(500)
+        ok(f"★ [{tag}] S13 圖示列：群組標題藏起、被收起的「週期統計」照樣在",
+           J("() => document.documentElement.classList.contains('l4-mini')") and not VIS('#tabs .l4grp[data-g="hist"]') and VIS('.tab[data-view="season"]'))
+        lp.click("#l4NavBtn"); lp.wait_for_timeout(600)
+        ok(f"[{tag}] S13 回寬側欄：歷史規律仍收", not VIS('.tab[data-view="season"]'))
+        inv("S13")
+        # S14
+        lp.wait_for_timeout(400)
+        ok(f"[{tag}] S14 側欄沒有橫向捲軸", J("() => { const t = document.querySelector('#tabs'); return t.scrollWidth <= t.clientWidth + 1; }"),
+           J("() => { const t = document.querySelector('#tabs'); return [t.scrollWidth, t.clientWidth]; }"))
     finally:
         try:
             lp.evaluate("() => { try { localStorage.removeItem('l4.navFold'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
         except Exception:
             pass
         lp.close()
-    # 2026-10-06（Andy：「管理區也需要收納」）：管理者 context；子項數不寫死（另一分支會拿掉會員管理）
+    # 管理區（管理者 context；子項數不寫死，另一分支會拿掉會員管理）
     c, _ = _pnav_ctx(b, True)
     ap = c.new_page(); ap.on("pageerror", lambda e: fails.append(f"{tag} 管理區 pageerror: {e}"))
+    AJ = lambda js: ap.evaluate(js)
+    AN = lambda: AJ("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].filter(e => e.getClientRects().length).length")
+    AEXP = lambda: AJ("() => document.querySelector('#l4Perm .l4car').getAttribute('aria-expanded')")
+    AREADY = "() => !!document.querySelector('#l4Perm .l4car') && document.querySelectorAll('.l4subtab[data-parent=admin]').length > 0"
+
+    def ainv(step):
+        bad = ap.evaluate(INV_JS)
+        ok(f"[{tag}] {step}：箭頭／標題方向＝實際可見性", not bad, bad[:4])
+
     try:
-        ap.goto(f"{base}#admin/perm", wait_until="domcontentloaded")
-        wait_until(ap, "() => !!document.querySelector('#l4Perm .l4car') && document.querySelectorAll('.l4subtab[data-parent=admin]').length > 0", 10000)
-        AN = lambda: ap.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].filter(e => e.getClientRects().length).length")
-        tot = ap.evaluate("() => document.querySelectorAll('.l4subtab[data-parent=admin]').length")
-        n0 = AN()
-        ap.click("#l4Perm .l4car"); ap.wait_for_timeout(250)
-        n1 = AN()
-        ok(f"★ [{tag}] 管理區有 ▸／▾，點了子項全收（含目前那格）、網址不變", tot > 0 and n0 == tot and n1 == 0 and ap.evaluate("() => location.hash") == "#admin/perm", (tot, n0, n1))
-        ap.reload(wait_until="domcontentloaded")
-        wait_until(ap, "() => !!document.querySelector('#l4Perm .l4car')", 10000); ap.wait_for_timeout(400)
-        ok(f"★ [{tag}] 重新整理後管理區子項仍收起", AN() == 0 and ap.evaluate("() => document.querySelector('#l4Perm .l4car').getAttribute('aria-expanded')") == "false")
-        ap.click("#l4Perm .l4car"); ap.wait_for_timeout(250)
-        ok(f"[{tag}] 再點管理區箭頭 → 子項回來", AN() == tot)
+        ap.goto(f"{base}#admin/perm", wait_until="domcontentloaded"); wait_until(ap, AREADY, 10000); ap.wait_for_timeout(500)
+        tot = AJ("() => document.querySelectorAll('.l4subtab[data-parent=admin]').length")
+        first = AJ("() => (document.querySelector('.l4subtab[data-parent=admin][data-adm=perm]') || document.querySelector('.l4subtab[data-parent=admin]')).dataset.adm")
+        ok(f"★ [{tag}] A1 管理區有箭頭、子項全露（{tot} 個，依實際存在）", tot > 0 and AN() == tot and AEXP() == "true")
+        ainv("A1")
+        ap.click("#l4Perm .l4car"); ap.wait_for_timeout(300)
+        ok(f"★ [{tag}] A2 點管理區箭頭 → 子項全收（含目前那格）、網址不變", AN() == 0 and AEXP() == "false" and AJ("() => location.hash") == "#admin/perm")
+        ainv("A2")
+        ap.reload(wait_until="domcontentloaded"); wait_until(ap, AREADY, 10000); ap.wait_for_timeout(500)
+        ok(f"★ [{tag}] A2 重新整理後仍收", AN() == 0 and AEXP() == "false")
+        ainv("A2 重整")
+        ap.click("#l4Perm", position={"x": 60, "y": 12}); ap.wait_for_timeout(300)
+        ok(f"★ [{tag}] A3 在管理區點自己名稱 → 展開、網址不變", AN() == tot and AEXP() == "true" and AJ("() => location.hash") == "#admin/perm")
+        ap.click("#l4Perm", position={"x": 60, "y": 12}); ap.wait_for_timeout(300)
+        ok(f"[{tag}] A3 再點 → 收", AN() == 0 and AEXP() == "false")
+        ainv("A3")
+        ap.goto(f"{base}#watch", wait_until="domcontentloaded"); wait_until(ap, AREADY, 10000); ap.wait_for_timeout(500)
+        ap.click("#l4Perm", position={"x": 60, "y": 12}); ap.wait_for_timeout(600)
+        ok(f"★ [{tag}] A4 從自選點「管理區」名稱 → 導到入口子項（有會員權限就它，否則第一個實際存在的；#admin/{first}）、自動展開",
+           AJ("() => location.hash") == f"#admin/{first}" and AN() == tot and AEXP() == "true", (AJ("() => location.hash"), AN(), AEXP()))
+        ainv("A4")
+        ap.click("#tabs .l4grp[data-g='proj']"); ap.wait_for_timeout(300)
+        ok(f"★ [{tag}] A5 在管理區收「專案」→ 管理區與子項全藏＋提示點",
+           AN() == 0 and not AJ("() => !!document.getElementById('l4Perm').getClientRects().length") and AJ("() => document.querySelector('.l4grp[data-g=proj]').classList.contains('here')"))
+        ainv("A5")
     finally:
         try:
             ap.evaluate("() => { try { localStorage.removeItem('l4.navFold'); } catch (e) {} }")
