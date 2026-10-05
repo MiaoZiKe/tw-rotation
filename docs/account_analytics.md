@@ -35,6 +35,17 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 | `legal` | `#terms`、`#privacy`、`#disclaimer`、`#leave` |
 | `watch` | 保留給之後若自選清單變成獨立頁（目前是面板，不會出現） |
 | `other` | 認不得的網址 |
+| `etf` | `#etf`（ETF 專區）—— 2026-10-05 Worker 起收，前端 `site/account.js` 待補 |
+| `explore` | `#explore`（選股策略）—— 同上 |
+| `earnings` | `#earnings`（財經日曆）—— 同上 |
+| `events` | 「今日事件」抽屜（`#evToggle`／`#mmEvents` 打開一次算一次；不是網址頁）—— 同上 |
+| `support` | 右下角客服面板（`#supFab` 打開一次算一次；不是網址頁）—— 同上 |
+| `pricing` | `#pricing`（訂閱方案）—— 同上 |
+| `notices` | `#notices`（公告）—— 同上 |
+
+後面七個是 2026-10-05（hourly）在 Worker 白名單補上的（`worker.js` 檔尾 `VIEWS_ADDED`），之前這些頁都記成 `other`。
+**Worker 先上、前端後上**：前端把它們加進 `site/account.js` 的 `VIEWS` 之前，`tests/account.test.mjs` 的三邊一致測試允許前端少這七個；補上之後回到完全相等（順序照 Worker 的 `VIEWS`）。
+每小時統計與前端接法見文末「每小時統計＋頁面白名單補七頁」。
 
 ## 3. 功能事件（鍵 `ev:<事件>`）
 
@@ -189,3 +200,40 @@ Andy 看了 admin-v2 預覽說「弄得好複雜，看了不清楚」，管理�
 - **`/v1/admin/members`**：一人一列（登入過的＋設定過的），帶 方案、付費與否、加入／到期、最後上線、累計在線、近 30 天造訪／活躍天數／頁面瀏覽、最常用的功能 Top3、最常看的股票 Top3、狀態。**`/v1/admin/member/detail`**：各分頁瀏覽、功能次數 Top 15、常看股票 Top 10、近 14 天每日（造訪、在線、瀏覽）。
 - 相容遷移：`plans.lims`、`visits.ms`、`users.ob` 用 `PRAGMA table_info` 判斷再 `ALTER TABLE ADD COLUMN`，`uev` 是新表；舊資料原封不動、重啟不報錯（`tests/v3.test.mjs`）。
 - `/v1/quota/hit` 的功能鍵放寬成任何功能鍵（原本只收 `quota.*`）。
+
+## 每小時統計＋頁面白名單補七頁（2026-10-05 hourly）
+
+Andy：流量觀測「即時」要看今天 0–24 時每小時、「使用者」分頁要看每小時的使用時段（1H／4H／6H／12H／白天／晚上）；ETF、選股策略、事件、客服、財經日曆要有真的瀏覽數。
+後端在 `workers/account-api/worker.js` 檔尾 hourly 區塊（只新增、包 prototype，既有函式不動），測試 `workers/account-api/tests/hourly.test.mjs`。
+
+### 怎麼記
+- 新表 `hstat(day, h, pv, sess, sess_login, mins)`：一列＝台北日期 × 小時（0–23）。**只有次數，沒有 uid／sid／IP**，跟 `usage` 同一個隱私等級，保留 13 個月（跟 `usage` 同一個切點）。
+- 跟 `usage` 吃同一份心跳、同一套驗證：心跳回 200 才記，整批被擋（400／429）的不記 → 今天各小時加總＝`rows` 裡今天的 `pv:*`／`ev:session`／`ev:session_login`。
+- `pv`＝所有 `pv:*` 加總；`sess`＝`ev:session`（開站）；`sess_login`＝`ev:session_login`（登入狀態開站）；訪客開站＝兩者相減；
+  `mins`＝那一小時收到的心跳數（不含「離開」那一跳）＝看得到的分頁在線分鐘數，平均同時在線 ≈ `mins ÷ 60`。
+- 歸到「Worker 收到心跳」的那一小時（前端每 60 秒送一次，整點前一分鐘內的動作可能算到下一小時）。部署之前沒有每小時資料（`hstat.since` 會寫從哪天開始有）。
+
+### API（擇一：沿用 `/v1/admin/stats`，不另開端點）
+請求不變：`{ t, days, page?, live? }`（`live` Worker 不看，帶不帶都一樣）。回應**原有欄位一個不動**（`from`、`to`、`rows`、`e2`、`users`、`events`、`views`），後面多三個：
+
+| 欄位 | 形狀 | 意思 |
+|---|---|---|
+| `hours` | 24 個整數 | **今天**（台北）0–23 時每小時頁面瀏覽；還沒到的小時＝0。「即時」直條直接畫這個 |
+| `hourly` | 24 個整數 | 期間 `from`～`to` 內，各「時」的頁面瀏覽加總（使用時段圖；1H／4H／6H／12H／白天／晚上由前端合併） |
+| `hstat` | 物件 | `{ today:'YYYY-MM-DD', hour:現在第幾時(0–23), since:'YYYY-MM-DD'或null, day:{pv,open,login,guest,mins}, period:{from,to,pv,open,login,guest,mins} }`，每個數列 24 格 |
+
+`hstat.day`＝今天、`hstat.period`＝期間內各「時」加總；`open` 開站、`login` 登入開站、`guest`＝`open − login`（≥ 0）、`mins` 在線分頁分鐘數。
+`views` 現在多七頁（`VIEWS_ADDED`，接在原本 11 個後面）。`page` 篩選也收這七頁。
+
+### 前端接法（`site/admin.js`、`site/account.js`）
+1. 流量觀測「即時」：`st.hours` → 24 根直條（`hstat.hour` 之後的格子可以畫成空的，不要當 0 次）；舊 Worker 沒有 `hours` 時退回原本畫法。
+2. 「使用者」分頁使用時段：`st.hourly`（期間加總）→ 既有的 `hourData(hourly, mode)`；要畫登入／訪客分色就用 `st.hstat.period.login`／`.guest`（即時用 `st.hstat.day.*`）。
+   `hstat.since` 晚於 `from` 時要註明「每小時統計從 <since> 起」，不然前幾個月會看起來像半夜沒人。
+3. 七頁真的瀏覽數：`site/account.js` 的 `VIEWS` 改成跟 Worker 一模一樣（順序也一樣）：
+   `['overview','flow','industry','heatmap','market','season','delivery','stock','legal','watch','other','etf','explore','earnings','events','support','pricing','notices']`。
+   `etf`／`explore`／`earnings`／`pricing`／`notices` 是網址頁，`viewOf` 會自動認到（`#pricing`、`#notices` 走 TwSubRoutes，但 hash 開頭一樣）；
+   `events`、`support` 是面板，要在打開抽屜／客服面板時另外 `bump('pv:events')`／`bump('pv:support')`（不會換 hash，`pv()` 抓不到）。
+   細項 `t2(...)` 的第三個參數也可以從 `'other'` 改成新頁（`etf.cat` → 頁面 `etf`）。
+4. 舊資料相容：切換之前記在 `other` 底下、元件名帶前綴（`etf.cat`、`explore.topic`、`support.*`、`events.link`）的細項**照舊**回在 `e2`（頁面仍是 `other`），
+   Worker 不搬、不合併 —— 管理區的 `classify` 兩種寫法都要認（`other`＋前綴、新頁面），加總起來才是完整期間。`pv:other` 以前的次數無法拆回各頁。
+   `claude/style-guide` 分支在本文件加的「流量觀測分頁統計」那節寫「Worker 不必改、一律記在 other」—— 合併後以本節為準：Worker 已收這七頁，前端改用新頁面鍵。

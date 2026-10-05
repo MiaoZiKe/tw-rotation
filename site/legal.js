@@ -686,7 +686,10 @@
       if (!ready) { if (Date.now() - t0 < 5000) setTimeout(tick, 120); return; }
       const spine = view.querySelector('.mspine');
       if (spine && spine.offsetParent !== null) {
-        const b = [...spine.children].find((x) => (x.textContent || '').indexOf(s.t) === 0);
+        /* 2026-10-06 修：手機 v3 把主軸鈕改成 <em>②</em><b>貴不貴</b>，textContent 變「②貴不貴」（中間沒空白），
+           拿「② 貴不貴」去比永遠找不到 → 手機按「到總覽看這一步」不會切到那一步、停在第①步。兩邊都去掉空白再比。*/
+        const want = s.t.replace(/\s+/g, '');
+        const b = [...spine.children].find((x) => (x.textContent || '').replace(/\s+/g, '').indexOf(want) === 0);
         if (b) b.click();
       }
       let el = document.querySelector(s.sel);
