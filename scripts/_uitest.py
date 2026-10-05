@@ -37852,18 +37852,23 @@ def t_legal(b, base):
     ok("[開] 按同意 → localStorage 真的寫進 {v: 生效日期, at: 時間}", cv and cv.get("v") == "2026-10-01" and cv.get("at"), raw)
     ok("[開] 按同意 → 橫幅消失", pg.locator("#lgBanner").count() == 0)
     ok("[開] 第一次同意 → 平台導覽自動開一次", pg.locator("#lgTour").count() == 1)
-    # 「到總覽看這一步」（第③步）→ 彈窗關閉、今日候選那張卡在畫面上半部、外圈亮一下
+    # 「到總覽看這一步」（第③步）→ 彈窗關閉、大盤三張圖（#m3）在畫面上半部、外圈亮一下
+    # 2026-10-06 改前→改後：改前找「今日候選」#ovCandCard —— 那張卡 2026-09-24 總覽改版已整張拿掉，
+    #   導覽第③步（site/legal.js STEPS）同一天就改指 #m3；這裡沒跟著改，getElementById 回 null 讓整段中斷。
+    #   實測（1440／390）網站本身正常：按下去會捲到 #m3、亮 1 秒後消失、沒有錯誤 —— 是斷言過時，不是網站壞。
+    #   目標收成一個變數 STEP3，必須跟 site/legal.js STEPS 第③步的 sel 一致；以後第③步換卡片改這一處就好。
     pg.click("#lgNext"); pg.wait_for_timeout(200); pg.click("#lgNext"); pg.wait_for_timeout(200)
     pg.click("#lgGo"); pg.wait_for_timeout(450)
-    fl = pg.evaluate("() => ({ flash: document.getElementById('ovCandCard').classList.contains('lgflash'),"
-                     " tour: !!document.getElementById('lgTour') })")
+    STEP3 = "#m3"
+    fl = pg.evaluate("(s) => { const e = document.querySelector(s); return { found: !!e, flash: !!e && e.classList.contains('lgflash'),"
+                     " tour: !!document.getElementById('lgTour') }; }", STEP3)
     pg.wait_for_timeout(900)                          # 全站 scroll-behavior:smooth，等捲完再量位置
-    r = pg.evaluate("""() => { const r = document.getElementById('ovCandCard').getBoundingClientRect();
-        return { top: r.top, vh: innerHeight }; }""")
-    ok("[開] 導覽「到總覽看這一步」→ 彈窗關閉、外圈亮一圈", not fl["tour"] and fl["flash"], fl)
-    ok("[開] 導覽「到總覽看這一步」→ 今日候選捲到畫面上半部", 0 <= r["top"] < r["vh"] / 2, r)
+    r = pg.evaluate("""(s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect();
+        return { top: r.top, vh: innerHeight }; }""", STEP3)
+    ok("[開] 導覽「到總覽看這一步」→ 彈窗關閉、大盤三張圖外圈亮一圈", fl["found"] and not fl["tour"] and fl["flash"], fl)
+    ok("[開] 導覽「到總覽看這一步」→ 大盤三張圖捲到畫面上半部", bool(r) and 0 <= r["top"] < r["vh"] / 2, r)
     pg.wait_for_timeout(500)
-    ok("[開] 外圈亮 1 秒後自己消失", not pg.evaluate("() => document.getElementById('ovCandCard').classList.contains('lgflash')"))
+    ok("[開] 外圈亮 1 秒後自己消失", not pg.evaluate("(s) => { const e = document.querySelector(s); return !!e && e.classList.contains('lgflash'); }", STEP3))
     ok("[開] 導覽看過 → tw.tour 寫入版本字串", (_lg_ls(pg, "tw.tour") or "") != "", _lg_ls(pg, "tw.tour"))
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
     ok("[開] 重新整理 → 橫幅不再出現、導覽也不再自動開",
@@ -37943,7 +37948,8 @@ def t_legal(b, base):
         const r = e ? e.getBoundingClientRect() : null;
         return { step: sp ? sp.textContent : '', top: r ? r.top : null, h: r ? r.height : 0, vh: innerHeight }; }""")
     ok("[開 390] 手機「到總覽看這一步」（第②步）→ 主軸動線真的切到 ② 貴不貴、大盤那張在畫面上",
-       r["step"].startswith("② 貴不貴") and r["top"] is not None and r["h"] > 0 and 0 <= r["top"] < r["vh"], r)
+       # 2026-10-06：手機 v3 主軸鈕是 <em>②</em><b>貴不貴</b>，textContent 沒有空白 → 去掉空白再比
+       re.sub(r"\s+", "", r["step"]).startswith("②貴不貴") and r["top"] is not None and r["h"] > 0 and 0 <= r["top"] < r["vh"], r)
     ctx.close()
 
     # 填好了但 enabled:false → 仍然不啟用；欄位裡還留著【】也不算填好
