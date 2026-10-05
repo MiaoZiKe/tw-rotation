@@ -46,6 +46,41 @@ def ok(name: str, cond: bool, detail=None) -> bool:
     return bool(cond)
 
 
+def to_perm(pg):
+    """從「逐人微調」回到範本頁籤（左上「← 回會員名單」→ 再回到範本）；已經在範本畫面就什麼都不做。"""
+    if pg.locator("#pmBack").count():
+        pg.click("#pmBack")
+        wait_until(pg, "() => !document.getElementById('pmHead').classList.contains('medit')", 4000)
+    if pg.locator("#admTabPerm").count() and not pg.evaluate("() => !!document.getElementById('ptTier') && document.getElementById('ptTier').offsetParent !== null"):
+        pg.click("#admTabPerm")
+    wait_until(pg, "() => !!document.getElementById('ptTier') && document.getElementById('ptTier').offsetParent !== null", 6000)
+    if pg.evaluate("() => { const b = document.getElementById('ptSubPerm'); return !!b && b.offsetParent !== null && !b.classList.contains('on'); }"):
+        pg.click("#ptSubPerm")
+
+
+def to_members(pg, email=None):
+    """2026-10-05：會員管理併進會員權限。到「註冊會員」→「會員名單」；有給 email 就用「逐人微調：輸入 email → 讀取」進到這個人的設定（等同舊的會員管理頁）。"""
+    if not (pg.url or "").endswith("#admin/perm"):
+        if pg.locator("#admTabPerm").count():
+            pg.click("#admTabPerm")
+        else:
+            pg.evaluate("() => { location.hash = '#admin/perm'; }")
+    wait_until(pg, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
+    if not pg.evaluate("() => !!document.getElementById('pmHead') && document.getElementById('pmHead').classList.contains('medit')"):
+        pg.click("#ptTier button[data-tier='free']")
+        pg.click("#ptSubList")
+        wait_until(pg, "() => !!document.getElementById('pmTuneEmail') && document.getElementById('pmTuneEmail').offsetParent !== null", 5000)
+    if email and pg.evaluate("() => document.getElementById('pmHead').classList.contains('medit')"):
+        pg.fill("#pmEmail", email); pg.click("#pmLoad")       # 已經在逐人微調畫面：直接換人
+        wait_until(pg, "() => !!document.getElementById('pmWho') && (document.getElementById('pmWho').textContent || '').includes('@')", 6000)
+    elif email:
+        if not pg.evaluate("() => !!document.getElementById('pmTuneEmail') && document.getElementById('pmTuneEmail').offsetParent !== null"):
+            raise RuntimeError("to_members：看不到逐人微調輸入框 " + str(pg.evaluate("() => [location.hash, document.getElementById('pmHead') && document.getElementById('pmHead').className, [...document.querySelectorAll('#ptTier button.on')].map(b => b.textContent), document.getElementById('ptListBox') && document.getElementById('ptListBox').hidden, (document.getElementById('pmStat') || {}).textContent]")))
+        pg.fill("#pmTuneEmail", email)
+        pg.click("#pmTuneGo")
+        wait_until(pg, "() => !!document.getElementById('pmEmail') && document.querySelectorAll('#pmCats .pmcat').length > 0", 8000)
+
+
 def wait_until(pg, expr: str, timeout: int = 6000, step: int = 150):
     """輪詢 `expr` 直到它回傳真值，或逾時。回傳最後一次的值。
 
@@ -43769,14 +43804,14 @@ def t_member_perm(b, base, code):
         wait_until(ad, "() => location.hash === '#admin/perm' && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
         # ★ 2026-10-05 改前→改後（驗收過時，admin-v2）：管理區拆成 會員權限／會員管理／流量觀測 三個子分頁，
         #   「逐人設定」搬到 #admin/members（會員管理）；#admin/perm 改成依層級（訪客／註冊會員／付費會員）編範本。斷言本身不變，只換分頁。
-        ad.click("#admTabMembers")
-        wait_until(ad, "() => location.hash === '#admin/members' && document.querySelectorAll('#pmCats .pmcat').length > 0 && !!document.getElementById('pmEmail')", 10000)
+        to_members(ad)
+        ok(f"{T}：還沒進到「逐人微調」之前，頁面沒有個人設定（沒有 #pmEmail）、不會誤存到不知道誰", ad.locator("#pmEmail").count() == 0)
+        to_members(ad, PERM_TEST_EMAIL)
         ad.click("#pmExpandAll")    # 2026-10-05 admin-v2b：開放功能表預設只展開第一類；下面要撥其他類的開關，先全部展開
         nf = ad.evaluate("() => ({ cats: TwFeatures.cats.length, bools: TwFeatures.list.filter(f => f.kind === 'bool').length, limits: TwFeatures.list.filter(f => f.kind === 'limit').length })")
         ok(f"{T}：#admin/perm 依分類列出全部功能（{nf['cats']} 類）", ad.locator("#pmCats .pmcat, #pmGrp .pmcat").count() == nf["cats"], ad.locator("#pmCats .pmcat, #pmGrp .pmcat").count())  # admin-v2c：族群觀測獨立在 #pmGrp
         ok(f"{T}：每個開關類功能一個 Switch、上限類一個下拉", ad.locator("#pmCats input[role=switch], #pmGrp input[role=switch]").count() == nf["bools"] and ad.locator("#pmCats select[data-f]").count() == nf["limits"],
            (ad.locator("#pmCats input[role=switch], #pmGrp input[role=switch]").count(), nf))
-        ok(f"{T}：還沒選人之前開關是停用的（不會誤存到不知道誰）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch], #pmGrp input[role=switch]')].every(i => i.disabled)"))
         ok(f"{T}：每類都有一顆整組 Switch（10-05 取代全開／全關）", ad.locator("#pmCats button[data-allsw='cat'], #pmGrp button[data-allsw='cat']").count() == nf["cats"] and ad.locator("#v-admin button[data-all]").count() == 0)
         ok(f"{T}：管理頁寫明鎖頭擋不住直接讀 JSON（誠實限制）", "資料檔" in ad.inner_text("#v-admin") and "DECISIONS #288" in ad.inner_text("#v-admin"))
         # 預設方案：訪客、免費會員都在，而且是空的（全開）
@@ -43829,7 +43864,7 @@ def t_member_perm(b, base, code):
         save()
         # 重新整理 → 狀態還在
         ad.reload(wait_until="domcontentloaded")
-        wait_until(ad, "() => document.querySelectorAll('#pmCats .pmcat').length > 0 && !!document.getElementById('pmEmail')", 10000)
+        to_members(ad, PERM_TEST_EMAIL)
         ad.fill("#pmEmail", PERM_TEST_EMAIL); ad.click("#pmLoad")
         wait_until(ad, "() => (document.getElementById('pmWho') || {}).textContent.includes('@') && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled", 6000)
         saved = ad.evaluate("""() => { const g = (f) => document.querySelector(`#pmCats input[data-f='${f}'], #pmCats select[data-f='${f}']`);
@@ -43837,11 +43872,11 @@ def t_member_perm(b, base, code):
                      theme: g('ov.theme').checked, rot: g('flow.rot').checked, tabs: g('watch.tabs').value }; }""")
         ok(f"{T}：重新整理後再讀同一個 email，剛才撥的開關狀態都還在",
            saved == {"heat": False, "rev": False, "hour": False, "ai": False, "theme": True, "rot": False, "tabs": "2"}, saved)
-        ok(f"{T}：「已經個別設定過的會員」清單列出測試帳號", PERM_TEST_EMAIL in ad.inner_text("#pmListBody"), ad.inner_text("#pmListBody")[:200])
+        ok(f"{T}：「已經個別設定過的會員」清單列出測試帳號", PERM_TEST_EMAIL in ad.inner_text("#ptTableBox"), ad.inner_text("#ptTableBox")[:200])
         # ★ 2026-10-05 改前→改後（admin-v3，Andy：「弄得好複雜」）：拿掉「把這組存成新範本」。
         #   改成：會員權限 →「＋」建立付費範本「付費測試」→ 在它的觀看權限關掉資金熱力圖、熱門題材設每日 5 次 → 儲存（真的 Worker 存 lims）
         #   → 會員管理把測試帳號指定到這個範本（個別微調保留）。
-        ad.click("#admTabPerm")
+        to_perm(ad)
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
         ad.click("#ptAddTab")
         ad.fill("#ptNewName", "付費測試"); ad.fill("#ptNewPrice", "399")
@@ -43861,8 +43896,7 @@ def t_member_perm(b, base, code):
         tp_plan = next((p for p in pj_.get("plans", []) if p.get("name") == "付費測試"), {})
         ok(f"{T}：付費範本「付費測試」關掉資金熱力圖、熱門題材每日 5 次 → 真的 Worker 存下 feats 與 lims",
            tp_plan.get("feats") == {"ov.heat": False} and tp_plan.get("lims") == {"ov.theme": 5} and tp_plan.get("price") == 399, tp_plan)
-        ad.click("#admTabMembers")
-        wait_until(ad, "() => location.hash === '#admin/members' && !!document.getElementById('pmEmail') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
+        to_members(ad, PERM_TEST_EMAIL)
         ad.fill("#pmEmail", PERM_TEST_EMAIL); ad.click("#pmLoad")
         wait_until(ad, "() => !!document.querySelector('#pmPlan option[value=" + json.dumps(tp_plan.get("id", "")) + "]') && /尚未登入過|已登入過/.test(document.getElementById('pmWho').textContent)", 8000)
         ad.wait_for_timeout(300)
@@ -43871,7 +43905,7 @@ def t_member_perm(b, base, code):
         wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent)", 5000)
         ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留", "付費測試" in ad.inner_text("#pmWho") and "個別微調 9 項" in ad.inner_text("#pmWho")
            and ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked"), ad.inner_text("#pmWho"))
-        ad.click("#admTabPerm")
+        to_perm(ad)
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
         ad.click("#ptTier button[data-plan]:has-text('付費測試')")
         wait_until(ad, "() => !!document.querySelector('#ptTier button.on[data-plan]') && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled && /付費測試/.test(document.getElementById('ptFor').textContent)", 4000)
@@ -43882,8 +43916,7 @@ def t_member_perm(b, base, code):
         ok(f"{T}：「付費測試」的會員名單列出測試帳號（金色徽章）", PERM_TEST_EMAIL in ad.inner_text("#ptMail") and ad.locator("#ptMail .pdbadge").count() >= 1, ad.inner_text("#ptMail")[:200])
         ad.click("#ptTier button[data-tier='guest']")
         ok(f"{T}：內建「訪客」層沒有刪除鈕、也沒有會員名單", ad.evaluate("() => !document.getElementById('pmPlanDel') && !document.getElementById('ptSubList') && document.getElementById('ptListBox').hidden"))
-        ad.click("#admTabMembers")
-        wait_until(ad, "() => location.hash === '#admin/members' && !!document.getElementById('pmEmail') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
+        to_members(ad, PERM_TEST_EMAIL)
 
         # ================= ② 測試帳號登入 → 鎖頭
         ct = new_ctx()
@@ -43959,6 +43992,7 @@ def t_member_perm(b, base, code):
         ok(f"{T}：上限 2 頁時第三頁新增不進去", tp.evaluate("() => TwWatch.tabs().length") <= 2, tp.evaluate("() => TwWatch.tabs().length"))
 
         # ================= ③ 管理者打開 → 測試帳號重新整理後恢復
+        to_members(ad, PERM_TEST_EMAIL)
         ad.fill("#pmEmail", PERM_TEST_EMAIL); ad.click("#pmLoad")
         wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent) && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled", 6000)
         flip("ov.heat", True)
@@ -44005,8 +44039,8 @@ def t_member_perm(b, base, code):
         am.goto(base + "#overview", wait_until="domcontentloaded")
         wait_until(am, "() => !!window.TwAccount && TwAccount.on()", 8000)
         login(am, "andy")
-        am.goto(base + "#admin/members", wait_until="domcontentloaded")      # 2026-10-05 admin-v2：逐人設定搬到會員管理
-        wait_until(am, "() => document.querySelectorAll('#pmCats .pmcat').length > 0 && !!document.getElementById('pmEmail')", 10000)
+        am.goto(base + "#admin/perm", wait_until="domcontentloaded")      # 2026-10-05 admin-v2：逐人設定搬到會員管理
+        to_members(am, PERM_TEST_EMAIL)
         am.fill("#pmEmail", PERM_TEST_EMAIL); am.press("#pmEmail", "Enter")
         wait_until(am, "() => !document.querySelector(\"#pmCats input[data-f='ov.theme']\").disabled", 6000)
         r = am.evaluate("""() => { const s = document.querySelector("#pmCats input[data-f='ov.theme']").closest('label').getBoundingClientRect();
@@ -44139,14 +44173,13 @@ def t_perm_nav(b, base):
     ok(f"{T}：點「會員權限」→ 進 #admin/perm、那一格亮起來", pg.evaluate("() => location.hash === '#admin/perm' && document.getElementById('l4Perm').classList.contains('on')"))
     # ★ 2026-10-05 改前→改後（驗收過時，admin-v2）：管理區拆成 會員權限／會員管理／流量觀測 三個子分頁，
     #   新增會員／會員列表／逐人設定在 #admin/members；這裡點頂部「會員管理」tab 過去，斷言不變。
-    pg.click("#admTabMembers")
-    wait_until(pg, "() => location.hash === '#admin/members' && document.querySelectorAll('#pmListBody tr[data-email]').length > 0 && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
+    to_members(pg)
     pg.click("#pmExpandAll")    # 2026-10-05 admin-v2b：預設只展開第一類，下面要撥熱力圖／即時／自選的開關
     ok(f"{T}：版面四區都在（新增會員／會員列表／要設定誰／功能開關）", pg.evaluate("() => ['#pmAdd','#pmList','#pmHead','#pmCats'].every(s => !!document.querySelector(s))"))
     ok(f"{T}：會員列表合併「設定過的」與「登入過的」（3 位）、列出到期日與最後登入欄",
-       pg.locator("#pmListBody tr[data-email]").count() == 3 and "到期日" in pg.inner_text("#pmListBody") and "最後上線" in pg.inner_text("#pmListBody"), pg.inner_text("#pmListBody")[:200])
+       pg.locator("#ptTable tr[data-email]").count() == 3 and "到期日" in pg.inner_text("#ptTableBox") and "最後上線" in pg.inner_text("#ptTableBox"), pg.inner_text("#ptTableBox")[:200])
     pg.fill("#pmSearch", "lee")
-    ok(f"{T}：搜尋「lee」→ 列表只剩 1 位", pg.locator("#pmListBody tr[data-email]").count() == 1 and "1 ／ 3" in pg.inner_text("#pmCnt"), pg.inner_text("#pmCnt"))
+    ok(f"{T}：搜尋「lee」→ 列表只剩 1 位", pg.locator("#ptTable tr[data-email]").count() == 1 and "1 ／ 3" in pg.inner_text("#pmCnt"), pg.inner_text("#pmCnt"))
     pg.fill("#pmSearch", "")
     # ④ 新增會員
     n0 = len(sent)
@@ -44157,7 +44190,7 @@ def t_perm_nav(b, base):
     ok(f"{T}：新增 email → 送出 perm/put（email 轉小寫、方案＝選的那個、over 空）",
        body.get("email") == "new.member@example.com" and body.get("plan") == "free" and body.get("over") == {} and body.get("t") == "tok-test", body)
     wait_until(pg, "() => /new\\.member@example\\.com/.test(document.getElementById('pmWho').textContent) && !document.querySelector(\"#pmCats input[data-f='heat.theme']\").disabled", 5000)
-    ok(f"{T}：新增後直接載入那位會員、出現在列表", bool(wait_until(pg, "() => /new\\.member@example\\.com/.test(document.getElementById('pmListBody').textContent)", 4000)), pg.inner_text("#pmListBody")[:200])
+    ok(f"{T}：新增後直接載入那位會員、出現在列表", bool(wait_until(pg, "() => /new\\.member@example\\.com/.test(document.getElementById('pmListBody').textContent)", 4000)), pg.inner_text("#ptTableBox")[:200])
     # 撥兩個開關 → 只是草稿
     pg.click("#pmCats input[data-f='heat.theme']")
     pg.click("#pmCats input[data-f='live.tick']")
@@ -44197,8 +44230,8 @@ def t_perm_nav(b, base):
     # 800（側欄收掉、頂部分頁列）：管理頁照樣能用、沒有橫向捲軸
     c, _ = _pnav_ctx(b, True, width=800)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.goto(base + "#admin/members", wait_until="domcontentloaded")      # 2026-10-05 admin-v2：會員列表在會員管理
-    wait_until(pg, "() => document.querySelectorAll('#pmListBody tr[data-email]').length > 0", 10000)
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")      # 2026-10-05 admin-v2：會員列表在會員管理
+    to_members(pg)
     ok(f"{T} 800：管理頁沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
     c.close()
     # 390 手機：「更多」清單
@@ -44236,14 +44269,14 @@ def t_member_regress_1005(b, base):
     c.add_init_script("window.__TW_SNAP__ = 1;")
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     # ★ 2026-10-05 改前→改後（驗收過時，admin-v2）：會員列表與逐人設定搬到 #admin/members；側欄那一格（管理區）在三個子分頁都亮
-    pg.goto(base + "#admin/members", wait_until="domcontentloaded")
-    wait_until(pg, "() => document.querySelectorAll('#pmListBody tr[data-email]').length > 0 && !!document.getElementById('l4Perm')", 10000)
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    to_members(pg)
     pg.wait_for_timeout(500)
     pg.click("#pmExpandAll")    # 2026-10-05 admin-v2b：預設只展開第一類
-    ok(f"★ {T}：直接開 #admin/members → 側欄「管理區」亮著、其他分頁都不亮",
+    ok(f"★ {T}：開 #admin/members（導到會員權限）→ 側欄「管理區」亮著、其他分頁都不亮",
        pg.evaluate("() => document.getElementById('l4Perm').classList.contains('on') && [...document.querySelectorAll('.tab.on')].length === 1"),
        pg.evaluate("() => [...document.querySelectorAll('.tab.on')].map(t => t.id || t.dataset.view)"))
-    pg.click("#pmListBody tr[data-email]")
+    pg.click("#ptTable tr[data-email]"); pg.click("#ptTable button[data-tune]")      # 會員名單：點一列展開 → 逐人微調
     wait_until(pg, "() => !document.querySelector(\"#pmCats input[data-f='heat.theme']\").disabled", 5000)
     pg.click("#pmCats input[data-f='heat.theme']")
     ok(f"{T}：撥一個開關 → 出現「1 項變更還沒儲存」", "1 項" in pg.inner_text("#pmDirty"), pg.inner_text("#pmDirty"))
@@ -44400,13 +44433,13 @@ def t_admin_v2(b, base, code):
     wait_until(pg, "() => location.hash === '#admin/perm' && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
     # ★ 2026-10-05 改前→改後（admin-v2b，Andy：頂部那排搬到左側欄「管理區」下面當縮排子項）：三個 id 不變，但改成 #tabs 裡的 .l4subtab、頁內沒有 #admTabs
     # ★ admin-v2c（Andy）：順序改成 會員管理 → 會員權限 → 流量觀測；目前在 #admin/perm，所以亮的是第二格
-    ok(f"{T}：側欄「管理區」下面三個縮排子項（會員管理／會員權限／流量觀測），目前亮「會員權限」、頁內頂部沒有那排 tab",
-       pg.evaluate("""() => { const ids = ['admTabMembers','admTabPerm','admTabTraffic'], els = ids.map(i => document.getElementById(i));
-         if (els.some(e => !e || !e.classList.contains('l4subtab') || !e.closest('#tabs'))) return false;
+    ok(f"{T}：側欄「管理區」下面兩個縮排子項（會員權限／流量觀測；會員管理已併入會員權限），目前亮「會員權限」、頁內頂部沒有那排 tab",
+       pg.evaluate("""() => { const ids = ['admTabPerm','admTabTraffic'], els = ids.map(i => document.getElementById(i));
+         if (els.some(e => !e || !e.classList.contains('l4subtab') || !e.closest('#tabs')) || document.getElementById('admTabMembers')) return false;
          const p = document.getElementById('l4Perm').getBoundingClientRect(), r = els.map(e => e.getBoundingClientRect());
-         return els[1].classList.contains('on') && !els[0].classList.contains('on') && !document.getElementById('admTabs')
-           && r[0].top >= p.bottom - 1 && r[1].top >= r[0].bottom - 1 && r[2].top >= r[1].bottom - 1 && r[0].left >= p.left
-           && els.map(e => e.textContent.trim()).join() === '會員管理,會員權限,流量觀測'; }"""),
+         return els[0].classList.contains('on') && !document.getElementById('admTabs')
+           && r[0].top >= p.bottom - 1 && r[1].top >= r[0].bottom - 1 && r[0].left >= p.left
+           && els.map(e => e.textContent.trim()).join() === '會員權限,流量觀測'; }"""),
        pg.evaluate("() => [...document.querySelectorAll('#tabs .l4subtab[data-parent=admin]')].map(e => [e.id, e.className, e.textContent.trim()])"))
     # ★ 2026-10-05 改前→改後（admin-v3，Andy：「弄得好複雜」）：頂部只剩 訪客｜註冊會員｜付費會員｜＋；付費範本改用下拉選、
     #   名稱／價格／週期收進「⚙ 範本設定」；每頁兩個子分頁「觀看權限」「會員名單」（原本的「③ Mail 人員名單」改成會員名單子分頁）。
@@ -44514,19 +44547,18 @@ def t_admin_v2(b, base, code):
        nb.get("name") == "1299 法人版" and nb.get("feats") == {} and nb.get("price") == 1299 and nb.get("period") == "year" and re.match(r"^p[0-9a-z]+$", nb.get("id", ""))
        and pg.locator("#ptTier button[data-plan]").count() == ntab + 1 and pg.get_attribute("#ptTier button.on", "data-plan") == nb.get("id") and pg.inner_text("#ptTier button.on").strip() == "1299 法人版（年）", nb)
     # ② 會員管理
-    pg.click("#admTabMembers")
-    wait_until(pg, "() => location.hash === '#admin/members' && document.querySelectorAll('#pmListBody tr[data-email]').length > 0", 10000)
-    hd = pg.evaluate("() => [...document.querySelectorAll('#pmTable thead th')].map(t => t.textContent.replace(/[▲▼]/g, '').trim())")
+    to_members(pg)
+    hd = pg.evaluate("() => [...document.querySelectorAll('#ptTable thead th')].map(t => t.textContent.replace(/[▲▼]/g, '').trim())")
     ok(f"{T}：人員狀況表有 會員／方案／到期日／最後上線／近 30 天造訪／狀態（admin-v3 共用名單元件）", all(any(k in h for h in hd) for k in ("會員", "方案", "到期日", "最後上線", "近 30 天造訪", "狀態")), hd)
-    ok(f"{T}：合併設定過的＋登入過的（5 位）、b799 標「過期」、wait 標「未登入過」", pg.locator("#pmListBody tr[data-email]").count() == 5
-       and "過期" in pg.inner_text("#pmListBody tr[data-email='b799@example.com']") and "未登入過" in pg.inner_text("#pmListBody tr[data-email='wait@example.com']"))
-    pg.click("#pmTable th[data-sort='visits']")
-    first = pg.evaluate("() => document.querySelector('#pmListBody tr[data-email]').dataset.email")
-    pg.click("#pmTable th[data-sort='visits']")
-    first2 = pg.evaluate("() => document.querySelector('#pmListBody tr[data-email]').dataset.email")
+    ok(f"{T}：合併設定過的＋登入過的（5 位）、b799 標「過期」、wait 標「未登入過」", pg.locator("#ptTable tr[data-email]").count() == 5
+       and "過期" in pg.inner_text("#ptTable tr[data-email='b799@example.com']") and "未登入過" in pg.inner_text("#ptTable tr[data-email='wait@example.com']"))
+    pg.click("#ptTable th[data-sort='visits']")
+    first = pg.evaluate("() => document.querySelector('#ptTable tr[data-email]').dataset.email")
+    pg.click("#ptTable th[data-sort='visits']")
+    first2 = pg.evaluate("() => document.querySelector('#ptTable tr[data-email]').dataset.email")
     ok(f"{T}：點「近 30 天造訪」排序 → 最多的（c799，30 次）在最上面；再點一次反過來", first == "c799@example.com" and first2 != first, (first, first2))
     pg.select_option("#pmStatF", "exp")
-    ok(f"{T}：狀態篩「過期」→ 只剩 b799", pg.locator("#pmListBody tr[data-email]").count() == 1 and "1 ／ 5" in pg.inner_text("#pmCnt"), pg.inner_text("#pmCnt"))
+    ok(f"{T}：狀態篩「過期」→ 只剩 b799", pg.locator("#ptTable tr[data-email]").count() == 1 and "1 ／ 5" in pg.inner_text("#pmCnt"), pg.inner_text("#pmCnt"))
     pg.select_option("#pmStatF", "")
     pg.fill("#pmAddEmail", "New.Paid@Example.com")
     pg.select_option("#pmAddPlan", "p799")
@@ -44536,9 +44568,9 @@ def t_admin_v2(b, base, code):
     ab = json.loads(ri.value.request.post_data or "{}")
     ok(f"{T}：新增會員（付費 799＋到期日）→ perm/put 帶 plan=p799、expires＝2027-03-31 台北 23:59:59",
        ab.get("email") == "new.paid@example.com" and ab.get("plan") == "p799" and ab.get("expires") == 1806508799000, ab)
-    wait_until(pg, "() => !!document.querySelector(\"#pmListBody tr[data-email='new.paid@example.com']\")", 4000)
-    ok(f"{T}：新會員出現在表上（付費會員、到期 2027-03-31、未登入過）", "2027-03-31" in pg.inner_text("#pmListBody tr[data-email='new.paid@example.com']")
-       and "未登入過" in pg.inner_text("#pmListBody tr[data-email='new.paid@example.com']"), pg.inner_text("#pmListBody tr[data-email='new.paid@example.com']") if pg.locator("#pmListBody tr[data-email='new.paid@example.com']").count() else "")
+    wait_until(pg, "() => !!document.querySelector(\"#ptTable tr[data-email='new.paid@example.com']\")", 4000)
+    ok(f"{T}：新會員出現在表上（付費會員、到期 2027-03-31、未登入過）", "2027-03-31" in pg.inner_text("#ptTable tr[data-email='new.paid@example.com']")
+       and "未登入過" in pg.inner_text("#ptTable tr[data-email='new.paid@example.com']"), pg.inner_text("#ptTable tr[data-email='new.paid@example.com']") if pg.locator("#ptTable tr[data-email='new.paid@example.com']").count() else "")
     # ③ 流量觀測
     pg.click("#admTabTraffic")
     wait_until(pg, "() => location.hash === '#admin/traffic' && !!document.getElementById('trHowN')", 10000)
@@ -45169,9 +45201,8 @@ def t_admin_v3(b, base, code):
     pg.click("#ptTable tr[data-email='a399@example.com'] td.c-who")
     ok(f"{T}：再點一次收起", pg.locator("#ptTable tr.pmdet").count() == 0)
     # 會員管理也用同一個名單元件
-    pg.click("#admTabMembers")
-    wait_until(pg, "() => location.hash === '#admin/members' && !!document.getElementById('pmTable')", 8000)
-    ok(f"{T}：會員管理的「所有人員狀況」是同一個名單元件（同欄位、付費徽章）", pg.evaluate("() => document.querySelectorAll('#pmTable thead th').length") == 11 and pg.locator("#pmTable .pdbadge").count() >= 2)
+    to_members(pg)
+    ok(f"{T}：會員管理的「所有人員狀況」是同一個名單元件（同欄位、付費徽章）", pg.evaluate("() => document.querySelectorAll('#ptTable thead th').length") == 11 and pg.locator("#ptTable .pdbadge").count() >= 2)
     sw = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
     ok(f"{T} 1440：沒有橫向捲軸", sw <= 1, sw)
     c.close()
@@ -45250,6 +45281,19 @@ def t_admin_v3(b, base, code):
         ok(f"{T}・perm-v4：拖「基本方案」到「進階方案」上 → 送 plans/sort ids＝[p799, p399]、頁籤變 訪客｜註冊會員｜進階｜基本｜＋",
            sb_.get("ids") == ["p799", "p399"] and bool(wait_until(pg, f"() => ({TABS})() === 'guest,free,p799,p399,ptAddTab'", 3000)), (sb_, pg.evaluate(TABS)))
         ok(f"{T}・perm-v4：（續）後端順序跟著變（訂閱頁 #pricing 也照這份）", [x["id"] for x in st["plans"]] == ["guest", "free", "p799", "p399"], [x["id"] for x in st["plans"]])
+        # ★ 10-05 Andy「會員管理分頁可以拿掉了，因為會員權限已經有相同功能」
+        ok(f"{T}・合併：側欄與頁內都沒有「會員管理」（沒有 admTabMembers）", pg.evaluate("() => !document.getElementById('admTabMembers') && !/會員管理/.test(document.getElementById('tabs').innerText)"))
+        pg.evaluate("() => { location.hash = '#admin/members'; }")
+        wait_until(pg, "() => location.hash === '#admin/perm' && !!document.getElementById('pmTuneEmail') && document.getElementById('pmTuneEmail').offsetParent !== null", 6000)
+        ok(f"{T}・合併：舊網址 #admin/members → 導到 #admin/perm 的「註冊會員」→「會員名單」", pg.evaluate("() => location.hash === '#admin/perm' && document.querySelector('#ptTier button.on').dataset.tier === 'free' && document.querySelector('#ptSubList').classList.contains('on')"))
+        ok(f"{T}・合併：會員名單內有 新增會員（email／方案／到期日）、搜尋、狀態篩選、逐人微調輸入", all(pg.locator(x).count() == 1 for x in ("#pmAddEmail", "#pmAddPlan", "#pmAddExp", "#pmAddGo", "#pmSearch", "#pmStatF", "#pmTuneEmail", "#pmTuneGo")))
+        pg.click("#ptTable tr[data-email] >> nth=0"); pg.click("#ptTable button[data-tune] >> nth=0")
+        wait_until(pg, "() => !!document.getElementById('pmEmail') && document.getElementById('pmHead').classList.contains('medit')", 5000)
+        ok(f"{T}・合併：展開一列 →「逐人微調…」→ 進到這個人的設定（層級／範本、到期日、開關），範本頁籤暫時收起、有「← 回會員名單」", pg.evaluate("() => document.getElementById('ptTier').offsetParent === null && !!document.getElementById('pmBack') && !!document.getElementById('pmPlan') && !!document.getElementById('pmExp') && document.querySelectorAll('#pmCats input[role=switch]').length > 5"))
+        pg.click("#pmBack")
+        wait_until(pg, "() => !document.getElementById('pmHead').classList.contains('medit') && document.getElementById('ptTier').offsetParent !== null", 4000)
+        ok(f"{T}・合併：按「← 回會員名單」→ 回到名單、頁籤回來", pg.evaluate("() => document.querySelector('#ptSubList').classList.contains('on') && !!document.getElementById('ptTable')"))
+        pg.click("#ptTier button[data-tier='guest']") if False else None
         # ---- × 刪除鈕（取代 ⋮）：只在付費範本、滑過才出現；有效會員 > 0 → 擋住並列名單
         r0 = pg.evaluate(RECT_PANEL)
         pg.hover("#ptTier .ptab[data-pid='p399'] > button[role=tab]")

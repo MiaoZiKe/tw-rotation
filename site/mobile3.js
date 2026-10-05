@@ -177,7 +177,7 @@
       ${row('market', '▦', '市場明細', '<small>漲跌家數、站上均線、完整名單</small>', v === 'market')}
       ${row('season', '◷', '週期統計', '<small>族群 × 月份的歷史表現</small>', v === 'season')}
       ${row('watch', '★', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
-      ${isAdmin() ? row('perm', '⛨', '管理區', '<small>會員權限／會員管理／流量觀測</small>', /^#admin\b/.test(location.hash)) : ''}
+      ${isAdmin() ? row('perm', '⛨', '管理區', '<small>會員權限／流量觀測</small>', /^#admin\b/.test(location.hash)) : ''}
       <div class="mgrp">工具</div>
       ${row('events', '▤', '今日事件', `<span class="n">${esc(evn)}</span>`)}
       ${row('theme', '☀', '切換成' + theme)}

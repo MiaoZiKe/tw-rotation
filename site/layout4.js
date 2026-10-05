@@ -330,7 +330,7 @@
      Worker 的 /v1/admin/* 也只回管理者；這一格只是入口。
      長相跟資金流向的子分頁一樣（l4subtab、縮排在「自選」下面），但不帶 data-l4sub：它是另一個頁面（#admin/perm），不是自選頁裡的一段。 */
   // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
-  const ADM_SUBS = [['members', '會員管理', 'admTabMembers', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge']];
+  const ADM_SUBS = [['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge']];
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); }
   function syncPerm() {
     const tabs = $('#tabs');
@@ -341,9 +341,9 @@
       b = document.createElement('button');
       // ★ 2026-10-04 23:50 Andy：「是指在自選下方，不是列在自選裡面」→ 改成跟「自選」同一層的 .tab（不縮排、同字級、自己的圖示）
       b.type = 'button'; b.id = 'l4Perm'; b.className = 'tab l4perm';
-      // 2026-10-05（admin-v2）：改成「管理區」入口 —— 會員權限／會員管理／流量觀測三個子分頁在頁內頂部 tab
+      // 2026-10-05（admin-v2）：改成「管理區」入口 —— 會員權限／流量觀測三個子分頁在頁內頂部 tab
       b.textContent = '管理區';
-      b.setAttribute('aria-label', '管理區'); b.title = '專案・管理區：會員權限／會員管理／流量觀測（只有管理者看得到）';
+      b.setAttribute('aria-label', '管理區'); b.title = '專案・管理區：會員權限／流量觀測（只有管理者看得到）';
       b.onclick = () => { if (!/^#admin\b/.test(location.hash || '')) location.hash = '#admin/perm'; };
       parent.after(b);
     }
@@ -366,7 +366,7 @@
       });
     }
     const on = /^#admin\b/.test(location.hash || '');
-    const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''), cur = on ? (m ? m[1] : 'traffic') : '';
+    const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
     // 子項亮著時「管理區」本身不實心反白（同一個位置不要亮兩格，同資金流向），但保留 .on 讓「在管理區裡」這件事查得到
     b.classList.toggle('on', on); b.classList.toggle('l4hassub', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
