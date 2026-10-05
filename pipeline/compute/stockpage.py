@@ -879,15 +879,18 @@ def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
         for _, r in r_all.sort_values("date", ascending=False).head(RESULTS_MAX).iterrows():
             d = str(r.get("date"))
             before = _f(r.get("before_price"))
-            fill_days = None
+            fill_days = fill_wait = None
             if not px.empty and before:
                 after = px[px["date"] >= d]
                 closes = pd.to_numeric(after["close"], errors="coerce")
                 hit = np.where(closes.values >= before)[0]
                 if len(hit):
                     fill_days = int(hit[0]) + 1
-                elif len(after) >= 250:
-                    fill_days = -1        # 一年內沒填
+                else:
+                    # 2026-10-05：還沒填的寫出「已經過幾個交易日」（含除息日），前端顯示「尚未填息（已 N 天）」
+                    fill_wait = int(len(after)) if len(after) else None
+                    if len(after) >= 250:
+                        fill_days = -1        # 一年內沒填
             pd_ = paid.get(d)
             if pd_:
                 cash_d, stock_d = pd_.get("cash"), pd_.get("stock")
@@ -902,7 +905,7 @@ def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
                          "cash_yield": _r(cash_d / before * 100, 2) if (cash_d and before) else None,
                          "price_gap": _r(gap, 2),
                          "before_price": before, "reference_price": _f(r.get("reference_price")),
-                         "fill_days": fill_days})
+                         "fill_days": fill_days, "fill_wait": fill_wait})
         out["results"] = rows
     if not e_all.empty or not r_all.empty:
         out["by_year"], out["upcoming"] = div_year_bars(e_all, r_all, price, code, asof, cover_from)

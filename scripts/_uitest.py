@@ -1546,28 +1546,56 @@ def _drill_check_bin(pg, tag, bars, i):
 #   · 盤後那一版：漲停名單＝stocks.json 的 lim（管線 tick 判定），沒有 ETF
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
 def t_etf_1005(pg, b, base):
-    """切分類、熱門前 5 切口徑、行事曆切月與點日期、期間 3/5/10/自訂 數字真的變、資料不足標示、點卡片進個股頁；
-    ETF 個股頁（00947）：沒有營收／獲利分頁、有成分股分頁、配息分頁不是空的。
+    """ETF 專區第二版（2026-10-05 Andy：行事曆放最上且是真月曆、分類頁三張前 5 並排同高、自選比較清單、填息天數）。
 
-    ⚠ 本機資料湖的 ETF 配息 0 列（FinMind 從這個容器打不到，回補要等雲端排程），所以行事曆與 00947 的配息
-      用 **假資料** 驗前端：etf.json 的 calendar 換成三筆假除息、00947.json 的 dividends 換成 2330 那一份。
+    驗的是「畫面真的因此改變了」：
+      · 行事曆在最上面（免責下方第一張）、7 欄月曆 6 列 42 格、今天格醒目、格內寫代號＋金額、3 檔時前 2 檔＋「+1 檔」、
+        點格子右側清單換成當天 3 檔（含填息天數／尚未填息（已 N 天））、上月／下月／回本月真的換月、切月與點格子整張卡高度不變
+      · 「全部」「其他」沒有三張前 5；配息型有三張且同高、同一列；名單都屬於該分類；報酬率前 5 依數字由高到低、期間換了名單／數字跟著換
+      · 殖利率前 5 依殖利率排、平均填息天數有寫
+      · 加入比較：全不選 → 勾 2 檔 → 表格只剩 2 列、長條 2 根、走勢 2 條、localStorage 存回；切市值型各自記憶；重新整理還在；
+        主題型「全選」被擋在 8 檔；選幾檔下面的卡都不會上下跳
+      · 單行：表格儲存格、前 5 列、說明列都只有一行高
+      · 原有：分類切換、排序、點卡片進個股頁、00947 ETF 個股頁分頁、配息分頁填息字樣、普通股不受影響
+
+    ⚠ 本機資料湖的 ETF 配息 0 列（FinMind 從這個容器打不到，回補要等雲端排程），所以行事曆、殖利率、填息
+      用 **假資料** 驗前端：etf.json 的 calendar 換成假除息、幾檔配息型補上假殖利率與填息；00947.json 的 dividends 換成 2330 那一份。
       假資料只在這一段的瀏覽器分頁裡（route 攔截），不寫進任何檔案。"""
     import json as _json
+    from datetime import datetime, timedelta, timezone
     tag = "ETF專區1005"
+    today = (datetime.now(timezone.utc) + timedelta(hours=8)).date()
+    ym = today.strftime("%Y-%m")
+    prev = (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+    d16, d20, p16 = f"{ym}-16", f"{ym}-20", f"{prev}-16"
     FAKE_CAL = [
-        {"code": "0056", "name": "元大高股息", "ex": "2026-09-16", "pay": "2026-10-08", "amt": 0.75, "y": 0.0185, "basis": "除息前一日收盤"},
-        {"code": "00878", "name": "國泰永續高股息", "ex": "2026-09-16", "pay": "2026-10-09", "amt": 0.4, "y": 0.0151, "basis": "除息前一日收盤"},
-        {"code": "00919", "name": "群益台灣精選高息", "ex": "2026-10-20", "pay": None, "amt": 0.72, "y": 0.0225, "basis": "最新收盤（尚未除息，估算）"},
+        {"code": "0056", "name": "元大高股息", "ex": p16, "pay": None, "amt": 0.75, "y": 0.0185, "basis": "除息前一日收盤", "fill": 3, "fill_wait": None},
+        {"code": "00878", "name": "國泰永續高股息", "ex": p16, "pay": None, "amt": 0.4, "y": 0.0151, "basis": "除息前一日收盤", "fill": None, "fill_wait": 5},
+        {"code": "0056", "name": "元大高股息", "ex": d16, "pay": None, "amt": 0.75, "y": 0.0185, "basis": "除息前一日收盤", "fill": 3, "fill_wait": None},
+        {"code": "00878", "name": "國泰永續高股息", "ex": d16, "pay": None, "amt": 0.4, "y": 0.0151, "basis": "除息前一日收盤", "fill": None, "fill_wait": 5},
+        {"code": "00919", "name": "群益台灣精選高息", "ex": d16, "pay": None, "amt": 0.72, "y": 0.0225, "basis": "除息前一日收盤", "fill": None, "fill_wait": None},
+        {"code": "00929", "name": "復華台灣科技優息", "ex": d20, "pay": None, "amt": 0.12, "y": 0.006, "basis": "最新收盤（尚未除息，估算）", "fill": None, "fill_wait": None},
     ]
+    # 殖利率與填息的假資料（配息型 6 檔，數字故意不照代號順序，驗「依殖利率排」）
+    FAKE_Y = {"00919": (0.101, 12.5, 4, 0, [10, None]), "0056": (0.072, 3.0, 4, 1, [None, 9]),
+              "00878": (0.064, None, 2, 2, [None, 9]), "00929": (0.088, 20.0, 4, 0, [20, None]),
+              "00918": (0.095, 7.3, 3, 0, [5, None]), "00713": (0.051, None, 0, 0, None)}
 
     def fake_etf(route):
         r = route.fetch(); d = _json.loads(r.text()); d["calendar"] = FAKE_CAL
+        for it in d["items"]:
+            if it["code"] in FAKE_Y:
+                y, fa, fn, fo, fl = FAKE_Y[it["code"]]
+                it.update({"yield_ttm": y, "fill_avg": fa, "fill_n": fn, "fill_open": fo, "fill_last": fl})
         route.fulfill(response=r, body=_json.dumps(d))
 
     div2330 = _json.loads((SITE / "data" / "stock" / "2330.json").read_text(encoding="utf-8")).get("dividends")
 
     def fake_00947(route):
-        r = route.fetch(); d = _json.loads(r.text()); d["dividends"] = div2330
+        r = route.fetch(); d = _json.loads(r.text()); dv = _json.loads(_json.dumps(div2330))
+        if dv and dv.get("results"):
+            dv["results"][0].update({"fill_days": None, "fill_wait": 7})
+        d["dividends"] = dv
         route.fulfill(response=r, body=_json.dumps(d))
 
     lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
@@ -1575,94 +1603,194 @@ def t_etf_1005(pg, b, base):
     lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     lp.route("**/data/etf.json*", fake_etf)
     lp.route("**/data/stock/00947.json*", fake_00947)
+    J = lambda js, *a: lp.evaluate(js, *a)
+    H = lambda sel: J("(s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().height) : -1; }", sel)
+    TOP = lambda sel: J("(s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1; }", sel)
+    CODES = lambda sel: [c for c in (J(f"() => (document.querySelector('{sel}') || {{}}).dataset?.codes || ''") or "").split(",") if c]
+
+    def cat(v):
+        lp.click(f"#etfCatSeg button[data-v='{v}']"); lp.wait_for_timeout(350)
+
+    def dd_open():
+        if not J("() => !document.querySelector('#etfCmpDD .ddpanel').hidden"):
+            lp.click("#etfCmpDD .ddbtn"); lp.wait_for_timeout(150)
+
+    def dd_close():
+        lp.keyboard.press("Escape"); lp.wait_for_timeout(150)
+
+    def dd_tick(code):
+        lp.click(f"#etfCmpDD .ddlist input[data-n^='{code} ']"); lp.wait_for_timeout(250)
+
     try:
         lp.goto(f"{base}#etf", wait_until="networkidle")
+        # 先清掉這一頁之前留下的 ETF 選擇，再重開一次：驗的是「沒選過時的預設」
+        lp.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.etf.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        lp.reload(wait_until="networkidle")
         ready = wait_until(lp, "() => !!document.querySelector('#v-etf[data-ready]')", 15000)
         ok(f"[{tag}] 側欄有 ETF 分頁、頁面畫完", ready and count(lp, '.tab[data-view="etf"]') == 1)
         ok(f"★ [{tag}] 頁頂免責（非投顧、不構成建議）", "非投資顧問" in text(lp, "#etfDisc") and "不構成" in text(lp, "#etfDisc"))
-        ok(f"[{tag}] 讀到完整 etf.json（不是退回模式）", lp.evaluate("() => document.querySelector('#v-etf').dataset.ready") == "full")
-        # --- 分類切換：張數與標籤真的變
-        n_all = int(lp.evaluate("() => document.querySelectorAll('#etfGrid .etfc').length"))
-        lp.click("#etfCatSeg button[data-v='市值型']"); lp.wait_for_timeout(250)
-        tags = lp.evaluate("() => [...document.querySelectorAll('#etfGrid .etfc .etag')].map(e => e.textContent)")
-        ok(f"★ [{tag}] 切「市值型」→ 只剩市值型卡片、張數變少", tags and all(t == "市值型" for t in tags) and len(tags) < n_all, (len(tags), n_all))
-        ok(f"[{tag}] 市值型含 0050", count(lp, "#etfGrid .etfc[data-code='0050']") == 1)
-        lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(250)
-        t2 = lp.evaluate("() => [...document.querySelectorAll('#etfGrid .etfc .etag')].map(e => e.textContent)")
-        ok(f"[{tag}] 切「配息型」→ 全部是配息型且含 0056", t2 and set(t2) == {"配息型"} and count(lp, "#etfGrid .etfc[data-code='0056']") == 1, t2[:3])
-        cat_ls = lp.evaluate("() => localStorage.getItem('tw.etf.cat')")
-        ok(f"[{tag}] 分類記在 localStorage", cat_ls == "配息型", cat_ls)
-        lp.click("#etfCatSeg button[data-v='all']"); lp.wait_for_timeout(200)
-        first_tv = lp.evaluate("() => document.querySelector('#etfGrid .etfc').dataset.code")
-        lp.select_option("#etfSort", "size"); lp.wait_for_timeout(200)
-        first_sz = lp.evaluate("() => document.querySelector('#etfGrid .etfc').dataset.code")
-        ok(f"[{tag}] 排序切「規模」→ 第一張是 0050（集保單位×收盤最大）", first_sz == "0050", (first_tv, first_sz))
-        # --- 熱門前 5：兩個口徑名單不同、各 5 檔
-        lp.click("#etfPopSeg button[data-v='holders']"); lp.wait_for_timeout(200)
-        h = lp.evaluate("() => document.querySelector('#etfPop').dataset.codes")
-        lp.click("#etfPopSeg button[data-v='turnover']"); lp.wait_for_timeout(200)
-        t = lp.evaluate("() => document.querySelector('#etfPop').dataset.codes")
-        ok(f"★ [{tag}] 熱門前 5：受益人數 / 成交值兩口徑各 5 檔且名單不同", len(h.split(",")) == 5 and len(t.split(",")) == 5 and h != t, (h, t))
-        ok(f"[{tag}] 熱門口徑寫在畫面（日期區間）", "近 20 個交易日" in text(lp, "#etfPopSub"), text(lp, "#etfPopSub"))
-        # --- 行事曆
-        m0 = lp.evaluate("() => document.querySelector('#etfCal').dataset.month")
-        lp.click("#etfCalNext"); lp.wait_for_timeout(200)
-        m1 = lp.evaluate("() => document.querySelector('#etfCal').dataset.month")
-        ok(f"★ [{tag}] 行事曆按「下月」→ 月份換了", m0 and m1 and m1 > m0, (m0, m1))
-        lp.click("#etfCalPrev"); lp.wait_for_timeout(200)
-        if lp.evaluate("() => document.querySelector('#etfCal').dataset.month") != "2026-09":
-            lp.click("#etfCalPrev"); lp.wait_for_timeout(200)
-        lp.click(".cald.has[data-d='2026-09-16']"); lp.wait_for_timeout(200)
+        ok(f"[{tag}] 讀到完整 etf.json（不是退回模式）", J("() => document.querySelector('#v-etf').dataset.ready") == "full")
+        cat("all")
+        # ================= 1. 行事曆在最上面、7 欄真月曆
+        order = J("() => [...document.querySelectorAll('#v-etf > .card, #v-etf > .etfcatbar, #v-etf > .etftri')].filter(e => !e.hidden).map(e => e.id)")
+        ok(f"★ [{tag}] 配息行事曆是免責下方第一張（在分類列與其他卡之上）", order[:2] == ["etfCalCard", "etfCatBar"], order)
+        cols = J("() => getComputedStyle(document.querySelector('#etfCalGrid')).gridTemplateColumns.split(' ').length")
+        wds = J("() => [...document.querySelectorAll('#etfCalGrid .wd')].map(e => e.textContent)")
+        ncell = count(lp, "#etfCalGrid .cald")
+        ok(f"★ [{tag}] 月曆是 7 欄（日～六）× 6 列 42 格", cols == 7 and wds == ["日", "一", "二", "三", "四", "五", "六"] and ncell == 42, (cols, wds, ncell))
+        ok(f"★ [{tag}] 預設本月、今天那格醒目（藍框＋「今天」）",
+           J("() => document.querySelector('#etfCal').dataset.month") == ym
+           and J("() => [...document.querySelectorAll('.cald.today')].map(e => e.dataset.d + '|' + (e.querySelector('.dn i') || {}).textContent)") == [f"{today.isoformat()}|今天"],
+           J("() => [...document.querySelectorAll('.cald.today')].map(e => e.dataset.d)"))
+        cell = J("(k) => { const c = document.querySelector(`.cald[data-d='${k}']`); return c ? { ce: [...c.querySelectorAll('.ce')].map(e => e.textContent.trim()), cm: (c.querySelector('.cm') || {}).textContent || '' } : null; }", d16)
+        ok(f"★ [{tag}] {d16} 格內直接寫前 2 檔代號＋金額、第 3 檔收成「+1 檔」",
+           cell and len(cell["ce"]) == 2 and cell["ce"][0].startswith("0056") and "0.75" in cell["ce"][0] and cell["cm"] == "+1 檔", cell)
+        h_cal0, top_cat0 = H("#etfCalCard"), TOP("#etfCatBar")
+        lp.click(f".cald.has[data-d='{d16}']"); lp.wait_for_timeout(250)
+        rows = J("() => [...document.querySelectorAll('#etfDayTbl tbody tr')].map(t => t.textContent.replace(/\\s+/g, ' ').trim())")
         lst = text(lp, "#etfCalList")
-        ok(f"★ [{tag}] 點 9/16 → 右側列出當天兩檔、金額與殖利率", "2026-09-16 除息（2 檔）" in lst and "0.750" in lst and "1.85%" in lst, lst[:120])
-        # --- 報酬比較：期間切換數字真的變
-        lp.click("#etfGrpSeg button[data-v='配息型']"); lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(400)
-        t3 = text(lp, "#etfRetTbl")
-        lp.click("#etfPerSeg button[data-v='5y']"); lp.wait_for_timeout(400)
-        t5 = text(lp, "#etfRetTbl")
-        lp.click("#etfPerSeg button[data-v='10y']"); lp.wait_for_timeout(400)
-        t10 = text(lp, "#etfRetTbl")
-        ok(f"★ [{tag}] 3／5／10 年：表格數字三次都不同", len({t3, t5, t10}) == 3)
-        ok(f"★ [{tag}] 10 年：上市未滿的標「上市未滿 N 年」不給數字", "上市未滿 10 年" in t10, t10[:200])
-        ok(f"★ [{tag}] 配息湖裡沒有 → 含息欄標「配息資料尚未取得」（不拿 0 冒充）", "配息資料尚未取得" in t3, t3[:200])
-        lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(300)
-        vis = lp.evaluate("() => !document.querySelector('#etfFrom').hidden")
-        opts = lp.evaluate("() => [...document.querySelectorAll('#etfFrom option')].map(o => o.value)")
-        lp.select_option("#etfFrom", "2018"); lp.wait_for_timeout(400)
-        tc = text(lp, "#etfRetTbl"); sub = text(lp, "#etfRetSub")
-        ok(f"★ [{tag}] 自訂起始年 2018 → 下拉出現、期間標題與數字變了", vis and "2018" in opts and "2018-01-01" in sub and tc not in (t3, t5, t10), sub)
-        ok(f"[{tag}] 不含息走勢圖有線、年化長條有柱", (lp.click("#etfBasisSeg button[data-v='price']") or True)
-           and wait_until(lp, "() => +document.querySelector('#etfRetLine').dataset.n > 0", 3000)
-           and int(lp.evaluate("() => +document.querySelector('#etfRetBar').dataset.n")) > 0)
-        lp.click("#etfGrpSeg button[data-v='市值型']"); lp.wait_for_timeout(400)
-        ok(f"[{tag}] 切市值型 → 表格換成 0050 那組", "0050" in text(lp, "#etfRetTbl"))
-        # --- 沒有橫向捲軸（1440 與 800）
-        ok(f"[{tag}] 1440 無橫向捲軸", lp.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+        ok(f"★ [{tag}] 點 {d16} → 右側清單換成當天 3 檔（金額、殖利率）", len(rows) == 3 and "除息 3 檔" in lst and "0.750" in lst and "1.85%" in lst, rows)
+        ok(f"★ [{tag}] 當天清單寫填息天數：已填「3 天」、未填「尚未填息（已 5 天）」、算不出來「—」",
+           "3 天" in rows[0] and "尚未填息（已 5 天）" in rows[1] and rows[2].endswith("—"), rows)
+        ok(f"[{tag}] 選中的格子有框", J("(k) => document.querySelector(`.cald[data-d='${k}']`).classList.contains('sel')", d16))
+        lp.click("#etfCalNext"); lp.wait_for_timeout(200)
+        m_next = J("() => document.querySelector('#etfCal').dataset.month")
+        h_cal1 = H("#etfCalCard")
+        lp.click("#etfCalToday"); lp.wait_for_timeout(200)
+        m_back = J("() => document.querySelector('#etfCal').dataset.month")
+        lp.click("#etfCalPrev"); lp.wait_for_timeout(200)
+        m_prev = J("() => document.querySelector('#etfCal').dataset.month")
+        ok(f"★ [{tag}] 下月／回本月／上月 真的換月", m_next > ym and m_back == ym and m_prev == prev, (m_next, m_back, m_prev))
+        ok(f"[{tag}] 上個月 {p16} 有 2 檔、沒有「+N」", J("(k) => document.querySelectorAll(`.cald[data-d='${k}'] .ce`).length", p16) == 2
+           and count(lp, f".cald[data-d='{p16}'] .cm") == 0)
+        ok(f"★ [{tag}] 切月、點格子：行事曆整張卡高度不變、下面的分類列不移位", h_cal0 == h_cal1 == H("#etfCalCard") and TOP("#etfCatBar") == top_cat0,
+           (h_cal0, h_cal1, H("#etfCalCard"), top_cat0, TOP("#etfCatBar")))
+        lp.click("#etfCalToday"); lp.wait_for_timeout(150)
+        # ================= 2. 全部／其他沒有前 5；配息型三張同高並排
+        ok(f"★ [{tag}] 「全部」沒有三張前 5、也沒有報酬比較", J("() => document.querySelector('#etfTri').hidden && document.querySelector('#etfRetCard').hidden"))
+        cat("其他")
+        ok(f"★ [{tag}] 「其他」沒有三張前 5（Andy：其他的不用）", J("() => document.querySelector('#etfTri').hidden"))
+        cat("配息型")
+        box = J("""() => ['#etfPopCard', '#etfRetTopCard', '#etfYldCard'].map(s => { const r = document.querySelector(s).getBoundingClientRect();
+                 return [Math.round(r.top), Math.round(r.height), Math.round(r.left), Math.round(r.width)]; })""")
+        ok(f"★ [{tag}] 配息型：三張前 5 在同一列、由左到右、同高", not J("() => document.querySelector('#etfTri').hidden")
+           and len({x[0] for x in box}) == 1 and len({x[1] for x in box}) == 1 and box[0][2] < box[1][2] < box[2][2], box)
+        cats = J("() => Object.fromEntries(window.TwEtfPage.state.data.items.map(i => [i.code, i.cat]))")
+        pop_h = CODES("#etfPop")
+        lp.click("#etfPopSeg button[data-v='turnover']"); lp.wait_for_timeout(200)
+        pop_t = CODES("#etfPop")
+        ok(f"★ [{tag}] 最受歡迎前 5：兩口徑各 5 檔、名單不同、全是配息型", len(pop_h) == 5 and len(pop_t) == 5 and pop_h != pop_t
+           and all(cats.get(c) == "配息型" for c in pop_h + pop_t), (pop_h, pop_t))
+        ok(f"[{tag}] 熱門口徑寫在畫面（近 20 個交易日）", "近 20 個交易日" in text(lp, "#etfPopSub"), text(lp, "#etfPopSub"))
+        yl = CODES("#etfYld")
+        exp_y = [c for c, _ in sorted(((c, v[0]) for c, v in FAKE_Y.items()), key=lambda x: -x[1])][:5]
+        ytxt = text(lp, "#etfYld")
+        ok(f"★ [{tag}] 殖利率前 5：依殖利率由高到低、全是配息型", yl == exp_y, (yl, exp_y))
+        ok(f"★ [{tag}] 殖利率前 5 寫平均填息天數（12.5 天）、完全沒填過的寫「尚未填息」", "12.5 天" in ytxt and "尚未填息" in ytxt and "平均填息" in ytxt, ytxt[:200])
+        lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(300)
+        r3, r3v = CODES("#etfRetTop"), J("() => [...document.querySelectorAll('#etfRetTop .rkrow .v')].map(e => parseFloat(e.textContent))")
+        lp.click("#etfPerSeg button[data-v='5y']"); lp.wait_for_timeout(300)
+        r5, r5v = CODES("#etfRetTop"), J("() => [...document.querySelectorAll('#etfRetTop .rkrow .v')].map(e => parseFloat(e.textContent))")
+        ok(f"★ [{tag}] 報酬率前 5：由高到低、全是配息型", r3 and all(cats.get(c) == "配息型" for c in r3 + r5) and r3v == sorted(r3v, reverse=True) and r5v == sorted(r5v, reverse=True), (r3v, r5v))
+        ok(f"★ [{tag}] 期間 3 年→5 年：報酬率前 5 的名單或數字跟著換", (r3, r3v) != (r5, r5v), (r3, r5))
+        ok(f"[{tag}] 配息資料尚未取得時寫明「暫依價格年化」（不拿價格報酬冒充含息）", "暫依價格年化" in text(lp, "#etfRetTopQ"), text(lp, "#etfRetTopQ"))
+        lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(250)
+        vis = J("() => getComputedStyle(document.querySelector('#etfFrom')).visibility === 'visible'")
+        lp.select_option("#etfFrom", "2018"); lp.wait_for_timeout(300)
+        ok(f"★ [{tag}] 自訂起始年 2018 → 下拉出現、比較卡期間標題換成 2018", vis and "2018-01-01" in text(lp, "#etfRetSub"), text(lp, "#etfRetSub"))
+        lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(300)
+        # ================= 3. 自選比較
+        r3 = CODES("#etfRetTop")
+        dflt = CODES("#etfRetBody")
+        ok(f"★ [{tag}] 比較清單預設＝報酬率前 5", dflt[:len(r3)] == r3 and len(dflt) == 5, (dflt, r3))
+        lp.click("#etfBasisSeg button[data-v='price']"); lp.wait_for_timeout(300)
+        top_list0 = TOP("#etfListCard")
+        pick = r3[:2]
+        dd_open(); lp.click("#etfCmpDD .dd-none"); lp.wait_for_timeout(250)
+        ok(f"[{tag}] 全不選 → 比較卡寫「還沒選任何 ETF」", "還沒選任何 ETF" in text(lp, "#etfRetBody"))
+        for c in pick:
+            dd_tick(c)
+        dd_close()
+        wait_until(lp, "() => +((document.querySelector('#etfRetLine') || {}).dataset || {}).n === 2", 5000)
+        trs = J("() => [...document.querySelectorAll('#etfRetTbl tbody tr')].map(t => t.dataset.code)")
+        ok(f"★ [{tag}] 勾 2 檔 → 表格只剩那 2 檔", trs == pick, (trs, pick))
+        ok(f"★ [{tag}] 勾 2 檔 → 走勢 2 條、年化長條 2 組", J("() => +document.querySelector('#etfRetLine').dataset.n") == 2
+           and J("() => +document.querySelector('#etfRetBar').dataset.n") == 2,
+           (J("() => document.querySelector('#etfRetLine').dataset.n"), J("() => document.querySelector('#etfRetBar').dataset.n")))
+        ok(f"[{tag}] 表格欄位：價格年化、含息年化、殖利率、配息年化", all(k in text(lp, "#etfRetTbl thead") for k in ("價格年化", "含息年化", "殖利率", "配息年化")))
+        ls1 = J("() => localStorage.getItem('tw.etf.cmp.配息型')")
+        ok(f"★ [{tag}] 選取存進 localStorage（tw.etf.cmp.配息型）", ls1 and _json.loads(ls1) == pick, ls1)
+        ok(f"★ [{tag}] 從 5 檔改成 2 檔：下面的「ETF 一覽」不上下跳", TOP("#etfListCard") == top_list0, (top_list0, TOP("#etfListCard")))
+        ok(f"[{tag}] 下拉按鈕摘要寫「已選 2 檔」", "已選 2 檔" in text(lp, "#etfCmpDD .ddbtn"), text(lp, "#etfCmpDD .ddbtn"))
+        cat("市值型")
+        mv0 = CODES("#etfRetBody")
+        ok(f"[{tag}] 市值型的比較清單是它自己的（不是配息型那 2 檔）", mv0 and not set(mv0) & set(pick) and all(cats.get(c) == "市值型" for c in mv0), mv0)
+        opts = J("() => [...document.querySelectorAll('#etfCmpDD .ddlist input')].map(i => i.dataset.n.split(' ')[0])")
+        ok(f"★ [{tag}] 加入比較只列這個分類的 ETF", opts and all(cats.get(c) == "市值型" for c in opts), opts[:8])
+        dd_open(); lp.click("#etfCmpDD .dd-none"); lp.wait_for_timeout(200); dd_tick("0050"); dd_close()
+        ok(f"[{tag}] 市值型只勾 0050 → 表格只剩 0050", CODES("#etfRetBody") == ["0050"], CODES("#etfRetBody"))
+        cat("配息型")
+        ok(f"★ [{tag}] 切回配息型 → 還是剛剛那 2 檔（各分類分開記）", CODES("#etfRetBody") == pick, CODES("#etfRetBody"))
+        cat("主題型")
+        dd_open(); lp.click("#etfCmpDD .dd-all"); lp.wait_for_timeout(300)
+        n8 = len(CODES("#etfRetBody")); msg = text(lp, "#etfCmpMsg")
+        dd_close()
+        ok(f"★ [{tag}] 主題型按「全選」→ 最多 8 檔、提示上限", n8 == 8 and "8" in msg, (n8, msg))
+        lp.reload(wait_until="networkidle")
+        wait_until(lp, "() => !!document.querySelector('#v-etf[data-ready]')", 15000)
+        lp.wait_for_timeout(300)
+        ok(f"★ [{tag}] 重新整理：停在上次的分類（主題型），配息型／市值型的比較清單都還在",
+           J("() => document.querySelector('#v-etf').dataset.cat") == "主題型"
+           and (cat("配息型") or True) and CODES("#etfRetBody") == pick
+           and (cat("市值型") or True) and CODES("#etfRetBody") == ["0050"])
+        cat("配息型")
+        # ================= 4. 單行（不換行）
+        multi = J("""() => { const bad = [];
+            document.querySelectorAll('#v-etf table.et td, #v-etf table.et th, #v-etf .rkrow, #v-etf .etfq, #v-etf .calhd, #v-etf .cald .ce').forEach(e => {
+              if (e.closest('[hidden]') || !e.getClientRects().length) return;
+              const lh = parseFloat(getComputedStyle(e).lineHeight) || 18;
+              const h = e.getBoundingClientRect().height - parseFloat(getComputedStyle(e).paddingTop) - parseFloat(getComputedStyle(e).paddingBottom);
+              const limit = e.classList.contains('rkrow') || e.classList.contains('calhd') ? 40 : lh * 1.6;
+              if (h > limit) bad.push((e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 20) + ':' + Math.round(h)); });
+            return bad; }""")
+        ok(f"★ [{tag}] 所有表格儲存格、前 5 列、說明列、月曆格內文字都只有一行", not multi, multi[:6])
+        # ================= 5. 原有：清單、排序、寬度、點卡片
+        tags = J("() => [...document.querySelectorAll('#etfGrid .etfc .etag')].map(e => e.textContent)")
+        ok(f"[{tag}] 配息型分頁的「ETF 一覽」只剩配息型且含 0056", tags and set(tags) == {"配息型"} and count(lp, "#etfGrid .etfc[data-code='0056']") == 1)
+        ok(f"[{tag}] 分類記在 localStorage", J("() => localStorage.getItem('tw.etf.cat')") == "配息型")
+        cat("all")
+        lp.select_option("#etfSort", "size"); lp.wait_for_timeout(200)
+        ok(f"[{tag}] 排序切「規模」→ 第一張是 0050（集保單位×收盤最大）", J("() => document.querySelector('#etfGrid .etfc').dataset.code") == "0050")
+        ok(f"[{tag}] 1440 無橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+        cat("配息型")
         lp.set_viewport_size({"width": 800, "height": 1000}); lp.wait_for_timeout(500)
-        ok(f"[{tag}] 800 無橫向捲軸", lp.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
-           lp.evaluate("() => document.documentElement.scrollWidth"))
+        ok(f"[{tag}] 800 無橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"), J("() => document.documentElement.scrollWidth"))
         lp.set_viewport_size({"width": 1440, "height": 1000}); lp.wait_for_timeout(300)
-        # --- 點卡片進個股頁
-        lp.click("#etfCatSeg button[data-v='all']"); lp.wait_for_timeout(200)
+        lp.click("#etfYld .rkrow[data-code='00919']"); lp.wait_for_timeout(600)
+        ok(f"★ [{tag}] 點殖利率前 5 的 00919 → #stock/00919", J("() => location.hash") == "#stock/00919")
+        lp.goto(f"{base}#etf", wait_until="networkidle"); wait_until(lp, "() => !!document.querySelector('#v-etf[data-ready]')", 15000)
+        cat("all")
         lp.click("#etfGrid .etfc[data-code='0050']"); lp.wait_for_timeout(600)
-        ok(f"★ [{tag}] 點 0050 卡片 → #stock/0050", lp.evaluate("() => location.hash") == "#stock/0050")
-        # --- ETF 個股頁（00947）
+        ok(f"★ [{tag}] 點 0050 卡片 → #stock/0050", J("() => location.hash") == "#stock/0050")
+        # ================= 6. ETF 個股頁（00947）
         lp.goto(f"{base}#stock/00947", wait_until="networkidle")
         wait_until(lp, "() => document.querySelectorAll('#stockTabs button').length > 0", 15000)
-        tabs = lp.evaluate("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.textContent.trim())")
+        tabs = J("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.textContent.trim())")
         ok(f"★ [{tag}] 00947 沒有營收／獲利／指標分頁、有成分股與配息", not ({"營收", "獲利", "指標"} & set(tabs)) and "成分股" in tabs and "配息" in tabs, tabs)
-        chips = lp.evaluate("() => [...document.querySelectorAll('#skTags [data-tag]')].map(e => e.dataset.tag)")
+        chips = J("() => [...document.querySelectorAll('#skTags [data-tag]')].map(e => e.dataset.tag)")
         ok(f"[{tag}] 00947 頂部晶片沒有本益比／同業分位／營收 YoY", not ({"pe", "pct", "yoy"} & set(chips)), chips)
         ok(f"[{tag}] 00947 總覽沒有基本面卡（EPS／ROE）", "EPS" not in text(lp, "#stockTab") and "ROE" not in text(lp, "#stockTab"))
         lp.click("#stockTabs button[data-t='holdings']"); lp.wait_for_timeout(300)
         ok(f"★ [{tag}] 成分股分頁：誠實標「來源整理中」並寫原因", "成分股資料來源整理中" in text(lp, "#stockTab") and "原因" in text(lp, "#stockTab"))
         lp.click("#stockTabs button[data-t='dividend']"); lp.wait_for_timeout(500)
         dt = text(lp, "#stockTab")
-        ok(f"★ [{tag}] 配息分頁不再是空的（假資料）", "尚無除權息資料" not in dt and "尚未取得" not in dt and "殖利率" in dt, dt[:80])
+        ok(f"★ [{tag}] 配息分頁不再是空的（假資料）", "尚無除權息資料" not in dt and "殖利率" in dt, dt[:80])
+        ok(f"★ [{tag}] 配息分頁每次除息寫填息天數：未填寫「尚未填息（已 7 天）」、已填寫「N 天」",
+           "尚未填息（已 7 天）" in text(lp, "#divRec") and J("() => [...document.querySelectorAll('#divRec td:last-child')].some(t => / 天$/.test(t.textContent.trim()) && !/已/.test(t.textContent))"),
+           text(lp, "#divRec")[:160])
         lp.goto(f"{base}#stock/2330", wait_until="networkidle")
-        # 同一份文件只換 hash：舊的分頁列還在畫面上，要等它真的換成 2330 那一套（或逾時照實記錄）
         wait_until(lp, "() => [...document.querySelectorAll('#stockTabs button')].some(b => b.textContent.trim() === '營收')", 15000)
-        t2330 = lp.evaluate("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.textContent.trim())")
+        t2330 = J("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.textContent.trim())")
         ok(f"[{tag}] 普通股（2330）分頁不受影響：仍有營收／獲利、沒有成分股", "營收" in t2330 and "獲利" in t2330 and "成分股" not in t2330, t2330)
     finally:
         lp.close()

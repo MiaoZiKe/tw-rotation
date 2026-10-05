@@ -99,3 +99,55 @@ def test_build_殖利率與行事曆():
                      pd.DataFrame(), "2026-10-02")
     assert out2["items"][0]["yield_ttm"] is None
     assert math.isclose(out2["items"][0]["stats"]["Y2025"]["price_ann"], 0.0, abs_tol=1e-9)
+
+
+def test_填息天數_手算():
+    # 除息前一日收盤 10.0（索引 1），除息日（索引 2）收 9.5，之後 9.8 → 10.0：第 3 個交易日收回 → 3 天
+    close = [9.9, 10.0, 9.5, 9.8, 10.0, 10.2]
+    assert etf.fill_info(close, 2) == (3, None)
+    # 除息當天就收回 ≥ 前一日收盤 → 1 天（與個股除權息分頁同一口徑：除息日算第 1 天）
+    assert etf.fill_info([10.0, 10.0, 10.1], 1) == (1, None)
+    # 到最後一天都沒填：回「已經過 N 個交易日」（含除息日）＝ 6 − 2 ＝ 4
+    assert etf.fill_info([9.9, 10.0, 9.5, 9.6, 9.7, 9.9], 2) == (None, 4)
+    # 除息日是第一根（沒有前一日收盤）或不在行情裡 → 資料不足
+    assert etf.fill_info([10.0, 9.5], 0) == (None, None)
+    assert etf.fill_info([10.0, 9.5], 5) == (None, None)
+
+
+def test_build_填息與自選走勢():
+    dates = pd.bdate_range("2026-01-01", "2026-03-31").strftime("%Y-%m-%d").tolist()
+    # 0056：每天 40 元；1/15 除息那天跌到 39，1/16 也 39，1/19（第 3 個交易日）回到 40 → 填息 3 天
+    #       3/20 除息後一路 39 到最後 → 尚未填息，已 8 個交易日（3/20～3/31）
+    px = {d: 40.0 for d in dates}
+    for d in ("2026-01-15", "2026-01-16"):
+        px[d] = 39.0
+    for d in dates:
+        if d >= "2026-03-20":
+            px[d] = 39.0
+    price = pd.DataFrame([{"date": d, "code": "0056", "close": px[d], "turnover": 1e9} for d in dates])
+    ev = pd.DataFrame([{"code": "0056", "kind": "cash", "amount": 1.0, "ex_date": d, "payment_date": None}
+                       for d in ("2026-01-15", "2026-03-20")])
+    out = etf.build(price, {"0056": "元大高股息"}, {"0056"}, ev, pd.DataFrame(), pd.DataFrame(), "2026-03-31")
+    cal = {c["ex"]: c for c in out["calendar"]}
+    assert (cal["2026-01-15"]["fill"], cal["2026-01-15"]["fill_wait"]) == (3, None)
+    assert (cal["2026-03-20"]["fill"], cal["2026-03-20"]["fill_wait"]) == (None, 8)
+    it = out["items"][0]
+    assert it["fill_avg"] == 3.0 and it["fill_n"] == 2 and it["fill_open"] == 1, "平均只算已填息的那一次"
+    assert it["fill_last"] == [None, 8]
+    # 自選比較的走勢：共用週取樣日期軸，最後一天一定在軸上，數值是分割還原後收盤
+    sa = out["series_all"]
+    assert sa["D"][-1] == "2026-03-31" and sa["s"]["0056"]["i"] == 0
+    assert len(sa["s"]["0056"]["p"]) == len(sa["D"]) and sa["s"]["0056"]["p"][-1] == 39.0
+
+
+def test_個股除權息_尚未填息寫出已經過天數():
+    from pipeline.compute import stockpage
+    dates = pd.bdate_range("2026-09-01", "2026-09-30").strftime("%Y-%m-%d").tolist()
+    price = pd.DataFrame([{"date": d, "code": "9999", "close": (100.0 if d < "2026-09-10" else 97.0)}
+                          for d in dates])
+    res = pd.DataFrame([{"code": "9999", "date": "2026-09-10", "before_price": 100.0, "reference_price": 97.0,
+                         "dividend": 3.0, "kind": "息"}])
+    out = stockpage.dividends(pd.DataFrame(), res, price, "9999", 97.0, asof="2026-09-30")
+    r = out["results"][0]
+    # 9/10～9/30 共 15 個交易日都 97 < 100 → 尚未填息、已 15 天；不到 250 天所以不是 -1
+    assert r["fill_days"] is None and r["fill_wait"] == 15

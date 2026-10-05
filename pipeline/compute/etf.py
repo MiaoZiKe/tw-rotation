@@ -28,6 +28,7 @@ DIV_RE = re.compile(r"高股息|高息|股息|收益|優息|月配|季配|息收
 COMMODITY_RE = re.compile(r"^期|黃金|原油|白銀|黃豆|小麥|商品|美元|日圓|期街口")
 MCAP_EXCLUDE = re.compile(r"正2|反1")
 
+FILL_AVG_N = 4          # 殖利率卡的「近 N 次平均填息天數」
 CATEGORIES = ["配息型", "市值型", "主題型", "債券型", "槓桿反向", "主動式", "其他"]
 
 
@@ -126,6 +127,24 @@ def total_return_index(px: list[float], div: list[float]) -> list[float]:
     return out
 
 
+def fill_info(close: list[float], ex_i: int) -> tuple[int | None, int | None]:
+    """填息天數（2026-10-05 Andy：「記得要備註花多久填息」）。回 (填息天數, 尚未填息已經過的天數)。
+
+    口徑沿用個股除權息分頁（compute/stockpage.dividends）：從除息日當天算第 1 個交易日，
+    第一個收盤 ≥ 除息前一日收盤的那天是第幾個交易日。除息當天就收回去 ＝ 1 天。
+    - 已填息 → (天數, None)
+    - 到資料最後一天還沒填 → (None, 已經過的交易日數，含除息日)；前端寫「尚未填息（已 N 天）」
+    - 除息日不在行情裡、或除息日是第一根（沒有前一日收盤）→ (None, None)；前端寫「—」
+    close 要用分割還原後的收盤：除息後若遇到分割，用原始價比會被一根 −75% 假跌幅判成永遠填不回去。"""
+    if ex_i is None or ex_i <= 0 or ex_i >= len(close) or not close[ex_i - 1]:
+        return None, None
+    before = close[ex_i - 1]
+    for j in range(ex_i, len(close)):
+        if close[j] is not None and close[j] >= before:
+            return j - ex_i + 1, None
+    return None, len(close) - ex_i
+
+
 def annualize(ratio: float, years: float) -> float | None:
     """(終值 ÷ 起值)^(1/年) − 1。年數 ≤ 0 或比值 ≤ 0 回 None（不外插）。"""
     if ratio is None or years <= 0 or ratio <= 0:
@@ -173,6 +192,35 @@ def period_stats(dates: list[str], px: list[float], tr: list[float] | None, div:
 
 
 # ------------------------------------------------------------------ 組裝
+
+def series_grid(adj_by: dict, every: int = 5) -> dict:
+    """全部 ETF 的累積走勢，共用一條週取樣日期軸（自選比較用，etf_series.json）。
+
+    為什麼共用日期軸：每檔各自帶日期字串，360 檔 × 數百點光日期就好幾 MB；共用之後每檔只帶起點索引＋數值。
+    取樣日 D＝所有 ETF 交易日的聯集每 5 天取一點（加最後一天）；某檔在取樣日沒成交（暫停）就沿用前一個收盤。
+    前端用 D.slice(i) 對回日期。"""
+    alld = sorted({d for dates, _, _ in adj_by.values() for d in dates})
+    if not alld:
+        return {"D": [], "s": {}}
+    step = list(range(0, len(alld), every))
+    if step[-1] != len(alld) - 1:
+        step.append(len(alld) - 1)
+    grid = [alld[i] for i in step]
+    out = {}
+    for code, (dates, adj, tr) in adj_by.items():
+        i0 = next((k for k, g in enumerate(grid) if g >= dates[0]), None)
+        if i0 is None:
+            continue
+        p, t, j = [], [], 0
+        for g in grid[i0:]:
+            while j + 1 < len(dates) and dates[j + 1] <= g:
+                j += 1
+            p.append(round(adj[j], 4))
+            if tr is not None:
+                t.append(round(tr[j], 5))
+        out[code] = {"i": i0, "p": p, "t": t if tr is not None else None}
+    return {"D": grid, "s": out}
+
 
 def _divs(div_events: pd.DataFrame, div_results: pd.DataFrame, codes: set[str]) -> pd.DataFrame:
     """每檔每個除息日一列（code, ex_date, amount, pay_date, before）。
@@ -250,7 +298,7 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
     since400 = (ld - timedelta(days=400)).date().isoformat()
     since365 = (ld - timedelta(days=365)).date().isoformat()
 
-    items, series = [], {}
+    items, series, fills_by, adj_by = [], {}, {}, {}
     for code, g in px.groupby("code"):
         if g["date"].iloc[-1] < (ld - timedelta(days=30)).date().isoformat():
             continue          # 最近一個月沒成交（下市／暫停）不收
@@ -265,6 +313,11 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             if exd in idx:
                 dd[idx[exd]] = amt * fac[idx[exd]]
         tr = total_return_index(adj, dd)
+        # 每次已除息的填息天數（行事曆、殖利率卡用）；近 4 次的平均只算「已填息」的，未填的另外數
+        fl = {exd: fill_info(adj, idx[exd]) for exd in dmap if exd in idx and exd <= latest}
+        fills_by[code] = fl
+        last4 = [fl[d] for d in sorted(fl)[-FILL_AVG_N:]]
+        done4 = [f for f, _ in last4 if f is not None]
         n400 = sum(1 for d in dmap if since400 < d <= latest)
         name = names.get(code, "")
         cat = classify(code, name, n400)
@@ -288,6 +341,9 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             "size": round(h["units"] * close, 0) if h.get("units") else None,
             "first": dates[0], "px_done": px_done(code), "div_done": div_done(code),
             "spark": [round(x, 3) for x in adj[-60:]],
+            "fill_avg": round(sum(done4) / len(done4), 1) if done4 else None,
+            "fill_n": len(last4), "fill_open": sum(1 for f, w in last4 if f is None and w is not None),
+            "fill_last": (list(fl[max(fl)]) if fl else None),
             "stats": stats,
         })
         # 累積走勢：週取樣（每 5 個交易日一點＋最後一天），前端依起點自己換算
@@ -296,6 +352,7 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             step.append(len(dates) - 1)
         series[code] = {"d": [dates[i] for i in step], "p": [round(adj[i], 4) for i in step],
                         "t": [round(tr[i], 5) for i in step] if div_done(code) else None}
+        adj_by[code] = (dates, adj, tr if div_done(code) else None)
 
     by = {it["code"]: it for it in items}
 
@@ -323,9 +380,11 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             ref, basis = cb[max(before)], "除息前一日收盤"
         else:
             ref, basis = by[r.code]["close"], "最新收盤（尚未除息，估算）"
+        fd, fw = fills_by.get(r.code, {}).get(r.ex_date, (None, None))
         cal.append({"code": r.code, "name": by[r.code]["name"], "ex": r.ex_date, "pay": r.pay_date,
                     "amt": round(float(r.amount), 4),
-                    "y": round(float(r.amount) / ref, 5) if ref else None, "basis": basis})
+                    "y": round(float(r.amount) / ref, 5) if ref else None, "basis": basis,
+                    "fill": fd, "fill_wait": fw})
     cal.sort(key=lambda x: (x["ex"], x["code"]))
 
     # 只送前五名會用到的走勢（整包 300 檔 × 十年週線太大）
@@ -340,6 +399,8 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
         "calendar": cal,
         "periods": periods,
         "series": {c: series[c] for c in keep if c in series},
+        # 全部 ETF 的週線走勢（自選比較用）：build_payload 拆成 etf_series.json，前端要比較時才讀
+        "series_all": series_grid(adj_by),
         "coverage": {"n": len(items), "div_done": sum(1 for it in items if it["div_done"]),
                      "div_rows": int(len(divs)), "px_done": sum(1 for it in items if it["px_done"]),
                      "holders": sum(1 for it in items if it["holders"] is not None)},

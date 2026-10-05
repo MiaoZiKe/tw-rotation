@@ -626,8 +626,11 @@ def build() -> None:
             done_keys = {k for k, v in (prog.get("done") or {}).items() if v}
         except Exception:  # noqa: BLE001
             done_keys = set()
-        _write("etf", etf.build(price, names, etf_codes, div_events, div_results,
-                                store.read("shareholding_weekly"), latest, done_keys))
+        etf_out = etf.build(price, names, etf_codes, div_events, div_results,
+                            store.read("shareholding_weekly"), latest, done_keys)
+        # 全部 ETF 的走勢拆成另一檔：etf.json 開頁就要讀，自選比較才需要全部的走勢（前端用到才讀）
+        _write("etf_series", etf_out.pop("series_all", {"D": [], "s": {}}))
+        _write("etf", etf_out)
     except Exception as exc:  # noqa: BLE001
         log.warning("ETF 專區產出失敗：%s", exc)
     lap("ETF 專區")

@@ -135,9 +135,11 @@
       veil: [], mark: [], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button'] },
     // ---- ETF 專區（2026-10-05，site/etfpage.js）
     box('etf.list', 'etf', 'ETF 一覽', ['#etfListCard'], 'ETF 卡片清單、分類切換、殖利率與規模'),
-    box('etf.popular', 'etf', '最受歡迎前 5 名', ['#etfPopCard'], '受益人數週增加／近 20 日成交值前 5 名'),
-    box('etf.calendar', 'etf', '配息行事曆', ['#etfCalCard'], '月曆檢視的除息日、配息金額與當次殖利率'),
-    box('etf.returns', 'etf', '前五名報酬比較', ['#etfRetCard'], '配息型／市值型前五名的年化報酬與殖利率比較'),
+    box('etf.popular', 'etf', '最受歡迎前 5 名', ['#etfPopCard'], '各分類內：受益人數週增加／近 20 日成交值前 5 名'),
+    box('etf.rettop', 'etf', '報酬率前 5 名', ['#etfRetTopCard'], '各分類內：含息年化報酬前 5 名（跟著期間選擇）'),
+    box('etf.yldtop', 'etf', '殖利率前 5 名', ['#etfYldCard'], '各分類內：近 12 個月殖利率前 5 名與平均填息天數'),
+    box('etf.calendar', 'etf', '配息行事曆', ['#etfCalCard'], '7 欄月曆：除息日、配息金額、當次殖利率與填息天數'),
+    box('etf.returns', 'etf', '報酬比較（自選）', ['#etfRetCard'], '各分類內自選最多 8 檔，比較累積報酬、年化與殖利率'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,
