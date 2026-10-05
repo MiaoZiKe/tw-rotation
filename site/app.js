@@ -2536,6 +2536,19 @@
     if (head === 'tasks') { location.replace('#delivery'); return; }
     /* ★ 2026-09-24 設計系統 v2 第 6 批：法律頁與「不同意」之後的 #leave 全部交給 site/legal.js。
        這幾個網址不在 VIEWS 裡 —— 不先攔下來，底下那行會把它們當成未知路由、導回總覽。*/
+    /* ★ 2026-10-05（sub-v1）訂閱頁 #pricing、公告 #notices、管理端 #admin/feedback｜#admin/notices：
+       由 site/pricing.js／support.js／notices.js 各自登記到 TwSubRoutes（回傳要顯示的 view id，不關它的事回 null）。
+       放在法律頁與 #admin 之前：#admin/feedback 要先被攔下，不然會落進 admin.js 的預設分頁。*/
+    let subV = null;
+    for (const f of (window.TwSubRoutes || [])) { try { subV = f(head, rest); } catch (e) { subV = null; } if (subV) break; }
+    if (subV) {
+      $$('.tab').forEach(t => t.classList.remove('on'));
+      $$('.view').forEach(v => v.classList.toggle('on', v.id === subV));
+      _lastPageKey = subV; _miaKey = subV;
+      try { applyMobileIA(subV); } catch (e) { /* 忽略 */ }
+      window.scrollTo({ top: 0 });
+      return;
+    }
     const lg = window.TwLegal ? window.TwLegal.route(head, rest) : null;
     if (lg === 'redirect') return;
     if (lg === 'legal') {

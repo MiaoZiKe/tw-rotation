@@ -138,6 +138,22 @@
       desc: '最多能建幾頁自選清單（已經建好的不會被刪，只是不能再新增）', veil: [], mark: [], block: [] }
   ];
 
+  /* ---- sub-v1（2026-10-05）：瀏覽次數。集中在這一段、獨立一個分類，避免跟 admin-v2 對這支檔案的改動撞在一起。
+     計數與遮罩在 site/quota.js（台北日界；同一檔／同一個題材一天只算一次；登入者另存 Worker /v1/quota/hit，清快取繞不過）。
+     ★ 數值意義：max（99）＝不限、0＝不能用、1～98＝每日 N 次。
+       為什麼不是「0＝不限」：管理頁（admin.js）對所有 limit 類的「全開」是設成 max、「全關」是 0、定價範本關掉也是 0 ——
+       用 0＝不限的話，管理者按「全關」反而變成全部不限，方向整個反過來。照既有慣例走，預設（def＝max）就是不限、上線不影響任何人。*/
+  var QUOTA_MAX = 99;
+  CATS.push({ id: 'quota', name: '瀏覽次數' });
+  LIST.push(
+    { id: 'quota.stock', name: '個股頁每日瀏覽檔數', cat: 'quota', def: QUOTA_MAX, kind: 'limit', max: QUOTA_MAX, unit: '檔',
+      desc: '一天可以打開幾檔不同的個股頁（同一檔重複看不重算；99＝不限）。用完：個股頁蓋上「今日已用完」', veil: [], mark: [], block: [] },
+    { id: 'quota.ai', name: 'AI 分析每日次數', cat: 'quota', def: QUOTA_MAX, kind: 'limit', max: QUOTA_MAX, unit: '檔',
+      desc: '一天可以看幾檔個股的 AI 分析（同一檔不重算；99＝不限）。用完：AI 分析卡蓋上「今日已用完」', veil: [], mark: [], block: [] },
+    { id: 'quota.theme', name: '題材剖析圖每日次數', cat: 'quota', def: QUOTA_MAX, kind: 'limit', max: QUOTA_MAX, unit: '個',
+      desc: '一天可以展開幾個不同題材的剖析圖（99＝不限）。用完：題材剖析區蓋上「今日已用完」', veil: [], mark: [], block: [] }
+  );
+
   var BY = {};
   LIST.forEach(function (f) { BY[f.id] = f; });
   function defaults() { var o = {}; LIST.forEach(function (f) { o[f.id] = f.def; }); return o; }

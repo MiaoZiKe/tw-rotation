@@ -21089,6 +21089,8 @@ SECTIONS = {
     "會員權限導覽":        lambda pg, b, base, code: t_perm_nav(b, base),
     "會員回歸1005":        lambda pg, b, base, code: t_member_regress_1005(b, base),
     "管理區1005":          lambda pg, b, base, code: t_admin_v2(b, base, code),
+    # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
+    "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -42563,6 +42565,267 @@ def t_account_cloud(b, base):
             dev.wait(timeout=3)
         except Exception:  # noqa: BLE001
             dev.kill()
+
+
+# ===================================================================== 訂閱與客服1005（sub-v1，2026-10-05）
+# Andy：參考 stockintelli 的訂閱頁＋右下角客服；功能開關加「瀏覽次數」；帳號選單顯示方案徽章；通知中心（鈴鐺／公告／置頂橫幅）。
+# 用 page.route 假 Worker（不起 devserver；Worker 端的存取控制在 workers/account-api/tests/sub.test.mjs 驗）。
+# 每一項都驗「畫面真的因此改變／送出的請求內容正確」，不是驗元素存在。截圖存 TW_SUB_SHOTS（有設才存）。
+SUB_API = "https://sub.example.test"
+
+
+def _sub_ctx(b, who, width=1440, feats=None, notices=None):
+    """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)"""
+    sent: list = []
+    st = {"notices": notices if notices is not None else [], "read": set(), "fb": [], "req": []}
+    plans = [{"id": "guest", "name": "訪客（未登入）", "builtin": True, "feats": {}, "price": None, "price_year": None, "period": None},
+             {"id": "free", "name": "免費會員（預設）", "builtin": True, "feats": {"quota.stock": 1, "quota.ai": 1, "quota.theme": 3}, "price": None, "price_year": None, "period": None},
+             {"id": "p399", "name": "399 即時", "builtin": False, "feats": {"heat.theme": False, "quota.stock": 20}, "price": 399, "price_year": None, "period": "month"},
+             {"id": "p799", "name": "799 全功能", "builtin": False, "feats": {}, "price": 799, "price_year": 7990, "period": "month"}]
+
+    def handle(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        try:
+            body = json.loads(req.post_data or "{}")
+        except Exception:  # noqa: BLE001
+            body = {}
+        sent.append((path, body))
+        me = None if who is None else {"email": "boss@example.com" if who == "admin" else "member@example.com", "name": "管理者" if who == "admin" else "王小明", "admin": who == "admin"}
+        out, code = {}, 200
+        if path == "/v1/me":
+            out, code = ({"user": me}, 200) if me else ({}, 401)
+        elif path == "/v1/perm/me":
+            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}}
+        elif path == "/v1/plans/public":
+            out = {"plans": plans}
+        elif path == "/v1/subscribe/request":
+            st["req"].append(body); out = {"ok": True, "id": "rq1"}
+        elif path == "/v1/feedback":
+            st["fb"].append(body); out = {"ok": True, "id": "fb1"}
+        elif path == "/v1/quota/hit":
+            out = {"day": "x", "k": body.get("k"), "n": 0, "keys": []}
+        elif path == "/v1/notices":
+            out = {"notices": [{**n, "read": (n["id"] in st["read"]) if me else None} for n in st["notices"]]}
+        elif path == "/v1/notices/read":
+            st["read"].update(body.get("ids", [])); out = {"ok": True, "read": sorted(st["read"])}
+        elif path.startswith("/v1/admin/") and who != "admin":
+            out, code = {"error": "forbidden"}, 403
+        elif path == "/v1/admin/plans/get":
+            out = {"plans": [{**p, "members": 0} for p in plans]}
+        elif path == "/v1/admin/notices/list":
+            out = {"now": 1759650000000, "notices": [{**n, "reads": 0} for n in st["notices"]]}
+        elif path == "/v1/admin/notices/put":
+            n = {"id": body.get("id") or f"n{len(st['notices']) + 1}x", "title": body["title"], "body": body["body"], "kind": body["kind"], "audience": body["audience"],
+                 "start": body.get("start") or 1759650000000, "end": body.get("end") or 0, "pinned": bool(body.get("pinned")), "created": 1759650000000, "updated": 1759650000000}
+            st["notices"] = [x for x in st["notices"] if x["id"] != n["id"]] + [n]
+            out = {"ok": True, "notice": n}
+        elif path == "/v1/admin/feedback/list":
+            out = {"feedback": [{"id": "f1", "contact": "a@b.co", "cat": "bug", "body": "圖表空白", "url": "https://x/#stock/2330", "ua": "UA", "created": 1759650000000, "status": "new", "member": True, "name": "王小明"}],
+                   "requests": [{"id": "r1", "email": "member@example.com", "contact": "member@example.com", "plan": "p399", "period": "year", "note": "", "created": 1759650000000, "status": "new", "name": "王小明"}]}
+        elif path == "/v1/admin/feedback/set":
+            out = {"ok": True}
+        elif path == "/v1/admin/perm/list":
+            out = {"rows": [], "users": []}
+        route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    c = b.new_context(viewport={"width": width, "height": 900})
+    c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
+                      + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    c.route(SUB_API + "/**", handle)
+    return c, sent, st
+
+
+def t_sub_1005(b, base, code):
+    T = "訂閱與客服1005"
+    errs: list[str] = []
+    shots = os.environ.get("TW_SUB_SHOTS")
+
+    def shot(pg, name, sel=None):
+        if shots:
+            (pg.locator(sel).first.screenshot if sel else pg.screenshot)(path=str(pathlib.Path(shots) / f"{name}.png"))
+
+    # ================= ① 訂閱頁（會員）
+    c, sent, st = _sub_ctx(b, "member")
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#pricing", wait_until="domcontentloaded")
+    ok(f"{T}：#pricing 依後端方案畫出 4 張卡（訪客／註冊會員／399／799）",
+       bool(wait_until(pg, "() => document.querySelectorAll('#prCards .prcard').length === 4 && document.getElementById('v-pricing').classList.contains('on')", 10000)),
+       pg.evaluate("() => document.querySelectorAll('#prCards .prcard').length"))
+    pg.wait_for_timeout(300)
+    price = lambda pid: pg.inner_text(f"#prCards .prcard[data-plan='{pid}'] .prprice")
+    m399 = price("p399")
+    ok(f"{T}：月繳 → 399 卡顯示 NT$ 399／月、標「最受歡迎」", "399" in m399 and "／月" in m399 and "最受歡迎" in pg.inner_text("#prCards .prcard[data-plan='p399']"), m399)
+    ok(f"{T}：799 是功能最多的付費範本 → 標「功能最齊」", "功能最齊" in pg.inner_text("#prCards .prcard[data-plan='p799']"))
+    ok(f"{T}：目前方案（免費會員）那張卡寫「目前方案」", "目前方案" in pg.inner_text("#prCards .prcard[data-plan='free']"))
+    ok(f"{T}：寫明申請制與免責聲明", "目前為申請制，專人開通；線上付款即將推出" in pg.inner_text("#v-pricing") and "不是證券投資顧問" in pg.inner_text("#v-pricing"))
+    ok(f"{T}：每張卡列出瀏覽次數（免費會員：個股頁每日 1 檔；799：不限）",
+       "每日 1 檔" in pg.inner_text("#prCards .prcard[data-plan='free']") and "不限" in pg.inner_text("#prCards .prcard[data-plan='p799']"))
+    shot(pg, "1_pricing_month")
+    pg.click("#prPeriod button[data-p='year']")
+    wait_until(pg, "() => document.querySelector(\"#prPeriod button[data-p='year']\").classList.contains('on')", 3000)
+    y399, y799 = price("p399"), price("p799")
+    ok(f"{T}：切年繳 → 399 沒有年價，用 399×12×0.83＝3,974 並標「估算」", "3,974" in y399 and "／年" in y399 and "估算" in pg.inner_text("#prCards .prcard[data-plan='p399'] .prpnote"), y399)
+    ok(f"{T}：切年繳 → 799 有後端年價 7,990，不標估算", "7,990" in y799 and "估算" not in pg.inner_text("#prCards .prcard[data-plan='p799'] .prpnote"), y799)
+    ok(f"{T}：年繳選擇記住（localStorage）", pg.evaluate("() => localStorage.getItem('tw.pricing.period')") == "year")
+    # 查看完整權益
+    pg.click("#prMore")
+    ok(f"{T}：「查看完整權益」展開對照表、399 那欄的題材資金熱力是「—」", bool(wait_until(pg, "() => !document.getElementById('prFull').hidden && document.querySelectorAll('#prTable tbody tr').length > 30", 3000))
+       and pg.evaluate("""() => { const th = [...document.querySelectorAll('#prTable thead th')].map(x => x.textContent); const i = th.indexOf('399 即時');
+           const row = [...document.querySelectorAll('#prTable tbody tr')].find(r => r.cells[0].textContent === '題材資金熱力'); return !!row && row.cells[i].textContent === '—' && row.cells[i + 1].textContent === '✓'; }"""))
+    shot(pg, "1b_pricing_year_full", "#v-pricing")
+    pg.click("#prMore")
+    ok(f"{T}：再按一次收起", pg.evaluate("() => document.getElementById('prFull').hidden"))
+    # 訂閱申請
+    pg.click("#prCards .prcard[data-plan='p399'] .prgo")
+    wait_until(pg, "() => !document.getElementById('subDlg').hidden && !!document.getElementById('subSend')", 3000)
+    ok(f"{T}：申請對話框預填登入者 email、週期預設跟頁面一樣（年繳）",
+       pg.input_value("#subMail") == "member@example.com" and pg.evaluate("() => document.querySelector(\"#subPer button[data-p='year']\").classList.contains('on')"))
+    shot(pg, "2_subscribe_dialog", "#subDlg .box")
+    pg.click("#subPer button[data-p='month']")
+    pg.fill("#subMail", "pay@example.com"); pg.fill("#subNote", "公司抬頭")
+    pg.click("#subSend")
+    wait_until(pg, "() => /已收到你的申請/.test(document.getElementById('subDlg').textContent)", 4000)
+    rq = [x[1] for x in sent if x[0] == "/v1/subscribe/request"]
+    ok(f"{T}：送出申請 → 請求內容正確（方案 p399、月繳、聯絡 email、備註、帶權杖）",
+       len(rq) == 1 and rq[0].get("plan") == "p399" and rq[0].get("period") == "month" and rq[0].get("contact") == "pay@example.com" and rq[0].get("note") == "公司抬頭" and rq[0].get("t") == "tok-test", rq)
+    ok(f"{T}：送出後對話框寫「已收到你的申請」與 email", "pay@example.com" in pg.inner_text("#subDlg"))
+    pg.keyboard.press("Escape")
+    # ② 帳號選單徽章
+    pg.click("#acctBtn")
+    wait_until(pg, "() => !!document.querySelector('#acctMenu .planbadge')", 3000)
+    ok(f"{T}：帳號選單頂部＝頭像字母＋名字＋方案徽章「免費會員」",
+       pg.inner_text("#acctMenu .planbadge") == "免費會員" and pg.inner_text("#acctMenu .mh .av") == "王" and "王小明" in pg.inner_text("#acctMenu .mh"), pg.inner_text("#acctMenu .mh"))
+    shot(pg, "3_account_menu", "#acctMenu")
+    pg.click("#acctBtn")          # 先關掉（下一行只換 hash、不會重新載入）
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('acctBtn') && !!(window.TwAccount && TwAccount.user())", 8000)
+    pg.click("#acctBtn"); pg.click("#acctMenu .planbadge")
+    ok(f"{T}：點徽章 → 到 #pricing、選單收起", bool(wait_until(pg, "() => location.hash === '#pricing' && document.getElementById('acctMenu').hidden", 3000)))
+    # ③ 客服：FAQ、反饋、寄信
+    pg.click("#supFab")
+    ok(f"{T}：右下角客服 → 面板打開、寫「AI 客服即將推出」", pg.is_visible("#supPanel") and "AI 客服即將推出" in pg.inner_text("#supPanel"))
+    nfaq = pg.locator("#supPanel .faq").count()
+    ok(f"{T}：常見問題 8～12 題", 8 <= nfaq <= 12, nfaq)
+    ok(f"{T}：答案預設收合", not pg.is_visible("#supPanel .faq[data-i='0'] .ans"))
+    pg.click("#supPanel .faq[data-i='0'] > button")
+    ok(f"{T}：點第一題 → 原地展開預寫答案（寫到實際更新時間）", pg.is_visible("#supPanel .faq[data-i='0'] .ans") and "15:30" in pg.inner_text("#supPanel .faq[data-i='0'] .ans"))
+    shot(pg, "4_support_faq", "#supPanel")
+    pg.click("#supPanel .sptabs button[data-t='fb']")
+    ok(f"{T}：意見反饋 email 預填登入者", pg.input_value("#fbMail") == "member@example.com")
+    pg.select_option("#fbCat", "idea")
+    pg.fill("#fbBody", "希望加 ETF 資金流向")
+    shot(pg, "5_feedback_form", "#supPanel")
+    pg.click("#fbSend")
+    wait_until(pg, "() => /已收到/.test(document.getElementById('fbMsg').textContent)", 4000)
+    fb = [x[1] for x in sent if x[0] == "/v1/feedback"]
+    ok(f"{T}：送反饋 → 請求帶類別、內容、聯絡 email、目前網址與瀏覽器資訊",
+       len(fb) == 1 and fb[0].get("cat") == "idea" and fb[0].get("body") == "希望加 ETF 資金流向" and fb[0].get("contact") == "member@example.com"
+       and "#pricing" in fb[0].get("url", "") and "1440" in fb[0].get("ua", ""), fb)
+    ok(f"{T}：送出後清空內容、顯示已收到", pg.input_value("#fbBody") == "" and "已收到" in pg.inner_text("#fbMsg"))
+    pg.click("#supPanel .sptabs button[data-t='mail']")
+    ok(f"{T}：寄信分頁有 mailto 連結", (pg.get_attribute("#supMail", "href") or "").startswith("mailto:"))
+    pg.click("#supClose")
+    ok(f"{T}：× 關閉面板", not pg.is_visible("#supPanel"))
+    c.close()
+
+    # ================= ④ 瀏覽次數用完（會員，個股頁每日 1 檔）
+    c, sent, st = _sub_ctx(b, "member", feats={"quota.stock": 1})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#stock/" + code, wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwQuota.limit('quota.stock') === 1", 10000)
+    pg.wait_for_timeout(500)
+    ok(f"{T}：第 1 檔個股頁照常顯示（沒有遮罩）", pg.locator(".qlkov").count() == 0)
+    hits = [x[1] for x in sent if x[0] == "/v1/quota/hit" and x[1].get("key")]
+    ok(f"{T}：登入者看第 1 檔 → 送 /v1/quota/hit（quota.stock＋代號）", any(h.get("k") == "quota.stock" and h.get("key") == code for h in hits), hits)
+    other = "2317" if code != "2317" else "2454"
+    pg.evaluate(f"() => {{ location.hash = '#stock/{other}'; }}")
+    ok(f"{T}：第 2 檔 → 個股頁蓋上「今日已用完 1/1 次」＋查看方案", bool(wait_until(pg, "() => { const o = document.querySelector('#v-industry > .qlkov'); return !!o && /今日已用完 1\\/1 次/.test(o.textContent) && /升級方案可增加/.test(o.textContent); }", 6000)),
+       pg.evaluate("() => (document.querySelector('.qlkov') || {}).textContent"))
+    ok(f"{T}：遮罩下的內容模糊、點不到", pg.evaluate("() => { const k = [...document.querySelectorAll('#v-industry > *')].find(x => !x.classList.contains('qlkov')); return !!k && getComputedStyle(k).pointerEvents === 'none' && /blur/.test(getComputedStyle(k).filter); }"))
+    shot(pg, "6_quota_overlay")
+    pg.evaluate(f"() => {{ location.hash = '#stock/{code}'; }}")
+    ok(f"{T}：回到今天看過的那一檔 → 不重算、遮罩拿掉", bool(wait_until(pg, "() => !document.querySelector('.qlkov') && !document.querySelector('[data-qlk]')", 4000)))
+    ok(f"{T}：計數存在 localStorage（台北日期、1 檔）", pg.evaluate("() => { const d = JSON.parse(localStorage.getItem('tw.quota')); return d.day === TwQuota.day() && d.k['quota.stock'].length === 1; }"))
+    pg.evaluate(f"() => {{ location.hash = '#stock/{other}'; }}")
+    wait_until(pg, "() => !!document.querySelector('.qlkov .qlkgo')", 4000)
+    pg.click(".qlkov .qlkgo")
+    ok(f"{T}：遮罩上的「查看方案」→ #pricing", bool(wait_until(pg, "() => location.hash === '#pricing'", 3000)))
+    c.close()
+
+    # ================= ⑤ 通知中心（訪客）：置頂橫幅、紅點、點開已讀、全部已讀
+    NOW = int(time.time() * 1000)
+    ns = [{"id": "n1aaa", "title": "十月改版上線", "body": "新增訂閱頁與客服，詳見 https://example.com/news", "kind": "feature", "audience": "all", "start": NOW - 3600000, "end": 0, "pinned": True, "created": NOW, "updated": NOW},
+          {"id": "n2bbb", "title": "週六系統維護", "body": "10/11 02:00～04:00 暫停服務", "kind": "maint", "audience": "guest", "start": NOW - 7200000, "end": 0, "pinned": False, "created": NOW, "updated": NOW}]
+    c, sent, st = _sub_ctx(b, None, notices=ns)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    ok(f"{T}：訪客看到鈴鐺紅點 2", bool(wait_until(pg, "() => { const d = document.getElementById('ntDot'); return !!d && !d.hidden && d.textContent === '2'; }", 8000)))
+    ok(f"{T}：未讀的置頂公告 → 頁首橫幅", bool(wait_until(pg, "() => /十月改版上線/.test((document.getElementById('ntBanner') || {}).textContent || '')", 3000)))
+    pg.click("#ntBell")
+    wait_until(pg, "() => !document.getElementById('ntDrop').hidden && document.querySelectorAll('#ntDrop .ntitem').length === 2", 3000)
+    ok(f"{T}：下拉列出 2 則（類型、標題、日期）、置頂在前", pg.locator("#ntDrop .ntitem").count() == 2 and "功能更新" in pg.inner_text("#ntDrop .ntitem >> nth=0") and "維護" in pg.inner_text("#ntDrop .ntitem >> nth=1"))
+    ok(f"{T}：內文網址自動變連結（不收 HTML）", pg.get_attribute("#ntDrop .ntitem[data-id='n1aaa'] .bd a", "href") == "https://example.com/news")
+    shot(pg, "7_notice_drop")
+    pg.click("#ntDrop .ntitem[data-id='n2bbb']")
+    ok(f"{T}：點一則 → 展開、標已讀、紅點變 1", bool(wait_until(pg, "() => document.getElementById('ntDot').textContent === '1'", 3000)) and pg.evaluate("() => document.querySelector(\"#ntDrop .ntitem[data-id='n2bbb']\").classList.contains('ex')"))
+    ok(f"{T}：訪客的已讀存在 localStorage、不打伺服器", "n2bbb" in (pg.evaluate("() => localStorage.getItem('tw.notice.read')") or "") and not any(x[0] == "/v1/notices/read" for x in sent))
+    pg.click("#ntReadAll")
+    ok(f"{T}：「全部標為已讀」→ 紅點消失、橫幅消失", bool(wait_until(pg, "() => document.getElementById('ntDot').hidden && !document.getElementById('ntBanner')", 3000)))
+    pg.click("#ntAll")
+    ok(f"{T}：「查看全部」→ #notices 列出 2 則", bool(wait_until(pg, "() => location.hash === '#notices' && document.querySelectorAll('#v-notices .npi').length === 2", 4000)))
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('ntBell')", 8000); pg.wait_for_timeout(800)
+    ok(f"{T}：重新整理後已讀還在（紅點不再出現）", pg.evaluate("() => document.getElementById('ntDot').hidden"))
+    c.close()
+    # 登入者：已讀送伺服器（跨裝置）
+    c, sent, st = _sub_ctx(b, "member", notices=[dict(n) for n in ns])
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => { const d = document.getElementById('ntDot'); return !!d && d.textContent === '2'; }", 8000)
+    pg.click("#ntBell"); pg.click("#ntDrop .ntitem[data-id='n1aaa']")
+    ok(f"{T}：登入者點一則 → 送 /v1/notices/read（帶權杖與 id）、紅點變 1",
+       bool(wait_until(pg, "() => document.getElementById('ntDot').textContent === '1'", 3000)) and any(x[0] == "/v1/notices/read" and x[1].get("ids") == ["n1aaa"] and x[1].get("t") == "tok-test" for x in sent))
+    pg.reload(wait_until="domcontentloaded")
+    ok(f"{T}：登入者重新整理（伺服器回已讀）→ 紅點仍是 1", bool(wait_until(pg, "() => { const d = document.getElementById('ntDot'); return !!d && d.textContent === '1' && !d.hidden; }", 8000)))
+    c.close()
+
+    # ================= ⑥ 管理者：發公告（對象付費會員、置頂）、反饋列表、管理頁上限文字
+    c, sent, st = _sub_ctx(b, "admin")
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/notices", wait_until="domcontentloaded")
+    ok(f"{T}：#admin/notices 由 notices.js 畫出發佈表單", bool(wait_until(pg, "() => !!document.getElementById('ntSave') && document.getElementById('v-subadm').classList.contains('on')", 10000)))
+    ok(f"{T}：對象選單含全部／訪客／註冊會員／付費會員＋指定範本", pg.evaluate("() => [...document.querySelectorAll('#ntAud option')].map(o => o.value).join(',')") == "all,guest,member,paid,plan:p399,plan:p799")
+    pg.fill("#ntTitle", "雙十優惠"); pg.fill("#ntBody", "年繳 8 折 <b>限時</b>")
+    pg.select_option("#ntKind", "event"); pg.select_option("#ntAud", "paid"); pg.check("#ntPin")
+    pg.fill("#ntEnd", "2030-12-31T23:59")
+    pg.click("#ntSave")
+    wait_until(pg, "() => document.querySelectorAll('#ntTable tbody tr').length === 1", 4000)
+    put = [x[1] for x in sent if x[0] == "/v1/admin/notices/put"]
+    ok(f"{T}：發佈 → 請求帶標題、內容（原文，不轉 HTML）、類型、對象、置頂、下架時間（台北 2030/12/31 23:59）",
+       len(put) == 1 and put[0].get("title") == "雙十優惠" and put[0].get("body") == "年繳 8 折 <b>限時</b>" and put[0].get("kind") == "event" and put[0].get("audience") == "paid"
+       and put[0].get("pinned") is True and put[0].get("end") == 1924963140000, put)
+    ok(f"{T}：列表顯示新公告（付費會員、置頂）", "雙十優惠" in pg.inner_text("#ntTable") and "付費會員" in pg.inner_text("#ntTable"))
+    pg.click("#ntTable button[data-a='edit']")
+    ok(f"{T}：編輯 → 表單帶回原值", pg.input_value("#ntTitle") == "雙十優惠" and "儲存修改" in pg.inner_text("#ntSave"))
+    shot(pg, "8_admin_notices")
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    ok(f"{T}：管理頁的「瀏覽次數」上限下拉改寫成「每日 N 檔／不限／不能用」（不是「頁」）",
+       bool(wait_until(pg, """() => { const s = document.querySelector('select[data-f="quota.stock"]'); if (!s) return false; const t = [...s.options].map(o => o.text);
+           return t[0] === '不能用' && t[1] === '每日 1 檔' && t[t.length - 1] === '不限'; }""", 10000)),
+       pg.evaluate("() => { const s = document.querySelector('select[data-f=\"quota.stock\"]'); return s ? [...s.options].slice(0, 2).map(o => o.text) : null; }"))
+    ok(f"{T}：管理頁有「瀏覽次數」分類", "瀏覽次數" in pg.inner_text("#v-admin"))
+    pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
+    ok(f"{T}：#admin/feedback 列出反饋與訂閱申請", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1 && document.querySelectorAll('#rqTable tbody tr').length === 1", 8000)))
+    pg.click("#fbTable button[data-kind='feedback']")
+    wait_until(pg, "() => true", 300)
+    sets = [x[1] for x in sent if x[0] == "/v1/admin/feedback/set"]
+    ok(f"{T}：「標為已處理」→ 送 feedback/set（handled）", bool(wait_until(pg, "() => true", 500)) and any(s.get("id") == "f1" and s.get("status") == "handled" for s in [x[1] for x in sent if x[0] == "/v1/admin/feedback/set"]), sets)
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
 # ===================================================================== 會員權限開關（2026-10-02，DECISIONS #288）
