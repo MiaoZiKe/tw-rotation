@@ -44,7 +44,7 @@
 
   /* ---------------- 分類（晶片） ---------------- */
   const CATS = [
-    ['all', 'All', '全部'], ['fund', 'Fundamentals', '基本面'], ['val', 'Valuation', '估值面'], ['grow', 'Growth', '成長'],
+    ['all', 'All', '全部'], ['fund', 'Fundamentals', '基本面'], ['val', 'Valuation', '估值面'], ['grow', 'Growth', '成長面'],
     ['tech', 'Technicals', '技術面'], ['chip', 'Institutional', '籌碼面'], ['divd', 'Dividend', '股利'], ['mom', 'Momentum', '動能'],
   ];
   const ICON = {   // 簡單線條圖示（currentColor），一個分類一個
@@ -64,67 +64,67 @@
   const pct = (v) => `${n1(v)}%`;
   const days = (v) => `${ok(v) ? Math.round(v) : '—'} 天`;
   const S_ = [
-    { id: 'quality', cat: 'fund', en: 'Quality Earners', zh: '高獲利品質：ROE 與毛利率都高', tags: ['ROE', 'Margin'],
+    { id: 'quality', name: '高獲利品質', cat: 'fund', en: 'Quality Earners', zh: '高獲利品質：ROE 與毛利率都高', tags: ['ROE', '毛利率'],
       conds: [['ROE（近四季）', (r) => r.roe, '>=', 15, pct], ['毛利率（近四季）', (r) => r.gm, '>=', 20, pct, (r) => r.fin]],
       key: ['ROE', (r) => r.roe, pct], src: ['fin', 'calc'], date: 'fin',
       how: 'ROE＝近四季稅後淨利 ÷ 平均股東權益；毛利率＝近四季毛利 ÷ 營收。金融業沒有毛利率，只看 ROE。',
       care: '景氣循環股在高峰時 ROE 最漂亮；借很多錢的公司 ROE 也會被墊高。' },
-    { id: 'margin', cat: 'fund', en: 'Margin Leaders', zh: '毛利率領先：產品有議價力', tags: ['Margin', 'Profit'],
+    { id: 'margin', name: '毛利率領先', cat: 'fund', en: 'Margin Leaders', zh: '毛利率領先：產品有議價力', tags: ['毛利率', '獲利'],
       conds: [['毛利率（近四季）', (r) => r.gm, '>=', 40, pct], ['近四季有獲利', (r) => (r.loss ? 0 : (r.eps != null ? 1 : null)), '>=', 1, (v) => (v ? '是' : '否')]],
       key: ['毛利率', (r) => r.gm, pct], src: ['fin', 'calc'], date: 'fin',
       how: '毛利率＝近四季毛利 ÷ 近四季營收；獲利＝近四季 EPS 合計 > 0。',
       care: '不同產業的正常毛利率差很多（軟體、IC 設計天生高），最好跟同業比。' },
-    { id: 'below', cat: 'val', en: 'Below Own History', zh: '比自己過去便宜：本益比在自身 5 年低檔', tags: ['P/E', 'History'], need: 'ex',
+    { id: 'below', name: '比自己過去便宜', cat: 'val', en: 'Below Own History', zh: '比自己過去便宜：本益比在自身 5 年低檔', tags: ['本益比', '歷史比較'], need: 'ex',
       conds: [['本益比歷史位置（0＝最便宜）', (r) => r.pepct, '<=', 30, (v) => `第 ${n1(v, 0)} 百分位`], ['本益比（有獲利）', (r) => r.pe, '>', 0, (v) => `${n1(v)} 倍`]],
-      key: ['P/E 位置', (r) => r.pepct, (v) => `P${n1(v, 0)}`], src: ['per', 'fin', 'calc'], date: 'ex',
+      key: ['本益比位置', (r) => r.pepct, (v) => `P${n1(v, 0)}`], src: ['per', 'fin', 'calc'], date: 'ex',
       how: '把目前本益比放進「這家公司自己近 5 年各季本益比」裡排位置（至少 8 季才算）。不跨族群比（不同產業本益比天生不同）。',
       care: '便宜可能有原因：市場預期它未來獲利會下滑。' },
-    { id: 'value', cat: 'val', en: 'Low P/E, Real Profits', zh: '低本益比且真的有賺', tags: ['P/E', 'ROE'],
+    { id: 'value', name: '低本益比且真的有賺', cat: 'val', en: 'Low P/E, Real Profits', zh: '低本益比且真的有賺', tags: ['本益比', 'ROE'],
       conds: [['本益比', (r) => r.pe, '<=', 12, (v) => `${n1(v)} 倍`, null, 0], ['ROE（近四季）', (r) => r.roe, '>=', 10, pct]],
-      key: ['P/E', (r) => r.pe, (v) => `${n1(v)}x`], src: ['per', 'fin', 'calc'], date: 'fin',
+      key: ['本益比', (r) => r.pe, (v) => `${n1(v)} 倍`], src: ['per', 'fin', 'calc'], date: 'fin',
       how: '本益比＝收盤價 ÷ 近四季 EPS（虧損公司沒有本益比，不會入選）；再要求 ROE ≥ 10%，排除「便宜但不太賺」的。',
       care: '金融、航運、原物料等景氣股本益比常年偏低，低不一定代表被低估。' },
-    { id: 'accel', cat: 'grow', en: 'Revenue Accelerators', zh: '營收加速：月營收連續年增', tags: ['Revenue', 'YoY'],
+    { id: 'accel', name: '營收加速', cat: 'grow', en: 'Revenue Accelerators', zh: '營收加速：月營收連續年增', tags: ['營收', '年增'],
       conds: [['月營收連續年增', (r) => r.rs, '>=', 3, (v) => `${ok(v) ? v : '—'} 個月`], ['最新一月營收年增', (r) => r.ry, '>=', 10, pct]],
-      key: ['營收 YoY', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'], date: 'rev',
+      key: ['營收年增', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'], date: 'rev',
       how: '年增率＝當月營收 ÷ 去年同月營收 − 1；連續月數＝年增率連續為正的月份數。跟去年同月比可以避開淡旺季。',
       care: '去年同期如果特別差（基期低），年增率會看起來很漂亮。' },
-    { id: 'record', cat: 'grow', en: 'Record-High Sales', zh: '月營收創歷史新高', tags: ['Revenue', 'Record'],
+    { id: 'record', name: '月營收創新高', cat: 'grow', en: 'Record-High Sales', zh: '月營收創歷史新高', tags: ['營收', '創新高'],
       conds: [['最新月營收創歷史新高', (r) => (r.rec ? 1 : 0), '>=', 1, (v) => (v ? '是' : '否')], ['最新一月營收年增', (r) => r.ry, '>', 0, pct]],
-      key: ['營收 YoY', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'], date: 'rev',
+      key: ['營收年增', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'], date: 'rev',
       how: '最新公布的月營收高於本站資料湖裡這家公司過去每一個月的營收，而且比去年同月成長。',
       care: '月營收創高不等於獲利創高：毛利可能在下滑。' },
-    { id: 'accum', cat: 'chip', en: 'Institutional Accumulation', zh: '三大法人連續淨買超', tags: ['3 Institutions', 'Streak'], need: 'inst',
+    { id: 'accum', name: '法人連續買超', cat: 'chip', en: 'Institutional Accumulation', zh: '三大法人連續淨買超', tags: ['三大法人', '連續買超'], need: 'inst',
       conds: [['三大法人合計連續淨買超', (r) => r.bd, '>=', 5, days]],
       key: ['連買', (r) => r.bd, (v) => `${v} 天`], src: ['inst', 'calc'], date: 'inst',
       how: '外資＋投信＋自營商每日買賣超相加，從最近一個交易日往回數連續為正的天數；今天一轉賣就歸零。',
       care: '法人也會看錯；外資有時只是被動調整指數成分。' },
-    { id: 'trust', cat: 'chip', en: 'Fund Manager Favorites', zh: '投信連續買超', tags: ['Investment Trust', 'Streak'], need: 'streak',
+    { id: 'trust', name: '投信連續買超', cat: 'chip', en: 'Fund Manager Favorites', zh: '投信連續買超', tags: ['投信', '連續買超'], need: 'streak',
       conds: [['投信連續買超', (r) => r.td, '>=', 3, days]],
       key: ['投信連買', (r) => r.td, (v) => `${v} 天`], src: ['inst', 'calc'], date: 'inst',
       how: '只看投信（國內基金）每日買賣超，從最近一個交易日往回數連續為正的天數。本站只保留連買天數前 60 名。',
       care: '投信季底常有「作帳」買盤，季初可能反手。' },
-    { id: 'steady', cat: 'tech', en: 'Steady Uptrend', zh: '穩健上升：低波動且站上均線', tags: ['Low Vol', 'MA'], need: 'ex',
+    { id: 'steady', name: '穩健上升', cat: 'tech', en: 'Steady Uptrend', zh: '穩健上升：低波動且站上均線', tags: ['低波動', '均線'], need: 'ex',
       conds: [['60 日年化波動度', (r) => r.vol, '<=', 30, pct], ['收盤站上 20 日均線', (r) => r.a20, '>=', 1, (v) => (v ? '是' : '否')], ['收盤站上 60 日均線', (r) => r.a60, '>=', 1, (v) => (v ? '是' : '否')]],
       key: ['波動度', (r) => r.vol, pct], src: ['price', 'tech', 'calc'], date: 'ex',
       how: '波動度＝近 60 日日報酬標準差 × √252（年化）；均線用還原後日 K 收盤價。',
       care: '穩不代表會漲，可能只是盤整；財報或消息可能讓它突然大動。' },
-    { id: 'macd', cat: 'tech', en: 'Bullish MA Alignment', zh: '均線多頭排列＋MACD 柱翻正', tags: ['MA', 'MACD'], need: 'cand',
+    { id: 'macd', name: '均線多頭排列', cat: 'tech', en: 'Bullish MA Alignment', zh: '均線多頭排列＋MACD 柱翻正', tags: ['均線', 'MACD'], need: 'cand',
       conds: [['均線多頭排列（5>20>60）', (r) => r.align, '>=', 1, (v) => (v === 1 ? '是' : '否')], ['MACD 柱（OSC）', (r) => r.osc, '>', 0, (v) => n1(v, 2)], ['RSI(14) 未過熱', (r) => r.rsi, '<=', 70, (v) => n1(v)]],
       key: ['OSC', (r) => r.osc, (v) => `${v >= 0 ? '+' : ''}${n1(v, 2)}`], src: ['price', 'tech'], date: 'ex',
       how: '只涵蓋本站技術面候選池（每天由管線依成交值與技術分數先篩出的數百檔），不是全市場。OSC＝DIF − MACD。',
       care: '技術訊號會反覆；多頭排列常出現在已經漲一段之後。' },
-    { id: 'lead', cat: 'mom', en: '60-Day Leaders', zh: '近 60 日漲幅領先且仍站上均線', tags: ['Return', 'Trend'], need: 'ex',
+    { id: 'lead', name: '60 日漲幅領先', cat: 'mom', en: '60-Day Leaders', zh: '近 60 日漲幅領先且仍站上均線', tags: ['報酬', '趨勢'], need: 'ex',
       conds: [['近 60 日漲跌', (r) => r.ret, '>=', 20, pct], ['收盤站上 20 日均線', (r) => r.a20, '>=', 1, (v) => (v ? '是' : '否')]],
       key: ['60 日', (r) => r.ret, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['price', 'calc'], date: 'ex',
       how: '近 60 日漲跌＝今天收盤 ÷ 60 個交易日前收盤 − 1（還原權息）。',
       care: '已經漲多的股票波動也大，回檔幅度常常很深。' },
-    { id: 'volup', cat: 'mom', en: 'Volume Surge', zh: '帶量上漲：成交量放大且收紅', tags: ['Volume', 'Price'], need: 'cand',
+    { id: 'volup', name: '帶量上漲', cat: 'mom', en: 'Volume Surge', zh: '帶量上漲：成交量放大且收紅', tags: ['成交量', '價格'], need: 'cand',
       conds: [['量比（今日量 ÷ 5 日均量）', (r) => r.vr, '>=', 2, (v) => `${n1(v)} 倍`], ['今日漲跌', (r) => r.chg, '>', 0, pct]],
       key: ['量比', (r) => r.vr, (v) => `${n1(v)}x`], src: ['price', 'tech'], date: 'ex',
       how: '只涵蓋本站技術面候選池。量比＝今日成交量 ÷ 近 5 日平均量。',
       care: '爆量可能是主力出貨或消息面一次性反應，隔天常見反轉。' },
-    { id: 'divcon', cat: 'divd', en: 'Dividend Consistency', zh: '穩定配息：殖利率不低且連年配現金', tags: ['Yield', 'Years'], need: 'ex',
+    { id: 'divcon', name: '穩定配息', cat: 'divd', en: 'Dividend Consistency', zh: '穩定配息：殖利率不低且連年配現金', tags: ['殖利率', '配息年數'], need: 'ex',
       conds: [['近 12 個月現金殖利率', (r) => r.dy, '>=', 4, (v) => `${n1(v, 2)}%`], ['連續配現金股利', (r) => r.dv, '>=', 5, (v) => `${ok(v) ? v : '—'} 年`]],
       key: ['殖利率', (r) => r.dy, (v) => `${n1(v, 2)}%`], src: ['div', 'price', 'calc'], date: 'ex',
       how: '殖利率＝近 12 個月現金股利 ÷ 目前股價；連續年數從去年往回數（今年還沒過完不算）。',
@@ -220,18 +220,18 @@
   const LEGAL = '<div class="xp-legal" role="note" id="xpLegal">條件篩選結果僅供研究，不構成投資建議；本站非證券投資顧問。名單依成交值排序，不是好壞名次。</div>';
   function shellWall(root) {
     root.innerHTML = `${LEGAL}
-      <div class="sl-head"><h2>Strategy Lab <small>選股策略：每張卡是一組公開條件，點一列看「為什麼入選」，點 i 看條件與資料出處</small></h2></div>
-      <div class="sl-chips" id="slChips" role="tablist" aria-label="Filter"></div>
+      <div class="sl-head"><h2>選股策略 <small>每張卡是一組公開條件；點一列看「為什麼入選」，點 i 看條件與資料出處</small></h2></div>
+      <div class="sl-chips" id="slChips" role="tablist" aria-label="策略分類"></div>
       <div class="sl-tags" id="slTags"></div>
       <div class="sl-grid" id="slGrid"></div>`;
     root.onclick = onClick;
   }
   function paintChips() {
     const cnt = (c) => S_.filter((s) => c === 'all' || s.cat === c).length;
-    $('#slChips').innerHTML = CATS.map(([k, en, zh]) => `<button type="button" class="sl-chip${ST.cat === k ? ' on' : ''}" data-cat="${k}" role="tab" aria-selected="${ST.cat === k}" title="${esc(zh)}">${esc(en)} <em>${cnt(k)}</em></button>`).join('');
+    $('#slChips').innerHTML = CATS.map(([k, en, zh]) => `<button type="button" class="sl-chip${ST.cat === k ? ' on' : ''}" data-cat="${k}" role="tab" aria-selected="${ST.cat === k}" title="${esc(en)}">${esc(zh)} <em>${cnt(k)}</em></button>`).join('');
     const tags = [...new Set(S_.filter((s) => ST.cat === 'all' || s.cat === ST.cat).flatMap((s) => s.tags))];
     if (ST.tag && !tags.includes(ST.tag)) ST.tag = '';
-    $('#slTags').innerHTML = `<span class="sl-tl">Tags</span>` + ['', ...tags].map((t) => `<button type="button" class="sl-tag${ST.tag === t ? ' on' : ''}" data-tag="${esc(t)}">${t ? esc(t) : 'Any'}</button>`).join('');
+    $('#slTags').innerHTML = `<span class="sl-tl">子標籤</span>` + ['', ...tags].map((t) => `<button type="button" class="sl-tag${ST.tag === t ? ' on' : ''}" data-tag="${esc(t)}">${t ? esc(t) : '不限'}</button>`).join('');
   }
   function rowHTML(s, r, i) {
     const k = s.key, kv = k[1](r), open = ST.open[s.id] === r.code;
@@ -243,10 +243,10 @@
         ${spark(r.code, 64, 24)}
         <span class="sl-key"><small>${esc(k[0])}</small><b>${ok(kv) ? esc(k[2](kv)) : '—'}</b></span>
       </button>
-      ${open ? reasonBox(s, r) : ''}</div>`;
+</div>`;
   }
   function reasonBox(s, r) {
-    return `<div class="sl-why"><div class="sl-wt">為什麼入選</div><ul>${check(s, r).map((c) => `<li class="${c.pass ? 'y' : 'n'}"><span class="mk">${c.pass ? '✓' : '✗'}</span>${esc(c.label)}　<b>${esc(c.txt)}</b>${c.skip ? '' : ` <small>${esc(c.thTxt)}</small>`}</li>`).join('')}</ul>
+    return `<div class="sl-why"><div class="sl-wt">${esc(r.name)} ${esc(r.code)}・為什麼入選「${esc(s.name)}」</div><ul>${check(s, r).map((c) => `<li class="${c.pass ? 'y' : 'n'}"><span class="mk">${c.pass ? '✓' : '✗'}</span>${esc(c.label)}　<b>${esc(c.txt)}</b>${c.skip ? '' : ` <small>${esc(c.thTxt)}</small>`}</li>`).join('')}</ul>
       <a class="sl-go" href="#stock/${esc(r.code)}">看個股頁 →</a></div>`;
   }
   function cardHTML(s) {
@@ -254,14 +254,14 @@
     return `<article class="sl-card" data-sid="${s.id}" data-cat="${s.cat}">
       <header class="sl-ch">
         <span class="sl-ici sl-c-${s.cat}">${icon(s.cat)}</span>
-        <div class="sl-tt"><h3 class="sl-en">${esc(s.en)}</h3><div class="sl-zh">${esc(s.zh)}</div></div>
+        <div class="sl-tt" title="${esc(s.zh)}"><h3 class="sl-zh">${esc(s.name)}</h3><div class="sl-en">${esc(s.en)}</div></div>
         <span class="sl-date">${esc(DATES[s.date] || '')}</span>
         <button type="button" class="sl-i${ST.info[s.id] ? ' on' : ''}" data-i="${s.id}" aria-expanded="${!!ST.info[s.id]}" aria-label="篩選條件與資料出處">i</button>
-        <a class="sl-more" href="#explore/${s.id}" aria-label="看 ${esc(s.en)} 完整名單">›</a>
+        <a class="sl-more" href="#explore/${s.id}" aria-label="看 ${esc(s.name)} 完整名單">›</a>
       </header>
-      ${ST.info[s.id] ? infoHTML(s) : ''}
       <div class="sl-meta">${can ? `符合 <em class="sl-n">${m.length}</em> 家・依成交值排序，非推薦名次` : '資料準備中（這個策略要的歷史欄位還沒產出）'}</div>
-      <div class="sl-rows">${can ? (m.length ? m.slice(0, 3).map((r, i) => rowHTML(s, r, i)).join('') : '<div class="sl-none">今天沒有公司同時符合全部條件。</div>') : ''}</div>
+      <div class="sl-rows">${can && m.length ? m.slice(0, 3).map((r, i) => rowHTML(s, r, i)).join('') + '<div class="sl-row sl-blank" aria-hidden="true"></div>'.repeat(Math.max(0, 3 - m.length))
+        : `<div class="sl-none">${can ? '目前沒有符合的公司' : '資料準備中'}</div>`}</div>
     </article>`;
   }
   function paintGrid() {
@@ -280,11 +280,48 @@
     if (A.logoMapLoad) A.logoMapLoad().then(() => A.logoUpgrade && A.logoUpgrade(root));
   }
 
+  /* ---------------- 浮層：「為什麼入選」與「i」 ----------------
+     Andy：「版面都要固定大小，不是一大一小」。以前原因與出處在卡內原地展開，會把那張卡撐高、整列跟著變形；
+     改成貼在按鈕旁的浮層（position:fixed，掛在 body 下），卡片高度永遠不動。點外面、Esc、換頁都會關；捲動時跟著按鈕重新定位。 */
+  function closePop() {
+    const p = $('#slPop'); if (p) p.remove();
+    ST.open = {}; ST.info = {};
+    $$('#v-explore .sl-row.open').forEach((el) => el.classList.remove('open'));
+    $$('#v-explore .sl-rbtn[aria-expanded="true"],#v-explore .sl-i.on').forEach((el) => { el.setAttribute('aria-expanded', 'false'); el.classList.remove('on'); });
+  }
+  function openPop(anchor, html, kind) {
+    closePop();
+    const p = document.createElement('div');
+    p.id = 'slPop'; p.className = `sl-pop sl-pop-${kind}`; p.setAttribute('role', 'dialog');
+    p.innerHTML = `<button type="button" class="sl-pop-x" aria-label="關閉">×</button>${html}`;
+    document.body.appendChild(p);
+    POP.anchor = anchor; placePop();
+  }
+  const POP = { anchor: null };
+  /* 浮層跟著按鈕走：捲動時重新定位，而不是關掉（Playwright／使用者點按鈕前的自動捲動也會發 scroll，
+     一捲就關會讓剛打開的浮層立刻消失） */
+  function placePop() {
+    const p = $('#slPop'), an = POP.anchor; if (!p) return;
+    if (!an || !an.isConnected) { closePop(); return; }
+    const a = an.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
+    const x = Math.min(Math.max(8, a.left), innerWidth - w - 8);
+    let y = a.bottom + 6; if (y + h > innerHeight - 8) y = Math.max(8, a.top - h - 6);
+    p.style.left = `${x}px`; p.style.top = `${y}px`;
+  }
+  document.addEventListener('click', (e) => {
+    if (!$('#slPop')) return;
+    if (e.target.closest('.sl-pop-x') || (!e.target.closest('#slPop') && !e.target.closest('.sl-rbtn,.sl-i'))) closePop();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+  window.addEventListener('scroll', placePop, { passive: true });
+  window.addEventListener('resize', placePop);
+  window.addEventListener('hashchange', closePop);
+
   /* ---------------- 畫面：完整名單頁（#explore/<id>） ---------------- */
   const FULL = { n: 100 };
   function paintFull(root, s) {
     const m = matches(s), can = usable(s);
-    const others = (r) => S_.filter((o) => o.id !== s.id && usable(o) && matches(o).includes(r)).map((o) => o.en);
+    const others = (r) => S_.filter((o) => o.id !== s.id && usable(o) && matches(o).includes(r)).map((o) => o.name);
     const rows = m.slice(0, FULL.n).map((r, i) => {
       const cs = check(s, r), kv = s.key[1](r), ot = others(r);
       return `<tr data-code="${esc(r.code)}"><td class="num">${i + 1}</td>
@@ -296,8 +333,8 @@
         <td class="sl-oth">${ot.length ? ot.map((x) => `<span>${esc(x)}</span>`).join('') : '—'}</td></tr>`;
     }).join('');
     root.innerHTML = `${LEGAL}
-      <div class="sl-fhead"><a href="#explore" class="sl-back">‹ Strategy Lab</a>
-        <h2><span class="sl-ici sl-c-${s.cat}">${icon(s.cat)}</span>${esc(s.en)} <small>${esc(s.zh)}</small></h2>
+      <div class="sl-fhead"><a href="#explore" class="sl-back">‹ 選股策略</a>
+        <h2><span class="sl-ici sl-c-${s.cat}">${icon(s.cat)}</span>${esc(s.name)} <small>${esc(s.zh)}・${esc(s.en)}</small></h2>
         <span class="sl-date">${esc(DATES[s.date] || '')}</span></div>
       <div class="card sl-finfo"><h3>篩選條件與資料出處</h3>${infoHTML(s)}</div>
       <div class="card sl-ftbl"><h3>${can ? `符合的公司 <em class="sl-n" id="slFullN">${m.length}</em> 家 <small>依近 20 日平均成交值排序（流動性），不是好壞名次</small>` : '資料準備中'}</h3>
@@ -311,10 +348,16 @@
   function onClick(e) {
     const ch = e.target.closest('.sl-chip'); if (ch) { ST.cat = ch.dataset.cat; ST.tag = ''; LS.set('tw.explore.cat', ST.cat); paintChips(); paintGrid(); return; }
     const tg = e.target.closest('.sl-tag'); if (tg) { ST.tag = tg.dataset.tag; paintChips(); paintGrid(); return; }
-    const ib = e.target.closest('.sl-i'); if (ib) { ST.info[ib.dataset.i] = !ST.info[ib.dataset.i]; paintCard(ib.dataset.i); return; }
+    const ib = e.target.closest('.sl-i'); if (ib) {
+      const id = ib.dataset.i, was = ST.info[id]; closePop(); if (was) return;
+      ST.info[id] = true; ib.classList.add('on'); ib.setAttribute('aria-expanded', 'true');
+      openPop(ib, `<div class="sl-wt">${esc(SBY[id].name)}：篩選條件與資料出處</div>${infoHTML(SBY[id])}`, 'info'); return;
+    }
     const rb = e.target.closest('.sl-rbtn'); if (rb) {
       const row = rb.closest('.sl-row'), id = row.dataset.sid, code = row.dataset.code;
-      ST.open[id] = ST.open[id] === code ? '' : code; paintCard(id); return;
+      const was = ST.open[id] === code; closePop(); if (was) return;
+      ST.open[id] = code; row.classList.add('open'); rb.setAttribute('aria-expanded', 'true');
+      openPop(rb, reasonBox(SBY[id], RBY[code]), 'why'); return;
     }
     const all = e.target.closest('#slAll'); if (all) { FULL.n = 1e9; const s = SBY[(location.hash.split('/')[1] || '')]; if (s) paintFull($('#v-explore'), s); }
   }
@@ -330,7 +373,7 @@
     const root = $('#v-explore'); if (!root) return;
     FULL.n = 100;
     if (SBY[sub]) { paintFull(root, SBY[sub]); window.scrollTo(0, 0); return; }
-    shellWall(root); paintChips(); paintGrid();
+    closePop(); shellWall(root); paintChips(); paintGrid();
   }
   window.TwExplore = {
     render, show, S: S_, SRC,

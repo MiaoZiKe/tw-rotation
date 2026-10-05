@@ -102,3 +102,42 @@
 #v-explore .sl-table td{text-align:left;white-space:normal}
 #v-explore .sl-table td.num{text-align:right}
 #v-explore .sl-table td.sl-oth{max-width:260px}
+
+/* ★ 2026-10-05 第三版（Andy：「版面都要固定大小，不是一大一小」）：所有卡同寬同高。
+   做法：標題列兩行都單行省略、名單區固定 3 列高（不足補空白列、0 檔置中一句話），
+   「為什麼入選」與「i」改成浮層（#slPop，position:fixed），所以卡片內容量再怎麼變，高度都不動。 */
+#v-explore .sl-grid{grid-auto-rows:1fr;align-items:stretch}
+#v-explore .sl-card{display:flex;flex-direction:column;height:236px;box-sizing:border-box;overflow:hidden}
+#v-explore .sl-ch{height:40px;flex:none}
+#v-explore .sl-zh{margin:0;font-size:16px;line-height:1.3;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-explore .sl-en{font-size:11px;line-height:1.35;color:var(--ink-3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-explore .sl-meta{flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-explore .sl-rows{flex:none;height:calc(3 * 45px);display:flex;flex-direction:column}
+#v-explore .sl-row{height:45px;flex:none;box-sizing:border-box}
+#v-explore .sl-rbtn{height:44px;padding:0 2px}
+#v-explore .sl-row.sl-blank{border-top:1px dashed var(--line)}
+#v-explore .sl-none{flex:1;display:grid;place-items:center;text-align:center;border-top:1px solid var(--line)}
+
+/* 浮層（掛在 body 下，所以不能用 #v-explore 前綴） */
+.sl-pop{position:fixed;z-index:60;width:min(420px,calc(100vw - 16px));max-height:min(70vh,520px);overflow:auto;box-sizing:border-box;
+  padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line-2);box-shadow:0 12px 32px rgba(0,0,0,.35);
+  color:var(--ink-2);font-size:13px;line-height:1.55}
+.sl-pop-info{width:min(520px,calc(100vw - 16px))}
+.sl-pop-x{position:absolute;top:6px;right:8px;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:var(--ink-3);font-size:18px;cursor:pointer}
+.sl-pop-x:hover{color:var(--ink);background:var(--panel-2)}
+.sl-pop .sl-wt{font-weight:700;color:var(--ink);margin:0 24px 6px 0}
+.sl-pop .sl-why{margin:0;padding:0;background:none;border:0}
+.sl-pop .sl-why ul{margin:0;padding:0;list-style:none}
+.sl-pop .sl-why li{padding:2px 0}
+.sl-pop .sl-why li b{color:var(--ink);font-family:var(--mono,monospace)}
+.sl-pop .sl-why li small{color:var(--ink-3)}
+.sl-pop .sl-why .mk{display:inline-block;width:18px;font-weight:700}
+.sl-pop .sl-why li.y .mk{color:var(--fall,#3ecf8e)} .sl-pop .sl-why li.n .mk{color:var(--ink-3)}
+.sl-pop .sl-go{display:inline-block;margin-top:6px;color:var(--t4-accent-solid,var(--cyan));font-size:13px}
+.sl-pop .sl-info{margin:0;padding:0;background:none;border:0}
+.sl-pop .sl-info p{margin:0 0 6px}
+.sl-pop .sl-info b{color:var(--ink)}
+.sl-pop .sl-src{margin:0 0 6px;display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr);gap:3px 10px}
+.sl-pop .sl-src dt{color:var(--ink);font-weight:600}
+.sl-pop .sl-src dd{margin:0;overflow-wrap:anywhere;min-width:0}
+.sl-pop .sl-care{color:var(--amber,#ffb454)}
