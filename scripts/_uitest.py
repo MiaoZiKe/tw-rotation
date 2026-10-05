@@ -43491,7 +43491,7 @@ def t_account_cloud(b, base):
         def login(pg, who):
             pg.click("#acctBtn")
             ok(f"會員：按「登入」先跳出告知（{who}）", pg.is_visible("#acctDlg") and "不存張數" in pg.inner_text("#acctDlg")
-               and "13 個月" in pg.inner_text("#acctDlg") and "刪除我的資料" in pg.inner_text("#acctDlg"))
+               and "13 個月" in pg.inner_text("#acctDlg") and "來信客服" in pg.inner_text("#acctDlg"))
             with pg.expect_popup() as pi:
                 pg.click("#acctGo")
             pop = pi.value
@@ -43532,7 +43532,7 @@ def t_account_cloud(b, base):
         ok("會員：一般會員打開 #admin 只看到「不是管理者」", "不是管理者" in pg.inner_text("#v-admin"))
         # 登出
         pg.click("#acctBtn")
-        ok("會員：按頭像打開選單（有登出、刪除我的資料）", pg.is_visible("#acctMenu") and "登出" in pg.inner_text("#acctMenu") and "刪除我的資料" in pg.inner_text("#acctMenu"))
+        ok("會員：按頭像打開選單（有登出；10-05 起沒有「刪除我的資料」）", pg.is_visible("#acctMenu") and "登出" in pg.inner_text("#acctMenu") and "刪除我的資料" not in pg.inner_text("#acctMenu"))
         ok("會員：一般會員選單沒有管理頁", "管理頁" not in pg.inner_text("#acctMenu"))
         pg.click("#acctMenu [data-a='logout']")
         wait_until(pg, "() => TwWatch.mode() === 'local'", 4000)
@@ -43547,16 +43547,7 @@ def t_account_cloud(b, base):
         ok("會員：第二台裝置／第二次登入的本機清單併進去、雲端原有的沒被蓋掉",
            pg.evaluate("() => TwWatch.codes('g1')") == ["2317", "2330", "2603"], pg.evaluate("() => TwWatch.tabs()"))
 
-        # ---- ④ 刪除我的資料
-        pg.click("#acctBtn"); pg.click("#acctMenu [data-a='delete']")
-        ok("會員：刪除要先確認，而且寫明無法復原", "無法復原" in pg.inner_text("#acctDlg"))
-        pg.click("#acctDelYes")
-        wait_until(pg, "() => !TwAccount.user()", 6000)
-        ok("會員：刪除後登出", pg.evaluate("() => !TwAccount.user()"))
-        login(pg, "bob")
-        wait_until(pg, "() => TwWatch.mode() === 'cloud'", 6000)
-        pg.wait_for_timeout(500)
-        ok("會員：刪除後再登入是全新帳號（雲端清單真的被刪了）", pg.evaluate("() => TwWatch.tabs().every(t => !t.codes.length)"), pg.evaluate("() => TwWatch.tabs()"))
+        # ---- ④ 刪除我的資料：10-05 Andy 要求從選單拿掉（改由客服信箱申請），原本的刪除流程驗收移除
         pg.click("#acctBtn"); pg.click("#acctMenu [data-a='logout']")
 
         # ---- ⑤ 管理者 Andy：管理頁、線上名單、統計、公開人數開關
@@ -43608,7 +43599,7 @@ def t_account_cloud(b, base):
         wait_until(pg, "() => /以 Google 帳號登入/.test(document.getElementById('v-legal').textContent)", 6000)
         t = pg.inner_text("#v-legal")
         ok("隱私權政策：有登入、自選清單、使用統計、線上人數四列與保存期限",
-           all(x in t for x in ("以 Google 帳號登入", "自選清單（登入後）", "使用統計（所有訪客）", "線上人數（所有訪客）", "13 個月", "24 個月", "刪除我的資料")))
+           all(x in t for x in ("以 Google 帳號登入", "自選清單（登入後）", "使用統計（所有訪客）", "線上人數（所有訪客）", "13 個月", "24 個月", "客服信箱")))
         c1.close()
 
         # ---- ⑦ 小視窗被擋 → 整頁跳轉登入（手機 PWA 常見）
