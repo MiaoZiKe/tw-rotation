@@ -21459,6 +21459,14 @@ def t_explore_1005(pg, base):
                     dh: Math.max(...hs) - Math.min(...hs), dw: Math.max(...ws) - Math.min(...ws), hs}; }""")
         ok(f"[{tag} {w}] 欄數固定（1440＝3、1100＝2）", g["cols"] == (3 if w == 1440 else 2), g["cols"])
         ok(f"[{tag} {w}] 所有卡片同高同寬（差 ≤ 1px）", g["dh"] <= 1 and g["dw"] <= 1, g)
+    # 2026-10-06 Andy：頂端提示列移除，免責改放標題右側一行；面向標題不留英文
+    lg = pg.evaluate("""() => { const l = document.querySelector('#xpLegal'), h = document.querySelector('.sl-head h2');
+        const r = l && l.getBoundingClientRect();
+        return {inH: !!(l && h && h.contains(l)), txt: l ? l.textContent : '', oneLine: r ? r.height < 24 : false,
+                topBar: !!document.querySelector('#v-explore > .xp-legal'), secen: document.querySelectorAll('.sl-secen').length,
+                howto: (h ? h.textContent : '').includes('每張卡'), fs: l ? parseFloat(getComputedStyle(l).fontSize) : 0}; }""")
+    ok(f"[{tag}] 免責在標題列內、一行、≥11px、未刪字", lg["inH"] and lg["oneLine"] and lg["fs"] >= 11 and '不構成投資建議' in lg["txt"] and '不是好壞名次' in lg["txt"], lg)
+    ok(f"[{tag}] 無頂端提示列、無操作說明句、面向標題無英文", not lg["topBar"] and not lg["howto"] and lg["secen"] == 0, lg)
     pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
     info = pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => ({
         en: c.querySelector('.sl-en').textContent, zh: c.querySelector('.sl-zh').textContent, h: c.getBoundingClientRect().height,
