@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, delivery_log, indicators
-from .compute import analysis, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, etf, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -614,6 +614,23 @@ def build() -> None:
         _write("intl", recent.to_dict("records"))
     else:
         _write("intl", [])
+
+    # ---------------------------------------------------------- ETF 專區（2026-10-05）
+    # 失敗只影響 ETF 專區；前端讀不到 etf.json 會顯示「資料準備中」並退回用 stocks.json 列清單。
+    try:
+        etf_codes = {c for c in price["code"].astype(str).unique() if etf.is_etf_code(c)}
+        if not company.empty and "industry" in company.columns:
+            etf_codes |= set(company.loc[company["industry"].astype(str) == "ETF", "code"].astype(str))
+        try:
+            prog = json.loads((config.STATE / "backfill_progress.json").read_text(encoding="utf-8"))
+            done_keys = {k for k, v in (prog.get("done") or {}).items() if v}
+        except Exception:  # noqa: BLE001
+            done_keys = set()
+        _write("etf", etf.build(price, names, etf_codes, div_events, div_results,
+                                store.read("shareholding_weekly"), latest, done_keys))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("ETF 專區產出失敗：%s", exc)
+    lap("ETF 專區")
 
     # ---------------------------------------------------------- 產業關聯圖
     try:

@@ -95,6 +95,16 @@ PLAN_DEFAULT = [
     #   build_payload 不必改：個股頁的名單是「日線 ≥ MIN_PAGE_BARS」就升成完整頁，
     #   還原價（adjust_prices）吃整張 price_daily，更舊的部分自動寫進 data/hist 分頁 —— 補進來就吃得到。
     {"datasets": "price",                     "start": "2000-01-01", "scope": "market"},
+    # ★ 2026-10-05（ETF 專區）：上面每一步的名單都濾成「普通股」（is_common_stock 排除 00 開頭），
+    #   所以 ETF 從來沒有配息紀錄、價量也只有族群步驟碰巧涵蓋的 37 檔有長歷史（實測 2026-10-05：
+    #   dividend_events 裡 ETF 0 列、price_daily 240 檔 ETF 只有 37 檔超過 200 根）。
+    #   ETF 專區的配息行事曆、殖利率、3/5/10 年報酬全部要靠這兩步。
+    #   ⚠ 已知疑點：2016 那一步（universe）曾把 dividend:0050、dividend:0056 標成 done，湖裡卻 0 列。
+    #   可能是 FinMind 當時對 ETF 回空、或那幾輪資料集被封印。這裡用新的逐檔鍵（@2009-01-01）重問一次；
+    #   若仍回空，前端照樣標「配息資料尚未取得」，不會拿 0 冒充（compute/etf.div_done 只認湖裡真的有列）。
+    #   ETF 約 270 檔 × 3 次請求 ≈ 810 次 ≈ 2 輪。逐檔 done 鍵與既有步驟同格式，族群步驟補過的不重抓。
+    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "etf"},
+    {"datasets": "price",                     "start": "2000-01-01", "scope": "etf"},
 ]
 # 請求數估算（2026-09-28 以資料湖實測：market_codes() 1,980 檔，扣掉已有逐檔 done 鍵／已補到起始日的；
 # FinMind 一檔一資料集一次請求，每小時可用約 510 次）：
@@ -297,6 +307,35 @@ def market_codes() -> list[str]:
 _cov_cache: dict[str, pd.DataFrame] = {}
 
 
+def etf_codes() -> list[str]:
+    """上市＋上櫃 ETF（2026-10-05，scope="etf"，ETF 專區用）。
+
+    判準跟 compute/etf.etf_universe 同一套：company_info 的產業別是 ETF，或代號 00 開頭、
+    不是普通股（00 開頭的只有 ETF／ETN 與受益證券）。只收最近 MARKET_RECENT_DAYS 天有成交的，
+    成交值大的排前面 —— 額度中途用完時先補到的是熱門 ETF。同樣不吃 --limit。"""
+    from .compute.etf import is_etf_code
+
+    info = store.read("company_info")
+    etf_ind: set[str] = set()
+    if not info.empty and {"code", "industry"} <= set(info.columns):
+        etf_ind = set(info.loc[info["industry"].astype(str) == "ETF", "code"].astype(str))
+    price = store.read("price_daily")
+    if price.empty:
+        return sorted(etf_ind)
+    px = price.assign(code=price["code"].astype(str), date=price["date"].astype(str))
+    latest = px["date"].max()
+    since = (pd.Timestamp(latest) - pd.Timedelta(days=MARKET_RECENT_DAYS)).date().isoformat()
+    recent = px[px["date"] >= since]
+    ok = lambda c: c in etf_ind or is_etf_code(c)  # noqa: E731
+    day = recent[recent["date"] == latest]
+    tv = pd.to_numeric(day.get("turnover", pd.Series(0.0, index=day.index)), errors="coerce").fillna(0.0)
+    by_tv = day.assign(_tv=tv).groupby("code")["_tv"].sum().sort_values(ascending=False).index.tolist()
+    out = [c for c in by_tv if ok(c)]
+    seen = set(out)
+    out += sorted(c for c in recent["code"].unique() if c not in seen and ok(c))
+    return out
+
+
 def already_covered(table: str, code: str, start: str, respect_time: bool = True) -> bool:
     """該檔在這張表裡是否已經補到指定起始日之前。
 
@@ -360,7 +399,7 @@ def datasets_key_of(datasets: str, start: str, tag: str | None = None,
         key = base
     else:
         key = f"{base}@{start}"
-    return f"{key}@market" if scope == "market" else key
+    return f"{key}@{scope}" if scope in ("market", "etf") else key
 
 
 def run(datasets: str, limit: int | None, start: str, *,
@@ -1207,7 +1246,9 @@ def finmind_reachable(prog: dict) -> bool:
 def plan_steps(name: str, today: date | None = None) -> list[dict]:
     if name not in PLANS:
         raise KeyError(f"沒有這個回補計畫：{name}（可用：{sorted(PLANS)}）")
-    return [dict(s) for s in PLANS[name]] + [monthly_step(today)]
+    m = monthly_step(today)
+    # ETF 的配息每月也要重抓（月配 ETF 每個月都有新公告；族群月更新那一步不含 ETF）
+    return [dict(s) for s in PLANS[name]] + [m, {**m, "scope": "etf"}]
 
 
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
@@ -1219,6 +1260,8 @@ def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
         return list(dict.fromkeys(m["code"].tolist()))
     if scope == "market":
         return market_codes()          # 刻意不吃 limit（見 market_codes）
+    if scope == "etf":
+        return etf_codes()
     return target_codes(limit)
 
 

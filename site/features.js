@@ -38,7 +38,8 @@
     { id: 'stockk', name: '個股頁：K 線與工具' },
     { id: 'stocktab', name: '個股頁：分頁' },
     { id: 'global', name: '即時與全站工具' },
-    { id: 'watch', name: '自選' }
+    { id: 'watch', name: '自選' },
+    { id: 'etf', name: 'ETF 專區' }
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -129,6 +130,11 @@
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
       veil: [], mark: [], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button'] },
+    // ---- ETF 專區（2026-10-05，site/etfpage.js）
+    box('etf.list', 'etf', 'ETF 一覽', ['#etfListCard'], 'ETF 卡片清單、分類切換、殖利率與規模'),
+    box('etf.popular', 'etf', '最受歡迎前 5 名', ['#etfPopCard'], '受益人數週增加／近 20 日成交值前 5 名'),
+    box('etf.calendar', 'etf', '配息行事曆', ['#etfCalCard'], '月曆檢視的除息日、配息金額與當次殖利率'),
+    box('etf.returns', 'etf', '前五名報酬比較', ['#etfRetCard'], '配息型／市值型前五名的年化報酬與殖利率比較'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,

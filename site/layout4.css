@@ -30,6 +30,7 @@
   --l4-ic-industry:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6' r='2.6'/%3E%3Ccircle cx='18' cy='6' r='2.6'/%3E%3Ccircle cx='12' cy='18' r='2.6'/%3E%3Cpath d='M7.2 8.4l3.6 7.2M16.8 8.4l-3.6 7.2M8.6 6h6.8'/%3E%3C/svg%3E");
   --l4-ic-market:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6h11.5M9 12h11.5M9 18h11.5'/%3E%3Ccircle cx='4.5' cy='6' r='1.1'/%3E%3Ccircle cx='4.5' cy='12' r='1.1'/%3E%3Ccircle cx='4.5' cy='18' r='1.1'/%3E%3C/svg%3E");
   --l4-ic-season:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.5' width='17' height='16' rx='2.4'/%3E%3Cpath d='M3.5 9.5h17M8 2.5v4M16 2.5v4'/%3E%3Cpath d='M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2'/%3E%3C/svg%3E");
+  --l4-ic-etf:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-9-9v9z'/%3E%3Cpath d='M15 3.5A9 9 0 0 1 20.5 9H15z'/%3E%3C/svg%3E");
   --l4-ic-watch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.6l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z'/%3E%3C/svg%3E");
   --l4-ic-delivery:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='17' height='17' rx='3.2'/%3E%3Cpath d='M8 12.2l2.9 2.9L16.2 9'/%3E%3C/svg%3E");
   --l4-ic-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E");
@@ -127,6 +128,7 @@
   :root.l4 .tab[data-view="industry"]{order:4}
   :root.l4 .tab[data-view="market"]{order:5}
   :root.l4 .tab[data-view="season"]{order:6}
+  :root.l4 .tab[data-view="etf"]{order:6;--l4-ic:var(--l4-ic-etf)}
   :root.l4 .tab[data-view="watch"]{order:7}
   :root.l4 .tab[data-view="delivery"]{order:8}
   :root.l4 .tabs>:not(.tab){order:9}

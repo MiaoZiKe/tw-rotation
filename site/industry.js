@@ -3926,7 +3926,9 @@
      「分 K 完整」就自己掉到第二行，左欄多一整行；800 寬更是三行。
      改後住在工具列「指標 ▾」與「四週期同看」之間的空白：工具列**一律一行**，放不下的從最右邊一顆一顆收進「⋯ N」，
      點「⋯ N」原地展開一個小框列出收起來的那幾顆（點外面／Esc 收）。每顆：[鍵, 字, 額外 class, 滑過說明]。*/
-  function stockTags(s, tier) {
+  function stockTags(s, tier, code) {
+    /* ★ 2026-10-05（Andy，#stock/00947）：ETF 沒有本益比、同業分位、營收 YoY —— 只留技術分與資料完整度 */
+    if (isEtf(code)) return [['tech', `技術分 ${A.fmt.n(s.tech_score, 0)}`, '', ''], ['tier', tier[0], tier[1], tier[2]]];
     return [
       ['tech', `技術分 ${A.fmt.n(s.tech_score, 0)}`, '', ''],
       ['pe', `本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}`, '', ''],
@@ -4060,7 +4062,7 @@
           <button class="btn small inddd" id="indBtn" type="button" aria-haspopup="true" aria-expanded="false" title="指標：開關、參數、顏色與線寬">指標 ▾ <span class="indn" id="indN"></span></button>
           <!-- ★ 2026-10-02（Andy #stock/3189 截圖三，DECISIONS #293）：五顆資訊標籤從現價列搬來「指標」與「四週期同看」中間的空白。
                工具列一律一行（不准折行把週期鈕擠下去）：放不下的標籤從右邊收進「⋯ N」，點開看全部（fitTags）。手機不顯示（手機的數字在「指標」「財務」分頁）。-->
-          <div class="sktags" id="skTags" role="group" aria-label="這一檔的關鍵數字">${stockTags(s, tier).map(t => `<span class="pill${t[2] ? ' ' + t[2] : ''}" data-tag="${t[0]}"${t[3] ? ` title="${A.fmt.esc(t[3])}"` : ''}>${t[1]}</span>`).join('')}<button type="button" class="pill sktmore" id="skTagMore" aria-haspopup="true" aria-expanded="false" aria-controls="skTagPop" hidden>⋯</button></div>
+          <div class="sktags" id="skTags" role="group" aria-label="這一檔的關鍵數字">${stockTags(s, tier, code).map(t => `<span class="pill${t[2] ? ' ' + t[2] : ''}" data-tag="${t[0]}"${t[3] ? ` title="${A.fmt.esc(t[3])}"` : ''}>${t[1]}</span>`).join('')}<button type="button" class="pill sktmore" id="skTagMore" aria-haspopup="true" aria-expanded="false" aria-controls="skTagPop" hidden>⋯</button></div>
           <div class="sktagpop" id="skTagPop" role="dialog" aria-label="其他標籤" hidden></div>
           <div class="sp"></div>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
@@ -4096,7 +4098,7 @@
            回到桌機再搬回 K 線卡右上角。改前（09-26）這裡是完整的 AI 分析長卡，09-27 起內容搬到右上角。-->
       ${window.StockAI ? '<div class="card" style="margin-top:var(--gap-card)" id="aiCard"></div>' : ''}
       <!-- ★ 2026-09-28（Andy）：「籌碼」拆成「法人｜資券｜大戶／散戶」三頁（說明在 tabInst 上方）-->
-      <div class="subtabs" id="stockTabs">${STOCK_TABS.map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
+      <div class="subtabs" id="stockTabs">${tabsFor(code).map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div id="stockTab"></div>`;
     setupChart(pg);
     wireTags();
@@ -5317,12 +5319,29 @@
      所以搬到「總覽」旁邊。手機（mobile3.js SK_TABS）同一個順序。
      會員權限（features.js 的 stab）是用 data-t 對分頁鈕，不看位置 —— 換順序不影響 perm.js 的攔截。
      舊的「籌碼」分頁已拆掉；state.tab 若還停在 'chips'（同一個分頁開著時換版）就落到「法人」。*/
+  /* ★ 2026-10-05（Andy，#stock/00947 台新臺灣IC設計）：ETF 個股頁拿掉不屬於 ETF 的分頁。
+     判定：代號 00 開頭（ETF／ETN／受益證券；普通股不會 0 開頭 —— 與 pipeline/compute/etf.is_etf_code 同一條）。
+     拿掉：基本資料（company_info 對 ETF 幾乎全空）、指標（條件多是營收／EPS）、營收、獲利。
+     保留：總覽（技術訊號）、配息（＝除權息分頁）、法人、資券、受益人分布（集保對 ETF 有資料）、公告／新聞；
+     新增：成分股。分頁鍵沿用個股的（dividend／holders…），features.js 的權限開關照樣吃得到。*/
+  const isEtf = (code) => /^00/.test(String(code || ''));
+  const ETF_TABS = [['overview', '總覽'], ['holdings', '成分股'], ['dividend', '配息'], ['inst', '法人'], ['margin', '資券'],
+    ['holders', '受益人分布'], ['news', '公告 / 新聞']];
+  const tabsFor = (code) => (isEtf(code) ? ETF_TABS : STOCK_TABS);
+  /* 成分股：目前沒有可合法自動取得的來源（查證紀錄在 docs/etf_page_spec.md §成分股），誠實標示、不編造 */
+  function tabHoldings(pg, el) {
+    el.innerHTML = `<div class="card" id="etfHoldCard"><h3>成分股</h3><div class="empty" style="text-align:left;line-height:1.7">
+      <b>成分股資料來源整理中。</b><br>原因：這次查證未找到證交所 OpenAPI 或 FinMind 免費層提供 ETF 成分股／權重的資料集；
+      投信官網的持股揭露多為各家格式不一的網頁或 PDF，使用條款各異，未逐家確認可自動擷取之前不抓取。<br>
+      在那之前請以發行投信官網公告的每日持股為準。</div></div>`;
+  }
   const STOCK_TABS = [['overview', '總覽'], ['basics', '基本資料'], ['tags', '指標'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'],
     ['inst', '法人'], ['margin', '資券'], ['holders', '大戶／散戶'], ['news', '公告 / 新聞']];
   function renderTab(pg, tab) {
     const el = $('#stockTab');
-    const T = { overview: tabOverview, tags: tabTags, revenue: tabRevenue, profit: tabProfit, dividend: tabDividend,
+    const T = { overview: tabOverview, holdings: tabHoldings, tags: tabTags, revenue: tabRevenue, profit: tabProfit, dividend: tabDividend,
       inst: tabInst, margin: tabMargin, holders: tabHolders, basics: tabBasics, news: tabNews };
+    if (T[tab] && !tabsFor(pg.meta && pg.meta.code).some(t => t[0] === tab)) { tab = 'overview'; state.tab = tab; $$('#stockTabs button').forEach(x => x.classList.toggle('on', x.dataset.t === tab)); }
     if (!T[tab]) { tab = tab === 'chips' ? 'inst' : 'overview'; state.tab = tab; $$('#stockTabs button').forEach(x => x.classList.toggle('on', x.dataset.t === tab)); }
     delete el.dataset.chip;
     T[tab](pg, el);
@@ -5798,9 +5817,12 @@
   function tabOverview(pg, el) {
     const AI = window.StockAI, SG = window.StockSignal;
     const sig = SG ? SG.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt, { tag: true, id: 'ovF-sig' }) : '';
-    const right = AI && AI.ovCard ? AI.ovCard(pg, A.fmt, sig) : (sig ? `<div class="skfacets" id="ovFacets" data-n="1">${sig}</div>` : '');
+    const etf = isEtf(pg.meta && pg.meta.code);
+    // ETF：不放基本面卡（EPS／ROE／毛利率）與 AI 分析（含基本面一面），只留籌碼快照與技術面訊號
+    const right = !etf && AI && AI.ovCard ? AI.ovCard(pg, A.fmt, sig) : (sig ? `<div class="skfacets" id="ovFacets" data-n="1">${sig}</div>` : '');
     el.innerHTML = `<div class="skov" id="skOv"><div class="skov3" id="skOv3" data-cols="${right ? 3 : 2}">
-      <div class="skovkpi">${fundCard(pg)}${chipCard(pg)}</div>${right}</div></div>`;
+      <div class="skovkpi">${etf ? '' : fundCard(pg)}${chipCard(pg)}</div>${right}</div></div>`;
+    if (etf) return;
     if (AI && AI.bindOverview) AI.bindOverview(el);
   }
   /* ★ 2026-09-27「指標」分頁（Andy 給的券商 App「符合 65 項指標」截圖）：
@@ -6698,7 +6720,7 @@
      還得配一段「資料來源／回補中／共 N 筆」的說明才讀得懂。後端 dividends.events／by_period 照舊產出（年度圖的拆分與 AI 分析在用）。*/
   function tabDividend(pg, el) {
     const dv = pg.dividends || {}; const ev = dv.events || [], rs = dv.results || [];
-    if (!ev.length && !rs.length) { el.innerHTML = '<div class="card"><div class="empty">尚無除權息資料</div></div>'; return; }
+    if (!ev.length && !rs.length) { el.innerHTML = `<div class="card"><div class="empty">${isEtf(pg.meta && pg.meta.code) ? 'ETF 配息資料尚未取得：歷史回補排程的 ETF 步驟補進資料湖後會自動出現（ETF 專區配息行事曆同一份資料）' : '尚無除權息資料'}</div></div>`; return; }
     const bars = divBars(dv, rs);
     const cov = dv.coverage || {};
     const MF = A.NUM_FONT || 'JetBrains Mono, monospace';

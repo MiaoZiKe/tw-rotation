@@ -317,7 +317,8 @@ def test_plan_marks_done_when_every_step_completes(sandbox, monkeypatch, two_ste
     plan = prog["complete"]["plan:default"]
     assert plan["done"] is True and plan["month"] == "2026-09" and plan["stopped_at"] is None
     assert plan["steps"] == {"revenue": True, "price@2000-01-01": True,
-                             "dividend+divresult@m2026-09": True}
+                             "dividend+divresult@m2026-09": True,
+                             "dividend+divresult@m2026-09@etf": True}  # ETF 月更新（2026-10-05）
     assert prog["complete"]["dividend+divresult@m2026-09"]["done"] is True
     assert run_backfill.plan_is_done(prog, today=date(2026, 9, 30)) is True
     assert run_backfill.plan_is_done(prog, today=date(2026, 10, 1)) is False, "跨月後計畫要變成未完成"
@@ -353,8 +354,8 @@ def test_monthly_step_and_unknown_plan():
     step = run_backfill.monthly_step(date(2026, 2, 3))
     assert step == {"datasets": "dividend+divresult", "start": "2026-01-01",
                     "scope": "groups", "tag": "m2026-02"}
-    assert run_backfill.plan_steps("default", date(2026, 2, 3))[-1] == step
-    assert len(run_backfill.plan_steps("default")) == len(run_backfill.PLAN_DEFAULT) + 1
+    assert run_backfill.plan_steps("default", date(2026, 2, 3))[-2] == step
+    assert len(run_backfill.plan_steps("default")) == len(run_backfill.PLAN_DEFAULT) + 2  # 族群月更新＋ETF 月更新
     with pytest.raises(KeyError):
         run_backfill.plan_steps("nope")
 
