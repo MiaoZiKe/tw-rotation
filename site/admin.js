@@ -519,7 +519,9 @@
 #v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 small{font-size:12px;margin-left:0}
 /* 會員名單所有欄位標題與內容置中（Andy 10-05：「欄位內文字都置中」）；展開明細那一列不動 */
 #v-admin table.memtbl thead th,#v-admin table.memtbl tbody tr:not(.pmdet)>td{text-align:center}
-#v-admin table.memtbl td.c-who .who1{justify-content:center}
+/* 例外（Andy 10-05 截圖）：「會員」欄（email）標題與內容靠左 */
+#v-admin table.memtbl th.c-who,#v-admin table.memtbl tbody tr:not(.pmdet)>td.c-who{text-align:left}
+#v-admin table.memtbl td.c-who .who1{justify-content:flex-start}
 /* 10-05 Andy「會員分頁字體置中，大小 Follow 產業 Map」：範本頁籤蓋掉舊的 15.5px／44px 高，回到 .nbsw 的字級與內距、置中 */
 #v-admin .ptwrap .ptabs button[role=tab]{font-size:13.5px;font-weight:400;height:auto;min-height:0;justify-content:center;text-align:center;padding:var(--sp-1) var(--sp-3) var(--sp-2)}
 #v-admin .ptwrap .ptabs button[role=tab].on{font-weight:700;padding:var(--sp-2) var(--sp-4) var(--sp-2)}
