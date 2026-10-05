@@ -141,6 +141,12 @@ Worker 的頁面白名單（`VIEWS`）沒有 etf／explore／support／events，
 | `ind` | stock | 指標名稱 | 技術指標面板勾上 |
 | `draw.tool` | stock | 工具名稱 | 畫線工具列 |
 
+### 管理區仍需 Worker 才能完整呈現的欄位（前端已先做好，預覽用示範資料；正式站目前顯示估算或「尚未提供」）
+- **開站身分**（登入／訪客的甜甜圈拆「註冊會員＋各付費方案」）：Worker 的 `ev:session_login` 沒有分會員等級。目前前端用 `plans/get`＋`perm/list` 的名單人數比例估算（標「估算」）。要精準：心跳 `session_login` 改記 `session_tier:<plan id>`，或 `/v1/admin/stats` 回 `tiers: [{id, name, n, login}]`。
+- **使用時段**（使用者分頁的每小時直條）：需要 `/v1/admin/stats` 回 `hourly: [24 個數字]`（期間內每天每小時的頁面瀏覽加總，台北時間）。沒有就顯示說明文字。
+- **即時**（期間選單）：需要 `hours: [24 個數字]`（今天每小時瀏覽）；沒有時只畫 1 根（今天）。
+- 範本刪除保護已在 `workers/account-api/worker.js` 檔尾（`plans/put` del → 409 `has_members`）；上正式站要先部署 Worker 再上前端。
+
 ### 圖表選型（流量觀測頁的「？ 圖表怎麼選」）
 - 預設橫向排序長條：類別多、要比大小，長度最準。
 - 圓餅／甜甜圈：只在 ≤ 5 類且加總 100%（登入／訪客開啟比例）。

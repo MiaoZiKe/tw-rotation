@@ -197,17 +197,18 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #trTip{position:fixed;z-index:1400;pointer-events:none;max-width:280px;padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.5;color:var(--ink);background:var(--panel);border:1px solid var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
 #trTip[hidden]{display:none}
 #trTip b{font-weight:700}
-#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:opacity .12s ease,filter .12s ease}
-#admBody [data-chart].hov .dc:not(.hl) i{opacity:.3}
-#admBody [data-chart].hov .dc.hl i{filter:brightness(1.25)}
-#admBody [data-chart].hov .bars>[data-row]:not(.hl),#admBody .bars.hov>[data-row]:not(.hl){opacity:.35}
-#admBody .bars.hov>.hl{opacity:1}
-#admBody [data-chart].hov circle.arc:not(.hl){opacity:.3}
-#admBody [data-chart].hov circle.arc.hl{filter:brightness(1.18)}
-#admBody [data-chart].hov li[data-k]:not(.hl){opacity:.45}
-#admBody [data-chart].hov .sc circle:not(.hl),#admBody .sc.hov circle:not(.hl){opacity:.25}
+#v-admin [data-chart] [data-row],#v-admin [data-chart] li[data-k]{transition:opacity .12s ease,filter .12s ease}
+#v-admin [data-chart].hov .dc:not(.hl) i{opacity:.3}
+#v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25)}
+#v-admin [data-chart].hov .bars>[data-row]:not(.hl),#v-admin .bars.hov>[data-row]:not(.hl),#v-admin .hbars.hov>[data-row]:not(.hl){opacity:.35}
+#v-admin .bars.hov>.hl,#v-admin .hbars.hov>.hl{opacity:1}
+#v-admin [data-chart].hov circle.arc:not(.hl){opacity:.3}
+#v-admin [data-chart].hov circle.arc.hl{filter:brightness(1.18)}
+#v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.45}
+#v-admin [data-chart].hov .sc circle:not(.hl),#v-admin .sc.hov circle:not(.hl),#v-admin [data-chart].hov .vbars rect:not(.hl){opacity:.25}
 #admBody .sc circle.hl{r:8}
-#admBody .dn svg circle.arc{cursor:default}
+#v-admin .vbars rect.hl{filter:brightness(1.3)}
+#v-admin .dn svg circle.arc,#v-admin .mdonut svg circle.arc{cursor:default}
 #admBody .dn svg circle.arc[data-p]{cursor:pointer}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
 @media (max-width:1100px){#v-admin .admgrid.trpair{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
@@ -535,7 +536,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .mchart h4 small{font-weight:400;color:var(--ink-2);margin-left:6px;font-size:12px}
 #v-admin .mchart .empty{padding:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-admin .mdonut{display:flex;align-items:center;gap:12px;min-width:0}
-#v-admin .mdonut svg{flex:none}
+#v-admin .mdonut svg{flex:none;width:104px;height:104px}#v-admin .mdonut ul{flex:1}
 #v-admin .mdonut ul{list-style:none;margin:0;padding:0;min-width:0;flex:1;font-size:12.5px}
 #v-admin .mdonut li{display:flex;align-items:center;gap:6px;height:21px;white-space:nowrap;min-width:0}
 #v-admin .mdonut li i{flex:none;width:10px;height:10px;border-radius:3px}
@@ -543,13 +544,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .mdonut li b{margin-left:auto;font-family:var(--mono);font-weight:600;color:var(--ink)}
 #v-admin .mdonut li small{flex:none;width:3.2em;text-align:right;font-family:var(--mono);color:var(--ink-2);font-size:11.5px}
 #v-admin .mdonut+.mdonut{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
-#v-admin .hbars{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:4px 8px;align-items:center;font-size:12.5px}
+#v-admin .hbars{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:6px 8px;align-items:center;font-size:12.5px}
 #v-admin .hbars .bl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
-#v-admin .hbars svg{display:block;width:100%;height:12px}
-#v-admin .hbars rect.tr{fill:var(--panel-3)}#v-admin .hbars rect.v{fill:var(--cyan)}
+#v-admin .hbars svg{display:block;width:100%;height:10px}
+#v-admin .hbars rect.tr{fill:var(--panel-3)}#v-admin .hbars rect.v{fill:var(--cat-1,var(--cyan))}
 #v-admin .hbars .bn{font-family:var(--mono);text-align:right;color:var(--ink);min-width:2.2em}
-#v-admin .vbars{display:block;width:100%;height:110px;border-bottom:1px solid var(--line-2)}
-#v-admin .vbars rect{fill:var(--violet)}#v-admin .vbars rect.z{fill:var(--line-2)}
+#v-admin .vbwrap{display:flex;gap:6px}#v-admin .vby{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);min-width:2.4em;height:110px}
+#v-admin .vbplot{flex:1;min-width:0;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 60%,transparent);background:linear-gradient(color-mix(in srgb,var(--line) 40%,transparent) 1px,transparent 1px) 0 0/100% 25%}
+#v-admin .vbars{display:block;width:100%;height:110px}
+#v-admin .vbars rect{fill:var(--cat-1,var(--violet))}#v-admin .vbars rect.z{fill:var(--line-2)}
 #v-admin .vbx{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-2);font-family:var(--mono)}
 #v-admin .vbmax{font-size:12px;color:var(--ink-2);white-space:nowrap}
 #v-admin .stt.soon{background:color-mix(in srgb,var(--st-soon) 26%,transparent)}
@@ -1134,7 +1137,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       gr.segs.forEach((s, k) => {
         const sa = b, sb = b + s.n / tot * 360; b = sb;
         const x0 = k === 0 ? v0 : sa, x1 = k === gr.segs.length - 1 ? v1 : sb, len = Math.max(0, (x1 - x0) / 360 * C);
-        arcs += `<circle class="arc" data-row="${arcN++}" data-k="${esc(s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）${s.p ? '<br>點一下進入' : ''}`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)">></circle>`;
+        arcs += `<circle class="arc" data-row="${arcN++}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）${s.p ? '<br>點一下進入' : ''}`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)">></circle>`;
       });
       if (round) {
         const id = uid + gi, A0 = v0 + cap, A1 = v1 - cap;
@@ -1145,10 +1148,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const top5 = (o.top5 || segs).slice().sort((x, y) => y.n - x.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
     const c1 = o.center ? o.center[0] : '前五大', c2 = o.center ? o.center[1] : t5 + '%';
     const lg = (o.legend || segs).slice().sort((x, y) => (x.label === '其他') - (y.label === '其他') || y.n - x.n).slice(0, o.legendN || 6);
-    return `<div class="dn" data-chart="donut"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
+    return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
       <circle r="36.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".7"/>${body}
       <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">${esc(c1)}</text><text class="c2" x="60" y="74" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${esc(c2)}</text></svg>
-      <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.label)}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><small>${s.ltxt || (s.n / (o.totalN || tot) * 100).toFixed(1) + '%'}</small></li>`).join('')}</ul></div>`;
+      <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span>${o.cls === 'mdonut' ? `<b>${nf(s.n)}</b>` : ''}<small>${s.ltxt || (s.n / (o.totalN || tot) * 100).toFixed(1) + '%'}</small></li>`).join('')}</ul></div>`;
   }
   function donut(parts) {
     const tot = parts.reduce((s, p) => s + p[1], 0);
@@ -1295,6 +1298,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       };
     }
     wireHead(v);
+    bindHover(v);
     v.querySelector('#pmSaveGo').onclick = saveDraft;
     v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
     await loadFeatures();
@@ -1986,36 +1990,30 @@ html[data-theme="light"] #v-admin{--pgL:40%}
      選型照流量觀測頁「？ 圖表怎麼選」那條規則：佔比、≤ 5 類、加總＝全部 → 甜甜圈；類別比大小 → 橫向長條（排序過）；每天的量 → 直條。
      全部是 SVG＋HTML 標籤：每個色塊有 <title>（滑過看數字），文字用文字色、不用系列色；顏色跟著「東西」走（狀態色固定、範本色依 id）。 */
   function donut2(parts, opt) {
-    const o = opt || {}, tot = parts.reduce((s, p) => s + p[1], 0), unit = o.unit || '人';
+    const o = opt || {}, tot = parts.reduce((x, p) => x + p[1], 0), unit = o.unit || '人';
     if (!tot) return `<div class="empty">${esc(o.empty || '尚無資料')}</div>`;
-    const S = 84, cx = S / 2, R = 30, C = 2 * Math.PI * R, gap = parts.filter((p) => p[1] > 0).length > 1 ? 1.6 : 0;
-    let off = 0;
-    const arcs = parts.map(([nm, n, col]) => {
-      if (!n) return '';
-      const len = n / tot * C, d = Math.max(0.6, len - gap);
-      const s = `<circle r="${R}" cx="${cx}" cy="${cx}" fill="none" stroke="${col}" stroke-width="13" stroke-dasharray="${d.toFixed(2)} ${(C - d).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cx})"><title>${esc(nm)}：${nf(n)} ${unit}（${Math.round(n / tot * 100)}%）</title></circle>`;
-      off += len; return s;
-    }).join('');
-    return `<div class="mdonut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" role="img" aria-label="${esc(o.aria || '')}">`
-      + `<circle r="${R}" cx="${cx}" cy="${cx}" fill="none" stroke="var(--panel-3)" stroke-width="13"/>${arcs}<text x="${cx}" y="${cx + 5}" text-anchor="middle" style="font:700 15px var(--mono);fill:var(--ink)">${nf(tot)}</text></svg>`
-      + `<ul>${parts.map(([nm, n, col], i) => `<li data-k="${esc(o.keys ? o.keys[i] : nm)}" data-n="${n}" title="${esc(nm)}：${nf(n)} ${unit}（${Math.round(n / tot * 100)}%）"><i style="background:${col}"></i><span>${esc(nm)}</span><b>${nf(n)}</b><small>${Math.round(n / tot * 100)}%</small></li>`).join('')}</ul></div>`;
+    /* 跟流量觀測同一套甜甜圈：直角、非同組扇區間隙一律 2°、細軌道、中心字、滑過連動（donutG）；這裡只是小一號、圖例每列帶人數 */
+    const segs = parts.map(([nm, n, col], i) => ({ label: nm, n, color: col, k: o.keys ? o.keys[i] : nm, ltxt: `${nf(n)} ${unit}・${Math.round(n / tot * 100)}%` })).filter((x) => x.n > 0 || true);
+    return donutG(segs.filter((x) => x.n > 0), Object.assign({ cls: 'mdonut', id: o.id, center: [unit === '人' ? '合計' : '合計', nf(tot)], legend: segs, legendN: 8, totalN: tot, aria: o.aria || '占比' }));
   }
   function hbars(list, names, opt) {
     const o = opt || {};
     if (!list.length) return `<div class="empty">${esc(o.empty || '尚無資料')}</div>`;
-    const max = Math.max(1, ...list.map((x) => x[1]));
-    return `<div class="hbars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n]) => { const nm = names(k);
-      return `<span class="bl" title="${esc(nm)}">${esc(nm)}</span><svg><rect class="tr" width="100%" height="12" rx="3"/><rect class="v" width="${(n / max * 100).toFixed(1)}%" height="12" rx="3"><title>${esc(nm)}：${nf(n)} 次</title></rect></svg><span class="bn" data-k="${esc(k)}" data-n="${n}">${nf(n)}</span>`; }).join('') + '</div>';
+    const max = Math.max(1, ...list.map((x) => x[1])), tot = list.reduce((x, y) => x + y[1], 0);
+    return `<div class="hbars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const nm = names(k), t = tp(`<b>${esc(nm)}</b><br>${nf(n)} 次・占 ${(n / tot * 100).toFixed(1)}%`);
+      return `<span class="bl" data-row="${r}"${t}>${esc(nm)}</span><svg data-row="${r}"${t}><rect class="tr" width="100%" height="10" rx="5"/><rect class="v" width="${(n / max * 100).toFixed(1)}%" height="10" rx="5"/></svg><span class="bn" data-row="${r}"${t} data-k="${esc(k)}" data-n="${n}">${nf(n)}</span>`; }).join('') + '</div>';
   }
   const mmdd = (d) => String(d || '').slice(5).replace('-', '/');
   function vbars(days, opt) {
     const o = opt || {}, unit = o.unit || '人';
     if (!days.length || !days.some((d) => d.n)) return `<div class="empty">${esc(o.empty || '尚無資料（近 14 天沒有活躍紀錄）')}</div>`;
-    const max = Math.max(1, ...days.map((d) => d.n)), W = days.length * 10, H = 100, bw = W / days.length;
-    return `<div class="vbmax">最高 ${nf(max)} ${unit}／天</div><svg class="vbars"${o.id ? ` id="${o.id}"` : ''} viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(o.aria || '近 14 天每天的量')}">`
-      + days.map((d, i) => { const h = d.n ? Math.max(3, d.n / max * (H - 2)) : 1.5;
-        return `<rect class="${d.n ? 'v' : 'z'}" data-n="${d.n}" x="${(i * bw + 1.5).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${(bw - 3).toFixed(1)}" height="${h.toFixed(1)}"><title>${esc(d.tip || `${d.day}：${nf(d.n)} ${unit}`)}</title></rect>`; }).join('')
-      + `</svg><div class="vbx"><span>${mmdd(days[0].day)}</span><span>${mmdd(days[days.length >> 1].day)}</span><span>${mmdd(days[days.length - 1].day)}</span></div>`;
+    const max = Math.max(1, ...days.map((d) => d.n)), W = days.length * 10, H = 100, bw = W / days.length, tot = days.reduce((x, d) => x + d.n, 0);
+    /* 跟流量觀測直條同規格：細柱（寬 ≈ 0.45 格）、左側 5 個 Y 刻度＋很淡的水平格線、滑過高亮並顯示提示 */
+    return `<div class="vbwrap" data-chart="days"><div class="vby">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(max * f))}</span>`).join('')}</div>
+      <div class="vbplot"><svg class="vbars"${o.id ? ` id="${o.id}"` : ''} viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(o.aria || '近 14 天每天的量')}">`
+      + days.map((d, i) => { const h = d.n ? Math.max(3, d.n / max * (H - 2)) : 1.5, w = bw * 0.45;
+        return `<rect class="${d.n ? 'v' : 'z'}" data-row="${i}"${tp(`<b>${esc(d.day)}</b><br>${esc(d.tip ? d.tip.replace(/^[^：]*：/, '') : nf(d.n) + ' ' + unit)}<br>占期間 ${(d.n / Math.max(1, tot) * 100).toFixed(1)}%`)} data-n="${d.n}" x="${(i * bw + (bw - w) / 2).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"></rect>`; }).join('')
+      + `</svg></div></div><div class="vbx"><span>${mmdd(days[0].day)}</span><span>${mmdd(days[days.length >> 1].day)}</span><span>${mmdd(days[days.length - 1].day)}</span></div>`;
   }
   /* 股票標籤＝代號＋名稱（名稱從站上的全站索引 window.Link.cname 拿；拿不到就只寫代號）*/
   const stockNm = (c) => { const n = window.Link && window.Link.cname && window.Link.cname[c]; return n ? `${c} ${n}` : c; };

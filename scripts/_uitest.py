@@ -45398,6 +45398,23 @@ def t_admin_v3(b, base, code):
                  feat: [...document.querySelectorAll('#msFeat .bn')].map(e => [e.dataset.k, +e.dataset.n]), stk: [...document.querySelectorAll('#msStock .bl')].map(e => e.textContent),
                  days: document.querySelectorAll('#msDays rect').length, act7: document.querySelector('#msAct7 b').textContent, ch,
                  kpiTop: [...document.querySelectorAll('#ptStats .mkpis .mkpi')].map(k => Math.round(k.getBoundingClientRect().top)) }; }""")
+    # ★ 10-05 Andy「會員權限內長條圖以及圓餅圖風格可以參考流量觀測」：同一套元件（細條 10px、直角甜甜圈 2° 間隙、淡 Y 軸）＋互動（滑過有提示與高亮）
+    def pv_hover(sel, label, ring=False):
+        if ring:
+            pt = pg.evaluate("""(sel) => { const a = document.querySelector(sel), sv = a.ownerSVGElement; sv.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = sv.getBoundingClientRect(), k = r.width / 120, m = ((+a.dataset.a0 + +a.dataset.a1) / 2) * Math.PI / 180;
+                return [r.left + r.width / 2 + 45 * k * Math.sin(m), r.top + r.height / 2 - 45 * k * Math.cos(m)]; }""", sel)
+            pg.wait_for_timeout(200); pg.mouse.move(pt[0] - 4, pt[1] - 4); pg.mouse.move(*pt, steps=4)
+        else:
+            pg.locator(sel).first.scroll_into_view_if_needed(); pg.hover(sel)
+        pg.wait_for_timeout(120)
+        r = pg.locator(sel).first.evaluate("(el) => { const t = document.getElementById('trTip'), ch = el.closest('[data-chart]'); return { tip: !!t && !t.hidden && t.textContent.trim().length > 3, hl: !!ch && ch.classList.contains('hov') && ch.querySelectorAll('.hl').length > 0 }; }")
+        ok(f"{T}・perm-v4：會員統計互動｜{label}：滑過有浮動提示、有高亮狀態", r["tip"] and r["hl"], r)
+        pg.mouse.move(2, 2); pg.wait_for_timeout(100)
+    pv_hover("#msFeat .bl", "功能長條"); pv_hover("#msStock .bn", "股票長條"); pv_hover("#msDays rect >> nth=3", "每日活躍直條")
+    pv_hover("#msStDonut circle.arc", "狀態甜甜圈扇區", ring=True)
+    sty = pg.evaluate("""() => ({ bar: Math.max(...[...document.querySelectorAll('#msFeat svg rect.v')].map(r => r.getBoundingClientRect().height)), cap: getComputedStyle(document.querySelector('#msStDonut circle.arc')).strokeLinecap, ticks: document.querySelectorAll('#msDays').length && document.querySelectorAll('.vby span').length >= 5,
+        gaps: (() => { const a = [...document.querySelectorAll('#msStDonut circle.arc')].map(c => [+c.dataset.a0, +c.dataset.a1]); return a.slice(1).map((x, i) => +(x[0] - a[i][1]).toFixed(1)); })() })""")
+    ok(f"{T}・perm-v4：會員統計圖風格＝流量觀測：長條粗 ≤ 10px、甜甜圈直角（butt）且相鄰扇區間隙一律 2°、直條有 Y 軸刻度", sty["bar"] <= 10.5 and sty["cap"] == "butt" and sty["ticks"] and sty["gaps"] and set(sty["gaps"]) == {2.0}, sty)
     sd = ms["sd"]
     ok(f"{T}・perm-v4：會員名單上方：總人數＝名單列數（{ms['n']}）、四個數字同一排", ms["total"] == ms["n"] and len(set(ms["kpiTop"])) == 1 and len(ms["kpiTop"]) == 4, ms)
     ok(f"{T}・perm-v4：狀態甜甜圈（有效／7 天內到期／已過期／未登入過）每一類人數＝名單狀態欄數出來的",
