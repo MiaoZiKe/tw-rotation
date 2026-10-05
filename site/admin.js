@@ -99,6 +99,14 @@
 #admBody .days .dv{font:600 12px/1 var(--mono);color:var(--ink);margin-bottom:4px;white-space:nowrap}
 #admBody .days .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
 #admBody .days.few{margin-bottom:20px}
+#admBody #admDayBars .dc[data-day]{cursor:pointer}
+#admBody #admDayBars .dc.sel i{background:var(--amber,#e0a93a);box-shadow:0 0 0 1px var(--amber,#e0a93a)}
+#admBody #admDayBars.hov .dc.sel i{opacity:1}
+.daychip{display:inline-flex;align-items:center;gap:8px;margin-left:12px;height:28px;padding:0 4px 0 10px;border-radius:999px;font-size:13px;background:color-mix(in srgb,var(--amber,#e0a93a) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber,#e0a93a) 55%,transparent);color:var(--ink);vertical-align:middle;max-width:100%}
+.daychip .dot{width:8px;height:8px;border-radius:50%;background:var(--amber,#e0a93a);flex:none}
+.daychip b{font-weight:700;white-space:nowrap}.daychip em{font-style:normal;color:var(--ink-2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.daychip button{width:22px;height:22px;border-radius:50%;border:0;background:transparent;color:var(--ink-2);font-size:16px;line-height:20px;cursor:pointer;flex:none;padding:0}
+.daychip button:hover{background:var(--panel-3);color:var(--ink)}
 #admBody .days .dc.fut{background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--line) 55%,transparent) 4px 5px);opacity:.7}
 #admBody .days.many{gap:1px}#admBody .days.many .dc{min-width:1px}
 #admBody .days.hrs:not(.few){margin-bottom:20px}#admBody .days.hrs .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
@@ -757,7 +765,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const W = Object.create(A);
     W.__demo = true;
     W.call = async (path, body) => {
-      if (path === '/v1/admin/stats') return ok(DEMO.stats((body || {}).days, (body || {}).live, (body || {}).from, (body || {}).to));
+      if (path === '/v1/admin/stats') { const nr = !!window.__demoNoRange; return ok(DEMO.stats((body || {}).days, (body || {}).live, nr ? undefined : (body || {}).from, nr ? undefined : (body || {}).to)); }      // __demoNoRange：測試用，模擬還沒更新的 Worker（不認得 from／to）
       if (path === '/v1/admin/online') return ok(DEMO.online);
       if (path === '/v1/admin/members') return ok({ members: DEMO.members });
       if (path === '/v1/admin/members/stats') return ok(DEMO.mstats);
@@ -848,15 +856,23 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       v.querySelector('#admBody').innerHTML = `<div class="card" style="margin-top:14px"><p class="err">讀不到報表（${st ? st._s : '連不到伺服器'}）</p></div>`;
       return;
     }
-    S.st = st; S.on = on;
+    /* 點每日直條 → 下面那組統計換成那一天：再打一次 stats 帶 from＝to＝那天。Worker 不認得 from／to（會員系統還沒更新）時，
+       回來的起訖不會是那一天 → 改成提示並維持整段期間的統計，畫面不留空白 */
+    let stT = st; S.dayMode = '';
+    if (S.day) {
+      const r = await A.call('/v1/admin/stats', { days: Math.min(400, periodDays() + 1), from: S.day, to: S.day });
+      if (r && r._s === 200 && r.from === S.day && r.to === S.day) { stT = r; S.dayMode = 'ok'; } else S.dayMode = 'unsupported';
+    }
+    S.st = stT; S.on = on;
     const pv = {}, ev = {}, perDay = {};
     const untilDay = S.period === 'since' && S.until && /^\d{4}-\d{2}-\d{2}$/.test(S.until) && S.until < st.to ? S.until : '';      // 結束日（預設＝至今）：只影響上方一排；Worker 只能算到今天，分頁統計仍含到今天
     st.rows.forEach((r) => {
       const [kind, name] = r.k.split(':'), inTop = !untilDay || r.day <= untilDay;
       if (kind === 'pv') { pv[name] = (pv[name] || 0) + r.n; if (inTop) perDay[r.day] = (perDay[r.day] || 0) + r.n; } else if (inTop) ev[name] = (ev[name] || 0) + r.n;
     });
-    const e2 = Array.isArray(st.e2) ? st.e2 : [];
-    const pvDay = {}; st.rows.forEach((r) => { if (r.k.startsWith('pv:')) { const k = r.k.slice(3); (pvDay[k] = pvDay[k] || {})[r.day] = (pvDay[k][r.day] || 0) + r.n; } });
+    const e2 = Array.isArray(stT.e2) ? stT.e2 : [];
+    const pvT = {}; stT.rows.forEach((r) => { if (r.k.startsWith('pv:')) pvT[r.k.slice(3)] = (pvT[r.k.slice(3)] || 0) + r.n; });
+    const pvDay = {}; stT.rows.forEach((r) => { if (r.k.startsWith('pv:')) { const k = r.k.slice(3); (pvDay[k] = pvDay[k] || {})[r.day] = (pvDay[k][r.day] || 0) + r.n; } });
     let days = [], dmap = perDay;
     if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; const nowH = st.hstat && Number.isInteger(st.hstat.hour) ? st.hstat.hour : null; st.hours.forEach((n, h) => { dmap[days[h]] = nowH != null && h > nowH ? null : n; }); }
     else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse((untilDay || st.to) + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
@@ -870,7 +886,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       scat: views.slice(0, 30).map((r) => ({ code: r.detail, x: r.n, y: ((useBy[r.detail] || []).reduce((s, x) => s + x.n, 0)) / Math.max(1, r.n) })) };
     // 依 PAGES 歸類：S.data[頁] = { pv, rows:[{comp,det,n,sub}], opens:{子頁:次數} }
     const data = {};
-    PAGES.filter((p) => !p.sp).forEach((p) => { data[p.k] = { pv: pv[p.k] || 0, rows: [], opens: {} }; });
+    PAGES.filter((p) => !p.sp).forEach((p) => { data[p.k] = { pv: pvT[p.k] || 0, rows: [], opens: {} }; });
     e2.forEach((r) => {
       if (r.comp.startsWith('sub.')) { const d = data[r.page]; if (d) d.opens[r.comp.slice(4)] = (d.opens[r.comp.slice(4)] || 0) + r.n; return; }
       const c = classify(r); if (!c) return;
@@ -885,13 +901,20 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       d.total = d.pv || (sum(d.subN.map((x) => x.v)) || use);
       if (p.subs.length && sum(d.subN.map((x) => x.v)) > 0 && d.pv) { /* 有子頁開啟數：總數仍用 pv */ }
     });
-    S.data = data; S.days = periodDays(); S.pvDay = pvDay; S.dayList = st.hours ? [] : days.slice(); S.pvAll = pvTotal;
-    data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (st.users && st.users.total) || 0, use: 0, fb: false };
+    S.data = data; S.days = periodDays(); S.pvDay = pvDay; S.dayList = st.hours ? [] : (S.dayMode === 'ok' ? [S.day] : days.slice()); S.pvAll = sum(Object.values(pvT));
+    data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (stT.users && stT.users.total) || 0, use: 0, fb: false };
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
-    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2></div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
     paintTrTabs();
     bindHover(v.querySelector('#admBody'));
+  }
+  const WK = '日一二三四五六';
+  const dayTxt = (d) => `${+d.slice(5, 7)} 月 ${+d.slice(8, 10)} 日（週${WK[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()]}）`;
+  /* 現在看的是哪一天：分頁統計標題旁一顆小膠囊＋清除鈕；Worker 不支援時直接說白話 */
+  function dayChip() {
+    if (!S.day) return '';
+    return `<span class="daychip" id="trDayChip"><i class="dot"></i><b>${esc(dayTxt(S.day))}</b>${S.dayMode === 'unsupported' ? '<em>這個功能要等會員系統更新後才有，下方暫時顯示整段期間</em>' : ''}<button type="button" id="trDayClr" aria-label="清除，回到原期間" title="清除，回到原期間">×</button></span>`;
   }
   function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
@@ -995,12 +1018,14 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function wireTop(v, A) {
     const apply = () => { S.tab = S.tab || 'all'; paint(); };
     v.querySelector('#admDaysSel').onchange = (e) => {
-      S.period = e.target.value;
+      S.period = e.target.value; S.day = '';
       if (S.period === 'since' && !S.since) S.since = new Date(Date.now() + 8 * 3600000 - 29 * 86400000).toISOString().slice(0, 10);
       apply();
     };
     const di = v.querySelector('#admSince'); if (di) di.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(di.value)) { S.since = di.value; if (S.until && S.until < S.since) S.until = ''; apply(); } };
     const du = v.querySelector('#admUntil'); if (du) du.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(du.value)) { S.until = du.value >= todayTpe() ? '' : du.value; apply(); } else { S.until = ''; apply(); } };
+    const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; S.day = S.day === dc.dataset.day ? '' : dc.dataset.day; paint(); };
+    const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; paint(); };
     v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
     if (S.spin) { S.spin = false; const rb = v.querySelector('#admRefresh'); if (rb) rb.classList.add('spin'); }
   }
@@ -1017,26 +1042,42 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   function bindHover(root) {
     if (!root || root._hov) return; root._hov = true;
-    const place = (e) => { const t = tipEl(); if (t.hidden) return; const w = t.offsetWidth, h = t.offsetHeight; let x = e.clientX + 14, y = e.clientY + 16; if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + h > innerHeight - 8) y = e.clientY - h - 12; t.style.left = Math.max(8, x) + 'px'; t.style.top = Math.max(8, y) + 'px'; };
-    root.addEventListener('mouseover', (e) => {
-      const chart = e.target.closest && e.target.closest('[data-chart]'); if (!chart) return;
+    const place = (x0, y0) => { const t = tipEl(); if (t.hidden) return; const w = t.offsetWidth, h = t.offsetHeight; let x = x0 + 14, y = y0 + 16; if (x + w > innerWidth - 8) x = x0 - w - 14; if (y + h > innerHeight - 8) y = y0 - h - 12; t.style.left = Math.max(8, x) + 'px'; t.style.top = Math.max(8, y) + 'px'; };
+    /* 高亮＋提示（滑鼠滑過與觸控點一下共用）：target＝事件目標，(x,y)＝提示位置；回傳是否真的有東西可以顯示 */
+    const show = (target, x, y) => {
+      const chart = target.closest && target.closest('[data-chart]'); if (!chart) return false;
       hovClear(chart);
-      const idEl = e.target.closest('[data-row]'), lg = e.target.closest('li[data-k]'), te = e.target.closest('[data-tip]');
+      const idEl = target.closest('[data-row]'), lg = target.closest('li[data-k]'), te = target.closest('[data-tip]');
       let swap = null;
       if (idEl && chart.contains(idEl)) {
         chart.classList.add('hov');
-        chart.querySelectorAll(`[data-row="${idEl.dataset.row}"]`).forEach((x) => x.classList.add('hl'));
-        if (idEl.matches('.arc')) { chart.querySelectorAll(`li[data-k="${CSS.escape(idEl.dataset.k)}"]`).forEach((x) => x.classList.add('hl')); swap = [idEl.dataset.lab || idEl.dataset.k, idEl.dataset.pct || (idEl.dataset.tip.match(/（([\d.]+%)）/) || [])[1]]; }
+        chart.querySelectorAll(`[data-row="${idEl.dataset.row}"]`).forEach((q) => q.classList.add('hl'));
+        if (idEl.matches('.arc')) { chart.querySelectorAll(`li[data-k="${CSS.escape(idEl.dataset.k)}"]`).forEach((q) => q.classList.add('hl')); swap = [idEl.dataset.lab || idEl.dataset.k, idEl.dataset.pct || (idEl.dataset.tip.match(/（([\d.]+%)）/) || [])[1]]; }
       } else if (lg && chart.contains(lg)) {
         chart.classList.add('hov');
-        const k = CSS.escape(lg.dataset.k); chart.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.classList.add('hl'));
+        const k = CSS.escape(lg.dataset.k); chart.querySelectorAll(`[data-k="${k}"]`).forEach((q) => q.classList.add('hl'));
         swap = [lg.dataset.k, (lg.querySelector('small') || {}).textContent];
       }
       const sv = chart.querySelector('svg[data-d1]'); if (sv && swap && swap[1]) { sv.querySelector('.c1').textContent = swap[0]; sv.querySelector('.c2').textContent = swap[1].replace(/^.*・/, ''); }
-      if (te && te.dataset.tip) { const t = tipEl(); t.innerHTML = te.dataset.tip; t.hidden = false; place(e); }
+      if (te && te.dataset.tip) { const t = tipEl(); t.innerHTML = te.dataset.tip; t.hidden = false; place(x, y); return true; }
+      return false;
+    };
+    const clearAll = () => { root.querySelectorAll('[data-chart].hov').forEach(hovClear); tipEl().hidden = true; S.tapEl = null; };
+    root.addEventListener('mouseover', (e) => { if (S.touching) return; show(e.target, e.clientX, e.clientY); });
+    root.addEventListener('mousemove', (e) => { if (!S.touching) place(e.clientX, e.clientY); });
+    root.addEventListener('mouseout', (e) => { if (S.touching) return; const chart = e.target.closest && e.target.closest('[data-chart]'); if (!chart) return; if (e.relatedTarget && chart.contains(e.relatedTarget)) return; hovClear(chart); });
+    /* 觸控（手機）：點一下圖就出提示＋高亮，點圖外面收起來。有「下一步」的元素（全部頁的長條／扇區、每日直條）第一下只出提示，同一個再點一下才執行 */
+    root.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') { S.touching = false; return; }
+      S.touching = true;
+      const el = e.target.closest && e.target.closest('[data-tip],li[data-k]');
+      if (!el || !el.closest('[data-chart]')) { clearAll(); S.suppress = false; return; }
+      const act = !!el.closest('[data-p], .dc[data-day]');
+      S.suppress = act && S.tapEl !== el;
+      show(e.target, e.clientX, e.clientY); S.tapEl = el;
     });
-    root.addEventListener('mousemove', place);
-    root.addEventListener('mouseout', (e) => { const chart = e.target.closest && e.target.closest('[data-chart]'); if (!chart) return; if (e.relatedTarget && chart.contains(e.relatedTarget)) return; hovClear(chart); });
+    root.addEventListener('click', (e) => { if (S.suppress) { S.suppress = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' || !root.isConnected) return; if (!(e.target.closest && e.target.closest('#admBody, #v-admin [data-chart]'))) clearAll(); }, true);
   }
 
   /* ---- 分頁統計 ---- */
@@ -1157,7 +1198,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     }
     const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(dmax * f))}</span>`).join('');
     return `<div class="dayplot"><div class="dayy">${ys}</div>
-      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}" data-row="${di}"${tp(`<b>${esc(d)}${/^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
+      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && d === S.day ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${d}"` : ''} data-row="${di}"${tp(`<b>${esc(d)}${/^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
         ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
       ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${ticks.map(([d, i]) => `<span style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${/^\d\d:00$/.test(d) ? d : d.slice(5)}</span>`).join('')}</div></div>`}
       ${note ? `<div class="dayx"><span class="dayno" id="${idp}Note">${note}</span></div>` : ''}`;

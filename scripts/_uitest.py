@@ -46152,7 +46152,7 @@ def t_member_regress_1005(b, base):
 ADM2_API = "https://acct.example.test"
 
 
-def _adm2_ctx(b, who="admin", width=1440, grp_off=None, many=False):
+def _adm2_ctx(b, who="admin", width=1440, grp_off=None, many=False, touch=False):
     sent: list = []
     now = 1759600000000
     st = {"plans": [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "builtin": True, "members": 0},
@@ -46247,7 +46247,7 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None, many=False):
             out = eff(e)
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900})
+    c = b.new_context(viewport={"width": width, "height": 900}, has_touch=touch)
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ADM2_API}) + "; try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}")
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(ADM2_API + "/**", handle)
@@ -46646,6 +46646,36 @@ def t_traffic_1005(b, base, code):
         order = pg.evaluate("() => [...document.querySelectorAll('#trTabs button')].map(b => b.dataset.t)")
         ix = [order.index(x) for x in ("events", "market", "season")]
         ok(f"{TT}：事件、市場明細、週期統計三顆分頁相鄰（連續排在一起）", max(ix) - min(ix) == 2, order)
+        # ★ 10-06 Andy「所有圖表互動、其餘點擊看詳細」：點每日直條 → 下面那組統計換成那一天，上面有「X 月 X 日」膠囊與清除鈕
+        pg.click("#trTabs [data-t=all]")
+        pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
+        f0 = int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", ""))
+        nb0 = pg.locator("#admDayBars .dc").count()
+        day = pg.evaluate("() => document.querySelectorAll('#admDayBars .dc[data-day]')[12].dataset.day")
+        pg.click(f"#admDayBars .dc[data-day='{day}']")
+        wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+        f1 = int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", ""))
+        chip = pg.inner_text("#trDayChip")
+        mm, dd = int(day[5:7]), int(day[8:10])
+        ok(f"{TT}：點某天的直條 → 分頁統計換成那一天（資金流向 {f0} → {f1}，約 1/30）、標題旁出現「{mm} 月 {dd} 日（週…）」膠囊、該根直條標色、上排仍是 30 根",
+           f1 * 10 < f0 and f"{mm} 月 {dd} 日" in chip and pg.locator("#admDayBars .dc.sel").count() == 1 and nb0 == pg.locator("#admDayBars .dc").count() == 30, (f0, f1, chip))
+        SUMJS = "() => [...document.querySelectorAll('#trHrBars .dc')].reduce((s, d) => s + (+((d.dataset.tip.match(/([\\d,]+) 次/) || [0, '0'])[1].replace(/,/g, ''))), 0)"
+        pg.click("#trTabs [data-t=users]"); hr_day = pg.evaluate(SUMJS)
+        pg.click("#trDayClr"); wait_until(pg, "() => !document.getElementById('trDayChip')", 4000)
+        pg.click("#trTabs [data-t=users]"); hr_all = pg.evaluate(SUMJS)
+        ok(f"{TT}：選了某一天之後「使用者」分頁的時段直條也只算那一天（{hr_day} ＜ 整段 {hr_all}）", 0 < hr_day * 5 < hr_all, (hr_day, hr_all))
+        pg.click("#trTabs [data-t=all]")
+        pg.click(f"#admDayBars .dc[data-day='{day}']"); wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+        pg.click("#trDayClr")
+        wait_until(pg, "() => !document.getElementById('trDayChip')", 4000)
+        ok(f"{TT}：按膠囊上的 × → 膠囊消失、分頁統計回到整段期間（{f0}）", int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", "")) == f0 and pg.locator("#admDayBars .dc.sel").count() == 0)
+        pg.click(f"#admDayBars .dc[data-day='{day}']"); wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+        pg.click(f"#admDayBars .dc[data-day='{day}']"); wait_until(pg, "() => !document.getElementById('trDayChip')", 4000)
+        ok(f"{TT}：再點同一根直條 → 取消選取（回到整段期間）", int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", "")) == f0)
+        pg.click(f"#admDayBars .dc[data-day='{day}']"); wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+        pg.select_option("#admDaysSel", "7"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 7", 4000)
+        ok(f"{TT}：換期間 → 選取的那一天自動清除", pg.locator("#trDayChip").count() == 0)
+        pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
         pg.click("#trTabs [data-t=support]")
         ok(f"{TT}：客服：沒有子頁籤（全部／常見問題／意見反饋／寄信），單一頁統計各項被點次數", pg.locator("#trSubs").count() == 0 and pg.locator("#trFBars .bl").count() >= 3)
         pg.click("#trTabs [data-t=etf]")
@@ -46685,6 +46715,48 @@ def t_traffic_1005(b, base, code):
         pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(500)
         ok(f"{TT} 800：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
         c.close()
+    # ★ Worker 還沒更新（不認得 from／to）：點某天 → 白話提示、畫面不空白（下方維持整段期間）
+    c, sent = _adm2_ctx(b)
+    c.add_init_script("window.__demoNoRange = true;")
+    c.route(re.compile(r".*/preview/style-guide/.*"), lambda r: r.continue_(url=r.request.url.replace("/preview/style-guide/", "/")))
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('trTabs')", 15000)
+    fa = int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", ""))
+    pg.click("#admDayBars .dc[data-day] >> nth=10")
+    wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+    ok(f"{T}：Worker 不支援起訖日 → 膠囊寫「這個功能要等會員系統更新後才有」、下方維持整段期間的統計（{fa}）、沒有空白", "這個功能要等會員系統更新後才有" in pg.inner_text("#trDayChip")
+       and int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", "")) == fa and pg.locator("#trTabs button").count() == 13 and pg.locator("#trPageBody .bars .bl").count() >= 5, pg.inner_text("#trDayChip"))
+    c.close()
+    # ★ 手機觸控（390、真的用觸控點）：點一下圖出提示、點外面收起來；有「下一步」的元素第一下只出提示、第二下才執行
+    c, sent = _adm2_ctx(b, width=390, touch=True)
+    c.route(re.compile(r".*/preview/style-guide/.*"), lambda r: r.continue_(url=r.request.url.replace("/preview/style-guide/", "/")))
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('trTabs')", 15000)
+    TIP = "() => { const t = document.getElementById('trTip'); return !!t && !t.hidden && t.textContent.trim().length > 3; }"
+    ok(f"{T} 390：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
+    pg.locator("#admDayBars .dc[data-day] >> nth=8").tap()
+    ok(f"{T} 390：觸控點一下每日直條 → 出提示（有日期與次數）、該柱高亮；第一下不會直接選日", pg.evaluate(TIP) and "次" in pg.inner_text("#trTip") and pg.evaluate("() => document.getElementById('admDayBars').classList.contains('hov') && !!document.querySelector('#admDayBars .dc.hl')")
+       and pg.locator("#trDayChip").count() == 0, pg.inner_text("#trTip"))
+    pg.locator("#v-admin .secttl h2 >> nth=0").tap()
+    ok(f"{T} 390：點圖外面 → 提示收起來、高亮還原", not pg.evaluate(TIP) and not pg.evaluate("() => !!document.querySelector('#admDayBars.hov, #admDayBars .hl')"))
+    pg.locator("#admDayBars .dc[data-day] >> nth=8").tap(); pg.locator("#admDayBars .dc[data-day] >> nth=8").tap()
+    wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+    ok(f"{T} 390：同一根直條再點一下 → 才選取那一天（出現膠囊）", pg.locator("#trDayChip").count() == 1)
+    pg.locator("#trDayClr").tap(); wait_until(pg, "() => !document.getElementById('trDayChip')", 4000)
+    pg.locator("#trAllB .bt.stk >> nth=0").scroll_into_view_if_needed()
+    pg.locator("#trAllB .bt.stk >> nth=0").tap()
+    ok(f"{T} 390：全部頁長條第一下只出提示、不跳頁（還在「全部」）", pg.evaluate(TIP) and pg.evaluate("() => document.querySelector('#trTabs button.on').dataset.t") == "all", pg.evaluate("() => document.querySelector('#trTabs button.on').dataset.t"))
+    pg.locator("#trAllB .bt.stk >> nth=0").tap()
+    ok(f"{T} 390：同一條再點一下 → 進入該頁", pg.evaluate("() => document.querySelector('#trTabs button.on').dataset.t") != "all")
+    pg.locator("#trTabs [data-t=all]").tap()
+    pg.locator("#trAllDonut circle.arc >> nth=0").scroll_into_view_if_needed()
+    pg.locator("#trAllDonut .lg li >> nth=0").tap()
+    ok(f"{T} 390：點甜甜圈圖例 → 出提示、對應扇區高亮、中心字換成該項", pg.evaluate(TIP) and pg.evaluate("() => !!document.querySelector('#trAllDonut .arc.hl')"))
+    pg.locator("#trDetailTtl").tap()
+    ok(f"{T} 390：點空白處 → 全部收起", not pg.evaluate(TIP) and pg.evaluate("() => !document.querySelector('#trAllDonut .hl')"))
+    c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
