@@ -11454,7 +11454,7 @@ def t_market3(pg, base):
 
 # ★ 2026-09-26 晚：個股週期列預設只排 1時／4時／日／週／月（「週期設置」），5秒／1分／5分／15分 要勾了才出現。
 #   驗即時分 K 的段落是要點那幾顆鈕的，所以進頁面前先在 tw.kcfg.tfOn 把九個都勾起來；收拾時一併刪掉。
-TF_ALL_ON_JS = "c.tfOn = ['5s','1m','5m','15m','60m','240m','1d','1w','1M'];"
+TF_ALL_ON_JS = "c.tfOn = ['1m','5m','15m','60m','240m','1d','1w','1M'];"   # 2026-10-05 拿掉 5秒週期
 
 
 def t_livek(pg, base, code):
@@ -11518,12 +11518,13 @@ def t_livek(pg, base, code):
     pg.goto(base + f"#stock/{code}", wait_until="networkidle")
     pg.wait_for_timeout(3000)
 
-    # --- 1. 週期鈕上真的多了 5秒 / 1分 / 5分
+    # --- 1. 週期鈕上真的多了 1分 / 5分（★ 2026-10-05 Andy「5S 週期在指標內刪除」：5秒 不准再出現）
     tfs = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
-    for want in ("5s", "1m", "5m"):
+    for want in ("1m", "5m"):
         ok(f"週期列有 {want}", want in tfs, tfs)
+    ok("★ 週期列沒有 5秒（就算存檔勾了全部）", "5s" not in tfs, tfs)
     n_live = pg.evaluate("() => document.querySelectorAll('#tfSeg button.livetf').length")
-    ok("即時週期有標記（紅點）", n_live == 4, f"應該有 4 個（5秒/1分/5分/15分），實際 {n_live}")
+    ok("即時週期有標記（紅點）", n_live == 3, f"應該有 3 個（1分/5分/15分），實際 {n_live}")
 
     # --- 2. ★ 切到 1 分：圖真的變了，而且是即時那組資料
     before = canvas_hash(pg, "#lwc")
@@ -11551,10 +11552,10 @@ def t_livek(pg, base, code):
     top = pg.evaluate("() => { const b = window.LiveK.bars('5s'); return b[b.length-1][4]; }")
     ok("新那根的收盤就是剛餵進去的價", top == 2450.0, top)
 
-    # --- 5. ★ 切到 5 秒：真的畫得出來
-    click(pg, "#tfSeg button[data-tf='5s']", 1800)
-    ok("切到 5 秒", pg.evaluate("() => window.Industry._dbg().tf") == "5s")
-    ok("5 秒 K 有畫出東西", canvas_hash(pg, "#lwc") not in ("no-canvas", "0"))
+    # --- 5. 5 秒週期已拿掉（2026-10-05）：沒有那顆鈕；1 分仍畫得出來
+    ok("5 秒週期鈕不存在", pg.evaluate("() => !document.querySelector(\"#tfSeg button[data-tf='5s']\")"))
+    click(pg, "#tfSeg button[data-tf='1m']", 1800)
+    ok("1 分 K 有畫出東西", canvas_hash(pg, "#lwc") not in ("no-canvas", "0"))
 
     # --- 6. 切回日線要正常（以前切到沒資料的週期再切回來會整張空白）
     click(pg, "#tfSeg button[data-tf='1d']", 1800)
@@ -11738,7 +11739,7 @@ def t_livek_offhours(pg, base, code):
         ok("A Yahoo 先打 range=1d、沒有今天的 K 棒才補打 range=5d（Worker 白名單內）",
            ranges[:2] == ["1d", "5d"], ranges)
         dots = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button.livetf')].map(b => b.classList.contains('offhrs'))")
-        ok("A 四個即時週期鈕都改成灰點（非即時）", dots == [True] * 4, dots)
+        ok("A 三個即時週期鈕都改成灰點（非即時；5秒 2026-10-05 拿掉）", dots == [True] * 3, dots)
         title = pg.evaluate("() => document.querySelector('#tfSeg button[data-tf=\"1m\"]').title")
         ok("A 週期鈕的說明寫出最近交易日", prev in title and "非即時" in title, title)
         h_day = canvas_hash(pg, "#lwc")
@@ -11763,12 +11764,8 @@ def t_livek_offhours(pg, base, code):
         r15 = tf("15m")
         ok("A 切 15 分：由 1 分合成（19 根）", r15["n"] == 19, r15)
         ok("A 15 分：最後一根是那一天 13:30", r15["last"] == f"{prev} 13:30", r15["last"])
-        rs = tf("5s")
-        ok("A 切 5 秒（那天沒收過）：先畫那一天的 1 分 K，而不是空白", rs["n"] == 271 and not rs["empty"], rs)
-        ok("A 5 秒：短註寫明「5 秒 K 只在盤中收集，非交易時段先顯示最近交易日 1 分 K」",
-           "5 秒 K 只在盤中收集，非交易時段先顯示最近交易日 1 分 K" in rs["note"], rs["note"][:140])
-        ok("A 5 秒退 1 分：游標讀數用分鐘格式、日期是那一天",
-           rs["last"] == f"{prev} 13:30" and rs["legend"].startswith(prev + " "), rs["legend"][:40])
+        # 2026-10-05：5 秒週期鈕拿掉（Andy「5S 週期在指標內刪除」）
+        ok("A 週期列沒有 5 秒", pg.evaluate("() => !document.querySelector(\"#tfSeg button[data-tf='5s']\")"))
         saved = pg.evaluate(f"() => {{ try {{ const o = JSON.parse(localStorage.getItem('tw.livek.{today}.{code}') || 'null'); return o ? o.t.length : 0; }} catch(e) {{ return -1; }} }}")
         ok("A 上一交易日收盤那一筆報價不會被存進「今天」的 5 秒序列", saved == 0, saved)
         rd = tf("1d")
@@ -11778,11 +11775,9 @@ def t_livek_offhours(pg, base, code):
         ticks = [{"s": epoch(prev, "10:00", 0) + k * 5, "p": 1000 + (k % 9), "cv": 1000 + k * 3} for k in range(40)]
         reset_ls(f"localStorage.setItem('tw.livek.{prev}.{code}', JSON.stringify({{t: {_json.dumps(ticks)}, y: 1000}}));")
         goto()
-        rs2 = tf("5s")
-        # 40 筆（10:00 起）＋ 週末這次打開收到的「那天 13:30 收盤」那一筆 ＝ 41 根，最後一根就是收盤那筆
-        ok("A2 那天盤中收過 5 秒：非交易時段畫的就是那一串（40 筆＋收盤那筆 → 41 根）",
-           rs2["n"] == 41 and rs2["last"] == f"{prev} 13:30", rs2)
-        ok("A2 短註寫明是那天盤中收集的", "那天盤中開著這一頁時收集的" in rs2["note"] and prev in rs2["note"], rs2["note"][:120])
+        # 5 秒不再是可選週期，但 livek 內部仍收（分時尾巴靠它）：那天的序列照樣讀得回來
+        n5 = pg.evaluate("() => (window.LiveK.bars('5s') || []).length")
+        ok("A2 那天盤中收過 5 秒：livek 內部讀得回那一串（40 筆＋收盤那筆 → 41 根）", n5 == 41, n5)
         still = pg.evaluate(f"() => {{ const o = JSON.parse(localStorage.getItem('tw.livek.{prev}.{code}') || 'null'); return o ? o.t.length : 0; }}")
         ok("A2 那天存的 5 秒序列沒有被週末這次打開蓋掉", still == 40, still)
 
@@ -11794,16 +11789,17 @@ def t_livek_offhours(pg, base, code):
         cells = pg.evaluate("""() => [...document.querySelectorAll('#mtfGrid .mtf-cell')].map(c => ({
             sel: (c.querySelector('select') || {}).value, canvas: c.querySelectorAll('canvas').length,
             empty: !!c.querySelector('.empty'), cap: (c.querySelector('.cap') || {}).innerText || '' }))""")
-        ok("A3 四週期同看：1分／5分／15分／5秒四格都畫得出來（不是空格）",
+        ok("A3 四週期同看：四格都畫得出來（不是空格）",
            len(cells) == 4 and all(c["canvas"] > 0 and not c["empty"] for c in cells), cells)
-        ok("A3 四格都標「MM-DD 非即時」", all(f"{prev[5:]} 非即時" in c["cap"] for c in cells), [c["cap"] for c in cells])
+        ok("★ A3 存檔裡的 5秒 被換成 1 分（沒有任何一格是 5 秒）", all(c["sel"] != "5s" for c in cells), [c["sel"] for c in cells])
+        ok("A3 1分／5分／15分 三格都標「MM-DD 非即時」", all(f"{prev[5:]} 非即時" in c["cap"] for c in cells[:3]), [c["cap"] for c in cells])
         click(pg, "#mtfBtn", 1200)
 
         # ============================================================ B. Yahoo 查無資料（冷門股）
         mode["y"] = "empty"
         reset_ls()
         goto()
-        for t in ("1m", "5m", "15m", "5s"):
+        for t in ("1m", "5m", "15m"):
             rb = tf(t, 1200)
             ok(f"B Yahoo 沒資料 [{t}]：圖上明講「最近交易日也沒有分 K 資料」",
                "最近交易日" in rb["empty"] and "也沒有分 K 資料" in rb["empty"], rb["empty"][:120] or rb)
@@ -11839,13 +11835,12 @@ def t_livek_offhours(pg, base, code):
         ok("C 盤中：判定今天有盤（live）", ses == {"date": today, "live": True}, ses)
         ok("C 盤中只打 range=1d（有今天的 K 棒就不補打 5d）", ranges == ["1d"], ranges)
         dots = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button.livetf')].map(b => b.classList.contains('offhrs'))")
-        ok("C 盤中四個即時週期鈕維持紅點（沒有 offhrs）", dots == [False] * 4, dots)
+        ok("C 盤中三個即時週期鈕維持紅點（沒有 offhrs）", dots == [False] * 3, dots)
         rc = tf("1m")
         ok("C 1 分：今天 Yahoo 66 根＋報價那一根＝67 根（跟以前同一套接法）", rc["n"] == 67, rc)
         ok("C 1 分：最後一根是今天 10:26", rc["last"] == f"{today} 10:26", rc["last"])
         ok("C 1 分：說明照舊（早盤 N 根來自 Yahoo），沒有「非即時」",
            "早盤 66 根來自 Yahoo" in rc["note"] and "非即時" not in rc["note"] and not rc["offDay"], rc["note"][:120])
-        tf("5s")
         n0 = pg.evaluate("() => (window.LiveK.bars('5s')||[]).length")
         pg.evaluate(f"""() => window.LiveK._feed({{ c:'X', n:'測試', d:'{today.replace('-', '')}', z:'1015.0000', y:'1000.0000',
             o:'1001.0000', h:'1015.0000', l:'995.0000', v:'5400', tlong: String({epoch(today, '10:27')} * 1000),
@@ -18462,6 +18457,129 @@ def t_title_icons(pg, b, base, code):
 TKL_CLOCK = "2026-09-29T02:30:00Z"      # 台北 10:30
 
 
+def t_stock_livek_1005(b, base, code):
+    """★ 2026-10-05（Andy 10:47 盤中，個股 3221）四件事一段驗：
+    ① 1時／4時 接上今天即時 1 分 K 合成的棒（最後一根是今天、隨報價變、週期鈕有紅點）；4 時＝一天一根
+    ② 5秒 週期整個拿掉（存檔裡勾著 5s 的使用者也看不到那顆鈕）
+    ③ 分時缺口小標寫「Yahoo 延遲約 20 分，約 HH:MM 補上」，Yahoo 重抓後缺口真的縮小
+    ④ 各年度股利：最高柱的數字在繪圖區內、不與圖例相交（共用層 headroom：y 軸上限＝最大值 ×1.15 取整刻度）
+    容器連不到 Yahoo／mis／Worker，全部用 page.route 造盤中資料（假時鐘台北 2026-10-05 10:30，週一）。"""
+    import json as _json
+    import calendar
+    from urllib.parse import urlparse, parse_qs
+    T = "[個股週期即時1005]"
+    code = "3221"
+    day = "2026-10-05"
+    T0 = calendar.timegm((2026, 10, 5, 2, 30, 0, 0, 0, 0)) * 1000
+    S = {"k": 0, "ylen": 71, "yreq": 0, "px": 60.0}
+
+    def fake_quote(route):
+        S["k"] += 1; k = S["k"]
+        ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+        arr = []
+        for tok in [t for t in ex.split("|") if t]:
+            try:
+                c = tok.split("_", 1)[1].split(".")[0]
+            except IndexError:
+                continue
+            px = S["px"] + k * 0.05
+            arr.append({"c": c, "n": "測試" + c, "ex": tok[:3], "z": f"{px:.2f}", "y": "58.00", "o": "59.00",
+                        "h": f"{px + 0.5:.2f}", "l": "57.50", "v": str(9000 + k * 3), "d": day.replace("-", ""),
+                        "t": "10:30:00", "tlong": str(T0 + k * 5000)})
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+
+    def fake_y(route):
+        S["yreq"] += 1
+        sym = (parse_qs(urlparse(route.request.url).query).get("symbol") or [code + ".TWO"])[0]
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(_yahoo_days(sym, [(day, "09:00", S["ylen"])], 60.0)))
+
+    ctx = b.new_context(viewport={"width": 1440, "height": 1000}, timezone_id="Asia/Taipei")
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append(f"{T} pageerror: {str(e)[:160]}"))
+    pg.clock.install(time="2026-10-05T02:30:00Z")
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.route("https://fake-worker.test/**", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
+    pg.route("https://fake-worker.test/quote?*", fake_quote)
+    pg.route("https://fake-worker.test/y?*", fake_y)
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    # 舊使用者：存檔勾著 5s、四週期格也選了 5s（拿掉前的狀態）
+    pg.evaluate("""() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test');
+        localStorage.setItem('tw.kcfg', JSON.stringify({ tickMig: 1, tfOn: ['tick','5s','1m','60m','240m','1d','1w','1M'], mtfTfs: ['5s','60m','1d','1w'] })); } catch (e) {} }""")
+    pg.goto("about:blank")
+    pg.goto(base + f"#stock/{code}", wait_until="load")
+    got = wait_until(pg, "() => { const m = window.LiveK && window.LiveK.minuteSeries && window.LiveK.minuteSeries();"
+                         " return !!(m && m.ticks >= 2 && window.TickChart && TickChart.last); }", 20000)
+    if not ok(f"{T} 前置：假時鐘盤中、Yahoo＋報價都進來、分時畫出來", bool(got)):
+        ctx.close(); return
+
+    # ---------- ② 5秒 拿掉
+    tfs = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+    ok(f"★ {T} 週期列沒有 5秒（存檔勾著 5s 也一樣），5s 被換成 1分", "5s" not in tfs and "1m" in tfs, tfs)
+    click(pg, "#indBtn", 700)
+    tfc = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .tfc input')].map(c => c.dataset.tf)")
+    ok(f"★ {T} 指標下拉的週期勾選裡沒有 5秒", bool(tfc) and "5s" not in tfc, tfc)
+    pg.keyboard.press("Escape"); pg.mouse.click(5, 5); pg.wait_for_timeout(300)
+
+    # ---------- ① 1時／4時 即時
+    click(pg, "#tfSeg button[data-tf='60m']", 1500)
+    d1 = pg.evaluate("() => window.Industry._dbg()")
+    ok(f"★ {T} 1時：最後一根是今天（{day}）的 10:00 那根（今天即時 1 分 K 合成，接在資料湖 10-02 後面）",
+       str(d1.get("lastBar") or "").startswith(f"{day}T10:00"), d1.get("lastBar"))
+    cls = pg.evaluate("() => { const b = document.querySelector(\"#tfSeg button[data-tf='60m']\"); return b ? b.className + '|' + getComputedStyle(b, '::after').content : ''; }")
+    ok(f"★ {T} 1時週期鈕有紅點（livehr）", "livehr" in cls and "●" in cls, cls)
+    c0 = d1.get("lastClose")
+    pg.wait_for_function("(c) => window.Industry._dbg().lastClose !== c", arg=c0, timeout=12000, polling=300)
+    c1 = pg.evaluate("() => window.Industry._dbg().lastClose")
+    ok(f"★ {T} 1時：最後一根隨報價更新（收盤 {c0} → {c1}）", c1 is not None and c1 != c0, [c0, c1])
+    hb = pg.evaluate("""() => { const d = window.Industry._dbg(); return d.lastBar; }""")
+    click(pg, "#tfSeg button[data-tf='240m']", 1500)
+    d4 = pg.evaluate("""() => { const k = window.Industry._dbg(); return { last: k.lastBar,
+        live: document.querySelector("#tfSeg button[data-tf='240m']").classList.contains('livehr') }; }""")
+    ok(f"★ {T} 4時：最後一根是今天、一天一根（09:00 那格），鈕有紅點", str(d4["last"] or "").startswith(f"{day}T09:00") and d4["live"], d4)
+
+    # ---------- ③ 分時缺口：寫明延遲與補上時間，重抓後縮小
+    click(pg, "#tfSeg button[data-tf='tick']", 1500)
+    pg.wait_for_timeout(600)
+    g0 = pg.evaluate("() => { const m = window.LiveK.minuteSeries(); const t = document.querySelector('#lwc .tk-gap span'); return { gaps: m.gaps, tag: t ? t.textContent : '' }; }")
+    import re as _re
+    ok(f"★ {T} 分時缺口小標寫「Yahoo 延遲約 20 分，約 HH:MM 補上」",
+       bool(_re.search(r"Yahoo 延遲約 20 分，約 \d\d:\d\d 補上", g0["tag"])), g0["tag"])
+    w0 = (g0["gaps"][0][1] - g0["gaps"][0][0]) if g0["gaps"] else -1
+    S["ylen"] = 81
+    pg.clock.fast_forward("02:05")
+    wait_until(pg, "() => { const m = window.LiveK.minuteSeries(); return m && m.gaps.length && (m.gaps[0][1] - m.gaps[0][0]) < %d; }" % max(w0, 0), 15000)
+    g1 = pg.evaluate("() => window.LiveK.minuteSeries().gaps")
+    w1 = (g1[0][1] - g1[0][0]) if g1 else 0
+    ok(f"★ {T} Yahoo 每 2 分重抓後缺口真的縮小（{w0 // 60 + 1} → {w1 // 60 + 1} 分鐘）", S["yreq"] >= 2 and 0 <= w1 < w0, [w0, w1, S["yreq"]])
+
+    # ---------- ④ 股利圖：最高柱數字不與圖例相交、不頂出繪圖區
+    for vw in (1440, 900):
+        pg.set_viewport_size({"width": vw, "height": 1000}); pg.wait_for_timeout(500)
+        click(pg, '#stockTabs button[data-t="dividend"]', 1800)
+        r = pg.evaluate("""() => { const el = document.getElementById('divBar'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+            const o = c.getOption(); const ss = o.series.filter(s => s.type === 'bar' && s.stack === 'd');
+            const n = (o.xAxis[0].data || []).length; let mx = 0, mi = 0;
+            for (let i = 0; i < n; i++) { const t = ss.reduce((a, s) => a + (+s.data[i] || 0), 0); if (t > mx) { mx = t; mi = i; } }
+            const top = c.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [mi, mx])[1];
+            const ext = c.getModel().getComponent('yAxis', 0).axis.scale.getExtent();
+            const gridTop = c.getModel().getComponent('grid', 0).coordinateSystem.getRect().y;
+            const labTop = top - 5 - 14;                 // 柱頂數字：距柱頂 5px、12px 字約 14px 高
+            const er = el.getBoundingClientRect();
+            let lgBottom = -1e9;                          // 圖內 ECharts 圖例的底（圖例搬到標題列時在圖外，視為 -∞）
+            const lm = c.getModel().getComponent('legend', 0);
+            if (lm && lm.get('show') !== false) { const v = c._componentsViews.find(x => x.__model === lm);
+              if (v) { const br = v.group.getBoundingRect(); lgBottom = v.group.y + br.y + br.height; } }
+            const html = document.querySelector('.chlegend[data-for="divBar"]');
+            if (html && !html.hidden) { const hr = html.getBoundingClientRect(); if (hr.height) lgBottom = Math.max(lgBottom, hr.bottom - er.top); }
+            return { mx, ymax: ext[1], gridTop, labTop, lgBottom }; }""")
+        ok(f"★ {T} {vw}px 股利圖：y 軸上限 ≥ 最大值 ×1.15（取整刻度），最高柱數字在繪圖區內、不與圖例相交",
+           bool(r) and r["ymax"] >= r["mx"] * 1.15 - 1e-9 and r["labTop"] >= r["gridTop"] - 1 and r["labTop"] > r["lgBottom"], r)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    ctx.close()
+
+
 def t_tick_live_1002(b, base, code):
     import json as _json
     import calendar
@@ -18567,7 +18685,7 @@ def t_tick_live_1002(b, base, code):
                  tag: tag ? tag.textContent : null, tw: tag ? tag.getBoundingClientRect().width : 0 }; }""")
     ok("★ [分時即時] 缺口那幾分鐘主線是空白（不是實線）", gi["n"] == 19 and gi["solid"] == 0, gi)
     ok("★ [分時即時] 缺口兩端用虛線連起來（另一條線、虛線樣式）", gi["segs"] == 1 and gi["glPts"] == 2 and gi["style"] == gi["dashed"], gi)
-    ok("★ [分時即時] 圖上標「此段等待資料」", gi["tag"] == "此段等待資料" and gi["tw"] > 20, gi)
+    ok("★ [分時即時] 圖上標「此段等待資料」", gi["tag"].startswith("Yahoo 延遲約 20 分") and gi["tw"] > 20, gi)
     note = text(pg, "#liveNote")
     ok("★ [分時即時] 說明寫出三段：Yahoo 09:00～10:10、10:30 之後本頁即時累積、10:11～10:29 暫無資料",
        "09:00～10:10 來自 Yahoo" in note and "10:30 之後是本頁即時累積" in note and "10:11～10:29 在你打開頁面之前，暫無資料" in note, note)
@@ -18753,7 +18871,7 @@ def t_tick_live_lead(b, base):
         return { tag: t ? t.textContent : null, lead: t ? t.dataset.lead : null, w: t ? t.getBoundingClientRect().width : 0,
                  gl: c.gapLine.data().filter(p => p.value != null).length,
                  before: c.rows.filter(r => r.time < first.time && r.value != null).length, first: first.time }; }""")
-    ok("★ [分時開盤頭段] 圖上標「此段等待資料」（開盤到第一根，夠寬才放字）", li["tag"] == "此段等待資料" and li["lead"] == "1" and li["w"] >= 72, li)
+    ok("★ [分時開盤頭段] 圖上標「此段等待資料」（開盤到第一根，夠寬才放字）", li["tag"].startswith("Yahoo 延遲約 20 分") and li["lead"] == "1" and li["w"] >= 72, li)
     ok("★ [分時開盤頭段] 左邊沒有點可以連：不畫虛線、09:00～第一根之前主線也沒有任何點（不從昨收拉線）",
        li["gl"] == 0 and li["before"] == 0 and hm(li["first"]) == "09:28", li)
     note = text(pg, "#liveNote")
@@ -18785,7 +18903,7 @@ def t_tick_live_lead(b, base):
             return { txt: sp.textContent, fs: parseFloat(getComputedStyle(sp).fontSize), gapW: Math.round(g.width), lblW: Math.round(a.width),
                      inside: a.left >= z.left - 1 && a.right <= plotR + 1, hs: document.documentElement.scrollWidth <= innerWidth + 1 }; }""")
         ok(f"★ [分時開盤頭段] {vw}px：缺口比字窄也標「此段等待資料」、字塊在價格區內、字 ≥ 11px、沒有橫向捲軸",
-           lb.get("txt") == "此段等待資料" and lb.get("inside") and lb.get("fs", 0) >= 11 and lb.get("hs"), lb)
+           str(lb.get("txt") or "").startswith("Yahoo 延遲約 20 分") and lb.get("inside") and lb.get("fs", 0) >= 11 and lb.get("hs"), lb)
     ctx.close()
 
 
@@ -20839,6 +20957,7 @@ SECTIONS = {
     "零件誰做的":          lambda pg, b, base, code: t_whomakes(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股版面1004":        lambda pg, b, base, code: t_stock_lay_1004(pg, base),
+    "個股週期即時1005":    lambda pg, b, base, code: t_stock_livek_1005(b, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
     # ★ 2026-10-02 Andy：「個股分時需要有即時走勢」—— 分鐘聚合、缺口虛線、Yahoo 重抓、重新整理保留、隔天清掉（⚠ --workers 1）
     "分時一路即時":        lambda pg, b, base, code: t_tick_live_1002(b, base, code),
@@ -23157,8 +23276,8 @@ def t_stock_0926(pg, base, code):
     ok("[0926晚-週期] 週期區在「整體」下面、指標上面", rows[:1] == ["base"] and pg.evaluate(
         "() => { const r = [...document.querySelectorAll('#cfgPop .indrow')].map(x => x.dataset.k); return r[1] === 'tf'; }"))
     tfc = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .tfc input')].map(c => [c.dataset.tf, c.checked])")
-    ok("[0926晚-週期] 週期區十個勾選（分時、5秒～月），勾起來的正好是預設六個（含 09-28 起的分時）",
-       [t for t, _ in tfc] == ["tick", "5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
+    ok("[0926晚-週期] 週期區九個勾選（分時、1分～月；5秒 2026-10-05 拿掉），勾起來的正好是預設六個（含 09-28 起的分時）",
+       [t for t, _ in tfc] == ["tick", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"]
        and [t for t, c in tfc if c] == ["tick", "60m", "240m", "1d", "1w", "1M"], tfc)
     # ★ 2026-09-26 晚改：預設只開均線＋成交量，KD 預設關 —— 先打開（副圖多一格），再關（副圖少一格）
     pa = pg.evaluate(DBG)["paneH"] or {}
