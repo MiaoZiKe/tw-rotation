@@ -1,5 +1,25 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 06:50 財經日曆＋ETF 第二輪（Andy 交辦 1～8 項；分支 `claude/earnings-v2` → main，DECISIONS #327）
+- 接手前一位設計師（d30344c4 存檔）；Andy 授權「以上財報日曆更動 OK 後幫我推上線」→ 驗綠直接上 main（ETF 同批）。
+- 1 面板「← 回本週重點」釘在面板最上方（`.ph.stk` sticky）、底部無按鈕、標題「名稱 代號」即個股頁連結（d30344c4 已做，本批驗收）。
+- 2 清廢話：資料缺整段不顯示（`section_focus` 無資料、`section_valuation` 近四季 EPS 非正 → None）；「少於 8 季不排位置」「月營收還沒有公布」
+  「只列標題，不判讀情緒」「未含預期值」「不標偏多偏空」刪；「怎麼看」拿掉「這張回答：…？」與操作教學；出處全改段落標題旁 ⓘ。
+- 3 有事件的公司全部有分析：真資料 64 家事件公司（市值前 50 以外的法說公司也算）全部有段落，companies 共 107 家。
+- 4 FED 官方連結：發布機關＋FRED 序列頁，FRED 指向畫面數字實際讀的序列（DFEDTARU／CPIAUCSL／PAYEMS＋UNRATE／PCEPILFE／A191RL1Q225SBEA），WebSearch 逐條確認。
+  FRED 目前 0 筆（Secret 待 Andy 重設，見 04:55 那節）→ 前值／公布值整格不出現是預期。
+- 5 卡片標題／副標沒有資料日期與時段膠囊；免責併進主卡底部一行（d30344c4 已做，本批驗收）。
+- 6 分類切換：月曆、面板清單、圖例只出現該類（d30344c4 已做，本批驗收）。
+- 7 ETF：無「全部」、順序 配息型｜市值型｜主題型｜主動式｜債券型｜槓桿反向｜其他、預設配息型、自問自答刪、資料日膠囊刪、月曆空狀態一句；
+  另：當天清單「再點一次同一格」改標題列「← 回整月」鈕、單檔明細整行「資料：…」改 ⓘ、比較卡空狀態「尚未選擇 ETF」。
+- 8 分頁拖曳：**main 上還沒有 `site/tabdrag.js`**（06:50 確認），ETF 分類列沒接；等它上 main 再確認 `#etfCatSeg` 有吃到。
+- **這批驗了**：pytest 全套 1032 passed／1 xfailed；`SKIP_INTRADAY=1 build_payload`（前任留下那輪跑完）＋ `python -m pipeline.compute.earnings` 用新程式重產
+  earnings.json → 種子；`_uitest --sections 財報日曆1005,財經日曆1006,ETF專區1005 --workers 1` **0 問題**；
+  反向驗證（scratch 複本故意放回否定句／FOMC 規則段／ETF 自問自答／拿掉回整月鈕）→ 財經日曆1006 紅 4 條，新斷言真的會抓；`_preview.py` 0 重疊、0 溢出。
+  **沒跑**：`版面v2結構`（CEO 06:45 指示只跑三段＋_preview；前任回報這段在乾淨 main 上原本就紅：Locator.click 逾時）；`無獨立提示框`段在 main 上不存在
+  （在 copy-trim2），同一套規則已寫進 財經日曆1006 對 #earnings／#etf 驗。
+- `_uitest` ETF專區1005：殖利率前 5 的假資料改成跟真資料隔開（真資料配息回補完整後 00896 等 10～14% 會擠掉假資料，那是驗資料不是驗排序）。
+- 已知限制：ⓘ 出處只能滑過看（手機要點一下才出 title）；ETF 分類列在 1440 寬是否一排放得下沒有另外量（7 顆，#325 記過 8 顆時會折兩排）。
 ## 2026-10-06 盤中即時只給管理者帳號（分支 `claude/live-admin-only` → main，DECISIONS #326）
 - Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」。新檔 `site/livegate.js`（`<head>` 第二支）＝唯一閘門：已登入且 Worker 回 `admin:true` 才開，`<html>` 掛 `live-on`。
 - 非管理者：所有即時 UI 不掛／整顆藏（`.livetg`、`.livebtn`、`#liveState`、`[data-live-ui]`）、**不輪詢、不打 quote-proxy／Deno／mis／Yahoo**（`Live.proxy()`／`taifexProxy()` 回空字串）；
