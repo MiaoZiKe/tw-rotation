@@ -45250,71 +45250,74 @@ def t_admin_v3(b, base, code):
         ok(f"{T}・perm-v4：拖「基本方案」到「進階方案」上 → 送 plans/sort ids＝[p799, p399]、頁籤變 訪客｜註冊會員｜進階｜基本｜＋",
            sb_.get("ids") == ["p799", "p399"] and bool(wait_until(pg, f"() => ({TABS})() === 'guest,free,p799,p399,ptAddTab'", 3000)), (sb_, pg.evaluate(TABS)))
         ok(f"{T}・perm-v4：（續）後端順序跟著變（訂閱頁 #pricing 也照這份）", [x["id"] for x in st["plans"]] == ["guest", "free", "p799", "p399"], [x["id"] for x in st["plans"]])
-        # ---- ⋮ 選單（滑鼠）
+        # ---- × 刪除鈕（取代 ⋮）：只在付費範本、滑過才出現；有效會員 > 0 → 擋住並列名單
         r0 = pg.evaluate(RECT_PANEL)
         pg.hover("#ptTier .ptab[data-pid='p399'] > button[role=tab]")
-        ok(f"{T}・perm-v4：滑過付費頁籤 → 出現 ⋮（不透明）", bool(wait_until(pg, "() => getComputedStyle(document.querySelector(\"#ptTier button[data-more='p399']\")).opacity === '1'", 2000)))
+        ok(f"{T}・perm-v4：滑過付費頁籤 → 出現小 ×（不透明）、沒有 ⋮", bool(wait_until(pg, "() => getComputedStyle(document.querySelector(\"#ptTier button[data-more='p399']\")).opacity === '1'", 2000))
+           and pg.evaluate("() => document.querySelector(\"#ptTier button[data-more='p399']\").textContent.trim() === '×' && !/⋮/.test(document.getElementById('ptTier').textContent)"))
+        ok(f"{T}・perm-v4：訪客、註冊會員沒有 ×", pg.evaluate("() => !document.querySelector('#ptTier button[data-tier=guest]').parentElement.querySelector('[data-more]') || document.querySelectorAll('#ptTier [data-more]').length === 2"))
+        nput = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
         pg.click("#ptTier button[data-more='p399']")
-        mi = pg.evaluate("() => { const m = document.getElementById('ptMenu'); return { vis: !m.hidden, items: [...m.querySelectorAll('[role=menuitem]')].map(b => b.textContent.trim() + (b.disabled ? '(x)' : '')), focus: document.activeElement && document.activeElement.textContent.trim() }; }")
-        ok(f"{T}・perm-v4：點 ⋮ → 選單只有 重新命名／刪除（左移／右移已拿掉）；焦點在第一項",
-           mi["vis"] and len(mi["items"]) == 2 and "重新命名" in mi["items"][0] and "刪除" in mi["items"][1] and "重新命名" in mi["focus"], mi)
-        ok(f"{T}・perm-v4：選單浮在上面，內容框位置大小不變", pg.evaluate(RECT_PANEL) == r0, (r0, pg.evaluate(RECT_PANEL)))
+        mi = pg.evaluate("() => { const m = document.getElementById('ptMenu'); return { vis: !m.hidden, txt: m.textContent, go: !!document.getElementById('ptMDelGo'), link: !!m.querySelector('a[data-email=\"a399@example.com\"]') }; }")
+        ok(f"{T}・perm-v4：點 × → 該範本還有 1 位有效會員 → 擋住：寫「還有 1 位有效會員，請先把他們移到其他付費範本，或等訂閱到期」、列出名單連到會員管理、沒有「確定刪除」、沒送出",
+           mi["vis"] and "還有 1 位有效會員，請先把他們移到其他付費範本，或等訂閱到期" in mi["txt"] and mi["link"] and not mi["go"] and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput, mi)
+        ok(f"{T}・perm-v4：提示浮在上面，內容框位置大小不變", pg.evaluate(RECT_PANEL) == r0, (r0, pg.evaluate(RECT_PANEL)))
         pg.keyboard.press("Escape")
-        # ---- ⋮ 選單（鍵盤）：Enter 開、↓↑ 在 重新命名／刪除 之間移動；Esc 關
-        pg.focus("#ptTier button[data-more='p399']")
-        pg.keyboard.press("Enter")
+        pg.focus("#ptTier button[data-more='p799']"); pg.keyboard.press("Enter")
         wait_until(pg, "() => !document.getElementById('ptMenu').hidden", 2000)
-        f1 = pg.evaluate("() => document.activeElement.dataset.act")
-        pg.keyboard.press("ArrowDown")
-        f2 = pg.evaluate("() => document.activeElement.dataset.act")
-        pg.keyboard.press("ArrowUp")
-        f3 = pg.evaluate("() => document.activeElement.dataset.act")
-        ok(f"{T}・perm-v4：鍵盤：Enter 開 ⋮（焦點在「重新命名」）、↓ 到刪除、↑ 回重新命名", (f1, f2, f3) == ("rename", "del", "rename"), (f1, f2, f3))
         pg.keyboard.press("Escape")
+        ok(f"{T}・perm-v4：鍵盤：Enter 開 ×、Esc 關掉、焦點回到 ×", bool(wait_until(pg, "() => document.getElementById('ptMenu').hidden && document.activeElement && document.activeElement.dataset.more === 'p799'", 2000)))
         pg.focus("#ptTier button[data-plan='p399']")
         with pg.expect_response(lambda r: "/v1/admin/plans/sort" in r.url, timeout=6000) as ri:
             pg.keyboard.press("Alt+ArrowLeft")
         ok(f"{T}・perm-v4：鍵盤：焦點在頁籤上按 Alt＋← → 左移（ids＝[p399, p799]）、焦點留在那個頁籤",
            json.loads(ri.value.request.post_data or "{}").get("ids") == ["p399", "p799"] and bool(wait_until(pg, "() => document.activeElement && document.activeElement.dataset.plan === 'p399'", 2000)))
-        pg.focus("#ptTier button[data-more='p799']"); pg.keyboard.press("Enter")
-        wait_until(pg, "() => !document.getElementById('ptMenu').hidden", 2000)
+        # ---- 點兩下原地改名（Enter 存、Esc 取消、失焦存；內建頁籤不能改）
+        pg.dblclick("#ptTier button[data-tier='guest']")
+        ok(f"{T}・perm-v4：點兩下「訪客」（內建）→ 不會變成輸入框", pg.locator("#ptTier input.ptrn").count() == 0)
+        pg.dblclick("#ptTier button[data-plan='p799']")
+        ok(f"{T}・perm-v4：點兩下付費頁籤 → 原地變成輸入框（預設選取原名稱）", pg.locator("#ptTier input.ptrn").count() == 1 and pg.evaluate("() => document.querySelector('#ptTier input.ptrn').value") == "進階方案")
+        pg.fill("#ptTier input.ptrn", "不會存")
+        nput = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
         pg.keyboard.press("Escape")
-        ok(f"{T}・perm-v4：Esc 關掉 ⋮ 選單、焦點回到 ⋮", bool(wait_until(pg, "() => document.getElementById('ptMenu').hidden && document.activeElement && document.activeElement.dataset.more === 'p799'", 2000)))
-        # ---- 重新命名
-        pg.hover("#ptTier .ptab[data-pid='p799'] > button[role=tab]"); pg.click("#ptTier button[data-more='p799']")
-        pg.click("#ptMenu [data-act=rename]")
-        pg.fill("#ptRnName", "旗艦方案")
+        ok(f"{T}・perm-v4：Esc 取消改名 → 沒送出、名稱還是原本的", pg.locator("#ptTier input.ptrn").count() == 0 and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput and "進階方案" in pg.inner_text("#ptTier"))
+        pg.dblclick("#ptTier button[data-plan='p799']")
+        pg.fill("#ptTier input.ptrn", "旗艦方案")
         with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
             pg.keyboard.press("Enter")
         rb = json.loads(ri.value.request.post_data or "{}")
-        ok(f"{T}・perm-v4：⋮ → 重新命名「旗艦方案」→ plans/put 同 id（p799）、價格／週期／開關照舊；頁籤改字、位置不變",
-           rb.get("id") == "p799" and rb.get("name") == "旗艦方案" and rb.get("price") == 7990 and rb.get("period") == "year" and rb.get("feats") == {} and "del" not in rb
-           and bool(wait_until(pg, "() => document.querySelector(\"#ptTier button[data-plan='p799']\").textContent.trim() === '旗艦方案（年）'", 3000)) and pg.evaluate(TABS) == "guest,free,p399,p799,ptAddTab", rb)
-        # ---- ⋮ 刪除（二次確認）
-        nput = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
-        pg.hover("#ptTier .ptab[data-pid='p399'] > button[role=tab]"); pg.click("#ptTier button[data-more='p399']")
-        pg.click("#ptMenu [data-act=del]")
-        q = pg.inner_text("#ptMenu")
-        ok(f"{T}・perm-v4：⋮ → 刪除 → 先問一次，寫「目前有 1 位會員在此範本，刪除後退回註冊會員」，還沒送出",
-           "目前有 1 位會員在此範本，刪除後退回註冊會員" in q and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput and pg.locator("#ptMDelGo").is_visible(), q)
-        pg.click("#ptMDelNo")
-        ok(f"{T}・perm-v4：（續）按「取消」→ 回到選單、沒送出", pg.locator("#ptMenu [data-act=del]").is_visible() and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput)
-        pg.click("#ptMenu [data-act=del]")
+        ok(f"{T}・perm-v4：點兩下 → 改「旗艦方案」→ Enter → plans/put 同 id（p799）、價格／週期／開關照舊；頁籤改字、位置不變",
+           rb.get("id") == "p799" and rb.get("name") == "旗艦方案" and rb.get("price") == 7990 and rb.get("period") == "year" and "del" not in rb
+           and bool(wait_until(pg, "() => document.querySelector(\"#ptTier button[data-plan='p799']\").textContent.trim().startsWith('旗艦方案')", 3000)) and pg.evaluate(TABS) == "guest,free,p399,p799,ptAddTab", rb)
+        pg.dblclick("#ptTier button[data-plan='p399']")
+        pg.fill("#ptTier input.ptrn", "基本改名")
         with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
-            pg.click("#ptMDelGo")
-        db_ = json.loads(ri.value.request.post_data or "{}")
-        ok(f"{T}・perm-v4：（續）按「確定刪除」→ plans/put {{id:p399, del:true}}、頁籤消失、a399 退回註冊會員",
-           db_.get("id") == "p399" and db_.get("del") is True and bool(wait_until(pg, f"() => ({TABS})() === 'guest,free,p799,ptAddTab'", 3000)) and st["perm"]["a399@example.com"]["plan"] == "free", db_)
-        # ---- ⚙ 刪除（二次確認）
+            pg.click("#pmHead h3 >> nth=0") if pg.locator("#pmHead h3").count() else pg.mouse.click(5, 5)
+        ok(f"{T}・perm-v4：失焦也會存（plans/put name＝基本改名）", json.loads(ri.value.request.post_data or "{}").get("name") == "基本改名")
+        # ---- ⚙ 刪除：有效會員 > 0 → 一樣擋住
         pg.click("#ptTier button[data-plan='p799']")
         pg.click("#ptPlanCfg")
         nput = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
         ok(f"{T}・perm-v4：⚙ 範本設定裡是「刪除此範本」", pg.inner_text("#pmPlanDel").strip() == "刪除此範本")
         pg.click("#pmPlanDel")
-        dq = pg.inner_text("#ptDelBox") if pg.locator("#ptDelBox").count() else ""
-        ok(f"{T}・perm-v4：⚙ → 刪除此範本 → 確認列寫「目前有 1 位會員在此範本，刪除後退回註冊會員」、還沒送出", "目前有 1 位會員在此範本，刪除後退回註冊會員" in dq and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput, dq)
-        pg.click("#ptDelNo")
-        ok(f"{T}・perm-v4：（續）取消 → 確認列收起、沒送出", pg.locator("#ptDelBox").count() == 0 and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput)
+        ok(f"{T}・perm-v4：⚙ → 刪除此範本 → 有效會員 > 0 同樣擋住（提示、沒有確認列、沒送出）", "還有 1 位有效會員" in pg.inner_text("#ptMenu") and pg.locator("#ptDelBox").count() == 0 and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput)
+        pg.keyboard.press("Escape")
+        # ---- 只剩已到期的會員 → 可以刪（二次確認）
+        st["perm"]["a399@example.com"]["expires"] = 1577836800001
+        pg.reload(wait_until="domcontentloaded"); wait_until(pg, "() => !!document.querySelector(\"#ptTier button[data-more='p399']\")", 8000)
+        pg.hover("#ptTier .ptab[data-pid='p399'] > button[role=tab]"); pg.click("#ptTier button[data-more='p399']")
+        q = pg.inner_text("#ptMenu"); nput = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
+        ok(f"{T}・perm-v4：只剩已到期的會員 → 可刪：先問一次、寫「目前有 1 位會員在此範本，刪除後退回註冊會員」、還沒送出",
+           "目前有 1 位會員在此範本，刪除後退回註冊會員" in q and pg.locator("#ptMDelGo").is_visible() and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput, q)
+        pg.click("#ptMDelNo")
+        ok(f"{T}・perm-v4：（續）按「取消」→ 提示關掉、沒送出", pg.evaluate("() => document.getElementById('ptMenu').hidden") and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput)
+        pg.hover("#ptTier .ptab[data-pid='p399'] > button[role=tab]"); pg.click("#ptTier button[data-more='p399']")
+        with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
+            pg.click("#ptMDelGo")
+        db_ = json.loads(ri.value.request.post_data or "{}")
+        ok(f"{T}・perm-v4：（續）按「確定刪除」→ plans/put {{id:p399, del:true}}、頁籤消失、a399 退回註冊會員",
+           db_.get("id") == "p399" and db_.get("del") is True and bool(wait_until(pg, "() => !document.querySelector(\"#ptTier button[data-plan='p399']\")", 3000)) and st["perm"]["a399@example.com"]["plan"] == "free", db_)
+        ok(f"{T}・perm-v4：範本標題下的說明列已拿掉（沒有 .ptnote、沒有「指定這個範本的會員」）", pg.evaluate("() => !document.querySelector('.ptnote') && !/被指定這個範本的會員都套這一份/.test(document.getElementById('v-admin').innerText)"))
         c.close()
 
     # ---- ④ 會員名單上方統計 ＋ ⑤ 展開明細 ＋ ⑥ 數字欄寬

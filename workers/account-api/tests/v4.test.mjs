@@ -131,3 +131,23 @@ test('members/stats：只有管理者；scope=all 與 scope=plan 的功能 Top8�
     assert.equal((await post(hub, '/v1/admin/members/stats', { t: andy, ...bad })).status, 400, JSON.stringify(bad));
   }
 });
+
+test('範本刪除保護：有「有效會員」→ 409 has_members（回人數與名單）、範本與會員都不動；到期者與 0 人才刪得掉；非管理者 403', async () => {
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'pz', name: '保護測試', feats: {} });
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'a@example.com', plan: 'pz', over: {} });                          // 不會到期
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'b@example.com', plan: 'pz', over: {}, expires: clock + 5 * 86400000 }); // 5 天後到期
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'c@example.com', plan: 'pz', over: {}, expires: 1577836800001 });     // 早就到期
+  const r = await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'pz', del: true });
+  assert.equal(r.s, 409);
+  assert.deepEqual([r.j.error, r.j.n, r.j.emails], ['has_members', 2, ['a@example.com', 'b@example.com']]);
+  assert.ok(ids((await pj(hub, '/v1/admin/plans/get', { t: andy })).j.plans).includes('pz'), '被擋時範本還在');
+  assert.equal((await pj(hub, '/v1/admin/perm/get', { t: andy, email: 'a@example.com' })).j.plan, 'pz', '被擋時會員還在原範本');
+  const outsider = await login(hub, 'eve@example.com');
+  assert.equal((await pj(hub, '/v1/admin/plans/put', { t: outsider, id: 'pz', del: true })).s, 403, '非管理者');
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'a@example.com', plan: 'free', over: {} });
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'b@example.com', plan: 'free', over: {} });
+  assert.equal((await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'pz', del: true })).s, 200, '只剩已到期者 → 可刪');
+  assert.equal((await pj(hub, '/v1/admin/perm/get', { t: andy, email: 'c@example.com' })).j.plan, 'free', '到期者退回免費');
+});

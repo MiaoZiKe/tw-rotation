@@ -606,7 +606,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .ptwrap .ptabs button[role=tab]{font-size:13.5px;font-weight:400;height:auto;min-height:0;justify-content:center;text-align:center;padding:var(--sp-1) var(--sp-3) var(--sp-2)}
 #v-admin .ptwrap .ptabs button[role=tab].on{font-weight:700;padding:var(--sp-2) var(--sp-4) var(--sp-2)}
 #v-admin .ptwrap .ptabs .ptab>button[role=tab]{padding-left:32px;padding-right:32px}
-#v-admin .ptwrap .ptabs button.ptmore{top:50%;transform:translateY(-50%)}
+#v-admin .ptwrap .ptabs button.ptmore{top:50%;transform:translateY(-50%);width:18px;height:18px;right:6px;font-size:15px;line-height:18px;border-radius:50%}
+#v-admin .ptwrap .ptabs .ptrn{width:100%;min-width:6em;height:28px;box-sizing:border-box;text-align:center;font:inherit;font-size:13.5px;color:var(--ink);background:var(--panel);border:1px solid var(--cyan);border-radius:6px;padding:0 6px}
+#v-admin .ptmenu .pmwho2{list-style:none;margin:0 0 6px;padding:0 8px;font-size:13px}#v-admin .ptmenu .pmwho2 li{height:24px;white-space:nowrap}#v-admin .ptmenu .pmwho2 a,#v-admin .ptmenu .pmgo{color:var(--cyan)}#v-admin .ptmenu .pmgo{align-self:center;font-size:13px;margin-right:auto}#v-admin .ptmenu .more{color:var(--ink-2)}
 #v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
 #v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
     document.head.appendChild(s);
@@ -1220,7 +1222,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   window.addEventListener('beforeunload', (e) => { if (/^#admin\/(perm|members)\b/.test(location.hash || '') && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
   function setStat(msg, cls) { const s = PS.v && PS.v.querySelector('#pmStat'); if (s) { s.textContent = msg; s.className = 'pmstat' + (cls ? ' ' + cls : ''); } }
-  const ERR = { forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年' };
+  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年' };
   const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s));
   const EMAIL_OK = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   /* 到期日：畫面上是台北日期（yyyy-mm-dd），存的是「那一天台北 23:59:59」的毫秒 */
@@ -1267,7 +1269,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       v.querySelector('#pmAllSw').onclick = (e) => allFeats(e.currentTarget.getAttribute('aria-checked') !== 'true');
       v.querySelector('#ptTier').onclick = (e) => {
         const mb = e.target.closest('button[data-more]');
-        if (mb) { e.stopPropagation(); openMenu(PS.menu === mb.dataset.more ? null : mb.dataset.more, 'list'); return; }
+        if (e.target.closest('.ptrn')) return;
+        if (mb) { e.stopPropagation(); openMenu(PS.menu === mb.dataset.more ? null : mb.dataset.more, 'del'); return; }
         const b = e.target.closest('button[role=tab]'); if (!b) return;
         if (b.id === 'ptAddTab') { if (PS.adding || !guard()) return; PS.adding = true; PS.cfg = false; PS.confirmDel = false; paintAll(); setStat(''); return; }
         const tier = b.dataset.tier, plan = b.dataset.plan || '';
@@ -1344,7 +1347,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const t = (tier, label, plan) => { const on = !PS.adding && PS.tier === tier && (!plan || PS.planSel === plan);
       return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"${plan ? ` data-plan="${esc(plan)}" title="${esc(planLabel(planOf(plan)))}（拖曳可調整順序）" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"` : ''}><span>${esc(label)}</span></button>`; };
     bar.innerHTML = t('guest', '訪客') + t('free', '註冊會員')
-      + paidPlans().map((p) => `<div class="ptab" draggable="true" data-pid="${esc(p.id)}">${t('paid', tabLabel(p), p.id)}<button type="button" class="ptmore" data-more="${esc(p.id)}" aria-haspopup="menu" aria-expanded="${PS.menu === p.id}" aria-label="「${esc(p.name)}」範本選單：左移、右移、重新命名、刪除" title="左移／右移／重新命名／刪除">⋮</button></div>`).join('')
+      + paidPlans().map((p) => `<div class="ptab" draggable="true" data-pid="${esc(p.id)}">${t('paid', tabLabel(p), p.id)}<button type="button" class="ptmore" data-more="${esc(p.id)}" aria-haspopup="dialog" aria-expanded="${PS.menu === p.id}" aria-label="刪除「${esc(p.name)}」範本" title="刪除此範本">×</button></div>`).join('')
       + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費範本" title="新增付費範本（名稱、價格、月／年訂閱）">＋</button>`;
     if (keep) { const k = bar.querySelector(keep); if (k) k.focus(); }
     paintMenu();
@@ -1372,8 +1375,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   /* 這個範本目前有幾個人：後端 plans/get 的 members（perm 表裡指定到它的，含已過期）；舊 Worker 沒有就從名單數 */
   const planMembers = (id) => { const p = planOf(id); return p && Number.isInteger(p.members) ? p.members : people().filter((r) => r.plan === id).length; };
   const delMsg = (id) => `目前有 ${planMembers(id)} 位會員在此範本，刪除後退回註冊會員`;
+  /* 還有「有效會員」（指定到這個範本、而且沒到期）的付費範本不能刪：前端先擋（名單來自 perm/list），伺服器也擋（plans/put del → 409 has_members） */
+  const activeMembers = (id) => { const now = (PS.list && PS.list.now) || Date.now(); return people().filter((r) => r.plan === id && !(r.expires && r.expires < now)); };
   async function delPlan(id) {
     const p = planOf(id); if (!p) return;
+    if (activeMembers(id).length) { openMenu(id, 'del'); return; }
     const nm = p.name, wasSel = PS.planSel === id && PS.tier === 'paid';
     if (wasSel && !guard()) return;
     setStat('刪除中…');
@@ -1382,6 +1388,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       PS.plans = j.plans; PS.cfg = false; PS.delAsk = false; PS.menu = null;
       if (wasSel) PS.draft = null;
       pickTierPlan(); paintAll(); setStat(`已刪除「${nm}」；原本用它的會員退回「註冊會員」（個別微調保留）`, 'ok'); refreshList();
+    } else if (j && j._s === 409 && j.error === 'has_members') {
+      PS.list = PS.list || {}; (PS.list.rows = PS.list.rows || []);
+      (j.emails || []).forEach((em) => { if (!PS.list.rows.some((r) => r.email === em)) PS.list.rows.push({ email: em, plan: id, n: 0, updated: 0, expires: 0 }); });
+      setStat(`還有 ${j.n} 位有效會員，不能刪`, 'bad'); openMenu(id, 'del');
     } else setStat('刪除失敗：' + errText(j), 'bad');
   }
   async function renamePlan(id, name) {
@@ -1412,16 +1422,14 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (!m || !wrap) return;
     const id = PS.menu, p = id && planOf(id), btn = p && PS.v.querySelector(`#ptTier button[data-more="${id}"]`);
     if (!p || !btn) { m.hidden = true; m.innerHTML = ''; PS.menu = null; return; }
-    const ids = paidIds(), i = ids.indexOf(id), mode = PS.menuMode || 'list';
     m.setAttribute('aria-label', `「${p.name}」範本選單`);
-    m.innerHTML = mode === 'rename'
-      ? `<div class="pmq">重新命名「${esc(tabLabel(p))}」</div><input type="text" id="ptRnName" maxlength="20" value="${esc(p.name)}" aria-label="新的範本名稱">
-         <div class="pmrow2"><button type="button" id="ptRnNo">取消</button><button type="button" class="pri" id="ptRnGo">確定</button></div>`
-      : mode === 'del'
-        ? `<div class="pmq">刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(id))}</b>。</div>
-           <div class="pmrow2"><button type="button" id="ptMDelNo">取消</button><button type="button" class="danger" id="ptMDelGo">確定刪除</button></div>`
-        : `<button type="button" role="menuitem" data-act="rename">✎ 重新命名</button>
-           <button type="button" role="menuitem" data-act="del" class="danger">🗑 刪除此範本…</button>`;
+    const act = activeMembers(id);
+    m.innerHTML = act.length
+      ? `<div class="pmq">還有 <b>${act.length}</b> 位有效會員，請先把他們移到其他付費範本，或等訂閱到期。</div>
+         <ul class="pmwho2">${act.slice(0, 8).map((r) => `<li><a href="#admin/members" data-email="${esc(r.email)}">${esc(r.email)}</a></li>`).join('')}${act.length > 8 ? `<li class="more">…還有 ${act.length - 8} 位</li>` : ''}</ul>
+         <div class="pmrow2"><a class="pmgo" href="#admin/members">到會員管理</a><button type="button" id="ptMDelNo">知道了</button></div>`
+      : `<div class="pmq">刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(id))}</b>。</div>
+         <div class="pmrow2"><button type="button" id="ptMDelNo">取消</button><button type="button" class="danger" id="ptMDelGo">確定刪除</button></div>`;
     m.hidden = false;
     /* 位置：⋮ 正下方、右緣對齊 ⋮；超出內容框就往左收（量完才放，不會推擠任何東西）*/
     const wr = wrap.getBoundingClientRect(), br = btn.getBoundingClientRect();
@@ -1460,20 +1468,26 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const b = e.target.closest && e.target.closest('button[data-plan]');
       if (b && e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); moveBy(b.dataset.plan, e.key === 'ArrowLeft' ? -1 : 1); }
     });
+    /* 點兩下付費範本頁籤 → 原地改名（Enter 存、Esc 取消、失焦存）；訪客／註冊會員是內建的，沒有 data-plan，不能改 */
+    bar.addEventListener('dblclick', (e) => {
+      const b = e.target.closest && e.target.closest('button[data-plan]'); if (!b) return;
+      const id = b.dataset.plan, p = planOf(id), holder = b.closest('.ptab'); if (!p || !holder) return;
+      e.preventDefault(); openMenu(null);
+      holder.draggable = false; b.innerHTML = `<input class="ptrn" type="text" maxlength="20" value="${esc(p.name)}" aria-label="新的範本名稱">`;
+      const inp = b.querySelector('input'); inp.focus(); inp.select();
+      let done = false;
+      const fin = (save) => { if (done) return; done = true; holder.draggable = true; const v = inp.value.trim(); if (save && v && v !== p.name) renamePlan(id, v); else paintTabs(); };
+      inp.onkeydown = (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); fin(true); } else if (ev.key === 'Escape') { ev.preventDefault(); fin(false); } };
+      inp.onblur = () => fin(true);
+      inp.onclick = (ev) => ev.stopPropagation();
+    });
     m.addEventListener('click', (e) => {
       const id = PS.menu; if (!id) return;
-      const a = e.target.closest('button[data-act]');
-      if (a) { const act = a.dataset.act;
-        if (act === 'left' || act === 'right') { openMenu(null); moveBy(id, act === 'left' ? -1 : 1); }
-        else openMenu(id, act === 'rename' ? 'rename' : 'del');
-        return; }
-      if (e.target.closest('#ptRnGo')) { renamePlan(id, (m.querySelector('#ptRnName') || {}).value); return; }
       if (e.target.closest('#ptMDelGo')) { delPlan(id); return; }
-      if (e.target.closest('#ptRnNo,#ptMDelNo')) openMenu(id, 'list');
+      if (e.target.closest('#ptMDelNo')) openMenu(null, null, true);
     });
     m.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); if ((PS.menuMode || 'list') !== 'list') openMenu(PS.menu, 'list'); else openMenu(null, null, true); return; }
-      if (e.key === 'Enter' && e.target.id === 'ptRnName') { e.preventDefault(); renamePlan(PS.menu, e.target.value); return; }
+      if (e.key === 'Escape') { e.preventDefault(); openMenu(null, null, true); return; }
       if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
         const its = [...m.querySelectorAll('button:not(:disabled)')]; if (!its.length) return;
         e.preventDefault();
@@ -1601,9 +1615,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const note = PS.tier === 'guest' ? '所有沒登入的人都套這一份；下面關掉的功能，就是訪客要先登入／升級才看得到的東西。'
       : PS.tier === 'free' ? '登入後沒被指定付費範本的人（以及付費到期的人）都套這一份。'
         : '被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。⚙ 改名稱／價格／月或年、刪除。';
-    box.innerHTML = `<div class="ptinfo"><b class="ptname" id="ptFor" title="${esc(name)}">${esc(name)}</b><span class="ptmeta" id="ptMeta">${esc(meta)}</span><span class="sp"></span>
+    box.innerHTML = `<div class="ptinfo"><b class="ptname" id="ptFor" title="${esc(name + '。' + note)}">${esc(name)}</b><span class="ptmeta" id="ptMeta">${esc(meta)}</span><span class="sp"></span>
         ${PS.tier === 'paid' ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名／價格／月或年／刪除）" aria-label="範本設定">⚙</button>` : ''}</div>
-      <p class="ptnote" title="${esc(note)}">${esc(note)}</p>
       ${PS.tier === 'paid' && PS.cfg ? `<div class="pmbar pmed" id="ptEdit" style="margin:0 0 8px"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
         <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
         <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
@@ -1614,7 +1627,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.delAsk = false; paintTarget(); };
     const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
     /* 刪除要二次確認：第一下只展開確認列（寫明會影響幾個人），按「確定刪除」才送 */
-    const del = v.querySelector('#pmPlanDel'); if (del) del.onclick = () => { PS.delAsk = !PS.delAsk; paintTarget(); const g = v.querySelector('#ptDelGo'); if (g) g.focus(); };
+    const del = v.querySelector('#pmPlanDel'); if (del) del.onclick = () => { if (activeMembers(PS.planSel).length) { PS.delAsk = false; openMenu(PS.planSel, 'del'); return; } PS.delAsk = !PS.delAsk; paintTarget(); const g = v.querySelector('#ptDelGo'); if (g) g.focus(); };
     const dn = v.querySelector('#ptDelNo'); if (dn) dn.onclick = () => { PS.delAsk = false; paintTarget(); };
     const dg = v.querySelector('#ptDelGo'); if (dg) dg.onclick = () => delPlan(p.id);
     paintSave();

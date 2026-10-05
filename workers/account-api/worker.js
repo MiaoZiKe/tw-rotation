@@ -1160,3 +1160,24 @@ Object.assign(Hub.prototype.subRoutes, {
   },
 });
 /* ============================================================================ perm-v4 區塊結束 */
+
+/* ============================================================================
+   範本刪除保護（2026-10-05，Andy：「還有有效會員的付費範本不能刪」）
+   plans/put 帶 del:true 時：這個範本若還有「有效會員」（perm.plan 指向它、而且沒到期：expires 為空或 0 或晚於現在）→ 409 {error:'has_members', n, emails}
+   不刪、不動任何資料；只剩已到期的人或 0 人才照原本流程刪（用它的人退回免費會員、個別微調保留）。
+   只在這個檔尾加區塊（prototype 包裝），不改前面的函式。
+   ============================================================================ */
+const delGuardOrig = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  if (b && b.del === true && typeof b.id === 'string' && PLAN_RE.test(b.id)) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const cur = this.plan(b.id);
+    if (cur && !cur.builtin) {
+      const now = this.now();
+      const act = this.q('SELECT email FROM perm WHERE plan = ? AND (expires IS NULL OR expires = 0 OR expires > ?) ORDER BY email', b.id, now);
+      if (act.length) return this.json(req, { error: 'has_members', n: act.length, emails: act.slice(0, 50).map((r) => r.email) }, 409);
+    }
+  }
+  return await delGuardOrig.call(this, req, b);
+};
+/* ============================================================================ 範本刪除保護區塊結束 */
