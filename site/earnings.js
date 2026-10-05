@@ -158,7 +158,10 @@
 #v-earnings .sec[data-sec=conf] .kv dd{font-family:inherit;overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .kv .pv{grid-column:1/-1;font-size:12px;color:var(--ink-3);margin-top:-2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-earnings .note{font-size:12.5px;color:var(--ink-3);line-height:1.55}
-#v-earnings .pact{display:flex;gap:8px;margin-top:10px}
+#v-earnings .ph.stk{position:sticky;top:-10px;z-index:3;background:var(--panel-2);margin:-10px -12px 6px;padding:8px 12px;border-bottom:1px solid var(--line)}
+#v-earnings .ph .plink{font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:pointer}
+#v-earnings .ph .plink:hover,#v-earnings .ph .plink:focus-visible{text-decoration:underline;color:var(--cyan);outline:none}
+#v-earnings .ph .btn{flex:none}
 /* 2026-10-06：週末反灰／休市標記由 calgrid.js 提供；這裡是面板裡的小圖、星級、數值列 */
 #v-earnings .stars{color:var(--amber);font-size:13px;letter-spacing:1px;white-space:nowrap;flex:none}
 #v-earnings .stars i{font-style:normal;color:var(--ink-3);opacity:.5}
@@ -335,7 +338,7 @@
       const n = evs().filter((e) => e.d > b).filter(passF).slice(0, 6);
       return `<p class="note">這一週沒有${FILT_LAB[S.filt] || ''}事件。接下來：</p><ul class="elist">${n.map(rowHTML).join('')}</ul>`;
     })();
-    return `<div class="ph"><b>本週重點</b><span class="sp"></span><span class="badge sch">${md(a)}–${md(b)}</span></div>
+    return `${phead('本週重點', `<span class="badge sch">${md(a)}–${md(b)}</span>`, { noBack: true })}
       <div class="ps">點月曆上的公司或 FED 標籤，這裡換成那一項的分析</div>
       ${L.length ? `<ul class="elist" id="earnWeekList">${L.map(rowHTML).join('')}</ul>` : ahead}
       ${S.filt === 'rep' || S.filt === 'conf' ? '' : `<span class="lt">接下來的 FED 與美國數據（星數＝重要性）</span>${upcomingFed(S.filt === 'fed' ? 6 : 2).map((e) => fedCard(e, true)).join('')}`}
@@ -344,10 +347,15 @@
   }
   function panelDay(d) {
     const L = evs().filter((e) => e.d === d).filter(passF).sort(sortEv);
-    return `<div class="ph"><b>${d}（${wdOf(d)}）</b><span class="sp"></span><span class="badge sch">${L.length} 項</span></div>
+    return `${phead(`${d}（${wdOf(d)}）`, `<span class="badge sch">${L.length} 項</span>`)}
       <div class="ps">點一列看分析；再點一次同一個日期回到本週重點</div>
-      ${L.length ? `<ul class="elist" id="earnDayList">${L.map(rowHTML).join('')}</ul>` : '<p class="note">這一天沒有事件。</p>'}
-      <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button></div>`;
+      ${L.length ? `<ul class="elist" id="earnDayList">${L.map(rowHTML).join('')}</ul>` : '<p class="note">這一天沒有事件。</p>'}`;
+  }
+  /* 面板標題列（釘在面板最上方，內容捲動時不動）：左＝「← 回本週重點」，中＝標題（有代號就是連結，進個股頁），右＝徽章 */
+  function phead(title, badge, o) {
+    o = o || {};
+    const t = o.code ? `<a class="plink" href="#stock/${esc(o.code)}" data-code="${esc(o.code)}" title="看 ${esc(o.name || '')} ${esc(o.code)} 個股頁">${esc(title)}</a>` : `<b>${esc(title)}</b>`;
+    return `<div class="ph stk">${o.noBack ? '' : '<button type="button" class="btn small" id="earnBack">← 回本週重點</button>'}${t}<span class="sp"></span>${badge || ''}</div>`;
   }
   const toneCls = (t) => (t > 0 ? 'up' : t < 0 ? 'down' : '');
   /* ------------------------------------------------------------------ 小圖（純 SVG，不放文字：標籤用 HTML，字級才守得住 12px 下限） */
@@ -453,7 +461,7 @@
     const snap = (S.data.fed || {}).snap || {};
     const nx = evs().filter((x) => x.k === e.k && x.d > e.d)[0];
     const sparks = (info.rel || []).map((k) => sparkFor(snap[k])).filter(Boolean).slice(0, 3).join('');
-    return `<div class="ph"><b>${esc(e.title)}</b><span class="sp"></span><span class="badge sch">排程</span></div>
+    return `${phead(e.title, '<span class="badge sch">排程</span>')}
       <div class="ps">${esc(info.org || '')}</div>
       ${fedCard(e, true)}
       ${sparks ? `<div class="sec" data-sec="spark"><h4>近期數值走勢 <small>FRED</small></h4>${sparks}</div>` : ''}
@@ -461,8 +469,7 @@
       <div class="sec"><h4>偏多偏空規則 <small>公布值 vs 前值</small></h4><p>${esc(info.rule || '—')}</p>
         <p class="note">預期值（市場共識）是商業資料，沒有合法免費來源，這裡不顯示也不編；以上為資料整理，不構成投資建議。</p></div>
       <div class="sec"><h4>下一次</h4><p>${nx ? `${nx.d}（${wdOf(nx.d)}）・台灣 ${esc(nx.tw || '')}` : '日程表裡還沒有下一次的日期'}</p>
-        <div class="src">日期出處：${esc(e.src || '')}</div></div>
-      <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button></div>`;
+        <div class="src">日期出處：${esc(e.src || '')}</div></div>`;
   }
   function secHTML(s) {
     const tbl = s.table ? `<table class="mt"><thead><tr>${s.table.cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((r) =>
@@ -470,7 +477,7 @@
     const items = s.items ? `<ul class="nl">${s.items.map((n) => `<li><span class="d">${esc(md(n.d))}</span>${n.u ? `<a class="t" href="${esc(n.u)}" target="_blank" rel="noopener" title="${esc(n.t)}">${esc(n.t)}</a>` : `<span class="t" title="${esc(n.t)}">${esc(n.t)}</span>`}<span class="d">${esc(n.s === 'cnyes' ? '鉅亨' : n.s === 'technews' ? 'TechNews' : n.s)}</span></li>`).join('')}</ul>` : '';
     const ch = chartFor(s);
     const lines = ch ? s.lines.slice(0, s.key === 'val' || s.key === 'inst' ? 2 : 1) : s.lines;
-    return `<div class="sec" data-sec="${s.key}" data-chart="${ch ? 1 : 0}"><h4>${esc(s.t)} <small>資料 ${esc(s.asof || '—')}</small></h4>${ch}${lines.map((t) => `<p>${esc(t)}</p>`).join('')}${ch ? '' : tbl}${items}<div class="src" title="${esc(s.src)}">出處：${esc(s.src)}</div></div>`;
+    return `<div class="sec" data-sec="${s.key}" data-chart="${ch ? 1 : 0}"><h4>${esc(s.t)}</h4>${ch}${lines.map((t) => `<p>${esc(t)}</p>`).join('')}${ch ? '' : tbl}${items}<div class="src" title="${esc(s.src)}（資料 ${esc(s.asof || '—')}）">出處：${esc(s.src)}（資料 ${esc(s.asof || '—')}）</div></div>`;
   }
   /* 法說會這一場的資訊：只放重大訊息內文裡公司自己寫的欄位（日期／時間／地點／擇要），沒寫的欄位就不出現 */
   function confSec(e) {
@@ -482,13 +489,12 @@
   }
   function panelCo(e) {
     const c = co(e.code);
-    if (!c) return `<div class="ph"><b>${esc(e.name || '')} ${esc(e.code)}</b><span class="sp"></span><span class="badge ann">已公告</span></div>
+    if (!c) return `${phead(`${e.name || ''} ${e.code}`, '<span class="badge ann">已公告</span>', { code: e.code, name: e.name })}
       <div class="ps" title="${esc(e.title)}">${esc(e.title)}</div>${confSec(e)}
-      <p class="note">這家公司不在市值前 50 名單裡，這裡只列法說會本身的資訊，沒有整理財報分析。</p>
-      <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button><button type="button" class="btn small" id="earnGoStock" data-code="${esc(e.code)}">看個股頁 →</button></div>`;
+      <p class="note">這家公司不在市值前 50 名單裡，這裡只列法說會本身的資訊，沒有整理財報分析。</p>`;
     const nxt = c.next;
     const isEst = e.status === '預估';
-    const head = `<div class="ph"><b>${esc(c.name)} ${esc(e.code)}</b><span class="sp"></span><span class="badge ${isEst ? 'est' : 'ann'}">${isEst ? '預估' : e.status === '公告' ? '已公告' : esc(e.status || '')}</span></div>
+    const head = `${phead(`${c.name} ${e.code}`, `<span class="badge ${isEst ? 'est' : 'ann'}">${isEst ? '預估' : e.status === '公告' ? '已公告' : esc(e.status || '')}</span>`, { code: e.code, name: c.name })}
       <div class="ps" title="${esc(e.title)}">${md(e.d)}（${wdOf(e.d)}）${esc((KIND[e.k] || {}).lab || '')}・市值第 ${c.rank} 名・${esc(e.title)}</div>`;
     const basis = isEst ? `<p class="note">預估依據：${esc(e.basis || '')}。實際日期以公司公告為準。</p>` : '';
     const tags = (c.tags || []).length ? `<div class="tags">${c.tags.map((t) => `<span class="tag">${esc(t.l)}<b class="${toneCls(t.tone)}">${esc(t.v)}</b></span>`).join('')}</div>` : '';
@@ -498,8 +504,7 @@
       ${fn.fomc ? `<p>下一次 FOMC 利率決議：${md(fn.fomc.d)}（台灣 ${esc(fn.fomc.tw || '')}）${fn.cpi ? `；下一次 CPI：${md(fn.cpi.d)}（台灣 ${esc(fn.cpi.tw || '')}）` : ''}。</p>` : ''}
       ${fedBlock(['policy', 'cpi_yoy', 'core_pce_yoy', 'unrate'])}</div>`;
     return `${head}${basis}${confSec(e)}${tags}<p class="note">這次是 <b>${esc(c.target || '')}</b> 的財報${nxt && nxt.d !== e.d ? `（下一個相關日子 ${md(nxt.d)}，${esc(nxt.status)}）` : ''}。</p>
-      ${c.err ? `<p class="note">${esc(c.err)}</p>` : ''}${(c.secs || []).map(secHTML).join('')}${S.filt === 'all' || S.filt === 'fed' ? fedSec : ''}
-      <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button><button type="button" class="btn small" id="earnGoStock" data-code="${esc(e.code)}">看 ${esc(c.name)} 個股頁 →</button></div>`;
+      ${c.err ? `<p class="note">${esc(c.err)}</p>` : ''}${(c.secs || []).map(secHTML).join('')}${S.filt === 'all' || S.filt === 'fed' ? fedSec : ''}`;
   }
   function drawPanel() {
     const box = $('#earnPanel'); if (!box) return;
@@ -515,12 +520,11 @@
     box.dataset.mode = mode; box.dataset.key = key;
     bindRows(box);
     const back = $('#earnBack', box); if (back) back.onclick = () => pick({ t: 'week' });
-    const gs = $('#earnGoStock', box); if (gs) gs.onclick = () => A().goStock(gs.dataset.code);
+    $$('.plink', box).forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); A().goStock(a.dataset.code); }; });
   }
   function panelTw(e) {
-    return `<div class="ph">${IC.tw}<b>${esc(e.title)}</b><span class="sp"></span><span class="badge sch">期限</span></div>
-      <div class="ps">${e.d}（${wdOf(e.d)}）</div><div class="sec"><p>${esc(e.note || '')}</p><div class="src">出處：${esc(e.src || '')}</div></div>
-      <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button></div>`;
+    return `${phead(e.title, '<span class="badge sch">期限</span>')}
+      <div class="ps">${e.d}（${wdOf(e.d)}）</div><div class="sec"><p>${esc(e.note || '')}</p><div class="src">出處：${esc(e.src || '')}</div></div>`;
   }
 
   // 2026-10-05（晚，Andy：「下方不需要」）：大公司時間表整張拿掉，markRows 留空殼讓呼叫端不用改
@@ -553,7 +557,7 @@
     await loadData();
     const d = S.data;
     $('#earnSub').textContent = !d ? '資料尚未產出'
-      : `資料日 ${d.asof}${S.seed ? '（預覽用種子資料）' : ''}・大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
+      : `${S.seed ? '預覽用種子資料・' : ''}大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
     $('#earnPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)); };
     $('#earnNext').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)); };
     $('#earnToday').onclick = () => go(todayTW().slice(0, 7));

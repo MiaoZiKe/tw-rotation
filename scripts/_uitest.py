@@ -1933,7 +1933,7 @@ def t_etf_1005(pg, b, base):
         lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(250)
         vis = J("() => getComputedStyle(document.querySelector('#etfFrom')).visibility === 'visible'")
         J("() => { const f = document.querySelector('#etfFrom'); f.value = '2018-01-01'; f.dispatchEvent(new Event('change', { bubbles: true })); }"); lp.wait_for_timeout(300)
-        ok(f"★ [{tag}] 自訂起始日 2018-01-01 → 兩個日期欄出現（結束日預設今天）、比較卡期間標題換成 2018-01-01～今天", vis and "2018-01-01" in text(lp, "#etfRetSub") and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"), text(lp, "#etfRetSub"))
+        ok(f"★ [{tag}] 自訂起始日 2018-01-01 → 兩個日期欄出現（結束日預設今天）、比較卡標題寫「自訂」、標題上不放日期（Andy 10-06）", vis and "自訂" in text(lp, "#etfRetSub") and "2018" not in text(lp, "#etfRetSub") and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"), text(lp, "#etfRetSub"))
         lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(300)
         # ================= 3. 自選比較
         r3 = CODES("#etfRetTop")
@@ -21770,6 +21770,12 @@ def t_cal_1006(pg, b, base):
         ok(f"[{tag}] 圖例有「週末」「台股休市日」", "週末" in text(lp, "#earnLegend") and "台股休市日" in text(lp, "#earnLegend"))
         # 公司面板有圖
         lp.click("#earnGrid .chip[data-code]"); lp.wait_for_timeout(300)
+        hd = J("""() => { const p = document.querySelector('#earnPanel'), h = p.querySelector('.ph.stk'), b = h && h.querySelector('#earnBack'), a = h && h.querySelector('a.plink');
+                 const pr = p.getBoundingClientRect(); p.scrollTop = 400; const h2 = p.querySelector('.ph.stk').getBoundingClientRect(); const top2 = h2.top - pr.top; p.scrollTop = 0;
+                 return { back: !!b, backLeft: b && a ? b.getBoundingClientRect().left < a.getBoundingClientRect().left : false, link: a ? a.getAttribute('href') : null,
+                          pinned: Math.abs(top2) <= 12, bottomBtns: p.querySelectorAll('#earnGoStock, .pact').length, dates: /\d{4}-\d\d-\d\d/.test([...p.querySelectorAll('h4')].map(e => e.textContent).join(' ')) }; }""")
+        ok(f"★ [{tag}] 公司面板：「← 回本週重點」在標題列左側且捲動時釘在最上方、股票名稱＋代號是連結（#stock/…）、底部沒有按鈕、段落標題沒有日期",
+           hd["back"] and hd["backLeft"] and (hd["link"] or "").startswith("#stock/") and hd["pinned"] and hd["bottomBtns"] == 0 and not hd["dates"], hd)
         pv = J("() => { const p = document.querySelector('#earnPanel'); return { mode: p.dataset.mode, minis: p.querySelectorAll('.mini svg').length, secs: [...p.querySelectorAll('.sec[data-chart=\"1\"]')].map(e => e.dataset.sec) }; }")
         ok(f"★ [{tag}] 點公司 → 面板有圖（月營收／獲利／法人／估值至少 3 張）", pv["mode"] == "co" and (pv["minis"] >= 3 or len(pv["secs"]) >= 3), pv)
         lp.click("#earnBack"); lp.wait_for_timeout(150)
@@ -21790,6 +21796,7 @@ def t_cal_1006(pg, b, base):
         # 空白比例：面板最後一個子元素的底 vs 面板底
         gap = J("() => { const p = document.querySelector('#earnPanel'); const k = p.lastElementChild; const pr = p.getBoundingClientRect(), kr = k.getBoundingClientRect(); return (pr.bottom - Math.min(kr.bottom, pr.bottom)) / pr.height; }")
         ok(f"★ [{tag}] 本週重點面板底部空白 < 35%（內容撐滿或可內捲）", gap < 0.35, gap)
+        ok(f"[{tag}] 財經日曆標題列沒有資料日期", not __import__("re").search(r"\d{4}-\d\d-\d\d", text(lp, "#earnCalCard h3")), text(lp, "#earnCalCard h3"))
         ok(f"[{tag}] 頁首沒有單獨的免責框（併進主卡底部一行小字）", J("() => !document.querySelector('#v-earnings > .edisc') && !!document.querySelector('#earnCalCard #earnDisc')"))
         # ---- ETF
         lp.goto(f"{base}#etf", wait_until="domcontentloaded")
@@ -21813,6 +21820,7 @@ def t_cal_1006(pg, b, base):
         ok(f"★ [{tag}] 報酬率期間有 3／5／10 年與「自訂」，自訂時出現起訖兩個日期欄（結束日預設今天）",
            J("() => [...document.querySelectorAll('#etfPerSeg button')].map(b => b.dataset.v).join()") == "3y,5y,10y,custom"
            and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"))
+        ok(f"★ [{tag}] ETF 各卡標題列沒有資料日期（行事曆、報酬率前 5、報酬比較、ETF 一覽）", not __import__("re").search(r"\d{4}-\d\d-\d\d", J("() => ['#etfCalCard','#etfRetTopCard','#etfRetCard','#etfListCard'].map(s => { const h = document.querySelector(s + ' h3'); return h ? h.innerText : ''; }).join(' ')")))
         ok(f"[{tag}] 頁首沒有單獨的免責框", J("() => !document.querySelector('#v-etf > .etfdisc') && !!document.querySelector('#etfBody #etfDisc')"))
         ok(f"[{tag}] 沒有 JS 錯誤", not errs, errs[:2])
     except Exception as e:  # noqa: BLE001
@@ -21862,7 +21870,7 @@ def t_earnings_1005(pg, b, base):
         ok(f"★ [{tag}] 頁頂寫「不構成投資建議」與「沒有用語言模型」", "不構成投資建議" in text(lp, "#earnDisc") and "語言模型" in (J("() => document.querySelector('#earnDisc').title") or ""))
         D = J("() => window.TwEarnings.state.data")
         sub = text(lp, "#earnSub")
-        ok(f"[{tag}] 副標寫資料日與大公司口徑", D["asof"] in sub and "市值前" in sub, sub)
+        ok(f"[{tag}] 副標只寫大公司口徑、不放資料日期（Andy 10-06 全站規則）", "市值前" in sub and not _re.search(r"\d{4}-\d\d-\d\d", sub) and "資料日" not in sub, sub)
         lg = text(lp, "#earnLegend")
         ok(f"★ [{tag}] 圖例分得出公司財報、法說（自辦／受邀）與 FOMC、美國數據，沒有「預估」", all(w in lg for w in ("財報", "法說", "FOMC", "美國數據")) and "預估" not in lg, lg)
         # ---- 2. 月曆
@@ -21964,8 +21972,8 @@ def t_earnings_1005(pg, b, base):
         ok(f"★ [{tag}] 下方「大公司時間表」整張不存在（只留月曆＋右側面板）", count(lp, "#earnListCard, #earnTbl") == 0)
         lp.click("#earnGrid .chip[data-code] >> nth=0"); lp.wait_for_timeout(300)
         row = PM()[1]
-        lp.click("#earnGoStock")
-        ok(f"★ [{tag}] 面板「看個股頁」→ #stock/{row}", wait_until(lp, f"() => location.hash === '#stock/{row}'", 6000), J("() => location.hash"))
+        lp.click("#earnPanel .plink")
+        ok(f"★ [{tag}] 面板標題的股票名稱本身是連結 → #stock/{row}（沒有另外的「看個股頁」鈕）", wait_until(lp, f"() => location.hash === '#stock/{row}'", 6000), J("() => location.hash"))
         lp.go_back(); wait_until(lp, "() => location.hash === '#earnings'", 5000)
         # ---- 8. 單行
         hs = J("() => [...document.querySelectorAll('#earnGrid .chip, #earnPanel .erow')].map(e => Math.round(e.getBoundingClientRect().height)).filter(h => h > 0)")
@@ -21980,7 +21988,7 @@ def t_earnings_1005(pg, b, base):
         sp.route("**/data/earnings.json*", lambda r: r.fulfill(status=404, body="nf"))
         sp.goto(f"{base}#earnings", wait_until="networkidle")
         rd = wait_until(sp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
-        ok(f"★ [{tag}] earnings.json 抓不到 → 退回種子檔、副標寫「種子資料」與資料日", rd == "seed" and "種子資料" in text(sp, "#earnSub") and "資料日" in text(sp, "#earnSub"),
+        ok(f"★ [{tag}] earnings.json 抓不到 → 退回種子檔、副標寫「種子資料」（不放日期）", rd == "seed" and "種子資料" in text(sp, "#earnSub") and "資料日" not in text(sp, "#earnSub"),
            (rd, text(sp, "#earnSub")))
         ok(f"[{tag}] 種子模式月曆照樣有標籤", sp.evaluate("() => document.querySelectorAll('#earnGrid .chip').length") > 0)
     finally:

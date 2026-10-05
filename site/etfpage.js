@@ -210,7 +210,10 @@
 #v-etf .callist .mc svg{width:100%;height:84px;display:block}
 #v-etf .callist .ml{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--ink-3);white-space:nowrap;margin-top:2px}
 #v-etf .callist .ml i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
-#v-etf .callist .pact{display:flex;gap:8px;margin-top:10px}
+#v-etf .callist .ph.stk{position:sticky;top:-8px;z-index:3;background:var(--panel-2);margin:-8px -10px 6px;padding:8px 10px;border-bottom:1px solid var(--line)}
+#v-etf .callist .plink{font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:pointer}
+#v-etf .callist .plink:hover,#v-etf .callist .plink:focus-visible{text-decoration:underline;color:var(--cyan);outline:none}
+#v-etf .callist .ph .btn{flex:none}
 #v-etf .callist tr[data-code].on td{background:var(--panel-3)}
 #v-etf .nmw{display:flex;align-items:center;gap:6px;min-width:0}
 #v-etf .nmw i{width:9px;height:9px;border-radius:2px;flex:none}
@@ -428,8 +431,8 @@
   const statOf = (it) => (S.per === 'custom' ? rangeStats(it) : effSt(it, ((it.stats || {})[perKey()]) || { ok: false, why: '無資料' }));
   function perLabel(short) {
     const st = S.per === 'custom' ? null : ((S.data && S.data.periods) || {})[perKey()];
-    const nm = S.per === 'custom' ? `${S.cfrom || '?'}～${S.cto || '今天'}` : { '3y': '近 3 年', '5y': '近 5 年', '10y': '近 10 年' }[S.per];
-    return st && !short ? `${nm}（${st}～${S.data.asof}）` : nm;
+    const nm = S.per === 'custom' ? '自訂期間' : { '3y': '近 3 年', '5y': '近 5 年', '10y': '近 10 年' }[S.per];
+    return nm;
   }
 
   /* ------------------------------------------------------------------ 1. 卡片清單 */
@@ -460,7 +463,7 @@
   }
   function drawList() {
     const list = items().filter((it) => it.cat === S.cat).sort((a, b) => sortVal(b) - sortVal(a));
-    $('#etfCount').textContent = `${S.cat} ${list.length} 檔${S.data.asof ? '・資料日 ' + S.data.asof : ''}`;
+    $('#etfCount').textContent = `${S.cat} ${list.length} 檔`;
     const g = $('#etfGrid');
     g.innerHTML = list.slice(0, S.shown).map(cardHTML).join('') || '<div class="etfprep">這個分類目前沒有 ETF。</div>';
     $$('.etfc', g).forEach((c) => { c.onclick = () => A().goStock(c.dataset.code); });
@@ -492,7 +495,7 @@
     $$('#etfPopSeg button').forEach((b) => { b.classList.toggle('on', b.dataset.v === S.pop);
       b.onclick = () => { S.pop = b.dataset.v; LS.set('tw.etf.pop', S.pop); drawPop(); }; });
     const P = (S.data && S.data.popular) || {}, wk = P.holders_week || [];
-    $('#etfPopSub').innerHTML = S.pop === 'holders' ? `口徑：集保受益人數 <b>${esc(wk[0] || '?')} → ${esc(wk[1] || '?')}</b> 的增減`
+    $('#etfPopSub').innerHTML = S.pop === 'holders' ? '口徑：集保受益人數<b>週增減</b>'
       : '口徑：<b>近 20 個交易日</b>平均成交值';
     if (S.fallback) { rkPrep(box, '資料準備中：排行要等下一次資料產出（etf.json）後才有。'); return; }
     const key = S.pop === 'holders' ? 'd_holders' : 'tv20';
@@ -562,7 +565,7 @@
     const status = S.fallback ? '資料準備中：配息行事曆要等 ETF 專區資料產出後才有'
       : !cal.length ? '配息資料尚未取得（ETF 除息紀錄回補中）'
         : `${y} 年 ${mo} 月共 ${nIn} 筆除息`;
-    $('#etfCalSub').textContent = S.fallback || !cal.length ? '' : `資料日 ${S.data.asof || ''}`;
+    $('#etfCalSub').textContent = '';
     let cells = WD.map((w) => `<div class="wd">${w}</div>`).join('');
     const start = new Date(first); start.setUTCDate(1 - first.getUTCDay());
     for (let i = 0; i < CAL_ROWS * 7; i++) {
@@ -600,7 +603,7 @@
     $$('.cald.has', box).forEach((c) => { c.onclick = () => { S.code = null; S.day = S.day === c.dataset.d ? null : c.dataset.d; drawCal(); }; });
     $$('#etfCalList tr[data-code]', box).forEach((tr) => { tr.onclick = () => { S.code = tr.dataset.code; drawCal(); }; });
     const bk = $('#etfCodeBack', box); if (bk) bk.onclick = () => { S.code = null; drawCal(); };
-    const gs = $('#etfCodeGo', box); if (gs) gs.onclick = () => A().goStock(gs.dataset.code);
+    $$('#etfCalList .plink', box).forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); A().goStock(a.dataset.code); }; });
     $$('#etfRetTbl tr[data-code]').forEach((tr) => { tr.onclick = () => A().goStock(tr.dataset.code); });
   }
   const COLS = '<colgroup><col><col style="width:56px"><col style="width:80px"><col style="width:58px"><col style="width:162px"></colgroup>';
@@ -617,19 +620,19 @@
     const CGs = window.CalGrid.svg, all = ((S.data && S.data.calendar) || []).filter((e) => e.code === code).sort((a, b) => (a.ex < b.ex ? -1 : 1));
     const it = byCode().get(code) || { name: code };
     const done = all.filter((e) => e.ex <= (S.data.asof || '9999')), L = (done.length ? done : all).slice(-8);
-    const back = '<div class="pact"><button type="button" class="btn small" id="etfCodeBack">← 回清單</button><button type="button" class="btn small" id="etfCodeGo" data-code="' + esc(code) + '">看個股頁 →</button></div>';
-    if (!L.length) return `<div class="ph"><b>${esc(it.name)} ${esc(code)}</b></div><p class="note">近 400 天沒有除息紀錄。</p>${back}`;
+    const head = `<div class="ph stk"><button type="button" class="btn small" id="etfCodeBack">← 回清單</button><a class="plink" href="#stock/${esc(code)}" data-code="${esc(code)}" title="看 ${esc(it.name)} ${esc(code)} 個股頁">${esc(it.name)} ${esc(code)}</a><span class="sp"></span></div>`;
+    if (!L.length) return `${head}<p class="note">近 400 天沒有除息紀錄。</p>`;
     const fills = all.filter((e) => e.fill != null).map((e) => e.fill), avg = fills.length ? Math.round(fills.reduce((a, b) => a + b, 0) / fills.length) : null;
     const last = L[L.length - 1], ys = L.map((e) => (e.y == null ? null : +(e.y * 100).toFixed(2)));
     const bars = CGs.bars(L.map((e) => +e.amt), { color: () => 'var(--amber)', tip: (i) => `${L[i].ex} 配 ${L[i].amt} 元` });
     const ln = CGs.line(ys, { color: 'var(--cyan)', tip: (i) => `${L[i].ex} 當次殖利率 ${ys[i]}%` });
-    return `<div class="ph"><b>${esc(it.name)} <span class="note">${esc(code)}</span></b><span class="sp"></span></div>
+    return `${head}
       <div class="kpis"><div><small>最近一次配息</small><b>${A().fmt.n(last.amt, 3)} 元</b></div><div><small>當次殖利率</small><b>${last.y == null ? '—' : pctU(last.y, 2)}</b></div>
         <div><small>平均填息</small><b>${avg == null ? '—' : avg + ' 天'}</b></div></div>
       <div class="mini"><div class="mk"><b>${L.length} 次</b><small>近期配息</small></div><div class="mc">${CGs.wrap(bars + ln)}
         <div class="ml"><span>${esc(L[0].ex.slice(2))}</span><span><i style="background:var(--amber)"></i>配息　<i style="background:var(--cyan)"></i>殖利率</span><span>${esc(last.ex.slice(2))}</span></div></div></div>
       <table class="et" id="etfCodeTbl">${COLS}${THEAD('除息日')}<tbody>${calRows(L.slice().reverse(), true)}</tbody></table>
-      <p class="note">資料：證交所／櫃買除息紀錄（近 400 天）；殖利率＝配息 ÷ 除息前一日收盤（未除息者用最新收盤估算）。</p>${back}`;
+      <p class="note">資料：證交所／櫃買除息紀錄（近 400 天）；殖利率＝配息 ÷ 除息前一日收盤（未除息者用最新收盤估算）。</p>`;
   }
   function calList(day, L) {
     const wd = WD[new Date(day + 'T00:00:00Z').getUTCDay()];
