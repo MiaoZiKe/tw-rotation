@@ -23333,6 +23333,9 @@ SECTIONS = {
     # ★ 2026-10-04 Andy 截圖 6182 六件：基本面卡版面、逐年同月 Y 軸、本益比（每季）虧損畫負值、大戶頁預設 4 週、
     #   河流圖縮放後控制列消失、題材點擊後下方成員面板拿掉（後兩件另由「題材」與「獲利並排本益比1003」守）
     "個股六修1004":        lambda pg, b, base, code: t_stock_fix_1004(b, base),
+    # ★ 2026-10-06 Andy：甜甜圈「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」——
+    #   全站甜甜圈左圖右圖例（一列一項：色塊｜名稱｜數值｜占比）、卡寬 < 420 才退回圖例在下（DECISIONS #328）
+    "甜甜圈圖例1006":      lambda pg, b, base, code: t_donut_legend_1006(pg, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -35212,7 +35215,8 @@ B29_GP = """() => { const q = (s) => document.querySelector(s);
            cardTitles: [...document.querySelectorAll('#v-industry .gpcard > h5')].map(h => h.innerText.trim()),
            yLabels: bi ? (bi.getOption().yAxis[0].data || []) : [],
            pieRadius: pi ? pi.getOption().series[0].radius : null,
-           pieTitles: pi ? (pi.getOption().title || []).map(t => t.text) : [],
+           // ★ 2026-10-06：中心字 10-05 起是「一個 title、兩段 rich text」（{a|前五大}\n{b|37.3%}），攤平成一行一筆才比得到字
+           pieTitles: pi ? (pi.getOption().title || []).flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n')) : [],
            pieLabelLine: pi ? !!(pi.getOption().series[0].labelLine || {}).show : false,
            barRadius: bo.length ? (bo[0].itemStyle || {}).borderRadius : null,
            zeroAxis: bi ? (bi.getOption().yAxis[0].axisLine || {}) : null,
@@ -35253,6 +35257,8 @@ def t_b29_tabs(pg, base):
 
     # ---------------- ⑦ 被移除的兩塊真的不在 DOM 了，但「法定產業別」還進得去
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    # ★ 2026-10-06：機器忙（load 50 上下）時 2.4 秒還畫不完，分頁列是空的 → 下一行 tabs[0] 整段爆掉、後面的圓餅斷言全沒跑到。等到真的畫出來
+    wait_until(pg, "() => document.querySelectorAll('#chainSwitch button').length > 0 && !!(window.echarts && document.getElementById('gpPie') && echarts.getInstanceByDom(document.getElementById('gpPie')))", 15000)
     gone = pg.evaluate("() => ['chainTiles','indTiles'].filter(id => !!document.getElementById(id))")
     ok("產業鏈總覽卡片與法定產業別卡片都不在 DOM 了", gone == [], gone)
     tabs = pg.evaluate("""() => [...document.querySelectorAll('#chainSwitch button')].map(b => ({
@@ -39805,29 +39811,34 @@ def t_soften(pg, base):
     DONUT = """() => { const el = document.getElementById('gpPie'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
         const o = c.getOption(); const s0 = o.series[0]; const tr = o.series[1];
         const lg = document.getElementById('gpLegend'); const lr = lg ? lg.getBoundingClientRect() : null; const pr = el.getBoundingClientRect();
-        const cols = lg ? getComputedStyle(lg).gridTemplateColumns.split(' ').filter(Boolean).length : 0;
-        const rows = lg ? [...lg.querySelectorAll('.lg')].map(b => { const r = b.getBoundingClientRect(); return { x: Math.round(r.left), fs: parseFloat(getComputedStyle(b).fontSize) }; }) : [];
+        const rows = lg ? [...lg.querySelectorAll('.lg')].map(b => { const r = b.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), fs: parseFloat(getComputedStyle(b).fontSize) }; }) : [];
+        const rich = ((o.title || [])[0] || {}).textStyle || {}; const rr = rich.rich || {};
         return { radius: s0.radius, pad: s0.padAngle, br: (s0.itemStyle || {}).borderRadius, label: (s0.label || {}).show, line: (s0.labelLine || {}).show,
                  scale: ((s0.emphasis || {}).scaleSize), track: tr ? { r: tr.radius, silent: tr.silent } : null,
                  titles: (o.title || []).map(t => ({ text: t.text, fs: (t.textStyle || {}).fontSize })),
-                 legendBelow: !!lr && lr.top >= pr.bottom - 1, cols, xs: [...new Set(rows.map(r => r.x))].length, minFs: Math.min(...rows.map(r => r.fs)),
+                 aFs: (rr.a || {}).fontSize, bFs: (rr.b || {}).fontSize, rich: !!rr.a,
+                 legendRight: !!lr && lr.left >= pr.right - 1, legendBelow: !!lr && lr.top >= pr.bottom - 1,
+                 xs: [...new Set(rows.map(r => r.x))].length, ys: [...new Set(rows.map(r => r.y))].length, minFs: Math.min(...rows.map(r => r.fs)),
                  n: (s0.data || []).length, nLegend: rows.length }; }"""
     for th in ("dark", "light"):
         pg.set_viewport_size({"width": 1440, "height": 950})
         pg.goto(f"{base}#industry", wait_until="networkidle")
         pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        wait_until(pg, "() => !!(window.echarts && document.getElementById('gpPie') && echarts.getInstanceByDom(document.getElementById('gpPie')) && document.querySelector('#gpLegend .lg'))", 15000)   # 機器忙時 2.6 秒還沒畫好（10-06 量到 light／390 讀不到）
         d = pg.evaluate(DONUT)
         if not ok(f"[甜甜圈 {th}] 讀得到產業地圖的成交值占比", bool(d), d):
             continue
-        ok(f"[甜甜圈 {th}] 粗環：內 58%、外 78%", d["radius"] == ["58%", "78%"], d["radius"])
+        # ★ 2026-10-06（甜甜圈圖例1006，DECISIONS #328）：容器改成剛好包住圓的正方形，環放大成內 68%／外 92%（內外比照舊 ≈ 0.74）
+        ok(f"[甜甜圈 {th}] 粗環：內 68%、外 92%（容器＝圓，不再留 22% 空白）", d["radius"] == ["68%", "92%"], d["radius"])
         ok(f"[甜甜圈 {th}] 扇區圓角、縫只有 1～2°（不是大縫）", (d["br"] or 0) > 0 and 0 < (d["pad"] or 0) <= 2, [d["br"], d["pad"]])
         ok(f"[甜甜圈 {th}] 環內側有一圈細軌道（不能點）", bool(d["track"]) and d["track"]["silent"] is True, d["track"])
         ok(f"[甜甜圈 {th}] 不再用引線把標籤拉到圓外", d["label"] is False and d["line"] is False, [d["label"], d["line"]])
-        ok(f"[甜甜圈 {th}] 中心兩行字：小字標題（12～13px）＋大數字（32～36px）",
-           len(d["titles"]) == 2 and 12 <= d["titles"][0]["fs"] <= 13 and 32 <= d["titles"][1]["fs"] <= 36 and "%" in d["titles"][1]["text"], d["titles"])
-        ok(f"[甜甜圈 {th}] 圖例在圖下方、兩欄、每一塊一列、字 ≥ 12px",
-           d["legendBelow"] and d["cols"] == 2 and d["xs"] == 2 and d["nLegend"] == d["n"] and d["minFs"] >= 12, d)
+        # 中心兩行是同一個 title 的兩段 rich text（2026-10-05「圈內文字置中」）：小字 12～13、大數字隨甜甜圈大小 20～34（1440 量到 34）
+        ok(f"[甜甜圈 {th}] 中心兩行字：小字標題（12～13px）＋大數字（20～34px，隨圓的大小）",
+           d["rich"] and len(d["titles"]) == 1 and 12 <= (d["aFs"] or 0) <= 13 and 20 <= (d["bFs"] or 0) <= 34 and "%" in d["titles"][0]["text"], [d["titles"], d["aFs"], d["bFs"]])
+        ok(f"[甜甜圈 {th}] 圖例在圖右邊、一列一項（每塊一列、各列同一個 x）、字 ≥ 12px",
+           d["legendRight"] and d["xs"] == 1 and d["ys"] == d["nLegend"] and d["nLegend"] == d["n"] and d["minFs"] >= 12, d)
         ok(f"[甜甜圈 {th}] 滑到扇區會外擴（≤ 4px）", 0 < (d["scale"] or 0) <= 4, d["scale"])
         if th == "dark":
             # 真滑鼠滑到第一塊扇區 → 中心換成那一塊的名字；滑開 → 回到「前五大」
@@ -39837,19 +39848,20 @@ def t_soften(pg, base):
                 return { x: r.left + L.cx + Math.cos(a) * rr, y: r.top + L.cy + Math.sin(a) * rr,
                          name: c.getOption().series[0].data[0].name }; }""")
             pg.mouse.move(pt["x"], pt["y"]); pg.wait_for_timeout(700)
-            t1 = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('gpPie')).getOption().title.map(t => t.text)")
+            t1 = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('gpPie')).getOption().title.flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'))")
             ok("[甜甜圈] 滑到扇區 → 中心換成那一塊的名字與百分比", t1[0] == pt["name"] and "%" in t1[1], [t1, pt["name"]])
-            ok("[甜甜圈] 滑到扇區 → 下方圖例那一列一起亮", pg.evaluate("(n) => { const b = document.querySelector('#gpLegend .lg.on'); return !!b && b.dataset.n === n; }", pt["name"]))
+            ok("[甜甜圈] 滑到扇區 → 右邊圖例那一列一起亮", pg.evaluate("(n) => { const b = document.querySelector('#gpLegend .lg.on'); return !!b && b.dataset.n === n; }", pt["name"]))
             pg.mouse.move(5, 5); pg.wait_for_timeout(700)
-            t2 = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('gpPie')).getOption().title.map(t => t.text)")
+            t2 = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('gpPie')).getOption().title.flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'))")
             ok("[甜甜圈] 滑開 → 中心回到「前五大」", t2[0] == "前五大", t2)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
-    # 390：兩張卡上下疊、圖例仍然兩欄、沒有橫向捲軸
+    # 390：兩張卡上下疊、卡寬 < 420 → 圖例退回圖下方（仍一列一項）、沒有橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 844})
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    wait_until(pg, "() => !!(window.echarts && document.getElementById('gpPie') && echarts.getInstanceByDom(document.getElementById('gpPie')) && document.querySelector('#gpLegend .lg'))", 15000)
     d = pg.evaluate(DONUT)
     if ok("[甜甜圈 390] 讀得到", bool(d), d):
-        ok("[甜甜圈 390] 圖例在圖下方、兩欄、字 ≥ 12px", d["legendBelow"] and d["cols"] == 2 and d["minFs"] >= 12, d)
+        ok("[甜甜圈 390] 卡寬 < 420 → 圖例在圖下方、一列一項、字 ≥ 12px", d["legendBelow"] and d["ys"] == d["nLegend"] and d["minFs"] >= 12, d)
         ok("[甜甜圈 390] 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
     # 同一頁左邊的「族群漲跌幅」長條：負值標籤寫在左端外側之後，要有自己的位置，不准壓到族群名。
     # 改前（main 3748ade，390px 量到 6 對）：「HBM 高頻寬記憶體」×「-3.3%」、「矽光子與 CPO」×「-3.1%」
@@ -42367,7 +42379,9 @@ def t_chainmap_overlay(pg, base):
 #   標題與第一個分頁的左緣都在畫面內；另外甜甜圈的圓心要在容器正中（改前：5 檔時上半截被切掉）。
 GP_POS = """() => { const d = document.documentElement, t = document.getElementById('gpTitle'), tab = document.querySelector('#chainSwitch button');
   const pe = document.getElementById('gpPie'), pi = window.echarts && pe && echarts.getInstanceByDom(pe);
-  let cy = null; try { const o = pi.getOption(); cy = o.series[0].center[1]; } catch (e) {}
+  // ★ 2026-10-06：圓心改讀 ECharts 排好的像素（getItemLayout）。center 從 2026-10-05 起寫 '50%'，
+  //   舊寫法讀到字串 '50%' 再 float() 會整段爆掉（main 上這一段因此一直是「操作中途爆掉」）。
+  let cy = null; try { cy = pi.getModel().getSeriesByIndex(0).getData().getItemLayout(0).cy; } catch (e) {}
   return { sx: scrollX, sw: d.scrollWidth, cw: d.clientWidth, bsl: document.body.scrollLeft,
     titleL: t ? Math.round(t.getBoundingClientRect().left) : null, title: t ? t.innerText : '',
     tabL: tab ? Math.round(tab.getBoundingClientRect().left) : null,
@@ -50393,6 +50407,158 @@ def t_stock_tabjump_1004(pg, base):
                 on = pg.evaluate("() => (document.querySelector('#stockTabs button.on') || {}).dataset.t")
                 ok(f"★ {T} {W}px {code} {nm}：分頁列 top 前後差 ≤ 2px（{t0} → {t1}）、分頁真的換了", abs(t1 - t0) <= 2 and on == to, (t0, t1, on, h0))
     pg.set_viewport_size({"width": 1440, "height": 1000})
+
+
+# ===================================================================== 2026-10-06：甜甜圈左圖右圖例（DECISIONS #328）
+# Andy 原話：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」。
+# 全站普查（grep echarts type:'pie' 與自製 SVG 甜甜圈）：前台只有產業地圖／每條產業鏈／族群下鑽共用的「成交值占比」（#gpPie）；
+#   #admin 的 SVG 甜甜圈在 claude/style-guide 分支改、不在這一段。
+# 驗：① 每張甜甜圈：卡寬 ≥ 420 → 圖例 left ≥ 圓 right（用 ECharts 自己排好的外半徑算，不是容器框）；< 420 → 圖例 top ≥ 圓 bottom
+#     ② 一列一項、色塊 12×12、成交值與占比靠右對齊（每列右緣同一條 x）、占比／成交值一個字都沒被截斷、名稱沒被擠時也不截斷
+#     ③ 甜甜圈邊長 ≥ 160、並排時兩張卡等高、中心大數字放得進內圈、沒有橫向捲軸
+#     ④ 真人操作：滑過圖例一列 → 中心換字、那一塊描邊變粗、移開還原；點一列 → 真的鑽進族群（圖例換成個股，排法照樣對）、← 回到族群
+#     ⑤ 不重新整理直接把視窗 1440 → 840 → 1440：圖例在右 → 在下 → 在右（ResizeObserver 那條路；840 仍是兩欄、右卡約 390 < 420）
+#     ⑥ 普查守門：前台主要分頁的 ECharts 圓餅只准有 #gpPie；新的圓餅出現就紅（要先照這條規格做）
+DN1006 = """() => { const pe = document.getElementById('gpPie'); const c = pe && window.echarts && echarts.getInstanceByDom(pe); if (!c) return null;
+  const dat = c.getModel().getSeriesByIndex(0).getData(); if (!dat.count()) return null;
+  const L = dat.getItemLayout(0), pr = pe.getBoundingClientRect();
+  const circ = { l: pr.left + L.cx - L.r, r: pr.left + L.cx + L.r, t: pr.top + L.cy - L.r, b: pr.top + L.cy + L.r, d: L.r * 2, d0: L.r0 * 2 };
+  const card = pe.closest('.gpcard'), cr = card.getBoundingClientRect(), lg = document.getElementById('gpLegend'), lr = lg.getBoundingClientRect();
+  // 欄位不存在（例如改前的版本沒有 .vl）也要量得下去 —— 反向驗證時才看得到「哪一條斷言紅」，不是整段爆掉
+  const Z = { left: 0, right: 0, top: 0, width: 0, height: 0 }, R = e => e ? e.getBoundingClientRect() : Z, cut = e => !e || e.scrollWidth > e.clientWidth + 0.5;
+  const rows = [...lg.querySelectorAll('.lg')].map(b => { const q = s => b.querySelector(s); const pc = q('.pc'), vl = q('.vl'), nm = q('.nm'), i = q('i');
+    return { n: b.dataset.n, top: Math.round(R(b).top), h: Math.round(R(b).height), pcR: Math.round(R(pc).right), vlR: Math.round(R(vl).right),
+      iW: Math.round(R(i).width), iH: Math.round(R(i).height), pcTxt: pc ? pc.textContent : '', vlTxt: vl ? vl.textContent : '',
+      pcCut: cut(pc), vlCut: cut(vl), nmCut: cut(nm),
+      fs: Math.min(...[nm, vl, pc].filter(Boolean).map(e => parseFloat(getComputedStyle(e).fontSize))) }; });
+  const bcr = document.getElementById('gpBar').closest('.gpcard').getBoundingClientRect();
+  // 中心大數字（有 % 的那一段）在畫布上的寬：rich text 每段是一個 TSpan
+  let numW = 0; try { c.getZr().storage.getDisplayList(true).forEach(e => { if (e.style && /%/.test(String(e.style.text || ''))) {
+    const r = e.getBoundingRect().clone(); if (e.transform) r.applyTransform(e.transform); numW = Math.max(numW, r.width); } }); } catch (e) {}
+  const o = c.getOption();
+  return { side: card.classList.contains('dnside'), below: card.classList.contains('dnbelow'), cardW: Math.round(cr.width), cardH: Math.round(cr.height),
+    cardL: cr.left, cardR: cr.right, barCardH: Math.round(bcr.height), twoCol: Math.abs(bcr.top - cr.top) < 2, circ,
+    lg: { l: lr.left, r: lr.right, t: lr.top, b: lr.bottom }, rows, n: o.series[0].data.length, names: o.series[0].data.map(d => d.name),
+    titles: (o.title || []).flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n')), numW, S: pe.clientWidth, Sh: pe.clientHeight,
+    dbg: (window.Industry && window.Industry._gp) ? window.Industry._gp().donut : null,
+    sw: document.documentElement.scrollWidth, iw: innerWidth }; }"""
+
+
+def _dn1006_check(T, d):
+    """一張甜甜圈的排法斷言（①～③）。回傳 d 方便呼叫端接著用。"""
+    if not ok(f"{T} 讀得到甜甜圈與圖例", bool(d) and bool(d.get("rows")), d):
+        return None
+    c, lg = d["circ"], d["lg"]
+    if d["cardW"] >= 420:
+        ok(f"★ {T} 卡寬 {d['cardW']} ≥ 420 → 圖例在右：圖例 left {lg['l']:.0f} ≥ 圓 right {c['r']:.0f}、上下與圓有重疊（同一排）",
+           d["side"] and lg["l"] >= c["r"] - 0.5 and lg["t"] < c["b"] and lg["b"] > c["t"], {"圓": c, "圖例": lg, "side": d["side"]})
+        ok(f"{T} 圖例沒有超出卡片右緣", lg["r"] <= d["cardR"] + 0.5, [lg["r"], d["cardR"]])
+    else:
+        ok(f"★ {T} 卡寬 {d['cardW']} < 420 → 圖例退回圖下方：圖例 top {lg['t']:.0f} ≥ 圓 bottom {c['b']:.0f}",
+           d["below"] and lg["t"] >= c["b"] - 0.5, {"圓": c, "圖例": lg, "below": d["below"]})
+    rows = d["rows"]
+    ok(f"{T} 一列一項（{len(rows)} 列＝{d['n']} 塊，每列各自一行）、色塊 12×12、字 ≥ 12px",
+       len(rows) == d["n"] and len({r["top"] for r in rows}) == len(rows) and all(r["iW"] == 12 and r["iH"] == 12 for r in rows)
+       and min(r["fs"] for r in rows) >= 12, rows)
+    ok(f"★ {T} 占比與成交值沒有被截斷（scrollWidth ≤ clientWidth）、文字有 % 與單位",
+       not any(r["pcCut"] or r["vlCut"] for r in rows) and all(r["pcTxt"].endswith("%") and r["vlTxt"].strip() for r in rows),
+       [(r["n"], r["vlTxt"], r["pcTxt"], r["vlCut"], r["pcCut"]) for r in rows])
+    ok(f"{T} 數字靠右對齊：每列占比右緣同一條 x、成交值右緣同一條 x",
+       max(r["pcR"] for r in rows) - min(r["pcR"] for r in rows) <= 1 and max(r["vlR"] for r in rows) - min(r["vlR"] for r in rows) <= 1,
+       [(r["vlR"], r["pcR"]) for r in rows])
+    if not (d["dbg"] or {}).get("squeezed"):
+        ok(f"{T} 名稱沒被擠（卡夠寬）時一個名稱都不截斷", not any(r["nmCut"] for r in rows), [r["n"] for r in rows if r["nmCut"]])
+    ok(f"{T} 甜甜圈容器是正方形、邊長 ≥ 160（{d['S']}×{d['Sh']}）、外徑 {c['d']:.0f}", d["S"] == d["Sh"] and d["S"] >= 160 and c["d"] >= 140, [d["S"], d["Sh"], c["d"]])
+    ok(f"{T} 中心大數字（寬 {d['numW']:.0f}）放得進內圈（直徑 {c['d0']:.0f}）", 0 < d["numW"] <= c["d0"] - 4, [d["numW"], c["d0"], d["titles"]])
+    if d["twoCol"]:
+        ok(f"{T} 跟長條並排時兩張卡等高（{d['barCardH']} ／ {d['cardH']}）", abs(d["barCardH"] - d["cardH"]) <= 1, [d["barCardH"], d["cardH"]])
+    ok(f"{T} 沒有橫向捲軸", d["sw"] <= d["iw"] + 1, [d["sw"], d["iw"]])
+    return d
+
+
+def t_donut_legend_1006(pg, base, code):
+    T0 = "[甜甜圈圖例1006]"
+    WAIT = "() => { const e = document.getElementById('gpPie'); return !!(window.echarts && e && echarts.getInstanceByDom(e) && document.querySelector('#gpLegend .lg')); }"
+
+    def load(route, w, h=950):
+        pg.set_viewport_size({"width": w, "height": h})
+        pg.goto("about:blank"); pg.goto(f"{base}{route}", wait_until="networkidle")
+        wait_until(pg, WAIT, 9000); pg.wait_for_timeout(700)      # ResizeObserver 下一幀的重排
+        return pg.evaluate(DN1006)
+
+    # ---- ①～③ 每張甜甜圈 × 各寬度（並排／單欄、在右／在下都要走到）
+    seen = {}
+    for route, widths in (("#industry", (1920, 1440, 1100, 900, 840, 800, 390)),
+                          ("#industry/semiconductor/overview", (1440, 1100)),
+                          ("#industry/software/overview", (1440, 390)),
+                          ("#industry/industry", (1280,))):
+        for w in widths:
+            d = _dn1006_check(f"{T0} {route} {w}px", load(route, w))
+            if d:
+                seen[(route, w)] = "右" if d["side"] else "下"
+    ok(f"{T0} 真的走過「圖例在右」與「圖例在下」兩種（不是只量到一種）",
+       "右" in seen.values() and "下" in seen.values(), seen)
+    notes.append("甜甜圈圖例1006 各寬度排法：" + "、".join(f"{r} {w}→{v}" for (r, w), v in seen.items()))
+
+    # ---- ④ 真人操作：滑過圖例一列、點一列鑽進族群、回到族群（1440 與 390 各一次）
+    for w in (1440, 390):
+        T = f"{T0} [{w}px 操作]"
+        d0 = load("#industry", w, 900 if w > 400 else 844)
+        if not d0:
+            ok(f"{T} 讀得到", False); continue
+        first = next((r["n"] for r in d0["rows"] if r["n"] != "其他"), None)
+        if w > 400 and first:
+            sel = f'#gpLegend .lg[data-n="{first}"]'
+            pg.locator(sel).scroll_into_view_if_needed(); pg.hover(sel); pg.wait_for_timeout(600)
+            st = pg.evaluate("""(n) => { const c = echarts.getInstanceByDom(document.getElementById('gpPie')); const o = c.getOption();
+                const it = o.series[0].data.find(x => x.name === n); const on = document.querySelector('#gpLegend .lg.on');
+                return { t: o.title.flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n')), bw: it && it.itemStyle ? it.itemStyle.borderWidth : null, on: on ? on.dataset.n : null }; }""", first)
+            ok(f"★ {T} 滑過圖例「{first}」→ 中心換成它的名字與占比、那一塊描邊 1→3、那一列亮起來",
+               st["t"][0] == first and "%" in st["t"][1] and st["bw"] == 3 and st["on"] == first, st)
+            pg.mouse.move(5, 5); pg.wait_for_timeout(600)
+            st2 = pg.evaluate("() => ({ t: echarts.getInstanceByDom(document.getElementById('gpPie')).getOption().title.flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n')), on: !!document.querySelector('#gpLegend .lg.on') })")
+            ok(f"{T} 移開 → 中心回到「前五大」、沒有一列亮著", st2["t"][0] == "前五大" and not st2["on"], st2)
+        if first:
+            names0 = d0["names"]
+            click(pg, f'#gpLegend .lg[data-n="{first}"]', 1400)
+            pg.wait_for_timeout(500)
+            d1 = pg.evaluate(DN1006)
+            drilled = pg.evaluate("() => !document.getElementById('gpBack').hidden && /這個族群的個股/.test(document.getElementById('gpTitle').innerText)")
+            ok(f"★ {T} 點圖例「{first}」→ 真的鑽進族群（← 回到族群出現、圖例換成個股）",
+               drilled and bool(d1) and d1["names"] != names0, {"前": names0, "後": d1 and d1["names"]})
+            _dn1006_check(f"{T} 下鑽後", d1)
+            click(pg, "#gpBack", 1200); pg.wait_for_timeout(500)
+            d2 = pg.evaluate(DN1006)
+            ok(f"{T} 按「← 回到族群」→ 圖例回到族群", bool(d2) and d2["names"] == names0, d2 and d2["names"])
+
+    # ---- ⑤ 不重新整理，直接拉視窗：1440（在右）→ 840（兩欄、右卡 < 420，在下）→ 1440（在右）
+    T = f"{T0} [拉視窗]"
+    a = load("#industry", 1440)
+    pg.set_viewport_size({"width": 840, "height": 950}); pg.wait_for_timeout(1200)
+    b2 = pg.evaluate(DN1006)
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(1200)
+    c2 = pg.evaluate(DN1006)
+    ok(f"★ {T} 1440 在右 → 縮到 840 變成在下 → 拉回 1440 又在右（沒有重新整理）",
+       bool(a and b2 and c2) and a["side"] and b2["below"] and c2["side"],
+       {k: v and (v["cardW"], v["side"], v["S"]) for k, v in (("1440", a), ("840", b2), ("回1440", c2))})
+    if b2:
+        _dn1006_check(f"{T} 縮到 840 之後", b2)
+    if a and c2:
+        ok(f"{T} 拉回 1440 後甜甜圈邊長回到原值（{a['S']} → {c2['S']}）", abs(a["S"] - c2["S"]) <= 1, [a["S"], c2["S"]])
+
+    # ---- ⑥ 普查守門：前台主要分頁的 ECharts 圓餅只准是 #gpPie；也不准冒出別的「donut」元件（#v-admin 除外）
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    census = {}
+    for r in ("#overview", "#flow", "#market", "#industry", "#heatmap", "#season", "#etf", "#watch", "#explore", f"#stock/{code}"):
+        pg.goto("about:blank"); pg.goto(f"{base}{r}", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        census[r] = pg.evaluate("""() => { const out = [];
+            document.querySelectorAll('[_echarts_instance_]').forEach(el => { const c = echarts.getInstanceByDom(el); if (!c) return;
+              const s = (c.getOption() || {}).series || []; if (s.some(x => x.type === 'pie')) out.push(el.id || el.className || '?'); });
+            document.querySelectorAll('[class*="donut"]').forEach(el => { if (!el.closest('#v-admin') && !el.classList.contains('gpdonut')) out.push('donut:' + el.className); });
+            return out; }""")
+    bad = {r: [x for x in v if x != "gpPie"] for r, v in census.items() if any(x != "gpPie" for x in v)}
+    ok(f"★ {T0} 普查：前台 {len(census)} 個分頁的圓餅／甜甜圈只有 #gpPie（新圓餅要先照左圖右圖例做，再加進這一段）", not bad, {"其他圓餅": bad, "全部": census})
+    notes.append("甜甜圈圖例1006 普查：" + "；".join(f"{r}={v or '無'}" for r, v in census.items()))
 
 if __name__ == "__main__":
     raise SystemExit(main())

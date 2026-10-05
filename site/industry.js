@@ -330,6 +330,16 @@
     const PIE_TOP = 5;
     const PIE_OTHER = '其他';
     let pieTopNames = [], pieTopShare = 0, pieOtherN = 0;
+    /* ★ 2026-10-06 Andy：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」。
+       改前：圖例在圖下方兩欄，甜甜圈的高＝長條高 − 圖例高 —— 族群少的鏈（長條只有 320 高）甜甜圈被擠到約 184px，
+       而且名稱與數字隔一整張卡寬。改後：甜甜圈在左、圖例一列一項在右（色塊｜名稱｜成交值｜占比），
+       甜甜圈是正方形，邊長＝「卡片扣掉圖例後的寬」與「卡片可用高」取小（兩欄並排時可用高＝長條高，所以會跟卡高一起放大）。
+       卡寬（含框）< 420 才退回「圖例在下」——那時右邊放不下圖例又留得下 160 的圓。
+       ⚠ 甜甜圈邊長下限 160（＝ --chart-donut）：右邊放圖例後若剩不到 160，就讓圖例的名稱欄縮（省略＋滑過看全名），
+         數字欄永遠不縮。 */
+    const DN_MIN = 160, DN_SIDE_MIN = 420, DN_GAP = 16, DN_GAP_V = 8, DN_CAP1 = 340;
+    const DN_R_IN = 68, DN_R_OUT = 92;   // 環：內 68%、外 92%（容器現在剛好包住圓，不必再留 22% 空白；內外比照舊 58／78 ≈ 0.74）
+    let dnS = 0, dnBarH = 0;             // 甜甜圈邊長、長條圖高（layoutDonut 的輸入）
 
     /* 標題列只放「標題 ＋ 兩顆鈕」，說明另起一行 ——
        說明擺在同一列的話，長文字會把左邊那一格撐滿，右邊的「即時」被擠到下一行去，
@@ -349,10 +359,13 @@
       <!-- ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」）：兩張圖各自裝進一張有標題的卡片。
            以前兩張圖裸放在同一片背景上、中間沒有分界 —— 沒有容器，圖就像貼在牆上，
            而且「左邊在講什麼、右邊在講什麼」要靠讀說明才知道。標題直接寫在各自的卡片上。 -->
+      <!-- ★ 2026-10-06 Andy：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」—— 甜甜圈與圖例包成一個 .gpdonut：
+           預設圖左、圖例右（一列一項）；卡寬 < 420 由 layoutDonut 切成 .dnbelow（圖例退回圖下方）。 -->
       <div class="gpgrid">
         <div class="gpcard"><h5>族群漲跌幅</h5><div id="gpBar" class="chart"></div></div>
-        <div class="gpcard"><h5>成交值占比</h5><div id="gpPie" class="chart"></div>
-          <div class="gplegend" id="gpLegend" aria-label="圖例"></div></div>
+        <div class="gpcard gppie"><h5>成交值占比</h5>
+          <div class="gpdonut"><div id="gpPie" class="chart"></div>
+          <div class="gplegend" id="gpLegend" aria-label="圖例"></div></div></div>
       </div>
       <div class="sub" id="gpFocus" style="margin-top:8px"></div>
       ${ctx.tail ? `<div class="linkrow gptail">${ctx.tail}</div>` : ''}`;
@@ -627,25 +640,98 @@
     /* 甜甜圈中心兩行字（標題＋大數字）。top 用像素算：圓心在 cy，兩行字的總高約 52px。*/
     /* ★ 2026-10-05 Andy：「圈內文字置中」—— 以前兩段 title 用像素 top（cy-30／cy-10）疊，容器後來被撐高、或字的行高不同，
        整塊字就偏上。改成一個 title、兩行 rich text、top:'middle' ＋ 圓心也用 '50%'，不管容器怎麼變都跟圓心對齊。cy 參數保留不用（呼叫端不必改）。 */
+    /* ★ 2026-10-06（圖例搬到右邊之後甜甜圈的大小跟著卡片變）：中心字跟著圓的大小縮放 ——
+       圓最小 160 時內圈只剩約 109px，34px 的「37.3%」（約 102px）會頂到環上。
+       大數字＝邊長 × 0.115（夾在 20～34），小字標題的框不超過內圈的 86%（放不下的名字省略，全名在右邊圖例那一列）。*/
     function pieCenter(cy, t1, t2) {
       const ff = 'Noto Sans TC, sans-serif';
+      const S = dnS || 300, inner = S * DN_R_IN / 100;
+      const bFs = Math.round(Math.max(20, Math.min(34, S * 0.115))), aFs = S < 220 ? 12 : 12.5;
       return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
         textStyle: { rich: {
-          a: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, lineHeight: 20, width: 120, align: 'center' },
-          b: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: A.MONO, lineHeight: 40, align: 'center' } } } }];
+          a: { color: CH.ink3, fontSize: aFs, fontWeight: 400, fontFamily: ff, lineHeight: 20,
+            width: Math.round(Math.min(120, inner * 0.86)), align: 'center', overflow: 'truncate', ellipsis: '…' },
+          b: { color: CH.ink, fontSize: bFs, fontWeight: 700, fontFamily: A.MONO, lineHeight: Math.round(bFs * 1.18), align: 'center' } } } }];
     }
-    /* 圖下方兩欄的圖例：● 名稱 ＋ 百分比（等寬、靠右）。滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick。*/
+    /* 中心字「現在該寫什麼」：滑到某一塊＝那一塊的名字與占比，沒滑＝前五大合計（setHi 與 layoutDonut 共用）*/
+    function pieTitleNow() {
+      const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
+      const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
+      const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
+      return hd ? pieCenter(0, hd.name, A.fmt.n(hd.value / tot * 100, 1) + '%') : pieCenter(0, '前五大', A.fmt.n(pieTopShare, 1) + '%');
+    }
+    /* ★ 2026-10-06 Andy：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」。
+       圖例改成一列一項：色塊｜名稱｜成交值｜占比（四欄用 CSS subgrid 對齊，數字等寬、靠右、不截斷）。
+       滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick（「其他」只看不點）。*/
     function paintLegend() {
       const el = $('#gpLegend', host); if (!el) return;
       const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
-      el.innerHTML = pieData.map(d => `<button type="button" class="lg${d.name === PIE_OTHER ? ' other' : ''}" data-n="${A.fmt.esc(d.name)}" title="${A.fmt.esc(d.name)}">`
-        + `<i style="background:${(d.itemStyle || {}).color || CH.ink3}"></i><span class="nm">${A.fmt.esc(d.name)}</span>`
-        + `<span class="pc">${A.fmt.n(d.value / tot * 100, 1)}%</span></button>`).join('');
+      el.innerHTML = pieData.map(d => {
+        const pc = A.fmt.n(d.value / tot * 100, 1) + '%', vl = A.fmt.yi(d.value);
+        return `<button type="button" class="lg${d.name === PIE_OTHER ? ' other' : ''}" data-n="${A.fmt.esc(d.name)}" title="${A.fmt.esc(d.name)}：成交值 ${vl}（${pc}）">`
+          + `<i style="background:${(d.itemStyle || {}).color || CH.ink3}"></i><span class="nm">${A.fmt.esc(d.name)}</span>`
+          + `<span class="vl">${vl}</span><span class="pc">${pc}</span></button>`;
+      }).join('');
       $$('.lg', el).forEach(bn => {
         bn.onmouseenter = () => setHi(bn.dataset.n);
         bn.onmouseleave = () => setHi(null);
         bn.onclick = () => { if (bn.dataset.n !== PIE_OTHER) onPick(bn.dataset.n); };
       });
+    }
+    /* 甜甜圈與圖例的排法（★ 2026-10-06）。輸入只有四個：卡寬（格線決定，不受內容影響）、是不是跟長條並排、
+       長條圖高（paint 給）、圖例自己的寬高 —— 輸出（甜甜圈邊長）不會回頭改到輸入，所以 ResizeObserver 再叫一次也只會得到同一個答案，不會來回抖。
+       · 卡寬 ≥ 420：圖例在右。邊長＝min(卡內寬 − 圖例寬 − 16, 可用高)；可用高＝並排時的長條高（卡片本來就跟長條一樣高）、上下疊時 340。
+         剩不到 160 → 邊長 160、圖例的名稱欄讓出（max-width），數字欄不讓。
+       · 卡寬 < 420：圖例在下（.dnbelow）。邊長＝min(卡內寬, 並排時「長條高 − 圖例高 − 8」／上下疊時 340)，下限 160（但不超過卡內寬）。
+       回傳邊長有沒有變。*/
+    function layoutDonut() {
+      const card = pieEl.closest('.gpcard'), lg = $('#gpLegend', host), barCard = barEl.closest('.gpcard');
+      if (!card || !lg || !card.isConnected) return false;
+      const cr = card.getBoundingClientRect();
+      if (!(cr.width > 0)) return false;
+      const twoCol = !!barCard && Math.abs(barCard.getBoundingClientRect().top - cr.top) < 2;
+      const side = cr.width >= DN_SIDE_MIN;
+      card.classList.toggle('dnside', side); card.classList.toggle('dnbelow', !side);
+      const cs = getComputedStyle(card);
+      const cw = card.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      lg.style.maxWidth = '';
+      const lr = lg.getBoundingClientRect();
+      const barH = dnBarH || barEl.clientHeight || 320;
+      let S, lgMax = '';
+      if (side) {
+        let wAvail = cw - lr.width - DN_GAP;
+        if (wAvail < DN_MIN) { wAvail = DN_MIN; lgMax = Math.max(0, Math.floor(cw - DN_MIN - DN_GAP)) + 'px'; }
+        S = Math.max(DN_MIN, Math.min(wAvail, twoCol ? barH : DN_CAP1));
+      } else {
+        S = Math.min(cw, Math.max(DN_MIN, Math.min(cw, twoCol ? barH - lr.height - DN_GAP_V : DN_CAP1)));
+      }
+      S = Math.max(1, Math.floor(S));
+      lg.style.maxWidth = lgMax;
+      const changed = S !== dnS;
+      if (changed || pieEl.style.width !== S + 'px') { pieEl.style.width = S + 'px'; pieEl.style.height = S + 'px'; }
+      dnS = S;
+      card.dataset.dn = (side ? 'side' : 'below') + ':' + S;
+      gpDbg.donut = { side, S, twoCol, cardW: Math.round(cr.width), legendW: Math.round(lr.width), squeezed: !!lgMax };
+      return changed;
+    }
+    /* 卡片寬度變了（拉視窗、側欄收合、跨過 820 由兩欄變一欄）→ 重排甜甜圈。延到下一幀做，免得在 ResizeObserver 回呼裡
+       改尺寸觸發「ResizeObserver loop」錯誤；重排之後中心字依新邊長重寫（尺寸變了才寫）。
+       字型晚到（Noto Sans TC 從 Google Fonts 下載）會讓圖例變寬但卡寬不變 —— 所以也盯著圖例本身。*/
+    if (window.ResizeObserver) {
+      let raf = 0;
+      const ro = new ResizeObserver(() => {
+        if (!pieEl.isConnected) { ro.disconnect(); return; }
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          if (!pieEl.isConnected || !dnBarH) return;
+          if (!layoutDonut()) return;
+          const pi = window.echarts && echarts.getInstanceByDom(pieEl);
+          if (pi && !pi.isDisposed()) { try { pi.resize(); pi.setOption({ title: pieTitleNow() }); } catch (e) { /* 正在被銷毀 */ } }
+        });
+      });
+      const pc = pieEl.closest('.gpcard'), lg0 = $('#gpLegend', host);
+      if (pc) ro.observe(pc);
+      if (lg0) ro.observe(lg0);
     }
 
     /* 兩圖連動。**刻意用 setOption 改真的樣式**，而不是只送 highlight 事件：
@@ -675,13 +761,9 @@
          反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
       const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
       if (pi) {
-        const ph2 = pieEl.clientHeight || parseFloat(pieEl.style.height);   // 跟 paint 同一個口徑：真正的高度
-        const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
-        const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
         pi.setOption({
-          // 中心：滑到某一塊就寫它的名字與百分比，滑開回到「前五大 xx%」
-          title: hd ? pieCenter(Math.round(ph2 * 0.5), hd.name, A.fmt.n(hd.value / tot * 100, 1) + '%')
-            : pieCenter(Math.round(ph2 * 0.5), '前五大', A.fmt.n(pieTopShare, 1) + '%'),
+          // 中心：滑到某一塊就寫它的名字與百分比，滑開回到「前五大 xx%」（字級跟著甜甜圈邊長，見 pieCenter）
+          title: pieTitleNow(),
           series: [{ data: pieData.map(d => ({ ...d,
             itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? 3 : 1, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
       }
@@ -718,15 +800,13 @@
       const b = build();
       const n = Math.max(barData.length, 6);
       const h = Math.max(320, Math.min(660, n * 26 + 56));
-      /* ★ 2026-09-24 甜甜圈改版：圖例搬到圖下方（兩欄），圖本身讓出那一塊，兩張卡片仍然一樣高。*/
-      const legRows = Math.ceil(Math.min(6, (pieData.length || 1)) / 2);
-      const legH = legRows * 24 + 12;
-      /* 窄畫面兩張卡上下疊（.gpgrid ≤820px 單欄），這時甜甜圈不必跟長條一樣高 ——
-         跟長條一樣高的話 390px 上甜甜圈上下各空出一大片（截圖量到約 200px 的空白）。改成「寬多少、高就差不多多少」。*/
-      const stacked = (() => { try { return window.matchMedia('(max-width:820px)').matches; } catch (e) { return false; } })();
-      const pw = pieEl.clientWidth || 360;
-      const pieH = stacked ? Math.min(Math.max(220, h - legH), Math.max(240, Math.round(pw * 0.86))) : Math.max(220, h - legH);
-      barEl.style.height = h + 'px'; pieEl.style.height = pieH + 'px';
+      /* ★ 2026-10-06：甜甜圈改成「圖左、圖例右」—— 邊長交給 layoutDonut（依卡寬、長條高、圖例寬算），
+         圖例要先畫出來才量得到寬，所以 paintLegend 提到這裡（改前在畫完圓餅之後）。
+         改前的「圖例在下兩欄、甜甜圈高＝長條高 − 圖例高、窄畫面寬多少高就多少」整段由 layoutDonut 取代。*/
+      barEl.style.height = h + 'px';
+      dnBarH = h;
+      paintLegend();
+      if (!layoutDonut() && !dnS) { pieEl.style.width = pieEl.style.height = DN_MIN + 'px'; dnS = DN_MIN; }   // 卡片還沒排版：先給下限，ResizeObserver 會補
       backBtn.hidden = !drill;
       /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
          改前：右上工具列一顆「怎麼看 ?」膠囊鈕，點了在卡片裡就地展開一整塊說明（把兩張圖往下推）。
@@ -831,13 +911,11 @@
              平常寫「前五大」與它們的合計；滑到某一塊就換成那一塊的名字與百分比（setHi 裡改），滑開還原
            · 標籤**不再用引線拉到圓外**，改成圖下方兩欄的圖例（HTML，#gpLegend），名字不會跟引線搶位置
            · 滑到扇區：外擴 4px（emphasis.scaleSize），動畫 200ms
-         W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。*/
-      /* ★ 2026-09-26 晚：圓心要用**容器真正的高度**，不能用上面寫進 style 的那個值。
-         .gpgrid .chart 有 min-height:360px（窄畫面 320），個股層級只有 5 檔時 style 算出來是 236px，
-         容器實際卻是 360px —— 以前拿 236 的一半（118）當圓心，外半徑卻依 360 算，甜甜圈的上半截被切掉、整個偏上。
-         讀 clientHeight 會逼一次排版，但上面剛改過高度，這一次本來就躲不掉。*/
-      const ph = pieEl.clientHeight || parseFloat(pieEl.style.height) || h;
-      const cy = Math.round(ph * 0.5);
+         W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。
+         ★ 2026-10-06：圖例搬到右邊、一列一項（見 layoutDonut）；容器改成剛好包住圓的正方形，環放大成內 68%、外 92%
+           （改前 58／78 是因為容器比圓大、要留白；外擴 4px 仍在 92% 之內：邊長 160 時外半徑 73.6＋4 < 80）。
+           圓心照舊用 '50%'（2026-09-26 晚：容器高與 style 不一致會切掉上半截 —— 現在 #gpPie 的 min-height 已歸零、寬高都由 layoutDonut 寫死）。*/
+      const cy = Math.round((pieEl.clientHeight || dnS || h) * 0.5);
       A.chart(pieEl, {
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
           const d = items.find(x => x.name === p.name);
@@ -846,18 +924,17 @@
             + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
         title: pieCenter(cy, '前五大', A.fmt.n(pieTopShare, 1) + '%'),
         animationDurationUpdate: 200,
-        series: [{ type: 'pie', radius: ['58%', '78%'], center: ['50%', '50%'], minAngle: 2, padAngle: 1.2,
+        series: [{ type: 'pie', radius: [DN_R_IN + '%', DN_R_OUT + '%'], center: ['50%', '50%'], minAngle: 2, padAngle: 1.2,
           avoidLabelOverlap: false, cursor: 'pointer', label: { show: false }, labelLine: { show: false },
           itemStyle: { borderRadius: 6 },
           emphasis: { scale: true, scaleSize: 4, label: { show: false } },
           data: pieData },
         // 環內側的細軌道：只是一圈底，不能點、沒有提示框、不參與連動
-        { type: 'pie', radius: ['55%', '55.8%'], center: ['50%', '50%'], silent: true, animation: false,
+        { type: 'pie', radius: [(DN_R_IN - 3) + '%', (DN_R_IN - 2.2) + '%'], center: ['50%', '50%'], silent: true, animation: false,
           label: { show: false }, labelLine: { show: false }, tooltip: { show: false }, emphasis: { disabled: true },
           itemStyle: { borderRadius: 0 },
           data: [{ name: '_track', value: 1, itemStyle: { color: A.hexA(CH.ink3, .22) } }] }],
       }, { notMerge: true });
-      paintLegend();
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
       /* 兩張圖的容器剛改過高度：當場對齊一次，不等下一幀的 ResizeObserver —— 不然這一幀甜甜圈的外半徑還是舊高度算的 */
@@ -876,7 +953,7 @@
       paintFocus();
       gpDbg = { mode: drill ? 'stock' : 'group', rows: barData.length, live: live,
         capHi: capHi, capLo: capLo, capped: barData.filter(d => d.capped).map(d => ({ name: d.name, raw: d.raw, shown: d.value })),
-        hi: null, liveCalls: gpDbg.liveCalls, drill: drill ? drill.id : null };
+        hi: null, liveCalls: gpDbg.liveCalls, drill: drill ? drill.id : null, donut: gpDbg.donut || null };
     }
 
     /* ★ 2026-09-25 效能（perf-2）：這一塊（族群總覽）在「選了一張剖析圖」時是藏起來的（#gpSec hidden，跟剖析圖互斥），
