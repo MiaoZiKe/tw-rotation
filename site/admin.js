@@ -108,7 +108,7 @@
 #v-admin .pmcats.card{gap:0;padding:0;overflow:hidden;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
 #v-admin .pmcats.card .pmcat{padding:12px 16px;box-shadow:1px 0 0 color-mix(in srgb,var(--line) 70%,transparent),0 1px 0 color-mix(in srgb,var(--line) 70%,transparent);min-width:0}
 #v-admin .pmgrpbox.card{display:block;margin-top:10px}
-#v-admin #pmGrpTtl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#v-admin #pmGrpTtl .pmfold{margin-left:auto}
+#v-admin #pmGrpTtl{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}#v-admin #pmGrpTtl .pmfold{margin-left:auto}
 #v-admin .plchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
 #v-admin .plchips button{height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:13.5px;cursor:pointer}
 #v-admin .plchips button.on{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan);font-weight:700}
@@ -238,6 +238,28 @@
 #v-admin .pmlimpop input.bad{border-color:#ff6b7a}
 #v-admin .pmlimpop button{height:26px;font-size:12px;padding:0 8px;border-radius:6px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
 #v-admin .pmlimpop button.ok{background:var(--cyan);color:#06121f;border-color:transparent}
+/* perm-cards 單行規則（Andy 10-05：「所有文字皆控制在一行內，並且不可以因為功能影響排版」）：
+   ① 開放功能表與 ② 族群觀測共用同一個列元件 —— 固定列高、各欄固定寬、名稱／說明單行省略號（全名在 title），
+   撥開關或設次數前後列的位置大小不變。 */
+#v-admin .pmcats .pmrow{height:52px;box-sizing:border-box;padding-top:0;padding-bottom:0;align-items:center;overflow:visible}
+#v-admin .pmcats .pmrow.sm{height:36px;gap:8px}
+#v-admin .pmcats .pmrow .pmtx{min-width:0;overflow:hidden}
+#v-admin .pmcats .pmrow .pmtx b{display:flex !important;align-items:center;min-width:0;white-space:nowrap;overflow:hidden}
+#v-admin .pmcats .pmrow .pmtx .nm{min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmcats .pmrow .pmtx small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+#v-admin .pmcats .pmrow .gico{width:16px;height:16px;flex:0 0 16px;margin-right:6px;vertical-align:0}
+#v-admin .pmcats .pmrow .gico svg{width:16px;height:16px}
+#v-admin .pmcats .pmrow>.psw{width:44px;flex:none}
+#v-admin .pmcat .pmfoldhd,#v-admin .pmcat .pmfoldhd>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-admin .pmcat .grpch{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmcathd{flex-wrap:nowrap !important;min-width:0}
+#v-admin .pmcathd h3 small{white-space:nowrap}
+#v-admin .ptwrap .ptabs{flex-wrap:nowrap;overflow:hidden}
+#v-admin .ptwrap .ptabs button{white-space:nowrap;min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+#v-admin .ptwrap .ptabs button>span{overflow:hidden;text-overflow:ellipsis}
+#v-admin .ptlede,#v-admin .pmlegend,#v-admin .ptwrap .use,#v-admin .ptwrap .pmwho,#v-admin .ptwrap .ptwho,#v-admin .ptwrap .secttl,#v-admin .ptwrap .secttl>*,#v-admin .ptwrap h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-admin .pmlegend{flex-wrap:nowrap}#v-admin .pmlegend span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+#v-admin .pmlegend .lg{vertical-align:-1px;margin-right:6px}
 
 #v-admin #pmCats.card:has(.pmrow.wlim){grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))}
 #v-admin .pmrow.wlim{grid-template-columns:auto minmax(0,1fr) auto auto}
@@ -842,7 +864,7 @@
          色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
       const rev = PS.mode === 'member' ? `<span class="pmrevc">${diff ? `<button type="button" class="pmrev" data-rev="${esc(f.id)}" title="還原成範本（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">還原</button>` : ''}</span>` : '';
       const limc = lims ? `<span class="pmlimc">${badge}</span>` : '';
-      return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}${diff ? ' tuned' : ''}${lims ? ' wl' : ''}${f.kind === 'limit' ? ' sel' : ''}${PS.mode === 'member' ? ' wr' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${compact ? grpIcon(f) : ''}<span class="pmnm">${esc(f.name)}</span></b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div>${limc}${rev}${pop}</div>`;
+      return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}${diff ? ' tuned' : ''}${lims ? ' wl' : ''}${f.kind === 'limit' ? ' sel' : ''}${PS.mode === 'member' ? ' wr' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx" title="${esc(f.name)}${f.desc ? '：' + esc(f.desc) : ''}"><b>${compact ? grpIcon(f) : ''}<span class="pmnm nm">${esc(f.name)}</span></b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div>${limc}${rev}${pop}</div>`;
     }).join('');
   }
   function paintCats() {
@@ -883,6 +905,8 @@
     if (gbox) gbox.onclick = (e) => box.onclick(e);
     if (gbox) gbox.onkeydown = (e) => box.onkeydown(e);
     const ttl = v.querySelector('#pmGrpTtl'); if (ttl) ttl.onclick = (e) => box.onclick(e);
+    /* 單行規則：放不下就省略號，全文放在 title（滑過看得到）*/
+    v.querySelectorAll('.ptwrap .use, .ptwrap .pmwho, .pmlegend span, .ptlede, .pmcathd h3, .grpch .pmfoldhd').forEach((el) => { if (!el.title) el.title = el.textContent.trim(); });
     box.onchange = (e) => {
       if (e.target.closest('[data-lim]')) return;
       const el = e.target.closest('[data-f]'); if (!el) return;

@@ -44260,6 +44260,32 @@ def t_admin_v3(b, base, code):
     pg.mouse.click(5, 5)
     ok(f"{T}：點到別處 → 輸入框收起、回到徽章", bool(wait_until(pg, "() => !document.querySelector('#pmCats input[data-lim]')", 2000)))
     pg.click("#pmCancel")
+    # ★ Andy 10-05：「所有文字皆控制在一行內，並且不可以因為功能影響排版」—— ② 族群觀測與 ① 共用同一個列元件
+    pg.click("#pmExpandAll")
+    wait_until(pg, "() => [...document.querySelectorAll('#pmGrp .grpbody')].every(b => !b.hidden)", 3000)
+    GR = "() => { const c = document.getElementById('pmGrp').getBoundingClientRect(); return [...document.querySelectorAll('#pmGrp .pmrow')].map(r => { const b = r.getBoundingClientRect(); return [Math.round(b.x - c.x), Math.round(b.y - c.y), Math.round(b.width), Math.round(b.height)].join(','); }).join('|'); }"
+    gh = pg.evaluate("() => [...new Set([...document.querySelectorAll('#pmGrp .pmrow')].map(r => Math.round(r.getBoundingClientRect().height)))]")
+    ok(f"{T}：族群觀測展開後每列高度一致", len(gh) == 1 and pg.locator("#pmGrp .pmrow").count() > 50, gh)
+    g0 = pg.evaluate(GR)
+    shot(pg, "0b_grp_rows", "#pmGrp")
+    gid =pg.evaluate("() => document.querySelector('#pmGrp .pmrow').dataset.f")
+    pg.click(f"#pmGrp .pmrow[data-f='{gid}'] label.psw")
+    g1 = pg.evaluate(GR)
+    ok(f"{T}：族群觀測撥開關前後每列位置大小不變、改動列換色條（沒有「未存」「改過」文字）",
+       g1 == g0 and pg.evaluate(f"() => document.querySelector(\"#pmGrp .pmrow[data-f='{gid}']\").classList.contains('dirty')")
+       and not re.search("未存|改過", pg.inner_text("#pmGrp")) and not re.search("未存|改過", pg.inner_text("#pmCats")),
+       [x for x in zip(g0.split('|'), g1.split('|')) if x[0] != x[1]][:3])
+    pg.click(f"#pmGrp button[data-limb='{gid}']"); pg.fill(f"#pmGrp input[data-lim='{gid}']", "12")
+    ok(f"{T}：族群觀測用同樣的 44px 次數徽章＋浮出輸入框，設次數前後版面不變、沒有常駐「次/日」輸入框",
+       pg.evaluate(GR) == g0 and pg.locator("#pmGrp input[data-lim]").count() == 1 and "次/日" not in pg.inner_text("#pmGrp")
+       and pg.evaluate("() => [...document.querySelectorAll('#pmGrp button[data-limb]')].every(b => Math.round(b.getBoundingClientRect().width) === 44)"))
+    pg.mouse.click(5, 5)
+    ml = pg.evaluate("""() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small, #ptTier button, .pmcathd h3, .pmlegend span, .ptlede, #pmGrp .pmfoldhd')]
+      .filter(e => e.getClientRects().length && e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).lineHeight || 0) * 1.6 + 2 && e.getClientRects().length >= 1 && getComputedStyle(e).whiteSpace !== 'nowrap')
+      .slice(0, 5).map(e => e.className + ':' + e.textContent.trim().slice(0, 12))""")
+    multi = pg.evaluate("() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small')].filter(e => { const cs = getComputedStyle(e), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5; return cs.whiteSpace !== 'nowrap' || e.getBoundingClientRect().height > lh * 1.5; }).slice(0, 5).map(e => e.textContent)")
+    ok(f"{T}：全部 .nm 名稱、說明、頁籤、卡片標題、圖例都是單行", not ml and not multi and pg.locator("#v-admin .nm").count() > 80, (ml, multi))
+    pg.click("#pmCancel")
     pg.click("#pmCats button[data-limb='stock.ai']")
     ok(f"{T}：點徽章 → 只彈出這一格的小輸入框（留空＝不限）", pg.locator("#pmCats input[data-lim]").count() == 1 and pg.get_attribute("#pmCats input[data-lim='stock.ai']", "placeholder") == "不限")
     shot(pg, "1_perm_guest")
