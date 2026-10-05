@@ -191,7 +191,11 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗會丟例外，忽略 */ } },
   };
 
-  const proxy = () => (ls.get(KEY_PROXY, '') || DEFAULT_PROXY).replace(/\/+$/, '');
+  /* ★ 2026-10-06 即時僅管理者（DECISIONS #326）：不是管理者 → 代理網址一律給空字串。
+     market3.js、livek.js、app.js／industry.js 的族群即時模式全部經過這一支（或 fetchQuotes）拿網址，
+     所以這一行就是「訪客不會打到 quote-proxy／Deno／mis」的網路層保險：就算哪個入口忘了問閘門，也只會拿到「還沒設定來源」。*/
+  const gateOK = () => !!(window.TwLive && window.TwLive.allowed());
+  const proxy = () => (gateOK() ? (ls.get(KEY_PROXY, '') || DEFAULT_PROXY).replace(/\/+$/, '') : '');
   const autoOn = () => ls.get(KEY_ON, '1') === '1';
 
   // ---------------------------------------------------------------- 台北時間
@@ -221,7 +225,9 @@
    * 關掉＝那些格子不查、不改，而且**退回頁面原本的靜態值**（盤後資料）。*/
   /* ★ 2026-10-02 會員功能權限（DECISIONS #288）：「盤中即時（5 秒）」被管理者關掉的人＝所有卡片都當作「即時」關著。
      market3.js（m3On）、livek.js（cardOn）都是問這一支，所以只要這裡一行就全站一致。預設全開，沒載入 perm.js 也是開。*/
-  const permLive = () => !window.TwPerm || window.TwPerm.can('live.tick');
+  /* ★ 2026-10-06（DECISIONS #326）：再加一層「是不是管理者」—— 這支是 cardOn／elOn／tick 的共同入口，
+     market3.js（m3On）、livek.js（cardOn）、總覽摘要卡（ovlCardOn）都經過它，所以非管理者＝所有卡片都當作「即時」關著。*/
+  const permLive = () => gateOK() && (!window.TwPerm || window.TwPerm.can('live.tick'));
   const cardOn = (k) => permLive() && ls.get(KEY_CARD(k), '1') !== '0';
   const keyOf = (el) => { const c = el.closest && el.closest('[data-livekey]'); return c ? c.dataset.livekey : ''; };
   /** 這個元素現在該不該被即時層動到：沒有歸屬卡片的照舊（一律跟著全站自動更新），有歸屬的看那張卡的開關。 */
@@ -625,6 +631,15 @@
     const q = Object.values(state.quotes)[0];
     const el = document.getElementById('liveState');
     if (!el) return;                    // 沒有狀態那顆（例如被別的版面拿掉）就安靜略過，不丟例外
+    /* ★ 2026-10-06（DECISIONS #326）：不是管理者 → 這顆收起來（CSS），版號那行的提示也不提即時報價；只留「有新資料」那顆鈕 */
+    if (!gateOK()) {
+      el.textContent = '—'; el.className = 'livestate off'; el.title = '';
+      const a0 = document.getElementById('asof');
+      if (a0 && a0.dataset.live) { a0.dataset.live = ''; a0.title = a0.dataset.fresh || ''; }
+      const f0 = document.getElementById('freshBtn');
+      if (f0) f0.hidden = !state.fresher;
+      return;
+    }
 
     const intr = isIntraday();
     const way = state.mode === 'sse' ? '推送（SSE）'
@@ -669,7 +684,18 @@
   // ---------------------------------------------------------------- 一輪
   async function tick(manual) {
     if (state.busy) return;
-    if (!permLive()) return;                       // 會員權限關掉即時：不打 mis（DECISIONS #288）
+    /* 會員權限關掉即時（DECISIONS #288）或不是管理者（#326）：不打 mis、不打 Worker。
+       只留「網站重新部署過」的比對 —— 那是同源的 data/meta.json，跟即時報價無關，盤後資料換新版靠它（盤中一分鐘最多一次）。*/
+    if (!permLive()) {
+      if (!manual && document.hidden) return;
+      if (manual || !isIntraday() || Date.now() - state.metaAt >= META_EVERY_MS) {
+        state.metaAt = Date.now();
+        state.busy = true;
+        try { await reloadIfRedeployed(manual); } catch (e) { /* 自己有 try */ } finally { state.busy = false; }
+      }
+      stamp();
+      return;
+    }
     if (manual) {
       // manual＝「再試一次」（以前是按「更新」鈕；鈕 2026-09-24 拿掉了，這條路留給 Live.tick(true) 呼叫端）。
       state.tries = 0; state.slow = false;
@@ -809,6 +835,11 @@
 .livetg-b[aria-pressed="true"]::before{opacity:1}
 .livetg-t{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .livetg.bad .livetg-t,.livetg.stale .livetg-t{color:var(--amber,var(--ink-2))}
+/* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：鈕旁的「HH:MM:SS · 盤後／5秒」「靜態」「重試中」不再顯示。
+   狀態改用鈕的顏色講（style_guide 原則 8「狀態用顏色不用文字」）：開＝紅框、關＝灰、抓不到／太久沒更新＝琥珀框；
+   細節（最後更新時間、節奏、錯誤）本來就寫在鈕的滑鼠提示。.livetg-t 節點留著當機器讀數（驗收與 aria 用），畫面上藏起來。*/
+.livetg .livetg-t{display:none!important}
+.livetg.bad .livetg-b,.livetg.stale .livetg-b{border-color:var(--amber);color:var(--amber)}
 .livetg.mb{margin:0;align-self:stretch}
 .livetg.mb .livetg-b{flex-direction:column;justify-content:center;gap:2px;border-radius:0;border:0;border-left:1px solid var(--line);min-height:44px;padding:0 8px;font-size:12px}
 .livetg.mb .livetg-b::before{display:none}
@@ -843,6 +874,7 @@
       document.querySelectorAll(sp.card).forEach(card => {
         if (card.dataset.livekey !== sp.key) card.dataset.livekey = sp.key;
         if (!sp.at || card.querySelector('.livetg')) return;
+        if (!gateOK()) return;              // 不是管理者：開關整顆不插（CSS 另外也會藏，DECISIONS #326）
         const a = card.querySelector(sp.at);
         if (!a || !a.parentNode) return;
         const tg = makeToggle(sp.key, sp.cls);
@@ -923,8 +955,9 @@
   const Live = {
     tick,
     paint,
-    proxy,                                     // market3.js／livek.js 共用同一組來源
-    taifexProxy: () => TAIFEX_PROXY,            // 台指期優先走的 Deno 代理（market3.js 用）
+    proxy,                                     // market3.js／livek.js 共用同一組來源（非管理者回空字串，DECISIONS #326）
+    allowed: gateOK,                           // 即時僅管理者的閘門（＝TwLive.allowed()，給其他模組少打幾個字）
+    taifexProxy: () => (gateOK() ? TAIFEX_PROXY : ''),   // 台指期優先走的 Deno 代理（market3.js 用；非管理者回空字串）
     /* ★ 2026-09-21：對外開放這一支，給「即時資金去向」批次抓板塊成分股用。
        它要的不是「畫面上看得到的代號」（那是 codesOnScreen 的工作），
        而是一組指定的代號 —— 但 Worker 代理、上市上櫃判定（exch）、

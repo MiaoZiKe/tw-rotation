@@ -363,7 +363,7 @@
       <div class="wladd"><input type="search" id="wlQ" placeholder="加入股票：代號或名稱，例如 2330 或 台積電" autocomplete="off" aria-label="搜尋要加入的股票" value="${esc(P.q)}"><ul class="wlres" id="wlRes"></ul></div>
       <div class="wlmsg" id="wlMsg" ${S.msg ? '' : 'hidden'}>${esc(S.msg)}</div>
       <ul class="wllist" id="wlList"></ul>
-      <div class="wlfoot">只存股票代號與清單名稱，不存張數、成本或損益。點一列進個股頁。</div>`;
+      <div class="wlfoot">只存代號與清單名稱，不存張數、成本或損益。</div>`;
     paintList(); paintRes();
     const ri = document.getElementById('wlRename'); if (ri) { ri.focus(); ri.select(); ri.onblur = () => finishRename(true); }
   }

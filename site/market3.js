@@ -188,6 +188,10 @@
      加權／櫃買的當下值吃 live.js 那一批（零額外請求）照舊每 5 秒；夜盤 60 秒、/futchart 分時節奏都不動。*/
   const MS_FUT_DAY = 15 * 1000;
   const m3On = () => !window.Live || !window.Live.cardOn || window.Live.cardOn('m3');
+  /* ★ 2026-10-06 即時僅管理者（DECISIONS #326）：不是管理者 → 這三張圖整個不碰即時來源
+     （證交所分時檔、台指期日盤／夜盤、Yahoo 1 分線、推送），只畫資料湖的最近交易日（seedLake）＝盤後版本。
+     m3On 經過 live.js 的 cardOn 已經含這個判斷；這支另外擋「mount 那一次／別人呼叫 refresh(true)」那幾條不看 m3On 的路。*/
+  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
   /* ★ 2026-09-29 順手修：`#m3` 寫死在 index.html 的總覽區塊裡，**換到別頁它還在 DOM 裡**（只是 .view 被 display:none）。
      所以以前那句「不在總覽就不用抓」（`!getElementById('m3')`）從來沒成立過 —— 實測在 #market、#flow 也照樣
      每 10 秒打三個分時檔。改成看「畫面上真的看得到」（getClientRects），別頁一律不抓。*/
@@ -1109,6 +1113,7 @@
   }
 
   async function refresh(manual) {
+    if (!liveOK()) return;                               // 不是管理者：不抓任何即時來源（DECISIONS #326；畫面由 seedLake 的資料湖種子撐著）
     if (state.busy) return;
     if (!document.getElementById('m3')) return;          // 版面上根本沒有這一塊
     // 分頁切走就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
@@ -1743,10 +1748,13 @@
     const extra = x.turnover
       ? `成交 ${d.amt != null ? f.n(d.amt / 100, 0) + ' 億' : '—'}`
       : `總量 ${d.vol != null ? f.i(d.vol) + ' 口' : '—'}` + (d.oi != null ? `　未平倉 ${f.i(d.oi)}` : '');
+    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：數字旁的來源膠囊（「最近交易日 10/05」「上次存的 10/05 13:30」
+       「資料湖日線」「Yahoo」「本機暫存」）拿掉 —— 它們講的是「這份數字是哪個時段／哪一天的」。來源併進這排數字原本就有的滑鼠提示
+       （那裡本來就寫資料時間），不另外加圖示。夜盤的「推送／輪詢」小標不是時段，留著。*/
     const tipTxt = `開 ${f.n(d.open, dp)}　高 ${f.n(d.high, dp)}　低 ${f.n(d.low, dp)}　${base} ${f.n(d.prev, dp)}\n${extra}　${when}`
+      + (d.src && d.src !== 'taifex' && !d.night ? `\n來源：${d.src}` : '')
       + (d.night && d.symbol ? `\n夜盤合約 ${d.symbol}` : '');
-    const tag = d.night ? futWayTag()
-      : (d.src && d.src !== 'taifex') ? `<span class="m3-tag" title="證交所分時抓不到，改用備援來源">${f.esc(d.src)}</span>` : '';
+    const tag = d.night ? futWayTag() : '';
     return `<div class="m3-nums" title="${f.esc(tipTxt)}" data-open="${d.open ?? ''}" data-prev="${d.prev ?? ''}">
       <span class="m3-px ${f.cls(chg)}">${f.n(d.last, dp)}</span>
       <span class="m3-chg ${f.cls(chg)}">${chg == null ? '—' : (chg > 0 ? '+' : '') + f.n(chg, dp)} ${f.pct(pct, 2)}</span>${tag}
@@ -1821,9 +1829,9 @@
        以前掛載當下就 draw()：分時還沒回來＋週末有 sessionHint → 直接退去畫日 K，等 refresh 回來才換走勢圖。
        現在：非交易時段先用資料湖最近一個完整交易日的 15 分 K 把走勢圖與數字列種好（seedLake），
        第一幀就是使用者選的模式；第一輪 refresh 也先等種子落地，免得兩邊搶著畫。*/
-    if (!isIntraday()) state.seedP = seedLake();
+    if (!isIntraday() || !liveOK()) state.seedP = seedLake();   // 非管理者：盤中也一樣只種資料湖的最近交易日
     draw();
-    refresh(true);
+    if (liveOK()) refresh(true);
     schedule();
   }
   /* ★ 2026-10-04 晚（Andy 21:19 週日截圖：三張圖卡在「載入中…」；21:20：「有最後一筆數據就存起來，以後打開直接貼上」）。
@@ -1858,7 +1866,7 @@
         const cur = state.data[x.id];
         if (cur && cur.points && cur.points.length) return;
         const a = fromLastday(x, ld && ld[x.id]);
-        const sp = snapGet(x);
+        const sp = liveOK() ? snapGet(x) : null;     // 這台瀏覽器存過的即時分時：只給管理者用（非管理者一律看資料湖那一份）
         let pick = a;
         if (sp && (!a || String(sp.d.date || '') > a.date)) {
           const t = new Date(sp.at).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(5, 16);
@@ -2732,7 +2740,8 @@
         const src = (state.lakeDaily || {})[lakeSym(x)] || [];
         const lastDay = src.length ? String(src[src.length - 1][0]) : '';
         const which = x.id === 'FUT' ? (isNight(x) && !state.lakeBack[key] ? '台指期夜盤日 K' : '台指期日盤日 K') : x.short + '日 K';
-        if (lastDay) says.push(`${which}・資料至 ${el.dataset.todayk ? lastDay.slice(5) + '＋今日即時' : lastDay}`);
+        // ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：只標「是哪一條線」，不再寫「資料至 YYYY-MM-DD（＋今日即時）」
+        if (lastDay) says.push(which);
       }
       if (says.length) el.dataset.fallback = says.join('　·　'); else delete el.dataset.fallback;
     } else {

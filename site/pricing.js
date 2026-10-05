@@ -146,7 +146,8 @@
   const ltxt = (n) => (n === Infinity ? '不限' : n === 0 ? '不能看' : `每日 ${n} 次`);
   function catsOf() {
     const Ft = F(); if (!Ft) return [];
-    return Ft.cats.filter((c) => c.id !== 'grp').map((c) => ({ c, fs: Ft.inCat(c.id).filter((f) => f.kind === 'bool') })).filter((x) => x.fs.length);
+    // adminOnly（盤中即時、1／5／15 分 K，DECISIONS #326）：只有管理者帳號有，不算方案權益
+    return Ft.cats.filter((c) => c.id !== 'grp').map((c) => ({ c, fs: Ft.inCat(c.id).filter((f) => f.kind === 'bool' && !f.adminOnly) })).filter((x) => x.fs.length);
   }
   function summary(p) {
     const Ft = F(); if (!Ft) return { lines: [], q: [], n: 0, total: 0 };
@@ -221,7 +222,8 @@
     ['資金往哪裡跑', '每天盤後整理族群資金流向、輪動時鐘與資金去向，一眼看出錢在追哪一群。'],
     ['產業鏈剖析', '上中下游剖析圖、供應鏈關聯圖，點零件就看得到供應商與個股。'],
     ['個股多週期技術面', 'K 線、多週期同看、營收／獲利／籌碼分頁與規則式 AI 分析。'],
-    ['盤中即時', '盤中報價與分時走勢，自選清單跨裝置同步。'],
+    /* 2026-10-06（DECISIONS #326）：盤中即時只給管理者帳號，不再當成方案權益宣傳（原本這格寫「盤中即時：盤中報價與分時走勢…」）*/
+    ['自選清單同步', '自選清單最多五頁，登入後跨裝置同步。'],
   ];
   function paint() {
     const v = view('v-pricing'); if (!v) return;
@@ -278,7 +280,7 @@
     };
     let rows = '';
     Ft.cats.filter((c) => c.id !== 'grp').forEach((c) => {
-      const fs = Ft.inCat(c.id); if (!fs.length) return;
+      const fs = Ft.inCat(c.id).filter((f) => !f.adminOnly); if (!fs.length) return;   // 只有管理者有的不列（DECISIONS #326）
       rows += `<tr class="cat"><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + fs.map((f) => `<tr data-f="${esc(f.id)}"><td title="${esc(f.desc)}">${esc(f.name)}</td>${plans.map((p) => cell(p, f)).join('')}</tr>`).join('');
     });
     const g = Ft.inCat('grp');

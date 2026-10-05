@@ -122,7 +122,8 @@
     const go = p.querySelector('#fbSend'); if (go) go.onclick = send;
   }
   function body() {
-    if (tab === 'faq') return FAQ.map(([q, a], i) => `<div class="faq" data-i="${i}"><button type="button" aria-expanded="false">${esc(q)}</button><div class="ans">${esc(a)}</div></div>`).join('')
+    // 「即時和盤後差在哪」那一題只給管理者看（data-live-ui，livegate.js 的 CSS 藏；DECISIONS #326）
+    if (tab === 'faq') return FAQ.map(([q, a], i) => `<div class="faq" data-i="${i}"${/「即時」/.test(q) ? ' data-live-ui' : ''}><button type="button" aria-expanded="false">${esc(q)}</button><div class="ans">${esc(a)}</div></div>`).join('')
       + `<p class="note">找不到答案？到「意見反饋」留言，或看 <a href="#pricing">訂閱方案</a>。</p>`;
     if (tab === 'mail') return `<p class="note">寄信給客服（一般 1～2 個工作天內回覆）：</p><a class="mail" id="supMail" href="mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('台股資金輪動儀表板｜客服')}">${SUPPORT_EMAIL}</a>
       <p class="note">付款或方案問題請在信裡註明你登入用的 email。本網站不是證券投資顧問，無法回答個股買賣問題。</p>`;

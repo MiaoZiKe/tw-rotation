@@ -60,3 +60,86 @@ releases:
       - {date: "2026-10-29", ref: "2026 Q3 初值"}
       - {date: "2026-11-25", ref: "2026 Q3 第二次估計"}
       - {date: "2026-12-23", ref: "2026 Q3 第三次估計"}
+
+# ============================================================================
+# 2026-10-06 補：每個 FED／美國數據事件的「是什麼／怎麼看／影響什麼／重要性星級／偏多偏空規則」
+# （Andy：「多補充那消息是什麼、怎麼看、會影響什麼，重要程度用星星備註，符合預期或不符合是利空利多」）
+# 星級是本專案的固定規則（stars 可自行調整，1～5）；措辭一律「市場通常解讀為…」，不是投資建議。
+# 預期值：沒有合法免費來源（金十、Investing.com 等的預期值是商業資料，不抓不抄）→ 頁面不顯示預期值，
+#   偏多／偏空改用「公布值 vs 前值」判斷；前值與公布值是 FRED 實際數字（FRED 抓不到就不顯示，不編）。
+# dir：up_bear＝數字比前值高 → 對台股偏空；up_bull＝比前值高 → 偏多；none＝不判（要看決議內容／預期）。
+# main：公布值取 FRED 快照的哪一項（對應 macro_snapshot 的 key）。
+# links：官方數據連結（新分頁開啟）。FRED 連結一律指向「頁面上那個數字實際用的序列」（macro_snapshot 讀的 ID），
+#   不是名稱相近的別條序列（例：GDP 用實質季增年率 A191RL1Q225SBEA，不是名目 GDP；PCE 看核心 PCEPILFE）。
+#   2026-10-06 WebSearch 逐條確認頁面存在（摘要有標題與內容，未讀原文）：federalreserve.gov/monetarypolicy/fomccalendars.htm、
+#   bls.gov/cpi/、bls.gov/news.release/empsit.nr0.htm（就業報告固定網址）、bea.gov/data/personal-consumption-expenditures-price-index、
+#   bea.gov/data/gdp/gross-domestic-product、fred.stlouisfed.org/series/{DFEDTARU,CPIAUCSL,PAYEMS,UNRATE,PCEPILFE,A191RL1Q225SBEA}。
+# 說明文字依據：聯準會、BLS、BEA 官方對各項數據的定義與一般財經媒體的通用解讀；寫法與星級參考金十數據財經日曆的欄位（星級、前值、預期、公布值、影響），文字自寫。
+# ============================================================================
+info:
+  fomc:
+    links:
+      - {name: 聯準會 FOMC 聲明, url: "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"}
+      - {name: FRED 目標利率, url: "https://fred.stlouisfed.org/series/DFEDTARU"}
+    stars: 5
+    what: 聯準會決定政策利率（聯邦基金利率目標區間），並公布聲明與記者會。
+    how: 市場通常解讀為：降息或偏鴿措辭＝資金面寬鬆；升息或偏鷹措辭＝資金面收緊；比市場預期鷹或鴿才會造成大波動。
+    impact: 美債殖利率、美元、全球風險資產；台股以科技權值與外資動向反應最明顯。
+    dir: none
+    main: policy
+  minutes:
+    links:
+      - {name: 聯準會 FOMC 紀要, url: "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"}
+      - {name: FRED 目標利率, url: "https://fred.stlouisfed.org/series/DFEDTARU"}
+    stars: 3
+    what: 上次利率會議的完整討論紀錄，會後三週公布。
+    how: 市場通常解讀為：紀錄顯示多數委員偏向降息＝偏鴿；顯示擔心通膨＝偏鷹。
+    impact: 美債殖利率、降息預期。
+    dir: none
+    main: policy
+  cpi:
+    links:
+      - {name: BLS CPI, url: "https://www.bls.gov/cpi/"}
+      - {name: FRED CPI, url: "https://fred.stlouisfed.org/series/CPIAUCSL"}
+    stars: 5
+    what: 美國消費者物價指數，每月公布上個月的物價年增率，是最先出爐的通膨數字。
+    how: 市場通常解讀為：年增率高於前值＝通膨黏、降息延後；低於前值＝降息預期升溫。
+    impact: 美債殖利率、美元、美股與台股科技股估值（殖利率上升通常壓抑高本益比族群）。
+    dir: up_bear
+    main: cpi_yoy
+    rule: 公布值（CPI 年增率）高於前值＝對台股偏空；低於前值＝偏多。
+  nfp:
+    links:
+      - {name: BLS 就業報告, url: "https://www.bls.gov/news.release/empsit.nr0.htm"}
+      - {name: FRED 非農, url: "https://fred.stlouisfed.org/series/PAYEMS"}
+      - {name: FRED 失業率, url: "https://fred.stlouisfed.org/series/UNRATE"}
+    stars: 5
+    what: 美國非農新增就業人數（含失業率），每月第一個週五公布。
+    how: 市場通常解讀為：新增就業高於前值＝景氣穩但降息理由減弱；明顯低於前值＝景氣降溫、降息預期升溫，過弱則被解讀為衰退疑慮。
+    impact: 美元、美債殖利率、降息預期。
+    dir: up_bull
+    main: nfp_change
+    rule: 新增就業高於前值＝對台股偏多（景氣穩）；低於前值＝偏空（就業與降息的關係有兩面，僅供參考）。
+  pce:
+    links:
+      - {name: BEA PCE, url: "https://www.bea.gov/data/personal-consumption-expenditures-price-index"}
+      - {name: FRED 核心 PCE, url: "https://fred.stlouisfed.org/series/PCEPILFE"}
+    stars: 4
+    what: 美國 PCE 物價指數，聯準會 2% 通膨目標正式採用的指標。
+    how: 市場通常解讀為：核心 PCE 年增率高於前值＝通膨降溫慢；低於前值＝回到 2% 目標有進展。
+    impact: 降息預期、美債殖利率。
+    dir: up_bear
+    main: core_pce_yoy
+    rule: 核心 PCE 年增率高於前值＝對台股偏空；低於前值＝偏多。
+  gdp:
+    links:
+      - {name: BEA GDP, url: "https://www.bea.gov/data/gdp/gross-domestic-product"}
+      - {name: FRED 實質 GDP, url: "https://fred.stlouisfed.org/series/A191RL1Q225SBEA"}
+    stars: 4
+    what: 美國實質 GDP 季增年率，同一季公布初值、第二次、第三次估計。
+    how: 市場通常解讀為：高於前值＝景氣強、企業獲利基期好；低於前值＝景氣放緩。
+    impact: 美股企業獲利預期、美元、台灣出口訂單的外部需求。
+    dir: up_bull
+    main: gdp
+    rule: 季增年率高於前值＝對台股偏多；低於前值＝偏空。
+  src: 聯準會（federalreserve.gov）、BLS（bls.gov）、BEA（bea.gov）對各項數據的定義；解讀為一般財經媒體的通用說法，無特定單一來源

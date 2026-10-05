@@ -14,6 +14,10 @@
     });
   }
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
+     這支檔裡的即時入口：族群總覽的「即時」鈕、個股週期列的 1分／5分／15分（只有即時來源，非管理者沒有任何資料可畫）。
+     分時（tick）留著：非管理者看的是資料湖 60 分 K 的最近交易日（盤後版本），livek.js 不 attach 輪詢。*/
+  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
   let A;                                   // window.App（app.js 提供）
   /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
      tfAuto＝這次的週期是「預設帶進來的」不是使用者按的：分時真的沒資料時只有這種情況才自動改用日 K；
@@ -146,7 +150,7 @@
        原本標題下那段「這張圖回答／怎麼用」搬進「怎麼看 ?」，卡片只留一行短副標。*/
     el.innerHTML = `<div class="card"><div class="row spread"><h3>整個台股一次看 <button class="howbtn pop" data-how="indheat" type="button" aria-label="整個台股一次看怎麼看">?</button></h3>
       <div class="row" style="gap:8px"><label class="hmctl" title="方塊要不要依產業鏈分組">分組：<select id="indTreeGroup" aria-label="熱力圖分組方式">
-        <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label>${A.hmDate(im.date)}</div></div>
+        <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label></div></div>
       <div class="howtxt" id="how-indheat" hidden>${A.howHTML('這張圖回答：今天全市場的錢分佈在哪幾塊、哪一塊在漲。', [
         '方塊大小＝族群成交值（分組時小鏈至少佔 5%）',
         '顏色＝今日漲跌，紅漲綠跌',
@@ -326,6 +330,16 @@
     const PIE_TOP = 5;
     const PIE_OTHER = '其他';
     let pieTopNames = [], pieTopShare = 0, pieOtherN = 0;
+    /* ★ 2026-10-06 Andy：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」。
+       改前：圖例在圖下方兩欄，甜甜圈的高＝長條高 − 圖例高 —— 族群少的鏈（長條只有 320 高）甜甜圈被擠到約 184px，
+       而且名稱與數字隔一整張卡寬。改後：甜甜圈在左、圖例一列一項在右（色塊｜名稱｜成交值｜占比），
+       甜甜圈是正方形，邊長＝「卡片扣掉圖例後的寬」與「卡片可用高」取小（兩欄並排時可用高＝長條高，所以會跟卡高一起放大）。
+       卡寬（含框）< 420 才退回「圖例在下」——那時右邊放不下圖例又留得下 160 的圓。
+       ⚠ 甜甜圈邊長下限 160（＝ --chart-donut）：右邊放圖例後若剩不到 160，就讓圖例的名稱欄縮（省略＋滑過看全名），
+         數字欄永遠不縮。 */
+    const DN_MIN = 160, DN_SIDE_MIN = 420, DN_GAP = 16, DN_GAP_V = 8, DN_CAP1 = 340;
+    const DN_R_IN = 68, DN_R_OUT = 92;   // 環：內 68%、外 92%（容器現在剛好包住圓，不必再留 22% 空白；內外比照舊 58／78 ≈ 0.74）
+    let dnS = 0, dnBarH = 0;             // 甜甜圈邊長、長條圖高（layoutDonut 的輸入）
 
     /* 標題列只放「標題 ＋ 兩顆鈕」，說明另起一行 ——
        說明擺在同一列的話，長文字會把左邊那一格撐滿，右邊的「即時」被擠到下一行去，
@@ -334,21 +348,24 @@
         <h4 id="gpTitle" style="min-width:0"></h4>
         <div class="row gplive">
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
-          <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
+          <span class="rbar" data-live-ui><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
             title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
-           #gpNote 留在卡片上但只寫「現在看的是昨天收盤還是盤中暫定值」一句 —— 那句不能藏（DECISIONS #252 三）。 -->
+           #gpNote 2026-10-06 起盤後不顯示；即時只寫「成交值估算・涵蓋 N / M 檔」（DECISIONS #329，取代 #252 三「寫出昨天收盤／盤中暫定值」那半句）。 -->
       <div class="howtxt" id="how-gp" hidden><div id="gpHint"></div></div>
-      <div class="note livenote gpnote" id="gpNote"></div>
+      <div class="note livenote gpnote" id="gpNote" hidden></div>
       <!-- ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」）：兩張圖各自裝進一張有標題的卡片。
            以前兩張圖裸放在同一片背景上、中間沒有分界 —— 沒有容器，圖就像貼在牆上，
            而且「左邊在講什麼、右邊在講什麼」要靠讀說明才知道。標題直接寫在各自的卡片上。 -->
+      <!-- ★ 2026-10-06 Andy：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」—— 甜甜圈與圖例包成一個 .gpdonut：
+           預設圖左、圖例右（一列一項）；卡寬 < 420 由 layoutDonut 切成 .dnbelow（圖例退回圖下方）。 -->
       <div class="gpgrid">
         <div class="gpcard"><h5>族群漲跌幅</h5><div id="gpBar" class="chart"></div></div>
-        <div class="gpcard"><h5>成交值占比</h5><div id="gpPie" class="chart"></div>
-          <div class="gplegend" id="gpLegend" aria-label="圖例"></div></div>
+        <div class="gpcard gppie"><h5>成交值占比</h5>
+          <div class="gpdonut"><div id="gpPie" class="chart"></div>
+          <div class="gplegend" id="gpLegend" aria-label="圖例"></div></div></div>
       </div>
       <div class="sub" id="gpFocus" style="margin-top:8px"></div>
       ${ctx.tail ? `<div class="linkrow gptail">${ctx.tail}</div>` : ''}`;
@@ -464,6 +481,7 @@
     });
     const stopTimer = () => { if (gpTimer) { clearInterval(gpTimer); gpTimer = null; } };
     liveBtn.onclick = () => {
+      if (!live && !liveOK()) return;   // 不是管理者：即時打不開（鈕本來就藏著，這裡是第二道，DECISIONS #326）
       live = !live;
       liveBtn.classList.toggle('on', live);
       liveBtn.setAttribute('aria-pressed', live ? 'true' : 'false');
@@ -569,23 +587,21 @@
     }
 
     function paintNote() {
-      const day = ctx.asOf ? `資料日期 ${ctx.asOf}` : '最新一個交易日';
       /* ★ 2026-09-24 說明精簡：這一行只講「現在是哪一種數字」；估算怎麼算、涵蓋率怎麼讀搬進「怎麼看 ?」。
-         ⚠ 即時時「盤中暫定值」「估算」「涵蓋幾檔」三件事**一定留在畫面上**（DECISIONS #252 三：即時是估算，畫面上一定要寫出來）。*/
-      if (!live) {
-        noteEl.innerHTML = `<b>昨天（盤後收盤）</b>　${day}`;
-        return;
-      }
-      if (busy && !q) { noteEl.innerHTML = '<b class="live">即時</b>　抓取中…'; return; }
+         ★ 2026-10-06（Andy 圈了「昨天（盤後收盤）資料日期 2026-10-05」：「這類資訊一律拿掉」，DECISIONS #329）：
+           · 盤後：整行不顯示（不寫昨天、盤後收盤、資料日期）—— 新鮮度看全站資料狀態徽章與頁首時間。
+           · 即時：不寫「⚡ 盤中暫定值」「最後更新 HH:MM:SS」「報價時間」；只留口徑「成交值估算・涵蓋 N / M 檔」
+             （那是口徑不是時段：少了它盤中的成交值會被讀成真實值，#252 三的那一半仍成立）。
+           · 抓取中／抓不到：狀態訊息照留，但不再寫「仍畫 YYYY-MM-DD 收盤值」。*/
+      const put = (html) => { noteEl.innerHTML = html; noteEl.hidden = !html; };
+      if (!live) { put(''); return; }
+      if (busy && !q) { put('<b class="live">即時</b>　抓取中…'); return; }
       if (liveErr) {
-        noteEl.innerHTML = `<b class="bad">即時抓不到報價</b>　${A.fmt.esc(liveErr)}`
-          + `　<span class="muted">仍畫 ${day} 收盤值；再按「即時」關掉</span>`;
+        put(`<b class="bad">即時抓不到報價</b>　${A.fmt.esc(liveErr)}`
+          + '　<span class="muted">再按「即時」關掉</span>');
         return;
       }
-      /* ★ 2026-09-29：每 5 秒一輪之後要讓人看得出「多久更新一次」—— 印最後一次真的拿到報價的台北時間 */
-      const gpHms = gpOkAt ? (window.Live && window.Live.hms ? window.Live.hms(gpOkAt) : new Date(gpOkAt).toTimeString().slice(0, 8)) : '—';
-      noteEl.innerHTML = `<b class="live">⚡ 盤中暫定值</b>　最後更新 <b class="liveat">${gpHms}</b>（台北）　每 5 秒更新（報價 ${A.fmt.esc(liveAt || '—')}）`
-        + `　<span class="warn">成交值估算</span>　涵蓋 ${cov[0]} / ${cov[1]} 檔`;
+      put(`<span class="warn">成交值估算</span>　涵蓋 ${cov[0]} / ${cov[1]} 檔`);
     }
 
     function paintFocus() {
@@ -622,25 +638,98 @@
     /* 甜甜圈中心兩行字（標題＋大數字）。top 用像素算：圓心在 cy，兩行字的總高約 52px。*/
     /* ★ 2026-10-05 Andy：「圈內文字置中」—— 以前兩段 title 用像素 top（cy-30／cy-10）疊，容器後來被撐高、或字的行高不同，
        整塊字就偏上。改成一個 title、兩行 rich text、top:'middle' ＋ 圓心也用 '50%'，不管容器怎麼變都跟圓心對齊。cy 參數保留不用（呼叫端不必改）。 */
+    /* ★ 2026-10-06（圖例搬到右邊之後甜甜圈的大小跟著卡片變）：中心字跟著圓的大小縮放 ——
+       圓最小 160 時內圈只剩約 109px，34px 的「37.3%」（約 102px）會頂到環上。
+       大數字＝邊長 × 0.115（夾在 20～34），小字標題的框不超過內圈的 86%（放不下的名字省略，全名在右邊圖例那一列）。*/
     function pieCenter(cy, t1, t2) {
       const ff = 'Noto Sans TC, sans-serif';
+      const S = dnS || 300, inner = S * DN_R_IN / 100;
+      const bFs = Math.round(Math.max(20, Math.min(34, S * 0.115))), aFs = S < 220 ? 12 : 12.5;
       return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
         textStyle: { rich: {
-          a: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, lineHeight: 20, width: 120, align: 'center' },
-          b: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: A.MONO, lineHeight: 40, align: 'center' } } } }];
+          a: { color: CH.ink3, fontSize: aFs, fontWeight: 400, fontFamily: ff, lineHeight: 20,
+            width: Math.round(Math.min(120, inner * 0.86)), align: 'center', overflow: 'truncate', ellipsis: '…' },
+          b: { color: CH.ink, fontSize: bFs, fontWeight: 700, fontFamily: A.MONO, lineHeight: Math.round(bFs * 1.18), align: 'center' } } } }];
     }
-    /* 圖下方兩欄的圖例：● 名稱 ＋ 百分比（等寬、靠右）。滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick。*/
+    /* 中心字「現在該寫什麼」：滑到某一塊＝那一塊的名字與占比，沒滑＝前五大合計（setHi 與 layoutDonut 共用）*/
+    function pieTitleNow() {
+      const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
+      const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
+      const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
+      return hd ? pieCenter(0, hd.name, A.fmt.n(hd.value / tot * 100, 1) + '%') : pieCenter(0, '前五大', A.fmt.n(pieTopShare, 1) + '%');
+    }
+    /* ★ 2026-10-06 Andy：「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」。
+       圖例改成一列一項：色塊｜名稱｜成交值｜占比（四欄用 CSS subgrid 對齊，數字等寬、靠右、不截斷）。
+       滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick（「其他」只看不點）。*/
     function paintLegend() {
       const el = $('#gpLegend', host); if (!el) return;
       const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
-      el.innerHTML = pieData.map(d => `<button type="button" class="lg${d.name === PIE_OTHER ? ' other' : ''}" data-n="${A.fmt.esc(d.name)}" title="${A.fmt.esc(d.name)}">`
-        + `<i style="background:${(d.itemStyle || {}).color || CH.ink3}"></i><span class="nm">${A.fmt.esc(d.name)}</span>`
-        + `<span class="pc">${A.fmt.n(d.value / tot * 100, 1)}%</span></button>`).join('');
+      el.innerHTML = pieData.map(d => {
+        const pc = A.fmt.n(d.value / tot * 100, 1) + '%', vl = A.fmt.yi(d.value);
+        return `<button type="button" class="lg${d.name === PIE_OTHER ? ' other' : ''}" data-n="${A.fmt.esc(d.name)}" title="${A.fmt.esc(d.name)}：成交值 ${vl}（${pc}）">`
+          + `<i style="background:${(d.itemStyle || {}).color || CH.ink3}"></i><span class="nm">${A.fmt.esc(d.name)}</span>`
+          + `<span class="vl">${vl}</span><span class="pc">${pc}</span></button>`;
+      }).join('');
       $$('.lg', el).forEach(bn => {
         bn.onmouseenter = () => setHi(bn.dataset.n);
         bn.onmouseleave = () => setHi(null);
         bn.onclick = () => { if (bn.dataset.n !== PIE_OTHER) onPick(bn.dataset.n); };
       });
+    }
+    /* 甜甜圈與圖例的排法（★ 2026-10-06）。輸入只有四個：卡寬（格線決定，不受內容影響）、是不是跟長條並排、
+       長條圖高（paint 給）、圖例自己的寬高 —— 輸出（甜甜圈邊長）不會回頭改到輸入，所以 ResizeObserver 再叫一次也只會得到同一個答案，不會來回抖。
+       · 卡寬 ≥ 420：圖例在右。邊長＝min(卡內寬 − 圖例寬 − 16, 可用高)；可用高＝並排時的長條高（卡片本來就跟長條一樣高）、上下疊時 340。
+         剩不到 160 → 邊長 160、圖例的名稱欄讓出（max-width），數字欄不讓。
+       · 卡寬 < 420：圖例在下（.dnbelow）。邊長＝min(卡內寬, 並排時「長條高 − 圖例高 − 8」／上下疊時 340)，下限 160（但不超過卡內寬）。
+       回傳邊長有沒有變。*/
+    function layoutDonut() {
+      const card = pieEl.closest('.gpcard'), lg = $('#gpLegend', host), barCard = barEl.closest('.gpcard');
+      if (!card || !lg || !card.isConnected) return false;
+      const cr = card.getBoundingClientRect();
+      if (!(cr.width > 0)) return false;
+      const twoCol = !!barCard && Math.abs(barCard.getBoundingClientRect().top - cr.top) < 2;
+      const side = cr.width >= DN_SIDE_MIN;
+      card.classList.toggle('dnside', side); card.classList.toggle('dnbelow', !side);
+      const cs = getComputedStyle(card);
+      const cw = card.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      lg.style.maxWidth = '';
+      const lr = lg.getBoundingClientRect();
+      const barH = dnBarH || barEl.clientHeight || 320;
+      let S, lgMax = '';
+      if (side) {
+        let wAvail = cw - lr.width - DN_GAP;
+        if (wAvail < DN_MIN) { wAvail = DN_MIN; lgMax = Math.max(0, Math.floor(cw - DN_MIN - DN_GAP)) + 'px'; }
+        S = Math.max(DN_MIN, Math.min(wAvail, twoCol ? barH : DN_CAP1));
+      } else {
+        S = Math.min(cw, Math.max(DN_MIN, Math.min(cw, twoCol ? barH - lr.height - DN_GAP_V : DN_CAP1)));
+      }
+      S = Math.max(1, Math.floor(S));
+      lg.style.maxWidth = lgMax;
+      const changed = S !== dnS;
+      if (changed || pieEl.style.width !== S + 'px') { pieEl.style.width = S + 'px'; pieEl.style.height = S + 'px'; }
+      dnS = S;
+      card.dataset.dn = (side ? 'side' : 'below') + ':' + S;
+      gpDbg.donut = { side, S, twoCol, cardW: Math.round(cr.width), legendW: Math.round(lr.width), squeezed: !!lgMax };
+      return changed;
+    }
+    /* 卡片寬度變了（拉視窗、側欄收合、跨過 820 由兩欄變一欄）→ 重排甜甜圈。延到下一幀做，免得在 ResizeObserver 回呼裡
+       改尺寸觸發「ResizeObserver loop」錯誤；重排之後中心字依新邊長重寫（尺寸變了才寫）。
+       字型晚到（Noto Sans TC 從 Google Fonts 下載）會讓圖例變寬但卡寬不變 —— 所以也盯著圖例本身。*/
+    if (window.ResizeObserver) {
+      let raf = 0;
+      const ro = new ResizeObserver(() => {
+        if (!pieEl.isConnected) { ro.disconnect(); return; }
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          if (!pieEl.isConnected || !dnBarH) return;
+          if (!layoutDonut()) return;
+          const pi = window.echarts && echarts.getInstanceByDom(pieEl);
+          if (pi && !pi.isDisposed()) { try { pi.resize(); pi.setOption({ title: pieTitleNow() }); } catch (e) { /* 正在被銷毀 */ } }
+        });
+      });
+      const pc = pieEl.closest('.gpcard'), lg0 = $('#gpLegend', host);
+      if (pc) ro.observe(pc);
+      if (lg0) ro.observe(lg0);
     }
 
     /* 兩圖連動。**刻意用 setOption 改真的樣式**，而不是只送 highlight 事件：
@@ -670,13 +759,9 @@
          反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
       const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
       if (pi) {
-        const ph2 = pieEl.clientHeight || parseFloat(pieEl.style.height);   // 跟 paint 同一個口徑：真正的高度
-        const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
-        const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
         pi.setOption({
-          // 中心：滑到某一塊就寫它的名字與百分比，滑開回到「前五大 xx%」
-          title: hd ? pieCenter(Math.round(ph2 * 0.5), hd.name, A.fmt.n(hd.value / tot * 100, 1) + '%')
-            : pieCenter(Math.round(ph2 * 0.5), '前五大', A.fmt.n(pieTopShare, 1) + '%'),
+          // 中心：滑到某一塊就寫它的名字與百分比，滑開回到「前五大 xx%」（字級跟著甜甜圈邊長，見 pieCenter）
+          title: pieTitleNow(),
           series: [{ data: pieData.map(d => ({ ...d,
             itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? 3 : 1, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
       }
@@ -713,15 +798,13 @@
       const b = build();
       const n = Math.max(barData.length, 6);
       const h = Math.max(320, Math.min(660, n * 26 + 56));
-      /* ★ 2026-09-24 甜甜圈改版：圖例搬到圖下方（兩欄），圖本身讓出那一塊，兩張卡片仍然一樣高。*/
-      const legRows = Math.ceil(Math.min(6, (pieData.length || 1)) / 2);
-      const legH = legRows * 24 + 12;
-      /* 窄畫面兩張卡上下疊（.gpgrid ≤820px 單欄），這時甜甜圈不必跟長條一樣高 ——
-         跟長條一樣高的話 390px 上甜甜圈上下各空出一大片（截圖量到約 200px 的空白）。改成「寬多少、高就差不多多少」。*/
-      const stacked = (() => { try { return window.matchMedia('(max-width:820px)').matches; } catch (e) { return false; } })();
-      const pw = pieEl.clientWidth || 360;
-      const pieH = stacked ? Math.min(Math.max(220, h - legH), Math.max(240, Math.round(pw * 0.86))) : Math.max(220, h - legH);
-      barEl.style.height = h + 'px'; pieEl.style.height = pieH + 'px';
+      /* ★ 2026-10-06：甜甜圈改成「圖左、圖例右」—— 邊長交給 layoutDonut（依卡寬、長條高、圖例寬算），
+         圖例要先畫出來才量得到寬，所以 paintLegend 提到這裡（改前在畫完圓餅之後）。
+         改前的「圖例在下兩欄、甜甜圈高＝長條高 − 圖例高、窄畫面寬多少高就多少」整段由 layoutDonut 取代。*/
+      barEl.style.height = h + 'px';
+      dnBarH = h;
+      paintLegend();
+      if (!layoutDonut() && !dnS) { pieEl.style.width = pieEl.style.height = DN_MIN + 'px'; dnS = DN_MIN; }   // 卡片還沒排版：先給下限，ResizeObserver 會補
       backBtn.hidden = !drill;
       /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
          改前：右上工具列一顆「怎麼看 ?」膠囊鈕，點了在卡片裡就地展開一整塊說明（把兩張圖往下推）。
@@ -826,13 +909,11 @@
              平常寫「前五大」與它們的合計；滑到某一塊就換成那一塊的名字與百分比（setHi 裡改），滑開還原
            · 標籤**不再用引線拉到圓外**，改成圖下方兩欄的圖例（HTML，#gpLegend），名字不會跟引線搶位置
            · 滑到扇區：外擴 4px（emphasis.scaleSize），動畫 200ms
-         W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。*/
-      /* ★ 2026-09-26 晚：圓心要用**容器真正的高度**，不能用上面寫進 style 的那個值。
-         .gpgrid .chart 有 min-height:360px（窄畫面 320），個股層級只有 5 檔時 style 算出來是 236px，
-         容器實際卻是 360px —— 以前拿 236 的一半（118）當圓心，外半徑卻依 360 算，甜甜圈的上半截被切掉、整個偏上。
-         讀 clientHeight 會逼一次排版，但上面剛改過高度，這一次本來就躲不掉。*/
-      const ph = pieEl.clientHeight || parseFloat(pieEl.style.height) || h;
-      const cy = Math.round(ph * 0.5);
+         W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。
+         ★ 2026-10-06：圖例搬到右邊、一列一項（見 layoutDonut）；容器改成剛好包住圓的正方形，環放大成內 68%、外 92%
+           （改前 58／78 是因為容器比圓大、要留白；外擴 4px 仍在 92% 之內：邊長 160 時外半徑 73.6＋4 < 80）。
+           圓心照舊用 '50%'（2026-09-26 晚：容器高與 style 不一致會切掉上半截 —— 現在 #gpPie 的 min-height 已歸零、寬高都由 layoutDonut 寫死）。*/
+      const cy = Math.round((pieEl.clientHeight || dnS || h) * 0.5);
       A.chart(pieEl, {
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
           const d = items.find(x => x.name === p.name);
@@ -841,18 +922,17 @@
             + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
         title: pieCenter(cy, '前五大', A.fmt.n(pieTopShare, 1) + '%'),
         animationDurationUpdate: 200,
-        series: [{ type: 'pie', radius: ['58%', '78%'], center: ['50%', '50%'], minAngle: 2, padAngle: 1.2,
+        series: [{ type: 'pie', radius: [DN_R_IN + '%', DN_R_OUT + '%'], center: ['50%', '50%'], minAngle: 2, padAngle: 1.2,
           avoidLabelOverlap: false, cursor: 'pointer', label: { show: false }, labelLine: { show: false },
           itemStyle: { borderRadius: 6 },
           emphasis: { scale: true, scaleSize: 4, label: { show: false } },
           data: pieData },
         // 環內側的細軌道：只是一圈底，不能點、沒有提示框、不參與連動
-        { type: 'pie', radius: ['55%', '55.8%'], center: ['50%', '50%'], silent: true, animation: false,
+        { type: 'pie', radius: [(DN_R_IN - 3) + '%', (DN_R_IN - 2.2) + '%'], center: ['50%', '50%'], silent: true, animation: false,
           label: { show: false }, labelLine: { show: false }, tooltip: { show: false }, emphasis: { disabled: true },
           itemStyle: { borderRadius: 0 },
           data: [{ name: '_track', value: 1, itemStyle: { color: A.hexA(CH.ink3, .22) } }] }],
       }, { notMerge: true });
-      paintLegend();
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
       /* 兩張圖的容器剛改過高度：當場對齊一次，不等下一幀的 ResizeObserver —— 不然這一幀甜甜圈的外半徑還是舊高度算的 */
@@ -871,7 +951,7 @@
       paintFocus();
       gpDbg = { mode: drill ? 'stock' : 'group', rows: barData.length, live: live,
         capHi: capHi, capLo: capLo, capped: barData.filter(d => d.capped).map(d => ({ name: d.name, raw: d.raw, shown: d.value })),
-        hi: null, liveCalls: gpDbg.liveCalls, drill: drill ? drill.id : null };
+        hi: null, liveCalls: gpDbg.liveCalls, drill: drill ? drill.id : null, donut: gpDbg.donut || null };
     }
 
     /* ★ 2026-09-25 效能（perf-2）：這一塊（族群總覽）在「選了一張剖析圖」時是藏起來的（#gpSec hidden，跟剖析圖互斥），
@@ -3916,9 +3996,9 @@
       ${card('相關新聞', `${ns.length} 則`, ns.length ? `<div class="cards">${ns.map(x => `<div class="scard">
           <a href="${A.fmt.esc(x.url || '#')}" target="_blank" rel="noopener">${A.fmt.esc(x.title || '')}</a>
           <div class="r"><span class="muted">${A.fmt.esc(x.date || '')}</span><span class="muted">${A.fmt.esc(x.source || '')}</span></div></div>`).join('')}</div>` : '')}
-      ${card('同族群其他個股', '點進去看完整頁', sibs.length ? `<div class="sibs">${sibs.map(x =>
+      ${card('同族群其他個股', '', sibs.length ? `<div class="sibs">${sibs.map(x =>
           `${A.L.stock(x.code, x.name)}<span class="chg ${A.fmt.cls(x.chg_pct)}">${pct(x.chg_pct, 1)}</span>`).join('')}</div>` : '')}
-      <div class="card" style="margin-top:var(--gap-card)"><div class="note">資料更新到 <b>${A.fmt.esc((A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新）。${A.L.back()}</div></div>`;
+      <div class="muted" style="margin-top:var(--sp-2);font-size:12px">資料更新到 <b>${A.fmt.esc((A.D.meta && A.D.meta.data_date) || '—')}</b>　${A.L.back()}</div>`;
   }
 
   /* ★ 2026-10-02（Andy #stock/3189 截圖三，DECISIONS #293）個股 K 線卡工具列的五顆資訊標籤。
@@ -4091,7 +4171,7 @@
         </div>
         <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b></div>
+        <!-- ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：圖下「資料更新到 YYYY-MM-DD」那行拿掉；新鮮度看全站資料狀態徽章 -->
       </div>
       <!-- #aiCard：只給手機（≤640，mobile v3 分段的「AI 分析」那一段）用的空殼。
            桌機永遠是空的（CSS #aiCard:empty 收掉，不留黑方塊）；手機由 app.js miaStock 把 #skAi 整個節點搬進來，
@@ -4227,7 +4307,9 @@
   const TF_DEFAULT_ON = ['tick', '60m', '240m', '1d', '1w', '1M'];
   // 四週期同看每一格是一張 K 線小圖，分時不是 K 線 → 不列進四格的下拉，也不會被自動挑進去
   function mtfTfList() { const l = tfList().filter(t => t !== 'tick'); return l.length ? l : ['1d']; }
-  function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
+  /* ★ 2026-10-06（DECISIONS #326）：1分／5分／15分只有即時來源（livek.js：Yahoo 1 分 K＋報價尾巴，都經過報價代理），
+     非管理者一律不列 —— 週期列、＋週期設定、四週期下拉都讀這一支，存檔裡選著這三個的人由 ensureTf 退回日線。*/
+  function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return (liveOK() ? TF_BUILTIN : TF_BUILTIN.filter(t => !isLiveTf(t))).concat(c); }
   function tfOnSet() {
     const c = state.cfg || {}, all = tfAll();
     let on = Array.isArray(c.tfOn) ? c.tfOn.filter(t => all.indexOf(t) >= 0) : TF_DEFAULT_ON.concat(c.tfs || []);
@@ -4256,7 +4338,7 @@
         b.classList.add('ticktf');
         b.classList.toggle('off', none);
         b.title = none ? '此檔暫無分時資料（盤中即時報價與最近交易日的分時都拿不到），已改用日 K'
-                       : '分時走勢：盤中是今天，盤後是最近一個交易日；虛線＝昨收';
+                       : liveOK() ? '分時走勢：盤中是今天，盤後是最近一個交易日；虛線＝昨收' : '分時走勢：最近一個交易日（盤後資料）；虛線＝昨收';
         return;
       }
       if (isLiveTf(tf)) {
@@ -5034,10 +5116,10 @@
       state.tickSrc = d.src; state.tickDate = d.date;
       tchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · 分時 · ${d.date}${d.live ? '' : '（非即時）'}`);
       setLiveNote(d.src === 'm60'
-        ? `最近交易日 ${d.date} 的分時：每小時一點（資料湖的 60 分 K，即時來源連不上時的備援）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`
+        ? (liveOK() ? `${d.date} 分時（60 分 K 備援，非即時）` : `${d.date} 分時（盤後資料）`)
         : d.live
           ? tickLiveNote(d)
-          : `最近交易日 ${d.date}（非即時）的分時；今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`);
+          : `${d.date} 分時（非即時，開盤後自動換即時）`);
       const legend = $('#legendOv');
       const rows = tchart.pts;
       const show = (r) => {
@@ -5349,7 +5431,6 @@
       const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf];
       return `<div class="mtf-cell"><div class="cap">
         <select class="mtfsel" data-i="${i}" title="換這一格要看的週期">${opts(tf)}</select>
-        ${isLiveTf(tf) && offDay ? `<span class="mtfoff" title="今天還沒有成交，這一格畫的是最近交易日">${offDay.slice(5)} 非即時</span>` : ''}
         ${t ? `<span style="color:${A.upDown(t.trend)}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
         </div><div class="mtip" id="mtip-${i}" hidden></div><div class="cv" id="mini-${i}"></div></div>`;
     }).join('');
@@ -5721,7 +5802,8 @@
         + mp.parts.map(x => `<div class="mpr" data-k="${x.k}" data-pts="${x.pts.toFixed(2)}"><span>${A.fmt.esc(x.l)}</span><span>${x.v}</span><b class="${x.pts > 0 ? 'up' : x.pts < 0 ? 'down' : ''}">${x.txt}</b></div>`).join('')
         + `${mp.raw > 100 || mp.raw < 0 ? `<div class="mpr cap"><span>加總 ${A.fmt.n(mp.raw, 1)}，夾在 0～100</span><span></span><b>${A.fmt.n(ms, 0)}</b></div>` : ''}</div></div>`;
     }
-    return `<div class="card" id="skFundCard"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small> ${hq('skfund', '基本面')}</h3>${help}<div class="kvs skfund" style="margin-top:8px">`
+    /* 2026-10-06：標題列右側加一行免責（動能分是評分、本益比條有便宜／貴）—— h3 包進 .row.spread 才有「右側」可放 */
+    return `<div class="card" id="skFundCard"><div class="row spread"><h3>基本面 ${hq('skfund', '基本面')}</h3>${A.disc ? A.disc('fund') : ''}</div>${help}<div class="kvs skfund" style="margin-top:8px">`
       + `<div class="fsm">`
       + ks('eps', '近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—', epsQ)
       + ks('roe', 'ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—', pbT)
@@ -5776,8 +5858,10 @@
     const sub = [pct != null ? `${e.pre || '佔'} ${pct}` : '', e.sub || ''].filter(Boolean).map(x => `<span class="nw">${x}</span>`).join('・');
     return `<div class="mixi${e.sell ? ' sell' : ''}" data-k="${k}"${e.attrs || ''} style="--c:${MIX_C[k]}">`
       + `<small>${label}</small><b class="${cls || ''}">${val}</b>${sub ? `<span class="mixsub">${sub}</span>` : ''}</div>`; };
+  /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：小圖標題列的日期（.mixd「09-03～10-02」「09-24」「10-02」）拿掉；
+     dateTxt 參數留著不用（呼叫端三處不必改）。*/
   const mixBox = (key, dateTxt, sumTxt, body) => `<div class="mix" data-mix="${key}"><div class="mixh"><span class="mixt">${CHIP_HELP[key][0]}</span>${mixQ(key)}`
-    + `${dateTxt ? `<span class="mixd" data-readout>${dateTxt}</span>` : ''}${sumTxt ? `<span class="mixs">${sumTxt}</span>` : ''}</div>${body}</div>`;
+    + `${sumTxt ? `<span class="mixs">${sumTxt}</span>` : ''}</div>${body}</div>`;
   const signLot = (v) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + A.fmt.i(Math.abs(v)) + ' 張');
   const pp = (v) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(2) + 'pp');
 
@@ -5793,7 +5877,7 @@
   /* 集保：最新一週 ＋ 比較基準那一週＝34 天內、日期最接近「最新 − 28 天」的那一列（4 週前；遇到休市週可能是 27～34 天）。
      ⚠ 2026-10-02 實測：資料湖的集保週資料目前每一檔都只有 4 筆（09-04～09-24，集保開放資料只給最新一週、從 9 月初才開始累積），
        最早那一筆距最新只有 20 天 —— 硬要「4 週」就永遠是空的。所以基準取「4 週內能拿到的最早一筆」，
-       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化：09-04 → 09-24」），資料滿 4 週之後自動變成「4 週」。
+       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化」；2026-10-06 起不再寫「09-04 → 09-24」兩端日期，DECISIONS #329），資料滿 4 週之後自動變成「4 週」。
        不到 2 週（< 13 天）就不給變化：一週的雜訊太大，寫出來只會被誤讀成趨勢。*/
   function holdMix(pg) {
     const ho = (pg.holders || []).filter(r => r && r[1] != null);
@@ -5851,7 +5935,7 @@
           { attrs: ` data-v="${v[k] != null ? v[k] : ''}" data-ch="${c != null ? c.toFixed(4) : ''}"`, sub: `${hm.weeks || 4} 週 <span class="${c == null ? '' : c > 0 ? 'up' : c < 0 ? 'down' : ''}">${pp(c)}</span>` }); }).join('');
       parts.push(mixBox('hold', md5(L[0]), '<span class="muted">灰＝10～400 張</span>',
         mixBar(segs, `集保持股：≥1,000 張 ${A.fmt.n(v.big, 1)}%、400～1,000 張 ${A.fmt.n(v.mid, 1)}%、≤10 張 ${A.fmt.n(v.ret, 1)}%`)
-        + `<div class="mixn">${items}</div><div class="mixf">${Pv ? `近 ${hm.weeks} 週變化：${md5(Pv[0])} → ${md5(L[0])}${hm.weeks < 4 ? '（集保歷史還不到 4 週）' : ''}` : '週變化：集保歷史不到 2 週'}</div>`));
+        + `<div class="mixn">${items}</div><div class="mixf">${Pv ? `近 ${hm.weeks} 週變化${hm.weeks < 4 ? '（集保歷史還不到 4 週）' : ''}` : '週變化：集保歷史不到 2 週'}</div>`));
     } else parts.push(mixBox('hold', '', '', '<div class="mixf">集保持股資料準備中（每週公布一次）</div>'));
     /* ③ 信用與借券（張）＋ 當沖率 */
     const m = mgLatest(pg);
@@ -5864,7 +5948,7 @@
       const items = mixItem('mb', '融資餘額', pct1(v.mb, tot), A.fmt.i(v.mb) + ' 張', '', { attrs: ` data-v="${v.mb}" data-d="${m.mb.d}" data-pct="${P(v.mb, tot)}"` })
         + mixItem('sb', '融券餘額', m.sb ? pct1(v.sb, tot) : null, m.sb ? A.fmt.i(v.sb) + ' 張' : '—', '', { attrs: ` data-v="${m.sb ? v.sb : ''}" data-d="${m.sb ? m.sb.d : ''}" data-pct="${P(v.sb, tot)}"` })
         + mixItem('sbl', '借券賣出餘額', m.sbl ? pct1(v.sbl, tot) : null, m.sbl ? A.fmt.i(v.sbl) + ' 張' : '—', '',
-          { attrs: ` data-v="${m.sbl ? v.sbl : ''}" data-d="${m.sbl ? m.sbl.d : ''}" data-pct="${P(v.sbl, tot)}"`, sub: m.sbl ? (dTag(m.sbl) ? `資料日 ${md5(m.sbl.d)}` : '') : '資料準備中' });
+          { attrs: ` data-v="${m.sbl ? v.sbl : ''}" data-d="${m.sbl ? m.sbl.d : ''}" data-pct="${P(v.sbl, tot)}"`, sub: m.sbl ? '' : '資料準備中' });
       const ratio = v.mb > 0 && m.sb ? v.sb / v.mb * 100 : null;
       let dtRow = '';
       if (m.dt) {
@@ -5872,7 +5956,7 @@
         const p = dr != null ? Math.max(0, Math.min(100, dr)) : null;
         dtRow = `<div class="mixdt" data-v="${m.dt.v}" data-d="${m.dt.d}" data-r="${dr != null ? dr : ''}"><span class="mixt">${CHIP_HELP.dt[0]}</span>${mixQ('dt')}`
           + `${p != null ? `<div class="meter" style="--p:${p.toFixed(1)}%;--c:var(--amber)" role="img" aria-label="當沖率 ${A.fmt.n(dr, 1)}%"><i></i></div>` : ''}`
-          + `<span class="mixdtv"><b>${p != null ? A.fmt.n(dr, 1) + '%' : '—'}</b> <small>當沖 ${A.fmt.i(m.dt.v)} 張・${md5(m.dt.d)}</small></span></div>`;
+          + `<span class="mixdtv"><b>${p != null ? A.fmt.n(dr, 1) + '%' : '—'}</b> <small>當沖 ${A.fmt.i(m.dt.v)} 張</small></span></div>`;
       }
       parts.push(mixBox('credit', md5(m.mb.d), ratio != null ? `券資比 <b>${A.fmt.n(ratio, 1)}%</b>` : '',
         mixBar(segs, `信用與借券（張）：融資餘額 ${A.fmt.i(v.mb)}、融券餘額 ${A.fmt.i(v.sb)}、借券賣出餘額 ${A.fmt.i(v.sbl)}`)
@@ -5939,7 +6023,7 @@
       + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
     // 2026-10-05：頂部先放技術分析卡（stock_ai.js 的 techCardHTML，與 AI 卡技術面同源），原本的指標卡在其下
     const tech = window.StockAI && window.StockAI.techCardHTML ? window.StockAI.techCardHTML(pg, A.fmt) : '';
-    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
+    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3>${A.disc ? A.disc('tag') : ''}</div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
       ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}
@@ -6637,7 +6721,9 @@
     const yr = (pg.profit || {}).yearly || [];
     const tm = (pg.profit || {}).timing || null;
     const ylab = (y) => y.partial ? `${y.year}（前 ${y.quarters} 季）` : String(y.year);
-    const tmTxt = tm ? (tm.status === 'ok' ? `財報到 ${tm.latest}（至 ${tm.asof} 法定應有到 ${tm.expected}）`
+    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：正常（ok）時副標不再寫「財報到 X（至 YYYY-MM-DD 法定應有到 X）」；
+       只有「法定期限已過卻缺季」「季底還沒到卻有資料」這兩種**資料出錯**的警示留著 —— 那是警告，不是資料日期。*/
+    const tmTxt = tm ? (tm.status === 'ok' ? ''
       : tm.status === 'missing' ? `⚠ 法定期限已過、應有 ${tm.expected}，目前只到 ${tm.latest || '—'}`
       : `⚠ ${tm.latest} 的季底還沒到，資料有誤`) : '';
     /* ★ 2026-10-03（Andy：「本益比（這邊的算法需要新增到獲利那邊）」，DECISIONS #305）：總覽基本面卡的「本益比位置」
@@ -6646,6 +6732,7 @@
     const psProf = `<div class="psprof"><div class="psh">本益比位置 <small>跟自己過去每天的本益比比</small></div>${peStandHTML(peStand(pg), 'peStandProf')}</div>`;
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${lastQ[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${last[2] == null ? "—" : A.fmt.n(last[2], 2) + "%"}</div></div><div class="k"><div class="l">營益率</div><div class="v">${last[3] == null ? "—" : A.fmt.n(last[3], 2) + "%"}</div></div><div class="k"><div class="l">淨利率</div><div class="v">${last[4] == null ? "—" : A.fmt.n(last[4], 2) + "%"}</div></div></div>
       <div class="grid skprof" id="profGrid"><div class="card" id="peRiverCard"><div class="row spread"><h3>本益比河流圖 ${hq('pe', '本益比河流圖')}</h3>
+        <!-- 2026-10-06：免責那一行（A.disc('pe')）排在控制鈕後面：這一列控制鈕很寬，排在中間會把標題與控制鈕擠成三行 -->
         <div class="row" style="gap:10px;align-items:center">
           <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
           <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
@@ -6653,7 +6740,7 @@
           <label class="opabox" title="中間那條收盤線的粗細（1～5px，記在這台瀏覽器）">線寬
             <input id="peLw" type="range" min="1" max="5" step="0.5"><span class="val" id="peLwV"></span></label>
           <button type="button" class="btn small" id="peYReset" hidden title="Y 軸回到自動範圍（在左側價格軸上雙擊也可以）">Y 軸還原</button>
-        </div></div>
+        </div>${A.disc ? A.disc('pe') : ''}</div>
         <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:6px">
           <div id="peLen" title="這張圖一次看多長一段"></div>
           <div id="peEnd" title="截止到哪一天：往回拉看以前的評價，按 ▶ 一天一天播"></div>
@@ -6949,7 +7036,9 @@
     const redraw = () => {
       const dates = chipDates(pg, win);
       const rg = $('#chipRange', el);
-      if (rg) rg.textContent = dates.length ? `${dates[0]} ～ ${dates[dates.length - 1]}，${dates.length} 個交易日` : '';
+      /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：區間鈕旁的「YYYY-MM-DD ～ YYYY-MM-DD，N 個交易日」不再顯示
+         （區間鈕本身寫了 4 週／3 個月）；起訖日改放 data-range 當機器讀數（驗收用），畫面上是空的。*/
+      if (rg) { rg.textContent = ''; rg.dataset.range = dates.length ? `${dates[0]} ～ ${dates[dates.length - 1]}，${dates.length} 個交易日` : ''; }
       el.dataset.win = String(win);
       $$('#chipWin button', el).forEach(b => b.classList.toggle('on', +b.dataset.v === win));
       draw(dates, win);
@@ -7144,7 +7233,7 @@
     /* 設計 v4 2B：三顆色塊（圖例兼開關）從標題下面獨佔的一列（10＋36＋4＝50px）搬進標題列，
        放不下（窄畫面）時整組自己換到下一行，跟改前一樣。id、按鈕、行為都不變。
        DOM 順序是「標題、日期、色塊」：窄的時候先換行的是色塊（日期留在標題那一行），寬的時候 CSS 用 order 把色塊排到中間。*/
-    const body = `<div class="skduo chipduo" id="hoDuo"><div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><small class="note" data-readout>最新 ${A.fmt.esc(last[0])}</small><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
+    const body = `<div class="skduo chipduo" id="hoDuo"><div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
       ${hbox('skho', ['上方色塊＝圖例，按一下隱藏／顯示那一條', '千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
       <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${insNote}</div>${chipTbl('hoTbl', '每週明細', growing)}</div>`;
     /* 設計 v4 2B：手機（≤640）三顆色塊維持改前的位置（標題列下面獨佔一列）—— 手機版面這一批不動。

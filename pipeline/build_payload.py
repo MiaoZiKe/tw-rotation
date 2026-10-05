@@ -642,12 +642,14 @@ def build() -> None:
     # 只讀資料湖（重大訊息、月營收、季損益、法人、新聞、FRED 觀測值與公布日程）＋ pipeline/calendar/macro_events.yaml。
     # 失敗只影響財報日曆；前端讀不到 earnings.json 會退回分支內附的種子檔（site/earnings_seed.json）並標資料日期。
     try:
-        _codes50 = {u["code"] for u in earnings.universe(val, names)}
-        _px50 = price[price["code"].astype(str).isin(_codes50)]
-        _adj50 = price_adj[price_adj["code"].astype(str).isin(_codes50)]
+        _mat = store.read("material_news")
+        # 市值前 50 ＋ 所有有法說事件的公司（2026-10-06：法說會公司不在前 50 也要給分析）
+        _codes = {u["code"] for u in earnings.universe(val, names)} | {e["code"] for e in earnings.mops_events(_mat, set(), conf_all=True)}
+        _px50 = price[price["code"].astype(str).isin(_codes)]
+        _adj50 = price_adj[price_adj["code"].astype(str).isin(_codes)]
         _write("earnings", earnings.build(
             val=val, names=names, latest=latest, price=_px50, price_adj=_adj50, revenue=revenue,
-            financial=financial, inst=inst, news=news_all, material_news=store.read("material_news"),
+            financial=financial, inst=inst, news=news_all, material_news=_mat,
             macro=store.read("macro"), macro_cal=store.read("macro_calendar"), shares=shares))
     except Exception as exc:  # noqa: BLE001
         log.warning("財報日曆產出失敗：%s", exc)
