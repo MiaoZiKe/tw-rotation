@@ -424,6 +424,7 @@
 #v-admin table.memtbl td.c-who .who1 small{display:inline;flex:0 1 auto;min-width:0}
 #v-admin table.memtbl td.c-who .who1 .car{flex:none;margin-right:0}
 #v-admin table.memtbl td.c-who .pdbadge{flex:none;margin-top:0;padding:0 5px;font-size:11px;line-height:16px}
+@media (max-width:640px){#v-admin table.memtbl td.c-who .who1{contain:inline-size}}  /* 窄螢幕：一行的 email 不撐寬表格（超出的省略），避免橫向捲軸 */
 /* 名單的 td small 是 display:block（名字那一行用）；展開明細裡的 small 要照原本的行內排法，不然標題、圖例會掉到下一行 */
 #v-admin table.memtbl .mdet small{display:inline;font-size:inherit}
 #v-admin table.memtbl .mdet .mchart h4 small{font-size:12px}
