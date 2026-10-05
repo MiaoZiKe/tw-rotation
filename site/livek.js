@@ -671,7 +671,10 @@
       state.histDone = false;
       state.prevClose = null; state.name = ''; state.fails = 0; state.lastErr = '';
       lastRawAt = 0; nextTry = 0;                   // 換股票：上一檔吃過的那一列、退避時間都不算數
-      load();
+      /* ★ 2026-10-06 即時僅管理者（DECISIONS #326）：不是管理者 → 不讀這台瀏覽器存過的今天 5 秒序列、不輪詢、不打 Yahoo。
+         poll() 問 cardOn（live.js 的 permLive 含閘門）、loadHistory() 拿不到代理網址（Live.proxy() 回空字串），
+         所以下面照常走完只會得到「沒有即時來源」（histErr）＋ settled —— 個股頁的分時會立刻改用資料湖的 60 分 K，不會等 8 秒。*/
+      if (window.TwLive && window.TwLive.allowed()) load();
       startTimer();
       await poll();
       await loadHistory();

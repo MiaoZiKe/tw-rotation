@@ -22,10 +22,6 @@
   const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const App = () => window.App || {};
-  const LS = {
-    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } },
-  };
   const ok = (v) => v != null && isFinite(v);
   const n1 = (v, d) => (ok(v) ? Number(v).toFixed(d == null ? 1 : d) : '—');
   const MIN_TV = 10;          // 近 20 日平均成交值下限（百萬元）
@@ -52,8 +48,8 @@
   /* ★ 2026-10-05 第四版（Andy：「需要分成以下大族群：基本面、技術面、籌碼面、消息面」）：
      原本 7 類（基本／估值／成長／技術／籌碼／股利／動能）收成 4 大面向。估值與股利併入基本面、
      動能（60 日漲幅、帶量上漲）併入技術面；消息面是新的一類。第 4 欄是區段標題下那行「這一區在回答什麼」。 */
+  /* ★ 2026-10-06（Andy：「全部分頁拿掉」）：只留四個面向，預設基本面；重新整理一律回基本面（不讀 localStorage）。 */
   const CATS = [
-    ['all', 'All', '全部', ''],
     ['fund', 'Fundamentals', '基本面', '公司本身賺不賺、成長快不快、價格貴不貴、配息穩不穩'],
     ['tech', 'Technicals', '技術面', '股價走勢與成交量：趨勢有沒有站穩、量有沒有跟上'],
     ['chip', 'Positioning', '籌碼面', '誰在買：法人、千張大戶、融資散戶的部位怎麼變'],
@@ -179,7 +175,7 @@
   const OPS = { '>=': (a, b) => a >= b, '<=': (a, b) => a <= b, '>': (a, b) => a > b };
 
   /* ---------------- 狀態與資料 ---------------- */
-  const ST = { cat: (CATS.some((c) => c[0] === LS.get('tw.explore.cat')) && LS.get('tw.explore.cat')) || 'all', tags: [], dd: false, open: {}, info: {} };
+  const ST = { cat: 'fund', tags: [], dd: false, open: {}, info: {} };
   const HAVE = { ex: false, cand: false, streak: false, inst: false, theme: false };
   let R = [], RBY = {}, built = false, DATES = {};
 
@@ -300,9 +296,9 @@
     if (!ST.ddDoc) { ST.ddDoc = true; document.addEventListener('pointerdown', (e) => { if (ST.dd && !e.target.closest('.sl-ddw')) { ST.dd = false; paintChips(); } }, true); }
   }
   function paintChips() {
-    const cnt = (c) => S_.filter((s) => c === 'all' || s.cat === c).length;
+    const cnt = (c) => S_.filter((s) => s.cat === c).length;
     $('#slChips').innerHTML = CATS.map(([k, en, zh]) => `<button type="button" class="sl-chip${ST.cat === k ? ' on' : ''}" data-cat="${k}" role="tab" aria-selected="${ST.cat === k}" title="${esc(en)}">${esc(zh)} <em>${cnt(k)}</em></button>`).join('');
-    const tags = [...new Set(S_.filter((s) => ST.cat === 'all' || s.cat === ST.cat).flatMap((s) => s.tags))];
+    const tags = [...new Set(S_.filter((s) => s.cat === ST.cat).flatMap((s) => s.tags))];
     /* 分類＝資料夾分頁（沿用產業地圖的 .nbsw，Andy 10-05「上方的標籤改用分頁…統一」）；
        子標籤＝一顆下拉多選（Andy 10-05「子標籤用下拉式清單篩選」）：只列目前分頁的子標籤，勾選即篩、可清除，按鈕一行不換行。
        多選是「任一符合」—— 勾越多張卡越多，跟一般電商篩選一致。 */
@@ -346,7 +342,7 @@
   /* ★ 第四版：卡片牆依四大面向分區 —— 每區一個區段標題（名稱＋這區在回答什麼＋幾個策略）＋該區卡片（三欄、同寬同高）。
      點晶片只留那一區；「全部」就四區依序排。某區被子標籤篩到 0 張就整區不畫（不留空標題）。 */
   function paintGrid() {
-    const cats = ST.cat === 'all' ? CATS.slice(1) : [CBY[ST.cat] || CATS[1]];
+    const cats = [CBY[ST.cat] || CATS[0]];
     $('#slGrid').innerHTML = cats.map(([k, en, zh, q]) => {
       const list = S_.filter((s) => s.cat === k && (!ST.tags.length || ST.tags.some((t) => s.tags.includes(t))));
       if (!list.length) return '';
@@ -434,7 +430,7 @@
 
   /* ---------------- 互動 ---------------- */
   function onClick(e) {
-    const ch = e.target.closest('.sl-chip'); if (ch) { ST.cat = ch.dataset.cat; ST.tags = []; ST.dd = false; LS.set('tw.explore.cat', ST.cat); paintChips(); paintGrid(); return; }
+    const ch = e.target.closest('.sl-chip'); if (ch) { ST.cat = ch.dataset.cat; ST.tags = []; ST.dd = false; paintChips(); paintGrid(); return; }
     if (e.target.closest('#slTagDd')) { ST.dd = !ST.dd; paintChips(); return; }
     const tg = e.target.closest('input[data-tag]');
     if (tg) { const t = tg.dataset.tag; ST.tags = tg.checked ? [...ST.tags, t] : ST.tags.filter((x) => x !== t); paintChips(); paintGrid(); return; }

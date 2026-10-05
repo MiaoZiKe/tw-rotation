@@ -70,7 +70,7 @@ def test_重大訊息分出法說會_受邀_董事會_已公布_並排除更正(
     got = {(e["code"], e["k"], e["d"]) for e in ev}
     assert got == {("2330", "conf", "2026-10-15"), ("3711", "invite", "2026-09-22"),
                    ("2383", "board", "2026-10-28"), ("2454", "report", "2026-08-12")}
-    assert all(e["status"] == "公告" and "t187ap04" in e["src"] for e in ev)
+    assert all(e["status"] == "公告" and "重大訊息" in e["src"] and "t187ap" not in e["src"] for e in ev)
     assert next(e for e in ev if e["code"] == "2383")["q"] == "2026Q3"
 
 
@@ -163,15 +163,18 @@ def test_本次財報看點_季內月營收合計():
     rows = E._cols(_rev([10, 10, 10, 10, 10, 10, 50, 50]), "monthly")   # 7、8 月有資料
     s = E.section_focus(rows, [], "2026Q3")
     assert "已公布 7、8 月營收" in s["lines"][0] and "+50.0%" in s["lines"][0]
-    assert "還沒有公布" in E.section_focus([], [], "2026Q3")["lines"][0]
+    # 2026-10-06（Andy：否定說明一律刪、資料缺段落不顯示）：月營收與財報都沒有 → 整段不出現
+    assert E.section_focus([], [], "2026Q3") is None
 
 
-def test_估值位置_百分位與少於8季不排():
+def test_估值位置_百分位_少於8季不排_虧損整段不顯示():
     hist = [{"pe": v} for v in range(10, 30)]          # 20 季：10～29 倍
     s = E.section_valuation(28.5, hist, 100.0, "2026-10-02")
     assert s["pos"] == 95 and "偏高" in s["lines"][1]
-    assert E.section_valuation(20, hist[:5], 100.0, "2026-10-02")["pos"] is None
-    assert "不計算本益比" in E.section_valuation(None, hist, 100.0, "2026-10-02")["lines"][0]
+    few = E.section_valuation(20, hist[:5], 100.0, "2026-10-02")
+    assert few["pos"] is None and not any("少於" in t or "只有" in t for t in few["lines"])   # 不寫「少於 8 季不排」
+    assert E.section_valuation(None, hist, 100.0, "2026-10-02") is None    # 近四季 EPS 非正 → 整段不顯示
+    assert E.section_valuation(-3.0, hist, 100.0, "2026-10-02") is None
 
 
 def test_分析文字不含買賣建議用語():
@@ -209,12 +212,15 @@ def test_種子檔結構():
     d = json.loads(SEED.read_text(encoding="utf-8"))
     for k in ("v", "asof", "window", "universe", "events", "companies", "fed"):
         assert k in d
-    assert d["universe"]["n"] == len(d["universe"]["list"]) == len(d["companies"]) > 0
+    # 2026-10-06：companies＝市值前 50 ＋ 所有有事件的公司（法說會公司不在前 50 也有分析）
+    assert d["universe"]["n"] == len(d["universe"]["list"]) > 0
+    top = {u["code"] for u in d["universe"]["list"]}
+    assert top <= set(d["companies"]) and len(d["companies"]) >= len(top)
     kinds = {e["k"] for e in d["events"]}
     assert {"fomc", "cpi"} <= kinds and "est" not in kinds   # 10-05 Andy：財經日曆不放任何推估
     for e in d["events"]:
         assert len(e["d"]) == 10 and e["status"] in ("公告", "排程") and e.get("src")
-        if e.get("code") and e["k"] not in ("invite", "conf"):   # 法說會（invite／conf）收全市場（10-05），其餘公司事件只限市值前 50
+        if e.get("code"):   # 有事件的公司一律有分析（10-06）
             assert e["code"] in d["companies"]
     for c in d["companies"].values():
         for s in c["secs"]:
@@ -244,3 +250,21 @@ def test_conf_detail_and_conf_all():
     ev = E.mops_events(m, {"2330"}, conf_all=True)
     assert [(e["code"], e["k"], e["d"], e.get("time"), e.get("place")) for e in ev] == [("1103", "conf", "2026-09-30", "14:00", "線上法說會")]
     assert E.mops_events(m, {"2330"}) == []
+
+
+def test_FED_事件都有官方數據連結_且FRED指向實際用的序列():
+    """2026-10-06（Andy：FED 事件卡加官方數據連結）：六種 FED／美國數據事件都要有 https 官方連結（新分頁開），
+    FRED 連結要指向畫面那個數字真的用的序列（不是名稱相近的別條，例如 GDP 不能連名目 GDP）。"""
+    info = E.fed_info_merged()
+    want_fred = {"fomc": "DFEDTARU", "minutes": "DFEDTARU", "cpi": "CPIAUCSL", "nfp": "PAYEMS", "pce": "PCEPILFE",
+                 "gdp": "A191RL1Q225SBEA"}
+    for k, sid in want_fred.items():
+        links = info[k].get("links") or []
+        assert links and all(str(x["url"]).startswith("https://") and x.get("name") for x in links), k
+        hosts = {str(x["url"]).split("/")[2] for x in links}
+        assert hosts & {"www.federalreserve.gov", "www.bls.gov", "www.bea.gov"}, (k, hosts)   # 至少一條是發布機關本身
+        assert f"https://fred.stlouisfed.org/series/{sid}" in {x["url"] for x in links}, (k, sid)
+        # 偏多偏空規則不寫「未含預期值」這類否定說明；不判方向的（dir none）不寫規則
+        assert "未含" not in str(info[k].get("rule") or "")
+        if info[k].get("dir") == "none":
+            assert not info[k].get("rule"), k
