@@ -3307,6 +3307,41 @@
     MAT.ma = '20'; MAT.on = null;
     candFacet = 'all'; candSort = { key: null, dir: 1 }; candOpen = null; candGroups = null;
   }
+  /* ★ 2026-10-06（Andy 截圖市場明細「今日候選」標題右邊那塊空白：「這邊旁邊備註不構成投資建議的相關注意事項提醒」）：
+     有判定／評分／建議意味的卡，標題列右側一律一行小字免責 —— 跟選股策略標題旁那一句同一種
+     （12px、一行不換行、放不下省略、全文放 title）。文字集中在這一份，各卡用 App.disc(key) 或
+     <small data-disc="key"> 取同一份，免得每張卡各寫一句、口徑走樣。普查表見 docs/disclaimer_audit_1006.md。
+     [短句（畫面上那一行）, 全文（滑過看得到）]。短句一律「不構成投資建議」開頭：窄卡片只露得出前七八個字，
+     實測 1440 個股基本面卡只剩 101px —— 重點放後面就只看得到「動能分與估值…」，看不到免責本身。*/
+  const DISC = {
+    cand: ['不構成投資建議：條件篩選結果僅供研究，A／B 為規則判定、非買賣建議',
+      '「今日候選」是把符合預先公開之技術與籌碼條件的股票列出來：A＝回檔承接、B＝突破追進，都是固定規則的判定，'
+      + '不是買賣建議，也不構成投資建議。本站非證券投資顧問，投資決策與風險由使用者自行判斷並承擔。'],
+    rot: ['不構成投資建議：階段與短評為規則判讀，僅供研究',
+      '改善／領先／轉弱／落後四個階段，以及旁邊的短評（例如「回檔找買點」「先設好停利」），都是依族群相對大盤的強弱與動能'
+      + '用固定規則判讀，只描述資金目前的位置，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+    tag: ['不構成投資建議：符合／未符合是條件描述，僅供研究',
+      '符合／未符合是用月營收、季報與籌碼資料套固定條件算出來的描述，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+    fund: ['不構成投資建議：動能分與估值位置為規則計算',
+      '動能分（從 50 分起加減）與本益比在自己歷史、同業之間的位置，都是固定規則算出來的描述，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+    pe: ['不構成投資建議：分區名稱是自己歷史本益比的分位',
+      '低估／價值／合理／觀望／高估／警示是這一檔自己歷史本益比的分位區間名稱，只描述現在的本益比落在過去的哪一段，'
+      + '不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+  };
+  function discHTML(k, id) {
+    const d = DISC[k]; if (!d) return '';
+    return `<small class="disc-line" role="note" data-disc="${k}"${id ? ` id="${id}"` : ''} title="${fmt.esc(d[1])}">${fmt.esc(d[0])}</small>`;
+  }
+  /* index.html 裡寫死的 <small data-disc="rot"> 只放位置，文字在這裡填（同一份 DISC）*/
+  function fillDisc(root) {
+    (root || document).querySelectorAll('small[data-disc]').forEach(el => {
+      const d = DISC[el.dataset.disc]; if (!d) return;
+      el.classList.add('disc-line'); el.setAttribute('role', 'note');
+      if (el.textContent !== d[0]) el.textContent = d[0];
+      el.title = d[1];
+    });
+  }
+
   function drawMarket(kind) {
     // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
@@ -3316,6 +3351,8 @@
     // 法人連買賣的讀法在那張卡自己的 trust「?」；頁級 mkt 那顆在這一頁藏起來，不讓同一張卡標題出現兩顆內容重疊的「?」
     { const mb = $('.howbtn[data-how="mkt"]'); if (mb) mb.style.display = kind === 'streak' ? 'none' : ''; }
     $$('#mktSeg2 button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
+    // 標題列右側的免責：只有「今日候選」這一頁有 A／B 判定，其他分頁是事實統計，不掛（2026-10-06）
+    { const dz = $('#mktDisc'); if (dz) { dz.hidden = kind !== 'cand'; if (kind === 'cand') fillDisc(dz.parentElement); } }
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
     const gt = D.groups_today || [], cands = D.candidates || [], gd = D.groups_detail || {};
     const body = $('#mktBody'); const title = $('#mktTitle');
@@ -12999,6 +13036,7 @@
     if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
     initMore();                 // 手機頂欄的「⋯ 更多工具」（G1／G9）
     initSwipeHints();           // 橫向可捲容器的「← 左右滑 →」提示（G6）
+    fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
@@ -13022,6 +13060,7 @@
       rotFrameNow: () => rotFrame,
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
+      disc: discHTML, DISC,                // 判定／評分類卡片標題列的一行免責（2026-10-06；industry.js、mobile3.js 用）
       logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
       logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG, sparkData,
       trendSeries, trendRange, trendText, pxFmt,   // 迷你走勢與自選展開大圖共用的口徑（DECISIONS #290）
