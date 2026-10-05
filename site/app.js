@@ -3617,7 +3617,7 @@
      Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
             現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」（附某券商網站的一排摘要卡）。
      每張卡回答一個問題，而且是「下面那張大圖」的一句話摘要 —— 點卡片就帶你去那張大圖：
-       · 漲跌家數：今天是普漲還是普跌？                → 點了進市場明細（完整的漲跌名單）
+       · 漲跌家數：今天是普漲還是普跌？                → 點了捲到下面的漲跌家數分佈；點上漲／平盤／下跌＝直接列出那一側（2026-10-06 起，改前是進市場明細）
        · 資金輪盤：強弱循環的四段各有幾個族群、誰最強？ → 點了捲到下面的資金輪盤
        · 資金去向：昨天的錢主要流進哪幾條產業鏈？       → 點了捲到下面的「昨日資金去向」
        · 熱門題材：哪個題材最熱？                        → 點了捲到熱門題材；點題材名＝直接在那張熱力圖打開那個題材
@@ -3653,7 +3653,7 @@
   function ovsCard(k, o) {
     OVS.eod[k] = { bar: o.bar || '<i class="osc-none"></i>', barCls: o.barCls || '', nums: o.nums, foot: o.foot || '&nbsp;',
       aria: o.aria, date: o.date || '', title: o.title, ds: o.ds || {} };
-    return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}">`
+    return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}"${o.tip ? ` title="${fmt.esc(o.tip)}"` : ''}>`
       + `<div class="osc-h">${ovsIcon(o.icon, o.color)}<b class="osc-t">${o.title}</b><button class="howbtn pop" data-how="ovs-${k}" data-ttl="${o.title}" type="button" aria-label="${o.title}怎麼看">?</button>${ovsDate(k, o.date)}<span class="osc-more" aria-hidden="true">›</span></div>`
       + `<div class="osc-bar${o.barCls ? ' ' + o.barCls : ''}">${o.bar || '<i class="osc-none"></i>'}</div>`
       + `<div class="osc-n">${o.nums}</div>`
@@ -3663,12 +3663,15 @@
   /* 四張卡的「比例條＋數字」組法抽出來 —— 盤後與即時用**同一支**組，兩邊長相（欄位、顏色、data-v）不會分岔，
      即時更新時 ovsMorph 才能逐格對上、只改數字。*/
   const ovsPct = (v, n) => (n ? fmt.n(v / n * 100, 1) + '%' : '—');
+  const ovsUdAttr = (v, name) => ` data-v="${v}" role="button" tabindex="0" title="列出${name}的股票（下方漲跌分佈）"`;
   function ovsUdParts(up, fl, dn) {
     const n = up + fl + dn;
     return {
       bar: ovsSeg(up, 'var(--rise)', `上漲 ${up} 檔`) + ovsSeg(fl, 'var(--flat)', `平盤 ${fl} 檔`) + ovsSeg(dn, 'var(--fall)', `下跌 ${dn} 檔`),
-      nums: n ? ovsNum('上漲', up, ovsPct(up, n), 'up', ' data-v="up"') + ovsNum('平盤', fl, ovsPct(fl, n), 'flat', ' data-v="flat"')
-        + ovsNum('下跌', dn, ovsPct(dn, n), 'down', ' data-v="down"') : '<span class="muted">尚無漲跌資料</span>',
+      /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」）：三個數字各自點得到 —— 點「下跌」＝捲到下方漲跌分佈、直接列出下跌那一側（ovsUdGo）。
+         tabindex／role 讓鍵盤也停得到；title 是滑過時的提示（跟整張卡的「看漲跌分佈」分開，講得出點這一格會看到什麼）。*/
+      nums: n ? ovsNum('上漲', up, ovsPct(up, n), 'up', ovsUdAttr('up', '上漲')) + ovsNum('平盤', fl, ovsPct(fl, n), 'flat', ovsUdAttr('flat', '平盤'))
+        + ovsNum('下跌', dn, ovsPct(dn, n), 'down', ovsUdAttr('down', '下跌')) : '<span class="muted">尚無漲跌資料</span>',
     };
   }
   const OVS_ROT_ORDER = ['leading', 'improving', 'weakening', 'lagging'];
@@ -3722,7 +3725,7 @@
       const P = ovsUdParts(up, fl, dn);
       cards.push(ovsCard('updown', {
         title: '漲跌家數', icon: 'pulse', color: 'var(--rise)', date: heat && heat.date,
-        aria: `漲跌家數：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下看市場明細`,
+        aria: `漲跌家數：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈`, tip: '看漲跌分佈',
         bar: P.bar, nums: P.nums,
         foot: to ? `成交值 <b>${to}</b>${ma ? `<span class="muted">・20 日均 ${ma}</span>` : ''}` : '',
         ds: { udN: n, udFrom: from },
@@ -3830,7 +3833,14 @@
 
     const track = $('#ovSumTrack');
     const go = (k, e) => {
-      if (k === 'updown') { location.hash = '#market/updown'; return; }
+      /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：
+         改前 → 換到 #market/updown；改後 → 留在總覽、捲到下方「漲跌家數」分佈卡（#ovBreadthCard）並閃一下；
+         點在「上漲／平盤／下跌」那一格上 → 到了直接列出那一側的股票。*/
+      if (k === 'updown') {
+        const n = e && e.target && e.target.closest ? e.target.closest('.osn[data-v]') : null;
+        ovsUdGo(n ? n.dataset.v : null);
+        return;
+      }
       if (k === 'theme') {
         const t = e && e.target && e.target.closest ? e.target.closest('[data-theme]') : null;
         if (t && th) { OVT.sel = t.dataset.theme; OVT.focus = null; renderOvThemes(th); }
@@ -3967,7 +3977,7 @@
     return {
       html: { bar: P.bar, nums: P.nums,
         foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・人工族群成分股，非全市場</span>`,
-        aria: `漲跌家數（即時估算 ${n} 檔人工族群成分股，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下看市場明細`,
+        aria: `漲跌家數（即時估算 ${n} 檔人工族群成分股，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈（盤後資料）`,
         ds: { udN: n, udFrom: 'live' } },
       info: { n, at, tip: `口徑：市場明細「即時」同一份名單 —— 人工族群成分股 ${codes.length} 檔裡拿到今天報價的 ${n} 檔，`
         + `漲跌＝現價 vs 昨收（真值）。這不是全市場（全市場 ${all || '約 2300'} 檔要盤後才有），這一批偏中大型、偏電子。` },
@@ -4205,17 +4215,61 @@
   }
   /* 捲到總覽下面的某張卡。手機（≤640）那張卡可能藏在別的分段裡（.mp-off）：先切到第①步的那一段，再捲。
      切分段用的是畫面上那兩排真的鈕（.mspine／.mpager）—— 跟使用者自己點是同一條路，分段記憶（localStorage）也跟著對。*/
-  function ovsJump(seg, anchor, self) {
+  function ovsJump(seg, anchor, self, step) {
     const view = $('#v-overview');
     if (mIsM() && view) {
       const spine = view.querySelector(':scope > .mspine');
-      const s1 = spine && spine.children[0];
+      /* step：那張卡在第幾步（預設第①步）。四步的鈕上寫著 ①②③④（miaPager 的 <em>），照字找，不照位置找 ——
+         沒有第③步的頁面（總覽現在是 ① ② ④）第二顆鈕就是 ②，照位置數會在哪天補上第③步時默默點錯。*/
+      const mark = '①②③④'[(step || 1) - 1];
+      const s1 = spine && (step ? [...spine.children].find(b => ((b.querySelector('em') || {}).textContent || '').trim() === mark) : spine.children[0]);
       if (s1 && !s1.classList.contains('on')) s1.click();
       const bar = view.querySelector(':scope > .mpager');
       const b = bar && [...bar.children].find(x => x.textContent.trim() === seg);
       if (b && !b.classList.contains('on')) b.click();
     }
     scrollSettle(anchor, self);
+  }
+
+  /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：摘要卡「漲跌家數」→ 同一頁下方的「漲跌家數」分佈卡。
+     side＝'up'／'flat'／'down'（點在那個數字上）或 null（點在卡片其他地方：只捲過去、不開清單）。
+     · 摘要卡的數字固定是「全部」市場（見 renderOvSummary ①），下方那張卡如果停在上市或上櫃，先切回全部 ——
+       不然點「下跌」打開的是上市那一半，清單家數跟卡上的數字對不起來，比不開還糟。只點卡片（不點數字）就不動它的市場別。
+     · 分佈圖是捲近了才畫（whenNear）：先記下要開哪一側（UDJ.want），runNear 叫它現在就畫，畫好 renderUpDown 自己打開。
+     · 手機（≤640）這張卡在「② 貴不貴 → 市場寬度」那一段：ovsJump 先切過去再捲（modules.js market.breadth）。*/
+  function ovsUdGo(side) {
+    ovsJump('市場寬度', 'ovBreadthCard', true, 2);
+    const sel = side ? udSelOf(side) : null;
+    if (sel) {
+      if (udMkt !== 'all') {
+        udMkt = 'all';
+        try { localStorage.setItem('tw.udMkt', 'all'); } catch (e) { /* 私密視窗：不記，這次照樣切 */ }
+        UDJ.want = side;
+        if (UDJ.last) renderUpDown(UDJ.last.stocks, UDJ.last.heat);     // 已經畫過：原地重畫成全部，結尾會吃掉 want
+      } else if (UDJ.open && echarts.getInstanceByDom($('#breadth'))) UDJ.open(sel);
+      else UDJ.want = side;
+    }
+    runNear($('#breadth'));
+    cardSpot($('#ovBreadthCard'));
+  }
+  /* 「到了」的提示：卡片外框亮一下（約 1.8 秒）。等卡片真的捲進視窗（露出 35%）才亮 ——
+     點下去當下就亮的話，平滑捲動還在半路，亮完了人才到。2.5 秒還沒進視窗（例如被別的東西擋住）也照樣亮一次收尾。*/
+  function cardSpot(el) {
+    if (!el) return;
+    const fire = () => {
+      el.classList.remove('cardspot'); void el.offsetWidth;          // 連點兩次：先拿掉再加，動畫才會重播
+      el.classList.add('cardspot');
+      clearTimeout(el._spotT); el._spotT = setTimeout(() => el.classList.remove('cardspot'), 2000);
+    };
+    if (typeof IntersectionObserver === 'undefined') { fire(); return; }
+    if (el._spotIO) el._spotIO.disconnect();
+    let t = 0;
+    const io = new IntersectionObserver((es) => {
+      if (!es.some(x => x.isIntersecting && x.intersectionRatio >= 0.35)) return;
+      io.disconnect(); clearTimeout(t); fire();
+    }, { threshold: [0, 0.35, 0.6] });
+    el._spotIO = io; io.observe(el);
+    t = setTimeout(() => { io.disconnect(); fire(); }, 2500);
   }
 
   // 圖表下方的可點連結列：圖上點得到的東西，這裡也一定點得到（手機沒有 hover）
@@ -7769,16 +7823,51 @@
   const udBinOf = (r) => (Number.isInteger(r.ud) && r.ud >= 0 && r.ud < UD_BINS.length ? r.ud
     : ('ud' in r ? null : (r.chg_pct != null && Number.isFinite(+r.chg_pct) ? udBin(r.chg_pct) : null)));
   let udStat = null;               // 給 HOW.breadth 讀的讀數（總家數、兩種口徑差幾檔、市場別不明幾檔）
+  /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」，補一句「而非市場明細分頁」）：
+     總覽頂端「漲跌家數」摘要卡點下去捲到這張卡；點卡上的「上漲」「下跌」數字＝到這裡直接列出那一側的股票。
+     這張卡原本只會「點一根直條列一級」，所以多一種清單：**一側**（上漲＝0~1…漲停五級、下跌＝跌停…-1~0 五級），
+     清單上面一排 .nbsw.lv2 分頁「全部＋各級」，點一級＝在原地只看那一級（不必再回去找那根直條）。
+     · sel：清單目前開著哪一段 —— { bin }＝單一級（點直條、或摘要卡的「平盤」）、{ side, lv }＝一側（lv＝null 是整側）。
+       開著的那一段直條維持原色、其他直條淡掉，看得出「下面這份清單是圖上哪幾根」。清單關掉就全部恢復。
+     · want：摘要卡點下去的時候這張圖可能還沒畫（首屏下方的卡是捲近了才畫，whenNear）→ 記下來，畫好那一刻再打開。
+     · last：最近一次畫圖用的資料（摘要卡要把市場別切回「全部」時，原地重畫一次就好，不必重新抓）。*/
+  const UDJ = { sel: null, want: null, last: null, open: null, mark: null };
+  const UD_SIDE = { up: { name: '上漲', bins: [6, 7, 8, 9, 10] }, down: { name: '下跌', bins: [0, 1, 2, 3, 4] } };
+  const udSelOf = (side) => (side === 'flat' ? { bin: 5 } : UD_SIDE[side] ? { side, lv: null } : null);
+  const udLab = (i) => (i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%'));
+  /* 清單標題寫資料日：盤中摘要卡打開即時後是「即時估算（約 455 檔）」，這張圖是盤後全市場 ——
+     從摘要卡點過來看到清單家數比卡上的即時數字大很多時，標題上的「MM/DD 盤後」就是答案。*/
+  const udAsOf = () => { const md = ovsMd(UDJ.last && UDJ.last.heat && UDJ.last.heat.date); return md ? `・${md} 盤後` : ''; };
+  /* 標題右邊那一行讀數：家數・資料日・（超過 60 檔才寫）列前 60。排序與上限的說明放 title（風格規範：卡上一行短字、說明進滑過提示），
+     手機 390 才放得進一行（改前「（依成交值，最多列 60 檔）」加上日期會折成兩行）。*/
+  const udMeta = (n) => `<span class="m" title="依成交值由大到小排，最多列 60 檔；每一檔點得進個股頁">${n} 檔${udAsOf()}${n > 60 ? '・列前 60' : ''}</span>`;
+  const udChips = (rows, none) => `<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
+        ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || `<span class="muted">${none}</span>`}</div>`;
   function udPanelFill(box, i, rows) {
-    box.hidden = false; box.dataset.bin = String(i); box.dataset.mkt = udMkt;
+    box.hidden = false; box.dataset.bin = String(i); box.dataset.mkt = udMkt; delete box.dataset.lv;
     const mk = udMkt === 'all' ? '' : `${UD_MKT_NAME[udMkt]}・`;
-    box.innerHTML = `<div class="hh"><b>${mk}${i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%')}</b>
-        <span class="m">${rows.length} 檔（依成交值，最多列 60 檔）</span></div>
-      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
-        ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一級沒有股票</span>'}</div>`;
+    box.innerHTML = `<div class="hh"><b>${mk}${udLab(i)}</b>
+        ${udMeta(rows.length)}</div>
+      ${udChips(rows, '這一級沒有股票')}`;
+  }
+  /* 一側的清單。rowsOf(i)＝那一級依成交值排好的股票；onLv(lv)＝點分頁換級（交回 renderUpDown 那一份 show，直條才會跟著亮）。*/
+  function udSideFill(box, side, lv, rowsOf, onLv) {
+    const S = UD_SIDE[side];
+    const all = S.bins.flatMap(i => rowsOf(i)).sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
+    const rows = lv == null ? all : rowsOf(lv);
+    box.hidden = false; box.dataset.bin = side; box.dataset.mkt = udMkt; box.dataset.lv = lv == null ? '' : String(lv);
+    const mk = udMkt === 'all' ? '' : `${UD_MKT_NAME[udMkt]}・`;
+    const tab = (v, label, n) => { const on = v === (lv == null ? '' : String(lv));
+      return `<button type="button" role="tab" data-lv="${v}" class="${on ? 'on' : ''}" aria-selected="${on}">${label}<em>${n}</em></button>`; };
+    box.innerHTML = `<div class="hh"><b>${mk}${S.name}${lv == null ? '' : '・' + udLab(lv)}</b>
+        ${udMeta(rows.length)}</div>
+      <div class="nbsw lv2 udlv" role="tablist" aria-label="${S.name}各級">${tab('', '全部', all.length)}${S.bins.map(i => tab(String(i), UD_BINS[i].k, rowsOf(i).length)).join('')}</div>
+      <div class="nbbody udlvbody">${udChips(rows, `這一級沒有${S.name}的股票`)}</div>`;
+    box.querySelectorAll('.udlv button').forEach(b => { b.onclick = () => onLv(b.dataset.lv === '' ? null : +b.dataset.lv); });
   }
   function renderUpDown(stocks, heat) {
     const el = $('#breadth'); if (!el) return;
+    UDJ.last = { stocks, heat };
     const seg = $('#udMkt');
     if (seg && !seg.dataset.wired) {
       seg.dataset.wired = '1';
@@ -7786,7 +7875,8 @@
         if (b.dataset.m === udMkt) return;
         udMkt = b.dataset.m;
         try { localStorage.setItem('tw.udMkt', udMkt); } catch (e) { /* 私密視窗：不記，但這次照樣切 */ }
-        renderUpDown(stocks, heat);
+        const L0 = UDJ.last || { stocks, heat };
+        renderUpDown(L0.stocks, L0.heat);
       });
     }
     if (seg) $$('#udMkt button').forEach(x => { const on = x.dataset.m === udMkt; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -7797,6 +7887,7 @@
     if (!pool.length) {
       if (sum) sum.textContent = ''; el.style.height = ''; el.dataset.total = '0';
       if (box) box.hidden = true;
+      UDJ.sel = null; UDJ.want = null; UDJ.open = null; UDJ.mark = null;
       return empty('breadth', every.length ? `${UD_MKT_NAME[udMkt]}沒有逐檔漲跌資料` : '尚無逐檔漲跌資料');
     }
     const bins = UD_BINS.map(() => []);
@@ -7810,35 +7901,53 @@
     el.dataset.total = String(pool.length);                 // 驗收用：直條加總要等於這個數
     el.dataset.mkt = udMkt;
     el.style.height = '300px'; el.style.minHeight = '300px';
+    if (!box || box.hidden) UDJ.sel = null;                  // 清單沒開著：直條全部原色
     // 顏色：紅漲綠跌，越極端越飽和（讀 CH，切主題會跟著換）；平盤用中性灰
     const col = (i) => { const m = UD_BINS[i].m; if (!m) return CH.ink3;
       const a = .38 + .62 * Math.min(1, Math.abs(m) / 10); return hexA(m > 0 ? CH.up : CH.down, a); };
+    // 清單開著時：清單那一段的直條原色、其他淡掉（opacity 另外一格，不動 color —— 紅漲綠跌的驗收讀的是 color）
+    const lit = (i) => { const s = UDJ.sel; if (!s) return true;
+      if (s.side) return s.lv != null ? i === s.lv : UD_SIDE[s.side].bins.includes(i);
+      return i === s.bin; };
+    const barData = () => cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), opacity: lit(i) ? 1 : .28, borderRadius: [3, 3, 0, 0] } }));
+    /* 窄（手機 390：繪圖區約 300px 放 11 個刻度）時「<-5」「-5~-3」「-3~-1」會黏成一串讀不出來（2026-10-06 截圖量到）→ 刻度斜 45°。
+       卡片藏在別的分段裡（寬 0）時用視窗寬判斷；切回來 ResizeObserver 只 resize 不重設，所以這個判斷在畫的當下做一次就好。*/
+    const narrow = (el.clientWidth || innerWidth) < 520;
     const c = chart('breadth', {
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: (ps) => { const i = ps[0].dataIndex;
           const lab = i === 0 ? '跌停（≤ -9.5%）' : i === 10 ? '漲停（≥ +9.5%）' : i === 5 ? '平盤' : UD_BINS[i].k + '%';
           return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
-      grid: { left: 44, right: 12, top: 26, bottom: 28 },
+      grid: { left: 44, right: 12, top: 26, bottom: narrow ? 50 : 28 },
       xAxis: { ...axisStyle, type: 'category', data: UD_BINS.map(b => b.k),
-        axisLabel: { color: CH.ink2, fontSize: 12, interval: 0 }, axisTick: { show: false } },
+        axisLabel: { color: CH.ink2, fontSize: 12, interval: 0, rotate: narrow ? 45 : 0 }, axisTick: { show: false } },
       // 縱軸不寫「家數」：直條頂端本來就標了家數，軸名在 1280～1920 都會戳出容器上緣 2px（_preview 抓到的）
       yAxis: { ...axisStyle, axisLabel: { color: CH.ink3, fontSize: 12 } },
       series: [{ type: 'bar', barWidth: '66%', cursor: 'pointer',
-        data: cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), borderRadius: [3, 3, 0, 0] } })),
+        data: barData(),
         label: { show: true, position: 'top', color: CH.ink2, fontSize: 12, formatter: (q) => (q.value ? String(q.value) : '') } }],
     }, { notMerge: true });
     const rowsOf = (i) => bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-    // 點外面／Esc 關；按市場分段鈕不算「點外面」—— 清單要留著、原地換成新市場的那一級
-    const arm = () => dismissable(box, () => { box.hidden = true; }, { ignore: ['#udMkt'] });
+    // 直條亮暗跟著清單走：每次都拿「現在掛在 #breadth 上的那一個實例」（換主題會整個重建，舊的 c 已經 dispose）
+    UDJ.mark = () => { const ci = echarts.getInstanceByDom(el); if (ci) ci.setOption({ series: [{ data: barData() }] }); };
+    // 點外面／Esc 關；按市場分段鈕不算「點外面」—— 清單要留著、原地換成新市場的那一段
+    const arm = () => dismissable(box, () => { box.hidden = true; UDJ.sel = null; if (UDJ.mark) UDJ.mark(); }, { ignore: ['#udMkt'] });
+    const show = (sel) => {
+      if (!box || !sel) return;
+      UDJ.sel = sel;
+      if (sel.side) udSideFill(box, sel.side, sel.lv, rowsOf, (lv) => show({ side: sel.side, lv }));
+      else udPanelFill(box, sel.bin, rowsOf(sel.bin));
+      arm(); UDJ.mark();
+    };
+    UDJ.open = show;
     if (c) c.off('click').on('click', (p) => {
       const i = p.dataIndex; if (!box || i == null) return;
-      udPanelFill(box, i, rowsOf(i)); arm();
+      show({ bin: i });
     });
-    // 切市場時清單正開著 → 同一級換成新市場的股票（不是關掉，也不是留著舊市場的名單）
-    if (box && !box.hidden && box.dataset.bin != null && box.dataset.mkt !== udMkt) {
-      const i = +box.dataset.bin;
-      if (i >= 0 && i < UD_BINS.length) { udPanelFill(box, i, rowsOf(i)); arm(); }
-    }
+    // 重畫時清單正開著（切市場、換主題）→ 同一段原地換成新市場的股票（不是關掉，也不是留著舊市場的名單）
+    if (box && !box.hidden && UDJ.sel) show(UDJ.sel);
+    // 摘要卡點「上漲／平盤／下跌」時圖還沒畫好 → 現在畫好了，打開那一側
+    if (UDJ.want) { const w = UDJ.want; UDJ.want = null; show(udSelOf(w)); }
   }
 
   /* 投信連續買超：長條圖只講得出「買幾天」，講不出「買多少」。
@@ -8067,7 +8176,8 @@
     'ovs-updown': howHTML('這格回答：今天上漲、下跌、平盤各幾檔。', [
       '比例條＝上漲（紅）／平盤（灰）／下跌（綠）的家數占比',
       '最後一行＝大盤成交值，跟 20 日均比',
-      '點這格到市場明細看完整分佈與名單',
+      '點這格捲到下方漲跌分佈',
+      '點上漲／平盤／下跌，直接列出那一側的股票',
     ]),
     'ovs-rot': howHTML('這格回答：族群在強弱循環的四段各有幾個。', [
       '四段＝領先／改善／轉弱／落後，加總＝全部族群',
