@@ -1743,10 +1743,13 @@
     const extra = x.turnover
       ? `成交 ${d.amt != null ? f.n(d.amt / 100, 0) + ' 億' : '—'}`
       : `總量 ${d.vol != null ? f.i(d.vol) + ' 口' : '—'}` + (d.oi != null ? `　未平倉 ${f.i(d.oi)}` : '');
+    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：數字旁的來源膠囊（「最近交易日 10/05」「上次存的 10/05 13:30」
+       「資料湖日線」「Yahoo」「本機暫存」）拿掉 —— 它們講的是「這份數字是哪個時段／哪一天的」。來源併進這排數字原本就有的滑鼠提示
+       （那裡本來就寫資料時間），不另外加圖示。夜盤的「推送／輪詢」小標不是時段，留著。*/
     const tipTxt = `開 ${f.n(d.open, dp)}　高 ${f.n(d.high, dp)}　低 ${f.n(d.low, dp)}　${base} ${f.n(d.prev, dp)}\n${extra}　${when}`
+      + (d.src && d.src !== 'taifex' && !d.night ? `\n來源：${d.src}` : '')
       + (d.night && d.symbol ? `\n夜盤合約 ${d.symbol}` : '');
-    const tag = d.night ? futWayTag()
-      : (d.src && d.src !== 'taifex') ? `<span class="m3-tag" title="證交所分時抓不到，改用備援來源">${f.esc(d.src)}</span>` : '';
+    const tag = d.night ? futWayTag() : '';
     return `<div class="m3-nums" title="${f.esc(tipTxt)}" data-open="${d.open ?? ''}" data-prev="${d.prev ?? ''}">
       <span class="m3-px ${f.cls(chg)}">${f.n(d.last, dp)}</span>
       <span class="m3-chg ${f.cls(chg)}">${chg == null ? '—' : (chg > 0 ? '+' : '') + f.n(chg, dp)} ${f.pct(pct, 2)}</span>${tag}
@@ -2732,7 +2735,8 @@
         const src = (state.lakeDaily || {})[lakeSym(x)] || [];
         const lastDay = src.length ? String(src[src.length - 1][0]) : '';
         const which = x.id === 'FUT' ? (isNight(x) && !state.lakeBack[key] ? '台指期夜盤日 K' : '台指期日盤日 K') : x.short + '日 K';
-        if (lastDay) says.push(`${which}・資料至 ${el.dataset.todayk ? lastDay.slice(5) + '＋今日即時' : lastDay}`);
+        // ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：只標「是哪一條線」，不再寫「資料至 YYYY-MM-DD（＋今日即時）」
+        if (lastDay) says.push(which);
       }
       if (says.length) el.dataset.fallback = says.join('　·　'); else delete el.dataset.fallback;
     } else {

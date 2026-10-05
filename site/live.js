@@ -809,6 +809,11 @@
 .livetg-b[aria-pressed="true"]::before{opacity:1}
 .livetg-t{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .livetg.bad .livetg-t,.livetg.stale .livetg-t{color:var(--amber,var(--ink-2))}
+/* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：鈕旁的「HH:MM:SS · 盤後／5秒」「靜態」「重試中」不再顯示。
+   狀態改用鈕的顏色講（style_guide 原則 8「狀態用顏色不用文字」）：開＝紅框、關＝灰、抓不到／太久沒更新＝琥珀框；
+   細節（最後更新時間、節奏、錯誤）本來就寫在鈕的滑鼠提示。.livetg-t 節點留著當機器讀數（驗收與 aria 用），畫面上藏起來。*/
+.livetg .livetg-t{display:none!important}
+.livetg.bad .livetg-b,.livetg.stale .livetg-b{border-color:var(--amber);color:var(--amber)}
 .livetg.mb{margin:0;align-self:stretch}
 .livetg.mb .livetg-b{flex-direction:column;justify-content:center;gap:2px;border-radius:0;border:0;border-left:1px solid var(--line);min-height:44px;padding:0 8px;font-size:12px}
 .livetg.mb .livetg-b::before{display:none}

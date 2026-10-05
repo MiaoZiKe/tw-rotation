@@ -266,7 +266,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 :is(#skAi,#tagTech) .ck.ok .m{color:var(--rise)} :is(#skAi,#tagTech) .ck.no .m{color:var(--ink-3)}
 #skAi .ainews a{color:var(--cyan)}
 #skAi .ainews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
-#skAi .aiasof{margin-top:8px;font-size:12px;color:var(--ink-3)}
+/* #skAi .aiasof（「資料到 YYYY-MM-DD」）2026-10-06 拿掉（DECISIONS #324） */
 /* AI 區窄（兩欄的窄卡片、手機）：標籤疊成兩行、標題列不讓收合鈕掉到第二行、「?」緊跟在「AI 分析」後面
    （改前手機上「?」會自己孤零零掉到第二行），技術面週期列與支撐壓力改單欄 */
 @container aibox (max-width:380px){
@@ -452,7 +452,6 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
         ${panel('chip', cur, chipHTML(pg, f.chip))}
         ${panel('fund', cur, `${why(f.fund)}${ul((f.fund || {}).points) || '<div class="empty">基本面資料缺</div>'}`)}
         ${panel('news', cur, newsHTML(f.news))}
-        <div class="aiasof">資料到 ${esc(an.as_of || '—')}</div>
       </div>`;
   }
 
@@ -850,7 +849,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
         + `${nmHTML(t.nm, t.sh)}<span class="aitag ${t.cls}">${esc(t.lb)}</span>${t.cnt}</button>`; }).join('')}</div>` : '';
     return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn title="由固定規則與公開資料自動產生，不是大型語言模型，也不是任何人的投資建議。">規則式自動判讀，非投資建議</small>`
       + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析怎麼看">?</button>`
-      + `${an && an.as_of ? ` <small data-readout>資料到 ${esc(an.as_of)}</small>` : ''}</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
+      + `</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
       + brief(pg) + tabs
       + (panes.length ? `<div class="ovpanes" id="ovFacets" data-cur="${cur}" data-n="${panes.length}">${panes.map(x => x[1]).join('')}</div>` : '')
       + `</div>`;
@@ -964,7 +963,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const body = an ? (techHTML(t, fmt) + `<div class="aisub">技術面訊號</div>` + sigHTML(pg, sig))
       .replace(/id="ai(Tfs|Why|Sig)"/g, 'id="tt$1"').replace('<div class="aickbody" hidden>', '<div class="aickbody">')
       : '<div class="empty">技術分析資料準備中（下一次盤後更新後出現）</div>';
-    return `<div class="card" id="tagTech"><div class="tthead"><h3>技術分析</h3>${t && t.stance ? `<span class="grade ${stanceCls(t.stance)}">${esc(t.stance)}</span>` : ''}<small>資料到 ${esc((an && an.as_of) || '—')}</small></div>
+    return `<div class="card" id="tagTech"><div class="tthead"><h3>技術分析</h3>${t && t.stance ? `<span class="grade ${stanceCls(t.stance)}">${esc(t.stance)}</span>` : ''}</div>
       <div class="ttwarn" id="ttWarn">以下為規則式技術指標整理，僅供研究參考，不構成投資建議；本站非證券投資顧問</div>${body}</div>`;
   }
   window.StockAI = { id: 'stock.mtf', html, techCardHTML, mount, refit, brief, briefText, facetCards, ovCard, bindOverview, _key: KEY, _tabKey: TAB_KEY, _ovTabKey: OV_TAB_KEY, _splitKey: SPLIT_KEY };

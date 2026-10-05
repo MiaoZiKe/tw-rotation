@@ -368,8 +368,8 @@
     $$('.hmcell', lg).forEach(b => b.onclick = () => { const i = +b.dataset.bin; onFocus(focus === i ? null : i); });
     return lg;
   }
-  /* 卡片標題列的日期膠囊：這份資料的交易日，只顯示、不能改。圖示是內嵌 SVG（不引入圖示庫）。*/
-  const hmDate = (d) => d ? `<span class="hmctl date" title="這張圖的資料日期（交易日）"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${fmt.esc(String(d).slice(5).replace('-', '/'))}</span>` : '';
+  /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」）：卡片標題列的日期膠囊（hmDate）整支拿掉。
+     資料新鮮度只看全站的資料狀態／版號徽章與頁首時間（DECISIONS #324、docs/date_chip_audit_1006.md）。*/
   const hmLS = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
   const hmLSset = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只影響記不記得 */ } };
   /* ★ 2026-09-24 效能（R6 審查 2.5 節）：
@@ -2423,12 +2423,9 @@
       if (window.StockAI && window.StockAI.refit) window.StockAI.refit();
     }
     miaFold('#skIdent h2', '詳細（產業鏈 / 族群）', ['#skMeta'], 'mfStockMeta');
-    miaFold('#chartWrap', '怎麼操作這張圖 / 資料到哪一天', ['#skChartCard .skhelp'], 'mfStockHelp');
-    // `.skhelp` 是兩個節點，querySelector 只抓得到第一個 —— 補第二個
-    if (mIsM()) { document.querySelectorAll('#skChartCard .skhelp').forEach(el => {
-      const b = document.getElementById('mfStockHelp');
-      el.classList.toggle('mf-off', !(b && b.dataset.open === '1')); }); }
-    else document.querySelectorAll('#skChartCard .skhelp').forEach(el => el.classList.remove('mf-off'));
+    /* ★ 2026-10-06（DECISIONS #324）：K 線卡下的「資料更新到 YYYY-MM-DD」（.skhelp）拿掉了，
+       手機那顆「怎麼操作這張圖 / 資料到哪一天 ▾」收合鈕跟著拿掉（它只收那一行）。*/
+    { const old = document.getElementById('mfStockHelp'); if (old) old.remove(); }
   }
 
   /* 對外的單一入口。route() 每次換頁叫一次，視窗寬度變了也叫一次。*/
@@ -3260,9 +3257,11 @@
          那一瞬間 `busy` 還是 false，畫面就會先閃一格「涵蓋率 —%」的假資訊。*/
     if (!MUD.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
     const uni = (D.stocks || []).length || 0;
-    el.innerHTML = (MUD.intraday
-      ? `<b class="live">即時</b>　最後更新 <b class="liveat">${(window.Live && window.Live.hms ? window.Live.hms(MUD.at) : new Date(MUD.at).toTimeString().slice(0, 8))}</b>（台北）　每 5 秒更新（報價 ${fmt.esc(MUD.quoteAt || '—')}）`
-      : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最後一次報價的快照</b>，不是盤中變化')
+    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：開頭的「即時 最後更新 HH:MM:SS（台北）每 5 秒更新（報價 …）」
+       ／「現在不是盤中…最後一次報價的快照」拿掉（那是時段，不是口徑）；涵蓋率、估算口徑照留。*/
+    el.innerHTML = '<b class="live">即時</b>'
+      // 最後更新時間只留機器讀數（藏起來的 .liveat，驗收比「真的往前走」用），畫面不顯示
+      + `<span class="liveat" hidden>${(window.Live && window.Live.hms ? window.Live.hms(MUD.at) : new Date(MUD.at).toTimeString().slice(0, 8))}</span>`
       + `　·　<b>涵蓋率 ${uni ? fmt.n(MUD.hit / uni * 100, 1) : '—'}%</b>`
       + `（抓到 <b>${MUD.hit}</b> 檔 / 想抓 ${MUD.codes} 檔 / 全市場 ${uni} 檔　·　${MUD.reqs} 個請求${MUD.bad ? `，<b class="bad">${MUD.bad} 個失敗</b>` : ''}）`
       + `<br>· <b id="mudCover">即時只涵蓋 ${MUD.hit} 檔</b>（人工族群成分股 ${(MUD.src || {}).group || 0}＋自選 ${(MUD.src || {}).watch || 0}＋盤後成交值前段補 ${(MUD.src || {}).turnover || 0}，上限 ${MUD_CAP}）：`
@@ -3377,30 +3376,31 @@
       const hasLim = st.some(r => 'lim' in r);
       const eodLU = hasLim ? st.filter(r => r.lim === 1).sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : (mv.limit_up || []);
       const eodLD = hasLim ? st.filter(r => r.lim === -1).sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : (mv.limit_down || []);
-      const eodDate = heat.date || ((D.meta || {}).latest) || '';
       /* ★ 2026-09-25（審查 R5：按「⚡ 即時」後，鈕已經亮了、標題卻還是盤後的「784 漲／1314 跌」，
          要等第一輪報價回來（0.7～4 秒）才換 —— 那段時間畫面上兩個口徑對不起來）。
          第一輪還在路上時，標題**當場**就換成「即時抓取中」，並明講下面暫時仍是盤後那一份。*/
       const pending = MUD.on && !live && !MUD.err;
       /* ★ 2026-10-05：即時抓失敗時標題**也要講**（以前只寫在下面那條狀態列，標題照樣是盤後的數字，
-         Andy 盤中切即時看到「漲停 56、跌停 6」以為即時沒作用）。盤後那一版一律標資料日期。*/
+         Andy 盤中切即時看到「漲停 56、跌停 6」以為即時沒作用）。
+         ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：標題不再寫資料日期、「盤後」、「⚡ 即時 HH:MM:SS」——
+         資料新鮮度看全站資料狀態徽章與頁首時間。留下的只有「只涵蓋 N 檔（非全市場）」（口徑，不是時段）與抓取中／抓不到（狀態）。
+         不改成圖示或滑過提示，直接拿掉（Andy 10-06 再強調「一律拿掉」）。*/
       const eodCnt = `${heat.advancers || 0} 漲／${heat.decliners || 0} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
-      const liveAt = MUD.at ? (window.Live && window.Live.hms ? window.Live.hms(MUD.at) : new Date(MUD.at).toTimeString().slice(0, 8)) : '';
       title.innerHTML = live
-        ? `漲跌家數 <small id="mktTitleLive">⚡ 即時 ${liveAt} · 只涵蓋 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
+        ? `漲跌家數 <small id="mktTitleLive">只涵蓋 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
           + `・漲停 ${cnt.lu}、跌停 ${cnt.ld}</small>`
         : pending
-        ? `漲跌家數 <small class="mktpending">⚡ 即時抓取中…（下面暫時仍是 ${fmt.esc(eodDate)} 盤後：${eodCnt}）</small>`
+        ? `漲跌家數 <small class="mktpending">即時抓取中…</small>`
         : MUD.on && MUD.err
-        ? `漲跌家數 <small class="mktliveerr"><b class="bad">⚡ 即時抓不到：${fmt.esc(MUD.err)}</b>　下面是 ${fmt.esc(eodDate)} 盤後：${eodCnt}</small>`
-        : `漲跌家數 <small>${fmt.esc(eodDate)} 盤後・${eodCnt}</small>`;
+        ? `漲跌家數 <small class="mktliveerr"><b class="bad">即時抓不到：${fmt.esc(MUD.err)}</b>　${eodCnt}</small>`
+        : `漲跌家數 <small>${eodCnt}</small>`;
       const sets = (live ? [
         /* ★ 2026-09-24 說明精簡：每一頁上方那行只留一句定義；檔位、估算口徑搬進「怎麼看 ?」（HOW.mkt）。
            即時那三個「只排抓到的這批／估算」**留在畫面上**（短版）—— 少了它會被讀成全市場或真實成交值。*/
-        ['漲停', lr.filter(r => r.lim === 1), `現價＝漲停價（只認普通股）・⚡ 即時 ${liveAt}`],
-        ['跌停', lr.filter(r => r.lim === -1), `現價＝跌停價（只認普通股）・⚡ 即時 ${liveAt}`],
-        ['漲幅前段', top(lr.filter(rankable), 'chg_pct', -1), `現在漲最多的（只排抓到的這批、排除 >10% 與非個股）・⚡ ${liveAt}`],
-        ['跌幅前段', top(lr.filter(rankable), 'chg_pct', 1), `現在跌最多的（只排抓到的這批、排除 >10% 與非個股）・⚡ ${liveAt}`],
+        ['漲停', lr.filter(r => r.lim === 1), '現價＝漲停價（只認普通股）'],
+        ['跌停', lr.filter(r => r.lim === -1), '現價＝跌停價（只認普通股）'],
+        ['漲幅前段', top(lr.filter(rankable), 'chg_pct', -1), '現在漲最多的（只排抓到的這批、排除 >10% 與非個股）'],
+        ['跌幅前段', top(lr.filter(rankable), 'chg_pct', 1), '現在跌最多的（只排抓到的這批、排除 >10% 與非個股）'],
         ['成交值前段', top(lr.filter(r => r.turnover != null), 'turnover', -1),
           '量最大的（⚠ 成交值是估算）'],
       ] : [
@@ -4494,7 +4494,6 @@
        · 「依漲跌上色」的口徑搬進「?」（HOW.heat 最下面那行小字，數字即時算，見 heatNoRot）。*/
     hmLegend('heat', 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
     heatNoRot = list.filter(g => !(rot || []).some(r => r.group_id === g.group_id)).length;
-    const dp = $('#heatDate'); if (dp) dp.innerHTML = hmDate(gt[0] && gt[0].date);
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
@@ -4798,7 +4797,7 @@
     box.innerHTML = `<div class="ph"><i style="background:${s.color}"></i>
         <b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群${onW.size ? `（盤上 ${nOn}）` : ''}</span>
         <span class="muted">${s.sub}　·　<em>${s.act}</em></span></div>
-      <div class="sd muted" title="點族群＝在「資金流向排行」下面展開成分股；點面板外面或按 Esc 關閉">依成交值佔比排序${live ? '　·　<b>⚡ 盤中即時</b>' : ''}</div>
+      <div class="sd muted" title="點族群＝在「資金流向排行」下面展開成分股；點面板外面或按 Esc 關閉">依成交值佔比排序</div>
       <ul class="ms">${rotQuadRows(list, onW, null)}</ul>`;
     dismissable(box, () => { if (rotStageOpen) rotStageToggle(rotStageOpen); }, { ignore: ['#rankPanel'] });
     /* 展開成分股走**既有**那條路（`drillOpen` → `#rankPanel`），和即時那排 `rlvchip`、
@@ -5039,10 +5038,11 @@
        這次改的是「收進提示」，不是「拿掉」。提示框同樣吃全站那一份「點外面就關、Esc 也關」。*/
   function rlvTagText() {
     if (!RLV.on) return '';
+    /* ★ 2026-10-06（DECISIONS #324）：狀態字不再寫時間與時段（「即時 10:32」「非盤中・最後快照」「仍是盤後」），
+       只寫「即時」；盤中與否用顏色（.warn）講，完整口徑仍在它的提示框（#rotLive）。*/
     if (RLV.busy && !RLV.at) return '即時・抓取中';
-    if (RLV.err) return '即時抓不到・仍是盤後';
-    const hm = String(RLV.quoteAt || '').slice(0, 5);
-    return RLV.intraday ? `即時 ${hm || '—'}` : '非盤中・最後快照';
+    if (RLV.err) return '即時抓不到';
+    return '即時';
   }
   function rlvStamp() {
     // 卡片那顆與放大視窗那顆（#rotZoomLiveBtn）是同一個開關，一起亮一起滅
@@ -5084,9 +5084,8 @@
       ? `這批 ${RLV.hit} 檔的估算成交值 ${fmt.yi(RLV.uniAmt)} ÷ 證交所公布的台股總成交值 ${fmt.yi(RLV.marketAmt)}`
       : '證交所的總成交值這一輪抓不到，所以算不出涵蓋率';
     const chips = rlvTop(6).map(r => `<button type="button" class="rlvchip${r.jump ? ' jump' : ''}" data-g="${r.gid}" style="--c:${STAGE[r.stage].color}" title="族群報酬 ${fmt.pct(r.ret, 2)}（大盤代理值 ${fmt.pct((RLV.mkt || 0) * 100, 2)}）；含慣性的總位移 強弱 ${fmt.n(r.dx, 2)} / 動能 ${fmt.n(r.dy, 2)}。點一下在下面展開這個族群的成分股"><span class="g">${fmt.esc(r.name)}</span><span class="d">強弱 ${r.tdx >= 0 ? '+' : ''}${fmt.n(r.tdx, 2)}　動能 ${r.tdy >= 0 ? '+' : ''}${fmt.n(r.tdy, 2)}</span>${r.jump ? `<span class="j">${STAGE[r.stage0].name}→${STAGE[r.stage].name}</span>` : ''}</button>`).join('');
-    el.innerHTML = (RLV.intraday
-      ? `<b class="live">即時</b>　最後更新 <b class="liveat">${(window.Live && window.Live.hms ? window.Live.hms(RLV.at) : new Date(RLV.at).toTimeString().slice(0, 8))}</b>（台北）　每 5 秒更新（報價 ${fmt.esc(RLV.quoteAt || '—')}）`
-      : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最後一次報價的快照</b>，不是盤中變化')
+    // ★ 2026-10-06（DECISIONS #324）：開頭的「最後更新 HH:MM:SS…／現在不是盤中…快照」拿掉（時段），後面的口徑照留
+    el.innerHTML = '<b class="live">即時</b>'
       + `　·　大盤（代理值）${fmt.pct(RLV.mkt * 100, 2)}　·　<span title="${fmt.esc(covTip)}">${cov}</span>`
       /* 底下兩句是**不准省略**的誠實標示，第三句是「怎麼讀這條線」。
          長版（含實測數字與原理）在「怎麼看 ?」裡。這裡只留「不看到就會把圖讀錯」的那幾句。*/
@@ -7446,7 +7445,8 @@
     if (sub) sub.textContent = ovFlowSubText(day, gs.length, total);
   }
   // 資金去向的小標（renderOverview 會在延後畫之前先寫好，版面才不會等圖畫完才長高，見那裡的註解）
-  const ovFlowSubText = (day, n, total) => `${day} 盤後結算，這 ${n} 個族群合計 ${fmt.yi(total)}`
+  /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：開頭的「YYYY-MM-DD 盤後結算，」拿掉；day 參數留著不用（呼叫端三處不必改）。*/
+  const ovFlowSubText = (day, n, total) => `這 ${n} 個族群合計 ${fmt.yi(total)}`
     + '　·　產業鏈 → 族群（只到族群層）'
     + '　·　每一層的 % 都是「佔它上一層」的比重　·　線越粗＝流過的成交值越大（沒有動畫）';
 
@@ -7518,8 +7518,7 @@
     /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
        Andy 要的是「跟熱門題材一樣」，兩份各寫一套遲早會長得不一樣（字級、Esc、點外面關）。
        輸出的 DOM 與抽出前相同（#ovThemeDD、.ddbtn b、.ddopt[data-t]、面板往左長），既有驗收不用改。*/
-    // ★ 2026-09-26（Andy：「篩選位置同步在左上」）：下拉搬到標題旁（面板改往右長，超出才自動往左），日期另放右側 #ovThemeDate
-    const tdp = $('#ovThemeDate'); if (tdp) tdp.innerHTML = hmDate(th.date);
+    // ★ 2026-09-26（Andy：「篩選位置同步在左上」）：下拉搬到標題旁（面板改往右長，超出才自動往左）；右側的日期膠囊 2026-10-06 拿掉
     ovThemeDD($('#ovThemeCtl'), th, M, 'ovThemeDD', OVT, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); });
     host.style.height = '300px';
     /* ★ 2026-09-26（Andy：「熱門題材，需要跟資金熱力圖一樣有放大功能」）：日期旁「放大 ⤢」，
@@ -8420,16 +8419,14 @@
       /* ★ 2026-09-24：副標只留「M/D ～ M/D」（Andy：補充文字拿掉）。
          即時模式時後面那個日期寫**今天**（排行本身仍是收盤資料，但使用者看的是「到今天為止」）。
          「和前一段相比」這句搬進 title（滑上去看得到），沒有刪掉。*/
+      /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：排行副標（#rankSub）與輪盤標題後面（#rotSub）的「M/D ～ M/D」拿掉。
+         看幾天由「N 天前」拉Bar 自己寫（回放時寫回放到哪一天），副標不再重複一次日期。
+         兩個節點留著、畫面上是空的；區間寫在 data-range（機器讀數，給驗收比對「拉Bar 之後這一段真的換了」，畫面不顯示）。*/
       rankSubPaint = () => {
         const md = (s2) => { const m = String(s2 || '').match(/^\d{4}-(\d{2})-(\d{2})/); return m ? `${+m[1]}/${+m[2]}` : String(s2 || ''); };
         const today = (() => { try { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); } catch (e) { return to; } })();
-        const rs = $('#rankSub'); if (!rs) return;
-        rs.textContent = `${md(from)} ～ ${md(RLV.on ? today : to)}`;
-        // 輪盤標題後面的日期區間（2026-09-25）：同一段、同一個字串，一起寫才不會走鐘
-        const os = $('#rotSub'); if (os) { os.textContent = rs.textContent; os.title = `${from} ～ ${to}（${k} 個交易日）`; }
-        rs.title = `${from} ～ ${to}（${k} 個交易日）`
-          + (prevTo > prevFrom ? `，和再往前 ${prevTo - prevFrom} 個交易日相比` : '，沒有可比的上一段')
-          + (RLV.on ? '；即時模式下結尾寫今天（排行本身仍是收盤資料）' : '');
+        const rng = `${md(from)} ～ ${md(RLV.on ? today : to)}`;
+        [$('#rankSub'), $('#rotSub')].forEach(el => { if (!el) return; el.textContent = ''; el.removeAttribute('title'); el.dataset.range = rng; });
       };
       rankSubPaint();
       renderRankFlow({ label: `最近 ${k} 天`, from, to, days: k,
@@ -8457,10 +8454,14 @@
         foreign: sum(g.foreign), trust: sum(g.trust), dealer: sum(g.dealer),
       })).map(g => ({ ...g, total: (g.foreign || 0) + (g.trust || 0) + (g.dealer || 0) }))
         .filter(g => g.foreign != null || g.trust != null || g.dealer != null);
-      /* ★ 2026-09-24 說明精簡：副標只留「哪一段、幾天、單位」，年份省掉（卡片其他地方都寫了資料日期）。*/
-      const md = (d) => String(d || '').slice(5);
+      /* ★ 2026-09-24 說明精簡：副標只留「哪一段、幾天、單位」。
+         ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：副標不再寫日期區間 —— 選到哪一段由下面的區間桿自己寫（#instDays .val），
+         副標只留天數與單位。*/
       // data-base：renderInstPeriod 會在後面接「· 產業鏈」，基底記在這裡，重畫時才不會越接越長
-      { const se = $('#instSub'); se.textContent = se.dataset.base = `${md(src.dates[from])}～${md(src.dates[end - 1])}（${k} 日）淨買超（張）`; }
+      // data-range：機器讀數（驗收比對「拖區間桿之後這一段真的換了」），畫面不顯示
+      { const md = (d) => String(d || '').slice(5);
+        const se = $('#instSub'); se.textContent = se.dataset.base = `近 ${k} 日淨買超（張）`;
+        se.dataset.range = `${md(src.dates[from])}～${md(src.dates[end - 1])}（${k} 日）`; }
       renderInstPeriod({ label: `最近 ${k} 天`, days: k, groups: gs });
     };
     /* 名次變化（bump）整張拿掉 —— Andy 2026-09-18 圖四：
@@ -10310,10 +10311,12 @@
     /* 即時模式下圖上的葉子是「價 × 量」的估算，這一欄卻是收盤值 —— 兩邊數字會不一樣。
        不寫出來的話看起來就像其中一邊算錯了（而且無從判斷是哪一邊）。*/
     (SKL.on && !SKL.err && Object.keys(SKL.tv).length)
-      ? `即時模式：圖上展開的個股是「價 × 量」的即時估算，這一欄仍是最新交易日（${fmt.esc(day)}）的收盤值，兩者不是同一個時點`
+      /* ★ 2026-10-06（DECISIONS #324）：三句都不再寫日期（「最新交易日（YYYY-MM-DD）」「時間軸目前在 YYYY-MM-DD」）；
+         時間軸在哪一天由拉Bar 自己寫。口徑（估算 vs 收盤、清單只有最新那一版）照留。*/
+      ? '即時模式：圖上展開的個股是「價 × 量」的即時估算，這一欄仍是收盤值，兩者不是同一個時點'
       : isLatest
-        ? `依最新交易日（${fmt.esc(day)}）的成交值排序，百分比＝佔這個族群的比重（和圖上展開的葉子同一個分母）`
-        : `時間軸目前在 ${fmt.esc(day)}，但成分股排序只有最新交易日的版本（逐日檔每天只留前 3 檔）`);
+        ? '依成交值排序，百分比＝佔這個族群的比重（和圖上展開的葉子同一個分母）'
+        : '成分股排序只有最新交易日的版本（逐日檔每天只留前 3 檔），不是時間軸上那一天的');
   /* ★ 2026-09-21：`sankeyStockPanel()` 移除。資金去向與輪動時鐘現在共用同一支
      成分股面板（`renderDrillPanel`），兩階段下鑽的狀態也只有一份。
      留著一支沒有人呼叫的舊面板，只會讓下一個人以為資金去向還有自己的一套。*/
@@ -10479,9 +10482,8 @@
     if (SKL.busy && !SKL.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
     if (SKL.err) { el.innerHTML = `<b class="bad">即時抓不到</b>　${fmt.esc(SKL.err)}　·　再按一次「即時」可退回盤後資料`; return; }
     const amt = SKL.marketAmt != null ? `台股總成交值 <b>${fmt.yi(SKL.marketAmt)}</b>（證交所真實值）` : '台股總成交值：這一輪沒取到';
-    el.innerHTML = (SKL.intraday
-      ? `<b class="live">即時</b>　最後更新 <b class="liveat">${(window.Live && window.Live.hms ? window.Live.hms(SKL.at) : new Date(SKL.at).toTimeString().slice(0, 8))}</b>（台北）　每 5 秒更新（報價 ${fmt.esc(SKL.quoteAt || '—')}）`
-      : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最近一次收盤後的報價快照</b>，不是盤中變化')
+    // ★ 2026-10-06（DECISIONS #324）：開頭的「最後更新 HH:MM:SS…／現在不是盤中…快照」拿掉（時段），後面的口徑照留
+    el.innerHTML = '<b class="live">即時</b>'
       + `　·　${amt}`
       + `　·　板塊成交值是 <b>價 × 量</b> 的<b>估算值</b>（端點沒有每檔的累積成交金額）`
       + `　·　% 的分母＝<b>${Object.keys(SKL.tv).length} 個即時板塊加總</b>，`
@@ -10923,16 +10925,16 @@
     const sub = $('#sankeySub');
     if (sub) {
       const selName = selG ? (L.gname[selG] || selG) : selC ? (chainOf[selC] || {}).name : '';
-      const when = live
-        ? (SKL.intraday ? `盤中即時（報價 ${SKL.quoteAt || '—'}）` : '即時報價快照（現在不是盤中）')
-        : day;
+      /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #324）：副標開頭的日期／「盤中即時（報價 HH:MM）」拿掉。
+         看的是哪一天由「看哪一天」拉Bar 自己寫（最新／YYYY-MM-DD）；即時的「估算」口徑仍留在後面那段（那是口徑不是時段）。*/
       /* ★ 2026-09-24 說明精簡（Andy：「圖上只留功能按鍵及圖表和簡短說明」）：
          副標只留**會跟著狀態變的讀數**（哪一天、% 的分母、固定或換位、篩選、展開），
          每一段的完整說法（四層是什麼、估算口徑、自動桶、怎麼收回）都搬進「怎麼看 ?」（HOW.sankey）。
          ⚠ 「位置固定／換位」這一句仍然一定要跟著模式換（Andy 2026-09-21）——
            即時模式真的會換位，副標卻寫著「位置固定」就是「圖在動、字說不會動」。
          ⚠ 即時的「估算」兩個字不准拿掉：少了它，盤中的成交值會被讀成真實值。*/
-      sub.textContent = `${when}・% 佔上一層`
+      sub.dataset.day = live ? 'live' : (day || '');   // 機器讀數（驗收比對換日），畫面不顯示
+      sub.textContent = '% 佔上一層'
         + (live ? '・即時換位（成交值估算）' : topo ? '・依排名換位' : '・位置固定')
         + (narrow ? '・窄版不畫代表股' : topo && !expNode ? '・滑到族群看代表股' : '')
         + (selName ? `・只看「${selName}」` : '')
@@ -11565,11 +11567,11 @@
         ], (window.ThemeDiagrams || {})[d.id] ? '點一下看這個題材' : '這個題材尚無剖析圖'); } },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', visibleMin: big ? 20 : 60,
         ...HS, label: { ...HS.label, formatter: () => '' }, data }] }); };
-    // 標題列：顏色下拉＋日期膠囊（只顯示）
+    // 標題列：顏色下拉（日期膠囊 2026-10-06 拿掉）
     const ctl = $('#themeCtl');
     if (ctl) {
       ctl.innerHTML = `<label class="hmctl" title="方塊的顏色依據">顏色：<select id="themeColorSel" aria-label="題材熱力圖的顏色依據">`
-        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度（藍→紅）</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
+        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度（藍→紅）</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>`;
       const sel2 = $('#themeColorSel', ctl);
       if (sel2) sel2.onchange = () => { themeColor = sel2.value; themeFocus = null; hmLSset('tw.themeColor', themeColor); renderThemes(sel, true); };
     }
@@ -12912,7 +12914,7 @@
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
-      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmDate, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
+      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/
