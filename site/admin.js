@@ -469,6 +469,12 @@
 /* 會員名單所有欄位標題與內容置中（Andy 10-05：「欄位內文字都置中」）；展開明細那一列不動 */
 #v-admin table.memtbl thead th,#v-admin table.memtbl tbody tr:not(.pmdet)>td{text-align:center}
 #v-admin table.memtbl td.c-who .who1{justify-content:center}
+/* 10-05 Andy「會員分頁字體置中，大小 Follow 產業 Map」：範本頁籤蓋掉舊的 15.5px／44px 高，回到 .nbsw 的字級與內距、置中 */
+#v-admin .ptwrap .ptabs button[role=tab]{font-size:13.5px;font-weight:400;height:auto;min-height:0;justify-content:center;text-align:center;padding:var(--sp-1) var(--sp-3) var(--sp-2)}
+#v-admin .ptwrap .ptabs button[role=tab].on{font-weight:700;padding:var(--sp-2) var(--sp-4) var(--sp-2)}
+#v-admin .ptwrap .ptabs .ptab>button[role=tab]{padding-right:32px}
+#v-admin .ptwrap .ptabs button.ptmore{top:50%;transform:translateY(-50%)}
+#v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
 #v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
     document.head.appendChild(s);
   }
@@ -582,7 +588,7 @@
       </div>
       <div class="secttl" id="trDetailTtl"><h2>分頁明細</h2><small>選一頁，看那一頁的每個元件被用幾次、細項（哪個族群、哪一檔）是誰</small></div>
       <div class="card" id="trDetail" style="margin-top:10px">
-        <div class="seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
+        <div class="nbsw lv2 seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
         <div id="trPageBody"></div></div>`;
     v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
     v.querySelector('#admRefresh').onclick = () => paint();

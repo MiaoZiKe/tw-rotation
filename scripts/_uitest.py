@@ -44444,10 +44444,10 @@ def t_admin_v2(b, base, code):
     ok(f"{T}：按儲存 → plans/put 送到註冊會員範本（free）、feats 正好是 grp.foundry:false", body.get("id") == "free" and body.get("feats") == {"grp.foundry": False}, body)
     # 付費：下拉換範本、名單跟著換、⚙ 範本設定改價、＋新增範本（admin-v3）
     pg.click("#ptTier button[data-plan='p399']")
-    ok(f"{T}：大分頁：選中頁籤字級 ≥15px、跟下面內容框連成一體（頁籤底邊貼著內容框頂）",
+    ok(f"{T}：大分頁：選中頁籤字級＝產業地圖分頁 13.5px（10-05 #321）、跟下面內容框連成一體（頁籤底邊貼著內容框頂）",
        pg.evaluate("""() => { const t = document.querySelector('#ptTier button.on'), pn = document.querySelector('#pmHead .ptpanel');
          const a = t.getBoundingClientRect(), b = pn.getBoundingClientRect();
-         return parseFloat(getComputedStyle(t).fontSize) >= 15 && Math.abs(a.bottom - b.top) <= 2 && t.getAttribute('aria-selected') === 'true'; }"""))
+         return getComputedStyle(t).fontSize === "13.5px" && Math.abs(a.bottom - b.top) <= 2 && t.getAttribute('aria-selected') === 'true'; }"""))
     pg.click("#ptSubList")
     wait_until(pg, "() => !!document.getElementById('ptMail')", 3000)
     ok(f"{T}：點 399 範本頁籤、會員名單是 399 的人", pg.get_attribute("#ptTier button.on", "data-plan") == "p399"
@@ -44840,6 +44840,18 @@ def t_admin_sw_1005(b, base, code):
                    bad: [...t.querySelectorAll('tbody tr')].filter(r => r.querySelector('.pdbadge:not(.off)')).map(r => r.querySelector('.c-tpl').textContent).filter(x => /^(訪客|註冊會員)/.test(x)) }; }""")
         ok(f"{T}：會員名單每個欄位標題與內容都置中", m and m["n"] > 0 and not m["notC"], m)
         ok(f"{T}：有金色 ★ 的人，方案欄不會寫「訪客／註冊會員」", m and not m["bad"], m)
+    # ★ 10-05 預設（DECISIONS）：所有分頁列字級＝產業地圖分頁字級、文字置中
+    tq = """(sel) => [...document.querySelectorAll(sel)].filter(b => b.offsetParent).map(b => { const cs = getComputedStyle(b); return [cs.fontSize, cs.justifyContent, b.textContent.trim().slice(0, 8)]; })"""
+    pg.evaluate("() => { location.hash = '#industry'; }")
+    wait_until(pg, "() => document.querySelector('#chainSwitch button:not(.on)')", 15000)
+    ref = pg.evaluate(tq, "#chainSwitch > button:not(.on)")[0][0]
+    pg.evaluate("() => { location.hash = '#admin/perm'; }")
+    wait_until(pg, "() => document.querySelector('#ptTier button[role=tab]')", 10000)
+    got = pg.evaluate(tq, "#ptTier button[role=tab]:not(.add), #ptSub button, #admTabs a")
+    pg.evaluate("() => { location.hash = '#explore'; }")
+    wait_until(pg, "() => document.querySelector('#slChips button')", 10000)
+    got += pg.evaluate(tq, "#slChips > button:not(.on)")
+    ok(f"{T}：管理區／選股的分頁字級＝產業地圖分頁（{ref}）、文字置中", got and all((x[0] == ref or x[0] == "12.5px") and x[1] == "center" for x in got), [ref, got])
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
     c.close()
 
