@@ -46374,7 +46374,7 @@ def t_layout4(b, base, code):
         grp = pg.evaluate("""() => { const tabs = [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length);
             tabs.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
             return { order: tabs.map(t => t.dataset.view),
-              labels: tabs.map(t => getComputedStyle(t, '::before').content).filter(c => c && c !== 'none' && c !== 'normal').map(c => c.replace(/"/g, '')),
+              labels: [...document.querySelectorAll('#tabs .l4grp')].map(g => g.dataset.t),   // 10-05 側欄收展：分組標題改成真的按鈕 .l4grp
               icons: tabs.filter(t => /svg/.test(getComputedStyle(t, '::after').maskImage || getComputedStyle(t, '::after').webkitMaskImage || '')).length,
               n: tabs.length }; }""")
         ok(f"{T}1440 頁面依分組排：總覽｜資金流向、熱力圖｜產業地圖、市場明細｜週期統計｜自選",
@@ -46817,7 +46817,7 @@ def t_layout4_subs(pg, base, T):
     pg.evaluate("() => { try { localStorage.setItem('tw.layout4.nav', 'full'); } catch (e) {} }")
     # 從別頁點父頁「資金流向」：一進資金流向就是全新的一輪（重新整理，確保別的子分頁的圖真的還沒畫過）
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(800)
-    lbl = pg.evaluate("() => getComputedStyle(document.querySelector('#tabs .tab[data-view=flow]'), '::before').content.replace(/\"/g, '')")
+    lbl = pg.evaluate("() => { const g = document.querySelector('#tabs .l4grp[data-first=flow]') || [...document.querySelectorAll('#tabs .l4grp')].find(x => x.dataset.t === '資金流水'); return g ? g.dataset.t : 'none'; }")   # 10-05 分組標題改 .l4grp
     ok(f"{T}子分頁 側欄分組名改成「資金流水」", lbl == "資金流水", lbl)
     subs = pg.evaluate("() => [...document.querySelectorAll('#tabs .l4subtab')].map(b => ({ k: b.dataset.l4sub, t: b.querySelector('.lbl').textContent, "
                        "x: Math.round(b.getBoundingClientRect().left), px: Math.round(document.querySelector(`#tabs .tab[data-view=${b.dataset.parent}]`).getBoundingClientRect().left), "
