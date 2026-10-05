@@ -131,7 +131,7 @@
 #v-admin .pmfoldnote{margin:0 0 6px;font-size:12.5px}
 #v-admin .pmcat .pmrow.sm{padding:5px 0;gap:8px}#v-admin .pmcat .pmrow.sm .pmtx b{font-size:13.5px;font-weight:500}
 #v-admin .pmcathd{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-bottom:6px}#v-admin .pmcathd>button[data-all]{flex:none}
-#v-admin .pmcathd h3{margin:0;min-width:0;flex:1}
+#v-admin .pmcathd h3{margin:0;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-admin .pmcathd h3 small{font-size:12.5px;color:var(--ink-2);font-weight:400;margin-left:6px}
 #v-admin .pmcathd button{height:30px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
 #v-admin .pmrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
@@ -158,8 +158,8 @@
 #v-admin .stt.ok{background:color-mix(in srgb,#35d07f 20%,transparent)}#v-admin .stt.exp{background:color-mix(in srgb,#ff6b7a 22%,transparent)}#v-admin .stt.new{background:var(--panel-3)}
 #v-admin .pmcnt{font-size:13px;color:var(--ink-2)}#v-admin .pmbar input[type=search]{flex:1 1 220px;max-width:360px}
 #v-admin .pmtpl{align-items:flex-start}#v-admin .pmtpl small{flex:1 1 260px;font-size:12.5px;color:var(--ink-2);line-height:1.5}#v-admin .pmtpl span{font-size:13px;color:var(--ink-2)}
-#v-admin .pmtag.new{background:color-mix(in srgb,var(--cyan) 22%,transparent)}#v-admin .pmrow.dirty{box-shadow:inset 3px 0 0 var(--cyan);padding-left:8px}
-#v-admin .pmsave{position:sticky;bottom:12px;z-index:20;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;
+#v-admin .pmtag.new{background:color-mix(in srgb,var(--cyan) 22%,transparent)}
+#v-admin .pmsave{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);width:min(720px,calc(100vw - 32px));box-sizing:border-box;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.28);display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:12px;
   background:var(--panel,#111a2b);border:1px solid var(--cyan);box-shadow:0 6px 24px rgba(0,0,0,.35);font-size:14px}
 #v-admin .pmsave[hidden]{display:none}#v-admin .pmsave #pmDirty{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
 #v-admin .pmsave button{height:34px;font-size:14px;border-radius:8px;padding:0 16px;cursor:pointer;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2)}
@@ -189,9 +189,39 @@
 #v-admin .ptsub button small{font-family:var(--mono);font-size:12px;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--panel-3)}
 #v-admin .ptpick select{max-width:min(100%,360px)}#v-admin .ptwho{font-size:12.5px;color:var(--ink-2);flex:1 1 220px}
 #v-admin .pmlimhelp{margin:4px 0 0}
+#v-admin .pmlegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 0 0;font-size:12px;color:var(--ink-2)}
+#v-admin .pmlegend span{display:inline-flex;align-items:center;gap:6px}
+#v-admin .pmlegend .lg{display:inline-block;width:14px;height:12px;border-radius:3px;font:normal 11px/12px var(--mono);text-align:center}
+#v-admin .pmlegend .lg.dirty{background:color-mix(in srgb,#f5a524 26%,transparent);box-shadow:inset 3px 0 0 #f5a524}
+#v-admin .pmlegend .lg.tuned{box-shadow:inset 3px 0 0 #4c9dff;background:color-mix(in srgb,#4c9dff 10%,transparent)}
+#v-admin .pmlegend .lg.lim{width:auto;padding:0 4px;color:var(--ink-3,#7a879c)}
+#v-admin .pmrow{position:relative;border-radius:6px}
+#v-admin .pmrow.tuned{box-shadow:inset 3px 0 0 #4c9dff;background:color-mix(in srgb,#4c9dff 7%,transparent)}
+#v-admin .pmrow.dirty{box-shadow:inset 3px 0 0 #f5a524;background:color-mix(in srgb,#f5a524 16%,transparent)}
+#v-admin .pmcards .pmrow,#v-admin .pmcats .pmrow{padding:6px 6px 6px 8px;gap:10px;grid-template-columns:44px minmax(0,1fr)}
+#v-admin .pmcats .pmrow.wl{grid-template-columns:44px minmax(0,1fr) 44px}
+#v-admin .pmcats .pmrow.wr{grid-template-columns:44px minmax(0,1fr) 44px}
+#v-admin .pmcats .pmrow.wl.wr{grid-template-columns:44px minmax(0,1fr) 44px 44px}
+#v-admin .pmcats .pmrow .pmtx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#v-admin .pmcats .pmrow.sel{grid-template-columns:76px minmax(0,1fr) 44px}#v-admin .pmcats .pmrow.sel.wr{grid-template-columns:76px minmax(0,1fr) 44px 44px}#v-admin .pmcats .pmrow.sel select{width:76px}
+#v-admin .pmlimc,#v-admin .pmrevc{width:44px;display:flex;justify-content:center;min-width:0}
+#v-admin .pmrevc .pmrev{font-size:11.5px;padding:0 4px;height:22px}
+#v-admin .pmcats.pmcards{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-top:10px}
+#v-admin .pmcards .pmcat.card{padding:10px 12px;min-width:0}
+#v-admin .pmcards .pmrow:first-of-type{border-top:0}
+#v-admin .pmlimb{width:44px;box-sizing:border-box;text-align:center;font:500 11.5px var(--mono);line-height:20px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-3,#7a879c);opacity:.65;cursor:pointer;white-space:nowrap;overflow:hidden}
+#v-admin .pmlimb:hover,#v-admin .pmlimb[aria-expanded=true]{opacity:1;border-color:var(--line-2)}
+#v-admin .pmlimb.set{opacity:1;color:var(--ink);background:color-mix(in srgb,var(--cyan) 16%,transparent)}
+#v-admin .pmlimb.zero{color:#ff6b7a;background:color-mix(in srgb,#ff6b7a 14%,transparent)}
+#v-admin .pmlimb:disabled{cursor:not-allowed}
+#v-admin .pmlimpop{position:absolute;right:0;bottom:calc(100% - 4px);z-index:30;display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap}
+#v-admin .pmlimpop input{width:60px;height:26px;font:13px var(--mono);text-align:right;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:6px;padding:0 6px}
+#v-admin .pmlimpop input.bad{border-color:#ff6b7a}
+#v-admin .pmlimpop button{height:26px;font-size:12px;padding:0 8px;border-radius:6px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
+#v-admin .pmlimpop button.ok{background:var(--cyan);color:#06121f;border-color:transparent}
+
 #v-admin #pmCats.card:has(.pmrow.wlim){grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))}
 #v-admin .pmrow.wlim{grid-template-columns:auto minmax(0,1fr) auto auto}
-#v-admin .pmlimc{display:flex;justify-content:flex-end;min-width:96px}
 #v-admin .pmlimw{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-2)}
 #v-admin .pmlimw input{width:64px;height:28px;font:13px var(--mono);text-align:right;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:7px;padding:0 6px}
 #v-admin .pmlimw input::placeholder{color:var(--ink-3,#7a879c);font-family:inherit}
@@ -486,8 +516,9 @@
         <div id="ptPermBox">
           <div id="ptGuestSum"></div>
           <div class="secttl"><h2>開放功能表</h2><small id="ptFor"></small></div>
-          <p class="use pmlimhelp">每一列：左邊開關＝能不能看；右邊「瀏覽次數」＝每天最多看幾次（<b>留空＝不限</b>、<b>0＝不能看</b>；個股頁、題材、族群頁算「看了幾個不同的」，其他頁算「開了幾次」）。超過的人會看到「今日已用完」與升級鈕。</p>
-          <div class="pmcats card" id="pmCats"></div>
+          <p class="use pmlimhelp">每一列：左邊開關＝能不能看；名稱旁的小徽章＝每天最多看幾次（<b>∞＝不限</b>，點一下可設定；<b>0＝不能看</b>；名稱旁小圓點＝跟預設不同；個股頁、題材、族群頁算「看了幾個不同的」，其他頁算「開了幾次」）。超過的人會看到「今日已用完」與升級鈕。</p>
+          <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數，點一下設定</span></div>
+          <div class="pmcats pmcards" id="pmCats"></div>
           ${GRPSEC}</div>
         <div id="ptListBox" hidden></div>
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
@@ -522,7 +553,8 @@
           <p class="use">先選層級／範本，再個別微調。開關撥完按最下面的「儲存」才會生效。瀏覽次數跟著範本走（在「會員權限」設）。</p>
           <div id="pmTarget"></div>
           <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div>
-        <div class="pmcats card" id="pmCats"></div>
+        <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數，點一下設定</span></div>
+          <div class="pmcats pmcards" id="pmCats"></div>
         ${GRPSEC}
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>${honest}`;
       v.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
@@ -781,12 +813,17 @@
       const ctl = f.kind === 'limit'
         ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${Array.from({ length: f.max + 1 }, (_, i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i + ' 頁'}</option>`).join('')}</select>`
         : `<label class="psw"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${val !== false ? 'checked' : ''} ${ready ? '' : 'disabled'}><span></span></label>`;
-      /* 瀏覽次數（每日上限）：只有範本有、只有開關類有（自選分頁數本身就是數量上限）*/
-      const lv = lims && Object.prototype.hasOwnProperty.call(lims, f.id) ? lims[f.id] : '';
-      const lim = lims && f.kind !== 'limit' ? `<label class="pmlimw${lv === 0 ? ' zero' : ''}" title="每日瀏覽次數上限：留空＝不限、0＝不能看"><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）" ${ready ? '' : 'disabled'}><small>次/日</small></label>` : '';
-      const tag = (unsaved ? '<span class="pmtag new" title="改了還沒按儲存">未存</span>' : '') + (diff ? (PS.mode === 'member' ? `<span class="pmtag" title="跟範本不同（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">微調</span><button type="button" class="pmrev" data-rev="${esc(f.id)}">還原</button>`
-        : `<span class="pmtag" title="跟預設不同">改過</span>`) : '');
-      return `<div class="pmrow${compact ? ' sm' : ''}${lims ? ' wlim' : ''}${unsaved ? ' dirty' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${compact ? grpIcon(f) : ''}${esc(f.name)}</b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div><div class="pmside">${tag}</div>${lims ? `<div class="pmlimc">${lim}</div>` : ''}</div>`;
+      /* 瀏覽次數（每日上限）：perm-cards（2026-10-05）改成名稱右側一顆小徽章（∞／N/日），點了才彈出小輸入框 ——
+         Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */
+      const has = lims && Object.prototype.hasOwnProperty.call(lims, f.id), lv = has ? lims[f.id] : '';
+      const limOpen = lims && PS.limOpen === f.id;
+      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="每日瀏覽次數上限（點一下設定）" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : '∞'}</button>` : '';
+      const pop = limOpen && f.kind !== 'limit' ? `<div class="pmlimpop" role="dialog" aria-label="${esc(f.name)} 每日瀏覽次數"><span>每日最多</span><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-limclr="${esc(f.id)}">不限</button><button type="button" class="ok" data-limok="1">確定</button></div>` : '';
+      /* 改動用顏色表示、不用文字標籤（Andy 10-05 追加）：未存＝淡琥珀底＋左色條（.dirty）、已存的微調／改過＝淡藍左色條（.tuned）。
+         色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
+      const rev = PS.mode === 'member' ? `<span class="pmrevc">${diff ? `<button type="button" class="pmrev" data-rev="${esc(f.id)}" title="還原成範本（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">還原</button>` : ''}</span>` : '';
+      const limc = lims ? `<span class="pmlimc">${badge}</span>` : '';
+      return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}${diff ? ' tuned' : ''}${lims ? ' wl' : ''}${f.kind === 'limit' ? ' sel' : ''}${PS.mode === 'member' ? ' wr' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${compact ? grpIcon(f) : ''}<span class="pmnm">${esc(f.name)}</span></b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div>${limc}${rev}${pop}</div>`;
     }).join('');
   }
   function paintCats() {
@@ -796,7 +833,7 @@
     const saved = PS.mode === 'plan' ? ((planOf(PS.planSel) || {}).feats || {}) : ((PS.rec && PS.rec.over) || {});
     const now = PS.mode === 'plan' ? ((PS.draft && PS.draft.feats) || saved) : mOver();
     box.classList.toggle('off', !ready);
-    /* 一般功能：一張大卡、細線分隔、不收合（admin-v2c 定案）；族群觀測：整塊預設收合、每個產業鏈分組各自可收合 */
+    /* 一般功能：每個分類各一張卡、四欄格狀（perm-cards 2026-10-05，Andy 要回 10-04 第一版的樣子）；族群觀測：整塊預設收合、每個產業鏈分組各自可收合 */
     const cats = FT().cats.filter((c) => FT().inCat(c.id).length);
     if (!PS.open) PS.open = new Set();
     const isOn = (f) => (f.kind === 'limit' ? cur[f.id] > 0 : cur[f.id] !== false);
@@ -807,7 +844,7 @@
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
     box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
-      return `<div class="pmcat" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
+      return `<div class="pmcat card" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
         <div class="pmbody">${catRows(fs, cur, base, saved, now, ready, false)}</div></div>`; }).join('');
     const gc = cats.find((c) => c.id === 'grp');
     if (gbox) gbox.innerHTML = gc ? (() => {
@@ -825,6 +862,7 @@
     if (gbox) gbox.onchange = (e) => box.onchange(e);
     if (gbox) gbox.oninput = (e) => box.oninput(e);
     if (gbox) gbox.onclick = (e) => box.onclick(e);
+    if (gbox) gbox.onkeydown = (e) => box.onkeydown(e);
     const ttl = v.querySelector('#pmGrpTtl'); if (ttl) ttl.onclick = (e) => box.onclick(e);
     box.onchange = (e) => {
       if (e.target.closest('[data-lim]')) return;
@@ -841,17 +879,22 @@
       if (!ok) return;
       setLim(inp.dataset.lim, raw === '' ? null : +raw);
       const row = inp.closest('.pmrow'), sl = savedLims(), cl = curLims(), fid = inp.dataset.lim;
-      const lw = inp.closest('.pmlimw'); if (lw) lw.classList.toggle('zero', raw !== '' && +raw === 0);
-      if (row) {
-        const dirty = sl[fid] !== cl[fid] || (((planOf(PS.planSel) || {}).feats || {})[fid] !== ((PS.draft && PS.draft.feats) || {})[fid]);
-        row.classList.toggle('dirty', dirty);
-        const side = row.querySelector('.pmside'), has = side && side.querySelector('.pmtag.new');
-        if (side && dirty && !has) side.insertAdjacentHTML('afterbegin', '<span class="pmtag new" title="改了還沒按儲存">未存</span>');
-        if (side && !dirty && has) has.remove();
-      }
+      const b = row && row.querySelector('button[data-limb]');
+      if (b) { const h = Object.prototype.hasOwnProperty.call(cl, fid); b.textContent = h ? cl[fid] + '/日' : '∞'; b.classList.toggle('set', h); b.classList.toggle('zero', h && cl[fid] === 0); }
+      if (row) row.classList.toggle('dirty', sl[fid] !== cl[fid] || (((planOf(PS.planSel) || {}).feats || {})[fid] !== ((PS.draft && PS.draft.feats) || {})[fid]));
       paintSave();
     };
+    if (!PS.limDoc) { PS.limDoc = true; document.addEventListener('pointerdown', (e) => {
+      if (PS.limOpen && !e.target.closest('.pmlimpop,button[data-limb]')) { PS.limOpen = null; paintCats(); } }, true); }
+    box.onkeydown = (e) => { if (e.target.closest('input[data-lim]') && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); PS.limOpen = null; paintCats(); } };
     box.onclick = (e) => {
+      const lb = e.target.closest('button[data-limb]');
+      if (lb) { PS.limOpen = PS.limOpen === lb.dataset.limb ? null : lb.dataset.limb; paintCats();
+        const i = box.querySelector('input[data-lim]'); if (i) { i.focus(); i.select(); } return; }
+      const lc = e.target.closest('button[data-limclr]');
+      if (lc) { setLim(lc.dataset.limclr, null); PS.limOpen = null; paintTarget(); paintCats(); return; }
+      if (e.target.closest('button[data-limok]')) { PS.limOpen = null; paintTarget(); paintCats(); return; }
+      if (PS.limOpen && !e.target.closest('.pmlimpop')) { PS.limOpen = null; paintCats(); }
       const fb = e.target.closest('button[data-fold]');
       if (fb) { const k = fb.dataset.fold; if (PS.open.has(k)) PS.open.delete(k); else PS.open.add(k); paintCats(); return; }
       if (e.target.closest('#pmExpandAll,#pmCollapseAll')) {
