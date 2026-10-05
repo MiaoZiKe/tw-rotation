@@ -95,9 +95,9 @@
 #v-admin label.tg{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
 #v-admin label.tg input{width:18px;height:18px}
 #v-admin .err{color:#ff6b7a}
-#v-admin .admnav{display:flex;gap:6px;flex-wrap:wrap}
-#v-admin .admnav a{display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--line-2);color:var(--ink-2);text-decoration:none;font-size:14px}
-#v-admin .admnav a.on{background:var(--cyan);border-color:var(--cyan);color:var(--ontop,#04121a);font-weight:700}
+/* 10-05 Andy「會員系統分頁也是，統一」：管理區分頁／範本頁籤／子分頁一律用產業地圖的資料夾分頁 .nbsw（CSS 在 index.html），這裡只補底線 */
+#v-admin .admnav{border-bottom:1px solid var(--line);margin-bottom:0}
+#v-admin .admnav a{text-decoration:none}
 #v-admin .tier{display:flex;gap:0;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;width:max-content;max-width:100%;margin-top:4px}
 #v-admin .tier button{height:36px;padding:0 18px;font-size:14px;background:var(--panel-2);color:var(--ink-2);border:0;border-right:1px solid var(--line-2);cursor:pointer}
 #v-admin .tier button:last-child{border-right:0}
@@ -226,8 +226,7 @@
 /* ---- admin-v3：三個大分頁＋子分頁、每列瀏覽次數、會員名單（memTable）---- */
 #v-admin .ptsub{display:flex;gap:4px;margin:12px 0 0;border-bottom:1px solid var(--line-2)}
 #v-admin .ptsub[hidden]{display:none}
-#v-admin .ptsub button{height:36px;padding:0 16px;font-size:14.5px;background:none;border:0;border-bottom:3px solid transparent;color:var(--ink-2);cursor:pointer;margin-bottom:-1px}
-#v-admin .ptsub button.on{color:var(--ink);border-bottom-color:var(--cyan);font-weight:700}
+#v-admin .ptsub{border-bottom:1px solid var(--line-2)}
 #v-admin .ptsub button small{font-family:var(--mono);font-size:12px;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--panel-3)}
 #v-admin .ptpick select{max-width:min(100%,360px)}#v-admin .ptwho{font-size:12.5px;color:var(--ink-2);flex:1 1 220px}
 #v-admin .pmlimhelp{margin:4px 0 0}
@@ -454,9 +453,23 @@
 #v-admin table.memtbl .mdet .mdonut li small{display:inline-block;font-size:11.5px}
 /* 卡片標題：名稱＋「N 項・開 M」＋全開／全關要擠在 1／4 寬裡 —— 兩顆鈕縮小，名稱放不下才省略（全名在 title）*/
 #v-admin .pmcats.pmcards .pmcathd{gap:4px}
-#v-admin .pmcats.pmcards .pmcathd>button[data-all]{height:24px;padding:0 6px;font-size:12px;border-radius:6px}
+#v-admin button.psw3{position:relative;display:inline-block;width:44px;height:24px;flex:none;padding:0;margin:0 0 0 auto;border-radius:12px;background:var(--panel-3);border:1px solid var(--line-2);cursor:pointer;transition:background .15s}
+#v-admin button.psw3>span{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--ink-2);transition:transform .15s,background .15s}
+#v-admin button.psw3[aria-checked="true"]{background:var(--cyan);border-color:var(--cyan)}
+#v-admin button.psw3[aria-checked="true"]>span{transform:translateX(20px);background:#fff}
+#v-admin button.psw3[aria-checked="mixed"]{background:linear-gradient(90deg,var(--cyan) 50%,var(--panel-3) 50%);border-color:var(--cyan)}
+#v-admin button.psw3[aria-checked="mixed"]>span{transform:translateX(10px);background:#fff}
+#v-admin button.psw3:disabled{cursor:not-allowed;opacity:.5}
+#v-admin button.psw3:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#v-admin .pmcat .grpch{display:flex;align-items:center;gap:6px}
+#v-admin .pmcat .grpch .pmfoldhd{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmallsw{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:13px;color:var(--ink-2);white-space:nowrap}
 #v-admin .pmcats.pmcards .pmcat.card .pmcathd h3{font-size:14.5px;gap:4px}
-#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 small{font-size:12px;margin-left:0}`;
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 small{font-size:12px;margin-left:0}
+/* 會員名單所有欄位標題與內容置中（Andy 10-05：「欄位內文字都置中」）；展開明細那一列不動 */
+#v-admin table.memtbl thead th,#v-admin table.memtbl tbody tr:not(.pmdet)>td{text-align:center}
+#v-admin table.memtbl td.c-who .who1{justify-content:center}
+#v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
     document.head.appendChild(s);
   }
   const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? s + ' 秒前' : Math.round(s / 60) + ' 分前'; };
@@ -481,7 +494,7 @@
     const cur = tabOf();
     /* 2026-10-05（Andy：「上方管理區那欄位拿掉」）：不再顯示「管理區＋email」標題與使用統計說明；期間／重新整理搬進流量觀測的「全站總覽」卡 */
     return `<div class="card" id="admHead" style="margin-top:16px"><div class="admtop">
-        ${document.documentElement.classList.contains('l4') ? '' : `<nav class="admnav" id="admTabs" aria-label="管理區分頁">${TABS.map(([k, n, id]) => `<a href="#admin/${k}" id="${id}" data-tab="${k}" class="${cur === k ? 'on' : ''}"${cur === k ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>`}
+        ${document.documentElement.classList.contains('l4') ? '' : `<nav class="nbsw admnav" id="admTabs" aria-label="管理區分頁">${TABS.map(([k, n, id]) => `<a href="#admin/${k}" id="${id}" data-tab="${k}" class="${cur === k ? 'on' : ''}"${cur === k ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>`}
         <span class="sp"></span>${extra || ''}</div>`;
   }
   function wireHead(v) {
@@ -664,7 +677,12 @@
   }
   const planOf = (id) => PS.plans.find((p) => p.id === id) || null;
   const paidPlans = () => PS.plans.filter((p) => !p.builtin && p.id !== 'guest' && p.id !== 'free');
-  const tierOf = (planId) => (planId === 'guest' ? 'guest' : (!planId || planId === 'free' || !planOf(planId) ? 'free' : 'paid'));
+  /* 付費＝非內建範本（Andy 10-05 回報：名單有金色 ★ 但方案欄寫「訪客」）。根因：舊判斷只看「範本存在」，
+     內建範本（訪客／免費）或被取名成「訪客」「註冊會員」的範本也會被當成付費。現在內建一律不算付費，
+     名字跟層級撞名的範本建立／改名時也擋掉（RESERVED）。 */
+  const RESERVED = /^(訪客|註冊會員|免費會員|付費會員)/;
+  const tierOf = (planId) => { const p = planId && planOf(planId);
+    return planId === 'guest' ? 'guest' : (!p || planId === 'free' || p.builtin || RESERVED.test(p.name || '') ? 'free' : 'paid'); };
   const TIER_NAME = { guest: '訪客', free: '註冊會員', paid: '付費會員' };
   const mPlan = () => (PS.draft && PS.draft.plan) || (PS.rec ? PS.rec.plan : 'free');
   const mOver = () => (PS.draft && PS.draft.over) || (PS.rec && PS.rec.over) || {};
@@ -727,16 +745,16 @@
          拿掉舊版「開放功能表　正在編：付費會員・XX」那一行：它跟範本資訊列講同一件事（#ptFor 搬進資訊列，id 不變）。 */
       v.innerHTML = head(v, A) + `<p class="use ptlede"><span>關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上的「升級查看」直接帶到訂閱頁。</span><span class="pthint" id="ptHint">拖曳頁籤可調整順序；⋮ 可改名或刪除</span></p></div>
         <div class="ptwrap" id="pmHead">
-          <div class="ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
+          <div class="nbsw ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
           <div class="ptpanel">
             <div id="pmTarget"></div>
-            <div class="ptsub" id="ptSub" role="tablist" aria-label="子分頁"></div>
+            <div class="nbsw lv2 ptsub" id="ptSub" role="tablist" aria-label="子分頁"></div>
             <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div>
             <div id="ptPermBox">
               <div id="ptGuestSum"></div>
               <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表</h3>
                 <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限，點一下設定（0＝不能看；個股／題材／族群頁算看了幾個不同的）</span></div>
-                <button type="button" id="pmAllOn" title="開放功能表全部打開（不含族群觀測）">全部開</button><button type="button" id="pmAllOff" title="開放功能表全部關掉（不含族群觀測）">全部關</button></div>
+                <span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
               <div class="pmcats pmcards" id="pmCats"></div>
               ${GRPSEC}</div>
             <div id="ptListBox" hidden></div>
@@ -745,8 +763,7 @@
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
         ${honest}`;
       wireTabs(v);
-      v.querySelector('#pmAllOn').onclick = () => allFeats(true);
-      v.querySelector('#pmAllOff').onclick = () => allFeats(false);
+      v.querySelector('#pmAllSw').onclick = (e) => allFeats(e.currentTarget.getAttribute('aria-checked') !== 'true');
       v.querySelector('#ptTier').onclick = (e) => {
         const mb = e.target.closest('button[data-more]');
         if (mb) { e.stopPropagation(); openMenu(PS.menu === mb.dataset.more ? null : mb.dataset.more, 'list'); return; }
@@ -870,6 +887,7 @@
     const p = planOf(id); name = String(name || '').trim();
     if (!p) return;
     if (!name) { setStat('範本名稱不能空白', 'bad'); return; }
+    if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     setStat('儲存中…');
     /* 只改名：開關與價格照「已存的」送（沒存的草稿不會被一起存掉；草稿留著，存不存照舊由底部儲存列決定）*/
     const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats: p.feats || {}, price: Number.isInteger(p.price) ? p.price : 0, period: p.period || 'month' });
@@ -1120,6 +1138,9 @@
   /* 訪客分頁的流量摘要：近 30 天開啟網站（登入／訪客）、頁面瀏覽、目前在線的訪客 */
   async function paintGuestSum() {
     const box = PS.v && PS.v.querySelector('#ptGuestSum'); if (!box) return;
+    /* Andy 10-05：「這已經有分頁記錄了」—— 訪客的四格流量數字卡拿掉，流量看「流量觀測」分頁。*/
+    box.innerHTML = ''; return;
+    // eslint-disable-next-line no-unreachable
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
     /* perm-v4：訪客流量改成跟會員名單統計同一種數字卡（一排四格），說明併進範本資訊列那一行 —— 不再另起一張有標題、有兩行說明的卡 */
     box.innerHTML = `<div class="mstats" id="ptGuestCard" title="訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚。"><div class="mkpis" id="ptGuestKpi"><div class="mkpi"><b>…</b><span>載入中</span></div></div></div>`;
@@ -1140,6 +1161,7 @@
     const raw = String(v.querySelector('#ptEdPrice').value || '').trim(), price = Number(raw);
     const period = v.querySelector('#ptEdPeriod').value;
     if (!name) { setStat('範本名稱不能空白', 'bad'); return; }
+    if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
     if (PS.draft) { setStat('觀看權限還有沒存的變更 —— 先按下面「儲存」或「取消」，再改範本設定', 'bad'); return; }
     setStat('儲存中…');
@@ -1215,7 +1237,7 @@
     const saved = PS.mode === 'plan' ? ((planOf(PS.planSel) || {}).feats || {}) : ((PS.rec && PS.rec.over) || {});
     const now = PS.mode === 'plan' ? ((PS.draft && PS.draft.feats) || saved) : mOver();
     box.classList.toggle('off', !ready);
-    v.querySelectorAll('#pmAllOn,#pmAllOff').forEach((b) => { b.disabled = !ready; });
+
     /* 一般功能：每個分類各一張卡、四欄格狀（perm-cards 2026-10-05，Andy 要回 10-04 第一版的樣子）；族群觀測：整塊預設收合、每個產業鏈分組各自可收合 */
     const cats = FT().cats.filter((c) => FT().inCat(c.id).length);
     if (!PS.open) PS.open = new Set();
@@ -1223,7 +1245,14 @@
     const cnt = (fs) => `${fs.length} 項・開 ${fs.filter(isOn).length}`;
     const fold = (k, label, fs, tag) => { const o = PS.open.has(k);
       return `<button type="button" class="pmfoldhd" data-fold="${esc(k)}" aria-expanded="${o}"><span class="car" aria-hidden="true">${o ? '▾' : '▸'}</span><${tag}>${esc(label)}</${tag}><small>${cnt(fs)}</small></button>`; };
-    const allBtns = (id) => `<button type="button" data-all="1" data-cat="${esc(id)}" ${ready ? '' : 'disabled'}>全開</button><button type="button" data-all="0" data-cat="${esc(id)}" ${ready ? '' : 'disabled'}>全關</button>`;
+    /* 整組開關（Andy 10-05：「全開 全關 都改成 Switch」「族群觀測需要新增對該族群總開關」）：
+       一顆三態 Switch 取代兩顆鈕 —— 全開＝on、全關＝off、部分開＝aria-checked="mixed"（圓鈕停中間）。
+       點下去：目前不是全開 → 整組開；全開 → 整組關。樣式跟列上的 .psw 同尺寸，換狀態版面不動。 */
+    const swSt = (fs) => { const n = fs.filter(isOn).length; return n === 0 ? 'false' : n === fs.length ? 'true' : 'mixed'; };
+    const triSw = (attr, fs, label) => `<button type="button" class="psw3" role="switch" ${attr} aria-checked="${swSt(fs)}" aria-label="${esc(label)}：整組開／關" title="${esc(label)}：整組開／關" ${ready ? '' : 'disabled'}><span></span></button>`;
+    const allBtns = (id) => triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
+    const tsw = v.querySelector('#pmAllSw');
+    if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
     box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
@@ -1239,7 +1268,7 @@
         <p class="use pmfoldnote">族群多，整塊預設收起來；點上面標題或「全部展開」打開。關掉的族群：族群頁模糊＋鎖頭、資金輪動的族群下拉那一列鎖住、熱力圖／排行／輪盤點了只跳「此族群需開通」。${PS.mode === 'plan' ? '瀏覽次數＝一天能打開幾個不同族群頁。' : ''}</p>
         <div class="pmbody"${open ? '' : ' hidden'}><div class="grpgrid">`
         + Object.keys(by).map((ch) => { const ck = 'ch:' + ch, co = PS.open.has(ck);
-          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}</div>`
+          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}${triSw(`data-allsw="ch" data-ch="${esc(ch)}"`, by[ch], chName(ch))}</div>`
             + `<div class="grpbody" data-ch="${esc(ch)}"${co ? '' : ' hidden'}>${catRows(by[ch], cur, base, saved, now, ready, true)}</div>`; }).join('') + '</div></div></div>';
     })() : '';
     if (gbox) gbox.onchange = (e) => box.onchange(e);
@@ -1288,10 +1317,11 @@
         if (all) { PS.open.add('cat:grp'); FT().inCat('grp').forEach((f) => PS.open.add('ch:' + (f.chain || ''))); }
         paintCats(); return;
       }
-      const a = e.target.closest('button[data-all]');
+      const a = e.target.closest('button[data-allsw]');
       if (a) {
-        const on = a.dataset.all === '1';
-        const ch = {}; FT().inCat(a.dataset.cat).forEach((f) => { ch[f.id] = f.kind === 'limit' ? (on ? f.max : 0) : on; });
+        const on = a.getAttribute('aria-checked') !== 'true';
+        const fs = a.dataset.allsw === 'ch' ? FT().inCat('grp').filter((f) => (f.chain || '') === a.dataset.ch) : FT().inCat(a.dataset.cat);
+        const ch = {}; fs.forEach((f) => { ch[f.id] = f.kind === 'limit' ? (on ? f.max : 0) : on; });
         setVals(ch);
         return;
       }

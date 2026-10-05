@@ -16,16 +16,7 @@
 /* 頁標題與分類晶片 */
 #v-explore .sl-head h2,#v-explore .sl-fhead h2{margin:4px 0 10px;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #v-explore h2 small,#v-explore h3 small{color:var(--ink-3);font-weight:400;font-size:13px}
-#v-explore .sl-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-#v-explore .sl-chip{font:inherit;font-size:14px;padding:6px 14px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);cursor:pointer}
-#v-explore .sl-chip em{font-style:normal;font:600 12px var(--mono,monospace);margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--panel-3);color:var(--ink-2)}
-#v-explore .sl-chip:hover{border-color:var(--xp-acc)}
-#v-explore .sl-chip.on{background:var(--xp-acc);border-color:var(--xp-acc);color:var(--bg)}
-#v-explore .sl-chip.on em{background:color-mix(in srgb,var(--bg) 25%,transparent);color:var(--bg)}
-#v-explore .sl-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:var(--sp-3)}
 #v-explore .sl-tl{font-size:12px;color:var(--ink-3);margin-right:4px}
-#v-explore .sl-tag{font:inherit;font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink-2);cursor:pointer}
-#v-explore .sl-tag.on{border-color:var(--xp-acc);color:var(--xp-acc)}
 
 /* 卡片牆：三欄 → 1100 以下兩欄 */
 #v-explore .sl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
@@ -150,3 +141,19 @@
 #v-explore .sl-secen{font-size:12px;font-weight:400;color:var(--ink-3)}
 #v-explore .sl-secn{font-style:normal;font-size:12px;font-weight:600;color:var(--cyan);border:1px solid var(--line-2);border-radius:999px;padding:1px 8px}
 #v-explore .sl-sech small{flex-basis:100%;font-size:12.5px;font-weight:400;color:var(--ink-2)}
+
+/* 浮層精簡版：資料日期＋出處一行小字（放不下省略，全文在 title） */
+#v-explore .sl-dsrc,.sl-pop .sl-dsrc{font-size:11.5px;color:var(--ink-3,var(--ink-2));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+
+/* 10-05：分類改資料夾分頁（.nbsw，CSS 在 index.html 共用）、子標籤改下拉多選 */
+#v-explore .sl-nb{background:transparent;padding-top:var(--sp-3)}
+#v-explore .sl-tags{display:flex;align-items:center;gap:8px;margin-bottom:var(--sp-3);white-space:nowrap;min-width:0}
+#v-explore .sl-ddw{position:relative;min-width:0}
+#v-explore .sl-dd{font:inherit;font-size:13px;height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);cursor:pointer;max-width:min(70vw,360px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-explore .sl-dd.on{border-color:var(--xp-acc);color:var(--xp-acc)}
+#v-explore .sl-ddm{position:absolute;top:calc(100% + 4px);left:0;z-index:30;width:min(86vw,340px);padding:8px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#v-explore .sl-ddl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 8px;max-height:260px;overflow:auto}
+#v-explore .sl-tag{display:flex;align-items:center;gap:6px;font-size:13px;padding:4px 6px;border-radius:6px;color:var(--ink-2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-explore .sl-tag.on{color:var(--xp-acc)}
+#v-explore .sl-ddf{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+#v-explore .sl-ddf button{font:inherit;font-size:12.5px;height:28px;padding:0 12px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
