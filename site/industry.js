@@ -5827,7 +5827,9 @@
       + `<b class="tagnm">${A.fmt.esc(t.label)}</b><span class="tagd">${t.detail ? A.fmt.esc(t.detail) : '—'}</span></button>`;
     const zone = (id, cls, title, list) => `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
       + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
-    el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
+    // 2026-10-05：頂部先放技術分析卡（stock_ai.js 的 techCardHTML，與 AI 卡技術面同源），原本的指標卡在其下
+    const tech = window.StockAI && window.StockAI.techCardHTML ? window.StockAI.techCardHTML(pg, A.fmt) : '';
+    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
       ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}

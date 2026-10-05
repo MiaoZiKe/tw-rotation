@@ -21164,6 +21164,7 @@ SECTIONS = {
     # 點零件 → 「這個零件是誰做的」小卡（docs/diagram_purpose.md §4）
     "零件誰做的":          lambda pg, b, base, code: t_whomakes(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
+    "指標技術分析1005":    lambda pg, b, base, code: t_tag_tech_1005(pg, base),
     "個股版面1004":        lambda pg, b, base, code: t_stock_lay_1004(pg, base),
     "個股週期即時1005":    lambda pg, b, base, code: t_stock_livek_1005(b, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
@@ -23130,6 +23131,40 @@ def _ai_rows_goto(pg, tag):
         if s0["rChart"] and s["rChart"]:
             ok(f"{tag} 點「{nm}」→ K 線頂端沒有跟著跳", abs(s["rChart"]["t"] - s0["rChart"]["t"]) <= 2, (s0["rChart"]["t"], s["rChart"]["t"]))
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(150)
+
+
+def t_tag_tech_1005(pg, base):
+    """個股頁「指標」分頁頂部的技術分析卡（2026-10-05，Andy：「技術面在上方『指標』需要新增…記得標明這不構成投資建議」）。
+    真的點「指標」分頁 → 驗卡片出現在指標卡上方、四個週期、型態條件攤開、訊號燈數與 AI 卡一致、免責在、沒有推薦／買進字樣、不需捲動。"""
+    tag = "[指標技術分析 6274]"
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#stock/6274", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ok(f"{tag} 點「指標」之前沒有技術分析卡", count(pg, "#tagTech") == 0, count(pg, "#tagTech"))
+    btn = pg.locator('#stockTabs button[data-t="tags"]')
+    if not ok(f"{tag} 分頁列有「指標」", btn.count() == 1, btn.count()):
+        return
+    btn.click(); pg.wait_for_timeout(800)
+    st = pg.evaluate("""() => {
+      const c = document.getElementById('tagTech'), t = document.getElementById('tagCard');
+      if (!c) return null;
+      const tf = [...c.querySelectorAll('#ttTfs .tfn')].map(x => x.textContent.trim());
+      const ck = c.querySelector('.aickbody');
+      return { tf, txt: c.innerText, warn: (document.getElementById('ttWarn') || {}).innerText || '',
+        before: !!(t && (c.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        ckVis: !!(ck && !ck.hidden && ck.getBoundingClientRect().height > 0),
+        nSig: c.querySelectorAll('#ttSig > *').length, nAiSig: document.querySelectorAll('#aiSig > *').length,
+        scroll: c.scrollHeight - c.clientHeight, dupId: document.querySelectorAll('#aiTfs').length };
+    }""")
+    if not ok(f"★ {tag} 點了之後「技術分析」卡出現", st is not None, st):
+        return
+    ok(f"★ {tag} 技術分析卡在原本指標卡上方", st["before"], st["before"])
+    ok(f"★ {tag} 四個週期列（1小時／4小時／日線／週線）", len(st["tf"]) == 4 and any("週" in x for x in st["tf"]) and any("日" in x for x in st["tf"]), st["tf"])
+    ok(f"★ {tag} 型態條件（回檔／突破／停損距離）直接攤開", st["ckVis"] and "回檔型態" in st["txt"] and "突破型態" in st["txt"] and "停損距離" in st["txt"], st["txt"][:200])
+    ok(f"{tag} 原因、若…則…、支撐／壓力都在", "的原因" in st["txt"] and "支撐／壓力" in st["txt"], st["txt"][:200])
+    ok(f"★ {tag} 訊號標籤數與 AI 卡一致", st["nSig"] > 0 and st["nSig"] == st["nAiSig"], (st["nSig"], st["nAiSig"]))
+    ok(f"★ {tag} 卡頂免責字樣", "不構成投資建議" in st["warn"] and "非證券投資顧問" in st["warn"], st["warn"])
+    ok(f"★ {tag} 沒有「推薦／買進」字樣", "推薦" not in st["txt"] and "買進" not in st["txt"], None)
+    ok(f"{tag} 完整攤開、卡內不捲動；id 不跟 AI 卡撞", st["scroll"] <= 1 and st["dupId"] == 1, (st["scroll"], st["dupId"]))
 
 
 def t_stock_ai_0926(pg, base, code):
