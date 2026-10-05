@@ -461,3 +461,41 @@
   :root.l4m body.m3on aside#side{z-index:50}
   :root.l4m body.m3on .sideback{z-index:49}
 }
+
+/* ---- 側欄收展（2026-10-05，Andy：「這邊點選可以收展」）—— layout4.js buildFold() ----
+   群組標題從 .tab::before（點不到）換成真的按鈕 .l4grp：有 .l4g 時把 ::before 的字與 28px 上距拿掉，改由 .l4grp 自己佔
+   （6px 上距＋20px 高 ≈ 原本 28px，側欄總高不變，不晃）。收合成圖示列（l4-mini）時 .l4grp 藏起來、收合不作用，回到原本的分隔線。 */
+@media (min-width:821px){
+  :root.l4.l4g:not(.l4-mini) .tab[data-view]{margin-top:0}
+  :root.l4.l4g:not(.l4-mini) .tab[data-view]::before{content:none}
+  :root.l4 .tabs>.l4grp{display:none}
+  :root.l4.l4g:not(.l4-mini) .tabs>.l4grp{display:flex;align-items:center;gap:6px;width:100%;height:20px;margin:6px 0 0;padding:0 var(--sp-3);
+    border:0;border-radius:var(--r-sm,6px);background:transparent;color:var(--ink-3);font-size:var(--fs-min);font-weight:600;letter-spacing:.12em;
+    line-height:16px;text-align:left;white-space:nowrap;cursor:pointer}
+  :root.l4.l4g:not(.l4-mini) .tabs>.l4grp:hover,:root.l4.l4g:not(.l4-mini) .tabs>.l4grp:focus-visible{color:var(--ink);background:var(--panel-2)}
+  :root.l4 .tabs>.l4grp[data-g="today"]{order:1;margin-top:0}
+  :root.l4 .tabs>.l4grp[data-g="money"]{order:2}
+  :root.l4 .tabs>.l4grp[data-g="stock"]{order:4}
+  :root.l4 .tabs>.l4grp[data-g="hist"]{order:6}
+  :root.l4 .tabs>.l4grp[data-g="proj"]{order:7}
+  /* ▾ 展開／▸ 收起：同一個三角形轉 90°（不換字，寬度不變） */
+  :root.l4 .l4grp .car,:root.l4 .l4car::before{content:"";flex:none;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:5px solid currentColor;transition:transform .15s ease}
+  :root.l4 .l4grp[aria-expanded="false"] .car,:root.l4 .l4car[aria-expanded="false"]::before{transform:rotate(-90deg)}
+  :root.l4 .l4grp .dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 .l4grp.here .dot{display:inline-block}
+  /* 大項右邊的子項箭頭：點擊區 22px，比三角形大很多，好點 */
+  :root.l4 .tab>.l4car{display:inline-grid;place-items:center;flex:none;width:22px;height:22px;margin:-4px -6px -4px auto;border-radius:4px;opacity:.7;cursor:pointer}
+  :root.l4 .tab>.l4car:hover{opacity:1;background:color-mix(in srgb,currentColor 12%,transparent)}
+  :root.l4.l4-mini .tab>.l4car{display:none}
+  /* 收起：群組裡除了「目前所在頁」以外的格子都藏（目前那格照樣看得到） */
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>.tab[data-view="overview"]:not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"]):not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]):not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="market"],.tab[data-view="explore"]):not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>:is(.tab[data-view="season"],.tab[data-view="etf"]):not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab.l4perm):not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>.l4subtab[data-parent="admin"]:not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="flow"]>.l4subtab[data-parent="flow"]:not(.on),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="heatmap"]>.l4subtab[data-parent="heatmap"]:not(.on){display:none}
+}

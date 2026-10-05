@@ -39,6 +39,12 @@ DATA_KEYS = ("price", "inst", "per", "revenue", "financial", "balance",
 # ETF / 指數型商品沒有財報、月營收、本益比、股利公告可抓（ETF 其實有配息，先不抓），
 # 逐檔去問只是在燒額度；融資券與股權分散 ETF 有，要抓
 FINANCIAL_KEYS = {"per", "revenue", "financial", "balance", "dividend", "divresult"}
+# ★ 2026-10-05（Andy：「為何都沒數據」）：ETF 配息 0 列的根因就在這裡 ——
+#   下面兩處「FINANCIAL_KEYS 且是 ETF → 直接標 done、不打 API」把 dividend／divresult 也一起跳掉了，
+#   所以 dividend:0050、dividend:0056 被標 done 卻 0 列，ETF 專區的回補步驟也一樣一檔都沒真的問過。
+#   ETF 沒有財報／營收／本益比，但**有配息與除息結果**（TaiwanStockDividend／DividendResult 收錄上市櫃 ETF），
+#   所以只對這兩個鍵放行。
+ETF_SKIP_KEYS = FINANCIAL_KEYS - {"dividend", "divresult"}
 
 # 逐檔 done 鍵的值（2026-09-28）：True＝抓到資料寫進資料湖；NO_DATA＝額度還在、上游明確回空，
 # 「確認這檔沒有這種資料」（新掛牌、從沒配過股利…）。兩者對「要不要再問」的判斷一樣（都是真值、
@@ -103,7 +109,9 @@ PLAN_DEFAULT = [
     #   可能是 FinMind 當時對 ETF 回空、或那幾輪資料集被封印。這裡用新的逐檔鍵（@2009-01-01）重問一次；
     #   若仍回空，前端照樣標「配息資料尚未取得」，不會拿 0 冒充（compute/etf.div_done 只認湖裡真的有列）。
     #   ETF 約 270 檔 × 3 次請求 ≈ 810 次 ≈ 2 輪。逐檔 done 鍵與既有步驟同格式，族群步驟補過的不重抓。
-    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "etf"},
+    #   ★ 帶 tag "etf2009"：舊的 dividend@2009-01-01:<ETF> 鍵已被上面那個跳過邏輯標成 done（沒真的問），
+    #   換一組新鍵才會真的重問一次。進度檔 data/ 只由 Actions 寫，本機不去改它。
+    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "etf", "tag": "etf2009"},
     {"datasets": "price",                     "start": "2000-01-01", "scope": "etf"},
 ]
 # 請求數估算（2026-09-28 以資料湖實測：market_codes() 1,980 檔，扣掉已有逐檔 done 鍵／已補到起始日的；
@@ -534,7 +542,7 @@ def run(datasets: str, limit: int | None, start: str, *,
             if prog["done"].get(done_key) or already_covered(table, code, start, respect_time):
                 summary["skipped"] += 1
                 continue
-            if key in FINANCIAL_KEYS and roc.is_etf(code):
+            if key in ETF_SKIP_KEYS and roc.is_etf(code):
                 prog["done"][done_key] = True
                 summary["skipped"] += 1
                 continue
@@ -670,7 +678,7 @@ def run(datasets: str, limit: int | None, start: str, *,
                 nd += 1
             if v:
                 continue
-            if key in FINANCIAL_KEYS and roc.is_etf(code):
+            if key in ETF_SKIP_KEYS and roc.is_etf(code):
                 continue
             if already_covered(tables[key], code, start, respect_time):
                 continue
@@ -1248,7 +1256,8 @@ def plan_steps(name: str, today: date | None = None) -> list[dict]:
         raise KeyError(f"沒有這個回補計畫：{name}（可用：{sorted(PLANS)}）")
     m = monthly_step(today)
     # ETF 的配息每月也要重抓（月配 ETF 每個月都有新公告；族群月更新那一步不含 ETF）
-    return [dict(s) for s in PLANS[name]] + [m, {**m, "scope": "etf"}]
+    # ETF 月更新用自己的 tag（e 前綴）：避免與族群月更新共用 done 鍵，也避開舊跳過邏輯標過的鍵。
+    return [dict(s) for s in PLANS[name]] + [m, {**m, "scope": "etf", "tag": "e" + m["tag"]}]
 
 
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:

@@ -1544,6 +1544,68 @@ def _drill_check_bin(pg, tag, bars, i):
 #   · ETF（0050 造 +11%）不在漲停、也不在漲幅前段
 #   · 代理失敗 → 標題直接寫「即時抓不到：原因」，不是默默顯示盤後
 #   · 盤後那一版：漲停名單＝stocks.json 的 lim（管線 tick 判定），沒有 ETF
+# ===================================================================== 側欄收展（2026-10-05，site/layout4.js buildFold）
+def t_side_fold_1005(pg, b, base):
+    """側欄收展（Andy 截圖圈群組標題與資金流向／熱力圖：「這邊點選可以收展」）。
+    真的點群組標題、點子項箭頭、再點一次已選中的大項；驗格子真的消失／出現、重新整理後記住、收合側欄模式不受影響。"""
+    tag = "側欄收展1005"
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"{tag} pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    VIS = lambda sel: J("(s) => { const e = document.querySelector(s); return !!(e && e.getClientRects().length); }", sel)
+    NSUB = lambda par: J("(p) => [...document.querySelectorAll(`.l4subtab[data-parent='${p}']`)].filter(e => e.getClientRects().length).length", par)
+    TOPOF = lambda sel: J("(s) => Math.round(document.querySelector(s).getBoundingClientRect().top)", sel)
+    try:
+        lp.goto(f"{base}#overview", wait_until="networkidle")
+        lp.evaluate("() => { try { localStorage.removeItem('l4.navFold'); localStorage.setItem('tw.layout4.nav', 'full'); } catch (e) {} }")
+        lp.reload(wait_until="networkidle")
+        wait_until(lp, "() => document.querySelectorAll('#tabs .l4grp').length === 5", 10000)
+        names = J("() => [...document.querySelectorAll('#tabs .l4grp')].map(e => e.textContent.trim())")
+        ok(f"★ [{tag}] 五個群組標題是可以點的按鈕", names == ["今日市場", "資金流水", "族群與個股", "歷史規律", "專案"], names)
+        ok(f"[{tag}] 群組標題不算進 .tab（手機與 app.js 數 .tab）", J("() => document.querySelectorAll('#tabs .tab.l4grp').length") == 0)
+        y_et0 = TOPOF('.tab[data-view="etf"]')
+        lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 點「族群與個股」→ 產業地圖、市場明細、選股策略都收起來",
+           not VIS('.tab[data-view="industry"]') and not VIS('.tab[data-view="market"]') and not VIS('.tab[data-view="explore"]'))
+        ok(f"[{tag}] 標題變 ▸（aria-expanded=false）", J("() => document.querySelector('.l4grp[data-g=stock]').getAttribute('aria-expanded')") == "false")
+        y_et1 = TOPOF('.tab[data-view="etf"]')
+        ok(f"★ [{tag}] 下面的「ETF」真的往上移（畫面因此改變）", y_et1 < y_et0 - 60, (y_et0, y_et1))
+        n0 = NSUB("flow")
+        lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
+        n1 = NSUB("flow")
+        ok(f"★ [{tag}] 點資金流向旁的箭頭 → 三個子項收起、而且沒有換頁", n0 == 3 and n1 == 0 and J("() => location.hash") == "#overview", (n0, n1, J("() => location.hash")))
+        lp.reload(wait_until="networkidle"); wait_until(lp, "() => document.querySelectorAll('#tabs .l4grp').length === 5", 10000)
+        ok(f"★ [{tag}] 重新整理後：族群與個股仍收起、資金流向子項仍收起",
+           not VIS('.tab[data-view="market"]') and NSUB("flow") == 0, J("() => localStorage.getItem('l4.navFold')"))
+        lp.goto(f"{base}#market", wait_until="networkidle"); lp.wait_for_timeout(700)
+        ok(f"★ [{tag}] 目前在市場明細：所在的組雖然收起，那一格照樣看得到、標題有提示點",
+           VIS('.tab[data-view="market"]') and not VIS('.tab[data-view="industry"]') and J("() => document.querySelector('.l4grp[data-g=stock]').classList.contains('here')"))
+        lp.goto(f"{base}#flow", wait_until="networkidle"); lp.wait_for_timeout(700)
+        lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
+        a = NSUB("flow"); h0 = J("() => location.hash")
+        lp.click(".tab[data-view='flow']", position={"x": 60, "y": 12}); lp.wait_for_timeout(300)
+        bc = NSUB("flow")
+        ok(f"★ [{tag}] 已在資金流向時再點一次「資金流向」→ 子項收起（只留目前那格）、網址不變",
+           a == 3 and bc <= 1 and J("() => location.hash") == h0, (a, bc, h0, J("() => location.hash")))
+        lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
+        ok(f"[{tag}] 再點「族群與個股」→ 展開回來", VIS('.tab[data-view="industry"]') and VIS('.tab[data-view="explore"]'))
+        lp.click("#tabs .l4grp[data-g='hist']"); lp.wait_for_timeout(200)
+        lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
+        ok(f"★ [{tag}] 收合成圖示列：群組標題藏起、被收起的「週期統計」「ETF」照樣在",
+           J("() => document.documentElement.classList.contains('l4-mini')") and not VIS('#tabs .l4grp[data-g="hist"]')
+           and VIS('.tab[data-view="season"]') and VIS('.tab[data-view="etf"]'))
+        lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
+        ok(f"[{tag}] 展開側欄回來：歷史規律仍是收起的（狀態沒被圖示列弄掉）", not VIS('.tab[data-view="etf"]'))
+        ok(f"[{tag}] 側欄沒有橫向捲軸", J("() => { const t = document.querySelector('#tabs'); return t.scrollWidth <= t.clientWidth + 1; }"))
+    finally:
+        try:
+            lp.evaluate("() => { try { localStorage.removeItem('l4.navFold'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
+        except Exception:
+            pass
+        lp.close()
+
+
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
 def t_etf_1005(pg, b, base):
     """ETF 專區第二版（2026-10-05 Andy：行事曆放最上且是真月曆、分類頁三張前 5 並排同高、自選比較清單、填息天數）。
@@ -1756,6 +1818,29 @@ def t_etf_1005(pg, b, base):
               if (h > limit) bad.push((e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 20) + ':' + Math.round(h)); });
             return bad; }""")
         ok(f"★ [{tag}] 所有表格儲存格、前 5 列、說明列、月曆格內文字都只有一行", not multi, multi[:6])
+        # ================= 4b. 2026-10-05 第三版：標題圖示有顏色、卡片分類色、欄位一行（Andy：「圖案需要給他顏色」）
+        ics = J("""() => [...document.querySelectorAll('#v-etf .card h3 > .ticon')].filter(e => e.offsetParent).map(e => {
+                 const c = getComputedStyle(e).color.match(/[\\d.]+/g).slice(0, 3).map(Number);
+                 return { k: e.dataset.k, fb: e.hasAttribute('data-fb'), sat: Math.max(...c) - Math.min(...c), col: getComputedStyle(e).color }; })""")
+        ok(f"★ [{tag}] 每張卡標題都有圖示、不是退回的預設圖、而且有彩度（不是灰的）",
+           len(ics) >= 5 and all((not i["fb"]) and i["sat"] >= 40 for i in ics), ics)
+        ok(f"[{tag}] 標題圖示至少 3 種顏色（依語意，不是全頁同一色）", len({i["col"] for i in ics}) >= 3, [i["col"] for i in ics])
+        lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => getComputedStyle(e).borderLeftColor)")
+        tc = J("() => getComputedStyle(document.querySelector('#etfGrid .etfc .etag')).color")
+        ok(f"★ [{tag}] ETF 卡片左緣有分類色（配息型＝跟分類標籤同色）", bool(lc) and all(c == tc for c in lc), (lc, tc))
+        wr = J("() => [...document.querySelectorAll('#etfGrid .etfc dt, #etfGrid .etfc dd, #etfGrid .etfc .nm')].filter(e => e.getBoundingClientRect().height > 24).length")
+        ok(f"★ [{tag}] ETF 卡片欄位全部一行（沒有被擠成兩行的）", wr == 0, wr)
+        cw = J("() => [...new Set([...document.querySelectorAll('#etfGrid .etfc')].map(e => Math.round(e.getBoundingClientRect().width)))]")
+        ok(f"[{tag}] ETF 卡片欄寬一致（同一寬度）", len(cw) == 1, cw)
+        rf = J("""() => { const u = document.querySelector('#etfGrid .etfc .px span.up, #etfGrid .etfc .px span.down');
+                 if (!u) return null; const c = getComputedStyle(u).color.match(/[\\d.]+/g).slice(0, 3).map(Number);
+                 return { up: u.classList.contains('up'), r: c[0], g: c[1] }; }""")
+        ok(f"★ [{tag}] 漲跌有紅綠色（紅漲綠跌；以前 var(--up) 沒定義，漲跌全是白字）",
+           rf is None or (rf["r"] > rf["g"] + 60 if rf["up"] else rf["g"] > rf["r"] + 40), rf)
+        nodiv = J("() => (window.TwEtfPage.state.data.items.find(i => i.yield_ttm == null && i.cat === '配息型') || {}).code || ''")
+        if nodiv and count(lp, f"#etfGrid .etfc[data-code='{nodiv}']"):
+            ctext = text(lp, f"#etfGrid .etfc[data-code='{nodiv}']")
+            ok(f"[{tag}] 沒配息資料的卡片寫「待補」（不是 —、也不是 0%）", "待補" in ctext and "0.00%" not in ctext, ctext[:120])
         # ================= 5. 原有：清單、排序、寬度、點卡片
         tags = J("() => [...document.querySelectorAll('#etfGrid .etfc .etag')].map(e => e.textContent)")
         ok(f"[{tag}] 配息型分頁的「ETF 一覽」只剩配息型且含 0056", tags and set(tags) == {"配息型"} and count(lp, "#etfGrid .etfc[data-code='0056']") == 1)
@@ -21479,6 +21564,8 @@ SECTIONS = {
     "市場明細即時1005":    lambda pg, b, base, code: t_market_live_1005(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    # ★ 2026-10-05 Andy：側欄群組標題／有子項的大項可以點選收展（⚠ 一律 --workers 1）
+    "側欄收展1005":        lambda pg, b, base, code: t_side_fold_1005(pg, b, base),
     # ★ 2026-10-03 Andy 截 #market：漲跌分佈圖卡＋分頁表格卡桌機左右並排（等高、表在卡內捲、表頭固定、≤1100 上下排）＋「TPEX」改「上櫃」（⚠ 一律 --workers 1）
     "市場明細兩欄1003":    lambda pg, b, base, code: t_market_2col_1003(pg, b, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
