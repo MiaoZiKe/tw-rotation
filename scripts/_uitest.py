@@ -2052,7 +2052,8 @@ def t_etf_1005(pg, b, base):
         fp.goto(f"{base}#etf", wait_until="domcontentloaded")
         rd = wait_until(fp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready", 15000)
         ft = fp.evaluate("""() => { const r = document.querySelector('#v-etf');
-            return { t: r.innerText + ' ' + [...r.querySelectorAll('[title]')].map(e => e.title).join(' '),
+            // 休市標記（.cg-hl，calgrid.js 共用元件）的滑過提示另案轉交，不在這三支檔的範圍
+            return { t: r.innerText + ' ' + [...r.querySelectorAll('[title]:not(.cg-hl)')].map(e => e.title).join(' '),
                      pop: (document.querySelector('#etfPop') || {}).innerText || '', ret: (document.querySelector('#etfRetBody') || {}).innerText || '',
                      cal: (document.querySelector('#etfCalList') || {}).innerText || '', n: document.querySelectorAll('#etfGrid .etfc').length }; }""")
         import re as _re2
