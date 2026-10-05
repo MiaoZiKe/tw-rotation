@@ -45168,7 +45168,8 @@ def t_admin_v3(b, base, code):
         dn = pg.evaluate("() => ({ off: [...document.querySelectorAll('#pmCats input[role=switch]')].filter(i => !i.checked).length, all: document.querySelectorAll('#pmCats input[role=switch]').length, grpOff: [...document.querySelectorAll('#pmGrp input[role=switch]')].filter(i => !i.checked).length, dirty: document.getElementById('pmDirty').textContent })")
         ok(f"{T}・perm-v4：工具列「全部關」→ 開放功能表每個開關都關（只是草稿）、族群觀測不動", dn["off"] == dn["all"] and dn["grpOff"] == 0 and "項變更還沒儲存" in dn["dirty"], dn)
         pg.click("#pmCancel")
-        ok(f"{T}・perm-v4：一行小字說明「拖曳頁籤可調整順序；⋮ 可改名或刪除」", "拖曳頁籤可調整順序；⋮ 可改名或刪除" in pg.inner_text("#ptHint"))
+        ok(f"{T}・perm-v4：頁首提示列已刪除（沒有 .ptlede、#ptHint、「關掉的功能在對方畫面上…」）", pg.evaluate("() => !document.querySelector('.ptlede') && !document.getElementById('ptHint') && !/關掉的功能在對方畫面上模糊|拖曳頁籤可調整順序/.test(document.getElementById('v-admin').innerText)"))
+        ok(f"{T}・perm-v4：範本頁籤文字水平置中（字的中心與頁籤中心差 ≤ 3px，⋮ 沒把字擠偏）", pg.evaluate("""() => [...document.querySelectorAll('#ptTier button[role=tab]')].filter(b => !b.id.includes('Add')).every(b => { const r = b.getBoundingClientRect(), g = document.createRange(); g.selectNodeContents(b); const t = g.getBoundingClientRect(); return Math.abs((t.left + t.right) / 2 - (r.left + r.right) / 2) <= 3; })"""))
         # ---- ③ 拖曳排序
         ok(f"{T}・perm-v4：只有付費範本頁籤可拖曳（訪客、註冊會員、＋ 沒有 draggable、沒有 ⋮）",
            pg.evaluate("() => [...document.querySelectorAll('#ptTier [draggable=true]')].map(e => e.dataset.pid).join() === 'p399,p799' && !document.querySelector('#ptTier button[data-tier=guest]').closest('[draggable]') && !document.querySelector('#ptAddTab').closest('[draggable]') && document.querySelectorAll('#ptTier button[data-more]').length === 2"))
@@ -45190,14 +45191,11 @@ def t_admin_v3(b, base, code):
         ok(f"{T}・perm-v4：滑過付費頁籤 → 出現 ⋮（不透明）", bool(wait_until(pg, "() => getComputedStyle(document.querySelector(\"#ptTier button[data-more='p399']\")).opacity === '1'", 2000)))
         pg.click("#ptTier button[data-more='p399']")
         mi = pg.evaluate("() => { const m = document.getElementById('ptMenu'); return { vis: !m.hidden, items: [...m.querySelectorAll('[role=menuitem]')].map(b => b.textContent.trim() + (b.disabled ? '(x)' : '')), focus: document.activeElement && document.activeElement.textContent.trim() }; }")
-        ok(f"{T}・perm-v4：點 ⋮ → 選單有 左移／右移／重新命名／刪除；它在最後一個所以「右移」停用；焦點在第一個可用項",
-           mi["vis"] and len(mi["items"]) == 4 and "右移" in mi["items"][1] and mi["items"][1].endswith("(x)") and "左移" in mi["focus"], mi)
+        ok(f"{T}・perm-v4：點 ⋮ → 選單只有 重新命名／刪除（左移／右移已拿掉）；焦點在第一項",
+           mi["vis"] and len(mi["items"]) == 2 and "重新命名" in mi["items"][0] and "刪除" in mi["items"][1] and "重新命名" in mi["focus"], mi)
         ok(f"{T}・perm-v4：選單浮在上面，內容框位置大小不變", pg.evaluate(RECT_PANEL) == r0, (r0, pg.evaluate(RECT_PANEL)))
-        with pg.expect_response(lambda r: "/v1/admin/plans/sort" in r.url, timeout=6000) as ri:
-            pg.click("#ptMenu [data-act=left]")
-        ok(f"{T}・perm-v4：⋮ → 左移 → plans/sort ids＝[p399, p799]、選單關掉", json.loads(ri.value.request.post_data or "{}").get("ids") == ["p399", "p799"]
-           and bool(wait_until(pg, f"() => ({TABS})() === 'guest,free,p399,p799,ptAddTab' && document.getElementById('ptMenu').hidden", 3000)))
-        # ---- ⋮ 選單（鍵盤）：焦點到 ⋮、Enter 開（它在第一個 → 左移停用，焦點落在「右移」）、↓↑ 移動、Enter → 右移；Esc 關掉焦點回 ⋮
+        pg.keyboard.press("Escape")
+        # ---- ⋮ 選單（鍵盤）：Enter 開、↓↑ 在 重新命名／刪除 之間移動；Esc 關
         pg.focus("#ptTier button[data-more='p399']")
         pg.keyboard.press("Enter")
         wait_until(pg, "() => !document.getElementById('ptMenu').hidden", 2000)
@@ -45206,11 +45204,8 @@ def t_admin_v3(b, base, code):
         f2 = pg.evaluate("() => document.activeElement.dataset.act")
         pg.keyboard.press("ArrowUp")
         f3 = pg.evaluate("() => document.activeElement.dataset.act")
-        with pg.expect_response(lambda r: "/v1/admin/plans/sort" in r.url, timeout=6000) as ri:
-            pg.keyboard.press("Enter")
-        ok(f"{T}・perm-v4：鍵盤：Enter 開 ⋮（焦點在第一個可用的「右移」）、↓ 到重新命名、↑ 回右移、Enter → plans/sort ids＝[p799, p399]",
-           (f1, f2, f3) == ("right", "rename", "right") and json.loads(ri.value.request.post_data or "{}").get("ids") == ["p799", "p399"], (f1, f2, f3))
-        wait_until(pg, f"() => ({TABS})() === 'guest,free,p799,p399,ptAddTab'", 3000)
+        ok(f"{T}・perm-v4：鍵盤：Enter 開 ⋮（焦點在「重新命名」）、↓ 到刪除、↑ 回重新命名", (f1, f2, f3) == ("rename", "del", "rename"), (f1, f2, f3))
+        pg.keyboard.press("Escape")
         pg.focus("#ptTier button[data-plan='p399']")
         with pg.expect_response(lambda r: "/v1/admin/plans/sort" in r.url, timeout=6000) as ri:
             pg.keyboard.press("Alt+ArrowLeft")

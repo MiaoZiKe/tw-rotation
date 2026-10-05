@@ -407,7 +407,7 @@
 #v-admin .ptwrap .ptabs button[role=tab].on{z-index:2;color:var(--ink);background:var(--panel);border-color:var(--line-2);box-shadow:inset 0 3px 0 var(--cyan)}
 #v-admin .ptwrap .ptabs button[role=tab].add{flex:none;width:46px;justify-content:center;padding:0;font-size:22px;font-weight:400}
 #v-admin .ptwrap .ptabs .ptab{position:relative;display:flex;flex:0 1 auto;min-width:0}
-#v-admin .ptwrap .ptabs .ptab>button[role=tab]{width:100%;padding-right:36px;cursor:grab}
+#v-admin .ptwrap .ptabs .ptab>button[role=tab]{width:100%;padding-left:34px;padding-right:34px;justify-content:center;text-align:center;cursor:grab}
 #v-admin .ptwrap .ptabs button.ptmore{position:absolute;z-index:3;right:6px;top:8px;width:26px;height:28px;min-height:0;margin:0;padding:0;display:block;border:0;border-radius:6px;
   background:transparent;color:var(--ink-2);font-size:18px;font-weight:700;line-height:28px;text-align:center;cursor:pointer;opacity:0;transition:opacity .12s}
 #v-admin .ptwrap .ptabs .ptab:hover button.ptmore,#v-admin .ptwrap .ptabs .ptab:focus-within button.ptmore,#v-admin .ptwrap .ptabs button.ptmore[aria-expanded=true]{opacity:1}
@@ -547,7 +547,7 @@
 /* 10-05 Andy「會員分頁字體置中，大小 Follow 產業 Map」：範本頁籤蓋掉舊的 15.5px／44px 高，回到 .nbsw 的字級與內距、置中 */
 #v-admin .ptwrap .ptabs button[role=tab]{font-size:13.5px;font-weight:400;height:auto;min-height:0;justify-content:center;text-align:center;padding:var(--sp-1) var(--sp-3) var(--sp-2)}
 #v-admin .ptwrap .ptabs button[role=tab].on{font-weight:700;padding:var(--sp-2) var(--sp-4) var(--sp-2)}
-#v-admin .ptwrap .ptabs .ptab>button[role=tab]{padding-right:32px}
+#v-admin .ptwrap .ptabs .ptab>button[role=tab]{padding-left:32px;padding-right:32px}
 #v-admin .ptwrap .ptabs button.ptmore{top:50%;transform:translateY(-50%)}
 #v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
 #v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
@@ -915,7 +915,7 @@
            內容框：範本資訊列（名稱・價格／週期・套用人數｜⚙）＋一行說明 → 子分頁（觀看權限｜會員名單）→
            觀看權限：工具列（標題＋圖例＋全部開／全部關）→ 功能卡片（同寬同高）→ 族群觀測；會員名單：統計圖卡 → 名單。
          拿掉舊版「開放功能表　正在編：付費會員・XX」那一行：它跟範本資訊列講同一件事（#ptFor 搬進資訊列，id 不變）。 */
-      v.innerHTML = head(v, A) + `<p class="use ptlede"><span>關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上的「升級查看」直接帶到訂閱頁。</span><span class="pthint" id="ptHint">拖曳頁籤可調整順序；⋮ 可改名或刪除</span></p></div>
+      v.innerHTML = (document.documentElement.classList.contains('l4') ? '' : head(v, A) + '</div>') + `
         <div class="ptwrap" id="pmHead">
           <div class="nbsw ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
           <div class="ptpanel">
@@ -1091,9 +1091,7 @@
       : mode === 'del'
         ? `<div class="pmq">刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(id))}</b>。</div>
            <div class="pmrow2"><button type="button" id="ptMDelNo">取消</button><button type="button" class="danger" id="ptMDelGo">確定刪除</button></div>`
-        : `<button type="button" role="menuitem" data-act="left" ${i <= 0 ? 'disabled' : ''}>← 左移</button>
-           <button type="button" role="menuitem" data-act="right" ${i < 0 || i >= ids.length - 1 ? 'disabled' : ''}>→ 右移</button>
-           <hr><button type="button" role="menuitem" data-act="rename">✎ 重新命名</button>
+        : `<button type="button" role="menuitem" data-act="rename">✎ 重新命名</button>
            <button type="button" role="menuitem" data-act="del" class="danger">🗑 刪除此範本…</button>`;
     m.hidden = false;
     /* 位置：⋮ 正下方、右緣對齊 ⋮；超出內容框就往左收（量完才放，不會推擠任何東西）*/
