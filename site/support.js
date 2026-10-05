@@ -12,8 +12,8 @@
    ============================================================================ */
 (function () {
   'use strict';
-  /* ⚠ 客服信箱：先放佔位，正式上線前請 Andy 換成自己的信箱（回報裡有提醒）*/
-  const SUPPORT_EMAIL = 'support@example.com';
+  /* ⚠ 客服信箱：Andy 2026-10-05 指定暫用此信箱*/
+  const SUPPORT_EMAIL = 'kcq01010909@gmail.com';
   const T = () => window.TwSub;
   if (!T()) return;
   const { esc, css, call, view, toast } = T();
