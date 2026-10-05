@@ -9,6 +9,7 @@
 - 這輪因 FinMind 402 停下（plan:default.stopped_at 有值）→ `relay` job 睡到本輪開始後 62 分鐘，用 GITHUB_TOKEN 派下一輪（同 inputs、relay_n+1，最多 30 棒）。
 - 不派的情況：補齊、單一資料集／Logo／分 K、UTC 09～10 點、每日管線在排隊或等待、已有別的回補在排隊或在跑。concurrency 搬到 backfill job（cancel-in-progress 仍 false），接力睡覺不佔寫入佇列。
 - 這批驗了：yaml 解析、pytest 全跑；手動觸發一輪實測（見 Actions）。
+- 補：計畫補齊後的每日續補撞 402 也接力 —— `run_backfill._mark_quota_stopped` 寫 `progress["quota_stopped"]`（做完清掉），接力判斷一起讀；測試 `tests/test_backfill_relay_1005.py`。
 
 ## 2026-10-05 風格規範＋流量觀測重設計（claude/style-guide）
 - 新增 `docs/style_guide.md`（網站預設風格，DECISIONS #322）；`theme4.css` 加類別色 `--cat-*` 與圖表 token；AGENTS／CLAUDE 各加引用。

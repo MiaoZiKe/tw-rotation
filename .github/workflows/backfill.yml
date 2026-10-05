@@ -250,7 +250,7 @@ jobs:
           echo "::error::推送連續失敗 5 次"
           exit 1
 
-      # 接力判斷：只有「計畫這一輪因 402 額度用完而停」（plan:default.stopped_at 有值、done 不是真）才接力。
+      # 接力判斷：計畫因 402 停下（plan:default.stopped_at 有值），或每日續補因 402 停下（quota_stopped）才接力。
       # 補齊了、或跑的是單一資料集／Logo／分 K，就交給排程。
       - name: 判斷要不要接力
         id: relay_check
@@ -264,6 +264,9 @@ jobs:
           if os.environ["DATASETS"] == "plan" and not only and p.exists():
               st = json.loads(p.read_text()).get("complete", {}).get("plan:default") or {}
               relay = isinstance(st, dict) and not st.get("done") and bool(st.get("stopped_at"))
+              # 計畫補齊後，每日續補（法人、融資券、當沖、借券）撞 402 也要接力（run_backfill._mark_quota_stopped）
+              qs = json.loads(p.read_text()).get("quota_stopped") or {}
+              relay = relay or (isinstance(qs, dict) and bool(qs.get("stopped")))
           print(f"relay={'true' if relay else 'false'}")
           PY
           cat "$GITHUB_OUTPUT" | grep relay=
