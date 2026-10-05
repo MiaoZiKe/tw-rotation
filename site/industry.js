@@ -620,14 +620,14 @@
     }
 
     /* 甜甜圈中心兩行字（標題＋大數字）。top 用像素算：圓心在 cy，兩行字的總高約 52px。*/
+    /* ★ 2026-10-05 Andy：「圈內文字置中」—— 以前兩段 title 用像素 top（cy-30／cy-10）疊，容器後來被撐高、或字的行高不同，
+       整塊字就偏上。改成一個 title、兩行 rich text、top:'middle' ＋ 圓心也用 '50%'，不管容器怎麼變都跟圓心對齊。cy 參數保留不用（呼叫端不必改）。 */
     function pieCenter(cy, t1, t2) {
       const ff = 'Noto Sans TC, sans-serif';
-      return [
-        { text: t1, left: '50%', top: cy - 30, textAlign: 'center',
-          textStyle: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, width: 120, overflow: 'truncate' } },
-        { text: t2, left: '50%', top: cy - 10, textAlign: 'center',
-          textStyle: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: A.MONO } },
-      ];
+      return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
+        textStyle: { rich: {
+          a: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, lineHeight: 20, width: 120, align: 'center' },
+          b: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: A.MONO, lineHeight: 40, align: 'center' } } } }];
     }
     /* 圖下方兩欄的圖例：● 名稱 ＋ 百分比（等寬、靠右）。滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick。*/
     function paintLegend() {
@@ -841,13 +841,13 @@
             + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
         title: pieCenter(cy, '前五大', A.fmt.n(pieTopShare, 1) + '%'),
         animationDurationUpdate: 200,
-        series: [{ type: 'pie', radius: ['58%', '78%'], center: ['50%', cy], minAngle: 2, padAngle: 1.2,
+        series: [{ type: 'pie', radius: ['58%', '78%'], center: ['50%', '50%'], minAngle: 2, padAngle: 1.2,
           avoidLabelOverlap: false, cursor: 'pointer', label: { show: false }, labelLine: { show: false },
           itemStyle: { borderRadius: 6 },
           emphasis: { scale: true, scaleSize: 4, label: { show: false } },
           data: pieData },
         // 環內側的細軌道：只是一圈底，不能點、沒有提示框、不參與連動
-        { type: 'pie', radius: ['55%', '55.8%'], center: ['50%', cy], silent: true, animation: false,
+        { type: 'pie', radius: ['55%', '55.8%'], center: ['50%', '50%'], silent: true, animation: false,
           label: { show: false }, labelLine: { show: false }, tooltip: { show: false }, emphasis: { disabled: true },
           itemStyle: { borderRadius: 0 },
           data: [{ name: '_track', value: 1, itemStyle: { color: A.hexA(CH.ink3, .22) } }] }],
