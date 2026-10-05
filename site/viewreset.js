@@ -36,10 +36,12 @@
     'tw.acct.tok', 'tw.acct.user', 'tw.acct.n', 'tw.sess', 'tw.perm',  // 登入、帳號、權限（tw.acct.n／tw.sess 在 sessionStorage）
     'tw.watch', 'tw.watchlists', 'tw.watchlists.u', 'tw.watchcur',     // 自選清單（含目前在第幾頁）
     'tw.draw.style',                                                   // 畫筆樣式（手繪物件本身見下面前綴）
-    'tw.consent', 'tw.tour', 'tw.footDetail',                          // 同意條款、新手導覽看過、頁尾規範展開
+    'tw.consent', 'tw.tour',                                           // 同意條款、新手導覽看過
     'tw.live.proxy', 'tw.live.on', 'tw.sse',                           // 即時來源與開關
     'tw.m3.nightpts', 'tw.m3.futsym',                                  // 資料快取（夜盤報價點、近月合約代號）
-    'tw.search.recent'                                                 // 最近搜尋
+    'tw.search.recent',                                                // 最近搜尋
+    'tw.notice.banner', 'tw.notice.read',                              // 通知：橫幅關過、哪些讀過（使用者自己的紀錄，不是檢視狀態）
+    'tw.quota', 'tw.quota.tab'                                         // 用量計數與分頁識別（資料，tw.quota.tab 在 sessionStorage）
   ];
   /* 保留：前綴 */
   var KEEP_PREFIX = [
@@ -59,11 +61,13 @@
     'tw.dgOpen', 'tw.dgPartOpen', 'tw.dganim',                         // 剖析圖：展開、零件卡、動畫
     'tw.dg3d', 'tw.dg3d.drag', 'tw.dg3d.exp',                          // 2D/3D、3D 拖曳模式、爆炸圖展開
     'tw.flowtopo.motion',                                              // 資金去向動畫
-    'tw.chipWin', 'tw.hoLines', 'tw.instSeg', 'tw.mgSeg',              // 籌碼分頁：區間、線、分段
+    'tw.chipWin', 'tw.chipWinHo', 'tw.hoLines', 'tw.instSeg', 'tw.mgSeg',              // 籌碼分頁：區間、線、分段
     'tw.inst.days', 'tw.inst.to', 'tw.inst.end', 'tw.conc.ma',                       // 法人與集中度的天數／均線勾選
     'tw.revView', 'tw.revWin', 'tw.profitMode', 'tw.periver',          // 營收／獲利／本益比河流圖
     'tw.pe.len', 'tw.pe.end', 'tw.peLineW', 'tw.ms.years',             // 本益比區間、線寬、季節性年數
     'tw.drawbar',                                                      // 繪圖工具列顯示（畫好的線保留）
+    'tw.explore.cat',                                                  // 選股策略分類籤（2026-10-06 普查補分類）
+    'tw.footDetail',                                                   // 頁尾詳細規範展開：2026-10-06 Andy 要一律收合，已不讀寫，清掉舊值
     'tw.kwide', 'tw.side'                                              // 舊版版面鍵（早就沒人讀，順手清）
   ];
   /* 重設：前綴（KEEP 先比，所以 tw.m3.nightpts 這類資料快取不會被這裡吃掉） */
@@ -72,7 +76,8 @@
     'tw.mia.',         // 手機版「目前看第幾段」
     'tw.rot.',         // 輪動時鐘：天數、腳印、水波、掃描、篩選
     'tw.sankey.',      // 桑基日期滑桿
-    'tw.season.'       // 季節性：檢視、列數、顯示數字
+    'tw.season.',      // 季節性：檢視、列數、顯示數字
+    'tw.etf.'          // ETF 頁：分類、期間、熱門依據、報酬口徑、比較勾選（2026-10-06 普查補分類）
   ];
   /* tw.kcfg（K 線指標設定）是一包 JSON：指標開關、參數、線寬、顏色、K 棒寬、週期勾選全部重設，
      只留使用者自己新增的自訂週期（tfs，例如「3 日」「2 週」）—— 那是他建立的東西，不是檢視狀態。*/

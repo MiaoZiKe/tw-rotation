@@ -22214,6 +22214,7 @@ SECTIONS = {
     # ★ 2026-10-03 Andy：「當重新整理後，全部圖表設定回 Default」—— 改設定 → 切頁還在 → 重新整理回預設；
     #   主題／自選／手繪線／自訂週期保留；預覽版前綴（DECISIONS #307，⚠ 一律 --workers 1）
     "重新整理回預設1003":  lambda pg, b, base, code: t_view_reset_1003(b, base, code),
+    "預設狀態1006":        lambda pg, b, base, code: t_default_state_1006(b, base),
     # ★ 2026-10-03 Andy 兩件（DECISIONS #306，⚠ 一律 --workers 1）：題材產品剖析圖縮到原尺寸（不再被放大 1.37 倍）、
     #   供應鏈關聯圖每個環節加細框（膠囊／卡片在框內、連線停在框邊）
     "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
@@ -37585,7 +37586,7 @@ def t_legal(b, base):
     ok("★ [頁尾] 展開後也沒有 GitHub／repo／原始碼／演算法字眼，也沒有【】空格",
        not re.search(r"github|repo|原始碼|演算法|【|】", fd1["ftxt"], re.I), fd1["ftxt"][-300:])
     ok("[頁尾] 展開後沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
-    ok("[頁尾] 展開 → localStorage tw.footDetail 真的寫入 '1'", _lg_ls(pg, "tw.footDetail") == "1", _lg_ls(pg, "tw.footDetail"))
+    ok("[頁尾] 展開不再寫 localStorage tw.footDetail（2026-10-06 一律回收合，不記住）", _lg_ls(pg, "tw.footDetail") is None, _lg_ls(pg, "tw.footDetail"))
     cols = {}
     for w in (1440, 820, 390):
         pg.set_viewport_size({"width": w, "height": 950}); pg.wait_for_timeout(350)
@@ -37596,14 +37597,7 @@ def t_legal(b, base):
     pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
     fd2 = pg.evaluate(FD)
-    ok("[頁尾] 重新整理 → 維持展開（讀 tw.footDetail）", fd2["shown"] and fd2["label"] == "隱藏詳細規範", fd2["label"])
-    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(300)
-    pg.click("#sfMore"); pg.wait_for_timeout(300)
-    fd3 = pg.evaluate(FD)
-    ok("[頁尾] 再點 → 收起、按鈕回「顯示詳細規範」、tw.footDetail 寫成 '0'",
-       not fd3["shown"] and fd3["label"] == "顯示詳細規範" and _lg_ls(pg, "tw.footDetail") == "0", [fd3["label"], _lg_ls(pg, "tw.footDetail")])
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
-    ok("[頁尾] 重新整理 → 維持收起", not pg.evaluate(FD)["shown"])
+    ok("[頁尾] 重新整理 → 回到收合（2026-10-06 Andy：Default 一律收合）", not fd2["shown"] and fd2["label"] == "顯示詳細規範", fd2["label"])
 
     # 頁尾連結 → 服務條款
     pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
@@ -41644,7 +41638,6 @@ def t_kpi_footer_0926(pg, b, base):
             "() => { const o = document.getElementById('zoomOv'); return !o || o.hidden; }"))
 
     # ---------------------------------------------------------------- ③ 頁尾左右邊界＝主內容邊界
-    pg.evaluate("() => { try { localStorage.setItem('tw.footDetail', '1'); } catch (e) {} }")
     for side in ("0", None):
         pg.evaluate("(s) => { try { if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side)
         widths = (1600,) if side == "0" else (1440, 1024, 800, 390)
@@ -41653,6 +41646,9 @@ def t_kpi_footer_0926(pg, b, base):
             for path in ("#overview", "#flow", "#industry"):
                 pg.goto("about:blank")      # 只換 hash 不會重新載入頁面 → tw.side／tw.footDetail 不會重讀；先離開再進來
                 pg.goto(f"{base}{path}", wait_until="networkidle"); pg.wait_for_timeout(1400)
+                # 2026-10-06 起詳細規範不記住展開：每次進來自己點開
+                pg.evaluate("() => { const b = document.getElementById('sfMore'), d = document.getElementById('sfDetail'); if (b && d && d.hidden) b.click(); }")
+                pg.wait_for_timeout(200)
                 f = pg.evaluate(FOOT0926_M)
                 tag = f"[頁尾 {w}{'／側欄收起' if side == '0' else ''} {path}]"
                 if not ok(tag + " 量得到頁尾與主內容", bool(f), f):
@@ -41669,6 +41665,60 @@ def t_kpi_footer_0926(pg, b, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.footDetail'); localStorage.removeItem('tw.side'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
+
+
+# ===================================================================== 預設狀態1006
+# Andy 2026-10-06：「每次重新整理、換頁面後 Default 都會是收合狀態，Default 狀態這部分幫我 CHK 所有頁面」。
+# 普查表在 docs/default_state_audit_1006.md；這段只驗修過的四件：頁尾詳細規範、舊值清掉、客服面板、通知下拉。
+def t_default_state_1006(b, base):
+    T = "[預設狀態1006]"
+    ctx = b.new_context(viewport={"width": 1440, "height": 950})
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    FD = "() => { const d = document.getElementById('sfDetail'), b = document.getElementById('sfMore'); return d && b ? { shown: !d.hidden, label: b.textContent.trim(), aria: b.getAttribute('aria-expanded') } : null; }"
+    try:
+        pg.goto(base + "#overview", wait_until="load"); pg.wait_for_timeout(2500)
+        f0 = pg.evaluate(FD)
+        ok(f"{T} 乾淨載入：頁尾詳細規範收合", bool(f0) and not f0["shown"] and f0["aria"] == "false", f0)
+        pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+        pg.click("#sfMore"); pg.wait_for_timeout(300)
+        f1 = pg.evaluate(FD)
+        ok(f"{T} 真的點「顯示詳細規範」→ 展開、按鈕變「隱藏詳細規範」", f1["shown"] and f1["label"] == "隱藏詳細規範", f1)
+        real_reload(pg, wait_until="load", wait_ms=2500)
+        f2 = pg.evaluate(FD)
+        ok(f"★ {T} 重新整理 → 詳細規範回到收合", not f2["shown"] and f2["label"] == "顯示詳細規範", f2)
+        pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+        pg.click("#sfMore"); pg.wait_for_timeout(300)
+        ok(f"{T} 再展開一次", pg.evaluate(FD)["shown"])
+        pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(1500)
+        f3 = pg.evaluate(FD)
+        ok(f"★ {T} 換頁（#overview → #flow）→ 詳細規範收合", not f3["shown"] and f3["label"] == "顯示詳細規範", f3)
+        pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1500)
+        ok(f"★ {T} 換回總覽 → 仍是收合", not pg.evaluate(FD)["shown"])
+        # 舊瀏覽器留下 tw.footDetail='1'：重新整理要清掉、而且不展開
+        pg.evaluate("() => localStorage.setItem('tw.footDetail', '1')")
+        real_reload(pg, wait_until="load", wait_ms=2500)
+        v = pg.evaluate("() => ({ ls: localStorage.getItem('tw.footDetail'), c: TwView.classify('tw.footDetail') })")
+        ok(f"{T} 舊值 tw.footDetail='1' 被 viewreset 清掉、頁尾仍收合", v["ls"] is None and v["c"] == "reset" and not pg.evaluate(FD)["shown"], v)
+        # 客服面板：打開 → 換頁 → 收起
+        has = pg.evaluate("() => { const f = document.getElementById('supFab'); return !!f && !f.hidden && f.getClientRects().length > 0; }")
+        if has:
+            pg.click("#supFab"); pg.wait_for_timeout(400)
+            o1 = pg.evaluate("() => !document.getElementById('supPanel').hidden")
+            ok(f"{T} 真的點客服浮動鈕 → 面板打開", o1)
+            pg.evaluate("() => { location.hash = '#industry'; }"); pg.wait_for_timeout(1200)
+            o2 = pg.evaluate("() => ({ hid: document.getElementById('supPanel').hidden, aria: document.getElementById('supFab').getAttribute('aria-expanded') })")
+            ok(f"★ {T} 換頁 → 客服面板收起", o2["hid"] and o2["aria"] == "false", o2)
+        else:
+            ok(f"{T} 客服浮動鈕存在（量不到就無法驗換頁收起）", False, has)
+        # 通知下拉：打開 → 換頁 → 收起
+        if pg.evaluate("() => !!window.TwNotices"):
+            pg.evaluate("() => TwNotices.open()"); pg.wait_for_timeout(400)
+            ok(f"{T} 通知下拉打開", pg.evaluate("() => { const d = document.getElementById('ntDrop'); return !!d && !d.hidden; }"))
+            pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(1000)
+            ok(f"★ {T} 換頁 → 通知下拉收起", pg.evaluate("() => { const d = document.getElementById('ntDrop'); return !d || d.hidden; }"))
+    finally:
+        ctx.close()
 
 # ===================================================================== 小數點普查（2026-09-26，claude/decimal-audit）
 # Andy：「除了我抓到這邊數字異常，幫我檢查所有有這樣過多小數點的問題修正」。
@@ -48232,7 +48282,7 @@ def t_view_reset_1003(b, base, code):
         # ---------------------------------------------------------------- ③ 真的改設定
         click(pg, '#revView button[data-v="y"]', 900)
         _vr_tab(pg, "holders", VR_CHIP_READY)
-        click(pg, '#chipWin button[data-v="20"]', 1000)
+        click(pg, '#chipWin button[data-v="63"]', 1000)   # 大戶頁預設已是 4 週（#302，鍵 tw.chipWinHo）→ 改點 3 個月才算「改設定」
         _vr_tab(pg, "overview", VR_K_READY, 1200)
         ind_toggle(pg, "kd", 900); kd1 = ind_on(pg, "kd"); ind_close(pg)
         # 自訂週期（使用者建立的東西，要保留）
@@ -48276,10 +48326,10 @@ def t_view_reset_1003(b, base, code):
         scroll_to(pg, "breadth"); pg.wait_for_timeout(500)
         ud0 = pg.evaluate(UD_PROBE)
         ud1 = _ud_click_seg(pg, "tpex")
-        KEYS = ["tw.chipWin", "tw.revView", "tw.kcfg", "tw.rot.feet", "tw.season.view", "tw.udMkt"]
+        KEYS = ["tw.chipWinHo", "tw.revView", "tw.kcfg", "tw.rot.feet", "tw.season.view", "tw.udMkt"]
         ls1 = pg.evaluate(VR_LS, KEYS)
         ok(f"{T} 每個設定都真的寫進 localStorage（同一次瀏覽要用）",
-           ls1["tw.chipWin"] == "20" and ls1["tw.revView"] == "y" and bool(ls1["tw.kcfg"]) and ls1["tw.rot.feet"] == ("0" if feet0 else "1")
+           ls1["tw.chipWinHo"] == "63" and ls1["tw.revView"] == "y" and bool(ls1["tw.kcfg"]) and ls1["tw.rot.feet"] == ("0" if feet0 else "1")
            and ls1["tw.season.view"] == alt and ls1["tw.udMkt"] == "tpex", ls1)
         ok(f"{T} 漲跌家數按上櫃 → 按鈕真的換", ud1["on"] == ["tpex"] and ud0["on"] != ["tpex"], (ud0["on"], ud1["on"]))
 
@@ -48287,7 +48337,7 @@ def t_view_reset_1003(b, base, code):
         _vr_go(pg, f"#stock/{code}", 2600)
         _vr_tab(pg, "holders", VR_CHIP_READY)
         s4 = pg.evaluate(VR_STATE)
-        ok(f"{T} 同一次瀏覽換頁回來：籌碼區間還是「4 週」（只有重新整理才回預設）", s4["chip"] == ["20"], s4["chip"])
+        ok(f"{T} 同一次瀏覽換頁回來：籌碼區間還是「3 個月」（只有重新整理才回預設）", s4["chip"] == ["63"], s4["chip"])
         _vr_go(pg, "#season", 2200)
         sea4 = pg.evaluate(VR_SEASON_ON)
         ok(f"{T} 同一次瀏覽換頁回來：季節性還是剛剛選的「{alt}」", sea4 == [alt], sea4)
@@ -48302,7 +48352,7 @@ def t_view_reset_1003(b, base, code):
         ok(f"{T} 重新整理：這次載入真的清了（TwView.cleared 含六個設定）", bool(s5["view"]) and not s5["view"]["skipped"]
            and all(k in s5["view"]["cleared"] for k in KEYS), s5["view"])
         ok(f"{T} 重新整理：籌碼／營收／腳印／季節性／漲跌家數的設定鍵都不見了",
-           all(ls5[k] is None for k in ["tw.chipWin", "tw.revView", "tw.rot.feet", "tw.season.view", "tw.udMkt"]), ls5)
+           all(ls5[k] is None for k in ["tw.chipWinHo", "tw.revView", "tw.rot.feet", "tw.season.view", "tw.udMkt"]), ls5)
         kc = json.loads(ls5["tw.kcfg"] or "{}")
         ok(f"{T} 重新整理：K 線設定只留下自訂週期（指標開關、參數、顏色、線寬全部回預設）",
            list(kc.keys()) == ["tfs"] and bool(cust) and cust[0] in kc["tfs"], kc)
@@ -48318,7 +48368,7 @@ def t_view_reset_1003(b, base, code):
         rev5 = pg.evaluate(VR_STATE)["rev"]
         _vr_tab(pg, "holders", VR_CHIP_READY)
         chip5 = pg.evaluate(VR_STATE)["chip"]
-        ok(f"{T} 重新整理：籌碼區間回到預設 {chip0}（剛剛是 4 週）", chip5 == chip0 and chip5 != ["20"], [chip0, chip5])
+        ok(f"{T} 重新整理：籌碼區間回到預設 {chip0}（剛剛是 3 個月）", chip5 == chip0 and chip5 != ["63"], [chip0, chip5])
         ok(f"{T} 重新整理：營收回到預設 {rev0}（剛剛是年度走勢）", rev5 == rev0 and rev5 != ["y"], [rev0, rev5])
         _vr_go(pg, "#flow", 2600)
         wait_until(pg, "() => !!document.querySelector('#rotTools input.rot-trail')", 8000)

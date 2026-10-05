@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 預設狀態普查（頁尾詳細規範一律收合）
+- Andy：「每次重新整理、換頁面後 Default 都會是收合狀態，Default 狀態這部分幫我 CHK 所有頁面」。普查表 `docs/default_state_audit_1006.md`。
+- 修：頁尾詳細規範不再記 `tw.footDetail`（移到 viewreset 重設清單清舊值），重新整理與換頁一律收合；客服面板、通知下拉換頁收起；
+  普查抓到 11 個沒分類的 localStorage 鍵（ETF 頁 `tw.etf.*`、選股 `tw.explore.cat`、大戶區間 `tw.chipWinHo` → 重設；通知已讀／橫幅、用量 → 保留），main 上「重新整理回預設1003」原本是紅的，已綠。
+- 這批只驗了：`預設狀態1006`、`重新整理回預設1003`、`KPI工具列頁尾0926`、`同意條款與法律頁`、`_preview.py`。
+- 待處理（main 上原本就紅，非本批造成，origin/main 乾淨 worktree 重現過）：`同意條款與法律頁` 點頁尾「服務條款」後 `#v-legal` 或 `#v-overview` 為 null 而中斷；`_preview.py` 一個 404 console.error。
 ## 2026-10-06 側欄收展修正（claude/side-fold2）
 - 收起群組／子項 → 整組（含目前所在頁與其子項）全藏，只剩標題＋提示點（Andy：「應該只會出現母分頁」）。
 - 根因：財經日曆加進今日市場時，layout4.js GROUPS 與 layout4.css 收合選擇器都漏列 earnings → 收起今日市場時總覽被藏、財經日曆永遠露出。

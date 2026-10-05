@@ -210,7 +210,8 @@
     const fab = document.getElementById('supFab'); if (!fab) return;
     const adm = (location.hash || '').startsWith('#admin');
     fab.hidden = adm;
-    if (adm) { const p = document.getElementById('supPanel'); if (p && !p.hidden) toggle(false); }
+    /* 2026-10-06（Andy：換頁面後 Default 都要回到收合）：客服面板換頁一律收起，不跟到新頁面。*/
+    const p = document.getElementById('supPanel'); if (p && !p.hidden) toggle(false);
   }
   window.addEventListener('hashchange', syncFab);
   const boot = () => { ensure(); syncFab(); };
