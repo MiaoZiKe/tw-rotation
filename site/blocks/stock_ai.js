@@ -266,7 +266,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 :is(#skAi,#tagTech) .ck.ok .m{color:var(--rise)} :is(#skAi,#tagTech) .ck.no .m{color:var(--ink-3)}
 #skAi .ainews a{color:var(--cyan)}
 #skAi .ainews .kind{font-size:11.5px;color:var(--ink-3);margin-right:4px}
-/* #skAi .aiasof（「資料到 YYYY-MM-DD」）2026-10-06 拿掉（DECISIONS #328） */
+/* #skAi .aiasof（「資料到 YYYY-MM-DD」）2026-10-06 拿掉（DECISIONS #329） */
 /* AI 區窄（兩欄的窄卡片、手機）：標籤疊成兩行、標題列不讓收合鈕掉到第二行、「?」緊跟在「AI 分析」後面
    （改前手機上「?」會自己孤零零掉到第二行），技術面週期列與支撐壓力改單欄 */
 @container aibox (max-width:380px){

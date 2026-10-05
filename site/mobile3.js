@@ -708,7 +708,7 @@
       $('.mfhost', box).innerHTML = p ? focusHtml(p, quad ? `只看「${ST[quad]}」：盤上 ${r.shown.length} 個（佔比前 16 名內）· 再點一次角落還原` : '')
         : `<div class="mfocus"><span class="nm">${esc((gs.find(g => g.group_id === sel) || {}).group_name || '')}</span><span class="note">不在這個篩選的輪盤上</span></div>`;
       const mx = gs.length ? gs[0].share : 1;
-      // 2026-10-06（DECISIONS #328）：副標不再寫日期區間，只留「本週／上週…」
+      // 2026-10-06（DECISIONS #329）：副標不再寫日期區間，只留「本週／上週…」
       $('#mRankSub', box).textContent = per.label || '';
       $('#mRank', box).innerHTML = gs.map((g, i) => `<li data-g="${esc(g.group_id)}" class="${g.group_id === sel ? 'on' : ''}" style="--c:${stc((f.rrg.points.find(x => x.group_id === g.group_id) || {}).quadrant)}">`
         + `<span class="r">${i + 1}</span><span class="bar" style="width:calc((100% - 140px) * ${(g.share / mx).toFixed(3)})"></span>`

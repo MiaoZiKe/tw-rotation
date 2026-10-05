@@ -353,7 +353,7 @@
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
-           #gpNote 2026-10-06 起盤後不顯示；即時只寫「成交值估算・涵蓋 N / M 檔」（DECISIONS #328，取代 #252 三「寫出昨天收盤／盤中暫定值」那半句）。 -->
+           #gpNote 2026-10-06 起盤後不顯示；即時只寫「成交值估算・涵蓋 N / M 檔」（DECISIONS #329，取代 #252 三「寫出昨天收盤／盤中暫定值」那半句）。 -->
       <div class="howtxt" id="how-gp" hidden><div id="gpHint"></div></div>
       <div class="note livenote gpnote" id="gpNote" hidden></div>
       <!-- ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」）：兩張圖各自裝進一張有標題的卡片。
@@ -588,7 +588,7 @@
 
     function paintNote() {
       /* ★ 2026-09-24 說明精簡：這一行只講「現在是哪一種數字」；估算怎麼算、涵蓋率怎麼讀搬進「怎麼看 ?」。
-         ★ 2026-10-06（Andy 圈了「昨天（盤後收盤）資料日期 2026-10-05」：「這類資訊一律拿掉」，DECISIONS #328）：
+         ★ 2026-10-06（Andy 圈了「昨天（盤後收盤）資料日期 2026-10-05」：「這類資訊一律拿掉」，DECISIONS #329）：
            · 盤後：整行不顯示（不寫昨天、盤後收盤、資料日期）—— 新鮮度看全站資料狀態徽章與頁首時間。
            · 即時：不寫「⚡ 盤中暫定值」「最後更新 HH:MM:SS」「報價時間」；只留口徑「成交值估算・涵蓋 N / M 檔」
              （那是口徑不是時段：少了它盤中的成交值會被讀成真實值，#252 三的那一半仍成立）。
@@ -4171,7 +4171,7 @@
         </div>
         <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <!-- ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：圖下「資料更新到 YYYY-MM-DD」那行拿掉；新鮮度看全站資料狀態徽章 -->
+        <!-- ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：圖下「資料更新到 YYYY-MM-DD」那行拿掉；新鮮度看全站資料狀態徽章 -->
       </div>
       <!-- #aiCard：只給手機（≤640，mobile v3 分段的「AI 分析」那一段）用的空殼。
            桌機永遠是空的（CSS #aiCard:empty 收掉，不留黑方塊）；手機由 app.js miaStock 把 #skAi 整個節點搬進來，
@@ -5858,7 +5858,7 @@
     const sub = [pct != null ? `${e.pre || '佔'} ${pct}` : '', e.sub || ''].filter(Boolean).map(x => `<span class="nw">${x}</span>`).join('・');
     return `<div class="mixi${e.sell ? ' sell' : ''}" data-k="${k}"${e.attrs || ''} style="--c:${MIX_C[k]}">`
       + `<small>${label}</small><b class="${cls || ''}">${val}</b>${sub ? `<span class="mixsub">${sub}</span>` : ''}</div>`; };
-  /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：小圖標題列的日期（.mixd「09-03～10-02」「09-24」「10-02」）拿掉；
+  /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：小圖標題列的日期（.mixd「09-03～10-02」「09-24」「10-02」）拿掉；
      dateTxt 參數留著不用（呼叫端三處不必改）。*/
   const mixBox = (key, dateTxt, sumTxt, body) => `<div class="mix" data-mix="${key}"><div class="mixh"><span class="mixt">${CHIP_HELP[key][0]}</span>${mixQ(key)}`
     + `${sumTxt ? `<span class="mixs">${sumTxt}</span>` : ''}</div>${body}</div>`;
@@ -5877,7 +5877,7 @@
   /* 集保：最新一週 ＋ 比較基準那一週＝34 天內、日期最接近「最新 − 28 天」的那一列（4 週前；遇到休市週可能是 27～34 天）。
      ⚠ 2026-10-02 實測：資料湖的集保週資料目前每一檔都只有 4 筆（09-04～09-24，集保開放資料只給最新一週、從 9 月初才開始累積），
        最早那一筆距最新只有 20 天 —— 硬要「4 週」就永遠是空的。所以基準取「4 週內能拿到的最早一筆」，
-       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化」；2026-10-06 起不再寫「09-04 → 09-24」兩端日期，DECISIONS #328），資料滿 4 週之後自動變成「4 週」。
+       畫面上照實寫跨幾週（「3 週 +2.12pp」「近 3 週變化」；2026-10-06 起不再寫「09-04 → 09-24」兩端日期，DECISIONS #329），資料滿 4 週之後自動變成「4 週」。
        不到 2 週（< 13 天）就不給變化：一週的雜訊太大，寫出來只會被誤讀成趨勢。*/
   function holdMix(pg) {
     const ho = (pg.holders || []).filter(r => r && r[1] != null);
@@ -6721,7 +6721,7 @@
     const yr = (pg.profit || {}).yearly || [];
     const tm = (pg.profit || {}).timing || null;
     const ylab = (y) => y.partial ? `${y.year}（前 ${y.quarters} 季）` : String(y.year);
-    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：正常（ok）時副標不再寫「財報到 X（至 YYYY-MM-DD 法定應有到 X）」；
+    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：正常（ok）時副標不再寫「財報到 X（至 YYYY-MM-DD 法定應有到 X）」；
        只有「法定期限已過卻缺季」「季底還沒到卻有資料」這兩種**資料出錯**的警示留著 —— 那是警告，不是資料日期。*/
     const tmTxt = tm ? (tm.status === 'ok' ? ''
       : tm.status === 'missing' ? `⚠ 法定期限已過、應有 ${tm.expected}，目前只到 ${tm.latest || '—'}`
@@ -7036,7 +7036,7 @@
     const redraw = () => {
       const dates = chipDates(pg, win);
       const rg = $('#chipRange', el);
-      /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：區間鈕旁的「YYYY-MM-DD ～ YYYY-MM-DD，N 個交易日」不再顯示
+      /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：區間鈕旁的「YYYY-MM-DD ～ YYYY-MM-DD，N 個交易日」不再顯示
          （區間鈕本身寫了 4 週／3 個月）；起訖日改放 data-range 當機器讀數（驗收用），畫面上是空的。*/
       if (rg) { rg.textContent = ''; rg.dataset.range = dates.length ? `${dates[0]} ～ ${dates[dates.length - 1]}，${dates.length} 個交易日` : ''; }
       el.dataset.win = String(win);

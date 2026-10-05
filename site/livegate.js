@@ -80,7 +80,7 @@
       'html:not(.live-on) #rotLive,',
       'html:not(.live-on) [data-live-ui]{display:none!important}',
       /* 總覽摘要卡右上角那顆：管理者是即時開關；訪客原本看到的是資料日期（MM/DD）——
-         2026-10-06 Andy「這類資訊（資料時段＋資料日期膠囊）一律拿掉」（DECISIONS #328）→ 訪客整顆不顯示，
+         2026-10-06 Andy「這類資訊（資料時段＋資料日期膠囊）一律拿掉」（DECISIONS #329）→ 訪客整顆不顯示，
          「›」箭頭跟著靠右（原本靠這顆把它推過去）。點不到、也就不會切換。 */
       'html:not(.live-on) .osc-d.ovl-tg{display:none!important}',
       'html:not(.live-on) .osc-d.ovl-tg + .osc-more{margin-left:auto}',

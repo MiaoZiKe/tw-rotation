@@ -1748,7 +1748,7 @@
     const extra = x.turnover
       ? `成交 ${d.amt != null ? f.n(d.amt / 100, 0) + ' 億' : '—'}`
       : `總量 ${d.vol != null ? f.i(d.vol) + ' 口' : '—'}` + (d.oi != null ? `　未平倉 ${f.i(d.oi)}` : '');
-    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：數字旁的來源膠囊（「最近交易日 10/05」「上次存的 10/05 13:30」
+    /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：數字旁的來源膠囊（「最近交易日 10/05」「上次存的 10/05 13:30」
        「資料湖日線」「Yahoo」「本機暫存」）拿掉 —— 它們講的是「這份數字是哪個時段／哪一天的」。來源併進這排數字原本就有的滑鼠提示
        （那裡本來就寫資料時間），不另外加圖示。夜盤的「推送／輪詢」小標不是時段，留著。*/
     const tipTxt = `開 ${f.n(d.open, dp)}　高 ${f.n(d.high, dp)}　低 ${f.n(d.low, dp)}　${base} ${f.n(d.prev, dp)}\n${extra}　${when}`
@@ -2740,7 +2740,7 @@
         const src = (state.lakeDaily || {})[lakeSym(x)] || [];
         const lastDay = src.length ? String(src[src.length - 1][0]) : '';
         const which = x.id === 'FUT' ? (isNight(x) && !state.lakeBack[key] ? '台指期夜盤日 K' : '台指期日盤日 K') : x.short + '日 K';
-        // ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #328）：只標「是哪一條線」，不再寫「資料至 YYYY-MM-DD（＋今日即時）」
+        // ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：只標「是哪一條線」，不再寫「資料至 YYYY-MM-DD（＋今日即時）」
         if (lastDay) says.push(which);
       }
       if (says.length) el.dataset.fallback = says.join('　·　'); else delete el.dataset.fallback;
