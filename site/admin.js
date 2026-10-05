@@ -82,6 +82,7 @@
 #admBody .admgrid>.card>.bars,#admBody .admgrid>.card>table,#admBody .admgrid>.card>.donut,#admBody .admgrid>.card>svg.sc{margin-top:auto;margin-bottom:auto}
 #admBody .admgrid>#trDonut .donut{justify-content:center}
 #admBody .kpis>div,#admBody table th,#admBody table td{text-align:center}
+#admBody .bars .bl,#admBody .bars button.bl{text-align:center}
 #admBody .kpis{justify-content:center}
 #admBody table{width:100%;border-collapse:collapse}
 #admBody table th,#admBody table td{padding:5px 8px;line-height:1.4;font-size:13px}

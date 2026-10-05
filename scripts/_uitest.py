@@ -44609,7 +44609,7 @@ def t_traffic_1005(b, base, code):
         bn = pg.evaluate("""() => { const r = [...document.querySelectorAll('#trPvBars .bn')].map(e => Math.round(e.getBoundingClientRect().right)), l = [...document.querySelectorAll('#trPvBars .bl')].map(e => Math.round(e.getBoundingClientRect().left)),
             t = [...document.querySelectorAll('#trPvBars .bt')].map(e => Math.round(e.getBoundingClientRect().left));
           return { n: r.length, rs: [...new Set(r)], ls: [...new Set(l)], ts: [...new Set(t)], al: [...new Set([...document.querySelectorAll('#trPvBars .bn')].map(e => getComputedStyle(e).textAlign))] }; }""")
-        ok(f"{TT}：「哪一頁最多人看」名稱欄、長條欄、數字欄各自對齊（每欄只有一個 x）、數字置中", bn["n"] >= 3 and len(bn["rs"]) == 1 and len(bn["ls"]) == 1 and len(bn["ts"]) == 1 and bn["al"] == ["center"], bn)
+        ok(f"{TT}：「哪一頁最多人看」名稱欄、長條欄、數字欄各自對齊（每欄只有一個 x）、數字置中", bn["n"] >= 3 and len(bn["rs"]) == 1 and len(bn["ls"]) == 1 and len(bn["ts"]) == 1 and bn["al"] == ["center"] and pg.evaluate("() => [...document.querySelectorAll('#admBody .bars .bl')].every(e => getComputedStyle(e).textAlign === 'center')"), bn)
         al = pg.evaluate("""() => { const bad = [...document.querySelectorAll('#admBody table th, #admBody table td, #admBody .kpis>div')].filter(e => getComputedStyle(e).textAlign !== 'center').length;
             return { bad, n: document.querySelectorAll('#admBody table th, #admBody table td, #admBody .kpis>div').length }; }""")
         ok(f"{TT}：流量觀測所有表格欄位（含數字欄、表頭）與 KPI 格的文字都置中", al["n"] > 20 and al["bad"] == 0, al)
