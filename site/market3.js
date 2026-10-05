@@ -188,6 +188,10 @@
      加權／櫃買的當下值吃 live.js 那一批（零額外請求）照舊每 5 秒；夜盤 60 秒、/futchart 分時節奏都不動。*/
   const MS_FUT_DAY = 15 * 1000;
   const m3On = () => !window.Live || !window.Live.cardOn || window.Live.cardOn('m3');
+  /* ★ 2026-10-06 即時僅管理者（DECISIONS #326）：不是管理者 → 這三張圖整個不碰即時來源
+     （證交所分時檔、台指期日盤／夜盤、Yahoo 1 分線、推送），只畫資料湖的最近交易日（seedLake）＝盤後版本。
+     m3On 經過 live.js 的 cardOn 已經含這個判斷；這支另外擋「mount 那一次／別人呼叫 refresh(true)」那幾條不看 m3On 的路。*/
+  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
   /* ★ 2026-09-29 順手修：`#m3` 寫死在 index.html 的總覽區塊裡，**換到別頁它還在 DOM 裡**（只是 .view 被 display:none）。
      所以以前那句「不在總覽就不用抓」（`!getElementById('m3')`）從來沒成立過 —— 實測在 #market、#flow 也照樣
      每 10 秒打三個分時檔。改成看「畫面上真的看得到」（getClientRects），別頁一律不抓。*/
@@ -1109,6 +1113,7 @@
   }
 
   async function refresh(manual) {
+    if (!liveOK()) return;                               // 不是管理者：不抓任何即時來源（DECISIONS #326；畫面由 seedLake 的資料湖種子撐著）
     if (state.busy) return;
     if (!document.getElementById('m3')) return;          // 版面上根本沒有這一塊
     // 分頁切走就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
@@ -1821,9 +1826,9 @@
        以前掛載當下就 draw()：分時還沒回來＋週末有 sessionHint → 直接退去畫日 K，等 refresh 回來才換走勢圖。
        現在：非交易時段先用資料湖最近一個完整交易日的 15 分 K 把走勢圖與數字列種好（seedLake），
        第一幀就是使用者選的模式；第一輪 refresh 也先等種子落地，免得兩邊搶著畫。*/
-    if (!isIntraday()) state.seedP = seedLake();
+    if (!isIntraday() || !liveOK()) state.seedP = seedLake();   // 非管理者：盤中也一樣只種資料湖的最近交易日
     draw();
-    refresh(true);
+    if (liveOK()) refresh(true);
     schedule();
   }
   /* ★ 2026-10-04 晚（Andy 21:19 週日截圖：三張圖卡在「載入中…」；21:20：「有最後一筆數據就存起來，以後打開直接貼上」）。
@@ -1858,7 +1863,7 @@
         const cur = state.data[x.id];
         if (cur && cur.points && cur.points.length) return;
         const a = fromLastday(x, ld && ld[x.id]);
-        const sp = snapGet(x);
+        const sp = liveOK() ? snapGet(x) : null;     // 這台瀏覽器存過的即時分時：只給管理者用（非管理者一律看資料湖那一份）
         let pick = a;
         if (sp && (!a || String(sp.d.date || '') > a.date)) {
           const t = new Date(sp.at).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(5, 16);

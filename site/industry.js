@@ -14,6 +14,10 @@
     });
   }
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
+     這支檔裡的即時入口：族群總覽的「即時」鈕、個股週期列的 1分／5分／15分（只有即時來源，非管理者沒有任何資料可畫）。
+     分時（tick）留著：非管理者看的是資料湖 60 分 K 的最近交易日（盤後版本），livek.js 不 attach 輪詢。*/
+  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
   let A;                                   // window.App（app.js 提供）
   /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
      tfAuto＝這次的週期是「預設帶進來的」不是使用者按的：分時真的沒資料時只有這種情況才自動改用日 K；
@@ -334,7 +338,7 @@
         <h4 id="gpTitle" style="min-width:0"></h4>
         <div class="row gplive">
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
-          <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
+          <span class="rbar" data-live-ui><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
             title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>
         </div>
       </div>
@@ -464,6 +468,7 @@
     });
     const stopTimer = () => { if (gpTimer) { clearInterval(gpTimer); gpTimer = null; } };
     liveBtn.onclick = () => {
+      if (!live && !liveOK()) return;   // 不是管理者：即時打不開（鈕本來就藏著，這裡是第二道，DECISIONS #326）
       live = !live;
       liveBtn.classList.toggle('on', live);
       liveBtn.setAttribute('aria-pressed', live ? 'true' : 'false');
@@ -4227,7 +4232,9 @@
   const TF_DEFAULT_ON = ['tick', '60m', '240m', '1d', '1w', '1M'];
   // 四週期同看每一格是一張 K 線小圖，分時不是 K 線 → 不列進四格的下拉，也不會被自動挑進去
   function mtfTfList() { const l = tfList().filter(t => t !== 'tick'); return l.length ? l : ['1d']; }
-  function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
+  /* ★ 2026-10-06（DECISIONS #326）：1分／5分／15分只有即時來源（livek.js：Yahoo 1 分 K＋報價尾巴，都經過報價代理），
+     非管理者一律不列 —— 週期列、＋週期設定、四週期下拉都讀這一支，存檔裡選著這三個的人由 ensureTf 退回日線。*/
+  function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return (liveOK() ? TF_BUILTIN : TF_BUILTIN.filter(t => !isLiveTf(t))).concat(c); }
   function tfOnSet() {
     const c = state.cfg || {}, all = tfAll();
     let on = Array.isArray(c.tfOn) ? c.tfOn.filter(t => all.indexOf(t) >= 0) : TF_DEFAULT_ON.concat(c.tfs || []);
@@ -4256,7 +4263,7 @@
         b.classList.add('ticktf');
         b.classList.toggle('off', none);
         b.title = none ? '此檔暫無分時資料（盤中即時報價與最近交易日的分時都拿不到），已改用日 K'
-                       : '分時走勢：盤中是今天，盤後是最近一個交易日；虛線＝昨收';
+                       : liveOK() ? '分時走勢：盤中是今天，盤後是最近一個交易日；虛線＝昨收' : '分時走勢：最近一個交易日（盤後資料）；虛線＝昨收';
         return;
       }
       if (isLiveTf(tf)) {
@@ -5034,7 +5041,7 @@
       state.tickSrc = d.src; state.tickDate = d.date;
       tchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · 分時 · ${d.date}${d.live ? '' : '（非即時）'}`);
       setLiveNote(d.src === 'm60'
-        ? `${d.date} 分時（60 分 K 備援，非即時）`
+        ? (liveOK() ? `${d.date} 分時（60 分 K 備援，非即時）` : `${d.date} 分時（盤後資料）`)
         : d.live
           ? tickLiveNote(d)
           : `${d.date} 分時（非即時，開盤後自動換即時）`);
@@ -5721,7 +5728,8 @@
         + mp.parts.map(x => `<div class="mpr" data-k="${x.k}" data-pts="${x.pts.toFixed(2)}"><span>${A.fmt.esc(x.l)}</span><span>${x.v}</span><b class="${x.pts > 0 ? 'up' : x.pts < 0 ? 'down' : ''}">${x.txt}</b></div>`).join('')
         + `${mp.raw > 100 || mp.raw < 0 ? `<div class="mpr cap"><span>加總 ${A.fmt.n(mp.raw, 1)}，夾在 0～100</span><span></span><b>${A.fmt.n(ms, 0)}</b></div>` : ''}</div></div>`;
     }
-    return `<div class="card" id="skFundCard"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small> ${hq('skfund', '基本面')}</h3>${help}<div class="kvs skfund" style="margin-top:8px">`
+    /* 2026-10-06：標題列右側加一行免責（動能分是評分、本益比條有便宜／貴）—— h3 包進 .row.spread 才有「右側」可放 */
+    return `<div class="card" id="skFundCard"><div class="row spread"><h3>基本面 <small data-readout>財報到 ${f.latest_period || '—'}</small> ${hq('skfund', '基本面')}</h3>${A.disc ? A.disc('fund') : ''}</div>${help}<div class="kvs skfund" style="margin-top:8px">`
       + `<div class="fsm">`
       + ks('eps', '近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—', epsQ)
       + ks('roe', 'ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—', pbT)
@@ -5939,7 +5947,7 @@
       + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
     // 2026-10-05：頂部先放技術分析卡（stock_ai.js 的 techCardHTML，與 AI 卡技術面同源），原本的指標卡在其下
     const tech = window.StockAI && window.StockAI.techCardHTML ? window.StockAI.techCardHTML(pg, A.fmt) : '';
-    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3><small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
+    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3>${A.disc ? A.disc('tag') : ''}<small class="note" data-readout>資料到 ${A.fmt.esc(pg.as_of || '—')}</small></div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '方塊下方是判斷數字，點方塊看全文', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
       ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}
@@ -6646,6 +6654,7 @@
     const psProf = `<div class="psprof"><div class="psh">本益比位置 <small>跟自己過去每天的本益比比</small></div>${peStandHTML(peStand(pg), 'peStandProf')}</div>`;
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${lastQ[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${last[2] == null ? "—" : A.fmt.n(last[2], 2) + "%"}</div></div><div class="k"><div class="l">營益率</div><div class="v">${last[3] == null ? "—" : A.fmt.n(last[3], 2) + "%"}</div></div><div class="k"><div class="l">淨利率</div><div class="v">${last[4] == null ? "—" : A.fmt.n(last[4], 2) + "%"}</div></div></div>
       <div class="grid skprof" id="profGrid"><div class="card" id="peRiverCard"><div class="row spread"><h3>本益比河流圖 ${hq('pe', '本益比河流圖')}</h3>
+        <!-- 2026-10-06：免責那一行（A.disc('pe')）排在控制鈕後面：這一列控制鈕很寬，排在中間會把標題與控制鈕擠成三行 -->
         <div class="row" style="gap:10px;align-items:center">
           <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
           <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
@@ -6653,7 +6662,7 @@
           <label class="opabox" title="中間那條收盤線的粗細（1～5px，記在這台瀏覽器）">線寬
             <input id="peLw" type="range" min="1" max="5" step="0.5"><span class="val" id="peLwV"></span></label>
           <button type="button" class="btn small" id="peYReset" hidden title="Y 軸回到自動範圍（在左側價格軸上雙擊也可以）">Y 軸還原</button>
-        </div></div>
+        </div>${A.disc ? A.disc('pe') : ''}</div>
         <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:6px">
           <div id="peLen" title="這張圖一次看多長一段"></div>
           <div id="peEnd" title="截止到哪一天：往回拉看以前的評價，按 ▶ 一天一天播"></div>

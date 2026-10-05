@@ -20,6 +20,10 @@
      一定要排在所有 script 最前面（預覽版的 preview_boot.js 除外，它會插得更早、先把 localStorage 換成加前綴的殼）。
      主題、自選、登入、手繪線這些不清 —— 分類與理由寫在 viewreset.js 開頭。 -->
 <script src="viewreset.js"></script>
+<!-- ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）：
+     唯一的閘門。要在 <body> 之前跑：<html> 先掛好 live-on（只有管理者），訪客第一幀就看不到任何即時 UI，不會先閃一下。
+     它讀登入快取（跟 account.js 同一份 localStorage），所以排在 viewreset.js 後面就好（viewreset 不清登入）。 -->
+<script src="livegate.js"></script>
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
 <script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <!-- ★ 2026-09-28 設計 v4 正式套用（Andy「V4執行」）：版面風格 casual 親和休閒／hud 科技 HUD／pro 專業有力，存 tw.theme4。
@@ -795,6 +799,16 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
 .g21{grid-template-columns:2fr 1fr} .g12{grid-template-columns:1fr 2fr}
 .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .spread{justify-content:space-between}
+/* ★ 2026-10-06 判定／評分類卡片標題列右側的一行免責（app.js DISC）：跟選股策略 .xp-legal 同規格 ——
+   12px、一行不換行、放不下就省略（全文在 title）。flex-basis 0＋min-width 0：它只吃標題與按鈕剩下的空間，
+   只吃標題與按鈕剩下的空間；min-width 8em 是底線（實測 820 本益比河流圖那列被控制鈕吃到只剩 13px＝只剩「…」）：
+   8em＝剛好露出「不構成投資建議…」；剩不到 8em 時整句移到標題列下一行、吃滿寬度，文字本身仍是一行。
+   標題 h3 不准被它擠窄（flex-shrink:0）—— 實測個股基本面卡的 h3 被擠到「財報到…」掉第二行，整張卡變高。*/
+.row:has(> .disc-line) > h3{flex-shrink:0;max-width:100%}
+.mdisc{display:flex;margin:-2px 0 6px}
+.disc-line{flex:1 1 0;min-width:min(8em,100%);font-size:var(--fs-min,12px);font-weight:400;line-height:1.5;color:var(--ink-3,var(--ink-2));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:help}
+.disc-line[hidden]{display:none}
 .chart{width:100%;min-height:260px}
 .chart.tall{min-height:420px} .chart.short{min-height:200px}
 .chart.isempty{min-height:0}
@@ -5259,7 +5273,7 @@ h3 .howbtn.pop{font-family:inherit}
           <div class="howtxt" id="how-themeov" hidden></div>
           <div class="zwrap" id="ovThemeWrap"><div id="ovTheme" class="chart"></div></div></div>
       </div>
-      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>資金輪盤 <button class="howbtn pop" data-how="rotm" aria-label="資金輪盤怎麼看">?</button></h3></div>
+      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>資金輪盤 <button class="howbtn pop" data-how="rotm" aria-label="資金輪盤怎麼看">?</button></h3><small data-disc="rot" id="ovRotDisc"></small></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
         <!-- ★ 2026-09-28（Andy）：點圓圈 → 圓圈旁的簡短說明框（取代 09-26 的成分股覆蓋卡 #ovRotPanel）。位置由 app.js ovRotPop() 算。 -->
@@ -5296,7 +5310,7 @@ h3 .howbtn.pop{font-family:inherit}
     <div class="card periodbar"><div class="row spread">
       <div><h3 style="margin:0">市場明細</h3></div>
       <div class="seg" id="mktSeg2"></div></div></div>
-    <div class="card" style="margin-top:var(--gap-card)"><div class="row spread"><h3><span id="mktTitle">—</span> <button class="howbtn pop" data-how="mkt" data-ttl="市場明細" type="button" aria-label="市場明細怎麼看">?</button></h3></div>
+    <div class="card" style="margin-top:var(--gap-card)"><div class="row spread"><h3><span id="mktTitle">—</span> <button class="howbtn pop" data-how="mkt" data-ttl="市場明細" type="button" aria-label="市場明細怎麼看">?</button></h3><small id="mktDisc" data-disc="cand" hidden></small></div>
       <div class="howtxt" id="how-mkt" hidden></div>
       <div id="mktBody"></div></div>
   </section>
@@ -5339,7 +5353,7 @@ h3 .howbtn.pop{font-family:inherit}
           <!-- ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明，文字只需要留名稱」）：
                副標「錢往哪跑、跑到哪一段」拿掉；原本右欄那顆「怎麼看 ?」改成標題旁的「?」（howPop，跟總覽同一套）。
                說明盒 #how-rot 留在卡片裡（howPop 關的時候搬回原位，驗收照 id 找得到）。 -->
-          <div class="row spread rothead"><h3>資金輪動 <button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3></div>
+          <div class="row spread rothead"><h3>資金輪動 <button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3><small data-disc="rot" id="flowRotDisc"></small></div>
           <div class="howtxt" id="how-rot" hidden></div>
           <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
                data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
