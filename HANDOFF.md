@@ -4,7 +4,7 @@
 - ETF＋選股：合併 preview/etf-v1、preview/explore-v2；「槓桿反向」與「其他」同版面不出前 5。驗了：pytest 994 過；重算 payload 後 `_uitest ETF專區1005,選股策略1005,個股,會員權限開關,管理區v3,總覽`
   —— 個股段第一次「切指標後主圖高度 373→382」1 紅，單獨重跑 0（本批沒動 K 線高度邏輯，判偶發）；`_preview` 綠。
 - perm-v4：Worker 先上（c968e481 success），前端後上。CEO 追加：會員欄一行（▸ email 名字 ★ 同排；★ 金色＝付費，方案名在滑過提示與「方案」欄）、窄螢幕 `contain:inline-size` 防橫捲、測試假資料日期 09/34 → 真日期。
-  驗了：`_uitest 管理區1005,管理區v3,會員權限開關,訂閱與客服1005` 0；`會員權限導覽` 1 紅（手機 #mTabMore 點不到）—— **main 上同樣紅、手機暫停中，未修**；`_preview` 綠。沒跑 pytest（沒動 pipeline）。
+  驗了：`_uitest 管理區1005,管理區v3,會員權限開關,訂閱與客服1005` 0；`會員權限導覽` 1 紅（手機 #mTabMore 點不到）—— **main 上同樣紅、手機暫停中，未修 —— 待處理：手機恢復時第一個修**；`_preview` 綠。沒跑 pytest（沒動 pipeline）。
   ⚠ 踩坑：worktree 的 `site/data` 捷徑要用絕對路徑（`ln -s /home/user/tw-rotation/site/data site/data`），相對路徑 `../tw-rotation/...` 是相對 site/ 解析 → 整頁沒資料、一堆假紅。
 - 進行中：「財報日曆」大分頁（總覽正下方、月曆＋法說會／FED 事件＋點選看分析展望），frontend-ui 在 `../wt-cal`、分支 `claude/earnings-cal`，做完推 `preview/earnings-cal`。
 
@@ -20,7 +20,7 @@
   （管理區1005 有一輪「輪動族群下拉晶圓代工」逾時假紅，單獨重跑 0，那段是資金流向頁、沒動到）；`_preview.py` 全綠。反向驗證：origin/main 的 admin.js 同一列卡高 424／268／320／216 → 新斷言會紅。沒跑 pytest（沒動 pipeline／tests）。
 - 已知限制：① 舊 Worker（沒部署 perm-v4）時拖曳會跳「順序沒存成功…已換回」、統計圖寫「尚無資料（會員 Worker 尚未更新）」；② 範本色依 id 排序配色（拖曳不換色）；③ 只做桌機。
 
-## 10-04 矽晶圓／第三代半導體／CNC 工具機／工業自動化四張剖析圖補環節與關聯圖（科技產業分析師，分支 `claude/sc-fill-wafer`，**未推 main，等 CEO 合併**，DECISIONS #320，證據 `docs/groups_wafer_sc_evidence.md`，截圖 `docs/groups_wafer_sc_1004/`）
+## 10-04 矽晶圓／第三代半導體／CNC 工具機／工業自動化四張剖析圖補環節與關聯圖（科技產業分析師，分支 `claude/sc-fill-wafer`，**已合併 main 5c643043**，DECISIONS #320，證據 `docs/groups_wafer_sc_evidence.md`，截圖 `docs/groups_wafer_sc_1004/`）
 - Andy（附矽晶圓剖析圖、下方完全沒有關聯圖）：「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」。根因兩層：YAML 沒有對應環節；前端零件沒掛真的環節（2D 沒有 data-seg、3D 的 seg 是佔位族群 id）→ #317 反亮交集為空 → 整塊藏起來。
 - [x] `supply_chain.yaml`：新增 11 個環節（半導體 7：poly_silicon／crystal_equip／wafer_si／wbg_substrate／wbg_epi／wbg_device／power_idm；一般電子 4：motion_parts／cnc_controller／cnc_machine／factory_robot）、28 家公司（台股 18、外商 10）、27 條邊（高 10、中 17、低 0）。
   多晶矽、長晶爐與熱場耗材兩格**只有 note、沒有公司節點**（查不到具名供貨；畫孤立外商節點會頂破 SC_ISO_MAX semiconductor＝0）。不放中美晶（母子口徑）與世界先進（會在 AI 伺服器鏈圖變孤立）。
@@ -35,7 +35,7 @@
   ③ `groups.yaml` 的 machine_tool 含富強鑫 6603（塑膠射出機，不是工具機）、factory_automation 的和椿／大量／鈦昇／竹陞／精確五檔沒放進節點 —— 只出建議、沒改成分（Andy 校訂）；
   ④ 摘要層級證據（讀不到原文）；台勝科客戶名單出自 2017／2018 法說會，超過 180 天會自動標 stale；⑤ 2D 的 mc_enc／mc_coupling 原本寫「查不到」、3D 卻列 4576／4540，這次以 3D 官網證據對齊。
 
-## 10-04 05:38 外觀面板拿掉「明暗」——明暗只剩右上角 ☀／🌙（UI 專家，分支 `claude/theme-dedupe`，**未推 main，等 CEO 合併**，接續 DECISIONS #312）
+## 10-04 05:38 外觀面板拿掉「明暗」——明暗只剩右上角 ☀／🌙（UI 專家，分支 `claude/theme-dedupe`，**已合併 main 44cd6399**，接續 DECISIONS #312）
 - Andy（附圖：外觀面板裡有「版面風格」三選一＋「明暗：深色｜淺色」，旁邊右上角已經有 🌙 鈕）：「這邊重複到了，改進」。
 - [x] `site/theme4.js`：外觀面板拿掉「明暗」標題與深色／淺色兩顆（`.t4m`／`data-t4m`）、`setMode()`（只有那兩顆在用，`T4.setMode` 全 repo 沒有別人呼叫）、syncButtons 裡同步那兩顆的一行。
   面板只剩「版面風格」三選一，說明改成「每個風格都有深淺兩套，用右上角 ☀／🌙 切換；選擇會記在這台瀏覽器。」。「外觀」鈕的提示字照舊寫「目前：風格・深／淺」。
