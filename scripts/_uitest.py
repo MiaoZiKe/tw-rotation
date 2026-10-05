@@ -35215,7 +35215,7 @@ B29_GP = """() => { const q = (s) => document.querySelector(s);
            cardTitles: [...document.querySelectorAll('#v-industry .gpcard > h5')].map(h => h.innerText.trim()),
            yLabels: bi ? (bi.getOption().yAxis[0].data || []) : [],
            pieRadius: pi ? pi.getOption().series[0].radius : null,
-           // ★ 2026-10-06：中心字 10-05 起是「一個 title、兩段 rich text」（{a|前五大}\n{b|37.3%}），攤平成一行一筆才比得到字
+           // ★ 2026-10-06：中心字 10-05 起是「一個 title、兩段 rich text」（a 段＝前五大、b 段＝37.3%），攤平成一行一筆才比得到字
            pieTitles: pi ? (pi.getOption().title || []).flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n')) : [],
            pieLabelLine: pi ? !!(pi.getOption().series[0].labelLine || {}).show : false,
            barRadius: bo.length ? (bo[0].itemStyle || {}).borderRadius : null,
