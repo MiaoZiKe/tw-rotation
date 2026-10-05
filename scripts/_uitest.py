@@ -2200,7 +2200,8 @@ def t_msel_1006(pg, b, base):
     tag = "下拉篩選1006"
     for w in (1440, 800):
         pg.set_viewport_size({"width": w, "height": 1000})
-        pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.reload(wait_until="networkidle")
+        # domcontentloaded＋等按鈕與圖出現（不用 networkidle：容器忙的時候 30 秒等不到 networkidle，那是環境不是功能）
+        pg.goto(f"{base}#market/updown", wait_until="domcontentloaded"); pg.reload(wait_until="domcontentloaded")
         if not ok(f"[{tag} {w}] 族群篩選是一顆下拉按鈕（族群：不限 ▾）",
                   wait_until(pg, "() => { const e = document.getElementById('chgDist'); return document.querySelector('#distGroupDD .twms-btn') && e && window.echarts && echarts.getInstanceByDom(e); }", 15000)):
             continue
@@ -2299,16 +2300,16 @@ def t_msel_1006(pg, b, base):
         _ms_open(pg, True)
         pg.click(".twms-pan .twms-o:not([hidden]) span"); pg.wait_for_timeout(400)
         ok(f"[{tag} {w}] （前提）勾了一個、面板開著", pg.evaluate(MS_STATE)["btn"] not in (None, "不限") and pg.evaluate(MS_STATE)["open"])
-        pg.goto(f"{base}#market/ma", wait_until="networkidle"); pg.wait_for_timeout(800)
+        pg.goto(f"{base}#market/ma", wait_until="domcontentloaded"); pg.wait_for_timeout(800)
         ok(f"★ [{tag} {w}] 面板開著直接換分頁 → 面板跟著收掉，不會浮在別頁上", not pg.evaluate("() => !!document.querySelector('.twms-pan')"))
-        pg.goto(f"{base}#market/updown", wait_until="networkidle")
-        wait_until(pg, "() => document.querySelector('#distGroupDD .twms-btn')", 8000); pg.wait_for_timeout(500)
+        pg.goto(f"{base}#market/updown", wait_until="domcontentloaded")
+        wait_until(pg, "() => document.querySelector('#distGroupDD .twms-btn')", 15000); pg.wait_for_timeout(500)
         ok(f"[{tag} {w}] 換分頁再回來 → 族群篩選回到「不限」（市場明細換頁回預設）", pg.evaluate(MS_STATE)["btn"] == "不限")
 
     # ⑨ 390：面板在視窗裡、沒有橫向捲軸、清單單欄
     m = b.new_page(viewport={"width": 390, "height": 844})
     try:
-        m.goto(f"{base}#market/updown", wait_until="networkidle")
+        m.goto(f"{base}#market/updown", wait_until="domcontentloaded")
         if ok(f"[{tag} 390] 手機寬也有下拉按鈕", wait_until(m, "() => document.querySelector('#distGroupDD .twms-btn')", 15000)):
             m.wait_for_timeout(600)
             m.evaluate("document.getElementById('distGroupDD').scrollIntoView({block:'center'})"); m.wait_for_timeout(300)
@@ -16380,9 +16381,10 @@ def t_r5(pg, base, code):
     # 原本驗「膠囊牆停在整整 3 排、底部淡出＋往下捲提示」。Andy 10-06 要求整個改成下拉式清單篩選（site/multiselect.js），
     # 膠囊牆已經不存在 —— 這裡改驗「按下去是浮在上面的面板、不會把卡片撐高」；完整操作在「下拉篩選1006」。
     pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    wait_until(pg, "() => document.querySelector('#distGroupDD .twms-btn')", 8000)
+    wait_until(pg, "() => document.querySelector('#distGroupDD .twms-btn')", 15000)
     h0 = pg.evaluate("() => Math.round(document.querySelector('.mktdist').getBoundingClientRect().height)")
-    click(pg, "#distGroupDD .twms-btn", 600)
+    click(pg, "#distGroupDD .twms-btn", 300)
+    wait_until(pg, "() => !!document.querySelector('.twms-pan[data-ms=\"distGroups\"]')", 4000)
     gf = pg.evaluate("""() => { const p = document.querySelector('.twms-pan[data-ms="distGroups"]'); const r = p && p.getBoundingClientRect();
         return { open: !!p, wall: !!document.getElementById('distGroups'), inView: !!r && r.left >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1,
                  h: Math.round(document.querySelector('.mktdist').getBoundingClientRect().height) }; }""")
