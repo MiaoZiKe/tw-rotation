@@ -21956,6 +21956,91 @@ def t_nobox_1006(pg, base):
         ok(f"[無獨立提示框] #{r} 主內容區沒有卡片外自成一框的備註／免責／提示列", not bad, bad[:5])
 
 
+# ===================================================================== 分頁拖曳（2026-10-06，site/tabdrag.js）
+# Andy：「分頁具備拖曳移動位置功能，但不具備刪除功能」「所有分頁都具備拖曳移動調整位置功能」。
+# 每一頁真的用滑鼠按住第一顆分頁拖到第三顆上放開，驗：
+#   ① 順序真的變了（第一顆跑到第三位）② 拖曳過程分頁列高度不變（版面不晃）③ 拖曳不觸發切換（選中的分頁與網址都沒變）
+#   ④ 分頁數量不變（沒有刪除）⑤ localStorage 寫進 tw.tabs.<路由>.<id> ⑥ 重新整理後順序保留
+#   ⑦ 點被換到第一位的那顆 → 真的切過去（變成選中），切完重畫後順序還在
+#   ⑧ 鍵盤 Alt+→ 把焦點那顆右移一格，而且瀏覽器沒有被 Alt+← 之類帶去上一頁
+#   ⑨ 右鍵 →「還原預設順序」→ 回到原本順序、localStorage 那一筆刪掉
+TD_BARS = [("explore", "#slChips"), ("industry", "#chainSwitch"), ("stock/2330", "#stockTabs"), ("market", "#mktTabs")]
+TD_ORD = """(sel) => { const b = document.querySelector(sel); if (!b || !window.TabDrag) return null;
+  return {o: TabDrag.order(b), n: b.children.length, h: Math.round(b.getBoundingClientRect().height),
+          on: [...b.children].filter(c => c.classList.contains('on') || c.getAttribute('aria-selected') === 'true').map(c => c.textContent.trim().slice(0, 8)),
+          key: TabDrag.key(b), hash: location.hash}; }"""
+
+
+def _td_item(sel, iid):
+    import re as _re
+    k, v = iid.split(":", 1)
+    return f'{sel} > [data-{_re.sub("([A-Z])", lambda m: "-" + m.group(1).lower(), k)}="{v}"]'
+
+
+def t_tabdrag_1006(pg, base):
+    tag = "分頁拖曳1006"
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    for route, sel in TD_BARS:
+        pg.goto(base + "#" + route)
+        pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.tabs.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        pg.reload()
+        if not ok(f"[{tag}] #{route} 分頁列 {sel} 畫出來、已掛上拖曳",
+                  wait_until(pg, f"() => {{ const b = document.querySelector('{sel}'); return b && b.hasAttribute('data-tdrag') && b.children.length >= 3; }}", 15000)):
+            continue
+        pg.wait_for_timeout(600)
+        a0 = pg.evaluate(TD_ORD, sel)
+        els = pg.locator(f"{sel} > *")
+        b1, b3 = els.nth(0).bounding_box(), els.nth(2).bounding_box()
+        pg.mouse.move(b1["x"] + b1["width"] / 2, b1["y"] + b1["height"] / 2); pg.mouse.down()
+        pg.mouse.move(b1["x"] + b1["width"] / 2 + 15, b1["y"] + b1["height"] / 2, steps=3)
+        pg.mouse.move(b3["x"] + b3["width"] / 2, b3["y"] + b3["height"] / 2, steps=10)
+        mid = pg.evaluate(TD_ORD, sel)
+        pg.mouse.up(); pg.wait_for_timeout(400)
+        a1 = pg.evaluate(TD_ORD, sel)
+        exp = a0["o"][1:3] + a0["o"][:1] + a0["o"][3:]
+        ok(f"[{tag}] #{route} 拖第一顆到第三顆 → 順序真的變了", a1["o"] == exp, [a0["o"], a1["o"]])
+        ok(f"[{tag}] #{route} 拖曳中分頁列高度不變（不晃）", mid["h"] == a0["h"] == a1["h"], [a0["h"], mid["h"], a1["h"]])
+        ok(f"[{tag}] #{route} 拖曳不觸發切換：選中的分頁、網址都沒變", a1["on"] == a0["on"] and a1["hash"] == a0["hash"], [a0, a1])
+        ok(f"[{tag}] #{route} 分頁數量不變（不可刪）", a1["n"] == a0["n"], [a0["n"], a1["n"]])
+        ls = pg.evaluate(f"() => localStorage.getItem('{a0['key']}')")
+        ok(f"[{tag}] #{route} 順序寫進 localStorage（{a0['key']}）", bool(ls) and a0["o"][0] in ls, ls)
+        pg.reload()
+        wait_until(pg, f"() => {{ const b = document.querySelector('{sel}'); return b && b.hasAttribute('data-tdcustom'); }}", 15000)
+        pg.wait_for_timeout(500)
+        a2 = pg.evaluate(TD_ORD, sel)
+        ok(f"[{tag}] #{route} 重新整理後順序保留", a2 and a2["o"] == exp, a2 and a2["o"])
+        # 點現在排第一位的那顆（原本第二顆）→ 真的切過去
+        first = exp[0]
+        pg.click(_td_item(sel, first)); pg.wait_for_timeout(900)
+        a3 = pg.evaluate(TD_ORD, sel)
+        sw = pg.evaluate(f"""() => {{ const e = document.querySelector('{_td_item(sel, first)}'); return !!e && (e.classList.contains('on') || e.getAttribute('aria-selected') === 'true'); }}""")
+        ok(f"[{tag}] #{route} 點換到第一位的分頁 → 真的切過去（變成選中）", sw and a3["on"] != a0["on"], [a0["on"], a3 and a3["on"]])
+        ok(f"[{tag}] #{route} 切換重畫後順序還在", a3 and a3["o"] == exp, a3 and a3["o"])
+        # 鍵盤：焦點在第一位，Alt+→ 右移一格
+        pg.focus(_td_item(sel, first)); hb = pg.evaluate("location.hash")
+        pg.keyboard.press("Alt+ArrowRight"); pg.wait_for_timeout(300)
+        a4 = pg.evaluate(TD_ORD, sel)
+        ok(f"[{tag}] #{route} Alt+→ 把焦點那顆右移一格、網址沒被改", a4["o"][:2] == [exp[1], exp[0]] and pg.evaluate("location.hash") == hb, a4["o"])
+        pg.keyboard.press("Alt+ArrowLeft"); pg.wait_for_timeout(300)
+        ok(f"[{tag}] #{route} Alt+← 移回來、沒有跳回上一頁", pg.evaluate(TD_ORD, sel)["o"] == exp and pg.evaluate("location.hash") == hb, pg.evaluate("location.hash"))
+        # 右鍵還原
+        pg.click(_td_item(sel, exp[1]), button="right"); pg.wait_for_timeout(200)
+        has_menu = pg.is_visible(".td-menu [data-tdreset]")
+        if has_menu:
+            pg.click(".td-menu [data-tdreset]"); pg.wait_for_timeout(300)
+        a5 = pg.evaluate(TD_ORD, sel)
+        ls2 = pg.evaluate(f"() => localStorage.getItem('{a0['key']}')")
+        ok(f"[{tag}] #{route} 右鍵 →「還原預設順序」→ 回到原本順序、localStorage 清掉", has_menu and a5["o"] == a0["o"] and ls2 is None, [has_menu, a5["o"], ls2])
+        ok(f"[{tag}] #{route} 全程沒有刪掉任何分頁", a5["n"] == a0["n"], a5["n"])
+    # 沒改過順序的分頁列：右鍵是瀏覽器原本的選單（我們不攔）
+    pg.goto(base + "#explore"); pg.wait_for_timeout(1500)
+    pg.click("#slChips > [data-cat='fund']", button="right"); pg.wait_for_timeout(200)
+    ok(f"[{tag}] 沒改過順序時右鍵不跳自訂選單", not pg.is_visible(".td-menu"))
+    pg.keyboard.press("Escape")
+    # 側欄（頂層導覽）不掛拖曳
+    ok(f"[{tag}] 側欄／頂層導覽不在拖曳範圍", pg.evaluate("() => !document.querySelector('.tabs[data-tdrag], #tabsWrap[data-tdrag]')"))
+
+
 def t_explore_1005(pg, base):
     """★ 2026-10-05 第二版（Andy：「改成圖片那樣類似好了，策略但寫成英文……標示原因……附上資料出處」）。
     ★ 第三版（Andy：「中文內容」「版面都要固定大小，不是一大一小」）：主標題中文、所有卡同高（差 ≤ 1px）、
@@ -21967,12 +22052,12 @@ def t_explore_1005(pg, base):
     for w in (1440, 1100):
         pg.set_viewport_size({"width": w, "height": 950})
         pg.goto(base + "#explore")
-        if not ok(f"[{tag} {w}] 策略卡片牆畫出來（≥ 9 張）",
-                  wait_until(pg, "() => document.querySelectorAll('#slGrid .sl-card').length >= 9", 15000)):
+        # ★ 10-06：沒有「全部」，預設只畫基本面（7 張）
+        if not ok(f"[{tag} {w}] 策略卡片牆畫出來（預設基本面 ≥ 5 張）",
+                  wait_until(pg, "() => document.querySelectorAll('#slGrid .sl-card').length >= 5", 15000)):
             return
         r = pg.evaluate("() => ({sx: document.documentElement.scrollWidth, vw: innerWidth})")
         ok(f"[{tag} {w}] 整頁沒有橫向捲軸", r["sx"] <= r["vw"] + 1, r)
-        pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
         g = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#slGrid .sl-card')];
             const hs = cs.map(c => c.getBoundingClientRect().height), ws = cs.map(c => c.getBoundingClientRect().width);
             return {cols: getComputedStyle(document.querySelector('#slGrid .sl-grid')).gridTemplateColumns.split(' ').length,
@@ -21988,16 +22073,30 @@ def t_explore_1005(pg, base):
     ok(f"[{tag}] 免責在標題列內、一行、≥11px、未刪字", lg["inH"] and lg["oneLine"] and lg["fs"] >= 11 and '不構成投資建議' in lg["txt"] and '不是好壞名次' in lg["txt"], lg)
     ok(f"[{tag}] 無頂端提示列、無操作說明句、面向標題無英文", not lg["topBar"] and not lg["howto"] and lg["secen"] == 0, lg)
     ok(f"[{tag}] 面向副標已移入標題滑過提示（卡面無 small、title 有字）", lg["secsm"] == 0 and lg["sectt"], lg)
-    pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
-    info = pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => ({
+    # ★ 2026-10-06（Andy：「全部分頁拿掉」）：分頁只剩四個面向、預設基本面、重新整理回基本面
+    dz = pg.evaluate("""() => ({chips: [...document.querySelectorAll('.sl-chip')].map(b => b.dataset.cat),
+        on: [...document.querySelectorAll('.sl-chip.on')].map(b => b.dataset.cat), secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => x.dataset.cat)})""")
+    ok(f"[{tag}] 沒有「全部」分頁：只剩基本面｜技術面｜籌碼面｜消息面（集合）", sorted(dz["chips"]) == sorted(["fund", "tech", "chip", "news"]), dz)
+    ok(f"[{tag}] 預設選中基本面、只畫基本面那一區", dz["on"] == ["fund"] and dz["secs"] == ["fund"], dz)
+    pg.click('.sl-chip[data-cat="tech"]'); pg.wait_for_timeout(200)
+    mid = pg.evaluate("() => [...document.querySelectorAll('.sl-chip.on')].map(b => b.dataset.cat)")
+    pg.reload(); wait_until(pg, "() => document.querySelectorAll('#slGrid .sl-card').length >= 5", 15000)
+    dz2 = pg.evaluate("() => [...document.querySelectorAll('.sl-chip.on')].map(b => b.dataset.cat)")
+    ok(f"[{tag}] 切到技術面真的切了；重新整理回到預設基本面", mid == ["tech"] and dz2 == ["fund"], [mid, dz2])
+    info = []
+    for k in ("fund", "tech", "chip", "news"):
+        pg.click(f'.sl-chip[data-cat="{k}"]'); pg.wait_for_timeout(200)
+        info += pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => ({
         en: c.querySelector('.sl-en').textContent, zh: c.querySelector('.sl-zh').textContent, h: c.getBoundingClientRect().height,
         rows: c.querySelectorAll('.sl-row').length, date: c.querySelector('.sl-date').textContent}))""")
+    pg.click('.sl-chip[data-cat="fund"]'); pg.wait_for_timeout(200)
     ok(f"[{tag}] 每卡 ≤ 3 列", all(x["rows"] <= 3 for x in info), info)
     ok(f"[{tag}] 主標題是中文（英文只是小字副標）", all(_re.search(r"[\u4e00-\u9fff]", x["zh"]) and not _re.search(r"[A-Za-z]{3,}", x["zh"]) for x in info), info)
     # ★ 10-05：分類＝產業地圖同一套資料夾分頁（.nbsw）；子標籤＝下拉多選（先打開才看得到選項）
     ok(f"[{tag}] 分類分頁用產業地圖同一個 class（.nbsw）、子標籤是一顆下拉鈕不是一排膠囊",
        pg.evaluate("() => document.getElementById('slChips').classList.contains('nbsw') && !!document.querySelector('#slTags #slTagDd') && !document.querySelector('#slTags > .sl-tag')"))
     pg.click('#slTagDd'); pg.wait_for_timeout(150)
+    tg_f = pg.evaluate("() => [...document.querySelectorAll('#slTagMenu input[data-tag]')].map(x => x.dataset.tag)")
     ui = pg.evaluate("""() => ({h2: document.querySelector('.sl-head h2').firstChild.textContent.trim(),
         chips: [...document.querySelectorAll('.sl-chip')].map(b => b.firstChild.textContent.trim()),
         tags: [...document.querySelectorAll('.sl-tag')].map(b => b.textContent.trim()), tl: document.querySelector('.sl-tl').textContent})""")
@@ -22009,6 +22108,7 @@ def t_explore_1005(pg, base):
     ok(f"[{tag}] 頁頂有法遵提示＋非推薦名次", "不構成投資建議" in txt and "非推薦名次" in txt)
     bad = [x for x in ("推薦買", "推薦股", "買進", "目標價", "最值得買", "必漲") if x in txt]
     ok(f"[{tag}] 整頁沒有禁用字", not bad, bad)
+    ok(f"[{tag}] 子標籤下拉只列基本面的標籤（沒有技術／籌碼／消息面的）", "ROE" in tg_f and not any(x in tg_f for x in ("MACD", "三大法人", "新聞", "均線")), tg_f)
     nall = pg.evaluate("() => document.querySelectorAll('#slGrid .sl-card').length")
     pg.click('#slTagMenu input[data-tag] >> nth=0'); pg.wait_for_timeout(200)
     d1 = pg.evaluate("() => ({n: document.querySelectorAll('#slGrid .sl-card').length, lab: document.getElementById('slTagDd').textContent, open: !!document.getElementById('slTagMenu'), h: document.getElementById('slTagDd').getBoundingClientRect().height})")
@@ -22021,16 +22121,22 @@ def t_explore_1005(pg, base):
     pg.click('.sl-chip[data-cat="tech"]'); pg.wait_for_timeout(200)
     n = pg.evaluate("() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => c.dataset.cat)")
     ok(f"[{tag}] 點 Technicals 晶片 → 只剩技術面卡", 0 < len(n) < len(info) and set(n) == {"tech"}, n)
+    pg.click('#slTagDd'); pg.wait_for_timeout(150)
+    tg_t = pg.evaluate("() => [...document.querySelectorAll('#slTagMenu input[data-tag]')].map(x => x.dataset.tag)")
+    pg.mouse.click(5, 900); pg.wait_for_timeout(150)
+    ok(f"[{tag}] 切到技術面 → 子標籤下拉換成技術面的（有均線、沒有 ROE）", "均線" in tg_t and "ROE" not in tg_t, tg_t)
     # ★ 第四版（Andy：「需要分成以下大族群：基本面、技術面、籌碼面、消息面」）
-    pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
-    q = pg.evaluate("""() => ({chips: [...document.querySelectorAll('.sl-chip')].map(b => [b.dataset.cat, b.firstChild.textContent.trim(), +b.querySelector('em').textContent]),
-        secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => [x.dataset.cat, x.querySelector('.sl-sech').textContent, x.querySelectorAll('.sl-card').length,
-              [...x.querySelectorAll('.sl-card')].every(c => c.dataset.cat === x.dataset.cat)])})""")
-    ok(f"[{tag}] 晶片＝全部｜基本面｜技術面｜籌碼面｜消息面", [c[1] for c in q["chips"]] == ["全部", "基本面", "技術面", "籌碼面", "消息面"], q["chips"])
-    ok(f"[{tag}] 「全部」分四區、依序、每區卡只屬於該區", [x[0] for x in q["secs"]] == ["fund", "tech", "chip", "news"] and all(x[3] for x in q["secs"]), q["secs"])
-    cnt = {c[0]: c[2] for c in q["chips"]}
-    ok(f"[{tag}] 晶片數量＝各區卡數（基本 7／技術 4／籌碼 4／消息 3）", all(cnt[x[0]] == x[2] for x in q["secs"]) and cnt["all"] == sum(x[2] for x in q["secs"])
-       and [cnt[k] for k in ("fund", "tech", "chip", "news")] == [7, 4, 4, 3], [cnt, q["secs"]])
+    chips = pg.evaluate("() => [...document.querySelectorAll('.sl-chip')].map(b => [b.dataset.cat, b.firstChild.textContent.trim(), +b.querySelector('em').textContent])")
+    ok(f"[{tag}] 晶片＝基本面｜技術面｜籌碼面｜消息面（沒有全部）", sorted(c[1] for c in chips) == sorted(["基本面", "技術面", "籌碼面", "消息面"]), chips)
+    secs = []
+    for k in ("fund", "tech", "chip", "news"):
+        pg.click(f'.sl-chip[data-cat="{k}"]'); pg.wait_for_timeout(200)
+        secs += pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-sec')].map(x => [x.dataset.cat, x.querySelectorAll('.sl-card').length,
+              [...x.querySelectorAll('.sl-card')].every(c => c.dataset.cat === x.dataset.cat)])""")
+    ok(f"[{tag}] 每個面向只畫自己那一區、卡只屬於該區", [x[0] for x in secs] == ["fund", "tech", "chip", "news"] and all(x[2] for x in secs), secs)
+    cnt = {c[0]: c[2] for c in chips}
+    ok(f"[{tag}] 晶片數量＝各區卡數（基本 7／技術 4／籌碼 4／消息 3）", all(cnt[x[0]] == x[1] for x in secs)
+       and [cnt[k] for k in ("fund", "tech", "chip", "news")] == [7, 4, 4, 3], [cnt, secs])
     for k, ids in (("chip", {"whale", "settle"}), ("news", {"buzz", "conf", "themeup"})):
         pg.click(f'.sl-chip[data-cat="{k}"]'); pg.wait_for_timeout(200)
         v = pg.evaluate("""() => ({secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => x.dataset.cat),
@@ -22048,7 +22154,7 @@ def t_explore_1005(pg, base):
     src = pg.inner_text('#slPop .sl-info') if pg.is_visible('#slPop .sl-info') else ""
     ok(f"[{tag}] 消息面 i → 精簡：篩選條件＋一行資料", "篩選條件" in src and "資料：" in src and "計算方式" not in src, src[:200])
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
-    pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
+    pg.click('.sl-chip[data-cat="fund"]'); pg.wait_for_timeout(200)
     # 原因展開
     hq = "() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => Math.round(c.getBoundingClientRect().height))"
     h0 = pg.evaluate(hq)
@@ -22058,13 +22164,16 @@ def t_explore_1005(pg, base):
     ok(f"[{tag}] 展開原因不改變任何一張卡的高度", pg.evaluate(hq) == h0, [h0, pg.evaluate(hq)])
     pg.mouse.click(5, 900); pg.wait_for_timeout(150)
     ok(f"[{tag}] 點外面 → 浮層關閉", not pg.is_visible('#slPop'))
-    # 出處
+    # 出處（法人連續買超在籌碼面）
+    pg.click('.sl-chip[data-cat="chip"]'); pg.wait_for_timeout(200)
+    h0 = pg.evaluate(hq)
     pg.click('.sl-card[data-sid="accum"] .sl-i')
     src = pg.inner_text('#slPop .sl-info') if pg.is_visible('#slPop .sl-info') else ""
     ok(f"[{tag}] 打開 i 不改變卡高", pg.evaluate(hq) == h0)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
     ok(f"[{tag}] 點 i → 只剩篩選條件＋一行小字資料（10-05 精簡：沒有計算方式／共同門檻／要小心）", "篩選條件" in src and "資料：" in src and "FinMind" in src and not any(w in src for w in ("計算方式", "共同門檻", "要小心", "資料出處")), src[:200])
     # 完整名單
+    pg.click('.sl-chip[data-cat="fund"]'); pg.wait_for_timeout(200)
     pg.click('.sl-card[data-sid="quality"] .sl-more')
     okf = wait_until(pg, "() => location.hash === '#explore/quality' && document.querySelector('#slTbl tbody tr')", 8000)
     ok(f"[{tag}] 點 › → 完整名單頁", bool(okf), pg.url)
@@ -22836,6 +22945,7 @@ SECTIONS = {
     # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
     "選股策略1005":        lambda pg, b, base, code: t_explore_1005(pg, base),
     "無獨立提示框":        lambda pg, b, base, code: t_nobox_1006(pg, base),
+    "分頁拖曳1006":        lambda pg, b, base, code: t_tabdrag_1006(pg, base),
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),

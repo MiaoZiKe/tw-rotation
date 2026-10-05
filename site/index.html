@@ -5676,6 +5676,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <!-- ★ 2026-10-02 會員功能權限（DECISIONS #288）：features.js＝功能清單（資料）、perm.js＝依「我」的權限蓋鎖頭。
      要在 account.js 之後（perm.js 問 TwAccount 我是誰）；會員功能沒設定時全部照預設＝全開，不連任何地方。 -->
 <script src="features.js"></script>
+<!-- ★ 2026-10-06 分頁拖曳排序（全站自動掛載，見檔頭）：要在各頁分頁列畫出來之前就開始觀察 -->
+<script src="tabdrag.js"></script>
 <script src="perm.js"></script>
 <!-- ★ 2026-10-05（sub-v1）訂閱頁＋方案徽章（pricing.js，含共用小工具 TwSub，要排第一）、每日瀏覽次數（quota.js）、
      右下角客服與意見反饋（support.js）、通知中心（notices.js）。要在 perm.js 之後（讀 TwPerm）、app.js 之前（登記 TwSubRoutes）。 -->

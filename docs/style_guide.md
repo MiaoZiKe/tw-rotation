@@ -53,6 +53,7 @@
 ## 五、元件
 
 - **分頁**：`.nbsw`（一層）、`.nbsw.lv2`（二層）；CSS 只在 `site/index.html` 一份。頁面 CSS 只准補邊框，不准改字級（#321）。
+- **分頁可拖曳排序、不可刪**（Andy 2026-10-06：「分頁具備拖曳移動位置功能，但不具備刪除功能」「所有分頁都具備拖曳移動調整位置功能」）：由 `site/tabdrag.js` 全站自動掛載（`.nbsw`／`.subtabs`／`role="tablist"`），滑鼠拖曳或 Alt+←／→；順序存 `tw.tabs.<路由>.<分頁列 id>`，重新整理保留；改過的分頁列按右鍵可還原預設。新分頁列只要給穩定的 id、每顆帶穩定的 `data-*`，不必寫 JS。不准另寫刪除分頁的功能；不准自己再做一套拖曳。側欄、管理區、自選清單頁籤不在此列。
 - **表格**：表頭與欄位置中；數字欄窄、mono；文字欄一行省略（`white-space:nowrap;overflow:hidden;text-overflow:ellipsis`）＋`title`；列高 `--t4-row-h` 32（手機 40）；分隔線 `--line`。
 - **按鈕／選單**：高 32、圓角 `--r-sm`、字 13～13.5。**Switch 三態**：on／off／mixed（`aria-checked="mixed"`，圓鈕停中間）。
 - **篩選（選項多）**：選項 **> 6 個或會換行**的篩選，一律用共用下拉多選 `site/multiselect.js`（`TwMS.mount(host, {id, label, items, groups, selected, onChange})`），**不准膠囊牆**（一排排可捲的晶片）。
