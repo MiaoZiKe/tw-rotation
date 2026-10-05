@@ -28,7 +28,7 @@
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } },
   };
-  const CATS = ['配息型', '市值型', '主題型', '債券型', '槓桿反向', '主動式', '其他'];
+  const CATS = ['配息型', '市值型', '主題型', '主動式', '槓桿反向', '債券型', '其他'];   // 2026-10-05 Andy：「兩個對調」債券型↔主動式
   const NO_RANK = { all: 1, 其他: 1, 槓桿反向: 1 };   // 不出「前 5 名」三張卡的分頁（Andy：「其他 ETF 的不用」；10-05 再加槓桿反向：「這兩個都比較少人做」）
   const CAT_TONE = { 配息型: 'amber', 市值型: 'cyan', 主題型: 'violet', 債券型: 'lime', 槓桿反向: 'up', 主動式: 'cyan', 其他: 'ink3' };
   const PAGE = 48;   // 一次列幾張卡（「顯示更多」再加）
@@ -92,6 +92,9 @@
 /* ---- 分類列 */
 #v-etf .etfcatbar{display:flex;align-items:center;gap:10px;margin:0 0 var(--sp-3);white-space:nowrap;min-width:0}
 #v-etf .etfcatbar .seg{overflow:hidden;flex:0 1 auto;min-width:0}
+/* 分類頁籤：全站共用 .nbsw（產業地圖同款資料夾分頁，DECISIONS #321）；只補「不擠掉右邊期間」 */
+#v-etf .etfcatbar .nbsw{flex:0 1 auto;min-width:0;align-self:flex-end}
+#v-etf .etfcatbar{align-items:flex-end}
 #v-etf .etfcatbar .sp{flex:1}
 #v-etf .etfper{display:flex;align-items:center;gap:8px;flex:none}
 #v-etf .etfper.off{visibility:hidden}
@@ -112,8 +115,8 @@
 #v-etf .etfc dt{color:var(--ink-3)} #v-etf .etfc dd{margin:0;text-align:right;font-family:var(--mono);color:var(--ink-2)}
 #v-etf .etag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;line-height:17px}
 #v-etf .etag.amber{color:var(--amber)} #v-etf .etag.cyan{color:var(--cyan)} #v-etf .etag.violet{color:var(--violet)}
-#v-etf .etag.lime{color:var(--lime)} #v-etf .etag.up{color:var(--up)} #v-etf .etag.ink3{color:var(--ink-3)}
-#v-etf .up{color:var(--up)} #v-etf .down{color:var(--down)} #v-etf .flat{color:var(--ink-2)}
+#v-etf .etag.lime{color:var(--lime)} #v-etf .etag.up{color:var(--rise)} #v-etf .etag.ink3{color:var(--ink-3)}
+#v-etf .up{color:var(--rise)} #v-etf .down{color:var(--fall)} #v-etf .flat{color:var(--ink-2)}
 #v-etf .etfmore{margin-top:10px;text-align:center}
 /* ---- 三張前 5 名：同高並排 */
 #v-etf .etftri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3);align-items:stretch}
@@ -171,6 +174,24 @@
 #v-etf .cmpmsg{font-size:12.5px;color:var(--amber);width:150px;overflow:hidden;text-overflow:ellipsis}
 #v-etf #etfCmpDD .ddbtn{max-width:230px}
 #v-etf select.etsel{height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:inherit;font-size:13px}
+/* ---- 2026-10-05 第三版（Andy：「圖案需要給他顏色」）：標題圖示由 icons.js 依 data-icon／data-tone 上色；
+   卡片左緣一條分類色、殖利率與配息頻率有語意色；所有標籤一行不換行（版面不因字長晃動） */
+#v-etf .etfdisc .dico{color:var(--amber);font-weight:700}
+#v-etf .etfc{border-left:3px solid var(--tc,var(--line))}
+#v-etf .etfc.t-amber{--tc:var(--amber)} #v-etf .etfc.t-cyan{--tc:var(--cyan)} #v-etf .etfc.t-violet{--tc:var(--violet)}
+#v-etf .etfc.t-lime{--tc:var(--lime)} #v-etf .etfc.t-up{--tc:var(--rise)} #v-etf .etfc.t-ink3{--tc:var(--ink-3)}
+#v-etf .etfc .etag{background:color-mix(in srgb,currentColor 12%,transparent)}
+#v-etf .etfc dl{grid-template-columns:minmax(0,max-content) minmax(0,1fr)}
+#v-etf .etfc dt,#v-etf .etfc dd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:18px}
+#v-etf .etfc dd.yv{color:var(--amber);font-weight:700} #v-etf .etfc dd .na{font-weight:400}
+#v-etf .etfc .fq{display:inline-block;padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--violet) 16%,transparent);color:var(--violet);font-family:inherit;line-height:16px}
+#v-etf .rkrow .rk{color:var(--tc,var(--amber))}
+#v-etf #etfPopCard{--tc:var(--amber)} #v-etf #etfRetTopCard{--tc:var(--rise)} #v-etf #etfYldCard{--tc:var(--violet)}
+#v-etf .cald.has{background:color-mix(in srgb,var(--amber) 8%,var(--panel-2))}
+/* Andy 10-05：「所有欄位文字置中」（DECISIONS #321 同一條：欄位內文字一律置中、無例外） */
+#v-etf table.et th,#v-etf table.et td,#v-etf table.et th:first-child,#v-etf table.et td:first-child{text-align:center}
+#v-etf .rkhd span,#v-etf .rkhd span:nth-child(n+3),#v-etf .rkrow .v,#v-etf .rkrow .v2,#v-etf .rkrow .rk{text-align:center}
+#v-etf .etfc dt,#v-etf .etfc dd{text-align:center}
 @media (max-width:1100px){#v-etf .etftri{grid-template-columns:1fr}#v-etf .calwrap,#v-etf .retcharts{grid-template-columns:1fr}
   #v-etf .callist{height:320px}#v-etf .etfcatbar{flex-wrap:wrap}#v-etf .etfcatbar .seg{overflow-x:auto;max-width:100%}
   #v-etf .row.spread{flex-wrap:wrap}}
@@ -220,11 +241,11 @@
     const how = (k, q, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML(q, li)}</div>`;
     const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
     root.innerHTML = `
-<div class="etfdisc" id="etfDisc" role="note"><span aria-hidden="true">ⓘ</span><div><b>本頁僅為公開資料整理與統計，非投資顧問、不構成任何投資建議或推薦。</b>
+<div class="etfdisc" id="etfDisc" role="note"><span class="dico" aria-hidden="true">ⓘ</span><div><b>本頁僅為公開資料整理與統計，非投資顧問、不構成任何投資建議或推薦。</b>
 過去績效不代表未來報酬；殖利率與報酬率依下方各卡「?」寫明的口徑計算，資料不足的一律標「無資料」，不以 0 或推估代替。</div></div>
 
 <div class="card" id="etfCalCard">
-  <div class="row spread"><h3>配息行事曆 <small id="etfCalSub"></small> ${hbtn('etfcal', '配息行事曆怎麼看')}</h3></div>
+  <div class="row spread"><h3 data-icon="calendar" data-tone="yield">配息行事曆 <small id="etfCalSub"></small> ${hbtn('etfcal', '配息行事曆怎麼看')}</h3></div>
   ${how('etfcal', '這張回答：這個月哪幾天有 ETF 除息、各配多少、多久填息？', [
     '格子裡直接寫當天除息的 ETF 代號與每單位配息（元）；超過 2 檔只列前 2 檔，其餘寫「+N 檔」。藍框＝今天。',
     '點有除息的格子，右邊列出那天每一檔的配息金額、當次殖利率、發放日與<b>填息天數</b>；再點一次回到整月清單。',
@@ -236,7 +257,7 @@
 </div>
 
 <div class="etfcatbar" id="etfCatBar">
-  <div class="seg" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div><span class="sp"></span>
+  <div class="nbsw etfcats" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div><span class="sp"></span>
   <div class="etfper" id="etfPerBox"><span class="lb">報酬率期間</span>
     <div class="seg" id="etfPerSeg"><button data-v="3y">3 年</button><button data-v="5y">5 年</button><button data-v="10y">10 年</button><button data-v="custom">自訂</button></div>
     <select id="etfFrom" class="etsel inv" aria-label="自訂起始年"></select></div>
@@ -244,7 +265,7 @@
 
 <div class="etftri" id="etfTri" hidden>
   <div class="card" id="etfPopCard">
-    <div class="row spread"><h3>最近最受歡迎前 5 ${hbtn('etfpop', '最受歡迎怎麼算')}</h3>
+    <div class="row spread"><h3 data-icon="flame" data-tone="heat">最近最受歡迎前 5 ${hbtn('etfpop', '最受歡迎怎麼算')}</h3>
       <div class="seg" id="etfPopSeg"><button data-v="holders">受益人週增</button><button data-v="turnover">成交值</button></div></div>
     ${how('etfpop', '這張回答：這一類裡，最近人潮與錢往哪幾檔去？', [
       '<b>受益人週增</b>：集保結算所每週公布的受益人數（合計列），最新一週減前一週，增加最多的前 5 檔。代表「新進場的人」。',
@@ -254,7 +275,7 @@
     <div class="rklist" id="etfPop"></div>
   </div>
   <div class="card" id="etfRetTopCard">
-    <div class="row spread"><h3>報酬率前 5 <small id="etfRetTopSub"></small> ${hbtn('etfrettop', '報酬率前 5 怎麼排')}</h3></div>
+    <div class="row spread"><h3 data-icon="arrow-up" data-tone="up">報酬率前 5 <small id="etfRetTopSub"></small> ${hbtn('etfrettop', '報酬率前 5 怎麼排')}</h3></div>
     ${how('etfrettop', '這張回答：這一類裡，長期抱下來（含配息再投入）誰報酬最高？', [
       '依<b>含息總報酬年化</b>由高到低排（配息在除息日以當天收盤再投入）。期間跟著上方「報酬率期間」3／5／10 年／自訂。',
       '期間內上市未滿、或價量歷史還沒回補的不排進來（不拿短期數字跟長期比）。',
@@ -264,7 +285,7 @@
     <div class="rklist" id="etfRetTop"></div>
   </div>
   <div class="card" id="etfYldCard">
-    <div class="row spread"><h3>殖利率前 5 <small>近 12 個月</small> ${hbtn('etfyld', '殖利率前 5 怎麼看')}</h3></div>
+    <div class="row spread"><h3 data-icon="coins" data-tone="yield">殖利率前 5 <small>近 12 個月</small> ${hbtn('etfyld', '殖利率前 5 怎麼看')}</h3></div>
     ${how('etfyld', '這張回答：這一類裡，誰配得最多？配完多久填息？', [
       '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。只看現金配息，不受上方期間影響。',
       '<b>平均填息</b>＝最近 4 次已除息裡「已經填息」那幾次的填息天數平均（交易日）；還沒填息的不算進平均，另外寫「N 次未填」。完全沒有填過的寫「尚未填息」。',
@@ -276,7 +297,7 @@
 </div>
 
 <div class="card" id="etfRetCard">
-  <div class="row spread"><h3>報酬比較 <small id="etfRetSub"></small> ${hbtn('etfret', '報酬比較的口徑')}</h3>
+  <div class="row spread"><h3 data-icon="line" data-tone="tech">報酬比較 <small id="etfRetSub"></small> ${hbtn('etfret', '報酬比較的口徑')}</h3>
     <div class="etfrow">
       <span class="cmpmsg" id="etfCmpMsg" aria-live="polite"></span>
       <div class="rotdd wide msdd" id="etfCmpDD" data-dd="etfcmp">
@@ -303,7 +324,7 @@
 </div>
 
 <div class="card" id="etfListCard">
-  <div class="row spread"><h3>ETF 一覽 <small id="etfCount"></small> ${hbtn('etflist', 'ETF 分類與欄位')}</h3>
+  <div class="row spread"><h3 data-icon="table" data-tone="chip">ETF 一覽 <small id="etfCount"></small> ${hbtn('etflist', 'ETF 分類與欄位')}</h3>
     <div class="etfrow"><label class="note" for="etfSort">排序</label>
       <select id="etfSort" class="etsel"><option value="tv">成交值</option><option value="size">規模</option><option value="yield">殖利率</option><option value="chg">今日漲跌</option></select></div></div>
   ${how('etflist', '這張回答：有哪些 ETF、各是哪一型、殖利率多少？', [
@@ -322,8 +343,8 @@
     const all = items();
     const cnt = {}; all.forEach((it) => { cnt[it.cat] = (cnt[it.cat] || 0) + 1; });
     const seg = $('#etfCatSeg');
-    seg.innerHTML = `<button data-v="all" role="tab">全部 ${all.length}</button>` + CATS.filter((c) => cnt[c])
-      .map((c) => `<button data-v="${c}" role="tab">${c} ${cnt[c]}</button>`).join('');
+    seg.innerHTML = `<button data-v="all" role="tab">全部<em>${all.length}</em></button>` + CATS.filter((c) => cnt[c])
+      .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
     $$('button', seg).forEach((b) => { b.classList.toggle('on', b.dataset.v === S.cat); b.setAttribute('aria-selected', b.dataset.v === S.cat);
       b.onclick = () => { if (S.cat === b.dataset.v) return; S.cat = b.dataset.v; S.shown = PAGE; LS.set('tw.etf.cat', S.cat); drawAll(); }; });
     // 期間只影響報酬率：「全部」沒有報酬卡，期間整組隱形但保留位置（不讓分類鈕跟著左右跳）
@@ -363,14 +384,16 @@
   function cardHTML(it) {
     const y = it.yield_ttm != null ? pctU(it.yield_ttm) : '—';
     const fq = it.freq || '—';
-    return `<button type="button" class="etfc" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
+    // 殖利率／配息頻率還沒有資料時寫「待補」而不是「—」：滑過說明為什麼（配息資料回補中），不拿 0 冒充
+    const pend = '<span class="na" title="配息資料回補中（FinMind 除權息逐檔回補），到位後自動顯示">待補</span>';
+    return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
   <div class="h"><span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span><span class="sp" style="flex:1"></span>
     <span class="etag ${CAT_TONE[it.cat] || 'ink3'}">${esc(it.cat)}</span></div>
   <div class="px"><b class="${cls(it.chg_pct)}" data-live="close" data-code="${esc(it.code)}">${it.close != null ? A().fmt.n(it.close, 2) : '—'}</b>
     <span class="${cls(it.chg_pct)}" data-live="chg" data-code="${esc(it.code)}">${it.chg_pct != null ? A().fmt.pct(it.chg_pct, 2) : '—'}</span>
     <span class="sp"></span>${spark(it.code)}</div>
   <dl><dt>成交值${it.tv20 != null ? '（20日均）' : ''}</dt><dd>${yi(it.tv20 != null ? it.tv20 : it.tv)}</dd>
-      <dt>殖利率</dt><dd>${y}</dd><dt>配息頻率</dt><dd>${esc(fq)}</dd><dt>規模（估）</dt><dd>${yi(it.size)}</dd></dl>
+      <dt>殖利率</dt><dd class="yv">${it.yield_ttm != null ? y : pend}</dd><dt>配息頻率</dt><dd>${it.freq ? `<span class="fq">${esc(fq)}</span>` : pend}</dd><dt>規模（估）</dt><dd>${yi(it.size)}</dd></dl>
 </button>`;
   }
   function drawList() {
@@ -521,7 +544,7 @@
   }
   function monthList(L, y, mo) {
     const head = `<b class="lt">${y} 年 ${mo} 月除息一覽（${L.length} 筆）</b>`;
-    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '配息資料尚未取得，這個月先空著。' : '這個月沒有除息紀錄；可切上／下月。'}</p>`;
+    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '<b>配息資料尚未取得，這個月先空著。</b><br>原因：ETF 的除息紀錄以前被回補程式當成「財報類」跳過，2026-10-05 已修正，雲端歷史回補排程會逐檔補進來（約 270 檔，預計 1～2 天內補齊）；補到的 ETF 會自動出現在月曆上，不必做任何事。' : '這個月沒有除息紀錄；可切上／下月。'}</p>`;
     return head + `<table class="et">${COLS}${THEAD('除息日 ETF')}<tbody>${calRows(L, true)}</tbody></table>`;
   }
 

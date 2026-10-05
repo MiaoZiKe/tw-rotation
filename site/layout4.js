@@ -291,6 +291,90 @@
     scanT = setTimeout(() => { scanT = 0; renderHead(); scanCards(); }, 300);
   }
 
+
+  /* ---------------- 側欄收展（2026-10-05，Andy 截圖圈「這邊點選可以收展」） ----------------
+     ① 群組標題（今日市場／資金流水／族群與個股／歷史規律／專案）原本是 .tab::before（pointer-events:none，點不到），
+        改成真的按鈕 .l4grp（不是 .tab —— 手機版、app.js、驗收腳本都在數 .tab），點一下收起／展開該組。
+     ② 有子項的大項（資金流向、熱力圖）右邊一顆 ▸／▾（.l4car）收展子項；再點一次「已選中的大項」也是收展。
+     ③ 狀態記在 localStorage（l4.navFold），讀寫都包 try/catch（LS）。
+     ④ 目前所在頁永遠看得到：收起的群組裡 .on 那格照樣顯示（CSS :not(.on)），標題右邊多一顆點提示「你在這組裡」。
+     ⑤ 收合成圖示列（l4-mini）時整套不作用：標題按鈕藏起來、群組不收（圖示列本來就短，收了反而找不到）。 */
+  const GROUPS = [
+    { g: 'today', t: '今日市場', first: 'overview', views: ['overview'] },
+    { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap'] },
+    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore'] },
+    { g: 'hist', t: '歷史規律', first: 'season', views: ['season', 'etf'] },
+    { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'delivery', 'admin'] },
+  ];
+  const FOLD_KEY = 'l4.navFold';
+  function readFold() {
+    try { const o = JSON.parse(LS.get(FOLD_KEY) || '{}'); return { g: Array.isArray(o.g) ? o.g : [], s: Array.isArray(o.s) ? o.s : [] }; }
+    catch (e) { return { g: [], s: [] }; }
+  }
+  function applyFold() {
+    const tabs = $('#tabs'); if (!tabs) return;
+    const f = readFold();
+    tabs.setAttribute('data-cg', f.g.join(' '));
+    tabs.setAttribute('data-cs', f.s.join(' '));
+    const curView = (($('.tab.on', tabs) || {}).dataset || {}).view || (($('.tab.on', tabs) || {}).id === 'l4Perm' ? 'admin' : '');
+    $$('.l4grp', tabs).forEach((b) => {
+      const shut = f.g.includes(b.dataset.g);
+      const G = GROUPS.find((x) => x.g === b.dataset.g);
+      b.setAttribute('aria-expanded', shut ? 'false' : 'true');
+      b.classList.toggle('here', shut && !!G && G.views.includes(curView));
+      b.title = (shut ? '展開「' : '收起「') + b.dataset.t + '」';
+    });
+    $$('.l4car', tabs).forEach((c) => {
+      const shut = f.s.includes(c.dataset.p);
+      c.setAttribute('aria-expanded', shut ? 'false' : 'true');
+      c.title = shut ? '展開子項' : '收起子項';
+    });
+  }
+  function toggleFold(kind, id) {
+    const f = readFold(), arr = f[kind], i = arr.indexOf(id);
+    if (i >= 0) arr.splice(i, 1); else arr.push(id);
+    LS.set(FOLD_KEY, JSON.stringify(f));
+    applyFold(); fitNav();
+  }
+  function buildFold() {
+    const tabs = $('#tabs'); if (!tabs) return;
+    GROUPS.forEach((G) => {
+      if ($(`.l4grp[data-g="${G.g}"]`, tabs)) return;
+      const first = $(`.tab[data-view="${G.first}"]`, tabs); if (!first) return;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'l4grp'; b.dataset.g = G.g; b.dataset.t = G.t; b.dataset.first = G.first;
+      b.innerHTML = `<i class="car" aria-hidden="true"></i><span>${esc(G.t)}</span><i class="dot" aria-hidden="true"></i>`;
+      b.addEventListener('click', (e) => { e.stopPropagation(); toggleFold('g', G.g); });
+      first.before(b);
+    });
+    Object.keys(SUBS).forEach((v) => {
+      const t = $(`.tab[data-view="${v}"]`, tabs); if (!t || $('.l4car', t)) return;
+      const c = document.createElement('span');
+      c.className = 'l4car'; c.dataset.p = v; c.setAttribute('role', 'button'); c.tabIndex = 0;
+      c.setAttribute('aria-label', (PAGES[v] ? PAGES[v].t : v) + '子項收展');
+      t.appendChild(c);
+    });
+    if (!tabs._l4fold) {
+      tabs._l4fold = true;
+      // capture：比 app.js 掛在每顆 .tab 上的「換 hash」先跑；點到箭頭、或再點一次已選中的大項 → 只收展，不導頁
+      tabs.addEventListener('click', (e) => {
+        if (!active || root.classList.contains('l4-mini')) return;
+        const car = e.target.closest('.l4car');
+        const tab = e.target.closest('.tab');
+        if (car || (tab && tab.classList.contains('on') && SUBS[tab.dataset.view])) {
+          e.stopPropagation(); e.preventDefault();
+          toggleFold('s', car ? car.dataset.p : tab.dataset.view);
+        }
+      }, true);
+      tabs.addEventListener('keydown', (e) => {
+        const car = e.target.closest && e.target.closest('.l4car');
+        if (car && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); toggleFold('s', car.dataset.p); }
+      }, true);
+    }
+    root.classList.add('l4g');
+    applyFold();
+  }
+
   /* ---------------- 側欄子分頁（資金流向三格、熱力圖兩格） ----------------
      插在 #tabs 裡、各自的父頁後面；class 是 l4subtab（**不是 .tab**）—— 手機版、app.js 的分頁列、驗收腳本都是數 .tab，
      不能讓它們多算。≤820 deactivate() 整批拿掉。點了只是換 hash，其餘交給 app.js 的 route()。 */
@@ -323,6 +407,7 @@
       if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     syncPerm();
+    if (active) applyFold();   // 換頁後「收起的群組裡有目前這頁」的提示點要跟著換
   }
 
   /* ---------------- 「專案 → 自選 → 會員權限」（2026-10-04，Andy：「多一個分頁，只有我這帳號及特定帳號可以用…分頁放在自選下」）----------------
@@ -524,7 +609,7 @@
     active = true;
     root.classList.add('l4');
     if (!DESK()) root.classList.add('l4m');
-    build(); buildNavBtn(); buildSubs(); syncPerm();
+    build(); buildNavBtn(); buildSubs(); syncPerm(); buildFold();
     lastHead = ''; lastSig = '';
     applyNav();
     renderHead(); scanCards(); syncTools();
@@ -536,10 +621,10 @@
     clearTimeout(clockT);
     // ☀／外觀／登入／線上人數是別支檔的按鈕本人（被搬進頁首右上角）：拆頁首之前一定要先放回原位，不然會跟著 #l4Head 一起被刪掉
     restoreTools();
-    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '.l4subtab', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '.l4subtab', '.brand .l4pt', '.l4grp', '.l4car'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
     root.removeAttribute('data-l4sub');      // 子分頁只有電腦版有；手機版要看到整頁（app.js route() 掛的）
     head = jump = chips = null; cards = []; lastHead = ''; lastSig = '';
-    root.classList.remove('l4', 'l4-mini', 'l4m');
+    root.classList.remove('l4', 'l4-mini', 'l4m', 'l4g');
     root.style.removeProperty('--l4-tabs-h'); root.style.removeProperty('--l4-spine-h');
     if (root.getAttribute('style') === '') root.removeAttribute('style');
     $$('.tab').forEach((t) => { t.removeAttribute('title'); t.removeAttribute('aria-label'); });
