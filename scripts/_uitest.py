@@ -21789,6 +21789,7 @@ SECTIONS = {
     "管理區1005":          lambda pg, b, base, code: t_admin_v2(b, base, code),
     # ★ 2026-10-05（admin-v3）Andy：「弄得好複雜，看了不清楚」—— 三個大分頁＋子分頁、每個功能的瀏覽次數、會員名單、升級鈕、訂閱頁同步、客服鈕半透明
     "管理區v3":            lambda pg, b, base, code: t_admin_v3(b, base, code),
+    "流量觀測1005":        lambda pg, b, base, code: t_traffic_1005(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -43348,7 +43349,8 @@ def t_account_cloud(b, base):
         ok("管理頁：會員名單有 Bob 與 Andy", "bob@example.com" in pg.inner_text("#admUsers") and "andy@example.com" in pg.inner_text("#admUsers"))
         pg.select_option("#admDaysSel", "7")
         pg.wait_for_timeout(500)
-        ok("管理頁：切「近 7 天」重算（每日長條剩 7 格）", pg.locator("#admDayBars i").count() == 7, pg.locator("#admDayBars i").count())
+        # ★ 2026-10-05 改前→改後（流量觀測1005）：每天直條改成「只從第一筆有資料的日子起畫」，不再補滿 7 格空白 → 1～7 格、且說明文字寫「7 天」
+        ok("管理頁：切「近 7 天」重算（每日長條 1～7 格、說明寫 7 天）", 1 <= pg.locator("#admDayBars i").count() <= 7 and "7 天" in pg.inner_text("#admPv"), pg.locator("#admDayBars i").count())
         # 公開人數開關：關掉 → 訪客的心跳不再回人數
         pg.uncheck("#admPub")
         pg.wait_for_timeout(500)
@@ -44503,7 +44505,7 @@ def t_admin_v2(b, base, code):
     pg.click("#admTabTraffic")
     wait_until(pg, "() => location.hash === '#admin/traffic' && !!document.getElementById('trHowN')", 10000)
     ok(f"{T}：全站「?」點擊＝細項 how 加總（3＋2＝5）", pg.inner_text("#trHowN").strip() == "5", pg.inner_text("#trHowN"))
-    ok(f"{T}：個股被觀看 Top 第一名是 2330（20 次）", pg.evaluate("() => document.querySelector('#trStockBars .bl').textContent.trim()") == "2330")
+    ok(f"{T}：個股被觀看 Top 第一名是 2330（20 次）", pg.evaluate("() => document.querySelector('#trStockBars .bl').textContent.trim().split(' ')[0]") == "2330")  # 2026-10-05：標籤改「代號＋名稱」
     ok(f"{T}：熱門個股最常用的功能：2330 → 分頁：營收", "分頁：營收" in pg.inner_text("#trStockFeat"), pg.inner_text("#trStockFeat")[:200])
     ok(f"{T}：散佈圖畫出 3 檔個股、甜甜圈寫 40%（20／50 登入）", pg.locator("#trScSvg circle").count() == 3 and "40%" in pg.inner_text("#trDonut"))
     pg.click("#trPageSeg button[data-p='flow']")
@@ -44514,7 +44516,8 @@ def t_admin_v2(b, base, code):
     pg.locator("#trPvBars button[data-k='stock']").click()
     wait_until(pg, "() => document.querySelector('#trPageSeg button.on').dataset.p === 'stock'", 3000)
     ok(f"{T}：點「哪一頁最多人看」的個股頁長條 → 分頁明細切到個股頁", "被觀看" in pg.inner_text("#trCompBars"), pg.inner_text("#trCompBars")[:120])
-    ok(f"{T}：「？ 圖表怎麼選」寫明 長條／圓餅（≤5 類且加總 100%）／散佈 的判斷", all(k in pg.inner_text("#trHow") or k in pg.evaluate("() => document.getElementById('trHow').textContent") for k in ("橫向排序長條", "≤ 5 類", "散佈")))
+    # ★ 2026-10-05 改前→改後（流量觀測1005，Andy：頁首卡整塊拿掉）：「？ 圖表怎麼選」與隱私說明移出頁面，改成總覽卡內一個 ? 小圖示的滑過提示（選型理由留在 docs/account_analytics.md）
+    ok(f"{T}：隱私說明縮成 ? 小圖示的滑過提示（只記次數、不存 IP、13 個月）", all(k in pg.get_attribute("#trPrivacy", "title") for k in ("不存 IP", "13 個月")))
     ok(f"{T}：三個子分頁側欄「管理區」都亮著", pg.evaluate("() => document.getElementById('l4Perm').classList.contains('on')"))
     ok(f"{T} 1440：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
     c.close()
@@ -44561,6 +44564,71 @@ def t_admin_v2(b, base, code):
     ok(f"{T}：打開個股頁 → [stock, view, {code}]", any(r[:3] == ["stock", "view", code] for r in e2s), e2s[:8])
     ok(f"{T}：細項裡沒有任何 email（@）", not any("@" in str(r[2]) for r in e2s))
     c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ===================================================================== 流量觀測1005（2026-10-05，Andy：頁首卡拿掉、圖表版面重排、欄位文字置中）
+def t_traffic_1005(b, base, code):
+    T = "流量觀測1005"
+    errs: list[str] = []
+    for theme in ("dark", "light"):
+        c, sent = _adm2_ctx(b)
+        c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}');}}catch(e){{}}")
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#admin/traffic", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('trHowN')", 12000)
+        TT = f"{T}（{theme}）"
+        ok(f"{TT}：頁首卡不存在（沒有「管理區」標題、沒有 email、沒有 .admtop 或 #admHead）",
+           pg.evaluate("() => !document.querySelector('#v-admin .admtop') && !document.getElementById('admHead') && document.querySelector('#v-admin h2').textContent.trim() === '全站總覽' && !/boss@example\\.com/.test(document.getElementById('trKpi').innerText)"))
+        ok(f"{TT}：沒有「圖表怎麼選」摺疊、沒有頁面層的隱私說明段", pg.evaluate("() => !document.getElementById('trHow') && !/圖表怎麼選/.test(document.getElementById('v-admin').innerText)"))
+        g = pg.evaluate("""() => { const k = document.getElementById('trKpi'), r = k.getBoundingClientRect(), sel = document.getElementById('admDaysSel').getBoundingClientRect(),
+            rf = document.getElementById('admRefresh').getBoundingClientRect(), cells = [...k.querySelectorAll('.kpis>div')].map(d => d.getBoundingClientRect());
+          return { inCard: k.contains(document.getElementById('admDaysSel')) && k.contains(document.getElementById('admRefresh')), selL: sel.left, selR: sel.right, rfR: rf.right, cardR: r.right, cardT: r.top, cardB: r.bottom,
+            selMid: (sel.top + sel.bottom) / 2, lastKpiR: Math.max(...cells.map(c => c.right)), ws: cells.map(c => Math.round(c.width)), n: cells.length, h: r.height }; }""")
+        ok(f"{TT}：期間選單＋重新整理在「全站總覽」卡內、同一排、位於 5 格 KPI 的右側",
+           g["inCard"] and g["selL"] >= g["lastKpiR"] - 1 and g["cardT"] < g["selMid"] < g["cardB"], g)
+        ok(f"{TT}：5 格 KPI 平均分配寬度（最大與最小差 ≤ 2px）", g["n"] == 5 and max(g["ws"]) - min(g["ws"]) <= 2, g["ws"])
+        ok(f"{TT}：總覽卡一列高度 ≤ 120px（不是一大塊空白）", g["h"] <= 120, g["h"])
+        pg.select_option("#admDaysSel", "7")
+        wait_until(pg, "() => /7 天/.test(document.getElementById('admPv').textContent)", 4000)
+        ok(f"{TT}：切「近 7 天」→ 送出 stats days=7、卡內說明改寫 7 天", any(p == "/v1/admin/stats" and bd.get("days") == 7 for p, bd in sent) and "7 天" in pg.inner_text("#admPv"))
+        pg.select_option("#admDaysSel", "30")
+        wait_until(pg, "() => /30 天/.test(document.getElementById('admPv').textContent)", 4000)
+        # 同排同高
+        hh = pg.evaluate("""() => [['admPv','admDays'],['trStockTop','trStockFeat'],['trScatter','trDonut'],['admOnline','admEv']].map(([a,b]) => { const x = document.getElementById(a).getBoundingClientRect(), y = document.getElementById(b).getBoundingClientRect();
+            return [a, Math.round(x.height), Math.round(y.height), Math.round(x.top - y.top), Math.round(x.width - y.width)]; })""")
+        ok(f"{TT}：同一排的兩張卡等高、頂端對齊、欄寬一致（差 ≤ 1px）", all(abs(r[1] - r[2]) <= 1 and abs(r[3]) <= 1 and abs(r[4]) <= 1 for r in hh), hh)
+        d = pg.evaluate("""() => { const c = document.getElementById('admDayBars'), bars = [...c.querySelectorAll('i')], y = [...document.querySelectorAll('#admDays .dayy span')].map(s => s.textContent.trim()),
+            card = document.getElementById('admDays').getBoundingClientRect(), pvc = document.getElementById('admPv').getBoundingClientRect(), cr = c.getBoundingClientRect();
+          const note = document.getElementById('admDayNote');
+          return { n: bars.length, first: c.dataset.first, y, note: note ? note.textContent : '', h: Math.round(cr.height), cardH: Math.round(card.height), pvH: Math.round(pvc.height), tip: bars.every(i => /次/.test(i.title)),
+                   blank: bars.length ? Math.round(bars[0].getBoundingClientRect().left - cr.left) : -1 }; }""")
+        ok(f"{TT}：直條只從第一筆有資料的日子（2026-10-03）起畫：2 根；左邊沒有空白（第一根離軸 ≤ 40px）", d["n"] == 2 and d["first"] == "2026-10-03" and 0 <= d["blank"] <= 40, d)
+        ok(f"{TT}：直條交代前面沒紀錄（09-05～10-02 無紀錄）、有 y 軸 3 個刻度（73／37／0）、每根有「N 次」提示", "09-05～10-02" in d["note"] and d["y"] == ["73", "37", "0"] and d["tip"], d)
+        ok(f"{TT}：直條卡的圖高 ≥ 150px、卡高與左邊「哪一頁最多人看」一致", d["h"] >= 150 and d["cardH"] == d["pvH"], d)
+        bn = pg.evaluate("""() => { const r = [...document.querySelectorAll('#trPvBars .bn')].map(e => Math.round(e.getBoundingClientRect().right)), l = [...document.querySelectorAll('#trPvBars .bl')].map(e => Math.round(e.getBoundingClientRect().left)),
+            t = [...document.querySelectorAll('#trPvBars .bt')].map(e => Math.round(e.getBoundingClientRect().left));
+          return { n: r.length, rs: [...new Set(r)], ls: [...new Set(l)], ts: [...new Set(t)], al: [...new Set([...document.querySelectorAll('#trPvBars .bn')].map(e => getComputedStyle(e).textAlign))] }; }""")
+        ok(f"{TT}：「哪一頁最多人看」名稱欄、長條欄、數字欄各自對齊（每欄只有一個 x）、數字置中", bn["n"] >= 3 and len(bn["rs"]) == 1 and len(bn["ls"]) == 1 and len(bn["ts"]) == 1 and bn["al"] == ["center"], bn)
+        al = pg.evaluate("""() => { const bad = [...document.querySelectorAll('#admBody table th, #admBody table td, #admBody .kpis>div')].filter(e => getComputedStyle(e).textAlign !== 'center').length;
+            return { bad, n: document.querySelectorAll('#admBody table th, #admBody table td, #admBody .kpis>div').length }; }""")
+        ok(f"{TT}：流量觀測所有表格欄位（含數字欄、表頭）與 KPI 格的文字都置中", al["n"] > 20 and al["bad"] == 0, al)
+        st_lbl = pg.evaluate("() => [...document.querySelectorAll('#trStockBars .bl')].map(e => e.textContent.trim())")
+        ok(f"{TT}：個股長條與表格以「代號＋名稱」顯示（有名稱時；至少代號開頭、第一名 2330）", st_lbl[:1] and st_lbl[0].startswith("2330") and pg.inner_text("#trStockFeat tbody tr").strip().startswith("2330"), st_lbl)
+        dn = pg.evaluate("""() => { const c = document.querySelector('#trDonut .donut').getBoundingClientRect(), k = document.getElementById('trDonut').getBoundingClientRect();
+            return { off: Math.round(Math.abs((c.left + c.right) / 2 - (k.left + k.right) / 2)) }; }""")
+        ok(f"{TT}：甜甜圈在卡片水平置中（偏差 ≤ 12px）", dn["off"] <= 12, dn)
+        ok(f"{TT}：流量觀測內沒有小於 12px 的文字", pg.evaluate("() => [...document.querySelectorAll('#admBody *')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('svg') && parseFloat(getComputedStyle(e).fontSize) < 12).length") == 0)
+        ok(f"{TT}：1440 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
+        shot = os.environ.get("TRAFFIC_SHOT")
+        if shot:
+            pg.screenshot(path=f"{shot}/traffic_{theme}_1440.png", full_page=True)
+        pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(500)
+        ok(f"{TT} 800：沒有橫向捲軸、期間控制仍在總覽卡內", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1 and pg.evaluate("() => document.getElementById('trKpi').contains(document.getElementById('admDaysSel'))"))
+        ok(f"{TT} 800：頁內沒有「管理區」標題卡", pg.evaluate("() => !document.querySelector('#v-admin .admtop h2')"))
+        if shot:
+            pg.screenshot(path=f"{shot}/traffic_{theme}_800.png", full_page=True)
+        c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 

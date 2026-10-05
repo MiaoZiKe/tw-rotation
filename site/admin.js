@@ -60,11 +60,33 @@
 #v-admin .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-admin .bars .bt{height:14px;background:var(--panel-3);border-radius:4px;overflow:hidden}
 #v-admin .bars .bt i{display:block;height:100%;background:var(--cyan);border-radius:4px}
-#v-admin .bars .bn{font-family:var(--mono);text-align:right;min-width:3em}
+#v-admin .bars .bn{font-family:var(--mono);text-align:center;min-width:6.2em;font-variant-numeric:tabular-nums}
 #v-admin .bars button.bl{background:none;border:0;color:var(--ink);text-align:left;font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
-#v-admin .days{display:flex;align-items:flex-end;gap:2px;height:120px;border-bottom:1px solid var(--line);padding-top:6px}
-#v-admin .days i{flex:1;min-width:2px;background:var(--violet);border-radius:3px 3px 0 0}
-#v-admin .dayx{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2);margin-top:4px}
+#v-admin .dayplot{display:flex;gap:6px;flex:1;min-height:170px;margin-top:4px}
+#v-admin .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);padding-bottom:0;min-width:3em}
+#v-admin .days{flex:1;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 50%;padding-top:0}
+#v-admin .days i{flex:1;min-width:2px;max-width:28px;background:var(--violet);border-radius:3px 3px 0 0}
+#v-admin .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:4px;padding-left:calc(3em + 6px)}
+#v-admin .dayx .dayno{color:var(--ink-3)}
+/* 流量觀測 1005（Andy：圖表版面重排）：總覽卡＝五格 KPI 平均分寬＋右側期間控制；同排卡同高、卡內內容撐滿；所有表格與 KPI 文字置中 */
+#v-admin .trkpi{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+#v-admin .trkpi .kpis{flex:1 1 520px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
+#v-admin .trctl{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:18px}
+#v-admin .trctl label{font-size:13.5px;color:var(--ink-2);white-space:nowrap}
+#v-admin .trctl select,#v-admin .trctl button{height:32px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
+#v-admin .qtip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;cursor:help}
+#admBody .admgrid>.card{display:flex;flex-direction:column;min-width:0}
+#admBody .admgrid>.card>h3{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#admBody .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--cyan);flex:none}
+#admBody .admgrid>.card>.use{margin:4px 0 10px}
+#admBody .admgrid>.card>.bars,#admBody .admgrid>.card>table,#admBody .admgrid>.card>.donut,#admBody .admgrid>.card>svg.sc{margin-top:auto;margin-bottom:auto}
+#admBody .admgrid>#trDonut .donut{justify-content:center}
+#admBody .kpis>div,#admBody table th,#admBody table td{text-align:center}
+#admBody .kpis{justify-content:center}
+#admBody table{width:100%;border-collapse:collapse}
+#admBody table th,#admBody table td{padding:5px 8px;line-height:1.4;font-size:13px}
+#admBody table th{white-space:nowrap}
+@media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}}
 #v-admin table{width:100%;border-collapse:collapse;font-size:13.5px}
 #v-admin th,#v-admin td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
 #v-admin th{color:var(--ink-2);font-weight:500;font-size:12.5px}
@@ -455,8 +477,9 @@
   /* ---- 頂部：標題（＋三個子分頁 tab：2026-10-05 起桌機版搬到左側欄「管理區」底下的縮排子項，見 layout4.js syncPerm；
      頁內這排只在沒有左側欄的版面（≤820，layout4 沒啟用）才出現，免得那種寬度沒地方切子頁）。有沒存的權限草稿時，換分頁先問一次 */
   function head(v, A, extra) {
-    const u = A.user() || {}, cur = tabOf();
-    return `<div class="card" style="margin-top:16px"><div class="admtop"><h2>管理區</h2><small style="color:var(--ink-2)">${esc(u.email || '')}</small>
+    const cur = tabOf();
+    /* 2026-10-05（Andy：「上方管理區那欄位拿掉」）：不再顯示「管理區＋email」標題與使用統計說明；期間／重新整理搬進流量觀測的「全站總覽」卡 */
+    return `<div class="card" id="admHead" style="margin-top:16px"><div class="admtop">
         ${document.documentElement.classList.contains('l4') ? '' : `<nav class="admnav" id="admTabs" aria-label="管理區分頁">${TABS.map(([k, n, id]) => `<a href="#admin/${k}" id="${id}" data-tab="${k}" class="${cur === k ? 'on' : ''}"${cur === k ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>`}
         <span class="sp"></span>${extra || ''}</div>`;
   }
@@ -477,18 +500,8 @@
      #admin/traffic 流量觀測
      ========================================================================== */
   function renderTraffic(v, A) {
-    v.innerHTML = head(v, A, `<label style="font-size:13.5px;color:var(--ink-2)">期間 <select id="admDaysSel">${[7, 30, 90, 365].map((d) => `<option value="${d}" ${d === S.days ? 'selected' : ''}>近 ${d} 天</option>`).join('')}</select></label>
-        <button type="button" id="admRefresh">重新整理</button>`)
-      + `<p class="use" style="margin:8px 0 0">使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。</p>
-        <details class="trhow" id="trHow"><summary>？ 圖表怎麼選（長條／圓餅／散佈）</summary><ul>
-          <li><b>預設用橫向排序長條</b>：這一頁的問題幾乎都是「哪個最多」—— 類別多、要比大小時，人眼比長度最準，排序之後第一名、最後一名一眼就知道。</li>
-          <li><b>圓餅（甜甜圈）只在「≤ 5 類、加總 = 100%」時用</b>：例如「開網站的人有多少是登入的」。類別一多，扇形角度就比不出誰大。</li>
-          <li><b>散佈圖只用在兩個數量之間的關係</b>：例如個股「被看幾次 × 每次看用了幾個功能」—— 右上角＝又多人看、看的人又用得深。其他問題不用散佈。</li>
-          <li>所以我該怎麼用：先看上面「全站總覽」找出最常被用的頁與股票，再到下面「分頁明細」看那一頁裡哪個按鈕／哪個族群被點最多 —— 常用的放更顯眼，幾乎沒人按的考慮收起來。</li></ul></details></div>
-      <div id="admBody"><div class="card" style="margin-top:14px"><p class="use">載入中…</p></div></div>`;
+    v.innerHTML = `${document.documentElement.classList.contains('l4') ? '' : head(v, A) + '</div>'}<div id="admBody"><div class="card" style="margin-top:14px"><p class="use">載入中…</p></div></div>`;
     wireHead(v);
-    v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
-    v.querySelector('#admRefresh').onclick = () => paint();
     paint();
     clearInterval(S.timer);
     S.timer = setInterval(() => { if (tabOf() === 'traffic' && (location.hash || '').startsWith('#admin') && document.visibilityState !== 'hidden') paint(); else if (!(location.hash || '').startsWith('#admin')) clearInterval(S.timer); }, 30000);
@@ -530,17 +543,19 @@
     if (!pages.includes(S.page)) S.page = pages.includes('flow') ? 'flow' : (pages[0] || 'flow');
     v.querySelector('#admBody').innerHTML = `
       <div class="secttl"><h2>全站總覽</h2><small>${esc(st.from)} ～ ${esc(st.to)}（台北）</small></div>
-      <div class="card" id="trKpi" style="margin-top:10px"><div class="kpis"><div><b>${nf(pvTotal)}</b>頁面瀏覽</div><div><b>${nf(sessions)}</b>開啟網站</div>
-        <div><b>${sessions ? Math.round(loginSess / sessions * 100) : 0}%</b>登入狀態開啟</div><div><b id="trHowN">${nf(howN)}</b>全站「?」點擊</div><div><b>${nf(views.reduce((s, r) => s + r.n, 0))}</b>個股被觀看</div></div></div>
+      <div class="card trkpi" id="trKpi" style="margin-top:10px"><div class="kpis"><div><b>${nf(pvTotal)}</b>頁面瀏覽</div><div><b>${nf(sessions)}</b>開啟網站</div>
+        <div><b>${sessions ? Math.round(loginSess / sessions * 100) : 0}%</b>登入狀態開啟</div><div><b id="trHowN">${nf(howN)}</b>全站「?」點擊</div><div><b>${nf(views.reduce((s, r) => s + r.n, 0))}</b>個股被觀看</div></div>
+        <div class="trctl"><label>期間 <select id="admDaysSel">${[7, 30, 90, 365].map((d) => `<option value="${d}" ${d === S.days ? 'selected' : ''}>近 ${d} 天</option>`).join('')}</select></label>
+          <button type="button" id="admRefresh">重新整理</button>
+          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
       <div class="admgrid">
         <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use">${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。</p>${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div>
         <div class="card" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use">每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。</p>
-          <div class="days" id="admDayBars">${days.map((d) => `<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${perDay[d] || 0} 次"></i>`).join('')}</div>
-          <div class="dayx"><span>${esc(st.from)}</span><span>${esc(st.to)}</span></div></div>
+          ${dayChart(days, perDay, dmax)}</div>
         <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use">個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。</p>
-          ${bars(topV.map((r) => [r.detail, r.n]), (k) => k, 0, { id: 'trStockBars' })}</div>
+          ${bars(topV.map((r) => [r.detail, r.n]), stockNm, 0, { id: 'trStockBars' })}</div>
         <div class="card" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use">上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。</p>
-          ${featRows.length ? `<table><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td>${esc(r.code)}</td><td>${nf(r.views)}</td><td>${r.top.length ? r.top.map((x) => `${esc(compName(x.comp))} <small style="color:var(--ink-2)">${nf(x.n)}</small>`).join('・') : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div>
+          ${featRows.length ? `<table><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td>${esc(stockNm(r.code))}</td><td>${nf(r.views)}</td><td>${r.top.length ? r.top.map((x) => `${esc(compName(x.comp))} <small style="color:var(--ink-2)">${nf(x.n)}</small>`).join('・') : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div>
         <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use">散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。</p>${scatter(scat)}</div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use">只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。</p>${donut([['登入狀態', loginSess, 'var(--cyan)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--violet)']])}</div>
         <div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use">最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。</p>
@@ -555,6 +570,8 @@
       <div class="card" id="trDetail" style="margin-top:10px">
         <div class="seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
         <div id="trPageBody"></div></div>`;
+    v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
+    v.querySelector('#admRefresh').onclick = () => paint();
     const pub = v.querySelector('#admPub');
     pub.onchange = async () => { const r = await A.call('/v1/admin/settings', { public_online: pub.checked }); if (!r || r._s !== 200) pub.checked = !pub.checked; };
     v.querySelector('#trPageSeg').onclick = (e) => { const b = e.target.closest('button[data-p]'); if (!b) return; S.page = b.dataset.p; v.querySelectorAll('#trPageSeg button').forEach((x) => x.classList.toggle('on', x === b)); paintPage(); };
@@ -581,6 +598,16 @@
       <div id="trCompDetail"><h3>${S.comp ? esc(compName(S.comp)) + '：細項 Top 10' : '細項'}</h3><p class="use">${S.comp ? (S.comp === 'how' ? '細項＝被點「?」的那張卡（元件 id）。' : S.comp.startsWith('filter') || ['rank_bar', 'clock_group', 'heat_tile'].includes(S.comp) ? '細項＝族群／產業鏈名稱。排第一的就是大家最想追的族群。' : S.page === 'stock' ? '細項＝股票代號。' : '細項＝元件或名稱。') : '這一頁的元件都沒有細項。'}</p>
         ${S.comp ? bars(det.map((r) => [r.detail, r.n]), (k) => k, 0, { id: 'trDetBars' }) : ''}</div></div>`;
     box.querySelector('#trCompBars').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; S.comp = b.dataset.k; paintPage(); };
+  }
+  /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代，不留空白）；左邊 y 軸 0／一半／最大值＋橫向淡線；每根的值在滑過提示 */
+  function dayChart(days, perDay, dmax) {
+    const i0 = days.findIndex((d) => (perDay[d] || 0) > 0);
+    if (i0 < 0) return '<div class="empty">這段期間還沒有瀏覽紀錄。</div>';
+    const shown = days.slice(i0), mid = Math.round(dmax / 2);
+    const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
+    return `<div class="dayplot"><div class="dayy"><span>${nf(dmax)}</span><span>${nf(mid)}</span><span>0</span></div>
+      <div class="days" id="admDayBars" data-first="${esc(shown[0])}">${shown.map((d) => `<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${nf(perDay[d] || 0)} 次"></i>`).join('')}</div></div>
+      <div class="dayx"><span>${esc(shown[0])}</span>${note ? `<span class="dayno" id="admDayNote">${note}</span>` : ''}<span>${esc(shown[shown.length - 1])}</span></div>`;
   }
   function scatter(pts) {
     if (pts.length < 2) return '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>';
