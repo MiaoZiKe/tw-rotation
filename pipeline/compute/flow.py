@@ -679,7 +679,7 @@ def _round2_half_up(v: float) -> float:
     return float(np.floor(v * 100 + 0.5)) / 100
 
 
-def updown_bin(chg_pct, limit_pct: float = 9.5) -> int | None:
+def updown_bin(chg_pct, limit_pct: float = 9.5, lim=None) -> int | None:
     """單檔漲跌幅（%）→ 11 級距的索引（對應 UD_LABELS）；缺值／非數字／非有限數回 None。
 
     先四捨五入到 0.01（_round2_half_up），再依序比：
@@ -699,6 +699,17 @@ def updown_bin(chg_pct, limit_pct: float = 9.5) -> int | None:
     if not np.isfinite(v):
         return None
     v = _round2_half_up(v)
+    # ★ 2026-10-05 Andy：「總覽漲跌家數也一起改用新漲停判定」—— 呼叫端給了 lim（build_payload.limit_flags：
+    #   收盤＝漲停價／跌停價、只認普通股）時，兩端那兩格只由 lim 決定；沒鎖住的 ±9.5% 以上歸到隔壁那格（>5／<-5）。
+    if lim is not None:
+        if lim == 1:
+            return 10
+        if lim == -1:
+            return 0
+        if v >= limit_pct:
+            return 9
+        if v <= -limit_pct:
+            return 1
     if v <= -limit_pct:
         return 0
     for i, edge in ((1, -5), (2, -3), (3, -1)):
@@ -741,7 +752,7 @@ def updown_distribution(rows, limit_pct: float = 9.5) -> dict:
     for r in rows or []:
         if not isinstance(r, dict):
             continue
-        i = updown_bin(r.get("chg_pct"), limit_pct)
+        i = r.get("ud") if isinstance(r.get("ud"), int) else updown_bin(r.get("chg_pct"), limit_pct)
         if i is None:
             continue
         counts["all"][i] += 1

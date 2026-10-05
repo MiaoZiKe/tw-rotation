@@ -81,8 +81,36 @@
           o = { ...o, grid: { ...o.grid, top: 28 } };
         }
       }
+      o = headroom(o);
     } catch (e) { /* 規格化失敗就原樣畫，不能因為外觀讓圖畫不出來 */ }
     return o;
+  }
+  /* ★ 2026-10-05（Andy 截圖：3221 各年度股利 2023 的 2.50 長條與數字頂到圖頂、被右上圖例壓住）：
+     長條圖的柱頂數字（label.position:'top'）畫在繪圖區「外面」—— ECharts 自動刻度常常剛好把最高柱頂到 grid 頂，
+     數字就落進 grid.top 那條留白，跟上方的圖例／標題撞在一起。一次修在共用層：
+     直立長條（類別在 x、數值在 y）有柱頂數字、而且呼叫端沒自己指定 max 的數值軸，
+     上限＝資料最大值 × 1.15 再進位到「好看的刻度」（1／2／2.5／5 × 10ⁿ 的倍數）；左右兩條 y 軸都套（右軸殖利率線同理）。
+     有上方圖例時 grid.top 至少 28（上面那段）＋這裡的頭部留白 ＝ 最高柱的數字永遠在繪圖區內、不碰圖例。*/
+  function niceUp(m) {
+    if (!(m > 0)) return m;
+    const raw = m / 5, p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(k => k * p).find(st => st >= raw) || 10 * p;
+    return +(Math.ceil(m / step - 1e-9) * step).toFixed(6);
+  }
+  function headroom(o) {
+    const ser = arr(o.series), xs = arr(o.xAxis), ys = arr(o.yAxis);
+    if (!ser.length || !xs.length || !ys.length) return o;
+    if (!xs.some(x => x && x.type === 'category')) return o;
+    const topLab = ser.some(s => s && s.type === 'bar' && s.label && s.label.show && s.label.position === 'top');
+    if (!topLab) return o;
+    let hit = false;
+    const ny = ys.map(y => {
+      if (!y || typeof y !== 'object' || (y.type && y.type !== 'value') || y.max != null) return y;
+      hit = true;
+      return { ...y, max: (v) => (v.max > 0 ? niceUp(v.max * 1.15) : v.max) };
+    });
+    if (!hit) return o;
+    return { ...o, yAxis: Array.isArray(o.yAxis) ? ny : ny[0] };
   }
 
   // ---------------------------------------------------------------- 外觀設定面板
@@ -279,7 +307,7 @@
     window.addEventListener('tw:theme', schedule);
     schedule();
   }
-  window.T4 = { set, get, normalize, decorate, THEMES: THEMES.map(t => t.id) };
+  window.T4 = { set, get, normalize, niceUp, decorate, THEMES: THEMES.map(t => t.id) };
   window.Theme4 = window.T4;   // 原型時期的名字，留著給還在用的驗收腳本
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

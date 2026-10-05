@@ -351,7 +351,7 @@ test('R7 格式：壞 email、壞鍵、壞值、太多鍵、不存在／訪客�
     assert.equal((await post(hub, '/v1/admin/perm/put', { t, email, plan: 'free', over: {} })).status, 400, email);
   }
   for (const over of [{ 'Bad Key': true }, { 'x': true }, { 'stock.ai': 'yes' }, { 'stock.ai': -1 }, { 'stock.ai': 100 }, { 'stock.ai': 1.5 }, ['stock.ai'],
-    Object.fromEntries(Array.from({ length: 121 }, (_, i) => ['f' + i + 'x', true]))]) {
+    Object.fromEntries(Array.from({ length: 301 }, (_, i) => ['f' + i + 'x', true]))]) {
     assert.equal((await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'free', over })).status, 400, JSON.stringify(over).slice(0, 40));
   }
   assert.equal((await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'nope', over: {} })).status, 400, '不存在的方案');
@@ -385,4 +385,136 @@ test('R7 管理者名單是空的時，沒有人讀寫得到權限設定', async
   const { hub } = makeHub(env({ ADMIN_EMAILS: '' }));
   const t = (await login(hub, 'andy@example.com')).j.tok;
   for (const p of ADMIN_EPS) assert.equal((await post(hub, p, { t, email: 'x@example.com', id: 'paid', name: 'x', feats: {} })).status, 403, p);
+});
+
+/* ======================================================================== admin-v2（2026-10-05）：細項事件、到期日、造訪次數、相容遷移 */
+test('細項事件 e2：合格的收、累加；分組查詢回 (頁面, 元件, 細項) 加總；只有管理者讀得到', async () => {
+  const { hub } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  const bob = (await login(hub, 'bob@example.com')).j.tok;
+  const e2 = [['flow', 'rot.play', '', 2], ['flow', 'filter_group', '被動元件 MLCC', 1], ['stock', 'view', '2330', 3], ['stock', 'tab.revenue', '2330', 1]];
+  assert.equal((await post(hub, '/v1/beat', { sid: 'guest-e2-1', r: 'flow', e2 })).status, 200);
+  assert.equal((await post(hub, '/v1/beat', { sid: 'guest-e2-1', r: 'flow', e2: [['flow', 'rot.play', '', 1]] })).status, 200);
+  const st = await (await post(hub, '/v1/admin/stats', { t: andy, days: 7 })).json();
+  const g = (p, c, d) => (st.e2.find((r) => r.page === p && r.comp === c && r.detail === d) || {}).n;
+  assert.equal(g('flow', 'rot.play', ''), 3, '同一組合累加');
+  assert.equal(g('flow', 'filter_group', '被動元件 MLCC'), 1, '中文族群名照存');
+  assert.equal(g('stock', 'view', '2330'), 3);
+  const only = await (await post(hub, '/v1/admin/stats', { t: andy, days: 7, page: 'stock' })).json();
+  assert.ok(only.e2.length === 2 && only.e2.every((r) => r.page === 'stock'), 'page 參數只回那一頁');
+  assert.equal((await post(hub, '/v1/admin/stats', { t: bob, days: 7 })).status, 403, '一般會員讀不到');
+});
+
+test('細項事件 e2 拒絕：頁面不在白名單、元件格式、細項含 @／標籤／太長、次數超過、太多列 → 整批 400', async () => {
+  const { hub } = makeHub(env());
+  for (const e2 of [[['nope', 'x', '', 1]], [['flow', 'Bad Comp', '', 1]], [['flow', 'x', 'a@b.com', 1]], [['flow', 'x', '<b>', 1]],
+    [['flow', 'x', 'x'.repeat(25), 1]], [['flow', 'x', '', 51]], [['flow', 'x', '', 0]], [['flow', 'x', '']], 'flow',
+    Array.from({ length: 61 }, () => ['flow', 'x', '', 1])]) {
+    assert.equal((await post(hub, '/v1/beat', { sid: 'guest-e2-2', e2 })).status, 400, JSON.stringify(e2).slice(0, 60));
+  }
+});
+
+test('會員造訪次數：登入狀態下 session_login 計入 visits；perm/list 回 seen／visits／expires；刪帳號一起刪', async () => {
+  const { hub, db } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  const bob = (await login(hub, 'bob@example.com')).j.tok;
+  await post(hub, '/v1/beat', { t: bob, sid: 'bob-sid-v1', r: 'overview', ev: { 'ev:session': 1, 'ev:session_login': 1 } });
+  await post(hub, '/v1/beat', { t: bob, sid: 'bob-sid-v2', r: 'overview', ev: { 'ev:session': 1, 'ev:session_login': 1 } });
+  await post(hub, '/v1/beat', { sid: 'guest-v3', r: 'overview', ev: { 'ev:session': 1, 'ev:session_login': 1 } });   // 沒權杖：不算任何人
+  const exp = Date.parse('2027-01-31T15:59:59Z');
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'bob@example.com', plan: 'free', over: {}, expires: exp })).status, 200);
+  const li = await (await post(hub, '/v1/admin/perm/list', { t: andy })).json();
+  const ub = li.users.find((u) => u.email === 'bob@example.com');
+  assert.equal(ub.visits, 2); assert.ok(ub.seen > 0);
+  assert.equal(li.rows.find((r) => r.email === 'bob@example.com').expires, exp);
+  assert.equal((await post(hub, '/v1/delete', { t: bob })).status, 200);
+  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM visits').get().c, 0, '刪帳號後造訪紀錄一起刪');
+});
+
+test('到期日：過期 → /v1/perm/me 退回免費會員（微調不生效）；不帶 expires 不會清掉原值；壞值 400', async () => {
+  const { hub } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  const cara = (await login(hub, 'cara@example.com')).j.tok;
+  await post(hub, '/v1/admin/plans/put', { t: andy, id: 'p799', name: '799', feats: { 'grp.foundry': true } });
+  await post(hub, '/v1/admin/plans/put', { t: andy, id: 'free', name: '免費會員', feats: { 'grp.foundry': false } });
+  const exp = clock + 2 * 86400 * 1000;
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'cara@example.com', plan: 'p799', over: { 'stock.ai': false }, expires: exp })).status, 200);
+  let me = await (await post(hub, '/v1/perm/me', { t: cara })).json();
+  assert.deepEqual([me.plan, me.feats['grp.foundry'], me.feats['stock.ai']], ['p799', true, false]);
+  // 改一個開關、不帶 expires → 到期日保留
+  await post(hub, '/v1/admin/perm/put', { t: andy, email: 'cara@example.com', plan: 'p799', over: {} });
+  assert.equal((await (await post(hub, '/v1/admin/perm/get', { t: andy, email: 'cara@example.com' })).json()).expires, exp);
+  const saved = clock;
+  clock += 3 * 86400 * 1000;
+  try {
+    me = await (await post(hub, '/v1/perm/me', { t: cara })).json();
+    assert.deepEqual([me.plan, me.expired, me.feats['grp.foundry']], ['free', true, false], '過期 → 免費會員的開關');
+    const gj = await (await post(hub, '/v1/admin/perm/get', { t: andy, email: 'cara@example.com' })).json();
+    assert.deepEqual([gj.plan, gj.expired], ['p799', true], '管理頁看得到他原本的範本與「已過期」');
+    for (const bad of ['2027-01-01', -1, 1.5, 99999999999999]) {
+      assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'cara@example.com', plan: 'p799', over: {}, expires: bad })).status, 400, String(bad));
+    }
+    assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'cara@example.com', plan: 'p799', over: {}, expires: null })).status, 200);
+    me = await (await post(hub, '/v1/perm/me', { t: cara })).json();
+    assert.equal(me.plan, 'p799', '清掉到期日 → 恢復');
+  } finally { clock = saved; }
+});
+
+test('族群鍵：grp.<鍵> 走同一套 cleanFeats，可一次關 200 個（上限 300）', async () => {
+  const { hub } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  const feats = Object.fromEntries(Array.from({ length: 200 }, (_, i) => ['grp.g' + i, false]));
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t: andy, id: 'p399', name: '399', feats })).status, 200);
+});
+
+test('相容遷移：舊版資料庫（perm 沒有 expires 欄）啟動後自動補欄、舊資料保留；重啟不報錯', async () => {
+  const { DatabaseSync } = await import('node:sqlite');
+  const { Hub } = await import('../worker.js');
+  const db = new DatabaseSync(':memory:');
+  db.exec('CREATE TABLE perm (email TEXT PRIMARY KEY, plan TEXT, over TEXT, updated INTEGER)');
+  db.prepare('INSERT INTO perm VALUES (?, ?, ?, ?)').run('old@example.com', 'free', '{"stock.ai":false}', 1);
+  const sql = { exec(q, ...a) { const st = db.prepare(q); const rows = /^\s*(SELECT|WITH|PRAGMA)/i.test(q) ? st.all(...a) : (st.run(...a), []); return { toArray: () => rows.map((r) => ({ ...r })) }; } };
+  const state = { storage: { sql, getAlarm: async () => 1, setAlarm: async () => {} } };
+  new Hub(state, env()); new Hub(state, env());     // 兩次：第二次不能因為欄位已存在而失敗
+  const cols = db.prepare('PRAGMA table_info(perm)').all().map((c) => c.name);
+  assert.ok(cols.includes('expires'));
+  assert.equal(db.prepare('SELECT over FROM perm WHERE email = ?').get('old@example.com').over, '{"stock.ai":false}');
+});
+
+/* ======================================================================== admin-v2b（2026-10-05）：付費範本價格／計費週期 */
+test('付費範本價格：price 0～999999 整數、period ∈ month／year／once；plans/get 回傳；只改開關不洗掉價格', async () => {
+  const { hub } = makeHub(env());
+  const t = (await login(hub, 'andy@example.com')).j.tok;
+  const put = async (o) => (await post(hub, '/v1/admin/plans/put', { t, ...o })).status;
+  const get = async (id) => (await (await post(hub, '/v1/admin/plans/get', { t })).json()).plans.find((p) => p.id === id);
+  assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: 399, period: 'month' }), 200);
+  const g0 = await get('pbasic');
+  assert.deepEqual([g0.price, g0.period, g0.name], [399, 'month', '基本方案']);
+  for (const bad of [-1, 1000000, 3.5, '399', null, true]) assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: bad }), 400, 'price=' + JSON.stringify(bad));
+  for (const bad of ['week', '', 'MONTH', 1]) assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, period: bad }), 400, 'period=' + JSON.stringify(bad));
+  assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: 0, period: 'once' }), 200, '0 元合法');
+  assert.equal(await put({ id: 'pbasic', name: '基本方案', feats: {}, price: 999999, period: 'year' }), 200, '上限合法');
+  assert.equal(await put({ id: 'pbasic', feats: { 'stock.ai': false } }), 200);
+  const g = await get('pbasic');
+  assert.deepEqual([g.price, g.period, g.feats], [999999, 'year', { 'stock.ai': false }], '沒帶 price／period → 沿用原值');
+  assert.equal(await put({ id: 'pnew', name: '新範本', feats: {} }), 200);
+  const gn = await get('pnew');
+  assert.deepEqual([gn.price, gn.period], [0, 'month'], '新範本沒帶價格 → 0／month');
+  const gf = await get('free');
+  assert.deepEqual([gf.price, gf.period], [0, 'month'], '內建範本也有欄位');
+});
+
+test('相容遷移：舊版 plans 表（沒有 price／period）啟動後自動補欄、舊範本保留且 price=0、period=month；重啟不報錯', async () => {
+  const { DatabaseSync } = await import('node:sqlite');
+  const { Hub } = await import('../worker.js');
+  const db = new DatabaseSync(':memory:');
+  db.exec('CREATE TABLE plans (id TEXT PRIMARY KEY, name TEXT, feats TEXT, builtin INTEGER, updated INTEGER)');
+  db.prepare('INSERT INTO plans VALUES (?, ?, ?, ?, ?)').run('p399', '399 即時', '{"ov.theme":false}', 0, 1);
+  const sql = { exec(q, ...a) { const st = db.prepare(q); const rows = /^\s*(SELECT|WITH|PRAGMA)/i.test(q) ? st.all(...a) : (st.run(...a), []); return { toArray: () => rows.map((r) => ({ ...r })) }; } };
+  const state = { storage: { sql, getAlarm: async () => 1, setAlarm: async () => {} } };
+  new Hub(state, env()); const h = new Hub(state, env());
+  const cols = db.prepare('PRAGMA table_info(plans)').all().map((c) => c.name);
+  assert.ok(cols.includes('price') && cols.includes('period'));
+  const p = h.plan('p399');
+  assert.deepEqual([p.name, p.feats, p.price, p.period], ['399 即時', { 'ov.theme': false }, 0, 'month']);
 });

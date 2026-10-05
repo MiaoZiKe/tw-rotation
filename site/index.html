@@ -1771,6 +1771,9 @@ tr.whyrow>td{padding:2px var(--sp-2) var(--sp-2);border-top:0}
 /* 非交易時段（週末、休市、開盤前）：即時週期畫的是最近交易日 → 灰點＝非即時（Andy 2026-09-26） */
 .seg button.livetf.offhrs::after{color:var(--ink-3)}
 .seg button.livetf.offhrs.on::after{color:var(--ontop);opacity:.55}
+/* 2026-10-05：1時／4時 盤中接上今天即時 1 分 K 合成的棒時也掛紅點（industry.js markTf 加 .livehr） */
+.seg button.livehr::after{content:"●";margin-left:var(--sp-1);font-size:8px;color:var(--rise);vertical-align:2px}
+.seg button.livehr.on::after{color:var(--ontop)}
 .mtf-cell .cap .mtfoff{font-size:11px;color:var(--ink-3);margin-right:var(--sp-1)}
 @media (max-width:640px){.mtf-cell .cap .mtfoff{margin-right:6px}}
 .m3-nums{display:flex;flex-direction:column;gap:1px;margin:var(--sp-1) 0 var(--sp-2);min-height:108px}

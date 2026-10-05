@@ -2317,6 +2317,23 @@
        前提檢查照舊看三張（任何一張不能補就整個退回 draw()），只有「補哪幾張」縮小；分時檔 10 秒那一輪不帶 ids ＝三張都補。*/
   function drawLive(ids) {
     const grid = document.getElementById('m3Grid');
+    /* ★ 2026-10-05：K 線的日／週／月 —— 只把「這一輪有變的那張」最後一根就地更新（drawK 走 setBars 的尾巴快路），
+       不再整張 draw()。節流與「只補有變的那張」（#284）照舊由呼叫端的 ids 決定。*/
+    if (grid && state.mode === 'k' && histDef(state.tf) && histDef(state.tf).lake) {
+      for (const x of IDX) {
+        if (ids && ids.indexOf(x.id) < 0) continue;
+        const el = document.getElementById('m3c-' + x.id);
+        const card = grid.querySelector(`.m3-card[data-id="${x.id}"]`);
+        if (!el || !card || card.style.display === 'none') continue;
+        if (el.dataset.kind !== 'k' || !state.kcharts[x.id]) { draw(); return; }
+        const fb0 = el.dataset.fallback;
+        drawK(x, isNight(x) ? seriesOf(x) : (state.data[x.id] || {}), el);
+        if (el.dataset.fallback !== fb0) syncFb(x, card);
+        const head = card.querySelector('.m3-nums');
+        if (head) { const h = cardHead(x); if (head.outerHTML !== h) head.outerHTML = h; }
+      }
+      return;
+    }
     if (!grid || state.mode !== 'line' || state.futSession === 'night' || IDX.some(isNight)) { draw(); return; }
     const todo = [];
     for (const x of IDX) {
@@ -2611,6 +2628,28 @@
     return c;
   }
 
+  /* ★ 2026-10-05 Andy 10:44 截圖：卡片數字已是即時（加權 49,713），日 K 卻停在資料湖最後一天（10-02）。
+     根因：日／週／月三個週期只讀資料湖 index_ohlc.json，盤中的即時報價從來沒接進 K 線。
+     做法：把這張卡現在的即時資料（加權／櫃買＝live.js t00／o00 蓋過的分時，台指期＝期交所報價；
+     夜盤時 d 就是夜盤那一份）合成一根「今日 K」：開＝今日開盤、高低＝當日高低、收＝現價、量＝累計。
+     只在三個條件同時成立時才加：① 資料日期就是台北今天（日盤）或夜盤自己的交易日 ——
+     非交易日拿到的會是上一個交易日，自然不加；② 比資料湖最後一天新 —— 資料湖補上同一天之後以湖為準；
+     ③ 不是資料湖自己種出來的那一份（lakeDay／lakeHead，那是湖的資料不是即時）。*/
+  function liveDayBar(x, d) {
+    if (!d || d.last == null || !d.date || d.seed || d.sparse || /資料湖/.test(d.src || '')) return null;
+    const ds = String(d.date).replace(/-/g, '');
+    if (!/^\d{8}$/.test(ds)) return null;
+    if (!d.night && ds !== tpeDay()) return null;
+    const ymd = ds.slice(0, 4) + '-' + ds.slice(4, 6) + '-' + ds.slice(6);
+    const base = (state.lakeDaily || {})[lakeSym(x)] || [];
+    if (!base.length || String(base[base.length - 1][0]) >= ymd) return null;
+    const c = +d.last, o = d.open != null ? +d.open : c;
+    const h = Math.max(d.high != null ? +d.high : c, o, c), l = Math.min(d.low != null ? +d.low : c, o, c);
+    // 量：指數＝成交金額（百萬元→元，跟 index_ohlc 同一把尺）；台指期＝累計口數
+    const v = x.id === 'FUT' ? (d.vol != null ? +d.vol : 0) : (d.amt != null ? d.amt * 1e6 : 0);
+    return [ymd, o, h, l, c, v || 0];
+  }
+
   function drawK(x, d, el, forceTf, forceSay) {
     if (typeof window.KChart === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return; }
     if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
@@ -2658,7 +2697,16 @@
         return;
       }
       tfName = '1d';
-    }
+      // ★ 2026-10-05：盤中（與收盤後、資料湖還沒更新前）把今天的即時 OHLC 併成最後一根（見 liveDayBar）
+      const tb = def.lake ? liveDayBar(x, d) : null;
+      if (tb) {
+        let daily = state.lakeDaily[lakeSym(x)].concat([tb]);
+        if (def.roll) daily = rollLake(daily, def.roll);
+        if (def.group > 1) daily = groupBars(daily, def.group);
+        bars = daily;
+      }
+      el.dataset.todayk = tb ? tb[0] : '';
+    } else if (def) el.dataset.todayk = '';
     if (def) {
       const key = (def.lake ? lakeSym(x) : x.id) + '|' + def.id;
       /* 圖上方那行說明。可能同時有三件事要講，所以收成一個陣列再串起來：
@@ -2684,7 +2732,7 @@
         const src = (state.lakeDaily || {})[lakeSym(x)] || [];
         const lastDay = src.length ? String(src[src.length - 1][0]) : '';
         const which = x.id === 'FUT' ? (isNight(x) && !state.lakeBack[key] ? '台指期夜盤日 K' : '台指期日盤日 K') : x.short + '日 K';
-        if (lastDay) says.push(`${which}・資料至 ${lastDay}`);
+        if (lastDay) says.push(`${which}・資料至 ${el.dataset.todayk ? lastDay.slice(5) + '＋今日即時' : lastDay}`);
       }
       if (says.length) el.dataset.fallback = says.join('　·　'); else delete el.dataset.fallback;
     } else {
@@ -2909,6 +2957,11 @@
     /** 驗收用：2026-10-04 起下拉只剩日／週／月，分 K 與 1H／4H 的合成程式碼還在（走勢圖的點、舊驗收），
      *  舊驗收改走這裡把週期釘過去 —— 使用者沒有入口碰得到，也不寫進 localStorage。 */
     forceTf(v) { state.tf = String(v); draw(); },
-    lakeDay(id) { return lakeDay(IDX.find(x => x.id === id)); },   // 驗收用：盤後退回資料湖那一天（2026-10-04）
+    lakeDay(id) { return lakeDay(IDX.find(x => x.id === id)); },
+    /** 驗收用：這張卡 K 線最後一根（日期、OHLC、量）。*/
+    lastK(id) { const k = state.kcharts[id]; const r = k && k.data && k.data[k.data.length - 1];
+      return r ? { time: typeof r.time === 'object' ? `${r.time.year}-${String(r.time.month).padStart(2, '0')}-${String(r.time.day).padStart(2, '0')}` : r.time,
+        open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume, n: k.data.length,
+        setData: k.stats ? k.stats.setData : null } : null; },   // 驗收用：盤後退回資料湖那一天（2026-10-04）
   };
 })();

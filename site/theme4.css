@@ -211,7 +211,7 @@
 [data-theme4] .brand .logo{background:var(--t4-accent);color:var(--on-accent);box-shadow:var(--t4-accent-glow,none);border-radius:var(--r-sm)}
 [data-theme4] .tab.on{background:var(--t4-accent);color:var(--on-accent);box-shadow:var(--t4-accent-glow,none)}
 [data-theme4] .seg button.on{background:var(--t4-accent);color:var(--on-accent)}
-[data-theme4] .seg button.livetf.on::after{color:var(--on-accent)}
+[data-theme4] .seg button.livetf.on::after,[data-theme4] .seg button.livehr.on::after{color:var(--on-accent)}
 [data-theme4] .evbtn .n{background:var(--t4-accent);color:var(--on-accent)}
 [data-theme4] .subtabs button.on{color:var(--t4-accent-solid);border-bottom-color:var(--t4-accent-solid)}
 [data-theme4] .btn,[data-theme4] .evbtn,[data-theme4] .seg,[data-theme4] .pill,[data-theme4] .rotdd .ddbtn,[data-theme4] .minisel{

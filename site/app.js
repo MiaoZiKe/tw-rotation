@@ -2792,7 +2792,7 @@
       DIST.market = b.dataset.m; wireDistFilter(); drawChgDist();
     });
     const etf = $('#distEtf', box);
-    if (etf) etf.onchange = () => { DIST.etf = etf.checked; drawChgDist(); };
+    if (etf) etf.onchange = () => { DIST.etf = etf.checked; if (mktKind === 'updown' && $('#mktTabs')) drawMarket('updown'); else drawChgDist(); };   // ★ 2026-10-05：含 ETF 也影響右表的漲幅／跌幅前段
     const gb = $('#distGroupBtn', box);
     if (gb) gb.onclick = () => {
       const names = [...new Set(all.map(r => r.group || '（未分類）'))].sort();
@@ -3132,15 +3132,46 @@
 
   /* 這一輪要抓哪些股票：所有**人工族群**的成分股（去重）。
      自動桶（`ind_*`）跳過 —— 光 ETF 一格就三百多檔，抓它不會讓分佈更準，只會把請求數翻倍。*/
+  /* ★ 2026-10-05（Andy 10:41 盤中截圖：切到即時「看不出有即時」）：抓取範圍改成三段聯集、上限 MUD_CAP 檔，
+     每一段各抓到幾檔都記在 MUD.src，狀態列逐段印出來（「即時只涵蓋 N 檔：族群 X＋自選 Y＋成交值前段 Z」）。
+     為什麼不抓全市場：2300 多檔＝21 個請求，live.js 的節流閥每 5 秒最多 3 個 → 一輪要 35 秒以上，
+     而且整個分頁的其他即時（自選、大盤三張圖）都要排在它後面；上限 550 檔＝6 個請求、一輪約 10 秒。
+     成交值前段補位的意義：盤後成交值大的那幾百檔，就是盤中最可能出現在「漲幅／成交值前段」的那批。*/
+  const MUD_CAP = 550;
+
+  /* ★ 2026-10-05 漲跌停判定（跟管線 build_payload.limit_flags／roc.limit_up_price 同一套，改一邊要改另一邊）：
+     Andy 拿券商 App 對 10/02 名單對不起來 —— 舊版「漲幅 ≥ 9.5%」把 00715L 期街口布蘭特正2（ETF，+11.33%）
+     和沒鎖住的 3163 波若威（+9.52%，收 713、漲停價 716）都算進漲停。證交所的定義是「價格＝漲停價」：
+     漲停價＝昨收 × 1.1 依升降單位（tick）向下取整、跌停價＝昨收 × 0.9 向上取整；只認普通股（4 碼數字、非 0 開頭）。
+     即時報價本身有帶漲停價／跌停價（mis 的 u／w）就用它，沒有才自己算。*/
+  const twTick = (p) => (p < 10 ? 0.01 : p < 50 ? 0.05 : p < 100 ? 0.1 : p < 500 ? 0.5 : p < 1000 ? 1 : 5);
+  function twLimitPrice(prev, up) {
+    const raw = prev * (up ? 1.1 : 0.9);
+    const f = up ? Math.floor : Math.ceil, eps = up ? 1e-6 : -1e-6;
+    let t = twTick(raw), v = f(raw / t + eps) * t;
+    if (twTick(v) !== t) { t = twTick(v); v = f(raw / t + eps) * t; }   // 取整後跨到另一個價位：用那一段的 tick 重算
+    return Math.round(v * 100) / 100;
+  }
+  const isCommon = (c) => /^[1-9]\d{3}$/.test(String(c || ''));
+  function twLimitHit(code, price, prev, lu, ld) {
+    if (!isCommon(code) || price == null || !prev) return 0;
+    const up = lu != null ? lu : twLimitPrice(prev, true), dn = ld != null ? ld : twLimitPrice(prev, false);
+    if (price > prev && Math.abs(price - up) < 1e-6) return 1;
+    if (price < prev && Math.abs(price - dn) < 1e-6) return -1;
+    return 0;
+  }
   function mudCodes() {
     const det = D.groups_detail || {};
     const seen = new Set(), out = [];
+    const src = { group: 0, watch: 0, turnover: 0 };
+    const add = (c, k) => { c = String(c || ''); if (!c || seen.has(c) || out.length >= MUD_CAP) return; seen.add(c); out.push(c); src[k]++; };
     Object.keys(det).forEach(gid => {
       if (isAutoBucket(gid)) return;
-      ((det[gid] || {}).members || []).forEach(m => {
-        const c = String(m.code); if (c && !seen.has(c)) { seen.add(c); out.push(c); }
-      });
+      ((det[gid] || {}).members || []).forEach(m => add(m.code, 'group'));
     });
+    try { if (window.TwWatch) window.TwWatch.tabs().forEach(t => t.codes.forEach(c => add(c, 'watch'))); } catch (e) { /* 自選還沒載入 */ }
+    (D.stocks || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).forEach(r => add(r.code, 'turnover'));
+    MUD.src = src;
     return out;
   }
 
@@ -3153,7 +3184,8 @@
     all.forEach(r => {
       const q = MUD.q[String(r.code)];
       if (!q || q.chgPct == null) return;
-      out.push({ ...r, chg_pct: q.chgPct,
+      out.push({ ...r, chg_pct: q.chgPct, ud: undefined,
+        lim: twLimitHit(r.code, q.price, q.prevClose, q.limitUp, q.limitDown),
         close: q.price != null ? q.price : r.close,
         // 成交值是估的（端點沒有每檔的累積成交金額）；畫面上有寫，tooltip 也有寫
         turnover: (q.price != null && q.volume != null) ? q.price * q.volume * 1000 : null,
@@ -3168,13 +3200,18 @@
     const codes = mudCodes();
     if (!codes.length) throw new Error('成分股資料還沒載入，抓不了即時');
     const q = {};
-    let reqs = 0;
+    let reqs = 0, bad = 0, lastErr = null;
+    /* ★ 2026-10-05：一批失敗（某一檔代號讓上游回錯、逾時）只丟那一批，不再讓整輪變成「抓不到」退回盤後；
+       全部失敗才算失敗，原因用最後一批的錯誤（連不到代理／逾時／HTTP 碼）。*/
     for (let i = 0; i < codes.length; i += MUD_BATCH) {
-      Object.assign(q, await window.Live.fetchQuotes(codes.slice(i, i + MUD_BATCH)));
       reqs++;
+      try { Object.assign(q, await window.Live.fetchQuotes(codes.slice(i, i + MUD_BATCH))); }
+      catch (e) { bad++; lastErr = e; }
     }
+    if (bad === reqs && lastErr) throw lastErr;
     const hit = Object.keys(q).filter(c => q[c] && q[c].chgPct != null);
     if (!hit.length) throw new Error('報價回來了，但沒有一檔算得出漲跌幅');
+    MUD.bad = bad;
     MUD.q = q; MUD.reqs = reqs; MUD.codes = codes.length; MUD.hit = hit.length;
     MUD.quoteAt = (q[hit[0]] || {}).time || '';
     MUD.at = Date.now(); MUD.err = '';
@@ -3205,10 +3242,12 @@
       ? `<b class="live">即時</b>　最後更新 <b class="liveat">${(window.Live && window.Live.hms ? window.Live.hms(MUD.at) : new Date(MUD.at).toTimeString().slice(0, 8))}</b>（台北）　每 5 秒更新（報價 ${fmt.esc(MUD.quoteAt || '—')}）`
       : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最後一次報價的快照</b>，不是盤中變化')
       + `　·　<b>涵蓋率 ${uni ? fmt.n(MUD.hit / uni * 100, 1) : '—'}%</b>`
-      + `（抓到 <b>${MUD.hit}</b> 檔 / 想抓 ${MUD.codes} 檔 / 全市場 ${uni} 檔　·　${MUD.reqs} 個請求）`
-      + '<br>· <b>這不是全市場</b>：即時報價逐檔打，所以只抓「有人工分族群」的成分股聯集'
-      + '（自動桶 <code>ind_*</code> 跳過）。這一批本來就<b>偏中大型、偏電子</b>，'
-      + '分佈會比全市場<b>窄</b>、平均比較貼近權值股 —— 它是這一批的樣子，不是全市場的縮影。'
+      + `（抓到 <b>${MUD.hit}</b> 檔 / 想抓 ${MUD.codes} 檔 / 全市場 ${uni} 檔　·　${MUD.reqs} 個請求${MUD.bad ? `，<b class="bad">${MUD.bad} 個失敗</b>` : ''}）`
+      + `<br>· <b id="mudCover">即時只涵蓋 ${MUD.hit} 檔</b>（人工族群成分股 ${(MUD.src || {}).group || 0}＋自選 ${(MUD.src || {}).watch || 0}＋盤後成交值前段補 ${(MUD.src || {}).turnover || 0}，上限 ${MUD_CAP}）：`
+      + '全市場 2300 多檔逐檔打要 21 個請求、一輪 35 秒以上，所以只抓這一批。它<b>偏中大型、偏電子</b>，'
+      + '分佈會比全市場<b>窄</b> —— 它是這一批的樣子，不是全市場的縮影；漲停／跌停家數也只數這一批。'
+      + '<br>· <b>漲停＝現價等於漲停價</b>（昨收 × 1.1 依升降單位向下取整，跌停同理向上取整），只認普通股；ETF、權證、槓桿反向不列入；'
+      + '漲幅／跌幅前段也排除漲跌幅超過 10% 與非普通股（勾「含 ETF」才把 ETF 排進前段，但仍不算漲停）。'
       + '<br>· <b>漲跌幅是真的，成交值是估的</b>：漲跌幅＝(現價 − 昨收) ÷ 昨收；'
       + '「成交值前段」那一格是「現價 × 累計張數 × 1000」的<b>估算值</b>'
       + '（即時端點沒有每檔的累積成交金額），和盤後的真實成交值不是同一個數字。';
@@ -3300,49 +3339,67 @@
       const lr = live ? mudRows() : [];
       const top = (arr, key, dir) => arr.slice()
         .sort((a, b) => dir * ((a[key] || 0) - (b[key] || 0))).slice(0, 30);
+      /* ★ 2026-10-05：漲幅／跌幅前段只排「有 10% 漲跌幅限制的個股」—— 普通股、|漲跌幅| ≤ 10%
+         （Andy：「高過 10% 就不顯示，因為通常不是個股」）；勾「含 ETF」才把 ETF 也排進來（ETF 仍不算漲停）。*/
+      const rankable = (r) => (isCommon(r.code) || (DIST.etf && /^00/.test(String(r.code))))
+        && r.chg_pct != null && Math.abs(+r.chg_pct) <= 10 + 1e-6;
       const cnt = live ? {
         adv: lr.filter(r => r.chg_pct > 0).length,
         dec: lr.filter(r => r.chg_pct < 0).length,
         flat: lr.filter(r => r.chg_pct === 0).length,
-        lu: lr.filter(r => r.chg_pct >= 9.5).length,
-        ld: lr.filter(r => r.chg_pct <= -9.5).length,
+        lu: lr.filter(r => r.lim === 1).length,
+        ld: lr.filter(r => r.lim === -1).length,
       } : null;
+      // 盤後：stocks.json 每列帶 lim（管線 limit_flags）；舊 payload 沒有這個欄位時退回管線算好的 movers 名單
+      const st = D.stocks || [];
+      const hasLim = st.some(r => 'lim' in r);
+      const eodLU = hasLim ? st.filter(r => r.lim === 1).sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : (mv.limit_up || []);
+      const eodLD = hasLim ? st.filter(r => r.lim === -1).sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : (mv.limit_down || []);
+      const eodDate = heat.date || ((D.meta || {}).latest) || '';
       /* ★ 2026-09-25（審查 R5：按「⚡ 即時」後，鈕已經亮了、標題卻還是盤後的「784 漲／1314 跌」，
          要等第一輪報價回來（0.7～4 秒）才換 —— 那段時間畫面上兩個口徑對不起來）。
          第一輪還在路上時，標題**當場**就換成「即時抓取中」，並明講下面暫時仍是盤後那一份。*/
       const pending = MUD.on && !live && !MUD.err;
+      /* ★ 2026-10-05：即時抓失敗時標題**也要講**（以前只寫在下面那條狀態列，標題照樣是盤後的數字，
+         Andy 盤中切即時看到「漲停 56、跌停 6」以為即時沒作用）。盤後那一版一律標資料日期。*/
+      const eodCnt = `${heat.advancers || 0} 漲／${heat.decliners || 0} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
+      const liveAt = MUD.at ? (window.Live && window.Live.hms ? window.Live.hms(MUD.at) : new Date(MUD.at).toTimeString().slice(0, 8)) : '';
       title.innerHTML = live
-        ? `漲跌家數 <small>⚡ 即時 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
+        ? `漲跌家數 <small id="mktTitleLive">⚡ 即時 ${liveAt} · 只涵蓋 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
           + `・漲停 ${cnt.lu}、跌停 ${cnt.ld}</small>`
         : pending
-        ? `漲跌家數 <small class="mktpending">⚡ 即時抓取中…（下面暫時仍是盤後：${heat.advancers || 0} 漲／${heat.decliners || 0} 跌）</small>`
-        : `漲跌家數 <small>${heat.advancers || 0} 漲／${heat.decliners || 0} 跌・漲停 ${(mv.counts || {}).limit_up ?? '—'}、跌停 ${(mv.counts || {}).limit_down ?? '—'}</small>`;
+        ? `漲跌家數 <small class="mktpending">⚡ 即時抓取中…（下面暫時仍是 ${fmt.esc(eodDate)} 盤後：${eodCnt}）</small>`
+        : MUD.on && MUD.err
+        ? `漲跌家數 <small class="mktliveerr"><b class="bad">⚡ 即時抓不到：${fmt.esc(MUD.err)}</b>　下面是 ${fmt.esc(eodDate)} 盤後：${eodCnt}</small>`
+        : `漲跌家數 <small>${fmt.esc(eodDate)} 盤後・${eodCnt}</small>`;
       const sets = (live ? [
         /* ★ 2026-09-24 說明精簡：每一頁上方那行只留一句定義；檔位、估算口徑搬進「怎麼看 ?」（HOW.mkt）。
            即時那三個「只排抓到的這批／估算」**留在畫面上**（短版）—— 少了它會被讀成全市場或真實成交值。*/
-        ['漲停', lr.filter(r => r.chg_pct >= 9.5), '漲幅 ≥ 9.5%（真值）'],
-        ['跌停', lr.filter(r => r.chg_pct <= -9.5), '跌幅 ≤ -9.5%（真值）'],
-        ['漲幅前段', top(lr, 'chg_pct', -1), '現在漲最多的（只排抓到的這批）'],
-        ['跌幅前段', top(lr, 'chg_pct', 1), '現在跌最多的（只排抓到的這批）'],
+        ['漲停', lr.filter(r => r.lim === 1), `現價＝漲停價（只認普通股）・⚡ 即時 ${liveAt}`],
+        ['跌停', lr.filter(r => r.lim === -1), `現價＝跌停價（只認普通股）・⚡ 即時 ${liveAt}`],
+        ['漲幅前段', top(lr.filter(rankable), 'chg_pct', -1), `現在漲最多的（只排抓到的這批、排除 >10% 與非個股）・⚡ ${liveAt}`],
+        ['跌幅前段', top(lr.filter(rankable), 'chg_pct', 1), `現在跌最多的（只排抓到的這批、排除 >10% 與非個股）・⚡ ${liveAt}`],
         ['成交值前段', top(lr.filter(r => r.turnover != null), 'turnover', -1),
           '量最大的（⚠ 成交值是估算）'],
       ] : [
         /* ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明」）：盤後這五頁的一句定義
            （漲幅 ≥ 9.5%、今天漲最多的…）本來就寫在 HOW.mkt 的小字裡，卡片上不再重複；
            即時那五句留著 —— 那是「只排抓到的這批／成交值是估算」的警示，不寫會被讀成全市場。*/
-        ['漲停', mv.limit_up, ''],
-        ['跌停', mv.limit_down, ''],
-        ['漲幅前段', mv.up, ''],
-        ['跌幅前段', mv.down, ''],
+        ['漲停', eodLU, ''],
+        ['跌停', eodLD, ''],
+        // 含 ETF 勾起時改從 stocks.json 排（管線的 movers.up／down 只有普通股）
+        ['漲幅前段', DIST.etf ? top(st.filter(rankable).filter(r => r.chg_pct > 0), 'chg_pct', -1) : mv.up, ''],
+        ['跌幅前段', DIST.etf ? top(st.filter(rankable).filter(r => r.chg_pct < 0), 'chg_pct', 1) : mv.down, ''],
         ['成交值前段', mv.turnover, ''],
-      ]).filter(t => t[1] && t[1].length);
+      ]).filter(t => t[1] && (t[1].length || live || t[0] === '漲停' || t[0] === '跌停'));
       if (!sets.length && !live) { body.innerHTML = '<div class="empty">今天沒有明細資料</div>'; return; }
       if (mktTab >= sets.length) mktTab = 0;
       const draw = () => {
         const t = sets[mktTab];
         // 即時模式剛按下去、報價還沒回來時 sets 會是空的 —— 給一句話，不要留一塊空白
         if (!t) { $('#mktInner').innerHTML = '<div class="empty">即時報價還沒回來（下一輪就會有）</div>'; return; }
-        $('#mktInner').innerHTML = (t[2] ? `<div class="kpinote">${t[2]}</div>` : '') + stockTable(t[1], [PCT, CLOSE, TO]);
+        $('#mktInner').innerHTML = (t[2] ? `<div class="kpinote">${t[2]}</div>` : '')
+          + (t[1].length ? stockTable(t[1], [PCT, CLOSE, TO]) : `<div class="empty">${live ? '抓到的這批' : '今天'}沒有${t[0]}的股票</div>`);
         bind();
       };
       /* ★ D4：模式切換列。盤後是預設（Andy 指定），即時那一顆亮起來的樣子沿用
@@ -4421,8 +4478,8 @@
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
-      if (p.data.gid) heatPanel('heatPanel', p.data.gid, p.name,
-        `成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）　${fmt.pct(p.data.chg)}`);
+      // ★ 2026-10-05 Andy：熱力圖下方的成分股面板「這邊拿掉」→ 點族群方塊不再展開面板（滑過的提示框照舊）
+      if (p.data.gid) return;
       else if (p.data.cid) { heatChain = p.data.cid; renderHeat(gt, rot); }
     }));
     const zb = $('#heatZoom');
@@ -7978,12 +8035,12 @@
     ]) : howHTML('這一頁回答：今天漲跌家數背後是哪些股票。', [
       '左圖＝漲跌分佈（讀法看圖標題旁的「?」）',
       '右表分頁：漲停、跌停、漲幅／跌幅前段、成交值前段',
-      '盤後＝收盤全市場；⚡ 即時＝約 440 檔成分股，非全市場',
-      '漲停＝漲幅 ≥ 9.5%',
+      '盤後＝收盤全市場；⚡ 即時＝最多 550 檔（族群＋自選＋成交值前段），非全市場',
+      '漲停＝收盤（即時為現價）等於漲停價，只認普通股',
       '點一列進個股頁',
-    ], '「⚡ 即時」只抓有人工分族群的成分股聯集（約 440 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
+    ], '「⚡ 即時」只抓人工族群成分股＋自選＋盤後成交值前段補位（最多 550 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
       + '漲跌幅是真值（現價 vs 昨收），成交值是「現價 × 累計張數」估算，和盤後那一版不是同一個東西；非盤中按下去畫的是最後一次報價快照。'
-      + '漲停＝漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7～10.0）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），圖的下面或右邊（看視窗寬度）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
+      + '漲停＝價格等於漲停價（昨收 × 1.1 依升降單位向下取整：<10 元 0.01、10～50 0.05、50～100 0.1、100～500 0.5、500～1000 1、≥1000 5；跌停同理向上取整），只認普通股，ETF／權證／槓桿反向不列入；漲幅／跌幅前段排除漲跌幅超過 10% 與非普通股（勾「含 ETF」才排進 ETF）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），圖的下面或右邊（看視窗寬度）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
       + '站上均線的條越長＝越多成分股站在 20 日均線之上。今日候選：A＝回檔承接、B＝突破追進；沒有 A／B 的日子（大盤走弱時很常見）列綜合分前 40 當觀察名單，不是進場訊號（總覽的「今日候選」表 2026-09-24 已拿掉，名單只在這一頁）。'
       + '每一列都點得進個股頁，族群名稱點得進族群頁。'),
     heat: () => howHTML('這張圖回答：今天的錢集中在哪些族群。', [

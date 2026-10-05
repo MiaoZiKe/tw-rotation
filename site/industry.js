@@ -620,14 +620,14 @@
     }
 
     /* 甜甜圈中心兩行字（標題＋大數字）。top 用像素算：圓心在 cy，兩行字的總高約 52px。*/
+    /* ★ 2026-10-05 Andy：「圈內文字置中」—— 以前兩段 title 用像素 top（cy-30／cy-10）疊，容器後來被撐高、或字的行高不同，
+       整塊字就偏上。改成一個 title、兩行 rich text、top:'middle' ＋ 圓心也用 '50%'，不管容器怎麼變都跟圓心對齊。cy 參數保留不用（呼叫端不必改）。 */
     function pieCenter(cy, t1, t2) {
       const ff = 'Noto Sans TC, sans-serif';
-      return [
-        { text: t1, left: '50%', top: cy - 30, textAlign: 'center',
-          textStyle: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, width: 120, overflow: 'truncate' } },
-        { text: t2, left: '50%', top: cy - 10, textAlign: 'center',
-          textStyle: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: A.MONO } },
-      ];
+      return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
+        textStyle: { rich: {
+          a: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, lineHeight: 20, width: 120, align: 'center' },
+          b: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: A.MONO, lineHeight: 40, align: 'center' } } } }];
     }
     /* 圖下方兩欄的圖例：● 名稱 ＋ 百分比（等寬、靠右）。滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick。*/
     function paintLegend() {
@@ -841,13 +841,13 @@
             + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
         title: pieCenter(cy, '前五大', A.fmt.n(pieTopShare, 1) + '%'),
         animationDurationUpdate: 200,
-        series: [{ type: 'pie', radius: ['58%', '78%'], center: ['50%', cy], minAngle: 2, padAngle: 1.2,
+        series: [{ type: 'pie', radius: ['58%', '78%'], center: ['50%', '50%'], minAngle: 2, padAngle: 1.2,
           avoidLabelOverlap: false, cursor: 'pointer', label: { show: false }, labelLine: { show: false },
           itemStyle: { borderRadius: 6 },
           emphasis: { scale: true, scaleSize: 4, label: { show: false } },
           data: pieData },
         // 環內側的細軌道：只是一圈底，不能點、沒有提示框、不參與連動
-        { type: 'pie', radius: ['55%', '55.8%'], center: ['50%', cy], silent: true, animation: false,
+        { type: 'pie', radius: ['55%', '55.8%'], center: ['50%', '50%'], silent: true, animation: false,
           label: { show: false }, labelLine: { show: false }, tooltip: { show: false }, emphasis: { disabled: true },
           itemStyle: { borderRadius: 0 },
           data: [{ name: '_track', value: 1, itemStyle: { color: A.hexA(CH.ink3, .22) } }] }],
@@ -4193,11 +4193,13 @@
      （證交所沒有個股的分時檔，所以是 Yahoo 補早盤 ＋ 即時報價每 5 秒補尾巴）。 */
   /* 'tick'＝分時走勢（2026-09-28）：不是 K 棒，是「當日（盤中）或最近一個交易日（盤後）」的一條價格線＋昨收虛線＋分時量，
      由 TickChart（chart.js）畫，資料見 tickData()。放在最前面＝週期列最左邊，而且是預設週期。*/
-  const TF_BUILTIN = ['tick', '5s', '1m', '5m', '15m', '60m', '240m', '1d', '1w', '1M'];
+  /* ★ 2026-10-05（Andy：「5S 週期在指標內刪除」）：5 秒拿掉 —— 週期列、＋週期設定、四週期下拉都不再列。
+     livek.js 內部仍收 5 秒序列（分時、1 分 K 的尾巴靠它），只是不再當一個可選週期；存檔裡的 '5s' 由 loadCfg 退回 1分。*/
+  const TF_BUILTIN = ['tick', '1m', '5m', '15m', '60m', '240m', '1d', '1w', '1M'];
   const TF_NAME = { tick: '分時', '5s': '5秒', '1m': '1分', '5m': '5分', '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' };
   // 15 分也改成即時（Andy 2026-09-18：「1 5 15 分 K 都限制當天即可」）。
   // 後端不再預先產出 15 分 K —— 那是部署最慢的一塊（DECISIONS #156）。
-  const LIVE_TF = ['5s', '1m', '5m', '15m'];
+  const LIVE_TF = ['1m', '5m', '15m'];
   const isLiveTf = (tf) => LIVE_TF.indexOf(tf) >= 0;
   /* 即時週期沒東西可畫時，要講清楚是「還在收」還是「根本沒設來源」。
      2026-09-18 起 15 分也走即時（後端不再預先產出，見 DECISIONS #156）——
@@ -4263,6 +4265,10 @@
         return;
       }
       const has = (barsFor(pg, tf) || []).length >= 5;
+      // 1時／4時：今天的即時 1 分 K 已經合成接上 → 跟分 K 一樣掛紅點
+      const hl = (tf === '60m' || tf === '240m') && hourLive(pg);
+      b.classList.toggle('livehr', hl);
+      if (hl) { b.classList.remove('off'); b.title = '今天盤中由即時 1 分 K 合成（09:00 起每小時一根，13:00～13:30 併進 13:00），收盤後由資料湖正式資料取代'; return; }
       b.classList.toggle('off', !has);
       b.title = has ? '' : (/m$/.test(tf) ? `${pg.meta.name}：${m60Why(pg)}` : '這個週期的資料準備中');
     });
@@ -4279,6 +4285,11 @@
         /* 同一天晚上拿掉的「MACD 背離」「停損／目標」（Andy：「MACD & 停損／目標背離先拿掉」）：
            舊存檔寫著 macdDiv:true／lines:true 也不畫 —— 鍵直接丟掉，畫圖時另外強制 macdDiv:false（見 mainCfg）。*/
         delete c.macdDiv; delete c.lines;
+        /* 2026-10-05 拿掉 5秒週期：存檔裡的 5s（週期勾選、四週期格、目前週期）一律換成 1 分，不留一顆按了沒反應的週期。*/
+        const no5 = (a) => (Array.isArray(a) ? a.map(t => (t === '5s' ? '1m' : t)) : a);
+        if (Array.isArray(c.tfOn)) c.tfOn = no5(c.tfOn).filter((t, i, x) => x.indexOf(t) === i);
+        c.mtfTfs = no5(c.mtfTfs);      // 四格不去重：格數要留 4 格，兩格同為 1 分也照畫（使用者可再換）
+        if (c.tf === '5s') c.tf = '1m';
         /* ★ 2026-09-28 分時走勢上線：已經存過週期勾選（tfOn）的舊使用者，自動補勾「分時」（Andy 明講要補，而且要當預設）。
            只補一次（tickMig）：補完之後使用者自己取消勾選，下次載入不會又被勾回來。*/
         if (Array.isArray(c.tfOn) && !c.tickMig) {
@@ -4334,12 +4345,27 @@
     open: '在你打開頁面之前',
     idle: '頁面在背景或連線中斷、沒收到報價',
   };
+  /* ★ 2026-10-05（Andy：「分時沒有資訊」，10:28～10:43 一段斜線）查證結論：
+     · Yahoo 官方說明（help.yahoo.com SLN2310）：.TW／.TWO 由 ICE Data Services 提供、延遲 20 分鐘 —— 不是我們抓太慢；
+     · 這段缺口＝「Yahoo 最後一根」到「打開頁面、開始收報價」之間。mis getStockInfo 只有當下快照、證交所沒有個股分時檔，
+       www.twse.com.tw/rwd 禁爬，沒有可合法補回過去分鐘的免費來源 → 補不了，只能等 Yahoo 追上來。
+     · 盤中每 2 分鐘重抓 Yahoo（livek.refreshHist），缺口會從左邊一路縮掉；分鐘 m 的資料約在 m＋20 分鐘出現，最多再等一輪 2 分鐘。
+     所以小標直接寫「Yahoo 延遲約 20 分，約 HH:MM 補上」，時間到了還沒補（重抓失敗）就寫「補資料中」。*/
+  const YAHOO_DELAY_MIN = 20;
+  function tickGapEta(g) {
+    const eta = +g[1] + 60 + (YAHOO_DELAY_MIN + 2) * 60;           // 缺口最後一分鐘＋延遲＋一輪重抓（epoch+8h）
+    const now = Date.now() / 1000 + 8 * 3600;
+    return now >= eta ? '' : new Date(eta * 1000).toISOString().slice(11, 16);
+  }
   function tickGapLabel(g, wait) {
-    // 小標只寫一句短的：Yahoo 還會追上來＝「等待」；這檔 Yahoo 根本沒有分 K（冷門股）＝「沒有」，不可以叫人等一個不會來的東西
-    return wait ? '此段等待資料' : '此段沒有資料';
+    // 小標只寫一句短的：Yahoo 還會追上來＝寫幾點補上；這檔 Yahoo 根本沒有分 K（冷門股）＝「沒有」，不可以叫人等一個不會來的東西
+    if (!wait) return '此段沒有資料';
+    const eta = tickGapEta(g);
+    return eta ? `Yahoo 延遲約 ${YAHOO_DELAY_MIN} 分，約 ${eta} 補上` : `Yahoo 延遲約 ${YAHOO_DELAY_MIN} 分，補資料中`;
   }
   function tickGapTitle(g, wait) {
-    return `${TICK_GAP_WHY[g[2]] || '沒收到資料'}，${wait ? '暫無資料（Yahoo 每 2 分鐘重抓，追上來後自動補上）' : '這一檔 Yahoo 沒有 1 分 K，這段補不回來'}`;
+    const eta = tickGapEta(g);
+    return `${TICK_GAP_WHY[g[2]] || '沒收到資料'}，${wait ? `暫無資料（Yahoo 延遲約 ${YAHOO_DELAY_MIN} 分鐘、每 2 分鐘重抓，${eta ? '約 ' + eta + ' 自動補上' : '追上來後自動補上'}；證交所沒有個股分時檔，沒有其他合法來源能補）` : '這一檔 Yahoo 沒有 1 分 K，這段補不回來'}`;
   }
   function tickLiveNote(d) {
     const hm = (t) => KUtil.fmtTime(t, '1m').slice(11, 16);
@@ -4358,7 +4384,8 @@
       }
       const why = sg.why === 'lead' ? 'Yahoo 還沒給今天的 1 分 K（延遲約 20 分鐘）'
         : sg.why === 'idle' ? '頁面在背景或連線中斷、沒收到報價' : '在你打開頁面之前';
-      return `${rng(sg)} ${why}，${d.yahooWait === false ? '這檔 Yahoo 沒有 1 分 K、補不回來' : '暫無資料（圖上斜線那段；Yahoo 追上來後自動補上）'}`;
+      const eta = tickGapEta([sg.a, sg.b]);
+      return `${rng(sg)} ${why}，${d.yahooWait === false ? '這檔 Yahoo 沒有 1 分 K、補不回來' : `暫無資料（圖上斜線那段；Yahoo 延遲約 ${YAHOO_DELAY_MIN} 分鐘，${eta ? '約 ' + eta + ' 自動補上' : '補資料中'}）`}`;
     });
     if (!parts.length) parts.push('今天的分時');
     return '今天的分時：' + parts.join('；') + '。虛線＝昨收，線在虛線上面＝漲、下面＝跌。';
@@ -4474,6 +4501,53 @@
     return '這檔目前沒有 1 小時分 K；日線／週線／月線正常';
   }
 
+  /* ★ 2026-10-05（Andy 10:47 回報 3221：「1時／4時沒有即時」）：資料湖的 60 分 K 最後一根是上一個交易日（盤後管線才寫今天），
+     盤中 1時／4時 停在昨天。改成：今天有盤時，把 livek.js 今天的 1 分 K（Yahoo 早盤＋報價尾巴）照後端 session_key 的切法
+     合成今天的 1 時棒 —— 09:00 起每小時一根、13:00～13:30 併進 13:00 那根（pipeline/compute/intraday_bars.session_key）——
+     接在資料湖後面；資料湖之後補上同一天時以資料湖為準（那天的即時棒整天丟掉，不混兩種口徑）。
+     4 時＝一天一根（session_key 的 H4 就是 09:00 一格），由合併後的 1 時依日期併。*/
+  function liveHourBars(pg) {
+    const L = window.LiveK;
+    if (!L || !L.session || !L.bars) return [];
+    const ses = L.session();
+    if (!ses || !ses.live || !ses.date) return [];
+    const out = []; let cur = null, key = null;
+    for (const b of (L.bars('1m') || [])) {
+      const t = +b[0]; if (!isFinite(t)) continue;
+      const iso = new Date(t * 1000).toISOString();         // epoch+8h → 台北牆鐘
+      if (iso.slice(0, 10) !== ses.date) continue;
+      const h = Math.min(13, Math.max(9, +iso.slice(11, 13)));
+      const k = `${ses.date}T${String(h).padStart(2, '0')}:00:00+08:00`;
+      if (k !== key) { if (cur) out.push(cur); key = k; cur = [k, +b[1], +b[2], +b[3], +b[4], +b[5] || 0]; }
+      else { cur[2] = Math.max(cur[2], +b[2]); cur[3] = Math.min(cur[3], +b[3]); cur[4] = +b[4]; cur[5] += +b[5] || 0; }
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+  function hourBars(pg) {
+    const lake = (pg.intraday && pg.intraday['60m']) || [];
+    const live = liveHourBars(pg);
+    if (!live.length) return lake;
+    const days = new Set(lake.map(b => String(b[0]).slice(0, 10)));
+    const add = live.filter(b => !days.has(b[0].slice(0, 10)));
+    return add.length ? lake.concat(add) : lake;
+  }
+  /** 今天的 1時／4時 有沒有接上即時（週期鈕紅點用）。*/
+  function hourLive(pg) {
+    const lake = (pg.intraday && pg.intraday['60m']) || [];
+    const live = liveHourBars(pg);
+    return live.length > 0 && !lake.some(b => String(b[0]).slice(0, 10) === live[0][0].slice(0, 10));
+  }
+  function byDay(bars) {
+    const out = []; let cur = null, d = null;
+    for (const b of bars) {
+      const k = String(b[0]).slice(0, 10);
+      if (k !== d) { if (cur) out.push(cur); d = k; cur = [`${k}T09:00:00+08:00`, +b[1], +b[2], +b[3], +b[4], +b[5] || 0]; }
+      else { cur[2] = Math.max(cur[2], +b[2]); cur[3] = Math.min(cur[3], +b[3]); cur[4] = +b[4]; cur[5] += +b[5] || 0; }
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
   function barsFor(pg, tf) {
     // 即時週期不吃 payload，直接跟 livek.js 拿（它自己在收）
     if (isLiveTf(tf)) return (window.LiveK ? window.LiveK.bars(tf) : []) || [];
@@ -4485,7 +4559,9 @@
     m = /^(\d+)W$/.exec(tf); if (m) return groupBars(KUtil.resampleDaily(daily || [], 'W'), +m[1]);
     // 240 分由 60 分現場合成（4 根併 1 根），後端不再預先產出 800 根
     // —— 同一份資料存兩次是浪費（DECISIONS #156）。
-    if (tf === '240m') return groupBars((pg.intraday && pg.intraday['60m']) || [], 4);
+    // 4 時＝一天一根（session_key H4）。以前是「每 4 根併 1 根」，一天 5 根 → 會跨日錯位。
+    if (tf === '240m') return byDay(hourBars(pg));
+    if (tf === '60m') return hourBars(pg);
     return (pg.intraday && pg.intraday[tf]) || [];
   }
   /* 四週期小圖吃的指標：跟大圖同一份設定，但只取主圖疊加（均線、BOLL）與成交量 ——
@@ -4519,7 +4595,8 @@
           return;      // 四週期同看或已離開，不用畫主圖
         }
         // 即時週期固然要重畫；日／週／月因為最後一根是「今天還沒收的」，也要跟著跳；分時的尾巴也是即時的
-        if (state.tf === 'tick' || isLiveTf(state.tf) || ['1d', '1w', '1M'].indexOf(state.tf) >= 0) apply();
+        if (state.tf === 'tick' || isLiveTf(state.tf) || ['1d', '1w', '1M', '60m', '240m'].indexOf(state.tf) >= 0) apply();
+        markTf(pg);
       });
     }
     const host = $('#chartHost');
