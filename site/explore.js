@@ -179,7 +179,7 @@
   const OPS = { '>=': (a, b) => a >= b, '<=': (a, b) => a <= b, '>': (a, b) => a > b };
 
   /* ---------------- 狀態與資料 ---------------- */
-  const ST = { cat: (CATS.some((c) => c[0] === LS.get('tw.explore.cat')) && LS.get('tw.explore.cat')) || 'all', tag: '', open: {}, info: {} };
+  const ST = { cat: (CATS.some((c) => c[0] === LS.get('tw.explore.cat')) && LS.get('tw.explore.cat')) || 'all', tags: [], dd: false, open: {}, info: {} };
   const HAVE = { ex: false, cand: false, streak: false, inst: false, theme: false };
   let R = [], RBY = {}, built = false, DATES = {};
 
@@ -268,6 +268,15 @@
   const logo = (r, sz) => (App().logo ? App().logo(r.code, r.name, sz) : '');
   const srcHTML = (s) => `<dl class="sl-src">${s.src.map((k) => `<dt>${esc(SRC[k][0])}</dt><dd>${esc(SRC[k][1])}</dd>`).join('')}</dl>`;
   const condTxt = (s) => s.conds.map(([label, , op, th, fmt]) => `${label} ${op === '>=' ? '≥' : op === '<=' ? '≤' : '>'} ${fmt(th)}`).join('，且 ');
+  /* 浮層用的精簡版（Andy 10-05：「"?"內標示篩選條件即可，不用說太多」）：只留條件＋一行小字的資料日期與出處簡稱；
+     完整的計算方式／門檻／出處明細留在「完整名單」頁（infoHTML）。出處簡稱取 SRC 長描述的第一段（全文在 title）。 */
+  const srcShort = (k) => { const t = SRC[k][1]; return /本站/.test(t) ? '本站計算' : t.replace(/^臺灣證券交易所/, '證交所').replace(/^臺灣集中保管結算所.*/, '集保').split(/[（；、，]/)[0].replace(/ (t\d|BWI|MI_|STOCK).*$/, '').trim(); };
+  function infoBrief(s) {
+    const src = [...new Set(s.src.map(srcShort))].join('・');
+    return `<div class="sl-info sl-brief" data-info="${s.id}">
+      <p><b>篩選條件：</b>${esc(condTxt(s))}。</p>
+      <p class="sl-dsrc" title="${esc(s.src.map((k) => SRC[k][0] + '：' + SRC[k][1]).join('\n'))}">資料：${esc([DATES[s.date], src].filter(Boolean).join('・'))}</p></div>`;
+  }
   function infoHTML(s) {
     return `<div class="sl-info" data-info="${s.id}">
       <p><b>篩選條件：</b>${esc(condTxt(s))}。</p>
@@ -283,17 +292,24 @@
   function shellWall(root) {
     root.innerHTML = `${LEGAL}
       <div class="sl-head"><h2>選股策略 <small>每張卡是一組公開條件；點一列看「為什麼入選」，點 i 看條件與資料出處</small></h2></div>
-      <div class="sl-chips" id="slChips" role="tablist" aria-label="策略分類"></div>
-      <div class="sl-tags" id="slTags"></div>
-      <div class="sl-wall" id="slGrid"></div>`;
+      <div class="nbsw sl-chips" id="slChips" role="tablist" aria-label="策略分類"></div>
+      <div class="nbbody sl-nb"><div class="sl-tags" id="slTags"></div>
+      <div class="sl-wall" id="slGrid"></div></div>`;
     root.onclick = onClick;
+    if (!ST.ddDoc) { ST.ddDoc = true; document.addEventListener('pointerdown', (e) => { if (ST.dd && !e.target.closest('.sl-ddw')) { ST.dd = false; paintChips(); } }, true); }
   }
   function paintChips() {
     const cnt = (c) => S_.filter((s) => c === 'all' || s.cat === c).length;
     $('#slChips').innerHTML = CATS.map(([k, en, zh]) => `<button type="button" class="sl-chip${ST.cat === k ? ' on' : ''}" data-cat="${k}" role="tab" aria-selected="${ST.cat === k}" title="${esc(en)}">${esc(zh)} <em>${cnt(k)}</em></button>`).join('');
     const tags = [...new Set(S_.filter((s) => ST.cat === 'all' || s.cat === ST.cat).flatMap((s) => s.tags))];
-    if (ST.tag && !tags.includes(ST.tag)) ST.tag = '';
-    $('#slTags').innerHTML = `<span class="sl-tl">子標籤</span>` + ['', ...tags].map((t) => `<button type="button" class="sl-tag${ST.tag === t ? ' on' : ''}" data-tag="${esc(t)}">${t ? esc(t) : '不限'}</button>`).join('');
+    /* 分類＝資料夾分頁（沿用產業地圖的 .nbsw，Andy 10-05「上方的標籤改用分頁…統一」）；
+       子標籤＝一顆下拉多選（Andy 10-05「子標籤用下拉式清單篩選」）：只列目前分頁的子標籤，勾選即篩、可清除，按鈕一行不換行。
+       多選是「任一符合」—— 勾越多張卡越多，跟一般電商篩選一致。 */
+    ST.tags = ST.tags.filter((t) => tags.includes(t));
+    const lab = ST.tags.length ? (ST.tags.length <= 2 ? ST.tags.join('、') : `${ST.tags.slice(0, 2).join('、')} 等 ${ST.tags.length} 個`) : '不限';
+    $('#slTags').innerHTML = `<span class="sl-tl">子標籤</span><span class="sl-ddw"><button type="button" class="sl-dd${ST.tags.length ? ' on' : ''}" id="slTagDd" aria-haspopup="listbox" aria-expanded="${ST.dd}" title="${esc(lab)}">${esc(lab)} ▾</button>`
+      + (ST.dd ? `<div class="sl-ddm" id="slTagMenu" role="listbox" aria-multiselectable="true"><div class="sl-ddl">${tags.map((t) => `<label class="sl-tag${ST.tags.includes(t) ? ' on' : ''}"><input type="checkbox" data-tag="${esc(t)}" ${ST.tags.includes(t) ? 'checked' : ''}>${esc(t)}</label>`).join('')}</div>`
+        + `<div class="sl-ddf"><button type="button" class="sl-ddclr" ${ST.tags.length ? '' : 'disabled'}>清除</button><button type="button" class="sl-ddok">完成</button></div></div>` : '') + '</span>';
   }
   function rowHTML(s, r, i) {
     const k = s.key, kv = k[1](r), open = ST.open[s.id] === r.code;
@@ -331,7 +347,7 @@
   function paintGrid() {
     const cats = ST.cat === 'all' ? CATS.slice(1) : [CBY[ST.cat] || CATS[1]];
     $('#slGrid').innerHTML = cats.map(([k, en, zh, q]) => {
-      const list = S_.filter((s) => s.cat === k && (!ST.tag || s.tags.includes(ST.tag)));
+      const list = S_.filter((s) => s.cat === k && (!ST.tags.length || ST.tags.some((t) => s.tags.includes(t))));
       if (!list.length) return '';
       return `<section class="sl-sec" data-cat="${k}" aria-label="${esc(zh)}">
         <h3 class="sl-sech"><span class="sl-ici sl-c-${k}">${icon(k)}</span>${esc(zh)} <span class="sl-secen">${esc(en)}</span>
@@ -417,12 +433,18 @@
 
   /* ---------------- 互動 ---------------- */
   function onClick(e) {
-    const ch = e.target.closest('.sl-chip'); if (ch) { ST.cat = ch.dataset.cat; ST.tag = ''; LS.set('tw.explore.cat', ST.cat); paintChips(); paintGrid(); return; }
-    const tg = e.target.closest('.sl-tag'); if (tg) { ST.tag = tg.dataset.tag; paintChips(); paintGrid(); return; }
+    const ch = e.target.closest('.sl-chip'); if (ch) { ST.cat = ch.dataset.cat; ST.tags = []; ST.dd = false; LS.set('tw.explore.cat', ST.cat); paintChips(); paintGrid(); return; }
+    if (e.target.closest('#slTagDd')) { ST.dd = !ST.dd; paintChips(); return; }
+    const tg = e.target.closest('input[data-tag]');
+    if (tg) { const t = tg.dataset.tag; ST.tags = tg.checked ? [...ST.tags, t] : ST.tags.filter((x) => x !== t); paintChips(); paintGrid(); return; }
+    if (e.target.closest('.sl-ddclr')) { ST.tags = []; paintChips(); paintGrid(); return; }
+    if (e.target.closest('.sl-ddok')) { ST.dd = false; paintChips(); return; }
+    if (e.target.closest('#slTagMenu')) return;
+    if (ST.dd) { ST.dd = false; paintChips(); }
     const ib = e.target.closest('.sl-i'); if (ib) {
       const id = ib.dataset.i, was = ST.info[id]; closePop(); if (was) return;
       ST.info[id] = true; ib.classList.add('on'); ib.setAttribute('aria-expanded', 'true');
-      openPop(ib, `<div class="sl-wt">${esc(SBY[id].name)}：篩選條件與資料出處</div>${infoHTML(SBY[id])}`, 'info'); return;
+      openPop(ib, `<div class="sl-wt">${esc(SBY[id].name)}：篩選條件</div>${infoBrief(SBY[id])}`, 'info'); return;
     }
     const rb = e.target.closest('.sl-rbtn'); if (rb) {
       const row = rb.closest('.sl-row'), id = row.dataset.sid, code = row.dataset.code;

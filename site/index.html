@@ -1858,7 +1858,8 @@ a.lk.sm{font-size:12px;font-weight:500}
 .nbsw{display:flex;gap:3px;align-items:flex-end;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
   padding:4px 2px 0;margin:0 0 -1px;position:relative;z-index:2;border:0}
 .nbsw::-webkit-scrollbar{display:none}
-.nbsw>button,.nbsw>a{flex:0 0 auto;display:inline-flex;align-items:center;gap:var(--sp-2);cursor:pointer;white-space:nowrap;
+/* ★ 全站共用分頁元件（DECISIONS：分頁一律 .nbsw；字級照產業地圖、文字置中、一行）*/
+.nbsw>button,.nbsw>a{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;text-align:center;gap:var(--sp-2);cursor:pointer;white-space:nowrap;
   margin-top:var(--sp-1);padding:var(--sp-1) var(--sp-3) var(--sp-2);border:1px solid var(--line-2);border-bottom:0;border-radius:9px 9px 0 0;
   background:var(--panel-3);color:var(--ink-2);font-size:13.5px;transition:background .15s,color .15s,margin-top .15s}
 @media (max-width:640px){.nbsw>button,.nbsw>a{gap:6px;margin-top:6px;padding:6px 13px 7px}}
