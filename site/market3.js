@@ -688,7 +688,7 @@
         if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; return { r, deno: '' }; }
       } catch (e) {
         why = 'Deno 連不上（' + ((e && e.name) || e) + '）';
-        if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; throw new Error(why); }
+        if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; throw new Error(pubWhy(why)); }
       }
     }
     if (!base) throw new Error('還沒設定即時來源');
@@ -698,13 +698,16 @@
       return { r: await fetch(base + path, { cache: 'no-store' }), deno: why };
     } catch (e) {
       if (!why) throw e;
-      throw new Error(why + '，備援來源也連不上（' + ((e && e.message) || e) + '）');
+      throw new Error(pubWhy(why) + '，備援來源也連不上');
     }
   }
   /** 兩條路都沒拿到時的說明。只走 Worker 時維持原本的「代理回 HTTP 502」字樣（既有驗收與 nightWhy 都認它）。*/
   function futFailText(g) {
-    return g.deno ? `${g.deno}，備援來源也回 HTTP ${g.r.status}` : '代理回 HTTP ' + g.r.status;
+    return g.deno ? `${pubWhy(g.deno)}，備援來源也回 HTTP ${g.r.status}` : '代理回 HTTP ' + g.r.status;
   }
+  /* 讀者畫面上不寫內部代理的名字（2026-10-06 廢話普查）：state.futDenoWhy 照舊記「Deno …」給驗收與除錯，
+     組成讀者看得到的字時才換成「主要來源」。*/
+  function pubWhy(w) { return String(w || '').replace(/^Deno /, '主要來源'); }
   async function fetchFut(session) {
     const g = await futGet(`/fut?session=${session}&t=${Date.now()}`);
     const r = g.r;
@@ -1970,7 +1973,7 @@
     const box = had || document.createElement('div');
     box.className = 'm3-night';
     box.innerHTML = `<div class="m3-q"><b>夜盤分時尚未取得</b></div>
-      <div class="note">${nightWhy()}</div>`;
+      <div class="note">這條線是本頁每分鐘收的成交價，滿 2 筆才連成線。${nightWhy()}</div>`;
     if (!had) el.appendChild(box);
   }
 
@@ -1998,8 +2001,7 @@
   function shortHistNote(x) {
     const s = spanOf(lakeSym(x)) || spanOf(x.id);
     if (!s || s.n >= WANT_BARS) return '';
-    return `${x.name}的歷史只有 ${s.n} 根日 K（${s.from} 起，約 ${(s.n / YEAR_BARS).toFixed(1)} 年）`
-      ;
+    return `${x.name}的歷史只有 ${s.n} 根日 K（${s.from} 起，約 ${(s.n / YEAR_BARS).toFixed(1)} 年）`;
   }
 
   /** 「?」裡的來源與量的完整口徑（#m3Note → app.js HOW.m3 打開時讀）。
@@ -2048,7 +2050,7 @@
       note.textContent = state.mode !== 'k'
         ? '紅／綠對照昨收；下方是每分鐘成交量。時間軸固定到收盤，空白＝還沒走到。'
           // 2026-10-03（DECISIONS #299）：三個數字的更新節奏不一樣，「?」裡講清楚（卡上只寫「5/15秒」）
-          + '盤中更新：加權、櫃買每 5 秒；台指期日盤每 15 秒（省 Deno 免費額度）；夜盤每 60 秒。'
+          + '盤中更新：加權、櫃買每 5 秒；台指期日盤每 15 秒；夜盤每 60 秒。'
         : srcNote() + (histDef(state.tf) ? lakeSpan() : '');
     }
     // 台指期的日盤／夜盤鈕：選中的要亮起來（以前藏在 drawFutNight 裡，拆掉之後移到這裡）

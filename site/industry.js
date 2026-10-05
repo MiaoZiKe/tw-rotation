@@ -990,7 +990,7 @@
      不標出來的話，使用者會把推論當成事實 —— 那正是這張圖最容易造成的傷害。*/
   const CONF_TEXT = { verified: '官方揭露', reported: '媒體報導', estimated: '產業推論' };
   /* 推論標籤的滑過說明（Andy 2026-09-25：只有推理的才要說明）。*/
-  const EST_TIP = '產業推論：由公開資訊推得，非公司或媒體揭露';
+  const EST_TIP = '產業推論＝由公開資訊推得，非公司或媒體揭露';
   /* 佐證連結。只認 https:// 開頭的 —— YAML 是人維護的，
      萬一有人寫了 javascript: 這種東西，這裡就是最後一道關。*/
   const srcLink = (u) => {
@@ -1166,7 +1166,7 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small><button class="howbtn pop" data-how="dg" data-ttl="產品剖析圖" type="button" aria-label="產品剖析圖怎麼看">?</button></div><span class="row" id="dgTools" style="gap:6px"><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small><button class="howbtn pop" data-how="dg" data-ttl="產品剖析圖" type="button" aria-label="產品剖析圖怎麼看">?</button></div><span class="row" id="dgTools" style="gap:6px"><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
             /* ★ 2026-10-04（docs/howto_audit_1004.md 第 5 項）：改前五條寫死給所有鏈，傳產這類鏈沒有關聯圖、也沒有 2D/3D，
@@ -4041,6 +4041,8 @@
         <div class="howtxt" id="how-kline" hidden>${A.howHTML('這張圖：這一檔的走勢（預設分時）、K 線、成交量與技術指標。', [
           /* ★ 2026-10-04（稽核第 6 項）：預設週期是「分時」（一條價格線＋昨收虛線），改前條列全是 K 線縮放、分時讀法只在不顯示的小字裡 */
           '預設是分時：線在昨收虛線上＝漲、下＝跌',
+          '切 K 線週期：圖內滾輪縮放、價格軸拖曳調高度',
+          '雙擊價格軸或按右下 ⌜⌟ 還原；副圖分隔線可拖',
           '週期鈕被劃掉＝這檔沒有那個週期資料',
         ], '「分時」：線在虛線（昨收）上面＝今天漲、下面＝跌，最後一段往哪邊走就是尾盤的方向；要看指標或畫線請切到 K 線週期。滑鼠移到劃掉的週期鈕上會說原因。分 K 每日盤後更新；K 棒會跟著上下寬度一起變。')}</div>
         <!-- ★ 2026-09-29 data-readout：這一行是「這一檔此刻畫的是哪一天、哪個來源、量是不是估計值、有沒有分時」的狀態讀數
@@ -6266,8 +6268,8 @@
     if (!ax) {
       ax = document.createElement('div');
       ax.className = 'peyaxis';
-      ax.title = 'Y 軸縮放';
-      ax.setAttribute('aria-label', '本益比河流圖 Y 軸縮放區');
+      ax.title = 'Y 軸：按住上下拖曳縮放、滾輪縮放、雙擊還原';
+      ax.setAttribute('aria-label', '本益比河流圖 Y 軸縮放區（上下拖曳、滾輪、雙擊還原）');
       ax.style.cssText = 'position:absolute;left:0;top:24px;bottom:34px;width:56px;z-index:6;cursor:ns-resize;touch-action:none;background:transparent';
       if (getComputedStyle(dom).position === 'static') dom.style.position = 'relative';
       dom.appendChild(ax);
@@ -6622,6 +6624,7 @@
           '每條帶＝近四季 EPS × 倍數，越紅越貴',
           '收盤線落在哪條帶＝市場現在給的評價',
           '倍數用這檔自己的歷史分位，非固定',
+          '左側 Y 軸上下拖曳或滾輪縮放，雙擊還原',
         ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="pekvs" id="peNote" data-readout></div></div>
       <div class="card" id="peQCard"><h3>本益比（每季）${hq('skpeq', '本益比（每季）')}</h3>${hbox('skpeq', ['線＝財報可用日收盤 ÷ 近四季 EPS', '帶＝同一季每天的本益比高低', '綠點＝虧損季（EPS < 0），本益比畫成負值', '▲＝超過圖上限，游標看實際值', '跟自己的過去比，看現在貴不貴'], '線與帶是同一條逐日本益比：線取那一季第一天（財報可用日），帶是那一季每天的最低～最高。圖上限＝max(200 倍, 近 5 年第 75 百分位 × 1.5)，最多 1000 倍。')}${psProf}<div id="peQ" class="chart"></div><div class="note" id="peQNote" data-readout></div></div>

@@ -3998,8 +3998,9 @@ def t_new_market3(pg, base):
     if n1 < 2:
         ok("說明面板畫在圖表容器裡面", count(pg, "#m3c-FUT .m3-night") == 1, count(pg, "#m3c-FUT .m3-night"))
         hint = text(pg, "#m3c-FUT .m3-night")
-        ok("有講出「沒有現成的分時序列」這件事", "分時序列" in hint, hint[:90])
-        ok("有講出點是一筆一筆收的、收滿 2 筆才畫", "2 筆" in hint, hint[:200])
+        # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「正在接期交所的分時端點…getChartData1M…」→「夜盤分時尚未取得」＋一句原因
+        ok("有講出「夜盤分時尚未取得」這件事", "夜盤分時" in hint, hint[:90])
+        ok("有講出點是一筆一筆收的、收滿 2 筆才畫", "2 筆" in hint, hint[:200])   # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：改寫成「這條線是本頁每分鐘收的成交價，滿 2 筆才連成線」
         ok("空狀態不是一塊塌掉的黑方塊（面板高度跟日盤一樣）",
            pg.evaluate("() => document.getElementById('m3c-FUT').getBoundingClientRect().height") > 200,
            pg.evaluate("() => document.getElementById('m3c-FUT').getBoundingClientRect().height"))
@@ -4107,7 +4108,8 @@ def t_new_market3(pg, base):
     ok("歷史只有 32 天時，週 K 真的只有幾根（重現 Andy 的畫面）", 0 < short_w < 20, short_w)
     warn = pg.evaluate("() => document.getElementById('m3c-TSE').dataset.fallback || ''")
     ok("這時候卡片上真的寫出「只有幾根日 K」", "根日 K" in warn, warn)
-    ok("而且寫出什麼時候會變長（回補中）", "回補" in warn, warn)
+    # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「26 年歷史正在回補（雲端每小時一輪），補完這裡會自己變長」是內部排程，拿掉；改成反向守
+    ok("而且不寫內部排程（回補／雲端每小時）", "回補" not in warn and "雲端" not in warn, warn)
     ok("三張卡片都各自說明自己的歷史長度",
        all(pg.evaluate("(id) => !!(document.getElementById('m3c-' + id).dataset.fallback || '')", i)
            for i in ("TSE", "OTC", "FUT")))
@@ -4821,7 +4823,7 @@ def t_new_market3(pg, base):
            all(x["kind"] == ("line" if sd else "k") for x, sd in zip(lk, seeded)), [lk, seeded])
     ok("★ 台指期的大數字也補上資料湖收盤（不再是「—」）", all(x["px"].strip() not in ("", "—") for x in lk), lk)
     ok("★ 錯誤訊息一律中文（畫面上不准出現 Failed to fetch）",
-       not any("Failed" in (x["fb"] + x["txt"]) for x in lk) and all("資料湖" in x["fb"] for x in lk if x["kind"] == "k"), lk)
+       not any("Failed" in (x["fb"] + x["txt"]) for x in lk) and all("日 K" in x["fb"] and "資料湖" not in x["fb"] for x in lk if x["kind"] == "k"), lk)   # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「先顯示資料湖的日 K」→「先顯示日 K」
 
     # --- ★ 游標：走勢圖讀得到價格＋該分鐘量；K 線每個週期讀得到開高低收＋量（Andy：部分圖不能顯示、還會報錯）
     pg.unroute("**/chart?*")
@@ -6230,7 +6232,8 @@ def t_new_flow(pg, base):
         pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()")
         pg.wait_for_timeout(2800)
         off = text(pg, "#sankeyLive")
-        ok("非盤中按「即時」有明講現在沒有盤", "不是盤中" in off, off[:120])
+        # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「現在不是盤中…下面畫的是最近一次收盤後的報價快照，不是盤中變化」→「非盤中（現貨 09:00–13:30）顯示最近一次報價快照」
+        ok("非盤中按「即時」有明講現在沒有盤", "非盤中" in off or "不是盤中" in off, off[:120])
         ok("非盤中也不是一張空圖（圖照樣畫得出來）",
            pg.evaluate("""() => { const el = document.getElementById('sankey');
                const c = echarts.getInstanceByDom(el);
@@ -14716,8 +14719,9 @@ def t_whomakes(pg, base):
     ok("MLCC：點本體只列真的做 MLCC 的四家（2327／2492／3026／6173），不含以電阻進來的 2375 凱美",
        cm["on"] and {"2327", "2492", "3026", "6173"} == set(cm["codes"]), cm["codes"])
     # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：沒有料號就整列不顯示（不寫「查不到…supply_chain.yaml」）
-    ok("MLCC 這一格沒有具名的上下游料號 → 小卡不列料號（不編一個出來，也不寫內部檔名）",
-       not cm.get("items") and "supply_chain" not in cm["text"] and "查不到" not in cm["text"], cm["text"][:200])
+    #   （料號列只在有具名料號時才出現；供應鏈資料補了料號就照列，所以這裡不再要求「一定沒有料號」）
+    ok("MLCC 小卡不寫「查不到…」否定說明、也不寫內部檔名",
+       "supply_chain" not in cm["text"] and "查不到" not in cm["text"], {"items": cm.get("items"), "text": cm["text"][-200:]})
 
     # ---------------- 9. 窄畫面：不溢出、不蓋住圖、字級守得住
     for w in (800, 390):
@@ -16251,7 +16255,8 @@ def t_r5(pg, base, code):
         return { cut, scrollable: w.scrollHeight > w.clientHeight + 2, fade: w.classList.contains('scrollfade'), hint: h && !h.hidden ? h.textContent : '' }; }""")
     ok("★ R5-7g 族群篩選框沒有被切一半的那一排", bool(gf) and gf["cut"] == 0, gf)
     if gf and gf["scrollable"]:
-        ok("★ R5-7g 還有更多排時看得出能捲（底部淡出＋「往下捲」提示）", gf["fade"] and "往下捲" in gf["hint"], gf)
+        # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：提示「還有 N 個族群在下面，往下捲 ↓」→「還有 N 個族群 ↓」
+        ok("★ R5-7g 還有更多排時看得出能捲（底部淡出＋「還有 N 個族群 ↓」提示）", gf["fade"] and "↓" in gf["hint"] and "還有" in gf["hint"], gf)
         pg.evaluate("() => { const w = document.getElementById('distGroups'); w.scrollTop = w.scrollHeight; w.dispatchEvent(new Event('scroll')); }")
         pg.wait_for_timeout(300)
         g2 = pg.evaluate("() => { const w = document.getElementById('distGroups'), h = document.getElementById('distGroupsHint'); return { fade: w.classList.contains('scrollfade'), hint: !!h && !h.hidden }; }")
@@ -28257,8 +28262,10 @@ def t_b21_hbm(pg, base):
        "2330" in b2t and "base die" in b2t and "12 奈米" in b2t and "HBM4" in b2t, b2t[:100])
     ok("HBM・T3 反向：整張圖上**沒有出現「台積電做 HBM」這種字** —— 它做的是那顆邏輯晶粒，不是記憶體顆粒",
        "台積電做 HBM" not in txt and "不是做記憶體顆粒" in txt, "")
-    ok("HBM・T4：第 ⑤ 段（製程設備）是**黃章**（單一來源、投資媒體整理，信心中低）",
-       (band[4] or {}).get("weak") == 1 and "信心中低" in (band[4] or {}).get("t", ""),
+    # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「信心中低」與「志聖不在供應鏈資料裡…」拿掉（黃章本身就寫「信心不足」）
+    ok("HBM・T4：第 ⑤ 段（製程設備）是**黃章**（單一來源、投資媒體整理）",
+       (band[4] or {}).get("weak") == 1 and "單一來源" in (band[4] or {}).get("t", "")
+       and "供應鏈資料" not in (band[4] or {}).get("t", ""),
        (band[4] or {}).get("t", "")[:90])
     ok("HBM・T2 反向：五段裡**至少兩段是紅章**（全綠就等於把這張圖最有價值的資訊藏起來了）",
        sum((b or {}).get("none", 0) for b in band) >= 2,
@@ -29555,8 +29562,11 @@ def t_e3_protect(pg, base):
        "`passive_comp` 的預設成員是做 MLCC 與晶片電阻的，列出來就是**錯的答案，不是不完整的答案**【紅線】",
        bool(pdef) and not nocos and not notempty,
        f"沒寫 cos 的 {nocos} ／ cos 不是空陣列的 {notempty}")
-    nonone = [k for k, v in pdef.items() if not v["none"]]
-    ok("保護元件・D2 反面：每一個零件都有 `none:` 的整句話 —— 空陣列會走這一支，那是唯一會被印出來的答案",
+    # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：第 ② 段那幾列（cp_who*）的 none 原本是
+    #   「這一列的公司全部不在 supply_chain.yaml 的環節裡…」（內部檔名＋否定說明），拿掉；
+    #   這幾列的公司名本來就寫在 desc 裡，小卡照樣有答案。其餘零件的 none 照舊必填。
+    nonone = [k for k, v in pdef.items() if not v["none"] and not k.startswith("cp_who")]
+    ok("保護元件・D2 反面：每一個零件都有 `none:` 的整句話（第 ② 段公司列的公司名寫在 desc）—— 空陣列會走這一支，那是唯一會被印出來的答案",
        not nonone, nonone)
 
     # ---------------- 零件小卡
@@ -36257,9 +36267,12 @@ def t_taifex_deno(b, base):
     ok("D. 兩條路都有被試過", hits["deno"] >= 1 and hits["worker"] >= 1, hits)
     ok("★ D. Deno 520＋Worker 502 → 小標退回「日盤」、卡片沒有畫夜盤那一份",
        r["label"] == "日盤" and r["shown"] != "night", r)
-    ok("★ D. 小標的說明同時講出「Deno 回 HTTP 520」與「Worker 也回 HTTP 502」",
-       "Deno 回 HTTP 520" in r["why"] and "Worker 也回 HTTP 502" in r["why"], {"why": r["why"], "title": r["title"]})
-    ok("D. 滑鼠移上去（title）也看得到同一個原因", "Deno 回 HTTP 520" in r["title"], r["title"])
+    # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：讀者畫面不寫內部代理名（Deno／Worker）→「主要來源」「備援來源」；
+    #   內部狀態 Market3.futDenoWhy 照舊記「Deno …」（上面 B／B2 在守）。
+    ok("★ D. 小標的說明同時講出「主要來源回 HTTP 520」與「備援來源也回 HTTP 502」（不寫 Deno／Worker）",
+       "主要來源回 HTTP 520" in r["why"] and "備援來源也回 HTTP 502" in r["why"]
+       and "Deno" not in r["why"] and "Worker" not in r["why"], {"why": r["why"], "title": r["title"]})
+    ok("D. 滑鼠移上去（title）也看得到同一個原因", "主要來源回 HTTP 520" in r["title"], r["title"])
     ok("D. 頁面沒爆", not boom, boom)
     ctx.close()
 
