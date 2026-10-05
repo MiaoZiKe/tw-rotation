@@ -77,3 +77,15 @@ def test_movers_漲停跌停與前段排除ETF():
 def test_新股不算漲停():
     d = pd.DataFrame({"code": ["7856"], "close": [11.0], "change": [1.0], "turnover": [1.0]})
     assert limit_flags(d, {"7856"}) == {}
+
+
+def test_總覽漲跌分佈兩端改用新漲停判定():
+    from pipeline.compute import flow
+    assert flow.updown_bin(9.52, 9.5, lim=0) == 9      # 3163 沒鎖住 → >5 那格
+    assert flow.updown_bin(9.68, 9.5, lim=1) == 10     # 鎖漲停
+    assert flow.updown_bin(11.33, 9.5, lim=0) == 9     # ETF 不算漲停
+    assert flow.updown_bin(-9.63, 9.5, lim=0) == 1
+    assert flow.updown_bin(-9.9, 9.5, lim=-1) == 0
+    assert flow.updown_bin(9.6, 9.5) == 10             # 沒給 lim 照舊
+    d = flow.updown_distribution([{"chg_pct": 9.6, "ud": 9, "market": "TWSE"}])
+    assert d["all"]["counts"][9] == 1 and d["all"]["counts"][10] == 0

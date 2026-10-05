@@ -1344,7 +1344,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     # ★ 2026-10-05：每列再帶 `lim`（1 漲停／-1 跌停／沒有就不寫），前端市場明細的漲停分頁與即時模式對照用。
     lim_today = limit_flags(day, new_listing)
     for it in index:
-        it["ud"] = flow.updown_bin(it["chg_pct"], LIMIT_PCT)
+        it["ud"] = flow.updown_bin(it["chg_pct"], LIMIT_PCT, lim=lim_today.get(it["code"], 0))
         if lim_today.get(it["code"]):
             it["lim"] = lim_today[it["code"]]
     _write("stocks", index)
