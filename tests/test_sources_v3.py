@@ -1082,3 +1082,164 @@ def test_etf名單_含近期沒成交但company_info標ETF(tmp_path, monkeypatch
     store.append("price_daily", pd.DataFrame({"date": ["2026-10-02"] * 2, "code": ["0050", "2330"],
                                               "close": [100.0, 1000.0], "turnover": [1.0, 2.0]}))
     assert run_backfill.etf_codes() == ["0050", "00774B"]
+
+
+# ================================================================== FRED 失敗原因要進 last_run.json
+# 真實事故（2026-09 ～ 2026-10-05）：macro.fred／macro.fred_calendar 每一輪都是 ok=False rows=0，
+# last_run.json 卻只寫得出「沒回資料」—— 沒金鑰？金鑰貼壞？金鑰沒註冊？參數錯？完全分不出來，
+# 財經日曆的 FED 卡就這樣空了好幾週。下面這幾條釘住：原因一定寫得出來、而且金鑰一個字都不能漏進去
+# （last_run.json 會 commit 進 public repo）。
+
+from pipeline.sources import macro  # noqa: E402
+from pipeline import run_daily  # noqa: E402
+
+_FAKE_KEY = "0123456789abcdef0123456789abcdef"   # 假金鑰，只用來檢查有沒有被抹掉
+_FRED_NOT_REG = {"error_code": 400,
+                 "error_message": "Bad Request.  The value for variable api_key is not registered.  "
+                                  "Read https://fred.stlouisfed.org/docs/api/api_key.html for more information."}
+
+
+class _Resp200:
+    def __init__(self, payload):
+        self.status_code = 200
+        self._payload = payload
+        self.text = str(payload)
+        self.headers = {"Content-Type": "application/json"}
+
+    def json(self):
+        return self._payload
+
+
+def _router_session(route, seen=None):
+    """依 params 決定回什麼的假 session；seen 收集每次送出的 (url, params)。"""
+    class _S:
+        def get(self, url, params=None, **kw):
+            if seen is not None:
+                seen.append((url, dict(params or {})))
+            return route(url, params or {})
+    return lambda: _S()
+
+
+def test_FRED_400的原因寫進attrs而且不含金鑰(monkeypatch):
+    monkeypatch.setattr(config, "FRED_KEY", _FAKE_KEY)
+    monkeypatch.setattr(http, "session", _fake_session(_Resp4xx(400, str(_FRED_NOT_REG), _FRED_NOT_REG)))
+    df = macro.macro_all()
+    assert df.empty
+    err = df.attrs.get("error", "")
+    n = len(config.FRED_SERIES)
+    assert f"{n}/{n}" in err and "HTTP 400" in err and "not registered" in err, err
+    assert _FAKE_KEY not in err
+    # 同一個原因只寫一次（12 檔都一樣時不要重複 12 遍）
+    assert err.count("not registered") == 1
+
+
+def test_FRED錯誤訊息裡回顯的金鑰會被抹掉(monkeypatch):
+    monkeypatch.setattr(config, "FRED_KEY", _FAKE_KEY)
+    body = {"error_code": 400,
+            "error_message": f"Bad Request. url=/fred/series/observations?api_key={_FAKE_KEY}&x=1 key {_FAKE_KEY}"}
+    monkeypatch.setattr(http, "session", _fake_session(_Resp4xx(400, str(body), body)))
+    err = macro.fred_series("FEDFUNDS").attrs["error"]
+    assert _FAKE_KEY not in err and "api_key=***" in err
+
+
+def test_FRED沒有金鑰時原因寫明(monkeypatch):
+    monkeypatch.setattr(config, "FRED_KEY", "")
+    assert "未設定 FRED_API_KEY" in macro.macro_all().attrs["error"]
+    assert "未設定 FRED_API_KEY" in macro.release_calendar().attrs["error"]
+
+
+def test_FRED金鑰格式自檢只講問題不講金鑰():
+    assert macro.key_problem(_FAKE_KEY) == ""
+    assert "長度 3" in macro.key_problem("abc")
+    assert "含大寫字母" in macro.key_problem(_FAKE_KEY.upper())
+    p = macro.key_problem(_FAKE_KEY[:-1] + " ")
+    assert "非英數" in p and _FAKE_KEY[:8] not in p
+    assert macro.key_problem("") == "未設定"
+
+
+def test_FRED金鑰頭尾的空白換行引號會被去掉():
+    """GitHub Secrets 網頁貼上時常多帶換行或引號，FRED 會回 400「not a 32 character …」。"""
+    import os
+    import subprocess
+    root = Path(__file__).resolve().parent.parent
+    env = {**os.environ, "FRED_API_KEY": f' "{_FAKE_KEY}"\n'}
+    out = subprocess.run([sys.executable, "-c", "from pipeline import config; print(config.FRED_KEY)"],
+                         cwd=root, env=env, capture_output=True, text=True, check=True).stdout.strip()
+    assert out == _FAKE_KEY
+
+
+def test_FRED部分成功_有資料也記下哪幾檔失敗(monkeypatch):
+    monkeypatch.setattr(config, "FRED_KEY", _FAKE_KEY)
+    ok = {"observations": [{"date": "2026-08-01", "value": "4.33"},
+                           {"date": "2026-09-01", "value": "."}]}     # "." 是 FRED 的「該期無值」
+
+    def route(url, params):
+        if params.get("series_id") == "FEDFUNDS":
+            return _Resp200(ok)
+        return _Resp4xx(400, str(_FRED_NOT_REG), _FRED_NOT_REG)
+    seen = []
+    monkeypatch.setattr(http, "session", _router_session(route, seen))
+    df = macro.macro_all()
+    assert df[["date", "series", "value"]].to_dict("records") == [
+        {"date": "2026-08-01", "series": "FEDFUNDS", "value": 4.33}]
+    n = len(config.FRED_SERIES)
+    assert f"{n - 1}/{n}" in df.attrs["error"]
+    url, params = seen[0]
+    assert url == config.FRED_API
+    assert params["file_type"] == "json" and params["api_key"] == _FAKE_KEY
+    assert params["observation_start"] == "2015-01-01"
+
+
+def test_FRED回應沒有observations時印出前200字(monkeypatch, caplog):
+    monkeypatch.setattr(config, "FRED_KEY", _FAKE_KEY)
+    monkeypatch.setattr(http, "session", _fake_session(_Resp200({"seriess": "上游改格式了"})))
+    with caplog.at_level("WARNING"):
+        df = macro.fred_series("FEDFUNDS")
+    assert df.empty and "上游改格式了" in caplog.text and "上游改格式了" in df.attrs["error"]
+
+
+def test_FRED公布日程_參數正確_失敗原因帶出(monkeypatch):
+    monkeypatch.setattr(config, "FRED_KEY", _FAKE_KEY)
+
+    def route(url, params):
+        if params.get("release_id") == 10:
+            return _Resp200({"release_dates": [{"release_id": 10, "date": "2026-10-14"},
+                                               {"release_id": 10, "date": "2026-11-13"}]})
+        return _Resp4xx(400, str(_FRED_NOT_REG), _FRED_NOT_REG)
+    seen = []
+    monkeypatch.setattr(http, "session", _router_session(route, seen))
+    df = macro.release_calendar(today="2026-10-06")
+    assert df["date"].tolist() == ["2026-10-14", "2026-11-13"]
+    assert set(df["release"]) == {"cpi"} and set(df["fetched"]) == {"2026-10-06"}
+    assert "3/4" in df.attrs["error"] and _FAKE_KEY not in df.attrs["error"]
+    url, params = seen[0]
+    assert url == config.FRED_RELEASE_DATES_API
+    # 不帶 include_release_dates_with_no_data=true 就拿不到未來的公布日
+    assert params["include_release_dates_with_no_data"] == "true"
+    assert params["realtime_start"] == "2026-06-08" and params["realtime_end"] == "9999-12-31"
+    assert params["file_type"] == "json" and params["release_id"] == 10
+
+
+def test_step把來源回報的失敗原因寫進last_run(monkeypatch):
+    monkeypatch.setattr(run_daily, "RESULT", {"steps": {}, "errors": [], "empty": []})
+
+    def src():
+        df = pd.DataFrame()
+        df.attrs["error"] = "HTTP 400：api_key is not registered"
+        return df
+    run_daily.step("macro.fred", src)
+    s = run_daily.RESULT["steps"]["macro.fred"]
+    assert s["ok"] is False and s["rows"] == 0 and "not registered" in s["error"]
+    assert run_daily.RESULT["empty"] == ["macro.fred"]
+    # 沒有回報原因的來源不多出 error 欄（前端與舊測試看的格式不變）
+    run_daily.step("x.ok", lambda: pd.DataFrame({"a": [1]}))
+    assert "error" not in run_daily.RESULT["steps"]["x.ok"]
+
+
+def test_每日工作流有把FRED金鑰傳進抓取那一步():
+    import yaml
+    wf = yaml.safe_load((Path(__file__).resolve().parent.parent / ".github/workflows/daily.yml")
+                        .read_text(encoding="utf-8"))
+    steps = [s for s in wf["jobs"]["collect"]["steps"] if "pipeline.run_daily" in (s.get("run") or "")]
+    assert steps, "找不到跑 run_daily 的那一步"
+    assert steps[0].get("env", {}).get("FRED_API_KEY") == "${{ secrets.FRED_API_KEY }}"

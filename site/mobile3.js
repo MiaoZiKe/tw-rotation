@@ -679,6 +679,8 @@
        改前「?」排在這一列最右邊（篩選鈕後面）→ 改後跟總覽一樣住在標題「資金輪動」文字的右側，彈窗標題才讀得到卡片名稱。*/
     box.innerHTML = `<div class="mhead"><h3>資金輪動<button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3>`
       + `<span class="sp"></span><button type="button" class="mfilt" id="mFlowFilt"></button></div>`
+      /* 2026-10-06：免責一行放在標題列正下方自己一行 —— 標題列（標題＋篩選鈕）在 390 只剩 43px，擠進去只看得到「不構…」*/
+      + (window.App && window.App.disc ? `<div class="mdisc">${window.App.disc('rot')}</div>` : '')
       + `<div class="mrhost" id="mRadarFlow"></div><div class="mfhost"></div>`
       + `<div class="mhead sm"><h3>資金排行</h3><small id="mRankSub"></small><span class="sp"></span></div><ul class="mrank" id="mRank"></ul>`;
     const draw = () => {

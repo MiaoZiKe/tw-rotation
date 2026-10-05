@@ -2804,7 +2804,14 @@
   /* pick＝下鑽名單目前打開哪一根（null＝收起）；sort＝名單排序（chg 漲跌幅／to 成交值）。2026-09-28 下鑽加的。*/
   const DIST = { market: '', groups: null, etf: false, pick: null, sort: 'chg' };
   /* 圖15 的篩選：市場（全部／上市／上櫃）、含不含 ETF、族群複選。
-     族群用「晶片」而不是下拉 —— 這頁本來就用晶片，語彙一致。*/
+     ★ 2026-10-06（Andy 截圖：按「族群篩選」展開成一大片族群膠囊牆＋「還有 101 個族群在下面，往下捲」）：
+       「改下拉式清單篩選」。族群改用全站共用的下拉多選（site/multiselect.js，window.TwMS）：
+       · 按鈕一行「族群：不限 ▾／族群：晶圓代工 ▾／族群：已選 N ▾」，固定寬度 —— 勾幾個都不會把這一排擠到換行；
+       · 面板浮在畫面上（不再插一塊膠囊牆進卡片），開／關、勾選都不改卡片高度，下面的圖不會被推下去又彈回來；
+       · 依產業鏈分組（groups_today 的 chain，跟資金輪動的兩層下拉同一份口徑），每個族群後面是目前市場別／含不含 ETF 下的檔數，
+         可搜尋、全選、清除；一勾就重畫分佈圖（跟以前點膠囊一樣即時）。
+       · 選項仍然是 stocks.json 的 `group`（名字），篩選條件一字未改：`DIST.groups.has(r.group || '（未分類）')`。
+     市場別／含 ETF 兩個就是 ≤ 3 個選項的分段鈕與勾選，維持原樣（style_guide 五：選項少的單選切換用分段鈕）。*/
   function wireDistFilter() {
     const box = $('#distFilter'); if (!box) return;
     const all = D.stocks || [];
@@ -2815,62 +2822,35 @@
       </div>
       <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2)">
         <input type="checkbox" id="distEtf" ${DIST.etf ? 'checked' : ''}>含 ETF</label>
-      <button class="btn small" id="distGroupBtn">族群篩選${DIST.groups ? `（${DIST.groups.size}）` : ''}</button>`;
+      <span id="distGroupDD"></span>`;
     $$('#distMkt button', box).forEach(b => b.onclick = () => {
       DIST.market = b.dataset.m; wireDistFilter(); drawChgDist();
     });
     const etf = $('#distEtf', box);
     if (etf) etf.onchange = () => { DIST.etf = etf.checked; if (mktKind === 'updown' && $('#mktTabs')) drawMarket('updown'); else drawChgDist(); };   // ★ 2026-10-05：含 ETF 也影響右表的漲幅／跌幅前段
-    const gb = $('#distGroupBtn', box);
-    if (gb) gb.onclick = () => {
-      const names = [...new Set(all.map(r => r.group || '（未分類）'))].sort();
-      const wrap = $('#distGroups') || (() => {
-        const d = document.createElement('div');
-        d.id = 'distGroups'; d.className = 'chainchips';
-        d.style.cssText = 'margin-top:8px;overflow:auto';
-        box.parentNode.parentNode.insertBefore(d, box.parentNode.nextSibling);
-        return d;
-      })();
-      if (wrap.dataset.open === '1') { wrap.dataset.open = '0'; wrap.innerHTML = ''; wrap.style.maxHeight = ''; wrap.classList.remove('scrollfade'); const h0 = $('#distGroupsHint'); if (h0) h0.hidden = true; return; }
-      wrap.dataset.open = '1';
-      wrap.innerHTML = `<button data-g="">全部</button>`
-        + names.map(g => `<button data-g="${fmt.esc(g)}" class="${DIST.groups && DIST.groups.has(g) ? 'on' : ''}">${fmt.esc(g)}</button>`).join('');
-      /* ★ 2026-09-25（審查 R5）：以前寫死 max-height:130px，剛好切在第 4 排的一半 ——
-         看起來像版面壞掉，也看不出下面還能捲。改成量出第 4 排的頂端、高度就停在**整整 3 排**，
-         有更多排時底部加一道淡出（`.scrollfade`），捲到底就拿掉；框下面再寫一句「還有幾個，往下捲」。*/
-      wrap.style.maxHeight = '';
-      const bs = [...wrap.querySelectorAll('button')];
-      const wr = wrap.getBoundingClientRect();
-      const rowTops = [...new Set(bs.map(x => Math.round(x.getBoundingClientRect().top - wr.top)))].sort((p, q) => p - q);
-      let hint = $('#distGroupsHint');
-      if (rowTops.length > 3) {
-        wrap.style.maxHeight = (rowTops[3] - 2) + 'px';
-        const hidden = bs.filter(x => Math.round(x.getBoundingClientRect().top - wr.top) >= rowTops[3]).length;
-        if (!hint) { hint = document.createElement('div'); hint.id = 'distGroupsHint'; hint.className = 'note'; wrap.parentNode.insertBefore(hint, wrap.nextSibling); }
-        hint.hidden = false; hint.textContent = `還有 ${hidden} 個族群 ↓`;
-        const fade = () => {
-          const atEnd = wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 2;
-          wrap.classList.toggle('scrollfade', !atEnd);
-          hint.hidden = atEnd;
-        };
-        wrap.onscroll = fade; fade();
-      } else {
-        wrap.classList.remove('scrollfade'); wrap.onscroll = null;
-        if (hint) hint.hidden = true;
-      }
-      $$('button', wrap).forEach(b => b.onclick = () => {
-        const g = b.dataset.g;
-        if (!g) DIST.groups = null;
-        else {
-          DIST.groups = DIST.groups || new Set();
-          if (DIST.groups.has(g)) DIST.groups.delete(g); else DIST.groups.add(g);
-          if (!DIST.groups.size) DIST.groups = null;
-        }
-        $$('button', wrap).forEach(x => x.classList.toggle('on', !!DIST.groups && DIST.groups.has(x.dataset.g)));
-        const btn = $('#distGroupBtn'); if (btn) btn.textContent = `族群篩選${DIST.groups ? `（${DIST.groups.size}）` : ''}`;
-        drawChgDist();
-      });
-    };
+    const dd = $('#distGroupDD', box);
+    if (!dd || !window.TwMS) return;
+    // 檔數＝目前市場別、含不含 ETF 之下，每個族群有幾檔（族群篩選本身不算進去 —— 那是你要勾的東西）
+    const isEtf = (r) => /^00/.test(String(r.code || ''));
+    const cnt = new Map();
+    all.forEach(r => {
+      const g = r.group || '（未分類）';
+      if (!cnt.has(g)) cnt.set(g, 0);
+      if (r.chg_pct != null && (!DIST.market || r.market === DIST.market) && (DIST.etf || !isEtf(r))) cnt.set(g, cnt.get(g) + 1);
+    });
+    const chainOf = {};
+    (D.groups_today || []).forEach(g => { if (g && g.group_name) chainOf[g.group_name] = g.chain || 'industry'; });
+    const chainIds = [...Object.keys(L.chains || {}), 'industry', '_other'];
+    const items = [...cnt.keys()].map(g => ({ v: g, t: g, n: cnt.get(g), g: chainOf[g] || '_other' }))
+      .sort((a, b) => chainIds.indexOf(a.g) - chainIds.indexOf(b.g) || b.n - a.n || a.t.localeCompare(b.t, 'zh-Hant'));
+    // 勾著的族群如果已經不在名單裡（理論上不會：名單取自全部 stocks，不受市場別影響），丟掉，避免按鈕寫「已選 2」畫面卻只篩 1 個
+    if (DIST.groups) { [...DIST.groups].forEach(g => { if (!cnt.has(g)) DIST.groups.delete(g); }); if (!DIST.groups.size) DIST.groups = null; }
+    TwMS.mount(dd, {
+      id: 'distGroups', label: '族群', placeholder: '搜尋族群或產業鏈…', width: '11.5em',
+      items, groups: chainIds.map(k => ({ k, t: k === '_other' ? '其他' : chainLabel(k) })),
+      selected: DIST.groups,
+      onChange: (v) => { DIST.groups = v; drawChgDist(); },
+    });
   }
 
   /* 圖16（Andy 2026-09-18）：「站上均線這邊需要可篩選曲線走勢圖可以看，
@@ -3326,6 +3306,41 @@
     MAT.ma = '20'; MAT.on = null;
     candFacet = 'all'; candSort = { key: null, dir: 1 }; candOpen = null; candGroups = null;
   }
+  /* ★ 2026-10-06（Andy 截圖市場明細「今日候選」標題右邊那塊空白：「這邊旁邊備註不構成投資建議的相關注意事項提醒」）：
+     有判定／評分／建議意味的卡，標題列右側一律一行小字免責 —— 跟選股策略標題旁那一句同一種
+     （12px、一行不換行、放不下省略、全文放 title）。文字集中在這一份，各卡用 App.disc(key) 或
+     <small data-disc="key"> 取同一份，免得每張卡各寫一句、口徑走樣。普查表見 docs/disclaimer_audit_1006.md。
+     [短句（畫面上那一行）, 全文（滑過看得到）]。短句一律「不構成投資建議」開頭：窄卡片只露得出前七八個字，
+     實測 1440 個股基本面卡只剩 101px —— 重點放後面就只看得到「動能分與估值…」，看不到免責本身。*/
+  const DISC = {
+    cand: ['不構成投資建議：條件篩選結果僅供研究，A／B 為規則判定、非買賣建議',
+      '「今日候選」是把符合預先公開之技術與籌碼條件的股票列出來：A＝回檔承接、B＝突破追進，都是固定規則的判定，'
+      + '不是買賣建議，也不構成投資建議。本站非證券投資顧問，投資決策與風險由使用者自行判斷並承擔。'],
+    rot: ['不構成投資建議：階段與短評為規則判讀，僅供研究',
+      '改善／領先／轉弱／落後四個階段，以及旁邊的短評（例如「回檔找買點」「先設好停利」），都是依族群相對大盤的強弱與動能'
+      + '用固定規則判讀，只描述資金目前的位置，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+    tag: ['不構成投資建議：符合／未符合是條件描述，僅供研究',
+      '符合／未符合是用月營收、季報與籌碼資料套固定條件算出來的描述，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+    fund: ['不構成投資建議：動能分與估值位置為規則計算',
+      '動能分（從 50 分起加減）與本益比在自己歷史、同業之間的位置，都是固定規則算出來的描述，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+    pe: ['不構成投資建議：分區名稱是自己歷史本益比的分位',
+      '低估／價值／合理／觀望／高估／警示是這一檔自己歷史本益比的分位區間名稱，只描述現在的本益比落在過去的哪一段，'
+      + '不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+  };
+  function discHTML(k, id) {
+    const d = DISC[k]; if (!d) return '';
+    return `<small class="disc-line" role="note" data-disc="${k}"${id ? ` id="${id}"` : ''} title="${fmt.esc(d[1])}">${fmt.esc(d[0])}</small>`;
+  }
+  /* index.html 裡寫死的 <small data-disc="rot"> 只放位置，文字在這裡填（同一份 DISC）*/
+  function fillDisc(root) {
+    (root || document).querySelectorAll('small[data-disc]').forEach(el => {
+      const d = DISC[el.dataset.disc]; if (!d) return;
+      el.classList.add('disc-line'); el.setAttribute('role', 'note');
+      if (el.textContent !== d[0]) el.textContent = d[0];
+      el.title = d[1];
+    });
+  }
+
   function drawMarket(kind) {
     // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
@@ -3335,6 +3350,8 @@
     // 法人連買賣的讀法在那張卡自己的 trust「?」；頁級 mkt 那顆在這一頁藏起來，不讓同一張卡標題出現兩顆內容重疊的「?」
     { const mb = $('.howbtn[data-how="mkt"]'); if (mb) mb.style.display = kind === 'streak' ? 'none' : ''; }
     $$('#mktSeg2 button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
+    // 標題列右側的免責：只有「今日候選」這一頁有 A／B 判定，其他分頁是事實統計，不掛（2026-10-06）
+    { const dz = $('#mktDisc'); if (dz) { dz.hidden = kind !== 'cand'; if (kind === 'cand') fillDisc(dz.parentElement); } }
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
     const gt = D.groups_today || [], cands = D.candidates || [], gd = D.groups_detail || {};
     const body = $('#mktBody'); const title = $('#mktTitle');
@@ -3636,7 +3653,7 @@
      Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
             現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」（附某券商網站的一排摘要卡）。
      每張卡回答一個問題，而且是「下面那張大圖」的一句話摘要 —— 點卡片就帶你去那張大圖：
-       · 漲跌家數：今天是普漲還是普跌？                → 點了進市場明細（完整的漲跌名單）
+       · 漲跌家數：今天是普漲還是普跌？                → 點了捲到下面的漲跌家數分佈；點上漲／平盤／下跌＝直接列出那一側（2026-10-06 起，改前是進市場明細）
        · 資金輪盤：強弱循環的四段各有幾個族群、誰最強？ → 點了捲到下面的資金輪盤
        · 資金去向：昨天的錢主要流進哪幾條產業鏈？       → 點了捲到下面的「昨日資金去向」
        · 熱門題材：哪個題材最熱？                        → 點了捲到熱門題材；點題材名＝直接在那張熱力圖打開那個題材
@@ -3672,7 +3689,7 @@
   function ovsCard(k, o) {
     OVS.eod[k] = { bar: o.bar || '<i class="osc-none"></i>', barCls: o.barCls || '', nums: o.nums, foot: o.foot || '&nbsp;',
       aria: o.aria, date: o.date || '', title: o.title, ds: o.ds || {} };
-    return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}">`
+    return `<div class="osc" data-k="${k}" role="link" tabindex="0" aria-label="${fmt.esc(o.aria)}"${o.tip ? ` title="${fmt.esc(o.tip)}"` : ''}>`
       + `<div class="osc-h">${ovsIcon(o.icon, o.color)}<b class="osc-t">${o.title}</b><button class="howbtn pop" data-how="ovs-${k}" data-ttl="${o.title}" type="button" aria-label="${o.title}怎麼看">?</button>${ovsDate(k, o.date)}<span class="osc-more" aria-hidden="true">›</span></div>`
       + `<div class="osc-bar${o.barCls ? ' ' + o.barCls : ''}">${o.bar || '<i class="osc-none"></i>'}</div>`
       + `<div class="osc-n">${o.nums}</div>`
@@ -3682,12 +3699,15 @@
   /* 四張卡的「比例條＋數字」組法抽出來 —— 盤後與即時用**同一支**組，兩邊長相（欄位、顏色、data-v）不會分岔，
      即時更新時 ovsMorph 才能逐格對上、只改數字。*/
   const ovsPct = (v, n) => (n ? fmt.n(v / n * 100, 1) + '%' : '—');
+  const ovsUdAttr = (v, name) => ` data-v="${v}" role="button" tabindex="0" title="列出${name}的股票（下方漲跌分佈）"`;
   function ovsUdParts(up, fl, dn) {
     const n = up + fl + dn;
     return {
       bar: ovsSeg(up, 'var(--rise)', `上漲 ${up} 檔`) + ovsSeg(fl, 'var(--flat)', `平盤 ${fl} 檔`) + ovsSeg(dn, 'var(--fall)', `下跌 ${dn} 檔`),
-      nums: n ? ovsNum('上漲', up, ovsPct(up, n), 'up', ' data-v="up"') + ovsNum('平盤', fl, ovsPct(fl, n), 'flat', ' data-v="flat"')
-        + ovsNum('下跌', dn, ovsPct(dn, n), 'down', ' data-v="down"') : '<span class="muted">尚無漲跌資料</span>',
+      /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」）：三個數字各自點得到 —— 點「下跌」＝捲到下方漲跌分佈、直接列出下跌那一側（ovsUdGo）。
+         tabindex／role 讓鍵盤也停得到；title 是滑過時的提示（跟整張卡的「看漲跌分佈」分開，講得出點這一格會看到什麼）。*/
+      nums: n ? ovsNum('上漲', up, ovsPct(up, n), 'up', ovsUdAttr('up', '上漲')) + ovsNum('平盤', fl, ovsPct(fl, n), 'flat', ovsUdAttr('flat', '平盤'))
+        + ovsNum('下跌', dn, ovsPct(dn, n), 'down', ovsUdAttr('down', '下跌')) : '<span class="muted">尚無漲跌資料</span>',
     };
   }
   const OVS_ROT_ORDER = ['leading', 'improving', 'weakening', 'lagging'];
@@ -3741,7 +3761,7 @@
       const P = ovsUdParts(up, fl, dn);
       cards.push(ovsCard('updown', {
         title: '漲跌家數', icon: 'pulse', color: 'var(--rise)', date: heat && heat.date,
-        aria: `漲跌家數：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下看市場明細`,
+        aria: `漲跌家數：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈`, tip: '看漲跌分佈',
         bar: P.bar, nums: P.nums,
         foot: to ? `成交值 <b>${to}</b>${ma ? `<span class="muted">・20 日均 ${ma}</span>` : ''}` : '',
         ds: { udN: n, udFrom: from },
@@ -3849,7 +3869,14 @@
 
     const track = $('#ovSumTrack');
     const go = (k, e) => {
-      if (k === 'updown') { location.hash = '#market/updown'; return; }
+      /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：
+         改前 → 換到 #market/updown；改後 → 留在總覽、捲到下方「漲跌家數」分佈卡（#ovBreadthCard）並閃一下；
+         點在「上漲／平盤／下跌」那一格上 → 到了直接列出那一側的股票。*/
+      if (k === 'updown') {
+        const n = e && e.target && e.target.closest ? e.target.closest('.osn[data-v]') : null;
+        ovsUdGo(n ? n.dataset.v : null);
+        return;
+      }
       if (k === 'theme') {
         const t = e && e.target && e.target.closest ? e.target.closest('[data-theme]') : null;
         if (t && th) { OVT.sel = t.dataset.theme; OVT.focus = null; renderOvThemes(th); }
@@ -3986,7 +4013,7 @@
     return {
       html: { bar: P.bar, nums: P.nums,
         foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・人工族群成分股，非全市場</span>`,
-        aria: `漲跌家數（即時估算 ${n} 檔人工族群成分股，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下看市場明細`,
+        aria: `漲跌家數（即時估算 ${n} 檔人工族群成分股，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈（盤後資料）`,
         ds: { udN: n, udFrom: 'live' } },
       info: { n, at, tip: `族群成分股 ${codes.length} 檔中有報價的 ${n} 檔；漲跌＝現價 vs 昨收。非全市場（全市場 ${all || '約 2300'} 檔盤後才有），偏中大型、偏電子。` },
     };
@@ -4217,17 +4244,61 @@
   }
   /* 捲到總覽下面的某張卡。手機（≤640）那張卡可能藏在別的分段裡（.mp-off）：先切到第①步的那一段，再捲。
      切分段用的是畫面上那兩排真的鈕（.mspine／.mpager）—— 跟使用者自己點是同一條路，分段記憶（localStorage）也跟著對。*/
-  function ovsJump(seg, anchor, self) {
+  function ovsJump(seg, anchor, self, step) {
     const view = $('#v-overview');
     if (mIsM() && view) {
       const spine = view.querySelector(':scope > .mspine');
-      const s1 = spine && spine.children[0];
+      /* step：那張卡在第幾步（預設第①步）。四步的鈕上寫著 ①②③④（miaPager 的 <em>），照字找，不照位置找 ——
+         沒有第③步的頁面（總覽現在是 ① ② ④）第二顆鈕就是 ②，照位置數會在哪天補上第③步時默默點錯。*/
+      const mark = '①②③④'[(step || 1) - 1];
+      const s1 = spine && (step ? [...spine.children].find(b => ((b.querySelector('em') || {}).textContent || '').trim() === mark) : spine.children[0]);
       if (s1 && !s1.classList.contains('on')) s1.click();
       const bar = view.querySelector(':scope > .mpager');
       const b = bar && [...bar.children].find(x => x.textContent.trim() === seg);
       if (b && !b.classList.contains('on')) b.click();
     }
     scrollSettle(anchor, self);
+  }
+
+  /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：摘要卡「漲跌家數」→ 同一頁下方的「漲跌家數」分佈卡。
+     side＝'up'／'flat'／'down'（點在那個數字上）或 null（點在卡片其他地方：只捲過去、不開清單）。
+     · 摘要卡的數字固定是「全部」市場（見 renderOvSummary ①），下方那張卡如果停在上市或上櫃，先切回全部 ——
+       不然點「下跌」打開的是上市那一半，清單家數跟卡上的數字對不起來，比不開還糟。只點卡片（不點數字）就不動它的市場別。
+     · 分佈圖是捲近了才畫（whenNear）：先記下要開哪一側（UDJ.want），runNear 叫它現在就畫，畫好 renderUpDown 自己打開。
+     · 手機（≤640）這張卡在「② 貴不貴 → 市場寬度」那一段：ovsJump 先切過去再捲（modules.js market.breadth）。*/
+  function ovsUdGo(side) {
+    ovsJump('市場寬度', 'ovBreadthCard', true, 2);
+    const sel = side ? udSelOf(side) : null;
+    if (sel) {
+      if (udMkt !== 'all') {
+        udMkt = 'all';
+        try { localStorage.setItem('tw.udMkt', 'all'); } catch (e) { /* 私密視窗：不記，這次照樣切 */ }
+        UDJ.want = side;
+        if (UDJ.last) renderUpDown(UDJ.last.stocks, UDJ.last.heat);     // 已經畫過：原地重畫成全部，結尾會吃掉 want
+      } else if (UDJ.open && echarts.getInstanceByDom($('#breadth'))) UDJ.open(sel);
+      else UDJ.want = side;
+    }
+    runNear($('#breadth'));
+    cardSpot($('#ovBreadthCard'));
+  }
+  /* 「到了」的提示：卡片外框亮一下（約 1.8 秒）。等卡片真的捲進視窗（露出 35%）才亮 ——
+     點下去當下就亮的話，平滑捲動還在半路，亮完了人才到。2.5 秒還沒進視窗（例如被別的東西擋住）也照樣亮一次收尾。*/
+  function cardSpot(el) {
+    if (!el) return;
+    const fire = () => {
+      el.classList.remove('cardspot'); void el.offsetWidth;          // 連點兩次：先拿掉再加，動畫才會重播
+      el.classList.add('cardspot');
+      clearTimeout(el._spotT); el._spotT = setTimeout(() => el.classList.remove('cardspot'), 2000);
+    };
+    if (typeof IntersectionObserver === 'undefined') { fire(); return; }
+    if (el._spotIO) el._spotIO.disconnect();
+    let t = 0;
+    const io = new IntersectionObserver((es) => {
+      if (!es.some(x => x.isIntersecting && x.intersectionRatio >= 0.35)) return;
+      io.disconnect(); clearTimeout(t); fire();
+    }, { threshold: [0, 0.35, 0.6] });
+    el._spotIO = io; io.observe(el);
+    t = setTimeout(() => { io.disconnect(); fire(); }, 2500);
   }
 
   // 圖表下方的可點連結列：圖上點得到的東西，這裡也一定點得到（手機沒有 hover）
@@ -7774,16 +7845,51 @@
   const udBinOf = (r) => (Number.isInteger(r.ud) && r.ud >= 0 && r.ud < UD_BINS.length ? r.ud
     : ('ud' in r ? null : (r.chg_pct != null && Number.isFinite(+r.chg_pct) ? udBin(r.chg_pct) : null)));
   let udStat = null;               // 給 HOW.breadth 讀的讀數（總家數、兩種口徑差幾檔、市場別不明幾檔）
+  /* ★ 2026-10-06（Andy：「漲跌浮點即是連結到下面」，補一句「而非市場明細分頁」）：
+     總覽頂端「漲跌家數」摘要卡點下去捲到這張卡；點卡上的「上漲」「下跌」數字＝到這裡直接列出那一側的股票。
+     這張卡原本只會「點一根直條列一級」，所以多一種清單：**一側**（上漲＝0~1…漲停五級、下跌＝跌停…-1~0 五級），
+     清單上面一排 .nbsw.lv2 分頁「全部＋各級」，點一級＝在原地只看那一級（不必再回去找那根直條）。
+     · sel：清單目前開著哪一段 —— { bin }＝單一級（點直條、或摘要卡的「平盤」）、{ side, lv }＝一側（lv＝null 是整側）。
+       開著的那一段直條維持原色、其他直條淡掉，看得出「下面這份清單是圖上哪幾根」。清單關掉就全部恢復。
+     · want：摘要卡點下去的時候這張圖可能還沒畫（首屏下方的卡是捲近了才畫，whenNear）→ 記下來，畫好那一刻再打開。
+     · last：最近一次畫圖用的資料（摘要卡要把市場別切回「全部」時，原地重畫一次就好，不必重新抓）。*/
+  const UDJ = { sel: null, want: null, last: null, open: null, mark: null };
+  const UD_SIDE = { up: { name: '上漲', bins: [6, 7, 8, 9, 10] }, down: { name: '下跌', bins: [0, 1, 2, 3, 4] } };
+  const udSelOf = (side) => (side === 'flat' ? { bin: 5 } : UD_SIDE[side] ? { side, lv: null } : null);
+  const udLab = (i) => (i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%'));
+  /* 清單標題寫資料日：盤中摘要卡打開即時後是「即時估算（約 455 檔）」，這張圖是盤後全市場 ——
+     從摘要卡點過來看到清單家數比卡上的即時數字大很多時，標題上的「MM/DD 盤後」就是答案。*/
+  const udAsOf = () => { const md = ovsMd(UDJ.last && UDJ.last.heat && UDJ.last.heat.date); return md ? `・${md} 盤後` : ''; };
+  /* 標題右邊那一行讀數：家數・資料日・（超過 60 檔才寫）列前 60。排序與上限的說明放 title（風格規範：卡上一行短字、說明進滑過提示），
+     手機 390 才放得進一行（改前「（依成交值，最多列 60 檔）」加上日期會折成兩行）。*/
+  const udMeta = (n) => `<span class="m" title="依成交值由大到小排，最多列 60 檔；每一檔點得進個股頁">${n} 檔${udAsOf()}${n > 60 ? '・列前 60' : ''}</span>`;
+  const udChips = (rows, none) => `<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
+        ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || `<span class="muted">${none}</span>`}</div>`;
   function udPanelFill(box, i, rows) {
-    box.hidden = false; box.dataset.bin = String(i); box.dataset.mkt = udMkt;
+    box.hidden = false; box.dataset.bin = String(i); box.dataset.mkt = udMkt; delete box.dataset.lv;
     const mk = udMkt === 'all' ? '' : `${UD_MKT_NAME[udMkt]}・`;
-    box.innerHTML = `<div class="hh"><b>${mk}${i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%')}</b>
-        <span class="m">${rows.length} 檔（依成交值）</span></div>
-      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
-        ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一級沒有股票</span>'}</div>`;
+    box.innerHTML = `<div class="hh"><b>${mk}${udLab(i)}</b>
+        ${udMeta(rows.length)}</div>
+      ${udChips(rows, '這一級沒有股票')}`;
+  }
+  /* 一側的清單。rowsOf(i)＝那一級依成交值排好的股票；onLv(lv)＝點分頁換級（交回 renderUpDown 那一份 show，直條才會跟著亮）。*/
+  function udSideFill(box, side, lv, rowsOf, onLv) {
+    const S = UD_SIDE[side];
+    const all = S.bins.flatMap(i => rowsOf(i)).sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
+    const rows = lv == null ? all : rowsOf(lv);
+    box.hidden = false; box.dataset.bin = side; box.dataset.mkt = udMkt; box.dataset.lv = lv == null ? '' : String(lv);
+    const mk = udMkt === 'all' ? '' : `${UD_MKT_NAME[udMkt]}・`;
+    const tab = (v, label, n) => { const on = v === (lv == null ? '' : String(lv));
+      return `<button type="button" role="tab" data-lv="${v}" class="${on ? 'on' : ''}" aria-selected="${on}">${label}<em>${n}</em></button>`; };
+    box.innerHTML = `<div class="hh"><b>${mk}${S.name}${lv == null ? '' : '・' + udLab(lv)}</b>
+        ${udMeta(rows.length)}</div>
+      <div class="nbsw lv2 udlv" role="tablist" aria-label="${S.name}各級">${tab('', '全部', all.length)}${S.bins.map(i => tab(String(i), UD_BINS[i].k, rowsOf(i).length)).join('')}</div>
+      <div class="nbbody udlvbody">${udChips(rows, `這一級沒有${S.name}的股票`)}</div>`;
+    box.querySelectorAll('.udlv button').forEach(b => { b.onclick = () => onLv(b.dataset.lv === '' ? null : +b.dataset.lv); });
   }
   function renderUpDown(stocks, heat) {
     const el = $('#breadth'); if (!el) return;
+    UDJ.last = { stocks, heat };
     const seg = $('#udMkt');
     if (seg && !seg.dataset.wired) {
       seg.dataset.wired = '1';
@@ -7791,7 +7897,8 @@
         if (b.dataset.m === udMkt) return;
         udMkt = b.dataset.m;
         try { localStorage.setItem('tw.udMkt', udMkt); } catch (e) { /* 私密視窗：不記，但這次照樣切 */ }
-        renderUpDown(stocks, heat);
+        const L0 = UDJ.last || { stocks, heat };
+        renderUpDown(L0.stocks, L0.heat);
       });
     }
     if (seg) $$('#udMkt button').forEach(x => { const on = x.dataset.m === udMkt; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -7802,6 +7909,7 @@
     if (!pool.length) {
       if (sum) sum.textContent = ''; el.style.height = ''; el.dataset.total = '0';
       if (box) box.hidden = true;
+      UDJ.sel = null; UDJ.want = null; UDJ.open = null; UDJ.mark = null;
       return empty('breadth', every.length ? `${UD_MKT_NAME[udMkt]}沒有逐檔漲跌資料` : '尚無逐檔漲跌資料');
     }
     const bins = UD_BINS.map(() => []);
@@ -7815,35 +7923,53 @@
     el.dataset.total = String(pool.length);                 // 驗收用：直條加總要等於這個數
     el.dataset.mkt = udMkt;
     el.style.height = '300px'; el.style.minHeight = '300px';
+    if (!box || box.hidden) UDJ.sel = null;                  // 清單沒開著：直條全部原色
     // 顏色：紅漲綠跌，越極端越飽和（讀 CH，切主題會跟著換）；平盤用中性灰
     const col = (i) => { const m = UD_BINS[i].m; if (!m) return CH.ink3;
       const a = .38 + .62 * Math.min(1, Math.abs(m) / 10); return hexA(m > 0 ? CH.up : CH.down, a); };
+    // 清單開著時：清單那一段的直條原色、其他淡掉（opacity 另外一格，不動 color —— 紅漲綠跌的驗收讀的是 color）
+    const lit = (i) => { const s = UDJ.sel; if (!s) return true;
+      if (s.side) return s.lv != null ? i === s.lv : UD_SIDE[s.side].bins.includes(i);
+      return i === s.bin; };
+    const barData = () => cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), opacity: lit(i) ? 1 : .28, borderRadius: [3, 3, 0, 0] } }));
+    /* 窄（手機 390：繪圖區約 300px 放 11 個刻度）時「<-5」「-5~-3」「-3~-1」會黏成一串讀不出來（2026-10-06 截圖量到）→ 刻度斜 45°。
+       卡片藏在別的分段裡（寬 0）時用視窗寬判斷；切回來 ResizeObserver 只 resize 不重設，所以這個判斷在畫的當下做一次就好。*/
+    const narrow = (el.clientWidth || innerWidth) < 520;
     const c = chart('breadth', {
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: (ps) => { const i = ps[0].dataIndex;
           const lab = i === 0 ? '跌停（≤ -9.5%）' : i === 10 ? '漲停（≥ +9.5%）' : i === 5 ? '平盤' : UD_BINS[i].k + '%';
-          return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）`; } },
-      grid: { left: 44, right: 12, top: 26, bottom: 28 },
+          return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
+      grid: { left: 44, right: 12, top: 26, bottom: narrow ? 50 : 28 },
       xAxis: { ...axisStyle, type: 'category', data: UD_BINS.map(b => b.k),
-        axisLabel: { color: CH.ink2, fontSize: 12, interval: 0 }, axisTick: { show: false } },
+        axisLabel: { color: CH.ink2, fontSize: 12, interval: 0, rotate: narrow ? 45 : 0 }, axisTick: { show: false } },
       // 縱軸不寫「家數」：直條頂端本來就標了家數，軸名在 1280～1920 都會戳出容器上緣 2px（_preview 抓到的）
       yAxis: { ...axisStyle, axisLabel: { color: CH.ink3, fontSize: 12 } },
       series: [{ type: 'bar', barWidth: '66%', cursor: 'pointer',
-        data: cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), borderRadius: [3, 3, 0, 0] } })),
+        data: barData(),
         label: { show: true, position: 'top', color: CH.ink2, fontSize: 12, formatter: (q) => (q.value ? String(q.value) : '') } }],
     }, { notMerge: true });
     const rowsOf = (i) => bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-    // 點外面／Esc 關；按市場分段鈕不算「點外面」—— 清單要留著、原地換成新市場的那一級
-    const arm = () => dismissable(box, () => { box.hidden = true; }, { ignore: ['#udMkt'] });
+    // 直條亮暗跟著清單走：每次都拿「現在掛在 #breadth 上的那一個實例」（換主題會整個重建，舊的 c 已經 dispose）
+    UDJ.mark = () => { const ci = echarts.getInstanceByDom(el); if (ci) ci.setOption({ series: [{ data: barData() }] }); };
+    // 點外面／Esc 關；按市場分段鈕不算「點外面」—— 清單要留著、原地換成新市場的那一段
+    const arm = () => dismissable(box, () => { box.hidden = true; UDJ.sel = null; if (UDJ.mark) UDJ.mark(); }, { ignore: ['#udMkt'] });
+    const show = (sel) => {
+      if (!box || !sel) return;
+      UDJ.sel = sel;
+      if (sel.side) udSideFill(box, sel.side, sel.lv, rowsOf, (lv) => show({ side: sel.side, lv }));
+      else udPanelFill(box, sel.bin, rowsOf(sel.bin));
+      arm(); UDJ.mark();
+    };
+    UDJ.open = show;
     if (c) c.off('click').on('click', (p) => {
       const i = p.dataIndex; if (!box || i == null) return;
-      udPanelFill(box, i, rowsOf(i)); arm();
+      show({ bin: i });
     });
-    // 切市場時清單正開著 → 同一級換成新市場的股票（不是關掉，也不是留著舊市場的名單）
-    if (box && !box.hidden && box.dataset.bin != null && box.dataset.mkt !== udMkt) {
-      const i = +box.dataset.bin;
-      if (i >= 0 && i < UD_BINS.length) { udPanelFill(box, i, rowsOf(i)); arm(); }
-    }
+    // 重畫時清單正開著（切市場、換主題）→ 同一段原地換成新市場的股票（不是關掉，也不是留著舊市場的名單）
+    if (box && !box.hidden && UDJ.sel) show(UDJ.sel);
+    // 摘要卡點「上漲／平盤／下跌」時圖還沒畫好 → 現在畫好了，打開那一側
+    if (UDJ.want) { const w = UDJ.want; UDJ.want = null; show(udSelOf(w)); }
   }
 
   /* 投信連續買超：長條圖只講得出「買幾天」，講不出「買多少」。
@@ -8058,6 +8184,8 @@
     'ovs-updown': howHTML('今天上漲、下跌、平盤各幾檔。', [
       '比例條＝上漲（紅）／平盤（灰）／下跌（綠）的家數占比',
       '最後一行＝大盤成交值，跟 20 日均比',
+      '點這格捲到下方漲跌分佈',
+      '點上漲／平盤／下跌，直接列出那一側的股票',
     ]),
     'ovs-rot': howHTML('族群在強弱循環的四段各有幾個。', [
       '四段＝領先／改善／轉弱／落後，加總＝全部族群',
@@ -12834,6 +12962,7 @@
     if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
     initMore();                 // 手機頂欄的「⋯ 更多工具」（G1／G9）
     initSwipeHints();           // 橫向可捲容器的「← 左右滑 →」提示（G6）
+    fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { srcInfo, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
@@ -12857,6 +12986,7 @@
       rotFrameNow: () => rotFrame,
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
+      disc: discHTML, DISC,                // 判定／評分類卡片標題列的一行免責（2026-10-06；industry.js、mobile3.js 用）
       logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
       logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG, sparkData,
       trendSeries, trendRange, trendText, pxFmt,   // 迷你走勢與自選展開大圖共用的口徑（DECISIONS #290）
