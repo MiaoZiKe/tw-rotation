@@ -56,7 +56,7 @@
 #v-admin .secttl h2{font-size:var(--fs-h2,20px);font-weight:600}
 #v-admin .trkpi{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px}
 #v-admin .trkpi .kpis{flex:1 1 560px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
-#v-admin .kpis>div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+#v-admin .kpis>div{text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;color:var(--ink-2);white-space:nowrap}
 #v-admin .kpis b{display:block;font-size:24px;line-height:1.15;font-weight:700;color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums}
 #v-admin .kpis .ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;margin-bottom:2px;background:color-mix(in srgb,currentColor 16%,transparent)}
 #v-admin .kpis .ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -70,7 +70,7 @@
 #admBody .admgrid>.card>.use{margin:2px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;font-size:13px;line-height:20px;color:var(--ink-2)}
 #admBody .cb{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 /* 長條榜：名稱／長條／數字三欄；列高在 30～64 之間隨可用高度長大，多的空間平均分在列間（資料少＝列距變寬，不留底部空白） */
-#admBody .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:minmax(var(--chart-row-h,30px),var(--tr-row-max,60px));align-content:space-evenly;column-gap:12px;align-items:center;font-size:var(--fs-body,14px)}
+#admBody .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:var(--chart-row-h,32px);align-content:space-evenly;column-gap:12px;align-items:center;font-size:var(--fs-body,14px)}
 #admBody .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 #admBody .bars .bt{height:var(--chart-bar-h,14px);background:var(--panel-3);border-radius:999px;overflow:hidden}
 #admBody .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
@@ -111,8 +111,9 @@
 #admBody table{width:100%;border-collapse:collapse;flex:1 1 auto}
 #admBody table th,#admBody table td{padding:4px 10px;line-height:1.4;font-size:14px;text-align:center;border-bottom:1px solid var(--line)}
 #admBody table th{font-size:12px;font-weight:600;color:var(--ink-2);white-space:nowrap;position:sticky;top:0;background:var(--panel-3);z-index:1}
-#admBody table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+#admBody table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
 #admBody table td:first-child{max-width:none}
+#admBody table.fx{table-layout:fixed}#admBody table.fx td{max-width:none}
 #admBody table tbody tr{height:34px}
 #admBody table td.nm{font-weight:600}
 #admBody table td .mn{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -130,6 +131,26 @@
 #admBody .okn b{font:700 18px/1.2 var(--mono);color:var(--ink)}
 #admBody .okn>div.live b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat-1);margin-right:6px;vertical-align:middle}
 #admBody label.tg{margin-top:10px}
+#trDetail .cdgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap-card,12px)}
+#trDetail .cdgrid>div{display:flex;flex-direction:column;min-width:0;min-height:260px}
+#trDetail .cdgrid h3{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-h3,16px);font-weight:600}
+#trDetail .cdgrid h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent,var(--cyan));flex:none}
+#trDetail .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:32px;align-content:space-evenly;column-gap:12px;align-items:center;font-size:14px}
+#trDetail .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+#trDetail .bars .bt{height:14px;background:var(--panel-3);border-radius:999px;overflow:hidden}
+#trDetail .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
+#trDetail .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap}
+#trDetail .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
+#trDetail .bars button.bl.on{color:var(--accent,var(--cyan));text-decoration:none;font-weight:700}
+/* 管理區 1005：開放功能表的分類卡改成「欄流」排版（CSS columns）—— 每欄由上往下接著排、高度各依內容，不再因為同列拉齊而在短卡下方留一大片空白；字級照其他分頁（卡標 16/600、列名 14） */
+#v-admin .pmcats.pmcards{display:block;column-count:4;column-gap:12px;margin-top:10px}
+#v-admin .pmcats.pmcards>.pmcat.brk{break-before:column}
+@media (max-width:1100px){#v-admin .pmcats.pmcards{column-count:2}#v-admin .pmcats.pmcards>.pmcat.brk{break-before:auto}}
+@media (max-width:640px){#v-admin .pmcats.pmcards{column-count:1}}
+#v-admin .pmcats.pmcards>.pmcat.card{break-inside:avoid;margin:0 0 12px;display:block}
+#v-admin .pmcards .pmcat.card .pmcathd h3{font-size:var(--fs-h3,16px);font-weight:600}
+#v-admin .pmcards .pmcat.card .pmcathd h3 small{font-size:12px}
+#v-admin .pmcats .pmrow .pmtx b{font-size:14px;font-weight:500}
 @media (max-width:1100px){#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
@@ -614,35 +635,44 @@
     const scat = views.slice(0, 30).map((r) => ({ code: r.detail, x: r.n, y: ((useBy[r.detail] || []).reduce((s, x) => s + x.n, 0)) / Math.max(1, r.n) }));
     const pages = [...new Set(e2.map((r) => r.page))];
     if (!pages.includes(S.page)) S.page = pages.includes('flow') ? 'flow' : (pages[0] || 'flow');
+    const ICO = {
+      eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+      globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
+      user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+      help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>',
+      trend: '<svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>' };
+    const kpi = (ic, col, val, lab, id) => `<div><span class="ic" style="color:${col}">${ICO[ic]}</span><b${id ? ` id="${id}"` : ''}>${val}</b>${lab}</div>`;
+    const fillBar = (n, max) => `<span class="vb"><span><i style="width:${(n / Math.max(1, max) * 100).toFixed(1)}%"></i></span><em>${nf(n)}</em></span>`;
     v.querySelector('#admBody').innerHTML = `
       <div class="secttl"><h2>全站總覽</h2><small>${esc(st.from)} ～ ${esc(st.to)}（台北）</small></div>
-      <div class="card trkpi" id="trKpi" style="margin-top:10px"><div class="kpis"><div><b>${nf(pvTotal)}</b>頁面瀏覽</div><div><b>${nf(sessions)}</b>開啟網站</div>
-        <div><b>${sessions ? Math.round(loginSess / sessions * 100) : 0}%</b>登入狀態開啟</div><div><b id="trHowN">${nf(howN)}</b>全站「?」點擊</div><div><b>${nf(views.reduce((s, r) => s + r.n, 0))}</b>個股被觀看</div></div>
+      <div class="card trkpi" id="trKpi" style="margin-top:10px"><div class="kpis">${kpi('eye', 'var(--cat-1)', nf(pvTotal), '頁面瀏覽')}${kpi('globe', 'var(--cat-2)', nf(sessions), '開啟網站')}
+        ${kpi('user', 'var(--cat-3)', (sessions ? Math.round(loginSess / sessions * 100) : 0) + '%', '登入狀態開啟')}${kpi('help', 'var(--cat-4)', nf(howN), '全站「?」點擊', 'trHowN')}${kpi('trend', 'var(--cat-5)', nf(views.reduce((s, r) => s + r.n, 0)), '個股被觀看')}</div>
         <div class="trctl"><label>期間 <select id="admDaysSel">${[7, 30, 90, 365].map((d) => `<option value="${d}" ${d === S.days ? 'selected' : ''}>近 ${d} 天</option>`).join('')}</select></label>
           <button type="button" id="admRefresh">重新整理</button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
       <div class="admgrid">
-        <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use" title="${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。">${S.days} 天各頁瀏覽・點一頁看明細</p>${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div>
-        <div class="card" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。">每天的頁面瀏覽總次數</p>
-          ${dayChart(days, perDay, dmax)}</div>
-        <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use" title="個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。">個股頁被打開次數，前 10 名</p>
-          ${bars(topV.map((r) => [r.detail, r.n]), stockNm, 0, { id: 'trStockBars' })}</div>
-        <div class="card" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use" title="上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。">前 10 檔各自最常用的三個功能</p>
-          ${featRows.length ? `<table><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td>${esc(stockNm(r.code))}</td><td>${nf(r.views)}</td><td>${r.top.length ? r.top.map((x) => `${esc(compName(x.comp))} <small style="color:var(--ink-2)">${nf(x.n)}</small>`).join('・') : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div>
-        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。">開啟網站時是否已登入</p>${donut([['登入', loginSess, 'var(--cat-1)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--cat-2)']])}</div>
+        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。">每天的頁面瀏覽總次數</p><div class="cb">${dayChart(days, perDay, dmax)}</div></div>
+        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。">開啟網站時是否已登入</p><div class="cb">${donut([['登入', loginSess, 'var(--cat-1)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--cat-2)']])}</div></div>
+        <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use" title="${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。">${S.days} 天各頁瀏覽・點一頁看明細</p><div class="cb">${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div></div>
+        <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use" title="個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。">個股頁被打開次數，前 10 名</p><div class="cb">${bars(topV.map((r) => [r.detail, r.n]), stockNm, 0, { id: 'trStockBars' })}</div></div>
+        <div class="card" id="admEv"><h3>哪個功能最常被用？（全站）</h3><p class="use" title="${S.days} 天內每個功能被按的總次數（不分頁）。分頁裡的細節看下面「分頁明細」。">${S.days} 天內每個功能被按的總次數</p><div class="cb">${bars(evList.slice(0, 10), EV_NAME, 0)}</div></div>
+        <div class="card s2" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use" title="上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。">前 10 檔各自最常用的三個功能</p>
+          <div class="cb">${featRows.length ? `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td>${fillBar(r.views, featRows[0].views)}</td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div></div>
+        <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use" title="散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。">右上＝熱門又被深度使用</p><div class="cb">${scat.length < 2 ? '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>' : '<div class="sc" id="trSc"></div>'}</div></div>
         <div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use" title="最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。">近 2.5 分鐘有動作・30 秒更新</p>
-          <div class="kpis"><div><b id="admOnN">${on.total}</b>在線（分頁數）</div><div><b>${on.users.length}</b>登入者</div><div><b>${on.guests}</b>訪客</div></div>
-          ${on.users.length ? `<table><thead><tr><th>名稱</th><th>email</th><th>在看</th><th>最後動作</th></tr></thead><tbody>${on.users.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(VIEW_NAME[u.route] || u.route)}</td><td>${ago(u.seen)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">目前沒有登入者在線上。</div>'}
-          <label class="tg" style="margin-top:12px"><input type="checkbox" id="admPub" ${on.public_online ? 'checked' : ''}>一般訪客看得到「目前 N 人在線」（只有總數，看不到名字）</label></div>
-        <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use" title="散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。">右上＝熱門又被深度使用</p>${scatter(scat)}</div>
-        <div class="card" id="admEv"><h3>哪個功能最常被用？（全站）</h3><p class="use" title="${S.days} 天內每個功能被按的總次數（不分頁）。分頁裡的細節看下面「分頁明細」。">${S.days} 天內每個功能被按的總次數</p>${bars(evList, EV_NAME, 0)}</div>
-        <div class="card" id="admUsers" style="grid-column:1 / -1"><h3>最近有哪些會員來過？</h3><p class="use" title="依最後使用時間排序（最多列 50 位）。要新增、設到期日、看造訪次數，到「會員管理」。">共 ${st.users.total} 位・依最後使用排序</p>
-          ${st.users.recent.length ? `<table><thead><tr><th>名稱</th><th>email</th><th>加入</th><th>最後使用（台北）</th></tr></thead><tbody>${st.users.recent.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${dstr(u.created)}</td><td>${dstr(u.seen)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">還沒有會員。</div>'}</div>
+          <div class="cb"><div class="okn kpis"><div class="live"><b id="admOnN">${on.total}</b>在線（分頁數）</div><div><b>${on.users.length}</b>登入者</div><div><b>${on.guests}</b>訪客</div></div>
+          ${on.users.length ? `<div class="tbw"><table><thead><tr><th>名稱</th><th>在看</th><th>最後動作</th></tr></thead><tbody>${on.users.map((u) => `<tr><td title="${esc(u.email)}">${esc(u.name)}</td><td>${esc(VIEW_NAME[u.route] || u.route)}</td><td>${ago(u.seen)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">目前沒有登入者在線上。</div>'}
+          <label class="tg"><input type="checkbox" id="admPub" ${on.public_online ? 'checked' : ''}>一般訪客看得到「目前 N 人在線」（只有總數）</label></div></div>
+        <div class="card s2" id="admUsers"><h3>最近有哪些會員來過？</h3><p class="use" title="依最後使用時間排序（最多列 50 位）。要新增、設到期日、看造訪次數，到「會員管理」。">共 ${st.users.total} 位・依最後使用排序</p>
+          <div class="cb">${st.users.recent.length ? `<div class="tbw"><table><thead><tr><th>名稱</th><th>email</th><th>加入</th><th>最後使用（台北）</th></tr></thead><tbody>${st.users.recent.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${dstr(u.created)}</td><td>${dstr(u.seen)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">還沒有會員。</div>'}</div></div>
       </div>
       <div class="secttl" id="trDetailTtl"><h2>分頁明細</h2><small>選一頁，看那一頁的每個元件被用幾次、細項（哪個族群、哪一檔）是誰</small></div>
       <div class="card" id="trDetail" style="margin-top:10px">
         <div class="nbsw lv2 seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
         <div id="trPageBody"></div></div>`;
+    if (S.ro) { S.ro.disconnect(); S.ro = null; }
+    const scBox = v.querySelector('#trSc');
+    if (scBox) { const draw = () => drawScatter(scBox, scat); draw(); if (window.ResizeObserver) { let lw = scBox.clientWidth, lh = scBox.clientHeight; S.ro = new ResizeObserver(() => { if (Math.abs(scBox.clientWidth - lw) > 2 || Math.abs(scBox.clientHeight - lh) > 2) { lw = scBox.clientWidth; lh = scBox.clientHeight; draw(); } }); S.ro.observe(scBox); } }
     v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
     v.querySelector('#admRefresh').onclick = () => paint();
     const pub = v.querySelector('#admPub');
@@ -672,36 +702,50 @@
         ${S.comp ? bars(det.map((r) => [r.detail, r.n]), (k) => k, 0, { id: 'trDetBars' }) : ''}</div></div>`;
     box.querySelector('#trCompBars').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; S.comp = b.dataset.k; paintPage(); };
   }
-  /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代，不留空白）；左邊 y 軸 0／一半／最大值＋橫向淡線；每根的值在滑過提示 */
+  /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代）。圖區吃滿卡片高度；y 軸 0／一半／最大值＋淡格線＋平均虛線；
+     最高那天標值；天數 ≤ 7 時每根放大（寬到 140）並在柱上標值、柱下標日期，不再是細細兩根留一大片空白 */
   function dayChart(days, perDay, dmax) {
     const i0 = days.findIndex((d) => (perDay[d] || 0) > 0);
     if (i0 < 0) return '<div class="empty">這段期間還沒有瀏覽紀錄。</div>';
-    const shown = days.slice(i0), mid = Math.round(dmax / 2);
+    const shown = days.slice(i0), mid = Math.round(dmax / 2), few = shown.length <= 7;
+    const avg = shown.reduce((s, d) => s + (perDay[d] || 0), 0) / shown.length, mxd = shown.reduce((a, d) => ((perDay[d] || 0) > (perDay[a] || 0) ? d : a), shown[0]);
     const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
     return `<div class="dayplot"><div class="dayy"><span>${nf(dmax)}</span><span>${nf(mid)}</span><span>0</span></div>
-      <div class="days" id="admDayBars" data-first="${esc(shown[0])}">${shown.map((d) => `<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${nf(perDay[d] || 0)} 次"></i>`).join('')}</div></div>
+      <div class="days${few ? ' few' : ''}" id="admDayBars" data-first="${esc(shown[0])}">${shown.map((d) => `<div class="dc${d === mxd ? ' mx' : ''}">${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${nf(perDay[d] || 0)} 次"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
+        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
       <div class="dayx"><span>${esc(shown[0])}</span>${note ? `<span class="dayno" id="admDayNote">${note}</span>` : ''}<span>${esc(shown[shown.length - 1])}</span></div>`;
   }
-  function scatter(pts) {
-    if (pts.length < 2) return '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>';
-    const W = 480, H = 260, L = 44, B = 34, T = 12, R = 16;
+  /* 散佈圖：依容器實際大小畫（ResizeObserver 重畫），圖吃滿卡片；格線 3 條、軸刻度＝真值；標籤避開已放的標籤 */
+  function drawScatter(box, pts) {
+    if (!box) return;
+    const W = Math.max(240, Math.round(box.clientWidth)), H = Math.max(180, Math.round(box.clientHeight));
+    const L = 44, B = 40, T = 14, R = 18;
     const xm = Math.max(...pts.map((p) => p.x)), ym = Math.max(0.5, ...pts.map((p) => p.y));
-    const X = (x) => L + (x / xm) * (W - L - R), Y = (y) => H - B - (y / ym) * (H - B - T);
-    const lab = pts.slice().sort((a, b) => (b.x + b.y * xm / ym) - (a.x + a.y * xm / ym)).slice(0, 6).map((p) => p.code);
-    return `<svg class="sc" id="trScSvg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;height:auto" role="img" aria-label="個股被觀看次數與平均功能使用次數的散佈圖">
-      <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--line-2)"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--line-2)"/>
-      <text x="${W - R}" y="${H - 8}" text-anchor="end">被觀看次數 →（最多 ${nf(xm)}）</text><text x="6" y="${T + 4}" transform="rotate(90 6 ${T + 4})">每次觀看用幾次功能 →</text>
-      <text x="${L - 4}" y="${H - B + 14}" text-anchor="end">0</text><text x="${L - 4}" y="${T + 10}" text-anchor="end">${ym.toFixed(1)}</text>
-      ${pts.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="5" fill="var(--cat-1)" fill-opacity=".8"><title>${esc(p.code)}：觀看 ${p.x}、平均 ${p.y.toFixed(2)} 次功能</title></circle>`
-        + (lab.includes(p.code) ? `<text class="lb" x="${(X(p.x) > W - 70 ? X(p.x) - 7 : X(p.x) + 7).toFixed(1)}" y="${(Y(p.y) + 4).toFixed(1)}" text-anchor="${X(p.x) > W - 70 ? 'end' : 'start'}">${esc(p.code)}</text>` : '')).join('')}</svg>`;
+    const X = (x) => L + (x / xm) * (W - L - R - 8), Y = (y) => H - B - (y / ym) * (H - B - T - 8);
+    const lab = pts.slice().sort((a, b) => (b.x + b.y * xm / ym) - (a.x + a.y * xm / ym)).slice(0, 6);
+    const placed = [], out = [];
+    lab.forEach((p) => {
+      const w = String(p.code).length * 8 + 6, cx = X(p.x), cy = Y(p.y);
+      for (const [dx, dy, anc] of [[9, 4, 'start'], [-9, 4, 'end'], [0, -10, 'middle'], [0, 20, 'middle']]) {
+        const x0 = anc === 'start' ? cx + dx : anc === 'end' ? cx + dx - w : cx - w / 2, y0 = cy + dy - 12;
+        if (x0 < 0 || x0 + w > W || y0 < 0 || y0 + 16 > H - B + 4) continue;
+        if (placed.some((r) => x0 < r[0] + r[2] && x0 + w > r[0] && y0 < r[1] + r[3] && y0 + 16 > r[1])) continue;
+        placed.push([x0, y0, w, 16]); out.push(`<text class="lb" x="${(cx + dx).toFixed(1)}" y="${(cy + dy).toFixed(1)}" text-anchor="${anc}">${esc(p.code)}</text>`); return;
+      }
+    });
+    const gl = [0, 0.5, 1].map((f) => { const y = Y(ym * f).toFixed(1); return `<line class="gl" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text x="${L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${f === 0 ? '0' : (ym * f).toFixed(1)}</text>`; }).join('');
+    const xt = [0, 0.5, 1].map((f) => `<text x="${X(xm * f).toFixed(1)}" y="${H - B + 16}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${nf(Math.round(xm * f))}</text>`).join('');
+    box.innerHTML = `<svg id="trScSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="個股被觀看次數與平均功能使用次數的散佈圖">${gl}<line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--line-2)"/>${xt}
+      <text x="${W - R}" y="${H - 6}" text-anchor="end">被觀看次數 →</text><text x="${L}" y="${H - 6}" text-anchor="start">每次觀看用幾次功能 ↑</text>
+      ${pts.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="var(--cat-1)" fill-opacity=".85" stroke="var(--panel)" stroke-width="1.5"><title>${esc(p.code)}：觀看 ${p.x}、平均 ${p.y.toFixed(2)} 次功能</title></circle>`).join('')}${out.join('')}</svg>`;
   }
   function donut(parts) {
     const tot = parts.reduce((s, p) => s + p[1], 0);
     if (!tot) return '<div class="empty">這段期間還沒有開啟紀錄。</div>';
-    /* 規範：外徑 160、環寬 22（viewBox 120 → r 46／寬 16.5）、12 點鐘起順時針、中心＝第一類佔比＋名稱、圖例同排在右 */
+    /* 環寬 22/160（viewBox 120 → r 46／寬 16.5）、12 點鐘起順時針、中心＝第一類佔比＋名稱；外徑隨卡片放大（160～260）、圖例在圖下一排 */
     const r = 46, w = 16.5, c = 2 * Math.PI * r; let off = 0;
     const arcs = parts.map(([, n, col]) => { const len = n / tot * c; const s = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="${w}" stroke-dasharray="${Math.max(0, len - 1).toFixed(2)} ${(c - Math.max(0, len - 1)).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`; off += len; return s; }).join('');
-    return `<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="${esc(parts.map((p) => p[0]).join('與'))}比例"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--panel-3)" stroke-width="${w}"/>${arcs}<text x="60" y="61" text-anchor="middle" style="font-size:20px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${Math.round(parts[0][1] / tot * 100)}%</text><text x="60" y="78" text-anchor="middle" style="font-size:10px;fill:var(--ink-2)">${esc(parts[0][0])}</text></svg>
+    return `<div class="dn"><svg viewBox="0 0 120 120" role="img" aria-label="${esc(parts.map((p) => p[0]).join('與'))}比例"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--panel-3)" stroke-width="${w}"/>${arcs}<text x="60" y="61" text-anchor="middle" style="font-size:15px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${Math.round(parts[0][1] / tot * 100)}%</text><text x="60" y="76" text-anchor="middle" style="font-size:8px;fill:var(--ink-2)">${esc(parts[0][0])}</text></svg>
       <ul>${parts.map(([nm, n, col]) => `<li><i style="background:${col}"></i>${esc(nm)}<b>${nf(n)}</b><small>${Math.round(n / tot * 100)}%</small></li>`).join('')}</ul></div>`;
   }
 
@@ -1316,8 +1360,12 @@
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
-    box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
-      return `<div class="pmcat card" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
+    /* 欄流排版的分欄：把分類卡依「項數」做 4 欄貪婪分組（最重的先放進目前最矮的那欄），再依欄順序輸出並在每欄第一張卡強制換欄 —— 各欄底部落差最小，不留大片空白 */
+    const ncol = 4, wt = (c) => 1.7 + FT().inCat(c.id).length, colsG = Array.from({ length: ncol }, () => ({ h: 0, cs: [] }));
+    cats.filter((c) => c.id !== 'grp').slice().sort((a, b) => wt(b) - wt(a)).forEach((c) => { const g = colsG.reduce((m, x) => (x.h < m.h ? x : m), colsG[0]); g.cs.push(c); g.h += wt(c); });
+    const ordered = []; colsG.filter((g) => g.cs.length).forEach((g) => g.cs.forEach((c, i) => ordered.push([c, i === 0 && ordered.length > 0])));
+    box.innerHTML = ordered.map(([c, brk]) => { const fs = FT().inCat(c.id);
+      return `<div class="pmcat card${brk ? ' brk' : ''}" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
         <div class="pmbody">${catRows(fs, cur, base, saved, now, ready, false)}</div></div>`; }).join('');
     const gc = cats.find((c) => c.id === 'grp');
     if (gbox) gbox.innerHTML = gc ? (() => {

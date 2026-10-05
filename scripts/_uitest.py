@@ -44545,7 +44545,7 @@ def t_admin_v2(b, base, code):
     wait_until(pg, "() => location.hash === '#admin/traffic' && !!document.getElementById('trHowN')", 10000)
     ok(f"{T}：全站「?」點擊＝細項 how 加總（3＋2＝5）", pg.inner_text("#trHowN").strip() == "5", pg.inner_text("#trHowN"))
     ok(f"{T}：個股被觀看 Top 第一名是 2330（20 次）", pg.evaluate("() => document.querySelector('#trStockBars .bl').textContent.trim().split(' ')[0]") == "2330")  # 2026-10-05：標籤改「代號＋名稱」
-    ok(f"{T}：熱門個股最常用的功能：2330 → 分頁：營收", "分頁：營收" in pg.inner_text("#trStockFeat"), pg.inner_text("#trStockFeat")[:200])
+    ok(f"{T}：熱門個股最常用的功能：2330 → 分頁：營收", "營收" in pg.inner_text("#trStockFeat") and "60 分" in pg.inner_text("#trStockFeat"), pg.inner_text("#trStockFeat")[:200])
     ok(f"{T}：散佈圖畫出 3 檔個股、甜甜圈寫 40%（20／50 登入）", pg.locator("#trScSvg circle").count() == 3 and "40%" in pg.inner_text("#trDonut"))
     pg.click("#trPageSeg button[data-p='flow']")
     pg.locator("#trCompBars button[data-k='filter_group']").click()
@@ -44634,17 +44634,28 @@ def t_traffic_1005(b, base, code):
         pg.select_option("#admDaysSel", "30")
         wait_until(pg, "() => /30 天/.test(document.getElementById('admPv').textContent)", 4000)
         # 同排同高
-        hh = pg.evaluate("""() => [['admPv','admDays'],['trStockTop','trStockFeat'],['trDonut','admOnline'],['trScatter','admEv']].map(([a,b]) => { const x = document.getElementById(a).getBoundingClientRect(), y = document.getElementById(b).getBoundingClientRect();
-            return [a, Math.round(x.height), Math.round(y.height), Math.round(x.top - y.top), Math.round(x.width - y.width)]; })""")
-        ok(f"{TT}：同一排的兩張卡等高、頂端對齊、欄寬一致（差 ≤ 1px）", all(abs(r[1] - r[2]) <= 1 and abs(r[3]) <= 1 and abs(r[4]) <= 1 for r in hh), hh)
+        hh = pg.evaluate("""() => [['admDays','trDonut'],['admPv','trStockTop','admEv'],['trStockFeat','trScatter'],['admOnline','admUsers']].map(g => { const r = g.map(i => document.getElementById(i).getBoundingClientRect());
+            return [g.join('/'), Math.max(...r.map(x => Math.round(x.height))) - Math.min(...r.map(x => Math.round(x.height))), Math.max(...r.map(x => Math.round(x.top))) - Math.min(...r.map(x => Math.round(x.top)))]; })""")
+        ok(f"{TT}：同一排的卡片等高、頂端對齊（差 ≤ 1px）；三張長條榜欄寬一致", all(r[1] <= 1 and r[2] <= 1 for r in hh)
+           and pg.evaluate("() => { const w = ['admPv','trStockTop','admEv'].map(i => Math.round(document.getElementById(i).getBoundingClientRect().width)); return Math.max(...w) - Math.min(...w) <= 1; }"), hh)
+        # ★ 10-05 Andy「空白處太多的圖表需要適當調整且填滿」：每張卡的圖區（.cb）高 ÷ 卡內容高（扣內距）≥ 0.8，且圖區裡的圖本身要吃滿 .cb
+        fl = pg.evaluate("""() => ['admDays','trDonut','admPv','trStockTop','admEv','trStockFeat','trScatter','admOnline','admUsers'].map(id => { const c = document.getElementById(id), cb = c.querySelector('.cb'), cs = getComputedStyle(c),
+            inner = c.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            const kids = [...cb.children].reduce((s, e) => s + e.getBoundingClientRect().height + parseFloat(getComputedStyle(e).marginBottom || 0), 0);
+            return [id, +(cb.getBoundingClientRect().height / inner).toFixed(2), +(kids / cb.getBoundingClientRect().height).toFixed(2)]; })""")
+        ok(f"{TT}：每張卡的圖區高度／卡內容高度 ≥ 0.8，圖區內的圖吃滿圖區（≥ 0.9）", all(r[1] >= 0.8 and r[2] >= 0.9 for r in fl), fl)
+        fs = pg.evaluate("""() => { const f = (s) => [...new Set([...document.querySelectorAll(s)].map(e => { const c = getComputedStyle(e); return parseFloat(c.fontSize) + '/' + c.fontWeight; }))];
+            return { h3: f('#admBody .admgrid>.card>h3'), kpi: f('#trKpi .kpis b'), th: f('#admBody table th'), td: f('#admBody table td'), use: f('#admBody .admgrid>.card>.use') }; }""")
+        ok(f"{TT}：字級照其他分頁（卡標 16/600、頂部 KPI 24/700、表頭 12/600、表格內文 14/400、副標 13/400）",
+           fs["h3"] == ["16/600"] and fs["kpi"] == ["24/700"] and fs["th"] == ["12/600"] and set(fs["td"]) <= {"14/400", "14/600"} and fs["use"] == ["13/400"], fs)
         d = pg.evaluate("""() => { const c = document.getElementById('admDayBars'), bars = [...c.querySelectorAll('i')], y = [...document.querySelectorAll('#admDays .dayy span')].map(s => s.textContent.trim()),
             card = document.getElementById('admDays').getBoundingClientRect(), pvc = document.getElementById('admPv').getBoundingClientRect(), cr = c.getBoundingClientRect();
           const note = document.getElementById('admDayNote');
           return { n: bars.length, first: c.dataset.first, y, note: note ? note.textContent : '', h: Math.round(cr.height), cardH: Math.round(card.height), pvH: Math.round(pvc.height), tip: bars.every(i => /次/.test(i.title)),
                    blank: bars.length ? Math.round(bars[0].getBoundingClientRect().left - cr.left) : -1 }; }""")
-        ok(f"{TT}：直條只從第一筆有資料的日子（2026-10-03）起畫：2 根；左邊沒有空白（第一根離軸 ≤ 40px）", d["n"] == 2 and d["first"] == "2026-10-03" and 0 <= d["blank"] <= 40, d)
+        ok(f"{TT}：直條只從第一筆有資料的日子（2026-10-03）起畫：2 根；資料少時每根放大（寬 ≥ 100px）並在柱上標值", d["n"] == 2 and d["first"] == "2026-10-03" and pg.evaluate("() => [...document.querySelectorAll('#admDayBars .dc')].every(e => e.getBoundingClientRect().width >= 100 && e.querySelector('.dv'))"), d)
         ok(f"{TT}：直條交代前面沒紀錄（09-05～10-02 無紀錄）、有 y 軸 3 個刻度（73／37／0）、每根有「N 次」提示", "09-05～10-02" in d["note"] and d["y"] == ["73", "37", "0"] and d["tip"], d)
-        ok(f"{TT}：直條卡的圖高 ≥ 150px、卡高與左邊「哪一頁最多人看」一致", d["h"] >= 150 and d["cardH"] == d["pvH"], d)
+        ok(f"{TT}：直條卡的圖高 ≥ 150px", d["h"] >= 150, d)
         bn = pg.evaluate("""() => { const r = [...document.querySelectorAll('#trPvBars .bn')].map(e => Math.round(e.getBoundingClientRect().right)), l = [...document.querySelectorAll('#trPvBars .bl')].map(e => Math.round(e.getBoundingClientRect().left)),
             t = [...document.querySelectorAll('#trPvBars .bt')].map(e => Math.round(e.getBoundingClientRect().left));
           return { n: r.length, rs: [...new Set(r)], ls: [...new Set(l)], ts: [...new Set(t)], al: [...new Set([...document.querySelectorAll('#trPvBars .bn')].map(e => getComputedStyle(e).textAlign))] }; }""")
@@ -44654,7 +44665,7 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：流量觀測所有表格欄位（含數字欄、表頭）與 KPI 格的文字都置中", al["n"] > 20 and al["bad"] == 0, al)
         st_lbl = pg.evaluate("() => [...document.querySelectorAll('#trStockBars .bl')].map(e => e.textContent.trim())")
         ok(f"{TT}：個股長條與表格以「代號＋名稱」顯示（有名稱時；至少代號開頭、第一名 2330）", st_lbl[:1] and st_lbl[0].startswith("2330") and pg.inner_text("#trStockFeat tbody tr").strip().startswith("2330"), st_lbl)
-        dn = pg.evaluate("""() => { const c = document.querySelector('#trDonut .donut').getBoundingClientRect(), k = document.getElementById('trDonut').getBoundingClientRect();
+        dn = pg.evaluate("""() => { const c = document.querySelector('#trDonut .dn').getBoundingClientRect(), k = document.getElementById('trDonut').getBoundingClientRect();
             return { off: Math.round(Math.abs((c.left + c.right) / 2 - (k.left + k.right) / 2)) }; }""")
         ok(f"{TT}：甜甜圈在卡片水平置中（偏差 ≤ 12px）", dn["off"] <= 12, dn)
         ok(f"{TT}：流量觀測內沒有小於 12px 的文字", pg.evaluate("() => [...document.querySelectorAll('#admBody *')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('svg') && parseFloat(getComputedStyle(e).fontSize) < 12).length") == 0)
@@ -44662,19 +44673,19 @@ def t_traffic_1005(b, base, code):
         # ★ 2026-10-05 風格規範（docs/style_guide.md）：重設計後的規格斷言
         sg = pg.evaluate("""() => { const q = (s) => [...document.querySelectorAll(s)], cs = (e) => getComputedStyle(e), root = cs(document.documentElement);
             const tok = (n) => root.getPropertyValue(n).trim();
-            const fill = q('#admBody .bars .bt i').map(i => cs(i).backgroundColor), cat1 = (() => { const d = document.createElement('i'); d.style.background = 'var(--cat-1)'; document.body.appendChild(d); const c = cs(d).backgroundColor; d.remove(); return c; })();
+            const fill = q('#admBody .bars .bt i').map(i => cs(i).backgroundImage), cat1 = (() => { const d = document.createElement('i'); d.style.background = 'var(--cat-1)'; document.body.appendChild(d); const c = cs(d).backgroundColor; d.remove(); return c; })();
             const bt = q('#admBody .bars .bt').map(e => Math.round(e.getBoundingClientRect().height)), rows = q('#trPvBars .bl').map(e => Math.round(e.getBoundingClientRect().top));
             const use = q('#admBody .admgrid>.card>.use').map(e => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height), tip: !!e.title }));
-            const dn = document.querySelector('#trDonut .donut svg').getBoundingClientRect(), lg = document.querySelector('#trDonut .donut ul').getBoundingClientRect();
+            const dn = document.querySelector('#trDonut .dn svg').getBoundingClientRect(), lg = document.querySelector('#trDonut .dn ul').getBoundingClientRect();
             const h3 = q('#admBody .admgrid>.card>h3').map(e => parseFloat(cs(e).fontSize));
             const pvTop = document.querySelector('#trPvBars').getBoundingClientRect().top - document.querySelector('#admPv .use').getBoundingClientRect().bottom;
             return { toks: ['--cat-1','--cat-2','--cat-other','--chart-bar-h','--chart-row-h','--chart-donut'].map(tok), fill: [...new Set(fill)], cat1, bt: [...new Set(bt)], step: rows.length > 1 ? rows[1] - rows[0] : 0, use, dn: [Math.round(dn.width), Math.round(dn.top + dn.height / 2), Math.round(lg.top + lg.height / 2), Math.round(lg.left - dn.right)], h3: [...new Set(h3)], pvTop: Math.round(pvTop),
-                     dcol: q('#trDonut .donut li i').map(i => i.style.background) }; }""")
+                     dcol: q('#trDonut .dn li i').map(i => i.style.background) }; }""")
         ok(f"{TT}：規範 token 都有定義（--cat-1／--cat-2／--cat-other／--chart-bar-h／--chart-row-h／--chart-donut）", all(sg["toks"]), sg["toks"])
-        ok(f"{TT}：長條一律類別色 1（同一系列同一色）、條粗 12px、列距 28px", sg["fill"] == [sg["cat1"]] and sg["bt"] == [12] and sg["step"] == 28, sg)
+        ok(f"{TT}：長條一律類別色 1 漸層（同一系列同一色）、條粗 14px、列距 32px 起（資料少時平均拉開）", len(sg["fill"]) == 1 and sg["bt"] == [14] and sg["step"] >= 32, sg)
         ok(f"{TT}：卡片副標一行（≤ 20 字、高 ≤ 22px）、完整說明在滑過提示", all(len(u["t"]) <= 20 and u["h"] <= 22 and u["tip"] for u in sg["use"]) and len(sg["use"]) == 9, sg["use"])
         ok(f"{TT}：卡片標題同一字級 16px", sg["h3"] == [16.0], sg["h3"])
-        ok(f"{TT}：甜甜圈外徑 160、圖例同一排在右邊（垂直中心差 ≤ 6px、間距 ≥ 16px）、配色＝類別色 1／2", sg["dn"][0] == 160 and abs(sg["dn"][1] - sg["dn"][2]) <= 6 and sg["dn"][3] >= 16 and sg["dcol"] == ["var(--cat-1)", "var(--cat-2)"], sg)
+        ok(f"{TT}：甜甜圈外徑隨卡片放大（160～260）、圖例在圖下方一排、配色＝類別色 1／2", 160 <= sg["dn"][0] <= 260 and sg["dn"][2] > sg["dn"][1] and sg["dcol"] == ["var(--cat-1)", "var(--cat-2)"], sg)
         ok(f"{TT}：長條圖緊接在副標下方（不浮在卡片中間，間距 ≤ 16px）", 0 <= sg["pvTop"] <= 16, sg["pvTop"])
         shot = os.environ.get("TRAFFIC_SHOT")
         if shot:
@@ -44685,6 +44696,18 @@ def t_traffic_1005(b, base, code):
         if shot:
             pg.screenshot(path=f"{shot}/traffic_{theme}_800.png", full_page=True)
         c.close()
+    # ★ 資料多的情境（30 天每天有量、8 頁、10 檔個股、50 位會員）：一樣要填滿、同排同高、散佈圖跟著容器大小重畫
+    c, sent = _adm2_ctx(b, many=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/traffic", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('trHowN')", 12000); pg.wait_for_timeout(600)
+    fl = pg.evaluate("""() => ['admDays','trDonut','admPv','trStockTop','admEv','trStockFeat','trScatter','admOnline','admUsers'].map(id => { const c = document.getElementById(id), cb = c.querySelector('.cb'), cs = getComputedStyle(c),
+        inner = c.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom); return [id, +(cb.getBoundingClientRect().height / inner).toFixed(2)]; })""")
+    ok(f"{T}（資料多）：每張卡圖區高度／卡內容高度 ≥ 0.8", all(r[1] >= 0.8 for r in fl), fl)
+    sc = pg.evaluate("""() => { const b = document.getElementById('trSc').getBoundingClientRect(), s = document.getElementById('trScSvg').getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height), Math.round(s.width), Math.round(s.height), document.querySelectorAll('#trScSvg circle').length]; }""")
+    ok(f"{T}（資料多）：散佈圖吃滿卡片（svg＝容器大小）、10 個點", abs(sc[0] - sc[2]) <= 2 and abs(sc[1] - sc[3]) <= 2 and sc[4] == 10, sc)
+    ok(f"{T}（資料多）：直條 30 根、有平均虛線與最高那天標值；表格最多 340px 高內捲動", pg.evaluate("() => document.querySelectorAll('#admDayBars .dc').length === 30 && !!document.querySelector('#admDayBars .avg') && !!document.querySelector('#admDayBars .dc.mx .dv') && document.querySelector('#admUsers .tbw').getBoundingClientRect().height <= 341"))
+    c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
@@ -45127,10 +45150,12 @@ def t_admin_v3(b, base, code):
             continue
         # ---- ① 卡片同寬同高
         cr = pg.evaluate(ROWS_SAME, "#pmCats > .pmcat")
-        ok(f"{T}・perm-v4：開放功能表 4 欄、同一列卡片寬高差 ≤ 1px（{cr}）", cr and cr[0][2] == 4 and all(w <= 1 and h <= 1 for w, h, n in cr)
-           and pg.evaluate("() => getComputedStyle(document.getElementById('pmCats')).gridTemplateColumns.split(' ').length === 4"), cr)
-        ok(f"{T}・perm-v4：卡片高度不同的列真的被拉齊（第一列最矮那張原本就比最高的矮 → 現在一樣高，清單從上往下排）",
-           pg.evaluate("() => { const cs = [...document.querySelectorAll('#pmCats > .pmcat')].slice(0, 4); const inner = cs.map(c => c.querySelector('.pmbody').getBoundingClientRect().height); const h = cs.map(c => c.getBoundingClientRect().height); return Math.max(...inner) - Math.min(...inner) > 40 && Math.max(...h) - Math.min(...h) <= 1 && cs.every(c => c.querySelector('.pmbody').getBoundingClientRect().top - c.getBoundingClientRect().top < 60); }"))
+        # ★ 10-05 Andy「空白處太多…需要適當調整且填滿」：分類卡改欄流（CSS columns）——同一欄卡片同寬、左緣對齊；各欄底部落差 ≤ 一張卡高（不再同列拉齊後在短卡下留大片空白）
+        cl = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#pmCats > .pmcat')].map(c => c.getBoundingClientRect()); const cols = {};
+            cs.forEach(r => { const k = Math.round(r.left); (cols[k] = cols[k] || []).push(r); });
+            const bot = Object.values(cols).map(a => Math.max(...a.map(r => r.bottom))), wid = Object.values(cols).map(a => new Set(a.map(r => Math.round(r.width))).size);
+            const blank = cs.map(r => 0).length; return { n: Object.keys(cols).length, spread: Math.round(Math.max(...bot) - Math.min(...bot)), wid }; }""")
+        ok(f"{T}・perm-v4：開放功能表 4 欄欄流、同欄同寬、各欄底部落差 ≤ 160px（無大片空白）", cl["n"] == 4 and all(w == 1 for w in cl["wid"]) and cl["spread"] <= 160, cl)
         pg.click("#pmExpandAll")
         wait_until(pg, "() => [...document.querySelectorAll('#pmGrp .grpbody')].every(b => !b.hidden)", 3000)
         gr = pg.evaluate(ROWS_SAME, "#pmGrp .grpbody > .pmrow")
