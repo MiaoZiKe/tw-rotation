@@ -21493,8 +21493,8 @@ def t_earnings_1005(pg, b, base):
         # ---- 1. 側欄：總覽正下方、獨立一格
         pos = J("""() => { const t = (v) => document.querySelector(`.tab[data-view="${v}"]`); const r = (v) => t(v) ? t(v).getBoundingClientRect() : null;
                  const o = r('overview'), e = r('earnings'), f = r('flow'); return o && e && f ? [o.top, e.top, f.top, e.left - o.left, e.height] : null; }""")
-        ok(f"★ [{tag}] 側欄有「財報日曆」、在總覽正下方、資金流向之上、跟總覽同一層（左緣對齊，不是縮排子項）",
-           pos and pos[0] < pos[1] < pos[2] and abs(pos[3]) <= 1 and pos[4] > 20 and count(lp, '.tab[data-view="earnings"]') == 1, pos)
+        ok(f"★ [{tag}] 側欄有「財經日曆」（文字＝{text(lp, '.tab[data-view=earnings]')}）、在總覽正下方、資金流向之上、跟總覽同一層（左緣對齊，不是縮排子項）",
+           pos and pos[0] < pos[1] < pos[2] and abs(pos[3]) <= 1 and pos[4] > 20 and count(lp, '.tab[data-view="earnings"]') == 1 and "財經日曆" in text(lp, '.tab[data-view="earnings"]'), pos)
         lp.click('.tab[data-view="earnings"]')
         ready = wait_until(lp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
         ok(f"★ [{tag}] 點側欄 → #earnings、頁面畫完、讀到 earnings.json（不是種子）", J("() => location.hash") == "#earnings" and ready == "full", (J("() => location.hash"), ready))
@@ -21504,7 +21504,7 @@ def t_earnings_1005(pg, b, base):
         sub = text(lp, "#earnSub")
         ok(f"[{tag}] 副標寫資料日與大公司口徑", D["asof"] in sub and "市值前" in sub, sub)
         lg = text(lp, "#earnLegend")
-        ok(f"★ [{tag}] 圖例分得出公司（公告／預估）與 FOMC、美國數據", all(w in lg for w in ("法說會", "預估", "FOMC", "美國數據")), lg)
+        ok(f"★ [{tag}] 圖例分得出公司財報、法說（自辦／受邀）與 FOMC、美國數據，沒有「預估」", all(w in lg for w in ("財報", "法說", "FOMC", "美國數據")) and "預估" not in lg, lg)
         # ---- 2. 月曆
         cols = J("() => getComputedStyle(document.querySelector('#earnGrid')).gridTemplateColumns.split(' ').length")
         wds = J("() => [...document.querySelectorAll('#earnGrid .wd')].map(e => e.textContent)")
@@ -21553,32 +21553,53 @@ def t_earnings_1005(pg, b, base):
         ok(f"★ [{tag}] 點 {fed['k']} 標籤 → 面板換成 FED 數據說明（說明、上次數值、市場關注點、下一次、台灣時間）",
            q[0] == "fed" and q[1] == fed["k"] and all(w in q[2] for w in ("這是什麼", "上次數值", "市場關注點", "下一次", "台灣時間")) and q[2] != p[2], q[:2])
         ok(f"[{tag}] 點標籤不會讓頁面捲走", abs(J("() => scrollY") - top_before) < 5)
-        # ---- 5. ＋N → 當天清單 → 預估
-        est = next((e for e in D["events"] if e["k"] == "est"), None)
-        if est:
-            goto_month(est["d"])
-            n_day = sum(1 for e in D["events"] if e["d"] == est["d"])
-            sel = f".ed[data-d='{est['d']}'] .more"
-            lp.click(sel if count(lp, sel) else f".ed[data-d='{est['d']}'] .dn"); lp.wait_for_timeout(200)
-            r = PM()
-            rows = count(lp, "#earnDayList .erow")
-            ok(f"★ [{tag}] 點 {est['d']} 的「＋N」→ 面板列出當天全部 {n_day} 項", r[0] == "day" and r[1] == est["d"] and rows == n_day, (r[:2], rows, n_day))
-            lp.click("#earnDayList .erow.kest >> nth=0"); lp.wait_for_timeout(200)
-            r = PM()
-            ok(f"★ [{tag}] 點預估那一列 → 公司面板標「預估」並寫預估依據", r[0] == "co" and "預估依據" in r[2] and "預估" in r[2], r[2][:160])
-            lp.click("#earnBack"); lp.wait_for_timeout(150)
-            ok(f"★ [{tag}] 「回本週重點」回到預設", PM()[0] == "week")
-        else:
-            ok(f"[{tag}] 資料裡有預估事件", False, "events 沒有 est")
+        # ---- 5. 沒有任何推估（Andy 1005 晚：「裡面不可以有推估數據」）＋ 點日期 → 當天清單
+        ok(f"★ [{tag}] 資料與畫面上沒有任何預估：events 沒有 est／rev／qdl、月曆沒有 .kest／.ktw、整頁看不到「預估」",
+           not any(e["k"] in ("est", "rev", "qdl") or e.get("status") == "預估" for e in D["events"])
+           and count(lp, "#v-earnings .kest, #v-earnings .ktw") == 0 and "預估" not in J("() => document.querySelector('#v-earnings').innerText"))
+        dd = conf["d"]
+        goto_month(dd)
+        n_day = sum(1 for e in D["events"] if e["d"] == dd)
+        lp.click(f".ed[data-d='{dd}'] .dn"); lp.wait_for_timeout(200)
+        r = PM()
+        rows = count(lp, "#earnDayList .erow")
+        ok(f"★ [{tag}] 點 {dd} → 面板列出當天全部 {n_day} 項", r[0] == "day" and r[1] == dd and rows == n_day, (r[:2], rows, n_day))
+        lp.click("#earnBack"); lp.wait_for_timeout(150)
+        ok(f"★ [{tag}] 「回本週重點」回到預設", PM()[0] == "week")
         # ---- 6. 篩選
-        lp.click("#earnToday"); lp.wait_for_timeout(100)
+        # 「回本月」在本月時是 disabled（程式刻意：已在本月就不能再按），只有不在本月時才點
+        if not J("() => document.querySelector('#earnToday').disabled"):
+            lp.click("#earnToday"); lp.wait_for_timeout(100)
         goto_month(conf["d"])
-        lp.click("#earnFilt button[data-v='fed']"); lp.wait_for_timeout(150)
-        nf = J("() => [document.querySelectorAll('#earnGrid .chip[data-code]').length, document.querySelectorAll('#earnGrid .chip.kfomc, #earnGrid .chip.kdata').length]")
-        lp.click("#earnFilt button[data-v='co']"); lp.wait_for_timeout(150)
-        nc = J("() => [document.querySelectorAll('#earnGrid .chip[data-code]').length, document.querySelectorAll('#earnGrid .chip.kfomc, #earnGrid .chip.kdata').length]")
+        # 只看一類時格子空出來，原本收進「＋N」的同類標籤會露出來，所以數量是 ≥「全部」時，不是相等
+        # 2026-10-05（晚）三大分類：公司財報（kboard/kest/ktw）／公司法說（kconf/kinv）／FED 消息（kfomc/kdata）——切一類就只剩那一類
+        CNT = """() => { const q = (c) => document.querySelectorAll('#earnGrid ' + c.split(',').map(x => '.chip.' + x).join(',#earnGrid ')).length;
+                 return { rep: q('kboard,kest,ktw'), conf: q('kconf,kinv'), fed: q('kfomc,kdata') }; }"""
+        G = {"rep": ("board", "report"), "conf": ("conf", "invite"), "fed": ("fomc", "minutes", "cpi", "nfp", "pce", "gdp")}
+        got = {}
+        for v, ks in G.items():
+            ev1 = next((e for e in D["events"] if e["k"] in ks), None)
+            if not ev1:
+                got[v] = None
+                continue
+            goto_month(ev1["d"])
+            lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
+            before = J(CNT)
+            lp.click(f"#earnFilt button[data-v='{v}']"); lp.wait_for_timeout(150)
+            got[v] = (before, J(CNT))
         lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
-        ok(f"★ [{tag}] 篩選「FED／美國數據」→ 沒有公司標籤；「台股公司」→ 沒有 FED 標籤", nf[0] == 0 and nf[1] > 0 and nc[0] > 0 and nc[1] == 0, (nf, nc))
+        goto_month(conf["d"])
+        labs = J("() => [...document.querySelectorAll('#earnFilt button')].map(b => b.textContent.trim())")
+        ok(f"★ [{tag}] 分頁＝全部｜公司財報｜公司法說｜FED 消息（.nbsw）", labs == ["全部", "公司財報", "公司法說", "FED 消息"] and count(lp, "#earnFilt.nbsw") == 1, labs)
+        ok(f"★ [{tag}] 三分類切換真的過濾：切哪一類就只剩那一類的標籤、而且那一類有東西",
+           got["conf"] and got["fed"] and all(g[1][v] > 0 and g[1][v] >= g[0][v] and sum(x for k, x in g[1].items() if k != v) == 0
+                                             for v, g in got.items() if g), got)
+        # 法說會面板：這場法說的日期／時間／地點（照公告內文）
+        lp.click("#earnFilt button[data-v='conf']"); lp.wait_for_timeout(150)
+        lp.click("#earnGrid .chip.kconf, #earnGrid .chip.kinv >> nth=0"); lp.wait_for_timeout(300)
+        pc = PM()
+        ok(f"★ [{tag}] 點法說會 → 面板出現「這場法說」與時間、地點、出處", pc[0] == "co" and "這場法說" in pc[2] and "時間" in pc[2] and "地點" in pc[2] and "出處" in pc[2], pc[2][:200])
+        lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
         # ---- 7. 大公司時間表已拿掉（Andy 1005 晚：「下方不需要」）→ 不存在；面板「看個股頁」→ 個股頁
         ok(f"★ [{tag}] 下方「大公司時間表」整張不存在（只留月曆＋右側面板）", count(lp, "#earnListCard, #earnTbl") == 0)
         lp.click("#earnGrid .chip[data-code] >> nth=0"); lp.wait_for_timeout(300)

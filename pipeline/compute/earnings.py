@@ -152,12 +152,43 @@ def universe(val: pd.DataFrame, names: dict, n: int = UNIVERSE_N) -> list[dict]:
 
 
 # ------------------------------------------------------------------ 公司事件（重大訊息）
-def mops_events(material_news: pd.DataFrame | None, codes: set[str]) -> list[dict]:
-    """從重大訊息挑出法說會／財報董事會／已公布財報。只看名單內的公司。"""
+def conf_detail(detail: str) -> dict:
+    """重大訊息第 12 款（召開法人說明會）的內文有固定欄位：日期／時間／地點／擇要訊息。
+    只抽公司自己寫的字，抽不到就留空 —— 不補、不猜（Andy：法說會不做推估）。"""
+    t = str(detail or "")
+    def f(lab):
+        m = re.search(lab + r"[^：:\n]*[：:]\s*([^\r\n]+)", t)
+        return re.sub(r"\s+", " ", m.group(1)).strip()[:60] if m else ""
+    out = {}
+    ds = f("召開法人說明會之日期")
+    d = roc_date(ds)
+    m = None if d else re.search(r"(1\d{2})\s*[/.-]\s*(\d{1,2})\s*[/.-]\s*(\d{1,2})", ds)
+    if m:                                  # 內文多半寫 115/09/30（民國／斜線）
+        try:
+            d = date(int(m.group(1)) + 1911, int(m.group(2)), int(m.group(3))).isoformat()
+        except ValueError:
+            d = None
+    if d:
+        out["d"] = d
+    tm = f("召開法人說明會之時間")
+    m = re.search(r"(\d{1,2})\s*[時:：]\s*(\d{1,2})?", tm)
+    if m:
+        out["time"] = f"{int(m.group(1)):02d}:{int(m.group(2) or 0):02d}"
+    for k, lab in (("place", "召開法人說明會之地點"), ("brief", "法人說明會擇要訊息")):
+        v = f(lab)
+        if v:
+            out[k] = v
+    return out
+
+
+def mops_events(material_news: pd.DataFrame | None, codes: set[str], conf_all: bool = False) -> list[dict]:
+    """從重大訊息挑出法說會／財報董事會／已公布財報。
+    財報類只看名單內的公司；conf_all=True 時法說會收全部上市櫃公司（Andy 1005：「行事曆幫我多新增公司法說會」）。"""
     if material_news is None or material_news.empty:
         return []
     out = []
-    m = material_news[material_news["code"].astype(str).isin(codes)]
+    cs = material_news["code"].astype(str)
+    m = material_news[cs.isin(codes) | (conf_all & material_news["subject"].astype(str).str.contains(CONF_RE.pattern, regex=True, na=False))]
     for _, r in m.iterrows():
         subj = re.sub(r"\s+", "", str(r.get("subject") or ""))
         if not subj or SKIP_RE.search(subj):
@@ -174,13 +205,22 @@ def mops_events(material_news: pd.DataFrame | None, codes: set[str]) -> list[dic
             continue
         ann = str(r.get("date") or "")[:10]
         d = roc_date(subj) or str(r.get("occurred") or "")[:10] or ann
+        if kind not in ("conf", "invite") and str(r["code"]) not in codes:
+            continue
+        extra = conf_detail(r.get("detail")) if kind in ("conf", "invite") else {}
+        if extra.get("d"):
+            d = extra.pop("d")            # 內文寫的召開日期比主旨／事實發生日準
         if kind == "report":
             d = ann                       # 「董事會通過財報」的公布日就是公告那天
         if len(d) != 10:
             continue
-        out.append({"d": d, "k": kind, "code": str(r["code"]), "title": subj[:80], "status": "公告",
-                    "q": subject_quarter(subj), "ann": ann,
-                    "src": "公開資訊觀測站重大訊息（證交所 OpenAPI t187ap04）"})
+        ev = {"d": d, "k": kind, "code": str(r["code"]), "title": subj[:80], "status": "公告",
+              "q": subject_quarter(subj), "ann": ann,
+              "src": "公開資訊觀測站重大訊息（證交所 OpenAPI t187ap04）"}
+        if r.get("name"):
+            ev["name"] = str(r["name"])
+        ev.update(extra)
+        out.append(ev)
     out.sort(key=lambda e: (e["d"], e["code"], e["k"]))
     # 同一家同一天同一類只留一筆（同一場法說常發兩則：公告＋補充資料）
     seen, uniq = set(), []
@@ -622,13 +662,14 @@ def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, p
     end = (pd.Timestamp(latest) + pd.Timedelta(days=WINDOW_AHEAD)).strftime("%Y-%m-%d")
     univ = universe(val, names)
     codes = {u["code"] for u in univ}
-    ann = mops_events(material_news, codes)
+    ann = mops_events(material_news, codes, conf_all=True)
     ann_in = [e for e in ann if start <= e["d"] <= end]
-    est = estimate_events(univ, ann, latest, end)
-    events = ann_in + est + market_events(start, end) + macro_events(cfg if cfg is not None else load_macro_yaml(), macro_cal, start, end)
+    # 2026-10-05（晚，Andy：「裡面不可以有推估數據」）：只放已公告／官方公布的日子。
+    # estimate_events（預估財報日）與 market_events（營收／財報法定期限）函式保留給測試與日後參考，但不再進 events。
+    events = ann_in + macro_events(cfg if cfg is not None else load_macro_yaml(), macro_cal, start, end)
     for e in events:
         if e.get("code"):
-            e["name"] = names.get(e["code"]) or e["code"]
+            e["name"] = names.get(e["code"]) or e.get("name") or e["code"]
     events.sort(key=lambda e: (e["d"], {"fomc": 0, "minutes": 1, "cpi": 2, "nfp": 3, "pce": 4, "gdp": 5}.get(e["k"], 9), e.get("code") or ""))
 
     # 每家公司的「這次」財報＝窗內第一個（今天以後）的公司事件；沒有就用下一季

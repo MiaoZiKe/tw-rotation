@@ -32,13 +32,14 @@
 
   /* 事件種類 → 分組（co＝台股公司、tw＝台股全市場期限、fed＝FED 與美國數據）、圖例文字、樣式 */
   const KIND = {
-    conf: { g: 'co', lab: '法說會（公告）', cls: 'kconf' },
-    board: { g: 'co', lab: '財報董事會（公告）', cls: 'kboard' },
-    report: { g: 'co', lab: '已公布財報', cls: 'kboard' },
-    invite: { g: 'co', lab: '受邀法說（券商論壇）', cls: 'kinv' },
-    est: { g: 'co', lab: '預估財報日', cls: 'kest' },
-    rev: { g: 'tw', lab: '營收期限', cls: 'ktw' },
-    qdl: { g: 'tw', lab: '財報法定期限', cls: 'ktw' },
+    /* 2026-10-05（晚，Andy：「裡面有 3 大分類：公司財報、公司法說、FED 消息」）：g＝分類 rep／conf／fed */
+    conf: { g: 'conf', lab: '法說會（公司自辦）', cls: 'kconf' },
+    board: { g: 'rep', lab: '財報董事會（公告）', cls: 'kboard' },
+    report: { g: 'rep', lab: '已公布財報', cls: 'kboard' },
+    invite: { g: 'conf', lab: '受邀法說（券商論壇）', cls: 'kinv' },
+    est: { g: 'rep', lab: '預估財報日', cls: 'kest' },
+    rev: { g: 'rep', lab: '營收期限', cls: 'ktw' },
+    qdl: { g: 'rep', lab: '財報法定期限', cls: 'ktw' },
     fomc: { g: 'fed', lab: 'FOMC 利率決議', cls: 'kfomc' },
     minutes: { g: 'fed', lab: 'FOMC 紀要', cls: 'kfomc' },
     cpi: { g: 'fed', lab: 'CPI', cls: 'kdata' }, nfp: { g: 'fed', lab: '非農', cls: 'kdata' },
@@ -50,9 +51,10 @@
     co: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 8h5M6 11h5" stroke="currentColor" stroke-width="1.4"/></svg>',
     fed: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 14.5 5h-13z" fill="currentColor"/><path d="M3 6.5v6M6.3 6.5v6M9.7 6.5v6M13 6.5v6" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 14h13" stroke="currentColor" stroke-width="1.8"/></svg>',
     data: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 14.5V9M6.5 14.5V5M10.5 14.5V7.5M14 14.5V2.5" stroke="currentColor" stroke-width="2.2"/></svg>',
+    mic: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5" fill="currentColor"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v2.5M5.5 14.5h5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
     tw: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h8M4 14.5h8M5 1.5c0 4 6 4.5 6 6.5s-6 2.5-6 6.5M11 1.5c0 4-6 4.5-6 6.5s6 2.5 6 6.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
   };
-  const icOf = (k) => (KIND[k] || {}).g === 'co' ? IC.co : k === 'fomc' || k === 'minutes' ? IC.fed : (KIND[k] || {}).g === 'fed' ? IC.data : IC.tw;
+  const icOf = (k) => (KIND[k] || {}).g === 'conf' ? IC.mic : ['board', 'report', 'est'].includes(k) ? IC.co : k === 'fomc' || k === 'minutes' ? IC.fed : (KIND[k] || {}).g === 'fed' ? IC.data : IC.tw;
 
   /* FED／期限標籤上的字：寬螢幕寫全、手機（≤640）用短字（格子只有 48px） */
   const SHORT = { fomc: 'FOMC', minutes: 'FOMC 紀要', cpi: 'CPI', nfp: '非農', pce: 'PCE', gdp: 'GDP', rev: '營收期限', qdl: '財報期限' };
@@ -91,10 +93,10 @@
   font:inherit;cursor:pointer;text-align:left;width:100%;border-radius:4px}
 #v-earnings .ed .dn:hover{background:var(--panel-3)}
 #v-earnings .ed .dn b{font:600 12px var(--mono)}
-#v-earnings .ed .dn i{font-style:normal;font-size:11px;padding:0 5px;border-radius:999px;background:var(--cyan);color:var(--ontop);line-height:15px}
+#v-earnings .ed .dn i{font-style:normal;font-size:12px;padding:0 5px;border-radius:999px;background:var(--cyan);color:var(--ontop);line-height:15px}
 #v-earnings .chip{display:flex;align-items:center;gap:3px;height:18px;padding:0 4px;border-radius:5px;border:1px solid transparent;
-  font-family:inherit;font-size:11.5px;font-weight:500;line-height:18px;white-space:nowrap;overflow:hidden;cursor:pointer;color:var(--ink);background:var(--panel-3);min-width:0;width:100%;text-align:left}
-#v-earnings .chip .cd{font:600 11.5px var(--mono);flex:none}
+  font-family:inherit;font-size:12px;font-weight:500;line-height:18px;white-space:nowrap;overflow:hidden;cursor:pointer;color:var(--ink);background:var(--panel-3);min-width:0;width:100%;text-align:left}
+#v-earnings .chip .cd{font:600 12px var(--mono);flex:none}
 #v-earnings .chip .nm,#v-earnings .chip .lb{overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .chip:hover,#v-earnings .chip:focus-visible{outline:none;border-color:var(--ink-2)}
 #v-earnings .chip.on{box-shadow:0 0 0 2px var(--amber) inset}
@@ -105,20 +107,21 @@
 #v-earnings .kinv{background:var(--panel-2);border-color:color-mix(in srgb,var(--amber) 60%,transparent)}
 #v-earnings .kinv svg{color:var(--amber)}
 #v-earnings .kest{background:transparent;border:1px dashed var(--line-2);color:var(--ink-2)}
-#v-earnings .kest svg{color:var(--ink-3)}
-#v-earnings .ktw{background:transparent;color:var(--ink-3);border:1px solid var(--line)}
+#v-earnings .kest svg{color:var(--cyan)}
+#v-earnings .ktw{background:transparent;color:var(--ink-2);border:1px solid var(--line)}
+#v-earnings .ktw svg{color:var(--cyan)}
 #v-earnings .kfomc{background:color-mix(in srgb,var(--violet) 30%,var(--panel-2));color:var(--ink)}
 #v-earnings .kfomc svg{color:var(--violet)}
 #v-earnings .kdata{background:color-mix(in srgb,var(--lime) 18%,var(--panel-2));color:var(--ink)}
 #v-earnings .kdata svg{color:var(--lime)}
-#v-earnings .ed .more{font-size:11px;color:var(--cyan);line-height:16px;white-space:nowrap;border:0;background:none;padding:0 2px;text-align:left;cursor:pointer;font-family:inherit}
+#v-earnings .ed .more{font-size:12px;color:var(--cyan);line-height:16px;white-space:nowrap;border:0;background:none;padding:0 2px;text-align:left;cursor:pointer;font-family:inherit}
 #v-earnings .epanel{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:10px 12px;box-sizing:border-box;
   height:${32 + 6 + 30 + 20 + ROWS * 98 + ROWS * 4}px;overflow:auto;min-width:0}
 #v-earnings .ph{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0;margin-bottom:4px}
 #v-earnings .ph b{font-size:15.5px;overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .ph .sp{flex:1}
 #v-earnings .ps{font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
-#v-earnings .badge{display:inline-block;font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid currentColor;line-height:18px;white-space:nowrap;flex:none}
+#v-earnings .badge{display:inline-block;font-size:12px;padding:0 7px;border-radius:999px;border:1px solid currentColor;line-height:18px;white-space:nowrap;flex:none}
 #v-earnings .badge.ann{color:var(--amber)} #v-earnings .badge.est{color:var(--ink-3);border-style:dashed} #v-earnings .badge.sch{color:var(--violet)}
 #v-earnings .tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
 #v-earnings .tag{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--panel-3);white-space:nowrap}
@@ -126,9 +129,9 @@
 #v-earnings .up{color:var(--rise)} #v-earnings .down{color:var(--fall)}
 #v-earnings .sec{border-top:1px solid var(--line);padding:8px 0 6px}
 #v-earnings .sec h4{margin:0 0 3px;font-size:13.5px;display:flex;gap:6px;align-items:baseline;white-space:nowrap;min-width:0}
-#v-earnings .sec h4 small{font-weight:400;font-size:11.5px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-earnings .sec h4 small{font-weight:400;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .sec p{margin:3px 0;font-size:13px;line-height:1.55;color:var(--ink-2)}
-#v-earnings .sec .src{font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-earnings .sec .src{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-earnings table.mt{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;margin:4px 0}
 #v-earnings table.mt th{color:var(--ink-3);font-weight:600;text-align:right;padding:3px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
 #v-earnings table.mt td{text-align:right;padding:3px 4px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -144,15 +147,17 @@
 #v-earnings .erow:hover,#v-earnings .erow:focus-visible{outline:none;border-color:var(--cyan)}
 #v-earnings .erow .d{font:12px var(--mono);color:var(--ink-3)}
 #v-earnings .erow .t{overflow:hidden;text-overflow:ellipsis;min-width:0}
-#v-earnings .erow .b{font-size:11.5px;color:var(--ink-3)}
+#v-earnings .erow .b{font-size:12px;color:var(--ink-3)}
 #v-earnings .erow.kfomc svg{color:var(--violet)} #v-earnings .erow.kdata svg{color:var(--lime)} #v-earnings .erow.kconf svg,#v-earnings .erow.kinv svg{color:var(--amber)}
-#v-earnings .erow.kboard svg{color:var(--cyan)} #v-earnings .erow.kest svg,#v-earnings .erow.ktw svg{color:var(--ink-3)}
+#v-earnings .erow.kboard svg{color:var(--cyan)} #v-earnings .erow.kest svg,#v-earnings .erow.ktw svg{color:var(--cyan)}
 #v-earnings .erow.kfomc,#v-earnings .erow.kdata,#v-earnings .erow.kconf,#v-earnings .erow.kboard,#v-earnings .erow.kinv,#v-earnings .erow.kest,#v-earnings .erow.ktw{background:var(--panel-3);border-style:solid;border-color:var(--line);color:var(--ink)}
 #v-earnings .lt{display:block;font-size:13px;color:var(--ink-2);margin:10px 0 6px;white-space:nowrap}
 #v-earnings .kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:13px;margin:4px 0}
 #v-earnings .kv dt{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-earnings .kv dd{margin:0;text-align:right;font-family:var(--mono);white-space:nowrap}
-#v-earnings .kv .pv{grid-column:1/-1;font-size:11.5px;color:var(--ink-3);margin-top:-2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-earnings .sec[data-sec=conf] .kv{grid-template-columns:auto minmax(0,1fr)}
+#v-earnings .sec[data-sec=conf] .kv dd{font-family:inherit;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-earnings .kv .pv{grid-column:1/-1;font-size:12px;color:var(--ink-3);margin-top:-2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-earnings .note{font-size:12.5px;color:var(--ink-3);line-height:1.55}
 #v-earnings .pact{display:flex;gap:8px;margin-top:10px}
 @media (max-width:1100px){#v-earnings .ewrap{grid-template-columns:minmax(0,1fr)}#v-earnings .epanel{height:540px}
@@ -160,7 +165,7 @@
 @media (max-width:640px){
   #v-earnings .eg{grid-template-rows:20px repeat(${ROWS},78px);gap:3px}
   #v-earnings .chip .nm{display:none}
-  #v-earnings .chip .lb{font-size:11px;text-overflow:clip}
+  #v-earnings .chip .lb{font-size:12px;text-overflow:clip}
   #v-earnings .ed .dn i{display:none}
   #v-earnings .chip{padding:0 3px;gap:2px} #v-earnings .chip svg{display:none}
   #v-earnings .ed{padding:2px}
@@ -185,7 +190,8 @@
   }
   const evs = () => (S.data && S.data.events) || [];
   const co = (c) => ((S.data && S.data.companies) || {})[c];
-  const passF = (e) => S.filt === 'all' || (S.filt === 'co' ? KIND[e.k].g !== 'fed' : KIND[e.k].g === 'fed');
+  const passF = (e) => S.filt === 'all' || (KIND[e.k] || {}).g === S.filt;
+  const FILT_LAB = { rep: '公司財報', conf: '公司法說', fed: 'FED 消息' };
   const rankOf = (e) => (e.code && co(e.code) ? co(e.code).rank : 99);
   const sortEv = (a, b) => (ORDER[a.k] - ORDER[b.k]) || (rankOf(a) - rankOf(b));
   const idxOf = (e) => evs().indexOf(e);
@@ -195,16 +201,16 @@
   function skeleton(root) {
     const how = (k, q, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML(q, li)}</div>`;
     const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
-    const lg = [['kconf', IC.co, '法說會（公告）'], ['kboard', IC.co, '財報董事會'], ['kinv', IC.co, '受邀法說'], ['kest', IC.co, '預估財報日'],
-      ['kfomc', IC.fed, 'FOMC'], ['kdata', IC.data, '美國數據'], ['ktw', IC.tw, '台股期限']];
+    const lg = [['kboard', IC.co, '財報董事會／已公布財報'],
+      ['kconf', IC.mic, '自辦法說'], ['kinv', IC.mic, '受邀法說'], ['kfomc', IC.fed, 'FOMC'], ['kdata', IC.data, '美國數據']];
     root.innerHTML = `
 <div class="edisc" id="earnDisc" role="note" title="「分析與展望」是規則把資料湖的數字組成句子（月營收、季損益、本益比、法人、新聞標題、FRED），沒有用語言模型，也不預測財報數字；每段都寫了出處與資料日期。"><span aria-hidden="true">ⓘ</span><div><b>純資料整理，不構成投資建議。</b>分析由規則把資料湖數字組成句子，沒有用語言模型、不預測財報；每段附出處與日期。</div></div>
 <div class="card" id="earnCalCard">
-  <div class="row spread"><h3>財報日曆 <small id="earnSub"></small> ${hbtn('earncal', '財報日曆怎麼看')}</h3>
-    <div class="nbsw" id="earnFilt" role="tablist"><button data-v="all" class="on" type="button">全部</button><button data-v="co" type="button">台股公司</button><button data-v="fed" type="button">FED／美國數據</button></div></div>
+  <div class="row spread"><h3>財經日曆 <small id="earnSub"></small> ${hbtn('earncal', '財經日曆怎麼看')}</h3>
+    <div class="nbsw" id="earnFilt" role="tablist"><button data-v="all" class="on" type="button">全部</button><button data-v="rep" type="button">公司財報</button><button data-v="conf" type="button">公司法說</button><button data-v="fed" type="button">FED 消息</button></div></div>
   ${how('earncal', '這張回答：這個月哪幾天有大公司開法說／公布財報、哪幾天有 FED 決議與美國重大數據？點了之後這次財報要看什麼？', [
     '<b>大公司</b>＝市值前 50（收盤 × 最新一季財報的股數，上市＋上櫃普通股，排除 ETF）。資料湖沒有 0050／0051 成分股，所以用市值排名。',
-    '<b>實心標籤＝公司已公告</b>（公開資訊觀測站重大訊息：法說會、財報董事會日期）；<b>虛線標籤＝預估</b>：這一季還沒公告日期的公司，先標在法定期限（Q3 是 11/14）。有過去幾季的實際公布日時，改用「平均早於期限幾天」往前推。',
+    '<b>三大分類</b>：公司財報（市值前 50 公告的財報董事會日期、已公布財報）、<b>公司法說</b>（全部上市櫃公司在重大訊息公告的法說會，時間與地點照公告內文）、FED 消息（FOMC 與美國重大數據的官方公布日）。<b>只放已公告／官方公布的日子，沒有任何推估。</b>上方分頁切換只看某一類。',
     '<b>FED 與美國數據</b>：FOMC 會議日程（聯準會公布）＋ CPI、非農、PCE、GDP 的公布日（FRED，抓不到時用 BLS／BEA 公布的日程）。日期是美東日期，台灣時間寫在右側面板。',
     '點公司標籤 → 右側出現這次財報的分析與展望（營收、獲利、估值、法人、消息、FED 背景）；點 FED 標籤 → 數據說明、上次數值、市場關注點；點日期 → 那天的完整清單。',
     '所以：月初先看這個月有哪幾家大公司要開法說、FOMC 在哪一天；法說前一週點進去，對照「這次財報看什麼」那段的月營收，就知道營收已經反映多少、要看的是毛利率還是展望。'])}
@@ -226,7 +232,7 @@
     const on = S.sel.t === 'ev' && S.sel.i === idxOf(e) ? ' on' : '';
     const t = e.code ? `<span class="cd">${esc(e.code)}</span><span class="nm">${esc(e.name || '')}</span>`
       : `<span class="lb">${esc(SHORT[e.k] || '')}</span>`;
-    const tip = `${e.d}（${wdOf(e.d)}）${e.code ? e.code + ' ' + (e.name || '') + '：' : ''}${e.title}${e.status === '預估' ? '（預估）' : ''}`;
+    const tip = `${e.d}（${wdOf(e.d)}）${e.code ? e.code + ' ' + (e.name || '') + '：' : ''}${e.title}`;
     return `<button type="button" class="chip ${k.cls}${on}" data-i="${idxOf(e)}" data-k="${e.k}"${e.code ? ` data-code="${esc(e.code)}"` : ''} title="${esc(tip)}">${icOf(e.k)}${t}</button>`;
   }
   function drawCal() {
@@ -289,7 +295,7 @@
     const nx = (k) => fed[k] ? `${md(fed[k].d)}（${wdOf(fed[k].d)}）・台灣 ${esc(fed[k].tw || '')}` : '—';
     const ahead = L.length ? '' : (() => {
       const n = evs().filter((e) => e.d > b).filter(passF).slice(0, 6);
-      return `<p class="note">這一週沒有${S.filt === 'fed' ? ' FED／美國數據' : S.filt === 'co' ? '台股公司' : ''}事件。接下來：</p><ul class="elist">${n.map(rowHTML).join('')}</ul>`;
+      return `<p class="note">這一週沒有${FILT_LAB[S.filt] || ''}事件。接下來：</p><ul class="elist">${n.map(rowHTML).join('')}</ul>`;
     })();
     return `<div class="ph"><b>本週重點</b><span class="sp"></span><span class="badge sch">${md(a)}–${md(b)}</span></div>
       <div class="ps">點月曆上的公司或 FED 標籤，這裡換成那一項的分析</div>
@@ -332,9 +338,20 @@
     const items = s.items ? `<ul class="nl">${s.items.map((n) => `<li><span class="d">${esc(md(n.d))}</span>${n.u ? `<a class="t" href="${esc(n.u)}" target="_blank" rel="noopener" title="${esc(n.t)}">${esc(n.t)}</a>` : `<span class="t" title="${esc(n.t)}">${esc(n.t)}</span>`}<span class="d">${esc(n.s === 'cnyes' ? '鉅亨' : n.s === 'technews' ? 'TechNews' : n.s)}</span></li>`).join('')}</ul>` : '';
     return `<div class="sec" data-sec="${s.key}"><h4>${esc(s.t)} <small>資料 ${esc(s.asof || '—')}</small></h4>${s.lines.map((t) => `<p>${esc(t)}</p>`).join('')}${tbl}${items}<div class="src" title="${esc(s.src)}">出處：${esc(s.src)}</div></div>`;
   }
+  /* 法說會這一場的資訊：只放重大訊息內文裡公司自己寫的欄位（日期／時間／地點／擇要），沒寫的欄位就不出現 */
+  function confSec(e) {
+    if (KIND[e.k].g !== 'conf') return '';
+    const r = [['日期', `${e.d}（${wdOf(e.d)}）`], ['時間', e.time], ['地點', e.place], ['內容', e.brief]].filter((x) => x[1]);
+    return `<div class="sec" data-sec="conf"><h4>這場法說 <small>${esc(KIND[e.k].lab)}</small></h4>
+      <dl class="kv">${r.map(([k, v]) => `<dt>${k}</dt><dd title="${esc(v)}">${esc(v)}</dd>`).join('')}</dl>
+      <div class="src">出處：${esc(e.src || '')}（公告日 ${esc(e.ann || '')}）</div></div>`;
+  }
   function panelCo(e) {
     const c = co(e.code);
-    if (!c) return `<div class="ph"><b>${esc(e.code)} ${esc(e.name || '')}</b></div><p class="note">這家公司不在大公司名單裡，沒有整理分析。</p>`;
+    if (!c) return `<div class="ph"><b>${esc(e.name || '')} ${esc(e.code)}</b><span class="sp"></span><span class="badge ann">已公告</span></div>
+      <div class="ps" title="${esc(e.title)}">${esc(e.title)}</div>${confSec(e)}
+      <p class="note">這家公司不在市值前 50 名單裡，這裡只列法說會本身的資訊，沒有整理財報分析。</p>
+      <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button><button type="button" class="btn small" id="earnGoStock" data-code="${esc(e.code)}">看個股頁 →</button></div>`;
     const nxt = c.next;
     const isEst = e.status === '預估';
     const head = `<div class="ph"><b>${esc(c.name)} ${esc(e.code)}</b><span class="sp"></span><span class="badge ${isEst ? 'est' : 'ann'}">${isEst ? '預估' : e.status === '公告' ? '已公告' : esc(e.status || '')}</span></div>
@@ -346,13 +363,13 @@
     const fedSec = `<div class="sec" data-sec="fed"><h4>FED 背景 <small>跟這次財報同一段時間</small></h4>
       ${fn.fomc ? `<p>下一次 FOMC 利率決議：${md(fn.fomc.d)}（台灣 ${esc(fn.fomc.tw || '')}）${fn.cpi ? `；下一次 CPI：${md(fn.cpi.d)}（台灣 ${esc(fn.cpi.tw || '')}）` : ''}。</p>` : ''}
       ${fedBlock(['policy', 'cpi_yoy', 'core_pce_yoy', 'unrate'])}</div>`;
-    return `${head}${basis}${tags}<p class="note">這次是 <b>${esc(c.target || '')}</b> 的財報${nxt && nxt.d !== e.d ? `（下一個相關日子 ${md(nxt.d)}，${esc(nxt.status)}）` : ''}。</p>
+    return `${head}${basis}${confSec(e)}${tags}<p class="note">這次是 <b>${esc(c.target || '')}</b> 的財報${nxt && nxt.d !== e.d ? `（下一個相關日子 ${md(nxt.d)}，${esc(nxt.status)}）` : ''}。</p>
       ${c.err ? `<p class="note">${esc(c.err)}</p>` : ''}${(c.secs || []).map(secHTML).join('')}${fedSec}
       <div class="pact"><button type="button" class="btn small" id="earnBack">← 回本週重點</button><button type="button" class="btn small" id="earnGoStock" data-code="${esc(e.code)}">看 ${esc(c.name)} 個股頁 →</button></div>`;
   }
   function drawPanel() {
     const box = $('#earnPanel'); if (!box) return;
-    if (!S.data) { box.innerHTML = '<p class="note">財報日曆資料尚未產出（管線下一輪會建立）。</p>'; return; }
+    if (!S.data) { box.innerHTML = '<p class="note">財經日曆資料尚未產出（管線下一輪會建立）。</p>'; return; }
     let html = '', mode = S.sel.t, key = '';
     if (S.sel.t === 'ev') {
       const e = evs()[S.sel.i];

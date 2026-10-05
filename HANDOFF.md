@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-05（台北 18:17）：財報日曆 → 「財經日曆」三大分類、拿掉所有推估
+- Andy：「多新增公司法說會……3 大分類：公司財報、公司法說、FED 消息」「名稱改財經日曆」「裡面不可以有推估數據」。
+- 篩選改 .nbsw「全部｜公司財報｜公司法說｜FED 消息」；法說會改收全部上市櫃（重大訊息第 12 款內文抽日期／時間／地點／擇要，抽不到不補）；預估財報日與營收／財報期限不再進 events。
+- **這批只驗了**：pytest 全套（1013 passed／1 xfailed）、重算 payload 後 `_uitest --sections 財報日曆1005`（另由協調者跑 總覽、版面v2結構 皆 0）、`_preview.py`。「風格規範」段 main 尚無，未跑。
+
 ## 2026-10-05 歷史回補「接力」上線（backfill.yml）
 - 這輪因 FinMind 402 停下（plan:default.stopped_at 有值）→ `relay` job 睡到本輪開始後 62 分鐘，用 GITHUB_TOKEN 派下一輪（同 inputs、relay_n+1，最多 30 棒）。
 - 不派的情況：補齊、單一資料集／Logo／分 K、UTC 09～10 點、每日管線在排隊或等待、已有別的回補在排隊或在跑。concurrency 搬到 backfill job（cancel-in-progress 仍 false），接力睡覺不佔寫入佇列。

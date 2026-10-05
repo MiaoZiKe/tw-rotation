@@ -193,7 +193,8 @@ def test_build_小資料組出完整結構():
                 financial=pd.DataFrame(), inst=inst, news=None, material_news=mops, macro=None, macro_cal=None, cfg=CFG)
     assert d["asof"] == "2026-10-02" and d["universe"]["n"] == 2
     ks = {(e["k"], e.get("code")) for e in d["events"]}
-    assert ("conf", "2330") in ks and ("est", "2454") in ks and ("fomc", None) in ks
+    assert ("conf", "2330") in ks and ("fomc", None) in ks
+    assert not any(e["k"] in ("est", "rev", "qdl") or e.get("status") == "預估" for e in d["events"])   # Andy：不可以有推估數據
     assert d["companies"]["2330"]["next"]["d"] == "2026-10-15" and d["companies"]["2330"]["target"] == "2026Q3"
     assert any(s["key"] == "inst" for s in d["companies"]["2330"]["secs"])
     assert d["fed"]["snap"] == {} and "fomc" in d["fed"]["next"]
@@ -228,3 +229,20 @@ def test_YAML日程格式():
     assert len(ms) == 8 and all(m["start"] < m["end"] < m["minutes"] for m in ms)
     for k, spec in cfg["releases"].items():
         assert k in E.FED_INFO and spec["source"].startswith("https://")
+
+
+def test_conf_detail_and_conf_all():
+    """法說會：內文欄位照抽（日期／時間／地點／擇要），且 conf_all 收名單外公司；名單外的財報董事會不收。"""
+    import pandas as pd
+    det = ("符合條款第四條第XX款：12\r\n事實發生日：115/09/30\r\n1.召開法人說明會之日期：115/09/30\r\n"
+           "2.召開法人說明會之時間：14 時 00 分 \r\n3.召開法人說明會之地點：線上法說會\r\n4.法人說明會擇要訊息：115年第二季公司營運狀況\r\n")
+    x = E.conf_detail(det)
+    assert x == {"d": "2026-09-30", "time": "14:00", "place": "線上法說會", "brief": "115年第二季公司營運狀況"}
+    assert E.conf_detail("") == {}
+    m = pd.DataFrame([
+        {"news_id": "a", "code": "1103", "name": "嘉泥", "date": "2026-09-23", "subject": "公告本公司召開法人說明會相關資訊", "occurred": "2026-09-30", "detail": det},
+        {"news_id": "b", "code": "1104", "name": "環泥", "date": "2026-09-23", "subject": "公告本公司董事會通過第二季財務報告", "occurred": "2026-09-23", "detail": ""},
+    ])
+    ev = E.mops_events(m, {"2330"}, conf_all=True)
+    assert [(e["code"], e["k"], e["d"], e.get("time"), e.get("place")) for e in ev] == [("1103", "conf", "2026-09-30", "14:00", "線上法說會")]
+    assert E.mops_events(m, {"2330"}) == []
