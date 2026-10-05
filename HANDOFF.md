@@ -1,5 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 盤中即時只給管理者帳號（分支 `claude/live-admin-only` → main，DECISIONS #326）
+- Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」。新檔 `site/livegate.js`（`<head>` 第二支）＝唯一閘門：已登入且 Worker 回 `admin:true` 才開，`<html>` 掛 `live-on`。
+- 非管理者：所有即時 UI 不掛／整顆藏（`.livetg`、`.livebtn`、`#liveState`、`[data-live-ui]`）、**不輪詢、不打 quote-proxy／Deno／mis／Yahoo**（`Live.proxy()`／`taifexProxy()` 回空字串）；
+  畫面退回盤後：大盤三張圖畫資料湖最近交易日、摘要卡右上角變單純日期、個股不列 1／5／15 分、分時寫「盤後資料」、訂閱頁不再把盤中即時當賣點。
+  管理者登入／登出（或 Worker 說不再是管理者）→ 整頁重新載入一次。清單與理由在 DECISIONS #326。
+- ⚠ **這是畫面閘門，不是存取控制**：報價 Worker 仍公開可打。要真的擋得改 Worker（報價端點驗會員權杖），列為後續，見 #326。
+- 驗收：`_uitest.py` 預設對每頁注入 `TW_LIVE_OVERRIDE=true`（只在本機認）＝既有即時段落驗管理者視角；新段 `即時僅管理者1006` 走真閘門（訪客／會員／管理者／登出／權限被收回）。
+- 動到的檔：site/livegate.js（新）、index.html、live.js、market3.js、livek.js、industry.js、app.js、mobile3.js、features.js、pricing.js、support.js、modules.js、scripts/_uitest.py。
+- 這批只驗了（--workers 1、tw-slot 排隊，台北 06:28～06:41）：`_preview.py`（重疊 0、無橫向捲軸；唯一問題是本機缺 `data/earnings.json` 的 404，環境問題同上一批）、`_uitest` 的 `即時僅管理者1006`、`盤中即時`、`個股即時分K`、`新-大盤三張圖`、`會員雲端路徑` 全部 0。；合併最新 main 後（06:44～06:48）再跑 `_preview`＋`即時僅管理者1006`＋`盤中即時` 仍是 0。
+  反向驗證：把閘門改成永遠開 → `即時僅管理者1006` 紅 26 條。沒跑 pytest（只動 site/** 與 scripts/_uitest.py）。
+  ⚠ **沒驗的（上線後補跑）**：即時5秒0929、總覽摘要卡即時、市場明細即時1005、大盤日K即時1005、桑基展開與即時、個股週期即時1005、分時一路即時、個股分K非交易時段、輪動時鐘即時、夜盤真實fixture／推送／盤後0930、台指期Deno優先、批次29-產業分頁、積木清單、同意條款與法律頁、足跡輪盤只留圓圈、資料狀態。03:44 那輪 4 workers 在負載 50 下有紅，但對照 origin/main 同樣紅的有盤中即時／即時5秒0929／大盤三張圖（後來 --workers 1 重跑盤中即時已綠），其餘未完成對照。
+
 ## 2026-10-06 判定／評分類卡片標題列加一行免責小字（今日候選等 7 處）
 - Andy（截圖市場明細「今日候選 A 5 檔 / B 22 檔 ?」右邊空白）：「這邊旁邊備註不構成投資建議的相關注意事項提醒」。普查表 `docs/disclaimer_audit_1006.md`。
 - 做法：`site/app.js` 的 `DISC`（短句＋全文，只有一份）→ `App.disc(key)`／`<small data-disc>`；樣式 `.disc-line`（index.html，12px、一行、省略、全文在 title、最小 8em，放不下自己一行）。

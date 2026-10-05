@@ -24,6 +24,8 @@
   const MAX = 640;
   const isM = () => window.innerWidth <= MAX;
   const $ = (s, r) => (r || document).querySelector(s);
+  /* 2026-10-06 即時僅管理者（DECISIONS #326）：「完整版」那幾顆鈕的字只對管理者提「即時」—— 其他人點進去也看不到即時鈕 */
+  const liveTxt = (s) => (window.TwLive && window.TwLive.allowed() ? s : s.replace(/、?盤中即時|、即時/g, ''));
   const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const LS = {
@@ -657,7 +659,7 @@
   /* ---- 資金流向「輪動」：雷達＋焦點條＋排行前 8（點列＝在輪盤上只亮它）＋篩選抽屜 ---- */
   async function flowRot() {
     const card = document.getElementById('flowRotCard'); if (!card) return;
-    const box = host(card, 'rot', null, { full: '完整版（回放、即時、放大）' });
+    const box = host(card, 'rot', null, { full: liveTxt('完整版（回放、即時、放大）') });
     if (box.dataset.done) return;
     /* 資料還沒回來之前先放標題與一行「載入中」—— 不然這一段在資料回來之前整片空白（慢網路下看起來像壞掉）*/
     if (!box.innerHTML) box.innerHTML = '<div class="mhead"><h3>資金輪動</h3></div><div class="msub">載入資金輪盤與資金排行中…</div>';
@@ -718,7 +720,7 @@
       const sh = openSheet(`<div class="mshhead"><b>篩選與期間</b></div>
         <div class="mgrp">產業鏈</div><div class="mchips" id="mShChain"><button type="button" data-c="" class="${!chain ? 'on' : ''}">全部</button>${chains.map(c => `<button type="button" data-c="${esc(c)}" class="${chain === c ? 'on' : ''}">${esc(chainName[c] || c)}</button>`).join('')}</div>
         <div class="mgrp">排行期間</div><div class="mchips" id="mShPer">${periods.map(p => `<button type="button" data-p="${esc(p.key)}" class="${pk === p.key ? 'on' : ''}">${esc(p.label)}</button>`).join('')}</div>
-        <div class="mgrp">回放某一天、盤中即時、族群晶片：點卡片最下面的「完整版」</div>`, { kind: 'filter' });
+        <div class="mgrp">${liveTxt('回放某一天、盤中即時、族群晶片')}：點卡片最下面的「完整版」</div>`, { kind: 'filter' });
       sh.onclick = (e) => {
         const a = e.target.closest('[data-c],[data-p]'); if (!a) return;
         if (a.dataset.c != null) { chain = a.dataset.c; LS.set('flow.chain', chain); sel = null; }
@@ -832,7 +834,7 @@
     if (v === 'flow') {
       flowRot();
       const sc = document.getElementById('flowSankeyCard');
-      if (sc) { const hd = sc.querySelector(':scope > .row'); if (hd) hd.classList.add('m3keep-h'); drill(host(sc, 'drill', null, { full: '完整版（分流圖、回放、即時）', after: hd })); }
+      if (sc) { const hd = sc.querySelector(':scope > .row'); if (hd) hd.classList.add('m3keep-h'); drill(host(sc, 'drill', null, { full: liveTxt('完整版（分流圖、回放、即時）'), after: hd })); }
       flowInst();
     }
   }

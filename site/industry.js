@@ -14,6 +14,10 @@
     });
   }
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
+     這支檔裡的即時入口：族群總覽的「即時」鈕、個股週期列的 1分／5分／15分（只有即時來源，非管理者沒有任何資料可畫）。
+     分時（tick）留著：非管理者看的是資料湖 60 分 K 的最近交易日（盤後版本），livek.js 不 attach 輪詢。*/
+  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
   let A;                                   // window.App（app.js 提供）
   /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
      tfAuto＝這次的週期是「預設帶進來的」不是使用者按的：分時真的沒資料時只有這種情況才自動改用日 K；
@@ -334,7 +338,7 @@
         <h4 id="gpTitle" style="min-width:0"></h4>
         <div class="row gplive">
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
-          <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
+          <span class="rbar" data-live-ui><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
             title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>
         </div>
       </div>
@@ -464,6 +468,7 @@
     });
     const stopTimer = () => { if (gpTimer) { clearInterval(gpTimer); gpTimer = null; } };
     liveBtn.onclick = () => {
+      if (!live && !liveOK()) return;   // 不是管理者：即時打不開（鈕本來就藏著，這裡是第二道，DECISIONS #326）
       live = !live;
       liveBtn.classList.toggle('on', live);
       liveBtn.setAttribute('aria-pressed', live ? 'true' : 'false');
@@ -4227,7 +4232,9 @@
   const TF_DEFAULT_ON = ['tick', '60m', '240m', '1d', '1w', '1M'];
   // 四週期同看每一格是一張 K 線小圖，分時不是 K 線 → 不列進四格的下拉，也不會被自動挑進去
   function mtfTfList() { const l = tfList().filter(t => t !== 'tick'); return l.length ? l : ['1d']; }
-  function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
+  /* ★ 2026-10-06（DECISIONS #326）：1分／5分／15分只有即時來源（livek.js：Yahoo 1 分 K＋報價尾巴，都經過報價代理），
+     非管理者一律不列 —— 週期列、＋週期設定、四週期下拉都讀這一支，存檔裡選著這三個的人由 ensureTf 退回日線。*/
+  function tfAll() { const c = (state.cfg && state.cfg.tfs) || []; return (liveOK() ? TF_BUILTIN : TF_BUILTIN.filter(t => !isLiveTf(t))).concat(c); }
   function tfOnSet() {
     const c = state.cfg || {}, all = tfAll();
     let on = Array.isArray(c.tfOn) ? c.tfOn.filter(t => all.indexOf(t) >= 0) : TF_DEFAULT_ON.concat(c.tfs || []);
@@ -4256,7 +4263,7 @@
         b.classList.add('ticktf');
         b.classList.toggle('off', none);
         b.title = none ? '此檔暫無分時資料（盤中即時報價與最近交易日的分時都拿不到），已改用日 K'
-                       : '分時走勢：盤中是今天，盤後是最近一個交易日；虛線＝昨收';
+                       : liveOK() ? '分時走勢：盤中是今天，盤後是最近一個交易日；虛線＝昨收' : '分時走勢：最近一個交易日（盤後資料）；虛線＝昨收';
         return;
       }
       if (isLiveTf(tf)) {
@@ -5034,7 +5041,8 @@
       state.tickSrc = d.src; state.tickDate = d.date;
       tchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · 分時 · ${d.date}${d.live ? '' : '（非即時）'}`);
       setLiveNote(d.src === 'm60'
-        ? `最近交易日 ${d.date} 的分時：每小時一點（資料湖的 60 分 K，即時來源連不上時的備援）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`
+        ? (liveOK() ? `最近交易日 ${d.date} 的分時：每小時一點（資料湖的 60 分 K，即時來源連不上時的備援）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`
+          : `最近交易日 ${d.date} 的分時（盤後資料）：每小時一點（資料湖的 60 分 K）。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`)
         : d.live
           ? tickLiveNote(d)
           : `最近交易日 ${d.date}（非即時）的分時；今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。`);
