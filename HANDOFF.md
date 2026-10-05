@@ -1,5 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 10-05 15:06 #admin/perm 重新設計（perm-v4）：資料夾頁籤、卡片同寬同高、頁籤拖曳／⋮ 管理、會員名單統計圖（UI 專家，分支 `claude/perm-v4`，**未推 main，等 CEO 合併；要先部署會員 Worker**）
+- 檔案：`site/admin.js`、`workers/account-api/worker.js`（只在檔尾加 perm-v4 區塊）、`workers/account-api/tests/v4.test.mjs`（新）、`scripts/_uitest.py`（管理區v3 補 perm-v4 段＋假 Worker 加 plans/sort、members/stats、plans/put del）。
+- 後端：`plans.sort`（相容遷移：第一次補欄依原本順序補 0..n-1，上線當下順序不變；新建排最後；改名不再換位置）、`/v1/admin/plans/sort {ids}`（必須正好是全部付費範本，否則 400 bad_order 不寫）、
+  `/v1/admin/members/stats {scope:'all'|'plan', plan}`（功能／股票 Top 8、14 天每日活躍、7 日活躍；伺服器彙總）。plans/get、/v1/plans/public 都照 sort 排 → #pricing 方案卡跟著變。
+- 前端：頁籤列底線＝內容框上框線、選中頁籤疊在線上（舊版頁籤列 overflow:hidden 把 -1px 裁掉 → 那條切開的線）；內容框頂「範本資訊列」（名稱・價格／週期・套用 N 人｜⚙）；觀看權限工具列（標題＋圖例＋全部開／全部關）；
+  卡片 `repeat(4,minmax(0,1fr))`＋stretch（<1280 三欄、<1000 兩欄）；付費頁籤可拖曳、滑過出現 ⋮（左移／右移／重新命名／刪除，鍵盤：Enter 開、↑↓、Esc、Alt＋←／→）；
+  ⚙「刪除此範本」與 ⋮ 刪除都二次確認並寫「目前有 N 位會員在此範本，刪除後退回註冊會員」；會員名單上方 4 個數字＋4 張同高圖卡（狀態甜甜圈〔註冊會員多一張免費 vs 付費〕、14 天直條、功能 Top 8、股票 Top 8）；
+  展開明細改成一排 4 個小 KPI（≤ 20px）＋一排 4 張同高 SVG 圖卡，在表格獨立一列不蓋上下列；數字欄內容寬（≤1500 藏加入日、≤1240 藏觀看次數）。Andy 的三個測試範本沒刪（讓他自己用新功能刪）。
+- **這批驗了**：`node --test workers/account-api/tests/*.mjs` 50 過；`_uitest --workers 1 --sections 管理區v3,管理區1005,會員權限開關,會員權限導覽,訂閱與客服1005` 全 0
+  （管理區1005 有一輪「輪動族群下拉晶圓代工」逾時假紅，單獨重跑 0，那段是資金流向頁、沒動到）；`_preview.py` 全綠。反向驗證：origin/main 的 admin.js 同一列卡高 424／268／320／216 → 新斷言會紅。沒跑 pytest（沒動 pipeline／tests）。
+- 已知限制：① 舊 Worker（沒部署 perm-v4）時拖曳會跳「順序沒存成功…已換回」、統計圖寫「尚無資料（會員 Worker 尚未更新）」；② 範本色依 id 排序配色（拖曳不換色）；③ 只做桌機。
+
 ## 10-04 矽晶圓／第三代半導體／CNC 工具機／工業自動化四張剖析圖補環節與關聯圖（科技產業分析師，分支 `claude/sc-fill-wafer`，**未推 main，等 CEO 合併**，DECISIONS #320，證據 `docs/groups_wafer_sc_evidence.md`，截圖 `docs/groups_wafer_sc_1004/`）
 - Andy（附矽晶圓剖析圖、下方完全沒有關聯圖）：「為何矽晶圓沒有產業鏈，它應該要有供應誰以及供應商」。根因兩層：YAML 沒有對應環節；前端零件沒掛真的環節（2D 沒有 data-seg、3D 的 seg 是佔位族群 id）→ #317 反亮交集為空 → 整塊藏起來。
 - [x] `supply_chain.yaml`：新增 11 個環節（半導體 7：poly_silicon／crystal_equip／wafer_si／wbg_substrate／wbg_epi／wbg_device／power_idm；一般電子 4：motion_parts／cnc_controller／cnc_machine／factory_robot）、28 家公司（台股 18、外商 10）、27 條邊（高 10、中 17、低 0）。
