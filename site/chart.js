@@ -849,7 +849,7 @@
         if (!pages || st.next >= pages) {
           // 這一檔在資料湖裡沒有比個股頁更舊的歷史（回補還沒跑到它）
           st.done = true;
-          this._histNote(pages ? '已經到最早一筆了' : '更早的歷史資料準備中，目前只有畫面上這一段', 3200);
+          this._histNote('已經到最早一筆了', 3200);
           return 0;
         }
         const j = await histFetch(code, st.next);
@@ -1515,7 +1515,7 @@
         const tag = document.createElement('div');
         tag.className = 'tk-gap';
         tag.dataset.from = KUtil_fmt(sg.g[0]); tag.dataset.to = KUtil_fmt(sg.g[1]);
-        tag.title = `${tag.dataset.from}～${tag.dataset.to}：` + (sg.g[3] || 'Yahoo 早盤延遲約 20 分鐘、這段又在你打開頁面之前，暫時沒有資料（Yahoo 追上來後自動補上）');
+        tag.title = `${tag.dataset.from}～${tag.dataset.to}：` + (sg.g[3] || '早盤分 K 延遲約 20 分鐘，稍後補上');
         if (!sg.line) tag.dataset.lead = '1';
         const left = Math.round(Math.min(x0, x1)), w = Math.max(2, Math.round(Math.abs(x1 - x0)));
         tag.style.left = left + 'px';

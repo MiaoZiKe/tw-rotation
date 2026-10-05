@@ -179,7 +179,7 @@
   function zhErr(e) {
     const m = String((e && (e.name + ' ' + e.message)) || e || '');
     if (/abort|timeout|timed out/i.test(m)) return '連 Yahoo 逾時';
-    if (/failed to fetch|networkerror|load failed|network|cors/i.test(m)) return '連不到 Yahoo（網路擋住或代理離線）';
+    if (/failed to fetch|networkerror|load failed|network|cors/i.test(m)) return '連不到分 K 來源';
     if (/json|unexpected token|syntax/i.test(m)) return 'Yahoo 回來的格式看不懂';
     return '抓取失敗';
   }
@@ -609,30 +609,30 @@
       if (ses.date && !netErr) {
         const head = `最近交易日 ${ses.date}（非即時）`;
         const n = ticksOf(ses.date).length;
-        if (tf === '5s' && n >= 2) return `${head}：5 秒 K 是那天盤中開著這一頁時收集的 ${n} 筆。今天還沒有成交，開盤後自動換回即時。`;
+        if (tf === '5s' && n >= 2) return `${head}：那天盤中收集的 ${n} 筆，開盤後自動換回即時。`;
         if (!nh) {
           return n >= 2
-            ? `${head}：Yahoo 沒有這一檔的分 K，這裡是那天盤中開著頁面收到的 ${n} 筆報價疊的。`
-            : `最近交易日（${ses.date}）也沒有分 K 資料（Yahoo 查不到這一檔的 1 分 K，冷門股常見）。日線／週線／月線可以正常看。`;
+            ? `${head}：那天盤中收集的 ${n} 筆報價`
+            : `最近交易日（${ses.date}）也沒有分 K 資料`;
         }
-        if (tf === '5s') return `${head}：5 秒 K 只在盤中收集，非交易時段先顯示最近交易日 1 分 K。`;
-        return `${head}：${TFZ[tf] || tf} K ${tf === '1m' ? '來自' : '由'} Yahoo 1 分 K${tf === '1m' ? '' : '合成'}（那天共 ${nh} 根）。今天還沒有成交（週末、休市或開盤前），開盤後自動換回即時。`;
+        if (tf === '5s') return `${head}：先顯示最近交易日 1 分 K`;
+        return `${head}，開盤後自動換回即時。`;
       }
       if (!state.histTried && proxy()) return '正在抓最近交易日的分 K…';
-      if (state.histErr === 'EMPTY') return '最近交易日也沒有分 K 資料（Yahoo 查不到這一檔的 1 分 K，冷門股常見）。日線／週線／月線可以正常看。';
+      if (state.histErr === 'EMPTY') return '最近交易日也沒有分 K 資料';
     }
     const n = state.ticks.length;
     if (tf === '5s') {
       return n < 2
-        ? '5 秒 K 是打開這一頁之後才開始收集的（證交所沒有個股的歷史分時檔）。開著就會一路長出來。'
-        : `5 秒 K：每 5 秒一筆，${n} 筆。這是證交所報價能給的最細顆粒（它自己就是 5 秒更新一次）。盤中量為估計值。`;
+        ? '5 秒 K 自打開本頁起收集'
+        : `5 秒 K：${n} 筆；盤中量為估計值`;
     }
     const h = state.hist.filter(b => b.d === ses.date).length;
     if (!h && state.histErr === 'NOYAHOO') {
-      return '早盤那段還沒接上：Worker 還是舊版（沒有 /y）。到 Cloudflare 重貼 workers/quote-proxy/worker.js 就會補齊 09:00 起的 K 棒。';
+      return '早盤資料暫時取不到';
     }
-    if (!h) return `早盤資料抓不到${state.histErr && state.histErr !== 'EMPTY' ? '（' + state.histErr + '）' : ''}，目前只有打開這一頁之後收集到的 ${n} 筆。`;
-    return `早盤 ${h} 根來自 Yahoo（延遲約 20 分鐘、量偏低），最近這段是證交所即時報價每 5 秒一筆自己疊的。盤中量為估計值，收盤後由管線的正式資料覆蓋。`;
+    if (!h) return `早盤資料抓不到${state.histErr && state.histErr !== 'EMPTY' ? '（' + state.histErr + '）' : ''}，目前 ${n} 筆`;
+    return `早盤 ${h} 根來自 Yahoo（延遲約 20 分鐘），之後為即時報價；盤中量為估計值`;
   }
 
   /** 週期鈕上的點：紅＝即時（今天有盤）、灰＝非即時（畫的是最近交易日）。
@@ -644,8 +644,8 @@
     document.querySelectorAll('#tfSeg button.livetf').forEach(b => {
       b.classList.toggle('offhrs', off);
       b.title = off
-        ? (day ? `非即時：今天還沒有成交，顯示最近交易日 ${day} 的分 K（灰點＝非即時，紅點＝即時）` : '非即時：目前沒有今天的成交資料（灰點＝非即時，紅點＝即時）')
-        : '當天即時（Yahoo 補早盤 ＋ 證交所報價每 5 秒補尾巴；紅點＝即時）';
+        ? (day ? `非即時：顯示最近交易日 ${day}` : '非即時')
+        : '當天即時';
     });
   }
 

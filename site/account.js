@@ -427,7 +427,7 @@
     if (head !== 'admin' || subAdmin()) return null;
     admKey = '';
     const v = ensureView(); if (!v) return null;
-    if (!S.on) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p class="muted">會員功能尚未設定（docs/login_setup.md）。</p></div>'; return 'admin'; }
+    if (!S.on) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p class="muted">會員功能尚未設定</p></div>'; return 'admin'; }
     if (!S.user) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這一頁只有管理者看得到，請先登入。</p><p><button type="button" class="btn" id="admLogin">登入</button></p></div>';
       v.querySelector('#admLogin').onclick = () => openDlg('notice'); return 'admin'; }
     if (!S.user.admin) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這個帳號不是管理者，看不到使用統計與線上名單。</p></div>'; return 'admin'; }

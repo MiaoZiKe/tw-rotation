@@ -19,7 +19,7 @@
   const { esc, css, call, view, toast } = T();
 
   const FAQ = [
-    ['資料多久更新一次？', '盤後資料每個交易日更新三次（台北時間約 15:30 價量、18:30 與 21:30 補齊法人、融資券等）。頁面右上角的版號與「資料狀態」會寫最後更新時間。歷史資料每小時自動回補。'],
+    ['資料多久更新一次？', '盤後資料每個交易日更新三次（台北時間約 15:30 價量、18:30 與 21:30 補齊法人、融資券等）。'],
     ['「即時」和「盤後」差在哪？', '盤中（9:00～13:30）打開「即時」時，報價與分時走勢每 5 秒更新一次，來源是證交所的即時行情；盤後資料（法人、融資券、族群資金流向）要等收盤後官方公布才會算，所以盤中看到的族群排行是前一個交易日的。即時報價只是參考，下單請以券商報價為準。'],
     ['怎麼把股票加進自選？', '在個股頁按股票名稱旁的「☆」（變成「★」就是加進去了，再點一下可以選要放哪幾頁）。自選清單在左側欄「自選」，最多 5 頁、每頁 50 檔（實際可用頁數依方案）。沒登入時清單只存在這台裝置；登入後會跨裝置同步。'],
     ['要登入嗎？登入會拿到我的什麼資料？', '不登入也能用大部分功能。登入用 Google 帳號，我們只收到名稱、email 與大頭貼，拿不到密碼，也不讀 Gmail 或雲端硬碟。細節在頁尾的「隱私權政策」。'],
@@ -167,7 +167,7 @@
     if (!u || !u.admin) { el.innerHTML = '<div class="card"><h2>管理頁</h2><p class="muted">這一頁只有管理者看得到' + (u ? '' : '，請先登入') + '。</p></div>'; return; }
     el.innerHTML = '<div class="card"><p class="muted">載入中…</p></div>';
     const j = await call('/v1/admin/feedback/list', {});
-    if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）。Worker 可能還沒更新成有這支 API 的版本。</p></div>'; return; }
+    if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）</p></div>'; return; }
     const fb = j.feedback || [], rq = j.requests || [];
     const nNew = fb.filter((x) => x.status === 'new').length, rNew = rq.filter((x) => x.status === 'new').length;
     el.innerHTML = `<div class="sat"><h2>意見反饋與訂閱申請</h2><a href="#admin/notices">公告管理</a><a href="#admin/traffic">回管理區</a><button type="button" id="fbReload">重新整理</button></div>

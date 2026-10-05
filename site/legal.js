@@ -421,7 +421,7 @@
     ['非投資建議', '所有數值、排行、條件篩選結果僅供研究參考，不構成買賣建議或推介。'],
     ['投資風險警告', '投資有風險，市場價格可能劇烈波動，過去表現不代表未來結果。'],
     ['不代操／不託管／不招攬', '不代客操作、不代收代付、不保管資金或證券、不招攬投資。'],
-    ['數據來源', '臺灣證券交易所 OpenAPI 與即時報價、櫃買中心、集保結算所、FinMind 等公開資料；可能延遲、遺漏或錯誤。'],
+    ['數據來源', '臺灣證券交易所、櫃買中心、集保結算所、FinMind 等公開資料；可能延遲、遺漏或錯誤。'],
     ['即時資料說明', '盤中數字為估算與代理值（例如成交值權重、代理大盤），以交易所正式公告為準。'],
     ['專業諮詢', '做投資決定前，建議諮詢合格的證券投資顧問或財務顧問。'],
     ['責任限制', '在法律允許的範圍內，使用本站資訊所生之任何損失，本站不負賠償責任。'],
@@ -514,7 +514,7 @@
       ? '<p class="lgmeta">' + fill('生效日期：{effective_date}｜最後更新：{updated_date}') + '</p>'
         + '<p class="lgmeta">' + (on ? fill('本文件版本 {effective_date}，如有疑義以最新版本為準。')
                                      : fill('本文件為草稿版本 {effective_date}，如有疑義以最新版本為準。')) + '</p>'
-      : '<p class="lgmeta">本頁內容不需要您同意，也不需要登入；頁尾的那一行是這一頁的短版。</p>';
+      : '';
     v.innerHTML = tabs + '<div class="lgwrap"><nav class="lgtoc" aria-label="目錄"><ol>' + toc + '</ol></nav>'
       + '<article class="lgdoc" id="lgDoc" data-doc="' + id + '">' + draft
       + '<details class="lgtocm"><summary>目錄</summary><ol>' + toc + '</ol></details>'
@@ -551,9 +551,7 @@
     } catch (e) { /* 忽略 */ }
     v.innerHTML = '<div class="lgleave" id="lgLeave" role="region" aria-label="未同意使用條款">'
       + '<h1>你沒有同意使用條款，所以本站不顯示內容。</h1>'
-      + '<p>本站沒有帳號、不蒐集個人資料；你的選擇只影響這一次瀏覽，重新整理就能再選一次。</p>'
-      + '<p>下面三份文件照樣打得開，讀完再決定也可以：'
-      + '<a href="#terms">服務條款</a>、<a href="#privacy">隱私權政策</a>、<a href="#disclaimer">免責聲明</a>。</p>'
+      + '<p>重新整理就能再選一次。<a href="#terms">服務條款</a>、<a href="#privacy">隱私權政策</a>、<a href="#disclaimer">免責聲明</a></p>'
       + '<div class="lgbtns">' + back
       + '<a class="lgb2" href="#terms" id="lgRead" style="display:inline-flex;align-items:center;text-decoration:none">閱讀條款</a>'
       + '<button type="button" class="lgb1" id="lgReAccept">我重新考慮，同意並繼續</button></div></div>';
@@ -607,7 +605,7 @@
   const STEPS = [
     { t: '① 錢往哪跑', d: '先看輪動時鐘：哪些族群正從「改善」走進「領先」，再看熱力圖今天的錢集中在哪幾塊。', sel: '#ovRotCard' },
     { t: '② 貴不貴', d: '看大盤與族群的體質：漲的是不是只有權值股、法人有沒有一起進來。', sel: '#hero' },
-    { t: '③ 何時進場', d: '看大盤三張圖的走勢與 K 線，判斷現在是回檔還是突破。（總覽的今日候選表 2026-09-24 拿掉，名單在市場明細）', sel: '#m3' },
+    { t: '③ 何時進場', d: '看大盤三張圖的走勢與 K 線，判斷現在是回檔還是突破。', sel: '#m3' },
     { t: '④ 別進的理由', d: '最後看新聞、法說與事件，有沒有今天不該進場的理由。', sel: '#ovEvents' },
   ];
   let tourState = null;

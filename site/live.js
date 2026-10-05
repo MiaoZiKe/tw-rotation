@@ -628,14 +628,10 @@
 
     const intr = isIntraday();
     const way = state.mode === 'sse' ? '推送（SSE）'
-      : !autoOn() ? '自動已關（這台瀏覽器的 localStorage 設了 tw.live.on=0）'
-        : state.slow ? `連續 ${state.tries} 次抓不到，退避成每 ${secTxt(state.period)} 重試（輪詢）`
-          : (intr ? '每 5 秒（輪詢）' : '每 30 分（輪詢）');
-    const how = state.mode === 'sse'
-      ? '推送（SSE）：跟代理保持一條連線，值一變就送過來（約 5 秒）。'
-      : (state.sseGaveUp
-        ? '輪詢：代理沒有推送功能（或推送預設關閉），用固定間隔去抓。'
-        : '輪詢：目前用固定間隔去抓；推送連上之後會自動切過去。');
+      : !autoOn() ? '自動已關'
+        : state.slow ? `連續 ${state.tries} 次抓不到，每 ${secTxt(state.period)} 重試`
+          : (intr ? '每 5 秒' : '每 30 分');
+    const how = '';
     let cls = 'off', txt = '—', tip;
     if (!proxy()) {
       tip = '未設定即時來源';
@@ -652,12 +648,12 @@
       txt = q && q.time ? q.time.slice(0, 5) : hhmm(state.lastOk);
       tip = (intr ? '即時 ' : '收盤 ') + txt + '　' + way;
       cls = intr ? 'live' : 'ok';
-      if (state.fresher) { tip = '有新資料（網站重新部署過），點一下重新載入　' + tip; cls = 'bad fresh'; }
+      if (state.fresher) { tip = '有新資料，點一下重新載入　' + tip; cls = 'bad fresh'; }
     }
     if (state.lastErr && cls !== 'bad' && cls !== 'bad fresh') tip += '\n上一次錯誤：' + state.lastErr;
     el.textContent = txt;
     el.className = 'livestate ' + cls;
-    el.title = tip + '\n自動更新：' + way + '\n' + how;
+    el.title = tip + '\n自動更新：' + way;
     /* ★ 2026-09-24 晚（Andy：「時間刪除」）：這顆從畫面上收起來了，同一串說明鏡射到標題下版號那行的提示，
        「有新資料」改成版號旁的一顆小鈕 —— 資訊與功能都還在，只是不佔頂欄。*/
     const asof = document.getElementById('asof');
@@ -867,23 +863,22 @@
       let txt, tip, cls = '';
       if (!on) {
         txt = '靜態'; cls = 'off';
-        tip = `${name}：即時已關，停在盤後資料、不再打報價端點。\n按一下打開＝${meta.tip || '盤中每 5 秒更新'}；盤後每 30 分鐘。`;
+        tip = `${name}：即時已關，顯示盤後資料。`;
       } else if (!at && err) {
         txt = '重試中'; cls = 'bad';
-        tip = `${name}：還沒拿到即時報價（${err}）。失敗會自動退避重試（10、20、40…秒，最慢 5 分鐘一次）。`;
+        tip = `${name}：尚未取得即時報價（${err}），自動重試中。`;
       } else if (!at) {
         txt = '—';
-        tip = `${name}：即時開著，還沒拿到第一筆報價。`;
+        tip = `${name}：即時報價載入中`;
       } else {
         const stale = Date.now() - at > Math.max(every * 3, 20000);
         // meta.lbl／meta.tip：卡片裡各數字節奏不一樣時（大盤卡：台指期 15 秒，DECISIONS #299），卡片自己講清楚
         txt = hms(at) + (intr ? ' · ' + (meta.lbl || '5秒') : ' · 盤後');
         cls = err ? 'bad' : (stale ? 'stale' : '');
         tip = `${name}：最後更新 ${hms(at)}（台北時間）\n`
-          + (intr ? (meta.tip || '盤中每 5 秒更新一次（證交所報價本身就是 5 秒一張快照）') : '現在不是盤中（現貨 09:00–13:30），盤後每 30 分鐘對一次')
-          + (err ? `\n上一次抓失敗：${err}（自動退避重試中）` : '')
-          + (stale && !err ? '\n⚠ 已經超過平常間隔很久沒有新資料' : '')
-          + '\n按一下關掉＝靜態（退回盤後資料）。';
+          + (intr ? (meta.tip || '盤中每 5 秒更新') : '非盤中（現貨 09:00–13:30），每 30 分鐘更新')
+          + (err ? `\n上一次抓失敗：${err}（自動重試中）` : '')
+          + (stale && !err ? '\n⚠ 已超過平常間隔沒有新資料' : '');
       }
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
       b.title = tip;
