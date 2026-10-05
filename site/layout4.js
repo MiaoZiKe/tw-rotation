@@ -344,6 +344,9 @@
     const c = document.createElement('span');
     c.className = 'l4car'; c.dataset.p = 'admin'; c.setAttribute('role', 'button'); c.tabIndex = 0;
     c.setAttribute('aria-label', '管理區子項收展');
+    // 箭頭建立得比 applyFold 晚（管理者身分是非同步回來的），當場把方向設對，不能留一個沒有 aria-expanded 的箭頭
+    const shut = readFold().s.includes('admin');
+    c.setAttribute('aria-expanded', shut ? 'false' : 'true'); c.title = shut ? '展開子項' : '收起子項';
     b.appendChild(c);
   }
   function buildFold() {
@@ -367,15 +370,23 @@
     addAdmCar();
     if (!tabs._l4fold) {
       tabs._l4fold = true;
-      // capture：比 app.js 掛在每顆 .tab 上的「換 hash」先跑；點到箭頭、或再點一次已選中的大項 → 只收展，不導頁
+      /* capture：比 app.js 掛在每顆 .tab 上的「換 hash」先跑。
+         2026-10-06 狀態機（Andy：「點擊母分頁名稱即可收合展開」）—— 每個有子項的母分頁各自一個展開／收合狀態（l4.navFold 的 s），
+         箭頭方向＝aria-expanded＝子項可見性（CSS 只看 data-cs，沒有任何「目前頁例外」）：
+           · 點箭頭 → 只切換，不導頁
+           · 點母分頁名稱、已在這一頁 → 只切換，不導頁
+           · 點母分頁名稱、不在這一頁 → 導到它（第一個子頁），而且若是收著就展開
+           · 點子項、換頁 → 不動任何母分頁或群組的狀態 */
       tabs.addEventListener('click', (e) => {
         if (!active || root.classList.contains('l4-mini')) return;
         const car = e.target.closest('.l4car');
+        if (car) { e.stopPropagation(); e.preventDefault(); toggleFold('s', car.dataset.p); return; }
         const tab = e.target.closest('.tab');
-        if (car || (tab && tab.classList.contains('on') && (SUBS[tab.dataset.view] || (tab.id === 'l4Perm' && $('.l4subtab[data-parent="admin"]', tabs))))) {
-          e.stopPropagation(); e.preventDefault();
-          toggleFold('s', car ? car.dataset.p : (tab.id === 'l4Perm' ? 'admin' : tab.dataset.view));
-        }
+        const key = tab && (tab.id === 'l4Perm' ? ($('.l4subtab[data-parent="admin"]', tabs) ? 'admin' : '') : (SUBS[tab.dataset.view] ? tab.dataset.view : ''));
+        if (!key) return;
+        if (tab.classList.contains('on')) { e.stopPropagation(); e.preventDefault(); toggleFold('s', key); return; }
+        const f = readFold();
+        if (f.s.includes(key)) toggleFold('s', key);   // 收著 → 展開；導頁照常交給 app.js／syncPerm 的 onclick
       }, true);
       tabs.addEventListener('keydown', (e) => {
         const car = e.target.closest && e.target.closest('.l4car');
@@ -441,7 +452,12 @@
       // 2026-10-05（admin-v2）：改成「管理區」入口 —— 會員權限／流量觀測三個子分頁在頁內頂部 tab
       b.textContent = '管理區';
       b.setAttribute('aria-label', '管理區'); b.title = '專案・管理區：會員權限／流量觀測（只有管理者看得到）';
-      b.onclick = () => { if (!/^#admin\b/.test(location.hash || '')) location.hash = '#admin/perm'; };
+      b.onclick = () => {
+        if (/^#admin\b/.test(location.hash || '')) return;
+        // 2026-10-06：子項清單不寫死（另一分支會拿掉會員管理）—— 有「會員權限」照舊進它（會員權限導覽段落與帳號選單都認這個入口），沒有才進第一個實際存在的子項
+        const f1 = $('.l4subtab[data-parent="admin"][data-adm="perm"]', tabs) || $('.l4subtab[data-parent="admin"]', tabs);
+        location.hash = '#admin/' + (f1 ? f1.dataset.adm : 'perm');
+      };
       parent.after(b);
     }
     /* 2026-10-05（admin-v2b，Andy：頂部那排三顆搬到左側欄「管理區」下面當縮排子項，同資金流向的子分頁）。

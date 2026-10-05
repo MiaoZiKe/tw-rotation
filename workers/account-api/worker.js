@@ -1161,6 +1161,97 @@ Object.assign(Hub.prototype.subRoutes, {
 });
 /* ============================================================================ perm-v4 區塊結束 */
 
+/* ============================================================================ hourly 區塊（2026-10-05）
+   Andy：流量觀測「即時」要看今天 0–24 時每小時的狀況、「使用者」分頁要看每小時的使用時段（1H／4H／6H／12H／白天／晚上），
+   而且 ETF、選股策略、事件、客服、財經日曆這幾頁要有真的瀏覽數。後端多兩樣：
+     ① 每小時統計 hstat：一列＝「台北日期 × 小時（0–23）」，四個次數：
+          pv          頁面瀏覽（所有 pv:* 加總）
+          sess        開站（ev:session）
+          sess_login  登入狀態下開站（ev:session_login）；訪客開站＝sess − sess_login
+          mins        心跳次數（不含「離開」那一跳）＝這一小時「看得到的分頁」在線分鐘數；平均同時在線 ≈ mins ÷ 60
+        · 跟 usage 吃同一份心跳、同一套驗證：原本的 beat 回 200 才記，整批被擋（400／429）的這裡也不記 ——
+          所以「今天各小時加總」＝usage 表的今天，兩邊對得上（tests/hourly.test.mjs 驗）。
+        · 歸到「Worker 收到心跳」的那一小時：前端 60 秒送一次，整點前一分鐘內的動作可能算到下一小時（誤差 ≤ 1 分鐘）。
+        · 只有次數：沒有 uid、沒有 sid、不存 IP —— 跟 usage 同一個隱私等級；保留期限也跟 usage 一樣（13 個月，同一個切點）。
+        · /v1/admin/stats 的回應多三個欄位（原有欄位一個不動）：
+            hours   [24]  今天（台北）0–23 時每小時頁面瀏覽；還沒到的小時＝0
+            hourly  [24]  期間 from～to 內，各「時」的頁面瀏覽加總（使用時段圖）
+            hstat   { today, hour, since, day:{pv,open,login,guest,mins}, period:{from,to,pv,open,login,guest,mins} }（各數列都是 24 格）
+          格式與前端接法寫在 docs/account_analytics.md「每小時統計」。
+     ② 頁面白名單加 etf、explore、earnings、pricing、notices（網址頁）與 events（今日事件抽屜）、support（客服面板）。
+        做法是把 VIEWS 陣列（與 EV_KEYS）在這裡補上 —— cleanEv、cleanE2、線上名單的 route、/v1/admin/stats 的 page 篩選全部讀同一份，
+        既有函式不用改一行就收得下。舊資料不動：之前記在 other 底下、元件名帶前綴（etf.cat、support.fab、events.link…）的細項照舊回在 e2 裡。
+        ★ Worker 先上、前端後上：Worker 先收得下新頁面，site/account.js 的 VIEWS 才能加（反過來＝那一分鐘的心跳整批 400、統計全丟）。
+   ★ 同 sub-v1／admin-v3／perm-v4：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const VIEWS_ADDED = ['etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices'];
+for (const v of VIEWS_ADDED) { if (!VIEWS.includes(v)) VIEWS.push(v); EV_KEYS.add('pv:' + v); }
+
+const tpeHour = (ms) => new Date(ms + 8 * 3600 * 1000).getUTCHours();
+const hrZero = () => Array.from({ length: 24 }, () => 0);
+
+Hub.prototype.hrInit = function () {
+  if (this._hrOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS hstat (day TEXT, h INTEGER, pv INTEGER DEFAULT 0, sess INTEGER DEFAULT 0, sess_login INTEGER DEFAULT 0, mins INTEGER DEFAULT 0, PRIMARY KEY (day, h))');
+  this._hrOk = true;
+};
+/* 期間內各「時」加總（from～to 都是台北日期，含頭含尾）。回五個 24 格數列。*/
+Hub.prototype.hrSeries = function (from, to) {
+  this.hrInit();
+  const out = { pv: hrZero(), open: hrZero(), login: hrZero(), guest: hrZero(), mins: hrZero() };
+  this.q('SELECT h, SUM(pv) AS pv, SUM(sess) AS s, SUM(sess_login) AS sl, SUM(mins) AS m FROM hstat WHERE day >= ? AND day <= ? GROUP BY h', from, to).forEach((r) => {
+    if (!(r.h >= 0 && r.h < 24)) return;
+    out.pv[r.h] = r.pv || 0; out.open[r.h] = r.s || 0; out.login[r.h] = r.sl || 0; out.mins[r.h] = r.m || 0;
+  });
+  for (let h = 0; h < 24; h++) out.guest[h] = Math.max(0, out.open[h] - out.login[h]);
+  return out;
+};
+/* 心跳：原本的照跑；回 200（＝usage 已經記下）才同步累加到這一小時。統計失敗不影響心跳本身的回應。*/
+const hrOrigBeat = Hub.prototype.beat;
+Hub.prototype.beat = async function (req, b) {
+  const res = await hrOrigBeat.call(this, req, b);
+  if (res.status !== 200) return res;
+  try {
+    let pv = 0, sess = 0, sl = 0;
+    for (const [k, n] of this.cleanEv(b.ev) || []) {
+      if (k.startsWith('pv:')) pv += n; else if (k === 'ev:session') sess += n; else if (k === 'ev:session_login') sl += n;
+    }
+    const mins = b.leave ? 0 : 1;
+    if (pv || sess || sl || mins) {
+      this.hrInit();
+      const now = this.now();
+      this.q('INSERT INTO hstat (day, h, pv, sess, sess_login, mins) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(day, h) DO UPDATE SET pv = pv + excluded.pv, sess = sess + excluded.sess, sess_login = sess_login + excluded.sess_login, mins = mins + excluded.mins',
+        tpeDay(now), tpeHour(now), pv, sess, sl, mins);
+    }
+  } catch (e) { /* 每小時統計寫不進去：心跳照樣算成功（不然前端會把這批計數放回去重送，usage 就重複了）*/ }
+  return res;
+};
+/* /v1/admin/stats：原本的照跑（權限、rows、e2、users…一個不動），回 200 才在後面加 hours／hourly／hstat */
+const hrOrigStats = Hub.prototype.adminStats;
+Hub.prototype.adminStats = async function (req, b) {
+  const res = await hrOrigStats.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  const now = this.now(), today = tpeDay(now);
+  const day = this.hrSeries(today, today), per = this.hrSeries(j.from, j.to);
+  const first = this.q('SELECT MIN(day) AS d FROM hstat')[0];
+  j.hours = day.pv.slice();
+  j.hourly = per.pv.slice();
+  j.hstat = { today, hour: tpeHour(now), since: (first && first.d) || null, day, period: { from: j.from, to: j.to, ...per } };
+  return this.json(req, j);
+};
+/* 保存期限：跟 usage 同一個切點（13 個月） */
+const hrOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  hrOrigCleanup.call(this);
+  this.hrInit();
+  const d = new Date(this.now() + 8 * 3600 * 1000); d.setUTCMonth(d.getUTCMonth() - USAGE_KEEP_MONTHS);
+  this.q('DELETE FROM hstat WHERE day < ?', d.toISOString().slice(0, 10));
+};
+/* ============================================================================ hourly 區塊結束 */
+
+/* =====================================================================
+
 /* ============================================================================
    範本刪除保護（2026-10-05，Andy：「還有有效會員的付費範本不能刪」）
    plans/put 帶 del:true 時：這個範本若還有「有效會員」（perm.plan 指向它、而且沒到期：expires 為空或 0 或晚於現在）→ 409 {error:'has_members', n, emails}

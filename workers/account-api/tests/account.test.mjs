@@ -10,7 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { makeHub } from '../harness.mjs';
-import { VIEWS, EVENTS } from '../worker.js';
+import { VIEWS, EVENTS, VIEWS_ADDED } from '../worker.js';
 
 const ORIGIN = 'https://miaozike.github.io';
 const API = 'https://tw-account.example.workers.dev';
@@ -257,7 +257,10 @@ test('白名單三邊一致：worker.js ＝ site/account.js ＝ docs/account_ana
   const site = readFileSync(new URL('site/account.js', root), 'utf8');
   const doc = readFileSync(new URL('docs/account_analytics.md', root), 'utf8');
   const arr = (name) => JSON.parse(site.match(new RegExp(`const ${name} = (\\[[^\\]]*\\])`))[1].replace(/'/g, '"'));
-  assert.deepEqual(arr('VIEWS'), VIEWS);
+  /* 2026-10-05（hourly）：Worker 先上、前端後上 —— worker.js 檔尾補了 VIEWS_ADDED 那幾頁，site/account.js 還沒跟上的過渡期，
+     前端那份＝Worker 那份去掉 VIEWS_ADDED（前端送的 Worker 一定收得下）。前端補上之後就回到完全相等。*/
+  const sv = arr('VIEWS');
+  assert.deepEqual(sv, sv.length === VIEWS.length ? VIEWS : VIEWS.filter((v) => !VIEWS_ADDED.includes(v)));
   assert.deepEqual(arr('EVENTS'), EVENTS);
   for (const e of EVENTS) assert.ok(doc.includes('`' + e + '`'), '文件沒寫到事件 ' + e);
   for (const v of VIEWS) assert.ok(doc.includes('`' + v + '`'), '文件沒寫到頁面 ' + v);
