@@ -32844,7 +32844,7 @@
     "divresult@etf2009:00852L": "no_data",
     "divresult@etf2009:009822": "no_data"
   },
-  "updated_at": "2026-10-05T10:21:01.165018+00:00",
+  "updated_at": "2026-10-05T10:25:17.907160+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
@@ -33096,14 +33096,14 @@
       "no_data": 0,
       "per_run": 400,
       "this_run": {
-        "asked": 282,
-        "got": 282,
-        "new_rows": 698758,
+        "asked": 0,
+        "got": 0,
+        "new_rows": 0,
         "new_no_data": 0,
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-10-05T10:18:12.116215+00:00"
+      "at": "2026-10-05T10:25:17.321720+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -33269,10 +33269,10 @@
     }
   },
   "finmind_health": {
-    "ok": true,
-    "at": "2026-10-05T10:18:12.567725+00:00",
+    "ok": false,
+    "at": "2026-10-05T10:25:17.907079+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-09-25",
-    "detail": ""
+    "detail": "HTTP 402：Requests reach the upper limit. https://finmindtrade.com/"
   },
   "unavailable": {
     "holding": {
