@@ -93,7 +93,11 @@ git add -A && git commit -m "<訊息>" && git push origin main
 - 要重算前端 JSON：**5 到 6 分鐘**
 - 失敗就用 `list_workflow_jobs` 看是哪一步，**回報，不要自己亂改工作流**。
 
-### ⑥ 確認部署真的生效 ★ 這一步不准省，但**不要謊稱你打開了網頁**
+### ⑥ 確認部署真的生效
+
+**★ 2026-10-06 起第一步一律：`python scripts/deploy_wait.py --branch <main 或 preview/名稱>`**，印出 ✅ 才算部署完成（DECISIONS #323）。
+⚠ 推 `preview/*` 時，預覽分支自己那輪「部署網站」只是轉呼叫 main（10 秒 success、什麼都沒部署）——**不准拿它當證據**。
+ ★ 這一步不准省，但**不要謊稱你打開了網頁**
 
 ⚠⚠ **這個容器打不開 `miaozike.github.io`。** 實測 2026-09-23：
 `curl` 回 `CONNECT tunnel failed, response 403`、HTTP 000；`WebFetch` 回 `EGRESS_BLOCKED`。
