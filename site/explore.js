@@ -7,8 +7,10 @@
    所以這一版是「策略卡片牆」：
      · 每個策略一張卡（英文標題＋一行中文翻譯），卡內列前 3 檔（依成交值排序 —— 不是好壞名次）。
      · 每一列點開 → 條件逐條打勾＋實際數值（為什麼入選），不讓使用者自己去猜。
-     · 每張卡的「i」→ 白話條件、門檻、計算方式、資料日期、資料出處（照 pipeline/sources 實際來源寫）。
-     · 「>」→ #explore/<策略 id> 完整名單頁：全部符合的公司＋每檔原因欄＋出處。
+     · 每張卡的「i」→ 篩選條件＋出處 ⓘ（滑過才顯示機構名）。
+     · 「>」→ #explore/<策略 id> 完整名單頁：全部符合的公司＋每檔原因欄＋計算方式＋出處 ⓘ。
+   2026-10-06 廢話普查第二輪（docs/copy_audit_1006_r2.md 轉交）：出處只留機構名（不寫端點代碼、FinMind 資料集名、程式路徑），
+     整行「資料出處：」改成標題旁 ⓘ；卡片標題列的資料日期膠囊（.sl-date）與 i 浮層的資料日期拿掉（DECISIONS #329 轉交）。
    泡泡圖與條件積木拿掉（理由見規格 §2：卡片牆已經把「為何入選」寫在每一列上，泡泡圖要使用者
    自己對座標，等於多一步推論；交集功能改由完整名單頁的「也符合哪些策略」欄回答）。
 
@@ -26,23 +28,31 @@
   const n1 = (v, d) => (ok(v) ? Number(v).toFixed(d == null ? 1 : d) : '—');
   const MIN_TV = 10;          // 近 20 日平均成交值下限（百萬元）
 
-  /* ---------------- 資料出處（照 pipeline/sources 與 docs/v3_sources_spec.md 實際走的路寫，不要編） ---------------- */
+  /* ---------------- 資料出處 ----------------
+     畫面只寫「機構名」：[項目, 機構]。實際走的端點與資料集（證交所 OpenAPI、櫃買中心、FinMind 回補、集保開放資料、
+     鉅亨／TechNews／經濟日報 RSS）照 pipeline/sources 與 docs/v3_sources_spec.md —— 那是工程口徑，讀者用不到，不上畫面
+     （Andy 10-06：「出處：…（證交所 OpenAPI t187ap04）…讀者看了沒意義」）。法人與融資的歷史是經 FinMind 取得，但原始公布機構是證交所／櫃買中心。 */
   const SRC = {
-    price: ['股價（日 K）', '臺灣證券交易所 OpenAPI（STOCK_DAY_ALL，上市）、證券櫃檯買賣中心（上櫃；被擋時由 FinMind TaiwanStockPrice 補）'],
-    fin: ['財報（EPS、毛利率、ROE）', '臺灣證券交易所 OpenAPI t187ap14_L（公開資訊觀測站彙整）；歷史由 FinMind TaiwanStockFinancialStatements／TaiwanStockBalanceSheet 回補'],
-    rev: ['月營收', '臺灣證券交易所 OpenAPI t187ap05_L（公開資訊觀測站彙整）；歷史由 FinMind TaiwanStockMonthRevenue 回補'],
-    per: ['本益比', '臺灣證券交易所 OpenAPI BWIBBU_ALL；歷史由 FinMind TaiwanStockPER 回補'],
-    div: ['股利', '臺灣證券交易所 OpenAPI t187ap45_L；歷史由 FinMind TaiwanStockDividend 回補'],
-    inst: ['三大法人買賣超', 'FinMind TaiwanStockInstitutionalInvestorsBuySell（個股別法人資料在證交所只放官網，官網條款禁止程式抓取，所以改走 FinMind）'],
-    tech: ['技術指標', '本站以日 K 自行計算（pipeline/indicators.py：均線、MACD 用 DIF/MACD/OSC、RSI 用 Wilder）'],
-    calc: ['衍生數值', '本站自行計算（pipeline/compute/explore.py、compute/fundamental.py）'],
-    // ★ 第四版（四大面向）新增的籌碼面與消息面出處
-    tdcc: ['集保股權分散表', '臺灣集中保管結算所（TDCC）開放資料：集保戶股權分散表（每週一次，持股分級 15＝1,000 張以上）'],
-    mgn: ['融資融券餘額', '臺灣證券交易所 OpenAPI MI_MARGN（上市）；上櫃與歷史由 FinMind TaiwanStockMarginPurchaseShortSale 補'],
-    news: ['新聞', '鉅亨網（台股／科技／國際政經分類）、TechNews 科技新報、經濟日報（備援）的公開新聞列表；本站只存標題、連結與文中出現的股票代號'],
-    mops: ['重大訊息', '臺灣證券交易所 OpenAPI t187ap04_L（上市）、證券櫃檯買賣中心 t187ap04_O（上櫃）：公開資訊觀測站每日重大訊息'],
-    theme: ['題材熱度', '本站自行計算（pipeline/compute/themes.py；成分在 pipeline/groups/themes.yaml）：資金佔比變化、佔比排名、法人 5 日淨買、新聞提及量的加權百分位'],
+    price: ['股價', '臺灣證券交易所、證券櫃檯買賣中心'],
+    fin: ['財報', '公開資訊觀測站'],
+    rev: ['月營收', '公開資訊觀測站'],
+    per: ['本益比', '臺灣證券交易所'],
+    div: ['股利', '臺灣證券交易所'],
+    inst: ['三大法人買賣超', '臺灣證券交易所、證券櫃檯買賣中心'],
+    tech: ['技術指標', '本站計算'],
+    calc: ['衍生數值', '本站計算'],
+    tdcc: ['集保股權分散表', '臺灣集中保管結算所'],
+    mgn: ['融資融券餘額', '臺灣證券交易所、證券櫃檯買賣中心'],
+    news: ['新聞', '鉅亨網、TechNews 科技新報、經濟日報'],
+    mops: ['重大訊息', '公開資訊觀測站'],
+    theme: ['題材熱度', '本站計算'],
   };
+  /* 出處 ⓘ：跟全站 App.srcInfo 同一個寫法（claude/copy-trim2 分支，還沒上 main）—— 有就直接用它；
+     沒有就產出同樣的標記（class srcinfo＋title；樣式等 .srcinfo 進 index.html 才有，這之前借既有的 .muted 灰字）。
+     App.srcInfo 上 main 之後，這裡的退回寫法可以刪掉。 */
+  const srcI = (src) => (App().srcInfo ? App().srcInfo(src, '')
+    : (src ? `<span class="srcinfo muted" tabindex="0" role="note" aria-label="出處" title="${esc('出處：' + src)}">ⓘ</span>` : ''));
+  const srcOf = (s) => [...new Set(s.src)].map((k) => `${SRC[k][1]}（${SRC[k][0]}）`).join('；');
 
   /* ---------------- 分類（晶片） ---------------- */
   /* ★ 2026-10-05 第四版（Andy：「需要分成以下大族群：基本面、技術面、籌碼面、消息面」）：
@@ -70,101 +80,101 @@
 
   /* ---------------- 策略 ----------------
      conds：每一條 [標籤, 取值, 比較, 門檻, 格式]。符合＝全部條件成立；理由就是逐條把「實際值 vs 門檻」寫出來。
-     key：卡片右側那一個關鍵指標。need：要哪一份資料（缺就顯示「資料準備中」，不要硬算）。 */
+     key：卡片右側那一個關鍵指標。need：要哪一份資料（缺就顯示「尚無資料」，不要硬算）。 */
   const pct = (v) => `${n1(v)}%`;
   const days = (v) => `${ok(v) ? Math.round(v) : '—'} 天`;
   const S_ = [
     { id: 'quality', name: '高獲利品質', cat: 'fund', en: 'Quality Earners', zh: '高獲利品質：ROE 與毛利率都高', tags: ['ROE', '毛利率'],
       conds: [['ROE（近四季）', (r) => r.roe, '>=', 15, pct], ['毛利率（近四季）', (r) => r.gm, '>=', 20, pct, (r) => r.fin]],
-      key: ['ROE', (r) => r.roe, pct], src: ['fin', 'calc'], date: 'fin',
+      key: ['ROE', (r) => r.roe, pct], src: ['fin', 'calc'],
       how: 'ROE＝近四季稅後淨利 ÷ 平均股東權益；毛利率＝近四季毛利 ÷ 營收。金融業沒有毛利率，只看 ROE。',
       care: '景氣循環股在高峰時 ROE 最漂亮；借很多錢的公司 ROE 也會被墊高。' },
     { id: 'margin', name: '毛利率領先', cat: 'fund', en: 'Margin Leaders', zh: '毛利率領先：產品有議價力', tags: ['毛利率', '獲利'],
       conds: [['毛利率（近四季）', (r) => r.gm, '>=', 40, pct], ['近四季有獲利', (r) => (r.loss ? 0 : (r.eps != null ? 1 : null)), '>=', 1, (v) => (v ? '是' : '否')]],
-      key: ['毛利率', (r) => r.gm, pct], src: ['fin', 'calc'], date: 'fin',
+      key: ['毛利率', (r) => r.gm, pct], src: ['fin', 'calc'],
       how: '毛利率＝近四季毛利 ÷ 近四季營收；獲利＝近四季 EPS 合計 > 0。',
       care: '不同產業的正常毛利率差很多（軟體、IC 設計天生高），最好跟同業比。' },
     { id: 'below', name: '比自己過去便宜', cat: 'fund', en: 'Below Own History', zh: '比自己過去便宜：本益比在自身 5 年低檔', tags: ['本益比', '歷史比較'], need: 'ex',
       conds: [['本益比歷史位置（0＝最便宜）', (r) => r.pepct, '<=', 30, (v) => `第 ${n1(v, 0)} 百分位`], ['本益比（有獲利）', (r) => r.pe, '>', 0, (v) => `${n1(v)} 倍`]],
-      key: ['本益比位置', (r) => r.pepct, (v) => `P${n1(v, 0)}`], src: ['per', 'fin', 'calc'], date: 'ex',
+      key: ['本益比位置', (r) => r.pepct, (v) => `P${n1(v, 0)}`], src: ['per', 'fin', 'calc'],
       how: '把目前本益比放進「這家公司自己近 5 年各季本益比」裡排位置（至少 8 季才算）。不跨族群比（不同產業本益比天生不同）。',
       care: '便宜可能有原因：市場預期它未來獲利會下滑。' },
     { id: 'value', name: '低本益比且真的有賺', cat: 'fund', en: 'Low P/E, Real Profits', zh: '低本益比且真的有賺', tags: ['本益比', 'ROE'],
       conds: [['本益比', (r) => r.pe, '<=', 12, (v) => `${n1(v)} 倍`, null, 0], ['ROE（近四季）', (r) => r.roe, '>=', 10, pct]],
-      key: ['本益比', (r) => r.pe, (v) => `${n1(v)} 倍`], src: ['per', 'fin', 'calc'], date: 'fin',
+      key: ['本益比', (r) => r.pe, (v) => `${n1(v)} 倍`], src: ['per', 'fin', 'calc'],
       how: '本益比＝收盤價 ÷ 近四季 EPS（虧損公司沒有本益比，不會入選）；再要求 ROE ≥ 10%，排除「便宜但不太賺」的。',
       care: '金融、航運、原物料等景氣股本益比常年偏低，低不一定代表被低估。' },
     { id: 'accel', name: '營收加速', cat: 'fund', en: 'Revenue Accelerators', zh: '營收加速：月營收連續年增', tags: ['營收', '年增'],
       conds: [['月營收連續年增', (r) => r.rs, '>=', 3, (v) => `${ok(v) ? v : '—'} 個月`], ['最新一月營收年增', (r) => r.ry, '>=', 10, pct]],
-      key: ['營收年增', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'], date: 'rev',
+      key: ['營收年增', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'],
       how: '年增率＝當月營收 ÷ 去年同月營收 − 1；連續月數＝年增率連續為正的月份數。跟去年同月比可以避開淡旺季。',
       care: '去年同期如果特別差（基期低），年增率會看起來很漂亮。' },
     { id: 'record', name: '月營收創新高', cat: 'fund', en: 'Record-High Sales', zh: '月營收創歷史新高', tags: ['營收', '創新高'],
       conds: [['最新月營收創歷史新高', (r) => (r.rec ? 1 : 0), '>=', 1, (v) => (v ? '是' : '否')], ['最新一月營收年增', (r) => r.ry, '>', 0, pct]],
-      key: ['營收年增', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'], date: 'rev',
-      how: '最新公布的月營收高於本站資料湖裡這家公司過去每一個月的營收，而且比去年同月成長。',
+      key: ['營收年增', (r) => r.ry, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['rev', 'calc'],
+      how: '最新公布的月營收高於這家公司過去每一個月的營收，而且比去年同月成長。',
       care: '月營收創高不等於獲利創高：毛利可能在下滑。' },
     { id: 'accum', name: '法人連續買超', cat: 'chip', en: 'Institutional Accumulation', zh: '三大法人連續淨買超', tags: ['三大法人', '連續買超'], need: 'inst',
       conds: [['三大法人合計連續淨買超', (r) => r.bd, '>=', 5, days]],
-      key: ['連買', (r) => r.bd, (v) => `${v} 天`], src: ['inst', 'calc'], date: 'inst',
+      key: ['連買', (r) => r.bd, (v) => `${v} 天`], src: ['inst', 'calc'],
       how: '外資＋投信＋自營商每日買賣超相加，從最近一個交易日往回數連續為正的天數；今天一轉賣就歸零。',
       care: '法人也會看錯；外資有時只是被動調整指數成分。' },
     { id: 'trust', name: '投信連續買超', cat: 'chip', en: 'Fund Manager Favorites', zh: '投信連續買超', tags: ['投信', '連續買超'], need: 'streak',
       conds: [['投信連續買超', (r) => r.td, '>=', 3, days]],
-      key: ['投信連買', (r) => r.td, (v) => `${v} 天`], src: ['inst', 'calc'], date: 'inst',
-      how: '只看投信（國內基金）每日買賣超，從最近一個交易日往回數連續為正的天數。本站只保留連買天數前 60 名。',
+      key: ['投信連買', (r) => r.td, (v) => `${v} 天`], src: ['inst', 'calc'],
+      how: '只看投信（國內基金）每日買賣超，從最近一個交易日往回數連續為正的天數。只列連買天數前 60 名。',
       care: '投信季底常有「作帳」買盤，季初可能反手。' },
     { id: 'steady', name: '穩健上升', cat: 'tech', en: 'Steady Uptrend', zh: '穩健上升：低波動且站上均線', tags: ['低波動', '均線'], need: 'ex',
       conds: [['60 日年化波動度', (r) => r.vol, '<=', 30, pct], ['收盤站上 20 日均線', (r) => r.a20, '>=', 1, (v) => (v ? '是' : '否')], ['收盤站上 60 日均線', (r) => r.a60, '>=', 1, (v) => (v ? '是' : '否')]],
-      key: ['波動度', (r) => r.vol, pct], src: ['price', 'tech', 'calc'], date: 'ex',
+      key: ['波動度', (r) => r.vol, pct], src: ['price', 'tech', 'calc'],
       how: '波動度＝近 60 日日報酬標準差 × √252（年化）；均線用還原後日 K 收盤價。',
       care: '穩不代表會漲，可能只是盤整；財報或消息可能讓它突然大動。' },
     { id: 'macd', name: '均線多頭排列', cat: 'tech', en: 'Bullish MA Alignment', zh: '均線多頭排列＋MACD 柱翻正', tags: ['均線', 'MACD'], need: 'cand',
       conds: [['均線多頭排列（5>20>60）', (r) => r.align, '>=', 1, (v) => (v === 1 ? '是' : '否')], ['MACD 柱（OSC）', (r) => r.osc, '>', 0, (v) => n1(v, 2)], ['RSI(14) 未過熱', (r) => r.rsi, '<=', 70, (v) => n1(v)]],
-      key: ['OSC', (r) => r.osc, (v) => `${v >= 0 ? '+' : ''}${n1(v, 2)}`], src: ['price', 'tech'], date: 'ex',
-      how: '只涵蓋本站技術面候選池（每天由管線依成交值與技術分數先篩出的數百檔），不是全市場。OSC＝DIF − MACD。',
+      key: ['OSC', (r) => r.osc, (v) => `${v >= 0 ? '+' : ''}${n1(v, 2)}`], src: ['price', 'tech'],
+      how: '只涵蓋技術面候選池（依成交值與技術分數篩出的數百檔），不是全市場。OSC＝DIF − MACD。',
       care: '技術訊號會反覆；多頭排列常出現在已經漲一段之後。' },
     { id: 'lead', name: '60 日漲幅領先', cat: 'tech', en: '60-Day Leaders', zh: '近 60 日漲幅領先且仍站上均線', tags: ['報酬', '趨勢'], need: 'ex',
       conds: [['近 60 日漲跌', (r) => r.ret, '>=', 20, pct], ['收盤站上 20 日均線', (r) => r.a20, '>=', 1, (v) => (v ? '是' : '否')]],
-      key: ['60 日', (r) => r.ret, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['price', 'calc'], date: 'ex',
+      key: ['60 日', (r) => r.ret, (v) => `${v >= 0 ? '+' : ''}${n1(v)}%`], src: ['price', 'calc'],
       how: '近 60 日漲跌＝今天收盤 ÷ 60 個交易日前收盤 − 1（還原權息）。',
       care: '已經漲多的股票波動也大，回檔幅度常常很深。' },
     { id: 'volup', name: '帶量上漲', cat: 'tech', en: 'Volume Surge', zh: '帶量上漲：成交量放大且收紅', tags: ['成交量', '價格'], need: 'cand',
       conds: [['量比（今日量 ÷ 5 日均量）', (r) => r.vr, '>=', 2, (v) => `${n1(v)} 倍`], ['今日漲跌', (r) => r.chg, '>', 0, pct]],
-      key: ['量比', (r) => r.vr, (v) => `${n1(v)}x`], src: ['price', 'tech'], date: 'ex',
-      how: '只涵蓋本站技術面候選池。量比＝今日成交量 ÷ 近 5 日平均量。',
+      key: ['量比', (r) => r.vr, (v) => `${n1(v)}x`], src: ['price', 'tech'],
+      how: '只涵蓋技術面候選池（不是全市場）。量比＝今日成交量 ÷ 近 5 日平均量。',
       care: '爆量可能是主力出貨或消息面一次性反應，隔天常見反轉。' },
     { id: 'divcon', name: '穩定配息', cat: 'fund', en: 'Dividend Consistency', zh: '穩定配息：殖利率不低且連年配現金', tags: ['殖利率', '配息年數'], need: 'ex',
       conds: [['近 12 個月現金殖利率', (r) => r.dy, '>=', 4, (v) => `${n1(v, 2)}%`], ['連續配現金股利', (r) => r.dv, '>=', 5, (v) => `${ok(v) ? v : '—'} 年`]],
-      key: ['殖利率', (r) => r.dy, (v) => `${n1(v, 2)}%`], src: ['div', 'price', 'calc'], date: 'ex',
+      key: ['殖利率', (r) => r.dy, (v) => `${n1(v, 2)}%`], src: ['div', 'price', 'calc'],
       how: '殖利率＝近 12 個月現金股利 ÷ 目前股價；連續年數從去年往回數（今年還沒過完不算）。',
       care: '股價大跌也會讓殖利率變高；配息後要填息才算真的賺到。' },
 
     /* ---------- 籌碼面（第四版新增） ---------- */
     { id: 'whale', name: '千張大戶週增', cat: 'chip', en: 'Whale Accumulation', zh: '千張大戶持股比例比上週增加', tags: ['集保', '大戶'], need: 'ex',
       conds: [['千張大戶持股比例週變化', (r) => r.bw, '>=', 0.5, (v) => `${v >= 0 ? '+' : ''}${n1(v, 2)} 個百分點`], ['千張大戶持股比例', (r) => r.big, '>=', 10, pct]],
-      key: ['週增', (r) => r.bw, (v) => `+${n1(v, 2)}pp`], src: ['tdcc', 'calc'], date: 'tdcc',
-      how: '集保每週公布一次股權分散表；「千張大戶」＝持股分級 15（1,000 張以上）的持股比例。週變化＝最新一週 − 上一週（百分點）。另外要求大戶比例 ≥ 10%，排除大戶本來就極少、一點變動就被放大的股票。',
+      key: ['週增', (r) => r.bw, (v) => `+${n1(v, 2)}pp`], src: ['tdcc', 'calc'],
+      how: '集保每週公布一次股權分散表；「千張大戶」＝持有 1,000 張以上的股東合計持股比例。週變化＝最新一週 − 上一週（百分點）。另外要求大戶比例 ≥ 10%，排除大戶本來就極少、一點變動就被放大的股票。',
       care: '集保只看「持有人」不看「是誰」：可能是公司派、也可能是 ETF 申購；每週一次，比股價慢一週。' },
     { id: 'settle', name: '籌碼沉澱', cat: 'chip', en: 'Margin Unwinding', zh: '融資減少＋股價上漲', tags: ['融資', '散戶'], need: 'ex',
       conds: [['融資餘額 5 日變化', (r) => r.mg5, '<=', -5, pct], ['股價 5 日漲跌', (r) => r.r5, '>', 0, pct]],
-      key: ['融資 5 日', (r) => r.mg5, (v) => `${n1(v)}%`], src: ['mgn', 'price', 'calc'], date: 'ex',
+      key: ['融資 5 日', (r) => r.mg5, (v) => `${n1(v)}%`], src: ['mgn', 'price', 'calc'],
       how: '融資餘額 5 日變化＝今天融資餘額 ÷ 5 個交易日前 − 1（融資餘額不足 100 張的不算，分母太小會亂跳）；股價 5 日漲跌用還原收盤價。融資退場、股價卻往上，代表籌碼從散戶手上移到其他人手上。',
       care: '融資減少也可能是被斷頭（股價先大跌）；要搭配股價一起看，所以才要求 5 日是上漲。' },
     /* ---------- 消息面（第四版新增：只用站上已經合法取得的新聞列表、重大訊息與題材熱度） ---------- */
     { id: 'buzz', name: '新聞則數激增', cat: 'news', en: 'News Spike', zh: '近 7 日被新聞提到的次數暴增', tags: ['新聞', '關注度'], need: 'ex',
       conds: [['近 7 日新聞則數', (r) => r.n7, '>=', 3, (v) => `${ok(v) ? v : '—'} 則`], ['相對前 4 週平均（倍）', (r) => r.nr, '>=', 2, (v) => `${n1(v)} 倍`]],
-      key: ['7 日新聞', (r) => r.n7, (v) => `${v} 則`], src: ['news', 'calc'], date: 'ex',
+      key: ['7 日新聞', (r) => r.n7, (v) => `${v} 則`], src: ['news', 'calc'],
       how: '數「標題或內文標到這個股票代號」的新聞則數。基準＝之前 28 天的平均每 7 日則數（基準低於 0.5 則以 0.5 計，避免從 0 變 1 就算無限倍）。只算鉅亨、TechNews、經濟日報這幾個來源，不是全網。',
       care: '新聞多不代表好消息：利空、處分、意外也會讓則數暴增。點進個股頁看新聞標題再判斷。' },
     { id: 'conf', name: '近期法說會', cat: 'news', en: 'Upcoming Investor Conference', zh: '已公告法說會、會議日在近期', tags: ['重大訊息', '法說會'], need: 'ex',
       conds: [['已公告法說會（會議日）', (r) => (r.conf ? 1 : 0), '>=', 1, (v, r) => (v ? '有' : '無')], ['距會議日（負數＝已開完）', (r) => r.confd, '<=', 30, (v) => `${ok(v) ? v : '—'} 天`]],
-      key: ['法說日', (r) => (r.conf ? 1 : null), (v, r) => (r && r.conf ? r.conf.slice(5).replace('-', '/') : '—')], src: ['mops', 'calc'], date: 'mops',
+      key: ['法說日', (r) => (r.conf ? 1 : null), (v, r) => (r && r.conf ? r.conf.slice(5).replace('-', '/') : '—')], src: ['mops', 'calc'],
       how: '從公開資訊觀測站重大訊息裡找主旨含「法人說明會」或「法說會」的公告，取公告寫的會議日；會議日落在今天前 7 天到後 30 天內才列入（剛開完的一週也算，因為市場還在消化）。',
       care: '法說會是「資訊揭露的時間點」，不是好壞訊號；會前常有預期行情、會後可能反向。' },
     { id: 'themeup', name: '題材升溫', cat: 'news', en: 'Theme Heating Up', zh: '所屬題材熱度高且資金佔比上升', tags: ['題材', '熱度'], need: 'theme',
       conds: [['所屬題材熱度（0–100）', (r) => r.thh, '>=', 60, (v) => `${n1(v, 0)} 分`], ['題材資金佔比：今日 − 5 日平均', (r) => r.thu, '>', 0, (v) => `${v >= 0 ? '+' : ''}${n1(v, 2)} 個百分點`]],
-      key: ['題材熱度', (r) => r.thh, (v) => `${n1(v, 0)} 分`], src: ['theme', 'news', 'price'], date: 'theme',
+      key: ['題材熱度', (r) => r.thh, (v) => `${n1(v, 0)} 分`], src: ['theme', 'news', 'price'],
       how: '只看本站題材熱度頁的題材成分股。熱度＝資金佔比變化、佔比排名、法人 5 日淨買、新聞提及量的加權百分位（0–100）；再要求題材今天的資金佔比高於 5 日平均（正在升溫，不是退燒中）。一檔屬於多個題材時取符合條件中熱度最高的那個。',
       care: '題材熱度是族群層級的訊號，不代表裡面每一檔都同步受惠；成分由人工維護，可能漏列。' },
   ];
@@ -177,7 +187,7 @@
   /* ---------------- 狀態與資料 ---------------- */
   const ST = { cat: 'fund', tags: [], dd: false, open: {}, info: {} };
   const HAVE = { ex: false, cand: false, streak: false, inst: false, theme: false };
-  let R = [], RBY = {}, built = false, DATES = {};
+  let R = [], RBY = {}, built = false;
 
   async function loadAll() {
     const A = App();
@@ -205,8 +215,6 @@
     const cd = {}; (cand || []).forEach((c) => { cd[c.code] = c; });
     const td = {}; ((streak && streak.trust) || []).forEach((s) => { td[s.code] = s.streak_days; });
     const tot = {}; ((streak && streak.total) || []).forEach((s) => { tot[s.code] = s.streak_days; });
-    const per = {}, ym = {}, instD = {};
-    ((streak && streak.total) || []).forEach((s) => { if (s.date) instD[s.date] = 1; });
     const rows = [];
     (stocks || []).forEach((s) => {
       const f = fx[s.code] || {};
@@ -214,8 +222,6 @@
       const e = exRow[s.code] || {}, c = cd[s.code] || {};
       const tv = e.tv20 != null ? e.tv20 : (s.turnover != null ? s.turnover / 1e6 : null);
       if (tv == null || tv < MIN_TV) return;
-      if (f.latest_period) per[f.latest_period] = (per[f.latest_period] || 0) + 1;
-      if (f.rev_ym) ym[f.rev_ym] = (ym[f.rev_ym] || 0) + 1;
       rows.push({
         code: s.code, name: s.name || f.name || s.code, group: s.group || f.group_name || '—', close: s.close, chg: s.chg_pct, tv,
         roe: f.roe, gm: f.gross_margin, pe: f.pe, eps: f.ttm_eps, loss: !!f.is_loss, fin: /金融|銀行|保險|證券|金控/.test(s.group || f.group_name || '') && f.gross_margin == null,
@@ -230,12 +236,6 @@
         thh: thBy[s.code] ? thBy[s.code].heat : null, thu: thBy[s.code] ? thBy[s.code].up : null, thn: thBy[s.code] ? thBy[s.code].name : '',
       });
     });
-    const top = (o) => Object.keys(o).sort((a, b) => o[b] - o[a])[0] || '';
-    const m = A.D && A.D.meta;
-    const day = (ex && ex.asof) || (m && (m.data_date || m.price_latest)) || '';
-    DATES = { fin: top(per) ? `財報 ${top(per)}` : '', rev: top(ym) ? `營收 ${top(ym)}` : '', ex: day ? `資料 ${day}` : '',
-      tdcc: '集保 每週', mops: day ? `重訊 ${day}` : '', theme: (th && th.date) ? `題材 ${th.date}` : '',
-      inst: (Object.keys(instD).sort().pop() || (m && m.inst_date) || day) ? `法人 ${Object.keys(instD).sort().pop() || (m && m.inst_date) || day}` : '' };
     R = rows; RBY = {}; rows.forEach((r) => { RBY[r.code] = r; });
   }
 
@@ -262,24 +262,18 @@
   const chgTxt = (v) => (ok(v) ? `${v > 0 ? '+' : ''}${n1(v, 2)}%` : '—');
   const spark = (code, w, h) => `<span class="spkw" data-spk="${esc(code)}" data-w="${w}" data-h="${h}">${App().sparkSVG ? App().sparkSVG(code, { w, h }) : ''}</span>`;
   const logo = (r, sz) => (App().logo ? App().logo(r.code, r.name, sz) : '');
-  const srcHTML = (s) => `<dl class="sl-src">${s.src.map((k) => `<dt>${esc(SRC[k][0])}</dt><dd>${esc(SRC[k][1])}</dd>`).join('')}</dl>`;
   const condTxt = (s) => s.conds.map(([label, , op, th, fmt]) => `${label} ${op === '>=' ? '≥' : op === '<=' ? '≤' : '>'} ${fmt(th)}`).join('，且 ');
-  /* 浮層用的精簡版（Andy 10-05：「"?"內標示篩選條件即可，不用說太多」）：只留條件＋一行小字的資料日期與出處簡稱；
-     完整的計算方式／門檻／出處明細留在「完整名單」頁（infoHTML）。出處簡稱取 SRC 長描述的第一段（全文在 title）。 */
-  const srcShort = (k) => { const t = SRC[k][1]; return /本站/.test(t) ? '本站計算' : t.replace(/^臺灣證券交易所/, '證交所').replace(/^臺灣集中保管結算所.*/, '集保').split(/[（；、，]/)[0].replace(/ (t\d|BWI|MI_|STOCK).*$/, '').trim(); };
+  /* 浮層用的精簡版（Andy 10-05：「"?"內標示篩選條件即可，不用說太多」）：只留條件；出處收在標題旁 ⓘ（openPop 那裡）。
+     完整的計算方式／門檻留在「完整名單」頁（infoHTML）。 */
   function infoBrief(s) {
-    const src = [...new Set(s.src.map(srcShort))].join('・');
     return `<div class="sl-info sl-brief" data-info="${s.id}">
-      <p><b>篩選條件：</b>${esc(condTxt(s))}。</p>
-      <p class="sl-dsrc" title="${esc(s.src.map((k) => SRC[k][0] + '：' + SRC[k][1]).join('\n'))}">資料：${esc([DATES[s.date], src].filter(Boolean).join('・'))}</p></div>`;
+      <p><b>篩選條件：</b>${esc(condTxt(s))}。</p></div>`;
   }
   function infoHTML(s) {
     return `<div class="sl-info" data-info="${s.id}">
       <p><b>篩選條件：</b>${esc(condTxt(s))}。</p>
       <p><b>計算方式：</b>${esc(s.how)}</p>
       <p><b>共同門檻：</b>排除 ETF，以及近 20 日平均成交值低於 1,000 萬元的冷門股（成交太少，價格不可靠）。</p>
-      <p><b>資料日期：</b>${esc(DATES[s.date] || '—')}</p>
-      <p><b>資料出處：</b></p>${srcHTML(s)}
       <p class="sl-care"><b>要小心：</b>${esc(s.care)}</p></div>`;
   }
 
@@ -330,13 +324,12 @@
       <header class="sl-ch">
         <span class="sl-ici sl-c-${s.cat}">${icon(s.cat)}</span>
         <div class="sl-tt" title="${esc(s.zh)}"><h3 class="sl-zh">${esc(s.name)}</h3><div class="sl-en">${esc(s.en)}</div></div>
-        <span class="sl-date">${esc(DATES[s.date] || '')}</span>
-        <button type="button" class="sl-i${ST.info[s.id] ? ' on' : ''}" data-i="${s.id}" aria-expanded="${!!ST.info[s.id]}" aria-label="篩選條件與資料出處">i</button>
+        <button type="button" class="sl-i${ST.info[s.id] ? ' on' : ''}" data-i="${s.id}" aria-expanded="${!!ST.info[s.id]}" aria-label="篩選條件">i</button>
         <a class="sl-more" href="#explore/${s.id}" aria-label="看 ${esc(s.name)} 完整名單">›</a>
       </header>
-      <div class="sl-meta">${can ? `符合 <em class="sl-n">${m.length}</em> 家・依成交值排序，非推薦名次` : '資料準備中（這個策略要的歷史欄位還沒產出）'}</div>
+      <div class="sl-meta">${can ? `符合 <em class="sl-n">${m.length}</em> 家・依成交值排序，非推薦名次` : '尚無資料'}</div>
       <div class="sl-rows">${can && m.length ? m.slice(0, 3).map((r, i) => rowHTML(s, r, i)).join('') + '<div class="sl-row sl-blank" aria-hidden="true"></div>'.repeat(Math.max(0, 3 - m.length))
-        : `<div class="sl-none">${can ? '目前沒有符合的公司' : '資料準備中'}</div>`}</div>
+        : `<div class="sl-none">${can ? '目前沒有符合的公司' : ''}</div>`}</div>
     </article>`;
   }
   /* ★ 第四版：卡片牆依四大面向分區 —— 每區一個區段標題（名稱＋這區在回答什麼＋幾個策略）＋該區卡片（三欄、同寬同高）。
@@ -418,10 +411,9 @@
     }).join('');
     root.innerHTML = `${LEGAL}
       <div class="sl-fhead"><a href="#explore" class="sl-back">‹ 選股策略</a>
-        <h2><span class="sl-ici sl-c-${s.cat}">${icon(s.cat)}</span>${esc(s.name)} <small>${esc(s.zh)}・${esc(s.en)}</small></h2>
-        <span class="sl-date">${esc(DATES[s.date] || '')}</span></div>
-      <div class="card sl-finfo"><h3>篩選條件與資料出處</h3>${infoHTML(s)}</div>
-      <div class="card sl-ftbl"><h3>${can ? `符合的公司 <em class="sl-n" id="slFullN">${m.length}</em> 家 <small>依近 20 日平均成交值排序（流動性），不是好壞名次</small>` : '資料準備中'}</h3>
+        <h2><span class="sl-ici sl-c-${s.cat}">${icon(s.cat)}</span>${esc(s.name)} <small>${esc(s.zh)}・${esc(s.en)}</small></h2></div>
+      <div class="card sl-finfo"><h3>篩選條件 ${srcI(srcOf(s))}</h3>${infoHTML(s)}</div>
+      <div class="card sl-ftbl"><h3>${can ? `符合的公司 <em class="sl-n" id="slFullN">${m.length}</em> 家 <small>依近 20 日平均成交值排序（流動性），不是好壞名次</small>` : '尚無資料'}</h3>
         ${can && m.length ? `<div class="sl-tw"><table class="sl-table" id="slTbl"><thead><tr><th>#</th><th>公司</th><th>現價／漲跌</th><th>走勢</th><th>${esc(s.key[0])}</th><th>為什麼入選（實際值／門檻）</th><th>也符合</th></tr></thead><tbody>${rows}</tbody></table></div>
         ${m.length > FULL.n ? `<button type="button" class="sl-all" id="slAll">顯示全部 ${m.length} 家</button>` : ''}` : (can ? '<div class="sl-none">今天沒有公司同時符合全部條件。</div>' : '')}</div>`;
     root.onclick = onClick;
@@ -441,7 +433,7 @@
     const ib = e.target.closest('.sl-i'); if (ib) {
       const id = ib.dataset.i, was = ST.info[id]; closePop(); if (was) return;
       ST.info[id] = true; ib.classList.add('on'); ib.setAttribute('aria-expanded', 'true');
-      openPop(ib, `<div class="sl-wt">${esc(SBY[id].name)}：篩選條件</div>${infoBrief(SBY[id])}`, 'info'); return;
+      openPop(ib, `<div class="sl-wt">${esc(SBY[id].name)}：篩選條件 ${srcI(srcOf(SBY[id]))}</div>${infoBrief(SBY[id])}`, 'info'); return;
     }
     const rb = e.target.closest('.sl-rbtn'); if (rb) {
       const row = rb.closest('.sl-row'), id = row.dataset.sid, code = row.dataset.code;

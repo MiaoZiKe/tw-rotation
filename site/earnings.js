@@ -131,7 +131,6 @@
 #v-earnings .sec h4{margin:0 0 3px;font-size:13.5px;display:flex;gap:6px;align-items:baseline;white-space:nowrap;min-width:0}
 #v-earnings .sec h4 small{font-weight:400;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .sec p{margin:3px 0;font-size:13px;line-height:1.55;color:var(--ink-2)}
-#v-earnings .si{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;margin-left:6px;font:600 12px/1 var(--mono);color:var(--cyan);border:1px solid currentColor;cursor:help;flex:none;vertical-align:middle}
 #v-earnings .flk{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;white-space:nowrap;overflow:hidden;min-width:0;color:var(--ink-3)}
 #v-earnings .flk svg{width:12px;height:12px;color:var(--cyan);flex:none}
 #v-earnings .flk a{color:var(--cyan);text-decoration:none;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -359,8 +358,22 @@
     const t = o.code ? `<a class="plink" href="#stock/${esc(o.code)}" data-code="${esc(o.code)}" title="看 ${esc(o.name || '')} ${esc(o.code)} 個股頁">${esc(title)}</a>` : `<b>${esc(title)}</b>`;
     return `<div class="ph stk">${o.noBack ? '' : '<button type="button" class="btn small" id="earnBack">← 回本週重點</button>'}${t}<span class="sp"></span>${badge || ''}</div>`;
   }
-  /* 出處：不整行顯示，改成標題旁小 ⓘ，滑過才顯示出處與資料日期 */
-  const si = (src, asof) => (src || asof ? `<span class="si" tabindex="0" role="note" aria-label="出處" title="${esc('出處：' + (src || '') + (asof ? '（資料 ' + asof + '）' : ''))}">i</span>` : '');
+  /* 出處：不整行顯示，改成標題旁小 ⓘ，滑過才顯示出處與資料日期。
+     寫法跟全站 App.srcInfo 一樣（claude/copy-trim2 分支，還沒上 main）—— 有就直接用它；沒有就產出同樣的標記
+     （class srcinfo＋title；樣式等 .srcinfo 進 index.html 才有，這之前借既有的 .muted 灰字）。App.srcInfo 上 main 後退回寫法可刪。
+     2026-10-06 廢話普查第二輪：FED 事件的 src 是管線寫的查證紀錄（「（https://…；查證 2026-10-05（WebSearch 摘要，未讀原文））」
+     「FRED 日程未取得時的退回值」）—— 讀者用不到，這裡把那種括號整段換成發布機關名（根治要改 pipeline 端的 src 字串，已轉交）。 */
+  const AGENCY = { federalreserve: '聯準會', bls: '美國勞工統計局', bea: '美國經濟分析局' };
+  const cleanSrc = (src) => String(src || '').replace(/（[^（）]*（[^（）]*）[^（）]*）|（[^（）]*）/g, (m) => {
+    if (!/https?:|查證|未取得|退回|WebSearch|未讀原文/.test(m)) return m;
+    const h = /https?:\/\/(?:www\.)?([a-z]+)\./.exec(m), ag = h && AGENCY[h[1]];
+    return ag && !String(src).includes(ag) ? `（${ag}）` : '';
+  }).trim();
+  const si = (src, date) => {
+    const s0 = cleanSrc(src), f = A() && A().srcInfo;
+    if (f) return f(s0, date || '');
+    return s0 || date ? `<span class="srcinfo muted" tabindex="0" role="note" aria-label="出處" title="${esc([s0 ? '出處：' + s0 : '', date ? '資料日期：' + date : ''].filter(Boolean).join('\n'))}">ⓘ</span>` : '';
+  };
   const toneCls = (t) => (t > 0 ? 'up' : t < 0 ? 'down' : '');
   /* ------------------------------------------------------------------ 小圖（純 SVG，不放文字：標籤用 HTML，字級才守得住 12px 下限） */
   const W = 250, H = 84;
@@ -486,7 +499,7 @@
   function confSec(e) {
     if (KIND[e.k].g !== 'conf') return '';
     const r = [['日期', `${e.d}（${wdOf(e.d)}）`], ['時間', e.time], ['地點', e.place], ['內容', e.brief]].filter((x) => x[1]);
-    return `<div class="sec" data-sec="conf"><h4>這場法說 <small>${esc(KIND[e.k].lab)}</small>${si(e.src, e.ann ? '公告日 ' + e.ann : '')}</h4>
+    return `<div class="sec" data-sec="conf"><h4>這場法說 <small>${esc(KIND[e.k].lab)}</small>${si(e.src, e.ann || '')}</h4>
       <dl class="kv">${r.map(([k, v]) => `<dt>${k}</dt><dd title="${esc(v)}">${esc(v)}</dd>`).join('')}</dl></div>`;
   }
   function panelCo(e) {
@@ -509,7 +522,7 @@
   }
   function drawPanel() {
     const box = $('#earnPanel'); if (!box) return;
-    if (!S.data) { box.innerHTML = '<p class="note">資料準備中</p>'; return; }
+    if (!S.data) { box.innerHTML = '<p class="note">尚無財經日曆資料</p>'; return; }
     let html = '', mode = S.sel.t, key = '';
     if (S.sel.t === 'ev') {
       const e = evs()[S.sel.i];
@@ -557,8 +570,7 @@
     $('#earnPanel').innerHTML = '<p class="note">載入中…</p>';
     await loadData();
     const d = S.data;
-    $('#earnSub').textContent = !d ? '資料準備中'
-      : `大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
+    $('#earnSub').textContent = !d ? '' : `大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
     $('#earnPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)); };
     $('#earnNext').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)); };
     $('#earnToday').onclick = () => go(todayTW().slice(0, 7));
