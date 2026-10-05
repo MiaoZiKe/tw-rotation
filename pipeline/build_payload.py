@@ -17,7 +17,7 @@ import pandas as pd
 
 from . import config, delivery_log, indicators
 from .compute import explore
-from .compute import analysis, etf, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, earnings, etf, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -635,6 +635,21 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("ETF 專區產出失敗：%s", exc)
     lap("ETF 專區")
+
+    # ---------------------------------------------------------- 財報日曆（2026-10-05，site/earnings.js）
+    # 只讀資料湖（重大訊息、月營收、季損益、法人、新聞、FRED 觀測值與公布日程）＋ pipeline/calendar/macro_events.yaml。
+    # 失敗只影響財報日曆；前端讀不到 earnings.json 會退回分支內附的種子檔（site/earnings_seed.json）並標資料日期。
+    try:
+        _codes50 = {u["code"] for u in earnings.universe(val, names)}
+        _px50 = price[price["code"].astype(str).isin(_codes50)]
+        _adj50 = price_adj[price_adj["code"].astype(str).isin(_codes50)]
+        _write("earnings", earnings.build(
+            val=val, names=names, latest=latest, price=_px50, price_adj=_adj50, revenue=revenue,
+            financial=financial, inst=inst, news=news_all, material_news=store.read("material_news"),
+            macro=store.read("macro"), macro_cal=store.read("macro_calendar"), shares=shares))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("財報日曆產出失敗：%s", exc)
+    lap("財報日曆")
 
     # ---------------------------------------------------------- 產業關聯圖
     try:

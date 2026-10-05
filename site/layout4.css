@@ -125,6 +125,8 @@
      「自選」放「專案」：DECISIONS #274 規定它是導覽最後一格（取代交付清單），而 Andy 這次給的五組裡最後一組是「專案」。
      標題是每組第一顆的 ::before（絕對定位在按鈕上方、pointer-events:none —— 點不到、不佔 .tab 的數量）。 */
   :root.l4 .tab[data-view="overview"]{order:1}
+  /* 2026-10-05 財報日曆：DOM 在最後一顆（手機底部列的 nth-child 不能被打亂），用 order 排到總覽正下方（同 order 1、DOM 較後 → 緊接總覽） */
+  :root.l4 .tab[data-view="earnings"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5' rx='2'/%3E%3Cpath d='M3.5 10h17M8 3v4M16 3v4'/%3E%3Cpath d='M8 14h2M14 14h2M8 17.2h2' stroke-width='2'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="flow"]{order:2}
   :root.l4 .tab[data-view="heatmap"]{order:3}
   :root.l4 .tab[data-view="industry"]{order:4}

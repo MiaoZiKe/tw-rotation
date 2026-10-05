@@ -21445,6 +21445,208 @@ def t_explore_1005(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
+# ===================================================================== 財報日曆（2026-10-05，site/earnings.js）
+EARN_API = "https://acct-earn.example.test"
+
+
+def t_earnings_1005(pg, b, base):
+    """財報日曆（Andy 2026-10-05：「總覽下方新增"財報日曆"，並不是子分頁……標示出台股大公司的開財報日期，以及 FED 公布重大數據……
+    點及該個股後，出現對於這次財報的分析及展望(包含FED消息)」）。
+
+    真的操作、驗「畫面因此改變」：
+      · 側欄：「財報日曆」是獨立一格、緊接在「總覽」下面（同組今日市場），不是總覽的子項；點了換到 #earnings
+      · 月曆 7 欄 × 6 列、預設本月、今天格醒目；上月／下月／回本月真的換月、整張卡高度不變
+      · 點公司標籤 → 右側面板換成那家公司的分析（看點、月營收、獲利、估值、法人、消息、FED 背景、出處）；點 FED 標籤 → 換成數據說明
+      · 點日期的「＋N」→ 面板列出當天全部；點其中預估那一列 → 面板寫預估依據；「回本週重點」回到預設
+      · 篩選：只看 FED → 月曆上沒有公司標籤；只看台股公司 → 沒有 FED 標籤
+      · 時間表點一列 → 面板原地換成那家（不換頁）；面板裡「看個股頁」才換到 #stock/<代號>
+      · earnings.json 抓不到 → 退回種子檔、副標寫「種子資料」
+      · 權限：管理者關掉「財報月曆」→ 月曆卡蓋鎖頭、時間表照常
+      · 800／390：沒有橫向捲軸、標籤字 ≥ 11px、標籤與清單列單行"""
+    import json as _json
+    import re as _re
+    from datetime import datetime, timedelta, timezone
+    tag = "財報日曆1005"
+    today = (datetime.now(timezone.utc) + timedelta(hours=8)).date()
+    ym = today.strftime("%Y-%m")
+    lp = b.new_page(viewport={"width": 1440, "height": 1000})
+    errs = []
+    lp.on("pageerror", lambda e: errs.append(str(e)))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    H = lambda sel: J("(s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().height) : -1; }", sel)
+    PM = lambda: J("() => { const p = document.querySelector('#earnPanel'); return p ? [p.dataset.mode || '', p.dataset.key || '', p.innerText] : ['', '', '']; }")
+    try:
+        lp.goto(f"{base}#overview", wait_until="networkidle")
+        # ---- 1. 側欄：總覽正下方、獨立一格
+        pos = J("""() => { const t = (v) => document.querySelector(`.tab[data-view="${v}"]`); const r = (v) => t(v) ? t(v).getBoundingClientRect() : null;
+                 const o = r('overview'), e = r('earnings'), f = r('flow'); return o && e && f ? [o.top, e.top, f.top, e.left - o.left, e.height] : null; }""")
+        ok(f"★ [{tag}] 側欄有「財報日曆」、在總覽正下方、資金流向之上、跟總覽同一層（左緣對齊，不是縮排子項）",
+           pos and pos[0] < pos[1] < pos[2] and abs(pos[3]) <= 1 and pos[4] > 20 and count(lp, '.tab[data-view="earnings"]') == 1, pos)
+        lp.click('.tab[data-view="earnings"]')
+        ready = wait_until(lp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+        ok(f"★ [{tag}] 點側欄 → #earnings、頁面畫完、讀到 earnings.json（不是種子）", J("() => location.hash") == "#earnings" and ready == "full", (J("() => location.hash"), ready))
+        ok(f"[{tag}] 只有財報日曆那一格亮", J("() => [...document.querySelectorAll('.tab.on')].map(t => t.dataset.view)") == ["earnings"])
+        ok(f"★ [{tag}] 頁頂寫「不構成投資建議」與「沒有用語言模型」", "不構成投資建議" in text(lp, "#earnDisc") and "語言模型" in text(lp, "#earnDisc"))
+        D = J("() => window.TwEarnings.state.data")
+        sub = text(lp, "#earnSub")
+        ok(f"[{tag}] 副標寫資料日與大公司口徑", D["asof"] in sub and "市值前" in sub, sub)
+        lg = text(lp, "#earnLegend")
+        ok(f"★ [{tag}] 圖例分得出公司（公告／預估）與 FOMC、美國數據", all(w in lg for w in ("法說會", "預估", "FOMC", "美國數據")), lg)
+        # ---- 2. 月曆
+        cols = J("() => getComputedStyle(document.querySelector('#earnGrid')).gridTemplateColumns.split(' ').length")
+        wds = J("() => [...document.querySelectorAll('#earnGrid .wd')].map(e => e.textContent)")
+        ok(f"★ [{tag}] 月曆 7 欄（日～六）× 6 列 42 格", cols == 7 and wds == list("日一二三四五六") and count(lp, "#earnGrid .ed") == 42, (cols, wds))
+        ok(f"[{tag}] 預設本月、今天格有框", J("() => document.querySelector('#earnCalCard').dataset.month") == ym
+           and J(f"() => !!document.querySelector('.ed.today[data-d=\"{today.isoformat()}\"]')"))
+        h0 = H("#earnCalCard")
+        m0 = text(lp, "#earnMonth")
+        lp.click("#earnNext"); lp.wait_for_timeout(150)
+        m1, mk1, h1 = text(lp, "#earnMonth"), J("() => document.querySelector('#earnCalCard').dataset.month"), H("#earnCalCard")
+        lp.click("#earnPrev"); lp.click("#earnPrev"); lp.wait_for_timeout(150)
+        mk2 = J("() => document.querySelector('#earnCalCard').dataset.month")
+        lp.click("#earnToday"); lp.wait_for_timeout(150)
+        ok(f"★ [{tag}] 下月／上月／回本月 真的換月", m1 != m0 and mk1 > ym and mk2 < ym and J("() => document.querySelector('#earnCalCard').dataset.month") == ym, (m0, m1, mk1, mk2))
+        ok(f"★ [{tag}] 換月整張卡高度不變", h0 == h1 == H("#earnCalCard"), (h0, h1, H("#earnCalCard")))
+
+        def goto_month(d):
+            for _ in range(12):
+                cur = J("() => document.querySelector('#earnCalCard').dataset.month")
+                if cur == d[:7]:
+                    return True
+                lp.click("#earnNext" if cur < d[:7] else "#earnPrev"); lp.wait_for_timeout(80)
+            return False
+
+        # ---- 3. 點公司 → 面板換成分析
+        mode0 = PM()
+        ok(f"★ [{tag}] 預設面板＝本週重點", mode0[0] == "week" and "本週重點" in mode0[2], mode0[:2])
+        conf = next((e for e in D["events"] if e["k"] == "conf" and e.get("code") in D["companies"]), None) \
+            or next(e for e in D["events"] if e.get("code") and e["k"] != "est")
+        goto_month(conf["d"])
+        lp.click(f".chip[data-code='{conf['code']}'][data-k='{conf['k']}']"); lp.wait_for_timeout(200)
+        p = PM()
+        nm = D["companies"][conf["code"]]["name"]
+        ok(f"★ [{tag}] 點 {conf['code']} 標籤 → 面板換成那家公司（模式 co、名稱、已公告）", p[0] == "co" and p[1] == conf["code"] and nm in p[2] and "已公告" in p[2], p[:2])
+        ok(f"★ [{tag}] 公司面板有：這次財報看什麼、月營收、獲利、估值、法人、FED 背景，而且每段有出處",
+           all(w in p[2] for w in ("這次財報看什麼", "月營收趨勢", "獲利能力", "估值位置", "FED 背景")) and p[2].count("出處：") >= 4, p[2][:300])
+        ok(f"[{tag}] 公司面板不寫買賣建議", not any(w in p[2] for w in ("建議買", "建議賣", "買進", "賣出")))
+        ok(f"[{tag}] 被點的標籤有框", J(f"() => document.querySelector(\".chip.on\") && document.querySelector('.chip.on').dataset.code") == conf["code"])
+        top_before = J("() => scrollY")
+        # ---- 4. 點 FED
+        fed = next(e for e in D["events"] if e["k"] in ("cpi", "fomc") and e["d"][:7] == conf["d"][:7]) if any(e["k"] in ("cpi", "fomc") and e["d"][:7] == conf["d"][:7] for e in D["events"]) \
+            else next(e for e in D["events"] if e["k"] in ("cpi", "fomc"))
+        goto_month(fed["d"])
+        lp.click(f".chip[data-k='{fed['k']}']"); lp.wait_for_timeout(200)
+        q = PM()
+        ok(f"★ [{tag}] 點 {fed['k']} 標籤 → 面板換成 FED 數據說明（說明、上次數值、市場關注點、下一次、台灣時間）",
+           q[0] == "fed" and q[1] == fed["k"] and all(w in q[2] for w in ("這是什麼", "上次數值", "市場關注點", "下一次", "台灣時間")) and q[2] != p[2], q[:2])
+        ok(f"[{tag}] 點標籤不會讓頁面捲走", abs(J("() => scrollY") - top_before) < 5)
+        # ---- 5. ＋N → 當天清單 → 預估
+        est = next((e for e in D["events"] if e["k"] == "est"), None)
+        if est:
+            goto_month(est["d"])
+            n_day = sum(1 for e in D["events"] if e["d"] == est["d"])
+            sel = f".ed[data-d='{est['d']}'] .more"
+            lp.click(sel if count(lp, sel) else f".ed[data-d='{est['d']}'] .dn"); lp.wait_for_timeout(200)
+            r = PM()
+            rows = count(lp, "#earnDayList .erow")
+            ok(f"★ [{tag}] 點 {est['d']} 的「＋N」→ 面板列出當天全部 {n_day} 項", r[0] == "day" and r[1] == est["d"] and rows == n_day, (r[:2], rows, n_day))
+            lp.click("#earnDayList .erow.kest >> nth=0"); lp.wait_for_timeout(200)
+            r = PM()
+            ok(f"★ [{tag}] 點預估那一列 → 公司面板標「預估」並寫預估依據", r[0] == "co" and "預估依據" in r[2] and "預估" in r[2], r[2][:160])
+            lp.click("#earnBack"); lp.wait_for_timeout(150)
+            ok(f"★ [{tag}] 「回本週重點」回到預設", PM()[0] == "week")
+        else:
+            ok(f"[{tag}] 資料裡有預估事件", False, "events 沒有 est")
+        # ---- 6. 篩選
+        lp.click("#earnToday"); lp.wait_for_timeout(100)
+        goto_month(conf["d"])
+        lp.click("#earnFilt button[data-v='fed']"); lp.wait_for_timeout(150)
+        nf = J("() => [document.querySelectorAll('#earnGrid .chip[data-code]').length, document.querySelectorAll('#earnGrid .chip.kfomc, #earnGrid .chip.kdata').length]")
+        lp.click("#earnFilt button[data-v='co']"); lp.wait_for_timeout(150)
+        nc = J("() => [document.querySelectorAll('#earnGrid .chip[data-code]').length, document.querySelectorAll('#earnGrid .chip.kfomc, #earnGrid .chip.kdata').length]")
+        lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
+        ok(f"★ [{tag}] 篩選「FED／美國數據」→ 沒有公司標籤；「台股公司」→ 沒有 FED 標籤", nf[0] == 0 and nf[1] > 0 and nc[0] > 0 and nc[1] == 0, (nf, nc))
+        # ---- 7. 時間表 → 原地展開 → 個股頁
+        row = J("() => { const r = [...document.querySelectorAll('#earnTbl tr[data-i]')][1]; return r ? r.dataset.code : null; }")
+        h_before = J("() => location.hash")
+        lp.click(f"#earnTbl tr[data-code='{row}']"); lp.wait_for_timeout(500)
+        r = PM()
+        ok(f"★ [{tag}] 時間表點 {row} → 面板原地換成那家公司、沒有換頁、那一列亮", r[0] == "co" and r[1] == row and J("() => location.hash") == h_before
+           and J(f"() => document.querySelector(\"#earnTbl tr[data-code='{row}']\").classList.contains('on')"), (r[:2], J("() => location.hash")))
+        lp.click("#earnGoStock")
+        ok(f"★ [{tag}] 面板「看個股頁」→ #stock/{row}", wait_until(lp, f"() => location.hash === '#stock/{row}'", 6000), J("() => location.hash"))
+        lp.go_back(); wait_until(lp, "() => location.hash === '#earnings'", 5000)
+        # ---- 8. 單行
+        hs = J("() => [...document.querySelectorAll('#earnGrid .chip, #earnPanel .erow, #earnTbl tbody td')].map(e => Math.round(e.getBoundingClientRect().height)).filter(h => h > 0)")
+        ok(f"[{tag}] 標籤、清單列、表格儲存格都是單行（≤ 40px）", hs and max(hs) <= 40, max(hs) if hs else hs)
+        ok(f"[{tag}] 整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        lp.close()
+
+    # ---- 9. 種子檔退回（預覽版吃正式站的資料，earnings.json 還不存在時）
+    sp = b.new_page(viewport={"width": 1440, "height": 900})
+    try:
+        sp.route("**/data/earnings.json*", lambda r: r.fulfill(status=404, body="nf"))
+        sp.goto(f"{base}#earnings", wait_until="networkidle")
+        rd = wait_until(sp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+        ok(f"★ [{tag}] earnings.json 抓不到 → 退回種子檔、副標寫「種子資料」與資料日", rd == "seed" and "種子資料" in text(sp, "#earnSub") and "資料日" in text(sp, "#earnSub"),
+           (rd, text(sp, "#earnSub")))
+        ok(f"[{tag}] 種子模式月曆照樣有標籤", sp.evaluate("() => document.querySelectorAll('#earnGrid .chip').length") > 0)
+    finally:
+        sp.close()
+
+    # ---- 10. 窄畫面
+    for w in (800, 390):
+        np_ = b.new_page(viewport={"width": w, "height": 900})
+        try:
+            np_.goto(f"{base}#earnings", wait_until="networkidle")
+            wait_until(np_, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+            r = np_.evaluate("""() => ({ sx: document.documentElement.scrollWidth, vw: innerWidth,
+                fs: Math.min(...[...document.querySelectorAll('#earnGrid .chip')].filter(e => e.offsetParent).map(e => parseFloat(getComputedStyle(e.querySelector('.cd,.lb') || e).fontSize))),
+                blank: [...document.querySelectorAll('#earnGrid .chip')].filter(e => e.offsetParent && !e.innerText.trim()).length,
+                ph: Math.round(document.querySelector('#earnPanel').getBoundingClientRect().width) })""")
+            ok(f"★ [{tag}] {w}px 沒有橫向捲軸、標籤字 ≥ 11px、沒有空白標籤", r["sx"] <= r["vw"] + 1 and r["fs"] >= 11 and r["blank"] == 0, r)
+            ok(f"[{tag}] {w}px 面板在月曆下方、跟內容同寬（不擠在旁邊）", r["ph"] > w * 0.7, r["ph"])
+            np_.click("#earnGrid .chip[data-code] >> nth=0"); np_.wait_for_timeout(200)
+            ok(f"[{tag}] {w}px 點公司標籤面板照樣換", np_.evaluate("() => document.querySelector('#earnPanel').dataset.mode") == "co")
+        finally:
+            np_.close()
+
+    # ---- 11. 權限開關：關掉「財報月曆」→ 月曆卡蓋鎖頭、時間表照常；全開時兩張都沒鎖
+    def ctx(feats):
+        c = b.new_context(viewport={"width": 1440, "height": 900})
+        c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + _json.dumps({"api": EARN_API}) + "; try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}")
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+
+        def handle(route):
+            req = route.request
+            path = _re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+            if req.method == "OPTIONS":
+                return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+            out = {}
+            if path == "/v1/me":
+                out = {"user": {"email": "member@example.com", "name": "測試會員", "admin": False}}
+            elif path == "/v1/perm/me":
+                out = {"who": "member", "plan": "free", "planName": "免費會員", "feats": feats, "lims": {}}
+            elif path == "/v1/notices":
+                out = {"notices": []}
+            route.fulfill(status=200, body=_json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+        c.route(EARN_API + "/**", handle)
+        return c
+    for feats, want_cal in (({"earn.cal": False}, True), ({}, False)):
+        c = ctx(feats)
+        try:
+            q = c.new_page()
+            q.goto(f"{base}#earnings", wait_until="networkidle")
+            wait_until(q, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+            got = wait_until(q, "() => !!document.querySelector('#earnCalCard[data-plk]')", 6000 if want_cal else 1500)
+            lst = q.evaluate("() => !!document.querySelector('#earnListCard[data-plk]')")
+            ok(f"★ [{tag}] 權限 {feats or '全開'} → 月曆卡{'蓋鎖頭' if want_cal else '沒有鎖'}、時間表沒有鎖", bool(got) == want_cal and not lst, (got, lst))
+        finally:
+            c.close()
+
+
 def location_ok(pg, h):
     return pg.evaluate("() => location.hash") == h
 
@@ -21479,6 +21681,8 @@ SECTIONS = {
     "市場明細即時1005":    lambda pg, b, base, code: t_market_live_1005(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
+    "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
     # ★ 2026-10-03 Andy 截 #market：漲跌分佈圖卡＋分頁表格卡桌機左右並排（等高、表在卡內捲、表頭固定、≤1100 上下排）＋「TPEX」改「上櫃」（⚠ 一律 --workers 1）
     "市場明細兩欄1003":    lambda pg, b, base, code: t_market_2col_1003(pg, b, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),

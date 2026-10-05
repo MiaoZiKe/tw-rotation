@@ -5142,6 +5142,10 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- ★ 2026-09-28（Andy：「自選是需要在獨立分頁 在最後一頁，"自選分頁替代"交付清單」）：最後一格換成「自選」（#watch，site/watchpage.js）。
          交付清單的入口收掉，`#delivery` 路由與 #v-delivery 照舊留著（直接貼網址仍然進得去，`#tasks` 也還是導到它）。 -->
     <button class="tab" data-view="watch">自選</button>
+    <!-- ★ 2026-10-05（Andy：「總覽下方新增"財報日曆"，並不是子分頁」）：site/earnings.js。
+         DOM 放最後（手機底部列用 nth-child 排兩列，插在中間會把後面每一顆往後推一格）；
+         電腦版側欄由 layout4.css 的 order 把它排到「總覽」正下方、同一組「今日市場」。≤820 先藏（手機版暫停中，同選股策略）。 -->
+    <button class="tab" data-view="earnings">財報日曆</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
          直接貼 `…/#tasks` 會導到交付清單；`tasks.json` 2026-09-25 起不再產出（內部作業文字不上 public 網站）。
@@ -5482,6 +5486,8 @@ h3 .howbtn.pop{font-family:inherit}
        最多五頁的自選清單（儲存在 site/watchlists.js，DECISIONS #270）；整頁由 site/watchpage.js 畫。 -->
   <section class="view" id="v-watch"></section>
   <section class="view" id="v-etf"></section>
+  <!-- ================= 財報日曆（#earnings，2026-10-05） ================= 整頁由 site/earnings.js 畫 -->
+  <section class="view" id="v-earnings"></section>
 
   <!-- ================= 週期統計（路由沿用 #season） =================
        ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
@@ -5652,6 +5658,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="watchpage.js"></script>
 <script src="explore.js"></script>
 <script src="etfpage.js"></script>
+<script src="earnings.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>

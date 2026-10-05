@@ -43,7 +43,8 @@
     /* 2026-10-05（admin-v2，Andy B）：族群觀測。項目不寫死在這裡 —— 由 groups.yaml 產生的 groups_today.json 決定，
        管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
     { id: 'grp', name: '族群觀測' },
-    { id: 'explore', name: '選股策略' }   // 2026-10-05 新分類（docs/explore_page_spec.md）
+    { id: 'explore', name: '選股策略' },  // 2026-10-05 新分類（docs/explore_page_spec.md）
+    { id: 'earnings', name: '財報日曆' }   // 2026-10-05（晚）新分類（site/earnings.js）
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -146,6 +147,10 @@
     box('etf.yldtop', 'etf', '殖利率前 5 名', ['#etfYldCard'], '各分類內：近 12 個月殖利率前 5 名與平均填息天數'),
     box('etf.calendar', 'etf', '配息行事曆', ['#etfCalCard'], '7 欄月曆：除息日、配息金額、當次殖利率與填息天數'),
     box('etf.returns', 'etf', '報酬比較（自選）', ['#etfRetCard'], '各分類內自選最多 8 檔，比較累積報酬、年化與殖利率'),
+    // ---- 財報日曆（2026-10-05，site/earnings.js）：預設全開；要收費時管理者在 #admin/perm 關範本
+    box('earn.page', 'earnings', '財報日曆頁（整頁）', ['#v-earnings'], '月曆、右側分析面板與大公司時間表（整頁）'),
+    box('earn.cal', 'earnings', '財報月曆', ['#earnCalCard'], '月曆（法說會／財報日／FOMC／美國數據）與右側分析面板'),
+    box('earn.list', 'earnings', '大公司財報時間表', ['#earnListCard'], '市值前 50 的下一個財報相關日子（已公告／預估）'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,

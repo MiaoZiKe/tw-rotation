@@ -1794,7 +1794,8 @@
      `#themes` 這個網址仍然有效，route() 一進來就導到 `#heatmap/theme`，見那裡的註解。*/
   // 2026-09-28：'watch'＝自選分頁（導覽列最後一格，取代交付清單的入口；'delivery' 路由照舊留著）
   // 2026-10-05：'etf'＝ETF 專區（site/etfpage.js）、'explore'＝選股策略
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore'];
+  // 2026-10-05（晚）：'earnings'＝財報日曆（site/earnings.js）
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings'];
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -2698,7 +2699,8 @@
     if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery,
       watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); },
       explore: () => (window.TwExplore ? window.TwExplore.render(rest[0]) : null),
-      etf: () => (window.TwEtfPage ? window.TwEtfPage.render() : null) })[view](); }
+      etf: () => (window.TwEtfPage ? window.TwEtfPage.render() : null),
+      earnings: () => (window.TwEarnings ? window.TwEarnings.render() : null) })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(resizeVisibleCharts, 30);
     // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）

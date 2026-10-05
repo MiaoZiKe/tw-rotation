@@ -39,7 +39,7 @@ def _run(monkeypatch, phase, tmp_path):
         "tpex": ["price_daily"],
         "tdcc": ["shareholding_weekly"],
         "news": ["collect", "extract_broker_views"],
-        "macro": ["intl_daily", "macro_all"],
+        "macro": ["intl_daily", "macro_all", "release_calendar"],
         "mops": ["material_news"],
         "finmind": ["stock_info"],
         "mis": ["price_snapshot"],

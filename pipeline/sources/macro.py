@@ -77,3 +77,48 @@ def macro_all(start: str = "2015-01-01") -> pd.DataFrame:
     if not frames:
         return pd.DataFrame()
     return pd.concat(frames, ignore_index=True)
+
+
+def release_calendar(days_back: int = 120, days_ahead: int = 240,
+                     today: str | None = None) -> pd.DataFrame:
+    """FRED 各統計發布的公布日程（財報日曆的「FED 與美國重大數據」用）。
+
+    端點：fred/release/dates?release_id=<id>&include_release_dates_with_no_data=true ——
+    帶上 include_release_dates_with_no_data 才會列出**還沒公布**的未來日期（不帶只回已經有資料的過去日期）。
+    release_id 見 config.FRED_RELEASES（CPI 10、非農 50、GDP 53、PCE 54）。
+
+    回傳欄位：date（公布日，美東）, release（cpi/nfp/gdp/pce）, release_id, fetched（抓取日，UTC）。
+    沒有金鑰、端點失敗一律回空 DataFrame —— 財報日曆會退回 YAML 的日程（pipeline/calendar/macro_events.yaml），不讓管線掛掉。
+    today 只給測試用；正式執行取 UTC 今天（這裡不是交易日，是「抓取當下」的時間戳，不違反 CLAUDE.md 第 3 條）。
+    """
+    if not config.FRED_KEY:
+        log.info("未設定 FRED_API_KEY，跳過 FRED 公布日程")
+        return pd.DataFrame()
+    t0 = pd.Timestamp(today) if today else pd.Timestamp.now("UTC").tz_localize(None).normalize()
+    start = (t0 - pd.Timedelta(days=days_back)).strftime("%Y-%m-%d")
+    end = (t0 + pd.Timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+    rows = []
+    for rid, key in config.FRED_RELEASES.items():
+        payload = http.get(config.FRED_RELEASE_DATES_API, params={
+            "release_id": rid, "api_key": config.FRED_KEY, "file_type": "json",
+            "realtime_start": start, "realtime_end": "9999-12-31",
+            "include_release_dates_with_no_data": "true", "sort_order": "asc", "limit": 1000,
+        })
+        if not isinstance(payload, dict):
+            continue
+        rows.extend(parse_release_dates(payload, key, rid, start, end))
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["fetched"] = t0.strftime("%Y-%m-%d")
+    return df
+
+
+def parse_release_dates(payload: dict, key: str, rid: int, start: str, end: str) -> list[dict]:
+    """把 fred/release/dates 的回應攤成列，只留 [start, end] 之間、格式正確的日期。"""
+    out = []
+    for r in payload.get("release_dates") or []:
+        d = str(r.get("date") or "")[:10]
+        if len(d) == 10 and start <= d <= end:
+            out.append({"date": d, "release": key, "release_id": int(rid)})
+    return out

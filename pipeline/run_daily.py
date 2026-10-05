@@ -580,6 +580,8 @@ def main() -> int:
         save("material_news", step("mops.material_news", mops.material_news))
         save("intl_daily", step("macro.intl", macro.intl_daily))
         save("macro", step("macro.fred", macro.macro_all))
+        # 財報日曆（2026-10-05）：FRED 統計發布的公布日程（含未來日期）。沒金鑰／失敗回空，不影響其他步驟。
+        save("macro_calendar", step("macro.fred_calendar", macro.release_calendar))
     else:
         if trade_date:
             save("margin_daily", step("twse.margin", twse.margin_daily, trade_date))
@@ -617,6 +619,8 @@ def main() -> int:
         save("insider_holding", step("mops.insider_holdings", mops.insider_holdings))
         save("intl_daily", step("macro.intl", macro.intl_daily))
         save("macro", step("macro.fred", macro.macro_all))
+        # 財報日曆（2026-10-05）：FRED 統計發布的公布日程（含未來日期）。沒金鑰／失敗回空，不影響其他步驟。
+        save("macro_calendar", step("macro.fred_calendar", macro.release_calendar))
 
     # -------------------------------------------------- FinMind（耗額度，放最後）
     # 大盤／櫃買／台指期的日 K（Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」）。
