@@ -18968,6 +18968,106 @@ def t_m3_sunday(b, base, code):
         one(sc)
 
 
+def t_m3_livek_1005(b, base, code):
+    """2026-10-05 Andy 10:44 截圖：卡片數字即時、日 K 卻停在 10-02（今天那根沒畫、也不跟著跳）。
+    用 page.route 造盤中報價（mis 分時＋live.js t00／o00），驗：日 K 最後一根日期＝今天、收盤＝現價；
+    報價變動後最後一根真的變（而且走尾巴快路，不整條 setData 重灌）；週 K 最後一根含今天；
+    標示寫「＋今日即時」；非交易日（週日）情境不加。"""
+    import json as _json
+    import datetime as _D
+    from urllib.parse import urlparse, parse_qs
+    TZ8 = _D.timezone(_D.timedelta(hours=8))
+    PREV = {"TSE": 48475.74, "OTC": 426.93}
+
+    def one(sc):
+        trade = sc == "盤中"
+        day = "20261005" if trade else "20261002"
+        T0 = int(_D.datetime(int(day[:4]), int(day[4:6]), int(day[6:]), 9, 0, tzinfo=TZ8).timestamp() * 1000)
+        Z = {"t00": 49713.13, "o00": 433.43}
+
+        def chart(route):
+            cid = (parse_qs(urlparse(route.request.url).query).get("id") or ["TSE"])[0]
+            y = PREV.get(cid, 48700.0)
+            n = 104 if trade else 270
+            pts = [{"t": str(T0 + (i + 1) * 60000), "c": f"{y * (1.01 + (i % 30) * 0.0002):.2f}", "s": "100"} for i in range(n)]
+            info = {"n": cid, "d": day, "t": "10:44:00" if trade else "13:30:00", "y": f"{y}", "o": f"{y * 1.005:.2f}",
+                    "h": f"{y * 1.03:.2f}", "l": f"{y * 1.002:.2f}", "z": f"{y * 1.02:.2f}", "v": "600000"}
+            route.fulfill(status=200, content_type="application/json",
+                          body=_json.dumps({"infoArray": [info], "ohlcArray": pts, "staticObj": {"tv": "1"}}))
+
+        def quote(route):
+            ex = (parse_qs(urlparse(route.request.url).query).get("ex_ch") or [""])[0]
+            arr = []
+            tt = _D.datetime.fromtimestamp(pg.evaluate("Date.now()") / 1000, TZ8).strftime("%H:%M:%S") if trade else "14:30:00"
+            for tok in [t for t in ex.split("|") if t]:
+                try:
+                    c = tok.split("_", 1)[1].split(".")[0]
+                except IndexError:
+                    continue
+                y = PREV["TSE"] if c == "t00" else (PREV["OTC"] if c == "o00" else 1000.0)
+                z = Z.get(c, y)
+                arr.append({"c": c, "n": c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y}", "o": f"{y * 1.005:.2f}",
+                            "h": f"{max(z, y * 1.03):.2f}", "l": f"{y * 1.002:.2f}", "v": "1", "d": day, "t": tt, "tlong": "0"})
+            route.fulfill(status=200, content_type="application/json", body=_json.dumps({"rtcode": "0000", "msgArray": arr}))
+
+        ctx = b.new_context(viewport={"width": 1440, "height": 1000}, timezone_id="Asia/Taipei")
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"大盤日K即時{sc} pageerror: {str(e)[:160]}"))
+        pg.clock.install(time="2026-10-05T02:44:00Z" if trade else M3SUN_CLOCK)
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("https://fake-worker.test/**", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
+        pg.route("https://fake-worker.test/chart?*", chart)
+        pg.route("https://fake-worker.test/quote?*", quote)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch (e) {} }")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="load")
+        got = wait_until(pg, "() => { const s = window.Market3 && window.Market3.state; return !!(s && ['TSE','OTC'].every(id =>"
+                             " s.data[id] && s.data[id].points && s.data[id].points.length)); }", 20000)
+        ok(f"[大盤日K即時-{sc}] 加權、櫃買拿到分時", bool(got))
+        if not got:
+            ctx.close(); return
+        pg.click("#m3Mode button[data-m=k]"); pg.wait_for_timeout(300)
+        pg.select_option("#m3Tf", "D")
+        wait_until(pg, "() => !!(window.Market3.lastK('TSE') && window.Market3.lastK('OTC'))", 15000)
+        if trade:
+            wait_until(pg, "() => window.Market3.state.data.TSE.last === 49713.13", 20000)
+            pg.wait_for_timeout(800)
+        lk = pg.evaluate("() => ({ T: window.Market3.lastK('TSE'), O: window.Market3.lastK('OTC'),"
+                         " fb: document.getElementById('m3c-TSE').dataset.fallback || '', cur: window.Market3.state.data.TSE.last })")
+        if not trade:
+            ok("★ [大盤日K即時-非交易日] 週日：日 K 最後一根仍是資料湖的 2026-10-02（不加今日 K）",
+               lk["T"] and lk["T"]["time"] == "2026-10-02" and "今日即時" not in lk["fb"], lk)
+            ctx.close(); return
+        ok("★ [大盤日K即時-盤中] 加權日 K 最後一根日期＝今天 2026-10-05", lk["T"] and lk["T"]["time"] == "2026-10-05", lk)
+        ok("★ [大盤日K即時-盤中] 加權日 K 最後一根收盤＝現價 49,713.13", lk["T"] and abs(lk["T"]["close"] - 49713.13) < 0.01, lk)
+        ok("★ [大盤日K即時-盤中] 櫃買日 K 最後一根＝今天、收盤＝433.43",
+           lk["O"] and lk["O"]["time"] == "2026-10-05" and abs(lk["O"]["close"] - 433.43) < 0.01, lk)
+        ok("★ [大盤日K即時-盤中] 標示寫「資料至 10-02＋今日即時」", "資料至 10-02＋今日即時" in lk["fb"], lk["fb"])
+        sd0 = lk["T"]["setData"]
+        Z["t00"] = 49800.55
+        changed = wait_until(pg, "() => { const r = window.Market3.lastK('TSE'); return !!r && Math.abs(r.close - 49800.55) < 0.01; }", 20000)
+        lk2 = pg.evaluate("() => window.Market3.lastK('TSE')")
+        ok("★ [大盤日K即時-盤中] 報價跳到 49,800.55 → 日 K 最後一根收盤真的跟著變、高點撐開", bool(changed) and lk2["high"] >= 49800.55, lk2)
+        ok("★ [大盤日K即時-盤中] 跟著跳時走輕量更新（沒有整條 setData 重灌、根數不變）",
+           lk2["setData"] == sd0 and lk2["n"] == lk["T"]["n"], {"前": lk["T"], "後": lk2})
+        pg.select_option("#m3Tf", "W")
+        wait_until(pg, "() => { const r = window.Market3.lastK('TSE'); return !!r && r.time >= '2026-10-05'; }", 15000)
+        w = pg.evaluate("() => window.Market3.lastK('TSE')")
+        ok("★ [大盤日K即時-盤中] 週 K 最後一根含今天（標籤＝10-05、收盤＝現價）",
+           w and w["time"] == "2026-10-05" and abs(w["close"] - 49800.55) < 0.01, w)
+        pg.select_option("#m3Tf", "M")
+        wait_until(pg, "() => { const r = window.Market3.lastK('TSE'); return !!r && r.time >= '2026-10-05'; }", 15000)
+        m = pg.evaluate("() => window.Market3.lastK('TSE')")
+        ok("★ [大盤日K即時-盤中] 月 K 最後一根含今天（10 月那根收盤＝現價）",
+           m and m["time"] == "2026-10-05" and abs(m["close"] - 49800.55) < 0.01, m)
+        pg.select_option("#m3Tf", "D")
+        ctx.close()
+
+    for sc in ("盤中", "非交易日"):
+        one(sc)
+
+
 def t_swr_second_open(b, base, code):
     """2026-10-04 晚 Andy：「若是有最後一筆數據，就把它存起來……以後打開就能直接貼上，不用一直取得數據」。
     同一個瀏覽器設定檔：第一次正常開總覽（寫好存檔）→ 第二次開頁時**所有 data/*.json 延遲 10 秒**。
@@ -20798,6 +20898,7 @@ SECTIONS = {
     "新-大盤三張圖":       lambda pg, b, base, code: t_new_market3(pg, base),
     # ★ 2026-10-04 Andy 週日截圖：走勢只剩尾段亂跳、5 分 K 冒出收盤後的棒
     "新-大盤三張圖-週日":  lambda pg, b, base, code: t_m3_sunday(b, base, code),
+    "大盤日K即時1005":     lambda pg, b, base, code: t_m3_livek_1005(b, base, code),
     "新-大盤三張圖-首幀":  lambda pg, b, base, code: t_m3_firstframe(b, base, code),
     "新-開頁存檔":  lambda pg, b, base, code: t_swr_second_open(b, base, code),
     # ★ 2026-09-28 Andy：櫃買 1H／4H 有歷史、加權 15／30／1H 真實成交值、量副圖拖一張另外兩張連動
