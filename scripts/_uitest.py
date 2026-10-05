@@ -1579,6 +1579,110 @@ def _drill_check_bin(pg, tag, bars, i):
 #   · ETF（0050 造 +11%）不在漲停、也不在漲幅前段
 #   · 代理失敗 → 標題直接寫「即時抓不到：原因」，不是默默顯示盤後
 #   · 盤後那一版：漲停名單＝stocks.json 的 lim（管線 tick 判定），沒有 ETF
+# ===================================================================== 側欄收展（2026-10-05，site/layout4.js buildFold）
+def t_side_fold_1005(pg, b, base):
+    """側欄收展（Andy 截圖圈群組標題與資金流向／熱力圖：「這邊點選可以收展」）。
+    真的點群組標題、點子項箭頭、再點一次已選中的大項；驗格子真的消失／出現、重新整理後記住、收合側欄模式不受影響。"""
+    tag = "側欄收展1005"
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"{tag} pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    VIS = lambda sel: J("(s) => { const e = document.querySelector(s); return !!(e && e.getClientRects().length); }", sel)
+    NSUB = lambda par: J("(p) => [...document.querySelectorAll(`.l4subtab[data-parent='${p}']`)].filter(e => e.getClientRects().length).length", par)
+    TOPOF = lambda sel: J("(s) => Math.round(document.querySelector(s).getBoundingClientRect().top)", sel)
+    try:
+        lp.goto(f"{base}#overview", wait_until="networkidle")
+        lp.evaluate("() => { try { localStorage.removeItem('l4.navFold'); localStorage.setItem('tw.layout4.nav', 'full'); } catch (e) {} }")
+        lp.reload(wait_until="networkidle")
+        wait_until(lp, "() => document.querySelectorAll('#tabs .l4grp').length === 5", 10000)
+        names = J("() => [...document.querySelectorAll('#tabs .l4grp')].map(e => e.textContent.trim())")
+        ok(f"★ [{tag}] 五個群組標題是可以點的按鈕", names == ["今日市場", "資金流水", "族群與個股", "歷史規律", "專案"], names)
+        ok(f"[{tag}] 群組標題不算進 .tab（手機與 app.js 數 .tab）", J("() => document.querySelectorAll('#tabs .tab.l4grp').length") == 0)
+        # 2026-10-06：財經日曆在今日市場、ETF 在族群與個股（產業地圖、市場明細、選股策略、ETF）
+        ok(f"★ [{tag}] 展開時「總覽」「財經日曆」都看得到、都在今日市場標題下", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]')
+           and TOPOF('.l4grp[data-g="today"]') < TOPOF('.tab[data-view="overview"]') < TOPOF('.tab[data-view="earnings"]') < TOPOF('.l4grp[data-g="money"]'))
+        seq = J("""() => ['industry','market','explore','etf'].map(v => Math.round(document.querySelector(`.tab[data-view='${v}']`).getBoundingClientRect().top))""")
+        ok(f"★ [{tag}] 族群與個股順序：產業地圖、市場明細、選股策略、ETF，且在歷史規律標題上面",
+           seq == sorted(seq) and seq[-1] < TOPOF('.l4grp[data-g="hist"]') and TOPOF('.l4grp[data-g="stock"]') < seq[0], seq)
+        y_et0 = TOPOF('.tab[data-view="season"]')
+        lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 點「族群與個股」→ 產業地圖、市場明細、選股策略、ETF 都收起來",
+           not any(VIS(f'.tab[data-view="{v}"]') for v in ("industry", "market", "explore", "etf")))
+        ok(f"[{tag}] 標題變 ▸（aria-expanded=false）", J("() => document.querySelector('.l4grp[data-g=stock]').getAttribute('aria-expanded')") == "false")
+        y_et1 = TOPOF('.tab[data-view="season"]')
+        ok(f"★ [{tag}] 下面的「週期統計」真的往上移（畫面因此改變）", y_et1 < y_et0 - 60, (y_et0, y_et1))
+        n0 = NSUB("flow")
+        lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
+        n1 = NSUB("flow")
+        ok(f"★ [{tag}] 點資金流向旁的箭頭 → 三個子項收起、而且沒有換頁", n0 == 3 and n1 == 0 and J("() => location.hash") == "#overview", (n0, n1, J("() => location.hash")))
+        lp.reload(wait_until="networkidle"); wait_until(lp, "() => document.querySelectorAll('#tabs .l4grp').length === 5", 10000)
+        ok(f"★ [{tag}] 重新整理後：族群與個股仍收起、資金流向子項仍收起",
+           not VIS('.tab[data-view="market"]') and NSUB("flow") == 0, J("() => localStorage.getItem('l4.navFold')"))
+        lp.goto(f"{base}#market", wait_until="networkidle"); lp.wait_for_timeout(700)
+        ok(f"★ [{tag}] 目前在市場明細、所在的組收起：整組（含目前那格）全藏，只剩標題＋提示點",
+           not VIS('.tab[data-view="market"]') and not VIS('.tab[data-view="industry"]') and VIS('.l4grp[data-g="stock"]')
+           and J("() => document.querySelector('.l4grp[data-g=stock]').classList.contains('here')"))
+        lp.goto(f"{base}#earnings", wait_until="networkidle"); lp.wait_for_timeout(700)
+        lp.click("#tabs .l4grp[data-g='today']"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 在財經日曆時收起今日市場 → 總覽、財經日曆都藏、標題有提示點",
+           not VIS('.tab[data-view="overview"]') and not VIS('.tab[data-view="earnings"]')
+           and J("() => document.querySelector('.l4grp[data-g=today]').classList.contains('here')"))
+        lp.click("#tabs .l4grp[data-g='today']"); lp.wait_for_timeout(250)
+        ok(f"[{tag}] 再點今日市場 → 總覽、財經日曆都回來", VIS('.tab[data-view="overview"]') and VIS('.tab[data-view="earnings"]'))
+        lp.goto(f"{base}#flow/rotation", wait_until="networkidle"); lp.wait_for_timeout(700)
+        lp.click("#tabs .l4grp[data-g='money']"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 在資金輪動時收起資金流水 → 資金流向、熱力圖與所有子項（含目前那格）全藏",
+           not VIS('.tab[data-view="flow"]') and not VIS('.tab[data-view="heatmap"]') and NSUB("flow") == 0 and NSUB("heatmap") == 0)
+        lp.click("#tabs .l4grp[data-g='money']"); lp.wait_for_timeout(250)
+        lp.click(".tab[data-view='flow'] .l4car"); lp.wait_for_timeout(250)
+        a = NSUB("flow"); h0 = J("() => location.hash")
+        lp.click(".tab[data-view='flow']", position={"x": 60, "y": 12}); lp.wait_for_timeout(300)
+        bc = NSUB("flow")
+        ok(f"★ [{tag}] 已在資金流向時再點一次「資金流向」→ 子項全收（含目前那格）、網址不變",
+           a == 3 and bc == 0 and J("() => location.hash") == h0, (a, bc, h0, J("() => location.hash")))
+        lp.click("#tabs .l4grp[data-g='stock']"); lp.wait_for_timeout(250)
+        ok(f"[{tag}] 再點「族群與個股」→ 展開回來", VIS('.tab[data-view="industry"]') and VIS('.tab[data-view="etf"]'))
+        lp.click("#tabs .l4grp[data-g='hist']"); lp.wait_for_timeout(200)
+        lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
+        ok(f"★ [{tag}] 收合成圖示列：群組標題藏起、被收起的「週期統計」照樣在",
+           J("() => document.documentElement.classList.contains('l4-mini')") and not VIS('#tabs .l4grp[data-g="hist"]')
+           and VIS('.tab[data-view="season"]'))
+        lp.click("#l4NavBtn"); lp.wait_for_timeout(400)
+        ok(f"[{tag}] 展開側欄回來：歷史規律仍是收起的（狀態沒被圖示列弄掉）", not VIS('.tab[data-view="season"]'))
+        ok(f"[{tag}] 側欄沒有橫向捲軸", J("() => { const t = document.querySelector('#tabs'); return t.scrollWidth <= t.clientWidth + 1; }"),
+           J("() => { const t = document.querySelector('#tabs'); return [t.scrollWidth, t.clientWidth, [...t.querySelectorAll('*')].filter(e => e.scrollWidth > e.clientWidth + 1 && e.clientWidth).map(e => e.className + ':' + e.scrollWidth + '/' + e.clientWidth).slice(0, 4)]; }"))
+    finally:
+        try:
+            lp.evaluate("() => { try { localStorage.removeItem('l4.navFold'); localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
+        except Exception:
+            pass
+        lp.close()
+    # 2026-10-06（Andy：「管理區也需要收納」）：管理者 context；子項數不寫死（另一分支會拿掉會員管理）
+    c, _ = _pnav_ctx(b, True)
+    ap = c.new_page(); ap.on("pageerror", lambda e: fails.append(f"{tag} 管理區 pageerror: {e}"))
+    try:
+        ap.goto(f"{base}#admin/perm", wait_until="domcontentloaded")
+        wait_until(ap, "() => !!document.querySelector('#l4Perm .l4car') && document.querySelectorAll('.l4subtab[data-parent=admin]').length > 0", 10000)
+        AN = lambda: ap.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].filter(e => e.getClientRects().length).length")
+        tot = ap.evaluate("() => document.querySelectorAll('.l4subtab[data-parent=admin]').length")
+        n0 = AN()
+        ap.click("#l4Perm .l4car"); ap.wait_for_timeout(250)
+        n1 = AN()
+        ok(f"★ [{tag}] 管理區有 ▸／▾，點了子項全收（含目前那格）、網址不變", tot > 0 and n0 == tot and n1 == 0 and ap.evaluate("() => location.hash") == "#admin/perm", (tot, n0, n1))
+        ap.reload(wait_until="domcontentloaded")
+        wait_until(ap, "() => !!document.querySelector('#l4Perm .l4car')", 10000); ap.wait_for_timeout(400)
+        ok(f"★ [{tag}] 重新整理後管理區子項仍收起", AN() == 0 and ap.evaluate("() => document.querySelector('#l4Perm .l4car').getAttribute('aria-expanded')") == "false")
+        ap.click("#l4Perm .l4car"); ap.wait_for_timeout(250)
+        ok(f"[{tag}] 再點管理區箭頭 → 子項回來", AN() == tot)
+    finally:
+        try:
+            ap.evaluate("() => { try { localStorage.removeItem('l4.navFold'); } catch (e) {} }")
+        except Exception:
+            pass
+        c.close()
+
+
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
 def t_etf_1005(pg, b, base):
     """ETF 專區第二版（2026-10-05 Andy：行事曆放最上且是真月曆、分類頁三張前 5 並排同高、自選比較清單、填息天數）。
@@ -1791,6 +1895,41 @@ def t_etf_1005(pg, b, base):
               if (h > limit) bad.push((e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 20) + ':' + Math.round(h)); });
             return bad; }""")
         ok(f"★ [{tag}] 所有表格儲存格、前 5 列、說明列、月曆格內文字都只有一行", not multi, multi[:6])
+        # ================= 4b. 2026-10-05 第三版：標題圖示有顏色、卡片分類色、欄位一行（Andy：「圖案需要給他顏色」）
+        ics = J("""() => [...document.querySelectorAll('#v-etf .card h3 > .ticon')].filter(e => e.offsetParent).map(e => {
+                 const c = getComputedStyle(e).color.match(/[\\d.]+/g).slice(0, 3).map(Number);
+                 return { k: e.dataset.k, fb: e.hasAttribute('data-fb'), sat: Math.max(...c) - Math.min(...c), col: getComputedStyle(e).color }; })""")
+        ok(f"★ [{tag}] 每張卡標題都有圖示、不是退回的預設圖、而且有彩度（不是灰的）",
+           len(ics) >= 5 and all((not i["fb"]) and i["sat"] >= 40 for i in ics), ics)
+        ok(f"[{tag}] 標題圖示至少 3 種顏色（依語意，不是全頁同一色）", len({i["col"] for i in ics}) >= 3, [i["col"] for i in ics])
+        lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => getComputedStyle(e).borderLeftColor)")
+        tc = J("() => getComputedStyle(document.querySelector('#etfGrid .etfc .etag')).color")
+        ok(f"★ [{tag}] ETF 卡片左緣有分類色（配息型＝跟分類標籤同色）", bool(lc) and all(c == tc for c in lc), (lc, tc))
+        wr = J("() => [...document.querySelectorAll('#etfGrid .etfc dt, #etfGrid .etfc dd, #etfGrid .etfc .nm')].filter(e => e.getBoundingClientRect().height > 24).length")
+        ok(f"★ [{tag}] ETF 卡片欄位全部一行（沒有被擠成兩行的）", wr == 0, wr)
+        cw = J("() => [...new Set([...document.querySelectorAll('#etfGrid .etfc')].map(e => Math.round(e.getBoundingClientRect().width)))]")
+        ok(f"[{tag}] ETF 卡片欄寬一致（同一寬度）", len(cw) == 1, cw)
+        segs = J("() => [...document.querySelectorAll('#etfCatSeg > button')].map(e => e.dataset.v)")
+        exp = [v for v in ["all", "配息型", "市值型", "主題型", "主動式", "槓桿反向", "債券型", "其他"] if v in segs]
+        ok(f"★ [{tag}] 分類頁籤順序：主動式在槓桿反向前、債券型在後（Andy：「兩個對調」）", segs == exp and len(segs) >= 6, segs)
+        nb = J("""() => { const s = document.querySelector('#etfCatSeg'), b = s.querySelector('button'), em = b.querySelector('em');
+                 const r = document.querySelector('#v-industry .nbsw > button, .nbsw > button');
+                 return { cls: s.classList.contains('nbsw'), ta: getComputedStyle(b).justifyContent, fs: getComputedStyle(b).fontSize,
+                          em: !!em && parseFloat(getComputedStyle(em).fontSize) < parseFloat(getComputedStyle(b).fontSize),
+                          one: b.getBoundingClientRect().height < 48 }; }""")
+        ok(f"★ [{tag}] 分類頁籤用全站共用 .nbsw（產業地圖同款：置中、數字小字、一行）",
+           nb["cls"] and nb["ta"] == "center" and nb["em"] and nb["one"], nb)
+        cen = J("() => [...document.querySelectorAll('#etfGrid .etfc dd, #etfGrid .etfc dt, #v-etf table.et td, #v-etf table.et th')].filter(e => e.offsetParent && getComputedStyle(e).textAlign !== 'center').length")
+        ok(f"★ [{tag}] 所有欄位文字置中", cen == 0, cen)
+        rf = J("""() => { const u = document.querySelector('#etfGrid .etfc .px span.up, #etfGrid .etfc .px span.down');
+                 if (!u) return null; const c = getComputedStyle(u).color.match(/[\\d.]+/g).slice(0, 3).map(Number);
+                 return { up: u.classList.contains('up'), r: c[0], g: c[1] }; }""")
+        ok(f"★ [{tag}] 漲跌有紅綠色（紅漲綠跌；以前 var(--up) 沒定義，漲跌全是白字）",
+           rf is None or (rf["r"] > rf["g"] + 60 if rf["up"] else rf["g"] > rf["r"] + 40), rf)
+        nodiv = J("() => (window.TwEtfPage.state.data.items.find(i => i.yield_ttm == null && i.cat === '配息型') || {}).code || ''")
+        if nodiv and count(lp, f"#etfGrid .etfc[data-code='{nodiv}']"):
+            ctext = text(lp, f"#etfGrid .etfc[data-code='{nodiv}']")
+            ok(f"[{tag}] 沒配息資料的卡片寫「待補」（不是 —、也不是 0%）", "待補" in ctext and "0.00%" not in ctext, ctext[:120])
         # ================= 5. 原有：清單、排序、寬度、點卡片
         tags = J("() => [...document.querySelectorAll('#etfGrid .etfc .etag')].map(e => e.textContent)")
         ok(f"[{tag}] 配息型分頁的「ETF 一覽」只剩配息型且含 0056", tags and set(tags) == {"配息型"} and count(lp, "#etfGrid .etfc[data-code='0056']") == 1)
@@ -21397,6 +21536,14 @@ def t_explore_1005(pg, base):
                     dh: Math.max(...hs) - Math.min(...hs), dw: Math.max(...ws) - Math.min(...ws), hs}; }""")
         ok(f"[{tag} {w}] 欄數固定（1440＝3、1100＝2）", g["cols"] == (3 if w == 1440 else 2), g["cols"])
         ok(f"[{tag} {w}] 所有卡片同高同寬（差 ≤ 1px）", g["dh"] <= 1 and g["dw"] <= 1, g)
+    # 2026-10-06 Andy：頂端提示列移除，免責改放標題右側一行；面向標題不留英文
+    lg = pg.evaluate("""() => { const l = document.querySelector('#xpLegal'), h = document.querySelector('.sl-head h2');
+        const r = l && l.getBoundingClientRect();
+        return {inH: !!(l && h && h.contains(l)), txt: l ? l.textContent : '', oneLine: r ? r.height < 24 : false,
+                topBar: !!document.querySelector('#v-explore > .xp-legal'), secen: document.querySelectorAll('.sl-secen').length,
+                howto: (h ? h.textContent : '').includes('每張卡'), fs: l ? parseFloat(getComputedStyle(l).fontSize) : 0}; }""")
+    ok(f"[{tag}] 免責在標題列內、一行、≥11px、未刪字", lg["inH"] and lg["oneLine"] and lg["fs"] >= 11 and '不構成投資建議' in lg["txt"] and '不是好壞名次' in lg["txt"], lg)
+    ok(f"[{tag}] 無頂端提示列、無操作說明句、面向標題無英文", not lg["topBar"] and not lg["howto"] and lg["secen"] == 0, lg)
     pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
     info = pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => ({
         en: c.querySelector('.sl-en').textContent, zh: c.querySelector('.sl-zh').textContent, h: c.getBoundingClientRect().height,
@@ -21492,6 +21639,242 @@ def t_explore_1005(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
+# ===================================================================== 財報日曆（2026-10-05，site/earnings.js）
+EARN_API = "https://acct-earn.example.test"
+
+
+def t_earnings_1005(pg, b, base):
+    """財報日曆（Andy 2026-10-05：「總覽下方新增"財報日曆"，並不是子分頁……標示出台股大公司的開財報日期，以及 FED 公布重大數據……
+    點及該個股後，出現對於這次財報的分析及展望(包含FED消息)」）。
+
+    真的操作、驗「畫面因此改變」：
+      · 側欄：「財報日曆」是獨立一格、緊接在「總覽」下面（同組今日市場），不是總覽的子項；點了換到 #earnings
+      · 月曆 7 欄 × 6 列、預設本月、今天格醒目；上月／下月／回本月真的換月、整張卡高度不變
+      · 點公司標籤 → 右側面板換成那家公司的分析（看點、月營收、獲利、估值、法人、消息、FED 背景、出處）；點 FED 標籤 → 換成數據說明
+      · 點日期的「＋N」→ 面板列出當天全部；點其中預估那一列 → 面板寫預估依據；「回本週重點」回到預設
+      · 篩選：只看 FED → 月曆上沒有公司標籤；只看台股公司 → 沒有 FED 標籤
+      · 時間表點一列 → 面板原地換成那家（不換頁）；面板裡「看個股頁」才換到 #stock/<代號>
+      · earnings.json 抓不到 → 退回種子檔、副標寫「種子資料」
+      · 權限：管理者關掉「財報月曆」→ 月曆卡蓋鎖頭、時間表照常
+      · 800／390：沒有橫向捲軸、標籤字 ≥ 11px、標籤與清單列單行"""
+    import json as _json
+    import re as _re
+    from datetime import datetime, timedelta, timezone
+    tag = "財報日曆1005"
+    today = (datetime.now(timezone.utc) + timedelta(hours=8)).date()
+    ym = today.strftime("%Y-%m")
+    lp = b.new_page(viewport={"width": 1440, "height": 1000})
+    errs = []
+    lp.on("pageerror", lambda e: errs.append(str(e)))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    H = lambda sel: J("(s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().height) : -1; }", sel)
+    PM = lambda: J("() => { const p = document.querySelector('#earnPanel'); return p ? [p.dataset.mode || '', p.dataset.key || '', p.innerText] : ['', '', '']; }")
+    try:
+        lp.goto(f"{base}#overview", wait_until="networkidle")
+        # ---- 1. 側欄：總覽正下方、獨立一格
+        pos = J("""() => { const t = (v) => document.querySelector(`.tab[data-view="${v}"]`); const r = (v) => t(v) ? t(v).getBoundingClientRect() : null;
+                 const o = r('overview'), e = r('earnings'), f = r('flow'); return o && e && f ? [o.top, e.top, f.top, e.left - o.left, e.height] : null; }""")
+        ok(f"★ [{tag}] 側欄有「財經日曆」（文字＝{text(lp, '.tab[data-view=earnings]')}）、在總覽正下方、資金流向之上、跟總覽同一層（左緣對齊，不是縮排子項）",
+           pos and pos[0] < pos[1] < pos[2] and abs(pos[3]) <= 1 and pos[4] > 20 and count(lp, '.tab[data-view="earnings"]') == 1 and "財經日曆" in text(lp, '.tab[data-view="earnings"]'), pos)
+        lp.click('.tab[data-view="earnings"]')
+        ready = wait_until(lp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+        ok(f"★ [{tag}] 點側欄 → #earnings、頁面畫完、讀到 earnings.json（不是種子）", J("() => location.hash") == "#earnings" and ready == "full", (J("() => location.hash"), ready))
+        ok(f"[{tag}] 只有財報日曆那一格亮", J("() => [...document.querySelectorAll('.tab.on')].map(t => t.dataset.view)") == ["earnings"])
+        ok(f"★ [{tag}] 頁頂寫「不構成投資建議」與「沒有用語言模型」", "不構成投資建議" in text(lp, "#earnDisc") and "語言模型" in text(lp, "#earnDisc"))
+        D = J("() => window.TwEarnings.state.data")
+        sub = text(lp, "#earnSub")
+        ok(f"[{tag}] 副標寫資料日與大公司口徑", D["asof"] in sub and "市值前" in sub, sub)
+        lg = text(lp, "#earnLegend")
+        ok(f"★ [{tag}] 圖例分得出公司財報、法說（自辦／受邀）與 FOMC、美國數據，沒有「預估」", all(w in lg for w in ("財報", "法說", "FOMC", "美國數據")) and "預估" not in lg, lg)
+        # ---- 2. 月曆
+        cols = J("() => getComputedStyle(document.querySelector('#earnGrid')).gridTemplateColumns.split(' ').length")
+        wds = J("() => [...document.querySelectorAll('#earnGrid .wd')].map(e => e.textContent)")
+        ok(f"★ [{tag}] 月曆 7 欄（日～六）× 6 列 42 格", cols == 7 and wds == list("日一二三四五六") and count(lp, "#earnGrid .ed") == 42, (cols, wds))
+        ok(f"[{tag}] 預設本月、今天格有框", J("() => document.querySelector('#earnCalCard').dataset.month") == ym
+           and J(f"() => !!document.querySelector('.ed.today[data-d=\"{today.isoformat()}\"]')"))
+        h0 = H("#earnCalCard")
+        m0 = text(lp, "#earnMonth")
+        lp.click("#earnNext"); lp.wait_for_timeout(150)
+        m1, mk1, h1 = text(lp, "#earnMonth"), J("() => document.querySelector('#earnCalCard').dataset.month"), H("#earnCalCard")
+        lp.click("#earnPrev"); lp.click("#earnPrev"); lp.wait_for_timeout(150)
+        mk2 = J("() => document.querySelector('#earnCalCard').dataset.month")
+        lp.click("#earnToday"); lp.wait_for_timeout(150)
+        ok(f"★ [{tag}] 下月／上月／回本月 真的換月", m1 != m0 and mk1 > ym and mk2 < ym and J("() => document.querySelector('#earnCalCard').dataset.month") == ym, (m0, m1, mk1, mk2))
+        ok(f"★ [{tag}] 換月整張卡高度不變", h0 == h1 == H("#earnCalCard"), (h0, h1, H("#earnCalCard")))
+
+        def goto_month(d):
+            for _ in range(12):
+                cur = J("() => document.querySelector('#earnCalCard').dataset.month")
+                if cur == d[:7]:
+                    return True
+                lp.click("#earnNext" if cur < d[:7] else "#earnPrev"); lp.wait_for_timeout(80)
+            return False
+
+        # ---- 3. 點公司 → 面板換成分析
+        mode0 = PM()
+        ok(f"★ [{tag}] 預設面板＝本週重點", mode0[0] == "week" and "本週重點" in mode0[2], mode0[:2])
+        conf = next((e for e in D["events"] if e["k"] == "conf" and e.get("code") in D["companies"]), None) \
+            or next(e for e in D["events"] if e.get("code") and e["k"] != "est")
+        goto_month(conf["d"])
+        lp.click(f".chip[data-code='{conf['code']}'][data-k='{conf['k']}']"); lp.wait_for_timeout(200)
+        p = PM()
+        nm = D["companies"][conf["code"]]["name"]
+        ok(f"★ [{tag}] 點 {conf['code']} 標籤 → 面板換成那家公司（模式 co、名稱、已公告）", p[0] == "co" and p[1] == conf["code"] and nm in p[2] and "已公告" in p[2], p[:2])
+        ok(f"★ [{tag}] 公司面板有：這次財報看什麼、月營收、獲利、估值、法人、FED 背景，而且每段有出處",
+           all(w in p[2] for w in ("這次財報看什麼", "月營收趨勢", "獲利能力", "估值位置", "FED 背景")) and p[2].count("出處：") >= 4, p[2][:300])
+        ok(f"[{tag}] 公司面板不寫買賣建議", not any(w in p[2] for w in ("建議買", "建議賣", "買進", "賣出")))
+        ok(f"[{tag}] 被點的標籤有框", J(f"() => document.querySelector(\".chip.on\") && document.querySelector('.chip.on').dataset.code") == conf["code"])
+        top_before = J("() => scrollY")
+        # ---- 4. 點 FED
+        fed = next(e for e in D["events"] if e["k"] in ("cpi", "fomc") and e["d"][:7] == conf["d"][:7]) if any(e["k"] in ("cpi", "fomc") and e["d"][:7] == conf["d"][:7] for e in D["events"]) \
+            else next(e for e in D["events"] if e["k"] in ("cpi", "fomc"))
+        goto_month(fed["d"])
+        lp.click(f".chip[data-k='{fed['k']}']"); lp.wait_for_timeout(200)
+        q = PM()
+        ok(f"★ [{tag}] 點 {fed['k']} 標籤 → 面板換成 FED 數據說明（說明、上次數值、市場關注點、下一次、台灣時間）",
+           q[0] == "fed" and q[1] == fed["k"] and all(w in q[2] for w in ("這是什麼", "上次數值", "市場關注點", "下一次", "台灣時間")) and q[2] != p[2], q[:2])
+        ok(f"[{tag}] 點標籤不會讓頁面捲走", abs(J("() => scrollY") - top_before) < 5)
+        # ---- 5. 沒有任何推估（Andy 1005 晚：「裡面不可以有推估數據」）＋ 點日期 → 當天清單
+        ok(f"★ [{tag}] 資料與畫面上沒有任何預估：events 沒有 est／rev／qdl、月曆沒有 .kest／.ktw、整頁看不到「預估」",
+           not any(e["k"] in ("est", "rev", "qdl") or e.get("status") == "預估" for e in D["events"])
+           and count(lp, "#v-earnings .kest, #v-earnings .ktw") == 0 and "預估" not in J("() => document.querySelector('#v-earnings').innerText"))
+        dd = conf["d"]
+        goto_month(dd)
+        n_day = sum(1 for e in D["events"] if e["d"] == dd)
+        lp.click(f".ed[data-d='{dd}'] .dn"); lp.wait_for_timeout(200)
+        r = PM()
+        rows = count(lp, "#earnDayList .erow")
+        ok(f"★ [{tag}] 點 {dd} → 面板列出當天全部 {n_day} 項", r[0] == "day" and r[1] == dd and rows == n_day, (r[:2], rows, n_day))
+        lp.click("#earnBack"); lp.wait_for_timeout(150)
+        ok(f"★ [{tag}] 「回本週重點」回到預設", PM()[0] == "week")
+        # ---- 6. 篩選
+        # 「回本月」在本月時是 disabled（程式刻意：已在本月就不能再按），只有不在本月時才點
+        if not J("() => document.querySelector('#earnToday').disabled"):
+            lp.click("#earnToday"); lp.wait_for_timeout(100)
+        goto_month(conf["d"])
+        # 只看一類時格子空出來，原本收進「＋N」的同類標籤會露出來，所以數量是 ≥「全部」時，不是相等
+        # 2026-10-05（晚）三大分類：公司財報（kboard/kest/ktw）／公司法說（kconf/kinv）／FED 消息（kfomc/kdata）——切一類就只剩那一類
+        CNT = """() => { const q = (c) => document.querySelectorAll('#earnGrid ' + c.split(',').map(x => '.chip.' + x).join(',#earnGrid ')).length;
+                 return { rep: q('kboard,kest,ktw'), conf: q('kconf,kinv'), fed: q('kfomc,kdata') }; }"""
+        G = {"rep": ("board", "report"), "conf": ("conf", "invite"), "fed": ("fomc", "minutes", "cpi", "nfp", "pce", "gdp")}
+        got = {}
+        for v, ks in G.items():
+            ev1 = next((e for e in D["events"] if e["k"] in ks), None)
+            if not ev1:
+                got[v] = None
+                continue
+            goto_month(ev1["d"])
+            lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
+            before = J(CNT)
+            lp.click(f"#earnFilt button[data-v='{v}']"); lp.wait_for_timeout(150)
+            got[v] = (before, J(CNT))
+        lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
+        goto_month(conf["d"])
+        labs = J("() => [...document.querySelectorAll('#earnFilt button')].map(b => b.textContent.trim())")
+        ok(f"★ [{tag}] 分頁＝全部｜公司財報｜公司法說｜FED 消息（.nbsw）", labs == ["全部", "公司財報", "公司法說", "FED 消息"] and count(lp, "#earnFilt.nbsw") == 1, labs)
+        ok(f"★ [{tag}] 三分類切換真的過濾：切哪一類就只剩那一類的標籤、而且那一類有東西",
+           got["conf"] and got["fed"] and all(g[1][v] > 0 and g[1][v] >= g[0][v] and sum(x for k, x in g[1].items() if k != v) == 0
+                                             for v, g in got.items() if g), got)
+        # 法說會面板：這場法說的日期／時間／地點（照公告內文）
+        lp.click("#earnFilt button[data-v='conf']"); lp.wait_for_timeout(150)
+        lp.click("#earnGrid .chip.kconf, #earnGrid .chip.kinv >> nth=0"); lp.wait_for_timeout(300)
+        pc = PM()
+        ok(f"★ [{tag}] 點法說會 → 面板出現「這場法說」與時間、地點、出處", pc[0] == "co" and "這場法說" in pc[2] and "時間" in pc[2] and "地點" in pc[2] and "出處" in pc[2], pc[2][:200])
+        lp.click("#earnFilt button[data-v='all']"); lp.wait_for_timeout(150)
+        # ---- 7. 大公司時間表已拿掉（Andy 1005 晚：「下方不需要」）→ 不存在；面板「看個股頁」→ 個股頁
+        ok(f"★ [{tag}] 下方「大公司時間表」整張不存在（只留月曆＋右側面板）", count(lp, "#earnListCard, #earnTbl") == 0)
+        lp.click("#earnGrid .chip[data-code] >> nth=0"); lp.wait_for_timeout(300)
+        row = PM()[1]
+        lp.click("#earnGoStock")
+        ok(f"★ [{tag}] 面板「看個股頁」→ #stock/{row}", wait_until(lp, f"() => location.hash === '#stock/{row}'", 6000), J("() => location.hash"))
+        lp.go_back(); wait_until(lp, "() => location.hash === '#earnings'", 5000)
+        # ---- 8. 單行
+        hs = J("() => [...document.querySelectorAll('#earnGrid .chip, #earnPanel .erow')].map(e => Math.round(e.getBoundingClientRect().height)).filter(h => h > 0)")
+        ok(f"[{tag}] 標籤、清單列、表格儲存格都是單行（≤ 40px）", hs and max(hs) <= 40, max(hs) if hs else hs)
+        ok(f"[{tag}] 整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        lp.close()
+
+    # ---- 9. 種子檔退回（預覽版吃正式站的資料，earnings.json 還不存在時）
+    sp = b.new_page(viewport={"width": 1440, "height": 900})
+    try:
+        sp.route("**/data/earnings.json*", lambda r: r.fulfill(status=404, body="nf"))
+        sp.goto(f"{base}#earnings", wait_until="networkidle")
+        rd = wait_until(sp, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+        ok(f"★ [{tag}] earnings.json 抓不到 → 退回種子檔、副標寫「種子資料」與資料日", rd == "seed" and "種子資料" in text(sp, "#earnSub") and "資料日" in text(sp, "#earnSub"),
+           (rd, text(sp, "#earnSub")))
+        ok(f"[{tag}] 種子模式月曆照樣有標籤", sp.evaluate("() => document.querySelectorAll('#earnGrid .chip').length") > 0)
+    finally:
+        sp.close()
+
+    # ---- 9b. 一屏看完（Andy 1005 晚：「整理符合一頁就能看到所有資訊的版面」）：1440×800 沒有垂直捲動、月曆與面板底部都在視窗內
+    for hh in (800, 900):
+        op = b.new_page(viewport={"width": 1440, "height": hh})
+        try:
+            op.goto(f"{base}#earnings", wait_until="networkidle")
+            wait_until(op, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+            op.wait_for_timeout(300)
+            r = op.evaluate("""() => ({ cb: Math.round(document.querySelector('#earnCalCard').getBoundingClientRect().bottom), ih: innerHeight,
+                gb: Math.round(document.querySelector('#earnGrid').getBoundingClientRect().bottom), pb: Math.round(document.querySelector('#earnPanel').getBoundingClientRect().bottom),
+                rh: +document.querySelector('#earnCalCard').dataset.rowh, more: document.querySelectorAll('#earnGrid .more').length,
+                over: [...document.querySelectorAll('#earnGrid .ed')].filter(e => e.scrollHeight > e.clientHeight + 1).length })""")
+            # 全站頁尾（#siteFoot）在每一頁都接在內容下面，不算這頁的內容 → 驗「財報日曆整張卡的底部在第一屏內」
+            ok(f"★ [{tag}] 1440×{hh} 一屏看完：不用往下捲就看到整張卡、月曆與面板底部都在視窗內、格子沒有被標籤撐爆（放不下收成＋N）",
+               r["cb"] <= r["ih"] and r["gb"] <= r["ih"] and r["pb"] <= r["ih"] and r["over"] == 0, r)
+        finally:
+            op.close()
+
+    # ---- 10. 窄畫面
+    for w in (800, 390):
+        np_ = b.new_page(viewport={"width": w, "height": 900})
+        try:
+            np_.goto(f"{base}#earnings", wait_until="networkidle")
+            wait_until(np_, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+            r = np_.evaluate("""() => ({ sx: document.documentElement.scrollWidth, vw: innerWidth,
+                fs: Math.min(...[...document.querySelectorAll('#earnGrid .chip')].filter(e => e.offsetParent).map(e => parseFloat(getComputedStyle(e.querySelector('.cd,.lb') || e).fontSize))),
+                blank: [...document.querySelectorAll('#earnGrid .chip')].filter(e => e.offsetParent && !e.innerText.trim()).length,
+                ph: Math.round(document.querySelector('#earnPanel').getBoundingClientRect().width) })""")
+            ok(f"★ [{tag}] {w}px 沒有橫向捲軸、標籤字 ≥ 11px、沒有空白標籤", r["sx"] <= r["vw"] + 1 and r["fs"] >= 11 and r["blank"] == 0, r)
+            ok(f"[{tag}] {w}px 面板在月曆下方、跟內容同寬（不擠在旁邊）", r["ph"] > w * 0.7, r["ph"])
+            np_.click("#earnGrid .chip[data-code] >> nth=0"); np_.wait_for_timeout(200)
+            ok(f"[{tag}] {w}px 點公司標籤面板照樣換", np_.evaluate("() => document.querySelector('#earnPanel').dataset.mode") == "co")
+        finally:
+            np_.close()
+
+    # ---- 11. 權限開關：關掉「財報月曆」→ 月曆卡蓋鎖頭、時間表照常；全開時兩張都沒鎖
+    def ctx(feats):
+        c = b.new_context(viewport={"width": 1440, "height": 900})
+        c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + _json.dumps({"api": EARN_API}) + "; try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}")
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+
+        def handle(route):
+            req = route.request
+            path = _re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+            if req.method == "OPTIONS":
+                return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+            out = {}
+            if path == "/v1/me":
+                out = {"user": {"email": "member@example.com", "name": "測試會員", "admin": False}}
+            elif path == "/v1/perm/me":
+                out = {"who": "member", "plan": "free", "planName": "免費會員", "feats": feats, "lims": {}}
+            elif path == "/v1/notices":
+                out = {"notices": []}
+            route.fulfill(status=200, body=_json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+        c.route(EARN_API + "/**", handle)
+        return c
+    for feats, want_cal in (({"earn.cal": False}, True), ({}, False)):
+        c = ctx(feats)
+        try:
+            q = c.new_page()
+            q.goto(f"{base}#earnings", wait_until="networkidle")
+            wait_until(q, "() => document.querySelector('#v-earnings') && document.querySelector('#v-earnings').dataset.ready", 15000)
+            got = wait_until(q, "() => !!document.querySelector('#earnCalCard[data-plk]')", 6000 if want_cal else 1500)
+            ok(f"★ [{tag}] 權限 {feats or '全開'} → 月曆卡{'蓋鎖頭' if want_cal else '沒有鎖'}", bool(got) == want_cal, got)
+        finally:
+            c.close()
+
+
 def location_ok(pg, h):
     return pg.evaluate("() => location.hash") == h
 
@@ -21526,6 +21909,10 @@ SECTIONS = {
     "市場明細即時1005":    lambda pg, b, base, code: t_market_live_1005(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
+    "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
+    # ★ 2026-10-05 Andy：側欄群組標題／有子項的大項可以點選收展（⚠ 一律 --workers 1）
+    "側欄收展1005":        lambda pg, b, base, code: t_side_fold_1005(pg, b, base),
     # ★ 2026-10-03 Andy 截 #market：漲跌分佈圖卡＋分頁表格卡桌機左右並排（等高、表在卡內捲、表頭固定、≤1100 上下排）＋「TPEX」改「上櫃」（⚠ 一律 --workers 1）
     "市場明細兩欄1003":    lambda pg, b, base, code: t_market_2col_1003(pg, b, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
@@ -21863,6 +22250,7 @@ SECTIONS = {
     # ★ 2026-10-03 Andy：「當重新整理後，全部圖表設定回 Default」—— 改設定 → 切頁還在 → 重新整理回預設；
     #   主題／自選／手繪線／自訂週期保留；預覽版前綴（DECISIONS #307，⚠ 一律 --workers 1）
     "重新整理回預設1003":  lambda pg, b, base, code: t_view_reset_1003(b, base, code),
+    "預設狀態1006":        lambda pg, b, base, code: t_default_state_1006(b, base),
     # ★ 2026-10-03 Andy 兩件（DECISIONS #306，⚠ 一律 --workers 1）：題材產品剖析圖縮到原尺寸（不再被放大 1.37 倍）、
     #   供應鏈關聯圖每個環節加細框（膠囊／卡片在框內、連線停在框邊）
     "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
@@ -37234,7 +37622,7 @@ def t_legal(b, base):
     ok("★ [頁尾] 展開後也沒有 GitHub／repo／原始碼／演算法字眼，也沒有【】空格",
        not re.search(r"github|repo|原始碼|演算法|【|】", fd1["ftxt"], re.I), fd1["ftxt"][-300:])
     ok("[頁尾] 展開後沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
-    ok("[頁尾] 展開 → localStorage tw.footDetail 真的寫入 '1'", _lg_ls(pg, "tw.footDetail") == "1", _lg_ls(pg, "tw.footDetail"))
+    ok("[頁尾] 展開不再寫 localStorage tw.footDetail（2026-10-06 一律回收合，不記住）", _lg_ls(pg, "tw.footDetail") is None, _lg_ls(pg, "tw.footDetail"))
     cols = {}
     for w in (1440, 820, 390):
         pg.set_viewport_size({"width": w, "height": 950}); pg.wait_for_timeout(350)
@@ -37245,14 +37633,7 @@ def t_legal(b, base):
     pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
     fd2 = pg.evaluate(FD)
-    ok("[頁尾] 重新整理 → 維持展開（讀 tw.footDetail）", fd2["shown"] and fd2["label"] == "隱藏詳細規範", fd2["label"])
-    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(300)
-    pg.click("#sfMore"); pg.wait_for_timeout(300)
-    fd3 = pg.evaluate(FD)
-    ok("[頁尾] 再點 → 收起、按鈕回「顯示詳細規範」、tw.footDetail 寫成 '0'",
-       not fd3["shown"] and fd3["label"] == "顯示詳細規範" and _lg_ls(pg, "tw.footDetail") == "0", [fd3["label"], _lg_ls(pg, "tw.footDetail")])
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
-    ok("[頁尾] 重新整理 → 維持收起", not pg.evaluate(FD)["shown"])
+    ok("[頁尾] 重新整理 → 回到收合（2026-10-06 Andy：Default 一律收合）", not fd2["shown"] and fd2["label"] == "顯示詳細規範", fd2["label"])
 
     # 頁尾連結 → 服務條款
     pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
@@ -41293,7 +41674,6 @@ def t_kpi_footer_0926(pg, b, base):
             "() => { const o = document.getElementById('zoomOv'); return !o || o.hidden; }"))
 
     # ---------------------------------------------------------------- ③ 頁尾左右邊界＝主內容邊界
-    pg.evaluate("() => { try { localStorage.setItem('tw.footDetail', '1'); } catch (e) {} }")
     for side in ("0", None):
         pg.evaluate("(s) => { try { if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side)
         widths = (1600,) if side == "0" else (1440, 1024, 800, 390)
@@ -41302,6 +41682,9 @@ def t_kpi_footer_0926(pg, b, base):
             for path in ("#overview", "#flow", "#industry"):
                 pg.goto("about:blank")      # 只換 hash 不會重新載入頁面 → tw.side／tw.footDetail 不會重讀；先離開再進來
                 pg.goto(f"{base}{path}", wait_until="networkidle"); pg.wait_for_timeout(1400)
+                # 2026-10-06 起詳細規範不記住展開：每次進來自己點開
+                pg.evaluate("() => { const b = document.getElementById('sfMore'), d = document.getElementById('sfDetail'); if (b && d && d.hidden) b.click(); }")
+                pg.wait_for_timeout(200)
                 f = pg.evaluate(FOOT0926_M)
                 tag = f"[頁尾 {w}{'／側欄收起' if side == '0' else ''} {path}]"
                 if not ok(tag + " 量得到頁尾與主內容", bool(f), f):
@@ -41318,6 +41701,60 @@ def t_kpi_footer_0926(pg, b, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.footDetail'); localStorage.removeItem('tw.side'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
+
+
+# ===================================================================== 預設狀態1006
+# Andy 2026-10-06：「每次重新整理、換頁面後 Default 都會是收合狀態，Default 狀態這部分幫我 CHK 所有頁面」。
+# 普查表在 docs/default_state_audit_1006.md；這段只驗修過的四件：頁尾詳細規範、舊值清掉、客服面板、通知下拉。
+def t_default_state_1006(b, base):
+    T = "[預設狀態1006]"
+    ctx = b.new_context(viewport={"width": 1440, "height": 950})
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    FD = "() => { const d = document.getElementById('sfDetail'), b = document.getElementById('sfMore'); return d && b ? { shown: !d.hidden, label: b.textContent.trim(), aria: b.getAttribute('aria-expanded') } : null; }"
+    try:
+        pg.goto(base + "#overview", wait_until="load"); pg.wait_for_timeout(2500)
+        f0 = pg.evaluate(FD)
+        ok(f"{T} 乾淨載入：頁尾詳細規範收合", bool(f0) and not f0["shown"] and f0["aria"] == "false", f0)
+        pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+        pg.click("#sfMore"); pg.wait_for_timeout(300)
+        f1 = pg.evaluate(FD)
+        ok(f"{T} 真的點「顯示詳細規範」→ 展開、按鈕變「隱藏詳細規範」", f1["shown"] and f1["label"] == "隱藏詳細規範", f1)
+        real_reload(pg, wait_until="load", wait_ms=2500)
+        f2 = pg.evaluate(FD)
+        ok(f"★ {T} 重新整理 → 詳細規範回到收合", not f2["shown"] and f2["label"] == "顯示詳細規範", f2)
+        pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+        pg.click("#sfMore"); pg.wait_for_timeout(300)
+        ok(f"{T} 再展開一次", pg.evaluate(FD)["shown"])
+        pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(1500)
+        f3 = pg.evaluate(FD)
+        ok(f"★ {T} 換頁（#overview → #flow）→ 詳細規範收合", not f3["shown"] and f3["label"] == "顯示詳細規範", f3)
+        pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(1500)
+        ok(f"★ {T} 換回總覽 → 仍是收合", not pg.evaluate(FD)["shown"])
+        # 舊瀏覽器留下 tw.footDetail='1'：重新整理要清掉、而且不展開
+        pg.evaluate("() => localStorage.setItem('tw.footDetail', '1')")
+        real_reload(pg, wait_until="load", wait_ms=2500)
+        v = pg.evaluate("() => ({ ls: localStorage.getItem('tw.footDetail'), c: TwView.classify('tw.footDetail') })")
+        ok(f"{T} 舊值 tw.footDetail='1' 被 viewreset 清掉、頁尾仍收合", v["ls"] is None and v["c"] == "reset" and not pg.evaluate(FD)["shown"], v)
+        # 客服面板：打開 → 換頁 → 收起
+        has = pg.evaluate("() => { const f = document.getElementById('supFab'); return !!f && !f.hidden && f.getClientRects().length > 0; }")
+        if has:
+            pg.click("#supFab"); pg.wait_for_timeout(400)
+            o1 = pg.evaluate("() => !document.getElementById('supPanel').hidden")
+            ok(f"{T} 真的點客服浮動鈕 → 面板打開", o1)
+            pg.evaluate("() => { location.hash = '#industry'; }"); pg.wait_for_timeout(1200)
+            o2 = pg.evaluate("() => ({ hid: document.getElementById('supPanel').hidden, aria: document.getElementById('supFab').getAttribute('aria-expanded') })")
+            ok(f"★ {T} 換頁 → 客服面板收起", o2["hid"] and o2["aria"] == "false", o2)
+        else:
+            ok(f"{T} 客服浮動鈕存在（量不到就無法驗換頁收起）", False, has)
+        # 通知下拉：打開 → 換頁 → 收起
+        if pg.evaluate("() => !!window.TwNotices"):
+            pg.evaluate("() => TwNotices.open()"); pg.wait_for_timeout(400)
+            ok(f"{T} 通知下拉打開", pg.evaluate("() => { const d = document.getElementById('ntDrop'); return !!d && !d.hidden; }"))
+            pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(1000)
+            ok(f"★ {T} 換頁 → 通知下拉收起", pg.evaluate("() => { const d = document.getElementById('ntDrop'); return !d || d.hidden; }"))
+    finally:
+        ctx.close()
 
 # ===================================================================== 小數點普查（2026-09-26，claude/decimal-audit）
 # Andy：「除了我抓到這邊數字異常，幫我檢查所有有這樣過多小數點的問題修正」。
@@ -43310,7 +43747,7 @@ def t_account_cloud(b, base):
         def login(pg, who):
             pg.click("#acctBtn")
             ok(f"會員：按「登入」先跳出告知（{who}）", pg.is_visible("#acctDlg") and "不存張數" in pg.inner_text("#acctDlg")
-               and "13 個月" in pg.inner_text("#acctDlg") and "刪除我的資料" in pg.inner_text("#acctDlg"))
+               and "13 個月" in pg.inner_text("#acctDlg") and "來信客服" in pg.inner_text("#acctDlg"))
             with pg.expect_popup() as pi:
                 pg.click("#acctGo")
             pop = pi.value
@@ -43351,7 +43788,7 @@ def t_account_cloud(b, base):
         ok("會員：一般會員打開 #admin 只看到「不是管理者」", "不是管理者" in pg.inner_text("#v-admin"))
         # 登出
         pg.click("#acctBtn")
-        ok("會員：按頭像打開選單（有登出、刪除我的資料）", pg.is_visible("#acctMenu") and "登出" in pg.inner_text("#acctMenu") and "刪除我的資料" in pg.inner_text("#acctMenu"))
+        ok("會員：按頭像打開選單（有登出；10-05 起沒有「刪除我的資料」）", pg.is_visible("#acctMenu") and "登出" in pg.inner_text("#acctMenu") and "刪除我的資料" not in pg.inner_text("#acctMenu"))
         ok("會員：一般會員選單沒有管理頁", "管理頁" not in pg.inner_text("#acctMenu"))
         pg.click("#acctMenu [data-a='logout']")
         wait_until(pg, "() => TwWatch.mode() === 'local'", 4000)
@@ -43366,16 +43803,7 @@ def t_account_cloud(b, base):
         ok("會員：第二台裝置／第二次登入的本機清單併進去、雲端原有的沒被蓋掉",
            pg.evaluate("() => TwWatch.codes('g1')") == ["2317", "2330", "2603"], pg.evaluate("() => TwWatch.tabs()"))
 
-        # ---- ④ 刪除我的資料
-        pg.click("#acctBtn"); pg.click("#acctMenu [data-a='delete']")
-        ok("會員：刪除要先確認，而且寫明無法復原", "無法復原" in pg.inner_text("#acctDlg"))
-        pg.click("#acctDelYes")
-        wait_until(pg, "() => !TwAccount.user()", 6000)
-        ok("會員：刪除後登出", pg.evaluate("() => !TwAccount.user()"))
-        login(pg, "bob")
-        wait_until(pg, "() => TwWatch.mode() === 'cloud'", 6000)
-        pg.wait_for_timeout(500)
-        ok("會員：刪除後再登入是全新帳號（雲端清單真的被刪了）", pg.evaluate("() => TwWatch.tabs().every(t => !t.codes.length)"), pg.evaluate("() => TwWatch.tabs()"))
+        # ---- ④ 刪除我的資料：10-05 Andy 要求從選單拿掉（改由客服信箱申請），原本的刪除流程驗收移除
         pg.click("#acctBtn"); pg.click("#acctMenu [data-a='logout']")
 
         # ---- ⑤ 管理者 Andy：管理頁、線上名單、統計、公開人數開關
@@ -43426,7 +43854,7 @@ def t_account_cloud(b, base):
         wait_until(pg, "() => /以 Google 帳號登入/.test(document.getElementById('v-legal').textContent)", 6000)
         t = pg.inner_text("#v-legal")
         ok("隱私權政策：有登入、自選清單、使用統計、線上人數四列與保存期限",
-           all(x in t for x in ("以 Google 帳號登入", "自選清單（登入後）", "使用統計（所有訪客）", "線上人數（所有訪客）", "13 個月", "24 個月", "刪除我的資料")))
+           all(x in t for x in ("以 Google 帳號登入", "自選清單（登入後）", "使用統計（所有訪客）", "線上人數（所有訪客）", "13 個月", "24 個月", "客服信箱")))
         c1.close()
 
         # ---- ⑦ 小視窗被擋 → 整頁跳轉登入（手機 PWA 常見）
@@ -43731,7 +44159,7 @@ def t_sub_1005(b, base, code):
 #   ④ 390 手機：鎖頭字 ≥ 11px、沒有橫向捲軸、手機個股分頁也上鎖；管理頁在 390 可操作
 #   ⑤ 訪客（沒登入）＝上線預設全開，畫面上一個鎖頭都沒有
 # ⚠ 測試帳號的 email 只准出現在這裡（驗收的假資料），經 --person 帶給 devserver，不寫進 repo 其他地方。
-PERM_TEST_EMAIL = "andy01010909@gmail.com"
+PERM_TEST_EMAIL = "tester@example.com"   # 10-05 Andy：真實信箱不放 public repo
 
 
 def t_member_perm(b, base, code):
@@ -46274,11 +46702,11 @@ def t_layout4(b, base, code):
         grp = pg.evaluate("""() => { const tabs = [...document.querySelectorAll('#tabs .tab')].filter(t => t.getClientRects().length);
             tabs.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
             return { order: tabs.map(t => t.dataset.view),
-              labels: tabs.map(t => getComputedStyle(t, '::before').content).filter(c => c && c !== 'none' && c !== 'normal').map(c => c.replace(/"/g, '')),
+              labels: [...document.querySelectorAll('#tabs .l4grp')].map(g => g.dataset.t),   // 10-05 側欄收展：分組標題改成真的按鈕 .l4grp
               icons: tabs.filter(t => /svg/.test(getComputedStyle(t, '::after').maskImage || getComputedStyle(t, '::after').webkitMaskImage || '')).length,
               n: tabs.length }; }""")
         ok(f"{T}1440 頁面依分組排：總覽｜資金流向、熱力圖｜產業地圖、市場明細｜週期統計｜自選",
-           grp["order"] == ["overview", "flow", "heatmap", "industry", "market", "season", "watch"], grp)
+           [v for v in grp["order"] if v not in ("explore", "etf", "earnings")] == ["overview", "flow", "heatmap", "industry", "market", "season", "watch"], grp)   # 10-05 起選股策略／ETF／財報日曆插在各組內
         ok(f"{T}1440 分組標題依序是 今日市場／資金流水／族群與個股／歷史規律／專案",
            grp["labels"] == ["今日市場", "資金流水", "族群與個股", "歷史規律", "專案"], grp)
         ok(f"{T}1440 每一頁都有線條圖示", grp["icons"] == grp["n"], grp)
@@ -46655,8 +47083,8 @@ def t_layout4_batch3(pg, base, code, T):
     tip = pg.evaluate("""() => { const t = document.getElementById('l4LoginTip'); if (!t || t.hidden) return null; const r = t.getBoundingClientRect();
         return { txt: t.innerText, top: Math.round(r.top), right: Math.round(r.right), vw: innerWidth, acct: !!document.getElementById('acctBtn'),
           exp: document.getElementById('l4Login').getAttribute('aria-expanded') }; }""")
-    ok(f"{T}第四批④ 沒有會員設定檔時按右上角「登入」→ 跳出「會員登入目前沒有開啟」的說明（在按鈕下面、在視窗內、沒有冒出 #acctBtn）",
-       bool(tip) and "沒有開啟" in tip["txt"] and "這台瀏覽器" in tip["txt"] and tip["top"] >= tr0["headB"] - 2 and tip["right"] <= tip["vw"] and not tip["acct"] and tip["exp"] == "true", tip)
+    ok(f"{T}第四批④ 沒有會員設定檔時按右上角「登入」→ 跳出「會員系統目前沒有連上線」的說明（在按鈕下面、在視窗內、沒有冒出 #acctBtn）",
+       bool(tip) and "沒有連上線" in tip["txt"] and "這台瀏覽器" in tip["txt"] and tip["top"] >= tr0["headB"] - 2 and tip["right"] <= tip["vw"] and not tip["acct"] and tip["exp"] == "true", tip)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     ok(f"{T}第四批④ 按 Esc → 說明收起來", pg.evaluate("() => { const t = document.getElementById('l4LoginTip'); return !t || t.hidden; }"))
     MS = """() => ({ th: document.documentElement.getAttribute('data-theme') || 'dark', bg: getComputedStyle(document.body).backgroundColor,
@@ -46717,7 +47145,7 @@ def t_layout4_subs(pg, base, T):
     pg.evaluate("() => { try { localStorage.setItem('tw.layout4.nav', 'full'); } catch (e) {} }")
     # 從別頁點父頁「資金流向」：一進資金流向就是全新的一輪（重新整理，確保別的子分頁的圖真的還沒畫過）
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(800)
-    lbl = pg.evaluate("() => getComputedStyle(document.querySelector('#tabs .tab[data-view=flow]'), '::before').content.replace(/\"/g, '')")
+    lbl = pg.evaluate("() => { const g = document.querySelector('#tabs .l4grp[data-first=flow]') || [...document.querySelectorAll('#tabs .l4grp')].find(x => x.dataset.t === '資金流水'); return g ? g.dataset.t : 'none'; }")   # 10-05 分組標題改 .l4grp
     ok(f"{T}子分頁 側欄分組名改成「資金流水」", lbl == "資金流水", lbl)
     subs = pg.evaluate("() => [...document.querySelectorAll('#tabs .l4subtab')].map(b => ({ k: b.dataset.l4sub, t: b.querySelector('.lbl').textContent, "
                        "x: Math.round(b.getBoundingClientRect().left), px: Math.round(document.querySelector(`#tabs .tab[data-view=${b.dataset.parent}]`).getBoundingClientRect().left), "
@@ -48061,7 +48489,7 @@ def t_view_reset_1003(b, base, code):
         # ---------------------------------------------------------------- ③ 真的改設定
         click(pg, '#revView button[data-v="y"]', 900)
         _vr_tab(pg, "holders", VR_CHIP_READY)
-        click(pg, '#chipWin button[data-v="20"]', 1000)
+        click(pg, '#chipWin button[data-v="63"]', 1000)   # 大戶頁預設已是 4 週（#302，鍵 tw.chipWinHo）→ 改點 3 個月才算「改設定」
         _vr_tab(pg, "overview", VR_K_READY, 1200)
         ind_toggle(pg, "kd", 900); kd1 = ind_on(pg, "kd"); ind_close(pg)
         # 自訂週期（使用者建立的東西，要保留）
@@ -48105,10 +48533,10 @@ def t_view_reset_1003(b, base, code):
         scroll_to(pg, "breadth"); pg.wait_for_timeout(500)
         ud0 = pg.evaluate(UD_PROBE)
         ud1 = _ud_click_seg(pg, "tpex")
-        KEYS = ["tw.chipWin", "tw.revView", "tw.kcfg", "tw.rot.feet", "tw.season.view", "tw.udMkt"]
+        KEYS = ["tw.chipWinHo", "tw.revView", "tw.kcfg", "tw.rot.feet", "tw.season.view", "tw.udMkt"]
         ls1 = pg.evaluate(VR_LS, KEYS)
         ok(f"{T} 每個設定都真的寫進 localStorage（同一次瀏覽要用）",
-           ls1["tw.chipWin"] == "20" and ls1["tw.revView"] == "y" and bool(ls1["tw.kcfg"]) and ls1["tw.rot.feet"] == ("0" if feet0 else "1")
+           ls1["tw.chipWinHo"] == "63" and ls1["tw.revView"] == "y" and bool(ls1["tw.kcfg"]) and ls1["tw.rot.feet"] == ("0" if feet0 else "1")
            and ls1["tw.season.view"] == alt and ls1["tw.udMkt"] == "tpex", ls1)
         ok(f"{T} 漲跌家數按上櫃 → 按鈕真的換", ud1["on"] == ["tpex"] and ud0["on"] != ["tpex"], (ud0["on"], ud1["on"]))
 
@@ -48116,7 +48544,7 @@ def t_view_reset_1003(b, base, code):
         _vr_go(pg, f"#stock/{code}", 2600)
         _vr_tab(pg, "holders", VR_CHIP_READY)
         s4 = pg.evaluate(VR_STATE)
-        ok(f"{T} 同一次瀏覽換頁回來：籌碼區間還是「4 週」（只有重新整理才回預設）", s4["chip"] == ["20"], s4["chip"])
+        ok(f"{T} 同一次瀏覽換頁回來：籌碼區間還是「3 個月」（只有重新整理才回預設）", s4["chip"] == ["63"], s4["chip"])
         _vr_go(pg, "#season", 2200)
         sea4 = pg.evaluate(VR_SEASON_ON)
         ok(f"{T} 同一次瀏覽換頁回來：季節性還是剛剛選的「{alt}」", sea4 == [alt], sea4)
@@ -48131,7 +48559,7 @@ def t_view_reset_1003(b, base, code):
         ok(f"{T} 重新整理：這次載入真的清了（TwView.cleared 含六個設定）", bool(s5["view"]) and not s5["view"]["skipped"]
            and all(k in s5["view"]["cleared"] for k in KEYS), s5["view"])
         ok(f"{T} 重新整理：籌碼／營收／腳印／季節性／漲跌家數的設定鍵都不見了",
-           all(ls5[k] is None for k in ["tw.chipWin", "tw.revView", "tw.rot.feet", "tw.season.view", "tw.udMkt"]), ls5)
+           all(ls5[k] is None for k in ["tw.chipWinHo", "tw.revView", "tw.rot.feet", "tw.season.view", "tw.udMkt"]), ls5)
         kc = json.loads(ls5["tw.kcfg"] or "{}")
         ok(f"{T} 重新整理：K 線設定只留下自訂週期（指標開關、參數、顏色、線寬全部回預設）",
            list(kc.keys()) == ["tfs"] and bool(cust) and cust[0] in kc["tfs"], kc)
@@ -48147,7 +48575,7 @@ def t_view_reset_1003(b, base, code):
         rev5 = pg.evaluate(VR_STATE)["rev"]
         _vr_tab(pg, "holders", VR_CHIP_READY)
         chip5 = pg.evaluate(VR_STATE)["chip"]
-        ok(f"{T} 重新整理：籌碼區間回到預設 {chip0}（剛剛是 4 週）", chip5 == chip0 and chip5 != ["20"], [chip0, chip5])
+        ok(f"{T} 重新整理：籌碼區間回到預設 {chip0}（剛剛是 3 個月）", chip5 == chip0 and chip5 != ["63"], [chip0, chip5])
         ok(f"{T} 重新整理：營收回到預設 {rev0}（剛剛是年度走勢）", rev5 == rev0 and rev5 != ["y"], [rev0, rev5])
         _vr_go(pg, "#flow", 2600)
         wait_until(pg, "() => !!document.querySelector('#rotTools input.rot-trail')", 8000)

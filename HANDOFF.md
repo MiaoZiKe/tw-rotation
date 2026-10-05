@@ -1,5 +1,28 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 預設狀態普查（頁尾詳細規範一律收合）
+- Andy：「每次重新整理、換頁面後 Default 都會是收合狀態，Default 狀態這部分幫我 CHK 所有頁面」。普查表 `docs/default_state_audit_1006.md`。
+- 修：頁尾詳細規範不再記 `tw.footDetail`（移到 viewreset 重設清單清舊值），重新整理與換頁一律收合；客服面板、通知下拉換頁收起；
+  普查抓到 11 個沒分類的 localStorage 鍵（ETF 頁 `tw.etf.*`、選股 `tw.explore.cat`、大戶區間 `tw.chipWinHo` → 重設；通知已讀／橫幅、用量 → 保留），main 上「重新整理回預設1003」原本是紅的，已綠。
+- 這批只驗了：`預設狀態1006`、`重新整理回預設1003`、`KPI工具列頁尾0926`、`同意條款與法律頁`、`_preview.py`。
+- 待處理（main 上原本就紅，非本批造成，origin/main 乾淨 worktree 重現過）：`同意條款與法律頁` 點頁尾「服務條款」後 `#v-legal` 或 `#v-overview` 為 null 而中斷；`_preview.py` 一個 404 console.error。
+## 2026-10-06 側欄收展修正（claude/side-fold2）
+- 收起群組／子項 → 整組（含目前所在頁與其子項）全藏，只剩標題＋提示點（Andy：「應該只會出現母分頁」）。
+- 根因：財經日曆加進今日市場時，layout4.js GROUPS 與 layout4.css 收合選擇器都漏列 earnings → 收起今日市場時總覽被藏、財經日曆永遠露出。
+- ETF 改到「族群與個股」（產業地圖、市場明細、選股策略、ETF）。管理區加 ▸／▾ 子項收合（鍵 admin，子項不寫死）。
+- 這批只驗：側欄收展1005（含管理者 context）、版面v2結構、_preview。財報日曆1005 本機缺 earnings.json（資料，非本批）而紅；「風格規範」段落不存在。
+
+## 2026-10-05（台北 18:17）：財報日曆 → 「財經日曆」三大分類、拿掉所有推估
+- Andy：「多新增公司法說會……3 大分類：公司財報、公司法說、FED 消息」「名稱改財經日曆」「裡面不可以有推估數據」。
+- 篩選改 .nbsw「全部｜公司財報｜公司法說｜FED 消息」；法說會改收全部上市櫃（重大訊息第 12 款內文抽日期／時間／地點／擇要，抽不到不補）；預估財報日與營收／財報期限不再進 events。
+- **這批只驗了**：pytest 全套（1013 passed／1 xfailed）、重算 payload 後 `_uitest --sections 財報日曆1005`（另由協調者跑 總覽、版面v2結構 皆 0）、`_preview.py`。「風格規範」段 main 尚無，未跑。
+
+## 2026-10-05 歷史回補「接力」上線（backfill.yml）
+- 這輪因 FinMind 402 停下（plan:default.stopped_at 有值）→ `relay` job 睡到本輪開始後 62 分鐘，用 GITHUB_TOKEN 派下一輪（同 inputs、relay_n+1，最多 30 棒）。
+- 不派的情況：補齊、單一資料集／Logo／分 K、UTC 09～10 點、每日管線在排隊或等待、已有別的回補在排隊或在跑。concurrency 搬到 backfill job（cancel-in-progress 仍 false），接力睡覺不佔寫入佇列。
+- 這批驗了：yaml 解析、pytest 全跑；手動觸發一輪實測（見 Actions）。
+- 補：計畫補齊後的每日續補撞 402 也接力 —— `run_backfill._mark_quota_stopped` 寫 `progress["quota_stopped"]`（做完清掉），接力判斷一起讀；測試 `tests/test_backfill_relay_1005.py`。
+
 ## 2026-10-05 風格規範＋流量觀測重設計（claude/style-guide）
 - 新增 `docs/style_guide.md`（網站預設風格，DECISIONS #322）；`theme4.css` 加類別色 `--cat-*` 與圖表 token；AGENTS／CLAUDE 各加引用。
 - #admin 流量觀測依規範重做（只在預覽 `preview/style-guide`）：副標一行 ≤20 字、長條 12px／列距 28／單色 `--cat-1` 且貼齊副標、甜甜圈 160＋圖例同排、卡片重新配對（甜甜圈↔線上、散佈↔功能）、表格文字一行省略。

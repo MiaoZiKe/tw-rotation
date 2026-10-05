@@ -125,13 +125,15 @@
      「自選」放「專案」：DECISIONS #274 規定它是導覽最後一格（取代交付清單），而 Andy 這次給的五組裡最後一組是「專案」。
      標題是每組第一顆的 ::before（絕對定位在按鈕上方、pointer-events:none —— 點不到、不佔 .tab 的數量）。 */
   :root.l4 .tab[data-view="overview"]{order:1}
+  /* 2026-10-05 財報日曆：DOM 在最後一顆（手機底部列的 nth-child 不能被打亂），用 order 排到總覽正下方（同 order 1、DOM 較後 → 緊接總覽） */
+  :root.l4 .tab[data-view="earnings"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5' rx='2'/%3E%3Cpath d='M3.5 10h17M8 3v4M16 3v4'/%3E%3Cpath d='M8 14h2M14 14h2M8 17.2h2' stroke-width='2'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="flow"]{order:2}
   :root.l4 .tab[data-view="heatmap"]{order:3}
   :root.l4 .tab[data-view="industry"]{order:4}
   :root.l4 .tab[data-view="market"]{order:5}
   :root.l4 .tab[data-view="explore"]{order:5}   /* 2026-10-05 選股探索：DOM 緊接在市場明細後面，同 order 就照 DOM 排在它下面 */
   :root.l4 .tab[data-view="season"]{order:6}
-  :root.l4 .tab[data-view="etf"]{order:6;--l4-ic:var(--l4-ic-etf)}
+  :root.l4 .tab[data-view="etf"]{order:5;--l4-ic:var(--l4-ic-etf)}
   :root.l4 .tab[data-view="watch"]{order:7}
   :root.l4 .tab[data-view="delivery"]{order:8}
   :root.l4 .tabs>:not(.tab){order:9}
@@ -460,4 +462,45 @@
   :root.l4m body.m3on aside#side,:root.l4m body.m3on .sideback{top:0}
   :root.l4m body.m3on aside#side{z-index:50}
   :root.l4m body.m3on .sideback{z-index:49}
+}
+
+/* ---- 側欄收展（2026-10-05，Andy：「這邊點選可以收展」）—— layout4.js buildFold() ----
+   群組標題從 .tab::before（點不到）換成真的按鈕 .l4grp：有 .l4g 時把 ::before 的字與 28px 上距拿掉，改由 .l4grp 自己佔
+   （6px 上距＋20px 高 ≈ 原本 28px，側欄總高不變，不晃）。收合成圖示列（l4-mini）時 .l4grp 藏起來、收合不作用，回到原本的分隔線。 */
+@media (min-width:821px){
+  :root.l4.l4g:not(.l4-mini) .tab[data-view]{margin-top:0}
+  :root.l4.l4g:not(.l4-mini) .tab[data-view]::before{content:none}
+  :root.l4 .tabs>.l4grp{display:none}
+  :root.l4.l4g:not(.l4-mini) .tabs>.l4grp{display:flex;align-items:center;gap:6px;width:100%;height:20px;margin:6px 0 0;padding:0 var(--sp-3);
+    border:0;border-radius:var(--r-sm,6px);background:transparent;color:var(--ink-3);font-size:var(--fs-min);font-weight:600;letter-spacing:.12em;
+    line-height:16px;text-align:left;white-space:nowrap;cursor:pointer}
+  :root.l4.l4g:not(.l4-mini) .tabs>.l4grp:hover,:root.l4.l4g:not(.l4-mini) .tabs>.l4grp:focus-visible{color:var(--ink);background:var(--panel-2)}
+  :root.l4 .tabs>.l4grp[data-g="today"]{order:1;margin-top:0}
+  :root.l4 .tabs>.l4grp[data-g="money"]{order:2}
+  :root.l4 .tabs>.l4grp[data-g="stock"]{order:4}
+  :root.l4 .tabs>.l4grp[data-g="hist"]{order:6}
+  :root.l4 .tabs>.l4grp[data-g="proj"]{order:7}
+  /* ▾ 展開／▸ 收起：同一個三角形轉 90°（不換字，寬度不變） */
+  :root.l4 .l4grp .car,:root.l4 .l4car::before{content:"";flex:none;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:5px solid currentColor;transition:transform .15s ease}
+  :root.l4 .l4grp[aria-expanded="false"] .car,:root.l4 .l4car[aria-expanded="false"]::before{transform:rotate(-90deg)}
+  :root.l4 .l4grp .dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 .l4grp.here .dot{display:inline-block}
+  /* 大項右邊的子項箭頭：點擊區 22px，比三角形大很多，好點 */
+  :root.l4 .tab>.l4car{display:inline-grid;place-items:center;flex:none;width:22px;height:22px;margin:-4px -6px -4px auto;border-radius:4px;opacity:.7;cursor:pointer}
+  :root.l4 .tab>.l4car:hover{opacity:1;background:color-mix(in srgb,currentColor 12%,transparent)}
+  :root.l4.l4-mini .tab>.l4car{display:none}
+  /* 收起：群組裡除了「目前所在頁」以外的格子都藏（目前那格照樣看得到） */
+  /* 2026-10-06（Andy：「收合後應該只會出現母分頁」）：拿掉 :not(.on)，收起就整組全藏、只剩群組標題（目前頁由標題的點提示）。
+     根因修正：財經日曆加進今日市場時這裡漏列（它從來不會被收），ETF 改到族群與個股。 */
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>:is(.tab[data-view="overview"],.tab[data-view="earnings"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>.tab[data-view="season"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab.l4perm),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>.l4subtab[data-parent="admin"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="flow"]>.l4subtab[data-parent="flow"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="heatmap"]>.l4subtab[data-parent="heatmap"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="admin"]>.l4subtab[data-parent="admin"]{display:none}
 }

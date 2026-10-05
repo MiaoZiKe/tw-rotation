@@ -38,14 +38,15 @@ on:
         type: choice
         options: [plan, logos, intraday, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
         default: plan
+      relay_n:
+        description: "接力棒次（工作流自己派下一輪時填；手動觸發留 0）"
+        type: string
+        default: "0"
 
+# actions: write 是給「接力」工作用 GITHUB_TOKEN 派下一輪 workflow_dispatch（Andy 2026-10-05 授權）。
 permissions:
   contents: write
-
-# 與每日管線共用，避免兩邊同時 push 造成衝突
-concurrency:
-  group: tw-rotation-data-write
-  cancel-in-progress: false
+  actions: write
 
 env:
   DATASETS: ${{ inputs.datasets || 'plan' }}
@@ -63,6 +64,14 @@ jobs:
   backfill:
     runs-on: ubuntu-latest
     timeout-minutes: 350   # 上限 6 小時，留緩衝
+    # 與每日管線共用，避免兩邊同時 push 造成衝突。
+    # 2026-10-05 從工作流層搬到這個 job：接力 job 要睡一小時等額度，不能佔著寫入佇列擋住每日管線。
+    # cancel-in-progress 絕對不能改 true（會出現 repo 已更新但網站是舊版）。
+    concurrency:
+      group: tw-rotation-data-write
+      cancel-in-progress: false
+    outputs:
+      relay: ${{ steps.relay_check.outputs.relay }}
     steps:
       # 一定要 checkout 分支「現在的」最新 commit，而不是觸發當下的 SHA。
       # 排程/手動觸發的 run 可能在 concurrency 佇列裡等前一個 run 推完資料，
@@ -114,7 +123,7 @@ jobs:
                             # 2026-10-04：全市場日線（4561 健椿只有 15 根 K 線那件）
                             "price@2000-01-01@market",
                             # 2026-10-05：ETF 專區的配息與價量歷史（scope=etf）
-                            "dividend+divresult@2009-01-01@etf", "price@2000-01-01@etf"):
+                            "dividend+divresult@etf2009@etf", "price@2000-01-01@etf"):   # 10-05：配息鍵換 tag etf2009（舊鍵把 ETF 配息誤標完成）
                       st = cp.get(k) or {}
                       if not (isinstance(st, dict) and st.get("done")):
                           done = False
@@ -241,6 +250,30 @@ jobs:
           echo "::error::推送連續失敗 5 次"
           exit 1
 
+      # 接力判斷：計畫因 402 停下（plan:default.stopped_at 有值），或每日續補因 402 停下（quota_stopped）才接力。
+      # 補齊了、或跑的是單一資料集／Logo／分 K，就交給排程。
+      - name: 判斷要不要接力
+        id: relay_check
+        if: always() && steps.guard.outputs.skip != 'true'
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, pathlib
+          p = pathlib.Path("data/_state/backfill_progress.json")
+          relay = False
+          only = os.environ.get("LO") == "true" or os.environ.get("IO") == "true"
+          if os.environ["DATASETS"] == "plan" and not only and p.exists():
+              st = json.loads(p.read_text()).get("complete", {}).get("plan:default") or {}
+              relay = isinstance(st, dict) and not st.get("done") and bool(st.get("stopped_at"))
+              # 計畫補齊後，每日續補（法人、融資券、當沖、借券）撞 402 也要接力（run_backfill._mark_quota_stopped）
+              qs = json.loads(p.read_text()).get("quota_stopped") or {}
+              relay = relay or (isinstance(qs, dict) and bool(qs.get("stopped")))
+          print(f"relay={'true' if relay else 'false'}")
+          PY
+          cat "$GITHUB_OUTPUT" | grep relay=
+        env:
+          LO: ${{ steps.guard.outputs.logos_only }}
+          IO: ${{ steps.guard.outputs.intraday_only }}
+
       - name: 執行摘要
         if: always()
         run: |
@@ -278,3 +311,50 @@ jobs:
           PY
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # 接力（2026-10-05，Andy 授權「如果是自己補資料就做」；DECISIONS「接力」那條）：
+  # GitHub 的 cron 常被延後或丟掉，一天實際只跑約 4 輪，每輪約 8 分鐘就用完 FinMind 600 次／小時，
+  # 其餘額度閒著。這個 job 在額度用完時睡到下一個額度視窗，再用 GITHUB_TOKEN 派一輪 workflow_dispatch
+  # （GITHUB_TOKEN 觸發 workflow_dispatch 是 GitHub 允許的例外，push 事件才不會連鎖）。
+  # 不掛寫入佇列的 concurrency：睡覺時不能擋每日管線。
+  relay:
+    needs: backfill
+    if: needs.backfill.outputs.relay == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - name: 等下一個額度視窗後派下一輪
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          RUN_ID: ${{ github.run_id }}
+          N: ${{ inputs.relay_n || '0' }}
+          LIMIT_IN: ${{ inputs.limit || '' }}
+          START_IN: ${{ inputs.start_date || '2016-01-01' }}
+        run: |
+          set -u
+          NEXT=$(( ${N:-0} + 1 ))
+          if [ "$NEXT" -gt 30 ]; then echo "已接力 30 棒，停，交給排程"; exit 0; fi
+          # FinMind 額度是一小時視窗：從這一輪開始算 62 分鐘後再派（這一輪在 402 前就已用掉大半小時的額度）。
+          START=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq .run_started_at)
+          TARGET=$(( $(date -u -d "$START" +%s) + 62*60 ))
+          WAIT=$(( TARGET - $(date -u +%s) ))
+          if [ "$WAIT" -gt 0 ]; then echo "睡 $WAIT 秒到 $(date -u -d @$TARGET '+%H:%M') UTC"; sleep "$WAIT"; fi
+          H=$(date -u +%H)
+          if [ "$H" = "09" ] || [ "$H" = "10" ]; then
+            echo "UTC $H 點：每日管線 18:30 那輪要用 FinMind，不派，交給 11:20 的排程"; exit 0; fi
+          # 同一個 concurrency 群組只能有一個在排隊，新來的會把排隊中的取消掉：
+          # 每日管線在排隊／等待，或已經有別的回補在排隊或在跑（排程補上來了），就不派。
+          for wf in daily.yml backfill.yml; do
+            for s in queued waiting pending in_progress; do
+              C=$(gh api "repos/$REPO/actions/workflows/$wf/runs?status=$s&per_page=20" \
+                    --jq "[.workflow_runs[] | select(.id != $RUN_ID)] | length")
+              if [ "$wf" = "daily.yml" ] && [ "$s" = "in_progress" ]; then continue; fi
+              if [ "${C:-0}" -gt 0 ]; then echo "$wf 有 $C 個 $s，不派，交給它／排程"; exit 0; fi
+            done
+          done
+          gh api -X POST "repos/$REPO/actions/workflows/backfill.yml/dispatches" \
+            -f ref="$REF" -f "inputs[datasets]=plan" -f "inputs[limit]=$LIMIT_IN" \
+            -f "inputs[start_date]=$START_IN" -f "inputs[relay_n]=$NEXT"
+          echo "### 接力：已派第 $NEXT 棒" >> "$GITHUB_STEP_SUMMARY"

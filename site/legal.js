@@ -11,7 +11,7 @@
    開關在 site/legal_config.js（window.TW_LEGAL）：
      · 頁尾那一行短版免責聲明 —— **永遠開著**（版本 A 沒有空格，規格說可以先上）。
        2026-09-24 第二版：上面多一行「© 年 站名 · 保留所有權利」，右邊一顆「顯示詳細規範」膠囊鈕，
-       展開是 8 格詳細規範（預設收起，狀態記在 localStorage tw.footDetail）。
+       展開是 8 格詳細規範（預設收起；2026-10-06 起重新整理、換頁一律回收起，不再記 tw.footDetail）。
      · 三個法律頁 —— 永遠打得開；條款還有空格時，服務條款與隱私權政策頂端掛「草稿，尚未生效」。
      · 同意橫幅、平台導覽自動彈出 —— 只有「必填全部填好、條款全文掃不到【】、enabled:true」才啟用。
    ========================================================================== */
@@ -153,7 +153,7 @@
       ]) },
       { h: '您的權利（個資法第 3 條）', b: '<p>您得隨時以 Email 向本站請求：<b>查詢、閱覽、製給複製本、補充或更正、停止蒐集處理利用、刪除</b>您的個人資料。本站將於收到請求後<b>十五日內</b>處理並回覆。'
           + (N ? '電子報另可直接於信件底部<b>一鍵退訂</b>。' : '')
-          + (ACC ? '已登入者亦可於網站右上角帳號選單點選<b>「刪除我的資料」</b>，<b>立即刪除</b>會員資料、雲端自選清單、使用紀錄與線上狀態；使用統計為不含身分之彙總次數，無從對應至個人，故無個人部分可刪除。' : '') + '</p>' },
+          + (ACC ? '會員資料、雲端自選清單、使用紀錄與線上狀態之刪除，請來信客服信箱 kcq01010909@gmail.com 申請；使用統計為不含身分之彙總次數，無從對應至個人，故無個人部分可刪除。' : '') + '</p>' },
       { h: '您可以自由選擇是否提供', b: '<p>您得自由選擇是否提供個人資料。<b>不提供 Email 者，仍可完整使用本站之所有免費功能</b>'
           + (lose.length ? '；但將無法使用' + lose.join('、') + '。' : '。') + '</p>' },
       { h: 'Cookie 與本機儲存', b: '<p>本站使用瀏覽器之 <b>localStorage</b> 儲存您的介面偏好（版面、主題、圖表設定等）。<b>這些資料只存在您自己的瀏覽器裡，不會傳送到本站伺服器。</b>您可隨時於瀏覽器清除。</p>'
@@ -433,15 +433,15 @@
     + '<path d="M9 8.2v4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
   const CHEV = '<svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" '
     + 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  function footOpenPref() {
-    try { return localStorage.getItem(K_FOOT) === '1'; } catch (e) { return false; }   // 讀不到＝預設收起
-  }
+  /* ★ 2026-10-06 Andy：「每次重新整理、換頁面後 Default 都會是收合狀態」—— 詳細規範不再記住展開。
+     以前寫 tw.footDetail 讓下次進來維持展開；現在一律收起，舊瀏覽器留下的值由 viewreset.js 清掉。*/
+  function footOpenPref() { return false; }
   function setFootOpen(f, open, save) {
     const btn = f.querySelector('#sfMore'), box = f.querySelector('#sfDetail');
     box.hidden = !open;
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     btn.querySelector('span').textContent = open ? '隱藏詳細規範' : '顯示詳細規範';
-    if (save) { try { localStorage.setItem(K_FOOT, open ? '1' : '0'); } catch (e) { /* 無痕或被封鎖：這次瀏覽照樣能切 */ } }
+    void save; void K_FOOT;   // 不再寫入（見 footOpenPref 的說明）
   }
 
   function buildFooter() {
@@ -472,8 +472,9 @@
       + '</ul></div>';
     main.appendChild(f);
     f.querySelector('#sfTour').addEventListener('click', (e) => openTour(e.currentTarget));
-    /* 預設收起（畫面上盡量只留必要的東西）；使用者展開過就記住，下次進來維持展開。*/
+    /* 預設收起；頁尾是整站共用、換頁不會重畫，所以要自己在換頁時收回去（2026-10-06）。*/
     setFootOpen(f, footOpenPref(), false);
+    window.addEventListener('hashchange', () => setFootOpen(f, false, false));
     f.querySelector('#sfMore').addEventListener('click', () => {
       setFootOpen(f, f.querySelector('#sfDetail').hidden, true);
     });

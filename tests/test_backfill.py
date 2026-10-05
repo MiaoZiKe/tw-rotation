@@ -167,7 +167,7 @@ def test_done_key_keeps_legacy_format_for_default_start(sandbox, monkeypatch):
 
 
 def test_new_datasets_wired_and_etf_rules(sandbox, monkeypatch):
-    """dividend / divresult 對 ETF 跳過；margin / holding 對 ETF 要抓。"""
+    """dividend / divresult 與 margin / holding 對 ETF 都要抓（2026-10-05 起：ETF 有配息，舊規則跳過害配息 0 列）。"""
     monkeypatch.setattr(config, "BACKFILL_START", "2016-01-01")
     monkeypatch.setattr(run_backfill, "target_codes", lambda limit: ["2330", "0050"])
     asked = {"dividend": [], "divresult": [], "margin": [], "holding": []}
@@ -193,8 +193,8 @@ def test_new_datasets_wired_and_etf_rules(sandbox, monkeypatch):
          "holders": [5], "shares": [9000.0], "pct": [60.0]})))
 
     s1 = run_backfill.run("dividend+divresult", None, "2016-01-01")
-    assert asked["dividend"] == ["2330"] and asked["divresult"] == ["2330"], "ETF 不抓股利"
-    assert s1["dividend"] == 1 and s1["divresult"] == 1
+    assert asked["dividend"] == ["2330", "0050"] and asked["divresult"] == ["2330", "0050"], "ETF 也要抓配息"
+    assert s1["dividend"] == 2 and s1["divresult"] == 2
     prog = json.loads(run_backfill.PROGRESS.read_text())
     assert prog["done"]["dividend:0050"] and prog["done"]["divresult:0050"]
     assert prog["complete"]["dividend+divresult"]["done"] is True
@@ -318,7 +318,7 @@ def test_plan_marks_done_when_every_step_completes(sandbox, monkeypatch, two_ste
     assert plan["done"] is True and plan["month"] == "2026-09" and plan["stopped_at"] is None
     assert plan["steps"] == {"revenue": True, "price@2000-01-01": True,
                              "dividend+divresult@m2026-09": True,
-                             "dividend+divresult@m2026-09@etf": True}  # ETF 月更新（2026-10-05）
+                             "divresult+etfdiv@em2026-09@etf": True}  # ETF 月更新（2026-10-05 晚改抓 etfdiv）
     assert prog["complete"]["dividend+divresult@m2026-09"]["done"] is True
     assert run_backfill.plan_is_done(prog, today=date(2026, 9, 30)) is True
     assert run_backfill.plan_is_done(prog, today=date(2026, 10, 1)) is False, "跨月後計畫要變成未完成"

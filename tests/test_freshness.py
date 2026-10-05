@@ -66,6 +66,7 @@ def rd(tmp_path, monkeypatch):
     monkeypatch.setattr(run_daily.news, "extract_broker_views", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily.macro, "intl_daily", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily.macro, "macro_all", lambda *a, **k: empty)
+    monkeypatch.setattr(run_daily.macro, "release_calendar", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily.finmind, "stock_info", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily, "fetch_institutional", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily, "refresh_financials", lambda *a, **k: empty)

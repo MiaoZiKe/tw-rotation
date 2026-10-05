@@ -6,10 +6,7 @@
 @media (max-width:820px){ .tab[data-view="explore"]{display:none!important} }
 
 #v-explore{--xp-acc:var(--t4-accent-solid,var(--cyan))}
-#v-explore .xp-legal{position:sticky;top:56px;z-index:6;margin:0 0 var(--sp-3);padding:8px 14px;border-radius:10px;
-  background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-2);font-size:13px;line-height:1.5}
-#v-explore .xp-legal::before{content:"!";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;border-radius:50%;
-  background:var(--amber,#ffb454);color:#1a1300;font-weight:700;font-size:12px;vertical-align:1px}
+#v-explore .xp-legal{font-size:12px;font-weight:400;color:var(--ink-3,var(--ink-2));margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-explore .up{color:var(--rise,#ff5b6e)}
 #v-explore .dn{color:var(--fall,#3ecf8e)}
 
@@ -157,3 +154,4 @@
 #v-explore .sl-tag.on{color:var(--xp-acc)}
 #v-explore .sl-ddf{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
 #v-explore .sl-ddf button{font:inherit;font-size:12.5px;height:28px;padding:0 12px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
+#v-explore .sl-head h2{flex-wrap:nowrap;min-width:0}#v-explore .sl-head .xp-legal{min-width:0;flex:1 1 auto}

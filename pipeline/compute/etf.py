@@ -230,6 +230,10 @@ def _divs(div_events: pd.DataFrame, div_results: pd.DataFrame, codes: set[str]) 
     if div_events is not None and not div_events.empty:
         e = div_events[(div_events["code"].astype(str).isin(codes)) & (div_events["kind"] == "cash")]
         e = e.dropna(subset=["ex_date"])
+        # build_payload 會把 dividend_events 與 etf_dividend_events（鍵含除息日）串在一起傳進來，
+        # 同一期兩張表都有 → 先依 (代號, 除息日) 去重，不然下面 groupby sum 會把配息算成兩倍。
+        e = e.assign(_x=e["ex_date"].astype(str).str[:10], _c=e["code"].astype(str))
+        e = e[e["_x"].str.len() == 10].drop_duplicates(subset=["_c", "_x"], keep="last")
         for r in e.itertuples():
             rows.append({"code": str(r.code), "ex_date": str(r.ex_date)[:10],
                          "amount": float(r.amount or 0), "pay_date": (str(r.payment_date)[:10]

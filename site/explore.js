@@ -288,10 +288,11 @@
   }
 
   /* ---------------- 畫面：策略卡片牆 ---------------- */
-  const LEGAL = '<div class="xp-legal" role="note" id="xpLegal">條件篩選結果僅供研究，不構成投資建議；本站非證券投資顧問。名單依成交值排序，不是好壞名次。</div>';
+  // 2026-10-06 Andy：頂端黃色提示列會蓋住下方內容 → 法遵免責改放標題右側小字（同一行），不刪；原本的操作說明句移除（廢話）
+  const LEGAL = '<small class="xp-legal" role="note" id="xpLegal">條件篩選結果僅供研究，不構成投資建議；本站非證券投資顧問。名單依成交值排序，不是好壞名次。</small>';
   function shellWall(root) {
-    root.innerHTML = `${LEGAL}
-      <div class="sl-head"><h2>選股策略 <small>每張卡是一組公開條件；點一列看「為什麼入選」，點 i 看條件與資料出處</small></h2></div>
+    root.innerHTML = `
+      <div class="sl-head"><h2>選股策略 ${LEGAL}</h2></div>
       <div class="nbsw sl-chips" id="slChips" role="tablist" aria-label="策略分類"></div>
       <div class="nbbody sl-nb"><div class="sl-tags" id="slTags"></div>
       <div class="sl-wall" id="slGrid"></div></div>`;
@@ -350,7 +351,7 @@
       const list = S_.filter((s) => s.cat === k && (!ST.tags.length || ST.tags.some((t) => s.tags.includes(t))));
       if (!list.length) return '';
       return `<section class="sl-sec" data-cat="${k}" aria-label="${esc(zh)}">
-        <h3 class="sl-sech"><span class="sl-ici sl-c-${k}">${icon(k)}</span>${esc(zh)} <span class="sl-secen">${esc(en)}</span>
+        <h3 class="sl-sech"><span class="sl-ici sl-c-${k}">${icon(k)}</span>${esc(zh)}
           <em class="sl-secn">${list.length} 個策略</em><small>${esc(q)}</small></h3>
         <div class="sl-grid">${list.map(cardHTML).join('')}</div></section>`;
     }).join('');

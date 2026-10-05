@@ -331,7 +331,7 @@
       + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
-      + `<button type="button" role="menuitem" data-a="delete" class="danger">刪除我的資料…</button>`
+      /* 10-05 Andy：選單拿掉「刪除我的資料」；刪除改由客服信箱申請（隱私權政策「您的權利」）*/
       + `<button type="button" role="menuitem" data-a="logout">登出</button>`;
     m.hidden = false;
     const r = anchor.getBoundingClientRect();
@@ -358,7 +358,7 @@
         <li><b>線上狀態</b>：關掉分頁，或 3 分鐘沒有訊號，就刪除。</li>
         <li><b>保存期限</b>：會員資料保存到你刪除為止；連續 24 個月沒有使用會自動刪除。</li>
         <li><b>存放</b>：Cloudflare（Workers／Durable Objects）；登入經由 Google 驗證身分。</li>
-        <li><b>刪除</b>：登入後右上角選單「刪除我的資料」，會立即刪除會員資料與雲端自選清單。</li>
+        <li><b>刪除</b>：來信客服 kcq01010909@gmail.com 申請，十五日內刪除會員資料與雲端自選清單。</li>
       </ul>
       <p class="muted">詳見 <a href="#privacy" data-close>隱私權政策</a>。按下「用 Google 帳號登入」即表示你同意上述蒐集與利用。</p>
       <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="acctGo">用 Google 帳號登入</button></div>`;

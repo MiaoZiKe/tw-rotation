@@ -1,0 +1,62 @@
+# ============================================================================
+# 財報日曆（#earnings）的 FED 與美國重大數據日程 —— 人工維護（2026-10-05 建立）
+# ----------------------------------------------------------------------------
+# 為什麼要這份檔：
+#   · FOMC 會議日程不是 FRED 的「發布」，FRED 拿不到；聯準會每年公開公布隔年的會議日程。
+#   · CPI／非農／GDP／PCE 的公布日正式來源是 FRED fred/release/dates（pipeline/sources/macro.release_calendar，
+#     進資料湖 macro_calendar 表）。這裡的 releases 只是**退回值**：FRED 金鑰沒設或抓取失敗時才用，
+#     FRED 有資料時一律以 FRED 為準（build 端 pipeline/compute/earnings.py macro_events()）。
+#
+# 查證方式（照實寫）：這個容器的出口代理擋掉一般網址（WebFetch／curl 都打不開），只能用 WebSearch 撈摘要。
+#   每個日期至少兩個來源的摘要講得出同一件事才寫進來；**沒有讀過官方頁面原文**，信心：中。
+#   下次有人能開官方頁面時，請對照下列網址逐條確認，確認過把 verified 改成那天的日期與「原文」。
+#
+# 日期一律是**美東日期**（公布當地日期）；台灣時間由程式換算（夏令 +12 小時、冬令 +13 小時）。
+# ============================================================================
+verified: "2026-10-05（WebSearch 摘要，未讀原文）"
+
+fomc:
+  source: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
+  second_source: https://fedratecalc.com/fomc-meeting-schedule/ ；https://fedratecalc.com/fomc-minutes-release-schedule/
+  # start／end＝會議兩天；end 那天美東 14:00 公布決議、14:30 記者會。sep＝附經濟預測摘要（點陣圖）。
+  # minutes＝會議紀要公布日（會後三週，美東 14:00）。
+  meetings:
+    - {start: "2026-01-27", end: "2026-01-28", sep: false, minutes: "2026-02-18"}
+    - {start: "2026-03-17", end: "2026-03-18", sep: true,  minutes: "2026-04-08"}
+    - {start: "2026-04-28", end: "2026-04-29", sep: false, minutes: "2026-05-20"}
+    - {start: "2026-06-16", end: "2026-06-17", sep: true,  minutes: "2026-07-08"}
+    - {start: "2026-07-28", end: "2026-07-29", sep: false, minutes: "2026-08-19"}
+    - {start: "2026-09-15", end: "2026-09-16", sep: true,  minutes: "2026-10-07"}
+    - {start: "2026-10-27", end: "2026-10-28", sep: false, minutes: "2026-11-18"}
+    - {start: "2026-12-08", end: "2026-12-09", sep: true,  minutes: "2026-12-30"}
+
+# FRED 抓不到時的退回日程（美東 08:30 公布）。ref＝這次公布的是哪一期的數據。
+releases:
+  cpi:
+    source: https://www.bls.gov/schedule/news_release/cpi.htm
+    dates:
+      - {date: "2026-09-11", ref: "2026 年 8 月"}
+      - {date: "2026-10-14", ref: "2026 年 9 月"}
+      - {date: "2026-11-10", ref: "2026 年 10 月"}
+      - {date: "2026-12-10", ref: "2026 年 11 月"}
+  nfp:
+    source: https://www.bls.gov/schedule/news_release/empsit.htm
+    dates:
+      - {date: "2026-09-04", ref: "2026 年 8 月"}
+      - {date: "2026-10-02", ref: "2026 年 9 月"}
+      - {date: "2026-11-06", ref: "2026 年 10 月"}
+      - {date: "2026-12-04", ref: "2026 年 11 月"}
+  pce:
+    source: https://www.bea.gov/news/schedule
+    dates:
+      - {date: "2026-09-30", ref: "2026 年 8 月"}
+      - {date: "2026-10-29", ref: "2026 年 9 月"}
+      - {date: "2026-11-25", ref: "2026 年 10 月"}
+      - {date: "2026-12-23", ref: "2026 年 11 月"}
+  gdp:
+    source: https://www.bea.gov/news/schedule
+    dates:
+      - {date: "2026-09-30", ref: "2026 Q2 第三次估計"}
+      - {date: "2026-10-29", ref: "2026 Q3 初值"}
+      - {date: "2026-11-25", ref: "2026 Q3 第二次估計"}
+      - {date: "2026-12-23", ref: "2026 Q3 第三次估計"}

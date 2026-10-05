@@ -34,11 +34,17 @@ PROGRESS = config.STATE / "backfill_progress.json"
 
 # 各資料集鍵（--datasets 用的名字）；summary 與 main() 的合計都照這張表
 DATA_KEYS = ("price", "inst", "per", "revenue", "financial", "balance",
-             "dividend", "divresult", "margin", "holding", "daytrade", "sbl")
+             "dividend", "divresult", "margin", "holding", "daytrade", "sbl", "etfdiv")
 
 # ETF / 指數型商品沒有財報、月營收、本益比、股利公告可抓（ETF 其實有配息，先不抓），
 # 逐檔去問只是在燒額度；融資券與股權分散 ETF 有，要抓
 FINANCIAL_KEYS = {"per", "revenue", "financial", "balance", "dividend", "divresult"}
+# ★ 2026-10-05（Andy：「為何都沒數據」）：ETF 配息 0 列的根因就在這裡 ——
+#   下面兩處「FINANCIAL_KEYS 且是 ETF → 直接標 done、不打 API」把 dividend／divresult 也一起跳掉了，
+#   所以 dividend:0050、dividend:0056 被標 done 卻 0 列，ETF 專區的回補步驟也一樣一檔都沒真的問過。
+#   ETF 沒有財報／營收／本益比，但**有配息與除息結果**（TaiwanStockDividend／DividendResult 收錄上市櫃 ETF），
+#   所以只對這兩個鍵放行。
+ETF_SKIP_KEYS = FINANCIAL_KEYS - {"dividend", "divresult"}
 
 # 逐檔 done 鍵的值（2026-09-28）：True＝抓到資料寫進資料湖；NO_DATA＝額度還在、上游明確回空，
 # 「確認這檔沒有這種資料」（新掛牌、從沒配過股利…）。兩者對「要不要再問」的判斷一樣（都是真值、
@@ -53,7 +59,7 @@ FINMIND_DATASET = {
     "price": "TaiwanStockPrice", "inst": "TaiwanStockInstitutionalInvestorsBuySell",
     "per": "TaiwanStockPER", "revenue": "TaiwanStockMonthRevenue",
     "financial": "TaiwanStockFinancialStatements", "balance": "TaiwanStockBalanceSheet",
-    "dividend": "TaiwanStockDividend", "divresult": "TaiwanStockDividendResult",
+    "dividend": "TaiwanStockDividend", "etfdiv": "TaiwanStockDividend", "divresult": "TaiwanStockDividendResult",
     "margin": "TaiwanStockMarginPurchaseShortSale", "holding": "TaiwanStockHoldingSharesPer",
     "daytrade": "TaiwanStockDayTrading", "sbl": "TaiwanDailyShortSaleBalances",
 }
@@ -103,7 +109,12 @@ PLAN_DEFAULT = [
     #   可能是 FinMind 當時對 ETF 回空、或那幾輪資料集被封印。這裡用新的逐檔鍵（@2009-01-01）重問一次；
     #   若仍回空，前端照樣標「配息資料尚未取得」，不會拿 0 冒充（compute/etf.div_done 只認湖裡真的有列）。
     #   ETF 約 270 檔 × 3 次請求 ≈ 810 次 ≈ 2 輪。逐檔 done 鍵與既有步驟同格式，族群步驟補過的不重抓。
-    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "etf"},
+    #   ★ 帶 tag "etf2009"：舊的 dividend@2009-01-01:<ETF> 鍵已被上面那個跳過邏輯標成 done（沒真的問），
+    #   換一組新鍵才會真的重問一次。進度檔 data/ 只由 Actions 寫，本機不去改它。
+    {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "etf", "tag": "etf2009"},
+    # ★ 2026-10-05 晚：上一步的 dividend_events 鍵把季配／月配同年多期去重成一列，另寫 etf_dividend_events
+    #   （鍵含 ex_date）；名單也放寬到 company_info 標 ETF 但近 30 天沒成交的。新完成鍵 → 全部 ETF 重問一次。
+    {"datasets": "etfdiv",                    "start": "2009-01-01", "scope": "etf", "tag": "etfx2009"},
     {"datasets": "price",                     "start": "2000-01-01", "scope": "etf"},
 ]
 # 請求數估算（2026-09-28 以資料湖實測：market_codes() 1,980 檔，扣掉已有逐檔 done 鍵／已補到起始日的；
@@ -333,6 +344,10 @@ def etf_codes() -> list[str]:
     out = [c for c in by_tv if ok(c)]
     seen = set(out)
     out += sorted(c for c in recent["code"].unique() if c not in seen and ok(c))
+    # 2026-10-05 晚：再補上「仍在 company_info 標 ETF、但近 30 天沒成交」的（暫停交易、冷門檔）。
+    #   以前漏掉這些，回補只問了 202 檔。代價是可能問到已下市的，回空就記 no_data，不會重問。
+    seen = set(out)
+    out += sorted(c for c in etf_ind if c not in seen)
     return out
 
 
@@ -433,6 +448,8 @@ def run(datasets: str, limit: int | None, start: str, *,
         ("financial", "financial_q", lambda c: finmind.financial_statements(c, start, wait=False)),
         ("balance", "balance_q", lambda c: finmind.balance_sheet(c, start, wait=False)),
         ("dividend", "dividend_events", lambda c: finmind.dividend_events(c, start, wait=False)),
+        # etfdiv：同一個 FinMind 資料集，寫進鍵多 ex_date 的 etf_dividend_events（見 config 的 v14 說明）
+        ("etfdiv", "etf_dividend_events", lambda c: finmind.dividend_events(c, start, wait=False)),
         ("divresult", "dividend_results", lambda c: finmind.dividend_results(c, start, wait=False)),
         ("margin", "margin_daily", lambda c: finmind.margin_history(c, start, wait=False)),
         ("holding", "shareholding_weekly", lambda c: finmind.holding_history(c, start, wait=False)),
@@ -534,7 +551,7 @@ def run(datasets: str, limit: int | None, start: str, *,
             if prog["done"].get(done_key) or already_covered(table, code, start, respect_time):
                 summary["skipped"] += 1
                 continue
-            if key in FINANCIAL_KEYS and roc.is_etf(code):
+            if key in ETF_SKIP_KEYS and roc.is_etf(code):
                 prog["done"][done_key] = True
                 summary["skipped"] += 1
                 continue
@@ -670,7 +687,7 @@ def run(datasets: str, limit: int | None, start: str, *,
                 nd += 1
             if v:
                 continue
-            if key in FINANCIAL_KEYS and roc.is_etf(code):
+            if key in ETF_SKIP_KEYS and roc.is_etf(code):
                 continue
             if already_covered(tables[key], code, start, respect_time):
                 continue
@@ -795,6 +812,21 @@ def fresh_start(latest: str, last_dates: list[str]) -> str:
     return max(floor, min(base, oldest))
 
 
+def _mark_quota_stopped(prog: dict, steps: list[str], save: bool = True) -> None:
+    """記下「每日續補因 FinMind 額度用完而停」與停在哪幾步；steps 為空就清掉旗標。
+
+    為什麼要另外記（2026-10-05）：計畫補齊之後 plan:default.stopped_at 永遠是 None，
+    backfill.yml 的接力 job 只看它的話，續補撞 402 也不會接力，只能等 GitHub 排程（一天約 4 輪）。
+    """
+    if steps:
+        prog["quota_stopped"] = {"stopped": True, "steps": list(steps),
+                                 "at": datetime.now(timezone.utc).isoformat()}
+    else:
+        prog.pop("quota_stopped", None)
+    if save:
+        _save_progress(prog)
+
+
 def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None = None) -> bool:
     """三大法人（＋當沖、借券）的每日續補：每日管線只顧前 500 檔，其餘股票在這裡補（2026-09-27）。
 
@@ -811,6 +843,8 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
     if isinstance(flag, dict) and flag.get("done") and flag.get("date") == today.isoformat():
         return True
     if http.finmind_budget_left() <= 1:
+        # 一開始額度就用完：記下來讓 backfill.yml 的接力 job 等下一個額度視窗再派一輪（2026-10-05）
+        _mark_quota_stopped(_progress(), ["inst_fresh"])
         return False
     price = store.read("price_daily")
     universe = market_codes()
@@ -859,10 +893,15 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
     # 第二段：剩下的額度照 FRESH_TABLES 的順序把**整份名單**做完（第一段做過的有 done 鍵，不會重問）。
     #   額度已經用完時仍然每張表走一次：run() 會立刻停在第 1 檔，但會把「這張表還剩幾檔」寫進完成旗標，
     #   進度檔才看得出每張表各自補到哪（不然只會留下第一段那一小段的數字）。
+    quota_hit: list[str] = []
     for key, codes, start, lt in lists:
         s = _run(key, codes, start, lt)
         ok = ok and bool(s.get("finished"))
+        if s.get("exhausted"):
+            quota_hit.append(key)
     prog = _progress()
+    # 接力判斷讀這個旗標（2026-10-05）：續補因 402 停下＝還有事、只是在等額度；做完就清掉。
+    _mark_quota_stopped(prog, [] if ok else quota_hit, save=False)
     # 續補的 done 鍵一天一組（<key>@fresh<日期>:<代號>），舊的留著只會讓進度檔每天多 1,500 個鍵
     prog["done"] = {k: v for k, v in (prog.get("done") or {}).items()
                     if "@fresh" not in k or f"@fresh{latest}:" in k}
@@ -1248,7 +1287,11 @@ def plan_steps(name: str, today: date | None = None) -> list[dict]:
         raise KeyError(f"沒有這個回補計畫：{name}（可用：{sorted(PLANS)}）")
     m = monthly_step(today)
     # ETF 的配息每月也要重抓（月配 ETF 每個月都有新公告；族群月更新那一步不含 ETF）
-    return [dict(s) for s in PLANS[name]] + [m, {**m, "scope": "etf"}]
+    # ETF 月更新用自己的 tag（e 前綴）：避免與族群月更新共用 done 鍵，也避開舊跳過邏輯標過的鍵。
+    # 2026-10-05 晚：ETF 月更新改抓 etfdiv（寫 etf_dividend_events，鍵含除息日，月配每期都留）＋除息結果；
+    #   ETF 不再寫 dividend_events，一次請求不浪費。
+    return [dict(s) for s in PLANS[name]] + [m, {**m, "datasets": "divresult+etfdiv",
+                                                 "scope": "etf", "tag": "e" + m["tag"]}]
 
 
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:

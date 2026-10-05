@@ -49,6 +49,7 @@
      這裡一句話講清楚每一頁在那個順序裡的位置，讓第一次來的人知道從哪裡開始看。 */
   const PAGES = {
     overview: { grp: '今日市場', t: '總覽', d: '今天大盤怎麼走、錢集中在哪幾個族群、題材在做什麼 —— 從這裡開始，一頁看完今天的重點。' },
+    earnings: { grp: '今日市場', t: '財經日曆', d: '三大分類排在同一張月曆：公司財報（市值前 50 公告的財報董事會與已公布財報）、公司法說（全部上市櫃公司公告的法說會）、FED 消息（FOMC 與美國重大數據）；點一項看分析與說明。' },
     flow: { grp: '資金流水', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金去向看錢從哪裡流到哪裡。' },
     heatmap: { grp: '資金流水', t: '熱力圖', d: '全市場與題材的冷熱一眼看完：方塊越大錢越多、越紅漲越多；點方塊看成分股。' },
     industry: { grp: '族群與個股', t: '產業地圖', d: '每條產業鏈的強弱與上下游：先挑產業鏈，再看族群與零件，最後點個股看 K 線與基本面。' },
@@ -56,7 +57,7 @@
     market: { grp: '族群與個股', t: '市場明細', d: '完整名單：漲跌分佈、站上均線、法人動向與各項排行，可以排序篩選，找出符合條件的個股。' },
     explore: { grp: '族群與個股', t: '選股策略', d: 'Strategy Lab：每張卡是一組公開條件（獲利、估值、成長、技術、法人、股利、動能），列出前 3 檔；點一列看入選原因，點 i 看條件與資料出處。' },
     season: { grp: '歷史規律', t: '週期統計', d: '每個族群在各月份的歷史表現：勝率、報酬中位數與超額報酬，看現在是不是它的旺季。' },
-    etf: { grp: '歷史規律', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
+    etf: { grp: '族群與個股', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
     watch: { grp: '專案', t: '自選', d: '你自己的自選清單（最多五頁）：今天的漲跌與走勢，點走勢圖原地展開、點名稱進個股頁。' },
     delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
   };
@@ -290,6 +291,101 @@
     scanT = setTimeout(() => { scanT = 0; renderHead(); scanCards(); }, 300);
   }
 
+
+  /* ---------------- 側欄收展（2026-10-05，Andy 截圖圈「這邊點選可以收展」） ----------------
+     ① 群組標題（今日市場／資金流水／族群與個股／歷史規律／專案）原本是 .tab::before（pointer-events:none，點不到），
+        改成真的按鈕 .l4grp（不是 .tab —— 手機版、app.js、驗收腳本都在數 .tab），點一下收起／展開該組。
+     ② 有子項的大項（資金流向、熱力圖）右邊一顆 ▸／▾（.l4car）收展子項；再點一次「已選中的大項」也是收展。
+     ③ 狀態記在 localStorage（l4.navFold），讀寫都包 try/catch（LS）。
+     ④ 2026-10-06 改（Andy：「收合後應該只會出現母分頁」）：收起就整組（含目前所在頁與它的子項）全部藏起來，只剩群組標題；目前頁在組裡時標題右邊那顆點提示「你在這組裡」。
+     ⑤ 收合成圖示列（l4-mini）時整套不作用：標題按鈕藏起來、群組不收（圖示列本來就短，收了反而找不到）。 */
+  const GROUPS = [
+    { g: 'today', t: '今日市場', first: 'overview', views: ['overview', 'earnings'] },
+    { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap'] },
+    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore', 'etf'] },
+    { g: 'hist', t: '歷史規律', first: 'season', views: ['season'] },
+    { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'delivery', 'admin'] },
+  ];
+  const FOLD_KEY = 'l4.navFold';
+  function readFold() {
+    try { const o = JSON.parse(LS.get(FOLD_KEY) || '{}'); return { g: Array.isArray(o.g) ? o.g : [], s: Array.isArray(o.s) ? o.s : [] }; }
+    catch (e) { return { g: [], s: [] }; }
+  }
+  function applyFold() {
+    const tabs = $('#tabs'); if (!tabs) return;
+    const f = readFold();
+    tabs.setAttribute('data-cg', f.g.join(' '));
+    tabs.setAttribute('data-cs', f.s.join(' '));
+    const curView = (($('.tab.on', tabs) || {}).dataset || {}).view || (($('.tab.on', tabs) || {}).id === 'l4Perm' ? 'admin' : '');
+    $$('.l4grp', tabs).forEach((b) => {
+      const shut = f.g.includes(b.dataset.g);
+      const G = GROUPS.find((x) => x.g === b.dataset.g);
+      b.setAttribute('aria-expanded', shut ? 'false' : 'true');
+      b.classList.toggle('here', shut && !!G && G.views.includes(curView));
+      b.title = (shut ? '展開「' : '收起「') + b.dataset.t + '」';
+    });
+    $$('.l4car', tabs).forEach((c) => {
+      const shut = f.s.includes(c.dataset.p);
+      c.setAttribute('aria-expanded', shut ? 'false' : 'true');
+      c.title = shut ? '展開子項' : '收起子項';
+    });
+  }
+  function toggleFold(kind, id) {
+    const f = readFold(), arr = f[kind], i = arr.indexOf(id);
+    if (i >= 0) arr.splice(i, 1); else arr.push(id);
+    LS.set(FOLD_KEY, JSON.stringify(f));
+    applyFold(); fitNav();
+  }
+  /* 2026-10-06（Andy：「管理區也需要收納」）：管理區跟資金流向一樣有 ▸／▾，收合鍵 'admin'。
+     子項清單不寫死 —— CSS 只認 .l4subtab[data-parent="admin"]，另一分支拿掉「會員管理」也不用改這裡；沒有任何子項就不放箭頭。 */
+  function addAdmCar() {
+    const b = $('#l4Perm'); if (!b || $('.l4car', b)) return;
+    if (!$('.l4subtab[data-parent="admin"]', $('#tabs'))) return;
+    const c = document.createElement('span');
+    c.className = 'l4car'; c.dataset.p = 'admin'; c.setAttribute('role', 'button'); c.tabIndex = 0;
+    c.setAttribute('aria-label', '管理區子項收展');
+    b.appendChild(c);
+  }
+  function buildFold() {
+    const tabs = $('#tabs'); if (!tabs) return;
+    GROUPS.forEach((G) => {
+      if ($(`.l4grp[data-g="${G.g}"]`, tabs)) return;
+      const first = $(`.tab[data-view="${G.first}"]`, tabs); if (!first) return;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'l4grp'; b.dataset.g = G.g; b.dataset.t = G.t; b.dataset.first = G.first;
+      b.innerHTML = `<i class="car" aria-hidden="true"></i><span>${esc(G.t)}</span><i class="dot" aria-hidden="true"></i>`;
+      b.addEventListener('click', (e) => { e.stopPropagation(); toggleFold('g', G.g); });
+      first.before(b);
+    });
+    Object.keys(SUBS).forEach((v) => {
+      const t = $(`.tab[data-view="${v}"]`, tabs); if (!t || $('.l4car', t)) return;
+      const c = document.createElement('span');
+      c.className = 'l4car'; c.dataset.p = v; c.setAttribute('role', 'button'); c.tabIndex = 0;
+      c.setAttribute('aria-label', (PAGES[v] ? PAGES[v].t : v) + '子項收展');
+      t.appendChild(c);
+    });
+    addAdmCar();
+    if (!tabs._l4fold) {
+      tabs._l4fold = true;
+      // capture：比 app.js 掛在每顆 .tab 上的「換 hash」先跑；點到箭頭、或再點一次已選中的大項 → 只收展，不導頁
+      tabs.addEventListener('click', (e) => {
+        if (!active || root.classList.contains('l4-mini')) return;
+        const car = e.target.closest('.l4car');
+        const tab = e.target.closest('.tab');
+        if (car || (tab && tab.classList.contains('on') && (SUBS[tab.dataset.view] || (tab.id === 'l4Perm' && $('.l4subtab[data-parent="admin"]', tabs))))) {
+          e.stopPropagation(); e.preventDefault();
+          toggleFold('s', car ? car.dataset.p : (tab.id === 'l4Perm' ? 'admin' : tab.dataset.view));
+        }
+      }, true);
+      tabs.addEventListener('keydown', (e) => {
+        const car = e.target.closest && e.target.closest('.l4car');
+        if (car && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); toggleFold('s', car.dataset.p); }
+      }, true);
+    }
+    root.classList.add('l4g');
+    applyFold();
+  }
+
   /* ---------------- 側欄子分頁（資金流向三格、熱力圖兩格） ----------------
      插在 #tabs 裡、各自的父頁後面；class 是 l4subtab（**不是 .tab**）—— 手機版、app.js 的分頁列、驗收腳本都是數 .tab，
      不能讓它們多算。≤820 deactivate() 整批拿掉。點了只是換 hash，其餘交給 app.js 的 route()。 */
@@ -322,6 +418,7 @@
       if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     syncPerm();
+    if (active) applyFold();   // 換頁後「收起的群組裡有目前這頁」的提示點要跟著換
   }
 
   /* ---------------- 「專案 → 自選 → 會員權限」（2026-10-04，Andy：「多一個分頁，只有我這帳號及特定帳號可以用…分頁放在自選下」）----------------
@@ -375,6 +472,7 @@
       x.classList.toggle('on', o);
       if (o) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current');
     });
+    if (root.classList.contains('l4g')) addAdmCar();
   }
 
   /* ---------------- 左側導覽收合（寬 ↔ 圖示列） ----------------
@@ -450,7 +548,7 @@
       if (!lg) {
         lg = document.createElement('button');
         lg.type = 'button'; lg.id = 'l4Login'; lg.className = 'l4login';
-        lg.textContent = '登入'; lg.title = '會員登入（目前沒有開啟）';
+        lg.textContent = '登入'; lg.title = '會員登入（目前沒有連上線）';
         lg.setAttribute('aria-haspopup', 'dialog'); lg.setAttribute('aria-expanded', 'false');
         lg.onclick = (e) => { e.stopPropagation(); loginTip(); };
       }
@@ -467,8 +565,8 @@
     if (!tip) {
       tip = document.createElement('div');
       tip.id = 'l4LoginTip'; tip.className = 'l4logintip'; tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-label', '會員登入');
-      tip.innerHTML = '<b>會員登入目前沒有開啟</b>'
-        + '<p>網站這次部署沒有讀到會員伺服器的設定，所以暫時不能登入。</p>'
+      tip.innerHTML = '<b>會員系統目前沒有連上線</b>'
+        + '<p>網站暫時連不到會員系統，所以現在不能登入。</p>'
         + '<p>自選清單照樣可以用，會存在這台瀏覽器。</p>';
       document.body.appendChild(tip);
     }
@@ -523,7 +621,7 @@
     active = true;
     root.classList.add('l4');
     if (!DESK()) root.classList.add('l4m');
-    build(); buildNavBtn(); buildSubs(); syncPerm();
+    build(); buildNavBtn(); buildSubs(); syncPerm(); buildFold();
     lastHead = ''; lastSig = '';
     applyNav();
     renderHead(); scanCards(); syncTools();
@@ -535,10 +633,10 @@
     clearTimeout(clockT);
     // ☀／外觀／登入／線上人數是別支檔的按鈕本人（被搬進頁首右上角）：拆頁首之前一定要先放回原位，不然會跟著 #l4Head 一起被刪掉
     restoreTools();
-    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '.l4subtab', '.brand .l4pt'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
+    ['#l4Head', '#l4Jump', '.l4foot', '#l4NavBtn', '.l4subtab', '.brand .l4pt', '.l4grp', '.l4car'].forEach((sel) => $$(sel).forEach((e) => e.remove()));
     root.removeAttribute('data-l4sub');      // 子分頁只有電腦版有；手機版要看到整頁（app.js route() 掛的）
     head = jump = chips = null; cards = []; lastHead = ''; lastSig = '';
-    root.classList.remove('l4', 'l4-mini', 'l4m');
+    root.classList.remove('l4', 'l4-mini', 'l4m', 'l4g');
     root.style.removeProperty('--l4-tabs-h'); root.style.removeProperty('--l4-spine-h');
     if (root.getAttribute('style') === '') root.removeAttribute('style');
     $$('.tab').forEach((t) => { t.removeAttribute('title'); t.removeAttribute('aria-label'); });
