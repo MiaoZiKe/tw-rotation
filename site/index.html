@@ -4580,6 +4580,12 @@ h3 .howbtn.pop{font-family:inherit}
 .mktduo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:var(--gap-card,16px);align-items:stretch;margin:10px 0 0}
 .mktduo>*{min-width:0}
 .mktdist{display:flex;flex-direction:column}
+/* ★ 2026-10-06 族群篩選改共用下拉（site/multiselect.js）：篩選列（全部／上市／上櫃｜含 ETF｜族群：不限 ▾）跟標題同一排還是換到下一排，
+   改由**卡片寬度**決定，不由標題長度決定 —— 以前勾了族群，副標從「1982 檔」變「27 檔」短了一截，篩選列就從第二排跳回標題那一排，
+   整張卡矮 52px（800px 寬量到 388→336），違反「互動不晃動」。790＝標題（最長副標「1982 檔　平均 +10.6%　標準差 12.54%」381px）
+   ＋間距 12＋篩選列 371，量出來的（2026-10-06，800／1000／1440／1920）。窄於它就固定換行，寬於它一定放得下同一排。*/
+.mktdist{container-type:inline-size;container-name:mktdist}
+@container mktdist (max-width:790px){ .mktdist #distFilter{flex-basis:100%} }
 .mktdist .distlay{flex:1 1 auto;margin-top:6px}
 .mktdist .distlay>#chgDistBox{flex:1 1 auto}
 .mktdist #chgDist{min-height:260px}   /* 以前寫在 inline style；搬進 CSS 才蓋得過（inline 比任何選擇器都大） */
@@ -5653,6 +5659,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="fit.js"></script>
 <script src="flowtopo.js"></script>
+<!-- 2026-10-06 全站共用的下拉多選（window.TwMS）：選項多的篩選一律用它，不准膠囊牆（docs/style_guide.md 五）；app.js 會叫它，所以放在前面 -->
+<script src="multiselect.js"></script>
 <script src="app.js"></script>
 <script src="theme4.js"></script>
 <!-- ★ 2026-09-28 自選分頁（#watch）的整頁畫面；資料層是上面的 watchlists.js -->

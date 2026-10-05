@@ -2798,7 +2798,14 @@
   /* pick＝下鑽名單目前打開哪一根（null＝收起）；sort＝名單排序（chg 漲跌幅／to 成交值）。2026-09-28 下鑽加的。*/
   const DIST = { market: '', groups: null, etf: false, pick: null, sort: 'chg' };
   /* 圖15 的篩選：市場（全部／上市／上櫃）、含不含 ETF、族群複選。
-     族群用「晶片」而不是下拉 —— 這頁本來就用晶片，語彙一致。*/
+     ★ 2026-10-06（Andy 截圖：按「族群篩選」展開成一大片族群膠囊牆＋「還有 101 個族群在下面，往下捲」）：
+       「改下拉式清單篩選」。族群改用全站共用的下拉多選（site/multiselect.js，window.TwMS）：
+       · 按鈕一行「族群：不限 ▾／族群：晶圓代工 ▾／族群：已選 N ▾」，固定寬度 —— 勾幾個都不會把這一排擠到換行；
+       · 面板浮在畫面上（不再插一塊膠囊牆進卡片），開／關、勾選都不改卡片高度，下面的圖不會被推下去又彈回來；
+       · 依產業鏈分組（groups_today 的 chain，跟資金輪動的兩層下拉同一份口徑），每個族群後面是目前市場別／含不含 ETF 下的檔數，
+         可搜尋、全選、清除；一勾就重畫分佈圖（跟以前點膠囊一樣即時）。
+       · 選項仍然是 stocks.json 的 `group`（名字），篩選條件一字未改：`DIST.groups.has(r.group || '（未分類）')`。
+     市場別／含 ETF 兩個就是 ≤ 3 個選項的分段鈕與勾選，維持原樣（style_guide 五：選項少的單選切換用分段鈕）。*/
   function wireDistFilter() {
     const box = $('#distFilter'); if (!box) return;
     const all = D.stocks || [];
@@ -2809,62 +2816,35 @@
       </div>
       <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2)">
         <input type="checkbox" id="distEtf" ${DIST.etf ? 'checked' : ''}>含 ETF</label>
-      <button class="btn small" id="distGroupBtn">族群篩選${DIST.groups ? `（${DIST.groups.size}）` : ''}</button>`;
+      <span id="distGroupDD"></span>`;
     $$('#distMkt button', box).forEach(b => b.onclick = () => {
       DIST.market = b.dataset.m; wireDistFilter(); drawChgDist();
     });
     const etf = $('#distEtf', box);
     if (etf) etf.onchange = () => { DIST.etf = etf.checked; if (mktKind === 'updown' && $('#mktTabs')) drawMarket('updown'); else drawChgDist(); };   // ★ 2026-10-05：含 ETF 也影響右表的漲幅／跌幅前段
-    const gb = $('#distGroupBtn', box);
-    if (gb) gb.onclick = () => {
-      const names = [...new Set(all.map(r => r.group || '（未分類）'))].sort();
-      const wrap = $('#distGroups') || (() => {
-        const d = document.createElement('div');
-        d.id = 'distGroups'; d.className = 'chainchips';
-        d.style.cssText = 'margin-top:8px;overflow:auto';
-        box.parentNode.parentNode.insertBefore(d, box.parentNode.nextSibling);
-        return d;
-      })();
-      if (wrap.dataset.open === '1') { wrap.dataset.open = '0'; wrap.innerHTML = ''; wrap.style.maxHeight = ''; wrap.classList.remove('scrollfade'); const h0 = $('#distGroupsHint'); if (h0) h0.hidden = true; return; }
-      wrap.dataset.open = '1';
-      wrap.innerHTML = `<button data-g="">全部</button>`
-        + names.map(g => `<button data-g="${fmt.esc(g)}" class="${DIST.groups && DIST.groups.has(g) ? 'on' : ''}">${fmt.esc(g)}</button>`).join('');
-      /* ★ 2026-09-25（審查 R5）：以前寫死 max-height:130px，剛好切在第 4 排的一半 ——
-         看起來像版面壞掉，也看不出下面還能捲。改成量出第 4 排的頂端、高度就停在**整整 3 排**，
-         有更多排時底部加一道淡出（`.scrollfade`），捲到底就拿掉；框下面再寫一句「還有幾個，往下捲」。*/
-      wrap.style.maxHeight = '';
-      const bs = [...wrap.querySelectorAll('button')];
-      const wr = wrap.getBoundingClientRect();
-      const rowTops = [...new Set(bs.map(x => Math.round(x.getBoundingClientRect().top - wr.top)))].sort((p, q) => p - q);
-      let hint = $('#distGroupsHint');
-      if (rowTops.length > 3) {
-        wrap.style.maxHeight = (rowTops[3] - 2) + 'px';
-        const hidden = bs.filter(x => Math.round(x.getBoundingClientRect().top - wr.top) >= rowTops[3]).length;
-        if (!hint) { hint = document.createElement('div'); hint.id = 'distGroupsHint'; hint.className = 'note'; wrap.parentNode.insertBefore(hint, wrap.nextSibling); }
-        hint.hidden = false; hint.textContent = `還有 ${hidden} 個族群在下面，往下捲 ↓`;
-        const fade = () => {
-          const atEnd = wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 2;
-          wrap.classList.toggle('scrollfade', !atEnd);
-          hint.hidden = atEnd;
-        };
-        wrap.onscroll = fade; fade();
-      } else {
-        wrap.classList.remove('scrollfade'); wrap.onscroll = null;
-        if (hint) hint.hidden = true;
-      }
-      $$('button', wrap).forEach(b => b.onclick = () => {
-        const g = b.dataset.g;
-        if (!g) DIST.groups = null;
-        else {
-          DIST.groups = DIST.groups || new Set();
-          if (DIST.groups.has(g)) DIST.groups.delete(g); else DIST.groups.add(g);
-          if (!DIST.groups.size) DIST.groups = null;
-        }
-        $$('button', wrap).forEach(x => x.classList.toggle('on', !!DIST.groups && DIST.groups.has(x.dataset.g)));
-        const btn = $('#distGroupBtn'); if (btn) btn.textContent = `族群篩選${DIST.groups ? `（${DIST.groups.size}）` : ''}`;
-        drawChgDist();
-      });
-    };
+    const dd = $('#distGroupDD', box);
+    if (!dd || !window.TwMS) return;
+    // 檔數＝目前市場別、含不含 ETF 之下，每個族群有幾檔（族群篩選本身不算進去 —— 那是你要勾的東西）
+    const isEtf = (r) => /^00/.test(String(r.code || ''));
+    const cnt = new Map();
+    all.forEach(r => {
+      const g = r.group || '（未分類）';
+      if (!cnt.has(g)) cnt.set(g, 0);
+      if (r.chg_pct != null && (!DIST.market || r.market === DIST.market) && (DIST.etf || !isEtf(r))) cnt.set(g, cnt.get(g) + 1);
+    });
+    const chainOf = {};
+    (D.groups_today || []).forEach(g => { if (g && g.group_name) chainOf[g.group_name] = g.chain || 'industry'; });
+    const chainIds = [...Object.keys(L.chains || {}), 'industry', '_other'];
+    const items = [...cnt.keys()].map(g => ({ v: g, t: g, n: cnt.get(g), g: chainOf[g] || '_other' }))
+      .sort((a, b) => chainIds.indexOf(a.g) - chainIds.indexOf(b.g) || b.n - a.n || a.t.localeCompare(b.t, 'zh-Hant'));
+    // 勾著的族群如果已經不在名單裡（理論上不會：名單取自全部 stocks，不受市場別影響），丟掉，避免按鈕寫「已選 2」畫面卻只篩 1 個
+    if (DIST.groups) { [...DIST.groups].forEach(g => { if (!cnt.has(g)) DIST.groups.delete(g); }); if (!DIST.groups.size) DIST.groups = null; }
+    TwMS.mount(dd, {
+      id: 'distGroups', label: '族群', placeholder: '搜尋族群或產業鏈…', width: '11.5em',
+      items, groups: chainIds.map(k => ({ k, t: k === '_other' ? '其他' : chainLabel(k) })),
+      selected: DIST.groups,
+      onChange: (v) => { DIST.groups = v; drawChgDist(); },
+    });
   }
 
   /* 圖16（Andy 2026-09-18）：「站上均線這邊需要可篩選曲線走勢圖可以看，
