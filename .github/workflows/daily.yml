@@ -161,6 +161,25 @@ jobs:
           git checkout "origin/${{ github.ref_name }}" -- site/
       - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）
         run: python scripts/stamp_assets.py
+      # ★ 2026-10-05：這條工作流也會部署 Pages，但以前少了下面兩步，
+      #   每天早上的盤後輪一部署，就把 pages.yml 裝好的 preview/<名稱>/ 整包蓋掉（Andy 開預覽網址拿到 404），
+      #   也把 account_config.js 換回 repo 裡空的那支（會員登入跟著消失）。
+      #   兩步照抄 pages.yml，失敗不擋正式站部署。
+      - name: 會員功能設定（同 pages.yml；沒設 ACCOUNT_API_URL 就維持關閉）
+        env:
+          ACCOUNT_API_URL: ${{ secrets.ACCOUNT_API_URL }}
+        run: |
+          if [ -n "$ACCOUNT_API_URL" ]; then
+            case "$ACCOUNT_API_URL" in
+              https://*)
+                python -c "import json,os; u=os.environ['ACCOUNT_API_URL'].strip().rstrip('/'); open('site/account_config.js','w',encoding='utf-8').write('/* 部署時由 daily.yml 依 Secret ACCOUNT_API_URL 產生（repo 裡是空的）*/\nwindow.TW_ACCOUNT = ' + json.dumps({'api': u}) + ';\n')"
+                echo "會員功能：開啟";;
+              *) echo "::warning::ACCOUNT_API_URL 不是 https:// 開頭，會員功能維持關閉";;
+            esac
+          fi
+      - name: 分支預覽（同 pages.yml；不裝的話每日部署會把預覽蓋掉）
+        continue-on-error: true
+        run: python scripts/preview_inject.py
       - name: 上傳網站
         uses: actions/upload-pages-artifact@v3
         with:
