@@ -45,7 +45,10 @@
 - 6 分類切換：月曆、面板清單、圖例只出現該類（d30344c4 已做，本批驗收）。
 - 7 ETF：無「全部」、順序 配息型｜市值型｜主題型｜主動式｜債券型｜槓桿反向｜其他、預設配息型、自問自答刪、資料日膠囊刪、月曆空狀態一句；
   另：當天清單「再點一次同一格」改標題列「← 回整月」鈕、單檔明細整行「資料：…」改 ⓘ、比較卡空狀態「尚未選擇 ETF」。
-- 8 分頁拖曳：**main 上還沒有 `site/tabdrag.js`**（06:50 確認），ETF 分類列沒接；等它上 main 再確認 `#etfCatSeg` 有吃到。
+- 8 分頁拖曳：`site/tabdrag.js` 07:1x 上 main（自動掛 `.nbsw`＋id），ETF 分類列 `#etfCatSeg` 與財經日曆分類列 `#earnFilt` 不用改程式就吃到；
+  已加進 `_uitest` 分頁拖曳1006 的 `TD_BARS` 真的拖一次（拖第一顆到第三顆、不切換、不可刪、重新整理保留、Alt+←→、右鍵還原）**0 問題**。
+- **部署**：`deploy_wait.py` → ✅ 部署完成：Pages deployment 6871218145（main b3ea3120）台北 10-06 07:18 success（GitHub 部署紀錄推算，請 Andy 重新整理確認）。
+  推上 main 後同三段再跑一次（含 livegate 合併）0 問題。`preview/earnings-v2` 要刪，`git push --delete` 被 git 代理擋（HTTP 403），還留著。
 - **這批驗了**：pytest 全套 1032 passed／1 xfailed；`SKIP_INTRADAY=1 build_payload`（前任留下那輪跑完）＋ `python -m pipeline.compute.earnings` 用新程式重產
   earnings.json → 種子；`_uitest --sections 財報日曆1005,財經日曆1006,ETF專區1005 --workers 1` **0 問題**；
   反向驗證（scratch 複本故意放回否定句／FOMC 規則段／ETF 自問自答／拿掉回整月鈕）→ 財經日曆1006 紅 4 條，新斷言真的會抓；`_preview.py` 0 重疊、0 溢出。

@@ -22006,7 +22006,9 @@ def t_nobox_1006(pg, base):
 #   ⑦ 點被換到第一位的那顆 → 真的切過去（變成選中），切完重畫後順序還在
 #   ⑧ 鍵盤 Alt+→ 把焦點那顆右移一格，而且瀏覽器沒有被 Alt+← 之類帶去上一頁
 #   ⑨ 右鍵 →「還原預設順序」→ 回到原本順序、localStorage 那一筆刪掉
-TD_BARS = [("explore", "#slChips"), ("industry", "#chainSwitch"), ("stock/2330", "#stockTabs"), ("market", "#mktTabs")]
+TD_BARS = [("explore", "#slChips"), ("industry", "#chainSwitch"), ("stock/2330", "#stockTabs"), ("market", "#mktTabs"),
+           # 2026-10-06（Andy 交辦第 8 項：ETF 分頁可拖曳不可刪）：ETF 分類列與財經日曆分類列都是 .nbsw＋id，自動掛上，這裡真的拖一次
+           ("etf", "#etfCatSeg"), ("earnings", "#earnFilt")]
 TD_ORD = """(sel) => { const b = document.querySelector(sel); if (!b || !window.TabDrag) return null;
   return {o: TabDrag.order(b), n: b.children.length, h: Math.round(b.getBoundingClientRect().height),
           on: [...b.children].filter(c => c.classList.contains('on') || c.getAttribute('aria-selected') === 'true').map(c => c.textContent.trim().slice(0, 8)),
