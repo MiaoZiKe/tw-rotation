@@ -43913,7 +43913,7 @@ def t_sub_1005(b, base, code):
 #   ④ 390 手機：鎖頭字 ≥ 11px、沒有橫向捲軸、手機個股分頁也上鎖；管理頁在 390 可操作
 #   ⑤ 訪客（沒登入）＝上線預設全開，畫面上一個鎖頭都沒有
 # ⚠ 測試帳號的 email 只准出現在這裡（驗收的假資料），經 --person 帶給 devserver，不寫進 repo 其他地方。
-PERM_TEST_EMAIL = "andy01010909@gmail.com"
+PERM_TEST_EMAIL = "tester@example.com"   # 10-05 Andy：真實信箱不放 public repo
 
 
 def t_member_perm(b, base, code):
