@@ -1051,3 +1051,112 @@ Object.assign(Hub.prototype.subRoutes, {
   },
 });
 /* ============================================================================ admin-v3 區塊結束 */
+
+/* ============================================================================ perm-v4 區塊（2026-10-05）
+   Andy 對 #admin/perm：「付費範本頁籤要能拖曳排序、刪除」「會員名單上方加視覺化統計」。後端多三樣：
+     ① plans.sort（整數，愈小愈前面）—— 付費範本的順序。內建 guest／free 永遠在最前面（不吃 sort）。
+        plans/get、plans/put 的回應與 /v1/plans/public 都照這個順序 → 訂閱頁 #pricing 的方案卡跟著變（pricing.js 照後端順序畫）。
+        為什麼不再用 updated 排：原本「改個名字／價格」updated 會變，那個範本就跑到最後 —— 管理者沒拖它，它卻自己換位置。
+     ② /v1/admin/plans/sort { ids:[全部付費範本 id，依新順序] }：拖一次＝送一次整個順序。
+        ids 必須「正好是全部付費範本、不重複」，少一個／多一個／內建範本／不存在 → 400 bad_order，什麼都不寫（不留半套順序）。
+     ③ /v1/admin/members/stats { scope:'all' } 或 { scope:'plan', plan:<id> }：會員名單上方的圖表，伺服器端彙總，
+        前端不必逐人呼叫 member/detail。回：近 30 天最常用功能 Top 8、最常看股票 Top 8、近 14 天每日活躍人數、近 7 日活躍人數。
+        'all'＝所有登入過的人（＝註冊會員頁籤的名單）；'plan'＝被指定到該範本的人（含已過期，跟名單同一個口徑）。
+        「狀態分布」「總人數」「平均在線」由前端從同一份名單（/v1/admin/members）算 —— 圖上的數字一定跟下面的表對得上。
+   相容遷移：plans.sort 用 PRAGMA 判斷再 ALTER；第一次補欄時依「原本的順序（updated, id）」替既有付費範本補 0..n-1，
+   所以上線那一刻順序完全不變；之後新建的範本排最後（max＋1）。
+   ★ 同 sub-v1／admin-v3：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+const V4_HEAD = { guest: 0, free: 1 };
+const V4_TOP = 8;
+
+Hub.prototype.v4Init = function () {
+  if (this._v4Ok) return;
+  this.v3Init();
+  const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+  if (!pc.includes('sort')) {
+    this.q('ALTER TABLE plans ADD COLUMN sort INTEGER');
+    this.q('SELECT id FROM plans WHERE builtin = 0 ORDER BY updated, id').forEach((r, i) => this.q('UPDATE plans SET sort = ? WHERE id = ?', i, r.id));
+  }
+  this._v4Ok = true;
+};
+/* 排序：guest → free → 其他內建 → 付費（sort 小的在前；沒有 sort 的排最後、維持原順序）。每個方案多帶 sort 欄位 */
+Hub.prototype.v4Order = function (plans) {
+  this.v4Init();
+  const s = {}; this.q('SELECT id, sort FROM plans').forEach((r) => { s[r.id] = r.sort; });
+  const key = (p) => (Object.prototype.hasOwnProperty.call(V4_HEAD, p.id) ? [0, V4_HEAD[p.id]] : p.builtin ? [1, 0] : [2, Number.isInteger(s[p.id]) ? s[p.id] : 1e9]);
+  return plans.map((p, i) => [p, i]).sort((a, b) => { const x = key(a[0]), y = key(b[0]); return x[0] - y[0] || x[1] - y[1] || a[1] - b[1]; })
+    .map(([p]) => ({ ...p, sort: Number.isInteger(s[p.id]) ? s[p.id] : null }));
+};
+const v4OrigPlansGet = Hub.prototype.adminPlansGet;
+Hub.prototype.adminPlansGet = async function (req, b) {
+  const res = await v4OrigPlansGet.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.plans = this.v4Order(j.plans || []);
+  return this.json(req, j);
+};
+const v4OrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return this.v4Order(v4OrigPlanRows.call(this)); };
+/* 新建的付費範本排最後（max＋1）；改名、改價、改開關不動順序 */
+const v4OrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.v4Init();
+  const res = await v4OrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || !b || b.del === true) return res;
+  const r = this.q('SELECT builtin, sort FROM plans WHERE id = ?', String(b.id || ''))[0];
+  if (!r || r.builtin || r.sort != null) return res;
+  const mx = this.q('SELECT MAX(sort) AS m FROM plans WHERE builtin = 0')[0].m;
+  this.q('UPDATE plans SET sort = ? WHERE id = ?', mx == null ? 0 : mx + 1, String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 會員名單上方的圖表（③）。uid 範圍：'all'＝所有登入過的人；'plan'＝perm.plan 是這個範本的人（沒登入過的沒有使用紀錄，不影響彙總）*/
+Hub.prototype.v4Stats = function (scope, plan) {
+  this.v4Init();
+  const now = this.now(), d30 = tpeDay(now - 29 * 86400 * 1000), d14 = tpeDay(now - 13 * 86400 * 1000), d7 = tpeDay(now - 6 * 86400 * 1000);
+  const users = this.q('SELECT uid, email FROM users');
+  let pick = users;
+  if (scope === 'plan') {
+    const em = new Set(this.q('SELECT email FROM perm WHERE plan = ?', plan).map((r) => r.email));
+    pick = users.filter((u) => em.has(String(u.email || '').toLowerCase()));
+  }
+  const set = new Set(pick.map((u) => u.uid));
+  const feats = {}, stocks = {}, act = {};
+  this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp", d30)
+    .forEach((r) => { if (set.has(r.uid)) feats[r.comp] = (feats[r.comp] || 0) + r.n; });
+  this.q("SELECT uid, detail, SUM(n) AS n FROM uev WHERE day >= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY uid, detail", d30)
+    .forEach((r) => { if (set.has(r.uid)) stocks[r.detail] = (stocks[r.detail] || 0) + r.n; });
+  /* 「活躍」＝那一天有開網站（visits.n）、有在線時間（visits.ms）或有任何使用紀錄（uev）—— 三者任一 */
+  const mark = (r) => { if (set.has(r.uid)) (act[r.day] = act[r.day] || new Set()).add(r.uid); };
+  this.q('SELECT uid, day FROM visits WHERE day >= ? AND (n > 0 OR COALESCE(ms, 0) > 0)', d14).forEach(mark);
+  this.q('SELECT DISTINCT uid, day FROM uev WHERE day >= ?', d14).forEach(mark);
+  const days = [], a7 = new Set();
+  for (let i = 13; i >= 0; i--) {
+    const d = tpeDay(now - i * 86400 * 1000), s = act[d] || new Set();
+    days.push({ day: d, n: s.size });
+    if (d >= d7) s.forEach((u) => a7.add(u));
+  }
+  const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, V4_TOP);
+  return { now, scope, plan: scope === 'plan' ? plan : null, n: set.size, active7: a7.size, feats: top(feats), stocks: top(stocks), days };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/plans/sort': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.v4Init();
+    const paid = new Set(this.q('SELECT id FROM plans WHERE builtin = 0').map((r) => r.id));
+    const ids = b.ids;
+    if (!Array.isArray(ids) || ids.length !== paid.size || new Set(ids).size !== ids.length
+      || !ids.every((id) => typeof id === 'string' && PLAN_RE.test(id) && paid.has(id))) return this.json(req, { error: 'bad_order' }, 400);
+    ids.forEach((id, i) => this.q('UPDATE plans SET sort = ? WHERE id = ?', i, id));
+    return await this.adminPlansGet(req, b);
+  },
+  '/v1/admin/members/stats': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const scope = b.scope == null || b.scope === 'all' ? 'all' : b.scope === 'plan' ? 'plan' : null;
+    if (!scope) return this.json(req, { error: 'bad_scope' }, 400);
+    const plan = scope === 'plan' ? String(b.plan == null ? '' : b.plan) : null;
+    if (scope === 'plan' && (!PLAN_RE.test(plan) || !this.plan(plan))) return this.json(req, { error: 'bad_plan' }, 400);
+    return this.json(req, this.v4Stats(scope, plan));
+  },
+});
+/* ============================================================================ perm-v4 區塊結束 */
