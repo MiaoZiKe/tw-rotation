@@ -88,11 +88,27 @@
 #v-admin .ptabs button.on{background:var(--panel);color:var(--ink);border-color:var(--cyan);border-bottom:1px solid var(--panel);box-shadow:inset 0 3px 0 var(--cyan);position:relative;z-index:1}
 #v-admin .ptabs button.add{min-width:52px;align-items:center;justify-content:center;font-size:22px;font-weight:400}
 #v-admin .ptpanel{border:1px solid var(--line-2);border-top:0;border-radius:0 0 10px 10px;padding:4px 14px 12px;background:var(--panel)}
+#v-admin .ptwrap{margin-top:14px}
+#v-admin .ptwrap .ptabs{margin-top:0;padding:0}
+#v-admin .ptwrap .ptabs button{min-height:44px;flex-direction:row;align-items:center;padding:0 18px;border-radius:10px 10px 0 0;margin-bottom:-1px}
+#v-admin .ptwrap .ptabs button.on{border-bottom-color:var(--panel)}
+#v-admin .ptwrap .ptpanel{border-top:1px solid var(--cyan);border-radius:0 10px 10px 10px;padding:0 18px 18px}
+#v-admin .ptwrap .ptsub{margin:0 -18px 12px;padding:0 14px}
+#v-admin .ptwrap .ptsub.one button{cursor:default}
+#v-admin .ptlede{margin:6px 0 0;font-size:12.5px;color:var(--ink-2)}
+#v-admin .ptwhoro{display:flex;align-items:center;gap:10px;min-height:32px}
+#v-admin .ptwhoro .ptwho{flex:1;min-width:0;font-size:13px;color:var(--ink-2)}
+#v-admin .ptgear{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:16px;cursor:pointer}
+#v-admin .ptgear[aria-expanded=true]{border-color:var(--cyan);color:var(--cyan)}
+#v-admin .ptwrap .secttl{margin-top:14px}
+#v-admin .ptwrap .pmgrpbox.card{background:transparent;box-shadow:none}
+#v-admin .ptinner{padding:12px 0 4px}#v-admin .ptinner h3{margin:0 0 4px}
+#v-admin .ptwrap #pmStat:empty{display:none}
 #v-admin .ptabs:has(button.on)+.ptpanel{border-color:var(--cyan)}
 #v-admin .pmcats.card{gap:0;padding:0;overflow:hidden;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
 #v-admin .pmcats.card .pmcat{padding:12px 16px;box-shadow:1px 0 0 color-mix(in srgb,var(--line) 70%,transparent),0 1px 0 color-mix(in srgb,var(--line) 70%,transparent);min-width:0}
 #v-admin .pmgrpbox.card{display:block;margin-top:10px}
-#v-admin #pmGrpTtl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#v-admin #pmGrpTtl .pmfold{margin-left:auto}
+#v-admin #pmGrpTtl{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}#v-admin #pmGrpTtl .pmfold{margin-left:auto}
 #v-admin .plchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
 #v-admin .plchips button{height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:13.5px;cursor:pointer}
 #v-admin .plchips button.on{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan);font-weight:700}
@@ -131,8 +147,11 @@
 #v-admin .pmfoldnote{margin:0 0 6px;font-size:12.5px}
 #v-admin .pmcat .pmrow.sm{padding:5px 0;gap:8px}#v-admin .pmcat .pmrow.sm .pmtx b{font-size:13.5px;font-weight:500}
 #v-admin .pmcathd{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-bottom:6px}#v-admin .pmcathd>button[data-all]{flex:none}
-#v-admin .pmcathd h3{margin:0;min-width:0;flex:1}
+#v-admin .pmcathd h3{margin:0;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-admin .pmcathd h3 small{font-size:12.5px;color:var(--ink-2);font-weight:400;margin-left:6px}
+#v-admin .pmcards .pmcat.card .pmcathd h3{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;font-size:15px;white-space:nowrap;overflow:hidden}
+#v-admin .pmcards .pmcat.card .pmcathd h3 small{flex:none;margin-left:2px}
+#v-admin .pmcards .pmcathd>button[data-all]{height:26px;padding:0 8px;font-size:12.5px}
 #v-admin .pmcathd button{height:30px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
 #v-admin .pmrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 #v-admin .pmrow .pmtx b{display:block;font-size:14px;font-weight:600}
@@ -158,8 +177,8 @@
 #v-admin .stt.ok{background:color-mix(in srgb,#35d07f 20%,transparent)}#v-admin .stt.exp{background:color-mix(in srgb,#ff6b7a 22%,transparent)}#v-admin .stt.new{background:var(--panel-3)}
 #v-admin .pmcnt{font-size:13px;color:var(--ink-2)}#v-admin .pmbar input[type=search]{flex:1 1 220px;max-width:360px}
 #v-admin .pmtpl{align-items:flex-start}#v-admin .pmtpl small{flex:1 1 260px;font-size:12.5px;color:var(--ink-2);line-height:1.5}#v-admin .pmtpl span{font-size:13px;color:var(--ink-2)}
-#v-admin .pmtag.new{background:color-mix(in srgb,var(--cyan) 22%,transparent)}#v-admin .pmrow.dirty{box-shadow:inset 3px 0 0 var(--cyan);padding-left:8px}
-#v-admin .pmsave{position:sticky;bottom:12px;z-index:20;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;
+#v-admin .pmtag.new{background:color-mix(in srgb,var(--cyan) 22%,transparent)}
+#v-admin .pmsave{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);width:min(720px,calc(100vw - 32px));box-sizing:border-box;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.28);display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:12px;
   background:var(--panel,#111a2b);border:1px solid var(--cyan);box-shadow:0 6px 24px rgba(0,0,0,.35);font-size:14px}
 #v-admin .pmsave[hidden]{display:none}#v-admin .pmsave #pmDirty{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
 #v-admin .pmsave button{height:34px;font-size:14px;border-radius:8px;padding:0 16px;cursor:pointer;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2)}
@@ -189,9 +208,61 @@
 #v-admin .ptsub button small{font-family:var(--mono);font-size:12px;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--panel-3)}
 #v-admin .ptpick select{max-width:min(100%,360px)}#v-admin .ptwho{font-size:12.5px;color:var(--ink-2);flex:1 1 220px}
 #v-admin .pmlimhelp{margin:4px 0 0}
+#v-admin .pmlegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 0 0;font-size:12px;color:var(--ink-2)}
+#v-admin .pmlegend span{display:inline-flex;align-items:center;gap:6px}
+#v-admin .pmlegend .lg{display:inline-block;width:14px;height:12px;border-radius:3px;font:normal 11px/12px var(--mono);text-align:center}
+#v-admin .pmlegend .lg.dirty{background:color-mix(in srgb,#f5a524 26%,transparent);box-shadow:inset 3px 0 0 #f5a524}
+#v-admin .pmlegend .lg.tuned{box-shadow:inset 3px 0 0 #4c9dff;background:color-mix(in srgb,#4c9dff 10%,transparent)}
+#v-admin .pmlegend .lg.lim{width:auto;padding:0 4px;color:var(--ink-3,#7a879c)}
+#v-admin .pmrow{position:relative;border-radius:6px}
+#v-admin .pmrow.tuned{box-shadow:inset 3px 0 0 #4c9dff;background:color-mix(in srgb,#4c9dff 7%,transparent)}
+#v-admin .pmrow.dirty{box-shadow:inset 3px 0 0 #f5a524;background:color-mix(in srgb,#f5a524 16%,transparent)}
+#v-admin .pmcards .pmrow,#v-admin .pmcats .pmrow{padding:6px 6px 6px 8px;gap:10px;grid-template-columns:44px minmax(0,1fr)}
+#v-admin .pmcats .pmrow.wl{grid-template-columns:44px minmax(0,1fr) 44px}
+#v-admin .pmcats .pmrow.wr{grid-template-columns:44px minmax(0,1fr) 44px}
+#v-admin .pmcats .pmrow.wl.wr{grid-template-columns:44px minmax(0,1fr) 44px 44px}
+#v-admin .pmcats .pmrow .pmtx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#v-admin .pmcats .pmrow.sel{grid-template-columns:76px minmax(0,1fr) 44px}#v-admin .pmcats .pmrow.sel.wr{grid-template-columns:76px minmax(0,1fr) 44px 44px}#v-admin .pmcats .pmrow.sel select{width:76px}
+#v-admin .pmlimc,#v-admin .pmrevc{width:44px;display:flex;justify-content:center;min-width:0}
+#v-admin .pmrevc .pmrev{font-size:11.5px;padding:0 4px;height:22px}
+#v-admin .pmcats.pmcards{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-top:10px}
+#v-admin .pmcards .pmcat.card{padding:10px 12px;min-width:0}
+#v-admin .pmcards .pmrow:first-of-type{border-top:0}
+#v-admin .pmlimb{width:44px;box-sizing:border-box;text-align:center;font:500 13px var(--mono);line-height:20px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-3,#7a879c);opacity:.8;cursor:pointer;white-space:nowrap;overflow:hidden}
+#v-admin .pmlimb:hover,#v-admin .pmlimb[aria-expanded=true]{opacity:1;border-color:var(--line-2)}
+#v-admin .pmlimb.set{opacity:1;color:var(--ink);background:color-mix(in srgb,var(--cyan) 16%,transparent)}
+#v-admin .pmlimb.zero{color:#ff6b7a;background:color-mix(in srgb,#ff6b7a 14%,transparent)}
+#v-admin .pmlimb:disabled{cursor:not-allowed}
+#v-admin .pmlimpop{position:absolute;right:0;bottom:calc(100% - 4px);z-index:30;display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap}
+#v-admin .pmlimpop input{width:60px;height:26px;font:13px var(--mono);text-align:right;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:6px;padding:0 6px}
+#v-admin .pmlimpop input.bad{border-color:#ff6b7a}
+#v-admin .pmlimpop button{height:26px;font-size:12px;padding:0 8px;border-radius:6px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
+#v-admin .pmlimpop button.ok{background:var(--cyan);color:#06121f;border-color:transparent}
+/* perm-cards 單行規則（Andy 10-05：「所有文字皆控制在一行內，並且不可以因為功能影響排版」）：
+   ① 開放功能表與 ② 族群觀測共用同一個列元件 —— 固定列高、各欄固定寬、名稱／說明單行省略號（全名在 title），
+   撥開關或設次數前後列的位置大小不變。 */
+#v-admin .pmcats .pmrow{height:52px;box-sizing:border-box;padding-top:0;padding-bottom:0;align-items:center;overflow:visible}
+#v-admin .pmcats .pmrow.sm{height:36px;gap:8px}
+#v-admin .pmcats .pmrow .pmtx{min-width:0;overflow:hidden}
+#v-admin .pmcats .pmrow .pmtx b{display:flex !important;align-items:center;min-width:0;white-space:nowrap;overflow:hidden}
+#v-admin .pmcats .pmrow .pmtx .nm{min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmcats .pmrow .pmtx small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+#v-admin .pmcats .pmrow .gico{width:16px;height:16px;flex:0 0 16px;margin-right:6px;vertical-align:0}
+#v-admin .pmcats .pmrow .gico svg{width:16px;height:16px}
+#v-admin .pmcats .pmrow>.psw{width:44px;flex:none}
+#v-admin .pmcat .pmfoldhd,#v-admin .pmcat .pmfoldhd>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-admin .pmcat .grpch{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmcathd{flex-wrap:nowrap !important;min-width:0}
+#v-admin .pmcathd h3 small{white-space:nowrap}
+#v-admin .ptwrap .ptabs{flex-wrap:nowrap;overflow:hidden}
+#v-admin .ptwrap .ptabs button{white-space:nowrap;min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+#v-admin .ptwrap .ptabs button>span{overflow:hidden;text-overflow:ellipsis}
+#v-admin .ptlede,#v-admin .pmlegend,#v-admin .ptwrap .use,#v-admin .ptwrap .pmwho,#v-admin .ptwrap .ptwho,#v-admin .ptwrap .secttl,#v-admin .ptwrap .secttl>*,#v-admin .ptwrap h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-admin .pmlegend{flex-wrap:nowrap}#v-admin .pmlegend span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+#v-admin .pmlegend .lg{vertical-align:-1px;margin-right:6px}
+
 #v-admin #pmCats.card:has(.pmrow.wlim){grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))}
 #v-admin .pmrow.wlim{grid-template-columns:auto minmax(0,1fr) auto auto}
-#v-admin .pmlimc{display:flex;justify-content:flex-end;min-width:96px}
 #v-admin .pmlimw{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-2)}
 #v-admin .pmlimw input{width:64px;height:28px;font:13px var(--mono);text-align:right;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:7px;padding:0 6px}
 #v-admin .pmlimw input::placeholder{color:var(--ink-3,#7a879c);font-family:inherit}
@@ -475,30 +546,32 @@
     PS.v = v; PS.A = A; PS.draft = null; PS.tab = tab;
     PS.mode = tab === 'perm' ? 'plan' : 'member';
     if (tab === 'perm') {
-      v.innerHTML = head(v, A) + `<p class="use" style="margin:8px 0 0">三個大分頁對應三種人。每一頁兩件事：<b>觀看權限</b>（哪些功能開、每天能看幾次）與<b>會員名單</b>（誰在這一層、用得多不多）。
-          關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上有「升級查看」直接帶到訂閱頁。</p></div>
-        <div class="card" id="pmHead" style="margin-top:14px">
+      /* perm-cards（2026-10-05，Andy）：頁籤 → 子分頁 → 內容 連成一個整體 —— 選中的頁籤底下直接接內容框，
+         開放功能表、族群觀測、會員名單都在同一個框內；說明縮成一行小字。 */
+      v.innerHTML = head(v, A) + `<p class="use ptlede">關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上有「升級查看」直接帶到訂閱頁。</p></div>
+        <div class="ptwrap" id="pmHead">
           <div class="ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
           <div class="ptpanel">
-            <div id="pmTarget"></div>
             <div class="ptsub" id="ptSub" role="tablist" aria-label="子分頁"></div>
-            <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div></div>
-        <div id="ptPermBox">
-          <div id="ptGuestSum"></div>
-          <div class="secttl"><h2>開放功能表</h2><small id="ptFor"></small></div>
-          <p class="use pmlimhelp">每一列：左邊開關＝能不能看；右邊「瀏覽次數」＝每天最多看幾次（<b>留空＝不限</b>、<b>0＝不能看</b>；個股頁、題材、族群頁算「看了幾個不同的」，其他頁算「開了幾次」）。超過的人會看到「今日已用完」與升級鈕。</p>
-          <div class="pmcats card" id="pmCats"></div>
-          ${GRPSEC}</div>
-        <div id="ptListBox" hidden></div>
+            <div id="pmTarget"></div>
+            <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div>
+            <div id="ptPermBox">
+              <div id="ptGuestSum"></div>
+              <div class="secttl"><h2>開放功能表</h2><small id="ptFor"></small></div>
+              <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限，點一下設定（0＝不能看；個股／題材／族群頁算看了幾個不同的）</span></div>
+              <div class="pmcats pmcards" id="pmCats"></div>
+              ${GRPSEC}</div>
+            <div id="ptListBox" hidden></div>
+          </div></div>
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
         ${honest}`;
       v.querySelector('#ptTier').onclick = (e) => {
         const b = e.target.closest('button[role=tab]'); if (!b) return;
         if (b.id === 'ptAddTab') { if (PS.adding || !guard()) return; PS.adding = true; PS.cfg = false; PS.confirmDel = false; paintAll(); setStat(''); return; }
-        const tier = b.dataset.tier;
-        if (!PS.adding && tier === PS.tier) return;
+        const tier = b.dataset.tier, plan = b.dataset.plan || '';
+        if (!PS.adding && tier === PS.tier && (tier !== 'paid' || plan === PS.planSel)) return;
         if (!guard()) return;
-        PS.adding = false; PS.cfg = false; PS.tier = tier; PS.confirmDel = false; pickTierPlan();
+        PS.adding = false; PS.cfg = false; PS.tier = tier; PS.confirmDel = false; if (tier === 'paid') PS.planSel = plan; pickTierPlan();
         if (tier === 'guest') PS.sub = 'perm';
         paintAll(); setStat('');
       };
@@ -522,7 +595,8 @@
           <p class="use">先選層級／範本，再個別微調。開關撥完按最下面的「儲存」才會生效。瀏覽次數跟著範本走（在「會員權限」設）。</p>
           <div id="pmTarget"></div>
           <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div>
-        <div class="pmcats card" id="pmCats"></div>
+        <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數，點一下設定</span></div>
+          <div class="pmcats pmcards" id="pmCats"></div>
         ${GRPSEC}
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>${honest}`;
       v.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
@@ -554,15 +628,16 @@
   function pickTierPlan() {
     if (PS.tier === 'guest') PS.planSel = 'guest';
     else if (PS.tier === 'free') PS.planSel = 'free';
-    else { const pp = paidPlans(); if (!pp.some((p) => p.id === PS.planSel)) PS.planSel = pp.length ? pp[0].id : ''; }
+    else { const pp = paidPlans(); if (!pp.some((p) => p.id === PS.planSel)) { if (pp.length) PS.planSel = pp[0].id; else { PS.tier = 'free'; PS.planSel = 'free'; } } }
   }
+  /* 頁籤（perm-cards 2026-10-05，Andy）：預設只有「訪客｜註冊會員｜＋」；每個付費範本自己一個頁籤「名稱（月／年）」，
+     不再有「付費會員」母頁籤＋下拉；頁籤上不顯示人數。內建 guest／free 由 paidPlans() 以 id＋builtin 濾掉，不會重複成範本頁籤。 */
+  const tabLabel = (p) => `${p.name}（${p.period === 'year' ? '年' : p.period === 'once' ? '一次' : '月'}）`;
   function paintTabs() {
     const bar = PS.v && PS.v.querySelector('#ptTier'); if (!bar) return;
-    const all = members();
-    const nPaid = all.filter((r) => r.tier === 'paid').length, nReg = all.filter((r) => r.st !== 'new').length;
-    const t = (tier, label, sub) => { const on = !PS.adding && PS.tier === tier;
-      return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"><span>${label}</span><small>${sub}</small></button>`; };
-    bar.innerHTML = t('guest', '訪客', '沒登入的人') + t('free', '註冊會員', nReg + ' 人') + t('paid', '付費會員', `${paidPlans().length} 個範本・${nPaid} 人`)
+    const t = (tier, label, plan) => { const on = !PS.adding && PS.tier === tier && (!plan || PS.planSel === plan);
+      return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"${plan ? ` data-plan="${esc(plan)}" title="${esc(planLabel(planOf(plan)))}"` : ''}><span>${esc(label)}</span></button>`; };
+    bar.innerHTML = t('guest', '訪客') + t('free', '註冊會員') + paidPlans().map((p) => t('paid', tabLabel(p), p.id)).join('')
       + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費範本" title="新增付費範本（名稱、價格、月／年訂閱）">＋</button>`;
   }
   function planOpts(sel, withGuest) {
@@ -662,18 +737,15 @@
     }
     const p = planOf(PS.planSel);
     if (PS.tier === 'paid') {
-      const pp = paidPlans();
-      box.innerHTML = pp.length ? `<div class="pmbar ptpick"><label>範本 <select id="ptPlanSel" aria-label="選付費範本">${pp.map((x) => `<option value="${esc(x.id)}" ${x.id === PS.planSel ? 'selected' : ''}>${esc(planLabel(x))}（${x.members || 0} 人）</option>`).join('')}</select></label>
-            <button type="button" id="ptPlanCfg" aria-expanded="${PS.cfg}">⚙ 範本設定</button><small class="ptwho">被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。</small></div>
-          ${PS.cfg && p ? `<div class="pmbar pmed" id="ptEdit"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
+      box.innerHTML = p ? `<div class="ptwhoro"><span class="ptwho"><b>${esc(planLabel(p))}</b>・被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。</span>
+            <button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${PS.cfg}" title="範本設定（改名／價格／月或年／刪除）" aria-label="範本設定">⚙</button></div>
+          ${PS.cfg ? `<div class="pmbar pmed" id="ptEdit"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
             <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
             <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
             <button type="button" class="pri" id="ptEdSave">儲存</button>
             <button type="button" class="danger" id="pmPlanDel" title="用這個範本的會員會退回註冊會員">刪除這個範本</button>
             <small>金流以範本代號 <code>${esc(p.id)}</code> 對價；改名、改價不影響已指定的會員。</small></div>` : ''}`
-        : '<div class="pmwho">還沒有付費範本 —— 按右上的「＋」新增（填名稱、價格、月或年訂閱）。</div>';
-      const sel = v.querySelector('#ptPlanSel');
-      if (sel) sel.onchange = () => { if (!guard()) { sel.value = PS.planSel; return; } PS.planSel = sel.value; PS.confirmDel = false; paintTarget(); paintCats(); paintList(); setStat(''); };
+        : '<div class="pmwho">還沒有付費範本 —— 按頁籤最右邊的「＋」新增（填名稱、價格、月或年訂閱）。</div>';
       const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.confirmDel = false; paintTarget(); };
       const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
       const del = v.querySelector('#pmPlanDel');
@@ -697,8 +769,9 @@
     const noPlan = PS.adding || (PS.tier === 'paid' && !planOf(PS.planSel));
     if (PS.tier === 'guest') PS.sub = 'perm';
     bar.hidden = noPlan;
+    bar.classList.toggle('one', PS.tier === 'guest');
     bar.innerHTML = `<button type="button" role="tab" data-sub="perm" id="ptSubPerm" class="${PS.sub === 'perm' ? 'on' : ''}" aria-selected="${PS.sub === 'perm'}">觀看權限</button>`
-      + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單<small>${listRows().length}</small></button>`);
+      + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單</button>`);
     const pb = v.querySelector('#ptPermBox'), lb = v.querySelector('#ptListBox');
     if (pb) pb.hidden = noPlan || PS.sub !== 'perm';
     if (lb) lb.hidden = noPlan || PS.sub !== 'list';
@@ -709,7 +782,7 @@
   async function paintGuestSum() {
     const box = PS.v && PS.v.querySelector('#ptGuestSum'); if (!box) return;
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="card" id="ptGuestCard" style="margin-top:14px"><h3>訪客整體流量（近 30 天）</h3><p class="use">訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚；下面關掉的功能，就是訪客想看卻要先登入／升級的東西。</p><div class="kpis" id="ptGuestKpi"><div><b>…</b>載入中</div></div></div>`;
+    box.innerHTML = `<div class="ptinner" id="ptGuestCard"><h3>訪客整體流量（近 30 天）</h3><p class="use">訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚；下面關掉的功能，就是訪客想看卻要先登入／升級的東西。</p><div class="kpis" id="ptGuestKpi"><div><b>…</b>載入中</div></div></div>`;
     const [st, on] = await Promise.all([PS.A.call('/v1/admin/stats', { days: 30 }), PS.A.call('/v1/admin/online', {})]);
     const k = PS.v && PS.v.querySelector('#ptGuestKpi'); if (!k || PS.tier !== 'guest') return;
     if (!st || st._s !== 200) { k.innerHTML = `<div class="err">讀不到流量（${esc(errText(st))}）</div>`; return; }
@@ -781,12 +854,17 @@
       const ctl = f.kind === 'limit'
         ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${Array.from({ length: f.max + 1 }, (_, i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i + ' 頁'}</option>`).join('')}</select>`
         : `<label class="psw"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${val !== false ? 'checked' : ''} ${ready ? '' : 'disabled'}><span></span></label>`;
-      /* 瀏覽次數（每日上限）：只有範本有、只有開關類有（自選分頁數本身就是數量上限）*/
-      const lv = lims && Object.prototype.hasOwnProperty.call(lims, f.id) ? lims[f.id] : '';
-      const lim = lims && f.kind !== 'limit' ? `<label class="pmlimw${lv === 0 ? ' zero' : ''}" title="每日瀏覽次數上限：留空＝不限、0＝不能看"><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）" ${ready ? '' : 'disabled'}><small>次/日</small></label>` : '';
-      const tag = (unsaved ? '<span class="pmtag new" title="改了還沒按儲存">未存</span>' : '') + (diff ? (PS.mode === 'member' ? `<span class="pmtag" title="跟範本不同（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">微調</span><button type="button" class="pmrev" data-rev="${esc(f.id)}">還原</button>`
-        : `<span class="pmtag" title="跟預設不同">改過</span>`) : '');
-      return `<div class="pmrow${compact ? ' sm' : ''}${lims ? ' wlim' : ''}${unsaved ? ' dirty' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx"><b>${compact ? grpIcon(f) : ''}${esc(f.name)}</b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div><div class="pmside">${tag}</div>${lims ? `<div class="pmlimc">${lim}</div>` : ''}</div>`;
+      /* 瀏覽次數（每日上限）：perm-cards（2026-10-05）改成名稱右側一顆小徽章（∞／N/日），點了才彈出小輸入框 ——
+         Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */
+      const has = lims && Object.prototype.hasOwnProperty.call(lims, f.id), lv = has ? lims[f.id] : '';
+      const limOpen = lims && PS.limOpen === f.id;
+      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="每日瀏覽次數上限（點一下設定）" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : '∞'}</button>` : '';
+      const pop = limOpen && f.kind !== 'limit' ? `<div class="pmlimpop" role="dialog" aria-label="${esc(f.name)} 每日瀏覽次數"><span>每日最多</span><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-limclr="${esc(f.id)}">不限</button><button type="button" class="ok" data-limok="1">確定</button></div>` : '';
+      /* 改動用顏色表示、不用文字標籤（Andy 10-05 追加）：未存＝淡琥珀底＋左色條（.dirty）、已存的微調／改過＝淡藍左色條（.tuned）。
+         色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
+      const rev = PS.mode === 'member' ? `<span class="pmrevc">${diff ? `<button type="button" class="pmrev" data-rev="${esc(f.id)}" title="還原成範本（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">還原</button>` : ''}</span>` : '';
+      const limc = lims ? `<span class="pmlimc">${badge}</span>` : '';
+      return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}${diff ? ' tuned' : ''}${lims ? ' wl' : ''}${f.kind === 'limit' ? ' sel' : ''}${PS.mode === 'member' ? ' wr' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx" title="${esc(f.name)}${f.desc ? '：' + esc(f.desc) : ''}"><b>${compact ? grpIcon(f) : ''}<span class="pmnm nm">${esc(f.name)}</span></b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div>${limc}${rev}${pop}</div>`;
     }).join('');
   }
   function paintCats() {
@@ -796,7 +874,7 @@
     const saved = PS.mode === 'plan' ? ((planOf(PS.planSel) || {}).feats || {}) : ((PS.rec && PS.rec.over) || {});
     const now = PS.mode === 'plan' ? ((PS.draft && PS.draft.feats) || saved) : mOver();
     box.classList.toggle('off', !ready);
-    /* 一般功能：一張大卡、細線分隔、不收合（admin-v2c 定案）；族群觀測：整塊預設收合、每個產業鏈分組各自可收合 */
+    /* 一般功能：每個分類各一張卡、四欄格狀（perm-cards 2026-10-05，Andy 要回 10-04 第一版的樣子）；族群觀測：整塊預設收合、每個產業鏈分組各自可收合 */
     const cats = FT().cats.filter((c) => FT().inCat(c.id).length);
     if (!PS.open) PS.open = new Set();
     const isOn = (f) => (f.kind === 'limit' ? cur[f.id] > 0 : cur[f.id] !== false);
@@ -807,7 +885,7 @@
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
     box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
-      return `<div class="pmcat" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
+      return `<div class="pmcat card" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
         <div class="pmbody">${catRows(fs, cur, base, saved, now, ready, false)}</div></div>`; }).join('');
     const gc = cats.find((c) => c.id === 'grp');
     if (gbox) gbox.innerHTML = gc ? (() => {
@@ -825,7 +903,10 @@
     if (gbox) gbox.onchange = (e) => box.onchange(e);
     if (gbox) gbox.oninput = (e) => box.oninput(e);
     if (gbox) gbox.onclick = (e) => box.onclick(e);
+    if (gbox) gbox.onkeydown = (e) => box.onkeydown(e);
     const ttl = v.querySelector('#pmGrpTtl'); if (ttl) ttl.onclick = (e) => box.onclick(e);
+    /* 單行規則：放不下就省略號，全文放在 title（滑過看得到）*/
+    v.querySelectorAll('.ptwrap .use, .ptwrap .pmwho, .pmlegend span, .ptlede, .pmcathd h3, .grpch .pmfoldhd').forEach((el) => { if (!el.title) el.title = el.textContent.trim(); });
     box.onchange = (e) => {
       if (e.target.closest('[data-lim]')) return;
       const el = e.target.closest('[data-f]'); if (!el) return;
@@ -841,17 +922,22 @@
       if (!ok) return;
       setLim(inp.dataset.lim, raw === '' ? null : +raw);
       const row = inp.closest('.pmrow'), sl = savedLims(), cl = curLims(), fid = inp.dataset.lim;
-      const lw = inp.closest('.pmlimw'); if (lw) lw.classList.toggle('zero', raw !== '' && +raw === 0);
-      if (row) {
-        const dirty = sl[fid] !== cl[fid] || (((planOf(PS.planSel) || {}).feats || {})[fid] !== ((PS.draft && PS.draft.feats) || {})[fid]);
-        row.classList.toggle('dirty', dirty);
-        const side = row.querySelector('.pmside'), has = side && side.querySelector('.pmtag.new');
-        if (side && dirty && !has) side.insertAdjacentHTML('afterbegin', '<span class="pmtag new" title="改了還沒按儲存">未存</span>');
-        if (side && !dirty && has) has.remove();
-      }
+      const b = row && row.querySelector('button[data-limb]');
+      if (b) { const h = Object.prototype.hasOwnProperty.call(cl, fid); b.textContent = h ? cl[fid] + '/日' : '∞'; b.classList.toggle('set', h); b.classList.toggle('zero', h && cl[fid] === 0); }
+      if (row) row.classList.toggle('dirty', sl[fid] !== cl[fid] || (((planOf(PS.planSel) || {}).feats || {})[fid] !== ((PS.draft && PS.draft.feats) || {})[fid]));
       paintSave();
     };
+    if (!PS.limDoc) { PS.limDoc = true; document.addEventListener('pointerdown', (e) => {
+      if (PS.limOpen && !e.target.closest('.pmlimpop,button[data-limb]')) { PS.limOpen = null; paintCats(); } }, true); }
+    box.onkeydown = (e) => { if (e.target.closest('input[data-lim]') && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); PS.limOpen = null; paintCats(); } };
     box.onclick = (e) => {
+      const lb = e.target.closest('button[data-limb]');
+      if (lb) { PS.limOpen = PS.limOpen === lb.dataset.limb ? null : lb.dataset.limb; paintCats();
+        const i = box.querySelector('input[data-lim]'); if (i) { i.focus(); i.select(); } return; }
+      const lc = e.target.closest('button[data-limclr]');
+      if (lc) { setLim(lc.dataset.limclr, null); PS.limOpen = null; paintTarget(); paintCats(); return; }
+      if (e.target.closest('button[data-limok]')) { PS.limOpen = null; paintTarget(); paintCats(); return; }
+      if (PS.limOpen && !e.target.closest('.pmlimpop')) { PS.limOpen = null; paintCats(); }
       const fb = e.target.closest('button[data-fold]');
       if (fb) { const k = fb.dataset.fold; if (PS.open.has(k)) PS.open.delete(k); else PS.open.add(k); paintCats(); return; }
       if (e.target.closest('#pmExpandAll,#pmCollapseAll')) {
@@ -1022,7 +1108,7 @@
       const box = PS.v.querySelector('#ptListBox'); if (!box || box.hidden) return;
       const rows = listRows();
       const ttl = PS.tier === 'free' ? '註冊會員' : `付費・${(planOf(PS.planSel) || {}).name || ''}`;
-      box.innerHTML = `<div class="card" id="ptMail" style="margin-top:14px"><h3>${esc(ttl)}・${rows.length} 人</h3><p class="use">${PS.tier === 'free' ? '所有註冊會員（登入過的人）；金色徽章＝付費會員（後面是方案名），過期的付費會員標「過期」。' : '被指定到這個範本的會員。'}點欄位標題排序、點一列展開他的使用紀錄。要新增、改到期日或換範本，到「會員管理」。</p>
+      box.innerHTML = `<div class="ptinner" id="ptMail"><h3>${esc(ttl)}・${rows.length} 人</h3><p class="use">${PS.tier === 'free' ? '所有註冊會員（登入過的人）；金色徽章＝付費會員（後面是方案名），過期的付費會員標「過期」。' : '被指定到這個範本的會員。'}點欄位標題排序、點一列展開他的使用紀錄。要新增、改到期日或換範本，到「會員管理」。</p>
         ${rows.length ? memTable(rows, 'ptTable') : '<div class="empty">這一層目前沒有人。</div>'}
         <div class="pmbar"><a href="#admin/members" id="ptGoMembers">到會員管理新增會員 →</a></div></div>`;
       wireList(box);
