@@ -122,12 +122,12 @@
     host.classList.add('twms');
     host.dataset.ms = id;
     if (cfg.width) host.style.setProperty('--ms-w', cfg.width);
-    host.innerHTML = `<button type="button" class="twms-btn" aria-haspopup="listbox" aria-expanded="false"><span class="twms-k">${esc(label)}：</span><b></b><i aria-hidden="true">▾</i></button>`;
+    host.innerHTML = `<button type="button" class="twms-btn" aria-haspopup="dialog" aria-expanded="false"><span class="twms-k">${esc(label)}：</span><b></b><i aria-hidden="true">▾</i></button>`;
     const btn = host.querySelector('.twms-btn');
 
     const textOf = (v) => { const it = items.find((x) => x.v === v); return it ? (it.t || it.v) : v; };
     const paintBtn = () => {
-      // 勾到的值如果已經不在選項裡（例如換了市場別），不算數 —— 按鈕上的摘要要跟畫面一致
+      // 摘要只看 sel：選項換掉時，呼叫端要先把已經不在名單裡的值拿掉再傳進來（漲跌分佈的 wireDistFilter 就是這樣做），不然按鈕上的「已選 N」會跟畫面對不起來
       const n = sel.size;
       const val = n === 0 ? none : n === 1 ? textOf([...sel][0]) : `已選 ${n}`;
       btn.querySelector('b').textContent = val;
@@ -150,7 +150,7 @@
       pan.setAttribute('aria-label', `${label}篩選`);
       pan.innerHTML = `<input type="search" class="twms-q" placeholder="${esc(cfg.placeholder || `搜尋${label}…`)}" aria-label="${esc(cfg.placeholder || `搜尋${label}`)}" autocomplete="off">
         <div class="twms-bar"><button type="button" class="twms-all">全選</button><button type="button" class="twms-clr">清除</button><span class="twms-n"></span></div>
-        <div class="twms-list" role="listbox" aria-multiselectable="true" aria-label="${esc(label)}"></div>`;
+        <div class="twms-list" role="group" aria-label="${esc(label)}"></div>`;
       qi = pan.querySelector('.twms-q');
       lst = pan.querySelector('.twms-list');
       qi.value = mem.q || '';

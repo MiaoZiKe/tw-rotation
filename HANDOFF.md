@@ -1,5 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 04:xx 篩選膠囊牆 → 全站共用下拉多選 site/multiselect.js（UI 專家，DECISIONS #324）
+- Andy：「改下拉式清單篩選，確認是否其他還有這樣的功能未被更改，一併改成這樣」（截圖：漲跌分佈「族群篩選」展開 118 個族群膠囊＋「往下捲」）。
+- 新元件 `site/multiselect.js`（`window.TwMS.mount(host,{id,label,items,groups,selected,onChange})`，index.html 在 app.js 前載入）：按鈕一行「族群：不限／名稱／已選 N ▾」固定寬；
+  面板掛 body＋fixed（不被卡片 overflow／backdrop-filter／transform 切），搜尋、全選／清除、依產業鏈分組（點組標題整組勾）、最大高度內捲；點外面／Esc／換頁收起；同 id 重新 mount 接手開合／搜尋字／焦點（含 ETF、⚡即時每 5 秒整塊重畫不會把面板關掉）。
+- 漲跌分佈改用它（篩選條件一字未改）；`.mktdist` 加 container query（790px）讓篩選列換不換行由卡寬決定 —— 勾選後副標變短不再讓整張卡矮 52px（800px 量到）。
+- 普查（只有漲跌分佈這一處是膠囊牆；其他選項多的篩選早就是下拉）：今日候選 Excel 式勾選、站上均線／週期統計 `.rotdd.msdd`、資金輪動／資金去向兩層下拉、熱力圖／熱門題材單選下拉、產業鏈「環節 ▾」、選股策略子標籤 —— 不改。
+  **待轉交（別人的檔，沒動）**：`etfpage.js` ETF 分類 8 顆 `.nbsw`（1440 量到 2 排、會橫捲）；`admin.js` 流量觀測「分頁明細」頁面切換 `#trPageSeg`（頁數隨資料最多 18）；`mobile3.js` 手機「篩選與期間」抽屜產業鏈 9 顆晶片（手機暫停中）。
+- docs/style_guide.md 第五節加「篩選（選項多）」、第七節禁止事項第 9 條；modules.js `market.detail` 掛上「下拉篩選1006」。
+- **這批驗了**：`下拉篩選1006`（新：1440／800 各一輪＋390；展開／搜尋／勾兩個長條總家數＝兩族群檔數加總／重畫時面板留著／清除還原／分組標題／Esc・點外面・再點收起／換分頁回預設／卡高與頁高不變；
+  反向：拿掉 `[hidden]` 修正 → 搜尋紅 2、拿掉 container query → 800 卡高紅 1）0、`個股R5`（7g 改驗下拉）、市場明細四段、站上均線下拉1004、積木清單、總覽、_preview（結果見下一行）。沒跑 pytest（沒動 pipeline）。
+- 已知限制：① 單一族群時按鈕寫名稱，長名字省略（滑過看全名）；② 今日候選仍是自己那套 Excel 語意下拉（Andy 指定），外觀沒併進 TwMS；③ TwMS 只有多選，沒有單選模式。
+
 ## 2026-10-06 02:40 會員 Worker：每小時統計＋頁面白名單補七頁（分支 `claude/worker-hourly`，**Worker 先上，前端待接**）
 - Andy：流量觀測「即時」看今天 0–24 時每小時、「使用者」分頁看每小時使用時段（1H／4H／6H／12H／白天／晚上）；ETF、選股策略、事件、客服、財經日曆要有真的瀏覽數。
 - 後端（`workers/account-api/worker.js` 檔尾 hourly 區塊，只新增、包 prototype）：新表 `hstat(day, h, pv, sess, sess_login, mins)`（台北日期×小時，只有次數、無識別碼，保留 13 個月同 usage）；
