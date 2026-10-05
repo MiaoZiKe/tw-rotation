@@ -1,5 +1,20 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 04:55 FRED 總經／財經日曆 FED 卡空白：根因是 Secret 的值不是 FRED 金鑰（**待 Andy 重設 Secret**）
+- 現象：`last_run.json` 的 `macro.fred`、`macro.fred_calendar` 每輪 ok=False rows=0，`data/macro*.parquet` 從沒產生過，財經日曆 FED 卡（前值／公布值、偏多偏空、走勢小圖）空白。
+- 根因（雲端實測，手動觸發 daily.yml phase=news，run 37370277055）：FRED 回
+  `HTTP 400：Bad Request. The value for variable api_key is not a 32 character alpha-numeric lower-case string.`；
+  金鑰自檢：**長度 52（應為 32）、含大寫字母、含 1 個非英數字元**（已去掉頭尾空白／換行／引號之後）。
+  ＝ GitHub Secrets 裡 `FRED_API_KEY` 存的不是 FRED 金鑰（貼成別的東西、或金鑰前後夾了說明文字）。
+  工作流有傳（daily.yml「抓取與計算」env）、變數名一致、端點與參數（series/observations、release/dates 的 realtime_start／end、include_release_dates_with_no_data=true）都對。
+- 修（cfb91008）：FRED 錯誤原因寫進 `last_run.json` 的 `steps.<名稱>.error`（來源掛 `df.attrs["error"]`，`run_daily.step()` 接；金鑰一律抹掉）；
+  `config.FRED_KEY` 去頭尾空白／換行／引號；回應缺欄位印前 200 字。測試 10 條在 `tests/test_sources_v3.py`。
+- **Andy 要做**：到 <https://fredaccount.stlouisfed.org/apikeys> 複製 32 字元小寫金鑰（沒有就到 <https://fred.stlouisfed.org/docs/api/api_key.html> 申請），
+  在 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions> 編輯 `FRED_API_KEY`，**只貼那 32 個字**。下一輪每日管線（或手動觸發 phase=news）就會補上；
+  看 `last_run.json` 的 `macro.fred.rows` > 0、沒有 `error` 欄就是好了。
+- 這批驗了：pytest 全套（本機 1027 passed／4 skipped／1 xfailed；雲端 daily.yml 測試步驟也綠）；雲端實跑 phase=news 拿到上面的錯誤字串。沒跑 _preview／_uitest（沒動 site、build_payload）。
+- 順帶發現（非本批）：`tests/test_stage_pipeline_news.py` 沒 mock `collect_index_minute`，在出口被擋的容器裡單檔要 25 分鐘（GitHub 上不受影響），已開建議任務。
+
 ## 2026-10-06 02:40 會員 Worker：每小時統計＋頁面白名單補七頁（分支 `claude/worker-hourly`，**Worker 先上，前端待接**）
 - Andy：流量觀測「即時」看今天 0–24 時每小時、「使用者」分頁看每小時使用時段（1H／4H／6H／12H／白天／晚上）；ETF、選股策略、事件、客服、財經日曆要有真的瀏覽數。
 - 後端（`workers/account-api/worker.js` 檔尾 hourly 區塊，只新增、包 prototype）：新表 `hstat(day, h, pv, sess, sess_login, mins)`（台北日期×小時，只有次數、無識別碼，保留 13 個月同 usage）；
