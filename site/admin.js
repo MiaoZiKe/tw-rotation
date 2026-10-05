@@ -18,7 +18,7 @@
 (function () {
   'use strict';
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const VIEW_NAME = { overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計',
+  const VIEW_NAME = { themes: '題材熱度', etf: 'ETF', explore: '選股策略', overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計',
     delivery: '交付清單', stock: '個股頁', legal: '法律頁', watch: '自選清單', other: '其他' };
   const EV_NAME = { session: '開啟網站（每個分頁一次）', session_login: '登入狀態下開啟網站', login: '登入', logout: '登出',
     search: '搜尋股票', watch_add: '加入自選', watch_remove: '移出自選', watch_tab_new: '新增自選分頁', watch_panel: '打開自選清單',
@@ -51,6 +51,7 @@
    表頭 12/600、表格內文 14、軸字／圖例註 12。版型：三欄格線，第一列 2:1（趨勢＋佔比）、第二列三張長條榜、第三列 2:1（表＋散佈）、第四列 1:2（在線＋會員）；
    卡片＝flex 直欄，圖區 .cb 吃掉標題以下全部高度（flex:1），資料少時長條列距、直條寬度、表格列高自動放大，不留白。 */
 #v-admin .admgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(var(--tr-row,300px),auto);gap:var(--gap-card,12px);margin-top:12px}
+#v-admin.demo::before{content:"示範資料（預覽版專用，正式站不會出現）";display:inline-flex;align-items:center;height:26px;padding:0 10px;margin:12px 0 0;border-radius:999px;font-size:12px;font-weight:600;color:var(--amber,#e0a93a);border:1px solid var(--amber,#e0a93a);background:color-mix(in srgb,var(--amber,#e0a93a) 12%,transparent)}
 #v-admin .admgrid>.s2{grid-column:span 2}
 #v-admin .admgrid>.tall{grid-row:span 1;min-height:var(--tr-row-tall,340px)}
 #v-admin .secttl h2{font-size:var(--fs-h2,20px);font-weight:600}
@@ -581,8 +582,74 @@
     const nav = v.querySelector('#admTabs');
     if (nav) nav.onclick = (e) => { const a = e.target.closest('a[data-tab]'); if (a && !guard()) e.preventDefault(); };
   }
+  /* ==========================================================================
+     預覽版示範資料（Andy 10-05：「預覽版本先給我多點數據，先預設目前超破萬次觀看紀錄」）
+     只有網址含 /preview/ 時才啟用（判斷寫死在路徑，正式站一行都不跑）：包住 A.call，把管理區的統計類回應換成示範資料，
+     頁面上方標「示範資料」。寫入類（儲存範本、改權限…）一律照舊打真的 Worker，不攔。
+     ========================================================================== */
+  const IS_PREVIEW = /\/preview\//.test(location.pathname || '');
+  const DEMO = (() => {
+    let seed = 20261005; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    const PAGES = [['flow', 3300], ['stock', 2800], ['overview', 2300], ['industry', 1500], ['market', 1100], ['heatmap', 800], ['themes', 650], ['season', 450], ['etf', 330], ['watch', 270]];
+    const STK = [['2330', 520], ['2317', 340], ['2454', 260], ['3711', 210], ['2382', 175], ['3037', 150], ['2603', 120], ['2308', 100], ['6669', 85], ['3661', 70]];
+    const wsum = PAGES.reduce((s, p) => s + p[1], 0);
+    const dayKey = (i) => new Date(Date.parse('2026-09-05T00:00:00Z') + i * 86400000).toISOString().slice(0, 10);
+    const rows = [], perDayW = [];
+    for (let i = 0; i < 30; i++) { const dow = new Date(Date.parse(dayKey(i) + 'T00:00:00Z')).getUTCDay(); perDayW.push((dow === 0 || dow === 6 ? 0.45 : 1) * (0.8 + rnd() * 0.45) * (0.85 + i / 90)); }
+    const wtot = perDayW.reduce((a, b) => a + b, 0), TOTAL = 13600;
+    perDayW.forEach((w, i) => { const day = dayKey(i), dn = TOTAL * w / wtot;
+      PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.85 + rnd() * 0.3))) }));
+      const ss = Math.round(dn * 0.155); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + rnd() * 0.08)) }); });
+    [['how', 214], ['search', 466], ['k_period', 388], ['watch_add', 205], ['zoom', 342], ['stock_tab', 297], ['theme_toggle', 96], ['events_drawer', 143], ['open_3d', 78], ['indicators', 64]].forEach(([k, n]) => rows.push({ day: dayKey(29), k: 'ev:' + k, n }));
+    const e2 = [];
+    STK.forEach(([cd, n]) => { e2.push({ page: 'stock', comp: 'view', detail: cd, n });
+      [['tab.revenue', 0.34], ['kp.60m', 0.27], ['tab.inst', 0.22], ['tab.profit', 0.15], ['kp.d', 0.12]].forEach(([c, f]) => e2.push({ page: 'stock', comp: c, detail: cd, n: Math.max(1, Math.round(n * f * (0.7 + rnd() * 0.6))) })); });
+    [['被動元件 MLCC', 148], ['晶圓代工', 121], ['ABF 載板', 96], ['CoWoS 先進封裝', 82], ['散熱模組', 63], ['光通訊', 51], ['矽光子', 38]].forEach(([g, n]) => e2.push({ page: 'flow', comp: 'filter_group', detail: g, n }));
+    [['play', 'rotBack', 212], ['quad', '領先', 176], ['quad', '改善', 131], ['rank_bar', '晶圓代工', 94], ['clock_group', '散熱模組', 77], ['how', 'flowRotCard', 58], ['filter_chain', '半導體', 49]].forEach(([c, d, n]) => e2.push({ page: 'flow', comp: c, detail: d, n }));
+    [['how', 'ovHeatCard', 71], ['heat_tile', 'ABF 載板', 64], ['zoom', 'ovIndex', 43]].forEach(([c, d, n]) => e2.push({ page: 'overview', comp: c, detail: d, n }));
+    const NM = ['王小明', '陳怡君', '林志豪', '張雅婷', '李承恩', '黃柏翰', '吳佩珊', '劉冠宇', '蔡欣怡', '楊家豪', '許雅文', '鄭宇軒', '謝佳穎', '郭俊傑', '洪思妤', '曾冠廷', '邱怡婷', '廖偉誠', '賴淑芬', '徐子豪'];
+    const NOW = Date.now(), NU = 64;
+    const users = Array.from({ length: NU }, (_, i) => ({ name: NM[i % NM.length] + (i >= NM.length ? String(Math.floor(i / NM.length) + 1) : ''), email: `demo${String(i + 1).padStart(2, '0')}@example.com`,
+      seen: NOW - Math.round((i * 2.2 + rnd() * 3) * 3600000), created: NOW - Math.round((8 + i * 1.7) * 86400000), visits: Math.max(1, Math.round(46 - i * 0.6 + rnd() * 6)) }));
+    const members = users.map((u, i) => ({ email: u.email, onlineMs: Math.round((9 - i * 0.12 + rnd()) * 3600000), online30: Math.round((5 - i * 0.07 + rnd()) * 3600000), visits30: u.visits,
+      days30: Math.max(1, Math.round(22 - i * 0.3)), views30: Math.round(u.visits * (4 + rnd() * 5)), topFeat: [['tab.revenue', 14 - (i % 7)], ['quad', 9 - (i % 5)], ['kp.60m', 5]], topStock: [[STK[i % 10][0], 18 - (i % 9)], [STK[(i + 3) % 10][0], 7], [STK[(i + 6) % 10][0], 3]] }));
+    const onlineRoutes = ['flow', 'stock', 'overview', 'industry', 'market', 'themes', 'heatmap', 'etf'];
+    const online = { total: 11, guests: 3, public_online: true, users: onlineRoutes.map((r, i) => ({ name: users[i].name, email: users[i].email, route: r, seen: NOW - (8 + i * 17) * 1000 })) };
+    const stats = { from: '2026-09-05', to: '2026-10-04', rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
+    const mstats = { days: Array.from({ length: 14 }, (_, i) => ({ day: dayKey(16 + i), n: Math.round(16 + rnd() * 18) })), active7: 31,
+      feats: [['tab.revenue', 412], ['quad', 298], ['kp.60m', 251], ['filter_group', 207], ['tab.inst', 188], ['play', 143], ['search', 121], ['zoom', 96]], stocks: STK.slice(0, 8).map(([c, n]) => [c, Math.round(n * 0.6)]) };
+    const detail = (email) => { const i = Math.max(0, users.findIndex((u) => u.email === email)), m = members[i] || members[0];
+      return { known: true, days: Array.from({ length: 14 }, (_, k) => ({ day: dayKey(16 + k), visits: 1 + ((k + i) % 3), views: 8 + ((k * 7 + i * 3) % 23), ms: (6 + ((k * 5 + i) % 28)) * 60000 })),
+        pages: PAGES.slice(0, 6).map(([k, s], j) => [k, Math.round(s / 40 / (j + 1) + i % 5)]), feats: [['stock', 'tab.revenue', 14], ['flow', 'quad', 9], ['stock', 'kp.60m', 7], ['flow', 'filter_group', 5], ['overview', 'how', 3]], stocks: m.topStock }; };
+    return { stats, online, members, mstats, detail, users };
+  })();
+  function demoWrap(A) {
+    if (!IS_PREVIEW || !A || A.__demo) return A;
+    const ok = (o) => Promise.resolve(Object.assign({ _s: 200 }, o));
+    const W = Object.create(A);
+    W.__demo = true;
+    W.call = async (path, body) => {
+      if (path === '/v1/admin/stats') return ok(DEMO.stats);
+      if (path === '/v1/admin/online') return ok(DEMO.online);
+      if (path === '/v1/admin/members') return ok({ members: DEMO.members });
+      if (path === '/v1/admin/members/stats') return ok(DEMO.mstats);
+      if (path === '/v1/admin/member/detail') return ok(DEMO.detail(String((body || {}).email || '').toLowerCase()));
+      const r = await A.call(path, body);
+      if (path === '/v1/admin/perm/list' && r && r._s === 200) {                  // 名單：真資料之外補示範會員（前 12 位掛第一個付費範本，其餘免費）
+        const paid = (window.__demoPlan || '');
+        const have = new Set((r.users || []).map((u) => u.email));
+        r.users = (r.users || []).concat(DEMO.users.filter((u) => !have.has(u.email)));
+        r.rows = (r.rows || []).concat(DEMO.users.slice(0, 12).filter((u) => paid).map((u) => ({ email: u.email, plan: paid, n: 0, updated: Date.now(), expires: Date.now() + 25 * 86400000 })));
+      }
+      if (path === '/v1/admin/plans/get' && r && r._s === 200) { const p = (r.plans || []).find((x) => !x.builtin && x.id !== 'guest' && x.id !== 'free'); window.__demoPlan = p ? p.id : ''; }
+      return r;
+    };
+    return W;
+  }
   function render(v, A) {
     css();
+    A = demoWrap(A);
+    v.classList.toggle('demo', IS_PREVIEW);
     S.v = v; S.A = A;
     const t = tabOf();
     if (t !== 'traffic') clearInterval(S.timer);
