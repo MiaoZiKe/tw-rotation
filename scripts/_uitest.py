@@ -44288,7 +44288,7 @@ def t_member_regress_1005(b, base):
 ADM2_API = "https://acct.example.test"
 
 
-def _adm2_ctx(b, who="admin", width=1440, grp_off=None):
+def _adm2_ctx(b, who="admin", width=1440, grp_off=None, many=False):
     sent: list = []
     now = 1759600000000
     st = {"plans": [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "builtin": True, "members": 0},
@@ -44309,6 +44309,28 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None):
           ["stock", "tab.revenue", "2330", 11], ["stock", "kp.60m", "2330", 4], ["stock", "tab.inst", "2317", 6]]
     rows = [{"day": "2026-10-04", "k": "pv:flow", "n": 40}, {"day": "2026-10-04", "k": "pv:stock", "n": 33}, {"day": "2026-10-03", "k": "pv:overview", "n": 25},
             {"day": "2026-10-04", "k": "ev:session", "n": 50}, {"day": "2026-10-04", "k": "ev:session_login", "n": 20}, {"day": "2026-10-04", "k": "ev:how", "n": 5}]
+
+    online_users = [{"name": "管理者", "email": "boss@example.com", "route": "flow", "seen": now}]
+    if many:   # 2026-10-05 流量觀測重設計：「資料多」情境（30 天每天有量、8 個頁面、10 檔個股、50 位會員、6 人在線）
+        import random
+        rnd = random.Random(7)
+        pgs = [("flow", 410), ("stock", 360), ("overview", 300), ("industry", 240), ("market", 170), ("heatmap", 120), ("season", 80), ("watch", 60)]
+        rows = []
+        for i in range(30):
+            d = f"2026-09-{5 + i:02d}" if 5 + i <= 30 else f"2026-10-{5 + i - 30:02d}"
+            for pgn, tot in pgs:
+                rows.append({"day": d, "k": "pv:" + pgn, "n": max(1, int(tot / 30 * (0.5 + rnd.random()) * (0.7 + i / 60)))})
+            rows += [{"day": d, "k": "ev:session", "n": 40 + rnd.randint(0, 30)}, {"day": d, "k": "ev:session_login", "n": 10 + rnd.randint(0, 12)}]
+        for k, n in [("how", 61), ("search", 48), ("k_period", 37), ("watch_add", 29), ("zoom", 24), ("stock_tab", 21), ("theme_toggle", 12), ("events_drawer", 9)]:
+            rows.append({"day": "2026-10-04", "k": "ev:" + k, "n": n})
+        e2 = [["flow", "filter_group", g, n] for g, n in [("被動元件 MLCC", 31), ("晶圓代工", 24), ("ABF 載板", 19), ("CoWoS 先進封裝", 15), ("散熱模組", 11), ("光通訊", 8)]]
+        e2 += [["flow", "play", "rotBack", 26], ["flow", "quad", "領先", 22], ["flow", "how", "flowRotCard", 12], ["flow", "rank_bar", "晶圓代工", 10], ["overview", "how", "ovHeatCard", 9], ["overview", "heat_tile", "ABF 載板", 7]]
+        stk = [("2330", 88), ("2317", 64), ("2454", 52), ("3711", 40), ("2382", 33), ("3037", 27), ("2603", 22), ("2308", 17), ("6669", 13), ("3661", 9)]
+        for i, (cd, n) in enumerate(stk):
+            e2.append(["stock", "view", cd, n])
+            e2 += [["stock", "tab.revenue", cd, max(1, n // 3)], ["stock", "kp.60m", cd, max(1, n // 5 + i % 3)], ["stock", "tab.inst", cd, max(1, n // 6)]]
+        users = [{"name": f"會員{i:02d}", "email": f"user{i:02d}@example.com", "seen": now - (i * 5400000), "visits": 40 - i} for i in range(1, 51)]
+        online_users = [{"name": f"會員{i:02d}", "email": f"user{i:02d}@example.com", "route": r, "seen": now - i * 20000} for i, r in enumerate(["flow", "stock", "overview", "industry", "market"], 1)] + online_users
 
     def eff(email):
         r = st["perm"].get(email)
@@ -44340,9 +44362,9 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None):
             out, code = {"error": "forbidden"}, 403
         elif path == "/v1/admin/stats":
             out = {"from": "2026-09-05", "to": "2026-10-04", "rows": rows, "e2": [{"page": a, "comp": c, "detail": d, "n": n} for a, c, d, n in e2],
-                   "users": {"total": 4, "recent": [{"name": u["name"], "email": u["email"], "created": now, "seen": u["seen"]} for u in users]}}
+                   "users": {"total": len(users), "recent": [{"name": u["name"], "email": u["email"], "created": now, "seen": u["seen"]} for u in users[:50]]}}
         elif path == "/v1/admin/online":
-            out = {"total": 3, "guests": 2, "users": [{"name": "管理者", "email": "boss@example.com", "route": "flow", "seen": now}], "public_online": True}
+            out = {"total": len(online_users) + 2, "guests": 2, "users": online_users, "public_online": True}
         elif path == "/v1/admin/plans/get":
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/plans/put":

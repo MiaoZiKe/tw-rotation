@@ -46,7 +46,92 @@
     if (document.getElementById('admCss')) return;
     const s = document.createElement('style'); s.id = 'admCss';
     s.textContent = `
-#v-admin .admgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
+/* ===== 流量觀測 1005 重設計（Andy 10-05：字級照其他分頁、圖表填滿卡片、其餘照 UI 專家設計）=====
+   字級（量自總覽／資金流向／市場明細，1440 實測）：卡標 16/600、副標 13/400、頂部 KPI 24/700 mono、卡內 KPI 18/700 mono、
+   表頭 12/600、表格內文 14、軸字／圖例註 12。版型：三欄格線，第一列 2:1（趨勢＋佔比）、第二列三張長條榜、第三列 2:1（表＋散佈）、第四列 1:2（在線＋會員）；
+   卡片＝flex 直欄，圖區 .cb 吃掉標題以下全部高度（flex:1），資料少時長條列距、直條寬度、表格列高自動放大，不留白。 */
+#v-admin .admgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(var(--tr-row,300px),auto);gap:var(--gap-card,12px);margin-top:12px}
+#v-admin .admgrid>.s2{grid-column:span 2}
+#v-admin .admgrid>.tall{grid-row:span 1;min-height:var(--tr-row-tall,340px)}
+#v-admin .secttl h2{font-size:var(--fs-h2,20px);font-weight:600}
+#v-admin .trkpi{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px}
+#v-admin .trkpi .kpis{flex:1 1 560px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
+#v-admin .kpis>div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+#v-admin .kpis b{display:block;font-size:24px;line-height:1.15;font-weight:700;color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums}
+#v-admin .kpis .ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;margin-bottom:2px;background:color-mix(in srgb,currentColor 16%,transparent)}
+#v-admin .kpis .ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#v-admin .trctl{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:16px}
+#v-admin .trctl label{font-size:13px;color:var(--ink-2);white-space:nowrap}
+#v-admin .trctl select,#v-admin .trctl button{height:32px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
+#v-admin .qtip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;cursor:help}
+#admBody .admgrid>.card{display:flex;flex-direction:column;min-width:0;padding:14px 16px}
+#admBody .admgrid>.card>h3{display:flex;align-items:center;gap:8px;white-space:nowrap;margin:0;font-size:var(--fs-h3,16px);font-weight:600;line-height:1.3}
+#admBody .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent,var(--cyan));flex:none}
+#admBody .admgrid>.card>.use{margin:2px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;font-size:13px;line-height:20px;color:var(--ink-2)}
+#admBody .cb{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+/* 長條榜：名稱／長條／數字三欄；列高在 30～64 之間隨可用高度長大，多的空間平均分在列間（資料少＝列距變寬，不留底部空白） */
+#admBody .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:minmax(var(--chart-row-h,30px),var(--tr-row-max,60px));align-content:space-evenly;column-gap:12px;align-items:center;font-size:var(--fs-body,14px)}
+#admBody .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+#admBody .bars .bt{height:var(--chart-bar-h,14px);background:var(--panel-3);border-radius:999px;overflow:hidden}
+#admBody .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
+#admBody .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+#admBody .bars .bn small{display:inline-block;width:3em;color:var(--ink-2);font-size:12px}
+#admBody .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
+#admBody .bars button.bl:hover{color:var(--accent,var(--cyan))}
+/* 每天直條：圖區吃滿卡片、y 軸 3 刻度＋淡格線、平均虛線、最高那天標值；天數 ≤ 7 時每根放大並標值與日期 */
+#admBody .dayplot{flex:1;display:flex;gap:8px;min-height:180px}
+#admBody .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);min-width:3em}
+#admBody .days{position:relative;flex:1;display:flex;align-items:stretch;gap:3px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 50%}
+#admBody .days .dc{flex:1;min-width:2px;max-width:var(--day-max,28px);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin:0 auto;position:relative}
+#admBody .days.few{gap:var(--day-gap,24px);padding:0 24px}
+#admBody .days.few .dc{max-width:var(--day-max,140px)}
+#admBody .days i{display:block;width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--cat-1),color-mix(in srgb,var(--cat-1) 45%,transparent))}
+#admBody .days .dc.mx i{background:var(--cat-1)}
+#admBody .days .dv{font:600 12px/1 var(--mono);color:var(--ink);margin-bottom:4px;white-space:nowrap}
+#admBody .days .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+#admBody .days.few{margin-bottom:20px}
+#admBody .days .avg{position:absolute;left:0;right:0;border-top:1px dashed var(--ink-3,#7a879c);pointer-events:none}
+#admBody .days .avg b{position:absolute;right:4px;top:-17px;font:12px/1 var(--mono);color:var(--ink-2);font-weight:400;background:var(--panel);padding:0 4px;border-radius:3px}
+#admBody .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:6px;padding-left:calc(3em + 8px)}
+#admBody .dayx .dayno{color:var(--ink-3)}
+/* 甜甜圈：外徑隨卡片可用高度放大（160～260）；圖例放圖下方一排，三欄置中 */
+#admBody .dn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:0}
+#admBody .dn svg{flex:1 1 0;min-height:var(--chart-donut,160px);max-height:260px;aspect-ratio:1;width:auto}
+#admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
+#admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
+#admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
+#admBody .dn li b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#admBody .dn li small{color:var(--ink-2);font-size:12px}
+#admBody .sc{flex:1;min-height:200px;position:relative}
+#admBody .sc svg{position:absolute;inset:0;width:100%;height:100%}
+#admBody .sc text{font-size:12px;fill:var(--ink-2)}#admBody .sc text.lb{fill:var(--ink);font-weight:600;paint-order:stroke;stroke:var(--panel);stroke-width:3px}
+#admBody .sc .gl{stroke:var(--line)}
+/* 表格：表頭 12/600、內文 14；包在 .tbw 裡吃滿卡片，列高隨資料量放大；超過 340 高就卷動、表頭黏住 */
+#admBody .tbw{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;max-height:var(--tr-tbl-max,340px)}
+#admBody table{width:100%;border-collapse:collapse;flex:1 1 auto}
+#admBody table th,#admBody table td{padding:4px 10px;line-height:1.4;font-size:14px;text-align:center;border-bottom:1px solid var(--line)}
+#admBody table th{font-size:12px;font-weight:600;color:var(--ink-2);white-space:nowrap;position:sticky;top:0;background:var(--panel-3);z-index:1}
+#admBody table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+#admBody table td:first-child{max-width:none}
+#admBody table tbody tr{height:34px}
+#admBody table td.nm{font-weight:600}
+#admBody table td .mn{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#admBody .chips{display:flex;gap:6px;justify-content:center;flex-wrap:nowrap;overflow:hidden}
+#admBody .chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--ink);background:color-mix(in srgb,var(--cat-1) 14%,transparent);border:1px solid color-mix(in srgb,var(--cat-1) 40%,transparent)}
+#admBody .chip:nth-child(2){background:color-mix(in srgb,var(--cat-2) 14%,transparent);border-color:color-mix(in srgb,var(--cat-2) 40%,transparent)}
+#admBody .chip:nth-child(3){background:color-mix(in srgb,var(--cat-3) 14%,transparent);border-color:color-mix(in srgb,var(--cat-3) 40%,transparent)}
+#admBody .chip b{font-family:var(--mono);font-weight:700}
+#admBody .vb{display:flex;align-items:center;gap:8px;justify-content:center}
+#admBody .vb i{display:block;height:8px;border-radius:999px;background:var(--cat-1);min-width:4px}
+#admBody .vb span{flex:0 0 110px;height:8px;background:var(--panel-3);border-radius:999px;overflow:hidden}
+#admBody .vb em{font-style:normal;font-family:var(--mono);min-width:2.5em;text-align:right}
+#admBody .okn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
+#admBody .okn>div{background:var(--panel-3);border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--ink-2)}
+#admBody .okn b{font:700 18px/1.2 var(--mono);color:var(--ink)}
+#admBody .okn>div.live b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat-1);margin-right:6px;vertical-align:middle}
+#admBody label.tg{margin-top:10px}
+@media (max-width:1100px){#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
+@media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
 #v-admin .card{min-width:0}
 #v-admin h2{margin:0;font-size:18px}#v-admin h3{margin:0 0 2px;font-size:16px}
@@ -54,52 +139,6 @@
 #v-admin .admtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #v-admin .admtop .sp{flex:1}
 #v-admin .admtop select,#v-admin .admtop button{height:32px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
-#v-admin .kpis{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0 10px}
-#v-admin .kpis div{font-size:13px;color:var(--ink-2)}#v-admin .kpis b{display:block;font-size:26px;color:var(--ink);font-family:var(--mono)}
-#v-admin .bars{display:grid;grid-template-columns:minmax(0,10em) minmax(0,1fr) 6.5em;grid-auto-rows:var(--chart-row-h,28px);column-gap:12px;align-items:center;font-size:var(--fs-sm,13px)}
-#v-admin .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#v-admin .bars .bt{height:var(--chart-bar-h,12px);background:var(--panel-3);border-radius:999px;overflow:hidden}
-#v-admin .bars .bt i{display:block;height:100%;background:var(--cat-1,var(--cyan));border-radius:999px}
-#v-admin .bars .bn small{display:inline-block;width:3em;color:var(--ink-2)}
-#v-admin .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-#v-admin .bars button.bl{background:none;border:0;color:var(--ink);text-align:left;font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
-#v-admin .dayplot{display:flex;gap:6px;flex:1;min-height:150px;max-height:170px;margin-top:4px}
-#v-admin .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);padding-bottom:0;min-width:3em}
-#v-admin .days{flex:1;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 50%;padding-top:0}
-#v-admin .days i{flex:1;min-width:2px;max-width:28px;background:var(--cat-1,var(--cyan));border-radius:3px 3px 0 0}
-#v-admin .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:4px;padding-left:calc(3em + 6px)}
-#v-admin .dayx .dayno{color:var(--ink-3)}
-/* 流量觀測 1005（Andy：圖表版面重排）：總覽卡＝五格 KPI 平均分寬＋右側期間控制；同排卡同高、卡內內容撐滿；所有表格與 KPI 文字置中 */
-#v-admin .trkpi{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-#v-admin .trkpi .kpis{flex:1 1 520px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
-#v-admin .trctl{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:18px}
-#v-admin .trctl label{font-size:13.5px;color:var(--ink-2);white-space:nowrap}
-#v-admin .trctl select,#v-admin .trctl button{height:32px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
-#v-admin .qtip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;cursor:help}
-#admBody .admgrid>.card{display:flex;flex-direction:column;min-width:0}
-#admBody .admgrid>.card>h3{display:flex;align-items:center;gap:6px;white-space:nowrap}
-#admBody .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--cyan);flex:none}
-#admBody .admgrid>.card>.use{margin:4px 0 10px}
-#admBody .admgrid>.card>.donut,#admBody .admgrid>.card>svg.sc{margin-top:auto;margin-bottom:auto}
-#admBody .admgrid>.card>.use{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
-#admBody .admgrid>.card>h3{font-size:var(--fs-h3,16px)}
-#admBody .donut{display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:nowrap}
-#admBody .donut svg{width:var(--chart-donut,160px);height:var(--chart-donut,160px);flex:none}
-#admBody .donut ul{list-style:none;margin:0;padding:0;display:grid;gap:10px;font-size:var(--fs-body,14px)}
-#admBody .donut li{display:flex;align-items:center;gap:8px;white-space:nowrap}
-#admBody .donut li i{width:12px;height:12px;border-radius:3px;flex:none}
-#admBody .donut li b{font-family:var(--mono);font-variant-numeric:tabular-nums}
-#admBody .donut li small{color:var(--ink-2)}
-#admBody svg.sc{max-height:200px}#admBody svg.sc text{font-size:12px;fill:var(--ink-2)}#admBody svg.sc text.lb{fill:var(--ink)}
-#admBody table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
-#admBody table td:first-child{max-width:none}
-#admBody .kpis>div,#admBody table th,#admBody table td{text-align:center}
-#admBody .bars .bl,#admBody .bars button.bl{text-align:center}
-#admBody .kpis{justify-content:center}
-#admBody table{width:100%;border-collapse:collapse}
-#admBody table th,#admBody table td{padding:5px 8px;line-height:1.4;font-size:13px}
-#admBody table th{white-space:nowrap}
-@media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}}
 #v-admin table{width:100%;border-collapse:collapse;font-size:13.5px}
 #v-admin th,#v-admin td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
 #v-admin th{color:var(--ink-2);font-weight:500;font-size:12.5px}
