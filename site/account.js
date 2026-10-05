@@ -276,19 +276,27 @@
     if (!m) {
       m = document.createElement('div'); m.id = 'acctMenu'; m.className = 'acctmenu'; m.setAttribute('role', 'menu'); document.body.appendChild(m);
       m.addEventListener('click', (e) => {
+        if (e.target.closest('.planbadge')) { m.hidden = true; return; }
         const a = e.target.closest('[data-a]'); if (!a) return;
         m.hidden = true;
         if (a.dataset.a === 'watch') location.hash = '#watch';   // 2026-09-28：自選改成整頁（#watch）
         if (a.dataset.a === 'admin') location.hash = '#admin/traffic';
         if (a.dataset.a === 'perm') location.hash = '#admin/perm';      // 2026-10-02 會員功能權限（DECISIONS #288）
         if (a.dataset.a === 'privacy') location.hash = '#privacy';
+        if (a.dataset.a === 'pricing') location.hash = '#pricing';            // 2026-10-05 sub-v1
+        if (a.dataset.a === 'feedback') location.hash = '#admin/feedback';
+        if (a.dataset.a === 'notices') location.hash = '#admin/notices';
         if (a.dataset.a === 'delete') openDlg('delete');
         if (a.dataset.a === 'logout') logout();
       });
     }
     const u = S.user || {};
-    m.innerHTML = `<div class="mh"><b>${esc(u.name || '')}</b><small>${esc(u.email || '')}</small></div>`
+    /* 2026-10-05（sub-v1）頂部：頭像字母＋名字＋方案徽章（pricing.js 的 TwPlanBadge，點了到 #pricing）*/
+    const ini = esc((u.name || u.email || '?').trim().charAt(0).toUpperCase());
+    m.innerHTML = `<div class="mh mhx"><span class="av" aria-hidden="true">${ini}</span><span class="nm"><b>${esc(u.name || '')}</b>${window.TwPlanBadge ? window.TwPlanBadge() : ''}</span><small>${esc(u.email || '')}</small></div>`
       + `<button type="button" role="menuitem" data-a="watch">★ 自選清單</button>`
+      + `<button type="button" role="menuitem" data-a="pricing">訂閱方案</button>`
+      + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
       + `<button type="button" role="menuitem" data-a="delete" class="danger">刪除我的資料…</button>`
@@ -412,8 +420,11 @@
     return adminLoading;
   }
   /* app.js 的 route() 問這裡：'admin' → 由本檔接手（app.js 關掉其他 view）；null → 不關本檔的事 */
+  /* 2026-10-05（sub-v1）：#admin/feedback、#admin/notices 由 support.js／notices.js 自己畫（app.js 的 TwSubRoutes 先攔），
+     這裡不要再把 admin.js 載進來、在藏起來的 #v-admin 裡多畫一份流量觀測（還會多打一支 /v1/admin/stats）。*/
+  const subAdmin = () => /^#admin\/(feedback|notices)\b/.test(location.hash || '');
   function route(head) {
-    if (head !== 'admin') return null;
+    if (head !== 'admin' || subAdmin()) return null;
     admKey = '';
     const v = ensureView(); if (!v) return null;
     if (!S.on) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p class="muted">會員功能尚未設定（docs/login_setup.md）。</p></div>'; return 'admin'; }

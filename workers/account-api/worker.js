@@ -626,3 +626,218 @@ export class Hub {
     if (this.state.storage.setAlarm) await this.state.storage.setAlarm(this.now() + ALARM_EVERY_MS);
   }
 }
+
+/* ============================================================================ sub-v1 區塊（2026-10-05）
+   訂閱申請、意見反饋、每日瀏覽次數、通知中心。Andy：參考 stockintelli 的訂閱頁＋右下角客服＋「之後有活動或變更要通知大家」。
+   ★ 為什麼全部寫在檔尾、用「包一層 prototype」接進來，而不是改 fetch() 的 switch：
+     同一時間另一條分支（preview/admin-v2）正在改這支檔案的 plans 表與既有函式；
+     這裡只「新增」—— 既有函式一行都沒動，兩邊合併時衝突只會落在檔尾（照順序接起來就好）。
+   資料表（第一次用到時才建；跟主表同一個 SQLite）：
+     sub_requests  訂閱申請（金流還沒串：專人開通）。uid、email、聯絡 email、方案、週期、備註、時間、狀態 new/done。
+     feedback      意見反饋。uid（訪客為空）、聯絡 email、類別、內容、當時網址、瀏覽器資訊、時間、狀態 new/handled。
+     quota_hits    每日瀏覽次數（登入者）：uid＋台北日期＋功能鍵＋看了哪一個（股票代號／題材代號）。只留 3 天。
+                   為什麼要存在伺服器：只靠 localStorage 的話，清快取就歸零 —— 登入者的計數以兩邊較大者為準。
+     notices       公告：標題、內文（純文字，前端自動連結、不收 HTML）、類型、對象、上下架時間、置頂。管理者自己刪。
+     notice_reads  登入者「讀過哪一則」（跨裝置）：email＋公告 id。公告刪掉或帳號刪除時一起刪。
+   公告對象：all 全部／guest 訪客／member 所有登入者（含付費）／paid 付費（免費會員以外的範本）／plan:<範本 id>。
+   隱私（同檔頭的保存規則）：反饋與申請保存 13 個月、刪除帳號時一併刪除；不送任何第三方；不進 repo。
+   ============================================================================ */
+const SUB_KEEP_MONTHS = 13;
+const FB_CATS = ['bug', 'idea', 'pay', 'other'];
+const NOTICE_KINDS = ['event', 'feature', 'maint', 'plan'];
+const NOTICE_AUD_RE = /^(all|guest|member|paid|plan:[a-z0-9_-]{1,20})$/;
+const QUOTA_K_RE = /^quota\.[a-z_]{1,24}$/;
+const QUOTA_KEY_RE = /^[0-9A-Za-z_.-]{1,24}$/;
+const MAX_FB_DAY = 20, MAX_SUBREQ_DAY = 5, MAX_NOTICES = 200;
+const subClean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, n);
+
+Hub.prototype.subInit = function () {
+  if (this._subOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS sub_requests (id TEXT PRIMARY KEY, uid TEXT, email TEXT, contact TEXT, plan TEXT, period TEXT, note TEXT, created INTEGER, status TEXT)');
+  this.q('CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, uid TEXT, contact TEXT, cat TEXT, body TEXT, url TEXT, ua TEXT, created INTEGER, status TEXT)');
+  this.q('CREATE TABLE IF NOT EXISTS quota_hits (uid TEXT, day TEXT, k TEXT, key TEXT, PRIMARY KEY (uid, day, k, key))');
+  this.q('CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, title TEXT, body TEXT, kind TEXT, audience TEXT, t0 INTEGER, t1 INTEGER, pinned INTEGER, created INTEGER, updated INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS notice_reads (email TEXT, id TEXT, at INTEGER, PRIMARY KEY (email, id))');
+  this._subOk = true;
+};
+/* 公開的方案摘要：價格欄位由 admin-v2 加在 plans 表上（price／period／price_year）；欄位還沒有時回 null，前端寫「洽詢」。
+   不回會員名單、不回人數 —— 只有方案本身。 */
+Hub.prototype.subPlanRows = function () {
+  const num = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
+  return this.q('SELECT * FROM plans ORDER BY builtin DESC, updated, id').map((r) => {
+    let feats = {}; try { feats = JSON.parse(r.feats || '{}'); } catch (e) { feats = {}; }
+    return { id: r.id, name: r.name, builtin: !!r.builtin, feats, price: num(r.price), price_year: num(r.price_year), period: r.period || null };
+  });
+};
+/* 這個人是哪一種對象（公告的 audience 用）：guest／member（免費會員）／paid（其他範本，且沒過期） */
+Hub.prototype.subWho = async function (b) {
+  const v = b && b.t ? await this.verify(b.t) : null;
+  if (!v) return { v: null, tier: 'guest', plan: 'guest', email: '' };
+  const email = String(v.user.email || '').toLowerCase();
+  const e = this.effective(email);
+  const plan = e.expired ? 'free' : e.plan;
+  return { v, tier: plan === 'free' ? 'member' : 'paid', plan, email };
+};
+const subAudOk = (aud, w) => aud === 'all' || aud === w.tier || (aud === 'member' && w.tier === 'paid') || aud === 'plan:' + w.plan;
+const subNotice = (r) => ({ id: r.id, title: r.title, body: r.body, kind: r.kind, audience: r.audience, start: r.t0, end: r.t1 || 0, pinned: !!r.pinned, created: r.created, updated: r.updated });
+
+Hub.prototype.subRoutes = {
+  '/v1/plans/public': async function (req) {
+    return this.json(req, { plans: this.subPlanRows() });
+  },
+  '/v1/subscribe/request': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const plan = String(b.plan || '');
+    if (!PLAN_RE.test(plan) || plan === 'guest' || !this.plan(plan)) return this.json(req, { error: 'bad_plan' }, 400);
+    const period = b.period === 'year' || b.period === 'month' ? b.period : null;
+    if (!period) return this.json(req, { error: 'bad_period' }, 400);
+    const contact = this.cleanEmail(b.contact || v.user.email);
+    if (!contact) return this.json(req, { error: 'bad_email' }, 400);
+    const n = this.q('SELECT COUNT(*) AS c FROM sub_requests WHERE uid = ? AND created > ?', v.user.uid, this.now() - 86400 * 1000)[0].c;
+    if (n >= MAX_SUBREQ_DAY) return this.json(req, { error: 'too_many' }, 429);
+    const id = rand(9);
+    this.q('INSERT INTO sub_requests (id, uid, email, contact, plan, period, note, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v.user.uid, String(v.user.email || '').toLowerCase(), contact, plan, period, subClean(b.note, 300), this.now(), 'new');
+    return this.json(req, { ok: true, id });
+  },
+  '/v1/feedback': async function (req, b) {
+    if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
+    const v = await this.auth(req, b);
+    const cat = FB_CATS.includes(b.cat) ? b.cat : null;
+    const body = subClean(b.body, 2000);
+    if (!cat || body.length < 2) return this.json(req, { error: 'bad_input' }, 400);
+    let contact = '';
+    if (b.contact) { contact = this.cleanEmail(b.contact); if (!contact) return this.json(req, { error: 'bad_email' }, 400); }
+    else if (v) contact = String(v.user.email || '').toLowerCase();
+    const url = /^https?:\/\//.test(String(b.url || '')) ? subClean(b.url, 300) : '';
+    const since = this.now() - 86400 * 1000;
+    const n = v ? this.q('SELECT COUNT(*) AS c FROM feedback WHERE created > ? AND uid = ?', since, v.user.uid)[0].c
+      : this.q("SELECT COUNT(*) AS c FROM feedback WHERE created > ? AND uid = ''", since)[0].c;
+    if (n >= (v ? MAX_FB_DAY : MAX_FB_DAY * 10)) return this.json(req, { error: 'too_many' }, 429);
+    const id = rand(9);
+    this.q('INSERT INTO feedback (id, uid, contact, cat, body, url, ua, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v ? v.user.uid : '', contact, cat, body, url, subClean(b.ua, 300), this.now(), 'new');
+    return this.json(req, { ok: true, id });
+  },
+  '/v1/quota/hit': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const k = String(b.k || ''), key = String(b.key || '');
+    if (!QUOTA_K_RE.test(k) || (key && !QUOTA_KEY_RE.test(key))) return this.json(req, { error: 'bad_input' }, 400);
+    const day = tpeDay(this.now());
+    if (key && this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', v.user.uid, day, k)[0].c < 500) {
+      this.q('INSERT OR IGNORE INTO quota_hits (uid, day, k, key) VALUES (?, ?, ?, ?)', v.user.uid, day, k, key);
+    }
+    const keys = this.q('SELECT key FROM quota_hits WHERE uid = ? AND day = ? AND k = ? LIMIT 500', v.user.uid, day, k).map((r) => r.key);
+    return this.json(req, { day, k, n: keys.length, keys });
+  },
+  '/v1/notices': async function (req, b) {
+    const w = await this.subWho(b);
+    if (b.t && !w.v) return this.json(req, { error: 'auth' }, 401);
+    const now = this.now();
+    const rows = this.q('SELECT * FROM notices WHERE t0 <= ? AND (t1 IS NULL OR t1 = 0 OR t1 > ?) ORDER BY pinned DESC, t0 DESC LIMIT 100', now, now)
+      .filter((r) => subAudOk(r.audience, w));
+    const read = w.email ? new Set(this.q('SELECT id FROM notice_reads WHERE email = ?', w.email).map((r) => r.id)) : null;
+    return this.json(req, { who: w.tier, notices: rows.map((r) => ({ ...subNotice(r), read: read ? read.has(r.id) : null })) });
+  },
+  '/v1/notices/read': async function (req, b) {
+    const w = await this.subWho(b);
+    if (!w.v) return this.json(req, { error: 'auth' }, 401);
+    const ids = Array.isArray(b.ids) ? b.ids.filter((x) => typeof x === 'string' && /^[A-Za-z0-9_-]{4,24}$/.test(x)).slice(0, 200) : [];
+    const known = new Set(this.q('SELECT id FROM notices').map((r) => r.id));
+    for (const id of ids) if (known.has(id)) this.q('INSERT OR IGNORE INTO notice_reads (email, id, at) VALUES (?, ?, ?)', w.email, id, this.now());
+    return this.json(req, { ok: true, read: this.q('SELECT id FROM notice_reads WHERE email = ?', w.email).map((r) => r.id) });
+  },
+  '/v1/admin/notices/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const reads = {};
+    this.q('SELECT id, COUNT(*) AS c FROM notice_reads GROUP BY id').forEach((r) => { reads[r.id] = r.c; });
+    return this.json(req, { now: this.now(), notices: this.q('SELECT * FROM notices ORDER BY created DESC LIMIT 200').map((r) => ({ ...subNotice(r), reads: reads[r.id] || 0 })) });
+  },
+  '/v1/admin/notices/put': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const title = subClean(b.title, 80), body = subClean(b.body, 2000);
+    const kind = NOTICE_KINDS.includes(b.kind) ? b.kind : null;
+    const audience = NOTICE_AUD_RE.test(String(b.audience || '')) ? b.audience : null;
+    const tsOk = (x) => x === 0 || x == null || (Number.isInteger(x) && x >= 1577836800000 && x <= 4102444800000);
+    if (!title || !body || !kind || !audience || !tsOk(b.start) || !tsOk(b.end)) return this.json(req, { error: 'bad_input' }, 400);
+    const start = b.start || this.now(), end = b.end || 0;
+    if (end && end <= start) return this.json(req, { error: 'bad_range' }, 400);
+    const id = b.id ? String(b.id) : rand(9);
+    const cur = b.id ? this.q('SELECT id FROM notices WHERE id = ?', id)[0] : null;
+    if (b.id && !cur) return this.json(req, { error: 'not_found' }, 404);
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM notices')[0].c >= MAX_NOTICES) return this.json(req, { error: 'too_many' }, 400);
+    if (cur) this.q('UPDATE notices SET title = ?, body = ?, kind = ?, audience = ?, t0 = ?, t1 = ?, pinned = ?, updated = ? WHERE id = ?', title, body, kind, audience, start, end, b.pinned ? 1 : 0, this.now(), id);
+    else this.q('INSERT INTO notices (id, title, body, kind, audience, t0, t1, pinned, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', id, title, body, kind, audience, start, end, b.pinned ? 1 : 0, this.now(), this.now());
+    return this.json(req, { ok: true, notice: subNotice(this.q('SELECT * FROM notices WHERE id = ?', id)[0]) });
+  },
+  '/v1/admin/notices/del': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const id = String(b.id || '');
+    this.q('DELETE FROM notice_reads WHERE id = ?', id);
+    this.q('DELETE FROM notices WHERE id = ?', id);
+    return this.json(req, { ok: true });
+  },
+  '/v1/admin/feedback/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.body, f.url, f.ua, f.created, f.status, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 300');
+    const subs = this.q('SELECT s.id, s.email, s.contact, s.plan, s.period, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.created DESC LIMIT 300');
+    return this.json(req, { feedback: fb.map(({ uid, ...r }) => ({ ...r, member: !!uid })), requests: subs });
+  },
+  '/v1/admin/feedback/set': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const id = String(b.id || '');
+    const isReq = b.kind === 'request';
+    const st = isReq ? (['new', 'done'].includes(b.status) ? b.status : null) : (['new', 'handled'].includes(b.status) ? b.status : null);
+    if (!st) return this.json(req, { error: 'bad_status' }, 400);
+    this.q(isReq ? 'UPDATE sub_requests SET status = ? WHERE id = ?' : 'UPDATE feedback SET status = ? WHERE id = ?', st, id);
+    return this.json(req, { ok: true });
+  },
+};
+
+/* 接線：新路由先攔，其他照舊交給原本的 fetch（OPTIONS、GET、auth、既有 API 全部不變） */
+const subOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  const p = new URL(req.url).pathname;
+  const h = req.method === 'POST' && Object.prototype.hasOwnProperty.call(this.subRoutes, p) ? this.subRoutes[p] : null;
+  if (!h) return subOrigFetch.call(this, req);
+  try {
+    this.subInit();
+    if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+    const raw = await req.text();
+    if (raw.length > 16384) return this.json(req, { error: 'too_large' }, 413);
+    let b; try { b = JSON.parse(raw || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return this.json(req, { error: 'bad_json' }, 400);
+    return await h.call(this, req, b);
+  } catch (e) {
+    return this.json(req, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+};
+/* 刪除帳號：先記下是誰（原本的 deleteMe 會把 users 那列刪掉，之後就查不到），成功後再刪本區塊的資料 */
+const subOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b);
+  const res = await subOrigDelete.call(this, req, b);
+  if (v && res.status === 200) {
+    this.subInit();
+    const uid = v.user.uid, email = String(v.user.email || '').toLowerCase();
+    this.q('DELETE FROM feedback WHERE uid = ?', uid);
+    this.q('DELETE FROM sub_requests WHERE uid = ?', uid);
+    this.q('DELETE FROM quota_hits WHERE uid = ?', uid);
+    if (email) this.q('DELETE FROM notice_reads WHERE email = ?', email);
+  }
+  return res;
+};
+/* 保存期限：反饋與申請 13 個月；瀏覽次數只留 3 天（只需要「今天」） */
+const subOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  subOrigCleanup.call(this);
+  this.subInit();
+  const now = this.now();
+  const d = new Date(now); d.setUTCMonth(d.getUTCMonth() - SUB_KEEP_MONTHS);
+  this.q('DELETE FROM feedback WHERE created < ?', d.getTime());
+  this.q('DELETE FROM sub_requests WHERE created < ?', d.getTime());
+  this.q('DELETE FROM quota_hits WHERE day < ?', tpeDay(now - 3 * 86400 * 1000));
+};
+/* ============================================================================ sub-v1 區塊結束 */
