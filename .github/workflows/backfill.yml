@@ -123,7 +123,7 @@ jobs:
                             # 2026-10-04：全市場日線（4561 健椿只有 15 根 K 線那件）
                             "price@2000-01-01@market",
                             # 2026-10-05：ETF 專區的配息與價量歷史（scope=etf）
-                            "dividend+divresult@2009-01-01@etf", "price@2000-01-01@etf"):
+                            "dividend+divresult@etf2009@etf", "price@2000-01-01@etf"):   # 10-05：配息鍵換 tag etf2009（舊鍵把 ETF 配息誤標完成）
                       st = cp.get(k) or {}
                       if not (isinstance(st, dict) and st.get("done")):
                           done = False
