@@ -1349,6 +1349,11 @@
     document.querySelectorAll(`[data-livekey="${d.key}"] .rbar`).forEach(b => liveDim(b, d.on));
   });
 
+  /* ★ 2026-10-05（admin-v2）細項埋點與族群權限的兩個薄包裝：account.js／perm.js 沒載入（或會員功能沒開）時什麼都不做。
+     canvas 圖上的點擊沒有 DOM 可以委派，只有這三處（熱力圖方塊、輪盤族群點、排行長條）需要在這裡直接呼叫；
+     其他元件的埋點全部在 account.js 用委派監聽（docs/account_analytics.md「細項事件」有完整清單）。*/
+  function twT(comp, detail) { try { if (window.TwT) window.TwT(comp, detail); } catch (e) { /* 統計失敗不影響功能 */ } }
+  function twGrpBlock(gid, name) { try { return !!(window.TwPerm && window.TwPerm.grpBlock && window.TwPerm.grpBlock(gid, name)); } catch (e) { return false; } }
   function playBar(box, o) {
     box = typeof box === 'string' ? document.getElementById(box) : box;
     if (!box) return null;
@@ -2531,6 +2536,19 @@
     if (head === 'tasks') { location.replace('#delivery'); return; }
     /* ★ 2026-09-24 設計系統 v2 第 6 批：法律頁與「不同意」之後的 #leave 全部交給 site/legal.js。
        這幾個網址不在 VIEWS 裡 —— 不先攔下來，底下那行會把它們當成未知路由、導回總覽。*/
+    /* ★ 2026-10-05（sub-v1）訂閱頁 #pricing、公告 #notices、管理端 #admin/feedback｜#admin/notices：
+       由 site/pricing.js／support.js／notices.js 各自登記到 TwSubRoutes（回傳要顯示的 view id，不關它的事回 null）。
+       放在法律頁與 #admin 之前：#admin/feedback 要先被攔下，不然會落進 admin.js 的預設分頁。*/
+    let subV = null;
+    for (const f of (window.TwSubRoutes || [])) { try { subV = f(head, rest); } catch (e) { subV = null; } if (subV) break; }
+    if (subV) {
+      $$('.tab').forEach(t => t.classList.remove('on'));
+      $$('.view').forEach(v => v.classList.toggle('on', v.id === subV));
+      _lastPageKey = subV; _miaKey = subV;
+      try { applyMobileIA(subV); } catch (e) { /* 忽略 */ }
+      window.scrollTo({ top: 0 });
+      return;
+    }
     const lg = window.TwLegal ? window.TwLegal.route(head, rest) : null;
     if (lg === 'redirect') return;
     if (lg === 'legal') {
@@ -2545,7 +2563,7 @@
     if (window.TwAccount && window.TwAccount.route(head) === 'admin') {
       /* ★ 2026-10-05 修：「會員權限」（#l4Perm）2026-10-04 起是 .tab —— 以前這行一律清掉 on，
          直接開（或重新整理）#admin/perm 時側欄那一格不會亮。它的 on 交給 layout4 的同一條規則（網址是 #admin/perm 就亮）。*/
-      $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'l4Perm' && /^#admin\/perm\b/.test(location.hash || '')));
+      $$('.tab').forEach(t => t.classList.toggle('on', t.id === 'l4Perm'));      // 2026-10-05：管理區三個子分頁（#admin/perm|members|traffic）都亮同一格
       $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-admin'));
       _lastPageKey = 'admin'; _miaKey = 'admin';
       try { applyMobileIA('admin'); } catch (e) { /* 忽略 */ }
@@ -4475,8 +4493,8 @@
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
-      // ★ 2026-10-05 Andy：熱力圖下方的成分股面板「這邊拿掉」→ 點族群方塊不再展開面板（滑過的提示框照舊）
-      if (p.data.gid) return;
+      // ★ 2026-10-05 Andy：熱力圖下方的成分股面板「這邊拿掉」→ 點族群方塊不再展開面板；保留 admin-v2 的埋點與族群權限提示
+      if (p.data.gid) { twT('heat_tile', p.name); twGrpBlock(p.data.gid, p.name); return; }
       else if (p.data.cid) { heatChain = p.data.cid; renderHeat(gt, rot); }
     }));
     const zb = $('#heatZoom');
@@ -7142,6 +7160,8 @@
     if (c) c.off('click').on('click', q => {
       const r = q.data && q.data.row; if (!r) return;
       if (r.isStock) { if (r.has_page) goStock(r.code); else drillToggleStock(r.code); return; }
+      twT('clock_group', r.name);                              // 2026-10-05 埋點：輪盤上被點的族群
+      if (twGrpBlock(r.gid, r.name)) return;
       /* ★ 2026-09-24（審查 R1：總覽小輪盤點族群沒反應）：`drillOpen` 只會畫進資金流向頁的
          #rankPanel／#sankeyPanel，總覽根本沒有那兩塊 —— 提示框寫「點一下看成分股」，點了卻什麼都沒發生。
          總覽（compact）改走熱力圖那一套 `heatPanel`，畫進輪盤正下方的 #ovRotPanel（原地展開，點外面／Esc 關）。*/
@@ -8789,6 +8809,8 @@
     if (c) c.off('click').on('click', q => {
       const gid = q.data && q.data.gid; if (!gid) return;
       const g = rows.find(x => x.group_id === gid) || {};
+      twT('rank_bar', g.group_name || gid);                    // 2026-10-05 埋點：右側排行被點的族群
+      if (twGrpBlock(gid, g.group_name)) return;
       /* ★ 2026-09-21：這裡展開的清單改成兩階段共用的那一支（drillOpen）——
          以前是 heatPanel，點下去只能連到個股頁；現在同一份清單還可以把個股畫到圖上。
          面板就在圖正下方，所以一樣不自己捲動（heatPanel 的 scroll:false 是同一個理由）。*/
