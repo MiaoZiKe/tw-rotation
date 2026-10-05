@@ -43358,7 +43358,7 @@ def t_account_cloud(b, base):
         ok("管理頁：管理者打開 #admin 看得到四張卡", all(pg.locator(s).count() == 1 for s in ("#admOnline", "#admDays", "#trDetail", "#admUsers")))
         ok("管理頁：線上名單列出自己（名稱＋email）", "andy@example.com" in pg.inner_text("#admOnline"), pg.inner_text("#admOnline")[:200])
         ok("管理頁：中文名字沒有變亂碼", "Andy 測試" in pg.inner_text("#admOnline"), pg.inner_text("#admOnline")[:200])
-        ok("管理頁：分頁統計有「全部」分頁與各頁分頁（2026-10-05 新規格）", pg.evaluate("() => document.querySelectorAll('#trTabs button').length === 12 && document.querySelector('#trTabs button.on').textContent.trim().startsWith('全部')"))
+        ok("管理頁：分頁統計有「全部」分頁與各頁分頁（2026-10-05 新規格）", pg.evaluate("() => document.querySelectorAll('#trTabs button').length === 13 && document.querySelector('#trTabs button.on').textContent.trim().startsWith('全部')"))
         ok("管理頁：會員名單有 Bob 與 Andy", "bob@example.com" in pg.inner_text("#admUsers") and "andy@example.com" in pg.inner_text("#admUsers"))
         pg.select_option("#admDaysSel", "7")
         pg.wait_for_timeout(500)
@@ -44542,7 +44542,7 @@ def t_admin_v2(b, base, code):
     # ③ 流量觀測
     pg.click("#admTabTraffic")
     wait_until(pg, "() => location.hash === '#admin/traffic' && !!document.getElementById('trHowN')", 10000)
-    ok(f"{T}：流量觀測有「全部」＋ 11 個頁面分頁（事件…客服、個股）", pg.evaluate("() => [...document.querySelectorAll('#trTabs button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join()") == "全部,事件,資金流向,熱力圖,產業地圖,市場明細,選股策略,週期統計,ETF,自選,客服,個股")
+    ok(f"{T}：流量觀測有「全部」＋ 11 個頁面分頁（事件…客服、個股）", pg.evaluate("() => [...document.querySelectorAll('#trTabs button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join()") == "全部,事件,資金流向,熱力圖,產業地圖,市場明細,選股策略,週期統計,ETF,自選,客服,個股,使用者")
     pg.click("#trTabs [data-t=stock]")
     ok(f"{T}：個股分頁：被觀看第一名是 2330", pg.evaluate("() => document.querySelector('#trDBars .bl') && document.querySelector('#trDBars .bl').textContent.trim().split(' ')[0]") == "2330")
     ok(f"{T}：個股分頁：熱門個股最常用的功能：2330 → 營收、60 分", "營收" in pg.inner_text("#trStockFeat") and "60 分" in pg.inner_text("#trStockFeat"), pg.inner_text("#trStockFeat")[:200])
@@ -44611,7 +44611,7 @@ def t_traffic_1005(b, base, code):
     T = "流量觀測1005"
     errs: list[str] = []
     pbase = base.replace("/index.html", "/preview/style-guide/index.html")
-    NAMES = "全部,事件,資金流向,熱力圖,產業地圖,市場明細,選股策略,週期統計,ETF,自選,客服,個股"
+    NAMES = "全部,事件,資金流向,熱力圖,產業地圖,市場明細,選股策略,週期統計,ETF,自選,客服,個股,使用者"
     for theme in ("dark", "light"):
         c, sent = _adm2_ctx(b)
         c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}');}}catch(e){{}}")
@@ -44623,8 +44623,8 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：預覽路徑有「示範資料」標籤", pg.evaluate("() => /示範資料/.test(getComputedStyle(document.getElementById('v-admin'), '::before').content)"))
         ok(f"{TT}：最上方只有一排兩張卡（每天直條、登入甜甜圈），沒有 KPI 條與舊的十張卡",
            pg.evaluate("() => [...document.querySelectorAll('.trtop > .card')].map(c => c.id).join() === 'admDays,trDonut' && !document.getElementById('trKpi') && !document.getElementById('admPv') && !document.getElementById('admEv')"))
-        ok(f"{TT}：期間選單含 即時／近 7／30／90／365 天／指定日期到現在，預設近 30 天",
-           pg.evaluate("() => [...document.querySelectorAll('#admDaysSel option')].map(o => o.textContent.trim()).join()") == "即時,近 7 天,近 30 天,近 90 天,近 365 天,指定日期到現在"
+        ok(f"{TT}：期間選單含 即時／近 7／30／90／365 天／起始日期～至今，預設近 30 天",
+           pg.evaluate("() => [...document.querySelectorAll('#admDaysSel option')].map(o => o.textContent.trim()).join()") == "即時,近 7 天,近 30 天,近 90 天,近 365 天,起始日期～至今"
            and pg.evaluate("() => document.getElementById('admDaysSel').value") == "30")
         n30 = pg.locator("#admDayBars .dc").count()
         ok(f"{TT}：預設 30 天 → 直條 30 根；示範資料 30 天瀏覽 > 10,000", n30 == 30 and pg.evaluate("() => +document.querySelector('.trhead small').textContent.match(/共 ([\\d,]+) 次瀏覽/)[1].replace(/,/g, '')") > 10000, n30)
@@ -44633,21 +44633,25 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：切近 7 天 → 上排直條變 7 根、甜甜圈數字跟著變", pg.locator("#admDayBars .dc").count() == 7 and pg.inner_text("#trDonut") != d30)
         pg.select_option("#admDaysSel", "live"); wait_until(pg, "() => /即時/.test(document.querySelector('.trhead').textContent)", 4000)
         hrs = pg.locator("#admDayBars .dc").count()
-        ok(f"{TT}：選「即時」→ 標題寫即時、直條改成今天每小時（1～24 根）", 1 <= hrs <= 24 and "每小時" in pg.inner_text("#admDays"), hrs)
+        ok(f"{TT}：選「即時」→ 標題寫即時、直條固定 24 根（當日 0–24 時每小時）", hrs == 24 and "每小時" in pg.inner_text("#admDays"), hrs)
         pg.select_option("#admDaysSel", "since")
         wait_until(pg, "() => !document.getElementById('admSince').hidden", 3000)
         pg.evaluate("() => { const d = new Date(Date.now() + 8 * 3600000 - 9 * 86400000).toISOString().slice(0, 10), i = document.getElementById('admSince'); i.value = d; i.dispatchEvent(new Event('change', { bubbles: true })); }")
         wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 10", 4000)
-        ok(f"{TT}：選「指定日期到現在」→ 出現日期選擇器，選 9 天前 → 直條 10 根、標題寫起始日", pg.locator("#admDayBars .dc").count() == 10 and "到現在" in pg.inner_text(".trhead"), pg.locator("#admDayBars .dc").count())
+        ok(f"{TT}：選「起始日期～至今」→ 出現日期選擇器，選 9 天前 → 直條 10 根、標題寫起始日～至今", pg.locator("#admDayBars .dc").count() == 10 and "～至今" in pg.inner_text(".trhead"), pg.locator("#admDayBars .dc").count())
+        pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
+        pg.select_option("#admDaysSel", "365"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 365", 5000)
+        y = pg.evaluate("() => { const d = document.getElementById('admDayBars'), r = d.getBoundingClientRect(), last = [...d.querySelectorAll('.dc')].pop().getBoundingClientRect(); return { n: d.querySelectorAll('.dc').length, over: Math.round(last.right - r.right), sw: document.documentElement.scrollWidth - innerWidth, ticks: document.querySelectorAll('#admDayBarsTicks span').length }; }")
+        ok(f"{TT}：近 365 天：直條 365 根、不超出圖區、沒有橫向捲軸、週刻度有（每 4 週一個，≥ 8 個）", y["n"] == 365 and y["over"] <= 1 and y["sw"] <= 1 and y["ticks"] >= 8, y)
         pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
         # ---- 分頁
-        ok(f"{TT}：下方是 .nbsw 分頁：全部＋事件／資金流向／熱力圖／產業地圖／市場明細／選股策略／週期統計／ETF／自選／客服／個股；預設亮「全部」",
+        ok(f"{TT}：下方是 .nbsw 分頁：全部＋事件…個股＋使用者；預設亮「全部」",
            pg.evaluate("() => { const t = document.getElementById('trTabs'); return t.classList.contains('nbsw') && [...t.querySelectorAll('button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join() === '%s' && t.querySelector('button.on').dataset.t === 'all'; }" % NAMES))
         ok(f"{TT}：沒有「總覽」「其他」「法律」分頁", pg.evaluate("() => ![...document.querySelectorAll('#trTabs button')].some(b => /^(總覽|其他|法律)/.test(b.textContent.trim()))"))
         al = pg.evaluate("""() => { const rows = [...document.querySelectorAll('#trAllB .bl')], vals = [...document.querySelectorAll('#trAllB .bn')].map(e => +e.textContent.replace(/[,%]/g, '').trim().split(/\\s+/)[0] || +e.firstChild.textContent.replace(/,/g, ''));
-            const stk = (p) => [...document.querySelectorAll(`#trAllB .bt[data-p="${p}"] i`)].map(i => ({ bg: getComputedStyle(i).backgroundColor, t: i.title }));
+            const stk = (p) => [...document.querySelectorAll(`#trAllB .bt[data-p="${p}"] i`)].map(i => ({ bg: getComputedStyle(i).backgroundColor, t: i.dataset.tip }));
             const arcs = [...document.querySelectorAll('#trAllDonut circle.arc')];
-            return { n: rows.length, sorted: vals.every((v, i) => i === 0 || vals[i - 1] >= v), flow: stk('flow'), etf: stk('etf'), arcs: arcs.length, tips: arcs.every(a => /%/.test(a.querySelector('title').textContent)), center: document.querySelector('#trAllDonut .dn svg').textContent, lg: document.querySelectorAll('#trAllDonut ul.lg li').length }; }""")
+            return { n: rows.length, sorted: vals.every((v, i) => i === 0 || vals[i - 1] >= v), flow: stk('flow'), etf: stk('etf'), arcs: arcs.length, tips: arcs.every(a => /%/.test(a.dataset.tip)), center: document.querySelector('#trAllDonut .dn svg').textContent, lg: document.querySelectorAll('#trAllDonut ul.lg li').length }; }""")
         ok(f"{TT}：「全部」左＝各頁長條（11 條、由大到小）", al["n"] == 11 and al["sorted"], al)
         ok(f"{TT}：有子頁的頁面（資金流向）長條堆疊 3 色且滑過提示有占比；沒有子頁的（ETF）單色",
            len(al["flow"]) == 3 and len({x["bg"] for x in al["flow"]}) == 3 and all("%" in x["t"] and "資金流向" in x["t"] for x in al["flow"]) and len(al["etf"]) == 1, al)
@@ -44658,21 +44662,59 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：圖區高度／卡內容高度 ≥ 0.8；上排兩張等高、「全部」兩張等高", all(r[1] >= 0.8 for r in fill) and fill[0][2] == fill[1][2] and fill[2][2] == fill[3][2], fill)
         fs = pg.evaluate("""() => { const f = (s) => [...new Set([...document.querySelectorAll(s)].map(e => { const c = getComputedStyle(e); return parseFloat(c.fontSize) + '/' + c.fontWeight; }))];
             return { h3: f('#admBody .card > h3'), use: f('#admBody .card > .use'), tab: f('#trTabs > button'), bl: f('#trAllB .bl'), th: f('#admBody table th') }; }""")
-        ok(f"{TT}：字級照其他分頁（卡標 16/600、副標 13/400、分頁 13.5、長條名稱 14、表頭 12/600）", fs["h3"] == ["16/600"] and fs["use"] == ["13/400"] and all(x.startswith("13.5/") for x in fs["tab"]) and fs["bl"] == ["14/400"] and fs["th"] == ["12/600"], fs)
+        ok(f"{TT}：字級照其他分頁（卡標 16/600、副標 13/400、分頁 13.5、長條名稱 14、表頭 12/600）", fs["h3"] == ["16/600"] and fs["use"] == ["13/400"] and all(x.startswith("13.5/") for x in fs["tab"]) and fs["bl"] == ["14/400"] and fs["th"] in ([], ["12/600"]), fs)
         # ★ 10-05 Andy「圓餅以母族群分界、間隔開、只有子分頁相連；長條太粗、日期每週、淡淡的 Y 軸」
         dg = pg.evaluate("""() => { const arcs = [...document.querySelectorAll('#trAllDonut circle.arc')].map(a => ({ p: a.dataset.p, a0: +a.dataset.a0, a1: +a.dataset.a1 }));
             const par = [], sub = []; for (let i = 1; i < arcs.length; i++) { const g = arcs[i].a0 - arcs[i - 1].a1; (arcs[i].p === arcs[i - 1].p ? sub : par).push(+g.toFixed(2)); }
-            return { n: arcs.length, par, sub, mask: document.querySelectorAll('#trAllDonut mask').length, track: !!document.querySelector('#trAllDonut svg > circle[stroke-opacity]') }; }""")
-        ok(f"{TT}：甜甜圈母頁面之間留明顯間隙（≥ 3°）、同一母頁的子分頁扇區相連（間隙 ≈ 0）、組端圓角遮罩＋內側細軌道（照產業地圖）",
-           dg["par"] and min(dg["par"]) >= 3 and dg["sub"] and max(abs(x) for x in dg["sub"]) <= 0.05 and min(dg["par"]) > max(dg["sub"]) and dg["mask"] >= 3 and dg["track"], dg)
+            return { n: arcs.length, par, sub, mask: document.querySelectorAll('#trAllDonut mask').length, cap: getComputedStyle(document.querySelector('#trAllDonut circle.arc')).strokeLinecap, track: !!document.querySelector('#trAllDonut svg > circle[stroke-opacity]') }; }""")
+        pars = sorted(set(round(x, 1) for x in dg["par"]))
+        ok(f"{TT}：甜甜圈非同組扇區之間間隙一律相同（2°，全部一個值）、同一母頁子分頁相連（≈ 0）、沒有圓頭遮罩（直角）、內側細軌道（照產業地圖）",
+           dg["par"] and pars == [2.0] and dg["sub"] and max(abs(x) for x in dg["sub"]) <= 0.05 and dg["mask"] == 0 and dg["track"] and dg["cap"] == "butt", dg)
+        pg.click("#trTabs [data-t=events]")
+        ev = pg.evaluate("""() => { const g = []; document.querySelectorAll('#trPageBody .dn svg').forEach(sv => { const a = [...sv.querySelectorAll('circle.arc')].map(c => ({ a0: +c.dataset.a0, a1: +c.dataset.a1 })); for (let i = 1; i < a.length; i++) g.push(+(a[i].a0 - a[i - 1].a1).toFixed(1)); }); return g; }""")
+        ok(f"{TT}：事件分頁各甜甜圈（無子分頁關係）每段之間間隙都一樣（2°），小扇區也有縫", ev and set(ev) == {2.0}, ev)
+        pg.click("#trTabs [data-t=all]")
         bw = pg.evaluate("""() => { const d = [...document.querySelectorAll('#admDayBars .dc i')].map(i => i.getBoundingClientRect().width), h = [...document.querySelectorAll('#trAllB .bt, #admBody .bars .bt')].map(e => e.getBoundingClientRect().height);
             return { dmax: Math.max(...d), hmax: Math.max(...h), n: d.length }; }""")
         ok(f"{TT}：每天直條與所有橫向長條的條寬 ≤ 產業地圖條寬（17）＋2；直條約為舊版（~22）的一半", bw["n"] == 30 and bw["dmax"] <= 19 and bw["hmax"] <= 19 and bw["dmax"] <= 13, bw)
-        tk = pg.evaluate("""() => { const t = [...document.querySelectorAll('#admDayTicks span')].map(s => s.textContent.trim()); const dows = t.map(x => new Date(Date.parse('2026-' + x + 'T00:00:00Z')).getUTCDay());
+        tk = pg.evaluate("""() => { const t = [...document.querySelectorAll('#admDayBarsTicks span')].map(s => s.textContent.trim()); const dows = t.map(x => new Date(Date.parse('2026-' + x + 'T00:00:00Z')).getUTCDay());
             const gaps = t.slice(1).map((x, i) => (Date.parse('2026-' + x + 'T00:00:00Z') - Date.parse('2026-' + t[i] + 'T00:00:00Z')) / 86400000); return { t, dows, gaps }; }""")
         ok(f"{TT}：X 軸日期每 1 週一個刻度（都是週一、相隔 7 天，30 天 4～5 個）", 4 <= len(tk["t"]) <= 5 and set(tk["dows"]) == {1} and set(tk["gaps"]) == {7}, tk)
         yy = pg.evaluate("""() => { const d = document.getElementById('admDayBars'), cs = getComputedStyle(d), m = /\/ ([0-9.]+)\)/.exec(cs.backgroundImage); return { ticks: document.querySelectorAll('.dayy span').length, alpha: m ? +m[1] : 1, weekend: !!document.querySelector('#admDayBars .we, #admDayBars .weekend') }; }""")
         ok(f"{TT}：淡淡的 Y 軸：刻度 ≥ 4 個、水平格線透明度 ≤ 0.5、沒有週末底色", yy["ticks"] >= 4 and yy["alpha"] <= 0.5 and not yy["weekend"], yy)
+        # ★ 10-05 Andy「上方圖表都要有互動效果、幫我檢查其他的是否也有」：每張圖 hover 後要有浮動提示＋高亮狀態（其餘變淡）
+        def hv(sel, label):
+            if "circle.arc" in sel and "li" not in sel:   # 甜甜圈的環是 stroke、圓心是空的：滑鼠要移到「環上」才算滑過
+                nth = int(sel.split("nth=")[1]) if "nth=" in sel else 0
+                base_sel = sel.split(" >> ")[0]
+                pt = pg.evaluate("""([sel, n]) => { const a = document.querySelectorAll(sel)[n], sv = a.ownerSVGElement, r = sv.getBoundingClientRect(), k = r.width / 120, m = ((+a.dataset.a0 + +a.dataset.a1) / 2) * Math.PI / 180;
+                    sv.scrollIntoView({ block: 'center', behavior: 'instant' }); const r2 = sv.getBoundingClientRect(); return [r2.left + r2.width / 2 + 45 * k * Math.sin(m), r2.top + r2.height / 2 - 45 * k * Math.cos(m)]; }""", [base_sel, nth])
+                pg.wait_for_timeout(250); pg.mouse.move(pt[0] - 4, pt[1] - 4); pg.mouse.move(*pt, steps=4)
+            else:
+                pg.hover(sel)
+            pg.wait_for_timeout(120)
+            r = pg.locator(sel).first.evaluate("""(el) => { const t = document.getElementById('trTip'), ch = el.closest('[data-chart]'); return { tip: !!t && !t.hidden && t.textContent.trim().length > 3, hl: !!ch && ch.classList.contains('hov') && ch.querySelectorAll('.hl').length > 0 }; }""")
+            ok(f"{TT}：互動｜{label}：滑過有浮動提示、有高亮狀態", r["tip"] and r["hl"], r)
+            cen = pg.locator(sel).first.evaluate("el => { const sv = el.closest('[data-chart]').querySelector('svg .c1'); return sv ? sv.textContent : ''; }")
+            pg.mouse.move(2, 2); pg.wait_for_timeout(100)
+            return cen
+        hv("#admDayBars .dc:nth-child(10)", "每天直條")
+        hv("#trDonut circle.arc >> nth=0", "登入甜甜圈扇區")
+        hv("#trDonut .dn li >> nth=0", "登入甜甜圈圖例")
+        hv("#trAllB .bl >> nth=0", "全部頁長條（名稱）")
+        hv("#trAllB .bt.stk i >> nth=1", "全部頁堆疊長條（子段）")
+        hv("#trAllDonut circle.arc >> nth=2", "全部頁甜甜圈扇區")
+        hv("#trAllDonut .dn li >> nth=1", "全部頁甜甜圈圖例")
+        cen = hv("#trDonut circle.arc >> nth=1", "登入甜甜圈第二段")
+        ok(f"{TT}：互動｜登入甜甜圈滑過扇區 → 中心字換成該段（不再是「登入」）", cen and cen != "登入", cen)
+        tr = pg.evaluate("""() => { const l = [...document.querySelectorAll('#trDonut ul.lg li span')].map(e => e.textContent.trim()), g = [...document.querySelectorAll('#trDonut circle.arc')].map(a => ({ k: a.dataset.k, a0: +a.dataset.a0, a1: +a.dataset.a1 })); const gaps = []; for (let i = 1; i < g.length; i++) gaps.push(+(g[i].a0 - g[i - 1].a1).toFixed(2)); return { l, gaps }; }""")
+        ok(f"{TT}：登入身分甜甜圈：訪客＋註冊會員＋≥ 2 個付費方案；登入的幾段相連（間隙 0）、與訪客之間間隙 2°", "訪客" in tr["l"] and "註冊會員" in tr["l"] and len(tr["l"]) >= 4 and tr["gaps"][:-1] and all(abs(x) <= 0.05 for x in tr["gaps"][:-1]) and tr["gaps"][-1] == 2.0, tr)
+        pg.click("#trTabs [data-t=flow]")
+        hv("#trFBars .bl >> nth=0", "子頁長條")
+        hv("#trFD circle.arc >> nth=1", "子頁甜甜圈扇區")
+        pg.click("#trTabs [data-t=stock]")
+        hv("#trSc circle >> nth=0", "散佈圖點")
+        pg.click("#trTabs [data-t=all]")
         # ---- 點長條／扇區進分頁、子分頁
         pg.locator("#trAllB button[data-p='flow']").click()
         wait_until(pg, "() => document.querySelector('#trTabs button.on').dataset.t === 'flow'", 3000)
@@ -44689,15 +44731,39 @@ def t_traffic_1005(b, base, code):
         # ---- 個股
         pg.click("#trTabs [data-t=stock]")
         subs = pg.evaluate("() => [...document.querySelectorAll('#trSubs button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join()")
-        ok(f"{TT}：個股分頁的子分頁＝全部／總覽／基本資料／指標／營收／獲利／除權息／法人／資券／大戶／散戶／公告／新聞／ETF 成分股／K 線指標", subs == "全部,總覽,基本資料,指標,營收,獲利,除權息,法人,資券,大戶／散戶,公告／新聞,ETF 成分股,K 線指標", subs)
+        ok(f"{TT}：個股分頁的子分頁＝全部／分頁點擊／K 線指標（Andy：不要再逐頁展開）", subs == "全部,分頁點擊,K 線指標", subs)
         pg.click("#trSubs button[data-sub='kline']")
         kt = pg.inner_text("#trPageBody")
-        ok(f"{TT}：個股「K 線指標」：有各技術指標開啟次數（MA、MACD、RSI、KD、布林、SMC）、K 線週期、畫線工具", all(x in kt for x in ("MA 均線", "MACD", "RSI", "KD", "布林通道", "SMC", "K 線週期", "趨勢線")), kt[:120])
-        pg.click("#trSubs button[data-sub='revenue']")
-        ok(f"{TT}：個股「營收」子分頁：被點最多的個股（長條＋甜甜圈）", pg.locator("#trDBars .bl").count() >= 1 and pg.locator("#trDD circle.arc").count() >= 1)
-        for t in ("events", "etf", "watch", "support", "explore", "season"):
+        ok(f"{TT}：個股「K 線指標」：MA／MACD／RSI／KD／布林／SMC／本益比河流／斐波那契／趨勢線／AI 面向／四週期同看各自計次、K 線週期另一組", all(x in kt for x in ("MA 均線", "MACD", "RSI", "KD", "布林通道", "SMC", "本益比河流", "畫線：斐波那契", "畫線：趨勢線", "切 AI 面向", "四週期同看", "K 線週期")), kt[:160])
+        pg.click("#trSubs button[data-sub='tabs']")
+        tt = pg.inner_text("#trPageBody")
+        ok(f"{TT}：個股「分頁點擊」：只有各分頁被點次數（營收、獲利、除權息、法人…）長條＋甜甜圈，沒有「被點最多的個股」", "營收" in tt and "被點最多" not in tt and pg.locator("#trFD circle.arc").count() >= 1, tt[:120])
+        for t in ("etf", "watch", "support", "explore"):
             pg.click(f"#trTabs [data-t={t}]")
             ok(f"{TT}：「{t}」分頁有長條＋甜甜圈統計", pg.locator("#trPageBody .bars .bl").count() >= 1 and pg.locator("#trPageBody .dn svg").count() >= 1 or t == "season", t)
+        for t in ("season", "market", "events"):
+            pg.click(f"#trTabs [data-t={t}]")
+            ok(f"{TT}：「{t}」只統計被看過幾次（沒有子分頁、沒有功能細項）：有每天直條或大數字＋占全站比", pg.locator("#trSubs").count() == 0 and pg.locator("#trS1").count() == 1 and pg.locator("#trS2 .dn svg").count() == 1 and pg.locator("#trFBars").count() == 0, t)
+        pg.click("#trTabs [data-t=support]")
+        ok(f"{TT}：客服：沒有子頁籤（全部／常見問題／意見反饋／寄信），單一頁統計各項被點次數", pg.locator("#trSubs").count() == 0 and pg.locator("#trFBars .bl").count() >= 3)
+        pg.click("#trTabs [data-t=etf]")
+        et = pg.inner_text("#trPageBody")
+        ok(f"{TT}：ETF 類別用網站真實分類（配息型、市值型、主題型、主動式、槓桿反向、債券型、其他）", all(x in et for x in ("配息型", "市值型", "主題型", "主動式", "槓桿反向", "債券型", "其他")) and "高股息" not in et and "報酬率" not in et, et[:200])
+        ok(f"{TT}：「使用者」不再接在分頁統計下面（頁面沒有獨立的使用者區）", pg.evaluate("() => !document.querySelector('.secttl h2') || ![...document.querySelectorAll('.secttl h2')].some(h => h.textContent.trim() === '使用者')"))
+        pg.click("#trTabs [data-t=users]")
+        ok(f"{TT}：「使用者」分頁：有使用時段直條（24 根）、在線名單、最近會員；切 1H／4H／6H／12H／白天／夜晚",
+           pg.locator("#trHrBars .dc").count() == 24 and pg.locator("#admOnline").count() == 1 and pg.locator("#admUsers").count() == 1 and pg.evaluate("() => [...document.querySelectorAll('#trHrModes button')].map(b => b.textContent.trim()).join()") == "1H,4H,6H,12H,白天,夜晚")
+        cnts = {}
+        for k, n in (("4", 6), ("6", 4), ("12", 2), ("day", 12), ("night", 12), ("1", 24)):
+            pg.click(f"#trHrModes [data-hr='{k}']"); cnts[k] = pg.locator("#trHrBars .dc").count()
+        ok(f"{TT}：使用時段切換：4H＝6 根、6H＝4 根、12H＝2 根、白天 12 根（06–18）、夜晚 12 根（18–06）、1H＝24 根", cnts == {"4": 6, "6": 4, "12": 2, "day": 12, "night": 12, "1": 24}, cnts)
+        pg.click("#trHrModes [data-hr='day']")
+        ok(f"{TT}：白天第一根是 06 時、夜晚第一根是 18 時", pg.evaluate("() => document.querySelector('#trHrBars .dd').textContent.trim()") == "06")
+        pg.click("#trHrModes [data-hr='night']")
+        ok(f"{TT}：夜晚從 18 排到隔天 05", pg.evaluate("() => { const l = [...document.querySelectorAll('#trHrBars .dd')].map(e => e.textContent.trim()); return l[0] === '18' && l[l.length - 1] === '05'; }"))
+        pg.click("#trHrModes [data-hr='1']")
+        hv("#trHrBars .dc:nth-child(10)", "使用時段直條")
+        pg.click("#trTabs [data-t=all]")
         ok(f"{TT}：流量觀測內沒有小於 12px 的文字（圖表內除外）", pg.evaluate("() => [...document.querySelectorAll('#admBody *')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('svg') && parseFloat(getComputedStyle(e).fontSize) < 12).length") == 0)
         ok(f"{TT}：1440 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
         shot = os.environ.get("TRAFFIC_SHOT")

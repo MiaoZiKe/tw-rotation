@@ -174,7 +174,7 @@
     ['.rot-clear', () => ['filter_clear', '']],
     /* 2026-10-05 流量觀測分頁統計（Andy 新規格）補的點位：只記次數與固定選項名，不記身分。
        頁面鍵：etf／explore／support／events 不在 Worker 的頁面白名單裡，所以一律記在 other 底下、元件名帶前綴（etf.cat…），管理區自己再歸回該頁 */
-    ['#etfCatSeg button', (el) => ['etf.cat', (el.textContent || '').trim(), 'other']],                       // ETF 分類按鈕
+    ['#etfCatSeg button', (el) => ['etf.cat', (el.textContent || '').replace(/[\s\d,（）()]+$/, '').trim(), 'other']],                       // ETF 分類按鈕
     ['#wpNew, #wlNew', () => ['watch_tab_new', '', 'watch']],                                                  // 自選：新增分頁
     ['#wpList .spkw, #wlList .spkw', () => ['watch.chart', '', 'watch']],                                      // 自選：點走勢圖
     ['#wpList [data-tf], #wpList .tfseg button, #wpList .kseg button', () => ['watch.kline', '', 'watch']],    // 自選：展開圖裡切 K 線週期
