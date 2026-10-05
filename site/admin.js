@@ -1337,7 +1337,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
             <div id="ptPermBox">
               <div id="ptGuestSum"></div>
               <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表<span class="qtip pmq" tabindex="0" role="note" aria-label="說明" title="${esc(LOCK_NOTE)}">?</span></h3>
-                <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限，點一下設定（0＝不能看；個股／題材／族群頁算看了幾個不同的）</span></div>
+                <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限</span></div>
                 <span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
               <div class="pmcats pmcards" id="pmCats"></div>
               ${GRPSEC}</div>
@@ -1615,7 +1615,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (!j || j._s !== 200) { setStat('新增失敗：' + errText(j), 'bad'); return; }
     inp.value = ''; v.querySelector('#pmAddExp').value = '';
     PS.email = j.email; PS.rec = j; PS.draft = null;
-    afterSave(j.email, `已新增 ${j.email}（${TIER_NAME[tierOf(plan)]}「${(planOf(plan) || {}).name || plan}」${expires ? '，到期 ' + expRaw : ''}）・下面可以再逐項微調，改完按「儲存」`);
+    afterSave(j.email, `已新增 ${j.email}（${TIER_NAME[tierOf(plan)]}「${(planOf(plan) || {}).name || plan}」${expires ? '，到期 ' + expRaw : ''}）`);
   }
   function paintTarget() {
     const v = PS.v, box = v.querySelector('#pmTarget'); if (!box) return;
@@ -1665,7 +1665,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     }
     /* 範本資訊列（perm-v4）：左＝名稱・價格／週期（#ptFor）＋套用人數，右＝⚙（只有付費範本有）；下面一行說明 */
     const p = planOf(PS.planSel);
-    if (PS.tier === 'paid' && !p) { box.innerHTML = '<div class="ptinfo"><b class="ptname" id="ptFor">還沒有付費範本</b></div><p class="ptnote">按頁籤最右邊的「＋」新增（填名稱、價格、月或年訂閱）。</p>'; paintSave(); return; }
+    if (PS.tier === 'paid' && !p) { box.innerHTML = '<div class="ptinfo"><b class="ptname" id="ptFor">尚無付費範本</b></div>'; paintSave(); return; }
     const meta = PS.tier === 'guest' ? '所有未登入的人' : PS.tier === 'free' ? `套用 ${members().filter((r) => !r.paid).length} 人` : `套用 ${planMembers(p.id)} 人`;
     const name = PS.tier === 'paid' ? planLabel(p) : `${TIER_NAME[PS.tier]}・免費`;
     const note = PS.tier === 'guest' ? '所有沒登入的人都套這一份；下面關掉的功能，就是訪客要先登入／升級才看得到的東西。'
@@ -1727,7 +1727,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (!name) { setStat('範本名稱不能空白', 'bad'); return; }
     if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
-    if (PS.draft) { setStat('觀看權限還有沒存的變更 —— 先按下面「儲存」或「取消」，再改範本設定', 'bad'); return; }
+    if (PS.draft) { setStat('有未儲存的變更', 'bad'); return; }
     setStat('儲存中…');
     const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name, feats: p.feats || {}, price, period });
     if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintAddPlan(); paintTarget(); paintCats(); setStat(`已儲存「${planLabel(planOf(p.id))}」（台北 ${tpeTime()}）`, 'ok'); }
@@ -1735,7 +1735,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   async function newPaidPlan(name) {
     const v = PS.v; name = String(name || '').trim();
-    if (!name) { setStat('先輸入新範本的名稱（例如 進階方案）', 'bad'); return; }
+    if (!name) { setStat('請輸入範本名稱', 'bad'); return; }
     const pe = v.querySelector('#ptNewPrice'), raw = String((pe && pe.value) || '0').trim(), price = Number(raw);
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
     const period = (v.querySelector('#ptNewPeriod') || {}).value === 'year' ? 'year' : 'month';
@@ -1750,7 +1750,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const n = Object.keys(mOver()).length, p = planOf(mPlan()), ex = mExp();
     const who = r.known ? `已登入過：<b>${esc(r.known.name || '')}</b>${r.known.seen ? `（最後登入 ${dstr(r.known.seen)}）` : ''}` : '<b>尚未登入過</b>';
     const exs = ex ? (ex < Date.now() ? `・<b style="color:#ff6b7a">已於 ${msToDate(ex)} 到期</b>（目前套註冊會員）` : `・到期 <b>${msToDate(ex)}</b>`) : '';
-    return `<b>${esc(r.email)}</b>・${who}・${TIER_NAME[tierOf(mPlan())]}「<b>${esc(p ? p.name : (r.planName || r.plan))}</b>」${exs}・個別微調 <b>${n}</b> 項${r.set ? '' : '（還沒個別設定過＝照免費會員）'}`;
+    return `<b>${esc(r.email)}</b>・${who}・${TIER_NAME[tierOf(mPlan())]}「<b>${esc(p ? p.name : (r.planName || r.plan))}</b>」${exs}・個別微調 <b>${n}</b> 項${r.set ? '' : ''}`;
   }
   function paintSave() {
     const bar = PS.v && PS.v.querySelector('#pmSave'); if (!bar) return;
@@ -1981,7 +1981,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (patch.expires !== undefined && (patch.expires || 0) !== (r.expires || 0)) body.expires = patch.expires || null;
     const j = await PS.A.call('/v1/admin/perm/put', body);
     if (j && j._s === 200) { PS.rec = Object.assign({}, j, { known: r.known }); PS.draft = null; afterSave(j.email, label + `・已儲存（台北 ${tpeTime()}）`); }
-    else { setStat('儲存失敗：' + errText(j) + '（變更還在，可以再按一次儲存）', 'bad'); }
+    else { setStat('儲存失敗：' + errText(j) + '', 'bad'); }
   }
   function afterSave(email, msg) {
     paintTarget(); paintCats(); setStat(msg, 'ok'); refreshList();
@@ -1994,7 +1994,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (j && j._s === 200) {
       PS.plans = j.plans; PS.draft = null; paintAddPlan(); paintTarget(); paintCats(); setStat(label + `・已儲存到「${(planOf(id) || {}).name || name}」（台北 ${tpeTime()}）`, 'ok');
       if (window.TwPerm) window.TwPerm.refresh();
-    } else { setStat('儲存失敗：' + errText(j) + '（變更還在，可以再按一次儲存）', 'bad'); }
+    } else { setStat('儲存失敗：' + errText(j) + '', 'bad'); }
   }
   async function refreshList() {
     PS.mst = {};      // 名單變了 → 上方統計重抓（狀態、人數由名單算，Top 8／活躍由伺服器算）
@@ -2039,7 +2039,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const open = PS.exp.has(r.email);
       return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
         + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}</span></td>`
-        + `<td class="c-tpl"${r.set ? '' : ' title="還沒個別設定過（照註冊會員預設）"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
+        + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
         + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
         + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
@@ -2099,7 +2099,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const cnt = { ok: 0, soon: 0, exp: 0, new: 0 }; rows.forEach((r) => { cnt[stOf(r)] += 1; });
     const known = rows.filter((r) => r.st !== 'new'), on = known.reduce((a, r) => a + (r.onlineMs || 0), 0);
     const o30 = rows.reduce((a, r) => a + (r.online30 || 0), 0), v30 = rows.reduce((a, r) => a + (r.visits30 || 0), 0);
-    const kp = kpi(nf(rows.length), '總人數（＝下面名單列數）', 'msTotal') + kpi(wait ? '—' : nf(s.active7), '近 7 日活躍人數', 'msAct7')
+    const kp = kpi(nf(rows.length), '總人數', 'msTotal') + kpi(wait ? '—' : nf(s.active7), '近 7 日活躍人數', 'msAct7')
       + kpi(known.length ? dur(on / known.length) : '—', `平均累計在線（登入過的 ${known.length} 人）`, 'msAvgOn') + kpi(v30 ? dur(o30 / v30) : '—', '平均每次停留（近 30 天）', 'msAvgStay');
     let dn = donut2([['有效', cnt.ok, 'var(--st-ok)'], ['7 天內到期', cnt.soon, 'var(--st-soon)'], ['已過期', cnt.exp, 'var(--st-exp)'], ['未登入過', cnt.new, 'var(--st-new)']],
       { id: 'msStDonut', keys: ['ok', 'soon', 'exp', 'new'], aria: '這一層會員的狀態分布' });
@@ -2191,7 +2191,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const cnt = box.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${fr.length} ／ ${rows.length} 位` : `共 ${rows.length} 位`;
       if (cnt) cnt.title = use;
       const tb = box.querySelector('#ptTableBox');
-      tb.innerHTML = fr.length ? memTable(fr, 'ptTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '這一層目前沒有人。用上面的「新增會員」加第一位。'}</div>`;
+      tb.innerHTML = fr.length ? memTable(fr, 'ptTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '沒有人'}</div>`;
       wireList(tb);
       return;
     }
@@ -2202,7 +2202,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     let rows = q ? all.filter((r) => (r.email + ' ' + r.name + ' ' + pn(r) + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : all.slice();
     if (PS.stf) rows = rows.filter((r) => r.st === PS.stf);
     const cnt = PS.v.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${rows.length} ／ ${all.length} 位` : `共 ${all.length} 位`;
-    box.innerHTML = rows.length ? memTable(rows, 'pmTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '還沒有任何會員。用上面的「新增會員」加第一位。'}</div>`;
+    box.innerHTML = rows.length ? memTable(rows, 'pmTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '沒有會員'}</div>`;
     wireList(box);
   }
   /* 逐人微調：從會員名單的展開明細進來。同一個頁框換成「這個人」的設定（層級／範本、到期日、開關），頁籤與子分頁暫時收起，左上「← 回會員名單」 */
