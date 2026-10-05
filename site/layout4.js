@@ -57,7 +57,7 @@
     market: { grp: '族群與個股', t: '市場明細', d: '完整名單：漲跌分佈、站上均線、法人動向與各項排行，可以排序篩選，找出符合條件的個股。' },
     explore: { grp: '族群與個股', t: '選股策略', d: 'Strategy Lab：每張卡是一組公開條件（獲利、估值、成長、技術、法人、股利、動能），列出前 3 檔；點一列看入選原因，點 i 看條件與資料出處。' },
     season: { grp: '歷史規律', t: '週期統計', d: '每個族群在各月份的歷史表現：勝率、報酬中位數與超額報酬，看現在是不是它的旺季。' },
-    etf: { grp: '歷史規律', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
+    etf: { grp: '族群與個股', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
     watch: { grp: '專案', t: '自選', d: '你自己的自選清單（最多五頁）：今天的漲跌與走勢，點走勢圖原地展開、點名稱進個股頁。' },
     delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
   };
@@ -297,13 +297,13 @@
         改成真的按鈕 .l4grp（不是 .tab —— 手機版、app.js、驗收腳本都在數 .tab），點一下收起／展開該組。
      ② 有子項的大項（資金流向、熱力圖）右邊一顆 ▸／▾（.l4car）收展子項；再點一次「已選中的大項」也是收展。
      ③ 狀態記在 localStorage（l4.navFold），讀寫都包 try/catch（LS）。
-     ④ 目前所在頁永遠看得到：收起的群組裡 .on 那格照樣顯示（CSS :not(.on)），標題右邊多一顆點提示「你在這組裡」。
+     ④ 2026-10-06 改（Andy：「收合後應該只會出現母分頁」）：收起就整組（含目前所在頁與它的子項）全部藏起來，只剩群組標題；目前頁在組裡時標題右邊那顆點提示「你在這組裡」。
      ⑤ 收合成圖示列（l4-mini）時整套不作用：標題按鈕藏起來、群組不收（圖示列本來就短，收了反而找不到）。 */
   const GROUPS = [
-    { g: 'today', t: '今日市場', first: 'overview', views: ['overview'] },
+    { g: 'today', t: '今日市場', first: 'overview', views: ['overview', 'earnings'] },
     { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap'] },
-    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore'] },
-    { g: 'hist', t: '歷史規律', first: 'season', views: ['season', 'etf'] },
+    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore', 'etf'] },
+    { g: 'hist', t: '歷史規律', first: 'season', views: ['season'] },
     { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'delivery', 'admin'] },
   ];
   const FOLD_KEY = 'l4.navFold';
@@ -336,6 +336,19 @@
     LS.set(FOLD_KEY, JSON.stringify(f));
     applyFold(); fitNav();
   }
+  /* 2026-10-06（Andy：「管理區也需要收納」）：管理區跟資金流向一樣有 ▸／▾，收合鍵 'admin'。
+     子項清單不寫死 —— CSS 只認 .l4subtab[data-parent="admin"]，另一分支拿掉「會員管理」也不用改這裡；沒有任何子項就不放箭頭。 */
+  function addAdmCar() {
+    const b = $('#l4Perm'); if (!b || $('.l4car', b)) return;
+    if (!$('.l4subtab[data-parent="admin"]', $('#tabs'))) return;
+    const c = document.createElement('span');
+    c.className = 'l4car'; c.dataset.p = 'admin'; c.setAttribute('role', 'button'); c.tabIndex = 0;
+    c.setAttribute('aria-label', '管理區子項收展');
+    // 箭頭建立得比 applyFold 晚（管理者身分是非同步回來的），當場把方向設對，不能留一個沒有 aria-expanded 的箭頭
+    const shut = readFold().s.includes('admin');
+    c.setAttribute('aria-expanded', shut ? 'false' : 'true'); c.title = shut ? '展開子項' : '收起子項';
+    b.appendChild(c);
+  }
   function buildFold() {
     const tabs = $('#tabs'); if (!tabs) return;
     GROUPS.forEach((G) => {
@@ -354,17 +367,26 @@
       c.setAttribute('aria-label', (PAGES[v] ? PAGES[v].t : v) + '子項收展');
       t.appendChild(c);
     });
+    addAdmCar();
     if (!tabs._l4fold) {
       tabs._l4fold = true;
-      // capture：比 app.js 掛在每顆 .tab 上的「換 hash」先跑；點到箭頭、或再點一次已選中的大項 → 只收展，不導頁
+      /* capture：比 app.js 掛在每顆 .tab 上的「換 hash」先跑。
+         2026-10-06 狀態機（Andy：「點擊母分頁名稱即可收合展開」）—— 每個有子項的母分頁各自一個展開／收合狀態（l4.navFold 的 s），
+         箭頭方向＝aria-expanded＝子項可見性（CSS 只看 data-cs，沒有任何「目前頁例外」）：
+           · 點箭頭 → 只切換，不導頁
+           · 點母分頁名稱、已在這一頁 → 只切換，不導頁
+           · 點母分頁名稱、不在這一頁 → 導到它（第一個子頁），而且若是收著就展開
+           · 點子項、換頁 → 不動任何母分頁或群組的狀態 */
       tabs.addEventListener('click', (e) => {
         if (!active || root.classList.contains('l4-mini')) return;
         const car = e.target.closest('.l4car');
+        if (car) { e.stopPropagation(); e.preventDefault(); toggleFold('s', car.dataset.p); return; }
         const tab = e.target.closest('.tab');
-        if (car || (tab && tab.classList.contains('on') && SUBS[tab.dataset.view])) {
-          e.stopPropagation(); e.preventDefault();
-          toggleFold('s', car ? car.dataset.p : tab.dataset.view);
-        }
+        const key = tab && (tab.id === 'l4Perm' ? ($('.l4subtab[data-parent="admin"]', tabs) ? 'admin' : '') : (SUBS[tab.dataset.view] ? tab.dataset.view : ''));
+        if (!key) return;
+        if (tab.classList.contains('on')) { e.stopPropagation(); e.preventDefault(); toggleFold('s', key); return; }
+        const f = readFold();
+        if (f.s.includes(key)) toggleFold('s', key);   // 收著 → 展開；導頁照常交給 app.js／syncPerm 的 onclick
       }, true);
       tabs.addEventListener('keydown', (e) => {
         const car = e.target.closest && e.target.closest('.l4car');
@@ -430,7 +452,12 @@
       // 2026-10-05（admin-v2）：改成「管理區」入口 —— 會員權限／會員管理／流量觀測三個子分頁在頁內頂部 tab
       b.textContent = '管理區';
       b.setAttribute('aria-label', '管理區'); b.title = '專案・管理區：會員權限／會員管理／流量觀測（只有管理者看得到）';
-      b.onclick = () => { if (!/^#admin\b/.test(location.hash || '')) location.hash = '#admin/perm'; };
+      b.onclick = () => {
+        if (/^#admin\b/.test(location.hash || '')) return;
+        // 2026-10-06：子項清單不寫死（另一分支會拿掉會員管理）—— 有「會員權限」照舊進它（會員權限導覽段落與帳號選單都認這個入口），沒有才進第一個實際存在的子項
+        const f1 = $('.l4subtab[data-parent="admin"][data-adm="perm"]', tabs) || $('.l4subtab[data-parent="admin"]', tabs);
+        location.hash = '#admin/' + (f1 ? f1.dataset.adm : 'perm');
+      };
       parent.after(b);
     }
     /* 2026-10-05（admin-v2b，Andy：頂部那排三顆搬到左側欄「管理區」下面當縮排子項，同資金流向的子分頁）。
@@ -461,6 +488,7 @@
       x.classList.toggle('on', o);
       if (o) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current');
     });
+    if (root.classList.contains('l4g')) addAdmCar();
   }
 
   /* ---------------- 左側導覽收合（寬 ↔ 圖示列） ----------------

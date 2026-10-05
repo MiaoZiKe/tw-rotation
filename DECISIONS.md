@@ -6316,3 +6316,17 @@ Andy 10-05：「把這件事情獨立出來，針對我過往所有設計的要�
 - 不要在 JS 寫死類別色（`var(--violet)` 當第二類也要寫成 `var(--cat-2)`）；不要把卡片副標放回長段說明（≤ 20 字，其餘進 `title`）。
 - ⚠ #explore 10-05 量到 12px 以下的字（`.sl-en`、卡內 small），還沒加進 `STYLE_ROUTES`，修完再加。
 
+## #323 回報「部署好了」只准依據 scripts/deploy_wait.py（CEO，2026-10-06）
+
+**事故**：10-06 02:17 CEO 回報「流量觀測預覽 02:17 就部署好了」，Andy 打開看沒變化，問「CEO 有實際確認嗎？」——沒有。
+**根因（三層）**：
+1. **盯錯 run**：推 `preview/*` 會產生兩輪「部署網站」：①預覽分支自己那輪（`relay-preview`，只負責叫 main 重跑，10 秒就 success，**不部署任何東西**）②main 的 `workflow_dispatch`（真正把預覽裝上 Pages，10～15 分鐘）。CEO 的等待指令用 `head_sha＝預覽分支 sha` 篩選，只會抓到 ①，所以 10 秒後就印 success。
+2. **沒做常識檢查**：一輪部署 10 秒完成（正常 10～15 分鐘）本身就是異常訊號，卻沒停下來查。
+3. **違反既有規則**：CLAUDE.md 已規定回報要寫明「這是推算、請 Andy 重新整理」，且證據要看 Pages deployment——這次沒照做。
+**對策（制度，不靠記性）**：
+1. 新增 `scripts/deploy_wait.py`：只看 GitHub **Deployments（environment＝github-pages）**——那才是 Pages 真的換版的紀錄；正式站要求 deployment sha 包含你推的 commit，預覽要求 deployment 建立在推送之後；被擠掉（cancelled／inactive／error）就等下一筆；印出 ✅ 才算完成，⏳／失敗都不准講成好了。
+2. **規則**：任何「部署好了／已上線／可以看了」的回報，前一步必須是 `deploy_wait.py` 印出 ✅，並把它那行（含台北時間）放進回報，附「請重新整理確認」。沒有 ✅ 只能說「還在部署，預估 X 分鐘」。
+3. `.claude/agents/deployer.md` 與 CLAUDE.md 同步寫入；監察委員稽核時抽查「回報部署完成」是否有對應的 ✅ 輸出。
+
+### 別順手改回去
+- 不要再用「Actions run 結論＝success」當部署完成的證據；預覽分支那輪 run 永遠很快就 success。

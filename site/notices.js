@@ -135,7 +135,8 @@
     const bar = window.TwAcctBar ? window.TwAcctBar() : null; if (!bar) return;
     if (bar.firstChild !== b) bar.insertBefore(b, bar.firstChild);
   }
-  window.addEventListener('hashchange', () => setTimeout(paintBell, 50));
+  /* 換頁時通知下拉一律收起（2026-10-06 預設狀態普查：從下拉點「查看全部」以外的連結換頁也不該留著）*/
+  window.addEventListener('hashchange', () => { if (S.open) toggleDrop(false); setTimeout(paintBell, 50); });
   let rzT = 0; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(paintBell, 250); });
   function toggleDrop(want) {
     const open = want == null ? !S.open : want;
