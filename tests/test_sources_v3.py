@@ -1024,3 +1024,61 @@ def test_build_prefers_taifex_over_mis_same_day():
     assert s["m1_first"] == "2026-09-24" and s["m1_days"] == 2
     assert s["taifex_first"] == "2026-09-25" and s["taifex_days"] == 1
     assert s["mis_days"] == 1
+
+
+# ---------------------------------------------------------------- ETF 配息補齊（2026-10-05 晚）
+# dividend_events 的鍵 (code, period, kind) 會把季配／月配同一民國年的多期去重成一列，
+# 所以另開 etf_dividend_events（鍵多 ex_date）。下面用假回應驗：每期都留、舊表不受影響、算配息不重複。
+
+def _fm_quarterly(code):
+    return [{"year": "113", "AnnouncementDate": "", "CashEarningsDistribution": a,
+             "CashExDividendTradingDate": d, "CashDividendPaymentDate": ""}
+            for a, d in ((0.66, "2024-03-18"), (0.70, "2024-06-24"), (0.72, "2024-09-23"), (0.72, "2024-12-20"))]
+
+
+def test_etf配息_新表每期都留_舊表同年只剩一列(tmp_path, monkeypatch):
+    from pipeline import config
+    from pipeline.sources import finmind
+    from pipeline.util import http, store
+    monkeypatch.setattr(config, "DATA", tmp_path / "data")
+    monkeypatch.setattr(http, "finmind_get", lambda *a, **k: _fm_quarterly("00919"))
+    df = finmind.dividend_events("00919", "2009-01-01")
+    assert len(df) == 4
+    store.append("dividend_events", df)
+    store.append("etf_dividend_events", df)
+    assert len(store.read("dividend_events")) == 1          # 舊鍵的已知限制（所以才開新表）
+    assert len(store.read("etf_dividend_events")) == 4
+    # 重跑一次：只增不改，不會變 8 列
+    assert store.append("etf_dividend_events", df) == 0
+    assert len(store.read("etf_dividend_events")) == 4
+
+
+def test_etf配息_兩張表串起來不會重複算():
+    from pipeline.compute import etf
+    ev = pd.DataFrame({"code": ["00919"] * 2, "period": ["113"] * 2, "kind": ["cash"] * 2,
+                       "amount": [0.72, 0.72], "ex_date": ["2024-12-20", "2024-12-20"],
+                       "payment_date": [None, None]})
+    ev2 = pd.DataFrame({"code": ["00919"], "period": ["113"], "kind": ["cash"], "amount": [0.66],
+                        "ex_date": ["2024-03-18"], "payment_date": [None]})
+    out = etf._divs(pd.concat([ev, ev2]), pd.DataFrame(), {"00919"})
+    assert dict(zip(out["ex_date"], out["amount"])) == {"2024-03-18": 0.66, "2024-12-20": 0.72}
+
+
+def test_etf回補_計畫有新鍵_月更新抓etfdiv():
+    from datetime import date
+    from pipeline import run_backfill
+    steps = run_backfill.plan_steps("default", date(2026, 10, 5))
+    assert any(s["datasets"] == "etfdiv" and s.get("scope") == "etf" for s in steps)
+    assert steps[-1]["datasets"] == "divresult+etfdiv" and steps[-1]["scope"] == "etf"
+    assert "etfdiv" in run_backfill.DATA_KEYS and "etfdiv" not in run_backfill.ETF_SKIP_KEYS
+
+
+def test_etf名單_含近期沒成交但company_info標ETF(tmp_path, monkeypatch):
+    from pipeline import config, run_backfill
+    from pipeline.util import store
+    monkeypatch.setattr(config, "DATA", tmp_path / "data")
+    store.append("company_info", pd.DataFrame({"code": ["0050", "00774B", "2330"],
+                                               "industry": ["ETF", "ETF", "半導體業"]}))
+    store.append("price_daily", pd.DataFrame({"date": ["2026-10-02"] * 2, "code": ["0050", "2330"],
+                                              "close": [100.0, 1000.0], "turnover": [1.0, 2.0]}))
+    assert run_backfill.etf_codes() == ["0050", "00774B"]

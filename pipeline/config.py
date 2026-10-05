@@ -42,6 +42,12 @@ TABLES: dict[str, list[str]] = {
     # v3：FinMind 股利公告（一期展開成 cash / stock 兩列）與除權息結果（參考價、當日開盤）
     "dividend_events":    ["code", "period", "kind"],
     "dividend_results":   ["code", "date"],
+    # v14（2026-10-05，ETF 配息補齊）：dividend_events 的鍵是 (code, period, kind)，period 是民國年，
+    #   季配／月配 ETF 同一年好幾期會被去重成 1 列（00919 湖裡只剩 4 列、實際 14 期）。
+    #   不能直接改 dividend_events 的鍵：證交所每日公告與 FinMind 回補共用那個鍵，換鍵後
+    #   「先公告沒除息日」與「後來有除息日」會變成兩列，個股頁會重複算；而且舊分割要重寫。
+    #   所以另開一張表，鍵多一個 ex_date，只給 ETF 用；沒有除息日的公告不進這張表（dropna）。
+    "etf_dividend_events": ["code", "period", "kind", "ex_date"],
     # v4：大盤／櫃買／台指期的日 K（給總覽那三張圖的歷史週期用）。
     # Yahoo 的櫃買代號 ^TWOII 已經壞掉、台指期沒有免費代號，所以改走 FinMind：
     #   TaiwanStockPrice(TAIEX / TPEx) 與 TaiwanFuturesDaily(TX)

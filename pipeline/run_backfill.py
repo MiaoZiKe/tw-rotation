@@ -34,7 +34,7 @@ PROGRESS = config.STATE / "backfill_progress.json"
 
 # 各資料集鍵（--datasets 用的名字）；summary 與 main() 的合計都照這張表
 DATA_KEYS = ("price", "inst", "per", "revenue", "financial", "balance",
-             "dividend", "divresult", "margin", "holding", "daytrade", "sbl")
+             "dividend", "divresult", "margin", "holding", "daytrade", "sbl", "etfdiv")
 
 # ETF / 指數型商品沒有財報、月營收、本益比、股利公告可抓（ETF 其實有配息，先不抓），
 # 逐檔去問只是在燒額度；融資券與股權分散 ETF 有，要抓
@@ -59,7 +59,7 @@ FINMIND_DATASET = {
     "price": "TaiwanStockPrice", "inst": "TaiwanStockInstitutionalInvestorsBuySell",
     "per": "TaiwanStockPER", "revenue": "TaiwanStockMonthRevenue",
     "financial": "TaiwanStockFinancialStatements", "balance": "TaiwanStockBalanceSheet",
-    "dividend": "TaiwanStockDividend", "divresult": "TaiwanStockDividendResult",
+    "dividend": "TaiwanStockDividend", "etfdiv": "TaiwanStockDividend", "divresult": "TaiwanStockDividendResult",
     "margin": "TaiwanStockMarginPurchaseShortSale", "holding": "TaiwanStockHoldingSharesPer",
     "daytrade": "TaiwanStockDayTrading", "sbl": "TaiwanDailyShortSaleBalances",
 }
@@ -112,6 +112,9 @@ PLAN_DEFAULT = [
     #   ★ 帶 tag "etf2009"：舊的 dividend@2009-01-01:<ETF> 鍵已被上面那個跳過邏輯標成 done（沒真的問），
     #   換一組新鍵才會真的重問一次。進度檔 data/ 只由 Actions 寫，本機不去改它。
     {"datasets": "dividend+divresult",        "start": "2009-01-01", "scope": "etf", "tag": "etf2009"},
+    # ★ 2026-10-05 晚：上一步的 dividend_events 鍵把季配／月配同年多期去重成一列，另寫 etf_dividend_events
+    #   （鍵含 ex_date）；名單也放寬到 company_info 標 ETF 但近 30 天沒成交的。新完成鍵 → 全部 ETF 重問一次。
+    {"datasets": "etfdiv",                    "start": "2009-01-01", "scope": "etf", "tag": "etfx2009"},
     {"datasets": "price",                     "start": "2000-01-01", "scope": "etf"},
 ]
 # 請求數估算（2026-09-28 以資料湖實測：market_codes() 1,980 檔，扣掉已有逐檔 done 鍵／已補到起始日的；
@@ -341,6 +344,10 @@ def etf_codes() -> list[str]:
     out = [c for c in by_tv if ok(c)]
     seen = set(out)
     out += sorted(c for c in recent["code"].unique() if c not in seen and ok(c))
+    # 2026-10-05 晚：再補上「仍在 company_info 標 ETF、但近 30 天沒成交」的（暫停交易、冷門檔）。
+    #   以前漏掉這些，回補只問了 202 檔。代價是可能問到已下市的，回空就記 no_data，不會重問。
+    seen = set(out)
+    out += sorted(c for c in etf_ind if c not in seen)
     return out
 
 
@@ -441,6 +448,8 @@ def run(datasets: str, limit: int | None, start: str, *,
         ("financial", "financial_q", lambda c: finmind.financial_statements(c, start, wait=False)),
         ("balance", "balance_q", lambda c: finmind.balance_sheet(c, start, wait=False)),
         ("dividend", "dividend_events", lambda c: finmind.dividend_events(c, start, wait=False)),
+        # etfdiv：同一個 FinMind 資料集，寫進鍵多 ex_date 的 etf_dividend_events（見 config 的 v14 說明）
+        ("etfdiv", "etf_dividend_events", lambda c: finmind.dividend_events(c, start, wait=False)),
         ("divresult", "dividend_results", lambda c: finmind.dividend_results(c, start, wait=False)),
         ("margin", "margin_daily", lambda c: finmind.margin_history(c, start, wait=False)),
         ("holding", "shareholding_weekly", lambda c: finmind.holding_history(c, start, wait=False)),
@@ -1279,7 +1288,10 @@ def plan_steps(name: str, today: date | None = None) -> list[dict]:
     m = monthly_step(today)
     # ETF 的配息每月也要重抓（月配 ETF 每個月都有新公告；族群月更新那一步不含 ETF）
     # ETF 月更新用自己的 tag（e 前綴）：避免與族群月更新共用 done 鍵，也避開舊跳過邏輯標過的鍵。
-    return [dict(s) for s in PLANS[name]] + [m, {**m, "scope": "etf", "tag": "e" + m["tag"]}]
+    # 2026-10-05 晚：ETF 月更新改抓 etfdiv（寫 etf_dividend_events，鍵含除息日，月配每期都留）＋除息結果；
+    #   ETF 不再寫 dividend_events，一次請求不浪費。
+    return [dict(s) for s in PLANS[name]] + [m, {**m, "datasets": "divresult+etfdiv",
+                                                 "scope": "etf", "tag": "e" + m["tag"]}]
 
 
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:

@@ -318,7 +318,7 @@ def test_plan_marks_done_when_every_step_completes(sandbox, monkeypatch, two_ste
     assert plan["done"] is True and plan["month"] == "2026-09" and plan["stopped_at"] is None
     assert plan["steps"] == {"revenue": True, "price@2000-01-01": True,
                              "dividend+divresult@m2026-09": True,
-                             "dividend+divresult@em2026-09@etf": True}  # ETF 月更新（2026-10-05）
+                             "divresult+etfdiv@em2026-09@etf": True}  # ETF 月更新（2026-10-05 晚改抓 etfdiv）
     assert prog["complete"]["dividend+divresult@m2026-09"]["done"] is True
     assert run_backfill.plan_is_done(prog, today=date(2026, 9, 30)) is True
     assert run_backfill.plan_is_done(prog, today=date(2026, 10, 1)) is False, "跨月後計畫要變成未完成"
