@@ -1,5 +1,18 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 02:40 會員 Worker：每小時統計＋頁面白名單補七頁（分支 `claude/worker-hourly`，**Worker 先上，前端待接**）
+- Andy：流量觀測「即時」看今天 0–24 時每小時、「使用者」分頁看每小時使用時段（1H／4H／6H／12H／白天／晚上）；ETF、選股策略、事件、客服、財經日曆要有真的瀏覽數。
+- 後端（`workers/account-api/worker.js` 檔尾 hourly 區塊，只新增、包 prototype）：新表 `hstat(day, h, pv, sess, sess_login, mins)`（台北日期×小時，只有次數、無識別碼，保留 13 個月同 usage）；
+  `/v1/admin/stats` 回應**原欄位不動**，後面多 `hours`（今天 24 格瀏覽）、`hourly`（期間各「時」加總）、`hstat`（today／hour／since／day／period，各含 pv、open、login、guest、mins 24 格）。
+  頁面白名單 `VIEWS` 補 `etf`、`explore`、`earnings`、`events`、`support`、`pricing`、`notices`（`VIEWS_ADDED`，接在舊 11 個後面）；舊的 `other`＋前綴細項照舊讀得到。
+- ★ **前端接法（給 `claude/style-guide` 的 site/admin.js、site/account.js）**：全文在 `docs/account_analytics.md`「每小時統計＋頁面白名單補七頁」。重點：
+  ① 即時直條用 `st.hours`、使用時段用 `st.hourly`（現成 `hourData()` 直接吃），登入／訪客分色用 `st.hstat.period.login／guest`；`hstat.since` 晚於期間起點要註明。
+  ② `site/account.js` 的 `VIEWS` 改成跟 Worker 一模一樣（順序一樣，18 個）；`events`／`support` 是面板，打開時另外 `bump('pv:events')`／`bump('pv:support')`。
+  ③ 管理區 `classify` 要同時認「other＋前綴」（舊）與新頁面鍵。④ `tests/account.test.mjs` 三邊一致測試在過渡期允許前端少這七個，前端補上後自動回到完全相等。
+- **這批驗了**：`node --test workers/account-api/tests/*.mjs` 60 過（新檔 `hourly.test.mjs` 10 條：小時累加、跨日〔台北 23:59／00:00〕、與 usage 對帳、400／403／429 不記、13 個月保存、七頁 pv／e2／線上 route／page 篩選、舊 other 細項相容、舊欄位不變、空資料）。
+  反向：拿掉寫入 → 新測試紅 6；小時改用 UTC → 紅 5；模擬前端補上 18 頁 → 三邊測試綠、順序錯 → 紅。沒跑 pytest／_preview／_uitest（沒動 site、pipeline）。
+- 已知限制：① 部署前沒有每小時資料（看 `hstat.since`）；② 小時歸「Worker 收到心跳」那一小時，整點前 1 分鐘內的動作可能算到下一小時；③ `deploy-account-worker.yml` 部署前只跑 `account.test.mjs`（新測試只在本機跑），沒動 .github。
+
 ## 2026-10-06 預設狀態普查（頁尾詳細規範一律收合）
 - Andy：「每次重新整理、換頁面後 Default 都會是收合狀態，Default 狀態這部分幫我 CHK 所有頁面」。普查表 `docs/default_state_audit_1006.md`。
 - 修：頁尾詳細規範不再記 `tw.footDetail`（移到 viewreset 重設清單清舊值），重新整理與換頁一律收合；客服面板、通知下拉換頁收起；
