@@ -179,7 +179,7 @@
         // 起點那一側封一條實線，看得出「這個區間是從哪一天開始成立的」
         if (x0 > 1) { ctx.beginPath(); ctx.moveTo(x0 + .5, top); ctx.lineTo(x0 + .5, top + h); ctx.stroke(); }
         if (!st.label) continue;
-        const label = `${dem ? '需求' : '供給'}${z.tf ? ' ' + z.tf : ''} ${z.low}–${z.high}`;
+        const label = z.label || `${dem ? '需求' : '供給'}${z.tf ? ' ' + z.tf : ''} ${z.low}–${z.high}`;
         ctx.font = '600 10.5px JetBrains Mono, monospace'; ctx.textAlign = 'left';
         const tw = ctx.measureText(label).width;
         /* ★ 2026-09-25（審查 R5：「需求 日線 2395–2457」「需求 日線 2277–2357」壓在 K 棒和 CHoCH 上、
@@ -211,6 +211,70 @@
         ctx.fillStyle = 'rgba(10,16,32,.82)'; ctx.fillRect(pos.r.x, pos.r.y, pos.r.w, pos.r.h);
         ctx.fillStyle = base; ctx.fillText(label, pos.lx, pos.ly);
       } }); } }) }]; }
+  }
+
+
+  /* ---------------------------------------------------------------- SMC 價位線（2026-10-05）
+     Andy：「AI 分析／技術分析卡裡提到的價位，需要補在上方 K 線圖，並且這是可以開啟關閉的指標」。
+     這一層只負責「畫」：BOS／CHoCH 水平虛線、最近支撐／壓力粗線、停損線，以及圖底一行免責小字。
+     價位本身一律由呼叫端（industry.js 的 smcOverlay）從 payload 的 mtf／analysis 取，
+     **這裡不算任何東西** —— 圖上的數字跟 AI 卡同一份，不可能兩邊講不一樣。
+     需求／供給矩形沿用上面的 ZonesPrimitive（since 起畫、右邊停在最後一根）。
+     每條線從 t0（形成那根）畫到最後一根，t0 在可視範圍左邊就從左緣畫起。 */
+  class SmcLinesPrimitive {
+    constructor() { this.lines = []; this.note = ''; this.lastTime = null; this.placed = []; }
+    attached(p) { this._series = p.series; this._chart = p.chart; this._req = p.requestUpdate; }
+    detached() { this._series = null; }
+    set(lines, note) { this.lines = lines || []; this.note = note || ''; if (this._req) this._req(); }
+    setLastTime(t) { this.lastTime = t; if (this._req) this._req(); }
+    updateAllViews() {}
+    paneViews() { const self = this; return [{ zOrder: () => 'top', renderer: () => ({ draw(target) { target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
+      self.placed = [];
+      if (!self._series || !self._chart) return;
+      if (!self.lines.length && !self.note) return;
+      const ts = self._chart.timeScale();
+      let xEnd = mediaSize.width;
+      if (self.lastTime != null) { const e = ts.timeToCoordinate(self.lastTime); if (e !== null && isFinite(e)) xEnd = Math.min(mediaSize.width, e + 6); }
+      ctx.save();
+      ctx.font = '600 10.5px "Noto Sans TC", "JetBrains Mono", sans-serif';
+      const used = self.getAvoid ? self.getAvoid() : [];
+      const hit = (r) => used.some(b => r.x < b.x + b.w && r.x + r.w > b.x && r.y < b.y + b.h && r.y + r.h > b.y);
+      for (const L of self.lines) {
+        const y = self._series.priceToCoordinate(L.price); if (y === null || !isFinite(y)) continue;
+        let x0 = 0;
+        if (L.t0 != null) { const c = ts.timeToCoordinate(toTime(L.t0)); if (c !== null && isFinite(c)) x0 = c; }
+        if (x0 >= xEnd) continue;
+        ctx.strokeStyle = L.color; ctx.lineWidth = L.width || 1;
+        ctx.setLineDash(L.dash || []);
+        ctx.beginPath(); ctx.moveTo(Math.max(0, x0), Math.round(y) + .5); ctx.lineTo(xEnd, Math.round(y) + .5); ctx.stroke();
+        ctx.setLineDash([]);
+        if (x0 > 0) { ctx.fillStyle = L.color; ctx.beginPath(); ctx.arc(x0, y, 2.5, 0, 7); ctx.fill(); }
+        if (!L.label) continue;
+        const tw = ctx.measureText(L.label).width;
+        // 標籤先試線的上方、再試下方；左右先貼最後一根左邊，撞到就往左挪，全撞就不印（線還在）
+        let pos = null;
+        // 第一輪只在線段上方找位置；線太短（例如最近幾根才形成的 BOS）第二輪才允許往線段左邊放
+        for (const lo of [Math.max(2, x0 + 4), 2]) for (const ly of [y - 4, y + 13]) {
+          if (pos) break;
+          for (let lx = Math.min(xEnd - tw - 8, mediaSize.width - tw - 8); lx >= lo - 0.1; lx -= 24) {
+            const r = { x: lx - 3, y: ly - 10, w: tw + 6, h: 13 };
+            if (r.y < 2 || r.y + r.h > mediaSize.height - 2) continue;
+            if (!hit(r)) { pos = { lx, ly, r }; break; }
+          }
+        }
+        if (!pos) continue;
+        used.push(pos.r);
+        self.placed.push({ label: L.label, kind: L.kind, x: pos.r.x, y: pos.r.y, w: pos.r.w, h: pos.r.h });
+        ctx.fillStyle = 'rgba(10,16,32,.82)'; ctx.fillRect(pos.r.x, pos.r.y, pos.r.w, pos.r.h);
+        ctx.fillStyle = L.color; ctx.textAlign = 'left'; ctx.fillText(L.label, pos.lx, pos.ly);
+      }
+      if (self.note) {
+        ctx.font = '500 10px "Noto Sans TC", sans-serif'; ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(150,165,200,.8)';
+        ctx.fillText(self.note, 8, mediaSize.height - 6);
+      }
+      ctx.restore();
+    }); } }) }]; }
   }
 
   /* ---------------------------------------------------------------- 繪圖層
@@ -372,6 +436,9 @@
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
       this.divPrice = new DivPrimitive(); this.candle.attachPrimitive(this.divPrice);
+      this.smcLines = new SmcLinesPrimitive(); this.candle.attachPrimitive(this.smcLines);
+      // 價位線標籤要避開：左上角圖例、需求／供給區已經印好的標籤（同一個 pane，區域層先畫，所以 placed 已經是這一幀的）
+      this.smcLines.getAvoid = () => { const lg = this.legendRect(); return (lg ? [lg] : []).concat(this.zones.placed || []); };
       // 左上角圖例（#legendOv）在主圖座標裡佔的框；背離字與區間標籤都要避開它
       this.divPrice.getLegend = () => this.legendRect();
       this.zones.getAvoid = () => ({ rects: (ts, series) => {
@@ -551,12 +618,12 @@
         ts.setVisibleLogicalRange(atRight
           ? { from: keep.from + grew, to: keep.to + grew }
           : { from: keep.from, to: keep.to });
-        if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+        if (this.zones && this.data.length) { this.zones.setLastTime(this.data[this.data.length - 1].time); this.smcLines.setLastTime(this.data[this.data.length - 1].time); }
         return;
       }
       this.defaultView();
       // 供需區的右邊界要停在最後一根 K 棒，不是畫面右緣
-      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+      if (this.zones && this.data.length) { this.zones.setLastTime(this.data[this.data.length - 1].time); this.smcLines.setLastTime(this.data[this.data.length - 1].time); }
     }
     /** 換股／換週期時的預設取景（2026-09-26 從 setBars 抽出來：四週期小圖右下角的「重設縮放」也要回到這個樣子）。*/
     defaultView() {
@@ -617,7 +684,7 @@
       if (grew > 0 && keep && keep.to >= (nb.length - grew) - 1.5) {
         ts.setVisibleLogicalRange({ from: keep.from + grew, to: keep.to + grew });
       }
-      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+      if (this.zones && this.data.length) { this.zones.setLastTime(this.data[this.data.length - 1].time); this.smcLines.setLastTime(this.data[this.data.length - 1].time); }
     }
     /** ② 直接把一筆即時報價灌進「當根 K 棒」。
      *
@@ -686,6 +753,41 @@
       return mon(a) === mon(b);
     }
     setZones(z, style) { this.zones.setZones(z, style); }
+    /** SMC 疊圖（2026-10-05）：{zones:[{kind,low,high,since,tf,tip}], lines:[{price,t0,color,width,dash,label,kind}], note}
+        傳 null 全部清掉。zones 的 since 呼叫端要先對齊成「這個週期裡第一根 ≥ since 的 K 棒時間」，不然週線找不到座標。
+        滑過矩形時在圖上浮一張小卡寫 tip（「需求區（日線）1,367.18–1,430.39，形成於 09-xx」）。*/
+    setSmc(o) {
+      this._smc = o || null;
+      this.zones.setZones(o ? o.zones : [], o && o.style ? o.style : null);
+      this.smcLines.set(o ? o.lines : [], o ? o.note : '');
+      if (!this._smcTip && !this.opts.mini) {
+        const tip = document.createElement('div'); tip.className = 'smc-tip'; tip.hidden = true;
+        tip.style.cssText = 'position:absolute;z-index:6;pointer-events:none;padding:4px 8px;border-radius:6px;font-size:12px;background:var(--panel-2,#121a30);border:1px solid var(--line-2,#2a3860);color:var(--ink,#e6ecff);white-space:nowrap';
+        this.el.appendChild(tip); this._smcTip = tip;
+        this.chart.subscribeCrosshairMove((p) => {
+          const z = this._smc && p && p.point && p.time != null ? this.smcHit(p.point.x, p.point.y) : null;
+          if (!z) { tip.hidden = true; return; }
+          tip.textContent = z.tip; tip.hidden = false;
+          const w = this.el.clientWidth;
+          tip.style.left = Math.min(Math.max(4, p.point.x + 14), Math.max(4, w - tip.offsetWidth - 70)) + 'px';
+          tip.style.top = Math.max(4, p.point.y - 30) + 'px';
+        });
+      }
+      if (!o && this._smcTip) this._smcTip.hidden = true;
+    }
+    /** 座標 (x,y) 落在哪個 SMC 矩形裡（驗收也用這支）：價格在區間內、時間在形成那根之後 */
+    smcHit(x, y) {
+      if (!this._smc || !(this._smc.zones || []).length) return null;
+      const price = this.candle.coordinateToPrice(y); if (price == null) return null;
+      const ts = this.chart.timeScale();
+      for (const z of this._smc.zones) {
+        if (price < z.low || price > z.high) continue;
+        const c = z.since != null ? ts.timeToCoordinate(toTime(z.since)) : null;
+        if (c !== null && c != null && x < c) continue;
+        return z;
+      }
+      return null;
+    }
     setZoneStyle(style) { this.zones.setStyle(style); }
     /* ③ 掛上「拖到左邊界就補」的監聽。只有日／週／月線做得到 ——
        分 K 的資料湖只留 60 分（730 天）與當天，往前補不到東西。*/
@@ -806,7 +908,7 @@
       if (this.cfg) this.applyIndicators(this.cfg);
       // 視野往右平移 grew 根，使用者眼前的那一段不能因為左邊長出東西就跳掉
       if (keep) ts.setVisibleLogicalRange({ from: keep.from + grew, to: keep.to + grew });
-      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+      if (this.zones && this.data.length) { this.zones.setLastTime(this.data[this.data.length - 1].time); this.smcLines.setLastTime(this.data[this.data.length - 1].time); }
       return grew;
     }
     /* 「載入中」「已經到最早一筆」那一小塊字。

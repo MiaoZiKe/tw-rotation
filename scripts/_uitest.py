@@ -21348,6 +21348,8 @@ SECTIONS = {
     "收尾0925-還原小標":    lambda pg, b, base, code: t_wrap_adj(pg, base, code),
     # ★ 2026-09-26 Andy：個股 K 線指標改下拉清單、四週期加成交量、拿掉 SMC／BOS、重設縮放搬進圖裡（⚠ 一律 --workers 1）
     "個股指標下拉0926":    lambda pg, b, base, code: t_stock_0926(pg, base, code),
+    # ★ 2026-10-05 Andy：AI 卡的需求／供給區、BOS／CHoCH、支撐壓力、停損畫上 K 線，可在指標設定開關（⚠ 一律 --workers 1）
+    "K線SMC區域1005":      lambda pg, b, base, code: t_smc_overlay_1005(pg, base, code),
     # ★ 2026-09-26 Andy：判讀卡＋多週期判讀合成可收合的「AI 分析」卡（規則式），技術面 1H／4H／日／週＋籌碼／基本／消息（⚠ 一律 --workers 1）
     "個股AI分析0926":      lambda pg, b, base, code: t_stock_ai_0926(pg, base, code),
     # ★ 2026-09-27 Andy：「季的週期要對，部分數據太少」＋券商 App 截圖；六檔季週期／筆數／按鈕（⚠ 一律 --workers 1）
@@ -23473,6 +23475,105 @@ def t_howpop_census(b, base, code):
         pg.close()
 
 
+
+def t_smc_overlay_1005(pg, base, code):
+    """K 線 SMC 區域疊圖（Andy 2026-10-05：「AI 分析／技術分析卡裡提到的價位需要補在上方 K 線圖，
+    並且這是可以開啟關閉的指標，在設定內可以勾選」）的真人操作驗收：
+      預設關 → 在「指標 ▾」勾起來 → 圖上真的多了需求／供給矩形（canvas 變、標籤印出、價位跟 payload／AI 卡同一份）
+      → 滑過矩形浮出「需求區（日線）…形成於…」→ 切週線換成週線的區域 → 切 1 時（沒資料）只剩支撐壓力並註明
+      → 取消「供給區」子項 → 重新整理後設定還在 → 關掉後真的消失。"""
+    DBG = "() => window.Industry._dbg()"
+    code = "2317" if os.path.exists(os.path.join(ROOT, "site", "data", "stock", "2317.json")) else code   # 2317 日線同時有需求與供給區
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    wait_until(pg, "() => !!(window.Industry && window.Industry._dbg().paneH)", 8000)
+    if not ok("[SMC1005] 個股頁日線 K 線畫得出來（前提）", pg.evaluate(DBG)["tf"] == "1d" and count(pg, "#lwc canvas") > 0):
+        return
+    js = pg.evaluate(f"() => fetch('data/stock/{code}.json').then(r => r.json()).then(j => ({{ mtf: j.mtf, tech: j.analysis && j.analysis.facets && j.analysis.facets.tech }}))")
+    mtf = (js.get("mtf") or {}).get("tf") or {}
+    ok("[SMC1005] 預設關：沒開的人畫面不變（圖上沒有 SMC 疊圖）", pg.evaluate(DBG).get("smc") is None)
+    ok("[SMC1005] 預設關：指標清單有「SMC 區域」那一列、勾選框沒勾", ind_on(pg, "smcOv") is False)
+    h0 = canvas_hash(pg, "#lwc")
+    ind_toggle(pg, "smcOv", 1000)
+    sm = pg.evaluate(DBG).get("smc") or {}
+    ok("★ [SMC1005] 勾起來 → 圖上真的有 SMC 疊圖（週期＝日線）", sm.get("tf") == "1d", sm)
+    changed("[SMC1005] 勾起來之後 K 線圖真的重畫", h0, canvas_hash(pg, "#lwc"))
+    want = sorted([("demand", z["low"], z["high"]) for z in mtf.get("1d", {}).get("demand", [])]
+                  + [("supply", z["low"], z["high"]) for z in mtf.get("1d", {}).get("supply", [])])
+    got = sorted([(z["kind"], z["low"], z["high"]) for z in sm.get("zones", [])])
+    ok("★ [SMC1005] 圖上的需求／供給矩形＝payload 多週期判讀（mtf 日線）那幾個，一個不多一個不少", bool(want) and got == want, f"{got} vs {want}")
+    ok("[SMC1005] 有需求區也有供給區（這檔日線兩種都有）", {k for k, _, _ in got} >= {"demand", "supply"}, got)
+    ok("[SMC1005] 矩形標籤真的印在圖上、寫著價格範圍", any("需求區" in t and "–" in t for t in sm.get("zoneLabels", [])), sm.get("zoneLabels"))
+    ok("[SMC1005] 圖底那行「技術區域僅供研究參考，不構成投資建議」", "技術區域僅供研究參考，不構成投資建議" in (sm.get("note") or ""), sm.get("note"))
+    # 跟 AI 卡同一份：支撐壓力取 analysis.facets.tech.levels、停損取 checks.risk.a.stop，AI 卡文字裡也要找得到同樣的數字
+    tech = js.get("tech") or {}
+    lines = {l["kind"]: l for l in sm.get("lines", [])}
+    s0 = ((tech.get("levels") or {}).get("support") or [None])[0]
+    if s0:
+        ok("★ [SMC1005] 最近支撐線＝AI 卡支撐區的上緣", lines.get("sup", {}).get("price") == s0["high"], (lines.get("sup"), s0))
+    stop = (((tech.get("checks") or {}).get("risk") or {}).get("a") or {}).get("stop")
+    if stop is not None:
+        ok("★ [SMC1005] 停損線＝AI 卡的停損價", lines.get("stop", {}).get("price") == stop, (lines.get("stop"), stop))
+    ai_txt = pg.evaluate("() => { const e = document.getElementById('skAi'); return e ? e.textContent : ''; }")
+    if s0 and ai_txt:
+        lab = lines.get("sup", {}).get("label", "")
+        nums = re.findall(r"[\d,]+\.\d+", lab)
+        ok("★ [SMC1005] 圖上「最近支撐」的兩個價位在 AI 卡文字裡也找得到（兩邊同一組數字）", len(nums) == 2 and all(x in ai_txt for x in nums), (nums, lab))
+    mk = mtf.get("1d", {}).get("marks", {})
+    if mk.get("bos"):
+        ok("[SMC1005] BOS 線＝mtf 日線最近一次 BOS 那根", lines.get("bos", {}).get("date") == sorted(mk["bos"])[-1], lines.get("bos"))
+    if mk.get("choch"):
+        ok("[SMC1005] CHoCH 線＝mtf 日線最近一次 CHoCH 那根", lines.get("choch", {}).get("date") == sorted(c[0] for c in mk["choch"])[-1], lines.get("choch"))
+    # ---- 滑過矩形浮出說明（真的移動滑鼠）
+    pt = pg.evaluate("""() => { const kc = window.KChart && window.KChart.last; const s = window.Industry._dbg().smc; if (!kc || !s) return null;
+        const z = s.zones[0]; const ts = kc.chart.timeScale(); const last = kc.data[kc.data.length - 1].time;
+        const x = ts.timeToCoordinate(last) - 30, y = kc.candle.priceToCoordinate((z.low + z.high) / 2);
+        const r = document.getElementById('lwc').getBoundingClientRect(); return { x: r.left + x, y: r.top + y, kind: z.kind }; }""")
+    if ok("[SMC1005] 算得出第一個矩形在螢幕上的位置（前提）", bool(pt), pt):
+        pg.mouse.move(pt["x"], pt["y"]); pg.wait_for_timeout(300)
+        pg.mouse.move(pt["x"] + 2, pt["y"]); pg.wait_for_timeout(400)
+        tip = pg.evaluate("() => { const t = document.querySelector('#lwc .smc-tip'); return t && !t.hidden ? t.textContent : ''; }")
+        nm = "需求區（日線）" if pt["kind"] == "demand" else "供給區（日線）"
+        ok("★ [SMC1005] 滑鼠移到矩形上 → 浮出「需求區（日線）低–高，形成於 …」", nm in tip and "形成於" in tip and "–" in tip, tip)
+        pg.mouse.move(5, 5); pg.wait_for_timeout(300)
+    # ---- 切週線：換成週線的區域
+    click(pg, '#tfSeg button[data-tf="1w"]', 1500)
+    sw = pg.evaluate(DBG).get("smc") or {}
+    ww = sorted([("demand", z["low"], z["high"]) for z in mtf.get("1w", {}).get("demand", [])] + [("supply", z["low"], z["high"]) for z in mtf.get("1w", {}).get("supply", [])])
+    ok("★ [SMC1005] 切到週線 → 疊圖換成週線的區域（＝mtf 週線）", sw.get("tf") == "1w" and sorted((z["kind"], z["low"], z["high"]) for z in sw.get("zones", [])) == ww, (sw.get("zones"), ww))
+    ok("[SMC1005] 週線的區域跟日線不一樣（真的換了）", sorted((z["kind"], z["low"], z["high"]) for z in sw.get("zones", [])) != got)
+    # ---- 沒有區域資料的週期：1 時（這檔 payload 沒有 60m 的 mtf）
+    if "60m" not in mtf and count(pg, '#tfSeg button[data-tf="60m"]'):
+        click(pg, '#tfSeg button[data-tf="60m"]', 1500)
+        s6 = pg.evaluate(DBG).get("smc")
+        if s6 is not None:
+            ok("[SMC1005] 1 時沒有區域資料 → 不畫矩形、圖底註明「沒有 SMC 區域資料」", not s6.get("zones") and "沒有 SMC 區域資料" in s6.get("note", ""), s6)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1500)
+    # ---- 子項：取消「供給區」
+    ok("[SMC1005] 展開 SMC 區域那一列的設定", ind_expand(pg, "smcOv"))
+    ok("[SMC1005] 設定裡六個子項（需求區／供給區／BOS／CHoCH／支撐壓力／停損）", count(pg, "#cfgPop input.smck") == 6)
+    click(pg, '#cfgPop input.smck[data-s="supply"]', 900)
+    s2 = pg.evaluate(DBG).get("smc") or {}
+    ok("★ [SMC1005] 取消「供給區」→ 圖上的供給矩形真的消失、需求區還在", s2.get("zones") and all(z["kind"] == "demand" for z in s2["zones"]), s2.get("zones"))
+    cfg = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.kcfg') || '{}')")
+    ok("[SMC1005] 設定寫進 localStorage（smcOv 開、smcKinds.supply 關）", cfg.get("smcOv") is True and (cfg.get("smcKinds") or {}).get("supply") is False, cfg.get("smcKinds"))
+    ind_close(pg)
+    # ---- 重新整理：設定還在
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1500)
+    s3 = pg.evaluate(DBG).get("smc") or {}
+    ok("★ [SMC1005] 重新整理後還是開著、供給區仍然不畫（設定存回）", s3.get("tf") == "1d" and s3.get("zones") and all(z["kind"] == "demand" for z in s3["zones"]), s3.get("zones"))
+    # ---- 關掉：真的消失
+    h1 = canvas_hash(pg, "#lwc")
+    ind_toggle(pg, "smcOv", 1000)
+    ok("★ [SMC1005] 關掉 → 圖上的 SMC 疊圖消失", pg.evaluate(DBG).get("smc") is None)
+    changed("[SMC1005] 關掉之後 K 線圖真的重畫", h1, canvas_hash(pg, "#lwc"))
+    ok("[SMC1005] 關掉寫回 localStorage", pg.evaluate("() => JSON.parse(localStorage.getItem('tw.kcfg') || '{}').smcOv") is False)
+    ind_close(pg)
+
 def t_stock_0926(pg, base, code):
     """個股 K 線四件（Andy 2026-09-26）的真人操作驗收：
       ① 「將所有指標納入在 Setting，並且以下拉清單形式呈現」—— 打開下拉 → 關 KD → KD 副圖真的消失 →
@@ -23519,8 +23620,12 @@ def t_stock_0926(pg, base, code):
     ok("★ [0926晚-預設] 清空設定 → 指標只開均線＋成交量", sorted(on_rows) == ["ma", "vol"], on_rows)
     pd = pg.evaluate(DBG)["paneH"] or {}
     ok("[0926晚-預設] 圖上也只有主圖＋成交量兩格（沒有 KD／MACD／RSI 副圖）", sorted(pd) == ["main", "vol"], pd)
+    # ★ 2026-10-05 改前→改後（過時斷言）：改前整個清單不准出現「停損」兩字；
+    #   改後 Andy 要求把 AI 卡的價位（含停損）做成可開關的「SMC 區域」指標（smcOv 那一列會寫到停損），
+    #   被拿掉的仍是 09-26 那兩列（macdDiv／lines），所以只排除 smcOv 那一列再找「停損／背離」。
+    _rest = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].filter(r => r.dataset.k !== 'smcOv').map(r => r.textContent).join(' ')")
     ok("★ [0926晚-拿掉] 清單裡沒有「MACD 背離」「停損／目標」", "macdDiv" not in rows and "lines" not in rows
-       and "背離" not in text(pg, "#cfgPop") and "停損" not in text(pg, "#cfgPop"), rows)
+       and "背離" not in _rest and "停損" not in _rest, rows)
     ok("[0926晚-週期] 週期區在「整體」下面、指標上面", rows[:1] == ["base"] and pg.evaluate(
         "() => { const r = [...document.querySelectorAll('#cfgPop .indrow')].map(x => x.dataset.k); return r[1] === 'tf'; }"))
     tfc = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .tfc input')].map(c => [c.dataset.tf, c.checked])")
