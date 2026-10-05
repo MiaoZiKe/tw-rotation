@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-05 歷史回補「接力」上線（backfill.yml）
+- 這輪因 FinMind 402 停下（plan:default.stopped_at 有值）→ `relay` job 睡到本輪開始後 62 分鐘，用 GITHUB_TOKEN 派下一輪（同 inputs、relay_n+1，最多 30 棒）。
+- 不派的情況：補齊、單一資料集／Logo／分 K、UTC 09～10 點、每日管線在排隊或等待、已有別的回補在排隊或在跑。concurrency 搬到 backfill job（cancel-in-progress 仍 false），接力睡覺不佔寫入佇列。
+- 這批驗了：yaml 解析、pytest 全跑；手動觸發一輪實測（見 Actions）。
+
 ## 2026-10-05 風格規範＋流量觀測重設計（claude/style-guide）
 - 新增 `docs/style_guide.md`（網站預設風格，DECISIONS #322）；`theme4.css` 加類別色 `--cat-*` 與圖表 token；AGENTS／CLAUDE 各加引用。
 - #admin 流量觀測依規範重做（只在預覽 `preview/style-guide`）：副標一行 ≤20 字、長條 12px／列距 28／單色 `--cat-1` 且貼齊副標、甜甜圈 160＋圖例同排、卡片重新配對（甜甜圈↔線上、散佈↔功能）、表格文字一行省略。

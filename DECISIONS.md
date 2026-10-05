@@ -5887,6 +5887,7 @@ Andy 原話：「版面上下太大，希望是一個電腦螢幕大小可看到
 - **沒改 `backfill.yml`**。真正的瓶頸是 GitHub 一天只觸發約 4 輪（每輪約 8 分鐘就用完額度，剩下 4～6 小時額度閒著，一天只用到約四分之一）。
   原本要加一個「接力」工作：這一輪做不完就睡到下一個額度視窗、用 GITHUB_TOKEN 派一輪 workflow_dispatch；寫入佇列的 concurrency 改掛在 backfill job（群組名與 cancel-in-progress: false 不動）；
   派之前先看每日管線有沒有在排隊（同一群組只能有一個在排隊，新來的會把排隊中的取消掉）；避開 UTC 09～10 點（每日管線 18:30 那輪要用 FinMind）；最多接力 30 棒。
+  **★ 2026-10-05 已實作**（Andy 授權「如果是自己補資料就做」）：`backfill.yml` 加 `actions: write` 與 `relay` job；只在 `plan:default` 因額度停下（stopped_at 有值）時接力，從本輪開始算 62 分鐘後派、`relay_n` 計棒（上限 30）；每日管線在排隊／等待或已有別的回補在排隊、在跑就不派；UTC 09～10 點不派。concurrency 搬到 backfill job，cancel-in-progress 仍是 false。
   這個改動要給工作流 `actions: write` 權限、讓工作流自己觸發自己，被這個 session 的權限分類器擋下（帳號／權限類變更），**留給 Andy／CEO 決定要不要做**。不做的話補齊時間就照下面的估計，受 GitHub 排程擺布。
 - 沒把上櫃融資券的續補名單限縮成只有上櫃：上市的 MI_MARGN 10-02 那天還沒進湖（`margin_daily` 10-02 只有 1 列），名單會暫時多出約 1,298 檔上市股；它們只落後 1 天、排序在上櫃（落後 6 天）後面，而且只拿 10% 份額。排除上市的話，MI_MARGN 哪天真的缺了就永遠補不回來。
 
