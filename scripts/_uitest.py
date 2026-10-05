@@ -1118,14 +1118,9 @@ def t_overview(pg, base):
             st = pg.evaluate(READ)
             if st["open"]:
                 break
-        ok("點熱力圖方塊會在原地列出成分股", st["open"] and (st["stocks"] > 0 or "整理中" in text(pg, "#heatPanel")), st)
+        # ★ 2026-10-05 Andy：「這邊拿掉」→ 點方塊不再展開成分股面板，也不跳頁
+        ok("點熱力圖方塊不再展開成分股面板（Andy 10-05 拿掉）", not st["open"], st)
         ok("點方塊不會把人帶離總覽", pg.evaluate("location.hash") == h_before, pg.evaluate("location.hash"))
-        ok("成分股面板有寫出是哪個族群", len(st["title"] or "") > 0, st)
-        ok("成分股面板有進族群頁的連結", st["link"], st)
-        # ★ 2026-09-24：「收起 ✕」拿掉（Andy：「不需要"收起"選項，點擊背景即可消除」）→ 改驗 Esc 與點外面
-        ok("成分股面板不再有「收起 ✕」按鈕", pg.evaluate("() => !document.querySelector('#heatPanel [data-x]')"))
-        pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
-        ok("成分股面板按 Esc 收得起來", pg.evaluate("() => document.getElementById('heatPanel').hidden"))
 
     # --- 滾輪放大：往上滾要變大，往下滾最多回到原始大小（不會縮成一小塊）
     ZK = """() => { const b = document.getElementById('heatWrap'); const pane = b.querySelector('.zpane');

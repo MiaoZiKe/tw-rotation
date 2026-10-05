@@ -4475,8 +4475,8 @@
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
-      if (p.data.gid) heatPanel('heatPanel', p.data.gid, p.name,
-        `成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）　${fmt.pct(p.data.chg)}`);
+      // ★ 2026-10-05 Andy：熱力圖下方的成分股面板「這邊拿掉」→ 點族群方塊不再展開面板（滑過的提示框照舊）
+      if (p.data.gid) return;
       else if (p.data.cid) { heatChain = p.data.cid; renderHeat(gt, rot); }
     }));
     const zb = $('#heatZoom');
