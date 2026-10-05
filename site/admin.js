@@ -73,7 +73,7 @@
 /* 長條榜：名稱／長條／數字三欄；列高在 30～64 之間隨可用高度長大，多的空間平均分在列間（資料少＝列距變寬，不留底部空白） */
 #admBody .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:var(--chart-row-h,32px);align-content:space-evenly;column-gap:12px;align-items:center;font-size:var(--fs-body,14px)}
 #admBody .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-#admBody .bars .bt{height:var(--chart-bar-h,14px);background:var(--panel-3);border-radius:999px;overflow:hidden}
+#admBody .bars .bt{height:var(--chart-bar-h,10px);background:var(--panel-3);border-radius:999px;overflow:hidden}
 #admBody .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
 #admBody .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 #admBody .bars .bn small{display:inline-block;width:3em;color:var(--ink-2);font-size:12px}
@@ -82,10 +82,13 @@
 /* 每天直條：圖區吃滿卡片、y 軸 3 刻度＋淡格線、平均虛線、最高那天標值；天數 ≤ 7 時每根放大並標值與日期 */
 #admBody .dayplot{flex:1;display:flex;gap:8px;min-height:180px}
 #admBody .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);min-width:3em}
-#admBody .days{position:relative;flex:1;display:flex;align-items:stretch;gap:3px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 50%}
-#admBody .days .dc{flex:1;min-width:2px;max-width:var(--day-max,28px);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin:0 auto;position:relative}
+#admBody .days{position:relative;flex:1;display:flex;align-items:stretch;gap:3px;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 60%,transparent);background:linear-gradient(color-mix(in srgb,var(--line) 40%,transparent) 1px,transparent 1px) 0 0/100% 25%}
+#admBody .dayticks{position:relative;height:20px;margin-top:4px;padding-left:calc(3em + 8px)}
+#admBody .dayticks>div{position:relative;height:100%}
+#admBody .dayticks span{position:absolute;top:0;transform:translateX(-50%);font:12px/16px var(--mono);color:var(--ink-2);white-space:nowrap}
+#admBody .days .dc{flex:1;min-width:2px;max-width:var(--day-max,12px);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin:0 auto;position:relative}
 #admBody .days.few{gap:var(--day-gap,24px);padding:0 24px}
-#admBody .days.few .dc{max-width:var(--day-max,140px)}
+#admBody .days.few .dc{max-width:var(--day-max,24px)}
 #admBody .days i{display:block;width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--cat-1),color-mix(in srgb,var(--cat-1) 45%,transparent))}
 #admBody .days .dc.mx i{background:var(--cat-1)}
 #admBody .days .dv{font:600 12px/1 var(--mono);color:var(--ink);margin-bottom:4px;white-space:nowrap}
@@ -97,7 +100,7 @@
 #admBody .dayx .dayno{color:var(--ink-3)}
 /* 甜甜圈：外徑隨卡片可用高度放大（160～260）；圖例放圖下方一排，三欄置中 */
 #admBody .dn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:0}
-#admBody .dn svg{flex:1 1 0;min-height:var(--chart-donut,160px);max-height:260px;aspect-ratio:1;width:auto}
+#admBody .dn svg{flex:1 1 0;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto}
 #admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
 #admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
@@ -138,7 +141,7 @@
 #trDetail .cdgrid h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent,var(--cyan));flex:none}
 #trDetail .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:32px;align-content:space-evenly;column-gap:12px;align-items:center;font-size:14px}
 #trDetail .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-#trDetail .bars .bt{height:14px;background:var(--panel-3);border-radius:999px;overflow:hidden}
+#trDetail .bars .bt{height:10px;background:var(--panel-3);border-radius:999px;overflow:hidden}
 #trDetail .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
 #trDetail .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap}
 #trDetail .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
@@ -868,21 +871,13 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const t = e.target.closest('[data-p]'); if (t && S.tab === 'all') { S.tab = t.dataset.p; S.sub = t.dataset.s || 'all'; paintTrTabs(); return; }
       const sb = e.target.closest('button[data-sub]'); if (sb) { S.sub = sb.dataset.sub; paintBody(); }
     };
+    const hov = (e, on) => { const arc = e.target.closest && e.target.closest('circle.arc'); if (!arc) return; const sv = arc.ownerSVGElement; if (!sv) return;
+      sv.querySelector('.c1').textContent = on ? arc.dataset.lab : sv.dataset.d1; sv.querySelector('.c2').textContent = on ? arc.dataset.pct : sv.dataset.d2; };
+    body.onmouseover = (e) => hov(e, true); body.onmouseout = (e) => hov(e, false);
     v.querySelectorAll('#trTabs .on, #trSubs .on').forEach((b) => { if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
     const sc = body.querySelector('#trSc');
     if (S.ro) { S.ro.disconnect(); S.ro = null; }
     if (sc && S.stk) { const draw = () => drawScatter(sc, S.stk.scat); draw(); if (window.ResizeObserver) { let lw = sc.clientWidth, lh = sc.clientHeight; S.ro = new ResizeObserver(() => { if (Math.abs(sc.clientWidth - lw) > 2 || Math.abs(sc.clientHeight - lh) > 2) { lw = sc.clientWidth; lh = sc.clientHeight; draw(); } }); S.ro.observe(sc); } }
-  }
-  /* 通用甜甜圈：segs＝[{label,n,color,tip,p,s}]；中心＝前五大占比；圖例列前 N 項 */
-  function donutG(segs, o) {
-    const tot = sum(segs.map((s) => s.n));
-    if (!tot) return '<div class="empty">這段期間還沒有紀錄。</div>';
-    const r = 46, w = 16.5, c = 2 * Math.PI * r; let off = 0;
-    const arcs = segs.map((s) => { const len = s.n / tot * c, g = Math.min(1, len); const a = `<circle class="arc"${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} r="${r}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${w}" stroke-dasharray="${Math.max(0, len - g).toFixed(2)} ${(c - Math.max(0, len - g)).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"><title>${esc(s.tip || s.label)}　${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）</title></circle>`; off += len; return a; }).join('');
-    const top5 = (o.top5 || segs).slice().sort((a, b) => b.n - a.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
-    const lg = (o.legend || segs).slice().sort((a, b) => (a.label === '其他') - (b.label === '其他') || b.n - a.n).slice(0, o.legendN || 6);
-    return `<div class="dn"><svg viewBox="0 0 120 120" role="img" aria-label="${esc(o.aria || '占比')}"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--panel-3)" stroke-width="${w}"/>${arcs}<text x="60" y="58" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">前五大</text><text x="60" y="75" text-anchor="middle" style="font-size:16px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${t5}%</text></svg>
-      <ul class="lg">${lg.map((s) => `<li><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
   const card = (id, ttl, sub, inner, cls) => `<div class="card${cls ? ' ' + cls : ''}" id="${id}"><h3>${esc(ttl)}</h3><p class="use" title="${esc(sub)}">${esc(sub)}</p><div class="cb">${inner}</div></div>`;
   /* 「全部」：左＝各頁堆疊長條（有子頁的頁面依子頁上色，滑過看占比）；右＝各頁占比大甜甜圈（子頁＝同色系子扇區） */
@@ -896,8 +891,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       return `<button type="button" class="bl" data-p="${p.k}" title="${esc(p.n)}${d.fb ? '（以功能使用次數計）' : ''}">${esc(p.n)}</button><span class="bt stk" data-p="${p.k}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn">${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
     }).join('');
     const segs = []; list.forEach(({ p, i, d }) => { const ss = d.subN.filter((s) => s.v > 0), ssum = sum(ss.map((s) => s.v));
-      if (ss.length > 1 && ssum > 0) ss.forEach((s) => segs.push({ label: p.n, n: d.total * s.v / ssum, color: s.col, lcolor: pgCol(i, 0, 1), tip: `${p.n}・${s.n}`, p: p.k, s: s.k }));
-      else segs.push({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k }); });
+      if (ss.length > 1 && ssum > 0) ss.forEach((s) => segs.push({ label: p.n, n: d.total * s.v / ssum, color: s.col, lcolor: pgCol(i, 0, 1), tip: `${p.n}・${s.n}`, p: p.k, s: s.k, g: p.k }));
+      else segs.push({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k, g: p.k }); });
     const pagesAgg = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1) }));
     return `<div class="admgrid trpair">${card('trAllBars', '各頁被看了幾次？', '有子頁的頁面依子頁上色・點一條進入該頁', `<div class="bars stkbars" id="trAllB">${rows}</div>`)}
       ${card('trAllDonut', '各頁占比', '外圈顏色＝頁面、同色系＝子頁', donutG(segs, { top5: pagesAgg, legend: pagesAgg, legendN: 10, totalN: tot, aria: '各頁瀏覽占比' }))}</div>`;
@@ -938,13 +933,21 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function dayChart(days, perDay, dmax) {
     const i0 = days.findIndex((d) => (perDay[d] || 0) > 0);
     if (i0 < 0) return '<div class="empty">這段期間還沒有瀏覽紀錄。</div>';
-    const shown = days.slice(i0), mid = Math.round(dmax / 2), few = shown.length <= 7;
+    const shown = days.slice(i0), few = shown.length <= 7;
     const avg = shown.reduce((s, d) => s + (perDay[d] || 0), 0) / shown.length, mxd = shown.reduce((a, d) => ((perDay[d] || 0) > (perDay[a] || 0) ? d : a), shown[0]);
     const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
-    return `<div class="dayplot"><div class="dayy"><span>${nf(dmax)}</span><span>${nf(mid)}</span><span>0</span></div>
+    /* X 軸刻度：每 7 天（週一）標一個；期間很長（> 98 天）改成每 4 週，免得擠在一起。時間是每小時（HH:00）就每 4 小時一個 */
+    let ticks = [];
+    if (!few) {
+      if (/^\d\d:00$/.test(shown[0])) ticks = shown.map((d, i) => [d, i]).filter(([d, i]) => i % 4 === 0);
+      else { const step = shown.length > 98 ? 4 : 1; let k = 0; shown.forEach((d, i) => { if (new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay() === 1) { if (k % step === 0) ticks.push([d, i]); k++; } }); }
+    }
+    const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(dmax * f))}</span>`).join('');
+    return `<div class="dayplot"><div class="dayy">${ys}</div>
       <div class="days${few ? ' few' : ''}" id="admDayBars" data-first="${esc(shown[0])}">${shown.map((d) => `<div class="dc${d === mxd ? ' mx' : ''}">${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${nf(perDay[d] || 0)} 次"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
         ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
-      <div class="dayx"><span>${esc(shown[0])}</span>${note ? `<span class="dayno" id="admDayNote">${note}</span>` : ''}<span>${esc(shown[shown.length - 1])}</span></div>`;
+      ${few ? '' : `<div class="dayticks" id="admDayTicks"><div>${ticks.map(([d, i]) => `<span style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${/^\d\d:00$/.test(d) ? d : d.slice(5)}</span>`).join('')}</div></div>`}
+      ${note ? `<div class="dayx"><span class="dayno" id="admDayNote">${note}</span></div>` : ''}`;
   }
   /* 散佈圖：依容器實際大小畫（ResizeObserver 重畫），圖吃滿卡片；格線 3 條、軸刻度＝真值；標籤避開已放的標籤 */
   function drawScatter(box, pts) {
@@ -970,14 +973,46 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       <text x="${W - R}" y="${H - 6}" text-anchor="end">被觀看次數 →</text><text x="${L}" y="${H - 6}" text-anchor="start">每次觀看用幾次功能 ↑</text>
       ${pts.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="var(--cat-1)" fill-opacity=".85" stroke="var(--panel)" stroke-width="1.5"><title>${esc(p.code)}：觀看 ${p.x}、平均 ${p.y.toFixed(2)} 次功能</title></circle>`).join('')}${out.join('')}</svg>`;
   }
+  /* 甜甜圈（照產業地圖「成交值占比」那顆：粗環 58%～78%、扇區端點圓角、內側一圈極細軌道、中心小標題＋大數字、圖例在下）。
+     母頁面（segs 的 g 相同的連續扇區視為同一組）之間留明顯間隙（GAP 度）；同一組的子分頁扇區彼此相連（間隙 0），同色系深淺。
+     實作：每個扇區是 stroke 圓弧；每一組外面套一個圓角遮罩（stroke-linecap:round 的同位置弧線），讓組的兩端是圓的、組內的接縫仍是直的。 */
+  const DN = { R: 45, W: 14, GAP: 4.5 };
+  let dnSeq = 0;
+  function donutG(segs, o) {
+    const tot = sum(segs.map((s) => s.n));
+    if (!tot) return '<div class="empty">這段期間還沒有紀錄。</div>';
+    const { R, W, GAP } = DN, C = 2 * Math.PI * R, cap = (W / 2) / R * 180 / Math.PI;
+    const groups = []; segs.forEach((s, i) => { const g = s.g != null ? s.g : '_' + i; const last = groups[groups.length - 1]; if (last && last.g === g) last.segs.push(s); else groups.push({ g, segs: [s] }); });
+    const single = groups.length === 1, uid = 'dm' + (++dnSeq) + '_';
+    const P = (deg) => `${(60 + R * Math.sin(deg * Math.PI / 180)).toFixed(2)} ${(60 - R * Math.cos(deg * Math.PI / 180)).toFixed(2)}`;
+    let a = 0, masks = '', body = '';
+    groups.forEach((gr, gi) => {
+      const gn = sum(gr.segs.map((s) => s.n)), g0 = a, g1 = a + gn / tot * 360; a = g1;
+      const h = single ? 0 : GAP / 2, v0 = g0 + h, v1 = g1 - h, round = !single && (v1 - v0) >= 2 * cap + 1;
+      let b = g0, arcs = '';
+      gr.segs.forEach((s, k) => {
+        const sa = b, sb = b + s.n / tot * 360; b = sb;
+        const x0 = k === 0 ? v0 : sa, x1 = k === gr.segs.length - 1 ? v1 : sb, len = Math.max(0, (x1 - x0) / 360 * C);
+        arcs += `<circle class="arc"${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)"><title>${esc(s.tip || s.label)}　${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）</title></circle>`;
+      });
+      if (round) {
+        const id = uid + gi, A0 = v0 + cap, A1 = v1 - cap;
+        masks += `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><path d="M ${P(A0)} A ${R} ${R} 0 ${A1 - A0 > 180 ? 1 : 0} 1 ${P(A1)}" fill="none" stroke="#fff" stroke-width="${W}" stroke-linecap="round"/></mask>`;
+        body += `<g class="grp" data-g="${esc(String(gr.g))}" mask="url(#${id})">${arcs}</g>`;
+      } else body += `<g class="grp" data-g="${esc(String(gr.g))}">${arcs}</g>`;
+    });
+    const top5 = (o.top5 || segs).slice().sort((x, y) => y.n - x.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
+    const c1 = o.center ? o.center[0] : '前五大', c2 = o.center ? o.center[1] : t5 + '%';
+    const lg = (o.legend || segs).slice().sort((x, y) => (x.label === '其他') - (y.label === '其他') || y.n - x.n).slice(0, o.legendN || 6);
+    return `<div class="dn"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
+      <circle r="36.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".7"/>${body}
+      <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">${esc(c1)}</text><text class="c2" x="60" y="74" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${esc(c2)}</text></svg>
+      <ul class="lg">${lg.map((s) => `<li><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><small>${s.ltxt || (s.n / (o.totalN || tot) * 100).toFixed(1) + '%'}</small></li>`).join('')}</ul></div>`;
+  }
   function donut(parts) {
     const tot = parts.reduce((s, p) => s + p[1], 0);
     if (!tot) return '<div class="empty">這段期間還沒有開啟紀錄。</div>';
-    /* 環寬 22/160（viewBox 120 → r 46／寬 16.5）、12 點鐘起順時針、中心＝第一類佔比＋名稱；外徑隨卡片放大（160～260）、圖例在圖下一排 */
-    const r = 46, w = 16.5, c = 2 * Math.PI * r; let off = 0;
-    const arcs = parts.map(([, n, col]) => { const len = n / tot * c; const s = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="${w}" stroke-dasharray="${Math.max(0, len - 1).toFixed(2)} ${(c - Math.max(0, len - 1)).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`; off += len; return s; }).join('');
-    return `<div class="dn"><svg viewBox="0 0 120 120" role="img" aria-label="${esc(parts.map((p) => p[0]).join('與'))}比例"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--panel-3)" stroke-width="${w}"/>${arcs}<text x="60" y="61" text-anchor="middle" style="font-size:15px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${Math.round(parts[0][1] / tot * 100)}%</text><text x="60" y="76" text-anchor="middle" style="font-size:8px;fill:var(--ink-2)">${esc(parts[0][0])}</text></svg>
-      <ul>${parts.map(([nm, n, col]) => `<li><i style="background:${col}"></i>${esc(nm)}<b>${nf(n)}</b><small>${Math.round(n / tot * 100)}%</small></li>`).join('')}</ul></div>`;
+    return donutG(parts.map(([nm, n, col]) => ({ label: nm, n, color: col, ltxt: `${nf(n)}・${Math.round(n / tot * 100)}%` })), { center: [parts[0][0], Math.round(parts[0][1] / tot * 100) + '%'], legendN: 2, aria: `${parts.map((p) => p[0]).join('與')}比例` });
   }
 
 

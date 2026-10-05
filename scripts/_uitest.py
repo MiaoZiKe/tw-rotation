@@ -44659,6 +44659,20 @@ def t_traffic_1005(b, base, code):
         fs = pg.evaluate("""() => { const f = (s) => [...new Set([...document.querySelectorAll(s)].map(e => { const c = getComputedStyle(e); return parseFloat(c.fontSize) + '/' + c.fontWeight; }))];
             return { h3: f('#admBody .card > h3'), use: f('#admBody .card > .use'), tab: f('#trTabs > button'), bl: f('#trAllB .bl'), th: f('#admBody table th') }; }""")
         ok(f"{TT}：字級照其他分頁（卡標 16/600、副標 13/400、分頁 13.5、長條名稱 14、表頭 12/600）", fs["h3"] == ["16/600"] and fs["use"] == ["13/400"] and all(x.startswith("13.5/") for x in fs["tab"]) and fs["bl"] == ["14/400"] and fs["th"] == ["12/600"], fs)
+        # ★ 10-05 Andy「圓餅以母族群分界、間隔開、只有子分頁相連；長條太粗、日期每週、淡淡的 Y 軸」
+        dg = pg.evaluate("""() => { const arcs = [...document.querySelectorAll('#trAllDonut circle.arc')].map(a => ({ p: a.dataset.p, a0: +a.dataset.a0, a1: +a.dataset.a1 }));
+            const par = [], sub = []; for (let i = 1; i < arcs.length; i++) { const g = arcs[i].a0 - arcs[i - 1].a1; (arcs[i].p === arcs[i - 1].p ? sub : par).push(+g.toFixed(2)); }
+            return { n: arcs.length, par, sub, mask: document.querySelectorAll('#trAllDonut mask').length, track: !!document.querySelector('#trAllDonut svg > circle[stroke-opacity]') }; }""")
+        ok(f"{TT}：甜甜圈母頁面之間留明顯間隙（≥ 3°）、同一母頁的子分頁扇區相連（間隙 ≈ 0）、組端圓角遮罩＋內側細軌道（照產業地圖）",
+           dg["par"] and min(dg["par"]) >= 3 and dg["sub"] and max(abs(x) for x in dg["sub"]) <= 0.05 and min(dg["par"]) > max(dg["sub"]) and dg["mask"] >= 3 and dg["track"], dg)
+        bw = pg.evaluate("""() => { const d = [...document.querySelectorAll('#admDayBars .dc i')].map(i => i.getBoundingClientRect().width), h = [...document.querySelectorAll('#trAllB .bt, #admBody .bars .bt')].map(e => e.getBoundingClientRect().height);
+            return { dmax: Math.max(...d), hmax: Math.max(...h), n: d.length }; }""")
+        ok(f"{TT}：每天直條與所有橫向長條的條寬 ≤ 產業地圖條寬（17）＋2；直條約為舊版（~22）的一半", bw["n"] == 30 and bw["dmax"] <= 19 and bw["hmax"] <= 19 and bw["dmax"] <= 13, bw)
+        tk = pg.evaluate("""() => { const t = [...document.querySelectorAll('#admDayTicks span')].map(s => s.textContent.trim()); const dows = t.map(x => new Date(Date.parse('2026-' + x + 'T00:00:00Z')).getUTCDay());
+            const gaps = t.slice(1).map((x, i) => (Date.parse('2026-' + x + 'T00:00:00Z') - Date.parse('2026-' + t[i] + 'T00:00:00Z')) / 86400000); return { t, dows, gaps }; }""")
+        ok(f"{TT}：X 軸日期每 1 週一個刻度（都是週一、相隔 7 天，30 天 4～5 個）", 4 <= len(tk["t"]) <= 5 and set(tk["dows"]) == {1} and set(tk["gaps"]) == {7}, tk)
+        yy = pg.evaluate("""() => { const d = document.getElementById('admDayBars'), cs = getComputedStyle(d), m = /\/ ([0-9.]+)\)/.exec(cs.backgroundImage); return { ticks: document.querySelectorAll('.dayy span').length, alpha: m ? +m[1] : 1, weekend: !!document.querySelector('#admDayBars .we, #admDayBars .weekend') }; }""")
+        ok(f"{TT}：淡淡的 Y 軸：刻度 ≥ 4 個、水平格線透明度 ≤ 0.5、沒有週末底色", yy["ticks"] >= 4 and yy["alpha"] <= 0.5 and not yy["weekend"], yy)
         # ---- 點長條／扇區進分頁、子分頁
         pg.locator("#trAllB button[data-p='flow']").click()
         wait_until(pg, "() => document.querySelector('#trTabs button.on').dataset.t === 'flow'", 3000)
