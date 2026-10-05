@@ -25,7 +25,7 @@
     stock_tab: '切個股分頁（營收／籌碼…）', k_period: '切 K 線週期', ai_tab: '切 AI 分析面向', open_3d: '打開 3D 剖析圖', zoom: '放大圖表',
     how: '打開「?」說明', theme_toggle: '切深淺色', events_drawer: '打開今日事件', mtf: '四週期同看', indicators: '打開指標設定', draw: '畫線工具', m_seg: '手機切分段' };
   /* 細項事件的元件名（docs/account_analytics.md「細項事件」）*/
-  const COMP_NAME = { view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
+  const COMP_NAME = { 'sankey.node': '點資金去向節點', 'sankey.link': '點資金去向連線', 'inst.tab': '切族群×法人分頁', 'inst.group': '點族群×法人族群', ind: '開啟技術指標', 'draw.tool': '使用畫線工具', 'events.link': '點事件連結', 'etf.cat': '點 ETF 類別', 'explore.topic': '選股題目', 'watch.chart': '點走勢圖', 'watch.kline': '切換 K 線', 'support.fab': '打開客服', 'support.tab': '切客服分頁', 'support.faq': '展開常見問題', 'support.send': '送出意見反饋', 'support.mail': '寄信給客服', view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
     filter_group_open: '打開族群下拉', filter_top10: '只看前 10 大', filter_clear: '清除篩選', rank_bar: '右側排行長條', clock_group: '輪盤上的族群點',
     heat_tile: '熱力圖方塊', how: '「?」說明', search: '搜尋（只記有搜尋）', zoom: '放大圖表', ai_tab: '切 AI 面向', mtf: '四週期同看', indicators: '指標設定',
     draw: '畫線工具', open_3d: '3D 剖析圖', theme_toggle: '切深淺色', events_drawer: '今日事件', m_seg: '手機切分段', watch_add: '加入自選', watch_remove: '移出自選',
@@ -38,7 +38,7 @@
     if (c.startsWith('kp.')) return 'K 線週期：' + c.slice(3).toUpperCase().replace(/^(\d+)M$/, '$1 分');
     return c;
   };
-  const S = { days: 30, timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
+  const S = { days: 30, period: '30', since: '', tab: 'all', sub: 'all', timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
   const TABS = [['perm', '會員權限', 'admTabPerm'], ['members', '會員管理', 'admTabMembers'], ['traffic', '流量觀測', 'admTabTraffic']];
   const tabOf = () => { const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''); return m ? m[1] : 'traffic'; };
 
@@ -152,7 +152,40 @@
 #v-admin .pmcards .pmcat.card .pmcathd h3{font-size:var(--fs-h3,16px);font-weight:600}
 #v-admin .pmcards .pmcat.card .pmcathd h3 small{font-size:12px}
 #v-admin .pmcats .pmrow .pmtx b{font-size:14px;font-weight:500}
-@media (max-width:1100px){#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
+/* ===== 流量觀測：分頁式統計（2026-10-05 Andy 新規格）===== */
+#v-admin{--pgL:60%}
+html[data-theme="light"] #v-admin{--pgL:40%}
+#v-admin .trhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#v-admin .trhead .sp{flex:1}
+#v-admin .trhead .trctl{border:0;padding:0}
+#v-admin .trctl input[type=date]{height:32px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 8px}
+#v-admin .trctl input[hidden]{display:none}
+#v-admin .admgrid.trpair{grid-template-columns:minmax(0,3fr) minmax(0,2fr);margin-top:12px}
+#v-admin .admgrid.trpair:first-child{margin-top:0}
+#v-admin .trtabs{padding:0;overflow:visible}
+#v-admin .trtabs>#trTabsBox{padding:12px 16px 0}
+#v-admin .trtabs>#trPageBody{padding:0 16px 16px;border-top:1px solid var(--line-2)}
+#v-admin .trtabs .nbsw .tdot,#v-admin .trtabs .nbsw.lv2 .tdot{display:inline-block;width:9px;height:9px;border-radius:3px;flex:none}
+#v-admin .trtabs .nbsw em{margin-left:4px}
+#v-admin .admgrid.trusers{grid-auto-rows:var(--tr-users-h,480px)}
+#v-admin .trusers .tbw{max-height:none}
+#admBody .admgrid>.card>h3,#admBody .admgrid>.card>.use{flex:none}
+#v-admin .trhd{padding-top:12px}
+#v-admin .trhd .nbsw{margin-bottom:0}
+#v-admin .trempty{padding:40px 0;text-align:center}
+#admBody .bars .bt.stk{display:block}
+#admBody .bars .bt.stk>span{display:flex;height:100%;border-radius:999px;overflow:hidden}
+#admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0}
+#admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
+#admBody .bars .bt.stk{cursor:pointer}
+#admBody .dn svg circle.arc[data-p]{cursor:pointer}
+#admBody .dn svg circle.arc[data-p]:hover{opacity:.82}
+#admBody .dn ul.lg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 20px;font-size:var(--fs-body,14px)}
+#admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
+#admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1}
+#admBody .dn ul.lg li small{font:12px var(--mono);color:var(--ink-2)}
+#admBody .dn ul.lg li i{width:12px;height:12px;border-radius:3px;flex:none}
+@media (max-width:1100px){#v-admin .admgrid.trpair{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
 #v-admin .card{min-width:0}
@@ -590,37 +623,62 @@
   const IS_PREVIEW = /\/preview\//.test(location.pathname || '');
   const DEMO = (() => {
     let seed = 20261005; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-    const PAGES = [['flow', 3300], ['stock', 2800], ['overview', 2300], ['industry', 1500], ['market', 1100], ['heatmap', 800], ['themes', 650], ['season', 450], ['etf', 330], ['watch', 270]];
-    const STK = [['2330', 520], ['2317', 340], ['2454', 260], ['3711', 210], ['2382', 175], ['3037', 150], ['2603', 120], ['2308', 100], ['6669', 85], ['3661', 70]];
+    const END = '2026-10-04', NDAY = 400;
+    const dayKey = (i) => new Date(Date.parse(END + 'T00:00:00Z') - (NDAY - 1 - i) * 86400000).toISOString().slice(0, 10);
+    /* 頁面 30 天瀏覽量（合計約 5.4 萬）；沒有在 Worker 白名單的頁（etf／explore／events／support）示範時直接給 pv，正式站只會有功能次數 */
+    const PAGES = [['flow', 11800], ['stock', 10300], ['overview', 8600], ['industry', 5500], ['heatmap', 4600], ['market', 3900], ['etf', 2200], ['explore', 1900], ['season', 1800], ['watch', 1600], ['events', 1000], ['legal', 320], ['support', 430]];
     const wsum = PAGES.reduce((s, p) => s + p[1], 0);
-    const dayKey = (i) => new Date(Date.parse('2026-09-05T00:00:00Z') + i * 86400000).toISOString().slice(0, 10);
-    const rows = [], perDayW = [];
-    for (let i = 0; i < 30; i++) { const dow = new Date(Date.parse(dayKey(i) + 'T00:00:00Z')).getUTCDay(); perDayW.push((dow === 0 || dow === 6 ? 0.45 : 1) * (0.8 + rnd() * 0.45) * (0.85 + i / 90)); }
-    const wtot = perDayW.reduce((a, b) => a + b, 0), TOTAL = 13600;
-    perDayW.forEach((w, i) => { const day = dayKey(i), dn = TOTAL * w / wtot;
-      PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.85 + rnd() * 0.3))) }));
-      const ss = Math.round(dn * 0.155); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + rnd() * 0.08)) }); });
-    [['how', 214], ['search', 466], ['k_period', 388], ['watch_add', 205], ['zoom', 342], ['stock_tab', 297], ['theme_toggle', 96], ['events_drawer', 143], ['open_3d', 78], ['indicators', 64]].forEach(([k, n]) => rows.push({ day: dayKey(29), k: 'ev:' + k, n }));
-    const e2 = [];
-    STK.forEach(([cd, n]) => { e2.push({ page: 'stock', comp: 'view', detail: cd, n });
-      [['tab.revenue', 0.34], ['kp.60m', 0.27], ['tab.inst', 0.22], ['tab.profit', 0.15], ['kp.d', 0.12]].forEach(([c, f]) => e2.push({ page: 'stock', comp: c, detail: cd, n: Math.max(1, Math.round(n * f * (0.7 + rnd() * 0.6))) })); });
-    [['被動元件 MLCC', 148], ['晶圓代工', 121], ['ABF 載板', 96], ['CoWoS 先進封裝', 82], ['散熱模組', 63], ['光通訊', 51], ['矽光子', 38]].forEach(([g, n]) => e2.push({ page: 'flow', comp: 'filter_group', detail: g, n }));
-    [['play', 'rotBack', 212], ['quad', '領先', 176], ['quad', '改善', 131], ['rank_bar', '晶圓代工', 94], ['clock_group', '散熱模組', 77], ['how', 'flowRotCard', 58], ['filter_chain', '半導體', 49]].forEach(([c, d, n]) => e2.push({ page: 'flow', comp: c, detail: d, n }));
-    [['how', 'ovHeatCard', 71], ['heat_tile', 'ABF 載板', 64], ['zoom', 'ovIndex', 43]].forEach(([c, d, n]) => e2.push({ page: 'overview', comp: c, detail: d, n }));
+    const W = []; for (let i = 0; i < NDAY; i++) { const dow = new Date(Date.parse(dayKey(i) + 'T00:00:00Z')).getUTCDay(); W.push((dow === 0 || dow === 6 ? 0.45 : 1) * (0.8 + rnd() * 0.45) * (0.55 + 0.45 * i / NDAY)); }
+    const base30 = sum30(W.slice(-30));
+    function sum30(a) { return a.reduce((x, y) => x + y, 0); }
+    const SUBS = { flow: [['rotation', 0.58], ['sankey', 0.26], ['inst', 0.16]], heatmap: [['industry', 0.63], ['theme', 0.37]], industry: [['chains', 0.34], ['chain', 0.41], ['group', 0.25]], market: [['updown', 0.37], ['inst', 0.27], ['ma', 0.21], ['pick', 0.15]] };
+    const STK = [['2330', 3100], ['2317', 1650], ['2454', 1240], ['3711', 960], ['2382', 820], ['3037', 700], ['2603', 560], ['2308', 470], ['6669', 390], ['3661', 330], ['2881', 250], ['2412', 210]];
+    const E2 = [
+      ['flow', 'play', 'rotBack', 1480], ['flow', 'quad', '領先', 990], ['flow', 'quad', '改善', 760], ['flow', 'quad', '轉弱', 410], ['flow', 'quad', '落後', 300],
+      ['flow', 'filter_chain', '半導體', 520], ['flow', 'filter_chain', 'AI 伺服器', 470], ['flow', 'filter_chain', '電子零組件', 280], ['flow', 'filter_top10', '', 640], ['flow', 'filter_clear', '', 210], ['flow', 'filter_group_open', '', 880],
+      ['flow', 'how', 'flowRotCard', 360], ['flow', 'zoom', 'rotZoom', 330], ['flow', 'sankey.node', '', 520], ['flow', 'sankey.link', '', 340], ['flow', 'inst.tab', '', 410], ['flow', 'inst.group', '', 270],
+      ['heatmap', 'how', 'ovHeatCard', 190], ['heatmap', 'zoom', 'heatZoom', 160], ['heatmap', 'theme.pick', 'AI 伺服器', 300], ['heatmap', 'theme.pick', 'CoWoS', 260], ['heatmap', 'theme.pick', '矽光子', 210], ['heatmap', 'theme.pick', '低軌衛星', 150], ['heatmap', 'theme.pick', '機器人', 140], ['heatmap', 'open_3d', '', 120],
+      ['industry', 'how', 'chainHow', 130], ['industry', 'zoom', 'chainMap', 210], ['industry', 'open_3d', '', 160], ['industry', 'search', '', 90], ['market', 'how', 'mktHow', 90], ['market', 'search', '', 170], ['market', 'm_seg', '', 120],
+      ['season', 'how', 'seasonHow', 80], ['season', 'zoom', 'seasonChart', 110], ['watch', 'watch_tab_new', '', 140], ['watch', 'watch.chart', '', 720], ['watch', 'watch.kline', '', 380], ['watch', 'watch_add', '', 520], ['watch', 'watch_remove', '', 160], ['watch', 'watch_panel', '', 280],
+      ['stock', 'tab.overview', '2330', 2400], ['stock', 'tab.basics', '2330', 520], ['stock', 'tab.tags', '2317', 610], ['stock', 'tab.dividend', '2412', 450], ['stock', 'tab.holders', '2454', 380], ['stock', 'tab.news', '2603', 640], ['stock', 'tab.holdings', '0050', 330],
+      ['stock', 'kp.d', '2330', 1800], ['stock', 'kp.w', '2330', 740], ['stock', 'kp.m', '2330', 310], ['stock', 'kp.5m', '2330', 520], ['stock', 'kp.15m', '2330', 260], ['stock', 'mtf', '', 340], ['stock', 'indicators', '', 910], ['stock', 'draw', '', 440], ['stock', 'ai_tab', '', 380],
+      ['stock', 'ind', 'MA 均線', 1120], ['stock', 'ind', 'MACD', 830], ['stock', 'ind', 'RSI', 690], ['stock', 'ind', 'KD', 640], ['stock', 'ind', '布林通道', 410], ['stock', 'ind', 'SMC 結構', 330], ['stock', 'ind', '成交量', 280],
+      ['stock', 'draw.tool', '趨勢線', 260], ['stock', 'draw.tool', '水平線', 210], ['stock', 'draw.tool', '斐波那契', 120], ['stock', 'draw.tool', '矩形', 90], ['other', 'etf.cat', '報酬率', 460], ['other', 'etf.cat', '殖利率', 380], ['other', 'etf.cat', '市值型', 320], ['other', 'etf.cat', '高股息', 540], ['other', 'etf.cat', '債券', 190], ['other', 'etf.cat', '主題型', 150],
+      ['other', 'explore.topic', '營收創高', 330], ['other', 'explore.topic', '法人連買', 290], ['other', 'explore.topic', '突破前高', 240], ['other', 'explore.topic', '低基期', 170], ['other', 'explore.topic', '高殖利率', 130],
+      ['other', 'support.fab', '', 310], ['other', 'support.tab', '常見問題', 260], ['other', 'support.tab', '意見反饋', 140], ['other', 'support.tab', '寄信', 70], ['other', 'support.faq', '怎麼加自選？', 150], ['other', 'support.faq', '資料多久更新？', 110], ['other', 'support.faq', '紅漲綠跌？', 60], ['other', 'support.send', '', 52], ['other', 'support.mail', '', 31],
+      ['other', 'events.link', '', 720], ['overview', 'events_drawer', '', 330], ['flow', 'events_drawer', '', 210], ['stock', 'events_drawer', '', 190], ['industry', 'events_drawer', '', 120], ['market', 'events_drawer', '', 90],
+      ['overview', 'how', 'ovHeatCard', 210], ['overview', 'heat_tile', 'ABF 載板', 360], ['overview', 'zoom', 'ovIndex', 150]];
+    const e2Base = [];
+    SUBS && Object.entries(SUBS).forEach(([pg, arr]) => arr.forEach(([k, f]) => e2Base.push([pg, 'sub.' + k, '', Math.round(PAGES.find((p) => p[0] === pg)[1] * f)])));
+    E2.forEach((r) => { if (r[3]) e2Base.push(r); });
+    [['被動元件 MLCC', 410], ['晶圓代工', 340], ['ABF 載板', 290], ['CoWoS 先進封裝', 240], ['散熱模組', 190], ['光通訊', 150], ['矽光子', 110]].forEach(([g, n]) => { e2Base.push(['flow', 'filter_group', g, n]); e2Base.push(['flow', 'rank_bar', g, Math.round(n * 0.55)]); e2Base.push(['flow', 'clock_group', g, Math.round(n * 0.4)]); e2Base.push(['heatmap', 'heat_tile', g, Math.round(n * 0.7)]); });
+    STK.forEach(([cd, n], i) => { e2Base.push(['stock', 'view', cd, n]);
+      [['tab.revenue', 0.34], ['kp.60m', 0.27], ['tab.inst', 0.22], ['tab.profit', 0.15], ['kp.d', 0.12], ['tab.margin', 0.08]].forEach(([c, f]) => e2Base.push(['stock', c, cd, Math.max(1, Math.round(n * f * (0.7 + (i * 7 % 6) / 10))) ])); });
     const NM = ['王小明', '陳怡君', '林志豪', '張雅婷', '李承恩', '黃柏翰', '吳佩珊', '劉冠宇', '蔡欣怡', '楊家豪', '許雅文', '鄭宇軒', '謝佳穎', '郭俊傑', '洪思妤', '曾冠廷', '邱怡婷', '廖偉誠', '賴淑芬', '徐子豪'];
-    const NOW = Date.now(), NU = 64;
-    const users = Array.from({ length: NU }, (_, i) => ({ name: NM[i % NM.length] + (i >= NM.length ? String(Math.floor(i / NM.length) + 1) : ''), email: `demo${String(i + 1).padStart(2, '0')}@example.com`,
-      seen: NOW - Math.round((i * 2.2 + rnd() * 3) * 3600000), created: NOW - Math.round((8 + i * 1.7) * 86400000), visits: Math.max(1, Math.round(46 - i * 0.6 + rnd() * 6)) }));
-    const members = users.map((u, i) => ({ email: u.email, onlineMs: Math.round((9 - i * 0.12 + rnd()) * 3600000), online30: Math.round((5 - i * 0.07 + rnd()) * 3600000), visits30: u.visits,
-      days30: Math.max(1, Math.round(22 - i * 0.3)), views30: Math.round(u.visits * (4 + rnd() * 5)), topFeat: [['tab.revenue', 14 - (i % 7)], ['quad', 9 - (i % 5)], ['kp.60m', 5]], topStock: [[STK[i % 10][0], 18 - (i % 9)], [STK[(i + 3) % 10][0], 7], [STK[(i + 6) % 10][0], 3]] }));
-    const onlineRoutes = ['flow', 'stock', 'overview', 'industry', 'market', 'themes', 'heatmap', 'etf'];
-    const online = { total: 11, guests: 3, public_online: true, users: onlineRoutes.map((r, i) => ({ name: users[i].name, email: users[i].email, route: r, seen: NOW - (8 + i * 17) * 1000 })) };
-    const stats = { from: '2026-09-05', to: '2026-10-04', rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
-    const mstats = { days: Array.from({ length: 14 }, (_, i) => ({ day: dayKey(16 + i), n: Math.round(16 + rnd() * 18) })), active7: 31,
-      feats: [['tab.revenue', 412], ['quad', 298], ['kp.60m', 251], ['filter_group', 207], ['tab.inst', 188], ['play', 143], ['search', 121], ['zoom', 96]], stocks: STK.slice(0, 8).map(([c, n]) => [c, Math.round(n * 0.6)]) };
+    const NOW = Date.now(), NU = 520;
+    const users = Array.from({ length: NU }, (_, i) => ({ name: NM[i % NM.length] + (i >= NM.length ? String(Math.floor(i / NM.length) + 1) : ''), email: `demo${String(i + 1).padStart(3, '0')}@example.com`,
+      seen: NOW - Math.round((i * 0.35 + rnd() * 2) * 3600000), created: NOW - Math.round((8 + i * 0.6) * 86400000), visits: Math.max(1, Math.round(60 - i * 0.1 + rnd() * 8)) }));
+    const members = users.map((u, i) => ({ email: u.email, onlineMs: Math.round((12 - i * 0.02 + rnd()) * 3600000), online30: Math.round((6 - i * 0.01 + rnd()) * 3600000), visits30: u.visits,
+      days30: Math.max(1, Math.round(24 - i * 0.04)), views30: Math.round(u.visits * (4 + rnd() * 5)), topFeat: [['tab.revenue', 14 - (i % 7)], ['quad', 9 - (i % 5)], ['kp.60m', 5]], topStock: [[STK[i % 12][0], 18 - (i % 9)], [STK[(i + 3) % 12][0], 7], [STK[(i + 6) % 12][0], 3]] }));
+    const routes = ['flow', 'stock', 'overview', 'industry', 'market', 'heatmap', 'etf', 'watch', 'explore'];
+    const online = { total: 19, guests: 8, public_online: true, users: routes.concat(['flow', 'stock']).map((r, i) => ({ name: users[i].name, email: users[i].email, route: r, seen: NOW - (6 + i * 13) * 1000 })) };
+    const mstats = { days: Array.from({ length: 14 }, (_, i) => ({ day: dayKey(NDAY - 14 + i), n: Math.round(120 + rnd() * 90) })), active7: 297,
+      feats: [['tab.revenue', 2412], ['quad', 1698], ['kp.60m', 1251], ['filter_group', 1207], ['tab.inst', 988], ['play', 843], ['search', 721], ['zoom', 596]], stocks: STK.slice(0, 8).map(([c, n]) => [c, Math.round(n * 0.6)]) };
     const detail = (email) => { const i = Math.max(0, users.findIndex((u) => u.email === email)), m = members[i] || members[0];
-      return { known: true, days: Array.from({ length: 14 }, (_, k) => ({ day: dayKey(16 + k), visits: 1 + ((k + i) % 3), views: 8 + ((k * 7 + i * 3) % 23), ms: (6 + ((k * 5 + i) % 28)) * 60000 })),
-        pages: PAGES.slice(0, 6).map(([k, s], j) => [k, Math.round(s / 40 / (j + 1) + i % 5)]), feats: [['stock', 'tab.revenue', 14], ['flow', 'quad', 9], ['stock', 'kp.60m', 7], ['flow', 'filter_group', 5], ['overview', 'how', 3]], stocks: m.topStock }; };
+      return { known: true, days: Array.from({ length: 14 }, (_, k) => ({ day: dayKey(NDAY - 14 + k), visits: 1 + ((k + i) % 3), views: 8 + ((k * 7 + i * 3) % 23), ms: (6 + ((k * 5 + i) % 28)) * 60000 })),
+        pages: PAGES.slice(0, 6).map(([k, s], j) => [k, Math.round(s / 400 / (j + 1) + i % 5)]), feats: [['stock', 'tab.revenue', 14], ['flow', 'quad', 9], ['stock', 'kp.60m', 7], ['flow', 'filter_group', 5], ['overview', 'how', 3]], stocks: m.topStock }; };
+    /* 依期間組出 /v1/admin/stats：每天一列（頁面瀏覽＋開站），細項依 天數／30 縮放；即時＝今天到目前為止每小時 */
+    const stats = (days, live) => {
+      const n = Math.max(1, Math.min(NDAY, days || 30)), i0 = NDAY - n, rows = [];
+      const hourNow = Math.min(23, new Date(Date.now() + 8 * 3600000).getUTCHours());
+      for (let i = i0; i < NDAY; i++) { const day = dayKey(i), dn = 54000 * W[i] / base30;
+        PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.88 + ((i * 7 + k.length) % 10) / 40))) }));
+        const ss = Math.round(dn * 0.145); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + ((i % 7) / 100))) }); }
+      const scale = live ? 1.1 / 30 : n / 30, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
+      const out = { from: dayKey(i0), to: END, rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
+      if (live) { const h = []; for (let k = 0; k <= hourNow; k++) h.push(Math.round(54000 / 30 * 1.1 * (k < 6 ? 0.18 : k < 9 ? 0.7 : k < 14 ? 1.5 : 1.1) / 11 * (0.85 + (k * 5 % 7) / 20))); out.hours = h; }
+      return out;
+    };
     return { stats, online, members, mstats, detail, users };
   })();
   function demoWrap(A) {
@@ -629,7 +687,7 @@
     const W = Object.create(A);
     W.__demo = true;
     W.call = async (path, body) => {
-      if (path === '/v1/admin/stats') return ok(DEMO.stats);
+      if (path === '/v1/admin/stats') return ok(DEMO.stats((body || {}).days, (body || {}).live));
       if (path === '/v1/admin/online') return ok(DEMO.online);
       if (path === '/v1/admin/members') return ok({ members: DEMO.members });
       if (path === '/v1/admin/members/stats') return ok(DEMO.mstats);
@@ -668,9 +726,51 @@
     S.timer = setInterval(() => { if (tabOf() === 'traffic' && (location.hash || '').startsWith('#admin') && document.visibilityState !== 'hidden') paint(); else if (!(location.hash || '').startsWith('#admin')) clearInterval(S.timer); }, 30000);
   }
 
+  /* ==========================================================================
+     流量觀測（2026-10-05 Andy 新規格）
+     上方一排：每天直條＋登入甜甜圈（期間選單：即時／近 N 天／指定日期到現在）。
+     下方：活頁簿式分頁（全部＋側欄 10 個頁面＋個股頁），每頁有子分頁；每個分頁＝左長條＋右甜甜圈。
+     「頁面」是管理區自己的分類：把 Worker 回的 (頁面, 元件, 細項, 次數) 依 PAGES 設定歸到側欄的頁面與子分頁。
+     ========================================================================== */
+  const PG_H = [190, 262, 36, 150, 338, 56, 214, 14, 292, 98, 170];            // 各頁色相；子分頁在同色相上微調明度／色相
+  /* 頁面設定：k 鍵、n 名稱、subs（子分頁：k、n、cs＝歸屬的元件，'x.*' 為前綴）、sk＝子分頁開啟事件 sub.<鍵> 的頁面鍵 */
+  const PAGES = [
+    { k: 'events', n: '事件', subs: [{ k: 'drawer', n: '事件抽屜', cs: ['events_drawer'] }, { k: 'link', n: '事件連結', cs: ['events.*'] }] },
+    { k: 'flow', n: '資金流向', sk: 'flow', subs: [{ k: 'rotation', n: '資金輪動', cs: ['play', 'quad', 'filter_*', 'clock_group', 'rank_bar'] }, { k: 'sankey', n: '資金去向', cs: ['sankey.*'] }, { k: 'inst', n: '族群×法人', cs: ['inst.*'] }] },
+    { k: 'heatmap', n: '熱力圖', sk: 'heatmap', subs: [{ k: 'industry', n: '產業', cs: ['heat_tile'] }, { k: 'theme', n: '題材', cs: ['theme.*'] }] },
+    { k: 'industry', n: '產業地圖', sk: 'industry', subs: [{ k: 'chains', n: '產業鏈總覽', cs: [] }, { k: 'chain', n: '單一產業鏈', cs: [] }, { k: 'group', n: '族群頁', cs: [] }] },
+    { k: 'market', n: '市場明細', sk: 'market', subs: [{ k: 'updown', n: '漲跌家數', cs: [] }, { k: 'inst', n: '法人連買賣', cs: [] }, { k: 'ma', n: '站上均線', cs: [] }, { k: 'pick', n: '今日候選', cs: [] }] },
+    { k: 'explore', n: '選股策略', subs: [] },
+    { k: 'season', n: '週期統計', subs: [] },
+    { k: 'etf', n: 'ETF', subs: [] },
+    { k: 'watch', n: '自選', subs: [] },
+    { k: 'support', n: '客服', subs: [{ k: 'faq', n: '常見問題', cs: ['support.faq'] }, { k: 'fb', n: '意見反饋', cs: ['support.send'] }, { k: 'mail', n: '寄信', cs: ['support.mail'] }] },
+    { k: 'stock', n: '個股', subs: [{ k: 'overview', n: '總覽', cs: ['tab.overview'] }, { k: 'basics', n: '基本資料', cs: ['tab.basics'] }, { k: 'tags', n: '指標', cs: ['tab.tags'] }, { k: 'revenue', n: '營收', cs: ['tab.revenue'] },
+      { k: 'profit', n: '獲利', cs: ['tab.profit'] }, { k: 'dividend', n: '除權息', cs: ['tab.dividend'] }, { k: 'inst', n: '法人', cs: ['tab.inst'] }, { k: 'margin', n: '資券', cs: ['tab.margin'] },
+      { k: 'holders', n: '大戶／散戶', cs: ['tab.holders'] }, { k: 'news', n: '公告／新聞', cs: ['tab.news'] }, { k: 'holdings', n: 'ETF 成分股', cs: ['tab.holdings'] },
+      { k: 'kline', n: 'K 線指標', cs: ['ind', 'indicators', 'kp.*', 'draw', 'draw.*', 'mtf', 'ai_tab', 'open_3d'] }] },
+  ];
+  const PAGE_BY = Object.fromEntries(PAGES.map((p) => [p.k, p]));
+  /* 這些元件的「細項」是值得單獨排行的對象（族群／個股／類別…）；其餘元件只統計次數 */
+  const DETK = { filter_group: '族群', rank_bar: '族群', clock_group: '族群', heat_tile: '族群', filter_chain: '產業鏈', view: '個股', 'etf.cat': 'ETF 類別', 'explore.topic': '選股題目', 'support.faq': '常見問題', 'support.tab': '客服項目', ind: '技術指標', 'draw.tool': '畫線工具', events_drawer: '來源頁面', 'theme.pick': '題材' };
+  const kindOf = (comp) => DETK[comp] || (/^tab\./.test(comp) ? '個股' : '');
+  const compIn = (comp, cs) => cs.some((c) => (c.endsWith('*') ? comp.startsWith(c.slice(0, -1)) : comp === c));
+  function classify(r) {
+    let pg = null, det = r.detail || '';
+    if (r.comp === 'events_drawer') { pg = 'events'; det = VIEW_NAME[r.page] || r.page; }
+    else if (r.page === 'other') { const m = /^(etf|explore|support|events)\./.exec(r.comp); pg = m ? m[1] : null; }
+    else if (PAGE_BY[r.page]) pg = r.page;
+    return pg ? { pg, comp: r.comp, det, n: r.n } : null;
+  }
+  const pgCol = (i, j, m) => { const hs = m > 6 ? 7 : 14, ls = m > 6 ? 3.2 : 9, dh = m > 1 ? (j - (m - 1) / 2) * hs : 0, dl = m > 1 ? (j - (m - 1) / 2) * ls : 0; return `hsl(${PG_H[i] + dh} 72% calc(var(--pgL,58%) + ${dl}%))`; };
+  const sum = (a) => a.reduce((s, x) => s + x, 0);
+  const periodDays = () => (S.period === 'live' ? 1 : S.period === 'since' ? Math.max(1, Math.min(400, Math.floor((Date.parse(new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10) + 'T00:00:00Z') - Date.parse(S.since + 'T00:00:00Z')) / 86400000) + 1)) : +S.period);
+  const periodTxt = () => (S.period === 'live' ? '即時（今天到現在）' : S.period === 'since' ? `${S.since} 到現在` : `近 ${S.period} 天`);
+
   async function paint() {
     const v = S.v, A = S.A; if (!v || !A) return;
-    const [st, on] = await Promise.all([A.call('/v1/admin/stats', { days: S.days }), A.call('/v1/admin/online', {})]);
+    if (S.period === 'since' && !/^\d{4}-\d{2}-\d{2}$/.test(S.since || '')) S.period = '30';
+    const [st, on] = await Promise.all([A.call('/v1/admin/stats', { days: periodDays(), live: S.period === 'live' ? 1 : 0 }), A.call('/v1/admin/online', {})]);
     if (!(location.hash || '').startsWith('#admin') || tabOf() !== 'traffic' || !v.querySelector('#admBody')) return;
     if (!st || st._s !== 200 || !on || on._s !== 200) {
       v.querySelector('#admBody').innerHTML = `<div class="card" style="margin-top:14px"><p class="err">讀不到報表（${st ? st._s : '連不到伺服器'}）。只有管理者帳號看得到；若你是管理者，確認 Worker 的 ADMIN_EMAILS 有你的 email（docs/login_setup.md 第 6 步）。</p></div>`;
@@ -683,92 +783,156 @@
       if (kind === 'pv') { pv[name] = (pv[name] || 0) + r.n; perDay[r.day] = (perDay[r.day] || 0) + r.n; } else ev[name] = (ev[name] || 0) + r.n;
     });
     const e2 = Array.isArray(st.e2) ? st.e2 : [];
-    const pvList = Object.entries(pv).sort((a, b) => b[1] - a[1]);
-    const evList = Object.entries(ev).filter(([k]) => !['session', 'session_login', 'login', 'logout'].includes(k)).sort((a, b) => b[1] - a[1]);
-    const pvTotal = pvList.reduce((s, x) => s + x[1], 0);
-    const days = [];
-    for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse(st.to + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
-    const dmax = Math.max(1, ...days.map((d) => perDay[d] || 0));
-    const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions);
-    /* 「?」總數：細項有記就用細項（含是哪一張卡），沒有（Worker 還是舊版）退回舊的 ev:how */
-    const howE2 = e2.filter((r) => r.comp === 'how').reduce((s, r) => s + r.n, 0);
-    const howN = howE2 || ev.how || 0;
-    // 個股：被觀看 Top 10、各自最常用的功能
+    let days = [], dmap = perDay;
+    if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; st.hours.forEach((n, h) => { dmap[days[h]] = n; }); }
+    else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse(st.to + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
+    const dmax = Math.max(1, ...days.map((d) => dmap[d] || 0));
+    const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions), pvTotal = sum(Object.values(pv));
+    // 個股相關（個股頁分頁用）：被觀看 Top 10、各自最常用的功能、散佈圖點
     const views = e2.filter((r) => r.page === 'stock' && r.comp === 'view' && r.detail).sort((a, b) => b.n - a.n);
     const useBy = {};
     e2.filter((r) => r.page === 'stock' && r.comp !== 'view' && r.detail).forEach((r) => { (useBy[r.detail] = useBy[r.detail] || []).push(r); });
-    const topV = views.slice(0, 10);
-    const featRows = topV.map((r) => { const u = (useBy[r.detail] || []).sort((a, b) => b.n - a.n); const tot = u.reduce((s, x) => s + x.n, 0); return { code: r.detail, views: r.n, top: u.slice(0, 3), tot }; });
-    const scat = views.slice(0, 30).map((r) => ({ code: r.detail, x: r.n, y: ((useBy[r.detail] || []).reduce((s, x) => s + x.n, 0)) / Math.max(1, r.n) }));
-    const pages = [...new Set(e2.map((r) => r.page))];
-    if (!pages.includes(S.page)) S.page = pages.includes('flow') ? 'flow' : (pages[0] || 'flow');
-    const ICO = {
-      eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
-      globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
-      user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
-      help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>',
-      trend: '<svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>' };
-    const kpi = (ic, col, val, lab, id) => `<div><span class="ic" style="color:${col}">${ICO[ic]}</span><b${id ? ` id="${id}"` : ''}>${val}</b>${lab}</div>`;
-    const fillBar = (n, max) => `<span class="vb"><span><i style="width:${(n / Math.max(1, max) * 100).toFixed(1)}%"></i></span><em>${nf(n)}</em></span>`;
-    v.querySelector('#admBody').innerHTML = `
-      <div class="secttl"><h2>全站總覽</h2><small>${esc(st.from)} ～ ${esc(st.to)}（台北）</small></div>
-      <div class="card trkpi" id="trKpi" style="margin-top:10px"><div class="kpis">${kpi('eye', 'var(--cat-1)', nf(pvTotal), '頁面瀏覽')}${kpi('globe', 'var(--cat-2)', nf(sessions), '開啟網站')}
-        ${kpi('user', 'var(--cat-3)', (sessions ? Math.round(loginSess / sessions * 100) : 0) + '%', '登入狀態開啟')}${kpi('help', 'var(--cat-4)', nf(howN), '全站「?」點擊', 'trHowN')}${kpi('trend', 'var(--cat-5)', nf(views.reduce((s, r) => s + r.n, 0)), '個股被觀看')}</div>
-        <div class="trctl"><label>期間 <select id="admDaysSel">${[7, 30, 90, 365].map((d) => `<option value="${d}" ${d === S.days ? 'selected' : ''}>近 ${d} 天</option>`).join('')}</select></label>
+    S.stk = { featRows: views.slice(0, 10).map((r) => { const u = (useBy[r.detail] || []).sort((a, b) => b.n - a.n); return { code: r.detail, views: r.n, top: u.slice(0, 3) }; }),
+      scat: views.slice(0, 30).map((r) => ({ code: r.detail, x: r.n, y: ((useBy[r.detail] || []).reduce((s, x) => s + x.n, 0)) / Math.max(1, r.n) })) };
+    // 依 PAGES 歸類：S.data[頁] = { pv, rows:[{comp,det,n,sub}], opens:{子頁:次數} }
+    const data = {};
+    PAGES.forEach((p) => { data[p.k] = { pv: pv[p.k] || 0, rows: [], opens: {} }; });
+    e2.forEach((r) => {
+      if (r.comp.startsWith('sub.')) { const d = data[r.page]; if (d) d.opens[r.comp.slice(4)] = (d.opens[r.comp.slice(4)] || 0) + r.n; return; }
+      const c = classify(r); if (!c) return;
+      const p = PAGE_BY[c.pg], sub = (p.subs.find((s) => compIn(c.comp, s.cs)) || {}).k || '';
+      data[c.pg].rows.push({ comp: c.comp, det: c.det, n: c.n, sub });
+    });
+    PAGES.forEach((p, i) => {
+      const d = data[p.k], use = sum(d.rows.map((r) => r.n));
+      d.use = use; d.fb = !d.pv;                                                  // fb＝沒有瀏覽數（Worker 只記 pv 給舊頁面鍵）→ 改用功能使用次數
+      d.subN = p.subs.map((s, j) => ({ k: s.k, n: s.n, v: d.opens[s.k] != null ? d.opens[s.k] : sum(d.rows.filter((r) => r.sub === s.k).map((r) => r.n)), col: pgCol(i, j, p.subs.length) }));
+      d.total = d.pv || (sum(d.subN.map((x) => x.v)) || use);
+      if (p.subs.length && sum(d.subN.map((x) => x.v)) > 0 && d.pv) { /* 有子頁開啟數：總數仍用 pv */ }
+    });
+    S.data = data; S.days = periodDays();
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2><small>點長條或扇區進入該頁；上方小分頁看子頁</small></div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>` + usersHtml(st, on);
+    wireTop(v, A);
+    paintTrTabs();
+  }
+  function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal) {
+    const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '指定日期到現在']];
+    const dsub = S.period === 'live' ? '今天每小時的頁面瀏覽' : '每天的頁面瀏覽總次數';
+    return `<div class="secttl trhead"><h2>全站總覽</h2><small>${esc(periodTxt())}・共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
+        <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+          <input type="date" id="admSince" value="${esc(S.since || '')}" max="${esc(st.to)}" aria-label="起始日期" ${S.period === 'since' ? '' : 'hidden'}>
           <button type="button" id="admRefresh">重新整理</button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
-      <div class="admgrid">
-        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。">每天的頁面瀏覽總次數</p><div class="cb">${dayChart(days, perDay, dmax)}</div></div>
+      <div class="admgrid trtop">
+        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="${esc(dsub)}。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax)}</div></div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。">開啟網站時是否已登入</p><div class="cb">${donut([['登入', loginSess, 'var(--cat-1)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--cat-2)']])}</div></div>
-        <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use" title="${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。">${S.days} 天各頁瀏覽・點一頁看明細</p><div class="cb">${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div></div>
-        <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use" title="個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。">個股頁被打開次數，前 10 名</p><div class="cb">${bars(topV.map((r) => [r.detail, r.n]), stockNm, 0, { id: 'trStockBars' })}</div></div>
-        <div class="card" id="admEv"><h3>哪個功能最常被用？（全站）</h3><p class="use" title="${S.days} 天內每個功能被按的總次數（不分頁）。分頁裡的細節看下面「分頁明細」。">${S.days} 天內每個功能被按的總次數</p><div class="cb">${bars(evList.slice(0, 10), EV_NAME, 0)}</div></div>
-        <div class="card s2" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use" title="上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。">前 10 檔各自最常用的三個功能</p>
-          <div class="cb">${featRows.length ? `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td>${fillBar(r.views, featRows[0].views)}</td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div></div>
-        <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use" title="散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。">右上＝熱門又被深度使用</p><div class="cb">${scat.length < 2 ? '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>' : '<div class="sc" id="trSc"></div>'}</div></div>
+      </div>`;
+  }
+  function usersHtml(st, on) {
+    return `<div class="secttl"><h2>使用者</h2><small>現在誰在線上、最近來過的會員</small></div>
+      <div class="admgrid trusers">
         <div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use" title="最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。">近 2.5 分鐘有動作・30 秒更新</p>
           <div class="cb"><div class="okn kpis"><div class="live"><b id="admOnN">${on.total}</b>在線（分頁數）</div><div><b>${on.users.length}</b>登入者</div><div><b>${on.guests}</b>訪客</div></div>
           ${on.users.length ? `<div class="tbw"><table><thead><tr><th>名稱</th><th>在看</th><th>最後動作</th></tr></thead><tbody>${on.users.map((u) => `<tr><td title="${esc(u.email)}">${esc(u.name)}</td><td>${esc(VIEW_NAME[u.route] || u.route)}</td><td>${ago(u.seen)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">目前沒有登入者在線上。</div>'}
           <label class="tg"><input type="checkbox" id="admPub" ${on.public_online ? 'checked' : ''}>一般訪客看得到「目前 N 人在線」（只有總數）</label></div></div>
         <div class="card s2" id="admUsers"><h3>最近有哪些會員來過？</h3><p class="use" title="依最後使用時間排序（最多列 50 位）。要新增、設到期日、看造訪次數，到「會員管理」。">共 ${st.users.total} 位・依最後使用排序</p>
           <div class="cb">${st.users.recent.length ? `<div class="tbw"><table><thead><tr><th>名稱</th><th>email</th><th>加入</th><th>最後使用（台北）</th></tr></thead><tbody>${st.users.recent.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${dstr(u.created)}</td><td>${dstr(u.seen)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">還沒有會員。</div>'}</div></div>
-      </div>
-      <div class="secttl" id="trDetailTtl"><h2>分頁明細</h2><small>選一頁，看那一頁的每個元件被用幾次、細項（哪個族群、哪一檔）是誰</small></div>
-      <div class="card" id="trDetail" style="margin-top:10px">
-        <div class="nbsw lv2 seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
-        <div id="trPageBody"></div></div>`;
-    if (S.ro) { S.ro.disconnect(); S.ro = null; }
-    const scBox = v.querySelector('#trSc');
-    if (scBox) { const draw = () => drawScatter(scBox, scat); draw(); if (window.ResizeObserver) { let lw = scBox.clientWidth, lh = scBox.clientHeight; S.ro = new ResizeObserver(() => { if (Math.abs(scBox.clientWidth - lw) > 2 || Math.abs(scBox.clientHeight - lh) > 2) { lw = scBox.clientWidth; lh = scBox.clientHeight; draw(); } }); S.ro.observe(scBox); } }
-    v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
+      </div>`;
+  }
+  function wireTop(v, A) {
+    const apply = () => { S.tab = S.tab || 'all'; paint(); };
+    v.querySelector('#admDaysSel').onchange = (e) => {
+      S.period = e.target.value;
+      if (S.period === 'since' && !S.since) S.since = new Date(Date.now() + 8 * 3600000 - 29 * 86400000).toISOString().slice(0, 10);
+      apply();
+    };
+    const di = v.querySelector('#admSince'); if (di) di.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(di.value)) { S.since = di.value; apply(); } };
     v.querySelector('#admRefresh').onclick = () => paint();
     const pub = v.querySelector('#admPub');
     pub.onchange = async () => { const r = await A.call('/v1/admin/settings', { public_online: pub.checked }); if (!r || r._s !== 200) pub.checked = !pub.checked; };
-    v.querySelector('#trPageSeg').onclick = (e) => { const b = e.target.closest('button[data-p]'); if (!b) return; S.page = b.dataset.p; v.querySelectorAll('#trPageSeg button').forEach((x) => x.classList.toggle('on', x === b)); paintPage(); };
-    v.querySelector('#trPvBars') && (v.querySelector('#trPvBars').onclick = (e) => {
-      const b = e.target.closest('button[data-k]'); if (!b) return;
-      S.page = b.dataset.k; const seg = v.querySelector(`#trPageSeg button[data-p="${CSS.escape(S.page)}"]`);
-      v.querySelectorAll('#trPageSeg button').forEach((x) => x.classList.toggle('on', x === seg));
-      paintPage(); const d = v.querySelector('#trDetailTtl'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    });
-    paintPage();
   }
-  /* 分頁明細：左＝這一頁各元件的次數（長條）；右＝點一個元件看它的細項 Top 10（例如「篩選：族群」裡被選最多的族群）*/
-  function paintPage() {
-    const v = S.v, box = v && v.querySelector('#trPageBody'); if (!box || !S.st) return;
-    const rows = (S.st.e2 || []).filter((r) => r.page === S.page);
-    const byComp = {};
-    rows.forEach((r) => { byComp[r.comp] = (byComp[r.comp] || 0) + r.n; });
-    const comps = Object.entries(byComp).sort((a, b) => b[1] - a[1]);
-    if (!comps.length) { box.innerHTML = `<div class="empty">「${esc(VIEW_NAME[S.page] || S.page)}」這段期間還沒有細項紀錄。</div>`; return; }
-    const withDet = comps.filter(([c]) => rows.some((r) => r.comp === c && r.detail));
-    if (!S.comp || !byComp[S.comp] || !withDet.some(([c]) => c === S.comp)) S.comp = (withDet[0] || [])[0] || null;
-    const det = S.comp ? rows.filter((r) => r.comp === S.comp && r.detail).sort((a, b) => b.n - a.n).slice(0, 10) : [];
-    box.innerHTML = `<div class="cdgrid"><div><h3>${esc(VIEW_NAME[S.page] || S.page)}：哪個元件最常被用？</h3><p class="use">點元件名稱，右邊列出它的細項 Top 10。</p>${bars(comps, compName, 0, { click: true, id: 'trCompBars' })}</div>
-      <div id="trCompDetail"><h3>${S.comp ? esc(compName(S.comp)) + '：細項 Top 10' : '細項'}</h3><p class="use">${S.comp ? (S.comp === 'how' ? '細項＝被點「?」的那張卡（元件 id）。' : S.comp.startsWith('filter') || ['rank_bar', 'clock_group', 'heat_tile'].includes(S.comp) ? '細項＝族群／產業鏈名稱。排第一的就是大家最想追的族群。' : S.page === 'stock' ? '細項＝股票代號。' : '細項＝元件或名稱。') : '這一頁的元件都沒有細項。'}</p>
-        ${S.comp ? bars(det.map((r) => [r.detail, r.n]), (k) => k, 0, { id: 'trDetBars' }) : ''}</div></div>`;
-    box.querySelector('#trCompBars').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; S.comp = b.dataset.k; paintPage(); };
+
+  /* ---- 分頁統計 ---- */
+  function paintTrTabs() {
+    const v = S.v, box = v && v.querySelector('#trTabsBox'); if (!box || !S.data) return;
+    if (S.tab !== 'all' && !PAGE_BY[S.tab]) S.tab = 'all';
+    const d = (k) => S.data[k];
+    box.innerHTML = `<div class="nbsw" id="trTabs" role="tablist"><button type="button" role="tab" data-t="all" class="${S.tab === 'all' ? 'on' : ''}" aria-selected="${S.tab === 'all'}">全部</button>${PAGES.map((p, i) => `<button type="button" role="tab" data-t="${p.k}" class="${S.tab === p.k ? 'on' : ''}" aria-selected="${S.tab === p.k}">${esc(p.n)}<em>${nf(d(p.k).total)}</em></button>`).join('')}</div>`;
+    box.querySelector('#trTabs').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; S.tab = b.dataset.t; S.sub = 'all'; paintTrTabs(); };
+    paintBody();
   }
+  function paintBody() {
+    const v = S.v, body = v && v.querySelector('#trPageBody'); if (!body) return;
+    body.innerHTML = S.tab === 'all' ? allHtml() : pageHtml(S.tab);
+    body.onclick = (e) => {
+      const t = e.target.closest('[data-p]'); if (t && S.tab === 'all') { S.tab = t.dataset.p; S.sub = t.dataset.s || 'all'; paintTrTabs(); return; }
+      const sb = e.target.closest('button[data-sub]'); if (sb) { S.sub = sb.dataset.sub; paintBody(); }
+    };
+    v.querySelectorAll('#trTabs .on, #trSubs .on').forEach((b) => { if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+    const sc = body.querySelector('#trSc');
+    if (S.ro) { S.ro.disconnect(); S.ro = null; }
+    if (sc && S.stk) { const draw = () => drawScatter(sc, S.stk.scat); draw(); if (window.ResizeObserver) { let lw = sc.clientWidth, lh = sc.clientHeight; S.ro = new ResizeObserver(() => { if (Math.abs(sc.clientWidth - lw) > 2 || Math.abs(sc.clientHeight - lh) > 2) { lw = sc.clientWidth; lh = sc.clientHeight; draw(); } }); S.ro.observe(sc); } }
+  }
+  /* 通用甜甜圈：segs＝[{label,n,color,tip,p,s}]；中心＝前五大占比；圖例列前 N 項 */
+  function donutG(segs, o) {
+    const tot = sum(segs.map((s) => s.n));
+    if (!tot) return '<div class="empty">這段期間還沒有紀錄。</div>';
+    const r = 46, w = 16.5, c = 2 * Math.PI * r; let off = 0;
+    const arcs = segs.map((s) => { const len = s.n / tot * c, g = Math.min(1, len); const a = `<circle class="arc"${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} r="${r}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${w}" stroke-dasharray="${Math.max(0, len - g).toFixed(2)} ${(c - Math.max(0, len - g)).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"><title>${esc(s.tip || s.label)}　${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）</title></circle>`; off += len; return a; }).join('');
+    const top5 = (o.top5 || segs).slice().sort((a, b) => b.n - a.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
+    const lg = (o.legend || segs).slice().sort((a, b) => (a.label === '其他') - (b.label === '其他') || b.n - a.n).slice(0, o.legendN || 6);
+    return `<div class="dn"><svg viewBox="0 0 120 120" role="img" aria-label="${esc(o.aria || '占比')}"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--panel-3)" stroke-width="${w}"/>${arcs}<text x="60" y="58" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">前五大</text><text x="60" y="75" text-anchor="middle" style="font-size:16px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${t5}%</text></svg>
+      <ul class="lg">${lg.map((s) => `<li><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
+  }
+  const card = (id, ttl, sub, inner, cls) => `<div class="card${cls ? ' ' + cls : ''}" id="${id}"><h3>${esc(ttl)}</h3><p class="use" title="${esc(sub)}">${esc(sub)}</p><div class="cb">${inner}</div></div>`;
+  /* 「全部」：左＝各頁堆疊長條（有子頁的頁面依子頁上色，滑過看占比）；右＝各頁占比大甜甜圈（子頁＝同色系子扇區） */
+  function allHtml() {
+    const list = PAGES.map((p, i) => ({ p, i, d: S.data[p.k] })).sort((a, b) => b.d.total - a.d.total);
+    const mx = Math.max(1, ...list.map((x) => x.d.total)), tot = sum(list.map((x) => x.d.total));
+    const rows = list.map(({ p, i, d }) => {
+      const segs = d.subN.filter((s) => s.v > 0), ssum = sum(segs.map((s) => s.v)), w = d.total / mx * 100;
+      const inner = segs.length > 1 ? segs.map((s) => `<i style="width:${(s.v / Math.max(ssum, 1) * 100).toFixed(2)}%;background:${s.col}" title="${esc(p.n)}・${esc(s.n)}　${nf(s.v)}（${(s.v / ssum * 100).toFixed(1)}%）"></i>`).join('')
+        : `<i style="width:100%;background:${pgCol(i, 0, 1)}" title="${esc(p.n)}　${nf(d.total)}（${(d.total / tot * 100).toFixed(1)}%）"></i>`;
+      return `<button type="button" class="bl" data-p="${p.k}" title="${esc(p.n)}${d.fb ? '（以功能使用次數計）' : ''}">${esc(p.n)}</button><span class="bt stk" data-p="${p.k}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn">${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
+    }).join('');
+    const segs = []; list.forEach(({ p, i, d }) => { const ss = d.subN.filter((s) => s.v > 0), ssum = sum(ss.map((s) => s.v));
+      if (ss.length > 1 && ssum > 0) ss.forEach((s) => segs.push({ label: p.n, n: d.total * s.v / ssum, color: s.col, lcolor: pgCol(i, 0, 1), tip: `${p.n}・${s.n}`, p: p.k, s: s.k }));
+      else segs.push({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k }); });
+    const pagesAgg = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1) }));
+    return `<div class="admgrid trpair">${card('trAllBars', '各頁被看了幾次？', '有子頁的頁面依子頁上色・點一條進入該頁', `<div class="bars stkbars" id="trAllB">${rows}</div>`)}
+      ${card('trAllDonut', '各頁占比', '外圈顏色＝頁面、同色系＝子頁', donutG(segs, { top5: pagesAgg, legend: pagesAgg, legendN: 10, totalN: tot, aria: '各頁瀏覽占比' }))}</div>`;
+  }
+  /* 單一頁面：上方小分頁（全部＋子頁）、下方 功能使用次數（長條＋圓餅）、被點最多的對象（長條＋圓餅） */
+  function pageHtml(k) {
+    const p = PAGE_BY[k], d = S.data[k], idx = PAGES.indexOf(p);
+    if (!p.subs.some((s) => s.k === S.sub)) S.sub = 'all';
+    const subs = p.subs.length ? `<div class="nbsw lv2" id="trSubs" role="tablist"><button type="button" role="tab" data-sub="all" class="${S.sub === 'all' ? 'on' : ''}">全部</button>${p.subs.map((s, j) => `<button type="button" role="tab" data-sub="${s.k}" class="${S.sub === s.k ? 'on' : ''}"><i class="tdot" style="background:${pgCol(idx, j, p.subs.length)}"></i>${esc(s.n)}<em>${nf(d.subN[j].v)}</em></button>`).join('')}</div>` : '';
+    const sel = S.sub === 'all' ? d.rows : d.rows.filter((r) => r.sub === S.sub);
+    const sn = S.sub === 'all' ? p.n : `${p.n}・${(p.subs.find((s) => s.k === S.sub) || {}).n}`;
+    const byComp = {}; sel.forEach((r) => { byComp[r.comp] = (byComp[r.comp] || 0) + r.n; });
+    const fl = Object.entries(byComp).sort((a, b) => b[1] - a[1]);
+    const byDet = {}, kinds = new Set();
+    sel.forEach((r) => { if (kindOf(r.comp) && r.det) { const key = r.det; byDet[key] = (byDet[key] || 0) + r.n; kinds.add(kindOf(r.comp)); } });
+    const dl = Object.entries(byDet).sort((a, b) => b[1] - a[1]);
+    const palette = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
+    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i] })).concat(rest ? [{ label: '其他', n: rest, color: 'var(--cat-other)' }] : []); };
+    const pair = (id, ttl, sub, list, nameFn, click) => `${card(id + 'B', ttl, sub, bars(list.slice(0, 10), nameFn, sum(list.map((x) => x[1])), { id: id + 'Bars', click }))}${card(id + 'D', ttl.replace(/？$/, '') + '占比', '前 5 名＋其他', donutG(dsegs(list, nameFn), { legend: dsegs(list, nameFn), legendN: 6, aria: ttl }))}`;
+    let body = '';
+    if (k === 'stock' && S.sub === 'all') {
+      body = `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', '30 天內每個功能的次數', fl, compName)}</div>
+        <div class="admgrid trpair">${pair('trD', '被點最多的個股', '個股頁被打開次數，前 10 名', dl, stockNm)}</div>
+        <div class="admgrid">${card('trStockFeat', '熱門個股的人都在用什麼功能？', '前 10 檔各自最常用的三個功能', S.stk.featRows.length ? stockTable(S.stk.featRows) : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>', 's2')}
+          ${card('trScatter', '哪些股票「又多人看、看的人又用得深」？', '右上＝熱門又被深度使用', S.stk.scat.length < 2 ? '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>' : '<div class="sc" id="trSc"></div>')}</div>`;
+    } else if (!fl.length) {
+      body = `<div class="empty trempty">「${esc(sn)}」這段期間還沒有功能使用紀錄${d.opens && Object.keys(d.opens).length ? '（只有進入次數）' : ''}。</div>`;
+    } else {
+      const nmDet = (x) => (kinds.has('個股') && /^[0-9A-Z]{4,6}$/.test(x) ? stockNm(x) : x);
+      body = (fl.length === 1 && dl.length ? '' : `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', `${periodTxt()}・${sn}`, fl, compName)}</div>`)
+        + (dl.length ? `<div class="admgrid trpair">${pair('trD', `被點最多的${[...kinds].join('／')}`, `${sn}・Top 10`, dl, nmDet)}</div>` : '');
+    }
+    return `<div class="trhd">${subs}</div>${body}`;
+  }
+  const stockTable = (rows) => `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td><span class="vb"><span><i style="width:${(r.views / Math.max(1, rows[0].views) * 100).toFixed(1)}%"></i></span><em>${nf(r.views)}</em></span></td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>`;
   /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代）。圖區吃滿卡片高度；y 軸 0／一半／最大值＋淡格線＋平均虛線；
      最高那天標值；天數 ≤ 7 時每根放大（寬到 140）並在柱上標值、柱下標日期，不再是細細兩根留一大片空白 */
   function dayChart(days, perDay, dmax) {

@@ -126,6 +126,21 @@ Worker 存在 `ev2(day, page, comp, detail, n)`，只有「每天的次數」，
 查詢：`/v1/admin/stats` 回 `e2`（期間內依 page/comp/detail 加總，可帶 `page` 只看一頁）。
 會員造訪：登入狀態的 `ev:session_login` 另記 `visits(uid, day, n)`，`/v1/admin/perm/list` 回 `seen`、`visits`（近 30 天）、`expires`。
 
+### 2026-10-05 流量觀測「分頁統計」新增的事件鍵（只記次數，不記身分；前端 `site/account.js`）
+Worker 的頁面白名單（`VIEWS`）沒有 etf／explore／support／events，所以這幾頁一律記在頁面 `other` 底下、元件名帶前綴，管理區（`site/admin.js` 的 `PAGES`／`classify`）再歸回該頁。**Worker 不必改**；若之後要在 Worker 端直接分頁面，再把這四個加進 `VIEWS`。
+
+| 元件鍵 | 頁面 | 細項 | 點位 |
+|---|---|---|---|
+| `sub.<子頁>` | flow／heatmap／industry／market | 空 | 換到子頁（rotation／sankey／inst、industry／theme、chains／chain／group、市場明細頁籤） |
+| `etf.cat` | other | 類別名 | ETF 分類按鈕 `#etfCatSeg` |
+| `explore.topic` | other | 題目 | （預留，選股策略題目點選；示範資料已涵蓋，前端點位待 explore.js 補）|
+| `watch_tab_new` | watch | 空 | 自選「＋」新增分頁 |
+| `watch.chart`、`watch.kline` | watch | 空 | 自選：點走勢圖、展開圖內切 K 線週期 |
+| `support.fab`／`support.tab`／`support.faq`／`support.send`／`support.mail` | other | 分頁名／問題前 20 字 | 客服浮動鈕與面板 |
+| `events.link` | other | 空 | 事件抽屜點事件連結（`events_drawer` 本來就有，管理區用它的「來源頁」當細項）|
+| `ind` | stock | 指標名稱 | 技術指標面板勾上 |
+| `draw.tool` | stock | 工具名稱 | 畫線工具列 |
+
 ### 圖表選型（流量觀測頁的「？ 圖表怎麼選」）
 - 預設橫向排序長條：類別多、要比大小，長度最準。
 - 圓餅／甜甜圈：只在 ≤ 5 類且加總 100%（登入／訪客開啟比例）。
