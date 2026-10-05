@@ -1,6 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-## 10-05 15:06 #admin/perm 重新設計（perm-v4）：資料夾頁籤、卡片同寬同高、頁籤拖曳／⋮ 管理、會員名單統計圖（UI 專家，分支 `claude/perm-v4`，**未推 main，等 CEO 合併；要先部署會員 Worker**）
+## 10-05 15:51 CEO 上線兩批：ETF 專區＋選股策略（aa7c1f3b，15:41 推）、perm-v4 管理區前端（d425049b，15:51 推）
+- ETF＋選股：合併 preview/etf-v1、preview/explore-v2；「槓桿反向」與「其他」同版面不出前 5。驗了：pytest 994 過；重算 payload 後 `_uitest ETF專區1005,選股策略1005,個股,會員權限開關,管理區v3,總覽`
+  —— 個股段第一次「切指標後主圖高度 373→382」1 紅，單獨重跑 0（本批沒動 K 線高度邏輯，判偶發）；`_preview` 綠。
+- perm-v4：Worker 先上（c968e481 success），前端後上。CEO 追加：會員欄一行（▸ email 名字 ★ 同排；★ 金色＝付費，方案名在滑過提示與「方案」欄）、窄螢幕 `contain:inline-size` 防橫捲、測試假資料日期 09/34 → 真日期。
+  驗了：`_uitest 管理區1005,管理區v3,會員權限開關,訂閱與客服1005` 0；`會員權限導覽` 1 紅（手機 #mTabMore 點不到）—— **main 上同樣紅、手機暫停中，未修**；`_preview` 綠。沒跑 pytest（沒動 pipeline）。
+  ⚠ 踩坑：worktree 的 `site/data` 捷徑要用絕對路徑（`ln -s /home/user/tw-rotation/site/data site/data`），相對路徑 `../tw-rotation/...` 是相對 site/ 解析 → 整頁沒資料、一堆假紅。
+- 進行中：「財報日曆」大分頁（總覽正下方、月曆＋法說會／FED 事件＋點選看分析展望），frontend-ui 在 `../wt-cal`、分支 `claude/earnings-cal`，做完推 `preview/earnings-cal`。
+
+## 10-05 15:06 #admin/perm 重新設計（perm-v4）：資料夾頁籤、卡片同寬同高、頁籤拖曳／⋮ 管理、會員名單統計圖（UI 專家，分支 `claude/perm-v4`；**10-05 15:51 已上 main d425049b**）
 - 檔案：`site/admin.js`、`workers/account-api/worker.js`（只在檔尾加 perm-v4 區塊）、`workers/account-api/tests/v4.test.mjs`（新）、`scripts/_uitest.py`（管理區v3 補 perm-v4 段＋假 Worker 加 plans/sort、members/stats、plans/put del）。
 - 後端：`plans.sort`（相容遷移：第一次補欄依原本順序補 0..n-1，上線當下順序不變；新建排最後；改名不再換位置）、`/v1/admin/plans/sort {ids}`（必須正好是全部付費範本，否則 400 bad_order 不寫）、
   `/v1/admin/members/stats {scope:'all'|'plan', plan}`（功能／股票 Top 8、14 天每日活躍、7 日活躍；伺服器彙總）。plans/get、/v1/plans/public 都照 sort 排 → #pricing 方案卡跟著變。
