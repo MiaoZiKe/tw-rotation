@@ -247,6 +247,9 @@
     **自己多挑幾段會用到它的段落加進去**，但不必跑滿 38 段。
   - **`_preview.py` 不在精簡範圍內，照跑**。它只要 2 分鐘，而且它抓的是
     文字重疊與多寬度溢出 —— 那正是「改 A 弄壞 B」最常見的形態，砍掉它省不到時間卻放掉最大的網。
+- **★★★★★★★★★ 2026-10-06：說「部署好了」之前，一律先跑 `python scripts/deploy_wait.py --branch <main 或 preview/名稱>`，印出 ✅ 才准講**（DECISIONS #323）。
+  事故：推 preview 後盯到的是預覽分支那輪「轉呼叫」run（10 秒 success、不部署任何東西），就回報「02:17 部署好了」，Andy 打開沒變化。
+  Actions run 的 success **不是**部署完成的證據；只有 Pages deployment success 才是。回報要貼 ✅ 那行（含台北時間）＋「請重新整理確認」。
 - **★★ 2026-09-23 更正：這個容器打不開 <https://miaozike.github.io/tw-rotation/>。**
   實測 `curl` 回 `CONNECT tunnel failed, response 403`、HTTP 000；`WebFetch` 回 `EGRESS_BLOCKED`。
   所以**「我開過線上確認版號換掉了」這句話是假的，不准再講** ——

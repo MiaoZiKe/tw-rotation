@@ -1,38 +1,37 @@
-# 確認帳本（監察委員維護；CEO 每次回報都要附「待 Andy 確認」最新一版）
+# 確認帳本（Andy 交辦事項總表；CEO 每次回報都要附「待 Andy 確認」最新一版）
 
-最後更新：2026-10-05 16:20（台北）｜監察委員第 4 次稽核（範圍：10-04～10-05 16:14）
-查證依據：`git log origin/main`（頂端 24e9adbd）、`git ls-remote`、GitHub Actions：
-部署網站 aa7c1f3b success 16:05、d425049b success 16:07；部署 Worker（會員登入）c968e481 success 15:09。
-⚠ 這個容器打不開正式站，「上線」都是用 Actions 推算的；肉眼確認一律在下表等 Andy。
+最後更新：2026-10-06 02:35（台北）｜CEO 全面盤點（Andy：「是否有我交辦事項清單，並且紀錄目前每項任務狀況，確實落實每項任務都接收到，以及有安排人員下去做」）
+⚠ 這個容器打不開正式站；「已上線」一律以 `scripts/deploy_wait.py` 的 ✅（Pages deployment success）為準（DECISIONS #323），肉眼確認在 Andy。
+
+## 進行中（每項都有人在做）
+
+| # | 交辦事項（Andy 原話摘要） | 負責 | 交付方式 | 狀態（10-06 02:35） |
+|---|---|---|---|---|
+| 1 | 流量觀測重做：分頁式統計、個股兩子頁含本益比、簡單頁只計次、客服單頁、使用者分頁＋使用時段、365 天 bug、即時 24H、起始日～至今、全圖互動、甜甜圈直角等間隙、登入比例拆付費方案、ETF 類別示範資料用真分類、灌大量示範資料 | 視覺設計師（style-guide） | 預覽 preview/style-guide | 已 commit 48669abb，**真正部署 02:17 起仍在跑**（先前誤報已部署，見 #323） |
+| 2 | 會員權限：拿掉提示列與說明、⋮→小×、點兩下改名、有有效會員不可刪（前端＋Worker 409）、族群分組統一次數、圖表同流量觀測、拿掉會員管理分頁 | 視覺設計師（style-guide） | 同上 | 前四項已 commit；**圖表統一、拿掉會員管理施工中**（工作區 02:31 有動） |
+| 3 | 財經日曆優化：右側面板加圖、週末反灰、國定假日、FED 事件說明／星等／前值公布值／偏多偏空、分類切換不混其他類、免責併入主卡 | 視覺設計師（earnings-v2） | 預覽 preview/earnings-v2 | 施工中（工作區 02:16 有動、未 commit） |
+| 4 | ETF 頁：配息行事曆同步優化、未滿期間自上市起算、月份刻度、淡 Y 軸、表格名稱對齊、長條換專業親和色、債券型↔槓桿反向對調、不配息純算報酬、3/5/10/自訂期間、頁籤貼內容框、ETF 一覽併入大框 | 視覺設計師（earnings-v2） | 同上 | 施工中 |
+| 5 | 側欄：收合只剩母分頁（含目前頁）、熱力圖沒收進去、點母分頁名稱收展、狀態機＋完整情境測試、ETF 移到族群與個股、管理區可收合 | 前端（side-fold2） | 驗綠直接上 main | 施工中（02:31 有動） |
+| 6 | 頁尾詳細規範重新整理／換頁回收合＋全站預設狀態普查 | 前端（defaults） | 直接上 main | 已推 main d1bb0d09，**部署待 deploy_wait 確認** |
+| 7 | 選股：提醒列併到標題、面向標題拿掉英文 | 前端（copy-trim） | 直接上 main | 已推 main 6ad9c2bb，部署待確認 |
+| 8 | 全站清廢話（操作教學句、自問自答、重複副標）＋單獨備註框一律併入主卡（寫進規範與自動檢查） | 前端（copy-trim） | 預覽 preview/copy-trim | 施工中（02:25 有動） |
+| 9 | 流量觀測「即時 24H」「使用時段」與 ETF／選股／事件／客服／財經日曆真實瀏覽數 → 會員 Worker 要加每小時統計與頁面白名單 | 後端（worker-hourly） | Worker 直接上 main（純新增） | 02:34 派出 |
+| 10 | 部署誤報的根因與防呆 | CEO | main | 寫 deploy_wait.py＋DECISIONS #323＋CLAUDE.md／deployer 規則（本次 commit） |
 
 ## 待 Andy 確認
 
-| # | 項目 | 要看什麼 | 去哪看 | 等待起點 |
-|---|---|---|---|---|
-| 1 | 選股策略（四大面向、18 策略、入選原因與出處） | 卡片同寬同高、分區正確、原因浮層可開 | https://miaozike.github.io/tw-rotation/#explore | 10-05 16:05 |
-| 2 | ETF 專區（7 欄配息月曆在最上、三張前 5 並排、自選比較、填息天數） | 已知 Andy 16:11 後回報「沒數據」——修正在施工，先別驗數據，只驗版面 | https://miaozike.github.io/tw-rotation/#etf | 10-05 16:05 |
-| 3 | 管理區會員權限 perm-v4（資料夾頁籤、卡片同寬同高、頁籤拖曳／⋮、會員統計圖、會員欄一行） | 拖曳排序後重新整理順序是否保留；窄螢幕表格不撐寬 | https://miaozike.github.io/tw-rotation/#admin/perm | 10-05 16:07 |
-| 4 | 決定：`scripts/_uitest.py` 的 `PERM_TEST_EMAIL` 是真實 gmail 位址，放在 public repo | 建議改成 example.com 位址（測試只當字串用）；同意就改 | 回一句「改」或「不改」 | 10-05 16:14 |
-| 5 | 矽晶圓／第三代半導體／CNC／工業自動化剖析圖補環節與關聯圖（#320） | 剖析圖下方有關聯圖；9 檔一般電子節點仍孤立（查不到具名客戶） | 熱力圖 → 題材 → 矽晶圓等四張 | 10-04 |
-| 6 | 外觀面板拿掉「明暗」，只剩右上 ☀／🌙 | 面板只剩版面風格三選一 | 正式站右上「外觀」 | 10-04 |
-| 7 | 10-03 舊項（未見 Andy 回覆，保留）：登入鈕、頁首右側、資金去向一屏、漲跌家數解讀、題材縮小 87%、個股 AI 直排、F5 回預設五點、當沖借券補齊 | 同上一版帳本 | 正式站 | 10-03 |
-| 8 | 產業地圖要不要上正式站（預覽，落後 main 很多） | — | https://miaozike.github.io/tw-rotation/preview/industry-map/ | 10-03 09:50 |
-| 9 | 六件決定：a 總覽即時開關 b 中央推播 c FinMind 付費 d 子網域改名 e 兩封詢問信 f 富果／永豐 | — | 法遵文件、Gmail 草稿 | 10-02 |
-| 10 | 回補「自己接力」（工作流需 actions: write） | — | — | 10-03 |
-
-（手機網頁 preview/mobile：Andy 指示「手機都先停擺」，暫不列入待確認。）
-
-## CEO 待辦（逾 60 分鐘無動靜即判卡住）
-
-| # | 項目 | 證據 | 缺什麼 |
+| # | 項目 | 去哪看 | 狀態 |
 |---|---|---|---|
-| 1 | ETF 沒數據＋圖示上色＋側欄群組可收展（Andy 16:11 後新要求） | `/home/user/wt-etf3` 分支 `claude/etf-v3` 只在本機，**遠端沒有這條分支**；HEAD＝main 24e9adbd、只有未追蹤 site/data，尚無 commit | 先推存檔到遠端（容器回收會消失）；做完推 preview/etf-v3 給 Andy 預覽網址 |
-| 2 | 財報日曆 | 遠端只有 `claude/earnings-cal`（3fc32092「施工中存檔」，台北 16:11）；**`preview/earnings-cal` 不存在** | 回報別說「preview/earnings-cal」；做完才推 preview 並附網址 |
-| 3 | PERM_TEST_EMAIL 真實信箱在 public repo | `scripts/_uitest.py:43681` | 等 Andy 回（待確認 #4）；同意後改 example.com，注意 git 歷史仍留著 |
-| 4 | HANDOFF 頂部兩節標題過時 | 「sc-fill-wafer」「theme-dedupe」兩節仍寫「未推 main」，實際 5c643043、44cd6399 已合併 | 改成「已上線」 |
-| 5 | 會員權限導覽 `#mTabMore` 驗收在 main 本來就紅 | CEO 回報 | 屬手機，隨手機暫停；記入 HANDOFF 待處理，恢復手機時第一個處理 |
-| 6 | 過期預覽與 worktree 清理 | 遠端 preview/explore-v2、preview/etf-v1 已併入 main；preview/admin-v2／v3、layout-v2、explore-v1 也已過期；`.claude/worktrees` 9 個 agent worktree 最後變動 13:06～15:06，全部閒置 | 刪過期 preview 分支、prune worktree |
-| 7 | 10-03 帳本遺留：main 本來就紅約 40 條、當沖／借券回補追蹤 | 上一版帳本 #6、#7 | 仍未見處理紀錄 |
+| 1 | 管理區新版（流量觀測＋會員權限）→ 回「上」才上正式站（要先上 Worker） | https://miaozike.github.io/tw-rotation/preview/style-guide/#admin | 部署完成後通知 |
+| 2 | 財經日曆＋ETF 優化 | https://miaozike.github.io/tw-rotation/preview/earnings-v2/#earnings | 做完通知 |
+| 3 | 全站清廢話 | https://miaozike.github.io/tw-rotation/preview/copy-trim/ | 做完通知 |
+| 4 | 產業地圖預覽要不要上正式站（10-05 你回「其他待確認 OK」，CEO 解讀為「上」——預覽落後 main 很多，上線要先合併重驗） | https://miaozike.github.io/tw-rotation/preview/industry-map/ | 請確認解讀 |
+| 5 | 六件需要你選的決定（「OK」無法代表選項）：a 總覽即時開關上正式站？b 推播開放全會員？c FinMind 升級付費？d 換自己的網域？e 兩封詢問信寄出？f 問富果／永豐授權？ | 法遵文件、Gmail 草稿 | 每項回「是／否」 |
+| 6 | 舊預覽分支 preview/earnings-cal 刪不掉（session 權限擋刪除） | https://github.com/MiaoZiKe/tw-rotation/branches | 方便時網頁上刪 |
+
+## 今天已上線（Pages 部署成功）
+
+選股策略、ETF 專區＋上色＋側欄可收展、ETF 配息補齊（228 檔）、財經日曆（改名、三分類、無推估）、管理區分頁統一 .nbsw、會員名單 email 靠左、登入提示白話、刪除我的資料改客服申請、測試信箱改 example.com、歷史回補自動接力（含每日續補）、風格規範 docs/style_guide.md。
 
 ## 已確認
 
