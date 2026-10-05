@@ -39,6 +39,7 @@
     { id: 'stocktab', name: '個股頁：分頁' },
     { id: 'global', name: '即時與全站工具' },
     { id: 'watch', name: '自選' },
+    { id: 'etf', name: 'ETF 專區' },
     /* 2026-10-05（admin-v2，Andy B）：族群觀測。項目不寫死在這裡 —— 由 groups.yaml 產生的 groups_today.json 決定，
        管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
     { id: 'grp', name: '族群觀測' },
@@ -138,6 +139,13 @@
     box('explore.chart', 'explore', '策略卡片牆', ['#slGrid'], '每個策略一張卡、前 3 檔與入選原因'),
     box('explore.combo', 'explore', '篩選條件與資料出處', ['.sl-info'], '每張卡的條件、計算方式、資料日期與出處'),
     box('explore.list', 'explore', '完整名單', ['.sl-ftbl'], '#explore/<策略> 全部符合的公司與原因欄'),
+    // ---- ETF 專區（2026-10-05，site/etfpage.js）
+    box('etf.list', 'etf', 'ETF 一覽', ['#etfListCard'], 'ETF 卡片清單、分類切換、殖利率與規模'),
+    box('etf.popular', 'etf', '最受歡迎前 5 名', ['#etfPopCard'], '各分類內：受益人數週增加／近 20 日成交值前 5 名'),
+    box('etf.rettop', 'etf', '報酬率前 5 名', ['#etfRetTopCard'], '各分類內：含息年化報酬前 5 名（跟著期間選擇）'),
+    box('etf.yldtop', 'etf', '殖利率前 5 名', ['#etfYldCard'], '各分類內：近 12 個月殖利率前 5 名與平均填息天數'),
+    box('etf.calendar', 'etf', '配息行事曆', ['#etfCalCard'], '7 欄月曆：除息日、配息金額、當次殖利率與填息天數'),
+    box('etf.returns', 'etf', '報酬比較（自選）', ['#etfRetCard'], '各分類內自選最多 8 檔，比較累積報酬、年化與殖利率'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,

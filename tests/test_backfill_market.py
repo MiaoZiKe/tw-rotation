@@ -69,7 +69,7 @@ def test_market_scope_取全市場普通股_不吃limit_濾掉非普通股(sandb
 
 
 def test_計畫的法人_當沖借券_2009股利三步都是全市場():
-    by = {(s["datasets"], s["start"]): s.get("scope") for s in run_backfill.PLAN_DEFAULT}
+    by = {(s["datasets"], s["start"]): s.get("scope") for s in run_backfill.PLAN_DEFAULT if s.get("scope") != "etf"}
     assert by[("inst", "2016-01-01")] == "market"
     assert by[("daytrade+sbl", "2025-01-01")] == "market"
     assert by[("dividend+divresult", "2009-01-01")] == "market"
@@ -191,8 +191,8 @@ def _all_done_complete() -> dict:
           # 2026-09-30：個股 60 分 K 全市場回補（Yahoo，不在 PLAN_DEFAULT 裡，守門另外看）
           "intraday_60m": {"done": True, "remaining": {"intraday_60m": 0}}}
     for s in run_backfill.PLAN_DEFAULT:
-        if s.get("scope") == "market":
-            cp[run_backfill.datasets_key_of(s["datasets"], s["start"], s.get("tag"), "market")] = {"done": True}
+        if s.get("scope") in ("market", "etf"):   # 2026-10-05 起多了 ETF 兩步
+            cp[run_backfill.datasets_key_of(s["datasets"], s["start"], s.get("tag"), s["scope"])] = {"done": True}
     return cp
 
 

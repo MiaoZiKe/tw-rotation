@@ -5134,6 +5134,8 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- ★ 2026-09-24（Andy：「"季節性" 分頁改成 "週期統計"」）：只改畫面上的字，路由 `#season` 刻意不動 ——
          交付清單的「去看」、外面存的連結都指著它，改網址等於把那些連結全部弄斷。 -->
     <button class="tab" data-view="season">週期統計</button>
+    <!-- ★ 2026-10-05（Andy）：ETF 專區（site/etfpage.js；規格 docs/etf_page_spec.md） -->
+    <button class="tab" data-view="etf">ETF</button>
     <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
          且如實完成」）：交付清單。他只重新整理網頁，所以驗收清單一定要在網頁上 ——
          同一天才剛把「任務板」拿掉，這一格能留下來的唯一理由就是它放的是**他的原話**。 -->
@@ -5479,6 +5481,7 @@ h3 .howbtn.pop{font-family:inherit}
   <!-- ================= 自選（#watch，2026-09-28） =================
        最多五頁的自選清單（儲存在 site/watchlists.js，DECISIONS #270）；整頁由 site/watchpage.js 畫。 -->
   <section class="view" id="v-watch"></section>
+  <section class="view" id="v-etf"></section>
 
   <!-- ================= 週期統計（路由沿用 #season） =================
        ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
@@ -5648,6 +5651,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <!-- ★ 2026-09-28 自選分頁（#watch）的整頁畫面；資料層是上面的 watchlists.js -->
 <script src="watchpage.js"></script>
 <script src="explore.js"></script>
+<script src="etfpage.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>
