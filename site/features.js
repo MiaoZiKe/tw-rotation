@@ -41,7 +41,8 @@
     { id: 'watch', name: '自選' },
     /* 2026-10-05（admin-v2，Andy B）：族群觀測。項目不寫死在這裡 —— 由 groups.yaml 產生的 groups_today.json 決定，
        管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
-    { id: 'grp', name: '族群觀測' }
+    { id: 'grp', name: '族群觀測' },
+    { id: 'explore', name: '選股策略' }   // 2026-10-05 新分類（docs/explore_page_spec.md）
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -132,6 +133,11 @@
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
       veil: [], mark: [], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button'] },
+    // ---- 選股探索（2026-10-05）：預設全開；要收費時管理者在 #admin/perm 關「訪客／免費會員」範本
+    box('explore.page', 'explore', '選股策略頁（Strategy Lab）', ['#v-explore'], '策略卡片牆與完整名單（整頁）'),
+    box('explore.chart', 'explore', '策略卡片牆', ['#slGrid'], '每個策略一張卡、前 3 檔與入選原因'),
+    box('explore.combo', 'explore', '篩選條件與資料出處', ['.sl-info'], '每張卡的條件、計算方式、資料日期與出處'),
+    box('explore.list', 'explore', '完整名單', ['.sl-ftbl'], '#explore/<策略> 全部符合的公司與原因欄'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,

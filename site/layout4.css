@@ -110,6 +110,8 @@
   :root.l4 .tab[data-view="heatmap"]{--l4-ic:var(--l4-ic-heatmap)}
   :root.l4 .tab[data-view="industry"]{--l4-ic:var(--l4-ic-industry)}
   :root.l4 .tab[data-view="market"]{--l4-ic:var(--l4-ic-market)}
+  /* 選股探索：放大鏡裡一個小圓點（「在一堆泡泡裡找答案」） */
+  :root.l4 .tab[data-view="explore"]{--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m20 20-4.6-4.6'/%3E%3Ccircle cx='10.5' cy='10.5' r='1.6' fill='black'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="season"]{--l4-ic:var(--l4-ic-season)}
   :root.l4 .tab[data-view="watch"]{--l4-ic:var(--l4-ic-watch)}
   :root.l4 .tab[data-view="delivery"]{--l4-ic:var(--l4-ic-delivery)}
@@ -126,6 +128,7 @@
   :root.l4 .tab[data-view="heatmap"]{order:3}
   :root.l4 .tab[data-view="industry"]{order:4}
   :root.l4 .tab[data-view="market"]{order:5}
+  :root.l4 .tab[data-view="explore"]{order:5}   /* 2026-10-05 選股探索：DOM 緊接在市場明細後面，同 order 就照 DOM 排在它下面 */
   :root.l4 .tab[data-view="season"]{order:6}
   :root.l4 .tab[data-view="watch"]{order:7}
   :root.l4 .tab[data-view="delivery"]{order:8}

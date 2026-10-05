@@ -21085,7 +21085,119 @@ def t_fit_screen_1003(pg, base, code):
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
+def t_explore_1005(pg, base):
+    """★ 2026-10-05 第二版（Andy：「改成圖片那樣類似好了，策略但寫成英文……標示原因……附上資料出處」）。
+    ★ 第三版（Andy：「中文內容」「版面都要固定大小，不是一大一小」）：主標題中文、所有卡同高（差 ≤ 1px）、
+    原因與出處改浮層 —— 打開浮層前後卡高不變。
+    真的操作：卡數 ≥ 9、每卡 ≤ 3 列、中文標題、點晶片→卡數真的變、點一列→浮層原因有數值與門檻、
+    點 i→浮層出處有來源文字、點 ›→完整名單頁筆數＝debug 集合、禁用字、1440／1100 無橫捲與欄數。"""
+    import re as _re
+    tag = "選股策略1005"
+    for w in (1440, 1100):
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(base + "#explore")
+        if not ok(f"[{tag} {w}] 策略卡片牆畫出來（≥ 9 張）",
+                  wait_until(pg, "() => document.querySelectorAll('#slGrid .sl-card').length >= 9", 15000)):
+            return
+        r = pg.evaluate("() => ({sx: document.documentElement.scrollWidth, vw: innerWidth})")
+        ok(f"[{tag} {w}] 整頁沒有橫向捲軸", r["sx"] <= r["vw"] + 1, r)
+        pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
+        g = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#slGrid .sl-card')];
+            const hs = cs.map(c => c.getBoundingClientRect().height), ws = cs.map(c => c.getBoundingClientRect().width);
+            return {cols: getComputedStyle(document.querySelector('#slGrid .sl-grid')).gridTemplateColumns.split(' ').length,
+                    dh: Math.max(...hs) - Math.min(...hs), dw: Math.max(...ws) - Math.min(...ws), hs}; }""")
+        ok(f"[{tag} {w}] 欄數固定（1440＝3、1100＝2）", g["cols"] == (3 if w == 1440 else 2), g["cols"])
+        ok(f"[{tag} {w}] 所有卡片同高同寬（差 ≤ 1px）", g["dh"] <= 1 and g["dw"] <= 1, g)
+    pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
+    info = pg.evaluate("""() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => ({
+        en: c.querySelector('.sl-en').textContent, zh: c.querySelector('.sl-zh').textContent, h: c.getBoundingClientRect().height,
+        rows: c.querySelectorAll('.sl-row').length, date: c.querySelector('.sl-date').textContent}))""")
+    ok(f"[{tag}] 每卡 ≤ 3 列", all(x["rows"] <= 3 for x in info), info)
+    ok(f"[{tag}] 主標題是中文（英文只是小字副標）", all(_re.search(r"[\u4e00-\u9fff]", x["zh"]) and not _re.search(r"[A-Za-z]{3,}", x["zh"]) for x in info), info)
+    ui = pg.evaluate("""() => ({h2: document.querySelector('.sl-head h2').firstChild.textContent.trim(),
+        chips: [...document.querySelectorAll('.sl-chip')].map(b => b.firstChild.textContent.trim()),
+        tags: [...document.querySelectorAll('.sl-tag')].map(b => b.textContent.trim()), tl: document.querySelector('.sl-tl').textContent})""")
+    ok(f"[{tag}] 頁標題＝選股策略、分類晶片與子標籤是中文", ui["h2"] == "選股策略" and all(_re.search(r"[\u4e00-\u9fff]", c) for c in ui["chips"])
+       and ui["tl"] == "子標籤" and sum(1 for t in ui["tags"] if _re.search(r"[\u4e00-\u9fff]", t)) >= len(ui["tags"]) - 2, ui)
+    ok(f"[{tag}] 至少 9 張卡有名單列", sum(1 for x in info if x["rows"] > 0) >= 9, info)
+    ok(f"[{tag}] 每卡有資料日期徽章", all(x["date"].strip() for x in info), info)
+    txt = pg.evaluate("() => document.querySelector('#v-explore').innerText")
+    ok(f"[{tag}] 頁頂有法遵提示＋非推薦名次", "不構成投資建議" in txt and "非推薦名次" in txt)
+    bad = [x for x in ("推薦買", "推薦股", "買進", "目標價", "最值得買", "必漲") if x in txt]
+    ok(f"[{tag}] 整頁沒有禁用字", not bad, bad)
+    # 晶片：切 Technicals → 卡數變成該分類的數量
+    pg.click('.sl-chip[data-cat="tech"]'); pg.wait_for_timeout(200)
+    n = pg.evaluate("() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => c.dataset.cat)")
+    ok(f"[{tag}] 點 Technicals 晶片 → 只剩技術面卡", 0 < len(n) < len(info) and set(n) == {"tech"}, n)
+    # ★ 第四版（Andy：「需要分成以下大族群：基本面、技術面、籌碼面、消息面」）
+    pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
+    q = pg.evaluate("""() => ({chips: [...document.querySelectorAll('.sl-chip')].map(b => [b.dataset.cat, b.firstChild.textContent.trim(), +b.querySelector('em').textContent]),
+        secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => [x.dataset.cat, x.querySelector('.sl-sech').textContent, x.querySelectorAll('.sl-card').length,
+              [...x.querySelectorAll('.sl-card')].every(c => c.dataset.cat === x.dataset.cat)])})""")
+    ok(f"[{tag}] 晶片＝全部｜基本面｜技術面｜籌碼面｜消息面", [c[1] for c in q["chips"]] == ["全部", "基本面", "技術面", "籌碼面", "消息面"], q["chips"])
+    ok(f"[{tag}] 「全部」分四區、依序、每區卡只屬於該區", [x[0] for x in q["secs"]] == ["fund", "tech", "chip", "news"] and all(x[3] for x in q["secs"]), q["secs"])
+    cnt = {c[0]: c[2] for c in q["chips"]}
+    ok(f"[{tag}] 晶片數量＝各區卡數（基本 7／技術 4／籌碼 4／消息 3）", all(cnt[x[0]] == x[2] for x in q["secs"]) and cnt["all"] == sum(x[2] for x in q["secs"])
+       and [cnt[k] for k in ("fund", "tech", "chip", "news")] == [7, 4, 4, 3], [cnt, q["secs"]])
+    for k, ids in (("chip", {"whale", "settle"}), ("news", {"buzz", "conf", "themeup"})):
+        pg.click(f'.sl-chip[data-cat="{k}"]'); pg.wait_for_timeout(200)
+        v = pg.evaluate("""() => ({secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => x.dataset.cat),
+            cards: [...document.querySelectorAll('#slGrid .sl-card')].map(c => [c.dataset.sid, c.querySelectorAll('.sl-row:not(.sl-blank)').length, c.querySelector('.sl-meta').textContent])})""")
+        sids = {c[0] for c in v["cards"]}
+        ok(f"[{tag}] 點「{k}」晶片 → 只剩那一區，且新策略都在", v["secs"] == [k] and ids <= sids, v)
+        ok(f"[{tag}] 「{k}」新策略：有名單或誠實說明（不是空白）", all(c[1] > 0 or ("資料準備中" in c[2] or "符合 0" in c[2]) for c in v["cards"] if c[0] in ids), v["cards"])
+    pg.click('.sl-chip[data-cat="news"]'); pg.wait_for_timeout(200)
+    if pg.is_visible('.sl-card[data-sid="conf"] .sl-rbtn'):
+        pg.click('.sl-card[data-sid="conf"] .sl-rbtn >> nth=0')
+        why = pg.inner_text('#slPop .sl-why') if pg.is_visible('#slPop .sl-why') else ""
+        ok(f"[{tag}] 消息面「近期法說會」點一列 → 原因寫出距會議日", "法說會" in why and "天" in why and "✓" in why, why)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+    pg.click('.sl-card[data-sid="buzz"] .sl-i')
+    src = pg.inner_text('#slPop .sl-info') if pg.is_visible('#slPop .sl-info') else ""
+    ok(f"[{tag}] 消息面 i → 出處寫明新聞來源", "鉅亨" in src and "資料出處" in src, src[:200])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+    pg.click('.sl-chip[data-cat="all"]'); pg.wait_for_timeout(200)
+    # 原因展開
+    hq = "() => [...document.querySelectorAll('#slGrid .sl-card')].map(c => Math.round(c.getBoundingClientRect().height))"
+    h0 = pg.evaluate(hq)
+    pg.click('.sl-card[data-sid="quality"] .sl-rbtn >> nth=0')
+    why = pg.inner_text('#slPop .sl-why') if pg.is_visible('#slPop .sl-why') else ""
+    ok(f"[{tag}] 點一列 → 浮層「為什麼入選」：逐條打勾＋實際數值＋門檻", "ROE" in why and "✓" in why and "≥" in why and _re.search(r"\d+\.\d%", why), why)
+    ok(f"[{tag}] 展開原因不改變任何一張卡的高度", pg.evaluate(hq) == h0, [h0, pg.evaluate(hq)])
+    pg.mouse.click(5, 900); pg.wait_for_timeout(150)
+    ok(f"[{tag}] 點外面 → 浮層關閉", not pg.is_visible('#slPop'))
+    # 出處
+    pg.click('.sl-card[data-sid="accum"] .sl-i')
+    src = pg.inner_text('#slPop .sl-info') if pg.is_visible('#slPop .sl-info') else ""
+    ok(f"[{tag}] 打開 i 不改變卡高", pg.evaluate(hq) == h0)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+    ok(f"[{tag}] 點 i → 條件與資料出處（法人＝FinMind 資料集名）", "資料出處" in src and "TaiwanStockInstitutionalInvestorsBuySell" in src and "資料日期" in src, src[:200])
+    # 完整名單
+    pg.click('.sl-card[data-sid="quality"] .sl-more')
+    okf = wait_until(pg, "() => location.hash === '#explore/quality' && document.querySelector('#slTbl tbody tr')", 8000)
+    ok(f"[{tag}] 點 › → 完整名單頁", bool(okf), pg.url)
+    if okf:
+        d = pg.evaluate("() => TwExplore.debug()")
+        shown = int(pg.inner_text('#slFullN'))
+        ok(f"[{tag}] 完整名單家數＝策略實際符合集合", shown == len(d["hits"]["quality"]) > 0, [shown, len(d["hits"]["quality"])])
+        rs = pg.inner_text('#slTbl tbody tr >> nth=0')
+        ok(f"[{tag}] 名單每列有原因欄（含 ✓ 與數值）", "✓" in rs and "ROE" in rs, rs[:200])
+        ok(f"[{tag}] 完整名單頁標題是中文", pg.inner_text('.sl-fhead h2').startswith("高獲利品質"), pg.inner_text('.sl-fhead h2'))
+        ok(f"[{tag}] 完整名單頁有資料出處", "TaiwanStockFinancialStatements" in pg.inner_text('.sl-finfo'))
+        r = pg.evaluate("() => ({sx: document.documentElement.scrollWidth, vw: innerWidth})")
+        ok(f"[{tag}] 完整名單頁沒有橫向捲軸", r["sx"] <= r["vw"] + 1, r)
+        pg.click('#slTbl tbody tr >> nth=0 >> a.sl-tlink')
+        ok(f"[{tag}] 名單點公司 → #stock/<代號>", wait_until(pg, "() => /^#stock\\//.test(location.hash)", 5000), pg.url)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
+def location_ok(pg, h):
+    return pg.evaluate("() => location.hash") == h
+
+
 SECTIONS = {
+    # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
+    "選股策略1005":        lambda pg, b, base, code: t_explore_1005(pg, base),
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
