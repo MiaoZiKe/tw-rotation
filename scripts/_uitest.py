@@ -1832,6 +1832,18 @@ def t_etf_1005(pg, b, base):
         ok(f"★ [{tag}] ETF 卡片欄位全部一行（沒有被擠成兩行的）", wr == 0, wr)
         cw = J("() => [...new Set([...document.querySelectorAll('#etfGrid .etfc')].map(e => Math.round(e.getBoundingClientRect().width)))]")
         ok(f"[{tag}] ETF 卡片欄寬一致（同一寬度）", len(cw) == 1, cw)
+        segs = J("() => [...document.querySelectorAll('#etfCatSeg > button')].map(e => e.dataset.v)")
+        exp = [v for v in ["all", "配息型", "市值型", "主題型", "主動式", "槓桿反向", "債券型", "其他"] if v in segs]
+        ok(f"★ [{tag}] 分類頁籤順序：主動式在槓桿反向前、債券型在後（Andy：「兩個對調」）", segs == exp and len(segs) >= 6, segs)
+        nb = J("""() => { const s = document.querySelector('#etfCatSeg'), b = s.querySelector('button'), em = b.querySelector('em');
+                 const r = document.querySelector('#v-industry .nbsw > button, .nbsw > button');
+                 return { cls: s.classList.contains('nbsw'), ta: getComputedStyle(b).justifyContent, fs: getComputedStyle(b).fontSize,
+                          em: !!em && parseFloat(getComputedStyle(em).fontSize) < parseFloat(getComputedStyle(b).fontSize),
+                          one: b.getBoundingClientRect().height < 48 }; }""")
+        ok(f"★ [{tag}] 分類頁籤用全站共用 .nbsw（產業地圖同款：置中、數字小字、一行）",
+           nb["cls"] and nb["ta"] == "center" and nb["em"] and nb["one"], nb)
+        cen = J("() => [...document.querySelectorAll('#etfGrid .etfc dd, #etfGrid .etfc dt, #v-etf table.et td, #v-etf table.et th')].filter(e => e.offsetParent && getComputedStyle(e).textAlign !== 'center').length")
+        ok(f"★ [{tag}] 所有欄位文字置中", cen == 0, cen)
         rf = J("""() => { const u = document.querySelector('#etfGrid .etfc .px span.up, #etfGrid .etfc .px span.down');
                  if (!u) return null; const c = getComputedStyle(u).color.match(/[\\d.]+/g).slice(0, 3).map(Number);
                  return { up: u.classList.contains('up'), r: c[0], g: c[1] }; }""")

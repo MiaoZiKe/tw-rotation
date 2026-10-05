@@ -92,6 +92,9 @@
 /* ---- 分類列 */
 #v-etf .etfcatbar{display:flex;align-items:center;gap:10px;margin:0 0 var(--sp-3);white-space:nowrap;min-width:0}
 #v-etf .etfcatbar .seg{overflow:hidden;flex:0 1 auto;min-width:0}
+/* 分類頁籤：全站共用 .nbsw（產業地圖同款資料夾分頁，DECISIONS #321）；只補「不擠掉右邊期間」 */
+#v-etf .etfcatbar .nbsw{flex:0 1 auto;min-width:0;align-self:flex-end}
+#v-etf .etfcatbar{align-items:flex-end}
 #v-etf .etfcatbar .sp{flex:1}
 #v-etf .etfper{display:flex;align-items:center;gap:8px;flex:none}
 #v-etf .etfper.off{visibility:hidden}
@@ -185,6 +188,10 @@
 #v-etf .rkrow .rk{color:var(--tc,var(--amber))}
 #v-etf #etfPopCard{--tc:var(--amber)} #v-etf #etfRetTopCard{--tc:var(--rise)} #v-etf #etfYldCard{--tc:var(--violet)}
 #v-etf .cald.has{background:color-mix(in srgb,var(--amber) 8%,var(--panel-2))}
+/* Andy 10-05：「所有欄位文字置中」（DECISIONS #321 同一條：欄位內文字一律置中、無例外） */
+#v-etf table.et th,#v-etf table.et td,#v-etf table.et th:first-child,#v-etf table.et td:first-child{text-align:center}
+#v-etf .rkhd span,#v-etf .rkhd span:nth-child(n+3),#v-etf .rkrow .v,#v-etf .rkrow .v2,#v-etf .rkrow .rk{text-align:center}
+#v-etf .etfc dt,#v-etf .etfc dd{text-align:center}
 @media (max-width:1100px){#v-etf .etftri{grid-template-columns:1fr}#v-etf .calwrap,#v-etf .retcharts{grid-template-columns:1fr}
   #v-etf .callist{height:320px}#v-etf .etfcatbar{flex-wrap:wrap}#v-etf .etfcatbar .seg{overflow-x:auto;max-width:100%}
   #v-etf .row.spread{flex-wrap:wrap}}
@@ -250,7 +257,7 @@
 </div>
 
 <div class="etfcatbar" id="etfCatBar">
-  <div class="seg" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div><span class="sp"></span>
+  <div class="nbsw etfcats" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div><span class="sp"></span>
   <div class="etfper" id="etfPerBox"><span class="lb">報酬率期間</span>
     <div class="seg" id="etfPerSeg"><button data-v="3y">3 年</button><button data-v="5y">5 年</button><button data-v="10y">10 年</button><button data-v="custom">自訂</button></div>
     <select id="etfFrom" class="etsel inv" aria-label="自訂起始年"></select></div>
@@ -336,8 +343,8 @@
     const all = items();
     const cnt = {}; all.forEach((it) => { cnt[it.cat] = (cnt[it.cat] || 0) + 1; });
     const seg = $('#etfCatSeg');
-    seg.innerHTML = `<button data-v="all" role="tab">全部 ${all.length}</button>` + CATS.filter((c) => cnt[c])
-      .map((c) => `<button data-v="${c}" role="tab">${c} ${cnt[c]}</button>`).join('');
+    seg.innerHTML = `<button data-v="all" role="tab">全部<em>${all.length}</em></button>` + CATS.filter((c) => cnt[c])
+      .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
     $$('button', seg).forEach((b) => { b.classList.toggle('on', b.dataset.v === S.cat); b.setAttribute('aria-selected', b.dataset.v === S.cat);
       b.onclick = () => { if (S.cat === b.dataset.v) return; S.cat = b.dataset.v; S.shown = PAGE; LS.set('tw.etf.cat', S.cat); drawAll(); }; });
     // 期間只影響報酬率：「全部」沒有報酬卡，期間整組隱形但保留位置（不讓分類鈕跟著左右跳）
