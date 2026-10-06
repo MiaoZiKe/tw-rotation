@@ -171,11 +171,8 @@
 #trDetail .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap}
 #trDetail .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
 #trDetail .bars button.bl.on{color:var(--accent,var(--cyan));text-decoration:none;font-weight:700}
-/* 管理區 1005：開放功能表的分類卡改成「欄流」排版（CSS columns）—— 每欄由上往下接著排、高度各依內容，不再因為同列拉齊而在短卡下方留一大片空白；字級照其他分頁（卡標 16/600、列名 14） */
-#v-admin .pmcats.pmcards{display:block;column-gap:12px;margin-top:10px}
-#v-admin .pmcats.pmcards>.pmcat.brk{break-before:column}
-#v-admin .pmcats.pmcards>.pmcat{break-inside:avoid;-webkit-column-break-inside:avoid}
-#v-admin .pmcats.pmcards>.pmcat.card{break-inside:avoid;margin:0 0 12px;display:block}
+/* 管理區 1006：功能開關版面照範本 126（四欄一般 grid、同列頂端對齊等高）；瀑布流已拿掉，樣式在檔尾「範本 126」那一段 */
+#v-admin .pmcats.pmcards{margin-top:10px}
 #v-admin .pmcards .pmcat.card .pmcathd h3{font-size:var(--fs-h3,16px);font-weight:600}
 #v-admin .pmcards .pmcat.card .pmcathd h3 small{font-size:12px}
 #v-admin .pmcats .pmrow .pmtx b{font-size:14px;font-weight:500}
@@ -554,6 +551,30 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 @media (max-width:1279px){#v-admin .pmcats.pmcards,#v-admin .pmcat .grpgrid>.grpbody{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:999px){#v-admin .pmcats.pmcards,#v-admin .pmcat .grpgrid>.grpbody{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:600px){#v-admin .pmcats.pmcards,#v-admin .pmcat .grpgrid>.grpbody{grid-template-columns:minmax(0,1fr)}}
+/* ===== 範本 126（1006，Andy 講第二次）：功能開關四欄一般 grid —— 同列卡片頂端對齊、等高（短卡下留白可接受）；
+   卡片＝白底細邊框＋3px 粗藍上框；開關實心深藍；卡標題＝小圖示＋粗體名＋「N 項・開 N」＋右上總開關；
+   每列＝主標粗體、副標灰字、右邊小「∞」；欄數 1440 四／1024 三／800 兩／390 一（上面 550 行起的 media）。
+   藍色用 --pm-blue（深色主題提亮），不動全站 --cyan。 */
+#v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
+:root:not([data-theme="light"]) #v-admin{--pm-blue:#3d7bff;--pm-blue-2:#2f6df0}
+html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
+#v-admin .pmcats.pmcards{display:grid;column-count:auto;align-items:stretch;gap:12px}
+#v-admin .pmcats.pmcards>.pmcat.card{display:flex;flex-direction:column;align-self:stretch;margin:0;padding:10px 12px 6px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--pm-blue);border-radius:6px;break-inside:auto}
+#v-admin .pmcats.pmcards .pmcathd{display:flex;align-items:center;gap:8px;min-height:36px;margin-bottom:6px}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 b{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 small{flex:none;font-size:12px;font-weight:400;color:var(--ink-2)}
+#v-admin .pmcats.pmcards .pmcathd button.psw3{margin-left:auto}
+#v-admin .pmcats.pmcards .pmrow{border-top:0;border-bottom:1px solid var(--line);border-radius:0;padding-left:0;padding-right:0;height:52px}
+#v-admin .pmcats.pmcards .pmrow:last-child{border-bottom:0}
+#v-admin .pmcats.pmcards .pmrow .pmtx b{font-size:14px;font-weight:700}
+#v-admin .pmcats.pmcards .pmrow .pmtx small{font-size:12.5px;color:var(--ink-2)}
+#v-admin .pmcats.pmcards .pmlimb{font-size:12px;color:var(--ink-2);background:none;border:0}
+#v-admin .pmcats.pmcards .pmlimb.set{color:var(--pm-blue);font-weight:700}
+/* 開關：開＝實心深藍、圓鈕白；關＝灰底（列開關、總開關、族群觀測都一樣） */
+#v-admin #ptPermBox label.psw input:checked+span,#v-admin #ptPermBox button.psw3[aria-checked="true"]{background:var(--pm-blue);border-color:var(--pm-blue)}
+#v-admin #ptPermBox button.psw3[aria-checked="mixed"]{background:linear-gradient(90deg,var(--pm-blue) 50%,var(--panel-3) 50%);border-color:var(--pm-blue)}
+#v-admin #ptPermBox label.psw input:focus-visible+span,#v-admin #ptPermBox button.psw3:focus-visible{outline-color:var(--pm-blue)}
 /* ⑤ 會員名單上方的統計（與展開明細共用）：一排數字＋一排同高圖卡。統計一律「甜甜圈＋長條」；長條用 SVG 畫（每根有 <title>）。 */
 #v-admin .mstats{margin:2px 0 14px}
 #v-admin .mkpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -1922,15 +1943,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
-    /* 欄流排版的分欄：把分類卡依「項數」做 4 欄貪婪分組（最重的先放進目前最矮的那欄），再依欄順序輸出並在每欄第一張卡強制換欄 —— 各欄底部落差最小，不留大片空白 */
-    /* 欄數照視窗寬：≥1300 四欄、≥900 三欄、≥640 兩欄、其餘一欄（1440／1024／800／390）；欄數變了就重畫（貪婪分欄要重算） */
-    const ncol = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; box.style.columnCount = ncol; PS.ncol = ncol;
-    if (!PS.colDoc) { PS.colDoc = true; window.addEventListener('resize', () => { const n = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; if (PS.ncol && n !== PS.ncol && PS.v && PS.v.querySelector('#pmCats')) paintCats(); }); }
-    const wt = (c) => 1.7 + FT().inCat(c.id).length, colsG = Array.from({ length: ncol }, () => ({ h: 0, cs: [] }));
-    cats.filter((c) => c.id !== 'grp').slice().sort((a, b) => wt(b) - wt(a)).forEach((c) => { const g = colsG.reduce((m, x) => (x.h < m.h ? x : m), colsG[0]); g.cs.push(c); g.h += wt(c); });
-    const ordered = []; colsG.filter((g) => g.cs.length).forEach((g) => g.cs.forEach((c, i) => ordered.push([c, ncol > 1 && i === 0 && ordered.length > 0])));
-    box.innerHTML = ordered.map(([c, brk]) => { const fs = FT().inCat(c.id);
-      return `<div class="pmcat card${brk ? ' brk' : ''}" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
+    /* 範本 126：卡片順序＝左側選單順序（FT().cats 的宣告順序），一般 grid 排列、欄數由 CSS 決定（1440 四、1024 三、800 兩、390 一）；不再重排、不再瀑布流 */
+    /* 小圖示由 icons.js 依卡片標題自動配上（全站統一做法），這裡不另畫，免得出現兩顆 */
+    box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
+      return `<div class="pmcat card" data-cat="${esc(c.id)}"><div class="pmcathd"><h3 title="${esc(c.name)}"><b>${esc(c.name)}</b><small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
         <div class="pmbody">${catRows(fs, cur, base, saved, now, ready, false)}</div></div>`; }).join('');
     const gc = cats.find((c) => c.id === 'grp');
     if (gbox) gbox.innerHTML = gc ? (() => {

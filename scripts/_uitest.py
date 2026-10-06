@@ -24023,6 +24023,7 @@ SECTIONS = {
     "會員名單1006":        lambda pg, b, base, code: t_member_list_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
+    "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -48803,6 +48804,62 @@ def t_member_list_1006(b, base, code):
     ok(f"{T}：修好後按「重新讀取」→ 統計回來、KPI 是數字", bool(kpis_ok(pg, "重試")[0]) and pg.locator("#msDays .dc").count() > 0)
     c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+def t_perm_grid_1006(b, base, code):
+    """★ 2026-10-06 Andy 圖 126（講第二次）：功能開關排版 = 四欄一般 grid，同列卡片頂端對齊、等高；卡片 3px 粗藍上框、開關實心深藍；
+    欄數 1440 四／1024 三／800 兩／390 一；卡片順序 = 左側選單（FT().cats）；訪客、付費方案、個別會員三處都一樣；深淺兩主題。"""
+    T = "功能開關整列對齊1006"
+    errs: list[str] = []
+    JS = """() => { const cs = [...document.querySelectorAll('#pmCats > .pmcat')]; if (!cs.length) return null;
+        const rs = cs.map(c => ({ r: c.getBoundingClientRect(), cs: getComputedStyle(c) })), rows = {};
+        rs.forEach(o => { const k = Math.round(o.r.top); (rows[k] = rows[k] || []).push(o); });
+        const lefts = new Set(rs.map(o => Math.round(o.r.left)));
+        const sw = [...document.querySelectorAll('#pmCats label.psw input:checked + span, #pmCats button.psw3[aria-checked=true], #pmAllSw[aria-checked=true]')].slice(0, 6).map(e => getComputedStyle(e).backgroundColor);
+        const rgb = (x) => (x.match(/\d+/g) || []).map(Number), blue = (x) => { const [r, g, bl] = rgb(x); return bl > 150 && bl > r + 60 && bl > g + 10; };
+        return { n: cs.length, cols: lefts.size, rows: Object.keys(rows).length,
+          topSame: Object.values(rows).every(a => new Set(a.map(o => Math.round(o.r.top))).size === 1),
+          hSame: Object.values(rows).every(a => new Set(a.map(o => Math.round(o.r.height))).size === 1),
+          bt: Math.min(...rs.map(o => parseFloat(o.cs.borderTopWidth))), btc: rs[0].cs.borderTopColor,
+          multi: getComputedStyle(document.getElementById('pmCats')).columnCount, swOn: sw.length > 0 && sw.every(blue), swc: sw,
+          order: cs.map(c => c.dataset.cat), ft: (window.TwFeatures.cats || []).map(c => c.id).filter(id => id !== 'grp' && cs.some(c => c.dataset.cat === id)) }; }"""
+    def check(pg, tag, want_cols):
+        pg.wait_for_timeout(350)    # 開關底色有 .15s 轉場，等它停
+        d = pg.evaluate(JS)
+        ok(f"{T}・{tag}：{want_cols} 欄、同一列卡片 top 相同且高度相同、無 CSS 多欄", bool(d) and d["cols"] == want_cols and d["topSame"] and d["hSame"] and d["multi"] == "auto", d)
+        return d
+    for theme in ("dark", "light"):
+        c, sent, st = _adm3_ctx(b, theme=theme)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+        wait_until(pg, "() => document.querySelectorAll('#pmCats .pmcat').length > 0 && !document.querySelector('#pmCats .pmcat input[data-f]').disabled", 12000)
+        d = check(pg, f"{theme}・訪客 1440", 4)
+        ok(f"{T}・{theme}：卡片 border-top-width ≥ 3px、開啟中的開關背景是實心藍、卡片順序＝選單順序", d["bt"] >= 3 and d["swOn"] and d["order"] == d["ft"], d)
+        # 對照 126 用截圖：TW_PERM_SHOT=資料夾 時，把「開放功能表」那一區（工具列＋前兩列卡片）截下來
+        if os.environ.get("TW_PERM_SHOT"):
+            pg.evaluate("() => document.getElementById('pmTools').scrollIntoView({block:'start'})"); pg.wait_for_timeout(300)
+            r = pg.evaluate("() => { const r = document.getElementById('pmTools').getBoundingClientRect(); return { x: 0, y: Math.max(0, r.top - 12), width: innerWidth, height: Math.min(innerHeight - Math.max(0, r.top - 12), 760) }; }")
+            pg.screenshot(path=os.path.join(os.environ["TW_PERM_SHOT"], f"perm_{theme}_1440.png"), clip=r)
+        for w_, n_ in ((1024, 3), (800, 2), (390, 1)):
+            pg.set_viewport_size({"width": w_, "height": 900}); pg.wait_for_timeout(500)
+            check(pg, f"{theme}・訪客 {w_}px", n_)
+        pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(400)
+        # 付費方案：切到第二個以後的範本頁籤
+        if pg.locator("#ptTier button[role=tab]").count() > 2:
+            pg.click("#ptTier button[role=tab] >> nth=2"); pg.wait_for_timeout(500)
+            d2 = check(pg, f"{theme}・付費方案 1440", 4)
+            ok(f"{T}・{theme}：付費方案卡片上框 ≥ 3px、開關實心藍", d2["bt"] >= 3 and d2["swOn"], d2)
+            # 個別會員（逐人微調）
+            if pg.locator("#ptSubList").count():
+                pg.click("#ptSubList"); wait_until(pg, "() => document.querySelector('table.memtbl tbody tr')", 6000)
+                pg.click("table.memtbl tbody tr:not(.pmdet) >> nth=0")
+                if pg.locator("button[data-tune]").count():
+                    pg.click("button[data-tune] >> nth=0")
+                    wait_until(pg, "() => document.querySelectorAll('#pmCats .pmcat').length > 0", 6000); pg.wait_for_timeout(500)
+                    d3 = check(pg, f"{theme}・個別會員 1440", 4)
+                    ok(f"{T}・{theme}：個別會員卡片上框 ≥ 3px、開關實心藍", d3["bt"] >= 3 and d3["swOn"], d3)
+                else:
+                    ok(f"{T}・{theme}：個別會員有「逐人微調」鈕可進", False, "找不到 button[data-tune]")
+        c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
 
 def t_admin_sw_1005(b, base, code):
@@ -49110,22 +49167,11 @@ def t_admin_v3(b, base, code):
             continue
         # ---- ① 卡片同寬同高
         cr = pg.evaluate(ROWS_SAME, "#pmCats > .pmcat")
-        # ★ 10-05 Andy「空白處太多…需要適當調整且填滿」：分類卡改欄流（CSS columns）——同一欄卡片同寬、左緣對齊；各欄底部落差 ≤ 一張卡高（不再同列拉齊後在短卡下留大片空白）
+        # ★ 10-06 範本 126（取代 10-05 欄流／瀑布流斷言）：四欄一般 grid；整列對齊等高的細節在段落「功能開關整列對齊1006」
         cl = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#pmCats > .pmcat')].map(c => c.getBoundingClientRect()); const cols = {};
             cs.forEach(r => { const k = Math.round(r.left); (cols[k] = cols[k] || []).push(r); });
-            const bot = Object.values(cols).map(a => Math.max(...a.map(r => r.bottom))), wid = Object.values(cols).map(a => new Set(a.map(r => Math.round(r.width))).size);
-            const blank = cs.map(r => 0).length; return { n: Object.keys(cols).length, spread: Math.round(Math.max(...bot) - Math.min(...bot)), wid }; }""")
-        ok(f"{T}・perm-v4：開放功能表 4 欄欄流、同欄同寬、各欄底部落差 ≤ 160px（無大片空白）", cl["n"] == 4 and all(w == 1 for w in cl["wid"]) and cl["spread"] <= 160, cl)
-        # ★ 10-06 Andy 圖 125：瀑布流——1440 時上下相鄰的卡間距 ≤ 卡片間距＋2、沒有卡被拆開；欄數照寬（1440 四、1024 三、800 兩、390 一）
-        def masonry(w):
-            pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(600)
-            return pg.evaluate("""() => { const cs = [...document.querySelectorAll('#pmCats > .pmcat')].map(c => c.getBoundingClientRect()), cols = {};
-                cs.forEach(r => { const k = Math.round(r.left); (cols[k] = cols[k] || []).push(r); });
-                const gaps = []; Object.values(cols).forEach(a => { a.sort((x, y) => x.top - y.top); for (let i = 1; i < a.length; i++) gaps.push(Math.round(a[i].top - a[i - 1].bottom)); });
-                const cc = getComputedStyle(document.getElementById('pmCats')); return { n: Object.keys(cols).length, maxGap: gaps.length ? Math.max(...gaps) : 0, avoid: [...document.querySelectorAll('#pmCats > .pmcat')].every(c => getComputedStyle(c).breakInside === 'avoid'), cnt: cc.columnCount }; }""")
-        for w_, n_ in ((1440, 4), (1024, 3), (800, 2), (390, 1)):
-            mz = masonry(w_)
-            ok(f"{T}・瀑布流 {w_}px：{n_} 欄、上下相鄰卡片間距 ≤ 14px（沒有整列對齊的大空白）、每張卡 break-inside:avoid（不被拆開）", mz["n"] == n_ and mz["maxGap"] <= 14 and mz["avoid"], mz)
+            return { n: Object.keys(cols).length, wid: Object.values(cols).map(a => new Set(a.map(r => Math.round(r.width))).size), multi: getComputedStyle(document.getElementById('pmCats')).columnCount }; }""")
+        ok(f"{T}・範本126：開放功能表 4 欄 grid、同欄同寬、不是 CSS 多欄（瀑布流已拿掉）", cl["n"] == 4 and all(w == 1 for w in cl["wid"]) and cl["multi"] == "auto", cl)
         pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(500)
         pg.click("#pmExpandAll")
         wait_until(pg, "() => [...document.querySelectorAll('#pmGrp .grpbody')].every(b => !b.hidden)", 3000)
