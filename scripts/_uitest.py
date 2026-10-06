@@ -24021,6 +24021,7 @@ SECTIONS = {
     "管理區v3":            lambda pg, b, base, code: t_admin_v3(b, base, code),
     "流量觀測1005":        lambda pg, b, base, code: t_traffic_1005(b, base, code),
     "流量觀測期間1006":    lambda pg, b, base, code: t_traffic_range_1006(b, base, code),
+    "流量觀測期間合計1006": lambda pg, b, base, code: t_traffic_sum_1006(b, base, code),
     # ★ 2026-10-06 Andy：會員名單——新增會員列拿掉、方案分頁標題列拿掉、統計「載入中…」修好並照流量觀測重做（假 Worker，⚠ 一律 --workers 1）
     "會員名單1006":        lambda pg, b, base, code: t_member_list_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
@@ -48311,6 +48312,52 @@ def _dnx_hover(pg, host, idx):
     pt = pg.evaluate(DNX_PT, [host, idx])
     pg.wait_for_timeout(200); pg.mouse.move(pt[0] - 6, pt[1] - 6); pg.mouse.move(pt[0], pt[1], steps=4); pg.wait_for_timeout(500)
     return pt
+
+
+def t_traffic_sum_1006(b, base, code):
+    """流量觀測：切期間後頁上每一張圖的合計都等於示範資料在該期間內的加總。示範資料每天的數字＝日期號碼（__demoDayNum），
+    每頁每天 pv＝日號、開站＝日號，所以期間合計一定隨期間變；各張圖副標不得寫固定期間（10-05 Andy：期間由日期框表示）。"""
+    T = "流量觀測期間合計1006"
+    errs: list[str] = []
+    pbase = base.replace("/index.html", "/preview/style-guide/index.html")
+    NP = 13
+    for theme in ("dark", "light"):
+        c, sent = _adm2_ctx(b)
+        c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}');}}catch(e){{}}window.__demoDayNum=true;")
+        c.route(re.compile(r".*/preview/style-guide/.*"), lambda r: r.continue_(url=r.request.url.replace("/preview/style-guide/", "/")))
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
+        wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length > 0", 15000)
+        TT = f"{T}（{theme}）"
+        for sel in ("7", "30", "90", "365"):
+            pg.select_option("#admDaysSel", sel); wait_until(pg, f"() => document.getElementById('admSince').value && document.querySelector('#admDays .use').textContent.indexOf('～') > 0", 4000)
+            pg.wait_for_timeout(500)
+            r = pg.evaluate("""(n) => {
+              const iso = d => d.toISOString().slice(0, 10), today = new Date(Date.now() + 8 * 3600000); let exp = 0;
+              for (let i = 0; i < n; i++) exp += +iso(new Date(today - i * 86400000)).slice(8, 10);
+              const num = t => +String(t).replace(/,/g, ''), v = id => document.getElementById(id).value, rng = v('admSince') + '～' + v('admUntil');
+              const head = document.querySelector('.trhead small').textContent.match(/共 ([\d,]+) 次瀏覽・([\d,]+) 次開站/);
+              const tipSum = sel => [...document.querySelectorAll(sel)].reduce((a, d) => { const m = (d.getAttribute('data-tip') || '').replace(/<[^>]*>/g, ' ').match(/([\d,]+) 次/); return a + (m ? num(m[1]) : 0); }, 0);
+              const dn = [...document.querySelectorAll('#trDonut .dglg li, #trDonut [data-k] b, #trDonut .lg b')].length;
+              const subs = ['#admDays .use', '#trDonut .use'].map(q => document.querySelector(q).textContent);
+              const tabs = [...document.querySelectorAll('#trTabs [data-t]')].filter(x => x.dataset.t !== 'all' && x.dataset.t !== 'users').map(x => num((x.querySelector('em') || {}).textContent));
+              return { exp, head: [num(head[1]), num(head[2])], bars: tipSum('#admDayBars .dc'), rng, subs, tabs }; }""", int(sel))
+            e = r["exp"]
+            ok(f"{TT}：近 {sel} 天：標頭「共 N 次瀏覽」＝{NP}×日號加總 {NP*e}、開站＝{e}", r["head"] == [NP * e, e], r)
+            ok(f"{TT}：近 {sel} 天：每日／每週／每月直條合計＝{NP*e}", r["bars"] == NP * e, r)
+            ok(f"{TT}：近 {sel} 天：上排兩張圖副標沒有寫固定期間（期間只由日期框表示，不會有一張還寫「近 30 天」）", all(not re.search(r"近 \d+ 天|\d{4}-\d\d-\d\d", t) for t in r["subs"]), r)
+            ok(f"{TT}：近 {sel} 天：分頁統計每一頁的被看次數＝{e}", len(r["tabs"]) >= 10 and all(t == e for t in r["tabs"]), r)
+            # 一個分頁內的圖、使用者時段
+            pg.click("#trTabs [data-t=users]"); pg.wait_for_timeout(500)
+            u = pg.evaluate("""() => { const num = t => +String(t).replace(/,/g, ''); let s = 0; document.querySelectorAll('#trHrBars .dc').forEach(d => { const m = (d.getAttribute('data-tip') || '').replace(/<[^>]*>/g, ' ').match(/([\d,]+) 次・占/); if (m) s += num(m[1]); });
+              return { s, subs: ['#trHours .use', '#trClock .use'].map(q => document.querySelector(q).textContent) }; }""")
+            ok(f"{TT}：近 {sel} 天：使用者時段直條合計≈{NP*e}（24 格四捨五入誤差 ≤ 24），副標沒有固定期間", abs(u["s"] - NP * e) <= 24 and all(not re.search(r"近 \d+ 天", t) for t in u["subs"]), (u, NP * e))
+            pg.click("#trTabs [data-t=flow]"); pg.wait_for_timeout(500)
+            f = pg.evaluate("() => [...document.querySelectorAll('#trPageBody .card .use')].map(x => x.textContent)")
+            ok(f"{TT}：近 {sel} 天：資金流向分頁裡每一張圖的副標沒有寫固定期間", len(f) >= 1 and all(not re.search(r"近 \d+ 天", t) for t in f), f)
+            pg.click("#trTabs [data-t=all]"); pg.wait_for_timeout(300)
+        c.close()
+    ok(f"{T}：無頁面錯誤", not errs, errs[:3])
 
 
 def t_traffic_range_1006(b, base, code):

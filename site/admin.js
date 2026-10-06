@@ -777,9 +777,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const hourNow = Math.min(23, new Date(Date.now() + 8 * 3600000).getUTCHours());
       const recent = window.__demoRecentDays ? iB - window.__demoRecentDays + 1 : -1;      // 測試用：只有最近 N 天有紀錄（正式站 Worker 只回有資料的日子，from 仍是期間起日）
       for (let i = i0; i <= iB; i++) { if (i < recent) continue; const day = dayKey(i), dn = 54000 * W[i] / base30;
-        PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.88 + ((i * 7 + k.length) % 10) / 40))) }));
-        const ss = Math.round(dn * 0.145); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + ((i % 7) / 100))) }); }
-      const scale = live ? 1.1 / 30 : n / 30, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
+        PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: window.__demoDayNum ? +day.slice(8, 10) : Math.max(1, Math.round(dn * s / wsum * (0.88 + ((i * 7 + k.length) % 10) / 40))) }));
+        const ss = window.__demoDayNum ? +day.slice(8, 10) : Math.round(dn * 0.145); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + ((i % 7) / 100))) }); }
+      const pvSum = rows.filter((r) => r.k.startsWith('pv:')).reduce((x, r) => x + r.n, 0), scale = live ? 1.1 / 30 : pvSum / 54000, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
       const out = { from: dayKey(i0), to: dayKey(iB), rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
       const sess = rows.filter((r) => r.k === 'ev:session').reduce((x, r) => x + r.n, 0), lg = rows.filter((r) => r.k === 'ev:session_login').reduce((x, r) => x + r.n, 0);
       const split = [['free', '註冊會員', 0.6, 'var(--cat-1)'], ['demo_basic', '基本方案（月）', 0.22, null], ['demo_pro', '進階方案（年）', 0.13, null], ['demo_team', '旗艦方案', 0.05, null]];
