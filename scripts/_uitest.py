@@ -17292,7 +17292,8 @@ def t_chips_basic0926(pg, base, code):
         p = pg.evaluate(POS)
         if ok(f"[基本0926] {w}px：兩張卡看得見（高度 > 0，前置條件）", bool(p) and p["aH"] > 0 and p["bH"] > 0, p):
             ok(f"★ [基本0926] {w}px：季節卡疊到基本資料下面（上下排）", p["bT"] >= p["aB"] - 1 and abs(p["bL"] - p["aL"]) <= 2, p)
-            ok(f"[基本0926] {w}px：沒有橫向捲軸", p["sw"] <= p["vw"] + 1, {"scrollWidth": p["sw"], "vw": p["vw"]})
+            ok(f"[基本0926] {w}px：沒有橫向捲軸", p["sw"] <= p["vw"] + 1, {"scrollWidth": p["sw"], "vw": p["vw"],
+               "超出的元素": pg.evaluate("() => [...document.querySelectorAll('body *')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1 && getComputedStyle(e).position !== 'fixed' && !e.closest('[style*=\"fixed\"]'); }).slice(0, 8).map(e => (e.id || String(e.className).slice(0, 24) || e.tagName) + '@' + Math.round(e.getBoundingClientRect().right))") if p["sw"] > p["vw"] + 1 else None})
             ok(f"[基本0926] {w}px：季節圖高度 ≥ 280px", p["chH"] >= 280, p["chH"])
     # 390 的大戶／散戶頁（2026-09-28 改前「籌碼」頁）：三格圖照樣畫、沒有橫向捲軸
     click(pg, '#stockTabs button[data-t="holders"]', 1800)
@@ -17617,7 +17618,9 @@ def t_stock_tabs0926(pg, base, code):
         hp = ch.get("holderChart", {}).get("pts", [])
         ok(f"★【{tag}】{c} 大戶散戶的點＝視窗內的集保公布日（{len(ho_dates)} 個），不是每天一點",
            bool(hp) and all(p["dates"] == ho_dates for p in hp) and len(ho_dates) < n0, {"應有": ho_dates, "畫的": [p["dates"] for p in hp][:1]})
-        ok(f"【{tag}】{c} 卡片短註講「集保每週…」", any("集保" in t and "每週" in t for t in a["notes"]), a["notes"])
+        # ★ 2026-10-06 改前→改後（驗收過時，廢話普查第二輪 4a41264a／docs/copy_audit_1006_r2.md：短註縮成讀數，
+        #   「集保每週公布…」拿掉、留 #295 Andy 指定那句「目前累積 N 週，每週五自動增加」）：改驗那一句在、週數是數字
+        ok(f"【{tag}】{c} 卡片短註講「目前累積 N 週，每週五自動增加」", any(re.search(r"目前累積 \d+ 週，每週五自動增加", t) for t in a["notes"]), a["notes"])
         # 法人：逐日（視窗內有資料的每一天都有點；沒資料的日子留空）。2026-09-28：法人頁一次顯示一段（預設外資）
         iv_dates = [str(r[0])[:10] for r in ((j.get("inst_v3") or {}).get("daily") or []) if first <= str(r[0])[:10] <= last]
         ip = next((p for p in ch.get("instChart", {}).get("pts", []) if p["name"] == "外資"), None)
@@ -20897,7 +20900,9 @@ def t_intraday_all(pg, base, code):
         ok(f"★ {state}：「1時」按鈕劃掉，滑上去說原因「{want}」", bool(b) and b["off"] and want in b["title"], b)
         click(pg, "#tfSeg button[data-tf='60m']", 1200)
         msg = pg.evaluate("() => { const e = document.querySelector('#lwc .empty'); return e ? e.innerText : ''; }")
-        ok(f"★ {state}：按下去畫面寫「{want}」，不是一塊空白", want in msg and "日線" in msg, msg[:100])
+        # ★ 2026-10-06 改前→改後（驗收過時，4a41264a 廢話普查第二輪 copy_audit 第 310／311 列：句尾「日線／週線／月線正常」刪掉）：
+        #   改驗那一句在、不是空白（畫面有字）
+        ok(f"★ {state}：按下去畫面寫「{want}」，不是一塊空白", want in msg and len(msg.strip()) >= len(want), msg[:100])
         ok(f"{state}：不再出現舊的「只提供族群成分股」說法", "只提供族群成分股" not in msg and "只提供族群成分股" not in (b or {}).get("title", ""), msg[:100])
         click(pg, "#tfSeg button[data-tf='1d']", 800)
         ok(f"{state}：切回日線圖回得來", count(pg, "#lwc canvas") > 0 and count(pg, "#lwc .empty") == 0)
