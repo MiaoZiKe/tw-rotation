@@ -49303,7 +49303,7 @@ def t_admin_v3(b, base, code):
        pg.evaluate(GR) == g0 and pg.locator("#pmGrp input[data-lim]").count() == 1 and "次/日" not in pg.inner_text("#pmGrp")
        and pg.evaluate("() => [...document.querySelectorAll('#pmGrp button[data-limb]')].every(b => Math.round(b.getBoundingClientRect().width) === 44)"))
     pg.mouse.click(5, 5)
-    ml = pg.evaluate("""() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small, #ptTier button, .pmcathd h3, .pmlegend span, .ptlede, #pmGrp .pmfoldhd')]
+    ml = pg.evaluate("""() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small, #ptTier button, .pmcathd h3 > b, .pmcathd h3 > small, #pmGrp .pmcathd h3, .pmlegend span, .ptlede, #pmGrp .pmfoldhd')]
       .filter(e => e.getClientRects().length && e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).lineHeight || 0) * 1.6 + 2 && e.getClientRects().length >= 1 && getComputedStyle(e).whiteSpace !== 'nowrap')
       .slice(0, 5).map(e => e.className + ':' + e.textContent.trim().slice(0, 12))""")
     multi = pg.evaluate("() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small')].filter(e => { const cs = getComputedStyle(e), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5; return cs.whiteSpace !== 'nowrap' || e.getBoundingClientRect().height > lh * 1.5; }).slice(0, 5).map(e => e.textContent)")
