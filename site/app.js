@@ -8206,7 +8206,7 @@
     ]) : howHTML('這一頁回答：今天漲跌家數背後是哪些股票。', [
       '左圖＝漲跌分佈（讀法看圖標題旁的「?」）',
       '右表分頁：漲停、跌停、漲幅／跌幅前段、成交值前段',
-      '盤後＝收盤全市場；⚡ 即時＝最多 550 檔（族群＋自選＋成交值前段），非全市場',
+      '盤後＝收盤全市場；⚡ 即時＝最多 550 檔，非全市場',   // 2026-10-06 說明精簡：≤30 字；抓哪些股票的細節在下面那段口徑裡
       '漲停＝收盤（即時為現價）等於漲停價，只認普通股',
       '點一列進個股頁',
     ], '「⚡ 即時」只抓人工族群成分股＋自選＋盤後成交值前段補位（最多 550 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
@@ -9172,7 +9172,7 @@
         </div>
       </div>
       ${sel || cur ? '<button type="button" class="btn small dd-clear">清除</button>' : ''}
-      ${sel ? `<span class="muted">${opt.onText ? opt.onText(selName) : `只看「${fmt.esc(selName)}」`}</span>` : ''}`;
+      ${sel ? `<span class="muted" title="${opt.onText ? opt.onText(selName) : `只看「${fmt.esc(selName)}」`}">${opt.onText ? opt.onText(selName) : `只看「${fmt.esc(selName)}」`}</span>` : ''}`;
     /* ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明」）：沒選族群時那句操作說明
        「先挑產業鏈，再挑一個族群 —— 圖上就只剩它那一條分支」拿掉（搬進各卡的「?」：HOW.sankey／HOW.inst）；
        選了族群時只留**狀態讀數**「只看「X」」—— 那是「圖為什麼只剩一支」的答案，不寫會被讀成資料壞掉。
@@ -11092,6 +11092,7 @@
         + (expNode
           ? `・已展開「${expNode.gid ? (L.gname[expNode.gid] || expNode.gid) : ''}」${expNode.children.length} 格`
           : '');
+      sub.title = sub.textContent;     // 2026-10-06：電腦版副標單行省略（fit.css），全文滑過看
     }
 
     /* 葉子數決定這張圖要多高：ECharts 的 tree 是把縱向空間平均分給葉子的，

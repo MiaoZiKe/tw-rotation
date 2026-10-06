@@ -1643,7 +1643,9 @@
         });
         const hint = $('#relHint', el) || document.getElementById('relHint');   // 「?」彈窗開著時盒子在 #howPop 裡
         if (hint) hint.innerHTML = HINT.layer(relScope && relScope.size
-          ? `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係；亮框亮底的 ${relScope.size} 格＝上方這張剖析圖畫到的環節，其餘淡一點但一樣可以點`
+          /* 2026-10-06 說明精簡（每條 ≤30 字）：原句「…；亮框亮底的 N 格＝上方這張剖析圖畫到的環節，其餘淡一點但一樣可以點」52 字，
+             砍成數字＋亮框的意思；「淡的也能點」在圖上點下去就知道，不必寫。*/
+          ? `${stat.nSeg} 格、${stat.nTw} 檔、${stat.nEdge} 條上下游；亮框＝剖析圖畫到的 ${relScope.size} 格`
           : `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。

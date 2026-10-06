@@ -224,6 +224,20 @@
 @media (max-width:1100px){#v-etf .etftri{grid-template-columns:1fr}#v-etf .calwrap,#v-etf .retcharts{grid-template-columns:1fr}
   #v-etf .callist{height:320px}#v-etf .etfcatbar{flex-wrap:wrap}#v-etf .etfcatbar .seg{overflow-x:auto;max-width:100%}
   #v-etf .row.spread{flex-wrap:wrap}}
+/* 2026-10-06 手機 390 擋路修正（最小改動，不是整套 ETF 手機版）：改前「自訂」日期框兩格橫排（136px×2）＋分頁鈕
+   把整頁撐到 608px，底部導覽跟著被推出畫面、點不到。改成：期間那一組自己換行、日期框縮成一欄（上下兩格、各佔滿寬）、
+   沒選「自訂」時日期框不佔位；報酬比較表留在它自己的橫向捲動容器（.rettw）裡捲，整頁不跟著變寬；「含息／不含息」那一列可換行。 */
+@media (max-width:640px){
+  #v-etf .etfrow{flex-wrap:wrap;white-space:normal;min-width:0;max-width:100%}
+  #v-etf .etfrow .sp{display:none}
+  #v-etf .etfcatbar{flex-wrap:wrap}
+  #v-etf .etfper{flex:1 1 100%;flex-wrap:wrap;min-width:0;max-width:100%}
+  #v-etf .cust{display:flex;flex-direction:column;align-items:stretch;flex:1 1 100%;min-width:0;gap:4px;white-space:normal}
+  #v-etf .cust.inv{display:none}
+  #v-etf .cust input{width:100%;box-sizing:border-box}
+  #v-etf .rettw{max-width:100%;-webkit-overflow-scrolling:touch}   /* 報酬比較表（820px 寬）本來就包在 .rettw（overflow-x:auto）裡，這裡只保證容器不比畫面寬 */
+  #v-etf .card,#v-etf .etfbody{min-width:0;max-width:100%}
+}
 `;
     document.head.appendChild(s);
   }

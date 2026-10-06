@@ -107,4 +107,18 @@
   :root.l4 #flowSankeyCard>.row.spread:first-child{flex:0 1 auto}
   :root.l4 #flowSankeyCard>.ddrow{flex:0 0 auto;margin:0}
   :root.l4 #flowSankeyCard>#sankeyDays{flex:0 0 auto;margin-left:auto}
+  /* ★ 2026-10-06（CEO 定案，既有紅字清理）：選族群前後這一排的「每一塊寬度都不變」，所以折不折行跟選不選無關 ——
+     改前：選了族群之後副標長出「・只看「X」・已展開「X」N 格」、下拉列多出「清除」「只看「X」」，排不下就折行，
+     下拉列從標題右邊掉到第二列、整張圖往下跳 28px（風格規範第 4 條：互動不晃動）。
+     做法（不改 #313 的取捨）：標題那一塊吃剩下的寬（basis 0）、副標單行省略；下拉列固定 440px、不換行，
+     裡面兩顆下拉、「清除」、「只看「X」」各有上限寬，超過省略（全名放 title）。下拉面板是 absolute，不受固定寬影響。 */
+  :root.l4 #flowSankeyCard>.row.spread:first-child{flex:1 1 0;min-width:120px;overflow:hidden}
+  :root.l4 #flowSankeyCard>.row.spread:first-child h3{min-width:0;flex-wrap:nowrap;white-space:nowrap}
+  :root.l4 #flowSankeyCard #sankeySub{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root.l4 #flowSankeyCard>.ddrow{flex:0 0 440px;width:440px;flex-wrap:nowrap;white-space:nowrap}
+  :root.l4 #flowSankeyCard>.ddrow .rotdd[data-dd="chain"] .ddbtn{max-width:128px}
+  :root.l4 #flowSankeyCard>.ddrow .rotdd[data-dd="group"] .ddbtn{max-width:168px}
+  :root.l4 #flowSankeyCard>.ddrow .ddbtn{white-space:nowrap;overflow:hidden}
+  :root.l4 #flowSankeyCard>.ddrow .dd-clear{flex:0 0 48px;width:48px;padding-left:0;padding-right:0}
+  :root.l4 #flowSankeyCard>.ddrow>.muted{flex:0 1 auto;min-width:0;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }

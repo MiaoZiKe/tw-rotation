@@ -2076,6 +2076,38 @@ def t_etf_1005(pg, b, base):
            (rd, ft["n"], ft["pop"][:40], ft["ret"][:40], ft["cal"][:60], bad and bad.group(0)))
     finally:
         fp.close()
+    # ================= 8. 手機 390（2026-10-06 既有紅字清理，CEO 拍板：擋路 bug 要修，最小改動）
+    #   改前：「自訂」日期框兩格橫排＋「含息／不含息」那一列不換行，把整頁撐到 608px，底部導覽「更多」被推出畫面點不到。
+    #   改後：頁寬 ≤ 390；按「自訂」→ 日期框上下兩格、都在畫面內；報酬比較表在自己的容器裡橫向捲；底部「更多」真的點得開。
+    mctx = pg.context.browser.new_context(**MOBILE_VP)
+    mp = mctx.new_page()
+    try:
+        mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        mp.goto(f"{base}#etf", wait_until="networkidle")
+        wait_until(mp, "() => !!document.querySelector('#v-etf[data-ready]')", 15000); mp.wait_for_timeout(800)
+        W = """() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth })"""
+        w0 = mp.evaluate(W)
+        ok(f"★ [{tag}][390] #etf 整頁沒有被撐寬（scrollWidth ≤ 390，改前 608）", w0["sw"] <= w0["iw"] + 1, w0)
+        if mp.locator("#etfPerSeg button[data-v=custom]").count():
+            mp.eval_on_selector("#etfPerSeg button[data-v=custom]", "b => b.scrollIntoView({block:'center'})")
+            mp.click("#etfPerSeg button[data-v=custom]"); mp.wait_for_timeout(500)
+            dr = mp.evaluate("""() => { const R = (id) => { const e = document.getElementById(id), r = e && e.getBoundingClientRect();
+                return r && r.width > 0 ? { l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top) } : null; };
+                return { f: R('etfFrom'), to: R('etfTo'), sw: document.documentElement.scrollWidth, iw: innerWidth }; }""")
+            ok(f"★ [{tag}][390] 按「自訂」→ 起訖日期框縮成一欄（上下兩格）、都在畫面內、頁面仍不變寬",
+               bool(dr["f"] and dr["to"]) and dr["to"]["t"] > dr["f"]["t"] and dr["f"]["l"] >= 0 and dr["to"]["r"] <= dr["iw"]
+               and dr["f"]["r"] <= dr["iw"] and dr["sw"] <= dr["iw"] + 1, dr)
+        rt = mp.evaluate("""() => { const w = document.querySelector('#v-etf .rettw'), t = document.getElementById('etfRetTbl');
+            if (!w || !t) return null; const r = w.getBoundingClientRect();
+            return { wr: Math.round(r.right), iw: innerWidth, sw: w.scrollWidth, cw: w.clientWidth, ov: getComputedStyle(w).overflowX }; }""")
+        if rt:
+            ok(f"[{tag}][390] 報酬比較表在自己的容器裡橫向捲（容器不超出畫面、表比容器寬時可捲）",
+               rt["wr"] <= rt["iw"] + 1 and rt["ov"] in ("auto", "scroll"), rt)
+        mp.click("#mTabMore"); mp.wait_for_timeout(500)
+        ok(f"★ [{tag}][390] 底部導覽「更多」點得到、真的打開選單",
+           mp.evaluate("() => !!document.querySelector('.msheet:not([hidden]) .mrow')"))
+    finally:
+        mctx.close()
 
 
 def t_market_live_1005(pg, b, base):
@@ -11473,7 +11505,7 @@ def t_freshness(b, base):
     cases = [
         ("一切正常", {**BASE, "data_date": "2026-09-12", "price_latest": "2026-09-12",
                   "price_ahead_of_payload": False, "generated_at": ago(2), "last_run_at": ago(3)},
-         "ok", ["所有來源正常"]),
+         "ok", ["所有資料都已更新"]),
         ("盤後第一輪只抓價量", {**BASE, "data_date": "2026-09-12", "price_latest": "2026-09-12",
                        "price_ahead_of_payload": False, "last_run_phase": "price",
                        "generated_at": ago(1), "last_run_at": ago(1)},
@@ -11481,12 +11513,16 @@ def t_freshness(b, base):
         ("上市沒到齊卡在前一天", {**BASE, "data_date": "2026-09-10", "price_latest": "2026-09-11",
                        "price_ahead_of_payload": True, "generated_at": ago(20), "last_run_at": ago(21),
                        "last_run_empty": ["twse.dividend", "macro.fred"]},
-         "warn", ["沒到齊", "沒回資料的來源", "macro.fred"]),
+         "warn", ["沒到齊", "部分資料這一輪沒有更新（2 項）"]),
         ("排程掛了", {**BASE, "data_date": "2026-09-01", "price_latest": "2026-09-01",
                   "price_ahead_of_payload": False, "generated_at": ago(24 * 13), "last_run_at": ago(24 * 13),
                   "last_run_errors": ["twse.price_daily: HTTPError 500"]},
-         "bad", ["排程可能掛了", "來源出錯"]),
+         "bad", ["自動更新可能中斷了", "部分資料更新失敗（1 項）"]),
     ]
+    # ★ 2026-10-06（既有紅字清理）改前→改後：關鍵字「所有來源正常／沒回資料的來源 macro.fred／排程可能掛了／來源出錯」
+    #   →「所有資料都已更新／部分資料這一輪沒有更新（N 項）／自動更新可能中斷了／部分資料更新失敗（N 項）」。
+    #   為什麼舊的過時：2026-09-28（Andy：讀者不需要知道資料集名稱）提示改成只講「幾項沒更新」、不列 twse.price_daily 這類內部代號，
+    #   說法也改成讀者語言（app.js renderFresh 那段註解）。數量照樣要對得上 meta（2 項、1 項），而且多守一條「不列內部代號」。
     seen = []
     for name, meta, level, must in cases:
         ctx = b.new_context(viewport={"width": 1500, "height": 1000})   # 每個狀態一個乾淨環境，避開 HTTP 快取
@@ -11515,6 +11551,7 @@ def t_freshness(b, base):
         miss = [w for w in must if w not in got["txt"]]
         ok(f"「{name}」原因搬到提示裡、一個字都沒少", not miss,
            {"少了": miss, "實際": got["txt"][:160]})
+        ok(f"「{name}」提示不列內部資料集代號（twse.／macro.）", not re.search(r"\b(twse|macro|tpex|finmind)\.", got["txt"]), got["txt"][:160])
         seen.append(got["txt"])
         ctx.close()
     ok("四種狀態的文字彼此不同（不是同一段罐頭）", len(set(seen)) == 4,
@@ -12147,29 +12184,38 @@ def t_market3(pg, base):
        pg.evaluate("() => Object.keys(window.Market3.state.kcharts)"))
     ok("週期選單這時候才出現",
        pg.evaluate("() => getComputedStyle(document.getElementById('m3Tf').parentElement).display !== 'none'"))
-    # Andy 2026-09-15：「時間週期需要新增1H 4H 日 周 月 季K 太多的話可以改清單式選項」
+    # ★ 2026-10-06（既有紅字清理）改前→改後：週期選單「1／5／15／30／H1／H4／D／W／M／Q、分兩組」→「只剩 D／W／M」；
+    #   換週期改驗 日→週→月 根數遞減；記住的週期改用「月」。
+    #   為什麼舊的過時：78a63c22（10-04，Andy：「週期只留下 日周月，需確保數據完整」）把分 K、1H／4H、季 K 從下拉拿掉，
+    #   使用者已經選不到。「昨收參考線」只畫在當天分 K 上（market3.js `if (!def && d.prev != null)`），日週月本來就沒有 ——
+    #   昨收改在走勢圖上驗（那是使用者現在看得到昨收的地方：markLine 虛線）。
     opts = pg.evaluate("() => [...document.querySelectorAll('#m3Tf option')].map(o => o.value)")
-    for want in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
-        ok(f"週期選單有 {want}", want in opts, opts)
-    groups = pg.evaluate("() => [...document.querySelectorAll('#m3Tf optgroup')].map(g => g.label)")
-    ok("選單分成「當天即時」與「歷史」兩組", len(groups) == 2, groups)
+    ok("週期選單只剩 日／週／月（78a63c22）", opts == ["D", "W", "M"], opts)
     ok("K 線有吃到個股那套指標（成交量面板）",
        pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return !!(k && k.paneIndex && k.paneIndex.vol); }"))
-    ok("昨收有畫成參考線",
-       pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return !!(k && k.priceLines && k.priceLines.length); }"))
 
-    # --- 5. ★ 換週期：K 棒數量真的變了
-    bars5 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
-    _m3_tf(pg, "15"); pg.wait_for_timeout(1200)
-    bars15 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
-    changed("換成 15 分之後 K 棒數量真的變了", bars5, bars15)
-    ok("15 分的根數大約是 5 分的三分之一", bars15 * 2 < bars5, f"{bars5} → {bars15}")
-    _m3_tf(pg, "1"); pg.wait_for_timeout(1200)
-    bars1 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
-    ok("1 分是最多根的", bars1 > bars5 > bars15, f"1分{bars1} / 5分{bars5} / 15分{bars15}")
-    ok("1 分 K 有實體（開＝前一分收，不是四價合一的一字線）",
-       pg.evaluate("() => { const d = window.Market3.state.kcharts.TSE.data;"
-                   " return d.slice(1, 40).some(b => b.open !== b.close); }"))
+    # --- 5／6b. ★ 換週期：日／週／月走資料湖，三張都要有，根數一路遞減
+    bars_of = "(id) => { const k = window.Market3.state.kcharts[id]; return k ? k.data.length : 0; }"
+    _m3_tf(pg, "D"); pg.wait_for_timeout(2000)
+    ok("切到日 K 之後狀態真的是 D", pg.evaluate("() => window.Market3.state.tf") == "D")
+    dbars = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
+    ok("加權的日 K 真的畫出來了", dbars["TSE"] > 100, dbars["TSE"])
+    for idx, why in (("OTC", "櫃買"), ("FUT", "台指期")):
+        ok(f"{why}也有日線（不再是「沒有歷史來源」）", dbars[idx] > 100, dbars)
+        ok(f"{why}日線那格沒有空狀態", count(pg, f"#m3c-{idx} .empty") == 0)
+    ok("日 K 有實體（開≠收，不是四價合一的一字線）",
+       pg.evaluate("() => window.Market3.state.kcharts.TSE.data.slice(1, 40).some(b => b.open !== b.close)"))
+    px_otc = pg.evaluate("() => { const d = window.Market3.state.kcharts.OTC.data; return d[d.length-1].close; }")
+    px_tse = pg.evaluate("() => { const d = window.Market3.state.kcharts.TSE.data; return d[d.length-1].close; }")
+    ok("三張的日線是各自的資料，不是同一份", px_otc != px_tse, f"OTC {px_otc} / TSE {px_tse}")
+    counts = {}
+    for tf, label in (("W", "週"), ("M", "月")):
+        _m3_tf(pg, tf); pg.wait_for_timeout(1600)
+        counts[tf] = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
+        ok(f"{label} K 三張都畫得出來", all(v > 0 for v in counts[tf].values()), counts[tf])
+    changed("換成週 K 之後 K 棒數量真的變了", dbars["TSE"], counts["W"]["TSE"])
+    ok("週 K 根數約為日 K 的五分之一", 0 < counts["W"]["TSE"] < dbars["TSE"] / 3, f"日 {dbars['TSE']} / 週 {counts['W']['TSE']}")
+    ok("月 K 比週 K 少", counts["M"]["TSE"] < counts["W"]["TSE"], counts)
 
     # --- 6. ★ 展開：真的只剩一張
     #     刻意不叫「放大」：Andy 的規矩是「只有三張熱力圖可以縮放」，這顆是版面切換不是縮放。
@@ -12185,14 +12231,12 @@ def t_market3(pg, base):
     ok("收合之後三張都回來了", vis2 == 3, vis2)
 
     # --- 6c. Andy 2026-09-15：「開啟走勢圖跟K線圖 他會自動更新 而非我要按下更新才更新」
-    #     三張圖要有自己的計時器，不能寄生在報價那一輪（報價連續失敗三次會把計時器關掉）
     ok("三張圖有自己的自動更新計時器", pg.evaluate("() => window.Market3.ticking === true"))
     at0 = pg.evaluate("() => window.Market3.lastAt")
     pg.wait_for_timeout(1100)
     pg.evaluate("() => window.Market3.refresh(true)")
     pg.wait_for_timeout(1500)
     changed("不用按『更新』，自己抓得到新資料", at0, pg.evaluate("() => window.Market3.lastAt"))
-    # 把報價那一層關掉，三張圖還是要會動（兩者已經脫鉤）
     pg.evaluate("() => { try { localStorage.setItem('tw.live.on','0'); } catch(e){} }")
     at1 = pg.evaluate("() => window.Market3.lastAt")
     pg.evaluate("() => window.Market3.refresh(true)")
@@ -12200,42 +12244,20 @@ def t_market3(pg, base):
     changed("報價那層停掉也不影響三張圖", at1, pg.evaluate("() => window.Market3.lastAt"))
     pg.evaluate("() => { try { localStorage.removeItem('tw.live.on'); } catch(e){} }")
 
-    # --- 7. 選擇記得住（換頁回來還是 K 線）
-    # --- 6b. ★ 歷史週期：日／週／月／季走資料湖，三張都要有
-    #     Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據，CEO幫我處理」——
-    #     Yahoo 的 ^TWOII 壞掉不代表沒有別條，改用 FinMind 存進資料湖再吐給前端。
-    bars_of = "(id) => { const k = window.Market3.state.kcharts[id]; return k ? k.data.length : 0; }"
-    _m3_tf(pg, "D"); pg.wait_for_timeout(2000)
-    ok("切到日 K 之後狀態真的是 D", pg.evaluate("() => window.Market3.state.tf") == "D")
-    dbars = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
-    ok("加權的日 K 真的畫出來了（根數遠多於當天分 K）", dbars["TSE"] > 100, dbars["TSE"])
-    changed("日 K 跟 1 分 K 不是同一組資料", bars1, dbars["TSE"])
-    for idx, why in (("OTC", "櫃買"), ("FUT", "台指期")):
-        ok(f"{why}也有日線（不再是「沒有歷史來源」）", dbars[idx] > 100, dbars)
-        ok(f"{why}日線那格沒有空狀態", count(pg, f"#m3c-{idx} .empty") == 0)
-    px_otc = pg.evaluate("() => { const d = window.Market3.state.kcharts.OTC.data; return d[d.length-1].close; }")
-    px_tse = pg.evaluate("() => { const d = window.Market3.state.kcharts.TSE.data; return d[d.length-1].close; }")
-    ok("三張的日線是各自的資料，不是同一份", px_otc != px_tse, f"OTC {px_otc} / TSE {px_tse}")
-    # 週／月／季是拿日線合成的，根數要一路遞減
-    counts = {}
-    for tf, label in (("W", "週"), ("M", "月"), ("Q", "季")):
-        _m3_tf(pg, tf); pg.wait_for_timeout(1600)
-        counts[tf] = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
-        ok(f"{label} K 三張都畫得出來", all(v > 0 for v in counts[tf].values()), counts[tf])
-    ok("週 K 根數約為日 K 的五分之一",
-       0 < counts["W"]["TSE"] < dbars["TSE"] / 3, f"日 {dbars['TSE']} / 週 {counts['W']['TSE']}")
-    ok("月 K 比週 K 少", counts["M"]["TSE"] < counts["W"]["TSE"], counts)
-    ok("季 K 又比月 K 少", counts["Q"]["TSE"] < counts["M"]["TSE"], counts)
-    _m3_tf(pg, "1"); pg.wait_for_timeout(1500)
-
+    # --- 7. 選擇記得住（換頁回來還是 K 線、還是月 K）
     saved = pg.evaluate("() => [localStorage.getItem('tw.m3.mode'), localStorage.getItem('tw.m3.tf')]")
-    ok("模式與週期真的存進 localStorage", saved[0] == "k" and saved[1] == "1", saved)
+    ok("模式與週期真的存進 localStorage", saved[0] == "k" and saved[1] == "M", saved)
     pg.goto("about:blank")
     pg.goto(base + "#overview", wait_until="networkidle")
     pg.wait_for_timeout(2000)
     ok("重新進來還是停在 K 線", pg.evaluate("() => window.Market3.state.mode") == "k")
-    ok("週期也記得住", pg.evaluate("() => window.Market3.state.tf") == "1",
-       pg.evaluate("() => window.Market3.state.tf"))
+    ok("週期也記得住（月 K）", pg.evaluate("() => window.Market3.state.tf") == "M", pg.evaluate("() => window.Market3.state.tf"))
+    # 昨收：走勢圖上的虛線（markLine，數值＝昨收）
+    click(pg, "#m3Mode button[data-m='line']", 1200)
+    ml = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('m3c-TSE')); if (!c) return null;
+        const s = (c.getOption().series || []).find(x => x.markLine && (x.markLine.data || []).length); const d = window.Market3.state.data.TSE;
+        return s ? { y: s.markLine.data[0].yAxis, prev: d && d.prev } : null; }""")
+    ok("昨收畫成走勢圖上的參考虛線（數值＝昨收）", bool(ml) and ml["prev"] is not None and abs(ml["y"] - ml["prev"]) < 0.01, ml)
 
     # --- 8. Worker 還沒更新（只有 /quote）的時候要講清楚要去哪裡改
     pg.unroute("**/chart?*")
@@ -15587,7 +15609,8 @@ HEAT_DD_M = """() => {
   return { btn: (btn.querySelector('b') || {}).textContent, btnFs: parseFloat(getComputedStyle(btn).fontSize),
            // 下拉跟標題在同一列：兩者的垂直中心差不到半行；下拉在標題右邊、靠卡片左半（篩選放左上角）
            sameRow: Math.abs((br.top + br.bottom) / 2 - (hr.top + hr.bottom) / 2) < 12,
-           ddLeftOfHalf: br.left - cr.left < cr.width / 2, afterTitle: br.left >= hr.left,
+           ddLeftOfHalf: br.left - cr.left < cr.width / 2, afterTitle: br.left >= hr.left, ddL: Math.round(br.left - cr.left), cw: Math.round(cr.width),
+           inCard: br.right <= cr.right + 1 && br.left >= cr.left - 1,
            aboveChart: br.bottom <= chart.top + 1, headH: Math.round(chart.top - cr.top),
            nested: !!(data[0] && data[0].children), n: data.length, leafChains, opts,
            open: !pan.hidden, panRight: pr ? Math.round(pr.right) : null, panLeft: pr ? Math.round(pr.left) : null,
@@ -15614,8 +15637,12 @@ def t_heat_dd(pg, b, base):
             continue
         ok(f"{tag} ★ 產業鏈晶片那一排拿掉了（#heatChips 不存在）", m0["chipsGone"])
         ok(f"{tag} 預設「全部」、圖是依產業鏈分組", m0["btn"] == "全部" and m0["nested"], m0["btn"])
-        ok(f"{tag} ★ 下拉在標題列那一行（跟標題同一列、在標題右邊、靠左半邊）",
-           m0["sameRow"] and m0["afterTitle"] and m0["ddLeftOfHalf"], m0)
+        # ★ 2026-10-06（既有紅字清理）：≤640 不再要求「靠左半邊」，改要求整顆在卡片裡。為什麼舊的過時：09-26 寫這條時標題列只有
+        #   「資金熱力圖 ?」；之後標題前面多了 icons.js 的標題圖示（16px＋間距）、標題列多了「放大 ⤢」，390 寬卡片內寬 ~358，
+        #   同一列跟在標題後面就一定過半（實測下拉左緣 > 卡寬一半）。要守的是「下拉在標題那一列、不掉到下一行、不出卡片」。
+        ok(f"{tag} ★ 下拉在標題列那一行（跟標題同一列、在標題右邊、{'靠左半邊' if w > 640 else '整顆在卡片裡'}）",
+           m0["sameRow"] and m0["afterTitle"] and (m0["ddLeftOfHalf"] if w > 640 else m0["inCard"]),
+           {k: m0[k] for k in ("sameRow", "afterTitle", "ddLeftOfHalf", "inCard", "ddL", "cw")})
         ok(f"{tag} 下拉在圖的上面", m0["aboveChart"], m0)
         ok(f"{tag} 按鈕字 ≥ 11px", m0["btnFs"] >= 11, m0["btnFs"])
         names = [o for o in m0["opts"] if o["c"]]
@@ -15697,14 +15724,22 @@ def t_filter_topleft(pg, b, base):
     pg.goto(f"{base}#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(2800)   # 版面 V2：資金去向在自己的子分頁
     g1 = sk_dd_groups(pg)
     if ok("④ 資金去向那排第二層列得出族群", len(g1) > 0, len(g1)):
+        _ROWTOP = "() => { const c = document.getElementById('flowSankeyCard'), r = document.getElementById('sankeyRow'); return Math.round(r.getBoundingClientRect().top - c.getBoundingClientRect().top); }"
+        row0 = pg.evaluate(_ROWTOP)
         before = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
         sk_dd_pick(pg, g1[0], 1500)
         after = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
-        # ⚠ 2026-10-06（既有紅字清理）：這條**照舊守、目前是紅的（真 bug，未收斂）**—— 1440 選一個族群之後，副標長出「只看「X」・已展開「X」N 格」、
-        #   下拉列多出「清除」與「只看「X」」，#313 那一排放不下而折行：下拉列從標題右邊（x314,y12）掉到第二列（x17,y41），整張圖往下跳 28px。
-        #   違反 docs/style_guide.md 第 4 條「互動不晃動」。修法要動 #313 的版面取捨（固定寬度＋省略，或下拉列固定獨立一列），留給 CEO／Andy 定。
+        row1 = pg.evaluate(_ROWTOP)
+        # ★ 2026-10-06（CEO 定案修掉的真 bug）：改前 1440 選一個族群之後副標與下拉列變長、#313 那一排折行 ——
+        #   下拉列從標題右邊（x314,y12）掉到第二列（x17,y41），整張圖往下跳 28px。修法：fit.css 讓那一排每一塊寬度固定
+        #   （標題吃剩下、副標單行省略；下拉列固定 440px、「只看「X」」上限寬省略、「清除」固定寬）。這兩條守住它。
         ok("④ 挑完族群（整排重建）之後還是同一個位置（左緣與離卡片頂的距離不變）",
            abs(after["ddL"] - before["ddL"]) <= 1 and abs(after["top"] - before["top"]) <= 2, [before, after])
+        ok("★ ④ 挑完族群之後資金去向的圖（#sankeyRow）頂端不動（不換行、不跳）", abs(row1 - row0) <= 1, [row0, row1])
+        st = pg.evaluate("""() => { const s = document.getElementById('sankeySub'), m = document.querySelector('.ddrow[data-for="sankey"] > .muted');
+            return { sub1: !!s && s.scrollHeight <= s.clientHeight + 2 && getComputedStyle(s).whiteSpace === 'nowrap', subTitle: !!s && s.title.length > 0,
+                     mTitle: m ? m.title : '' }; }""")
+        ok("④ 副標單行（省略號）、全文在 title；「只看「X」」的全名也在 title", st["sub1"] and st["subTitle"] and "只看" in st["mTitle"], st)
         ok("④ 整張卡只有一排資金去向的下拉（重建沒有多長一排）",
            pg.evaluate("() => document.querySelectorAll('.ddrow[data-for=\"sankey\"]').length") == 1)
         sk_dd_pick(pg, "", 1200)
@@ -15865,7 +15900,7 @@ def t_side_merge(pg, b, base):
         pg.click(f'#rankPanel li.mem .mr[data-code="{code}"] .nm'); pg.wait_for_timeout(1200)
         s3 = pg.evaluate("""(c) => ({ on: !!document.querySelector(`#rankPanel li.mem .mr.ison[data-code="${c}"]`),
             hash: location.hash, vis: !document.getElementById('rankPanel').hidden })""", code)
-        ok("★ 點個股名稱：畫到盤上（該列變成已選、面板仍開、沒有跳頁）", s3["on"] and s3["vis"] and s3["hash"] == "#flow", s3)
+        ok("★ 點個股名稱：畫到盤上（該列變成已選、面板仍開、沒有跳頁）", s3["on"] and s3["vis"] and s3["hash"] == "#flow/rotation", s3)  # 版面 V2（8ad4c044）桌機 #flow 落在 #flow/rotation 子頁；沒跳頁＝仍是同一個子頁
     else:
         ok("這個族群有畫得上盤的個股（個股輪動資料）", False, "全部 noplot")
     # 點展開中的列 → 收回同一段的象限表
@@ -20411,6 +20446,13 @@ def t_live5s_0929(b, base, code):
         pg = ctx.new_page()
         pg.on("pageerror", lambda e: fails.append(f"即時5秒0929 pageerror: {str(e)[:160]}"))
         pg.clock.install(time=clock)            # ★ 一定要在 goto 之前
+        # ★ 2026-10-06（既有紅字清理）：節流閥改量「頁面送出請求的那一刻」（包 fetch、記 performance.now），不量 Python 收到的時間。
+        #   為什麼舊的量法會誤判：route 回呼是 Playwright 在 Python 端一個一個處理的，機器忙（負載 10～20）時排隊、
+        #   相隔好幾秒送出的請求會「同時」被收到 —— 量到 5～6 個／5 秒，頁面實際送出的是 3 個。節流閥管的是送出，就量送出。
+        pg.add_init_script("""(() => { const F = window.fetch; window.__misSent = [];
+            window.fetch = function (u) { try { const s = String((u && u.url) || u);
+              if (/fake-worker\.test\/(quote|chart)\?/.test(s)) window.__misSent.push(performance.now()); } catch (e) {}
+              return F.apply(this, arguments); }; })();""")
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         pg.route("https://fake-worker.test/**", other)          # 先掛：後掛的優先，下面三支蓋過它
         pg.route("https://fake-worker.test/quote?*", fake_quote)
@@ -20426,7 +20468,10 @@ def t_live5s_0929(b, base, code):
     def reqs(since, paths=None):
         return [(t, p) for t, p in S["log"] if t >= since and (paths is None or p in paths)]
 
-    def max_in_window(since, paths=("/quote", "/chart"), win=4.8):
+    def max_in_window(since, paths=("/quote", "/chart"), win=4.8, pg=None):
+        if pg is not None:      # 頁面送出時間（ms，見 open_page 的 fetch 包裝）——節流閥真正管的那一刻
+            ts = sorted((pg.evaluate("() => window.__misSent || []") or []))
+            return max([sum(1 for u in ts[i:] if u - t < win * 1000) for i, t in enumerate(ts)] or [0])
         ts = sorted(t for t, p in reqs(since, paths))
         best = 0
         for i, t in enumerate(ts):
@@ -20561,7 +20606,7 @@ def t_live5s_0929(b, base, code):
     wait_until(pg, "() => window.Live.periodMs === 5000 && window.Live.tries === 0", 6000)
     rec = pg.evaluate("() => ({ per: window.Live.periodMs, tries: window.Live.tries, bad: document.querySelector('.livetg[data-livekey=\"stock\"]').classList.contains('bad') })")
     ok("★ [即時5秒] 通了之後回到每 5 秒、數字恢復更新、警示色拿掉", s5 is not None and rec["per"] == 5000 and rec["tries"] == 0 and not rec["bad"], [s5, rec])
-    ok("★ [即時5秒] 個股頁全程：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
+    ok("★ [即時5秒] 個股頁全程：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0, pg=pg) <= 3, max_in_window(0, pg=pg))
     ctx.close()
 
     # ------------------------------------------------------------------ B. 總覽：大盤三張圖
@@ -20605,7 +20650,7 @@ def t_live5s_0929(b, base, code):
     pg.click("#m3Frame .livetg[data-livekey='m3'] .livetg-b")
     c3 = changes_within(pg, TSE, 7000)
     ok("[即時5秒] 大盤卡再打開：數字又開始換", c3[2] is not None, c3)
-    ok("★ [即時5秒] 總覽全程：任何 5 秒內打到 mis（/quote＋/chart）的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
+    ok("★ [即時5秒] 總覽全程：任何 5 秒內打到 mis（/quote＋/chart）的請求 ≤ 3（節流閥）", max_in_window(0, pg=pg) <= 3, max_in_window(0, pg=pg))
 
     # --- 族群層級的即時模式（市場明細・漲跌家數）：每 5 秒一輪、印最後更新時間
     S["log"].clear()
@@ -20625,7 +20670,7 @@ def t_live5s_0929(b, base, code):
        [m1, text(pg, "#mktLive")[:80]])
     m2 = changes_within(pg, "#mktLive .liveat", 16000)
     ok("[即時5秒] 漲跌家數即時：最後更新時間真的往前走（440 檔＝5 個請求一輪，受節流閥限制約 10 秒輪完）", m2[2] is not None, m2)
-    ok("★ [即時5秒] 族群即時模式：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0) <= 3, max_in_window(0))
+    ok("★ [即時5秒] 族群即時模式：任何 5 秒內打到 mis 的請求 ≤ 3（節流閥）", max_in_window(0, pg=pg) <= 3, max_in_window(0, pg=pg))
     # --- 族群即時模式的錯誤退避（2026-09-29 收尾補的：改前失敗了照樣每 5 秒再打一輪）
     #     量的是「漲跌家數這個模式自己失敗了幾輪、每輪隔多久」（Live.coolStats.mud.n），不是 /quote 總數 ——
     #     /quote 裡還混著 live.js 主批次（它有自己的退避，上面個股頁那段驗過）。
@@ -24867,7 +24912,18 @@ def t_copy_trim(pg, base, code):
     """說明精簡：卡片上的說明 ≤40 字、每顆「怎麼看 ?」點得開且條列短。"""
     pg.set_viewport_size({"width": 1440, "height": 1000})
     # 2026-09-28：法人連續買賣超（trust）搬到市場明細的「法人連買賣」分頁 → 多掃一次 market/streak
-    routes = [("overview", None), ("market", None), ("market/streak", None), ("flow", None), ("heatmap", None), ("heatmap/theme/cowos", None),
+    # ★ 2026-10-06（既有紅字清理）改前→改後：掃 "flow"、"heatmap" 兩條 → 改掃三個資金流向子頁＋熱力圖兩個子頁。
+    #   為什麼舊的過時：版面 V2（8ad4c044）桌機 #flow 只顯示 #flow/rotation（資金去向、法人、集中度搬到 sankey／inst 子頁、
+    #   沒顯示的卡 display:none），#heatmap 只顯示 #heatmap/industry —— 只掃 #flow 就看不到 sankey／inst／conc 那幾顆「?」，
+    #   「入口一顆都沒少」就會誤判成少了。說明還在、照樣每顆真的按開，只是要到它住的子頁去按。
+    # ★ 同日：先把「3D 剖析圖」偏好清回預設（平面圖）。整輪跑時前面的段落會留下 tw.dg3d=1，
+    #   3D 開著時卡片底下多一行 3D 操作說明（#dg3dNote，N1／09-26 那兩段要它在），而且 3D 掛載時 #dgSec 連續改高度、
+    #   「?」點不到 —— 那是前一段留下的狀態，不是預設畫面；這一段量的是「預設打開時卡片上的說明」。
+    pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
+    routes = [("overview", None), ("market", None), ("market/streak", None),
+              ("flow/rotation", None), ("flow/sankey", None), ("flow/inst", None),
+              ("heatmap/industry", None), ("heatmap/theme", None), ("heatmap/theme/cowos", None),
               ("industry", None), ("industry/semiconductor/overview", None), ("industry/semiconductor", None),
               ("industry/ai_server", None), ("season", None)] + \
              [(f"stock/{code}", t) for t in ("overview", "profit", "basics", "news")]
@@ -24915,8 +24971,9 @@ def t_copy_trim(pg, base, code):
     # 這一批新加（或改寫）的入口，一顆都不准少
     # 2026-09-24：總覽的「今日候選」表拿掉 → 拿掉 cand；新增總覽的 themeov（熱門題材熱力圖）與 m3（大盤三張圖）
     # ★ 2026-09-26 改前：個股頁「多週期判讀」卡的 mtf → 改後：合進「AI 分析」卡，「?」的 key 改成 ai
+    # ★ 2026-10-06 改前→改後："ai" → "ovai"：63dec41a（10-04）桌機拿掉 K 線卡右上的 AI 區，「?」搬到個股總覽分頁的 AI 卡（data-how="ovai"）
     want = {"heat", "breadth", "trust", "themeov", "m3", "mkt", "sankey", "inst", "conc", "indheat", "theme", "themedg",
-            "gp", "nb", "dg", "rel", "season", "kline", "ai", "pe", "ms"}
+            "gp", "nb", "dg", "rel", "season", "kline", "ovai", "pe", "ms"}
     ok("[說明精簡] 全站「怎麼看 ?」入口一顆都沒少", want <= seen_how, sorted(want - seen_how))
     # 搬家不是刪除：幾段搬進盒子的關鍵句，打開盒子之後真的讀得到
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
@@ -24927,7 +24984,7 @@ def t_copy_trim(pg, base, code):
     ok("[說明精簡] 週期統計「?」只剩條列（沒有「生存者偏差」那段附註）", "生存者偏差" not in txt and "紅＝強" in txt, txt[-120:])
     ok("[說明精簡] 週期統計的基準改掛在副標的滑鼠提示（不在「?」裡、也不佔版面）",
        "基準" in pg.evaluate("() => (document.getElementById('seasonRange') || {}).title || ''"))
-    pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    pg.goto(f"{base}#heatmap/theme", wait_until="networkidle"); pg.wait_for_timeout(2400)   # V2：題材熱力在 #heatmap/theme 子頁
     txt = how_text(pg, "theme")
     ok("[說明精簡] 題材熱力「?」只剩條列（讀法「熱度」還在、「不拆分」那段附註不見）",
        "不拆分" not in txt and "熱度" in txt, txt[-120:])
@@ -39715,7 +39772,8 @@ def t_flow_v2(pg, base):
 
     # 資金流向頁那張：鏈色線條、直條節點、小圓點不壓字（小圓點本身保留）
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
-    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    # ★ 2026-10-06（既有紅字清理）：這一段的 #flow 全部改 #flow/sankey —— 8ad4c044 版面 V2 起資金去向在自己的子分頁，#flow 落在 #flow/rotation、資金去向藏著不畫（量到 null）。
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(3000)
     # ★ 2026-09-24：這裡驗的是經典版（ECharts 樹＋小圓點）；桌機預設的拓撲版由「資金去向拓撲」驗
     sk_classic(pg, True)
     scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
@@ -41108,8 +41166,10 @@ def t_loadperf(pg, b, base):
               /* 2026-09-26 改前→改後：#ovFlow 桌機改成 flowtopo 畫布 → 「畫出來了」＝ ECharts 實例 或 flowtopo 已經不在延後狀態 */
               const ov = document.getElementById('ovFlow');
               const ovDrawn = has('ovFlow') || !!(ov && window.FlowTopo && window.FlowTopo.has(ov) && !window.FlowTopo.probe(ov).pending);
-              return has('heat') && has('rotClockMini') && ovDrawn && has('ovTheme') && has('breadth') && has('trust'); }""", 8000)
-            ok("⑤ 首屏以下延後畫的卡片（資金去向、題材熱力圖、漲跌家數分佈、法人四象限）最後都真的畫出來了", bool(drawn))
+              /* 2026-10-06 改前→改後：拿掉 has('trust')。法人四象限（#trust）09-28 搬到市場明細的「法人連買賣」分頁（見說明精簡段的註解），
+                 總覽上已經沒有這張卡（實測 getElementById('trust') 為 null）—— 不是沒畫出來，是不在這一頁。其餘五張照驗。*/
+              return has('heat') && has('rotClockMini') && ovDrawn && has('ovTheme') && has('breadth'); }""", 8000)
+            ok("⑤ 首屏以下延後畫的卡片（資金去向、題材熱力圖、漲跌家數分佈）最後都真的畫出來了", bool(drawn))
             c2.close()
             break
         c2.close()
@@ -41123,19 +41183,25 @@ def t_loadperf(pg, b, base):
     notes.append(f"載入效能：首次開資金流向 可互動 {tti_f}ms、最長卡住 {longest_f}ms")
     ok(f"① 首次開資金流向的可互動時間 ≤ {LOADPERF_FLOW_TTI_MAX}ms（perf-2 修完實測中位數 × 1.5）", tti_f <= LOADPERF_FLOW_TTI_MAX, tti_f)
     ok(f"② 首次開資金流向最長的單一卡住 ≤ {LOADPERF_FLOW_LONGEST_MAX}ms", longest_f <= LOADPERF_FLOW_LONGEST_MAX, longest_f)
-    p3.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })")
-    p3.wait_for_timeout(1500)
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「#flow 捲到底（看不見輪盤與分流圖）→ 主執行緒幾乎不忙；捲回 #sankey → 動畫接著跑」
+    #   → 「在看不到某組動畫的子頁 → 那組動畫的迴圈停、主執行緒幾乎不忙；切到它住的子頁 → 接著跑」。
+    #   為什麼舊的過時：版面 V2（8ad4c044）把桌機 #flow 拆成 rotation／sankey／inst 三個子頁，每頁只剩 950～1100px
+    #   （視窗 900），捲到底輪盤或分流圖仍在畫面裡、照跑是對的（實測 rotation 頁捲到底 scan 在跑、5 秒忙 279ms）；
+    #   「捲到看不見」這個情境在子頁上不存在了。本意「看不見的動畫要停」改用子頁來驗：
+    #   輪動子頁上資金去向卡是 display:none → 粒子／小圓點不准跑；法人子頁上兩組都看不見 → 都停、5 秒忙 ≤ 門檻（門檻不改）。
+    st_rot = p3.evaluate(_LP_ANIM)
+    ok("③ 輪動子頁（資金去向卡藏著）→ 資金去向的粒子／小圓點沒在跑", not st_rot["topo"] and not st_rot["classic"], st_rot)
+    flow_sub(p3, "inst"); p3.wait_for_timeout(2500)       # 第一次進法人子頁要畫兩張圖（正當的工作），畫完再量
+    st_inst = p3.evaluate(_LP_ANIM)
     busy_bottom = _lp_busy(p3)
-    # ★ 2026-09-25（perf-2）：側欄合併後整頁只剩 2349px，捲到底時分流圖上緣還有 9px 在畫面裡 —— 以前拓撲版照跑粒子
-    #   （main 上實測 5 秒忙 3.7 秒，這一條在 main 上是紅的）。flowtopo 改成露出 ≥10% 才算看得見。
-    ok(f"③ 資金流向捲到看不見輪盤與分流圖 → 主執行緒 5 秒內忙 ≤ {LOADPERF_IDLE_BUSY_MAX}ms（修前 1442ms）",
-       busy_bottom <= LOADPERF_IDLE_BUSY_MAX, busy_bottom)
-    # 捲回來 → 動畫要接著跑（停是為了省 CPU，不是把功能關掉）
+    ok(f"③ 法人子頁（輪盤與分流圖都看不見）→ 兩組動畫都停、主執行緒 5 秒內忙 ≤ {LOADPERF_IDLE_BUSY_MAX}ms（修前 1442ms）",
+       not st_inst["topo"] and not st_inst["classic"] and not st_inst["scan"] and busy_bottom <= LOADPERF_IDLE_BUSY_MAX, (st_inst, busy_bottom))
+    # 切到資金去向子頁 → 動畫要接著跑（停是為了省 CPU，不是把功能關掉）
     # ★ 2026-09-25 合併 main：桌機的資金去向預設是拓撲版（site/flowtopo.js，自己有 IntersectionObserver）；
     #   經典版（小圓點）只在手機或切回經典時出現 —— 兩種都認。
-    scroll_to(p3, "sankey"); p3.wait_for_timeout(1200)
+    flow_sub(p3, "sankey"); scroll_to(p3, "sankey"); p3.wait_for_timeout(1500)
     run = p3.evaluate(_LP_ANIM)
-    ok("③ 捲回資金去向 → 動畫又接著跑（拓撲版粒子或經典版小圓點）", run["topo"] or run["classic"], run)
+    ok("③ 到資金去向子頁、捲到資金去向 → 動畫又接著跑（拓撲版粒子或經典版小圓點）", run["topo"] or run["classic"], run)
     # ---- ④ 切到總覽 → 資金流向那邊的動畫不再空轉
     # 總覽第一次打開本來就要畫圖（那是正當的工作，時間長短跟容器忙不忙有關），
     # 所以這裡不量「總覽忙多久」，直接問兩組動畫的迴圈**還在不在跑**——那才是這一條要守的事。
@@ -41144,7 +41210,7 @@ def t_loadperf(pg, b, base):
     ok("④ 從資金流向切到總覽 → 資金去向動畫與輪盤掃描的迴圈都停了（修前小圓點一直空轉：90ms／5 秒）",
        not st["topo"] and not st["classic"] and not st["scan"], st)
     busy_ov = _lp_busy(p3)
-    notes.append(f"載入效能：資金流向捲到底 5 秒忙 {busy_bottom}ms、切到總覽後 5 秒忙 {busy_ov}ms")
+    notes.append(f"載入效能：資金流向法人子頁 5 秒忙 {busy_bottom}ms、切到總覽後 5 秒忙 {busy_ov}ms")
     c3.close()
 
     # ---- ⑥（R6 附帶）報價抓不到時，仍然會檢查網站有沒有重新部署（「有新資料」鈕與盤後自動重新載入靠它）
@@ -41156,7 +41222,11 @@ def t_loadperf(pg, b, base):
     p4.on("request", lambda r: hits.append(r.url) if "meta.json?t=" in r.url else None)
     p4.goto(f"{base}#overview", wait_until="networkidle"); p4.wait_for_timeout(1500)
     n0 = len(hits)
-    p4.evaluate("() => window.Live && window.Live.tick(false)")
+    # ★ 2026-10-06（既有紅字清理）改前→改後：Live.tick(false) → Live.tick(true)。
+    #   為什麼舊的過時：2026-09-29 盤中一輪改 5 秒後，meta.json 在盤中「一分鐘最多比對一次」（live.js META_EVERY_MS）；
+    #   盤中跑這一段時，開頁那一輪剛比對過，自動的 tick(false) 依設計會略過 —— 量到「前 0 後 0」是節流，不是壞掉。
+    #   本意是「報價丟錯也照樣走到 finally 去比對 meta」：手動那一輪不受節流，一樣先打報價（被 route 擋掉而丟錯）再進 finally，驗的是同一條路。
+    p4.evaluate("() => window.Live && window.Live.tick(true)")
     wait_until(p4, "() => true", 1500)
     p4.wait_for_timeout(1500)
     ok("⑥ 報價代理連不到時，Live.tick() 仍會去檢查 meta.json（是否重新部署）", len(hits) > n0, {"前": n0, "後": len(hits)})
@@ -42240,7 +42310,8 @@ def t_flowfx(pg, b, base):
                 " localStorage.removeItem('tw.sankey.day'); localStorage.removeItem('tw.flowtopo.motion');"
                 " localStorage.setItem('tw.theme', 'dark'); localStorage.setItem('tw.side', '0'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
-    pg.goto(f"{base}#flow", wait_until="networkidle")
+    # ★ 2026-10-06（既有紅字清理）：這一段的 #flow 全部改 #flow/sankey —— 8ad4c044 版面 V2 起資金去向在自己的子分頁，#flow 落在 #flow/rotation、資金去向藏著不畫（量到 null）。
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle")
     wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
     scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
     t0 = pg.evaluate(TOPO)
@@ -42459,18 +42530,21 @@ def t_flowfx(pg, b, base):
     ok("再按一次：動畫又跑起來", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
     # ---- 看不見就停：捲出畫面
     # 捲回頁首（instant）：資金去向卡在首屏下方 1000px 以外；往下捲過卡片不一定捲得動（頁尾不夠長）
-    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})")
-    ok("捲回頁首時資金去向的畫布真的在視窗外（前提；卡片標題可能剛好露出一行）", pg.evaluate(
-        "() => document.querySelector('#sankey .ftstage').getBoundingClientRect().top > innerHeight"))
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「捲回頁首＝畫布在視窗外」→「切到資金輪動子分頁＝畫布 display:none」。
+    #   為什麼舊的過時：版面 V2 的 #flow/sankey 這一頁資金去向就在最上面，捲回頁首畫布還在畫面裡；
+    #   使用者「看不到它」的真實情境是點側欄切到別的子分頁 —— 一樣要停（IntersectionObserver）。
+    flow_sub(pg, "rotation", 900)
+    ok("切到別的子分頁時資金去向的畫布真的看不到（前提）", pg.evaluate(
+        "() => !document.querySelector('#sankey .ftstage').getClientRects().length || document.querySelector('#sankey .ftstage').getBoundingClientRect().top > innerHeight"))
     stopped = wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && !t.running ? 1 : 0; }", 4000)
-    ok("捲出畫面：動畫迴圈停掉（IntersectionObserver）", bool(stopped), (pg.evaluate(TOPO) or {}).get("running"))
-    scroll_to(pg, "sankey")
-    ok("捲回來：動畫迴圈接上", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
+    ok("看不到：動畫迴圈停掉（IntersectionObserver）", bool(stopped), (pg.evaluate(TOPO) or {}).get("running"))
+    flow_sub(pg, "sankey", 900); scroll_to(pg, "sankey")
+    ok("切回來：動畫迴圈接上", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
     # ---- 2026-09-26（晚）改前→改後：改前在這裡把三種版面（拓撲／經典／經典光纖）逐一點過；改後沒有切換鈕，
     #      改驗「舊設定寫著別的版面也照樣是經典光纖」（拓撲、經典都切不到；細節在「資金去向拓撲」段）
     pg.evaluate("() => { try { localStorage.setItem('tw.sankey.mode', 'classic'); } catch (e) {} }")
     # ---- 重新整理：設定記住
-    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow/sankey", wait_until="networkidle")
     wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); scroll_to(pg, "sankey"); pg.wait_for_timeout(1000)
     ok("重新整理之後仍是經典光纖（舊設定 tw.sankey.mode＝classic 被忽略）", (pg.evaluate(TOPO) or {}).get("layout") == "classic")
     pg.evaluate("() => { try { localStorage.removeItem('tw.sankey.mode'); } catch (e) {} }")
@@ -42493,7 +42567,7 @@ def t_flowfx(pg, b, base):
     pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(1600)
     # ---- 淺色主題
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
-    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow/sankey", wait_until="networkidle")
     wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
     tl = pg.evaluate(TOPO)
     ok("[淺色] 經典光纖畫得出來、是淺色配色、發光 ≤ 6", bool(tl) and tl["layout"] == "classic" and tl["dark"] is False
@@ -42509,7 +42583,7 @@ def t_flowfx(pg, b, base):
     ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
     p2 = ctx.new_page()
     p2.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    p2.goto(f"{base}#flow", wait_until="networkidle")
+    p2.goto(f"{base}#flow/sankey", wait_until="networkidle")
     p2.evaluate("() => { try { localStorage.removeItem('tw.sankey.mode'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
     p2.reload(wait_until="networkidle")
     wait_until(p2, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
@@ -45365,7 +45439,12 @@ def t_wheel_watch_0928(b, base, code):
         # ---- 自選分頁：導覽最後一格
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
         nav = pg.evaluate("() => [...document.querySelectorAll('#tabs .tab')].map(t => [t.dataset.view, t.textContent.trim()])")
-        ok(f"★ {tag} ④ 導覽列最後一格是「自選」", bool(nav) and nav[-1] == ["watch", "自選"], nav)
+        # 驗收過時：3fc32092（財報日曆）在「自選」之後再加了「財經日曆」一格，「自選＝最後一格」不再成立。
+        #   這條要守的本意是「自選取代交付清單成為導覽上的獨立一格」——改成：自選在導覽上，
+        #   而且排在它後面的只准是之後新加的「財經日曆」（不准有交付清單或別的頁面插回它前後）。
+        _wi = next((i for i, (v, _t) in enumerate(nav or []) if v == "watch"), -1)
+        ok(f"★ {tag} ④ 導覽列有「自選」一格、後面只接新加的「財經日曆」", _wi >= 0 and nav[_wi][1] == "自選"
+           and all(v == "earnings" for v, _t in nav[_wi + 1:]), nav)
         ok(f"{tag} ④ 導覽列上已經沒有「交付清單」那一格", not any(v == "delivery" or "交付清單" in t for v, t in nav), nav)
         pg.eval_on_selector("#tabs .tab[data-view=watch]", "el => el.scrollIntoView({inline:'nearest', block:'nearest'})")
         pg.click("#tabs .tab[data-view=watch]")
@@ -45407,8 +45486,13 @@ def t_wheel_watch_0928(b, base, code):
     MDOTS = """() => [...document.querySelectorAll('#mRadarOv svg g[data-g]')].map(g => { const c = g.querySelectorAll('circle')[1];
         const r = c.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, gid: g.dataset.g }; })
         .filter(d => d.y > 60 && d.y < innerHeight - 70)"""
-    nt = m.evaluate("() => document.querySelectorAll('#mRadarOv svg text').length")
-    ok(f"★ {tag} ① 手機輪盤上沒有常駐的族群名字（svg 裡沒有 <text>）", nt == 0, nt)
+    # 驗收過時：4e9c2ad5（半徑改 √ 尺度）在刻度圈旁標了實際值「25%」「100%」兩個 <text>，那是刻度不是族群名。
+    #   本意是「盤上沒有常駐的族群名字」—— 改成：svg 裡的 <text> 只准是刻度（百分比數字），不准出現任何族群名。
+    nt = m.evaluate("""() => { const names = new Set([...document.querySelectorAll('#mRadarOv svg g[data-g]')].map(g => g.dataset.g));
+        const txt = [...document.querySelectorAll('#mRadarOv svg text')].map(t => t.textContent.trim());
+        const gn = ((window.App && App.data && App.data.groups) || []).map(x => x.name).filter(Boolean);
+        return { txt, bad: txt.filter(t => !/^\d+%$/.test(t) || gn.some(n => t.includes(n))), dots: names.size }; }""")
+    ok(f"★ {tag} ① 手機輪盤上沒有常駐的族群名字（svg 的 <text> 只剩刻度百分比）", nt["dots"] >= 1 and not nt["bad"], nt)
     ds = m.evaluate(MDOTS) or []
     if ok(f"{tag} 算得出手機輪盤上的點（前提）", len(ds) >= 1, ds[:2]):
         d = ds[0]
@@ -45432,7 +45516,10 @@ def t_wheel_watch_0928(b, base, code):
     # 更多 → 自選
     m.click("#mTabMore"); m.wait_for_timeout(500)
     rows = m.evaluate("() => [...document.querySelectorAll('.msheet:not([hidden]) .mrow')].map(r => r.dataset.m)")
-    ok(f"★ {tag} ④ 手機「更多」的頁面那組最後一列是「自選」、交付清單已不在導覽", rows[:3] == ["market", "season", "watch"] and "delivery" not in rows, rows)
+    # 驗收過時：2026-10-06 第一輪（本檔「手機底部導覽」修正）把 ETF、財經日曆從底部導覽移進「更多」，
+    #   頁面那組變成 market/season/etf/earnings/watch，「自選」仍是頁面那組的最後一列（後面是 events/theme 那組）。
+    _pages = ["market", "season", "etf", "earnings", "watch"]
+    ok(f"★ {tag} ④ 手機「更多」的頁面那組最後一列是「自選」、交付清單已不在導覽", rows[:5] == _pages and "delivery" not in rows, rows)
     m.click(".msheet:not([hidden]) .mrow[data-m=watch]")
     wait_until(m, "() => location.hash === '#watch' && document.querySelectorAll('#wpTabs .wptab').length === 5", 8000)
     ok(f"{tag} ④ 點「自選」→ 到自選分頁、5 個分頁", m.evaluate("() => document.querySelectorAll('#wpTabs .wptab').length") == 5)
