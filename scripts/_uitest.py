@@ -47677,6 +47677,27 @@ def t_sub_1005(b, base, code):
     ok(f"{T}：遮罩上的「升級查看」→ #pricing（帶 need/stock.page）", bool(wait_until(pg, "() => location.hash === '#pricing/need/stock.page'", 3000)))
     c.close()
 
+    # ================= ④-2 剖析圖分頁也要扣次數（Andy 10-07：「產業地圖點分頁超過設定的 5 次還能繼續看」）
+    c, sent, st = _sub_ctx(b, "member", lims={"ind.diagram": 2})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#industry/semiconductor", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwQuota.limit('ind.diagram') === 2 && document.querySelectorAll('#dgPick a[data-dgid]').length >= 3", 15000)
+    ids = pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.dataset.dgid)")
+    def dg_click(i):
+        pg.click(f"#dgPick a[data-dgid='{ids[i]}']"); pg.wait_for_timeout(900)
+    dg_click(0)
+    ok(f"{T}：剖析圖第 1 張照常顯示", pg.locator("#dgSec > .qlkov").count() == 0)
+    dg_click(1)
+    ok(f"{T}：剖析圖第 2 張照常顯示（上限 2）", pg.locator("#dgSec > .qlkov").count() == 0)
+    dg_click(2)
+    ok(f"{T}：剖析圖第 3 張 → 蓋上「今日已用完 2/2 次」", bool(wait_until(pg, "() => { const o = document.querySelector('#dgSec > .qlkov'); return !!o && /今日已用完 2\\/2 次/.test(o.textContent); }", 5000)),
+       pg.evaluate("() => (document.querySelector('.qlkov') || {}).textContent"))
+    shot(pg, "6b_quota_diagram")
+    ok(f"{T}：剖析圖計數＝2 個不同的圖", pg.evaluate("() => (JSON.parse(localStorage.getItem('tw.quota')).k['ind.diagram'] || []).length") == 2)
+    dg_click(0)
+    ok(f"{T}：回到看過的第 1 張 → 不重算、遮罩拿掉", bool(wait_until(pg, "() => !document.querySelector('#dgSec > .qlkov')", 4000)))
+    c.close()
+
     # ================= ⑤ 通知中心（訪客）：置頂橫幅、紅點、點開已讀、全部已讀
     NOW = int(time.time() * 1000)
     ns = [{"id": "n1aaa", "title": "十月改版上線", "body": "新增訂閱頁與客服，詳見 https://example.com/news", "kind": "feature", "audience": "all", "start": NOW - 3600000, "end": 0, "pinned": True, "created": NOW, "updated": NOW},
