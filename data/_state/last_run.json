@@ -2,70 +2,71 @@
   "steps": {
     "mis.index_minute": {
       "ok": true,
-      "rows": 160,
-      "seconds": 1.2
+      "rows": 358,
+      "seconds": 1.1
     },
     "index_intraday": {
-      "stored": 798
+      "stored": 198
     },
     "taifex.futures_minute": {
-      "ok": true,
-      "rows": 798,
-      "seconds": 2.6
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.0
     },
     "news.collect": {
       "ok": true,
-      "rows": 130,
-      "seconds": 4.5
+      "rows": 136,
+      "seconds": 2.4
     },
     "news": {
-      "stored": 58
+      "stored": 34
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 7,
+      "rows": 6,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 5
+      "stored": 0
     },
     "mops.material_news": {
       "ok": true,
       "rows": 66,
-      "seconds": 3.7
+      "seconds": 5.1
     },
     "material_news": {
-      "stored": 66
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
       "rows": 1759,
-      "seconds": 1.2
+      "seconds": 0.7
     },
     "intl_daily": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 1.8,
-      "error": "FRED 序列 12/12 個失敗：HTTP 400：Bad Request. The value for variable api_key is not a 32 character alpha-numeric lower-case string. Read https://fred.stlouisfed.org/docs/api/api_key.html for more information.（FEDFUNDS、CPIAUCSL、PAYEMS、DGS10…）｜金鑰自檢：長度 52（應為 32）、含大寫字母、含 1 個非英數字元"
+      "ok": true,
+      "rows": 15499,
+      "seconds": 3.5
+    },
+    "macro": {
+      "stored": 15499
     },
     "macro.fred_calendar": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.5,
-      "error": "FRED 公布日程 4/4 個失敗：HTTP 400：Bad Request. The value for variable api_key is not a 32 character alpha-numeric lower-case string. Read https://fred.stlouisfed.org/docs/api/api_key.html for more information.（cpi、nfp、gdp、pce）｜金鑰自檢：長度 52（應為 32）、含大寫字母、含 1 個非英數字元"
+      "ok": true,
+      "rows": 27,
+      "seconds": 0.7
+    },
+    "macro_calendar": {
+      "stored": 27
     },
     "build_payload": {
       "ok": true
     }
   },
   "errors": [],
-  "empty": [
-    "macro.fred",
-    "macro.fred_calendar"
-  ],
+  "empty": [],
   "phase": "news",
   "index_minute_days": {
     "FUT": [
@@ -78,15 +79,9 @@
       "2026-10-06"
     ]
   },
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-10-05",
-      "2026-10-06"
-    ]
-  },
-  "started_at": "2026-10-06T01:49:17.406843+00:00",
-  "finished_at": "2026-10-06T02:11:59.030602+00:00",
-  "duration_seconds": 1361.6,
+  "started_at": "2026-10-06T02:55:07.937500+00:00",
+  "finished_at": "2026-10-06T03:07:18.059316+00:00",
+  "duration_seconds": 730.1,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 440,
@@ -153,7 +148,7 @@
     },
     {
       "table": "news",
-      "rows": 4040,
+      "rows": 4074,
       "latest": "2026-10-06"
     },
     {
@@ -168,13 +163,13 @@
     },
     {
       "table": "macro",
-      "rows": 0,
-      "latest": "—"
+      "rows": 15499,
+      "latest": "2026-10-05"
     },
     {
       "table": "macro_calendar",
-      "rows": 0,
-      "latest": "—"
+      "rows": 27,
+      "latest": "2026-12-23"
     },
     {
       "table": "dividend_events",
@@ -203,7 +198,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 188868,
+      "rows": 189066,
       "latest": "—"
     },
     {
