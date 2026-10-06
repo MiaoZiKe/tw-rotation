@@ -4725,7 +4725,11 @@ h3 .howbtn.pop{font-family:inherit}
   /* ---- B 底部導覽：一列五顆 58px（現行兩列七顆 102px） ---- */
   body.m3on .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
     padding:0 0 env(safe-area-inset-bottom);height:calc(58px + env(safe-area-inset-bottom))}
-  body.m3on .tab[data-view=market],body.m3on .tab[data-view=season],body.m3on .tab[data-view=watch],body.m3on .tab[data-view=delivery]{display:none}
+  /* ★ 2026-10-06（既有紅字清理，_uitest 會員權限導覽）：ETF（a376a2c9）與財經日曆（3fc32092）新增的頂層分頁沒跟著收進「更多」，
+     五欄格線被擠成兩列：第二列（財經日曆、更多）掉到畫面下緣之外，手機上點不到「更多」（市場明細／週期統計／自選／管理區全進不去）。
+     兩顆一樣收進「更多」清單（mobile3.js MORE_VIEWS），底部維持一列五顆。 */
+  body.m3on .tab[data-view=market],body.m3on .tab[data-view=season],body.m3on .tab[data-view=watch],body.m3on .tab[data-view=delivery],
+  body.m3on .tab[data-view=etf],body.m3on .tab[data-view=earnings]{display:none}
   body.m3on .tab,body.m3on .mtabmore{min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;
     background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
     font-size:12px;line-height:1.2;color:var(--ink-3);font-weight:600;flex:none}
