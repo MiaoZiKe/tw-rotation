@@ -15,6 +15,10 @@ GUEST_PER_MIN = "120"
 SESSION_PER_MIN = "20"
 BURST_FILES = "30"
 MAX_IPS = "2"
+# T4 自動停權：預設關閉（"0" 只記 would_suspend）。Andy 決定後改 "1"
+AUTO_SUSPEND = "0"
+SUSPEND_AFTER = "3"
+SUSPEND_WINDOW_H = "24"
 
 # 直接呼叫會員 Worker（同帳號的 service binding，不經公開網路）
 [[services]]

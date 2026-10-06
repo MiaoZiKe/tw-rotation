@@ -24242,6 +24242,7 @@ SECTIONS = {
     # ★ 2026-09-28 Andy：首頁資金輪盤只留點、點旁說明框、點背景關；自選獨立成最後一個分頁（取代交付清單，交付清單改走頁尾）
     "輪盤只留點與自選分頁": lambda pg, b, base, code: t_wheel_watch_0928(b, base, code),
     "會員雲端路徑":        lambda pg, b, base, code: t_account_cloud(b, base),
+    "付費資料閘道":        lambda pg, b, base, code: t_datagw(b, base),
     # ★ 2026-10-02 Andy：會員功能開放制度 —— #admin/perm 依 email 開關功能、方案範本、關掉的功能顯示鎖頭（DECISIONS #288，⚠ 一律 --workers 1）
     "會員權限開關":        lambda pg, b, base, code: t_member_perm(b, base, code),
     # ★ 2026-10-04 Andy：「會員權限」分頁放在自選下、只有管理者看得到；新增會員 email＋方案、儲存／取消、定價範本（page.route 假 Worker）
@@ -47159,6 +47160,112 @@ def t_wheel_watch_0928(b, base, code):
 def _free_port() -> int:
     import socket
     s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
+
+
+def t_datagw(b, base):
+    """付費資料閘道（docs/datagw_plan.md 第二階段）。
+    本機起兩支真的 Worker：account-api devserver（假 Google）＋ data-gw devserver（R2 換成 site/data 資料夾）。
+    模擬「已分流」：攔 data/datagw_index.json 回 pipeline/datagw_tiers.json 的付費規則，並把公開的 data/flow_v3.json 變成 404
+    （正式分流後公開目錄就是沒有這支）→ 畫面拿得到資料就只可能是走了 gateway。
+    驗：訪客 401、免費會員 403、付費會員 200 且畫面畫得出來、請求帶權杖與裝置 id、_wm 不會漏進前端資料、免費檔照舊走 CDN。"""
+    import urllib.request
+    errs: list[str] = []
+    T = "付費資料閘道"
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    pa, pg_ = _free_port(), _free_port()
+    nul = subprocess.DEVNULL
+    acct = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(pa), "--origin", origin], stdout=nul, stderr=nul)
+    gw = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "data-gw" / "devserver.mjs"), "--port", str(pg_), "--origin", origin,
+                           "--account", f"http://127.0.0.1:{pa}", "--data", str(ROOT / "site" / "data"), "--guest-cache-ms", "1"], stdout=nul, stderr=nul)
+    api, gwu = f"http://127.0.0.1:{pa}", f"http://127.0.0.1:{pg_}"
+    tiers = json.loads((ROOT / "pipeline" / "datagw_tiers.json").read_text(encoding="utf-8"))["tiers"]
+    index = {"v": 1, "paid": [{k: t[k] for k in ("p", "re") if k in t} for t in tiers if t["f"]]}
+    try:
+        up = False
+        for _ in range(60):
+            try:
+                up = (json.loads(urllib.request.urlopen(api + "/health", timeout=1).read()).get("configured") is True
+                      and json.loads(urllib.request.urlopen(gwu + "/health", timeout=1).read()).get("configured") is True)
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok(f"{T}：本機 account-api 與 data-gw 起得來", up):
+            return
+
+        def ctx():
+            c = b.new_context(viewport={"width": 1440, "height": 900})
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api, "gw": gwu}) + ";")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            c.route("**/data/datagw_index.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(index)))
+            c.route("**/data/flow_v3.json*", lambda r: r.fulfill(status=404, body="moved to R2"))
+            return c
+
+        def login(pg, who):
+            pg.click("#acctBtn")
+            with pg.expect_popup() as pi:
+                pg.click("#acctGo")
+            pop = pi.value
+            pop.wait_for_selector("#as-" + who, timeout=8000)
+            pop.click("#as-" + who)
+            wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+
+        def gw_hits(pg):
+            hits = []
+            pg.on("request", lambda rq: hits.append((rq.url, rq.headers.get("authorization"), rq.headers.get("x-device"))) if rq.url.startswith(gwu + "/v1/data/") else None)
+            return hits
+
+        def flow_status(pg):
+            return pg.evaluate(f"""async () => {{ try {{ await TwGw.get('flow_v3'); return 200; }} catch (e) {{ return e.status || -1; }} }}""")
+
+        # ---- ⓪ 管理者 Andy：免費範本與訪客範本關掉「輪動時鐘」（flow.rot），把自己設成付費範本
+        c0 = ctx(); p0 = c0.new_page(); p0.on("pageerror", lambda e: errs.append(str(e)))
+        p0.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(p0, "() => !!document.getElementById('acctBtn')", 8000)
+        login(p0, "andy")
+        r1 = p0.evaluate("() => Promise.all([TwAccount.call('/v1/admin/plans/put', { id: 'free', name: '免費會員', feats: { 'flow.rot': false } }),"
+                         " TwAccount.call('/v1/admin/plans/put', { id: 'guest', name: '訪客', feats: { 'flow.rot': false } }),"
+                         " TwAccount.call('/v1/admin/perm/put', { email: 'andy@example.com', plan: 'paid', over: {} })])")
+        ok(f"{T} ⓪ 管理者設定範本與方案成功", all(x and not x.get("error") for x in r1), r1)
+
+        # ---- ① 訪客：付費檔 401、免費檔照舊走 CDN（不經 gateway）
+        c1 = ctx(); p1 = c1.new_page(); p1.on("pageerror", lambda e: errs.append(str(e)))
+        h1 = gw_hits(p1)
+        p1.goto(base + "#flow", wait_until="domcontentloaded")
+        wait_until(p1, "() => !!window.TwGw && !!window.App", 8000)
+        ok(f"{T} ① 前端認得 flow_v3 是付費檔、meta 不是", p1.evaluate("() => Promise.all([TwGw.isPaid('flow_v3'), TwGw.isPaid('meta')])") == [True, False])
+        s1 = flow_status(p1)
+        ok(f"{T} ① 訪客拿付費檔被擋（401）", s1 == 401, s1)
+        p1.wait_for_timeout(800)
+        ok(f"{T} ① 免費檔（meta）沒有經過 gateway", not any("/v1/data/meta" in u for u, _, _ in h1), h1[:5])
+        c1.close()
+
+        # ---- ② 免費會員 Bob：403
+        c2 = ctx(); p2 = c2.new_page(); p2.on("pageerror", lambda e: errs.append(str(e)))
+        p2.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(p2, "() => !!document.getElementById('acctBtn')", 8000)
+        login(p2, "bob")
+        s2 = flow_status(p2)
+        ok(f"{T} ② 免費會員拿付費檔被擋（403）", s2 == 403, s2)
+        c2.close()
+
+        # ---- ③ 付費會員 Andy：200、帶權杖與裝置 id、畫面畫得出來、_wm 不進前端資料
+        h0 = gw_hits(p0)
+        ok(f"{T} ③ 付費會員拿得到（200）", flow_status(p0) == 200)
+        p0.goto(base + "#flow", wait_until="domcontentloaded")
+        got = wait_until(p0, "() => !!(window.App && App.load) && document.querySelectorAll('#v-flow canvas').length > 0", 15000)
+        ok(f"{T} ③ 公開檔已 404，資金流向頁照樣畫得出來（資料從 gateway 來）", got)
+        d = p0.evaluate("() => App.load('flow_v3').then(x => ({ ok: !!x, wm: !!(x && (x._wm || (Array.isArray(x) && x[0] && x[0]._wm))) }))")
+        ok(f"{T} ③ 前端資料裡沒有 _wm（浮水印只在原始回應裡）", d == {"ok": True, "wm": False}, d)
+        fl = [x for x in h0 if "/v1/data/flow_v3" in x[0]]
+        ok(f"{T} ③ gateway 請求帶 Bearer 權杖與裝置 id", bool(fl) and all((a or "").startswith("Bearer g1.") and len(v or "") >= 16 for _, a, v in fl), fl[:2])
+        dev = p0.evaluate("() => localStorage.getItem('tw.gw.dev')")
+        ok(f"{T} ③ 裝置 id 存在 localStorage，重新拿檔沿用同一個", bool(dev) and all(v == dev for _, _, v in fl))
+        c0.close()
+        ok(f"{T} 整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        for p in (acct, gw):
+            p.terminate()
 
 
 def t_account_cloud(b, base):

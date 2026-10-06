@@ -486,6 +486,7 @@
   // ------------------------------------------------------------------ 啟動
   const API = {
     on: () => S.on, user: () => S.user, api: () => S.api, online: () => S.online,
+    tok: () => S.tok,   // 2026-10-06 data-gw：site/datagw.js 拿它去換 5 分鐘的資料權杖
     call, route, login: () => openDlg('notice'), logout, track,
     /* 給驗收腳本：現在排隊中的統計（還沒送出的）*/
     pending: () => Object.assign({}, S.q),

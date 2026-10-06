@@ -144,6 +144,31 @@ test('管理者看異常：只有 account-api 認定的管理者可以', async (
   assert.equal(r.status, 200); assert.ok(Array.isArray((await r.json()).alerts));
 });
 
+test('分級表兩份一致：tiers.js ＝ pipeline/datagw_tiers.json（pipeline 搬檔、前端判斷都讀後者）', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { TIERS } = await import('../tiers.js');
+  const j = JSON.parse(readFileSync(new URL('../../../pipeline/datagw_tiers.json', import.meta.url), 'utf8')).tiers;
+  assert.deepEqual(TIERS.map(([k, f]) => (typeof k === 'string' ? { p: k, f } : { re: k.source, f })), j);
+});
+
+test('T4 自動停權預設關閉：累計 3 次只記 would_suspend，仍然拿得到；開啟後記 suspend', async () => {
+  for (const [auto, kind] of [['0', 'would_suspend'], ['1', 'suspend']]) {
+    const gw = setup({ BURST_FILES: '2', MAX_IPS: '9', RATE_PER_MIN: '1000', AUTO_SUSPEND: auto });
+    let { j } = await sess(gw, 'v1.uPaid.9.1.s');
+    const t0 = clock;
+    for (let round = 0; round < 3; round++) {
+      for (let i = 0; i < 3; i++) await get(gw, `hist/2330/p${round * 3 + i}`, j.tok);
+      clock += 4 * 60000;          // 權杖 5 分鐘到期 → 換一張
+      j = (await sess(gw, 'v1.uPaid.9.1.s')).j;
+      clock += 7 * 60000;          // 同種異常 10 分鐘只記一筆
+      j = (await sess(gw, 'v1.uPaid.9.1.s')).j;
+    }
+    assert.equal(gw.q('SELECT COUNT(*) AS c FROM alerts WHERE kind = ?', kind)[0].c, 1, kind);
+    assert.equal((await get(gw, 'stock/2330', j.tok)).status, 200);
+    clock = t0;
+  }
+});
+
 test('沒設 GW_SECRET → 503，不會用空金鑰簽權杖', async () => {
   const gw = setup({ GW_SECRET: '' });
   assert.equal((await get(gw, 'meta')).status, 503);

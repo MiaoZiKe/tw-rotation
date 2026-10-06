@@ -16,7 +16,7 @@ const PORT = +arg('port', 8791), ORIGIN = arg('origin', 'http://127.0.0.1:8767')
 const DIR = resolve(arg('data', 'site/data'));
 const R2 = { async get(k) { try { const s = readFileSync(join(DIR, k), 'utf8'); return { text: async () => s }; } catch (e) { return null; } } };
 const { gw } = makeGw({ ALLOWED_ORIGINS: ORIGIN, ACCOUNT_API_URL: arg('account', 'http://127.0.0.1:8790'), ACCOUNT_ORIGIN: ORIGIN,
-  GW_SECRET: randomBytes(32).toString('base64url'), DATA: R2 });
+  GW_SECRET: randomBytes(32).toString('base64url'), DATA: R2, GUEST_CACHE_MS: arg('guest-cache-ms', '60000') });
 
 http.createServer(async (req, res) => {
   const chunks = []; for await (const c of req) chunks.push(c);

@@ -1,0 +1,231 @@
+{
+ "_note": "付費資料分級（唯一來源）。workers/data-gw/tiers.js 必須一致（gw.test.mjs 比對）；pipeline/split_paid.py 依此搬檔；前端從 data/datagw_index.json 讀。f 空＝免費；re＝正規表示式。",
+ "tiers": [
+  {
+   "p": "meta",
+   "f": []
+  },
+  {
+   "p": "stocks",
+   "f": []
+  },
+  {
+   "p": "groups_today",
+   "f": []
+  },
+  {
+   "p": "logos",
+   "f": []
+  },
+  {
+   "p": "sparks",
+   "f": []
+  },
+  {
+   "p": "index_ohlc",
+   "f": []
+  },
+  {
+   "p": "index_intraday",
+   "f": []
+  },
+  {
+   "p": "index_lastday",
+   "f": []
+  },
+  {
+   "p": "intl",
+   "f": []
+  },
+  {
+   "p": "news_head",
+   "f": []
+  },
+  {
+   "p": "updown",
+   "f": []
+  },
+  {
+   "p": "rrg_lite",
+   "f": []
+  },
+  {
+   "p": "hist/index",
+   "f": []
+  },
+  {
+   "p": "market_heat",
+   "f": [
+    "ov.heat"
+   ]
+  },
+  {
+   "p": "flow_v3",
+   "f": [
+    "flow.rot"
+   ]
+  },
+  {
+   "p": "rrg_members",
+   "f": [
+    "flow.rot"
+   ]
+  },
+  {
+   "p": "rotation",
+   "f": [
+    "flow.rot"
+   ]
+  },
+  {
+   "p": "sankey_daily",
+   "f": [
+    "flow.sankey"
+   ]
+  },
+  {
+   "p": "concentration",
+   "f": [
+    "flow.conc"
+   ]
+  },
+  {
+   "p": "concentration_members",
+   "f": [
+    "flow.conc"
+   ]
+  },
+  {
+   "p": "industry_map",
+   "f": [
+    "ind.map"
+   ]
+  },
+  {
+   "p": "groups_detail",
+   "f": [
+    "ind.groups"
+   ]
+  },
+  {
+   "p": "supply_chain",
+   "f": [
+    "ind.rel"
+   ]
+  },
+  {
+   "p": "group_valuation",
+   "f": [
+    "ind.groups"
+   ]
+  },
+  {
+   "p": "relative_strength",
+   "f": [
+    "ind.groups"
+   ]
+  },
+  {
+   "p": "themes",
+   "f": [
+    "heat.theme"
+   ]
+  },
+  {
+   "p": "inst_streak",
+   "f": [
+    "mkt.streak"
+   ]
+  },
+  {
+   "p": "trust_streak",
+   "f": [
+    "mkt.streak"
+   ]
+  },
+  {
+   "p": "ma_breadth",
+   "f": [
+    "mkt.ma"
+   ]
+  },
+  {
+   "p": "candidates",
+   "f": [
+    "mkt.cand"
+   ]
+  },
+  {
+   "p": "seasonality_v3",
+   "f": [
+    "season.month"
+   ]
+  },
+  {
+   "p": "seasonality",
+   "f": [
+    "season.month"
+   ]
+  },
+  {
+   "p": "fundamental",
+   "f": [
+    "stock.profit"
+   ]
+  },
+  {
+   "p": "news",
+   "f": [
+    "stock.news"
+   ]
+  },
+  {
+   "p": "broker_views",
+   "f": [
+    "stock.ai"
+   ]
+  },
+  {
+   "re": "^stock\\/[0-9A-Z]{4,6}$",
+   "f": [
+    "stock.overview"
+   ]
+  },
+  {
+   "re": "^m60\\/[0-9A-Z]{4,6}$",
+   "f": [
+    "stock.k_hour"
+   ]
+  },
+  {
+   "re": "^hist\\/[0-9A-Z]{4,6}\\/p[0-9]{1,3}$",
+   "f": [
+    "stock.k_day"
+   ]
+  },
+  {
+   "p": "explore",
+   "f": [
+    "explore.page"
+   ]
+  },
+  {
+   "p": "etf",
+   "f": [
+    "etf.list"
+   ]
+  },
+  {
+   "p": "etf_series",
+   "f": [
+    "etf.returns"
+   ]
+  },
+  {
+   "p": "earnings",
+   "f": [
+    "earn.page"
+   ]
+  }
+ ]
+}

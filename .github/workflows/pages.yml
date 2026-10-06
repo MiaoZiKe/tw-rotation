@@ -129,6 +129,33 @@ jobs:
       # build_payload 已經不寫、也會刪舊檔；這一步是給「快取命中、沿用舊 site/data」那條路的保險。
       - name: 確認部署產物裡沒有 tasks.json
         run: rm -f site/data/tasks.json
+      # 2026-10-06 付費資料閘道 data-gw（docs/datagw_plan.md 第二階段）。★ 預設關閉：repo 變數 DATAGW_SPLIT 不是 1 就整步跳過，正式站照舊。
+      # 開啟時：付費候選檔搬出 site/data（公開目錄一份都不留）→ 上傳 R2 私有 bucket → 上傳失敗就整個部署失敗
+      #（不然會變成「公開目錄沒有、R2 也沒有」，付費頁全空）。用 copy 不用 sync：快取命中時 site_paid 是空的，sync 會把 R2 清光。
+      - name: 付費資料分流到 R2（DATAGW_SPLIT=1 才做）
+        if: vars.DATAGW_SPLIT == '1'
+        env:
+          R2_KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GW_URL: ${{ secrets.DATA_GW_URL }}
+        run: |
+          miss=""
+          [ -z "$R2_KEY" ] && miss="$miss R2_ACCESS_KEY_ID"
+          [ -z "$R2_SECRET" ] && miss="$miss R2_SECRET_ACCESS_KEY"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$GW_URL" ] && miss="$miss DATA_GW_URL"
+          if [ -n "$miss" ]; then echo "::error::DATAGW_SPLIT=1 但缺少：$miss（見 docs/datagw_plan.md 第 5 節）"; exit 1; fi
+          python -m pipeline.split_paid --src site/data --dst site_paid
+          n=$(find site_paid -name '*.json' 2>/dev/null | wc -l)
+          if [ "$n" -gt 0 ]; then
+            curl -fsSL https://rclone.org/install.sh | sudo bash >/dev/null
+            export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_KEY" \
+                   RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET" RCLONE_CONFIG_R2_ENDPOINT="https://$CF_ACCOUNT.r2.cloudflarestorage.com"
+            rclone copy site_paid r2:tw-rotation-paid --transfers 32 --checksum --stats-one-line --stats 30s
+          else
+            echo "site_paid 是空的（快取命中、資料沒變），R2 沿用上一版"
+          fi
       # 2026-09-27 會員登入／使用統計（DECISIONS #270）：前端要知道 account-api 的網址。
       # repo 裡的 site/account_config.js 永遠是空的（api: ''）＝功能關閉；這一步依 Secret 覆寫「部署產物」裡的那支，
       # 網址不進版控。Secret 沒設 → 維持空的 → 沒有登入鈕、不送統計、頁面照常（所以可以先上線、等 Andy 設好再生效）。
@@ -136,11 +163,13 @@ jobs:
       - name: 會員功能設定（沒設 ACCOUNT_API_URL 就維持關閉）
         env:
           ACCOUNT_API_URL: ${{ secrets.ACCOUNT_API_URL }}
+          GW_URL: ${{ secrets.DATA_GW_URL }}
+          GW_ON: ${{ vars.DATAGW_SPLIT }}   # data-gw：分流有開才告訴前端 gateway 網址
         run: |
           if [ -n "$ACCOUNT_API_URL" ]; then
             case "$ACCOUNT_API_URL" in
               https://*)
-                python -c "import json,os; u=os.environ['ACCOUNT_API_URL'].strip().rstrip('/'); open('site/account_config.js','w',encoding='utf-8').write('/* 部署時由 pages.yml 依 Secret ACCOUNT_API_URL 產生（repo 裡是空的）*/\nwindow.TW_ACCOUNT = ' + json.dumps({'api': u}) + ';\n')"
+                python -c "import json,os; u=os.environ['ACCOUNT_API_URL'].strip().rstrip('/'); g=os.environ.get('GW_URL','').strip().rstrip('/'); c={'api': u}; c.update({'gw': g} if os.environ.get('GW_ON')=='1' and g.startswith('https://') else {}); open('site/account_config.js','w',encoding='utf-8').write('/* 部署時由 pages.yml 依 Secret ACCOUNT_API_URL（＋DATA_GW_URL）產生（repo 裡是空的）*/\nwindow.TW_ACCOUNT = ' + json.dumps(c) + ';\n')"
                 echo "會員功能：開啟";;
               *) echo "::warning::ACCOUNT_API_URL 不是 https:// 開頭，會員功能維持關閉";;
             esac

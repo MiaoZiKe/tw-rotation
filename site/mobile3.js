@@ -277,7 +277,8 @@
      每張卡最下面一顆「完整版 ›」（`.mfullbtn`）把桌機那一份叫回來（回放、即時、放大都在那裡）：
      **收起來可以，刪掉不行**。*/
   const cache = {};
-  const load = (n) => cache[n] || (cache[n] = fetch('data/' + n + '.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null));
+  const load = (n) => cache[n] || (cache[n] = (window.TwGw && window.TwGw.on()) ? window.TwGw.json(n, { cache: 'no-cache' })   // data-gw：付費檔走 gateway
+    : fetch('data/' + n + '.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null));
   const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const sgn = (v, d) => (v > 0 ? '+' : '') + (+v).toFixed(d == null ? 1 : d);
   const ucls = (v) => v > 0 ? 'up' : v < 0 ? 'dn' : 'fl';

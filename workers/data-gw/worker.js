@@ -91,7 +91,7 @@ export class Gw {
   }
   async guestFeats() {
     const t = this.now();
-    if (this.guestCache && t - this.guestCache[0] < 60000) return this.guestCache[1];
+    if (this.guestCache && t - this.guestCache[0] < this.num('GUEST_CACHE_MS', 60000)) return this.guestCache[1];   // 訪客範本改了最晚 60 秒生效
     const j = await this.acct('/v1/perm/me', {});
     const f = j && j.feats ? j.feats : null;
     if (f) this.guestCache = [t, f];
@@ -112,7 +112,19 @@ export class Gw {
     const kinds = new Set(f ? JSON.parse(f.kinds) : []); kinds.add(kind);
     this.q('INSERT INTO flags (uid, n, last, kinds) VALUES (?, 1, ?, ?) ON CONFLICT(uid) DO UPDATE SET n = n + 1, last = excluded.last, kinds = excluded.kinds',
       uid, t, JSON.stringify([...kinds]));
-    /* 第二階段：這裡寄信／推播給 Andy；第三階段：flags.n 超過門檻 → 呼叫 account-api 遞增 tv（停權）。目前只記錄。*/
+    /* T4 自動停權（docs/datagw_plan.md 第 6 節）：SUSPEND_WINDOW_H 小時內 burst／multi_ip 累計 SUSPEND_AFTER 次。
+       AUTO_SUSPEND 預設 '0'＝關閉：只記一筆 would_suspend 讓 Andy 看「如果開了會停誰」，不動帳號。
+       開啟後（'1'）記 suspend；真正遞增 tv 的 account-api 端點是第三階段的工作，在那之前這裡也不會去動帳號。*/
+    if (kind === 'burst' || kind === 'multi_ip') {
+      const since = t - this.num('SUSPEND_WINDOW_H', 24) * 3600000;
+      const n = this.q("SELECT COUNT(*) AS c FROM alerts WHERE uid = ? AND ts >= ? AND kind IN ('burst', 'multi_ip')", uid, since)[0].c;
+      const done = this.q("SELECT COUNT(*) AS c FROM alerts WHERE uid = ? AND ts >= ? AND kind IN ('would_suspend', 'suspend')", uid, since)[0].c;
+      if (n >= this.num('SUSPEND_AFTER', 3) && !done) {
+        const k2 = String(this.env.AUTO_SUSPEND) === '1' ? 'suspend' : 'would_suspend';
+        this.q('INSERT INTO alerts (ts, uid, kind, detail) VALUES (?, ?, ?, ?)', t, uid, k2, `${n} 次／${this.num('SUSPEND_WINDOW_H', 24)} 小時`);
+      }
+    }
+    /* 第三階段：這裡寄信／推播給 Andy。*/
   }
   clean() {
     const t = this.now();

@@ -421,6 +421,8 @@
         const r = fn(st); t.oncomplete = () => res(r && 'result' in r ? r.result : true); t.onerror = t.onabort = () => res(null);
       } catch (e) { res(null); } }); };
     return {
+      /* data-gw：付費檔一律不留存檔（登出、降級或共用電腦之後不能還看得到），之前存過的也刪掉 */
+      drop: (name) => tx('readwrite', st => st.delete(name)),
       get: async (name) => { const r = await tx('readonly', st => st.get(name));
         return r && r.schema === SNAP_SCHEMA ? r : null; },
       put: async (name, ver, data, size) => {
@@ -460,10 +462,13 @@
   function load(name, opt) {
     if (_loaded[name] || STALE[name] || (D[name] && !opt)) return Promise.resolve(D[name]);
     if (_loading[name]) return _loading[name];
+    const paidP = window.TwGw && window.TwGw.on() ? window.TwGw.isPaid(name).catch(() => false) : Promise.resolve(false);
     const net = (async () => {
       let ver = '';
       if (name !== 'meta') { const m = await (_metaNet || Promise.resolve(D.meta)); ver = (m && m.generated_at) || ''; }
       /* 2026-10-04：opt.low ＝ 這份不是用來「畫」首屏的（例如 groups_detail 只給點方塊後的面板），用低優先權讓頻寬先給要畫圖的檔。*/
+      /* 2026-10-06 data-gw：付費檔改走 gateway（site/datagw.js；沒設定時 paidP 一律 false，走原路）*/
+      if (await paidP) { const x = await window.TwGw.get(name); return { data: x.data, txt: x.txt, ver, paid: true }; }
       const fo = ver ? {} : { cache: 'no-store' }; if (opt && opt.low) fo.priority = 'low';
       const r = await fetch(`data/${name}.json?v=${ver}`, fo);
       if (!r.ok) throw new Error(r.status);
@@ -471,13 +476,13 @@
       return { data: JSON.parse(txt), txt, ver: name === 'meta' ? '' : ver };
     })();
     if (name === 'meta') _metaNet = net.then(x => x.data, () => null);
-    const snap = Snap.get(name).catch(() => null);
+    const snap = paidP.then((p) => (p ? (Snap.drop(name).catch(() => {}), null) : Snap.get(name))).catch(() => null);
     _loading[name] = (async () => {
       let first = null;
       // 誰先到用誰；網路先到（或沒有存檔）就是原流程
       try { first = await Promise.race([net.then(x => ({ net: x }), () => ({ netErr: 1 })), snap.then(s => s ? { snap: s } : new Promise(() => {}))]); }
       catch (e) { first = { netErr: 1 }; }
-      const saveNet = (x) => { Snap.put(name, x.ver, x.data, x.txt.length).catch(() => {}); };
+      const saveNet = (x) => { if (!x.paid) Snap.put(name, x.ver, x.data, x.txt.length).catch(() => {}); };
       if (first.net) { D[name] = first.net.data; _loaded[name] = true; saveNet(first.net); }
       else if (first.snap) {
         const sp = first.snap; D[name] = sp.data; STALE[name] = sp.savedAt; staleTag();
