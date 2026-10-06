@@ -611,10 +611,6 @@
         // 厚度 14～18px（參考圖）：非堆疊的一律上限 18（barMaxWidth 的優先權高於 barWidth，寫成百分比的也壓得住）；
         // 堆疊的多半是一整根「組成」長條（漲跌家數），照它自己寫的
         if (s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
-        if (s.stack == null) {
-          if (s.itemStyle && s.itemStyle.borderRadius != null) s.itemStyle = { ...s.itemStyle, borderRadius: R };
-          s.data.forEach((d, k) => { const v = val(d); if (v != null && isFinite(v)) setR(s, k, outer(h, v < 0)); });   // 只圓長出去那一端
-        }
         // 數值標籤：有開的補字級與等寬字、沒寫位置的放到長出去那一端的外側
         const lab = s.label;
         const inside = lab && typeof lab.position === 'string' && /inside/.test(lab.position);
@@ -766,7 +762,7 @@
      不准各圖自己寫一套（以前管理區的功能使用占比用淡粉色盤、滑過沒有外框，扇區分不出來）。
        · 環：內 68%／外 92%，扇區間隙 1.2°、圓角 6px、扇區邊框 1px（面板色）；內側一圈細軌道（內 65%～65.8%，ink3 22%）
        · 滑過：外擴 4px、外框 3px（ink 色）、其餘扇區不淡化；動畫 200ms（≤ 240）
-       · 中心兩行字：上＝名稱（12～12.5px、ink3），下＝大百分比（等寬、粗體、邊長×0.115，夾 20～34）；滑過換成那一塊的，滑開還原
+       · 中心兩行字：上＝名稱（12～12.5px、ink3），下＝大百分比（等寬、粗體、邊長 ≥ 200 固定 28px、更小才縮（最小 20））；滑過換成那一塊的，滑開還原
        · 配色：飽和的分類色盤（深淺各一組）；「其他」＝ink3 38% 灰
        · 提示框：A.tip 底，標題粗體＝名稱，下面「值（占比）」「漲跌（紅漲綠跌，有才寫）」，有下一層才寫一句「點一下…」
        · 圖例：右側一列一項（色塊｜名稱｜值｜占比）；卡寬 < 420 才退到下面（照 #328） */
@@ -806,7 +802,7 @@
     /* 中心兩行字（S＝甜甜圈邊長 px）。top:'middle'＋圓心 50%，不管容器怎麼變都跟圓心對齊 */
     center(t1, t2, S) {
       const ff = 'Noto Sans TC, sans-serif', inner = S * DONUT.R_IN / 100;
-      const bFs = Math.round(Math.max(20, Math.min(34, S * 0.115))), aFs = S < 220 ? 12 : 12.5;
+      const bFs = S >= 200 ? 28 : Math.max(20, Math.round(S * 0.115)), aFs = S < 200 ? 12 : 12.5;   // ★ 固定字級（Andy：中心字要跟產業地圖完全相同）：邊長 ≥ 200 → 數字 28／標題 12.5；更小才縮（圓放不下）
       return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
         textStyle: { rich: {
           a: { color: CH.ink3, fontSize: aFs, fontWeight: 400, fontFamily: ff, lineHeight: 20,
