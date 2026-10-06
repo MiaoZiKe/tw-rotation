@@ -1,6 +1,8 @@
 /* ============================================================================
    訂閱頁 #pricing ＋ 帳號選單的方案徽章（sub-v1，2026-10-05）
    ----------------------------------------------------------------------------
+   ★ pricing-v2（2026-10-07）：照 Andy 給的範本重做 —— 資訊提示列、月繳／年繳切換（年繳 省 X%）、三張方案卡（圖示／定位句／價格／
+     適合誰／打勾清單／行動鈕）、卡片下方「方案功能比較表」。卡上文字全部讀後端範本（worker.js「方案卡呈現區塊」），細節見「方案資料」段。
    ★ admin-v3（2026-10-05）：拿掉月繳／年繳切換 —— 每個付費範本本身就是「月訂閱」或「年訂閱」（後端範本決定），
      方案卡與 #admin/perm 的三個大分頁同一份資料；#pricing/need/<功能鍵> 把能解鎖那個功能的方案標「可解鎖」。
    Andy：參考 stockintelli 的 pricing —— 頂部標語＋四個亮點、方案卡（最受歡迎／功能最齊）、
@@ -102,22 +104,68 @@
 .acctmenu .mh.mhx .nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}`);
 
   // ------------------------------------------------------------------ 方案資料
-  /* ★ admin-v3（2026-10-05，Andy D）：方案卡＝會員權限那邊的三個大分頁 —— 訪客、註冊會員、每個付費範本各一張。
-     · 名稱、價格、月／年全部讀後端範本（/v1/plans/public；舊 Worker 沒有這支時，管理者退回 plans/get）。
-     · 連不到後端（會員功能沒設定、公司網路）→ 只畫訪客、註冊會員兩張，**不編一張「付費・洽詢」**
-       （Andy 截圖：付費寫「洽詢」、訪客出現兩次 —— 前者是備用卡、後者是同一個範本被畫兩次；這裡依 id 去重）。
-     · 每張卡列出：每一類開放幾項、有設上限的功能（每日 N 次／不能看）——跟 #admin/perm 的「觀看權限」同一份資料。 */
+  /* ★ pricing-v2（2026-10-07，Andy：「圖一是我訂閱頁面想看到的範本，幫我做一份」）：
+     · 卡片＝註冊會員（Free）＋管理者標為公開（public）的付費範本，依價格由低到高排；**訪客不畫成卡片**（訪客不是方案，是沒登入）。
+     · 卡上的文字（定位句、頂端標籤、適合誰、打勾清單、圖示、色系）讀後端範本的 pres 欄位（worker.js「方案卡呈現區塊」），
+       欄位名照 docs/plan_presets_1007.json（tiers[].{key,name,price{month,year},badge,tagline,fit_title,fit_desc,highlights[],feats,lims,watch}）；
+       那份格式的物件也可以直接丟進來（fromPreset 會轉成後端的形狀），CEO 灌範本前可以先用 ?demo=plans 看效果。
+     · 沒填的欄位有 fallback：清單＝依開關與次數自動產生（「功能名・每日 N 次」）、圖示與色系依順序（禮物／閃電／皇冠、中性／藍／紫）、
+       頂端標籤沿用舊規則（第一個付費＝最受歡迎、開最多功能＝功能最齊）。**價格不編**：拿不到寫「洽詢」。
+     · 月繳／年繳：至少一個付費範本同時有月價與年繳總價才出現切換；「省 X%」＝ 1 − 年價 ÷（月價 × 12），四捨五入。
+       admin-v3 拿掉切換的理由（每個範本只有一種週期）仍成立 —— 只有一種週期的範本不受切換影響，照它自己的週期顯示。
+     · 卡片下方「方案功能比較表」（Andy 10-07 02:28：參考 stockintelli 下方的比較表）：列＝features.js 的功能（依類別分組），
+       欄＝每張卡；**只列方案之間有差異的功能**，全部一樣的收成一行「其他基礎功能」。不手寫一份 —— 管理者在 #admin/perm 改什麼這裡就變。 */
   const FALLBACK = [
     { id: 'guest', name: '訪客', builtin: true, feats: {}, lims: {}, price: 0 },
     { id: 'free', name: '註冊會員', builtin: true, feats: {}, lims: {}, price: 0 },
   ];
-  const S = { plans: null, src: 'fallback', full: false, loading: null, need: '' };
+  /* ?demo=plans：示範資料＝docs/plan_presets_1007.json（claude/plan-tiers 分支，CEO 10-07 給的方案內容）的 free／plus／pro 三層
+     （訪客不是方案、不畫卡）。網站只部署 site/，讀不到 docs/，所以這裡放一份副本：
+     · feats 只抄「關掉的」（其餘預設就是開，效果一樣）；文字欄位逐字照抄。
+     · CEO 10-07 訊息蓋過 JSON 的三個數字：自選每頁檔數 Plus 30→50、Pro 50→200；研究瀏覽全站共用鍵 quota.all（註冊會員 10、Plus 50、Pro 不限）。
+       對應的兩行打勾文字跟著改，免得同一張卡上下數字對不起來。CEO 把正式範本灌進後端之後，這份副本就只剩示範用途。
+     只影響這個分頁、不寫任何地方。 */
+  const DEMO = [
+    { key: 'free', name: '註冊會員', price: { month: 0, year: 0 }, badge: null, tagline: '免費註冊，養成每天看盤後的習慣',
+      fit_title: '適合開始建立研究習慣', fit_desc: '每天花 5 分鐘看資金往哪個族群跑、族群貴不貴，再挑幾檔點進去看營收、法人與產業鏈位置。先熟悉流程，再決定要不要更深。',
+      highlights: ['研究瀏覽・每日 10 次（個股、剖析圖、題材剖析）', '資金流向・輪動時鐘・桑基圖・完整功能', '產業鏈剖析圖（2D）・每日 10 張', '自選清單・1 頁 10 檔', 'ETF 一覽・配息行事曆・財經日曆', 'Email 客服・一般順序回覆'],
+      feats: { 'ind.3d': false, 'stock.k_min': false, 'stock.mtf': false, 'stock.ind': false, 'stock.draw': false, 'live.tick': false, 'etf.returns': false, 'watch.tabs': 1 },
+      lims: { 'quota.all': 10, 'stock.page': 10, 'ind.diagram': 10, 'heat.detail': 10, 'ind.rel': 10, 'ind.groups': 10 }, watch: { tabs: 1, size: 10 } },
+    { key: 'plus', name: 'Plus', price: { month: 249, year: 2490 }, badge: '最受歡迎', tagline: '每天主動研究，工具一次到位',
+      fit_title: '適合每天主動研究', fit_desc: '每天追蹤好幾個族群與自選股：用 3D 剖析圖看懂零件與供應商、四週期同看與畫線工具省下來回切換的時間，5 頁自選清單分題材管理。',
+      highlights: ['研究瀏覽・每日 50 次', '3D 剖析圖・完整功能', '四週期同看・畫線工具・指標自訂', '自選清單・5 頁、每頁 50 檔', 'ETF 報酬比較（自選 8 檔）', '客服優先回覆（只限功能與資料說明）'],
+      feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
+      lims: { 'quota.all': 50, 'stock.page': 50, 'ind.diagram': 50, 'heat.detail': 50, 'ind.rel': 50, 'ind.groups': 50 }, watch: { tabs: 5, size: 50 } },
+    { key: 'pro', name: 'Pro', price: { month: 499, year: 4990 }, badge: '功能最齊', tagline: '不限次數，自選清單每天幫你整理好',
+      fit_title: '適合追蹤多個題材與大量自選股', fit_desc: '研究頁不限次數、自選清單不限頁數；加上「自選清單日報」把你追蹤的股票今天發生了什麼（營收、法人、籌碼、事件）彙整成一頁，省下逐檔翻的時間。',
+      highlights: ['研究瀏覽・不限次數', 'Plus 全部功能', '自選清單・不限頁數（每頁 200 檔）', '自選清單日報：營收／法人／籌碼／事件變化一覽（開發中）', '自設條件提醒（開發中）', '剖析圖高解析匯出（開發中）'],
+      feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
+      lims: { 'quota.all': null, 'stock.page': null, 'ind.diagram': null, 'heat.detail': null, 'ind.rel': null, 'ind.groups': null }, watch: { tabs: null, size: 200 } },
+  ];
+  const isDemo = () => /[?&]demo=plans\b/.test(location.search || '');
+  /* plan_presets 格式（price{month,year}、feats、lims、watch{tabs,size}）→ 後端 plans/public 的形狀（price＝月價、price_year＝年繳總價、period）。
+     watch 物件保留在 p.watch 給比較表寫「N 頁・每頁 M 檔」；tabs 是整數時同步進 feats['watch.tabs']（features.js 的開關鍵）。
+     lims 的 null＝不限（明示），照 JSON 的約定保留。 */
+  function fromPreset(t) {
+    if (!t || typeof t !== 'object') return null;
+    const pr = t.price && typeof t.price === 'object' ? t.price : null;
+    const feats = Object.assign({}, t.feats || {});
+    const w = t.watch && typeof t.watch === 'object' ? t.watch : Number.isInteger(t.watch) ? { tabs: t.watch } : null;
+    if (w && Number.isInteger(w.tabs)) feats['watch.tabs'] = w.tabs;
+    const id = t.id || t.key;
+    return Object.assign({}, t, { id, builtin: id === 'free' || id === 'guest', feats, lims: t.lims || {}, watch: w,
+      price: pr ? (Number.isInteger(pr.month) ? pr.month : null) : t.price,
+      price_year: pr ? (Number.isInteger(pr.year) ? pr.year : null) : t.price_year,
+      period: pr ? (Number.isInteger(pr.month) || !Number.isInteger(pr.year) ? 'month' : 'year') : t.period });
+  }
+  const S = { plans: null, src: 'fallback', loading: null, need: '', per: '' };
   const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
-  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? '註冊會員' : p.name);
+  /* 免費卡的名稱：管理者設過方案卡（有定位句或清單）就用範本名稱（例 Free），沒設維持「註冊會員」（後端預設名「免費會員（預設）」不適合上卡）*/
+  const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? (p.tagline || (p.highlights || []).length ? p.name : '註冊會員') : p.name);
   /* 排序＋去重：訪客、註冊會員固定在前；付費依後端順序；同一個 id 只留第一個 */
   function tidy(list) {
     const seen = new Set(), out = [];
-    const all = Array.isArray(list) ? list : [];
+    const all = (Array.isArray(list) ? list : []).map((p) => (p && p.price && typeof p.price === 'object' ? fromPreset(p) : p));
     const g = all.find((p) => p && p.id === 'guest') || FALLBACK[0], f = all.find((p) => p && p.id === 'free') || FALLBACK[1];
     [g, f, ...all.filter((p) => p && p.id !== 'guest' && p.id !== 'free')].forEach((p) => { if (p && p.id && !seen.has(p.id)) { seen.add(p.id); out.push(p); } });
     return out;
@@ -125,6 +173,7 @@
   async function load() {
     if (S.loading) return S.loading;
     S.loading = (async () => {
+      if (isDemo()) { S.plans = tidy(DEMO.map(fromPreset)); S.src = 'demo'; return; }
       let j = await call('/v1/plans/public', {});
       /* 公開端點還沒部署（舊版 Worker）→ 管理者還可以用 admin 的那支拿到 */
       if ((!j || j._s !== 200) && A() && A().user() && A().user().admin) j = await call('/v1/admin/plans/get', {});
@@ -133,162 +182,255 @@
     try { await S.loading; } finally { S.loading = null; }
   }
   const PER = { month: '月', year: '年', once: '一次' };
-  /* 價格：回 { amount, unit }；訪客／註冊會員＝免費 */
-  function priceOf(p) {
-    if (tierOf(p) !== 'paid') return { amount: 0, unit: '', free: true };
-    const n = Number.isInteger(p.price) ? p.price : (p.price != null && isFinite(+p.price) ? Math.round(+p.price) : 0);
-    return { amount: n, unit: p.period === 'once' ? '（一次）' : '／' + (PER[p.period] || '月'), free: false };
+  const int = (v) => (Number.isInteger(v) && v > 0 ? v : v != null && isFinite(+v) && +v > 0 ? Math.round(+v) : null);
+  /* 一個範本的價目：{ month, year, once }（整數 NT$ 或 null）。period=month → 月價＝price、年價＝price_year；
+     period=year 的舊範本 → 年價＝price_year 或 price；period=once → 一次價。0／空＝沒有（付費卡寫「洽詢」，不編數字）*/
+  function prices(p) {
+    if (tierOf(p) !== 'paid') return { free: true };
+    const per = p.period || 'month';
+    return { month: per === 'month' ? int(p.price) : null, year: int(p.price_year) || (per === 'year' ? int(p.price) : null), once: per === 'once' ? int(p.price) : null };
   }
+  const saveOf = (p) => { const x = prices(p); return x.month && x.year && x.year < x.month * 12 ? Math.round((1 - x.year / (x.month * 12)) * 100) : 0; };
+  const nt = (n) => n.toLocaleString('en-US');
+  /* 在「per」這個切換狀態下要顯示什麼：{ amount, unit, note, period（送申請用）}；amount null＝洽詢 */
+  function priceAt(p, per) {
+    const x = prices(p);
+    if (x.free) return { free: true };
+    if (x.once) return { amount: x.once, unit: '（一次）', note: '一次付清', period: 'month' };
+    if (per === 'year' && x.year) return x.month ? { amount: Math.round(x.year / 12), unit: '／月', note: `年繳 NT$ ${nt(x.year)}・年繳方案均攤`, period: 'year', total: x.year } : { amount: x.year, unit: '／年', note: '年繳方案', period: 'year', total: x.year };
+    if (x.month) return { amount: x.month, unit: '／月', note: per === 'year' ? '此方案僅提供月繳' : '按月計費', period: 'month' };
+    if (x.year) return { amount: x.year, unit: '／年', note: per === 'month' ? '此方案僅提供年繳' : '年繳方案', period: 'year', total: x.year };
+    return { amount: null, unit: '', note: '價格請洽客服', period: 'month' };
+  }
+  /* 舊介面（TwPricing.priceOf）：{ amount, unit } —— 照範本自己的週期 */
+  function priceOf(p) { const r = priceAt(p, p.period === 'year' ? 'year' : 'month'); return r.free ? { amount: 0, unit: '', free: true } : { amount: r.amount || 0, unit: r.unit, free: false }; }
+  const monthEq = (p) => { const x = prices(p); return x.free ? 0 : x.month || (x.year ? x.year / 12 : x.once || Infinity); };
   /* 這個方案在某個功能上的值（沒寫＝預設）；上限：Infinity＝不限 */
   function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : f.def; return typeof v === 'boolean' ? v : f.def; }
   const limOf = (p, f) => { const v = (p.lims || {})[f.id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; };
   const on = (p, f) => { if (limOf(p, f) === 0) return false; const v = val(p, f); return typeof v === 'number' ? v > 0 : v !== false; };
   const ltxt = (n) => (n === Infinity ? '不限' : n === 0 ? '不能看' : `每日 ${n} 次`);
-  function catsOf() {
-    const Ft = F(); if (!Ft) return [];
-    // adminOnly（盤中即時、1／5／15 分 K，DECISIONS #326）：只有管理者帳號有，不算方案權益
-    return Ft.cats.filter((c) => c.id !== 'grp').map((c) => ({ c, fs: Ft.inCat(c.id).filter((f) => f.kind === 'bool' && !f.adminOnly) })).filter((x) => x.fs.length);
+  /* 功能清單（方案權益用）：族群觀測另算；adminOnly（盤中即時、1／5／15 分 K，DECISIONS #326）只有管理者帳號有，不算方案權益 */
+  const boolFs = () => { const Ft = F(); return Ft ? Ft.list.filter((f) => f.kind === 'bool' && f.cat !== 'grp' && !f.adminOnly) : []; };
+  /* 自選清單：preset 的 watch{tabs,size}（tabs null＝不限頁）優先；後端範本只有 watch.tabs（features.js 的 limit 開關），有 watch.size 就一起寫 */
+  function watchCell(p) {
+    const Ft = F(), wt = Ft && Ft.byId('watch.tabs');
+    const w = p.watch && typeof p.watch === 'object' ? p.watch : null;
+    const tabs = w ? w.tabs : wt ? val(p, wt) : null;
+    const size = w ? w.size : Number.isInteger((p.feats || {})['watch.size']) ? p.feats['watch.size'] : null;
+    if (tabs === 0) return { c: 'n', t: '—' };
+    return { c: 'v', t: (tabs == null ? '不限頁' : `${tabs} 頁`) + (Number.isInteger(size) && size > 0 ? `・每頁 ${size} 檔` : '') };
   }
-  function summary(p) {
-    const Ft = F(); if (!Ft) return { lines: [], q: [], n: 0, total: 0 };
-    let n = 0, total = 0;
-    const lines = catsOf().map(({ c, fs }) => {
-      const k = fs.filter((f) => on(p, f)).length; n += k; total += fs.length;
-      return { name: c.name, k, t: fs.length };
-    });
-    /* 瀏覽次數：只列「有設上限而且開關是開的」功能（關掉的已經算在上面的「不開放」）*/
-    const q = Object.keys(p.lims || {}).map((k) => Ft.byId(k)).filter((f) => f && f.cat !== 'grp' && val(p, f) !== false && limOf(p, f) > 0)
-      .map((f) => ({ id: f.id, name: f.name, txt: ltxt(limOf(p, f)) }));
-    const wt = Ft.byId('watch.tabs');
-    return { lines, q, n, total, watch: wt ? val(p, wt) : null };
+  /* 沒填打勾清單時自動產生：有次數上限的功能「名稱・每日 N 次」、自選分頁「最多 N 頁」、其餘一行總結 */
+  function autoHl(p) {
+    const Ft = F(); if (!Ft) return [];
+    const out = [];
+    Object.keys(p.lims || {}).map((k) => Ft.byId(k)).filter((f) => f && f.cat !== 'grp' && !f.adminOnly && val(p, f) !== false && limOf(p, f) > 0)
+      .forEach((f) => out.push(`${f.name}・${ltxt(limOf(p, f))}`));
+    const wt = Ft.byId('watch.tabs'); if (wt) { const w = val(p, wt); out.push(w ? `自選清單・最多 ${w} 頁` : '自選清單・不開放'); }
+    const fs = boolFs(), n = fs.filter((f) => on(p, f)).length;
+    out.push(!Object.keys(p.lims || {}).length && n === fs.length ? '所有功能・不限' : n === fs.length ? '其他功能・不限次數' : `開放功能・${n}／${fs.length} 項`);
+    return out;
   }
   /* 「我現在」在某功能上的狀態（給 need 標示用）：能不能看、上限 */
   function mine(f) { const P0 = P(); if (!P0) return { on: true, lim: Infinity }; return { on: P0.can(f.id), lim: P0.lim ? P0.lim(f.id) : Infinity }; }
   /* 這個方案能不能讓「我」在這個功能上變得更好（開得了、或次數更多）*/
   function unlocks(p, f) { const m = mine(f); if (!on(p, f)) return false; return !m.on || limOf(p, f) > m.lim; }
 
+  // ------------------------------------------------------------------ 圖示（線條 SVG，currentColor 上色）
+  const ICON = {
+    gift: '<path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/>',
+    bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" fill="currentColor"/>',
+    crown: '<path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5L3 7z" fill="currentColor"/>',
+    star: '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3z" fill="currentColor"/>',
+    rocket: '<path d="M5 15c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9-.8-.8-2.1-.8-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-4A13 13 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2zM9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',
+    gem: '<path d="M6 3h12l4 6-10 12L2 9l4-6zM2 9h20M12 21 8 9l4-6 4 6-4 12"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    chart: '<path d="M3 3v18h18M7 15l4-4 3 3 6-6"/>',
+  };
+  const svgI = (k) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k] || ICON.star}</svg>`;
+  const CHECK = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="currentColor"/><path d="M6 10.2l2.6 2.6L14.2 7.4" fill="none" stroke="var(--pr-on)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const INFO = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="var(--pl-blue)"/><path d="M10 9v5M10 6.2v.1" stroke="var(--pr-on)" stroke-width="2" stroke-linecap="round"/></svg>';
+
   // ------------------------------------------------------------------ 畫面
+  /* 配色：跟著本站主題走。卡片底色＝面板色混一點方案色（深色主題 10～14%：深藍／深紫的卡；淺色主題同比例＝範本那種淡藍／淡紫）。
+     方案色只有兩個新值（--pl-blue），取自 App.donut 的分類色盤第一色（深 #4f8cff／淺 #2f5fb3 再提亮一階 #2b65d9：對白底 5.6:1）；
+     紫色直接用主題的 --violet。字一律 --ink 系，只有方案名、價格、適合誰標題、勾勾上方案色。 */
   css('pricingCss', `
-#v-pricing{max-width:1180px;margin:0 auto;padding:8px 0 40px}
-#v-pricing .prhero{text-align:center;padding:26px 12px 6px}
-#v-pricing .prhero h1{margin:0;font-size:28px;letter-spacing:.5px}
-#v-pricing .prhero p{margin:8px auto 0;color:var(--ink-2);font-size:15px;max-width:640px;line-height:1.7}
-#v-pricing .prpts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:22px 0 8px}
-#v-pricing .prpt{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-#v-pricing .prpt b{display:block;font-size:15px;margin-bottom:4px}
-#v-pricing .prpt span{font-size:13px;color:var(--ink-2);line-height:1.6}
-#v-pricing .prnote{text-align:center;font-size:13.5px;color:var(--ink-2);margin:18px 0 14px}
-#v-pricing .prnote b{color:var(--amber)}
-#v-pricing .prneed{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;margin:0 auto 16px;max-width:760px;padding:10px 16px;border-radius:12px;
+#v-pricing{--pl-blue:#4f8cff;--pl-neutral:var(--ink-3);--pr-on:#fff;max-width:1180px;margin:0 auto;padding:0 0 40px}
+/* 方案色上的字：淺色主題白字（藍 #2b65d9 5.6:1、紫 --violet 6.0:1）；深色主題的方案色較亮，白字只有 3.3:1 → 改深字（對 #4f8cff 6.4:1）*/
+:root:not([data-theme="light"]) #v-pricing{--pr-on:#06101f}
+:root[data-theme="light"] #v-pricing{--pl-blue:#2b65d9}
+#v-pricing .pc-blue{--pc:var(--pl-blue)}#v-pricing .pc-violet{--pc:var(--violet)}#v-pricing .pc-amber{--pc:var(--amber)}#v-pricing .pc-green{--pc:var(--lime)}#v-pricing .pc-neutral{--pc:var(--pl-neutral)}
+#v-pricing .prinfo{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-2);line-height:1.5}
+#v-pricing .prinfo svg{flex:none}
+#v-pricing .prper{display:flex;justify-content:center;margin:22px 0 0}
+#v-pricing .prper .seg{display:inline-flex;gap:4px;padding:4px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel-3)}
+#v-pricing .prper button{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 22px;border:0;border-radius:999px;background:transparent;color:var(--ink-2);font:inherit;font-size:14px;cursor:pointer}
+#v-pricing .prper button.on{background:var(--pl-blue);color:var(--pr-on);font-weight:700;box-shadow:0 6px 16px -8px var(--pl-blue)}
+#v-pricing .prper .save{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--pl-blue) 16%,transparent);color:var(--pl-blue)}
+#v-pricing .prper button.on .save{background:color-mix(in srgb,#000 22%,transparent);color:var(--pr-on)}
+#v-pricing .prhero{text-align:center;padding:34px 12px 4px}
+#v-pricing .prhero h1{margin:0;font-size:30px;font-weight:800;letter-spacing:.5px;color:var(--ink)}
+#v-pricing .prhero p{margin:10px auto 0;color:var(--ink-2);font-size:15px;max-width:760px;line-height:1.7}
+#v-pricing .prneed{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;margin:16px auto 0;max-width:760px;padding:10px 16px;border-radius:12px;
   border:1px solid color-mix(in srgb,var(--amber) 60%,transparent);background:color-mix(in srgb,var(--amber) 12%,transparent);font-size:14px}
 #v-pricing .prneed b{color:var(--ink)}#v-pricing .prneed a{color:var(--cyan);font-size:13px}
-#v-pricing .prcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;align-items:stretch}
-#v-pricing .prcard{position:relative;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 18px 18px;min-width:0}
-#v-pricing .prcard.hot{border-color:var(--cyan);box-shadow:0 0 0 1px color-mix(in srgb,var(--cyan) 40%,transparent),0 16px 40px -24px color-mix(in srgb,var(--cyan) 80%,transparent)}
-#v-pricing .prcard.need{border-color:var(--amber);box-shadow:0 0 0 2px color-mix(in srgb,var(--amber) 70%,transparent),0 16px 40px -20px color-mix(in srgb,var(--amber) 80%,transparent)}
-#v-pricing .prcard.mine{outline:2px dashed color-mix(in srgb,var(--fall) 60%,transparent);outline-offset:3px}
-#v-pricing .prtag{position:absolute;top:-11px;left:18px;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;background:var(--cyan);color:#04121a}
-#v-pricing .prtag.full{background:var(--violet);color:#fff}
+#v-pricing .prcards{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:24px;align-items:stretch;margin-top:44px}
+#v-pricing .prcard{position:relative;display:flex;flex-direction:column;min-width:0;padding:28px 26px 24px;border-radius:22px;border:1px solid var(--line);background:var(--panel)}
+#v-pricing .prcard:not(.pc-neutral){border-color:color-mix(in srgb,var(--pc) 42%,transparent);
+  background:linear-gradient(165deg,color-mix(in srgb,var(--pc) 15%,var(--panel)) 0%,color-mix(in srgb,var(--pc) 6%,var(--panel)) 55%,color-mix(in srgb,var(--pc) 10%,var(--panel)) 100%)}
+#v-pricing .prcard.hot{box-shadow:0 18px 44px -26px var(--pc)}
+#v-pricing .prcard.need{border-color:var(--amber);box-shadow:0 0 0 2px color-mix(in srgb,var(--amber) 70%,transparent)}
+#v-pricing .prtag{position:absolute;top:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 14px;background:var(--pc);color:var(--pr-on);box-shadow:0 6px 14px -6px var(--pc)}
 #v-pricing .prtag.need{background:var(--amber);color:#1a1203}
-#v-pricing .prcard h2{margin:2px 0 2px;font-size:19px}
-#v-pricing .prcard .who{font-size:13px;color:var(--ink-2);min-height:1.5em}
-#v-pricing .prprice{margin:12px 0 2px;font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.1}
-#v-pricing .prprice small{font-size:14px;font-weight:500;color:var(--ink-2);font-family:inherit}
-#v-pricing .prprice.free{font-family:inherit;font-size:26px}
-#v-pricing .prgo{margin:14px 0 12px;height:40px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:14.5px;font-weight:700;cursor:pointer}
-#v-pricing .prcard.hot .prgo,#v-pricing .prgo.pri{background:var(--cyan);color:#04121a;border-color:transparent}
-#v-pricing .prcard.need .prgo.pri{background:var(--amber);color:#1a1203}
-#v-pricing .prgo[disabled]{opacity:.6;cursor:default}
-#v-pricing .prfs{list-style:none;margin:0;padding:0;font-size:13.5px;display:grid;gap:6px}
-#v-pricing .prfs li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding-bottom:5px}
-#v-pricing .prfs li span:last-child{font-family:var(--mono);color:var(--ink-2);white-space:nowrap}
-#v-pricing .prfs li.all span:last-child{color:var(--fall)}
-#v-pricing .prfs li.none span:last-child{color:var(--ink-3)}
-#v-pricing .prfs li.hl{background:color-mix(in srgb,var(--amber) 16%,transparent);border-radius:6px;padding:2px 6px}
-#v-pricing .prfs .qh{border:0;padding:6px 0 0;color:var(--ink-2);font-size:12.5px}
-#v-pricing .prmore{display:block;margin:18px auto 0;height:38px;padding:0 20px;border-radius:10px;border:1px solid var(--line-2);background:transparent;color:var(--cyan);font-size:14px;cursor:pointer}
-#v-pricing .prfull{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 14px 14px;overflow-x:auto}
-#v-pricing .prfull[hidden]{display:none}
-#v-pricing .prfull table{width:100%;border-collapse:collapse;font-size:13.5px}
-#v-pricing .prfull th,#v-pricing .prfull td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center}
-#v-pricing .prfull th:first-child,#v-pricing .prfull td:first-child{text-align:left}
-#v-pricing .prfull tr.cat td{font-weight:700;color:var(--ink);background:var(--panel-2);text-align:left}
-#v-pricing .prfull .y{color:var(--fall)}#v-pricing .prfull .n{color:var(--ink-3)}
-#v-pricing .prlegal{margin-top:22px;font-size:12.5px;color:var(--ink-2);line-height:1.75;border-top:1px solid var(--line);padding-top:12px}
-@media (max-width:900px){#v-pricing .prpts{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:520px){#v-pricing .prpts{grid-template-columns:minmax(0,1fr)}#v-pricing .prhero h1{font-size:23px}}`);
+#v-pricing .prhd{display:grid;grid-template-columns:48px minmax(0,1fr);gap:4px 14px;align-items:center}
+#v-pricing .prico{grid-row:span 2;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:var(--pc);background:color-mix(in srgb,var(--pc) 16%,var(--panel))}
+#v-pricing .pc-neutral .prico{color:var(--ink-2);background:var(--panel-3)}
+#v-pricing .prcard h2{margin:0;font-size:22px;font-weight:800;line-height:1.2;color:var(--pc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-pricing .pc-neutral h2{color:var(--ink)}
+#v-pricing .prcard .who{font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-pricing .prprice{margin:24px 0 0;display:block;color:var(--pc);font-variant-numeric:tabular-nums;font-weight:700;line-height:1.1;white-space:nowrap;letter-spacing:.3px}
+#v-pricing .prprice .cur{font-size:30px}#v-pricing .prprice b{font-size:36px;font-weight:700;margin:0 4px 0 6px}
+#v-pricing .prprice small{font-size:15px;font-weight:500;color:var(--ink-2)}
+#v-pricing .prprice.free{font-size:38px;font-weight:900;color:var(--ink)}
+#v-pricing .prprice.ask{font-size:30px}
+#v-pricing .prnote{margin-top:8px;font-size:13px;color:var(--ink-3);min-height:1.5em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-pricing .prcard hr{border:0;border-top:1px solid color-mix(in srgb,var(--ink) 10%,transparent);margin:22px 0}
+#v-pricing .prfit{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--ink) 5%,transparent);margin-bottom:18px}
+#v-pricing .prfit b{display:block;font-size:14px;color:var(--pc);margin-bottom:4px}
+#v-pricing .pc-neutral .prfit b{color:var(--ink)}
+#v-pricing .prfit p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.65}
+#v-pricing .prhl{list-style:none;margin:0 0 20px;padding:0;display:grid;gap:12px}
+#v-pricing .prhl li{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.45;color:var(--ink)}
+#v-pricing .prhl li svg{flex:none;margin-top:1px;color:var(--pc)}
+#v-pricing .pc-neutral .prhl li svg{color:color-mix(in srgb,var(--ink-3) 70%,transparent)}
+#v-pricing .prgo{margin-top:auto;width:100%;height:46px;border-radius:12px;border:1px solid transparent;background:var(--pc);color:var(--pr-on);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+#v-pricing .pc-neutral .prgo{background:transparent;color:var(--ink);border-color:var(--line-2)}
+#v-pricing .prgo[disabled]{background:transparent;color:var(--ink-2);border-color:color-mix(in srgb,var(--pc) 35%,var(--line-2));cursor:default}
+#v-pricing .prcard.mine .prgo[disabled]{font-weight:700}
+#v-pricing .prapply{text-align:center;font-size:13px;color:var(--ink-2);margin:20px 0 0}
+#v-pricing .prapply b{color:var(--ink)}
+#v-pricing .prcmp{margin-top:44px}
+#v-pricing .prcmp h2{margin:0;text-align:center;font-size:22px;font-weight:800}
+#v-pricing .prcmp>p{margin:6px 0 16px;text-align:center;font-size:13px;color:var(--ink-2)}
+#v-pricing .prcmpw{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+#v-pricing .prcmpw table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;min-width:520px}
+#v-pricing .prcmpw th,#v-pricing .prcmpw td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+#v-pricing .prcmpw th:first-child,#v-pricing .prcmpw td:first-child{position:sticky;left:0;z-index:1;text-align:left;background:var(--panel);max-width:260px;overflow:hidden;text-overflow:ellipsis}
+#v-pricing .prcmpw thead th{font-size:15px;font-weight:800;padding:14px;background:var(--panel)}
+#v-pricing .prcmpw thead th.pc-blue,#v-pricing .prcmpw thead th.pc-violet,#v-pricing .prcmpw thead th.pc-amber,#v-pricing .prcmpw thead th.pc-green{color:var(--pc)}
+#v-pricing .prcmpw .hot{background:color-mix(in srgb,var(--pl-blue) 8%,var(--panel))}
+#v-pricing .prcmpw thead th.hot{background:color-mix(in srgb,var(--pl-blue) 14%,var(--panel))}
+#v-pricing .prcmpw tr.cat td{font-size:13px;font-weight:700;color:var(--ink-2);background:var(--panel-3);text-align:left;padding:8px 14px}
+#v-pricing .prcmpw td.y{color:var(--pc,var(--ink));font-weight:700}#v-pricing .prcmpw td.y.pc-neutral{color:var(--ink-2)}#v-pricing .prcmpw td.n{color:var(--ink-3)}
+#v-pricing .prcmpw td.v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--ink)}
+#v-pricing .prcmpw tr.hl td{background:color-mix(in srgb,var(--amber) 16%,var(--panel))}
+#v-pricing .prcmpw tr.base td{color:var(--ink-2);border-bottom:0}
+#v-pricing .prlegal{margin-top:26px;font-size:12.5px;color:var(--ink-2);line-height:1.75;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:1100px){#v-pricing .prcards{gap:16px}#v-pricing .prcard{padding:26px 18px 20px}#v-pricing .prprice .cur{font-size:24px}#v-pricing .prprice b{font-size:30px}}
+@media (max-width:820px){#v-pricing .prcards{grid-template-columns:minmax(0,1fr);gap:30px}#v-pricing .prhero h1{font-size:24px}#v-pricing .prhero{padding-top:26px}
+  #v-pricing .prper button{padding:0 16px}#v-pricing .prcmpw table{min-width:calc(132px + var(--nc,3) * 112px)}
+  #v-pricing .prcmpw th:first-child,#v-pricing .prcmpw td:first-child{width:132px;min-width:132px;max-width:132px;white-space:normal;box-shadow:1px 0 0 var(--line)}
+  #v-pricing .prcmpw th,#v-pricing .prcmpw td{padding:10px}#v-pricing .prcmpw tr.base td:first-child{white-space:normal}}`);
 
-  const POINTS = [
-    ['資金往哪裡跑', '每天盤後整理族群資金流向、輪動時鐘與資金去向，一眼看出錢在追哪一群。'],
-    ['產業鏈剖析', '上中下游剖析圖、供應鏈關聯圖，點零件就看得到供應商與個股。'],
-    ['個股多週期技術面', 'K 線、多週期同看、營收／獲利／籌碼分頁與規則式 AI 分析。'],
-    /* 2026-10-06（DECISIONS #326）：盤中即時只給管理者帳號，不再當成方案權益宣傳（原本這格寫「盤中即時：盤中報價與分時走勢…」）*/
-    ['自選清單同步', '自選清單最多五頁，登入後跨裝置同步。'],
-  ];
   function paint() {
     const v = view('v-pricing'); if (!v) return;
-    const plans = tidy(S.plans || FALLBACK);
-    const paid = plans.filter((p) => tierOf(p) === 'paid');
-    const sums = new Map(plans.map((p) => [p.id, summary(p)]));
-    const needF = S.need && F() ? F().byId(S.need) : null;
-    const needIds = needF ? plans.filter((p) => tierOf(p) !== 'guest' && unlocks(p, needF)).map((p) => p.id) : [];
-    const hot = paid[0] ? paid[0].id : null;
+    const all = tidy(S.plans || FALLBACK);
+    /* 卡片：註冊會員＋公開的付費範本（依「折合每月」價格由低到高；價格拿不到的排最後、維持後端順序）*/
+    const paid = all.filter((p) => tierOf(p) === 'paid' && p.public !== false).map((p, i) => [p, i])
+      .sort((a, b) => monthEq(a[0]) - monthEq(b[0]) || a[1] - b[1]).map((x) => x[0]);
+    const free = all.find((p) => p.id === 'free');
+    const plans = [free, ...paid].filter(Boolean);
+    /* 月／年切換：至少一個付費範本兩種價格都有才出現；預設年繳（範本圖選中的是年繳），只記在這一頁 */
+    const both = paid.filter((p) => { const x = prices(p); return x.month && x.year; });
+    const hasPer = both.length > 0;
+    if (!hasPer) S.per = ''; else if (!S.per) S.per = 'year';
+    const save = Math.max(0, ...both.map(saveOf));
+    const saveTxt = save > 0 ? (new Set(both.map(saveOf)).size > 1 ? `最多省 ${save}%` : `省 ${save}%`) : '';
+    /* 頂端標籤：管理者有填就只用填的；都沒填才沿用舊規則（第一個付費＝最受歡迎、開最多功能＝功能最齊）*/
+    const fs = boolFs(), nOn = (p) => fs.filter((f) => on(p, f)).length;
+    const anyBadge = paid.some((p) => p.badge);
+    let hot = anyBadge ? (paid.find((p) => p.badge && p.color === 'blue') || paid.find((p) => p.badge) || null) : paid[0] || null;
     let full = null;
-    if (paid.length > 1) { full = paid.slice().sort((a, b) => sums.get(b.id).n - sums.get(a.id).n)[0].id; if (full === hot) full = paid[paid.length - 1].id; }
+    if (!anyBadge && paid.length > 1) { full = paid.slice().sort((a, b) => nOn(b) - nOn(a))[0]; if (full === hot) full = paid[paid.length - 1]; }
+    const AUTO_C = ['blue', 'violet', 'amber', 'green'], AUTO_I = ['bolt', 'crown', 'star', 'rocket'];
+    const look = new Map(plans.map((p) => {
+      const i = paid.indexOf(p);
+      return [p.id, { color: p.color || (i < 0 ? 'neutral' : AUTO_C[i % 4]), icon: p.icon || (i < 0 ? 'gift' : AUTO_I[i % 4]),
+        badge: anyBadge ? (p.badge || '') : p === hot ? '最受歡迎' : p === full ? '功能最齊' : '' }];
+    }));
+    const needF = S.need && F() ? F().byId(S.need) : null;
+    const needIds = needF ? plans.filter((p) => unlocks(p, needF)).map((p) => p.id) : [];
     const me = myPlan();
+    const fits = plans.filter((p) => p.fit_title).map((p) => `${showName(p)} ${p.fit_title}`);
     v.innerHTML = `
-      <div class="prhero"><h1>選一個適合你的方案</h1>
-        <p>從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。</p></div>
-      <div class="prpts">${POINTS.map(([t, d]) => `<div class="prpt"><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join('')}</div>
-      <p class="prnote"><b>目前為申請制，專人開通；線上付款即將推出。</b>${S.src === 'fallback' ? '　（暫時讀不到付費方案，以下只列免費的兩種）' : ''}</p>
+      <div class="prinfo" role="note">${INFO}<span>本平台非券商、非投顧，不提供任何買賣建議，資料為盤後整理、僅供參考。如有建議或疑問，請透過右下角「客服」聯繫。</span></div>
+      ${hasPer ? `<div class="prper"><div class="seg" id="prPeriod" role="tablist" aria-label="計費週期">
+        <button type="button" role="tab" data-per="month" class="${S.per === 'month' ? 'on' : ''}" aria-selected="${S.per === 'month'}">月繳</button>
+        <button type="button" role="tab" data-per="year" class="${S.per === 'year' ? 'on' : ''}" aria-selected="${S.per === 'year'}">年繳${saveTxt ? `<span class="save" id="prSave">${esc(saveTxt)}</span>` : ''}</button></div></div>` : ''}
+      <div class="prhero"><h1>依你的研究深度選方案</h1>
+        <p>${fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
       ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
-      <div class="prcards" id="prCards">${plans.map((p) => card(p, sums.get(p.id), p.id === hot, p.id === full, me, needIds.includes(p.id), needF)).join('')}</div>
-      <button type="button" class="prmore" id="prMore" aria-expanded="${S.full}">${S.full ? '收起完整權益' : '查看完整權益'}</button>
-      <div class="prfull" id="prFull" ${S.full ? '' : 'hidden'}>${S.full ? table(plans) : ''}</div>
+      <div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>
+      <p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>
+      ${compare(plans, look, hot, needF)}
       <div class="prlegal">本網站提供的是資料整理與視覺化工具，<b>不是證券投資顧問</b>，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷並承擔風險。
         方案內容與價格以專人開通時的確認為準；申請送出不會扣款。詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
-    v.querySelector('#prMore').onclick = () => { S.full = !S.full; paint(); if (S.full) { const t = document.getElementById('prFull'); if (t) t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } };
+    v.querySelectorAll('#prPeriod button[data-per]').forEach((b) => { b.onclick = () => { if (S.per === b.dataset.per) return; S.per = b.dataset.per; paint(); }; });
     v.querySelectorAll('.prgo[data-go]').forEach((b) => { b.onclick = () => go(plans.find((p) => p.id === b.dataset.go)); });
     if (needIds.length) { const c = v.querySelector(`.prcard[data-plan="${CSS.escape(needIds[0])}"]`); if (c && c.scrollIntoView) setTimeout(() => c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60); }
   }
-  function card(p, s, hot, full, me, need, needF) {
-    const t = tierOf(p), pr = priceOf(p), isMine = me.id === p.id;
-    const who = t === 'guest' ? '不用登入，打開就能看' : t === 'free' ? '用 Google 帳號登入即可' : '進階分析與更高的每日次數';
-    const price = pr.free ? '<div class="prprice free">免費</div>' : `<div class="prprice">NT$ ${pr.amount.toLocaleString('en-US')}<small>${esc(pr.unit)}</small></div>`;
+  function card(p, lk, hot, me, need) {
+    const t = tierOf(p), isMine = me.id === p.id, pr = priceAt(p, S.per);
+    const who = p.tagline || (t === 'free' ? '用 Google 帳號登入即可' : '進階分析與更高的每日次數');
+    const price = pr.free ? '<div class="prprice free">免費</div>'
+      : pr.amount == null ? '<div class="prprice ask">洽詢</div>'
+      : `<div class="prprice"><span class="cur">NT$</span> <b>${nt(pr.amount)}</b><small>${esc(pr.unit)}</small></div>`;
+    const note = pr.free ? '永久保留基礎功能・不需信用卡' : pr.note;
     let btn;
     if (isMine) btn = `<button type="button" class="prgo" disabled>目前方案</button>`;
-    else if (t === 'guest') btn = `<button type="button" class="prgo" disabled>免費使用</button>`;
-    else if (t === 'free') btn = me.tier === 'guest' ? `<button type="button" class="prgo${need ? ' pri' : ''}" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
-    else btn = `<button type="button" class="prgo pri" data-go="${esc(p.id)}">申請訂閱</button>`;
-    const lines = s.lines.map((l) => `<li class="${l.k === l.t ? 'all' : l.k === 0 ? 'none' : ''}"><span>${esc(l.name)}</span><span>${l.k === l.t ? '全部' : l.k === 0 ? '不開放' : l.k + '／' + l.t + ' 項'}</span></li>`).join('');
-    const q = s.q.length ? s.q.map((x) => `<li class="${needF && x.id === needF.id ? 'hl' : ''}"><span>${esc(x.name)}</span><span>${esc(x.txt)}</span></li>`).join('') : '<li class="all"><span>所有功能</span><span>不限</span></li>';
-    const tag = need ? '<span class="prtag need">可解鎖</span>' : hot ? '<span class="prtag">最受歡迎</span>' : full ? '<span class="prtag full">功能最齊</span>' : '';
-    return `<div class="prcard${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
-      ${tag}<h2>${esc(showName(p))}</h2><div class="who">${esc(who)}</div>
-      ${price}${btn}
-      <ul class="prfs">${lines}${s.watch != null ? `<li><span>自選清單分頁</span><span>${s.watch ? s.watch + ' 頁' : '不開放'}</span></li>` : ''}
-        <li class="qh"><span>每日瀏覽次數</span><span></span></li>${q}</ul></div>`;
+    else if (t === 'free') btn = me.tier === 'guest' ? `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
+    else btn = `<button type="button" class="prgo" data-go="${esc(p.id)}">升級 ${esc(showName(p))}</button>`;
+    const hl = (Array.isArray(p.highlights) && p.highlights.length ? p.highlights : autoHl(p)).slice(0, 12);
+    const tag = need ? '<span class="prtag need">可解鎖</span>' : lk.badge ? `<span class="prtag">${lk.badge === '最受歡迎' ? '★ ' : '✦ '}${esc(lk.badge)}</span>` : '';
+    const fit = p.fit_title || p.fit_desc ? `<div class="prfit">${p.fit_title ? `<b>${esc(p.fit_title)}</b>` : ''}${p.fit_desc ? `<p>${esc(p.fit_desc)}</p>` : ''}</div>` : '';
+    return `<div class="prcard pc-${esc(lk.color)}${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
+      ${tag}<div class="prhd"><span class="prico">${svgI(lk.icon)}</span><h2 title="${esc(showName(p))}">${esc(showName(p))}</h2><div class="who" title="${esc(who)}">${esc(who)}</div></div>
+      ${price}<div class="prnote" title="${esc(note)}">${esc(note)}</div><hr>
+      ${fit}<ul class="prhl">${hl.map((x) => `<li>${CHECK}<span>${esc(x)}</span></li>`).join('')}</ul>${btn}</div>`;
   }
-  function table(plans) {
-    const Ft = F(); if (!Ft) return '';
-    const head = `<tr><th>功能</th>${plans.map((p) => `<th>${esc(showName(p))}</th>`).join('')}</tr>`;
+  /* 方案功能比較表：每格＝✓／—／每日 N 次／最多 N 頁。只列「至少一個方案不一樣」的功能；全部一樣的收成最後一行 */
+  function compare(plans, look, hot, needF) {
+    const Ft = F(); if (!Ft || plans.length < 2) return '';
     const cell = (p, f) => {
-      if (f.kind === 'limit') { const v = val(p, f); return `<td>${v ? v + ' 頁' : '—'}</td>`; }
-      if (!on(p, f)) return '<td class="n" aria-label="沒有">—</td>';
-      const n = limOf(p, f);
-      return n === Infinity ? '<td class="y" aria-label="有">✓</td>' : `<td class="y">每日 ${n} 次</td>`;
+      if (f.id === 'watch.tabs') return watchCell(p);
+      if (f.kind === 'limit') { const n = val(p, f); return n ? { c: 'v', t: `最多 ${n} 頁` } : { c: 'n', t: '—' }; }
+      if (!on(p, f)) return { c: 'n', t: '—' };
+      const n = limOf(p, f); return n === Infinity ? { c: 'y', t: '✓' } : { c: 'v', t: `每日 ${n} 次` };
     };
-    let rows = '';
+    const hc = (p) => ` pc-${look.get(p.id).color}` + (p === hot ? ' hot' : '');
+    let rows = '', same = 0;
+    /* 研究瀏覽（全站共用每日額度 quota.all，另一位同事在 quota.js 加）：範本的 lims 有這個鍵才列，放第一列；null／沒寫＝不限 */
+    if (plans.some((p) => p.lims && Object.prototype.hasOwnProperty.call(p.lims, 'quota.all'))) {
+      const qa = plans.map((p) => { const n = (p.lims || {})['quota.all']; return Number.isInteger(n) ? (n === 0 ? { c: 'n', t: '—' } : { c: 'v', t: `每日 ${n} 次` }) : { c: 'y', t: '不限' }; });
+      if (new Set(qa.map((x) => x.t)).size > 1) rows += `<tr class="cat"><td colspan="${plans.length + 1}">研究瀏覽</td></tr><tr data-f="quota.all"${needF && needF.id === 'quota.all' ? ' class="hl"' : ''}><td title="個股、剖析圖、題材剖析等研究頁，全站合計的每日瀏覽次數">研究瀏覽（全站共用）</td>${qa.map((x, i) => `<td class="${x.c}${hc(plans[i])}">${esc(x.t)}</td>`).join('')}</tr>`;
+      else same++;
+    }
     Ft.cats.filter((c) => c.id !== 'grp').forEach((c) => {
-      const fs = Ft.inCat(c.id).filter((f) => !f.adminOnly); if (!fs.length) return;   // 只有管理者有的不列（DECISIONS #326）
-      rows += `<tr class="cat"><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + fs.map((f) => `<tr data-f="${esc(f.id)}"><td title="${esc(f.desc)}">${esc(f.name)}</td>${plans.map((p) => cell(p, f)).join('')}</tr>`).join('');
+      const fs = Ft.inCat(c.id).filter((f) => !f.adminOnly && (f.kind === 'bool' || f.kind === 'limit'));
+      /* 同一列有方案寫「每日 N 次」時，不限的那格寫「不限」而不是 ✓（不然看起來像「有」但不知道幾次）*/
+      const diff = fs.map((f) => { const cs = plans.map((p) => cell(p, f)); return [f, cs.some((x) => /^每日/.test(x.t)) ? cs.map((x) => (x.c === 'y' ? { c: 'y', t: '不限' } : x)) : cs]; }).filter(([, cs]) => { if (new Set(cs.map((x) => x.t)).size > 1) return true; same++; return false; });
+      if (!diff.length) return;
+      rows += `<tr class="cat"><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + diff.map(([f, cs]) => `<tr data-f="${esc(f.id)}"${needF && needF.id === f.id ? ' class="hl"' : ''}><td title="${esc(f.desc || f.name)}">${esc(f.name)}</td>${cs.map((x, i) => `<td class="${x.c}${hc(plans[i])}">${esc(x.t)}</td>`).join('')}</tr>`).join('');
     });
     const g = Ft.inCat('grp');
-    rows += `<tr class="cat"><td colspan="${plans.length + 1}">族群觀測</td></tr><tr><td>可展開的族群</td>${plans.map((p) => {
-      const off = Object.keys(p.feats || {}).filter((k) => k.startsWith('grp.') && p.feats[k] === false).length + Object.keys(p.lims || {}).filter((k) => k.startsWith('grp.') && p.lims[k] === 0).length;
-      return `<td>${off === 0 ? '全部' : g.length ? (g.length - off) + '／' + g.length : '關閉 ' + off + ' 個'}</td>`;
-    }).join('')}</tr>`;
-    return `<table id="prTable"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+    const gv = plans.map((p) => { const off = Object.keys(p.feats || {}).filter((k) => k.startsWith('grp.') && p.feats[k] === false).length + Object.keys(p.lims || {}).filter((k) => k.startsWith('grp.') && p.lims[k] === 0).length;
+      return off === 0 ? '全部' : g.length ? (g.length - off) + '／' + g.length : '關閉 ' + off + ' 個'; });
+    if (new Set(gv).size > 1) rows += `<tr class="cat"><td colspan="${plans.length + 1}">族群觀測</td></tr><tr data-f="grp"><td>可展開的族群</td>${gv.map((x, i) => `<td class="v${hc(plans[i])}">${esc(x)}</td>`).join('')}</tr>`;
+    if (same) rows += `<tr class="base"><td>其他基礎功能（${same} 項）</td><td colspan="${plans.length}">全部方案皆可用</td></tr>`;
+    return `<section class="prcmp" id="prCmp"><h2>方案功能比較</h2><p>只列出方案之間有差異的功能</p>
+      <div class="prcmpw" style="--nc:${plans.length}"><table id="prTable"><thead><tr><th>功能</th>${plans.map((p) => `<th class="pc-${esc(look.get(p.id).color)}${hc(p)}">${esc(showName(p))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
   }
   /* 訂閱鈕：免費卡＝登入；付費卡＝訂閱申請（要先登入：沒登入直接跳 Google 登入，登入回來再按一次）*/
   function go(p) {
@@ -300,11 +442,14 @@
       dialog(`<h3>訂閱申請</h3><p>線上申請暫時無法使用（會員功能尚未開放）。請從右下角「客服」寄信給我們，註明想要的方案「${esc(showName(p))}」。</p><div class="row2"><button type="button" class="pri" data-close>知道了</button></div>`);
       return;
     }
-    if (!u) { toast('申請訂閱要先登入 —— 登入完成後再按一次「申請訂閱」'); a.login(); return; }
-    const pr = priceOf(p);
+    if (!u) { toast('申請訂閱要先登入 —— 登入完成後再按一次「升級」'); a.login(); return; }
+    /* 週期跟著頁上的月／年切換；範本只有一種週期就用它自己的（後端 /v1/subscribe/request 只收 month／year，一次付清當「月」送，專人開通時再確認）*/
+    const pr = priceAt(p, S.per);
+    const per = pr.period === 'year' ? 'year' : 'month';
+    const ptxt = pr.amount == null ? '洽詢' : pr.total ? `NT$ ${nt(pr.total)}／年${pr.unit === '／月' ? `（約 NT$ ${nt(pr.amount)}／月）` : ''}` : `NT$ ${nt(pr.amount)}${pr.unit}`;
     dialog(`<h3>訂閱申請：${esc(showName(p))}</h3>
       <p><b>目前為申請制，專人開通；線上付款即將推出。</b>送出後我們會用下面的 email 跟你確認方案與付款方式，<b>送出不會扣款</b>。</p>
-      <p>方案價格：<b>NT$ ${pr.amount.toLocaleString('en-US')}${esc(pr.unit)}</b></p>
+      <p>方案價格：<b>${esc(ptxt)}</b>（${per === 'year' ? '年繳' : '月繳'}）</p>
       <label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200">
       <label for="subNote">備註（選填，例如需要發票抬頭）</label><input type="text" id="subNote" maxlength="300">
       <div class="msg" id="subMsg" role="status"></div>
@@ -314,8 +459,6 @@
         const contact = d.querySelector('#subMail').value.trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = '請填正確的 email'; return; }
         btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
-        /* 週期跟著範本（月或年）；後端 /v1/subscribe/request 只收 month／year，一次付清的範本當「月」送（專人開通時再確認）*/
-        const per = p.period === 'year' ? 'year' : 'month';
         const j = await call('/v1/subscribe/request', { plan: p.id, period: per, contact, note: d.querySelector('#subNote').value.trim() });
         btn.disabled = false;
         if (j && j._s === 200 && j.ok) {
@@ -347,5 +490,5 @@
   const again = () => { if ((location.hash || '').startsWith('#pricing') && S.plans) paint(); };
   window.addEventListener('tw:perm', again);
   window.addEventListener('tw:account', () => { S.plans = null; if ((location.hash || '').startsWith('#pricing')) show(); });
-  window.TwPricing = { reload: () => { S.plans = null; return show(); }, priceOf, state: () => ({ src: S.src, plans: S.plans, need: S.need }) };
+  window.TwPricing = { reload: () => { S.plans = null; return show(); }, priceOf, priceAt, fromPreset, state: () => ({ src: S.src, plans: S.plans, need: S.need, per: S.per }) };
 })();

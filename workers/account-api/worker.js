@@ -1594,3 +1594,98 @@ Hub.prototype.fetch = async function (req) {
   }
 };
 /* ============================================================================ 會員資料匯出／還原區塊結束 */
+
+/* ============================================================================ 方案卡呈現區塊（pricing-v2，2026-10-07）
+   Andy：「圖一是我訂閱頁面想看到的範本，幫我做一份」—— 訂閱頁改成三張方案卡（圖示、定位句、價格、適合誰、打勾清單）
+   ＋ 月繳／年繳切換（「年繳 省 X%」由兩個價格自動算）。這些文字全部要能在管理區改，所以存在範本上，不寫死在前端。
+   新增（plans 表，相容遷移：PRAGMA 判斷再 ALTER，重跑不報錯、舊列原封不動）：
+     ① price_year INTEGER：年繳總價（整數 NT$；NULL＝沒有年繳）。原本的 price＋period 不動 ——
+        period=month 的範本：月價＝price、年價＝price_year；period=year 的舊範本：年價＝price（price_year 沒填時）。
+        ★ 金流仍以 plan id 對價、價格以後端為準（同 admin-v2b）。
+     ② pres TEXT（JSON）：卡片上的文字與樣式 —— 欄位名直接採用 docs/plan_presets_1007.json 的格式，
+        CEO 灌範本時一個欄位對一個欄位、不用轉換：
+          tagline 一句定位（≤40 字）／badge 頂端膠囊（≤12 字，例「最受歡迎」）／fit_title「適合…」（≤30）／fit_desc 說明（≤160）
+          highlights[] 打勾清單，每項「功能名・限制」（≤12 項、每項 ≤60 字）
+          icon 圖示鍵（白名單）／color 色系（白名單）／public 是否放上訂閱頁（預設 true：舊的付費範本不會突然消失）
+   API：plans/get、plans/put、/v1/plans/public 的每個範本多帶 price_year 與上面七個欄位（沒設＝空字串／[]／null／public:true）。
+        plans/put 多收 price_year（null 或 0～9999999 整數）與 pres（物件；沒帶＝不動，帶了就整份換掉、嚴格驗證，壞的整個 400）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+const PRES_ICONS = ['gift', 'bolt', 'crown', 'star', 'rocket', 'gem', 'shield', 'chart'];
+const PRES_COLORS = ['neutral', 'blue', 'violet', 'amber', 'green'];
+const PRES_LEN = { tagline: 40, badge: 12, fit_title: 30, fit_desc: 160 };
+const PRES_HL_MAX = 12, PRES_HL_LEN = 60, PRICE_YEAR_MAX = 9999999;
+const presTxt = (s) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim();
+
+Hub.prototype.presInit = function () {
+  if (this._presOk) return;
+  this.v4Init();
+  const pc = this.q('PRAGMA table_info(plans)').map((c) => c.name);
+  if (!pc.includes('price_year')) this.q('ALTER TABLE plans ADD COLUMN price_year INTEGER');
+  if (!pc.includes('pres')) this.q("ALTER TABLE plans ADD COLUMN pres TEXT DEFAULT '{}'");
+  this._presOk = true;
+};
+/* 驗證管理者送來的 pres：回乾淨的物件；任何一欄不合格回 null（整個請求 400，不默默截斷或修正）*/
+Hub.prototype.presClean = function (x) {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const out = {};
+  for (const [k, n] of Object.entries(PRES_LEN)) {
+    if (x[k] == null || x[k] === '') continue;
+    if (typeof x[k] !== 'string') return null;
+    const s = presTxt(x[k]); if (s.length > n) return null;
+    if (s) out[k] = s;
+  }
+  if (x.highlights != null) {
+    if (!Array.isArray(x.highlights) || x.highlights.length > PRES_HL_MAX) return null;
+    const hl = [];
+    for (const h of x.highlights) { if (typeof h !== 'string') return null; const s = presTxt(h); if (s.length > PRES_HL_LEN) return null; if (s) hl.push(s); }
+    out.highlights = hl;
+  }
+  if (x.icon != null && x.icon !== '') { if (!PRES_ICONS.includes(x.icon)) return null; out.icon = x.icon; }
+  if (x.color != null && x.color !== '') { if (!PRES_COLORS.includes(x.color)) return null; out.color = x.color; }
+  if (x.public != null) { if (typeof x.public !== 'boolean') return null; out.public = x.public; }
+  return out;
+};
+/* 某個範本的呈現欄位（攤平，前端直接讀 p.tagline…）*/
+Hub.prototype.presOf = function (id) {
+  this.presInit();
+  const r = this.q('SELECT price_year, pres FROM plans WHERE id = ?', id)[0];
+  let o = {}; try { o = r ? JSON.parse(r.pres || '{}') || {} : {}; } catch (e) { o = {}; }
+  return {
+    price_year: r && Number.isInteger(r.price_year) ? r.price_year : null,
+    tagline: o.tagline || '', badge: o.badge || '', fit_title: o.fit_title || '', fit_desc: o.fit_desc || '',
+    highlights: Array.isArray(o.highlights) ? o.highlights : [], icon: o.icon || null, color: o.color || null, public: o.public !== false,
+  };
+};
+const presOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) {
+  const p = presOrigPlan.call(this, id);
+  return p ? Object.assign(p, this.presOf(id)) : p;
+};
+const presOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () {
+  this.presInit();
+  return presOrigPlanRows.call(this).map((p) => ({ ...p, ...this.presOf(p.id) }));
+};
+/* plans/put：先驗 pres／price_year（壞的整個 400），原本的存完（200）才寫這兩欄，再回最新的 plans/get */
+const presOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.presInit();
+  let pres, py;
+  if (b && b.del !== true) {
+    if (b.pres !== undefined) { pres = this.presClean(b.pres); if (!pres) return this.json(req, { error: 'bad_pres' }, 400); }
+    if (b.price_year !== undefined) {
+      py = b.price_year;
+      if (py !== null && (!Number.isInteger(py) || py < 0 || py > PRICE_YEAR_MAX)) return this.json(req, { error: 'bad_price_year' }, 400);
+    }
+  }
+  const res = await presOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || (pres === undefined && py === undefined)) return res;
+  if (pres !== undefined) this.q('UPDATE plans SET pres = ? WHERE id = ?', JSON.stringify(pres), String(b.id));
+  if (py !== undefined) this.q('UPDATE plans SET price_year = ? WHERE id = ?', py, String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 匯出／還原：兩邊欄位要對得上（還原時檢查 cols ⊆ 現有欄位），所以先把這兩欄建好 */
+const presOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { presOrigExpInit.call(this); this.presInit(); };
+/* ============================================================================ 方案卡呈現區塊結束 */

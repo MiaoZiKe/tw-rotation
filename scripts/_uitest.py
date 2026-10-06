@@ -47560,6 +47560,12 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None):
             out, code = {"error": "forbidden"}, 403
         elif path == "/v1/admin/plans/get":
             out = {"plans": [{**p, "members": 0} for p in plans]}
+        elif path == "/v1/admin/plans/put":     # pricing-v2：方案卡設定（pres／price_year）存檔
+            for p in plans:
+                if p["id"] == body.get("id"):
+                    p.update({k: body[k] for k in ("name", "feats", "price", "period", "price_year") if k in body})
+                    p.update(body.get("pres") or {})
+            out = {"plans": [{**p, "members": 0} for p in plans]}
         elif path == "/v1/admin/notices/list":
             out = {"now": 1759650000000, "notices": [{**n, "reads": 0} for n in st["notices"]]}
         elif path == "/v1/admin/notices/put":
@@ -47597,9 +47603,12 @@ def t_sub_1005(b, base, code):
     c, sent, st = _sub_ctx(b, "member")
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#pricing", wait_until="domcontentloaded")
-    ok(f"{T}：#pricing 依後端方案畫出 4 張卡（訪客／註冊會員／399／799）",
-       bool(wait_until(pg, "() => document.querySelectorAll('#prCards .prcard').length === 4 && document.getElementById('v-pricing').classList.contains('on')", 10000)),
-       pg.evaluate("() => document.querySelectorAll('#prCards .prcard').length"))
+    # ★ 2026-10-07 改前→改後（pricing-v2，Andy：「圖一是我訂閱頁面想看到的範本」）：
+    #   改前 4 張卡（訪客／註冊會員／399／799）→ 改後 3 張：訪客不是方案、不畫卡；付費依價格由低到高
+    ok(f"{T}：#pricing 依後端方案畫出 3 張卡（註冊會員／399／799，訪客不畫卡）",
+       bool(wait_until(pg, "() => document.querySelectorAll('#prCards .prcard').length === 3 && document.getElementById('v-pricing').classList.contains('on')", 10000))
+       and pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')") == "free,p399,p799",
+       pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
     pg.wait_for_timeout(300)
     price = lambda pid: pg.inner_text(f"#prCards .prcard[data-plan='{pid}'] .prprice")
     m399 = price("p399")
@@ -47612,15 +47621,42 @@ def t_sub_1005(b, base, code):
     ok(f"{T}：每張卡列出瀏覽次數（免費會員：個股頁每日 1 次；799：所有功能不限）",
        "每日 1 次" in pg.inner_text("#prCards .prcard[data-plan='free']") and "不限" in pg.inner_text("#prCards .prcard[data-plan='p799']"))
     shot(pg, "1_pricing")
-    ok(f"{T}：沒有月繳／年繳切換（週期跟著範本）", pg.locator("#prPeriod").count() == 0)
-    # 查看完整權益
-    pg.click("#prMore")
-    ok(f"{T}：「查看完整權益」展開對照表、399 那欄的題材資金熱力是「—」", bool(wait_until(pg, "() => !document.getElementById('prFull').hidden && document.querySelectorAll('#prTable tbody tr').length > 30", 3000))
-       and pg.evaluate("""() => { const th = [...document.querySelectorAll('#prTable thead th')].map(x => x.textContent); const i = th.indexOf('399 即時');
-           const row = [...document.querySelectorAll('#prTable tbody tr')].find(r => r.cells[0].textContent === '題材資金熱力'); return !!row && row.cells[i].textContent === '—' && row.cells[i + 1].textContent === '✓'; }"""))
-    shot(pg, "1b_pricing_year_full", "#v-pricing")
-    pg.click("#prMore")
-    ok(f"{T}：再按一次收起", pg.evaluate("() => document.getElementById('prFull').hidden"))
+    # ★ 2026-10-07 改前→改後（pricing-v2）：改前「沒有月繳／年繳切換」→ 改後：至少一個付費範本同時有月價與年繳總價（799：799／7,990）才出現切換，
+    #   預設年繳（範本圖選中年繳）；只有月價的範本（399）不受切換影響。省 % ＝ 1 − 7990 ÷（799 × 12）＝ 16.7% → 17%
+    ok(f"{T}：有月繳／年繳切換、預設年繳、寫「省 17%」（由 799 月價與 7,990 年價算出）",
+       pg.locator("#prPeriod button").count() == 2 and pg.evaluate("() => document.querySelector('#prPeriod button.on').dataset.per") == "year"
+       and pg.inner_text("#prSave") == "省 17%", pg.inner_text("#prPeriod") if pg.locator("#prPeriod").count() else None)
+    y799, y399 = price("p799").replace(" ", ""), price("p399").replace(" ", "")
+    ok(f"{T}：年繳 → 799 卡顯示均攤 NT$666／月＋小字「年繳 NT$ 7,990」；399（只有月價）維持 NT$399／月、寫「僅提供月繳」",
+       y799 == "NT$666／月" and "年繳 NT$ 7,990" in pg.inner_text("#prCards .prcard[data-plan='p799'] .prnote") and y399 == "NT$399／月"
+       and "僅提供月繳" in pg.inner_text("#prCards .prcard[data-plan='p399'] .prnote"), (y799, y399))
+    pg.click("#prPeriod button[data-per='month']")
+    ok(f"{T}：切到月繳 → 799 卡真的換成 NT$799／月、按鈕換選中", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$799／月' && document.querySelector('#prPeriod button.on').dataset.per === 'month'", 3000)),
+       price("p799"))
+    pg.click("#prPeriod button[data-per='year']")
+    ok(f"{T}：切回年繳 → 回到 NT$666／月", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$666／月'", 3000)))
+    pg.click("#prPeriod button[data-per='month']")
+    # 卡片內容：頂端標籤、打勾清單項目數、行動鈕
+    cd = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ id: c.dataset.plan, tag: (c.querySelector('.prtag') || {}).textContent || '',
+        n: c.querySelectorAll('.prhl li').length, btn: c.querySelector('.prgo').textContent.trim(), dis: c.querySelector('.prgo').disabled, go: c.querySelector('.prgo').dataset.go || '',
+        last: c.lastElementChild === c.querySelector('.prgo') }))""")
+    ok(f"{T}：頂端標籤：399＝★ 最受歡迎、799＝✦ 功能最齊、註冊會員沒有", [x["tag"] for x in cd] == ["", "★ 最受歡迎", "✦ 功能最齊"], cd)
+    ok(f"{T}：打勾清單（範本沒填 → 依次數與開關自動產生）：註冊會員 5 項、399 3 項、799 2 項", [x["n"] for x in cd] == [5, 3, 2], cd)
+    ok(f"{T}：行動鈕在卡片最底：註冊會員＝目前方案（不能按）、399＝升級 399 即時、799＝升級 799 全功能",
+       all(x["last"] for x in cd) and cd[0]["btn"] == "目前方案" and cd[0]["dis"] and cd[1]["btn"] == "升級 399 即時" and cd[1]["go"] == "p399" and cd[2]["btn"] == "升級 799 全功能" and cd[2]["go"] == "p799", cd)
+    # ★ 改前→改後：改前「查看完整權益」按鈕展開 30 多列的全表 → 改後卡片下方常駐「方案功能比較表」，只列方案之間有差異的功能（Andy 10-07 02:28）
+    tb = pg.evaluate("""() => { const th = [...document.querySelectorAll('#prTable thead th')].map(x => x.textContent);
+        const rows = [...document.querySelectorAll('#prTable tbody tr[data-f]')].map(r => [...r.cells].slice(1).map(c => c.textContent));
+        const row = [...document.querySelectorAll('#prTable tbody tr[data-f]')].find(r => r.cells[0].textContent === '題材資金熱力'); const i = th.indexOf('399 即時');
+        return { th, n: rows.length, allDiff: rows.every(r => new Set(r).size > 1), heat: row ? [row.cells[i].textContent, row.cells[i + 1].textContent] : null,
+                 base: (document.querySelector('#prTable tr.base') || {}).textContent || '', hot: [...document.querySelectorAll('#prTable thead th')].findIndex(x => x.classList.contains('hot')),
+                 more: !!document.getElementById('prMore') }; }""")
+    ok(f"{T}：卡片下方直接有比較表（欄＝功能＋三個方案、399 欄強調），沒有「查看完整權益」按鈕", tb["th"] == ["功能", "註冊會員", "399 即時", "799 全功能"] and tb["hot"] == 2 and not tb["more"], tb)
+    ok(f"{T}：比較表只列有差異的功能（每一列至少兩種值）、399 的題材資金熱力＝「—」、799＝「✓」", tb["n"] >= 2 and tb["allDiff"] and tb["heat"] == ["—", "✓"], tb)
+    ok(f"{T}：比較表個股頁那列：註冊會員每日 1 次、399 每日 20 次、799 不限（有次數的列不限寫字不寫 ✓）",
+       pg.evaluate("() => { const r = document.querySelector(\"#prTable tr[data-f='stock.page']\"); return r ? [...r.cells].slice(1).map(c => c.textContent).join('|') : ''; }") == "每日 1 次|每日 20 次|不限")
+    ok(f"{T}：全部方案都一樣的功能收成最後一行「其他基礎功能（N 項）全部方案皆可用」", "其他基礎功能" in tb["base"] and "全部方案皆可用" in tb["base"], tb["base"])
+    shot(pg, "1b_pricing_compare", "#prCmp")
     # 訂閱申請
     pg.click("#prCards .prcard[data-plan='p399'] .prgo")
     wait_until(pg, "() => !document.getElementById('subDlg').hidden && !!document.getElementById('subSend')", 3000)
@@ -47718,6 +47754,40 @@ def t_sub_1005(b, base, code):
     ok(f"{T}：回到看過的第 1 張 → 不重算、遮罩拿掉", bool(wait_until(pg, "() => !document.querySelector('#dgSec > .qlkov')", 4000)))
     c.close()
 
+    # ================= ④-3 ?demo=plans（CEO 的 plan_presets_1007 三層）＋手機 390
+    for W in (1440, 390):
+        c, sent, st = _sub_ctx(b, None, width=W)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base.split("#")[0].split("?")[0] + "?demo=plans#pricing", wait_until="domcontentloaded")
+        ok(f"{T}・demo {W}：?demo=plans 畫出 註冊會員／Plus／Pro 三張", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',') === 'free,plus,pro'", 10000)),
+           pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
+        dm = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ cls: c.className, tag: (c.querySelector('.prtag') || {}).textContent || '', n: c.querySelectorAll('.prhl li').length,
+            price: c.querySelector('.prprice').textContent.replace(/\\s/g, ''), fit: !!c.querySelector('.prfit b'), left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
+        ok(f"{T}・demo {W}：年繳 Plus NT$208／月、Pro NT$416／月（2,490／4,990 ÷ 12）、省 17%",
+           [x["price"] for x in dm] == ["免費", "NT$208／月", "NT$416／月"] and pg.inner_text("#prSave") == "省 17%", [x["price"] for x in dm])
+        pg.click("#prPeriod button[data-per='month']")
+        ok(f"{T}・demo {W}：切月繳 → Plus NT$249／月、Pro NT$499／月", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '')).join(',') === '免費,NT$249／月,NT$499／月'", 3000)))
+        ok(f"{T}・demo {W}：頂端標籤、色系（Plus 藍、Pro 紫）、適合誰、清單各 6 項",
+           [x["tag"] for x in dm] == ["", "★ 最受歡迎", "✦ 功能最齊"] and "pc-blue" in dm[1]["cls"] and "pc-violet" in dm[2]["cls"] and "pc-neutral" in dm[0]["cls"]
+           and all(x["fit"] for x in dm) and [x["n"] for x in dm] == [6, 6, 6], dm)
+        ok(f"{T}・demo {W}：比較表第一列＝研究瀏覽（全站共用）：每日 10 次｜每日 50 次｜不限；自選＝1 頁・每頁 10 檔｜5 頁・每頁 50 檔｜不限頁・每頁 200 檔",
+           pg.evaluate("() => { const r = document.querySelector('#prTable tbody tr[data-f]'); return r.dataset.f + ':' + [...r.cells].slice(1).map(c => c.textContent).join('|'); }") == "quota.all:每日 10 次|每日 50 次|不限"
+           and pg.evaluate("() => [...document.querySelector(\"#prTable tr[data-f='watch.tabs']\").cells].slice(1).map(c => c.textContent).join('|')") == "1 頁・每頁 10 檔|5 頁・每頁 50 檔|不限頁・每頁 200 檔")
+        if W == 390:
+            lay = pg.evaluate("""() => { const w = document.querySelector('#prCmp .prcmpw'), td = document.querySelector('#prTable tbody tr[data-f] td');
+                w.scrollLeft = 200; const st = getComputedStyle(td).position, l0 = td.getBoundingClientRect().left - w.getBoundingClientRect().left;
+                return { sw: document.documentElement.scrollWidth, scrollable: w.scrollWidth > w.clientWidth, scrolled: w.scrollLeft > 0, sticky: st === 'sticky' && Math.abs(l0) < 2 }; }""")
+            ok(f"{T}・demo 390：手機三張卡直排（同一個 left、由上往下）、頁面沒有橫向捲軸", len({x["left"] for x in dm}) == 1 and dm[0]["top"] < dm[1]["top"] < dm[2]["top"] and lay["sw"] <= 390, (dm, lay))
+            ok(f"{T}・demo 390：比較表可左右滑、第一欄固定（滑了之後第一欄仍貼左邊）", lay["scrollable"] and lay["scrolled"] and lay["sticky"], lay)
+            shot(pg, "1c_pricing_demo_390")
+        else:
+            ok(f"{T}・demo 1440：三張卡同一排（同一個 top）", len({x["top"] for x in dm}) == 1, dm)
+            pg.click("#prCards .prcard[data-plan='plus'] .prgo")
+            ok(f"{T}・demo 1440：訪客按「升級 Plus」→ 先跳登入、不送申請", bool(wait_until(pg, "() => { const d = document.getElementById('acctDlg'); return !!d && !d.hidden; }", 4000))
+               and not any(x[0] == "/v1/subscribe/request" for x in sent))
+            shot(pg, "1c_pricing_demo_1440")
+        c.close()
+
     # ================= ⑤ 通知中心（訪客）：置頂橫幅、紅點、點開已讀、全部已讀
     NOW = int(time.time() * 1000)
     ns = [{"id": "n1aaa", "title": "十月改版上線", "body": "新增訂閱頁與客服，詳見 https://example.com/news", "kind": "feature", "audience": "all", "start": NOW - 3600000, "end": 0, "pinned": True, "created": NOW, "updated": NOW},
@@ -47788,6 +47858,20 @@ def t_sub_1005(b, base, code):
     pg.keyboard.press("Escape")
     ok(f"{T}：Esc 收起小輸入框", bool(wait_until(pg, "() => !document.querySelector('#pmCats input[data-lim]')", 2000)))
     ok(f"{T}：管理頁有「瀏覽次數」分類", "瀏覽次數" in pg.inner_text("#v-admin"))
+    # pricing-v2：付費範本 ⚙ → 訂閱頁方案卡欄位（年繳總價、頂端標籤、定位句、適合誰、打勾清單、圖示、色系、放上訂閱頁）→ 存檔送 plans/put 的 pres／price_year
+    pg.click("#ptTier button[data-plan='p399']")
+    pg.click("#ptPlanCfg")
+    ok(f"{T}：付費範本 ⚙ 展開「訂閱頁方案卡」欄位", bool(wait_until(pg, "() => !!document.getElementById('ptPres') && !!document.getElementById('ppYear') && !!document.getElementById('ppHl')", 3000)))
+    pg.fill("#ppYear", "3990"); pg.fill("#ppBadge", "最受歡迎"); pg.fill("#ppTag", "每天主動研究"); pg.fill("#ppFitT", "適合每天主動研究")
+    pg.fill("#ppHl", "研究瀏覽・每日 50 次\n3D 剖析圖・完整功能"); pg.select_option("#ppIcon", "bolt"); pg.select_option("#ppColor", "blue")
+    shot(pg, "8b_admin_pres", "#ptPres")
+    pg.click("#ptPresSave")
+    wait_until(pg, "() => /已儲存/.test(document.getElementById('v-admin').textContent)", 4000)
+    pp = [x[1] for x in sent if x[0] == "/v1/admin/plans/put"]
+    ok(f"{T}：儲存方案卡 → plans/put 帶 price_year=3990 與 pres（badge、tagline、fit_title、highlights 兩項、icon、color、public）",
+       len(pp) == 1 and pp[0].get("id") == "p399" and pp[0].get("price_year") == 3990 and (pp[0].get("pres") or {}).get("badge") == "最受歡迎"
+       and pp[0]["pres"].get("highlights") == ["研究瀏覽・每日 50 次", "3D 剖析圖・完整功能"] and pp[0]["pres"].get("icon") == "bolt" and pp[0]["pres"].get("color") == "blue"
+       and pp[0]["pres"].get("public") is True and pp[0]["pres"].get("tagline") == "每天主動研究", pp)
     pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
     ok(f"{T}：#admin/feedback 列出反饋與訂閱申請", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1 && document.querySelectorAll('#rqTable tbody tr').length === 1", 8000)))
     pg.click("#fbTable button[data-kind='feedback']")
@@ -50326,11 +50410,12 @@ def t_admin_v3(b, base, code):
     pg.goto(base + "#pricing", wait_until="domcontentloaded")
     ok(f"{T}：訪客（沒登入）打得開 #pricing", bool(wait_until(pg, "() => document.getElementById('v-pricing') && document.getElementById('v-pricing').classList.contains('on') && document.querySelectorAll('#prCards .prcard').length > 0", 10000)))
     cards = pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ id: c.dataset.plan, name: c.querySelector('h2').textContent, price: c.querySelector('.prprice').textContent, txt: c.innerText }))")
-    ok(f"{T}：方案卡＝後台的訪客、註冊會員、每個付費範本（id 不重複、沒有兩個「訪客」、沒有「洽詢」）",
-       [x["id"] for x in cards] == ["guest", "free", "p399", "p799"] and [x["name"] for x in cards].count("訪客") == 1 and not any("洽詢" in x["txt"] for x in cards), [(x["id"], x["name"]) for x in cards])
-    ok(f"{T}：價格與月／年跟後台範本一致（基本 NT$ 399／月、進階 NT$ 7,990／年）", cards[2]["price"].replace(" ", "") == "NT$399／月" and cards[3]["price"].replace(" ", "") == "NT$7,990／年", [x["price"] for x in cards])
-    ok(f"{T}：每張卡列出瀏覽次數上限（註冊會員：AI 分析 每日 3 次；基本：每日 10 次）", "每日 3 次" in cards[1]["txt"] and "每日 10 次" in cards[2]["txt"], cards[1]["txt"][-120:])
-    ok(f"{T}：沒有月繳／年繳切換（週期由範本決定）", pg.locator("#prPeriod").count() == 0)
+    # ★ 2026-10-07 改前→改後（pricing-v2）：改前卡片含「訪客」（guest, free, p399, p799）→ 改後訪客不是方案、不畫卡（free, p399, p799）
+    ok(f"{T}：方案卡＝後台的註冊會員、每個付費範本（id 不重複、訪客不畫卡、沒有「洽詢」）",
+       [x["id"] for x in cards] == ["free", "p399", "p799"] and [x["name"] for x in cards].count("訪客") == 0 and not any("洽詢" in x["txt"] for x in cards), [(x["id"], x["name"]) for x in cards])
+    ok(f"{T}：價格與月／年跟後台範本一致（基本 NT$ 399／月、進階 NT$ 7,990／年）", cards[1]["price"].replace(" ", "") == "NT$399／月" and cards[2]["price"].replace(" ", "") == "NT$7,990／年", [x["price"] for x in cards])
+    ok(f"{T}：每張卡列出瀏覽次數上限（註冊會員：AI 分析 每日 3 次；基本：每日 10 次）", "每日 3 次" in cards[0]["txt"] and "每日 10 次" in cards[1]["txt"], cards[0]["txt"][-120:])
+    ok(f"{T}：沒有月繳／年繳切換（pricing-v2：沒有任何範本同時有月價與年價時不出現，週期由範本決定）", pg.locator("#prPeriod").count() == 0)
     shot(pg, "7_pricing_guest", "#v-pricing")
     pg.click("#prCards .prcard[data-plan='p399'] .prgo")
     ok(f"{T}：訪客按「申請訂閱」→ 先跳登入（登入對話框）、沒有送出申請", bool(wait_until(pg, "() => { const d = document.getElementById('acctDlg'); return !!d && !d.hidden && !!d.querySelector('#acctGo'); }", 4000))
