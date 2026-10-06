@@ -172,10 +172,9 @@
 #trDetail .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
 #trDetail .bars button.bl.on{color:var(--accent,var(--cyan));text-decoration:none;font-weight:700}
 /* 管理區 1005：開放功能表的分類卡改成「欄流」排版（CSS columns）—— 每欄由上往下接著排、高度各依內容，不再因為同列拉齊而在短卡下方留一大片空白；字級照其他分頁（卡標 16/600、列名 14） */
-#v-admin .pmcats.pmcards{display:block;column-count:4;column-gap:12px;margin-top:10px}
+#v-admin .pmcats.pmcards{display:block;column-gap:12px;margin-top:10px}
 #v-admin .pmcats.pmcards>.pmcat.brk{break-before:column}
-@media (max-width:1100px){#v-admin .pmcats.pmcards{column-count:2}#v-admin .pmcats.pmcards>.pmcat.brk{break-before:auto}}
-@media (max-width:640px){#v-admin .pmcats.pmcards{column-count:1}}
+#v-admin .pmcats.pmcards>.pmcat{break-inside:avoid;-webkit-column-break-inside:avoid}
 #v-admin .pmcats.pmcards>.pmcat.card{break-inside:avoid;margin:0 0 12px;display:block}
 #v-admin .pmcards .pmcat.card .pmcathd h3{font-size:var(--fs-h3,16px);font-weight:600}
 #v-admin .pmcards .pmcat.card .pmcathd h3 small{font-size:12px}
@@ -188,6 +187,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trhead .trctl{border:0;padding:0}
 #v-admin .trctl input[type=date]{height:32px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 8px}
 #v-admin .trctl input[hidden],#v-admin .trctl .trto[hidden]{display:none}#v-admin .trctl .trto{color:var(--ink-2)}
+#v-admin .trctl{flex-wrap:wrap;min-width:0;max-width:100%}#v-admin .trctl input[type=date]{width:136px;min-width:0}
+@media (max-width:640px){#v-admin .trhead .trctl{width:100%}#v-admin .trctl input[type=date]{flex:1 1 110px}}
 #v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,3fr) minmax(0,2fr);margin-top:12px}
 #v-admin .admgrid.trtop>.s2{grid-column:auto}
 #v-admin .admgrid.trpair:first-child{margin-top:0}
@@ -918,10 +919,13 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
+    /* 起訖日期框永遠顯示：跟著期間選單同步（近 N 天＝那段的實際起訖、即時＝今天），手動改日期 → 下拉跳成「起始日期～至今」 */
+    const today = todayTpe(), shiftDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+    const rng = S.period === 'live' ? { from: today, to: today } : S.period === 'since' ? { from: S.since, to: S.until || today } : { from: shiftDay(today, -(+S.period - 1)), to: today };
     const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : '每天的頁面瀏覽總次數';
     return `<div class="secttl trhead"><h2>全站總覽</h2><small>共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
         <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <input type="date" id="admSince" value="${esc(S.since || '')}" max="${esc(st.to)}" aria-label="起始日期" ${S.period === 'since' ? '' : 'hidden'}><span class="trto" ${S.period === 'since' ? '' : 'hidden'}>～</span><input type="date" id="admUntil" value="${esc(S.until || todayTpe())}" min="${esc(S.since || '')}" max="${esc(todayTpe())}" aria-label="結束日期（預設至今）" ${S.period === 'since' ? '' : 'hidden'}>
+          <input type="date" id="admSince" value="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="起始日期"><span class="trto">～</span><input type="date" id="admUntil" value="${esc(rng.to)}" min="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="結束日期">
           <button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
       <div class="admgrid trtop">
@@ -992,38 +996,42 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const clock = clockHtml(series.length === 2 ? src.login.map((x, i) => x + (src.guest[i] || 0)) : src.pv, hm === 'open' ? '開站' : '瀏覽');
     return `<div class="admgrid trpair trusers">
       <div class="card" id="trHours"><h3>什麼時段最多人用？</h3><p class="use" title="每小時的${hm === 'open' ? '開站次數（登入／訪客堆疊）' : '頁面瀏覽次數'}。白天＝06:00–18:00、夜晚＝18:00–06:00。">白天 06–18／夜晚 18–06</p><div class="cb">${modes}${chart}${since}</div></div>
-      <div class="card" id="trClock"><h3>24 小時時鐘</h3><p class="use" title="0 點在正上方、順時針；長度與顏色深淺＝該小時的${hm === 'open' ? '開站' : '瀏覽'}量；淡黃底＝白天、淡紫底＝夜晚">長度＝使用量</p><div class="cb">${clock}</div></div></div>`;
+      <div class="card" id="trClock"><h3>24 小時時鐘</h3><p class="use" title="12 小時錶面、頂端是 12／0、順時針；內圈＝00:00–11:59、外圈＝12:00–23:59；長度與顏色深淺＝該小時的${hm === 'open' ? '開站' : '瀏覽'}量">內圈上午・外圈下午</p><div class="cb">${clock}</div></div></div>`;
   }
-  /* 時鐘甜甜圈（極座標長條）：24 段、0 點在正上方順時針；每段長度與顏色深淺＝使用量；底環白天（06–18）暖色、夜晚（18–06）紫色；中心＝尖峰時段；圖例在右 */
+  /* 時鐘（12 小時錶面＋內外兩圈）：頂端是 12／0，順時針 12 格；內圈＝00:00–11:59（上午）、外圈＝12:00–23:59（下午），同一個鐘點方向上下午對齊；
+     每段長度與顏色深淺＝該小時使用量（兩圈共用同一把尺）；中心＝尖峰時段；圖例在右 */
   function clockHtml(arr, what) {
     const h = (arr || []).slice(0, 24); while (h.length < 24) h.push(0);
     const tot = sum(h); if (!tot) return '<div class="empty">沒有資料</div>';
-    const mx = Math.max(...h), two = (n) => String(n).padStart(2, '0'), R0 = 24, R1 = 44, DAY = 'var(--cat-3)', NIGHT = 'var(--cat-2)';
+    const mx = Math.max(...h), two = (n) => String(n).padStart(2, '0'), AM = 'var(--cat-3)', PM = 'var(--cat-2)';
+    const BAND = { am: [22, 32], pm: [35, 47] };
     const P = (r, deg) => `${(60 + r * Math.sin(deg * Math.PI / 180)).toFixed(2)} ${(60 - r * Math.cos(deg * Math.PI / 180)).toFixed(2)}`;
-    const wedge = (a0, a1, r1) => `M ${P(R0, a0)} L ${P(r1, a0)} A ${r1} ${r1} 0 0 1 ${P(r1, a1)} L ${P(R0, a1)} A ${R0} ${R0} 0 0 0 ${P(R0, a0)} Z`;
-    const isDay = (x) => x >= 6 && x < 18;
+    const wedge = (a0, a1, r0, r1) => `M ${P(r0, a0)} L ${P(r1, a0)} A ${r1} ${r1} 0 0 1 ${P(r1, a1)} L ${P(r0, a1)} A ${r0} ${r0} 0 0 0 ${P(r0, a0)} Z`;
     let tr = '', vl = '';
-    h.forEach((n, x) => { const a0 = x * 15 + 0.6, a1 = x * 15 + 14.4, col = isDay(x) ? DAY : NIGHT, k = isDay(x) ? 'day' : 'night', pct = (n / tot * 100).toFixed(1) + '%', lab = `${two(x)}:00–${two((x + 1) % 24)}:00`;
-      tr += `<path d="${wedge(a0, a1, R1)}" fill="${col}" fill-opacity=".14"/>`;
-      const r = R0 + Math.max(2.5, (R1 - R0) * n / mx), op = (0.4 + 0.6 * n / mx).toFixed(2);
-      vl += `<path class="arc" data-row="${x}" data-k="${k}" data-lab="${lab}" data-pct="${pct}"${tp(`<b>${lab}</b><br>${nf(n)} 次${what}・占 ${pct}`)} d="${wedge(a0, a1, r)}" fill="${col}" fill-opacity="${op}"/>`; });
-    const dayN = sum(h.filter((_, x) => isDay(x))), nightN = tot - dayN, top = h.map((n, x) => [n, x]).sort((a, b) => b[0] - a[0]).slice(0, 3);
-    const pk = top[0][1], c2 = `${two(pk)}–${two((pk + 1) % 24)}時`;
-    const lbl = [0, 6, 12, 18].map((x) => `<text x="${P(52, x * 15).split(' ')[0]}" y="${(+P(52, x * 15).split(' ')[1] + 2.5).toFixed(2)}" text-anchor="middle" style="font-size:6.5px;fill:var(--ink-2);font-family:var(--mono)">${x}</text>`).join('');
-    const li = (k, col, name, n) => `<li data-k="${k}" data-n="${n}"${tp(`<b>${esc(name)}${k === 'day' ? '（06–18）' : '（18–06）'}</b><br>${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${col}"></i><span>${esc(name)}</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`;
-    return `<div class="dn clock" data-chart="donut"><svg viewBox="0 0 120 120" data-d1="尖峰時段" data-d2="${c2}" role="img" aria-label="24 小時使用時鐘">${tr}${vl}${lbl}
-      <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:7px;fill:var(--ink-2)">尖峰時段</text><text class="c2" x="60" y="68" text-anchor="middle" style="font-size:9.5px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${c2}</text></svg>
-      <ul class="lg">${li('day', DAY, '白天', dayN)}${li('night', NIGHT, '夜晚', nightN)}${top.map(([n, x], i) => `<li data-row="${x}"${tp(`<b>${two(x)}:00–${two((x + 1) % 24)}:00</b><br>${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${isDay(x) ? DAY : NIGHT};opacity:${(0.4 + 0.6 * n / mx).toFixed(2)}"></i><span>${i === 0 ? '尖峰' : i === 1 ? '次忙' : '再次'} ${two(x)} 時</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
+    h.forEach((n, x) => {
+      const pm = x >= 12, pos = x % 12, [r0, r1] = BAND[pm ? 'pm' : 'am'], a0 = pos * 30 + 1.2, a1 = pos * 30 + 28.8, col = pm ? PM : AM, pct = (n / tot * 100).toFixed(1) + '%', lab = `${two(x)}:00–${two(x)}:59`;
+      tr += `<path d="${wedge(a0, a1, r0, r1)}" fill="${col}" fill-opacity=".13"/>`;
+      const r = r0 + Math.max(1.6, (r1 - r0) * n / mx), op = (0.4 + 0.6 * n / mx).toFixed(2);
+      vl += `<path class="arc" data-row="${x}" data-k="${pm ? 'pm' : 'am'}" data-lab="${lab}" data-pct="${pct}"${tp(`<b>${lab}</b>　${nf(n)} 次${what}・占 ${pct}`)} d="${wedge(a0, a1, r0, r)}" fill="${col}" fill-opacity="${op}"/>`;
+    });
+    const amN = sum(h.slice(0, 12)), pmN = tot - amN, top = h.map((n, x) => [n, x]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+    const pk = top[0][1], c2 = `${two(pk)} 時`;
+    const lbl = [[0, '12'], [90, '3'], [180, '6'], [270, '9']].map(([d, t]) => { const q = P(54, d).split(' '); return `<text x="${q[0]}" y="${(+q[1] + 2.5).toFixed(2)}" text-anchor="middle" style="font-size:7px;fill:var(--ink-2);font-family:var(--mono)">${t}</text>`; }).join('');
+    const li = (k, col, name, n, rg) => `<li data-k="${k}" data-n="${n}"${tp(`<b>${esc(name)}（${rg}）</b><br>${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${col}"></i><span>${esc(name)}</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`;
+    return `<div class="dn clock" data-chart="donut"><svg viewBox="0 0 120 120" data-d1="尖峰時段" data-d2="${c2}" role="img" aria-label="12 小時錶面、內圈上午外圈下午的使用時鐘">${tr}${vl}${lbl}
+      <text class="c1" x="60" y="56" text-anchor="middle" style="font-size:5.4px;fill:var(--ink-2)">尖峰時段</text><text class="c2" x="60" y="67" text-anchor="middle" style="font-size:9px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${c2}</text></svg>
+      <ul class="lg">${li('am', AM, '內圈 上午', amN, '00:00–11:59')}${li('pm', PM, '外圈 下午', pmN, '12:00–23:59')}${top.map(([n, x], i) => `<li data-row="${x}"${tp(`<b>${two(x)}:00–${two(x)}:59</b>　${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${x >= 12 ? PM : AM};opacity:${(0.4 + 0.6 * n / mx).toFixed(2)}"></i><span>${i === 0 ? '尖峰' : i === 1 ? '次忙' : '再次'} ${two(x)} 時</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
   function wireTop(v, A) {
     const apply = () => { S.tab = S.tab || 'all'; paint(); };
     v.querySelector('#admDaysSel').onchange = (e) => {
       S.period = e.target.value; S.day = '';
-      if (S.period === 'since' && !S.since) S.since = new Date(Date.now() + 8 * 3600000 - 29 * 86400000).toISOString().slice(0, 10);
+      if (S.period === 'since') { S.since = S.since || v.querySelector('#admSince').value; }
       apply();
     };
-    const di = v.querySelector('#admSince'); if (di) di.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(di.value)) { S.since = di.value; if (S.until && S.until < S.since) S.until = ''; apply(); } };
-    const du = v.querySelector('#admUntil'); if (du) du.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(du.value)) { S.until = du.value >= todayTpe() ? '' : du.value; apply(); } else { S.until = ''; apply(); } };
+    const di = v.querySelector('#admSince'), du = v.querySelector('#admUntil'), okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+    const manual = () => { if (!okD(di.value)) return; let to = okD(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; S.period = 'since'; S.since = di.value; S.until = to >= todayTpe() ? '' : to; S.day = ''; apply(); };
+    if (di) di.onchange = manual; if (du) du.onchange = manual;
     const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; S.day = S.day === dc.dataset.day ? '' : dc.dataset.day; paint(); };
     const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; paint(); };
     v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
@@ -1868,9 +1876,12 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
     /* 欄流排版的分欄：把分類卡依「項數」做 4 欄貪婪分組（最重的先放進目前最矮的那欄），再依欄順序輸出並在每欄第一張卡強制換欄 —— 各欄底部落差最小，不留大片空白 */
-    const ncol = 4, wt = (c) => 1.7 + FT().inCat(c.id).length, colsG = Array.from({ length: ncol }, () => ({ h: 0, cs: [] }));
+    /* 欄數照視窗寬：≥1300 四欄、≥900 三欄、≥640 兩欄、其餘一欄（1440／1024／800／390）；欄數變了就重畫（貪婪分欄要重算） */
+    const ncol = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; box.style.columnCount = ncol; PS.ncol = ncol;
+    if (!PS.colDoc) { PS.colDoc = true; window.addEventListener('resize', () => { const n = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; if (PS.ncol && n !== PS.ncol && PS.v && PS.v.querySelector('#pmCats')) paintCats(); }); }
+    const wt = (c) => 1.7 + FT().inCat(c.id).length, colsG = Array.from({ length: ncol }, () => ({ h: 0, cs: [] }));
     cats.filter((c) => c.id !== 'grp').slice().sort((a, b) => wt(b) - wt(a)).forEach((c) => { const g = colsG.reduce((m, x) => (x.h < m.h ? x : m), colsG[0]); g.cs.push(c); g.h += wt(c); });
-    const ordered = []; colsG.filter((g) => g.cs.length).forEach((g) => g.cs.forEach((c, i) => ordered.push([c, i === 0 && ordered.length > 0])));
+    const ordered = []; colsG.filter((g) => g.cs.length).forEach((g) => g.cs.forEach((c, i) => ordered.push([c, ncol > 1 && i === 0 && ordered.length > 0])));
     box.innerHTML = ordered.map(([c, brk]) => { const fs = FT().inCat(c.id);
       return `<div class="pmcat card${brk ? ' brk' : ''}" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
         <div class="pmbody">${catRows(fs, cur, base, saved, now, ready, false)}</div></div>`; }).join('');

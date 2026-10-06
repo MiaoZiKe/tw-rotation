@@ -46769,6 +46769,27 @@ def t_traffic_1005(b, base, code):
         flow1 = int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", ""))
         ok(f"{TT}：結束日也送給 Worker（stats 帶 from／to）、分頁統計跟著結束日縮小（資金流向 {flow0} → {flow1}）", flow1 < flow0, (flow0, flow1))
         pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
+        # ★ 10-06 Andy「起始至今保留在上面，切換週期旁邊的日期同步更新」：起訖兩個日期框永遠顯示、跟期間選單同步、手改日期下拉跳成「起始日期～至今」
+        DR = "() => ({ f: document.getElementById('admSince').value, t: document.getElementById('admUntil').value, vis: [...document.querySelectorAll('#admSince, #admUntil')].every(e => e.offsetParent !== null), sel: document.getElementById('admDaysSel').value })"
+        today = pg.evaluate("() => new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)")
+        sh = lambda n: pg.evaluate("(n) => new Date(Date.now() + 8 * 3600000 - n * 86400000).toISOString().slice(0, 10)", n)
+        pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
+        r30 = pg.evaluate(DR)
+        pg.select_option("#admDaysSel", "7"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 7", 4000)
+        r7 = pg.evaluate(DR)
+        pg.select_option("#admDaysSel", "90"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 90", 6000)
+        r90 = pg.evaluate(DR)
+        pg.select_option("#admDaysSel", "live"); wait_until(pg, "() => /即時/.test(document.querySelector('.trhead').textContent) || document.querySelectorAll('#admDayBars .dc').length === 24", 4000)
+        rl = pg.evaluate(DR)
+        ok(f"{TT}：起訖日期框永遠顯示；切近 30／7／90 天 → 兩個框同步改成那段期間的起訖（{sh(29)}～{today}／{sh(6)}～{today}／{sh(89)}～{today}）、即時＝今天～今天",
+           all(x["vis"] for x in (r30, r7, r90, rl)) and (r30["f"], r30["t"]) == (sh(29), today) and (r7["f"], r7["t"]) == (sh(6), today) and (r90["f"], r90["t"]) == (sh(89), today) and (rl["f"], rl["t"]) == (today, today), (r30, r7, r90, rl))
+        pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
+        pg.evaluate("(d) => { const i = document.getElementById('admSince'); i.value = d; i.dispatchEvent(new Event('change', { bubbles: true })); }", sh(11))
+        wait_until(pg, "() => document.getElementById('admDaysSel').value === 'since'", 4000)
+        wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 12", 4000)
+        rm = pg.evaluate(DR)
+        ok(f"{TT}：手動改起始日期 → 下拉自動跳成「起始日期～至今」、直條變 12 根、日期框維持（{sh(11)}～{today}）", rm["sel"] == "since" and (rm["f"], rm["t"]) == (sh(11), today) and pg.locator("#admDayBars .dc").count() == 12, rm)
+        pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
         # ---- 分頁
         ok(f"{TT}：下方是 .nbsw 分頁：全部＋事件…個股＋使用者；預設亮「全部」",
            pg.evaluate("() => { const t = document.getElementById('trTabs'); return t.classList.contains('nbsw') && [...t.querySelectorAll('button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join() === '%s' && t.querySelector('button.on').dataset.t === 'all'; }" % NAMES))
@@ -46933,10 +46954,12 @@ def t_traffic_1005(b, base, code):
         pg.click("#trTabs [data-t=users]")
         us = pg.evaluate("() => ({ hrs: document.querySelectorAll('#trHrBars .dc').length, online: !!document.getElementById('admOnline'), members: !!document.getElementById('admUsers'), modes: [...document.querySelectorAll('#trHrModes button')].map(b => b.textContent.trim()).join(), clock: document.querySelectorAll('#trClock .arc').length, h1: Math.round(document.getElementById('trHours').getBoundingClientRect().height), h2: Math.round(document.getElementById('trClock').getBoundingClientRect().height), l1: Math.round(document.getElementById('trHours').getBoundingClientRect().left), l2: Math.round(document.getElementById('trClock').getBoundingClientRect().left), txt: document.getElementById('v-admin').innerText })")
         ok(f"{TT}：「使用者」分頁：左＝什麼時段最多人用？（24 根、1H/4H/6H/12H/白天/夜晚）、右＝24 小時時鐘（24 段）、並排同高；「現在誰在線上」「最近有哪些會員來過」已移除", us["hrs"] == 24 and us["modes"] == "1H,4H,6H,12H,白天,夜晚" and us["clock"] == 24 and us["h1"] == us["h2"] and us["l2"] > us["l1"] and not us["online"] and not us["members"] and "現在誰在線上" not in us["txt"] and "最近有哪些會員" not in us["txt"], us)
-        ck = pg.evaluate("""() => { const w = [...document.querySelectorAll('#trClock path.arc')]; const day = w.filter(p => p.dataset.k === 'day').length, night = w.filter(p => p.dataset.k === 'night').length;
+        ck = pg.evaluate("""() => { const w = [...document.querySelectorAll('#trClock path.arc')]; const am = w.filter(p => p.dataset.k === 'am'), pm = w.filter(p => p.dataset.k === 'pm');
+            const n = (p) => +((p.dataset.tip.match(/([\\d,]+) 次/) || [0, '0'])[1].replace(/,/g, ''));
             const svg = document.querySelector('#trClock svg').getBoundingClientRect(), ul = document.querySelector('#trClock ul.lg').getBoundingClientRect();
-            const lens = w.map(p => p.getBoundingClientRect().height + p.getBoundingClientRect().width); return { day, night, first: w[0].dataset.lab, right: ul.left >= svg.right - 2, peak: document.querySelector('#trClock svg .c2').textContent, lg: document.querySelectorAll('#trClock ul.lg li').length, varied: new Set(lens.map(x => Math.round(x))).size > 6 }; }""")
-        ok(f"{TT}：時鐘：0 點（00:00–01:00）是第一段、白天 12 段／夜晚 12 段、尖峰時段寫在中心、圖例在右側（白天／夜晚／最忙三個小時）、各段長度不同", ck["first"] == "00:00–01:00" and ck["day"] == 12 and ck["night"] == 12 and "時" in ck["peak"] and ck["right"] and ck["lg"] == 5 and ck["varied"], ck)
+            const hrs = [...document.querySelectorAll('#trHrBars .dc')].slice(0, 24).map(d => +((d.dataset.tip.match(/([\\d,]+) 次/) || [0, '0'])[1].replace(/,/g, '')));
+            return { am: am.length, pm: pm.length, amSum: am.reduce((s, p) => s + n(p), 0), pmSum: pm.reduce((s, p) => s + n(p), 0), first: w[0].dataset.lab, tipFmt: /^\\d\\d:00–\\d\\d:59/.test(w[5].dataset.lab), right: ul.left >= svg.right - 2, peak: document.querySelector('#trClock svg .c2').textContent, lg: document.querySelectorAll('#trClock ul.lg li').length, legend: document.querySelector('#trClock ul.lg').textContent, hrsSum: hrs.reduce((a, b) => a + b, 0) }; }""")
+        ok(f"{TT}：時鐘：內圈（上午）12 格＋外圈（下午）12 格、第一格 00:00–00:59、提示格式「HH:00–HH:59　N 次」、內外圈總和＝24 小時資料總和、尖峰時段在中心、圖例寫「內圈 上午／外圈 下午」在右側", ck["am"] == 12 and ck["pm"] == 12 and ck["first"] == "00:00–00:59" and ck["tipFmt"] and ck["amSum"] + ck["pmSum"] == ck["hrsSum"] > 0 and "時" in ck["peak"] and ck["right"] and ck["lg"] == 5 and "內圈 上午" in ck["legend"] and "外圈 下午" in ck["legend"], ck)
         hv("#trClock path.arc >> nth=10", "時鐘扇形")
         cnts = {}
         for k, n in (("4", 6), ("6", 4), ("12", 2), ("day", 12), ("night", 12), ("1", 24)):
@@ -47452,6 +47475,17 @@ def t_admin_v3(b, base, code):
             const bot = Object.values(cols).map(a => Math.max(...a.map(r => r.bottom))), wid = Object.values(cols).map(a => new Set(a.map(r => Math.round(r.width))).size);
             const blank = cs.map(r => 0).length; return { n: Object.keys(cols).length, spread: Math.round(Math.max(...bot) - Math.min(...bot)), wid }; }""")
         ok(f"{T}・perm-v4：開放功能表 4 欄欄流、同欄同寬、各欄底部落差 ≤ 160px（無大片空白）", cl["n"] == 4 and all(w == 1 for w in cl["wid"]) and cl["spread"] <= 160, cl)
+        # ★ 10-06 Andy 圖 125：瀑布流——1440 時上下相鄰的卡間距 ≤ 卡片間距＋2、沒有卡被拆開；欄數照寬（1440 四、1024 三、800 兩、390 一）
+        def masonry(w):
+            pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(600)
+            return pg.evaluate("""() => { const cs = [...document.querySelectorAll('#pmCats > .pmcat')].map(c => c.getBoundingClientRect()), cols = {};
+                cs.forEach(r => { const k = Math.round(r.left); (cols[k] = cols[k] || []).push(r); });
+                const gaps = []; Object.values(cols).forEach(a => { a.sort((x, y) => x.top - y.top); for (let i = 1; i < a.length; i++) gaps.push(Math.round(a[i].top - a[i - 1].bottom)); });
+                const cc = getComputedStyle(document.getElementById('pmCats')); return { n: Object.keys(cols).length, maxGap: gaps.length ? Math.max(...gaps) : 0, avoid: [...document.querySelectorAll('#pmCats > .pmcat')].every(c => getComputedStyle(c).breakInside === 'avoid'), cnt: cc.columnCount }; }""")
+        for w_, n_ in ((1440, 4), (1024, 3), (800, 2), (390, 1)):
+            mz = masonry(w_)
+            ok(f"{T}・瀑布流 {w_}px：{n_} 欄、上下相鄰卡片間距 ≤ 14px（沒有整列對齊的大空白）、每張卡 break-inside:avoid（不被拆開）", mz["n"] == n_ and mz["maxGap"] <= 14 and mz["avoid"], mz)
+        pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(500)
         pg.click("#pmExpandAll")
         wait_until(pg, "() => [...document.querySelectorAll('#pmGrp .grpbody')].every(b => !b.hidden)", 3000)
         gr = pg.evaluate(ROWS_SAME, "#pmGrp .grpbody > .pmrow")
