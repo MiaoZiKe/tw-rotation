@@ -104,3 +104,28 @@ DECISIONS #333 已把評語改中性，降低了 C 類樣態；但**中性用語
 - 綠界費率與撥款：https://hackmd.io/@leonsnoopy/rJVzy9JuN
 - CMoney 籌碼K線訂閱價：https://www.cmoney.tw/app/landing_page/chipk?page=index
 - Portaly：https://portaly.cc/en/blog/8-patreon-alternatives-competitors-for-2023
+
+---
+
+## 更正（2026-10-07，Andy 問「沒開公司可以註冊嗎」）
+
+上面第 4 節寫「藍新要統編」**是錯的，以這節為準**。
+
+| 項目 | 藍新（個人會員） | 綠界（個人會員） | 信心 |
+|---|---|---|---|
+| 沒有統編能不能申請 | 可以，個人賣家與有營業登記的店家都能申請 | 可以，個人賣家不需要營業登記 | 中（多個開店平台的教學摘要） |
+| 要準備什麼 | 身分證正反面、健保卡、本人銀行帳戶 | 身分證正反面、本人銀行帳戶（一個身分證號只能開一個帳號） | 中 |
+| 信用卡額度 | 個人會員每 30 天 20 萬（企業會員 60 萬） | 個人會員每月信用卡＋其他收款合計 30 萬 | 中低（第三方摘要） |
+| 定期定額（訂閱） | 個人會員能不能開：**未確認**（摘要說可以，但沒有原廠文件） | 個人會員有「信用卡定期定額」 | 藍新低／綠界中 |
+| 發票 | 個人沒有統編，**不能開統一發票**；報稅照個人所得 | 同左 | 中 |
+
+**結論**：前期可以先用**綠界或藍新的個人會員**測試收款，不必先開公司。
+需要登記稅籍的門檻：**勞務類網路銷售每月超過 5 萬元**（財政部 114 年起徵點），或想開發票、想把額度拉高。到那時再登記行號。
+**投顧法的風險跟用個人還是公司收款無關**，第三節「最安全的上架方式」照樣適用。
+
+來源（只讀過 WebSearch 摘要）：
+- https://shopstore.tw/teachinfo/364
+- https://shopstore.tw/teachinfo/359
+- https://www.gogoshop.io/blog/how-to-register-ecpay-member
+- https://support.ecpay.com.tw/4862/
+- https://site-now.app/newebpay-review/

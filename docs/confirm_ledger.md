@@ -127,6 +127,9 @@
 | 10 | 我們自己判斷、你可否決的三件：① 分頁拖曳**不含**側欄、頂部導覽、自選清單頁籤 ② 日期膠囊保留 11 類（表格日期欄、新聞時間、K 線軸、拉Bar 讀數、K 線下資料來源說明等）③ 即時閘門只藏畫面，報價 Worker 仍公開（要真的擋估 0.5～1 天，而且公司網路擋會員 Worker 時你自己的即時也會一起斷） | 正式站 | 10-06 07:22 |
 | 11 | **刪舊預覽分支**（git 代理擋刪除，要你在 GitHub 網頁按）：已併入 main、可直接刪的 12 支 —— preview/earnings-cal、preview/earnings-v2、admin-v2、admin-v3、etf-v1、etf-v3、explore-v1、explore-v2、fast-ov2、layout-v2、perm-nav、sub-v1 | <https://github.com/MiaoZiKe/tw-rotation/branches> | 10-05 |
 | 12 | 四問步驟中性名稱已做在 preview/four-steps，未上線。待規劃：改成針對特定分頁的導覽（Andy 10-06 18:05） | <https://miaozike.github.io/tw-rotation/preview/four-steps/>（手機寬看總覽頂端四步列） | 10-06 18:05 |
+| 13 | **三個帳號開兩步驟驗證**（Google、GitHub、Cloudflare；步驟在 10-07 回報裡） | 各自帳號安全性頁面 | 10-07 |
+| 14 | **筆電裝監控＋備份**（`tools/laptop/README.md`，約 15 分鐘；第 7 步設 BACKUP_TOKEN） | 筆電 | 10-07 |
+| 15 | **拆私人／公開 repo**：等設計完成後照步驟建私人 repo＋PAT | 施工中 | 10-07 |
 
 ## CEO 待辦（監察委員 07:32 稽核；依重要性）
 
@@ -230,3 +233,12 @@
 - 全站備份：備到筆電＋repo 內 docs/BACKUP_RUNBOOK.md 讓 Claude 照做（施工中）。
 - GitHub 改私人＋當備份：**有成本問題待 Andy 選**（私人 repo 的 Actions 免費 2,000 分鐘／月，實測目前用量約 1.2 萬分鐘／月）。
 - 藍新詳細說明＋為什麼要問律師＋別人怎麼快速上架：legal-compliance 查證中 → docs/legal_payment_faq_1006.md
+
+## 10-07 01:05～01:30 Andy 交辦
+- 免責聲明／使用條款／隱私權政策（通用版，參考 stockintelli）→ 施工中，交 preview/legal。
+- 拆 repo 選 A（私人＝備份與編輯、公開＝執行，Cloudflare 同步）→ 施工中（claude/repo-split）。
+- **Andy 說「上架」時 → CEO 要主動給「Google 登入加入新網址」的逐步點擊步驟**（OAuth 用戶端 → 已授權的 JavaScript 來源／重新導向 URI 加上 tw-rotation.pages.dev 與正式網域）。
+- 上架標準 → 已存 `docs/launch_standard.md`，Andy 說「上架標準」就給他看。
+- 今日候選 → 今日關注；四頁頂端統計免責小字 → 施工中。
+- 異常門檻用建議預設值；通知寄到 kcq01010909。
+- 沒開公司能不能註冊金流 → 可以（綠界／藍新個人會員），已更正 `docs/legal_payment_faq_1006.md`。
