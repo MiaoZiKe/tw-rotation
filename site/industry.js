@@ -908,7 +908,7 @@
            圓心照舊用 '50%'（2026-09-26 晚：容器高與 style 不一致會切掉上半截 —— 現在 #gpPie 的 min-height 已歸零、寬高都由 layoutDonut 寫死）。*/
       const cy = Math.round((pieEl.clientHeight || dnS || h) * 0.5);
       A.chart(pieEl, {
-        tooltip: { ...A.tip, trigger: 'item', formatter: p => {
+        tooltip: { ...A.tip, position: A.donut.tipPos, trigger: 'item', formatter: p => {
           const d = items.find(x => x.name === p.name);
           /* 2026-10-06 main：提示框拿掉「點一下…」操作說明（Andy 的清廢話）—— 共用風格的 hint 欄位留著，但產業地圖不給 */
           return A.donut.tipHtml(p.name, { valLabel: '成交值', val: A.fmt.yi(p.value), pct: p.percent, chg: d ? d.chg : null }); } },

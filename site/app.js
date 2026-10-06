@@ -773,6 +773,14 @@
   const DONUT = {
     R_IN: 68, R_OUT: 92, PAD_ANGLE: 1.2, RADIUS: 6, BORDER: 1, BORDER_HI: 3, SCALE: 4, MS: 200,
     TRACK: [65, 65.8], SIDE_MIN: 420, MIN: 160,
+    /* 提示框跟在游標外側（背離圓心那一側），不蓋住中心字 */
+    tipPos(pt, params, dom, rect, size) {
+      const W = size.viewSize[0], H = size.viewSize[1], w = size.contentSize[0], h = size.contentSize[1];
+      const dx = pt[0] - W / 2, dy = pt[1] - H / 2;
+      let x = dx >= 0 ? pt[0] + 14 : pt[0] - w - 14, y = dy >= 0 ? pt[1] + 14 : pt[1] - h - 14;
+      if (Math.abs(dx) < W * 0.18) x = Math.min(Math.max(pt[0] - w / 2, 0), Math.max(0, W - w));
+      return [x, y];
+    },
     colors() { return DONUT_COLORS[theme() === 'light' ? 'light' : 'dark']; },
     color(i) { const c = DONUT.colors(); return c[i % c.length]; },
     other() { return hexA(CH.ink3, .38); },
@@ -815,7 +823,7 @@
       op = op || {};
       const tot = parts.reduce((s, d) => s + (d.value || 0), 0) || 1, S = op.size || 160, fv = op.fmtVal || ((v) => fmt.i(v));
       return { tot, option: {
-        tooltip: { ...tip, trigger: 'item', formatter: (p) => { const d = parts.find((x) => x.name === p.name) || {};
+        tooltip: { ...tip, position: DONUT.tipPos, trigger: 'item', formatter: (p) => { const d = parts.find((x) => x.name === p.name) || {};
           return DONUT.tipHtml(p.name, { valLabel: op.valLabel, val: fv(p.value), pct: p.percent, chg: d.chg, hint: d.hint != null ? d.hint : op.hint }); } },
         title: DONUT.center(op.centerLabel || '合計', op.centerValue != null ? op.centerValue : fv(tot), S),
         animationDurationUpdate: DONUT.MS,

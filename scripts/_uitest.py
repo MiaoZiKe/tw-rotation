@@ -48517,8 +48517,8 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：「全部」左＝各頁長條（11 條、由大到小）", al["n"] == 11 and al["sorted"], al)
         ok(f"{TT}：有子頁的頁面（資金流向）長條堆疊 3 色且滑過提示有占比；沒有子頁的（ETF）單色",
            len(al["flow"]) == 3 and len({x["bg"] for x in al["flow"]}) == 3 and all("%" in x["t"] and "資金流向" in x["t"] for x in al["flow"]) and len(al["etf"]) == 1, al)
-        ok(f"{TT}：「全部」右＝各頁占比甜甜圈：子頁有同色系子扇區（扇區數 > 頁數）、每個扇區滑過提示有占比、中心寫「前五大 xx%」、圖例 10 項",
-           al["arcs"] > 11 and al["tips"] and re.search(r"前五大\s*\d+%", al["center"]) and al["lg"] == 10, al)
+        ok(f"{TT}：「全部」右＝各頁占比甜甜圈（照產業地圖）：前 5 頁＋其他＝6 塊、不拆子頁、中心寫「前五大 xx%」、圖例 6 項",
+           al["arcs"] == 6 and al["tips"] and re.search(r"前五大\s*\d+%", al["center"]) and al["lg"] == 6, al)
         fill = pg.evaluate("""() => ['admDays','trDonut','trAllBars','trAllDonut'].map(id => { const c = document.getElementById(id), cb = c.querySelector('.cb'), cs = getComputedStyle(c),
             inner = c.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom); return [id, +(cb.getBoundingClientRect().height / inner).toFixed(2), Math.round(c.getBoundingClientRect().height)]; })""")
         ok(f"{TT}：圖區高度／卡內容高度 ≥ 0.8；上排兩張等高、「全部」兩張等高", all(r[1] >= 0.8 for r in fill) and fill[0][2] == fill[1][2] and fill[2][2] == fill[3][2], fill)
@@ -48593,9 +48593,9 @@ def t_traffic_1005(b, base, code):
         pg.click("#trSubs button[data-sub='sankey']")
         ok(f"{TT}：點子分頁「資金去向」→ 長條換成該子頁的功能（點資金去向節點／連線）", "資金去向節點" in pg.inner_text("#trFBars") and "篩選" not in pg.inner_text("#trFBars"), pg.inner_text("#trFBars")[:80])
         pg.click("#trTabs [data-t=all]")
-        _ad = _dnx(pg, "#trAllDonut"); _ix = next(i for i, d in enumerate(_ad["data"]) if d["p"] == "flow" and d["s"] == "inst"); _pt = pg.evaluate(DNX_PT, ["#trAllDonut", _ix]); pg.mouse.move(_pt[0], _pt[1], steps=3); pg.mouse.click(_pt[0], _pt[1])
+        _ad = _dnx(pg, "#trAllDonut"); _ix = next(i for i, d in enumerate(_ad["data"]) if d["p"] == "flow"); _pt = pg.evaluate(DNX_PT, ["#trAllDonut", _ix]); pg.mouse.move(_pt[0], _pt[1], steps=3); pg.mouse.click(_pt[0], _pt[1])
         wait_until(pg, "() => document.querySelector('#trTabs button.on').dataset.t === 'flow'", 3000)
-        ok(f"{TT}：點甜甜圈的子扇區（資金流向・族群×法人）→ 進資金流向分頁並亮該子分頁", pg.evaluate("() => document.querySelector('#trSubs button.on').dataset.sub") == "inst")
+        ok(f"{TT}：點甜甜圈的「資金流向」扇區 → 進資金流向分頁", pg.evaluate("() => document.querySelector('#trTabs button.on').dataset.t") == "flow")
         # ---- 個股
         pg.click("#trTabs [data-t=stock]")
         subs = pg.evaluate("() => [...document.querySelectorAll('#trSubs button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join()")

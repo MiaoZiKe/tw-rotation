@@ -125,7 +125,8 @@
 #admBody .cb{container-type:inline-size}
 /* 甜甜圈：左圖右圖例（Andy：圖表資訊在右手邊，圓餅才不會被壓縮）；圖例一列一項＝色塊｜名稱｜數量｜占比，數字欄右對齊不截斷；卡寬 < 420px 才退回圖例在下方 */
 #admBody .dn{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px;min-height:0}
-#admBody .dn svg,#admBody .dn .dnc{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
+#admBody .dn svg{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
+#admBody .dn .dnc{flex:1 1 0;min-width:var(--chart-donut,160px);max-width:360px;max-height:360px;aspect-ratio:1;height:auto;align-self:center}   /* 環撐滿「卡片扣掉圖例」的寬（跟產業地圖一樣），上限 360 */
 #admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
 #admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
@@ -186,7 +187,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trctl input[hidden],#v-admin .trctl .trto[hidden]{display:none}#v-admin .trctl .trto{color:var(--ink-2)}
 #v-admin .trctl{flex-wrap:wrap;min-width:0;max-width:100%}#v-admin .trctl input[type=date]{width:136px;min-width:0}
 @media (max-width:640px){#v-admin .trhead .trctl{width:100%}#v-admin .trctl input[type=date]{flex:1 1 110px}}
-#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,3fr) minmax(0,2fr);margin-top:12px}
+#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);margin-top:12px}
 #v-admin .admgrid.trtop>.s2{grid-column:auto}
 #v-admin .admgrid.trpair:first-child{margin-top:0}
 #v-admin .trtabs{padding:0;overflow:visible}
@@ -208,7 +209,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0}
 #admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
 #admBody .bars .bt.stk{cursor:pointer}
-#admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:1 1 0;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
+#admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:0 1 auto;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
 #admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
 #admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 #admBody .dn ul.lg li b{flex:none;min-width:4.2em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
@@ -1192,12 +1193,10 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const t0 = tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`);
       return `<button type="button" class="bl" data-p="${p.k}" data-row="${ri}"${t0}>${esc(p.n)}</button><span class="bt stk" data-p="${p.k}" data-row="${ri}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn" data-row="${ri}" data-p="${p.k}"${t0}>${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
     }).join('');
-    const segs = []; list.forEach(({ p, i, d }) => { const ss = d.subN.filter((s) => s.v > 0), ssum = sum(ss.map((s) => s.v));
-      if (ss.length > 1 && ssum > 0) ss.forEach((s) => segs.push({ label: p.n, n: d.total * s.v / ssum, color: s.col, lcolor: pgCol(i, 0, 1), tip: `${p.n}・${s.n}`, p: p.k, s: s.k, g: p.k }));
-      else segs.push({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k, g: p.k }); });
-    const pagesAgg = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1) }));
+    /* ★ 2026-10-06：跟產業地圖一樣「前 5 ＋ 其他」，不再拆子頁（子頁明細在左邊堆疊長條）；顏色＝頁面色，跟左邊長條對應 */
+    const segs = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k }));
     return `<div class="admgrid trpair">${card('trAllBars', '各頁被看了幾次？', '有子頁的以不同顏色堆疊', `<div class="bars stkbars" data-chart="bars" id="trAllB">${rows}</div>`)}
-      ${card('trAllDonut', '各頁占比', '顏色＝頁面，同色系＝子頁', donutG(segs, { top5: pagesAgg, legend: pagesAgg, legendN: 10, totalN: tot, aria: '各頁瀏覽占比' }))}</div>`;
+      ${card('trAllDonut', '各頁占比', '前 5 頁＋其他；顏色＝頁面，跟左邊長條一樣', donutG(segs, { aria: '各頁瀏覽占比' }))}</div>`;
   }
   /* 單一頁面：上方小分頁（全部＋子頁）、下方 功能使用次數（長條＋圓餅）、被點最多的對象（長條＋圓餅） */
   function pageHtml(k) {
@@ -1305,7 +1304,14 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
      一律用 ECharts ＋ App.donut（site/app.js，產業地圖「成交值占比」的同一份設定）：環 68／92、間隙 1.2°、圓角 6、邊框 1px、
      滑過外擴 4px＋外框 3px（其他扇區不變暗）、中心字 App.donut.center、提示框 A.tip。
      donutG 只負責「圖例＋容器」，環由 mountDonuts() 在容器進到畫面後掛上去（MutationObserver，見 render）。 */
-  function donutG(segs, o) {
+  function donutG(segs0, o) {
+    /* 最多 6 塊（前 5 ＋ 其他）：照產業地圖；超過的併成灰色「其他」，保留原本順序 */
+    let segs = segs0.filter((x) => x.n > 0);
+    if (segs.length > 6) {
+      const keep = new Set(segs.slice().sort((a, b) => b.n - a.n).slice(0, 5)), rest = segs.filter((x) => !keep.has(x));
+      segs = segs.filter((x) => keep.has(x)).concat([{ label: '其他', n: sum(rest.map((x) => x.n)), color: 'var(--c0)', tip: '其他（' + rest.length + ' 項）' }]);
+    }
+    o = Object.assign({}, o, { legend: segs, legendN: 6, top5: null });
     const tot = sum(segs.map((s) => s.n));
     if (!tot) return '<div class="empty">沒有資料</div>';
     const top5 = (o.top5 || segs).slice().sort((x, y) => y.n - x.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
@@ -1330,7 +1336,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const parts = sp.segs.map((s) => ({ name: s.name, value: s.n, key: s.k, p: s.p, s2: s.s, color: s.other ? D.other() : resolveColor(el, s.color) }));
       const box = el.closest('[data-chart]');
       const cur = { hi: null };
-      const opt = { tooltip: { ...A.tip, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(Math.round(q.value))}（${(+q.percent).toFixed(1)}%）` },
+      const opt = { tooltip: { ...A.tip, position: D.tipPos, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(Math.round(q.value))}（${(+q.percent).toFixed(1)}%）` },
         title: D.center(sp.c1, sp.c2, SZ), animationDurationUpdate: D.MS,
         series: D.series({ cursor: sp.segs.some((s) => s.p) ? 'pointer' : 'default', data: parts.map((d, i) => D.item(d, i, false)) }) };
       A.chart(el, opt, { notMerge: true });
