@@ -23490,6 +23490,8 @@ SECTIONS = {
     "個股指標下拉0926":    lambda pg, b, base, code: t_stock_0926(pg, base, code),
     # ★ 2026-10-05 Andy：AI 卡的需求／供給區、BOS／CHoCH、支撐壓力、停損畫上 K 線，可在指標設定開關（⚠ 一律 --workers 1）
     "K線SMC區域1005":      lambda pg, b, base, code: t_smc_overlay_1005(pg, base, code),
+    # ★ 2026-10-06 Andy：「切換4週期後，紅框的指標功能都不會作動」—— 四週期也畫 KD／MACD／RSI／SMC／本益比河流（⚠ 一律 --workers 1）
+    "四週期指標1006":      lambda pg, b, base, code: t_mtf_ind_1006(pg, base, code),
     # ★ 2026-09-26 Andy：判讀卡＋多週期判讀合成可收合的「AI 分析」卡（規則式），技術面 1H／4H／日／週＋籌碼／基本／消息（⚠ 一律 --workers 1）
     "個股AI分析0926":      lambda pg, b, base, code: t_stock_ai_0926(pg, base, code),
     # ★ 2026-09-27 Andy：「季的週期要對，部分數據太少」＋券商 App 截圖；六檔季週期／筆數／按鈕（⚠ 一律 --workers 1）
@@ -25678,6 +25680,141 @@ def t_howpop_census(b, base, code):
 
 
 
+def t_mtf_ind_1006(pg, base, code):
+    """四週期同看也畫指標（Andy 2026-10-06 13:08，#stock/4551 指標面板紅框五項旁邊都寫「四週期不畫」：
+    「切換4週期後，紅框的指標功能都不會作動。幫我修復」，DECISIONS #320）的真人操作驗收：
+      在四週期同看（4 小時／日／週／月）下，從「指標 ▾」**真的點**勾 KD、MACD、RSI、SMC 區域、本益比河流，
+      每勾一項都去量四張小圖：副圖真的多一格（而且 ≥ 60px）、canvas 真的變、本益比倍數線只在日週月、
+      SMC 區塊＝payload 該週期的需求／供給區；取消勾選就消失、格子縮回原高。1440、800 兩種寬度各走一次，390 驗一欄＋副圖高度。"""
+    DBG = "() => window.Industry._dbg()"
+    code = "4551" if os.path.exists(os.path.join(ROOT, "site", "data", "stock", "4551.json")) else code
+    js = None
+    for w in (1440, 800, 390):
+        tag = f"[四週期指標1006][{w}]"
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        # 跟 Andy 截圖同一組四格：4 小時、日線、週線、月線（其他設定從預設開始，才知道「變了」是誰造成的）
+        pg.evaluate("() => { try { localStorage.setItem('tw.kcfg', JSON.stringify({ mtfTfs: ['240m', '1d', '1w', '1M'] })); } catch (e) {} }")
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        if js is None:
+            js = pg.evaluate(f"() => fetch('data/stock/{code}.json').then(r => r.json()).then(j => ({{ mtf: (j.mtf || {{}}).tf || {{}} }}))")
+        if w == 390:
+            # 手機版個股頁沒有 #mtfBtn 就跳過（手機另一套版面），有才驗
+            if not count(pg, "#mtfBtn"):
+                ok(f"{tag} 手機版沒有四週期同看按鈕（手機另一套版面，略過）", True)
+                continue
+        pg.evaluate("() => { const b = document.getElementById('mtfBtn'); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); }")
+        click(pg, "#mtfBtn", 1800)
+        if not ok(f"{tag} 進入四週期同看、四格都排出來（前提）", count(pg, ".mtf-cell") == 4 and pg.evaluate(DBG).get("mtf"), count(pg, ".mtf-cell")):
+            continue
+        m0 = pg.evaluate(DBG).get("mini") or []
+        drawn = [i for i, m in enumerate(m0) if m["bars"] >= 2]
+        tfs = [m["mtfTf"] for m in m0]
+        ok(f"{tag} 四格週期＝4 時／日／週／月（跟截圖同一組）", [c for c in pg.evaluate("() => [...document.querySelectorAll('.mtf-cell')].map(c => c.dataset.tf)")] == ["240m", "1d", "1w", "1M"],
+           pg.evaluate("() => [...document.querySelectorAll('.mtf-cell')].map(c => c.dataset.tf)"))
+        if not ok(f"{tag} 至少日／週／月三格有 K 棒（前提）", len(drawn) >= 3, m0):
+            continue
+        ok(f"{tag} 預設（只開均線＋成交量）：小圖沒有 KD／MACD／RSI 副圖、沒有倍數線、沒有 SMC", all(not m0[i]["subs"] and m0[i]["pe"] == 0 and m0[i]["zones"] == 0 and m0[i]["smcLines"] == 0 for i in drawn), m0)
+        h_base = {i: m0[i]["cellH"] for i in drawn}
+        ok(f"{tag} 下拉清單裡已經沒有「四週期不畫」", ind_open(pg) and "四週期不畫" not in text(pg, "#cfgPop"), text(pg, "#cfgPop")[:200])
+        # ---------------------------------------------------------------- KD／MACD／RSI：每勾一項，四張小圖都多一格副圖
+        on = []
+        for k, nm in (("kd", "KD"), ("macd", "MACD"), ("rsi", "RSI")):
+            hg = canvas_hash(pg, "#mtfGrid")
+            s0 = [m0[i]["series"] for i in drawn] if not on else [m["series"] for m in [pg.evaluate(DBG)["mini"][i] for i in drawn]]
+            ind_toggle(pg, k, 900)
+            on.append(k)
+            d = pg.evaluate(DBG); mm = d.get("mini") or []
+            ok(f"★ {tag} 勾 {nm} → 每張有 K 棒的小圖都多了 {nm} 副圖", all(k in mm[i]["subs"] for i in drawn), [mm[i]["subs"] for i in drawn])
+            ok(f"{tag} 勾 {nm} → 每張小圖的指標 series 真的變多", all(mm[i]["series"] > s for i, s in zip(drawn, s0)), ([mm[i]["series"] for i in drawn], s0))
+            hs = [h for i in drawn for h in mm[i]["subH"]]
+            ok(f"★ {tag} 勾 {nm} 後所有副圖都 ≥ 60px（不壓扁到看不出線）", bool(hs) and min(hs) >= 60, hs)
+            ok(f"{tag} 勾 {nm} → 格子長高（副圖不是從 K 棒那一段擠出來的）", all(mm[i]["cellH"] >= h_base[i] + 60 * len(on) for i in drawn), ([mm[i]["cellH"] for i in drawn], h_base))
+            ok(f"{tag} 勾 {nm} → 副圖左上角寫著「{nm}」與參數", all(nm in mm[i]["labels"] for i in drawn), [mm[i]["labels"][:80] for i in drawn])
+            changed(f"{tag} 勾 {nm} 之後四張小圖真的重畫", hg, canvas_hash(pg, "#mtfGrid"))
+            ok(f"{tag} 勾 {nm} 重套四張小圖 ≤ 300ms", (d.get("mtfMs") or 0) <= 300, d.get("mtfMs"))
+        lab0 = pg.evaluate(DBG)["mini"][drawn[0]]["labels"]
+        ok(f"{tag} KD 標籤的參數是 9,3,3、MACD 是 12,26,9、RSI 是 14（跟大圖同一組 KInd 預設）",
+           "KD 9,3,3" in lab0 and "MACD 12,26,9" in lab0 and "RSI 14" in lab0, lab0)
+        # 滑過小圖：副圖標籤的數值跟著游標那一根換
+        ind_close(pg)
+        cid = f"mini-{drawn[0]}"
+        cv = pg.evaluate(f"() => {{ const b = document.getElementById('{cid}').getBoundingClientRect(); return {{x:b.x,y:b.y,w:b.width,h:b.height}}; }}")
+        pg.mouse.move(cv["x"] + cv["w"] * 0.3, cv["y"] + cv["h"] * 0.3); pg.wait_for_timeout(350)
+        l1 = pg.evaluate(DBG)["mini"][drawn[0]]["labels"]
+        pg.mouse.move(cv["x"] + cv["w"] * 0.6, cv["y"] + cv["h"] * 0.3); pg.wait_for_timeout(350)
+        changed(f"{tag} 滑過小圖換一根 K 棒 → 副圖標籤的 KD／MACD／RSI 數值跟著換", l1, pg.evaluate(DBG)["mini"][drawn[0]]["labels"])
+        pg.mouse.move(5, 5); pg.wait_for_timeout(200)
+        if w == 800:
+            xs = pg.evaluate("() => [...document.querySelectorAll('.mtf-cell')].map(c => Math.round(c.getBoundingClientRect().x))")
+            ok(f"{tag} 800 寬是兩欄", len(set(xs)) == 2, xs)
+        if w == 390:
+            xs = pg.evaluate("() => [...document.querySelectorAll('.mtf-cell')].map(c => Math.round(c.getBoundingClientRect().x))")
+            ok(f"{tag} 390 寬是一欄", len(set(xs)) == 1, xs)
+        sw = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{tag} 開了三個副圖沒有橫向捲軸", sw <= 1, sw)
+        # ---------------------------------------------------------------- SMC 區域：四格各自取自己週期的需求／供給區
+        hg = canvas_hash(pg, "#mtfGrid")
+        ind_toggle(pg, "smcOv", 1000)
+        mm = pg.evaluate(DBG).get("mini") or []
+        exp = {i: len(js["mtf"].get(tfs[i], {}).get("demand", [])) + len(js["mtf"].get(tfs[i], {}).get("supply", [])) for i in drawn}
+        ok(f"★ {tag} 勾 SMC 區域 → 每格的需求／供給矩形數＝payload 該週期（mtf.tf[週期]）", all(mm[i]["zones"] == exp[i] for i in drawn), ([mm[i]["zones"] for i in drawn], exp))
+        ok(f"★ {tag} 勾 SMC 區域 → 每張有 K 棒的小圖都真的畫了 SMC（矩形或支撐壓力／停損線）", all(mm[i]["zones"] + mm[i]["smcLines"] > 0 for i in drawn),
+           [(mm[i]["zones"], mm[i]["smcLines"]) for i in drawn])
+        changed(f"{tag} 勾 SMC 區域之後四張小圖真的重畫", hg, canvas_hash(pg, "#mtfGrid"))
+        # ---------------------------------------------------------------- 本益比河流：只有日週月三格畫；4 小時那格寫原因
+        hg = canvas_hash(pg, "#mtfGrid")
+        ind_toggle(pg, "peRiver", 1000)
+        mm = pg.evaluate(DBG).get("mini") or []
+        dwm = [i for i in drawn if tfs[i] in ("1d", "1w", "1M")]
+        ok(f"★ {tag} 勾本益比河流 → 日／週／月三格都掛上五條倍數線", len(dwm) == 3 and all(mm[i]["pe"] == 5 for i in dwm), [(tfs[i], mm[i]["pe"]) for i in drawn])
+        ok(f"★ {tag} 勾本益比河流 → 4 小時那格不畫、而且格子上寫「本益比河流只有日週月」",
+           mm[0]["pe"] == 0 and mm[0]["peSkip"] and "本益比河流只有日週月" in (pg.get_attribute(".mtf-cell[data-tf='240m'] .mpeskip", "title") or "")
+           and pg.evaluate("() => { const e = document.querySelector(\".mtf-cell[data-tf='240m'] .mpeskip\"); return !!e && !e.hidden && e.getClientRects().length > 0; }"),
+           (mm[0]["pe"], mm[0]["peSkip"]))
+        ok(f"{tag} 日週月三格上沒有那行「只有日週月」", all(not mm[i]["peSkip"] for i in dwm))
+        changed(f"{tag} 勾本益比河流之後小圖真的重畫", hg, canvas_hash(pg, "#mtfGrid"))
+        pg.hover(".mtf-cell[data-tf='240m'] .mpeskip"); pg.wait_for_timeout(200)
+        ind_open(pg)
+        pg.hover('#cfgPop .indrow[data-k="peRiver"] label.isw'); pg.wait_for_timeout(200)
+        tt = pg.get_attribute('#cfgPop .indrow[data-k="peRiver"] label.isw', "title") or ""
+        ok(f"{tag} 滑過清單的「本益比河流」那一列 → 提示寫「本益比河流只有日週月」（不是「四週期不畫」）", "本益比河流只有日週月" in tt and "四週期不畫" not in tt, tt)
+        ok(f"{tag} KD／MACD／RSI 那幾列沒有畫不出來的提示（四格都畫）",
+           all(not (pg.get_attribute(f'#cfgPop .indrow[data-k="{k}"] label.isw', "title") or "") for k in ("kd", "macd", "rsi")))
+        # 設定是同一份：寫進 tw.kcfg
+        cfg = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.kcfg') || '{}')")
+        ok(f"{tag} 勾選寫進同一份 tw.kcfg（kd／macd／rsi／smcOv／peRiver 都開）",
+           bool(cfg.get("kd")) and bool(cfg.get("macd")) and bool(cfg.get("rsi")) and cfg.get("smcOv") is True and cfg.get("peRiver") is True,
+           {k: cfg.get(k) for k in ("kd", "macd", "rsi", "smcOv", "peRiver")})
+        # 效能：五項全開，切回單一週期再切回四週期，四格整片重建的時間
+        ind_close(pg)
+        click(pg, "#mtfBtn", 1200)
+        if w == 1440:
+            # 單一週期預設是分時（折線、沒有副圖），按「日」才看得到副圖
+            click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+            wait_until(pg, "() => !!(window.Industry && window.Industry._dbg().paneH)", 6000)
+            pd = pg.evaluate(DBG).get("paneH") or {}
+            ok(f"{tag} 切回單一週期 → 大圖也是同一份勾選（KD／MACD／RSI 三個副圖都在）", all(k in pd for k in ("kd", "macd", "rsi")), pd)
+        click(pg, "#mtfBtn", 1400)
+        bm = pg.evaluate(DBG).get("mtfBuildMs")
+        ok(f"★ {tag} 五項全開切進四週期：四格建圖＋算指標＋SMC ≤ 300ms", bm is not None and bm <= 300, bm)
+        # ---------------------------------------------------------------- 逐項取消：真的消失
+        for k, nm in (("kd", "KD"), ("macd", "MACD"), ("rsi", "RSI")):
+            ind_toggle(pg, k, 800)
+            mm = pg.evaluate(DBG).get("mini") or []
+            ok(f"★ {tag} 取消 {nm} → 四張小圖的 {nm} 副圖消失", all(k not in mm[i]["subs"] for i in drawn), [mm[i]["subs"] for i in drawn])
+        ok(f"{tag} 三個副圖都取消 → 格子縮回原高", all(abs(mm[i]["cellH"] - h_base[i]) <= 2 for i in drawn), ([mm[i]["cellH"] for i in drawn], h_base))
+        ind_toggle(pg, "smcOv", 800)
+        mm = pg.evaluate(DBG).get("mini") or []
+        ok(f"★ {tag} 取消 SMC 區域 → 四格的矩形與價位線都消失", all(mm[i]["zones"] == 0 and mm[i]["smcLines"] == 0 for i in drawn), [(mm[i]["zones"], mm[i]["smcLines"]) for i in drawn])
+        ind_toggle(pg, "peRiver", 800)
+        mm = pg.evaluate(DBG).get("mini") or []
+        ok(f"★ {tag} 取消本益比河流 → 倍數線消失、4 小時那格的說明也收起來", all(mm[i]["pe"] == 0 for i in drawn) and not any(m["peSkip"] for m in mm),
+           [(mm[i]["pe"], mm[i]["peSkip"]) for i in range(len(mm))])
+        ind_close(pg)
+        click(pg, "#mtfBtn", 800)      # 回單一週期，不把四週期狀態留給下一段
+
+
 def t_smc_overlay_1005(pg, base, code):
     """K 線 SMC 區域疊圖（Andy 2026-10-05：「AI 分析／技術分析卡裡提到的價位需要補在上方 K 線圖，
     並且這是可以開啟關閉的指標，在設定內可以勾選」）的真人操作驗收：
@@ -25976,8 +26113,11 @@ def t_stock_0926(pg, base, code):
     changed("★ [0926-④] 按小圖右下角的重設鈕 → 那一張真的回到預設取景", hm1, canvas_hash(pg, "#mini-0"))
     pg.mouse.move(5, 5)
     # 在四週期模式從下拉把「成交量」關掉 → 四張一起消失；再打開 → 四張都回來
-    ok("[0926-②] 四週期模式下，下拉裡 KD 那幾列標著「四週期不畫」",
-       ind_open(pg) and "四週期不畫" in text(pg, '#cfgPop .indrow[data-k="kd"]'))
+    # ★ 2026-10-06 改前→改後（過時斷言，DECISIONS #320）：改前「四週期模式下 KD 那幾列標著『四週期不畫』」；
+    #   改後 Andy「切換4週期後，紅框的指標功能都不會作動。幫我修復」—— 四週期也畫 KD／MACD／RSI，那行字整個拿掉。
+    #   真的勾起來四張小圖都長副圖，在「四週期指標1006」段逐項操作驗。
+    ok("[1006] 四週期模式下，下拉裡已經沒有「四週期不畫」字樣",
+       ind_open(pg) and "四週期不畫" not in text(pg, "#cfgPop"))
     hg0 = canvas_hash(pg, "#mtfGrid")
     ind_toggle(pg, "vol", 900)
     m_off = pg.evaluate(DBG).get("mini") or []

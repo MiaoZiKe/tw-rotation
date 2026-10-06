@@ -4600,15 +4600,50 @@
     if (tf === '60m') return hourBars(pg);
     return (pg.intraday && pg.intraday[tf]) || [];
   }
-  /* 四週期小圖吃的指標：跟大圖同一份設定，但只取主圖疊加（均線、BOLL）與成交量 ——
-     KD／MACD／RSI 是副圖，300px 的小格塞不下；本益比河流只對日線有意義（停損目標 2026-09-26 晚整個拿掉）。*/
   /* 主圖吃的指標：就是 cfg，只是 MACD 背離一律關掉（2026-09-26 晚從清單拿掉）。
      chart.js 的背離是「macdDiv !== false 就畫」—— 大盤頁（market3.js）還在用那個預設，所以不改 chart.js，
      而是在個股頁這一層強制關；也不寫進 tw.kcfg（寫進去會連大盤頁一起關掉）。*/
   function mainCfg(cfg) { return Object.assign({}, cfg, { macdDiv: false }); }
-  function miniCfg(cfg) {
-    return { ma: cfg.ma || [], maColor: cfg.maColor, maWidth: cfg.maWidth, lineWidth: cfg.lineWidth,
-             boll: cfg.boll || null, vol: !!cfg.vol, volma: cfg.volma, st: cfg.st };
+  /* ★ 2026-10-06（Andy #stock/4551 截圖：「切換4週期後，紅框的指標功能都不會作動」，DECISIONS #320）：
+     四週期小圖吃的指標＝跟大圖**同一份**設定（同一個 tw.kcfg、同一組 KInd 口徑），KD／MACD／RSI 副圖也畫。
+     改前這裡只挑均線、BOLL、成交量三樣，kd／macd／rsi 被整個濾掉 —— 下拉勾了、存檔也寫了，小圖就是不畫，
+     清單上還掛著「四週期不畫」。當時的理由是「300px 的小格塞不下」，現在改成**有幾個副圖格子就長高幾格**
+     （MINI_IND_H，見 miniApply），副圖不會被壓扁。MACD 背離照大圖一樣強制關（mainCfg）。*/
+  function miniCfg(cfg) { return mainCfg(cfg); }
+  /** 四週期小圖每個 KD／MACD／RSI 副圖的高度（px）。Andy 要求最低 60px 看得出線；
+      LWC 的面板分隔線與上下留白會吃掉幾 px，所以給 76，量到的實際高度在驗收裡卡 ≥ 60。*/
+  const MINI_IND_H = 76;
+  /** 本益比河流只有日、週、月（與 N 日／N 週）畫得出來：倍數線＝近四季 EPS × 倍數，一天一個值，
+      分 K（1 時、4 時、分）一天好幾根，對上去會變成階梯、而且盤中那幾根沒有新的 EPS，不畫比畫錯好。*/
+  const MINI_PE_TF = /^(1d|1w|1M|\d+[DW])$/;
+  const miniSubN = (cfg) => ['kd', 'macd', 'rsi'].filter(k => cfg[k]).length;
+  /** 小圖副圖左上角那一行（指標名＋參數＋游標那一根的值）。大圖寫在 pane-labels，小圖以前沒有，
+      不寫的話三個副圖疊在一起分不出哪個是 KD、哪個是 RSI。k＝null 時寫最後一根。*/
+  function miniPaneText(c, cfg, k) {
+    const V = c.values || {}; const n = (c.data || []).length; const i = k == null ? n - 1 : k;
+    const at = (a) => (a && i >= 0 ? a[i] : null);
+    const f = (v, d) => (v == null || !Number.isFinite(v) ? '—' : A.fmt.n(v, d));
+    const C = KUtil.colors, o = {};
+    if (V.KD && cfg.kd) o.kd = `KD ${cfg.kd.n},${cfg.kd.m1},${cfg.kd.m2}　<span style="color:${C.k}">K ${f(at(V.KD.k), 1)}</span> <span style="color:${C.d}">D ${f(at(V.KD.d), 1)}</span>`;
+    if (V.MACD && cfg.macd) o.macd = `MACD ${cfg.macd.f},${cfg.macd.s},${cfg.macd.g}　<span style="color:${C.dif}">DIF ${f(at(V.MACD.dif))}</span> <span style="color:${C.dea}">MACD ${f(at(V.MACD.dea))}</span> OSC <span style="color:${A.upDown(at(V.MACD.osc))}">${f(at(V.MACD.osc))}</span>`;
+    if (V.RSI && cfg.rsi) o.rsi = `RSI ${cfg.rsi.n}　<span style="color:${C.rsi}">${f(at(V.RSI), 1)}</span>`;
+    return o;
+  }
+  /** 一張小圖套指標（建圖時與改設定時都走這一支，兩條路不會漂開）：
+      ① 依副圖數量把格子撐高（--mtf-sub，CSS 每格多 MINI_IND_H px）② 本益比倍數線只在日週月掛上
+      ③ applyIndicators（KInd 同口徑）④ SMC 區域依「這一格的週期」取 payload 的 mtf.tf[週期] ⑤ 副圖標籤。
+      river 由呼叫端算一次傳進來（四格共用同一條逐日本益比，不要算四次）。*/
+  function miniApply(pg, c, tf, cfg, river) {
+    const cell = c.el && c.el.closest ? c.el.closest('.mtf-cell') : null;
+    if (cell) cell.style.setProperty('--mtf-sub', String(miniSubN(cfg)));
+    c.opts.indH = MINI_IND_H;
+    const peOk = MINI_PE_TF.test(tf);
+    c.peBands = cfg.peRiver && peOk && river ? peBandsForBars(river, c.bars, peStyle(cfg)) : null;
+    c.applyIndicators(miniCfg(cfg));
+    smcOverlay(pg, tf, c, cfg, true);
+    c.setPaneLabels(miniPaneText(c, cfg, null));
+    const skip = cell && cell.querySelector('.mpeskip');
+    if (skip) skip.hidden = !(cfg.peRiver && !peOk);
   }
 
 
@@ -4626,9 +4661,11 @@
   const SMC_KINDS = [['demand', '需求區'], ['supply', '供給區'], ['bos', 'BOS'], ['choch', 'CHoCH'], ['sr', '支撐／壓力'], ['stop', '停損']];
   const SMC_TFS = ['60m', '240m', '1d', '1w', '1M'];
   function smcKindsOf(cfg) { return Object.assign({ demand: true, supply: true, bos: true, choch: true, sr: true, stop: true }, cfg.smcKinds || {}); }
-  function smcOverlay(pg, tf, kc, cfg) {
+  /* mini＝四週期小圖（2026-10-06）：同一支、同一份 payload，只是不寫 state.smc（那是大圖的驗收把手，
+     四格輪流寫會讓「目前畫的是哪一格」對不上）。*/
+  function smcOverlay(pg, tf, kc, cfg, mini) {
     if (!kc || !kc.setSmc) return null;
-    if (!cfg.smcOv) { kc.setSmc(null); state.smc = null; return null; }
+    if (!cfg.smcOv) { kc.setSmc(null); if (!mini) state.smc = null; return null; }
     const on = smcKindsOf(cfg), data = kc.data || [];
     if (!data.length) { kc.setSmc(null); return null; }
     const tt = KUtil.toTime;
@@ -4685,7 +4722,7 @@
     const note = `技術區域僅供研究參考，不構成投資建議${noTf}`;
     const o = { tf, zones, lines, note, style: { label: true } };
     kc.setSmc(o);
-    state.smc = o;          // 驗收讀這個（跟 AI 卡比對數字）
+    if (!mini) state.smc = o;          // 驗收讀這個（跟 AI 卡比對數字）
     return o;
   }
 
@@ -4723,8 +4760,9 @@
          · 最上面「整體」一列：整體線寬、K 棒寬度（不是指標，沒有開關）
          · 均線那一列展開＝原本的均線編輯（最多 6 條、新增／刪除、顏色、粗細）
        面板沿用 #cfgPop（fixed、貼著按鈕、夾進視窗、內部捲動；點外面或 Esc 關 —— dismissable）。
-       所有改動照舊寫 tw.kcfg、即時套用；單一週期與四週期同看共用同一份（四週期只畫主圖疊加＋成交量，
-       KD／MACD／RSI 這類副圖在 300px 的小格裡放不下，那幾列會標「四週期不畫」）。
+       所有改動照舊寫 tw.kcfg、即時套用；單一週期與四週期同看共用同一份。
+       ★ 2026-10-06 起四週期也全部畫（DECISIONS #320，推翻「四週期不畫」）：KD／MACD／RSI 每張小圖各自長副圖、
+       SMC 區域各格取自己週期的 mtf、本益比河流只有日週月那幾格畫 —— 真的有格子畫不出來的，只在那一列的滑過提示（title）講原因。
        ★ 同一天 Andy 要拿掉的「SMC 區間」「BOS/CHoCH」不在清單裡，供需區顏色那一段設定也一起拿掉了；
          localStorage 裡舊的 smc／marks／zone 值直接忽略（loadCfg 會清掉）。*/
     const IND_DEF = { ma: [5, 20, 60, 120], boll: { n: 20, k: 2 }, kd: { n: 9, m1: 3, m2: 3 }, macd: { f: 12, s: 26, g: 9 }, rsi: { n: 14 } };
@@ -4741,7 +4779,11 @@
       const o = prmOf(k); o[p] = v; (cfg.prm = cfg.prm || {})[k] = o;
     };
     const P = (k) => ({ get: (p) => prmOf(k)[p], set: (p, v) => setPrm(k, p, v) });
-    const MINI_SKIP = '四週期不畫';
+    /* 四週期同看時，那一列滑過要寫的白話原因（只有「真的有格子畫不出來」的才寫；KD／MACD／RSI 四格都畫，不寫）。*/
+    const MINI_TIP = {
+      peRiver: '本益比河流只有日週月：倍數線是近四季 EPS × 倍數、一天一個值，1 時／4 時／分 K 那幾格不畫',
+      smcOv: '需求／供給區取各格自己週期的多週期判讀；沒有那個週期資料的格子（例如沒有分 K 的 1 時、4 時）只畫支撐壓力與停損',
+    };
     const IND = [
       { k: 'base', label: '整體', base: true, sum: () => `線寬 ${cfg.lineWidth || 1}px · K 棒 ${cfg.bar || 11}px` },
       { k: 'ma', label: '均線 MA', color: '#ffd166', on: () => !!(cfg.ma && cfg.ma.length), toggle: () => flip('ma'),
@@ -4753,22 +4795,22 @@
         sum: () => (cfg.volma ? `量均 ${cfg.volma}` : ''),
         params: [{ p: 'volma', lab: '量均線（0＝不畫）', min: 0, max: 240 }],
         io: { get: () => cfg.volma || 0, set: (p, v) => { cfg.volma = v; } }, st: 'vol' },
-      { k: 'kd', label: 'KD', color: '#ffd166', mini: MINI_SKIP, on: () => !!cfg.kd, toggle: () => flip('kd'),
+      { k: 'kd', label: 'KD', color: '#ffd166', on: () => !!cfg.kd, toggle: () => flip('kd'),
         sum: () => { const p = prmOf('kd'); return `${p.n},${p.m1},${p.m2}`; },
         params: [{ p: 'n', lab: '天數', min: 2, max: 120 }, { p: 'm1', lab: 'K 平滑', min: 1, max: 30 }, { p: 'm2', lab: 'D 平滑', min: 1, max: 30 }], io: P('kd'), st: 'kd' },
-      { k: 'macd', label: 'MACD', color: '#3ee0ff', mini: MINI_SKIP, on: () => !!cfg.macd, toggle: () => flip('macd'),
+      { k: 'macd', label: 'MACD', color: '#3ee0ff', on: () => !!cfg.macd, toggle: () => flip('macd'),
         sum: () => { const p = prmOf('macd'); return `${p.f},${p.s},${p.g}`; },
         params: [{ p: 'f', lab: '快線', min: 2, max: 120 }, { p: 's', lab: '慢線', min: 3, max: 240 }, { p: 'g', lab: '訊號', min: 2, max: 120 }], io: P('macd'), st: 'macd' },
       /* 「MACD 背離」與「停損／目標」兩列 2026-09-26 晚拿掉（Andy：「MACD & 停損／目標背離先拿掉」）。
          MACD 本身留著（預設關）；背離在主圖由 mainCfg() 強制 macdDiv:false，停損目標的價位線整段不畫了。
          右側分析卡上那行「停損・目標」文字是分析卡的事，不在這裡。*/
-      { k: 'rsi', label: 'RSI', color: '#c3ff5b', mini: MINI_SKIP, on: () => !!cfg.rsi, toggle: () => flip('rsi'),
+      { k: 'rsi', label: 'RSI', color: '#c3ff5b', on: () => !!cfg.rsi, toggle: () => flip('rsi'),
         sum: () => String(prmOf('rsi').n), params: [{ p: 'n', lab: '天數', min: 2, max: 120 }], io: P('rsi'), st: 'rsi' },
       /* 本益比河流：把下方那張河流圖的五條倍數線疊在 K 棒上（需要近四季 EPS，只有日／週／月線畫得出來）。*/
-      { k: 'peRiver', label: '本益比河流', color: '#b39dff', mini: MINI_SKIP, on: () => !!cfg.peRiver, toggle: () => { cfg.peRiver = !cfg.peRiver; },
+      { k: 'peRiver', label: '本益比河流', color: '#b39dff', on: () => !!cfg.peRiver, toggle: () => { cfg.peRiver = !cfg.peRiver; },
         sum: () => '日週月' },
       /* SMC 區域（2026-10-05）：AI 卡講的需求／供給區、BOS／CHoCH、最近支撐壓力、停損畫上主圖。預設關；子項勾選存 cfg.smcKinds。*/
-      { k: 'smcOv', label: 'SMC 區域（需求／供給／BOS）', color: '#2ee59d', mini: MINI_SKIP, on: () => !!cfg.smcOv, toggle: () => { cfg.smcOv = !cfg.smcOv; },
+      { k: 'smcOv', label: 'SMC 區域（需求／供給／BOS）', color: '#2ee59d', on: () => !!cfg.smcOv, toggle: () => { cfg.smcOv = !cfg.smcOv; },
         sum: () => { const o = smcKindsOf(cfg); return SMC_KINDS.filter(x => o[x[0]]).map(x => x[1]).join('・') || '全部不畫'; } },
     ];
     const IDX = {}; IND.forEach(d => { IDX[d.k] = d; });
@@ -4818,10 +4860,10 @@
     };
     const rowHTML = (d) => {
       const open = indOpen.has(d.k), body = hasBody(d);
-      const note = d.mini && state.mtfMode ? `<span class="inote">${d.mini}</span>` : '';
+      const tip = state.mtfMode && MINI_TIP[d.k] ? ` title="${MINI_TIP[d.k]}"` : '';
       const head = d.base
         ? `<span class="isw" data-exp="1"><i style="background:transparent;border:1px solid var(--ink-3)"></i><span class="iname">${d.label}</span><span class="isum"></span></span>`
-        : `<label class="isw"><input type="checkbox" class="ion" data-k="${d.k}"${d.on() ? ' checked' : ''}><i style="background:${d.color}"></i><span class="iname">${d.label}</span><span class="isum"></span>${note}</label>`;
+        : `<label class="isw"${tip}><input type="checkbox" class="ion" data-k="${d.k}"${d.on() ? ' checked' : ''}><i style="background:${d.color}"></i><span class="iname">${d.label}</span><span class="isum"></span></label>`;
       return `<div class="indrow${!d.base && d.on() ? ' on' : ''}${open ? ' open' : ''}" data-k="${d.k}">
         <div class="ihead">${head}${body ? `<button type="button" class="iexp" data-k="${d.k}" aria-expanded="${open}" aria-label="${d.label} 設定" title="${d.label} 設定">▸</button>` : ''}</div>
         ${body ? `<div class="ibody"${open ? '' : ' hidden'}>${bodyHTML(d)}</div>` : ''}</div>`;
@@ -4860,7 +4902,13 @@
     // 設定改了 → 存檔 → 目前這個模式重畫（單一週期重跑 apply；四週期只把四張小圖的指標重套）
     const commit = () => {
       saveCfg(cfg); paintHead();
-      if (state.mtfMode) miniCharts.forEach(c => { try { c.applyIndicators(miniCfg(cfg)); } catch (e) { /* 小圖已銷毀 */ } });
+      if (state.mtfMode) {
+        // 四張小圖各自重套（不重建圖：各格自己的縮放取景留著）；花多久記在 state.mtfMs，驗收卡 300ms
+        const t0 = performance.now();
+        const river = cfg.peRiver ? peRiver(pg) : null;
+        miniCharts.forEach(c => { try { miniApply(pg, c, c._mtfTf || c.tf, cfg, river); } catch (e) { /* 小圖已銷毀 */ } });
+        state.mtfMs = Math.round(performance.now() - t0);
+      }
       else apply();
     };
     const syncMa = () => {
@@ -5371,8 +5419,16 @@
     return pick;
   }
 
+  /* ★ 2026-10-06 效能（Andy：「切換時不能卡超過 300ms，必要時延後計算」）：四格不在同一個工作裡一次建完。
+     第一格當場建（畫面不會空白），其餘每格各排一個 setTimeout(0) —— 瀏覽器在兩格之間可以處理點擊與重繪，
+     單一段卡住的時間＝最慢那一格（實測冷啟動 4 格一次建完 340～510ms，拆開後每段 < 300ms）。
+     mtfGen 是世代號：還沒建完就又重建（換週期下拉、切回單一週期、即時格資料到了）時，舊的那一串直接停。*/
+  let mtfGen = 0;
   function buildMtfGrid(pg) {
+    const gen = ++mtfGen;
+    const t0 = performance.now();
     const cfg = state.cfg || loadCfg();
+    const river = cfg.peRiver ? peRiver(pg) : null;
     const pick = mtfPick(pg);
     const grid = $('#mtfGrid');
     const offDay = window.LiveK && window.LiveK.offDay ? window.LiveK.offDay() : null;
@@ -5380,12 +5436,14 @@
       `<option value="${tf}"${tf === cur ? ' selected' : ''}>${MTF_LABEL(tf)}</option>`).join('');
     grid.innerHTML = pick.map((tf, i) => {
       const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf];
-      return `<div class="mtf-cell"><div class="cap">
+      return `<div class="mtf-cell" data-tf="${tf}" style="--mtf-sub:${miniSubN(cfg)}"><div class="cap">
         <select class="mtfsel" data-i="${i}" title="換這一格要看的週期">${opts(tf)}</select>
         ${t ? `<span style="color:${A.upDown(t.trend)}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
-        </div><div class="mtip" id="mtip-${i}" hidden></div><div class="cv" id="mini-${i}"></div></div>`;
+        </div><div class="mpeskip" title="本益比河流只有日週月（倍數線一天一個值，這一格的週期對不上）"${cfg.peRiver && !MINI_PE_TF.test(tf) ? '' : ' hidden'}>本益比河流只有日週月</div>
+        <div class="mtip" id="mtip-${i}" hidden></div><div class="cv" id="mini-${i}"></div></div>`;
     }).join('');
-    pick.forEach((tf, i) => {
+    let maxMs = 0;
+    const cellOne = (tf, i) => {
       const el = $('#mini-' + i);
       /* ★ 2026-09-26（Andy：「四週期成交量呢？」）：每張小圖各自畫自己週期的成交量副圖（紅漲綠跌量柱＋量均線，
          圖高約 20%、軸標「張」），跟大圖同一份設定（miniCfg）—— 指標下拉把「成交量」關掉，四張一起不畫。
@@ -5404,7 +5462,8 @@
       // 右下角「重設縮放」：每張小圖各一顆，重設的是這一張自己的縮放（四格可以各自滾輪縮放）
       const c = new KChart(el, { mini: true, tf: dtf, fit: (kc) => kc.defaultView() });
       c.setBars(bars, dtf);
-      c.applyIndicators(miniCfg(cfg));
+      c._mtfTf = tf;           // SMC 區域與本益比河流看的是「這一格選的週期」（即時格畫的 dtf 可能是 1 分）
+      miniApply(pg, c, tf, cfg, river);
       /* 四週期小圖：游標看板（.mtip，兩行）蓋在圖的左上角，頂端同樣留兩行高，K 棒最高點不被蓋住 */
       if (c.reserveTop) requestAnimationFrame(() => c.reserveTop(38));
       /* 游標看板：滑過哪一根就寫那一根的時間、開高低收與量。小圖沒有大圖那條圖例，
@@ -5412,6 +5471,8 @@
       const tip = $('#mtip-' + i);
       c.onCrosshair((k) => {
         const d = k == null ? null : c.data[k];
+        // 副圖標籤跟著游標那一根走（離開圖就回到最後一根）
+        try { c.setPaneLabels(miniPaneText(c, state.cfg || cfg, k == null ? null : k)); } catch (e) { /* 已銷毀 */ }
         if (!d || !tip) { if (tip) tip.hidden = true; return; }
         const prev = c.data[k - 1];
         const col = A.upDown(prev ? d.close - prev.close : d.close - d.open);
@@ -5420,7 +5481,17 @@
           + `<br>量 <b data-vol>${A.fmt.lot((d.volume || 0) / 1000)}</b>`;
       });
       miniCharts.push(c);
-    });
+    };
+    // 驗收讀：mtfBuildMs＝單一段最久卡多久（第一段含排版＋第一格）、mtfBuildTotal＝四格全部建完的牆鐘時間
+    state.mtfBuildMs = null; state.mtfBuildTotal = null;
+    const step = (i, ts) => {
+      if (gen !== mtfGen || !grid.isConnected) return;
+      cellOne(pick[i], i);
+      maxMs = Math.max(maxMs, performance.now() - ts);
+      if (i + 1 < pick.length) setTimeout(() => step(i + 1, performance.now()), 0);
+      else { state.mtfBuildMs = Math.round(maxMs); state.mtfBuildTotal = Math.round(performance.now() - t0); }
+    };
+    if (pick.length) step(0, t0);
     $$('.mtfsel', grid).forEach(sel => sel.onchange = () => {
       const next = mtfPick(pg).slice();
       next[+sel.dataset.i] = sel.value;
@@ -7479,6 +7550,7 @@
     _apply: () => { if (state._apply) state._apply(); },
     _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool,
     // 驗收用（2026-10-05 SMC 區域疊圖）：這次畫了哪些區域／線（價位原值）、圖上實際印出哪些標籤、底部小字
+    mtfMs: state.mtfMs == null ? null : state.mtfMs, mtfBuildMs: state.mtfBuildMs == null ? null : state.mtfBuildMs, mtfBuildTotal: state.mtfBuildTotal == null ? null : state.mtfBuildTotal,
     smc: state.smc && kchart && kchart._smc === state.smc ? { tf: state.smc.tf, note: state.smc.note,
       zones: state.smc.zones.map(z => ({ kind: z.kind, low: z.low, high: z.high, since: z.sinceDate, tip: z.tip })),
       lines: state.smc.lines.map(l => ({ kind: l.kind, price: l.price, label: l.label, date: l.date || null })),
@@ -7527,6 +7599,13 @@
       const vi = c.paneIndex ? c.paneIndex.vol : null, tot = ps.reduce((a, v) => a + v, 0);
       return { tf: c.tf, panes: ps.length, vol: vi != null, volShare: vi != null && tot ? +(ps[vi] / tot).toFixed(3) : 0,
                zones: c.zones ? (c.zones.zones || []).length : 0, markers: (c.markerList || []).length, bars: (c.data || []).length,
+               // 2026-10-06 四週期指標：各格的副圖（kd／macd／rsi 哪幾個、各多高）、本益比倍數線幾條、SMC 價位線幾條、指標 series 總數
+               mtfTf: c._mtfTf || c.tf, subs: ['kd', 'macd', 'rsi'].filter(k => c.paneIndex && c.paneIndex[k] != null),
+               subH: ['kd', 'macd', 'rsi'].filter(k => c.paneIndex && c.paneIndex[k] != null).map(k => Math.round(ps[c.paneIndex[k]] || 0)),
+               pe: (c.peBands || []).length, smcLines: c.smcLines ? (c.smcLines.lines || []).length : 0,
+               series: (c.overlays || []).length + Object.values(c.panes || {}).reduce((a, v) => a + v.length, 0),
+               peSkip: !!(c.el && c.el.closest('.mtf-cell') && c.el.closest('.mtf-cell').querySelector('.mpeskip:not([hidden])')),
+               cellH: c.el ? c.el.clientHeight : 0, labels: c.labels ? c.labels.textContent : '',
                v4: (c.bars || []).slice(0, 4).map(b => b[5] || 0) };
     }) }) };
 })();
