@@ -1385,3 +1385,66 @@ Object.assign(Hub.prototype.subRoutes, {
   },
 });
 /* ============================================================================ 會員名單統計（依期間）區塊結束 */
+
+/* ============================================================================ 批次端點區塊（2026-10-06，Andy：「流量觀測改成批次送出，上架前做」）
+   以前前端每 60 秒打一次 /v1/beat（心跳＋這一分鐘的計數）；上架後每位使用者每分鐘一個請求，Worker 請求數跟「在線人數×分鐘」成正比。
+   改成前端把「每一分鐘的心跳」先排進佇列，每 5 分鐘、累積 30 筆事件、或頁面隱藏／關閉時，一次打包送到這裡。
+     POST /v1/track/batch  { sid, t?, now（送出當下的前端時鐘，毫秒）, leave?, items: [{ ts, r, ev, e2?, live }] }
+       · items 每一筆＝以前的一次心跳：live＝1 是「看得到的那一分鐘」（算在線分鐘、在線時間），
+         live＝0 是「只有計數」（隱藏前、湊滿 30 筆提早送的那一段，不算分鐘 —— 等同以前的「離開」那一跳）
+       · 逐筆交給原本的 beat（含 v3、hourly 兩層包裝）跑，時間換成該筆的 ts —— 所以 usage／ev2／hstat／visits／uev
+         的結果跟一筆一筆送完全一樣（tests/batch.test.mjs：10 筆單送 vs 1 批送，五張表逐列相同）
+       · 前端時鐘可能跟 Worker 差幾秒到幾分鐘：用 now 算出差值把每筆 ts 校正到 Worker 時間，再驗「不早於 24 小時、不晚於現在」；
+         不合格的那一筆丟掉（回 skipped），其他照收 —— 不因為一筆壞掉讓前端整批重送，造成重複計數
+       · 單批最多 100 筆（前端一分鐘一筆、5 分鐘一批，正常 5～6 筆）；body 上限 64KB（單筆端點是 16KB，100 筆裝不下）
+       · 速率限制整批只算一次；線上名單（presence）在整批跑完後用「現在」更新一次，leave＝1 則刪掉
+     回：{ ok, took, skipped, n?（線上人數，同 /v1/beat 的規則）}
+   ★ 舊的 /v1/beat 保留不動：瀏覽器快取裡的舊版網頁還會打它。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const BATCH_MAX = 100, BATCH_MAX_BYTES = 65536, BATCH_MAX_AGE_MS = 24 * 3600 * 1000;
+Hub.prototype.trackBatch = async function (req, b) {
+  if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
+  const sid = String(b.sid || '');
+  if (!/^[A-Za-z0-9_-]{8,40}$/.test(sid)) return this.json(req, { error: 'bad_sid' }, 400);
+  if (!Array.isArray(b.items) || b.items.length > BATCH_MAX) return this.json(req, { error: 'bad_items' }, 400);
+  const now = this.now();
+  const skew = Number.isFinite(b.now) ? now - b.now : 0;
+  /* 逐筆跑原本的 beat：用一個「時間換成這筆 ts、速率限制關掉、不觸發清理」的影子物件呼叫，
+     不去改 hub 本身的屬性 —— beat 裡有 await，改 hub 本身會讓同時進來的別的請求讀到錯的時間 */
+  let took = 0, skipped = 0, last = null;
+  for (const it of b.items) {
+    const ts = it && Number.isFinite(it.ts) ? it.ts + skew : NaN;
+    if (!(ts >= now - BATCH_MAX_AGE_MS && ts <= now)) { skipped++; continue; }
+    const one = { sid, r: it.r, ev: it.ev || {}, ...(it.e2 ? { e2: it.e2 } : {}), ...(it.live ? {} : { leave: true }), ...(b.t ? { t: b.t } : {}) };
+    const ctx = Object.create(this, { now: { value: () => ts }, rateOk: { value: () => true }, lastClean: { value: Infinity, writable: true } });
+    const res = await Hub.prototype.beat.call(ctx, req, one);
+    if (res.status === 200) { took++; last = it; } else skipped++;
+  }
+  const v = b.t ? await this.verify(b.t) : null;
+  if (b.leave) this.q('DELETE FROM presence WHERE sid = ?', sid);
+  else {
+    const r = last && VIEWS.includes(last.r) ? last.r : 'other';
+    this.q('INSERT INTO presence (sid, uid, route, seen) VALUES (?, ?, ?, ?) ON CONFLICT(sid) DO UPDATE SET uid = excluded.uid, route = excluded.route, seen = excluded.seen', sid, v ? v.user.uid : null, r, now);
+  }
+  if (now - this.lastClean > 60 * 1000) this.cleanup();
+  const out = { ok: true, took, skipped };
+  if (this.publicOnline() || (v && this.isAdmin(v.user))) out.n = this.onlineCount();
+  return this.json(req, out);
+};
+/* 接線：只攔這一條路徑（body 上限放寬到 64KB），其他照舊交給前面的 fetch */
+const batchOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  if (req.method !== 'POST' || new URL(req.url).pathname !== '/v1/track/batch') return batchOrigFetch.call(this, req);
+  try {
+    if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+    const raw = await req.text();
+    if (raw.length > BATCH_MAX_BYTES) return this.json(req, { error: 'too_large' }, 413);
+    let b; try { b = JSON.parse(raw || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return this.json(req, { error: 'bad_json' }, 400);
+    return await this.trackBatch(req, b);
+  } catch (e) {
+    return this.json(req, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+};
+/* ============================================================================ 批次端點區塊結束 */
