@@ -62,10 +62,10 @@
 |---|---|---|---|
 | 1 | **今天上正式站的 13 件請重新整理逐一看**：財經日曆＋ETF 第二輪（#20～25）、漲跌家數卡跳下方（#26）、日期膠囊拿掉（#27）、族群篩選下拉（#28）、即時只剩你看得到（#29，請登出再看一次）、免責小字（#30）、甜甜圈圖例在右（#11）、選股拿掉「全部」（#13）、分頁可拖曳（#14）、清廢話第一輪（#15） | <https://miaozike.github.io/tw-rotation/> | 07:22 |
 | 2 | **重設 GitHub Secret `FRED_API_KEY`**：到 <https://fredaccount.stlouisfed.org/apikeys> 複製 32 字元小寫金鑰，貼到 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions>（只貼那 32 個字）。不做的話財經日曆 FED 的數字一直空白 | GitHub 設定 | 10-06 04:55 |
-| 3 | **管理區新版回「上」或「不上」**（#1～#10；「上」＝先部署會員 Worker 的起訖日＋有效會員不可刪，再上前端） | <https://miaozike.github.io/tw-rotation/preview/style-guide/#admin> | 10-06 02:17 |
+| 3 | **管理區新版回「上」或「不上」**（#1～#10；「上」＝先部署會員 Worker 的起訖日＋有效會員不可刪，再上前端）。07:57 新增：每日直條點某一天 → 下方分頁統計換成那一天（× 清除）、手機點一下圖出提示（有下一步的元素第二下才跳頁） | <https://miaozike.github.io/tw-rotation/preview/style-guide/#admin> | 10-06 02:17（07:57 更新） |
 | 4 | 管理區「使用者」分頁的 **24 小時時鐘樣式** OK 嗎 | 同上 → 流量觀測 → 使用者 | 10-06 04:20 |
 | 5 | **會員權限統計卡上的固定期間字樣**（例：「近 30 天」）要留還是拿掉 | <https://miaozike.github.io/tw-rotation/preview/style-guide/#admin/perm> | 10-06 |
-| 6 | **清廢話第二輪預覽**看完回 OK（只看文字刪減；預覽底版較舊，日期膠囊、甜甜圈、選股「全部」、即時等以正式站為準） | <https://miaozike.github.io/tw-rotation/preview/copy-trim/> | 10-06 07:22 |
+| 6 | **清廢話第二輪預覽**看完回 OK（只看文字刪減；07:45 已換成合併最新 main 的底版，其他功能跟正式站一致） | <https://miaozike.github.io/tw-rotation/preview/copy-trim/> | 10-06 07:22（07:45 更新） |
 | 7 | **產業地圖預覽**要不要上正式站（CEO 把上次「其他 OK」解讀成「上」，未確認） | <https://miaozike.github.io/tw-rotation/preview/industry-map/> | 10-03 09:42 |
 | 8 | **六件決定**（各回是／否）：a 總覽即時開關（preview/ov-all-live）b 推播全會員 c FinMind 付費 d 換網域 e 寄詢問信 f 問富果／永豐 | 法遵文件、Gmail 草稿 | 10-03 |
 | 9 | 資金輪動短評「回檔找買點」這類語氣，要不要改成中性描述 | #flow 資金輪動、總覽資金輪盤 | 10-06 06:40 |
