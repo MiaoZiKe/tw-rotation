@@ -17016,7 +17016,7 @@ def t_mobile_v3(b, base, code):
         m.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); m.wait_for_timeout(3800)
         N = """() => { const l = document.querySelector('#prodDiagram .mnumlayer'); const bs = [...document.querySelectorAll('#prodDiagram .mnum')];
             const P = bs.map(b => { const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; });
-            const h = document.getElementById('prodDiagram'); const l = h && h.querySelector('.mnumlayer');
+            const h = document.getElementById('prodDiagram');
             const MINW = l && l.classList.contains('msm') ? 20 : 28;   // 2026-10-06：整張模式（畫布 < 500px）鈕 20px、最小間距 22
             let ov = 0; for (let a = 0; a < P.length; a++) for (let c = a + 1; c < P.length; c++) if (Math.hypot(P[a][0] - P[c][0], P[a][1] - P[c][1]) < MINW) ov++;
             return { body: getComputedStyle(document.getElementById('dgBody') || document.body).display,
