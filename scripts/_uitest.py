@@ -2476,6 +2476,10 @@ def t_market_drill_0928(pg, b, base):
         pg.click("#streakWho button[data-w='trust']"); pg.wait_for_timeout(500)
         wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 3000)
         ok(f"★ [{tag} {w}] 法人分頁整頁沒有橫向捲軸", wide == "ok", pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+    # ★ 2026-10-06：收尾還原成驗收的預設寬度。改前最後一輪停在 800px 就離開，
+    #   同一個 worker 的下一段（產業、產業鏈導覽）整段在 800px 跑 —— 那是手機版面（≤820 有 #segBox、沒有關聯圖公司卡），
+    #   全站驗收第一份的「產業」4 條、「產業鏈導覽」E6 3 條紅字就是這樣來的，單獨跑都是綠的。
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
     # ---------------------------------------------------------------- 手機 390：名單排在圖下面、字 ≥ 11px、沒有橫向捲軸
     ctx = b.new_context(**MOBILE_VP)
@@ -3377,11 +3381,40 @@ def seg_applied(pg_):
       畫面上真的看得到的差別是那顆按鈕的字：還沒套用寫「只看這一格 →」，
       套用了才變成「已只看這一格」。量它就是量「使用者看得到的狀態」，不是內部旗標。
     """
-    return pg_.evaluate("() => { const b = document.getElementById('segOnly');"
-                        " return !!b && /已/.test(b.textContent || ''); }")
+    # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：改前只讀 #segOnly 的字 —— 桌機（>820）圖下方環節面板
+    #   09-25 拿掉之後那顆鈕不存在，這支在桌機**永遠回 False**：「點色標之後真的套用」在桌機必紅（零件誰做的、保護元件、晶圓代工），
+    #   「點零件只亮不篩」在桌機則是恆真、等於沒量。
+    #   改後：桌機讀 `#segDD[data-filter]`（industry.js syncHighlight 寫的機器讀數＝目前套用的那一格），
+    #   而且右欄 #relList 那一格真的看得見（使用者看到的「套用了」）；手機（≤820）照舊讀 #segOnly 的字。
+    return pg_.evaluate("""() => { if (innerWidth > 820) {
+        const f = ((document.getElementById('segDD') || {}).dataset || {}).filter || '';
+        const on = f && document.querySelector('#relList .rlseg.on[data-seg="' + f + '"]');
+        return !!(on && on.getClientRects().length); }
+      const b = document.getElementById('segOnly'); return !!b && /已/.test(b.textContent || ''); }""")
+
+
+# ★ 2026-10-06：「點環節色標 → 列出那一格的台股」在桌機的現行答案是右欄浮動卡 #relList 亮著的那一節（DECISIONS #310），
+#   手機（≤820）照舊是 #segBox。SEG_DETAIL 只回 codes／text，這支多回「亮的是哪一格」。
+#   ⚠ 剖析圖分頁一進來，右欄可能已經亮著這張圖的族群那幾格（state.group）—— 所以呼叫端比的是「點之後亮的是不是那一格、名單是誰」，
+#     不是「點之前是 0」。
+SEG_DETAIL2 = """() => { const desk = innerWidth > 820;
+  const ons = desk ? [...document.querySelectorAll('#relList .rlseg.on')].filter(e => e.getClientRects().length) : [];
+  const box = desk ? (ons.length === 1 ? ons[0] : null) : document.getElementById('segBox');
+  const seg = desk ? (box ? box.dataset.seg : (ons.length ? '多格' : '')) : (((box || {}).innerHTML || '').trim() ? 'segBox' : '');
+  if (!box) return { desk, seg, codes: [], text: '' };
+  const codes = [...new Set([...box.querySelectorAll('a[href^="#stock/"]')].map(a => a.getAttribute('href').slice(7)))].sort();
+  return { desk, seg, codes, text: (box.innerText || '').replace(/\\s+/g, ' ').trim() }; }"""
+
+
+def seg_detail(pg_):
+    """目前「環節詳情」（桌機＝右欄亮的那一格；手機＝#segBox）：{desk, seg, codes, text}。"""
+    return pg_.evaluate(SEG_DETAIL2)
 
 
 def t_industry(pg, base):
+    # ★ 2026-10-06：自己先把寬度設回桌機 1500 —— 這一段有好幾條是「[桌機]」斷言（#segBox 空、關聯圖公司卡、3D 標籤），
+    #   前一段（市場明細下鑽0928）以前停在 800px 離開，整段就在手機版面上跑（全站驗收紅 4 條）。段落之間不准有寬度的隱性依賴。
+    pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(1400)
     # ★ 2026-09-23（DECISIONS #252）：`#chainTiles`（產業鏈總覽）與 `#indTiles`（法定產業別）
     #   兩塊卡片整組移除（Andy：「圖四下方的 產業鏈總覽 & 法定產業別 卡片全部移除」）。
@@ -3702,6 +3735,9 @@ def t_chainnav(pg, base):
     E5 以前只有卡片最底下那排連結，換一條鏈要先捲到底或退回產業地圖。
     E6 以前不管從哪條鏈點進 ABF 載板，看到的都只有當下這條鏈的內容，另一半整個看不到。
     兩個都驗「真的按下去、畫面真的因此換掉」，不是驗元素存在。"""
+    # ★ 2026-10-06：E6 那三條是「桌機」斷言，自己先設回 1500 —— 前一段（產業）以前沒設寬度、停在上一段留下的 800px，
+    #   於是 E6 在手機版面量到 #segBox 有跨鏈比較卡、有「其他產業鏈」列（全站驗收紅 3 條；單獨跑是綠的）。
+    pg.set_viewport_size({"width": 1500, "height": 1000})
     # ★ 2026-10-03（DECISIONS #306）：剖析圖分頁上的關聯圖只留「那張圖對得上的環節」，這段驗的是整條鏈的關聯圖／環節選單，所以入口改成「族群總覽」分頁（/overview，整條鏈），門檻一條都沒動
     pg.goto(f"{base}#industry/ai_server/overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
 
@@ -9402,10 +9438,23 @@ def t_batch2(pg, base):
             if (window.__lastY === y) return true; window.__lastY = y; return false; }""",
                              timeout=5000)
         spot2 = rank_spot() or spot
-        pg.mouse.click(spot2["x"], spot2["y"])
-        pg.wait_for_timeout(900)
-        ok("再點一次同一根長條會收起來（圖四）",
-           pg.evaluate("() => { const b=document.getElementById('rankPanel'); return !b || b.hidden; }"))
+        # ★ 2026-10-06 改前→改後（驗收過時，資料決定版面：09-25 合併側欄「高度跟著內容走、最多到整欄高」index.html #rankFlowWrap>.sidepanel）：
+        #   09-29 那次量到側欄 117～643、最下面那根露在外面，所以改點最下面那根。今天這個族群所在象限的族群表比較長，
+        #   側欄撐到整欄高（實測 114～873，跟排行圖 114～873 一樣高）—— 最下面那根也被蓋住，elementFromPoint 拿到的是側欄裡的 LI，
+        #   真人在這個狀態下**點不到同一根**。收起來的路仍然要真的走一次：長條露在外面就照舊再點同一根；
+        #   被側欄蓋住就按側欄自己的「‹」返回鈕（[data-all]，跟 Esc／點外面同一支 drillClose）。判準不變：面板真的收起來。
+        covered = pg.evaluate("""(s) => { const e = document.elementFromPoint(s.x, s.y); const p = document.getElementById('rankPanel');
+            return !!(e && p && !p.hidden && p.contains(e)); }""", spot2)
+        if covered:
+            hit_back = click(pg, "#rankPanel [data-all]", 900)
+            ok("再點一次同一根長條會收起來（圖四；長條被撐到整欄高的側欄蓋住時，改按側欄的「‹」返回 —— 真人唯一點得到的那一條路）",
+               bool(hit_back) and pg.evaluate("() => { const b=document.getElementById('rankPanel'); return !b || b.hidden; }"),
+               "側欄蓋住了最下面那根長條")
+        else:
+            pg.mouse.click(spot2["x"], spot2["y"])
+            pg.wait_for_timeout(900)
+            ok("再點一次同一根長條會收起來（圖四）",
+               pg.evaluate("() => { const b=document.getElementById('rankPanel'); return !b || b.hidden; }"))
 
     # ---------------------------------------------------------- 圖二：輪動時鐘
     # ★ 2026-09-21：兩張卡合併成一張（Andy：「這兩張圖合併…彙整並一頁」），
@@ -14007,6 +14056,21 @@ def t_mlcc(pg, base):
         ok("2D 點了零件再切到 3D：3D 裡的主角剛好 1 個，而且就是端電極那一顆",
            t3d["haspart"] and len(t3d["hero"]) == 1 and "端電極" in (t3d["hero"][0]["t"] if t3d["hero"] else ""),
            f"2D 點的是 {picked2d}；3D 主角 {[x['t'] for x in t3d['hero']]}")
+        # ★ 2026-10-06：標籤的 opacity 有 0.15s 轉場（.lbl3d transition），容器忙的時候（全站驗收 4 核同時跑 WebGL）轉場還沒走完就量，
+        #   computed style 讀到的是起點 1 —— 全站驗收量到「主角 1／其餘 1」，單獨重跑是「其餘 0.4」（CSS 規則 .dg3d.dg1.haspart … 有命中）。
+        #   改成等轉場落定（最多 4 秒）再量，判準一字沒動。
+        wait_until(pg, """() => { const h = document.querySelector('#prod3d'); if (!h) return null;
+            const s = [...h.querySelectorAll('.lbl3d.sel:not(.sel-part)')];
+            return s.length && s.every(n => +getComputedStyle(n).opacity < 0.85) ? true : null; }""", 4000)
+        t3d = pg.evaluate("""() => {
+          const host = document.querySelector('#prod3d');
+          const ls = [...host.querySelectorAll('.lbl3d')].map(n => ({
+            t: (n.querySelector('b') || {}).textContent || '',
+            part: n.classList.contains('sel-part'), sel: n.classList.contains('sel'),
+            op: +(+getComputedStyle(n).opacity).toFixed(2)}));
+          return {dg1: host.classList.contains('dg1'), haspart: host.classList.contains('haspart'),
+                  n: ls.length, hero: ls.filter(x => x.part), sib: ls.filter(x => x.sel && !x.part)};
+        }""")
         ok("3D 的主角跟同場景其餘零件的 opacity 真的不同（量 computed style）",
            bool(t3d["sib"]) and all(x["op"] < (t3d["hero"][0]["op"] if t3d["hero"] else 1) - 0.15 for x in t3d["sib"]),
            f"主角 op={[x['op'] for x in t3d['hero']]} ／ 其餘 op={[x['op'] for x in t3d['sib']]}")
@@ -14152,6 +14216,9 @@ def t_mlcc(pg, base):
                z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
             ok(f"[{w}px] {what}：圖上的文字兩兩不重疊",
                z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
+    # ★ 2026-10-06：上面按過「放大」，tw.m3.dgzoom＝big 會被記住（驗收開了 TW_KEEP_VIEW）——
+    #   不清掉的話同一個 worker 後面每一段的 390 都是「放大」模式，那幾段量 390 字級的紅綠就看排在誰後面（全站驗收的電源／交換器／高速互連就是這樣）。
+    _m390_reset(pg)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
@@ -14832,12 +14899,17 @@ def t_whomakes(pg, base):
 
     # ★ 2026-09-23 第二批（W3-2）：成分股表移除。「目前畫面上列出哪一批台股」
     #   改讀環節詳情 `#segBox` —— 那是這件事的新家。
+    # ★ 2026-10-06（驗收過時，29149fc／DECISIONS #310）：桌機的環節詳情是右欄浮動卡（#segBox 恆空）→ 改讀 seg_detail()
     def rows(pg_):
-        return seg_codes(pg_)
+        return ",".join(seg_detail(pg_)["codes"])
 
     # ---------------- 1. 一開始沒有小卡；點一個零件 → 小卡出現，而且是那個零件的答案
+    # ★ 2026-10-06：先繞一個別的網址再重新載入。前一段（批次12-ABF載板）最後停在**同一個網址**、而且點著「晶粒剪影」那個零件 ——
+    #   goto 到同一個 hash 不會重新載入，小卡整個留著，「還沒點任何零件時小卡是收著的」就量到上一段的小卡（全站驗收紅；單獨跑是綠的）。
+    #   本段第 7 節自己也是這樣繞的。
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(500)
+    pg.goto(DGH, wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
     force_open(pg)
     c0 = card(pg)
     ok("還沒點任何零件時，小卡是收著的（不預先佔一塊空白）", not c0["on"], c0)
@@ -14942,6 +15014,9 @@ def t_whomakes(pg, base):
     #   （料號列只在有具名料號時才出現；供應鏈資料補了料號就照列，所以這裡不再要求「一定沒有料號」）
     ok("MLCC 小卡不寫「查不到…」否定說明、也不寫內部檔名",
        "supply_chain" not in cm["text"] and "查不到" not in cm["text"], {"items": cm.get("items"), "text": cm["text"][-200:]})
+    # ★ 2026-10-06（資料變了：c857a46e 10-03 被動元件補邊，DECISIONS #318）：這一格現在有具名料號，列出來的每一條都要標可信度
+    ok("MLCC 這一格有具名的上下游料號（10-03 補邊之後）→ 小卡列出料號、每一條都標可信度",
+       len(cm["items"]) > 0 and len(cm["confs"]) == len(cm["items"]) and "介電陶瓷粉體" in cm["text"], {"items": cm["items"][:4], "confs": cm["confs"][:4]})
 
     # ---------------- 9. 窄畫面：不溢出、不蓋住圖、字級守得住
     for w in (800, 390):
@@ -15034,10 +15109,16 @@ RL_STATE = """() => {
 }"""
 
 # 下拉面板每一列的樣子：一列一格、右邊寫數量、選中的那一列底色不同
+# ★ 2026-10-06（驗收過時，DECISIONS #317 10-03）：剖析圖分頁上，反亮那幾格（.relfocus）在數量後面多一顆 ::after「圖上」小標。
+#   改前量「數量離列的右緣 < 16px」，有小標的那幾列一律量到 58px（全站驗收紅 foundry／hbm 兩列；那一頁 11 列反亮）。
+#   數量仍然是一列裡最右邊的那個「字」—— 扣掉小標自己佔的寬（內容寬＋左右內距＋左外距＋flex 間距）再比，16px 的門檻不變。
 RL_PANEL = """() => [...document.querySelectorAll('#segChips .segchip')].map(c => { const r = c.getBoundingClientRect(), cs = getComputedStyle(c);
+  const tag = (() => { if (!c.classList.contains('relfocus')) return 0; const a = getComputedStyle(c, '::after'); if (!a || a.content === 'none') return 0;
+    const f = (v) => parseFloat(v) || 0;
+    return f(a.width) + f(a.paddingLeft) + f(a.paddingRight) + f(a.marginLeft) + f(a.borderLeftWidth) + f(a.borderRightWidth) + f(cs.columnGap); })();
   return { seg: c.dataset.seg, l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height),
-           n: (c.querySelector('.n') || {}).textContent || '', nRight: (() => { const n = c.querySelector('.n'); return n ? Math.round(r.right - n.getBoundingClientRect().right) : 99; })(),
-           bg: cs.backgroundColor, sel: c.classList.contains('sel'), fs: parseFloat(cs.fontSize) }; })"""
+           n: (c.querySelector('.n') || {}).textContent || '', nRight: (() => { const n = c.querySelector('.n'); return n ? Math.round(r.right - n.getBoundingClientRect().right - tag) : 99; })(),
+           tag: Math.round(tag), bg: cs.backgroundColor, sel: c.classList.contains('sel'), fs: parseFloat(cs.fontSize) }; })"""
 
 # 說明框現在長怎樣：寬度、是否顯示、每一行平均幾個字（逐字斷行＝一行 1～2 個字）
 RL_TIP = """() => {
@@ -27233,7 +27314,11 @@ def _dg14_state(pg):
                                   getComputedStyle(n).opacity < 0.9).length,
               heroKey: heroes.length ? heroes[0].dataset.dgkey : null,
               heroSW: heroes.map(sw).filter(x => x != null),
+              // ★ 2026-10-06（驗收過時，v2 風格 #238／#239，09-23 這兩張改 v2）：畫布上的**編號圓點**（circle.anchor，卡片的錨點）
+              //   本來就帶一圈 3px 柔陰影（材質語言的一部分，不是「發光」），改前把它們也算進去 → 14 顆＝「15 個在發光」。
+              //   「螢光感＝只有主角在發光」講的是零件，所以只數零件，編號圓點不算；門檻 ≤ 2 不動。
               glow: [...h.querySelectorAll('*')].filter(n => {
+                if (n.closest('.anc') || (n.classList && n.classList.contains('anchor'))) return false;
                 const f = getComputedStyle(n).filter; return f && f !== 'none'; }).length};
     }""")
 
@@ -27358,6 +27443,11 @@ def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_wor
     pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
     pg.wait_for_timeout(600)
     _dg14_open(pg)
+    # ★ 2026-10-06（驗收過時，2026-09-22 章節收納：Andy「圖片及文字縮小一半…一次看到完整資訊」）：
+    #   流程列那顆光點收在預設收合的章節裡（石化是 nc4 那一段，display:none）—— 收著的時候它本來就不畫，量到 [0,0,0]。
+    #   真人要看它就先按章節列，這裡照做：把章節都打開再量。後面「開／關都停得住」的判準一字沒動。
+    pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold[data-fold]').forEach(g => { if (!g.classList.contains('open')) g.dispatchEvent(new MouseEvent('click', {bubbles: true})); })")
+    pg.wait_for_timeout(600)
     pre = pg.evaluate(DOTS)
     if ok(f"[{slot}] 動畫的前提：流程列那顆會跑的光點真的畫在畫面上",
           len(pre) >= 1 and all(x[2] > 0 for x in pre), pre):
@@ -27388,13 +27478,16 @@ def _dg14_typo(pg, dgh, label):
     for theme in ("dark", "light"):
         pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
         for w in (1440, 800, 390):
+            _m390_reset(pg)
             pg.set_viewport_size({"width": w, "height": 1000})
             pg.goto(dgh, wait_until="networkidle")
             pg.reload(wait_until="networkidle")
             pg.wait_for_timeout(2300)
             _dg14_open(pg)
-            z = pg.evaluate(_DG14_TYPO)
             lab = f"[{label}·{w}px·{'深色' if theme == 'dark' else '淺色'}]"
+            if w == 390 and _m390_big(pg, lab):          # 手機 v3 D：整張模式驗編號鈕，按「放大」之後才量原尺寸與字級（見 _m390_big）
+                pg.wait_for_timeout(400)
+            z = pg.evaluate(_DG14_TYPO)
             if not ok(f"{lab} 圖畫得出來", z.get("present"), z):
                 continue
             # ★ 2026-09-23：C2 把這兩張的畫布從 980 收到 660，寫死 970 會直接紅。
@@ -27405,6 +27498,7 @@ def _dg14_typo(pg, dgh, label):
                z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
             ok(f"{lab} 圖上的文字兩兩不重疊", z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
             ok(f"{lab} 沒有文字溢出畫布", z["nOut"] == 0, f"{z['nOut']} 個 {z['out']}")
+    _m390_reset(pg)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
@@ -27839,13 +27933,16 @@ def _b14b_typo(pg, dgh, label, widths=(1440, 800, 390)):
     for theme in ("dark", "light"):
         pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
         for w in widths:
+            _m390_reset(pg)
             pg.set_viewport_size({"width": w, "height": 1000})
             pg.goto(dgh, wait_until="networkidle")
             pg.reload(wait_until="networkidle")
             pg.wait_for_timeout(2400)
             _b14b_open(pg)
-            z = pg.evaluate(B14B_TYPO)
             lab = f"{label}[{w}px·{'深色' if theme == 'dark' else '淺色'}]"
+            if w <= 640 and _m390_big(pg, lab):          # 手機 v3 D：整張模式驗編號鈕，按「放大」之後才量原尺寸與字級（見 _m390_big）
+                pg.wait_for_timeout(400)
+            z = pg.evaluate(B14B_TYPO)
             if not ok(f"{lab} 圖畫得出來", z.get("present"), z):
                 continue
             # ★ 2026-09-23：W5／C2 把畫布從 980 收到 660（有幾張是 520／560／640／680／700）。
@@ -27858,6 +27955,7 @@ def _b14b_typo(pg, dgh, label, widths=(1440, 800, 390)):
             ok(f"{lab} 沒有文字溢出畫布（左右都在 viewBox 裡）", z["nOut"] == 0, f"{z['nOut']} 個 {z['out']}")
             ok(f"{lab} 沒有整頁水平捲軸（圖自己可以左右滑，整頁不行）",
                z["pageScroll"] <= 2, f"整頁多出 {z['pageScroll']}px")
+    _m390_reset(pg)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
@@ -28078,16 +28176,17 @@ def t_b14b_rlc(pg, base):
     pg.goto(DGH, wait_until="networkidle")
     pg.wait_for_timeout(2300)
     _b14b_open(pg)
-    base_rows = _b14b_rows(pg)
+    # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：改前讀 #segBox 的筆數與 b.t 標題 —— 桌機 09-25 起 #segBox 恆空。
+    #   改讀 seg_detail()：桌機＝右欄浮動卡亮的那一格（這頁一進來亮的是族群帶出來的「電感／磁性元件」，點了要換成 passive_comp）。
+    d0 = seg_detail(pg)
     hit = _b14b_seg_chip(pg, "passive_comp")
     pg.wait_for_timeout(900)
-    after = _b14b_rows(pg)
-    # ★ W3-2：標題改讀環節詳情的那一格名稱（成分股表的標題沒有了）
-    title = pg.evaluate("() => ((document.querySelector('#segBox .segbox b.t')||{}).textContent || '')"
-                        ".replace(/\\s+/g,' ')")
-    ok("RLC：★ 點「被動元件 MLCC / 電阻」環節色標 → 圖下方真的換成那一格，名稱也對",
-       hit and after != base_rows and ("被動元件" in title or "電阻" in title),
-       f"{base_rows} → {after}；那一格 {title[:34]}")
+    d1 = seg_detail(pg)
+    title = d1["text"]
+    ok("RLC：★ 點「被動元件 MLCC / 電阻」環節色標 → 環節詳情（桌機：右欄浮動卡）真的換成那一格，名稱也對",
+       hit and (d1["seg"], d1["codes"]) != (d0["seg"], d0["codes"]) and d1["seg"] in ("passive_comp", "segBox") and len(d1["codes"]) > 0
+       and ("被動元件" in title or "電阻" in title),
+       f"{d0['seg']}:{len(d0['codes'])} → {d1['seg']}:{len(d1['codes'])}；那一格 {title[:34]}")
 
     # ---------------- 7. 結構審查（§6 裡看圖就判得出來的那幾條）
     pg.goto(DGH, wait_until="networkidle")
@@ -28131,11 +28230,23 @@ def t_b14b_rlc(pg, base):
               arrows: svg.querySelectorAll('marker,[marker-end]').length};
     }""")
     txt = d.get("full", "")
-    ok("RLC・X1：三欄**等高等寬**（誤差 2px 以內，因為三欄是同一支 col() 產生的）",
-       len(st["trio"]) == 3 and max(h for h, w in st["trio"]) - min(h for h, w in st["trio"]) <= 2
-       and max(w for h, w in st["trio"]) - min(w for h, w in st["trio"]) <= 2, st["trio"])
+    # ★ 2026-10-06 改前→改後（驗收過時：v2 改版 09-23，power_inductor.js「第 2 排：欄 A｜欄 B、第 3 排：欄 C｜共同的尺」）：
+    #   改前量「同一個 y、三個寬度一樣的框」＝ 三欄並排。v2 把畫布收到 660、說明外掛成 HTML 卡片之後，三格改成 2×2 排（A、B 同一排，C 在下一排左邊），
+    #   y 一樣的三個框不存在了（trio＝[]）。要守的事情沒變 ——「三種零件各一格、大小一致、沒有主從」：
+    #   改成挑標題寫「欄 A／欄 B／欄 C」的那三個框，寬高彼此差 ≤ 3%（v2 的 628 寬分兩欄：306＋8＋314，所以 B 寬 8px；高 290／290／286）。
+    abc = pg.evaluate("""() => { const svg = document.querySelector('#prodDiagram svg');
+      const fr = [...svg.querySelectorAll('rect.frame')].map(n => ({x: +n.getAttribute('x'), y: +n.getAttribute('y'), w: +n.getAttribute('width'), h: +n.getAttribute('height')}));
+      return [...svg.querySelectorAll('text.hd')].filter(t => /^欄 [ABC]/.test((t.textContent || '').trim())).map(t => {
+        const x = +t.getAttribute('x'), y = +t.getAttribute('y');
+        const f = fr.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + 40);
+        return f ? [f.w, f.h] : null; }); }""")
+    abc_ok = len(abc) == 3 and all(abc) and max(w for w, h in abc) <= min(w for w, h in abc) * 1.03 and max(h for w, h in abc) <= min(h for w, h in abc) * 1.03
+    ok("RLC・X1：欄 A／B／C 三格**大小一致**（寬高彼此差 ≤ 3%；v2 改成 2×2 排之後沒有「三欄同一排」了）", abc_ok, {"欄ABC（寬,高）": abc, "改前 trio": st["trio"]})
+    # ★ 2026-10-06：X3 的那句話 v2 改寫成「所以這張圖刻意不畫任何流程箭頭」（.dghead）／「三者之間沒有流程箭頭」（舞台副標）／
+    #   警語卡標題「為什麼這張圖沒有流程箭頭」。改前比「沒有任何流程箭頭」這串字，改寫之後哪一句都對不上。marker 0 個那一半照舊。
+    reach = _v2_reach(pg)
     ok("RLC・X3：三欄之間**沒有任何流程箭頭**（三者沒有上下游關係，畫成流程等於宣稱一件假的事）",
-       st["arrows"] == 0 and "沒有任何流程箭頭" in txt, f"marker 數 {st['arrows']}")
+       st["arrows"] == 0 and "沒有流程箭頭" in reach, f"marker 數 {st['arrows']}")
     # X4：不能用「字串裡有沒有出現『電容』」來判 —— 畫面上刻意寫了
     # 「這張圖不畫任何電容（MLCC／鋁質電解／固態／鉭質）」，那是宣告不是違規。
     # 要判的是**有沒有真的畫一個電容零件出來**，所以看 data-part 的名單。
@@ -28176,8 +28287,10 @@ def t_b14b_rlc(pg, base):
     # 三欄的溝：322–338（A|B）與 644–660（B|C）。後三個數字是該欄的左緣與「真的排成三欄」的那一段高度
     #（底下那兩塊說明框是兩欄不是三欄，不在這一段高度裡，不然會被誤判）。
     _b14b_gutter(pg, "RLC", [[322, 338, 16, 292, 948], [644, 660, 338, 292, 948]])
+    # ★ 2026-10-06（驗收過時，v2 09-23）：兩句都搬進 HTML 卡片（「這張圖沒有回答的事」第一行＝非實物比例；
+    #   「誰做的（點零件篩到的是「環節」不是族群）」）；卡片在 1440 收成標題 ▾。改讀 _v2_reach()（點開每張卡），兩句的意思一字不少。
     ok("RLC・N3：兩行誠實性標示都在（非實物比例／環節不等於族群）",
-       "示意圖，非實物比例" in txt and "不是整個族群" in txt, "")
+       "示意圖，非實物比例" in reach and ("不是整個族群" in reach or "「環節」不是族群" in reach), "")
     ok("RLC：★ 畫面上寫清楚電阻、電感、石英各對到哪一個環節（三個不同的環節，不會被讀成國巨那五家做電感）",
        "電感／磁性元件" in txt and "石英頻率元件" in txt and "三個不同的環節" in txt, "")
 
@@ -29448,10 +29561,13 @@ def t_b21_foundry(pg, base):
     #   畫面真正改變的地方是那顆「只看這一格 →」變成「已只看這一格」（篩選真的被套用了）。
     #   所以改成驗這兩件事：①列出來的就是這一格該有的那三家 ②焦點狀態真的從「沒套用」翻成「套用」。
     #   這比原本嚴：原本只要數字有變就算過，現在名單錯了、或按了沒套用，都會紅。
+    # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：桌機的環節詳情是右欄浮動卡、「已只看這一格」那顆鈕不存在 ——
+    #   改讀 seg_detail() 與新版 seg_applied()（桌機讀 #segDD[data-filter]＋右欄那一格看得見）。門檻沒動。
     a0 = seg_applied(pg)
     if _b14b_seg_chip(pg, "foundry"):
         pg.wait_for_timeout(600)
-        n1, c1, a1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        _d = seg_detail(pg)
+        n1, c1, a1 = len(_d["codes"]), ",".join(_d["codes"]), seg_applied(pg)
         ok("晶圓代工：點「晶圓代工」環節色標 → 環節詳情列的就是這一格的三家（2303／2330／6770），"
            "而且「只看這一格」真的從沒套用翻成**已套用**（畫面真的因此改變）",
            c1 == "2303,2330,6770" and n1 == 3 and a1 and not a0,
@@ -29886,12 +30002,16 @@ def t_b21_hbm(pg, base):
        "6223" in c_probe or "旺矽" in c_probe, c_probe[:120])
 
     # ---------------- 點環節色標 → 筆數真的變了
-    n0 = _b14b_rows(pg)
+    # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：改前數 #segBox 的筆數 —— 桌機恆空，0 → 0。
+    #   改讀 seg_detail()：桌機＝右欄浮動卡亮的那一格。HBM 這一格台股 0 檔、只有外商（SK hynix／Micron…），
+    #   所以「畫面真的因此改變」比的是**亮的那一格與它的內容**（點之前主角是 hb_band4、右欄不開；點之後開出 HBM 那一格），不是比檔數。
+    d0 = seg_detail(pg)
     if _b14b_seg_chip(pg, "hbm"):
         pg.wait_for_timeout(600)
-        n1 = _b14b_rows(pg)
-        ok("HBM：點「HBM 記憶體」環節色標 → **成分股筆數真的變了**（畫面真的因此改變）",
-           n1 != n0, f"{n0} 筆 → {n1} 筆")
+        d1 = seg_detail(pg)
+        ok("HBM：點「HBM 記憶體」環節色標 → 環節詳情真的換成 HBM 那一格（畫面真的因此改變）",
+           d1["seg"] in ("hbm", "segBox") and (d1["seg"], d1["text"]) != (d0["seg"], d0["text"]) and "HBM" in d1["text"],
+           f"{d0['seg']}「{d0['text'][:20]}」→ {d1['seg']}「{d1['text'][:40]}」")
         _b14b_seg_chip(pg, "hbm")
         pg.wait_for_timeout(400)
 
@@ -30580,8 +30700,12 @@ def t_e1_motion(pg, base):
     #     ① 6603 的標的寫明是射出成型機
     #     ② 畫面上明說它不在「加工機三軸」那一格
     #     ③ **沒有任何一段文字同時提到「加工機三軸」與 6603**（不管那一格怎麼斷行、怎麼排）
+    # ★ 2026-10-06（驗收過時，v2 09-23 加的警語卡「★ 誰做的」第三行）：那一行就是 ② 的**否定宣告本身**
+    #   「6603 富強鑫做的是射出成型機，不是切削工具機 —— 不在「加工機三軸」那一格。」—— 它同時提到兩者是在講「不在」，
+    #   改前把它算成「6603 出現在加工機三軸那一格」（全站驗收紅）。比照保護元件 X5 扣掉警語標題的做法，先扣掉這一句再找；
+    #   「那一格（加工機三軸那一列）不准列 6603」一字沒放寬。
     machLines = pg.evaluate("""() => [...document.querySelectorAll('#prodDiagram svg text')]
-        .map(n => n.textContent || '').filter(t => t.indexOf('加工機三軸') >= 0)""")
+        .map(n => n.textContent || '').filter(t => t.indexOf('加工機三軸') >= 0 && t.indexOf('不在「加工機三軸」那一格') < 0)""")
     ok("傳動件・X3：★★ 6603 富強鑫標的是「**射出成型機**」，而且**不在「加工機三軸」那一格**（把族群名當事實照抄會踩到的坑）【紅線】",
        "6603 富強鑫（射出成型機）" in txt and "不在「加工機三軸」那一格" in txt
        and len(machLines) >= 1 and not [t for t in machLines if "6603" in t],
@@ -30627,8 +30751,13 @@ def t_e1_motion(pg, base):
     d2 = pg.evaluate(B14B_DG)
     nm = pg.evaluate("""() => { const a = document.querySelector('#dgPick .segchip.sel');
       return a ? a.textContent.trim() : ''; }""")
-    ok("傳動件：★ `machine_tool` 走的是**同一張圖**（特徵字串一樣），但入口的標題不同",
-       FEAT in d2.get("full", "") and "CNC 工具機" in nm, f"{nm}")
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前 machine_tool 跟 factory_automation 共用 motion_control.js 這一張（DECISIONS #251 第二節）。
+    #   後來 CNC 工具機有了自己的一張（site/dg/machine_tool.js「CNC 工具機：一台立式綜合加工機拆開看」，449b3520 09-26 已在改它），
+    #   motion_control.js 只剩 factory_automation 一列 register。所以改成驗現況：machine_tool 打開的是**它自己那一張**
+    #   （不是傳動件這張的特徵字串），分頁標題是 CNC 工具機。
+    t2 = pg.evaluate("() => (document.getElementById('dgTitle') || {}).textContent || ''")
+    ok("傳動件：★ `machine_tool` 有自己的一張（立式綜合加工機），不是傳動件這張換個標題；分頁標題是 CNC 工具機",
+       d2.get("present") and FEAT not in d2.get("full", "") and "CNC 工具機" in t2 and "CNC 工具機" in nm, f"{nm}｜{t2[:30]}")
 
     _b14b_typo(pg, DGH, "傳動件")
 
@@ -30893,10 +31022,14 @@ def t_e2_alumcap(pg, base):
     #   畫面真正改變的是那顆「只看這一格 →」翻成「已只看這一格」（篩選真的被套用）。
     #   改成驗「名單沒變空、而且焦點狀態真的翻過去」——
     #   這比原本嚴：按了沒反應、或名單被清掉，兩種都會紅。
-    rows0, ap0 = _b14b_rows(pg), seg_applied(pg)
+    # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：改前數 #segBox（桌機恆空）、讀 #segOnly 的字（桌機不存在）→ 1440 必是 0 → 0／False → False。
+    #   改讀 seg_detail()（桌機＝右欄浮動卡那一格）與新版 seg_applied()（桌機讀 #segDD[data-filter]＋右欄那一格看得見）。門檻沒動。
+    d0 = seg_detail(pg)
+    rows0, ap0 = len(d0["codes"]), seg_applied(pg)
     if _b14b_seg_chip(pg, "passive_comp"):
         pg.wait_for_timeout(900)
-        rows1, cod1, ap1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        d1 = seg_detail(pg)
+        rows1, cod1, ap1 = len(d1["codes"]), ",".join(d1["codes"]), seg_applied(pg)
         ok("鋁電容：點「被動元件」環節色標 → 環節詳情列得出這一格的台股，而且「只看這一格」真的從沒套用翻成**已套用**"
            "（環節篩選沒有被這張圖弄壞）",
            rows1 > 0 and bool(cod1) and ap1 and not ap0, f"{rows0} → {rows1}／{cod1}／套用 {ap0} → {ap1}")
@@ -31170,10 +31303,14 @@ def t_e3_protect(pg, base):
     #   畫面真正改變的是那顆「只看這一格 →」翻成「已只看這一格」（篩選真的被套用）。
     #   改成驗「名單沒變空、而且焦點狀態真的翻過去」——
     #   這比原本嚴：按了沒反應、或名單被清掉，兩種都會紅。
-    rows0, ap0 = _b14b_rows(pg), seg_applied(pg)
+    # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：改前數 #segBox（桌機恆空）、讀 #segOnly 的字（桌機不存在）→ 1440 必是 0 → 0／False → False。
+    #   改讀 seg_detail()（桌機＝右欄浮動卡那一格）與新版 seg_applied()（桌機讀 #segDD[data-filter]＋右欄那一格看得見）。門檻沒動。
+    d0 = seg_detail(pg)
+    rows0, ap0 = len(d0["codes"]), seg_applied(pg)
     if _b14b_seg_chip(pg, "passive_comp"):
         pg.wait_for_timeout(900)
-        rows1, cod1, ap1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        d1 = seg_detail(pg)
+        rows1, cod1, ap1 = len(d1["codes"]), ",".join(d1["codes"]), seg_applied(pg)
         ok("保護元件：點「被動元件」環節色標 → 環節詳情列得出這一格的台股，而且「只看這一格」真的從沒套用翻成**已套用**",
            rows1 > 0 and bool(cod1) and ap1 and not ap0, f"{rows0} → {rows1}／{cod1}／套用 {ap0} → {ap1}")
         pg.goto(DGH, wait_until="networkidle")
@@ -31724,7 +31861,9 @@ _V2 = """() => {
     blur, glowNonHero, heroParts: [...heroParts], heroCard: !!wrap.querySelector('.dgc.sel-part'), heroSvg: !!svg.querySelector('[data-part].sel-part'),
     ancSel: svg.querySelectorAll('.anc.sel-part').length, leadSel: wrap.querySelectorAll('.dglead path.sel-part').length,
     // ★ W3-2：成分股表移除，「有沒有被聚焦到某一格」改讀那顆按鈕的字（只亮不篩用它驗）
-    filt: /已/.test((document.getElementById('segOnly') || {}).textContent || ''),
+    // ★ 2026-10-06：桌機沒有 #segOnly（29149fc 拿掉），改讀 #segDD[data-filter]，跟 seg_applied() 同一個口徑 —— 改前在桌機恆為假、等於沒量
+    filt: innerWidth > 820 ? !!(((document.getElementById('segDD') || {}).dataset || {}).filter)
+                           : /已/.test((document.getElementById('segOnly') || {}).textContent || ''),
     card: (() => { const c = document.getElementById('partCard'); if (!c || c.hidden) return null;
       return {title: ((c.querySelector('.pc-t') || {}).textContent || '').trim(), none: ((c.querySelector('.pc-none') || {}).textContent || '').trim(),
               codes: [...c.querySelectorAll('.pc-co a.lk-stock')].map(a => (a.getAttribute('href') || '').split('/').pop()), text: (c.innerText || '').replace(/\\s+/g, ' ')}; })(),
@@ -31737,6 +31876,54 @@ _V2 = """() => {
 def _v2_open_all(pg):
     pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold').forEach(n => { if (!n.classList.contains('open')) n.dispatchEvent(new MouseEvent('click', {bubbles: true})); })")
     pg.wait_for_timeout(600)
+
+
+# ★ 2026-10-06（驗收過時：2026-09-24「卡片限高收合」diagrams.js fitCards／DECISIONS 同日；版面 v2 左側導覽 #291／#312 讓 1440 的容器只剩 1124）：
+#   v2 剖析圖的說明卡片在卡片欄比畫布高時進入收合模式（.dgfold）：每張只留「編號＋標題 ▾」，說明行（<i>）要點開才看得到；
+#   警語卡也一樣（點它自己 .open）。所以「★『XXX』真的印在畫面上（警語卡永遠看得到）」量 innerText 會量不到收著的那幾行。
+#   誠實性標示的口徑不變：要留在**使用者摸得到**的地方 —— 圖名列 #dgTitle 永遠寫「原創示意圖，非實物比例」，
+#   其餘句子在警語卡／零件卡裡，**點一下就展開**。這支就照使用者的路走：每張卡真的點一下、讀展開後的字、再點一下還原，
+#   回傳「圖名列 ＋ 圖上看得到的字 ＋ 每張卡點開後的字」。沒有任何一句是讀隱藏的 textContent 拿到的。
+V2_REACH = """() => { const w = document.getElementById('prodDiagram'); if (!w) return '';
+  const svg = w.querySelector('svg');
+  const head = ((document.getElementById('dgTitle') || {}).textContent || '') + '\\n' + ((w.querySelector('.dghead') || {}).innerText || '');
+  const vis = svg ? [...svg.querySelectorAll('text')].filter(n => n.getClientRects().length).map(n => n.textContent).join('\\n') : '';
+  const out = [];
+  [...w.querySelectorAll('.dgc')].forEach(c => {
+    if (!c.getClientRects().length) return;
+    c.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    out.push(c.innerText);
+    c.dispatchEvent(new MouseEvent('click', {bubbles: true}));   // 再點一次＝收回／取消選取，不留狀態給後面
+  });
+  return head + '\\n' + vis + '\\n' + out.join('\\n'); }"""
+
+
+def _v2_reach(pg):
+    t = pg.evaluate(V2_REACH)
+    pg.wait_for_timeout(300)
+    return t
+
+
+def _m390_big(pg, lab):
+    """★ 2026-10-06 改前→改後（驗收過時，手機 v3 D「剖析圖只留編號」63c080b0 09-25；Andy 2026-09-24、docs/mobile_v3_spec.md §10-4；
+    同一個改法 2026-10-04 已在 t_mlcc 第 10 節用過）：390（≤640，body.m3on）預設是「整張」模式 —— SVG 縮到欄寬（約 0.42 倍），
+    圖內字約 5px 是規格寫明的代價，要讀的東西改由 HTML 編號鈕＋底部抽屜承擔，要看原圖的字按「放大」。
+    改前在「整張」量 SVG 字級與原尺寸必紅。改後：① 整張模式的編號鈕看得到、字級 ≥ 11px ② 真的按「放大」→ 原尺寸，
+    呼叫端接著照原門檻量 SVG（12／13px、原尺寸 native、不重疊、整頁不橫捲），門檻一條都沒放寬。
+    回傳是否真的切到了放大（不是手機版面就回 False，呼叫端照舊量）。"""
+    if not pg.evaluate("() => !!document.querySelector('#prodDiagram.mnum2d')"):
+        return False
+    nb = pg.evaluate("() => [...document.querySelectorAll('#prodDiagram .mnumlayer button')].filter(b => b.getClientRects().length).map(b => parseFloat(getComputedStyle(b).fontSize))")
+    ok(f"{lab} 整張模式：編號鈕看得到、字級 ≥ 11px（手機讀的是編號鈕＋抽屜）", bool(nb) and min(nb) >= 11, nb[:6])
+    click(pg, ".mdgbar .mdgzoom button[data-z='big']", 900)
+    big = pg.evaluate("() => !!document.querySelector('#prodDiagram.mbig')")
+    ok(f"{lab} 按「放大」真的切到原尺寸（#prodDiagram.mbig）", big)
+    return big
+
+
+def _m390_reset(pg):
+    """手機「整張／放大」的選擇會寫進 tw.m3.dgzoom（驗收開了 TW_KEEP_VIEW，重新整理不會清）—— 量完一律清掉，下一次進來才是預設的「整張」。"""
+    pg.evaluate("() => { try { localStorage.removeItem('tw.m3.dgzoom'); } catch (e) {} }")
 
 
 def _v2_click_part(pg, part):
@@ -31792,7 +31979,10 @@ def _v2_common(pg, base, route, feat, native, parts_click, secs):
     # ---- 12px／13px 下限、不重疊、不出畫布：兩種模式 × 四個寬度（章節全開，最嚴）
     for theme, lab, floor in (("dark", "科技", 11.9), ("light", "閱讀", 12.9)):
         for w in (1440, 1100, 800, 390):
+            _m390_reset(pg)
             _v2_land(pg, url, theme, w, "0")
+            if w == 390:
+                _m390_big(pg, f"[{feat}][{lab} 390px]")      # 手機 v3 D：整張模式驗編號鈕，放大之後才量原圖的字（見 _m390_big）
             _v2_open_all(pg)
             z = pg.evaluate(DG_TYPO)
             ok(f"[{feat}][{lab} {w}px] 章節全開：每一個字 ≥ {floor + 0.1:.0f}px、文字兩兩不重疊（共 {z.get('n')} 個）",
@@ -31803,17 +31993,25 @@ def _v2_common(pg, base, route, feat, native, parts_click, secs):
             ok(f"[{feat}][{lab} {w}px] 沒有任何一段字畫出畫布左右緣", not out, out[:3])
             ok(f"[{feat}][{lab} {w}px] 整頁沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
                pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    _m390_reset(pg)
     # ---- v2 版面：三個容器寬度
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前「1440 抽屜關＝容器最寬 → 三欄」。事件抽屜 09-28 改成浮層（不再吃主內容寬，tw.side 已作廢），
+    #   版面 v2 的左側導覽（#291／#312，10-02～03）卻在 1440 吃掉 316px：容器只剩 1124（導覽收成圖示列也只有 1276），
+    #   跨不過 index.html .dgv2 的 1280 容器查詢門檻 —— 1440 現在**本來就該是兩欄**（畫布＋右欄），三欄要容器 ≥1280 才出現。
+    #   所以三欄改在 1920（容器 1604）驗；1440 驗它現在該有的樣子（兩欄，下面那條），引線與卡片高度兩條照舊在 1440 量。門檻一條都沒動。
+    _v2_land(pg, url, "light", 1920, "0")
+    v3c = pg.evaluate(STYLE22)
+    ok(f"[{feat}][1920 容器 ≥1280] 三欄：左欄在畫布左邊、右欄在畫布右邊，畫布 {native} 在中間",
+       v3c["v2"] and v3c["colL"] and v3c["colR"] and v3c["colL"]["r"] <= v3c["canvas"]["l"] and v3c["colR"]["l"] >= v3c["canvas"]["r"] and v3c["svgW"] == native,
+       {"canvas": v3c["canvas"], "L": v3c["colL"], "R": v3c["colR"], "wrapW": v3c["wrapW"]})
     _v2_land(pg, url, "light", 1440, "0")
     v = pg.evaluate(STYLE22)
-    ok(f"[{feat}][1440 抽屜關] 三欄：左欄在畫布左邊、右欄在畫布右邊，畫布 {native} 在中間",
-       v["v2"] and v["colL"] and v["colR"] and v["colL"]["r"] <= v["canvas"]["l"] and v["colR"]["l"] >= v["canvas"]["r"] and v["svgW"] == native,
-       {"canvas": v["canvas"], "L": v["colL"], "R": v["colR"]})
-    ok(f"[{feat}][1440 抽屜關] 每張有錨點的卡片一條引線（leads ＝ anchors ＝ {v['anchors']}）", v["leads"] == v["anchors"] and v["anchors"] >= 8, f"leads={v['leads']} anchors={v['anchors']}")
-    ok(f"[{feat}][1440 抽屜關] 卡片欄不比畫布高（一頁看完：欄底 ≤ 畫布底 ＋ 12）",
+    ok(f"[{feat}][1440] 每張有錨點的卡片一條引線（leads ＝ anchors ＝ {v['anchors']}）", v["leads"] == v["anchors"] and v["anchors"] >= 8, f"leads={v['leads']} anchors={v['anchors']}")
+    ok(f"[{feat}][1440] 卡片欄不比畫布高（一頁看完：欄底 ≤ 畫布底 ＋ 12）",
        v["colL"]["b"] <= v["canvas"]["b"] + 12 and v["colR"]["b"] <= v["canvas"]["b"] + 12, {"canvas_b": v["canvas"]["b"], "L_b": v["colL"]["b"], "R_b": v["colR"]["b"]})
     _v2_land(pg, url, "light", 1440, "1")
     v2 = pg.evaluate(STYLE22)
+    # （「抽屜開」是舊名：tw.side 已作廢；1440 容器 1124 < 1280，本來就是這個兩欄版面）
     ok(f"[{feat}][1440 抽屜開] 兩欄：卡片全部在畫布右邊、照編號排、引線重算了",
        v2["v2"] and v2["colL"]["l"] >= v2["canvas"]["r"] - 2 and v2["colR"]["l"] >= v2["canvas"]["r"] - 2 and v2["order"] == sorted(v2["order"]) and v2["leads"] == v2["anchors"],
        {"canvas": v2["canvas"], "L": v2["colL"], "order": v2["order"], "leads": v2["leads"]})
@@ -31878,20 +32076,26 @@ def t_psu_v2(pg, base):
     for seg in ("power", "connector", "assembly"):
         pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         # ★ W3-2：成分股表移除，改量環節詳情 `#segBox`（沒選環節時是 0，選了才長出來）
-        base_rows = seg_stocks(pg)
+        # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：改前讀 #segBox —— 桌機（>820）09-25 起一律清空，這條在 1440 必是 0 → 0。
+        #   改後讀 seg_detail()：桌機＝右欄浮動卡 #relList 亮著的那一格（那一格的台股，可點進個股頁），手機照舊 #segBox。
+        #   門檻沒動：點了之後亮的要是那一格、列得出台股、三格的檔數彼此不同。
+        d0 = seg_detail(pg)
         hit = pg.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"'+s+'\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
-        seg_rows[seg] = seg_stocks(pg) if hit else None
-        ok(f"[{FEAT}] 點「{seg}」環節色標 → 圖下方真的列出那一格的台股",
-           hit and seg_rows[seg] is not None and seg_rows[seg] > 0 and seg_rows[seg] != base_rows,
-           f"{base_rows} → {seg_rows[seg]}")
+        d1 = seg_detail(pg) if hit else None
+        seg_rows[seg] = len(d1["codes"]) if d1 else None
+        ok(f"[{FEAT}] 點「{seg}」環節色標 → 環節詳情（桌機：右欄浮動卡）真的列出那一格的台股",
+           hit and d1 is not None and d1["seg"] == seg and seg_rows[seg] > 0 and (d1["seg"], d1["codes"]) != (d0["seg"], d0["codes"]),
+           f"{d0['seg']}:{len(d0['codes'])} → {d1 and d1['seg']}:{seg_rows[seg]}")
     vals = [v for v in seg_rows.values() if v is not None]
     ok(f"[{FEAT}] ★ power／connector／assembly 三次列出來的檔數**彼此不同**", len(vals) == 3 and len(set(vals)) == 3, seg_rows)
     # ---- 非講不可的話（§6-N5／N6）：在整張圖的文字裡（警語卡 ＋ svg）
+    # ★ 2026-10-06 改前→改後（驗收過時，09-24 卡片限高收合）：警語卡在 1440 收成「標題 ▾」，說明行要點開 —— 改讀 _v2_reach()（真的點開每張卡讀字）
     _v2_land(pg, url, "dark", 1440, "0")
-    s = pg.evaluate(_V2)
+    reach = _v2_reach(pg)
     for kw in ("BBU 尚未建檔", "不是整個族群", "示意圖，非實物比例", "時間軸不標秒數"):
-        ok(f"[{FEAT}] ★「{kw}」真的印在畫面上（警語卡永遠看得到）", kw in s["all"], "")
+        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖名列／圖上，或警語卡點開就看得到）", kw in reach, "")
+    s = pg.evaluate(_V2)
     ok(f"[{FEAT}] 拆開的 PSU 四級都在畫面上（PFC／LLC／同步整流／輸出匯流排），而且標了示意", all(k in s["all"] for k in ("功因校正 PFC", "諧振轉換 LLC", "同步整流 SR", "輸出匯流排")) and "示意" in s["all"], "")
     # ---- 結構紅線：用幾何驗（章節全開之後 ③ 的東西才量得到）
     _v2_open_all(pg)
@@ -31951,21 +32155,27 @@ def t_abf_v2(pg, base):
     for seg in ("substrate_material", "abf_pcb", "hdi_pcb"):
         pg.goto(url, wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         # ★ W3-2：成分股表移除，改量環節詳情 `#segBox`
-        b0 = seg_stocks(pg)
+        # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：桌機的環節詳情是右欄浮動卡（#relList 亮著那一格），#segBox 在桌機恆空。
+        #   改讀 seg_detail()；「載板材料台股掛零」在浮動卡上的樣子是標題列寫「外商 N」（不是「N 檔」）＋ 外商列出味之素 ——
+        #   手機（#segBox）照舊要寫「沒有直接對應的台股」。門檻沒動：0 檔、3 檔、比 3 多，而且掛零那一格要講出是誰做的。
         hit = pg.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
-        got[seg] = {"n": seg_stocks(pg), "base": b0, "hit": hit,
-                    "body": pg.evaluate("() => (document.getElementById('segBox') || {}).innerText || ''")}
-    ok(f"[{FEAT}] 三個環節色標列出來的檔數彼此不同", len({got[s]["n"] for s in got}) == 3 and all(got[s]["hit"] for s in got), {s: got[s]["n"] for s in got})
-    ok(f"[{FEAT}] ★「載板材料」那一次真的一檔台股都沒有、而且畫面說「沒有直接對應的台股」＋ 味之素（台股掛零不是 bug）",
-       got["substrate_material"]["n"] == 0 and "沒有直接對應的台股" in got["substrate_material"]["body"] and "味之素" in got["substrate_material"]["body"], got["substrate_material"]["body"][:60])
+        d = seg_detail(pg)
+        got[seg] = {"n": len(d["codes"]), "seg": d["seg"], "hit": hit, "desk": d["desk"], "body": d["text"]}
+    ok(f"[{FEAT}] 三個環節色標列出來的檔數彼此不同", len({got[s]["n"] for s in got}) == 3 and all(got[s]["hit"] and got[s]["seg"] in (s, "segBox") for s in got), {s: (got[s]["seg"], got[s]["n"]) for s in got})
+    sm = got["substrate_material"]
+    ok(f"[{FEAT}] ★「載板材料」那一次真的一檔台股都沒有、而且畫面講明台股沒有直接對應（桌機：標題寫「外商」）＋ 味之素（台股掛零不是 bug）",
+       sm["n"] == 0 and "味之素" in sm["body"] and (("外商" in sm["body"]) if sm["desk"] else ("沒有直接對應的台股" in sm["body"])), sm["body"][:80])
     ok(f"[{FEAT}] 「IC 載板」那一格 3 檔、「高階 PCB」那一格比它多", got["abf_pcb"]["n"] == 3 and got["hdi_pcb"]["n"] > got["abf_pcb"]["n"], {s: got[s]["n"] for s in got})
     # ---- 非講不可的話 ＋ N1（整張圖唯一的百分比是 ABF 膜市占，連來源一起）
+    # ★ 2026-10-06 改前→改後（驗收過時，09-24 卡片限高收合）：警語卡收成「標題 ▾」，說明行要點開 —— 改讀 _v2_reach()（真的點開每張卡）。
+    #   「0 筆…那不是壞掉」那兩句在 ③ 章節（預設收合）與警語卡裡；警語卡點開就看得到，算數。
     _v2_land(pg, url, "dark", 1440, "0")
-    s = pg.evaluate(_V2)
+    reach = _v2_reach(pg)
     for kw in ("台股掛零", "0 筆", "不是壞掉", "不是整個族群", "示意圖，非實物比例", "實際為十幾至二十幾層", "CoWoS", "不是這張圖的主題"):
-        ok(f"[{FEAT}] ★「{kw}」真的在畫面上", kw in s["all"], "")
-    pct = [ln for ln in s["all"].split("\n") if "%" in ln]
+        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖上，或卡片點開就看得到）", kw in reach, "")
+    pct = [ln for ln in reach.split("\n") if "%" in ln]
+    pct = list(dict.fromkeys(pct))     # 同一句若同時出現在圖上與卡片裡只算一處（比的是「有幾種百分比的說法」）
     ok(f"[{FEAT}] ★ N1：整張圖（svg ＋ 卡片）唯一的百分比是 ABF 膜市占，而且跟來源寫在一起", len(pct) == 1 and "95%" in pct[0] and "今周刊" in pct[0], pct)
     # ---- 結構紅線（爆炸拆解之後全部從畫面量，不寫死座標）
     _v2_open_all(pg)
@@ -32448,7 +32658,9 @@ def t_hsio_v2(pg, base):
     for seg in ("connector", "hdi_pcb", "optical", "thermal"):
         pg.goto(url, wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         hit = _b14b_seg_chip(pg, seg); pg.wait_for_timeout(800)
-        got[seg] = {"hit": hit, "n": _b14b_rows(pg), "codes": seg_codes(pg)}   # ★ W3-2：改讀環節詳情
+        # ★ W3-2：改讀環節詳情。★ 2026-10-06（驗收過時，29149fc／#310）：桌機的環節詳情是右欄浮動卡，#segBox 恆空 → 改讀 seg_detail()
+        d = seg_detail(pg)
+        got[seg] = {"hit": hit and d["seg"] in (seg, "segBox"), "n": len(d["codes"]), "codes": ",".join(d["codes"])}
     ok(f"[{FEAT}] ★ 四個環節色標列出來的台股名單彼此都不同（四個 seg 真的分開掛對）", all(g["hit"] for g in got.values()) and len({g["codes"] for g in got.values()}) == 4, {s: (got[s]["n"], got[s]["codes"][:24]) for s in got})
     ok(f"[{FEAT}] ★「連接器 / 線材」那一格真的只篩出一家（族群有四家，環節只收錄一家 —— 那不是壞掉）", got["connector"]["n"] == 1, got["connector"])
     # ---- 四格裡依序點四個掛在不同環節的零件（章節全開之後）→ 主角換人、小卡換人、成分股不動
@@ -32468,7 +32680,9 @@ def t_hsio_v2(pg, base):
     st = pg.evaluate("""() => {
       const svg = document.querySelector('#prodDiagram svg');
       const bb = (s) => { const n = svg.querySelector(s); return n ? n.getBBox() : null; };
-      const cells = [...svg.querySelectorAll('rect.frame')].map(n => ({w: +n.getAttribute('width'), h: +n.getAttribute('height')})).filter(c => c.h === 440);
+      // ★ 2026-10-06（驗收過時，0a14056e 09-26 覆蓋普查把格高 440 → 456）：改前用「高 440」挑出四格，改高之後一格都挑不到。
+      //   改用格寬 528（四格同一支 cell()、同一組 CW）挑，再比四格是不是同一個尺寸 —— 等高等寬的判準一字沒動。
+      const cells = [...svg.querySelectorAll('rect.frame')].map(n => ({w: +n.getAttribute('width'), h: +n.getAttribute('height')})).filter(c => c.w === 528);
       const plating = [...svg.querySelectorAll('[data-part="gold_finger"] rect.part')].map(n => ({x: +n.getAttribute('x'), w: +n.getAttribute('width')})).sort((a, b) => a.x - b.x);
       const tw = [...svg.querySelectorAll('[data-part="twinax"] ellipse.part,[data-part="twinax"] circle.part')].map(n => n.tagName.toLowerCase());
       const guide = bb('[data-part="guide_pin"] path.part'), contact = bb('[data-part="float_conn"] rect.part:last-of-type');
@@ -32490,7 +32704,7 @@ def t_hsio_v2(pg, base):
               rb, cableBeam, txt, parts};
     }""")
     txt = st["txt"]
-    ok(f"[{FEAT}] X1：四格等高等寬（同一支 cell() 產生，528×440）", len(st["cells"]) == 4 and len({(c["w"], c["h"]) for c in st["cells"]}) == 1 and st["cells"][0]["w"] == 528, st["cells"])
+    ok(f"[{FEAT}] X1：四格等高等寬（同一支 cell() 產生，528×{st['cells'][0]['h'] if st['cells'] else '?'}）", len(st["cells"]) == 4 and len({(c["w"], c["h"]) for c in st["cells"]}) == 1 and st["cells"][0]["w"] == 528 and st["cells"][0]["h"] >= 440, st["cells"])
     ok(f"[{FEAT}] ★ X2：場景上的站點編號與四格的標題編號一致（②③④⑤ 兩邊都看得到）", all(txt.count(n) >= 2 for n in ("②", "③", "④", "⑤")), {n: txt.count(n) for n in ("②", "③", "④", "⑤")})
     ok(f"[{FEAT}] X3：ASIC 只是一個標了名字的方塊、沒有內部細節", "只畫方塊，不畫內部" in txt and svg_count(pg, '[data-part="st_asic"] *') <= 6, svg_count(pg, '[data-part="st_asic"] *'))
     ok(f"[{FEAT}] X4：沒有 PCB 疊構剖面、沒有背鑽；CPO 只用一行字導去「交換器板卡」那張",
@@ -32545,13 +32759,17 @@ def _seg_rows_distinct(pg, base, feat, segs):
     for seg in segs:
         pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         # ★ W3-2：成分股表移除，改數環節詳情 `#segBox`（沒選環節是 0，選了才長出來）
-        b0 = seg_stocks(pg)
+        # ★ 2026-10-06 改前→改後（驗收過時，29149fc／DECISIONS #310）：桌機（>820）的 #segBox 09-25 起恆空（這條在 1440 必是 0 → 0），
+        #   環節詳情的現行位置是右欄浮動卡 #relList 亮著的那一格 → 改讀 seg_detail()（手機照舊 #segBox）。門檻沒動。
+        d0 = seg_detail(pg)
         hit = pg.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
-        n = seg_stocks(pg) if hit else None
-        got[seg] = {"n": n, "codes": seg_codes(pg) if hit else ""}
-        ok(f"[{feat}] 點「{seg}」環節色標 → 圖下方真的列出那一格的台股",
-           hit and n is not None and n > 0 and n != b0, f"{b0} → {n}")
+        d1 = seg_detail(pg) if hit else None
+        n = len(d1["codes"]) if d1 and d1["seg"] in (seg, "segBox") else None
+        got[seg] = {"n": n, "codes": ",".join(d1["codes"]) if d1 else ""}
+        ok(f"[{feat}] 點「{seg}」環節色標 → 環節詳情（桌機：右欄浮動卡）真的列出那一格的台股",
+           hit and n is not None and n > 0 and (d1["seg"], d1["codes"]) != (d0["seg"], d0["codes"]),
+           f"{d0['seg']}:{len(d0['codes'])} → {d1 and d1['seg']}:{n}")
     codes = [g["codes"] for g in got.values() if g["n"] is not None]
     ok(f"[{feat}] ★ {'／'.join(segs)} 各自列出來的**台股名單彼此都不同**（這才證明 seg 真的分開掛對；"
        f"比家數會被「兩格剛好一樣多」誤判）",
@@ -32570,10 +32788,11 @@ def t_pcb_v2(pg, base):
     url = f"{base}#{ROUTE}"
     _seg_rows_distinct(pg, base, FEAT, ("ccl_material", "ccl", "hdi_pcb"))
     # ---- 非講不可的話（§6-N2／N3／N5）：在整張圖的文字裡（警語卡 ＋ svg）
+    # ★ 2026-10-06 改前→改後（驗收過時，09-24 卡片限高收合）：警語卡在 1440 收成「標題 ▾」—— 改讀 _v2_reach()（真的點開每張卡讀字）
     _v2_land(pg, url, "dark", 1440, "0")
-    s = pg.evaluate(_V2)
+    reach = _v2_reach(pg)
     for kw in ("不是整個族群", "示意圖，非實物比例", "20～50 層以上", "收錄六家", "一個數字都不寫"):
-        ok(f"[{FEAT}] ★「{kw}」真的印在畫面上（警語卡永遠看得到）", kw in s["all"], "")
+        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖名列／圖上，或警語卡點開就看得到）", kw in reach, "")
     # ---- 結構硬規則（章節全開之後 ②③④ 的東西才量得到；主視圖的座標全部從 DOM 量，不寫死）
     _v2_open_all(pg)
     st = pg.evaluate("""() => {
@@ -32684,10 +32903,11 @@ def t_switch_v2(pg, base):
         return
     url = f"{base}#{ROUTE}"
     _seg_rows_distinct(pg, base, FEAT, ("optical", "thermal", "connector"))
+    # ★ 2026-10-06 改前→改後（驗收過時，09-24 卡片限高收合）：警語卡與 ASIC 卡在 1440 收成「標題 ▾」—— 改讀 _v2_reach()（真的點開每張卡讀字）
     _v2_land(pg, url, "dark", 1440, "0")
-    s = pg.evaluate(_V2)
+    reach = _v2_reach(pg)
     for kw in ("示意圖，非實物比例", "埠側進風", "16 個籠架", "台股沒有直接對應", "資料中心交換器", "一個都不寫"):
-        ok(f"[{FEAT}] ★「{kw}」真的印在畫面上", kw in s["all"], "")
+        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖名列／圖上，或卡片點開就看得到）", kw in reach, "")
     _v2_open_all(pg)
     st = pg.evaluate("""() => {
       const svg = document.querySelector('#prodDiagram svg');
@@ -35233,7 +35453,10 @@ def t_w9_software(pg, base):
        len(set(seen_titles)) == len(seen_titles) and len(seen_titles) >= 3, seen_titles)
 
     # 6 淺色主題下卡片文字對比（比照既有那一段的做法：量 computed style，不是看有沒有 class）
-    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    # ★ 2026-10-06：一起清掉 tw.dg3d.pal。前面好幾段（批次25-關聯圖、C4…）會寫死 tw.dg3d.pal='tech'，同一個 worker 跑到這裡時
+    #   淺色頁面上的剖析圖還是「科技」配色（深色半透明卡片疊在淺色頁底上）—— 全站驗收量到的 1.6～2.5 就是這樣來的（pal: 'tech'）。
+    #   真人只會從主題鈕切淺色，而切主題本身就會清掉這個偏好（industry.js tw:theme）、配色跟著變「閱讀」；單獨跑這段是綠的。
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); localStorage.removeItem('tw.dg3d.pal'); } catch (e) {} }")
     for lab, did, _cls, _p in W9_DGS:
         pg.goto(f"{base}#industry/software/dg/{did}", wait_until="networkidle")
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
@@ -36398,18 +36621,24 @@ def t_b29_tabs(pg, base):
     for w5, route5 in ((390, "ai_server/dg/ai_server"), (390, "electronics/dg/mlcc"),
                        (800, "electronics/dg/mlcc")):
         pg.set_viewport_size({"width": w5, "height": 1000})
-        pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0'); } catch (e) {} }")
+        # （一併清掉 tw.m3.dgzoom：別段按過「放大」會被記住，這一條要量的是一進來的預設＝「整張」）
+        pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0'); localStorage.removeItem('tw.m3.dgzoom'); } catch (e) {} }")
         pg.goto(f"{base}#industry/{route5}", wait_until="networkidle")
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        # ★ 2026-10-06 改前→改後（驗收過時，手機 v3 D「剖析圖只留編號」63c080b0 09-25）：≤640 的 .mnum2d 把說明卡片欄整個藏起來
+        #   （display:none，改由編號鈕＋底部抽屜說明），藏起來的卡片 getBoundingClientRect 是 0 —— 改前把它們算成「左半邊被切掉」（14／14、9／9）。
+        #   要守的事情不變（一載入不准把東西推出畫面）：只數**看得見**的卡片；手機版面另外驗編號鈕都在 #prodDiagram 的左右範圍裡。
         m5 = pg.evaluate("""() => { const h = document.getElementById('prodDiagram');
             if (!h) return null;
             const hr = h.getBoundingClientRect();
             const grid = h.querySelector('.dggrid');
-            const cards = [...h.querySelectorAll('.dgc')];
-            return { host: Math.round(h.scrollLeft),
+            const cards = [...h.querySelectorAll('.dgc')].filter(c => c.getClientRects().length);
+            const nums = [...h.querySelectorAll('.mnumlayer .mnum')].filter(b => b.getClientRects().length);
+            return { host: Math.round(h.scrollLeft), mnum: h.classList.contains('mnum2d'),
                      gridLeft: grid ? Math.round(grid.getBoundingClientRect().left - hr.left) : null,
                      cutCards: cards.filter(c => c.getBoundingClientRect().left < hr.left - 2).length,
-                     cards: cards.length }; }""")
+                     cards: cards.length, nums: nums.length,
+                     cutNums: nums.filter(b => { const r = b.getBoundingClientRect(); return r.left < hr.left - 2 || r.right > hr.right + 2; }).length }; }""")
         if ok(f"W3-5 [{w5}px {route5}] 找得到剖析圖", bool(m5), m5):
             ok(f"W3-5 [{w5}px {route5}] `#prodDiagram` 一載入沒有被推走（scrollLeft ＝ 0）",
                m5["host"] == 0, m5)
@@ -41645,15 +41874,12 @@ def _fold3d_cycle(pg, width: int, wiggle: bool = True):
     folded = pg.evaluate("() => { const b = document.getElementById('dgBody'); return !!b && getComputedStyle(b).display === 'none'; }")
     ok(f"[{width}] 按「收合圖」→ 圖真的收起來（#dgBody 不顯示）", folded)
     if wiggle == "side":
-        # 審查 R3 的重現條件之二：收合期間切換事件欄 —— 容器寬度真的變了（964 ↔ 1322），展開時要照新寬度重排
-        # ★ 2026-10-06 改前→改後（驗收過時）：2026-09-28（DECISIONS #271）起「今日事件」是預設收起的**浮層抽屜**（fixed 貼右、遮罩 .sideback 蓋整頁），
-        #   不再把主欄擠窄（容器寬度不變）；改前只開不關，接著那一下「展開」其實點到遮罩（只是把抽屜關掉），圖還是收著 → 「再按一次」紅。
-        #   真人會先關抽屜再按展開，所以這裡開了再關（再按一次 #evToggle），並證明抽屜真的開過；
-        #   同寬度的斷言（畫布高＝收合前、模型大小一樣）照樣驗，「容器寬度真的變了」那一支在寬度沒變時本來就不會跑。
-        pg.evaluate("() => document.getElementById('evToggle').click()"); pg.wait_for_timeout(700)
-        ok(f"[{width}] 收合期間按「事件」→ 事件抽屜真的開了（浮層）",
-           pg.evaluate("() => !!document.querySelector('aside#side.open, aside.open')"))
-        pg.evaluate("() => document.getElementById('evToggle').click()"); pg.wait_for_timeout(600)
+        # 審查 R3 的重現條件之二：收合期間切換**側欄** —— 容器寬度真的變了，展開時要照新寬度重排
+        # ★ 2026-10-06 改前→改後（驗收過時）：改前按 #evToggle（今日事件欄）。09-28 起事件欄是浮層抽屜（app.js，Andy「不會擠壓到整體版面」），
+        #   開關**不改主內容寬度**，而且開著時那一層遮罩會吃掉下一下「展開」的點擊 —— 全站驗收量到「展開不回來、容器 1122 → 0、卡片 10 → 0」。
+        #   現在會改變容器寬度的是版面 v2 的左側導覽收合鈕（#l4NavBtn，#291／#312：1440 時內容寬 1124 ↔ 1276）——
+        #   R3 要重現的「收合期間容器寬度變了」改由它觸發；量完由 t_fold3d 收尾時按回去、清掉偏好。
+        pg.evaluate("() => document.getElementById('l4NavBtn').click()"); pg.wait_for_timeout(700)
     elif wiggle:
         # 模擬「收合之後頁面變短、捲軸消失／使用者把視窗拉窄一點」—— 那一次 resize 就是 bug 的觸發點
         pg.set_viewport_size({"width": width - 40, "height": 1000}); pg.wait_for_timeout(400)
@@ -41696,7 +41922,7 @@ def t_fold3d(pg, base):
         ok(f"[{width}] 收合前：畫布寬＝容器寬", abs(m0["cw"] - m0["hostW"]) <= 2, m0)
 
         for wiggle in ((False, True, "side") if width >= 1280 else (False, True)):
-            tag = {False: "直接收合再展開", True: "收合期間動過視窗寬度", "side": "收合期間切換事件欄"}[wiggle]
+            tag = {False: "直接收合再展開", True: "收合期間動過視窗寬度", "side": "收合期間切換左側導覽"}[wiggle]
             _fold3d_cycle(pg, width, wiggle)
             m1 = wait_until(pg, "() => { const f = " + FOLD3D_MEAS + "; const m = f(); return m && m.cw > 0 ? m : null; }", 4000)
             pg.wait_for_timeout(700)
@@ -41731,6 +41957,11 @@ def t_fold3d(pg, base):
             ok(f"[{width}/{tag}] 零件卡片彼此不重疊", m1["ov"] == 0, f"重疊 {m1['ov']} 對 {m1['ovp']}")
             ok(f"[{width}/{tag}] 零件卡片都在 3D 框內（沒有堆到框外）", m1["outside"] == 0, f"框外 {m1['outside']} 張")
             ok(f"[{width}/{tag}] 說明文字沒有疊在圖上或卡片上", not m1["noteOnCanvas"] and not m1["noteOnCard"], m1)
+        if width >= 1280:
+            # 「收合期間切換左側導覽」按過一次 → 按回來、清掉偏好（tw.layout4.nav 會被記住，不還原的話後面每一段的容器寬度都不一樣）
+            pg.evaluate("() => { const b = document.getElementById('l4NavBtn'); if (b && document.documentElement.classList.contains('l4-mini')) b.click();"
+                        " try { localStorage.removeItem('tw.layout4.nav'); } catch (e) {} }")
+            pg.wait_for_timeout(700)
 
         # ---- 2D 模式也走一遍：收合期間動視窗，展開後圖寬、引線、卡片要跟收合前一樣
         click(pg, "#dg3d button:not(.on)", 1200)

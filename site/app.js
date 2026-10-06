@@ -2417,8 +2417,15 @@
         if (btn) btn.remove();
         return;
       }
-      kids.forEach((el, k) => el.classList.toggle('mm-off', k >= keep));
-      const rest = kids.length - keep;
+      /* ★ 2026-10-06：先留「重點展開」那幾張（.pin），再照順序補滿 keep 張。
+         產業鏈的手機環節清單（#chainList）由 industry.js 挑「台股最多／剖析圖反亮」的幾格標 .pin 並展開（DECISIONS #317），
+         這裡卻照 DOM 順序只留前 4 張 —— 晶圓代工分頁的反亮那一格排在第 11 張，被收進「看全部」，
+         一進來看到的 4 張是收著的或沒有台股的，畫面上一個個股標籤都沒有（Andy 的原始需求是「Default 顯示族群相連標籤個股」；
+         _uitest 批次25-關聯圖「[390px] 收起來之後環節卡清單與個股標籤照樣看得見」紅）。沒有 .pin 的清單（候選、交付）照舊取前 N 張。*/
+      const keepSet = new Set(kids.filter(el => el.classList.contains('pin')).slice(0, keep));
+      for (const el of kids) { if (keepSet.size >= keep) break; keepSet.add(el); }
+      kids.forEach(el => el.classList.toggle('mm-off', !keepSet.has(el)));
+      const rest = kids.length - keepSet.size;
       let b = btn;
       if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'mmore'; box.appendChild(b); }
       else if (b !== box.lastElementChild) box.appendChild(b);
