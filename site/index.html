@@ -2203,7 +2203,18 @@ tbody tr:last-child td{border-bottom:0}
 @media (max-width:640px){.mtf-cell .cap select.mtfsel{padding:2px 6px;margin-right:6px}}
 .mtf-cell .cap select.mtfsel:hover{border-color:var(--cyan)}
 .mtf-cell .cap{position:absolute;left:10px;top:8px;z-index:5;font-size:12.5px;color:var(--ink-2);font-family:var(--mono);text-shadow:var(--ovl-sh)}
-.mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px);position:relative}
+/* ★ 2026-10-06（DECISIONS #335）：四週期也畫 KD／MACD／RSI 副圖 —— 每勾一個副圖，格子長高 76px（--mtf-sub 由 industry.js miniApply 設），
+   副圖固定 76px（chart.js _ph 的 opts.indH），主圖與成交量的高度跟沒勾時一樣，不會被壓扁。*/
+.mtf-cell .cv{height:calc(clamp(300px,calc((100vh - 260px) / 2),620px) + var(--mtf-sub,0) * 76px);position:relative}
+/* 小圖副圖左上角的「KD 9,3,3　K 45.1 D 50.2」：比大圖小一號；空的（成交量那一格不寫）不顯示 */
+.mtf-cell .pane-labels div{position:absolute;left:8px;z-index:5;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);pointer-events:none;
+  text-shadow:var(--ovl-sh);background:var(--ovl);padding:1px 6px;border-radius:4px;white-space:nowrap;max-width:calc(100% - 70px);overflow:hidden;text-overflow:ellipsis}
+.mtf-cell .pane-labels div:empty{display:none}
+/* 「本益比河流只有日週月」：勾了河流、這一格是 1 時／4 時／分 K 時才出現（滑過有完整原因） */
+.mtf-cell .mpeskip{position:absolute;right:64px;top:36px;z-index:5;font-size:11px;color:var(--ink-3);background:var(--ovl);
+  border:1px dashed var(--line-2);padding:1px 7px;border-radius:999px;cursor:help;text-shadow:var(--ovl-sh)}
+.mtf-cell .mpeskip[hidden]{display:none}
+@media (max-width:640px){.mtf-grid{grid-template-columns:1fr}}
 /* 四週期小圖的游標看板（2026-09-26）：滑過哪一根就寫那一根的時間、開高低收與量（張）。
    擺在週期下拉的正下方；沒滑過時整塊藏起來，不擋圖。*/
 .mtf-cell .mtip{position:absolute;left:10px;top:40px;z-index:6;pointer-events:none;font-family:var(--mono);font-size:11.5px;
@@ -2783,7 +2794,8 @@ tbody tr:last-child td{border-bottom:0}
   .dgwrap.compact svg{max-height:none}
   .evbtn{padding:var(--sp-1) var(--sp-2);font-size:13px}
 @media (max-width:640px){.evbtn{padding:6px 8px}}
-  .g2,.g3,.g4{grid-template-columns:1fr} .mtf-grid{grid-template-columns:1fr}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  /* 四週期同看：800 寬維持兩欄（Andy 2026-10-06「800 寬兩欄、390 寬一欄」），一欄改到 ≤640 —— 寫在 .mtf-cell .mpeskip 那幾行下面 */
   .search input{width:130px}
   .brand small{display:none}
   /* 頂部塞不下版號；橫幅那一行照樣會寫，手機不會因此看不到 */
