@@ -1,5 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 評語一律中性（金融專家，分支 `claude/neutral-copy` → main，DECISIONS #331）
+Andy 11:10：「好言論改中性」。對照表 `docs/neutral_copy_1006.md`（約 90 句：資金輪動／總覽資金輪盤／族群象限面板 13、今日候選與技術判定 41、個股 AI 分析 18、其他頁 7；第五節列保留的灰色地帶）。
+- **改了什麼**：RRG 四段短評改成座標描述（轉弱＝「相對強度仍高、動能轉弱」…）；`technical.py` 判定字樣改常數 `V_*`（回檔型態條件成立／突破型態條件成立／條件未齊／條件未齊（週線逆勢）／排除條件成立）；
+  AI 卡綜合狀態 `analysis.py` `ST_*`（條件成立／條件未齊／偏空）；`mtf.py` 多週期腳本改「需求區／供給區／…條件」；`scoring.py` 理由列拿掉「便宜」「不划算」「沒人氣」「追高」；
+  集中度「主流容易休息／冷門股不容易動」改描述；選股策略「比自己過去便宜」→「本益比在自身歷史低檔」。**判定邏輯、門檻、數字都沒動**。
+- **golden**：`tests/fixtures/perf_golden.json` 以既有 perf_bars 重產（沒重抽樣本），逐欄比對數字與結構完全一致、35 個字串不同。
+- **驗收**：pytest 全套 1066 passed（新 `tests/test_neutral_copy.py`）；新段 `中性用語1006` 0 個問題，換回 origin/main 的 app.js 同段紅 18 條（不是假綠）。
+  前端回歸段落與 `_preview` 結果見下一行。
+- **本機資料**：build_payload 在寫 candidates.json 前被 OOM 砍（rc 137，個股頁 stock/*.json、explore、stocks 已用新程式重算）；
+  candidates／groups_detail／industry_map 三支本機用「舊檔＋字樣對照轉換」頂上（不重算數字），其餘沒受影響的 JSON 連到共用 site/data。線上 pages.yml 會整包重算。
+- **未收斂／待 Andy**：四問步驟名「③ 何時進場／④ 別進的理由」保留（網站架構），要不要一起改中性是產品定位問題。
+
 ## 2026-10-06 11:10 既有紅字清理・追加：資金流向＋總覽＋即時這一區（UI 專家，分支 `claude/fix-reds2` → main）
 CEO 10:20 追加（全站完整驗收 fails12.txt 裡這一區的段落）。第一批 12 段已在 f239531d 上線（Pages 6874058459，台北 10:44 ✅）。
 
