@@ -22693,10 +22693,12 @@ def t_explore_1005(pg, base):
     # 2026-10-06 Andy：頂端提示列移除，免責改放標題右側一行；面向標題不留英文
     lg = pg.evaluate("""() => { const l = document.querySelector('#xpLegal'), h = document.querySelector('.sl-head h2');
         const r = l && l.getBoundingClientRect();
-        return {inH: !!(l && h && h.contains(l)), txt: l ? l.textContent : '', oneLine: r ? r.height < 24 : false,
+        return {inH: !!(l && h && h.contains(l)), txt: l ? l.textContent : '', title: l ? l.title : '', oneLine: r ? r.height < 24 : false,
                 topBar: !!document.querySelector('#v-explore > .xp-legal'), secen: document.querySelectorAll('.sl-secen').length,
                 howto: (h ? h.textContent : '').includes('每張卡'), secsm: document.querySelectorAll('.sl-sech small').length, sectt: [...document.querySelectorAll('.sl-sech')].every(x => x.title.length > 4), fs: l ? parseFloat(getComputedStyle(l).fontSize) : 0}; }""")
-    ok(f"[{tag}] 免責在標題列內、一行、≥11px、未刪字", lg["inH"] and lg["oneLine"] and lg["fs"] >= 11 and '不構成投資建議' in lg["txt"] and '不是好壞名次' in lg["txt"], lg)
+    # ★ 2026-10-07 改前→改後（Andy 01:15 全站統一一句）：畫面那一行＝DISC_LINE_1007；改前那句的細節（非投顧、不是好壞名次）搬進 title，沒有刪
+    ok(f"[{tag}] 免責在標題列內、一行、≥11px、全站統一那一句、細節在 title", lg["inH"] and lg["oneLine"] and lg["fs"] >= 11 and lg["txt"] == DISC_LINE_1007
+       and '不構成投資建議' in lg["title"] and '不是好壞名次' in lg["title"], lg)
     ok(f"[{tag}] 無頂端提示列、無操作說明句、面向標題無英文", not lg["topBar"] and not lg["howto"] and lg["secen"] == 0, lg)
     ok(f"[{tag}] 面向副標已移入標題滑過提示（卡面無 small、title 有字）", lg["secsm"] == 0 and lg["sectt"], lg)
     # ★ 2026-10-06（Andy：「全部分頁拿掉」）：分頁只剩四個面向、預設基本面、重新整理回基本面
@@ -22744,7 +22746,8 @@ def t_explore_1005(pg, base):
     # 2026-10-06 改前→改後（DECISIONS #329 轉交 explore.js）：「每卡有資料日期徽章」→ 卡片標題列一律不放資料日期膠囊
     ok(f"★ [{tag}] 卡片標題列沒有資料日期膠囊（.sl-date）", not any(x["date"] for x in info) and pg.evaluate("() => !document.querySelector('#v-explore .sl-date')"), info)
     txt = pg.evaluate("() => document.querySelector('#v-explore').innerText")
-    ok(f"[{tag}] 頁頂有法遵提示＋非推薦名次", "不構成投資建議" in txt and "非推薦名次" in txt)
+    # 2026-10-07 改前→改後：頁頂那一句統一成 DISC_LINE_1007（「不構成任何投資建議或參考」，中間多了「任何」）
+    ok(f"[{tag}] 頁頂有法遵提示＋非推薦名次", DISC_LINE_1007 in txt and "非推薦名次" in txt)
     bad = [x for x in ("推薦買", "推薦股", "買進", "目標價", "最值得買", "必漲") if x in txt]
     ok(f"[{tag}] 整頁沒有禁用字", not bad, bad)
     ok(f"[{tag}] 子標籤下拉只列基本面的標籤（沒有技術／籌碼／消息面的）", "ROE" in tg_f and not any(x in tg_f for x in ("MACD", "三大法人", "新聞", "均線")), tg_f)
@@ -24319,6 +24322,8 @@ SECTIONS = {
     "重新整理回預設1003":  lambda pg, b, base, code: t_view_reset_1003(b, base, code),
     "預設狀態1006":        lambda pg, b, base, code: t_default_state_1006(b, base),
     "免責小字1006":        lambda pg, b, base, code: t_disclaimer_1006(b, base, code),
+    # ★ 2026-10-07 Andy 01:15：「今日候選」改名「今日關注」；技術評分／選股策略／個股 AI 分析／族群排行上方一行統計小字（⚠ 一律 --workers 1）
+    "今日關注與統計小字1007": lambda pg, b, base, code: t_watch_disc_1007(b, base, code),
     # ★ 2026-10-06 Andy（圈了「昨天（盤後收盤）資料日期 2026-10-05」）：「這類資訊一律拿掉」（DECISIONS #329，docs/date_chip_audit_1006.md）
     "日期膠囊拿掉1006":    lambda pg, b, base, code: t_date_chips_1006(b, base, code),
     # ★ 2026-10-06 Andy：「好言論改中性」—— 資金輪動象限卡、總覽資金輪盤、今日候選、個股 AI 分析、選股策略的評語不給操作建議（DECISIONS #333，⚠ 一律 --workers 1）
@@ -26273,7 +26278,8 @@ def t_stock_ai_0926(pg, base, code):
            count(pg, "#aiTgl") == 0 and not st["open"] and not st["lineVis"] and st["rAi"]["w"] == 0 and st["rAi"]["h"] == 0
            and pg.evaluate("() => getComputedStyle(document.getElementById('skAi')).display") == "none", (st["open"], st["lineVis"], st["rAi"]))
         ok(f"{tag} 標題寫「AI 分析」（DOM 裡那一份，手機分段用）", "AI 分析" in st["title"], st["title"])
-        ok(f"★ {tag} 標題緊接「規則式自動判讀，非投資建議」（DOM 裡那一份）", "規則式自動判讀" in st["warn"] and "非投資建議" in st["warn"], st["warn"])
+        # ★ 2026-10-07 改前→改後（Andy 01:15 全站統一一句）：改前「規則式自動判讀，非投資建議」→ 改後 DISC_LINE_1007（標題下一行）
+        ok(f"★ {tag} 標題下那一行是全站統一的免責句（DOM 裡那一份）", st["warn"].strip() == DISC_LINE_1007, st["warn"])
         # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「不是大型語言模型」屬自我說明，滑過提示只留規則與資料＋非投資建議
         ok(f"{tag} 滑過小字說明寫清楚：依哪些規則與資料、非投資建議", "非投資建議" in st["warnTitle"] and "SMC" in st["warnTitle"] and "語言模型" not in st["warnTitle"], st["warnTitle"])
         ok(f"{tag} 原右上判讀卡／多週期判讀卡不再存在", st["oldVerdict"] == 0 and st["oldMtf"] == 0 and st["dupTitle"] == 0, st)
@@ -26290,8 +26296,8 @@ def t_stock_ai_0926(pg, base, code):
         ov = pg.evaluate(OVAI_SNAP)
         if not ok(f"★ {tag} 桌機的 AI 分析在「總覽」分頁的 AI 卡（#ovAiCard 看得到）", bool(ov) and ov["vis"], ov):
             continue
-        ok(f"{tag} 總覽 AI 卡標題寫「AI 分析」、緊接「規則式自動判讀，非投資建議」",
-           "AI 分析" in ov["title"] and "規則式自動判讀" in ov["warn"] and "非投資建議" in ov["warn"], (ov["title"], ov["warn"]))
+        ok(f"{tag} 總覽 AI 卡標題寫「AI 分析」、標題下那一行是全站統一的免責句（2026-10-07）",
+           "AI 分析" in ov["title"] and ov["warn"] == DISC_LINE_1007, (ov["title"], ov["warn"]))
         ok(f"{tag} 總覽 AI 卡的結論列（狀態＋一句原因）看得到", ov["lineVis"] and ov["stance"] in ("條件未齊", "條件成立", "偏空") and len(ov["line"]) > len(ov["stance"]) + 3, ov["line"])
         # ★ 2026-10-04（Andy：「技術已經有了，為何還多一個技術面訊號」「需要的是 技術面、籌碼面、基本面、消息面」）
         _nm = lambda t: (re.match(r"(技術面訊號|技術面|籌碼面|基本面|消息面)", t) or [None, None])[1]
@@ -26333,7 +26339,7 @@ def t_stock_ai_0926(pg, base, code):
             ok(f"★ {tag} 技術面那一列附燈號計數＝面板燈號的多空計數（{st['sigPos']}多{st['sigNeg']}空）",
                f"{st['sigPos']}多{st['sigNeg']}空" in sig_tab.replace(" ", ""), sig_tab)
         ok(f"{tag} 消息面誠實寫「僅列事件，未判讀情緒」（或主旨含警示字的留意）", "未判讀情緒" in st["news"] or "留意" in st["news"], st["news"][:200])
-        alltxt = pg.evaluate("() => { const e = document.getElementById('skAi'); if (!e) return ''; const c = e.cloneNode(true); c.querySelectorAll('.ainews').forEach(x => x.remove()); return c.textContent; }").replace("非投資建議", "").replace("非建議", "")
+        alltxt = pg.evaluate("() => { const e = document.getElementById('skAi'); if (!e) return ''; const c = e.cloneNode(true); c.querySelectorAll('.ainews').forEach(x => x.remove()); return c.textContent; }").replace(DISC_LINE_1007, "").replace("非投資建議", "").replace("非建議", "")
         ok(f"★ {tag} AI 區內沒有指示性交易用語", not [w for w in AI_WORDS_BANNED if w in alltxt], [w for w in AI_WORDS_BANNED if w in alltxt])
         # ---- 四顆籤真的點（2026-10-06 改前：點 K 線卡裡的四列 → 捲到總覽；改後 K 線卡裡沒有 AI 區，直接點總覽 AI 卡的籤）
         _ai_ov_tabs(pg, tag)
@@ -45140,13 +45146,14 @@ def t_default_state_1006(b, base):
 # Andy 2026-10-06（截圖市場明細「今日候選 A 5 檔 / B 22 檔 ?」標題右邊那塊空白）：
 #   「這邊旁邊備註不構成投資建議的相關注意事項提醒」。
 # 有判定／評分／建議意味的卡，標題列右側一行小字免責（app.js DISC → .disc-line）。普查表 docs/disclaimer_audit_1006.md。
+DISC_LINE_1007 = "以下為依公開資料統計計算之結果，不構成任何投資建議或參考"
 DISC1006 = """() => [...document.querySelectorAll('.disc-line')].filter(e => e.getClientRects().length).map(e => {
   const r = e.getBoundingClientRect(), cs = getComputedStyle(e), row = e.parentElement;
   const h3 = row.querySelector(':scope > h3'), hr = h3 ? h3.getBoundingClientRect() : null;
   const rh = Math.round(row.getBoundingClientRect().height);
   e.style.display = 'none'; const rh0 = Math.round(row.getBoundingClientRect().height); e.style.display = '';
   return { k: e.dataset.disc, card: (e.closest('.card, .mcard, section') || {}).id || '', txt: e.textContent, title: e.title || '',
-    fs: parseFloat(cs.fontSize), h: Math.round(r.height), w: Math.round(r.width), nowrap: cs.whiteSpace === 'nowrap',
+    fs: parseFloat(cs.fontSize), h: Math.round(r.height), w: Math.round(r.width), sw: e.scrollWidth, cw: e.clientWidth, nowrap: cs.whiteSpace === 'nowrap',
     ell: cs.textOverflow === 'ellipsis', inView: r.left >= -1 && r.right <= innerWidth + 1,
     same: hr ? Math.abs((r.top + r.height / 2) - (hr.top + hr.height / 2)) < 12 : null, rh, rh0 }; })"""
 
@@ -45166,8 +45173,10 @@ def t_disclaimer_1006(b, base, code):
     def basic(tag, d, need_same=True, keep_h=True):
         if not ok(f"{T} {tag} 看得到免責那一行", bool(d), d):
             return
-        ok(f"{T} {tag} 短句以「不構成投資建議」開頭（窄卡片也至少露出這幾個字）、全文放在 title",
-           d["txt"].startswith("不構成投資建議") and "不構成投資建議" in d["title"] and len(d["title"]) > len(d["txt"]), [d["txt"], d["title"][:40]])
+        # ★ 2026-10-07 改前→改後（Andy 01:15：統一成同一句「以下為依公開資料統計計算之結果，不構成任何投資建議或參考」）：
+        #   改前驗「短句以『不構成投資建議』開頭」（各卡各寫一句、靠開頭幾個字撐住）；改後驗全站同一句，細節仍在 title。
+        ok(f"{T} {tag} 畫面那一行是全站統一那一句、細節放在 title",
+           d["txt"] == DISC_LINE_1007 and "不構成投資建議" in d["title"] and len(d["title"]) > len(d["txt"]), [d["txt"], d["title"][:40]])
         ok(f"{T} {tag} 12px 以上、一行不換行、放不下用省略號", d["fs"] >= 12 and d["h"] <= 22 and d["nowrap"] and d["ell"], d)
         ok(f"{T} {tag} 沒有跑出畫面", d["inView"], d)
         if need_same:
@@ -45198,7 +45207,8 @@ def t_disclaimer_1006(b, base, code):
 
         # ③ 個股：總覽的基本面卡、指標、獲利的本益比河流圖（真的點分頁）
         pg.goto(base + f"#stock/{code}", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#skFundCard .disc-line')", 15000); pg.wait_for_timeout(800)
-        basic("個股總覽「基本面」1440", one(pg.evaluate(DISC1006), "fund"))
+        # 2026-10-07：整句（27 字）在 1440 基本面卡的標題列右邊放不下 → 整行掉到標題下方（不截字），標題列會高一行，不驗同行／等高
+        basic("個股總覽「基本面」1440", one(pg.evaluate(DISC1006), "fund"), need_same=False, keep_h=False)
         click(pg, '#stockTabs button[data-t="tags"]', 1500)
         wait_until(pg, "() => !!document.querySelector('#tagCard .disc-line')", 8000)
         basic("個股「指標」1440", one(pg.evaluate(DISC1006), "tag"))
@@ -45216,13 +45226,155 @@ def t_disclaimer_1006(b, base, code):
         wait_until(pg, "() => !!document.querySelector('#mktDisc:not([hidden])')", 10000); pg.wait_for_timeout(800)
         d = one(pg.evaluate(DISC1006), "cand")
         basic("390 市場明細「今日候選」", d, need_same=False, keep_h=False)
-        ok(f"{T} 390 今日候選免責至少寬 8 字（看得到「不構成投資建議」）", bool(d) and d["w"] >= 90, d)
+        ok(f"{T} 390 今日關注免責整句看得到（沒有被省略號截掉）", bool(d) and d["w"] >= 300, d)
         ok(f"{T} 390 市場明細沒有橫向捲軸", pg.evaluate(SX) <= 1)
         pg.goto("about:blank"); pg.goto(base + "#flow", wait_until="load")
         wait_until(pg, "() => [...document.querySelectorAll('.disc-line')].some(e => e.getClientRects().length)", 10000); pg.wait_for_timeout(800)
         d = one(pg.evaluate(DISC1006), "rot")
         basic("390 資金輪動", d, need_same=False, keep_h=False)
-        ok(f"{T} 390 資金輪動免責至少寬 8 字（改前塞在標題列只剩 43px＝「不構…」）", bool(d) and d["w"] >= 90, d)
+        ok(f"{T} 390 資金輪動免責整句看得到（改前塞在標題列只剩 43px＝「不構…」）", bool(d) and d["w"] >= 300, d)
+        ok(f"{T} 390 資金流向沒有橫向捲軸", pg.evaluate(SX) <= 1)
+        ok(f"{T} 整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        ctx.close()
+
+# ===================================================================== 今日關注與統計小字1007
+# Andy 2026-10-07 01:15 兩件：
+#   ① 「今日候選」全站改名「今日關注」（畫面文字、標題、選單、提示、aria、「?」說明）。
+#   ② 技術評分、選股策略、個股 AI 分析、族群排行四處的上方加一行小字「以下為依公開資料統計計算之結果，不構成任何投資建議或參考」，
+#      「不要額外多一個大欄位」→ 只准一行灰色小字（≤12.5px），不另起框、不加底色；已有的免責統一成同一句，同一張卡不准出現兩句。
+# 這段真的操作：市場明細真的點到「今日關注」分頁（按鈕字、標題、「?」說明都換了）→ 點回別的分頁小字收掉；
+# 個股頁 AI 卡四顆籤逐一真的點（技術面那一面含九顆燈，那張的小字要藏著，不和 AI 卡標題下那句重複）、切「指標」再切回「總覽」；
+# ETF 沒有 AI 卡，技術面訊號卡自己掛那一句；選股策略、資金輪動、總覽資金輪盤；最後 390 手機再看市場明細與資金輪動。
+OLDNAME_JS = r"""() => { const bad = [];
+  const t = document.body.innerText || ''; if (t.includes('今日候選')) bad.push('畫面文字：' + t.slice(Math.max(0, t.indexOf('今日候選') - 20), t.indexOf('今日候選') + 20));
+  document.querySelectorAll('[title],[aria-label],[placeholder]').forEach(e => { for (const a of ['title', 'aria-label', 'placeholder']) {
+    const v = e.getAttribute(a) || ''; if (v.includes('今日候選')) bad.push(a + '：' + (e.id || e.className || e.tagName) + '：' + v.slice(0, 40)); } });
+  document.querySelectorAll('.howtxt').forEach(e => { if ((e.textContent || '').includes('今日候選')) bad.push('說明：' + e.id); });
+  return bad.slice(0, 5); }"""
+# 找畫面上看得到的那一句：量字級、是否被省略號截掉、父元素有沒有自己的底色／邊框（不准另起框）、所在卡片
+DISCL_JS = r"""(line) => [...document.querySelectorAll('body *')].filter(e => e.children.length === 0 && (e.textContent || '').trim() === line && e.getClientRects().length
+    && getComputedStyle(e).visibility !== 'hidden').map(e => {
+  const p = e.parentElement, pc = getComputedStyle(p), cs = getComputedStyle(e), r = e.getBoundingClientRect();
+  const clear = (c) => c === 'rgba(0, 0, 0, 0)' || c === 'transparent';
+  const bw = (st) => ['Top', 'Right', 'Bottom', 'Left'].reduce((a, k) => a + parseFloat(st['border' + k + 'Width'] || 0), 0);
+  return { id: e.id || '', cls: String(e.className || ''), card: ((e.closest('.card, .mcard, section, .sl-head, [id^="v-"]') || {}).id) || '',
+    fs: parseFloat(cs.fontSize), cut: e.scrollWidth > e.clientWidth + 1, h: Math.round(r.height), inView: r.left >= -1 && r.right <= innerWidth + 1,
+    pTag: p.tagName, pBg: !clear(pc.backgroundColor), pBorder: bw(pc) > 0, selfBox: !clear(cs.backgroundColor) || bw(cs) > 0, col: cs.color }; })"""
+
+
+def t_watch_disc_1007(b, base, code):
+    T = "[今日關注1007]"
+    ctx = b.new_context(viewport={"width": 1440, "height": 950})
+    pg = ctx.new_page()
+    errs: list[str] = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    SX = "() => document.documentElement.scrollWidth - innerWidth"
+
+    def no_old(where):
+        bad = pg.evaluate(OLDNAME_JS)
+        ok(f"★ {T} {where}：畫面、title、aria、「?」說明都找不到「今日候選」", not bad, bad)
+
+    def lines():
+        return pg.evaluate(DISCL_JS, DISC_LINE_1007)
+
+    def good(where, d):
+        """一行小字的共同規格：≤12.5px、一行、整句沒被截、父元素沒有自己的底色或邊框、自己也不是框。"""
+        if not ok(f"★ {T} {where}：看得到「{DISC_LINE_1007[:10]}…」那一行", bool(d), d):
+            return
+        ok(f"{T} {where}：字級 11～12.5px（小字）、一行（高 ≤ 22px）", 11 <= d["fs"] <= 12.5 and d["h"] <= 22, d)
+        ok(f"{T} {where}：整句看得到（沒被省略號截掉）、沒有跑出畫面", not d["cut"] and d["inView"], d)
+        ok(f"★ {T} {where}：父元素（{d['pTag']}）沒有自己的底色或邊框、小字本身也不是框（不另起欄位）",
+           not d["pBg"] and not d["pBorder"] and not d["selfBox"], d)
+
+    try:
+        # ① 市場明細：真的點「今日關注」分頁 → 按鈕字、標題、「?」都是新名字；小字出現；點「站上均線」→ 小字收掉
+        pg.goto(base + "#market/updown", wait_until="load")
+        wait_until(pg, "() => document.querySelectorAll('#mktSeg2 button').length >= 3", 10000); pg.wait_for_timeout(800)
+        btn = pg.evaluate("() => { const b = document.querySelector('#mktSeg2 button[data-k=\"cand\"]'); return b ? b.textContent.trim() : null; }")
+        ok(f"★ {T} 市場明細第四個分頁鈕寫「今日關注」", btn == "今日關注", btn)
+        ok(f"{T} 「漲跌家數」頁沒有那一行（事實統計，不掛）", not [d for d in lines() if d["id"] == "mktDisc"])
+        t0 = text(pg, "#mktTitle")
+        click(pg, '#mktSeg2 button[data-k="cand"]', 1500)
+        t1 = text(pg, "#mktTitle")
+        changed(f"{T} 點「今日關注」→ 卡片標題真的換了", t0, t1)
+        ok(f"★ {T} 點「今日關注」→ 卡片標題寫「今日關注」", t1.startswith("今日關注"), t1)
+        good("市場明細「今日關注」1440", next((x for x in lines() if x["id"] == "mktDisc"), None))
+        t = how_text(pg, "mkt")
+        ok(f"{T} 今日關注的「?」說明打得開、沒有舊名字", len(t) > 10 and "今日候選" not in t, t[:80])
+        no_old("市場明細「今日關注」")
+        click(pg, '#mktSeg2 button[data-k="ma"]', 1500)
+        ok(f"{T} 從今日關注切到「站上均線」→ 那一行跟著收掉", not [x for x in lines() if x["id"] == "mktDisc"])
+
+        # ② 族群排行：資金流向「資金輪動」（含資金流向排行）、總覽「資金輪盤」
+        pg.goto(base + "#flow", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#flowRotDisc')", 10000); pg.wait_for_timeout(800)
+        good("資金流向「資金輪動／資金流向排行」1440", next((x for x in lines() if x["id"] == "flowRotDisc"), None))
+        ok(f"{T} 資金輪動卡只有一句（不重複）", len(lines()) == 1, lines())
+        no_old("資金流向")
+        pg.goto(base + "#overview", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#ovRotHead .disc-line')", 10000); pg.wait_for_timeout(800)
+        good("總覽「資金輪盤」1440", next((x for x in lines() if x["id"] == "ovRotDisc" or x["card"] == "ovRotCard"), None))
+        no_old("總覽")
+
+        # ③ 選股策略
+        pg.goto(base + "#explore", wait_until="load")
+        wait_until(pg, "() => document.querySelectorAll('#slGrid .sl-card').length >= 3", 15000); pg.wait_for_timeout(600)
+        good("選股策略 1440", next((x for x in lines() if x["id"] == "xpLegal"), None))
+        ok(f"{T} 選股策略頁只有一句（不重複）", len(lines()) == 1, lines())
+        no_old("選股策略")
+
+        # ④ 個股：K 線卡名稱區（技術分標籤上方）、AI 卡標題下；AI 卡四顆籤逐一真的點，九顆燈那張的小字始終藏著（不重複）
+        pg.goto(base + f"#stock/{code}", wait_until="load")
+        wait_until(pg, "() => !!document.getElementById('ovAiCard') && !!document.getElementById('skDisc')", 15000); pg.wait_for_timeout(1200)
+        good("個股 K 線卡（技術分上方）1440", next((x for x in lines() if x["id"] == "skDisc"), None))
+        tg = pg.evaluate("() => { const t = document.querySelector('#skTags [data-tag=\"tech\"]'), d = document.getElementById('skDisc'); if (!t || !d) return null;"
+                         " return { tagTop: Math.round(t.getBoundingClientRect().top), discTop: Math.round(d.getBoundingClientRect().top), txt: t.textContent }; }")
+        ok(f"★ {T} 個股那一行在「技術分」標籤上方", bool(tg) and tg["discTop"] < tg["tagTop"], tg)
+        pg.eval_on_selector("#ovAiCard", "e => e.scrollIntoView({block: 'center'})"); pg.wait_for_timeout(500)
+        ai = [x for x in lines() if x["card"] == "ovAiCard"]
+        good("個股 AI 分析 1440", ai[0] if ai else None)
+        pos = pg.evaluate("() => { const c = document.getElementById('ovAiCard'), h = c && c.querySelector(':scope > h3'), w = h && h.querySelector('small[data-warn]'), l = document.getElementById('ovAiLine');"
+                          " if (!w || !l) return null; return { w: Math.round(w.getBoundingClientRect().bottom), line: Math.round(l.getBoundingClientRect().top) }; }")
+        ok(f"{T} AI 卡那一行在一行重點的上方（卡片最上面）", bool(pos) and pos["w"] <= pos["line"] + 1, pos)
+        prev = None
+        for k in ("chip", "fund", "news", "tech"):
+            sel = f'#ovAiCard .ovtag[data-facet="{k}"]'
+            if not count(pg, sel):
+                continue
+            pg.eval_on_selector(sel, "b => b.click()"); pg.wait_for_timeout(500)
+            cur = pg.evaluate("() => (document.getElementById('ovFacets') || {dataset: {}}).dataset.cur")
+            txt = pg.evaluate("() => [...document.querySelectorAll('#ovFacets > [data-facet]')].filter(e => e.getClientRects().length).map(e => e.innerText).join('|').slice(0, 200)")
+            ok(f"{T} 點 AI 卡「{k}」籤 → 切到那一面", cur == k, cur)
+            if prev is not None:
+                changed(f"{T} 換到「{k}」→ 卡裡內容真的換了", prev, txt)
+            prev = txt
+            n = len([x for x in lines() if x["card"] == "ovAiCard"])
+            ok(f"★ {T} AI 卡切到「{k}」：卡裡只有一句（技術面訊號那張的小字藏著，不重複）", n == 1, n)
+        no_old("個股總覽")
+        click(pg, '#stockTabs button[data-t="tags"]', 1200)
+        ok(f"{T} 切到「指標」分頁 → 指標卡那一行也是同一句", any(x["card"] == "tagCard" for x in lines()), [x["card"] for x in lines()])
+        click(pg, '#stockTabs button[data-t="overview"]', 1200)
+        ok(f"{T} 切回「總覽」→ AI 卡那一行還在", any(x["card"] == "ovAiCard" for x in lines()), [x["card"] for x in lines()])
+        ok(f"{T} 個股頁沒有橫向捲軸", pg.evaluate(SX) <= 1)
+
+        # ⑤ ETF：沒有 AI 卡 → 技術面訊號卡自己掛那一句（卡底舊的「決策輔助，非投資建議」拿掉）
+        pg.goto("about:blank"); pg.goto(base + "#stock/0050", wait_until="load")
+        wait_until(pg, "() => !!document.getElementById('ovF-sig')", 15000); pg.wait_for_timeout(800)
+        pg.eval_on_selector("#ovF-sig", "e => e.scrollIntoView({block: 'center'})"); pg.wait_for_timeout(400)
+        sg = [x for x in lines() if x["card"] == "ovF-sig"]
+        good("ETF 技術面訊號卡 1440", sg[0] if sg else None)
+        ok(f"{T} 技術面訊號卡底不再有「決策輔助，非投資建議」", "決策輔助" not in text(pg, "#ovF-sig"), text(pg, "#ovF-sig")[-40:])
+
+        # ⑥ 手機 390：市場明細今日關注、資金輪動
+        pg.set_viewport_size({"width": 390, "height": 844})
+        pg.goto("about:blank"); pg.goto(base + "#market/cand", wait_until="load")
+        wait_until(pg, "() => !!document.querySelector('#mktDisc:not([hidden])')", 10000); pg.wait_for_timeout(800)
+        good("390 市場明細「今日關注」", next((x for x in lines() if x["id"] == "mktDisc"), None))
+        no_old("390 市場明細")
+        ok(f"{T} 390 市場明細沒有橫向捲軸", pg.evaluate(SX) <= 1)
+        pg.goto("about:blank"); pg.goto(base + "#flow", wait_until="load")
+        wait_until(pg, "() => [...document.querySelectorAll('.disc-line')].some(e => e.getClientRects().length)", 10000); pg.wait_for_timeout(800)
+        good("390 資金輪動", next(iter(lines()), None))
         ok(f"{T} 390 資金流向沒有橫向捲軸", pg.evaluate(SX) <= 1)
         ok(f"{T} 整段沒有 JS 錯誤", not errs, errs[:3])
     finally:
@@ -52701,7 +52853,8 @@ OV3_GEO = r"""() => { const R = (e) => { if (!e) return null; const r = e.getBou
   const h3 = document.querySelector('#ovAiCard > h3'); let warn = null;
   if (h3) { const w = h3.querySelector('small[data-warn]'); const tn = [...h3.childNodes].find(n => n.nodeType === 3 && /AI 分析/.test(n.textContent));
     if (w && tn) { const rg = document.createRange(); rg.selectNodeContents(tn); const a = [...rg.getClientRects()].filter(x => x.width > 0).pop(), b = w.getBoundingClientRect();
-      warn = a ? { gap: Math.round(b.left - a.right), dy: Math.round(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2)), txt: w.textContent.trim() } : null; } }
+      warn = a ? { gap: Math.round(b.left - a.right), dy: Math.round(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2)), txt: w.textContent.trim(),
+        below: b.top >= a.bottom - 1, cut: w.scrollWidth > w.clientWidth + 1 } : null; } }
   const line = document.getElementById('ovAiLine'), tabs = document.getElementById('ovAiTags');
   return { fund: R(document.getElementById('skFundCard')), chip: R(document.getElementById('skChipCard')), ai: R(document.getElementById('ovAiCard')),
     nAi: document.querySelectorAll('#ovAiCard').length, oldBrief: document.querySelectorAll('#ovAiBrief.card, #ovFacetHead').length,
@@ -52793,8 +52946,10 @@ def t_stock_ov3_1002(b, base, code):
                len(mx) == 4 and all(mx[i]["b"] <= mx[i + 1]["t"] + 1 for i in range(3)) and len({m["l"] for m in mx}) == 1, mx)
             # ---- ③ 免責字樣緊貼標題、重點在標題下
             w_ = g["warn"]
-            ok(f"{tag} 「規則式自動判讀，非投資建議」緊貼「AI 分析」（同一行、間距 ≤ 24px，#269）",
-               bool(w_) and w_["txt"] == "規則式自動判讀，非投資建議" and 0 <= w_["gap"] <= 24 and w_["dy"] <= 6, w_)
+            # ★ 2026-10-07 改前→改後（Andy 01:15：統一一句、放在上方一行小字）：改前驗「規則式自動判讀，非投資建議」緊貼「AI 分析」同一行；
+            #   改後那一句換成全站統一的 27 字長句，整句排在標題下一行（同一行放不下、截字就看不到免責）→ 驗文字、在標題文字下方、左緣對齊卡片內容
+            ok(f"{tag} AI 卡標題下一行是全站統一的免責句（整句、在「AI 分析」下方）",
+               bool(w_) and w_["txt"] == DISC_LINE_1007 and w_["below"] and not w_["cut"], w_)
             ok(f"{tag} 一行 AI 重點在標題下方、分頁籤上方", g["lineTop"] is not None and g["h3b"] - 1 <= g["lineTop"] < g["tabsT"], (g["h3b"], g["lineTop"], g["tabsT"]))
             # ---- ④ 分頁籤（每個寬度都真的點）
             # ★ 2026-10-06 改前→改後（驗收過時，commit ff621ee0；Andy 10-04「這邊需要的是 技術面、籌碼面、基本面、消息面」）：

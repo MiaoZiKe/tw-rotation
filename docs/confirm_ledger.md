@@ -249,6 +249,15 @@
 | 10 | 我們自己判斷、你可否決的三件：① 分頁拖曳**不含**側欄、頂部導覽、自選清單頁籤 ② 日期膠囊保留 11 類（表格日期欄、新聞時間、K 線軸、拉Bar 讀數、K 線下資料來源說明等）③ 即時閘門只藏畫面，報價 Worker 仍公開（要真的擋估 0.5～1 天，而且公司網路擋會員 Worker 時你自己的即時也會一起斷） | 正式站 | 10-06 07:22 |
 | 11 | **刪舊預覽分支**（git 代理擋刪除，要你在 GitHub 網頁按）：已併入 main、可直接刪的 12 支 —— preview/earnings-cal、preview/earnings-v2、admin-v2、admin-v3、etf-v1、etf-v3、explore-v1、explore-v2、fast-ov2、layout-v2、perm-nav、sub-v1 | <https://github.com/MiaoZiKe/tw-rotation/branches> | 10-05 |
 | 12 | 四問步驟中性名稱已做在 preview/four-steps，未上線。待規劃：改成針對特定分頁的導覽（Andy 10-06 18:05） | <https://miaozike.github.io/tw-rotation/preview/four-steps/>（手機寬看總覽頂端四步列） | 10-06 18:05 |
-| 13 | **三個帳號開兩步驟驗證**（Google、GitHub、Cloudflare；步驟在 10-07 回報裡） | 各自帳號安全性頁面 | 10-07 |
+| 13 | ✅ Andy 10-07 回報完成 —— ~~**三個帳號開兩步驟驗證**（Google、GitHub、Cloudflare；步驟在 10-07 回報裡） | 各自帳號安全性頁面 | 10-07 |
 | 14 | **筆電裝監控＋備份**（`tools/laptop/README.md`，約 15 分鐘；第 7 步設 BACKUP_TOKEN） | 筆電 | 10-07 |
 | 15 | **拆私人／公開 repo**：等設計完成後照步驟建私人 repo＋PAT | 施工中 | 10-07 |
+
+## 10-07 Andy：Google／GitHub／Cloudflare 兩步驟驗證全部完成（Cloudflare 先用忘記密碼補設密碼）。
+
+## 10-07 02:20 Andy 交辦：訂閱頁照範本＋會員分級（施工中）
+- 訂閱頁照 stockintelli 範本（月／年切換、Free／Plus 最受歡迎／Pro 功能最齊三卡）＋下方功能比較表 → claude/pricing-v2 → preview/pricing-v2。
+- 競品免費額度調查、新手最有感資料、本站競爭力、四層方案（訪客每日 3 次已定）、吸引功能發想 → claude/plan-tiers（docs/plan_tiers_1007.md、docs/plan_presets_1007.json）。
+- 管理區「套用建議方案」一鍵寫入四個範本；每個功能的每日次數覆蓋稽核（桌機＋手機）→ claude/quota。
+- ⚠ Pro「幫他分析自選清單股票」＝收費＋個股判斷，投顧法高風險；先做合規版（資料彙整、條件提醒），原版標「律師確認後才做」。
+- ⚠ 次數限制要等付費資料閘道上線，才會在伺服器端真的擋住；在那之前只擋畫面。

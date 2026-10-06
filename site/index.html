@@ -806,10 +806,22 @@ aside.open{transform:none;visibility:visible;transition:transform .25s ease,visi
    8em＝剛好露出「不構成投資建議…」；剩不到 8em 時整句移到標題列下一行、吃滿寬度，文字本身仍是一行。
    標題 h3 不准被它擠窄（flex-shrink:0）—— 實測個股基本面卡的 h3 被擠到「財報到…」掉第二行，整張卡變高。*/
 .row:has(> .disc-line) > h3{flex-shrink:0;max-width:100%}
+/* ★ 2026-10-07：畫面那一行全站統一成同一句（app.js DISC_LINE，27 字）。flex 從「1 1 0＋min-width 8em」改成「1 0 auto＋max-width 100%」：
+   基準寬＝整句的寬度，標題列右邊放得下整句就放右邊，放不下就整行掉到標題列下方、整句看得到 —— 不再靠「開頭幾個字」撐住免責。
+   比整句還窄的容器才退回省略號（全文仍在 title）。letter-spacing −.04em：整句 336px，1440 個股基本面卡內寬只有 329px、390 手機卡內寬 324px，
+   收 0.48px／字剛好整句放得下（肉眼看不出差別），不必為了 7px 讓免責被截掉。*/
 .mdisc{display:flex;margin:-2px 0 6px}
-.disc-line{flex:1 1 0;min-width:min(8em,100%);font-size:var(--fs-min,12px);font-weight:400;line-height:1.5;color:var(--ink-3,var(--ink-2));
+.disc-line{flex:1 0 auto;min-width:0;max-width:100%;letter-spacing:-.04em;font-size:var(--fs-min,12px);font-weight:400;line-height:1.5;color:var(--ink-3,var(--ink-2));
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:help}
 .disc-line[hidden]{display:none}
+/* 2026-10-07 個股 K 線卡名稱區右側那一行（技術分標籤在下面工具列）：貼齊名稱那一列的頂；手機版（miaon）那排標籤不顯示，這一行跟著收 */
+#skHead>.disc-line{align-self:flex-start;margin-top:10px}
+body.miaon #skHead>.disc-line{display:none}
+@media (max-width:640px){#skHead>.disc-line{display:none}}
+/* 技術面訊號卡（stock_signal.js）標題下那一行（選擇器寫到 .card h3 small.sigdisc[role]（0,3,2）：要壓過 theme4.css「[data-theme4] .card h3 small」的 13px）：ETF 沒有 AI 卡時它自己掛；在 AI 卡裡面時 AI 卡標題下已經有同一句 → 藏掉，不出現兩次 */
+.sigdisc,.card h3 small.sigdisc[role]{display:block;margin-top:4px;font-size:var(--fs-min,12px);letter-spacing:-.04em;font-weight:400;line-height:1.5;color:var(--ink-3,var(--ink-2));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
+#ovAiCard .sigdisc{display:none}
 .chart{width:100%;min-height:260px}
 .chart.tall{min-height:420px} .chart.short{min-height:200px}
 .chart.isempty{min-height:0}
