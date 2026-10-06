@@ -48695,7 +48695,7 @@ def t_traffic_1005(b, base, code):
         for pm, k in ((1, 3), (0, 5)):
             cc = pg.evaluate("() => { const e = document.querySelector('#trClock .dnc'); e.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) / 2]; }")
             import math as _m
-            ang = _m.radians(k * 30 + 15); rr = cc[2] * (0.79 if pm else 0.50)
+            ang = _m.radians(k * 30 + 15); rr = cc[2] * (0.82 if pm else 0.60)
             px, py = cc[0] + rr * _m.sin(ang), cc[1] - rr * _m.cos(ang)
             pg.wait_for_timeout(200); pg.mouse.move(px - 6, py - 6); pg.mouse.move(px, py, steps=4); pg.wait_for_timeout(500)
             ck2 = pg.evaluate(CK_STATE)
