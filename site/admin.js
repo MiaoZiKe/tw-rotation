@@ -826,6 +826,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     A = demoWrap(A);
     v.classList.toggle('demo', IS_PREVIEW);
     S.v = v; S.A = A;
+    [250, 900, 2500, 6000].forEach((ms) => setTimeout(() => { if (v.isConnected) mountDonuts(v); }, ms));   // 保險：MutationObserver 沒接到（echarts／App 較晚就緒）也會補掛
     if (!v._dnMo && window.MutationObserver) { v._dnMo = new MutationObserver(() => { if (v._dnRaf) return; v._dnRaf = requestAnimationFrame(() => { v._dnRaf = 0; mountDonuts(v); }); }); v._dnMo.observe(v, { childList: true, subtree: true }); }
     const t = tabOf();
     if (t !== 'traffic') clearInterval(S.timer);

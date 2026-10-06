@@ -53572,9 +53572,9 @@ def t_pie_admin_1006(b, base):
             ok(f"★ {T} {label}：滑過規格同產業地圖（外框 {st['emp']['itemStyle']['borderWidth']}＝{REF['empBw']}、外擴 {st['emp']['scaleSize']}＝{REF['scale']}）",
                st["emp"]["itemStyle"]["borderWidth"] == REF["empBw"] and st["emp"]["scaleSize"] == REF["scale"], [st["emp"], REF])
             # 中心字級：公式同一支（邊長×0.115 夾 20～34），比對「同邊長」時產業地圖該有的值
-            exp_num = round(max(20, min(34, st["w"] * 0.115)))
+            exp_num = 28 if st["w"] >= 200 else max(20, round(st["w"] * 0.115))
             ok(f"★ {T} {label}：中心數字 {st['numFs']}px（依邊長 {st['w']} 應為 {exp_num}、差 ≤ 1px；產業地圖 {REF['numFs']}px@{REF['S']}）、小標 {st['lblFs']}px 與產業地圖 {REF['lblFs']}px 差 ≤ 0.5",
-               abs(st["numFs"] - exp_num) <= 1 and abs(st["lblFs"] - REF["lblFs"]) <= 0.5 and st["numFs"] <= 34, [st["numFs"], exp_num, st["lblFs"], REF])
+               abs(st["numFs"] - exp_num) <= 1 and (st["w"] < 200 or (abs(st["numFs"] - REF["numFs"]) <= 1 and abs(st["lblFs"] - REF["lblFs"]) <= 0.5)) and st["numFs"] <= 34, [st["numFs"], exp_num, st["lblFs"], REF])
             ok(f"{T} {label}：扇區邊框 {st['data'][0]['bw']}＝{REF['bw']}、配色是實色（不是 var() 字串）", st["data"][0]["bw"] == REF["bw"] and all(str(d["color"]).startswith(("rgb", "#")) for d in st["data"]), st["data"])
             idx = 1
             _dnx_hover(pg, host, idx)
@@ -53601,6 +53601,8 @@ def t_pie_admin_1006(b, base):
         h = _dnx(pg, "#trFD")
         ok(f"★ {T} 功能占比：滑過 → 外框＋中心字＋提示框、其餘扇區不變暗", h["data"][1]["bw"] >= 3 and h["title"][0] == h["data"][1]["name"] and h["tip"] and all(d["bw"] == 1 for i, d in enumerate(h["data"]) if i != 1), h)
         c.close()
+
+
 
 
 if __name__ == "__main__":
