@@ -1,5 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 流量觀測改成批次送出（UI 專家，分支 `claude/track-batch` → main）
+- Worker（先上，03f6114，deploy-account-worker success）：檔尾新增 `/v1/track/batch`，逐筆交給原本的 beat 跑（時間換成該筆 ts），統計與單送逐列相同；單批 ≤100 筆、body ≤64KB、ts 用前端 now 校正後驗 24 小時內且不晚於現在；舊 `/v1/beat` 保留。測試 `workers/account-api/tests/batch.test.mjs`（10 筆單送 vs 1 批送五張表相同）。
+- 前端 `site/account.js`：每分鐘包一筆進佇列（同步寫 sessionStorage `tw.trk`），每 5 分鐘／30 個事件／隱藏或 pagehide（sendBeacon，失敗留著下次送）才送一批。登入／登出那一下會立刻送一批（線上名單換名字）。
+- 前端 `site/notices.js`：公告同一人 10 分鐘只打 1 次（sessionStorage `tw.nt.c`、進行中共用；`TwNotices.refresh()` 與管理者發佈後強制重抓）。
+- 實測（寫在 docs/hosting_cost_plan.md）：開一頁 4→3 次、開一頁＋停 10 分鐘 14→5 次、切 15 頁再關掉統計請求 6→2 次，頁面瀏覽 15 筆逐頁相同。
+- 載入後第一筆統計馬上送（線上人數開站就要有），之後每 5 分鐘一批。
+- 已知限制：線上人數／管理區線上名單最多晚 5 分鐘才刷新；Worker 的「離線」門檻仍是 150 秒，所以兩批之間的人可能暫時不在線上名單裡（之後若要準，要把門檻拉到 6 分鐘，那是改既有常數，這次沒動）。
+- 這批只驗了：`流量批次1006`、`流量觀測1005`、`管理區v3`、`會員與自選五分頁`、`會員雲端路徑`、`管理區1005`、`版面v2結構`、`_preview.py`、node 測試全過。紅字 `管理區1005` 散佈圖、`版面v2結構` 去重兩條換回舊版 account.js 一樣紅＝既有，不是這批造成；`_preview.py` 的總覽 ovTheme 文字溢出與一條 404 也與這批無關（沒動到總覽）。
+
 ## 2026-10-06 雙部署到 Cloudflare Pages（deployer，DECISIONS #339）
 - `pages.yml` 多一步部署同一份 site/ 到 `https://tw-rotation.pages.dev/`（失敗不擋 GitHub Pages）；兩支 Worker 的 CORS 白名單加上該網域。
 - **待 Andy 自己按**：① Cloudflare token 要有 Account → Cloudflare Pages → Edit（My Profile → API Tokens → 編輯該 token）② Google Cloud Console → APIs & Services → Credentials → OAuth 用戶端 → 「已授權的 JavaScript 來源」加 `https://tw-rotation.pages.dev`、重新導向 URI 依 `docs/login_setup.md` ③ 正式商用前評估 Cloudflare 付費方案與用量通知（Notifications → 新增 Pages／Workers 用量警示）。

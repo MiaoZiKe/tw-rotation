@@ -60,7 +60,7 @@
     paintBar();
     if (was !== !!user || user) window.dispatchEvent(new CustomEvent('tw:account', { detail: { user: S.user } }));
     /* 身分換了就馬上跳一次心跳：線上名單才會立刻從「訪客」變成名字（或反過來），不用等下一分鐘 */
-    if (S.on && S.sid) { clearTimeout(S.beatT); S.beatT = setTimeout(beat, 200); }
+    if (S.on && S.sid) { clearTimeout(S.beatT); S.beatT = setTimeout(() => beat(was !== !!user), 200); }
   }
 
   // ------------------------------------------------------------------ 使用統計＋線上人數
@@ -73,7 +73,7 @@
     if (head === 'tasks') return 'delivery';
     return VIEWS.includes(head) ? head : 'other';
   }
-  function bump(k) { S.q[k] = Math.min(50, (S.q[k] || 0) + 1); }
+  function bump(k) { S.q[k] = Math.min(50, (S.q[k] || 0) + 1); if (S.items) counted(); }
   function track(e) { if (S.on && !noTrack() && EVENTS.includes(e)) bump('ev:' + e); }
   window.TwTrack = track;
   /* ---- 細項事件（2026-10-05 admin-v2，docs/account_analytics.md「細項事件」）：[頁面, 元件, 細項]
@@ -89,6 +89,7 @@
     const pg = page || viewOf(location.hash); if (!pg || !/^[a-z][a-z0-9_.]{0,31}$/.test(comp)) return;
     const k = pg + '\t' + comp + '\t' + cleanDet(detail);
     S.q2[k] = Math.min(50, (S.q2[k] || 0) + 1);
+    counted();
   }
   window.TwT = (comp, detail) => t2(comp, detail);
   function pv() {
@@ -109,24 +110,66 @@
     return Object.keys(S.q2).slice(0, 60).map((k) => { const n = S.q2[k]; delete S.q2[k]; const [p, c, d] = k.split('\t'); return [p, c, d, n]; });
   }
   function putBack2(e2) { e2.forEach(([p, c, d, n]) => { const k = p + '\t' + c + '\t' + d; S.q2[k] = Math.min(50, (S.q2[k] || 0) + n); }); }
-  async function beat() {
+  /* ---- 批次送出（2026-10-06，Andy：「流量觀測改成批次送出，上架前做」）
+     以前每 60 秒打一次 /v1/beat：上架後 Worker 請求數＝在線人數×分鐘。現在改成：
+       · 每一分鐘（看得到的時候）把這一分鐘的計數包成一「筆」，排進佇列 S.items —— 一筆＝以前的一次心跳，Worker 端逐筆照原本邏輯算，統計不變
+       · 每 5 分鐘、累積 30 個事件、或頁面隱藏／關閉時，才整包送到 /v1/track/batch（一次請求）
+       · 佇列與還沒包的計數同步寫一份到 sessionStorage（tw.trk）：送失敗、或還沒送就重新整理，下一頁接著送
+       · 關閉／隱藏用 sendBeacon；排不進去（回 false）就留著，下次再送
+       · 例外：載入後第一筆馬上送（線上人數要開站就看得到）
+     代價：之後線上人數每 5 分鐘才更新一次（線上名單在每一批送到時刷新）。*/
+  const K_TRK = 'tw.trk', FLUSH_MS = 5 * 60 * 1000, FLUSH_N = 30, BATCH_MAX = 100, MAX_AGE = 23 * 3600 * 1000;
+  Object.assign(S, { items: [], n: 0, lastFlush: Date.now(), sending: false, reqs: 0, left: false });
+  try { const o = JSON.parse(ss.get(K_TRK) || 'null'); if (o) { S.items = Array.isArray(o.items) ? o.items : []; Object.assign(S.q, o.q || {}); Object.assign(S.q2, o.q2 || {}); } } catch (e) { /* 壞掉就從空的開始 */ }
+  function save() { ss.set(K_TRK, JSON.stringify({ items: S.items, q: S.q, q2: S.q2 })); }
+  /* 每記一個事件呼叫一次：存檔，湊滿 30 個就提早送 */
+  function counted() { S.n++; save(); if (S.n >= FLUSH_N && document.visibilityState !== 'hidden') { pack(false); send(); } }
+  /* 把目前的計數包成一筆。live＝看得到的那一分鐘（Worker 算一分鐘在線）；false＝只有計數（不算分鐘）*/
+  function pack(live) {
+    const ev = takeQ(), e2 = takeQ2();
+    S.n = 0;
+    if (!live && !Object.keys(ev).length && !e2.length) { save(); return; }
+    S.items.push(Object.assign({ ts: Date.now(), r: viewOf(location.hash) || 'other', ev, live: live ? 1 : 0 }, e2.length ? { e2 } : {}));
+    const old = Date.now() - MAX_AGE;
+    S.items = S.items.filter((x) => x && x.ts > old).slice(-500);      // Worker 只收 24 小時內的；佇列也不無限長
+    save();
+  }
+  async function send() {
+    if (S.sending || !S.items.length || !S.api) return;
+    S.sending = true; S.lastFlush = Date.now();
+    const items = S.items.splice(0, BATCH_MAX); save();               // 先拿出來：送到一半關頁，beacon 不會再送一次同一批
+    S.reqs++;
+    const j = await call('/v1/track/batch', { sid: S.sid, now: Date.now(), items });
+    S.sending = false;
+    /* 200＝收了；400／413＝內容不合格，重送也一樣，丟掉；其他（連不到、5xx、429、還沒部署的 404）放回去下次再送 */
+    if (!j || !(j._s === 200 || j._s === 400 || j._s === 413)) { S.items = items.concat(S.items); save(); }
+    if (j && typeof j.n === 'number') { S.online = j.n; paintOnline(); } else if (j && j._s === 200) { S.online = null; paintOnline(); }
+    if (S.items.length >= BATCH_MAX) send();
+  }
+  /* 每分鐘一次：包一筆（不送），滿 5 分鐘才送。force＝馬上送（登入／登出那一下，線上名單才會立刻換成名字）*/
+  function beat(force) {
     clearTimeout(S.beatT);
     if (!S.on || noTrack()) return;
     if (document.visibilityState === 'hidden') return;
+    S.left = false;
     if (!ss.get('tw.sess')) { ss.set('tw.sess', '1'); bump('ev:session'); if (S.user) bump('ev:session_login'); }
-    const ev = takeQ(), e2 = takeQ2();
-    const j = await call('/v1/beat', Object.assign({ sid: S.sid, r: viewOf(location.hash) || 'other', ev }, e2.length ? { e2 } : {}));
-    if (!j || j._s >= 500 || j._s === 429) { putBack(ev); putBack2(e2); }
-    if (j && typeof j.n === 'number') { S.online = j.n; paintOnline(); } else if (j && j._s === 200) { S.online = null; paintOnline(); }
+    pack(true);
+    /* 載入後第一分鐘那一筆馬上送：線上人數、線上名單、「公開人數」開關要開站就有，不能等 5 分鐘（一次載入一個請求；站內切頁不再送）*/
+    if (force === true || !S.sent1 || Date.now() - S.lastFlush >= FLUSH_MS) { S.sent1 = true; send(); }
     S.beatT = setTimeout(beat, BEAT_MS);
   }
-  /* 離開（關分頁、切到別的分頁、手機切到背景）：用 sendBeacon 送最後一次，順便把自己從線上名單刪掉 ——「離線即刪」。
-     sendBeacon 送 text/plain：跨站時才不會多一次預檢請求。*/
+  /* 離開（關分頁、切到別的分頁、手機切到背景）：包最後一筆，用 sendBeacon 整包送出，順便把自己從線上名單刪掉 ——「離線即刪」。
+     sendBeacon 送 text/plain：跨站時才不會多一次預檢請求。隱藏與 pagehide 常常連著來：第二次沒有新東西就不再送。*/
   function leave() {
-    if (!S.on || noTrack() || !navigator.sendBeacon) return;
-    const e2 = takeQ2();
-    const body = JSON.stringify(Object.assign({ sid: S.sid, leave: true, ev: takeQ() }, e2.length ? { e2 } : {}, S.tok ? { t: S.tok } : {}));
-    try { navigator.sendBeacon(S.api + '/v1/beat', new Blob([body], { type: 'text/plain' })); } catch (e) { /* 略 */ }
+    if (!S.on || noTrack() || !navigator.sendBeacon || !S.api) return;
+    pack(false);
+    if (S.left && !S.items.length) return;
+    const items = S.items.slice(0, BATCH_MAX);
+    const body = JSON.stringify(Object.assign({ sid: S.sid, leave: true, now: Date.now(), items }, S.tok ? { t: S.tok } : {}));
+    let ok = false;
+    try { ok = navigator.sendBeacon(S.api + '/v1/track/batch', new Blob([body], { type: 'text/plain' })); } catch (e) { ok = false; }
+    if (ok) { S.items.splice(0, items.length); S.reqs++; S.lastFlush = Date.now(); S.left = true; }
+    save();
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(S.beatT); leave(); } else beat(); });
   window.addEventListener('pagehide', leave);
@@ -489,7 +532,9 @@
     call, route, login: () => openDlg('notice'), logout, track,
     /* 給驗收腳本：現在排隊中的統計（還沒送出的）*/
     pending: () => Object.assign({}, S.q),
-    flush: () => beat(),
+    flush: () => { beat(); return send(); },
+    /* 給驗收腳本：送過幾次統計請求、佇列裡還有幾筆 */
+    reqs: () => S.reqs, queued: () => S.items.length,
   };
   window.TwAccount = API;
 

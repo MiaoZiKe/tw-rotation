@@ -24251,6 +24251,8 @@ SECTIONS = {
     # ★ 2026-10-05（admin-v3）Andy：「弄得好複雜，看了不清楚」—— 三個大分頁＋子分頁、每個功能的瀏覽次數、會員名單、升級鈕、訂閱頁同步、客服鈕半透明
     "管理區v3":            lambda pg, b, base, code: t_admin_v3(b, base, code),
     "流量觀測1005":        lambda pg, b, base, code: t_traffic_1005(b, base, code),
+    # ★ 2026-10-06 Andy：流量觀測改成批次送出（每 5 分鐘／30 筆／頁面隱藏才送一次 /v1/track/batch；本機真 worker.js）
+    "流量批次1006":        lambda pg, b, base, code: t_track_batch_1006(b, base, code),
     "流量觀測期間1006":    lambda pg, b, base, code: t_traffic_range_1006(b, base, code),
     "流量觀測期間合計1006": lambda pg, b, base, code: t_traffic_sum_1006(b, base, code),
     # ★ 2026-10-06 Andy：會員名單——新增會員列拿掉、方案分頁標題列拿掉、統計「載入中…」修好並照流量觀測重做（假 Worker，⚠ 一律 --workers 1）
@@ -48279,7 +48281,7 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None, many=False, touch=False)
             out = {"user": me}
         elif path == "/v1/perm/me":
             out = {"who": "member", "plan": "free", "planName": "免費會員", "feats": ({k: False for k in grp_off} if grp_off else {})}
-        elif path == "/v1/beat":
+        elif path in ("/v1/beat", "/v1/track/batch"):
             out = {"ok": True, "n": 3}
         elif path.startswith("/v1/admin/") and not adm:
             out, code = {"error": "forbidden"}, 403
@@ -48511,7 +48513,9 @@ def t_admin_v2(b, base, code):
     pg.wait_for_timeout(1200)
     pg.evaluate("() => TwAccount.flush()")
     pg.wait_for_timeout(600)
-    e2s = [r for x in sent[n0:] if x[0] == "/v1/beat" for r in (x[1].get("e2") or [])]
+    # 2026-10-06 流量批次1006：細項改放在批次的每一筆（items[].e2）；舊的 /v1/beat 也一起認
+    e2s = [r for x in sent[n0:] if x[0] == "/v1/beat" for r in (x[1].get("e2") or [])] + \
+          [r for x in sent[n0:] if x[0] == "/v1/track/batch" for it in (x[1].get("items") or []) for r in (it.get("e2") or [])]
     ok(f"{T}：心跳送出的細項事件含 [flow, quad, 象限名]", any(r[0] == "flow" and r[1] == "quad" and r[2] in ("領先", "改善", "轉弱", "落後") for r in e2s), e2s[:8])
     ok(f"{T}：勾族群 → [flow, filter_group, 族群名]（是清單上的名字，不是代號）", any(r[0] == "flow" and r[1] == "filter_group" and "MLCC" in r[2] for r in e2s), e2s[:8])
     ok(f"{T}：打開個股頁 → [stock, view, {code}]", any(r[:3] == ["stock", "view", code] for r in e2s), e2s[:8])
@@ -48519,6 +48523,123 @@ def t_admin_v2(b, base, code):
     c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
+
+
+# ===================================================================== 流量批次1006（2026-10-06，Andy：「流量觀測改成批次送出，上架前做」）
+# 本機起真的 worker.js（devserver.mjs），訪客身分、用 Playwright 的假時鐘：切 15 個分頁、每頁停 20 秒（＝5 分鐘），量打到 Worker 的統計請求數。
+#   ① 切完 15 頁：統計請求（/v1/beat＋/v1/track/batch）≤ 2（載入那一批＋5 分鐘那一批；改前是每分鐘一次心跳＝5 次）
+#   ② 觸發 visibilitychange→hidden：送出 1 批（sendBeacon）；Worker 的 usage 多 15 筆頁面瀏覽、分頁名稱逐一對得上
+#   ③ 讓 sendBeacon 失敗（回 false）→ 再切 3 頁 → 重新整理：資料留在 sessionStorage，新頁面 flush 後 Worker 多 3 筆（重新整理不丟）
+# 環境變數 TW_TRACK_MEASURE=1：只印請求數不判定（拿來量改前的舊版 account.js）
+TRACK_PAGES = [("overview", "overview"), ("flow", "flow"), ("industry", "industry"), ("heatmap", "heatmap"), ("market", "market"),
+               ("season", "season"), ("tasks", "delivery"), ("watch", "watch"), ("etf", "etf"), ("explore", "explore"),
+               ("earnings", "earnings"), ("pricing", "pricing"), ("notices", "notices"), ("terms", "legal"), ("stock/2330", "stock")]
+
+
+def t_track_batch_1006(b, base, code):
+    import urllib.request
+    T = "流量批次1006"
+    errs: list[str] = []
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    port = _free_port()
+    dev = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(port), "--origin", origin],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    api = f"http://127.0.0.1:{port}"
+    measure = bool(os.environ.get("TW_TRACK_MEASURE"))
+    try:
+        up = False
+        for _ in range(40):
+            try:
+                up = json.loads(urllib.request.urlopen(api + "/health", timeout=1).read()).get("configured") is True
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok(f"{T}：本機 account-api（devserver）起得來", up):
+            return
+
+        def usage():
+            return {r["k"]: r["n"] for r in json.loads(urllib.request.urlopen(api + "/__usage", timeout=3).read())}
+
+        c = b.new_context(viewport={"width": 1440, "height": 900})
+        c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        reqs: list[str] = []
+        c.on("request", lambda r: reqs.append(r.url.split("?")[0].replace(api, "")) if r.url.startswith(api + "/v1/") else None)
+        pg = c.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.clock.install()
+        u0 = usage()
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.clock.run_for(2000)
+        wait_until(pg, "() => window.TwAccount && TwAccount.on() ? 1 : 0", 8000)
+        for h, _ in TRACK_PAGES[1:]:
+            pg.evaluate("(h) => { location.hash = h; }", "#" + h)
+            pg.wait_for_timeout(150)
+            pg.clock.run_for(20000)
+        pg.wait_for_timeout(500)
+        trk = [u for u in reqs if u in ("/v1/beat", "/v1/track/batch")]
+        print(f"    [{T}] 切 15 頁（模擬 5 分鐘）打到 Worker 的統計請求：{len(trk)} 次 {trk}；全部 /v1/ 請求：{len(reqs)} 次")
+        n_before_hide = len(trk)
+        pg.evaluate("""() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+                               document.dispatchEvent(new Event('visibilitychange')); }""")
+        pg.wait_for_timeout(1500)
+        trk = [u for u in reqs if u in ("/v1/beat", "/v1/track/batch")]
+        u1 = usage()
+        d = {k: u1.get(k, 0) - u0.get(k, 0) for k in u1 if k.startswith("pv:") and u1.get(k, 0) != u0.get(k, 0)}
+        print(f"    [{T}] 含隱藏那一批，總統計請求：{len(trk)} 次；Worker 頁面瀏覽增加：{sum(d.values())} {d}")
+        if not measure:
+            ok(f"{T}：切 15 個分頁（5 分鐘）打到 Worker 的統計請求 ≤ 2", n_before_hide <= 2, trk)
+            ok(f"{T}：頁面隱藏 → 正好多送 1 批（/v1/track/batch）", len(trk) - n_before_hide == 1 and trk[-1] == "/v1/track/batch", trk)
+            want = {"pv:" + v: 1 for _, v in TRACK_PAGES}
+            ok(f"{T}：Worker 端頁面瀏覽多了 15 筆、15 個分頁名稱逐一對得上", d == want, {"差": d, "應": want})
+            ok(f"{T}：送完之後佇列清空", pg.evaluate("() => TwAccount.queued()") == 0)
+            # ③ 重新整理不丟：sendBeacon 失敗 → 留在 sessionStorage → 新頁面接著送
+            pg.evaluate("""() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+                                   document.dispatchEvent(new Event('visibilitychange')); navigator.sendBeacon = () => false; }""")
+            for h in ("#flow", "#season", "#etf"):
+                pg.evaluate("(h) => { location.hash = h; }", h)
+                pg.wait_for_timeout(150)
+                pg.clock.run_for(3000)
+            saved = pg.evaluate("() => { try { return JSON.parse(sessionStorage.getItem('tw.trk') || 'null'); } catch (e) { return null; } }")
+            ok(f"{T}：還沒送的事件同步寫在 sessionStorage（tw.trk）", bool(saved) and (saved.get("q") or {}).get("pv:season") == 1, saved)
+            u2 = usage()
+            pg.reload(wait_until="domcontentloaded")
+            pg.clock.run_for(2000)
+            wait_until(pg, "() => window.TwAccount && TwAccount.on() ? 1 : 0", 8000)
+            pg.evaluate("() => TwAccount.flush()")
+            pg.wait_for_timeout(1000)
+            u3 = usage()
+            d3 = {k: u3.get(k, 0) - u2.get(k, 0) for k in ("pv:flow", "pv:season", "pv:etf")}
+            # etf＝2：上一頁沒送出的那 1 次＋重新整理後停在 #etf 本身又算 1 次瀏覽（改前也是這樣算）
+            ok(f"{T}：beacon 失敗＋重新整理 → 新頁面把上一頁沒送出的 3 頁補送，Worker 一筆不少", d3 == {"pv:flow": 1, "pv:season": 1, "pv:etf": 2}, d3)
+        c.close()
+        # ④ 開一頁＋停 10 分鐘：打到會員系統的全部請求（權限、公告、統計…）。改前 4＋每分鐘 1.1 次（docs/hosting_cost_plan.md 第五節）
+        c = b.new_context(viewport={"width": 1440, "height": 900})
+        c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        r10: list[str] = []
+        c.on("request", lambda r: r10.append(r.url.split("?")[0].replace(api, "")) if r.url.startswith(api + "/") else None)
+        pg = c.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.clock.install()
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.clock.run_for(3000)
+        pg.wait_for_timeout(1500)
+        n_open = len(r10)
+        for _ in range(10):
+            pg.clock.run_for(60000)
+            pg.wait_for_timeout(120)
+        pg.wait_for_timeout(800)
+        from collections import Counter
+        print(f"    [{T}] 訪客開一頁：{n_open} 次；開一頁＋停 10 分鐘：{len(r10)} 次 {dict(Counter(r10))}")
+        if not measure:
+            ok(f"{T}：開一頁時公告（/v1/notices）只打 1 次", r10[:n_open].count("/v1/notices") == 1, r10[:n_open])
+            ok(f"{T}：開一頁＋停 10 分鐘，統計請求 ≤ 3（載入 1＋每 5 分鐘 1）", sum(1 for u in r10 if u in ("/v1/beat", "/v1/track/batch")) <= 3, r10)
+        c.close()
+        ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        dev.terminate()
 
 # ===================================================================== 流量觀測1005（2026-10-05，Andy：頁首卡拿掉、圖表版面重排、欄位文字置中）
 DNX_STATE = """(host) => { const e = document.querySelector(host + ' .dnc'); const c = e && window.echarts && echarts.getInstanceByDom(e); if (!c) return null;
@@ -49092,8 +49213,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
             out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員", "feats": feats or {}, "lims": lims or {}}
         elif path == "/v1/plans/public":
             out = {"plans": [{k: v for k, v in p.items() if k != "members"} for p in st["plans"]]}
-        elif path in ("/v1/beat", "/v1/quota/hit"):
-            out = {"ok": True, "n": 1} if path == "/v1/beat" else {"day": "x", "k": body.get("k"), "n": 0, "keys": []}
+        elif path in ("/v1/beat", "/v1/track/batch", "/v1/quota/hit"):
+            out = {"ok": True, "n": 1} if path != "/v1/quota/hit" else {"day": "x", "k": body.get("k"), "n": 0, "keys": []}
         elif path == "/v1/notices":
             out = {"notices": []}
         elif path.startswith("/v1/admin/") and not adm:
@@ -51124,8 +51245,10 @@ def t_layout4_login(b, base, T, errs):
                st["inHead"] and st["txt"] == "登入" and st["seen"] and st["row"] and st["last"] and st["right"] <= 40 and not st["fake"] and st["on"], st)
             if W != 1440:
                 continue
-            wait_until(pg, "() => performance.getEntriesByType('resource').some(e => e.name.indexOf('/v1/beat') >= 0) ? 1 : 0", 6000)
-            ok(f"{T}1440 有會員設定檔：頁面真的呼叫了會員 API（心跳 /v1/beat）", any("/v1/beat" in u for u in hits), hits[:4])
+            # 2026-10-06 流量批次1006：統計改成 5 分鐘一批（/v1/track/batch），載入時不再馬上打 —— 用 flush 逼它送一批
+            pg.evaluate("() => TwAccount.flush()")
+            wait_until(pg, "() => performance.getEntriesByType('resource').some(e => e.name.indexOf('/v1/track/batch') >= 0) ? 1 : 0", 6000)
+            ok(f"{T}1440 有會員設定檔：頁面真的呼叫了會員 API（統計批次 /v1/track/batch）", any("/v1/track/batch" in u for u in hits), hits[:4])
             pg.locator("#l4Head #acctBtn").click(timeout=6000)
             dlg = wait_until(pg, "() => { const d = document.getElementById('acctDlg'); return d && !d.hidden && /Google/.test(d.textContent) ? 1 : 0; }", 4000)
             ok(f"{T}1440 按右上角「登入」→ 跳出登入前告知（account.js 原本那個對話框）", bool(dlg))
