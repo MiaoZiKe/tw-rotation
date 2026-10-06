@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: '22'
       - name: 存取控制測試（19 條）
-        run: node --test workers/account-api/tests/account.test.mjs workers/account-api/tests/susp.test.mjs
+        run: node --test workers/account-api/tests/account.test.mjs workers/account-api/tests/susp.test.mjs workers/account-api/tests/quota.test.mjs
 
       - name: 會員資料匯出／還原測試
         run: node --test workers/account-api/tests/export.test.mjs

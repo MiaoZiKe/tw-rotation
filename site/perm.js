@@ -63,14 +63,11 @@
     s.textContent = `
 [data-plk]{isolation:isolate;min-height:120px}
 [data-plk][data-plk-rel]{position:relative}
-[data-plk]>*:not(.plkgo){filter:blur(5px)!important;opacity:.28!important;pointer-events:none!important;user-select:none!important}
-[data-plk]>.plkgo{position:absolute!important;left:50%;top:76px;transform:translateX(-50%);z-index:31!important;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 16px;
-  border-radius:999px;background:var(--amber,#f5b942);color:#1a1203!important;font:700 13.5px/1 system-ui,sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
-[data-plk]>.plkgo:hover{filter:brightness(1.08)}
-[data-plk]::after{content:attr(data-plk)!important;position:absolute!important;inset:0!important;z-index:30!important;display:flex!important;
-  align-items:flex-start!important;justify-content:center!important;padding:22px 16px 0!important;box-sizing:border-box!important;
-  white-space:pre-line!important;text-align:center!important;font:600 15px/1.6 system-ui,sans-serif!important;color:var(--ink,#e6edf6)!important;
-  background:color-mix(in srgb,var(--panel,#111a2b) 45%,transparent)!important;border-radius:inherit!important;pointer-events:none!important;
+[data-plk]>*:not(.qcov){filter:blur(5px)!important;opacity:.28!important;pointer-events:none!important;user-select:none!important}
+/* 2026-10-07（Andy：「此功能需開通」改成跟額度用完同一款卡片、置中）：字不再畫在 ::after，改由 site/qcard.js 插一張卡片（.qcov.plkov）。
+   ::after 只留一層淡淡的底，讓模糊的內容退後；卡片本身在 .qcov 裡水平垂直置中 */
+[data-plk]::after{content:""!important;position:absolute!important;inset:0!important;z-index:30!important;display:block!important;
+  background:color-mix(in srgb,var(--panel,#111a2b) 35%,transparent)!important;border-radius:inherit!important;pointer-events:none!important;
   opacity:1!important;filter:none!important;width:auto!important;height:auto!important;transform:none!important}
 [data-plkb]::after{content:" 🔒"!important;font-size:.85em!important;color:inherit!important;opacity:.9!important;margin-left:2px!important;vertical-align:0!important}
 [data-plkb="block"]{opacity:.62}
@@ -154,16 +151,29 @@
   /* ★ admin-v3（Andy D③）：鎖頭上要有一顆能點的「升級查看」→ #pricing/need/<功能鍵>（訂閱頁把能解鎖它的方案標出來）。
      原本整塊 inert（連鈕都點不到）→ 改成「外框不 inert、裡面原本的子節點逐一 inert」，只有升級鈕可以點。
      子節點被各自的程式整個重畫時（innerHTML），MutationObserver 下一個畫格會再進來補 inert 與按鈕。 */
+  /* ★ 2026-10-07（Andy：「此功能需開通」改成跟額度用完同一款卡片）：原本的一顆「升級查看 →」換成 site/qcard.js 的需開通卡
+     （小標、大標「此功能需開通」、功能名、「這些方案可以使用」清單、全寬「升級 Plus →」）。按鈕仍是 a.plkgo、仍連 #pricing/need/<功能鍵>。
+     qcard.js 沒載入（理論上不會）→ 退回舊的單顆按鈕，鎖頭照樣能點。 */
+  let plansAsked = false;
   function veilKids(el, fid) {
-    let go = el.querySelector(':scope > .plkgo');
     const href = '#pricing/need/' + encodeURIComponent(fid || '');
-    if (!go) { go = document.createElement('a'); go.className = 'plkgo'; go.textContent = '升級查看 →'; el.appendChild(go); }
-    if (go.getAttribute('href') !== href) go.setAttribute('href', href);
-    if (el.lastElementChild !== go) el.appendChild(go);
-    for (const k of el.children) if (k !== go && !k.inert) { k.inert = true; k.setAttribute('data-plk-in', ''); }
+    const QC = window.TwQCard, f = F.byId(fid) || { id: fid, name: '', cat: '' };
+    let ov;
+    if (QC) {
+      ov = QC.mount(el, QC.lockOpts(f, S.who), 'plkov');
+      /* 卡片的清單要寫「哪個方案有這個功能」→ 第一次上鎖時順手抓方案清單（訂閱頁同一份；抓到會發 tw:plans 再重畫）*/
+      if (!plansAsked && window.TwPricing && window.TwPricing.ensure) { plansAsked = true; window.TwPricing.ensure(); }
+    } else {
+      ov = el.querySelector(':scope > .plkgo');
+      if (!ov) { ov = document.createElement('a'); ov.className = 'plkgo qcov'; ov.textContent = '升級查看 →'; el.appendChild(ov); }
+      if (ov.getAttribute('href') !== href) ov.setAttribute('href', href);
+      if (el.lastElementChild !== ov) el.appendChild(ov);
+    }
+    for (const k of el.children) if (k !== ov && !k.classList.contains('qcov') && !k.inert) { k.inert = true; k.setAttribute('data-plk-in', ''); }
   }
   function unveil(el) {
     el.removeAttribute('data-plk'); el.removeAttribute('data-plk-rel'); el.removeAttribute('aria-label'); el.inert = false;
+    if (window.TwQCard) window.TwQCard.unmount(el);
     const go = el.querySelector(':scope > .plkgo'); if (go) go.remove();
     el.querySelectorAll(':scope > [data-plk-in]').forEach((k) => { k.inert = false; k.removeAttribute('data-plk-in'); });
   }
@@ -187,7 +197,11 @@
   }, true);
 
   // ------------------------------------------------------------------ 讀取
+  /* 示範開關 ?demo=lock（給 Andy 在預覽站看「需開通」卡，site/qcard.js 檔頭）：只在這個分頁、只改畫面，
+     把「產業鏈剖析圖（2D）」當成被關掉 —— 走的是跟真的鎖頭同一條路（apply → veilKids → 卡片）。不寫任何設定。*/
+  const DEMO_LOCK = /[?&]demo=lock(&|$)/.test(location.search);
   function set(d, src) {
+    if (DEMO_LOCK) d = Object.assign({}, d, { feats: Object.assign({}, d.feats || {}, { 'ind.diagram': false }) });
     const before = JSON.stringify([S.who, S.plan, S.feats, S.lims]);
     S.who = d.who || 'guest'; S.plan = d.plan || ''; S.planName = d.planName || '';
     S.feats = d.feats && typeof d.feats === 'object' ? d.feats : {};
@@ -228,6 +242,7 @@
   window.TwPerm = { can, limit, lim, value, state, refresh, apply: () => apply(), locked: () => lockedList().map((f) => f.id), grpBlock,
     grpOk: (gid) => { const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; } };
   window.addEventListener('hashchange', schedule);
+  window.addEventListener('tw:plans', schedule);
 
   /* 啟動：account.js 先跑（它決定會員功能開不開），開了會發 tw:account-config；沒開就照預設全開。
      account.js 啟動時驗權杖也會發一次 tw:account —— 同一個人 5 秒內不重抓（不然每次重新整理都打兩次）。*/

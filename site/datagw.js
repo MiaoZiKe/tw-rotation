@@ -13,6 +13,13 @@
   const K_DEV = 'tw.gw.dev';
   const gwUrl = () => String((window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT || {}).gw || '').replace(/\/$/, '');
   let idxP = null, sess = null, sessP = null, coolUntil = 0;   // coolUntil：被裝置上限擋下後 5 分鐘內不再重換
+  /* 每日額度（2026-10-07，docs/quota_plan.md）：gateway 在 session 回應與每支付費檔的 x-quota 標頭告訴我們「今天用了幾個單位」。
+     這裡只記下來給畫面用；真正扣次與擋在 gateway（前端改不到）。null＝沒有額度資訊（沒開 gateway、Pro、管理者）＝畫面照舊 */
+  let quota = null;
+  function setQuota(q) {
+    if (!q || !Number.isInteger(q.limit)) return;
+    quota = { used: q.used, limit: q.limit, reset: q.reset, plan: q.plan || (quota && quota.plan) || (sess && sess.plan) || '' };
+  }
 
   function devId() {
     let d = null;
@@ -54,7 +61,8 @@
           if (t) t(`這個帳號已在 ${j.max || 2} 台裝置上使用付費內容，這台暫時只能看免費內容。需要換裝置請來信客服。`);
         }
         if (!r.ok) { sess = null; return null; }
-        sess = j && j.tok ? { tok: j.tok, exp: j.exp, lt } : null;
+        sess = j && j.tok ? { tok: j.tok, exp: j.exp, lt, plan: j.plan || '' } : null;
+        if (j && j.quota) setQuota(Object.assign({ plan: j.plan }, j.quota));
       } catch (e) { sess = null; }
       return sess ? sess.tok : null;
     })().finally(() => { sessP = null; });
@@ -75,7 +83,18 @@
       if (tok) h.Authorization = 'Bearer ' + tok;
       const r = await fetch(gwUrl() + '/v1/data/' + name, { headers: h, credentials: 'omit', cache: 'no-store' });
       if (r.status === 401 && tok && i === 0) { sess = null; continue; }   // 權杖剛好過期或被換掉：重換一次
+      if (r.status === 429) {
+        /* 額度用完：{error:'quota', used, limit, reset, plan} → 發 tw:quota，site/qcard.js 把「今天的研究額度用完了」卡片蓋在那個區塊上 */
+        const j = await r.json().catch(() => null);
+        if (j && j.error === 'quota') {
+          setQuota(j);
+          window.dispatchEvent(new CustomEvent('tw:quota', { detail: { name, used: j.used, limit: j.limit, reset: j.reset, plan: j.plan || (sess && sess.plan) || '' } }));
+        }
+        const e = new Error('429'); e.status = 429; e.quota = !!(j && j.error === 'quota'); throw e;
+      }
       if (!r.ok) { const e = new Error(String(r.status)); e.status = r.status; throw e; }
+      const xq = /^(\d+)\/(\d+)\/(\d+)$/.exec(r.headers.get('x-quota') || '');
+      if (xq) setQuota({ used: +xq[1], limit: +xq[2], reset: +xq[3] });
       const txt = await r.text();
       return { data: strip(JSON.parse(txt)), txt };
     }
@@ -89,5 +108,5 @@
       return r.ok ? await r.json() : null;
     } catch (e) { return null; }
   }
-  window.TwGw = { on: () => !!gwUrl(), isPaid, get, json, reset: () => { sess = null; idxP = null; } };
+  window.TwGw = { on: () => !!gwUrl(), isPaid, get, json, quota: () => (quota ? Object.assign({}, quota) : null), reset: () => { sess = null; idxP = null; quota = null; } };
 })();

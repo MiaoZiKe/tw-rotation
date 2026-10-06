@@ -49,3 +49,25 @@ export function tierOf(name) {
 export function allowed(tier, feats) {
   return tier.feats.every((k) => !(feats && feats[k] === false));
 }
+
+/* ============================================================================
+   每日額度的「單位」（2026-10-07，docs/quota_plan.md；Andy：Plus 每日 50 次、Pro 不限）
+   ----------------------------------------------------------------------------
+   「一次」＝同一天（台北日期）、同一個單位只算一次。單位由**檔名**決定（伺服器說了算，前端改不到）：
+     · 個股頁：stock/<代號>、m60/<代號>、hist/<代號>/p<N> 全部算同一個單位 s:<代號>
+       —— 個股頁的總覽／營收／籌碼…分頁切換讀的是同一支 stock/<代號>，K 線翻頁是同一檔的 hist，都不另外扣。
+     · 其他付費檔：一個付費分頁＝它的第一個功能鍵 p:<功能鍵>（例如 flow_v3、rrg_members、rotation 都是 p:flow.rot，
+       同一個分頁要讀三支檔也只扣一次）。
+     · 產業鏈剖析圖：目前所有產業鏈共用一支 supply_chain（p:ind.rel）—— 要做到「一張剖析圖一次」，
+       pipeline 得先把它拆成每條鏈一支（chain/<鏈>），拆好之後這裡的 c:<鏈> 規則就會生效（見 docs/quota_plan.md 第 4 節）。
+     · 免費檔（feats 空）回 null：不扣額度。
+   ============================================================================ */
+export function unitOf(name, tier) {
+  tier = tier || tierOf(name);
+  if (!tier || !tier.feats.length) return null;
+  let m = /^(?:stock|m60)\/([0-9A-Z]{4,6})$/.exec(name) || /^hist\/([0-9A-Z]{4,6})\/p[0-9]{1,3}$/.exec(name);
+  if (m) return 's:' + m[1];
+  m = /^chain\/([a-z0-9_]{1,30})$/.exec(name);
+  if (m) return 'c:' + m[1];
+  return 'p:' + tier.feats[0];
+}

@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '22'
       - name: 允許／拒絕測試（紅了就不准部署）
-        run: node --test workers/data-gw/tests/gw.test.mjs workers/account-api/tests/susp.test.mjs
+        run: node --test workers/data-gw/tests/gw.test.mjs workers/data-gw/tests/quota.test.mjs workers/account-api/tests/susp.test.mjs workers/account-api/tests/quota.test.mjs
 
       - id: guard
         name: 檢查金鑰

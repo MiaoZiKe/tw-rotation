@@ -114,18 +114,31 @@
         const set = new Set(d.k[f.id] || []);
         if (set.has(key)) continue;
         if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; changed = true; hit(f.id, key); continue; }
-        els.forEach((el) => { if (!want.has(el)) want.set(el, { msg: `今日已用完 ${set.size}/${lim} 次`, f, lim }); });
+        els.forEach((el) => { if (!want.has(el)) want.set(el, { msg: `今日已用完 ${set.size}/${lim} 次`, f, lim, used: set.size }); });
       }
     }
     if (changed) save(d);
     paint(want);
     watch(fs.length > 0);
   }
+  /* ★ 2026-10-07：遮罩改用 site/qcard.js 的共用卡片（跟「此功能需開通」、全站每日額度同一款，置中）。
+     外層仍是 .qlkov、按鈕仍是 .qlkgo（連 #pricing/need/<功能鍵>），說明裡保留「今日已用完 N/N 次」「升級方案可增加」。*/
+  function opts(w) {
+    const QC = window.TwQCard;
+    const lk = QC ? QC.lockOpts(w.f, 'member') : null;
+    const n = w.used == null ? w.lim : w.used;
+    return { kind: 'quota', kick: '每日瀏覽次數', title: `今天的「${w.f.name}」次數用完了`,
+      sub: `今日已用完 ${n}/${w.lim} 次，升級方案可增加每日次數，明天（台北時間 0 點）自動恢復。`,
+      used: n, limit: w.lim, lh: lk && lk.items.length ? '這些方案可以看更多次' : '', items: lk ? lk.items : [],
+      btn: lk ? lk.btn : '升級查看', href: '#pricing/need/' + encodeURIComponent(w.f.id), btnCls: 'qlkgo' };
+  }
   function paint(want) {
     css();
-    document.querySelectorAll('[data-qlk]').forEach((el) => { if (!want.has(el)) { el.removeAttribute('data-qlk'); const o = el.querySelector(':scope > .qlkov'); if (o) o.remove(); } });
+    const QC = window.TwQCard;
+    document.querySelectorAll('[data-qlk]').forEach((el) => { if (!want.has(el)) { el.removeAttribute('data-qlk'); if (QC) QC.unmount(el); const o = el.querySelector(':scope > .qlkov'); if (o) o.remove(); } });
     want.forEach((w, el) => {
       if (el.getAttribute('data-qlk') !== w.msg) el.setAttribute('data-qlk', w.msg);
+      if (QC) { QC.mount(el, opts(w), 'qlkov'); return; }
       let o = el.querySelector(':scope > .qlkov');
       if (!o) { o = document.createElement('div'); o.className = 'qlkov'; o.setAttribute('role', 'alert'); el.appendChild(o); }
       const html = `<b>${T().esc(w.msg)}</b><span>${T().esc(w.f.name)}・升級方案可增加每日次數，明天（台北時間 0 點）自動恢復</span><a href="#pricing/need/${encodeURIComponent(w.f.id)}" class="qlkgo">升級查看 →</a>`;
@@ -143,12 +156,12 @@
     if (!T()) return;
     T().css('quotaCss', `
 [data-qlk]{position:relative;isolation:isolate;min-height:160px}
-[data-qlk]>*:not(.qlkov){filter:blur(6px)!important;opacity:.25!important;pointer-events:none!important;user-select:none!important}
-.qlkov{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;padding:48px 16px 0;text-align:center;
+[data-qlk]>*:not(.qlkov):not(.qcov){filter:blur(6px)!important;opacity:.25!important;pointer-events:none!important;user-select:none!important}
+.qlkov:not(.qcov){position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;padding:48px 16px 0;text-align:center;
   background:color-mix(in srgb,var(--panel,#111a2b) 55%,transparent);border-radius:inherit}
-.qlkov b{font-size:18px;color:var(--ink)}
-.qlkov span{font-size:13.5px;color:var(--ink-2);max-width:420px;line-height:1.6}
-.qlkov .qlkgo{margin-top:6px;display:inline-flex;align-items:center;height:36px;padding:0 18px;border-radius:999px;background:var(--amber,#f5b942);color:#1a1203;font-weight:700;font-size:14px;text-decoration:none}`);
+.qlkov:not(.qcov) b{font-size:18px;color:var(--ink)}
+.qlkov:not(.qcov) span{font-size:13.5px;color:var(--ink-2);max-width:420px;line-height:1.6}
+.qlkov:not(.qcov) .qlkgo{margin-top:6px;display:inline-flex;align-items:center;height:36px;padding:0 18px;border-radius:999px;background:var(--amber,#f5b942);color:#1a1203;font-weight:700;font-size:14px;text-decoration:none}`);
   }
 
   window.addEventListener('hashchange', schedule);

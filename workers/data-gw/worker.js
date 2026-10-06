@@ -21,7 +21,7 @@
  * 個資：IP 只存網段（203.0.113.x），紀錄 30 天自動刪除；帳號以 uid 記，不存 email（浮水印也是雜湊）。
  * Secret（不寫在任何檔案，由 workflow 從 repo Secret 帶進去）：GW_SECRET（資料權杖與浮水印的 HMAC 金鑰）。
  */
-import { tierOf, allowed } from './tiers.js';
+import { tierOf, allowed, unitOf } from './tiers.js';
 
 const SESSION_SEC = 300;
 const LOG_KEEP_MS = 30 * 86400 * 1000;
@@ -38,6 +38,10 @@ export const ipNet = (ip) => {
   if (ip.includes(':')) return ip.split(':').slice(0, 3).join(':') + '::/48';
   const p = ip.split('.'); return p.length === 4 ? p.slice(0, 3).join('.') + '.x' : '?';
 };
+/* 台北日期與「下一個台北 00:00」（每日額度的重置時間；一律 UTC+8，不看伺服器時區）*/
+const DAY_MS = 86400000, TPE_MS = 8 * 3600000;
+export const tpeDay = (ms) => new Date(ms + TPE_MS).toISOString().slice(0, 10);
+export const tpeReset = (ms) => (Math.floor((ms + TPE_MS) / DAY_MS) + 1) * DAY_MS - TPE_MS;
 const looksBrowser = (req) => /^Mozilla\/5\.0 /.test(req.headers.get('User-Agent') || '') && !!req.headers.get('Sec-Fetch-Mode');
 
 export default {
@@ -62,6 +66,31 @@ export class Gw {
     this.q('CREATE TABLE IF NOT EXISTS flags (uid TEXT PRIMARY KEY, n INTEGER, last INTEGER, kinds TEXT)');
     /* 第三階段：每帳號裝置（只存裝置 id 的雜湊）。DEVICE_TTL_D 天沒用的裝置自動讓出名額 */
     this.q('CREATE TABLE IF NOT EXISTS devices (uid TEXT, devh TEXT, first INTEGER, last INTEGER, PRIMARY KEY (uid, devh))');
+    /* 2026-10-07 每日額度（docs/quota_plan.md）：
+       units    每人每天看過哪些單位（個股 s:<代號>／付費分頁 p:<功能鍵>／產業鏈 c:<鏈>）。同一天同一個單位只有一列 ＝ 只扣一次。留 3 天。
+       sessions.dq  換權杖當下這個人範本的「每日額度」（account-api /v1/perm/me 的 dq）；NULL＝不限（Pro、管理者、沒設的範本）。
+       相容遷移同 account-api 的做法：PRAGMA 看欄位在不在再 ALTER（Durable Object 每次冷啟動都會跑到這裡）。*/
+    this.q('CREATE TABLE IF NOT EXISTS units (uid TEXT, day TEXT, unit TEXT, ts INTEGER, PRIMARY KEY (uid, day, unit))');
+    if (!this.q('PRAGMA table_info(sessions)').some((c) => c.name === 'dq')) this.q('ALTER TABLE sessions ADD COLUMN dq INTEGER');
+  }
+  /* 今天用了幾個單位（台北日期）。limit＝null 代表不限 */
+  quotaOf(uid, dq) {
+    const t = this.now();
+    const used = this.q('SELECT COUNT(*) AS c FROM units WHERE uid = ? AND day = ?', uid, tpeDay(t))[0].c;
+    return { used, limit: Number.isInteger(dq) ? dq : null, reset: tpeReset(t) };
+  }
+  /* 扣額度：回 null＝放行（含「今天看過這個單位」「不限」「免費檔」）；回 {used, limit, reset}＝用完了。
+     先查「看過沒有」再數總數：同一單位重看永遠放行，就算今天已經滿了 —— 已經付過的那一次不該再被擋。*/
+  charge(uid, dq, name, tier) {
+    if (!Number.isInteger(dq)) return null;
+    const unit = unitOf(name, tier);
+    if (!unit) return null;
+    const t = this.now(), day = tpeDay(t);
+    if (this.q('SELECT 1 FROM units WHERE uid = ? AND day = ? AND unit = ?', uid, day, unit).length) return null;
+    const used = this.q('SELECT COUNT(*) AS c FROM units WHERE uid = ? AND day = ?', uid, day)[0].c;
+    if (used >= dq) return { used, limit: dq, reset: tpeReset(t), unit };
+    this.q('INSERT OR IGNORE INTO units (uid, day, unit, ts) VALUES (?, ?, ?, ?)', uid, day, unit, t);
+    return null;
   }
   q(s, ...a) { return this.sql.exec(s, ...a).toArray(); }
   now() { return this.env.__now ? this.env.__now() : Date.now(); }
@@ -75,7 +104,7 @@ export class Gw {
   }
   cors(req, res) {
     const o = req.headers.get('Origin');
-    if (this.originOk(o)) { res.headers.set('Access-Control-Allow-Origin', o); res.headers.set('Vary', 'Origin'); }
+    if (this.originOk(o)) { res.headers.set('Access-Control-Allow-Origin', o); res.headers.set('Vary', 'Origin'); res.headers.set('Access-Control-Expose-Headers', 'x-quota'); }
     return res;
   }
   json(req, obj, status = 200, extra = {}) {
@@ -160,6 +189,7 @@ export class Gw {
     this.q('DELETE FROM alerts WHERE ts < ?', t - LOG_KEEP_MS);
     this.q('DELETE FROM sessions WHERE exp < ?', Math.floor(t / 1000) - 3600);
     this.q('DELETE FROM devices WHERE last < ?', t - this.num('DEVICE_TTL_D', 30) * 86400000);
+    this.q('DELETE FROM units WHERE day < ?', tpeDay(t - 3 * DAY_MS));
   }
 
   async fetch(req) {
@@ -171,6 +201,7 @@ export class Gw {
       if (!this.env.GW_SECRET) return this.json(req, { error: 'not_configured' }, 503);
       this.clean();
       if (req.method === 'GET' && p.startsWith('/v1/data/')) return await this.data(req, decodeURIComponent(p.slice(9)).replace(/\.json$/, ''));
+      if (req.method === 'GET' && p === '/v1/quota') return await this.quota(req);
       if (req.method !== 'POST') return this.json(req, { error: 'not_found' }, 404);
       if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
       const raw = await req.text();
@@ -210,10 +241,12 @@ export class Gw {
     }
     this.q('INSERT INTO devices (uid, devh, first, last) VALUES (?, ?, ?, ?) ON CONFLICT(uid, devh) DO UPDATE SET last = excluded.last', uid, devh, now, now);
     const sid = rand(), exp = Math.floor(now / 1000) + SESSION_SEC;
-    this.q('INSERT INTO sessions (sid, uid, plan, feats, devh, exp, ips) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      sid, uid, String(pm.plan || 'free'), JSON.stringify(pm.feats || {}), devh, exp, '[]');
+    /* 每日額度：範本的 dq（account-api quota-v1 區塊）；管理者不限。只收 0～9999 的整數，其他一律當「不限」 */
+    const dq = !me.user.admin && Number.isInteger(pm.dq) && pm.dq >= 0 && pm.dq <= 9999 ? pm.dq : null;
+    this.q('INSERT INTO sessions (sid, uid, plan, feats, devh, exp, ips, dq) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      sid, uid, String(pm.plan || 'free'), JSON.stringify(pm.feats || {}), devh, exp, '[]', dq);
     const body = `g1.${sid}.${exp}`;
-    return this.json(req, { tok: body + '.' + (await this.hmac(body)), exp, plan: pm.plan });
+    return this.json(req, { tok: body + '.' + (await this.hmac(body)), exp, plan: pm.plan, quota: this.quotaOf(uid, dq) });
   }
   async verifyTok(tok, dev) {
     const p = String(tok || '').split('.');
@@ -231,9 +264,9 @@ export class Gw {
     if (!tier) return this.json(req, { error: 'not_found' }, 404);
     const ip = ipNet(req.headers.get('CF-Connecting-IP')), ua = String(req.headers.get('User-Agent') || '').slice(0, 200);
     const auth = req.headers.get('Authorization') || '';
-    let who = 'guest', feats;
+    let who = 'guest', feats, sess = null;
     if (auth) {
-      const s = await this.verifyTok(auth.replace(/^Bearer\s+/i, ''), req.headers.get('X-Device'));
+      const s = sess = await this.verifyTok(auth.replace(/^Bearer\s+/i, ''), req.headers.get('X-Device'));
       if (!s) return this.json(req, { error: 'auth' }, 401);
       who = s.uid; feats = JSON.parse(s.feats || '{}');
       const ips = new Set(JSON.parse(s.ips || '[]'));
@@ -249,6 +282,14 @@ export class Gw {
       if (who !== 'guest') await this.alert(who, 'rate', `>${limit}/min`);
       return this.json(req, { error: 'rate' }, 429, { 'retry-after': '60' });
     }
+    /* 每日額度（Plus 50／Pro 不限，docs/quota_plan.md）：只算登入者的付費檔；訪客沒有 uid 可以記，由訪客範本的開關管 */
+    let qh = {};
+    if (sess && Number.isInteger(sess.dq)) {
+      const over = this.charge(who, sess.dq, name, tier);
+      if (over) return this.json(req, { error: 'quota', used: over.used, limit: over.limit, reset: over.reset, plan: sess.plan }, 429);
+      const qs = this.quotaOf(who, sess.dq);
+      qh = { 'x-quota': `${qs.used}/${qs.limit}/${qs.reset}` };
+    }
     const t = this.now();
     this.q('INSERT INTO log (ts, uid, name, ip, ua) VALUES (?, ?, ?, ?, ?)', t, who, name, ip, ua);
     if (who !== 'guest') {
@@ -263,7 +304,13 @@ export class Gw {
     /* 隱形浮水印：物件加 _wm；陣列加在第一個物件元素上（前端不讀 _wm，畫面不變）。另外放在回應標頭。*/
     if (data && typeof data === 'object' && !Array.isArray(data)) data._wm = wm;
     else if (Array.isArray(data) && data[0] && typeof data[0] === 'object') data[0]._wm = wm;
-    return this.json(req, data, 200, { 'x-wm': wm.a + '.' + wm.t });
+    return this.json(req, data, 200, { 'x-wm': wm.a + '.' + wm.t, ...qh });
+  }
+  /* GET /v1/quota（Authorization＋X-Device，同發檔）→ { used, limit, reset, plan }：前端開額度卡片前問一次目前的數字 */
+  async quota(req) {
+    const s = await this.verifyTok(String(req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''), req.headers.get('X-Device'));
+    if (!s) return this.json(req, { error: 'auth' }, 401);
+    return this.json(req, { ...this.quotaOf(s.uid, Number.isInteger(s.dq) ? s.dq : null), plan: s.plan });
   }
 
   /* ---- (3) 管理者：異常、浮水印反查、清除裝置（管理者身分一律由 account-api 判定）*/

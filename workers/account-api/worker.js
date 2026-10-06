@@ -1675,3 +1675,77 @@ Hub.prototype.fetch = async function (req) {
   }
 };
 /* ============================================================================ 會員資料匯出／還原區塊結束 */
+
+/* ============================================================================ 每日額度區塊（2026-10-07，docs/quota_plan.md）
+   Andy（10-07 01:30）：「之後會分成 Plus 和更上去的 Pro。plus 目前先暫定皆可以觀看 50 次，pro 則是都不限次數」。
+   ① 範本多一欄 plans.dq（每日額度，整數 0～9999；NULL＝不限）。跟 lims（每個功能各自的次數）分開：
+      dq 是「整個網站一天能開幾個單位」（個股頁一檔、產業鏈剖析圖一張、付費分頁一個），真正扣次在付費資料閘道 workers/data-gw。
+      · plans/get、plans/public 每個範本多帶 dq；/v1/perm/me 多回 dq（生效那個範本的；過期退回免費會員的）
+      · plans/put 帶 dq：null／'' ＝不限、0～9999 整數＝每日上限；沒帶＝維持原值（只改開關的呼叫不會把額度洗掉）
+   ② Plus／Pro 兩個付費範本：wrangler.toml 的 SEED_PLANS="plus,pro" 有設才種（只種一次，kv plans_seeded_pp；管理者刪掉不會再長回來）。
+      Plus：dq 50；Pro：dq 不限。價格 0＝訂閱頁寫「價格待定」，等 Andy 定價後在 #admin/perm 的 ⚙ 改。
+      為什麼用環境變數而不是無條件種：既有的 account／v3／v4 測試假設「乾淨資料庫只有 guest／free／paid」，
+      無條件種會讓那些測試的範本順序全部改變；正式站部署時 wrangler.toml 會帶這個變數。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const DQ_MAX = 9999;
+const DQ_SEEDS = { plus: ['Plus', 50], pro: ['Pro', null] };
+Hub.prototype.dqInit = function () {
+  if (this._dqOk) return;
+  this.v4Init();
+  if (!this.q('PRAGMA table_info(plans)').some((c) => c.name === 'dq')) this.q('ALTER TABLE plans ADD COLUMN dq INTEGER');
+  const want = String(this.env.SEED_PLANS || '').split(/[\s,]+/).filter((x) => DQ_SEEDS[x]);
+  if (want.length && !this.kv('plans_seeded_pp')) {
+    const mx = this.q('SELECT MAX(sort) AS m FROM plans WHERE builtin = 0')[0].m;
+    let n = mx == null ? 0 : mx + 1;
+    for (const id of want) {
+      if (this.q('SELECT 1 FROM plans WHERE id = ?', id).length) continue;
+      const [name, dq] = DQ_SEEDS[id];
+      this.q("INSERT INTO plans (id, name, feats, builtin, updated, price, period, lims, sort, dq) VALUES (?, ?, '{}', 0, ?, 0, 'month', '{}', ?, ?)", id, name, this.now(), n++, dq);
+    }
+    this.setKv('plans_seeded_pp', '1');
+  }
+  this._dqOk = true;
+};
+Hub.prototype.dqOf = function (id) {
+  this.dqInit();
+  const r = this.q('SELECT dq FROM plans WHERE id = ?', id)[0];
+  return r && Number.isInteger(r.dq) ? r.dq : null;
+};
+const dqOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) {
+  const p = dqOrigPlan.call(this, id);
+  if (p) p.dq = this.dqOf(id);
+  return p;
+};
+const dqOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return dqOrigPlanRows.call(this).map((p) => ({ ...p, dq: this.dqOf(p.id) })); };
+const dqOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const res = await dqOrigPermMe.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.dq = this.dqOf(j.plan || 'free');
+  return this.json(req, j);
+};
+const dqOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.dqInit();
+  let dq;
+  if (b && b.dq !== undefined && b.del !== true) {
+    if (b.dq === null || b.dq === '') dq = null;
+    else if (Number.isInteger(b.dq) && b.dq >= 0 && b.dq <= DQ_MAX) dq = b.dq;
+    else return this.json(req, { error: 'bad_dq' }, 400);
+  }
+  const res = await dqOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || dq === undefined) return res;
+  this.q('UPDATE plans SET dq = ? WHERE id = ?', dq, String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 啟動時先把欄位與種子準備好（不能等到 plan() 才做：plans/get 是先列 id 再逐一讀，中途種進去的不會出現在第一次的清單裡）*/
+const dqOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  try { this.dqInit(); } catch (e) { /* 遷移失敗不擋其他功能：dq 一律當不限 */ }
+  return dqOrigFetch.call(this, req);
+};
+/* ============================================================================ 每日額度區塊結束 */

@@ -111,7 +111,13 @@
     { id: 'guest', name: '訪客', builtin: true, feats: {}, lims: {}, price: 0 },
     { id: 'free', name: '註冊會員', builtin: true, feats: {}, lims: {}, price: 0 },
   ];
-  const S = { plans: null, src: 'fallback', full: false, loading: null, need: '' };
+  const S = { plans: null, src: 'fallback', full: false, loading: null, need: '', pick: '' };
+  /* 2026-10-07 每日額度（docs/quota_plan.md）：Plus（每日 50）／Pro（不限）由 account-api 第一次啟動時種成付費範本（SEED_PLANS）。
+     ★ 方案卡仍然只畫後端有的範本（Andy 10-05：不編卡）。唯一例外是示範開關 ?demo=quota／quota-free／lock（預覽站給 Andy 看卡片用）：
+       後端還沒有 plus／pro 時補兩張「價格待定」的示意卡，讓額度卡的「升級 Plus／Pro →」點過來有東西可看。 */
+  const DEMO = /[?&]demo=(quota|quota-free|lock)(&|$)/.test(location.search);
+  const DEMO_PLANS = [{ id: 'plus', name: 'Plus', builtin: false, feats: {}, lims: {}, price: 0, period: 'month', dq: 50, demo: true },
+    { id: 'pro', name: 'Pro', builtin: false, feats: {}, lims: {}, price: 0, period: 'month', dq: null, demo: true }];
   const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
   const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? '註冊會員' : p.name);
   /* 排序＋去重：訪客、註冊會員固定在前；付費依後端順序；同一個 id 只留第一個 */
@@ -120,6 +126,7 @@
     const all = Array.isArray(list) ? list : [];
     const g = all.find((p) => p && p.id === 'guest') || FALLBACK[0], f = all.find((p) => p && p.id === 'free') || FALLBACK[1];
     [g, f, ...all.filter((p) => p && p.id !== 'guest' && p.id !== 'free')].forEach((p) => { if (p && p.id && !seen.has(p.id)) { seen.add(p.id); out.push(p); } });
+    if (DEMO) DEMO_PLANS.forEach((p) => { if (!seen.has(p.id)) { seen.add(p.id); out.push(p); } });
     return out;
   }
   async function load() {
@@ -128,17 +135,22 @@
       let j = await call('/v1/plans/public', {});
       /* 公開端點還沒部署（舊版 Worker）→ 管理者還可以用 admin 的那支拿到 */
       if ((!j || j._s !== 200) && A() && A().user() && A().user().admin) j = await call('/v1/admin/plans/get', {});
-      if (j && j._s === 200 && Array.isArray(j.plans) && j.plans.length) { S.plans = tidy(j.plans); S.src = 'server'; } else { S.plans = FALLBACK.slice(); S.src = 'fallback'; }
+      if (j && j._s === 200 && Array.isArray(j.plans) && j.plans.length) { S.plans = tidy(j.plans); S.src = 'server'; } else { S.plans = tidy(FALLBACK.slice()); S.src = 'fallback'; }
     })();
     try { await S.loading; } finally { S.loading = null; }
+    /* 額度卡／需開通卡（site/qcard.js）要寫「哪個方案有、升級哪一個」→ 方案清單到了就通知它們重畫 */
+    window.dispatchEvent(new CustomEvent('tw:plans'));
   }
   const PER = { month: '月', year: '年', once: '一次' };
   /* 價格：回 { amount, unit }；訪客／註冊會員＝免費 */
   function priceOf(p) {
     if (tierOf(p) !== 'paid') return { amount: 0, unit: '', free: true };
     const n = Number.isInteger(p.price) ? p.price : (p.price != null && isFinite(+p.price) ? Math.round(+p.price) : 0);
-    return { amount: n, unit: p.period === 'once' ? '（一次）' : '／' + (PER[p.period] || '月'), free: false };
+    /* 付費範本價格是 0 ＝還沒定價（Plus／Pro 種子就是 0）→ 寫「價格待定」，不寫 NT$ 0 讓人以為免費 */
+    return { amount: n, unit: p.period === 'once' ? '（一次）' : '／' + (PER[p.period] || '月'), free: false, tbd: n === 0 };
   }
+  /* 全站每日額度（plans.dq；null＝不限）*/
+  const dqTxt = (p) => (Number.isInteger(p.dq) ? `每日 ${p.dq} 次` : '不限');
   /* 這個方案在某個功能上的值（沒寫＝預設）；上限：Infinity＝不限 */
   function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : f.def; return typeof v === 'boolean' ? v : f.def; }
   const limOf = (p, f) => { const v = (p.lims || {})[f.id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; };
@@ -231,7 +243,8 @@
     const paid = plans.filter((p) => tierOf(p) === 'paid');
     const sums = new Map(plans.map((p) => [p.id, summary(p)]));
     const needF = S.need && F() ? F().byId(S.need) : null;
-    const needIds = needF ? plans.filter((p) => tierOf(p) !== 'guest' && unlocks(p, needF)).map((p) => p.id) : [];
+    const needIds = needF ? plans.filter((p) => tierOf(p) !== 'guest' && unlocks(p, needF)).map((p) => p.id)
+      : S.pick && plans.some((p) => p.id === S.pick) ? [S.pick] : [];   // #pricing/plan/<id>：額度卡的「升級 Plus／Pro →」點過來，標那一張
     const hot = paid[0] ? paid[0].id : null;
     let full = null;
     if (paid.length > 1) { full = paid.slice().sort((a, b) => sums.get(b.id).n - sums.get(a.id).n)[0].id; if (full === hot) full = paid[paid.length - 1].id; }
@@ -254,20 +267,21 @@
   function card(p, s, hot, full, me, need, needF) {
     const t = tierOf(p), pr = priceOf(p), isMine = me.id === p.id;
     const who = t === 'guest' ? '不用登入，打開就能看' : t === 'free' ? '用 Google 帳號登入即可' : '進階分析與更高的每日次數';
-    const price = pr.free ? '<div class="prprice free">免費</div>' : `<div class="prprice">NT$ ${pr.amount.toLocaleString('en-US')}<small>${esc(pr.unit)}</small></div>`;
+    const price = pr.free ? '<div class="prprice free">免費</div>' : pr.tbd ? '<div class="prprice free">價格待定</div>' : `<div class="prprice">NT$ ${pr.amount.toLocaleString('en-US')}<small>${esc(pr.unit)}</small></div>`;
     let btn;
     if (isMine) btn = `<button type="button" class="prgo" disabled>目前方案</button>`;
     else if (t === 'guest') btn = `<button type="button" class="prgo" disabled>免費使用</button>`;
     else if (t === 'free') btn = me.tier === 'guest' ? `<button type="button" class="prgo${need ? ' pri' : ''}" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
     else btn = `<button type="button" class="prgo pri" data-go="${esc(p.id)}">申請訂閱</button>`;
+    const dq = t === 'guest' ? '' : `<li class="${Number.isInteger(p.dq) ? '' : 'all'}" data-dq><span>研究額度（個股頁、剖析圖、付費分頁）</span><span>${esc(dqTxt(p))}</span></li>`;
     const lines = s.lines.map((l) => `<li class="${l.k === l.t ? 'all' : l.k === 0 ? 'none' : ''}"><span>${esc(l.name)}</span><span>${l.k === l.t ? '全部' : l.k === 0 ? '不開放' : l.k + '／' + l.t + ' 項'}</span></li>`).join('');
     const q = s.q.length ? s.q.map((x) => `<li class="${needF && x.id === needF.id ? 'hl' : ''}"><span>${esc(x.name)}</span><span>${esc(x.txt)}</span></li>`).join('') : '<li class="all"><span>所有功能</span><span>不限</span></li>';
-    const tag = need ? '<span class="prtag need">可解鎖</span>' : hot ? '<span class="prtag">最受歡迎</span>' : full ? '<span class="prtag full">功能最齊</span>' : '';
+    const tag = need ? `<span class="prtag need">${needF ? '可解鎖' : '建議升級'}</span>` : hot ? '<span class="prtag">最受歡迎</span>' : full ? '<span class="prtag full">功能最齊</span>' : '';
     return `<div class="prcard${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<h2>${esc(showName(p))}</h2><div class="who">${esc(who)}</div>
       ${price}${btn}
       <ul class="prfs">${lines}${s.watch != null ? `<li><span>自選清單分頁</span><span>${s.watch ? s.watch + ' 頁' : '不開放'}</span></li>` : ''}
-        <li class="qh"><span>每日瀏覽次數</span><span></span></li>${q}</ul></div>`;
+        <li class="qh"><span>每日瀏覽次數</span><span></span></li>${dq}${q}</ul></div>`;
   }
   function table(plans) {
     const Ft = F(); if (!Ft) return '';
@@ -293,6 +307,7 @@
   /* 訂閱鈕：免費卡＝登入；付費卡＝訂閱申請（要先登入：沒登入直接跳 Google 登入，登入回來再按一次）*/
   function go(p) {
     if (!p) return;
+    if (p.demo) { dialog(`<h3>${esc(showName(p))} 方案</h3><p>${esc(showName(p))} 方案即將開放（${esc(dqTxt(p) === '不限' ? '不限次數' : dqTxt(p))}），價格待定。想先預約可以從右下角「客服」留言給我們。</p><div class="row2"><button type="button" class="pri" data-close>知道了</button></div>`); return; }
     const a = A();
     const u = a && a.on() ? a.user() : null;
     if (tierOf(p) === 'free') { if (a && a.on()) a.login(); else toast('會員登入功能尚未開放'); return; }
@@ -304,7 +319,7 @@
     const pr = priceOf(p);
     dialog(`<h3>訂閱申請：${esc(showName(p))}</h3>
       <p><b>目前為申請制，專人開通；線上付款即將推出。</b>送出後我們會用下面的 email 跟你確認方案與付款方式，<b>送出不會扣款</b>。</p>
-      <p>方案價格：<b>NT$ ${pr.amount.toLocaleString('en-US')}${esc(pr.unit)}</b></p>
+      <p>方案價格：<b>${pr.tbd ? '價格待定（專人跟你確認）' : `NT$ ${pr.amount.toLocaleString('en-US')}${esc(pr.unit)}`}</b></p>
       <label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200">
       <label for="subNote">備註（選填，例如需要發票抬頭）</label><input type="text" id="subNote" maxlength="300">
       <div class="msg" id="subMsg" role="status"></div>
@@ -341,11 +356,17 @@
     if (m) { try { need = decodeURIComponent(m[1]); } catch (e) { need = ''; } }
     if (!need) { const mh = /^#pricing\/need\/([^?]+)/.exec(location.hash || ''); if (mh) { try { need = decodeURIComponent(mh[1]); } catch (e) { need = ''; } } }
     S.need = need;
+    const mp = /^#pricing\/plan\/([a-z0-9_-]{1,20})/.exec(location.hash || '');
+    S.pick = mp ? mp[1] : '';
     show(); return 'v-pricing';
   });
   /* 登入／登出、權限換了 → 「目前方案」那張卡要跟著換 */
   const again = () => { if ((location.hash || '').startsWith('#pricing') && S.plans) paint(); };
   window.addEventListener('tw:perm', again);
   window.addEventListener('tw:account', () => { S.plans = null; if ((location.hash || '').startsWith('#pricing')) show(); });
-  window.TwPricing = { reload: () => { S.plans = null; return show(); }, priceOf, state: () => ({ src: S.src, plans: S.plans, need: S.need }) };
+  /* 給 site/qcard.js：方案清單（同步；還沒抓過回 null）、確保抓過一次、哪些方案開放某個功能（訪客除外，順序＝方案卡順序）*/
+  const ensure = () => (S.plans ? Promise.resolve(S.plans) : load().then(() => S.plans));
+  const unlockers = (fid) => { const f = F() && F().byId(fid); if (!S.plans || !f) return null; return S.plans.filter((p) => tierOf(p) !== 'guest' && on(p, f)).map((p) => ({ id: p.id, name: showName(p), dq: Number.isInteger(p.dq) ? p.dq : null })); };
+  window.TwPricing = { reload: () => { S.plans = null; return show(); }, priceOf, state: () => ({ src: S.src, plans: S.plans, need: S.need, pick: S.pick }),
+    plans: () => S.plans, ensure, unlockers };
 })();

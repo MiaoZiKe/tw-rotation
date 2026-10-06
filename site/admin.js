@@ -1515,7 +1515,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   window.addEventListener('beforeunload', (e) => { if (/^#admin\/(perm|members)\b/.test(location.hash || '') && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
   function setStat(msg, cls) { const s = PS.v && PS.v.querySelector('#pmStat'); if (s) { s.textContent = msg; s.className = 'pmstat' + (cls ? ' ' + cls : ''); } }
-  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年' };
+  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年', bad_dq: '每日額度要是 0～9999 的整數（空白＝不限）' };
   const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s));
   const EMAIL_OK = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   /* 到期日：畫面上是台北日期（yyyy-mm-dd），存的是「那一天台北 23:59:59」的毫秒 */
@@ -1877,12 +1877,15 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       ${PS.tier === 'paid' && PS.cfg ? `<div class="pmbar pmed" id="ptEdit" style="margin:0 0 8px"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
         <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
         <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
+        ${dqField(p)}
         <button type="button" class="pri" id="ptEdSave">儲存</button>
         <button type="button" class="danger" id="pmPlanDel" aria-expanded="${!!PS.delAsk}" title="${esc(delMsg(p.id))}">刪除此範本</button>
         <small>金流以範本代號 <code>${esc(p.id)}</code> 對價；改名、改價不影響已指定的會員。</small></div>
-        ${PS.delAsk ? `<div class="ptdelq" id="ptDelBox" role="alertdialog" aria-label="確認刪除範本"><span>刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(p.id))}</b>。</span><button type="button" id="ptDelNo">取消</button><button type="button" class="danger" id="ptDelGo">確定刪除</button></div>` : ''}` : ''}`;
+        ${PS.delAsk ? `<div class="ptdelq" id="ptDelBox" role="alertdialog" aria-label="確認刪除範本"><span>刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(p.id))}</b>。</span><button type="button" id="ptDelNo">取消</button><button type="button" class="danger" id="ptDelGo">確定刪除</button></div>` : ''}` : ''}
+      ${PS.tier === 'free' && PS.cfg && p ? `<div class="pmbar pmed" id="ptEdit" style="margin:0 0 8px">${dqField(p)}<button type="button" class="pri" id="ptEdDqSave">儲存</button></div>` : ''}`;
     const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.setAttribute('aria-expanded', String(!!PS.cfg));
     const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
+    const eq = v.querySelector('#ptEdDqSave'); if (eq) eq.onclick = () => saveDq(p);
     /* 刪除要二次確認：第一下只展開確認列（寫明會影響幾個人），按「確定刪除」才送 */
     const del = v.querySelector('#pmPlanDel'); if (del) del.onclick = () => { if (activeMembers(PS.planSel).length) { PS.delAsk = false; openMenu(PS.planSel, 'del'); return; } PS.delAsk = !PS.delAsk; paintTarget(); const g = v.querySelector('#ptDelGo'); if (g) g.focus(); };
     const dn = v.querySelector('#ptDelNo'); if (dn) dn.onclick = () => { PS.delAsk = false; paintTarget(); };
@@ -1899,7 +1902,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     bar.classList.toggle('one', PS.tier === 'guest');
     bar.innerHTML = `<button type="button" role="tab" data-sub="perm" id="ptSubPerm" class="${PS.sub === 'perm' ? 'on' : ''}" aria-selected="${PS.sub === 'perm'}">觀看權限</button>`
       + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單</button>`)
-      + (PS.tier === 'paid' && !noPlan ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名稱／價格／月或年、刪除）" aria-label="範本設定">⚙</button>` : '');
+      + (PS.tier === 'paid' && !noPlan ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名稱／價格／月或年／每日額度、刪除）" aria-label="範本設定">⚙</button>` : '')
+      + (PS.tier === 'free' ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（每日額度）" aria-label="範本設定">⚙</button>` : '');
     const cf = bar.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.delAsk = false; paintTarget(); };
     const pb = v.querySelector('#ptPermBox'), lb = v.querySelector('#ptListBox');
     if (pb) pb.hidden = memb ? false : (noPlan || PS.sub !== 'perm');
@@ -1931,9 +1935,30 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
     if (PS.draft) { setStat('有未儲存的變更', 'bad'); return; }
+    const dq = readDq(); if (dq === undefined) return;
     setStat('儲存中…');
-    const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name, feats: p.feats || {}, price, period });
+    const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name, feats: p.feats || {}, price, period, dq });
     if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintAddPlan(); paintTarget(); paintCats(); setStat(`已儲存「${planLabel(planOf(p.id))}」（台北 ${tpeTime()}）`, 'ok'); }
+    else setStat('儲存失敗：' + errText(j), 'bad');
+  }
+  /* ★ 2026-10-07 每日額度（docs/quota_plan.md）：範本的 dq ＝整個網站一天能開幾個單位（個股頁一檔、產業鏈剖析圖一張、付費分頁一個；
+     同一天同一個單位只算一次）。空白＝不限（Pro 的預設）；Plus 種子是 50。真正扣次在付費資料閘道 data-gw，這裡只是設定。 */
+  const dqField = (p) => `<label title="同一天同一檔個股、同一張剖析圖、同一個付費分頁只算一次；空白＝不限">每日額度 <input type="number" id="ptEdDq" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${p && Number.isInteger(p.dq) ? p.dq : ''}" aria-label="每日額度（次，空白＝不限）" style="width:6em"> 次</label>`;
+  /* 回 null＝不限、整數＝上限、undefined＝格式不對（已經顯示錯誤）*/
+  function readDq() {
+    const el = PS.v && PS.v.querySelector('#ptEdDq'); if (!el) return null;
+    const raw = String(el.value || '').trim();
+    if (raw === '') return null;
+    if (!/^\d{1,4}$/.test(raw)) { setStat('每日額度要是 0～9999 的整數（空白＝不限）', 'bad'); return undefined; }
+    return Number(raw);
+  }
+  async function saveDq(p) {
+    if (!p) return;
+    if (PS.draft) { setStat('有未儲存的變更', 'bad'); return; }
+    const dq = readDq(); if (dq === undefined) return;
+    setStat('儲存中…');
+    const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name: p.name, feats: p.feats || {}, dq });
+    if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintTarget(); paintCats(); setStat(`已儲存「${p.name}」每日額度：${dq == null ? '不限' : dq + ' 次'}（台北 ${tpeTime()}）`, 'ok'); }
     else setStat('儲存失敗：' + errText(j), 'bad');
   }
   async function newPaidPlan(name) {
