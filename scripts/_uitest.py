@@ -48627,15 +48627,28 @@ def t_track_batch_1006(b, base, code):
         pg.clock.run_for(3000)
         pg.wait_for_timeout(1500)
         n_open = len(r10)
-        for _ in range(10):
+        onl = lambda: json.loads(urllib.request.urlopen(api + "/__online", timeout=3).read())["n"]
+        seen = []
+        for i in range(10):
             pg.clock.run_for(60000)
             pg.wait_for_timeout(120)
+            if i < 4:
+                seen.append(onl())
         pg.wait_for_timeout(800)
-        from collections import Counter
-        print(f"    [{T}] 訪客開一頁：{n_open} 次；開一頁＋停 10 分鐘：{len(r10)} 次 {dict(Counter(r10))}")
+        pre10 = list(r10)   # 停 10 分鐘的請求（關頁那一次 beacon 之前）
         if not measure:
-            ok(f"{T}：開一頁時公告（/v1/notices）只打 1 次", r10[:n_open].count("/v1/notices") == 1, r10[:n_open])
-            ok(f"{T}：開一頁＋停 10 分鐘，統計請求 ≤ 3（載入 1＋每 5 分鐘 1）", sum(1 for u in r10 if u in ("/v1/beat", "/v1/track/batch")) <= 3, r10)
+            # 線上門檻 6 分鐘（Worker 用自己的真時鐘，「真的過 6 分鐘才掉」由 node 測試 batch.test.mjs 驗）：這裡驗瀏覽器這一側
+            ok(f"{T}：訪客停在頁面上的前 4 分鐘，線上名單每一分鐘都有他", len(seen) == 4 and all(n >= 1 for n in seen), seen)
+            n_b = onl()
+            pg.evaluate("""() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+                                   document.dispatchEvent(new Event('visibilitychange')); }""")
+            pg.wait_for_timeout(1200)
+            ok(f"{T}：關閉／隱藏頁面（beacon 帶 leave）→ 立刻從線上名單消失", onl() == n_b - 1, [n_b, onl()])
+        from collections import Counter
+        print(f"    [{T}] 訪客開一頁：{n_open} 次；開一頁＋停 10 分鐘：{len(pre10)} 次 {dict(Counter(pre10))}（關頁再 +{len(r10) - len(pre10)}）")
+        if not measure:
+            ok(f"{T}：開一頁時公告（/v1/notices）只打 1 次", pre10[:n_open].count("/v1/notices") == 1, r10[:n_open])
+            ok(f"{T}：開一頁＋停 10 分鐘，統計請求 ≤ 3（載入 1＋每 5 分鐘 1）", sum(1 for u in pre10 if u in ("/v1/beat", "/v1/track/batch")) <= 3, pre10)
         c.close()
         ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
     finally:

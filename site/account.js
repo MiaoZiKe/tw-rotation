@@ -340,7 +340,7 @@
     const on = document.getElementById('acctOnline'); if (!on) return;
     if (!S.on || S.online == null) { on.hidden = true; return; }
     on.hidden = false; on.innerHTML = `<i></i>${S.online}<span> 人在線</span>`;
-    on.title = `目前約 ${S.online} 人正在看這個網站（最近 2 分半有動作）` + (S.user && S.user.admin ? '・點一下看是誰' : '');
+    on.title = `目前約 ${S.online} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.user && S.user.admin ? '・點一下看是誰' : '');
     on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
   }
   function onBtn(e) {
@@ -402,7 +402,7 @@
         <li><b>自選清單</b>只存股票代號與清單名稱，<b>不存張數、成本、損益</b>。</li>
         <li><b>功能權限</b>：網站管理者可以替你的 email 設定方案與可用的功能（例如付費方案）；刪除帳號時一起刪除。</li>
         <li><b>使用統計（所有訪客，不論是否登入）</b>：每天每一頁、每一項功能被使用的<b>次數</b>，不含身分、不存 IP，保留 13 個月。瀏覽器開了「請勿追蹤」就完全不送。</li>
-        <li><b>線上狀態</b>：關掉分頁，或 3 分鐘沒有訊號，就刪除。</li>
+        <li><b>線上狀態</b>：關掉分頁，或 7 分鐘沒有訊號，就刪除。</li>
         <li><b>保存期限</b>：會員資料保存到你刪除為止；連續 24 個月沒有使用會自動刪除。</li>
         <li><b>存放</b>：Cloudflare（Workers／Durable Objects）；登入經由 Google 驗證身分。</li>
         <li><b>刪除</b>：來信客服 kcq01010909@gmail.com 申請，十五日內刪除會員資料與雲端自選清單。</li>
