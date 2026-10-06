@@ -7463,34 +7463,7 @@
     renderHeat(im);
   }
 
-  /* 2026-10-01 自選頁展開圖（DECISIONS #282）：給 watchpage.js 用的「某一檔、某個週期的 K 棒」。
-     走的是個股頁同一條路（stock/<代號>.json ＋ ensureM60 ＋ groupBars／resampleDaily），不另寫一套載入。
-     刻意不接 withToday：那支接的是 livek.js「現在正在看的那一檔」的今日報價，自選頁一次好幾檔，接上去會張冠李戴；
-     也不接即時週期 —— 不准為了自選頁多打 mis。*/
-  const _wbCache = new Map();
-  async function watchBars(code, tf) {
-    let pg = _wbCache.get(code);
-    if (!pg) {
-      if (!A) A = window.App;               // A 平常在 route() 才指定；從自選頁直接叫時還沒指定
-      pg = await A.load('stock/' + code, { fallback: null });
-      if (!pg) return { bars: [], why: '這檔沒有個股資料' };
-      // 舊版 payload 沒有 meta.m60 欄位時也試一次 m60 檔（新版標 ok 才載，跟個股頁一致）
-      if (pg.meta && pg.meta.m60 === undefined && !((pg.intraday || {})['60m'] || []).length) pg.meta.m60 = 'ok';
-      await ensureM60(pg);
-      _wbCache.set(code, pg);
-    }
-    const daily = pg.daily && pg.daily.length ? pg.daily : (pg.ohlcv || []);
-    const h60 = (pg.intraday && pg.intraday['60m']) || [];
-    let bars;
-    if (tf === '1d') bars = daily;
-    else if (tf === '1w') bars = KUtil.resampleDaily(daily, 'W');
-    else if (tf === '60m') bars = h60;
-    else if (tf === '240m') bars = groupBars(h60, 4);
-    else bars = [];
-    return { bars: bars || [], h60, daily, why: /m$/.test(tf) ? m60Why(pg) : '這個週期尚無資料' };
-  }
   window.Industry = { route, routeHeat,
-    watchBars,
     // 驗收用：族群總覽現在是什麼狀態（族群／個股、幾條、即時開沒開、滑到誰、onLive 被呼叫幾次）
     _gp: () => Object.assign({}, gpDbg, { timer: !!gpTimer }),
     // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」

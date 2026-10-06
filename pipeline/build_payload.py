@@ -625,12 +625,14 @@ def build() -> None:
         try:
             prog = json.loads((config.STATE / "backfill_progress.json").read_text(encoding="utf-8"))
             done_keys = {k for k, v in (prog.get("done") or {}).items() if v}
+            nodata_keys = {k for k, v in (prog.get("done") or {}).items() if v == "no_data"}
         except Exception:  # noqa: BLE001
-            done_keys = set()
+            done_keys, nodata_keys = set(), set()
         # 2026-10-05 晚：季配／月配每期的配息在 etf_dividend_events（鍵含除息日），舊表同年只留一期
         etf_div_events = pd.concat([div_events, store.read("etf_dividend_events")], ignore_index=True)
         etf_out = etf.build(price, names, etf_codes, etf_div_events, div_results,
-                            store.read("shareholding_weekly"), latest, done_keys)
+                            store.read("shareholding_weekly"), latest, done_keys,
+                            nodata_keys=nodata_keys)
         # 全部 ETF 的走勢拆成另一檔：etf.json 開頁就要讀，自選比較才需要全部的走勢（前端用到才讀）
         _write("etf_series", etf_out.pop("series_all", {"D": [], "s": {}}))
         _write("etf", etf_out)

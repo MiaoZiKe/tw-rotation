@@ -1967,18 +1967,19 @@ def t_etf_1005(pg, b, base):
         ytxt = text(lp, "#etfYld")
         ok(f"★ [{tag}] 殖利率前 5：依殖利率由高到低、全是配息型", yl == exp_y, (yl, exp_y))
         ok(f"★ [{tag}] 殖利率前 5 寫平均填息天數（12.5 天）、完全沒填過的寫「尚未填息」", "12.5 天" in ytxt and "尚未填息" in ytxt and "平均填息" in ytxt, ytxt[:200])
-        lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(300)
+        lp.select_option("#etfRng .rpsel", "3y"); lp.wait_for_timeout(300)
         r3, r3v = CODES("#etfRetTop"), J("() => [...document.querySelectorAll('#etfRetTop .rkrow .v')].map(e => parseFloat(e.textContent))")
-        lp.click("#etfPerSeg button[data-v='5y']"); lp.wait_for_timeout(300)
+        lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(300)
         r5, r5v = CODES("#etfRetTop"), J("() => [...document.querySelectorAll('#etfRetTop .rkrow .v')].map(e => parseFloat(e.textContent))")
         ok(f"★ [{tag}] 報酬率前 5：由高到低、全是配息型", r3 and all(cats.get(c) == "配息型" for c in r3 + r5) and r3v == sorted(r3v, reverse=True) and r5v == sorted(r5v, reverse=True), (r3v, r5v))
         ok(f"★ [{tag}] 期間 3 年→5 年：報酬率前 5 的名單或數字跟著換", (r3, r3v) != (r5, r5v), (r3, r5))
         ok(f"[{tag}] 沒有配息資料時副標寫「依價格年化」（不拿價格報酬冒充含息）、有配息時寫「依含息年化」", ("價格年化" in text(lp, "#etfRetTopQ")) or ("含息年化" in text(lp, "#etfRetTopQ")), text(lp, "#etfRetTopQ"))
-        lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(250)
-        vis = J("() => getComputedStyle(document.querySelector('#etfFrom')).visibility === 'visible'")
-        J("() => { const f = document.querySelector('#etfFrom'); f.value = '2018-01-01'; f.dispatchEvent(new Event('change', { bubbles: true })); }"); lp.wait_for_timeout(300)
-        ok(f"★ [{tag}] 自訂起始日 2018-01-01 → 兩個日期欄出現（結束日預設今天）、比較卡標題寫「自訂」、標題上不放日期（Andy 10-06）", vis and "自訂" in text(lp, "#etfRetSub") and "2018" not in text(lp, "#etfRetSub") and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"), text(lp, "#etfRetSub"))
-        lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(300)
+        # 2026-10-06 晚：期間改成報酬比較標題列的「下拉＋起訖日期框」（rangepick.js）；手改起始日 → 下拉跳「起始日期～至今」
+        vis = J("() => getComputedStyle(document.querySelector('#etfRng .rpfrom')).visibility === 'visible'")
+        lp.fill("#etfRng .rpfrom", "2018-01-01"); J("() => document.querySelector('#etfRng .rpfrom').dispatchEvent(new Event('change', { bubbles: true }))"); lp.wait_for_timeout(300)
+        ok(f"★ [{tag}] 手改起始日 2018-01-01 → 下拉跳「起始日期～至今」、結束日＝今天、副標不放日期（Andy 10-06）", vis and J("() => document.querySelector('#etfRng .rpsel').value") == "custom"
+           and "2018" not in text(lp, "#etfRetSub") and J("() => document.querySelector('#etfRng .rpto-in').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"), text(lp, "#etfRetSub"))
+        lp.select_option("#etfRng .rpsel", "3y"); lp.wait_for_timeout(300)
         # ================= 3. 自選比較
         r3 = CODES("#etfRetTop")
         dflt = CODES("#etfRetBody")
@@ -2162,6 +2163,153 @@ def t_etf_1005(pg, b, base):
            mp.evaluate("() => !!document.querySelector('.msheet:not([hidden]) .mrow')"))
     finally:
         mctx.close()
+
+
+def t_etf_ret_1006(pg, b, base):
+    """【ETF 報酬比較 2026-10-06 晚】Andy 原話：
+      ①「為何沒數據」（其他：累積報酬走勢整塊寫「無資料」，右邊年化卻列得出名字）
+      ②「槓桿沒有配息 圖表就拿掉含息以及不含息」「只留下報酬率」「也不需要下方備註 殖利率 配息年化多少」
+      ③「這邊我昨天有交代要週期切換……可以選擇時段如圖二那樣，切換到不同時間週期也可以在旁邊顯示對應年限日期」
+    根因（①）：期貨型 ETF 沒有配息列 → 週線只有價格、沒有含息序列；前端「確定不配息」的判斷要求 div_done 為真，
+      這幾檔 div_done＝False 又不是槓桿反向、名稱也沒「期貨」兩字，於是預設的「含息」走勢找不到序列 → 一條都畫不出來。
+      修法：pipeline 加 div_none（FinMind 配息資料集明確回空＋湖裡 0 列），前端「有沒有配息」改依期間內含息≠價格判斷。
+    驗：
+      · 每一類分頁逐一點：累積走勢 ≥ 1 條、整塊不出現「無資料」（真的畫不出來時要寫白話原因）
+      · 槓桿反向：長條只有一組「年化報酬率」、沒有圖例、標題沒有「含息」、含息／不含息切換消失、表格與說明沒有殖利率／配息年化
+      · 配息型：仍是「不含息」「含息」兩組
+      · 混合（主題型挑一檔有配息＋一檔沒配息）：沒配息那列殖利率／配息欄寫「無配息」、不寫 0%，長條名稱旁標「無配息」
+      · 期間：下拉切 5 年 → 1 年 → 上市以來，兩個日期框跟著變、走勢起點跟著變；手改起始日 → 下拉跳「起始日期～至今」
+      · 分類列上沒有舊的「報酬率期間」按鈕
+      · 選中的全部畫不出走勢 → 自動改看畫得出來的前 5 檔（假資料：把選中那兩檔的週線拿掉）
+      · 1440 與 390 兩種寬度：期間元件在畫面內、頁面沒有橫向捲軸、字 ≥ 11px"""
+    import json as _json
+    tag = "ETF報酬比較1006"
+    for W in (1440, 390):
+        lp = b.new_page(viewport={"width": W, "height": 900})
+        errs = []
+        lp.on("pageerror", lambda e: errs.append(str(e)))
+        lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        J = lambda js, *a: lp.evaluate(js, *a)
+        RET = lambda: J("() => document.querySelector('#etfRetBody').innerText")
+        LN = lambda: J("() => +(document.querySelector('#etfRetLine') || { dataset: {} }).dataset.n || 0")
+
+        def cat(v):
+            lp.click(f"#etfCatSeg button[data-v='{v}']")
+            wait_until(lp, f"() => document.querySelector('#v-etf').dataset.cat === '{v}' && !!document.querySelector('#etfRetLine') && document.querySelector('#etfRetLine').dataset.n !== undefined", 5000)
+            lp.wait_for_timeout(250)
+
+        try:
+            lp.goto(f"{base}#etf", wait_until="networkidle")
+            J("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.etf.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+            lp.reload(wait_until="networkidle")
+            wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 15000)
+            wait_until(lp, "() => !!(window.TwEtfPage && window.TwEtfPage.state.series)", 15000)
+            lp.wait_for_timeout(300)
+            if W == 1440:
+                ok(f"★ [{tag}] 分類列上沒有舊的「報酬率期間」按鈕（只留報酬比較標題列那一套）",
+                   J("() => !document.querySelector('#etfPerSeg') && !document.querySelector('#etfPerBox') && !/報酬率期間/.test(document.querySelector('#etfCatBar').innerText)"))
+                ok(f"★ [{tag}] 期間元件在報酬比較的標題列（下拉＋起訖兩個日期框）",
+                   J("() => !!document.querySelector('#etfRetCard .row.spread #etfRng .rpsel') && document.querySelectorAll('#etfRng input[type=date]').length === 2"))
+                # ---- 每一類逐一點
+                tabs = J("() => [...document.querySelectorAll('#etfCatSeg button')].map(b => b.dataset.v)")
+                res = {}
+                for c in tabs:
+                    cat(c)
+                    t = RET()
+                    res[c] = (LN(), "無資料" in t, t[:60] if LN() == 0 else "")
+                bad = {c: v for c, v in res.items() if v[0] < 1 and not ("還沒補進" in v[2] or "交易資料不足" in v[2])}
+                ok(f"★ [{tag}] 七類分頁（含「其他」）累積走勢都至少畫出 1 條、整塊沒有「無資料」", not bad and not any(v[1] for v in res.values()), res)
+                ok(f"★ [{tag}] 「其他」（期貨型）真的畫出走勢（Andy：「為何沒數據」）", res.get("其他", (0,))[0] >= 1, res.get("其他"))
+                # ---- 槓桿反向：只留報酬率
+                cat("槓桿反向")
+                lev = J("""() => { const b = document.querySelector('#etfRetBar'), i = echarts.getInstanceByDom(b), o = i && i.getOption();
+                    return { div: document.querySelector('#etfRetBody').dataset.div, ser: b.dataset.series,
+                             leg: o ? (o.legend || []).every(l => l.show === false) : null, nser: o ? o.series.length : -1,
+                             bt: document.querySelector('#etfRetBarTtl').textContent, lt: document.querySelector('#etfRetLineTtl').textContent,
+                             seg: getComputedStyle(document.querySelector('#etfBasisSeg')).display,
+                             th: document.querySelector('#etfRetTbl thead').innerText, how: document.querySelector('#how-etfret').innerText }; }""")
+                ok(f"★ [{tag}] 槓桿反向：年化每檔只有一條「年化報酬率」、沒有圖例（Andy：「只留下報酬率」）",
+                   lev["div"] == "none" and lev["ser"] == "年化報酬率" and lev["nser"] == 1 and lev["leg"] is True, lev)
+                ok(f"★ [{tag}] 槓桿反向：兩張圖標題沒有「含息」字樣（年化報酬率／累積報酬率）、含息／不含息切換消失",
+                   lev["bt"] == "年化報酬率" and lev["lt"].startswith("累積報酬率") and "含息" not in lev["bt"] + lev["lt"] and lev["seg"] == "none", lev)
+                ok(f"★ [{tag}] 槓桿反向：表格與說明沒有殖利率、配息年化（Andy：「也不需要下方備註 殖利率 配息年化多少」）",
+                   not any(k in lev["th"] for k in ("殖利率", "配息", "含息")) and "殖利率" not in lev["how"] and "配息年化" not in lev["how"], (lev["th"], lev["how"][:120]))
+                # ---- 配息型：仍是兩組
+                cat("配息型")
+                dv = J("() => ({ ser: document.querySelector('#etfRetBar').dataset.series, div: document.querySelector('#etfRetBody').dataset.div, bt: document.querySelector('#etfRetBarTtl').textContent, seg: getComputedStyle(document.querySelector('#etfBasisSeg')).display })")
+                ok(f"★ [{tag}] 配息型：年化仍有「不含息」「含息」兩組、切換鈕還在", dv["ser"] == "不含息,含息" and dv["div"] in ("all", "mixed") and "含息" in dv["bt"] and dv["seg"] != "none", dv)
+                # ---- 混合：主題型挑一檔有配息、一檔沒配息
+                pair = J("""() => { const L = window.TwEtfPage.state.data.items.filter(i => i.cat === '主題型' && i.stats && i.stats['5y'] && i.stats['5y'].ok);
+                    const y = L.find(i => i.stats['5y'].tr_ann != null && Math.abs(i.stats['5y'].tr_ann - i.stats['5y'].price_ann) > 1e-3);
+                    const n = L.find(i => i.div_none); return y && n ? [y.code, n.code] : null; }""")
+                if pair:
+                    J("(p) => localStorage.setItem('tw.etf.cmp.主題型', JSON.stringify(p))", pair)
+                    J("() => { window.TwEtfPage.state.cmp = {}; }")
+                    cat("主題型")
+                    mx = J("""(p) => { const tr = document.querySelector(`#etfRetTbl tr[data-code="${p[1]}"]`), ty = document.querySelector(`#etfRetTbl tr[data-code="${p[0]}"]`);
+                        const i = echarts.getInstanceByDom(document.querySelector('#etfRetBar')), o = i && i.getOption();
+                        return { div: document.querySelector('#etfRetBody').dataset.div, nodiv: tr && tr.dataset.nodiv,
+                                 cells: tr ? [...tr.querySelectorAll('td')].slice(3).map(t => t.innerText.trim()) : null,
+                                 ycells: ty ? [...ty.querySelectorAll('td')].slice(3).map(t => t.innerText.trim()) : null,
+                                 ylab: o ? o.yAxis[0].data : null }; }""", pair)
+                    ok(f"★ [{tag}] 混合（主題型 {pair}）：沒配息那列含息／殖利率／配息年化寫「無配息」、不寫 0%；有配息那列照寫數字",
+                       mx["div"] == "mixed" and mx["nodiv"] == "1" and mx["cells"] == ["無配息", "無配息", "無配息"]
+                       and not any("0.00%" in c for c in mx["cells"]) and mx["ycells"] and "%" in mx["ycells"][0], mx)
+                    ok(f"★ [{tag}] 混合：長條名稱旁標「無配息」只標在沒配息那檔", mx["ylab"] and sum("無配息" in str(x) for x in mx["ylab"]) == 1, mx["ylab"])
+                else:
+                    ok(f"[{tag}] 混合案例：主題型找不到「有配息＋確定不配息」各一檔（資料不足，這條略過）", True)
+                # ---- 期間切換
+                # 期間測試用固定清單：0056（2007 上市）＋00878（2020 上市）—— 預設的報酬前 5 可能都是 2023 年後才上市的，上市以來／自訂起點就驗不出差別
+                J("() => { localStorage.setItem('tw.etf.cmp.配息型', JSON.stringify(['0056', '00878'])); window.TwEtfPage.state.cmp = {}; }")
+                cat("主題型"); cat("配息型")
+                BX = lambda: J("() => [document.querySelector('#etfRng .rpsel').value, document.querySelector('#etfRng .rpfrom').value, document.querySelector('#etfRng .rpto-in').value, document.querySelector('#etfRetLine').dataset.first]")
+                lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(350); p5 = BX()
+                lp.select_option("#etfRng .rpsel", "1y"); lp.wait_for_timeout(350); p1 = BX()
+                lp.select_option("#etfRng .rpsel", "since"); lp.wait_for_timeout(350); ps = BX()
+                ok(f"★ [{tag}] 下拉 5 年→1 年：起始日期框跟著變晚（約 4 年）、結束日不變、走勢起點跟著變",
+                   p5[1] and p1[1] and p1[1] > p5[1] and p1[2] == p5[2] and p1[3] and p5[3] and p1[3] > p5[3], (p5, p1))
+                ok(f"★ [{tag}] 下拉「上市以來」：起始日期框改成比較清單裡最早上市那天（早於 5 年前），走勢起點跟著提早",
+                   ps[1] and ps[1] < p5[1] and ps[3] and ps[3] <= p5[3], (ps, p5))
+                ok(f"[{tag}] 報酬率前 5 的副標跟著期間（上市以來）", "上市以來" in text(lp, "#etfRetTopSub"), text(lp, "#etfRetTopSub"))
+                lp.fill("#etfRng .rpfrom", "2020-01-02"); J("() => document.querySelector('#etfRng .rpfrom').dispatchEvent(new Event('change', { bubbles: true }))"); lp.wait_for_timeout(350)
+                pc = BX()
+                ok(f"★ [{tag}] 手改起始日 2020-01-02 → 下拉跳「起始日期～至今」、走勢從 2020 起算", pc[0] == "custom" and pc[1] == "2020-01-02" and pc[3] and pc[3] >= "2020-01-02" and pc[3] < "2020-02-01", pc)
+                ok(f"[{tag}] 期間記在 localStorage（重新整理後沿用）", J("() => localStorage.getItem('tw.etf.per')") == "custom")
+                lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(250)
+            else:
+                # ---- 390：選中的全部畫不出走勢 → 自動改看畫得出來的前 5 檔（假資料：拿掉那兩檔的週線）
+                kill = ["00635U", "00642U"]
+
+                def fake_series(route):
+                    r = route.fetch(); d = _json.loads(r.text())
+                    for c in kill:
+                        d.get("s", {}).pop(c, None)
+                    route.fulfill(response=r, body=_json.dumps(d))
+                lp.route("**/data/etf_series.json*", fake_series)
+                J("(k) => localStorage.setItem('tw.etf.cmp.其他', JSON.stringify(k))", kill)
+                lp.reload(wait_until="networkidle")
+                wait_until(lp, "() => !!(window.TwEtfPage && window.TwEtfPage.state.series)", 15000)
+                cat("其他")
+                au = J("() => ({ auto: document.querySelector('#etfRetBody').dataset.auto, codes: document.querySelector('#etfRetBody').dataset.codes, n: +document.querySelector('#etfRetLine').dataset.n, t: document.querySelector('#etfRetBody').innerText.slice(0, 80) })")
+                ok(f"★ [{tag}] 390：選中的兩檔都畫不出走勢 → 自動改看畫得出來的（走勢 ≥ 1 條、有一句說明、不寫「無資料」）",
+                   au["auto"] == "1" and au["n"] >= 1 and not set(au["codes"].split(",")) & set(kill) and "無資料" not in au["t"], au)
+                ok(f"[{tag}] 390：自動改選不寫回使用者的選擇", _json.loads(J("() => localStorage.getItem('tw.etf.cmp.其他')")) == kill)
+                J("() => localStorage.removeItem('tw.etf.cmp.其他')")
+                lp.select_option("#etfRng .rpsel", "3y"); lp.wait_for_timeout(300)
+                g = J("""() => { const r = document.querySelector('#etfRng').getBoundingClientRect();
+                    const fs = [...document.querySelectorAll('#etfRng select, #etfRng input, #etfRng label, #etfRetCard h3')].map(e => parseFloat(getComputedStyle(e).fontSize));
+                    const wide = [...document.querySelectorAll('#v-etf *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1 && !e.closest('.rettw, .ddpanel, [hidden], #etfCalCard')).slice(0, 6).map(e => (e.id || e.className || e.tagName) + ':' + Math.round(e.getBoundingClientRect().right));
+                    return { wide, l: Math.round(r.left), r: Math.round(r.right), pw: document.documentElement.scrollWidth, vw: innerWidth, fmin: Math.min(...fs),
+                             from: document.querySelector('#etfRng .rpfrom').value }; }""")
+                # 配息行事曆（#etfCalCard）在 390 本來就超寬（HANDOFF 已知未收斂：#etf 390 沒有手機排版），這裡只守報酬比較這一區不添新的溢出
+                ok(f"★ [{tag}] 390：期間元件整組在畫面內、行事曆以外沒有元素超出畫面、字 ≥ 11px、切 3 年日期框有值", g["l"] >= 0 and g["r"] <= g["vw"] and not g["wide"] and g["fmin"] >= 11 and g["from"], g)
+            ok(f"[{tag}] {W}px 沒有 JS 錯誤", not errs, errs[:3])
+        finally:
+            try:
+                lp.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.etf.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+            except Exception:  # noqa: BLE001
+                pass
+            lp.close()
 
 
 def t_market_live_1005(pg, b, base):
@@ -22786,10 +22934,12 @@ def t_cal_1006(pg, b, base):
                  const h = document.querySelector('#etfCalGrid .cald[data-d="2026-10-10"] .cg-hl'); return { n: c.length, bad: bad.length, hol: h ? h.textContent : null }; }""")
         ok(f"★ [{tag}] ETF 行事曆：週末反灰、10/10「國慶日・休市」標記", ew["n"] >= 28 and ew["bad"] == 0 and ew["hol"] == "國慶日・休市", ew)
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(300)
-        lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(250)
-        ok(f"★ [{tag}] 報酬率期間有 3／5／10 年與「自訂」，自訂時出現起訖兩個日期欄（結束日預設今天）",
-           J("() => [...document.querySelectorAll('#etfPerSeg button')].map(b => b.dataset.v).join()") == "3y,5y,10y,custom"
-           and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"))
+        # 2026-10-06 晚：期間從分類列搬到報酬比較標題列（下拉＋起訖日期框，rangepick.js），選項多了近 1 年與上市以來
+        lp.select_option("#etfRng .rpsel", "custom"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 報酬比較的期間下拉有近 1／3／5／10 年、上市以來、起始日期～至今，起訖兩個日期框都在（結束日＝今天）",
+           J("() => [...document.querySelectorAll('#etfRng .rpsel option')].map(b => b.value).join()") == "1y,3y,5y,10y,since,custom"
+           and J("() => document.querySelector('#etfRng .rpto-in').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"))
+        lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(250)
         ok(f"★ [{tag}] ETF 各卡標題列沒有資料日期（行事曆、報酬率前 5、報酬比較、ETF 一覽）", not __import__("re").search(r"\d{4}-\d\d-\d\d", J("() => ['#etfCalCard','#etfRetTopCard','#etfRetCard','#etfListCard'].map(s => { const h = document.querySelector(s + ' h3'); return h ? h.innerText : ''; }).join(' ')")))
         ok(f"[{tag}] 頁首沒有單獨的免責框", J("() => !document.querySelector('#v-etf > .etfdisc') && !!document.querySelector('#etfBody #etfDisc')"))
         # ---- 2026-10-06 第二輪（Andy 第 7 項）
@@ -23540,6 +23690,7 @@ SECTIONS = {
     "下拉篩選1006":        lambda pg, b, base, code: t_msel_1006(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
     # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
     "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
     "財經日曆1006":        lambda pg, b, base, code: t_cal_1006(pg, b, base),
@@ -23868,8 +24019,10 @@ SECTIONS = {
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
     "全市場1H4H":          lambda pg, b, base, code: t_intraday_all(pg, base, code),
-    # ★ 2026-10-01 Andy：搜尋熱門股票走勢圖對齊；自選頁滿寬＋每列走勢圖＋點了展開（走勢／K 線＋週期）（⚠ 一律 --workers 1）
+    # ★ 2026-10-01 Andy：搜尋熱門股票走勢圖對齊；自選頁滿寬＋每列走勢圖（10-06 拿掉點了展開，改驗不展開）（⚠ 一律 --workers 1）
     "自選走勢與搜尋對齊":  lambda pg, b, base, code: t_watch_spark(b, base),
+    # ★ 2026-10-06 Andy：「移除點選小走勢圖 出現下方放大走勢跟K線圖功能，並且自選介面需要確保數據是前一天的」（⚠ 一律 --workers 1）
+    "自選1006":            lambda pg, b, base, code: t_watch_1006(b, base),
     # ★ 2026-10-02 Andy：V2 的版面結構搬到 v4 —— 可收合左側導覽、頁首、本頁功能跳轉列、事件抽屜、手機頁名＋線條圖示（DECISIONS #291，⚠ 一律 --workers 1）
     "版面v2結構":          lambda pg, b, base, code: t_layout4(b, base, code),
     # ★ 2026-10-02 Andy 五張截圖：個股頁下方分頁 —— 籌碼快照三張比例小圖、基本面小圖、AI 重點＋四張面向卡、
@@ -49492,8 +49645,8 @@ def t_design_v4_2b(b, base, code):
 
 # ===================================================================== 自選走勢與搜尋對齊（2026-10-01，DECISIONS #282）
 # Andy 2026-10-01：搜尋下拉「熱門股票」的小走勢圖起點不齊（名稱長短不同就前後移、還壓到名稱）；
-# 自選頁要用滿寬、每列加走勢圖、點走勢圖在下面展開（走勢／K 線＋週期）、再點收起、點名稱照舊進個股頁。
-# 每一步都驗「畫面真的變了」：left 一致、展開那一列真的出現、換 K 線後 KChart 真的在、換週期後根數真的變。
+# 自選頁要用滿寬、每列加走勢圖、點名稱照舊進個股頁。
+# （2026-10-06 Andy 拿掉「點走勢圖在下面展開」→ ③ 改驗點了不展開；原本的展開／K 線／週期驗收一併拿掉。）
 WS_SG = """() => { const s = document.getElementById('sugg');
     const rows = [...s.querySelectorAll('.sgrow[data-c]')].filter(r => r.getClientRects().length);
     const L = (sel) => rows.map(r => { const e = r.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left * 2) / 2 : null; });
@@ -49619,63 +49772,17 @@ def t_watch_spark(b, base):
         ok(f"{T}{W} 自選列小走勢最後一點跟列上現價差 < 1%",
            all(x["rowPx"] and abs(x["last"] / x["rowPx"] - 1) < 0.01 for x in wl), [(x["code"], x["last"], x["rowPx"]) for x in wl])
         ok(f"{T}{W} 自選列小走勢用實際像素畫（沒被 CSS 拉伸，圓點不會變橢圓）",
-           all(abs(pg.evaluate("(c) => document.querySelector(`#wpTbl .wpspk[data-exp='${c}'] svg.spk`).getBoundingClientRect().width", x["code"]) - x["W"]) < 0.6 for x in wl),
+           all(abs(pg.evaluate("(c) => document.querySelector(`#wpTbl .wpspk[data-c='${c}'] svg.spk`).getBoundingClientRect().width", x["code"]) - x["W"]) < 0.6 for x in wl),
            [(x["code"], x["W"]) for x in wl])
 
-        # ---- ③ 點走勢圖 → 那一列下方展開一張圖（預設走勢）
-        pg.click('#wpTbl .wpspk[data-exp="2330"]')
-        wait_until(pg, "() => { const c = document.getElementById('wpxC'); return c && c.dataset.state === 'ok'; }", 8000)
+        # ---- ③～⑦ ★ 2026-10-06 改（Andy：「移除點選小走勢圖 出現下方放大走勢跟K線圖功能」）：
+        #   原本驗「點走勢圖展開／切 K 線／切週期／只展開一列／再點收起」，展開功能拿掉了 → 改驗「點了不會展開、也不換頁」。
+        #   細節（每列都點、1440／390、資料日）在「自選1006」一段。
+        pg.click('#wpTbl .wpspk[data-c="2330"]'); pg.wait_for_timeout(400)
         st = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 點走勢圖在那一列下方展開", st["exp"] == "2330" and st["prev"] == "2330" and st["nexp"] == 1, st)
-        ok(f"{T}{W} 展開圖高 250～330、真的畫了線", 250 <= st["h"] <= 330 and st["mode"] == "line" and st["ec"] and st["n"] >= 2, st)
-        ok(f"{T}{W} 展開不離開自選頁", st["hash"] == "#watch", st)
-        # 2026-10-02（#290）：展開大圖跟列上小圖同一份資料、同一段期間 —— 點數、第一點、最後一點、基準逐一相同
-        xs = pg.evaluate("""() => { const c = document.getElementById('wpxC'), s = document.querySelector('#wpTbl .wpspk[data-exp="2330"] svg.spk');
-            const i = echarts.getInstanceByDom(c), o = i.getOption(), sr = o.series[0];
-            const ml = ((sr.markLine || {}).data || []).find(d => d.yAxis != null);
-            return { n: +c.dataset.n, first: +c.dataset.first, last: +c.dataset.last, base: +c.dataset.base, ymin: +c.dataset.ymin, ymax: +c.dataset.ymax,
-              sn: +s.dataset.n, sfirst: +s.dataset.first, slast: +s.dataset.last, sbase: +s.dataset.base,
-              ml: ml ? ml.yAxis : null, data: sr.data.length, note: document.getElementById('wpxNote').textContent }; }""")
-        ok(f"{T}{W} 展開大圖與列上小圖同一份資料（點數／起／訖／基準相同）",
-           xs["n"] == xs["sn"] == xs["data"] and xs["n"] >= 30 and abs(xs["first"] - xs["sfirst"]) < 1e-6
-           and abs(xs["last"] - xs["slast"]) < 1e-6 and abs(xs["base"] - xs["sbase"]) < 1e-6, xs)
-        ok(f"{T}{W} 展開大圖有昨收虛線、Y 軸包含它", xs["ml"] is not None and abs(xs["ml"] - xs["base"]) < 1e-6
-           and xs["ymin"] <= xs["base"] <= xs["ymax"], xs)
-        ok(f"{T}{W} 展開大圖小註寫出期間、起訖與漲跌幅", "交易日" in xs["note"] and "起 " in xs["note"] and "訖 " in xs["note"] and "%" in xs["note"], xs["note"])
-        # Y 軸刻度標籤彼此不重疊（以前手算 min／max 會在 4,900 底下多冒一個 4,878 疊在一起）
-        yov = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('wpxC'));
-            const ys = i.getModel().getComponent('yAxis').axis.getTicksCoords().map(t => t.coord).sort((a, b) => a - b);
-            let m = 1e9; for (let k = 1; k < ys.length; k++) m = Math.min(m, ys[k] - ys[k - 1]); return Math.round(m); }""")
-        ok(f"{T}{W} 展開走勢圖 Y 軸刻度間距夠（標籤不疊）", yov >= 14, yov)
+        ok(f"{T}{W} 點小走勢不展開、不離開自選頁", st["nexp"] == 0 and st["h"] == 0 and st["hash"] == "#watch" and st["rows"] == 3, st)
         if W == 390:
-            ok(f"{T}{W} 手機展開圖用滿寬（扣卡片內距）", st["w"] >= st["cardW"] - 50, st)
             ok(f"{T}{W} 手機自選表不超出卡片", pg.evaluate("() => document.getElementById('wpTbl').getBoundingClientRect().right <= document.querySelector('#v-watch .wpcard').getBoundingClientRect().right + 1"), "表格右緣超出卡片")
-
-        # ---- ④ 切 K 線 → KChart（canvas）取代走勢線
-        pg.click('tr.wpexp button[data-xm="k"]')
-        wait_until(pg, "() => { const c = document.getElementById('wpxC'); return c && c.dataset.mode === 'k' && c.dataset.state === 'ok'; }", 8000)
-        k1 = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 切 K 線後圖真的換了（canvas、不是 ECharts）", k1["mode"] == "k" and k1["tf"] == "1d" and k1["canvas"] > 0 and not k1["ec"] and k1["n"] > 20, k1)
-
-        # ---- ⑤ 切週期 → 真的重畫（根數變了、序號變了）
-        for tf in ("60m", "240m", "1w"):
-            pg.click(f'tr.wpexp button[data-xtf="{tf}"]')
-            wait_until(pg, f"() => {{ const c = document.getElementById('wpxC'); return c && c.dataset.tf === '{tf}' && c.dataset.state; }}", 8000)
-            k2 = pg.evaluate(WS_ST)
-            ok(f"{T}{W} 切到 {tf} 真的重畫", k2["tf"] == tf and k2["seq"] != k1["seq"]
-               and (k2["n"] != k1["n"] or k2["state"] == "empty"), {"前": k1, "後": k2})
-            k1 = k2
-
-        # ---- ⑥ 只展開一列：點另一列 → 舊的收起、新的展開
-        pg.click('#wpTbl .wpspk[data-exp="1303"]')
-        wait_until(pg, "() => { const x = document.querySelector('tr.wpexp'); return x && x.dataset.expRow === '1303'; }", 6000)
-        st = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 同時只展開一列", st["nexp"] == 1 and st["exp"] == "1303", st)
-
-        # ---- ⑦ 再點同一格 → 收起
-        pg.click('#wpTbl .wpspk[data-exp="1303"]'); pg.wait_for_timeout(250)
-        st = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 再點一次收起", st["nexp"] == 0 and st["hash"] == "#watch", st)
 
         # ---- ⑧ 點名稱 → 照舊進個股頁
         pg.click('#wpTbl tr[data-go="2454"] .wpgo')
@@ -49702,6 +49809,154 @@ def t_watch_spark(b, base):
             changed(f"{T}{W} 切主題後小走勢線色真的換了", [x[1] for x in c1["lines"]], [x[1] for x in c2["lines"]])
             dg_set_theme(pg, c1["theme"], 300)
         ctx.close()
+    ok(f"{T} 沒有 pageerror", not errs, errs[:5])
+
+
+# ===================================================================== 自選1006（2026-10-06）
+# Andy 10-06 13:00（截圖：#watch 點台積電小走勢 → 下方展開「最近 5 個交易日・每小時（09/24～10/02）」，今天已經 10/06）：
+#   「移除點選小走勢圖 出現下方放大走勢跟K線圖功能，並且自選介面需要確保數據是前一天的」
+# 驗三件事，1440 與 390 各一輪：
+#   ① 每一列的小走勢都點一次 → 沒有展開列、沒有新圖表、還在 #watch、列數不變；點名稱照舊進個股頁。
+#   ② 資料日：把瀏覽器時鐘撥到「本機資料日的下一個交易日」晚上（＝前一交易日正好是資料日），
+#      每一列小走勢最後一點的日期 ≥ 前一交易日、也等於全站資料日（沒有哪一列停在更早的日子），而且沒有落後標記。
+#   ③ 落後提示真的會出現：時鐘再往後撥兩個交易日 → 每一列都標落後（數字變淡、title 寫「資料至 MM/DD」、
+#      小走勢提示框多一行同樣的字），畫面上不多出任何日期膠囊。
+W1006_ROWS = """() => { const rows = [...document.querySelectorAll('#wpTbl tbody tr[data-go]')];
+    const md2 = (d) => d ? d.slice(5, 7) + '/' + d.slice(8, 10) : '';
+    return { n: rows.length, nexp: document.querySelectorAll('#wpList tr.wpexp, #wpxC').length,
+      charts: document.querySelectorAll('#wpList canvas').length, hash: location.hash,
+      meta: (App.D && App.D.meta && App.D.meta.data_date) || '',
+      rows: rows.map(r => { const c = r.dataset.go, sd = App.sparkData ? App.sparkData(c) : null, px = r.querySelector('[data-live="close"]');
+        return { c, d1: sd ? sd.d1 : '', stale: r.dataset.stale || '', cls: px ? px.className : '', title: px ? px.title : '',
+          hint: (r.querySelector('.wpspk') || {}).dataset?.tiphint || '', btn: !!r.querySelector('.wpspk button, button.wpspk'),
+          vis: r.innerText }; }),
+      sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+
+
+def _w1006_days(meta_date, hol):
+    """資料日之後的第 1、第 2 個交易日（跳週末與 tw_holidays.json 的休市日）。"""
+    import datetime as _dt
+    d = _dt.date.fromisoformat(meta_date)
+    out = []
+    while len(out) < 2:
+        d += _dt.timedelta(days=1)
+        k = d.isoformat()
+        if d.weekday() >= 5 or k in hol:
+            continue
+        out.append(k)
+    return out
+
+
+def t_watch_1006(b, base):
+    T = "[自選1006]"
+    errs: list[str] = []
+    codes = ["2330", "2454", "1303", "2317"]
+    for W in (1440, 390):
+        # 先開一頁讀本機資料日與休市日（決定要把時鐘撥到哪一天）
+        ctx0 = b.new_context(viewport={"width": W, "height": 900})
+        p0 = ctx0.new_page()
+        p0.goto(base + "#overview", wait_until="domcontentloaded")
+        info = p0.evaluate("""async () => { const m = await (await fetch('data/meta.json', { cache: 'no-store' })).json();
+            let h = {}; try { h = (await (await fetch('tw_holidays.json', { cache: 'no-store' })).json()).days || {}; } catch (e) {}
+            return { d: m.data_date, hol: Object.keys(h) }; }""")
+        ctx0.close()
+        if not ok(f"{T}{W} 本機有資料日", bool(info and info.get("d")), info):
+            continue
+        L = info["d"]
+        n1, n2 = _w1006_days(L, set(info["hol"]))
+        md = L[5:7] + "/" + L[8:10]
+
+        for phase, day in (("準時", n1), ("落後", n2)):
+            ctx = b.new_context(viewport={"width": W, "height": 900})
+            pg = ctx.new_page()
+            pg.on("pageerror", lambda e: errs.append(f"{W}{phase}: {e}"))
+            pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            # 台北 20:00（收盤後、15:30 管線也跑完了）：這時「前一交易日」就是 day 的前一個交易日
+            pg.clock.install(time=f"{day}T12:00:00Z")          # ★ 一定要在 goto 之前
+            pg.goto(base + "#overview", wait_until="load")  # 假時鐘下 networkidle 等不到
+            wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0 && !!window.TwWatch", 8000)
+            pg.evaluate("(cs) => { const T = TwWatch; T.curTab().codes.slice().forEach(c => T.remove(c)); cs.forEach(c => T.add(c)); }", codes)
+            pg.goto(base + "#watch", wait_until="load")
+            wait_until(pg, "() => document.querySelectorAll('#wpTbl .wpspk svg.spk').length >= 4 && window.CalGrid && Object.keys(CalGrid.days() || {}).length > 0", 8000)
+            pg.wait_for_timeout(300)
+            r0 = pg.evaluate(W1006_ROWS)
+            ok(f"{T}{W}{phase} 四列都有小走勢、沒有橫向捲軸", r0["n"] == 4 and r0["sw"] <= r0["vw"], {k: r0[k] for k in ("n", "sw", "vw")})
+            ok(f"{T}{W}{phase} 小走勢不是按鈕（沒有可展開的東西）", not any(x["btn"] for x in r0["rows"]), [x["c"] for x in r0["rows"] if x["btn"]])
+            if phase == "準時":
+                # ② 每一列最後一點 ≥ 前一交易日（＝資料日 L），也等於全站資料日
+                ok(f"{T}{W} 全站資料日＝本機資料日 {md}", r0["meta"] == L, r0["meta"])
+                ok(f"{T}{W} 每一列小走勢最後一點＝{md}（≥ 前一交易日，沒有停在更早的日子）",
+                   all(x["d1"] == md for x in r0["rows"]), [(x["c"], x["d1"]) for x in r0["rows"]])
+                ok(f"{T}{W} 資料準時 → 沒有落後標記", not any(x["stale"] or "wpstale" in x["cls"] or x["hint"] for x in r0["rows"]),
+                   [(x["c"], x["stale"], x["cls"]) for x in r0["rows"]])
+                # ① 每一列的小走勢都真的點一次 → 不展開、不換頁
+                for c in codes:
+                    pg.click(f'#wpTbl .wpspk[data-c="{c}"]'); pg.wait_for_timeout(250)
+                    r1 = pg.evaluate(W1006_ROWS)
+                    ok(f"{T}{W} 點 {c} 小走勢 → 不展開、沒有新圖、還在自選頁",
+                       r1["nexp"] == 0 and r1["charts"] == r0["charts"] and r1["hash"] == "#watch" and r1["n"] == 4,
+                       {k: r1[k] for k in ("nexp", "charts", "hash", "n")})
+                # 點名稱照舊進個股頁
+                pg.click('#wpTbl tr[data-go="2454"] .wpgo')
+                wait_until(pg, "() => location.hash.startsWith('#stock/')", 4000)
+                ok(f"{T}{W} 點名稱照舊進個股頁", pg.evaluate("() => location.hash") == "#stock/2454", pg.evaluate("() => location.hash"))
+            else:
+                # ③ 往後撥兩個交易日 → 每一列都落後，要講出「資料至 MM/DD」
+                ok(f"{T}{W} 時鐘撥到 {day}（前一交易日 {n1}）→ 每一列都標落後",
+                   all(x["stale"] == md and "wpstale" in x["cls"] for x in r0["rows"]), [(x["c"], x["stale"], x["cls"]) for x in r0["rows"]])
+                ok(f"{T}{W} 落後列的現價滑過寫「資料至 {md}」、小走勢提示也有",
+                   all(f"資料至 {md}" in x["title"] and x["hint"] == f"資料至 {md}" for x in r0["rows"]),
+                   [(x["c"], x["title"], x["hint"]) for x in r0["rows"]])
+                ok(f"{T}{W} 畫面上沒有多出日期字樣（DECISIONS #329：不放日期膠囊）",
+                   not any("資料至" in x["vis"] or md in x["vis"] for x in r0["rows"]), [x["vis"][:60] for x in r0["rows"]])
+                cs = pg.evaluate("""() => { const e = document.querySelector('#wpTbl td.wpstale'), n = document.querySelector('#wpTbl td.nm b');
+                    return e && n ? [getComputedStyle(e).color, getComputedStyle(n).color, getComputedStyle(e).textDecorationStyle] : null; }""")
+                ok(f"{T}{W} 落後的數字真的變淡（顏色跟名稱不同、虛線底）", bool(cs) and cs[0] != cs[1] and cs[2] == "dotted", cs)
+                if W >= 800:
+                    pg.hover('#wpTbl .wpspk[data-c="2330"] svg.spk'); pg.wait_for_timeout(200)
+                    tip = pg.evaluate("() => { const t = document.querySelector('.spktip'); return t && !t.hidden ? t.textContent : null; }")
+                    ok(f"{T}{W} 滑到落後列的小走勢 → 提示框寫「資料至 {md}」", bool(tip) and f"資料至 {md}" in tip, tip)
+            if W == 390:
+                fs = pg.evaluate("""() => Math.min(...[...document.querySelectorAll('#wpTbl td, #wpTbl th')].filter(e => e.getClientRects().length && e.innerText.trim())
+                    .map(e => parseFloat(getComputedStyle(e).fontSize)))""")
+                ok(f"{T}{W}{phase} 手機表格字 ≥ 11px", fs >= 11, fs)
+            ctx.close()
+
+    # ④ 根因回歸：上次開站存下來的舊資料（IndexedDB 存檔）先到時，網路版回來之後自選列要換成網路版，
+    #    不准停在存檔那天（以前 watchpage 第一次拿到 stocks 就記住、展開圖的 _wbCache 也記住 → 要重新整理才換）。
+    #    做法：打開存檔機制 → 正常開一次 #watch（寫好存檔）→ 把存檔裡 2330 的現價改成 1、版本改舊 →
+    #    再開一次、data/*.json 全部慢 4 秒 → 先看到 1（證明存檔真的先到）→ 網路版到了 → 變回真的現價。
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, timezone_id="Asia/Taipei")
+    ctx.add_init_script("window.__TW_SNAP__ = 1;")
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(f"存檔: {e}"))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#overview", wait_until="networkidle")
+    wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0 && !!window.TwWatch", 8000)
+    pg.evaluate("(cs) => { const T = TwWatch; T.curTab().codes.slice().forEach(c => T.remove(c)); cs.forEach(c => T.add(c)); }", codes)
+    pg.goto(base + "#watch", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#wpTbl tbody tr[data-go]').length >= 4", 8000)
+    pg.wait_for_timeout(2000)                                  # 讓背景存檔寫完
+    real = pg.evaluate("() => document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]').textContent.trim()")
+    hacked = pg.evaluate("""() => new Promise((res) => { const rq = indexedDB.open('tw-snap', 1);
+        rq.onsuccess = () => { const db = rq.result, t = db.transaction('f', 'readwrite'), st = t.objectStore('f'), g = st.get('stocks');
+          g.onsuccess = () => { const r = g.result; if (!r) return res(false);
+            (r.data || []).forEach(x => { if (x.code === '2330') x.close = 1; }); r.ver = 'old'; st.put(r); };
+          t.oncomplete = () => res(true); t.onerror = () => res(false); };
+        rq.onerror = () => res(false); })""")
+    ok(f"{T} 存檔裡有 stocks（改成舊資料）", hacked, hacked)
+    pg.add_init_script("""(() => { const F = window.fetch; window.fetch = function (i, o) {
+        const u = String((i && i.url) || i);
+        if (/(^|\/)data\/[^?]*\.json/.test(u)) return new Promise(r => setTimeout(r, 4000)).then(() => F.call(this, i, o));
+        return F.call(this, i, o); }; })();""")
+    pg.goto("about:blank")
+    pg.goto(base + "#watch", wait_until="domcontentloaded")
+    first = wait_until(pg, "() => { const e = document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]'); return e && parseFloat(e.textContent.replace(/,/g, '')) === 1; }", 3500)
+    ok(f"{T} 存檔先到：自選列先顯示存檔的現價（1）", bool(first), pg.evaluate("() => (document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]') || {}).textContent"))
+    after = wait_until(pg, "() => { const e = document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]'); return e && e.textContent.trim() === %s; }" % json.dumps(real), 15000)
+    ok(f"{T} 網路版到了 → 自選列換成網路版現價（{real}），不停在存檔那天", bool(after),
+       pg.evaluate("() => (document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]') || {}).textContent"))
+    ctx.close()
     ok(f"{T} 沒有 pageerror", not errs, errs[:5])
 
 

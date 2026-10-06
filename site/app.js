@@ -8325,6 +8325,7 @@
       '「即時 重試中」＝這一輪報價沒抓到，會自動重試',
       '沒登入時清單只存在這台裝置的瀏覽器',
       '右上「N／M 頁」＝目前頁數／分頁上限',
+      '現價、漲跌幅變淡加虛線＝這一列還停在前一交易日之前的收盤，滑過看「資料至 MM/DD」',
     ]),
     /* ★ 2026-09-24：總覽「熱門題材」改熱力圖之後的說明（原本卡片上的「熱度＝資金佔比變化＋法人＋新聞」副標搬進來）。*/
     themeov: howHTML('哪幾個題材現在吸金最多、而且最熱。', [
@@ -12696,7 +12697,7 @@
        ② 小圖畫「最近一天」，自選展開大圖畫「最近 5 個交易日」—— 期間不同，形狀對不起來；
        ③ sparks.json 只存 64 階形狀、不存價位：每一檔都把自己的最低～最高撐滿整格，0.3% 的波動看起來像暴漲，
           也畫不出基準線、算不出漲跌幅。
-     v2：資料與期間跟展開大圖**逐點相同**（trendSeries 是兩邊共用的口徑，compute/sparks.py 是它的 Python 版）——
+     v2（口徑在 compute/sparks.py；2026-10-06 自選展開大圖已拿掉）——
        分時＝最近 5 個交易日、每天 09:00 開盤＋每根 60 分 K 收盤（一天 6 點、共 30 點），最後一點換成正式收盤；
        沒有分時＝最近 60 個交易日收盤。基準虛線＝昨收（日線倒數第二天），方向＝最後一點對昨收（紅漲綠跌）——
        跟列上的「漲跌幅」同一件事、同一個顏色；期間漲跌（訖／起）寫在提示框。
@@ -12706,38 +12707,9 @@
   let SPARKS = null, _spkP = null;
   const _pxNF = new Intl.NumberFormat('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const pxFmt = (v) => (v == null || !isFinite(v) ? '—' : _pxNF.format(Math.round(v * 100) / 100));
-  // 60 分 K 的時間標的是 K 棒開始（09:00…13:00）；畫的是那根的收盤，所以標成收盤時間（13:00 那根收在 13:30）
-  const _m60End = (hm) => { const h = +hm.slice(0, 2), m = +hm.slice(3, 5), t = Math.min(h * 60 + m + 60, 13 * 60 + 30);
-    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
-  const _md = (d) => (d && d.length >= 10 ? d.slice(5, 7) + '/' + d.slice(8, 10) : '');
-  /* 走勢的口徑（自選展開大圖用它；compute/sparks.py 是同一套的 Python 版，改一邊一定要改另一邊）。
-     h60＝[ISO 時間, 開, 高, 低, 收, 量]、daily＝[日期, 開, 高, 低, 收, 量]（個股頁同一份資料）。*/
-  const TREND_DAYS = 5, TREND_DAILY = 60;
-  function trendSeries(h60, daily) {
-    daily = (daily || []).filter(r => r && +r[4] > 0);
-    // 基準＝昨收（日線倒數第二天；還原價在除權息當天就等於參考價）—— 跟列上「漲跌幅」同一件事、同一個顏色
-    const prevClose = () => (daily.length >= 2 ? { base: +daily[daily.length - 2][4], bd: _md(String(daily[daily.length - 2][0])) } : null);
-    const dLast = daily.length ? String(daily[daily.length - 1][0]).slice(0, 10) : '';
-    const h = (h60 || []).filter(r => r && String(r[0]).slice(0, 10) <= dLast);
-    if (dLast && h.length && String(h[h.length - 1][0]).slice(0, 10) === dLast) {
-      const byDay = new Map();
-      h.forEach(r => { const d = String(r[0]).slice(0, 10); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(r); });
-      const days = [...byDay.keys()].sort(), win = days.slice(-TREND_DAYS);
-      const pts = [], per = [];
-      win.forEach(d => {
-        const bs = byDay.get(d).slice().sort((a, b) => String(a[0]) < String(b[0]) ? -1 : 1);
-        const p = [[_md(d) + ' 09:00', +bs[0][1]]].concat(bs.map(b => [_md(d) + ' ' + _m60End(String(b[0]).slice(11, 16)), +b[4]]))
-          .filter(x => x[1] > 0 && isFinite(x[1]));
-        pts.push(...p); per.push(p.length);
-      });
-      if (pts.length) pts[pts.length - 1][1] = +daily[daily.length - 1][4];   // 60 分 K 不含收盤集合競價 → 換成正式收盤
-      if (pts.length >= 2) return Object.assign({ kind: 'i', pts, d0: _md(win[0]), d1: _md(win[win.length - 1]), per }, prevClose() || { base: pts[0][1], bd: '' });
-    }
-    const tail = daily.slice(-TREND_DAILY);
-    if (tail.length < 2) return null;
-    return Object.assign({ kind: 'd', pts: tail.map(r => [_md(String(r[0])), +r[4]]), d0: _md(String(tail[0][0])), d1: _md(String(tail[tail.length - 1][0])), per: [] },
-      prevClose());
-  }
+  // 走勢的口徑在 pipeline/compute/sparks.py（sparks.json 產出端）；前端只負責畫。
+  // 2026-10-06 自選展開大圖拿掉（Andy），前端那份 trendSeries 只剩它在用，一起拿掉。
+  const TREND_DAYS = 5;
   /* Y 軸範圍：包含資料與基準線；振幅小於基準 3%（±1.5%）時撐到 3% 並置中 —— 不讓 0.3% 的小波動撐滿整格；上下再留 8%。*/
   function trendRange(lo, hi, base) {
     let a = Math.min(lo, base), b = Math.max(hi, base);
@@ -12746,7 +12718,7 @@
     const pad = (b - a) * 0.08 || Math.abs(base) * 0.01 || 1;
     return [a - pad, b + pad];
   }
-  // 期間、起訖、漲跌的文字（小圖提示框與展開大圖的小註同一套說法）
+  // 期間、起訖、漲跌的文字（小走勢提示框）
   //   per＝畫的是哪一段；se＝起訖價＋期間漲跌（訖／起）；chg＝最後一天對昨收（＝列上的漲跌幅，顏色也看它）
   function trendText(t) {
     const pct = t.base ? (t.last / t.base - 1) * 100 : 0, ppct = t.first ? (t.last / t.first - 1) * 100 : 0;
@@ -12808,8 +12780,12 @@
   function sparkLoad() {
     if (_spkP) return _spkP;
     // 跟 logoMapLoad 同一個理由不走共用 load()：404 時也要把本體讀完（不然 networkidle 會一直等）
-    const ver = (D.meta && D.meta.generated_at) || '';
-    _spkP = fetch(`data/sparks.json?v=${ver}`, ver ? {} : { cache: 'no-store' })
+    // ★ 2026-10-06：版本鍵等「網路版 meta」（同 load()）。D.meta 可能還是上次存的那份（IndexedDB 存檔先到），
+    //   拿它的 generated_at 去抓會撞到瀏覽器手上那天的舊 sparks.json，而 _spkP 只抓一次 —— 小走勢就停在上次開站那天。
+    _spkP = Promise.resolve(_metaNet || D.meta).catch(() => D.meta).then((m) => {
+      const ver = ((m || D.meta) && (m || D.meta).generated_at) || '';
+      return fetch(`data/sparks.json?v=${ver}`, ver ? {} : { cache: 'no-store' });
+    })
       .then(async r => { const t = await r.text(); if (!r.ok) return null; try { return JSON.parse(t); } catch (e) { return null; } })
       .catch(() => null)
       .then(d => { SPARKS = d && d.s ? d : { s: {}, abc: '' }; sparkUpgrade(); return SPARKS; });
@@ -13130,7 +13106,7 @@
       disc: discHTML, DISC,                // 判定／評分類卡片標題列的一行免責（2026-10-06；industry.js、mobile3.js 用）
       logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
       logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG, sparkData,
-      trendSeries, trendRange, trendText, pxFmt,   // 迷你走勢與自選展開大圖共用的口徑（DECISIONS #290）
+      trendRange, trendText, pxFmt,   // 迷你走勢的 Y 範圍與提示框文字（DECISIONS #290）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       donut: DONUT,                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
