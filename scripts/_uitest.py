@@ -16351,6 +16351,11 @@ def t_r5(pg, base, code):
     #   → 改後：「指標 ▾」下拉的 KD 那一列（點左邊名稱那一塊＝開關、按右邊 ▸ 就地展開三格）。審查 R5 的精神不變：
     #   點「看起來是開關的地方」就是開關，不會點到輸入框。
     goto_stock()
+    # ★ 2026-10-06（既有紅字清理）：先按「日」再驗。為什麼舊的過時：09-28 起個股頁 K 線預設週期是「分時」（折線、沒有指標副圖；
+    #   DECISIONS #310 那批已在「總覽修正0926b」補過同一步），分時下開關 KD 畫面本來就不會變、圖例也不會出現 KD(…) ——
+    #   舊斷言「點了 K 線圖真的重畫」「圖例變 KD(5,3,3)」量的是一張不畫 KD 的圖。真人也是先切「日」才看得到 KD。
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    wait_until(pg, "() => !!(window.Industry && window.Industry._dbg && window.Industry._dbg().paneH)", 8000)
     kd_row = '#cfgPop .indrow[data-k="kd"]'
     if not ind_on(pg, "kd"):
         ind_toggle(pg, "kd", 800)
@@ -43012,6 +43017,22 @@ def t_kpi_footer_0926(pg, b, base):
     pg.evaluate("() => window.Market3 && window.Market3.mount()"); pg.wait_for_timeout(1400)
     k2 = pg.evaluate(IN_BAR)
     ok("★ 大盤卡重掛之後摘要卡列還在、四張都在（沒有被 innerHTML 丟掉）", k2["inBar"] and k2["n"] == 4, k2)
+    # ★ 2026-10-06（既有紅字清理）：這兩條 10-05 在乾淨 main（23104eca）負載 1 時也紅過（inBar=False，HANDOFF 記「待查 placeKpi」），
+    #   本輪 main＋本分支重跑 0、探針（scratchpad probe_kpi）訪客／管理者兩種視角都是 inBar=True，追不到是哪一筆修好的。
+    #   這支驗收預設注入 TW_LIVE_OVERRIDE（管理者視角，#326）—— 訪客（也就是 Andy 以外的所有人）那一份另外守一次。
+    from playwright.sync_api import Browser as _B
+    _raw = getattr(_B, "_tw_raw_new_context", None)
+    if ok("拿得到 Browser 原版 new_context（訪客視角要繞開 TW_LIVE_OVERRIDE）", _raw is not None):
+        _vc = _raw(b, viewport={"width": 1440, "height": 1000})
+        _vc.add_init_script(CONSENT_PRESET)          # 同意條款預寫；刻意不注入 LIVE_ADMIN_PRESET
+        _vp = _vc.new_page()
+        _vp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        _vp.goto(f"{base}#overview", wait_until="networkidle")
+        wait_until(_vp, "() => document.querySelectorAll('#hero .osc').length === 4", 8000)
+        kv = _vp.evaluate(IN_BAR)
+        ok("★ 訪客（非管理者、看不到即時）：摘要卡列一樣在大盤三張圖的卡片裡、四張都在",
+           kv["inBar"] and kv["n"] == 4 and not _vp.evaluate("() => document.documentElement.classList.contains('live-on')"), kv)
+        _vc.close()
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
     # ★ 2026-10-06 改前→改後（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：
     #   改前：重掛之後點「漲跌家數」卡照樣打開市場明細（hash 換成 #market/updown）。
