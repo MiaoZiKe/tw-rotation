@@ -16351,6 +16351,11 @@ def t_r5(pg, base, code):
     #   → 改後：「指標 ▾」下拉的 KD 那一列（點左邊名稱那一塊＝開關、按右邊 ▸ 就地展開三格）。審查 R5 的精神不變：
     #   點「看起來是開關的地方」就是開關，不會點到輸入框。
     goto_stock()
+    # ★ 2026-10-06（既有紅字清理）：先按「日」再驗。為什麼舊的過時：09-28 起個股頁 K 線預設週期是「分時」（折線、沒有指標副圖；
+    #   DECISIONS #310 那批已在「總覽修正0926b」補過同一步），分時下開關 KD 畫面本來就不會變、圖例也不會出現 KD(…) ——
+    #   舊斷言「點了 K 線圖真的重畫」「圖例變 KD(5,3,3)」量的是一張不畫 KD 的圖。真人也是先切「日」才看得到 KD。
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    wait_until(pg, "() => !!(window.Industry && window.Industry._dbg && window.Industry._dbg().paneH)", 8000)
     kd_row = '#cfgPop .indrow[data-k="kd"]'
     if not ind_on(pg, "kd"):
         ind_toggle(pg, "kd", 800)
@@ -16671,12 +16676,12 @@ def t_mobile_v3(b, base, code):
         m.wait_for_timeout(300)
         m.tap("#mTabMore", timeout=8000)
         m.wait_for_timeout(300)
-        mo = m.evaluate("() => { const s = document.getElementById('mSheet'); return { open: !s.hidden, kind: s.dataset.kind, ver: (s.querySelector('.mver') || {}).textContent || '', rows: s.querySelectorAll('.mrow').length }; }")
-        # ★ 2026-10-06 改前→改後（驗收過時）：改前「五列」＝市場明細／週期統計／自選／今日事件／主題（交付清單 09-28 換成自選）。
-        #   10-05 ETF 專區上線後，底部導覽那顆 ETF 分頁在手機靜態藏起來，入口改進「更多」（mobile3.js MORE_VIEWS），所以訪客清單是六列：
-        #   市場明細／週期統計／ETF 專區／自選／今日事件／主題（管理者另加「管理區」，這裡是訪客）。
-        ok(f"{T} 「更多」抽屜：市場明細／週期統計／ETF 專區／自選／今日事件／主題 六列＋版號",
-           mo["open"] and mo["rows"] == 6 and "版號" in mo["ver"], mo)
+        mo = m.evaluate("() => { const s = document.getElementById('mSheet'); return { open: !s.hidden, kind: s.dataset.kind, ver: (s.querySelector('.mver') || {}).textContent || '', rows: s.querySelectorAll('.mrow').length, ms: [...s.querySelectorAll('.mrow')].map(r => r.dataset.m) }; }")
+        # ★ 2026-10-06（既有紅字清理）改前→改後：五列 → 七列（市場明細／週期統計／ETF／財經日曆／自選／今日事件／主題）。
+        #   為什麼：ETF、財經日曆兩顆頂層分頁收進「更多」（不收的話底部五欄擠成兩列、「更多」掉到畫面外，見 mobile3.js MORE_VIEWS 同日註解）；
+        #   交付清單 09-28 起換成自選（舊標題沒跟著改）。比對每一列是誰，不只比列數。訪客沒有「管理區」那列。
+        ok(f"{T} 「更多」抽屜：市場明細／週期統計／ETF／財經日曆／自選／今日事件／主題 七列＋版號",
+           mo["open"] and mo["ms"] == ["market", "season", "etf", "earnings", "watch", "events", "theme"] and "版號" in mo["ver"], mo)
         th0 = m.evaluate("() => document.documentElement.dataset.theme")
         m.tap('#mSheet .mrow[data-m="theme"]'); m.wait_for_timeout(800)
         th1 = m.evaluate("() => document.documentElement.dataset.theme")
@@ -17404,11 +17409,14 @@ DIV_PROBE = r"""() => { const el = document.getElementById('divBar'); const c = 
            evNote: (document.querySelector('#stockTab .divEvNote') || {}).textContent || '',
            evRows: document.querySelectorAll('#divEv tr').length, sub: (document.getElementById('divSub') || {}).textContent || '' }; }"""
 
+# ★ 2026-10-06（既有紅字清理）：h3 改讀 textContent.trim()。為什麼舊的過時：site/icons.js（標題圖示）在每張卡標題最前面插一顆
+#   <span class="ticon"><svg>…</svg></span>，圖示的 SVG 原始碼在 <path/> 之間有空白字元 → h3.textContent 開頭多了 "   "
+#   （畫面上看不到；2327 等有「公告 / 新聞」圖示規則的那張才有）。斷言要驗的是「標題叫公告 / 新聞」，不是驗前面有沒有裝飾圖示。
 NEWS_PROBE = r"""() => { const card = document.getElementById('stockNews'); if (!card) return null;
   const rows = [...card.querySelectorAll('.nrow')];
   const vis = rows.filter(r => !r.hidden && r.getBoundingClientRect().height > 0);
   const em = document.getElementById('newsEmpty');
-  return { cards: document.querySelectorAll('#stockTab .card').length, h3: (card.querySelector('h3') || {}).textContent || '',
+  return { cards: document.querySelectorAll('#stockTab .card').length, h3: ((card.querySelector('h3') || {}).textContent || '').trim(),
     total: rows.length, shown: vis.length, types: [...new Set(vis.map(r => r.dataset.type))],
     tagOk: rows.every(r => { const t = r.querySelector('.ntag'); return !!t && t.textContent.trim() === ({ mops: '重大訊息', news: '新聞', broker: '券商觀點' })[r.dataset.type]; }),
     tagColors: [...new Set(rows.map(r => getComputedStyle(r.querySelector('.ntag')).color + '|' + r.dataset.type))],
@@ -20917,14 +20925,20 @@ def t_ov_kpi_live_1002(b, base, code):
     if not live_ok:
         ctx.close(); return
     st = pg.evaluate("""() => { const h = document.getElementById('hero');
-        return { from: h.dataset.udFrom, udN: +h.dataset.udN, feet: [...h.querySelectorAll('.osc .osc-f')].map(e => e.textContent.trim()),
+        return { from: h.dataset.udFrom, udN: +h.dataset.udN, udUni: +h.dataset.udUni || 0, feet: [...h.querySelectorAll('.osc .osc-f')].map(e => e.textContent.trim()),
                  ovl: [...h.querySelectorAll('.osc')].filter(c => c.classList.contains('ovl')).length,
                  lv: [...h.querySelectorAll('.ovl-tg')].filter(b => b.classList.contains('lv')).length }; }""")
     v1 = vals(pg)
     ok("★ [摘要卡即時] 四張卡底線都寫「即時估算」（口徑：不是全市場、不是盤後那一份）",
        len(st["feet"]) == 4 and all("即時估算" in f for f in st["feet"]), st["feet"])
-    ok("[摘要卡即時] 漲跌家數換成即時那一份：三數加總＝卡片自報的 N 檔，N 在 1～443（人工族群成分股），不是全市場",
-       st["from"] == "live" and v1["ud"] and None not in v1["ud"] and sum(v1["ud"]) == st["udN"] and 0 < st["udN"] <= 443, [v1["ud"], st])
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「N ≤ 443（人工族群成分股）」→「N ≤ 這一輪名單檔數 ≤ 550（MUD_CAP）、而且 < 全市場檔數」。
+    #   為什麼舊的過時：79d503f5（10-05）把即時名單從「人工族群成分股（當時 443 檔）」改成「族群＋自選＋成交值前段」三段聯集、
+    #   上限 MUD_CAP＝550（app.js），所以 N＝550 是對的；寫死 443 是把當時的資料量當成規格。卡片底線那句「人工族群成分股」
+    #   同一批沒跟上（說錯口徑），已在 app.js ovlUD() 改掉，名單檔數改從 #hero data-ud-uni 讀，不再寫死。
+    n_all = len(json.loads((SITE / "data" / "stocks.json").read_text(encoding="utf-8")))
+    ok("[摘要卡即時] 漲跌家數換成即時那一份：三數加總＝卡片自報的 N 檔，N ≤ 名單檔數 ≤ 550，而且不是全市場",
+       st["from"] == "live" and v1["ud"] and None not in v1["ud"] and sum(v1["ud"]) == st["udN"]
+       and 0 < st["udN"] <= st["udUni"] <= 550 and st["udN"] < n_all, [v1["ud"], st, n_all])
     ok("[摘要卡即時] 漲跌家數卡底線寫出「N 檔」的 N（跟三數加總同一個數）", str(st["udN"]) in st["feet"][0], [st["udN"], st["feet"][0]])
     ok("[摘要卡即時] 資金輪盤四段加總＝全部族群數（即時那一份只換階段、不少族群）",
        v1["rot"] and None not in v1["rot"] and sum(v1["rot"]) == pg.evaluate("() => +document.getElementById('hero').dataset.rotN") > 0, v1["rot"])
@@ -20960,7 +20974,15 @@ def t_ov_kpi_live_1002(b, base, code):
     t_q = _time.time(); pg.wait_for_timeout(15200)
     nq = len(reqs(t_q, ("/quote",)))
     toks = [n for t, n in S["toks"] if t >= t_q]
-    ok("★ [摘要卡即時] 不多打請求：15 秒內 /quote 只有 3～4 次（每 5 秒一次，跟沒有摘要卡即時時一樣）", 3 <= nq <= 4, nq)
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「15 秒內 /quote 3～4 次」→「15 秒內 2～4 次，而且相鄰兩次間隔 ≥ 4.5 秒」。
+    #   為什麼舊的過時：live.js 的節奏是「上一輪處理完再排 5 秒」（setTimeout 串接，不是 setInterval），
+    #   79d503f5（10-05）名單從 455 擴到 550＋題材，每輪處理變長；探針實測（scratchpad probe_ovl，負載 10）間隔 5.4～6.2 秒 ——
+    #   15.2 秒的窗口落在 2 或 3 次純看相位，「至少 3 次」會隨機紅。這條要守的是「不多打」：
+    #   改成直接量相鄰間隔（比數次數更嚴：兩次擠在 4.5 秒內就紅），次數下限 2 只用來確認還在輪。
+    qts = sorted(t for t, p in reqs(t_q, ("/quote",)))
+    gaps = [round(b - a, 2) for a, b in zip(qts, qts[1:])]
+    ok("★ [摘要卡即時] 不多打請求：15 秒內 /quote 2～4 次、相鄰兩次至少隔 4.5 秒（每 5 秒一次，跟沒有摘要卡即時時一樣）",
+       2 <= nq <= 4 and gaps and min(gaps) >= 4.5, {"次數": nq, "間隔": gaps})
     ok("★ [摘要卡即時] 每個請求 ≤ 110 個代號（Worker 一個請求最多 140；補位塞的是主批次的空位）", toks and max(toks) <= 110, toks)
     ok("[摘要卡即時] 補位真的有塞（每個請求帶的代號明顯多於畫面上那幾檔）", toks and min(toks) >= 50, toks)
     ok("★ [摘要卡即時] 任何 5 秒內打到 mis（/quote＋/chart）≤ 3（節流閥）", max_in_window(t_q) <= 3, max_in_window(t_q))
@@ -21051,7 +21073,7 @@ def t_ov_kpi_live_1002(b, base, code):
     pg.wait_for_timeout(11000)          # 盤後主批次 30 分鐘才一輪；這 11 秒裡就算有晚到的回應也不准再改數字
     ok("★ [摘要卡即時] 跨過收盤之後數字就停住（11 秒一格都沒動）", vals(pg) == v_close and pg.evaluate(OVL_SIG) == sig_close, [v_close, vals(pg)])
     ok("[摘要卡即時] 跨過收盤：不是換回前一天的盤後資料（仍是今天的收盤快照、底線照寫即時估算）",
-       v_close != eod_v and pg.evaluate("() => +document.getElementById('hero').dataset.udN") == v_close["udN"] and v_close["udN"] <= 443
+       v_close != eod_v and pg.evaluate("() => +document.getElementById('hero').dataset.udN") == v_close["udN"] and v_close["udN"] <= 550   # 上限＝MUD_CAP（見 ① 的註解）
        and all("即時估算" in t for t in pg.evaluate("() => [...document.querySelectorAll('#hero .osc .osc-f')].map(e => e.textContent)")),
        [v_close, eod_v])
     ctx.close()
@@ -24983,50 +25005,63 @@ def t_wrap_popq(pg, base, code):
 def t_flow_popq(pg, base, code):
     """資金流向頁說明改問號（claude/flow-howpop，2026-09-25）：四張卡（資金輪動、資金去向、族群×法人、集中度）
     的「怎麼看 ?」→ 標題旁「?」；副標、篩選列提示句、拓撲版圖例句搬進「?」。只驗桌機 1440（手機不在這批範圍）。
-    每一顆都真的按：跳出 → 點背景關 → 再按 → Esc 關（_pop_cycle）；搬走的句子打開「?」讀得到（搬家不是刪除）。"""
+    每一顆都真的按：跳出 → 點背景關 → 再按 → Esc 關（_pop_cycle）；搬走的句子打開「?」讀得到（搬家不是刪除）。
+
+    ★ 2026-10-06（既有紅字清理）改前→改後：一次 `goto #flow` 驗四張卡 → **逐一切三個子分頁**各驗自己的卡。
+      為什麼舊的過時：8ad4c044「版面 V2」把電腦版資金流向拆成 `#flow/rotation`／`#flow/sankey`／`#flow/inst`
+      （app.js `FLOW_SUBS`），`#flow` 一律 replace 成 `#flow/rotation`；另外兩個子分頁的卡 display:none、
+      而且 whenNear 沒露出來就不畫 —— 舊斷言在 `#flow` 上只找得到「rot」一顆「?」、其他三顆點不到（25 條紅）、
+      `location.hash == '#flow'` 也永遠不成立。網站沒壞；四顆「?」與搬家不是刪除這幾件事照驗，只是到對的子分頁去驗。"""
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
-    lf = pg.evaluate(LEFTOVER, "#v-flow")
-    ok("[資金流向問號] 沒有舊式「怎麼看 ?」鈕", lf is not None and not lf["oldHow"], lf and lf["oldHow"])
-    ok("[資金流向問號] 「?」鈕上只有一個問號", lf is not None and not lf["popTxt"], lf and lf["popTxt"])
-    ok("[資金流向問號] 卡片標題不再有說明副標（「錢往哪跑…」「族群在強弱循環…」拿掉）",
-       lf is not None and not lf["subs"] and "錢往哪跑" not in text(pg, "#flowRotCard h3")
-       and "強弱循環" not in text(pg, "#flowRotCard h4"), lf and lf["subs"])
-    pops = (lf or {}).get("pops", [])
-    ok("[資金流向問號] 四張卡各有一顆「?」、而且就在卡片標題裡", sorted(pops) == ["conc", "inst", "rot", "sankey"]
-       and pg.evaluate("""() => ['flowRotCard:rot', 'flowSankeyCard:sankey', 'flowInstCard:inst', 'flowConcCard:conc'].every(x => {
-            const [c, k] = x.split(':'); const b = document.querySelector(`#${c} .howbtn.pop[data-how="${k}"]`);
-            return !!b && !!b.closest('h3'); })"""), pops)
-    # 資料讀數留著：排行的日期區間、法人的區間、集中度的讀數、資金去向的日期與分母
+    ok("[資金流向問號] 進 #flow 會落在第一個子分頁 #flow/rotation（版面 V2）",
+       pg.evaluate("location.hash") == "#flow/rotation", pg.evaluate("location.hash"))
+    # 子分頁 → 這一頁該露出來的卡 → 卡上的「?」
+    SUBS = (("rotation", (("flowRotCard", "rot"),)),
+            ("sankey", (("flowSankeyCard", "sankey"),)),
+            ("inst", (("flowInstCard", "inst"), ("flowConcCard", "conc"))))
+    pops_all = []
+
+    def _sub(sub):
+        pg.evaluate(f"() => {{ location.hash = '#flow/{sub}'; }}")
+        pg.wait_for_timeout(2600)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(200)
+        lf = pg.evaluate(LEFTOVER, "#v-flow")
+        ok(f"[資金流向問號] {sub}：沒有舊式「怎麼看 ?」鈕", lf is not None and not lf["oldHow"], lf and lf["oldHow"])
+        ok(f"[資金流向問號] {sub}：「?」鈕上只有一個問號", lf is not None and not lf["popTxt"], lf and lf["popTxt"])
+        ok(f"[資金流向問號] {sub}：卡片標題不再有說明副標", lf is not None and not lf["subs"], lf and lf["subs"])
+        pops = (lf or {}).get("pops", [])
+        want = [k for _c, k in dict(SUBS)[sub]]
+        ok(f"[資金流向問號] {sub}：這個子分頁看得到的「?」剛好是自己那幾張卡的（{want}）",
+           sorted(pops) == sorted(want), pops)
+        pops_all.extend(pops)
+        return lf
+
+    # ---- ① 資金輪動
+    _sub("rotation")
+    ok("[資金流向問號] 資金輪動卡標題不再有說明副標（「錢往哪跑…」「族群在強弱循環…」拿掉）",
+       "錢往哪跑" not in text(pg, "#flowRotCard h3") and "強弱循環" not in text(pg, "#flowRotCard h4"),
+       text(pg, "#flowRotCard h3"))
     # 2026-10-06 改前→改後（DECISIONS #329）：「排行／法人的日期區間讀數還在」→ 副標**不再**顯示日期區間（區間由拉Bar 自己寫）
     ok("[資金流向問號] 排行副標不再顯示日期區間（M/D ～ M/D 拿掉）", not re.search(r"\d+/\d+", text(pg, "#rankSub")), text(pg, "#rankSub"))
+    st = _pop_cycle(pg, "flow", "rot")
+    ok("[資金流向問號] 「?」（rot）說明框標題是卡片名「資金輪動」", st["title"].strip() == "資金輪動", st["title"])
+
+    # ---- ② 資金去向
+    _sub("sankey")
     ok("[資金流向問號] 資金去向的讀數還在（% 佔上一層）", "佔上一層" in text(pg, "#sankeySub"), text(pg, "#sankeySub"))
-    ok("[資金流向問號] 族群×法人副標只留天數與單位（不寫日期區間）", "日" in text(pg, "#instSub") and "～" not in text(pg, "#instSub")
-       and "～" in pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent || ''"), text(pg, "#instSub"))
-    cs = text(pg, "#concState")
-    ok("[資金流向問號] 集中度讀數縮成一行（≤ 26 字、沒有「冷門股／主流容易休息」解讀句）",
-       0 < len(cs) <= 26 and "冷門股" not in cs and "休息" not in cs, cs)
     # 篩選列的操作說明句與拓撲版圖例句不再印在卡片上
     ok("[資金流向問號] 篩選列不再印「先挑產業鏈，再挑一個族群…」", "先挑產業鏈" not in text(pg, "#v-flow"), text(pg, "#flowSankeyCard")[:120])
     ok("[資金流向問號] 資金去向圖上方不再印「粒子＝資金流動…」圖例句", "粒子＝資金流動" not in text(pg, "#flowSankeyCard"))
-    for k in ("rot", "sankey", "inst", "conc"):
-        st = _pop_cycle(pg, "flow", k)
-        ttl = {"rot": "資金輪動", "sankey": "資金去向", "inst": "族群 × 法人", "conc": "資金集中度"}[k]
-        ok(f"[資金流向問號] 「?」（{k}）說明框標題是卡片名「{ttl}」", st["title"].strip() == ttl, st["title"])
-    # 點背景關的時候，底下的輪盤／排行／桑基狀態不能被當成「點外面」收掉：先開成分股面板，再開關「?」
-    ok("[資金流向問號] 關掉「?」之後頁面還在 #flow、沒有殘留背景", pg.evaluate("location.hash") == "#flow"
-       and not pg.evaluate(POP_STATE)["back"])
-    # 搬家不是刪除
+    st = _pop_cycle(pg, "flow", "sankey")
+    ok("[資金流向問號] 「?」（sankey）說明框標題是卡片名「資金去向」", st["title"].strip() == "資金去向", st["title"])
     # ★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：
     #   改前：驗篩選說明／粒子圖例／「休息」那句附註搬進「?」→ 改後：三顆「?」都只剩標題＋條列
-    for _k in ("sankey", "inst", "conc"):
-        _f = how_fine(pg, _k)
-        ok(f"[資金流向問號] ★「?」（{_k}）只剩標題＋條列、沒有附註段", bool(_f) and _f["n"] >= 1 and _f["fine"] == 0 and not _f["tail"], _f)
-    ok("[資金流向問號] 集中度的讀法（冷門股）還在條列裡", "冷門股" in how_text(pg, "conc"))
-    ok("[資金流向問號] 集中度讀數的解讀句滑上去看得到（title）", len(pg.evaluate("() => document.getElementById('concState').title || ''")) > 4)
+    _f = how_fine(pg, "sankey")
+    ok("[資金流向問號] ★「?」（sankey）只剩標題＋條列、沒有附註段", bool(_f) and _f["n"] >= 1 and _f["fine"] == 0 and not _f["tail"], _f)
     # 選了族群時，篩選列只留狀態讀數「只看「X」」（不寫圖只剩一支會被讀成資料壞掉）
     pg.evaluate("() => document.getElementById('flowSankeyCard').scrollIntoView({block:'start', behavior:'instant'})"); pg.wait_for_timeout(300)
-    if count(pg, '#flowSankeyCard .rotdd[data-dd="group"] .ddbtn'):
+    if ok("[資金流向問號] 資金去向的族群下拉在（不是空的假綠）", count(pg, '#flowSankeyCard .rotdd[data-dd="group"] .ddbtn') > 0):
         click(pg, '#flowSankeyCard .rotdd[data-dd="group"] .ddbtn', 400)
         opt = pg.evaluate("""() => { const b = document.querySelector('#flowSankeyCard .rotdd[data-dd="group"] .ddopt .nm[data-g]'); return b ? b.textContent.trim() : ''; }""")
         if ok("[資金流向問號] 族群下拉有選項可選", bool(opt), opt):
@@ -25034,6 +25069,34 @@ def t_flow_popq(pg, base, code):
             t = text(pg, "#flowSankeyCard .ddrow")
             ok("[資金流向問號] 選了族群：篩選列寫「只看「X」」、不再附長句", f"只看「{opt}」" in t and "回到整張圖" not in t, t[-80:])
             pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+            # 清掉，不要讓選取帶到後面的段落
+            pg.evaluate("() => { const b = document.querySelector('#flowSankeyCard .dd-clear'); if (b) b.click(); }")
+            pg.wait_for_timeout(800)
+
+    # ---- ③ 族群×法人＋資金集中度
+    _sub("inst")
+    ok("[資金流向問號] 族群×法人副標只留天數與單位（不寫日期區間）", "日" in text(pg, "#instSub") and "～" not in text(pg, "#instSub")
+       and "～" in pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent || ''"), text(pg, "#instSub"))
+    cs = text(pg, "#concState")
+    ok("[資金流向問號] 集中度讀數縮成一行（≤ 26 字、沒有「冷門股／主流容易休息」解讀句）",
+       0 < len(cs) <= 26 and "冷門股" not in cs and "休息" not in cs, cs)
+    for k, ttl in (("inst", "族群 × 法人"), ("conc", "資金集中度")):
+        st = _pop_cycle(pg, "flow", k)
+        ok(f"[資金流向問號] 「?」（{k}）說明框標題是卡片名「{ttl}」", st["title"].strip() == ttl, st["title"])
+    # 點背景關的時候，底下的狀態不能被當成「點外面」收掉（不能把人帶離這個子分頁）
+    ok("[資金流向問號] 關掉「?」之後頁面還在 #flow/inst、沒有殘留背景", pg.evaluate("location.hash") == "#flow/inst"
+       and not pg.evaluate(POP_STATE)["back"], pg.evaluate("location.hash"))
+    for _k in ("inst", "conc"):
+        _f = how_fine(pg, _k)
+        ok(f"[資金流向問號] ★「?」（{_k}）只剩標題＋條列、沒有附註段", bool(_f) and _f["n"] >= 1 and _f["fine"] == 0 and not _f["tail"], _f)
+    ok("[資金流向問號] 集中度的讀法（冷門股）還在條列裡", "冷門股" in how_text(pg, "conc"))
+    ok("[資金流向問號] 集中度讀數的解讀句滑上去看得到（title）", len(pg.evaluate("() => document.getElementById('concState').title || ''")) > 4)
+
+    # 四張卡合起來：各一顆「?」、而且就在卡片標題裡
+    ok("[資金流向問號] 四張卡各有一顆「?」、而且就在卡片標題裡", sorted(pops_all) == ["conc", "inst", "rot", "sankey"]
+       and pg.evaluate("""() => ['flowRotCard:rot', 'flowSankeyCard:sankey', 'flowInstCard:inst', 'flowConcCard:conc'].every(x => {
+            const [c, k] = x.split(':'); const b = document.querySelector(`#${c} .howbtn.pop[data-how="${k}"]`);
+            return !!b && !!b.closest('h3'); })"""), pops_all)
 
 
 # ===================================================================== 個股 AI 分析（09-26 建立，09-27 改版：右上角＋標籤頁）
@@ -34229,8 +34292,19 @@ def t_batch30(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
     # ---------------------------------------------------------------- 桑基下拉 14～20
-    pg.goto(f"{base}#flow", wait_until="networkidle")
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+    # ★ 2026-10-06（既有紅字清理）改前→改後：`goto #flow` → 先開 `#flow/rotation`、再站內切到 `#flow/sankey`。
+    #   為什麼舊的過時：8ad4c044「版面 V2」把電腦版資金流向拆成三個子分頁（app.js `FLOW_SUBS = ['rotation','sankey','inst']`），
+    #   `#flow` 一律 replace 成 `#flow/rotation`；資金去向那張卡（#flowSankeyCard）在別的子分頁是 display:none，
+    #   而且走 whenNear —— **沒切過去就不載也不畫**，`.ddrow[data-for="sankey"]` 根本不存在 → `{'dd': 0, 'chip': 0}`，
+    #   後面 W6-16 `dd.querySelector` 爆 `Cannot read properties of null`。網站沒壞，是驗收還停在單頁版面。
+    #   為什麼不直接 goto `#flow/sankey`：W6-14b 要在**資金輪動**那排勾族群、W6-19 要量輪盤點數，
+    #   兩張卡都得畫過才驗得到「兩排互不覆寫／不連動」—— 照使用者的順序：先在輪動、再點側欄子分頁到資金去向。
+    def _flow_both():
+        pg.goto(f"{base}#flow/rotation", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        pg.evaluate("() => { location.hash = '#flow/sankey'; }")
+        pg.wait_for_timeout(2800)
+    _flow_both()
     sk0 = pg.evaluate("""() => ({ dd: document.querySelectorAll('.ddrow[data-for="sankey"] .rotdd').length,
         chip: document.querySelectorAll('.linkrow.gchips[data-for="sankey"] .gchip').length })""")
     ok("W6-14：資金去向那排剛好兩層下拉", sk0["dd"] == 2, sk0)
@@ -34253,15 +34327,25 @@ def t_batch30(pg, base):
     if ok("W6-14b：量得到資金去向那排的形狀", bool(shape0), shape0):
         ok("W6-14b：它是**單選**（有「全部族群（不篩選）」、沒有 checkbox）",
            shape0["all"] and shape0["chk"] == 0 and shape0["one"] > 0, shape0)
+        # 版面 V2 之後兩排分在兩個子分頁：切回「資金輪動」子分頁去勾（使用者真的會這樣走），再切回資金去向量形狀
+        pg.evaluate("() => { location.hash = '#flow/rotation'; }")
+        pg.wait_for_timeout(1400)
         g14 = rot_dd_groups(pg)
-        if g14:
+        if ok("W6-14b：資金輪動那排列得出可勾的族群（不是空清單假綠）", bool(g14), len(g14)):
             rot_dd_toggle(pg, g14[0], wait=1400)
+            pg.keyboard.press("Escape")
+            pg.evaluate("() => { location.hash = '#flow/sankey'; }")
+            pg.wait_for_timeout(1400)
             shape1 = _sk_shape()
             ok("★ W6-14b：在**資金輪動**那排勾一個族群之後，資金去向那排**沒有被覆寫**"
                "（仍然是單選、「全部族群（不篩選）」還在）",
                bool(shape1) and shape1["all"] and shape1["chk"] == 0,
                {"勾之前": shape0, "勾之後": shape1})
+            pg.evaluate("() => { location.hash = '#flow/rotation'; }")
+            pg.wait_for_timeout(1000)
             rot_dd_clear(pg, wait=1400)
+            pg.evaluate("() => { location.hash = '#flow/sankey'; }")
+            pg.wait_for_timeout(1400)
 
     ok("W6-15：按第一層 → 真的展開",
        pg.evaluate(f"""() => {{ const dd = document.querySelector('{SK_ROW} .rotdd[data-dd="chain"]');
@@ -34279,8 +34363,7 @@ def t_batch30(pg, base):
         ok("W6-15 [390px] 面板沒有溢出畫面", sn2["left"] >= 0 and sn2["right"] <= sn2["w"] + 1, sn2)
     pg.keyboard.press("Escape")
     pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.goto(f"{base}#flow", wait_until="networkidle")
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+    _flow_both()      # 同 W6-14：輪動、資金去向兩張都畫過（W6-19 要量輪盤）
 
     all_sk = len(sk_dd_groups(pg))
     chain2 = pg.evaluate(f"""() => {{ const dd = document.querySelector('{SK_ROW} .rotdd[data-dd="chain"]');
@@ -34318,9 +34401,14 @@ def t_batch30(pg, base):
                sig1["n"] > base_sig["n"] and sig1["sig"] != base_sig["sig"],
                {"前": base_sig["n"], "後": sig1["n"]})
             # 19 不准連動到輪動時鐘
+            # 版面 V2：輪盤在另一個子分頁 —— 切過去（藏著時延後的重畫這時才會跑）再量，量到的才是使用者看到的那張
+            pg.evaluate("() => { location.hash = '#flow/rotation'; }")
+            pg.wait_for_timeout(1600)
+            n_clock1 = len(_rot_scatter(pg) or [])
             ok("★ W6-19：輪動時鐘的點數**選前選後一樣**（資金去向的選取沒有被併進 ROT）",
-               len(_rot_scatter(pg) or []) == n_clock0,
-               f"{n_clock0} → {len(_rot_scatter(pg) or [])}")
+               n_clock0 > 0 and n_clock1 == n_clock0, f"{n_clock0} → {n_clock1}")
+            pg.evaluate("() => { location.hash = '#flow/sankey'; }")
+            pg.wait_for_timeout(1400)
             # 20 清除
             ok("W6-20：按得到「清除」",
                pg.evaluate(f"""() => {{ const b = document.querySelector('{SK_ROW} .dd-clear');
@@ -35585,8 +35673,11 @@ def t_b29_tabs(pg, base):
         onTab: (document.querySelector('#tabs .tab.on') || { dataset: {} }).dataset.view,
         trees: document.querySelectorAll('#indTree').length,
         gpVis: !!(document.getElementById('gpBar') && document.getElementById('gpBar').offsetParent !== null) })""")
-    ok("熱力圖有自己的頂層分頁，而且圖真的畫出來",
-       hm["hash"] == "#heatmap" and hm["tree"] and hm["onTab"] == "heatmap", hm)
+    # ★ 2026-10-06（既有紅字清理）改前→改後：hash == '#heatmap' → == '#heatmap/industry'。
+    #   為什麼舊的過時：8ad4c044「版面 V2」把電腦版熱力圖拆成產業／題材兩個子分頁，點頂層「熱力圖」
+    #   會 location.replace 到第一個子分頁 `#heatmap/industry`（app.js route()）。這裡是 1440 寬（掛 l4），所以一定會帶子分頁。
+    ok("熱力圖有自己的頂層分頁，而且圖真的畫出來（電腦版落在第一個子分頁 #heatmap/industry）",
+       hm["hash"] == "#heatmap/industry" and hm["tree"] and hm["onTab"] == "heatmap", hm)
     ok("整份 DOM 只有一張 #indTree（產業地圖那邊不准再畫一份）", hm["trees"] == 1, hm)
     ok("熱力圖這一頁不會同時出現族群總覽（兩者是不同分頁）", not hm["gpVis"], hm)
     box = pg.evaluate("() => { const r = document.getElementById('indTree').getBoundingClientRect();"
@@ -35867,8 +35958,38 @@ def t_b29_tabs(pg, base):
         if ok(f"W3-5 [{w5}px {route5}] 找得到剖析圖", bool(m5), m5):
             ok(f"W3-5 [{w5}px {route5}] `#prodDiagram` 一載入沒有被推走（scrollLeft ＝ 0）",
                m5["host"] == 0, m5)
-            ok(f"W3-5 [{w5}px {route5}] 沒有任何一張說明卡片被切掉左半邊",
-               m5["cutCards"] == 0, m5)
+            if w5 > 640:
+                ok(f"W3-5 [{w5}px {route5}] 沒有任何一張說明卡片被切掉左半邊",
+                   m5["cutCards"] == 0, m5)
+                continue
+            # ★ 2026-10-06（既有紅字清理）改前→改後（390）：「說明卡片沒被切掉左半邊」→「卡片欄依設計收起、
+            #   改成圖上的編號鈕；編號鈕全在圖框內（沒被推出畫面）、點一顆真的跳出那一格的說明」。
+            #   為什麼舊的過時：63c080b0「手機版 v3（D）剖析圖只留編號」起，≤640 的 #prodDiagram 掛 .mnum2d，
+            #   `.dgcards` 是 display:none（index.html「手機 v3 D」那段），說明改成點編號開抽屜（diagrams.js mobileNums／openNo）。
+            #   舊斷言量到的 14／9 張「被切」其實是 0×0 的隱藏卡片（left＝0 < 圖框左緣），不是被推出畫面。
+            #   這條原本要守的「390 一載入說明就被推出畫面看不到」照樣守：改量手機上承擔說明的那一層。
+            wait_until(pg, "() => (document.querySelectorAll('#prodDiagram .mnumlayer .mnum').length > 0) ? 1 : 0", 6000)
+            mn = pg.evaluate("""() => { const h = document.getElementById('prodDiagram'); if (!h) return null;
+                const hr = h.getBoundingClientRect(), bs = [...h.querySelectorAll('.mnumlayer .mnum')];
+                const cards = h.querySelector('.dgcards');
+                return { mode: h.classList.contains('mnum2d'), cardsHidden: !cards || getComputedStyle(cards).display === 'none',
+                         n: bs.length, items: [...h.querySelectorAll('.dgcards .dgc')].filter(c => c.querySelector('.no') && c.dataset.anc).length,
+                         out: bs.filter(b => { const r = b.getBoundingClientRect(); return r.width === 0 || r.left < hr.left - 2 || r.right > hr.right + 2; }).length,
+                         sx: document.documentElement.scrollWidth - innerWidth }; }""")
+            ok(f"W3-5 [{w5}px {route5}] 手機是「只留編號」模式（.mnum2d）、卡片欄依設計收起",
+               bool(mn) and mn["mode"] and mn["cardsHidden"], mn)
+            ok(f"★ W3-5 [{w5}px {route5}] 編號鈕畫出來了（{mn and mn['n']} 顆，對應 {mn and mn['items']} 張說明）而且一顆都沒被推出圖框、整頁沒有橫向捲軸",
+               bool(mn) and mn["n"] > 0 and mn["n"] <= mn["items"] and mn["out"] == 0 and mn["sx"] <= 1, mn)
+            if mn and mn["n"]:
+                pg.eval_on_selector("#prodDiagram .mnumlayer .mnum", "b => b.click()"); pg.wait_for_timeout(500)
+                sh = pg.evaluate("""() => { const s = document.getElementById('mSheet'); if (!s) return null;
+                    const b0 = document.querySelector('#prodDiagram .mnumlayer .mnum');
+                    return { open: !s.hidden, kind: s.dataset.kind || '', no: s.dataset.no || '', want: b0 ? b0.dataset.no : '',
+                             len: (s.innerText || '').replace(/\s+/g, '').length }; }""")
+                ok(f"★ W3-5 [{w5}px {route5}] 點第一顆編號 → 說明抽屜打開、寫的就是那一號（說明看得到，不是被切掉）",
+                   bool(sh) and sh["open"] and sh["kind"] == "dgno" and sh["no"] == sh["want"] and sh["len"] > 4, sh)
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+                pg.evaluate("() => { const s = document.getElementById('mSheet'); if (s && !s.hidden) { const x = document.getElementById('mSheetBack'); if (x) x.click(); } }")
     # 1440：置中**不准被改壞** —— 畫布比欄寬大的時候，裝畫布的那個框仍然要捲到中間
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
@@ -36029,21 +36150,24 @@ def t_mobile_v2(b, base, code):
     ok("[390px] 每顆的觸控高度 ≥ 44px", all(t["h"] >= 44 for t in tabs), sorted({t["h"] for t in tabs}))
     nh = m.evaluate("() => Math.round(document.getElementById('tabs').getBoundingClientRect().height)")
     ok("[390px] 底部導覽高 58px（改版前兩列 102px）", 54 <= nh <= 62, nh)
-    # ★ 2026-10-06 改前→改後（驗收過時）：改前數「七顆」。10-05 起電腦版側欄多了選股策略、ETF、財經日曆三頁（現共十顆 .tab），
-    #   所以改驗「電腦版的每一頁在手機都不會消失」：十顆都還在 DOM（路由與驗收照舊用得到）；
-    #   底部導覽只露出總覽／資金流向／產業／熱力圖，其餘六顆在手機藏起來；其中市場明細／週期統計／ETF／自選有「更多」入口（下面逐一點過），
-    #   選股策略與財經日曆的作者註明「手機版暫停中」、沒有入口（直接貼網址仍打得開）。
-    tabs_all = m.evaluate("() => [...document.querySelectorAll('#tabs .tab')].map(t => [t.dataset.view, getComputedStyle(t).display])")
-    shown = [v for v, d in tabs_all if d != "none"]
-    ok("[390px] 電腦版每一頁在手機都還在 DOM（十顆 .tab 一個都沒少），底部只露出四顆",
-       len(tabs_all) == 10 and shown == ["overview", "flow", "industry", "heatmap"], tabs_all)
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「#tabs .tab 剛好 7 顆」→「底部沒放的每一顆頂層分頁，在『更多』清單裡都找得到」。
+    #   為什麼舊的過時：10-05 起頂層分頁多了 ETF（a376a2c9）、選股策略、財經日曆（3fc32092），寫死 7 顆必紅；
+    #   而且那兩顆當時沒收進「更多」，把「更多」擠到畫面外（真 bug，index.html／mobile3.js 同日修）。
+    #   選股策略 ≤820 本來就不提供（explore.css），交付清單 09-28 起入口收掉 —— 兩者不在清單裡是設計。
+    hid = m.evaluate("() => [...document.querySelectorAll('#tabs .tab')].filter(e => getComputedStyle(e).display === 'none').map(e => e.dataset.view)")
+    m.tap("#mTabMore"); m.wait_for_timeout(400)
+    rows = m.evaluate("() => [...document.querySelectorAll('#mSheet .mrow[data-m]')].map(e => e.dataset.m)")
+    m.keyboard.press("Escape"); m.wait_for_timeout(300)
+    m.evaluate("() => { const s = document.getElementById('mSheet'); if (s && !s.hidden) { const x = document.getElementById('mSheetBack'); if (x) x.click(); } }")
+    lost = [v for v in hid if v not in rows and v not in ("explore", "delivery")]
+    ok("[390px] 頂層分頁一個都沒少：底部沒放的每一顆都在「更多」清單裡（DOM 裡也還在）",
+       len(hid) >= 3 and not lost, {"收起來的": hid, "更多清單": rows, "找不到入口": lost})
     # ★ 2026-10-04 改前→改後（驗收過時）：交付清單的入口已從「更多」收掉（mobile3.js openMore 註解：#delivery 照樣打得開，只是入口收掉），
     #   改前去點不存在的那列 → 等 30 秒逾時、整段中斷。改後換成清單裡現在有的「自選」。
-    # ★ 2026-10-06：ETF 放最後一個。ETF 專區（etfpage.js）在 390 橫向溢出（量到 docW 608 > 390：「期間」列的自訂日期框與基準分段鈕撐出去），
-    #   手機瀏覽器為了裝下整頁把版面縮小，Playwright 在這種頁面上點底部導覽會被別的元素「攔截」逾時。
-    #   手機版暫停中（DECISIONS #291）、ETF 頁版面是它負責人的檔（轉交），所以這裡只驗「更多 → ETF 專區」進得去，
-    #   不在 ETF 頁上再去點導覽；下一段（G3）一開始就用網址回總覽。溢出本身記進 notes，不假裝沒看到。
-    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market"), ("etf", "#etf")):
+    # ★ 2026-10-06：ETF、財經日曆收進「更多」之後一起點一次。ETF 放最後：#etf 在 390 還沒有手機排版（日期框、比較表把頁面撐到 608px，
+    #   手機版暫停中 10-03），整頁被縮放、固定在底部的導覽跟著跑到畫面外 —— 從 #etf 再按「更多」會點不到。那是 ETF 頁的手機版待辦（HANDOFF 10-06 既有紅字清理「未收斂」），
+    #   這裡驗的是「從『更多』進得去 ETF」，不拿它當起點。
+    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market"), ("earnings", "#earnings"), ("etf", "#etf")):
         m.tap("#mTabMore"); m.wait_for_timeout(400)
         m.tap(f'#mSheet .mrow[data-m={v}]'); m.wait_for_timeout(1600)
         st = m.evaluate("""() => ({ hash: location.hash,
@@ -36052,10 +36176,6 @@ def t_mobile_v2(b, base, code):
             txt: ((document.querySelector('main .view.on') || document.body).innerText || '').trim().length })""")
         ok(f"[390px] 「更多」→「{v}」畫面真的換過去了，而且「更多」亮起來（知道自己在哪）",
            st["hash"].startswith(want) and st["on"] == "v-" + v and st["txt"] > 60 and st["more"], st)
-        if v == "etf":
-            ow = m.evaluate("() => document.documentElement.scrollWidth - 390")
-            if ow > 1:
-                notes.append(f"手機改版：ETF 專區在 390 橫向溢出 {ow}px（etfpage.js 的期間列／基準分段鈕；手機版暫停中，轉交 ETF 頁負責人）")
 
     # ---------- G3（手機 v3 改寫）：大盤三張合一張可切換（R1）----------
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
@@ -38197,11 +38317,13 @@ def t_heatmap_v2(pg, base):
             ok("[#indTree] 標題列沒有日期膠囊（.hmctl.date 拿掉）",
                pg.evaluate("() => !document.querySelector('#indHeat .hmctl.date')"))
         # ---- 題材 ----
-        # ★ 2026-10-06 改前→改後（驗收過時）：改前 `#heatmap` 同時畫產業與題材兩張熱力圖。2026-10-03 版面 V2（DECISIONS #291／#307 前後，
-        #   app.js route 註解「電腦版子分頁：只畫看得到的那一半」）起，電腦版 #heatmap 只畫「產業」，題材熱力要點側欄「題材」才畫，
-        #   所以改前這裡量到 themeMap 是空的（n＝0）、#themeColorSel 還沒長出來 → select_option 逾時整段中斷。
-        #   改後先用現成的 l4_sub 真的點側欄切到「題材」，其餘斷言一個字不改。
-        l4_sub(pg, "theme", 1800)
+        # ★ 2026-10-06（既有紅字清理）改前→改後：同一頁往下捲到題材 → 點側欄子分頁切到 `#heatmap/theme` 再量。
+        #   為什麼舊的過時：8ad4c044「版面 V2」把電腦版熱力圖拆成 `#heatmap/industry`／`#heatmap/theme` 兩個子分頁，`#heatmap` 一律 replace 成 `#heatmap/industry`，題材那張（#themeMapCard／#themeDetail）在產業子分頁是 display:none、whenNear 不畫，
+        #   舊斷言量到的是一張沒畫過的圖。網站沒壞，題材熱力圖照驗，只是到它自己的子分頁去驗。
+        pg.evaluate("() => { location.hash = '#heatmap/theme'; }"); pg.wait_for_timeout(2600)
+        ok(f"[{th} #themeMap] 題材子分頁 #heatmap/theme 露出題材熱力圖、產業那張藏起來（版面 V2）",
+           pg.evaluate("() => { const t = document.getElementById('themeMap'), i = document.getElementById('indTree');"
+                       " return !!t && t.getClientRects().length > 0 && !!i && i.getClientRects().length === 0; }"))
         pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
         r = pg.evaluate(HM_READ, "themeMap")
         _hm_check(f"{th} 題材 #themeMap", r, "heat")
@@ -38365,9 +38487,9 @@ def t_heatmap_r4(pg, base):
        "小鏈至少佔 5%" in pg.evaluate("() => (document.getElementById('how-indheat') || {}).textContent || ''"))
 
     # ---------- ⑤ 題材熱力：放大後雙擊不展開題材；離開再回來倍率歸 1 ----------
-    # ★ 2026-10-06 改前→改後（驗收過時）：電腦版 #heatmap 只畫「產業」子分頁（2026-10-03 版面 V2），題材熱力要先點側欄「題材」才畫、才看得到
-    #   （同 熱力圖v2 的說明）。⑤⑥⑦ 每一處碰題材熱力之前都先 l4_sub 真的切過去；斷言一個字不改。
-    l4_sub(pg, "theme", 1800)
+    # ★ 2026-10-06（既有紅字清理）：⑤⑥⑦ 改到 `#heatmap/theme` 子分頁驗（改前在 `#heatmap` 往下捲）。
+    #   為什麼舊的過時：8ad4c044「版面 V2」把電腦版熱力圖拆成 `#heatmap/industry`／`#heatmap/theme` 兩個子分頁，`#heatmap` 一律 replace 成 `#heatmap/industry`，題材那張（#themeMapCard／#themeDetail）在產業子分頁是 display:none、whenNear 不畫。
+    pg.evaluate("() => { location.hash = '#heatmap/theme'; }"); pg.wait_for_timeout(2600)
     pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
     tl = (pg.evaluate(HM_LEAF_XY, {"id": "themeMap"}) or [None])[0]
     if ok(f"【{tag}】題材熱力找得到最大那一塊（{tl and tl['name']}）", bool(tl), tl):
@@ -38380,18 +38502,17 @@ def t_heatmap_r4(pg, base):
         _r4_zoom_in(pg, tl["cx"], tl["cy"])
         k_before = (pg.evaluate(ZST, "themeMapWrap") or {}).get("k")
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
-        pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        pg.goto(f"{base}#heatmap/theme", wait_until="networkidle"); pg.wait_for_timeout(2200)
         zb = pg.evaluate(ZST, "themeMapWrap")
         ok(f"【{tag}】題材熱力放大到 {k_before and round(k_before, 2)}× → 離開再回來倍率歸 1",
            (k_before or 0) > 1.2 and zb and zb["k"] == 1 and not zb["zoomed"], [k_before, zb])
-        l4_sub(pg, "theme", 1200)   # 回到 #heatmap 預設是「產業」子分頁，題材卡的「?」要先切過去才點得到
         click(pg, 'button.howbtn[data-how="theme"]', 400)   # 說明是按了才填進去的
-        # ★ 2026-10-06 改前→改後（驗收過時）：改前找「藍＝冷、紅＝熱」。10-04 稽核（commit 9a11c13a「說明『?』：照 10-04 稽核修正 18 項不符」）
-        #   把那一條改寫成「顏色＝熱度 0～100（資金＋法人＋新聞），藍冷紅熱」（app.js HOW.theme）；意思沒變（藍＝冷、紅＝熱、不是越亮越熱），
-        #   所以改找現行字串「藍冷紅熱」，「不是『越亮越熱』」那一半照舊。
-        ok(f"【{tag}】題材「怎麼看」寫的是「藍冷紅熱」（不是「越亮越熱」）",
-           pg.evaluate("() => { const t = (document.getElementById('how-theme') || document.body).textContent;"
-                       " return t.includes('藍冷紅熱') && !t.includes('越亮越熱'); }"))
+        # ★ 2026-10-06（既有紅字清理）改前→改後：找「藍＝冷、紅＝熱」→ 找「藍冷紅熱」。
+        #   為什麼舊的過時：9a11c13a（10-04「?」說明稽核）把這一條改寫成「顏色＝熱度 0～100（資金＋法人＋新聞），藍冷紅熱」
+        #   （補口徑、縮成一行）；這條要守的意思沒變 —— 說明講的是藍冷紅熱，不是舊色階的「越亮越熱」。
+        ht = pg.evaluate("() => (document.getElementById('how-theme') || document.body).textContent")
+        ok(f"【{tag}】題材「?」寫的是「藍冷紅熱」（不是「越亮越熱」）",
+           "藍冷紅熱" in ht and "越亮越熱" not in ht, ht[:160])
         # 2026-09-25：題材熱力的「?」改成跳出式（背後墊背景），讀完用 Esc 關，不然後面的點擊會被背景吃掉
         pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
 
@@ -38417,8 +38538,7 @@ def t_heatmap_r4(pg, base):
 
     # ---------- ⑦ 淺色主題：放大罩標題對比 ≥ 4.5 ----------
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
-    pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
-    l4_sub(pg, "theme", 1800)   # 同上：題材熱力的「放大」鈕在「題材」子分頁裡，先切過去
+    pg.goto(f"{base}#heatmap/theme", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
     pg.evaluate("document.getElementById('themeZoom').scrollIntoView({block:'center'})"); pg.wait_for_timeout(400)
     click(pg, "#themeZoom", 1300)
     cc = pg.evaluate("""() => { const t = document.getElementById('zoomTitle'), ov = document.getElementById('zoomOv');
@@ -42976,6 +43096,22 @@ def t_kpi_footer_0926(pg, b, base):
     pg.evaluate("() => window.Market3 && window.Market3.mount()"); pg.wait_for_timeout(1400)
     k2 = pg.evaluate(IN_BAR)
     ok("★ 大盤卡重掛之後摘要卡列還在、四張都在（沒有被 innerHTML 丟掉）", k2["inBar"] and k2["n"] == 4, k2)
+    # ★ 2026-10-06（既有紅字清理）：這兩條 10-05 在乾淨 main（23104eca）負載 1 時也紅過（inBar=False，HANDOFF 記「待查 placeKpi」），
+    #   本輪 main＋本分支重跑 0、探針（scratchpad probe_kpi）訪客／管理者兩種視角都是 inBar=True，追不到是哪一筆修好的。
+    #   這支驗收預設注入 TW_LIVE_OVERRIDE（管理者視角，#326）—— 訪客（也就是 Andy 以外的所有人）那一份另外守一次。
+    from playwright.sync_api import Browser as _B
+    _raw = getattr(_B, "_tw_raw_new_context", None)
+    if ok("拿得到 Browser 原版 new_context（訪客視角要繞開 TW_LIVE_OVERRIDE）", _raw is not None):
+        _vc = _raw(b, viewport={"width": 1440, "height": 1000})
+        _vc.add_init_script(CONSENT_PRESET)          # 同意條款預寫；刻意不注入 LIVE_ADMIN_PRESET
+        _vp = _vc.new_page()
+        _vp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        _vp.goto(f"{base}#overview", wait_until="networkidle")
+        wait_until(_vp, "() => document.querySelectorAll('#hero .osc').length === 4", 8000)
+        kv = _vp.evaluate(IN_BAR)
+        ok("★ 訪客（非管理者、看不到即時）：摘要卡列一樣在大盤三張圖的卡片裡、四張都在",
+           kv["inBar"] and kv["n"] == 4 and not _vp.evaluate("() => document.documentElement.classList.contains('live-on')"), kv)
+        _vc.close()
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
     # ★ 2026-10-06 改前→改後（Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」）：
     #   改前：重掛之後點「漲跌家數」卡照樣打開市場明細（hash 換成 #market/updown）。
@@ -44323,8 +44459,12 @@ def _ov_fix_0926b_body(pg, base, code):
             p = pg.evaluate(PANEL)
             m1 = pg.evaluate(MEAS)
             if ok(f"{tag} 點「{d['name']}」→ 說明框打開", p["open"], p):
+                # ★ 2026-10-06（既有紅字清理）：連結先解碼再比。為什麼舊的過時：app.js 的 #ovRotPop 一律
+                #   `encodeURIComponent(gid)`（法定產業別的族群 id 是中文，例 ind_半導體業；route() 逐段 decodeURIComponent，
+                #   見 app.js 2026-09-19 那段註解），舊斷言拿編碼過的 href 跟原始 gid 比 —— 輪盤最上面那顆剛好是中文 id 的族群時就假紅。
+                from urllib.parse import unquote as _unq
                 ok(f"{tag} 說明框標題是剛點的族群、有「進族群頁 →」與成分股連結",
-                   p["name"] == d["name"] and p["link"] == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
+                   p["name"] == d["name"] and _unq(p["link"]) == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
                 ok(f"★ {tag} 面板打開後「昨日資金去向」與左欄卡片的 top／高度都沒動（≤ 1px）", not diff(m0, m1), diff(m0, m1))
                 # 改前（09-26 晚）：面板在輪盤圓外，點上半部放下方、點下半部放上方
                 # 改後（2026-09-28 Andy：「popover beside the dot」）：貼在剛點那顆旁邊、不蓋住它（框的矩形不含圓心）
@@ -45231,9 +45371,9 @@ def t_wheel_watch_0928(b, base, code):
     # 更多 → 自選
     m.click("#mTabMore"); m.wait_for_timeout(500)
     rows = m.evaluate("() => [...document.querySelectorAll('.msheet:not([hidden]) .mrow')].map(r => r.dataset.m)")
-    # ★ 2026-10-06 改前→改後（驗收過時）：改前頁面那組是市場明細／週期統計／自選；ETF 專區的入口加進來後是
-    #   市場明細／週期統計／ETF 專區／自選 —— 「自選維持頁面那組最後一列」（Andy 09-28）這件事沒變，所以改驗前四列的順序。
-    ok(f"★ {tag} ④ 手機「更多」的頁面那組最後一列是「自選」、交付清單已不在導覽", rows[:4] == ["market", "season", "etf", "watch"] and "delivery" not in rows, rows)
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前頁面那組是市場明細／週期統計／自選三列；ETF、財經日曆收進「更多」（030f2745）後是
+    #   市場明細／週期統計／ETF／財經日曆／自選 —— 「自選維持頁面那組最後一列」（Andy 09-28）這件事沒變，所以改驗前五列的順序。
+    ok(f"★ {tag} ④ 手機「更多」的頁面那組最後一列是「自選」、交付清單已不在導覽", rows[:5] == ["market", "season", "etf", "earnings", "watch"] and "delivery" not in rows, rows)
     m.click(".msheet:not([hidden]) .mrow[data-m=watch]")
     wait_until(m, "() => location.hash === '#watch' && document.querySelectorAll('#wpTabs .wptab').length === 5", 8000)
     ok(f"{tag} ④ 點「自選」→ 到自選分頁、5 個分頁", m.evaluate("() => document.querySelectorAll('#wpTabs .wptab').length") == 5)
@@ -46216,6 +46356,10 @@ def t_perm_nav(b, base):
         wait_until(pg, "() => !!document.getElementById('mTabMore') && !!(window.TwAccount && TwAccount.on())", 8000)
         if adm:
             wait_until(pg, "() => !!TwAccount.user()", 6000)
+        # ★ 2026-10-06（既有紅字清理，真 bug）：ETF／財經日曆兩顆頂層分頁沒收進「更多」，底部五欄格線擠成兩列，
+        #   「更多」掉到畫面下緣之外（實測 top 901／視窗 900）→ 手機點不到管理區。修在 index.html＋mobile3.js，這條守住它。
+        mr = pg.evaluate("() => { const r = document.getElementById('mTabMore').getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight }; }")
+        ok(f"{T} 390（{who}）：底部導覽的「更多」整顆在畫面裡（沒被擠到第二列）", mr["top"] >= 0 and mr["bottom"] <= mr["vh"] + 1, mr)
         pg.click("#mTabMore")
         pg.wait_for_timeout(300)
         has = pg.locator(".mrow[data-m='perm']").count()
@@ -48983,16 +49127,24 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
             ck = ((an.get("facets") or {}).get("tech") or {}).get("checks") or {}
             ai = pg.evaluate("""() => ({ line: ((document.getElementById('ovAiLine') || {}).innerText || '').replace(/\\s+/g, ' '),
                 n: document.querySelectorAll('#ovAiCard').length,
-                tags: [...document.querySelectorAll('#ovAiTags .ovtag')].map(b => [b.dataset.facet, b.querySelector('.nm').textContent, b.querySelector('.aitag').textContent]),
+                tags: [...document.querySelectorAll('#ovAiTags .ovtag')].map(b => [b.dataset.facet, (b.querySelector('.nm .nl') || b.querySelector('.nm')).textContent, b.querySelector('.aitag').textContent]),
                 cards: [...document.querySelectorAll('#ovFacets > .card')].map(c => ({ f: c.dataset.facet, vis: c.getClientRects().length > 0 })),
                 inCard: [...document.querySelectorAll('#ovFacets > .card')].every(c => !!c.closest('#ovAiCard')) })""")
             if an:
                 ok(f"{tag} AI 卡：一行重點寫出回檔／突破成立條數（{ck.get('met_a')}/{ck.get('n_a')}、{ck.get('met_b')}/{ck.get('n_b')}）",
                    not ck or (f"回檔型態 {ck.get('met_a')}/{ck.get('n_a')}" in ai["line"] and f"突破型態 {ck.get('met_b')}/{ck.get('n_b')}" in ai["line"]), ai["line"])
-                ok(f"{tag} AI 卡：四顆分頁籤＝技術面、技術面訊號、基本面、消息面（每顆帶小判讀）",
-                   [t[1] for t in ai["tags"]] == ["技術面", "技術面訊號", "基本面", "消息面"] and all(t[2].strip() for t in ai["tags"]), ai["tags"])
-                ok(f"{tag} AI 卡只有一張、四面（技術面→技術面訊號→基本面→消息面）都在這張卡裡、一次只顯示一面",
-                   ai["n"] == 1 and ai["inCard"] and [x["f"] for x in ai["cards"]] == ["tech", "sig", "fund", "news"] and sum(x["vis"] for x in ai["cards"]) == 1, ai)
+                # ★ 2026-10-06（既有紅字清理）改前→改後：四顆籤「技術面｜技術面訊號｜基本面｜消息面」→「技術面｜籌碼面｜基本面｜消息面」；
+                #   「一次只顯示一面」改成「一次只顯示一個面向（技術面＝技術面卡＋接在下面的訊號燈那張）」。
+                #   為什麼舊的過時：ff621ee0（10-04，Andy：「技術已經有了，為何還多一個技術面訊號」「需要的是 技術面、籌碼面、基本面、消息面」）
+                #   把技術面訊號併進技術面、第二顆改回籌碼面；籤名改成 .nm 裡的全名 .nl＋窄寬用的簡稱 .ns（.ns 平常 display:none），
+                #   讀整個 .nm 的 textContent 會讀成「技術面技術」。那批改了別段（個股 AI 分析）的斷言，漏了這一段。
+                ok(f"{tag} AI 卡：四顆分頁籤＝技術面、籌碼面、基本面、消息面（每顆帶小判讀）",
+                   [t[1] for t in ai["tags"]] == ["技術面", "籌碼面", "基本面", "消息面"] and all(t[2].strip() for t in ai["tags"]), ai["tags"])
+                _faces = [x["f"] for x in ai["cards"] if x["vis"] and x["f"] != "sig"]
+                _sigv = any(x["vis"] for x in ai["cards"] if x["f"] == "sig")
+                ok(f"{tag} AI 卡只有一張、四面（技術面＋訊號燈→籌碼面→基本面→消息面）都在這張卡裡、一次只顯示一個面向",
+                   ai["n"] == 1 and ai["inCard"] and [x["f"] for x in ai["cards"]] == ["tech", "sig", "chip", "fund", "news"]
+                   and len(_faces) == 1 and _sigv == (_faces == ["tech"]), ai)
                 # 點「基本面」分頁籤 → 卡裡換成基本面、籤變選中、寫進 tw.ovAiTab、不捲動不跳頁
                 # 先把分頁籤捲進畫面再記 scrollY（click 自己會捲一次，那一下不是切籤造成的）
                 pg.evaluate("() => document.getElementById('ovAiTags').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(250)

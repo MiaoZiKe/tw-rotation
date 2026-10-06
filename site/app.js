@@ -3979,7 +3979,7 @@
   const TPE_YMD = (() => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }); } catch (e) { return null; } })();
   const ovlToday = () => (TPE_YMD ? TPE_YMD.format(new Date()) : new Date().toISOString().slice(0, 10)).replace(/-/g, '');
 
-  /* 這一圈要輪哪些代號：市場明細「即時」那一份（mudCodes，人工族群成分股）＋題材成分股裡不在人工族群的。
+  /* 這一圈要輪哪些代號：市場明細「即時」那一份（mudCodes：族群成分股＋自選＋成交值前段，上限 MUD_CAP）＋題材成分股裡不在裡面的。
      輪動時鐘（rlvCodes）與資金去向（sklCodes）的名單都是 mudCodes 的子集合，不用另外加。*/
   function ovlUni() {
     const th = OVS.src && OVS.src.th;
@@ -4023,12 +4023,16 @@
     const n = up + fl + dn;
     if (!n) return { err: '還沒拿到任何一檔今天的報價' };
     const P = ovsUdParts(up, fl, dn), all = ((OVS.src && OVS.src.stocks) || []).length;
+    /* ★ 2026-10-06（既有紅字清理）：底線／提示原本寫「人工族群成分股」—— 那是 10-05 以前的名單。
+       79d503f5 起 mudCodes() 是「族群成分股＋自選＋盤後成交值前段補位」三段聯集、上限 MUD_CAP（550），
+       卡上照舊寫成「人工族群成分股」就是說錯口徑（N 會超過族群成分股的檔數）。底線改只寫「非全市場」（最要緊的那句），
+       三段組成寫在提示；udUni＝這一輪名單有幾檔（給驗收讀，跟 udN 一樣只是讀數）。 */
     return {
       html: { bar: P.bar, nums: P.nums,
-        foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・人工族群成分股，非全市場</span>`,
-        aria: `漲跌家數（即時估算 ${n} 檔人工族群成分股，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈（盤後資料）`,
-        ds: { udN: n, udFrom: 'live' } },
-      info: { n, at, tip: `口徑：市場明細「即時」同一份名單 —— 人工族群成分股 ${codes.length} 檔裡拿到今天報價的 ${n} 檔，`
+        foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・非全市場</span>`,
+        aria: `漲跌家數（即時估算 ${n} 檔，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈（盤後資料）`,
+        ds: { udN: n, udFrom: 'live', udUni: codes.length } },
+      info: { n, at, tip: `口徑：市場明細「即時」同一份名單 —— 族群成分股＋自選＋盤後成交值前段補位（上限 ${MUD_CAP}）共 ${codes.length} 檔裡拿到今天報價的 ${n} 檔，`
         + `漲跌＝現價 vs 昨收（真值）。這不是全市場（全市場 ${all || '約 2300'} 檔要盤後才有），這一批偏中大型、偏電子。` },
     };
   }
