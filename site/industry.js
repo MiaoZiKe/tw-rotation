@@ -1404,7 +1404,9 @@
          桌機（>820）沒有 #segOnly 那顆「已只看這一格」可以讀，而右欄 .rlseg.on 在剖析圖分頁一進來就會亮著
          這張圖的族群那幾格（state.group，不是使用者選的）—— 單看畫面分不出「選了一格」與「族群帶出來的」，
          DECISIONS #73「點零件只亮不篩」要量的正是這個差別。*/
-      { const dd = $('#segDD', el); if (dd) dd.dataset.filter = segFilter || ''; }
+      /* ⚠ 值沒變就不要寫：同一個值再寫一次也會產生 attributes 的 MutationObserver 紀錄，
+         全站有好幾個觀察器（分頁拖曳、版面 v2 掃描）會因此再排一次版面 → 又叫到這裡，變成停不下來的重排（第一版就踩到：頁面一直不穩定）。*/
+      { const dd = $('#segDD', el), fv = segFilter || ''; if (dd && dd.dataset.filter !== fv) dd.dataset.filter = fv; }
       { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
       /* 說明卡浮在圖上（2026-09-26 晚）：開關狀態定了之後，依被點的那一格決定貼左還是貼右（見 placeRelCol） */
       placeRelCol(el);
