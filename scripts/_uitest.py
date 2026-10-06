@@ -49338,6 +49338,7 @@ def t_admin_v3(b, base, code):
     wait_until(pg, PV4_READY, 12000)
     pg.click("#ptTier button[data-tier='free']"); pg.click("#ptSubList")
     wait_until(pg, "() => !!document.getElementById('ptTable') && !!document.getElementById('msFeat')", 5000)
+    pg.wait_for_timeout(1000)   # 甜甜圈是 ECharts，進到畫面後才掛上去
     ms = pg.evaluate("""() => { const rows = [...document.querySelectorAll('#ptTable tbody tr[data-email]')];
         const st = {}; rows.forEach(t => { const s = t.querySelector('.c-st .stt').className.split(' ')[1]; st[s] = (st[s] || 0) + 1; });
         const don = (id) => Object.fromEntries([...document.querySelectorAll('#' + id + ' li')].map(l => [l.dataset.k, +l.dataset.n]));
