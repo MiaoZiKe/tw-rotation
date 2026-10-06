@@ -1448,3 +1448,84 @@ Hub.prototype.fetch = async function (req) {
   }
 };
 /* ============================================================================ 批次端點區塊結束 */
+
+/* ============================================================================
+   data-gw 停權區塊（2026-10-06，docs/datagw_plan.md 第三階段）
+   ----------------------------------------------------------------------------
+   付費資料閘道（workers/data-gw）偵測到異常且 AUTO_SUSPEND=1 時，經 service binding 呼叫：
+     POST /internal/suspend   標頭 X-Internal-Key: <INTERNAL_KEY>   { uid, reason }
+       → users.tv + 1（所有舊登入權杖立刻失效）＋ susp 表記一列（append-only：每次停權、解除都是新的一列，舊列不改不刪）
+   之後就算重新登入拿到新權杖，verify() 也會因為「最新一列是停權」而拒絕 —— 直到管理者解除。
+   管理者：
+     POST /v1/admin/susp/list  { t }            最近 300 列停權／解除紀錄（含 email、名字、現在是否停權中）
+     POST /v1/admin/susp/lift  { t, uid, note } 寫一列「解除」（不刪停權那列，留痕）
+     POST /v1/admin/uids       { t, uids:[] }   異常頁把 data-gw 記的 uid 換成 email／名字（最多 100 個）
+   ★ 「只能由 data-gw 呼叫」怎麼做到：
+     ① 必須帶 X-Internal-Key，跟 Worker Secret INTERNAL_KEY 等長逐字元比對；INTERNAL_KEY 沒設＝這條路徑不存在（404）。
+        這把鑰匙只設在 account-api 與 data-gw 兩支 Worker 的 Secret 裡，前端、repo、log 都沒有。
+     ② data-gw 只透過 service binding（同帳號內部呼叫，不走公網）送這支請求。
+     ③ 管理者帳號不會被停（避免規則誤傷 Andy 自己、把管理頁鎖死）。
+   同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+Hub.prototype.suspInit = function () {
+  if (this._suspInit) return;
+  this._suspInit = true;
+  this.q('CREATE TABLE IF NOT EXISTS susp (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, ts INTEGER, act TEXT, reason TEXT, by TEXT)');
+  this.q('CREATE INDEX IF NOT EXISTS susp_uid ON susp (uid, id)');
+};
+Hub.prototype.isSuspended = function (uid) {
+  this.suspInit();
+  const r = this.q('SELECT act FROM susp WHERE uid = ? ORDER BY id DESC LIMIT 1', uid)[0];
+  return !!r && r.act === 'suspend';
+};
+const suspOrigVerify = Hub.prototype.verify;
+Hub.prototype.verify = async function (tok) {
+  const v = await suspOrigVerify.call(this, tok);
+  return v && this.isSuspended(v.user.uid) ? null : v;
+};
+Hub.prototype.internalSuspend = async function (req) {
+  const key = String(this.env.INTERNAL_KEY || '');
+  if (!key) return this.json(req, { error: 'not_found' }, 404);
+  if (!safeEq(String(req.headers.get('X-Internal-Key') || ''), key)) return this.json(req, { error: 'forbidden' }, 403);
+  let b; try { b = JSON.parse((await req.text()) || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+  const uid = String((b && b.uid) || '');
+  if (!/^[A-Za-z0-9_-]{4,40}$/.test(uid)) return this.json(req, { error: 'bad_uid' }, 400);
+  const u = this.q('SELECT uid, email FROM users WHERE uid = ?', uid)[0];
+  if (!u) return this.json(req, { error: 'not_found' }, 404);
+  if (this.isAdmin(u)) return this.json(req, { error: 'admin' }, 409);
+  if (this.isSuspended(uid)) return this.json(req, { ok: true, already: true });
+  this.q('UPDATE users SET tv = tv + 1 WHERE uid = ?', uid);
+  this.q('INSERT INTO susp (uid, ts, act, reason, by) VALUES (?, ?, ?, ?, ?)', uid, this.now(), 'suspend', String(b.reason || '').slice(0, 200), 'data-gw');
+  return this.json(req, { ok: true });
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/susp/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.suspInit();
+    const rows = this.q('SELECT s.id, s.uid, s.ts, s.act, s.reason, s.by, u.email, u.name FROM susp s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.id DESC LIMIT 300');
+    return this.json(req, { rows: rows.map((r) => ({ ...r, now: this.isSuspended(r.uid) })) });
+  },
+  '/v1/admin/susp/lift': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    const uid = String(b.uid || '');
+    if (!this.isSuspended(uid)) return this.json(req, { error: 'not_suspended' }, 400);
+    this.q('INSERT INTO susp (uid, ts, act, reason, by) VALUES (?, ?, ?, ?, ?)', uid, this.now(), 'lift', String(b.note || '').slice(0, 200), String(v.user.email || ''));
+    return this.json(req, { ok: true });
+  },
+  '/v1/admin/uids': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const ids = Array.isArray(b.uids) ? b.uids.slice(0, 100).map(String) : [];
+    const out = {};
+    ids.forEach((id) => { const u = this.q('SELECT email, name FROM users WHERE uid = ?', id)[0]; if (u) out[id] = { email: u.email, name: u.name, susp: this.isSuspended(id) }; });
+    return this.json(req, { users: out });
+  },
+});
+const suspOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  if (req.method === 'POST' && new URL(req.url).pathname === '/internal/suspend') {
+    try { return await this.internalSuspend(req); } catch (e) { return this.json(req, { error: 'server' }, 500); }
+  }
+  return suspOrigFetch.call(this, req);
+};
+/* ============================================================================ data-gw 停權區塊結束 */

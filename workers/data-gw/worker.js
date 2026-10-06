@@ -60,6 +60,8 @@ export class Gw {
     this.q('CREATE INDEX IF NOT EXISTS log_uid_ts ON log (uid, ts)');
     this.q('CREATE TABLE IF NOT EXISTS alerts (ts INTEGER, uid TEXT, kind TEXT, detail TEXT)');
     this.q('CREATE TABLE IF NOT EXISTS flags (uid TEXT PRIMARY KEY, n INTEGER, last INTEGER, kinds TEXT)');
+    /* 第三階段：每帳號裝置（只存裝置 id 的雜湊）。DEVICE_TTL_D 天沒用的裝置自動讓出名額 */
+    this.q('CREATE TABLE IF NOT EXISTS devices (uid TEXT, devh TEXT, first INTEGER, last INTEGER, PRIMARY KEY (uid, devh))');
   }
   q(s, ...a) { return this.sql.exec(s, ...a).toArray(); }
   now() { return this.env.__now ? this.env.__now() : Date.now(); }
@@ -81,8 +83,8 @@ export class Gw {
   }
 
   /* 呼叫 account-api：優先用 service binding（ACCOUNT），沒有就打 ACCOUNT_API_URL。帶白名單 Origin（account-api 的 POST 要求）。*/
-  async acct(path, body) {
-    const init = { method: 'POST', headers: { 'content-type': 'text/plain', Origin: this.env.ACCOUNT_ORIGIN || this.origins()[0] }, body: JSON.stringify(body) };
+  async acct(path, body, extra = {}) {
+    const init = { method: 'POST', headers: { 'content-type': 'text/plain', Origin: this.env.ACCOUNT_ORIGIN || this.origins()[0], ...extra }, body: JSON.stringify(body) };
     try {
       const r = this.env.ACCOUNT ? await this.env.ACCOUNT.fetch(new Request('https://account' + path, init))
         : await fetch(String(this.env.ACCOUNT_API_URL || '').replace(/\/$/, '') + path, init);
@@ -103,7 +105,7 @@ export class Gw {
     if (!r || r[0] !== m) { this.rate.set(key, [m, 1]); return true; }
     r[1]++; return r[1] <= limit;
   }
-  alert(uid, kind, detail) {
+  async alert(uid, kind, detail) {
     const k = uid + '|' + kind, t = this.now();
     if (t - (this.alerted.get(k) || 0) < 600000) return;
     this.alerted.set(k, t);
@@ -120,11 +122,35 @@ export class Gw {
       const n = this.q("SELECT COUNT(*) AS c FROM alerts WHERE uid = ? AND ts >= ? AND kind IN ('burst', 'multi_ip')", uid, since)[0].c;
       const done = this.q("SELECT COUNT(*) AS c FROM alerts WHERE uid = ? AND ts >= ? AND kind IN ('would_suspend', 'suspend')", uid, since)[0].c;
       if (n >= this.num('SUSPEND_AFTER', 3) && !done) {
-        const k2 = String(this.env.AUTO_SUSPEND) === '1' ? 'suspend' : 'would_suspend';
-        this.q('INSERT INTO alerts (ts, uid, kind, detail) VALUES (?, ?, ?, ?)', t, uid, k2, `${n} 次／${this.num('SUSPEND_WINDOW_H', 24)} 小時`);
+        const on = String(this.env.AUTO_SUSPEND) === '1';
+        let k2 = 'would_suspend', d2 = `${n} 次／${this.num('SUSPEND_WINDOW_H', 24)} 小時`;
+        if (on) {
+          /* 經 service binding 呼叫 account-api 的 /internal/suspend（遞增 tv）；失敗也要留紀錄，讓 Andy 手動處理 */
+          const r = this.env.INTERNAL_KEY ? await this.acct('/internal/suspend', { uid, reason: `data-gw：${d2}` }, { 'X-Internal-Key': this.env.INTERNAL_KEY }) : null;
+          k2 = r && r.ok ? 'suspend' : 'suspend_failed';
+        }
+        this.q('INSERT INTO alerts (ts, uid, kind, detail) VALUES (?, ?, ?, ?)', t, uid, k2, d2);
+        await this.notify(uid, k2, d2);
       }
     }
-    /* 第三階段：這裡寄信／推播給 Andy。*/
+    await this.notify(uid, kind, detail);
+  }
+  /* 異常通知（T6）：收件設定沒設＝只記錄。
+     ALERT_WEBHOOK（Secret）：POST JSON {text, kind, uid, detail, ts}，可接 ntfy、Slack／Discord／Telegram 轉接、Google Apps Script 寄信。
+     ALERT_EMAIL ＋ RESEND_API_KEY（Secret）：用 Resend 寄信到這個地址。
+     只通知 NOTIFY_KINDS 列的種類（預設：停權相關、裝置超額、多 IP），其他只記錄。通知失敗不影響發檔。*/
+  async notify(uid, kind, detail) {
+    const kinds = String(this.env.NOTIFY_KINDS || 'would_suspend,suspend,suspend_failed,devices,multi_ip').split(',');
+    if (!kinds.includes(kind)) return;
+    const text = `[tw-rotation data-gw] ${kind}｜帳號 ${uid}｜${String(detail).slice(0, 200)}`;
+    const jobs = [];
+    if (this.env.ALERT_WEBHOOK) jobs.push(fetch(this.env.ALERT_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, kind, uid, detail: String(detail).slice(0, 300), ts: this.now() }) }));
+    if (this.env.ALERT_EMAIL && this.env.RESEND_API_KEY) jobs.push(fetch('https://api.resend.com/emails', { method: 'POST',
+      headers: { 'content-type': 'application/json', Authorization: 'Bearer ' + this.env.RESEND_API_KEY },
+      body: JSON.stringify({ from: this.env.ALERT_FROM || 'data-gw <onboarding@resend.dev>', to: [this.env.ALERT_EMAIL], subject: `異常：${kind}`, text }) }));
+    if (!jobs.length) return;
+    const ok = (await Promise.allSettled(jobs)).some((r) => r.status === 'fulfilled' && r.value.ok);
+    this.q('INSERT INTO alerts (ts, uid, kind, detail) VALUES (?, ?, ?, ?)', this.now(), uid, ok ? 'notified' : 'notify_failed', kind);
   }
   clean() {
     const t = this.now();
@@ -133,6 +159,7 @@ export class Gw {
     this.q('DELETE FROM log WHERE ts < ?', t - LOG_KEEP_MS);
     this.q('DELETE FROM alerts WHERE ts < ?', t - LOG_KEEP_MS);
     this.q('DELETE FROM sessions WHERE exp < ?', Math.floor(t / 1000) - 3600);
+    this.q('DELETE FROM devices WHERE last < ?', t - this.num('DEVICE_TTL_D', 30) * 86400000);
   }
 
   async fetch(req) {
@@ -152,6 +179,8 @@ export class Gw {
       if (!b || typeof b !== 'object') return this.json(req, { error: 'bad_json' }, 400);
       if (p === '/v1/session') return await this.session(req, b);
       if (p === '/v1/admin/alerts') return await this.adminAlerts(req, b);
+      if (p === '/v1/admin/wm') return await this.adminWm(req, b);
+      if (p === '/v1/admin/devices/reset') return await this.adminDevReset(req, b);
       return this.json(req, { error: 'not_found' }, 404);
     } catch (e) {
       return this.json(req, { error: 'server' }, 500);
@@ -168,9 +197,21 @@ export class Gw {
     const [me, pm] = await Promise.all([this.acct('/v1/me', { t }), this.acct('/v1/perm/me', { t })]);
     if (!me || !me.user || !pm || pm.who !== 'member') return this.json(req, { error: 'auth' }, 401);
     const uid = t.split('.')[1];       // account-api 剛驗過這張權杖（簽章＋tv），uid 就是它的第 2 段
-    const sid = rand(), exp = Math.floor(this.now() / 1000) + SESSION_SEC;
+    const devh = await sha256('dev:' + b.d), now = this.now();
+    /* 每帳號最多 MAX_DEVICES 台裝置（預設 2）。管理者不限（Andy 自己會在多台電腦開）。
+       超過＝這台拿不到資料權杖，記一筆 devices 異常；舊裝置 DEVICE_TTL_D 天沒用自動讓位，或管理者在異常頁按「清除裝置」。*/
+    const known = this.q('SELECT 1 FROM devices WHERE uid = ? AND devh = ?', uid, devh).length > 0;
+    if (!known && !me.user.admin) {
+      const n = this.q('SELECT COUNT(*) AS c FROM devices WHERE uid = ? AND last >= ?', uid, now - this.num('DEVICE_TTL_D', 30) * 86400000)[0].c;
+      if (n >= this.num('MAX_DEVICES', 2)) {
+        await this.alert(uid, 'devices', `第 ${n + 1} 台裝置被擋（上限 ${this.num('MAX_DEVICES', 2)}）`);
+        return this.json(req, { error: 'devices', max: this.num('MAX_DEVICES', 2) }, 403);
+      }
+    }
+    this.q('INSERT INTO devices (uid, devh, first, last) VALUES (?, ?, ?, ?) ON CONFLICT(uid, devh) DO UPDATE SET last = excluded.last', uid, devh, now, now);
+    const sid = rand(), exp = Math.floor(now / 1000) + SESSION_SEC;
     this.q('INSERT INTO sessions (sid, uid, plan, feats, devh, exp, ips) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      sid, uid, String(pm.plan || 'free'), JSON.stringify(pm.feats || {}), await sha256('dev:' + b.d), exp, '[]');
+      sid, uid, String(pm.plan || 'free'), JSON.stringify(pm.feats || {}), devh, exp, '[]');
     const body = `g1.${sid}.${exp}`;
     return this.json(req, { tok: body + '.' + (await this.hmac(body)), exp, plan: pm.plan });
   }
@@ -197,7 +238,7 @@ export class Gw {
       who = s.uid; feats = JSON.parse(s.feats || '{}');
       const ips = new Set(JSON.parse(s.ips || '[]'));
       if (!ips.has(ip)) { ips.add(ip); this.q('UPDATE sessions SET ips = ? WHERE sid = ?', JSON.stringify([...ips].slice(0, 20)), s.sid); }
-      if (ips.size > this.num('MAX_IPS', 2)) this.alert(who, 'multi_ip', [...ips].join(','));
+      if (ips.size > this.num('MAX_IPS', 2)) await this.alert(who, 'multi_ip', [...ips].join(','));
     } else if (tier.feats.length) {
       feats = await this.guestFeats();
       if (!feats) return this.json(req, { error: 'upstream' }, 503);
@@ -205,15 +246,15 @@ export class Gw {
     if (!allowed(tier, feats || {})) return this.json(req, { error: who === 'guest' ? 'login' : 'plan', need: tier.feats }, who === 'guest' ? 401 : 403);
     const limit = who === 'guest' ? this.num('GUEST_PER_MIN', 120) : this.num('RATE_PER_MIN', 60);
     if (!this.rateOk(who === 'guest' ? 'ip:' + ip : who, limit)) {
-      if (who !== 'guest') this.alert(who, 'rate', `>${limit}/min`);
+      if (who !== 'guest') await this.alert(who, 'rate', `>${limit}/min`);
       return this.json(req, { error: 'rate' }, 429, { 'retry-after': '60' });
     }
     const t = this.now();
     this.q('INSERT INTO log (ts, uid, name, ip, ua) VALUES (?, ?, ?, ?, ?)', t, who, name, ip, ua);
     if (who !== 'guest') {
-      if (!looksBrowser(req)) this.alert(who, 'bot_ua', ua || '(空白)');
+      if (!looksBrowser(req)) await this.alert(who, 'bot_ua', ua || '(空白)');
       const n = this.q('SELECT COUNT(DISTINCT name) AS c FROM log WHERE uid = ? AND ts > ?', who, t - 60000)[0].c;
-      if (n > this.num('BURST_FILES', 30)) this.alert(who, 'burst', `${n} 支／60 秒`);
+      if (n > this.num('BURST_FILES', 30)) await this.alert(who, 'burst', `${n} 支／60 秒`);
     }
     const obj = this.env.DATA ? await this.env.DATA.get(name + '.json') : null;
     if (!obj) return this.json(req, { error: 'not_found' }, 404);
@@ -225,12 +266,38 @@ export class Gw {
     return this.json(req, data, 200, { 'x-wm': wm.a + '.' + wm.t });
   }
 
-  /* ---- (3) 管理者看異常 */
-  async adminAlerts(req, b) {
+  /* ---- (3) 管理者：異常、浮水印反查、清除裝置（管理者身分一律由 account-api 判定）*/
+  async isAdminReq(b) {
     const me = b.t ? await this.acct('/v1/me', { t: b.t }) : null;
-    if (!me || !me.user) return this.json(req, { error: 'auth' }, 401);
-    if (!me.user.admin) return this.json(req, { error: 'forbidden' }, 403);
+    return !me || !me.user ? 401 : me.user.admin ? 0 : 403;
+  }
+  /* 浮水印反查：貼上外流檔裡的 _wm.a（12 碼）→ 逐一比對最近 30 天有紀錄的帳號 */
+  async adminWm(req, b) {
+    const e = await this.isAdminReq(b); if (e) return this.json(req, { error: e === 401 ? 'auth' : 'forbidden' }, e);
+    const a = String(b.wm || '').trim().replace(/^.*"a"\s*:\s*"([^"]+)".*$/s, '$1').slice(0, 12);
+    if (!/^[A-Za-z0-9_-]{12}$/.test(a)) return this.json(req, { error: 'bad_wm' }, 400);
+    const uids = this.q("SELECT DISTINCT uid FROM log WHERE uid != 'guest' UNION SELECT DISTINCT uid FROM devices").map((r) => r.uid);
+    for (const u of uids) if ((await this.hmac('wm:' + u)).slice(0, 12) === a) {
+      const last = this.q('SELECT ts, name, ip FROM log WHERE uid = ? ORDER BY ts DESC LIMIT 20', u);
+      return this.json(req, { uid: u, last, checked: uids.length });
+    }
+    return this.json(req, { uid: null, checked: uids.length });
+  }
+  async adminDevReset(req, b) {
+    const e = await this.isAdminReq(b); if (e) return this.json(req, { error: e === 401 ? 'auth' : 'forbidden' }, e);
+    const uid = String(b.uid || '');
+    if (!/^[A-Za-z0-9_-]{4,40}$/.test(uid)) return this.json(req, { error: 'bad_uid' }, 400);
+    const n = this.q('SELECT COUNT(*) AS c FROM devices WHERE uid = ?', uid)[0].c;
+    this.q('DELETE FROM devices WHERE uid = ?', uid);
+    return this.json(req, { ok: true, removed: n });
+  }
+  async adminAlerts(req, b) {
+    const e = await this.isAdminReq(b); if (e) return this.json(req, { error: e === 401 ? 'auth' : 'forbidden' }, e);
     return this.json(req, {
+      devices: this.q('SELECT uid, COUNT(*) AS n, MAX(last) AS last FROM devices GROUP BY uid ORDER BY n DESC, last DESC LIMIT 300'),
+      config: { auto: String(this.env.AUTO_SUSPEND) === '1', after: this.num('SUSPEND_AFTER', 3), windowH: this.num('SUSPEND_WINDOW_H', 24),
+        maxDevices: this.num('MAX_DEVICES', 2), rate: this.num('RATE_PER_MIN', 60), burst: this.num('BURST_FILES', 30), maxIps: this.num('MAX_IPS', 2),
+        notify: !!(this.env.ALERT_WEBHOOK || (this.env.ALERT_EMAIL && this.env.RESEND_API_KEY)) },
       alerts: this.q('SELECT ts, uid, kind, detail FROM alerts ORDER BY ts DESC LIMIT 300'),
       flags: this.q('SELECT uid, n, last, kinds FROM flags ORDER BY last DESC LIMIT 300').map((r) => ({ ...r, kinds: JSON.parse(r.kinds) })),
     });

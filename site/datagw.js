@@ -12,7 +12,7 @@
   'use strict';
   const K_DEV = 'tw.gw.dev';
   const gwUrl = () => String((window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT || {}).gw || '').replace(/\/$/, '');
-  let idxP = null, sess = null, sessP = null;
+  let idxP = null, sess = null, sessP = null, coolUntil = 0;   // coolUntil：被裝置上限擋下後 5 分鐘內不再重換
 
   function devId() {
     let d = null;
@@ -40,11 +40,20 @@
     if (!lt) { sess = null; return null; }
     if (sess && sess.lt === lt && sess.exp * 1000 - Date.now() > 30000) return sess.tok;
     if (sessP) return sessP;
+    if (Date.now() < coolUntil) return null;
     sessP = (async () => {
       try {
         const r = await fetch(gwUrl() + '/v1/session', { method: 'POST', headers: { 'content-type': 'text/plain' }, credentials: 'omit',
           body: JSON.stringify({ t: lt, d: devId() }) });
-        const j = r.ok ? await r.json() : null;
+        const j = await r.json().catch(() => null);
+        /* 第三階段：每帳號最多 2 台裝置。超過時這台只能看免費內容，提示一次（不重複跳） */
+        if (r.status === 403 && j && j.error === 'devices') coolUntil = Date.now() + 5 * 60000;
+        if (r.status === 403 && j && j.error === 'devices' && !window.__twGwDevWarned) {
+          window.__twGwDevWarned = true;
+          const t = window.TwSub && window.TwSub.toast;
+          if (t) t(`這個帳號已在 ${j.max || 2} 台裝置上使用付費內容，這台暫時只能看免費內容。需要換裝置請來信客服。`);
+        }
+        if (!r.ok) { sess = null; return null; }
         sess = j && j.tok ? { tok: j.tok, exp: j.exp, lt } : null;
       } catch (e) { sess = null; }
       return sess ? sess.tok : null;

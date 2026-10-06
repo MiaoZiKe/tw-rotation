@@ -193,3 +193,37 @@ account-api 自己驗簽章與 `tv`，data-gw 再用自己的 `GW_SECRET` 簽 5 
 
 ⚠ 前提：會員登入（`ACCOUNT_API_URL`）必須已經開著；沒有會員就沒有人能拿付費檔。
 ⚠ 預覽分支（preview/*）讀正式站資料：切換後預覽版也走 gateway（它沿用正式站的 account_config.js）。
+
+---
+
+## 9. 第三階段做了什麼（2026-10-06，分支 claude/data-gw）
+
+| 項目 | 做法 | 檔案 |
+|---|---|---|
+| 異常通知（T6） | 收件設定做成 Secret：`ALERT_WEBHOOK`（ntfy／Slack／Discord／Telegram 轉接／Apps Script 寄信都可）或 `ALERT_EMAIL`＋`RESEND_API_KEY`（Resend 寄信）。**都沒設＝只記錄、不連外**。只通知 `NOTIFY_KINDS`（預設：達停權門檻、已停權、停權失敗、裝置超額、多網段），通知內容只有 uid，不帶 email。送出結果記一筆 `notified`／`notify_failed` | `workers/data-gw/worker.js` `notify()` |
+| 自動停權端點 | account-api 檔尾新增區塊（既有函式一行不動）：`POST /internal/suspend` → `users.tv + 1`＋`susp` 表**新增一列**（append-only，解除也是新增一列 `lift`）；`verify()` 包一層：最新一列是停權就拒絕 → 舊權杖立刻失效，重新登入也拿不到可用權杖。管理者帳號不會被停 | `workers/account-api/worker.js`「data-gw 停權區塊」 |
+| 只能由 data-gw 呼叫 | 必須帶 `X-Internal-Key` 且等於 Worker Secret `INTERNAL_KEY`（兩支 Worker 設同一值，repo／前端／log 都沒有）；**沒設 INTERNAL_KEY 這條路徑就不存在（404）**；data-gw 只經 service binding 送。⚠ 誠實說明：workers.dev 上的公開網址理論上也收得到這個路徑，擋住外人的是那把鑰匙，不是網路層 | 同上 |
+| AUTO_SUSPEND | 維持 `"0"`：達門檻只記 `would_suspend`、**不呼叫**停權端點（有測試釘住）。改 `"1"` 後才經 binding 呼叫；呼叫失敗記 `suspend_failed` 並通知 | `wrangler.toml` |
+| 管理區異常頁 `#admin/gw` | 帳號選單（管理者＋gateway 已啟用才出現）→「管理區：付費資料異常」。內容：目前門檻、浮水印反查（貼 12 碼或整段 `_wm` JSON）、標記帳號表（清除裝置、解除停權）、異常紀錄、停權紀錄（含 email） | `site/admingw.js`（新）、`site/account.js` 選單一行 |
+| 每帳號最多 2 台裝置 | data-gw `devices` 表（只存裝置 id 雜湊）；第 3 台換權杖回 403 `devices` 並記錄；30 天（`DEVICE_TTL_D`）沒用的裝置自動讓位；管理者不限；異常頁可「清除裝置」。前端被擋時提示一次、5 分鐘內不重試 | `worker.js` `session()`、`site/datagw.js` |
+| 部署 | `deploy-data-gw.yml` 多跑停權測試、選用 Secret 有設才寫入；`deploy-account-worker.yml` 多跑 `susp.test.mjs`、`DATAGW_INTERNAL_KEY` 有設才寫入（**這支掛 push main，所以要等分支合併才會生效**） | `.github/workflows/` |
+
+## 10. 更新後的正式切換步驟（取代第 8 節；★＝要等 Andy 按）
+
+| # | 步驟 | 誰 |
+|---|---|---|
+| 1 | ★ Cloudflare 啟用 R2、建 bucket `tw-rotation-paid`（不開公開存取） | Andy |
+| 2 | ★ 既有 `CLOUDFLARE_API_TOKEN` 加權限「Workers R2 Storage: Edit」 | Andy |
+| 3 | ★ R2 API 權杖（Object Read & Write，只限這個 bucket）→ Secret `R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` | Andy |
+| 4 | ★ Secret `DATA_GW_SECRET`（隨機 48 字元以上） | Andy |
+| 5 | ★ Secret `DATAGW_INTERNAL_KEY`（另一串隨機 48 字元以上；兩支 Worker 共用） | Andy |
+| 6 | ★（選用，T6）通知：Secret `DATAGW_ALERT_WEBHOOK`，或 `DATAGW_ALERT_EMAIL`＋`RESEND_API_KEY`。不設＝只記錄，可以之後再補（補完重跑第 8 步） | Andy |
+| 7 | 分支合併 main（Andy 看過預覽後）。**合併會觸發 account-api 自動部署**（停權端點上線，但沒有 INTERNAL_KEY 前是 404；有了也只有 data-gw 帶鑰匙才叫得動）。其他行為不變 | CEO／deployer |
+| 8 | ★ 手動執行「部署 Worker（付費資料閘道 data-gw）」（main） | Andy 按，或 CEO 用 API 觸發 |
+| 9 | ★ 部署出來的網址存成 Secret `DATA_GW_URL` | Andy |
+| 10 | ★ repo 變數 `DATAGW_SPLIT=1` —— **真正切換** | Andy |
+| 11 | 部署網站後確認：分流步驟有上傳；無痕視窗打 `/data/flow_v3.json` 是 404；付費帳號資金流向頁正常；管理者帳號選單出現「付費資料異常」、`#admin/gw` 打得開 | CEO 查 Actions；Andy 看網頁 |
+| 12 | ★ #admin/perm 對訪客／免費會員關掉要收費的功能（T5） | Andy |
+| 13 | 觀察兩週 `#admin/gw` 的 `would_suspend`，★ Andy 拍板 T4 後才把 `AUTO_SUSPEND` 改 `"1"` 並重跑第 8 步 | Andy 拍板、CEO 改 |
+
+**回退**：刪掉變數 `DATAGW_SPLIT` 再部署網站。停權誤判：`#admin/gw` 按「解除停權」（紀錄會留著）。

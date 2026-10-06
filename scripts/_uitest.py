@@ -47247,6 +47247,11 @@ def t_datagw(b, base):
         login(p2, "bob")
         s2 = flow_status(p2)
         ok(f"{T} ② 免費會員拿付費檔被擋（403）", s2 == 403, s2)
+        # 第三階段：每帳號最多 2 台裝置（這個頁面已經登記 1 台；再用兩個新的裝置 id 換權杖，第 3 台要被擋）
+        devs = p2.evaluate(f"""async () => {{ const out = []; for (const d of ['uitest-dev-bbbbbbbbbbbb', 'uitest-dev-cccccccccccc']) {{
+            const r = await fetch('{gwu}/v1/session', {{ method: 'POST', headers: {{ 'content-type': 'text/plain' }}, body: JSON.stringify({{ t: TwAccount.tok(), d }}) }});
+            out.push([r.status, (await r.json()).error || '']); }} return out; }}""")
+        ok(f"{T} ② 第 2 台裝置可以、第 3 台被擋（403 devices）", devs == [[200, ""], [403, "devices"]], devs)
         c2.close()
 
         # ---- ③ 付費會員 Andy：200、帶權杖與裝置 id、畫面畫得出來、_wm 不進前端資料
@@ -47261,6 +47266,26 @@ def t_datagw(b, base):
         ok(f"{T} ③ gateway 請求帶 Bearer 權杖與裝置 id", bool(fl) and all((a or "").startswith("Bearer g1.") and len(v or "") >= 16 for _, a, v in fl), fl[:2])
         dev = p0.evaluate("() => localStorage.getItem('tw.gw.dev')")
         ok(f"{T} ③ 裝置 id 存在 localStorage，重新拿檔沿用同一個", bool(dev) and all(v == dev for _, _, v in fl))
+
+        # ---- ④ 管理區異常頁 #admin/gw：帳號選單有入口、標記表看得到 Bob 的「裝置超過上限」、浮水印反查查得到 Andy、清除裝置真的清掉
+        wm = p0.evaluate(f"""async () => {{ const tok = await (async () => {{ const r = await fetch('{gwu}/v1/session', {{ method: 'POST', headers: {{ 'content-type': 'text/plain' }},
+            body: JSON.stringify({{ t: TwAccount.tok(), d: localStorage.getItem('tw.gw.dev') }}) }}); return (await r.json()).tok; }})();
+            const r = await fetch('{gwu}/v1/data/flow_v3', {{ headers: {{ Authorization: 'Bearer ' + tok, 'X-Device': localStorage.getItem('tw.gw.dev') }} }});
+            const d = await r.json(); return (Array.isArray(d) ? d[0] : d)._wm.a; }}""")
+        p0.click("#acctBtn")
+        ok(f"{T} ④ 管理者的帳號選單有「付費資料異常」", p0.locator("#acctMenu [data-a='gw']").count() == 1)
+        p0.click("#acctMenu [data-a='gw']")
+        wait_until(p0, "() => !!document.querySelector('#agwFlags')", 10000)
+        ok(f"{T} ④ 異常頁的標記表列出 Bob（裝置超過上限）", "bob@example.com" in p0.inner_text("#agwFlags") and "裝置超過上限" in p0.inner_text("#agwFlags"),
+           p0.inner_text("#agwFlags")[:200])
+        ok(f"{T} ④ 自動停權顯示「關閉」", "關閉" in p0.inner_text("#agwAuto"))
+        p0.fill("#agwWm", wm)
+        p0.click("#agwWmGo")
+        wait_until(p0, "() => /是 /.test(document.getElementById('agwWmOut').textContent)", 8000)
+        ok(f"{T} ④ 浮水印反查：貼 _wm 查得到是 Andy", "andy@example.com" in p0.inner_text("#agwWmOut"), p0.inner_text("#agwWmOut"))
+        p0.click("#agwFlags tr:has-text('bob@example.com') button[data-a='dev']")
+        wait_until(p0, "() => !!document.getElementById('subToast') && /已清除 2 台/.test(document.getElementById('subToast').textContent)", 8000)
+        ok(f"{T} ④ 按「清除裝置」真的清掉 Bob 的 2 台", "已清除 2 台" in (p0.evaluate("() => (document.getElementById('subToast') || {}).textContent || ''")))
         c0.close()
         ok(f"{T} 整段沒有 JS 錯誤", not errs, errs[:3])
     finally:

@@ -21,8 +21,13 @@ const PEOPLE = {
   'v1.uAdm.9.1.s': { user: { email: 'andy@example.com', admin: true }, plan: 'paid', feats: {} },
 };
 const GUEST = { 'stock.overview': false, 'flow.rot': false, 'ind.map': false };
+const SUSPENDED = [];   // 假 account-api 收到的停權呼叫 [鑰匙, uid]
 const ACCOUNT = { async fetch(r) {
   const b = JSON.parse(await r.text()), path = new URL(r.url).pathname, who = PEOPLE[b.t];
+  if (path === '/internal/suspend') {
+    SUSPENDED.push([r.headers.get('X-Internal-Key'), b.uid]);
+    return r.headers.get('X-Internal-Key') === 'ik' ? Response.json({ ok: true }) : Response.json({ error: 'forbidden' }, { status: 403 });
+  }
   if (path === '/v1/perm/me' && !b.t) return Response.json({ who: 'guest', plan: 'guest', feats: GUEST });
   if (!who) return Response.json({ error: 'auth' }, { status: 401 });
   if (path === '/v1/me') return Response.json({ user: who.user });
@@ -151,9 +156,10 @@ test('分級表兩份一致：tiers.js ＝ pipeline/datagw_tiers.json（pipeline
   assert.deepEqual(TIERS.map(([k, f]) => (typeof k === 'string' ? { p: k, f } : { re: k.source, f })), j);
 });
 
-test('T4 自動停權預設關閉：累計 3 次只記 would_suspend，仍然拿得到；開啟後記 suspend', async () => {
+test('T4 自動停權預設關閉：累計 3 次只記 would_suspend、不呼叫 account-api；開啟後經 binding 帶鑰匙呼叫，記 suspend', async () => {
   for (const [auto, kind] of [['0', 'would_suspend'], ['1', 'suspend']]) {
-    const gw = setup({ BURST_FILES: '2', MAX_IPS: '9', RATE_PER_MIN: '1000', AUTO_SUSPEND: auto });
+    SUSPENDED.length = 0;
+    const gw = setup({ BURST_FILES: '2', MAX_IPS: '9', RATE_PER_MIN: '1000', AUTO_SUSPEND: auto, INTERNAL_KEY: 'ik' });
     let { j } = await sess(gw, 'v1.uPaid.9.1.s');
     const t0 = clock;
     for (let round = 0; round < 3; round++) {
@@ -164,9 +170,65 @@ test('T4 自動停權預設關閉：累計 3 次只記 would_suspend，仍然拿
       j = (await sess(gw, 'v1.uPaid.9.1.s')).j;
     }
     assert.equal(gw.q('SELECT COUNT(*) AS c FROM alerts WHERE kind = ?', kind)[0].c, 1, kind);
-    assert.equal((await get(gw, 'stock/2330', j.tok)).status, 200);
+    assert.deepEqual(SUSPENDED, auto === '1' ? [['ik', 'uPaid']] : [], '關閉時絕不呼叫停權端點');
     clock = t0;
   }
+});
+
+test('每帳號最多 2 台裝置：第 3 台 403 devices＋記錄；舊裝置照用；管理者不限；清除裝置後可再登記', async () => {
+  const gw = setup();
+  const D = (c) => 'dev-' + c.repeat(16);
+  assert.equal((await sess(gw, 'v1.uPaid.9.1.s', D('a'))).r.status, 200);
+  assert.equal((await sess(gw, 'v1.uPaid.9.1.s', D('b'))).r.status, 200);
+  const third = await sess(gw, 'v1.uPaid.9.1.s', D('c'));
+  assert.equal(third.r.status, 403); assert.equal(third.j.error, 'devices');
+  assert.equal(gw.q("SELECT COUNT(*) AS c FROM alerts WHERE uid = 'uPaid' AND kind = 'devices'")[0].c, 1);
+  assert.equal((await sess(gw, 'v1.uPaid.9.1.s', D('a'))).r.status, 200, '已登記的裝置照用');
+  for (const c of 'xyz') assert.equal((await sess(gw, 'v1.uAdm.9.1.s', D(c))).r.status, 200, '管理者不限裝置');
+  assert.equal((await post(gw, '/v1/admin/devices/reset', { t: 'v1.uPaid.9.1.s', uid: 'uPaid' })).status, 403);
+  const rr = await post(gw, '/v1/admin/devices/reset', { t: 'v1.uAdm.9.1.s', uid: 'uPaid' });
+  assert.equal((await rr.json()).removed, 2);
+  assert.equal((await sess(gw, 'v1.uPaid.9.1.s', D('c'))).r.status, 200);
+  // 30 天沒用的裝置自動讓位
+  const t0 = clock; clock += 31 * 86400000;
+  assert.equal((await sess(gw, 'v1.uPaid.9.1.s', D('d'))).r.status, 200);
+  assert.equal((await sess(gw, 'v1.uPaid.9.1.s', D('e'))).r.status, 200);
+  clock = t0;
+});
+
+test('浮水印反查：貼 _wm.a 或整段 _wm JSON 都查得到是誰；查不到回 null；非管理者 403', async () => {
+  const gw = setup();
+  const { j } = await sess(gw, 'v1.uFree.9.1.s');
+  await get(gw, 'meta', j.tok);
+  const p = await sess(gw, 'v1.uPaid.9.1.s');
+  const d = await (await get(gw, 'stock/2330', p.j.tok)).json();
+  assert.equal((await post(gw, '/v1/admin/wm', { t: 'v1.uPaid.9.1.s', wm: d._wm.a })).status, 403);
+  const r1 = await (await post(gw, '/v1/admin/wm', { t: 'v1.uAdm.9.1.s', wm: d._wm.a })).json();
+  assert.equal(r1.uid, 'uPaid'); assert.equal(r1.last[0].name, 'stock/2330');
+  const r2 = await (await post(gw, '/v1/admin/wm', { t: 'v1.uAdm.9.1.s', wm: JSON.stringify({ _wm: d._wm }) })).json();
+  assert.equal(r2.uid, 'uPaid');
+  const r3 = await (await post(gw, '/v1/admin/wm', { t: 'v1.uAdm.9.1.s', wm: 'AAAAAAAAAAAA' })).json();
+  assert.equal(r3.uid, null);
+  assert.equal((await post(gw, '/v1/admin/wm', { t: 'v1.uAdm.9.1.s', wm: 'x' })).status, 400);
+});
+
+test('異常通知：沒設收件＝只記錄不連外；設了 ALERT_WEBHOOK＝送出並記 notified；只送 NOTIFY_KINDS 列的種類', async () => {
+  const sent = [], orig = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { sent.push([String(url), JSON.parse(init.body)]); return new Response('ok'); };
+  try {
+    const D = (c) => 'dev-' + c.repeat(16);
+    const g1 = setup();
+    for (const c of 'abc') await sess(g1, 'v1.uPaid.9.1.s', D(c));
+    assert.equal(sent.length, 0, '沒設收件不可以連外');
+    assert.equal(g1.q("SELECT COUNT(*) AS c FROM alerts WHERE kind = 'notified'")[0].c, 0);
+    const g2 = setup({ ALERT_WEBHOOK: 'https://hook.example/x' });
+    for (const c of 'abc') await sess(g2, 'v1.uPaid.9.1.s', D(c));
+    const { j } = await sess(g2, 'v1.uPaid.9.1.s', D('a'));
+    await get(g2, 'stock/2330', j.tok, { 'User-Agent': 'curl/8', 'Sec-Fetch-Mode': '' });   // bot_ua：不在預設通知清單
+    assert.equal(sent.length, 1); assert.equal(sent[0][0], 'https://hook.example/x');
+    assert.equal(sent[0][1].kind, 'devices'); assert.ok(!JSON.stringify(sent[0][1]).includes('@'), '通知不帶 email');
+    assert.equal(g2.q("SELECT COUNT(*) AS c FROM alerts WHERE kind = 'notified'")[0].c, 1);
+  } finally { globalThis.fetch = orig; }
 });
 
 test('沒設 GW_SECRET → 503，不會用空金鑰簽權杖', async () => {

@@ -19,6 +19,11 @@ MAX_IPS = "2"
 AUTO_SUSPEND = "0"
 SUSPEND_AFTER = "3"
 SUSPEND_WINDOW_H = "24"
+# 每帳號裝置上限（管理者不限）與「幾天沒用自動讓位」
+MAX_DEVICES = "2"
+DEVICE_TTL_D = "30"
+# 哪些異常要通知（其他只記錄）
+NOTIFY_KINDS = "would_suspend,suspend,suspend_failed,devices,multi_ip"
 
 # 直接呼叫會員 Worker（同帳號的 service binding，不經公開網路）
 [[services]]
@@ -39,4 +44,8 @@ class_name = "Gw"
 tag = "v1"
 new_sqlite_classes = ["Gw"]
 
-# Secret（不寫在這裡）：GW_SECRET —— 資料權杖與浮水印的 HMAC 金鑰，由 workflow 從 repo Secret DATA_GW_SECRET 帶進去
+# Secret（不寫在這裡，由 workflow 從 repo Secret 帶進去）：
+#   GW_SECRET      資料權杖與浮水印的 HMAC 金鑰（repo Secret DATA_GW_SECRET）
+#   INTERNAL_KEY   呼叫 account-api /internal/suspend 的鑰匙（repo Secret DATAGW_INTERNAL_KEY；兩支 Worker 設同一個值）
+#   ALERT_WEBHOOK  異常通知的 webhook（選用，T6）
+#   ALERT_EMAIL ＋ RESEND_API_KEY  異常通知寄信（選用，T6）
