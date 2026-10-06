@@ -23607,7 +23607,7 @@ SECTIONS = {
     "甜甜圈圖例1006":      lambda pg, b, base, code: t_donut_legend_1006(pg, base, code),
     # ★ 2026-10-06 Andy：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」（DECISIONS #331）——
     #   每張圓餅真的滑過一個扇區：外框、中心字、提示框、配色，1440 與 390 兩種寬度
-    "圓餅風格1006":        lambda pg, b, base, code: t_pie_style_1006(pg, base, code),
+    "圓餅風格1006":        lambda pg, b, base, code: (t_pie_style_1006(pg, base, code), t_pie_admin_1006(b, base)),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -47032,11 +47032,11 @@ def t_traffic_1005(b, base, code):
             const par = [], sub = []; for (let i = 1; i < arcs.length; i++) { const g = arcs[i].a0 - arcs[i - 1].a1; (arcs[i].p === arcs[i - 1].p ? sub : par).push(+g.toFixed(2)); }
             return { n: arcs.length, par, sub, mask: document.querySelectorAll('#trAllDonut mask').length, cap: getComputedStyle(document.querySelector('#trAllDonut circle.arc')).strokeLinecap, track: !!document.querySelector('#trAllDonut svg > circle[stroke-opacity]') }; }""")
         pars = sorted(set(round(x, 1) for x in dg["par"]))
-        ok(f"{TT}：甜甜圈非同組扇區之間間隙一律相同（2°，全部一個值）、同一母頁子分頁相連（≈ 0）、沒有圓頭遮罩（直角）、內側細軌道（照產業地圖）",
-           dg["par"] and pars == [2.0] and dg["sub"] and max(abs(x) for x in dg["sub"]) <= 0.05 and dg["mask"] == 0 and dg["track"] and dg["cap"] == "butt", dg)
+        ok(f"{TT}：甜甜圈非同組扇區之間間隙一律相同（1.2°，照 App.donut）、同一母頁子分頁相連（≈ 0）、沒有圓頭遮罩（直角）、內側細軌道（照產業地圖）",
+           dg["par"] and pars == [1.2] and dg["sub"] and max(abs(x) for x in dg["sub"]) <= 0.05 and dg["mask"] == 0 and dg["track"] and dg["cap"] == "butt", dg)
         pg.click("#trTabs [data-t=etf]")
         ev = pg.evaluate("""() => { const g = []; document.querySelectorAll('#trPageBody .dn svg').forEach(sv => { const a = [...sv.querySelectorAll('circle.arc')].map(c => ({ a0: +c.dataset.a0, a1: +c.dataset.a1 })); for (let i = 1; i < a.length; i++) g.push(+(a[i].a0 - a[i - 1].a1).toFixed(1)); }); return g; }""")
-        ok(f"{TT}：ETF 分頁各甜甜圈（無子分頁關係）每段之間間隙都一樣（2°），小扇區也有縫", ev and set(ev) == {2.0}, ev)
+        ok(f"{TT}：ETF 分頁各甜甜圈（無子分頁關係）每段之間間隙都一樣（1.2°），小扇區也有縫", ev and set(ev) == {1.2}, ev)
         pg.click("#trTabs [data-t=all]")
         bw = pg.evaluate("""() => { const d = [...document.querySelectorAll('#admDayBars .dc i')].map(i => i.getBoundingClientRect().width), h = [...document.querySelectorAll('#trAllB .bt, #admBody .bars .bt')].map(e => e.getBoundingClientRect().height);
             return { dmax: Math.max(...d), hmax: Math.max(...h), n: d.length }; }""")
@@ -47072,7 +47072,7 @@ def t_traffic_1005(b, base, code):
         cen = hv("#trDonut circle.arc >> nth=1", "登入甜甜圈第二段")
         ok(f"{TT}：互動｜登入甜甜圈滑過扇區 → 中心字換成該段（不再是「登入」）", cen and cen != "登入", cen)
         tr = pg.evaluate("""() => { const l = [...document.querySelectorAll('#trDonut ul.lg li span')].map(e => e.textContent.trim()), g = [...document.querySelectorAll('#trDonut circle.arc')].map(a => ({ k: a.dataset.k, a0: +a.dataset.a0, a1: +a.dataset.a1 })); const gaps = []; for (let i = 1; i < g.length; i++) gaps.push(+(g[i].a0 - g[i - 1].a1).toFixed(2)); return { l, gaps }; }""")
-        ok(f"{TT}：登入身分甜甜圈：訪客＋註冊會員＋≥ 2 個付費方案；登入的幾段相連（間隙 0）、與訪客之間間隙 2°", "訪客" in tr["l"] and "註冊會員" in tr["l"] and len(tr["l"]) >= 4 and tr["gaps"][:-1] and all(abs(x) <= 0.05 for x in tr["gaps"][:-1]) and tr["gaps"][-1] == 2.0, tr)
+        ok(f"{TT}：登入身分甜甜圈：訪客＋註冊會員＋≥ 2 個付費方案；登入的幾段相連（間隙 0）、與訪客之間間隙 1.2°（照 App.donut）", "訪客" in tr["l"] and "註冊會員" in tr["l"] and len(tr["l"]) >= 4 and tr["gaps"][:-1] and all(abs(x) <= 0.05 for x in tr["gaps"][:-1]) and abs(tr["gaps"][-1] - 1.2) <= 0.02, tr)
         pg.click("#trTabs [data-t=flow]")
         hv("#trFBars .bl >> nth=0", "子頁長條")
         hv("#trFD circle.arc >> nth=1", "子頁甜甜圈扇區")
@@ -51696,6 +51696,67 @@ def t_pie_style_1006(pg, base, code):
     bad = {r: v for r, v in census.items() if v}
     ok(f"★ {T0} 普查：前台 {len(census)} 個分頁的 ECharts 圓餅沒有偏離共用風格的", not bad, bad)
     notes.append("圓餅風格1006 普查（前台 ECharts 圓餅偏離共用風格者）：" + ("無" if not bad else str(bad)))
+
+
+
+PIE1006_ADM_PT = """([sel, n]) => { const a = document.querySelectorAll(sel)[n], sv = a.ownerSVGElement;
+  sv.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = sv.getBoundingClientRect(), k = r.width / 120,
+  m = ((+a.dataset.a0 + +a.dataset.a1) / 2) * Math.PI / 180;
+  return [r.left + r.width / 2 + 48 * k * Math.sin(m), r.top + r.height / 2 - 48 * k * Math.cos(m), a.dataset.lab]; }"""
+PIE1006_ADM_STATE = """([sel, n]) => { const arcs = [...document.querySelectorAll(sel)], a = arcs[n], row = a.dataset.row, sv = a.ownerSVGElement;
+  const t = document.getElementById('trTip'), cs = getComputedStyle(a), b = sv.querySelector('.arcb[data-row="' + row + '"]'), bs = b && getComputedStyle(b);
+  const others = arcs.filter((x, i) => i !== n).map(x => +getComputedStyle(x).opacity);
+  return { tip: !!t && !t.hidden && t.textContent.trim().length > 0, tipTxt: t ? t.textContent.slice(0, 60) : '', c1: sv.querySelector('.c1').textContent,
+    sw: parseFloat(cs.strokeWidth), bOp: bs ? +bs.opacity : -1, bSw: bs ? parseFloat(bs.strokeWidth) : 0, bCol: bs ? bs.stroke : '',
+    minOther: others.length ? Math.min(...others) : 1, cols: arcs.map(x => ({ k: x.dataset.k, c: getComputedStyle(x).stroke })) }; }"""
+
+
+def _rgb_hex_1006(c):
+    import re as _re
+    m = _re.findall(r"[\d.]+", c or "")
+    if len(m) < 3:
+        return None
+    return "#%02x%02x%02x" % tuple(int(float(x)) for x in m[:3])
+
+
+def t_pie_admin_1006(b, base):
+    """管理區（流量觀測）的甜甜圈是手畫 SVG：真的滑過扇區，量外擴、外框、中心字、提示框、其餘不淡化太多、功能占比配色。"""
+    import math
+    T0 = "[圓餅風格1006 管理區]"
+    pbase = base.replace("/index.html", "/preview/style-guide/index.html")
+    for theme, w in (("dark", 1440), ("light", 1440), ("dark", 390)):
+        c, sent = _adm2_ctx(b, width=w)
+        c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}');}}catch(e){{}}")
+        c.route(re.compile(r".*/preview/style-guide/.*"), lambda r: r.continue_(url=r.request.url.replace("/preview/style-guide/", "/")))
+        pg = c.new_page()
+        T = f"{T0} {theme} {w}px"
+        pg.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('trTabs')", 15000)
+        pg.click("#trTabs [data-t=all]"); pg.wait_for_timeout(400)
+        for sel, label in (("#trAllDonut circle.arc", "各頁占比"), ("#trDonut circle.arc", "登入身分")):
+            pt = pg.evaluate(PIE1006_ADM_PT, [sel, 1])
+            pg.mouse.move(pt[0] - 5, pt[1] - 5); pg.mouse.move(pt[0], pt[1], steps=4); pg.wait_for_timeout(450)
+            st = pg.evaluate(PIE1006_ADM_STATE, [sel, 1])
+            ok(f"★ {T} {label}：滑過扇區「{pt[2]}」→ 外擴（描邊寬 {st['sw']:.1f} ≥ 19）＋外框亮（opacity {st['bOp']}、寬 {st['bSw']:.1f}）", st["sw"] >= 19 and st["bOp"] >= 0.99 and st["bSw"] >= 24, st)
+            ok(f"★ {T} {label}：中心字變成該扇區名（{st['c1']}）、提示框出現（{st['tipTxt']}）", st["c1"] == pt[2] and st["tip"], st)
+            ok(f"{T} {label}：其餘扇區不淡化太多（最低 opacity {st['minOther']} ≥ 0.75）", st["minOther"] >= 0.75, st)
+            pg.mouse.move(2, 2); pg.wait_for_timeout(350)
+            st2 = pg.evaluate(PIE1006_ADM_STATE, [sel, 1])
+            ok(f"{T} {label}：滑開 → 外框收起、扇區回原寬", st2["bOp"] <= 0.01 and st2["sw"] <= 15, st2)
+        # 功能占比（Andy 圈的那張）：配色飽和、相鄰色差夠大
+        pg.click("#trTabs [data-t=flow]"); pg.wait_for_timeout(500)
+        cols = pg.evaluate(PIE1006_ADM_STATE, ["#trFD circle.arc", 0])["cols"]
+        hx = [(x["k"], _rgb_hex_1006(x["c"])) for x in cols]
+        labs = [(k, _lab1006(h)) for k, h in hx if h and k != "其他"]
+        dE = [math.dist(labs[i][1], labs[i + 1][1]) for i in range(len(labs) - 1)]
+        ch = [math.hypot(l[1], l[2]) for k, l in labs]
+        ok(f"★ {T} 功能占比配色：相鄰最小 ΔE {min(dE) if dE else 99:.1f} ≥ 20、最低彩度 {min(ch) if ch else 99:.1f} ≥ 15（不是淡粉色）",
+           bool(labs) and (not dE or min(dE) >= 20) and min(ch) >= 15, hx)
+        pt = pg.evaluate(PIE1006_ADM_PT, ["#trFD circle.arc", 1])
+        pg.mouse.move(pt[0] - 5, pt[1] - 5); pg.mouse.move(pt[0], pt[1], steps=4); pg.wait_for_timeout(450)
+        st = pg.evaluate(PIE1006_ADM_STATE, ["#trFD circle.arc", 1])
+        ok(f"★ {T} 功能占比：滑過「{pt[2]}」→ 外擴＋外框＋中心字＋提示框", st["sw"] >= 19 and st["bOp"] >= 0.99 and st["c1"] == pt[2] and st["tip"], st)
+        c.close()
 
 
 if __name__ == "__main__":

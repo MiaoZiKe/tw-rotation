@@ -229,15 +229,19 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25)}
 #v-admin [data-chart].hov .bars>[data-row]:not(.hl),#v-admin .bars.hov>[data-row]:not(.hl),#v-admin .hbars.hov>[data-row]:not(.hl){opacity:.35}
 #v-admin .bars.hov>.hl,#v-admin .hbars.hov>.hl{opacity:1}
-#v-admin [data-chart].hov .arc:not(.hl){opacity:.3}
-#v-admin [data-chart].hov .arc.hl{filter:brightness(1.18)}
-#v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.45}
+#v-admin [data-chart] svg{overflow:visible}
+#v-admin .arcb{stroke:var(--ink);opacity:0;pointer-events:none;transition:opacity .12s ease,stroke-width .18s ease}
+#v-admin .arc{transition:opacity .12s ease,stroke-width .18s ease}
+#v-admin [data-chart].hov .arc:not(.hl){opacity:.8}
+#v-admin [data-chart].hov .arc.hl{stroke-width:20.4}
+#v-admin [data-chart].hov .arcb.hl{opacity:1;stroke-width:25}
+#v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.7}
 #v-admin [data-chart].hov .sc circle:not(.hl),#v-admin .sc.hov circle:not(.hl),#v-admin [data-chart].hov .vbars rect:not(.hl){opacity:.25}
 #admBody .sc circle.hl{r:8}
 #v-admin .vbars rect.hl{filter:brightness(1.3)}
 #v-admin .dn svg circle.arc,#v-admin .mdonut svg circle.arc{cursor:default}
 #admBody .dn svg circle.arc[data-p]{cursor:pointer}
-@media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
+@media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k],#v-admin .arc,#v-admin .arcb{transition:none}}
 @media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
@@ -1159,8 +1163,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const byDet = {}, kinds = new Set();
     sel.forEach((r) => { if (kindOf(r.comp) && r.det) { const key = r.det; byDet[key] = (byDet[key] || 0) + r.n; kinds.add(kindOf(r.comp)); } });
     const dl = Object.entries(byDet).sort((a, b) => b[1] - a[1]);
-    const palette = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
-    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i] })).concat(rest ? [{ label: '其他', n: rest, color: 'var(--cat-other)' }] : []); };
+    const palette = window.App.donut.colors();      // ★ 2026-10-06：共用飽和色盤（App.donut），不再用 --cat-1..5（深色主題是螢光青／萊姆，淺色是粉彩，相鄰扇區分不出來）
+    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i] })).concat(rest ? [{ label: '其他', n: rest, color: window.App.donut.other() }] : []); };
     const pair = (id, ttl, sub, list, nameFn, click, lim) => `${card(id + 'B', ttl, sub, bars(list.slice(0, lim || 10), nameFn, sum(list.map((x) => x[1])), { id: id + 'Bars', click }))}${card(id + 'D', ttl.replace(/？$/, '') + '占比', '前 5 名＋其他', donutG(dsegs(list, nameFn), { legend: dsegs(list, nameFn), legendN: 6, aria: ttl }))}`;
     let body = '';
     if (k === 'stock' && S.sub === 'tabs') {
@@ -1237,7 +1241,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   /* 甜甜圈（照產業地圖「成交值占比」那顆：粗環 58%～78%、扇區端點圓角、內側一圈極細軌道、中心小標題＋大數字、圖例在下）。
      非同組的扇區之間一律同樣的間隙（GAP＝2°，小扇區也照同規則，太小的畫成 0.8° 細片）；只有同一母頁（segs 的 g 相同）的子分頁扇區相連（間隙 0）、同色系深淺。端點直角（butt），不做圓頭。 */
-  const DN = { R: 45, W: 14, GAP: 2 };
+  /* ★ 2026-10-06（DECISIONS #331）：環規格照 App.donut（產業地圖成交值占比）：內 68%／外 92%（viewBox 外半徑 60 → R 48、W 14.4）、間隙 1.2°、
+     滑過外擴 4px＋外框 3px（見下方 arcb）。SVG 的環是 stroke，沒辦法做 6px 圓角與 1px 面板色邊框（那兩項只有 ECharts 版做得到），其餘照範本。 */
+  const DN = { R: 48, W: 14.4, GAP: 1.2, HI: 4.5, BORDER: 2.3 };
   let dnSeq = 0;
   function donutG(segs, o) {
     const tot = sum(segs.map((s) => s.n));
@@ -1255,7 +1261,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       gr.segs.forEach((s, k) => {
         const sa = b, sb = b + s.n / tot * 360; b = sb;
         const x0 = k === 0 ? v0 : sa, x1 = k === gr.segs.length - 1 ? v1 : sb, len = Math.max(0, (x1 - x0) / 360 * C);
-        arcs += `<circle class="arc" data-row="${arcN++}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)">></circle>`;
+        const arcRow = arcN++;
+        arcs += `<circle class="arcb" data-row="${arcRow}" r="${R}" cx="60" cy="60" fill="none" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)"></circle>`
+          + `<circle class="arc" data-row="${arcRow}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)"></circle>`;
       });
       if (round) {
         const id = uid + gi, A0 = v0 + cap, A1 = v1 - cap;
@@ -1267,7 +1275,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const c1 = o.center ? o.center[0] : '前五大', c2 = o.center ? o.center[1] : t5 + '%';
     const lg = (o.legend || segs).slice().sort((x, y) => (x.label === '其他') - (y.label === '其他') || y.n - x.n).slice(0, o.legendN || 6);
     return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
-      <circle r="36.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".7"/>${body}
+      <circle r="39.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".5"/>${body}
       <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">${esc(c1)}</text><text class="c2" x="60" y="74" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${esc(c2)}</text></svg>
       <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><b>${nf(Math.round(s.n))}</b><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
