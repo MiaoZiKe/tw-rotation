@@ -208,3 +208,9 @@
 - 付費內容保護（data-gw）：**要排，上架收費前完成**。第一階段（盤點＋data-gw Worker＋測試，分支 claude/data-gw，不上 main）已派 security-privacy；全案 4～6 工作天。
 - 客服信箱：**另開**。等 Andy 開好新信箱告訴 CEO 地址 → 換掉 account.js／legal.js／support.js 與文件裡的 kcq01010909@gmail.com。
 - 資安 D4（Google／GitHub／Cloudflare 開兩步驟驗證）：最急，待 Andy 自己做。
+
+## 10-06 19:20 金流（藍新）規格出爐 `docs/payment_newebpay_plan.md` —— 待 Andy
+1. 先辦藍新**測試商店**（不用統編，約半天）→ 整合測試要等它
+2. 要不要**登記行號**（統編：企業會員、正式商店、電子發票都要）
+3. 收費前先問律師投顧法問題（`compliance_and_tiers.md`）
+4. 升級方案時舊方案剩餘天數：**按日退款** 或 **折抵新方案**

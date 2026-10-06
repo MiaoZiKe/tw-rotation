@@ -2,7 +2,7 @@
 
 | # | 大項 | 誰 | 狀態 | 卡在誰 |
 |---|---|---|---|---|
-| 1 | 金流：串接藍新金流（訂閱制＋1 個月試用） | payments-billing（規格）→ 實作 | 規格撰寫中 `docs/payment_newebpay_plan.md` | Andy 申請藍新商店帳號 |
+| 1 | 金流：串接藍新金流（訂閱制＋1 個月試用） | payments-billing（規格）→ 實作 | 規格完成（約 9～13 工作天）`docs/payment_newebpay_plan.md` | Andy 申請藍新商店帳號 |
 | 2 | 架設新伺服器（搬 Cloudflare Pages＋付費方案＋自有網域） | deployer | 雙部署進行中；費用見 `docs/hosting_cost_plan.md` | Andy：Cloudflare 付費方案、用量通知、網域、Google OAuth 網域 |
 | 3 | 社群＋Logo | **Andy 自己處理** | — | — |
 | 4 | 資安 | security-privacy | F12 註解移除待上線；付費內容保護（data-gw）第一階段施工；清單 `docs/security_review_1006.md` | Andy：三帳號兩步驟驗證、repo 改 private（搬完後） |
