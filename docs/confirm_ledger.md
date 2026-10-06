@@ -219,3 +219,7 @@
 待 Andy 按：① R2 建 bucket `tw-rotation-paid`（不公開）② CLOUDFLARE_API_TOKEN 加「Workers R2 Storage: Edit」③ GitHub Secret `DATA_GW_SECRET`（隨機字串）
 待 Andy 決定門檻：T1 每帳號每分鐘上限（建議 60）、T2 60 秒內不同檔數（>30）、T3 同權杖 IP 網段（>2）、T4 異常幾次自動停權（建議先觀察兩週）、T5 哪些功能真的收費、T6 異常通知寄哪
 第二階段（前端改走 gateway）施工中，仍在分支。
+
+## 10-06 20:35 付費內容保護（data-gw）三階段全部完成（分支 claude/data-gw，未上 main）
+切換清單（★＝Andy 按，上架前一次做）：R2 bucket、token 加 R2 權限、R2 權杖兩把、DATA_GW_SECRET、DATAGW_INTERNAL_KEY、（選用）通知 webhook／email → 合併分支 → 部署 data-gw → DATA_GW_URL → DATAGW_SPLIT=1 → #admin/perm 關收費功能 → 觀察兩週後定 T4。詳見 docs/datagw_plan.md（分支）第 10 節。
+待 Andy 決定：T1～T4 門檻、T5 哪些功能收費、T6 通知走 webhook 還是 email。
