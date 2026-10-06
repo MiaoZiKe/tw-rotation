@@ -1,0 +1,152 @@
+name: 同步到公開 repo
+
+# ★ 草稿（2026-10-07，docs/repo_split_plan.md §4）。只在「私人 repo」跑，**永遠不會被同步進公開 repo**
+#   （scripts/build_public_tree.py 的 PRIVATE_ONLY_WORKFLOWS 排除了本檔；jobs 的 if 也擋住在公開 repo 誤跑）。
+#
+# 做什麼：私人 repo 的 main（或 preview/*）有程式碼變動 →
+#   ① 用 scripts/build_public_tree.py 產出「公開版目錄」（允許清單＋去註解＋掃描；掃描失敗整個工作流失敗，什麼都不推）
+#   ② 把公開版目錄 rsync 進公開 repo 的工作目錄（**不碰 data/ 與 docs/fixtures/**；資料湖的權威在公開 repo）
+#   ③ 再掃一次公開 repo 的工作目錄（二次確認）→ commit → push 到公開 repo 的同名分支
+#      公開 repo 的 pages.yml 因此被觸發（要用 PAT 推，GITHUB_TOKEN 推的不會觸發工作流）。
+#
+# 需要的 Secret（私人 repo → Settings → Secrets and variables → Actions）：
+#   PUBLIC_REPO_TOKEN  fine-grained PAT，只開公開 repo，Contents: Read and write ＋ Workflows: Read and write
+#                      （要有 Workflows 權限，否則同步到 .github/workflows/*.yml 會被 GitHub 擋下）
+#
+# 用量：一次約 40～60 秒（計 1 分鐘）。同時進來的多次 push 只會留一個排隊中的 run，其餘在開跑前就被取消（不計分鐘）。
+# paths-ignore：只改文件／截圖／docs 的 commit 不觸發（HANDOFF、DECISIONS 每天改很多次）。
+#   （docs/fixtures 也在被忽略之列：它只由測試探針產生、很少改；要同步就手動 workflow_dispatch。）
+on:
+  push:
+    branches: [main, "preview/**"]
+    paths-ignore:
+      - "data/**"
+      - "docs/**"
+      - "obsidian/**"
+      - ".claude/**"
+      - "tools/**"
+      - "*.md"
+      - "*.bat"
+      - "push"
+      - "setup.ps1"
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 不取消「已經在跑」的（取消到一半可能留下推了一半的狀態）；排隊中的只保留最新一個（GitHub 預設行為）。
+concurrency:
+  group: sync-public
+  cancel-in-progress: false
+
+env:
+  # 私人 repo 的全名（建好後若名稱不同，改這一行與下面兩個 job 的 if）
+  PRIVATE_REPO: MiaoZiKe/tw-rotation-private
+  PUBLIC_REPO: MiaoZiKe/tw-rotation
+
+jobs:
+  sync:
+    if: ${{ github.repository == 'MiaoZiKe/tw-rotation-private' && github.event_name != 'delete' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # 稀疏檢出：只拿要公開的目錄，不下載 data/（幾百 MB）與 docs/、obsidian/
+      - name: 檢出私人 repo（只要程式碼）
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            /pipeline
+            /site
+            /workers
+            /tests
+            /scripts
+            /public-ci
+            /.github
+            /requirements.txt
+            /.gitattributes
+            /.gitignore
+            /docs/fixtures
+          sparse-checkout-cone-mode: false
+
+      - name: 準備工具（esbuild、PyYAML）
+        run: |
+          npm i -g esbuild@0.28.2
+          python3 -c "import yaml" 2>/dev/null || pip install --quiet pyyaml
+
+      - name: 產出公開版目錄（含掃描；失敗就整個停下）
+        run: python3 scripts/build_public_tree.py --out "$RUNNER_TEMP/public_tree" --manifest "$RUNNER_TEMP/manifest.json"
+
+      - name: 檢出公開 repo（不含 data/）
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PUBLIC_REPO }}
+          token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          path: public
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            /*
+            !/data/
+          sparse-checkout-cone-mode: false
+
+      - name: 切到對應分支（preview/* 會在公開 repo 開同名分支）
+        working-directory: public
+        run: |
+          BR="${GITHUB_REF_NAME}"
+          if [ "$BR" != "main" ]; then
+            if git fetch --depth=1 origin "refs/heads/$BR:refs/remotes/origin/$BR" 2>/dev/null; then
+              git checkout -B "$BR" "origin/$BR"
+            else
+              git checkout -B "$BR"          # 公開 repo 還沒有這個分支：從 main 開出來
+            fi
+          fi
+          git branch --show-current
+
+      - name: 套用到公開 repo 的工作目錄（不碰 data/、不刪 docs/fixtures）
+        run: |
+          T="$RUNNER_TEMP/public_tree"
+          rsync -a --delete --exclude='/.git/' --exclude='/data/' --exclude='/docs/fixtures/' "$T"/ public/
+          mkdir -p public/docs/fixtures
+          # fixtures 只新增／更新，不刪（probe.yml 會在公開 repo 自己寫新的 fixtures）
+          [ -d "$T/docs/fixtures" ] && rsync -a "$T/docs/fixtures/" public/docs/fixtures/ || true
+
+      - name: 二次掃描公開 repo 的工作目錄
+        run: python3 scripts/build_public_tree.py --scan-only public --allow-data
+
+      - name: commit 並推到公開 repo
+        working-directory: public
+        run: |
+          BR="${GITHUB_REF_NAME}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "公開 repo 已是最新，不需要推" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # 訊息刻意不帶私人 repo 的 commit 訊息（可能含內部文字），只留編號
+          git commit -q -m "同步 ${GITHUB_SHA::7}"
+          for i in 1 2 3 4; do
+            if git push origin "HEAD:refs/heads/$BR"; then
+              echo "已推到 ${PUBLIC_REPO}@${BR}：$(git rev-parse --short HEAD)（來自私人 ${GITHUB_SHA::7}）" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            # 公開 repo 的資料管線常常在 commit（只動 data/）；rebase 後重推
+            git pull --rebase --autostash origin "$BR" || exit 1
+            sleep $((i * 5))
+          done
+          echo "::error::推到公開 repo 連續 4 次失敗"
+          exit 1
+
+  # 私人 repo 的 preview/* 分支被刪 → 公開 repo 的同名分支也刪（pages.yml 的 delete 事件會把預覽網址收掉）
+  drop-preview:
+    if: ${{ github.repository == 'MiaoZiKe/tw-rotation-private' && github.event_name == 'delete' && github.event.ref_type == 'branch' && startsWith(github.event.ref, 'preview/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 刪除公開 repo 的同名預覽分支
+        env:
+          TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          BR: ${{ github.event.ref }}
+        run: git push "https://x-access-token:${TOKEN}@github.com/${PUBLIC_REPO}.git" --delete "refs/heads/${BR}"

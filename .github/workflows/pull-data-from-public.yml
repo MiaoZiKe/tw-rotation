@@ -1,0 +1,94 @@
+name: 從公開 repo 備份資料湖
+
+# ★ 草稿（2026-10-07，docs/repo_split_plan.md §4）。只在「私人 repo」跑，**永遠不會被同步進公開 repo**。
+#
+# 做什麼：公開 repo 每天（甚至每小時）在 commit 資料湖（data/）。這支每天一次把公開 repo 最新的
+#   data/ 與 docs/fixtures/ 抓回私人 repo，commit 成一筆「備份快照」。
+#   · 公開 repo 是資料湖的權威；方向永遠是 公開 → 私人，這支不會把任何東西推回公開 repo。
+#   · 公開 repo 是公開的，**抓取不需要任何金鑰**。
+#   · 鏡像語意：公開端刪掉的檔，私人端也刪（歷史仍在 git 裡，找得回來）；
+#     但一次要刪超過 DELETE_LIMIT 個檔就停下來（可能是公開端出事了，不要把備份也清掉）。
+#
+# 用量：一次約 2～4 分鐘（要抓一份 data/ 快照，幾百 MB）× 每天 1 次 ≈ 60～120 分鐘／月。
+# 注意：GitHub 排程常延遲 10～60 分鐘，偶爾整輪被丟掉；一天沒跑到沒關係，下一天會補上（抓的是最新全量）。
+on:
+  schedule:
+    - cron: "10 22 * * *"      # UTC 22:10 ＝ 台北 06:10（避開整點；晚間回補與每日管線都跑完了）
+  workflow_dispatch:
+
+permissions:
+  contents: write              # 推備份 commit 回「私人 repo 自己」（GITHUB_TOKEN 就夠，不需要 PAT）
+
+# 與 Claude／人在 main 上的推送錯開；同時只跑一個
+concurrency:
+  group: pull-public-data
+  cancel-in-progress: false
+
+env:
+  PUBLIC_REPO: MiaoZiKe/tw-rotation
+  DELETE_LIMIT: "200"
+
+jobs:
+  pull:
+    if: ${{ github.repository == 'MiaoZiKe/tw-rotation-private' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # 只檢出 data/ 與 docs/fixtures/（要比對、要寫入的就這兩處），其他目錄不下載
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            /data
+            /docs/fixtures
+          sparse-checkout-cone-mode: false
+
+      - name: 抓公開 repo 最新的 main（淺層）
+        run: |
+          git fetch --depth=1 "https://github.com/${PUBLIC_REPO}.git" main
+          echo "PUB_SHA=$(git rev-parse --short FETCH_HEAD)" >> "$GITHUB_ENV"
+          echo "公開 repo main：$(git rev-parse --short FETCH_HEAD)"
+
+      - name: 鏡像 data/ 與 docs/fixtures/（新增、更新、刪除）
+        run: |
+          set -e
+          # 公開端有的 → 全部覆蓋進來
+          git checkout FETCH_HEAD -- data docs/fixtures
+          # 公開端已經沒有、私人端還有的 → 刪掉（上限保護）
+          git ls-tree -r --name-only FETCH_HEAD -- data docs/fixtures | LC_ALL=C sort > "$RUNNER_TEMP/pub.txt"
+          git ls-files -- data docs/fixtures | LC_ALL=C sort > "$RUNNER_TEMP/priv.txt"
+          LC_ALL=C comm -13 "$RUNNER_TEMP/pub.txt" "$RUNNER_TEMP/priv.txt" > "$RUNNER_TEMP/gone.txt"
+          N=$(wc -l < "$RUNNER_TEMP/gone.txt")
+          echo "公開端已刪除、私人端要跟著刪：$N 檔"
+          if [ "$N" -gt "$DELETE_LIMIT" ]; then
+            echo "::error::要刪 $N 檔，超過上限 $DELETE_LIMIT。公開 repo 的 data/ 可能出事了，停下來等人看。"
+            head -20 "$RUNNER_TEMP/gone.txt"
+            exit 1
+          fi
+          if [ "$N" -gt 0 ]; then xargs -d '\n' git rm -q --cached --ignore-unmatch -- < "$RUNNER_TEMP/gone.txt"; fi
+
+      - name: commit 並推回私人 repo
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data docs/fixtures
+          if git diff --cached --quiet; then
+            echo "資料湖沒有變動，不需要備份 commit" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          STAT=$(git diff --cached --shortstat)
+          git commit -q -m "資料湖備份：$(TZ=Asia/Taipei date +%F) ← 公開 repo ${PUB_SHA}" -m "${STAT}"
+          for i in 1 2 3 4; do
+            if git push origin HEAD:main; then
+              echo "已備份：${STAT}（公開 repo ${PUB_SHA}）" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            # 這段時間有人推了 main（程式碼）→ 抓最新 main 後 rebase 重推
+            git fetch --depth=50 origin main
+            git rebase origin/main || exit 1
+            sleep $((i * 5))
+          done
+          echo "::error::推回私人 repo 連續 4 次失敗"
+          exit 1
