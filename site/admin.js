@@ -126,7 +126,7 @@
 /* 甜甜圈：左圖右圖例（Andy：圖表資訊在右手邊，圓餅才不會被壓縮）；圖例一列一項＝色塊｜名稱｜數量｜占比，數字欄右對齊不截斷；卡寬 < 420px 才退回圖例在下方 */
 #admBody .dn{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px;min-height:0}
 #admBody .dn svg{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
-#admBody .dn .dnc{flex:1 1 0;min-width:var(--chart-donut,160px);max-width:360px;max-height:360px;aspect-ratio:1;height:auto;align-self:center}   /* 環撐滿「卡片扣掉圖例」的寬（跟產業地圖一樣），上限 360 */
+#admBody .dn .dnc{flex:1 1 0;min-width:220px;max-width:360px;max-height:360px;aspect-ratio:1;height:auto;align-self:center}   /* 環撐滿「卡片扣掉圖例」的寬（跟產業地圖一樣），上限 360 */
 #admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
 #admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
@@ -187,7 +187,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trctl input[hidden],#v-admin .trctl .trto[hidden]{display:none}#v-admin .trctl .trto{color:var(--ink-2)}
 #v-admin .trctl{flex-wrap:wrap;min-width:0;max-width:100%}#v-admin .trctl input[type=date]{width:136px;min-width:0}
 @media (max-width:640px){#v-admin .trhead .trctl{width:100%}#v-admin .trctl input[type=date]{flex:1 1 110px}}
-#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);margin-top:12px}
+#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);margin-top:12px}
 #v-admin .admgrid.trtop>.s2{grid-column:auto}
 #v-admin .admgrid.trpair:first-child{margin-top:0}
 #v-admin .trtabs{padding:0;overflow:visible}
@@ -214,7 +214,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 #admBody .dn ul.lg li b{flex:none;min-width:4.2em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
 #admBody .dn ul.lg li small{flex:none;min-width:3.6em;text-align:right;font:12px var(--mono);color:var(--ink-2)}
-@container (max-width:419px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg,#admBody .dn .dnc{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
+@container (max-width:439px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg,#admBody .dn .dnc{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
 #admBody .dn ul.lg li i{width:12px;height:12px;border-radius:3px;flex:none}
 /* 圖表互動：滑過高亮、其餘變淡；浮動提示（#trTip，掛在 body） */
 #trTip{position:fixed;z-index:1400;pointer-events:none;max-width:280px;padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.5;color:var(--ink);background:var(--panel);border:1px solid var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
