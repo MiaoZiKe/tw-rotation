@@ -4064,6 +4064,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .hmlegend.focus .hmcell{opacity:.35}
 .hmlegend.focus .hmcell.on{opacity:1;box-shadow:inset 0 0 0 2px rgba(255,255,255,.9)}
 .hmlegend .hmhint{font-size:12px;color:var(--ink-3);white-space:nowrap}
+/* 出處 ⓘ（2026-10-06 廢話普查）：整行出處改成標題旁一個小圖示，滑過顯示出處＋資料日期（app.js srcInfo）*/
+.srcinfo{display:inline-block;margin-left:4px;font-size:var(--fs-min,12px);font-weight:400;line-height:1;color:var(--ink-3);cursor:help;vertical-align:baseline}
+.srcinfo:hover,.srcinfo:focus-visible{color:var(--cyan);outline:none}
 /* 窄於 560px：每格縮到 36、字不縮；再擠就換行（綠三格＋0 ／ 紅三格），**不准縮字** */
 @media (max-width:560px){
   .hmlegend{justify-content:flex-start}
@@ -5171,7 +5174,7 @@ h3 .howbtn.pop{font-family:inherit}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="網站重新部署過，點一下載入新版">有新資料 ↻</button></small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，
@@ -5251,7 +5254,6 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- ★ 2026-09-24：「更新（即時報價）」「即時來源設定」兩列跟著桌機那兩顆一起拿掉 ——
          這兩列是去按桌機的鈕，鈕不在了，留著就是點了沒反應的死列。 -->
     <button type="button" id="mmTheme"><span class="ic">☀</span>明亮／深色主題</button>
-    <div class="hint">這兩項在電腦版是頂欄右邊的兩顆鈕，名字一樣。</div>
   </div>
   <!-- ★ 2026-09-24 晚（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：版號搬到標題下（#asof 裡的 #buildver）。 -->
 </header>
@@ -5403,7 +5405,7 @@ h3 .howbtn.pop{font-family:inherit}
                  只恢復軌跡線）一起退回 09-25 晚的樣子：軌跡＋腳印都畫，#rotTools 的「顯示腳印」勾選框回來、預設勾選；
                  title 也回到「輪盤的腳印」的講法。 -->
           <div class="rottime" id="flowRotTime">
-            <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
+            <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段"></div>
             <div class="rottools" id="rotTools"></div>
           </div>
           <!-- ★ 2026-09-25（Andy）：①「放大」從右欄（排行標題列）搬到輪盤欄右上角 —— 它放大的是輪盤，
@@ -5468,7 +5470,7 @@ h3 .howbtn.pop{font-family:inherit}
       <!-- ★ 2026-09-25：「怎麼看 ?」→ 標題旁「?」。#sankeySub 是讀數（哪一天、% 的分母、固定／換位、即時估算）留著；
            篩選列那句「先挑產業鏈…」與拓撲版上方的圖例句都搬進「?」。 -->
       <div class="howtxt" id="how-sankey" hidden></div>
-      <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播。按「即時」則改成依當下成交值排名，名次變了會換位"></div>
+      <div id="sankeyDays" title="看哪一天：族群位置固定；即時模式依當下成交值排名"></div>
       <!-- 盤中即時模式的狀態列（Andy 2026-09-21「即時」）。誠實標示全寫在這一行：
            哪一個數字是真實值、哪一個是估算、% 的分母是誰、哪幾格是盤後、這一輪打了幾個請求。
            不塞進圖裡是刻意的 —— 圖上塞不下，而這幾句話少一句整張圖就會被讀錯。 -->
@@ -5485,7 +5487,7 @@ h3 .howbtn.pop{font-family:inherit}
         </div>
         <!-- ★ 2026-10-04（Andy）：「最近 N 天」＋「截止」兩條合併成一條雙把手區間桿（app.js dateRangeBar）。
              放在標題下面自己一整列：軸有上百個交易日，擠在標題右邊只剩一百多 px，一格不到 2px 拖不準。 -->
-        <div id="instDays" title="拖左把手＝起日、右把手＝截止日；兩把手之間就是統計期間"></div>
+        <div id="instDays" title="統計期間"></div>
         <div class="howtxt" id="how-inst" hidden></div>
         <div id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
       <div class="card" id="flowConcCard"><div class="row spread"><h3>資金集中度 <button class="howbtn pop" data-how="conc" type="button" aria-label="資金集中度怎麼看">?</button> <small id="concState"></small></h3>
@@ -5573,7 +5575,7 @@ h3 .howbtn.pop{font-family:inherit}
           <div class="seg" id="seasonView"><button data-v="heat" class="on">熱力圖</button><button data-v="line">長條圖</button></div>
           <!-- 熱力圖專用：列數與格內數字（預設不印數字 —— Andy：「新增顯示數字選項（所以 Default 是沒有）」） -->
           <div class="seg" id="seasonRows" data-for="heat"><button data-v="20" class="on">前 20 名</button><button data-v="all">全部</button></div>
-          <div class="seg" id="seasonNum" data-for="heat"><button data-v="num" aria-pressed="false" title="在格子裡印出數值；格子太小放不下的會略過（不疊字）">顯示數字</button></div>
+          <div class="seg" id="seasonNum" data-for="heat"><button data-v="num" aria-pressed="false" title="在格子裡印出數值">顯示數字</button></div>
           <!-- 長條圖專用：快捷挑族群（會同步下面「族群」下拉的勾選） -->
           <div class="seg" id="seasonPick" data-for="line" style="display:none"><button data-v="top">本月最強 5</button><button data-v="bot">本月最弱 5</button><button data-v="none">只留平均線</button></div>
         </div>
@@ -5611,7 +5613,7 @@ h3 .howbtn.pop{font-family:inherit}
 </main>
 
 <aside id="side" aria-label="今日事件" aria-hidden="true">
-  <div class="side-h"><h3>今日事件</h3><div class="row"><select class="minisel" id="evDate" title="選一天看那天發生什麼（保留最近一週）"></select><button class="close" id="evClose" aria-label="關閉今日事件">×</button></div></div>
+  <div class="side-h"><h3>今日事件</h3><div class="row"><select class="minisel" id="evDate" title="保留最近一週"></select><button class="close" id="evClose" aria-label="關閉今日事件">×</button></div></div>
   <div class="side-filters" id="evFilters"><button data-c="all" class="on">全部</button><button data-c="台股">台股</button><button data-c="科技">科技</button><button data-c="總經">總經</button><button data-c="券商">券商</button></div>
   <div id="evList"></div>
 </aside>

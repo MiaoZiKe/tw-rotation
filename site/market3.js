@@ -543,7 +543,7 @@
         ? nightWhy().replace(/<[^>]+>/g, '') : '';
       ss.dataset.why = why;
       ss.title = n ? '夜盤（15:00～翌日 05:00）有資料，顯示夜盤' : (state.futSession === 'night'
-        ? '夜盤時段，但還沒拿到夜盤資料 —— 先顯示日盤' + (why ? '\n原因：' + why : '') : '日盤時段（08:45～13:45）'); }
+        ? '夜盤時段，尚無夜盤資料，先顯示日盤' + (why ? '\n' + why : '') : '日盤時段（08:45～13:45）'); }
   }
   function paintNight() {
     const grid = document.getElementById('m3Grid');
@@ -692,7 +692,7 @@
         if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; return { r, deno: '' }; }
       } catch (e) {
         why = 'Deno 連不上（' + ((e && e.name) || e) + '）';
-        if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; throw new Error(why); }
+        if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; throw new Error(pubWhy(why)); }
       }
     }
     if (!base) throw new Error('還沒設定即時來源');
@@ -702,13 +702,16 @@
       return { r: await fetch(base + path, { cache: 'no-store' }), deno: why };
     } catch (e) {
       if (!why) throw e;
-      throw new Error(why + '，Worker 連不上（' + ((e && e.message) || e) + '）');
+      throw new Error(pubWhy(why) + '，備援來源也連不上');
     }
   }
   /** 兩條路都沒拿到時的說明。只走 Worker 時維持原本的「代理回 HTTP 502」字樣（既有驗收與 nightWhy 都認它）。*/
   function futFailText(g) {
-    return g.deno ? `${g.deno}，Worker 也回 HTTP ${g.r.status}` : '代理回 HTTP ' + g.r.status;
+    return g.deno ? `${pubWhy(g.deno)}，備援來源也回 HTTP ${g.r.status}` : '代理回 HTTP ' + g.r.status;
   }
+  /* 讀者畫面上不寫內部代理的名字（2026-10-06 廢話普查）：state.futDenoWhy 照舊記「Deno …」給驗收與除錯，
+     組成讀者看得到的字時才換成「主要來源」。*/
+  function pubWhy(w) { return String(w || '').replace(/^Deno /, '主要來源'); }
   async function fetchFut(session) {
     const g = await futGet(`/fut?session=${session}&t=${Date.now()}`);
     const r = g.r;
@@ -1072,7 +1075,7 @@
       .filter(p => p.min >= s0 && p.min <= s1);
     if (!pts.length) return null;
     const cs = pts.map(p => p.c);
-    return { id: x.id, name: x.name, src: '資料湖 15 分', date: tpeYmd(pts[0].ms), time: '收盤',
+    return { id: x.id, name: x.name, src: '15 分 K', date: tpeYmd(pts[0].ms), time: '收盤',
       prev: null, open: rows[0][1], high: Math.max.apply(null, rows.map(r => r[2])), low: Math.min.apply(null, rows.map(r => r[3])),
       last: cs[cs.length - 1], vol: null, amt: null, points: pts, sparse: true };
   }
@@ -1184,7 +1187,7 @@
           const b = (all && all[x.id]) || [];
           if (b.length) {
             const L = b[b.length - 1], P = b.length > 1 ? b[b.length - 2] : null;
-            state.lakeHead[x.id] = { id: x.id, src: '資料湖日線', date: String(L[0]).replace(/-/g, ''), time: '收盤',
+            state.lakeHead[x.id] = { id: x.id, src: '日線', date: String(L[0]).replace(/-/g, ''), time: '收盤',
               open: L[1], high: L[2], low: L[3], last: L[4], prev: P ? P[4] : null, amt: null, vol: null, points: [] };
           }
         } catch (e) {}
@@ -1278,8 +1281,7 @@
     window.Live.stampCard('m3', { at: Math.max(state.at || 0, state.liveAt || 0),
       err: allBad ? (state.err.TSE || '分時抓不到') : '', every: isIntraday() ? MS_FAST : MS_AFTER, lbl: '5/15秒',
       // 這張卡裡三個數字的節奏不一樣（DECISIONS #299）：卡上的短字寫最快那個，提示框把三條分開講清楚
-      tip: '盤中：加權、櫃買每 5 秒更新（證交所報價本身就是 5 秒一張快照）；台指期日盤每 15 秒更新（期交所報價，'
-        + '經 Deno 代理，放慢是為了省免費額度）；整條分時走勢線每 10 秒對一次' });
+      tip: '盤中：加權、櫃買每 5 秒更新；台指期日盤每 15 秒；分時走勢線每 10 秒' });
   }
   window.addEventListener('tw:live', () => { patchFromLive(); });
   window.addEventListener('tw:livecard', (e) => {
@@ -1504,9 +1506,9 @@
   function noVolWhy(x, tfKey) {
     const o = (((state.lakeIntra || {})[lakeSym(x)] || {}).src) || {};
     const since = o.vol_first ? `（真實分鐘量從 ${o.vol_first} 起才有，共 ${o.vol_days} 天）` : '';
-    if (x.id === 'OTC') return `櫃買指數的歷史分 K 只有價格（Yahoo）；逐分鐘成交值只有證交所分時檔，每天盤後存起來${since}，不足以畫量柱，所以不畫、也不估。`;
-    if (x.id === 'TSE') return `加權的真實分鐘成交值（FinMind 每 5 秒成交統計）還在回補${since}；還沒補到的這一段不畫量柱、也不估。`;
-    return `台指期這個週期沒有逐筆成交量${since}，不畫量柱。`;
+    if (x.id === 'OTC') return `櫃買歷史分 K 無成交量${since}，不畫量柱`;
+    if (x.id === 'TSE') return `這一段沒有真實分鐘成交值${since}，不畫量柱`;
+    return `台指期這個週期沒有逐筆成交量${since}，不畫量柱`;
   }
   /* ---------------------------------------------------------------- 量副圖高度三張連動（2026-09-28）
      Andy：「調整加權、櫃買、台指的成交量縮放只需要抓取其中一條，其他兩條會連動調整寬度」。
@@ -1722,10 +1724,10 @@
     if (!nightHas()) return '';
     const push = state.fsMode === 'sse';
     const tip = push
-      ? `推送（SSE）：跟代理保持一條連線，值一變就送過來（約 ${Math.round(FS_PUSH_HINT_MS / 1000)} 秒）。`
+      ? `推送：有新報價即更新（約 ${Math.round(FS_PUSH_HINT_MS / 1000)} 秒）`
       : state.fsGaveUp
-        ? '輪詢：代理沒有夜盤推送功能（可能還沒更新到新版），已退回每分鐘抓一次。'
-        : '輪詢：目前用固定間隔去抓；推送連上之後會自動切過去。';
+        ? '輪詢：每分鐘更新一次'
+        : '輪詢：固定間隔更新';
     return `<span class="m3-tag" data-way="${push ? 'sse' : 'poll'}" title="${tip}">`
       + `${push ? '推送' : '輪詢'}</span>`;
   }
@@ -1947,20 +1949,17 @@
     const f = F();
     const e1 = state.futChartErr, e2 = state.futNightErr;
     const n = state.nightPts.length;
-    if (e1 === 'NOFUTCHART')
-      return 'Worker 還是舊版（沒有 <code>/futchart</code>）。到 Cloudflare → Workers → tw-quote，'
-        + '把 repo 裡 <code>workers/quote-proxy/worker.js</code> 整份重貼一次再 Deploy，這條線就會變成一整晚的分時。';
-    if (e2 === 'NOFUT')
-      return 'Worker 還是舊版（沒有 <code>/fut</code>）。推一次 <code>workers/quote-proxy/worker.js</code> 就會自動部署。';
+    if (e1 === 'NOFUTCHART') return '暫時取不到夜盤分時序列';
+    if (e2 === 'NOFUT') return '暫時取不到夜盤報價';
     if (e2 === 'NOFUTDATA')
-      return '現在不是夜盤時段（台北 15:00～翌日 05:00），期交所沒有回任何合約報價。';
-    if (e1 === 'NOFUTTICKS') return '期交所的分時端點回了空序列（通常是這一晚還沒開始）。';
-    if (e1 === 'NOSYMBOL') return '還沒問到今天的近月合約代號（那是從夜盤報價清單撈的）。';
+      return '現在不是夜盤時段（台北 15:00～翌日 05:00）';
+    if (e1 === 'NOFUTTICKS') return '今晚夜盤尚無成交';
+    if (e1 === 'NOSYMBOL') return '尚未取得近月合約代號';
     if (e1) return '夜盤分時抓不到：' + (f ? f.esc(e1) : e1);
     if (e2) return '夜盤報價抓不到：' + (f ? f.esc(e2) : e2);
     if (state.futNight && !state.futNight.inSession)
-      return '現在不是夜盤時段：期交所回的是日盤最後一筆，不能當夜盤點畫進來。';
-    return n === 0 ? '還沒收到第一筆夜盤報價。' : `目前自己收到 ${n} 筆，連成線至少要 2 筆。`;
+      return '現在不是夜盤時段';
+    return n === 0 ? '尚未收到夜盤報價' : `已收到 ${n} 筆，滿 2 筆才連成線`;
   }
 
   /** 圖畫完之後補上（或移除）那條說明帶。
@@ -1976,15 +1975,13 @@
       if (had) had.remove();
       /* 這一行是 ::before 畫的，會把底下的圖往下推 —— 所以只能一句話。
          「為什麼還沒接上」那些細節留給說明帶（連線都畫不成的時候才出場）。*/
-      el.dataset.fallback = '這條線是本頁每分鐘自己收的真實成交價；期交所的完整分時正在接';
+      el.dataset.fallback = '本頁每分鐘收集的成交價（非完整分時）';
       return;
     }
     const box = had || document.createElement('div');
     box.className = 'm3-night';
-    box.innerHTML = `<div class="m3-q"><b>正在接期交所的分時端點</b></div>
-      <div class="note">夜盤的完整分時序列走期交所 <span class="mono">getChartData1M</span>
-        （2026-09-20 實測可用，一晚 822 筆）。接上之前，這條線是這一頁每分鐘自己收一個
-        真實成交價收出來的，收滿 2 筆才連得成線。${nightWhy()}</div>`;
+    box.innerHTML = `<div class="m3-q"><b>夜盤分時尚未取得</b></div>
+      <div class="note">這條線是本頁每分鐘收的成交價，滿 2 筆才連成線。${nightWhy()}</div>`;
     if (!had) el.appendChild(box);
   }
 
@@ -2012,8 +2009,7 @@
   function shortHistNote(x) {
     const s = spanOf(lakeSym(x)) || spanOf(x.id);
     if (!s || s.n >= WANT_BARS) return '';
-    return `${x.name}的歷史只有 ${s.n} 根日 K（${s.from} 起，約 ${(s.n / YEAR_BARS).toFixed(1)} 年）`
-      + `，所以週／月／季 K 也只有這麼幾根。26 年歷史正在回補（雲端每小時一輪），補完這裡會自己變長。`;
+    return `${x.name}的歷史只有 ${s.n} 根日 K（${s.from} 起，約 ${(s.n / YEAR_BARS).toFixed(1)} 年）`;
   }
 
   /** 「?」裡的來源與量的完整口徑（#m3Note → app.js HOW.m3 打開時讀）。
@@ -2062,7 +2058,7 @@
       note.textContent = state.mode !== 'k'
         ? '紅／綠對照昨收；下方是每分鐘成交量。時間軸固定到收盤，空白＝還沒走到。'
           // 2026-10-03（DECISIONS #299）：三個數字的更新節奏不一樣，「?」裡講清楚（卡上只寫「5/15秒」）
-          + '盤中更新：加權、櫃買每 5 秒；台指期日盤每 15 秒（省 Deno 免費額度）；夜盤每 60 秒。'
+          + '盤中更新：加權、櫃買每 5 秒；台指期日盤每 15 秒；夜盤每 60 秒。'
         : srcNote() + (histDef(state.tf) ? lakeSpan() : '');
     }
     // 台指期的日盤／夜盤鈕：選中的要亮起來（以前藏在 drawFutNight 裡，拆掉之後移到這裡）
@@ -2201,16 +2197,16 @@
         return;
       }
       el.classList.remove('isempty');
-      const why = err === 'NOCHART' ? '即時代理是舊版（沒有分時功能）' : err ? errZh(err) : (hint || '還沒有今天的分時');
+      const why = err === 'NOCHART' ? '暫無分時' : err ? errZh(err) : (hint || '尚無今天的分時');
       /* ★ 2026-09-25：K 線選 15／30 分、而資料湖有這張的 15 分 K（加權約 60 天）→ 照畫多日 15／30 分，
          只是少了今天那一盤；不必整張退回日 K。其他週期／沒有湖資料的照舊退日 K。*/
       const mt = +state.tf;
       if (state.mode === 'k' && (mt === 15 || mt === 30) && (((state.lakeIntra || {})[x.id] || {}).M15 || []).length >= 1) {
-        el.dataset.fallback = why + '，只有資料湖的歷史 ' + mt + ' 分 K';
+        el.dataset.fallback = why + '，只顯示歷史 ' + mt + ' 分 K';
         drawK(x, { points: [] }, el);
         return;
       }
-      drawK(x, {}, el, 'D', why + '，先顯示資料湖的日 K');
+      drawK(x, {}, el, 'D', why + '，先顯示日 K');
       return;
     }
     el.classList.remove('isempty');
@@ -2688,7 +2684,7 @@
         el.dataset.src = lb.length ? 'lake' : 'today';
         if (!synthSay) synthSay = accumSay(x);
       } else {
-        synthSay = `${x.short}分 K 還沒有任何一盤，先顯示日 K`;
+        synthSay = `${x.short}尚無分 K，先顯示日 K`;
         def = histDef('D');
       }
     }
@@ -2700,7 +2696,7 @@
         killK(x.id); el.dataset.kind = '';
         if (!err) { fetchHist(x, def); el.innerHTML = '<div class="empty">載入中…</div>'; return; }
         el.innerHTML = `<div class="empty">${window.App ? window.App.fmt.esc(
-          err === 'NOLAKE' ? `${x.name}的歷史日 K 還沒進資料湖 —— 下一輪每日管線跑完（台北 15:30 / 18:30 / 21:30）就會有。`
+          err === 'NOLAKE' ? `尚無${x.name}歷史日 K`
           : '抓不到歷史 K：' + errZh(err)) : errZh(err)}</div>`;
         return;
       }
@@ -2730,8 +2726,8 @@
            還沒長出來時退回日盤並把原因寫出來 —— 兩種情況畫面上看起來一樣，所以一定要講。*/
         if (isNight(x)) {
           says.push(state.lakeBack[key]
-            ? '夜盤日 K 資料湖還沒長出來（FUT_N），先用一般交易時段（日盤）那一條'
-            : '這是夜盤（盤後交易時段）的日 K，跟上面的日盤是兩條不同的線');
+            ? '尚無夜盤日 K，暫用日盤'
+            : '夜盤與日盤是兩條不同的日 K');
         }
         /* ★ 2026-10-04 Andy 16:10 截圖：台指期標頭 49,346（夜盤即時）、K 線右側卻是 48,475.00，跟加權收盤
            48,475.74 幾乎一樣，懷疑拿錯序列。查證：那根是 FUT_N（夜盤日 K）10-02 那一盤的收盤 48,475，

@@ -1593,7 +1593,7 @@
       ${note({ side: 'l', order: 0, title: '① 容值是層數堆出來的', lines: ['C ＝ ε₀ · εr × n × A ÷ d', 'n＝層數、A＝重疊面積、d＝單層厚度', 'n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑'] })}
       ${labelRow(SEG, 0, 0, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 0, null, 1, 'l')}
       ${labelRow(SEG, 0, 0, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 0, null, 5, 'l')}
-      ${note({ side: 'l', order: 7, title: '⋮ ×N ＝ 中間省略掉的層', lines: ['畫面上只畫 16 層電極，看得出交錯的規律就夠；', '實際高容量品 400～1000 層以上（示意圖，非實物比例）。'] })}
+      ${note({ side: 'l', order: 7, title: '⋮ ×N ＝ 中間省略掉的層', lines: ['畫面只畫 16 層電極；', '實際高容量品 400～1000 層以上（示意圖，非實物比例）。'] })}
       <!-- 右欄：02、03、04、06、警語 -->
       ${labelRow(SEG, 0, 0, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), 0, null, 2, 'r')}
       ${labelRow(SEG, 0, 0, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), 0, null, 3, 'r')}
@@ -1606,7 +1606,7 @@
         <text class="hd" x="16" y="586">端電極：由內到外 Cu →〔導電樹脂〕→ Ni → Sn，順序不准對調</text>
         <g transform="translate(0,86)">${endCut(16, false)}${endCut(324, true)}</g>
         <text class="hd" x="16" y="824">四層各自在幹嘛（由內到外）</text>${legend}
-        <text class="sub" x="16" y="940" style="fill:var(--dg-warn)">★ 把 Ni 畫在 Sn 外面是最常見的錯；樹脂層是夾在 Cu 與 Ni 之間，不是最外層。</text>
+        <text class="sub" x="16" y="940" style="fill:var(--dg-warn)">★ 樹脂層夾在 Cu 與 Ni 之間，不是最外層。</text>
         <!-- 板彎裂：整塊沿用原本的座標，只把它往下搬（translate），內容一個字都沒改 -->
         <g transform="translate(0,790)">
           <rect class="frame" x="16" y="170" width="270" height="128" rx="8"/>
@@ -1676,7 +1676,7 @@
         <text class="cap" x="30" y="1576">2375 凱美／3026 禾伸堂／6173 信昌電。</text>
         <text class="cap" x="30" y="1594">這一格含晶片電阻 —— 凱美是以電阻進到這一格、</text>
         <text class="cap" x="30" y="1612">不做 MLCC；做 MLCC 的是 2327／2492／3026／6173。</text>
-        <text class="cap" x="30" y="1630">資料來源與信心度見 docs/diagram_specs/mlcc_stack.md。</text>
+        
         <text class="cap" x="16" y="1672">2026 產業變數：村田對部分消費級 GRM／GRJ 與車規 GCM／GCJ／GCG 料號發出 EOL</text>
         <text class="cap" x="16" y="1690">（最後下單 2028/3、最後出貨 2029/3），規格替代與轉單是這一格現在的故事。</text>
         <text class="cap" x="16" y="1712">示意圖，非實物比例｜層數與各層厚度均為示意：圖上畫 16 層電極（⋮ ×N），</text>
@@ -2084,7 +2084,7 @@
     if (!gs.length) { unmountFolds(host); return; }
     let L = foldList(host);
     if (!L) {
-      L = document.createElement('div'); L.className = 'mdgfolds'; L.setAttribute('role', 'group'); L.setAttribute('aria-label', '圖的章節：點一下展開或收合');
+      L = document.createElement('div'); L.className = 'mdgfolds'; L.setAttribute('role', 'group'); L.setAttribute('aria-label', '圖的章節');
       const after = host.nextElementSibling && host.nextElementSibling.classList.contains('swipetip') ? host.nextElementSibling : host;
       after.after(L);
     }
@@ -2140,7 +2140,7 @@
     layer.innerHTML = `<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, cur.items, cur.sel);
     layer.dataset.overlap = ov; layer.dataset.n = P.length;
     const cnt = host.previousElementSibling && host.previousElementSibling.querySelector('.mdgcnt');
-    if (cnt) cnt.textContent = `${P.length} 個編號　點編號看說明`;
+    if (cnt) cnt.textContent = `${P.length} 個編號`;
   }
   function mobileNums(host) {
     if (!host) return;
@@ -2174,7 +2174,7 @@
       window.M3.openSheet(`<div class="mshhead"><b>${esc(heads[0] || '圖說')}</b></div><div class="mshbody">`
         + heads.slice(1).map(t => `<i>${esc(t)}</i>`).join('')
         + (notes.length ? '<div class="mgrp">公式與注意</div>' + notes.map(t => `<i>${esc(t)}</i>`).join('') : '')
-        + '<div class="mgrp">原創示意圖，非實物比例。圖上每個編號＝一個零件或環節，點編號看說明與台股；「放大」可以上下左右滑看細節。</div></div>', { kind: 'dginfo' });
+        + '<div class="mgrp">原創示意圖，非實物比例。圖上每個編號＝一個零件或環節。</div></div>', { kind: 'dginfo' });
     };
     paintZ();
     cur = { host, layer, items, scroller: host, sel: null };

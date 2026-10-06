@@ -119,8 +119,7 @@
     pop.className = 't4pop'; pop.id = 't4Pop'; pop.hidden = true; pop.setAttribute('role', 'dialog');
     pop.setAttribute('aria-label', '外觀設定');
     pop.innerHTML = `<h4>版面風格</h4><div class="t4opts">${THEMES.map(t =>
-      `<button type="button" class="t4o" data-t4="${t.id}" aria-pressed="false"><span class="sw" style="background:${t.sw}"></span><b>${t.name}</b><small>${t.sub}</small></button>`).join('')}</div>
-      <div class="t4hint">每個風格都有深淺兩套，用右上角 ☀／🌙 切換；選擇會記在這台瀏覽器。</div>`;
+      `<button type="button" class="t4o" data-t4="${t.id}" aria-pressed="false"><span class="sw" style="background:${t.sw}"></span><b>${t.name}</b><small>${t.sub}</small></button>`).join('')}</div>`;
     document.body.appendChild(pop);
     pop.addEventListener('click', (e) => {
       const b = e.target.closest('.t4o'); if (b) set(b.dataset.t4);
@@ -159,7 +158,7 @@
     if (mp && !$('#mmT4', mp)) {
       const box = document.createElement('div');
       box.id = 'mmT4'; box.className = 't4mm';
-      box.innerHTML = `<div class="hint" style="margin:6px 0 0;border-top:1px solid var(--line);padding-top:8px">版面風格（電腦版在頂欄「外觀」鈕）</div>` + THEMES.map(t =>
+      box.innerHTML = `<div class="hint" style="margin:6px 0 0;border-top:1px solid var(--line);padding-top:8px">版面風格</div>` + THEMES.map(t =>
         `<button type="button" data-t4="${t.id}" aria-pressed="false"><span class="ic" style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${t.sw}"></span>${t.name}</button>`).join('');
       // 接在原本那句「這兩項在電腦版是…」的後面，不插在它和那兩列中間（那句說明指的是上面兩列）
       mp.appendChild(box);
