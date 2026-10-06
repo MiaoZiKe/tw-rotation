@@ -28308,7 +28308,7 @@ def t_b14b_rlc(pg, base):
     # X4：不能用「字串裡有沒有出現『電容』」來判 —— 畫面上刻意寫了
     # 「這張圖不畫任何電容（MLCC／鋁質電解／固態／鉭質）」，那是宣告不是違規。
     # 要判的是**有沒有真的畫一個電容零件出來**，所以看 data-part 的名單。
-    # ★ 2026-10-06（驗收過時：style_guide 第 11 條，DECISIONS #333）：「這張圖不畫任何電容」是放在「這張圖沒有回答的事」卡裡的否定句，
+    # ★ 2026-10-06（驗收過時：style_guide 第 11 條，DECISIONS #334）：「這張圖不畫任何電容」是放在「這張圖沒有回答的事」卡裡的否定句，
     #   跟著那張卡拿掉。要守的那件事（圖上真的沒有電容零件）照驗；改驗「那張卡不在了」。
     ok("RLC・X4：圖上**沒有任何電容零件**（零件名單裡沒有 mlcc／cap／diel），「這張圖沒有回答的事」卡不在了",
        not [k for k in d["parts"] if any(w in k for w in ("mlcc", "cap", "diel"))]
@@ -30790,7 +30790,7 @@ def t_e1_motion(pg, base):
         ok(f"傳動件・X1／X2：圖上沒有「{bad}」—— 那是晶圓廠廠務／變壓器那兩張的範圍",
            bad not in txt.replace("不畫繞組", ""), "")
     # ★ 2026-10-04（#320）：「環節色標篩不到它們」那一行改成「點零件會對到四格之一」（環節補上了）
-    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條，DECISIONS #332）：「這張圖沒有回答的事」卡（否定句）拿掉，改驗「真的沒寫數字」＋卡不在；誠實標示改驗圖名列＋「?」。
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條，DECISIONS #334）：「這張圖沒有回答的事」卡（否定句）拿掉，改驗「真的沒寫數字」＋卡不在；誠實標示改驗圖名列＋「?」。
     hn = dg_honest(pg)
     ok("傳動件・D2：誠實性標示（非實物比例在圖名列；環節不等於族群在「?」）、卡不在",
        "非實物比例" in hn["title"] and DG_HONEST in hn["how"] and hn["gone"], hn["how"][-80:])
@@ -31333,7 +31333,7 @@ def t_e3_protect(pg, base):
         ok(f"保護元件・X5：畫面上沒有「{bad}」這種法人用語（證據表裡有，抄過來的時候要拿掉）",
            bad not in clean5, "")
     # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「…下方的『環節色標』篩不到它們」是否定說明，縮成「公司寫在小卡與第 ② 段」
-    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條，DECISIONS #332）：「這張圖沒有回答的事」卡（否定句）拿掉，改驗「真的沒寫數字」＋卡不在；誠實標示改驗圖名列＋「?」。
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條，DECISIONS #334）：「這張圖沒有回答的事」卡（否定句）拿掉，改驗「真的沒寫數字」＋卡不在；誠實標示改驗圖名列＋「?」。
     hn = dg_honest(pg)
     ok("保護元件・D3：誠實性標示（非實物比例在圖名列；環節不等於族群在「?」）、卡不在",
        "非實物比例" in hn["title"] and DG_HONEST in hn["how"] and hn["gone"] and "supply_chain.yaml" not in txt, hn["how"][-80:])
@@ -32517,7 +32517,7 @@ def t_cooling_v2(pg, base):
         ok("[%s] 每條章節列都掛了全文 title（提示被砍短時滑鼠移上去看得到全文）" % did, all(len(t) > 8 for t in tt), tt)
 
         # ---------------- 6. 卡片與錨點、三個寬度
-        # ★ 2026-10-06（驗收過時：style_guide 第 10 條，DECISIONS #333）：「點零件篩到的是環節」警語卡拿掉，液冷 12 → 11 張（氣冷 12 張不變）。
+        # ★ 2026-10-06（驗收過時：style_guide 第 10 條，DECISIONS #334）：「點零件篩到的是環節」警語卡拿掉，液冷 12 → 11 張（氣冷 12 張不變）。
         ok("[%s] ★ 卡片 ≥ 11 張、有編號的每一張都有錨點與引線" % did,
            d["cards"] >= 11 and d["numbered"] == d["anchors"] == d["leads"], {"cards": d["cards"], "numbered": d["numbered"], "anchors": d["anchors"], "leads": d["leads"]})
         missing = [p for p in d["cardParts"] if p not in d["svgParts"]]
