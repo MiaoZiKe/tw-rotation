@@ -34,7 +34,12 @@ Andy 16:25 截圖：個股 → 大戶／散戶 → 4 週，第一點「5.89%」�
 - 普查順手修：資金去向 ECharts 樹（≤820）葉子 16→19px；產業鏈公司卡兩行基線 14／30；手機漲跌分佈區間字直立；漲跌分佈 y 軸不標非整格 max。
 - 量到但判定非壓字：總覽 KPI 列捲動箭頭、站上均線捲動圖例（clipPath）、ETF 報酬比較兩行軸名、新聞收合內文。
 - **這批只驗了**：`_uitest` 文字重疊普查1006、籌碼基本0926、個股分頁0926；`_preview` 全跑（只剩本機缺 `data/earnings.json` 的 404，main 同樣缺，與本批無關）。pytest 跳過（只動 site/ 與 scripts 驗收腳本）。
-- 待辦：`site/dg/foundry.js` 390 寬「閘極只管得到一面」壓錨點 02／05 → 已改 y=172，**未推，等 CEO 看圖**；另發現 390 寬錨點圓整片蓋住三格剖面（FinFET、GAA 的小標也被蓋），待決定。
+- 續（3ef0cbb4 上 main）：手機剖析圖「整張」模式（畫布 < 500px）編號鈕 28→20px（字 12px）、鈕與鈕不疊、躲開圖上的字（最遠 160px 拉引線）、夾回錨點所在的格子；「放大」維持 28px。foundry「閘極只管得到一面」移到 y=172。
+  `scripts/_dg_overlap.py` 修好假綠（停在 #overview 讀不到 DiagramSlots，一直量 0 張），並補量「編號鈕蓋到字／超出畫布／尺寸」。
+  這批驗了：`_uitest` 手機v3、文字重疊普查1006；`_dg_overlap --width 390 --no-3d`；`_preview`（只剩 earnings.json 404）。
+- **待處理**：
+  1. `_uitest` 「手機按鈕普查」兩次卡住（45／25 分鐘無輸出、CPU 幾乎不動），原因未查；這批按鈕尺寸改動沒經過它。
+  2. 390 寬 12 處編號鈕仍壓字（周圍 160px 都是字找不到空位）：bank 6、life_fhc 3、cyber_security 2、securities_fhc 1；另 ai_adv_packaging 2 處圖內字超出畫布（舊問題）。
 
 ## 2026-10-06 時間軸垂直分隔線：所有橫軸是時間的圖背景加極淡年／月線（視覺設計美編，分支 `claude/vgrid`，DECISIONS #337）
 - 改了什麼：新增 `site/timegrid.js`（共用層級／顏色／標記）；`site/app.js` 的 `chart()` 補 custom 系列（ECharts 全站自動套用）；`site/chart.js` 新增 `TimeGridPrimitive`（K 線主圖與副圖）；`site/industry.js` 的 `_dbg()` 多一個 `tgrid`（驗收用）；`site/index.html` 在 chart.js 之前載入 timegrid.js。
