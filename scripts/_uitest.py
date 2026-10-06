@@ -1949,18 +1949,19 @@ def t_etf_1005(pg, b, base):
         ytxt = text(lp, "#etfYld")
         ok(f"★ [{tag}] 殖利率前 5：依殖利率由高到低、全是配息型", yl == exp_y, (yl, exp_y))
         ok(f"★ [{tag}] 殖利率前 5 寫平均填息天數（12.5 天）、完全沒填過的寫「尚未填息」", "12.5 天" in ytxt and "尚未填息" in ytxt and "平均填息" in ytxt, ytxt[:200])
-        lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(300)
+        lp.select_option("#etfRng .rpsel", "3y"); lp.wait_for_timeout(300)
         r3, r3v = CODES("#etfRetTop"), J("() => [...document.querySelectorAll('#etfRetTop .rkrow .v')].map(e => parseFloat(e.textContent))")
-        lp.click("#etfPerSeg button[data-v='5y']"); lp.wait_for_timeout(300)
+        lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(300)
         r5, r5v = CODES("#etfRetTop"), J("() => [...document.querySelectorAll('#etfRetTop .rkrow .v')].map(e => parseFloat(e.textContent))")
         ok(f"★ [{tag}] 報酬率前 5：由高到低、全是配息型", r3 and all(cats.get(c) == "配息型" for c in r3 + r5) and r3v == sorted(r3v, reverse=True) and r5v == sorted(r5v, reverse=True), (r3v, r5v))
         ok(f"★ [{tag}] 期間 3 年→5 年：報酬率前 5 的名單或數字跟著換", (r3, r3v) != (r5, r5v), (r3, r5))
         ok(f"[{tag}] 沒有配息資料時副標寫「依價格年化」（不拿價格報酬冒充含息）、有配息時寫「依含息年化」", ("價格年化" in text(lp, "#etfRetTopQ")) or ("含息年化" in text(lp, "#etfRetTopQ")), text(lp, "#etfRetTopQ"))
-        lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(250)
-        vis = J("() => getComputedStyle(document.querySelector('#etfFrom')).visibility === 'visible'")
-        J("() => { const f = document.querySelector('#etfFrom'); f.value = '2018-01-01'; f.dispatchEvent(new Event('change', { bubbles: true })); }"); lp.wait_for_timeout(300)
-        ok(f"★ [{tag}] 自訂起始日 2018-01-01 → 兩個日期欄出現（結束日預設今天）、比較卡標題寫「自訂」、標題上不放日期（Andy 10-06）", vis and "自訂" in text(lp, "#etfRetSub") and "2018" not in text(lp, "#etfRetSub") and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"), text(lp, "#etfRetSub"))
-        lp.click("#etfPerSeg button[data-v='3y']"); lp.wait_for_timeout(300)
+        # 2026-10-06 晚：期間改成報酬比較標題列的「下拉＋起訖日期框」（rangepick.js）；手改起始日 → 下拉跳「起始日期～至今」
+        vis = J("() => getComputedStyle(document.querySelector('#etfRng .rpfrom')).visibility === 'visible'")
+        lp.fill("#etfRng .rpfrom", "2018-01-01"); J("() => document.querySelector('#etfRng .rpfrom').dispatchEvent(new Event('change', { bubbles: true }))"); lp.wait_for_timeout(300)
+        ok(f"★ [{tag}] 手改起始日 2018-01-01 → 下拉跳「起始日期～至今」、結束日＝今天、副標不放日期（Andy 10-06）", vis and J("() => document.querySelector('#etfRng .rpsel').value") == "custom"
+           and "2018" not in text(lp, "#etfRetSub") and J("() => document.querySelector('#etfRng .rpto-in').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"), text(lp, "#etfRetSub"))
+        lp.select_option("#etfRng .rpsel", "3y"); lp.wait_for_timeout(300)
         # ================= 3. 自選比較
         r3 = CODES("#etfRetTop")
         dflt = CODES("#etfRetBody")
@@ -2112,6 +2113,149 @@ def t_etf_1005(pg, b, base):
            (rd, ft["n"], ft["pop"][:40], ft["ret"][:40], ft["cal"][:60], bad and bad.group(0)))
     finally:
         fp.close()
+
+
+def t_etf_ret_1006(pg, b, base):
+    """【ETF 報酬比較 2026-10-06 晚】Andy 原話：
+      ①「為何沒數據」（其他：累積報酬走勢整塊寫「無資料」，右邊年化卻列得出名字）
+      ②「槓桿沒有配息 圖表就拿掉含息以及不含息」「只留下報酬率」「也不需要下方備註 殖利率 配息年化多少」
+      ③「這邊我昨天有交代要週期切換……可以選擇時段如圖二那樣，切換到不同時間週期也可以在旁邊顯示對應年限日期」
+    根因（①）：期貨型 ETF 沒有配息列 → 週線只有價格、沒有含息序列；前端「確定不配息」的判斷要求 div_done 為真，
+      這幾檔 div_done＝False 又不是槓桿反向、名稱也沒「期貨」兩字，於是預設的「含息」走勢找不到序列 → 一條都畫不出來。
+      修法：pipeline 加 div_none（FinMind 配息資料集明確回空＋湖裡 0 列），前端「有沒有配息」改依期間內含息≠價格判斷。
+    驗：
+      · 每一類分頁逐一點：累積走勢 ≥ 1 條、整塊不出現「無資料」（真的畫不出來時要寫白話原因）
+      · 槓桿反向：長條只有一組「年化報酬率」、沒有圖例、標題沒有「含息」、含息／不含息切換消失、表格與說明沒有殖利率／配息年化
+      · 配息型：仍是「不含息」「含息」兩組
+      · 混合（主題型挑一檔有配息＋一檔沒配息）：沒配息那列殖利率／配息欄寫「無配息」、不寫 0%，長條名稱旁標「無配息」
+      · 期間：下拉切 5 年 → 1 年 → 上市以來，兩個日期框跟著變、走勢起點跟著變；手改起始日 → 下拉跳「起始日期～至今」
+      · 分類列上沒有舊的「報酬率期間」按鈕
+      · 選中的全部畫不出走勢 → 自動改看畫得出來的前 5 檔（假資料：把選中那兩檔的週線拿掉）
+      · 1440 與 390 兩種寬度：期間元件在畫面內、頁面沒有橫向捲軸、字 ≥ 11px"""
+    import json as _json
+    tag = "ETF報酬比較1006"
+    for W in (1440, 390):
+        lp = b.new_page(viewport={"width": W, "height": 900})
+        errs = []
+        lp.on("pageerror", lambda e: errs.append(str(e)))
+        lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        J = lambda js, *a: lp.evaluate(js, *a)
+        RET = lambda: J("() => document.querySelector('#etfRetBody').innerText")
+        LN = lambda: J("() => +(document.querySelector('#etfRetLine') || { dataset: {} }).dataset.n || 0")
+
+        def cat(v):
+            lp.click(f"#etfCatSeg button[data-v='{v}']")
+            wait_until(lp, f"() => document.querySelector('#v-etf').dataset.cat === '{v}' && !!document.querySelector('#etfRetLine') && document.querySelector('#etfRetLine').dataset.n !== undefined", 5000)
+            lp.wait_for_timeout(250)
+
+        try:
+            lp.goto(f"{base}#etf", wait_until="networkidle")
+            J("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.etf.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+            lp.reload(wait_until="networkidle")
+            wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 15000)
+            wait_until(lp, "() => !!(window.TwEtfPage && window.TwEtfPage.state.series)", 15000)
+            lp.wait_for_timeout(300)
+            if W == 1440:
+                ok(f"★ [{tag}] 分類列上沒有舊的「報酬率期間」按鈕（只留報酬比較標題列那一套）",
+                   J("() => !document.querySelector('#etfPerSeg') && !document.querySelector('#etfPerBox') && !/報酬率期間/.test(document.querySelector('#etfCatBar').innerText)"))
+                ok(f"★ [{tag}] 期間元件在報酬比較的標題列（下拉＋起訖兩個日期框）",
+                   J("() => !!document.querySelector('#etfRetCard .row.spread #etfRng .rpsel') && document.querySelectorAll('#etfRng input[type=date]').length === 2"))
+                # ---- 每一類逐一點
+                tabs = J("() => [...document.querySelectorAll('#etfCatSeg button')].map(b => b.dataset.v)")
+                res = {}
+                for c in tabs:
+                    cat(c)
+                    t = RET()
+                    res[c] = (LN(), "無資料" in t, t[:60] if LN() == 0 else "")
+                bad = {c: v for c, v in res.items() if v[0] < 1 and not ("還沒補進" in v[2] or "交易資料不足" in v[2])}
+                ok(f"★ [{tag}] 七類分頁（含「其他」）累積走勢都至少畫出 1 條、整塊沒有「無資料」", not bad and not any(v[1] for v in res.values()), res)
+                ok(f"★ [{tag}] 「其他」（期貨型）真的畫出走勢（Andy：「為何沒數據」）", res.get("其他", (0,))[0] >= 1, res.get("其他"))
+                # ---- 槓桿反向：只留報酬率
+                cat("槓桿反向")
+                lev = J("""() => { const b = document.querySelector('#etfRetBar'), i = echarts.getInstanceByDom(b), o = i && i.getOption();
+                    return { div: document.querySelector('#etfRetBody').dataset.div, ser: b.dataset.series,
+                             leg: o ? (o.legend || []).every(l => l.show === false) : null, nser: o ? o.series.length : -1,
+                             bt: document.querySelector('#etfRetBarTtl').textContent, lt: document.querySelector('#etfRetLineTtl').textContent,
+                             seg: getComputedStyle(document.querySelector('#etfBasisSeg')).display,
+                             th: document.querySelector('#etfRetTbl thead').innerText, how: document.querySelector('#how-etfret').innerText }; }""")
+                ok(f"★ [{tag}] 槓桿反向：年化每檔只有一條「年化報酬率」、沒有圖例（Andy：「只留下報酬率」）",
+                   lev["div"] == "none" and lev["ser"] == "年化報酬率" and lev["nser"] == 1 and lev["leg"] is True, lev)
+                ok(f"★ [{tag}] 槓桿反向：兩張圖標題沒有「含息」字樣（年化報酬率／累積報酬率）、含息／不含息切換消失",
+                   lev["bt"] == "年化報酬率" and lev["lt"].startswith("累積報酬率") and "含息" not in lev["bt"] + lev["lt"] and lev["seg"] == "none", lev)
+                ok(f"★ [{tag}] 槓桿反向：表格與說明沒有殖利率、配息年化（Andy：「也不需要下方備註 殖利率 配息年化多少」）",
+                   not any(k in lev["th"] for k in ("殖利率", "配息", "含息")) and "殖利率" not in lev["how"] and "配息年化" not in lev["how"], (lev["th"], lev["how"][:120]))
+                # ---- 配息型：仍是兩組
+                cat("配息型")
+                dv = J("() => ({ ser: document.querySelector('#etfRetBar').dataset.series, div: document.querySelector('#etfRetBody').dataset.div, bt: document.querySelector('#etfRetBarTtl').textContent, seg: getComputedStyle(document.querySelector('#etfBasisSeg')).display })")
+                ok(f"★ [{tag}] 配息型：年化仍有「不含息」「含息」兩組、切換鈕還在", dv["ser"] == "不含息,含息" and dv["div"] in ("all", "mixed") and "含息" in dv["bt"] and dv["seg"] != "none", dv)
+                # ---- 混合：主題型挑一檔有配息、一檔沒配息
+                pair = J("""() => { const L = window.TwEtfPage.state.data.items.filter(i => i.cat === '主題型' && i.stats && i.stats['5y'] && i.stats['5y'].ok);
+                    const y = L.find(i => i.stats['5y'].tr_ann != null && Math.abs(i.stats['5y'].tr_ann - i.stats['5y'].price_ann) > 1e-3);
+                    const n = L.find(i => i.div_none); return y && n ? [y.code, n.code] : null; }""")
+                if pair:
+                    J("(p) => localStorage.setItem('tw.etf.cmp.主題型', JSON.stringify(p))", pair)
+                    J("() => { window.TwEtfPage.state.cmp = {}; }")
+                    cat("主題型")
+                    mx = J("""(p) => { const tr = document.querySelector(`#etfRetTbl tr[data-code="${p[1]}"]`), ty = document.querySelector(`#etfRetTbl tr[data-code="${p[0]}"]`);
+                        const i = echarts.getInstanceByDom(document.querySelector('#etfRetBar')), o = i && i.getOption();
+                        return { div: document.querySelector('#etfRetBody').dataset.div, nodiv: tr && tr.dataset.nodiv,
+                                 cells: tr ? [...tr.querySelectorAll('td')].slice(3).map(t => t.innerText.trim()) : null,
+                                 ycells: ty ? [...ty.querySelectorAll('td')].slice(3).map(t => t.innerText.trim()) : null,
+                                 ylab: o ? o.yAxis[0].data : null }; }""", pair)
+                    ok(f"★ [{tag}] 混合（主題型 {pair}）：沒配息那列含息／殖利率／配息年化寫「無配息」、不寫 0%；有配息那列照寫數字",
+                       mx["div"] == "mixed" and mx["nodiv"] == "1" and mx["cells"] == ["無配息", "無配息", "無配息"]
+                       and not any("0.00%" in c for c in mx["cells"]) and mx["ycells"] and "%" in mx["ycells"][0], mx)
+                    ok(f"★ [{tag}] 混合：長條名稱旁標「無配息」只標在沒配息那檔", mx["ylab"] and sum("無配息" in str(x) for x in mx["ylab"]) == 1, mx["ylab"])
+                else:
+                    ok(f"[{tag}] 混合案例：主題型找不到「有配息＋確定不配息」各一檔（資料不足，這條略過）", True)
+                # ---- 期間切換
+                cat("配息型")
+                BX = lambda: J("() => [document.querySelector('#etfRng .rpsel').value, document.querySelector('#etfRng .rpfrom').value, document.querySelector('#etfRng .rpto-in').value, document.querySelector('#etfRetLine').dataset.first]")
+                lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(350); p5 = BX()
+                lp.select_option("#etfRng .rpsel", "1y"); lp.wait_for_timeout(350); p1 = BX()
+                lp.select_option("#etfRng .rpsel", "since"); lp.wait_for_timeout(350); ps = BX()
+                ok(f"★ [{tag}] 下拉 5 年→1 年：起始日期框跟著變晚（約 4 年）、結束日不變、走勢起點跟著變",
+                   p5[1] and p1[1] and p1[1] > p5[1] and p1[2] == p5[2] and p1[3] and p5[3] and p1[3] > p5[3], (p5, p1))
+                ok(f"★ [{tag}] 下拉「上市以來」：起始日期框改成比較清單裡最早上市那天（早於 5 年前），走勢起點跟著提早",
+                   ps[1] and ps[1] < p5[1] and ps[3] and ps[3] <= p5[3], (ps, p5))
+                ok(f"[{tag}] 報酬率前 5 的副標跟著期間（上市以來）", "上市以來" in text(lp, "#etfRetTopSub"), text(lp, "#etfRetTopSub"))
+                lp.fill("#etfRng .rpfrom", "2020-01-02"); J("() => document.querySelector('#etfRng .rpfrom').dispatchEvent(new Event('change', { bubbles: true }))"); lp.wait_for_timeout(350)
+                pc = BX()
+                ok(f"★ [{tag}] 手改起始日 2020-01-02 → 下拉跳「起始日期～至今」、走勢從 2020 起算", pc[0] == "custom" and pc[1] == "2020-01-02" and pc[3] and pc[3] >= "2020-01-02" and pc[3] < "2020-02-01", pc)
+                ok(f"[{tag}] 期間記在 localStorage（重新整理後沿用）", J("() => localStorage.getItem('tw.etf.per')") == "custom")
+                lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(250)
+            else:
+                # ---- 390：選中的全部畫不出走勢 → 自動改看畫得出來的前 5 檔（假資料：拿掉那兩檔的週線）
+                kill = ["00635U", "00642U"]
+
+                def fake_series(route):
+                    r = route.fetch(); d = _json.loads(r.text())
+                    for c in kill:
+                        d.get("s", {}).pop(c, None)
+                    route.fulfill(response=r, body=_json.dumps(d))
+                lp.route("**/data/etf_series.json*", fake_series)
+                J("(k) => localStorage.setItem('tw.etf.cmp.其他', JSON.stringify(k))", kill)
+                lp.reload(wait_until="networkidle")
+                wait_until(lp, "() => !!(window.TwEtfPage && window.TwEtfPage.state.series)", 15000)
+                cat("其他")
+                au = J("() => ({ auto: document.querySelector('#etfRetBody').dataset.auto, codes: document.querySelector('#etfRetBody').dataset.codes, n: +document.querySelector('#etfRetLine').dataset.n, t: document.querySelector('#etfRetBody').innerText.slice(0, 80) })")
+                ok(f"★ [{tag}] 390：選中的兩檔都畫不出走勢 → 自動改看畫得出來的（走勢 ≥ 1 條、有一句說明、不寫「無資料」）",
+                   au["auto"] == "1" and au["n"] >= 1 and not set(au["codes"].split(",")) & set(kill) and "無資料" not in au["t"], au)
+                ok(f"[{tag}] 390：自動改選不寫回使用者的選擇", _json.loads(J("() => localStorage.getItem('tw.etf.cmp.其他')")) == kill)
+                J("() => localStorage.removeItem('tw.etf.cmp.其他')")
+                lp.select_option("#etfRng .rpsel", "3y"); lp.wait_for_timeout(300)
+                g = J("""() => { const r = document.querySelector('#etfRng').getBoundingClientRect();
+                    const fs = [...document.querySelectorAll('#etfRng select, #etfRng input, #etfRng label, #etfRetCard h3')].map(e => parseFloat(getComputedStyle(e).fontSize));
+                    return { l: Math.round(r.left), r: Math.round(r.right), pw: document.documentElement.scrollWidth, vw: innerWidth, fmin: Math.min(...fs),
+                             from: document.querySelector('#etfRng .rpfrom').value }; }""")
+                ok(f"★ [{tag}] 390：期間元件整組在畫面內、頁面沒有橫向捲軸、字 ≥ 11px、切 3 年日期框有值", g["l"] >= 0 and g["r"] <= g["vw"] and g["pw"] <= g["vw"] and g["fmin"] >= 11 and g["from"], g)
+            ok(f"[{tag}] {W}px 沒有 JS 錯誤", not errs, errs[:3])
+        finally:
+            try:
+                lp.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.etf.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+            except Exception:  # noqa: BLE001
+                pass
+            lp.close()
 
 
 def t_market_live_1005(pg, b, base):
@@ -22576,10 +22720,12 @@ def t_cal_1006(pg, b, base):
                  const h = document.querySelector('#etfCalGrid .cald[data-d="2026-10-10"] .cg-hl'); return { n: c.length, bad: bad.length, hol: h ? h.textContent : null }; }""")
         ok(f"★ [{tag}] ETF 行事曆：週末反灰、10/10「國慶日・休市」標記", ew["n"] >= 28 and ew["bad"] == 0 and ew["hol"] == "國慶日・休市", ew)
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(300)
-        lp.click("#etfPerSeg button[data-v='custom']"); lp.wait_for_timeout(250)
-        ok(f"★ [{tag}] 報酬率期間有 3／5／10 年與「自訂」，自訂時出現起訖兩個日期欄（結束日預設今天）",
-           J("() => [...document.querySelectorAll('#etfPerSeg button')].map(b => b.dataset.v).join()") == "3y,5y,10y,custom"
-           and J("() => document.querySelector('#etfTo').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"))
+        # 2026-10-06 晚：期間從分類列搬到報酬比較標題列（下拉＋起訖日期框，rangepick.js），選項多了近 1 年與上市以來
+        lp.select_option("#etfRng .rpsel", "custom"); lp.wait_for_timeout(250)
+        ok(f"★ [{tag}] 報酬比較的期間下拉有近 1／3／5／10 年、上市以來、起始日期～至今，起訖兩個日期框都在（結束日＝今天）",
+           J("() => [...document.querySelectorAll('#etfRng .rpsel option')].map(b => b.value).join()") == "1y,3y,5y,10y,since,custom"
+           and J("() => document.querySelector('#etfRng .rpto-in').value") == J("() => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10)"))
+        lp.select_option("#etfRng .rpsel", "5y"); lp.wait_for_timeout(250)
         ok(f"★ [{tag}] ETF 各卡標題列沒有資料日期（行事曆、報酬率前 5、報酬比較、ETF 一覽）", not __import__("re").search(r"\d{4}-\d\d-\d\d", J("() => ['#etfCalCard','#etfRetTopCard','#etfRetCard','#etfListCard'].map(s => { const h = document.querySelector(s + ' h3'); return h ? h.innerText : ''; }).join(' ')")))
         ok(f"[{tag}] 頁首沒有單獨的免責框", J("() => !document.querySelector('#v-etf > .etfdisc') && !!document.querySelector('#etfBody #etfDisc')"))
         # ---- 2026-10-06 第二輪（Andy 第 7 項）
@@ -23246,6 +23392,7 @@ SECTIONS = {
     "下拉篩選1006":        lambda pg, b, base, code: t_msel_1006(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
     # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
     "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
     "財經日曆1006":        lambda pg, b, base, code: t_cal_1006(pg, b, base),
