@@ -1,5 +1,15 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 文字重疊：大戶散戶卡＋全站普查（UI 專家，分支 `claude/overlap` → main，b195e180）
+Andy 16:25 截圖：個股 → 大戶／散戶 → 4 週，第一點「5.89%」壓在副圖標題上。
+- 修：tabHolders 資料區改從副圖標題下 46px 起（原 26），整張 420→460px。
+- 為什麼 `_preview` 沒抓到：圖內字掃描只跑總覽／資金流向、門檻「蓋掉 1/4」、DOM 字跟圖內字不放一起比。
+  新增 `TEXT_OVERLAP_ALL_JS`（卡片內 SVG＋DOM 字兩兩比，>2px²），`_preview` 抽 5 個頁面／寬度；全站全掃用 `scripts/_overlap_census.py`（約 20 分鐘，手動）。
+- 普查順手修：資金去向 ECharts 樹（≤820）葉子 16→19px；產業鏈公司卡兩行基線 14／30；手機漲跌分佈區間字直立；漲跌分佈 y 軸不標非整格 max。
+- 量到但判定非壓字：總覽 KPI 列捲動箭頭、站上均線捲動圖例（clipPath）、ETF 報酬比較兩行軸名、新聞收合內文。
+- **這批只驗了**：`_uitest` 文字重疊普查1006、籌碼基本0926、個股分頁0926；`_preview` 全跑（只剩本機缺 `data/earnings.json` 的 404，main 同樣缺，與本批無關）。pytest 跳過（只動 site/ 與 scripts 驗收腳本）。
+- 待辦：`site/dg/foundry.js` 390 寬「閘極只管得到一面」壓錨點 02／05 → 已改 y=172，**未推，等 CEO 看圖**；另發現 390 寬錨點圓整片蓋住三格剖面（FinFET、GAA 的小標也被蓋），待決定。
+
 ## 2026-10-06 時間軸垂直分隔線：所有橫軸是時間的圖背景加極淡年／月線（視覺設計美編，分支 `claude/vgrid`，DECISIONS #337）
 - 改了什麼：新增 `site/timegrid.js`（共用層級／顏色／標記）；`site/app.js` 的 `chart()` 補 custom 系列（ECharts 全站自動套用）；`site/chart.js` 新增 `TimeGridPrimitive`（K 線主圖與副圖）；`site/industry.js` 的 `_dbg()` 多一個 `tgrid`（驗收用）；`site/index.html` 在 chart.js 之前載入 timegrid.js。
 - 涵蓋：ETF 報酬比較（time 軸）、個股營收／獲利／本益比河流／法人／融資券／籌碼（類別日期軸）、個股 K 線日週月（含成交量等副圖）、大盤三張圖的 K 線模式、其餘所有 ECharts 日期軸（資金集中度、均線家數、公司頁各圖…）自動套用。**不涵蓋**：管理區每日直條（HTML／SVG，另一位同事做格間線）、季節性（類別是 1 月～12 月，且 10-04 已有月份格間線）、分時走勢（類別是 `HH:MM`，單日不需要）。
