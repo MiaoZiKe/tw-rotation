@@ -3145,13 +3145,19 @@
       itemStyle: { color: chgColor(mids[i], 6), borderRadius: [3, 3, 0, 0],
         opacity: DIST.pick == null || DIST.pick === i ? 1 : 0.35 } }));
     if (DIST.pick != null && DIST.pick >= labels.length) DIST.pick = null;
+    const distNarrow = ((host.clientWidth || 600) - 70) / labels.length < 30;   // 1440 一格 ~34px：斜 30° 字形本身不相碰（外接框會交疊，那是旋轉框的假陽性）
     const c = chart('chgDist', {
       tooltip: { ...tip, trigger: 'axis',
         formatter: (ps) => { const i = ps[0].dataIndex;
           return `<b>${labels[i]}%</b><br>${bins[i]} 檔（${fmt.n(bins[i] / n * 100, 1)}%）`; } },
-      grid: { left: 50, right: 20, top: 26, bottom: 34 },
-      xAxis: { ...axisStyle, type: 'category', data: labels, axisLabel: { color: CH.ink3, fontSize: 12, interval: 0, rotate: 30 } },
-      yAxis: { ...axisStyle, name: '家數', nameTextStyle: { color: CH.ink3, fontSize: 12 }, axisLabel: { color: CH.ink3 } },
+      /* 2026-10-06 文字重疊普查：12 根柱、斜 30° 的區間字（「-10 ~ -8」）在手機寬（圖 ~300px，一格 ~20px）互相壓成一串。
+         一格不到 30px 時改直立 90°（12px 字直立只佔 ~14px 寬），底部留高放得下最長的「-10 ~ -8」。*/
+      grid: { left: 50, right: 20, top: 26, bottom: distNarrow ? 62 : 34 },
+      xAxis: { ...axisStyle, type: 'category', data: labels, axisLabel: { color: CH.ink3, fontSize: 12, interval: 0, rotate: distNarrow ? 90 : 30 } },
+      yAxis: { ...axisStyle, name: '家數', nameTextStyle: { color: CH.ink3, fontSize: 12 },
+        /* 2026-10-06 文字重疊普查：最高那一根不在刻度上時（例 918 → 刻度 300 一格），ECharts 會在頂端多標一個非整格的 max（1,250），
+           跟下面的 1,200 只差 50 家、兩個字疊在一起。不標 max，頂端格線照畫。*/
+        axisLabel: { color: CH.ink3, showMaxLabel: false } },
       series: [
         { type: 'bar', data: barData(),
           barWidth: '72%',
@@ -11207,7 +11213,11 @@
     const leafRows = chainNodes.reduce((s2, c) =>
       s2 + c.children.reduce((t, g) => t + (g.children || []).length, 0), 0);
     if (!topo) el.style.height = (narrow ? Math.max(420, gRows * 36 + 48)
-      : Math.max(560, Math.min(expNode ? 1400 : 1040, leafRows * 16 + 64))) + 'px';
+      : Math.max(560, Math.min(expNode ? 1700 : 1280, leafRows * 19 + 64))) + 'px';
+    /* 2026-10-06 文字重疊普查：上面那句「16px 沒有重疊」是用舊的量法（交疊 > 小框 1/4 才算）量的。
+       改用「交疊 > 2px²」量，800px 寬（這張圖退回 ECharts tree 的寬度）同一族群上下兩檔 12px 字
+       每一對都疊 1～2px（59 組，例「台積電 39.6%」壓「穩懋 18.2%」）——
+       ECharts tree 會在族群之間多留空，真正分到每片葉子的比 16 還少。改 19px、上限 1040→1280（展開 1400→1700）。*/
     /* ★ 高度變了就**先自己 resize 一次**，再去 setOption。
        原因：ECharts 記的是上一次量到的寬高，不會自己去讀 DOM。
        不先 resize 的話它會用「舊高度」算好版面、開始補間，

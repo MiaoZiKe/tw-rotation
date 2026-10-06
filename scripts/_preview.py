@@ -148,6 +148,74 @@ CHART_TEXT_JS = r"""
 """
 
 
+# ---------------------------------------------------------------------------
+# ★ 2026-10-06 文字重疊普查（Andy：「出現文字重疊 幫我CHK 其他是否可能會發生」）
+#
+# 他截到的是個股頁「大戶／散戶」第一張小圖：第一個點的數值標籤「5.89%」壓在副圖標題上。
+# 上面那兩支為什麼都沒抓到：
+#   1. CHART_TEXT_JS 只在「總覽、資金流向」兩頁跑（為了省時間），個股頁的十個分頁從來沒掃過；
+#   2. 它的門檻是「蓋掉小的那塊 1/4 以上」—— 標籤只壓到標題的一角時面積比例很小，會被當擦邊放過；
+#   3. 它只比「圖裡的字對圖裡的字」，卡片標題列的 DOM 膠囊跟圖裡的字從來不放在一起比。
+# 這支改成：以「卡片」為單位，把 SVG 文字（?svg=1）與 DOM 文字節點（用 Range 量，框貼著字而不是貼著元素）
+# 全部放進同一個池子兩兩比，交疊面積 > 2px² 就列出來。
+# ⚠ 刻意排除的：同一個 <text> 被 ECharts 拆成多段 tspan（rich text）各自量會互相擦邊 —— 只量 <text> 整塊；
+#   祖先／子孫關係的 DOM 節點不比；被 overflow 裁掉的不比（字本來就不在畫面上）。
+TEXT_OVERLAP_ALL_JS = r"""
+(minArea) => {
+  minArea = minArea || 2;
+  const out = [];
+  const vis = (r) => r.width > 1 && r.height > 1 && r.bottom > 0 && r.right > 0 && r.left < innerWidth;
+  // 被祖先的 overflow 裁掉的那一段不算（例如表格水平捲動藏起來的欄）
+  const clip = (el, r) => {
+    let x0 = r.left, y0 = r.top, x1 = r.right, y1 = r.bottom;
+    for (let p = el; p && p !== document.body; p = p.parentElement) {   // 從自己算起：text-overflow:ellipsis 的字，Range 量到的是沒截斷的全長
+      const cs = getComputedStyle(p);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return null;
+      if (/(hidden|auto|scroll|clip)/.test(cs.overflow + cs.overflowX + cs.overflowY)) {
+        const q = p.getBoundingClientRect();
+        x0 = Math.max(x0, q.left); y0 = Math.max(y0, q.top); x1 = Math.min(x1, q.right); y1 = Math.min(y1, q.bottom);
+      }
+    }
+    return x1 - x0 > 1 && y1 - y0 > 1 ? { left: x0, top: y0, right: x1, bottom: y1 } : null;
+  };
+  const cards = [...document.querySelectorAll('main .view.on .card, main .view.on .chartcard')].filter(c => !c.parentElement.closest('.card'));
+  for (const card of cards) {
+    const cr = card.getBoundingClientRect(); if (!vis(cr)) continue;
+    const bs = [];
+    for (const t of card.querySelectorAll('svg text')) {
+      const s = (t.textContent || '').trim(); if (!s) continue;
+      if (t.closest('[aria-hidden="true"]') && !t.closest('[_echarts_instance_]')) continue;
+      const r0 = t.getBoundingClientRect(); if (!vis(r0)) continue;
+      const r = clip(t, r0); if (r) bs.push({ s, r, el: t });
+    }
+    const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    for (let n; (n = tw.nextNode());) {
+      const s = n.nodeValue.trim(); if (!s) continue;
+      const el = n.parentElement; if (!el || el.closest('svg') || el.closest('[_echarts_instance_] > div:not(:first-child)')) continue;
+      const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || +cs.opacity === 0) continue;
+      const rg = document.createRange(); rg.selectNodeContents(n);
+      for (const r0 of rg.getClientRects()) { if (!vis(r0)) continue; const r = clip(el, r0); if (r) bs.push({ s, r, el }); }
+    }
+    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
+      const A = bs[i], B = bs[j];
+      if (A.el === B.el || A.el.contains(B.el) || B.el.contains(A.el)) continue;
+      const ox = Math.min(A.r.right, B.r.right) - Math.max(A.r.left, B.r.left);
+      const oy = Math.min(A.r.bottom, B.r.bottom) - Math.max(A.r.top, B.r.top);
+      if (ox <= 0 || oy <= 0 || ox * oy <= minArea) continue;
+      // 同一個 rich 標籤被 ECharts 拆成相鄰幾段 <text>（例「31.8%」＋「▼5%」），描邊會互相擦到 1px：同一行、左右擦邊 < 3px 不算
+      // 斜放（非 0／90 度）的字，外接框是個大斜方塊，相鄰兩個一定交疊但字形沒碰到 —— 不比（直立 90° 的框是貼字的，照比）
+      const tilt = (e) => { if (e.tagName !== 'text' || !e.getCTM) return false; const m = e.getCTM(); return m && Math.abs(m.a) > 0.05 && Math.abs(m.b) > 0.05; };
+      if (tilt(A.el) || tilt(B.el)) continue;
+      if (A.el.tagName === 'text' && B.el.tagName === 'text' && Math.abs(A.r.top - B.r.top) < 1 && Math.abs(A.r.bottom - B.r.bottom) < 1 && ox < 3) continue;
+      const host = (card.querySelector('h3,h2') || {}).textContent || card.id || '';
+      out.push([host.trim().slice(0, 20), A.s.slice(0, 24), B.s.slice(0, 24), Math.round(ox * oy)]);
+    }
+  }
+  return out;
+}
+"""
+
+
 def scan_widths(pg, base, problems, state, pages=(("overview", "總覽"), ("flow", "資金流向"))):
     """在多個常見螢幕寬度下，量圖表內文字的重疊／出框、橫向捲軸、成對卡片等高。"""
     res = {}
@@ -455,6 +523,17 @@ def main() -> int:
         #   前面那些「照順序操作」的驗收不能被它打斷。
         pg.set_viewport_size({"width": 1500, "height": 1000})
         scan_widths(pg, base, problems, state)
+        # ★ 2026-10-06：卡片內「圖裡的字＋DOM 字」混合普查（TEXT_OVERLAP_ALL_JS）。抽 Andy 截到的那一頁與三個寬度；
+        #   全站全掃用 scripts/_overlap_census.py（約 20 分鐘，不放每次關卡）。
+        for route, tab, w in (("stock/3189", "holders", 1440), ("stock/3189", "holders", 800),
+                              ("flow", None, 800), ("industry/ai_server", None, 800), ("market", None, 1440)):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(f"{base}?svg=1#{route}", wait_until="networkidle"); pg.wait_for_timeout(2000)
+            if tab:
+                pg.click(f'#stockTabs button[data-t="{tab}"]'); pg.wait_for_timeout(1500)
+            ovm = pg.evaluate(TEXT_OVERLAP_ALL_JS, 2)
+            if ovm:
+                problems.append(f"[{w}px] #{route}{'/' + tab if tab else ''} 卡片內文字交疊 {len(ovm)} 組（>2px²）：{ovm[:4]}")
         pg.set_viewport_size({"width": 1500, "height": 1000})
 
         # 手機

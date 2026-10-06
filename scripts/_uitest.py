@@ -17516,6 +17516,36 @@ HC_OPT = r"""() => { const el = document.getElementById('holderCount'); const c 
   return { type: s.type, bars, ax, title: (el.closest('.card').querySelector('h3') || {}).textContent || '' }; }"""
 
 
+def t_overlap1006(b, base):
+    """★ 2026-10-06 Andy：「出現文字重疊 幫我CHK 其他是否可能會發生」（個股 → 大戶／散戶 → 4 週，淺色）。
+    用 _preview.TEXT_OVERLAP_ALL_JS（SVG 文字＋DOM 文字節點，卡片內兩兩比，交疊 > 2px²）量，
+    四個寬度 × 兩檔，而且真的按掉一條線再量一次（剩兩格時每格變高，標籤位置會變）。"""
+    import _preview as _P
+    for code in ("3189", "2330"):
+        for w in (1440, 1100, 800):   # 390 走手機版（mobile3.js 的大戶散戶卡，沒有這張三格圖），不在這裡量
+            pg = b.new_page(viewport={"width": w, "height": 1000})
+            pg.add_init_script("try{localStorage.setItem('tw.theme','light');localStorage.removeItem('tw.hoLines');localStorage.removeItem('tw.chipWinHo')}catch(e){}")
+            pg.goto(f"{base}?svg=1#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1800)
+            click(pg, '#stockTabs button[data-t="holders"]', 1800)
+            ov = [o for o in pg.evaluate(_P.TEXT_OVERLAP_ALL_JS, 2) if o[0].startswith("大戶")]
+            n = pg.evaluate("() => document.querySelectorAll('#holderChart svg text').length")
+            ok(f"[重疊1006] {code}@{w} 大戶散戶卡：標題／數值標籤／色塊零交疊（量到 {n} 個圖內字）", n > 6 and not ov, ov[:4])
+            pg.click('#hoTgls .hoTgl[data-k="2"]'); pg.wait_for_timeout(900)
+            ov2 = [o for o in pg.evaluate(_P.TEXT_OVERLAP_ALL_JS, 2) if o[0].startswith("大戶")]
+            ok(f"[重疊1006] {code}@{w} 按掉中實戶（剩兩格）後仍零交疊", pg.evaluate("() => document.querySelector('#stockTab').dataset.hoLines") == "1,3" and not ov2, ov2[:4])
+            pg.close()
+    # 普查順手修掉的三處：資金去向 ECharts 樹（≤820 退回這一版）葉子間距、產業鏈公司卡兩行字、手機漲跌分佈的區間字
+    for route, w, head, chk in (("flow", 800, "資金去向", "() => document.getElementById('sankey').offsetHeight"),
+                                ("industry/ai_server", 800, "AI 伺服器", "() => document.querySelectorAll('.chainmap .co').length"),
+                                ("market", 390, "漲跌家數", "() => [...document.querySelectorAll('#chgDist svg text')].filter(t => /~/.test(t.textContent)).length")):
+        pg = b.new_page(viewport={"width": w, "height": 1000})
+        pg.goto(f"{base}?svg=1#{route}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        n = pg.evaluate(chk)
+        ov = [o for o in pg.evaluate(_P.TEXT_OVERLAP_ALL_JS, 2) if o[0].startswith(head)]
+        ok(f"[重疊1006] #{route}@{w}「{head}」零交疊（前置量測 {n}）", bool(n) and not ov, ov[:4])
+        pg.close()
+
+
 def t_chips_basic0926(pg, base, code):
     import datetime as _dt
     code = code or "2330"
@@ -24135,6 +24165,8 @@ SECTIONS = {
     # ★ 2026-09-25 審查 R5：個股頁／市場明細的前端異常（圖例色、相關新聞、站上均線、軸標籤、K 線標籤避讓、即時分 K 退回、七個小項）
     "個股R5":              lambda pg, b, base, code: t_r5(pg, base, code),
     "籌碼基本0926":        lambda pg, b, base, code: t_chips_basic0926(pg, base, code),
+    # ★ 2026-10-06 Andy：大戶散戶卡「5.89%」壓在副圖標題上 → 修好並守住；其他修過的重疊也收在這段
+    "文字重疊普查1006":    lambda pg, b, base, code: t_overlap1006(b, base),
     # ★ 2026-09-26 晚 Andy：籌碼四張圖共用日期軸＋區間切換、除權息每年一根、公告／新聞合併成一張（claude/stock-tabs-0926c）
     "個股分頁0926":        lambda pg, b, base, code: t_stock_tabs0926(pg, base, code),
     # ★ 2026-09-25 收尾批（claude/wrapup-1）：說明改「?」（熱力圖／市場明細／週期統計／個股頁）、K 線「還原」小標、
