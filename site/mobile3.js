@@ -381,6 +381,19 @@
         if (vtop < window.innerHeight) {
           S = Math.max(260, Math.min(S, Math.floor(window.innerHeight - NAV_H - (vtop + window.scrollY) - opts.fitBelow)));
           el._radarKey = key; el._radarS = S; el._radarTop = vtop + window.scrollY;
+          /* ★ 2026-10-06（既有紅字清理，_uitest 足跡輪盤 ⑤）：記住之後 0.7 秒再對一次頂端。
+             實測 390×844 資金流向：第一次量時輪盤頂端在 197，之後上方版面收了 4px（193）但整個分頁高度沒變，
+             上面那支盯 .view 大小的 ResizeObserver 不會叫 —— 直到使用者點角落徽章（焦點條換字、分頁變高）才重量，
+             盤面 268 → 272、每顆點跟著挪 1～2px，看起來就是「點一下盤面跳一下」（09-25 修過的同一個症狀）。
+             在使用者動手之前把它量準，點角落就不會再動。只對一次、差超過 2px 才重畫。 */
+          if (!el._radarSettle) {
+            el._radarSettle = setTimeout(() => {
+              el._radarSettle = null;
+              if (!el.isConnected || el._radarTop == null || !el.clientWidth) return;
+              const t = el.getBoundingClientRect().top + window.scrollY;
+              if (Math.abs(t - el._radarTop) > 2) { el._radarKey = null; el._radarTop = null; radar(el, el._radarArgs[0], el._radarArgs[1]); }
+            }, 700);
+          }
         }
       }
     }

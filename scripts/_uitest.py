@@ -136,6 +136,19 @@ def reset_rot(pg, base, wait: int = 2400):
     pg.wait_for_timeout(wait)
 
 
+def flow_sub(pg, sub: str, wait: int = 2400) -> str:
+    """電腦版資金流向切到某個子分頁（'rotation'／'sankey'／'inst'），照使用者點側欄子項那樣只換 hash、不重新載入。
+
+    ★ 2026-10-06（既有紅字清理）為什麼要有這支：8ad4c044「版面 V2」把電腦版 #flow 拆成三個子分頁（app.js FLOW_SUBS），
+      `#flow` 一律 replace 成 `#flow/rotation`；資金去向卡（#flowSankeyCard）、族群×法人＋集中度那一格在別的子分頁是
+      display:none，而且 whenNear —— 沒切過去就不載也不畫。舊驗收在 `#flow` 上找 sankey／inst／conc 的元素，
+      不是點不到（element is not visible）就是 null。≤820 不掛 l4（沒有子分頁）時這支什麼都不做也一樣能用（四張卡本來就同一頁）。
+      回傳切完的 hash。"""
+    pg.evaluate("(s) => { location.hash = '#flow/' + s; }", sub)
+    pg.wait_for_timeout(wait)
+    return pg.evaluate("() => location.hash")
+
+
 class _QuietServer(ThreadingHTTPServer):
     """瀏覽器中途取消請求（換頁、圖片還沒載完就離開）會讓 sendall 噴 BrokenPipe。
     那不是故障，但預設會印一大段 traceback 蓋掉驗收結果。這裡直接吞掉。"""
@@ -15576,9 +15589,10 @@ def t_rank_top(pg, b, base):
     pg.set_viewport_size({"width": 1440, "height": 1000})
 
 
+# 2026-10-06：只量看得見的卡（版面 V2 子分頁裡藏起來的卡 getBoundingClientRect 全是 0，量了只會得到假數字）
 FILTER_M = """() => [...document.querySelectorAll('#v-flow .card')].map(card => {
   const row = card.querySelector('.rotfilter');
-  if (!row || !row.querySelector('.rotdd')) return null;
+  if (!row || !row.querySelector('.rotdd') || !card.getClientRects().length) return null;
   const cs = getComputedStyle(card), cr = card.getBoundingClientRect(), rr = row.getBoundingClientRect();
   // 量「標題列」（h3 所在那一列，可能連著拉Bar 一起換行）的下緣，不是 h3 本身
   const h3 = card.querySelector('h3'), hrow = h3.closest('.row') || h3, hr = hrow.getBoundingClientRect();
@@ -15683,28 +15697,47 @@ def t_filter_topleft(pg, b, base):
         # 前面段落拖過族群×法人的「截止」：留下很舊的截止日時那張圖是空狀態（本來就沒有篩選列），先清掉再量
         pg.evaluate("() => { try { ['tw.inst.days', 'tw.inst.to', 'tw.inst.end'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
-        pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(1500)
-        # 下面兩張（資金去向、族群×法人）畫得比較晚：等兩排下拉都出現再量
-        wait_until(pg, "() => document.querySelectorAll('.ddrow[data-for=sankey] .rotdd, .ddrow[data-for=instGroups] .rotdd').length >= 4", 10000)
-        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
-        f = pg.evaluate(FILTER_M)
+        if w > 820:
+            # ★ 2026-10-06（既有紅字清理）：電腦版三張卡分在三個子分頁（8ad4c044 版面 V2），逐一切過去各量自己那張；
+            #   改前在 #flow 一次量三張 → 另外兩張藏著、whenNear 不畫，只量得到 flowRotCard。
+            f = []
+            for sub in ("rotation", "sankey", "inst"):
+                flow_sub(pg, sub, 2600)
+                wait_until(pg, "() => [...document.querySelectorAll('#v-flow .card')].some(c => c.getClientRects().length && c.querySelector('.rotfilter .rotdd'))", 10000)
+                pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
+                f += pg.evaluate(FILTER_M)
+        else:
+            pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(1500)
+            # 下面兩張（資金去向、族群×法人）畫得比較晚：等兩排下拉都出現再量
+            wait_until(pg, "() => document.querySelectorAll('.ddrow[data-for=sankey] .rotdd, .ddrow[data-for=instGroups] .rotdd').length >= 4", 10000)
+            pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
+            f = pg.evaluate(FILTER_M)
         ids = sorted(x["card"] for x in f)
         ok(f"④ [{w}] 資金流向頁三張有篩選的卡（資金輪動／資金去向／族群×法人）都量得到那一排下拉",
            {"flowRotCard", "flowSankeyCard", "flowInstCard"} <= set(ids), ids)
         for x in f:
             tag = f"④ [{w}] {x['card']}"
             ok(f"{tag}：兩顆下拉是「產業鏈 → 族群」", x["kinds"][:2] == ["chain", "group"], x["kinds"])
-            ok(f"★ {tag}：篩選列左緣對齊卡片內距（差 ≤ 2px）", abs(x["ddL"] - x["padL"]) <= 2, x)
-            ok(f"{tag}：篩選列就在標題列下方（離標題列 ≤ 40px）", -2 <= x["belowTitle"] <= 40, x)
+            if w > 820 and x["card"] == "flowSankeyCard":
+                # ★ 2026-10-06（既有紅字清理）改前→改後（只限電腦版資金去向）：「左緣對齊卡片內距、在標題列下方」→「跟標題排在同一列、在標題右邊」。
+                #   為什麼舊的過時：DECISIONS #313（10-03，Andy「資金去向…需要再縮小點」）把這張卡的標題／下拉／看哪一天壓成**可折行的一排**
+                #   （fit.css，只在 ≥821 掛 l4），1440 時下拉就在標題右邊同一列（實測 ddL 314、離標題列 -29＝同一列）。800 不掛 l4，照舊驗左上角。
+                ok(f"★ {tag}：篩選列跟標題同一列、在標題右邊（#313 可折行一排）", x["ddL"] > x["padL"] + 40 and -40 <= x["belowTitle"] <= 0, x)
+            else:
+                ok(f"★ {tag}：篩選列左緣對齊卡片內距（差 ≤ 2px）", abs(x["ddL"] - x["padL"]) <= 2, x)
+                ok(f"{tag}：篩選列就在標題列下方（離標題列 ≤ 40px）", -2 <= x["belowTitle"] <= 40, x)
             ok(f"{tag}：篩選列在圖的上面（不是漂在圖下方）", x["aboveChart"] is True, x)
     # 真的操作：在資金去向那排挑一個族群，重畫之後那一排仍然在標題下方左上角（不會被插回圖下面）
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(2800)   # 版面 V2：資金去向在自己的子分頁
     g1 = sk_dd_groups(pg)
     if ok("④ 資金去向那排第二層列得出族群", len(g1) > 0, len(g1)):
         before = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
         sk_dd_pick(pg, g1[0], 1500)
         after = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
+        # ⚠ 2026-10-06（既有紅字清理）：這條**照舊守、目前是紅的（真 bug，未收斂）**—— 1440 選一個族群之後，副標長出「只看「X」・已展開「X」N 格」、
+        #   下拉列多出「清除」與「只看「X」」，#313 那一排放不下而折行：下拉列從標題右邊（x314,y12）掉到第二列（x17,y41），整張圖往下跳 28px。
+        #   違反 docs/style_guide.md 第 4 條「互動不晃動」。修法要動 #313 的版面取捨（固定寬度＋省略，或下拉列固定獨立一列），留給 CEO／Andy 定。
         ok("④ 挑完族群（整排重建）之後還是同一個位置（左緣與離卡片頂的距離不變）",
            abs(after["ddL"] - before["ddL"]) <= 1 and abs(after["top"] - before["top"]) <= 2, [before, after])
         ok("④ 整張卡只有一排資金去向的下拉（重建沒有多長一排）",
@@ -15918,13 +15951,17 @@ def t_flow_dismiss(pg, b, base):
     reset_rot(pg, base, 2600)
     bg = lambda: pg.mouse.click(6, 520)
     hid = lambda sel: pg.evaluate(f"() => {{ const e = document.querySelector('{sel}'); return !e || e.hidden || !e.getClientRects().length; }}")
-    for key, box in (("rot", "#how-rot"), ("sankey", "#how-sankey"), ("inst", "#how-inst"), ("conc", "#how-conc")):
+    # ★ 2026-10-06（既有紅字清理）：四顆「?」各在自己的子分頁按（版面 V2，見 flow_sub 註解）；改前全在 #flow 上按 → sankey 那顆不可見、整段中斷
+    for key, box, sub in (("rot", "#how-rot", "rotation"), ("sankey", "#how-sankey", "sankey"),
+                          ("inst", "#how-inst", "inst"), ("conc", "#how-conc", "inst")):
+        flow_sub(pg, sub, 1800)
         pg.eval_on_selector(f'.howbtn[data-how="{key}"]', "b => b.scrollIntoView({block:'center', behavior:'instant'})")
         pg.wait_for_timeout(300)
         pg.click(f'.howbtn[data-how="{key}"]'); pg.wait_for_timeout(400)
         if ok(f"④ 「怎麼看 ?」（{key}）按得開", not hid(box)):
             bg(); pg.wait_for_timeout(400)
             ok(f"★ ④ 「怎麼看 ?」（{key}）點背景就收起來", hid(box))
+    flow_sub(pg, "rotation", 1800)
     scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
     pg.click('#rotClock .rq[data-k="leading"]'); pg.wait_for_timeout(900)
     if ok("④ 象限面板打得開", not hid("#stagePanel")):
@@ -15935,13 +15972,15 @@ def t_flow_dismiss(pg, b, base):
     if ok("④ 族群下拉打得開", not hid('#flowRotFilter .rotdd[data-dd="group"] .ddpanel')):
         bg(); pg.wait_for_timeout(300)
         ok("★ ④ 族群下拉點背景就收起來", hid('#flowRotFilter .rotdd[data-dd="group"] .ddpanel'))
+    flow_sub(pg, "sankey", 2400)
     g1 = sk_dd_groups(pg)
-    if g1:
+    if ok("④ 資金去向子分頁列得出族群（不是空清單假綠）", bool(g1), len(g1)):
         sk_dd_pick(pg, g1[0], 1500)
         if ok("④ 資金去向的成分股面板打得開", not hid("#sankeyPanel")):
             bg(); pg.wait_for_timeout(600)
             ok("★ ④ 資金去向的成分股面板點背景就收起來", hid("#sankeyPanel"))
-    # 集中度：點一天 → 右側面板
+    # 集中度：點一天 → 右側面板（集中度在「族群×法人」子分頁）
+    flow_sub(pg, "inst", 2400)
     xy = pg.evaluate("""() => { const el = document.getElementById('conc'); el.scrollIntoView({block:'center', behavior:'instant'});
         return null; }""")
     pg.wait_for_timeout(500)
@@ -20108,9 +20147,19 @@ def t_m3_sunday(b, base, code):
                       prev: d.prev, cur: d.last, lo: y.min, hi: y.max }; }); return o; }""")
         if sc == "B":
             ok(f"[大盤週日-{tag}] 前提：13:33 的報價真的送進頁面了", K["n"] >= 1, K)
+        # ★ 2026-10-06（既有紅字清理）：A 情境（退資料湖最近一天）的「最後一點 = 13:30」只在**那一天的日 K 已經進湖**時成立 ——
+        #   pipeline/compute/lastday.py 用當天日 K 收盤補 13:30 那一點（收盤集合競價常 13:31～33 才寫進分 K）；日 K 還沒進湖
+        #   （盤後 15:30 那輪只抓了分 K、日 K 下一輪才補）時不補、最後一點是 13:29，那是資料時序，不是畫錯。
+        #   實測本機：分 K 到 10/05、index_ohlc 最後一天 10/02 → 13:29。所以照本機資料決定要求：日 K 有那一天 → 必須 13:30；
+        #   沒有 → 至少到 13:15（跟 lastday.full_enough 的「碰到收盤前 15 分」同一把尺）。「不晚於 13:30」下一條照舊守。
+        _ohlc = _json.loads((SITE / "data" / "index_ohlc.json").read_text(encoding="utf-8"))
+        _ld = _json.loads((SITE / "data" / "index_lastday.json").read_text(encoding="utf-8")) if (SITE / "data" / "index_lastday.json").exists() else {}
         for id_, v in r.items():
-            ok(f"★ [大盤週日-{tag}] {id_} 走勢點涵蓋 09:00～13:30（第一點 ≤ 09:15、最後一點 = 13:30）",
-               v["first"] <= 9 * 60 + 15 and v["last"] == 13 * 60 + 30, v)
+            _day = str((_ld.get(id_) or {}).get("date") or "")
+            _has_k = bool(_day) and any(str(row[0]).replace("-", "")[:8] == _day for row in (_ohlc.get(id_) or []))
+            _need = 13 * 60 + 30 if (sc == "B" or _has_k) else 13 * 60 + 15
+            ok(f"★ [大盤週日-{tag}] {id_} 走勢點涵蓋 09:00～13:30（第一點 ≤ 09:15、最後一點 {'= 13:30' if _need == 810 else '≥ 13:15（那天日 K 還沒進湖）'}）",
+               v["first"] <= 9 * 60 + 15 and (v["last"] == 810 if _need == 810 else v["last"] >= _need), dict(v, 日K已進湖=_has_k, 資料日=_day))
             ok(f"★ [大盤週日-{tag}] {id_} 沒有任何點晚於 13:30", v["last"] <= 13 * 60 + 30, v)
             ok(f"★ [大盤週日-{tag}] {id_} y 軸包住昨收與現值（不是 46,000～51,000 那種亂值撐開的）",
                v["prev"] is not None and v["lo"] is not None and v["lo"] <= v["prev"] <= v["hi"] and v["lo"] <= v["cur"] <= v["hi"]
@@ -20197,7 +20246,8 @@ def t_m3_livek_1005(b, base, code):
             wait_until(pg, "() => window.Market3.state.data.TSE.last === 49713.13", 20000)
             pg.wait_for_timeout(800)
         lk = pg.evaluate("() => ({ T: window.Market3.lastK('TSE'), O: window.Market3.lastK('OTC'),"
-                         " fb: document.getElementById('m3c-TSE').dataset.fallback || '', cur: window.Market3.state.data.TSE.last })")
+                         " fb: document.getElementById('m3c-TSE').dataset.fallback || '', tk: document.getElementById('m3c-TSE').dataset.todayk || '',"
+                         " cur: window.Market3.state.data.TSE.last })")
         if not trade:
             ok("★ [大盤日K即時-非交易日] 週日：日 K 最後一根仍是資料湖的 2026-10-02（不加今日 K）",
                lk["T"] and lk["T"]["time"] == "2026-10-02" and "今日即時" not in lk["fb"], lk)
@@ -20206,7 +20256,11 @@ def t_m3_livek_1005(b, base, code):
         ok("★ [大盤日K即時-盤中] 加權日 K 最後一根收盤＝現價 49,713.13", lk["T"] and abs(lk["T"]["close"] - 49713.13) < 0.01, lk)
         ok("★ [大盤日K即時-盤中] 櫃買日 K 最後一根＝今天、收盤＝433.43",
            lk["O"] and lk["O"]["time"] == "2026-10-05" and abs(lk["O"]["close"] - 433.43) < 0.01, lk)
-        ok("★ [大盤日K即時-盤中] 標示寫「資料至 10-02＋今日即時」", "資料至 10-02＋今日即時" in lk["fb"], lk["fb"])
+        # ★ 2026-10-06（既有紅字清理）改前→改後：標示寫「資料至 10-02＋今日即時」→ 標示只寫是哪一條線（「加權日 K」），
+        #   「今天這根是即時接上去的」改讀機器讀數 data-todayk（＝今天那根的日期）。
+        #   為什麼舊的過時：c1e737fe（DECISIONS #329，Andy：「這類資訊一律拿掉」）把卡片上的「資料至 YYYY-MM-DD（＋今日即時）」拿掉了。
+        ok("★ [大盤日K即時-盤中] 標示只寫「加權日 K」（不寫資料日期）、機器讀數 data-todayk＝今天 2026-10-05",
+           "加權日 K" in lk["fb"] and "資料至" not in lk["fb"] and lk["tk"] == "2026-10-05", {"標示": lk["fb"], "todayk": lk["tk"]})
         sd0 = lk["T"]["setData"]
         Z["t00"] = 49800.55
         changed = wait_until(pg, "() => { const r = window.Market3.lastK('TSE'); return !!r && Math.abs(r.close - 49800.55) < 0.01; }", 20000)
@@ -24983,7 +25037,10 @@ def t_wrap_popq(pg, base, code):
     # ★ 2026-09-26 改前：清單含 skchain（個股頁「產業鏈位置」卡的「?」）→ 改後：那張卡整張拿掉（Andy），「?」跟著走
     # ★ 2026-09-26 改前：mtf（多週期判讀卡）→ 改後：ai（AI 分析卡，兩張合一）
     # ★ 2026-09-26 晚 改前：清單含 skmops（「重大訊息」卡的「?」）→ 改後：重大訊息、新聞、券商觀點合成一張「公告 / 新聞」，說明併進 sknews
-    want = {"indheat", "theme", "themedg", "mkt", "season", "kline", "ai", "skchip", "skrev", "skrevy",
+    # ★ 2026-10-06（既有紅字清理）改前→改後：清單裡的 "ai"（K 線卡右上 AI 區的「?」）→ "ovai"（總覽分頁 AI 卡的「?」）。
+    #   為什麼舊的過時：63dec41a（10-04）桌機把 K 線卡右上的 AI 區拿掉、只留總覽分頁的 AI 卡，那顆「?」也跟著搬家（data-how="ovai"）；
+    #   說明還在、還是按得開（_pop_cycle 照樣真的按），只是換了一顆。
+    want = {"indheat", "theme", "themedg", "mkt", "season", "kline", "ovai", "skchip", "skrev", "skrevy",
             "pe", "skeps", "skpeq", "skdiv", "skfill", "ms", "sknews"}
     ok("[說明改問號] 這一批的「?」一顆都沒少", want <= seen, sorted(want - seen))
     # 市場明細：卡片上那行「總覽上方那幾個數字…」拿掉；盤後的定義句不再印、即時的警示句另外由 D4 段驗
@@ -26296,6 +26353,9 @@ def t_inst_filter(pg, base):
     reset_rot(pg, base, 2600)
     CID = "instGroups"
     IDD = f'.ddrow[data-for="{CID}"]'
+    # ★ 2026-10-06（既有紅字清理）：族群×法人、資金去向、資金輪動三排各在自己的子分頁驗（8ad4c044 版面 V2，見 flow_sub 註解）；
+    #   改前全在 #flow 上找 → 族群×法人那張藏著、沒畫，第一條就紅、整段 return。
+    flow_sub(pg, "inst", 2600)
     pg.evaluate("() => { const e = document.getElementById('flowInstCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
     if not ok("[族群法人篩選] 族群×法人那排兩層下拉畫得出來",
               wait_until(pg, f"() => document.querySelectorAll('{IDD} .rotdd[data-dd=group] [data-g]').length > 1", 10000)):
@@ -26388,6 +26448,7 @@ def t_inst_filter(pg, base):
 
     # ---------------------------------------------------------------- ⑤ 資金去向（共用 filterDropdown）：A → 選族群 → B
     SK = "sankey"
+    flow_sub(pg, "sankey", 2600)
     pg.evaluate("() => { const e = document.getElementById('flowSankeyCard') || document.getElementById('sankey'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
     if ok("[資金去向] 那排兩層下拉畫得出來",
           wait_until(pg, "() => document.querySelectorAll('.ddrow[data-for=sankey] .rotdd[data-dd=group] [data-g]').length > 1", 8000)):
@@ -26408,6 +26469,7 @@ def t_inst_filter(pg, base):
             ok("[資金去向] 清除回到全部", _dd_state(pg, SK)["cur"] == "")
 
     # ---------------------------------------------------------------- ⑥ 資金輪動那排（另一支 wireRotFilter，複選）：A → 勾族群 → B
+    flow_sub(pg, "rotation", 2000)
     pg.evaluate("() => { const e = document.getElementById('flowRotCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
     RR = ROT_DD
     rch = pg.evaluate(f"""() => [...document.querySelectorAll('{RR} .rotdd[data-dd=chain] .ddopt[data-c]')]
@@ -26505,6 +26567,9 @@ def t_wrap_r2(pg, base, code):
     # ★ 2026-09-26（Andy：「ETF 族群拿掉」）：ETF 整桶不進這張卡，R2 #47 的「折斷刻度」失去對象一併拿掉 ——
     #   原本那兩條「ETF 撐爆時刻度改用其他族群定／≫ 折斷記號」改成「ETF 不在圖上、也沒有折斷系列」。
     #   ETF 不在下拉、不在「全部（N 個族群）」的那幾條在 `族群法人篩選` 段落專門守。
+    # ★ 2026-10-06（既有紅字清理）：#47／#52／#53 到 #flow/inst 子分頁量（8ad4c044 版面 V2：族群×法人＋集中度在那一格，
+    #   #flow 上藏著、whenNear 不畫 → getInstanceByDom 拿不到，#53 直接爆 getOption of undefined）。
+    flow_sub(pg, "inst", 2600)
     scroll_to(pg, "instGroups"); pg.wait_for_timeout(600)
     ig = pg.evaluate("""() => { const el = document.getElementById('instGroups'); const c = echarts.getInstanceByDom(el); if (!c) return null;
         const o = c.getOption(); const names = o.yAxis[0].data;
@@ -28364,14 +28429,34 @@ def t_rot_live(pg, base):
            all(s["px"] <= s["pxInertia"] + s["pxToday"] + 0.6 for s in two)
            and max(s["pxToday"] for s in two) > 0.8,
            sorted([s["pxToday"] for s in two])[-3:])
-        # 位移不可以被放大：彩色那段畫上去的像素長度要和「今天推的那一段」成同一個比例
-        far = max(two, key=lambda s: s["pxToday"])
-        near = min([s for s in two if s["pxToday"] > 0], key=lambda s: s["pxToday"])
-        r_px = far["pxToday"] / near["pxToday"]
-        r_dat = (abs(far["tdx"]) + abs(far["tdy"])) / max(1e-9, abs(near["tdx"]) + abs(near["tdy"]))
-        ok(f"長的那條 ÷ 短的那條，畫面上是 {r_px:.2f} 倍、資料上是 {r_dat:.2f} 倍"
-           "（比例對得上＝沒有為了好看把位移放大）",
-           0.45 < r_px / max(1e-9, r_dat) < 2.2, {"畫面": far, "資料": near})
+        # 位移不可以被放大：彩色那段畫上去的兩端，照盤面的尺反推回資料，要等於「今天推的那一段」（tdx／tdy）
+        # ★ 2026-10-06（既有紅字清理）改前→改後：「最長 ÷ 最短的畫面比＝資料比（0.45～2.2 倍）」→「每一段反推回資料＝tdx／tdy」。
+        #   為什麼舊的過時：4e9c2ad5（10-04，Andy「中心附近的點太擁擠」）半徑改 √ 尺度，靠圓心的位移刻意拉開一倍、外圈壓縮 ——
+        #   畫面比跟資料比不再相等是設計（實測 2114 倍 vs 235 倍，一顆貼圓心、一顆在外圈）。要守的「沒有為了好看把位移放大」
+        #   改成直接驗：pf、p1 兩個極座標用同一把尺（App._rotScale：sx、sy、sr、maxR）反推回（強弱, 動能），相減＝tdx／tdy。
+        #   只驗落在盤內（√ 那一段）的點；盤緣外的緩衝帶是另一條線性壓縮，那幾顆略過。
+        sc = pg.evaluate("() => window.App._rotScale || null")
+        at = {r["gid"]: r for r in (pg.evaluate("() => window.App._rotLiveAt || []") or [])}
+        import math as _m
+
+        def _inv(p):          # [半徑, 角度°] → (強弱 − 100, 動能 − 100)；只處理盤內（半徑 ≤ maxR）
+            rho, ang = p[0], _m.radians(p[1])
+            if rho > sc["maxR"] + 1e-6:
+                return None
+            u = (rho / sc["maxR"]) ** 2
+            return (u * sc["sr"] * _m.cos(ang) * sc["sx"], u * sc["sr"] * _m.sin(ang) * sc["sy"])
+        chk = []
+        for s_ in two:
+            r_ = at.get(s_["gid"])
+            if not (sc and r_ and r_.get("pf") and r_.get("p1")):
+                continue
+            a_, b_ = _inv(r_["pf"]), _inv(r_["p1"])
+            if a_ is None or b_ is None or (abs(s_["tdx"]) + abs(s_["tdy"])) < 0.01:
+                continue
+            chk.append((s_["name"], round(b_[0] - a_[0], 3), round(b_[1] - a_[1], 3), s_["tdx"], s_["tdy"]))
+        bad = [c for c in chk if abs(c[1] - c[3]) > 0.02 + 0.02 * abs(c[3]) or abs(c[2] - c[4]) > 0.02 + 0.02 * abs(c[4])]
+        ok(f"★ 畫上去的「今天推的」那一段，照盤面的尺（√ 尺度）反推回來＝資料的 tdx／tdy（{len(chk) - len(bad)}/{len(chk)} 段對得上；沒有額外放大）",
+           sc is not None and len(chk) >= 3 and not bad, {"尺": sc, "對不上": bad[:3], "樣本": chk[:3]})
 
     # ---------------------------------------------------------- ④ 涵蓋率真的印出一個百分比
     # ★ 2026-09-24（Andy：「點擊即時後，下面那段附註也都不需要顯示」）：
@@ -28540,6 +28625,18 @@ def t_rot_live(pg, base):
     for w in (800, 390):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.wait_for_timeout(700)
+        if w <= 640:
+            # ★ 2026-10-06（既有紅字清理）：390 先按卡片底下的「完整版 ›」再驗。為什麼舊的過時：2026-09-24 手機 v3（mobile3.js）起
+            #   ≤640 的資金輪動卡掛 .m3host，桌機那張輪盤（連同即時鈕、#rotLive 狀態列）收起來、畫的是手機雷達；
+            #   「回放、即時、放大都在完整版裡 —— 收起來可以，刪掉不行」（mobile3.js host() 註解）。真人要用即時就是按「完整版」。
+            #   改前直接在收起來的那張上開即時 → 輪盤 0×0、量不到東西。
+            pg.wait_for_timeout(600)
+            pg.evaluate("() => { const c = document.getElementById('flowRotCard'), b = c && c.querySelector(':scope > .mfullbtn');"
+                        " if (b && !c.classList.contains('mfull')) b.click(); }")
+            pg.wait_for_timeout(1200)
+            ok(f"[{w}px] 手機資金輪動卡按「完整版 ›」→ 桌機那張輪盤露出來（即時在完整版裡）",
+               pg.evaluate("() => { const c = document.getElementById('flowRotCard'), el = document.getElementById('rotClock');"
+                           " return !!c && c.classList.contains('mfull') && !!el && el.getBoundingClientRect().height > 100; }"))
         pg.evaluate(_RLV_STUB, None)
         pg.evaluate("() => window.App.rotLiveToggle()")
         s = _rlv_wait(pg)
@@ -37948,6 +38045,16 @@ def t_rot_stage_panel(pg, base):
     for w in (1440, 1280, 800, 390):
         pg.set_viewport_size({"width": w, "height": 950})
         pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3600)
+        if w <= 640:
+            # ★ 2026-10-06（既有紅字清理）改前→改後（390）：找 #rotClock 的 .rq 象限卡＋量 #stagePanel → 驗手機新雷達的四顆角落徽章。
+            #   為什麼舊的過時：2026-09-24 手機 v3（mobile3.js，「足跡輪盤套新雷達」）起 ≤640 的資金輪動卡掛 .m3host，
+            #   桌機那張 #rotClock（連同 .rq、#stagePanel）整個藏起來，象限改由 #mRadarFlow 的 .mqb 承擔、點了是篩雷達＋焦點條
+            #   （批次30 W7-8m 有完整點擊驗收）。這裡守「手機上四個象限都還在、而且不是桌機那一套」。
+            mq = pg.evaluate("""() => ({ names: [...document.querySelectorAll('#mRadarFlow .mqb')].map(q => q.dataset.quad).sort(),
+                desk: [...document.querySelectorAll('#rotClock .rq')].filter(q => q.getClientRects().length).length })""")
+            ok(f"[輪動面板 {w}px] 手機的四個象限是新雷達的角落徽章（#mRadarFlow .mqb：領先／改善／落後／轉弱），桌機象限卡不出現",
+               mq["names"] == sorted(k for k, _ in QUADS) and mq["desk"] == 0, mq)
+            continue
         for k, zh in QUADS:
             sel = f'.rq[data-k="{k}"]'
             if not pg.query_selector(sel):
@@ -39425,8 +39532,12 @@ def t_clock_v2(pg, b, base):
         #   改後：每一條都看得到；**實、亮（opacity 1）的**仍然 ≤ 6 條而且只有焦點，其餘退到背景（opacity < 1）
         ok(f"[{th}] ① 實、亮的軌跡（opacity 1）≤ 6 條、而且只有焦點族群有",
            0 < s["solid"] <= 6 and set(s["solidGids"]) <= set(fr["focus"]), {"實": s["solid"], "焦點": fr["focus"]})
-        ok(f"[{th}] ① 非焦點族群也有軌跡（看得到的 ＝ 全部族群；非焦點的 opacity 介於 0.3～0.4）",
-           s["vis"] == s["n"] and all(0.3 <= o <= 0.4 for o, g in zip(s["visOp"], s["visGids"]) if g not in fr["focus"]),
+        # ★ 2026-10-06（既有紅字清理）改前→改後：非焦點 opacity「0.3～0.4」→「0.35（一般）或 0.175（擁擠區再退一階）」。
+        #   為什麼舊的過時：4e9c2ad5（10-04，資金輪盤中心區拉開）加了 ROT_CROWD_OP：半徑 50% 內擠了 ≥ 6 顆點時，那一圈的
+        #   非焦點腳印 ×0.5（app.js ROT_REST_OP × ROT_CROWD_OP＝0.175），滑到／點到照舊拉回 1。兩個值都是設計值，別的值才是壞掉。
+        _rest_ok = lambda o: 0.3 <= o <= 0.4 or 0.15 <= o <= 0.2
+        ok(f"[{th}] ① 非焦點族群也有軌跡（看得到的 ＝ 全部族群；非焦點的 opacity＝0.35，擁擠區 0.175）",
+           s["vis"] == s["n"] and all(_rest_ok(o) for o, g in zip(s["visOp"], s["visGids"]) if g not in fr["focus"]),
            {"看得到": s["vis"], "族群": s["n"], "不透明度": s["visOp"]})
         ok(f"[{th}] ① 每個族群仍然各有一條 line series", s["lines"] == s["n"], s)
         ok(f"[{th}] ① 焦點族群的名字是粗體（其餘一般字重）", 0 < s["focusBold"] < s["n"], s["focusBold"])
@@ -39761,7 +39872,7 @@ def _dz_three(pg, tag, panel, open_fn, inside_sel, outside_sel, wait=700):
 
 def t_dismiss(pg, b, base, code):
     pg.set_viewport_size({"width": 1440, "height": 950})
-    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    pg.goto(f"{base}#flow/rotation", wait_until="networkidle"); pg.wait_for_timeout(2800)
     scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
 
     # ---- 1. 輪動時鐘的象限展開面板
@@ -39773,7 +39884,10 @@ def t_dismiss(pg, b, base, code):
         if not _dz_vis(pg, "#stagePanel"):
             _dz_click_el(pg, f'#rotClock .rotquads .rq[data-k="{k}"]'); pg.wait_for_timeout(900)
         return True
-    _dz_three(pg, "象限展開面板", "#stagePanel", open_stage, "#stagePanel .ph", "#flowSankeyCard h3")
+    # ★ 2026-10-06（既有紅字清理）：「外面」改點 #flowRotCard h3（同一個子分頁上的卡片標題字）。為什麼舊的過時：8ad4c044 版面 V2 把
+    #   資金去向拆到 #flow/sankey 子分頁，#flowSankeyCard 在 #flow/rotation 上是 display:none，舊的「外面」那一點根本不存在。
+    #   #flowRotCard h3 不在 #stagePanel／#rankPanel 的 ignore 名單（app.js drillDismiss／rotStage 的 dismissable），點它就是點外面。
+    _dz_three(pg, "象限展開面板", "#stagePanel", open_stage, "#stagePanel .ph", "#flowRotCard h3")
     # 點另一顆象限卡＝換一段（不是「點外面」）
     if open_stage():
         k0 = pg.evaluate("() => document.getElementById('stagePanel').dataset.k")
@@ -39804,12 +39918,13 @@ def t_dismiss(pg, b, base, code):
             const r = el.getBoundingClientRect(); return { x: r.left + (p0[0] + p1[0]) / 2, y: r.top + p0[1] }; }""")
         pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1300)
         return True
-    _dz_three(pg, "下鑽成分股面板", "#rankPanel", open_rank, "#rankPanel .note", "#flowSankeyCard h3")
+    _dz_three(pg, "下鑽成分股面板", "#rankPanel", open_rank, "#rankPanel .note", "#flowRotCard h3")
     # ★ 2026-09-27：兩塊面板關掉之後，頁面其他地方要還能正常點 —— 真的按一顆別的按鈕，驗它真的有反應
     #   （按資金去向的「?」→ 跳出式說明打開 → Esc 關），不是只驗「元素還在」。
     ok("[資金流向] 象限／下鑽面板都關掉了（下一條的前提）", not _dz_vis(pg, "#stagePanel") and not _dz_vis(pg, "#rankPanel"))
-    _dz_click_el(pg, '#flowSankeyCard .howbtn[data-how="sankey"]'); pg.wait_for_timeout(700)
-    ok("[資金流向] 面板關掉之後，別的按鈕照樣點得動（資金去向「?」→ 說明真的跳出來）", _dz_vis(pg, "#howPop"))
+    # 2026-10-06：「別的按鈕」改按同一子分頁上資金輪動的「?」（資金去向那顆在 #flow/sankey，這一頁看不到）
+    _dz_click_el(pg, '#flowRotCard .howbtn[data-how="rot"]'); pg.wait_for_timeout(700)
+    ok("[資金流向] 面板關掉之後，別的按鈕照樣點得動（資金輪動「?」→ 說明真的跳出來）", _dz_vis(pg, "#howPop"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
     ok("[資金流向] 說明按 Esc 關掉，面板也沒有被誤開", not _dz_vis(pg, "#howPop") and not _dz_vis(pg, "#stagePanel") and not _dz_vis(pg, "#rankPanel"))
 
@@ -39818,11 +39933,13 @@ def t_dismiss(pg, b, base, code):
         if not _dz_vis(pg, "#how-rot"):
             _dz_click_el(pg, '#v-flow .howbtn[data-how="rot"]'); pg.wait_for_timeout(500)
         return True
-    _dz_three(pg, "怎麼看說明", "#how-rot", open_how, "#how-rot", "#flowSankeyCard h3")
+    _dz_three(pg, "怎麼看說明", "#how-rot", open_how, "#how-rot", "#flowRotCard h3")
     ok("[怎麼看說明] 按鈕不再寫「收起說明」", "收起" not in pg.evaluate(
         "() => document.querySelector('#v-flow .howbtn[data-how=\"rot\"]').textContent"))
 
-    # ---- 4. 資金集中度：點某一天 → 側欄
+    # ---- 4. 資金集中度：點某一天 → 側欄（集中度在 #flow/inst 子分頁，版面 V2）
+    flow_sub(pg, "inst", 2600)
+
     def open_conc():
         if _dz_vis(pg, "#concSide"):
             return True
@@ -39851,17 +39968,16 @@ def t_dismiss(pg, b, base, code):
     # ---- 6. 總覽熱力圖的成分股面板
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
 
-    def open_heat():
-        if _dz_vis(pg, "#heatPanel"):
-            return True
-        pg.evaluate("() => { const el = document.getElementById('heat'); { const rr = el.getBoundingClientRect(); window.scrollBy({ top: rr.top - innerHeight / 2 + rr.height / 2, behavior: 'instant' }); } }"); pg.wait_for_timeout(300)
-        r = pg.evaluate("() => { const r = document.getElementById('heat').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }")
-        for fx, fy in ((0.2, 0.35), (0.45, 0.5), (0.72, 0.4), (0.3, 0.68)):
-            pg.mouse.click(r["x"] + r["w"] * fx, r["y"] + r["h"] * fy); pg.wait_for_timeout(900)
-            if _dz_vis(pg, "#heatPanel"):
-                return True
-        return False
-    _dz_three(pg, "熱力圖成分股面板", "#heatPanel", open_heat, "#heatPanel .hh", "#ovHeatCard h3")
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「點方塊開 #heatPanel → 點外面／Esc 關」→「點方塊不再展開成分股面板、也不換頁」。
+    #   為什麼舊的過時：b4b2c15d（10-05，Andy：熱力圖下方的成分股面板「這邊拿掉」）總覽資金熱力圖點族群方塊只記埋點與權限提示，
+    #   面板整個不開了 —— 沒有面板就沒有「點外面關」可驗。改驗拿掉之後的行為：真的點最大那一塊，面板不出現、網址不變。
+    pg.evaluate("() => { const el = document.getElementById('heat'); const rr = el.getBoundingClientRect(); window.scrollBy({ top: rr.top - innerHeight / 2 + rr.height / 2, behavior: 'instant' }); }")
+    pg.wait_for_timeout(400)
+    _lf = (pg.evaluate(HM_LEAF_XY, {"id": "heat"}) or [None])[0]
+    if ok("[總覽熱力圖] 找得到最大的族群方塊（前提）", bool(_lf), _lf):
+        pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(900)
+        ok(f"[總覽熱力圖] 點「{_lf['name']}」→ 不展開成分股面板、不換頁（10-05 拿掉面板）",
+           not _dz_vis(pg, "#heatPanel") and pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
 
     # ---- 7. 市場明細：漲跌分佈點一段 → 清單
     pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -39899,7 +40015,10 @@ def t_dismiss(pg, b, base, code):
         ok("[題材剖析圖] 沒有「收起 ✕」", pg.evaluate("() => !document.getElementById('themeClose')"))
         _dz_click_el(pg, "#themeDetail h3", 0.2, 0.5); pg.wait_for_timeout(900)
         ok("[題材剖析圖] ① 點剖析圖卡片裡面 → 不會收", pg.evaluate("() => location.hash.startsWith('#heatmap/theme/')"))
-        _dz_click_el(pg, "#indHeat h3", 0.1, 0.5); pg.wait_for_timeout(1400)
+        # ★ 2026-10-06（既有紅字清理）：「外面」改點頁首頁名（#l4Head h1）。為什麼舊的過時：版面 V2（8ad4c044）把產業熱力
+        #   （#indHeat）拆到 #heatmap/industry，題材子分頁上只剩題材熱力（#themeMapCard，dismissable 刻意 ignore：點它＝換題材）
+        #   與剖析圖本身 —— 舊的 #indHeat h3 在這一頁是 display:none，點下去點到的是空白 0×0。頁名是這一頁上沒有功能的字。
+        _dz_click_el(pg, "#l4Head h1", 0.3, 0.5); pg.wait_for_timeout(1400)
         ok("[題材剖析圖] ② 點卡片外面 → 收回去（網址回到 #heatmap/theme、剖析圖不見）",
            pg.evaluate("() => location.hash === '#heatmap/theme' && !document.getElementById('themeDiagram')"),
            pg.evaluate("location.hash"))
@@ -40321,7 +40440,10 @@ def no_old_wheel_name(pg, base):
                 hits += [f"[{w}] #{r} {x}" for x in pg.evaluate(OLD_WHEEL_JS, OLD_WHEEL)]
             # 反面也要驗：新名字真的上去了（不是整個標題被拿掉才「找不到舊名字」）
             pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
-            nw = pg.evaluate("""() => ({ h3: ((document.querySelector('#ovRotHead h3') || {}).childNodes || [{}])[0].textContent || '',
+            # ★ 2026-10-06（既有紅字清理）：標題改讀 h3「自己的文字節點」。為什麼舊的過時：site/icons.js（標題圖示）在每張卡標題
+            #   最前面插 <span class="ticon"><svg>…</svg></span>，childNodes[0] 變成那顆圖示（textContent＝SVG 裡 path 之間的空白 "       "），
+            #   看起來像「標題被清空」—— 實際畫面標題仍是「資金輪盤」（同一段 h4 讀到 '       資金輪盤 ' 可證）。不是 c1e737fe 拿掉日期膠囊時誤刪。
+            nw = pg.evaluate("""() => ({ h3: [...((document.querySelector('#ovRotHead h3') || {}).childNodes || [])].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim(),
                 aria: (document.querySelector('#ovRotHead .howbtn') || {getAttribute: () => ''}).getAttribute('aria-label') || '',
                 m: (document.querySelector('#mRadarOv svg') || {getAttribute: () => null}).getAttribute('aria-label') })""")
             ok(f"[{w}] 總覽右欄卡片標題＝「資金輪盤」、「?」的 aria-label＝「資金輪盤怎麼看」",
@@ -40356,7 +40478,8 @@ def t_footprint(pg, b, base):
     nm = pg.evaluate("""() => ({ h4: (document.querySelector('#flowRotCard h4.subh')||{}).textContent || '',
         page: document.getElementById('v-flow').innerText })""")
     # ★ 2026-09-26 改前→改後：改前「改名『足跡輪盤』」→ 改後「資金輪盤」（Andy：腳印已拿掉，名字對不上內容；CEO 定名）
-    ok("① 卡片裡那張圖改名「資金輪盤」", nm["h4"].startswith("資金輪盤"), nm["h4"])
+    # 2026-10-06：h4 開頭是 icons.js 的標題圖示（SVG 內的空白字元），先 strip 再比（理由同 no_old_wheel_name 那條註解）
+    ok("① 卡片裡那張圖改名「資金輪盤」", nm["h4"].strip().startswith("資金輪盤"), nm["h4"])
     no_old_wheel_name(pg, base)
     # 上面那支會把頁面帶去七個分頁、切 390 再切回來；後面②③量的是資金流向頁 1440 的盤面，所以回到跟開頭同一個狀態
     #（不重置的話 ③ 會在錯的版面上量到 109 對重疊 —— 那是量測假象，不是畫面）
@@ -40495,12 +40618,16 @@ def t_scan(pg, b, base):
     ok("③ 疊層清乾淨了（沒有殘留一道停住的光束）", blank and beam_left == 0, {"canvas 乾淨": blank, "殘留光束／聲納元素": beam_left})
     pg.click("#rotTools input.rot-scan"); pg.wait_for_timeout(500)
     ok("③ 勾回來 → 記回 '1'、又開始轉", pg.evaluate("() => localStorage.getItem('tw.rot.scan')") == "1" and _scan(pg)["running"])
-    # ④ 捲離畫面就停（不在畫面上不吃 CPU）
-    pg.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })"); pg.wait_for_timeout(700)
+    # ④ 離開畫面就停（不在畫面上不吃 CPU）
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「捲到頁底」→「切到資金去向子分頁」（輪盤 display:none）。
+    #   為什麼舊的過時：8ad4c044 版面 V2 之後 #flow/rotation 這一頁只剩資金輪動一張卡，1440×950 捲到底輪盤還在畫面裡
+    #   （舊斷言量到 68 → 72 是**正確地**還在轉）。版面 V2 上「看不到輪盤」的真實情境是使用者點側欄切到別的子分頁 —— 驗那個。
+    flow_sub(pg, "sankey", 1200)
     a1 = _scan(pg)["frames"]; pg.wait_for_timeout(500); a2 = _scan(pg)["frames"]
-    ok("④ 捲到看不到輪盤 → 掃描停下來（0.5 秒內幀數不再增加）", a2 == a1, [a1, a2])
+    ok("④ 切到別的子分頁、看不到輪盤 → 掃描停下來（0.5 秒內幀數不再增加）", a2 == a1, [a1, a2])
+    flow_sub(pg, "rotation", 900)
     scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(700)
-    ok("④ 捲回來 → 又接著轉", _scan(pg)["frames"] > a2)
+    ok("④ 切回來 → 又接著轉", _scan(pg)["frames"] > a2)
     # ⑤ 播放＋掃描＋水波同時跑的幀率（參考檔要求 60FPS；容器是軟體繪圖，門檻放在平均 ≥ 30、最長一幀 ≤ 200ms）
     pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); b && b.click(); }")
     fr = pg.evaluate("""() => new Promise(res => { let n = 0; const t0 = performance.now(); const gaps = []; let last = t0;
@@ -40838,8 +40965,9 @@ def t_rot_all_trails(pg, b, base):
            len(rest) >= 1 and sum(1 for r in rest if r["n"] >= 1) * 2 >= len(rest), [(r["name"], r["n"]) for r in rest])
         # ② 非焦點比焦點淡、小
         if ok(f"[{th}] ② 焦點與非焦點都有（才比得出淡與實）", bool(foc) and bool(rest), [len(foc), len(rest)]):
-            ok(f"[{th}] ② 焦點整條 opacity 1、非焦點 0.3～0.4",
-               all(r["op"] == 1 for r in foc) and all(0.3 <= r["op"] <= 0.4 for r in rest),
+            # 2026-10-06：非焦點 0.35，擁擠區（4e9c2ad5 ROT_CROWD_OP）0.175 —— 理由見「時鐘v2」① 同日註解
+            ok(f"[{th}] ② 焦點整條 opacity 1、非焦點 0.35（擁擠區 0.175）",
+               all(r["op"] == 1 for r in foc) and all(0.3 <= r["op"] <= 0.4 or 0.15 <= r["op"] <= 0.2 for r in rest),
                {"焦點": [r["op"] for r in foc], "非焦點": sorted({r["op"] for r in rest})})
             fa = max((r["op"] * r["a"] for r in foc if r["n"]), default=0)
             ra = max((r["op"] * r["a"] for r in rest if r["n"]), default=0)
@@ -41755,7 +41883,9 @@ def t_flowtopo(pg, base):
     for old in ("topo", "classic"):
         pg.goto(f"{base}#overview", wait_until="networkidle")
         pg.evaluate("(v) => { try { localStorage.setItem('tw.sankey.mode', v); localStorage.removeItem('tw.sankey.day'); } catch (e) {} }", old)
-        pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
+        # ★ 2026-10-06（既有紅字清理）：#flow → #flow/sankey。為什麼舊的過時：8ad4c044 版面 V2 起 #flow 落在 #flow/rotation，
+        #   資金去向卡藏著、whenNear 不畫 → 量不到經典光纖（TOPO 回 null，①②③ 四條全紅）。
+        pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow/sankey", wait_until="networkidle")
         wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
         scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
         t = pg.evaluate(TOPO)

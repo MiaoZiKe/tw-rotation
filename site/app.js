@@ -7124,6 +7124,9 @@
          驗收再用 `App.rotLiveSeg()` 換成像素長度（那才是「使用者真的看到一條線」）。*/
       // 這一輪盤上真的有箭頭的族群 —— 圖下方那排讀數只列這幾個（見 rlvTop 的註解）
       rlvShown = new Set(liveArr.map(r => r.gid));
+      /* 2026-10-06（既有紅字清理）：盤面的尺（√ 尺度的反函數要用到）。4e9c2ad5 起半徑是 √u，畫面位移跟資料位移不再成正比，
+         驗收要「把畫上去的兩端反推回資料、跟 tdx／tdy 比」才驗得到「沒有額外放大」—— 反推要知道這幾個數。只是讀數，不影響畫面。*/
+      window.App._rotScale = { sx, sy, sr, maxR: CLOCK_MAXR };
       window.App._rotLiveAt = liveArr.map(r => ({ gid: r.gid, name: r.name,
         p0: r.p0, pf: r.pf, p1: r.p,
         dx: +r.live.dx.toFixed(4), dy: +r.live.dy.toFixed(4),
