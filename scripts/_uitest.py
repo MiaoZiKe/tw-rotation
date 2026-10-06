@@ -69,15 +69,18 @@ def to_members(pg, email=None):
     if not pg.evaluate("() => !!document.getElementById('pmHead') && document.getElementById('pmHead').classList.contains('medit')"):
         pg.click("#ptTier button[data-tier='free']")
         pg.click("#ptSubList")
-        wait_until(pg, "() => !!document.getElementById('pmTuneEmail') && document.getElementById('pmTuneEmail').offsetParent !== null", 5000)
+        wait_until(pg, "() => !!document.getElementById('ptTable') && document.getElementById('ptTable').offsetParent !== null", 5000)
     if email and pg.evaluate("() => document.getElementById('pmHead').classList.contains('medit')"):
         pg.fill("#pmEmail", email); pg.click("#pmLoad")       # 已經在逐人微調畫面：直接換人
         wait_until(pg, "() => !!document.getElementById('pmWho') && (document.getElementById('pmWho').textContent || '').includes('@')", 6000)
     elif email:
-        if not pg.evaluate("() => !!document.getElementById('pmTuneEmail') && document.getElementById('pmTuneEmail').offsetParent !== null"):
-            raise RuntimeError("to_members：看不到逐人微調輸入框 " + str(pg.evaluate("() => [location.hash, document.getElementById('pmHead') && document.getElementById('pmHead').className, [...document.querySelectorAll('#ptTier button.on')].map(b => b.textContent), document.getElementById('ptListBox') && document.getElementById('ptListBox').hidden, (document.getElementById('pmStat') || {}).textContent]")))
-        pg.fill("#pmTuneEmail", email)
-        pg.click("#pmTuneGo")
+        # 2026-10-06：逐人微調的 email 輸入框拿掉 → 清掉搜尋／篩選、找到那一列、展開、按「逐人微調…」
+        pg.fill("#pmSearch", email)
+        if not wait_until(pg, "(e) => !!document.querySelector('#ptTable tr[data-email=\"' + e + '\"]')".replace("(e)", "()").replace("' + e + '", email), 4000):
+            raise RuntimeError("to_members：名單裡找不到 " + email)
+        pg.click(f"#ptTable tr[data-email='{email}']")
+        pg.click(f"#ptTable tr.pmdet[data-for='{email}'] button[data-tune]")
+        pg.fill("#pmSearch", "") if pg.locator("#pmSearch").count() else None
         wait_until(pg, "() => !!document.getElementById('pmEmail') && document.querySelectorAll('#pmCats .pmcat').length > 0", 8000)
 
 
@@ -23562,6 +23565,8 @@ SECTIONS = {
     # ★ 2026-10-05（admin-v3）Andy：「弄得好複雜，看了不清楚」—— 三個大分頁＋子分頁、每個功能的瀏覽次數、會員名單、升級鈕、訂閱頁同步、客服鈕半透明
     "管理區v3":            lambda pg, b, base, code: t_admin_v3(b, base, code),
     "流量觀測1005":        lambda pg, b, base, code: t_traffic_1005(b, base, code),
+    # ★ 2026-10-06 Andy：會員名單——新增會員列拿掉、方案分頁標題列拿掉、統計「載入中…」修好並照流量觀測重做（假 Worker，⚠ 一律 --workers 1）
+    "會員名單1006":        lambda pg, b, base, code: t_member_list_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
@@ -46180,7 +46185,7 @@ def t_member_perm(b, base, code):
         to_perm(ad)
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
         ad.click("#ptTier button[data-plan]:has-text('付費測試')")
-        wait_until(ad, "() => !!document.querySelector('#ptTier button.on[data-plan]') && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled && /付費測試/.test(document.getElementById('ptFor').textContent)", 4000)
+        wait_until(ad, "() => !!document.querySelector('#ptTier button.on[data-plan]') && !document.querySelector(\"#pmCats input[data-f='ov.heat']\").disabled && /付費測試/.test(document.querySelector('#ptTier button.on').textContent)", 4000)
         ok(f"{T}：付費會員選「付費測試」範本 → 開關顯示範本內容（資金熱力圖關、熱門題材開、每日 5 次）",
            ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked && document.querySelector(\"#pmCats input[data-f='ov.theme']\").checked && document.querySelector(\"#pmCats button[data-limb='ov.theme']\").textContent === '5/日'"))
         ad.click("#ptSubList")
@@ -46446,30 +46451,27 @@ def t_perm_nav(b, base):
     # ★ 2026-10-05 改前→改後（驗收過時，admin-v2）：管理區拆成 會員權限／會員管理／流量觀測 三個子分頁，
     #   新增會員／會員列表／逐人設定在 #admin/members；這裡點頂部「會員管理」tab 過去，斷言不變。
     to_members(pg)
-    ok(f"{T}：版面三區都在（新增會員／要設定誰／功能開關）；會員名單在同一頁（已併入會員權限）", pg.evaluate("() => ['#pmAdd','#pmHead','#pmCats','#ptTable'].every(s => !!document.querySelector(s))"))
+    ok(f"{T}：版面兩區都在（要設定誰／功能開關）、沒有新增會員列；會員名單在同一頁（已併入會員權限）", pg.evaluate("() => ['#pmHead','#pmCats','#ptTable'].every(s => !!document.querySelector(s)) && !document.querySelector('#pmAdd')"))
     ok(f"{T}：會員列表合併「設定過的」與「登入過的」（3 位）、列出到期日與最後登入欄",
        pg.locator("#ptTable tr[data-email]").count() == 3 and "到期日" in pg.inner_text("#ptTableBox") and "最後上線" in pg.inner_text("#ptTableBox"), pg.inner_text("#ptTableBox")[:200])
     pg.fill("#pmSearch", "lee")
     ok(f"{T}：搜尋「lee」→ 列表只剩 1 位", pg.locator("#ptTable tr[data-email]").count() == 1 and "1 ／ 3" in pg.inner_text("#pmCnt"), pg.inner_text("#pmCnt"))
     pg.fill("#pmSearch", "")
-    # ④ 新增會員
+    # ④（2026-10-06 Andy：「不用紅框功能，因為他們是訂閱制，訂閱當下他們就會連動到對應範本」）
+    #   改前→改後：名單上方「新增會員：email｜方案｜到期日｜新增」＋「逐人微調：輸入 email｜讀取」整列拿掉；逐人微調只從展開的那一列進（下面）。Worker 的 perm/put 不動。
+    ok(f"{T}：名單上方沒有「新增會員」那一列，也沒有逐人微調的 email 輸入／讀取鈕",
+       pg.evaluate("() => !document.getElementById('pmAdd') && !document.getElementById('pmAddEmail') && !document.getElementById('pmAddPlan') && !document.getElementById('pmAddExp') && !document.getElementById('pmAddGo') && !document.getElementById('pmTuneEmail') && !document.getElementById('pmTuneGo') && !/新增會員/.test(document.getElementById('ptMail').innerText)"),
+       pg.evaluate("() => document.getElementById('ptMail').innerText.slice(0, 200)"))
     n0 = len(sent)
-    pg.fill("#pmAddEmail", "New.Member@Example.com")
-    with pg.expect_response(lambda r: "/v1/admin/perm/put" in r.url, timeout=6000) as ri:
-        pg.click("#pmAddGo")
-    body = json.loads(ri.value.request.post_data or "{}")
-    ok(f"{T}：新增 email → 送出 perm/put（email 轉小寫、方案＝選的那個、over 空）",
-       body.get("email") == "new.member@example.com" and body.get("plan") == "free" and body.get("over") == {} and body.get("t") == "tok-test", body)
-    ok(f"{T}：新增後出現在會員名單", bool(wait_until(pg, "() => /new\\.member@example\\.com/.test(document.getElementById('ptTableBox').textContent)", 4000)), pg.inner_text("#ptTableBox")[:200])
-    pg.click("#ptTable tr[data-email='new.member@example.com']"); pg.click("#ptTable tr.pmdet[data-for='new.member@example.com'] button[data-tune]")
-    wait_until(pg, "() => /new\\.member@example\\.com/.test((document.getElementById('pmWho') || {}).textContent || '') && !!document.querySelector(\"#pmCats input[data-f='heat.theme']\")", 5000)
+    pg.click("#ptTable tr[data-email='free1@example.com']"); pg.click("#ptTable tr.pmdet[data-for='free1@example.com'] button[data-tune]")
+    wait_until(pg, "() => /free1@example\\.com/.test((document.getElementById('pmWho') || {}).textContent || '') && !!document.querySelector(\"#pmCats input[data-f='heat.theme']\")", 5000)
     pg.click("#pmExpandAll")
     wait_until(pg, "() => !document.querySelector(\"#pmCats input[data-f='heat.theme']\").disabled", 5000)
     # 撥兩個開關 → 只是草稿
     pg.click("#pmCats input[data-f='heat.theme']")
     pg.click("#pmCats input[data-f='live.tick']")
     puts = [x for x in sent[n0:] if x[0] == "/v1/admin/perm/put"]
-    ok(f"{T}：撥開關不會馬上送出、底部出現「2 項變更還沒儲存」", len(puts) == 1 and pg.is_visible("#pmSave") and "2 項" in pg.inner_text("#pmDirty"), (len(puts), pg.inner_text("#pmDirty")))
+    ok(f"{T}：撥開關不會馬上送出、底部出現「2 項變更還沒儲存」", len(puts) == 0 and pg.is_visible("#pmSave") and "2 項" in pg.inner_text("#pmDirty"), (len(puts), pg.inner_text("#pmDirty")))
     ok(f"{T}：改過的列標「未存」", pg.locator("#pmCats .pmrow.dirty").count() == 2)
     # 取消 → 還原
     pg.click("#pmCancel")
@@ -46480,7 +46482,7 @@ def t_perm_nav(b, base):
         pg.click("#pmSaveGo")
     body = json.loads(ri.value.request.post_data or "{}")
     ok(f"{T}：按「儲存」→ 送出的 over 正好是 heat.theme:false、watch.tabs:1",
-       body.get("email") == "new.member@example.com" and body.get("over") == {"heat.theme": False, "watch.tabs": 1} and body.get("plan") == "free", body)
+       body.get("email") == "free1@example.com" and body.get("over") == {"heat.theme": False, "watch.tabs": 1} and body.get("plan") == "free", body)
     wait_until(pg, "() => document.getElementById('pmSave').hidden && /已儲存/.test(document.getElementById('pmStat').textContent)", 4000)
     ok(f"{T}：儲存後寫「已儲存」、儲存列收起", "已儲存" in pg.inner_text("#pmStat"))
     # ★ 2026-10-05 改前→改後（admin-v3，Andy：「弄得好複雜」）：拿掉「一次建立定價範本」；改成「＋」填名稱／價格／月或年建立一個範本，
@@ -46787,12 +46789,15 @@ def t_admin_v2(b, base, code):
     pg.click("#ptSubPerm")
     ok(f"{T}：399 範本的「熱門題材」是關的（顯示範本內容）", pg.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.theme']\").checked"))
     pg.click("#ptTier button[data-plan='p799']")
-    wait_until(pg, "() => /799/.test(document.getElementById('ptFor').textContent)", 3000)
+    wait_until(pg, "() => /799/.test(document.querySelector('#ptTier button.on').textContent)", 3000)
     pg.click("#ptSubList")
     m799 = pg.inner_text("#ptMail")
     ok(f"{T}：選「799 全功能」→ 名單換成 799 的兩位、過期的那位標「過期」", "b799@example.com" in m799 and "c799@example.com" in m799 and "a399@example.com" not in m799 and "過期" in m799, m799[:200])
     pg.click("#ptSubPerm")
-    ok(f"{T}：範本頁籤寫「名稱（月）」、內容框第一行寫「名稱・NT$價格/週期」", pg.inner_text("#ptTier button.on").strip() == "799 全功能（月）" and "799 全功能・NT$799/月" in pg.inner_text("#pmTarget"), pg.inner_text("#pmTarget"))
+    # ★ 2026-10-06（Andy「上方都拿掉」）改前→改後：內容框第一行「名稱・NT$價格/週期　套用 N 人」整列拿掉 → 價格與套用人數併進頁籤的滑過提示
+    ok(f"{T}：範本頁籤寫「名稱（月）」、滑過提示寫「名稱・NT$價格/週期｜套用 N 人」，內容框頂端沒有標題列",
+       pg.inner_text("#ptTier button.on").strip() == "799 全功能（月）" and "799 全功能・NT$799/月" in (pg.get_attribute("#ptTier button.on", "title") or "") and "套用" in (pg.get_attribute("#ptTier button.on", "title") or "")
+       and pg.locator("#pmTarget .ptinfo").count() == 0 and "NT$" not in pg.inner_text("#pmTarget"), (pg.get_attribute("#ptTier button.on", "title"), pg.inner_text("#pmTarget")))
     pg.click("#ptPlanCfg")
     ok(f"{T}：⚙ 範本設定有 名稱／價格／月或年 三個欄位，帶入目前值",
        pg.input_value("#ptEdName") == "799 全功能" and pg.input_value("#ptEdPrice") == "799" and pg.input_value("#ptEdPeriod") == "month")
@@ -46809,7 +46814,7 @@ def t_admin_v2(b, base, code):
     ok(f"{T}：改名「進階方案」、價格 8990、週期 年 → plans/put 帶 id 不變（p799）、price=8990、period=year、開關照舊",
        eb.get("id") == "p799" and eb.get("name") == "進階方案" and eb.get("price") == 8990 and eb.get("period") == "year" and eb.get("feats") == {}, eb)
     ok(f"{T}：（續）頁籤換成「進階方案（年）」、選中的還是它",
-       bool(wait_until(pg, "() => { const t = document.querySelector('#ptTier button.on'); return !!t && t.dataset.plan === 'p799' && t.textContent.trim() === '進階方案（年）' && /進階方案・NT\\$8,990\\/年/.test(document.getElementById('pmTarget').textContent); }", 3000)), pg.inner_text("#ptTier"))
+       bool(wait_until(pg, "() => { const t = document.querySelector('#ptTier button.on'); return !!t && t.dataset.plan === 'p799' && t.textContent.trim() === '進階方案（年）' && /進階方案・NT\\$8,990\\/年/.test(t.title); }", 3000)), pg.inner_text("#ptTier"))
     ntab = pg.locator("#ptTier button[data-plan]").count()
     pg.click("#ptAddTab")
     ok(f"{T}：按「＋」→ 它被選中、出現名稱／價格／月或年表單", pg.get_attribute("#ptAddTab", "aria-selected") == "true" and pg.locator("#ptNewForm #ptNewPrice").is_visible())
@@ -46837,17 +46842,7 @@ def t_admin_v2(b, base, code):
     pg.select_option("#pmStatF", "exp")
     ok(f"{T}：狀態篩「過期」→ 只剩 b799", pg.locator("#ptTable tr[data-email]").count() == 1 and "1 ／ 5" in pg.inner_text("#pmCnt"), pg.inner_text("#pmCnt"))
     pg.select_option("#pmStatF", "")
-    pg.fill("#pmAddEmail", "New.Paid@Example.com")
-    pg.select_option("#pmAddPlan", "p799")
-    pg.fill("#pmAddExp", "2027-03-31")
-    with pg.expect_response(lambda r: "/v1/admin/perm/put" in r.url, timeout=6000) as ri:
-        pg.click("#pmAddGo")
-    ab = json.loads(ri.value.request.post_data or "{}")
-    ok(f"{T}：新增會員（付費 799＋到期日）→ perm/put 帶 plan=p799、expires＝2027-03-31 台北 23:59:59",
-       ab.get("email") == "new.paid@example.com" and ab.get("plan") == "p799" and ab.get("expires") == 1806508799000, ab)
-    wait_until(pg, "() => !!document.querySelector(\"#ptTable tr[data-email='new.paid@example.com']\")", 4000)
-    ok(f"{T}：新會員出現在表上（付費會員、到期 2027-03-31、未登入過）", "2027-03-31" in pg.inner_text("#ptTable tr[data-email='new.paid@example.com']")
-       and "未登入過" in pg.inner_text("#ptTable tr[data-email='new.paid@example.com']"), pg.inner_text("#ptTable tr[data-email='new.paid@example.com']") if pg.locator("#ptTable tr[data-email='new.paid@example.com']").count() else "")
+    # （2026-10-06：新增會員那列拿掉，原本「新增付費會員＋到期日 → perm/put」這兩條跟著拿掉；到期日改由逐人微調頁驗，見上面）
     # ③ 流量觀測
     pg.click("#admTabTraffic")
     wait_until(pg, "() => location.hash === '#admin/traffic' && !!document.getElementById('trHowN')", 10000)
@@ -47321,7 +47316,7 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
                 st["plans"] = [x for x in st["plans"] if x.get("builtin")] + [dict(byid[i], sort=k) for k, i in enumerate(ids)]
                 out = {"plans": st["plans"]}
         elif path == "/v1/admin/members/stats":
-            # perm-v4：伺服器端彙總的假版本 —— 從同一份假名單（users／perm／stats）算，scope=all＝所有登入過的人、plan＝指定到該範本的人
+            # 同 worker.js：沒帶 from／to＝舊格式（14 天）；帶了＝期間版（依 bin 合併，活躍人數＝不同人數）
             emails = [u["email"] for u in users] if body.get("scope") != "plan" else [u["email"] for u in users if st["perm"].get(u["email"], {}).get("plan") == body.get("plan")]
             fe, sk = {}, {}
             for e in emails:
@@ -47333,6 +47328,27 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
             days = [{"day": time.strftime("%Y-%m-%d", time.gmtime(1790035200 + i * 86400)), "n": (len(emails) if i in (3, 8, 13) else (i % 2))} for i in range(14)]  # 2026-09-22 起 14 天
             out = {"now": now, "scope": body.get("scope"), "n": len(emails), "active7": sum(1 for u in users if u["email"] in emails and now - u["seen"] < 7 * 86400000),
                    "feats": [list(x) for x in top(fe)], "stocks": [list(x) for x in top(sk)], "days": days}
+            if body.get("from") and body.get("to"):
+                import datetime as _dt
+                d0, d1 = _dt.date.fromisoformat(body["from"]), _dt.date.fromisoformat(body["to"])
+                nd = (d1 - d0).days + 1
+                bn = body.get("bin", "day")
+                if bn == "day" and nd > 120:
+                    bn = "week"
+                keyf = (lambda d: d.strftime("%Y-%m-01")) if bn == "month" else ((lambda d: (d - _dt.timedelta(days=d.weekday())).isoformat()) if bn == "week" else (lambda d: d.isoformat()))
+                bins: dict = {}
+                for i in range(nd):
+                    d = d0 + _dt.timedelta(days=i)
+                    e = bins.setdefault(keyf(d), {"day": keyf(d), "n": 0, "visits": 0, "pv": 0})
+                    e["n"] = min(len(emails), max(e["n"], 1 + (i % 3)))
+                    e["visits"] += 2
+                    e["pv"] += 9
+                dl = list(bins.values())
+                scale = max(1, nd // 7)          # 期間愈長數字愈大 → 「切期間後數字真的變了」
+                out.update({"from": body["from"], "to": body["to"], "bin": bn, "keepDays": 90, "since": None, "days": dl,
+                            "active": min(len(emails), 1 + nd // 15), "visits": nd * 2, "ms": nd * 2 * 14 * 60000, "pv": nd * 9, "joined": nd // 10,
+                            "featTotal": sum(fe.values()) * scale * 2, "stockTotal": sum(sk.values()) * scale * 2,
+                            "feats": [[k, n * scale] for k, n in top(fe)], "stocks": [[k, n * scale] for k, n in top(sk)]})
         elif path == "/v1/admin/perm/list":
             out = {"rows": [{"email": e, "plan": r["plan"], "n": len(r["over"]), "updated": r["updated"], "expires": r.get("expires", 0)} for e, r in st["perm"].items()],
                    "users": users, "now": now}
@@ -47359,6 +47375,144 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(ADM3_API + "/**", handle)
     return c, sent, st
+
+
+# ===================================================================== 會員名單1006（2026-10-06 Andy 12:58～13:02：會員名單那一頁三件事）
+#   ① 名單上方「新增會員：email｜方案｜到期日｜新增」（含右邊「逐人微調：email｜讀取」）整列拿掉 —— 他們是訂閱制，訂閱當下就連動到對應範本
+#   ② 每個方案分頁頂端的標題列「訪客・NT$0/月　套用 1 人」拿掉（價格、套用人數併進頁籤滑過提示；⚙ 搬到子分頁列右側）
+#   ③ 上方統計「一直載入中…」「近 7 日活躍人數 –」：根因＝refreshList() 清掉統計快取（PS.mst = {}）而沒人重讀 → 永遠載入中。
+#      重做成流量觀測的設計語彙（卡片、期間列、直條、橫條、甜甜圈），KPI 與圖跟著期間變
+# 真的操作：逐人微調→回名單（舊碼在這裡卡死）、切期間（7／30／90／365、手動改日期）、讀取失敗（500）要有白話原因與重試、1440 與 390 兩種寬度
+# ⚠ 一律 --workers 1。假 Worker 見 _adm3_ctx（members/stats 依 from／to／bin 回，同 worker.js 欄位）
+def t_member_list_1006(b, base, code):
+    T = "會員名單1006"
+    errs: list[str] = []
+    shots = os.environ.get("TW_ML_SHOTS")
+
+    def shot(pg, name, sel=None, full=False):
+        if shots:
+            if sel:
+                pg.locator(sel).first.screenshot(path=str(pathlib.Path(shots) / f"{name}.png"))
+            else:
+                pg.screenshot(path=str(pathlib.Path(shots) / f"{name}.png"), full_page=full)
+
+    READY = "() => document.querySelectorAll('#ptTier button[role=tab]').length > 0 && document.querySelectorAll('#pmCats .pmcat').length > 0 && !document.querySelector('#pmCats .pmcat input[data-f]').disabled"
+    KPI = "() => [...document.querySelectorAll('#ptStats .mkpis .mkpi b')].map(e => e.textContent.trim())"
+    NUMERIC = "(arr) => arr.length >= 4 && arr.every(t => /^[0-9][0-9,.]*( 小時| 分|$)/.test(t) || /^< 1 分$/.test(t))"
+
+    def open_list(pg, tier="free", plan=None):
+        pg.click(f"#ptTier button[data-tier='{tier}']" + (f"[data-plan='{plan}']" if plan else ""))
+        pg.click("#ptSubList")
+        wait_until(pg, "() => !!document.getElementById('ptTable') && !!document.getElementById('msCharts')", 6000)
+
+    def kpis_ok(pg, why):
+        v = wait_until(pg, "() => { const a = " + KPI[6:] + "; return (" + NUMERIC + ")(a) ? a : null; }", 10000)
+        return bool(v), v or pg.evaluate(KPI)
+
+    for width in (1440, 390):
+        c, sent, st = _adm3_ctx(b, width=width)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+        wait_until(pg, READY, 12000)
+        W = f"{width}"
+        open_list(pg)
+        # ---------- ① 新增會員那一列不存在
+        gone = pg.evaluate("() => ({ add: !!document.getElementById('pmAdd'), e: !!document.getElementById('pmAddEmail'), go: !!document.getElementById('pmAddGo'), tune: !!document.getElementById('pmTuneEmail'), tgo: !!document.getElementById('pmTuneGo'), txt: /新增會員|逐人微調：/.test(document.getElementById('ptMail').innerText) })")
+        ok(f"{T} {W}：名單上方沒有「新增會員」那一列、也沒有逐人微調的 email 輸入／讀取鈕", not any(gone.values()), gone)
+        ok(f"{T} {W}：名單上方還留著搜尋與狀態篩選（拿掉的只有新增列）", pg.locator("#pmSearch").count() == 1 and pg.locator("#pmStatF").count() == 1)
+        # ---------- ② 每個方案分頁頂端沒有標題列
+        tabs = pg.evaluate("() => [...document.querySelectorAll('#ptTier button[role=tab][data-tier]')].map(b => [b.dataset.tier, b.dataset.plan || '', b.title])")
+        bad = []
+        for tier, plan, ttl in tabs:
+            pg.click(f"#ptTier button[data-tier='{tier}']" + (f"[data-plan='{plan}']" if plan else ""))
+            pg.wait_for_timeout(120)
+            r = pg.evaluate("() => ({ info: !!document.querySelector('#pmTarget .ptinfo') || !!document.getElementById('ptFor') || !!document.getElementById('ptMeta'), txt: /套用\\s*\\d+\\s*人|NT\\$\\s*[\\d,]+\\s*[\\/／]/.test(document.getElementById('pmHead').querySelector('.ptpanel').innerText) })")
+            if r["info"] or r["txt"]:
+                bad.append((tier, plan, r))
+        ok(f"{T} {W}：每個方案分頁（{len(tabs)} 個）頂端都沒有「名稱・NT$價格/週期　套用 N 人」標題列", not bad and len(tabs) >= 4, bad)
+        ok(f"{T} {W}：價格與套用人數併進頁籤滑過提示（每個頁籤的 title 都有「套用 N 人」或「所有沒登入的人」）", all(re.search(r"套用 \d+ 人|所有沒登入的人", t[2] or "") for t in tabs) and any("NT$" in (t[2] or "") for t in tabs), tabs)
+        pg.click("#ptTier button[data-plan='p399']")
+        ok(f"{T} {W}：付費範本的 ⚙ 範本設定在子分頁列右側、點了展開名稱／價格／月或年／刪除",
+           bool(pg.evaluate("() => { const g = document.getElementById('ptPlanCfg'); return !!g && !!g.closest('#ptSub') && g.getBoundingClientRect().left > document.getElementById('ptSubPerm').getBoundingClientRect().right; }")), None)
+        pg.click("#ptPlanCfg")
+        ok(f"{T} {W}：（續）⚙ 展開後 #ptEdit 有名稱／價格／刪除", pg.locator("#ptEdit #ptEdName").count() == 1 and pg.locator("#ptEdit #ptEdPrice").count() == 1 and pg.locator("#ptEdit #pmPlanDel").count() == 1)
+        pg.click("#ptPlanCfg")
+        # ---------- ③ 統計：四個以上 KPI 都是數字、三張圖 10 秒內畫出來、沒有「載入中…」
+        open_list(pg)
+        good, kv = kpis_ok(pg, "初次")
+        ok(f"{T} {W}：KPI 全部是數字（總人數、活躍人數、造訪、瀏覽、平均每人在線、平均每次停留）", good and len(kv) == 6, kv)
+        ch = wait_until(pg, "() => { const d = document.querySelectorAll('#msDays .dc').length, f = document.querySelectorAll('#msFeat .bl').length, s = document.querySelectorAll('#msStock .bl').length, a = document.querySelectorAll('#msStDonut circle.arc').length; return (d && f && s && a) ? [d, f, s, a] : null; }", 10000)
+        ok(f"{T} {W}：三張圖（每天多少人、功能 Top 8、股票 Top 8）加狀態甜甜圈 10 秒內畫出來", bool(ch), ch)
+        ok(f"{T} {W}：統計區沒有「載入中…」字樣", pg.evaluate("() => !/載入中/.test(document.getElementById('ptStats').innerText)"), pg.evaluate("() => document.getElementById('ptStats').innerText.slice(0, 200)"))
+        head = pg.evaluate("() => [...document.querySelectorAll('#msCharts > .card')].map(c => [c.querySelector('h3').textContent.trim(), (c.querySelector('.use') || {}).textContent, parseFloat(getComputedStyle(c.querySelector('h3')).fontSize), parseFloat(getComputedStyle(c.querySelector('.use')).fontSize), !!getComputedStyle(c.querySelector('h3'), '::before').content])")
+        ok(f"{T} {W}：卡片跟流量觀測同款：問句式標題（以「？」結尾）16px、灰副標 13px、有色條小圖示", len(head) == 5 and all(h[0].endswith("？") and h[2] == 16 and h[3] == 13 and h[4] for h in head), head)
+        fs = pg.evaluate("() => [...document.querySelectorAll('#ptStats *')].filter(e => e.children.length === 0 && !e.closest('svg') && e.textContent.trim() && getComputedStyle(e).fontSize && parseFloat(getComputedStyle(e).fontSize) < 12 && e.getClientRects().length).map(e => e.tagName + ':' + e.textContent.trim().slice(0, 10) + ':' + getComputedStyle(e).fontSize).slice(0, 6)")
+        ok(f"{T} {W}：統計區沒有小於 12px 的字", not fs, fs)
+        dn = pg.evaluate("() => { const s = document.querySelector('#msStDonut svg').getBoundingClientRect(), l = document.querySelector('#msStDonut ul.lg').getBoundingClientRect(); return { w: Math.round(s.width), right: l.left >= s.right - 2, narrow: window.innerWidth < 700 }; }")
+        dn["legendRight"] = dn["right"] or dn["narrow"]
+        ok(f"{T} {W}：甜甜圈用共用 donutG（直角、圖例在右；手機寬才換到下面）、直徑 ≥ 120px", dn["w"] >= 120 and dn["legendRight"], dn)
+        ov = pg.evaluate("() => ({ x: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, cut: [...document.querySelectorAll('#ptStats .mkpi b, #ptStats .card h3, #ptStats .card .use')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim().slice(0, 14)).slice(0, 6) })")
+        ok(f"{T} {W}：沒有橫向捲軸、KPI 與卡片標題沒有被裁掉", not ov["x"] and not ov["cut"], ov)
+        shot(pg, f"ml_{width}_free", "#ptStats")
+        # ---------- 切期間 → 數字真的變
+        base_vis = pg.inner_text("#msVisits b")
+        n_req = len([x for x in sent if x[0] == "/v1/admin/members/stats"])
+        pg.select_option("#msPerSel", "7")
+        changed = wait_until(pg, f"() => document.querySelector('#msVisits b').textContent.trim() !== {json.dumps(base_vis)} && document.querySelectorAll('#msDays .dc').length > 0", 8000)
+        v7 = pg.inner_text("#msVisits b")
+        rq = [x for x in sent if x[0] == "/v1/admin/members/stats"][n_req:]
+        ok(f"{T} {W}：期間選「近 7 天」→ 造訪次數真的變了（{base_vis}→{v7}）、向伺服器要 from／to／bin、每日直條 7 根", bool(changed) and rq and rq[-1][1].get("from") and rq[-1][1].get("to") and rq[-1][1].get("bin") == "day" and pg.locator("#msDays .dc").count() == 7, (base_vis, v7, rq[-1:] ))
+        fr = pg.input_value("#msPerFrom"); to = pg.input_value("#msPerTo")
+        import datetime as _dt
+        ok(f"{T} {W}：起訖日跟著下拉同步（近 7 天＝今天往前 7 天含今天）", (_dt.date.fromisoformat(to) - _dt.date.fromisoformat(fr)).days == 6, (fr, to))
+        pg.select_option("#msPerSel", "90")
+        wait_until(pg, "() => document.querySelector('#msDays') && document.querySelector('#msDays').dataset.bin === 'week'", 8000)
+        v90 = pg.inner_text("#msVisits b")
+        ok(f"{T} {W}：期間「近 90 天」→ 直條改按週合併（週一起算）、數字再變（{v7}→{v90}）", pg.get_attribute("#msDays", "data-bin") == "week" and v90 != v7 and pg.locator("#msDays .dc").count() >= 12, (v7, v90, pg.locator("#msDays .dc").count()))
+        pg.select_option("#msPerSel", "365")
+        wait_until(pg, "() => document.querySelector('#msDays') && document.querySelector('#msDays').dataset.bin === 'month'", 8000)
+        ok(f"{T} {W}：期間「近 365 天」→ 直條按月合併、說明個人使用紀錄只保留 90 天", pg.get_attribute("#msDays", "data-bin") == "month" and "90" in (pg.inner_text("#msNote") if pg.locator("#msNote").count() else ""), pg.locator("#msNote").count())
+        pg.select_option("#msPerSel", "30")
+        wait_until(pg, "() => document.querySelector('#msDays') && document.querySelector('#msDays').dataset.bin === 'day'", 8000)
+        pg.fill("#msPerFrom", (_dt.date.fromisoformat(to) - _dt.timedelta(days=20)).isoformat())
+        pg.dispatch_event("#msPerFrom", "change")
+        wait_until(pg, "() => document.getElementById('msPerSel').value === 'since'", 4000)
+        ok(f"{T} {W}：手動改起始日 → 下拉跳成「起始日期～至今」、直條 21 根（按日）", pg.input_value("#msPerSel") == "since" and bool(wait_until(pg, "() => document.querySelectorAll('#msDays .dc').length === 21", 6000)), pg.locator("#msDays .dc").count())
+        shot(pg, f"ml_{width}_since", "#ptStats")
+        pg.select_option("#msPerSel", "30")
+        # ---------- 舊碼卡死的路徑：展開一列 → 逐人微調 → ← 回會員名單 → 統計不能停在「載入中…」
+        pg.click("#ptTable tr[data-email='a399@example.com']")
+        pg.click("#ptTable tr.pmdet[data-for='a399@example.com'] button[data-tune]")
+        wait_until(pg, "() => !!document.getElementById('pmBack')", 5000)
+        pg.click("#pmBack")
+        wait_until(pg, "() => !!document.getElementById('ptTable')", 5000)
+        good, kv = kpis_ok(pg, "逐人微調回來")
+        ok(f"{T} {W}：逐人微調 → ← 回會員名單 → 統計不卡「載入中…」、KPI 仍是數字（舊碼這裡永遠載入中）", good and pg.evaluate("() => !/載入中/.test(document.getElementById('ptStats').innerText)") and pg.locator("#msDays .dc").count() > 0, (kv, pg.inner_text("#ptStats")[:120]))
+        # 切到付費範本再切回註冊會員、再存一次範本設定（refreshList）→ 一樣不卡
+        pg.click("#ptTier button[data-plan='p399']"); pg.click("#ptSubList")
+        wait_until(pg, "() => !!document.getElementById('msCharts') && document.getElementById('msFeatC')", 6000)
+        good2, kv2 = kpis_ok(pg, "付費頁")
+        ok(f"{T} {W}：付費範本的名單統計也有數字、圖卡 4 張（每天人數、狀態、功能、股票；沒有免費vs付費）", good2 and pg.locator("#msCharts > .card").count() == 4 and pg.locator("#msPlanC").count() == 0, (kv2, pg.locator("#msCharts > .card").count()))
+        shot(pg, f"ml_{width}_paid", "#ptStats")
+        c.close()
+
+    # ---------- 讀取失敗：白話原因＋重新讀取，不准永遠「載入中…」
+    c, sent, st = _adm3_ctx(b)
+    c.route(ADM3_API + "/v1/admin/members/stats", lambda r: r.fulfill(status=500, body='{"error":"boom"}', headers={"access-control-allow-origin": "*", "content-type": "application/json"}))
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, READY, 12000)
+    open_list(pg)
+    wait_until(pg, "() => !!document.querySelector('#ptStats .msph.bad')", 8000)
+    tx = pg.evaluate("() => document.getElementById('ptStats').innerText")
+    ok(f"{T}：伺服器回 500 → 圖卡顯示白話原因（讀不到…）與「重新讀取」、不是「載入中…」", "讀不到" in tx and "載入中" not in tx and pg.locator("#ptStats .msretry").count() >= 1, tx[:200])
+    kv = pg.evaluate(KPI)
+    ok(f"{T}：失敗時 KPI 顯示「—」（不是永遠的「…」），總人數仍是數字", kv[0].replace(",", "").isdigit() and all(x == "—" for x in kv[1:]), kv)
+    c.unroute(ADM3_API + "/v1/admin/members/stats")
+    pg.click("#ptStats .msretry >> nth=0")
+    ok(f"{T}：修好後按「重新讀取」→ 統計回來、KPI 是數字", bool(kpis_ok(pg, "重試")[0]) and pg.locator("#msDays .dc").count() > 0)
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
 def t_admin_sw_1005(b, base, code):
@@ -47478,8 +47632,8 @@ def t_admin_v3(b, base, code):
     #   原本「子分頁緊貼頁籤（≤ 4px）」改成「資訊列在框頂、子分頁在資訊列下面」；頁籤底邊貼內容框、內容都在框裡這兩條不變。
     ok(f"{T}：選中頁籤底邊貼著內容框、框頂是範本資訊列、子分頁在資訊列下、開放功能表／族群觀測都在同一個框裡",
        pg.evaluate("""() => { const t = document.querySelector('#ptTier button.on').getBoundingClientRect(), pn = document.querySelector('#pmHead .ptpanel'), b = pn.getBoundingClientRect(),
-         sb = document.getElementById('ptSub').getBoundingClientRect(), inf = document.querySelector('#pmTarget .ptinfo').getBoundingClientRect();
-         return Math.abs(t.bottom - b.top) <= 2 && inf.top - b.top <= 20 && sb.top >= inf.bottom && sb.top - b.top <= 110 && pn.contains(document.getElementById('pmCats')) && pn.contains(document.getElementById('pmGrp')) && pn.contains(document.getElementById('ptListBox')); }"""))
+         sb = document.getElementById('ptSub').getBoundingClientRect(), inf = { bottom: b.top };
+         return Math.abs(t.bottom - b.top) <= 2 && !document.querySelector('#pmTarget .ptinfo') && sb.top >= inf.bottom && sb.top - b.top <= 60 && pn.contains(document.getElementById('pmCats')) && pn.contains(document.getElementById('pmGrp')) && pn.contains(document.getElementById('ptListBox')); }"""))
     shot(pg, "0_perm_top")
     ok(f"{T}：拿掉「另存」「建立定價範本」「刪除這個範本」那一大排（預設畫面上都沒有）",
        pg.evaluate("() => !document.getElementById('pmTpl') && !document.getElementById('pmSaveAs') && !document.getElementById('pmPlanDel') && !document.getElementById('pmNewName')"))
@@ -47574,7 +47728,7 @@ def t_admin_v3(b, base, code):
     wait_until(pg, "() => !!document.querySelector('#ptTier button.on[data-plan]')", 4000)
     ok(f"{T}：建立後多一個「法人方案（年）」頁籤並選中它",
        pg.evaluate("() => document.querySelector('#ptTier button.on').dataset.plan") == nbody.get("id")
-       and pg.inner_text("#ptTier button.on").strip() == "法人方案（年）" and "法人方案・NT$12,000/年" in pg.inner_text("#pmTarget"), pg.inner_text("#ptTier"))
+       and pg.inner_text("#ptTier button.on").strip() == "法人方案（年）" and "法人方案・NT$12,000/年" in (pg.get_attribute("#ptTier button.on", "title") or ""), pg.inner_text("#ptTier"))
     ok(f"{T}：付費範本頁籤共三個（基本／進階／法人）", pg.locator("#ptTier button[data-plan]").count() == 3, pg.inner_text("#ptTier"))
     pg.click("#ptTier button[data-plan='p399']")
     ok(f"{T}：下拉選「基本方案」→ 開放功能表顯示它的內容（資金熱力圖關、AI 分析每日 10 次）",
@@ -47715,9 +47869,9 @@ def t_admin_v3(b, base, code):
         # ★ 10-05 Andy「會員管理分頁可以拿掉了，因為會員權限已經有相同功能」
         ok(f"{T}・合併：側欄與頁內都沒有「會員管理」（沒有 admTabMembers）", pg.evaluate("() => !document.getElementById('admTabMembers') && !/會員管理/.test(document.getElementById('tabs').innerText)"))
         pg.evaluate("() => { location.hash = '#admin/members'; }")
-        wait_until(pg, "() => location.hash === '#admin/perm' && !!document.getElementById('pmTuneEmail') && document.getElementById('pmTuneEmail').offsetParent !== null", 6000)
+        wait_until(pg, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTableBox') && document.querySelectorAll('#ptTable tr[data-email]').length > 0", 6000)
         ok(f"{T}・合併：舊網址 #admin/members → 導到 #admin/perm 的「註冊會員」→「會員名單」", pg.evaluate("() => location.hash === '#admin/perm' && document.querySelector('#ptTier button.on').dataset.tier === 'free' && document.querySelector('#ptSubList').classList.contains('on')"))
-        ok(f"{T}・合併：會員名單內有 新增會員（email／方案／到期日）、搜尋、狀態篩選、逐人微調輸入", all(pg.locator(x).count() == 1 for x in ("#pmAddEmail", "#pmAddPlan", "#pmAddExp", "#pmAddGo", "#pmSearch", "#pmStatF", "#pmTuneEmail", "#pmTuneGo")))
+        ok(f"{T}・合併：會員名單內有 搜尋、狀態篩選；沒有新增會員、沒有逐人微調輸入（2026-10-06 拿掉）", all(pg.locator(x).count() == 1 for x in ("#pmSearch", "#pmStatF")) and all(pg.locator(x).count() == 0 for x in ("#pmAddEmail", "#pmAddPlan", "#pmAddExp", "#pmAddGo", "#pmTuneEmail", "#pmTuneGo")))
         pg.click("#ptTable tr[data-email] >> nth=0"); pg.click("#ptTable button[data-tune] >> nth=0")
         wait_until(pg, "() => !!document.getElementById('pmEmail') && document.getElementById('pmHead').classList.contains('medit')", 5000)
         ok(f"{T}・合併：展開一列 →「逐人微調…」→ 進到這個人的設定（層級／範本、到期日、開關），範本頁籤暫時收起、有「← 回會員名單」", pg.evaluate("() => document.getElementById('ptTier').offsetParent === null && !!document.getElementById('pmBack') && !!document.getElementById('pmPlan') && !!document.getElementById('pmExp') && document.querySelectorAll('#pmCats input[role=switch]').length > 5"))
@@ -47824,10 +47978,10 @@ def t_admin_v3(b, base, code):
         const st = {}; rows.forEach(t => { const s = t.querySelector('.c-st .stt').className.split(' ')[1]; st[s] = (st[s] || 0) + 1; });
         const don = (id) => Object.fromEntries([...document.querySelectorAll('#' + id + ' li')].map(l => [l.dataset.k, +l.dataset.n]));
         const paid = rows.filter(t => t.querySelector('.pdbadge:not(.off)')).length;
-        const ch = [...document.querySelectorAll('#msCharts > .mchart')].map(c => [Math.round(c.getBoundingClientRect().height), !!c.querySelector('svg')]);
+        const ch = [...document.querySelectorAll('#msCharts > .card')].map(c => [Math.round(c.getBoundingClientRect().height), !!c.querySelector('svg, .dayplot')]);
         return { n: rows.length, total: +document.querySelector('#msTotal b').textContent.replace(/,/g, ''), st, sd: don('msStDonut'), pd: don('msPlanDonut'), paid,
                  feat: [...document.querySelectorAll('#msFeat .bn')].map(e => [e.dataset.k, +e.dataset.n]), stk: [...document.querySelectorAll('#msStock .bl')].map(e => e.textContent),
-                 days: document.querySelectorAll('#msDays rect').length, act7: document.querySelector('#msAct7 b').textContent, ch,
+                 days: document.querySelectorAll('#msDays .dc').length, act7: document.querySelector('#msActive b').textContent, ch,
                  kpiTop: [...document.querySelectorAll('#ptStats .mkpis .mkpi')].map(k => Math.round(k.getBoundingClientRect().top)) }; }""")
     # ★ 10-05 Andy「會員權限內長條圖以及圓餅圖風格可以參考流量觀測」：同一套元件（細條 10px、直角甜甜圈 2° 間隙、淡 Y 軸）＋互動（滑過有提示與高亮）
     def pv_hover(sel, label, ring=False):
@@ -47841,21 +47995,21 @@ def t_admin_v3(b, base, code):
         r = pg.locator(sel).first.evaluate("(el) => { const t = document.getElementById('trTip'), ch = el.closest('[data-chart]'); return { tip: !!t && !t.hidden && t.textContent.trim().length > 3, hl: !!ch && ch.classList.contains('hov') && ch.querySelectorAll('.hl').length > 0 }; }")
         ok(f"{T}・perm-v4：會員統計互動｜{label}：滑過有浮動提示、有高亮狀態", r["tip"] and r["hl"], r)
         pg.mouse.move(2, 2); pg.wait_for_timeout(100)
-    pv_hover("#msFeat .bl", "功能長條"); pv_hover("#msStock .bn", "股票長條"); pv_hover("#msDays rect >> nth=3", "每日活躍直條")
+    pv_hover("#msFeat .bl", "功能長條"); pv_hover("#msStock .bn", "股票長條"); pv_hover("#msDays .dc >> nth=3", "每日活躍直條")
     pv_hover("#msStDonut circle.arc", "狀態甜甜圈扇區", ring=True)
-    sty = pg.evaluate("""() => ({ bar: Math.max(...[...document.querySelectorAll('#msFeat svg rect.v')].map(r => r.getBoundingClientRect().height)), cap: getComputedStyle(document.querySelector('#msStDonut circle.arc')).strokeLinecap, ticks: document.querySelectorAll('#msDays').length && document.querySelectorAll('.vby span').length >= 5,
+    sty = pg.evaluate("""() => ({ bar: Math.max(...[...document.querySelectorAll('#msFeat .bt')].map(r => r.getBoundingClientRect().height)), cap: getComputedStyle(document.querySelector('#msStDonut circle.arc')).strokeLinecap, ticks: document.querySelectorAll('#msDays').length && document.querySelectorAll('#ptStats .dayy span').length >= 5,
         gaps: (() => { const a = [...document.querySelectorAll('#msStDonut circle.arc')].map(c => [+c.dataset.a0, +c.dataset.a1]); return a.slice(1).map((x, i) => +(x[0] - a[i][1]).toFixed(1)); })() })""")
     ok(f"{T}・perm-v4：會員統計圖風格＝流量觀測：長條粗 ≤ 10px、甜甜圈直角（butt）且相鄰扇區間隙一律 2°、直條有 Y 軸刻度", sty["bar"] <= 10.5 and sty["cap"] == "butt" and sty["ticks"] and sty["gaps"] and set(sty["gaps"]) == {2.0}, sty)
     sd = ms["sd"]
-    ok(f"{T}・perm-v4：會員名單上方：總人數＝名單列數（{ms['n']}）、四個數字同一排", ms["total"] == ms["n"] and len(set(ms["kpiTop"])) == 1 and len(ms["kpiTop"]) == 4, ms)
+    ok(f"{T}・perm-v4：會員名單上方：總人數＝名單列數（{ms['n']}）、六個數字同一排", ms["total"] == ms["n"] and len(set(ms["kpiTop"])) == 1 and len(ms["kpiTop"]) == 6, ms)
     ok(f"{T}・perm-v4：狀態甜甜圈（有效／7 天內到期／已過期／未登入過）每一類人數＝名單狀態欄數出來的",
        sd.get("ok", 0) == ms["st"].get("ok", 0) and sd.get("soon", 0) == ms["st"].get("soon", 0) and sd.get("exp", 0) == ms["st"].get("exp", 0) and sd.get("new", 0) == ms["st"].get("new", 0)
        and sum(sd.values()) == ms["n"], (sd, ms["st"]))
     ok(f"{T}・perm-v4：註冊會員頁另一張甜甜圈：免費 vs 各付費方案，付費人數＝名單上的金色徽章數、加總＝名單列數",
        sum(ms["pd"].values()) == ms["n"] and sum(v for k, v in ms["pd"].items() if k != "free") == ms["paid"] and ms["pd"].get("p399") == 1 and ms["pd"].get("p799") == 1, (ms["pd"], ms["paid"]))
-    ok(f"{T}・perm-v4：功能 Top 8＝伺服器彙總（分頁：營收 14 第一）、股票 Top 8 有代號＋名稱、14 天 14 根、近 7 日活躍有數字",
-       ms["feat"][:1] == [["tab.revenue", 14]] and len(ms["feat"]) <= 8 and ms["stk"] and ms["stk"][0].startswith("2330") and ms["days"] == 14 and ms["act7"].strip() not in ("", "—"), ms)
-    ok(f"{T}・perm-v4：四張統計圖卡同高、都有 SVG", len(ms["ch"]) == 4 and len({h for h, s in ms["ch"]}) == 1 and all(s for h, s in ms["ch"]), ms["ch"])
+    ok(f"{T}・perm-v4：功能 Top 8＝伺服器彙總（分頁：營收第一）、股票 Top 8 有代號＋名稱、期間每日直條 ≥ 7 根、活躍人數有數字",
+       ms["feat"][:1] and ms["feat"][0][0] == "tab.revenue" and ms["feat"][0][1] % 14 == 0 and len(ms["feat"]) <= 8 and ms["stk"] and ms["stk"][0].startswith("2330") and ms["days"] >= 7 and ms["act7"].strip() not in ("", "—", "…"), ms)
+    ok(f"{T}・perm-v4：統計圖卡（註冊會員頁 5 張：每天人數、狀態、免費vs付費、功能、股票）都有圖", len(ms["ch"]) == 5 and all(s for h, s in ms["ch"]), ms["ch"])
     ok(f"{T}・perm-v4：統計向伺服器要一次（/v1/admin/members/stats scope=all），沒有逐人呼叫 member/detail",
        any(x[0] == "/v1/admin/members/stats" and x[1].get("scope") == "all" for x in sent) and not any(x[0] == "/v1/admin/member/detail" for x in sent))
     # ⑥ 數字欄寬 ≤ 內容寬 ＋ 24px

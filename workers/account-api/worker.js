@@ -1306,3 +1306,82 @@ Hub.prototype.adminStats = async function (req, b) {
   return this.json(req, j);
 };
 /* ============================================================================ 起訖日區塊結束 */
+
+/* ============================================================================
+   會員名單統計：依期間（2026-10-06，Andy：「上方圖表需要優化，Follow 觀測流量 分頁，並且數據請補齊全」）
+   /v1/admin/members/stats 原本固定「功能／股票＝近 30 天、每日活躍＝近 14 天」，前端的期間選單（近 7／30／90／365 天、指定起訖）接不上。
+   現在多收三個選填參數（都不帶＝原本的回應，加上期間欄位；舊前端不受影響）：
+     from、to ：台北日期（含頭含尾）。to 沒帶＝今天、晚於今天＝今天；from 沒帶＝to 往前 30 天。
+                格式不對、from 晚於 to、超過 400 天 → 400 { error:'bad_range' }（不默默修正）。
+     bin      ：'day'｜'week'｜'month'（週＝週一起算、月＝每月 1 日）。預設 day；天數超過 120 天時，day 一律改成 week（直條太細看不到）。
+   回應多了（原欄位一個不動，除非帶了 from／to：feats、stocks、days 改成該期間）：
+     from、to、bin、keepDays（個人使用明細只留 90 天，期間更長時前端要說明）、since（最早一筆個人使用紀錄的日期，沒有＝null）
+     active（期間內有活躍的不同人數）、visits（造訪次數）、ms（累計在線毫秒）、pv（頁面瀏覽）、joined（期間內新加入的人數）
+     featTotal、stockTotal（功能／股票的全部次數，前端算「占 %」用）
+     days：[{ day（區間起日）, n（該區間活躍的不同人數）, visits, pv }]，每個區間一筆，沒活動的也有（n＝0）。
+   只在檔尾加區塊（prototype 包裝＋覆蓋路由），不改前面的函式。
+   ============================================================================ */
+const v6Valid = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(Date.parse(s + 'T00:00:00Z')) && new Date(Date.parse(s + 'T00:00:00Z')).toISOString().slice(0, 10) === s;
+const v6BinOf = (day, bin) => {
+  if (bin === 'month') return day.slice(0, 7) + '-01';
+  if (bin === 'week') { const t = Date.parse(day + 'T00:00:00Z'); return new Date(t - ((new Date(t).getUTCDay() + 6) % 7) * 86400000).toISOString().slice(0, 10); }
+  return day;
+};
+Hub.prototype.v6Stats = function (scope, plan, from, to, bin) {
+  const base = this.v4Stats(scope, plan);
+  const users = this.q('SELECT uid, email, created FROM users');
+  let pick = users;
+  if (scope === 'plan') {
+    const em = new Set(this.q('SELECT email FROM perm WHERE plan = ?', plan).map((r) => r.email));
+    pick = users.filter((u) => em.has(String(u.email || '').toLowerCase()));
+  }
+  const set = new Set(pick.map((u) => u.uid));
+  const feats = {}, stocks = {}, act = {}, vis = {}, pvd = {}, who = new Set();
+  let visits = 0, ms = 0, pv = 0, featTotal = 0, stockTotal = 0;
+  this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND day <= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp", from, to)
+    .forEach((r) => { if (set.has(r.uid)) { feats[r.comp] = (feats[r.comp] || 0) + r.n; featTotal += r.n; } });
+  this.q("SELECT uid, detail, SUM(n) AS n FROM uev WHERE day >= ? AND day <= ? AND page = 'stock' AND comp = 'view' AND detail != '' GROUP BY uid, detail", from, to)
+    .forEach((r) => { if (set.has(r.uid)) { stocks[r.detail] = (stocks[r.detail] || 0) + r.n; stockTotal += r.n; } });
+  const mark = (r) => { if (!set.has(r.uid)) return; who.add(r.uid); const k = v6BinOf(r.day, bin); (act[k] = act[k] || new Set()).add(r.uid); };
+  this.q('SELECT uid, day, n, COALESCE(ms, 0) AS ms FROM visits WHERE day >= ? AND day <= ?', from, to).forEach((r) => {
+    if (!set.has(r.uid)) return;
+    visits += r.n || 0; ms += r.ms || 0; const k = v6BinOf(r.day, bin); vis[k] = (vis[k] || 0) + (r.n || 0);
+    if (r.n > 0 || r.ms > 0) mark(r);
+  });
+  this.q('SELECT DISTINCT uid, day FROM uev WHERE day >= ? AND day <= ?', from, to).forEach(mark);
+  this.q("SELECT uid, day, SUM(n) AS n FROM uev WHERE day >= ? AND day <= ? AND comp = '_pv' GROUP BY uid, day", from, to).forEach((r) => {
+    if (!set.has(r.uid)) return; pv += r.n; const k = v6BinOf(r.day, bin); pvd[k] = (pvd[k] || 0) + r.n;
+  });
+  const days = [];
+  for (let t = Date.parse(from + 'T00:00:00Z'), end = Date.parse(to + 'T00:00:00Z'); t <= end; t += 86400000) {
+    const k = v6BinOf(new Date(t).toISOString().slice(0, 10), bin);
+    if (!days.length || days[days.length - 1].day !== k) days.push({ day: k, n: (act[k] || new Set()).size, visits: vis[k] || 0, pv: pvd[k] || 0 });
+  }
+  const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, V4_TOP);
+  const joined = pick.filter((u) => u.created && tpeDay(u.created) >= from && tpeDay(u.created) <= to).length;
+  const s1 = this.q('SELECT MIN(day) AS d FROM uev')[0], s2 = this.q('SELECT MIN(day) AS d FROM visits')[0];
+  const since = [s1 && s1.d, s2 && s2.d].filter(Boolean).sort()[0] || null;
+  return { ...base, from, to, bin, keepDays: V3_UEV_KEEP_DAYS, since, active: who.size, visits, ms, pv, joined, featTotal, stockTotal, feats: top(feats), stocks: top(stocks), days };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/members/stats': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const scope = b.scope == null || b.scope === 'all' ? 'all' : b.scope === 'plan' ? 'plan' : null;
+    if (!scope) return this.json(req, { error: 'bad_scope' }, 400);
+    const plan = scope === 'plan' ? String(b.plan == null ? '' : b.plan) : null;
+    if (scope === 'plan' && (!PLAN_RE.test(plan) || !this.plan(plan))) return this.json(req, { error: 'bad_plan' }, 400);
+    const has = (k) => b[k] !== undefined && b[k] !== null;
+    const today = tpeDay(this.now()), dayN = (s) => Date.parse(s + 'T00:00:00Z') / 86400000;
+    if ((has('to') && !v6Valid(b.to)) || (has('from') && !v6Valid(b.from))) return this.json(req, { error: 'bad_range' }, 400);
+    let to = has('to') ? b.to : today; if (to > today) to = today;
+    const from = has('from') ? b.from : new Date(dayN(to) * 86400000 - 29 * 86400000).toISOString().slice(0, 10);
+    if (from > to || dayN(to) - dayN(from) + 1 > 400) return this.json(req, { error: 'bad_range' }, 400);
+    let bin = ['day', 'week', 'month'].includes(b.bin) ? b.bin : 'day';
+    if (bin === 'day' && dayN(to) - dayN(from) + 1 > 120) bin = 'week';
+    const j = this.v6Stats(scope, plan, from, to, bin);
+    /* 沒帶起訖＝舊前端：每日活躍照舊給近 14 天（{day, n}）、其餘欄位是近 30 天 */
+    if (!has('from') && !has('to')) j.days = this.v4Stats(scope, plan).days;
+    return this.json(req, j);
+  },
+});
+/* ============================================================================ 會員名單統計（依期間）區塊結束 */
