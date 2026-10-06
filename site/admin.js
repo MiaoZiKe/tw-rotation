@@ -108,7 +108,7 @@
 .daychip button{width:22px;height:22px;border-radius:50%;border:0;background:transparent;color:var(--ink-2);font-size:16px;line-height:20px;cursor:pointer;flex:none;padding:0}
 .daychip button:hover{background:var(--panel-3);color:var(--ink)}
 #admBody .days .dc.fut{background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--line) 55%,transparent) 4px 5px);opacity:.7}
-#admBody .days.many{gap:1px}#admBody .days.many .dc{min-width:1px}
+#admBody .days.coarse{gap:6px}#admBody .days.coarse .dc{max-width:44px}#admBody .days.many{gap:1px}#admBody .days.many .dc{min-width:1px}
 #admBody .days.hrs:not(.few){margin-bottom:20px}#admBody .days.hrs .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
 #admBody .days.hrs .dc{max-width:20px}#admBody .days.hrs.few .dc{max-width:64px}
 #v-admin .trtabs .nbsw>button.dragging{opacity:.4}#v-admin .trtabs .nbsw>button.dropL{box-shadow:inset 3px 0 0 var(--cyan)}#v-admin .trtabs .nbsw>button.dropR{box-shadow:inset -3px 0 0 var(--cyan)}
@@ -740,7 +740,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const iA = from ? Math.max(0, idx(from)) : null, iB = to ? Math.min(NDAY - 1, idx(to)) : NDAY - 1;       // 起訖日（Worker 同語意：含頭含尾，to 預設今天）
       const n = iA != null ? Math.max(1, iB - iA + 1) : Math.max(1, Math.min(NDAY, days || 30)), i0 = iA != null ? iA : NDAY - n, rows = [];
       const hourNow = Math.min(23, new Date(Date.now() + 8 * 3600000).getUTCHours());
-      for (let i = i0; i <= iB; i++) { const day = dayKey(i), dn = 54000 * W[i] / base30;
+      const recent = window.__demoRecentDays ? iB - window.__demoRecentDays + 1 : -1;      // 測試用：只有最近 N 天有紀錄（正式站 Worker 只回有資料的日子，from 仍是期間起日）
+      for (let i = i0; i <= iB; i++) { if (i < recent) continue; const day = dayKey(i), dn = 54000 * W[i] / base30;
         PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.88 + ((i * 7 + k.length) % 10) / 40))) }));
         const ss = Math.round(dn * 0.145); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + ((i % 7) / 100))) }); }
       const scale = live ? 1.1 / 30 : n / 30, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
@@ -861,8 +862,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
        回來的起訖不會是那一天 → 改成提示並維持整段期間的統計，畫面不留空白 */
     let stT = st; S.dayMode = '';
     if (S.day) {
-      const r = await A.call('/v1/admin/stats', { days: Math.min(400, periodDays() + 1), from: S.day, to: S.day });
-      if (r && r._s === 200 && r.from === S.day && r.to === S.day) { stT = r; S.dayMode = 'ok'; } else S.dayMode = 'unsupported';
+      const dTo = S.dayTo || S.day;
+      const r = await A.call('/v1/admin/stats', { days: Math.min(400, periodDays() + 1), from: S.day, to: dTo });
+      if (r && r._s === 200 && r.from === S.day && r.to === dTo) { stT = r; S.dayMode = 'ok'; } else S.dayMode = 'unsupported';
     }
     S.st = stT; S.on = on;
     const pv = {}, ev = {}, perDay = {};
@@ -877,6 +879,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     let days = [], dmap = perDay;
     if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; const nowH = st.hstat && Number.isInteger(st.hstat.hour) ? st.hstat.hour : null; st.hours.forEach((n, h) => { dmap[days[h]] = nowH != null && h > nowH ? null : n; }); }
     else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse((untilDay || st.to) + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
+    /* 橫軸一律涵蓋整個選定期間（沒紀錄的日子是 0）；期間長就合併粒度：≤31 天按日、32～120 天按週（從起日起每 7 天一格）、>120 天按月 */
+    const bk = S.period === 'live' && st.hours ? null : bucketize(days);
+    const pvAgg = (m) => { if (!bk || bk.gran === 'day') return m; const o = {}; bk.keys.forEach((k) => { o[k] = 0; }); Object.keys(m).forEach((d) => { const k = bk.of[d]; if (k !== undefined) o[k] += m[d]; }); return o; };
+    if (bk && bk.gran !== 'day') { dmap = pvAgg(perDay); days = bk.keys.slice(); }
     const dmax = Math.max(1, ...days.map((d) => dmap[d] || 0));
     const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions), pvTotal = untilDay ? sum(Object.values(perDay)) : sum(Object.values(pv));
     // 個股相關（個股頁分頁用）：被觀看 Top 10、各自最常用的功能、散佈圖點
@@ -902,10 +908,16 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       d.total = d.pv || (sum(d.subN.map((x) => x.v)) || use);
       if (p.subs.length && sum(d.subN.map((x) => x.v)) > 0 && d.pv) { /* 有子頁開啟數：總數仍用 pv */ }
     });
-    S.data = data; S.days = periodDays(); S.pvDay = pvDay; S.dayList = st.hours ? [] : (S.dayMode === 'ok' ? [S.day] : days.slice()); S.pvAll = sum(Object.values(pvT));
+    S.data = data; S.days = periodDays(); S.bk = null;
+    if (st.hours) { S.pvDay = pvDay; S.dayList = []; }
+    else if (S.dayMode === 'ok') {                          // 點了某一天／某一週／某一月：下面各分頁的每日趨勢只畫那段（≤ 31 天按日）
+      const dl = []; for (let t = Date.parse(S.day + 'T00:00:00Z'); t <= Date.parse((S.dayTo || S.day) + 'T00:00:00Z'); t += 86400000) dl.push(new Date(t).toISOString().slice(0, 10));
+      S.pvDay = pvDay; S.dayList = dl;
+    } else { S.bk = bk; S.dayList = days.slice(); S.pvDay = {}; Object.keys(pvDay).forEach((k) => { S.pvDay[k] = pvAgg(pvDay[k]); }); }
+    S.firstDay = Object.keys(perDay).filter((d) => perDay[d] > 0).sort()[0] || ''; S.pvAll = sum(Object.values(pvT));
     data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (stT.users && stT.users.total) || 0, use: 0, fb: false };
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
-    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
     paintTrTabs();
     bindHover(v.querySelector('#admBody'));
@@ -915,21 +927,24 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   /* 現在看的是哪一天：分頁統計標題旁一顆小膠囊＋清除鈕；Worker 不支援時直接說白話 */
   function dayChip() {
     if (!S.day) return '';
-    return `<span class="daychip" id="trDayChip"><i class="dot"></i><b>${esc(dayTxt(S.day))}</b>${S.dayMode === 'unsupported' ? '<em>這個功能要等會員系統更新後才有，下方暫時顯示整段期間</em>' : ''}<button type="button" id="trDayClr" aria-label="清除，回到原期間" title="清除，回到原期間">×</button></span>`;
+    return `<span class="daychip" id="trDayChip"><i class="dot"></i><b>${esc(S.dayTo && S.dayTo !== S.day ? S.day.slice(5) + '～' + S.dayTo.slice(5) : dayTxt(S.day))}</b>${S.dayMode === 'unsupported' ? '<em>這個功能要等會員系統更新後才有，下方暫時顯示整段期間</em>' : ''}<button type="button" id="trDayClr" aria-label="清除，回到原期間" title="清除，回到原期間">×</button></span>`;
   }
-  function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) {
+  function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
     /* 起訖日期框永遠顯示：跟著期間選單同步（近 N 天＝那段的實際起訖、即時＝今天），手動改日期 → 下拉跳成「起始日期～至今」 */
     const today = todayTpe(), shiftDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
     const rng = S.period === 'live' ? { from: today, to: today } : S.period === 'since' ? { from: S.since, to: S.until || today } : { from: shiftDay(today, -(+S.period - 1)), to: today };
-    const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : '每天的頁面瀏覽總次數';
+    const gw = bk && bk.gran === 'week' ? '每週' : bk && bk.gran === 'month' ? '每月' : '每天';
+    const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : gw + '的頁面瀏覽總次數';
+    const first = S.period === 'live' ? '' : (S.firstDay && S.firstDay > days0(days, bk) ? `統計自 ${S.firstDay} 開始記錄，之前沒有紀錄（算 0）。` : '這段期間每天都有紀錄。');
+    const dtip = first + (bk && bk.gran !== 'day' ? `期間較長，已合併成${gw.slice(1)}一格；點一格可看那段的統計。` : '點某天的直條可看當天。');
     return `<div class="secttl trhead"><h2>全站總覽</h2><small>共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
         <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
           <input type="date" id="admSince" value="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="起始日期"><span class="trto">～</span><input type="date" id="admUntil" value="${esc(rng.to)}" min="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="結束日期">
           <button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
       <div class="admgrid trtop">
-        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live')}</div></div>
+        <div class="card s2" id="admDays"><h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
       </div>`;
   }
@@ -960,7 +975,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function simpleHtml(p, d, idx) {
     const pd = (S.pvDay || {})[p.k] || {}, has = Object.keys(pd).length > 0 && S.dayList && S.dayList.length;
     const tot = d.total;
-    const chart = has ? dayChart(S.dayList, pd, Math.max(1, ...Object.values(pd)), 'trPgDays') : '<div class="empty">沒有資料</div>';
+    const chart = has ? dayChart(S.dayList, pd, Math.max(1, ...Object.values(pd)), 'trPgDays', false, S.bk) : '<div class="empty">沒有資料</div>';
     return `<div class="admgrid trone"><div class="card" id="trS1"><h3>${esc(p.n)}被看了幾次？</h3><p class="use" title="${esc(p.n)}">被看過幾次</p>
       <div class="cb"><div class="sbody"><div class="bigno"><b>${nf(tot)}</b><span>被看過</span></div><div class="sch">${chart}</div></div></div></div></div>`;
   }
@@ -1025,15 +1040,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function wireTop(v, A) {
     const apply = () => { S.tab = S.tab || 'all'; paint(); };
     v.querySelector('#admDaysSel').onchange = (e) => {
-      S.period = e.target.value; S.day = '';
+      S.period = e.target.value; S.day = ''; S.dayTo = '';
       if (S.period === 'since') { S.since = S.since || v.querySelector('#admSince').value; }
       apply();
     };
     const di = v.querySelector('#admSince'), du = v.querySelector('#admUntil'), okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
-    const manual = () => { if (!okD(di.value)) return; let to = okD(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; S.period = 'since'; S.since = di.value; S.until = to >= todayTpe() ? '' : to; S.day = ''; apply(); };
+    const manual = () => { if (!okD(di.value)) return; let to = okD(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; S.period = 'since'; S.since = di.value; S.until = to >= todayTpe() ? '' : to; S.day = ''; S.dayTo = ''; apply(); };
     if (di) di.onchange = manual; if (du) du.onchange = manual;
-    const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; S.day = S.day === dc.dataset.day ? '' : dc.dataset.day; paint(); };
-    const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; paint(); };
+    const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; const tgl = S.day === dc.dataset.day && (S.dayTo || S.day) === (dc.dataset.to || dc.dataset.day); S.day = tgl ? '' : dc.dataset.day; S.dayTo = tgl ? '' : (dc.dataset.to || dc.dataset.day); paint(); };
+    const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; S.dayTo = ''; paint(); };
     v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
     if (S.spin) { S.spin = false; const rb = v.querySelector('#admRefresh'); if (rb) rb.classList.add('spin'); }
   }
@@ -1191,25 +1206,37 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   const stockTable = (rows) => `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td><span class="vb"><span><i style="width:${(r.views / Math.max(1, rows[0].views) * 100).toFixed(1)}%"></i></span><em>${nf(r.views)}</em></span></td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>`;
   /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代）。圖區吃滿卡片高度；y 軸 0／一半／最大值＋淡格線＋平均虛線；
      最高那天標值；天數 ≤ 7 時每根放大（寬到 140）並在柱上標值、柱下標日期，不再是細細兩根留一大片空白 */
-  function dayChart(days, perDay, dmax, idp, full) {
+  const days0 = (days, bk) => (bk && bk.gran !== 'day' ? bk.info[days[0]].from : days[0]);
+  /* 把「整段期間的每一天」分格：≤31 天按日；32～120 天按週（從起日起每 7 天一格，最後一格可能不滿 7 天）；>120 天按日曆月。
+     回傳 keys（每格的 key）、info[key]＝{from,to,n,label}、of[日期]＝那天屬於哪一格 */
+  function bucketize(days) {
+    const n = days.length, gran = n <= 31 ? 'day' : n <= 120 ? 'week' : 'month', keys = [], info = {}, of = {};
+    days.forEach((d, i) => {
+      const k = gran === 'day' ? d : gran === 'week' ? days[i - (i % 7)] : d.slice(0, 7);
+      if (!info[k]) { keys.push(k); info[k] = { from: d, to: d, n: 0 }; }
+      info[k].to = d; info[k].n++; of[d] = k;
+    });
+    return { gran, keys, info, of };
+  }
+  function dayChart(days, perDay, dmax, idp, full, bk) {
     idp = idp || 'admDayBars';
-    const i0 = full ? 0 : days.findIndex((d) => (perDay[d] || 0) > 0);
-    if (i0 < 0) return '<div class="empty">沒有資料</div>';
-    const shown = days.slice(i0), few = shown.length <= 7, dtot = shown.reduce((s, d) => s + (perDay[d] || 0), 0);
+    const co = bk && bk.gran !== 'day' ? bk : null, gl = co ? (co.gran === 'week' ? '週' : '月') : '';
+    if (!full && !days.some((d) => (perDay[d] || 0) > 0)) return '<div class="empty">沒有資料</div>';
+    const shown = days.slice(), few = shown.length <= 7, dtot = shown.reduce((s, d) => s + (perDay[d] || 0), 0);
     const avg = shown.reduce((s, d) => s + (perDay[d] || 0), 0) / shown.length, mxd = shown.reduce((a, d) => ((perDay[d] || 0) > (perDay[a] || 0) ? d : a), shown[0]);
-    const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
     /* X 軸刻度：每 7 天（週一）標一個；期間很長（> 98 天）改成每 4 週，免得擠在一起。時間是每小時（HH:00）就每 4 小時一個 */
     let ticks = [];
     if (!few) {
       if (/^\d\d:00$/.test(shown[0])) ticks = shown.map((d, i) => [d, i]).filter(([d, i]) => i % 4 === 0);
-      else { const step = shown.length > 98 ? 4 : 1; let k = 0; shown.forEach((d, i) => { if (new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay() === 1) { if (k % step === 0) ticks.push([d, i]); k++; } }); }
+      else if (!co) { ticks.push([shown[0], 0]); shown.forEach((d, i) => { if (i >= 3 && new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay() === 1) ticks.push([d, i]); }); }      // 按日：第一個刻度＝期間起日，其後每個週一
+      else { const step = Math.max(1, Math.ceil(shown.length / (co && co.gran === 'month' ? 13 : 8))); shown.forEach((d, i) => { if (i % step === 0) ticks.push([co ? co.info[d].from : d, i]); }); }      // 第一個刻度＝期間起日，其餘等距
     }
     const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(dmax * f))}</span>`).join('');
     return `<div class="dayplot"><div class="dayy">${ys}</div>
-      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && d === S.day ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${d}"` : ''} data-row="${di}"${tp(`<b>${esc(d)}${/^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
-        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
+      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}${co ? ' coarse' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && S.day && (co ? co.info[d].from : d) === S.day && (S.dayTo || S.day) === (co ? co.info[d].to : d) ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${co ? co.info[d].from : d}" data-to="${co ? co.info[d].to : d}"` : ''} data-row="${di}"${tp(`<b>${esc(co ? (co.gran === 'week' ? co.info[d].from.slice(5) + '～' + co.info[d].to.slice(5) : d + '（' + co.info[d].from.slice(5) + '～' + co.info[d].to.slice(5) + '）') + '　共 ' + co.info[d].n + ' 天' : d)}${!co && /^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd || (co && shown.length <= 14 && (perDay[d] || 0) > 0) ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
+        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>${co ? '每' + gl + '平均' : '平均'} ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
       ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${ticks.map(([d, i]) => `<span style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${/^\d\d:00$/.test(d) ? d : d.slice(5)}</span>`).join('')}</div></div>`}
-      ${note ? `<div class="dayx"><span class="dayno" id="${idp}Note">${note}</span></div>` : ''}`;
+`;
   }
   /* 散佈圖：依容器實際大小畫（ResizeObserver 重畫），圖吃滿卡片；格線 3 條、軸刻度＝真值；標籤避開已放的標籤 */
   function drawScatter(box, pts) {

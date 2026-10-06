@@ -23562,6 +23562,7 @@ SECTIONS = {
     # ★ 2026-10-05（admin-v3）Andy：「弄得好複雜，看了不清楚」—— 三個大分頁＋子分頁、每個功能的瀏覽次數、會員名單、升級鈕、訂閱頁同步、客服鈕半透明
     "管理區v3":            lambda pg, b, base, code: t_admin_v3(b, base, code),
     "流量觀測1005":        lambda pg, b, base, code: t_traffic_1005(b, base, code),
+    "流量觀測期間1006":    lambda pg, b, base, code: t_traffic_range_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
@@ -46914,6 +46915,63 @@ def t_admin_v2(b, base, code):
 
 
 # ===================================================================== 流量觀測1005（2026-10-05，Andy：頁首卡拿掉、圖表版面重排、欄位文字置中）
+def t_traffic_range_1006(b, base, code):
+    """流量觀測：橫軸一律涵蓋整個選定期間（沒紀錄的日子＝0），期間長自動合併粒度（≤31 按日、32～120 按週、>120 按月）。
+    示範資料只有最近 5 天有紀錄（跟真 Worker 一樣：rows 只回有資料的日子，from 仍是期間起日）。"""
+    T = "流量觀測期間1006"
+    errs: list[str] = []
+    pbase = base.replace("/index.html", "/preview/style-guide/index.html")
+    for theme in ("dark", "light"):
+        c, sent = _adm2_ctx(b)
+        c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}');}}catch(e){{}}window.__demoRecentDays=5;")
+        c.route(re.compile(r".*/preview/style-guide/.*"), lambda r: r.continue_(url=r.request.url.replace("/preview/style-guide/", "/")))
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('trTabs') && document.querySelectorAll('#admDayBars .dc').length > 0", 15000)
+        TT = f"{T}（{theme}）"
+        today = pg.evaluate("() => new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)")
+        def start_of(n):
+            return pg.evaluate("(n) => new Date(Date.now() + 8 * 3600000 - (n - 1) * 86400000).toISOString().slice(0, 10)", n)
+        info = lambda: pg.evaluate("() => ({ n: document.querySelectorAll('#admDayBars .dc').length, first: (document.querySelector('#admDayBarsTicks span') || {}).textContent || '', cls: document.getElementById('admDayBars').className, sub: document.querySelector('#admDays .use').textContent, ttl: document.querySelector('#admDays h3').textContent.trim(), since: document.getElementById('admSince').value, note: !!document.getElementById('admDayBarsNote') || /未畫出/.test(document.getElementById('admDays').textContent), zero: [...document.querySelectorAll('#admDayBars .dc')].filter(d => d.querySelector('i').style.height === '0%').length })")
+        for sel, exp, gran in (("7", (7, 7), "每天"), ("30", (30, 30), "每天"), ("90", (13, 13), "每週"), ("365", (12, 13), "每月")):
+            pg.select_option("#admDaysSel", sel)
+            wait_until(pg, f"() => document.querySelectorAll('#admDayBars .dc').length >= {exp[0]} && document.querySelectorAll('#admDayBars .dc').length <= {exp[1]}", 5000)
+            r = info()
+            ok(f"{TT}：近 {sel} 天：直條 {exp[0]}{'' if exp[0]==exp[1] else '～'+str(exp[1])} 根（只有 5 天有資料，其餘仍畫出來）", exp[0] <= r["n"] <= exp[1], r)
+            ok(f"{TT}：近 {sel} 天：副標與標題是「{gran}」、沒有「無紀錄（未畫出）」那行", r["sub"].startswith(gran) and r["ttl"].startswith(gran) and not r["note"], r)
+            if sel != "7":
+                ok(f"{TT}：近 {sel} 天：第一個橫軸標籤＝期間起日 {start_of(int(sel))[5:]}", r["first"] == start_of(int(sel))[5:], r)
+            else:
+                f7 = pg.evaluate("() => document.querySelector('#admDayBars .dc .dd').textContent")
+                ok(f"{TT}：近 7 天：第一根標的日期＝期間起日", f7 == start_of(7)[5:], f7)
+            ok(f"{TT}：近 {sel} 天：沒資料的格子高度 0（畫成 0，不是省略）", r["zero"] >= max(1, r["n"] - 6), r)
+            ok(f"{TT}：近 {sel} 天：日期框起日＝{start_of(int(sel))}", r["since"] == start_of(int(sel)), r)
+        # 按週：點一格 → 看那一週（chip 顯示起～訖），分頁統計跟著變；再點同一格取消
+        pg.select_option("#admDaysSel", "90"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 13", 4000)
+        pg.evaluate("() => { const l = document.querySelectorAll('#admDayBars .dc[data-day]'); l[l.length - 1].click(); }")
+        wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+        chip = pg.inner_text("#trDayChip")
+        ok(f"{TT}：按週：點最後一格 → 出現「起～訖」膠囊（含 ～）", "～" in chip, chip)
+        pg.click("#trDayClr"); wait_until(pg, "() => !document.getElementById('trDayChip')", 4000)
+        pg.select_option("#admDaysSel", "365"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length <= 13 && document.querySelectorAll('#admDayBars .dc').length >= 12", 4000)
+        pg.evaluate("() => { const l = document.querySelectorAll('#admDayBars .dc[data-day]'); l[l.length - 1].click(); }")
+        wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+        ok(f"{TT}：按月：點最後一格 → 膠囊顯示起～訖", "～" in pg.inner_text("#trDayChip"), pg.inner_text("#trDayChip"))
+        pg.click("#trDayClr")
+        # 「?」寫資料從哪天開始記錄
+        tip = pg.evaluate("() => document.getElementById('trDayTip').getAttribute('title')")
+        first5 = pg.evaluate("(n) => new Date(Date.now() + 8 * 3600000 - (n - 1) * 86400000).toISOString().slice(0, 10)", 5)
+        ok(f"{TT}：「?」說明寫「統計自 {first5} 開始記錄」", f"統計自 {first5} 開始記錄" in tip, tip)
+        # 其他跟期間有關的：開站身分、分頁統計數字會跟著期間變
+        pg.select_option("#admDaysSel", "7"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 7", 4000)
+        a = pg.inner_text("#trTabs")
+        pg.evaluate("() => { const l = document.querySelectorAll('#admDayBars .dc[data-day]'); l[l.length - 1].click(); }")
+        wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+        ok(f"{TT}：期間內點某一格 → 分頁統計的數字真的變了（只剩那一天）", a != pg.inner_text("#trTabs"))
+        c.close()
+    ok(f"{T}：無頁面錯誤", not errs, errs[:3])
+
+
 def t_traffic_1005(b, base, code):
     """流量觀測 2026-10-05 新規格：上方一排（直條＋登入甜甜圈）、期間（即時／指定日期）、下方 .nbsw 分頁（全部＋11 頁）、堆疊長條＋子扇區甜甜圈、
     點長條／扇區進入分頁、子分頁、個股「K 線指標」。用 /preview/ 路徑走示範資料（正式站不會有）：以 page.route 把 /preview/style-guide/ 改寫回根目錄。"""
@@ -46951,9 +47009,9 @@ def t_traffic_1005(b, base, code):
         wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 10", 4000)
         ok(f"{TT}：選「起始日期～至今」→ 出現日期選擇器，選 9 天前 → 直條 10 根、標題寫起始日～至今", pg.locator("#admDayBars .dc").count() == 10 and "～至今" in pg.inner_text(".trhead"), pg.locator("#admDayBars .dc").count())
         pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
-        pg.select_option("#admDaysSel", "365"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 365", 5000)
+        pg.select_option("#admDaysSel", "365"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length <= 13 && document.querySelectorAll('#admDayBars .dc').length >= 12", 5000)
         y = pg.evaluate("() => { const d = document.getElementById('admDayBars'), r = d.getBoundingClientRect(), last = [...d.querySelectorAll('.dc')].pop().getBoundingClientRect(); return { n: d.querySelectorAll('.dc').length, over: Math.round(last.right - r.right), sw: document.documentElement.scrollWidth - innerWidth, ticks: document.querySelectorAll('#admDayBarsTicks span').length }; }")
-        ok(f"{TT}：近 365 天：直條 365 根、不超出圖區、沒有橫向捲軸、週刻度有（每 4 週一個，≥ 8 個）", y["n"] == 365 and y["over"] <= 1 and y["sw"] <= 1 and y["ticks"] >= 8, y)
+        ok(f"{TT}：近 365 天：> 120 天按月合併（約 12～13 格）、不超出圖區、沒有橫向捲軸、刻度 ≥ 8 個", 12 <= y["n"] <= 13 and y["over"] <= 1 and y["sw"] <= 1 and y["ticks"] >= 8, y)
         pg.select_option("#admDaysSel", "since")
         wait_until(pg, "() => !document.getElementById('admSince').hidden", 3000)
         pg.evaluate("() => { const d = new Date(Date.now() + 8 * 3600000 - 9 * 86400000).toISOString().slice(0, 10), i = document.getElementById('admSince'); i.value = d; i.dispatchEvent(new Event('change', { bubbles: true })); }")
@@ -47041,9 +47099,9 @@ def t_traffic_1005(b, base, code):
         bw = pg.evaluate("""() => { const d = [...document.querySelectorAll('#admDayBars .dc i')].map(i => i.getBoundingClientRect().width), h = [...document.querySelectorAll('#trAllB .bt, #admBody .bars .bt')].map(e => e.getBoundingClientRect().height);
             return { dmax: Math.max(...d), hmax: Math.max(...h), n: d.length }; }""")
         ok(f"{TT}：每天直條與所有橫向長條的條寬 ≤ 產業地圖條寬（17）＋2；直條約為舊版（~22）的一半", bw["n"] == 30 and bw["dmax"] <= 19 and bw["hmax"] <= 19 and bw["dmax"] <= 13, bw)
-        tk = pg.evaluate("""() => { const t = [...document.querySelectorAll('#admDayBarsTicks span')].map(s => s.textContent.trim()); const dows = t.map(x => new Date(Date.parse('2026-' + x + 'T00:00:00Z')).getUTCDay());
+        tk = pg.evaluate("""() => { const t = [...document.querySelectorAll('#admDayBarsTicks span')].map(s => s.textContent.trim()).slice(1); const dows = t.map(x => new Date(Date.parse('2026-' + x + 'T00:00:00Z')).getUTCDay());
             const gaps = t.slice(1).map((x, i) => (Date.parse('2026-' + x + 'T00:00:00Z') - Date.parse('2026-' + t[i] + 'T00:00:00Z')) / 86400000); return { t, dows, gaps }; }""")
-        ok(f"{TT}：X 軸日期每 1 週一個刻度（都是週一、相隔 7 天，30 天 4～5 個）", 4 <= len(tk["t"]) <= 5 and set(tk["dows"]) == {1} and set(tk["gaps"]) == {7}, tk)
+        ok(f"{TT}：X 軸日期：第一個是期間起日，其後每 1 週一個刻度（都是週一、相隔 7 天，30 天 3～5 個）", 3 <= len(tk["t"]) <= 5 and set(tk["dows"]) == {1} and set(tk["gaps"]) == {7}, tk)
         yy = pg.evaluate("""() => { const d = document.getElementById('admDayBars'), cs = getComputedStyle(d), m = /\/ ([0-9.]+)\)/.exec(cs.backgroundImage); return { ticks: document.querySelectorAll('.dayy span').length, alpha: m ? +m[1] : 1, weekend: !!document.querySelector('#admDayBars .we, #admDayBars .weekend') }; }""")
         ok(f"{TT}：淡淡的 Y 軸：刻度 ≥ 4 個、水平格線透明度 ≤ 0.5、沒有週末底色", yy["ticks"] >= 4 and yy["alpha"] <= 0.5 and not yy["weekend"], yy)
         # ★ 10-05 Andy「上方圖表都要有互動效果、幫我檢查其他的是否也有」：每張圖 hover 後要有浮動提示＋高亮狀態（其餘變淡）
