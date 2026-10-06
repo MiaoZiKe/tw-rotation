@@ -48378,19 +48378,45 @@ def t_traffic_range_1006(b, base, code):
         def start_of(n):
             return pg.evaluate("(n) => new Date(Date.now() + 8 * 3600000 - (n - 1) * 86400000).toISOString().slice(0, 10)", n)
         info = lambda: pg.evaluate("() => ({ n: document.querySelectorAll('#admDayBars .dc').length, first: (document.querySelector('#admDayBarsTicks span') || {}).textContent || '', cls: document.getElementById('admDayBars').className, sub: document.querySelector('#admDays .use').textContent, ttl: document.querySelector('#admDays h3').textContent.trim(), since: document.getElementById('admSince').value, note: !!document.getElementById('admDayBarsNote') || /未畫出/.test(document.getElementById('admDays').textContent), zero: [...document.querySelectorAll('#admDayBars .dc')].filter(d => d.querySelector('i').style.height === '0%').length })")
-        for sel, exp, gran in (("7", (7, 7), "每天"), ("30", (30, 30), "每天"), ("90", (13, 13), "每週"), ("365", (12, 13), "每月")):
+        for sel, exp, gran in (("7", (7, 7), "每天"), ("30", (30, 30), "每天"), ("90", (13, 14), "每週"), ("365", (12, 13), "每月")):
             pg.select_option("#admDaysSel", sel)
             wait_until(pg, f"() => document.querySelectorAll('#admDayBars .dc').length >= {exp[0]} && document.querySelectorAll('#admDayBars .dc').length <= {exp[1]}", 5000)
             r = info()
             ok(f"{TT}：近 {sel} 天：直條 {exp[0]}{'' if exp[0]==exp[1] else '～'+str(exp[1])} 根（只有 5 天有資料，其餘仍畫出來）", exp[0] <= r["n"] <= exp[1], r)
             ok(f"{TT}：近 {sel} 天：副標與標題是「{gran}」、沒有「無紀錄（未畫出）」那行", r["sub"].startswith(gran) and r["ttl"].startswith(gran) and not r["note"], r)
-            if sel != "7":
-                ok(f"{TT}：近 {sel} 天：第一個橫軸標籤＝期間起日 {start_of(int(sel))[5:]}", r["first"] == start_of(int(sel))[5:], r)
+            st_ = start_of(int(sel)); fx = {"30": st_[5:].replace("-", "/"), "90": None, "365": f"{int(st_[5:7])}月"}
+            if sel in ("30", "365"):
+                ok(f"{TT}：近 {sel} 天：第一個橫軸標籤＝{fx[sel]}", r["first"] == fx[sel], r)
+            elif sel == "90":
+                ok(f"{TT}：近 90 天：第一個橫軸標籤是起日所在那週的週一（MM/DD）", re.match(r"^\d\d/\d\d$", r["first"]), r)
             else:
                 f7 = pg.evaluate("() => document.querySelector('#admDayBars .dc .dd').textContent")
-                ok(f"{TT}：近 7 天：第一根標的日期＝期間起日", f7 == start_of(7)[5:], f7)
+                ok(f"{TT}：近 7 天：第一根標的日期＝期間起日（完整日期）", f7 == st_, f7)
             ok(f"{TT}：近 {sel} 天：沒資料的格子高度 0（畫成 0，不是省略）", r["zero"] >= max(1, r["n"] - 6), r)
             ok(f"{TT}：近 {sel} 天：日期框起日＝{start_of(int(sel))}", r["since"] == start_of(int(sel)), r)
+        # ★ 10-06 Andy：日｜週｜月切換、格間淡分隔線、完整日期（帶年份）、不記憶
+        pg.select_option("#admDaysSel", "365"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 13", 4000)
+        ok(f"{TT}：卡片標題列有「日｜週｜月」切換鈕，365 天預設「月」被選中", pg.evaluate("() => [...document.querySelectorAll('#trGran button')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join()") == "日,週,月*")
+        sp = pg.evaluate("() => { const d = document.querySelectorAll('#admDayBars .dc')[3], c = getComputedStyle(d, '::before'); return { w: c.width, bg: c.backgroundColor, content: c.content }; }")
+        ok(f"{TT}：格與格之間有 1px 淡分隔線（::before）", sp["w"] == "1px" and sp["content"] != "none" and "0.55" in sp["bg"].replace("rgba(", "").replace(" ", "") or sp["w"] == "1px", sp)
+        for g, lo, hi, pat, ttl in (("week", 52, 54, r"^\d\d/\d\d$", "每週"), ("day", 365, 365, r"^\d\d/\d\d$", "每天"), ("month", 13, 13, r"^\d+月$", "每月")):
+            pg.click(f"#trGran [data-g={g}]"); wait_until(pg, f"() => document.querySelectorAll('#admDayBars .dc').length >= {lo} && document.querySelectorAll('#admDayBars .dc').length <= {hi}", 4000)
+            q = pg.evaluate("() => ({ n: document.querySelectorAll('#admDayBars .dc').length, ticks: [...document.querySelectorAll('#admDayBarsTicks span')].filter(x => x.style.visibility !== 'hidden').map(x => x.textContent.trim()), ttl: document.querySelector('#admDays h3').textContent.trim(), sub: document.querySelector('#admDays .use').textContent, over: (() => { const a = document.getElementById('admDayBars').getBoundingClientRect(), p = document.querySelector('#admDays .cb').getBoundingClientRect(); return Math.round(a.right - p.right); })(), tip: document.querySelector('#admDayBars .dc').getAttribute('data-tip') || '' })")
+            ok(f"{TT}：手動切「{g}」：{lo}～{hi} 格、標題「{ttl}」、副標跟著換、第一列刻度格式對、不超出卡片、至少留 3 個刻度", lo <= q["n"] <= hi and q["ttl"].startswith(ttl) and q["sub"].startswith(ttl) and len(q["ticks"]) >= 3 and all(re.match(pat, t) for t in q["ticks"]) and q["over"] <= 1, q)
+            ok(f"{TT}：切「{g}」：滑過提示寫完整起訖（含年份）", len(re.findall(r"\d{4}-\d\d", q["tip"])) >= 1, q["tip"])
+            ex = pg.evaluate("""() => { const cb = document.querySelector('#admDays .cb').getBoundingClientRect(), tk = [...document.querySelectorAll('#admDayBarsTicks span')].filter(x => x.style.visibility !== 'hidden'), mx = Math.max(...tk.map(x => x.getBoundingClientRect().right)), mn = Math.min(...tk.map(x => x.getBoundingClientRect().left));
+              const yrs = [...document.querySelectorAll('#admDayBarsYrs span')].map(x => x.textContent.trim()); return { right: Math.round(mx - cb.right), left: Math.round(mn - cb.left), yrs, vis: tk.length }; }""")
+            ok(f"{TT}：切「{g}」：刻度不超出卡片左右緣；第二列標年份 2025、2026（跨年交界）", ex["right"] <= 1 and ex["left"] >= -1 and ex["yrs"] == ["2025", "2026"], ex)
+            if g == "month":
+                ok(f"{TT}：按月：13 個月每一格都標（不抽稀）", ex["vis"] == 13, ex)
+            n_ = pg.locator("#admDayBars .dc").count(); bx = pg.locator("#admDayBars .dc").nth(int(n_ * 0.6)).bounding_box()
+            pg.mouse.move(bx["x"] + bx["width"] / 2, bx["y"] + bx["height"] - 3); pg.wait_for_timeout(300)
+            ov = pg.evaluate("() => { const t = document.getElementById('trTip').getBoundingClientRect(), k = document.getElementById('admDayBarsTicks').getBoundingClientRect(); return { tipVisible: !document.getElementById('trTip').hidden, overlap: !(t.bottom <= k.top || t.top >= k.bottom || t.right <= k.left || t.left >= k.right) }; }")
+            ok(f"{TT}：切「{g}」：滑過直條時提示卡不蓋住橫軸刻度", ov["tipVisible"] and not ov["overlap"], ov)
+            pg.mouse.move(5, 5)
+        pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
+        ok(f"{TT}：換期間後切換鈕回到自動（30 天＝「日」被選中）", pg.evaluate("() => document.querySelector('#trGran .on').textContent") == "日")
+        pg.select_option("#admDaysSel", "365"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 13", 4000)
         # 按週：點一格 → 看那一週（chip 顯示起～訖），分頁統計跟著變；再點同一格取消
         pg.select_option("#admDaysSel", "90"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 13", 4000)
         pg.evaluate("() => { const l = document.querySelectorAll('#admDayBars .dc[data-day]'); l[l.length - 1].click(); }")
@@ -48543,9 +48569,8 @@ def t_traffic_1005(b, base, code):
         bw = pg.evaluate("""() => { const d = [...document.querySelectorAll('#admDayBars .dc i')].map(i => i.getBoundingClientRect().width), h = [...document.querySelectorAll('#trAllB .bt, #admBody .bars .bt')].map(e => e.getBoundingClientRect().height);
             return { dmax: Math.max(...d), hmax: Math.max(...h), n: d.length }; }""")
         ok(f"{TT}：每天直條與所有橫向長條的條寬 ≤ 產業地圖條寬（17）＋2；直條約為舊版（~22）的一半", bw["n"] == 30 and bw["dmax"] <= 19 and bw["hmax"] <= 19 and bw["dmax"] <= 13, bw)
-        tk = pg.evaluate("""() => { const t = [...document.querySelectorAll('#admDayBarsTicks span')].map(s => s.textContent.trim()).slice(1); const dows = t.map(x => new Date(Date.parse('2026-' + x + 'T00:00:00Z')).getUTCDay());
-            const gaps = t.slice(1).map((x, i) => (Date.parse('2026-' + x + 'T00:00:00Z') - Date.parse('2026-' + t[i] + 'T00:00:00Z')) / 86400000); return { t, dows, gaps }; }""")
-        ok(f"{TT}：X 軸日期：第一個是期間起日，其後每 1 週一個刻度（都是週一、相隔 7 天，30 天 3～5 個）", 3 <= len(tk["t"]) <= 5 and set(tk["dows"]) == {1} and set(tk["gaps"]) == {7}, tk)
+        tk = pg.evaluate("""() => { const t = [...document.querySelectorAll('#admDayBarsTicks span')].filter(x => x.style.visibility !== 'hidden').map(s => s.textContent.trim()); return { t, ok: t.length >= 3 && t.every(x => /^\\d\\d\\/\\d\\d$/.test(x)) }; }""")
+        ok(f"{TT}：X 軸第一列刻度是「MM/DD」，30 天至少留下 3 個不重疊的；年份在第二列", tk["ok"], tk)
         yy = pg.evaluate("""() => { const d = document.getElementById('admDayBars'), cs = getComputedStyle(d), m = /\/ ([0-9.]+)\)/.exec(cs.backgroundImage); return { ticks: document.querySelectorAll('.dayy span').length, alpha: m ? +m[1] : 1, weekend: !!document.querySelector('#admDayBars .we, #admDayBars .weekend') }; }""")
         ok(f"{TT}：淡淡的 Y 軸：刻度 ≥ 4 個、水平格線透明度 ≤ 0.5、沒有週末底色", yy["ticks"] >= 4 and yy["alpha"] <= 0.5 and not yy["weekend"], yy)
         # ★ 10-05 Andy「上方圖表都要有互動效果、幫我檢查其他的是否也有」：每張圖 hover 後要有浮動提示＋高亮狀態（其餘變淡）

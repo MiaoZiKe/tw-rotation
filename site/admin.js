@@ -664,7 +664,20 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .ptpub{margin:10px 2px 4px;font-size:14px}#v-admin .pmsep{width:1px;height:22px;background:var(--line-2);margin:0 4px}#v-admin #pmTuneEmail{width:16em}
 #v-admin .ptmenu .pmwho2{list-style:none;margin:0 0 6px;padding:0 8px;font-size:13px}#v-admin .ptmenu .pmwho2 li{height:24px;white-space:nowrap}#v-admin .ptmenu .pmwho2 a,#v-admin .ptmenu .pmgo{color:var(--cyan)}#v-admin .ptmenu .pmgo{align-self:center;font-size:13px;margin-right:auto}#v-admin .ptmenu .more{color:var(--ink-2)}
 #v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
-#v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
+#v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}/* ===== 2026-10-06 每日直條：格與格之間淡分隔線、日／週／月切換鈕 ===== */
+#admBody .days.sep{min-width:0}#admBody .days.sep:not(.many) .dc{max-width:none;margin:0;--bw:12px;min-width:0}
+#admBody .days.sep.few .dc{--bw:24px}#admBody .days.sep.coarse .dc{--bw:44px}
+#admBody .days.sep:not(.many) .dc>i{width:min(100%,var(--bw))}
+#admBody .days.sep:not(.many) .dc+.dc::before{content:'';position:absolute;left:-1px;top:0;bottom:0;width:1px;background:color-mix(in srgb,var(--line) 55%,transparent);pointer-events:none}
+#admBody .days.sep.many .dc+.dc::before{display:none}#admBody .days.sep.many{gap:0}#admBody .days.sep.many .dc{min-width:0}
+#admBody .days.sep.few{gap:0;padding:0}#admBody .days.sep.coarse{gap:0}#admBody .days.sep:not(.many):not(.few):not(.coarse){gap:0}
+#admBody .dayticks span.tf{transform:none}#admBody .dayticks span.tl{transform:translateX(-100%)}
+#admBody .dayyrs{position:relative;height:18px;padding-left:calc(3em + 8px)}#admBody .dayyrs>div{position:relative;height:100%}
+#admBody .dayyrs span{position:absolute;top:0;font:700 12px/16px var(--mono);color:var(--ink-2);padding-left:4px;border-left:1px solid var(--ink-3,#7a879c);white-space:nowrap}
+#admBody .days .yl{position:absolute;top:0;bottom:0;width:0;border-left:1px solid color-mix(in srgb,var(--ink-3,#7a879c) 70%,transparent);pointer-events:none;z-index:1}
+#admDays{position:relative}#admDays .grtog{position:absolute;right:16px;top:12px;z-index:2}
+#admDays .grtog button{min-width:36px}
+`;
     /* 2026-10-06：會員名單上方的統計（#ptStats）照流量觀測的卡片／直條／橫條／甜甜圈做 → 流量觀測那一整套 #admBody 底下的規則，
        用 :is(#admBody,#ptStats) 讓 #ptStats 也吃到（特異度不變），不複製、不改上面任何一條規則；#ptStats 專屬的版面規則在 MS_CSS。 */
     s.textContent = s.textContent.replace(/#admBody(?![\w-])/g, ':is(#admBody,#ptStats)') + MS_CSS;
@@ -918,7 +931,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; const nowH = st.hstat && Number.isInteger(st.hstat.hour) ? st.hstat.hour : null; st.hours.forEach((n, h) => { dmap[days[h]] = nowH != null && h > nowH ? null : n; }); }
     else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse((untilDay || st.to) + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
     /* 橫軸一律涵蓋整個選定期間（沒紀錄的日子是 0）；期間長就合併粒度：≤31 天按日、32～120 天按週（從起日起每 7 天一格）、>120 天按月 */
-    const bk = S.period === 'live' && st.hours ? null : bucketize(days);
+    const bk = S.period === 'live' && st.hours ? null : bucketize(days, S.gran || '');
     const pvAgg = (m) => { if (!bk || bk.gran === 'day') return m; const o = {}; bk.keys.forEach((k) => { o[k] = 0; }); Object.keys(m).forEach((d) => { const k = bk.of[d]; if (k !== undefined) o[k] += m[d]; }); return o; };
     if (bk && bk.gran !== 'day') { dmap = pvAgg(perDay); days = bk.keys.slice(); }
     const dmax = Math.max(1, ...days.map((d) => dmap[d] || 0));
@@ -957,6 +970,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
     v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
+    thinTicks(v);
     paintTrTabs();
     bindHover(v.querySelector('#admBody'));
   }
@@ -982,7 +996,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
           extra: `<button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span>` })}</div>
       <div class="admgrid trtop">
-        <div class="card s2" id="admDays"><h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
+        <div class="card s2" id="admDays">${S.period === 'live' || !bk ? '' : `<div class="nbsw lv2 grtog" id="trGran" role="tablist" aria-label="統計單位">${[['day', '日'], ['week', '週'], ['month', '月']].map(([k, n]) => `<button type="button" role="tab" data-g="${k}" class="${bk.gran === k ? 'on' : ''}" aria-selected="${bk.gran === k}">${n}</button>`).join('')}</div>`}<h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
       </div>`;
   }
@@ -1081,12 +1095,13 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     // 下拉／日期框的同步規則在 site/rangepick.js（手改日期 → 下拉跳「起始日期～至今」）；這裡只管期間狀態怎麼存
     window.RangePick.bind(v.querySelector('#admDaysSel').closest('.rpk'), { onChange: ({ value, from, to, manual }) => {
       S.day = ''; S.dayTo = '';
-      if (!manual) { S.period = value; if (S.period === 'since') S.since = S.since || from; apply(); return; }
+      if (!manual) { S.gran = ''; S.period = value; if (S.period === 'since') S.since = S.since || from; apply(); return; }
       if (!okD(from)) return;
       let t = okD(to) ? to : todayTpe(); if (t < from) t = from;
-      S.period = 'since'; S.since = from; S.until = t >= todayTpe() ? '' : t; apply();
+      S.gran = ''; S.period = 'since'; S.since = from; S.until = t >= todayTpe() ? '' : t; apply();
     } });
     const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; const tgl = S.day === dc.dataset.day && (S.dayTo || S.day) === (dc.dataset.to || dc.dataset.day); S.day = tgl ? '' : dc.dataset.day; S.dayTo = tgl ? '' : (dc.dataset.to || dc.dataset.day); paint(); };
+    const gtg = v.querySelector('#trGran'); if (gtg) gtg.onclick = (e) => { const b = e.target.closest('button[data-g]'); if (!b) return; S.gran = b.dataset.g; S.day = ''; S.dayTo = ''; paint(); };
     const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; S.dayTo = ''; paint(); };
     v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
     if (S.spin) { S.spin = false; const rb = v.querySelector('#admRefresh'); if (rb) rb.classList.add('spin'); }
@@ -1104,7 +1119,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   function bindHover(root) {
     if (!root || root._hov) return; root._hov = true;
-    const place = (x0, y0) => { const t = tipEl(); if (t.hidden) return; const w = t.offsetWidth, h = t.offsetHeight; let x = x0 + 14, y = y0 + 16; if (x + w > innerWidth - 8) x = x0 - w - 14; if (y + h > innerHeight - 8) y = y0 - h - 12; t.style.left = Math.max(8, x) + 'px'; t.style.top = Math.max(8, y) + 'px'; };
+    const place = (x0, y0) => { const t = tipEl(); if (t.hidden) return; const w = t.offsetWidth, h = t.offsetHeight; let x = x0 + 14, y = y0 + 16; if (x + w > innerWidth - 8) x = x0 - w - 14; if (y + h > innerHeight - 8 || (t.dataset.up && y0 - h - 12 >= 8)) y = y0 - h - 12; /* 每日直條的提示放在游標上方，不蓋住下面的橫軸刻度 */ t.style.left = Math.max(8, x) + 'px'; t.style.top = Math.max(8, y) + 'px'; };
     /* 高亮＋提示（滑鼠滑過與觸控點一下共用）：target＝事件目標，(x,y)＝提示位置；回傳是否真的有東西可以顯示 */
     const show = (target, x, y) => {
       const chart = target.closest && target.closest('[data-chart]'); if (!chart) return false;
@@ -1121,7 +1136,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         swap = [lg.dataset.k, (lg.querySelector('small') || {}).textContent];
       }
       const sv = chart.querySelector('svg[data-d1]'); if (sv && swap && swap[1]) { sv.querySelector('.c1').textContent = swap[0]; sv.querySelector('.c2').textContent = swap[1].replace(/^.*・/, ''); }
-      if (te && te.dataset.tip) { const t = tipEl(); t.innerHTML = te.dataset.tip; t.hidden = false; place(x, y); return true; }
+      if (te && te.dataset.tip) { const t = tipEl(); t.innerHTML = te.dataset.tip; t.dataset.up = chart.dataset.chart === 'days' ? '1' : ''; t.hidden = false; place(x, y); return true; }
       return false;
     };
     const clearAll = () => { root.querySelectorAll('[data-chart].hov').forEach(hovClear); tipEl().hidden = true; S.tapEl = null; };
@@ -1243,13 +1258,23 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   const stockTable = (rows) => `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td><span class="vb"><span><i style="width:${(r.views / Math.max(1, rows[0].views) * 100).toFixed(1)}%"></i></span><em>${nf(r.views)}</em></span></td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>`;
   /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代）。圖區吃滿卡片高度；y 軸 0／一半／最大值＋淡格線＋平均虛線；
      最高那天標值；天數 ≤ 7 時每根放大（寬到 140）並在柱上標值、柱下標日期，不再是細細兩根留一大片空白 */
+  /* 橫軸刻度（每格一個完整日期）：依實際寬度由左到右留下不重疊的，第一個一定留；視窗縮放時重算 */
+  function thinTicks(root) {
+    (root || document).querySelectorAll('.dayticks').forEach((bx) => {
+      const sp = [...bx.querySelectorAll('span')]; sp.forEach((x) => { x.style.visibility = ''; });
+      let end = -1e9; sp.forEach((x) => { const r = x.getBoundingClientRect(); if (r.left < end + 6) x.style.visibility = 'hidden'; else end = r.right; });
+    });
+  }
+  if (!window.__admThin) { window.__admThin = 1; window.addEventListener('resize', () => { if (window.__admThinT) clearTimeout(window.__admThinT); window.__admThinT = setTimeout(() => thinTicks(document.getElementById('v-admin')), 120); }); }
   const days0 = (days, bk) => (bk && bk.gran !== 'day' ? bk.info[days[0]].from : days[0]);
   /* 把「整段期間的每一天」分格：≤31 天按日；32～120 天按週（從起日起每 7 天一格，最後一格可能不滿 7 天）；>120 天按日曆月。
      回傳 keys（每格的 key）、info[key]＝{from,to,n,label}、of[日期]＝那天屬於哪一格 */
-  function bucketize(days) {
-    const n = days.length, gran = n <= 31 ? 'day' : n <= 120 ? 'week' : 'month', keys = [], info = {}, of = {};
-    days.forEach((d, i) => {
-      const k = gran === 'day' ? d : gran === 'week' ? days[i - (i % 7)] : d.slice(0, 7);
+  function bucketize(days, force) {
+    const n = days.length, gran = force || (n <= 31 ? 'day' : n <= 120 ? 'week' : 'month'), keys = [], info = {}, of = {};
+    days.forEach((d) => {
+      let k = d;
+      if (gran === 'week') { const t = Date.parse(d + 'T00:00:00Z'), dow = new Date(t).getUTCDay(); k = new Date(t - ((dow + 6) % 7) * 86400000).toISOString().slice(0, 10); }      // 週一起日
+      else if (gran === 'month') k = d.slice(0, 7);
       if (!info[k]) { keys.push(k); info[k] = { from: d, to: d, n: 0 }; }
       info[k].to = d; info[k].n++; of[d] = k;
     });
@@ -1262,17 +1287,19 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const shown = days.slice(), few = shown.length <= 7, dtot = shown.reduce((s, d) => s + (perDay[d] || 0), 0);
     const avg = shown.reduce((s, d) => s + (perDay[d] || 0), 0) / shown.length, mxd = shown.reduce((a, d) => ((perDay[d] || 0) > (perDay[a] || 0) ? d : a), shown[0]);
     /* X 軸刻度：每 7 天（週一）標一個；期間很長（> 98 天）改成每 4 週，免得擠在一起。時間是每小時（HH:00）就每 4 小時一個 */
-    let ticks = [];
+    /* 橫軸兩列：第一列每一格都標（月＝「10月」、週／日＝「10/06」，太密時由 thinTicks 依實際寬度藏掉重疊的）；第二列只在年份交界處標年份，年線貫穿圖區 */
+    const isHr = /^\d\d:00$/.test(shown[0]), lab = (d) => (isHr ? d : d.length === 7 ? `${+d.slice(5, 7)}月` : d.slice(5).replace('-', '/'));
+    let ticks = [], yrs = [];
     if (!few) {
-      if (/^\d\d:00$/.test(shown[0])) ticks = shown.map((d, i) => [d, i]).filter(([d, i]) => i % 4 === 0);
-      else if (!co) { ticks.push([shown[0], 0]); shown.forEach((d, i) => { if (i >= 3 && new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay() === 1) ticks.push([d, i]); }); }      // 按日：第一個刻度＝期間起日，其後每個週一
-      else { const step = Math.max(1, Math.ceil(shown.length / (co && co.gran === 'month' ? 13 : 8))); shown.forEach((d, i) => { if (i % step === 0) ticks.push([co ? co.info[d].from : d, i]); }); }      // 第一個刻度＝期間起日，其餘等距
+      ticks = isHr ? shown.map((d, i) => [d, i]).filter(([d, i]) => i % 4 === 0) : shown.map((d, i) => [d, i]);
+      if (!isHr) shown.forEach((d, i) => { if (i === 0 || d.slice(0, 4) !== shown[i - 1].slice(0, 4)) yrs.push([d.slice(0, 4), i]); });
     }
     const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(dmax * f))}</span>`).join('');
     return `<div class="dayplot"><div class="dayy">${ys}</div>
-      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}${co ? ' coarse' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && S.day && (co ? co.info[d].from : d) === S.day && (S.dayTo || S.day) === (co ? co.info[d].to : d) ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${co ? co.info[d].from : d}" data-to="${co ? co.info[d].to : d}"` : ''} data-row="${di}"${tp(`<b>${esc(co ? (co.gran === 'week' ? co.info[d].from.slice(5) + '～' + co.info[d].to.slice(5) : d + '（' + co.info[d].from.slice(5) + '～' + co.info[d].to.slice(5) + '）') + '　共 ' + co.info[d].n + ' 天' : d)}${!co && /^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd || (co && shown.length <= 14 && (perDay[d] || 0) > 0) ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
-        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>${co ? '每' + gl + '平均' : '平均'} ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
-      ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${ticks.map(([d, i]) => `<span style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${/^\d\d:00$/.test(d) ? d : d.slice(5)}</span>`).join('')}</div></div>`}
+      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}${co ? ' coarse' : ''}${idp === 'admDayBars' || idp === 'trPgDays' ? ' sep' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && S.day && (co ? co.info[d].from : d) === S.day && (S.dayTo || S.day) === (co ? co.info[d].to : d) ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${co ? co.info[d].from : d}" data-to="${co ? co.info[d].to : d}"` : ''} data-row="${di}"${tp(`<b>${esc(co ? (co.gran === 'week' ? co.info[d].from + '～' + co.info[d].to : d + '（' + co.info[d].from + '～' + co.info[d].to + '）') : d)}${!co && /^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${co ? '共 ' + co.info[d].n + ' 天・' : ''}${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${/^\d{4}-/.test(d) && !co ? d : d}</span>` : ''}</div>`).join('')}
+        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>${co ? '每' + gl + '平均' : '平均'} ${nf(Math.round(avg))}</b></div>` : ''}${yrs.filter(([y, i]) => i > 0).map(([y, i]) => `<span class="yl" style="left:${(i / shown.length * 100).toFixed(2)}%"></span>`).join('')}</div></div>
+      ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${ticks.map(([d, i]) => `<span class="${i === shown.length - 1 && !(co && co.gran === 'month') ? 'tl' : ''}" style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${lab(d)}</span>`).join('')}</div></div>
+      ${yrs.length ? `<div class="dayyrs" id="${idp}Yrs"><div>${yrs.map(([y, i]) => `<span style="left:${(i / shown.length * 100).toFixed(2)}%">${y}</span>`).join('')}</div></div>` : ''}`}
 `;
   }
   /* 散佈圖：依容器實際大小畫（ResizeObserver 重畫），圖吃滿卡片；格線 3 條、軸刻度＝真值；標籤避開已放的標籤 */
