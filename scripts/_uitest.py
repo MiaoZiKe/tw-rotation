@@ -23773,8 +23773,8 @@ def t_timegrid_1006(pg, base):
 
     def _alpha(c):
         return float(_re.search(r",([0-9.]+)\)$", c).group(1))
-    ok(f"★ [{tag}] 兩個主題的透明度：年 > 月 > 週，且都 <= 0.4（極淡、不搶資料線）",
-       all(_alpha(v[0]) > _alpha(v[1]) > _alpha(v[2]) and _alpha(v[0]) <= 0.4 for v in col.values()), col)
+    ok(f"★ [{tag}] 兩個主題的透明度：年 > 月 > 週，且都 <= 0.6（淡、不搶資料線）",
+       all(_alpha(v[0]) > _alpha(v[1]) > _alpha(v[2]) and _alpha(v[0]) <= 0.6 for v in col.values()), col)
     # ---------------------------------------------------------------- ⑤ 個股頁：營收（月資料）、獲利（季資料）、本益比河流、法人
     theme("dark")
     pg.goto(base + "#stock/2330")

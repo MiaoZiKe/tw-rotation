@@ -121,7 +121,7 @@
      原本想用 --line-2，但淺色主題的 --line-2 本來就接近白（≈ #c2cde1 on #f7fafd），α .45 之後量不到線；
      改用 ink-3 之後兩個主題的「線與底色的差」才在同一個量級（量測見 docs/ui_polish_spec.md）。
      深色底上 ink-3 比底亮，淺色底上 ink-3 比底暗，所以 α 兩組：深 月 .13／年 .30，淺 月 .15／年 .32。 */
-  const ALPHA = { dark: { year: 0.30, month: 0.13, week: 0.09, day: 0.09 }, light: { year: 0.32, month: 0.15, week: 0.10, day: 0.10 } };
+  const ALPHA = { dark: { year: 0.48, month: 0.24, week: 0.15, day: 0.15 }, light: { year: 0.50, month: 0.26, week: 0.16, day: 0.16 } };
   function rgb() {
     try {
       const s = getComputedStyle(document.documentElement).getPropertyValue('--ink-3').trim();
