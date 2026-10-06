@@ -1515,7 +1515,8 @@
         const tag = document.createElement('div');
         tag.className = 'tk-gap';
         tag.dataset.from = KUtil_fmt(sg.g[0]); tag.dataset.to = KUtil_fmt(sg.g[1]);
-        tag.title = `${tag.dataset.from}～${tag.dataset.to}：` + (sg.g[3] || '早盤分 K 延遲約 20 分鐘，稍後補上');
+        // ★ 2026-10-06（Andy「不要出現這樣廢話」）：滑過只寫一句「HH:MM～HH:MM 尚無資料」，不寫來源與補資料時間
+        tag.title = `${tag.dataset.from}～${tag.dataset.to} 尚無資料`;
         if (!sg.line) tag.dataset.lead = '1';
         const left = Math.round(Math.min(x0, x1)), w = Math.max(2, Math.round(Math.abs(x1 - x0)));
         tag.style.left = left + 'px';
@@ -1526,8 +1527,9 @@
         this.gapTags.push(tag);
         /* 小標：缺口比字窄（手機上 19 分鐘只有二十幾 px）也照樣標 —— 字塊置中在缺口上、可以超出底紋，
            但夾在價格區左右邊界裡（不蓋到價格軸）。只有 1～2 分鐘那種小斷（< 8px）不放字，免得滿圖都是小標。*/
-        if (w >= 8) {
-          const sp = document.createElement('span'); sp.textContent = sg.g[2] || '此段等待資料'; tag.appendChild(sp);
+        // 2026-10-06：斜線上的小標拿掉（斜線本身就是「這段沒資料」的畫面語言），只在呼叫端明確給字時才放
+        if (w >= 8 && sg.g[2]) {
+          const sp = document.createElement('span'); sp.textContent = sg.g[2]; tag.appendChild(sp);
           let plotW = 0; try { plotW = ts.width(); } catch (e) { plotW = this.el.clientWidth - 60; }
           const sw = sp.offsetWidth;
           const at = Math.max(2, Math.min(left + (w - sw) / 2, plotW - sw - 2));

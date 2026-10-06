@@ -8590,7 +8590,7 @@ def t_stock(pg, base, code):
         # ★ 2026-09-25（審查 R5）：Yahoo 真的抓失敗時改成「先退回有資料的週期」並在 #liveNote 講清楚，
         #   所以這裡接受兩種：空狀態文案，或（已退回＋說明是中文、寫出現在畫的是哪一個）。
         if t["tf"] in LIVE_TFS:
-            fb = pg.evaluate("() => ({ fb: window.Industry._dbg().fallbackTf, note: (document.getElementById('liveNote')||{}).textContent || '' })")
+            fb = pg.evaluate("() => ({ fb: window.Industry._dbg().fallbackTf, note: ((document.getElementById('liveNote')||{}).dataset || {}).note || '' })")
             ok(f"即時週期 {t['tf']} 沒有來源時有講清楚（空狀態，或退回有資料的週期並說明）",
                st["empty"] or (bool(fb["fb"]) and st["canvas"] > 0 and "先顯示" in fb["note"] and "Failed" not in fb["note"]), {**st, **fb})   # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「先改畫…K（最近一份可用的資料）；即時報價接上後會自動換回」→「先顯示…K」
             continue
@@ -12398,7 +12398,7 @@ def t_livek(pg, base, code):
     changed("切到 1 分之後畫面真的不一樣", before, after)
     n1m = pg.evaluate("() => (window.LiveK.bars('1m')||[]).length")
     ok("1 分 K 有資料（Yahoo 補的早盤）", n1m > 10, n1m)
-    note = text(pg, "#liveNote")
+    note = pg.evaluate(LIVENOTE_JS)
     ok("畫面上寫清楚資料哪裡來、量是估計值", "估計值" in note or "Yahoo" in note, note[:100])
 
     # --- 3. ★ 價格要從 trade.z 拿，不是最佳買價（2026-09-15 修的 bug）
@@ -12588,7 +12588,7 @@ def t_livek_offhours(pg, base, code):
             const lb = d.lastBar != null && /^\\d+$/.test(d.lastBar) ? KUtil.fmtTime(+d.lastBar, '1m') : d.lastBar;
             const ln = document.getElementById('liveNote') || {};
             return { tf: d.tf, offDay: d.offDay, n: d.barsTotal, last: lb, fb: d.fallbackTf, has: d.hasChart,
-                     note: ln.innerText || '', noteHidden: !!ln.hidden,
+                     note: (ln.dataset || {}).note || '', noteHidden: !!ln.hidden,
                      empty: (document.querySelector('#lwc .empty') || {}).innerText || '',
                      legend: (document.getElementById('legendOv') || {}).innerText || '' }; }""")
 
@@ -12713,7 +12713,7 @@ def t_livek_offhours(pg, base, code):
         pg.wait_for_timeout(900)
         n1 = pg.evaluate("() => (window.LiveK.bars('5s')||[]).length")
         ok("C 5 秒：餵一筆今天的報價，5 秒 K 真的多一根（盤中照舊邊看邊長）", n1 == n0 + 1, f"{n0} → {n1}")
-        ok("C 5 秒：盤中不顯示「非即時」", "非即時" not in text(pg, "#liveNote"), text(pg, "#liveNote")[:100])
+        ok("C 5 秒：盤中不顯示「非即時」", "非即時" not in pg.evaluate(LIVENOTE_JS), pg.evaluate(LIVENOTE_JS)[:100])
         saved = pg.evaluate(f"() => {{ const o = JSON.parse(localStorage.getItem('tw.livek.{today}.{code}') || 'null'); return o ? o.t.length : 0; }}")
         ok("C 盤中收的 5 秒序列照舊存進今天的鍵", saved == 2, saved)
 
@@ -16375,7 +16375,7 @@ def t_r5(pg, base, code):
     goto_stock(wait=3200)
     click(pg, "#tfSeg button[data-tf='1m']", 2200)
     d6 = pg.evaluate("() => window.Industry._dbg()")
-    note = text(pg, "#liveNote")
+    note = pg.evaluate(LIVENOTE_JS)
     host_txt = pg.evaluate("() => (document.getElementById('chartHost') || {}).innerText || ''")
     ok("R5-6 按鈕仍亮在 1 分（使用者的選擇不動）", d6.get("tf") == "1m", d6.get("tf"))
     ok("★ R5-6 Yahoo 抓不到時畫面上沒有英文原始錯誤（Failed to fetch）",
@@ -18291,7 +18291,7 @@ def t_tick_spark(pg, base, code):
         return { tf: d.tf, tick: d.tick, has: d.hasChart, tickNone: d.tickNone, tfAuto: d.tfAuto,
                  first: bs.length ? bs[0].dataset.tf : null, firstTxt: bs.length ? bs[0].textContent.trim() : '',
                  on: on ? on.dataset.tf : null, tickOff: tb ? tb.classList.contains('off') : null,
-                 note: ln.hidden ? '' : (ln.innerText || ''),
+                 note: (ln.dataset || {}).note || '',   // 2026-10-06 說明列不顯示，句子在 data-note
                  empty: (document.querySelector('#lwc .empty') || {}).innerText || '',
                  canvas: document.querySelectorAll('#lwc canvas').length }; }"""
 
@@ -19816,7 +19816,7 @@ def t_tick_live_1002(b, base, code):
     ok("★ [分時即時] 缺口那幾分鐘主線是空白（不是實線）", gi["n"] == 19 and gi["solid"] == 0, gi)
     ok("★ [分時即時] 缺口兩端用虛線連起來（另一條線、虛線樣式）", gi["segs"] == 1 and gi["glPts"] == 2 and gi["style"] == gi["dashed"], gi)
     ok("★ [分時即時] 圖上標「此段等待資料」", gi["tag"].startswith("Yahoo 延遲約 20 分") and gi["tw"] > 20, gi)
-    note = text(pg, "#liveNote")
+    note = pg.evaluate(LIVENOTE_JS)
     ok("★ [分時即時] 說明寫出三段：Yahoo 09:00～10:10、10:30 之後本頁即時累積、10:11～10:29 暫無資料",
        "09:00～10:10 來自 Yahoo" in note and "10:30 之後是本頁即時累積" in note and "10:11～10:29 在你打開頁面之前，暫無資料" in note, note)
     ok("[分時即時] 說明照時間順序寫（Yahoo → 缺口 → 即時）",
@@ -19840,7 +19840,7 @@ def t_tick_live_1002(b, base, code):
     ok("★ [分時即時] Yahoo 追上來之後缺口縮成 10:21～10:29", [[hm(g[0]), hm(g[1])] for g in m5["gaps"]] == [["10:21", "10:29"]],
        [[hm(g[0]), hm(g[1])] for g in m5["gaps"]])
     pg.wait_for_timeout(600)
-    note5 = text(pg, "#liveNote")
+    note5 = pg.evaluate(LIVENOTE_JS)
     ok("[分時即時] 說明跟著改成 09:00～10:20、10:21～10:29", "09:00～10:20" in note5 and "10:21～10:29" in note5, note5)
 
     # ---------- ⑥ 重新整理：累積的還在（報價故意失敗，畫得出來就只可能是 localStorage）
@@ -19887,7 +19887,7 @@ def t_tick_live_1002(b, base, code):
     g8 = pg.evaluate("""() => ({ tags: document.querySelectorAll('#lwc .tk-gap').length,
         gl: TickChart.last.gapLine.data().filter(p => p.value != null).length })""")
     ok("★ [分時即時] 缺口補滿：「此段等待資料」小標與虛線都拿掉", g8["tags"] == 0 and g8["gl"] == 0, g8)
-    note8 = text(pg, "#liveNote")
+    note8 = pg.evaluate(LIVENOTE_JS)
     ok("[分時即時] 缺口補滿後說明不再寫「暫無資料」", "暫無資料" not in note8 and "09:00～10:30 來自 Yahoo" in note8, note8)
     ctx.close()
 
@@ -20004,7 +20004,7 @@ def t_tick_live_lead(b, base):
     ok("★ [分時開盤頭段] 圖上標「此段等待資料」（開盤到第一根，夠寬才放字）", li["tag"].startswith("Yahoo 延遲約 20 分") and li["lead"] == "1" and li["w"] >= 72, li)
     ok("★ [分時開盤頭段] 左邊沒有點可以連：不畫虛線、09:00～第一根之前主線也沒有任何點（不從昨收拉線）",
        li["gl"] == 0 and li["before"] == 0 and hm(li["first"]) == "09:28", li)
-    note = text(pg, "#liveNote")
+    note = pg.evaluate(LIVENOTE_JS)
     ok("[分時開盤頭段] 說明寫「09:00～09:27 Yahoo 還沒給今天的 1 分 K」與「09:28 之後是本頁即時累積」",
        "09:00～09:27 Yahoo 還沒給今天的 1 分 K" in note and "09:28 之後是本頁即時累積" in note, note)
 
@@ -23083,7 +23083,7 @@ def t_live_admin_1006(b, base, code):
         ok(f"★ [{T}] {who} 個股：報價格子（現價、漲跌幅）停 6 秒一個字都沒被改（盤後靜態值）", len(cells0) >= 2 and cells0 == cells1, [cells0[:4], cells1[:4]])
         sk = pg.evaluate("""() => ({ tfs: [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf), tg: document.querySelectorAll('#skChartCard .livetg, .livetg').length,
             chk: [...document.querySelectorAll('#tfChk [data-tf]')].map(e => e.dataset.tf),
-            note: (document.getElementById('liveNote') || document.querySelector('.livenote') || {}).textContent || '',
+            note: ((document.getElementById('liveNote') || document.querySelector('.livenote') || {}).dataset || {}).note || '',
             lk: !!(window.LiveK && LiveK.ticking), today: !!(window.LiveK && LiveK.todayBar && LiveK.todayBar()) })""")
         ok(f"★ [{T}] {who} 個股：週期列沒有 1分／5分／15分（存檔勾著也不列；分時、1時…月照常）",
            not any(t in sk["tfs"] for t in ("1m", "5m", "15m")) and "1d" in sk["tfs"] and "tick" in sk["tfs"], sk["tfs"])
@@ -23329,6 +23329,8 @@ SECTIONS = {
     "零件誰做的":          lambda pg, b, base, code: t_whomakes(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "指標技術分析1005":    lambda pg, b, base, code: t_tag_tech_1005(pg, base),
+    "指標分頁只留指標卡1006": lambda pg, b, base, code: t_tag_only_1006(b, base, code),
+    "分時說明拿掉1006":    lambda pg, b, base, code: t_tick_note_1006(b, base, code),
     "個股版面1004":        lambda pg, b, base, code: t_stock_lay_1004(pg, base),
     "個股週期即時1005":    lambda pg, b, base, code: t_stock_livek_1005(b, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
@@ -25384,38 +25386,128 @@ def _ai_ov_tabs(pg, tag):
 
 
 def t_tag_tech_1005(pg, base):
-    """個股頁「指標」分頁頂部的技術分析卡（2026-10-05，Andy：「技術面在上方『指標』需要新增…記得標明這不構成投資建議」）。
-    真的點「指標」分頁 → 驗卡片出現在指標卡上方、四個週期、型態條件攤開、訊號燈數與 AI 卡一致、免責在、沒有推薦／買進字樣、不需捲動。"""
+    """個股頁「指標」分頁頂部的技術分析卡（2026-10-05 Andy 要加）。
+    ★ 2026-10-06 改前→改後（驗收過時：Andy 10-06 13:12 推翻 10-05 那一句 ——「指標不應該出現這樣的內容應該只要圖二那樣即可」）：
+      改前驗「點指標 → 技術分析卡出現在指標卡上方、四週期、逐條條件攤開…」；改後驗它**不再出現**、指標卡照舊在，
+      而技術面的完整內容還在總覽 AI 卡（技術面那一面，有四個週期列與九顆燈）。多檔逐一驗在「指標分頁只留指標卡1006」。"""
     tag = "[指標技術分析 6274]"
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#stock/6274", wait_until="networkidle"); pg.wait_for_timeout(2000)
-    ok(f"{tag} 點「指標」之前沒有技術分析卡", count(pg, "#tagTech") == 0, count(pg, "#tagTech"))
     btn = pg.locator('#stockTabs button[data-t="tags"]')
     if not ok(f"{tag} 分頁列有「指標」", btn.count() == 1, btn.count()):
         return
     btn.click(); pg.wait_for_timeout(800)
-    st = pg.evaluate("""() => {
-      const c = document.getElementById('tagTech'), t = document.getElementById('tagCard');
-      if (!c) return null;
-      const tf = [...c.querySelectorAll('#ttTfs .tfn')].map(x => x.textContent.trim());
-      const ck = c.querySelector('.aickbody');
-      return { tf, txt: c.innerText, warn: (document.getElementById('ttWarn') || {}).innerText || '',
-        before: !!(t && (c.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)),
-        ckVis: !!(ck && !ck.hidden && ck.getBoundingClientRect().height > 0),
-        nSig: c.querySelectorAll('#ttSig > *').length, nAiSig: document.querySelectorAll('#aiSig > *').length,
-        scroll: c.scrollHeight - c.clientHeight, dupId: document.querySelectorAll('#aiTfs').length };
-    }""")
-    if not ok(f"★ {tag} 點了之後「技術分析」卡出現", st is not None, st):
-        return
-    ok(f"★ {tag} 技術分析卡在原本指標卡上方", st["before"], st["before"])
-    ok(f"★ {tag} 四個週期列（1小時／4小時／日線／週線）", len(st["tf"]) == 4 and any("週" in x for x in st["tf"]) and any("日" in x for x in st["tf"]), st["tf"])
-    ok(f"★ {tag} 型態條件（回檔／突破／停損距離）直接攤開", st["ckVis"] and "回檔型態" in st["txt"] and "突破型態" in st["txt"] and "停損距離" in st["txt"], st["txt"][:200])
-    ok(f"{tag} 原因、若…則…、支撐／壓力都在", "的原因" in st["txt"] and "支撐／壓力" in st["txt"], st["txt"][:200])
-    ok(f"★ {tag} 訊號標籤數與 AI 卡一致", st["nSig"] > 0 and st["nSig"] == st["nAiSig"], (st["nSig"], st["nAiSig"]))
-    ok(f"★ {tag} 卡頂免責字樣", "不構成投資建議" in st["warn"] and "非證券投資顧問" in st["warn"], st["warn"])
-    ok(f"★ {tag} 沒有「推薦／買進」字樣", "推薦" not in st["txt"] and "買進" not in st["txt"], None)
-    ok(f"{tag} 完整攤開、卡內不捲動；id 不跟 AI 卡撞", st["scroll"] <= 1 and st["dupId"] == 1, (st["scroll"], st["dupId"]))
+    st = pg.evaluate("() => ({ tt: !!document.getElementById('tagTech'), tc: !!document.getElementById('tagCard'), txt: (document.getElementById('stockTab') || {}).innerText || '' })")
+    ok(f"★ {tag} 點「指標」→ 沒有技術分析長卡（#tagTech 不存在、沒有「技術分析」標題）、指標卡照舊在", not st["tt"] and st["tc"] and "技術分析" not in st["txt"], st["txt"][:120])
+    click(pg, '#stockTabs button[data-t="overview"]', 900)
+    click(pg, '#ovAiTags .ovtag[data-facet="tech"]', 400)
+    ov = pg.evaluate("() => ({ tfs: document.querySelectorAll('#ovF-tech .ovtfs .tfn').length, sig: document.querySelectorAll('#ovFacets > [data-facet=\"sig\"] .light').length })")
+    ok(f"{tag} 技術面完整內容還在總覽 AI 卡（週期列、九顆燈）", ov["tfs"] >= 3 and ov["sig"] == 9, ov)
 
+
+# ★ 2026-10-06 13:12（Andy 截圖 #stock/4551：「指標不應該出現這樣的內容應該只要圖二那樣即可。幫我修復並確保其他股票一樣不會發生」）
+#   根因：10-05 在 tabTags 對每一檔無條件把 StockAI.techCardHTML 插在指標卡上面（不是搬位或缺資料退回）—— 所以每一檔都有。
+#   這段抽 7 檔（含 ETF 0050、沒有季報的 9103）在 1440 與 390（完整版的桌機分頁、與手機券商式的「指標」分頁）逐一進指標分頁。
+TAGONLY_BANNED = ("技術分析", "若…則…", "回檔型態", "突破型態", "規則推算")
+
+
+def t_tag_only_1006(b, base, code):
+    T = "指標分頁只留指標卡1006"
+    codes = [c for c in ("2330", "3189", "2603", "4551", "1101", "0050", "9103") if (SITE / "data" / "stock" / f"{c}.json").exists()]
+    ok(f"[{T}] 7 檔樣本的個股 JSON 都在（前置條件）", len(codes) == 7, codes)
+    for W in (1440, 390):
+        kw = {"viewport": {"width": W, "height": 900 if W > 640 else 844}}
+        if W <= 640:
+            kw.update(device_scale_factor=2, is_mobile=True, has_touch=True)
+        ctx = b.new_context(**kw)
+        pg = ctx.new_page()
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        try:
+            for c in codes:
+                tg = f"[{T}] {W} {c}"
+                pg.goto("about:blank")
+                pg.goto(f"{base}#stock/{c}", wait_until="networkidle")
+                if W <= 640:
+                    wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 3", 15000)
+                    # 手機券商式的「指標」分頁（有的話）也掃一次
+                    if count(pg, '#mbTabs button[data-t="tag"]'):
+                        pg.eval_on_selector('#mbTabs button[data-t="tag"]', "b => b.click()"); pg.wait_for_timeout(900)
+                        mt = pg.evaluate("() => (document.getElementById('mbBody') || {}).innerText || ''")
+                        ok(f"★ {tg} 手機「指標」分頁沒有技術分析長文", not [w for w in TAGONLY_BANNED if w in mt], [w for w in TAGONLY_BANNED if w in mt])
+                    if count(pg, '#mbTabs button[data-t="full"]'):
+                        pg.eval_on_selector('#mbTabs button[data-t="full"]', "b => b.click()"); pg.wait_for_timeout(900)
+                wait_until(pg, "() => document.querySelectorAll('#stockTabs button').length >= 3", 15000)
+                if not count(pg, '#stockTabs button[data-t="tags"]'):
+                    notes.append(f"{tg} 這一檔沒有「指標」分頁（例如 ETF），只驗手機那一頁")
+                    continue
+                pg.eval_on_selector('#stockTabs button[data-t="tags"]', "b => b.click()"); pg.wait_for_timeout(1000)
+                st = pg.evaluate("""() => { const t = document.getElementById('stockTab'); const c = document.getElementById('tagCard');
+                    return { on: (document.querySelector('#stockTabs button.on') || { dataset: {} }).dataset.t, card: !!c,
+                      head: c ? ((c.querySelector('h3') || {}).textContent || '').replace(/\s+/g, ' ').trim() : '',
+                      cards: t ? [...t.querySelectorAll('.card')].filter(e => !e.parentElement.closest('.card')).map(e => e.id || e.className) : [],
+                      tt: !!document.getElementById('tagTech'), txt: t ? t.innerText : '' }; }""")
+                ok(f"★ {tg} 指標分頁只有「指標 符合 N／M 項」那一張卡", st["on"] == "tags" and st["card"] and "指標" in st["head"] and "符合" in st["head"]
+                   and st["cards"] == ["tagCard"], {"on": st["on"], "head": st["head"], "cards": st["cards"]})
+                bad = [w for w in TAGONLY_BANNED if w in st["txt"]]
+                ok(f"★ {tg} 指標分頁沒有技術分析長文（{'／'.join(TAGONLY_BANNED)}都不在）", not st["tt"] and not bad, bad)
+        finally:
+            ctx.close()
+
+
+# 2026-10-06：#liveNote 不再顯示文字，狀態句子只放在 data-note（機器讀數）—— 舊段落讀「此刻畫的是哪個來源／退回哪個週期」改讀這裡
+LIVENOTE_JS = "() => ((document.getElementById('liveNote') || {}).dataset || {}).note || ''"
+# ★ 2026-10-06 13:06（Andy 截圖 #stock/4551 分時：「不要出現這樣廢話」）：K 線上方那條灰底說明列與斜線上的小標拿掉，
+#   滑過斜線只寫「HH:MM～HH:MM 尚無資料」。這段在管理者（即時開）與訪客（原版 context，即時關）兩種身分、1440 與 390，
+#   個股頁分時／1 時／4 時逐一切過去，掃 K 線卡看得見的字與所有 title：一個禁用字都不准出現；#liveNote 永遠看不到。
+TICKNOTE_BANNED = ("來自 Yahoo", "延遲約", "本頁即時累積", "量為估計值", "補上", "在你打開頁面之前", "今天的分時", "補資料中")
+TICKNOTE_SCAN = r"""() => { const card = document.getElementById('skChartCard'); if (!card) return null;
+  const vis = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const clone = card.cloneNode(true); clone.querySelectorAll('.howtxt').forEach(e => e.remove());
+  const titles = [...card.querySelectorAll('[title]')].filter(e => !e.closest('.howtxt')).map(e => e.title);
+  const ln = document.getElementById('liveNote');
+  return { txt: card.innerText, titles, noteVis: !!ln && vis(ln), noteTitle: ln ? ln.title : '',
+    gaps: [...document.querySelectorAll('.tk-gap')].map(g => ({ t: g.title, txt: g.textContent.trim() })),
+    tf: (document.querySelector('#tfSeg button.on') || { dataset: {} }).dataset.tf || '' }; }"""
+
+
+def t_tick_note_1006(b, base, code):
+    T = "分時說明拿掉1006"
+    raw = getattr(type(b), "_tw_raw_new_context", None)
+    codes = [c for c in ("4551", "2330") if (SITE / "data" / "stock" / f"{c}.json").exists()]
+    for who in ("管理者", "訪客"):
+        for W in (1440, 390):
+            kw = {"viewport": {"width": W, "height": 950 if W > 640 else 844}}
+            if W <= 640:
+                kw.update(device_scale_factor=2, is_mobile=True, has_touch=True)
+            if who == "訪客":
+                if not ok(f"[{T}] 拿得到 Browser 原版 new_context（訪客視角要繞開 TW_LIVE_OVERRIDE）", raw is not None):
+                    continue
+                ctx = raw(b, **kw); ctx.add_init_script(CONSENT_PRESET)
+            else:
+                ctx = b.new_context(**kw)
+            pg = ctx.new_page()
+            pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            try:
+                for c in codes:
+                    pg.goto("about:blank")
+                    pg.goto(f"{base}#stock/{c}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+                    for tf in ("tick", "60m", "240m"):
+                        tg = f"[{T}] {who} {W} {c} {tf}"
+                        if not pg.evaluate(f"() => {{ const b = document.querySelector('#tfSeg button[data-tf=\"{tf}\"]'); if (!b || !b.getClientRects().length) return false; b.click(); return true; }}"):
+                            notes.append(f"{tg}：這個寬度／這一檔沒有這顆週期鈕，只掃目前畫面")
+                        pg.wait_for_timeout(1500)
+                        s = pg.evaluate(TICKNOTE_SCAN)
+                        if not ok(f"{tg} K 線卡在（前置條件）", bool(s), s):
+                            continue
+                        bad_t = [w for w in TICKNOTE_BANNED if w in s["txt"]]
+                        bad_ti = [w for w in TICKNOTE_BANNED if any(w in x for x in s["titles"])]
+                        ok(f"★ {tg} K 線卡畫面上沒有分時說明廢話（{'／'.join(TICKNOTE_BANNED)}）", not bad_t, bad_t)
+                        ok(f"★ {tg} 滑過提示（title）也沒有", not bad_ti and not s["noteTitle"], (bad_ti, s["noteTitle"]))
+                        ok(f"★ {tg} K 線上方那條說明列看不到", not s["noteVis"], s["noteVis"])
+                        ok(f"{tg} 斜線缺口（有的話）沒有小標、滑過只寫「HH:MM～HH:MM 尚無資料」",
+                           all(not g["txt"] and re.fullmatch(r"\d\d:\d\d～\d\d:\d\d 尚無資料", g["t"] or "") for g in s["gaps"]), s["gaps"])
+            finally:
+                ctx.close()
 
 def t_stock_ai_0926(pg, base, code):
     """個股頁「AI 分析」的真人操作驗收（09-26 建立；09-27 改成右上角＋標籤頁；10-03 拿掉「展開」，四面向改直排，DECISIONS #305）。
@@ -44798,32 +44890,17 @@ def t_mobile_broker(b, base, code):
     ok(f"{T}預設在 K 線頁：K 線卡看得見、舊的現價列與舊分頁藏起來",
        s0["mbt"] == "k" and s0["kVis"] and not s0["skPxVis"] and not s0["oldTabsVis"], s0)
     ok(f"{T}K 線圖＋報價列在同一屏（圖底 {s0['lwcB']} ≤ 可視 {s0['vh'] - 58}）", 300 <= s0["lwcH"] and s0["lwcB"] <= s0["vh"] - 58, s0)
-    # ★ 2026-09-28 分時預設：分時（或「沒分時、已改用日 K」）一定有一行短註。手機上只佔一行、點一下展開、再點收回，
-    #   而且短註出現的時候圖底仍在一屏內（上面那條）。先等分時那一趟有結果（最多 8 秒就會退回日 K 並寫短註）。
-    wait_until(m, "() => { const n = document.getElementById('liveNote'); return n && !n.hidden; }", 10000)
-    LN = """() => { const n = document.getElementById('liveNote'), l = document.getElementById('lwc');
-      if (!n || n.hidden) return null; const r = n.getBoundingClientRect();
-      return { h: Math.round(r.height), txt: n.textContent.slice(0, 40), sw: n.scrollWidth, cw: n.clientWidth,
-               fs: parseFloat(getComputedStyle(n).fontSize), lwcB: Math.round(l.getBoundingClientRect().bottom), vh: innerHeight }; }"""
+    # ★ 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，K 線上方那條說明列所有個股、所有週期、手機也一樣拿掉）：
+    #   改前驗「分時一定有一行短註、手機只佔一行、點一下展開／收回」；改後驗：等分時那一趟有結果（data-note 寫進狀態句）之後，
+    #   說明列照樣看不到、不佔高度，K 線圖底仍在一屏內。
+    wait_until(m, "() => { const n = document.getElementById('liveNote'); return !!n && !!n.dataset.note; }", 10000)
+    LN = """() => { const n = document.getElementById('liveNote'), l = document.getElementById('lwc'); if (!n) return null;
+      return { vis: n.getClientRects().length > 0 && !n.hidden, h: Math.round(n.getBoundingClientRect().height), txt: n.textContent, note: n.dataset.note || '',
+               lwcB: Math.round(l.getBoundingClientRect().bottom), vh: innerHeight }; }"""
     ln0 = m.evaluate(LN)
-    if ok(f"{T}分時預設：K 線頁有一行短註（分時的來源與怎麼看，或「已改用日 K」）", bool(ln0), ln0):
-        ok(f"{T}短註在手機上只佔一行（≤ 30px）、字 ≥ 11px", ln0["h"] <= 30 and ln0["fs"] >= 11, ln0)
-        ok(f"{T}短註出現時圖底仍在一屏內（{ln0['lwcB']} ≤ {ln0['vh'] - 58}）", ln0["lwcB"] <= ln0["vh"] - 58, ln0)
-        if ln0["sw"] <= ln0["cw"] + 1:
-            # 這個容器連不到 Yahoo，拿到的是短的「已改用日 K」那句、一行放得下 → 換成線上分時真正會出現的那段長字，
-            # 才驗得到「超出一行會收起、點開看全文」
-            m.evaluate("() => { document.getElementById('liveNote').textContent = '最近交易日 2026-09-25（非即時）的分時；"
-                       "今天開盤後自動換成即時。虛線＝昨收，線在虛線上面＝漲、下面＝跌。'; }")
-            m.wait_for_timeout(200)
-            ln0 = m.evaluate(LN)
-            ok(f"{T}長短註在手機上仍只佔一行（超出的收起）", ln0["h"] <= 30 and ln0["sw"] > ln0["cw"] + 1, ln0)
-        if ln0["sw"] > ln0["cw"] + 1:
-            m.tap("#liveNote"); m.wait_for_timeout(300)
-            ln1 = m.evaluate(LN)
-            ok(f"{T}★ 點短註 → 展開全文（高度變高）", ln1["h"] > ln0["h"], {"前": ln0, "後": ln1})
-            m.tap("#liveNote"); m.wait_for_timeout(300)
-            ln2 = m.evaluate(LN)
-            ok(f"{T}再點一次 → 收回一行", ln2["h"] == ln0["h"], {"前": ln0, "後": ln2})
+    ok(f"{T}★ 分時（或已改用日 K）有了結果，K 線上方的說明列照樣看不到、不佔高度、沒有字", bool(ln0) and not ln0["vis"] and ln0["h"] == 0 and not ln0["txt"], ln0)
+    if ln0:
+        ok(f"{T}圖底仍在一屏內（{ln0['lwcB']} ≤ {ln0['vh'] - 58}）", ln0["lwcB"] <= ln0["vh"] - 58, ln0)
     ok(f"{T}390 寬整頁沒有橫捲", s0["docW"] <= s0["winW"] + 1, s0)
     ok(f"{T}只有分頁列自己可以橫捲（內容比框寬）", s0["tabsSW"] > s0["tabsCW"], (s0["tabsSW"], s0["tabsCW"]))
 
