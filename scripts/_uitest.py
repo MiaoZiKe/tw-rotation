@@ -25524,7 +25524,8 @@ def t_stock_ai_0926(pg, base, code):
     click(pg, '#ovAiCard .howbtn[data-how="ovai"]', 450)
     how = pg.evaluate("() => { const b = document.getElementById('how-ovai'); return b ? { open: !b.hidden && b.getBoundingClientRect().height > 10, t: b.innerText } : null; }")
     # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「非語言模型」屬自我說明
-    ok("[AI分析]「?」打開說明：寫清楚是規則式判讀、非投資建議", bool(how) and how["open"] and "規則" in how["t"] and "非投資建議" in how["t"] and "語言模型" not in how["t"], how)
+    #   總覽 AI 卡那一顆的條列沒有「規則」兩字（標題旁已寫「規則式自動判讀」），改驗它講到四顆籤與非投資建議
+    ok("[AI分析]「?」打開說明：講清楚四顆籤、非投資建議、不寫自我說明", bool(how) and how["open"] and "四顆籤" in how["t"] and "非投資建議" in how["t"] and "語言模型" not in how["t"], how)
     ok("[AI分析]「?」說明不再提「展開」（#305 拿掉了）", bool(how) and "展開" not in how["t"], how and how["t"])
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
 
