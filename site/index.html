@@ -4972,8 +4972,8 @@ h3 .howbtn.pop{font-family:inherit}
     border:2px solid var(--c,var(--cyan));background:color-mix(in srgb,var(--bg) 80%,var(--panel));color:var(--ink);
     font:700 12px var(--mono);display:grid;place-items:center;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.6)}
   body.m3on .mnum::after{content:'';position:absolute;inset:-8px;border-radius:50%}
-  /* 2026-10-06：整張模式（畫布 < 500px）編號鈕 28→20px、字 12→11px —— 28px 在 0.42 倍的剖面上比零件還大（diagrams.js layout2d）。觸控範圍靠上面的 ::after 外擴 8px＝36px */
-  body.m3on .mnumlayer.msm .mnum{width:20px;height:20px;margin:-10px 0 0 -10px;font-size:11px;border-width:1.5px;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+  /* 2026-10-06：整張模式（畫布 < 500px）編號鈕 28→20px、字維持 12px（手機 HTML 字下限 12，手機v3 #17 守）—— 28px 在 0.42 倍的剖面上比零件還大（diagrams.js layout2d）。觸控範圍靠上面的 ::after 外擴 8px＝36px */
+  body.m3on .mnumlayer.msm .mnum{width:20px;height:20px;margin:-10px 0 0 -10px;font-size:12px;letter-spacing:-.04em;border-width:1.5px;box-shadow:0 1px 4px rgba(0,0,0,.45)}
   body.m3on .mnum.on{background:var(--c,var(--cyan));color:#07101f;transform:scale(1.18);z-index:2;
     box-shadow:0 0 0 4px color-mix(in srgb,var(--c,var(--cyan)) 35%,transparent)}
   /* 3D：卡片欄、字卡、站上會疊住的 .ld-no 一律收掉，交給上面那一層 */
