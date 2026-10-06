@@ -61,7 +61,7 @@
 
     el.innerHTML = `
       <div class="card">
-        <div class="row spread"><h2>任務板 <small>Andy 交代的每一件事在哪個狀態</small></h2>
+        <div class="row spread"><h2>任務板</h2>
           <span class="pill">更新 ${esc((d.meta || {}).updated || '')}</span></div>
         <div class="linkrow" style="margin-top:10px">${summary(d.tasks)}</div>
       </div>
