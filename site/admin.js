@@ -195,11 +195,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trtabs>#trPageBody{padding:0 16px 16px;border-top:1px solid var(--line-2)}
 #v-admin .trtabs .nbsw .tdot,#v-admin .trtabs .nbsw.lv2 .tdot{display:inline-block;width:9px;height:9px;border-radius:3px;flex:none}
 #v-admin .trtabs .nbsw em{margin-left:4px}
-#v-admin .admgrid.trusers{grid-auto-rows:minmax(var(--tr-row,300px),auto)}
+#v-admin .admgrid.trusers{grid-auto-rows:minmax(380px,auto);grid-template-columns:minmax(0,1fr) minmax(0,1fr)}   /* 時鐘卡放大：環可到卡高約 85% */
 #v-admin .admgrid.trone{margin-top:12px}#v-admin .admgrid.trone>.card{grid-column:1/-1}
 #admBody .sbody{flex:1;display:flex;gap:24px;align-items:stretch;min-height:240px}#admBody .sbody .bigno{flex:0 0 220px;border-right:1px solid var(--line);padding-right:24px}#admBody .sbody .sch{flex:1;min-width:0;display:flex;flex-direction:column}
 #admBody .dn.clock svg{max-height:320px}
-#admBody .dn.clock .dnc{max-width:360px;max-height:360px}
+#admBody .dn.clock .dnc{max-width:330px;max-height:330px}
 #v-admin .trusers .tbw{max-height:none}
 #admBody .admgrid>.card>h3,#admBody .admgrid>.card>.use{flex:none}
 #v-admin .trhd{padding-top:12px}
@@ -1378,8 +1378,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         emphasis: { scale: true, scaleSize: D.SCALE, label: { show: pm }, itemStyle: { borderColor: A.CH.ink, borderWidth: D.BORDER_HI } } })[0];
       const mk = () => [ring(am, 52, 68, 0, false), ring(pmH, 72, 92, 12, true), D.series({})[1]];
       const c1 = '尖峰時段', c2 = `${two(sp.pk)} 時`;
-      A.chart(el, { tooltip: { ...A.tip, position: D.tipPos, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(q.data.n)} 次${what}（占 ${(q.data.n / tot * 100).toFixed(1)}%）` },
-        title: D.center(c1, c2, SZ), animationDurationUpdate: D.MS, series: mk() }, { notMerge: true });
+      A.chart(el, { tooltip: { ...A.tip, confine: false, position: D.tipPosFor(0.7), trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(q.data.n)} 次${what}（占 ${(q.data.n / tot * 100).toFixed(1)}%）` },
+        title: D.center(c1, c2, SZ, 0.52), animationDurationUpdate: D.MS, series: mk() }, { notMerge: true });
       const inst = echarts.getInstanceByDom(el); if (!inst) return;
       const box = el.closest('[data-chart]');
       const setHi = (set, title) => {
@@ -1387,14 +1387,14 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         try { inst.setOption({ title, series: mk() }); } catch (e) { /* tooltip 與 dispose 競態 */ }
         if (box) box.classList.toggle('hov', !!set);
       };
-      const hourHi = (x) => { const d = all.find((q) => q.hour === x); setHi(new Set([x]), D.center(d.name, `${nf(d.n)} 次`, SZ)); };
-      const rest = () => setHi(null, D.center(c1, c2, SZ));
+      const hourHi = (x) => { const d = all.find((q) => q.hour === x); setHi(new Set([x]), D.center(d.name, `${nf(d.n)} 次`, SZ, 0.52)); };
+      const rest = () => setHi(null, D.center(c1, c2, SZ, 0.52));
       inst.on('mouseover', (q) => { if (q.seriesIndex <= 1 && q.data && q.data.hour != null) hourHi(q.data.hour); });
       inst.on('globalout', rest);
       if (box) box.querySelectorAll('ul.lg li').forEach((li) => {
         li.addEventListener('mouseenter', () => {
           if (li.dataset.row != null && li.dataset.row !== '') hourHi(+li.dataset.row);
-          else if (li.dataset.k === 'am' || li.dataset.k === 'pm') { const pm = li.dataset.k === 'pm'; setHi(new Set((pm ? pmH : am).map((d) => d.hour)), D.center(pm ? '外圈 下午' : '內圈 上午', `${nf(sum((pm ? pmH : am).map((d) => d.n)))} 次`, SZ)); }
+          else if (li.dataset.k === 'am' || li.dataset.k === 'pm') { const pm = li.dataset.k === 'pm'; setHi(new Set((pm ? pmH : am).map((d) => d.hour)), D.center(pm ? '外圈 下午' : '內圈 上午', `${nf(sum((pm ? pmH : am).map((d) => d.n)))} 次`, SZ, 0.52)); }
         });
         li.addEventListener('mouseleave', rest);
       });
@@ -1412,7 +1412,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const parts = sp.segs.map((s) => ({ name: s.name, value: s.n, key: s.k, p: s.p, s2: s.s, color: s.other ? D.other() : resolveColor(el, s.color) }));
       const box = el.closest('[data-chart]');
       const cur = { hi: null };
-      const opt = { tooltip: { ...A.tip, position: D.tipPos, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(Math.round(q.value))}（${(+q.percent).toFixed(1)}%）` },
+      const opt = { tooltip: { ...A.tip, confine: false, position: D.tipPos, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(Math.round(q.value))}（${(+q.percent).toFixed(1)}%）` },
         title: D.center(sp.c1, sp.c2, SZ), animationDurationUpdate: D.MS,
         series: D.series({ cursor: sp.segs.some((s) => s.p) ? 'pointer' : 'default', data: parts.map((d, i) => D.item(d, i, false)) }) };
       A.chart(el, opt, { notMerge: true });

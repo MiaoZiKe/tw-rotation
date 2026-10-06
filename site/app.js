@@ -773,14 +773,20 @@
   const DONUT = {
     R_IN: 68, R_OUT: 92, PAD_ANGLE: 1.2, RADIUS: 6, BORDER: 1, BORDER_HI: 3, SCALE: 4, MS: 200,
     TRACK: [65, 65.8], SIDE_MIN: 420, MIN: 160,
-    /* 提示框跟在游標外側（背離圓心那一側），不蓋住中心字 */
-    tipPos(pt, params, dom, rect, size) {
-      const W = size.viewSize[0], H = size.viewSize[1], w = size.contentSize[0], h = size.contentSize[1];
-      const dx = pt[0] - W / 2, dy = pt[1] - H / 2;
-      let x = dx >= 0 ? pt[0] + 14 : pt[0] - w - 14, y = dy >= 0 ? pt[1] + 14 : pt[1] - h - 14;
-      if (Math.abs(dx) < W * 0.18) x = Math.min(Math.max(pt[0] - w / 2, 0), Math.max(0, W - w));
-      return [x, y];
+    /* 提示框跟在游標外側（背離圓心那一側）。★ 以「離圓心更遠」為準：算出提示卡矩形後，若碰到半徑 avoid×R 的圓（中心字與內圈）就沿「圓心→游標」方向往外推到不碰為止。
+       avoid＝要避開的圓半徑占整個圖半徑的比例：單圈甜甜圈＝內徑（R_IN）；兩圈的時鐘＝內圈外緣。 */
+    tipPosFor(avoid) {
+      return function (pt, params, dom, rect, size) {
+        const W = size.viewSize[0], H = size.viewSize[1], w = size.contentSize[0], h = size.contentSize[1], cx = W / 2, cy = H / 2, rc = Math.min(W, H) / 2 * avoid;
+        const dx = pt[0] - cx, dy = pt[1] - cy, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+        let x = dx >= 0 ? pt[0] + 14 : pt[0] - w - 14, y = dy >= 0 ? pt[1] + 14 : pt[1] - h - 14;
+        if (Math.abs(dx) < W * 0.18) x = pt[0] - w / 2;
+        const hit = () => { const nx = Math.max(x, Math.min(cx, x + w)), ny = Math.max(y, Math.min(cy, y + h)); return Math.hypot(nx - cx, ny - cy) < rc + 6; };
+        for (let k = 0; k < 60 && hit(); k++) { x += ux * 6; y += uy * 6; }
+        return [x, y];
+      };
     },
+    tipPos(pt, params, dom, rect, size) { return DONUT.tipPosFor(DONUT.R_IN / 100)(pt, params, dom, rect, size); },
     colors() { return DONUT_COLORS[theme() === 'light' ? 'light' : 'dark']; },
     color(i) { const c = DONUT.colors(); return c[i % c.length]; },
     other() { return hexA(CH.ink3, .38); },
@@ -808,13 +814,15 @@
         + (o.hint ? `<br><small>${fmt.esc(o.hint)}</small>` : '');
     },
     /* 中心兩行字（S＝甜甜圈邊長 px）。top:'middle'＋圓心 50%，不管容器怎麼變都跟圓心對齊 */
-    center(t1, t2, S) {
-      const ff = 'Noto Sans TC, sans-serif', inner = S * DONUT.R_IN / 100;
-      const bFs = S >= 200 ? 28 : Math.max(20, Math.round(S * 0.115)), aFs = S < 200 ? 12 : 12.5;   // ★ 固定字級（Andy：中心字要跟產業地圖完全相同）：邊長 ≥ 200 → 數字 28／標題 12.5；更小才縮（圓放不下）
+    center(t1, t2, S, frac) {
+      const ff = 'Noto Sans TC, sans-serif', innerD = S * (frac || DONUT.R_IN / 100);   // 內圈（洞）直徑 px
+      /* ★ 中心字一律在內徑 70% 以內（Andy 16:35：時鐘內圈小，「3,706 次」壓到扇格）：基準字級邊長 ≥ 200 → 28，再依「數字行」估算寬度縮到放得進去（ASCII 約 0.62em、中文 1em），下限 12 */
+      const base = S >= 200 ? 28 : Math.max(20, Math.round(S * 0.115)), em = Array.from(String(t2).replace(/[{}|]/g, '')).reduce((a, c) => a + (c.charCodeAt(0) < 128 ? 0.62 : 1), 0) || 1;
+      const bFs = Math.max(12, Math.min(base, Math.floor(innerD * 0.7 / em))), aFs = S < 200 ? 12 : 12.5;
       return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
         textStyle: { rich: {
           a: { color: CH.ink3, fontSize: aFs, fontWeight: 400, fontFamily: ff, lineHeight: 20,
-            width: Math.round(Math.min(120, inner * 0.86)), align: 'center', overflow: 'truncate', ellipsis: '…' },
+            width: Math.round(Math.min(120, innerD * 0.7)), align: 'center', overflow: 'truncate', ellipsis: '…' },
           b: { color: CH.ink, fontSize: bFs, fontWeight: 700, fontFamily: MONO_FF, lineHeight: Math.round(bFs * 1.18), align: 'center' } } } }];
     },
     /* 一般用法：parts＝[{name, value, isOther?, color?, hint?, chg?}]；op＝{ size, fmtVal, valLabel, hint, centerLabel, centerValue, cursor }。
@@ -823,7 +831,7 @@
       op = op || {};
       const tot = parts.reduce((s, d) => s + (d.value || 0), 0) || 1, S = op.size || 160, fv = op.fmtVal || ((v) => fmt.i(v));
       return { tot, option: {
-        tooltip: { ...tip, position: DONUT.tipPos, trigger: 'item', formatter: (p) => { const d = parts.find((x) => x.name === p.name) || {};
+        tooltip: { ...tip, confine: false, position: DONUT.tipPos, trigger: 'item', formatter: (p) => { const d = parts.find((x) => x.name === p.name) || {};
           return DONUT.tipHtml(p.name, { valLabel: op.valLabel, val: fv(p.value), pct: p.percent, chg: d.chg, hint: d.hint != null ? d.hint : op.hint }); } },
         title: DONUT.center(op.centerLabel || '合計', op.centerValue != null ? op.centerValue : fv(tot), S),
         animationDurationUpdate: DONUT.MS,

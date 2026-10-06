@@ -48700,9 +48700,9 @@ def t_traffic_1005(b, base, code):
             pg.wait_for_timeout(200); pg.mouse.move(px - 6, py - 6); pg.mouse.move(px, py, steps=4); pg.wait_for_timeout(500)
             ck2 = pg.evaluate(CK_STATE)
             hot = [it for it in ck2["items"] if it["bw"] >= 3]
-            ok(f"★ {TT}：時鐘滑過強調（{'外' if pm else '內'}圈第 {k} 格）：只有 1 格外框 ≥ 3、其他格維持 1 且不變暗、中心換成「HH:00–HH:59 ／ N 次」、提示卡出現、字級照 App.donut（12.5／28）",
+            ok(f"★ {TT}：時鐘滑過強調（{'外' if pm else '內'}圈第 {k} 格）：只有 1 格外框 ≥ 3、其他格維持 1 且不變暗、中心換成「HH:00–HH:59 ／ N 次」、提示卡出現、字級照 App.donut（標題 12.5、數字 ≤ 28 且在內徑 70% 內）",
                len(hot) == 1 and all(it["op"] == 1 for it in ck2["items"]) and re.match(r"^\d\d:00–\d\d:59$", ck2["title"][0]) and ck2["title"][0] == hot[0]["name"] and ck2["title"][1].endswith("次")
-               and ck2["tip"] and ck2["numFs"] == 28 and ck2["lblFs"] == 12.5 and ck2["emp"]["scaleSize"] == 4 and ck2["emp"]["itemStyle"]["borderWidth"] == 3, ck2)
+               and ck2["tip"] and 12 <= ck2["numFs"] <= 28 and ck2["lblFs"] == 12.5 and ck2["emp"]["scaleSize"] == 4 and ck2["emp"]["itemStyle"]["borderWidth"] == 3, ck2)
             pg.mouse.move(2, 2); pg.wait_for_timeout(450)
             ck3 = pg.evaluate(CK_STATE)
             ok(f"{TT}：時鐘滑開 → 外框還原、中心換回「尖峰時段」", not [it for it in ck3["items"] if it["bw"] >= 3] and ck3["title"][0] == "尖峰時段", ck3)
