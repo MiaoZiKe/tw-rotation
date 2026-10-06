@@ -376,7 +376,6 @@
     title: '這一條才是「PCB」：主機板', sub: '走線比載板粗一個量級' })}
       ${note({ side: 'l', warn: true, title: '★「載板材料 ABF / BT」這一格台股掛零',
     lines: ['ABF 膜是味之素（市占約 95%，來源：今周刊 2026-05）、BT 樹脂 core 是三菱瓦斯化學 —— 兩家都是外商；點 core／ABF 膜再點色標，成分股會是 0 筆，那不是壞掉。',
-      '點零件篩到的是「環節」不是整個族群：「IC 載板」這一格收錄 3037 欣興／8046 南電／3189 景碩。',
       '示意圖，非實物比例；圖上 core ＋ 上下各 3 層，實際為十幾至二十幾層。'] })}
       ${extRow({ side: 'r', no: 2, seg: 'abf_pcb', part: 'abf_core_via', color: COL.cu, ax: 432, ay: (Y.core[0] + Y.core[1]) / 2,
     title: 'core 的貫孔：只穿 core', sub: '鑽穿→鍍銅→填塞→兩端蓋銅' })}
@@ -440,6 +439,8 @@
     name: 'IC 載板：ABF 增層剖面',
     draw: abfSubstrate, native: CW, scene: 'ic_substrate',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
         推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
+    /* ★ 2026-10-06：原本圖裡那張警示卡的「這張圖特有」那一句，搬進「?」（industry.js paintDgTitle 讀 DS.honest）。*/
+    honest: '「IC 載板」這一格收錄 3037 欣興／8046 南電／3189 景碩。',
     q: 'AI 晶片底下那塊板子為什麼比主機板貴？ABF 膜、細線、微孔各卡在哪一關，台股站在哪幾家？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        這張圖是 R4（台股沒有人做的零件要明說）最典型的案例：**核心層與 ABF 膜這兩層台股一家都沒有**，

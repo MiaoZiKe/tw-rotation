@@ -11,8 +11,8 @@ AI 分析是可以收納的選項，與多週期合併，裡面分析需要分�
 規則的共同原則：
 - **結論標籤只有三種**：偏多／中性／偏空（消息面多一個「留意」，見 news_facet）。
   每個面向各自打分、各自下標籤，**四個面向不加總成一個總分** —— 那樣會把「貴」跟「法人在買」
-  互相抵銷成一個沒有意義的數字。綜合狀態（可留意／觀望／偏空）只看技術面的進出場條件，
-  跟站上既有的判定（technical.evaluate 的 A／B／觀望／不要碰）一致。
+  互相抵銷成一個沒有意義的數字。綜合狀態（條件成立／條件未齊／偏空）只看技術面的型態條件，
+  跟站上既有的判定（technical.evaluate 的 A／B／條件未齊／排除條件成立）一致。
 - **每一條依據都帶數字**，資料缺就寫「資料缺」，不拿別的東西湊。
 - **文字一律描述式或條件式**（「目前…」「若…則…」），不寫「建議買進／賣出」這類指示用語
   （證券投資信託及顧問法：未經許可不得對不特定人提供個股買賣建議）。
@@ -22,6 +22,15 @@ from __future__ import annotations
 
 import re
 from datetime import date, timedelta
+
+from .technical import V_COUNTER, V_EXCLUDED
+
+# 技術面「綜合狀態」三種字樣。2026-10-06 Andy「好言論改中性」：舊字樣「可留意／觀望」是動作建議
+# （留意＝去看它、觀望＝先別動），改成只描述 A／B 型態條件齊了沒（DECISIONS #333）。
+# 「偏空」描述的是結構方向（空頭結構＋觸發排除），不是叫人做什麼，保留。
+ST_OK = "條件成立"        # 舊：可留意
+ST_PENDING = "條件未齊"   # 舊：觀望
+ST_BEAR = "偏空"
 
 TECH_TFS = (("60m", "1 小時"), ("240m", "4 小時"), ("1d", "日線"), ("1w", "週線"))
 TREND_WORD = {1: "多頭", -1: "空頭", 0: "盤整"}
@@ -113,11 +122,11 @@ def _tf_line(tf: str, label: str, v: dict | None) -> dict:
 
 
 def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
-    """技術面：1H／4H／日／週四行＋綜合狀態（可留意／觀望／偏空）與原因＋支撐壓力區。
+    """技術面：1H／4H／日／週四行＋綜合狀態（條件成立／條件未齊／偏空）與原因＋支撐壓力區。
 
     標籤（偏多／中性／偏空）看**結構**：週線 ±1、日線 ±1、1 小時 ±0.5，合計 ≥1.5 偏多、≤−1.5 偏空。
-    綜合狀態看**進出場條件**（technical.evaluate 的判定），兩者是不同的問題：
-    3026 可以「結構偏多」但「條件不齊，觀望」—— 那正是 Andy 要我們講清楚的情形。
+    綜合狀態看**型態條件**（technical.evaluate 的判定），兩者是不同的問題：
+    3026 可以「結構偏多」但「條件未齊」—— 那正是 Andy 要我們講清楚的情形。
     """
     v = verdict or {}
     tf_all = (mtf_res or {}).get("tf") or {}
@@ -139,22 +148,22 @@ def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
     ifs: list[str] = []
     risk_a = (ck.get("risk") or {}).get("a") or {}
     if grade in ("A", "B"):
-        stance = "可留意"
+        stance = ST_OK
         reasons.append("回檔型態的條件全部成立（A 級）" if grade == "A" else "突破型態的條件全部成立（B 級）")
         if v.get("weekly_note"):
             reasons.append(v["weekly_note"])
-    elif vword.startswith("觀望（逆勢"):
-        stance = "觀望"
+    elif vword == V_COUNTER:
+        stance = ST_PENDING
         reasons.append(f"日線條件成立，但週線是空頭結構，屬逆勢反彈（{v.get('weekly_note') or ''}）".rstrip("（）"))
-    elif vword == "不要碰" and (ck.get("exclusions") or []):
-        stance = "偏空" if tr["1d"] == -1 else "觀望"
+    elif vword == V_EXCLUDED and (ck.get("exclusions") or []):
+        stance = ST_BEAR if tr["1d"] == -1 else ST_PENDING
         reasons.append("觸發硬性排除條件：" + "；".join(ck["exclusions"][:3]))
-    elif vword == "不要碰":
-        stance = "偏空"
+    elif vword == V_EXCLUDED:
+        stance = ST_BEAR
         reasons.append((ck.get("bear") or {}).get("text") or "日線空頭結構、MACD 柱為負、KD 死叉")
     else:
-        stance = "觀望"
-    if stance != "可留意" and ck:
+        stance = ST_PENDING
+    if stance != ST_OK and ck:
         fa = [c for c in ck.get("a", []) if not c["ok"]]
         # 沒有需求區時「價格回到需求區」與「需求區多源交集」講的是同一件事，只留前一條
         if any(c["key"] == "in_demand" for c in fa) and not (v.get("demand") or []):
@@ -168,7 +177,7 @@ def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
                        f"突破型態（B）{ck.get('n_b', 5)} 條都成立")
         if risk_a and not risk_a.get("ok"):
             reasons.append(f"停損距離過大：{risk_a.get('text')}（規則不縮停損去湊風報比）")
-    # 週期衝突：大週期與小週期方向相反，是「觀望」最常見、也最該講出來的原因
+    # 週期衝突：大週期與小週期方向相反，是「條件未齊」最常見、也最該講出來的原因
     w = tr["1w"]
     if w:
         for tf in ("1d", "240m", "60m"):
@@ -180,7 +189,7 @@ def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
     ca = {c["key"]: c for c in ck.get("a", [])}
     cb = {c["key"]: c for c in ck.get("b", [])}
     dz = (v.get("demand") or [None])[0]
-    if stance != "可留意" and ck:
+    if stance != ST_OK and ck:
         if ca.get("in_demand") and not ca["in_demand"]["ok"]:
             if dz:
                 ifs.append(f"若價格回到日線需求區 {_px(dz['low'])}–{_px(dz['high'])}，且出現 KD 低檔金叉、"
@@ -206,7 +215,7 @@ def tech_facet(verdict: dict | None, mtf_res: dict | None) -> dict:
     levels = {"support": [z for z in kl.get("support", []) if z.get("tf") in keep],
               "resistance": [z for z in kl.get("resistance", []) if z.get("tf") in keep]}
 
-    why = f"{struct}；進出場條件：{stance}"
+    why = f"{struct}；型態條件：{stance}"
     plan = None
     if v.get("stop") is not None and v.get("tp1") is not None:
         plan = (f"規則推算：停損 {_px(v['stop'])}"
@@ -333,9 +342,9 @@ def fund_facet(fx: dict | None, revenue: dict | None, profit: dict | None) -> di
             if fx.get("thin_sample"):
                 txt += "（同族群樣本少，分位僅供參考）"
             if pct >= 80:
-                score -= 0.5; drivers.append(f"{METRIC_WORD.get(metric, metric)}在同業分位 {pct:.0f}%，偏貴")
+                score -= 0.5; drivers.append(f"{METRIC_WORD.get(metric, metric)}在同業分位 {pct:.0f}%，高於多數同業")
             elif pct <= 20:
-                score += 0.5; drivers.append(f"{METRIC_WORD.get(metric, metric)}在同業分位 {pct:.0f}%，偏便宜")
+                score += 0.5; drivers.append(f"{METRIC_WORD.get(metric, metric)}在同業分位 {pct:.0f}%，低於多數同業")
         else:
             txt += "，同族群比較：資料缺"
         pts.append(txt)
@@ -474,7 +483,7 @@ def build(*, verdict: dict | None, mtf_res: dict | None, inst_v3: dict | None, m
     tech = tech_facet(verdict, mtf_res)
     ck = (verdict or {}).get("checks") or {}
     ra = (ck.get("risk") or {}).get("a") or {}
-    if tech["stance"] == "觀望" and ck:
+    if tech["stance"] == ST_PENDING and ck:
         brief = f"回檔型態 {ck.get('met_a', 0)}/{ck.get('n_a', 6)}、突破型態 {ck.get('met_b', 0)}/{ck.get('n_b', 5)} 條成立"
         if ra and not ra.get("ok") and ra.get("pct") is not None:
             brief += f"；停損距離 {ra['pct']:.1f}% 超過 {ra.get('max', 8):.0f}%"

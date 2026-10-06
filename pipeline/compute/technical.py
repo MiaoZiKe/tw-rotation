@@ -4,7 +4,8 @@
 - 支撐壓力是「多源交集」：Order Block、前波擺動點、成交量密集區、MA60/120、
   未回補 FVG、整數關卡。各自帶權重，合併後 score ≥ 3.0 才顯示 —— 等同至少兩個
   獨立來源交集。單一來源的區間不畫，否則圖上到處都是支撐。
-- 進場分 A（回檔承接）/ B（突破追進）/ 觀望 / 不要碰，先跑硬性排除。
+- 判定分 A（回檔型態）/ B（突破型態）/ 條件未齊 / 排除條件成立，先跑硬性排除
+  （畫面字樣 2026-10-06 改中性，見 V_* 常數與 DECISIONS #333）。
 - 停損 = min(有效 OB 下緣, 最近擺動低點, 需求區下緣) − 0.5×ATR；風險 > 8% 降級為觀望，
   絕不縮停損去湊風報比。
 - 文字說明三段式：結論 → 理由（最多 3 條）→ 風險與失效條件。禁止輸出裸指標值。
@@ -45,6 +46,16 @@ MAX_ZONE_PCT = 4.0          # 單一支撐壓力區間最寬 = 價格的 4%（�
 MIN_ZONE_PCT = 1.2          # 低價股的下限，不然 4% 太窄合不出東西
 MAX_RISK_PCT = 8.0
 MIN_RISK_PCT = 2.0
+
+# 判定文字（畫面上看得到的那一行）。2026-10-06 Andy：「好言論改中性」——
+# 公開網站不能讀起來像在給買賣建議，所以判定只描述「哪一套型態條件成立／沒成立」，
+# 不寫「可以分批進場」「突破可追」「不要碰」這種動作指示（DECISIONS #333）。
+# grade（A／B／None）與判定邏輯一個字都沒變；別的模組要比對判定請用這幾個常數，不要再寫死字串。
+V_EXCLUDED = "排除條件成立"            # 舊：不要碰
+V_A = "回檔型態條件成立"               # 舊：可以分批進場（回檔承接）
+V_B = "突破型態條件成立"               # 舊：突破可追，但要控量
+V_PENDING = "條件未齊"                 # 舊：觀望
+V_COUNTER = "條件未齊（週線逆勢）"     # 舊：觀望（逆勢反彈，只能短打）
 
 
 @dataclass
@@ -336,25 +347,25 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None, *, with_checks
     # 只給 with_checks 的 AI 分析卡用；exclusions 本身的文字被 golden 釘住，不改。
     excl_desc: list[str] = []
     if avg_turnover is not None and avg_turnover < MIN_TURNOVER:
-        exclusions.append("日均成交值不到 3,000 萬，流動性不足、出不掉")
+        exclusions.append("日均成交值不到 3,000 萬，低於流動性門檻")
         excl_desc.append(f"近 20 日均成交值 {avg_turnover / 1e4:,.0f} 萬，低於 3,000 萬流動性門檻")
     if bool(last.get("limit_up")):
         exclusions.append("今天漲停鎖死，不是自由成交的價格")
         excl_desc.append("今日漲停鎖住，收盤價不是自由成交的價格")
     if last.get("trend") == -1 and last.get("ma_align") == -1 and \
             pd.notna(last.get("ma60")) and close < last["ma60"]:
-        exclusions.append("空頭結構、均線空頭排列、又在季線之下 —— 三個都在，不要接")
+        exclusions.append("空頭結構、均線空頭排列、收盤在季線之下，三項同時成立")
         excl_desc.append(f"日線空頭結構、均線空頭排列、收盤 {close:,.2f} 低於 MA60 {float(last['ma60']):,.2f}，三項同時成立")
     b20 = last.get("bias20")
     if pd.notna(b20) and b20 > 15:
-        exclusions.append(f"20 日乖離 {b20:.0f}%，短線過熱，追進去是幫別人抬轎")
+        exclusions.append(f"20 日乖離 {b20:.0f}%，高於 15% 過熱門檻")
         excl_desc.append(f"20 日乖離 {b20:.1f}%，高於 15% 過熱門檻")
     ap = last.get("atr_pct")
     if pd.notna(ap) and ap > 8:
-        exclusions.append(f"日波動 {ap:.1f}% 太大，合理的停損放不下")
+        exclusions.append(f"日波動 {ap:.1f}%，高於 8% 門檻")
         excl_desc.append(f"日波動（ATR／價）{ap:.1f}%，高於 8%，合理停損距離放不下")
     if bool(last.get("sweep_high")) and pd.notna(last.get("osc")) and last["osc"] < 0:
-        exclusions.append("剛掃過上方流動性又收回來、動能轉弱，典型誘多")
+        exclusions.append("剛掃過前高又收回、MACD 柱為負（誘多型態）")
         excl_desc.append(f"剛掃過前高又收回、MACD 柱 {float(last['osc']):.2f} 為負（誘多型態）")
 
     # ---------------- 停損 / 目標（先算，A/B 判定要用 RR）
@@ -439,10 +450,10 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None, *, with_checks
 
     reasons: list[str] = []
     if exclusions:
-        grade, verdict = None, "不要碰"
+        grade, verdict = None, V_EXCLUDED
         reasons = exclusions[:3]
     elif all(a_conditions) and risk_pct <= MAX_RISK_PCT:
-        grade, verdict = "A", "可以分批進場（回檔承接）"
+        grade, verdict = "A", V_A
         z = demand[0]
         reasons.append(f"價格回到 {z.low:.1f}–{z.high:.1f} 的需求區，這個區間同時是"
                        f"{'、'.join(z.sources[:3])}，不是單一來源")
@@ -451,24 +462,24 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None, *, with_checks
         elif trend_up:
             reasons.append("多頭結構未被破壞，這是趨勢中的回檔而不是反轉")
         if sweep_low:
-            reasons.append("昨天盤中破了前低但收盤收回，是洗掉停損的假跌破")
+            reasons.append("昨天盤中破了前低但收盤收回（假跌破型態）")
         elif kd_cross_low:
-            reasons.append(f"KD 在低檔剛黃金交叉（K={k:.0f}），還沒漲多")
+            reasons.append(f"KD 在低檔剛黃金交叉（K={k:.0f}）")
         elif osc_turn:
             reasons.append("MACD 柱由負轉正，動能剛翻多")
     elif all(b_conditions) and risk_b <= MAX_RISK_PCT:
-        grade, verdict = "B", "突破可追，但要控量"
+        grade, verdict = "B", V_B
         stop, risk_pct, rr = stop_breakout, risk_b, rr_b
         tp2 = close + 2.5 * (close - stop)
         reasons.append(f"近 5 根內收盤突破前波高點 {prev_high:.1f}，結構向上突破（BOS）")
-        reasons.append(f"量比 {vol_ratio:.1f} 倍，是帶量突破不是無量假突破")
-        reasons.append(f"20 日乖離 {b20:.1f}%，還沒漲過頭")
+        reasons.append(f"量比 {vol_ratio:.1f} 倍，達 1.5 倍帶量門檻")
+        reasons.append(f"20 日乖離 {b20:.1f}%，在 8% 門檻內")
     elif last.get("trend") == -1 and pd.notna(last.get("osc")) and last["osc"] < 0 \
             and pd.notna(k) and pd.notna(d) and k < d:
-        grade, verdict = None, "不要碰"
+        grade, verdict = None, V_EXCLUDED
         reasons.append("空頭結構、MACD 柱為負、KD 死叉，三個方向都向下")
     else:
-        grade, verdict = None, "觀望"
+        grade, verdict = None, V_PENDING
         met_a = sum(bool(x) for x in a_conditions)
         met_b = sum(bool(x) for x in b_conditions)
         if met_a >= 4:
@@ -478,28 +489,28 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None, *, with_checks
             if not trigger:
                 missing.append("還沒出現確認訊號（KD 低檔金叉 / MACD 翻正 / 假跌破）")
             if rr < 1.8:
-                missing.append(f"風報比只有 {rr:.1f}，不划算")
-            reasons.append("回檔承接的條件快齊了，缺：" + "；".join(missing[:2]))
+                missing.append(f"風報比 {rr:.1f}，低於 1.8 門檻")
+            reasons.append("回檔型態條件大多成立，未成立：" + "；".join(missing[:2]))
         elif met_b >= 3:
-            reasons.append("有突破跡象但量能或位置不夠乾淨，等回測確認")
+            reasons.append("突破型態部分條件成立，量能或乖離條件未齊")
         else:
-            reasons.append("多空條件都不完整，沒有明確的優勢，先看")
+            reasons.append("回檔與突破兩套型態條件都未齊")
         if risk_pct > MAX_RISK_PCT:
-            reasons.append(f"合理停損要放到 {risk_pct:.0f}% 之外，風險太大 —— 不縮停損去湊")
+            reasons.append(f"規則停損距離 {risk_pct:.0f}%，高於 {MAX_RISK_PCT:.0f}% 上限（規則不縮停損去湊風報比）")
 
     # ---------------- 週線衝突
     weekly_note = None
     if grade in ("A", "B"):
         if weekly["trend"] == -1:
-            grade, verdict = None, "觀望（逆勢反彈，只能短打）"
-            weekly_note = "週線仍是空頭結構，日線的多頭訊號只能當反彈看，目標只取 TP1"
+            grade, verdict = None, V_COUNTER
+            weekly_note = "週線仍是空頭結構，日線多頭訊號屬逆勢反彈，目標只計 TP1"
             tp2 = tp1
         elif weekly["trend"] == 1:
-            weekly_note = "週線同向多頭，日線訊號可信度較高"
-    elif verdict == "觀望" and weekly["trend"] == 1 and last.get("trend") != -1:
-        weekly_note = "週線多頭未變，回檔中 —— 等日線回到週線需求區再看"
+            weekly_note = "週線同向多頭"
+    elif verdict == V_PENDING and weekly["trend"] == 1 and last.get("trend") != -1:
+        weekly_note = "週線多頭未變、日線回檔中"
 
-    risk_text = (f"停損 {stop:.1f}（跌破代表這個區間失守），風險 {risk_pct:.1f}%，"
+    risk_text = (f"規則停損 {stop:.1f}（跌破代表這個區間失守），距現價 {risk_pct:.1f}%，"
                  f"到 {tp1:.1f} 約 {rr:.1f} 倍風報比") if np.isfinite(rr) else None
     invalid = "跌破停損" if grade else None
 

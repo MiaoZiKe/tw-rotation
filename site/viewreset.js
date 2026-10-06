@@ -47,7 +47,7 @@
   var KEEP_PREFIX = [
     'tw.layout4.',     // 版面 V2 的側欄收合等外觀偏好（tw.layout4.nav 與以後同族的鍵）
     'tw.adm.trTabs',   // 2026-10-06：管理區流量觀測分頁的拖曳順序（admin.js）—— 跟 tw.tabs.* 同性質的使用者排序，保留
-    'tw.tabs.',        // 2026-10-06：分頁拖曳排序（site/tabdrag.js，a74a00fd）—— 那支檔頭寫明是使用者設定、重新整理保留；當時漏分類，驗收第 ① 步紅
+    'tw.tabs.',        // 分頁拖曳排過的「順序」（tabdrag.js，DECISIONS #330：順序是使用者設定、保留；「選中哪一個」另算、不存、重新整理回預設）
     'tw.draw.',        // 手繪物件 tw.draw.<代號>.<週期>
     'tw.live.card.',   // 每張卡自己的即時開關
     'tw.livek.',       // 當天收集到的 5 秒序列（資料，不是設定）
