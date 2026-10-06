@@ -50,7 +50,11 @@
       tag = ` <span class="aitag ${pos > neg ? 'pos' : neg > pos ? 'neg' : ''}" title="九顆燈號：偏多 ${pos}、偏空 ${neg}">${pos}多${neg}空</span>`;
     }
     const attrs = o && o.id ? ` id="${o.id}" data-facet="sig"` : '';
-    return `<div class="card"${attrs}><h3>技術面訊號${tag}</h3><div class="lights" style="margin-top:8px">${L.map(chip).join('')}</div>${verdict && verdict.invalidation ? `<div class="note" data-readout style="margin-top:8px">失效條件：${fmt.esc(verdict.invalidation)}</div>` : ''}<div class="note" style="margin-top:6px" title="燈號由固定規則計算，只描述目前的技術狀態，不構成投資建議。">決策輔助，非投資建議</div></div>`;
+    /* ★ 2026-10-07（Andy：統計計算、不構成投資建議的提醒放在上方、一行小字）：改前卡底「決策輔助，非投資建議」→ 改後標題下一行（放在 h3 裡、display:block 換行 —— 不直接掛在卡片底下，免得它的父元素就是有底色有框的卡片），
+       跟全站同一句（App.DISC_LINE）。這張卡在 AI 卡裡面時（技術面那一面）AI 卡標題下已經有同一句，CSS 把這裡藏掉，不出現兩次。*/
+    const DL = (window.App && window.App.DISC_LINE) || '以下為依公開資料統計計算之結果，不構成任何投資建議或參考';
+    const disc = `<small class="sigdisc" role="note" data-sdisc="tech" title="燈號由固定規則計算，只描述目前的技術狀態，不構成投資建議。">${DL}</small>`;
+    return `<div class="card"${attrs}><h3>技術面訊號${tag}${disc}</h3><div class="lights" style="margin-top:8px">${L.map(chip).join('')}</div>${verdict && verdict.invalidation ? `<div class="note" data-readout style="margin-top:8px">失效條件：${fmt.esc(verdict.invalidation)}</div>` : ''}</div>`;
   }
 
   window.StockSignal = { id: 'stock.signal', view, lights, chip };

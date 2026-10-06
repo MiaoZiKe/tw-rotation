@@ -4101,6 +4101,8 @@
             <!-- ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）：現價列只留現價、漲跌、即時徽章與時間（徽章由 live.js 插在漲跌後面）；
                  技術分／本益比／同業分位／營收 YoY／分 K 完整五顆標籤搬到下面工具列（#skTags），左欄少一行。-->
             <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span></div></div>
+          <!-- ★ 2026-10-07（Andy：技術評分上方加一行「統計計算、不構成投資建議」小字，不另起欄位）：放在名稱區右側（下面工具列有技術分標籤）；手機收起（手機不顯示那排標籤）-->
+          ${A.disc ? A.disc('tech', 'skDisc') : ''}
         </div>
         <!-- ★ 2026-09-27（Andy：「AI 分析 需要在右上角出現，並且技術面 籌碼面 基本面 消息面 用標籤頁切換」）：
              改前右上只有一行結論（#skAiLine），完整分析是 K 線與分頁之間的長卡（#aiCard）；

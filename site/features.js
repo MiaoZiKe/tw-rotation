@@ -96,7 +96,7 @@
       veil: [['#mktBody', '#mktSeg2 button[data-k="streak"].on']], mark: ['#mktSeg2 button[data-k="streak"]'], block: [] },
     { id: 'mkt.ma', name: '市場明細：站上均線', cat: 'market', def: true, kind: 'bool', desc: '站上均線名單',
       veil: [['#mktBody', '#mktSeg2 button[data-k="ma"].on']], mark: ['#mktSeg2 button[data-k="ma"]'], block: [] },
-    { id: 'mkt.cand', name: '市場明細：今日候選', cat: 'market', def: true, kind: 'bool', desc: '回檔型態／突破型態條件名單',
+    { id: 'mkt.cand', name: '市場明細：今日關注', cat: 'market', def: true, kind: 'bool', desc: '回檔型態／突破型態條件名單',
       veil: [['#mktBody', '#mktSeg2 button[data-k="cand"].on']], mark: ['#mktSeg2 button[data-k="cand"]'], block: [] },
     box('season.month', 'market', '週期統計', ['#v-season'], '族群在各月份的歷史表現（整頁）'),
     // ---- 個股頁：K 線與工具
