@@ -1,5 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 自選：拿掉點小走勢展開、資料停在 10/02 的根因（UI 專家，分支 `claude/watch-fix` → main）
+- Andy 13:00：「移除點選小走勢圖 出現下方放大走勢跟K線圖功能，並且自選介面需要確保數據是前一天的」。
+- **根因（不是資料源）**：資料湖 `price_daily`、`intraday_60m` 都到 10/05；用目前資料湖重算，`stock/2330.json` 日線也到 10/05；線上 03:11 UTC 那次部署也是重算的（之後幾次快取命中沿用它）。
+  停在 10/02 的是**前端存檔**：全站 `load()` 先貼 IndexedDB 存檔（上次開站那天＝資料還是 10/02），網路版到了才重畫；但
+  ① 展開圖 `Industry.watchBars` 用 `_wbCache` 記住第一次拿到的（存檔）個股檔；② `watchpage.loadStocks` 也只拿一次 stocks；③ `sparkLoad` 用存檔 meta 的版本鍵抓 sparks.json 而且只抓一次。所以網路版回來後自選還是舊的，要重新整理才換。
+- **改了**：展開圖整段拿掉（watchpage.js 展開列／CSS／按鈕、industry.js `watchBars`、app.js `trendSeries`、account.js 兩條點擊統計、layout4.js 說明字）；小走勢改成只看不點（點了不展開也不換頁）；`loadStocks` 每次向 load() 要、換了一份才重建；`sparkLoad` 等網路版 meta 才定版本鍵；
+  每列資料日早於「前一交易日」（台北今天往前、跳週末與 tw_holidays.json）→ 現價／漲跌幅變淡＋虛線、title 與小走勢提示寫「資料至 MM/DD」，「?」多一條說明；不放日期膠囊（#329）。
+- **這批驗了**：`_uitest --workers 1 --sections 自選1006（新，含存檔先到→網路版換掉的回歸）,自選走勢與搜尋對齊,會員與自選五分頁,手機總覽指數觀察清單` 0；`_preview.py` 只剩本機缺 earnings.json 的 404（既有環境問題）。沒跑 pytest（沒動 pipeline）。
+- **沒驗到／限制**：新的回歸段沒拿舊程式反向跑一次證明它會紅；管理者盤中即時更新了數字時，落後標記仍照小走勢日期判斷（盤中可能誤標）；`admin.js` 示範資料裡的 watch.chart／watch.kline 名稱沒動。
 ## 2026-10-06 10-06 紅字清理：設計／手機／熱力圖區（設計美編，分支 `claude/fix-reds-ui` → main）
 範圍：全站驗收第二、三份紅字裡「設計 token／手機版／熱力圖」那一區。與同日「既有紅字清理」（`claude/fix-reds`）撞到的部分（手機「更多」收 ETF／財經日曆、HUD 提示框 .97、熱力圖題材改到 `#heatmap/theme`、手機v3／改版斷言）**取 main 版**，這裡只記本批獨有的。
 

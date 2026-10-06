@@ -49525,10 +49525,10 @@ def t_watch_1006(b, base):
             pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
             # 台北 20:00（收盤後、15:30 管線也跑完了）：這時「前一交易日」就是 day 的前一個交易日
             pg.clock.install(time=f"{day}T12:00:00Z")          # ★ 一定要在 goto 之前
-            pg.goto(base + "#overview", wait_until="networkidle")
+            pg.goto(base + "#overview", wait_until="load")  # 假時鐘下 networkidle 等不到
             wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0 && !!window.TwWatch", 8000)
             pg.evaluate("(cs) => { const T = TwWatch; T.curTab().codes.slice().forEach(c => T.remove(c)); cs.forEach(c => T.add(c)); }", codes)
-            pg.goto(base + "#watch", wait_until="networkidle")
+            pg.goto(base + "#watch", wait_until="load")
             wait_until(pg, "() => document.querySelectorAll('#wpTbl .wpspk svg.spk').length >= 4 && window.CalGrid && Object.keys(CalGrid.days() || {}).length > 0", 8000)
             pg.wait_for_timeout(300)
             r0 = pg.evaluate(W1006_ROWS)
@@ -49603,7 +49603,7 @@ def t_watch_1006(b, base):
         return F.call(this, i, o); }; })();""")
     pg.goto("about:blank")
     pg.goto(base + "#watch", wait_until="domcontentloaded")
-    first = wait_until(pg, "() => { const e = document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]'); return e && e.textContent.trim() === '1'; }", 3500)
+    first = wait_until(pg, "() => { const e = document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]'); return e && parseFloat(e.textContent.replace(/,/g, '')) === 1; }", 3500)
     ok(f"{T} 存檔先到：自選列先顯示存檔的現價（1）", bool(first), pg.evaluate("() => (document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]') || {}).textContent"))
     after = wait_until(pg, "() => { const e = document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]'); return e && e.textContent.trim() === %s; }" % json.dumps(real), 15000)
     ok(f"{T} 網路版到了 → 自選列換成網路版現價（{real}），不停在存檔那天", bool(after),
