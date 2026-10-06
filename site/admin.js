@@ -924,10 +924,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const rng = S.period === 'live' ? { from: today, to: today } : S.period === 'since' ? { from: S.since, to: S.until || today } : { from: shiftDay(today, -(+S.period - 1)), to: today };
     const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : '每天的頁面瀏覽總次數';
     return `<div class="secttl trhead"><h2>全站總覽</h2><small>共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
-        <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <input type="date" id="admSince" value="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="起始日期"><span class="trto">～</span><input type="date" id="admUntil" value="${esc(rng.to)}" min="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="結束日期">
-          <button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
-          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
+        ${window.RangePick.html({ cls: 'trctl', options: opt, value: S.period, from: rng.from, to: rng.to, max: todayTpe(), custom: 'since',
+          ids: { sel: 'admDaysSel', from: 'admSince', to: 'admUntil' },   // 期間列抽成共用元件 site/rangepick.js（10-06，ETF 報酬比較同一支）；id 沿用，驗收靠它們
+          extra: `<button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
+          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span>` })}</div>
       <div class="admgrid trtop">
         <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live')}</div></div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
@@ -1024,14 +1024,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   function wireTop(v, A) {
     const apply = () => { S.tab = S.tab || 'all'; paint(); };
-    v.querySelector('#admDaysSel').onchange = (e) => {
-      S.period = e.target.value; S.day = '';
-      if (S.period === 'since') { S.since = S.since || v.querySelector('#admSince').value; }
-      apply();
-    };
-    const di = v.querySelector('#admSince'), du = v.querySelector('#admUntil'), okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
-    const manual = () => { if (!okD(di.value)) return; let to = okD(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; S.period = 'since'; S.since = di.value; S.until = to >= todayTpe() ? '' : to; S.day = ''; apply(); };
-    if (di) di.onchange = manual; if (du) du.onchange = manual;
+    const okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+    // 下拉／日期框的同步規則在 site/rangepick.js（手改日期 → 下拉跳「起始日期～至今」）；這裡只管期間狀態怎麼存
+    window.RangePick.bind(v.querySelector('#admDaysSel').closest('.rpk'), { onChange: ({ value, from, to, manual }) => {
+      S.day = '';
+      if (!manual) { S.period = value; if (S.period === 'since') S.since = S.since || from; apply(); return; }
+      if (!okD(from)) return;
+      let t = okD(to) ? to : todayTpe(); if (t < from) t = from;
+      S.period = 'since'; S.since = from; S.until = t >= todayTpe() ? '' : t; apply();
+    } });
     const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; S.day = S.day === dc.dataset.day ? '' : dc.dataset.day; paint(); };
     const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; paint(); };
     v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };

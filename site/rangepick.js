@@ -5,11 +5,13 @@
    規則（兩邊一樣，所以抽成一支，不各寫一套）：
      · 切下拉 → 兩個日期框同步顯示該期間實際的起訖日（由呼叫端算好，透過 set() 寫回）
      · 手動改任一個日期 → 下拉自動跳成「起始日期～至今」（value＝'custom'），並把新起訖交給呼叫端
-   管理區那支還在 style-guide 分支、沒上 main；它合進來時改用這支即可（RangePick.html／bind／set），不要複製一份。
+   管理區（admin.js 流量觀測，10-06 合進 main）與 ETF 專區報酬比較（etfpage.js）都用這一支，不要再各寫一套。
    用法：
      el.innerHTML = RangePick.html({ id: 'etfRng', options: [['5y','近 5 年'], …, ['custom','起始日期～至今']], value, from, to, max })
      RangePick.bind(el.querySelector('#etfRng'), { onChange: ({ value, from, to, manual }) => … })
      RangePick.set(el.querySelector('#etfRng'), { value, from, to })
+   選項：ids＝{ sel, from, to } 給三個控制項各自的 id（管理區沿用舊 id：admDaysSel／admSince／admUntil，驗收靠它們）；
+        custom＝「起始日期～至今」那個選項的值（預設 'custom'；管理區是 'since'）；extra＝接在日期框後面的 HTML（管理區的重新整理鈕與隱私說明）。
    ========================================================================== */
 (function () {
   'use strict';
@@ -30,10 +32,11 @@
   }
   function html(o) {
     injectCSS();
-    const id = o.id, max = o.max ? ` max="${esc(o.max)}"` : '';
-    return `<div class="rpk" id="${esc(id)}" data-v="${esc(o.value)}"><label>${esc(o.label || '期間')} <select class="rpsel" aria-label="${esc(o.label || '期間')}">${
+    const max = o.max ? ` max="${esc(o.max)}"` : '', ids = o.ids || {}, I = (k) => (ids[k] ? ` id="${esc(ids[k])}"` : '');
+    const min = o.from ? ` min="${esc(o.from)}"` : '';
+    return `<div class="rpk${o.cls ? ' ' + esc(o.cls) : ''}"${o.id ? ` id="${esc(o.id)}"` : ''} data-v="${esc(o.value)}" data-custom="${esc(o.custom || 'custom')}"><label>${esc(o.label || '期間')} <select class="rpsel"${I('sel')} aria-label="${esc(o.label || '期間')}">${
       o.options.map(([k, n]) => `<option value="${esc(k)}"${k === o.value ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
-      <span class="rpd"><input type="date" class="rpfrom" value="${esc(o.from || '')}"${max} aria-label="起始日期"><span class="rpto">～</span><input type="date" class="rpto-in" value="${esc(o.to || '')}"${max} aria-label="結束日期"></span></div>`;
+      <span class="rpd"><input type="date" class="rpfrom"${I('from')} value="${esc(o.from || '')}"${max} aria-label="起始日期"><span class="rpto trto">～</span><input type="date" class="rpto-in"${I('to')} value="${esc(o.to || '')}"${max}${min} aria-label="結束日期"></span>${o.extra || ''}</div>`;
   }
   function set(el, o) {
     if (!el) return;
@@ -49,8 +52,9 @@
     sel.onchange = () => { el.dataset.v = sel.value; o.onChange({ value: sel.value, from: f.value, to: t.value, manual: false }); };
     const manual = () => {
       if (!f.value) return;
-      sel.value = 'custom'; el.dataset.v = 'custom'; t.min = f.value;
-      o.onChange({ value: 'custom', from: f.value, to: t.value, manual: true });
+      const cv = el.dataset.custom || 'custom';
+      sel.value = cv; el.dataset.v = cv; t.min = f.value;
+      o.onChange({ value: cv, from: f.value, to: t.value, manual: true });
     };
     f.onchange = manual; t.onchange = manual;
   }
