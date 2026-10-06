@@ -6418,7 +6418,11 @@
        一日步長只有盤面半徑的 0.053，畫滿才看得到「一天走一小步」。
        上限 40 個路標純粹是防呆。*/
     const span = opts.span != null ? opts.span : back;
-    const trailOn = opts.trail !== false;
+    /* ★ 2026-10-06（Andy：「這邊新增顯示軌跡，腳印以及軌跡式分開的顯示項目」）：一條尾巴拆成兩樣、各自一個勾選：
+       lineOn＝底下那條細線（顯示軌跡）、feetOn＝沿路的小腳印（顯示腳印）。兩個都關＝不畫尾巴（tmode 'off'），只剩族群點。
+       沒傳 line／feet 的呼叫端（舊的 trail:true／false）照舊：兩樣一起開或一起關。*/
+    const feetOn = opts.feet !== false, lineOn = opts.line !== false;
+    const trailOn = opts.trail !== false && (feetOn || lineOn);
     // 這條軌跡實際走過幾天（＝終點索引 − 起點索引）。固定點數之後「幾個點」不再有鑑別度，
     // 驗收改量這個值：刷到最舊那一天是 0，往今天刷才一天一天長出來。
     const trailDays = (r) => {
@@ -6706,9 +6710,10 @@
           const tf = r._tf;
           const op = trailOp(r);
           const dim = op > 0 && op < 1;           // 非焦點、退到背景的那幾條
-          const data = trailDeco(r, tf, col, dim);
+          // 腳印關掉（只看軌跡）：資料只留折線那 48 點、不帶任何腳印 symbol；線關掉（只看腳印）：下面 lineStyle 寬 0
+          const data = feetOn ? trailDeco(r, tf, col, dim) : tf.pts.slice();
           // 焦點那一版（原尺寸、原密度）只在滑到它時才算（highlightClock 讀 el._rotDeco），平常不花這份錢
-          if (dim) rotDeco[r.gid] = { D: data, F: () => trailDeco(r, tf, col, false) };
+          if (dim && feetOn) rotDeco[r.gid] = { D: data, F: () => trailDeco(r, tf, col, false) };
           return {
             /* symbol 'none'：只有腳印那幾個資料點自己帶 symbol（trailDeco），其餘 40 幾個點不建圖元。
                以前是 'circle' ＋ symbolSize 0 —— 16 條 × 48 點＝768 個看不見的圓也要每次重畫，
@@ -6726,7 +6731,7 @@
             /* 手機：線本身不畫（寬 0），路徑只由腳印表示。
                桌機：照參考檔在腳印底下留一條 1.2px、25% 的極淡細線 —— 腳印是「一步一步」，細線把步與步串成一條路，
                族群多的時候比較看得出哪一串腳印屬於哪一顆點。opacity 仍然留著，highlightClock 與驗收都讀它。*/
-            lineStyle: { color: hexA(col, v2 ? .25 : .5), width: v2 ? (dim ? .8 : 1.2) : 0, opacity: op },
+            lineStyle: { color: hexA(col, v2 ? .25 : .5), width: v2 && lineOn ? (dim ? .8 : 1.2) : 0, opacity: op },
           };
         }),
         /* ★ 盤中即時的主角：那條「上一個收盤 → 現在」的箭頭。
@@ -7132,7 +7137,7 @@
         dx: +r.live.dx.toFixed(4), dy: +r.live.dy.toFixed(4),
         tdx: +r.live.tdx.toFixed(4), tdy: +r.live.tdy.toFixed(4),
         jump: r.live.stage0 !== r.live.stage }));
-      window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn,
+      window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn, line: trailOn && lineOn, feet: trailOn && feetOn,
         /* ★ 2026-09-20（E1）：軌跡改成固定 48 點之後，「畫了幾個點」變成常數、
            再也量不出任何東西。驗收改量**軌跡實際走過幾天**（所有族群加總）——
            刷到最舊那一天是 0，往今天刷會一天一天長出來，語意跟漸進式軌跡一致。*/
@@ -7302,7 +7307,7 @@
       return;
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
-      { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail, tmode: ids.tmode,
+      { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail, line: ids.line, feet: ids.feet, tmode: ids.tmode,   // line／feet：2026-10-06 軌跡與腳印分開
         // 象限卡只長在資金流向頁那張時鐘上（總覽小圖太小、放大視窗是另一份 DOM）
         quads: !!ids.quads,
         // 量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
@@ -8648,7 +8653,7 @@
              配上漸進式軌跡，刷到「前 30 天」就只剩起點一個點，往今天刷才一路長出來
              （Andy 2026-09-20：「只有經過才留下軌跡」）。*/
           // ★ 2026-09-24：腳印畫「N 天前 → 現在這一步」；回放時起點固定在 N 天前，所以長度＝N − 回放到的那一天
-          span: Math.max(0, ROT.days - (frame || 0)), trail: ROT.trail, tmode: 'focus', expose: true });
+          span: Math.max(0, ROT.days - (frame || 0)), trail: ROT.trail || ROT.line, feet: ROT.trail, line: ROT.line, tmode: 'focus', expose: true });
       // 排行選了誰，時鐘就跟著只亮誰（圖四點長條的連動）
       if (rankSel) highlightClock(rankSel);
     };
@@ -8712,6 +8717,7 @@
       if (rotBackBar) { try { rotBackBar.set(ROT.days); if (rotFrame > 0) rotBackBar.seek(rotFrame); } catch (e) { /* 忽略 */ } }
       flowState.back = rotFrame;
       $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
+      $$('.rot-line').forEach(x => { x.checked = ROT.line; });
       wireRotFilter(); drawRot(rotFrame); drawPeriod();
     };
     wireRotFilter(f3);
@@ -9314,6 +9320,11 @@
        尊重使用者自己做過的選擇，但沒選過的人一律回到有腳印的樣子。*/
   ROT.trail = true;
   try { if (localStorage.getItem('tw.rot.feet') === '0') ROT.trail = false; } catch (e) { /* 私密視窗：用預設（開） */ }
+  /* ★ 2026-10-06（Andy：「腳印以及軌跡分開的顯示項目」）：ROT.trail 從此只管腳印（沿用 class .rot-trail 與 key tw.rot.feet，
+     舊驗收與舊偏好不用搬家）；新增 ROT.line 管軌跡細線，key `tw.rot.line`（'0'＝關，沒值＝開）。
+     兩個都在 tw.rot.* 底下，DECISIONS #307 的「重新整理回預設」會一起清掉 —— 跟腳印同一套，預設兩個都開。*/
+  ROT.line = true;
+  try { if (localStorage.getItem('tw.rot.line') === '0') ROT.line = false; } catch (e) { /* 私密視窗：用預設（開） */ }
   // 「N 天前」（1～30）：輪盤腳印與排行共用的那一段長度，記在這台瀏覽器
   ROT.days = 20;
   try { const v = +localStorage.getItem('tw.rot.days'); if (v >= 1 && v <= 30) ROT.days = Math.round(v); } catch (e) { /* 私密視窗 */ }
@@ -9651,7 +9662,10 @@
        只剩兩個勾選框 —— 「顯示腳印」（原「顯示軌跡」，軌跡改畫成小腳印）與「水波」。
        「焦點｜全部」那組鈕、以及旁邊那一長句「大圈＝你選的那一天；線＝牠已經走過的那一段…」都拿掉，
        讀法寫在「怎麼看 ?」裡。class 沿用 .rot-trail（卡片與放大視窗各一份，驗收也認它）。*/
-    box.innerHTML = '<label class="rotchk" title="沿路畫出這段期間走過的小腳印：越新越清楚，最新那一步就是現在的點"><input type="checkbox" class="rot-trail"'
+    // 2026-10-06：順序 軌跡｜腳印｜水波｜掃描（Andy：軌跡與腳印分開兩個勾選）
+    box.innerHTML = '<label class="rotchk" title="把這段期間走過的路連成一條細線"><input type="checkbox" class="rot-line"'
+      + (ROT.line ? ' checked' : '') + '>顯示軌跡</label>'
+      + '<label class="rotchk" title="沿路畫出這段期間走過的小腳印：越新越清楚，最新那一步就是現在的點"><input type="checkbox" class="rot-trail"'
       + (ROT.trail ? ' checked' : '') + '>顯示腳印</label>'
       + '<label class="rotchk" title="點移動時（回放、即時更新）在出發的位置泛起水波紋；靜止時不會冒"><input type="checkbox" class="rot-ripple"'
       + (ROT.ripple ? ' checked' : '') + '>水波</label>'
@@ -9661,6 +9675,7 @@
     // 兩邊（卡片／放大視窗）的狀態要一致，所以一律同步全部的 .rot-trail／.rot-ripple
     const sync = () => {
       $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
+      $$('.rot-line').forEach(x => { x.checked = ROT.line; });
       $$('.rot-ripple').forEach(x => { x.checked = ROT.ripple; });
       $$('.rot-scan').forEach(x => { x.checked = ROT.scan; });
     };
@@ -9671,6 +9686,11 @@
       /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：
          以前總覽小輪盤讀同一個偏好，這裡要把總覽標成「沒畫過」或當場重畫。現在總覽一律只畫點（DECISIONS #274），
          這個開關只管資金流向頁（與它的放大視窗），總覽不必跟著重畫。*/
+    };
+    const ln = $('.rot-line', box);
+    if (ln) ln.onchange = () => {
+      ROT.line = ln.checked; sync(); redraw();
+      try { localStorage.setItem('tw.rot.line', ROT.line ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
     };
     const rp = $('.rot-ripple', box);
     if (rp) rp.onchange = () => {

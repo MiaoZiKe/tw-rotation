@@ -23436,6 +23436,8 @@ SECTIONS = {
     "足跡輪盤補間":        lambda pg, b, base, code: t_rot_tween(pg, b, base),
     # ★ 2026-09-25（claude/rot-all-trails）：每一顆族群點都有腳印，非焦點淡、小，滑到提亮
     "足跡輪盤全部腳印":    lambda pg, b, base, code: t_rot_all_trails(pg, b, base),
+    # ★ 2026-10-06（Andy：「這邊新增顯示軌跡，腳印以及軌跡式分開的顯示項目」）：軌跡線與腳印兩個獨立勾選，四種組合都真的勾、真的量
+    "軌跡腳印分開1006":    lambda pg, b, base, code: t_trail_feet_split(pg, b, base),
     # ★ 2026-09-26（claude/wheel-dots-howto）：足跡輪盤預設只畫圓圈（腳印開關預設關、手機不畫），乾淨頁面驗預設
     "足跡輪盤只留圓圈":    lambda pg, b, base, code: t_rot_dots_only(pg, b, base),
     "排行貼頂":            lambda pg, b, base, code: t_rank_top(pg, b, base),
@@ -39624,7 +39626,9 @@ def t_clock_v2(pg, b, base):
                 label: [...document.querySelectorAll('#rotTools label')].map(l => l.textContent.trim()),
                 long: /已經走過|大圈＝你選的那一天/.test(document.getElementById('rotTools').textContent) })""")
             ok("⑥ 「焦點｜全部」那組鈕真的不在了", tools["tmode"] == 0, tools)
-            ok("⑥ 勾選框改名「顯示腳印」（原「顯示軌跡」）", "顯示腳印" in tools["label"] and "顯示軌跡" not in tools["label"], tools["label"])
+            # ★ 2026-10-06 改前→改後（Andy：「腳印以及軌跡分開的顯示項目」）：改前「只有顯示腳印、沒有顯示軌跡」→
+            #   改後軌跡與腳印各一個勾選、順序 軌跡｜腳印｜水波｜掃描（四種組合的驗收在「軌跡腳印分開1006」）
+            ok("⑥ 勾選框：「顯示軌跡」「顯示腳印」分開兩個（10-06），排在水波、掃描前面", tools["label"][:2] == ["顯示軌跡", "顯示腳印"], tools["label"])
             ok("⑥ 旁邊那一長句補充說明拿掉了（讀法在「怎麼看 ?」裡）", not tools["long"], tools)
             # 「顯示腳印」真的關得掉、開得回來
             pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(900)
@@ -40811,6 +40815,95 @@ ALLTR = r"""(cid) => { const el = document.getElementById(cid); const c = el && 
   return { rows, dots: sc.data.length }; }"""
 
 
+# ===================================================================== 軌跡腳印分開（2026-10-06）
+# Andy：「這邊新增顯示軌跡，腳印以及軌跡式分開的顯示項目」。改前「顯示腳印」一個勾選同時管細線與腳印；
+# 改後兩個勾選、同一列，順序 軌跡｜腳印｜水波｜掃描。四種組合逐一真的點勾選框，量 ECharts 實際的 series：
+#   線＝族群尾巴 series 裡 lineStyle.width > 0 而且有資料點的條數；腳印＝帶 path:// symbol 的資料點數；
+#   圓點＝「族群」scatter 的點數（四種組合都不准少）；localStorage tw.rot.line／tw.rot.feet 真的寫進 '1'／'0'。
+TRLF = r"""() => { const el = document.getElementById('rotClock'); const c = el && window.echarts && echarts.getInstanceByDom(el);
+  if (!c) return null; const ss = c.getOption().series || [];
+  const tr = ss.filter(s => s.type === 'line' && s.gid);
+  const lines = tr.filter(s => ((s.lineStyle || {}).width || 0) > 0 && (s.data || []).length > 1).length;
+  const feet = tr.reduce((a, s) => a + (s.data || []).filter(x => x && !Array.isArray(x) && String(x.symbol || '').startsWith('path://')).length, 0);
+  const sc = ss.find(s => s.type === 'scatter' && s.name === '族群');
+  let ls = {}; try { ls = { line: localStorage.getItem('tw.rot.line'), feet: localStorage.getItem('tw.rot.feet') }; } catch (e) {}
+  const order = [...document.querySelectorAll('#rotTools label.rotchk')].filter(l => l.offsetParent).map(l => l.textContent.trim());
+  return { lines, feet, dots: sc ? sc.data.length : 0, ls, order,
+           cl: !!(document.querySelector('#rotTools .rot-line') || {}).checked, cf: !!(document.querySelector('#rotTools .rot-trail') || {}).checked }; }"""
+
+
+def t_trail_feet_split(pg, b, base):
+    T = "【軌跡腳印分開】"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#flow/rotation", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.rot.line'); localStorage.removeItem('tw.rot.feet'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle")
+    wait_until(pg, "() => { const e = document.getElementById('rotClock'); return !!(e && window.echarts && echarts.getInstanceByDom(e) && document.querySelector('#rotTools .rot-line')); }", 12000)
+    pg.wait_for_timeout(900)
+    m0 = pg.evaluate(TRLF)
+    if not ok(f"{T} 輪盤與工具列都在（前提）", bool(m0), m0):
+        return
+    ok(f"★ {T} 工具列同一列、順序是 顯示軌跡｜顯示腳印｜水波｜掃描", m0["order"][:4] == ["顯示軌跡", "顯示腳印", "水波", "掃描"], m0["order"])
+    tops = pg.evaluate("() => [...document.querySelectorAll('#rotTools label.rotchk')].filter(l => l.offsetParent).map(l => Math.round(l.getBoundingClientRect().top))")
+    ok(f"{T} 四個勾選在同一列（頂端差 ≤ 2px）", bool(tops) and max(tops) - min(tops) <= 2, tops)
+    ok(f"★ {T} 預設兩個都勾、盤上有軌跡線也有腳印", m0["cl"] and m0["cf"] and m0["lines"] >= 3 and m0["feet"] >= 3, m0)
+    dots0 = m0["dots"]
+
+    def setc(cls, want):
+        cur = pg.evaluate(f"() => !!document.querySelector('#rotTools .{cls}').checked")
+        if cur != want:
+            pg.click(f"#rotTools .{cls}"); pg.wait_for_timeout(1100)
+
+    # (軌跡, 腳印) 四種組合；每一次都真的點勾選框
+    # 從「都關」開始：預設兩個都勾，第一步兩顆都要真的點掉，之後每一步至少點一顆 —— localStorage 每一個值都是真的點出來的
+    for ln, ft, name in ((False, False, "都關"), (True, False, "只軌跡"), (False, True, "只腳印"), (True, True, "都開")):
+        setc("rot-line", ln); setc("rot-trail", ft)
+        m = pg.evaluate(TRLF)
+        ok(f"★ {T}【{name}】軌跡線 {'有' if ln else '無'}", (m["lines"] >= 3) if ln else (m["lines"] == 0), m)
+        ok(f"★ {T}【{name}】腳印 {'有' if ft else '無'}", (m["feet"] >= 3) if ft else (m["feet"] == 0), m)
+        ok(f"{T}【{name}】族群圓點一顆都沒少（{dots0}）", m["dots"] == dots0, m["dots"])
+        ok(f"★ {T}【{name}】localStorage 真的寫進去（tw.rot.line={'1' if ln else '0'}、tw.rot.feet={'1' if ft else '0'}）",
+           m["ls"].get("line") == ("1" if ln else "0") and m["ls"].get("feet") == ("1" if ft else "0"), m["ls"])
+    # 同一次瀏覽換頁回來仍記得（#307：只有整頁重新整理才回預設）
+    setc("rot-line", False)
+    flow_sub(pg, "sankey"); flow_sub(pg, "rotation"); pg.wait_for_timeout(800)
+    m = pg.evaluate(TRLF)
+    ok(f"{T} 同一次瀏覽切子頁回來：軌跡仍關、腳印仍開", not m["cl"] and m["cf"] and m["lines"] == 0 and m["feet"] >= 3, m)
+    # 真的重新整理（不設驗收後門）→ 兩個都回預設（DECISIONS #307：tw.rot.* 屬「重設」）
+    real_reload(pg)
+    wait_until(pg, "() => !!document.querySelector('#rotTools .rot-line')", 12000); pg.wait_for_timeout(1500)
+    m = pg.evaluate(TRLF)
+    ok(f"★ {T} 重新整理 → 兩個都回預設（勾選、線與腳印都畫）", bool(m) and m["cl"] and m["cf"] and m["lines"] >= 3 and m["feet"] >= 3, m)
+    # ---- 同一批（Andy 13:05：「這邊幫我多一條微微的線區隔」）：輪盤欄與排行欄之間一條很淡的直線
+    SEP = r"""() => { const L = document.querySelector('#flowRotCard .rotleft'), R = document.querySelector('#flowRotCard .rotright');
+      if (!L || !R || !R.offsetParent) return null; const cs = getComputedStyle(R, '::before');
+      const lr = L.getBoundingClientRect(), rr = R.getBoundingClientRect();
+      const on = cs.content !== 'none' && cs.content !== 'normal' && cs.display !== 'none' && parseFloat(cs.opacity) > 0 && parseFloat(cs.width) > 0;
+      const x = rr.left + parseFloat(cs.left || 0);
+      const m = (cs.backgroundColor || '').match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/) || [];
+      const [r, g, b2] = [+m[1] || 0, +m[2] || 0, +m[3] || 0];
+      return { on, w: parseFloat(cs.width), bg: cs.backgroundColor, op: +cs.opacity, red: r > 150 && r > g * 1.8 && r > b2 * 1.8,
+               x: Math.round(x), lRight: Math.round(lr.right), rLeft: Math.round(rr.left), h: Math.round(parseFloat(cs.height) || rr.height),
+               sameRow: Math.abs(lr.top - rr.top) < 4, theme: document.documentElement.dataset.theme || '' }; }"""
+    th0 = pg.evaluate("() => document.documentElement.getAttribute('data-theme')")
+    for th in ("dark", "light"):
+        # 只換 CSS 主題屬性（深淺兩套 token 都掛在 :root[data-theme]），不重畫圖表；量完換回原本的
+        pg.evaluate("(t) => document.documentElement.setAttribute('data-theme', t)", th)
+        pg.wait_for_timeout(400)
+        sp = pg.evaluate(SEP)
+        ok(f"★ {T}[1440 {th}] 輪盤欄與排行欄之間有一條分隔線：寬 ≤ 1px、不是紅色、落在兩欄的間距裡、高度跟欄一樣",
+           bool(sp) and sp["sameRow"] and sp["on"] and 0 < sp["w"] <= 1 and not sp["red"] and sp["lRight"] <= sp["x"] <= sp["rLeft"] and sp["h"] >= 200, sp)
+    pg.evaluate("(t) => t ? document.documentElement.setAttribute('data-theme', t) : document.documentElement.removeAttribute('data-theme')", th0)
+    mctx = b.new_context(**MOBILE_VP); mp = mctx.new_page()
+    try:
+        mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        mp.goto(f"{base}#flow", wait_until="networkidle"); mp.wait_for_timeout(1500)
+        sp = mp.evaluate(SEP)
+        ok(f"★ {T}[390] 上下排（或輪盤收進完整版）時不畫那條直線", sp is None or not sp["on"] or sp["sameRow"], sp)
+    finally:
+        mctx.close()
+
+
 # ===================================================================== 足跡輪盤只留圓圈（2026-09-26；當晚改驗「有腳印」）
 # ★ 2026-09-26 晚改前→改後（Andy：「先退回到有腳印那版本」）：
 #   改前：這一段驗「足跡輪盤只需要留下圓圈即可」—— 乾淨開頁「顯示腳印」不勾、盤上 0 個腳印、手機雷達 0 個腳印。
@@ -40891,11 +40984,14 @@ def t_rot_dots_only(pg, b, base):
         d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
         scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
         ok("沒有足跡輪盤的放大鈕（2026-09-26 拿掉，這次不退）", d.evaluate("() => !document.getElementById('rotZoomBtn')"))
-        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1200)
+        # ★ 2026-10-06 改前→改後：軌跡與腳印分成兩個勾選（Andy），「只剩圓圈」＝兩個都勾掉
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(600)
+        d.eval_on_selector("#rotTools input.rot-line", "e => e.click()"); d.wait_for_timeout(1200)
         st = d.evaluate(CLK_STATE, "rotClock")
-        ok("★ 勾掉「顯示腳印」→ 卡片只剩圓圈（0 腳印、0 條看得到的軌跡）", feet_n(st) == 0 and st["vis"] == 0 and st["n"] > 6,
+        ok("★ 勾掉「顯示腳印」與「顯示軌跡」→ 卡片只剩圓圈（0 腳印、0 條看得到的軌跡）", feet_n(st) == 0 and st["vis"] == 0 and st["n"] > 6,
            st and [st["vis"], feet_n(st), st["n"]])
-        ok("勾掉之後記成 '0'", d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "0")
+        ok("勾掉之後記成 '0'（腳印 tw.rot.feet、軌跡 tw.rot.line 各一個）",
+           d.evaluate("() => [localStorage.getItem('tw.rot.feet'), localStorage.getItem('tw.rot.line')]") == ["0", "0"])
         # 同一次瀏覽換頁：總覽小輪盤也只剩圓圈
         d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
         scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
@@ -41032,12 +41128,18 @@ def t_rot_all_trails(pg, b, base):
                {"前": [r0["op"], r0["sz"], r0["n"]], "滑開": [me2["op"], me2["sz"], me2["n"]]})
             ok("③ 滑開 → 焦點的腳印也回到 1", all(r["op"] == 1 for r in h2["rows"] if r.get("focus")),
                [r["op"] for r in h2["rows"] if r.get("focus")])
-        # ④ 關掉「顯示腳印」→ 全部歸零（焦點與非焦點都是）；打開 → 全部回來
+        # ④ 關掉「顯示腳印」＋「顯示軌跡」→ 全部歸零（焦點與非焦點都是）；打開 → 全部回來
+        # ★ 2026-10-06 改前→改後：改前一個「顯示腳印」同時管線與腳印 → 改後兩個勾選（Andy：軌跡與腳印分開）；要整條歸零就兩個都勾掉
         pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1000)
+        off1 = pg.evaluate(ALLTR, "rotClock")
+        ok("④ 只勾掉「顯示腳印」→ 一個腳印都不剩（軌跡線另外管）", bool(off1) and all(r["n"] == 0 for r in off1["rows"] if r.get("line")),
+           off1 and [(r["name"], r["n"]) for r in off1["rows"] if r.get("n")][:5])
+        pg.eval_on_selector("#rotTools input.rot-line", "e => e.click()"); pg.wait_for_timeout(1000)
         off = pg.evaluate(ALLTR, "rotClock")
-        ok("④ 勾掉「顯示腳印」→ 每一條的 opacity 都是 0、一個腳印都不剩",
+        ok("④ 再勾掉「顯示軌跡」→ 每一條的 opacity 都是 0、一個腳印都不剩",
            bool(off) and all(r["op"] == 0 and r["n"] == 0 for r in off["rows"] if r.get("line")),
            off and [(r["name"], r["op"], r["n"]) for r in off["rows"] if r.get("op") or r.get("n")][:5])
+        pg.eval_on_selector("#rotTools input.rot-line", "e => e.click()"); pg.wait_for_timeout(300)
         pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
         on = pg.evaluate(ALLTR, "rotClock")
         ok("④ 勾回來 → 非焦點的淡腳印也回來",
@@ -42287,6 +42389,17 @@ def _fx_leafhover(pg, tag):
        [(n["name"], n["vis"]) for n in _fx_kids(t3, g2["key"])])
     # 那一格槽位最右邊的空白（代表股字的右邊）也算
     pg.mouse.move(5, 5); wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && !t.nodes.some(n => n.lv === 3 && n.vis > 0.01) ? 1 : 0; }", 3000)
+    # ★ 2026-10-06（既有紅字清理）：量的點要真的落在畫布上。版面 V2（8ad4c044）的 #flow/sankey 子頁只比視窗高一點，
+    #   最後一族（live[-1]）捲不到畫面中間、停在視窗底部，槽位最右邊那一點剛好被右下角浮動的「客服」鈕（#supFab）蓋住 ——
+    #   滑鼠滑到的是客服鈕，不是空白（實測 elementFromPoint＝supFab）。改成從最後一族往前挑「那一點沒被別的元素蓋住」的那一族；
+    #   要驗的事（槽位最右邊的空白也算那一族）不變。
+    _hit = "([x, y]) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest('#sankey')); }"
+    for _cand in reversed(live):
+        _n = _topo_node(pg, _cand["key"])
+        if _n and pg.evaluate(_hit, [bx[0] + t3["W"] - 6, _n["cy"] + 4]):
+            g2, n2 = _cand, _n
+            break
+    pg.mouse.move(5, 5); pg.wait_for_timeout(200)
     pg.mouse.move(bx[0] + t3["W"] - 6, n2["cy"] + 4); wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.leafHot && t.nodes.filter(n => n.lv === 3 && n.parent === t.leafHot).every(n => n.vis > 0.95) ? 1 : 0; }", 3000)
     t4 = pg.evaluate(TOPO)
     ok(f"{tag} 滑到那一格槽位最右邊的空白：也出現那一族的代表股", t4["leafHot"] == g2["key"] and all(n["vis"] > 0.95 for n in _fx_kids(t4, g2["key"])),
