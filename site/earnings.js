@@ -5,7 +5,7 @@
 
    版面：左＝7 欄真月曆（固定 6 列，切月整張卡不會變高）；右＝固定側欄面板（固定高、內部捲動）：
      · 還沒點 → 本週重點（這週一～週日的全部事件＋下一次 FOMC／CPI）
-     · 點公司標籤（或下面時間表的一列）→ 這次財報的分析與展望（每段標題旁 ⓘ 滑過看出處與資料日期）＋ FED 背景
+     · 點公司標籤（或下面時間表的一列）→ 這次財報的分析與展望（每段標題旁 ⓘ 滑過看出處）＋ FED 背景
      · 點 FED／美國數據標籤 → 數據說明、上次數值（FRED）、市場關注點、下一次日期
      · 點日期格（或「＋N」）→ 那一天的完整清單
    面板標題列（← 回本週重點＋股票名稱代號＝個股頁連結）釘在面板最上方，捲動不跑；面板底部不放按鈕。
@@ -358,21 +358,23 @@
     const t = o.code ? `<a class="plink" href="#stock/${esc(o.code)}" data-code="${esc(o.code)}" title="看 ${esc(o.name || '')} ${esc(o.code)} 個股頁">${esc(title)}</a>` : `<b>${esc(title)}</b>`;
     return `<div class="ph stk">${o.noBack ? '' : '<button type="button" class="btn small" id="earnBack">← 回本週重點</button>'}${t}<span class="sp"></span>${badge || ''}</div>`;
   }
-  /* 出處：不整行顯示，改成標題旁小 ⓘ，滑過才顯示出處與資料日期。
-     寫法跟全站 App.srcInfo 一樣（claude/copy-trim2 分支，還沒上 main）—— 有就直接用它；沒有就產出同樣的標記
+  /* 出處：不整行顯示，改成標題旁小 ⓘ，滑過只顯示「出處：機構名」—— 不放資料日期（DECISIONS #329「這類資訊一律拿掉」，
+     協調者 10-06 定口徑：ⓘ 一律不放日期）。
+     寫法跟全站 App.srcInfo 一樣（claude/copy-trim2 分支，還沒上 main）—— 有就直接用它（日期參數一律給空字串）；沒有就產出同樣的標記
      （class srcinfo＋title；樣式等 .srcinfo 進 index.html 才有，這之前借既有的 .muted 灰字）。App.srcInfo 上 main 後退回寫法可刪。
-     2026-10-06 廢話普查第二輪：FED 事件的 src 是管線寫的查證紀錄（「（https://…；查證 2026-10-05（WebSearch 摘要，未讀原文））」
-     「FRED 日程未取得時的退回值」）—— 讀者用不到，這裡把那種括號整段換成發布機關名（根治要改 pipeline 端的 src 字串，已轉交）。 */
+     FED 事件的 src 以前帶著管線的查證紀錄（「（https://…；查證 …（WebSearch 摘要，未讀原文））」「FRED 日程未取得時的退回值」）；
+     10-06 起產出端只寫發布機關名（pipeline/compute/earnings.py macro_events），這裡的替換留著當保險（舊種子檔、舊快取）。 */
   const AGENCY = { federalreserve: '聯準會', bls: '美國勞工統計局', bea: '美國經濟分析局' };
   const cleanSrc = (src) => String(src || '').replace(/（[^（）]*（[^（）]*）[^（）]*）|（[^（）]*）/g, (m) => {
     if (!/https?:|查證|未取得|退回|WebSearch|未讀原文/.test(m)) return m;
     const h = /https?:\/\/(?:www\.)?([a-z]+)\./.exec(m), ag = h && AGENCY[h[1]];
     return ag && !String(src).includes(ag) ? `（${ag}）` : '';
   }).trim();
-  const si = (src, date) => {
+  const si = (src) => {
     const s0 = cleanSrc(src), f = A() && A().srcInfo;
-    if (f) return f(s0, date || '');
-    return s0 || date ? `<span class="srcinfo muted" tabindex="0" role="note" aria-label="出處" title="${esc([s0 ? '出處：' + s0 : '', date ? '資料日期：' + date : ''].filter(Boolean).join('\n'))}">ⓘ</span>` : '';
+    if (!s0) return '';
+    if (f) return f(s0, '');
+    return `<span class="srcinfo muted" tabindex="0" role="note" aria-label="出處" title="${esc('出處：' + s0)}">ⓘ</span>`;
   };
   const toneCls = (t) => (t > 0 ? 'up' : t < 0 ? 'down' : '');
   /* ------------------------------------------------------------------ 小圖（純 SVG，不放文字：標籤用 HTML，字級才守得住 12px 下限） */
@@ -482,10 +484,10 @@
     const sparks = (info.rel || []).map((k) => sparkFor(snap[k])).filter(Boolean).slice(0, 3).join('');
     return `${phead(e.title, '<span class="badge sch">排程</span>')}
       ${fedCard(e)}
-      ${sparks ? `<div class="sec" data-sec="spark"><h4>近期數值走勢${si('FRED（聯準會聖路易分行經濟資料庫）', '')}</h4>${sparks}</div>` : ''}
+      ${sparks ? `<div class="sec" data-sec="spark"><h4>近期數值走勢${si('FRED（聯準會聖路易分行經濟資料庫）')}</h4>${sparks}</div>` : ''}
       ${(info.focus || []).length ? `<div class="sec"><h4>市場關注點</h4>${info.focus.map((t) => `<p>・${esc(t)}</p>`).join('')}</div>` : ''}
       ${info.rule && info.dir && info.dir !== 'none' ? `<div class="sec" data-sec="rule"><h4>偏多偏空規則</h4><p>${esc(info.rule)}</p></div>` : ''}
-      ${nx ? `<div class="sec"><h4>下一次${si(e.src, '')}</h4><p>${nx.d}（${wdOf(nx.d)}）・台灣 ${esc(nx.tw || '')}</p></div>` : ''}`;
+      ${nx ? `<div class="sec"><h4>下一次${si(e.src)}</h4><p>${nx.d}（${wdOf(nx.d)}）・台灣 ${esc(nx.tw || '')}</p></div>` : ''}`;
   }
   function secHTML(s) {
     const tbl = s.table ? `<table class="mt"><thead><tr>${s.table.cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((r) =>
@@ -493,13 +495,13 @@
     const items = s.items ? `<ul class="nl">${s.items.map((n) => `<li><span class="d">${esc(md(n.d))}</span>${n.u ? `<a class="t" href="${esc(n.u)}" target="_blank" rel="noopener" title="${esc(n.t)}">${esc(n.t)}</a>` : `<span class="t" title="${esc(n.t)}">${esc(n.t)}</span>`}<span class="d">${esc(n.s === 'cnyes' ? '鉅亨' : n.s === 'technews' ? 'TechNews' : n.s)}</span></li>`).join('')}</ul>` : '';
     const ch = chartFor(s);
     const lines = ch ? s.lines.slice(0, s.key === 'val' || s.key === 'inst' ? 2 : 1) : s.lines;
-    return `<div class="sec" data-sec="${s.key}" data-chart="${ch ? 1 : 0}"><h4>${esc(s.t)}${si(s.src, s.asof)}</h4>${ch}${s.key === 'news' ? '' : lines.map((t) => `<p>${esc(t)}</p>`).join('')}${ch ? '' : tbl}${items}</div>`;
+    return `<div class="sec" data-sec="${s.key}" data-chart="${ch ? 1 : 0}"><h4>${esc(s.t)}${si(s.src)}</h4>${ch}${s.key === 'news' ? '' : lines.map((t) => `<p>${esc(t)}</p>`).join('')}${ch ? '' : tbl}${items}</div>`;
   }
   /* 法說會這一場的資訊：只放重大訊息內文裡公司自己寫的欄位（日期／時間／地點／擇要），沒寫的欄位就不出現 */
   function confSec(e) {
     if (KIND[e.k].g !== 'conf') return '';
     const r = [['日期', `${e.d}（${wdOf(e.d)}）`], ['時間', e.time], ['地點', e.place], ['內容', e.brief]].filter((x) => x[1]);
-    return `<div class="sec" data-sec="conf"><h4>這場法說 <small>${esc(KIND[e.k].lab)}</small>${si(e.src, e.ann || '')}</h4>
+    return `<div class="sec" data-sec="conf"><h4>這場法說 <small>${esc(KIND[e.k].lab)}</small>${si(e.src)}</h4>
       <dl class="kv">${r.map(([k, v]) => `<dt>${k}</dt><dd title="${esc(v)}">${esc(v)}</dd>`).join('')}</dl></div>`;
   }
   function panelCo(e) {

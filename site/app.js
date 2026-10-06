@@ -3973,7 +3973,7 @@
   const TPE_YMD = (() => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }); } catch (e) { return null; } })();
   const ovlToday = () => (TPE_YMD ? TPE_YMD.format(new Date()) : new Date().toISOString().slice(0, 10)).replace(/-/g, '');
 
-  /* 這一圈要輪哪些代號：市場明細「即時」那一份（mudCodes，人工族群成分股）＋題材成分股裡不在人工族群的。
+  /* 這一圈要輪哪些代號：市場明細「即時」那一份（mudCodes：族群成分股＋自選＋成交值前段，上限 MUD_CAP）＋題材成分股裡不在裡面的。
      輪動時鐘（rlvCodes）與資金去向（sklCodes）的名單都是 mudCodes 的子集合，不用另外加。*/
   function ovlUni() {
     const th = OVS.src && OVS.src.th;
@@ -4017,12 +4017,16 @@
     const n = up + fl + dn;
     if (!n) return { err: '尚無今日報價' };
     const P = ovsUdParts(up, fl, dn), all = ((OVS.src && OVS.src.stocks) || []).length;
+    /* ★ 2026-10-06（既有紅字清理）：底線／提示原本寫「人工族群成分股」—— 那是 10-05 以前的名單。
+       79d503f5 起 mudCodes() 是「族群成分股＋自選＋盤後成交值前段補位」三段聯集、上限 MUD_CAP（550），
+       卡上照舊寫成「人工族群成分股」就是說錯口徑（N 會超過族群成分股的檔數）。底線改只寫「非全市場」（最要緊的那句），
+       三段組成寫在提示；udUni＝這一輪名單有幾檔（給驗收讀，跟 udN 一樣只是讀數）。 */
     return {
       html: { bar: P.bar, nums: P.nums,
-        foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・人工族群成分股，非全市場</span>`,
-        aria: `漲跌家數（即時估算 ${n} 檔人工族群成分股，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈（盤後資料）`,
-        ds: { udN: n, udFrom: 'live' } },
-      info: { n, at, tip: `族群成分股 ${codes.length} 檔中有報價的 ${n} 檔；漲跌＝現價 vs 昨收。非全市場（全市場 ${all || '約 2300'} 檔盤後才有），偏中大型、偏電子。` },
+        foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・非全市場</span>`,
+        aria: `漲跌家數（即時估算 ${n} 檔，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈（盤後資料）`,
+        ds: { udN: n, udFrom: 'live', udUni: codes.length } },
+      info: { n, at, tip: `族群成分股＋自選＋成交值前段共 ${codes.length} 檔中有報價的 ${n} 檔；漲跌＝現價 vs 昨收。非全市場（全市場 ${all || '約 2300'} 檔盤後才有），偏中大型、偏電子。` },
     };
   }
   function ovlRot() {
@@ -7105,6 +7109,9 @@
          驗收再用 `App.rotLiveSeg()` 換成像素長度（那才是「使用者真的看到一條線」）。*/
       // 這一輪盤上真的有箭頭的族群 —— 圖下方那排讀數只列這幾個（見 rlvTop 的註解）
       rlvShown = new Set(liveArr.map(r => r.gid));
+      /* 2026-10-06（既有紅字清理）：盤面的尺（√ 尺度的反函數要用到）。4e9c2ad5 起半徑是 √u，畫面位移跟資料位移不再成正比，
+         驗收要「把畫上去的兩端反推回資料、跟 tdx／tdy 比」才驗得到「沒有額外放大」—— 反推要知道這幾個數。只是讀數，不影響畫面。*/
+      window.App._rotScale = { sx, sy, sr, maxR: CLOCK_MAXR };
       window.App._rotLiveAt = liveArr.map(r => ({ gid: r.gid, name: r.name,
         p0: r.p0, pf: r.pf, p1: r.p,
         dx: +r.live.dx.toFixed(4), dy: +r.live.dy.toFixed(4),

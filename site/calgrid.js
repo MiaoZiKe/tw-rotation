@@ -7,7 +7,7 @@
    ========================================================================== */
 (function () {
   'use strict';
-  const S = { days: {}, p: null, verified: '' };
+  const S = { days: {}, p: null };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   function injectCSS() {
     if (document.getElementById('calgridCss')) return;
@@ -23,7 +23,7 @@
     injectCSS();
     if (S.p) return S.p;
     S.p = fetch('tw_holidays.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
-      S.days = (j && j.days) || {}; S.verified = (j && j.verified) || ''; return S.days;
+      S.days = (j && j.days) || {}; return S.days;
     }).catch(() => S.days);
     return S.p;
   }
@@ -31,8 +31,10 @@
   const holiday = (k) => S.days[k] || null;
   /* 加在格子 class 上的字串（含前導空白） */
   const cls = (k) => (isWeekend(k) ? ' cg-we' : '') + (holiday(k) ? ' cg-hol' : '');
-  /* 格內小字「國慶日・休市」；非休市日回空字串 */
-  const tag = (k) => { const h = holiday(k); return h ? `<span class="cg-hl" title="${esc(h)}・台股休市（證交所公告；${esc(S.verified)}）">${esc(h)}・休市</span>` : ''; };
+  /* 格內小字「國慶日・休市」；非休市日回空字串。
+     滑過提示只寫「X・台股休市（證交所公告）」：tw_holidays.json 的 verified 是查證紀錄（WebSearch 摘要、資料湖交易日對照），
+     讀者用不到，10-06 廢話普查第二輪拿掉（只留在 pipeline/calendar/tw_holidays.yaml）。 */
+  const tag = (k) => { const h = holiday(k); return h ? `<span class="cg-hl" title="${esc(h)}・台股休市（證交所公告）">${esc(h)}・休市</span>` : ''; };
   /* 一屏格高：格高＝（視窗剩下的高度 − 星期列 − 間距）÷ 列數，夾在 min～max；回傳格高 */
   function fit(grid, rows, min, max, gap, extra) {
     const top = grid.getBoundingClientRect().top + window.scrollY;

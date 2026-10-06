@@ -108,7 +108,10 @@ def test_FED日程_YAML退回():
     assert ("fomc", "2026-10-28") in ks and ("minutes", "2026-11-18") in ks and ("cpi", "2026-10-14") in ks
     sep = next(e for e in ev if e["d"] == "2026-12-09")
     assert sep["sep"] and "點陣圖" in sep["title"] and sep["tw"] == "12/10 03:00"
-    assert "退回值" in next(e for e in ev if e["k"] == "cpi")["src"]
+    cpi = next(e for e in ev if e["k"] == "cpi")
+    # 2026-10-06：src 只寫發布機關名（畫面上的 ⓘ），查證紀錄不進 JSON；走哪條路記在機器欄位 via
+    assert cpi["via"] == "yaml" and cpi["src"] == E.FED_INFO["cpi"]["org"]
+    assert all(not any(w in e["src"] for w in ("查證", "WebSearch", "退回值", "http", "release_id")) for e in ev)
 
 
 def test_FED日程_FRED優先_只採用最近一次抓取():
@@ -119,7 +122,7 @@ def test_FED日程_FRED優先_只採用最近一次抓取():
     ])
     ev = [e for e in E.macro_events(CFG, cal, "2026-10-01", "2026-12-31") if e["k"] == "cpi"]
     assert [e["d"] for e in ev] == ["2026-10-14", "2026-11-10"]
-    assert all("FRED" in e["src"] for e in ev)
+    assert all(e["via"] == "fred" and e["src"] == E.FED_INFO["cpi"]["org"] for e in ev)
     # FRED 沒有的 nfp 照樣用 YAML
     assert any(e["k"] == "nfp" for e in E.macro_events(CFG, cal, "2026-10-01", "2026-12-31"))
 
