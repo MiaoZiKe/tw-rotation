@@ -46,7 +46,7 @@
      所以深／淺／各主題自動跟著換，不另寫一套。紅漲綠跌（--rise/--fall）不准拿來當類別色。 */
   --cat-1:var(--cyan); --cat-2:var(--violet); --cat-3:var(--amber); --cat-4:var(--lime); --cat-5:var(--ink-2); --cat-6:var(--ink-3); --cat-other:var(--line-2);
   /* 圖表規格：長條粗 12、列高 28、甜甜圈外徑 160／環寬 22 */
-  --chart-bar-h:12px; --chart-row-h:28px; --chart-donut:160px; --chart-ring:22px;
+  --chart-bar-h:10px; --chart-row-h:32px; --chart-donut:160px; --chart-ring:22px;
 }
 @media (max-width:640px){ :root[data-theme4]{ --gap-card:8px } }
 

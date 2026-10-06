@@ -182,7 +182,7 @@
       ${row('etf', '◫', 'ETF', '<small>配息、市值、主題型 ETF 一覽</small>', v === 'etf')}
       ${row('earnings', '▣', '財經日曆', '<small>財報、法說會、FED 消息</small>', v === 'earnings')}
       ${row('watch', '★', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
-      ${isAdmin() ? row('perm', '⛨', '管理區', '<small>會員權限／會員管理／流量觀測</small>', /^#admin\b/.test(location.hash)) : ''}
+      ${isAdmin() ? row('perm', '⛨', '管理區', '<small>會員權限／流量觀測</small>', /^#admin\b/.test(location.hash)) : ''}
       <div class="mgrp">工具</div>
       ${row('events', '▤', '今日事件', `<span class="n">${esc(evn)}</span>`)}
       ${row('theme', '☀', '切換成' + theme)}

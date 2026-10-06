@@ -21,7 +21,8 @@
 (function () {
   'use strict';
   /* 使用統計白名單 —— 跟 workers/account-api/worker.js 同一份，測試會比對（改一邊要改另一邊與文件）*/
-  const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other'];
+  /* 跟 Worker 的 VIEWS 完全一致（18 頁、同順序；tests/account.test.mjs 三邊一致測試）。後七頁 2026-10-05（hourly）Worker 先補、這裡跟上 */
+  const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other', 'etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices'];
   const EVENTS = ['session', 'session_login', 'login', 'logout', 'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel', 'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle', 'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg'];
   const K_TOK = 'tw.acct.tok', K_USER = 'tw.acct.user';
   const BEAT_MS = 60 * 1000;
@@ -129,7 +130,20 @@
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(S.beatT); leave(); } else beat(); });
   window.addEventListener('pagehide', leave);
-  window.addEventListener('hashchange', pv);
+  /* 子分頁開啟次數（sub.<子頁>）：資金流向（rotation／sankey／inst）、熱力圖（industry／theme）、產業地圖（chains／chain／group）、市場明細（<頁籤>）。
+     管理區的堆疊長條用它拆「這一頁被看的次數」；只記固定的路由片段，不記任何輸入 */
+  function subOf(hash) {
+    const h = String(hash || '').replace(/^#/, '').split('/'), head = h[0] || 'overview', rest = h[1] || '';
+    if (head === 'flow') return ['flow', ['rotation', 'sankey', 'inst'].includes(rest) ? rest : 'rotation'];
+    if (head === 'heatmap') return ['heatmap', rest === 'theme' ? 'theme' : 'industry'];
+    if (head === 'themes') return ['heatmap', 'theme'];
+    if (head === 'industry') return ['industry', !rest ? 'chains' : rest === 'group' ? 'group' : 'chain'];
+    if (head === 'market') return ['market', /^[a-z0-9]{1,16}$/.test(rest) ? rest : 'updown'];
+    return null;
+  }
+  let lastSub = '';
+  function subPv() { const r = subOf(location.hash); const k = r ? r.join('/') : ''; if (k && k !== lastSub) t2('sub.' + r[1], '', r[0]); lastSub = k; }
+  window.addEventListener('hashchange', () => { pv(); subPv(); });
 
   /* 功能使用事件：用委派監聽認按鈕，不去改每個功能自己的程式（那些檔案別的 agent 正在改）。
      事件的定義與「回答什麼問題」寫在 docs/account_analytics.md。*/
@@ -159,9 +173,27 @@
     ['.rotdd[data-dd="group"] .ddbtn', () => ['filter_group_open', '']],
     ['.rot-top10', () => ['filter_top10', '']],
     ['.rot-clear', () => ['filter_clear', '']],
+    /* 2026-10-05 流量觀測分頁統計（Andy 新規格）補的點位：只記次數與固定選項名，不記身分。
+       頁面鍵：etf／explore／support／events 已在 Worker 白名單（2026-10-05 hourly），細項直接記在各自的頁面下；舊資料（切換前）記在 other＋前綴，管理區兩種都認 */
+    ['#etfCatSeg button', (el) => ['etf.cat', (el.textContent || '').replace(/[\s\d,（）()]+$/, '').trim(), 'etf']],                       // ETF 分類按鈕
+    ['#wpNew, #wlNew', () => ['watch_tab_new', '', 'watch']],                                                  // 自選：新增分頁
+    ['#wpList .spkw, #wlList .spkw', () => ['watch.chart', '', 'watch']],                                      // 自選：點走勢圖
+    ['#wpList [data-tf], #wpList .tfseg button, #wpList .kseg button', () => ['watch.kline', '', 'watch']],    // 自選：展開圖裡切 K 線週期
+    ['#supFab', () => ['support.fab', '', 'support']],                                                           // 客服：打開面板
+    ['#supPanel .sptabs button[data-t]', (el) => ['support.tab', ({ faq: '常見問題', fb: '意見反饋', mail: '寄信' })[el.dataset.t] || '', 'support']],
+    ['#supPanel .faq > button', (el) => ['support.faq', (el.textContent || '').trim().slice(0, 20), 'support']],
+    ['#supPanel #fbSend', () => ['support.send', '', 'support']],
+    ['#supPanel #supMail', () => ['support.mail', '', 'support']],
+    ['#evList .ev a', () => ['events.link', '', 'events']],
+    ['#drawBar .dtool', (el) => ['draw.tool', (el.getAttribute('title') || el.textContent || '').trim().split(/[（(]/)[0].slice(0, 20), 'stock']],   // K 線畫線工具（工具名取自按鈕提示）                                                    // 事件抽屜：點事件連結
   ];
   document.addEventListener('click', (e) => {
     if (!S.on || !e.target || !e.target.closest) return;
+    /* 面板型的頁（今日事件抽屜、客服面板）不換網址，pv() 抓不到：打開那一下算一次瀏覽（關起來的那一下不算） */
+    if (!noTrack()) {
+      const evb = e.target.closest('#evToggle, #mmEvents'), tg = document.getElementById('evToggle'); if (evb && tg && tg.getAttribute('aria-expanded') !== 'true') bump('pv:events');
+      const sfb = e.target.closest('#supFab'); if (sfb) { const pn = document.getElementById('supPanel'); if (!pn || pn.hidden) bump('pv:support'); }
+    }
     for (const [sel, ev] of HOOKS) {
       const el = e.target.closest(sel); if (!el) continue;
       track(ev);
@@ -171,13 +203,19 @@
         code || (ev === 'how' ? idOf(el, '.card[id], section[id], [id]') : ''));
       break;
     }
-    for (const [sel, fn] of DETAIL) { const el = e.target.closest(sel); if (el) { const [c, d] = fn(el); t2(c, d); break; } }
+    for (const [sel, fn] of DETAIL) { const el = e.target.closest(sel); if (el) { const [c, d, pgx] = fn(el); t2(c, d, pgx); break; } }
   }, true);
   /* 族群下拉勾選：只記「勾上」那一下，細項＝族群名（取自清單本身的文字，不是使用者輸入）*/
   document.addEventListener('change', (e) => {
     const inp = e.target; if (!S.on || !inp || !inp.matches || !inp.matches('.rotdd input[data-g]') || !inp.checked) return;
     const row = inp.closest('.ddopt'), nm = row && row.querySelector('.nm');
     t2('filter_group', nm ? nm.textContent : inp.dataset.g);
+  }, true);
+  /* 技術指標勾選（只記「勾上」那一下）：細項＝指標名稱（取自面板上的固定文字，如 MACD、RSI、布林通道），元件 ind */
+  document.addEventListener('change', (e) => {
+    const inp = e.target; if (!S.on || !inp || !inp.matches || !inp.matches('.ion[data-k]') || !inp.checked) return;
+    const nm = inp.closest('label') && inp.closest('label').querySelector('.iname');
+    t2('ind', nm ? nm.textContent : inp.dataset.k, 'stock');
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target && e.target.id === 'q' && e.target.value.trim()) { track('search'); t2('search', ''); } }, true);
   function watchZoom() {
