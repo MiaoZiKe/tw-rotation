@@ -260,13 +260,13 @@
       const L = TG.levels(visDays, self.intraday);
       const lo = Math.floor(lr.from) - 1, hi = Math.ceil(lr.to) + 1;
       self.drawn = { year: 0, month: 0, week: 0, day: 0 }; self.lastX = [];
-      ctx.save(); ctx.lineWidth = 1;
-      const cols = { year: TG.color('year'), month: TG.color('month'), week: TG.color('week'), day: TG.color('day') };
+      ctx.save(); ctx.lineWidth = TG.hair(); const dk = TG.densK(visDays);
+      const cols = { year: TG.color("year", dk), month: TG.color("month"), week: TG.color("week"), day: TG.color("day") };
       for (const m of self.marks) {
         if (m.i < lo || m.i > hi || !L[m.kind]) continue;
         const a = ts.logicalToCoordinate(m.i - 1), b = ts.logicalToCoordinate(m.i);
         if (a === null || b === null) continue;
-        const x = Math.round((a + b) / 2) + 0.5;
+        const x = TG.crisp((a + b) / 2);
         if (x < 0 || x > mediaSize.width) continue;
         self.drawn[m.kind]++; self.lastX.push([m.kind, x]);
         ctx.strokeStyle = cols[m.kind];

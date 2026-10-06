@@ -121,7 +121,12 @@
      原本想用 --line-2，但淺色主題的 --line-2 本來就接近白（≈ #c2cde1 on #f7fafd），α .45 之後量不到線；
      改用 ink-3 之後兩個主題的「線與底色的差」才在同一個量級（量測見 docs/ui_polish_spec.md）。
      深色底上 ink-3 比底亮，淺色底上 ink-3 比底暗，所以 α 兩組：深 月 .13／年 .30，淺 月 .15／年 .32。 */
-  const ALPHA = { dark: { year: 0.48, month: 0.24, week: 0.15, day: 0.15 }, light: { year: 0.50, month: 0.26, week: 0.16, day: 0.16 } };
+  const ALPHA = { dark: { year: 0.26, month: 0.15, week: 0.09, day: 0.09 }, light: { year: 0.22, month: 0.14, week: 0.09, day: 0.09 } };
+  /* 期間很長、年線本身就很密（上市以來 22 條年線）時，年線再降一級；Andy 17:40「Y 軸線有點粗，不要那麼明顯」 */
+  function densK(visDays) { const y = visDays / 365; return y > 20 ? 0.5 : y > 12 ? 0.65 : y > 8 ? 0.8 : 1; }
+  /* 線寬一律「1 個裝置像素」（不是 1 CSS px × dpr）、位置對齊裝置像素的半格，高 DPI 不糊不變粗 */
+  function crisp(x) { const d = window.devicePixelRatio || 1; return (Math.round(x * d) + 0.5) / d; }
+  function hair() { return 1 / (window.devicePixelRatio || 1); }
   function rgb() {
     try {
       const s = getComputedStyle(document.documentElement).getPropertyValue('--ink-3').trim();
@@ -132,11 +137,11 @@
     } catch (e) { /* 取不到就用保底 */ }
     return [111, 126, 163];
   }
-  function color(kind) {
+  function color(kind, dens) {
     const c = rgb();
     const lum = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
     const A = lum > 140 ? ALPHA.dark : ALPHA.light;      // ink-3 偏亮＝深色底
-    return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (A[kind] || .1) + ')';
+    return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + +(((A[kind] || .1)) * (dens || 1)).toFixed(3) + ')';
   }
 
   /* ---------------- ECharts ---------------- */
@@ -223,10 +228,10 @@
           if (!L[kind]) return null;
           let x = api.coord([api.value(0), 0])[0];
           if (!isTime) x -= px / 2;
-          x = Math.round(x) + 0.5;
+          x = crisp(x);
           if (x < cs.x || x > cs.x + cs.width) return null;
           return { type: 'line', shape: { x1: x, y1: cs.y, x2: x, y2: cs.y + cs.height }, silent: true,
-            style: { stroke: color(kind), lineWidth: 1, fill: 'none' }, z2: 0 };
+            style: { stroke: color(kind, densK(visDays)), lineWidth: hair(), fill: 'none' }, z2: 0 };
         },
       });
     });
@@ -253,5 +258,5 @@
     } catch (e) { return option; }     // 外觀失敗不能讓圖畫不出來
   }
 
-  g.TimeGrid = { parse, entryMs, avgStepDays, levels, marksFromEntries, marksFromRange, color, ALPHA, applyToOption, echartsSeries, SERIES_ID, DAY };
+  g.TimeGrid = { densK, crisp, hair, parse, entryMs, avgStepDays, levels, marksFromEntries, marksFromRange, color, ALPHA, applyToOption, echartsSeries, SERIES_ID, DAY };
 })(window);
