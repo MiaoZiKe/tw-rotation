@@ -36123,7 +36123,10 @@ def t_mobile_v2(b, base, code):
        len(hid) >= 3 and not lost, {"收起來的": hid, "更多清單": rows, "找不到入口": lost})
     # ★ 2026-10-04 改前→改後（驗收過時）：交付清單的入口已從「更多」收掉（mobile3.js openMore 註解：#delivery 照樣打得開，只是入口收掉），
     #   改前去點不存在的那列 → 等 30 秒逾時、整段中斷。改後換成清單裡現在有的「自選」。
-    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market"), ("etf", "#etf"), ("earnings", "#earnings")):
+    # ★ 2026-10-06：ETF、財經日曆收進「更多」之後一起點一次。ETF 放最後：#etf 在 390 還沒有手機排版（日期框、比較表把頁面撐到 608px，
+    #   手機版暫停中 10-03），整頁被縮放、固定在底部的導覽跟著跑到畫面外 —— 從 #etf 再按「更多」會點不到。那是 ETF 頁的手機版待辦（HANDOFF 10-06 既有紅字清理「未收斂」），
+    #   這裡驗的是「從『更多』進得去 ETF」，不拿它當起點。
+    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market"), ("earnings", "#earnings"), ("etf", "#etf")):
         m.tap("#mTabMore"); m.wait_for_timeout(400)
         m.tap(f'#mSheet .mrow[data-m={v}]'); m.wait_for_timeout(1600)
         st = m.evaluate("""() => ({ hash: location.hash,

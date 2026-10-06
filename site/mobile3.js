@@ -145,7 +145,8 @@
      路由、驗收、桌機全部照舊。「更多」這顆只在手機插，不帶 `.tab`（route() 的 `$$('.tab')` 不會碰到它）。*/
   /* ★ 2026-09-28（Andy：「"自選分頁替代"交付清單」）：「更多」裡的交付清單換成自選（#watch）。
      交付清單的網址 #delivery 照樣打得開，只是入口收掉（桌機導覽列同一件事）。*/
-  const MORE_VIEWS = ['market', 'season', 'watch'];
+  /* ★ 2026-10-06：ETF 專區、財經日曆（10-05 新增的頂層分頁）一起收進「更多」—— 沒收的話五欄格線被擠成兩列，「更多」掉到畫面外（index.html 同日註解）。*/
+  const MORE_VIEWS = ['market', 'season', 'etf', 'earnings', 'watch'];
   /* ★ 2026-10-04「會員權限」（#admin/perm）：跟電腦版側欄同一條規則 —— 只有登入且 Worker 回報 admin=true 才「畫」這一列，
      訪客與一般會員的清單 HTML 裡根本沒有它。清單每次打開都重畫，所以登入／登出之後下一次打開就對。 */
   const isAdmin = () => { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); };
@@ -178,6 +179,8 @@
       <div class="mgrp">頁面</div>
       ${row('market', '▦', '市場明細', '<small>漲跌家數、站上均線、完整名單</small>', v === 'market')}
       ${row('season', '◷', '週期統計', '<small>族群 × 月份的歷史表現</small>', v === 'season')}
+      ${row('etf', '◫', 'ETF', '<small>配息、市值、主題型 ETF 一覽</small>', v === 'etf')}
+      ${row('earnings', '▣', '財經日曆', '<small>財報、法說會、FED 消息</small>', v === 'earnings')}
       ${row('watch', '★', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
       ${isAdmin() ? row('perm', '⛨', '管理區', '<small>會員權限／會員管理／流量觀測</small>', /^#admin\b/.test(location.hash)) : ''}
       <div class="mgrp">工具</div>
