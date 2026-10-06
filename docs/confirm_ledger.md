@@ -214,3 +214,8 @@
 2. 要不要**登記行號**（統編：企業會員、正式商店、電子發票都要）
 3. 收費前先問律師投顧法問題（`compliance_and_tiers.md`）
 4. 升級方案時舊方案剩餘天數：**按日退款** 或 **折抵新方案**
+
+## 10-06 19:40 付費內容保護（data-gw）第一階段完成（分支 claude/data-gw，未上 main）
+待 Andy 按：① R2 建 bucket `tw-rotation-paid`（不公開）② CLOUDFLARE_API_TOKEN 加「Workers R2 Storage: Edit」③ GitHub Secret `DATA_GW_SECRET`（隨機字串）
+待 Andy 決定門檻：T1 每帳號每分鐘上限（建議 60）、T2 60 秒內不同檔數（>30）、T3 同權杖 IP 網段（>2）、T4 異常幾次自動停權（建議先觀察兩週）、T5 哪些功能真的收費、T6 異常通知寄哪
+第二階段（前端改走 gateway）施工中，仍在分支。
