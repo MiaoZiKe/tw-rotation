@@ -23485,6 +23485,9 @@ SECTIONS = {
     # ★ 2026-10-06 Andy：甜甜圈「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」＋「其他圓餅圖也一樣」——
     #   全站甜甜圈左圖右圖例（一列一項：色塊｜名稱｜數值｜占比）、卡寬 < 420 才退回圖例在下（DECISIONS #328）
     "甜甜圈圖例1006":      lambda pg, b, base, code: t_donut_legend_1006(pg, base, code),
+    # ★ 2026-10-06 Andy：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」（DECISIONS #331）——
+    #   每張圓餅真的滑過一個扇區：外框、中心字、提示框、配色，1440 與 390 兩種寬度
+    "圓餅風格1006":        lambda pg, b, base, code: t_pie_style_1006(pg, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -50988,6 +50991,122 @@ def t_donut_legend_1006(pg, base, code):
     bad = {r: [x for x in v if x != "gpPie"] for r, v in census.items() if any(x != "gpPie" for x in v)}
     ok(f"★ {T0} 普查：前台 {len(census)} 個分頁的圓餅／甜甜圈只有 #gpPie（新圓餅要先照左圖右圖例做，再加進這一段）", not bad, {"其他圓餅": bad, "全部": census})
     notes.append("甜甜圈圖例1006 普查：" + "；".join(f"{r}={v or '無'}" for r, v in census.items()))
+
+# ---------------------------------------------------------------------------
+# 圓餅風格1006（Andy 2026-10-06：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」，DECISIONS #331）
+# 每一張 ECharts 圓餅都要真的滑過一個扇區、真的量：外框、中心字、提示框、配色，1440 與 390 兩種寬度。
+# ---------------------------------------------------------------------------
+PIE1006_INFO = """(sel) => { const el = document.querySelector(sel); const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption(), s = (o.series || []).find(x => x.type === 'pie' && !x.silent); if (!s) return null;
+  const r = el.getBoundingClientRect(), data = s.data.map(d => ({ name: d.name, value: d.value,
+    color: d.itemStyle && d.itemStyle.color, bw: d.itemStyle && d.itemStyle.borderWidth }));
+  const tot = data.reduce((a, d) => a + d.value, 0) || 1;
+  return { id: el.id, x: r.left, y: r.top, w: r.width, h: r.height, data, tot, radius: s.radius, padAngle: s.padAngle,
+    br: s.itemStyle && s.itemStyle.borderRadius, emp: s.emphasis, hasTrack: (o.series || []).some(x => x.silent) }; }"""
+PIE1006_HOVER = """(a) => { const el = document.querySelector(a.sel); const c = echarts.getInstanceByDom(el); const o = c.getOption();
+  const s = o.series.find(x => x.type === 'pie' && !x.silent); const it = s.data.find(d => d.name === a.name);
+  const title = (o.title || []).flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'));
+  const tips = [...el.querySelectorAll('div')].filter(d => d.textContent.includes(a.name) && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden' && d.getBoundingClientRect().width > 20);
+  return { bw: it && it.itemStyle ? it.itemStyle.borderWidth : null, title, tip: tips.length > 0,
+           tipTxt: tips.length ? tips[tips.length - 1].textContent.slice(0, 80) : '' }; }"""
+
+
+def _lab1006(hexc):
+    h = hexc.lstrip('#')
+    if len(h) != 6:
+        return None
+    r, g, b = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    f = lambda c: c / 12.92 if c <= .04045 else ((c + .055) / 1.055) ** 2.4
+    r, g, b = f(r), f(g), f(b)
+    x = (.4124 * r + .3576 * g + .1805 * b) / .95047; y = .2126 * r + .7152 * g + .0722 * b; z = (.0193 * r + .1192 * g + .9505 * b) / 1.08883
+    t = lambda v: v ** (1 / 3) if v > .008856 else 7.787 * v + 16 / 116
+    return (116 * t(y) - 16, 500 * (t(x) - t(y)), 200 * (t(y) - t(z)))
+
+
+def _pie_style_check_1006(pg, T, sel, strict=True):
+    """量一張 ECharts 圓餅：配色、環規格、滑過一個扇區後的外框／中心字／提示框。回傳量到的東西。"""
+    import math
+    info = pg.evaluate(PIE1006_INFO, sel)
+    if not info:
+        ok(f"{T} 讀得到圓餅", False); return None
+    ok(f"{T} 環規格＝共用風格（半徑 {info['radius']}、扇區間隙 {info['padAngle']}°、圓角 {info['br']}、內側細軌道 {info['hasTrack']}）",
+       info["radius"] == ["68%", "92%"] and info["padAngle"] == 1.2 and info["br"] == 6 and info["hasTrack"], info)
+    emp = info["emp"] or {}
+    ok(f"{T} 滑過規格：外擴 {emp.get('scaleSize')}px、外框 {(emp.get('itemStyle') or {}).get('borderWidth')}px",
+       emp.get("scale") is True and emp.get("scaleSize") == 4 and ((emp.get("itemStyle") or {}).get("borderWidth") or 0) >= 3, emp)
+    cols = [(d["name"], d["color"]) for d in info["data"]]
+    labs = [(n, _lab1006(c) if isinstance(c, str) and c.startswith('#') else None) for n, c in cols]
+    real = [(n, l) for n, l in labs if l and n != "其他"]
+    dE = [math.dist(real[i][1], real[i + 1][1]) for i in range(len(real) - 1)]
+    ch = [math.hypot(l[1], l[2]) for n, l in real]
+    lim = 20 if strict else 12
+    ok(f"{T} 相鄰扇區色差夠大（最小 ΔE {min(dE) if dE else 99:.1f} ≥ {lim}）", not dE or min(dE) >= lim, cols)
+    if strict:
+        ok(f"{T} 配色不是淡色（最低彩度 {min(ch) if ch else 99:.1f} ≥ 15）", not ch or min(ch) >= 15, cols)
+    # 真的滑過：挑最大的一塊（非「其他」）；圓心＝容器中心，扇區中線＝環的 80% 半徑處
+    big = max((d for d in info["data"] if d["name"] != "其他"), key=lambda d: d["value"])
+    a0 = -90.0
+    mid = 0.0
+    for d in info["data"]:
+        sw = d["value"] / info["tot"] * 360
+        if d is big:
+            mid = math.radians(a0 + sw / 2)
+            break
+        a0 += sw
+    S = min(info["w"], info["h"]); rr = S / 2 * 0.80
+    px, py = info["x"] + info["w"] / 2 + rr * math.cos(mid), info["y"] + info["h"] / 2 + rr * math.sin(mid)
+    pg.mouse.move(info["x"] + 2, info["y"] + 2); pg.wait_for_timeout(150)
+    pg.mouse.move(px, py, steps=4); pg.wait_for_timeout(600)
+    h = pg.evaluate(PIE1006_HOVER, {"sel": sel, "name": big["name"]})
+    ok(f"★ {T} 滑過「{big['name']}」→ 該扇區外框 {h['bw']}px ≥ 3", (h["bw"] or 0) >= 3, h)
+    ok(f"★ {T} 中心字變成該扇區名「{big['name']}」＋百分比 {h['title']}",
+       len(h["title"]) >= 2 and h["title"][0] == big["name"] and "%" in h["title"][1], h)
+    ok(f"★ {T} 提示框出現且寫著名稱（{h['tipTxt']}）", h["tip"], h)
+    pg.mouse.move(info["x"] + info["w"] + 40 if info["x"] < 40 else info["x"] - 30, info["y"] + 2); pg.wait_for_timeout(500)
+    h2 = pg.evaluate(PIE1006_HOVER, {"sel": sel, "name": big["name"]})
+    ok(f"{T} 滑開 → 外框還原、中心字還原（{h2['title']}）", (h2["bw"] or 0) <= 1 and h2["title"][0] != big["name"], h2)
+    return info
+
+
+def t_pie_style_1006(pg, base, code):
+    import math
+    T0 = "[圓餅風格1006]"
+    # ---- 共用風格本身：規格數字、兩組色盤
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto("about:blank"); pg.goto(f"{base}#industry", wait_until="networkidle")
+    wait_until(pg, "() => { const e = document.getElementById('gpPie'); return !!(window.echarts && e && echarts.getInstanceByDom(e)); }", 9000)
+    sp = pg.evaluate("() => { const d = App.donut; return d ? { rin: d.R_IN, rout: d.R_OUT, pad: d.PAD_ANGLE, br: d.RADIUS, b: d.BORDER, bhi: d.BORDER_HI, sc: d.SCALE, ms: d.MS, n: d.colors().length } : null; }")
+    ok(f"{T0} App.donut 規格：內 68／外 92、間隙 1.2°、圓角 6、框 1→3、外擴 4、動畫 200ms≤240、色盤 ≥ 8 色",
+       bool(sp) and sp["rin"] == 68 and sp["rout"] == 92 and sp["pad"] == 1.2 and sp["br"] == 6 and sp["b"] == 1 and sp["bhi"] == 3 and sp["sc"] == 4 and sp["ms"] <= 240 and sp["n"] >= 8, sp)
+    for th in ("dark", "light"):
+        cols = pg.evaluate("(t) => { document.documentElement.setAttribute('data-theme', t); return App.donut.colors(); }", th)
+        labs = [_lab1006(c) for c in cols]
+        dE = min(math.dist(labs[i], labs[i + 1]) for i in range(len(labs) - 1))
+        ok(f"{T0} {th} 色盤相鄰最小 ΔE {dE:.1f} ≥ 20", dE >= 20, cols)
+    pg.evaluate("() => document.documentElement.setAttribute('data-theme', 'dark')")
+    # ---- 每張圓餅 × 1440／390
+    for route, sel in (("#industry", "#gpPie"), ("#industry/semiconductor/overview", "#gpPie")):
+        for w, hgt in ((1440, 950), (390, 844)):
+            pg.set_viewport_size({"width": w, "height": hgt})
+            pg.goto("about:blank"); pg.goto(f"{base}{route}", wait_until="networkidle")
+            wait_until(pg, f"() => {{ const e = document.querySelector('{sel}'); return !!(window.echarts && e && echarts.getInstanceByDom(e) && document.querySelector('#gpLegend .lg')); }}", 9000)
+            pg.wait_for_timeout(700)
+            pg.locator(sel).scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+            # 產業地圖的族群色來自族群本身（範本），色差照量、彩度不卡
+            _pie_style_check_1006(pg, f"{T0} {route} {w}px", sel, strict=False)
+    # ---- 普查：前台所有 ECharts 圓餅都要是「共用風格」做的（半徑 68／92），不准有舊式 58／78 的
+    census = {}
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    for r in ("#overview", "#flow", "#market", "#industry", "#heatmap", "#season", "#etf", "#watch", "#explore", f"#stock/{code}"):
+        pg.goto("about:blank"); pg.goto(f"{base}{r}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        census[r] = pg.evaluate("""() => { const out = [];
+            document.querySelectorAll('[_echarts_instance_]').forEach(el => { const c = echarts.getInstanceByDom(el); if (!c) return;
+              (c.getOption().series || []).forEach(s => { if (s.type === 'pie' && !s.silent && !(s.radius && s.radius[0] === '68%' && s.radius[1] === '92%')) out.push((el.id || el.className) + ':' + JSON.stringify(s.radius)); }); });
+            return out; }""")
+    bad = {r: v for r, v in census.items() if v}
+    ok(f"★ {T0} 普查：前台 {len(census)} 個分頁的 ECharts 圓餅沒有偏離共用風格的", not bad, bad)
+    notes.append("圓餅風格1006 普查（前台 ECharts 圓餅偏離共用風格者）：" + ("無" if not bad else str(bad)))
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

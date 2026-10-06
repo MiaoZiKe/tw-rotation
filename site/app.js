@@ -632,10 +632,10 @@
         /* 圓餅一律甜甜圈（Andy 參考圖一）：沒自己寫環的（radius 不是陣列）補成內 58%／外 78%，
            滑過外擴 ≤ 4px。中心兩行字與下方圖例是「那張圖要講什麼」，由各圖自己寫（產業地圖那張就是範本）。
            ⚠ 全站目前只有產業地圖那一張圓餅，這一段是給「下一張新圓餅」的預設，不必每張各記一次。*/
-        if (s.type === 'pie' && !Array.isArray(s.radius)) s.radius = ['58%', '78%'];
-        if (s.type === 'pie' && !(s.emphasis && s.emphasis.scaleSize != null)) s.emphasis = { ...(s.emphasis || {}), scale: true, scaleSize: 4 };
-        s.itemStyle = { borderRadius: 6, ...(s.itemStyle || {}) };
-        if (s.padAngle == null && Array.isArray(s.data) && s.data.length > 1) s.padAngle = 1.2;
+        if (s.type === 'pie' && !Array.isArray(s.radius)) s.radius = [DONUT.R_IN + '%', DONUT.R_OUT + '%'];
+        if (s.type === 'pie' && !(s.emphasis && s.emphasis.scaleSize != null)) s.emphasis = { ...(s.emphasis || {}), scale: true, scaleSize: DONUT.SCALE, itemStyle: { borderColor: CH.ink, borderWidth: DONUT.BORDER_HI, ...((s.emphasis || {}).itemStyle || {}) } };
+        s.itemStyle = { borderRadius: DONUT.RADIUS, ...(s.itemStyle || {}) };
+        if (s.padAngle == null && Array.isArray(s.data) && s.data.length > 1) s.padAngle = DONUT.PAD_ANGLE;
       } else if (t === 'gauge') {
         s.axisLine = { ...(s.axisLine || {}) };
         if (s.axisLine.roundCap == null) s.axisLine.roundCap = true;
@@ -754,6 +754,85 @@
   const NUM_FONT = 'JetBrains Mono, "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif';
   const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, fontSize: 12 }, splitLine: { lineStyle: { color: CH.grid } } };  // 設計 v4 §4：軸字 12
   const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 13 }, padding: [8, 10], confine: true };  // 設計 v4 §4：提示框 13、內距 8×10
+
+  /* ---------------- 甜甜圈共用風格（Andy 2026-10-06：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」，DECISIONS #331）----------------
+     範本＝產業地圖「成交值占比」。全站不論 ECharts 或手畫 SVG 的圓餅／甜甜圈，視覺與互動參數都從這一份取，
+     不准各圖自己寫一套（以前管理區的功能使用占比用淡粉色盤、滑過沒有外框，扇區分不出來）。
+       · 環：內 68%／外 92%，扇區間隙 1.2°、圓角 6px、扇區邊框 1px（面板色）；內側一圈細軌道（內 65%～65.8%，ink3 22%）
+       · 滑過：外擴 4px、外框 3px（ink 色）、其餘扇區不淡化；動畫 200ms（≤ 240）
+       · 中心兩行字：上＝名稱（12～12.5px、ink3），下＝大百分比（等寬、粗體、邊長×0.115，夾 20～34）；滑過換成那一塊的，滑開還原
+       · 配色：飽和的分類色盤（深淺各一組）；「其他」＝ink3 38% 灰
+       · 提示框：A.tip 底，標題粗體＝名稱，下面「值（占比）」「漲跌（紅漲綠跌，有才寫）」，有下一層才寫一句「點一下…」
+       · 圖例：右側一列一項（色塊｜名稱｜值｜占比）；卡寬 < 420 才退到下面（照 #328） */
+  const DONUT_COLORS = {
+    dark: ['#4f8cff', '#ff7a59', '#2bc4b0', '#d49a5a', '#f06aa6', '#9b82ff', '#e6b422', '#6fcf3a', '#2cc0ee', '#8da0c4'],
+    light: ['#2f5fb3', '#d9482b', '#1f8f82', '#8a5a2b', '#cf4a86', '#6f4fc2', '#b8860b', '#4a8a15', '#0b7fa6', '#5d6b88'],
+  };
+  const DONUT = {
+    R_IN: 68, R_OUT: 92, PAD_ANGLE: 1.2, RADIUS: 6, BORDER: 1, BORDER_HI: 3, SCALE: 4, MS: 200,
+    TRACK: [65, 65.8], SIDE_MIN: 420, MIN: 160,
+    colors() { return DONUT_COLORS[theme() === 'light' ? 'light' : 'dark']; },
+    color(i) { const c = DONUT.colors(); return c[i % c.length]; },
+    other() { return hexA(CH.ink3, .38); },
+    /* 一個扇區的資料項：color 沒給就依序號取色盤；isOther 用灰；hi＝是不是滑過的那一塊 */
+    item(d, i, hi) {
+      const col = d.color || (d.isOther ? DONUT.other() : DONUT.color(i));
+      const { color, isOther, ...rest } = d;
+      return { ...rest, itemStyle: { color: col, borderColor: hi ? CH.ink : CH.panel, borderWidth: hi ? DONUT.BORDER_HI : DONUT.BORDER } };
+    },
+    /* 兩個 series（主環＋內側軌道）。o 會蓋到主環上（data、cursor…）；滑過外框由原生 emphasis 負責 */
+    series(o) {
+      return [{ type: 'pie', radius: [DONUT.R_IN + '%', DONUT.R_OUT + '%'], center: ['50%', '50%'], minAngle: 2, padAngle: DONUT.PAD_ANGLE,
+        avoidLabelOverlap: false, label: { show: false }, labelLine: { show: false },
+        itemStyle: { borderRadius: DONUT.RADIUS },
+        emphasis: { scale: true, scaleSize: DONUT.SCALE, label: { show: false }, itemStyle: { borderColor: CH.ink, borderWidth: DONUT.BORDER_HI } },
+        ...o },
+      { type: 'pie', radius: [DONUT.TRACK[0] + '%', DONUT.TRACK[1] + '%'], center: ['50%', '50%'], silent: true, animation: false,
+        label: { show: false }, labelLine: { show: false }, tooltip: { show: false }, emphasis: { disabled: true },
+        itemStyle: { borderRadius: 0 }, data: [{ name: '_track', value: 1, itemStyle: { color: hexA(CH.ink3, .22) } }] }];
+    },
+    /* 提示框內容。o：{ valLabel: '成交值'、val: 已格式化的值、pct: 占比、chg: 漲跌 %（可省）、hint: '點一下…'（可省）}*/
+    tipHtml(name, o) {
+      return `<b>${fmt.esc(name)}</b><br>${o.valLabel || '值'} ${o.val}（${fmt.n(o.pct, 1)}%）`
+        + (o.chg != null ? `<br>漲跌 <span style="color:${upDown(o.chg)}">${fmt.pct(o.chg)}</span>` : '')
+        + (o.hint ? `<br><small>${fmt.esc(o.hint)}</small>` : '');
+    },
+    /* 中心兩行字（S＝甜甜圈邊長 px）。top:'middle'＋圓心 50%，不管容器怎麼變都跟圓心對齊 */
+    center(t1, t2, S) {
+      const ff = 'Noto Sans TC, sans-serif', inner = S * DONUT.R_IN / 100;
+      const bFs = Math.round(Math.max(20, Math.min(34, S * 0.115))), aFs = S < 220 ? 12 : 12.5;
+      return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
+        textStyle: { rich: {
+          a: { color: CH.ink3, fontSize: aFs, fontWeight: 400, fontFamily: ff, lineHeight: 20,
+            width: Math.round(Math.min(120, inner * 0.86)), align: 'center', overflow: 'truncate', ellipsis: '…' },
+          b: { color: CH.ink, fontSize: bFs, fontWeight: 700, fontFamily: MONO_FF, lineHeight: Math.round(bFs * 1.18), align: 'center' } } } }];
+    },
+    /* 一般用法：parts＝[{name, value, isOther?, color?, hint?, chg?}]；op＝{ size, fmtVal, valLabel, hint, centerLabel, centerValue, cursor }。
+       回傳 { option, tot }。滑過時中心字與外框用 wireHover 接。 */
+    option(parts, op) {
+      op = op || {};
+      const tot = parts.reduce((s, d) => s + (d.value || 0), 0) || 1, S = op.size || 160, fv = op.fmtVal || ((v) => fmt.i(v));
+      return { tot, option: {
+        tooltip: { ...tip, trigger: 'item', formatter: (p) => { const d = parts.find((x) => x.name === p.name) || {};
+          return DONUT.tipHtml(p.name, { valLabel: op.valLabel, val: fv(p.value), pct: p.percent, chg: d.chg, hint: d.hint != null ? d.hint : op.hint }); } },
+        title: DONUT.center(op.centerLabel || '合計', op.centerValue != null ? op.centerValue : fv(tot), S),
+        animationDurationUpdate: DONUT.MS,
+        series: DONUT.series({ cursor: op.cursor || 'default', data: parts.map((d, i) => DONUT.item(d, i, false)) }) } };
+    },
+    /* 「滑過換中心字＋外框」接到一張 ECharts 甜甜圈上（獨立的圖用；產業地圖自己連動長條，不走這支）*/
+    wireHover(inst, parts, op) {
+      if (!inst) return;
+      op = op || {};
+      const S = op.size || 160, tot = parts.reduce((s, d) => s + (d.value || 0), 0) || 1, fv = op.fmtVal || ((v) => fmt.i(v));
+      const base = [op.centerLabel || '合計', op.centerValue != null ? op.centerValue : fv(tot)];
+      const paint = (nm) => { if (inst.isDisposed()) return; const hd = nm ? parts.find((x) => x.name === nm) : null;
+        try { inst.setOption({ title: DONUT.center(hd ? hd.name : base[0], hd ? fmt.n(hd.value / tot * 100, 1) + '%' : base[1], S),
+          series: [{ data: parts.map((d, i) => DONUT.item(d, i, !!hd && d.name === nm)) }] }); } catch (e) { /* tooltip 與 dispose 競態，下一次 hover 正常 */ } };
+      inst.off('mouseover'); inst.off('globalout');
+      inst.on('mouseover', (p) => { if (p.seriesIndex === 0) paint(p.name); });
+      inst.on('globalout', () => paint(null));
+    },
+  };
 
   /* ---------------- 明亮／深色主題（Andy 2026-09-14）----------------
      版面本身全部吃 CSS 變數，換主題是一行 setAttribute 的事。
@@ -13088,6 +13167,7 @@
       logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG, sparkData,
       trendSeries, trendRange, trendText, pxFmt,   // 迷你走勢與自選展開大圖共用的口徑（DECISIONS #290）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
+      donut: DONUT,                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置
       sankeyFxRunning: () => !!(sankeyFx && sankeyFx.running()),

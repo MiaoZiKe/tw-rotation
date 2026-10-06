@@ -338,7 +338,7 @@
        ⚠ 甜甜圈邊長下限 160（＝ --chart-donut）：右邊放圖例後若剩不到 160，就讓圖例的名稱欄縮（省略＋滑過看全名），
          數字欄永遠不縮。 */
     const DN_MIN = 160, DN_SIDE_MIN = 420, DN_GAP = 16, DN_GAP_V = 8, DN_CAP1 = 340;
-    const DN_R_IN = 68, DN_R_OUT = 92;   // 環：內 68%、外 92%（容器現在剛好包住圓，不必再留 22% 空白；內外比照舊 58／78 ≈ 0.74）
+    const DN_R_IN = A.donut.R_IN, DN_R_OUT = A.donut.R_OUT;   // 環：內 68%、外 92%（★ 2026-10-06 起從共用風格 A.donut 取，DECISIONS #331；容器剛好包住圓）
     let dnS = 0, dnBarH = 0;             // 甜甜圈邊長、長條圖高（layoutDonut 的輸入）
 
     /* 標題列只放「標題 ＋ 兩顆鈕」，說明另起一行 ——
@@ -574,11 +574,17 @@
       const otherVal = bySize.slice(PIE_TOP).reduce((s2, d) => s2 + Math.max(0, d.val || 0), 0) + restVal;
       const otherN = Math.max(0, bySize.length - top.length) + restN;
       pieTopNames = top.map(d => d.name);
-      pieData = top.map(d => ({ name: d.name, value: Math.max(0, d.val || 0), key: d.key,
-        itemStyle: { color: d.color, borderColor: CH.panel, borderWidth: 1 } }));
+      /* ★ 2026-10-06（圓餅風格1006 驗出來的）：不同族群可能撞同一個顏色（半導體鏈的「封測代工」與「HBM」都是 #7ee8c7），
+         甜甜圈上兩塊貼在一起分不出來。同色的後一塊改取共用色盤裡還沒用過的顏色（只動甜甜圈與它的圖例，族群本身的顏色不變）。*/
+      const usedC = new Set();
+      pieData = top.map((d, i) => {
+        let col = d.color;
+        if (usedC.has(col)) col = A.donut.colors().find(c => !usedC.has(c) && !top.some(t => t.color === c)) || col;
+        usedC.add(col);
+        return A.donut.item({ name: d.name, value: Math.max(0, d.val || 0), key: d.key, color: col }, i, false);
+      });
       if (otherVal > 0) {
-        pieData.push({ name: PIE_OTHER, value: otherVal, key: '_rest',
-          itemStyle: { color: A.hexA(CH.ink3, .38), borderColor: CH.panel, borderWidth: 1 } });
+        pieData.push(A.donut.item({ name: PIE_OTHER, value: otherVal, key: '_rest', isOther: true }, top.length, false));
       }
       /* 中心那個數字一定要**真的算**（前五大的占比相加），不准寫死、不准用估的 */
       pieTopShare = total > 0 ? top.reduce((s2, d) => s2 + (d.val || 0), 0) / total * 100 : 0;
@@ -641,16 +647,7 @@
     /* ★ 2026-10-06（圖例搬到右邊之後甜甜圈的大小跟著卡片變）：中心字跟著圓的大小縮放 ——
        圓最小 160 時內圈只剩約 109px，34px 的「37.3%」（約 102px）會頂到環上。
        大數字＝邊長 × 0.115（夾在 20～34），小字標題的框不超過內圈的 86%（放不下的名字省略，全名在右邊圖例那一列）。*/
-    function pieCenter(cy, t1, t2) {
-      const ff = 'Noto Sans TC, sans-serif';
-      const S = dnS || 300, inner = S * DN_R_IN / 100;
-      const bFs = Math.round(Math.max(20, Math.min(34, S * 0.115))), aFs = S < 220 ? 12 : 12.5;
-      return [{ text: `{a|${String(t1).replace(/[{}|]/g, '')}}\n{b|${t2}}`, left: 'center', top: 'middle',
-        textStyle: { rich: {
-          a: { color: CH.ink3, fontSize: aFs, fontWeight: 400, fontFamily: ff, lineHeight: 20,
-            width: Math.round(Math.min(120, inner * 0.86)), align: 'center', overflow: 'truncate', ellipsis: '…' },
-          b: { color: CH.ink, fontSize: bFs, fontWeight: 700, fontFamily: A.MONO, lineHeight: Math.round(bFs * 1.18), align: 'center' } } } }];
-    }
+    function pieCenter(cy, t1, t2) { return A.donut.center(t1, t2, dnS || 300); }   // 規格在 A.donut.center（共用）
     /* 中心字「現在該寫什麼」：滑到某一塊＝那一塊的名字與占比，沒滑＝前五大合計（setHi 與 layoutDonut 共用）*/
     function pieTitleNow() {
       const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
@@ -763,7 +760,7 @@
           // 中心：滑到某一塊就寫它的名字與百分比，滑開回到「前五大 xx%」（字級跟著甜甜圈邊長，見 pieCenter）
           title: pieTitleNow(),
           series: [{ data: pieData.map(d => ({ ...d,
-            itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? 3 : 1, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
+            itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? A.donut.BORDER_HI : A.donut.BORDER, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
       }
       $$('#gpLegend .lg', host).forEach(bn => bn.classList.toggle('on', !!pieHi && bn.dataset.n === pieHi));
       if (bi) bi.setOption({ series: [{ data: barData.map(d => ({ ...d,
@@ -917,21 +914,11 @@
       A.chart(pieEl, {
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
           const d = items.find(x => x.name === p.name);
-          return `<b>${A.fmt.esc(p.name)}</b><br>成交值 ${A.fmt.yi(p.value)}（${A.fmt.n(p.percent, 1)}%）`
-            + (d ? `<br>漲跌 <span style="color:${A.upDown(d.chg)}">${A.fmt.pct(d.chg)}</span>` : '')
-            + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
+          return A.donut.tipHtml(p.name, { valLabel: '成交值', val: A.fmt.yi(p.value), pct: p.percent, chg: d ? d.chg : null,
+            hint: d ? (drill ? '點一下進個股頁' : '點一下看它的個股') : '其餘的量太小，沒有畫成長條' }); } },
         title: pieCenter(cy, '前五大', A.fmt.n(pieTopShare, 1) + '%'),
-        animationDurationUpdate: 200,
-        series: [{ type: 'pie', radius: [DN_R_IN + '%', DN_R_OUT + '%'], center: ['50%', '50%'], minAngle: 2, padAngle: 1.2,
-          avoidLabelOverlap: false, cursor: 'pointer', label: { show: false }, labelLine: { show: false },
-          itemStyle: { borderRadius: 6 },
-          emphasis: { scale: true, scaleSize: 4, label: { show: false } },
-          data: pieData },
-        // 環內側的細軌道：只是一圈底，不能點、沒有提示框、不參與連動
-        { type: 'pie', radius: [(DN_R_IN - 3) + '%', (DN_R_IN - 2.2) + '%'], center: ['50%', '50%'], silent: true, animation: false,
-          label: { show: false }, labelLine: { show: false }, tooltip: { show: false }, emphasis: { disabled: true },
-          itemStyle: { borderRadius: 0 },
-          data: [{ name: '_track', value: 1, itemStyle: { color: A.hexA(CH.ink3, .22) } }] }],
+        animationDurationUpdate: A.donut.MS,
+        series: A.donut.series({ cursor: 'pointer', data: pieData }),
       }, { notMerge: true });
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
