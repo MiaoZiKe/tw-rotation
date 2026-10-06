@@ -249,6 +249,8 @@
 | 10 | 我們自己判斷、你可否決的三件：① 分頁拖曳**不含**側欄、頂部導覽、自選清單頁籤 ② 日期膠囊保留 11 類（表格日期欄、新聞時間、K 線軸、拉Bar 讀數、K 線下資料來源說明等）③ 即時閘門只藏畫面，報價 Worker 仍公開（要真的擋估 0.5～1 天，而且公司網路擋會員 Worker 時你自己的即時也會一起斷） | 正式站 | 10-06 07:22 |
 | 11 | **刪舊預覽分支**（git 代理擋刪除，要你在 GitHub 網頁按）：已併入 main、可直接刪的 12 支 —— preview/earnings-cal、preview/earnings-v2、admin-v2、admin-v3、etf-v1、etf-v3、explore-v1、explore-v2、fast-ov2、layout-v2、perm-nav、sub-v1 | <https://github.com/MiaoZiKe/tw-rotation/branches> | 10-05 |
 | 12 | 四問步驟中性名稱已做在 preview/four-steps，未上線。待規劃：改成針對特定分頁的導覽（Andy 10-06 18:05） | <https://miaozike.github.io/tw-rotation/preview/four-steps/>（手機寬看總覽頂端四步列） | 10-06 18:05 |
-| 13 | **三個帳號開兩步驟驗證**（Google、GitHub、Cloudflare；步驟在 10-07 回報裡） | 各自帳號安全性頁面 | 10-07 |
+| 13 | ✅ Andy 10-07 回報完成 —— ~~**三個帳號開兩步驟驗證**（Google、GitHub、Cloudflare；步驟在 10-07 回報裡） | 各自帳號安全性頁面 | 10-07 |
 | 14 | **筆電裝監控＋備份**（`tools/laptop/README.md`，約 15 分鐘；第 7 步設 BACKUP_TOKEN） | 筆電 | 10-07 |
 | 15 | **拆私人／公開 repo**：等設計完成後照步驟建私人 repo＋PAT | 施工中 | 10-07 |
+
+## 10-07 Andy：Google／GitHub／Cloudflare 兩步驟驗證全部完成（Cloudflare 先用忘記密碼補設密碼）。
