@@ -183,7 +183,7 @@
       ['公告已讀紀錄', '登入者讀過哪幾則公告', '跨裝置顯示未讀公告', '公告刪除或帳號刪除時一併刪除'],
     ];
     const table = '<div class="lgtbl"><table><thead><tr><th>情境</th><th>蒐集之資料</th><th>目的</th><th>保存期間</th></tr></thead><tbody>'
-      + rows.map((r) => '<tr>' + r.map((c) => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+      + rows.map((r) => '<tr>' + r.map((c, i) => '<td data-l="' + ['情境', '蒐集資料', '目的', '保存期間'][i] + '"><span class="lgtc">' + c + '</span></td>').join('') + '</tr>').join('') + '</tbody></table></div>';
     return {
       id: 'privacy', title: '隱私權政策', short: '隱私權政策', dated: true,
       lead: '<p>' + esc(OP) + '重視您的隱私。本政策說明' + esc(SN) + '蒐集哪些資料、如何利用與保護，以及您依個人資料保護法享有之權利。</p>',
@@ -334,26 +334,92 @@
   .lgtoc{display:block;position:sticky;top:80px;font-size:13px}
   .lgtocm{display:none}
 }
-.lgdoc{width:min(760px,100%);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:40px;
-  font-size:14px;line-height:1.8;color:var(--ink-2)}
-.lgdoc h1{font-size:22px;font-weight:700;color:var(--ink);margin:0 0 6px;line-height:1.4}
-.lgdoc .lgmeta{font-size:13px;color:var(--ink-3);margin:0 0 4px}
-.lgdoc h2{font-size:17px;font-weight:700;color:var(--ink);margin:32px 0 8px;scroll-margin-top:80px}
-.lgdoc p,.lgdoc ol,.lgdoc ul{margin:8px 0;max-width:68ch}
-.lgdoc ol,.lgdoc ul{padding-left:1.6em}
-.lgdoc li{margin:4px 0}
+/* ★ 2026-10-07 Andy：「最後更新可以拿掉……不要看起來很枯燥排版……用不同框格來表示每個注意事項」。
+   改前：整份文件一張大白卡、h2＋段落一路往下（枯燥）。
+   改後：每一節一張卡（圖示章＋標題＋條列各自一格）；警語節用琥珀色左色條；資料表有自己的表格卡（窄畫面改堆疊）；
+   聯絡方式是底部 CTA 卡；最上面一張「重點一覽」。規格量值：卡片圓角 20／卡間距 16／卡內距 24×28（手機 18）／
+   圖示章 36（圓角 12）／條列格圓角 12、格距 8／標題 17px・700／內文 14px・1.8／條列內文 14px・1.7／最小字 12px。
+   顏色一律用站上 token，深淺主題自動跟著換；警語用 --amber（不用紅綠，紅綠在台股是漲跌）。*/
+.lgdoc{width:min(760px,100%);display:grid;gap:16px;font-size:14px;line-height:1.8;color:var(--ink-2)}
 .lgdoc b{color:var(--ink);font-weight:700}
 .lgdoc a{color:var(--cyan)}
 .lgdoc code{font-family:var(--mono);font-size:13px}
+.lgic2{flex:none;width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:var(--cyan);
+  background:color-mix(in srgb,var(--cyan) 13%,transparent)}
+.lgic2 svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.lghead{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 28px 24px}
+.lghead::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.lghead .lghr{display:flex;align-items:center;gap:14px}
+.lghead .lgic2{width:44px;height:44px;border-radius:14px}
+.lghead .lgic2 svg{width:24px;height:24px}
+.lgdoc h1{font-size:24px;font-weight:700;color:var(--ink);margin:0;line-height:1.4}
+.lghead .lglead p{margin:14px 0 0}
+.lgsum{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px 24px}
+.lgsum h2{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--ink);margin:0 0 14px}
+.lgsum h2 svg{width:18px;height:18px;fill:none;stroke:var(--cyan);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.lgsumg{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lgsumg li{display:flex;gap:10px;align-items:flex-start;background:var(--panel-2);border:1px solid var(--line);border-radius:14px;
+  padding:12px 14px;font-size:13px;line-height:1.65;color:var(--ink-2);margin:0}
+.lgsumg .lgic2{width:28px;height:28px;border-radius:9px}
+.lgsumg .lgic2 svg{width:16px;height:16px}
+.lgsumg li.w .lgic2{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent)}
+.lgsumg b{display:block;font-size:13px;color:var(--ink);margin-bottom:1px}
+.lgsec{container-type:inline-size;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px 28px}
+.lgsh{display:flex;align-items:center;gap:12px;margin:0 0 14px}
+.lgsec h2{font-size:17px;font-weight:700;color:var(--ink);margin:0;line-height:1.5;scroll-margin-top:80px}
+.lgsec p{margin:10px 0 0}
+.lgsec .lgsh + p{margin-top:0}
+.lgsec ol,.lgsec ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:lgn}
+.lgsec p + ol,.lgsec p + ul{margin-top:10px}
+.lgsec li{position:relative;margin:0;padding:11px 16px 11px 50px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:12px;line-height:1.7}
+.lgsec ol li{counter-increment:lgn}
+.lgsec ol li::before{content:counter(lgn);position:absolute;left:14px;top:12px;width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;font-size:12px;font-weight:700;line-height:1;font-family:var(--mono);color:var(--cyan);
+  background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+.lgsec ul li::before{content:"";position:absolute;left:19px;top:19px;width:8px;height:8px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 0 4px color-mix(in srgb,var(--cyan) 16%,transparent)}
+.lgsec.warn{background:color-mix(in srgb,var(--amber) 7%,var(--panel));
+  border-color:color-mix(in srgb,var(--amber) 40%,var(--line));border-left:4px solid var(--amber)}
+.lgsec.warn .lgic2{color:var(--amber);background:color-mix(in srgb,var(--amber) 18%,transparent)}
+.lgsec.warn li{background:color-mix(in srgb,var(--amber) 6%,var(--panel));border-color:color-mix(in srgb,var(--amber) 28%,var(--line))}
+.lgsec.warn ol li::before{color:var(--amber);background:color-mix(in srgb,var(--amber) 18%,transparent)}
+.lgsec.warn ul li::before{background:var(--amber);box-shadow:0 0 0 4px color-mix(in srgb,var(--amber) 18%,transparent)}
+.lgsec.cta{background:linear-gradient(135deg,color-mix(in srgb,var(--cyan) 12%,var(--panel)),var(--panel) 70%);
+  border-color:color-mix(in srgb,var(--cyan) 35%,var(--line))}
+.lgctar{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap}
+.lgctar .lgctat{flex:1 1 260px;min-width:0}
+.lgctar .lgctat p{margin:0}
+.lgdoc a.lgctab{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:999px;background:var(--cyan);
+  color:var(--ontop);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
+.lgctab svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lgctab:hover{filter:brightness(1.08)}
+.lgctab:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .lgblank{background:color-mix(in srgb,var(--amber) 22%,transparent);color:var(--ink);border-radius:4px;padding:0 3px}
 .lgdraft{border:1px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--panel));color:var(--ink);
   border-radius:16px;padding:12px 16px;margin:0 0 20px;font-size:13px;line-height:1.7}
 .lgdraft b{color:var(--amber)}
-.lgtbl{overflow-x:auto;margin:8px 0}
+.lgtocm{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+.lgtbl{margin:0 0 4px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .lgtbl table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.6}
-.lgtbl th,.lgtbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;white-space:normal;word-break:break-word}
-.lgtbl td:first-child,.lgtbl th:first-child{width:7em}
-.lgtbl th{background:var(--panel-3);color:var(--ink);font-weight:700}
+.lgtbl th,.lgtbl td{padding:10px 12px;text-align:left;vertical-align:top;white-space:normal;word-break:break-word;border-top:1px solid var(--line)}
+.lgtbl thead th{border-top:0;background:var(--panel-3);color:var(--ink);font-weight:700}
+.lgtbl tbody tr:nth-child(even) td{background:var(--panel-2)}
+.lgtbl td:first-child,.lgtbl th:first-child{width:7em;color:var(--ink);font-weight:600}
+@container (max-width:640px){
+  .lgtbl{border:0;border-radius:0;overflow:visible}
+  .lgtbl table,.lgtbl tbody{display:block}
+  .lgtbl thead{display:none}
+  .lgtbl tr{display:block;margin:0 0 10px;background:var(--panel-2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .lgtbl td,.lgtbl tbody tr:nth-child(even) td{display:grid;grid-template-columns:5.2em minmax(0,1fr);gap:10px;background:transparent;padding:9px 14px!important;text-align:left}
+  .lgtbl .lgtc{min-width:0}
+  .lgtbl td,.lgtbl th{height:auto!important;min-height:0;overflow:visible;text-overflow:clip}
+  .lgtbl td::before{content:attr(data-l);color:var(--ink-3);font-size:12px;font-weight:600;line-height:1.9}
+  .lgtbl td:first-child,.lgtbl tbody tr:nth-child(even) td:first-child{width:auto;display:block;padding:10px 14px!important;background:var(--panel-3);font-size:13px;color:var(--ink)}
+  .lgtbl td:first-child::before{content:none}
+}
+@container (max-width:560px){ .lgsumg{grid-template-columns:minmax(0,1fr)} }
 
 .lgleave{width:min(560px,100%);margin:48px auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;
   padding:32px;font-size:14px;line-height:1.8;color:var(--ink-2)}
@@ -385,7 +451,10 @@
   .lgban.out{animation-name:lgDownM}
   .lgban .lgbtns{flex-direction:column-reverse}
   .lgban .lgb1,.lgban .lgb2{width:100%}
-  .lgdoc{padding:20px;border-radius:20px}
+  .lgsec,.lghead,.lgsum{padding:18px;border-radius:18px}
+  .lgsec li{padding:10px 12px 10px 44px}
+  .lgsec ol li::before{left:11px}
+  .lgsec ul li::before{left:16px}
 }
 @keyframes lgUpM{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 @keyframes lgDownM{to{transform:translateY(24px);opacity:0}}
@@ -501,7 +570,11 @@
       + FOOT_ITEMS.map((x) => '<li class="sf-item">' + ICON_I + '<div><b>' + esc(x[0]) + '：</b><p>' + esc(x[1]) + '</p></div></li>').join('')
       + '</ul></div>';
     main.appendChild(f);
-    f.querySelector('#sfTour').addEventListener('click', (e) => openTour(e.currentTarget));
+    /* 2026-10-07：新導覽（site/tour.js）掛 window.TwTour.start()；有就用新的，沒有照舊開本檔的舊導覽。*/
+    f.querySelector('#sfTour').addEventListener('click', (e) => {
+      if (window.TwTour && typeof window.TwTour.start === 'function') window.TwTour.start();
+      else openTour(e.currentTarget);
+    });
     /* 預設收起；頁尾是整站共用、換頁不會重畫，所以要自己在換頁時收回去（2026-10-06）。*/
     setFootOpen(f, footOpenPref(), false);
     window.addEventListener('hashchange', () => setFootOpen(f, false, false));
@@ -522,7 +595,136 @@
     main.insertBefore(v, foot || null);
     return v;
   }
-  let tocSync = null;
+  /* ---- 版面用的小資料（2026-10-07）：圖示、哪些節是警語／CTA、頂部「重點一覽」。
+     ★ 條文本身（secs 的 h／b）一個字沒動；這裡只決定「怎麼框」。重點一覽是新增的摘要，每一句都對得回條文。*/
+  const IC = {
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    db: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    warn: '<path d="M12 4 3 20h18L12 4z"/><path d="M12 10v4M12 17h.01"/>',
+    calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    scale: '<path d="M12 4v16M7 20h10M5 8h14"/><path d="M5 8l-3 7h6L5 8zM19 8l-3 7h6l-3-7z"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    layers: '<path d="m12 3 9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+    card: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
+    ban: '<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>',
+    device: '<rect x="3" y="5" width="13" height="10" rx="1.5"/><rect x="14" y="9" width="7" height="11" rx="1.5"/><path d="M7 19h4"/>',
+    copy: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5a4 4 0 1 0 0 5"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/>',
+    pen: '<path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4"/>',
+    share: '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.2 11 7.6-4M8.2 13l7.6 4"/>',
+    cookie: '<path d="M12 3a9 9 0 1 0 9 9 4 4 0 0 1-4-4 4 4 0 0 1-5-5z"/><path d="M9 11h.01M13 15h.01M8 15h.01"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    shield: '<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z"/><path d="m9 12 2 2 4-4"/>',
+    spark: '<path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"/>',
+    doc: '<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/>',
+    eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  };
+  const svg = (n) => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (IC[n] || IC.info) + '</svg>';
+  /* 節標題 → 圖示與版型。k：warn＝警語（琥珀左色條）、cta＝底部聯絡卡、table＝資料表卡。沒列到的節＝一般卡。*/
+  const SECMETA = {
+    '網站性質': { i: 'info' }, '資料來源與正確性': { i: 'db' }, '不構成投資建議': { i: 'eye', k: 'warn' },
+    '計算方法與回測限制': { i: 'calc' }, '第三方連結與內容': { i: 'link' }, '投資風險自負': { i: 'warn', k: 'warn' },
+    '法規變動': { i: 'scale' }, '聯絡方式': { i: 'mail', k: 'cta' },
+    '服務內容': { i: 'layers' }, '帳號註冊與登入': { i: 'user' }, '會員方案、試用與付費': { i: 'card' },
+    '禁止行為': { i: 'ban', k: 'warn' }, '裝置數上限與異常使用': { i: 'device' }, '智慧財產權': { i: 'copy' },
+    '服務變更與中斷': { i: 'refresh' }, '責任限制': { i: 'warn', k: 'warn' }, '條款修改': { i: 'pen' }, '準據法與管轄法院': { i: 'scale' },
+    '蒐集之資料、目的與保存期間': { i: 'db', k: 'table' }, '資料之利用與分享對象': { i: 'share' }, 'Cookie 與本機儲存': { i: 'cookie' },
+    '您的權利': { i: 'shield' }, '資料安全': { i: 'lock' }, '未成年人': { i: 'user' }, '政策修改': { i: 'pen' },
+  };
+  /* 第四個元素 1＝警語色。*/
+  const SUMMARY = {
+    disclaimer: [
+      ['info', '不是投顧', '本站是公開資料的整理工具，不是證券投資顧問事業，不提供投資建議。'],
+      ['eye', '不是推薦名單', '篩選結果與圖上價位是計算條件，不是推薦，也不是買賣價位。', 1],
+      ['db', '資料可能有誤', '資料可能有錯誤、遺漏或延遲；盤中數字以交易所正式公告為準。'],
+      ['warn', '風險自負', '投資決策與其結果，由您自行判斷並承擔。', 1],
+    ],
+    terms: [
+      ['user', 'Google 登入', '以 Google 帳號登入；本服務不取得、不保存您的密碼。'],
+      ['card', '費用以購買頁為準', '試用、價格、續訂與退款，以購買頁所示為準。'],
+      ['ban', '禁止共用與轉售', '不得共用帳號、大量擷取資料、轉售內容或繞過使用限制。', 1],
+      ['warn', '責任限制', '法律允許範圍內，因使用所生之損失不負賠償責任（故意或重大過失除外）。', 1],
+    ],
+    privacy: [
+      ['eye', '未登入不蒐集身分', '瀏覽不需登入；登入僅取得顯示名稱、電子郵件與大頭貼。'],
+      ['shield', '不販售、不追蹤', '不販售、不出租、不交換個人資料，也不做廣告追蹤。'],
+      ['lock', '不蒐集持股與損益', '不蒐集您的實際持股、成本價、損益或券商帳號。'],
+      ['trash', '可查詢、更正、刪除', '來信申請，十五日內處理。'],
+    ],
+  };
+  function secHtml(id, s, i) {
+    const m = SECMETA[s.h] || { i: 'info' };
+    const head = '<div class="lgsh"><span class="lgic2">' + svg(m.i) + '</span>'
+      + '<h2 id="lg-' + id + '-' + i + '">' + CN[i] + '、' + esc(s.h) + '</h2></div>';
+    if (m.k === 'cta') {
+      return '<section class="lgsec cta" data-k="cta">' + head + '<div class="lgctar"><div class="lgctat">' + s.b + '</div>'
+        + '<a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '來信聯絡</a></div></section>';
+    }
+    return '<section class="lgsec' + (m.k === 'warn' ? ' warn' : '') + '" data-k="' + (m.k || 'plain') + '">' + head + s.b + '</section>';
+  }
+
+  /* 目錄捲動同步（scroll-spy）。
+     ★ 2026-10-07 Andy：「左邊滑動並沒有同步，請確實驗證」（截圖：捲到第七、八節，目錄仍亮在「五」）。
+     根因：舊寫法「標題上緣 < 120px 的最後一節亮」—— 最後幾節很短，捲到頁底它們的標題也到不了 120px，
+     所以永遠輪不到它們亮。
+     新寫法：參考線不是固定 120px，而是在「離頁底不到一個視窗高」時，從 120 線性往下移到視窗下緣附近；
+     捲到底（剩 ≤2px）一律亮最後一節。這樣最後幾節會依序亮起，且單調（往下捲只會往後亮）。
+     點目錄：先「釘住」那一項（捲不到頂的末幾節也亮對的那項），平滑捲動期間不被中途的位置蓋掉；
+     捲到位後只要使用者再捲開（離目標 > 3px）就解除；1.5 秒內沒到位也解除（被打斷）。*/
+  let tocSync = null, tocClean = null;
+  function bindSpy(v, id, d) {
+    if (tocClean) tocClean();
+    const links = [...v.querySelectorAll('.lgtoc a')];
+    const heads = d.secs.map((s, i) => document.getElementById('lg-' + id + '-' + i));
+    let pin = null, pinY = 0, pinSeen = false, pinTimer = 0;
+    const maxY = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
+    const light = (k) => links.forEach((a, i) => a.classList.toggle('on', i === k));
+    const unpin = () => { pin = null; clearTimeout(pinTimer); };
+    const sync = () => {
+      if (!v.classList.contains('on')) return;
+      const y = window.scrollY, rem = maxY() - y;
+      if (pin != null) {
+        if (Math.abs(y - pinY) <= 3) pinSeen = true;
+        if (pinSeen && Math.abs(y - pinY) > 3) unpin(); else { light(pin); return; }
+      }
+      /* 每節「標題到上緣參考線 120px」所需的捲動量 t；捲得到的（t ≤ 最大捲動量）用固定參考線；
+         捲不到的末幾節，把「最後一個捲得到的節 → 頁底」這段捲動量平均分給它們，依序亮起，捲到底必是最後一節。*/
+      const t = heads.map((h) => (h ? h.getBoundingClientRect().top + y - 120 : Infinity));
+      const M = maxY();
+      let kr = 0;
+      t.forEach((x, i) => { if (x <= M - 1) kr = i; });
+      let k = 0;
+      t.forEach((x, i) => { if (i <= kr && x <= y + 1) k = i; });
+      const n = heads.length;
+      if (kr < n - 1 && y >= t[kr] && M > t[kr]) {
+        const pr = Math.min(1, Math.max(0, (y - t[kr]) / (M - t[kr])));
+        k = kr + Math.min(n - 1 - kr, Math.floor(pr * (n - kr)));
+      }
+      if (rem <= 2) k = n - 1;
+      light(k);
+    };
+    v.querySelectorAll('a[data-sec]').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const i = +a.dataset.sec, h = heads[i];
+      const dt0 = a.closest('details'); if (dt0) dt0.open = false;   // 先收起手機目錄，再量位置（收起會讓內容上移）
+      if (h) {
+        const want = h.getBoundingClientRect().top + window.scrollY - 76;
+        pin = i; pinY = Math.max(0, Math.min(want, maxY())); pinSeen = false;
+        clearTimeout(pinTimer); pinTimer = setTimeout(() => { if (!pinSeen) unpin(); sync(); }, 1500);
+        light(i);
+        window.scrollTo({ top: want });
+      }
+    }));
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync, { passive: true });
+    tocSync = sync;
+    tocClean = () => { window.removeEventListener('scroll', sync); window.removeEventListener('resize', sync); clearTimeout(pinTimer); };
+    sync();
+  }
+
   function renderDoc(id) {
     const v = ensureView(); if (!v) return;
     const d = DOCS[id]();
@@ -534,32 +736,20 @@
         + DOCS[k]().short + '</a>').join('') + '</nav>';
     const toc = d.secs.map((s, i) => '<li><a href="#" data-sec="' + i + '">' + CN[i] + '、' + esc(s.h) + '</a></li>').join('');
     const draft = '';   // 2026-10-07：三份文件已是正式文字，不再掛草稿標示
-    const meta = d.dated ? '<p class="lgmeta">最後更新日期：' + UPDATED + '</p>' : '';
-    void ready; void on;
+    /* 2026-10-07 Andy：「最後更新可以拿掉」—— 不再畫「最後更新日期」那一行（UPDATED 常數留作內部版本標記）。*/
+    void ready; void on; void UPDATED;
+    const sum = (SUMMARY[id] || []).map((x) => '<li' + (x[3] ? ' class="w"' : '') + '><span class="lgic2">' + svg(x[0]) + '</span>'
+      + '<div><b>' + esc(x[1]) + '</b>' + esc(x[2]) + '</div></li>').join('');
     v.innerHTML = tabs + '<div class="lgwrap"><nav class="lgtoc" aria-label="目錄"><ol>' + toc + '</ol></nav>'
       + '<article class="lgdoc" id="lgDoc" data-doc="' + id + '">' + draft
       + '<details class="lgtocm"><summary>目錄</summary><ol>' + toc + '</ol></details>'
-      + '<h1>' + d.title + '</h1>' + meta + (d.lead || '')
-      + d.secs.map((s, i) => '<h2 id="lg-' + id + '-' + i + '">' + CN[i] + '、' + esc(s.h) + '</h2>' + s.b).join('')
+      + '<header class="lghead"><div class="lghr"><span class="lgic2">' + svg(id === 'terms' ? 'doc' : id === 'privacy' ? 'lock' : 'info') + '</span>'
+      + '<h1>' + d.title + '</h1></div><div class="lglead">' + (d.lead || '') + '</div></header>'
+      + '<aside class="lgsum" aria-label="重點一覽"><h2>' + svg('spark') + '重點一覽</h2><ul class="lgsumg">' + sum + '</ul></aside>'
+      + d.secs.map((s, i) => secHtml(id, s, i)).join('')
       + '</article></div>';
     /* 目錄連結不能用 href="#lg-…"：那會改掉 hash、觸發路由，整頁被當成未知路由導回總覽。*/
-    v.querySelectorAll('a[data-sec]').forEach((a) => a.addEventListener('click', (e) => {
-      e.preventDefault();
-      const h = document.getElementById('lg-' + id + '-' + a.dataset.sec);
-      if (h) window.scrollTo({ top: h.getBoundingClientRect().top + window.scrollY - 76 });
-      const dt = a.closest('details'); if (dt) dt.open = false;
-    }));
-    const links = [...v.querySelectorAll('.lgtoc a')];
-    const heads = d.secs.map((s, i) => document.getElementById('lg-' + id + '-' + i));
-    if (tocSync) window.removeEventListener('scroll', tocSync);
-    tocSync = () => {
-      if (!v.classList.contains('on')) return;
-      let k = 0;
-      heads.forEach((h, i) => { if (h && h.getBoundingClientRect().top < 120) k = i; });
-      links.forEach((a, i) => a.classList.toggle('on', i === k));
-    };
-    window.addEventListener('scroll', tocSync, { passive: true });
-    tocSync();
+    bindSpy(v, id, d);
   }
 
   function renderLeave() {

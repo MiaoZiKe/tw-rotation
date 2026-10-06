@@ -40468,6 +40468,85 @@ def _lg_ls(pg, k):
     return pg.evaluate(f"() => {{ try {{ return localStorage.getItem('{k}'); }} catch (e) {{ return 'ERR'; }} }}")
 
 
+def _legal_spy(pg, base):
+    """目錄捲動同步（2026-10-07 Andy：「左邊滑動並沒有同步，請確實驗證」）。三份文件 × 逐節捲動／捲到底／點目錄。"""
+    LIT = """() => { const a = [...document.querySelectorAll('.lgtoc a')]; const on = a.filter(x => x.classList.contains('on'));
+        return { n: on.length, k: on.length ? +on[0].dataset.sec : -1, total: a.length }; }"""
+    # 「畫面中該節」＝標題上緣最後一個過了參考線的那節；用跟網站同一套定義（參考線在頁底附近往下移）太循環，
+    # 這裡改驗人看得出的事實：該節的標題此刻在畫面內（0～視窗高），且比它後面的節標題更靠上。
+    VIS = """(k) => { const h = document.querySelector('#lgDoc h2[id$="-' + k + '"]'); const r = h.getBoundingClientRect();
+        return { top: Math.round(r.top), vh: innerHeight }; }"""
+    for doc, nsec in (("terms", 11), ("privacy", 8), ("disclaimer", 8)):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto(base + "#" + doc, wait_until="networkidle"); pg.wait_for_timeout(1200)
+        bad = []
+        for k in range(nsec):
+            # 把第 k 節標題捲到上緣（捲不到頂的末幾節就捲到最底）
+            pg.evaluate("""(k) => { const h = document.querySelector('#lgDoc h2[id$="-' + k + '"]');
+                window.scrollTo({top: h.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'}); }""", k)
+            pg.wait_for_timeout(120)
+            lit = pg.evaluate(LIT)
+            reach = pg.evaluate("""(k) => { const h = document.querySelector('#lgDoc h2[id$="-' + k + '"]');
+                return h.getBoundingClientRect().top + scrollY - 100 <= document.documentElement.scrollHeight - innerHeight - 40; }""", k)
+            if lit["n"] != 1:
+                bad.append((k, "亮的不是剛好一個", lit)); continue
+            vk = pg.evaluate(VIS, lit["k"])
+            # 捲得到上緣的節：亮的必須就是它；捲不到的末幾節：亮的標題要在畫面內、且不會比它前面的節還早
+            if reach and lit["k"] != k:
+                bad.append((k, "捲得到頂的節卻沒亮它", lit, vk))
+            elif not reach and not (-5 <= vk["top"] < vk["vh"]):
+                bad.append((k, "末段節亮錯", lit, vk))
+        ok(f"[目錄同步] {doc}：逐節捲到上緣 → 目錄恰亮一項；捲得到頂的節亮的就是它、捲不到頂的末段節亮的標題在畫面內", not bad, bad[:3])
+        # 捲到頁底 → 最後一節
+        pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+        lit = pg.evaluate(LIT)
+        ok(f"[目錄同步] {doc}：捲到頁底 → 最後一節（{nsec - 1}）亮", lit["n"] == 1 and lit["k"] == nsec - 1, lit)
+        # 單調：從頂往底慢捲，亮的序號只增不減
+        seq = []
+        pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(200)
+        H = pg.evaluate("() => document.documentElement.scrollHeight - innerHeight")
+        for y in list(range(0, H, max(1, H // 40))) + [H]:
+            pg.evaluate("(y) => window.scrollTo({top: y, behavior: 'instant'})", y); pg.wait_for_timeout(40)
+            seq.append(pg.evaluate(LIT)["k"])
+        ok(f"[目錄同步] {doc}：由上往下慢捲，亮的序號單調不減、從 0 走到 {nsec - 1}",
+           all(b >= a for a, b in zip(seq, seq[1:])) and seq[0] == 0 and seq[-1] == nsec - 1 and -1 not in seq, seq)
+        # 滑鼠滾輪真捲（不是 scrollTo）：往下滾到底 → 最後一節
+        pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(200)
+        pg.mouse.move(700, 500)
+        for _ in range(60):
+            pg.mouse.wheel(0, 400); pg.wait_for_timeout(30)
+        pg.wait_for_timeout(500)
+        lit = pg.evaluate(LIT)
+        ok(f"[目錄同步] {doc}：真的用滑鼠滾輪滾到底 → 最後一節亮", lit["k"] == nsec - 1, lit)
+        # 點目錄：每一項都點一次 → 亮的就是那一項、而且該節標題在畫面內
+        bad = []
+        for k in range(nsec):
+            pg.locator(f".lgtoc a[data-sec='{k}']").click(); pg.wait_for_timeout(1300)
+            lit = pg.evaluate(LIT); v = pg.evaluate(VIS, k)
+            if lit["k"] != k or not (-5 <= v["top"] < v["vh"]):
+                bad.append((k, lit, v))
+        ok(f"[目錄同步] {doc}：逐項點目錄 → 亮的就是被點的那項、該節標題在畫面內（含捲不到頂的末幾節）", not bad, bad[:3])
+        # 切到別份文件再回來 → 重新綁定，只有一個 scroll 監聽在作用（亮的仍恰一項）
+    pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(500)
+    pg.click(".lgtabs a[href='#disclaimer']"); pg.wait_for_timeout(500)
+    pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    lit = pg.evaluate(LIT)
+    ok("[目錄同步] 連續切換三份文件後捲到底 → 仍恰亮最後一節（重新綁定、沒有殘留舊監聽）", lit["n"] == 1 and lit["k"] == 7 and lit["total"] == 8, lit)
+    # 窄畫面（目錄收起）：捲動不丟錯、手機的可展開目錄點得動
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(400)
+    pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    pg.locator(".lgtocm summary").click(); pg.wait_for_timeout(200)
+    pg.locator(".lgtocm a[data-sec='6']").click(); pg.wait_for_timeout(1300)
+    t6 = pg.evaluate(VIS, 6)
+    ok("[目錄同步] 390 窄畫面：展開手機目錄、點第七節 → 捲到該節、目錄收回、沒有頁面錯誤", -5 <= t6["top"] < 300
+       and not pg.evaluate("() => document.querySelector('.lgtocm').open"), t6)
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
+
+
+
 def t_legal(b, base):
     # ---------------------------------------------------------------- A. 開關關著（現況）
     ctx, pg = _lg_page(b)
@@ -40558,8 +40637,11 @@ def t_legal(b, base):
         blanks: document.querySelectorAll('#lgDoc .lgblank').length, sy: scrollY })""")
     ok("[關] 點頁尾「使用條款」→ 真的換到使用條款頁、總覽收起來、頂欄分頁沒有一顆亮",
        r["hash"] == "#terms" and r["legal"] and not r["ov"] and r["tabs"] == 0 and "使用條款" in r["h1"], r)
-    ok("[關] 使用條款不掛草稿、沒有【】空格、頂端寫「最後更新日期：2026-10-07」（2026-10-07 正式文字）",
-       not r["draft"] and r["blanks"] == 0 and "最後更新日期：2026-10-07" in pg.inner_text("#lgDoc")
+    # 2026-10-07 改前→改後（Andy：「最後更新可以拿掉」）：改前驗頂端寫「最後更新日期：2026-10-07」；改後驗畫面上沒有日期行。
+    #   （條款修改那節的條文仍提到「最後更新日期」四個字，條文沒動，所以只驗「後面接日期」的那種寫法不存在。）
+    ok("[關] 使用條款不掛草稿、沒有【】空格、頂端不再顯示最後更新日期（2026-10-07 Andy）",
+       not r["draft"] and r["blanks"] == 0 and not re.search(r"最後更新日期[：:]\s*\d{4}", pg.inner_text("#lgDoc"))
+       and pg.locator("#lgDoc .lgmeta").count() == 0
        and "臺灣臺北地方法院" in pg.inner_text("#lgDoc") and "kcq01010909@gmail.com" in pg.inner_text("#lgDoc"), r)
     ok("[關] 進法律頁捲回頁首", r["sy"] == 0, r)
     ok("[關] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
@@ -40572,6 +40654,7 @@ def t_legal(b, base):
             on: (document.querySelector('.lgtoc a.on') || {}).dataset })""")
         ok("[關] 點目錄第五條 → 那一條捲到畫面上緣、網址還是 #terms、目錄亮在第五條",
            r2["hash"] == "#terms" and r2["sy"] > 100 and 40 < r2["top"] < 200 and r2["on"] and r2["on"].get("sec") == "4", r2)
+    _legal_spy(pg, base)
     # 上方三個分頁切換（2026-09-24 改成膠囊：目前頁實心主色、其他描邊）
     TABS = """() => { const bg = (e) => getComputedStyle(e).backgroundColor, cy = (() => { const s = document.createElement('i');
         s.style.color = 'var(--cyan)'; document.body.appendChild(s); const c = getComputedStyle(s).color; s.remove(); return c; })();
@@ -40640,7 +40723,7 @@ def t_legal(b, base):
     pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(400)
     r = pg.evaluate("""() => { const f = document.getElementById('siteFoot').getBoundingClientRect(),
         t = document.getElementById('tabs').getBoundingClientRect(); return { fb: f.bottom, ft: f.top, tt: t.top }; }""")
-    ok("[390] 捲到底時頁尾整段在底部分頁列上方（沒被蓋住）", r["fb"] <= r["tt"] + 1 and r["ft"] > 0, r)
+    ok("[390] 捲到底時頁尾整段在底部分頁列上方（沒被蓋住；容差 2px＝次像素誤差，頁尾自己有 24px 下內距）", r["fb"] <= r["tt"] + 2 and r["ft"] > 0, r)
     ctx.close()
 
     # ---------------------------------------------------------------- B. 開關打開（模擬 Andy 填好了）
