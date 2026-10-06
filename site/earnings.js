@@ -4,7 +4,8 @@
     以及FED公布重大數據也需要標示出來，並且需要在旁邊有點及該個股後，出現對於這次財包的分析及展望(包含FED消息)」
 
    版面：左＝7 欄真月曆（固定 6 列，切月整張卡不會變高）；右＝固定側欄面板（固定高、內部捲動）：
-     · 還沒點 → 本週重點（這週一～週日的全部事件＋下一次 FOMC／CPI）
+     · 還沒點 → 本週重點（目前分頁那一類這週一～週日的事件；FED 消息分頁另列接下來的 FOMC／CPI）
+   分類分頁：公司財報｜公司法說｜FED 消息，沒有「全部」，預設公司財報、重新整理一律回公司財報（不記憶，同 #330 選股）。
      · 點公司標籤（或下面時間表的一列）→ 這次財報的分析與展望（每段標題旁 ⓘ 滑過看出處）＋ FED 背景
      · 點 FED／美國數據標籤 → 數據說明、上次數值（FRED）、市場關注點、下一次日期
      · 點日期格（或「＋N」）→ 那一天的完整清單
@@ -59,7 +60,7 @@
 
   /* FED／期限標籤上的字：寬螢幕寫全、手機（≤640）用短字（格子只有 48px） */
   const SHORT = { fomc: 'FOMC', minutes: 'FOMC 紀要', cpi: 'CPI', nfp: '非農', pce: 'PCE', gdp: 'GDP', rev: '營收期限', qdl: '財報期限' };
-  const S = { data: null, seed: false, month: null, sel: { t: 'week' }, filt: 'all' };
+  const S = { data: null, seed: false, month: null, sel: { t: 'week' }, filt: 'rep' };
 
   function injectCSS() {
     if (document.getElementById('earnCss')) return;
@@ -71,7 +72,14 @@
 #v-earnings .card h3{flex-wrap:nowrap;white-space:nowrap;min-width:0}
 #v-earnings .card h3 small{overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .row.spread{flex-wrap:nowrap;gap:10px;min-width:0}
-#v-earnings #earnFilt{flex:none}
+/* 2026-10-06 12:10（Andy：「全部拿掉，並平均分散 三個分頁」＋12:14「分頁和本週重點之間那一大塊空白好奇怪」）：
+   分頁同時控制左邊月曆與右邊面板 → 照產業地圖（#321 .nbsw）：分頁列放在整塊內容的最上方，下面直接接 .nbbody 內容框
+   （選中那顆疊在框的上框線上、底色相連，中間不留空白）。三顆等寬、填滿整排：用 grid 而不是 flex:1，
+   因為選中那顆的 padding 比較大（.nbsw 規範），flex 會讓它比較寬。tabdrag.js 改的是 CSS order，grid 一樣吃。 */
+#v-earnings #earnFilt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;margin-top:6px}
+#v-earnings #earnFilt>button{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#v-earnings .earnbody{margin-bottom:0;background:var(--panel)}
+#v-earnings .earnbody .elegend{margin-top:4px}
 #v-earnings .ewrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;margin-top:6px}
 #v-earnings .ehd{display:flex;align-items:center;gap:8px;margin-bottom:6px;white-space:nowrap;height:32px;min-width:0}
 #v-earnings .ehd b{font-size:16px;width:118px;text-align:center;flex:none}
@@ -226,7 +234,8 @@
   }
   const evs = () => (S.data && S.data.events) || [];
   const co = (c) => ((S.data && S.data.companies) || {})[c];
-  const passF = (e) => S.filt === 'all' || (KIND[e.k] || {}).g === S.filt;
+  /* 2026-10-06 12:10 拿掉「全部」：月曆、本週重點、當天清單一律只顯示目前這一類（Andy：分類不可混） */
+  const passF = (e) => (KIND[e.k] || {}).g === S.filt;
   const FILT_LAB = { rep: '公司財報', conf: '公司法說', fed: 'FED 消息' };
   const rankOf = (e) => (e.code && co(e.code) ? (co(e.code).rank || 99) : 99);
   const sortEv = (a, b) => (ORDER[a.k] - ORDER[b.k]) || (rankOf(a) - rankOf(b));
@@ -239,13 +248,14 @@
     const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
     root.innerHTML = `
 <div class="card" id="earnCalCard">
-  <div class="row spread"><h3>財經日曆 <small id="earnSub"></small> ${hbtn('earncal', '財經日曆怎麼看')}</h3>
-    <div class="nbsw" id="earnFilt" role="tablist"><button data-v="all" class="on" type="button">全部</button><button data-v="rep" type="button">公司財報</button><button data-v="conf" type="button">公司法說</button><button data-v="fed" type="button">FED 消息</button></div></div>
+  <div class="row spread"><h3>財經日曆 <small id="earnSub"></small> ${hbtn('earncal', '財經日曆怎麼看')}</h3></div>
   ${how('earncal', '', [
     '<b>大公司</b>＝市值前 50（收盤 × 最新一季股數，上市＋上櫃普通股，排除 ETF）。',
     '<b>公司財報</b>＝大公司公告的財報董事會與已公布財報；<b>公司法說</b>＝全部上市櫃公司公告的法說會；<b>FED 消息</b>＝FOMC 與美國重大數據的官方公布日。',
     '日曆上是美東日期，台灣時間在右側面板。',
     '所以：月初先看這個月有哪幾家要開法說、FOMC 在哪一天；法說前一週點進去，對照「這次財報看什麼」的月營收，就知道營收已反映多少、要看的是毛利率還是展望。'])}
+  <div class="nbsw" id="earnFilt" role="tablist" aria-label="財經日曆分類"><button data-v="rep" class="on" type="button" role="tab">公司財報</button><button data-v="conf" type="button" role="tab">公司法說</button><button data-v="fed" type="button" role="tab">FED 消息</button></div>
+  <div class="nbbody earnbody" id="earnBody">
   <div class="elegend" id="earnLegend"></div>
   <div class="ewrap">
     <div><div class="ehd"><button type="button" class="btn small" id="earnPrev" aria-label="上個月">‹ 上月</button>
@@ -253,6 +263,7 @@
       <button type="button" class="btn small" id="earnToday">回本月</button><span class="sp"></span></div>
       <div class="eg" id="earnGrid"></div></div>
     <div class="epanel" id="earnPanel" role="region" aria-label="分析面板" aria-live="polite"></div>
+  </div>
   </div>
   <p class="edisc" id="earnDisc" role="note">ⓘ 純資料整理，不構成投資建議。</p>
 </div>
@@ -273,7 +284,7 @@
     ['fed', 'kfomc', 'fed', 'FOMC'], ['fed', 'kdata', 'data', '美國數據']];
   function drawLegend() {
     const box = $('#earnLegend'); if (!box) return;
-    box.innerHTML = LEG.filter((x) => S.filt === 'all' || x[0] === S.filt).map(([, c, ic, t]) => `<span><i class="${c}">${IC[ic]}</i>${t}</span>`).join('')
+    box.innerHTML = LEG.filter((x) => x[0] === S.filt).map(([, c, ic, t]) => `<span><i class="${c}">${IC[ic]}</i>${t}</span>`).join('')
       + '<span><i class="wk"></i>週末</span><span><i class="hd"></i>台股休市日</span>';
   }
   function drawCal() {
@@ -338,14 +349,22 @@
     const fed = (S.data && S.data.fed && S.data.fed.next) || {};
     const nx = (k) => fed[k] ? `${md(fed[k].d)}（${wdOf(fed[k].d)}）・台灣 ${esc(fed[k].tw || '')}` : '—';
     const ahead = L.length ? '' : (() => {
-      const n = evs().filter((e) => e.d > b).filter(passF).slice(0, 6);
+      const n = evs().filter((e) => e.d > b).filter(passF).slice(0, 12);
       return `<p class="note">本週無事件</p>${n.length ? `<span class="lt">接下來</span><ul class="elist">${n.map(rowHTML).join('')}</ul>` : ''}`;
     })();
     return `${phead('本週重點', `<span class="badge sch">${md(a)}–${md(b)}</span>`, { noBack: true })}
       ${L.length ? `<ul class="elist" id="earnWeekList">${L.map(rowHTML).join('')}</ul>` : ahead}
-      ${S.filt === 'rep' || S.filt === 'conf' ? '' : `<span class="lt">接下來的 FED 與美國數據（星數＝重要性）</span>${upcomingFed(S.filt === 'fed' ? 6 : 2).map((e) => fedCard(e, true)).join('')}`}
-      ${S.filt === 'fed' ? '' : (() => { const later = evs().filter((e) => e.d > b).filter(passF).slice(0, S.filt === 'all' ? 6 : 12);
-        return later.length && L.length ? `<span class="lt">之後的${FILT_LAB[S.filt] || '事件'}</span><ul class="elist" id="earnLaterList">${later.map(rowHTML).join('')}</ul>` : ''; })()}`;
+      ${S.filt !== 'fed' ? '' : `<span class="lt">接下來的 FED 與美國數據（星數＝重要性）</span>${upcomingFed(6).map((e) => fedCard(e, true)).join('')}`}
+      ${S.filt === 'fed' ? '' : (() => { const later = evs().filter((e) => e.d > b).filter(passF).slice(0, 20);
+        return later.length && L.length ? `<span class="lt">之後的${FILT_LAB[S.filt] || '事件'}</span><ul class="elist" id="earnLaterList">${later.map(rowHTML).join('')}</ul>` : ''; })()}
+      ${S.filt === 'fed' ? '' : (() => {
+        /* 拿掉「全部」之後，單一分類一週常只有幾筆（公司財報尤其少），面板下半大片空白（Andy 1006：「空白處不可以太多」）→
+           不夠 12 列時，補「近 30 天已過」的同類事件（新到舊），讓讀者看得到這一類最近發生了什麼。 */
+        const shown = L.length + Math.min(20, evs().filter((e) => e.d > b).filter(passF).length);
+        if (shown >= 12) return '';
+        const a30 = new Date(new Date(a + 'T00:00:00Z').getTime() - 30 * 864e5).toISOString().slice(0, 10);
+        const past = evs().filter((e) => e.d < a && e.d >= a30).filter(passF).sort((x, y) => (x.d < y.d ? 1 : x.d > y.d ? -1 : sortEv(x, y))).slice(0, 12 - shown);
+        return past.length ? `<span class="lt">近 30 天已過的${FILT_LAB[S.filt]}</span><ul class="elist" id="earnPastList">${past.map(rowHTML).join('')}</ul>` : ''; })()}`;
   }
   function panelDay(d) {
     const L = evs().filter((e) => e.d === d).filter(passF).sort(sortEv);
@@ -520,7 +539,7 @@
       ${fedBlock(['policy', 'cpi_yoy', 'core_pce_yoy', 'unrate'])}`;
     const fedSec = fedBody.trim() ? `<div class="sec" data-sec="fed"><h4>FED 背景</h4>${fedBody}</div>` : '';
     return `${head}${basis}${confSec(e)}${tags}<p class="note">對應 <b>${esc(c.target || '')}</b> 財報</p>
-      ${(c.secs || []).map(secHTML).join('')}${S.filt === 'all' || S.filt === 'fed' ? fedSec : ''}`;
+      ${(c.secs || []).map(secHTML).join('')}${S.filt === 'fed' ? fedSec : ''}`;
   }
   function drawPanel() {
     const box = $('#earnPanel'); if (!box) return;
@@ -556,7 +575,7 @@
     const top = g.getBoundingClientRect().top + window.scrollY;
     const padB = parseFloat(getComputedStyle(card).paddingBottom) || 12;
     const avail = window.innerHeight - top - padB - 14;
-    const rh = window.CalGrid ? window.CalGrid.fit(g, ROWS, 56, 110, 4, 26) : Math.max(56, Math.min(98, Math.floor((avail - 20 - ROWS * 4) / ROWS)));
+    const rh = window.CalGrid ? window.CalGrid.fit(g, ROWS, 56, 110, 4, 42) : Math.max(56, Math.min(98, Math.floor((avail - 20 - ROWS * 4) / ROWS)));
     g.style.gridTemplateRows = `20px repeat(${ROWS},${rh}px)`;
     const hd = $('.ehd', card);
     p.style.height = `${Math.round(g.getBoundingClientRect().bottom - hd.getBoundingClientRect().top)}px`;
@@ -568,6 +587,7 @@
   async function render() {
     injectCSS();
     const root = document.getElementById('v-earnings'); if (!root) return;
+    S.filt = 'rep';      // 每次進頁都回公司財報（不記憶）
     skeleton(root);
     $('#earnPanel').innerHTML = '<p class="note">載入中…</p>';
     await loadData();
