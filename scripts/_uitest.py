@@ -24287,6 +24287,9 @@ SECTIONS = {
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
+    # ★ 2026-10-07 額度／開通共用卡片（site/qcard.js）與方案自選上限（Plus／Pro，docs/quota_plan.md）
+    "額度卡片1007":        lambda pg, b, base, code: t_qcard_1007(b, base, code),
+    "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -47380,8 +47383,10 @@ def t_account_cloud(b, base):
         login(pg, "bob")
         ok("會員：登入後頂欄換成名字", "Bob" in pg.inner_text("#acctBtn"))
         ok("會員：權杖存進 localStorage", bool(pg.evaluate("() => localStorage.getItem('tw.acct.tok')")))
-        wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.tabs().length === 2", 8000)
-        ok("會員：首次登入本機兩頁合併上雲", pg.evaluate("() => TwWatch.tabs().map(t => [t.name, t.codes])") == [["自選 1", ["2330"]], ["AI", ["3231"]]],
+        # ★ 2026-10-07 改前→改後（docs/quota_plan.md，Andy「註冊可以自選一個分頁且10檔股票」）：註冊會員只有 1 頁 →
+        #   本機兩頁合併上雲時，第 2 頁的股票併進第 1 頁（不丟資料、不超過方案上限；Worker 也會擋超過的）
+        wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.codes().length === 2", 8000)
+        ok("會員：首次登入本機兩頁合併上雲（註冊會員 1 頁 → 第 2 頁的股票併進第 1 頁）", pg.evaluate("() => TwWatch.tabs().map(t => [t.name, t.codes])") == [["自選 1", ["2330", "3231"]]],
            pg.evaluate("() => TwWatch.tabs()"))
         ok("會員：合併成功後本機那份清空（已經在雲端）",
            pg.evaluate("() => JSON.parse(localStorage.getItem('tw.watchlists')).tabs.every(t => !t.codes.length)"))
@@ -47390,7 +47395,7 @@ def t_account_cloud(b, base):
         pg.reload(wait_until="domcontentloaded")
         wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 8000)
         wait_until(pg, "() => TwWatch.codes().includes('2317')", 8000)
-        ok("會員：改動同步上雲，重新整理後從雲端讀回來", pg.evaluate("() => TwWatch.mode() === 'cloud' && TwWatch.codes()") == ["2317", "2330"], pg.evaluate("() => TwWatch.codes()"))
+        ok("會員：改動同步上雲，重新整理後從雲端讀回來", pg.evaluate("() => TwWatch.mode() === 'cloud' && TwWatch.codes()") == ["2317", "2330", "3231"], pg.evaluate("() => TwWatch.codes()"))
         pg.goto(base + "#admin", wait_until="domcontentloaded")
         wait_until(pg, "() => document.getElementById('v-admin') && /不是管理者/.test(document.getElementById('v-admin').textContent)", 8000)
         ok("會員：一般會員打開 #admin 只看到「不是管理者」", "不是管理者" in pg.inner_text("#v-admin"))
@@ -47409,7 +47414,7 @@ def t_account_cloud(b, base):
         login(pg, "bob")
         wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.codes('g1').includes('2603')", 8000)
         ok("會員：第二台裝置／第二次登入的本機清單併進去、雲端原有的沒被蓋掉",
-           pg.evaluate("() => TwWatch.codes('g1')") == ["2317", "2330", "2603"], pg.evaluate("() => TwWatch.tabs()"))
+           pg.evaluate("() => TwWatch.codes('g1')") == ["2317", "2330", "3231", "2603"], pg.evaluate("() => TwWatch.tabs()"))
 
         # ---- ④ 刪除我的資料：10-05 Andy 要求從選單拿掉（改由客服信箱申請），原本的刪除流程驗收移除
         pg.click("#acctBtn"); pg.click("#acctMenu [data-a='logout']")
@@ -47562,6 +47567,153 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None):
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(SUB_API + "/**", handle)
     return c, sent, st
+
+
+
+# ===================================================================== 額度卡片1007／自選上限1007（2026-10-07，docs/quota_plan.md）
+# Andy（10-07 01:30）：「圖二的內容當達到上限，出現的畫面參考圖三，並且可以置中，之後會分成 Plus 和更上去的 Pro。
+#   plus 目前先暫定皆可以觀看50次，pro 則是都不限次數」＋「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」。
+# 驗的是「真的操作」：示範開關打開卡片、量置中、點按鈕真的到訂閱頁、模擬 data-gw 的 429 事件、換頁卡片消失；
+# 自選頁真的按「＋ 新增分頁」、真的加第 11 檔，畫面跳出升級卡、清單沒有變多。
+QCARD_GEOM = """() => { const c = document.querySelector('.qcov .qcard'); if (!c) return null; const ov = c.closest('.qcov'), host = ov.parentElement;
+  const r = c.getBoundingClientRect(), o = ov.getBoundingClientRect();
+  const vis = { top: Math.max(o.top, 0), bottom: Math.min(o.bottom, innerHeight) };
+  const segs = [...c.querySelectorAll('.qc-bar i')];
+  return { host: host.id, w: r.width, cx: r.left + r.width / 2, ox: o.left + o.width / 2, cy: r.top + r.height / 2, vy: (vis.top + vis.bottom) / 2,
+    tall: ov.classList.contains('tall'), segs: segs.length, lit: segs.filter(i => i.classList.contains('on')).length,
+    txt: c.innerText, href: (c.querySelector('.qc-go') || {}).getAttribute ? c.querySelector('.qc-go').getAttribute('href') : '',
+    minFs: Math.min(...[...c.querySelectorAll('*')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize))),
+    sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+
+
+def t_qcard_1007(b, base, code):
+    T = "額度卡片1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    for theme in ("dark", "light"):
+        c = b.new_context(viewport={"width": 1440, "height": 900})
+        c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}')}}catch(e){{}}")
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "?demo=quota#industry/semiconductor", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.querySelector('#dgSec > .qcov .qcard')", 15000)
+        pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(400)
+        g = pg.evaluate(QCARD_GEOM)
+        ok(f"{T} {theme}：?demo=quota → 剖析圖區塊蓋上「今天的研究額度用完了」卡（Plus 50/50）",
+           bool(g) and g["host"] == "dgSec" and "今天的研究額度用完了" in g["txt"] and "Plus 每日額度" in g["txt"] and "50 / 50" in g["txt"], g)
+        ok(f"{T} {theme}：卡片寬 520、水平置中（差 ≤ 2px）、垂直置中於看得到的區塊（差 ≤ 40px 或黏在視窗中間）",
+           bool(g) and abs(g["w"] - 520) <= 1 and abs(g["cx"] - g["ox"]) <= 2 and (g["tall"] or abs(g["cy"] - g["vy"]) <= 40), g)
+        ok(f"{T} {theme}：進度條 10 段全亮（50 次、每段 5 次）、倒數「X 小時 Y 分後重置」", bool(g) and g["segs"] == 10 and g["lit"] == 10
+           and bool(re.search(r"\d+ 小時 \d+ 分後重置", g["txt"])), g and (g["segs"], g["lit"], g["txt"][:120]))
+        ok(f"{T} {theme}：清單「升級 Pro 還能使用」＋按鈕「升級 Pro →」連 #pricing/plan/pro；卡內字 ≥ 12px",
+           bool(g) and "升級 Pro 還能使用" in g["txt"] and "不限次數" in g["txt"] and g["href"] == "#pricing/plan/pro" and g["minFs"] >= 12, g and (g["href"], g["minFs"]))
+        ok(f"{T} {theme}：卡片背後的剖析圖模糊、點不到", pg.evaluate("() => { const k = [...document.querySelectorAll('#dgSec > *')].find(x => !x.classList.contains('qcov')); return !!k && getComputedStyle(k).pointerEvents === 'none' && /blur/.test(getComputedStyle(k).filter); }"))
+        if sh:
+            pg.screenshot(path=str(pathlib.Path(sh) / f"qcard_{theme}.png"))
+        if theme == "dark":
+            pg.click("#dgSec .qcov .qc-go")
+            ok(f"{T}：按「升級 Pro →」→ 到訂閱頁、Pro 那張卡標「建議升級」、Plus／Pro 都列出每日額度與自選上限",
+               bool(wait_until(pg, "() => location.hash === '#pricing/plan/pro' && !!document.querySelector(\".prcard[data-plan='pro'].need\")", 8000))
+               and pg.evaluate("""() => { const t = (id) => (document.querySelector(`.prcard[data-plan='${id}']`) || {}).innerText || '';
+                   return /建議升級/.test(t('pro')) && /研究額度[\\s\\S]*每日 50 次/.test(t('plus')) && /研究額度[\\s\\S]*不限/.test(t('pro')) && /價格待定/.test(t('plus'))
+                     && /自選清單分頁\\s*5 頁/.test(t('plus')) && /每頁自選檔數\\s*50 檔/.test(t('plus')) && /自選清單分頁\\s*不限/.test(t('pro')); }"""),
+               pg.evaluate("() => [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + '|' + c.className + '|' + c.innerText.replace(/\\s+/g, ' ').slice(0, 160))"))
+        c.close()
+
+    # 390 手機：不橫向捲動、卡片吃滿區塊、用量與倒數不撐出卡片
+    c = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "?demo=quota#industry/semiconductor", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#dgSec > .qcov .qcard')", 15000)
+    pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(400)
+    g = pg.evaluate(QCARD_GEOM)
+    meta = pg.evaluate("() => { const c = document.querySelector('.qcov .qcard'), m = c.querySelector('.qc-meta'); const cr = c.getBoundingClientRect(); return [...m.querySelectorAll('span')].every(s => { const r = s.getBoundingClientRect(); return r.right <= cr.right + 0.5 && r.left >= cr.left - 0.5; }); }")
+    ok(f"{T} 390：沒有橫向捲軸、卡片寬 ≤ 358（螢幕減兩側 16px）而且 ≥ 280、用量與倒數都在卡片裡、字 ≥ 12px",
+       bool(g) and g["sw"] <= g["vw"] and 280 <= g["w"] <= 358 and meta and g["minFs"] >= 12, g)
+    c.close()
+
+    # ?demo=lock：「此功能需開通」同一款卡片（沒有進度條，清單寫哪個方案有）
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "?demo=lock#industry/semiconductor", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#dgSec[data-plk] > .qcov .qcard')", 15000)
+    pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(400)
+    g = pg.evaluate(QCARD_GEOM)
+    ok(f"{T}：?demo=lock → 剖析圖蓋上「此功能需開通」卡（同一款、置中、沒有進度條、列 Plus／Pro、按鈕連 #pricing/need/ind.diagram）",
+       bool(g) and "此功能需開通" in g["txt"] and "產業鏈剖析圖（2D）" in g["txt"] and g["segs"] == 0 and "Plus" in g["txt"] and "Pro" in g["txt"]
+       and abs(g["w"] - 520) <= 1 and abs(g["cx"] - g["ox"]) <= 2 and g["href"] == "#pricing/need/ind.diagram", g)
+    pg.click("#dgSec .qcov .plkgo")
+    ok(f"{T}：（續）按「升級 Plus →」→ 到 #pricing/need/ind.diagram", bool(wait_until(pg, "() => location.hash === '#pricing/need/ind.diagram' && document.querySelectorAll('.prcard').length > 0", 6000)))
+    c.close()
+
+    # data-gw 回 429 quota（模擬 datagw.js 發的事件）：個股頁整頁蓋卡、倒數用伺服器給的重置時間、換頁就拿掉
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#stock/" + code, wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#v-industry.on') && !!window.TwQCard", 15000)
+    pg.wait_for_timeout(1200)
+    ok(f"{T}：正式站現況（沒有 data-gw、沒有示範開關）→ 畫面上沒有任何額度卡", pg.evaluate("() => !document.querySelector('.qcov.qgate') && TwQCard.state() === null"))
+    pg.evaluate("() => window.dispatchEvent(new CustomEvent('tw:quota', { detail: { name: 'stock/2330', used: 50, limit: 50, plan: 'plus', reset: Date.now() + (3 * 60 + 7) * 60000 + 20000 } }))")
+    ok(f"{T}：收到 tw:quota（data-gw 429）→ 個股頁蓋卡、倒數「3 小時 8 分後重置」（用伺服器的重置時間）、卡片黏在視窗中間",
+       bool(wait_until(pg, "() => { const o = document.querySelector('#v-industry > .qcov.qgate'); return !!o && /3 小時 8 分後重置/.test(o.textContent); }", 5000))
+       and (lambda g: bool(g) and g["tall"] and abs(g["cy"] - 450) <= 30)(pg.evaluate(QCARD_GEOM)), pg.evaluate(QCARD_GEOM))
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    ok(f"{T}：換頁 → 額度卡拿掉（下一頁要的檔若也超過，data-gw 會再回一次 429）", bool(wait_until(pg, "() => !document.querySelector('.qcov.qgate') && !document.querySelector('[data-qcard]')", 4000)))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+def t_watch_limit_1007(b, base, code):
+    T = "自選上限1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    codes = ["2330", "2317", "2454", "2303", "2308", "2382", "2412", "2881", "2882", "2886", "2891", "3008"]
+    # ① 免費會員（範本沒寫＝預設 1 頁／10 檔）
+    c, sent, st = _sub_ctx(b, "member", feats={})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#watch", wait_until="domcontentloaded")
+    ok(f"{T}：免費會員 → 上限 1 頁／每頁 10 檔、自選頁寫「1／1 頁」",
+       bool(wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwWatch.MAX_TABS === 1 && TwWatch.MAX_CODES === 10 && /1／1 頁/.test((document.getElementById('wpCnt') || {}).textContent || '')", 12000)),
+       pg.evaluate("() => [TwWatch.MAX_TABS, TwWatch.MAX_CODES, (document.getElementById('wpCnt') || {}).textContent]"))
+    ok(f"{T}：「＋ 新增分頁」沒有被停用（按了要看得到為什麼不行）而且掛 🔒", pg.evaluate("() => { const b = document.getElementById('wpNew'); return !!b && !b.disabled && /🔒/.test(b.textContent); }"))
+    pg.click("#wpNew")
+    ok(f"{T}：按「＋ 新增分頁」→ 跳出「目前方案最多 1 頁自選清單」卡、分頁沒有變多、按鈕連 #pricing/plan/plus",
+       bool(wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && /目前方案最多 1 頁自選清單/.test(m.textContent); }", 4000))
+       and pg.evaluate("() => TwWatch.tabs().length === 1 && document.querySelector('#qcModal .qc-go').getAttribute('href') === '#pricing/plan/plus' && /Plus[\\s\\S]*5 頁/.test(document.getElementById('qcModal').textContent)"),
+       pg.evaluate("() => [(document.getElementById('qcModal') || {}).textContent, TwWatch.tabs().length]"))
+    ok(f"{T}：卡片在畫面正中間（水平、垂直差 ≤ 2px）", pg.evaluate("() => { const r = document.querySelector('#qcModal .qcard').getBoundingClientRect(); return Math.abs(r.left + r.width / 2 - innerWidth / 2) <= 2 && Math.abs(r.top + r.height / 2 - innerHeight / 2) <= 2; }"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "watch_limit_tabs.png"))
+    pg.click("#qcModal .qc-x")
+    ok(f"{T}：× 關閉", bool(wait_until(pg, "() => document.getElementById('qcModal').hidden", 2000)))
+    added = pg.evaluate("(cs) => cs.slice(0, 10).map(c => TwWatch.add(c)).filter(Boolean).length", codes)
+    ok(f"{T}：前 10 檔都加得進去", added == 10, added)
+    r11 = pg.evaluate("(c) => TwWatch.add(c)", codes[10])
+    ok(f"{T}：第 11 檔加不進去 → 跳出「這一頁已經放滿 10 檔」卡、清單仍是 10 檔",
+       r11 is False and bool(wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !m.hidden && /這一頁已經放滿 10 檔/.test(m.textContent); }", 3000))
+       and pg.evaluate("() => TwWatch.codes().length === 10"), pg.evaluate("() => [TwWatch.codes().length, document.getElementById('qcModal').textContent]"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "watch_limit_size.png"))
+    pg.keyboard.press("Escape")
+    ok(f"{T}：Esc 關閉", bool(wait_until(pg, "() => document.getElementById('qcModal').hidden", 2000)))
+    c.close()
+    # ② Plus（5 頁／50 檔）：可以建到 5 頁，第 6 頁跳卡（升級 Pro）
+    c, sent, st = _sub_ctx(b, "member", feats={"watch.tabs": 5, "watch.size": 50})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#watch", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwWatch.MAX_TABS === 5", 12000)
+    for i in range(4):
+        pg.click("#wpNew"); pg.wait_for_timeout(250)
+        pg.keyboard.press("Enter"); pg.wait_for_timeout(150)
+    ok(f"{T}：Plus：按 4 次「＋ 新增分頁」→ 共 5 頁、沒有跳卡", pg.evaluate("() => TwWatch.tabs().length === 5 && (!document.getElementById('qcModal') || document.getElementById('qcModal').hidden)"),
+       pg.evaluate("() => TwWatch.tabs().length"))
+    pg.click("#wpNew")
+    ok(f"{T}：Plus：第 6 頁 → 跳卡、按鈕「升級 Pro」、分頁仍是 5",
+       bool(wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && /目前方案最多 5 頁/.test(m.textContent) && /升級 Pro/.test(m.querySelector('.qc-go').textContent); }", 3000))
+       and pg.evaluate("() => TwWatch.tabs().length === 5"), pg.evaluate("() => (document.getElementById('qcModal') || {}).textContent"))
+    pg.click("#qcModal .qc-go")
+    ok(f"{T}：（續）按「升級 Pro →」→ 到 #pricing/plan/pro、卡片關掉", bool(wait_until(pg, "() => location.hash === '#pricing/plan/pro' && document.getElementById('qcModal').hidden", 5000)))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
 
 def t_sub_1005(b, base, code):
@@ -47846,10 +47998,12 @@ def t_member_perm(b, base, code):
             return wait_until(pg, js, 10000)
 
         LOCK = """(sel) => { const el = document.querySelector(sel); if (!el) return null;
-            const a = getComputedStyle(el, '::after');
+            /* ★ 2026-10-07：「此功能需開通」改成 site/qcard.js 的卡片（.qcov.plkov 裡的 .qcard），字不再畫在 ::after；
+               content＝卡片文字、fs＝卡片最小字（說明那一行）*/
+            const card = el.querySelector(':scope > .qcov .qcard'), sub = card && (card.querySelector('.qc-sub') || card);
             /* ★ admin-v3：外框不再整個 inert（鎖頭上的「升級查看」要點得到），改成原本的子節點逐一 inert */
-            const kids = [...el.children].filter(k => !k.classList.contains('plkgo'));
-            return { attr: el.getAttribute('data-plk') || '', inert: !!el.inert || (kids.length > 0 && kids.every(k => k.inert)), go: (el.querySelector(':scope > .plkgo') || {}).href || '', content: a.content || '', fs: parseFloat(a.fontSize),
+            const kids = [...el.children].filter(k => !k.classList.contains('plkgo') && !k.classList.contains('qcov'));
+            return { attr: el.getAttribute('data-plk') || '', inert: !!el.inert || (kids.length > 0 && kids.every(k => k.inert)), go: (el.querySelector(':scope > .qcov .plkgo, :scope > .plkgo') || {}).href || '', content: card ? card.textContent : '', fs: sub ? parseFloat(getComputedStyle(sub).fontSize) : 0,
                      vis: el.getClientRects().length > 0, blur: el.firstElementChild ? getComputedStyle(el.firstElementChild).filter : '' }; }"""
 
         # ================= ① 管理者 Andy 在 #admin/perm 設定測試帳號
@@ -48598,9 +48752,17 @@ def t_admin_v2(b, base, code):
     pg.fill("#ptEdName", "進階方案")
     pg.fill("#ptEdPrice", "8990")
     pg.select_option("#ptEdPeriod", "year")
+    # ★ 2026-10-07 每日額度（docs/quota_plan.md）：⚙ 多一欄「每日額度」（空白＝不限）；填壞值擋下、填 50 送 dq:50
+    ok(f"{T}：⚙ 有「每日額度」欄（空白＝不限）", pg.locator("#ptEdit #ptEdDq").count() == 1 and pg.input_value("#ptEdDq") == "" and pg.get_attribute("#ptEdDq", "placeholder") == "不限")
+    pg.fill("#ptEdDq", "-3")
+    nput2 = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.click("#ptEdSave")
+    ok(f"{T}：每日額度填 -3 → 擋下、不送出", "每日額度" in pg.inner_text("#pmStat") and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput2, pg.inner_text("#pmStat"))
+    pg.fill("#ptEdDq", "50")
     with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
         pg.click("#ptEdSave")
     eb = json.loads(ri.value.request.post_data or "{}")
+    ok(f"{T}：（續）每日額度 50 → plans/put 帶 dq=50", eb.get("dq") == 50, eb)
     ok(f"{T}：改名「進階方案」、價格 8990、週期 年 → plans/put 帶 id 不變（p799）、price=8990、period=year、開關照舊",
        eb.get("id") == "p799" and eb.get("name") == "進階方案" and eb.get("price") == 8990 and eb.get("period") == "year" and eb.get("feats") == {}, eb)
     ok(f"{T}：（續）頁籤換成「進階方案（年）」、選中的還是它",
@@ -49816,7 +49978,8 @@ def t_admin_sw_1005(b, base, code):
     ref = pg.evaluate(tq, "#chainSwitch > button:not(.on)")[0][0]
     pg.evaluate("() => { location.hash = '#admin/perm'; }")
     wait_until(pg, "() => document.querySelector('#ptTier button[role=tab]')", 10000)
-    got = pg.evaluate(tq, "#ptTier button[role=tab]:not(.add), #ptSub button, #admTabs a")
+    # 2026-10-07：⚙（範本設定）是圖示鈕不是分頁，註冊會員也有了（每日額度）→ 不列入分頁字級比較
+    got = pg.evaluate(tq, "#ptTier button[role=tab]:not(.add), #ptSub button:not(.ptgear), #admTabs a")
     pg.evaluate("() => { location.hash = '#explore'; }")
     wait_until(pg, "() => document.querySelector('#slChips button')", 10000)
     got += pg.evaluate(tq, "#slChips > button:not(.on)")
@@ -50276,9 +50439,9 @@ def t_admin_v3(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     ok(f"{T}：關掉的「資金熱力圖」鎖頭上有「升級查看」鈕（可點、連到 #pricing/need/ov.heat）",
-       bool(wait_until(pg, "() => { const a = document.querySelector('#ovHeatCard[data-plk] > .plkgo'); return !!a && a.getAttribute('href') === '#pricing/need/ov.heat' && getComputedStyle(a).pointerEvents !== 'none'; }", 8000)))
+       bool(wait_until(pg, "() => { const a = document.querySelector('#ovHeatCard[data-plk] > .qcov .plkgo'); return !!a && a.getAttribute('href') === '#pricing/need/ov.heat' && getComputedStyle(a).pointerEvents !== 'none'; }", 8000)))
     shot(pg, "5_lock_upgrade", "#ovHeatCard")
-    pg.click("#ovHeatCard > .plkgo")
+    pg.click("#ovHeatCard > .qcov .plkgo")
     ok(f"{T}：點「升級查看」→ 到 #pricing/need/ov.heat、能解鎖的方案（進階）標「可解鎖」、免費的不標",
        bool(wait_until(pg, "() => location.hash === '#pricing/need/ov.heat' && !!document.querySelector(\".prcard[data-plan='p799'].need\")", 6000))
        and pg.evaluate("() => !document.querySelector(\".prcard[data-plan='p399'].need\") && !document.querySelector(\".prcard[data-plan='guest'].need\") && /資金熱力圖/.test(document.getElementById('prNeed').textContent)"),

@@ -116,8 +116,8 @@
      ★ 方案卡仍然只畫後端有的範本（Andy 10-05：不編卡）。唯一例外是示範開關 ?demo=quota／quota-free／lock（預覽站給 Andy 看卡片用）：
        後端還沒有 plus／pro 時補兩張「價格待定」的示意卡，讓額度卡的「升級 Plus／Pro →」點過來有東西可看。 */
   const DEMO = /[?&]demo=(quota|quota-free|lock)(&|$)/.test(location.search);
-  const DEMO_PLANS = [{ id: 'plus', name: 'Plus', builtin: false, feats: {}, lims: {}, price: 0, period: 'month', dq: 50, demo: true },
-    { id: 'pro', name: 'Pro', builtin: false, feats: {}, lims: {}, price: 0, period: 'month', dq: null, demo: true }];
+  const DEMO_PLANS = [{ id: 'plus', name: 'Plus', builtin: false, feats: { 'watch.tabs': 5, 'watch.size': 50 }, lims: {}, price: 0, period: 'month', dq: 50, demo: true },
+    { id: 'pro', name: 'Pro', builtin: false, feats: { 'watch.tabs': 50, 'watch.size': 200 }, lims: {}, price: 0, period: 'month', dq: null, demo: true }];
   const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
   const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? '註冊會員' : p.name);
   /* 排序＋去重：訪客、註冊會員固定在前；付費依後端順序；同一個 id 只留第一個 */
@@ -171,8 +171,8 @@
     /* 瀏覽次數：只列「有設上限而且開關是開的」功能（關掉的已經算在上面的「不開放」）*/
     const q = Object.keys(p.lims || {}).map((k) => Ft.byId(k)).filter((f) => f && f.cat !== 'grp' && val(p, f) !== false && limOf(p, f) > 0)
       .map((f) => ({ id: f.id, name: f.name, txt: ltxt(limOf(p, f)) }));
-    const wt = Ft.byId('watch.tabs');
-    return { lines, q, n, total, watch: wt ? val(p, wt) : null };
+    const wt = Ft.byId('watch.tabs'), ws = Ft.byId('watch.size');
+    return { lines, q, n, total, watch: wt ? val(p, wt) : null, wmax: wt ? wt.max : 0, size: ws ? val(p, ws) : null, smax: ws ? ws.max : 0 };
   }
   /* 「我現在」在某功能上的狀態（給 need 標示用）：能不能看、上限 */
   function mine(f) { const P0 = P(); if (!P0) return { on: true, lim: Infinity }; return { on: P0.can(f.id), lim: P0.lim ? P0.lim(f.id) : Infinity }; }
@@ -280,14 +280,14 @@
     return `<div class="prcard${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<h2>${esc(showName(p))}</h2><div class="who">${esc(who)}</div>
       ${price}${btn}
-      <ul class="prfs">${lines}${s.watch != null ? `<li><span>自選清單分頁</span><span>${s.watch ? s.watch + ' 頁' : '不開放'}</span></li>` : ''}
+      <ul class="prfs">${lines}${s.watch != null ? `<li data-w="tabs"><span>自選清單分頁</span><span>${s.watch ? (s.watch >= s.wmax ? '不限' : s.watch + ' 頁') : '不開放'}</span></li>` : ''}${s.size != null && s.watch ? `<li data-w="size"><span>每頁自選檔數</span><span>${s.size >= s.smax ? '不限' : s.size + ' 檔'}</span></li>` : ''}
         <li class="qh"><span>每日瀏覽次數</span><span></span></li>${dq}${q}</ul></div>`;
   }
   function table(plans) {
     const Ft = F(); if (!Ft) return '';
     const head = `<tr><th>功能</th>${plans.map((p) => `<th>${esc(showName(p))}</th>`).join('')}</tr>`;
     const cell = (p, f) => {
-      if (f.kind === 'limit') { const v = val(p, f); return `<td>${v ? v + ' 頁' : '—'}</td>`; }
+      if (f.kind === 'limit') { const v = val(p, f); return `<td>${v ? (f.opts && v >= f.max ? '不限' : v + ' ' + (f.unit || '頁')) : '—'}</td>`; }
       if (!on(p, f)) return '<td class="n" aria-label="沒有">—</td>';
       const n = limOf(p, f);
       return n === Infinity ? '<td class="y" aria-label="有">✓</td>' : `<td class="y">每日 ${n} 次</td>`;

@@ -157,8 +157,15 @@
     box('earn.cal', 'earnings', '行事曆月曆', ['#earnCalCard'], '月曆（公司財報／公司法說／FED 消息）與右側分析面板'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
-    { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,
-      desc: '最多能建幾頁自選清單（已經建好的不會被刪，只是不能再新增）', veil: [], mark: [], block: [] }
+    /* ★ 2026-10-07（Andy：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」，docs/quota_plan.md）：
+       def 改成免費會員的值（1 頁／每頁 10 檔）；Plus 5 頁／50 檔、Pro「不限」由 account-api 種範本時寫進 feats。
+       「不限」實作上是硬上限：分頁 50、每頁 200 檔（max；admin 選單最後一格顯示「不限」）—— 前端、Worker 都守這兩個數，
+       免得一份清單長到拖慢同步。opts＝管理頁下拉的選項（不必列出 0～200 每一個數）、unit＝顯示單位。
+       ⚠ 連不到會員伺服器（TwPerm src＝default）時 watchlists.js 退回舊的 5 頁／50 檔 —— 寧可多給，不要誤鎖（perm.js 同一個原則）。*/
+    { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 1, kind: 'limit', max: 50, unit: '頁', opts: [0, 1, 2, 3, 5, 10, 20, 50],
+      desc: '最多能建幾頁自選清單（已經建好的不會被刪，只是不能再新增）', veil: [], mark: [], block: [] },
+    { id: 'watch.size', name: '每頁自選檔數上限', cat: 'watch', def: 10, kind: 'limit', max: 200, unit: '檔', opts: [0, 5, 10, 20, 30, 50, 100, 200],
+      desc: '每一頁自選清單最多放幾檔（已經放的不會被刪，只是不能再加）', veil: [], mark: [], block: [] }
   ];
 
   /* ---- 瀏覽次數（admin-v3，2026-10-05，蓋掉 sub-v1 的三個 quota.* 開關）

@@ -87,7 +87,14 @@
 .qcard .qc-go:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .qcard.compact{padding:16px 18px}
 .qcard.compact .qc-go{height:40px;margin-top:14px;font-size:var(--fs-body,14px)}
-@media (max-width:640px){.qcard{padding:20px 18px}.qcard .qc-h{font-size:var(--fs-h3,16px)}}
+/* 手機：卡片吃滿區塊寬（外層左右不再留邊，區塊本身已經離螢幕邊 16px 以上）；用量與倒數放不下就換行，不准撐出卡片 */
+@media (max-width:640px){.qcov{padding:16px 0}.qcard{padding:18px 16px;border-radius:14px}.qcard .qc-h{font-size:var(--fs-h3,16px)}
+  .qcard .qc-meta{flex-wrap:wrap;row-gap:4px}.qcard .qc-go{height:44px}}
+.qcmodal{position:fixed;inset:0;z-index:1450;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:color-mix(in srgb,var(--bg) 62%,transparent);backdrop-filter:blur(2px)}
+.qcmodal[hidden]{display:none}
+.qcmodal .qcard{position:relative;max-height:calc(100vh - 32px);overflow:auto}
+.qcmodal .qc-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:8px;border:0;background:transparent;color:var(--ink-3);font-size:18px;cursor:pointer}
+.qcmodal .qc-x:hover{color:var(--ink);background:var(--panel-3)}
 @media (prefers-reduced-motion:reduce){.qcard .qc-go{transition:none}}`;
     document.head.appendChild(s);
   }
@@ -113,7 +120,7 @@
     const lst = !o.compact && o.items && o.items.length ? `<hr><div class="qc-lh">${esc(o.lh || '')}</div>${list(o.items)}` : '';
     return `<div class="qcard${o.compact ? ' compact' : ''}" data-kind="${quota ? 'quota' : 'lock'}" role="alert">
       <div class="qc-kick">${ICON.lock}<span>${esc(o.kick || '')}</span></div>
-      <h3 class="qc-h">${esc(o.title || '')}</h3>${o.sub ? `<p class="qc-sub">${esc(o.sub)}</p>` : ''}
+      <div class="qc-h" role="heading" aria-level="3">${esc(o.title || '')}</div>${o.sub ? `<p class="qc-sub">${esc(o.sub)}</p>` : ''}
       ${o.compact ? '' : body}${lst}
       <a class="qc-go${o.btnCls ? ' ' + o.btnCls : ''}" href="${esc(o.href || '#pricing')}">${esc(o.btn || '查看方案')} <span aria-hidden="true">→</span></a></div>`;
   }
@@ -273,5 +280,21 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
   }
 
-  window.TwQCard = { html, mount, unmount, place, resetText, nextReset, show, clear, quotaOpts, lockOpts, demo: DEMO, state: () => (Q.cur ? Object.assign({}, Q.cur) : null) };
+  /* 浮在畫面中間的版本（自選清單超過上限這種「按了沒反應」的情況用）：點遮罩、×、Esc 關閉；按鈕照樣連訂閱頁 */
+  function modal(o) {
+    css();
+    let m = document.getElementById('qcModal');
+    if (!m) {
+      m = document.createElement('div'); m.id = 'qcModal'; m.className = 'qcmodal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true');
+      document.body.appendChild(m);
+      m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('.qc-x') || e.target.closest('.qc-go')) m.hidden = true; });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !m.hidden) m.hidden = true; });
+    }
+    m.innerHTML = html(Object.assign({ compact: false }, o)).replace('<div class="qc-kick">', '<button type="button" class="qc-x" aria-label="關閉">×</button><div class="qc-kick">');
+    m.hidden = false;
+    const g = m.querySelector('.qc-go'); if (g) setTimeout(() => g.focus(), 30);
+    return m;
+  }
+
+  window.TwQCard = { html, mount, modal, unmount, place, resetText, nextReset, show, clear, quotaOpts, lockOpts, demo: DEMO, state: () => (Q.cur ? Object.assign({}, Q.cur) : null) };
 })();

@@ -1943,6 +1943,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   /* ★ 2026-10-07 每日額度（docs/quota_plan.md）：範本的 dq ＝整個網站一天能開幾個單位（個股頁一檔、產業鏈剖析圖一張、付費分頁一個；
      同一天同一個單位只算一次）。空白＝不限（Pro 的預設）；Plus 種子是 50。真正扣次在付費資料閘道 data-gw，這裡只是設定。 */
+  const limOpts = (f, val) => { const o = f.opts ? f.opts.slice() : Array.from({ length: f.max + 1 }, (_, i) => i); if (Number.isInteger(val) && !o.includes(val)) { o.push(val); o.sort((a, b) => a - b); } return o; };
   const dqField = (p) => `<label title="同一天同一檔個股、同一張剖析圖、同一個付費分頁只算一次；空白＝不限">每日額度 <input type="number" id="ptEdDq" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${p && Number.isInteger(p.dq) ? p.dq : ''}" aria-label="每日額度（次，空白＝不限）" style="width:6em"> 次</label>`;
   /* 回 null＝不限、整數＝上限、undefined＝格式不對（已經顯示錯誤）*/
   function readDq() {
@@ -2007,7 +2008,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(mOver(), f.id)) : val !== f.def;
       const unsaved = ready && (saved[f.id] !== now[f.id] || (lims && sl[f.id] !== lims[f.id]));
       const ctl = f.kind === 'limit'
-        ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${Array.from({ length: f.max + 1 }, (_, i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i + ' 頁'}</option>`).join('')}</select>`
+        /* 2026-10-07：上限類可以帶 opts（選項清單）與 unit（頁／檔）；最大值＝「不限」（watch.tabs 50、watch.size 200 是硬上限）*/
+        ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${limOpts(f, val).map((i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i === f.max && f.opts ? '不限' : i + ' ' + (f.unit || '頁')}</option>`).join('')}</select>`
         : `<label class="psw"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${val !== false ? 'checked' : ''} ${ready ? '' : 'disabled'}><span></span></label>`;
       /* 瀏覽次數（每日上限）：perm-cards（2026-10-05）改成名稱右側一顆小徽章（∞／N/日），點了才彈出小輸入框 ——
          Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */

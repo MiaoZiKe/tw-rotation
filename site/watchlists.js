@@ -17,7 +17,11 @@
 (function () {
   'use strict';
   const K = 'tw.watchlists', K_OLD = 'tw.watch', K_CUR = 'tw.watchcur', K_CLOUD = 'tw.watchlists.u';
-  const MAX_TABS = 5, MAX_CODES = 50, MAX_NAME = 12;
+  /* 2026-10-07：分頁數／每頁檔數改成跟方案走（features.js 的 watch.tabs／watch.size；免費 1 頁 10 檔、Plus 5／50、Pro 不限）。
+     HARD_*＝「不限」的硬上限（跟 Worker 的 watch-v2 區塊同一組數）：清洗與合併只守硬上限，方案上限只擋「新增」。
+     LEGACY_*＝連不到會員伺服器時的舊值（5 頁／50 檔）：權限拿不到就照以前，不誤鎖。*/
+  const HARD_TABS = 50, HARD_CODES = 200, LEGACY_TABS = 5, LEGACY_CODES = 50, MAX_NAME = 12;
+  const MAX_TABS = HARD_TABS, MAX_CODES = HARD_CODES;
   const CODE_RE = /^[0-9A-Z]{4,6}$/;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const cleanName = (s) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, MAX_NAME);
@@ -64,9 +68,11 @@
     sanitize(local).forEach((lt, i) => {
       if (!lt.codes.length) return;
       let dst = out.find((t) => t.name === lt.name);
-      if (!dst && out.length < MAX_TABS) { dst = { id: out.some((t) => t.id === lt.id) ? newId() : lt.id, name: lt.name, codes: [] }; out.push(dst); }
+      if (!dst && out.length < Math.max(1, capTabs())) { dst = { id: out.some((t) => t.id === lt.id) ? newId() : lt.id, name: lt.name, codes: [] }; out.push(dst); }
       if (!dst) dst = out[Math.min(i, out.length - 1)];
-      lt.codes.forEach((c) => { if (!dst.codes.includes(c) && dst.codes.length < MAX_CODES) dst.codes.push(c); });
+      /* 合併也照方案上限（Worker 會擋「超過上限還變多」的清單）；雲端那頁本來就超過的不刪，只是不再往裡加 */
+      const room = Math.max(dst.codes.length, capCodes());
+      lt.codes.forEach((c) => { if (!dst.codes.includes(c) && dst.codes.length < room) dst.codes.push(c); });
     });
     return out;
   }
@@ -96,6 +102,11 @@
     const A = acct(); if (!A || S.mode !== 'cloud' || !S.dirty) return;
     const r = await A.call('/v1/lists/put', { lists: S.tabs, rev: S.rev });
     if (r && r.ok) { S.rev = r.rev; S.dirty = false; saveCloudCache(); setMsg(''); return; }
+    if (r && r.error === 'watch_limit') {
+      /* Worker 依方案擋下（分頁或檔數超過上限而且比雲端那份還多）：換回雲端那份，跳出升級卡 */
+      if (Array.isArray(r.lists)) { S.tabs = sanitize(r.lists); if (!S.tabs.length) S.tabs = blank(); S.rev = r.rev; }
+      S.dirty = false; saveCloudCache(); paintAll(); emit(); upsell(r.kind === 'tabs' ? 'tabs' : 'size'); return;
+    }
     if (r && r.conflict) {
       /* 另一台裝置先改過：以雲端為準（不硬蓋），告訴使用者。真的同時在兩台改同一份的機會很小，不值得做逐項合併。*/
       S.tabs = sanitize(r.lists); if (!S.tabs.length) S.tabs = blank();
@@ -120,7 +131,7 @@
       if (p && p.ok) {
         S.rev = p.rev; S.dirty = false;
         if (hasGuest) { writeJSON(K, { v: 1, tabs: blank() }); setMsg('這台裝置原本的清單已經合併到你的帳號'); }
-      } else if (p && p.conflict) { S.tabs = sanitize(p.lists); S.rev = p.rev; S.dirty = false; }
+      } else if (p && (p.conflict || p.error === 'watch_limit') && Array.isArray(p.lists)) { S.tabs = sanitize(p.lists); if (!S.tabs.length) S.tabs = blank(); S.rev = p.rev; S.dirty = false; }
       else S.dirty = true;
     }
     saveCloudCache(); paintAll(); emit();
@@ -144,10 +155,37 @@
   // ------------------------------------------------------------------ 操作
   /* ★ 2026-10-02 會員功能權限（DECISIONS #288）：「自選分頁數上限」由管理者依方案設定（預設 5＝跟以前一樣）。
      只擋「新增」，已經建好的頁不刪 —— 降級的人清單不會不見。對外的 MAX_TABS 改成 getter，watchpage.js 的「N／上限 頁」跟著走。*/
-  const capTabs = () => { const P = window.TwPerm; const n = P ? P.limit('watch.tabs', MAX_TABS) : MAX_TABS; return Math.max(0, Math.min(MAX_TABS, n)); };
+  const permOn = () => { const P = window.TwPerm; return !!P && P.state().src !== 'default'; };
+  const capTabs = () => { const P = window.TwPerm; if (!permOn()) return LEGACY_TABS; return Math.max(0, Math.min(HARD_TABS, P.limit('watch.tabs', LEGACY_TABS))); };
+  const capCodes = () => { const P = window.TwPerm; if (!permOn()) return LEGACY_CODES; return Math.max(0, Math.min(HARD_CODES, P.limit('watch.size', LEGACY_CODES))); };
+  /* 超過方案上限：跳出跟「每日額度／需開通」同一款卡片（site/qcard.js 的 modal），按鈕連到訂閱頁的下一個方案。
+     方案資料（每個方案幾頁、每頁幾檔）讀訂閱頁那一份；讀不到用 Plus 5／50、Pro 不限 */
+  function upsell(kind) {
+    const QC = window.TwQCard, TP = window.TwPricing;
+    const n = kind === 'tabs' ? capTabs() : capCodes();
+    if (!QC || !QC.modal) { setMsg(kind === 'tabs' ? `🔒 目前方案最多 ${n} 頁自選清單，要更多頁需升級方案` : `🔒 目前方案每頁最多 ${n} 檔，要放更多需升級方案`); return; }
+    const F = window.TwFeatures, ft = F && F.byId('watch.tabs'), fs = F && F.byId('watch.size');
+    const lim = (p, f, d) => { const v = p && p.feats ? p.feats[f.id] : undefined; return Number.isInteger(v) ? v : d; };
+    let rows = (TP && TP.plans && TP.plans() || []).filter((p) => p.id !== 'guest' && p.id !== 'free')
+      .map((p) => ({ id: p.id, name: p.name, t: ft ? lim(p, ft, ft.def) : 0, c: fs ? lim(p, fs, fs.def) : 0 }));
+    if (!rows.some((r) => r.id === 'plus')) rows.push({ id: 'plus', name: 'Plus', t: 5, c: 50 });
+    if (!rows.some((r) => r.id === 'pro')) rows.push({ id: 'pro', name: 'Pro', t: HARD_TABS, c: HARD_CODES });
+    rows = rows.filter((r) => (kind === 'tabs' ? r.t > n : r.c > n));
+    const txt = (v, max, u) => (v >= max ? '不限' + (u === '頁' ? '分頁' : '檔數') : `${v} ${u}`);
+    const up = rows.find((r) => r.id === 'plus') || rows[0] || { id: 'pro', name: 'Pro' };
+    QC.modal({ kind: 'lock', kick: '自選清單上限',
+      title: kind === 'tabs' ? `目前方案最多 ${n} 頁自選清單` : `這一頁已經放滿 ${n} 檔`,
+      sub: '已經建好的清單不會被刪，升級方案就能再新增。', lh: rows.length ? '升級可以放更多' : '',
+      items: rows.slice(0, 4).map((r) => ({ t: r.name, s: `${txt(r.t, HARD_TABS, '頁')}・${r.c >= HARD_CODES ? '不限檔數' : `每頁 ${r.c} 檔`}` })),
+      btn: `升級 ${up.name}`, href: '#pricing/plan/' + encodeURIComponent(up.id), btnCls: 'wlup' });
+    if (TP && TP.ensure && !TP.plans()) TP.ensure();
+  }
   const API = {
-    get MAX_TABS() { return capTabs(); }, MAX_CODES,
-    capLocked: () => capTabs() < MAX_TABS,
+    get MAX_TABS() { return capTabs(); },
+    get MAX_CODES() { return capCodes(); },
+    /* 被「方案」擋（升級就能多）＝true；連不到會員伺服器時是舊的固定 5 頁，那不是方案擋的 */
+    capLocked: () => permOn() && capTabs() < HARD_TABS,
+    upsell,
     tabs: () => S.tabs.map((t) => ({ id: t.id, name: t.name, codes: t.codes.slice() })),
     cur: () => curTab().id,
     curTab: () => { const t = curTab(); return { id: t.id, name: t.name, codes: t.codes.slice() }; },
@@ -159,6 +197,9 @@
       const t = id ? S.tabs.find((x) => x.id === id) : curTab(); if (!t) return;
       const before = t.codes.length;
       t.codes = sanitize([{ id: 'x', name: 'x', codes }])[0].codes;
+      /* 方案的每頁檔數上限：只擋「變多」（原本就超過的不刪）*/
+      const room = Math.max(before, capCodes());
+      if (t.codes.length > room) { t.codes = t.codes.slice(0, room); upsell('size'); }
       if (t.codes.length > before) track('watch_add'); else if (t.codes.length < before) track('watch_remove');
       commit();
     },
@@ -167,7 +208,7 @@
     add(c, id) {
       c = String(c).toUpperCase(); const t = id ? S.tabs.find((x) => x.id === id) : curTab();
       if (!t || !CODE_RE.test(c) || t.codes.includes(c)) return false;
-      if (t.codes.length >= MAX_CODES) { setMsg(`「${t.name}」已經有 ${MAX_CODES} 檔，放不下了`); return false; }
+      if (t.codes.length >= capCodes()) { if (permOn() && capCodes() < HARD_CODES) upsell('size'); else setMsg(`「${t.name}」已經有 ${capCodes()} 檔，放不下了`); return false; }
       t.codes.unshift(c); track('watch_add'); commit(); return true;
     },
     remove(c, id) {
@@ -178,11 +219,12 @@
     move(c, from, to) {
       const a = S.tabs.find((x) => x.id === from), b = S.tabs.find((x) => x.id === to);
       if (!a || !b || a === b || !a.codes.includes(c)) return false;
-      a.codes = a.codes.filter((x) => x !== c); if (!b.codes.includes(c) && b.codes.length < MAX_CODES) b.codes.unshift(c);
+      if (!b.codes.includes(c) && b.codes.length >= capCodes()) { upsell('size'); return false; }
+      a.codes = a.codes.filter((x) => x !== c); if (!b.codes.includes(c)) b.codes.unshift(c);
       commit(); return true;
     },
     newTab(name) {
-      if (S.tabs.length >= capTabs()) { if (capTabs() < MAX_TABS) setMsg(`🔒 目前方案最多 ${capTabs()} 頁自選清單，要更多頁需開通`); return null; }
+      if (S.tabs.length >= capTabs()) { if (permOn() && capTabs() < HARD_TABS) upsell('tabs'); return null; }
       let n = cleanName(name);
       if (!n) { let i = S.tabs.length + 1; while (S.tabs.some((t) => t.name === '自選 ' + i)) i++; n = '自選 ' + i; }
       const t = { id: newId(), name: n, codes: [] };

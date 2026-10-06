@@ -1689,7 +1689,8 @@ Hub.prototype.fetch = async function (req) {
    ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
    ============================================================================ */
 export const DQ_MAX = 9999;
-const DQ_SEEDS = { plus: ['Plus', 50], pro: ['Pro', null] };
+/* 種子：[名稱, 每日額度, 自選上限]。自選：Plus 5 頁／每頁 50 檔、Pro「不限」＝硬上限 50 頁／200 檔（watch-v2 區塊）*/
+const DQ_SEEDS = { plus: ['Plus', 50, { 'watch.tabs': 5, 'watch.size': 50 }], pro: ['Pro', null, { 'watch.tabs': 50, 'watch.size': 200 }] };
 Hub.prototype.dqInit = function () {
   if (this._dqOk) return;
   this.v4Init();
@@ -1700,8 +1701,17 @@ Hub.prototype.dqInit = function () {
     let n = mx == null ? 0 : mx + 1;
     for (const id of want) {
       if (this.q('SELECT 1 FROM plans WHERE id = ?', id).length) continue;
-      const [name, dq] = DQ_SEEDS[id];
-      this.q("INSERT INTO plans (id, name, feats, builtin, updated, price, period, lims, sort, dq) VALUES (?, ?, '{}', 0, ?, 0, 'month', '{}', ?, ?)", id, name, this.now(), n++, dq);
+      const [name, dq, feats] = DQ_SEEDS[id];
+      this.q("INSERT INTO plans (id, name, feats, builtin, updated, price, period, lims, sort, dq) VALUES (?, ?, ?, 0, ?, 0, 'month', '{}', ?, ?)", id, name, JSON.stringify(feats), this.now(), n++, dq);
+    }
+    /* 自選上限的預設改成免費會員的 1 頁／10 檔（site/features.js 的 def）之後，既有的付費範本（例如「付費會員」）若沒明寫，
+       會從 5 頁掉到 1 頁 —— 種子這一次順手替它們補上舊值 5 頁／50 檔（有明寫的不動）。*/
+    for (const r of this.q("SELECT id, feats FROM plans WHERE builtin = 0 AND id NOT IN ('plus', 'pro')")) {
+      let f = {}; try { f = JSON.parse(r.feats || '{}') || {}; } catch (e) { f = {}; }
+      let ch = false;
+      if (!Number.isInteger(f['watch.tabs'])) { f['watch.tabs'] = 5; ch = true; }
+      if (!Number.isInteger(f['watch.size'])) { f['watch.size'] = 50; ch = true; }
+      if (ch) this.q('UPDATE plans SET feats = ? WHERE id = ?', JSON.stringify(f), r.id);
     }
     this.setKv('plans_seeded_pp', '1');
   }
@@ -1749,3 +1759,72 @@ Hub.prototype.fetch = async function (req) {
   return dqOrigFetch.call(this, req);
 };
 /* ============================================================================ 每日額度區塊結束 */
+
+/* ============================================================================ 自選上限區塊 watch-v2（2026-10-07，docs/quota_plan.md）
+   Andy（10-07）：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」。
+   ① 格式上限放寬成硬上限 50 頁／每頁 200 檔（Pro 的「不限」）—— 原本的 cleanLists 是 5／50。
+   ② /v1/lists/put 依這個人生效的範本檢查 watch.tabs／watch.size（前端擋得了一般人，F12 改得掉；伺服器這關才算數）：
+      · 只擋「變多」：分頁數 > max(上限, 雲端現有頁數) 或某一頁檔數 > max(上限, 雲端那一頁現有檔數) → 403 {error:'watch_limit', kind, limit, lists, rev}
+        —— 已經建好的不刪（降級的人原本 5 頁照樣留著、照樣能改名／刪／搬），只是不能再新增。
+      · 範本沒明寫時的預設＝免費會員：1 頁／10 檔（跟 site/features.js 的 def 同一組數，改一邊要改另一邊）。
+      · 管理者不限（硬上限照守）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const WATCH_HARD_TABS = 50, WATCH_HARD_CODES = 200;
+const WATCH_DEF = { 'watch.tabs': 1, 'watch.size': 10 };
+Hub.prototype.cleanLists = function (lists) {
+  if (!Array.isArray(lists) || lists.length > WATCH_HARD_TABS) return null;
+  const seen = new Set(), out = [];
+  for (const t of lists) {
+    if (!t || typeof t !== 'object') return null;
+    const id = String(t.id || '');
+    if (!/^[a-z0-9]{1,12}$/.test(id) || seen.has(id)) return null;
+    seen.add(id);
+    const name = cleanName(t.name);
+    if (!name) return null;
+    if (!Array.isArray(t.codes) || t.codes.length > WATCH_HARD_CODES) return null;
+    const codes = [];
+    for (const c of t.codes) { if (typeof c !== 'string' || !CODE_RE.test(c)) return null; if (!codes.includes(c)) codes.push(c); }
+    out.push({ id, name, codes });
+  }
+  return out;
+};
+/* 這個人的自選上限：{ tabs, size }（管理者＝硬上限）*/
+Hub.prototype.watchCaps = function (user) {
+  if (this.isAdmin(user)) return { tabs: WATCH_HARD_TABS, size: WATCH_HARD_CODES };
+  const f = this.effective(String(user.email || '').toLowerCase()).feats || {};
+  const g = (k, max) => { const v = f[k]; return Number.isInteger(v) ? Math.max(0, Math.min(max, v)) : v === false ? 0 : WATCH_DEF[k]; };
+  return { tabs: g('watch.tabs', WATCH_HARD_TABS), size: g('watch.size', WATCH_HARD_CODES) };
+};
+const watchOrigListsPut = Hub.prototype.listsPut;
+Hub.prototype.listsPut = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  const lists = this.cleanLists(b.lists);
+  if (!lists) return this.json(req, { error: 'bad_lists' }, 400);
+  const cur = this.q('SELECT data, rev FROM lists WHERE uid = ?', v.user.uid)[0];
+  let old = []; try { old = cur ? JSON.parse(cur.data) || [] : []; } catch (e) { old = []; }
+  const caps = this.watchCaps(v.user);
+  const deny = (kind, limit) => this.json(req, { error: 'watch_limit', kind, limit, lists: old, rev: cur ? cur.rev : 0 }, 403);
+  /* 版本號不對交給原本的流程回 409（先處理衝突，再談上限）*/
+  if (b.rev === (cur ? cur.rev : 0)) {
+    if (lists.length > Math.max(caps.tabs, old.length)) return deny('tabs', caps.tabs);
+    const had = new Map(old.map((t) => [t.id, (t.codes || []).length]));
+    for (const t of lists) if (t.codes.length > Math.max(caps.size, had.get(t.id) || 0)) return deny('size', caps.size);
+  }
+  return watchOrigListsPut.call(this, req, b);
+};
+/* 功能開關的整數值原本只收 0～99（cleanFeats）；每頁檔數的「不限」是 200 → 放寬到 0～9999（其他規則不變：鍵的格式、布林、壞一項整批不收）*/
+Hub.prototype.cleanFeats = function (f) {
+  if (f == null) return {};
+  if (typeof f !== 'object' || Array.isArray(f)) return null;
+  const ent = Object.entries(f);
+  if (ent.length > MAX_FEAT_KEYS) return null;
+  const out = {};
+  for (const [k, v] of ent) {
+    if (!FEAT_RE.test(k)) return null;
+    if (typeof v === 'boolean' || (Number.isInteger(v) && v >= 0 && v <= 9999)) out[k] = v; else return null;
+  }
+  return out;
+};
+/* ============================================================================ 自選上限區塊結束 */

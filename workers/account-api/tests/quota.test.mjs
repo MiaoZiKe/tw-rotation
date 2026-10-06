@@ -68,3 +68,39 @@ test('plans/put 改 dq：只有管理者；null＝不限、整數 0～9999；壞
   assert.equal(me.dq, null);
   assert.equal((await pj(hub, '/v1/perm/me', {})).j.dq, null, '訪客：訪客範本沒設＝不限');
 });
+
+test('自選上限（watch-v2）：免費 1 頁／10 檔、Plus 5 頁／50 檔、Pro 50／200；只擋變多，已經建好的不刪；擋下時回雲端現況', async () => {
+  const { hub } = makeHub({ ...env(), SEED_PLANS: 'plus,pro' });
+  const andy = await login(hub, 'andy@example.com');
+  const mem = await login(hub, 'mem@example.com');
+  const mk = (n, k = 0) => Array.from({ length: n }, (_, i) => ({ id: 't' + i, name: '清單' + i, codes: Array.from({ length: k }, (_, j) => String(1000 + j)) }));
+  const put = (t, lists, rev) => pj(hub, '/v1/lists/put', { t, lists, rev });
+  let r = await put(mem, mk(1, 10), 0);
+  assert.equal(r.s, 200, '免費：1 頁 10 檔可以');
+  r = await put(mem, mk(2, 0), 1);
+  assert.equal(r.s, 403); assert.equal(r.j.error, 'watch_limit'); assert.equal(r.j.kind, 'tabs'); assert.equal(r.j.limit, 1);
+  assert.equal(r.j.lists.length, 1, '回雲端現況（1 頁）');
+  r = await put(mem, mk(1, 11), 1);
+  assert.equal(r.s, 403); assert.equal(r.j.kind, 'size'); assert.equal(r.j.limit, 10);
+  // 升級 Plus：5 頁可以、第 6 頁不行；每頁 50 檔
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'mem@example.com', plan: 'plus', over: {} });
+  r = await put(mem, mk(5, 50), 1);
+  assert.equal(r.s, 200, 'Plus：5 頁、每頁 50 檔');
+  assert.equal((await put(mem, mk(6, 0), 2)).s, 403, 'Plus 第 6 頁');
+  // 降回免費：已經有的 5 頁不刪，可以改名、刪檔，但不能再變多
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'mem@example.com', plan: 'free', over: {} });
+  const five = mk(5, 50); five[0].name = '改名';  five[1].codes = five[1].codes.slice(0, 3);
+  assert.equal((await put(mem, five, 2)).s, 200, '降級後改名、刪檔照樣可以');
+  five[1].codes.push('2330');
+  assert.equal((await put(mem, five, 3)).s, 200, '降級後某頁 3 → 4 檔（還在原本 50 以內）可以');
+  assert.equal((await put(mem, mk(6, 0), 4)).s, 403, '降級後不能變 6 頁');
+  // 範本的整數開關可以存到 200（原本只收 0～99）
+  assert.equal((await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'pro', name: 'Pro', feats: { 'watch.tabs': 50, 'watch.size': 200 } })).s, 200, 'watch.size 200 存得進去');
+  assert.equal((await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'pro', name: 'Pro', feats: { 'watch.size': 10000 } })).s, 400, '超過 9999 拒絕');
+  // Pro：50 頁
+  await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'mem@example.com', plan: 'pro', over: {} });
+  assert.equal((await put(mem, mk(50, 0), 4)).s, 200, 'Pro：50 頁');
+  // 既有的付費範本（種子那次）補上舊值 5 頁／50 檔
+  const paid = (await pj(hub, '/v1/plans/public', {})).j.plans.find((p) => p.id === 'paid');
+  assert.equal(paid.feats['watch.tabs'], 5); assert.equal(paid.feats['watch.size'], 50);
+});
