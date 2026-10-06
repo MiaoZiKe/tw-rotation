@@ -221,6 +221,61 @@
      **這裡不算任何東西** —— 圖上的數字跟 AI 卡同一份，不可能兩邊講不一樣。
      需求／供給矩形沿用上面的 ZonesPrimitive（since 起畫、右邊停在最後一根）。
      每條線從 t0（形成那根）畫到最後一根，t0 在可視範圍左邊就從左緣畫起。 */
+  /* ★ 2026-10-06（Andy：「所有長條圖…都需要 Y 軸微微區分月份及年份」，DECISIONS #337）：K 線的垂直分隔線。
+     lightweight-charts 自己的 vertLines 是「依刻度」畫的、沒辦法分年月，所以用自訂 primitive（畫在最底層、資料線底下）。
+     層級與顏色跟 ECharts 那一邊同一份邏輯（site/timegrid.js）：看得到的期間 ≤10 天畫日線（分時）、≤62 天畫週線、
+     ≤5 年畫月線＋年線、更長只畫年線；週線／月線圖不畫週線／月線（每根都是新的一週就變成柵欄）。
+     每個 pane 掛一個（主圖、成交量、MACD…），host 是 KChart（讀它的 data）。 */
+  class TimeGridPrimitive {
+    constructor(host) { this.host = host; this.drawn = null; this.lastX = []; this._k = null; this.marks = []; this.tms = []; this.step = 1; this.intraday = false; }
+    attached(p) { this._chart = p.chart; this._req = p.requestUpdate; }
+    detached() { this._chart = null; }
+    updateAllViews() {}
+    refresh() { this._k = null; if (this._req) this._req(); }
+    _build() {
+      const d = (this.host && this.host.data) || [];
+      const k = d.length + '|' + (d.length ? d[0].time + '|' + d[d.length - 1].time : '');
+      if (k === this._k) return;
+      this._k = k;
+      const TG = global.TimeGrid; this.marks = []; this.tms = [];
+      if (!TG || d.length < 3) return;
+      const ent = d.map(b => {
+        const t = b.time;
+        if (typeof t === 'number') { const x = new Date(t * 1000); return { y: x.getUTCFullYear(), m: x.getUTCMonth() + 1, d: x.getUTCDate(), hm: String(x.getUTCHours()) + ':' + x.getUTCMinutes(), gran: 'day' }; }
+        if (t && typeof t === 'object') return { y: t.year, m: t.month, d: t.day, hm: null, gran: 'day' };
+        return TG.parse(String(t));
+      });
+      if (ent.some(e => !e)) return;
+      this.intraday = !!ent[0].hm && typeof d[0].time === 'number';
+      this.step = TG.avgStepDays(ent);
+      this.marks = TG.marksFromEntries(ent);
+    }
+    paneViews() { const self = this; return [{ zOrder: () => 'bottom', renderer: () => ({ draw(target) { target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
+      const TG = global.TimeGrid; if (!TG || !self._chart) return;
+      if (mediaSize.width < 200 || mediaSize.height < 70) return;      // 太小的縮圖（四週期小圖）不畫，免得線比資料還多；pane 寬不含右側價格軸，大盤三張小卡約 280～292
+      self._build(); if (!self.marks.length) return;
+      const ts = self._chart.timeScale();
+      const lr = ts.getVisibleLogicalRange(); if (!lr) return;
+      const visDays = Math.max(0.01, (lr.to - lr.from) * self.step);
+      const L = TG.levels(visDays, self.intraday);
+      const lo = Math.floor(lr.from) - 1, hi = Math.ceil(lr.to) + 1;
+      self.drawn = { year: 0, month: 0, week: 0, day: 0 }; self.lastX = [];
+      ctx.save(); ctx.lineWidth = 1;
+      const cols = { year: TG.color('year'), month: TG.color('month'), week: TG.color('week'), day: TG.color('day') };
+      for (const m of self.marks) {
+        if (m.i < lo || m.i > hi || !L[m.kind]) continue;
+        const a = ts.logicalToCoordinate(m.i - 1), b = ts.logicalToCoordinate(m.i);
+        if (a === null || b === null) continue;
+        const x = Math.round((a + b) / 2) + 0.5;
+        if (x < 0 || x > mediaSize.width) continue;
+        self.drawn[m.kind]++; self.lastX.push([m.kind, x]);
+        ctx.strokeStyle = cols[m.kind];
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, mediaSize.height); ctx.stroke();
+      }
+      ctx.restore();
+    }); } }) }]; }
+  }
+
   class SmcLinesPrimitive {
     constructor() { this.lines = []; this.note = ''; this.lastTime = null; this.placed = []; }
     attached(p) { this._series = p.series; this._chart = p.chart; this._req = p.requestUpdate; }
@@ -435,6 +490,7 @@
       this.chart = LWC.createChart(el, baseOptions(this.opts));
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
+      this.tgrid = []; { const g0 = new TimeGridPrimitive(this); this.candle.attachPrimitive(g0); this.tgrid.push(g0); this._tgPanes = { 0: g0 }; }   // 時間軸分隔線（DECISIONS #337）
       this.divPrice = new DivPrimitive(); this.candle.attachPrimitive(this.divPrice);
       this.smcLines = new SmcLinesPrimitive(); this.candle.attachPrimitive(this.smcLines);
       // 價位線標籤要避開：左上角圖例、需求／供給區已經印好的標籤（同一個 pane，區域層先畫，所以 placed 已經是這一幀的）
@@ -957,6 +1013,18 @@
       this.divPane = null;
       for (const s of this.overlays) this.chart.removeSeries(s); this.overlays = [];
       for (const k in this.panes) { for (const s of this.panes[k]) this.chart.removeSeries(s); } this.panes = {};
+      if (this._tgPanes) this._tgPanes = { 0: this._tgPanes[0] };      // 副圖的分隔線 primitive 跟著 series 一起被移除了，下次建 series 再掛
+    }
+    /* 驗收用：主圖的時間軸分隔線——全部標記各層幾個、這一幀實際畫了幾條（含 x 座標） */
+    tgridInfo() {
+      const g = this.tgrid && this.tgrid[0]; if (!g) return null;
+      g._build();
+      const all = { year: 0, month: 0, week: 0, day: 0 }; g.marks.forEach(m => { all[m.kind]++; });
+      return { all, drawn: g.drawn, x: g.lastX, panes: Object.keys(this._tgPanes || {}).length };
+    }
+    _tgAttach(s, pane) {      // 副圖（成交量／KD／MACD／RSI）每個 pane 掛一次時間軸分隔線
+      if (!pane || !this._tgPanes || this._tgPanes[pane]) return;
+      const g = new TimeGridPrimitive(this); s.attachPrimitive(g); this._tgPanes[pane] = g;
     }
     _line(vals, color, pane, width, opts) {
       const s = this.chart.addSeries(LWC.LineSeries, Object.assign({ color, lineWidth: width || 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }, opts || {}), pane || 0);
@@ -965,12 +1033,14 @@
          value:null 則是 Lightweight Charts 正式版不驗、畫圖時內部丟「Value is null」的那種資料。
          用 Number.isFinite 一起擋掉 NaN／Infinity（MA 在稀疏序列、除以 0 的指標都可能產生）。*/
       s.setData(this.data.map((d, i) => Number.isFinite(vals[i]) ? { time: d.time, value: vals[i] } : { time: d.time }));
+      this._tgAttach(s, pane);
       return s;
     }
     _hist(vals, colorFn, pane) {
       const s = this.chart.addSeries(LWC.HistogramSeries, { priceLineVisible: false, lastValueVisible: false, priceFormat: pane === 1 && this.cfg && this.cfg.vol ? { type: 'custom', minMove: 1, formatter: (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張') } : { type: 'price', precision: 2, minMove: 0.01 } }, pane);
       // 同 _line：缺值給 whitespace，NaN／Infinity 一起擋（以前這裡連 NaN 都沒擋）
       s.setData(this.data.map((d, i) => Number.isFinite(vals[i]) ? { time: d.time, value: vals[i], color: colorFn(i) } : { time: d.time }));
+      this._tgAttach(s, pane);
       return s;
     }
     // cfg = {ma:[5,20,60], boll:{n:20,k:2}, vol:true, kd:{n:9,m1:3,m2:3}, macd:{f:12,s:26,g:9}, rsi:{n:14}}

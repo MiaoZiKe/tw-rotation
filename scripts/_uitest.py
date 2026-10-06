@@ -19367,7 +19367,7 @@ def t_rev_pe_0928(pg, base, code):
         click(pg, '#revView button[data-v="m"]', 600)
         click(pg, '#revWin button[data-v="12"]', 900)
         c2 = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('revBar'));
-          const o = i.getOption(); const vs = o.series.slice(2).flatMap(s => s.data).filter(v => v != null);
+          const o = i.getOption(); const vs = o.series.slice(2).filter(s => String(s.id || '').indexOf('__tgrid') !== 0).flatMap(s => s.data).filter(v => v != null);
           return { max: o.yAxis[1].max, min: o.yAxis[1].min, ext: Math.max(...vs.map(Math.abs)), sub: document.getElementById('revSub').textContent }; }""")
         ok(f"★【{tag}】{clip_code} 右軸截斷：軸上界比極端值小、讀數寫「右軸已截斷」",
            c2["max"] is not None and c2["max"] < c2["ext"] and "截斷" in c2["sub"], c2)
@@ -23657,7 +23657,206 @@ def t_topicons_1006(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 900})   # 還原寬度：後面的段落（明亮主題等）預設在桌機寬度
 
 
+# ===================================================================== 時間軸垂直分隔線（2026-10-06，site/timegrid.js，DECISIONS #337）
+# Andy：「所有長條圖 類似圖一這種都需要 Y 軸微微區分月份及年份」——所有橫軸是時間的圖，背景加很淡的垂直分隔線。
+# 驗的是「畫面上真的有線」：不只讀 option（有補系列），還把圖畫成圖片、在年線／月線的 x 位置取像素，
+# 比旁邊的底色亮（深色）或暗（淺色）多少。判準：
+#   ① 年線與月線都量得到（差 >= 6／255）② 年線比月線明顯（>= 1.4 倍）③ 期間 > 5 年時月線消失、年線還在
+#   ④ 深色、淺色兩個主題各量一次 ⑤ 月資料（每根一個月）只畫年線、不是每根一條 ⑥ 週 K 沒有週線、月 K 沒有月線
+#   ⑦ 不是日期的類別軸（1 月…12 月）、小圖、呼叫端自己畫了格間線的（splitLine.keep）都不補
+TG_PIX = """async ([id, xs]) => {
+  const dom = document.getElementById(id), inst = dom && echarts.getInstanceByDom(dom); if (!inst) return null;
+  const url = inst.getDataURL({ pixelRatio: 1, backgroundColor: '#000000' });
+  const img = new Image(); img.src = url; await img.decode();
+  const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+  const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+  const rect = inst.getModel().getComponent('grid').coordinateSystem.getRect();
+  const lum = (x, y) => { const d = cx.getImageData(Math.max(0, Math.min(cv.width - 1, x)), y, 1, 1).data; return d[0] + d[1] + d[2]; };
+  const med = (a) => { a = a.slice().sort((p, q) => p - q); return a[Math.floor(a.length / 2)]; };
+  return xs.map(t => { const px0 = Math.floor(inst.convertToPixel({ xAxisIndex: 0 }, t)); let best = 0;
+    for (const px of [px0 - 1, px0, px0 + 1]) { const ds = [];      // 線畫在 round(x)+.5，floor 與 round 差 1 格，三格都量取最大
+      for (let k = 1; k <= 9; k++) { const y = Math.round(rect.y + rect.height * k / 10);
+        ds.push(Math.abs(lum(px, y) - (lum(px - 4, y) + lum(px + 4, y)) / 2) / 3); }
+      best = Math.max(best, med(ds)); }
+    return +best.toFixed(1); });
+}"""
+TG_MARKS = """(id) => { const dom = document.getElementById(id), inst = dom && echarts.getInstanceByDom(dom); if (!inst) return null;
+  const o = inst.getOptionRaw(), hs = (o.series || []).filter(s => String(s.id || '').indexOf('__tgrid') === 0);
+  if (!hs.length) return { n: 0 };
+  const d = hs[0].data || [];
+  return { n: d.length, year: d.filter(r => r[1] === 4).map(r => r[0]), month: d.filter(r => r[1] === 3).map(r => r[0]), week: d.filter(r => r[1] === 2).length,
+           z: hs[0].z, names: (o.series || []).filter(s => s.name).length, legend: ((o.legend || [])[0] || {}).data || null }; }"""
+TG_SYN = """() => { const A = window.App, out = {}; const mk = (h) => { const d = document.createElement('div'); d.style.cssText = 'width:700px;height:' + h + 'px;position:fixed;left:0;top:0;opacity:0;pointer-events:none'; document.body.appendChild(d); return d; };
+  const cnt = (el) => { const i = echarts.getInstanceByDom(el); return ((i.getOptionRaw().series || []).filter(s => String(s.id || '').indexOf('__tgrid') === 0)[0] || { data: [] }).data.map(r => r[1]); };
+  const dates = []; for (let i = 0; i < 420; i++) { const t = new Date(2025, 0, 1 + i); dates.push(t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0')); }
+  const base = (x, extra) => Object.assign({ xAxis: Object.assign({ type: 'category', data: x }, (extra || {}).x), yAxis: { type: 'value' }, series: [{ type: 'line', data: x.map((_, i) => i) }] }, (extra || {}).o);
+  const e1 = mk(300); A.chart(e1, base(dates)); out.daily = cnt(e1);
+  const months = []; for (let y = 2022; y <= 2026; y++) for (let m = 1; m <= 12; m++) months.push(y + '-' + String(m).padStart(2, '0'));
+  const e2 = mk(300); A.chart(e2, base(months)); out.monthly = cnt(e2);
+  const e3 = mk(300); A.chart(e3, base(['1 月', '2 月', '3 月', '4 月', '5 月', '6 月'])); out.names = cnt(e3);
+  const e4 = mk(100); A.chart(e4, base(dates)); out.small = cnt(e4);
+  const e5 = mk(300); A.chart(e5, base(dates, { x: { splitLine: { show: true, keep: true } } })); out.keep = cnt(e5);
+  const e6 = mk(300); A.chart(e6, base(dates, { o: { timeGrid: false } })); out.optout = cnt(e6);
+  const e7 = mk(300); A.chart(e7, { xAxis: { type: 'value' }, yAxis: { type: 'category', data: ['a', 'b'] }, series: [{ type: 'bar', data: [1, 2] }] }); out.horiz = (echarts.getInstanceByDom(e7).getOption().series || []).length;
+  const e8 = mk(300); A.chart(e8, base(['09:00', '09:01', '09:02', '09:03'])); out.hhmm = cnt(e8);
+  const e9 = mk(300); A.chart(e9, Object.assign(base(dates), { legend: { top: 0 }, series: [{ name: '甲', type: 'line', data: dates.map((_, i) => i) }, { name: '乙', type: 'line', data: dates.map((_, i) => 2 * i) }] })); const o9 = echarts.getInstanceByDom(e9).getOption(); out.legend = (o9.legend[0].data || []).slice();
+  [e1, e2, e3, e4, e5, e6, e7, e8, e9].forEach(e => { echarts.getInstanceByDom(e).dispose(); e.remove(); });
+  return out; }"""
+
+
+def t_timegrid_1006(pg, base):
+    import re as _re
+    tag = "時間軸分隔線1006"
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+    def theme(t):
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", t)
+
+    def etf_open(cat, per):
+        pg.goto(base + "#etf")
+        pg.reload()
+        wait_until(pg, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 15000)
+        pg.click(f"#etfCatSeg button[data-v='{cat}']")
+        wait_until(pg, f"() => document.querySelector('#v-etf').dataset.cat === '{cat}' && !!document.querySelector('#etfRetLine') && document.querySelector('#etfRetLine').dataset.n !== undefined", 6000)
+        pg.select_option("#etfRng select", per)
+        pg.wait_for_timeout(900)
+
+    # ---------------------------------------------------------------- ① ETF 報酬比較（time 軸）深色 3 年
+    theme("dark")
+    etf_open("槓桿反向", "3y")
+    ok(f"[{tag}] 深色主題", pg.evaluate("() => (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark'"))
+    m = pg.evaluate(TG_MARKS, "etfRetLine")
+    ok(f"★ [{tag}] ETF 報酬比較 3 年：圖上補了分隔線系列，年線 2～4 條、月線 30～40 條", bool(m) and m.get("n", 0) > 0 and 2 <= len(m["year"]) <= 4 and 30 <= len(m["month"]) <= 40, m)
+    ok(f"[{tag}] 分隔線畫在資料線底下（z=1 小於折線 z=2）、而且不多出圖例項目", bool(m) and m.get("z") == 1 and (m.get("legend") is None or len(m["legend"]) == m["names"]), m)
+    ok(f"★ [{tag}] 補的系列對 getOption().series 隱形（既有讀法的 series.length／map／slice 不會多出一個）",
+       pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('etfRetLine')); return i.getOption().series.length === i.getOptionRaw().series.length - 1 && i.getOption().series.every(s => String(s.id || '').indexOf('__tgrid') !== 0); }"))
+    if m and m.get("n"):
+        pm = pg.evaluate(TG_PIX, ["etfRetLine", [m["year"][0], m["month"][1]]])
+        ok(f"★ [{tag}] 深色：年線、月線在畫面上都量得到（像素差 >= 6）", pm and pm[0] >= 6 and pm[1] >= 6, pm)
+        ok(f"★ [{tag}] 深色：年線比月線明顯（>= 1.4 倍）", pm and pm[0] >= pm[1] * 1.4, pm)
+    # ---------------------------------------------------------------- ② 5 年：月線仍畫（<= 5 年）
+    etf_open("槓桿反向", "5y")
+    m5 = pg.evaluate(TG_MARKS, "etfRetLine")
+    ok(f"[{tag}] ETF 5 年：年線 >= 4 條、月線 >= 48 條", bool(m5) and len(m5.get("year", [])) >= 4 and len(m5.get("month", [])) >= 48, m5)
+    # ---------------------------------------------------------------- ③ 超過 5 年：只留年線（挑一個資料夠長的分類）
+    found = None
+    cats = pg.evaluate("() => [...document.querySelectorAll('#etfCatSeg button')].map(b => b.dataset.v)")
+    for cat in cats:
+        try:
+            etf_open(cat, "10y")
+        except Exception:  # noqa: BLE001
+            continue
+        mm = pg.evaluate(TG_MARKS, "etfRetLine")
+        if mm and mm.get("year") and len(mm["year"]) >= 6 and len(mm["month"]) > 60:
+            found = (cat, mm)
+            break
+    if ok(f"[{tag}] 找得到一個期間 > 5 年的 ETF 分類（前置條件）", found is not None, cats):
+        cat, mm = found
+        px = pg.evaluate(TG_PIX, ["etfRetLine", [mm["year"][2], mm["month"][5]]])
+        ok(f"★ [{tag}] 期間 > 5 年：年線量得到、月線消失（月線像素差 < 4，年線 >= 6）", px and px[0] >= 6 and px[1] < 4, (cat, px, len(mm["year"])))
+    # ---------------------------------------------------------------- ④ 淺色主題
+    theme("light")
+    etf_open("槓桿反向", "3y")
+    ok(f"[{tag}] 淺色主題真的切過去", pg.evaluate("() => document.documentElement.getAttribute('data-theme') === 'light'"))
+    ml = pg.evaluate(TG_MARKS, "etfRetLine")
+    if ml and ml.get("n"):
+        pl = pg.evaluate(TG_PIX, ["etfRetLine", [ml["year"][0], ml["month"][1]]])
+        ok(f"★ [{tag}] 淺色：年線、月線在畫面上都量得到（像素差 >= 6）", pl and pl[0] >= 6 and pl[1] >= 6, pl)
+        ok(f"★ [{tag}] 淺色：年線比月線明顯（>= 1.4 倍）", pl and pl[0] >= pl[1] * 1.4, pl)
+    else:
+        ok(f"★ [{tag}] 淺色 ETF 圖有分隔線", False, ml)
+    # 兩個主題的透明度層級：年 > 月 > 週，且都很淡；顏色只用 --ink-3 的灰藍／暖灰（沒有 up／down／分類色）
+    col = pg.evaluate("""() => { const T = window.TimeGrid, out = {};
+      ['light', 'dark'].forEach(th => { document.documentElement.setAttribute('data-theme', th);
+        out[th] = ['year', 'month', 'week'].map(k => T.color(k)); });
+      document.documentElement.setAttribute('data-theme', 'light'); return out; }""")
+
+    def _alpha(c):
+        return float(_re.search(r",([0-9.]+)\)$", c).group(1))
+    ok(f"★ [{tag}] 兩個主題的透明度：年 > 月 > 週，且都 <= 0.4（極淡、不搶資料線）",
+       all(_alpha(v[0]) > _alpha(v[1]) > _alpha(v[2]) and _alpha(v[0]) <= 0.4 for v in col.values()), col)
+    # ---------------------------------------------------------------- ⑤ 個股頁：營收（月資料）、獲利（季資料）、本益比河流、法人
+    theme("dark")
+    pg.goto(base + "#stock/2330")
+    pg.reload()
+    wait_until(pg, "() => !!document.querySelector('#stockTabs button[data-t=\"revenue\"]')", 15000)
+    pg.wait_for_timeout(800)
+    click(pg, '#stockTabs button[data-t="revenue"]', 1500)
+    click(pg, '#revView button[data-v="m"]', 700)
+    click(pg, '#revWin button[data-v="36"]', 900)
+    mr = pg.evaluate(TG_MARKS, "revBar")
+    ok(f"★ [{tag}] 營收月走勢（每根＝一個月）：有年線、沒有月線（月線會變成每根一條的柵欄）", bool(mr) and len(mr.get("year", [])) >= 2 and len(mr.get("month", [])) == 0, mr)
+    click(pg, '#stockTabs button[data-t="profit"]', 1500)
+    mp = pg.evaluate(TG_MARKS, "peChart")
+    ok(f"★ [{tag}] 本益比河流（日資料、填色面積）：有月線、分隔線畫在色帶上面（z=3）", bool(mp) and len(mp.get("month", [])) >= 3 and mp.get("z") == 3, mp)
+    mq = pg.evaluate(TG_MARKS, "profitChart")
+    ok(f"★ [{tag}] 獲利（季資料）：只有年線、沒有月線", bool(mq) and len(mq.get("year", [])) >= 5 and len(mq.get("month", [])) == 0, mq)
+    click(pg, '#stockTabs button[data-t="inst"]', 1500)
+    mi = pg.evaluate(TG_MARKS, "instChart")
+    ok(f"★ [{tag}] 法人買賣超（日資料）：月線與年線都有", bool(mi) and len(mi.get("month", [])) >= 2, mi)
+    if mi and mi.get("month"):
+        px = pg.evaluate(TG_PIX, ["instChart", [mi["month"][0]]])
+        ok(f"★ [{tag}] 法人柱狀圖：月線在柱子之間量得到（像素差 >= 4）", px and px[0] >= 4, px)
+    click(pg, '#stockTabs button[data-t="margin"]', 1500)
+    ok(f"[{tag}] 融資融券（日資料）也有分隔線", (pg.evaluate(TG_MARKS, "marginChart") or {}).get("n", 0) > 0)
+    # ---------------------------------------------------------------- ⑥ 個股 K 線（lightweight-charts 自訂 primitive）
+    pg.goto(base + "#stock/2330")
+    pg.reload()
+    wait_until(pg, "() => !!document.querySelector('#tfSeg button[data-tf=\"1d\"]')", 15000)
+    pg.wait_for_timeout(1000)
+    TGI = "() => { const d = window.Industry._dbg(); return d && d.tgrid; }"
+    click(pg, '#tfSeg button[data-tf="1d"]', 1600)
+    kd = pg.evaluate(TGI)
+    ok(f"★ [{tag}] 日 K：標記有月線也有年線，而且這一幀真的畫出月線（drawn.month >= 1）",
+       bool(kd) and kd["all"]["month"] >= 20 and kd["all"]["year"] >= 1 and (kd["drawn"] or {}).get("month", 0) >= 1, kd)
+    click(pg, '#tfSeg button[data-tf="1w"]', 1600)
+    kw = pg.evaluate(TGI)
+    ok(f"★ [{tag}] 週 K：有月線、年線，沒有週線（每根都是新的一週＝柵欄）", bool(kw) and kw["all"]["month"] > 0 and kw["all"]["week"] == 0, kw)
+    click(pg, '#tfSeg button[data-tf="1M"]', 1600)
+    km = pg.evaluate(TGI)
+    ok(f"★ [{tag}] 月 K：只有年線，沒有月線、週線", bool(km) and km["all"]["year"] > 0 and km["all"]["month"] == 0 and km["all"]["week"] == 0, km)
+    # 縮放：把日 K 縮到很近 → 月線自動換成週線（<= 62 天）
+    click(pg, '#tfSeg button[data-tf="1d"]', 1600)
+    box = pg.evaluate("() => { const r = document.getElementById('lwc').getBoundingClientRect(); return { x: r.x + r.width * 0.5, y: r.y + r.height * 0.4 }; }")
+    pg.mouse.move(box["x"], box["y"])
+    for _ in range(14):
+        pg.mouse.wheel(0, -120)
+        pg.wait_for_timeout(80)
+    pg.wait_for_timeout(700)
+    kz = pg.evaluate(TGI)
+    ok(f"★ [{tag}] 日 K 縮放到 <= 62 天：畫出週線（拖曳縮放時層級會跟著換）", bool(kz) and (kz["drawn"] or {}).get("week", 0) >= 1, kz)
+    # ---------------------------------------------------------------- ⑦ 大盤三張圖（K 線模式）
+    pg.goto(base + "#overview")
+    pg.reload()
+    wait_until(pg, "() => !!window.Market3 && !!document.querySelector('#m3Mode button[data-m=\"k\"]')", 15000)
+    pg.wait_for_timeout(800)
+    click(pg, "#m3Mode button[data-m='k']", 1500)
+    pg.evaluate("() => window.Market3.forceTf('D')")
+    wait_until(pg, "() => { const k = window.Market3.state.kcharts.TSE; return !!k && k.data.length > 30; }", 8000)
+    pg.evaluate("() => document.getElementById('m3c-TSE').scrollIntoView({ block: 'center' })")
+    wait_until(pg, "() => ['TSE', 'OTC', 'FUT'].every(i => { const k = window.Market3.state.kcharts[i]; const t = k && k.tgridInfo && k.tgridInfo(); return t && t.drawn; })", 6000)
+    pg.wait_for_timeout(500)
+    mt =pg.evaluate("() => { const o = {}; ['TSE', 'OTC', 'FUT'].forEach(i => { const k = window.Market3.state.kcharts[i]; o[i] = k && k.tgridInfo ? k.tgridInfo() : null; }); return o; }")
+    ok(f"★ [{tag}] 大盤三張圖（日 K）：加權、櫃買、台指期都有月線標記並畫出", all(v and v["all"]["month"] >= 10 and (v["drawn"] or {}).get("month", 0) >= 1 for v in mt.values()),
+       {k: (v and v["all"], v and v["drawn"]) for k, v in mt.items()})
+    # ---------------------------------------------------------------- ⑧ 規則本身（純函式）＋「不補」的情況
+    r = pg.evaluate("""() => { const T = window.TimeGrid, L = (d, i) => T.levels(d, i);
+      return { d5: L(5, false), d30: L(30, false), d200: L(200, false), d1500: L(1500, false), d3000: L(3000, false), i30: L(30, true), i70: L(70, true) }; }""")
+    ok(f"[{tag}] 層級規則：<=10 天日線、<=62 天週線、<=5 年月線、>5 年只剩年線；分時資料 <=62 天用日線",
+       r["d5"]["day"] and r["d5"]["week"] and not r["d30"]["day"] and r["d30"]["week"] and r["d30"]["month"]
+       and not r["d200"]["week"] and r["d200"]["month"] and r["d1500"]["month"] and not r["d3000"]["month"] and r["d3000"]["year"]
+       and r["i30"]["day"] and not r["i70"]["day"], r)
+    syn = pg.evaluate(TG_SYN)
+    ok(f"★ [{tag}] 日期類別軸（日資料 420 天）：年線＋月線＋週線都有標記", 4 in syn["daily"] and 3 in syn["daily"] and 2 in syn["daily"], {k: len(v) for k, v in syn.items() if isinstance(v, list)})
+    ok(f"★ [{tag}] 月資料（YYYY-MM）：只有年線、沒有月線", 4 in syn["monthly"] and 3 not in syn["monthly"] and 2 not in syn["monthly"], syn["monthly"][:8])
+    ok(f"★ [{tag}] 不是日期的類別軸（1 月…6 月）、時分（09:00）、小圖（高 100）、splitLine.keep、option.timeGrid=false、水平長條：全部不補",
+       syn["names"] == [] and syn["hhmm"] == [] and syn["small"] == [] and syn["keep"] == [] and syn["optout"] == [] and syn["horiz"] == 1, syn)
+    ok(f"[{tag}] 圖例沒寫 data 時，補的系列不進圖例（圖例只有「甲」「乙」）", syn["legend"] == ["甲", "乙"], syn["legend"])
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch (e) {} }")
+
+
 SECTIONS = {
+    "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
     "頁首圖示鈕1006":      lambda pg, b, base, code: t_topicons_1006(pg, base),
     # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
     "選股策略1005":        lambda pg, b, base, code: t_explore_1005(pg, base),

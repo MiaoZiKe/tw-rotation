@@ -7553,6 +7553,7 @@
     drawKey: kchart && kchart.draw ? kchart.draw.key : null,
     shapes: kchart && kchart.draw ? kchart.draw.shapes.length : -1,
     hasChart: !!kchart, w: drawW, fill: drawFill,
+    tgrid: kchart && kchart.tgridInfo ? kchart.tgridInfo() : null,      // 驗收用（DECISIONS #337）：K 線時間軸分隔線
     // 驗收用：圖上最後一根的日期與收盤、各面板目前高度
     lastBar: kchart && kchart.bars && kchart.bars.length ? String(kchart.bars[kchart.bars.length - 1][0]) : null,
     lastClose: kchart && kchart.bars && kchart.bars.length ? kchart.bars[kchart.bars.length - 1][4] : null,

@@ -705,6 +705,17 @@
     if (!c._soft) {                      // 圓滑化：包住這個實例的 setOption（之後的局部更新也吃得到，見 softenOption）
       const raw = c.setOption.bind(c);
       c.setOption = (o2, ...rest) => raw(softenOption(o2, c), ...rest);
+      /* ★ 2026-10-06（DECISIONS #337）：時間軸分隔線是補在 series 最後面的 custom 系列（id `__tgrid*`）。
+         圖自己與驗收讀 getOption().series 時**看不到它**（不然「series.length」「series.map」「slice(2)」這類既有讀法全部會多一個怪東西）；
+         要看原樣用 getOptionRaw()。 */
+      const rawGet = c.getOption.bind(c);
+      c.getOption = (...a) => {
+        const o = rawGet(...a);
+        if (o && Array.isArray(o.series) && o.series.some(s => s && typeof s.id === 'string' && s.id.indexOf('__tgrid') === 0))
+          o.series = o.series.filter(s => !(s && typeof s.id === 'string' && s.id.indexOf('__tgrid') === 0));
+        return o;
+      };
+      c.getOptionRaw = rawGet;
       c._soft = true;
     }
     if (window.T4 && window.T4.normalize) option = window.T4.normalize(option);   // 設計 v4 §4：只留水平格線、圖例不壓繪圖區（theme4.js）
@@ -721,6 +732,10 @@
       const zero = (x) => (x && typeof x === 'object' && x.animationDuration != null ? Object.assign({}, x, { animationDuration: 0 }) : x);
       if (Array.isArray(ser)) full.series = ser.map(zero); else if (ser) full.series = zero(ser);
     }
+    /* ★ 2026-10-06（Andy：「所有長條圖…都需要 Y 軸微微區分月份及年份」，DECISIONS #337）：
+       橫軸是時間（time 軸、或類別是日期字串）的圖，統一補一組很淡的垂直分隔線（年線較明顯、月線極淡）。
+       不逐張手改；細節與分層規則在 site/timegrid.js。圖自己不要的：option.timeGrid = false 或 xAxis.timeGrid = false。*/
+    if (window.TimeGrid) { full = window.TimeGrid.applyToOption(full, el); delete full.timeGrid; }
     c.setOption(full, opts && opts.notMerge !== false);
     // 容器在 display:none 或還沒排版時 init 出來會是 0×0，畫完就是一片空白而且不會自己好。
     // 盯著容器尺寸，一變就 resize，這樣切分頁、展開說明、視窗縮放都不會留下空白圖。
