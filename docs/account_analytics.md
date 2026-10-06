@@ -137,6 +137,27 @@ Worker 存在 `ev2(day, page, comp, detail, n)`，只有「每天的次數」，
 查詢：`/v1/admin/stats` 回 `e2`（期間內依 page/comp/detail 加總，可帶 `page` 只看一頁）。
 會員造訪：登入狀態的 `ev:session_login` 另記 `visits(uid, day, n)`，`/v1/admin/perm/list` 回 `seen`、`visits`（近 30 天）、`expires`。
 
+### 2026-10-05 流量觀測「分頁統計」新增的事件鍵（只記次數，不記身分；前端 `site/account.js`）
+Worker 的頁面白名單（`VIEWS`）沒有 etf／explore／support／events，所以這幾頁一律記在頁面 `other` 底下、元件名帶前綴，管理區（`site/admin.js` 的 `PAGES`／`classify`）再歸回該頁。**Worker 不必改**；若之後要在 Worker 端直接分頁面，再把這四個加進 `VIEWS`。
+
+| 元件鍵 | 頁面 | 細項 | 點位 |
+|---|---|---|---|
+| `sub.<子頁>` | flow／heatmap／industry／market | 空 | 換到子頁（rotation／sankey／inst、industry／theme、chains／chain／group、市場明細頁籤） |
+| `etf.cat` | other | 類別名 | ETF 分類按鈕 `#etfCatSeg` |
+| `explore.topic` | other | 題目 | （預留，選股策略題目點選；示範資料已涵蓋，前端點位待 explore.js 補）|
+| `watch_tab_new` | watch | 空 | 自選「＋」新增分頁 |
+| `watch.chart`、`watch.kline` | watch | 空 | 自選：點走勢圖、展開圖內切 K 線週期 |
+| `support.fab`／`support.tab`／`support.faq`／`support.send`／`support.mail` | other | 分頁名／問題前 20 字 | 客服浮動鈕與面板 |
+| `events.link` | other | 空 | 事件抽屜點事件連結（`events_drawer` 本來就有，管理區用它的「來源頁」當細項）|
+| `ind` | stock | 指標名稱 | 技術指標面板勾上 |
+| `draw.tool` | stock | 工具名稱 | 畫線工具列 |
+
+### 管理區仍需 Worker 才能完整呈現的欄位（前端已先做好，預覽用示範資料；正式站目前顯示估算或「尚未提供」）
+- **開站身分**（登入／訪客的甜甜圈拆「註冊會員＋各付費方案」）：Worker 的 `ev:session_login` 沒有分會員等級。目前前端用 `plans/get`＋`perm/list` 的名單人數比例估算（標「估算」）。要精準：心跳 `session_login` 改記 `session_tier:<plan id>`，或 `/v1/admin/stats` 回 `tiers: [{id, name, n, login}]`。
+- **使用時段**（使用者分頁的每小時直條）：需要 `/v1/admin/stats` 回 `hourly: [24 個數字]`（期間內每天每小時的頁面瀏覽加總，台北時間）。沒有就顯示說明文字。
+- **即時**（期間選單）：需要 `hours: [24 個數字]`（今天每小時瀏覽）；沒有時只畫 1 根（今天）。
+- 範本刪除保護已在 `workers/account-api/worker.js` 檔尾（`plans/put` del → 409 `has_members`）；上正式站要先部署 Worker 再上前端。
+
 ### 圖表選型（流量觀測頁的「？ 圖表怎麼選」）
 - 預設橫向排序長條：類別多、要比大小，長度最準。
 - 圓餅／甜甜圈：只在 ≤ 5 類且加總 100%（登入／訪客開啟比例）。
@@ -237,3 +258,9 @@ Andy：流量觀測「即時」要看今天 0–24 時每小時、「使用者�
 4. 舊資料相容：切換之前記在 `other` 底下、元件名帶前綴（`etf.cat`、`explore.topic`、`support.*`、`events.link`）的細項**照舊**回在 `e2`（頁面仍是 `other`），
    Worker 不搬、不合併 —— 管理區的 `classify` 兩種寫法都要認（`other`＋前綴、新頁面），加總起來才是完整期間。`pv:other` 以前的次數無法拆回各頁。
    `claude/style-guide` 分支在本文件加的「流量觀測分頁統計」那節寫「Worker 不必改、一律記在 other」—— 合併後以本節為準：Worker 已收這七頁，前端改用新頁面鍵。
+
+### stats 起訖日（2026-10-06）
+`/v1/admin/stats` 請求多收 `from`、`to`（台北日期 `YYYY-MM-DD`，含頭含尾）；兩個都不帶＝照舊只看 `days`。
+`to` 沒帶＝今天、晚於今天＝今天；`from` 沒帶＝`to` 往前 30 天（含 `to` 共 30 天）；日期格式不對、`from` 晚於 `to`、`from` 比今天早超過 400 天 → 400 `{error:'bad_range'}`。
+回應形狀不變：`from`／`to` 是實際起訖，`rows`、`e2`、`hourly`、`hstat.period` 依起訖重算；`hours`／`hstat.day` 永遠是今天（即時用）；`users` 不受影響。程式在 `worker.js` 檔尾「起訖日區塊」，測試在 `tests/hourly.test.mjs`。
+

@@ -370,7 +370,7 @@
   function paintList() {
     const ul = document.getElementById('wlList'); if (!ul) return;
     const t = curTab(), A = window.App, by = new Map((stocks || []).map((r) => [r.code, r]));
-    if (!t.codes.length) { ul.innerHTML = `<li class="wlempty" style="display:block;cursor:default">「${esc(t.name)}」還沒有股票。上面搜尋框打代號或名稱加入，或在個股頁按 ☆。</li>`; return; }
+    if (!t.codes.length) { ul.innerHTML = `<li class="wlempty" style="display:block;cursor:default">「${esc(t.name)}」還沒有股票</li>`; return; }
     const others = S.tabs.filter((x) => x.id !== t.id);
     ul.innerHTML = t.codes.map((c) => {
       const r = by.get(c) || { code: c, name: c };
@@ -470,7 +470,7 @@
     k.innerHTML = `<div class="pkhd"><span>把 ${esc(nm ? nm.name : '')} <span class="num">${esc(K2.code)}</span> 加進…</span><button type="button" class="wlx" id="pkClose" aria-label="關閉">✕</button></div>`
       + S.tabs.map((t) => `<label><input type="checkbox" data-pk="${esc(t.id)}" ${t.codes.includes(K2.code) ? 'checked' : ''}>${esc(t.name)}<small>${t.codes.length} 檔</small></label>`).join('')
       + (S.tabs.length < capTabs() ? `<div class="pknew"><input id="pkName" maxlength="${MAX_NAME}" placeholder="新清單名稱" aria-label="新清單名稱"><button type="button" id="pkAdd">＋ 新增並加入</button></div>` : '')
-      + `<div class="pkfoot">勾選＝放進那一頁，取消勾選＝從那一頁拿掉。${S.mode === 'cloud' ? '已同步到你的帳號。' : ''}</div>`;
+      + (S.mode === 'cloud' ? '<div class="pkfoot">已同步到你的帳號</div>' : '');
     if (!stocks) loadStocks().then(() => { if (!k.hidden) paintPick(); });
   }
   function closePick() { const k = document.getElementById('wlPick'); if (k) k.hidden = true; }
@@ -486,7 +486,7 @@
        個股頁停著不動也每秒跑約 37 輪（連帶 icons.js 的 scan／fitAll 每幀強制排版）。*/
     const t = on ? '★' : '☆'; if (b.textContent !== t) b.textContent = t;
     b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
-    b.title = on ? '已在自選清單（點一下選要放哪幾頁）' : '加入自選清單'; b.setAttribute('aria-label', b.title);
+    b.title = on ? '已在自選清單' : '加入自選清單'; b.setAttribute('aria-label', b.title);
   }
   function mountStar() {
     const h = document.querySelector('#skIdent h2'), c = stockCode();

@@ -1249,3 +1249,60 @@ Hub.prototype.cleanup = function () {
   this.q('DELETE FROM hstat WHERE day < ?', d.toISOString().slice(0, 10));
 };
 /* ============================================================================ hourly 區塊結束 */
+
+/* =====================================================================
+
+/* ============================================================================
+   範本刪除保護（2026-10-05，Andy：「還有有效會員的付費範本不能刪」）
+   plans/put 帶 del:true 時：這個範本若還有「有效會員」（perm.plan 指向它、而且沒到期：expires 為空或 0 或晚於現在）→ 409 {error:'has_members', n, emails}
+   不刪、不動任何資料；只剩已到期的人或 0 人才照原本流程刪（用它的人退回免費會員、個別微調保留）。
+   只在這個檔尾加區塊（prototype 包裝），不改前面的函式。
+   ============================================================================ */
+const delGuardOrig = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  if (b && b.del === true && typeof b.id === 'string' && PLAN_RE.test(b.id)) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const cur = this.plan(b.id);
+    if (cur && !cur.builtin) {
+      const now = this.now();
+      const act = this.q('SELECT email FROM perm WHERE plan = ? AND (expires IS NULL OR expires = 0 OR expires > ?) ORDER BY email', b.id, now);
+      if (act.length) return this.json(req, { error: 'has_members', n: act.length, emails: act.slice(0, 50).map((r) => r.email) }, 409);
+    }
+  }
+  return await delGuardOrig.call(this, req, b);
+};
+/* ============================================================================ 範本刪除保護區塊結束 */
+
+/* ============================================================================
+   /v1/admin/stats 起訖日（2026-10-06，Andy：「起始日期～結束日期」要讓分頁統計也跟著結束日）
+   純新增：請求多收 `from`、`to`（台北日期 YYYY-MM-DD，含頭含尾）；兩個都沒帶＝完全照舊（只看 days）。
+     · to 沒帶＝今天；to 晚於今天＝當成今天；from 沒帶＝to 往前 30 天（含 to 共 30 天）
+     · 日期格式不對、from 晚於 to、from 比今天早超過 400 天 → 400 { error:'bad_range' }（不默默修正）
+     · 回應形狀不變：from／to 變成實際起訖；rows、e2（依起訖重算）、hourly 與 hstat.period（依起訖重算）。
+       hours／hstat.day 永遠是「今天」（即時用），不受起訖影響。users 不受影響。
+   只在這個檔尾加區塊（prototype 包裝），不改前面的函式。
+   ============================================================================ */
+const rngOrigStats = Hub.prototype.adminStats;
+Hub.prototype.adminStats = async function (req, b) {
+  const has = (k) => b && b[k] !== undefined && b[k] !== null;
+  if (!has('from') && !has('to')) return await rngOrigStats.call(this, req, b);
+  if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+  const today = tpeDay(this.now());
+  const okDay = (s) => { if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; const t = Date.parse(s + 'T00:00:00Z'); return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === s; };
+  const dayN = (s) => Date.parse(s + 'T00:00:00Z') / 86400000;
+  let to = has('to') ? b.to : today;
+  if (!okDay(to) || (has('from') && !okDay(b.from))) return this.json(req, { error: 'bad_range' }, 400);
+  if (to > today) to = today;
+  const from = has('from') ? b.from : new Date(Date.parse(to + 'T00:00:00Z') - 29 * 86400000).toISOString().slice(0, 10);
+  if (from > to || dayN(today) - dayN(from) + 1 > 400) return this.json(req, { error: 'bad_range' }, 400);
+  const res = await rngOrigStats.call(this, req, { ...b, days: dayN(today) - dayN(from) + 1, page: b.page });
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.from = from; j.to = to;
+  j.rows = j.rows.filter((r) => r.day >= from && r.day <= to);
+  const pg = VIEWS.includes(b.page) ? b.page : null;
+  j.e2 = this.q(`SELECT page, comp, detail, SUM(n) AS n FROM ev2 WHERE day >= ? AND day <= ?${pg ? ' AND page = ?' : ''} GROUP BY page, comp, detail ORDER BY n DESC LIMIT 3000`, ...(pg ? [from, to, pg] : [from, to]));
+  if (j.hstat) { const per = this.hrSeries(from, to); j.hourly = per.pv.slice(); j.hstat.period = { from, to, ...per }; }
+  return this.json(req, j);
+};
+/* ============================================================================ 起訖日區塊結束 */

@@ -215,7 +215,7 @@
     const a = A(), u = a && a.on() ? a.user() : null;
     if (!u || !u.admin) { el.innerHTML = '<div class="card"><h2>管理頁</h2><p class="muted">這一頁只有管理者看得到' + (u ? '' : '，請先登入') + '。</p></div>'; return; }
     const [j, pj] = await Promise.all([call('/v1/admin/notices/list', {}), call('/v1/admin/plans/get', {})]);
-    if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）。Worker 可能還沒更新成有這支 API 的版本。</p></div>'; return; }
+    if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）</p></div>'; return; }
     AS.list = j.notices || []; AS.plans = (pj && pj.plans) || [];
     paintAdmin(el, j.now || Date.now());
   }

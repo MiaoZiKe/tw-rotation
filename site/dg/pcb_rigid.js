@@ -488,8 +488,7 @@
       <text class="cap" x="16" y="${Y4 + 706}">示意圖，非實物比例｜各層厚度比例為示意：圖上畫 10 層銅（4 片 core ＋ 5 片 prepreg），</text>
       <text class="cap" x="16" y="${Y4 + 724}">代表實際 20～50 層以上。銅遠薄於介電（1 oz 銅 ≒ 35 µm，介電是數十～百餘 µm 等級）；</text>
       <text class="cap" x="16" y="${Y4 + 742}">蝕刻出來的線路剖面實際略呈梯形，這裡畫成矩形是為了可讀性。</text>
-      <text class="cap" x="16" y="${Y4 + 760}">點零件篩到的是「供應鏈環節」，不是整個族群 —— 兩份名單由 supply_chain.yaml 維護。</text>
-      <text class="cap" x="16" y="${Y4 + 778}">每一條事實的來源與信心度見 docs/diagram_specs/pcb_stackup.md。</text>`)}
+      `)}
     </svg>`;
   }
 
