@@ -17016,15 +17016,17 @@ def t_mobile_v3(b, base, code):
         m.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); m.wait_for_timeout(3800)
         N = """() => { const l = document.querySelector('#prodDiagram .mnumlayer'); const bs = [...document.querySelectorAll('#prodDiagram .mnum')];
             const P = bs.map(b => { const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; });
-            let ov = 0; for (let a = 0; a < P.length; a++) for (let c = a + 1; c < P.length; c++) if (Math.hypot(P[a][0] - P[c][0], P[a][1] - P[c][1]) < 28) ov++;
-            const h = document.getElementById('prodDiagram');
+            const h = document.getElementById('prodDiagram'); const l = h && h.querySelector('.mnumlayer');
+            const MINW = l && l.classList.contains('msm') ? 20 : 28;   // 2026-10-06：整張模式（畫布 < 500px）鈕 20px、最小間距 22
+            let ov = 0; for (let a = 0; a < P.length; a++) for (let c = a + 1; c < P.length; c++) if (Math.hypot(P[a][0] - P[c][0], P[a][1] - P[c][1]) < MINW) ov++;
             return { body: getComputedStyle(document.getElementById('dgBody') || document.body).display,
                      cards: [...document.querySelectorAll('#prodDiagram .dgc')].filter(e => e.offsetParent).length,
                      n: bs.length, ov, minW: P.length ? Math.min(...P.map(p => p[2])) : 0,
-                     sw: h ? h.scrollWidth : 0, cw: h ? h.clientWidth : 0 }; }"""
+                     sw: h ? h.scrollWidth : 0, cw: h ? h.clientWidth : 0, msm: !!(l && l.classList.contains('msm')), texthit: l ? +l.dataset.texthit : -1 }; }"""
         n0 = m.evaluate(N)
         ok(f"{T} #11 產業鏈：剖析圖預設展開、可見字卡 0 張", n0["body"] != "none" and n0["cards"] == 0, n0)
-        ok(f"{T} #11 編號 ≥ 1、兩兩距離 ≥ 28（重疊 0 對）、每顆寬 ≥ 28", n0["n"] >= 1 and n0["ov"] == 0 and n0["minW"] >= 28, n0)
+        # 2026-10-06 文字重疊普查（CEO 核准）：整張模式鈕 28→20px（28px 在 0.42 倍的剖面上比零件還大），而且不准壓到圖上的字
+        ok(f"{T} #11 編號 ≥ 1、整張模式鈕 18～22px、兩兩不重疊、不壓字", n0["n"] >= 1 and n0["ov"] == 0 and n0["msm"] and 18 <= n0["minW"] <= 22 and n0["texthit"] == 0, n0)
         m.evaluate("() => { const e = document.getElementById('prodDiagram'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }")
         m.wait_for_timeout(500)
         m.tap('#prodDiagram .mnum[data-no="03"]'); m.wait_for_timeout(500)
@@ -17544,6 +17546,27 @@ def t_overlap1006(b, base):
         ov = [o for o in pg.evaluate(_P.TEXT_OVERLAP_ALL_JS, 2) if o[0].startswith(head)]
         ok(f"[重疊1006] #{route}@{w}「{head}」零交疊（前置量測 {n}）", bool(n) and not ov, ov[:4])
         pg.close()
+    # CEO 核准的根治：手機（390）剖析圖「整張」模式編號鈕 20px、不互疊、不壓圖上的字、整顆在畫布裡
+    for route in ("industry/semiconductor", "industry/ai_server/dg", "industry/ai_server/dg/ic_substrate"):
+        m = b.new_page(viewport={"width": 390, "height": 900}, is_mobile=True, has_touch=True)
+        m.add_init_script("try{localStorage.removeItem('tw.m3.dgzoom')}catch(e){}")
+        m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(3500)
+        r = m.evaluate("""() => { const h = document.getElementById('prodDiagram'); const l = h && h.querySelector('.mnumlayer');
+            const s = h && (h.querySelector('.dgcanvas svg') || h.querySelector('svg.dg')); if (!l || !s) return null; const sr = s.getBoundingClientRect();
+            const bs = [...h.querySelectorAll('.mnum')].map(b => b.getBoundingClientRect());
+            const T = [...s.querySelectorAll('text')].filter(t => !t.closest('.anc') && t.textContent.trim()).map(t => t.getBoundingClientRect()).filter(r => r.width > 1);
+            let hit = 0, out = 0, ov = 0;
+            bs.forEach((r, i) => { T.forEach(t => { const x = Math.min(r.right, t.right) - Math.max(r.left, t.left), y = Math.min(r.bottom, t.bottom) - Math.max(r.top, t.top); if (x > 0 && y > 0 && x * y > 2) hit++; });
+              if (r.left < sr.left - 1 || r.right > sr.right + 1 || r.top < sr.top - 1 || r.bottom > sr.bottom + 1) out++;
+              bs.slice(i + 1).forEach(q => { if (Math.hypot(r.x - q.x, r.y - q.y) < 20) ov++; }); });
+            return { n: bs.length, w: [...new Set(bs.map(r => Math.round(r.width)))], hit, out, ov }; }""")
+        ok(f"[重疊1006] 手機 #{route} 整張模式編號鈕：18～22px、不互疊、不壓字、不出畫布", bool(r) and r["n"] > 0 and all(18 <= x <= 22 for x in r["w"]) and r["hit"] == 0 and r["out"] == 0 and r["ov"] == 0, r)
+        # 真的按「放大」：鈕回到 28px（原寸畫布上 28px 不會比零件大）
+        m.evaluate("() => { const b = document.querySelector('.mdgbar .mdgzoom button[data-z=\"big\"]'); if (b) b.click(); }"); m.wait_for_timeout(900)
+        wb = m.evaluate("() => [...new Set([...document.querySelectorAll('#prodDiagram .mnum')].map(b => Math.round(b.getBoundingClientRect().width)))]")
+        ok(f"[重疊1006] 手機 #{route} 按「放大」後編號鈕回到 28px", wb == [28], wb)
+        m.evaluate("() => { try { localStorage.removeItem('tw.m3.dgzoom') } catch (e) {} }")
+        m.close()
 
 
 def t_chips_basic0926(pg, base, code):
