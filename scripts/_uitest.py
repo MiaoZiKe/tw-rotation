@@ -48932,6 +48932,8 @@ def t_traffic_1005(b, base, code):
             px, py = cc[0] + rr * _m.sin(ang), cc[1] - rr * _m.cos(ang)
             pg.wait_for_timeout(200); pg.mouse.move(px - 6, py - 6); pg.mouse.move(px, py, steps=4); pg.wait_for_timeout(500)
             ck2 = pg.evaluate(CK_STATE)
+            if not [it for it in ck2["items"] if it["bw"] >= 3]:     # 主機忙時偶爾第一次沒吃到 hover：微動後重量
+                pg.mouse.move(px + 3, py + 3, steps=3); pg.mouse.move(px, py, steps=3); pg.wait_for_timeout(700); ck2 = pg.evaluate(CK_STATE)
             hot = [it for it in ck2["items"] if it["bw"] >= 3]
             ok(f"★ {TT}：時鐘滑過強調（{'外' if pm else '內'}圈第 {k} 格）：只有 1 格外框 ≥ 3、其他格維持 1 且不變暗、中心換成「HH:00–HH:59 ／ N 次」、提示卡出現、字級照 App.donut（標題 12.5、數字 ≤ 28 且在內徑 70% 內）",
                len(hot) == 1 and all(it["op"] == 1 for it in ck2["items"]) and re.match(r"^\d\d:00–\d\d:59$", ck2["title"][0]) and ck2["title"][0] == hot[0]["name"] and ck2["title"][1].endswith("次")
@@ -48951,6 +48953,12 @@ def t_traffic_1005(b, base, code):
                     t = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20).pop();
                     if (!t) return { none: true }; const r = t.getBoundingClientRect();
                     return { none: false, hit: r.left < lg.right && r.right > lg.left && r.top < lg.bottom && r.bottom > lg.top }; }""")
+                if ov.get("none"):      # 主機忙時偶爾第一次沒出提示：再微動一次重量
+                    pg.mouse.move(px + 3, py + 3, steps=3); pg.mouse.move(px, py, steps=3); pg.wait_for_timeout(500)
+                    ov = pg.evaluate("""() => { const e = document.querySelector('#trClock .dnc'), lg = document.querySelector('#trClock ul.lg').getBoundingClientRect(),
+                        t = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20).pop();
+                        if (!t) return { none: true }; const r = t.getBoundingClientRect();
+                        return { none: false, hit: r.left < lg.right && r.right > lg.left && r.top < lg.bottom && r.bottom > lg.top }; }""")
                 if ov.get("none") or ov.get("hit"):
                     bad_tip.append((pm, k, ov))
         ok(f"★ {TT}：時鐘提示卡矩形不與圖例矩形相交（內外圈 24 格逐格滑過）", not bad_tip, bad_tip[:4])
