@@ -7298,9 +7298,12 @@ def t_new_clock(pg, base):
     ok("按了「怎麼看」說明真的展開（不是連說明都被砍掉）", len(note) > 300, len(note))
     ok("說明有講圓心是什麼（A4-4）", "圓心" in note, note[:60])
     # ★ 2026-09-24（Andy：「說明內容需要在簡短方便閱讀」）：說明改成條列短句，改前 30 多行 → 改後 10 行。
-    #   改驗「讀法與用法都還在」：兩圈虛線是什麼、每一段該做什麼（布局／找買點／停利）、篩選在哪。
+    #   改驗「讀法與用法都還在」：兩圈虛線是什麼、每一段代表什麼、篩選在哪。
+    # ★ 2026-10-06（Andy「好言論改中性」，#333）：「每一段該做什麼（布局／找買點／停利）」是操作建議，改成驗四段都用
+    #   RRG 兩個座標（相對強度、動能）描述 —— 舊斷言要的那三個詞現在反過來是「中性用語1006」段的禁用字。
     ok("說明有講兩圈虛線是什麼（A4-4）", "虛線" in note and "偏離" in note, note[:120])
-    ok("說明有寫「所以我該怎麼用」：每一段該做什麼（A4-4）", all(k in note for k in ("布局", "買點", "停利")), note[:200])
+    ok("說明有寫每一段代表什麼：四段都用相對強度／動能描述、沒有操作建議（A4-4，#333）",
+       note.count("相對強度") >= 3 and "動能" in note and not any(k in note for k in ("布局", "買點", "停利", "抄底")), note[:200])
     ok("說明有講篩選在哪（上面兩個下拉）", "下拉" in note and "篩" in note, note[:300])
     ok("說明是短的（條列、≤ 700 字）", len(note) <= 700, len(note))
 
@@ -23717,6 +23720,8 @@ SECTIONS = {
     "免責小字1006":        lambda pg, b, base, code: t_disclaimer_1006(b, base, code),
     # ★ 2026-10-06 Andy（圈了「昨天（盤後收盤）資料日期 2026-10-05」）：「這類資訊一律拿掉」（DECISIONS #329，docs/date_chip_audit_1006.md）
     "日期膠囊拿掉1006":    lambda pg, b, base, code: t_date_chips_1006(b, base, code),
+    # ★ 2026-10-06 Andy：「好言論改中性」—— 資金輪動象限卡、總覽資金輪盤、今日候選、個股 AI 分析、選股策略的評語不給操作建議（DECISIONS #333，⚠ 一律 --workers 1）
+    "中性用語1006":        lambda pg, b, base, code: t_neutral_1006(b, base, code),
     # ★ 2026-10-03 Andy 兩件（DECISIONS #306，⚠ 一律 --workers 1）：題材產品剖析圖縮到原尺寸（不再被放大 1.37 倍）、
     #   供應鏈關聯圖每個環節加細框（膠囊／卡片在框內、連線停在框邊）
     "剖析圖縮小與環節外框1003": lambda pg, b, base, code: t_dg_tidy_1003(b, base),
@@ -25669,7 +25674,7 @@ def t_stock_ai_0926(pg, base, code):
             continue
         ok(f"{tag} 總覽 AI 卡標題寫「AI 分析」、緊接「規則式自動判讀，非投資建議」",
            "AI 分析" in ov["title"] and "規則式自動判讀" in ov["warn"] and "非投資建議" in ov["warn"], (ov["title"], ov["warn"]))
-        ok(f"{tag} 總覽 AI 卡的結論列（狀態＋一句原因）看得到", ov["lineVis"] and ov["stance"] in ("觀望", "可留意", "偏空") and len(ov["line"]) > len(ov["stance"]) + 3, ov["line"])
+        ok(f"{tag} 總覽 AI 卡的結論列（狀態＋一句原因）看得到", ov["lineVis"] and ov["stance"] in ("條件未齊", "條件成立", "偏空") and len(ov["line"]) > len(ov["stance"]) + 3, ov["line"])
         # ★ 2026-10-04（Andy：「技術已經有了，為何還多一個技術面訊號」「需要的是 技術面、籌碼面、基本面、消息面」）
         _nm = lambda t: (re.match(r"(技術面訊號|技術面|籌碼面|基本面|消息面)", t) or [None, None])[1]
         ok(f"★ {tag} 四個面向依序是 技術面｜籌碼面｜基本面｜消息面，每個附判讀（K 線卡那一份 DOM）",
@@ -25698,9 +25703,9 @@ def t_stock_ai_0926(pg, base, code):
         ok(f"★ {tag} 技術面有 1 小時／4 小時／日線／週線四行", st["tfs"] == ["1 小時", "4 小時", "日線", "週線"], st["tfs"])
         ok(f"★ {tag} 技術面沒有月線（含支撐壓力區）", "月線" not in st["tech"], st["tech"][:300])
         ok(f"{tag} 技術面保留綜合原因與支撐／壓力區", "綜合" in st["tech"] and "支撐／壓力區" in st["tech"], st["tech"][-200:])
-        if st["stance"] == "觀望":
+        if st["stance"] == "條件未齊":     # 2026-10-06（#333）舊字樣「觀望」改中性
             joined = "；".join(st["why"])
-            ok(f"★ {tag} 觀望：列出哪幾條條件沒成立、而且帶數字", len(st["why"]) >= 2 and "條中" in joined and "未成立" in joined
+            ok(f"★ {tag} 條件未齊：列出哪幾條條件沒成立、而且帶數字", len(st["why"]) >= 2 and "條中" in joined and "未成立" in joined
                and any(ch_.isdigit() for ch_ in joined), st["why"])
         for k, nm in (("fund", "基本面"), ("news", "消息面")):
             ok(f"{tag} {nm}有依據條列（或明確寫資料缺）", st[k + "N"] >= 1 or "資料缺" in st[k], st[k][:200])
@@ -43676,6 +43681,162 @@ def t_kpi_footer_0926(pg, b, base):
 
 
 
+# ===================================================================== 中性用語1006
+# Andy 2026-10-06 11:10：「好言論改中性」。公開網站上的評語不能讀起來像買賣建議（DECISIONS #333，
+# 對照表 docs/neutral_copy_1006.md）。這段真的去點：資金輪動的四顆象限卡（每點一顆，面板文字真的換、
+# 而且是描述 RRG 座標的句子）、總覽小輪盤的族群點（說明框）、各張「?」說明、市場明細今日候選、
+# 個股 AI 卡四個面向（逐一點）與指標分頁的技術分析卡、選股策略的「本益比在自身歷史低檔」卡，
+# 每一處都掃動作建議與價值判斷用字。tests/test_neutral_copy.py 用同一張清單掃 pipeline 產出的文字。
+# ⚠ 只掃評語所在的容器，不掃整頁：站名層級的「四問」動線（③ 何時進場／④ 別進的理由）、法遵頁的免責句
+#   （「不是建議的買進價、停損價或賣出價」）、本益比河流圖的歷史分位區名（低估…觀望…警示）是判斷過保留的灰色地帶，
+#   見對照表最後一節。
+NEUTRAL_BANNED = ("買點", "賣點", "進場", "出場", "可追", "該跑", "加碼", "減碼", "布局", "佈局", "抄底",
+                  "逢低", "便宜", "好機會", "找買", "追高", "追進", "觀望", "可留意", "不要碰", "不要接",
+                  "承接", "抬轎", "停利", "該賣", "別急", "獲利了結", "短打", "划算", "出不掉", "沒人氣",
+                  "容易休息", "冷門股", "值得")
+# 讀容器的「全部文字」：innerText 只看得到展開的那一面，textContent 連藏著的面向一起讀；title 屬性也算（滑上去看得到）
+# 新聞標題（.ovnews／.ainews 的清單）是第三方原文、不是本站評語，掃之前拿掉（媒體標題本來就會寫「減碼」「加碼」）。
+NEU_JS = """(sels) => { const out = {}; for (const s of sels) { const es = [...document.querySelectorAll(s)].map(e => {
+      const c = e.cloneNode(true); c.querySelectorAll('.ovnews, .ainews').forEach(x => x.remove()); return c; });
+    out[s] = es.map(e => (e.textContent || '') + ' ' + [e, ...e.querySelectorAll('[title],[aria-label]')]
+      .map(x => (x.getAttribute('title') || '') + ' ' + (x.getAttribute('aria-label') || '')).join(' ')).join(' ').replace(/\\s+/g, ' ').trim(); }
+  return out; }"""
+
+
+def _neu_hits(t: str) -> list[str]:
+    return [w for w in NEUTRAL_BANNED if w in (t or "")]
+
+
+def t_neutral_1006(b, base, code):
+    T = "[中性用語1006]"
+    ctx = b.new_context(viewport={"width": 1440, "height": 950})
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        # ① 資金流向・資金輪動：四顆象限卡逐一點 → 面板出現、文字真的換、句子是 RRG 座標描述、沒有操作建議
+        pg.goto(f"{base}#flow/rotation", wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#flowRotCard .rotquads .rq').length >= 4", 15000); pg.wait_for_timeout(1200)
+        want = {"improving": "相對強度低於大盤、動能高於大盤", "leading": "相對強度與動能都高於大盤",
+                "weakening": "相對強度仍高、動能轉弱", "lagging": "相對強度與動能都低於大盤"}
+        prev = None
+        for k, phrase in want.items():
+            sel = f'#flowRotCard .rotquads .rq[data-k="{k}"]'
+            if not ok(f"{T} 資金輪動有「{k}」象限卡", count(pg, sel) == 1, count(pg, sel)):
+                continue
+            click(pg, sel, 700)
+            p = pg.evaluate("() => { const b = document.getElementById('stagePanel'); return b && !b.hidden ? { k: b.dataset.k, t: b.innerText.replace(/\\s+/g, ' ') } : null; }")
+            ok(f"★ {T} 點「{k}」象限卡 → 面板打開、就是這一段", bool(p) and p["k"] == k, p)
+            if p:
+                ok(f"★ {T} 「{k}」面板的描述是中性的 RRG 座標句（{phrase}）", phrase in p["t"], p["t"][:160])
+                ok(f"★ {T} 「{k}」面板沒有操作建議／價值判斷用字", not _neu_hits(p["t"]), _neu_hits(p["t"]))
+                if prev is not None:
+                    changed(f"{T} 換點「{k}」→ 面板文字真的換了", prev, p["t"])
+                prev = p["t"]
+        click(pg, '#flowRotCard .rotquads .rq[data-k="lagging"]', 500)   # 再點一次同一顆＝收起
+        ok(f"{T} 再點一次同一顆象限卡 → 面板收起", pg.evaluate("() => document.getElementById('stagePanel').hidden"))
+        d = pg.evaluate(NEU_JS, ["#flowRotCard .rotquads", "#flowRotDisc"])
+        for s, t in d.items():
+            ok(f"★ {T} 資金輪動 {s}（含 title）沒有操作建議用字", t and not _neu_hits(t), (_neu_hits(t), t[:120]))
+        for key in ("rot",):
+            t = how_text(pg, key)
+            ok(f"★ {T} 資金輪動「?」說明展開、而且四段都用相對強度／動能描述", "相對強度" in t and "動能" in t, t[:200])
+            ok(f"★ {T} 資金輪動「?」說明沒有操作建議用字", not _neu_hits(t), _neu_hits(t))
+        # 集中度：title 與「?」不再寫「冷門股不容易動／主流容易休息」
+        flow_sub(pg, "inst")
+        if count(pg, "#concState"):
+            t = pg.evaluate("() => { const e = document.getElementById('concState'); return (e.textContent || '') + ' ' + (e.title || ''); }")
+            ok(f"★ {T} 集中度讀數（含 title）沒有預測式評語", not _neu_hits(t), t)
+        if count(pg, '.howbtn[data-how="conc"]'):
+            t = how_text(pg, "conc")
+            ok(f"★ {T} 集中度「?」說明沒有預測式評語", t and not _neu_hits(t), (_neu_hits(t), t[:160]))
+
+        # ② 總覽「資金輪盤」：點一顆族群點 → 說明框；「?」說明；免責 title
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        rp = pg.evaluate("""() => { const e = document.getElementById('rotClockMini'), c = e && echarts.getInstanceByDom(e); if (!c) return null;
+            e.scrollIntoView({block: 'center'});
+            const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && (s.data || []).some(d => d && d.row && d.row.gid));
+            if (si < 0) return null; const d = o.series[si].data.find(d => d && d.row && d.row.gid);
+            const p = c.convertToPixel({seriesIndex: si}, d.value); const r = e.getBoundingClientRect();
+            return {x: r.left + p[0], y: r.top + p[1], gid: d.row.gid}; }""")
+        if ok(f"{T} 算得出總覽小輪盤上一顆族群點的位置", bool(rp), rp):
+            pg.wait_for_timeout(400)
+            rp = pg.evaluate("""(gid) => { const e = document.getElementById('rotClockMini'), c = echarts.getInstanceByDom(e);
+                const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && (s.data || []).some(d => d && d.row && d.row.gid === gid));
+                const d = o.series[si].data.find(d => d && d.row && d.row.gid === gid);
+                const p = c.convertToPixel({seriesIndex: si}, d.value); const r = e.getBoundingClientRect();
+                return {x: r.left + p[0], y: r.top + p[1], gid}; }""", rp["gid"])
+            # 高負載下輪盤還在動畫，一次點可能落空：最多點三次（每次重算位置），真人也會再點一下
+            OP = "() => { const b = document.getElementById('ovRotPop'); return b && !b.hidden ? { gid: b.dataset.gid, t: b.innerText.replace(/\\s+/g, ' ') } : null; }"
+            op = None
+            for _ in range(3):
+                pg.mouse.click(rp["x"], rp["y"]); pg.wait_for_timeout(900)
+                op = pg.evaluate(OP)
+                if op:
+                    break
+                pg.wait_for_timeout(800)
+            ok(f"★ {T} 點總覽小輪盤的族群點 → 說明框打開、是那一族", bool(op) and op["gid"] == rp["gid"], op)
+            if op:
+                ok(f"★ {T} 總覽說明框沒有操作建議用字", not _neu_hits(op["t"]), (_neu_hits(op["t"]), op["t"][:120]))
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        d = pg.evaluate(NEU_JS, ["#ovRotHead", "#rotClockMini"])
+        for s, t in d.items():
+            ok(f"★ {T} 總覽 {s}（含 title）沒有操作建議用字", not _neu_hits(t), (_neu_hits(t), t[:120]))
+        if count(pg, '.howbtn[data-how="rotm"]'):
+            t = how_text(pg, "rotm")
+            ok(f"★ {T} 總覽資金輪盤「?」說明用相對強度／動能描述、沒有操作建議", "動能" in t and not _neu_hits(t), (_neu_hits(t), t[:160]))
+
+        # ③ 市場明細「今日候選」：真的點分頁 → 標題、名單、判定欄、「?」說明、免責全文
+        pg.goto(f"{base}#market/updown", wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#mktSeg2 button').length >= 3", 10000); pg.wait_for_timeout(800)
+        click(pg, '#mktSeg2 button[data-k="cand"]', 1800)
+        d = pg.evaluate(NEU_JS, ["#mktTitle", "#mktBody", "#v-market .disc-line"])
+        ok(f"{T} 今日候選名單有內容", len(d.get("#mktBody", "")) > 50, len(d.get("#mktBody", "")))
+        for s, t in d.items():
+            ok(f"★ {T} 今日候選 {s}（含 title）沒有操作建議用字", not _neu_hits(t), (_neu_hits(t), t[:160]))
+        if count(pg, '.howbtn[data-how="mkt"]'):
+            t = how_text(pg, "mkt")
+            ok(f"★ {T} 今日候選「?」說明寫 A／B 是型態條件、沒有操作建議", "型態條件" in t and not _neu_hits(t), (_neu_hits(t), t[:160]))
+
+        # ④ 個股 AI 分析：四個面向逐一點（每點一面，顯示的內容真的換），整張卡含藏著的面向一起掃
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle")
+        wait_until(pg, "() => !!document.getElementById('ovAiCard')", 15000); pg.wait_for_timeout(1500)
+        prev = None
+        for k in ("tech", "chip", "fund", "news"):
+            sel = f'#ovAiCard .ovtag[data-facet="{k}"]'
+            if count(pg, sel) == 0:
+                continue
+            # 用元素自己的 click()：合併後頁首圖示鈕／浮層偶爾蓋住膠囊，滑鼠點會逾時（點擊本身不是這段要驗的）
+            pg.eval_on_selector(sel, "b => { b.scrollIntoView({block: 'center'}); b.click(); }"); pg.wait_for_timeout(600)
+            cur = pg.evaluate("""(k) => { const f = document.getElementById('ovFacets'), p = document.getElementById('ovF-' + k); if (!f || !p) return null;
+                const c = p.cloneNode(true); c.querySelectorAll('.ovnews').forEach(x => x.remove());
+                return { cur: f.dataset.cur, t: c.textContent.replace(/\\s+/g, ' ').trim() }; }""", k)
+            ok(f"{T} AI 卡點「{k}」→ 切到那一面", bool(cur) and cur["cur"] == k, cur and cur["cur"])
+            if cur:
+                ok(f"★ {T} AI 卡「{k}」面沒有操作建議用字", not _neu_hits(cur["t"]), (_neu_hits(cur["t"]), cur["t"][:160]))
+                if prev is not None:
+                    changed(f"{T} AI 卡換到「{k}」→ 顯示的內容真的換了", prev, cur["t"])
+                prev = cur["t"]
+        d = pg.evaluate(NEU_JS, ["#skAi", "#ovAiCard"])
+        for s, t in d.items():
+            if t:
+                ok(f"★ {T} 個股 {s}（含藏著的面向與 title）沒有操作建議用字", not _neu_hits(t), (_neu_hits(t), t[:160]))
+        st = pg.evaluate("() => { const g = document.querySelector('#ovAiCard .grade, #skAi .grade'); return g ? g.textContent.trim() : ''; }")
+        ok(f"★ {T} AI 結論狀態只會是 條件成立／條件未齊／偏空", st in ("條件成立", "條件未齊", "偏空", ""), st)
+        if count(pg, '#stockTabs button[data-t="tags"]'):
+            pg.eval_on_selector('#stockTabs button[data-t="tags"]', "b => b.click()"); pg.wait_for_timeout(1200)
+            t = pg.evaluate("() => { const c = document.getElementById('tagTech'); return c ? c.textContent.replace(/\\s+/g, ' ') : ''; }")
+            # 10-06 指標分頁只留指標卡（技術分析長卡拿掉）：有卡才掃，沒卡不算錯
+            ok(f"★ {T} 指標分頁（若有技術分析卡）沒有操作建議用字", not _neu_hits(t), (_neu_hits(t), t[:160]))
+
+        # ⑤ 選股策略：基本面那張「本益比在自身歷史低檔」—— 名稱、條件與說明都不寫「便宜」
+        pg.goto(f"{base}#explore", wait_until="networkidle")
+        wait_until(pg, "() => { const v = document.getElementById('v-explore'); return !!v && !/載入中/.test(v.innerText) && v.innerText.length > 200; }", 20000); pg.wait_for_timeout(500)
+        t = pg.evaluate("() => (document.getElementById('v-explore') || document.body).innerText")
+        ok(f"★ {T} 選股策略有「本益比在自身歷史低檔」、沒有「比自己過去便宜」", "本益比在自身歷史低檔" in t and "便宜" not in t, t[:200])
+    finally:
+        ctx.close()
+
+
 # ===================================================================== 日期膠囊拿掉1006
 # Andy 2026-10-06（截圖：產業地圖 → 半導體 → 族群總覽，紅框框住「昨天（盤後收盤）資料日期 2026-10-05」）：「這類資訊一律拿掉」，
 # 隨後再強調「一律拿掉」（不改成小圖示）。普查表在 docs/date_chip_audit_1006.md；規則：卡片標題列／副標／小圖標題上
@@ -43888,7 +44049,7 @@ def t_disclaimer_1006(b, base, code):
         click(pg, '#mktSeg2 button[data-k="cand"]', 1500)
         d = one(pg.evaluate(DISC1006), "cand")
         basic("市場明細「今日候選」1440", d)
-        ok(f"{T} 今日候選的全文講到 A／B 是規則判定、非買賣建議", bool(d) and "A＝回檔承接" in d["title"] and "不是買賣建議" in d["title"], d and d["title"])
+        ok(f"{T} 今日候選的全文講到 A／B 是規則判定、非買賣建議", bool(d) and "A＝回檔型態條件成立" in d["title"] and "不是買賣建議" in d["title"], d and d["title"])
         click(pg, '#mktSeg2 button[data-k="ma"]', 1500)
         ok(f"{T} 從今日候選切到「站上均線」→ 免責跟著收掉", one(pg.evaluate(DISC1006), "cand") is None)
         ok(f"{T} 市場明細沒有橫向捲軸", pg.evaluate(SX) <= 1)
@@ -43899,7 +44060,7 @@ def t_disclaimer_1006(b, base, code):
         pg.goto(base + "#flow", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#flowRotDisc')", 10000); pg.wait_for_timeout(800)
         d = one(pg.evaluate(DISC1006), "rot")
         basic("資金流向「資金輪動」1440", d)
-        ok(f"{T} 資金輪動的全文講到短評（回檔找買點、先設好停利）是規則判讀", bool(d) and "回檔找買點" in d["title"] and "不構成投資建議" in d["title"], d and d["title"])
+        ok(f"{T} 資金輪動的全文講到階段描述（相對強度仍高、動能轉弱）是規則判讀", bool(d) and "相對強度仍高、動能轉弱" in d["title"] and "不構成投資建議" in d["title"], d and d["title"])
 
         # ③ 個股：總覽的基本面卡、指標、獲利的本益比河流圖（真的點分頁）
         pg.goto(base + f"#stock/{code}", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#skFundCard .disc-line')", 15000); pg.wait_for_timeout(800)

@@ -69,7 +69,7 @@ def test_nearest_zone_used_for_stop_and_target():
 def test_low_liquidity_is_excluded():
     df = ind.compute_all(_random_walk(seed=5))
     r = T.evaluate(df, avg_turnover=1e7)
-    assert r["verdict"] == "不要碰"
+    assert r["verdict"] == "排除條件成立"
     assert any("流動性" in x for x in r["reasons"])
 
 
@@ -79,7 +79,7 @@ def test_limit_up_is_excluded():
     df = ind.compute_all(_frame(c))
     r = T.evaluate(df, avg_turnover=5e8)
     assert bool(df["limit_up"].iloc[-1])
-    assert r["verdict"] == "不要碰"
+    assert r["verdict"] == "排除條件成立"
     assert any("漲停" in x for x in r["reasons"])
 
 
@@ -88,7 +88,7 @@ def test_overheated_bias_is_excluded():
     df = ind.compute_all(_frame(c))
     r = T.evaluate(df, avg_turnover=5e8)
     assert r["signals"]["bias20"] > 15
-    assert r["verdict"] == "不要碰"
+    assert r["verdict"] == "排除條件成立"
 
 
 # ------------------------------------------------------------------ B 級突破
@@ -132,7 +132,7 @@ def test_pullback_grade_a_can_trigger():
     vol = np.r_[np.full(len(c) - 3, 1.2e7), np.full(3, 1.7e7)]
     df = ind.compute_all(_frame(c, vol=vol, noise=0.003, seed=4))
     r = T.evaluate(df, avg_turnover=5e8)
-    assert r["verdict"] != "不要碰", r["reasons"]
+    assert r["verdict"] != "排除條件成立", r["reasons"]
     assert r["signals"]["trend"] == 1, "有波段的多頭趨勢、回檔沒破前低，結構應維持多頭"
     assert r["weekly"]["trend"] != -1        # 33 週的乾淨鋸齒可能還沒形成週線分形，0 是合理的
     assert r["demand"], "回檔到前波高點附近應該找得到需求區"
@@ -148,8 +148,8 @@ def test_text_never_leaks_raw_indicator_dump():
     r = T.evaluate(df, avg_turnover=5e8)
     joined = " ".join(r["reasons"]) + (r["risk_text"] or "")
     assert "RSI=" not in joined and "osc=" not in joined
-    assert r["verdict"] in ("可以分批進場（回檔承接）", "突破可追，但要控量", "觀望",
-                            "觀望（逆勢反彈，只能短打）", "不要碰")
+    assert r["verdict"] in ("回檔型態條件成立", "突破型態條件成立", "條件未齊",
+                            "條件未齊（週線逆勢）", "排除條件成立")
     assert 1 <= len(r["reasons"]) <= 3
 
 
@@ -284,7 +284,7 @@ def test_checks_count_matches_rule_engine():
         assert sum(c["ok"] for c in ck["b"]) == ck["met_b"]
         if r["grade"] == "A":
             assert all(c["ok"] for c in ck["a"]) and ck["risk"]["a"]["ok"]
-        if r["verdict"] == "觀望":
+        if r["verdict"] == "條件未齊":
             # 觀望＝A、B 都沒過：要嘛有條件沒成立，要嘛停損距離超過上限
             assert not all(c["ok"] for c in ck["a"]) or not ck["risk"]["a"]["ok"]
     r = T.evaluate(_pullback_df(), avg_turnover=5e8, with_checks=True)
