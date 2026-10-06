@@ -1,0 +1,38 @@
+# 付費資料閘道（docs/datagw_plan.md、docs/security_review_1006.md 2-2）
+# 部署：.github/workflows/deploy-data-gw.yml（第一階段只准手動觸發，不掛 push）
+name = "tw-data-gw"
+main = "worker.js"
+compatibility_date = "2026-10-06"
+workers_dev = true
+
+[vars]
+# 公開的網域白名單（不是金鑰）
+ALLOWED_ORIGINS = "https://miaozike.github.io"
+ACCOUNT_ORIGIN = "https://miaozike.github.io"
+# 門檻（等 Andy 拍板；見 docs/datagw_plan.md「要 Andy 決定」）
+RATE_PER_MIN = "60"
+GUEST_PER_MIN = "120"
+SESSION_PER_MIN = "20"
+BURST_FILES = "30"
+MAX_IPS = "2"
+
+# 直接呼叫會員 Worker（同帳號的 service binding，不經公開網路）
+[[services]]
+binding = "ACCOUNT"
+service = "tw-account"
+
+# 付費資料：R2 私有 bucket（不開公開網址；Andy 要先在 Cloudflare 建立，見 docs/datagw_plan.md）
+[[r2_buckets]]
+binding = "DATA"
+bucket_name = "tw-rotation-paid"
+
+# 限流計數與存取紀錄（SQLite Durable Object，免費方案可用）
+[[durable_objects.bindings]]
+name = "GW"
+class_name = "Gw"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Gw"]
+
+# Secret（不寫在這裡）：GW_SECRET —— 資料權杖與浮水印的 HMAC 金鑰，由 workflow 從 repo Secret DATA_GW_SECRET 帶進去

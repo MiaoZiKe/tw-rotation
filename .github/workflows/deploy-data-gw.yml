@@ -1,0 +1,67 @@
+name: 部署 Worker（付費資料閘道 data-gw）
+
+# 把 workers/data-gw/ 部署到 Cloudflare（Worker ＋ Durable Object ＋ R2 綁定）。設計：docs/datagw_plan.md。
+# ★ 第一階段只准手動觸發（Actions → 這個 workflow → Run workflow）。不掛 push：前端還沒改走它，正式站資料流不受影響。
+# 用到的 repo Secret：
+#   CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID —— 沿用；權杖要多加「Workers R2 Storage: Edit」（docs/datagw_plan.md 第 5 節）
+#   DATA_GW_SECRET                              —— 資料權杖與浮水印的 HMAC 金鑰（隨機 32 位元組以上），寫進 Worker Secret，不會出現在 repo／log
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-data-gw
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 允許／拒絕測試（紅了就不准部署）
+        run: node --test workers/data-gw/tests/gw.test.mjs
+
+      - id: guard
+        name: 檢查金鑰
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GW: ${{ secrets.DATA_GW_SECRET }}
+        run: |
+          miss=""
+          [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$GW" ] && miss="$miss DATA_GW_SECRET"
+          if [ -n "$miss" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            { echo "### data-gw 尚未部署"; echo ""; echo "**缺少這些 Secret：**$miss"; echo ""; echo "步驟見 docs/datagw_plan.md 第 5 節。"; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 部署
+        if: steps.guard.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/data-gw
+          secrets: |
+            GW_SECRET
+        env:
+          GW_SECRET: ${{ secrets.DATA_GW_SECRET }}
+
+      - name: 驗證真的活著
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          sleep 5
+          code=$(curl -s -o /tmp/h.json -w '%{http_code}' "https://tw-data-gw.kcq01010909.workers.dev/health")
+          echo "HTTP $code"; head -c 300 /tmp/h.json; echo
+          test "$code" = "200"
+          grep -q '"configured":true' /tmp/h.json
