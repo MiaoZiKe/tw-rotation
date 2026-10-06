@@ -38125,7 +38125,7 @@ def t_rot_stage_panel(pg, base):
 DS2_CSS = r"""() => {
   const cs = (e) => e ? getComputedStyle(e) : null;
   const card = document.querySelector('#ovHeatCard'); const c = cs(card);
-  const kpi = document.querySelector('#hero .card.tight'); const k = cs(kpi);
+  const osc = document.querySelector('#hero .osc');
   const grid = document.querySelector('#v-overview > .grid'); const g = cs(grid);
   const cards = [...document.querySelectorAll('#v-overview > .grid > .card')].map(x => x.getBoundingClientRect());
   const btn = document.querySelector('#heatZoom'); const bs = cs(btn);
@@ -38135,12 +38135,15 @@ DS2_CSS = r"""() => {
   return {
     cardR: c && c.borderTopLeftRadius, cardPad: c && c.paddingTop + ' ' + c.paddingLeft, cardBgImg: c && c.backgroundImage,
     cardBg: c && c.backgroundColor, cardSh: c && c.boxShadow,
-    kpiR: k && k.borderTopLeftRadius, kpiPad: k && k.paddingTop,
+    oscR: osc && cs(osc).borderTopLeftRadius,
     gap: g && g.columnGap, gridMt: g && g.marginTop,
-    gapX: cards.length >= 2 ? Math.round((cards[1].left - cards[0].right) * 10) / 10 : null,
+    gapMeasured: (() => { let best = null; for (let i = 0; i < cards.length; i++) for (let j = 0; j < cards.length; j++) { if (i === j) continue;
+        const a = cards[i], b = cards[j]; const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        const d = ox > 4 ? b.top - a.bottom : oy > 4 ? b.left - a.right : null; if (d !== null && d > -0.5 && (best === null || d < best)) best = d; }
+      return best === null ? null : Math.round(best * 10) / 10; })(),
     mainPad: cs(document.querySelector('main')).paddingTop + ' ' + cs(document.querySelector('main')).paddingLeft,
     bodyFs: cs(document.body).fontSize, bodyLh: cs(document.body).lineHeight,
-    h3Fs: h3 && cs(h3).fontSize, smallFs: sm && cs(sm).fontSize,
+    h3Fs: h3 && cs(h3).fontSize,
     btnR: bs && bs.borderTopLeftRadius, btnH: btn && Math.round(btn.getBoundingClientRect().height), btnFs: bs && bs.fontSize,
     howH: how && Math.round(how.getBoundingClientRect().height), howR: hs && hs.borderTopLeftRadius,
     tabR: tab && cs(tab).borderTopLeftRadius,
@@ -38158,24 +38161,26 @@ def t_ds2(pg, base):
         pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
         r = pg.evaluate(DS2_CSS)
-        ok(f"[{th}] 大卡片圓角 12 → 24px（參考截圖擬合 21.9）", r["cardR"] == "24px", r)
-        ok(f"[{th}] 卡片內距 16/18 → 20px", r["cardPad"] == "20px 20px", r)
-        ok(f"[{th}] 卡片改成平塗（不再是上下漸層），底色＝--panel", r["cardBgImg"] == "none", r)
-        ok(f"[{th}] KPI 小卡是中型容器：圓角 16、內距 16", r["kpiR"] == "16px" and r["kpiPad"] == "16px", r)
-        ok(f"[{th}] 卡片之間 16 → 24px（CSS 的 gap）", r["gap"] == "24px", r)
-        ok(f"[{th}] 卡片之間**實際量到**的距離是 24px（兩張卡片的邊框之間）", r["gapX"] == 24, r)
-        ok(f"[{th}] KPI 列 → 熱力圖那一列的上邊距也是 24（原本行內寫死 16）", r["gridMt"] == "24px", r)
-        ok(f"[{th}] 頁面外距 20/22 → 24/24", r["mainPad"] == "24px 24px", r)
-        ok(f"[{th}] 內文 15.5 → 14px、行高 1.7（23.8px）", r["bodyFs"] == "14px" and r["bodyLh"] == "23.8px", r)
-        ok(f"[{th}] 卡片標題 16.5 → 16px、標題旁的小字 12.5 → 13px", r["h3Fs"] == "16px" and r["smallFs"] == "13px", r)
-        ok(f"[{th}] 按鈕一律膠囊（圓角＝半高）", r["btnR"] == "999px" and r["howR"] == "999px" and r["tabR"] == "999px", r)
-        ok(f"[{th}] 工具列按鈕高 28、字 12（守觸控下限；參考站 26）", r["btnH"] == 28 and r["btnFs"] == "12px" and r["howH"] == 28, r)
+        # ★ 2026-10-06 改前→改後（驗收過時）：改前釘設計系統 v2（09-24，docs/design_system_v2.md §2.1：圓角 24、內距 20、卡距 24、頁外距 24、內文行高 1.7、平塗無陰影…）。
+        #   預設主題後來換成設計 v4「科技 HUD」（09-27 起，site/theme4.css），間距再由 2C（09-29，commit 0db1983e）收斂到 4／8／12／16／24 五階，
+        #   現行規格是 docs/style_guide.md（DECISIONS #322）：卡片間距 12、頁邊 16、內文 14／行高 1.55、卡片標題 16、圓角依主題（HUD 10）。
+        #   v2 那組數字已經不是產品規格，所以改量**現行**值（深淺兩個主題都是 HUD，數字一樣）；「實際量到的卡距」改量相鄰卡片之間最小的正距離（總覽下半現為 2×2，
+        #   前兩張卡上下疊，舊的「左右相鄰」量法會量到負數）。原意——量出來的尺寸真的上了畫面、沒有橫向捲軸——不變。
+        ok(f"[{th}] 大卡片圓角＝HUD 10px（style_guide／theme4 --t4-r-card）", r["cardR"] == "10px", r)
+        ok(f"[{th}] 卡片內距 12／16px（上下 12、左右 16）", r["cardPad"] == "12px 16px", r)
+        ok(f"[{th}] 卡片是 HUD 玻璃底（半透明底色＋角標／斜光漸層，不是 v2 的平塗）",
+           (r["cardBg"] or "").startswith("rgba(") and r["cardBgImg"] not in ("none", None), r)
+        ok(f"[{th}] 摘要小卡圓角 12px", r["oscR"] == "12px", r)
+        ok(f"[{th}] 卡片之間 12px（CSS 的 gap ＝ --gap-card）", r["gap"] == "12px", r)
+        ok(f"[{th}] 卡片之間**實際量到**的最小距離是 12px（兩張卡片邊框之間）", r["gapMeasured"] is not None and abs(r["gapMeasured"] - 12) <= 0.6, r)
+        ok(f"[{th}] KPI 列 → 熱力圖那一列的上邊距 12", r["gridMt"] == "12px", r)
+        ok(f"[{th}] 頁面外距 上 4／左右 16（頁邊 16）", r["mainPad"] == "4px 16px", r)
+        ok(f"[{th}] 內文 14px、行高 1.55（21.7px）", r["bodyFs"] == "14px" and r["bodyLh"] == "21.7px", r)
+        ok(f"[{th}] 卡片標題 16px", r["h3Fs"] == "16px", r)
+        ok(f"[{th}] 工具列按鈕膠囊、「?」圓鈕 50%、分頁圓角 8", r["btnR"] == "999px" and r["howR"] == "50%" and r["tabR"] == "8px", r)
+        ok(f"[{th}] 工具列按鈕高 28、字 12（守下限）、「?」24", r["btnH"] == 28 and r["btnFs"] == "12px" and r["howH"] == 24, r)
         ok(f"[{th}] 1440px 沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
-        if th == "light":
-            ok("[light] 淺色卡片無陰影（參考截圖卡片外圍像素與頁底無差）", r["cardSh"] == "none", r)
-        else:
-            ok("[dark] 深色卡片只留內高光（深底上的外陰影本來就看不到）",
-               "inset" in (r["cardSh"] or "") and "32px" not in (r["cardSh"] or ""), r)
+        ok(f"[{th}] 卡片有 HUD 的內高光（inset）", "inset" in (r["cardSh"] or ""), r)
     # ---- 圖表字級下限：這一批升到 12 的那幾張（輪動時鐘、資金去向兩張、季節性）----
     FS = r"""(ids) => { const out = {};
       ids.forEach(id => { const el = document.getElementById(id); const c = el && window.echarts && echarts.getInstanceByDom(el);
@@ -38210,7 +38215,9 @@ def t_ds2(pg, base):
                  lh: getComputedStyle(document.body).lineHeight, main: mn.paddingLeft,
                  gap: getComputedStyle(document.querySelector('#v-overview > .grid')).columnGap }; }""")
     ok("[390px] 手機的卡片、內距、字級、行高、頁面外距、卡片間距都沒被這一批動到",
-       m == {"r": "12px", "pad": "16px 18px", "bodyFs": "15px", "lh": "24px", "main": "14px", "gap": "16px"}, m)
+       # ★ 2026-10-06 改前→改後（驗收過時）：行高 24px → 23.25px。風格規範（docs/style_guide.md／DECISIONS #322）把內文行高定成 1.55，
+       #   手機內文 15px × 1.55 ＝ 23.25；圓角、內距、字級、頁外距、卡距都還是原值，這條「別動手機」的原意不變。
+       m == {"r": "12px", "pad": "16px 18px", "bodyFs": "15px", "lh": "23.25px", "main": "14px", "gap": "16px"}, m)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
