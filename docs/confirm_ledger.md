@@ -203,3 +203,8 @@
 - 會員名單：拿掉手動新增會員那列（訂閱制自動連動範本）；方案分頁頂端「訪客・NT$0/月 套用 N 人」標題列拿掉；上方 KPI 與圖照流量觀測重做、「載入中…」卡住要查根因補齊數據 → visual-designer（main）
 - 自選：拿掉「點小走勢圖展開大走勢／K 線」；自選數據至少到前一交易日（截圖停在 10/02）→ frontend-ui（main，查根因）
 - 13:00 容器磁碟滿（剩 276MB）導致派工失敗 → 刪 27 個已推完、無未提交的舊 worktree，釋出到 15GB
+
+## 10-06 19:10 Andy 拍板
+- 付費內容保護（data-gw）：**要排，上架收費前完成**。第一階段（盤點＋data-gw Worker＋測試，分支 claude/data-gw，不上 main）已派 security-privacy；全案 4～6 工作天。
+- 客服信箱：**另開**。等 Andy 開好新信箱告訴 CEO 地址 → 換掉 account.js／legal.js／support.js 與文件裡的 kcq01010909@gmail.com。
+- 資安 D4（Google／GitHub／Cloudflare 開兩步驟驗證）：最急，待 Andy 自己做。
