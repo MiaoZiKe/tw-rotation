@@ -4,7 +4,7 @@
 
    版面（2026-10-05 第二版，Andy：「配息行事曆放最上面」「每個分類頁內並排前 5」「自選比較清單」）：
      ① 配息行事曆（7 欄真月曆，格內直接寫當天除息的代號與金額，點格子右側展開當天清單＋填息天數）
-     ② 分類分頁列（配息型／市值型／…，預設配息型，無「全部」）＋期間（3／5／10 年／自訂，只影響報酬率）
+     ② 分類分頁列（配息型／市值型／…，預設配息型，無「全部」）；期間 10-06 搬到 ④ 的標題列（site/rangepick.js 共用元件）
      ③ 分類分頁才有、三張同高並排：最近最受歡迎前 5｜報酬率前 5（含息年化）｜殖利率前 5（附平均填息天數）
         「其他」與「槓桿反向」不出這三張（Andy：「其他 ETF 的不用」）。
      ④ 報酬比較（自選）：「加入比較」可搜尋多選（限該分類、上限 8 檔、預設報酬前 5），依分類分開記在 localStorage
@@ -93,11 +93,7 @@
 #v-etf .etfcatbar .nbsw{flex:0 1 auto;min-width:0;align-self:flex-end}
 #v-etf .etfcatbar{align-items:flex-end}
 #v-etf .etfcatbar .sp{flex:1}
-#v-etf .etfper{display:flex;align-items:center;gap:8px;flex:none}
-#v-etf .etfper.off{visibility:hidden}
-#v-etf .etfper .lb{font-size:12.5px;color:var(--ink-3)}
-#v-etf .cust.inv{visibility:hidden} #v-etf .cust{display:inline-flex;align-items:center;gap:6px;color:var(--ink-3);white-space:nowrap}
-#v-etf .cust input{width:136px;text-align:center}
+#v-etf #etfRngBox{display:inline-flex;min-width:0}
 /* ---- 卡片清單 */
 #v-etf .etfgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px;margin-top:10px}
 #v-etf .etfc{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
@@ -223,7 +219,7 @@
 #v-etf table.et.fullw{width:100%}
 @media (max-width:1100px){#v-etf .etftri{grid-template-columns:1fr}#v-etf .calwrap,#v-etf .retcharts{grid-template-columns:1fr}
   #v-etf .callist{height:320px}#v-etf .etfcatbar{flex-wrap:wrap}#v-etf .etfcatbar .seg{overflow-x:auto;max-width:100%}
-  #v-etf .row.spread{flex-wrap:wrap}}
+  #v-etf .row.spread{flex-wrap:wrap}#v-etf #etfRetCtl{flex-wrap:wrap;white-space:normal;row-gap:6px}#v-etf .cmpmsg:empty{display:none}}
 `;
     document.head.appendChild(s);
   }
@@ -263,7 +259,8 @@
   const items = () => (S.data && S.data.items) || [];
   /* 2026-10-06（Andy：「無配息就純算報酬率」）：已確認不配息的（槓桿反向／期貨／累積型，或查過配息資料確定 0 筆）含息＝不含息 */
   const NODIV_RE = /期貨|累積|正2|反1|正二|反一/;
-  const noDiv = (it) => !!it && (it.cat === '槓桿反向' || NODIV_RE.test(it.name || '') || (!!it.div_done && !it.freq_n && !(it.div_ttm > 0)));
+  /* 10-06 晚：再加 div_none（pipeline：FinMind 配息資料集對這檔明確回空、湖裡 0 列）—— 期貨型「其他」就是靠這條判成不配息 */
+  const noDiv = (it) => !!it && (it.cat === '槓桿反向' || !!it.div_none || NODIV_RE.test(it.name || '') || (!!it.div_done && !it.freq_n && !(it.div_ttm > 0)));
   /* 上市未滿期間的 ETF：改用「上市以來」年化（從序列第一天算起）；不配息的含息年化＝價格年化 */
   function effSt(it, st) {
     let o = st;
@@ -312,9 +309,6 @@
 
 <div class="etfcatbar" id="etfCatBar">
   <div class="nbsw etfcats" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div><span class="sp"></span>
-  <div class="etfper" id="etfPerBox"><span class="lb">報酬率期間</span>
-    <div class="seg" id="etfPerSeg"><button data-v="3y">3 年</button><button data-v="5y">5 年</button><button data-v="10y">10 年</button><button data-v="custom">自訂</button></div>
-    <span class="cust inv" id="etfCust"><input type="date" id="etfFrom" class="etsel" aria-label="起始日"> ～ <input type="date" id="etfTo" class="etsel" aria-label="結束日（預設今天）"></span></div>
 </div>
 <div class="etfbody" id="etfBody">
 
@@ -332,7 +326,7 @@
   <div class="card" id="etfRetTopCard">
     <div class="row spread"><h3 data-icon="arrow-up" data-tone="up">報酬率前 5 <small id="etfRetTopSub"></small> ${hbtn('etfrettop', '報酬率前 5 怎麼排')}</h3></div>
     ${how('etfrettop', '', [
-      '依<b>含息總報酬年化</b>由高到低排（配息在除息日以當天收盤再投入）。期間跟著上方「報酬率期間」3／5／10 年／自訂。',
+      '依<b>含息總報酬年化</b>由高到低排（配息在除息日以當天收盤再投入）。期間跟著下方「報酬比較」標題列的期間（近 1／3／5／10 年、上市以來、起始日期～至今）。',
       '期間內上市未滿的，改用<b>上市以來</b>年化計算並標「上市以來 N 年」，不和滿期的直接比較。',
       '所以：先看這裡誰長期最好，再到下面「報酬比較」把想比的幾檔勾進去看走勢。'])}
     <p class="etfq" id="etfRetTopQ"></p>
@@ -351,7 +345,8 @@
 
 <div class="card" id="etfRetCard">
   <div class="row spread"><h3 data-icon="line" data-tone="tech">報酬比較 <small id="etfRetSub"></small> ${hbtn('etfret', '報酬比較的口徑')}</h3>
-    <div class="etfrow">
+    <div class="etfrow" id="etfRetCtl">
+      <span id="etfRngBox"></span>
       <span class="cmpmsg" id="etfCmpMsg" aria-live="polite"></span>
       <div class="rotdd wide msdd" id="etfCmpDD" data-dd="etfcmp">
         <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false" title="挑要比較的 ETF（可搜尋、可複選，限這個分類、最多 ${CMP_MAX} 檔）">加入比較：<b>已選 0 檔</b><i aria-hidden="true">▾</i></button>
@@ -365,13 +360,7 @@
       </div>
       <div class="seg" id="etfBasisSeg"><button data-v="tr">含息</button><button data-v="price">不含息</button></div>
     </div></div>
-  ${how('etfret', '', [
-    '用右上「加入比較」挑這個分類裡的 ETF（可搜尋、最多 8 檔）；沒挑過時預設是「報酬率前 5」。每個分類各自記住你挑的。',
-    '<b>價格年化（不含息）</b>＝(期末收盤 ÷ 期初收盤)^(1/年數) − 1；分割（例：0050 2025-06 一拆四）已還原，配息不算進去。',
-    '<b>含息年化</b>＝配息在除息日以當天收盤再投入（還原權值）後的年化報酬。<b>殖利率</b>＝近 12 個月現金配息 ÷ 最新收盤。',
-    '<b>配息年化</b>＝(1 ＋ 期間累計配息 ÷ 期初收盤)^(1/年數) − 1：只看配息本身每年貢獻多少。',
-    '期間：跟著上方「報酬率期間」。<b>上市未滿</b>的改用上市以來計算並標「自 YYYY-MM 上市」；不配息的 ETF 含息＝不含息，標「不配息」。',
-    '所以：左圖看一路走勢（同起點 = 0%），右圖直接比年化數字；含息與不含息差距越大，代表報酬越依賴配息。'])}
+  ${how('etfret', '', retHowLines(true))}
   <div id="etfRetBody"></div>
 </div>
 
@@ -401,41 +390,62 @@
       .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
     $$('button', seg).forEach((b) => { b.classList.toggle('on', b.dataset.v === S.cat); b.setAttribute('aria-selected', b.dataset.v === S.cat);
       b.onclick = () => { if (S.cat === b.dataset.v) return; S.cat = b.dataset.v; S.shown = PAGE; drawAll(); }; });
-    // 期間只影響報酬率：「全部」沒有報酬卡，期間整組隱形但保留位置（不讓分類鈕跟著左右跳）
-    $('#etfPerBox').classList.remove('off');
-    $$('#etfPerSeg button').forEach((b) => { b.classList.toggle('on', b.dataset.v === S.per);
-      b.onclick = () => { S.per = b.dataset.v; LS.set('tw.etf.per', S.per); drawPer(); drawRetTop(); drawRet(); }; });
-    drawPer();
+  }
+  /* ---- 期間（2026-10-06 Andy：「週期切換……可以選擇時段如圖二那樣，切換到不同時間週期也可以在旁邊顯示對應年限日期」）
+     從分類列最右邊搬到「報酬比較」標題列（只留一套）；元件是共用的 site/rangepick.js（管理區流量觀測同款）。
+     近 3／5／10 年用 etf.json 預先算好的（日線，較精準）；近 1 年／上市以來／起始日期～至今用週線走勢自己算。 */
+  const PERS = [['1y', '近 1 年'], ['3y', '近 3 年'], ['5y', '近 5 年'], ['10y', '近 10 年'], ['since', '上市以來'], ['custom', '起始日期～至今']];
+  const PRE = { '3y': 1, '5y': 1, '10y': 1 };
+  const asofD = () => (S.data && S.data.asof) || todayTW();
+  const yrsAgo = (d, n) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCFullYear(t.getUTCFullYear() - n); return t.toISOString().slice(0, 10); };
+  /* 這個期間的起訖（給日期框顯示、也給自算用）。上市以來的起點＝目前比較的幾檔裡最早上市那檔的第一筆。 */
+  function perRange() {
+    // 結束日一律顯示今天（跟管理區同一個規則；資料只到最近交易日，算的時候自然停在那天）
+    const to = todayTW();
+    if (S.per === 'custom') return { from: S.cfrom, to: S.cto || todayTW() };
+    if (PRE[S.per]) return { from: ((S.data && S.data.periods) || {})[S.per] || yrsAgo(to, +S.per.replace('y', '')), to };
+    if (S.per === '1y') return { from: yrsAgo(to, 1), to };
+    const firsts = (S.cat ? getCmp() : []).map((c) => { const x = seriesOf(c); return x && x.d && x.d[0]; }).filter(Boolean).sort();
+    return { from: firsts[0] || '', to };
   }
   function drawPer() {
-    $$('#etfPerSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === S.per));
-    const f = $('#etfFrom'), t = $('#etfTo');
-    if (!S.cfrom) S.cfrom = LS.get('tw.etf.cfrom', '') || new Date(Date.now() + 8 * 3600e3 - 3 * 365.25 * 864e5).toISOString().slice(0, 10);
-    if (!S.cto) S.cto = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);   // 結束日預設今天，可改
-    f.value = S.cfrom; t.value = S.cto; t.max = S.cto > S.cfrom ? '' : '';
-    $('#etfCust').classList.toggle('inv', S.per !== 'custom');
-    const ch = () => { if (f.value) { S.cfrom = f.value; LS.set('tw.etf.cfrom', S.cfrom); } if (t.value) S.cto = t.value; drawRetTop(); drawRet(); };
-    f.onchange = ch; t.onchange = ch;
+    if (!S.cfrom) S.cfrom = LS.get('tw.etf.cfrom', '') || yrsAgo(todayTW(), 3);
+    if (!S.cto) S.cto = todayTW();   // 結束日預設今天，可改
+    const box = $('#etfRngBox'); if (!box || !window.RangePick) return;
+    const r = perRange();
+    if (!$('#etfRng')) {
+      box.innerHTML = window.RangePick.html({ id: 'etfRng', options: PERS, value: S.per, from: r.from, to: r.to, max: todayTW() });
+      window.RangePick.bind($('#etfRng'), { onChange: ({ value, from, to, manual }) => {
+        S.per = value; LS.set('tw.etf.per', S.per);
+        if (value === 'custom') {
+          // 手改日期 → 用新起訖；從下拉直接選「起始日期～至今」→ 沿用框裡現在顯示的起訖（使用者看到什麼就算什麼）
+          if (from) { S.cfrom = from; LS.set('tw.etf.cfrom', from); }
+          S.cto = to || todayTW();
+        }
+        drawRetTop(); drawRet();
+      } });
+    }
+    window.RangePick.set($('#etfRng'), { value: S.per, from: r.from, to: r.to });
   }
-  function perKey() { return S.per === 'custom' ? 'C' + S.cfrom + '~' + S.cto : S.per; }
-  /* 自訂期間：用週序列自己算（起始日早於上市就從上市第一天算起＝上市以來） */
+  function perKey() { return PRE[S.per] ? S.per : S.per === 'custom' ? 'C' + S.cfrom + '~' + S.cto : S.per; }
+  /* 近 1 年／上市以來／自訂：用週序列自己算（起始日早於上市就從上市第一天算起＝上市以來） */
   function rangeStats(it) {
     const s = seriesOf(it.code);
     if (!s || !s.d || !s.p) return { ok: false, why: S.series ? '無資料' : '走勢載入中' };
-    const from = S.cfrom || '', to = S.cto || '9999';
+    // 上市以來不走 perRange()（它要讀比較清單，比較清單的預設又要靠這裡排名 → 會繞圈）
+    const R = S.per === 'since' ? { from: '', to: asofD() } : perRange();
+    const from = R.from || '', to = R.to || '9999';
     let i0 = s.d.findIndex((d) => d >= from); if (i0 < 0) return { ok: false, why: '起始日晚於最後一筆資料' };
     let i1 = s.d.length - 1; while (i1 > 0 && s.d[i1] > to) i1--;
     if (i1 - i0 < 2) return { ok: false, why: '這段日期內資料不足' };
     const yrs = (Date.parse(s.d[i1]) - Date.parse(s.d[i0])) / (365.25 * 864e5);
     const ann = (a) => (a && a[i0] && a[i1] ? Math.pow(a[i1] / a[i0], 1 / yrs) - 1 : null);
-    const o = { ok: true, since: s.d[0] > from, from: s.d[i0], years: +yrs.toFixed(1), price_ann: ann(s.p), tr_ann: s.t ? ann(s.t) : null, div_ann: null };
+    const o = { ok: true, since: S.per === 'since' || s.d[0] > from, from: s.d[i0], years: +yrs.toFixed(1), price_ann: ann(s.p), tr_ann: s.t ? ann(s.t) : null, div_ann: null };
     return noDiv(it) && o.tr_ann == null ? { ...o, tr_ann: o.price_ann, nodiv: true } : o;
   }
-  const statOf = (it) => (S.per === 'custom' ? rangeStats(it) : effSt(it, ((it.stats || {})[perKey()]) || { ok: false, why: '無資料' }));
-  function perLabel(short) {
-    const st = S.per === 'custom' ? null : ((S.data && S.data.periods) || {})[perKey()];
-    const nm = S.per === 'custom' ? '自訂期間' : { '3y': '近 3 年', '5y': '近 5 年', '10y': '近 10 年' }[S.per];
-    return nm;
+  const statOf = (it) => (!PRE[S.per] ? rangeStats(it) : effSt(it, ((it.stats || {})[perKey()]) || { ok: false, why: '無資料' }));
+  function perLabel() {
+    return S.per === 'custom' ? '自訂期間' : (PERS.find((x) => x[0] === S.per) || [0, '近 5 年'])[1];
   }
 
   /* ------------------------------------------------------------------ 1. 卡片清單 */
@@ -700,13 +710,13 @@
   }
   function syncDD(sel, colorOf) {
     const ms = cmpDD(); if (!ms) return;
-    const pk = perKey(), on = new Set(sel);
+    const on = new Set(sel);
     const all = inCat().slice().sort((a, b) => sizeKey(b) - sizeKey(a));
-    const val = (it) => { const st = (it.stats || {})[pk]; if (!st || !st.ok) return '—';
+    const val = (it) => { const st = statOf(it); if (!st || !st.ok) return '—';
       return st.tr_ann != null ? pct(st.tr_ann, 1) : pct(st.price_ann, 1); };
     ms.sync({
       rows: all.map((it) => ({ name: `${it.code} ${it.name}`, on: on.has(it.code), color: on.has(it.code) ? colorOf[it.code] : A().hexA(A().CH.ink3, 0.45),
-        val: val(it), valTitle: `${perLabel()} 年化（含息；無配息資料時為不含息）` })),
+        val: val(it), valTitle: `${perLabel()} 年化報酬率（有配息的含息）` })),
       count: `${S.cat} 共 ${all.length} 檔 · 已選 ${sel.length}／${CMP_MAX}`,
       label: `已選 ${sel.length} 檔`,
       n: sel.length,
@@ -718,58 +728,114 @@
     el.classList.remove('isempty');
     el.innerHTML = `<div class="etfprep">${esc(msg)}</div>`;
   }
+  /* 2026-10-06（Andy：「槓桿沒有配息 圖表就拿掉含息以及不含息」「只留下報酬率」「也不需要下方備註 殖利率 配息年化多少」）
+     「這一檔在這段期間有沒有配息」依資料判斷、不寫死分類：含息年化與價格年化差 ≥ 0.01 個百分點才算有。
+     （確定不配息的 —— 槓桿反向、或上游配息資料明確回空的 div_none —— 含息年化已設成等於價格年化，這裡自然判成沒有。）
+     沒有 → 只畫一條「年化報酬率」、不寫殖利率／配息年化；全部都沒有 → 圖例、含息／不含息切換、殖利率欄整個拿掉。 */
+  const hasDiv = (st) => !!(st && st.ok && st.tr_ann != null && st.price_ann != null && Math.abs(st.tr_ann - st.price_ann) >= 1e-4);
+  function retHowLines(anyDiv) {
+    const L = ['用右上「加入比較」挑這個分類裡的 ETF（可搜尋、最多 8 檔）；沒挑過時預設是「報酬率前 5」。每個分類各自記住你挑的。',
+      '<b>期間</b>：標題列的下拉選近 1／3／5／10 年或上市以來，旁邊兩個日期框同步顯示這段的起訖；直接改日期就變成「起始日期～至今」。'
+      + '<b>上市未滿</b>的改用上市以來計算並標「上市以來 N 年」，不和滿期的直接比較。'];
+    if (!anyDiv) {
+      L.push('<b>年化報酬率</b>＝(期末收盤 ÷ 期初收盤)^(1/年數) − 1；分割已還原。這一組 ETF 在這段期間都沒有配息，報酬就只有價格這一種，不分含息、不含息。');
+      L.push('所以：左圖看一路走勢（同起點 = 0%），右圖直接比年化數字。槓桿反向 ETF 每天重設倍數，放得越久越會偏離「指數 × 倍數」，長期年化只能當參考。');
+      return L;
+    }
+    L.push('<b>價格年化（不含息）</b>＝(期末收盤 ÷ 期初收盤)^(1/年數) − 1；分割（例：0050 2025-06 一拆四）已還原，配息不算進去。');
+    L.push('<b>含息年化</b>＝配息在除息日以當天收盤再投入（還原權值）後的年化報酬。<b>殖利率</b>＝近 12 個月現金配息 ÷ 最新收盤。<b>配息年化</b>＝(1 ＋ 期間累計配息 ÷ 期初收盤)^(1/年數) − 1。');
+    L.push('這段期間<b>沒有配息</b>的 ETF 只畫一條報酬率、名字旁標「無配息」，殖利率與配息欄不寫數字。');
+    L.push('所以：左圖看一路走勢（同起點 = 0%），右圖直接比年化數字；含息與不含息差距越大，代表報酬越依賴配息。');
+    return L;
+  }
+  /* 這一檔畫不畫得出走勢（有週線、期間內有起點） */
+  const lineable = (it, st) => { if (!st || !st.ok) return false; const s = seriesOf(it.code); return !!(s && s.d && s.p && s.d.some((d) => d >= st.from)); };
+  /* 走勢一條都畫不出來時的白話原因（不寫「無資料」了事） */
+  /* 表格裡「這段期間算不出來」的原因：白話、不寫內部口徑（回補／資料湖 —— 樣式指南禁止） */
+  const whyTxt = (w) => (!w ? '這段期間沒有資料' : /尚未回補/.test(w) ? '歷史股價未補齊' : w);
+  function whyNone(rows) {
+    const w = rows.map(({ st }) => (st && st.why) || '').filter(Boolean);
+    if (!S.series) return '走勢載入中…';
+    if (w.some((x) => /尚未回補/.test(x))) return '這幾檔的歷史股價還沒補進資料庫（每小時自動接力補），補到後這裡會自動畫出走勢';
+    if (w.some((x) => /上市未滿|資料不足|晚於/.test(x))) return '這幾檔在這段期間內的交易資料不足（上市太晚或日期區間太短），請把期間拉長或改選上市以來';
+    return '這幾檔在這段期間沒有可畫的走勢資料';
+  }
   function drawRet() {
     const card = $('#etfRetCard'), body = $('#etfRetBody');
     card.hidden = false;
-    if (card.hidden) return;
     $$('#etfBasisSeg button').forEach((b) => { b.classList.toggle('on', b.dataset.v === S.basis);
       b.onclick = () => { S.basis = b.dataset.v; LS.set('tw.etf.basis', S.basis); drawRet(); }; });
-    $('#etfRetSub').textContent = `${S.cat}・${perLabel()}`;
+    $('#etfRetSub').textContent = S.cat;   // 期間改由標題列的下拉＋日期框表示，副標不再重複寫「近 5 年」
+    drawPer();
     if (S.fallback) {
       body.innerHTML = '<div class="etfprep">尚無資料</div>';
       body.dataset.k = ''; body.dataset.codes = ''; syncDD([], {}); return;
     }
-    const sel = getCmp();
+    let sel = getCmp(), auto = false;
+    const m = byCode(), pk = perKey();
+    const rowsOf = (codes) => codes.map((c) => { const it = m.get(c) || { code: c, name: c, stats: {} }; return { it, st: statOf(it) }; });
+    let rows = rowsOf(sel);
+    // 選中的全部畫不出走勢（例：回補還沒補到、期間太短）→ 自動改看這一類「畫得出來」的前 5 檔，不讓整塊空白（不寫回使用者的選擇）
+    if (S.series && sel.length && !rows.some(({ it, st }) => lineable(it, st))) {
+      const alt = retRank().rows.filter(({ it, st }) => lineable(it, st)).slice(0, 5).map(({ it }) => it.code);
+      if (alt.length) { sel = alt; rows = rowsOf(sel); auto = true; }
+    }
     const PC = PALC(), colorOf = {}; sel.forEach((c, i) => { colorOf[c] = PC[i % PC.length]; });
     syncDD(sel, colorOf);
-    const m = byCode(), pk = perKey();
     if (!sel.length) {
       body.innerHTML = '<div class="etfprep">尚未選擇 ETF</div>';
       body.dataset.k = pk; body.dataset.codes = ''; return;
     }
-    const rows = sel.map((c) => { const it = m.get(c) || { code: c, name: c, stats: {} }; return { it, st: statOf(it) }; });
+    const okRows = rows.filter(({ st }) => st.ok);
+    const anyDiv = okRows.some(({ st }) => hasDiv(st)), allNo = !anyDiv;
+    const seg = $('#etfBasisSeg'); if (seg) seg.style.display = allNo ? 'none' : '';
+    const hw = $('#how-etfret'); if (hw && A().howHTML) hw.innerHTML = A().howHTML('', retHowLines(anyDiv));
     const num = (v, f) => (v == null ? '<span class="na">—</span>' : f(v));
-    body.innerHTML = `<div class="retcharts"><div><div class="note note1">累積報酬走勢（${S.basis === 'tr' ? '含息總報酬' : '價格，不含息'}；期初 = 0%）</div><div id="etfRetLine" class="chart"></div></div>
-      <div><div class="note note1">年化報酬率（不含息 vs 含息）</div><div id="etfRetBar" class="chart"></div></div></div>
-      <div class="rettw"><table class="et fullw" id="etfRetTbl"><colgroup><col style="width:27%"><col style="width:21%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
+    const NODIV = '<span class="na">無配息</span>';
+    const perCell = (st) => (st.since ? `<span title="上市以來：不和滿期的直接比較">${esc(st.from)}～ <span class="note">上市以來 ${st.years} 年</span></span>` : `${st.from}～ <span class="note">${st.years} 年</span>`);
+    const nameCell = (it) => `<td class="nmc"><span class="nmw"><i style="background:${colorOf[it.code]}"></i><span class="nmt" title="${esc(it.name)} ${esc(it.code)}">${esc(it.name)}</span><span class="note">${esc(it.code)}</span></span></td>`;
+    const lineTtl = allNo ? '累積報酬率（期初 = 0%）' : `累積報酬走勢（${S.basis === 'tr' ? '含息總報酬' : '價格，不含息'}；期初 = 0%）`;
+    const barTtl = allNo ? '年化報酬率' : '年化報酬率（不含息 vs 含息）';
+    const tbl = allNo
+      ? `<table class="et fullw" id="etfRetTbl"><colgroup><col style="width:40%"><col style="width:35%"><col style="width:25%"></colgroup>
+      <thead><tr><th class="nmc">ETF</th><th>期間</th><th>年化報酬率</th></tr></thead><tbody>
+      ${rows.map(({ it, st }) => `<tr data-code="${esc(it.code)}">${nameCell(it)}${st.ok ? `<td>${perCell(st)}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>` : `<td colspan="2"><span class="na">${esc(whyTxt(st.why))}</span></td>`}</tr>`).join('')}</tbody></table>`
+      : `<table class="et fullw" id="etfRetTbl"><colgroup><col style="width:27%"><col style="width:21%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
       <thead><tr><th class="nmc">ETF</th><th>期間</th><th>價格年化（不含息）</th><th>含息年化</th><th>殖利率（近 12 月）</th><th>配息年化</th></tr></thead><tbody>
-      ${rows.map(({ it, st }) => `<tr data-code="${esc(it.code)}"><td class="nmc"><span class="nmw"><i style="background:${colorOf[it.code]}"></i><span class="nmt" title="${esc(it.name)} ${esc(it.code)}">${esc(it.name)}</span><span class="note">${esc(it.code)}</span></span></td>
-        ${st.ok ? `<td>${st.since ? `<span title="上市以來：不和 5 年期直接比較">${esc(st.from)}～ <span class="note">上市以來 ${st.years} 年</span></span>` : `${st.from}～ <span class="note">${st.years} 年</span>`}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>
-        <td class="${cls(st.tr_ann)}">${st.tr_ann == null ? `<span class="na">${'—'}</span>` : `${pct(st.tr_ann, 2)}${st.nodiv ? ' <span class="na">不配息</span>' : ''}`}</td>`
-        : `<td colspan="3"><span class="na">無資料</span></td>`}
-        <td>${noDiv(it) ? '<span class="na">不配息</span>' : num(it.yield_ttm, (v) => pctU(v))}</td><td>${st.ok ? (noDiv(it) ? '<span class="na">不配息</span>' : num(st.div_ann, (v) => pctU(v))) : '<span class="na">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;
+      ${rows.map(({ it, st }) => { const dv = hasDiv(st); return `<tr data-code="${esc(it.code)}"${dv ? '' : ' data-nodiv="1"'}>${nameCell(it)}
+        ${st.ok ? `<td>${perCell(st)}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>
+        <td class="${dv ? cls(st.tr_ann) : ''}">${dv ? pct(st.tr_ann, 2) : NODIV}</td>`
+        : `<td colspan="3"><span class="na">${esc(whyTxt(st.why))}</span></td>`}
+        <td>${dv && it.yield_ttm != null ? pctU(it.yield_ttm) : dv ? '<span class="na">—</span>' : NODIV}</td><td>${dv ? num(st.div_ann, (v) => pctU(v)) : NODIV}</td></tr>`; }).join('')}</tbody></table>`;
+    body.innerHTML = `${auto ? '<p class="note" id="etfRetAuto">原本選的幾檔這段期間畫不出走勢，先改看這一類畫得出來的前 5 檔。</p>' : ''}<div class="retcharts"><div><div class="note note1" id="etfRetLineTtl">${lineTtl}</div><div id="etfRetLine" class="chart"></div></div>
+      <div><div class="note note1" id="etfRetBarTtl">${barTtl}</div><div id="etfRetBar" class="chart"></div></div></div>
+      <div class="rettw">${tbl}</div>`;
     body.dataset.k = pk + '|' + S.cat + '|' + S.basis; body.dataset.codes = sel.join(',');
+    body.dataset.div = allNo ? 'none' : okRows.every(({ st }) => hasDiv(st)) ? 'all' : 'mixed';
+    body.dataset.auto = auto ? '1' : '';
     $$('tr[data-code]', body).forEach((tr) => { tr.onclick = () => A().goStock(tr.dataset.code); });
-    drawRetCharts(rows, colorOf);
-    if (!S.series) loadSeries().then(() => { if (!$('#etfRetCard').hidden && $('#etfRetBody').dataset.codes === sel.join(',')) drawRet(); });
+    drawRetCharts(rows, colorOf, allNo);
+    if (!S.series) loadSeries().then(() => { if (!$('#etfRetCard').hidden) drawRet(); });
   }
-  function drawRetCharts(rows, colorOf) {
+  function drawRetCharts(rows, colorOf, allNo) {
     const a = A(), CH = a.CH;
     const lines = [];
     rows.forEach(({ it, st }) => {
       const s = seriesOf(it.code); if (!s || !st.ok) return;
-      const vals = S.basis === 'tr' ? (s.t || (noDiv(it) ? s.p : null)) : s.p; if (!vals) return;
+      const dv = hasDiv(st);
+      // 有配息且選「含息」→ 含息總報酬；其餘一律價格（沒配息的含息＝價格，不分兩種）
+      const vals = dv && S.basis === 'tr' && s.t ? s.t : s.p; if (!vals) return;
       const i0 = s.d.findIndex((d) => d >= st.from); if (i0 < 0) return;
       const base = vals[i0]; if (!base) return;
       const col = colorOf[it.code];
-      lines.push({ name: `${it.name} ${it.code}${st.since ? `（自 ${st.from.slice(0, 7)} 上市）` : ''}`, type: 'line', showSymbol: false, smooth: false, lineStyle: { width: 1.8, color: col }, emphasis: { focus: 'series' }, itemStyle: { color: col },
+      lines.push({ name: `${it.name} ${it.code}${!allNo && !dv ? '・無配息' : ''}${st.since && S.per !== 'since' ? `（自 ${st.from.slice(0, 7)} 上市）` : ''}`, type: 'line', showSymbol: false, smooth: false, lineStyle: { width: 1.8, color: col }, emphasis: { focus: 'series' }, itemStyle: { color: col },
         data: s.d.slice(i0).map((d, j) => [d, +((vals[i0 + j] / base - 1) * 100).toFixed(2)]) });
     });
     const lineEl = $('#etfRetLine'); if (!lineEl) return;
     const yrsSpan = Math.max(...rows.map(({ st }) => (st.ok ? +st.years || 0 : 0)), 0.5);
     const SC = SOFT();
     if (!lines.length) {
-      holdEmpty('etfRetLine', !S.series ? '載入中…' : '無資料');
+      holdEmpty('etfRetLine', whyNone(rows));
     } else {
       lineEl.innerHTML = '';
       a.chart('etfRetLine', {
@@ -784,25 +850,29 @@
       });
     }
     lineEl.dataset.n = String(lines.length);
+    lineEl.dataset.first = lines.length ? lines.map((l) => l.data[0][0]).sort()[0] : '';
     const ok = rows.filter(({ st }) => st.ok);
     const barEl = $('#etfRetBar');
-    if (!ok.length) { holdEmpty('etfRetBar', '無資料'); barEl.dataset.n = '0'; return; }
-    const sorted = ok.slice().sort((x, y) => ((y.st.tr_ann != null ? y.st.tr_ann : y.st.price_ann) - (x.st.tr_ann != null ? x.st.tr_ann : x.st.price_ann)));
+    if (!ok.length) { holdEmpty('etfRetBar', whyNone(rows)); barEl.dataset.n = '0'; barEl.dataset.series = ''; return; }
+    const best = (st) => (hasDiv(st) ? st.tr_ann : st.price_ann);
+    const sorted = ok.slice().sort((x, y) => best(y.st) - best(x.st));
     const v = (x) => (x == null ? null : +(x * 100).toFixed(2));
+    const lab = { show: true, position: 'right', color: CH.ink2, fontSize: 11, formatter: (p) => (p.value == null ? '' : p.value + '%') };
+    const series = allNo
+      ? [{ name: '年化報酬率', type: 'bar', data: sorted.map(({ st }) => v(st.price_ann)), itemStyle: { color: SC.a, borderRadius: [0, 2, 2, 0] }, barMaxWidth: 12, label: lab }]
+      : [{ name: '不含息', type: 'bar', data: sorted.map(({ st }) => v(st.price_ann)), itemStyle: { color: SC.a, borderRadius: [0, 2, 2, 0] }, barMaxWidth: 10, label: lab },
+        { name: '含息', type: 'bar', data: sorted.map(({ st }) => (hasDiv(st) ? v(st.tr_ann) : null)), itemStyle: { color: SC.b, borderRadius: [0, 2, 2, 0] }, barMaxWidth: 10, label: lab }];
+    const ylab = ({ it, st }) => [it.name, st.since && S.per !== 'since' ? `上市以來 ${st.years} 年` : '', !allNo && !hasDiv(st) ? '無配息' : ''].filter(Boolean).join('\n');
     barEl.innerHTML = '';
     a.chart('etfRetBar', {
-      grid: { left: 96, right: 52, top: 30, bottom: 24 }, legend: { top: 0, textStyle: { color: CH.ink2, fontSize: 12 } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (x) => (x == null ? '無資料' : x + '%') },
+      grid: { left: 96, right: 52, top: allNo ? 8 : 30, bottom: 24 }, legend: { show: !allNo, top: 0, textStyle: { color: CH.ink2, fontSize: 12 } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (x) => (x == null ? '無配息' : x + '%') },
       xAxis: { type: 'value', ...a.axisStyle, splitLine: { show: true, lineStyle: { color: CH.grid, opacity: 1 } }, axisLabel: { ...a.axisStyle.axisLabel, formatter: (x) => x + '%' } },
-      yAxis: { type: 'category', inverse: true, data: sorted.map(({ it, st }) => (st.since ? `${it.name}\n上市以來 ${st.years} 年` : it.name)), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 12, width: 86, overflow: 'truncate' } },
-      series: [
-        { name: '不含息', type: 'bar', data: sorted.map(({ st }) => v(st.price_ann)), itemStyle: { color: SC.a, borderRadius: [0, 2, 2, 0] }, barMaxWidth: 10,
-          label: { show: true, position: 'right', color: CH.ink2, fontSize: 11, formatter: (p) => (p.value == null ? '' : p.value + '%') } },
-        { name: '含息', type: 'bar', data: sorted.map(({ st }) => v(st.tr_ann)), itemStyle: { color: SC.b, borderRadius: [0, 2, 2, 0] }, barMaxWidth: 10,
-          label: { show: true, position: 'right', color: CH.ink2, fontSize: 11, formatter: (p) => (p.value == null ? '無資料' : p.value + '%') } },
-      ],
+      yAxis: { type: 'category', inverse: true, data: sorted.map(ylab), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 12, width: 86, overflow: 'truncate' } },
+      series,
     });
     barEl.dataset.n = String(ok.length);
+    barEl.dataset.series = series.map((x) => x.name).join(',');
   }
 
   /* ------------------------------------------------------------------ 入口 */
@@ -817,7 +887,8 @@
     injectCSS();
     const root = document.getElementById('v-etf'); if (!root) return;
     S.cat = '配息型'; S.pop = LS.get('tw.etf.pop', 'holders');
-    S.per = LS.get('tw.etf.per', '5y'); S.basis = LS.get('tw.etf.basis', 'tr'); S.cmp = {};
+    S.per = LS.get('tw.etf.per', '5y'); if (!PERS.some((x) => x[0] === S.per)) S.per = '5y';
+    S.cfrom = LS.get('tw.etf.cfrom', '') || yrsAgo(todayTW(), 3); S.cto = todayTW(); S.basis = LS.get('tw.etf.basis', 'tr'); S.cmp = {};
     try { await window.CalGrid.load(); } catch (e) { /* 沒有休市日只標週末 */ }
     skeleton(root);
     $('#etfSort').onchange = (e) => { S.sort = e.target.value; S.shown = PAGE; drawList(); };
