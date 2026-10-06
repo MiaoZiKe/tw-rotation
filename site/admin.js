@@ -1378,7 +1378,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         emphasis: { scale: true, scaleSize: D.SCALE, label: { show: pm }, itemStyle: { borderColor: A.CH.ink, borderWidth: D.BORDER_HI } } })[0];
       const mk = () => [ring(am, 52, 68, 0, false), ring(pmH, 72, 92, 12, true), D.series({})[1]];
       const c1 = '尖峰時段', c2 = `${two(sp.pk)} 時`;
-      A.chart(el, { tooltip: { ...A.tip, confine: false, position: D.tipPosFor(0.7), trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(q.data.n)} 次${what}（占 ${(q.data.n / tot * 100).toFixed(1)}%）` },
+      A.chart(el, { tooltip: { ...A.tip, confine: false, position: D.tipPosFor(0.7, (dom) => { const c = dom.closest('.dnc'), lg = c && c.closest('[data-chart]').querySelector('ul.lg'); if (!lg) return []; const cr = c.getBoundingClientRect(), r = lg.getBoundingClientRect(); return [{ l: r.left - cr.left, t: r.top - cr.top, r: r.right - cr.left, b: r.bottom - cr.top }]; }), trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(q.data.n)} 次${what}（占 ${(q.data.n / tot * 100).toFixed(1)}%）` },
         title: D.center(c1, c2, SZ, 0.52), animationDurationUpdate: D.MS, series: mk() }, { notMerge: true });
       const inst = echarts.getInstanceByDom(el); if (!inst) return;
       const box = el.closest('[data-chart]');

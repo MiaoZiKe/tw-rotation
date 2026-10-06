@@ -775,7 +775,7 @@
     TRACK: [65, 65.8], SIDE_MIN: 420, MIN: 160,
     /* 提示框跟在游標外側（背離圓心那一側）。★ 以「離圓心更遠」為準：算出提示卡矩形後，若碰到半徑 avoid×R 的圓（中心字與內圈）就沿「圓心→游標」方向往外推到不碰為止。
        avoid＝要避開的圓半徑占整個圖半徑的比例：單圈甜甜圈＝內徑（R_IN）；兩圈的時鐘＝內圈外緣。 */
-    tipPosFor(avoid) {
+    tipPosFor(avoid, extra) {
       return function (pt, params, dom, rect, size) {
         const W = size.viewSize[0], H = size.viewSize[1], w = size.contentSize[0], h = size.contentSize[1], cx = W / 2, cy = H / 2, rc = Math.min(W, H) / 2 * avoid;
         const dx = pt[0] - cx, dy = pt[1] - cy, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
@@ -783,6 +783,15 @@
         if (Math.abs(dx) < W * 0.18) x = pt[0] - w / 2;
         const hit = () => { const nx = Math.max(x, Math.min(cx, x + w)), ny = Math.max(y, Math.min(cy, y + h)); return Math.hypot(nx - cx, ny - cy) < rc + 6; };
         for (let k = 0; k < 60 && hit(); k++) { x += ux * 6; y += uy * 6; }
+        /* 還要避開 extra(dom) 給的矩形（例如圖例）：碰到就改放游標左側／上方（四種組合挑第一個不碰圓也不碰矩形的） */
+        const rs = extra ? (extra(dom) || []) : [];
+        const bad = (xx, yy) => { const nx = Math.max(xx, Math.min(cx, xx + w)), ny = Math.max(yy, Math.min(cy, yy + h));
+          return Math.hypot(nx - cx, ny - cy) < rc + 6 || rs.some(q => xx < q.r && xx + w > q.l && yy < q.b && yy + h > q.t); };
+        if (rs.length && bad(x, y)) {
+          const cand = [[pt[0] - w - 14, y], [x, pt[1] - h - 14], [pt[0] - w - 14, pt[1] - h - 14], [pt[0] - w / 2, pt[1] - h - 14], [pt[0] - w - 14, pt[1] + 14],
+            [pt[0] - w / 2, cy - Math.min(W, H) / 2 - h - 6], [pt[0] - w / 2, cy + Math.min(W, H) / 2 + 6], [cx - Math.min(W, H) / 2 - w - 6, pt[1] - h / 2]];   // 最後三個：環的正上方／正下方／左外側
+          const ok2 = cand.find(c => !bad(c[0], c[1])); if (ok2) { x = ok2[0]; y = ok2[1]; }
+        }
         return [x, y];
       };
     },

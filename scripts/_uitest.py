@@ -48706,6 +48706,22 @@ def t_traffic_1005(b, base, code):
             pg.mouse.move(2, 2); pg.wait_for_timeout(450)
             ck3 = pg.evaluate(CK_STATE)
             ok(f"{TT}：時鐘滑開 → 外框還原、中心換回「尖峰時段」", not [it for it in ck3["items"] if it["bw"] >= 3] and ck3["title"][0] == "尖峰時段", ck3)
+        # ★ 提示卡不與圖例相交（Andy 16:40）：外圈 12 格＋內圈 12 格逐格滑過，量提示卡矩形 vs 圖例矩形
+        bad_tip = []
+        for pm in (1, 0):
+            for k in range(12):
+                cc = pg.evaluate("() => { const e = document.querySelector('#trClock .dnc'); e.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) / 2]; }")
+                ang = _m.radians(k * 30 + 15); rr = cc[2] * (0.82 if pm else 0.60)
+                px, py = cc[0] + rr * _m.sin(ang), cc[1] - rr * _m.cos(ang)
+                pg.mouse.move(2, 2); pg.mouse.move(px - 5, py - 5); pg.mouse.move(px, py, steps=3); pg.mouse.move(px + 1, py + 1, steps=2); pg.wait_for_timeout(300)
+                ov = pg.evaluate("""() => { const e = document.querySelector('#trClock .dnc'), lg = document.querySelector('#trClock ul.lg').getBoundingClientRect(),
+                    t = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20).pop();
+                    if (!t) return { none: true }; const r = t.getBoundingClientRect();
+                    return { none: false, hit: r.left < lg.right && r.right > lg.left && r.top < lg.bottom && r.bottom > lg.top }; }""")
+                if ov.get("none") or ov.get("hit"):
+                    bad_tip.append((pm, k, ov))
+        ok(f"★ {TT}：時鐘提示卡矩形不與圖例矩形相交（內外圈 24 格逐格滑過）", not bad_tip, bad_tip[:4])
+        pg.mouse.move(2, 2); pg.wait_for_timeout(300)
         pg.hover("#trClock ul.lg li[data-row] >> nth=0"); pg.wait_for_timeout(450)
         ck4 = pg.evaluate(CK_STATE)
         ok(f"{TT}：時鐘圖例連動：滑過「尖峰」那一列 → 對應那一格外框 ≥ 3、中心換成該小時", len([it for it in ck4["items"] if it["bw"] >= 3]) == 1 and re.match(r"^\d\d:00–\d\d:59$", ck4["title"][0]), ck4)
