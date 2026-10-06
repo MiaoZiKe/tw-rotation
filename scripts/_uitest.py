@@ -23570,8 +23570,10 @@ SECTIONS = {
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
     "全市場1H4H":          lambda pg, b, base, code: t_intraday_all(pg, base, code),
-    # ★ 2026-10-01 Andy：搜尋熱門股票走勢圖對齊；自選頁滿寬＋每列走勢圖＋點了展開（走勢／K 線＋週期）（⚠ 一律 --workers 1）
+    # ★ 2026-10-01 Andy：搜尋熱門股票走勢圖對齊；自選頁滿寬＋每列走勢圖（10-06 拿掉點了展開，改驗不展開）（⚠ 一律 --workers 1）
     "自選走勢與搜尋對齊":  lambda pg, b, base, code: t_watch_spark(b, base),
+    # ★ 2026-10-06 Andy：「移除點選小走勢圖 出現下方放大走勢跟K線圖功能，並且自選介面需要確保數據是前一天的」（⚠ 一律 --workers 1）
+    "自選1006":            lambda pg, b, base, code: t_watch_1006(b, base),
     # ★ 2026-10-02 Andy：V2 的版面結構搬到 v4 —— 可收合左側導覽、頁首、本頁功能跳轉列、事件抽屜、手機頁名＋線條圖示（DECISIONS #291，⚠ 一律 --workers 1）
     "版面v2結構":          lambda pg, b, base, code: t_layout4(b, base, code),
     # ★ 2026-10-02 Andy 五張截圖：個股頁下方分頁 —— 籌碼快照三張比例小圖、基本面小圖、AI 重點＋四張面向卡、
@@ -48414,8 +48416,8 @@ def t_design_v4_2b(b, base, code):
 
 # ===================================================================== 自選走勢與搜尋對齊（2026-10-01，DECISIONS #282）
 # Andy 2026-10-01：搜尋下拉「熱門股票」的小走勢圖起點不齊（名稱長短不同就前後移、還壓到名稱）；
-# 自選頁要用滿寬、每列加走勢圖、點走勢圖在下面展開（走勢／K 線＋週期）、再點收起、點名稱照舊進個股頁。
-# 每一步都驗「畫面真的變了」：left 一致、展開那一列真的出現、換 K 線後 KChart 真的在、換週期後根數真的變。
+# 自選頁要用滿寬、每列加走勢圖、點名稱照舊進個股頁。
+# （2026-10-06 Andy 拿掉「點走勢圖在下面展開」→ ③ 改驗點了不展開；原本的展開／K 線／週期驗收一併拿掉。）
 WS_SG = """() => { const s = document.getElementById('sugg');
     const rows = [...s.querySelectorAll('.sgrow[data-c]')].filter(r => r.getClientRects().length);
     const L = (sel) => rows.map(r => { const e = r.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left * 2) / 2 : null; });
@@ -48541,63 +48543,17 @@ def t_watch_spark(b, base):
         ok(f"{T}{W} 自選列小走勢最後一點跟列上現價差 < 1%",
            all(x["rowPx"] and abs(x["last"] / x["rowPx"] - 1) < 0.01 for x in wl), [(x["code"], x["last"], x["rowPx"]) for x in wl])
         ok(f"{T}{W} 自選列小走勢用實際像素畫（沒被 CSS 拉伸，圓點不會變橢圓）",
-           all(abs(pg.evaluate("(c) => document.querySelector(`#wpTbl .wpspk[data-exp='${c}'] svg.spk`).getBoundingClientRect().width", x["code"]) - x["W"]) < 0.6 for x in wl),
+           all(abs(pg.evaluate("(c) => document.querySelector(`#wpTbl .wpspk[data-c='${c}'] svg.spk`).getBoundingClientRect().width", x["code"]) - x["W"]) < 0.6 for x in wl),
            [(x["code"], x["W"]) for x in wl])
 
-        # ---- ③ 點走勢圖 → 那一列下方展開一張圖（預設走勢）
-        pg.click('#wpTbl .wpspk[data-exp="2330"]')
-        wait_until(pg, "() => { const c = document.getElementById('wpxC'); return c && c.dataset.state === 'ok'; }", 8000)
+        # ---- ③～⑦ ★ 2026-10-06 改（Andy：「移除點選小走勢圖 出現下方放大走勢跟K線圖功能」）：
+        #   原本驗「點走勢圖展開／切 K 線／切週期／只展開一列／再點收起」，展開功能拿掉了 → 改驗「點了不會展開、也不換頁」。
+        #   細節（每列都點、1440／390、資料日）在「自選1006」一段。
+        pg.click('#wpTbl .wpspk[data-c="2330"]'); pg.wait_for_timeout(400)
         st = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 點走勢圖在那一列下方展開", st["exp"] == "2330" and st["prev"] == "2330" and st["nexp"] == 1, st)
-        ok(f"{T}{W} 展開圖高 250～330、真的畫了線", 250 <= st["h"] <= 330 and st["mode"] == "line" and st["ec"] and st["n"] >= 2, st)
-        ok(f"{T}{W} 展開不離開自選頁", st["hash"] == "#watch", st)
-        # 2026-10-02（#290）：展開大圖跟列上小圖同一份資料、同一段期間 —— 點數、第一點、最後一點、基準逐一相同
-        xs = pg.evaluate("""() => { const c = document.getElementById('wpxC'), s = document.querySelector('#wpTbl .wpspk[data-exp="2330"] svg.spk');
-            const i = echarts.getInstanceByDom(c), o = i.getOption(), sr = o.series[0];
-            const ml = ((sr.markLine || {}).data || []).find(d => d.yAxis != null);
-            return { n: +c.dataset.n, first: +c.dataset.first, last: +c.dataset.last, base: +c.dataset.base, ymin: +c.dataset.ymin, ymax: +c.dataset.ymax,
-              sn: +s.dataset.n, sfirst: +s.dataset.first, slast: +s.dataset.last, sbase: +s.dataset.base,
-              ml: ml ? ml.yAxis : null, data: sr.data.length, note: document.getElementById('wpxNote').textContent }; }""")
-        ok(f"{T}{W} 展開大圖與列上小圖同一份資料（點數／起／訖／基準相同）",
-           xs["n"] == xs["sn"] == xs["data"] and xs["n"] >= 30 and abs(xs["first"] - xs["sfirst"]) < 1e-6
-           and abs(xs["last"] - xs["slast"]) < 1e-6 and abs(xs["base"] - xs["sbase"]) < 1e-6, xs)
-        ok(f"{T}{W} 展開大圖有昨收虛線、Y 軸包含它", xs["ml"] is not None and abs(xs["ml"] - xs["base"]) < 1e-6
-           and xs["ymin"] <= xs["base"] <= xs["ymax"], xs)
-        ok(f"{T}{W} 展開大圖小註寫出期間、起訖與漲跌幅", "交易日" in xs["note"] and "起 " in xs["note"] and "訖 " in xs["note"] and "%" in xs["note"], xs["note"])
-        # Y 軸刻度標籤彼此不重疊（以前手算 min／max 會在 4,900 底下多冒一個 4,878 疊在一起）
-        yov = pg.evaluate("""() => { const i = echarts.getInstanceByDom(document.getElementById('wpxC'));
-            const ys = i.getModel().getComponent('yAxis').axis.getTicksCoords().map(t => t.coord).sort((a, b) => a - b);
-            let m = 1e9; for (let k = 1; k < ys.length; k++) m = Math.min(m, ys[k] - ys[k - 1]); return Math.round(m); }""")
-        ok(f"{T}{W} 展開走勢圖 Y 軸刻度間距夠（標籤不疊）", yov >= 14, yov)
+        ok(f"{T}{W} 點小走勢不展開、不離開自選頁", st["nexp"] == 0 and st["h"] == 0 and st["hash"] == "#watch" and st["rows"] == 3, st)
         if W == 390:
-            ok(f"{T}{W} 手機展開圖用滿寬（扣卡片內距）", st["w"] >= st["cardW"] - 50, st)
             ok(f"{T}{W} 手機自選表不超出卡片", pg.evaluate("() => document.getElementById('wpTbl').getBoundingClientRect().right <= document.querySelector('#v-watch .wpcard').getBoundingClientRect().right + 1"), "表格右緣超出卡片")
-
-        # ---- ④ 切 K 線 → KChart（canvas）取代走勢線
-        pg.click('tr.wpexp button[data-xm="k"]')
-        wait_until(pg, "() => { const c = document.getElementById('wpxC'); return c && c.dataset.mode === 'k' && c.dataset.state === 'ok'; }", 8000)
-        k1 = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 切 K 線後圖真的換了（canvas、不是 ECharts）", k1["mode"] == "k" and k1["tf"] == "1d" and k1["canvas"] > 0 and not k1["ec"] and k1["n"] > 20, k1)
-
-        # ---- ⑤ 切週期 → 真的重畫（根數變了、序號變了）
-        for tf in ("60m", "240m", "1w"):
-            pg.click(f'tr.wpexp button[data-xtf="{tf}"]')
-            wait_until(pg, f"() => {{ const c = document.getElementById('wpxC'); return c && c.dataset.tf === '{tf}' && c.dataset.state; }}", 8000)
-            k2 = pg.evaluate(WS_ST)
-            ok(f"{T}{W} 切到 {tf} 真的重畫", k2["tf"] == tf and k2["seq"] != k1["seq"]
-               and (k2["n"] != k1["n"] or k2["state"] == "empty"), {"前": k1, "後": k2})
-            k1 = k2
-
-        # ---- ⑥ 只展開一列：點另一列 → 舊的收起、新的展開
-        pg.click('#wpTbl .wpspk[data-exp="1303"]')
-        wait_until(pg, "() => { const x = document.querySelector('tr.wpexp'); return x && x.dataset.expRow === '1303'; }", 6000)
-        st = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 同時只展開一列", st["nexp"] == 1 and st["exp"] == "1303", st)
-
-        # ---- ⑦ 再點同一格 → 收起
-        pg.click('#wpTbl .wpspk[data-exp="1303"]'); pg.wait_for_timeout(250)
-        st = pg.evaluate(WS_ST)
-        ok(f"{T}{W} 再點一次收起", st["nexp"] == 0 and st["hash"] == "#watch", st)
 
         # ---- ⑧ 點名稱 → 照舊進個股頁
         pg.click('#wpTbl tr[data-go="2454"] .wpgo')
@@ -48624,6 +48580,154 @@ def t_watch_spark(b, base):
             changed(f"{T}{W} 切主題後小走勢線色真的換了", [x[1] for x in c1["lines"]], [x[1] for x in c2["lines"]])
             dg_set_theme(pg, c1["theme"], 300)
         ctx.close()
+    ok(f"{T} 沒有 pageerror", not errs, errs[:5])
+
+
+# ===================================================================== 自選1006（2026-10-06）
+# Andy 10-06 13:00（截圖：#watch 點台積電小走勢 → 下方展開「最近 5 個交易日・每小時（09/24～10/02）」，今天已經 10/06）：
+#   「移除點選小走勢圖 出現下方放大走勢跟K線圖功能，並且自選介面需要確保數據是前一天的」
+# 驗三件事，1440 與 390 各一輪：
+#   ① 每一列的小走勢都點一次 → 沒有展開列、沒有新圖表、還在 #watch、列數不變；點名稱照舊進個股頁。
+#   ② 資料日：把瀏覽器時鐘撥到「本機資料日的下一個交易日」晚上（＝前一交易日正好是資料日），
+#      每一列小走勢最後一點的日期 ≥ 前一交易日、也等於全站資料日（沒有哪一列停在更早的日子），而且沒有落後標記。
+#   ③ 落後提示真的會出現：時鐘再往後撥兩個交易日 → 每一列都標落後（數字變淡、title 寫「資料至 MM/DD」、
+#      小走勢提示框多一行同樣的字），畫面上不多出任何日期膠囊。
+W1006_ROWS = """() => { const rows = [...document.querySelectorAll('#wpTbl tbody tr[data-go]')];
+    const md2 = (d) => d ? d.slice(5, 7) + '/' + d.slice(8, 10) : '';
+    return { n: rows.length, nexp: document.querySelectorAll('#wpList tr.wpexp, #wpxC').length,
+      charts: document.querySelectorAll('#wpList canvas').length, hash: location.hash,
+      meta: (App.D && App.D.meta && App.D.meta.data_date) || '',
+      rows: rows.map(r => { const c = r.dataset.go, sd = App.sparkData ? App.sparkData(c) : null, px = r.querySelector('[data-live="close"]');
+        return { c, d1: sd ? sd.d1 : '', stale: r.dataset.stale || '', cls: px ? px.className : '', title: px ? px.title : '',
+          hint: (r.querySelector('.wpspk') || {}).dataset?.tiphint || '', btn: !!r.querySelector('.wpspk button, button.wpspk'),
+          vis: r.innerText }; }),
+      sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+
+
+def _w1006_days(meta_date, hol):
+    """資料日之後的第 1、第 2 個交易日（跳週末與 tw_holidays.json 的休市日）。"""
+    import datetime as _dt
+    d = _dt.date.fromisoformat(meta_date)
+    out = []
+    while len(out) < 2:
+        d += _dt.timedelta(days=1)
+        k = d.isoformat()
+        if d.weekday() >= 5 or k in hol:
+            continue
+        out.append(k)
+    return out
+
+
+def t_watch_1006(b, base):
+    T = "[自選1006]"
+    errs: list[str] = []
+    codes = ["2330", "2454", "1303", "2317"]
+    for W in (1440, 390):
+        # 先開一頁讀本機資料日與休市日（決定要把時鐘撥到哪一天）
+        ctx0 = b.new_context(viewport={"width": W, "height": 900})
+        p0 = ctx0.new_page()
+        p0.goto(base + "#overview", wait_until="domcontentloaded")
+        info = p0.evaluate("""async () => { const m = await (await fetch('data/meta.json', { cache: 'no-store' })).json();
+            let h = {}; try { h = (await (await fetch('tw_holidays.json', { cache: 'no-store' })).json()).days || {}; } catch (e) {}
+            return { d: m.data_date, hol: Object.keys(h) }; }""")
+        ctx0.close()
+        if not ok(f"{T}{W} 本機有資料日", bool(info and info.get("d")), info):
+            continue
+        L = info["d"]
+        n1, n2 = _w1006_days(L, set(info["hol"]))
+        md = L[5:7] + "/" + L[8:10]
+
+        for phase, day in (("準時", n1), ("落後", n2)):
+            ctx = b.new_context(viewport={"width": W, "height": 900})
+            pg = ctx.new_page()
+            pg.on("pageerror", lambda e: errs.append(f"{W}{phase}: {e}"))
+            pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            # 台北 20:00（收盤後、15:30 管線也跑完了）：這時「前一交易日」就是 day 的前一個交易日
+            pg.clock.install(time=f"{day}T12:00:00Z")          # ★ 一定要在 goto 之前
+            pg.goto(base + "#overview", wait_until="networkidle")
+            wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0 && !!window.TwWatch", 8000)
+            pg.evaluate("(cs) => { const T = TwWatch; T.curTab().codes.slice().forEach(c => T.remove(c)); cs.forEach(c => T.add(c)); }", codes)
+            pg.goto(base + "#watch", wait_until="networkidle")
+            wait_until(pg, "() => document.querySelectorAll('#wpTbl .wpspk svg.spk').length >= 4 && window.CalGrid && Object.keys(CalGrid.days() || {}).length > 0", 8000)
+            pg.wait_for_timeout(300)
+            r0 = pg.evaluate(W1006_ROWS)
+            ok(f"{T}{W}{phase} 四列都有小走勢、沒有橫向捲軸", r0["n"] == 4 and r0["sw"] <= r0["vw"], {k: r0[k] for k in ("n", "sw", "vw")})
+            ok(f"{T}{W}{phase} 小走勢不是按鈕（沒有可展開的東西）", not any(x["btn"] for x in r0["rows"]), [x["c"] for x in r0["rows"] if x["btn"]])
+            if phase == "準時":
+                # ② 每一列最後一點 ≥ 前一交易日（＝資料日 L），也等於全站資料日
+                ok(f"{T}{W} 全站資料日＝本機資料日 {md}", r0["meta"] == L, r0["meta"])
+                ok(f"{T}{W} 每一列小走勢最後一點＝{md}（≥ 前一交易日，沒有停在更早的日子）",
+                   all(x["d1"] == md for x in r0["rows"]), [(x["c"], x["d1"]) for x in r0["rows"]])
+                ok(f"{T}{W} 資料準時 → 沒有落後標記", not any(x["stale"] or "wpstale" in x["cls"] or x["hint"] for x in r0["rows"]),
+                   [(x["c"], x["stale"], x["cls"]) for x in r0["rows"]])
+                # ① 每一列的小走勢都真的點一次 → 不展開、不換頁
+                for c in codes:
+                    pg.click(f'#wpTbl .wpspk[data-c="{c}"]'); pg.wait_for_timeout(250)
+                    r1 = pg.evaluate(W1006_ROWS)
+                    ok(f"{T}{W} 點 {c} 小走勢 → 不展開、沒有新圖、還在自選頁",
+                       r1["nexp"] == 0 and r1["charts"] == r0["charts"] and r1["hash"] == "#watch" and r1["n"] == 4,
+                       {k: r1[k] for k in ("nexp", "charts", "hash", "n")})
+                # 點名稱照舊進個股頁
+                pg.click('#wpTbl tr[data-go="2454"] .wpgo')
+                wait_until(pg, "() => location.hash.startsWith('#stock/')", 4000)
+                ok(f"{T}{W} 點名稱照舊進個股頁", pg.evaluate("() => location.hash") == "#stock/2454", pg.evaluate("() => location.hash"))
+            else:
+                # ③ 往後撥兩個交易日 → 每一列都落後，要講出「資料至 MM/DD」
+                ok(f"{T}{W} 時鐘撥到 {day}（前一交易日 {n1}）→ 每一列都標落後",
+                   all(x["stale"] == md and "wpstale" in x["cls"] for x in r0["rows"]), [(x["c"], x["stale"], x["cls"]) for x in r0["rows"]])
+                ok(f"{T}{W} 落後列的現價滑過寫「資料至 {md}」、小走勢提示也有",
+                   all(f"資料至 {md}" in x["title"] and x["hint"] == f"資料至 {md}" for x in r0["rows"]),
+                   [(x["c"], x["title"], x["hint"]) for x in r0["rows"]])
+                ok(f"{T}{W} 畫面上沒有多出日期字樣（DECISIONS #329：不放日期膠囊）",
+                   not any("資料至" in x["vis"] or md in x["vis"] for x in r0["rows"]), [x["vis"][:60] for x in r0["rows"]])
+                cs = pg.evaluate("""() => { const e = document.querySelector('#wpTbl td.wpstale'), n = document.querySelector('#wpTbl td.nm b');
+                    return e && n ? [getComputedStyle(e).color, getComputedStyle(n).color, getComputedStyle(e).textDecorationStyle] : null; }""")
+                ok(f"{T}{W} 落後的數字真的變淡（顏色跟名稱不同、虛線底）", bool(cs) and cs[0] != cs[1] and cs[2] == "dotted", cs)
+                if W >= 800:
+                    pg.hover('#wpTbl .wpspk[data-c="2330"] svg.spk'); pg.wait_for_timeout(200)
+                    tip = pg.evaluate("() => { const t = document.querySelector('.spktip'); return t && !t.hidden ? t.textContent : null; }")
+                    ok(f"{T}{W} 滑到落後列的小走勢 → 提示框寫「資料至 {md}」", bool(tip) and f"資料至 {md}" in tip, tip)
+            if W == 390:
+                fs = pg.evaluate("""() => Math.min(...[...document.querySelectorAll('#wpTbl td, #wpTbl th')].filter(e => e.getClientRects().length && e.innerText.trim())
+                    .map(e => parseFloat(getComputedStyle(e).fontSize)))""")
+                ok(f"{T}{W}{phase} 手機表格字 ≥ 11px", fs >= 11, fs)
+            ctx.close()
+
+    # ④ 根因回歸：上次開站存下來的舊資料（IndexedDB 存檔）先到時，網路版回來之後自選列要換成網路版，
+    #    不准停在存檔那天（以前 watchpage 第一次拿到 stocks 就記住、展開圖的 _wbCache 也記住 → 要重新整理才換）。
+    #    做法：打開存檔機制 → 正常開一次 #watch（寫好存檔）→ 把存檔裡 2330 的現價改成 1、版本改舊 →
+    #    再開一次、data/*.json 全部慢 4 秒 → 先看到 1（證明存檔真的先到）→ 網路版到了 → 變回真的現價。
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, timezone_id="Asia/Taipei")
+    ctx.add_init_script("window.__TW_SNAP__ = 1;")
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(f"存檔: {e}"))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#overview", wait_until="networkidle")
+    wait_until(pg, "() => window.App && App.L && App.L.all && App.L.all.length > 0 && !!window.TwWatch", 8000)
+    pg.evaluate("(cs) => { const T = TwWatch; T.curTab().codes.slice().forEach(c => T.remove(c)); cs.forEach(c => T.add(c)); }", codes)
+    pg.goto(base + "#watch", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#wpTbl tbody tr[data-go]').length >= 4", 8000)
+    pg.wait_for_timeout(2000)                                  # 讓背景存檔寫完
+    real = pg.evaluate("() => document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]').textContent.trim()")
+    hacked = pg.evaluate("""() => new Promise((res) => { const rq = indexedDB.open('tw-snap', 1);
+        rq.onsuccess = () => { const db = rq.result, t = db.transaction('f', 'readwrite'), st = t.objectStore('f'), g = st.get('stocks');
+          g.onsuccess = () => { const r = g.result; if (!r) return res(false);
+            (r.data || []).forEach(x => { if (x.code === '2330') x.close = 1; }); r.ver = 'old'; st.put(r); };
+          t.oncomplete = () => res(true); t.onerror = () => res(false); };
+        rq.onerror = () => res(false); })""")
+    ok(f"{T} 存檔裡有 stocks（改成舊資料）", hacked, hacked)
+    pg.add_init_script("""(() => { const F = window.fetch; window.fetch = function (i, o) {
+        const u = String((i && i.url) || i);
+        if (/(^|\/)data\/[^?]*\.json/.test(u)) return new Promise(r => setTimeout(r, 4000)).then(() => F.call(this, i, o));
+        return F.call(this, i, o); }; })();""")
+    pg.goto("about:blank")
+    pg.goto(base + "#watch", wait_until="domcontentloaded")
+    first = wait_until(pg, "() => { const e = document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]'); return e && e.textContent.trim() === '1'; }", 3500)
+    ok(f"{T} 存檔先到：自選列先顯示存檔的現價（1）", bool(first), pg.evaluate("() => (document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]') || {}).textContent"))
+    after = wait_until(pg, "() => { const e = document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]'); return e && e.textContent.trim() === %s; }" % json.dumps(real), 15000)
+    ok(f"{T} 網路版到了 → 自選列換成網路版現價（{real}），不停在存檔那天", bool(after),
+       pg.evaluate("() => (document.querySelector('#wpTbl tr[data-go=\"2330\"] [data-live=\"close\"]') || {}).textContent"))
+    ctx.close()
     ok(f"{T} 沒有 pageerror", not errs, errs[:5])
 
 

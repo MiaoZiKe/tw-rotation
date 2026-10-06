@@ -7,7 +7,7 @@
      所以「本機 localStorage／登入後雲端」兩條路自動都對。
    · 版面：上面一排清單分頁（最多 5 頁：新增、改名＝雙擊或 ✎、刪除要先確認、桌機可拖曳排序），
      中間一個搜尋框（代號或名稱，Enter 加入第一筆），下面是這一頁的股票表：
-     Logo＋名稱＋代號、小走勢（點了在下面展開大圖）、現價、漲跌幅、成交值、✕ 移除；點一列進個股頁。
+     Logo＋名稱＋代號、小走勢（只看不點，2026-10-06 拿掉點了展開大圖）、現價、漲跌幅、成交值、✕ 移除；點一列進個股頁。
    · 現價／漲跌幅標了 data-live，盤中即時層（live.js）會直接更新這兩格，跟站上其他表格同一套。
    · 為什麼是新檔：app.js 同時有好幾位 agent 在改（個股頁、搜尋、K 線），整頁 UI 放在自己的檔案裡撞檔面積最小；
      app.js 只多了路由那一行。樣式也由本檔自己注入（同 watchlists.js 的做法）。
@@ -19,21 +19,26 @@
   const A = () => window.App;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const isM = () => window.matchMedia('(max-width: 640px)').matches;
-  const P = { editing: null, confirm: false, q: '', hint: '', drag: null, exp: null, mode: 'line', tf: '1d' };
-  let expK = null, expSeq = 0;   // 展開圖的 KChart 本人（換列／收起要 destroy）、非同步載入的序號（快速連點只畫最後一次）
-  let stocks = null, byCode = new Map();
+  const P = { editing: null, confirm: false, q: '', hint: '', drag: null };
+  let stocks = null, stocksSrc = null, byCode = new Map();
 
+  /* ★ 2026-10-06 根因修正（Andy：自選停在 4 天前）：以前第一次拿到 stocks 就記住、之後永遠用那一份。
+     但全站 load() 會「先貼上次存的（IndexedDB 存檔）、網路版到了內容不同再重畫」（app.js Snap／swrSettle）——
+     存檔先到時這裡記住的就是**上次開站那天**的現價／漲跌幅，網路版到了重畫也還是舊的，要重新整理才換。
+     改成每次都向 load() 要（拿到的就是 App.D 目前那份），換了一份才重建對照表。*/
   function loadStocks() {
-    if (stocks) return Promise.resolve(stocks);
     const a = A();
     return (a && a.load ? a.load('stocks', { fallback: [] }) : Promise.resolve([])).then((l) => {
-      stocks = (l || []).filter((r) => r && r.code);
-      byCode = new Map(stocks.map((r) => [r.code, r]));
+      if (l !== stocksSrc || !stocks) {
+        stocksSrc = l;
+        stocks = (l || []).filter((r) => r && r.code);
+        byCode = new Map(stocks.map((r) => [r.code, r]));
+      }
       return stocks;
     });
   }
   /* 小走勢（2026-10-01 改，DECISIONS #282；2026-10-02 v2，DECISIONS #290）：直接用搜尋下拉那一支（App.sparkSVG ＋ data/sparks.json）。
-     v2 的期間與點跟下面的展開大圖逐點相同（App.trendSeries）：有 60 分 K 就是最近 5 個交易日每小時（30 點），沒有就是最近 60 日收盤；
+     v2：有 60 分 K 就是最近 5 個交易日每小時（30 點），沒有就是最近 60 日收盤（口徑在 pipeline/compute/sparks.py）；
      有外框、基準虛線、面積、終點圓點，滑上去看期間／起訖／漲跌幅。尺寸用實際像素畫（不要用 CSS 拉伸，圓點會變橢圓）。
      sparks.json 是每次部署產出的靜態檔，不加任何抓取頻率、不碰 mis。*/
   const spkSize = () => (isM() ? { w: 46, h: 20 } : { w: 80, h: 26 });
@@ -99,25 +104,12 @@
 .wptbl .del:hover{color:#ff6b7a}
 .wpempty{padding:28px 12px;text-align:center;color:var(--ink-2);font-size:14px}
 .wptbl td.c-sp{width:96px;padding:4px 8px;text-align:center}
-.wpspk{display:inline-flex;align-items:center;justify-content:center;width:88px;height:32px;padding:0;border:1px solid transparent;border-radius:7px;background:none;cursor:pointer}
-.wpspk:hover,.wpspk[aria-expanded="true"]{border-color:var(--line-2);background:var(--panel-2)}
-.wpspk[aria-expanded="true"]{border-color:var(--cyan)}
+/* 2026-10-06（Andy：移除點小走勢圖展開大圖）：小走勢只看不點 —— 不是按鈕、沒有 hover 框；點這一格不換頁也不展開（見 onClick） */
+.wpspk{display:inline-flex;align-items:center;justify-content:center;width:88px;height:32px;cursor:default}
 .wpspk .spkw{display:inline-flex;align-items:center;justify-content:center;width:80px;height:26px}
 .wpspk .spkw:empty::after{content:'—';color:var(--ink-3);font-size:12px}
-.wptbl tr.wpexp{cursor:default}
-.wptbl tr.wpexp:hover{background:none}
-.wptbl tr.wpexp>td{padding:6px 8px 12px;text-align:left;white-space:normal;background:var(--panel-2)}
-.wpxbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
-.wpxbar .grp{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
-.wpxbar button{height:30px;min-width:44px;padding:0 10px;border:0;background:var(--panel);color:var(--ink-2);font-size:13px;cursor:pointer}
-.wpxbar button.on{background:var(--panel-3);color:var(--ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--cyan)}
-.wpxbar .note{font-size:12px;color:var(--ink-2)}
-.wpxbar .note b.up{color:var(--rise)}
-.wpxbar .note b.down{color:var(--fall)}
-.wpxbar .note b.flat{color:var(--ink-2)}
-.wpxbar .note .wpxwhy{color:var(--ink-3)}
-.wpxc{height:290px;position:relative}
-.wpxc .empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:13px}
+/* 資料落後（最後一點早於前一交易日）：數字變淡＋虛線底，滑過寫「資料至 MM/DD」；不在畫面上放日期膠囊（DECISIONS #329） */
+.wptbl td.wpstale{color:var(--ink-3)!important;text-decoration:underline dotted var(--ink-3);text-underline-offset:3px;cursor:help}
 .wpfoot{margin-top:10px;font-size:12px;color:var(--ink-3)}
 @media (max-width:640px){
   .wphd h2{font-size:18px}
@@ -128,8 +120,6 @@
   .wpspk{width:50px}
   .wptbl td.num{padding:8px 3px}
   .wpspk .spkw{width:46px;height:20px}
-  .wpxc{height:260px}
-  .wptbl tr.wpexp>td{padding:6px 4px 10px}
   .wptbl td,.wptbl th{padding:8px 4px}
   .wptbl td.nm{width:auto;min-width:104px}
   .wptbl td.nm .slogo{display:none}
@@ -160,7 +150,9 @@
     }
     paint();
     loadStocks().then(() => { paintList(); paintRes(); });
-    { const a = A(); if (a && a.sparkLoad) a.sparkLoad().then(() => { const b = document.getElementById('wpList'); if (b) b.querySelectorAll('.spkw[data-spk]:empty').forEach((x) => { x.innerHTML = a.sparkSVG(x.dataset.spk, { w: +x.dataset.w, h: +x.dataset.h }); }); }); }
+    // 休市日（判斷「前一交易日」用）到了再重畫一次落後提示；沒有休市日資料就只跳週末
+    if (window.CalGrid && window.CalGrid.load) window.CalGrid.load().then(() => { if (visible()) paintList(); }).catch(() => {});
+    { const a = A(); if (a && a.sparkLoad) a.sparkLoad().then(() => { const b = document.getElementById('wpList'); if (b) paintList(); }); }
     const a = A(); if (a && a.logoMapLoad) a.logoMapLoad().then(() => { if (a.logoUpgrade) a.logoUpgrade(el()); });
   }
 
@@ -206,118 +198,58 @@
       return;
     }
     const f = a && a.fmt;
-    if (P.exp && !t.codes.includes(P.exp)) P.exp = null;
+    const lag = lagInfo();
     const rows = t.codes.map((c) => {
       const r = byCode.get(c) || { code: c, name: c };
       const cls = f ? f.cls(r.chg_pct) : '';
-      const on = P.exp === c;
-      return `<tr data-go="${esc(c)}" tabindex="0"${on ? ' class="on"' : ''}>
+      // 資料落後（這一列最後一個價早於前一交易日）：不默默顯示舊數字 —— 數字變淡、滑過寫「資料至 MM/DD」
+      const old = lag(c), st = old ? ` wpstale" title="資料至 ${esc(old)}（前一交易日的收盤還沒進來）` : '';
+      return `<tr data-go="${esc(c)}" tabindex="0"${old ? ` data-stale="${esc(old)}"` : ''}>
         <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b class="wpgo">${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
-        <td class="c-sp"><button type="button" class="wpspk" data-exp="${esc(c)}" aria-expanded="${on}" aria-label="展開 ${esc(r.name || c)} 的走勢圖">${sparkCell(c)}</button></td>
-        <td class="num" data-live="close" data-lc="${esc(c)}">${r.close == null || !f ? '—' : f.n(r.close)}</td>
-        <td class="num ${cls}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !f ? '—' : f.pct(r.chg_pct, 2)}</td>
+        <td class="c-sp"><span class="wpspk" data-c="${esc(c)}"${old ? ` data-tiphint="資料至 ${esc(old)}"` : ''}>${sparkCell(c)}</span></td>
+        <td class="num${st}" data-live="close" data-lc="${esc(c)}">${r.close == null || !f ? '—' : f.n(r.close)}</td>
+        <td class="num ${cls}${st}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !f ? '—' : f.pct(r.chg_pct, 2)}</td>
         <td class="num c-vol">${r.turnover == null || !f ? '—' : f.yi(r.turnover)}</td>
-        <td><button type="button" class="del" data-del="${esc(c)}" aria-label="從「${esc(t.name)}」移除 ${esc(r.name || c)}" title="從這一頁移除">✕</button></td></tr>`
-        + (on ? expRow(c) : '');
+        <td><button type="button" class="del" data-del="${esc(c)}" aria-label="從「${esc(t.name)}」移除 ${esc(r.name || c)}" title="從這一頁移除">✕</button></td></tr>`;
     }).join('');
-    killExp();
     box.innerHTML = `<table class="wptbl" id="wpTbl"><thead><tr><th>股票</th><th class="c-sp">走勢</th><th>現價</th><th>漲跌幅</th><th class="c-vol">成交值</th><th><span class="sr" style="position:absolute;left:-9999px">移除</span></th></tr></thead><tbody>${rows}</tbody></table>`;
-    if (P.exp) drawExp();
     if (a && a.logoUpgrade) a.logoUpgrade(box);
   }
 
-  /* 展開圖（2026-10-01，Andy：點走勢圖在那一列下方展開放大一點的圖，可切走勢／K 線、K 線要能切週期）。
-     同時只展開一列；再點同一格就收起。資料全部走個股頁那條路（Industry.watchBars：stock/<代號>.json、m60/<代號>.json），
-     只在使用者點開的那一檔才載，沒有輪詢。
-       走勢＝有 60 分 K 就畫最近 5 個交易日的每小時收盤（看得到這週盤中怎麼走），沒有就畫最近 60 日收盤；
-       K 線＝KChart（個股頁四週期小圖同一個元件、mini 模式），週期 日／週／1時／4時。*/
-  const TFS = [['1d', '日'], ['1w', '週'], ['60m', '1時'], ['240m', '4時']];
-  function expRow(c) {
-    const mb = (m, t) => `<button type="button" data-xm="${m}" class="${P.mode === m ? 'on' : ''}" aria-pressed="${P.mode === m}">${t}</button>`;
-    const tb = TFS.map(([k, t]) => `<button type="button" data-xtf="${k}" class="${P.tf === k ? 'on' : ''}" aria-pressed="${P.tf === k}">${t}</button>`).join('');
-    return `<tr class="wpexp" data-exp-row="${esc(c)}"><td colspan="6"><div class="wpxbar"><span class="grp" role="group" aria-label="圖的種類">${mb('line', '走勢')}${mb('k', 'K 線')}</span>`
-      + (P.mode === 'k' ? `<span class="grp" role="group" aria-label="K 線週期">${tb}</span>` : '')
-      + `<span class="note" id="wpxNote"></span></div><div class="wpxc" id="wpxC"></div></td></tr>`;
-  }
-  function killExp() {
-    if (expK) { try { expK.destroy(); } catch (e) { /* 已銷毀 */ } expK = null; }
-    const c = document.getElementById('wpxC');
-    if (c && window.echarts) { const i = window.echarts.getInstanceByDom(c); if (i) i.dispose(); }
-  }
-  async function drawExp() {
-    const code = P.exp, box = document.getElementById('wpxC'), note = document.getElementById('wpxNote');
-    if (!box || !code) return;
-    /* 2026-10-04：industry.js 改成用到才載入（index.html 的 lazy-ind），展開 K 線前先等它 */
-    if (!window.Industry && window.TwLazy) { box.innerHTML = '<div class="empty">載入中…</div>'; try { await window.TwLazy.load('ind'); } catch (e) { /* 下面那句會講 */ } }
-    const I = window.Industry, a = A();
-    if (!I || !I.watchBars) { box.innerHTML = '<div class="empty">圖表元件還沒載入，請重新整理</div>'; return; }
-    const seq = ++expSeq;
-    box.dataset.state = 'loading';
-    box.innerHTML = '<div class="empty">載入中…</div>';
-    const tf = P.mode === 'k' ? P.tf : '1d';
-    const r = await I.watchBars(code, tf);
-    if (seq !== expSeq || P.exp !== code || document.getElementById('wpxC') !== box) return;
-    killExp(); box.innerHTML = '';
-    box.dataset.mode = P.mode; box.dataset.tf = P.mode === 'k' ? tf : '';
-    if (P.mode === 'line') {
-      /* 2026-10-02（DECISIONS #290）：期間與點跟列上的小走勢逐點相同（App.trendSeries，Python 版是 compute/sparks.py）——
-         有 60 分 K＝最近 5 個交易日、每天 09:00 開盤＋每小時收盤、最後一點換正式收盤；沒有＝最近 60 日收盤。
-         加昨收虛線（日線倒數第二天，跟列上的漲跌幅同一個基準）、Y 軸一定包含基準且至少 ±1.5%（App.trendRange），小註寫期間、起訖、漲跌幅。*/
-      const t = a && a.trendSeries ? a.trendSeries(r.h60, r.daily) : null;
-      if (!t || t.pts.length < 2) { if (note) note.textContent = ''; box.innerHTML = '<div class="empty">這檔還沒有走勢資料</div>'; box.dataset.state = 'empty'; box.dataset.n = '0'; return; }
-      const pts = t.pts, vals = pts.map((p) => p[1]), last = vals[vals.length - 1];
-      const tx = a.trendText({ kind: t.kind, nd: t.per.length, n: pts.length, d0: t.d0, d1: t.d1, bd: t.bd, base: t.base, first: vals[0], last });
-      if (note) {
-        note.innerHTML = `${esc(tx.per)}・${esc(tx.se)}・<b class="${tx.pct > 0 ? 'up' : tx.pct < 0 ? 'down' : 'flat'}">${esc(tx.chg)}</b>`
-          + (t.kind === 'd' ? '<span class="wpxwhy">（這檔沒有 1 小時分 K）</span>' : '');
-      }
-      const up = last > t.base, dn = last < t.base;
-      const css = getComputedStyle(document.documentElement);
-      const col = css.getPropertyValue(up ? '--rise' : dn ? '--fall' : '--ink-3').trim() || (up ? '#ff4d5e' : dn ? '#22c55e' : '#8493b8');
-      const ink2 = css.getPropertyValue('--ink-2').trim() || '#a9b6d6';
-      // Y 軸：範圍跟小圖同一支 trendRange，再對齊到整齊的刻度（手算 min／max 沒對齊刻度時，ECharts 會在邊界多冒一個標籤疊在一起）
-      const [r0, r1] = a.trendRange(Math.min(...vals), Math.max(...vals), t.base);
-      const raw = (r1 - r0) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
-      const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
-      const ymin = Math.floor(r0 / step) * step, ymax = Math.ceil(r1 / step) * step;
-      const ax = (a && a.axisStyle) || {};
-      // 日分隔：每一天第一點（09:00 開盤）前畫一條淡線，看得出「這是哪幾天」
-      const dayLines = [], dayStart = new Set([0]);
-      if (t.kind === 'i') { let k = 0; t.per.slice(0, -1).forEach((c) => { k += c; dayStart.add(k); dayLines.push({ xAxis: k, lineStyle: { type: 'solid', color: ink2, opacity: 0.18, width: 1 }, label: { show: false } }); }); }
-      a.chart(box, {
-        animation: false, grid: { left: 8, right: 58, top: 12, bottom: 24, containLabel: false },
-        tooltip: { trigger: 'axis', valueFormatter: (v) => (a.pxFmt ? a.pxFmt(v) : v) },
-        // 分時：X 軸只在每天 09:00 那一點標日期（一天 6 點全標會擠成一團、也看不出分天）；日收盤照 ECharts 自動挑
-        xAxis: Object.assign({}, ax, { type: 'category', data: pts.map((p) => p[0]), boundaryGap: false,
-          axisLabel: Object.assign({}, ax.axisLabel || {}, t.kind === 'i'
-            ? { fontSize: 11, interval: (i) => dayStart.has(i), formatter: (v) => String(v).slice(0, 5), alignMinLabel: 'left' }
-            : { fontSize: 11, hideOverlap: true, alignMinLabel: 'left', alignMaxLabel: 'right' }) }),
-        yAxis: Object.assign({}, ax, { type: 'value', position: 'right', min: ymin, max: ymax, interval: step, axisLabel: Object.assign({}, ax.axisLabel || {}, { fontSize: 11, formatter: (v) => (a.pxFmt ? a.pxFmt(v) : v) }) }),
-        series: [{ type: 'line', data: vals, showSymbol: false, lineStyle: { width: 1.6, color: col }, areaStyle: { color: col, opacity: 0.12 },
-          markLine: { symbol: 'none', silent: true, animation: false, data: [
-            { yAxis: t.base, lineStyle: { type: 'dashed', color: ink2, width: 1, opacity: 0.85 },
-              label: { show: true, position: 'insideStartTop', fontSize: 11, color: ink2, formatter: `${t.bd ? '昨收 ' + t.bd + ' ' : '起點 '}${a.pxFmt(t.base)}` } },
-          ].concat(dayLines) },
-          markPoint: { symbol: 'circle', symbolSize: 7, silent: true, animation: false, label: { show: false }, itemStyle: { color: col, borderColor: css.getPropertyValue('--panel').trim() || '#0f172b', borderWidth: 1 },
-            data: [{ coord: [pts.length - 1, last] }] } }],
-      });
-      box.dataset.n = String(pts.length);
-      box.dataset.last = String(last); box.dataset.first = String(vals[0]); box.dataset.base = String(t.base);
-      box.dataset.kind = t.kind; box.dataset.ymin = String(ymin); box.dataset.ymax = String(ymax);
-    } else {
-      const bars = r.bars || [];
-      ['last', 'first', 'base', 'kind', 'ymin', 'ymax'].forEach((k) => { delete box.dataset[k]; });
-      if (note) note.textContent = bars.length >= 2 ? `${bars.length} 根` : '';
-      if (bars.length < 2 || !window.KChart) { box.innerHTML = `<div class="empty">${esc(r.why || '這個週期尚無資料')}</div>`; box.dataset.state = 'empty'; box.dataset.n = '0'; return; }
-      expK = new window.KChart(box, { mini: true, tf, fit: (kc) => kc.defaultView() });
-      expK.setBars(bars, tf);
-      expK.applyIndicators({ ma: [5, 20], vol: true });
-      box.dataset.n = String(bars.length);
+  /* 2026-10-06（Andy：「移除點選小走勢圖 出現下方放大走勢跟K線圖功能，並且自選介面需要確保數據是前一天的」）
+     ① 點小走勢不再展開（DECISIONS #282 的展開圖、#290 的「展開大圖與小圖逐點相同」整段拿掉）；小走勢照舊顯示、滑過看提示。
+     ② 資料落後提示：每一列的「資料日」＝小走勢最後一點的日期（sparks.json 訖日；沒有小走勢就用全站資料日 meta.data_date），
+        跟「前一交易日」（台北今天往前找第一個不是週末、不是休市日的日子，休市日讀 tw_holidays.json）比 —— 早於它＝落後。
+        落後就把現價／漲跌幅變淡、滑過寫「資料至 MM/DD」，小走勢提示多一行同樣的字；不在畫面上放日期膠囊（DECISIONS #329）。
+        為什麼門檻是「前一交易日」而不是「今天」：盤中與 15:30 管線跑完之前，今天的收盤本來就還沒有，那不算落後。*/
+  const tpeToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+  function prevTradeDay(today) {
+    const C = window.CalGrid, d = new Date(today + 'T00:00:00Z');
+    for (let i = 0; i < 20; i++) {
+      d.setUTCDate(d.getUTCDate() - 1);
+      const k = d.toISOString().slice(0, 10), g = d.getUTCDay();
+      if (g === 0 || g === 6) continue;
+      if (C && C.holiday && C.holiday(k)) continue;
+      return k;
     }
-    box.dataset.state = 'ok';
-    box.dataset.seq = String(seq);
+    return '';
   }
-  function toggleExp(c) { P.exp = P.exp === c ? null : c; paintList(); }
+  // 'MM/DD' → 'YYYY-MM-DD'（年份取不晚於今天的那一年；跨年 01 月看到 12/31 會退一年）
+  function fullDate(md, today) {
+    if (!md || md.length < 5) return '';
+    let y = +today.slice(0, 4); const k = (yy) => `${yy}-${md.slice(0, 2)}-${md.slice(3, 5)}`;
+    if (k(y) > today) y -= 1;
+    return k(y);
+  }
+  function lagInfo() {
+    const a = A(), today = tpeToday(), need = prevTradeDay(today);
+    const meta = (a && a.D && a.D.meta) || {}, md0 = meta.data_date ? String(meta.data_date).slice(5, 7) + '/' + String(meta.data_date).slice(8, 10) : '';
+    return (c) => {
+      const sd = a && a.sparkData ? a.sparkData(c) : null, md = (sd && sd.d1) || md0;
+      const d = fullDate(md, today);
+      return d && need && d < need ? md : '';
+    };
+  }
 
   function paintRes() {
     const ul = document.getElementById('wpRes'), T = W(); if (!ul || !T) return;
@@ -358,10 +290,7 @@
     if (ad && !ad.disabled) { T.add(ad.dataset.add); P.q = ''; const i = document.getElementById('wpQ'); if (i) { i.value = ''; i.focus(); } paintRes(); return; }
     const dl = q('button[data-del]'); if (dl) { e.stopPropagation(); T.remove(dl.dataset.del); return; }
     if (q('#wpRename') || q('input')) return;
-    const sx = q('button[data-exp]'); if (sx) { toggleExp(sx.dataset.exp); return; }
-    const xm = q('button[data-xm]'); if (xm) { if (P.mode !== xm.dataset.xm) { P.mode = xm.dataset.xm; paintList(); } return; }
-    const xt = q('button[data-xtf]'); if (xt) { if (P.tf !== xt.dataset.xtf) { P.tf = xt.dataset.xtf; paintList(); } return; }
-    if (q('tr.wpexp')) return;                  // 展開圖裡面點哪裡都不帶走
+    if (q('.wpspk')) return;                    // 小走勢只看不點：不展開、也不換頁（2026-10-06 拿掉展開大圖）
     const tr = q('tr[data-go]'); if (tr) go(tr.dataset.go);
   }
   function onDbl(e) {
