@@ -475,6 +475,10 @@
            才驗得了「灌一筆報價之後最後一根真的變了、而且前面的棒子沒被動到」。
            只記整頁大圖（mini／compact 的小卡不覆蓋它）。*/
         KChart.last = this;
+      } else {
+        /* ★ 2026-10-06 四週期小圖也有 KD／MACD／RSI 副圖了（DECISIONS #335）：副圖左上角要寫是哪個指標，
+           不然三個副圖疊在一起分不出誰是誰。只掛標籤層，不掛浮水印／滾輪／回補（那些是整頁大圖的事）。*/
+        this.labels = document.createElement('div'); this.labels.className = 'pane-labels mini'; el.appendChild(this.labels);
       }
       /* ★ 2026-09-26（Andy：「幫我將縮放放到圖上位置」）：「重設縮放」鈕從工具列搬進圖裡 ——
          主圖 K 棒區的右下角、價格軸左邊、成交量副圖上方。半透明角標（⌜⌟），滑過才變亮。
@@ -492,7 +496,8 @@
         b.addEventListener('pointerdown', (e) => e.stopPropagation(), true);
         b.onclick = (e) => { e.stopPropagation(); this.opts.fit(this); };
         el.appendChild(b); this.fitEl = b;
-        if (!this._ro) { this._ro = new ResizeObserver(() => this._layoutCorner()); this._ro.observe(el); }
+        // 小圖：容器長高（勾了副圖）時，重設鈕與副圖標籤一起重排 —— _layoutLabels 會先叫 _layoutCorner
+        if (!this._ro) { this._ro = new ResizeObserver(() => this._layoutLabels()); this._ro.observe(el); }
       }
       /* 副圖分隔線拖完（放開滑鼠）面板高度就變了，左上角的面板標題與右下角的重設鈕要跟著重排 ——
          以前只有容器尺寸變（ResizeObserver）才重排，拖完分隔線標題會停在舊的位置。*/
@@ -1187,8 +1192,15 @@
     /** 各面板想要的高度（像素）。拆成方法是為了 setVolRatio() 能在不重建指標的情況下重排。 */
     _ph() {
       const mh0 = this.el.clientHeight || 300;
+      /* 四週期小圖（mini）有 opts.indH 時（2026-10-06，個股頁四週期同看）：容器已經依副圖數量撐高了 n × indH，
+         KD／MACD／RSI 每個副圖固定吃 indH，主圖與成交量照舊在「扣掉副圖之後的那一段」裡分 50%／20% ——
+         所以勾副圖不會把 K 棒壓扁、副圖也不會被等比縮到看不出線（舊的 20% 一套在 300px 小格就只剩 37px）。
+         沒給 indH（自選頁的小圖）照舊全部用比例。*/
+      const nInd = this.opts.mini && this.cfg ? ['kd', 'macd', 'rsi'].filter(k => this.cfg[k]).length : 0;
+      const ih = this.opts.mini && this.opts.indH > 0 && nInd ? this.opts.indH : 0;
+      const base = ih ? Math.max(120, mh0 - nInd * ih) : mh0;
       const PH = this.opts.mini
-        ? { vol: Math.round(mh0 * 0.2), ind: Math.round(mh0 * 0.2), min: Math.round(mh0 * 0.5) }
+        ? { vol: Math.round(base * 0.2), ind: ih || Math.round(mh0 * 0.2), min: Math.round(base * 0.5) }
         : this.opts.compact
         ? { vol: 52, ind: 58, min: 110 }
         // Andy 2026-09-15：「下面的成交量 MACD 這些指標上下間隔寬點」。
@@ -1201,7 +1213,7 @@
          三張圖高度不一定一樣（展開那張比較高），所以共用的是**比例**不是像素。
          小卡以前每 10 秒重建一次指標就把使用者拖好的量副圖打回 20%（小卡不走 _paneMem），有了這個比例也一併解掉。*/
       const vr = +this.opts.volRatio;
-      if ((this.opts.mini || this.opts.compact) && vr >= 0.05 && vr <= 0.8) PH.vol = Math.round(mh0 * vr);
+      if ((this.opts.mini || this.opts.compact) && vr >= 0.05 && vr <= 0.8) PH.vol = Math.round((this.opts.mini ? base : mh0) * vr);
       return PH;
     }
     /** 量副圖改成佔圖高 r（0.05～0.8），不重建任何 series、不動可視範圍。沒有量副圖時只記下來，下次建圖用。 */
@@ -1325,6 +1337,8 @@
       if (this._onDbl) this.el.removeEventListener('dblclick', this._onDbl);
       if (this._onUp) this.el.removeEventListener('pointerup', this._onUp);
       if (this.fitEl && this.fitEl.parentNode) this.fitEl.parentNode.removeChild(this.fitEl);
+      // 小圖的副圖標籤層掛在呼叫端的容器上（自選頁會重用同一個容器），跟著拿掉
+      if (this.opts.mini && this.labels && this.labels.parentNode) this.labels.parentNode.removeChild(this.labels);
       if (this.draw) this.draw.destroy();
       if (this._ro) this._ro.disconnect();
       // ③ 的監聽與提示：圖表 remove 之後還留著的話，下一次拖曳會踩到已經死掉的 chart
