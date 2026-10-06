@@ -2992,9 +2992,11 @@ tbody tr:last-child td{border-bottom:0}
   #rankFlowWrap>.sidepanel .sd{font-size:11.5px;margin:3px 0 0;line-height:1.4}
   #rankFlowWrap>.stagepanel ul.ms{margin-top:4px}
   #rankFlowWrap>.stagepanel ul.ms li:not(.mem){padding-top:3px;padding-bottom:3px;font-size:12px}
-  #rankFlowWrap>.stagepanel ul.ms li .v{font-size:11.5px}
+  /* 2026-10-06（既有紅字清理，_uitest 輪動象限面板）：數字欄 11.5px → 全站下限 12px（docs/style_guide.md --fs-min；
+     09-25 合併側欄收小字級時壓到 11.5，10-05 風格規範定 12 為下限之後就違規了） */
+  #rankFlowWrap>.stagepanel ul.ms li .v{font-size:var(--fs-min,12px)}
 }
-.stagepanel ul.ms li .tw2{flex:none;width:10px;font-size:11px;color:var(--ink-3)}
+.stagepanel ul.ms li .tw2{flex:none;width:10px;font-size:var(--fs-min,12px);color:var(--ink-3)}   /* 趨勢箭頭 11 → 12（同上） */
 .stagepanel ul.ms li.ison{background:var(--panel-2)}
 .stagepanel ul.ms li.ison .g{color:var(--cyan,var(--ink))}
 /* 展開那一列底下的成分股小表：一行一檔，名稱｜代號｜成交值｜佔比｜漲跌｜→ */
