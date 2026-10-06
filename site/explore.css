@@ -6,7 +6,7 @@
 @media (max-width:820px){ .tab[data-view="explore"]{display:none!important} }
 
 #v-explore{--xp-acc:var(--t4-accent-solid,var(--cyan))}
-#v-explore .xp-legal{font-size:12px;font-weight:400;color:var(--ink-3,var(--ink-2));margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-explore .xp-legal{font-size:12px;letter-spacing:-.04em;font-weight:400;color:var(--ink-3,var(--ink-2));margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-explore .up{color:var(--rise,#ff5b6e)}
 #v-explore .dn{color:var(--fall,#3ecf8e)}
 

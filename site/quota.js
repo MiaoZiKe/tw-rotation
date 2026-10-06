@@ -11,7 +11,7 @@
 
    怎麼算「一次」：
      · 「一天」＝台北日期（一律 UTC+8 算）。
-     · 有對象的頁面算「看了幾個不同的」：個股頁＝代號、題材剖析＝題材、族群頁＝族群 —— 同一個一天內重複看不重算。
+     · 有對象的頁面算「看了幾個不同的」：個股頁＝代號、題材剖析＝題材、族群頁＝族群、剖析圖＝每一張圖、產業鏈＝每一條 —— 同一個一天內重複看不重算。
      · 沒有對象的頁面（總覽、資金流向…）＝「這個瀏覽器分頁、這一頁」算一次：同一個分頁來回切不重算，新開一個分頁才算下一次。
      · 只有功能的區塊**真的在畫面上**（getClientRects 有東西）才算 —— 隱藏的 view 不吃額度。
      · 存在 localStorage（tw.quota）；登入者另外送 Worker（/v1/quota/hit，鍵＝功能鍵），伺服器回今天看過哪些，兩邊取聯集。
@@ -38,6 +38,18 @@
     let m = /^#stock\/([0-9A-Za-z]{4,6})/.exec(h); if (m) return m[1].toUpperCase();
     m = /^#heatmap\/theme\/([^/?]+)/.exec(h); if (m) return safeKey('t.' + decodeURIComponent(m[1]));
     m = /^#industry\/group\/([^/?]+)/.exec(h); if (m) return safeKey('g.' + decodeURIComponent(m[1]));
+    /* 2026-10-07 Andy：「產業地圖點分頁超過設定的 5 次還能繼續看」—— 剖析圖分頁用 history.replaceState 換網址（不觸發 hashchange），
+       以前這裡掉到最後一行變成「industry.分頁代號」，整個產業地圖只算 1 次。改成：每張剖析圖、每條產業鏈各算一個（同一天重看不重算）。
+       ⚠ 不能只看網址：光禿禿的 `#industry/<鏈>` 就是「第一張圖」，網址晚一拍才換成 /dg/<id> —— 只看網址會把同一張圖算兩次。
+         所以以畫面上選中的那一張（#dgPick 的 .sel）為準，沒有才退回網址。*/
+    m = /^#industry\/([^/?]+)/.exec(h);
+    if (m) {
+      const chain = decodeURIComponent(m[1]);
+      const sel = document.querySelector('#dgPick a.sel[data-dgid]');
+      const dm = /\/dg\/([^/?]+)/.exec(h);
+      const dg = sel ? sel.dataset.dgid : (dm ? decodeURIComponent(dm[1]) : '');
+      return safeKey(dg ? 'd.' + chain + '.' + dg : 'c.' + chain);
+    }
     const head = (h.replace(/^#/, '').split(/[/?]/)[0] || 'overview').replace(/[^0-9A-Za-z_-]/g, '').slice(0, 14) || 'p';
     return head + '.' + TAB;
   }

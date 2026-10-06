@@ -111,22 +111,9 @@
 | 選股策略／財經日曆轉交的廢話＋日期膠囊 | 🔵 claude/copy-trim3（/home/user/wt-copy3）07:21 開工，未 commit | explore.js／earnings.js 有修改 |
 | 合併後完整回歸（`_uitest` 全段＋`_preview`） | 🔵 `_uitest --workers 3` 07:22 起跑（wt-base，e4dce850），尚無結果；沒看到 `_preview` 在跑 | ps |
 
-## 待 Andy 確認（CEO 每次回報原樣貼最後）
+## 待 Andy 確認（Andy 10-07 01:40：「待 Andy 確認這邊先刪除」→ 清空；回報不再附整張清單，有新的要他確認的才在當則回報列出）
 
-| # | 要你做／看什麼 | 去哪 | 從何時開始等 |
-|---|---|---|---|
-| 1 | ✅ Andy 10:50 回 OK —— ~~**今天上正式站的 13 件請重新整理逐一看**：財經日曆＋ETF 第二輪（#20～25）、漲跌家數卡跳下方（#26）、日期膠囊拿掉（#27）、族群篩選下拉（#28）、即時只剩你看得到（#29，請登出再看一次）、免責小字（#30）、甜甜圈圖例在右（#11）、選股拿掉「全部」（#13）、分頁可拖曳（#14）、清廢話第一輪（#15） | <https://miaozike.github.io/tw-rotation/> | 07:22 |
-| 2 | ✅ Andy 10:48 已重設，CEO 觸發 daily.yml run 37405896247 驗證中 —— ~~**重設 GitHub Secret `FRED_API_KEY`**：到 <https://fredaccount.stlouisfed.org/apikeys> 複製 32 字元小寫金鑰，貼到 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions>（只貼那 32 個字）。不做的話財經日曆 FED 的數字一直空白 | GitHub 設定 | 10-06 04:55 |
-| 3 | **管理區新版回「上」或「不上」**（#1～#10；「上」＝先部署會員 Worker 的起訖日＋有效會員不可刪，再上前端）。07:57 新增：每日直條點某一天 → 下方分頁統計換成那一天（× 清除）、手機點一下圖出提示（有下一步的元素第二下才跳頁） | <https://miaozike.github.io/tw-rotation/preview/style-guide/#admin> | 10-06 02:17（07:57 更新） |
-| 4 | 管理區「使用者」分頁的 **24 小時時鐘樣式** OK 嗎 | 同上 → 流量觀測 → 使用者 | 10-06 04:20 |
-| 5 | **會員權限統計卡上的固定期間字樣**（例：「近 30 天」）要留還是拿掉 | <https://miaozike.github.io/tw-rotation/preview/style-guide/#admin/perm> | 10-06 |
-| 6 | **清廢話第二輪預覽**看完回 OK（只看文字刪減；07:45 已換成合併最新 main 的底版，其他功能跟正式站一致） | <https://miaozike.github.io/tw-rotation/preview/copy-trim/> | 10-06 07:22（07:45 更新） |
-| 7 | **產業地圖預覽**要不要上正式站（CEO 把上次「其他 OK」解讀成「上」，未確認） | <https://miaozike.github.io/tw-rotation/preview/industry-map/> | 10-03 09:42 |
-| 8 | **六件決定**（各回是／否）：a 總覽即時開關（preview/ov-all-live）b 推播全會員 c FinMind 付費 d 換網域 e 寄詢問信 f 問富果／永豐 | 法遵文件、Gmail 草稿 | 10-03 |
-| 9 | 資金輪動短評「回檔找買點」這類語氣，要不要改成中性描述 | #flow 資金輪動、總覽資金輪盤 | 10-06 06:40 |
-| 10 | 我們自己判斷、你可否決的三件：① 分頁拖曳**不含**側欄、頂部導覽、自選清單頁籤 ② 日期膠囊保留 11 類（表格日期欄、新聞時間、K 線軸、拉Bar 讀數、K 線下資料來源說明等）③ 即時閘門只藏畫面，報價 Worker 仍公開（要真的擋估 0.5～1 天，而且公司網路擋會員 Worker 時你自己的即時也會一起斷） | 正式站 | 10-06 07:22 |
-| 11 | **刪舊預覽分支**（git 代理擋刪除，要你在 GitHub 網頁按）：已併入 main、可直接刪的 12 支 —— preview/earnings-cal、preview/earnings-v2、admin-v2、admin-v3、etf-v1、etf-v3、explore-v1、explore-v2、fast-ov2、layout-v2、perm-nav、sub-v1 | <https://github.com/MiaoZiKe/tw-rotation/branches> | 10-05 |
-| 12 | 四問步驟中性名稱已做在 preview/four-steps，未上線。待規劃：改成針對特定分頁的導覽（Andy 10-06 18:05） | <https://miaozike.github.io/tw-rotation/preview/four-steps/>（手機寬看總覽頂端四步列） | 10-06 18:05 |
+（目前空白。原清單移到本檔最後「已撤下的待確認（10-07）」，CEO 自己仍要追。）
 
 ## CEO 待辦（監察委員 07:32 稽核；依重要性）
 
@@ -230,3 +217,47 @@
 - 全站備份：備到筆電＋repo 內 docs/BACKUP_RUNBOOK.md 讓 Claude 照做（施工中）。
 - GitHub 改私人＋當備份：**有成本問題待 Andy 選**（私人 repo 的 Actions 免費 2,000 分鐘／月，實測目前用量約 1.2 萬分鐘／月）。
 - 藍新詳細說明＋為什麼要問律師＋別人怎麼快速上架：legal-compliance 查證中 → docs/legal_payment_faq_1006.md
+
+## 10-07 01:05～01:30 Andy 交辦
+- 免責聲明／使用條款／隱私權政策（通用版，參考 stockintelli）→ 施工中，交 preview/legal。
+- 拆 repo 選 A（私人＝備份與編輯、公開＝執行，Cloudflare 同步）→ 施工中（claude/repo-split）。
+- **Andy 說「上架」時 → CEO 要主動給「Google 登入加入新網址」的逐步點擊步驟**（OAuth 用戶端 → 已授權的 JavaScript 來源／重新導向 URI 加上 tw-rotation.pages.dev 與正式網域）。
+- 上架標準 → 已存 `docs/launch_standard.md`，Andy 說「上架標準」就給他看。
+- 今日候選 → 今日關注；四頁頂端統計免責小字 → 施工中。
+- 異常門檻用建議預設值；通知寄到 kcq01010909。
+- 沒開公司能不能註冊金流 → 可以（綠界／藍新個人會員），已更正 `docs/legal_payment_faq_1006.md`。
+
+## 10-07 01:30 Andy 交辦：Plus／Pro 每日額度
+- 額度用完畫面照他給的參考圖（研究額度用完卡片）、置中；「此功能需開通」改同款 → 施工中（claude/quota → preview/quota）。
+- Plus 暫定每日 50 次、Pro 不限。CEO 定義「一次」＝同一天同一單位（一檔個股、一張剖析圖、一個付費分頁）只算一次；個股頁內分頁切換不算。Andy 可否決。
+- 成本估算：Plus 用滿 50 次／天 ≈ 每人每月 4,800 次閘道請求，邊際費用約 0.003 美元（約新台幣 0.1 元）；主要成本是 Workers 付費方案月費 5 美元。
+- 扣次必須在伺服器端（付費資料閘道），所以額度要等閘道上線才真的生效。
+
+## 已撤下的待確認（10-07，Andy 要求先刪除；CEO 自己追，不再每則貼給他）
+
+| # | 要你做／看什麼 | 去哪 | 從何時開始等 |
+|---|---|---|---|
+| 1 | ✅ Andy 10:50 回 OK —— ~~**今天上正式站的 13 件請重新整理逐一看**：財經日曆＋ETF 第二輪（#20～25）、漲跌家數卡跳下方（#26）、日期膠囊拿掉（#27）、族群篩選下拉（#28）、即時只剩你看得到（#29，請登出再看一次）、免責小字（#30）、甜甜圈圖例在右（#11）、選股拿掉「全部」（#13）、分頁可拖曳（#14）、清廢話第一輪（#15） | <https://miaozike.github.io/tw-rotation/> | 07:22 |
+| 2 | ✅ Andy 10:48 已重設，CEO 觸發 daily.yml run 37405896247 驗證中 —— ~~**重設 GitHub Secret `FRED_API_KEY`**：到 <https://fredaccount.stlouisfed.org/apikeys> 複製 32 字元小寫金鑰，貼到 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions>（只貼那 32 個字）。不做的話財經日曆 FED 的數字一直空白 | GitHub 設定 | 10-06 04:55 |
+| 3 | **管理區新版回「上」或「不上」**（#1～#10；「上」＝先部署會員 Worker 的起訖日＋有效會員不可刪，再上前端）。07:57 新增：每日直條點某一天 → 下方分頁統計換成那一天（× 清除）、手機點一下圖出提示（有下一步的元素第二下才跳頁） | <https://miaozike.github.io/tw-rotation/preview/style-guide/#admin> | 10-06 02:17（07:57 更新） |
+| 4 | 管理區「使用者」分頁的 **24 小時時鐘樣式** OK 嗎 | 同上 → 流量觀測 → 使用者 | 10-06 04:20 |
+| 5 | **會員權限統計卡上的固定期間字樣**（例：「近 30 天」）要留還是拿掉 | <https://miaozike.github.io/tw-rotation/preview/style-guide/#admin/perm> | 10-06 |
+| 6 | **清廢話第二輪預覽**看完回 OK（只看文字刪減；07:45 已換成合併最新 main 的底版，其他功能跟正式站一致） | <https://miaozike.github.io/tw-rotation/preview/copy-trim/> | 10-06 07:22（07:45 更新） |
+| 7 | **產業地圖預覽**要不要上正式站（CEO 把上次「其他 OK」解讀成「上」，未確認） | <https://miaozike.github.io/tw-rotation/preview/industry-map/> | 10-03 09:42 |
+| 8 | **六件決定**（各回是／否）：a 總覽即時開關（preview/ov-all-live）b 推播全會員 c FinMind 付費 d 換網域 e 寄詢問信 f 問富果／永豐 | 法遵文件、Gmail 草稿 | 10-03 |
+| 9 | 資金輪動短評「回檔找買點」這類語氣，要不要改成中性描述 | #flow 資金輪動、總覽資金輪盤 | 10-06 06:40 |
+| 10 | 我們自己判斷、你可否決的三件：① 分頁拖曳**不含**側欄、頂部導覽、自選清單頁籤 ② 日期膠囊保留 11 類（表格日期欄、新聞時間、K 線軸、拉Bar 讀數、K 線下資料來源說明等）③ 即時閘門只藏畫面，報價 Worker 仍公開（要真的擋估 0.5～1 天，而且公司網路擋會員 Worker 時你自己的即時也會一起斷） | 正式站 | 10-06 07:22 |
+| 11 | **刪舊預覽分支**（git 代理擋刪除，要你在 GitHub 網頁按）：已併入 main、可直接刪的 12 支 —— preview/earnings-cal、preview/earnings-v2、admin-v2、admin-v3、etf-v1、etf-v3、explore-v1、explore-v2、fast-ov2、layout-v2、perm-nav、sub-v1 | <https://github.com/MiaoZiKe/tw-rotation/branches> | 10-05 |
+| 12 | 四問步驟中性名稱已做在 preview/four-steps，未上線。待規劃：改成針對特定分頁的導覽（Andy 10-06 18:05） | <https://miaozike.github.io/tw-rotation/preview/four-steps/>（手機寬看總覽頂端四步列） | 10-06 18:05 |
+| 13 | ✅ Andy 10-07 回報完成 —— ~~**三個帳號開兩步驟驗證**（Google、GitHub、Cloudflare；步驟在 10-07 回報裡） | 各自帳號安全性頁面 | 10-07 |
+| 14 | **筆電裝監控＋備份**（`tools/laptop/README.md`，約 15 分鐘；第 7 步設 BACKUP_TOKEN） | 筆電 | 10-07 |
+| 15 | **拆私人／公開 repo**：等設計完成後照步驟建私人 repo＋PAT | 施工中 | 10-07 |
+
+## 10-07 Andy：Google／GitHub／Cloudflare 兩步驟驗證全部完成（Cloudflare 先用忘記密碼補設密碼）。
+
+## 10-07 02:20 Andy 交辦：訂閱頁照範本＋會員分級（施工中）
+- 訂閱頁照 stockintelli 範本（月／年切換、Free／Plus 最受歡迎／Pro 功能最齊三卡）＋下方功能比較表 → claude/pricing-v2 → preview/pricing-v2。
+- 競品免費額度調查、新手最有感資料、本站競爭力、四層方案（訪客每日 3 次已定）、吸引功能發想 → claude/plan-tiers（docs/plan_tiers_1007.md、docs/plan_presets_1007.json）。
+- 管理區「套用建議方案」一鍵寫入四個範本；每個功能的每日次數覆蓋稽核（桌機＋手機）→ claude/quota。
+- ⚠ Pro「幫他分析自選清單股票」＝收費＋個股判斷，投顧法高風險；先做合規版（資料彙整、條件提醒），原版標「律師確認後才做」。
+- ⚠ 次數限制要等付費資料閘道上線，才會在伺服器端真的擋住；在那之前只擋畫面。
