@@ -157,6 +157,21 @@ jobs:
         run: |
           python scripts/preview_inject.py
           echo "部署包大小：$(du -sh site | cut -f1)（其中預覽 $(du -sh site/preview 2>/dev/null | cut -f1 || echo 0)）"
+      # 2026-10-06 資安（Andy：「點選 F12 會有我下過的 Prompt……幫我修正」）：
+      #   · delivery.json 是交付清單頁的資料，內容就是 Andy 的逐字原話 → 不上 public 網站（入口早已收掉，頁面會顯示「尚無資料」）。
+      #   · 發佈出去的自家 JS／CSS／HTML 一律壓縮並拿掉註解；repo 裡的原始碼保留註解。esbuild 鎖定版本。
+      #   · source map 不准發佈（minify_site.py 會刪 *.map，下面再檢查一次）。
+      #   放在預覽注入之後：preview/<名稱>/ 底下的檔案也一起處理。任何一支壓縮失敗 → 整個部署失敗，不發佈半套。
+      - name: 拿掉內部作業資料（交付清單原話）
+        run: rm -f site/data/delivery.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: 壓縮發佈檔並移除註解（esbuild 0.28.2）
+        run: |
+          npm i -g esbuild@0.28.2
+          python scripts/minify_site.py site
+          if find site -name '*.map' | grep -q .; then echo "::error::部署產物裡還有 source map"; exit 1; fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
