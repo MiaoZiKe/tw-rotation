@@ -223,3 +223,10 @@
 ## 10-06 20:35 付費內容保護（data-gw）三階段全部完成（分支 claude/data-gw，未上 main）
 切換清單（★＝Andy 按，上架前一次做）：R2 bucket、token 加 R2 權限、R2 權杖兩把、DATA_GW_SECRET、DATAGW_INTERNAL_KEY、（選用）通知 webhook／email → 合併分支 → 部署 data-gw → DATA_GW_URL → DATAGW_SPLIT=1 → #admin/perm 關收費功能 → 觀察兩週後定 T4。詳見 docs/datagw_plan.md（分支）第 10 節。
 待 Andy 決定：T1～T4 門檻、T5 哪些功能收費、T6 通知走 webhook 還是 email。
+
+## 10-06 21:00 Andy 回覆
+- Cloudflare 付費方案＋用量通知：**先不辦，維持免費**，等 Andy 確定要上線再辦。
+- T6 異常通知：寄到 Andy 的 Gmail（kcq01010909）。設定時用 DATAGW_ALERT_EMAIL。
+- 全站備份：備到筆電＋repo 內 docs/BACKUP_RUNBOOK.md 讓 Claude 照做（施工中）。
+- GitHub 改私人＋當備份：**有成本問題待 Andy 選**（私人 repo 的 Actions 免費 2,000 分鐘／月，實測目前用量約 1.2 萬分鐘／月）。
+- 藍新詳細說明＋為什麼要問律師＋別人怎麼快速上架：legal-compliance 查證中 → docs/legal_payment_faq_1006.md
