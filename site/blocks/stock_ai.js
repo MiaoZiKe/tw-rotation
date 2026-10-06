@@ -177,7 +177,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #skChartCard:not(.aiside)>#skAi>.aitabs,#skChartCard:not(.aiside)>#skAi>.aibody{grid-column:1 / -1}
 #skAi .aihead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 #skAi .aihead h3{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px}
-#skAi .aihead h3 small{font-size:12px;color:var(--amber);font-weight:500}
+#skAi .aihead h3 small{font-size:12px;letter-spacing:-.04em;color:var(--ink-3,var(--ink-2));font-weight:400;order:2;flex-basis:100%;line-height:1.5}
 #skAi .aisum{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:13.5px;color:var(--ink-2);line-height:1.45}
 #skAi .aisum .grade{flex:none;white-space:nowrap}
 #skAi .aisum .aibrief{min-width:0}
@@ -282,7 +282,8 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   #skAi .ailv{grid-template-columns:1fr}
 }
 /* ★ 2026-10-05 指標分頁「技術分析」卡（#tagTech）：同一份 techHTML／sigHTML，完整攤開不限高、不捲動 */
-#tagTech .ttwarn{margin:6px 0 10px;padding:7px 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:13px;font-weight:600}
+/* 2026-10-07：免責不另起框（style_guide 第 10 條）—— 改前是有底色、有框的提示塊，改後跟全站同一行灰色小字 */
+#tagTech .ttwarn{margin:2px 0 10px;color:var(--ink-3,var(--ink-2));font-size:12px;font-weight:400;line-height:1.5}
 #tagTech .tthead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 #tagTech .tthead small{color:var(--ink-3)}
 #tagTech .aickbtn{display:none}
@@ -442,7 +443,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       '籌碼面＝法人買賣超、融資增減、大戶週變化計分',
       '各面向不加總、非投資建議',
     ]) : '';
-    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="由固定規則與公開資料自動產生（技術評分、SMC 結構、九顆技術燈號、法人與融資、集保大戶、本益比分位、營收與 EPS、公告新聞），非投資建議">規則式自動判讀，非投資建議</small>
+    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" role="note" title="由固定規則與公開資料自動產生（技術評分、SMC 結構、九顆技術燈號、法人與融資、集保大戶、本益比分位、營收與 EPS、公告新聞），非投資建議">${esc(discLine())}</small>
         <button class="howbtn pop" data-how="ai" type="button" aria-label="AI 分析怎麼看">?</button></h3></div>
       <div class="howtxt" id="how-ai" hidden>${how}</div>`;
     const hd = (an && an.headline) || {};
@@ -717,8 +718,8 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     st.textContent = `
 /* 合併後的 AI 卡（#297）：標題＋免責 → 一行重點 → 膠囊分頁籤 → 一次一面 */
 #ovAiCard{display:flex;flex-direction:column;gap:10px;min-width:0;scroll-margin-top:80px;container:ovai / inline-size}
-#ovAiCard>h3{margin:0}
-#ovAiCard>h3 small[data-warn]{font-size:12px;color:var(--amber);font-weight:500}
+#ovAiCard>h3{margin:0;display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;row-gap:2px}
+#ovAiCard>h3 small[data-warn]{order:2;flex-basis:100%;font-size:12px;letter-spacing:-.04em;color:var(--ink-3,var(--ink-2));font-weight:400;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
 #ovAiCard.flash{animation:ovflash 1.4s ease-out 1}
 @keyframes ovflash{0%{box-shadow:0 0 0 2px var(--cyan)}100%{box-shadow:0 0 0 2px transparent}}
 @media (prefers-reduced-motion:reduce){#ovAiCard.flash{animation:none;box-shadow:0 0 0 2px var(--cyan)}}
@@ -838,6 +839,9 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       + `<span class="ovbrief">${esc(an ? briefText(pg) : '尚無資料')}</span></div></div>`;
   }
   /* ★ 2026-10-02 深夜（#297）總覽右欄那一張 AI 卡。sig＝StockSignal.view 的輸出（industry.js 給；擋掉 stock_signal.js 時是空字串，那一面就不出現）。*/
+  /* ★ 2026-10-07（Andy 01:15：AI 分析上方加一行「依公開資料統計計算、不構成投資建議或參考」，一行小字、不另起欄位）：
+     改前標題旁琥珀色「規則式自動判讀，非投資建議」→ 改後跟全站同一句（App.DISC_LINE）、灰色 12px、排在標題下一行（整句看得到）。*/
+  function discLine() { return (window.App && window.App.DISC_LINE) || '以下為依公開資料統計計算之結果，不構成任何投資建議或參考'; }
   function ovCard(pg, fmt, sig) {
     ovCss(); css();
     const an = pg && pg.analysis;
@@ -860,7 +864,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       const on = t.k === cur;
       return `<button type="button" class="ovtag${on ? ' on' : ''}" role="tab" data-facet="${t.k}" id="ovT-${t.k}" aria-selected="${on}" tabindex="${on ? 0 : -1}" aria-controls="ovF-${t.k}" title="${esc(t.tip)}">`
         + `${nmHTML(t.nm, t.sh)}<span class="aitag ${t.cls}">${esc(t.lb)}</span>${t.cnt}</button>`; }).join('')}</div>` : '';
-    return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn title="由固定規則與公開資料自動產生，非投資建議">規則式自動判讀，非投資建議</small>`
+    return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn role="note" title="由固定規則與公開資料自動產生（技術評分、SMC 結構、九顆技術燈號、法人與融資、集保大戶、本益比分位、營收與 EPS、公告新聞），非投資建議">${esc(discLine())}</small>`
       + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析怎麼看">?</button>`
       + `</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
       + brief(pg) + tabs
@@ -977,7 +981,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       .replace(/id="ai(Tfs|Why|Sig)"/g, 'id="tt$1"').replace('<div class="aickbody" hidden>', '<div class="aickbody">'))
       : '<div class="empty">尚無技術分析資料</div>';
     return `<div class="card" id="tagTech"><div class="tthead"><h3>技術分析</h3>${t && t.stance ? `<span class="grade ${stanceCls(t.stance)}">${esc(t.stance)}</span>` : ''}</div>
-      <div class="ttwarn" id="ttWarn">以下為規則式技術指標整理，僅供研究參考，不構成投資建議；本站非證券投資顧問</div>${body}</div>`;
+      <div class="ttwarn" id="ttWarn" role="note">${esc(discLine())}</div>${body}</div>`;
   }
   /* 2026-10-06 一屏看完：把同一份 techHTML＋sigHTML 分成左右兩欄（CSS 只在卡寬 ≥ 760 才並排，見 #tagTech .ttcols）。
      左＝讀的（四週期、綜合原因、若…則…、規則推算、支撐壓力）；右＝對照清單（逐條條件 .aick、「技術面訊號」小標以後的九顆燈）。

@@ -1329,7 +1329,7 @@
     body.innerHTML = `<div class="mbtaghead"><b>符合 ${nInd} 項指標</b></div>
       <ul class="mbtags">${tags.map((x, i) => x.miss ? '' : li(x, i)).join('')}</ul>
       ${miss.length ? `<details class="mbmiss"><summary>未符合／資料不足 ${miss.length} 項 ›</summary><ul class="mbtags">${miss.map(p => li(p[0], p[1])).join('')}</ul></details>` : ''}
-      <div class="mbfoot">依本站資料規則判斷，非投資建議</div>`;
+      <div class="mbfoot">${esc((window.App && window.App.DISC_LINE) || '以下為依公開資料統計計算之結果，不構成任何投資建議或參考')}</div>`;
     body.onclick = (e) => {
       const b = e.target.closest('.mbtags button[data-i]'); if (!b) return;
       const x = tags[+b.dataset.i];
