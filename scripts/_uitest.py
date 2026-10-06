@@ -16456,15 +16456,6 @@ def t_r5(pg, base, code):
     click(pg, '#tfSeg button[data-tf="1d"]', 1200)
     wait_until(pg, "() => !!(window.Industry && window.Industry._dbg && window.Industry._dbg().paneH)", 8000)
     kd_row = '#cfgPop .indrow[data-k="kd"]'
-    # ★ 2026-10-06 改前→改後（驗收過時：09-28 起個股頁預設週期＝分時，DECISIONS／industry.js 開頭註解；本機 2330 有分時資料之後才露出來）：
-    #   分時走勢本來就不畫指標（下拉第一行寫「分時走勢不畫指標；這裡的設定套用在 K 線週期」），在分時上切 KD 畫面當然不變。
-    #   改前這段默默假設「預設是日 K」—— 分時沒資料自動退回日 K 時才會過。改後：先驗分時下拉有那一句提示，再真的按「日」，在日 K 上驗開關與參數。
-    ind_open(pg)
-    tip_ = pg.evaluate("() => { const b = document.querySelector('#tfSeg button.on'); const p = document.getElementById('cfgPop'); return { tf: b ? b.dataset.tf : null, txt: p ? p.innerText : '' }; }")
-    if tip_["tf"] == "tick":
-        ok("R5-7d 預設停在分時時，指標下拉寫明「分時走勢不畫指標」（不讓人以為勾了沒反應是壞掉）", "分時走勢不畫指標" in tip_["txt"], tip_["txt"][:80])
-    ind_close(pg)
-    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
     ok("R5-7d 切到日 K（指標畫在 K 線週期上）", pg.evaluate("() => (document.querySelector('#tfSeg button.on') || {dataset: {}}).dataset.tf") == "1d")
     if not ind_on(pg, "kd"):
         ind_toggle(pg, "kd", 800)
@@ -17739,7 +17730,8 @@ def t_stock_tabs0926(pg, base, code):
     goto(nc, "news", 1400)
     n = pg.evaluate(NEWS_PROBE)
     if ok(f"【{tag}】{nc} 公告／新聞卡片在", bool(n), n):
-        ok(f"★【{tag}】{nc} 三張卡合成一張（分頁裡只有 1 張卡，標題「公告 / 新聞」）", n["cards"] == 1 and n["h3"].startswith("公告 / 新聞"), {"卡": n["cards"], "標題": n["h3"]})
+        # 2026-10-06（驗收過時）：icons.js 在 h3 最前面插標題圖示（09-28），h3 文字前面多了空白 → 比對前先 strip
+        ok(f"★【{tag}】{nc} 三張卡合成一張（分頁裡只有 1 張卡，標題「公告 / 新聞」）", n["cards"] == 1 and n["h3"].strip().startswith("公告 / 新聞"), {"卡": n["cards"], "標題": n["h3"]})
         ok(f"★【{tag}】{nc} 每一列前面都有類型標籤，而且標籤＝那一列的種類", n["total"] > 0 and n["tagOk"], n["total"])
         ok(f"【{tag}】{nc} 三種標籤三種顏色、都不是紅綠（漲跌色）",
            len({x.split("|")[0] for x in n["tagColors"]}) == len({x.split("|")[1] for x in n["tagColors"]})
@@ -21883,8 +21875,20 @@ def t_margin_src_1003(pg, base, code):
     ref = max(v for v in asof.values() if v)
     cut_dt = asof.get("daytrade") if asof.get("daytrade") and asof["daytrade"] < ref else None
     cut_sbl = asof.get("sbl") if asof.get("sbl") and asof["sbl"] < ref else None
-    if not ok(f"{tag}資料湖現況：當沖或借券賣出比融資券舊（前置條件；資料源恢復後這段會改走 ② 的路）",
-              bool(cut_dt or cut_sbl), asof):
+    if not (cut_dt or cut_sbl):
+        # ★ 2026-10-06 改前→改後（驗收過時：資料源恢復了，不是前端壞）：10-02 起 margin／daytrade／sbl 三個來源同一天（10-06 資料更新），
+        #   改前這裡把「資料湖還停更」當前置條件、不成立就記紅；改後照原本註解說的「資料源恢復後改走 ② 的路」——
+        #   用真資料驗「三個來源同一天 → 沒有說明列、表格沒有任何未提供」，① 的停更情境留給 ② 下面那段 route 假資料以外的日子。
+        notes.append(f"{tag}資料湖三個來源同一天 {asof}：資料源已恢復，改用真資料驗 ②（不出現說明列與「未提供」）")
+        pg.goto("about:blank")
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        click(pg, '#stockTabs button[data-t="margin"]', 1500)
+        click(pg, '#mgSeg button[data-v="dt"]', 900)
+        r = pg.evaluate("""() => { const n = document.getElementById('mgSrcNote');
+          return { note: n ? n.textContent.trim() : null, na: [...document.querySelectorAll('#mgTbl tbody td')].filter(td => td.dataset.na === 'src').length,
+                   rows: document.querySelectorAll('#mgTbl tbody tr').length }; }""")
+        ok(f"★ {tag}資料源正常（真資料，三個來源同一天）→ 資券分頁沒有說明列、表格沒有任何「未提供」、表格有列",
+           r["note"] is None and r["na"] == 0 and r["rows"] > 0, r)
         return
 
     PROBE = """() => {
@@ -26073,8 +26077,12 @@ def t_stock_0926(pg, base, code):
     if ok("[0926-②] 用下拉換成 1 小時／4 小時，兩格都畫得出來（前提）", bool(h1 and h4 and h1["bars"] >= 8 and h4["bars"] >= 2),
           [(m["tf"], m["bars"]) for m in mm]):
         ok("★ [0926-②] 1 小時與 4 小時兩格都有量副圖", h1["vol"] and h4["vol"], [h1, h4])
-        ok("★ [0926-②] 4 小時第一根的量＝前四根 1 小時量的總和", h4["v4"][0] == sum(h1["v4"][:4]) and h4["v4"][0] > 0,
-           {"1H 前四根": h1["v4"], "4H 第一根": h4["v4"][0]})
+        # ★ 2026-10-06 改前→改後（驗收過時，commit de3ddf32：4 時＝一天一根，跟管線 intraday_bars.session_key("H4") 同一切法；
+        #   改前「每 4 根 1 時併 1 根」一天 5 根會跨日錯位）：4 時第一根＝第一個交易日 5 根 1 時量的總和（假資料 08-01 那 5 根，
+        #   用上面同一條公式在 Python 端獨立算），而且 1 時那一格的前四根照樣是那一天的前四根。
+        day1 = [1000 * (k * 7 % 23 + 1) for k in range(1, 6)]
+        ok("★ [0926-②] 4 小時第一根的量＝第一個交易日 5 根 1 小時量的總和（一天一根）", h4["v4"][0] == sum(day1) and h1["v4"][:4] == day1[:4],
+           {"1H 前四根": h1["v4"], "第一天五根": day1, "4H 第一根": h4["v4"][0]})
     pg.unroute(f"**/data/stock/{code}.json*")
     click(pg, "#mtfBtn", 1400)
     pg.evaluate("() => { try { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); delete c.mtfTfs; localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch (e) {} }")
