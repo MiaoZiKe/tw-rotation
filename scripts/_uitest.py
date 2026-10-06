@@ -20916,14 +20916,20 @@ def t_ov_kpi_live_1002(b, base, code):
     if not live_ok:
         ctx.close(); return
     st = pg.evaluate("""() => { const h = document.getElementById('hero');
-        return { from: h.dataset.udFrom, udN: +h.dataset.udN, feet: [...h.querySelectorAll('.osc .osc-f')].map(e => e.textContent.trim()),
+        return { from: h.dataset.udFrom, udN: +h.dataset.udN, udUni: +h.dataset.udUni || 0, feet: [...h.querySelectorAll('.osc .osc-f')].map(e => e.textContent.trim()),
                  ovl: [...h.querySelectorAll('.osc')].filter(c => c.classList.contains('ovl')).length,
                  lv: [...h.querySelectorAll('.ovl-tg')].filter(b => b.classList.contains('lv')).length }; }""")
     v1 = vals(pg)
     ok("★ [摘要卡即時] 四張卡底線都寫「即時估算」（口徑：不是全市場、不是盤後那一份）",
        len(st["feet"]) == 4 and all("即時估算" in f for f in st["feet"]), st["feet"])
-    ok("[摘要卡即時] 漲跌家數換成即時那一份：三數加總＝卡片自報的 N 檔，N 在 1～443（人工族群成分股），不是全市場",
-       st["from"] == "live" and v1["ud"] and None not in v1["ud"] and sum(v1["ud"]) == st["udN"] and 0 < st["udN"] <= 443, [v1["ud"], st])
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「N ≤ 443（人工族群成分股）」→「N ≤ 這一輪名單檔數 ≤ 550（MUD_CAP）、而且 < 全市場檔數」。
+    #   為什麼舊的過時：79d503f5（10-05）把即時名單從「人工族群成分股（當時 443 檔）」改成「族群＋自選＋成交值前段」三段聯集、
+    #   上限 MUD_CAP＝550（app.js），所以 N＝550 是對的；寫死 443 是把當時的資料量當成規格。卡片底線那句「人工族群成分股」
+    #   同一批沒跟上（說錯口徑），已在 app.js ovlUD() 改掉，名單檔數改從 #hero data-ud-uni 讀，不再寫死。
+    n_all = len(json.loads((SITE / "data" / "stocks.json").read_text(encoding="utf-8")))
+    ok("[摘要卡即時] 漲跌家數換成即時那一份：三數加總＝卡片自報的 N 檔，N ≤ 名單檔數 ≤ 550，而且不是全市場",
+       st["from"] == "live" and v1["ud"] and None not in v1["ud"] and sum(v1["ud"]) == st["udN"]
+       and 0 < st["udN"] <= st["udUni"] <= 550 and st["udN"] < n_all, [v1["ud"], st, n_all])
     ok("[摘要卡即時] 漲跌家數卡底線寫出「N 檔」的 N（跟三數加總同一個數）", str(st["udN"]) in st["feet"][0], [st["udN"], st["feet"][0]])
     ok("[摘要卡即時] 資金輪盤四段加總＝全部族群數（即時那一份只換階段、不少族群）",
        v1["rot"] and None not in v1["rot"] and sum(v1["rot"]) == pg.evaluate("() => +document.getElementById('hero').dataset.rotN") > 0, v1["rot"])
@@ -20959,7 +20965,15 @@ def t_ov_kpi_live_1002(b, base, code):
     t_q = _time.time(); pg.wait_for_timeout(15200)
     nq = len(reqs(t_q, ("/quote",)))
     toks = [n for t, n in S["toks"] if t >= t_q]
-    ok("★ [摘要卡即時] 不多打請求：15 秒內 /quote 只有 3～4 次（每 5 秒一次，跟沒有摘要卡即時時一樣）", 3 <= nq <= 4, nq)
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「15 秒內 /quote 3～4 次」→「15 秒內 2～4 次，而且相鄰兩次間隔 ≥ 4.5 秒」。
+    #   為什麼舊的過時：live.js 的節奏是「上一輪處理完再排 5 秒」（setTimeout 串接，不是 setInterval），
+    #   79d503f5（10-05）名單從 455 擴到 550＋題材，每輪處理變長；探針實測（scratchpad probe_ovl，負載 10）間隔 5.4～6.2 秒 ——
+    #   15.2 秒的窗口落在 2 或 3 次純看相位，「至少 3 次」會隨機紅。這條要守的是「不多打」：
+    #   改成直接量相鄰間隔（比數次數更嚴：兩次擠在 4.5 秒內就紅），次數下限 2 只用來確認還在輪。
+    qts = sorted(t for t, p in reqs(t_q, ("/quote",)))
+    gaps = [round(b - a, 2) for a, b in zip(qts, qts[1:])]
+    ok("★ [摘要卡即時] 不多打請求：15 秒內 /quote 2～4 次、相鄰兩次至少隔 4.5 秒（每 5 秒一次，跟沒有摘要卡即時時一樣）",
+       2 <= nq <= 4 and gaps and min(gaps) >= 4.5, {"次數": nq, "間隔": gaps})
     ok("★ [摘要卡即時] 每個請求 ≤ 110 個代號（Worker 一個請求最多 140；補位塞的是主批次的空位）", toks and max(toks) <= 110, toks)
     ok("[摘要卡即時] 補位真的有塞（每個請求帶的代號明顯多於畫面上那幾檔）", toks and min(toks) >= 50, toks)
     ok("★ [摘要卡即時] 任何 5 秒內打到 mis（/quote＋/chart）≤ 3（節流閥）", max_in_window(t_q) <= 3, max_in_window(t_q))
@@ -21050,7 +21064,7 @@ def t_ov_kpi_live_1002(b, base, code):
     pg.wait_for_timeout(11000)          # 盤後主批次 30 分鐘才一輪；這 11 秒裡就算有晚到的回應也不准再改數字
     ok("★ [摘要卡即時] 跨過收盤之後數字就停住（11 秒一格都沒動）", vals(pg) == v_close and pg.evaluate(OVL_SIG) == sig_close, [v_close, vals(pg)])
     ok("[摘要卡即時] 跨過收盤：不是換回前一天的盤後資料（仍是今天的收盤快照、底線照寫即時估算）",
-       v_close != eod_v and pg.evaluate("() => +document.getElementById('hero').dataset.udN") == v_close["udN"] and v_close["udN"] <= 443
+       v_close != eod_v and pg.evaluate("() => +document.getElementById('hero').dataset.udN") == v_close["udN"] and v_close["udN"] <= 550   # 上限＝MUD_CAP（見 ① 的註解）
        and all("即時估算" in t for t in pg.evaluate("() => [...document.querySelectorAll('#hero .osc .osc-f')].map(e => e.textContent)")),
        [v_close, eod_v])
     ctx.close()
@@ -36095,11 +36109,21 @@ def t_mobile_v2(b, base, code):
     ok("[390px] 每顆的觸控高度 ≥ 44px", all(t["h"] >= 44 for t in tabs), sorted({t["h"] for t in tabs}))
     nh = m.evaluate("() => Math.round(document.getElementById('tabs').getBoundingClientRect().height)")
     ok("[390px] 底部導覽高 58px（改版前兩列 102px）", 54 <= nh <= 62, nh)
-    ok("[390px] 七個分頁一個都沒少（三顆收進「更多」，DOM 裡還在）",
-       m.evaluate("() => document.querySelectorAll('#tabs .tab').length") == 7)
+    # ★ 2026-10-06（既有紅字清理）改前→改後：「#tabs .tab 剛好 7 顆」→「底部沒放的每一顆頂層分頁，在『更多』清單裡都找得到」。
+    #   為什麼舊的過時：10-05 起頂層分頁多了 ETF（a376a2c9）、選股策略、財經日曆（3fc32092），寫死 7 顆必紅；
+    #   而且那兩顆當時沒收進「更多」，把「更多」擠到畫面外（真 bug，index.html／mobile3.js 同日修）。
+    #   選股策略 ≤820 本來就不提供（explore.css），交付清單 09-28 起入口收掉 —— 兩者不在清單裡是設計。
+    hid = m.evaluate("() => [...document.querySelectorAll('#tabs .tab')].filter(e => getComputedStyle(e).display === 'none').map(e => e.dataset.view)")
+    m.tap("#mTabMore"); m.wait_for_timeout(400)
+    rows = m.evaluate("() => [...document.querySelectorAll('#mSheet .mrow[data-m]')].map(e => e.dataset.m)")
+    m.keyboard.press("Escape"); m.wait_for_timeout(300)
+    m.evaluate("() => { const s = document.getElementById('mSheet'); if (s && !s.hidden) { const x = document.getElementById('mSheetBack'); if (x) x.click(); } }")
+    lost = [v for v in hid if v not in rows and v not in ("explore", "delivery")]
+    ok("[390px] 頂層分頁一個都沒少：底部沒放的每一顆都在「更多」清單裡（DOM 裡也還在）",
+       len(hid) >= 3 and not lost, {"收起來的": hid, "更多清單": rows, "找不到入口": lost})
     # ★ 2026-10-04 改前→改後（驗收過時）：交付清單的入口已從「更多」收掉（mobile3.js openMore 註解：#delivery 照樣打得開，只是入口收掉），
     #   改前去點不存在的那列 → 等 30 秒逾時、整段中斷。改後換成清單裡現在有的「自選」。
-    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market")):
+    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market"), ("etf", "#etf"), ("earnings", "#earnings")):
         m.tap("#mTabMore"); m.wait_for_timeout(400)
         m.tap(f'#mSheet .mrow[data-m={v}]'); m.wait_for_timeout(1600)
         st = m.evaluate("""() => ({ hash: location.hash,
@@ -46227,6 +46251,10 @@ def t_perm_nav(b, base):
         wait_until(pg, "() => !!document.getElementById('mTabMore') && !!(window.TwAccount && TwAccount.on())", 8000)
         if adm:
             wait_until(pg, "() => !!TwAccount.user()", 6000)
+        # ★ 2026-10-06（既有紅字清理，真 bug）：ETF／財經日曆兩顆頂層分頁沒收進「更多」，底部五欄格線擠成兩列，
+        #   「更多」掉到畫面下緣之外（實測 top 901／視窗 900）→ 手機點不到管理區。修在 index.html＋mobile3.js，這條守住它。
+        mr = pg.evaluate("() => { const r = document.getElementById('mTabMore').getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight }; }")
+        ok(f"{T} 390（{who}）：底部導覽的「更多」整顆在畫面裡（沒被擠到第二列）", mr["top"] >= 0 and mr["bottom"] <= mr["vh"] + 1, mr)
         pg.click("#mTabMore")
         pg.wait_for_timeout(300)
         has = pg.locator(".mrow[data-m='perm']").count()
