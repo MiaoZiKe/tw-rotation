@@ -344,7 +344,7 @@
     b.disabled = false;
     b.textContent = S.motion ? '動態 開' : '動態 關';
     b.setAttribute('aria-pressed', S.motion ? 'true' : 'false');
-    b.title = S.motion ? '關掉粒子流動畫（只畫靜態線條，設定會記住）' : '打開粒子流動畫（設定會記住）';
+    b.title = S.motion ? '關掉粒子流動畫' : '打開粒子流動畫';
   }
 
   /* =========================================================================

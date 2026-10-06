@@ -175,7 +175,7 @@
       if (P.editing === t.id) {
         return `<span class="wptab on" data-tab="${esc(t.id)}"><input id="wpRename" value="${esc(t.name)}" maxlength="12" aria-label="新的清單名稱"></span>`;
       }
-      return `<span class="wptab${on ? ' on' : ''}" data-tab="${esc(t.id)}" draggable="${isM() ? 'false' : 'true'}" title="${esc(t.name)}（${t.codes.length} 檔）${on ? '・雙擊改名' : ''}${isM() ? '' : '・可拖曳排序'}">`
+      return `<span class="wptab${on ? ' on' : ''}" data-tab="${esc(t.id)}" draggable="${isM() ? 'false' : 'true'}" title="${esc(t.name)}（${t.codes.length} 檔）">`
         + `<button type="button" class="wpname" role="tab" aria-selected="${on}" data-sel="${esc(t.id)}">${esc(t.name)}<small>${t.codes.length}</small></button>`
         + (on ? `<button type="button" class="wpic ren" data-ren="${esc(t.id)}" aria-label="把「${esc(t.name)}」改名" title="改名">✎</button>`
           + `<button type="button" class="wpic del" data-del-tab="${esc(t.id)}" aria-label="刪除「${esc(t.name)}」這一頁" title="刪除這一頁">✕</button>` : '')
@@ -202,7 +202,7 @@
     const box = document.getElementById('wpList'), T = W(); if (!box || !T) return;
     const t = T.curTab(), a = A();
     if (!t.codes.length) {
-      box.innerHTML = `<div class="wpempty">「${esc(t.name)}」還沒有股票。用上面的搜尋框打代號或名稱加入，或在個股頁按 ☆。</div>`;
+      box.innerHTML = `<div class="wpempty">「${esc(t.name)}」還沒有股票</div>`;
       return;
     }
     const f = a && a.fmt;
@@ -213,7 +213,7 @@
       const on = P.exp === c;
       return `<tr data-go="${esc(c)}" tabindex="0"${on ? ' class="on"' : ''}>
         <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b class="wpgo">${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
-        <td class="c-sp"><button type="button" class="wpspk" data-exp="${esc(c)}" aria-expanded="${on}" aria-label="展開 ${esc(r.name || c)} 的走勢圖" data-tiphint="點一下在下面展開大圖，再點一次收起">${sparkCell(c)}</button></td>
+        <td class="c-sp"><button type="button" class="wpspk" data-exp="${esc(c)}" aria-expanded="${on}" aria-label="展開 ${esc(r.name || c)} 的走勢圖">${sparkCell(c)}</button></td>
         <td class="num" data-live="close" data-lc="${esc(c)}">${r.close == null || !f ? '—' : f.n(r.close)}</td>
         <td class="num ${cls}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !f ? '—' : f.pct(r.chg_pct, 2)}</td>
         <td class="num c-vol">${r.turnover == null || !f ? '—' : f.yi(r.turnover)}</td>
@@ -307,7 +307,7 @@
     } else {
       const bars = r.bars || [];
       ['last', 'first', 'base', 'kind', 'ymin', 'ymax'].forEach((k) => { delete box.dataset[k]; });
-      if (note) note.textContent = bars.length >= 2 ? `${bars.length} 根・滾輪可縮放` : '';
+      if (note) note.textContent = bars.length >= 2 ? `${bars.length} 根` : '';
       if (bars.length < 2 || !window.KChart) { box.innerHTML = `<div class="empty">${esc(r.why || '這個週期尚無資料')}</div>`; box.dataset.state = 'empty'; box.dataset.n = '0'; return; }
       expK = new window.KChart(box, { mini: true, tf, fit: (kc) => kc.defaultView() });
       expK.setBars(bars, tf);
@@ -351,7 +351,7 @@
     if (q('#wpDelYes')) { P.confirm = false; T.delTab(T.cur()); return; }
     if (q('#wpNew')) {
       const id = T.newTab('');
-      if (!id) { setHint(T.capLocked && T.capLocked() ? `🔒 目前方案最多 ${T.MAX_TABS} 頁，要更多頁需開通` : `最多 ${T.MAX_TABS} 頁，要新增請先刪掉一頁`); return; }
+      if (!id) { setHint(T.capLocked && T.capLocked() ? `🔒 目前方案最多 ${T.MAX_TABS} 頁，要更多頁需開通` : `最多 ${T.MAX_TABS} 頁`); return; }
       setHint(''); P.editing = id; paint(); return;
     }
     const ad = q('button[data-add]');

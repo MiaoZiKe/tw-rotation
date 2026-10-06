@@ -42,7 +42,7 @@
     del: '<path d="M4,5 H14 M7,5 V3.5 H11 V5 M5.5,5 L6.3,15 H11.7 L12.5,5"/>',
   };
   const TOOLS = [
-    { k: 'cursor', label: '選取（點圖形可拖曳、改端點）', pts: 0 },
+    { k: 'cursor', label: '選取', pts: 0 },
     { k: 'trend', label: '趨勢線', pts: 2 },
     { k: 'ray', label: '射線（從起點往終點方向延伸到圖邊）', pts: 2 },
     { k: 'arrow', label: '箭頭（從起點指向終點）', pts: 2 },
@@ -50,8 +50,8 @@
     { k: 'rect', label: '方框', pts: 2 },
     { k: 'text', label: '文字', pts: 1 },
     { k: 'measure', label: '測量（價差、漲跌幅、K 棒根數、天數、區間量）', pts: 2 },
-    { k: 'vp', label: '固定範圍成交量分佈（點起點、再點終點）', pts: 2 },
-    { k: 'erase', label: '橡皮擦（點到哪個圖形就刪哪個）', pts: 0 },
+    { k: 'vp', label: '固定範圍成交量分佈', pts: 2 },
+    { k: 'erase', label: '橡皮擦', pts: 0 },
   ].map(t => Object.assign(t, { icon: I[t.k] }));
   const KINDS = { trend: '趨勢線', ray: '射線', arrow: '箭頭', hline: '水平線', rect: '方框', text: '文字', measure: '測量', vp: '成交量分佈' };
   // 最後一個原本是 #e8eeff（近白），淺色主題畫在白底上等於沒畫；改成中性灰兩邊都看得見
@@ -1037,7 +1037,7 @@
     injectCss();
     BAR = { el, api, tool: api.tool || 'cursor' };
     global.DrawTools._onStyle = api.onStyle || null;
-    const btn = (t, extra) => `<button class="dtool ${t.k === BAR.tool ? 'on' : ''} ${extra || ''}" data-t="${t.k}" title="${esc(t.label)}${t.pts === 2 ? '（點起點、再點終點；按住 Shift ＝ 鎖水平／垂直）' : ''}" aria-label="${esc(t.label)}">
+    const btn = (t, extra) => `<button class="dtool ${t.k === BAR.tool ? 'on' : ''} ${extra || ''}" data-t="${t.k}" title="${esc(t.label)}${t.pts === 2 ? '（Shift＝鎖水平／垂直）' : ''}" aria-label="${esc(t.label)}">
          <svg viewBox="0 0 18 18">${t.icon}</svg></button>`;
     el.innerHTML = TOOLS.filter(t => t.k !== 'erase').map(t => btn(t)).join('')
       + `<div class="dsep"></div>`

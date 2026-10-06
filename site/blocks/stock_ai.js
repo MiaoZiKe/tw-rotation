@@ -423,14 +423,13 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const open = false;
     const cur = readTab();
     /* ★ 2026-10-02（#293）預設只看重點：說明第一條講「點小標籤看細節、展開看各週期」，其餘照舊（「?」最多 5 條） */
-    const how = window.App && window.App.howHTML ? window.App.howHTML('這一塊：四個面向的規則式判讀。', [
+    const how = window.App && window.App.howHTML ? window.App.howHTML('四個面向的規則式判讀。', [
       '四格＝技術、籌碼、基本、消息面各自判讀',
       '技術面旁「5多0空」＝九顆技術燈偏多、偏空顆數',
       '籌碼面＝法人買賣超、融資增減、大戶週變化計分',
-      '點一格捲到下面總覽，看那一面完整內容',
-      '寫死的規則算的，非語言模型；不加總、非建議',
+      '各面向不加總、非投資建議',
     ]) : '';
-    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="這一塊由固定規則與公開資料自動產生（技術評分、SMC 結構、回檔與突破兩套條件、九顆技術燈號、法人買賣超與融資、集保大戶、本益比分位、營收與 EPS、公告新聞則數），不是大型語言模型，也不是任何人的投資建議。同一份資料永遠得到同一段文字。">規則式自動判讀，非投資建議</small>
+    const head = `<div class="aihead"><h3>AI 分析 <small data-warn id="aiWarn" title="由固定規則與公開資料自動產生（技術評分、SMC 結構、九顆技術燈號、法人與融資、集保大戶、本益比分位、營收與 EPS、公告新聞），非投資建議">規則式自動判讀，非投資建議</small>
         <button class="howbtn pop" data-how="ai" type="button" aria-label="AI 分析怎麼看">?</button></h3></div>
       <div class="howtxt" id="how-ai" hidden>${how}</div>`;
     const hd = (an && an.headline) || {};
@@ -441,7 +440,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     if (!an) {
       const sm = pg && pg.mtf && pg.mtf.summary;
       return head + `<div class="aisum" id="skAiLine" data-readout><span class="aibrief">${sm && sm.headline ? esc(sm.headline) : '資料不足'}</span></div>
-        <div class="aibody" id="aiBody"${open ? '' : ' hidden'}><div class="empty">AI 分析資料準備中（下一次盤後更新後出現）</div></div>`;
+        <div class="aibody" id="aiBody"${open ? '' : ' hidden'}><div class="empty">尚無 AI 分析資料</div></div>`;
     }
     const f = an.facets || {};
     const sig = sigCount(pg, fmt);
@@ -822,7 +821,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const hd = (an && an.headline) || {};
     const stance = hd.stance || v.verdict || '—';
     return `<div id="ovAiBrief" data-ai><div class="ovline" id="ovAiLine" data-readout><span class="grade ${stanceCls(stance)}">${esc(stance)}</span>`
-      + `<span class="ovbrief">${esc(an ? briefText(pg) : '資料準備中（下一次盤後更新後出現）')}</span></div></div>`;
+      + `<span class="ovbrief">${esc(an ? briefText(pg) : '尚無資料')}</span></div></div>`;
   }
   /* ★ 2026-10-02 深夜（#297）總覽右欄那一張 AI 卡。sig＝StockSignal.view 的輸出（industry.js 給；擋掉 stock_signal.js 時是空字串，那一面就不出現）。*/
   function ovCard(pg, fmt, sig) {
@@ -837,17 +836,17 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const cur = have.length ? readOvTab(have) : '';
     const how = window.App && window.App.howHTML ? window.App.howHTML('', [
       '一行重點＝回檔、突破兩套型態成立幾條＋停損距離',
-      '四顆籤＝技術、籌碼、基本、消息面，點了切換',
+      '四顆籤＝技術、籌碼、基本、消息面',
       '技術面含九顆訊號燈，籤上「5多0空」是燈號計數',
       '籌碼面看法人、融資、大戶；當沖、融券只列參考',
-      '寫死的規則算的，非語言模型；不加總、非建議',
+      '各面向不加總、非投資建議',
     ]) : '';
     const tg = facetTags(pg, fmt).filter(t => have.includes(t.k));
     const tabs = tg.length >= 2 ? `<div class="seg ovseg" id="ovAiTags" role="tablist" aria-label="AI 分析四個面向">${tg.map(t => {
       const on = t.k === cur;
       return `<button type="button" class="ovtag${on ? ' on' : ''}" role="tab" data-facet="${t.k}" id="ovT-${t.k}" aria-selected="${on}" tabindex="${on ? 0 : -1}" aria-controls="ovF-${t.k}" title="${esc(t.tip)}">`
         + `${nmHTML(t.nm, t.sh)}<span class="aitag ${t.cls}">${esc(t.lb)}</span>${t.cnt}</button>`; }).join('')}</div>` : '';
-    return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn title="由固定規則與公開資料自動產生，不是大型語言模型，也不是任何人的投資建議。">規則式自動判讀，非投資建議</small>`
+    return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn title="由固定規則與公開資料自動產生，非投資建議">規則式自動判讀，非投資建議</small>`
       + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析怎麼看">?</button>`
       + `</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
       + brief(pg) + tabs
@@ -962,7 +961,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const sig = sigCount(pg, fmt);
     const body = an ? (techHTML(t, fmt) + `<div class="aisub">技術面訊號</div>` + sigHTML(pg, sig))
       .replace(/id="ai(Tfs|Why|Sig)"/g, 'id="tt$1"').replace('<div class="aickbody" hidden>', '<div class="aickbody">')
-      : '<div class="empty">技術分析資料準備中（下一次盤後更新後出現）</div>';
+      : '<div class="empty">尚無技術分析資料</div>';
     return `<div class="card" id="tagTech"><div class="tthead"><h3>技術分析</h3>${t && t.stance ? `<span class="grade ${stanceCls(t.stance)}">${esc(t.stance)}</span>` : ''}</div>
       <div class="ttwarn" id="ttWarn">以下為規則式技術指標整理，僅供研究參考，不構成投資建議；本站非證券投資顧問</div>${body}</div>`;
   }

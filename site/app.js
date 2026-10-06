@@ -364,16 +364,22 @@
     const K = HM_KIND[kind];
     lg.dataset.kind = kind;
     lg.classList.toggle('focus', focus != null);
-    lg.innerHTML = `${focus != null ? '<span class="hmhint">只亮這一級 · 再點一次還原</span>' : ''}<span class="hmttl">${K.title}</span>`
-      + `<span class="hmbar" role="group" aria-label="${K.title} 圖例：點一格只看這一級">`
+    lg.innerHTML = `<span class="hmttl">${K.title}</span>`
+      + `<span class="hmbar" role="group" aria-label="${K.title} 圖例">`
       + K.cells.map((t, i) => `<button type="button" class="hmcell${focus === i ? ' on' : ''}${hmDarkInk(i, kind) ? ' dk' : ''}" data-bin="${i}" style="--c:${hmColor(i, kind)}"`
-        + ` aria-pressed="${focus === i}" title="${K.title} ${t}：點一下只亮這一級">${t}</button>`).join('')
+        + ` aria-pressed="${focus === i}" title="${K.title} ${t}">${t}</button>`).join('')
       + '</span>';
     $$('.hmcell', lg).forEach(b => b.onclick = () => { const i = +b.dataset.bin; onFocus(focus === i ? null : i); });
     return lg;
   }
   /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」）：卡片標題列的日期膠囊（hmDate）整支拿掉。
      資料新鮮度只看全站的資料狀態／版號徽章與頁首時間（DECISIONS #329、docs/date_chip_audit_1006.md）。*/
+  /* 出處小圖示（2026-10-06 廢話普查，Andy：「出處：公開資訊觀測站…」這種整行出處讀者看了沒意義）：
+     出處不佔正文，改成段落標題旁的小 ⓘ，滑過（手機長按／聚焦）才顯示「出處＋資料日期」。
+     全站共用一支（App.srcInfo／window.srcInfo），樣式 .srcinfo 在 index.html。*/
+  const srcInfo = (src, date) => (src || date)
+    ? `<span class="srcinfo" tabindex="0" role="note" aria-label="出處" title="${fmt.esc([src ? '出處：' + src : '', date ? '資料日期：' + date : ''].filter(Boolean).join('\n'))}">ⓘ</span>` : '';
+  window.srcInfo = srcInfo;
   const hmLS = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
   const hmLSset = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只影響記不記得 */ } };
   /* ★ 2026-09-24 效能（R6 審查 2.5 節）：
@@ -2944,7 +2950,7 @@
     const host = $('#maTrendBox'); if (!host) return;
     const [mb, gt] = await Promise.all([load('ma_breadth', { fallback: { dates: [], mas: [], series: {} } }),
       load('groups_today', { fallback: [] })]);
-    if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '站上均線的歷史資料準備中（下一次盤後更新就會有）'); }
+    if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '尚無站上均線資料'); }
     const nOf = {}; (gt || []).forEach(g => { if (g && g.group_name) nOf[g.group_name] = g.constituents; });
     /* 「樣本少」看兩件事，任一成立就標：
        ① 成分股 < 5 檔（groups_today 的 constituents）；
@@ -2976,7 +2982,7 @@
     }
     const sub = $('#maTrendSub');
     const setSub = () => {
-      if (sub) sub.textContent = `全市場 MA${MAT.ma}／MA${ref}${MAT.on.size ? `　＋ ${MAT.on.size} 個族群` : '　（用上面的族群下拉或圖例疊上去比）'}　·　${mb.dates[0]} ～ ${mb.dates[mb.dates.length - 1]}`;
+      if (sub) sub.textContent = `全市場 MA${MAT.ma}／MA${ref}${MAT.on.size ? `　＋ ${MAT.on.size} 個族群` : ''}　·　${mb.dates[0]} ～ ${mb.dates[mb.dates.length - 1]}`;
     };
     setSub();
     /* 族群挑選（2026-10-04 Andy：原本一大片晶片佔三四排 → 改成跟週期統計同一個可搜尋多選下拉 msDD）。
@@ -3094,7 +3100,7 @@
     const c = chart('chgDist', {
       tooltip: { ...tip, trigger: 'axis',
         formatter: (ps) => { const i = ps[0].dataIndex;
-          return `<b>${labels[i]}%</b><br>${bins[i]} 檔（${fmt.n(bins[i] / n * 100, 1)}%）<br><small>點一下列出這一段的個股</small>`; } },
+          return `<b>${labels[i]}%</b><br>${bins[i]} 檔（${fmt.n(bins[i] / n * 100, 1)}%）`; } },
       grid: { left: 50, right: 20, top: 26, bottom: 34 },
       xAxis: { ...axisStyle, type: 'category', data: labels, axisLabel: { color: CH.ink3, fontSize: 12, interval: 0, rotate: 30 } },
       yAxis: { ...axisStyle, name: '家數', nameTextStyle: { color: CH.ink3, fontSize: 12 }, axisLabel: { color: CH.ink3 } },
@@ -3278,9 +3284,9 @@
   const mudLive = () => MUD.on && !MUD.err && Object.keys(MUD.q).length > 0;
 
   async function mudFetch() {
-    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價載入失敗');
     const codes = mudCodes();
-    if (!codes.length) throw new Error('成分股資料還沒載入，抓不了即時');
+    if (!codes.length) throw new Error('成分股資料尚未載入');
     const q = {};
     let reqs = 0, bad = 0, lastErr = null;
     /* ★ 2026-10-05：一批失敗（某一檔代號讓上游回錯、逾時）只丟那一批，不再讓整輪變成「抓不到」退回盤後；
@@ -3292,7 +3298,7 @@
     }
     if (bad === reqs && lastErr) throw lastErr;
     const hit = Object.keys(q).filter(c => q[c] && q[c].chgPct != null);
-    if (!hit.length) throw new Error('報價回來了，但沒有一檔算得出漲跌幅');
+    if (!hit.length) throw new Error('報價缺漲跌幅');
     MUD.bad = bad;
     MUD.q = q; MUD.reqs = reqs; MUD.codes = codes.length; MUD.hit = hit.length;
     MUD.quoteAt = (q[hit[0]] || {}).time || '';
@@ -3310,8 +3316,8 @@
        也按不到「一鍵退回盤後」。*/
     if (MUD.err) {
       el.innerHTML = `<b class="bad">即時抓不到報價</b>　${fmt.esc(MUD.err)}`
-        + '　·　下面畫的仍然是<b>盤後</b>那一份（圖沒有變空白）'
-        + '　<button type="button" class="btn small" id="mktLiveBack">一鍵退回盤後</button>';
+        + '　·　仍顯示<b>盤後</b>資料'
+        + '　<button type="button" class="btn small" id="mktLiveBack">退回盤後</button>';
       const b = $('#mktLiveBack'); if (b) b.onclick = () => mudOff();
       return;
     }
@@ -3325,16 +3331,9 @@
     el.innerHTML = '<b class="live">即時</b>'
       // 最後更新時間只留機器讀數（藏起來的 .liveat，驗收比「真的往前走」用），畫面不顯示
       + `<span class="liveat" hidden>${(window.Live && window.Live.hms ? window.Live.hms(MUD.at) : new Date(MUD.at).toTimeString().slice(0, 8))}</span>`
-      + `　·　<b>涵蓋率 ${uni ? fmt.n(MUD.hit / uni * 100, 1) : '—'}%</b>`
-      + `（抓到 <b>${MUD.hit}</b> 檔 / 想抓 ${MUD.codes} 檔 / 全市場 ${uni} 檔　·　${MUD.reqs} 個請求${MUD.bad ? `，<b class="bad">${MUD.bad} 個失敗</b>` : ''}）`
-      + `<br>· <b id="mudCover">即時只涵蓋 ${MUD.hit} 檔</b>（人工族群成分股 ${(MUD.src || {}).group || 0}＋自選 ${(MUD.src || {}).watch || 0}＋盤後成交值前段補 ${(MUD.src || {}).turnover || 0}，上限 ${MUD_CAP}）：`
-      + '全市場 2300 多檔逐檔打要 21 個請求、一輪 35 秒以上，所以只抓這一批。它<b>偏中大型、偏電子</b>，'
-      + '分佈會比全市場<b>窄</b> —— 它是這一批的樣子，不是全市場的縮影；漲停／跌停家數也只數這一批。'
-      + '<br>· <b>漲停＝現價等於漲停價</b>（昨收 × 1.1 依升降單位向下取整，跌停同理向上取整），只認普通股；ETF、權證、槓桿反向不列入；'
-      + '漲幅／跌幅前段也排除漲跌幅超過 10% 與非普通股（勾「含 ETF」才把 ETF 排進前段，但仍不算漲停）。'
-      + '<br>· <b>漲跌幅是真的，成交值是估的</b>：漲跌幅＝(現價 − 昨收) ÷ 昨收；'
-      + '「成交值前段」那一格是「現價 × 累計張數 × 1000」的<b>估算值</b>'
-      + '（即時端點沒有每檔的累積成交金額），和盤後的真實成交值不是同一個數字。';
+      + `　·　<b>涵蓋率 ${uni ? fmt.n(MUD.hit / uni * 100, 1) : '—'}%</b>（${MUD.hit}／${uni} 檔）`
+      + `<br><b id="mudCover">即時只涵蓋 ${MUD.hit} 檔</b>（族群成分股＋自選＋成交值前段），偏中大型、偏電子，不是全市場；`
+      + '<b>漲跌幅是真的、成交值是估的</b>（現價 × 累計張數）。';
   }
 
   async function mudTick() {
@@ -3520,7 +3519,7 @@
       const draw = () => {
         const t = sets[mktTab];
         // 即時模式剛按下去、報價還沒回來時 sets 會是空的 —— 給一句話，不要留一塊空白
-        if (!t) { $('#mktInner').innerHTML = '<div class="empty">即時報價還沒回來（下一輪就會有）</div>'; return; }
+        if (!t) { $('#mktInner').innerHTML = '<div class="empty">即時報價載入中</div>'; return; }
         $('#mktInner').innerHTML = (t[2] ? `<div class="kpinote">${t[2]}</div>` : '')
           + (t[1].length ? stockTable(t[1], [PCT, CLOSE, TO]) : `<div class="empty">${live ? '抓到的這批' : '今天'}沒有${t[0]}的股票</div>`);
         bind();
@@ -3610,7 +3609,7 @@
             <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
             <div class="bar"><i style="width:${g.pct20}%;background:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
             <div class="v">MA20 ${g.pct20}%<span>MA60 ${g.pct60}%</span></div></div>`).join('')}</div>`
-          : '<div class="empty">均線統計還在產生</div>');
+          : '<div class="empty">尚無均線統計</div>');
       $$('#mktBody .ma[data-gid]').forEach(e => e.onclick = () => { location.hash = '#industry/group/' + e.dataset.gid; });
       drawMaTrend();
       return;
@@ -3912,7 +3911,7 @@
         title: '資金去向', icon: 'git-branch', color: 'var(--violet)', date: day || (f3 && f3.date),
         aria: `資金去向：${items.slice(0, 3).map(x => x.name + ' ' + pct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
         bar: Dv.bar + (M !== Dv ? M.bar : ''),
-        nums: has ? Dv.nums + (M !== Dv ? M.nums : '') : '<span class="muted">資金去向還沒產出</span>',
+        nums: has ? Dv.nums + (M !== Dv ? M.nums : '') : '<span class="muted">尚無資料</span>',
         foot: Dv.foot + (M !== Dv ? M.foot : ''),
         ds: { flowTop: items.length ? items[0].cid : '' },
       }));
@@ -4095,7 +4094,7 @@
       const b = udBin(q.chgPct); if (b > 5) up++; else if (b < 5) dn++; else fl++;
       if (q.time && q.time > at) at = q.time; });
     const n = up + fl + dn;
-    if (!n) return { err: '還沒拿到任何一檔今天的報價' };
+    if (!n) return { err: '尚無今日報價' };
     const P = ovsUdParts(up, fl, dn), all = ((OVS.src && OVS.src.stocks) || []).length;
     /* ★ 2026-10-06（既有紅字清理）：底線／提示原本寫「人工族群成分股」—— 那是 10-05 以前的名單。
        79d503f5 起 mudCodes() 是「族群成分股＋自選＋盤後成交值前段補位」三段聯集、上限 MUD_CAP（550），
@@ -4106,13 +4105,12 @@
         foot: `即時估算（<b>${n}</b> 檔）<span class="muted">・非全市場</span>`,
         aria: `漲跌家數（即時估算 ${n} 檔，不是全市場）：上漲 ${up}、平盤 ${fl}、下跌 ${dn}。點一下捲到下方漲跌分佈（盤後資料）`,
         ds: { udN: n, udFrom: 'live', udUni: codes.length } },
-      info: { n, at, tip: `口徑：市場明細「即時」同一份名單 —— 族群成分股＋自選＋盤後成交值前段補位（上限 ${MUD_CAP}）共 ${codes.length} 檔裡拿到今天報價的 ${n} 檔，`
-        + `漲跌＝現價 vs 昨收（真值）。這不是全市場（全市場 ${all || '約 2300'} 檔要盤後才有），這一批偏中大型、偏電子。` },
+      info: { n, at, tip: `族群成分股＋自選＋成交值前段共 ${codes.length} 檔中有報價的 ${n} 檔；漲跌＝現價 vs 昨收。非全市場（全市場 ${all || '約 2300'} 檔盤後才有），偏中大型、偏電子。` },
     };
   }
   function ovlRot() {
     const rrg = OVS.src && OVS.src.f3 && OVS.src.f3.rrg;
-    if (!rrg || !(rrg.points || []).length) return { err: '輪動資料還沒載入' };
+    if (!rrg || !(rrg.points || []).length) return { err: '尚無輪動資料' };
     const { codes } = rlvCodes(rrg);
     const q = {}; codes.forEach(c => { if (OVL.q[c]) q[c] = OVL.q[c]; });
     let r;
@@ -4126,13 +4124,12 @@
           + (best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）</span>` : ''),
         aria: `資金輪盤（即時估算，${liveN} 個族群用即時報價續算）：${OVS_ROT_ORDER.map(k => STAGE[k].name + ' ' + P.cnt[k]).join('、')}。點一下捲到資金輪盤`,
         ds: { rotN: all.length } },
-      info: { n: r.hit, at: r.at, tip: `口徑：資金流向頁輪動時鐘「即時」同一支續算 —— ${liveN} 個人工族群用 ${r.hit} 檔即時報價往前推一步，`
-        + `${r.skipped} 個（含「〇〇・其他」自動桶）維持盤後位置。權重是「價 × 量」估算、漲跌是真的；大盤是這一批的代理值（${fmt.pct((r.mkt || 0) * 100, 2)}）。` },
+      info: { n: r.hit, at: r.at, tip: `${liveN} 個族群以 ${r.hit} 檔即時報價續算，其餘 ${r.skipped} 個維持盤後位置。成交值為估算（價 × 量）；大盤為這批的代理值（${fmt.pct((r.mkt || 0) * 100, 2)}）。` },
     };
   }
   function ovlFlow() {
     const sd = OVS.src && OVS.src.sd;
-    if (!sd || !(sd.groups || []).length) return { err: '資金去向還沒產出' };
+    if (!sd || !(sd.groups || []).length) return { err: '尚無資金去向資料' };
     const r = sklCompute(sd, OVL.q);
     const by = {}; let total = 0, topG = null;
     sd.groups.forEach(g => { const v = r.tv[g.gid]; if (!(v > 0)) return;
@@ -4140,7 +4137,7 @@
       (by[cid] = by[cid] || { cid, name: g.chain_name || chainLabel(cid), v: 0 }).v += v;
       total += v; if (!topG || v > topG.v) topG = { name: g.name, v }; });
     const items = Object.values(by).sort((a, b) => b.v - a.v);
-    if (!items.length) return { err: '報價回來了，但沒有一個板塊算得出成交值' };
+    if (!items.length) return { err: '報價不足以估算成交值' };
     const V = ovsFlowVariant(items, total, null, ''), hit = Object.keys(r.stv).length, boards = Object.keys(r.tv).length;
     return {
       html: { bar: V.bar, nums: V.nums,
@@ -4148,8 +4145,7 @@
           + (topG ? `最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${ovsPct(topG.v, total)}</span>` : ''),
         aria: `資金去向（即時估算，${boards} 個板塊、價×量）：${items.slice(0, 3).map(x => x.name + ' ' + ovsPct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
         ds: { flowTop: items[0].cid } },
-      info: { n: hit, at: r.at, tip: `口徑：資金去向「即時」同一支公式 —— ${boards} 個手寫板塊、${hit} 檔的「價 × 量」估算成交值（一檔掛幾個板塊就拆幾份），`
-        + `% ＝ 佔這些板塊加總（不拿估算值去除全市場真實成交值）；「〇〇・其他」自動桶不進分母。點下去看到的「昨日資金去向」仍是盤後那一天。` },
+      info: { n: hit, at: r.at, tip: `${boards} 個板塊、${hit} 檔的估算成交值（價 × 量；跨板塊個股依 1/n 拆分）；% 佔這些板塊加總。` },
     };
   }
   function ovlTheme() {
@@ -4168,7 +4164,7 @@
       // 成分股有 6 成以上拿到報價才排：2 檔裡只抓到 1 檔的題材，漲跌其實是那 1 檔的漲跌
       return (n >= Math.max(2, Math.ceil(ms.length * 0.6)) && w > 0) ? { id: t.id, name: t.name, chg: cw / w, n, up, of: ms.length } : null;
     }).filter(Boolean).sort((a, b) => b.chg - a.chg);
-    if (!rows.length) return { err: '題材成分股的即時報價還不夠（每個題材至少要 6 成成分股有報價）' };
+    if (!rows.length) return { err: '題材成分股報價不足' };
     const top = rows.slice(0, 3), t0 = top[0];
     return {
       html: { barCls: 'track',
@@ -4180,9 +4176,8 @@
         foot: `<span class="muted">即時估算（${hitAll.size} 檔）・</span>依成分股即時漲跌排<span class="muted">（成交值加權）</span>`,
         aria: `熱門題材（盤中依成分股即時漲跌排，成交值加權）：${top.map(t => t.name + ' ' + fmt.pct(t.chg, 1)).join('、')}。點一下捲到熱門題材`,
         ds: { themeTop: t0.id } },
-      info: { n: hitAll.size, at, tip: `口徑：熱度（資金佔比變化＋法人 5 日＋新聞）是盤後才算得出來的分數，盤中算不出來，`
-        + `所以盤中改排「成分股即時漲跌（成交值加權，價 × 量估權重）」—— 成分股 6 成以上有報價的題材才排（${rows.length}／${ts.length} 個）。`
-        + `比例條＝第一名的成分股上漲比例（${t0.up}／${t0.n}）。盤後換回熱度。` },
+      info: { n: hitAll.size, at, tip: `盤中依成分股即時漲跌排（成交值加權）；成分股 6 成以上有報價的題材才排（${rows.length}／${ts.length} 個）。`
+        + `比例條＝第一名上漲比例（${t0.up}／${t0.n}）。熱度盤後才算，收盤後換回熱度。` },
     };
   }
 
@@ -4273,27 +4268,24 @@
         tip = `${nm}：${md} 的盤後資料（交易日）。`;
       } else if (!on) {
         txt = md; cls = 'off';
-        tip = `${nm}：即時已關，停在 ${md} 的盤後資料（靜態）。\n按一下打開＝盤中跟大盤三張圖同一批報價、每 5 秒更新。`;
+        tip = `${nm}：即時已關，顯示 ${md} 盤後資料。`;
       } else if (live && intra) {
         const at = OVL.cardAt[k] || OVL.at, stale = now - at > OVL_STALE_MS;
         txt = '即時 ' + ovlHms(at); cls = stale ? 'lv stale' : 'lv';
         tip = `${nm}：即時估算，最後更新 ${ovlHms(at)}（台北時間）`
           + (inf.at ? `，報價時間 ${inf.at}` : '') + '\n' + (inf.tip || '')
-          + `\n更新節奏：跟大盤三張圖同一個請求（不多打），每 5 秒一批、這一批塞 ${OVL.batch} 檔，全部 ${U.length} 檔約 ${cyc} 秒輪完一圈。`
-          + (stale ? `\n⚠ 已經 ${Math.round((now - at) / 1000)} 秒沒有新報價${OVL.err || inf.err ? `（${OVL.err || inf.err}）` : ''}，數字停在最後一次、不會往回拉。` : '')
-          + `\n按一下關掉＝靜態（換回 ${md} 盤後資料）。`;
+          + (stale ? `\n⚠ ${Math.round((now - at) / 1000)} 秒沒有新報價${OVL.err || inf.err ? `（${OVL.err || inf.err}）` : ''}，數字停在最後一次。` : '');
       } else if (live) {
         txt = ovsMd(OVL.snapDay) || md; cls = 'arm';
-        tip = `${nm}：盤後。顯示今天的收盤快照（${ovsMd(OVL.snapDay)}，盤中即時報價的最後一筆、估算）——盤後資料還沒產出，`
-          + `產出後網頁會自動重新載入、換成正式收盤資料。\n${inf.tip || ''}`;
+        tip = `${nm}：今天收盤快照（${ovsMd(OVL.snapDay)}，估算），正式收盤資料出來後自動換上。\n${inf.tip || ''}`;
       } else if (intra) {
         txt = md; cls = 'arm';
         tip = !OVL.ready
-          ? `${nm}：即時報價載入中（已問 ${OVL.asked.size}／${U.length} 檔），每一檔都問過一次（約 ${cyc} 秒）才換成即時數字；現在顯示的是 ${md} 的盤後資料。`
-          : `${nm}：即時算不出來（${inf.err || '今天還沒有盤中報價：假日或還沒開盤'}），顯示 ${md} 的盤後資料。`;
+          ? `${nm}：即時報價載入中（${OVL.asked.size}／${U.length} 檔），先顯示 ${md} 盤後資料。`
+          : `${nm}：無即時資料（${inf.err || '尚未開盤或休市'}），顯示 ${md} 盤後資料。`;
       } else {
         txt = md; cls = 'arm';
-        tip = `${nm}：盤後，顯示 ${md} 的收盤資料。盤中（09:00–13:30）會自動切成即時（跟大盤報價同一批、每 5 秒）。`;
+        tip = `${nm}：${md} 收盤資料；盤中 09:00–13:30 自動切成即時。`;
       }
       // 2026-10-06（DECISIONS #329）：畫面上只寫「即時」，日期／時間只進 data-stamp（機器讀數）與提示
       if (b.dataset.stamp !== txt) b.dataset.stamp = txt;
@@ -4476,7 +4468,7 @@
         <a class="pill cyan" href="#industry/group/${gid}">進族群頁 →</a></div>
       ${ms.length ? `<div class="ms">${ms.map(m => `<a href="#stock/${m.code}"><span>${fmt.esc(m.name)}</span>
           <span class="c">${m.code}</span><span class="g ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</span></a>`).join('')}</div>`
-        : '<div class="empty">這個族群的成分股整理中</div>'}`;
+        : '<div class="empty">尚無成分股資料</div>'}`;
     // 「收起 ✕」拿掉（Andy 2026-09-24）：點面板外面、按 Esc 就關（dismissable）
     dismissable(box, () => { box.hidden = true; });
     if (!opts || opts.scroll !== false) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -4577,14 +4569,14 @@
     return { chains, inChain, option: {
       tooltip: { ...hmTipOpt(), formatter: p => {
         const d = p.data || {};
-        if (!d.gid) return hmTip(p.name, '', [], '點一下只看這條產業鏈');
+        if (!d.gid) return hmTip(p.name, '', [], '');
         const fb = d.rot == null ? hmBin(d.chg != null ? d.chg / 3 : null, 'flow') : hmBin(d.rot, 'flow');
         return hmTip(p.name, d.chain, [
           { k: '漲跌幅', v: fmt.pct(d.chg, 2), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
           { k: '資金流向', v: d.rot != null ? (d.rot > 0 ? '流入 +' : '流出 ') + d.rot.toFixed(2) + ' pp' : '—（顏色依漲跌幅換算）',
             c: upDown(d.rot), dot: hmColor(fb, 'flow') },
-        ], '點一下看成分股');
+        ], '');
       } },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false },
         width: '100%', height: '100%', top: 0, left: 0, visibleMin: inChain ? (big ? 5 : 20) : (big ? 40 : 120),
@@ -4642,7 +4634,7 @@
       chains[b].reduce((s, g) => s + g.turnover, 0) - chains[a].reduce((s, g) => s + g.turnover, 0));
     const st = heatDD[id] = heatDD[id] || { open: false };
     ddSingle(box, { id, key: 'c', st, label: '產業鏈：', aria: '產業鏈',
-      title: '選一條產業鏈，熱力圖就只看它底下的族群', curText: cur ? chainLabel(cur) : '全部',
+      title: '只看這條產業鏈的族群', curText: cur ? chainLabel(cur) : '全部',
       opts: [{ v: '', text: '全部', on: !cur }].concat(order.map(cid => ({ v: cid, text: chainLabel(cid),
         em: fmt.n(chains[cid].reduce((s, g) => s + (g.turnover_share || 0), 0), 1) + '%', on: cur === cid }))),
       onPick: (v) => onPick(v || null) });
@@ -4863,7 +4855,7 @@
       const on = rotStageOpen === k;
       return `<button type="button" class="rq${on ? ' on' : ''}" data-k="${k}" aria-expanded="${on ? 'true' : 'false'}"
         style="--c:${STAGE[k].color};left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"
-        title="${fmt.esc(STAGE[k].sub)}；${fmt.esc(STAGE[k].act)}。${nw[k] ? `最近 5 個交易日有 ${nw[k]} 個族群換進這一段。` : ''}點一下列出這一段有哪些族群"
+        title="${fmt.esc(STAGE[k].sub)}；${fmt.esc(STAGE[k].act)}。${nw[k] ? `近 5 個交易日新進 ${nw[k]} 個族群。` : ''}"
         >${STAGE[k].name}<em>${cnt[k] || 0}</em>${nw[k] ? `<i class="nw">+${nw[k]}</i>` : ''}</button>`;
     }).join('');
     $$('.rq', host).forEach(b => b.onclick = (ev) => { ev.stopPropagation(); rotStageToggle(b.dataset.k); });
@@ -4934,7 +4926,7 @@
   /* 象限族群表的列（2026-09-25 合併：象限面板與成分股面板共用同一張表）。
      openGid＝就地展開的那一列，在它正下方插一列成分股小表（memHtml）。*/
   function rotQuadRows(list, onW, openGid, memHtml) {
-    if (!list.length) return '<li class="none">這一段目前沒有族群（可能是上面的篩選只留了別段的族群）</li>';
+    if (!list.length) return '<li class="none">這一段沒有族群</li>';
     return `<li class="cols" aria-hidden="true"><span>族群</span><span title="相對大盤強弱（0＝跟大盤一樣）">強弱</span><span title="動能（0＝不快不慢）">動能</span><span title="成交值佔全市場">佔比</span><span title="最近 ${ROT_BOARD_WIN} 個交易日動能往哪走">趨勢</span></li>`
       + list.map(r => {
         const on = r.gid === openGid;
@@ -5068,7 +5060,7 @@
   function rlvCompute(rrg, q) {
     const P = rrg && rrg.live_params;
     if (!P || !P.rs_smooth || !P.rs_base || !P.mom_roc) {
-      throw new Error('即時續算資料準備中，請等下一次盤後更新');
+      throw new Error('尚無即時續算參數');
     }
     const det = D.groups_detail || {};
     const w = sklWeights();                        // 和資金去向共用同一份 1/n 權重
@@ -5085,7 +5077,7 @@
     });
     let mw = 0, mc = 0;
     Object.keys(stv).forEach(c => { if (chg[c] == null) return; mw += stv[c]; mc += chg[c] * stv[c]; });
-    if (!(mw > 0)) throw new Error('報價回來了，但沒有一檔同時有價、量、漲跌幅，算不出大盤報酬');
+    if (!(mw > 0)) throw new Error('報價不足以計算大盤報酬');
     const mkt = mc / mw;                           // 大盤今日報酬（代理值，見誠實界線 2）
     const alpha = 2 / (P.rs_smooth + 1);
     const pt = {};
@@ -5145,11 +5137,11 @@
   }
 
   async function rlvFetch() {
-    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價載入失敗');
     const rrg = rotF3 && rotF3.rrg;
     if (!rrg || !(rrg.points || []).length) throw new Error('輪動資料還沒載入');
     const codes = rlvCodes(rrg).codes;
-    if (!codes.length) throw new Error('這張圖上的族群還沒有成分股資料，抓不了即時');
+    if (!codes.length) throw new Error('尚無成分股資料');
     const q = {};
     let reqs = 0;
     for (let i = 0; i < codes.length; i += RLV_BATCH) {
@@ -5232,8 +5224,8 @@
     if (RLV.busy && !RLV.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
     if (RLV.err) {
       el.innerHTML = `<b class="bad">即時抓不到報價</b>　${fmt.esc(RLV.err)}`
-        + '　·　輪盤上畫的仍然是<b>盤後</b>那一份資料（圖沒有變空白）'
-        + '　<button type="button" class="btn small" id="rotLiveBack">一鍵退回盤後</button>';
+        + '　·　仍顯示<b>盤後</b>資料'
+        + '　<button type="button" class="btn small" id="rotLiveBack">退回盤後</button>';
       const b = $('#rotLiveBack'); if (b) b.onclick = () => rlvOff();
       return;
     }
@@ -5245,28 +5237,22 @@
       ? `<b>涵蓋率 ${fmt.n(RLV.cover, 1)}%</b>`
         /* 分子是估的、分母只有上市，所以**真的有可能超過 100%**。
            與其把它夾在 100% 讓人以為「剛好全涵蓋」，不如照實印出來並講清楚為什麼。*/
-        + (RLV.cover > 100 ? '<b class="warn">（⚠ 超過 100%：估的分子已經大於上市總額 ——'
-          + '這批含上櫃，分母只有上市）</b>' : '')
-      : '<b>涵蓋率：這一輪沒取到</b>';
+        + (RLV.cover > 100 ? '<b class="warn">（含上櫃，分母只算上市）</b>' : '')
+      : '<b>涵蓋率：—</b>';
     const covTip = RLV.cover != null
-      ? `這批 ${RLV.hit} 檔的估算成交值 ${fmt.yi(RLV.uniAmt)} ÷ 證交所公布的台股總成交值 ${fmt.yi(RLV.marketAmt)}`
-      : '證交所的總成交值這一輪抓不到，所以算不出涵蓋率';
-    const chips = rlvTop(6).map(r => `<button type="button" class="rlvchip${r.jump ? ' jump' : ''}" data-g="${r.gid}" style="--c:${STAGE[r.stage].color}" title="族群報酬 ${fmt.pct(r.ret, 2)}（大盤代理值 ${fmt.pct((RLV.mkt || 0) * 100, 2)}）；含慣性的總位移 強弱 ${fmt.n(r.dx, 2)} / 動能 ${fmt.n(r.dy, 2)}。點一下在下面展開這個族群的成分股"><span class="g">${fmt.esc(r.name)}</span><span class="d">強弱 ${r.tdx >= 0 ? '+' : ''}${fmt.n(r.tdx, 2)}　動能 ${r.tdy >= 0 ? '+' : ''}${fmt.n(r.tdy, 2)}</span>${r.jump ? `<span class="j">${STAGE[r.stage0].name}→${STAGE[r.stage].name}</span>` : ''}</button>`).join('');
+      ? `${RLV.hit} 檔估算成交值 ${fmt.yi(RLV.uniAmt)} ÷ 台股總成交值 ${fmt.yi(RLV.marketAmt)}`
+      : '暫無台股總成交值';
+    const chips = rlvTop(6).map(r => `<button type="button" class="rlvchip${r.jump ? ' jump' : ''}" data-g="${r.gid}" style="--c:${STAGE[r.stage].color}" title="族群報酬 ${fmt.pct(r.ret, 2)}（大盤代理值 ${fmt.pct((RLV.mkt || 0) * 100, 2)}）；含慣性的總位移 強弱 ${fmt.n(r.dx, 2)} / 動能 ${fmt.n(r.dy, 2)}"><span class="g">${fmt.esc(r.name)}</span><span class="d">強弱 ${r.tdx >= 0 ? '+' : ''}${fmt.n(r.tdx, 2)}　動能 ${r.tdy >= 0 ? '+' : ''}${fmt.n(r.tdy, 2)}</span>${r.jump ? `<span class="j">${STAGE[r.stage0].name}→${STAGE[r.stage].name}</span>` : ''}</button>`).join('');
     // ★ 2026-10-06（DECISIONS #329）：開頭的「最後更新 HH:MM:SS…／現在不是盤中…快照」拿掉（時段），後面的口徑照留
     el.innerHTML = '<b class="live">即時</b>'
       + `　·　大盤（代理值）${fmt.pct(RLV.mkt * 100, 2)}　·　<span title="${fmt.esc(covTip)}">${cov}</span>`
       /* 底下兩句是**不准省略**的誠實標示，第三句是「怎麼讀這條線」。
          長版（含實測數字與原理）在「怎麼看 ?」裡。這裡只留「不看到就會把圖讀錯」的那幾句。*/
-      + '<br>· <b>線分兩段</b>：<span class="muted">灰虛線＝<b>慣性</b>（40 日基準線的窗口每天往前滾一格，'
-      + '<b>平盤也會走</b>，實測中位 0.59 點）</span>；<b>亮色箭頭＝今天真正推出來的</b>'
-      + '（贏大盤 2% 只有 0.35 點、4~5 px，<b>我們沒有放大它</b>）。下面那排數字就是亮色那一段。'
-      + '<br>· <b>權重是估的、報酬是真的</b>：成交值用「價 × 量」<b>估算</b>（端點沒有每檔的累積成交金額），'
-      + '漲跌幅是<b>真的</b>（現價 vs 昨收）。'
-      + '<b>即時的大盤是代理值</b>：原本是<b>全市場</b>成交值加權，盤中只抓得到這批，'
-      + `所以 x 軸的「相對大盤」是拿這批算的。　·　${RLV.skipped} 個族群與個股點維持盤後`
-      + `　·　${RLV.reqs} 個請求 / ${RLV.codes} 檔`
+      + '<br>· <b>線分兩段</b>：灰虛線＝<b>慣性</b>（平盤也會走）；<b>亮色箭頭＝今天推的</b>（位移小是真的，沒有放大）。'
+      + '<br>· <b>權重是估的、報酬是真的</b>：成交值以「價 × 量」估算。'
+      + `<b>大盤是代理值</b>：以這批股票加權，不是全市場。　·　${RLV.skipped} 個族群維持盤後`
       + (chips ? '<div class="rlvmov"><span class="t">今天被推得最多的族群'
-        + `（盤上這 ${rlvShown ? rlvShown.size : 0} 個；數字＝<b>亮色箭頭那一段</b>，不含慣性）</span>${chips}</div>` : '');
+        + `（數字＝亮色箭頭那一段，不含慣性）</span>${chips}</div>` : '');
     $$('.rlvchip', el).forEach(b => b.onclick = () => {
       const gid = b.dataset.g;
       drillOpen(gid, (rotGroupMeta[gid] || {}).name || L.gname[gid] || gid, '', 'rankPanel');
@@ -5911,7 +5897,7 @@
     if (!box) { box = document.createElement('div'); box.className = 'rotnums'; box.dataset.for = id; host.appendChild(box); }
     const by = {};
     top.forEach((r, i) => { (by[r.stage] = by[r.stage] || []).push([r, i + 1]); });
-    box.innerHTML = '<div class="rnh">圖上的編號 <small>1＝成交值佔比最大；點名字＝在圖上只亮它，再點一次還原</small></div>'
+    box.innerHTML = '<div class="rnh">圖上的編號 <small>1＝成交值佔比最大</small></div>'
       + STAGE_ORDER.filter(k => by[k]).map(k => `<div class="rnq" style="--c:${STAGE[k].color}"><b>${STAGE[k].name}</b>`
         + `<span class="rnl">${by[k].map(([r, n]) => `<button type="button" class="rni${isF(r) ? ' f' : ''}" data-gid="${fmt.esc(r.gid)}"`
           + ` data-n="${n}" aria-pressed="false"><i>${n}</i>${fmt.esc(r.isStock ? (r.lbl || r.name) : r.name)}</button>`).join('')}</span></div>`).join('');
@@ -6713,8 +6699,7 @@
               + `<br>相對大盤強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 2)}`
               + `<br>動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 2)}`
               + `<br>佔族群成交值 ${fmt.n(r.share, 1)}%`
-              + (r.has_page ? '<br><small>點一下進個股頁（要拿掉它就再點一次清單裡那一列）</small>'
-                : '<br><small>這一檔還沒有個股頁；點一下從盤上拿掉</small>');
+              ;
           }
           return `<b>${fmt.esc(r.name)}</b>　<span style="color:${s.color}">${s.name}</span>`
             + `<br>相對大盤強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 2)}`
@@ -6730,7 +6715,7 @@
               + (r.live.stage0 !== r.live.stage
                 ? `　<b>跨過象限：${STAGE[r.live.stage0].name} → ${STAGE[r.live.stage].name}</b>` : '')
               + `<br><span class="muted">權重是「價 × 量」估的，漲跌幅是真的</span>` : '')
-            + `<br>成交值佔比 ${fmt.n(r.share, 1)}%<br><small>點一下看成分股</small>`;
+            + `<br>成交值佔比 ${fmt.n(r.share, 1)}%`;
         },
       },
       // N5（Andy 2026-09-19「輪動時鐘圓圈範圍擴大點」）：72% → 84%。
@@ -7203,6 +7188,9 @@
          驗收再用 `App.rotLiveSeg()` 換成像素長度（那才是「使用者真的看到一條線」）。*/
       // 這一輪盤上真的有箭頭的族群 —— 圖下方那排讀數只列這幾個（見 rlvTop 的註解）
       rlvShown = new Set(liveArr.map(r => r.gid));
+      /* 2026-10-06（既有紅字清理）：盤面的尺（√ 尺度的反函數要用到）。4e9c2ad5 起半徑是 √u，畫面位移跟資料位移不再成正比，
+         驗收要「把畫上去的兩端反推回資料、跟 tdx／tdy 比」才驗得到「沒有額外放大」—— 反推要知道這幾個數。只是讀數，不影響畫面。*/
+      window.App._rotScale = { sx, sy, sr, maxR: CLOCK_MAXR };
       window.App._rotLiveAt = liveArr.map(r => ({ gid: r.gid, name: r.name,
         p0: r.p0, pf: r.pf, p1: r.p,
         dx: +r.live.dx.toFixed(4), dy: +r.live.dy.toFixed(4),
@@ -7402,7 +7390,7 @@
     el.innerHTML = ms.length
       ? ms.map(m => L.stock(m.code, m.name, { cls: 'sm' })).join('')
         + `<a class="pill cyan go" href="#industry/group/${gid}">進族群頁 →</a>`
-      : `<span class="muted">成分股資料還在產出</span><a class="pill cyan go" href="#industry/group/${gid}">進族群頁 →</a>`;
+      : `<a class="pill cyan go" href="#industry/group/${gid}">進族群頁 →</a>`;
     li.classList.add('open');
     li.parentNode.insertBefore(el, li.nextSibling);
   }
@@ -7442,7 +7430,7 @@
     const bail = (msg) => { if (window.FlowTopo && window.FlowTopo.has(el)) window.FlowTopo.destroy(el);
       el.style.height = ''; if (sub) sub.textContent = ''; return empty('ovFlow', msg); };
     if (!sd || !(sd.dates || []).length || !(sd.groups || []).length) {
-      return bail('資金去向的逐日資料準備中（下一次盤後更新就會有）');
+      return bail('尚無資金去向資料');
     }
     const day = sd.dates[sd.dates.length - 1];
     const k = sd.dates.length - 1;
@@ -7648,7 +7636,7 @@
           { k: '平均漲跌', v: fmt.pct(d.chg), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
           { k: '近 7 天新聞', v: `${d.news7 != null ? d.news7 : '—'} 則` },
-        ], '點一下看這個題材的成分股'); };
+        ], ''); };
     } else {
       kind = 'chg';
       const ms = (cur.members || []).filter(m => m && m.code);
@@ -7659,7 +7647,7 @@
         return hmTip(p.name, d.code, [
           { k: '漲跌幅', v: fmt.pct(d.chg, 2), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: fmt.yi(p.value) },
-        ], '點一下進個股頁'); };
+        ], ''); };
     }
     const HS = hmSeries(false);
     const option = {
@@ -7674,7 +7662,7 @@
   function ovThemeDD(box, th, M, id, st, onPick) {
     if (!box) return;
     ddSingle(box, { id, key: 't', st, label: '題材：', aria: '題材',
-      title: '選一個題材，圖上就換成它的成分股', curText: M.cur ? M.cur.name : '全部',
+      title: '題材', curText: M.cur ? M.cur.name : '全部',
       opts: [{ v: '', text: `全部題材（${M.themes.length}）`, on: !M.cur }].concat(M.themes.map(t =>
         ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(M.cur && M.cur.id === t.id) }))),
       onPick });
@@ -7701,7 +7689,7 @@
       const draw = () => {
         const Z = ovThemeModel(th, OVT.sel, null);
         ovThemeDD(chipBox, th, Z, 'ovThemeZoomDD', OVTZ, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); draw(); });
-        if (!Z.data.length) { const i = echarts.getInstanceByDom(body); if (i) i.dispose(); body.innerHTML = '<div class="empty">這個題材目前沒有成分股資料</div>'; return; }
+        if (!Z.data.length) { const i = echarts.getInstanceByDom(body); if (i) i.dispose(); body.innerHTML = '<div class="empty">尚無成分股資料</div>'; return; }
         const bc = chart(body, Z.option, { notMerge: true });
         hmRelabel(bc, Z.valOf);
         body.dataset.level = Z.cur ? 'members' : 'themes';     // 驗收用：放大視窗現在是題材層還是成分股層
@@ -7713,7 +7701,7 @@
       };
       draw();
     });
-    if (!M.data.length) return empty('ovTheme', '這個題材目前沒有成分股資料');
+    if (!M.data.length) return empty('ovTheme', '尚無成分股資料');
     host.classList.remove('isempty');
     const c = chart('ovTheme', M.option, { notMerge: true });
     hmRelabel(c, M.valOf);
@@ -7884,7 +7872,7 @@
       const tr = `<tr data-code="${r.code}">` + cols.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>';
       return r.code === candOpen
         ? tr + `<tr class="whyrow"><td colspan="${cols.length}">${whyHtml(r, candFacet)}</td></tr>` : tr;
-    }).join('') || `<tr><td colspan="${cols.length}" class="l muted">勾選的族群今天沒有候選股，換幾個族群或按「全選」</td></tr>`;
+    }).join('') || `<tr><td colspan="${cols.length}" class="l muted">勾選的族群今天沒有候選股</td></tr>`;
     const cn = $('#candNum');
     if (cn) cn.textContent = candGroups
       ? `${rows.length} 檔（已篩 ${candGroups.size} 個族群，全部 ${cands.length} 檔）`
@@ -8158,7 +8146,7 @@
         return `<b>${fmt.esc(nm(r.code))} ${r.code}</b>　<span style="color:${r.side === 'buy' ? CH.up : CH.down}">${quad(r)}</span><br>`
           + `${STREAK_NAME[who]}連續${r.side === 'buy' ? '買' : '賣'}超 <b>${r.n}</b> 天，期間累計 <b>${fmt.lot(r.lots)}</b>`
           + (r.last != null ? `<br>最後一天 ${fmt.lot(r.last)}（期間日均 ${fmt.lot(r.avg)}，力道 <b>${fmt.n(r.ratio, 2)}×</b>）` : '')
-          + `<br><small>點一下進個股頁</small>`; } },
+          ; } },
       grid: G,
       xAxis: { ...axisStyle, type: 'value', min: -maxDay, max: maxDay, name: '← 連賣天數　　連買天數 →', nameLocation: 'middle', nameGap: 24,
         nameTextStyle: { color: CH.ink3, fontSize: 12 }, splitLine: { show: false },
@@ -8215,11 +8203,10 @@
   const HOW = {
     /* ★ 2026-09-21：HOW.rank 整段刪掉，內容併進 HOW.rot（兩張圖合併成一張卡，
        只留一顆「怎麼看 ?」）。留著不會被叫到，就是死碼。*/
-    bump: `<b>這張圖回答：主流是穩穩的還是一直換人。</b>
+    bump: `<b>主流是穩穩的還是一直換人。</b>
       <ul><li>每條線是一個族群，<em>位置越高＝成交值排名越前面</em>（1 名在最上面）。</li>
       <li>線一路往上＝資金連續好幾週往它集中，通常比單週衝上來的更值得跟。</li>
-      <li>線上下亂跳＝那一段時間在輪動，沒有明確主流，追高容易兩面挨巴掌。</li>
-      <li>滑鼠移上去看每一週的實際佔比；點線上的點可以進該族群。</li></ul>`,
+      <li>線上下亂跳＝那一段時間在輪動，沒有明確主流，追高容易兩面挨巴掌。</li></ul>`,
     /* ★ 2026-09-21 合併之後，這一段同時是「輪動時鐘」與「資金流向排行」的說明
        （原本 HOW.rank 那一段併進來了）—— 同一張卡不該有兩顆問號鈕。
        開頭先把兩張圖各自回答什麼講清楚，再講怎麼一起用：
@@ -8235,32 +8222,28 @@
         兩圈虛線＝今天最大偏離的 25%／今天偏離最大的那個族群（100%），圈上有標。<em>距離用平方根尺度</em>：靠圓心的點被拉開，所以內圈只代表 25% 而不是一半 —— 比遠近看「在哪一圈」，不要拿尺量。</li>
       <li><b>小腳印</b>＝這幾天走過的路，越新越清楚，腳尖朝前進的方向。每顆點都有，佔比前 3 ＋ 最近換段的較清楚、
         其他淡；滑到哪顆就提亮哪顆。外圈多一圈色環＝最近 5 天剛換段。</li>
-      <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段；<em>▶</em> 從那一天一步一步走回最新。</li>
-      <li><b>篩選</b>：上面兩個下拉（先挑產業鏈、再勾族群，可複選）與「只看前 10 大」，排行與輪盤一起篩。</li>
-      <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出；點長條看成分股。</li>
-      <li><b>點</b>：象限卡＝列出這一段有誰；圓點＝看成分股，再點成分股就畫到盤上（空心圓）。點面板外面或按 Esc 關閉。</li>
+      <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段。</li>
+      <li><b>篩選</b>：上面兩個下拉（產業鏈、族群）與「只看前 10 大」，排行與輪盤一起篩。</li>
+      <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出。</li>
+      <li><b>空心圓</b>＝畫到盤上的個股。</li>
       <li data-live-ui><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
         亮色箭頭＝<b>今天真正推出來的</b>（很短是正常的，<b>沒有放大</b>）。
-        ⚠ 成交值是「價 × 量」<b>估</b>的（漲跌幅是真的）；盤中的<b>大盤是代理值</b>（只抓得到這批股票）。
-        標題旁的狀態字滑上去（手機點一下）看完整說明與涵蓋率。</li>
-      <li>手機上圖上只寫編號，名字列在圖下面。</li></ul>`,
+        ⚠ 成交值是「價 × 量」<b>估</b>的（漲跌幅是真的）；盤中的<b>大盤是代理值</b>（只用這批股票）。</li></ul>`,
     /* ★ 2026-09-24 總覽改版：卡片上「昨日資金去向」的副標與註腳（1/n 拆分那段）都拿掉了，搬進這裡。
        副標是讀數（幾號盤後、幾個族群、合計多少），所以寫成函式：每次打開都讀當下 #ovFlowSub 的內容。*/
     rotm: () => {
       const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
       return `<b>族群跑到強弱循環的哪一段。</b>
       <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝剛進場、領先＝主流、轉弱＝設停利、落後＝別抄底。</li>
-      <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。點一顆，旁邊出現它的強弱、動能、佔比與成交值前 3 檔（點名字進個股頁）；點旁邊空白處關掉。</li>
-      <li>完整版（腳印、回放、即時）在「資金流向」分頁。</li></ul>`;
+      <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。</li></ul>`;
     },
     /* ★ 2026-09-25（Andy：「昨日資金去向」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
        以前這段寫在足跡輪盤的「?」下半與提示框最後兩行，現在自己一顆。副標是讀數，所以照舊每次打開讀 #ovFlowSub。*/
     ovflow: () => {
       return `<b>昨天收盤，錢從大盤分到哪幾條產業鏈、鏈裡又分給哪幾個族群。</b>
       <ul><li>最左小圓圈＝<em>加權指數</em>（起點）→ 產業鏈 → 族群。</li>
-      <li>線越粗＝流過的成交值越大；光點只是流向示意，左上角可關動態。</li>
-      <li>每一層的 % 都是「佔它上一層」的比重。</li>
-      <li>滑到線或名字看成交值；想看成分股，點上面資金輪盤的族群點。</li></ul>`;
+      <li>線越粗＝流過的成交值越大；光點只是流向示意。</li>
+      <li>每一層的 % 都是「佔它上一層」的比重。</li></ul>`;
     },
     /* ★ 2026-09-24（Andy：「所有內容已經有說明就把表上補充文字拿掉，說明內容需要簡短方便閱讀」）：
        以下每一段都改成同一個格式（howHTML）：一句「這張圖回答什麼」→ 最多 5 條、每條 ≤30 字的讀法 →
@@ -8270,105 +8253,83 @@
        改前四個分頁打開都是同一段（四個分頁各一條），看不到當前分頁該怎麼讀；
        「法人連買賣」分頁的讀法在它自己的 trust「?」，那一頁 drawMarket 會把這顆藏起來（不再兩顆重疊）。
        「站上均線」那一條沿用改前的句子 —— 那張卡正在改版（族群改下拉多選），改版後再核。*/
-    mkt: () => mktKind === 'cand' ? howHTML('這一頁回答：今天哪幾檔值得先看（技術面最後一關）。', [
+    mkt: () => mktKind === 'cand' ? howHTML('今天哪幾檔值得先看（技術面最後一關）。', [
       'A＝回檔承接，B＝突破追進',
       '綜合分＝籌碼、技術、基本面合成，越高越前面',
       '沒有 A／B 的日子列綜合分前 40，只當觀察名單',
       '方向與估值要先過，技術面只決定時機',
-      '點一列進個股頁',
-    ]) : mktKind === 'ma' ? howHTML('這一頁回答：有多少股票站在均線上、誰在撐誰在拖。', [
+    ]) : mktKind === 'ma' ? howHTML('有多少股票站在均線上、誰在撐誰在拖。', [
       '站上均線：拆到族群，看誰在撐誰在拖',
-      '點一列進個股頁，族群名稱點得進族群頁',
-    ]) : howHTML('這一頁回答：今天漲跌家數背後是哪些股票。', [
-      '左圖＝漲跌分佈（讀法看圖標題旁的「?」）',
-      '右表分頁：漲停、跌停、漲幅／跌幅前段、成交值前段',
+    ]) : howHTML('今天漲跌家數背後是哪些股票。', [
       '盤後＝收盤全市場；⚡ 即時＝最多 550 檔（族群＋自選＋成交值前段），非全市場',
       '漲停＝收盤（即時為現價）等於漲停價，只認普通股',
-      '點一列進個股頁',
     ], '「⚡ 即時」只抓人工族群成分股＋自選＋盤後成交值前段補位（最多 550 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
       + '漲跌幅是真值（現價 vs 昨收），成交值是「現價 × 累計張數」估算，和盤後那一版不是同一個東西；非盤中按下去畫的是最後一次報價快照。'
       + '漲停＝價格等於漲停價（昨收 × 1.1 依升降單位向下取整：<10 元 0.01、10～50 0.05、50～100 0.1、100～500 0.5、500～1000 1、≥1000 5；跌停同理向上取整），只認普通股，ETF／權證／槓桿反向不列入；漲幅／跌幅前段排除漲跌幅超過 10% 與非普通股（勾「含 ETF」才排進 ETF）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），圖的下面或右邊（看視窗寬度）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
       + '站上均線的條越長＝越多成分股站在 20 日均線之上。今日候選：A＝回檔承接、B＝突破追進；沒有 A／B 的日子（大盤走弱時很常見）列綜合分前 40 當觀察名單，不是進場訊號（總覽的「今日候選」表 2026-09-24 已拿掉，名單只在這一頁）。'
       + '每一列都點得進個股頁，族群名稱點得進族群頁。'),
-    heat: () => howHTML('這張圖回答：今天的錢集中在哪些族群。', [
+    heat: () => howHTML('今天的錢集中在哪些族群。', [
       '方塊大小＝族群吃掉多少成交值',
       '顏色＝5 日減 20 日成交值佔比（pp），非今天漲跌',
       '紅方塊但今天收綠＝股價回檔，錢還在進',
-      '標題旁「產業鏈 ▾」挑一條鏈，只看它的族群',
-      '點方塊看成分股，面板上可進族群頁',
     ], '顏色看的是 5 日成交值佔比減 20 日佔比，不是今天的漲跌。'
       + (heatNoRot ? `目前有 ${heatNoRot} 個族群還沒有 5 日 vs 20 日的資金流向，第二行標「漲跌」，顏色改用當日漲跌幅 ÷3 對到同一把尺。` : '')),
     /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：補「?」的卡。說明只寫畫面上看得到的東西；
        口徑一律寫進條列（第三參數 fine 從 09-26 起不顯示）。*/
-    mktdist: howHTML('這張圖回答：今天大家都在漲，還是少數幾檔撐盤。', [
+    mktdist: howHTML('今天大家都在漲，還是少數幾檔撐盤。', [
       '每根長條＝落在那一段漲跌幅的家數，紅漲綠跌',
       '虛線＝用這批樣本自己的平均與標準差畫的常態曲線',
       '長條高出虛線很多＝那一段特別擠',
-      '點長條列出那一段的個股；點空白、× 或 Esc 收起',
-      '右上切全部／上市／上櫃、含 ETF、族群篩選',
     ]),
-    'ovs-updown': howHTML('這格回答：今天上漲、下跌、平盤各幾檔。', [
+    'ovs-updown': howHTML('今天上漲、下跌、平盤各幾檔。', [
       '比例條＝上漲（紅）／平盤（灰）／下跌（綠）的家數占比',
       '最後一行＝大盤成交值，跟 20 日均比',
       '點這格捲到下方漲跌分佈',
       '點上漲／平盤／下跌，直接列出那一側的股票',
     ]),
-    'ovs-rot': howHTML('這格回答：族群在強弱循環的四段各有幾個。', [
+    'ovs-rot': howHTML('族群在強弱循環的四段各有幾個。', [
       '四段＝領先／改善／轉弱／落後，加總＝全部族群',
       '「最強」＝成交值前 10 大族群裡相對大盤最強的那個',
       '只從前 10 大挑：小族群強度容易暴衝，沒有代表性',
-      '點這格捲到下面的資金輪盤',
     ]),
-    'ovs-flow': howHTML('這格回答：昨天收盤，錢分到哪幾條產業鏈。', [
+    'ovs-flow': howHTML('昨天收盤，錢分到哪幾條產業鏈。', [
       '比例條＝前三大產業鏈＋其他，% ＝佔全部族群成交值',
       '跟下面「昨日資金去向」同一天、同一份資料',
-      '點這格捲到昨日資金去向',
     ]),
-    'ovs-theme': howHTML('這格回答：哪幾個題材現在最熱。', [
+    'ovs-theme': howHTML('哪幾個題材現在最熱。', [
       '熱度 0～100＝資金佔比變化＋法人買賣＋新聞則數合成',
       '列熱度前三名；比例條＝第一名的熱度',
       '最後一行＝熱度 ≥ 70 的題材有幾個',
-      '點題材名＝在下面熱門題材熱力圖打開它',
     ]),
-    watch: howHTML('這頁回答：你挑出來的股票今天怎麼走。', [
-      '搜尋代號或名稱加入；清單分頁可切換',
-      '「即時 重試中」＝報價這一輪沒抓到，會自動再試',
+    watch: howHTML('你挑出來的股票今天怎麼走。', [
+      '「即時 重試中」＝這一輪報價沒抓到，會自動重試',
       '沒登入時清單只存在這台裝置的瀏覽器',
       '右上「N／M 頁」＝目前頁數／分頁上限',
-      '點一列進個股頁',
     ]),
     /* ★ 2026-09-24：總覽「熱門題材」改熱力圖之後的說明（原本卡片上的「熱度＝資金佔比變化＋法人＋新聞」副標搬進來）。*/
-    themeov: howHTML('這張圖回答：哪幾個題材現在吸金最多、而且最熱。', [
+    themeov: howHTML('哪幾個題材現在吸金最多、而且最熱。', [
       '方塊大小＝題材成交值',
       '顏色＝熱度 0～100（資金＋法人＋新聞合成）',
-      '標題旁「題材 ▾」或點方塊＝看成分股',
       '成分股層：顏色＝漲跌幅，紅漲綠跌',
-      '點成分股方塊進個股頁',
     ], '熱度 0～100＝資金佔比變化＋法人買賣＋近 7 天新聞則數合成。一檔股票可以同時屬於好幾個題材，成交值不拆分，所以題材加總會大於全市場。完整的題材剖析圖在「熱力圖」分頁。'),
     /* ★ 2026-09-24：大盤三張圖上方原本那行常駐說明（#m3Note）搬進「?」。它會跟著模式／週期換字，所以寫成函式。*/
-    m3: () => howHTML('三張圖回答：加權、櫃買、台指期今天怎麼走。', [
+    m3: () => howHTML('加權、櫃買、台指期今天怎麼走。', [
       '走勢圖：紅綠對照昨收，下方是每分鐘量',
       '時間軸固定到收盤，空白＝還沒走到',
       '台指期自動顯示有資料的那一段（日／夜盤）',
-      'K 線週期在左上角的下拉切換',
-      '游標移上去看價格與成交量',
     ], fmt.esc((($('#m3Note') || {}).textContent) || '')
       + ' 1 小時／4 小時由 15 分 K 依交易時段合成（1 小時對齊 09:00 起每小時、4 小時＝一個交易時段一根）；拿不到分 K 才退回日 K，卡片上會寫。'),
-    cand: howHTML('這張表回答：今天哪幾檔值得先看。', [
+    cand: howHTML('今天哪幾檔值得先看。', [
       'A＝回檔承接，B＝突破追進',
       '技術面永遠是最後一關',
-      '上排切面向：綜合／籌碼／技術／基本面',
-      '點一列展開這檔被挑中的理由',
-      '右上可以只看某幾個族群',
     ]),
     /* ★ 2026-09-24：「市場寬度」改成「漲跌家數」分佈（key 沿用 breadth，積木清單與驗收段落不用改名）。*/
-    breadth: () => howHTML('這張圖回答：今天是大家都在漲，還是少數幾檔撐盤。', [
+    breadth: () => howHTML('今天是大家都在漲，還是少數幾檔撐盤。', [
       /* ★ 2026-09-29 說明精簡（上限 5 條、每條 ≤ 30 字）：改前 6 條＋家數讀數 1 條＝7 條。
          「紅漲綠跌、越外側越深」併進第一條，「普漲普跌」與「兩頭高＝分歧」併成一條，意思一個都沒少。*/
       '每根直條＝一級漲跌幅的家數，紅漲綠跌',
       '重心偏右＝普漲、偏左＝普跌，兩頭高＝分歧',
-      '點直條列出那一級的股票',
-      '右上切全部／上市／上櫃（盤後資料，盤中不跳）',
+      '盤後資料，盤中不跳動',
       // howHTML 不印第三個參數（說明精簡），所以三組家數的讀數要放在條列裡才看得到；
       // 市場別不明的（other）只算在「全部」，有的話一定寫出來，不讓兩個按鈕加起來默默少於全部
       ...(udStat ? [`全部 ${udStat.nAll} 檔＝上市 ${udStat.twse}＋上櫃 ${udStat.tpex}`
@@ -8377,28 +8338,23 @@
       + (udStat ? `這張圖目前的分母是${udStat.mkt === 'all' ? '' : UD_MKT_NAME[udStat.mkt]}個股索引裡有漲跌幅的 ${udStat.n} 檔`
         + (udStat.mkt === 'all' && udStat.heatN != null && udStat.heatN !== udStat.n ? `，上方 KPI「漲跌家數」是證交所當日收盤口徑（${udStat.heatN} 檔），今天沒成交的股票兩邊處理不同，所以會差幾十檔。` : '。') : '')
       + '站上 20 日均線的比例在市場明細的「站上均線」分頁。'),
-    trust: howHTML('這張圖回答：法人在誰身上連續下注、力道在加大還是收手。', [
+    trust: howHTML('法人在誰身上連續下注、力道在加大還是收手。', [
       '右半＝連買、左半＝連賣，越外側越久',
       '上半＝最後一天比日均大（加碼）',
       '下半＝最後一天縮手；點越大＝累計張數越多',
-      '右上切投信／外資／合計與天數，預設投信 ≥3 天',
-      '滑過看個股，點一下進個股頁',
+      '預設看投信連續 ≥3 天',
     ], '力道＝最後一天的買（賣）超張數 ÷ 這段連續期間的日均（對數軸，1× 是中線，超過 5× 或低於 0.2× 畫在邊上）。'
       + '紅＝買超、綠＝賣超。右上切投信／外資／合計與天數門檻（買賣都套用），每邊最多列累計最大的 40 檔。滾輪放大、放大後拖曳，雙擊或按「還原」回原尺寸。'
       + '舊資料沒有「最後一天」欄位時，縱軸改成累計張數。'),
-    theme: howHTML('這張圖回答：今天市場在炒哪些題材、哪一個最熱。', [
+    theme: howHTML('今天市場在炒哪些題材、哪一個最熱。', [
       '方塊大小＝題材成交值',
       '顏色＝熱度 0～100（資金＋法人＋新聞），藍冷紅熱',
       '先找又大、又最紅的方塊',
-      '右上可把顏色換成平均漲跌（紅漲綠跌）',
-      '點方塊展開剖析圖，再點代號進個股',
     ]),
-    sankey: howHTML('這張圖回答：這一天的錢流進了哪條鏈、哪個族群、哪檔股票。', [
+    sankey: howHTML('這一天的錢流進了哪條鏈、哪個族群、哪檔股票。', [
       '左到右：台股→產業鏈→族群→代表股',
       '線越粗、圓越大＝錢越多',
       '每一層的 % 都是佔它上一層的比重',
-      '拖「看哪一天」回放；點族群展開成分股',
-      '左上「產業鏈 ▾／族群 ▾」＝只看一條分支',
     ], '篩選：先挑產業鏈、再挑一個族群，圖上就只剩它那一條分支；選「全部族群」或按「清除」回到整張圖。'
       + '桌機版的粒子＝資金流動（「動態」鈕可關）。'
       + '例：「台積電 49.8%」＝吃掉晶圓代工的一半，不是佔全台股一半；滑鼠提示兩種分母都寫。節點旁 ▲▼＝和前一天比（紅增綠減）。'
@@ -8415,22 +8371,20 @@
        · 「點任一列看成分股」→ 實際是點長條**進族群頁**（renderInstPeriod 的 click → #industry/group/）
        · 缺了「怎麼排、列幾個」「名字後面的 % 是什麼的佔比」「上方兩顆下拉在做什麼」→ 補上
        · 「投信的錢較黏」是解讀不是圖上看得到的東西；條列上限 5 條，讓位給上面幾條 */
-    inst: howHTML('這張圖回答：選定的這段期間，三大法人把錢放在哪些族群。', [
-      '上方區間拉桿：左把手＝起日、右把手＝截止日',
+    inst: howHTML('選定的這段期間，三大法人把錢放在哪些族群。', [
       '三色堆疊＝外資／投信／自營，右買超左賣超（張）',
       '依三者合計由大到小，列最大 8 個與最小 6 個',
       '名稱後的 %＝佔圖上各列淨買賣超（絕對值）合計',
-      '下拉選產業鏈只列那條鏈、選族群只亮那列；點長條進族群頁',
+      'ETF 不列入（自營商避險部位會壓扁其他族群）',
     ], '篩選：先挑產業鏈，圖上就只列那條鏈的族群；再挑一個族群，就只亮它那一列；選「全部族群」或按「清除」還原。'
       + 'ETF 不列入這張圖：它的法人買賣超幾乎是自營商避險部位，動輒幾百萬張，會把其他族群壓成細線。'),
-    conc: howHTML('這張圖回答：現在是少數股票撐盤，還是雨露均霑。', [
+    conc: howHTML('現在是少數股票撐盤，還是雨露均霑。', [
       /* ★ 2026-10-04 對過卡片：「兩條走勢分岔」對不上 —— 圖上同時只有一條主線（前 5 或前 10 擇一）＋勾選的均線；
          漏寫的「勾均線」「點某一天看那天的族群」補上。縮圈／擴散兩條併成一條。 */
       '主線＝前 N 大族群吃掉的全市場成交值比例',
       '往上＝縮圈（冷門股難動）、往下＝擴散（輪動補漲）',
-      '右上切前 5／前 10 大：看主流多獨、圈子多大',
-      '上方勾 5～240 日均線，看現在比平常高還低',
-      '點圖上任一天，右側列出那天的前 N 大族群',
+      '前 5／前 10 大：看主流多獨、圈子多大',
+      '對照均線，看現在比平常高還低',
     ],'虛線是它的 20 日平均；往上時主流吃掉更多量，往下時主流反而容易休息。'
       + '標題旁的讀數：比 20 日均高 0.8pp 以上＝縮圈（冷門股不容易動）、低 0.8pp 以上＝擴散（主流容易休息）、其餘＝沒有明顯方向。'),
   };
@@ -8600,7 +8554,7 @@
     const drawRankDays = (n) => {
       const src = f3 && f3.share_daily;
       if (!src || !src.dates || !src.dates.length) {
-        return empty('rankFlow', '逐日佔比資料準備中（下一次盤後更新就會有）');
+        return empty('rankFlow', '尚無逐日佔比資料');
       }
       const D2 = src.dates, N = D2.length;   // 不要叫 L —— 外層的 L 是連結工具（L.group/L.stock）
       /* 截止日＝時鐘大圈落在的那一天。對不到（例如那一天不在逐日佔比裡）就退回最新一天，
@@ -8667,7 +8621,7 @@
     const drawInstDays = (n) => {
       const src = f3 && f3.inst_daily;
       if (!src || !src.dates || !src.dates.length) {
-        return empty('instGroups', '逐日法人資料準備中（下一次盤後更新就會有）');
+        return empty('instGroups', '尚無逐日法人資料');
       }
       const end = instEnd == null ? src.dates.length : Math.max(1, Math.min(src.dates.length, instEnd));
       const k = Math.min(n, end);
@@ -8943,8 +8897,7 @@
        截止日往回拉太多、又要看很多天時，它前面就沒有「同樣長度的上一段」可以比了
        （逐日佔比只存 60 天）。文案要指名是哪兩顆旋鈕造成的，不然使用者只會以為圖壞了。*/
     if (!gs.length) return empty('rankFlow', p.prev_from ? '這個期間沒有可比的族群'
-      : '這一段前面沒有同樣長度的上一段可以比（逐日佔比只存 60 天）——'
-        + '把「看哪一天」往今天拉，或把「最近 N 天」調小一點');
+      : '這段期間沒有可比較的前一段');
     const up = gs.slice().sort((a, b) => b.share_chg - a.share_chg).slice(0, 9);
     const down = gs.slice().sort((a, b) => a.share_chg - b.share_chg).slice(0, 6).reverse();
     const rows = up.concat(down.filter(d => !up.some(u => u.group_id === d.group_id)));
@@ -9008,7 +8961,7 @@
             + `<br>變化 <span style="color:${upDown(g.share_chg)}">${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp</span>`
             + `<br>名次 ${g.rank_prev != null ? g.rank_prev + ' → ' : ''}${g.rank}`
             + `<br>期間報酬 <span style="color:${upDown(g.ret)}">${fmt.pct(g.ret, 1)}</span>`
-            + `<br>成交值 ${fmt.yi(g.turnover)}<br><small>點一下看成分股</small>`; },
+            + `<br>成交值 ${fmt.yi(g.turnover)}`; },
       },
       // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px
       grid: { left: GL, right: GR, top: 12, bottom: 38 },
@@ -9056,7 +9009,7 @@
       const onClock = highlightClock(gid);
       drillOpen(gid, g.group_name,
         `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`
-        + (onClock ? '' : '　·　這個族群不在左邊資金輪盤的前 16 名內，所以輪盤沒有變化'),
+        + (onClock ? '' : '　·　不在輪盤前 16 名'),
         'rankPanel');
     });
     lastRankRows = rows;
@@ -9128,7 +9081,7 @@
     const row = filterSlot(el, 'linkrow gchips', chartId);
     row.dataset.for = chartId;
     chipSel[chartId] = sel || null;
-    row.innerHTML = (sel ? '<span class="muted">篩選中（再點一次取消）</span>' : '')
+    row.innerHTML = (sel ? '<span class="muted">篩選中</span>' : '')
       + list.map(g => `<span class="gchip${sel === g.gid ? ' on' : ''}" data-g="${g.gid}"
            style="--c:${L.gcolor[g.gid] || CH.cyan}">
          <button class="pick" title="只看這個族群">${fmt.esc(g.name)}</button>
@@ -9220,7 +9173,7 @@
     const rf = 'dd-' + chartId;                        // 開合狀態的 key（和資金輪動那兩排共用一套）
     row.innerHTML = `<div class="rotdd" data-dd="chain">
         <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="false"
-          title="第一層：先挑產業鏈">產業鏈：<b>${fmt.esc(chainName)}</b><i aria-hidden="true">▾</i></button>
+          title="產業鏈">產業鏈：<b>${fmt.esc(chainName)}</b><i aria-hidden="true">▾</i></button>
         <div class="ddpanel" role="listbox" aria-label="產業鏈" hidden>
           <button type="button" role="option" class="ddopt${cur ? '' : ' on'}" data-c=""
             aria-selected="${cur ? 'false' : 'true'}">全部（${list.length} 個族群）</button>
@@ -9233,7 +9186,7 @@
       </div>
       <div class="rotdd wide" data-dd="group">
         <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="false"
-          title="第二層：這條鏈底下的族群，一次看一個">族群：<b>${fmt.esc(chainName)} · ${sel ? fmt.esc(selName) : '未篩選'}</b><i aria-hidden="true">▾</i></button>
+          title="族群">族群：<b>${fmt.esc(chainName)} · ${sel ? fmt.esc(selName) : '未篩選'}</b><i aria-hidden="true">▾</i></button>
         <div class="ddpanel" role="listbox" aria-label="族群（單選）" hidden>
           <div class="ddbar"><span class="muted">${fmt.esc(chainName)}底下 ${sub.length} 個族群，一次看一個</span></div>
           <div class="ddlist">
@@ -9517,7 +9470,7 @@
       /* `data-sync="n2"` 留著當 CSS 與驗收的抓手（沿用晶片列時代的名字，改名要連動一整批選擇器）。*/
       box.innerHTML = `<div class="rotdd" data-dd="chain" data-sync="n2">
           <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="false"
-            title="第一層：先挑產業鏈">產業鏈：<b>${fmt.esc(chainName)}</b><i aria-hidden="true">▾</i></button>
+            title="產業鏈">產業鏈：<b>${fmt.esc(chainName)}</b><i aria-hidden="true">▾</i></button>
           <div class="ddpanel" role="listbox" aria-label="產業鏈" hidden>
             <button type="button" role="option" class="ddopt${ROT.chain ? '' : ' on'}" data-c=""
               aria-selected="${ROT.chain ? 'false' : 'true'}">全部（${list.length} 個族群）</button>
@@ -9530,7 +9483,7 @@
         </div>
         <div class="rotdd wide" data-dd="group">
           <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false"
-            title="第二層：這條鏈底下的族群，可以複選">族群：<b>${fmt.esc(gSummary)}</b><i aria-hidden="true">▾</i></button>
+            title="族群（可複選）">族群：<b>${fmt.esc(gSummary)}</b><i aria-hidden="true">▾</i></button>
           <div class="ddpanel" aria-label="族群（可複選）" hidden>
             <div class="ddbar"><span class="muted">${fmt.esc(chainName)}底下 ${sub.length} 個族群，可複選</span>
               <button type="button" class="btn small dd-all">全選</button>
@@ -9544,7 +9497,7 @@
         </div>
         <label class="rotchk"><input type="checkbox" class="rot-top10" ${ROT.topOnly ? 'checked' : ''}>只看前 10 大</label>
         ${(nG || ROT.chain || ROT.topOnly) ? '<button class="btn small rot-clear">清除</button>' : ''}
-        <span class="muted rot-note" title="先挑產業鏈，再從第二個清單勾族群（可複選）；排行與輪盤一起篩">${picked ? `只看 ${picked} 個族群`
+        <span class="muted rot-note">${picked ? `只看 ${picked} 個族群`
           : `共 ${list.length} 個族群`}</span>`;
 
       /* 重建之後要把「剛才打開的那個下拉」原樣還原 —— 勾一個族群就整排重建，
@@ -9958,7 +9911,7 @@
          「4 檔」還會被推到下一行 —— 看起來像壞掉（1440px 截圖量到的）。*/
       const head = `<a class="dp grow${on ? ' ison' : ''}" data-g="${fmt.esc(r.gid)}"`
         + ` style="border-color:${on ? col : 'transparent'};--c:${col}"`
-        + ` title="${fmt.esc(r.name)}　${ms.length} 檔　${on ? '再點一次收起來' : '點一下展開成分股'}">`
+        + ` title="${fmt.esc(r.name)}　${ms.length} 檔">`
         + `<span class="tw2">${on ? '▾' : '▸'}</span>`
         + `<span class="nm">${fmt.esc(r.name)}</span>`
         + `<span class="c go" data-only="1" title="只看這個族群（圖上其餘壓暗）">◎</span>`
@@ -9978,9 +9931,9 @@
     }).join('');
     box.hidden = false;
     box.innerHTML = `<div class="hh">
-        <button class="btn small" data-all="1" title="回到全部產業鏈（按 ESC 也可以）">‹ 全部族群</button>
+        <button class="btn small" data-all="1" title="回到全部產業鏈">‹ 全部族群</button>
         <b>› ${fmt.esc(DRILL.chainName)}</b>
-        <span class="m" title="點族群名稱＝就地展開它的成分股（再點一次收起）；展開後點個股進個股頁；最右邊 ◎＝圖上只看這個族群">${rows.length} 個族群 · 依成交值排序</span>
+        <span class="m" title="◎＝圖上只看這個族群">${rows.length} 個族群 · 依成交值排序</span>
         </div>
       ${extra ? `<div class="note" style="margin:6px 0 0">${extra}</div>` : ''}
       ${rows.length ? `<div class="ms tree">${li}</div>` : '<div class="empty">這條產業鏈今天沒有量</div>'}`;
@@ -10029,14 +9982,14 @@
     /* 拿不到個股輪動資料時**不要讓整張圖變空白**，也不要默默什麼都不做 ——
        清單照列（那一份來自 groups_detail，本來就在），只是講清楚畫不上去而已。*/
     const warn = DRILL.state === 'loading' ? '個股輪動資料載入中…'
-      : DRILL.state === 'fail' ? '這個族群的個股輪動資料準備中（下一次盤後更新就會有），所以現在只能看清單，還畫不到輪盤上。'
-        : nRRG ? '' : '這個族群的個股輪動資料還沒算出來（上市未滿 50 個交易日的個股本來就不會有），所以現在只能看清單。';
+      : DRILL.state === 'fail' ? '尚無個股輪動資料，僅列清單'
+        : nRRG ? '' : '尚無個股輪動資料，僅列清單';
     box.hidden = false;
     box.classList.remove('merged');
     box.innerHTML = `<div class="hh">
-        <button class="btn small" data-all="1" title="${DRILL.chain ? '回到「' + fmt.esc(DRILL.chainName) + '」這條產業鏈' : '回到只看族群（按 ESC 也可以）'}">‹ ${DRILL.chain ? fmt.esc(DRILL.chainName) : '全部族群'}</button>
+        <button class="btn small" data-all="1" title="${DRILL.chain ? '回到「' + fmt.esc(DRILL.chainName) + '」這條產業鏈' : '回到只看族群'}">‹ ${DRILL.chain ? fmt.esc(DRILL.chainName) : '全部族群'}</button>
         <b>› ${fmt.esc(gname)}</b>
-        <span class="m" title="點名字＝把這一檔畫到圖上（輪盤上是空心圓、資金去向多一個葉節點），再點一次拿掉；最右邊 →＝進個股頁">${ms.length} 檔 · 依成交值排序${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
+        <span class="m" title="空心圓＝畫到圖上的個股">${ms.length} 檔 · 依成交值排序${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
         <span class="sp"></span>
         <a class="pill cyan" href="#industry/group/${fmt.esc(gid)}">進族群頁 →</a></div>
       ${extra || warn ? `<div class="note" style="margin:6px 0 0">${extra}${extra && warn ? '<br>' : ''}${warn ? `<span class="muted">${warn}</span>` : ''}</div>` : ''}
@@ -10046,11 +9999,11 @@
         const can = !!mm[code];
         return `<a data-code="${fmt.esc(code)}" data-tv="${Math.round(m.tv)}"${m.has_page ? ` href="#stock/${fmt.esc(code)}"` : ''}`
           + ` class="dp${on ? ' ison' : ''}${can ? '' : ' noplot'}"${on ? ` style="border-color:${col};background:${hexA(col, .18)}"` : ''}`
-          + ` title="${can ? (on ? '再點一次就從圖上拿掉' : '點一下把它畫到圖上') : '上市未滿 50 個交易日，算不出輪動座標，畫不到輪盤上'}">`
+          + ` title="${can ? '' : '上市未滿 50 個交易日'}">`
           + `<span>${on ? '● ' : ''}${fmt.esc(m.name || code)}</span><span class="c">${fmt.esc(code)}</span>`
           + `<span class="g">${fmt.yi(m.tv)}　${fmt.n(m.tv / sum * 100, 1)}%　<b class="${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</b></span>`
           + (m.has_page ? '<span class="c go" title="進個股頁">→</span>' : '') + '</a>';
-      }).join('')}</div>` : '<div class="empty">這個族群的成分股整理中</div>'}`;
+      }).join('')}</div>` : '<div class="empty">尚無成分股資料</div>'}`;
     drillDismiss();
     /* 返回鍵一次只退一階：從鏈點進來的就退回鏈，直接點族群進來的才整個關掉。
        一次退到底的話，Andy 從 AI 伺服器鏈點進 CCL 之後想回去看隔壁族群，
@@ -10097,21 +10050,21 @@
     const sum = ms.reduce((a, m) => a + m.tv, 0) || 1;
     const col = L.gcolor[gid] || CH.cyan;
     const warn = DRILL.state === 'loading' ? '個股輪動資料載入中…'
-      : (DRILL.state === 'fail' || !Object.keys(mm).length) ? '個股輪動資料還沒算出來，只能看清單、畫不到盤上' : '';
+      : (DRILL.state === 'fail' || !Object.keys(mm).length) ? '尚無個股輪動資料，僅列清單' : '';
     const mem = `<li class="mem"><div class="mt">${ms.length ? ms.map(m => {
       const code = String(m.code), on = DRILL.stocks.has(code), can = !!mm[code];
       return `<div class="mr${on ? ' ison' : ''}${can ? '' : ' noplot'}" data-code="${fmt.esc(code)}"${on ? ` style="--c:${col}"` : ''}>`
-        + `<span class="nm" title="${can ? (on ? '再點一次從盤上拿掉' : '點一下畫到盤上（空心圓）') : '上市未滿 50 個交易日，畫不到盤上'}">${on ? '● ' : ''}${fmt.esc(m.name || code)}</span>`
+        + `<span class="nm" title="${can ? '' : '上市未滿 50 個交易日'}">${on ? '● ' : ''}${fmt.esc(m.name || code)}</span>`
         + `<span class="c">${fmt.esc(code)}</span><span class="v">${fmt.yi(m.tv)}</span><span class="v">${fmt.n(m.tv / sum * 100, 1)}%</span>`
         + `<b class="v ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</b>`
         + (m.has_page ? `<a class="go" href="#stock/${fmt.esc(code)}" title="進個股頁">→</a>` : '<span></span>') + '</div>';
     }).join('') : '<div class="mr none muted">這個族群的成分股整理中</div>'}</div>${warn ? `<div class="mw muted">${warn}</div>` : ''}</li>`;
     box.hidden = false;
     box.classList.add('merged');
-    box.innerHTML = `<div class="ph"><button class="btn small" data-all="1" title="回到只看族群（按 Esc 也可以）">‹ 全部族群</button>
+    box.innerHTML = `<div class="ph"><button class="btn small" data-all="1" title="回到只看族群">‹ 全部族群</button>
         <i style="background:${s.color}"></i><b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群</span>
         <span class="sp"></span><a class="pill cyan" href="#industry/group/${fmt.esc(gid)}">進族群頁 →</a></div>
-      <div class="sd muted">點族群列＝展開／收起成分股；點個股名稱＝畫到盤上${DRILL.stocks.size ? `（已畫 ${DRILL.stocks.size} 檔）` : ''}；→ 進個股頁</div>
+      <div class="sd muted">${DRILL.stocks.size ? `已畫 ${DRILL.stocks.size} 檔` : ''}</div>
       <ul class="ms">${rotQuadRows(list, onW, gid, mem)}</ul>`;
     drillDismiss();
     box.querySelector('[data-all]').onclick = () => drillClose();
@@ -10536,12 +10489,11 @@
     /* 即時模式下圖上的葉子是「價 × 量」的估算，這一欄卻是收盤值 —— 兩邊數字會不一樣。
        不寫出來的話看起來就像其中一邊算錯了（而且無從判斷是哪一邊）。*/
     (SKL.on && !SKL.err && Object.keys(SKL.tv).length)
-      /* ★ 2026-10-06（DECISIONS #329）：三句都不再寫日期（「最新交易日（YYYY-MM-DD）」「時間軸目前在 YYYY-MM-DD」）；
-         時間軸在哪一天由拉Bar 自己寫。口徑（估算 vs 收盤、清單只有最新那一版）照留。*/
-      ? '即時模式：圖上展開的個股是「價 × 量」的即時估算，這一欄仍是收盤值，兩者不是同一個時點'
+      /* ★ 2026-10-06（DECISIONS #329）：三句都不再寫日期；口徑（估算 vs 收盤、清單只有最新那一版）照留（廢話普查：句子縮短）。*/
+      ? '清單為收盤值（圖上為即時估算）'
       : isLatest
-        ? '依成交值排序，百分比＝佔這個族群的比重（和圖上展開的葉子同一個分母）'
-        : '成分股排序只有最新交易日的版本（逐日檔每天只留前 3 檔），不是時間軸上那一天的');
+        ? '依成交值排序，% 佔族群比重'
+        : '成分股排序為最新交易日的版本');
   /* ★ 2026-09-21：`sankeyStockPanel()` 移除。資金去向與輪動時鐘現在共用同一支
      成分股面板（`renderDrillPanel`），兩階段下鑽的狀態也只有一份。
      留著一支沒有人呼叫的舊面板，只會讓下一個人以為資金去向還有自己的一套。*/
@@ -10669,9 +10621,9 @@
   }
 
   async function sklFetch(sd) {
-    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價載入失敗');
     const { codes } = sklCodes(sd);
-    if (!codes.length) throw new Error('這張圖上的板塊還沒有成分股資料，抓不了即時');
+    if (!codes.length) throw new Error('尚無成分股資料');
     const q = {};
     let reqs = 0;
     for (let i = 0; i < codes.length; i += SKL_BATCH) {
@@ -10710,10 +10662,8 @@
     // ★ 2026-10-06（DECISIONS #329）：開頭的「最後更新 HH:MM:SS…／現在不是盤中…快照」拿掉（時段），後面的口徑照留
     el.innerHTML = '<b class="live">即時</b>'
       + `　·　${amt}`
-      + `　·　板塊成交值是 <b>價 × 量</b> 的<b>估算值</b>（端點沒有每檔的累積成交金額）`
-      + `　·　% 的分母＝<b>${Object.keys(SKL.tv).length} 個即時板塊加總</b>，`
-      + `「〇〇・其他」自動桶要 4 個請求/分鐘、做不到，一律標<b>盤後</b>且不進分母`
-      + `　·　這一輪 ${SKL.reqs} 個請求 / ${SKL.codes} 檔`;
+      + `　·　板塊成交值為 <b>價 × 量</b> <b>估算值</b>`
+      + `　·　% 的分母＝<b>${Object.keys(SKL.tv).length} 個即時板塊加總</b>；「〇〇・其他」標<b>盤後</b>、不進分母`;
   }
 
   async function sklTick() {
@@ -10788,7 +10738,7 @@
        收不掉寫在 style 上的 height，不清就會留一個 900px 的黑方塊。*/
     const bail = (msg) => { if (window.FlowTopo) window.FlowTopo.destroy(el);
       el.style.height = ''; el._skShape = ''; return empty('sankey', msg); };
-    if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料準備中（下一次盤後更新就會有）');
+    if (!sd || !sd.dates || !sd.dates.length) return bail('尚無資金去向資料');
     const D2 = sd.dates;
     const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
     const day = D2[k];
@@ -11213,10 +11163,8 @@
           if (v == null) return p.name;
           // 即時模式下自動桶（以及整條都是自動桶的鏈）拿的是收盤值，要講清楚，不要給假的佔比
           if (live && d.stale) {
-            return `<b>${fmt.esc(p.name)}</b><br><b>盤後</b>：這一格抓不到即時`
-              + `<br>「〇〇・其他」自動桶光 ETF 一格就 358 檔，每分鐘要多 4 個請求`
-              + `<br>下面是 ${fmt.esc(day)} <b>收盤</b>的成交值 ${fmt.yi(v)}`
-              + `<br><span class="muted">它不進即時佔比的分母（時點不同，比了會騙人）</span>`;
+            return `<b>${fmt.esc(p.name)}</b><br><b>盤後</b>：${fmt.esc(day)} 收盤成交值 ${fmt.yi(v)}`
+              + `<br><span class="muted">不進即時佔比的分母</span>`;
           }
           // 每一層都把「金額 ＋ 佔上一層 ＋ 佔全場 ＋ 比前一天」講滿（Andy「需要更豐富」）
           const own = d.code ? (d.shown + ' ' + d.code) : (d.shown || p.name);
@@ -11228,26 +11176,16 @@
             /* 展開狀態下的葉子：分母是「成分股加總」不是族群節點的值，講清楚 ——
                有股票同時掛兩個板塊時族群值是 1/n 拆過的，兩個數字對不起來很正常，
                但沒寫出來的話看起來就像算錯。*/
-            + (d.gsum != null ? '<br><span class="muted">分母＝這個族群成分股成交值加總，和右邊清單同一份</span>' : '')
+            + (d.gsum != null ? '<br><span class="muted">分母＝族群成分股成交值加總</span>' : '')
             /* 雙掛股：這一格是流進「這個族群」的那一份（1/n），整檔成交值另外講，免得以為算錯 */
             + (d.tvFull != null && d.nG > 1 ? `<br><span class="muted">整檔成交值 ${fmt.yi(d.tvFull)}；同時掛 ${d.nG} 個族群，`
-              + `這裡只計 1/${d.nG}（和族群成交值同一套拆法）</span>` : '')
-            + (d.restN ? `<br><span class="muted">第 ${SANKEY_EXPAND_MAX + 1} 名之後的 ${d.restN} 檔收成這一顆`
-              + '（量沒有丟掉，是加總）。完整名單在右邊那一欄</span>' : '')
+              + `這裡計 1/${d.nG}</span>` : '')
+            + (d.restN ? `<br><span class="muted">第 ${SANKEY_EXPAND_MAX + 1} 名之後 ${d.restN} 檔的加總</span>` : '')
             + (d.expanded && d.esum != null && Math.abs(d.esum - v) / (v || 1) > 0.01
-              ? `<br><span class="muted">成分股加總 ${fmt.yi(d.esum)}：比這一格大，`
-                + '因為有股票同時掛在別的板塊，族群成交值是 1/n 拆分過的</span>' : '')
-            + (d.est ? '<br><span class="muted">（逐日明細每天只存前 3 大，這一檔用的是最新交易日的成交值）</span>' : '')
-            + (live ? '<br><span class="muted">即時模式：成交值是「最後成交價 × 累積成交張數 × 1000」的<b>估算值</b>'
-              + '（端點沒有每檔的累積成交金額）；雙掛兩個板塊的股票已照 1/n 拆分</span>'
-              + (d.marketAmt != null ? `<br>台股總成交值 <b>${fmt.yi(d.marketAmt)}</b>（證交所真實值，不是估算）` : '') : '')
-            + (d.picked ? '<br><small>你自己點開的個股 · 要拿掉就再點一次右邊清單裡那一列</small>' : '')
-            + (d.code ? '<br><small>點一下進個股頁</small>'
-              : d.restN ? ''
-                : d.gid ? (d.expanded
-                  ? '<br><small>再點一次＝把水流收回成 3 檔代表股</small>'
-                  : '<br><small>點一下：水流延伸成全部成分股，右邊同時列出成交值排序</small>')
-                  : d.chain ? '<br><small>點一下只看這條產業鏈</small>' : '');
+              ? `<br><span class="muted">成分股加總 ${fmt.yi(d.esum)}（跨族群個股依 1/n 拆分）</span>` : '')
+            + (d.est ? '<br><span class="muted">（最新交易日成交值）</span>' : '')
+            + (live ? '<br><span class="muted">即時：成交值為<b>估算值</b>（成交價 × 累積張數）</span>'
+              + (d.marketAmt != null ? `<br>台股總成交值 <b>${fmt.yi(d.marketAmt)}</b>（證交所公布值）` : '') : '');
         } },
       series: [{
         type: 'tree', orient: 'LR', layout: 'orthogonal', edgeShape: 'curve',
@@ -11524,8 +11462,8 @@
       const late = (D.meta || {}).inst_date && (D.meta || {}).data_date
         && D.meta.inst_date < D.meta.data_date;
       return empty('instGroups', late || (p.days || 0) <= 1
-        ? `${p.label || '這個期間'}的法人資料還沒出（價量 15:30 就有、三大法人要等 18:30 那輪），先看「上週」那一段`
-        : '這個期間沒有法人資料');
+        ? `${p.label || '這個期間'}的法人資料尚未公布（約 18:30）`
+        : '這個期間尚無法人資料');
     }
     gs.sort((a, b) => b.total - a.total);
     const top = gs.slice(0, 8).concat(gs.slice(-6).filter(x => !gs.slice(0, 8).some(y => y.group_id === x.group_id)));
@@ -11545,7 +11483,7 @@
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: ps => (ps = ps.filter(q => q.seriesType === 'bar'), !ps.length ? '' : `<b>${ps[0].name}</b><br>` + ps.map(q => `${q.marker}${q.seriesName} ${fmt.lot(q.value / 1000)}`).join('<br>'))
           + `<br>占比 <b>${fmt.n(Math.abs(ps.reduce((s, q) => s + (q.value || 0), 0)) / (denom || 1) * 100, 1)}%</b>`
-          + '<br><small>點一下看成分股</small>' },
+          + '' },
       /* ★ 2026-09-20：right 24 → 42。最右邊那個刻度標籤是**置中對齊在刻度上**的，
          所以它有一半會伸出格線外；「100.0 萬張」在 11px 下約 62px 寬，一半 31px，
          加上留白取 42 —— 這個數字是算出來的，不是試出來的。
@@ -11593,9 +11531,9 @@
     if (!row) return;
     let box = row.querySelector('#instLegend');
     if (!box) { box = document.createElement('div'); box.id = 'instLegend'; box.className = 'chlegend'; box.setAttribute('role', 'group');
-      box.setAttribute('aria-label', '圖例（點一下隱藏／顯示）'); row.appendChild(box); }
+      box.setAttribute('aria-label', '圖例'); row.appendChild(box); }
     box.innerHTML = INST_SER.map(([n, , col]) => `<button type="button" data-n="${n}" aria-pressed="${instLegSel[n] === false ? 'false' : 'true'}"
-      title="點一下${instLegSel[n] === false ? '顯示' : '隱藏'}${n}"><i style="background:${col}"></i>${n}</button>`).join('');
+      title="${n}"><i style="background:${col}"></i>${n}</button>`).join('');
     box.onclick = (e) => {
       const b = e.target.closest('button[data-n]'); if (!b) return;
       const n = b.dataset.n;
@@ -11603,7 +11541,7 @@
       const ch = window.echarts && echarts.getInstanceByDom(document.getElementById('instGroups'));
       if (ch) ch.dispatchAction({ type: instLegSel[n] ? 'legendSelect' : 'legendUnSelect', name: n });
       b.setAttribute('aria-pressed', instLegSel[n] ? 'true' : 'false');
-      b.title = `點一下${instLegSel[n] ? '隱藏' : '顯示'}${n}`;
+      b.title = n;
     };
   }
 
@@ -11644,7 +11582,7 @@
     if (!conc || !conc.length) return empty('conc');
     const key = topN === 10 ? 'top10_share' : 'top_share';
     const has10 = conc.some(r => r.top10_share != null);
-    if (topN === 10 && !has10) { $('#concState').textContent = '前 10 大的歷史資料準備中'; return empty('conc', '前 10 大集中度資料準備中，先看前 5 大'); }
+    if (topN === 10 && !has10) { $('#concState').textContent = ''; return empty('conc', '尚無前 10 大集中度資料'); }
     const vals = conc.map(r => (r[key] == null ? null : +r[key]));
     const last = conc[conc.length - 1] || {};
     const cur = last[key], ma20 = sma(vals, 20)[vals.length - 1];
@@ -11732,10 +11670,10 @@
     const top = (row.top || []).slice(0, flowState.concTop || 10);
     box.hidden = false;
     if (!top.length) {
-      box.innerHTML = `<div class="hh"><b>${row.date}</b><span class="m">這一天沒有留族群明細</span></div>`;
+      box.innerHTML = `<div class="hh"><b>${row.date}</b><span class="m">尚無族群明細</span></div>`;
     } else {
       box.innerHTML = `<div class="hh"><b>${row.date}</b>
-          <span class="m">前 ${top.length} 大族群（點族群看那天的成分股）</span></div>
+          <span class="m">前 ${top.length} 大族群</span></div>
         <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px" id="concGs">
           ${top.map(t => `<button class="pill" data-g="${t.g}">${fmt.esc(t.n)} <b>${fmt.n(t.share, 1)}%</b></button>`).join('')}
         </div><div id="concMs" style="margin-top:8px"></div>`;
@@ -11753,7 +11691,7 @@
           ? `<div class="row" style="gap:6px;flex-wrap:wrap">`
             + list.map(m => L.stock(m.code, m.name, { cls: 'sm' })).join('')
             + `<a class="pill cyan" href="#industry/group/${gid}">進族群頁 →</a></div>`
-          : `<div class="muted">${row.date} 這天沒有留這個族群的成分股（只保留最近 400 個交易日）</div>`;
+          : `<div class="muted">${row.date} 尚無成分股明細</div>`;
       });
     }
     // 「收起 ✕」拿掉：點側欄外面／按 Esc 就關（點圖上別的日子＝換內容，不會被當成點外面）
@@ -11791,7 +11729,7 @@
           { k: '平均漲跌', v: fmt.pct(d.chg), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
           { k: '近 7 天新聞', v: `${d.news7 != null ? d.news7 : '—'} 則` },
-        ], (window.ThemeDiagrams || {})[d.id] ? '點一下看這個題材' : '這個題材尚無剖析圖'); } },
+        ], (window.ThemeDiagrams || {})[d.id] ? '' : '尚無剖析圖'); } },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', visibleMin: big ? 20 : 60,
         ...HS, label: { ...HS.label, formatter: () => '' }, data }] }); };
     // 標題列：顏色下拉（日期膠囊 2026-10-06 拿掉）
@@ -11866,7 +11804,7 @@
       const byG = {};
       codesOf[id].forEach(c => { const g = L.cgroup[c] || '_'; (byG[g] = byG[g] || []).push(c); });
       box.innerHTML = `<div class="segbox" style="--c:${color[id]}"><b class="t">${fmt.esc(ttl)}</b>
-        <span class="muted" style="font-size:12px">灰色＝目前不在這個題材成員名單裡，但同樣做這塊</span>
+        <span class="muted" style="font-size:12px">灰色＝非題材成員、但同樣做這塊</span>
         ${Object.entries(byG).map(([g, cs]) => `<div class="row"><span class="muted" style="min-width:7em">${g === '_' ? '未分類' : L.group(g)}</span>${cs.map(c => L.stock(c, null, { cls: mem.has(c) ? '' : 'out' })).join('')}</div>`).join('')}</div>`;
     };
     let cur = null;
@@ -11911,11 +11849,8 @@
     // 標題被拿掉了，所以把題材名接到剖析圖的抬頭上 —— 不然使用者看不出現在看的是哪一個題材
     /* 說明精簡：副標只留題材名；題材的一句描述（t.desc）搬進「怎麼看 ?」第一行（滑鼠停在標題上也看得到）。*/
     const head = `<h3${t.desc ? ` title="${fmt.esc(t.desc)}"` : ''}>產品剖析圖 <small data-readout>${fmt.esc(t.name)}</small> <button class="howbtn pop" data-how="themedg" type="button" aria-label="產品剖析圖怎麼看">?</button></h3>`;
-    const howDg = howHTML(`這張圖回答：「${fmt.esc(t.name)}」${t.desc ? '（' + fmt.esc(t.desc) + '）' : ''}由哪些環節組成、台股站在哪一段。`, [
+    const howDg = howHTML(`「${fmt.esc(t.name)}」${t.desc ? '（' + fmt.esc(t.desc) + '）' : ''}由哪些環節組成、台股站在哪一段。`, [
       '由左到右＝上游 → 中游 → 下游',
-      '點環節，看該段有哪幾檔台股',
-      '點代號，直接進個股頁',
-      '點卡片外面或按 Esc 收起；點上方熱力圖換題材',
     ], '原創等角示意圖，非實物比例。');
     /* 「就地展開」要收得回去：收起＝回到 `#heatmap/theme`（網址跟著變，上一頁回得來）。
        沒有剖析圖的三個題材整區留白（下面那段），那時也就沒有東西需要收。
@@ -12005,7 +11940,7 @@
     const items = (d && d.items) || [];
     if (!items.length) {
       el.innerHTML = `<div class="card"><h2>交付清單</h2>
-        <p class="hint">還沒有產出 delivery.json（下一次部署就會有）。</p></div>`;
+        <p class="hint">尚無資料。</p></div>`;
       return;
     }
     const c = {};
@@ -12024,12 +11959,8 @@
           <span class="pill">共 ${items.length} 筆</span></div>
         <p class="hint" style="margin-top:8px">
           ${waiting
-            ? `★ <b>有 ${waiting} 件在等你</b>：「等你決定 ${c.ask || 0}」是我不敢自己拍板的，`
-              + `「進行中 ${c.wip || 0}」是還沒上線的。點下面那排就只看那一類。`
+            ? `★ <b>有 ${waiting} 件在等你</b>（等你決定 ${c.ask || 0}、進行中 ${c.wip || 0}）`
             : '★ 目前沒有在等你的項目。'}
-          每一筆的<b>引號那段是你的原話，逐字照抄</b>，不是我改寫過的版本 ——
-          這樣你才驗得出「我聽到的」跟「你說的」是不是同一件事。
-          「第 N 次部署」的日期時間可以跟右上角的版號徽章對照，對得上就代表真的上線了。
         </p>
         <div class="dlvfil" id="dlvFil">${chips}</div>
       </div>
@@ -12040,7 +11971,7 @@
       // 預設倒序：最新的在最上面（編號就是時間順序）
       const rows = items.filter(t => f === 'all' || t.state === f).slice().sort((a, b) => b.n - a.n);
       wrap.innerHTML = rows.length ? rows.map(dlvCard).join('')
-        : '<div class="card"><p class="hint" style="margin:0">這一類目前 0 筆。</p></div>';
+        : '<div class="card"><p class="hint" style="margin:0">0 筆</p></div>';
     };
     draw('all');
     el.querySelector('#dlvFil').addEventListener('click', (ev) => {
@@ -12091,7 +12022,7 @@
   };
 
   async function renderSeason() {
-    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '週期統計資料準備中'); return; }
+    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '尚無週期統計資料'); return; }
     let period = s3.periods['all'] ? 'all' : Object.keys(s3.periods)[0], metric = 'avg_excess';
     let view = 'heat';
     try { const v = localStorage.getItem('tw.season.view'); if (v === 'line' || v === 'heat') view = v; } catch (e) { /* 忽略 */ }
@@ -12369,7 +12300,7 @@
       const warn = $('#seasonBarWarn');
       if (warn) {
         const cut = sel.length - drawn.length;
-        const msg = cut > 0 ? `已選 ${sel.length} 個，這個寬度每根至少 ${barMin}px 只畫得下前 ${drawn.length} 個（另 ${cut} 個沒畫）。`
+        const msg = cut > 0 ? `已選 ${sel.length} 個，只畫前 ${drawn.length} 個。`
           : sel.length > 8 ? `已選 ${sel.length} 個，長條會很細。` : '';
         warn.innerHTML = msg ? `${msg}比較很多族群請改看<button type="button" class="linkbtn" data-goheat="1">熱力圖</button>` : '';
         warn.hidden = !msg;
@@ -12393,17 +12324,16 @@
       const how = $('#seasonHow');
       const M = mLabel(sortM);
       if (how) how.innerHTML = view === 'heat'
-        ? howHTML(`這張圖回答：哪些族群在「${M}」歷史上容易${metric === 'avg_excess' ? '跑贏大盤' : '上漲'}。`, [
+        ? howHTML(`哪些族群在「${M}」歷史上容易${metric === 'avg_excess' ? '跑贏大盤' : '上漲'}。`, [
           `列依${M}的${nm}由強到弱排`,
-          '點上方月份，換一個月排序',
           '紅＝強、綠＝弱、灰＝持平，越亮越極端',
           '排最上面又紅＝歷史順風；綠的要有理由才進',
-          '預設只列前 20 名，右上可切全部、顯示數字'])
-        : howHTML('這張圖回答：挑出來的幾個族群，每個月誰比較強、強過整體多少。', [
+          '預設只列前 20 名'])
+        : howHTML('挑出來的幾個族群，每個月誰比較強、強過整體多少。', [
           '每個月一組長條，一根＝一個族群（顏色看圖下色票）',
           '細灰線＝全部族群平均；長條高過灰線＝那個月比整體強',
           '看你關心的族群接下來 1～2 個月是不是連續高過灰線',
-          `預設只畫${M}最強 5 個；用「族群」下拉搜尋、勾選加減，色票點一下拿掉`,
+          `預設只畫${M}最強 5 個`,
           ...(metric === 'avg_excess' ? ['超額報酬的平均本來就貼著 0 軸'] : [])]);
       // 樣本少時勝率只有幾種值：講出來，不要讓人把「0 → 67 → 33」看成趨勢
       const n = Math.max(0, ...P.cells.map(c => c.samples || 0));
@@ -12415,7 +12345,7 @@
           const vals = Array.from({ length: n + 1 }, (_, k) => Math.round(k * 100 / n)).join('／');
           /* 說明精簡：畫面留一句（這句是「會誤判」的警告，不能藏）；後半句放滑鼠提示 */
           cav.innerHTML = `⚠ 每格只有 ${n} 年樣本，勝率只會是 ${vals}%，不是趨勢`;
-          cav.title = `差一年就跳 ${Math.round(100 / n)} 個百分點，是樣本少，不是趨勢。看趨勢請改「近 10 年」「全部」，或改看超額報酬。`;
+          cav.title = `差一年就跳 ${Math.round(100 / n)} 個百分點`;
         }
       }
       const el = $('#seasonHeat');
@@ -12436,7 +12366,7 @@
          #seasonRange 的滑鼠提示上（不佔版面、不回到「?」裡）。*/
       const rg = $('#seasonRange');
       if (rg) rg.title = `基準：${bench}（${s3.benchmark_months} 個月）`
-        + (fellBack ? '。這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。' : '');
+        + (fellBack ? '。缺大盤同月基準，改看絕對報酬' : '');
     };
     const paintView = () => {
       $('#seasonHeatBox').hidden = view !== 'heat';
@@ -12591,7 +12521,7 @@
       sel.value = pick;
       const stale = !!newest && newest < today;
       sel.className = 'minisel' + (stale ? ' stale' : '');
-      sel.title = stale ? `最新一則是 ${newest}，今天（${today}）還沒有新事件` : '選一天看那天發生什麼（保留最近一週）';
+      sel.title = stale ? `最新一則是 ${newest}` : '保留最近一週';
       const list = pick === 'all' ? byCat : byCat.filter(i => i._d === pick);
       $('#evList').innerHTML = list.slice(0, 120).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(i._d)}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || '', { cls: 'sm' })).join('')}</div></div>`).join('')
         || `<div class="empty">${pick === 'all' ? '沒有這類事件' : pick + ' 沒有這類事件'}</div>`;
@@ -12947,7 +12877,7 @@
       let h = `<div class="sghd"><span>近期搜尋</span>`
         + (rec.length ? `<button type="button" class="sgclr" id="sgClr" title="清除全部近期搜尋">清除</button>` : '') + '</div>';
       h += rec.length ? rec.map(c => row(c, idx[c] || L.cname[c], grp(c), true)).join('')
-        : '<p class="sgempty" id="sgEmpty">還沒有搜尋紀錄 —— 進過的個股會記在這裡（最多 8 筆）。</p>';
+        : '<p class="sgempty" id="sgEmpty">尚無搜尋紀錄</p>';
       const hs = hotList();
       if (hs.length) {
         const dd = (D.meta && D.meta.data_date) || '';
@@ -13051,8 +12981,8 @@
     const short = vm ? `${vm[1]}-${vm[2]}${vm[3] ? ' ' + vm[3].replace(/\s+/g, '') : ''}` : b.ver;
     el.textContent = `v ${short}${hm ? ' · ' + hm : ''}`;
     const isCommit = /^[0-9a-f]{7,40}$/.test(b.sha);
-    el.title = (b.at ? `建置時間 ${b.at}（台北）—— 比對這個時間確認網站換版了沒\n` : '')
-      + (b.ver === 'dev' ? '本機開發版，還沒經過部署流程'
+    el.title = (b.at ? `更新時間 ${b.at}（台北）\n` : '')
+      + (b.ver === 'dev' ? '開發版'
                  : `這個網頁的版本：${b.ver}`)
       + (isCommit ? `\n版本代碼 ${b.sha.slice(0, 7)}` : '');
     // ★ 2026-09-24 Andy：原始碼不能公開 —— 徽章不再連到 GitHub（以前點下去會開 commit 頁）。
@@ -13071,14 +13001,14 @@
     let level = '';                                     // '' 正常 / 'warn' / 'bad'
     // 1) 資料湖已經有更新的一天，但前端沒採用 → 那天的上市資料沒到齊
     if (meta.price_ahead_of_payload && meta.price_latest) {
-      bits.push(`已收到 <b>${fmt.esc(String(meta.price_latest))}</b> 的價格，但那天的上市資料沒到齊，所以畫面仍顯示 <b>${fmt.esc(D_)}</b>`);
+      bits.push(`<b>${fmt.esc(String(meta.price_latest))}</b> 上市資料未到齊，仍顯示 <b>${fmt.esc(D_)}</b>`);
       level = 'warn';
     }
     // 2) 多久沒更新
     const gen = meta.generated_at ? new Date(meta.generated_at) : null;
     if (gen) {
       const hrs = (Date.now() - gen.getTime()) / 3600e3;
-      if (hrs > 72) { bits.push(`已經 <b>${Math.floor(hrs / 24)} 天</b>沒有更新，自動更新可能中斷了`); level = 'bad'; }
+      if (hrs > 72) { bits.push(`已 <b>${Math.floor(hrs / 24)} 天</b>未更新`); level = 'bad'; }
       else if (hrs > 30) { bits.push(`上次更新是 ${Math.floor(hrs)} 小時前`); level = level || 'warn'; }
     }
     // 2b) 今天的價量是 mis 補的暫定值嗎
@@ -13087,8 +13017,7 @@
     const prov = meta.provisional || {};
     if (prov.is_provisional) {
       bits.push(`<b>${fmt.esc(D_)}</b> 的價量是收盤即時報價補的<b>暫定值</b>：`
-        + `開高低收準確，但<b>成交量與成交值偏低</b>（不含盤後定價交易，逐檔少 0.5%～15%），`
-        + `資金流向與成交值排名今天請打折看。證交所正式資料進來後會自動覆蓋`);
+        + `開高低收準確，<b>成交量與成交值偏低</b>（不含盤後定價交易），正式資料公布後自動覆蓋`);
       level = level || 'warn';
     }
     // 3) 哪些來源沒回資料
@@ -13101,9 +13030,8 @@
     const tail = [];
     // 盤後第一輪（台北 15:30）只抓價量，法人／融資券要傍晚才出。
     // 講清楚是「還沒到」而不是「掛了」，否則每天下午都會被誤會。
-    if (meta.last_run_phase === 'price') tail.push('這輪只更新價量（法人與融資券傍晚那輪才補）');
+    if (meta.last_run_phase === 'price') tail.push('目前只更新價量（法人、融資券傍晚更新）');
     if (meta.last_run_at) tail.push(`上次更新資料 ${tpe(meta.last_run_at)}`);
-    if (gen) tail.push(`網頁資料產生 ${tpe(meta.generated_at)}`);
     // 網頁版號也寫進來：手機上頂部那顆徽章是藏起來的，這一行是手機唯一看得到版本的地方
     const bd = renderBuild();
     tail.push(`網頁版本 ${fmt.esc(bd.ver)}${bd.at ? '（' + fmt.esc(bd.at) + ' 建置）' : ''}`);
@@ -13141,7 +13069,7 @@
     fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { srcInfo, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
