@@ -2144,6 +2144,11 @@ tbody tr:last-child td{border-bottom:0}
 .skBasics{align-items:stretch}
 .skBasics .msCard{display:flex;flex-direction:column}
 .skBasics .msCard>.chart{flex:1 1 auto;min-height:300px}
+/* ★ 2026-10-06（全站驗收「籌碼基本0926」紅字：1440 季節圖只剩 271px）：上面那條 300px 一直沒生效 ——
+   theme4.css 的 `[data-theme4] #stockTab .grid.g2>.card>.chart{min-height:260px}`（分頁兩欄卡片等高那條）特異度更高，
+   季節卡標題列又折成兩行（70px），圖只剩基本資料表高度扣掉的 271px，12 根柱子上的「x/y 年」與平均字擠在一起。
+   用 id 把下限釘回 300px：季節卡變高時，同列的基本資料卡照 grid stretch 一起變高，兩張卡仍等高。*/
+#msCard>#msChart{min-height:300px}
 .mshint{font-size:12.5px;color:var(--amber,#ffb454);margin:4px 0 0;text-align:right}
 @media (max-width:900px){ .skBasics{grid-template-columns:minmax(0,1fr)} .skBasics .msCard>.chart{min-height:300px} .mshint{text-align:left} }
 /* K 線圖高度跟著視窗走（Andy：「K 線圖太小，版面需要擴大」）：
