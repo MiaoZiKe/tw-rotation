@@ -35,6 +35,7 @@
 
 ## 工作規則
 
+- **★ 2026-10-06：Andy 說「備份」→ 照 `docs/BACKUP_RUNBOOK.md` 做。**
 - **★★★★★★★★ 2026-10-03：要給 Andy 看的半成品，一律推 `preview/<名稱>` 並附預覽網址，不推 main。**
   Andy 原話：「直接開分支給我一版可操作的，以後都這樣，避免覆蓋到原版本」。
   `git push origin <分支>:preview/<名稱>` → 部署後網址是 `https://miaozike.github.io/tw-rotation/preview/<名稱>/`
