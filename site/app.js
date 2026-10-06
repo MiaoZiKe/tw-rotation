@@ -1919,6 +1919,11 @@
   function syncTabOverflow() {
     const strip = document.getElementById('tabs'), wrap = document.getElementById('tabsWrap');
     if (!strip || !wrap) return;
+    /* ★ 2026-10-06（紅字清理）：版面 V2（html.l4，≥821）起 `#tabs` 是左側直排導覽，沒有橫向溢出、箭頭也被 CSS 整顆關掉
+       （layout4.css `.tabswrap .tabnav{display:none!important}`）。但視窗從寬縮到 1024 時，這支在 layout4.js 還沒把版型切完的那一格被 resize 叫到，
+       量到橫向還捲得動，就留下一個沒人會清的 `ovf-r`（實測 1024：class 有 ovf-r、over 0、箭頭 none）。
+       直排導覽下兩個 class 一律拿掉，不再讓它在 DOM 上留著說謊。 */
+    if (document.documentElement.classList.contains('l4')) { wrap.classList.remove('ovf-l', 'ovf-r'); return; }
     const max = strip.scrollWidth - strip.clientWidth;
     wrap.classList.toggle('ovf-l', strip.scrollLeft > 2);
     wrap.classList.toggle('ovf-r', strip.scrollLeft < max - 2);
@@ -2159,8 +2164,8 @@
   const MIA_STEP_SUB = [
     '錢流進哪個族群、流出哪個族群',
     '大盤與族群的體質：漲的是不是只有權值股，法人在不在裡面',
-    '技術面找時機：回檔承接還是突破追進',
-    '新聞、法說、目標價 —— 有沒有理由今天不要進場',
+    '技術面看型態：回檔型態還是突破型態條件成立',
+    '新聞、法說、目標價等事件面消息',
   ];
   /* ★ 2026-09-24 積木化 #4（docs/feature_modules.md §4 第 4 項）：分段表不再手寫。
      以前這裡是一張寫死 CSS 選擇器字串的物件表 —— 搬一塊積木要同時改 HTML、render 函式、
@@ -2374,7 +2379,7 @@
       + `<span class="t">${fmt.esc(i.title || '')}</span>`
       + `<span class="m"><span class="mono">${fmt.esc(i._d || '')}</span><span class="cat">${fmt.esc(i.cat || '')}</span>`
       + `<span>${fmt.esc(i.source || '')}</span></span></a>`).join('');
-    const html = `<h3>今日事件 <small>新聞、法說、券商目標價 —— 進場前最後一關</small></h3>`
+    const html = `<h3>今日事件 <small>新聞、法說、券商目標價</small></h3>`
       + `<div class="ovev">${rows || '<div class="empty">今天沒有事件</div>'}</div>`
       + `<button type="button" class="mmore" id="ovEvAll">看全部 ${items.length} 則事件 ›</button>`;
     if (box.innerHTML !== html) {
@@ -2412,8 +2417,15 @@
         if (btn) btn.remove();
         return;
       }
-      kids.forEach((el, k) => el.classList.toggle('mm-off', k >= keep));
-      const rest = kids.length - keep;
+      /* ★ 2026-10-06：先留「重點展開」那幾張（.pin），再照順序補滿 keep 張。
+         產業鏈的手機環節清單（#chainList）由 industry.js 挑「台股最多／剖析圖反亮」的幾格標 .pin 並展開（DECISIONS #317），
+         這裡卻照 DOM 順序只留前 4 張 —— 晶圓代工分頁的反亮那一格排在第 11 張，被收進「看全部」，
+         一進來看到的 4 張是收著的或沒有台股的，畫面上一個個股標籤都沒有（Andy 的原始需求是「Default 顯示族群相連標籤個股」；
+         _uitest 批次25-關聯圖「[390px] 收起來之後環節卡清單與個股標籤照樣看得見」紅）。沒有 .pin 的清單（候選、交付）照舊取前 N 張。*/
+      const keepSet = new Set(kids.filter(el => el.classList.contains('pin')).slice(0, keep));
+      for (const el of kids) { if (keepSet.size >= keep) break; keepSet.add(el); }
+      kids.forEach(el => el.classList.toggle('mm-off', !keepSet.has(el)));
+      const rest = kids.length - keepSet.size;
       let b = btn;
       if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'mmore'; box.appendChild(b); }
       else if (b !== box.lastElementChild) box.appendChild(b);
@@ -3397,10 +3409,10 @@
      實測 1440 個股基本面卡只剩 101px —— 重點放後面就只看得到「動能分與估值…」，看不到免責本身。*/
   const DISC = {
     cand: ['不構成投資建議：條件篩選結果僅供研究，A／B 為規則判定、非買賣建議',
-      '「今日候選」是把符合預先公開之技術與籌碼條件的股票列出來：A＝回檔承接、B＝突破追進，都是固定規則的判定，'
+      '「今日候選」是把符合預先公開之技術與籌碼條件的股票列出來：A＝回檔型態條件成立、B＝突破型態條件成立，都是固定規則的判定，'
       + '不是買賣建議，也不構成投資建議。本站非證券投資顧問，投資決策與風險由使用者自行判斷並承擔。'],
     rot: ['不構成投資建議：階段與短評為規則判讀，僅供研究',
-      '改善／領先／轉弱／落後四個階段，以及旁邊的短評（例如「回檔找買點」「先設好停利」），都是依族群相對大盤的強弱與動能'
+      '改善／領先／轉弱／落後四個階段，以及旁邊的描述（例如「相對強度仍高、動能轉弱」），都是依族群相對大盤的強弱與動能'
       + '用固定規則判讀，只描述資金目前的位置，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
     tag: ['不構成投資建議：符合／未符合是條件描述，僅供研究',
       '符合／未符合是用月營收、季報與籌碼資料套固定條件算出來的描述，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
@@ -3633,7 +3645,7 @@
     const use = ab.length ? ab : cands.slice().sort((a, c) => (c.score_all || 0) - (a.score_all || 0)).slice(0, 40);
     title.innerHTML = `今日候選 <small>${ab.length ? `A ${cands.filter(c => c.grade === 'A').length} 檔 / B ${cands.filter(c => c.grade === 'B').length} 檔` : '今天沒有 A / B'}</small>`;
     // A／B 的定義在 HOW.mkt；「今天沒有 A／B」是警示（名單不是進場訊號），留在畫面上
-    body.innerHTML = (ab.length ? '' : `<div class="kpinote">今天沒有 A／B：列綜合分前 40，只當觀察名單</div>`)
+    body.innerHTML = (ab.length ? '' : `<div class="kpinote">今天沒有 A／B：依綜合分列前 40，只是排序、不是型態訊號</div>`)
       + stockTable(use.map(c => ({ code: c.code, name: c.name, group_id: c.group_id, group_name: c.group,
           chg_pct: c.chg_pct, close: c.close, grade: c.grade, verdict: c.verdict, score: c.score_all })),
         [['判定', r => r.grade ? `<span class="grade ${r.grade}">${r.grade}</span>` : `<span class="muted">${fmt.esc(r.verdict || '—')}</span>`],
@@ -4688,12 +4700,15 @@
      這些字直接印在近白色的面板上 —— 實測對比度只有 1.41～1.57，等於看不見。
      改成讀 `CH`（切主題時 refreshPalette() 會就地改寫它），讀的當下才取值，
      所有既有的 `STAGE[k].color` 不用改就跟著主題走。*/
+  /* ★ 2026-10-06（Andy：「好言論改中性」，DECISIONS #333）：`act` 原本是操作短評
+     （「最早可以布局」「回檔找買點、不要追高」「先設好停利」「別急著抄底」），公開網站讀起來就是買賣建議。
+     改成只描述 RRG 兩個座標（相對強度 RS-Ratio、動能 RS-Momentum）相對大盤的位置；四段名稱是 RRG 標準術語，保留。*/
   const STAGE = (() => {
     const raw = {
-      improving: { name: '改善', ck: 'cyan', sub: '還是比大盤弱，但動能轉強了', act: '資金剛開始進場，最早可以布局的一段' },
-      leading: { name: '領先', ck: 'up', sub: '比大盤強，而且還在變強', act: '現在的主流，回檔找買點、不要追高' },
-      weakening: { name: '轉弱', ck: 'amber', sub: '還是比大盤強，但動能在掉', act: '主流開始鬆動，手上有的先設好停利' },
-      lagging: { name: '落後', ck: 'down', sub: '比大盤弱，而且還在變弱', act: '資金還在跑，別急著抄底' },
+      improving: { name: '改善', ck: 'cyan', sub: '還是比大盤弱，但動能轉強了', act: '相對強度低於大盤、動能高於大盤' },
+      leading: { name: '領先', ck: 'up', sub: '比大盤強，而且還在變強', act: '相對強度與動能都高於大盤' },
+      weakening: { name: '轉弱', ck: 'amber', sub: '還是比大盤強，但動能在掉', act: '相對強度仍高、動能轉弱' },
+      lagging: { name: '落後', ck: 'down', sub: '比大盤弱，而且還在變弱', act: '相對強度與動能都低於大盤' },
     };
     Object.keys(raw).forEach(k => Object.defineProperty(raw[k], 'color', {
       get() { return CH[raw[k].ck]; }, enumerable: true,
@@ -6483,7 +6498,11 @@
        一日步長只有盤面半徑的 0.053，畫滿才看得到「一天走一小步」。
        上限 40 個路標純粹是防呆。*/
     const span = opts.span != null ? opts.span : back;
-    const trailOn = opts.trail !== false;
+    /* ★ 2026-10-06（Andy：「這邊新增顯示軌跡，腳印以及軌跡式分開的顯示項目」）：一條尾巴拆成兩樣、各自一個勾選：
+       lineOn＝底下那條細線（顯示軌跡）、feetOn＝沿路的小腳印（顯示腳印）。兩個都關＝不畫尾巴（tmode 'off'），只剩族群點。
+       沒傳 line／feet 的呼叫端（舊的 trail:true／false）照舊：兩樣一起開或一起關。*/
+    const feetOn = opts.feet !== false, lineOn = opts.line !== false;
+    const trailOn = opts.trail !== false && (feetOn || lineOn);
     // 這條軌跡實際走過幾天（＝終點索引 − 起點索引）。固定點數之後「幾個點」不再有鑑別度，
     // 驗收改量這個值：刷到最舊那一天是 0，往今天刷才一天一天長出來。
     const trailDays = (r) => {
@@ -6770,9 +6789,10 @@
           const tf = r._tf;
           const op = trailOp(r);
           const dim = op > 0 && op < 1;           // 非焦點、退到背景的那幾條
-          const data = trailDeco(r, tf, col, dim);
+          // 腳印關掉（只看軌跡）：資料只留折線那 48 點、不帶任何腳印 symbol；線關掉（只看腳印）：下面 lineStyle 寬 0
+          const data = feetOn ? trailDeco(r, tf, col, dim) : tf.pts.slice();
           // 焦點那一版（原尺寸、原密度）只在滑到它時才算（highlightClock 讀 el._rotDeco），平常不花這份錢
-          if (dim) rotDeco[r.gid] = { D: data, F: () => trailDeco(r, tf, col, false) };
+          if (dim && feetOn) rotDeco[r.gid] = { D: data, F: () => trailDeco(r, tf, col, false) };
           return {
             /* symbol 'none'：只有腳印那幾個資料點自己帶 symbol（trailDeco），其餘 40 幾個點不建圖元。
                以前是 'circle' ＋ symbolSize 0 —— 16 條 × 48 點＝768 個看不見的圓也要每次重畫，
@@ -6790,7 +6810,7 @@
             /* 手機：線本身不畫（寬 0），路徑只由腳印表示。
                桌機：照參考檔在腳印底下留一條 1.2px、25% 的極淡細線 —— 腳印是「一步一步」，細線把步與步串成一條路，
                族群多的時候比較看得出哪一串腳印屬於哪一顆點。opacity 仍然留著，highlightClock 與驗收都讀它。*/
-            lineStyle: { color: hexA(col, v2 ? .25 : .5), width: v2 ? (dim ? .8 : 1.2) : 0, opacity: op },
+            lineStyle: { color: hexA(col, v2 ? .25 : .5), width: v2 && lineOn ? (dim ? .8 : 1.2) : 0, opacity: op },
           };
         }),
         /* ★ 盤中即時的主角：那條「上一個收盤 → 現在」的箭頭。
@@ -7196,7 +7216,7 @@
         dx: +r.live.dx.toFixed(4), dy: +r.live.dy.toFixed(4),
         tdx: +r.live.tdx.toFixed(4), tdy: +r.live.tdy.toFixed(4),
         jump: r.live.stage0 !== r.live.stage }));
-      window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn,
+      window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn, line: trailOn && lineOn, feet: trailOn && feetOn,
         /* ★ 2026-09-20（E1）：軌跡改成固定 48 點之後，「畫了幾個點」變成常數、
            再也量不出任何東西。驗收改量**軌跡實際走過幾天**（所有族群加總）——
            刷到最舊那一天是 0，往今天刷會一天一天長出來，語意跟漸進式軌跡一致。*/
@@ -7366,7 +7386,7 @@
       return;
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
-      { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail, tmode: ids.tmode,
+      { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail, line: ids.line, feet: ids.feet, tmode: ids.tmode,   // line／feet：2026-10-06 軌跡與腳印分開
         // 象限卡只長在資金流向頁那張時鐘上（總覽小圖太小、放大視窗是另一份 DOM）
         quads: !!ids.quads,
         // 量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
@@ -7762,10 +7782,10 @@
       hint: '籌碼分看的是「誰在買」：投信／外資連續買超天數、法人五日淨買佔同期成交值的比例、集保大戶（400 張以上）四週持股增減、券商調升目標價。買超金額要相對於這檔自己的量才有意義，所以用佔比而不是絕對張數。',
       cols: [...HEAD, C.sChip, C.trust, C.foreign, C.turn, C.sAll] },
     tech: { label: '技術', sub: '結構與時機', key: 'score_tech',
-      hint: '技術分把指標分、SMC 結構判定（A 回檔承接 / B 突破追進）、均線位置、風報比、量能與乖離合成一個分數。被硬性條件排除的（流動性不足、漲停鎖死、乖離過大）會直接扣分，理由列會寫出被排除的原因。',
+      hint: '技術分把指標分、SMC 結構判定（A 回檔型態 / B 突破型態）、均線位置、風報比、量能與乖離合成一個分數。被硬性條件排除的（流動性不足、漲停鎖死、乖離過大）會直接扣分，理由列會寫出被排除的原因。',
       cols: [...HEAD, C.sTech, C.tech, C.rsi, C.vol, C.bias, C.stop, C.rr] },
     fund: { label: '基本面', sub: '營收與估值', key: 'score_fund',
-      hint: '基本面分來自月營收動能（YoY 經 1-2 月合併調整、連增月數、近三月合計 YoY）與同族群估值分位。分位低 = 相對同業便宜。營收 YoY 超過 100% 會標示可能是併購或一次性，不當成長看。',
+      hint: '基本面分來自月營收動能（YoY 經 1-2 月合併調整、連增月數、近三月合計 YoY）與同族群估值分位。分位低＝估值低於多數同業。營收 YoY 超過 100% 會標示可能是併購或一次性，不當成長看。',
       cols: [...HEAD, C.sFund, C.yoy, C.streak, C.mom, C.pe, C.pct] },
   };
   let candFacet = 'all';
@@ -8205,8 +8225,8 @@
        只留一顆「怎麼看 ?」）。留著不會被叫到，就是死碼。*/
     bump: `<b>主流是穩穩的還是一直換人。</b>
       <ul><li>每條線是一個族群，<em>位置越高＝成交值排名越前面</em>（1 名在最上面）。</li>
-      <li>線一路往上＝資金連續好幾週往它集中，通常比單週衝上來的更值得跟。</li>
-      <li>線上下亂跳＝那一段時間在輪動，沒有明確主流，追高容易兩面挨巴掌。</li></ul>`,
+      <li>線一路往上＝資金連續好幾週往它集中。</li>
+      <li>線上下亂跳＝那一段時間在輪動，沒有明確主流。</li></ul>`,
     /* ★ 2026-09-21 合併之後，這一段同時是「輪動時鐘」與「資金流向排行」的說明
        （原本 HOW.rank 那一段併進來了）—— 同一張卡不該有兩顆問號鈕。
        開頭先把兩張圖各自回答什麼講清楚，再講怎麼一起用：
@@ -8216,8 +8236,8 @@
        四段的意思、兩圈虛線、腳印、即時的慣性／今天推的、權重是估的、大盤是代理值，都還在。
        ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：腳印與軌跡恢復，標題沿用改名後的「資金輪盤」。*/
     rot: `<b>錢往哪個族群跑（右：排行），那個族群跑到循環的哪一段（左：資金輪盤）。</b>
-      <ul><li><b>四段</b>：落後 → 改善 → 領先 → 轉弱，順時針輪一圈。<em>改善</em>＝剛有錢進來、最早布局；
-        <em>領先</em>＝主流、回檔找買點；<em>轉弱</em>＝動能在掉、設停利；<em>落後</em>＝別急著抄底。</li>
+      <ul><li><b>四段</b>：落後 → 改善 → 領先 → 轉弱，順時針輪一圈。<em>改善</em>＝相對強度低於大盤、動能高於大盤；
+        <em>領先</em>＝相對強度與動能都高於大盤；<em>轉弱</em>＝相對強度仍高、動能轉弱；<em>落後</em>＝相對強度與動能都低於大盤。</li>
       <li><b>一顆點＝一個族群</b>：越大＝成交值佔比越高；離圓心越遠＝跟大盤差越多。
         兩圈虛線＝今天最大偏離的 25%／今天偏離最大的那個族群（100%），圈上有標。<em>距離用平方根尺度</em>：靠圓心的點被拉開，所以內圈只代表 25% 而不是一半 —— 比遠近看「在哪一圈」，不要拿尺量。</li>
       <li><b>小腳印</b>＝這幾天走過的路，越新越清楚，腳尖朝前進的方向。每顆點都有，佔比前 3 ＋ 最近換段的較清楚、
@@ -8234,7 +8254,7 @@
     rotm: () => {
       const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
       return `<b>族群跑到強弱循環的哪一段。</b>
-      <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝剛進場、領先＝主流、轉弱＝設停利、落後＝別抄底。</li>
+      <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝強度低、動能高；領先＝兩者都高；轉弱＝強度高、動能低；落後＝兩者都低（都是相對大盤）。</li>
       <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。</li></ul>`;
     },
     /* ★ 2026-09-25（Andy：「昨日資金去向」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
@@ -8253,20 +8273,20 @@
        改前四個分頁打開都是同一段（四個分頁各一條），看不到當前分頁該怎麼讀；
        「法人連買賣」分頁的讀法在它自己的 trust「?」，那一頁 drawMarket 會把這顆藏起來（不再兩顆重疊）。
        「站上均線」那一條沿用改前的句子 —— 那張卡正在改版（族群改下拉多選），改版後再核。*/
-    mkt: () => mktKind === 'cand' ? howHTML('今天哪幾檔值得先看（技術面最後一關）。', [
-      'A＝回檔承接，B＝突破追進',
+    mkt: () => mktKind === 'cand' ? howHTML('今天哪幾檔符合 A／B 型態條件。', [
+      'A＝回檔型態條件成立，B＝突破型態條件成立',
       '綜合分＝籌碼、技術、基本面合成，越高越前面',
-      '沒有 A／B 的日子列綜合分前 40，只當觀察名單',
-      '方向與估值要先過，技術面只決定時機',
+      '沒有 A／B 的日子依綜合分列前 40，只是排序',
+      '型態條件只看技術面，不含資金方向與估值',
     ]) : mktKind === 'ma' ? howHTML('有多少股票站在均線上、誰在撐誰在拖。', [
       '站上均線：拆到族群，看誰在撐誰在拖',
     ]) : howHTML('今天漲跌家數背後是哪些股票。', [
-      '盤後＝收盤全市場；⚡ 即時＝最多 550 檔（族群＋自選＋成交值前段），非全市場',
+      '盤後＝收盤全市場；⚡ 即時＝最多 550 檔，非全市場',   // 2026-10-06 說明精簡：≤30 字；抓哪些股票的細節在下面那段口徑裡
       '漲停＝收盤（即時為現價）等於漲停價，只認普通股',
     ], '「⚡ 即時」只抓人工族群成分股＋自選＋盤後成交值前段補位（最多 550 檔，全市場 2300 多檔，涵蓋率印在鈕下），偏中大型、偏電子，分佈會比全市場窄，別當成全市場縮影；'
       + '漲跌幅是真值（現價 vs 昨收），成交值是「現價 × 累計張數」估算，和盤後那一版不是同一個東西；非盤中按下去畫的是最後一次報價快照。'
       + '漲停＝價格等於漲停價（昨收 × 1.1 依升降單位向下取整：<10 元 0.01、10～50 0.05、50～100 0.1、100～500 0.5、500～1000 1、≥1000 5；跌停同理向上取整），只認普通股，ETF／權證／槓桿反向不列入；漲幅／跌幅前段排除漲跌幅超過 10% 與非普通股（勾「含 ETF」才排進 ETF）。分佈上的虛線＝用這批樣本自己的平均與標準差畫的常態曲線；點一根長條（整欄都算），圖的下面或右邊（看視窗寬度）列出落在那一段的每一檔，筆數＝長條上的家數，可切依漲跌幅／成交值排序，點圖的空白處、× 或 Esc 收起。法人連買賣的四象限讀法見該分頁的「?」。'
-      + '站上均線的條越長＝越多成分股站在 20 日均線之上。今日候選：A＝回檔承接、B＝突破追進；沒有 A／B 的日子（大盤走弱時很常見）列綜合分前 40 當觀察名單，不是進場訊號（總覽的「今日候選」表 2026-09-24 已拿掉，名單只在這一頁）。'
+      + '站上均線的條越長＝越多成分股站在 20 日均線之上。今日候選：A＝回檔型態條件成立、B＝突破型態條件成立；沒有 A／B 的日子（大盤走弱時很常見）依綜合分列前 40，只是排序、不是型態訊號（總覽的「今日候選」表 2026-09-24 已拿掉，名單只在這一頁）。'
       + '每一列都點得進個股頁，族群名稱點得進族群頁。'),
     heat: () => howHTML('今天的錢集中在哪些族群。', [
       '方塊大小＝族群吃掉多少成交值',
@@ -8305,6 +8325,7 @@
       '「即時 重試中」＝這一輪報價沒抓到，會自動重試',
       '沒登入時清單只存在這台裝置的瀏覽器',
       '右上「N／M 頁」＝目前頁數／分頁上限',
+      '現價、漲跌幅變淡加虛線＝這一列還停在前一交易日之前的收盤，滑過看「資料至 MM/DD」',
     ]),
     /* ★ 2026-09-24：總覽「熱門題材」改熱力圖之後的說明（原本卡片上的「熱度＝資金佔比變化＋法人＋新聞」副標搬進來）。*/
     themeov: howHTML('哪幾個題材現在吸金最多、而且最熱。', [
@@ -8319,9 +8340,9 @@
       '台指期自動顯示有資料的那一段（日／夜盤）',
     ], fmt.esc((($('#m3Note') || {}).textContent) || '')
       + ' 1 小時／4 小時由 15 分 K 依交易時段合成（1 小時對齊 09:00 起每小時、4 小時＝一個交易時段一根）；拿不到分 K 才退回日 K，卡片上會寫。'),
-    cand: howHTML('今天哪幾檔值得先看。', [
-      'A＝回檔承接，B＝突破追進',
-      '技術面永遠是最後一關',
+    cand: howHTML('今天哪幾檔符合 A／B 型態條件。', [
+      'A＝回檔型態條件成立，B＝突破型態條件成立',
+      '型態條件只看技術面',
     ]),
     /* ★ 2026-09-24：「市場寬度」改成「漲跌家數」分佈（key 沿用 breadth，積木清單與驗收段落不用改名）。*/
     breadth: () => howHTML('今天是大家都在漲，還是少數幾檔撐盤。', [
@@ -8340,7 +8361,7 @@
       + '站上 20 日均線的比例在市場明細的「站上均線」分頁。'),
     trust: howHTML('法人在誰身上連續下注、力道在加大還是收手。', [
       '右半＝連買、左半＝連賣，越外側越久',
-      '上半＝最後一天比日均大（加碼）',
+      '上半＝最後一天比日均大（法人加碼）',
       '下半＝最後一天縮手；點越大＝累計張數越多',
       '預設看投信連續 ≥3 天',
     ], '力道＝最後一天的買（賣）超張數 ÷ 這段連續期間的日均（對數軸，1× 是中線，超過 5× 或低於 0.2× 畫在邊上）。'
@@ -8382,11 +8403,11 @@
       /* ★ 2026-10-04 對過卡片：「兩條走勢分岔」對不上 —— 圖上同時只有一條主線（前 5 或前 10 擇一）＋勾選的均線；
          漏寫的「勾均線」「點某一天看那天的族群」補上。縮圈／擴散兩條併成一條。 */
       '主線＝前 N 大族群吃掉的全市場成交值比例',
-      '往上＝縮圈（冷門股難動）、往下＝擴散（輪動補漲）',
+      '往上＝縮圈（集中）、往下＝擴散（分散）',
       '前 5／前 10 大：看主流多獨、圈子多大',
       '對照均線，看現在比平常高還低',
-    ],'虛線是它的 20 日平均；往上時主流吃掉更多量，往下時主流反而容易休息。'
-      + '標題旁的讀數：比 20 日均高 0.8pp 以上＝縮圈（冷門股不容易動）、低 0.8pp 以上＝擴散（主流容易休息）、其餘＝沒有明顯方向。'),
+    ],'虛線是它的 20 日平均；往上＝前 N 大族群佔全市場成交值的比例變高，往下＝比例變低。'
+      + '標題旁的讀數：比 20 日均高 0.8pp 以上＝縮圈（成交值集中在前 N 大）、低 0.8pp 以上＝擴散（成交值分散到其他族群）、其餘＝沒有明顯方向。'),
   };
   /* 「怎麼看 ?」共用格式：一句問題 → 條列。
      條列每條 ≤30 字、最多 5 條（_uitest「說明精簡」在量）。industry.js 也用這支（App.howHTML）。
@@ -8678,7 +8699,7 @@
              配上漸進式軌跡，刷到「前 30 天」就只剩起點一個點，往今天刷才一路長出來
              （Andy 2026-09-20：「只有經過才留下軌跡」）。*/
           // ★ 2026-09-24：腳印畫「N 天前 → 現在這一步」；回放時起點固定在 N 天前，所以長度＝N − 回放到的那一天
-          span: Math.max(0, ROT.days - (frame || 0)), trail: ROT.trail, tmode: 'focus', expose: true });
+          span: Math.max(0, ROT.days - (frame || 0)), trail: ROT.trail || ROT.line, feet: ROT.trail, line: ROT.line, tmode: 'focus', expose: true });
       // 排行選了誰，時鐘就跟著只亮誰（圖四點長條的連動）
       if (rankSel) highlightClock(rankSel);
     };
@@ -8742,6 +8763,7 @@
       if (rotBackBar) { try { rotBackBar.set(ROT.days); if (rotFrame > 0) rotBackBar.seek(rotFrame); } catch (e) { /* 忽略 */ } }
       flowState.back = rotFrame;
       $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
+      $$('.rot-line').forEach(x => { x.checked = ROT.line; });
       wireRotFilter(); drawRot(rotFrame); drawPeriod();
     };
     wireRotFilter(f3);
@@ -9201,7 +9223,7 @@
         </div>
       </div>
       ${sel || cur ? '<button type="button" class="btn small dd-clear">清除</button>' : ''}
-      ${sel ? `<span class="muted">${opt.onText ? opt.onText(selName) : `只看「${fmt.esc(selName)}」`}</span>` : ''}`;
+      ${sel ? `<span class="muted" title="${opt.onText ? opt.onText(selName) : `只看「${fmt.esc(selName)}」`}">${opt.onText ? opt.onText(selName) : `只看「${fmt.esc(selName)}」`}</span>` : ''}`;
     /* ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明」）：沒選族群時那句操作說明
        「先挑產業鏈，再挑一個族群 —— 圖上就只剩它那一條分支」拿掉（搬進各卡的「?」：HOW.sankey／HOW.inst）；
        選了族群時只留**狀態讀數**「只看「X」」—— 那是「圖為什麼只剩一支」的答案，不寫會被讀成資料壞掉。
@@ -9343,6 +9365,11 @@
        尊重使用者自己做過的選擇，但沒選過的人一律回到有腳印的樣子。*/
   ROT.trail = true;
   try { if (localStorage.getItem('tw.rot.feet') === '0') ROT.trail = false; } catch (e) { /* 私密視窗：用預設（開） */ }
+  /* ★ 2026-10-06（Andy：「腳印以及軌跡分開的顯示項目」）：ROT.trail 從此只管腳印（沿用 class .rot-trail 與 key tw.rot.feet，
+     舊驗收與舊偏好不用搬家）；新增 ROT.line 管軌跡細線，key `tw.rot.line`（'0'＝關，沒值＝開）。
+     兩個都在 tw.rot.* 底下，DECISIONS #307 的「重新整理回預設」會一起清掉 —— 跟腳印同一套，預設兩個都開。*/
+  ROT.line = true;
+  try { if (localStorage.getItem('tw.rot.line') === '0') ROT.line = false; } catch (e) { /* 私密視窗：用預設（開） */ }
   // 「N 天前」（1～30）：輪盤腳印與排行共用的那一段長度，記在這台瀏覽器
   ROT.days = 20;
   try { const v = +localStorage.getItem('tw.rot.days'); if (v >= 1 && v <= 30) ROT.days = Math.round(v); } catch (e) { /* 私密視窗 */ }
@@ -9680,7 +9707,10 @@
        只剩兩個勾選框 —— 「顯示腳印」（原「顯示軌跡」，軌跡改畫成小腳印）與「水波」。
        「焦點｜全部」那組鈕、以及旁邊那一長句「大圈＝你選的那一天；線＝牠已經走過的那一段…」都拿掉，
        讀法寫在「怎麼看 ?」裡。class 沿用 .rot-trail（卡片與放大視窗各一份，驗收也認它）。*/
-    box.innerHTML = '<label class="rotchk" title="沿路畫出這段期間走過的小腳印：越新越清楚，最新那一步就是現在的點"><input type="checkbox" class="rot-trail"'
+    // 2026-10-06：順序 軌跡｜腳印｜水波｜掃描（Andy：軌跡與腳印分開兩個勾選）
+    box.innerHTML = '<label class="rotchk" title="把這段期間走過的路連成一條細線"><input type="checkbox" class="rot-line"'
+      + (ROT.line ? ' checked' : '') + '>顯示軌跡</label>'
+      + '<label class="rotchk" title="沿路畫出這段期間走過的小腳印：越新越清楚，最新那一步就是現在的點"><input type="checkbox" class="rot-trail"'
       + (ROT.trail ? ' checked' : '') + '>顯示腳印</label>'
       + '<label class="rotchk" title="點移動時（回放、即時更新）在出發的位置泛起水波紋；靜止時不會冒"><input type="checkbox" class="rot-ripple"'
       + (ROT.ripple ? ' checked' : '') + '>水波</label>'
@@ -9690,6 +9720,7 @@
     // 兩邊（卡片／放大視窗）的狀態要一致，所以一律同步全部的 .rot-trail／.rot-ripple
     const sync = () => {
       $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
+      $$('.rot-line').forEach(x => { x.checked = ROT.line; });
       $$('.rot-ripple').forEach(x => { x.checked = ROT.ripple; });
       $$('.rot-scan').forEach(x => { x.checked = ROT.scan; });
     };
@@ -9700,6 +9731,11 @@
       /* ★ 2026-09-28（Andy：「首頁 -> 資金輪盤不需要標示軌跡，只要標示點即可」）：
          以前總覽小輪盤讀同一個偏好，這裡要把總覽標成「沒畫過」或當場重畫。現在總覽一律只畫點（DECISIONS #274），
          這個開關只管資金流向頁（與它的放大視窗），總覽不必跟著重畫。*/
+    };
+    const ln = $('.rot-line', box);
+    if (ln) ln.onchange = () => {
+      ROT.line = ln.checked; sync(); redraw();
+      try { localStorage.setItem('tw.rot.line', ROT.line ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
     };
     const rp = $('.rot-ripple', box);
     if (rp) rp.onchange = () => {
@@ -11118,6 +11154,7 @@
         + (expNode
           ? `・已展開「${expNode.gid ? (L.gname[expNode.gid] || expNode.gid) : ''}」${expNode.children.length} 格`
           : '');
+      sub.title = sub.textContent;     // 2026-10-06：電腦版副標單行省略（fit.css），全文滑過看
     }
 
     /* 葉子數決定這張圖要多高：ECharts 的 tree 是把縱向空間平均分給葉子的，
@@ -11594,8 +11631,9 @@
       const cs = $('#concState');
       cs.textContent = `前 ${topN} 大 ${fmt.n(cur, 1)}%・`
         + (diff > 0.8 ? '高於 20 日均・縮圈' : diff < -0.8 ? '低於 20 日均・擴散' : '貼著 20 日均・沒有明顯方向');
-      cs.title = diff > 0.8 ? '行情縮圈在主流，冷門股不容易動'
-        : diff < -0.8 ? '資金在擴散輪動，主流容易休息' : '沒有明顯的縮圈或擴散';
+      // 2026-10-06（#333）：「冷門股不容易動／主流容易休息」是預測式評語，改成描述數據本身
+      cs.title = diff > 0.8 ? `前 ${topN} 大族群成交值佔比高於 20 日均 0.8pp 以上：成交值集中`
+        : diff < -0.8 ? `前 ${topN} 大族群成交值佔比低於 20 日均 0.8pp 以上：成交值分散` : '沒有明顯的縮圈或擴散';
     }
     // ---- 均線勾選列（每次重畫都重建，才跟得上主題換色）
     const on = concMaSet();
@@ -12659,7 +12697,7 @@
        ② 小圖畫「最近一天」，自選展開大圖畫「最近 5 個交易日」—— 期間不同，形狀對不起來；
        ③ sparks.json 只存 64 階形狀、不存價位：每一檔都把自己的最低～最高撐滿整格，0.3% 的波動看起來像暴漲，
           也畫不出基準線、算不出漲跌幅。
-     v2：資料與期間跟展開大圖**逐點相同**（trendSeries 是兩邊共用的口徑，compute/sparks.py 是它的 Python 版）——
+     v2（口徑在 compute/sparks.py；2026-10-06 自選展開大圖已拿掉）——
        分時＝最近 5 個交易日、每天 09:00 開盤＋每根 60 分 K 收盤（一天 6 點、共 30 點），最後一點換成正式收盤；
        沒有分時＝最近 60 個交易日收盤。基準虛線＝昨收（日線倒數第二天），方向＝最後一點對昨收（紅漲綠跌）——
        跟列上的「漲跌幅」同一件事、同一個顏色；期間漲跌（訖／起）寫在提示框。
@@ -12669,38 +12707,9 @@
   let SPARKS = null, _spkP = null;
   const _pxNF = new Intl.NumberFormat('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const pxFmt = (v) => (v == null || !isFinite(v) ? '—' : _pxNF.format(Math.round(v * 100) / 100));
-  // 60 分 K 的時間標的是 K 棒開始（09:00…13:00）；畫的是那根的收盤，所以標成收盤時間（13:00 那根收在 13:30）
-  const _m60End = (hm) => { const h = +hm.slice(0, 2), m = +hm.slice(3, 5), t = Math.min(h * 60 + m + 60, 13 * 60 + 30);
-    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
-  const _md = (d) => (d && d.length >= 10 ? d.slice(5, 7) + '/' + d.slice(8, 10) : '');
-  /* 走勢的口徑（自選展開大圖用它；compute/sparks.py 是同一套的 Python 版，改一邊一定要改另一邊）。
-     h60＝[ISO 時間, 開, 高, 低, 收, 量]、daily＝[日期, 開, 高, 低, 收, 量]（個股頁同一份資料）。*/
-  const TREND_DAYS = 5, TREND_DAILY = 60;
-  function trendSeries(h60, daily) {
-    daily = (daily || []).filter(r => r && +r[4] > 0);
-    // 基準＝昨收（日線倒數第二天；還原價在除權息當天就等於參考價）—— 跟列上「漲跌幅」同一件事、同一個顏色
-    const prevClose = () => (daily.length >= 2 ? { base: +daily[daily.length - 2][4], bd: _md(String(daily[daily.length - 2][0])) } : null);
-    const dLast = daily.length ? String(daily[daily.length - 1][0]).slice(0, 10) : '';
-    const h = (h60 || []).filter(r => r && String(r[0]).slice(0, 10) <= dLast);
-    if (dLast && h.length && String(h[h.length - 1][0]).slice(0, 10) === dLast) {
-      const byDay = new Map();
-      h.forEach(r => { const d = String(r[0]).slice(0, 10); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(r); });
-      const days = [...byDay.keys()].sort(), win = days.slice(-TREND_DAYS);
-      const pts = [], per = [];
-      win.forEach(d => {
-        const bs = byDay.get(d).slice().sort((a, b) => String(a[0]) < String(b[0]) ? -1 : 1);
-        const p = [[_md(d) + ' 09:00', +bs[0][1]]].concat(bs.map(b => [_md(d) + ' ' + _m60End(String(b[0]).slice(11, 16)), +b[4]]))
-          .filter(x => x[1] > 0 && isFinite(x[1]));
-        pts.push(...p); per.push(p.length);
-      });
-      if (pts.length) pts[pts.length - 1][1] = +daily[daily.length - 1][4];   // 60 分 K 不含收盤集合競價 → 換成正式收盤
-      if (pts.length >= 2) return Object.assign({ kind: 'i', pts, d0: _md(win[0]), d1: _md(win[win.length - 1]), per }, prevClose() || { base: pts[0][1], bd: '' });
-    }
-    const tail = daily.slice(-TREND_DAILY);
-    if (tail.length < 2) return null;
-    return Object.assign({ kind: 'd', pts: tail.map(r => [_md(String(r[0])), +r[4]]), d0: _md(String(tail[0][0])), d1: _md(String(tail[tail.length - 1][0])), per: [] },
-      prevClose());
-  }
+  // 走勢的口徑在 pipeline/compute/sparks.py（sparks.json 產出端）；前端只負責畫。
+  // 2026-10-06 自選展開大圖拿掉（Andy），前端那份 trendSeries 只剩它在用，一起拿掉。
+  const TREND_DAYS = 5;
   /* Y 軸範圍：包含資料與基準線；振幅小於基準 3%（±1.5%）時撐到 3% 並置中 —— 不讓 0.3% 的小波動撐滿整格；上下再留 8%。*/
   function trendRange(lo, hi, base) {
     let a = Math.min(lo, base), b = Math.max(hi, base);
@@ -12709,7 +12718,7 @@
     const pad = (b - a) * 0.08 || Math.abs(base) * 0.01 || 1;
     return [a - pad, b + pad];
   }
-  // 期間、起訖、漲跌的文字（小圖提示框與展開大圖的小註同一套說法）
+  // 期間、起訖、漲跌的文字（小走勢提示框）
   //   per＝畫的是哪一段；se＝起訖價＋期間漲跌（訖／起）；chg＝最後一天對昨收（＝列上的漲跌幅，顏色也看它）
   function trendText(t) {
     const pct = t.base ? (t.last / t.base - 1) * 100 : 0, ppct = t.first ? (t.last / t.first - 1) * 100 : 0;
@@ -12771,8 +12780,12 @@
   function sparkLoad() {
     if (_spkP) return _spkP;
     // 跟 logoMapLoad 同一個理由不走共用 load()：404 時也要把本體讀完（不然 networkidle 會一直等）
-    const ver = (D.meta && D.meta.generated_at) || '';
-    _spkP = fetch(`data/sparks.json?v=${ver}`, ver ? {} : { cache: 'no-store' })
+    // ★ 2026-10-06：版本鍵等「網路版 meta」（同 load()）。D.meta 可能還是上次存的那份（IndexedDB 存檔先到），
+    //   拿它的 generated_at 去抓會撞到瀏覽器手上那天的舊 sparks.json，而 _spkP 只抓一次 —— 小走勢就停在上次開站那天。
+    _spkP = Promise.resolve(_metaNet || D.meta).catch(() => D.meta).then((m) => {
+      const ver = ((m || D.meta) && (m || D.meta).generated_at) || '';
+      return fetch(`data/sparks.json?v=${ver}`, ver ? {} : { cache: 'no-store' });
+    })
       .then(async r => { const t = await r.text(); if (!r.ok) return null; try { return JSON.parse(t); } catch (e) { return null; } })
       .catch(() => null)
       .then(d => { SPARKS = d && d.s ? d : { s: {}, abc: '' }; sparkUpgrade(); return SPARKS; });
@@ -13093,7 +13106,7 @@
       disc: discHTML, DISC,                // 判定／評分類卡片標題列的一行免責（2026-10-06；industry.js、mobile3.js 用）
       logo: logoHTML,                      // 公司 Logo（圖或字母頭像）：個股頁標題也用這一支（2026-09-26）
       logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG, sparkData,
-      trendSeries, trendRange, trendText, pxFmt,   // 迷你走勢與自選展開大圖共用的口徑（DECISIONS #290）
+      trendRange, trendText, pxFmt,   // 迷你走勢的 Y 範圍與提示框文字（DECISIONS #290）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       donut: DONUT,                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用

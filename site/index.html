@@ -1647,6 +1647,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 @media (max-width:640px){.howtxt ul{margin:6px 0 0;padding-left:18px}} .howtxt li{margin:3px 0}
 /* ★ 2026-09-24 說明精簡：「怎麼看 ?」統一成「一句問題 → 條列」（app.js howHTML；最下面那行小字口徑 2026-09-26 拿掉） */
 .howtxt .howq{display:block;color:var(--ink)}
+.howtxt .howhonest{margin:6px 0 0;color:var(--muted);font-size:12px}
 /* 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：「?」只留標題＋條列。
    howHTML 已經不輸出 .howfine；這一條是保險 —— 還有少數地方自己手寫了 .howfine（例如總覽「昨日資金去向」，
    另一支 agent 正在改那一塊，這一批不碰它），一律不顯示。*/
@@ -2144,6 +2145,11 @@ tbody tr:last-child td{border-bottom:0}
 .skBasics{align-items:stretch}
 .skBasics .msCard{display:flex;flex-direction:column}
 .skBasics .msCard>.chart{flex:1 1 auto;min-height:300px}
+/* ★ 2026-10-06（全站驗收「籌碼基本0926」紅字：1440 季節圖只剩 271px）：上面那條 300px 一直沒生效 ——
+   theme4.css 的 `[data-theme4] #stockTab .grid.g2>.card>.chart{min-height:260px}`（分頁兩欄卡片等高那條）特異度更高，
+   季節卡標題列又折成兩行（70px），圖只剩基本資料表高度扣掉的 271px，12 根柱子上的「x/y 年」與平均字擠在一起。
+   用 id 把下限釘回 300px：季節卡變高時，同列的基本資料卡照 grid stretch 一起變高，兩張卡仍等高。*/
+#msCard>#msChart{min-height:300px}
 .mshint{font-size:12.5px;color:var(--amber,#ffb454);margin:4px 0 0;text-align:right}
 @media (max-width:900px){ .skBasics{grid-template-columns:minmax(0,1fr)} .skBasics .msCard>.chart{min-height:300px} .mshint{text-align:left} }
 /* K 線圖高度跟著視窗走（Andy：「K 線圖太小，版面需要擴大」）：
@@ -3039,6 +3045,18 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    2fr:1fr（排行 33%）→ 1.4fr:1fr（扣掉欄間距後排行 ≈ 41%；1.45 量出來只有 39.7%）。輪盤那一欄變窄一點，但它的高度改成跟著欄寬走（rotFitH），
    盤的半徑仍比舊版大（1440 寬、開著今日事件側欄：185 → 約 215px）。≤1100px 照舊單欄。*/
 @media (min-width:1101px){ .rotcols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)} }
+/* ★ 2026-10-06（Andy：「這邊幫我多一條微微的線區隔」）：輪盤欄與排行欄之間一條很淡的直線。
+   用偽元素畫在欄間距（16px）正中間，不佔版面 —— 加 border／padding 會把兩欄的寬度比（驗收量的 41%）推掉。
+   上下只到兩欄內容的頂與底（grid 格子本身），不碰卡片邊框；顏色走全站邊框色 --line 再淡一點，深淺主題都成立。
+   只在兩欄並排時畫（≥1101，以及 theme4 在 1060～1100 也並排）；退成上下單欄時不畫（上下兩塊之間本來就有間距）。*/
+@media (min-width:1101px){
+  .rotcols>.rotright{position:relative}
+  .rotcols>.rotright::before{content:'';position:absolute;left:-8.5px;top:0;bottom:0;width:1px;background:var(--line);opacity:.75;pointer-events:none}
+}
+@media (min-width:1060px) and (max-width:1100px){
+  [data-theme4] .rotcols>.rotright{position:relative}
+  [data-theme4] .rotcols>.rotright::before{content:'';position:absolute;left:-8.5px;top:0;bottom:0;width:1px;background:var(--line);opacity:.75;pointer-events:none}
+}
 .rotcols .rothead,.rotcols .rotrhead{min-height:32px;align-items:center;margin-bottom:4px}
 .rotcols .rothead h3{margin:0}
 .rotcols .rotrhead h4.subh{margin:0}
@@ -4414,7 +4432,10 @@ h3 .howbtn.pop{font-family:inherit}
   border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel-3) 55%,transparent);
   cursor:pointer;transition:border-color .15s,background-color .15s}
 @media (max-width:640px){.osc{gap:7px;padding:10px 12px 9px}}
-.osc:hover{border-color:color-mix(in srgb,var(--cyan) 45%,var(--line));background:color-mix(in srgb,var(--cyan) 6%,var(--panel-3))}
+/* ★ 2026-10-06（紅字清理）：滑過的底色提亮從 6% 降到 3%。6% 時卡裡 18px 粗體的上漲數字（--rise）對底色只有 4.45:1、
+   下跌數字（--fall，淺色主題）4.41:1，低於 4.5 —— 18px 粗體不算「大字」（要 ≥ 18.66px），所以門檻是 4.5。
+   紅漲綠跌的語意色不能動，動的是底色；3% 時深色 4.77／淺色 4.60，滑過的主要提示是外框變主色與右上「›」變主色，底色只是輔助。 */
+.osc:hover{border-color:color-mix(in srgb,var(--cyan) 45%,var(--line));background:color-mix(in srgb,var(--cyan) 3%,var(--panel-3))}
 .osc:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .osc-h{display:flex;align-items:center;gap:var(--sp-2);min-width:0;height:22px}
 @media (max-width:640px){.osc-h{gap:7px}}
@@ -5730,6 +5751,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="watchpage.js"></script>
 <script src="explore.js"></script>
 <script src="calgrid.js"></script>
+<script src="rangepick.js"></script>
 <script src="etfpage.js"></script>
 <script src="earnings.js"></script>
 <script src="market3.js"></script>

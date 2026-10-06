@@ -229,15 +229,19 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25)}
 #v-admin [data-chart].hov .bars>[data-row]:not(.hl),#v-admin .bars.hov>[data-row]:not(.hl),#v-admin .hbars.hov>[data-row]:not(.hl){opacity:.35}
 #v-admin .bars.hov>.hl,#v-admin .hbars.hov>.hl{opacity:1}
-#v-admin [data-chart].hov .arc:not(.hl){opacity:.3}
-#v-admin [data-chart].hov .arc.hl{filter:brightness(1.18)}
-#v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.45}
+#v-admin [data-chart] svg{overflow:visible}
+#v-admin .arcb{stroke:var(--ink);opacity:0;pointer-events:none;transition:opacity .12s ease,stroke-width .18s ease}
+#v-admin .arc{transition:opacity .12s ease,stroke-width .18s ease}
+#v-admin [data-chart].hov .arc:not(.hl){opacity:.8}
+#v-admin [data-chart].hov .arc.hl{stroke-width:20.4}
+#v-admin [data-chart].hov .arcb.hl{opacity:1;stroke-width:25}
+#v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.7}
 #v-admin [data-chart].hov .sc circle:not(.hl),#v-admin .sc.hov circle:not(.hl),#v-admin [data-chart].hov .vbars rect:not(.hl){opacity:.25}
 #admBody .sc circle.hl{r:8}
 #v-admin .vbars rect.hl{filter:brightness(1.3)}
 #v-admin .dn svg circle.arc,#v-admin .mdonut svg circle.arc{cursor:default}
 #admBody .dn svg circle.arc[data-p]{cursor:pointer}
-@media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
+@media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k],#v-admin .arc,#v-admin .arcb{transition:none}}
 @media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
@@ -939,10 +943,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const first = S.period === 'live' ? '' : (S.firstDay && S.firstDay > days0(days, bk) ? `統計自 ${S.firstDay} 開始記錄，之前沒有紀錄（算 0）。` : '這段期間每天都有紀錄。');
     const dtip = first + (bk && bk.gran !== 'day' ? `期間較長，已合併成${gw.slice(1)}一格；點一格可看那段的統計。` : '點某天的直條可看當天。');
     return `<div class="secttl trhead"><h2>全站總覽</h2><small>共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
-        <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <input type="date" id="admSince" value="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="起始日期"><span class="trto">～</span><input type="date" id="admUntil" value="${esc(rng.to)}" min="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="結束日期">
-          <button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
-          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
+        ${window.RangePick.html({ cls: 'trctl', options: opt, value: S.period, from: rng.from, to: rng.to, max: todayTpe(), custom: 'since',
+          ids: { sel: 'admDaysSel', from: 'admSince', to: 'admUntil' },   // 期間列抽成共用元件 site/rangepick.js（10-06，ETF 報酬比較同一支）；id 沿用，驗收靠它們
+          extra: `<button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
+          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span>` })}</div>
       <div class="admgrid trtop">
         <div class="card s2" id="admDays"><h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
@@ -1039,14 +1043,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   function wireTop(v, A) {
     const apply = () => { S.tab = S.tab || 'all'; paint(); };
-    v.querySelector('#admDaysSel').onchange = (e) => {
-      S.period = e.target.value; S.day = ''; S.dayTo = '';
-      if (S.period === 'since') { S.since = S.since || v.querySelector('#admSince').value; }
-      apply();
-    };
-    const di = v.querySelector('#admSince'), du = v.querySelector('#admUntil'), okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
-    const manual = () => { if (!okD(di.value)) return; let to = okD(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; S.period = 'since'; S.since = di.value; S.until = to >= todayTpe() ? '' : to; S.day = ''; S.dayTo = ''; apply(); };
-    if (di) di.onchange = manual; if (du) du.onchange = manual;
+    const okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+    // 下拉／日期框的同步規則在 site/rangepick.js（手改日期 → 下拉跳「起始日期～至今」）；這裡只管期間狀態怎麼存
+    window.RangePick.bind(v.querySelector('#admDaysSel').closest('.rpk'), { onChange: ({ value, from, to, manual }) => {
+      S.day = ''; S.dayTo = '';
+      if (!manual) { S.period = value; if (S.period === 'since') S.since = S.since || from; apply(); return; }
+      if (!okD(from)) return;
+      let t = okD(to) ? to : todayTpe(); if (t < from) t = from;
+      S.period = 'since'; S.since = from; S.until = t >= todayTpe() ? '' : t; apply();
+    } });
     const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; const tgl = S.day === dc.dataset.day && (S.dayTo || S.day) === (dc.dataset.to || dc.dataset.day); S.day = tgl ? '' : dc.dataset.day; S.dayTo = tgl ? '' : (dc.dataset.to || dc.dataset.day); paint(); };
     const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; S.dayTo = ''; paint(); };
     v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
@@ -1174,8 +1179,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const byDet = {}, kinds = new Set();
     sel.forEach((r) => { if (kindOf(r.comp) && r.det) { const key = r.det; byDet[key] = (byDet[key] || 0) + r.n; kinds.add(kindOf(r.comp)); } });
     const dl = Object.entries(byDet).sort((a, b) => b[1] - a[1]);
-    const palette = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
-    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i] })).concat(rest ? [{ label: '其他', n: rest, color: 'var(--cat-other)' }] : []); };
+    const palette = window.App.donut.colors();      // ★ 2026-10-06：共用飽和色盤（App.donut），不再用 --cat-1..5（深色主題是螢光青／萊姆，淺色是粉彩，相鄰扇區分不出來）
+    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i] })).concat(rest ? [{ label: '其他', n: rest, color: window.App.donut.other() }] : []); };
     const pair = (id, ttl, sub, list, nameFn, click, lim) => `${card(id + 'B', ttl, sub, bars(list.slice(0, lim || 10), nameFn, sum(list.map((x) => x[1])), { id: id + 'Bars', click }))}${card(id + 'D', ttl.replace(/？$/, '') + '占比', '前 5 名＋其他', donutG(dsegs(list, nameFn), { legend: dsegs(list, nameFn), legendN: 6, aria: ttl }))}`;
     let body = '';
     if (k === 'stock' && S.sub === 'tabs') {
@@ -1264,7 +1269,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   /* 甜甜圈（照產業地圖「成交值占比」那顆：粗環 58%～78%、扇區端點圓角、內側一圈極細軌道、中心小標題＋大數字、圖例在下）。
      非同組的扇區之間一律同樣的間隙（GAP＝2°，小扇區也照同規則，太小的畫成 0.8° 細片）；只有同一母頁（segs 的 g 相同）的子分頁扇區相連（間隙 0）、同色系深淺。端點直角（butt），不做圓頭。 */
-  const DN = { R: 45, W: 14, GAP: 2 };
+  /* ★ 2026-10-06（DECISIONS #331）：環規格照 App.donut（產業地圖成交值占比）：內 68%／外 92%（viewBox 外半徑 60 → R 48、W 14.4）、間隙 1.2°、
+     滑過外擴 4px＋外框 3px（見下方 arcb）。SVG 的環是 stroke，沒辦法做 6px 圓角與 1px 面板色邊框（那兩項只有 ECharts 版做得到），其餘照範本。 */
+  const DN = { R: 48, W: 14.4, GAP: 1.2, HI: 4.5, BORDER: 2.3 };
   let dnSeq = 0;
   function donutG(segs, o) {
     const tot = sum(segs.map((s) => s.n));
@@ -1282,7 +1289,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       gr.segs.forEach((s, k) => {
         const sa = b, sb = b + s.n / tot * 360; b = sb;
         const x0 = k === 0 ? v0 : sa, x1 = k === gr.segs.length - 1 ? v1 : sb, len = Math.max(0, (x1 - x0) / 360 * C);
-        arcs += `<circle class="arc" data-row="${arcN++}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)">></circle>`;
+        const arcRow = arcN++;
+        arcs += `<circle class="arcb" data-row="${arcRow}" r="${R}" cx="60" cy="60" fill="none" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)"></circle>`
+          + `<circle class="arc" data-row="${arcRow}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)"></circle>`;
       });
       if (round) {
         const id = uid + gi, A0 = v0 + cap, A1 = v1 - cap;
@@ -1294,7 +1303,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const c1 = o.center ? o.center[0] : '前五大', c2 = o.center ? o.center[1] : t5 + '%';
     const lg = (o.legend || segs).slice().sort((x, y) => (x.label === '其他') - (y.label === '其他') || y.n - x.n).slice(0, o.legendN || 6);
     return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
-      <circle r="36.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".7"/>${body}
+      <circle r="39.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".5"/>${body}
       <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">${esc(c1)}</text><text class="c2" x="60" y="74" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${esc(c2)}</text></svg>
       <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><b>${nf(Math.round(s.n))}</b><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }

@@ -30,6 +30,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from .technical import V_EXCLUDED
+
 # 綜合分的權重。某一面向缺資料時，剩下的面向按比例吃掉它的權重。
 WEIGHTS = {"tech": 0.40, "chip": 0.30, "fund": 0.30}
 
@@ -75,8 +77,8 @@ def tech_score(last: pd.Series, ind: pd.DataFrame, verdict: dict,
         pros.append("技術判定 A 級：結構、位置、訊號、風報比四項都過")
     elif grade == "B":
         s += 9
-        pros.append("技術判定 B 級：帶量突破前高，位置還不算追高")
-    elif verdict.get("verdict", "").startswith("不要碰"):
+        pros.append("技術判定 B 級：帶量突破前高，20 日乖離在 8% 內")
+    elif verdict.get("verdict", "").startswith(V_EXCLUDED):
         s -= 22
         cons.append("被硬性條件排除：" + (verdict.get("reasons") or ["條件不足"])[0])
 
@@ -86,7 +88,7 @@ def tech_score(last: pd.Series, ind: pd.DataFrame, verdict: dict,
         pros.append("均線多頭排列（MA5 > MA20 > MA60 > MA120）")
     elif align == -1:
         s -= 8
-        cons.append("均線空頭排列，反彈容易被壓回")
+        cons.append("均線空頭排列（MA5 < MA20 < MA60 < MA120）")
 
     close = _num(last.get("close"))
     ma60 = _num(last.get("ma60"))
@@ -103,15 +105,15 @@ def tech_score(last: pd.Series, ind: pd.DataFrame, verdict: dict,
         if rr >= 2:
             pros.append(f"風報比 {rr:.1f}：停損 {verdict.get('stop'):.1f}、第一目標 {verdict.get('tp1'):.1f}")
         elif rr < 1.2:
-            cons.append(f"風報比只有 {rr:.1f}，賺賠不划算")
+            cons.append(f"風報比 {rr:.1f}，低於 1.2")
 
     if bool(last.get("sweep_low")):
         s += 4
-        pros.append("盤中破前低收回，是洗掉停損的假跌破")
+        pros.append("盤中破前低後收回（假跌破型態）")
     k, d = _num(last.get("k")), _num(last.get("d"))
     if k is not None and d is not None and k > d and k < 50:
         s += 4
-        pros.append(f"KD 在低檔剛金叉（K={k:.0f}），還沒漲多")
+        pros.append(f"KD 在低檔剛金叉（K={k:.0f}）")
     osc = _num(last.get("osc"))
     if osc is not None and len(ind) > 1:
         prev = _num(ind["osc"].iloc[-2])
@@ -122,14 +124,14 @@ def tech_score(last: pd.Series, ind: pd.DataFrame, verdict: dict,
     vr = _num(last.get("vol_ratio"))
     if vr is not None and vr >= 1.5:
         s += 3
-        pros.append(f"量比 {vr:.1f} 倍，有量在推")
+        pros.append(f"量比 {vr:.1f} 倍，高於 1.5 倍")
     elif vr is not None and vr < 0.6:
-        cons.append(f"量比只有 {vr:.1f} 倍，沒人氣")
+        cons.append(f"量比 {vr:.1f} 倍，低於 0.6 倍")
 
     b20 = _num(last.get("bias20"))
     if b20 is not None and b20 > 12:
         s -= 6
-        cons.append(f"20 日乖離 {b20:.0f}%，短線過熱")
+        cons.append(f"20 日乖離 {b20:.0f}%，高於 12%")
 
     if len(ind) >= 60 and close is not None:
         hi60 = _num(ind["high"].tail(60).max())
@@ -229,7 +231,7 @@ def chip_score(inst: pd.DataFrame | None, holders: list[dict] | None,
         ratio = net_value / (avg_turnover * 5)
         s += _clip(ratio * 100, -12, 18)
         if ratio > 0.08:
-            pros.append(f"三大法人 5 日淨買約佔同期成交值 {ratio * 100:.0f}%，吃貨明顯")
+            pros.append(f"三大法人 5 日淨買約佔同期成交值 {ratio * 100:.0f}%")
         elif ratio < -0.08:
             cons.append(f"三大法人 5 日淨賣約佔同期成交值 {abs(ratio) * 100:.0f}%")
 
@@ -327,9 +329,9 @@ def fund_score(fx: dict | None) -> tuple[float | None, list[str], list[str]]:
             fx.get("metric"), "估值")
         n = fx.get("group_n")
         if pct <= 30:
-            pros.append(f"{metric}在同族群第 {pct:.0f} 分位（{n or '—'} 檔比較），相對便宜")
+            pros.append(f"{metric}在同族群第 {pct:.0f} 分位（{n or '—'} 檔比較），低於多數同業")
         elif pct >= 80:
-            cons.append(f"{metric}在同族群第 {pct:.0f} 分位，已經不便宜")
+            cons.append(f"{metric}在同族群第 {pct:.0f} 分位，高於多數同業")
         if fx.get("thin_sample"):
             cons.append("同族群樣本太少，分位參考性有限")
 

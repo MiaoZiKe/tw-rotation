@@ -30,7 +30,7 @@ def _ind(n: int = 120, *, close: float = 100.0) -> pd.DataFrame:
 
 
 def _verdict(grade="A", rr=2.4):
-    return {"grade": grade, "verdict": "可以分批進場（回檔承接）", "reasons": ["測試理由"],
+    return {"grade": grade, "verdict": "回檔型態條件成立", "reasons": ["測試理由"],
             "stop": 92.0, "tp1": 115.0, "rr": rr}
 
 
@@ -54,7 +54,7 @@ def test_tech_score_a_grade_beats_watchlist():
 
 def test_tech_score_excluded_gets_penalised_and_explains_why():
     ind = _ind()
-    v = {"grade": None, "verdict": "不要碰", "stop": 90.0, "tp1": 110.0, "rr": 1.0,
+    v = {"grade": None, "verdict": "排除條件成立", "stop": 90.0, "tp1": 110.0, "rr": 1.0,
          "reasons": ["日均成交值不到 3,000 萬，流動性不足、出不掉"]}
     s, pros, cons = scoring.tech_score(ind.iloc[-1], ind, v, base=60)
     assert s < 50

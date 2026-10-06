@@ -12,7 +12,7 @@
          四個面向上下排開，要一路往下捲。標題列右半邊大半是空的。
    改後：整塊 AI 分析（#skAi）住進 K 線卡的右上角：
          · 第一列：「AI 分析」＋「規則式自動判讀，非投資建議」＋「?」＋收合鈕
-         · 第二列：結論（觀望／可留意／偏空＋一句帶數字的原因，#skAiLine）
+         · 第二列：結論（條件未齊／條件成立／偏空＋一句帶數字的原因，#skAiLine）
          · 第三列：四顆標籤「技術面｜技術面訊號｜基本面｜消息面」（09-28 籌碼面換成技術面訊號），每顆附判讀小字，一次只顯示一個面向
          · 內容區（#aiBody）固定高度、超過就在區內捲動 —— 不撐高標題列、不把 K 線往下推
          K 線與分頁之間那張長卡、「看分析 ↓／展開分析 ▾」跳轉鈕一起拿掉。
@@ -93,7 +93,7 @@
   const nmHTML = (nm, sh) => `<span class="nm"><span class="nl">${nm}</span><span class="ns" aria-hidden="true">${sh}</span></span>`;
   // 紅漲綠跌：偏多用 .pos（紅）、偏空用 .neg（綠）；留意＝琥珀色
   const toneCls = (lb) => lb === '偏多' ? 'pos' : lb === '偏空' ? 'neg' : lb === '留意' ? 'warn' : '';
-  const stanceCls = (s) => s === '可留意' ? 'A' : s === '偏空' ? 'N' : 'W';
+  const stanceCls = (s) => s === '條件成立' ? 'A' : s === '偏空' ? 'N' : 'W';   // 狀態字樣見 analysis.py ST_*（#333 改中性）
 
   /* ★ 2026-10-03（#305）：「展開／收合」拿掉，tw.aiOpen 不再讀寫（KEY 只留著給 _key 出口，舊驗收在清它）。
      改前 #293 的「預設收合＋換版清一次 tw.aiOpenV」一起退場。*/
@@ -246,7 +246,10 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   box-shadow:0 18px 36px -14px rgba(0,0,0,.6)}
 /* 下面還有字 → 底部淡出一條，提示「區內還能往下捲」（捲到底就拿掉）*/
 #skAi .aibody.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);mask-image:linear-gradient(#000 calc(100% - 22px),transparent)}
-:is(#skAi,#tagTech) .aisec h4{margin:0 0 4px;font-size:13px;font-weight:400;color:var(--ink-2)}
+/* ★ 2026-10-06（全站驗收「標題圖示」紅字）：每一面最上面那一句判讀（「週線多頭、日線多頭；進出場條件：觀望」「九顆燈號：紅＝偏多 5…」）
+   改前是 <h4> —— 它是一整句讀數，不是標題；放在 .card 裡就被當成卡片標題，退回預設圖示、讀屏軟體也會把它念成標題。
+   改成段落（.aiwhyl），字級、顏色跟改前一樣（13px、--ink-2），畫面看起來不變。*/
+:is(#skAi,#tagTech) .aiwhyl{margin:0 0 4px;font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5}
 :is(#skAi,#tagTech) ul{margin:2px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.55}
 :is(#skAi,#tagTech) li{margin:2px 0}
 :is(#skAi,#tagTech) .aitfs{display:grid;grid-template-columns:auto auto 1fr;gap:4px 10px;align-items:baseline;font-size:13px}
@@ -284,6 +287,15 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #tagTech .tthead small{color:var(--ink-3)}
 #tagTech .aickbtn{display:none}
 @media (max-width:820px){#tagTech .aitfs{grid-template-columns:auto 1fr} #tagTech .aitfs .tfp{grid-column:1 / -1;margin:-2px 0 4px} #tagTech .ailv{grid-template-columns:1fr}}
+/* ★ 2026-10-06（全站驗收「一屏看完1003」紅字：1440×900 這張卡 966px，比可視高 851 高，要捲才看得完；DECISIONS #308 的一屏規則）：
+   卡片夠寬（≥ 760px，1440 桌機是 1184）時內容排成左右兩欄 —— 左＝四個週期、綜合原因、若…則…、支撐壓力（讀的）；
+   右＝逐條條件、九顆訊號燈（對照用的清單）。內容一個字都沒少、照樣完整攤開不捲動（10-05 Andy 要的「完整」），
+   只是不再疊成一條長柱：1440 實測 966 → 約 560px。卡片窄（平板、側欄開著）照舊一欄，左欄內容在上、右欄在下。*/
+#tagTech{container:tt / inline-size}
+@container tt (min-width:760px){
+  #tagTech .ttcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:28px;align-items:start}
+  #tagTech .ttside>.aick{margin-top:8px}
+}
 /* 手機分段用的空殼：桌機永遠是空的，不留一塊空卡 */
 #aiCard:empty{display:none}
 @media (max-width:640px){
@@ -364,7 +376,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
   function sigHTML(pg, sig) {
     if (!sig.L.length) return '<div class="empty">技術面訊號資料缺</div>';
     const v = (pg && pg.verdict) || {};
-    return `<h4>九顆燈號：紅＝偏多 ${sig.pos}、綠＝偏空 ${sig.neg}、灰＝中性或未出現</h4>
+    return `<p class="aiwhyl">九顆燈號：紅＝偏多 ${sig.pos}、綠＝偏空 ${sig.neg}、灰＝中性或未出現</p>
       <div class="lights aisig" id="aiSig">${sig.L.map(window.StockSignal.chip).join('')}</div>
       <ul>
         <li>均線看 5／20／60／120 日排列；結構看高低點是否墊高</li>
@@ -374,7 +386,8 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       ${v.invalidation ? `<div class="aisub">失效條件：${esc(v.invalidation)}</div>` : ''}`;
   }
 
-  const why = (x) => x && x.why ? `<h4>${esc(x.why)}</h4>` : '';
+  // 一面的判讀一句話：段落不是標題（見 CSS .aiwhyl 的註解）
+  const why = (x) => x && x.why ? `<p class="aiwhyl">${esc(x.why)}</p>` : '';
   const ul = (arr) => arr && arr.length ? `<ul>${arr.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
   const panel = (k, cur, inner) => `<div class="aisec" role="tabpanel" id="aiPanel-${k}" data-facet="${k}" aria-labelledby="aiTab-${k}"${k === cur ? '' : ' hidden'}>${inner}</div>`;
 
@@ -673,7 +686,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 
   /* ==========================================================================
      ★ 2026-10-02（Andy 五張截圖，DECISIONS #294）個股「總覽」分頁裡的 AI 分析：
-       · brief()      —— 最上面一張「AI 分析重點」：結論一個字（觀望／可留意／偏空）＋一行帶數字的原因
+       · brief()      —— 最上面一張「AI 分析重點」：結論一個詞（條件未齊／條件成立／偏空）＋一行帶數字的原因
                          （「回檔型態 4/6、突破型態 4/5；停損距離 21.3% 超過 8%」）＋四顆小標籤（技術面／技術面訊號／基本面／消息面）。
                          點標籤＝捲到下面那一張細節卡、閃一下（原地，不跳頁）。
        · facetCards() —— 三張細節小卡（技術面、基本面、消息面）。第二張「技術面訊號」是積木 stock.signal 的出口，
@@ -743,7 +756,8 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
 #ovAiCard #ovFacets[data-cur="tech"]>[data-facet="sig"]{display:block;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 #ovAiCard #ovFacets>[data-facet="sig"]>h3{display:block;margin:0;font-size:12.5px;font-weight:600;color:var(--ink-3)}
 #ovAiCard #ovFacets>[data-facet] .lights{margin-top:0!important}
-.ovfacet h4{margin:0 0 6px;font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5}
+/* 每一面最上面那一句判讀：段落不是標題（2026-10-06 從 <h4> 改，理由同 K 線卡那份的 .aiwhyl） */
+.ovfacet .ovwhy{margin:0 0 6px;font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5}
 .ovfacet ul{margin:4px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;line-height:1.55}
 .ovfacet li{margin:3px 0}
 .ovfacet .ovsub{margin-top:10px;font-size:12.5px;color:var(--ink-3);font-weight:600}
@@ -889,7 +903,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
         ${ck ? `<div class="ovsub">回檔型態（A）逐條</div>${ckList(ck.a)}<div class="ovsub">突破型態（B）逐條</div>${ckList(ck.b)}` : ''}
         ${t.ifs && t.ifs.length ? `<div class="ovsub">若…則…（狀態會在什麼情況下改變）</div><ul>${t.ifs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         ${t.plan ? `<div class="ovsub">${esc(t.plan)}</div>` : ''}</div>`;
-    return `<div class="card ovfacet" id="ovF-tech" data-facet="tech" data-ai><h3>技術面 ${tag}</h3>${t.why ? `<h4>${esc(t.why)}</h4>` : ''}
+    return `<div class="card ovfacet" id="ovF-tech" data-facet="tech" data-ai><h3>技術面 ${tag}</h3>${t.why ? `<p class="ovwhy">${esc(t.why)}</p>` : ''}
       <div class="ovtfs" id="ovTfs">${rows}</div>${ckHTML}${lvHTML}
       <button type="button" class="ovmore" id="ovTechMore" aria-expanded="false" aria-controls="ovTechDet">▸ 看細節：原因・逐條條件・若…則…</button>${det}</div>`;
   }
@@ -897,13 +911,13 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     if (!x) return '';
     const ex = chipExtra(pg);
     return `<div class="card ovfacet" id="ovF-chip" data-facet="chip" data-ai><h3>籌碼面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
-      + `${x.why ? `<h4>${esc(x.why)}</h4>` : ''}${ul(x.points) || '<div class="empty">籌碼面資料缺</div>'}`
+      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${ul(x.points) || '<div class="empty">籌碼面資料缺</div>'}`
       + `${ex.length ? `<div class="ovsub">參考（不計入判讀）</div>${ul(ex)}` : ''}</div>`;
   }
   function fundFacet(x) {
     if (!x) return '';
     return `<div class="card ovfacet" id="ovF-fund" data-facet="fund" data-ai><h3>基本面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
-      + `${x.why ? `<h4>${esc(x.why)}</h4>` : ''}${ul(x.points) || '<div class="empty">基本面資料缺</div>'}</div>`;
+      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${ul(x.points) || '<div class="empty">基本面資料缺</div>'}</div>`;
   }
   function newsFacet(x) {
     if (!x) return '';
@@ -914,7 +928,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       return `<li><span class="kind">${esc(it.kind)}</span><span class="mono">${d}</span> <a href="#" data-ovtab="news">${ttl}</a></li>`;
     }).join('');
     return `<div class="card ovfacet" id="ovF-news" data-facet="news" data-ai><h3>消息面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
-      + `${x.why ? `<h4>${esc(x.why)}</h4>` : ''}${ul(x.points)}${items ? `<div class="ovsub">最新 ${Math.min(4, (x.items || []).length)} 則</div><ul class="ovnews">${items}</ul>` : ''}</div>`;
+      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${ul(x.points)}${items ? `<div class="ovsub">最新 ${Math.min(4, (x.items || []).length)} 則</div><ul class="ovnews">${items}</ul>` : ''}</div>`;
   }
   function facetCards(pg, fmt) {
     ovCss(); css();
@@ -959,11 +973,27 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const an = pg && pg.analysis;
     const t = an && an.facets && an.facets.tech;
     const sig = sigCount(pg, fmt);
-    const body = an ? (techHTML(t, fmt) + `<div class="aisub">技術面訊號</div>` + sigHTML(pg, sig))
-      .replace(/id="ai(Tfs|Why|Sig)"/g, 'id="tt$1"').replace('<div class="aickbody" hidden>', '<div class="aickbody">')
+    const body = an ? ttCols((techHTML(t, fmt) + `<div class="aisub" data-tt="sig">技術面訊號</div>` + sigHTML(pg, sig))
+      .replace(/id="ai(Tfs|Why|Sig)"/g, 'id="tt$1"').replace('<div class="aickbody" hidden>', '<div class="aickbody">'))
       : '<div class="empty">尚無技術分析資料</div>';
     return `<div class="card" id="tagTech"><div class="tthead"><h3>技術分析</h3>${t && t.stance ? `<span class="grade ${stanceCls(t.stance)}">${esc(t.stance)}</span>` : ''}</div>
       <div class="ttwarn" id="ttWarn">以下為規則式技術指標整理，僅供研究參考，不構成投資建議；本站非證券投資顧問</div>${body}</div>`;
+  }
+  /* 2026-10-06 一屏看完：把同一份 techHTML＋sigHTML 分成左右兩欄（CSS 只在卡寬 ≥ 760 才並排，見 #tagTech .ttcols）。
+     左＝讀的（四週期、綜合原因、若…則…、規則推算、支撐壓力）；右＝對照清單（逐條條件 .aick、「技術面訊號」小標以後的九顆燈）。
+     用 DOM 分組而不是另寫一份 HTML：內容永遠跟 AI 卡技術面那一面同一支 techHTML 產出，兩處不會分家。*/
+  function ttCols(html) {
+    const box = document.createElement('div');
+    box.innerHTML = html;
+    const L = [], R = [];
+    let sigOn = false;
+    [...box.childNodes].forEach(n => {
+      if (n.nodeType === 1 && n.dataset.tt === 'sig') sigOn = true;
+      if (n.nodeType === 3 && !n.textContent.trim()) return;           // 樣板字串裡的換行空白
+      (sigOn || (n.nodeType === 1 && n.classList.contains('aick')) ? R : L).push(n);
+    });
+    const out = (arr, cls) => `<div class="${cls}">${arr.map(n => (n.nodeType === 1 ? n.outerHTML : esc(n.textContent))).join('')}</div>`;
+    return `<div class="ttcols">${out(L, 'ttmain')}${out(R, 'ttside')}</div>`;
   }
   window.StockAI = { id: 'stock.mtf', html, techCardHTML, mount, refit, brief, briefText, facetCards, ovCard, bindOverview, _key: KEY, _tabKey: TAB_KEY, _ovTabKey: OV_TAB_KEY, _splitKey: SPLIT_KEY };
 })();

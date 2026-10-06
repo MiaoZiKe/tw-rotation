@@ -292,10 +292,8 @@
       + box(1, '★ 本站承認：這是最沒把握的一格', L2, 'sf_doubt', C.warn)
       + frame(LX, f3, W, h3)
       + D.para(LX + 14, f3 + 24, '★ 為什麼純券商沒有放進這一格（很反直覺，所以寫出來）', IN, { cls: 'lbl', fs: 17, style: `fill:${C.warn}` }).svg
-      + D.para(LX + 14, f3 + 46, W3, IN).svg
-      + frame(LX, f4, W, h4)
-      + T(LX + 14, f4 + 24, '這張圖沒有回答的事', 'lbl')
-      + D.para(LX + 14, f4 + 46, W4, IN).svg;
+      + D.para(LX + 14, f3 + 46, W3, IN).svg;   // ★ 2026-10-06 清廢話（style_guide 第 10／11 條）：「這張圖沒有回答的事」框拿掉
+    void f4; void h4; void W4;
   }
 
   function securitiesFhc() {

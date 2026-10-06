@@ -38,16 +38,17 @@
   // 即時分 K 的訂閱（換頁要退掉，不然背景還在每 5 秒重畫一張看不到的圖）
   let liveOff = null;
 
+  /* ★ 2026-10-06 13:06（Andy 截圖 #stock/4551 分時：「不要出現這樣廢話」）：K 線上方那條灰底說明列
+     （「今天的分時：09:00～12:41 來自 Yahoo（延遲約 20 分鐘）；…本頁即時累積，每 5 秒更新、量為估計值」等）
+     所有個股、所有週期、手機一律不顯示。必要的口徑（來源、延遲、量是估計值）收進 K 線卡標題的「?」（style_guide 第 11、14 條）。
+     元素留著（版面格線與舊程式都還指得到它），文字只放進 data-note 當機器讀數（驗收讀；畫面與滑過提示都沒有）。*/
   function setLiveNote(txt) {
     const el = document.getElementById('liveNote');
     if (!el) return;
-    el.hidden = !txt;
-    el.textContent = txt || '';
-    el.title = txt || '';      // 桌機兩欄時短註只顯示一行（stock_ai.js #293），滑過看全文
-    if (!txt) el.classList.remove('open');
-    /* 手機上短註只佔一行（CSS 見 body.m3on.mbon #liveNote）→ 點一下展開全文、再點收回。
-       桌機是完整換行的，class 切了也沒有差別，所以不分寬度一律掛上。*/
-    if (!el.onclick) el.onclick = () => el.classList.toggle('open');
+    el.hidden = true;
+    el.textContent = '';
+    el.removeAttribute('title');
+    el.dataset.note = txt || '';
   }
   function stopLive() {
     if (liveOff) { liveOff(); liveOff = null; }
@@ -1399,6 +1400,13 @@
          右欄只回應「真的選了一格」：下拉、點公司卡、點圖上的環節標題。*/
       const listOn = (partHi || partSel) ? (segFilter ? [segFilter] : []) : segsOn;
       $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', listOn.includes(c.dataset.seg)));
+      /* 驗收讀數（畫面不顯示；同 DECISIONS #329 第 5 條的 data-* 做法）：現在「只看這一格」套用的是哪一格。
+         桌機（>820）沒有 #segOnly 那顆「已只看這一格」可以讀，而右欄 .rlseg.on 在剖析圖分頁一進來就會亮著
+         這張圖的族群那幾格（state.group，不是使用者選的）—— 單看畫面分不出「選了一格」與「族群帶出來的」，
+         DECISIONS #73「點零件只亮不篩」要量的正是這個差別。*/
+      /* ⚠ 值沒變就不要寫：同一個值再寫一次也會產生 attributes 的 MutationObserver 紀錄，
+         全站有好幾個觀察器（分頁拖曳、版面 v2 掃描）會因此再排一次版面 → 又叫到這裡，變成停不下來的重排（第一版就踩到：頁面一直不穩定）。*/
+      { const dd = $('#segDD', el), fv = segFilter || ''; if (dd && dd.dataset.filter !== fv) dd.dataset.filter = fv; }
       { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
       /* 說明卡浮在圖上（2026-09-26 晚）：開關狀態定了之後，依被點的那一格決定貼左還是貼右（見 placeRelCol） */
       placeRelCol(el);
@@ -1432,7 +1440,16 @@
       }
       // 「?」彈窗的標題＝這張圖的名字（跟總覽一樣：彈窗標題＝卡片／區塊名稱）
       { const qb = $('.howbtn[data-how="dg"]', el); if (qb) qb.dataset.ttl = dgId ? DS.name(dgId) : '產品剖析圖'; }
-      if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b class="howq">${A.fmt.esc(DS.q(dgId))}</b>` : '';
+      /* ★ 2026-10-06（style_guide 第 10 條「備註不另起框」、第 11 條廢話）：
+         圖裡那張「點零件篩到的是環節」警示卡與「這張圖沒有回答的事」框拿掉；
+         真正有用的只有一句誠實標示 ——「點零件篩出來的是供應鏈環節，不是整個族群」，
+         少了它，使用者會把「這一格只列一家」誤讀成「全台只有這一家做」。所以那一句收進「?」，
+         這張圖特有的補充（某一格收錄幾家、哪個零件還沒建檔）接在後面（DS.honest，各張圖在 register 時給）。*/
+      if (q) {
+        const hon = dgId ? ((DS.honest && DS.honest(dgId)) || '') : '';
+        q.innerHTML = ((dgId && DS.q(dgId)) ? `<b class="howq">${A.fmt.esc(DS.q(dgId))}</b>` : '')
+          + (dgId ? `<p class="howhonest" data-honest>點零件篩到的是供應鏈「環節」，環節不等於族群：同一格可能只收錄其中幾家，也可能混了別的族群的公司。${hon ? A.fmt.esc(hon) : ''}</p>` : '');
+      }
     }
     /* 「族群總覽」與「剖析圖」兩種模式的顯示切換。
        用的是 hidden 屬性，但 .row 這幾個有 display 規則的類別會蓋掉
@@ -1614,7 +1631,9 @@
         });
         const hint = $('#relHint', el) || document.getElementById('relHint');   // 「?」彈窗開著時盒子在 #howPop 裡
         if (hint) hint.innerHTML = HINT.layer(relScope && relScope.size
-          ? `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係；亮框＝上方剖析圖畫到的 ${relScope.size} 格`
+          /* 2026-10-06 說明精簡（每條 ≤30 字）：原句「…；亮框亮底的 N 格＝上方這張剖析圖畫到的環節，其餘淡一點但一樣可以點」52 字，
+             砍成數字＋亮框的意思；「淡的也能點」在圖上點下去就知道，不必寫。*/
+          ? `${stat.nSeg} 格、${stat.nTw} 檔、${stat.nEdge} 條上下游；亮框＝剖析圖畫到的 ${relScope.size} 格`
           : `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
@@ -4111,6 +4130,8 @@
           '切 K 線週期：圖內滾輪縮放、價格軸拖曳調高度',
           '雙擊價格軸或按右下 ⌜⌟ 還原；副圖分隔線可拖',
           '週期鈕被劃掉＝這檔沒有那個週期資料',
+          // 2026-10-06（Andy「不要出現這樣廢話」）：K 線上方說明列拿掉，必要口徑收成這一條
+          '分時早盤延遲約 20 分、量為估計值',
         ], '「分時」：線在虛線（昨收）上面＝今天漲、下面＝跌，最後一段往哪邊走就是尾盤的方向；要看指標或畫線請切到 K 線週期。滑鼠移到劃掉的週期鈕上會說原因。分 K 每日盤後更新；K 棒會跟著上下寬度一起變。')}</div>
         <!-- ★ 2026-09-29 data-readout：這一行是「這一檔此刻畫的是哪一天、哪個來源、量是不是估計值、有沒有分時」的狀態讀數
              （LiveK.sourceNote／「此檔暫無分時資料，已改用日 K」），跟 #peNote 同一類 —— 每一檔、每個時段都不一樣，
@@ -4393,16 +4414,10 @@
     const now = Date.now() / 1000 + 8 * 3600;
     return now >= eta ? '' : new Date(eta * 1000).toISOString().slice(11, 16);
   }
-  function tickGapLabel(g, wait) {
-    // 小標只寫一句短的：Yahoo 還會追上來＝寫幾點補上；這檔 Yahoo 根本沒有分 K（冷門股）＝「沒有」，不可以叫人等一個不會來的東西
-    if (!wait) return '此段沒有資料';
-    const eta = tickGapEta(g);
-    return eta ? `Yahoo 延遲約 ${YAHOO_DELAY_MIN} 分，約 ${eta} 補上` : `Yahoo 延遲約 ${YAHOO_DELAY_MIN} 分，補資料中`;
-  }
-  function tickGapTitle(g, wait) {
-    const eta = tickGapEta(g);
-    return `${TICK_GAP_WHY[g[2]] || '沒收到資料'}，${wait ? `暫無資料（${eta ? '約 ' + eta + ' 補上' : '稍後補上'}）` : '此段無資料'}`;
-  }
+  /* ★ 2026-10-06（Andy「不要出現這樣廢話」）：斜線缺口上不再放小標（改前「Yahoo 延遲約 20 分，約 13:21 補上」），
+     滑過只寫「HH:MM～HH:MM 尚無資料」（chart.js 組時間）—— 不寫資料來源、不寫幾點補上。這兩支只剩回傳短句給 chart.js。*/
+  function tickGapLabel() { return ''; }
+  function tickGapTitle() { return '尚無資料'; }
   function tickLiveNote(d) {
     const hm = (t) => KUtil.fmtTime(t, '1m').slice(11, 16);
     const rng = (sg) => (sg.a === sg.b ? hm(sg.a) : `${hm(sg.a)}～${hm(sg.b)}`);
@@ -5970,9 +5985,12 @@
       + `<b class="tagnm">${A.fmt.esc(t.label)}</b><span class="tagd">${t.detail ? A.fmt.esc(t.detail) : '—'}</span></button>`;
     const zone = (id, cls, title, list) => `<section class="tagzone ${cls}" id="${id}" aria-label="${title}"><div class="tagzh"><i aria-hidden="true"></i>${title} <b>${list.length}</b> 項</div>`
       + (list.length ? `<div class="taggrid">${list.map(t => tile(t, cls)).join('')}</div>` : `<div class="tagnone">沒有${title}的條件</div>`) + `</section>`;
-    // 2026-10-05：頂部先放技術分析卡（stock_ai.js 的 techCardHTML，與 AI 卡技術面同源），原本的指標卡在其下
-    const tech = window.StockAI && window.StockAI.techCardHTML ? window.StockAI.techCardHTML(pg, A.fmt) : '';
-    el.innerHTML = tech + `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3>${A.disc ? A.disc('tag') : ''}</div>
+    /* ★ 2026-10-06 13:12（Andy 截圖 #stock/4551「指標」分頁：「指標不應該出現這樣的內容應該只要圖二那樣即可。
+       幫我修復並確保其他股票一樣不會發生」）：10-05 加在這裡頂部的「技術分析」長卡（stock_ai.js techCardHTML：四週期、
+       綜合原因、若…則…、回檔／突破逐條）拿掉 —— 不是搬位或資料缺漏退回，而是 10-05 那一行對**每一檔**無條件插在指標卡上面，
+       所以每一檔都會出現。指標分頁只留「指標 符合 N／M 項」這一張卡；技術面的完整內容照舊在「總覽」分頁的 AI 卡（技術面那一面）。
+       techCardHTML 留在 stock_ai.js 不呼叫（同一份 techHTML 還在 AI 卡用）。*/
+    el.innerHTML = `<div class="card" id="tagCard"><div class="row spread"><h3>指標 <small>符合 <b id="tagN">${hit.length}</b> ／ ${hit.length + miss.length} 項</small> ${hq('sktag', '指標')}</h3>${A.disc ? A.disc('tag') : ''}</div>
       ${hbox('sktag', ['題材／族群＝本站依產業鏈整理的歸類', '指標＝用月營收、季報算的事實條件', '紅框＝條件成立；淡色＝不成立', '這些是條件描述，不是買賣建議'])}
       ${th || grp ? `<div class="tagmeta" id="tagMeta">${th ? `<div class="tagmr"><span class="tagk">題材</span><span class="tagrow">${th}</span></div>` : ''}${grp ? `<div class="tagmr"><span class="tagk">族群</span><span class="tagrow">${grp}</span></div>` : ''}</div>` : ''}
       ${hit.length || miss.length ? `<div class="tagcols" id="tagCols">${zone('tagHit', 'on', '符合', hit)}${zone('tagMiss', 'off', '未符合', miss)}</div>` : ''}
@@ -7445,34 +7463,7 @@
     renderHeat(im);
   }
 
-  /* 2026-10-01 自選頁展開圖（DECISIONS #282）：給 watchpage.js 用的「某一檔、某個週期的 K 棒」。
-     走的是個股頁同一條路（stock/<代號>.json ＋ ensureM60 ＋ groupBars／resampleDaily），不另寫一套載入。
-     刻意不接 withToday：那支接的是 livek.js「現在正在看的那一檔」的今日報價，自選頁一次好幾檔，接上去會張冠李戴；
-     也不接即時週期 —— 不准為了自選頁多打 mis。*/
-  const _wbCache = new Map();
-  async function watchBars(code, tf) {
-    let pg = _wbCache.get(code);
-    if (!pg) {
-      if (!A) A = window.App;               // A 平常在 route() 才指定；從自選頁直接叫時還沒指定
-      pg = await A.load('stock/' + code, { fallback: null });
-      if (!pg) return { bars: [], why: '這檔沒有個股資料' };
-      // 舊版 payload 沒有 meta.m60 欄位時也試一次 m60 檔（新版標 ok 才載，跟個股頁一致）
-      if (pg.meta && pg.meta.m60 === undefined && !((pg.intraday || {})['60m'] || []).length) pg.meta.m60 = 'ok';
-      await ensureM60(pg);
-      _wbCache.set(code, pg);
-    }
-    const daily = pg.daily && pg.daily.length ? pg.daily : (pg.ohlcv || []);
-    const h60 = (pg.intraday && pg.intraday['60m']) || [];
-    let bars;
-    if (tf === '1d') bars = daily;
-    else if (tf === '1w') bars = KUtil.resampleDaily(daily, 'W');
-    else if (tf === '60m') bars = h60;
-    else if (tf === '240m') bars = groupBars(h60, 4);
-    else bars = [];
-    return { bars: bars || [], h60, daily, why: /m$/.test(tf) ? m60Why(pg) : '這個週期尚無資料' };
-  }
   window.Industry = { route, routeHeat,
-    watchBars,
     // 驗收用：族群總覽現在是什麼狀態（族群／個股、幾條、即時開沒開、滑到誰、onLive 被呼叫幾次）
     _gp: () => Object.assign({}, gpDbg, { timer: !!gpTimer }),
     // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」

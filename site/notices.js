@@ -31,8 +31,8 @@
   const rich = (s) => esc(s).replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`).replace(/\n/g, '<br>');
 
   css('noticesCss', `
-.ntbell{position:relative;display:inline-grid;place-items:center;width:34px;height:32px;border:1px solid var(--line-2);border-radius:9px;background:var(--panel-2);color:var(--ink);cursor:pointer;flex:none}
-.ntbell svg{width:18px;height:18px}
+.ntbell{position:relative;display:inline-grid;place-items:center;width:34px;height:34px;box-sizing:border-box;padding:0;border:1px solid var(--line-2);border-radius:var(--r-sm,9px);background:var(--panel-2);color:var(--ink);cursor:pointer;flex:none}
+.ntbell svg{display:block;width:17px;height:17px}
 .ntbell .dot{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:var(--rise);color:#fff;font-size:11.5px;font-weight:700;line-height:18px;text-align:center}
 .ntbell .dot[hidden]{display:none}
 .ntdrop{position:fixed;z-index:1300;width:min(380px,calc(100vw - 24px));max-height:min(560px,calc(100vh - 90px));display:flex;flex-direction:column;background:var(--panel-2);color:var(--ink);

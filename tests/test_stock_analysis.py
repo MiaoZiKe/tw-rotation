@@ -75,11 +75,11 @@ def test_watch_lists_concrete_failed_conditions_with_numbers():
     found = False
     for seed in range(3, 30):
         v, m, _ = _verdict_and_mtf(seed)
-        if v["verdict"] != "觀望":
+        if v["verdict"] != "條件未齊":
             continue
         found = True
         t = AN.tech_facet(v, m)
-        assert t["stance"] == "觀望"
+        assert t["stance"] == "條件未齊"
         joined = "；".join(t["reasons"])
         assert "回檔型態（A）6 條中" in joined and "突破型態（B）5 條中" in joined
         assert "未成立" in joined or not all(c["ok"] for c in v["checks"]["a"])
@@ -89,7 +89,7 @@ def test_watch_lists_concrete_failed_conditions_with_numbers():
         a = AN.build(verdict=v, mtf_res=m, inst_v3=None, margin=None, holders=None, fundamental=None,
                      revenue=None, profit=None, news=None, material_news=None, as_of="2025-07-01",
                      code="9999", name="測試", avg_vol20=None)
-        assert a["headline"]["stance"] == "觀望" and "/6" in a["headline"]["brief"]
+        assert a["headline"]["stance"] == "條件未齊" and "/6" in a["headline"]["brief"]
         break
     assert found, "隨機漫步 27 組裡應該至少有一組是觀望"
 
@@ -113,14 +113,14 @@ def test_intraday_line_uses_bar_time():
 
 
 def test_grade_a_stance_is_can_watch():
-    v = {"verdict": "可以分批進場（回檔承接）", "grade": "A", "reasons": [], "stop": 90, "tp1": 120, "rr": 2.5,
+    v = {"verdict": "回檔型態條件成立", "grade": "A", "reasons": [], "stop": 90, "tp1": 120, "rr": 2.5,
          "risk_pct": 4.0, "demand": [], "checks": {"a": [], "b": [], "risk": {}, "met_a": 6, "met_b": 0,
                                                     "n_a": 6, "n_b": 5, "exclusions": []}}
     m = {"tf": {"1d": {"trend": 1, "ma_align": 1, "rsi": 55, "demand": [], "supply": [], "marks": {}},
                 "1w": {"trend": 1, "ma_align": 1, "rsi": 60, "demand": [], "supply": [], "marks": {}}},
          "summary": {}}
     t = AN.tech_facet(v, m)
-    assert t["stance"] == "可留意" and t["label"] == "偏多"
+    assert t["stance"] == "條件成立" and t["label"] == "偏多"
     assert "A 級" in t["reasons"][0]
 
 

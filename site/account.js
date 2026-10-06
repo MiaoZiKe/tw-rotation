@@ -177,8 +177,6 @@
        頁面鍵：etf／explore／support／events 已在 Worker 白名單（2026-10-05 hourly），細項直接記在各自的頁面下；舊資料（切換前）記在 other＋前綴，管理區兩種都認 */
     ['#etfCatSeg button', (el) => ['etf.cat', (el.textContent || '').replace(/[\s\d,（）()]+$/, '').trim(), 'etf']],                       // ETF 分類按鈕
     ['#wpNew, #wlNew', () => ['watch_tab_new', '', 'watch']],                                                  // 自選：新增分頁
-    ['#wpList .spkw, #wlList .spkw', () => ['watch.chart', '', 'watch']],                                      // 自選：點走勢圖
-    ['#wpList [data-tf], #wpList .tfseg button, #wpList .kseg button', () => ['watch.kline', '', 'watch']],    // 自選：展開圖裡切 K 線週期
     ['#supFab', () => ['support.fab', '', 'support']],                                                           // 客服：打開面板
     ['#supPanel .sptabs button[data-t]', (el) => ['support.tab', ({ faq: '常見問題', fb: '意見反饋', mail: '寄信' })[el.dataset.t] || '', 'support']],
     ['#supPanel .faq > button', (el) => ['support.faq', (el.textContent || '').trim().slice(0, 20), 'support']],
