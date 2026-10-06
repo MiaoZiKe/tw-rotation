@@ -48957,9 +48957,9 @@ def t_member_list_1006(b, base, code):
         ok(f"{T} {W}：卡片跟流量觀測同款：問句式標題（以「？」結尾）16px、灰副標 13px、有色條小圖示", len(head) == 5 and all(h[0].endswith("？") and h[2] == 16 and h[3] == 13 and h[4] for h in head), head)
         fs = pg.evaluate("() => [...document.querySelectorAll('#ptStats *')].filter(e => e.children.length === 0 && !e.closest('svg') && e.textContent.trim() && getComputedStyle(e).fontSize && parseFloat(getComputedStyle(e).fontSize) < 12 && e.getClientRects().length).map(e => e.tagName + ':' + e.textContent.trim().slice(0, 10) + ':' + getComputedStyle(e).fontSize).slice(0, 6)")
         ok(f"{T} {W}：統計區沒有小於 12px 的字", not fs, fs)
-        dn = pg.evaluate("() => { const s = document.querySelector('#msStDonut .dnc').getBoundingClientRect(), l = document.querySelector('#msStDonut ul.lg').getBoundingClientRect(); return { w: Math.round(s.width), right: l.left >= s.right - 2, narrow: window.innerWidth < 700 }; }")
+        dn = pg.evaluate("() => { const s = document.querySelector('#msStDonut .dnc').getBoundingClientRect(), l = document.querySelector('#msStDonut ul.lg').getBoundingClientRect(); return { w: Math.round(s.width), right: l.left >= s.right - 2 || l.top >= s.bottom - 2, narrow: window.innerWidth < 700 }; }")   # 環最小 220：卡內放不下圖例就移到環下面（Andy 16:15）
         dn["legendRight"] = dn["right"] or dn["narrow"]
-        ok(f"{T} {W}：甜甜圈用共用 donutG（直角、圖例在右；手機寬才換到下面）、直徑 ≥ 120px", dn["w"] >= 120 and dn["legendRight"], dn)
+        ok(f"{T} {W}：甜甜圈用共用 donutG（圖例在右，放不下才換到下面）、直徑 ≥ 120px", dn["w"] >= 120 and dn["legendRight"], dn)
         ov = pg.evaluate("() => ({ x: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, cut: [...document.querySelectorAll('#ptStats .mkpi b, #ptStats .card h3, #ptStats .card .use')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim().slice(0, 14)).slice(0, 6) })")
         ok(f"{T} {W}：沒有橫向捲軸、KPI 與卡片標題沒有被裁掉", not ov["x"] and not ov["cut"], ov)
         shot(pg, f"ml_{width}_free", "#ptStats")
