@@ -3524,8 +3524,10 @@
       const lineFit = (txt, maxW, fw) => { const t = [...String(txt || '')]; const w = (a) => a.reduce((t1, ch) => t1 + fw(ch), 0);
         if (w(t) <= maxW) return t.join(''); while (t.length > 1 && w(t) + fw('…') > maxW) t.pop(); return t.join('').trimEnd() + '…'; };
       const fwName = (ch) => chW(ch) * 12.5 / 13, fwMono = (ch) => (ctx11 ? ctx11.measureText(ch).width : (/[\u0000-ÿ]/.test(ch) ? 6.7 : 11));
+      /* 2026-10-06 文字重疊普查：公司卡兩行字基線 15／29 只差 14px，12.5px＋12px 的字框各 ~15px，上下疊 1px（800px 寬量到 54 張卡）。
+         改 14／30（差 16px）；卡高 36 不變，第二行字腳 33 仍在卡內。*/
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
-        nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${cx0}" y="${y}" width="${inW}" height="${cardH}" rx="7"/><rect x="${cx0}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${cx0 + 12}" y="${y + 15}">${A.fmt.esc(lineFit(c.name.length > 12 ? c.name.slice(0, 11) + '…' : c.name, textMax - (deg[c.id] ? 0 : 16) - fwName(' ') - [...(c.tw_code || '外商')].reduce((t1, ch) => t1 + fwMono(ch), 0), fwName))}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${cx0 + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc(lineFit((c.tech || []).slice(0, 2).join(' · '), textMax, fwMono))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${cx0 + inW - 12}" cy="${y + 12}" r="6.5"/><text x="${cx0 + inW - 12}" y="${y + 15.5}">?</text><title>尚無上下游資料</title></g>`}</g>`; }); });
+        nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${cx0}" y="${y}" width="${inW}" height="${cardH}" rx="7"/><rect x="${cx0}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${cx0 + 12}" y="${y + 14}">${A.fmt.esc(lineFit(c.name.length > 12 ? c.name.slice(0, 11) + '…' : c.name, textMax - (deg[c.id] ? 0 : 16) - fwName(' ') - [...(c.tw_code || '外商')].reduce((t1, ch) => t1 + fwMono(ch), 0), fwName))}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${cx0 + 12}" y="${y + 30}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc(lineFit((c.tech || []).slice(0, 2).join(' · '), textMax, fwMono))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${cx0 + inW - 12}" cy="${y + 12}" r="6.5"/><text x="${cx0 + inW - 12}" y="${y + 15.5}">?</text><title>尚無上下游資料</title></g>`}</g>`; }); });
     /* 圖十（Andy 2026-09-19：「供應鏈關聯圖 連線對不起來」）。
        以前每一條邊都寫死「來源右緣 → 目標左緣」，於是目標在左邊的邊整條倒著走、
        從卡片底下穿過去，看起來就像連錯人；邊又排在 nodes 之前，被卡片蓋掉一半。
@@ -7272,7 +7274,7 @@
        DOM 順序是「標題、日期、色塊」：窄的時候先換行的是色塊（日期留在標題那一行），寬的時候 CSS 用 order 把色塊排到中間。*/
     const body = `<div class="skduo chipduo" id="hoDuo"><div class="card" id="hoCard"><div class="row spread" id="hoHead" style="gap:8px;flex-wrap:wrap"><h3>大戶／散戶持股比例 ${hq('skho', '大戶／散戶持股')}</h3><div class="hoTgls" id="hoTgls" role="group" aria-label="顯示哪幾條線">${tgl}</div></div>
       ${hbox('skho', ['千張以上往上、≤10 張往下＝籌碼往大戶集中', '反過來＝大戶在賣、散戶在接', '每條各自一格、Y 軸不從 0 起，看方向', '色塊右邊＝最新比例與跟上一週比（pp＝百分點）'])}
-      <div id="holderChart" class="chart chipChart" style="min-height:420px"></div>${insNote}</div>${chipTbl('hoTbl', '每週明細', growing)}</div>`;
+      <div id="holderChart" class="chart chipChart" style="min-height:460px"></div>${insNote}</div>${chipTbl('hoTbl', '每週明細', growing)}</div>`;
     /* 設計 v4 2B：手機（≤640）三顆色塊維持改前的位置（標題列下面獨佔一列）—— 手機版面這一批不動。
        chipPage 會先把 body 寫進去再畫圖，所以在第一次畫圖之前（draw 的最前面）搬一次就好。*/
     let hoPlaced = false;
@@ -7289,8 +7291,13 @@
       if (!LINES.length) { A.empty('holderChart', '三條線都已隱藏'); }
       else {
         if (hEl && hEl.classList.contains('isempty')) { hEl.classList.remove('isempty'); hEl.innerHTML = ''; }   // 從「三條都隱藏」回來：先清掉那行字再重建圖
-        const H = Math.max(360, (hEl && hEl.clientHeight) || 420);
-        const TOP = 4, BOT = 28, CELL = (H - TOP - BOT) / LINES.length;
+        const H = Math.max(400, (hEl && hEl.clientHeight) || 460);   // 2026-10-06：標題下多留 20px 給標籤，整張加高 40px 讓每格資料區不變矮
+        /* 2026-10-06（Andy 截圖：第一個點的「5.89%」壓在副圖標題「千張大戶（≥1,000 張）4週 −2.11pp」上）：
+           標籤在點的正上方（distance 5＋字高 14），當某一格的最高點落在格子最上緣時，標籤會往上伸 ~20px，
+           而改前資料區只在標題下方 26px 開始 —— 標題本身就佔 ~18px，剩 8px 根本擋不住。
+           改成資料區從標題下方 46px 開始（標題 18＋標籤 19＋餘裕 9），TOP 4→10 也讓標題離上面那排色塊遠一點。
+           _uitest「文字重疊普查1006」用 SVG 量每一格標題與標籤的交疊，四個寬度都要 0。*/
+        const TOP = 10, BOT = 28, CELL = (H - TOP - BOT) / LINES.length, GAP = 46;
         const inWin = dates.filter(d => hmap.has(d)).map(d => hmap.get(d));
         const first = inWin[0], lw = inWin[inWin.length - 1];
         const rangeTxt = CHIP_WINS.find(w => w.v === win).t.replace(' ', '');
@@ -7307,7 +7314,7 @@
                 l: { color: A.CH.ink3, fontSize: 12 }, up: { color: A.CH.up, fontSize: 12, fontFamily: A.NUM_FONT },
                 dn: { color: A.CH.down, fontSize: 12, fontFamily: A.NUM_FONT }, fl: { color: A.CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT } } },
               text: lw ? `{d|━} {n|${L.full}}  {l|${rangeTxt}} {${ppCls(m)}|${pp(m)}}` : `{d|━} {n|${L.full}}  {l|這個區間沒有公布日}` }; }),
-          grid: LINES.map((L, i) => ({ left: 52, right: 30, top: TOP + i * CELL + 26, height: CELL - 38 })),
+          grid: LINES.map((L, i) => ({ left: 52, right: 30, top: TOP + i * CELL + GAP, height: CELL - GAP - 12 })),
           xAxis: LINES.map((L, i) => xCat({ gridIndex: i, boundaryGap: false, splitLine: { show: false },
             axisTick: { show: i === LINES.length - 1 }, axisLabel: { show: i === LINES.length - 1, color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: dayLbl, hideOverlap: true } })),
           yAxis: LINES.map((L, i) => ({ ...A.axisStyle, type: 'value', gridIndex: i, scale: true, splitNumber: 2,
