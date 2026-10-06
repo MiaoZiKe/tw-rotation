@@ -152,7 +152,9 @@
         + R(cx + 40, 252, 10, 36, C.mute, 'part', 1)));
       g.push(part('fd_gate', slab(cx - 40, 252, 80, 30, C.steel, 2)));
       g.push(part('fd_face1', arw(cx, 214, cx, 246)));                          // 1 面
-      g.push(`<g pointer-events="none">${T(cx, 206, '閘極只管得到一面', 'lbl', 'middle')}</g>`);
+      /* 2026-10-06 文字重疊普查：這行字原本在 y=206、正中 cx，剛好被下面卡片的錨點圓 02（cx,190）與 05（cx−46,220）蓋住
+         （錨點每個寬度都畫，390 寬縮到 0.42 倍時最明顯）。移到錨點 02 上方（圓頂 180.5），字腳 ≤173，跟圓頂留 7 個單位。*/
+      g.push(`<g pointer-events="none">${T(cx, 172, '閘極只管得到一面', 'lbl', 'middle')}</g>`);
 
     } else if (kind === 'fin') {
       /* 二 FinFET：**垂直於鰭的橫剖面**。閘極是 ㄇ 字形、真的罩到兩個側面，
