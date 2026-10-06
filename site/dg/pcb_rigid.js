@@ -420,10 +420,6 @@
     title: '半固化片 prepreg', sub: '沒有銅；壓合時流動固化' })}
       ${extRow({ side: 'l', no: 11, seg: P, part: 'pcb_buried', color: COL.cu, ax: ux(VIA.bur.u), ay: (Y.pp3[0] + Y.pp3[1]) / 2,
     title: '埋孔 buried via', sub: '兩端都在內層，不碰外層' })}
-      ${note({ side: 'l', warn: true, title: '★ 點零件篩到的是「環節」，不是整個族群',
-    lines: ['「高階 PCB」這一格收錄六家，跟硬板族群是兩份名單。',
-      '示意圖，非實物比例；圖上畫 10 層銅，代表實際 20～50 層以上。',
-      '良率、成本、市占、線寬一個數字都不寫。'] })}
       ${extRow({ side: 'r', no: 2, seg: P, part: 'pcb_enig', color: COL.au, ax: ux(PAD_T) + PADW + 6, ay: Y.l1[0] - 8,
     title: '表面處理 ENIG', sub: '只在開窗的銅上：銅→鎳→金' })}
       ${extRow({ side: 'r', no: 4, seg: C, part: 'pcb_core', color: COL.core, ax: XR - 10, ay: (Y.c1[0] + Y.c1[1]) / 2,
@@ -497,6 +493,8 @@
     name: 'PCB 硬板：多層板剖面與走線',
     draw: pcbStackup, native: CW, scene: 'pcb_rigid',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
         推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
+    /* ★ 2026-10-06：原本圖裡那張警示卡的「這張圖特有」那一句，搬進「?」（industry.js paintDgTitle 讀 DS.honest）。*/
+    honest: '「高階 PCB」這一格收錄六家，跟硬板族群是兩份名單。',
     q: '一塊 AI 伺服器用的多層板為什麼要疊到幾十層？訊號在裡面被誰磨掉，瓶頸又為什麼卡在板材與銅箔、而不是 PCB 廠？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        這張圖跨三個環節（銅箔／玻纖布／樹脂 → CCL → 高階 PCB），所以預設那條路

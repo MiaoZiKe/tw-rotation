@@ -1452,7 +1452,16 @@
       }
       // 「?」彈窗的標題＝這張圖的名字（跟總覽一樣：彈窗標題＝卡片／區塊名稱）
       { const qb = $('.howbtn[data-how="dg"]', el); if (qb) qb.dataset.ttl = dgId ? DS.name(dgId) : '產品剖析圖'; }
-      if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b class="howq">${A.fmt.esc(DS.q(dgId))}</b>` : '';
+      /* ★ 2026-10-06（style_guide 第 10 條「備註不另起框」、第 11 條廢話）：
+         圖裡那張「點零件篩到的是環節」警示卡與「這張圖沒有回答的事」框拿掉；
+         真正有用的只有一句誠實標示 ——「點零件篩出來的是供應鏈環節，不是整個族群」，
+         少了它，使用者會把「這一格只列一家」誤讀成「全台只有這一家做」。所以那一句收進「?」，
+         這張圖特有的補充（某一格收錄幾家、哪個零件還沒建檔）接在後面（DS.honest，各張圖在 register 時給）。*/
+      if (q) {
+        const hon = dgId ? ((DS.honest && DS.honest(dgId)) || '') : '';
+        q.innerHTML = ((dgId && DS.q(dgId)) ? `<b class="howq">${A.fmt.esc(DS.q(dgId))}</b>` : '')
+          + (dgId ? `<p class="howhonest" data-honest>點零件篩到的是供應鏈「環節」，環節不等於族群：同一格可能只收錄其中幾家，也可能混了別的族群的公司。${hon ? A.fmt.esc(hon) : ''}</p>` : '');
+      }
     }
     /* 「族群總覽」與「剖析圖」兩種模式的顯示切換。
        用的是 hidden 屬性，但 .row 這幾個有 display 規則的類別會蓋掉

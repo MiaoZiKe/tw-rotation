@@ -383,6 +383,24 @@ def how_text(pg, key: str) -> str:
     return t
 
 
+DG_HONEST = "環節不等於族群"   # 「?」裡那一句誠實標示的關鍵字（industry.js paintDgTitle）
+
+
+def dg_honest(pg) -> dict:
+    """剖析圖的誠實標示搬家之後的驗法（2026-10-06，style_guide 第 10／11 條）。
+
+    改前：圖裡有「點零件篩到的是環節」警示卡與「這張圖沒有回答的事」框，驗收讀 SVG／卡片文字。
+    改後：兩個框都拿掉，誠實那一句（＋這張圖特有的補充，DS.honest）收進「?」。
+    所以要驗兩件事：① 圖上**真的沒有**那兩個框（不准只是藏起來）② **真的按「?」**，裡面讀得到那一句。
+    """
+    gone = pg.evaluate("""() => { const b = document.getElementById('dgBody');
+      const t = b ? b.textContent : '';
+      return !/這張圖沒有回答的事|點零件篩到的是/.test(t); }""")
+    how = how_text(pg, "dg")
+    # 「原創示意圖，非實物比例」常駐在圖名列（#dgTitle），一起帶回去給要驗它的斷言用
+    return {"gone": gone, "how": how, "title": text(pg, "#dgTitle")}
+
+
 def text(pg, sel: str) -> str:
     return pg.evaluate(f"() => {{ const e = document.querySelector({sel!r}); return e ? e.innerText.trim() : '<缺>'; }}")
 
@@ -3484,7 +3502,21 @@ def t_industry(pg, base):
                      links: vis ? [...b.querySelectorAll('a')].filter(a => (a.getAttribute('href') || '').startsWith('#stock/')).length : 0 }; }"""
         before = pg.evaluate("() => ({ y: Math.round(scrollY) })")
         before["pc"] = pg.evaluate(PC)
-        click(pg, "#prodDiagram [data-seg]", 800)
+        # ★ 2026-10-06（驗收過時：v2 卡片外掛 09-23，DECISIONS #238）：剖析圖的說明卡 .dgc 是疊在 SVG 上的 HTML，
+        #   第一個零件的「正中央」常常被卡片蓋住。改前用 locator.click() —— Playwright 發現中心點被擋，
+        #   會自己換對齊方式**重捲頁面**再試（量到 499 → 0），那是測試工具在捲，不是頁面被點擊帶走。
+        #   改後：找零件上真的點得到的那一點（elementFromPoint 落在零件裡），用滑鼠在原地點 —— 跟真人一樣，不捲。
+        pt = pg.evaluate("""() => { const n = document.querySelector('#prodDiagram [data-seg]'); if (!n) return null;
+            const r = n.getBoundingClientRect();
+            for (const fy of [.5, .3, .7, .2, .8, .1, .9]) for (const fx of [.5, .3, .7, .2, .8, .1, .9]) {
+              const x = r.left + r.width * fx, y = r.top + r.height * fy;
+              if (y < 0 || y > innerHeight || x < 0 || x > innerWidth) continue;
+              const e = document.elementFromPoint(x, y); if (e && n.contains(e)) return {x, y}; }
+            return null; }""")
+        if pt:
+            pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(800)
+        else:
+            click(pg, "#prodDiagram [data-seg]", 800)
         after = pg.evaluate("""() => ({ y: Math.round(scrollY),
             sel: document.querySelectorAll('#prodDiagram [data-seg].sel').length,
             segBox: ((document.getElementById('segBox') || {}).innerHTML || '').trim().length,
@@ -14360,13 +14392,15 @@ def t_psu(pg, base):
     ok("換點之後成分股筆數還是一動都不動", rows(pg) == rows0, f"{rows0} → {rows(pg)}")
 
     # ---------------- 5. 兩句非講不可的話真的在畫面上（規格書 §6-N5）
-    s5 = state(pg)
-    ok("★「BBU 尚未建檔」那句話真的印在圖上（不准默默讓它篩到電源那一格）",
-       "BBU 尚未建檔" in s5["txt"], s5["txt"][-160:])
-    ok("★「點零件篩到的是環節、不是整個族群」那行字真的印在圖上",
-       "不是整個族群" in s5["txt"] and "供應鏈環節" in s5["txt"], "找到了" if "不是整個族群" in s5["txt"] else "沒找到")
-    ok("★「示意圖，非實物比例」與「時間軸不標秒數」兩行都在（§6-N6）",
-       "示意圖，非實物比例" in s5["txt"] and "時間軸不標秒數" in s5["txt"], "")
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話，CEO 轉 Andy）：
+    #   改前驗「警示卡與『這張圖沒有回答的事』框印在圖上」→ 兩個框拿掉，誠實那兩句（BBU 尚未建檔、環節不等於族群）收進「?」。
+    #   改後驗：框真的不在了，而且真的按「?」讀得到那兩句。「時間軸不標秒數」仍在圖上那條軸的說明裡。
+    s5 = state(pg); h5 = dg_honest(pg)
+    ok("★ 圖上沒有「點零件篩到的是環節」警示卡、也沒有「這張圖沒有回答的事」框", h5["gone"], "")
+    ok("★ 按「?」讀得到「BBU 尚未建檔」（不准默默讓它篩到電源那一格）", "BBU 尚未建檔" in h5["how"], h5["how"][-160:])
+    ok("★ 按「?」讀得到「環節不等於族群」那一句", DG_HONEST in h5["how"], h5["how"][-160:])
+    ok("★「非實物比例」在圖名列、「不標秒數」在時間軸說明（§6-N6）",
+       "非實物比例" in text(pg, "#dgTitle") and "不標秒數" in s5["txt"], "")
 
     # ---------------- 6. 結構紅線：用**幾何**驗，不是用字串
     geo = pg.evaluate("""() => {
@@ -14685,21 +14719,25 @@ def t_cooling(pg, base):
            rows2 != rows0 and "環節" in mtitle, "%s → %s（%s）" % (rows0, rows2, mtitle.strip()))
         _cg_chip(pg, '#segChips .segchip[data-seg="thermal"]', 800)  # ★ 2026-09-24 桌機色標收進下拉，_cg_chip 會先打開下拉（改前：pg.click 直接點色標）
 
-        # ---------------- 5. 族群 ≠ 環節 那一行真的在畫面上
-        ok("[%s] ★ 畫面最底下有「%s」那一行（族群 ≠ 環節，規格書 §6-N5）" % (did, FOOT),
-           FOOT in d2["texts"], d2["texts"][-90:].replace("\n", "／"))
+        # ---------------- 5. 族群 ≠ 環節 那一句真的讀得到
+        # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：改前那張「點零件篩到的是環節」警示卡印在圖上；
+        #   改後卡片拿掉、那一句（含「這一格收錄幾家」）收進「?」。改驗：卡片不在了、按「?」讀得到。
+        hn = dg_honest(pg)
+        ok("[%s] ★ 圖上沒有「%s」警示卡（style_guide 第 10 條：備註不另起框）" % (did, FOOT), hn["gone"], "")
+        ok("[%s] ★ 按「?」讀得到「%s」（族群 ≠ 環節，規格書 §6-N5）" % (did, DG_HONEST),
+           DG_HONEST in hn["how"], hn["how"][-120:])
         ok("[%s] 畫面上有「示意圖，非實物比例」（查不到的東西一律標示意）" % did,
            "示意圖，非實物比例" in d2["texts"])
         # ★ 把那行字裡寫的家數跟**實際篩出來的筆數**對起來。
         #   規格書叫我們在圖上寫「散熱這一格目前收錄六家」—— 如果之後 Andy 校訂 YAML
         #   加了一家，這一條就會紅，提醒我們回來改那行字，而不是讓畫面繼續說謊。
         CN = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
-        m = _re.search(r"散熱這一格目前收錄([一二三四五六七八九十]+)家", d2["texts"])
+        m = _re.search(r"散熱這一格目前收錄([一二三四五六七八九十]+)家", hn["how"])
         ok("[%s] 畫面上寫的「散熱這一格收錄 N 家」跟實際篩出來的筆數一致（寫的 ≠ 算的 ＝ 在說謊）" % did,
            bool(m) and CN.get(m.group(1)) == rows2,
            "畫面寫 %s ／ 實際 %s" % (m.group(1) if m else "（沒寫）", rows2))
         if did == "air_cooling":
-            m2 = _re.search(r"族群有([一二三四五六七八九十]+)檔", d2["texts"])
+            m2 = _re.search(r"族群有([一二三四五六七八九十]+)檔", hn["how"])
             ok("[air_cooling] 畫面上寫的「族群有 N 檔」跟族群實際的成分股筆數一致",
                bool(m2) and CN.get(m2.group(1)) == rows0,
                "畫面寫 %s ／ 實際 %s" % (m2.group(1) if m2 else "（沒寫）", rows0))
@@ -24127,11 +24165,14 @@ def t_abf(pg, base):
     ok("★「這一格台股掛零、所以會是 0 筆，那不是壞掉」這句話真的印在圖上",
        "台股掛零" in txt and "0 筆" in txt and "不是壞掉" in txt,
        [s for s in txt.split("★") if "台股掛零" in s][:1])
-    ok("★「點零件篩到的是『環節』不是整個族群」那一行真的印在圖上（三份規格書都要求）",
-       "點零件篩到的是" in txt and "環節" in txt and "不是整個族群" in txt,
-       [s for s in txt.split("。") if "不是整個族群" in s][:1])
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：「點零件篩到的是環節」警示卡／「這張圖沒有回答的事」框拿掉，
+    #   誠實那一句收進「?」。改驗：框真的不在了、真的按「?」讀得到那一句（dg_honest）。
+    hn = dg_honest(pg)
+    ok("★ 圖上沒有「點零件篩到的是環節」那一行／框（style_guide 第 10 條）", hn["gone"], "")
+    ok("★ 按「?」讀得到「環節不等於族群」，而且講明 IC 載板這一格收哪三家（三份規格書都要求）",
+       DG_HONEST in hn["how"] and "3037" in hn["how"], hn["how"][-120:])
     ok("另外兩行誠實性標示也在（非實物比例／層數為示意）",
-       "示意圖，非實物比例" in txt and "實際為十幾至二十幾層" in txt, "")
+       "非實物比例" in (txt + hn["title"]) and "實際為十幾至二十幾層" in txt, "")
 
     # ---------------- 6. 動畫：開／關 真的停得掉
     #  這張圖有兩種動畫：CSS 的 dgdash（訊號虛線）與 SMIL 的 animateMotion（訊號亮點＋流程列光點）。
@@ -27085,8 +27126,16 @@ def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_wor
     ok(f"[{slot}] 換點之後畫面真的不一樣（被選起來的那一站真的換了，而且其餘真的被壓暗）",
        t1["selSegs"] != t2["selSegs"] and t2["dim"] > 0,
        f"{t1['selSegs']} → {t2['selSegs']}；被壓暗 {t2['dim']} 個")
+    # ★ 2026-10-06（驗收時序過時）：零件的 filter 有 .15s 轉場（diagrams.js `.dg [data-seg] .part{transition:…filter .15s}`），
+    #   換點之後**前一個主角**的光還在退場；負載重時 .15s 會拉長，點完立刻量就把退場中的光算進去（量到 7 個）。
+    #   單獨量（probe）穩定後只有主角 1 個。改成等轉場結束再量（最多 3 秒），門檻 ≤ 2 不動。
+    g2 = t2["glow"]
+    for _ in range(20):
+        if g2 <= 2:
+            break
+        pg.wait_for_timeout(150); g2 = _dg14_state(pg)["glow"]
     ok(f"[{slot}] ★ 螢光感：整張圖只有主角在發光（其餘 computed filter 都是 none）",
-       t2["glow"] <= 2, f"真的在發光的元素 {t2['glow']} 個（主角自己算 1～2 個）")
+       g2 <= 2, f"真的在發光的元素 {g2} 個（主角自己算 1～2 個）")
     ok(f"[{slot}] 主角的描邊真的比較粗（量 computed style，不是看有沒有 class）",
        bool(t2["heroSW"]) and min(t2["heroSW"]) >= 2.3, t2["heroSW"])
 
@@ -27764,8 +27813,11 @@ def t_b14b_hsio(pg, base):
     # 2×2 的溝：480–500，只在四格那兩段高度裡成立
     #（上方路徑帶與底部對照條是整張寬的，跨過去是對的）。
     _b14b_gutter(pg, "互連", [[480, 500, 16, 296, 736], [480, 500, 16, 752, 1192]])
-    ok("互連・N3：三行誠實性標示都在（非實物比例／距離對照的限制／環節不等於族群）",
-       "示意圖，非實物比例" in txt and "依板材、頻率與設計規則而異" in txt and "不是整個族群" in txt, "")
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：「點零件篩到的是環節」警示卡／「這張圖沒有回答的事」框拿掉，
+    #   誠實那一句收進「?」。改驗：框真的不在了、真的按「?」讀得到那一句（dg_honest）。
+    hn = dg_honest(pg)
+    ok("互連・N3：三行誠實性標示都在（非實物比例／距離對照的限制在圖上；環節不等於族群在「?」）",
+       "非實物比例" in (txt + hn["title"]) and "依板材、頻率與設計規則而異" in txt and DG_HONEST in hn["how"] and hn["gone"], hn["how"][-100:])
 
     # ---------------- 7/8
     _b14b_anim(pg, "互連", 1)
@@ -27923,9 +27975,11 @@ def t_b14b_rlc(pg, base):
     # X4：不能用「字串裡有沒有出現『電容』」來判 —— 畫面上刻意寫了
     # 「這張圖不畫任何電容（MLCC／鋁質電解／固態／鉭質）」，那是宣告不是違規。
     # 要判的是**有沒有真的畫一個電容零件出來**，所以看 data-part 的名單。
-    ok("RLC・X4：圖上**沒有任何電容零件**（零件名單裡沒有 mlcc／cap／diel），而且畫面自己講明了這件事",
+    # ★ 2026-10-06（驗收過時：style_guide 第 11 條，DECISIONS #332）：「這張圖不畫任何電容」是放在「這張圖沒有回答的事」卡裡的否定句，
+    #   跟著那張卡拿掉。要守的那件事（圖上真的沒有電容零件）照驗；改驗「那張卡不在了」。
+    ok("RLC・X4：圖上**沒有任何電容零件**（零件名單裡沒有 mlcc／cap／diel），「這張圖沒有回答的事」卡不在了",
        not [k for k in d["parts"] if any(w in k for w in ("mlcc", "cap", "diel"))]
-       and "不畫任何電容" in txt, d["parts"])
+       and "這張圖沒有回答的事" not in txt, d["parts"])
     # ★ 2026-10-04（DECISIONS #320，接 #318）：電感欄、石英欄掛上自己的專屬環節；仍然不准掛「被動元件 MLCC／電阻」
     #   （那會宣稱國巨那五家做電感）。判準：電阻欄＝passive_comp、電感欄＝passive_inductor、石英欄＝passive_crystal，三者各自獨立。
     ok("RLC・X5：★ 整張圖的 data-seg 是三種各管一欄（電阻 passive_comp、電感 passive_inductor、石英 passive_crystal）",
@@ -27962,8 +28016,11 @@ def t_b14b_rlc(pg, base):
     _b14b_gutter(pg, "RLC", [[322, 338, 16, 292, 948], [644, 660, 338, 292, 948]])
     # ★ 2026-10-06（驗收過時，v2 09-23）：兩句都搬進 HTML 卡片（「這張圖沒有回答的事」第一行＝非實物比例；
     #   「誰做的（點零件篩到的是「環節」不是族群）」）；卡片在 1440 收成標題 ▾。改讀 _v2_reach()（點開每張卡），兩句的意思一字不少。
-    ok("RLC・N3：兩行誠實性標示都在（非實物比例／環節不等於族群）",
-       "示意圖，非實物比例" in reach and ("不是整個族群" in reach or "「環節」不是族群" in reach), "")
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：「點零件篩到的是環節」警示卡／「這張圖沒有回答的事」框拿掉，
+    #   誠實那一句收進「?」。改驗：框真的不在了、真的按「?」讀得到那一句（dg_honest）。
+    hn = dg_honest(pg)
+    ok("RLC・N3：兩行誠實性標示都在（非實物比例在圖名列；環節不等於族群在「?」）、兩個框都不在",
+       "非實物比例" in (reach + hn["title"]) and DG_HONEST in hn["how"] and hn["gone"], hn["how"][-100:])
     ok("RLC：★ 畫面上寫清楚電阻、電感、石英各對到哪一個環節（三個不同的環節，不會被讀成國巨那五家做電感）",
        "電感／磁性元件" in txt and "石英頻率元件" in txt and "三個不同的環節" in txt, "")
 
@@ -31643,8 +31700,11 @@ def _v2_common(pg, base, route, feat, native, parts_click, secs):
     ok(f"[{feat}] 材質語言：玻璃板 ≥ 6 塊、光束 ≥ 1 條、feGaussianBlur 的元素 ≤ 3（#239 效能限制）",
        s0["fxg"] >= 6 and s0["beams"] >= 1 and 1 <= s0["blur"] <= 3, {"fxg": s0["fxg"], "beams": s0["beams"], "blur": s0["blur"]})
     ok(f"[{feat}] 沒有主角時，畫布上沒有任何零件在發光（發光只給端點、光束與被選的那一個）", s0["glowNonHero"] == 0, s0["glowNonHero"])
-    ok(f"[{feat}] 卡片照編號排（左欄由上到下、右欄由上到下都遞增）、而且有一張警語卡",
-       s0["warn"] == 1 and s0["cards"] >= 8, {"cards": s0["cards"], "warn": s0["warn"]})
+    # ★ 2026-10-06（驗收過時：style_guide 第 10 條「備註不另起框」）：改前要求「有一張警語卡」（點零件篩到的是環節）；
+    #   那張卡拿掉、那一句收進「?」。改驗：卡片數照舊、圖上**沒有**那張卡，而且按「?」讀得到那一句。
+    hn0 = dg_honest(pg)
+    ok(f"[{feat}] 卡片 ≥ 8 張；「點零件篩到的是環節」警語卡不在了、那一句在「?」裡",
+       s0["cards"] >= 8 and hn0["gone"] and DG_HONEST in hn0["how"], {"cards": s0["cards"], "warn": s0["warn"], "how": hn0["how"][-60:]})
     # ---- 章節真的開得起來、收得回去（文字數變多變少、畫布變高變矮）
     for i in range(s0["nBars"]):
         pg.evaluate("(i) => document.querySelectorAll('#prodDiagram g.dgfold')[i].dispatchEvent(new MouseEvent('click', {bubbles: true}))", i)
@@ -31785,8 +31845,18 @@ def t_psu_v2(pg, base):
     # ★ 2026-10-06 改前→改後（驗收過時，09-24 卡片限高收合）：警語卡在 1440 收成「標題 ▾」，說明行要點開 —— 改讀 _v2_reach()（真的點開每張卡讀字）
     _v2_land(pg, url, "dark", 1440, "0")
     reach = _v2_reach(pg)
-    for kw in ("BBU 尚未建檔", "不是整個族群", "示意圖，非實物比例", "時間軸不標秒數"):
-        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖名列／圖上，或警語卡點開就看得到）", kw in reach, "")
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：「點零件篩到的是環節」警示卡／「這張圖沒有回答的事」框拿掉，
+    #   誠實那一句收進「?」。改驗：框真的不在了、真的按「?」讀得到那一句（dg_honest）。
+    hn = dg_honest(pg)
+    ok(f"[{FEAT}] ★ 圖上沒有警示卡、沒有「這張圖沒有回答的事」框", hn["gone"], "")
+    for kw in ("BBU 尚未建檔", DG_HONEST):
+        ok(f"[{FEAT}] ★ 按「?」讀得到「{kw}」", kw in hn["how"], hn["how"][-100:])
+    #   「不標秒數」改前也印在警語卡裡；卡片拿掉之後它住在 ② 章節（預設收合）那條時間軸的說明 —— 真的把章節點開再讀。
+    _v2_open_all(pg)
+    reach_open = reach + "\n" + pg.evaluate(_V2)["all"]
+    for kw in ("示意圖，非實物比例", "不標秒數"):
+        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖名列／圖上，或章節點開就看得到）", kw in reach_open, "")
+    _v2_land(pg, url, "dark", 1440, "0")
     s = pg.evaluate(_V2)
     ok(f"[{FEAT}] 拆開的 PSU 四級都在畫面上（PFC／LLC／同步整流／輸出匯流排），而且標了示意", all(k in s["all"] for k in ("功因校正 PFC", "諧振轉換 LLC", "同步整流 SR", "輸出匯流排")) and "示意" in s["all"], "")
     # ---- 結構紅線：用幾何驗（章節全開之後 ③ 的東西才量得到）
@@ -31864,7 +31934,11 @@ def t_abf_v2(pg, base):
     #   「0 筆…那不是壞掉」那兩句在 ③ 章節（預設收合）與警語卡裡；警語卡點開就看得到，算數。
     _v2_land(pg, url, "dark", 1440, "0")
     reach = _v2_reach(pg)
-    for kw in ("台股掛零", "0 筆", "不是壞掉", "不是整個族群", "示意圖，非實物比例", "實際為十幾至二十幾層", "CoWoS", "不是這張圖的主題"):
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：「點零件篩到的是環節」警示卡／「這張圖沒有回答的事」框拿掉，
+    #   誠實那一句收進「?」。改驗：框真的不在了、真的按「?」讀得到那一句（dg_honest）。
+    hn = dg_honest(pg)
+    ok(f"[{FEAT}] ★ 圖上沒有「點零件篩到的是環節」那一行、按「?」讀得到「{DG_HONEST}」", hn["gone"] and DG_HONEST in hn["how"], hn["how"][-100:])
+    for kw in ("台股掛零", "0 筆", "不是壞掉", "示意圖，非實物比例", "實際為十幾至二十幾層", "CoWoS", "不是這張圖的主題"):
         ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖上，或卡片點開就看得到）", kw in reach, "")
     pct = [ln for ln in reach.split("\n") if "%" in ln]
     pct = list(dict.fromkeys(pct))     # 同一句若同時出現在圖上與卡片裡只算一處（比的是「有幾種百分比的說法」）
@@ -32015,7 +32089,15 @@ def t_cooling_v2(pg, base):
 
     # ★ 2026-09-23 第二批（W3-2）：成分股表移除，改數環節詳情 `#segBox`
     def rows():
+        # ★ 2026-10-06（驗收過時，29149fc／DECISIONS #310）：桌機（>820）#segBox 拿掉，seg_stocks 在桌機永遠 0（量到 0 → 0）。
+        #   改讀現行的「環節詳情」：桌機＝右欄 #relList 亮的那一格、而且真的套用了（seg_applied）；手機照舊 #segBox。
+        if pg.evaluate("() => innerWidth > 820"):
+            return len(seg_detail(pg)["codes"]) if seg_applied(pg) else 0
         return seg_stocks(pg)
+
+    def grp_n(did_):
+        """族群實際的成分股檔數（groups_detail.json，跟頁面吃的是同一份）。改前拿「沒篩時的成分股表筆數」，表已移除。"""
+        return pg.evaluate("(g) => fetch('data/groups_detail.json').then(r => r.json()).then(d => ((d[g] || {}).members || []).length)", did_)
 
     def bars_open(want):
         """把章節列開到 want 這個狀態（冪等：已經是那個狀態就不動，#237 的「toggle 一律 if」）。"""
@@ -32100,15 +32182,19 @@ def t_cooling_v2(pg, base):
         ok("[%s] 每條章節列都掛了全文 title（提示被砍短時滑鼠移上去看得到全文）" % did, all(len(t) > 8 for t in tt), tt)
 
         # ---------------- 6. 卡片與錨點、三個寬度
-        ok("[%s] ★ 卡片 ≥ 12 張、有編號的每一張都有錨點與引線（三欄）" % did,
-           d["cards"] >= 12 and d["numbered"] == d["anchors"] == d["leads"], {"cards": d["cards"], "numbered": d["numbered"], "anchors": d["anchors"], "leads": d["leads"]})
+        # ★ 2026-10-06（驗收過時：style_guide 第 10 條，DECISIONS #332）：「點零件篩到的是環節」警語卡拿掉，液冷 12 → 11 張（氣冷 12 張不變）。
+        ok("[%s] ★ 卡片 ≥ 11 張、有編號的每一張都有錨點與引線" % did,
+           d["cards"] >= 11 and d["numbered"] == d["anchors"] == d["leads"], {"cards": d["cards"], "numbered": d["numbered"], "anchors": d["anchors"], "leads": d["leads"]})
         missing = [p for p in d["cardParts"] if p not in d["svgParts"]]
         ok("[%s] ★ 每張卡片的 data-part 都對得到 SVG 裡的零件（點卡片才亮得到零件）" % did, not missing, missing)
-        ok("[%s] [1440 抽屜關] 三欄：左欄在畫布左邊、右欄在畫布右邊" % did,
-           d["colL"] and d["colR"] and d["colL"]["r"] <= d["canvas"]["l"] and d["colR"]["l"] >= d["canvas"]["r"], {"L": d["colL"], "R": d["colR"], "canvas": d["canvas"]})
-        v2 = land(url, "dark", 1100)
-        ok("[%s] ★ [1100] 兩欄：卡片全部在畫布右邊、照編號排（01…12、警語最後）、引線照畫" % did,
-           v2["colL"] and v2["colL"]["l"] >= v2["canvas"]["r"] and v2["order"] == sorted(v2["order"]) and v2["leads"] == v2["anchors"],
+        # ★ 2026-10-06 改前→改後（驗收過時，版面 v2 左側導覽 #291／#312）：1440 的容器只剩 1124，跨不過 .dgv2 的 1280 三欄門檻 ——
+        #   1440 現在本來就是兩欄（畫布＋右欄，量到 L、R 都在 1030 起），1100 是單欄。三欄改在 1920 驗、兩欄改在 1440 驗（同 _v2_common），門檻不動。
+        v1 = land(url, "dark", 1920)
+        ok("[%s] [1920 容器 ≥1280] 三欄：左欄在畫布左邊、右欄在畫布右邊" % did,
+           v1["colL"] and v1["colR"] and v1["colL"]["r"] <= v1["canvas"]["l"] and v1["colR"]["l"] >= v1["canvas"]["r"], {"L": v1["colL"], "R": v1["colR"], "canvas": v1["canvas"]})
+        v2 = d
+        ok("[%s] ★ [1440] 兩欄：卡片全部在畫布右邊、照編號排、引線照畫" % did,
+           v2["colL"] and v2["colL"]["l"] >= v2["canvas"]["r"] - 2 and v2["order"] == sorted(v2["order"]) and v2["leads"] == v2["anchors"],
            {"L": v2["colL"], "canvas": v2["canvas"], "order": v2["order"], "leads": v2["leads"]})
         v3 = land(url, "dark", 800)
         ok("[%s] ★ [800] 單欄：卡片在畫布下面、不畫引線（靠編號）、照編號排、整頁沒有橫向捲軸" % did,
@@ -32200,7 +32286,12 @@ def t_cooling_v2(pg, base):
         for did, txt in (("liquid_cooling", lt), ("air_cooling", at)):
             pct = _re.findall(r"(?:良率|成本|市占率?)[^\n]{0,12}\d", txt)
             ok("[%s] 紅線 §6-N1：沒有良率／成本／市占率的數字" % did, not pct, pct[:4])
-            ok("[%s] 畫面上有「示意圖，非實物比例」與「%s」" % (did, COOL_FOOT), "示意圖，非實物比例" in txt and COOL_FOOT in txt)
+            # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條）：COOL_FOOT 警示卡拿掉、那一句（含收錄幾家）收進「?」
+            land(base + "#industry/ai_server/dg/" + did, "dark")
+            hn = dg_honest(pg)
+            ok("[%s] 畫面上有「示意圖，非實物比例」；警示卡不在了、按「?」讀得到「%s」" % (did, DG_HONEST),
+               "示意圖，非實物比例" in txt and hn["gone"] and DG_HONEST in hn["how"], hn["how"][-100:])
+            txt = txt + "\n" + hn["how"]   # 下面「收錄 N 家／族群有 N 檔」那兩句現在住在「?」裡
             CN = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
             m = _re.search(r"散熱這一格目前收錄([一二三四五六七八九十]+)家", txt)
             land(base + "#industry/ai_server/dg/" + did, "dark")
@@ -32209,7 +32300,8 @@ def t_cooling_v2(pg, base):
             ok("[%s] 畫面寫的「散熱這一格收錄 N 家」跟實際篩出來的筆數一致" % did, bool(m) and CN.get(m.group(1)) == r2, "畫面寫 %s ／ 實際 %s" % (m.group(1) if m else "（沒寫）", r2))
             if did == "air_cooling":
                 m2 = _re.search(r"族群有([一二三四五六七八九十]+)檔", txt)
-                ok("[air_cooling] 畫面寫的「族群有 N 檔」跟族群實際的成分股筆數一致", bool(m2) and CN.get(m2.group(1)) == r0, "畫面寫 %s ／ 實際 %s" % (m2.group(1) if m2 else "（沒寫）", r0))
+                gn = grp_n(did)
+                ok("[air_cooling] 畫面寫的「族群有 N 檔」跟族群實際的成分股筆數一致", bool(m2) and CN.get(m2.group(1)) == gn, "畫面寫 %s ／ 實際 %s" % (m2.group(1) if m2 else "（沒寫）", gn))
         bad = _re.findall(r"\d[\d,\.]*\s*(?:rpm|RPM|CFM|cfm|mmH|dBA|dBa|dB)\b", at)
         ok("★ 紅線 §6-N2：氣冷畫面上一個風扇規格數字都沒有", not bad, bad[:5])
         ok("★ §7-B3：軸承壽命一個小時數都沒寫", not _re.search(r"\d[\d,]*\s*(?:小時|hours)", at))
@@ -32222,6 +32314,10 @@ def t_cooling_v2(pg, base):
         for theme, lab, floor in (("dark", "科技", 11.9), ("light", "閱讀", 12.9)):
             for w in (1440, 800, 390):
                 land(base + "#industry/ai_server/dg/" + did, theme, w)
+                if w == 390:
+                    # ★ 2026-10-06（驗收過時，手機 v3 D 63c080b0）：≤640 預設「整張」把 SVG 縮到 100% 寬（字 5px 是設計：手機讀編號鈕＋抽屜），
+                    #   「每一個字 ≥ 12px」講的是按「放大」之後的原尺寸 —— 先真的按「放大」再量，門檻不動。
+                    _m390_big(pg, "[%s 390px][%s]" % (lab, did))
                 bars_open(True)
                 z = pg.evaluate(DG_TYPO)
                 if not ok("[%s %spx][%s] 剖析圖畫得出來" % (lab, w, did), z.get("present"), z):
@@ -32232,6 +32328,7 @@ def t_cooling_v2(pg, base):
                     svg.querySelectorAll('text').forEach(n => { if (!n.getClientRects().length) return; const b = n.getBBox(), m = n.getCTM();
                       const l = m ? m.a*b.x + m.c*b.y + m.e : b.x; if (l + b.width*(m ? m.a : 1) > vb + 1) bad.push((n.textContent||'').slice(0,16)); }); return bad; }""")
                 ok("[%s %spx][%s] 沒有任何一段字畫出畫布右緣" % (lab, w, did), not out, out[:3])
+    _m390_reset(pg)   # 390 那幾輪按過「放大」（tw.m3.dgzoom），清掉免得帶進下一段
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.side'); } catch (e) {} }")
 
@@ -32421,7 +32518,12 @@ def t_hsio_v2(pg, base):
     s_all = pg.evaluate(_V2)["all"]
     ok(f"[{FEAT}] N1：整張圖（svg ＋ 卡片）沒有任何百分比", "%" not in s_all, [ln for ln in s_all.split("\n") if "%" in ln][:2])
     ok(f"[{FEAT}] ★ N2：距離對照那兩個數字同時標了來源與前提", all(k in s_all for k in ("22 吋", "4.5 吋", "802.3ck", "單一來源", "原廠技術頁")), "")
-    ok(f"[{FEAT}] N3：三行誠實性標示都在（非實物比例／距離對照的限制／環節不等於族群）", all(k in s_all for k in ("示意圖，非實物比例", "依板材、頻率與設計規則而異", "不是整個族群")), "")
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：「點零件篩到的是環節」警示卡／「這張圖沒有回答的事」框拿掉，
+    #   誠實那一句收進「?」。改驗：框真的不在了、真的按「?」讀得到那一句（dg_honest）。
+    hn = dg_honest(pg)
+    ok(f"[{FEAT}] N3：三行誠實性標示都在（非實物比例／距離對照的限制在圖上；環節不等於族群在「?」）",
+       all(k in (s_all + hn["title"]) for k in ("非實物比例", "依板材、頻率與設計規則而異")) and DG_HONEST in hn["how"] and hn["gone"], hn["how"][-100:])
+    ok(f"[{FEAT}] ★ 按「?」讀得到「連接器 / 線材」這一格只收錄貿聯一家", "只收錄 3665" in hn["how"], hn["how"][-100:])
     ok(f"[{FEAT}] §5 那一塊固定說明框「連接器賣的是四件事」在畫面上（電／機／熱／裝）", "連接器賣的是四件事" in s_all and all(k in s_all for k in ("電：", "機：", "熱：", "裝：")), "")
     # ---- 誰做的：插槽 → 只收錄一家；ASIC（沒掛環節）→ 開得起來；尺 → 開得起來
     _v2_land(pg, url, "dark", 1440, "0")
@@ -32488,8 +32590,16 @@ def t_pcb_v2(pg, base):
     # ★ 2026-10-06 改前→改後（驗收過時，09-24 卡片限高收合）：警語卡在 1440 收成「標題 ▾」—— 改讀 _v2_reach()（真的點開每張卡讀字）
     _v2_land(pg, url, "dark", 1440, "0")
     reach = _v2_reach(pg)
-    for kw in ("不是整個族群", "示意圖，非實物比例", "20～50 層以上", "收錄六家", "一個數字都不寫"):
-        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖名列／圖上，或警語卡點開就看得到）", kw in reach, "")
+    # ★ 2026-10-06（驗收過時：style_guide 第 10／11 條清廢話）：「點零件篩到的是環節」警示卡／「這張圖沒有回答的事」框拿掉，
+    #   誠實那一句收進「?」。改驗：框真的不在了、真的按「?」讀得到那一句（dg_honest）。
+    #   「一個數字都不寫」是否定句（第 11 條廢話），跟著警示卡一起拿掉，不再驗。
+    hn = dg_honest(pg)
+    ok(f"[{FEAT}] ★ 圖上沒有警示卡、按「?」讀得到「{DG_HONEST}」與「收錄六家」", hn["gone"] and DG_HONEST in hn["how"] and "收錄六家" in hn["how"], hn["how"][-100:])
+    #   「20～50 層以上」改前也印在警語卡裡；卡片拿掉之後它住在疊層章節（預設收合）的說明 —— 真的把章節點開再讀。
+    _v2_open_all(pg)
+    reach_open = reach + "\n" + pg.evaluate(_V2)["all"]
+    for kw in ("示意圖，非實物比例", "20～50 層以上"):
+        ok(f"[{FEAT}] ★「{kw}」在畫面上摸得到（圖名列／圖上，或章節點開就看得到）", kw in reach_open, "")
     # ---- 結構硬規則（章節全開之後 ②③④ 的東西才量得到；主視圖的座標全部從 DOM 量，不寫死）
     _v2_open_all(pg)
     st = pg.evaluate("""() => {
