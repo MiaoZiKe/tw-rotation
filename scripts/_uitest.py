@@ -12399,7 +12399,8 @@ def t_livek(pg, base, code):
     n1m = pg.evaluate("() => (window.LiveK.bars('1m')||[]).length")
     ok("1 分 K 有資料（Yahoo 補的早盤）", n1m > 10, n1m)
     note = pg.evaluate(LIVENOTE_JS)
-    ok("畫面上寫清楚資料哪裡來、量是估計值", "估計值" in note or "Yahoo" in note, note[:100])
+    # 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，說明列／斜線小標拿掉，來源與估計值收進「?」；句子只留在 #liveNote[data-note]）
+    ok("資料來源與量是估計值收進 K 線「?」，畫面不寫", "量為估計值" in pg.evaluate("() => (document.getElementById('how-kline') || {}).textContent || ''") and not pg.evaluate("() => { const n = document.getElementById('liveNote'); return !!n && n.getClientRects().length > 0; }"), note[:100])
 
     # --- 3. ★ 價格要從 trade.z 拿，不是最佳買價（2026-09-15 修的 bug）
     last = pg.evaluate("() => { const b = window.LiveK.bars('5s'); return b.length ? b[b.length-1][4] : null; }")
@@ -12611,7 +12612,7 @@ def t_livek_offhours(pg, base, code):
         ok("A 切 1 分：畫出那一天整天 271 根", r1["n"] == 271 and r1["has"] and not r1["empty"], r1)
         ok("A 1 分：圖上最後一根是那一天 13:30（不是今天）", r1["last"] == f"{prev} 13:30", r1["last"])
         ok("A 1 分：短註寫「最近交易日 YYYY-MM-DD（非即時）」",
-           f"最近交易日 {prev}（非即時）" in r1["note"] and not r1["noteHidden"], r1["note"][:120])
+           f"最近交易日 {prev}（非即時）" in r1["note"] and r1["noteHidden"], r1["note"][:120])   # 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，說明列／斜線小標拿掉，來源與估計值收進「?」；句子只留在 #liveNote[data-note]）
         ok("A 1 分：沒有悄悄退回日線／1 時", not r1["fb"], r1["fb"])
         ok("A 1 分：圖例（十字游標讀數）的日期是那一天", r1["legend"].startswith(prev), r1["legend"][:40])
         changed("A 切 1 分之後畫面真的換了", h_day, canvas_hash(pg, "#lwc"))
@@ -12624,7 +12625,7 @@ def t_livek_offhours(pg, base, code):
         pg.mouse.move(5, 5)
         r5 = tf("5m")
         ok("A 切 5 分：由 1 分合成（09:00～13:30 共 55 根）", r5["n"] == 55, r5)
-        ok("A 5 分：短註寫最近交易日與「合成」", f"最近交易日 {prev}" in r5["note"] and "合成" in r5["note"], r5["note"][:120])
+        ok("A 5 分：短註寫最近交易日與「合成」", f"最近交易日 {prev}" in r5["note"], r5["note"][:120])   # 2026-10-06：「合成」那句在廢話普查第二輪縮掉
         r15 = tf("15m")
         ok("A 切 15 分：由 1 分合成（19 根）", r15["n"] == 19, r15)
         ok("A 15 分：最後一根是那一天 13:30", r15["last"] == f"{prev} 13:30", r15["last"])
@@ -12705,7 +12706,7 @@ def t_livek_offhours(pg, base, code):
         ok("C 1 分：今天 Yahoo 66 根＋報價那一根＝67 根（跟以前同一套接法）", rc["n"] == 67, rc)
         ok("C 1 分：最後一根是今天 10:26", rc["last"] == f"{today} 10:26", rc["last"])
         ok("C 1 分：說明照舊（早盤 N 根來自 Yahoo），沒有「非即時」",
-           "早盤 66 根來自 Yahoo" in rc["note"] and "非即時" not in rc["note"] and not rc["offDay"], rc["note"][:120])
+           "早盤 66 根" in rc["note"] and "非即時" not in rc["note"] and not rc["offDay"], rc["note"][:120])   # 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，說明列／斜線小標拿掉，來源與估計值收進「?」；句子只留在 #liveNote[data-note]）
         n0 = pg.evaluate("() => (window.LiveK.bars('5s')||[]).length")
         pg.evaluate(f"""() => window.LiveK._feed({{ c:'X', n:'測試', d:'{today.replace('-', '')}', z:'1015.0000', y:'1000.0000',
             o:'1001.0000', h:'1015.0000', l:'995.0000', v:'5400', tlong: String({epoch(today, '10:27')} * 1000),
@@ -19815,7 +19816,8 @@ def t_tick_live_1002(b, base, code):
                  tag: tag ? tag.textContent : null, tw: tag ? tag.getBoundingClientRect().width : 0 }; }""")
     ok("★ [分時即時] 缺口那幾分鐘主線是空白（不是實線）", gi["n"] == 19 and gi["solid"] == 0, gi)
     ok("★ [分時即時] 缺口兩端用虛線連起來（另一條線、虛線樣式）", gi["segs"] == 1 and gi["glPts"] == 2 and gi["style"] == gi["dashed"], gi)
-    ok("★ [分時即時] 圖上標「此段等待資料」", gi["tag"].startswith("Yahoo 延遲約 20 分") and gi["tw"] > 20, gi)
+    # 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，說明列／斜線小標拿掉，來源與估計值收進「?」；句子只留在 #liveNote[data-note]）
+    ok("★ [分時即時] 缺口畫斜線、不放小標", gi["tag"] == "" and gi["tw"] > 20, gi)
     note = pg.evaluate(LIVENOTE_JS)
     ok("★ [分時即時] 說明寫出三段：Yahoo 09:00～10:10、10:30 之後本頁即時累積、10:11～10:29 暫無資料",
        "09:00～10:10 來自 Yahoo" in note and "10:30 之後是本頁即時累積" in note and "10:11～10:29 在你打開頁面之前，暫無資料" in note, note)
@@ -20001,7 +20003,8 @@ def t_tick_live_lead(b, base):
         return { tag: t ? t.textContent : null, lead: t ? t.dataset.lead : null, w: t ? t.getBoundingClientRect().width : 0,
                  gl: c.gapLine.data().filter(p => p.value != null).length,
                  before: c.rows.filter(r => r.time < first.time && r.value != null).length, first: first.time }; }""")
-    ok("★ [分時開盤頭段] 圖上標「此段等待資料」（開盤到第一根，夠寬才放字）", li["tag"].startswith("Yahoo 延遲約 20 分") and li["lead"] == "1" and li["w"] >= 72, li)
+    # 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，說明列／斜線小標拿掉，來源與估計值收進「?」；句子只留在 #liveNote[data-note]）
+    ok("★ [分時開盤頭段] 開盤到第一根畫斜線、不放小標", li["tag"] == "" and li["lead"] == "1" and li["w"] >= 72, li)
     ok("★ [分時開盤頭段] 左邊沒有點可以連：不畫虛線、09:00～第一根之前主線也沒有任何點（不從昨收拉線）",
        li["gl"] == 0 and li["before"] == 0 and hm(li["first"]) == "09:28", li)
     note = pg.evaluate(LIVENOTE_JS)
@@ -20032,8 +20035,8 @@ def t_tick_live_lead(b, base):
             const plotR = z.left + TickChart.last.chart.timeScale().width();
             return { txt: sp.textContent, fs: parseFloat(getComputedStyle(sp).fontSize), gapW: Math.round(g.width), lblW: Math.round(a.width),
                      inside: a.left >= z.left - 1 && a.right <= plotR + 1, hs: document.documentElement.scrollWidth <= innerWidth + 1 }; }""")
-        ok(f"★ [分時開盤頭段] {vw}px：缺口比字窄也標「此段等待資料」、字塊在價格區內、字 ≥ 11px、沒有橫向捲軸",
-           str(lb.get("txt") or "").startswith("Yahoo 延遲約 20 分") and lb.get("inside") and lb.get("fs", 0) >= 11 and lb.get("hs"), lb)
+        # 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，說明列／斜線小標拿掉，來源與估計值收進「?」；句子只留在 #liveNote[data-note]）
+        ok(f"★ [分時開盤頭段] {vw}px：缺口有斜線、沒有小標、沒有橫向捲軸", lb.get("tag") and lb.get("none") and pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"), lb)
     ctx.close()
 
 
@@ -23134,7 +23137,7 @@ def t_live_admin_1006(b, base, code):
         # 分時（預設週期）：資料湖 60 分 K 的最近交易日，說明寫盤後資料
         pg.evaluate("() => { const x = document.querySelector('#tfSeg button[data-tf=\"tick\"]'); if (x) x.click(); }")
         pg.wait_for_timeout(1200)
-        sn = pg.evaluate("() => [...document.querySelectorAll('#skChartCard .note, #skChartCard [id*=Note], #skChartCard .livenote')].map(e => e.textContent).join(' | ')")
+        sn = pg.evaluate("() => ((document.getElementById('liveNote') || {}).dataset || {}).note || ''")   # 2026-10-06：說明列不顯示，狀態句在 data-note
         ok(f"[{T}] {who} 個股分時：畫的是最近交易日（盤後資料），不提「即時來源連不上」", ("盤後資料" in sn or "此檔暫無分時資料" in sn) and "即時來源連不上" not in sn, sn[:160])
         vis = pg.evaluate(LIVEADM_VIS)
         ok(f"[{T}] {who} 個股：看不到任何即時 UI", not vis, vis)
