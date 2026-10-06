@@ -36045,7 +36045,9 @@ def t_b29_tabs(pg, base):
     # 進到圖裡之後 #dgQ 那一行也要把問題寫出來（第二個看得到的地方）
     click(pg, f"#dgPick .segchip[data-dgid='{m7['tabs'][0]['id']}']", 2600)
     ok("W3-7：進到圖裡之後 `#dgQ` 那一行也把問題寫出來（第二個看得到的地方）",
-       "這張圖回答" in (pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''") or ""),
+       # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：「這張圖回答：」前綴拿掉，問題本身照寫 → 改驗有問句、沒有前綴
+       "？" in (pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''") or "")
+       and "這張圖回答" not in (pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''") or ""),
        pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''")[:50])
     # ★ 2026-09-23 C1：「← 族群總覽」`#dgBack` 整顆移除 —— 回上一層改按**分頁列的第一格**。
     #   ⚠ 用 JS 派發的 element.click()：#industry 頁吸頂的 .topbar 會把 pg.click() 攔掉。
@@ -44740,9 +44742,12 @@ def t_mobile_broker(b, base, code):
     # ---- 頂部報價列捲動時固定；表頭釘在報價列下面 ----
     m.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight })"); m.wait_for_timeout(500)
     sk = m.evaluate("""() => { const h = document.getElementById('mbHead').getBoundingClientRect(), th = document.querySelector('#mbBody .mbtbl thead th');
-        return { sy: Math.round(scrollY), ht: Math.round(h.top), hb: Math.round(h.bottom), tht: th ? Math.round(th.getBoundingClientRect().top) : null }; }""")
+        return { sy: Math.round(scrollY), ht: Math.round(h.top), hb: Math.round(h.bottom), tht: th ? Math.round(th.getBoundingClientRect().top) : null,
+                 bottom: document.documentElement.scrollHeight - innerHeight - scrollY <= 2 }; }""")
     ok(f"{T}捲到整頁最底下：報價列還釘在頂欄下面（top≈52）", sk["sy"] > 300 and 48 <= sk["ht"] <= 56, sk)
-    ok(f"{T}捲到底：表頭釘在報價列正下方（不被蓋住）", sk["tht"] is not None and abs(sk["tht"] - sk["hb"]) <= 3, sk)
+    # ★ 2026-10-06 廢話普查：表格下方的長註腳縮短後頁面變矮，捲到底時表格可能還沒碰到報價列 ——
+    #   那時表頭在報價列下面、沒被蓋住，也算過；碰到了就要正好釘在報價列正下方。
+    ok(f"{T}捲到底：表頭釘在報價列正下方（不被蓋住）", sk["tht"] is not None and (abs(sk["tht"] - sk["hb"]) <= 3 or (sk["tht"] > sk["hb"] and sk["bottom"])), sk)
     m.evaluate("() => window.scrollTo({ top: 0 })")
 
     # ---- 大戶／散戶（2026-09-28）：三條持股週線（千張以上｜400～1000 張｜≤10 張），上方三顆色塊＝圖例兼開關 ----
