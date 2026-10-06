@@ -1,5 +1,26 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 08:20 財經日曆／ETF／選股策略清廢話（copy-trim2 轉交那三支＋收尾；UI 專家，分支 `claude/copy-trim3` → main）
+- **第一批 45845e99＋ddd80852（07:38 推，Pages 6871910691 07:43 ✅）**：選股策略出處只留機構名（端點代碼、FinMind 資料集名、pipeline 路徑、「官網條款禁止…」刪），
+  整行「資料：…」「資料日期／資料出處」改標題旁出處 ⓘ，卡片與完整名單頁的 `.sl-date` 日期膠囊拿掉（DECISIONS #329 轉交那兩處）；
+  計算方式的「本站資料湖」「每天由管線」「持股分級 15」改讀者語言；三頁「資料準備中」→「尚無資料／尚無財經日曆資料／尚無除息資料」。
+  出處 ⓘ：`App.srcInfo` 還在 copy-trim2（未上 main），三支檔都是「有就用它、沒有就產出同樣的 `.srcinfo` 標記（借 `.muted` 灰字）」；earnings／etf 自己的 `.si` 圓圈樣式刪掉。
+  驗：`_uitest --workers 1 --sections 財經日曆1006,財報日曆1005,ETF專區1005,選股策略1005,分頁拖曳1006` → ETF 1 條（calgrid 休市提示含「資料湖」，當時先排除、另案）、其餘 0；
+  `_preview` 只有既有的 earnings.json 404（本機沒有這檔）。ETF 段排除後單獨重跑 0。
+- **收尾這批（協調者定口徑）**：
+  · **ⓘ 一律不放資料日期**（#329「一律拿掉」）：earnings.js 的 `si()` 只收出處；explore／etfpage 本來就只寫「出處：X」。
+  · `calgrid.js` 休市標記提示只寫「X・台股休市（證交所公告）」（`S.verified` 拿掉；查證紀錄只留在 `pipeline/calendar/tw_holidays.yaml`）。
+  · `pipeline/compute/earnings.py macro_events()`：FED 事件 `src` 只寫發布機關名（`FED_INFO[k]["org"]`），查證紀錄留在 `macro_events.yaml` 的 source／verified；
+    走哪條路改記機器欄位 `via`（fred／yaml，前端不顯示）。前端 `cleanSrc` 替換留著當保險（舊種子檔 `site/earnings_seed.json` 還是舊字串）。
+  · `explore.css` 刪掉沒在用的 `.sl-date`／`.sl-src`／`.sl-dsrc`。「非推薦名次」照留（講排序，不是重複免責）。
+  · `_uitest`：ETF 退回模式的掃描拿掉 calgrid 排除（真的守住休市提示）；財經日曆1006 加「休市提示只寫 X・台股休市（證交所公告）」。
+- **這批驗了**：`pytest tests/ -q` 1032 passed、1 xfailed（動到 pipeline／tests）；
+  `SKIP_INTRADAY=1 python -m pipeline.build_payload` 在容器裡**兩次都被 OOM 砍掉**（rc 137，同時有其他代理開瀏覽器；一次死在 60 分 K、一次死在讀完資料湖）→
+  改用只重算 `earnings.json` 的腳本（輸入照抄 build() 那一步；pipeline 端這批只動 `macro_events`），FED 事件 src 確認是「聯準會（Federal Reserve）／美國勞工統計局（BLS）／美國經濟分析局（BEA）」；
+  之後 `_uitest --workers 1 --sections 選股策略1005,財報日曆1005,財經日曆1006,ETF專區1005` **0 問題**、`_preview.py` **0 問題**（有了 earnings.json，原本那個 404 也沒了）。
+  ⚠ 其他 JSON 沒有重算（沒有改到它們的產生程式）；完整重算交給雲端 `pages.yml`。
+- **沒驗**：分頁拖曳1006（這批沒動分頁列）、其他用到 calgrid 的頁面只有財經日曆與 ETF（都在上面）。
+
 ## 2026-10-06 07:22 選股策略拿掉「全部」＋全站分頁拖曳 site/tabdrag.js（UI 專家，分支 `claude/explore-noall` → main a74a00fd，DECISIONS #330）
 - 選股策略：面向分頁只留 基本面｜技術面｜籌碼面｜消息面，預設基本面，重新整理一律回基本面（不再讀寫 `tw.explore.cat`）；子標籤下拉只列該面向。
 - `site/tabdrag.js`：全站自動掛 `.nbsw`／`.subtabs`／`role="tablist"`／`#stockTabs`／`#mktSeg2`／`#mktTabs`；滑鼠拖曳（>6px、放開吞掉那次 click）＋Alt+←／→；

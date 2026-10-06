@@ -2052,8 +2052,8 @@ def t_etf_1005(pg, b, base):
         fp.goto(f"{base}#etf", wait_until="domcontentloaded")
         rd = wait_until(fp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready", 15000)
         ft = fp.evaluate("""() => { const r = document.querySelector('#v-etf');
-            // 休市標記（.cg-hl，calgrid.js 共用元件）的滑過提示另案轉交，不在這三支檔的範圍
-            return { t: r.innerText + ' ' + [...r.querySelectorAll('[title]:not(.cg-hl)')].map(e => e.title).join(' '),
+            // 休市標記（.cg-hl，calgrid.js）的滑過提示也在掃描範圍內：10-06 起只寫「X・台股休市（證交所公告）」
+            return { t: r.innerText + ' ' + [...r.querySelectorAll('[title]')].map(e => e.title).join(' '),
                      pop: (document.querySelector('#etfPop') || {}).innerText || '', ret: (document.querySelector('#etfRetBody') || {}).innerText || '',
                      cal: (document.querySelector('#etfCalList') || {}).innerText || '', n: document.querySelectorAll('#etfGrid .etfc').length }; }""")
         import re as _re2
@@ -22296,6 +22296,7 @@ def t_cal_1006(pg, b, base):
         點 FED 面板有星級＋前值／預期值／公布值；三個分類各切一次，面板裡不出現其他類的項目；面板底部空白比例 < 35%
       · ETF：週末反灰、休市標記、分類順序（債券型在槓桿反向前）、頁籤與內容框上緣距離 ≤ 1px、自訂期間兩個日期欄"""
     tag = "財經日曆1006"
+    import re as _re
     lp = b.new_page(viewport={"width": 1440, "height": 900})
     errs = []
     lp.on("pageerror", lambda e: errs.append(str(e)))
@@ -22318,6 +22319,11 @@ def t_cal_1006(pg, b, base):
         ok(f"★ [{tag}] 月曆週六日格全部反灰（cg-we）、底色跟平日不同、平日沒有被誤灰", wk["n"] >= 28 and wk["bad"] == 0 and wk["weBg"] != wk["wdBg"], wk)
         hol = J("""() => ['2026-10-09','2026-10-10','2026-10-26'].map(d => { const e = document.querySelector(`#earnGrid .ed[data-d="${d}"]`); return e ? (e.querySelector('.cg-hl') || {}).textContent || '' : null; })""")
         ok(f"★ [{tag}] 國定假日標在格子上：10/9「國慶日補假・休市」、10/10「國慶日・休市」、10/26「光復節補假・休市」", hol == ["國慶日補假・休市", "國慶日・休市", "光復節補假・休市"], hol)
+        # 2026-10-06 改前→改後（廢話普查第二輪）：滑過提示「國慶日・台股休市（證交所公告；2026-10-06（WebSearch 摘要＋資料湖交易日對照；官方頁面未讀原文））」
+        #   → 只寫「國慶日・台股休市（證交所公告）」
+        holt = J("""() => [...document.querySelectorAll('#earnGrid .cg-hl')].map(e => e.title)""")
+        ok(f"★ [{tag}] 休市標記的滑過提示只寫「X・台股休市（證交所公告）」，沒有查證日期／WebSearch／資料湖",
+           bool(holt) and all(_re.fullmatch(r"[^（）]+・台股休市（證交所公告）", t) for t in holt), holt)
         ok(f"[{tag}] 圖例有「週末」「台股休市日」", "週末" in text(lp, "#earnLegend") and "台股休市日" in text(lp, "#earnLegend"))
         # 公司面板有圖
         lp.click("#earnGrid .chip[data-code]"); lp.wait_for_timeout(300)

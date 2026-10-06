@@ -27,7 +27,6 @@
 #v-explore .sl-tt{flex:1;min-width:0}
 #v-explore .sl-en{margin:0;font-size:16px;line-height:1.25}
 #v-explore .sl-zh{font-size:12px;color:var(--ink-3);line-height:1.35}
-#v-explore .sl-date{flex:none;font:12px var(--mono,monospace);color:var(--ink-2);padding:2px 8px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line)}
 #v-explore .sl-i,#v-explore .sl-more{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line-2);
   background:var(--panel-2);color:var(--ink-2);font:italic 700 13px Georgia,serif;cursor:pointer;text-decoration:none}
 #v-explore .sl-more{font:700 18px/1 sans-serif}
@@ -64,9 +63,6 @@
 #v-explore .sl-info{margin:10px 0 4px;padding:10px 12px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);font-size:13px;line-height:1.55;color:var(--ink-2)}
 #v-explore .sl-info p{margin:0 0 6px}
 #v-explore .sl-info b{color:var(--ink)}
-#v-explore .sl-src{margin:0 0 6px;display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr);gap:3px 10px}
-#v-explore .sl-src dt{color:var(--ink);font-weight:600}
-#v-explore .sl-src dd{margin:0;overflow-wrap:anywhere;min-width:0}
 #v-explore .sl-care{color:var(--amber,#ffb454)}
 
 /* 完整名單頁 */
@@ -125,9 +121,6 @@
 .sl-pop .sl-info{margin:0;padding:0;background:none;border:0}
 .sl-pop .sl-info p{margin:0 0 6px}
 .sl-pop .sl-info b{color:var(--ink)}
-.sl-pop .sl-src{margin:0 0 6px;display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr);gap:3px 10px}
-.sl-pop .sl-src dt{color:var(--ink);font-weight:600}
-.sl-pop .sl-src dd{margin:0;overflow-wrap:anywhere;min-width:0}
 .sl-pop .sl-care{color:var(--amber,#ffb454)}
 
 /* ★ 2026-10-05 第四版：四大面向分區（基本面／技術面／籌碼面／消息面）。每區一個區段標題＋該區卡片牆 */
@@ -138,9 +131,6 @@
 #v-explore .sl-secen{font-size:12px;font-weight:400;color:var(--ink-3)}
 #v-explore .sl-secn{font-style:normal;font-size:12px;font-weight:600;color:var(--cyan);border:1px solid var(--line-2);border-radius:999px;padding:1px 8px}
 #v-explore .sl-sech small{flex-basis:100%;font-size:12.5px;font-weight:400;color:var(--ink-2)}
-
-/* 浮層精簡版：資料日期＋出處一行小字（放不下省略，全文在 title） */
-#v-explore .sl-dsrc,.sl-pop .sl-dsrc{font-size:11.5px;color:var(--ink-3,var(--ink-2));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
 
 /* 10-05：分類改資料夾分頁（.nbsw，CSS 在 index.html 共用）、子標籤改下拉多選 */
 #v-explore .sl-nb{background:transparent;padding-top:var(--sp-3)}

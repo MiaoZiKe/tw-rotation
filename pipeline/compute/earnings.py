@@ -356,19 +356,25 @@ def load_macro_yaml(path: Path = YAML_PATH) -> dict:
 
 
 def macro_events(cfg: dict, cal: pd.DataFrame | None, start: str, end: str) -> list[dict]:
-    """FOMC（YAML）＋ CPI／非農／GDP／PCE（FRED 優先，YAML 退回）。"""
+    """FOMC（YAML）＋ CPI／非農／GDP／PCE（FRED 優先，YAML 退回）。
+
+    src 只寫發布機關名（FED_INFO[k]["org"]）—— 前端放在 ⓘ 滑過提示裡給讀者看。
+    2026-10-06 廢話普查第二輪（Andy：「讀者看了沒意義」）：以前 src 寫「（https://…；查證 2026-10-05（WebSearch 摘要，未讀原文））」
+    「FRED 公布日程（fred/release/dates，release_id 10；抓取 …）」「FRED 日程未取得時的退回值」，那是查證紀錄，
+    留在 macro_events.yaml 的 source／verified 與資料湖 macro_calendar 表，不進 JSON。
+    日期從哪條路來改記在機器欄位 via（"fred"＝FRED 公布日程、"yaml"＝人工維護的退回值），前端不顯示。"""
     out = []
     fomc = (cfg or {}).get("fomc") or {}
-    src_f = f"聯準會會議日程（{fomc.get('source', '')}；查證 {cfg.get('verified', '')}）"
+    src_f = FED_INFO["fomc"]["org"]
     for m in fomc.get("meetings") or []:
         e, mn = str(m.get("end")), str(m.get("minutes") or "")
         if start <= e <= end:
             out.append({"d": e, "k": "fomc", "status": "排程", "title": "FOMC 利率決議" + ("（附點陣圖）" if m.get("sep") else ""),
                         "meet": f"{str(m.get('start'))[5:].replace('-', '/')}–{e[5:].replace('-', '/')}", "sep": bool(m.get("sep")),
-                        "tw": tw_time(e, "14:00"), "src": src_f})
+                        "tw": tw_time(e, "14:00"), "src": src_f, "via": "yaml"})
         if mn and start <= mn <= end:
             out.append({"d": mn, "k": "minutes", "status": "排程", "title": f"FOMC 會議紀要（{e[5:].replace('-', '/')} 會議）",
-                        "tw": tw_time(mn, "14:00"), "src": src_f})
+                        "tw": tw_time(mn, "14:00"), "src": src_f, "via": "yaml"})
     # FRED：只採用「最近一次抓取」裡出現的日期（舊抓取的列若被改期，不會留下幽靈日期）
     fred_keys: set[str] = set()
     if cal is not None and not cal.empty and {"date", "release"} <= set(cal.columns):
@@ -382,7 +388,7 @@ def macro_events(cfg: dict, cal: pd.DataFrame | None, start: str, end: str) -> l
             if k in FED_INFO and start <= d <= end:
                 fred_keys.add(k)
                 out.append({"d": d, "k": k, "status": "排程", "title": FED_INFO[k]["name"], "tw": tw_time(d, FED_INFO[k]["et"]),
-                            "src": f"FRED 公布日程（fred/release/dates，release_id {int(r.get('release_id') or 0)}；抓取 {r.get('fetched', '')}）"})
+                            "src": FED_INFO[k]["org"], "via": "fred"})
     for k, spec in ((cfg or {}).get("releases") or {}).items():
         if k in fred_keys or k not in FED_INFO:
             continue
@@ -391,7 +397,7 @@ def macro_events(cfg: dict, cal: pd.DataFrame | None, start: str, end: str) -> l
             if start <= d <= end:
                 out.append({"d": d, "k": k, "status": "排程", "title": FED_INFO[k]["name"], "ref": x.get("ref"),
                             "tw": tw_time(d, FED_INFO[k]["et"]),
-                            "src": f"官方公布日程（{spec.get('source', '')}；FRED 日程未取得時的退回值，查證 {cfg.get('verified', '')}）"})
+                            "src": FED_INFO[k]["org"], "via": "yaml"})
     return out
 
 
