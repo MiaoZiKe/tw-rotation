@@ -8,7 +8,7 @@ workers_dev = true
 # 只有這些網站可以呼叫（CORS ＋ POST 的 Origin 檢查 ＋ 登入完成後可以回去的網址）。
 # 這不是金鑰，是公開的網域白名單。
 [vars]
-ALLOWED_ORIGINS = "https://miaozike.github.io"
+ALLOWED_ORIGINS = "https://miaozike.github.io https://tw-rotation.pages.dev"
 
 # 單一 Durable Object（SQLite 儲存）。免費方案可用：每天 10 萬列寫入、500 萬列讀取、1 GB。
 [[durable_objects.bindings]]

@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 雙部署到 Cloudflare Pages（deployer，DECISIONS #339）
+- `pages.yml` 多一步部署同一份 site/ 到 `https://tw-rotation.pages.dev/`（失敗不擋 GitHub Pages）；兩支 Worker 的 CORS 白名單加上該網域。
+- **待 Andy 自己按**：① Cloudflare token 要有 Account → Cloudflare Pages → Edit（My Profile → API Tokens → 編輯該 token）② Google Cloud Console → APIs & Services → Credentials → OAuth 用戶端 → 「已授權的 JavaScript 來源」加 `https://tw-rotation.pages.dev`、重新導向 URI 依 `docs/login_setup.md` ③ 正式商用前評估 Cloudflare 付費方案與用量通知（Notifications → 新增 Pages／Workers 用量警示）。
+- 切換條件見 DECISIONS #339。
+
 ## 2026-10-06 文字重疊：大戶散戶卡＋全站普查（UI 專家，分支 `claude/overlap` → main，b195e180）
 Andy 16:25 截圖：個股 → 大戶／散戶 → 4 週，第一點「5.89%」壓在副圖標題上。
 - 修：tabHolders 資料區改從副圖標題下 46px 起（原 26），整張 420→460px。
