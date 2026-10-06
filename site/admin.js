@@ -125,7 +125,7 @@
 #admBody .cb{container-type:inline-size}
 /* 甜甜圈：左圖右圖例（Andy：圖表資訊在右手邊，圓餅才不會被壓縮）；圖例一列一項＝色塊｜名稱｜數量｜占比，數字欄右對齊不截斷；卡寬 < 420px 才退回圖例在下方 */
 #admBody .dn{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px;min-height:0}
-#admBody .dn svg{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
+#admBody .dn svg,#admBody .dn .dnc{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
 #admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
 #admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
@@ -211,14 +211,12 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0}
 #admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
 #admBody .bars .bt.stk{cursor:pointer}
-#admBody .dn svg circle.arc[data-p]{cursor:pointer}
-#admBody .dn svg circle.arc[data-p]:hover{opacity:.82}
 #admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:1 1 0;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
 #admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
 #admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 #admBody .dn ul.lg li b{flex:none;min-width:4.2em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
 #admBody .dn ul.lg li small{flex:none;min-width:3.6em;text-align:right;font:12px var(--mono);color:var(--ink-2)}
-@container (max-width:419px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
+@container (max-width:419px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg,#admBody .dn .dnc{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
 #admBody .dn ul.lg li i{width:12px;height:12px;border-radius:3px;flex:none}
 /* 圖表互動：滑過高亮、其餘變淡；浮動提示（#trTip，掛在 body） */
 #trTip{position:fixed;z-index:1400;pointer-events:none;max-width:280px;padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.5;color:var(--ink);background:var(--panel);border:1px solid var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
@@ -229,19 +227,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25)}
 #v-admin [data-chart].hov .bars>[data-row]:not(.hl),#v-admin .bars.hov>[data-row]:not(.hl),#v-admin .hbars.hov>[data-row]:not(.hl){opacity:.35}
 #v-admin .bars.hov>.hl,#v-admin .hbars.hov>.hl{opacity:1}
-#v-admin [data-chart] svg{overflow:visible}
-#v-admin .arcb{stroke:var(--ink);opacity:0;pointer-events:none;transition:opacity .12s ease,stroke-width .18s ease}
-#v-admin .arc{transition:opacity .12s ease,stroke-width .18s ease}
-#v-admin [data-chart].hov .arc:not(.hl){opacity:.8}
-#v-admin [data-chart].hov .arc.hl{stroke-width:20.4}
-#v-admin [data-chart].hov .arcb.hl{opacity:1;stroke-width:25}
 #v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.7}
 #v-admin [data-chart].hov .sc circle:not(.hl),#v-admin .sc.hov circle:not(.hl),#v-admin [data-chart].hov .vbars rect:not(.hl){opacity:.25}
 #admBody .sc circle.hl{r:8}
 #v-admin .vbars rect.hl{filter:brightness(1.3)}
-#v-admin .dn svg circle.arc,#v-admin .mdonut svg circle.arc{cursor:default}
-#admBody .dn svg circle.arc[data-p]{cursor:pointer}
-@media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k],#v-admin .arc,#v-admin .arcb{transition:none}}
+@media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
 @media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
@@ -567,7 +557,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .mchart h4 small{font-weight:400;color:var(--ink-2);margin-left:6px;font-size:12px}
 #v-admin .mchart .empty{padding:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-admin .mdonut{display:flex;align-items:center;gap:12px;min-width:0}
-#v-admin .mdonut svg{flex:none;width:104px;height:104px}#v-admin .mdonut ul{flex:1}
+#v-admin .mdonut svg,#v-admin .mdonut .dnc{flex:none;width:104px;height:104px}#v-admin .mdonut ul{flex:1}
 #v-admin .mdonut ul{list-style:none;margin:0;padding:0;min-width:0;flex:1;font-size:12.5px}
 #v-admin .mdonut li{display:flex;align-items:center;gap:6px;height:21px;white-space:nowrap;min-width:0}
 #v-admin .mdonut li i{flex:none;width:10px;height:10px;border-radius:3px}
@@ -794,6 +784,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     A = demoWrap(A);
     v.classList.toggle('demo', IS_PREVIEW);
     S.v = v; S.A = A;
+    if (!v._dnMo && window.MutationObserver) { v._dnMo = new MutationObserver(() => { if (v._dnRaf) return; v._dnRaf = requestAnimationFrame(() => { v._dnRaf = 0; mountDonuts(v); }); }); v._dnMo.observe(v, { childList: true, subtree: true }); }
     const t = tabOf();
     if (t !== 'traffic') clearInterval(S.timer);
     if (t === 'perm' || t === 'members') { renderPerm(v, A, t); return; }
@@ -1239,45 +1230,57 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       <text x="${W - R}" y="${H - 6}" text-anchor="end">被觀看次數 →</text><text x="${L}" y="${H - 6}" text-anchor="start">每次觀看用幾次功能 ↑</text>
       ${pts.map((p, pi) => `<circle data-row="${pi}"${tp(`<b>${esc(stockNm(p.code))}</b><br>被觀看 ${nf(p.x)} 次<br>每次平均用 ${p.y.toFixed(2)} 次功能`)} cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="var(--cat-1)" fill-opacity=".85" stroke="var(--panel)" stroke-width="1.5"></circle>`).join('')}${out.join('')}</svg>`;
   }
-  /* 甜甜圈（照產業地圖「成交值占比」那顆：粗環 58%～78%、扇區端點圓角、內側一圈極細軌道、中心小標題＋大數字、圖例在下）。
-     非同組的扇區之間一律同樣的間隙（GAP＝2°，小扇區也照同規則，太小的畫成 0.8° 細片）；只有同一母頁（segs 的 g 相同）的子分頁扇區相連（間隙 0）、同色系深淺。端點直角（butt），不做圓頭。 */
-  /* ★ 2026-10-06（DECISIONS #331）：環規格照 App.donut（產業地圖成交值占比）：內 68%／外 92%（viewBox 外半徑 60 → R 48、W 14.4）、間隙 1.2°、
-     滑過外擴 4px＋外框 3px（見下方 arcb）。SVG 的環是 stroke，沒辦法做 6px 圓角與 1px 面板色邊框（那兩項只有 ECharts 版做得到），其餘照範本。 */
-  const DN = { R: 48, W: 14.4, GAP: 1.2, HI: 4.5, BORDER: 2.3 };
-  let dnSeq = 0;
+  /* ★ 2026-10-06 第三版（Andy 14:45：「管理區甜甜圈還是舊樣式，要一模一樣」，DECISIONS #331）：
+     管理區所有甜甜圈（各頁占比、開站身分、功能占比、會員狀態、方案、分頁瀏覽）不再自己用 SVG 畫，
+     一律用 ECharts ＋ App.donut（site/app.js，產業地圖「成交值占比」的同一份設定）：環 68／92、間隙 1.2°、圓角 6、邊框 1px、
+     滑過外擴 4px＋外框 3px（其他扇區不變暗）、中心字 App.donut.center、提示框 A.tip。
+     donutG 只負責「圖例＋容器」，環由 mountDonuts() 在容器進到畫面後掛上去（MutationObserver，見 render）。 */
   function donutG(segs, o) {
     const tot = sum(segs.map((s) => s.n));
     if (!tot) return '<div class="empty">沒有資料</div>';
-    const { R, W, GAP } = DN, C = 2 * Math.PI * R, cap = (W / 2) / R * 180 / Math.PI;
-    const groups = []; segs.forEach((s, i) => { const g = s.g != null ? s.g : '_' + i; const last = groups[groups.length - 1]; if (last && last.g === g) last.segs.push(s); else groups.push({ g, segs: [s] }); });
-    const single = groups.length === 1, uid = 'dm' + (++dnSeq) + '_';
-    const P = (deg) => `${(60 + R * Math.sin(deg * Math.PI / 180)).toFixed(2)} ${(60 - R * Math.cos(deg * Math.PI / 180)).toFixed(2)}`;
-    let a = 0, masks = '', body = '', arcN = 0;
-    groups.forEach((gr, gi) => {
-      const gn = sum(gr.segs.map((s) => s.n)), g0 = a, g1 = a + gn / tot * 360; a = g1;
-      const h = single ? 0 : GAP / 2; let v0 = g0 + h, v1 = g1 - h; if (v1 - v0 < 0.8) { const m = (g0 + g1) / 2; v0 = m - 0.4; v1 = m + 0.4; }
-      const round = false;
-      let b = g0, arcs = '';
-      gr.segs.forEach((s, k) => {
-        const sa = b, sb = b + s.n / tot * 360; b = sb;
-        const x0 = k === 0 ? v0 : sa, x1 = k === gr.segs.length - 1 ? v1 : sb, len = Math.max(0, (x1 - x0) / 360 * C);
-        const arcRow = arcN++;
-        arcs += `<circle class="arcb" data-row="${arcRow}" r="${R}" cx="60" cy="60" fill="none" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)"></circle>`
-          + `<circle class="arc" data-row="${arcRow}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)"></circle>`;
-      });
-      if (round) {
-        const id = uid + gi, A0 = v0 + cap, A1 = v1 - cap;
-        masks += `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><path d="M ${P(A0)} A ${R} ${R} 0 ${A1 - A0 > 180 ? 1 : 0} 1 ${P(A1)}" fill="none" stroke="#fff" stroke-width="${W}" stroke-linecap="round"/></mask>`;
-        body += `<g class="grp" data-g="${esc(String(gr.g))}" mask="url(#${id})">${arcs}</g>`;
-      } else body += `<g class="grp" data-g="${esc(String(gr.g))}">${arcs}</g>`;
-    });
     const top5 = (o.top5 || segs).slice().sort((x, y) => y.n - x.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
     const c1 = o.center ? o.center[0] : '前五大', c2 = o.center ? o.center[1] : t5 + '%';
     const lg = (o.legend || segs).slice().sort((x, y) => (x.label === '其他') - (y.label === '其他') || y.n - x.n).slice(0, o.legendN || 6);
-    return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
-      <circle r="39.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".5"/>${body}
-      <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">${esc(c1)}</text><text class="c2" x="60" y="74" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${esc(c2)}</text></svg>
+    const spec = { c1, c2, segs: segs.filter((s) => s.n > 0).map((s) => ({ name: s.tip || s.label, n: s.n, color: s.color, k: s.k != null ? s.k : s.label, p: s.p || '', s: s.s || '', other: s.label === '其他' })) };
+    return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><div class="dnc" role="img" aria-label="${esc(o.aria || '占比')}" data-spec="${esc(JSON.stringify(spec))}"></div>
       <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><b>${nf(Math.round(s.n))}</b><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
+  }
+  /* 把 CSS 變數／hsl(calc(var())) 這類顏色解成 rgb（canvas 讀不懂 var()） */
+  function resolveColor(host, c) {
+    const t = document.createElement('i'); t.style.cssText = 'position:absolute;visibility:hidden;color:' + c; host.appendChild(t);
+    const r = getComputedStyle(t).color; t.remove(); return r || c;
+  }
+  function mountDonuts(root) {
+    const A = window.App; if (!A || !A.donut || !window.echarts || !root) return;
+    const D = A.donut;
+    root.querySelectorAll('.dnc[data-spec]:not([data-m])').forEach((el) => {
+      let sp; try { sp = JSON.parse(el.dataset.spec); } catch (e) { return; }
+      el.dataset.m = '1';
+      const SZ = Math.round(el.clientWidth) || 160, tot = sum(sp.segs.map((s) => s.n)) || 1;
+      const parts = sp.segs.map((s) => ({ name: s.name, value: s.n, key: s.k, p: s.p, s2: s.s, color: s.other ? D.other() : resolveColor(el, s.color) }));
+      const box = el.closest('[data-chart]');
+      const cur = { hi: null };
+      const opt = { tooltip: { ...A.tip, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(Math.round(q.value))}（${(+q.percent).toFixed(1)}%）` },
+        title: D.center(sp.c1, sp.c2, SZ), animationDurationUpdate: D.MS,
+        series: D.series({ cursor: sp.segs.some((s) => s.p) ? 'pointer' : 'default', data: parts.map((d, i) => D.item(d, i, false)) }) };
+      A.chart(el, opt, { notMerge: true });
+      const inst = echarts.getInstanceByDom(el); if (!inst) return;
+      const setHi = (nm) => {
+        if (inst.isDisposed() || cur.hi === nm) return; cur.hi = nm;
+        const hd = nm ? parts.find((x) => x.name === nm) : null;
+        try { inst.setOption({ title: D.center(hd ? hd.name : sp.c1, hd ? A.fmt.n(hd.value / tot * 100, 1) + '%' : sp.c2, SZ), series: [{ data: parts.map((d, i) => D.item(d, i, !!hd && d.name === nm)) }] }); } catch (e) { /* tooltip 與 dispose 競態 */ }
+        if (box) { box.classList.toggle('hov', !!hd); box.querySelectorAll('li[data-k]').forEach((li) => li.classList.toggle('hl', !!hd && hd.key === li.dataset.k)); }
+      };
+      inst.on('mouseover', (q) => { if (q.seriesIndex === 0) setHi(q.name); });
+      inst.on('globalout', () => setHi(null));
+      inst.on('click', (q) => { const d = parts.find((x) => x.name === q.name); if (d && d.p && S.tab === 'all') { S.tab = d.p; S.sub = d.s2 || 'all'; paintTrTabs(); } });
+      if (box) box.querySelectorAll('li[data-k]').forEach((li) => {
+        li.addEventListener('mouseenter', () => { const d = parts.find((x) => x.key === li.dataset.k); if (d) setHi(d.name); });
+        li.addEventListener('mouseleave', () => setHi(null));
+        li.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') { const d = parts.find((x) => x.key === li.dataset.k); if (d) setHi(d.name); } });
+      });
+      requestAnimationFrame(() => { if (!inst.isDisposed()) inst.resize(); });
+    });
   }
   function donut(parts) {
     const tot = parts.reduce((s, p) => s + p[1], 0);

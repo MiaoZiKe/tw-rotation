@@ -47166,6 +47166,34 @@ def t_admin_v2(b, base, code):
 
 
 # ===================================================================== 流量觀測1005（2026-10-05，Andy：頁首卡拿掉、圖表版面重排、欄位文字置中）
+DNX_STATE = """(host) => { const e = document.querySelector(host + ' .dnc'); const c = e && window.echarts && echarts.getInstanceByDom(e); if (!c) return null;
+  const o = c.getOption(), s = o.series[0], cs = getComputedStyle(e);
+  const title = (o.title || []).flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'));
+  const rich = ((o.title || [])[0] || {}).textStyle ? ((o.title || [])[0].textStyle.rich || {}) : {};
+  const tips = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20);
+  const box = e.closest('[data-chart]');
+  return { n: s.data.length, data: s.data.map(d => ({ name: d.name, value: d.value, p: d.p, s: d.s2, color: d.itemStyle && d.itemStyle.color, bw: d.itemStyle && d.itemStyle.borderWidth })),
+    radius: s.radius, pad: s.padAngle, br: s.itemStyle && s.itemStyle.borderRadius, track: o.series.some(x => x.silent), emp: s.emphasis,
+    title, numFs: rich.b ? rich.b.fontSize : null, lblFs: rich.a ? rich.a.fontSize : null, tip: tips.length > 0, tipTxt: tips.length ? tips[tips.length - 1].textContent : '',
+    hov: !!box && box.classList.contains('hov'), hl: box ? box.querySelectorAll('li.hl').length : 0, w: e.clientWidth, h: e.clientHeight }; }"""
+DNX_PT = """([host, idx]) => { const e = document.querySelector(host + ' .dnc'), c = echarts.getInstanceByDom(e); e.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const d = c.getOption().series[0].data, tot = d.reduce((a, x) => a + x.value, 0); let a0 = 0; for (let i = 0; i < idx; i++) a0 += d[i].value / tot * 360;
+  const m = (a0 + d[idx].value / tot * 180) * Math.PI / 180, r = e.getBoundingClientRect(), S = Math.min(r.width, r.height) / 2 * 0.80;
+  return [r.left + r.width / 2 + S * Math.sin(m), r.top + r.height / 2 - S * Math.cos(m), d[idx].name]; }"""
+
+
+def _dnx(pg, host):
+    wait_until(pg, f"() => {{ const e = document.querySelector('{host} .dnc'); return !!(e && window.echarts && echarts.getInstanceByDom(e)); }}", 5000)
+    return pg.evaluate(DNX_STATE, host)
+
+
+def _dnx_hover(pg, host, idx):
+    pt = pg.evaluate(DNX_PT, [host, idx])
+    pg.wait_for_timeout(200); pg.mouse.move(pt[0] - 6, pt[1] - 6); pg.mouse.move(pt[0], pt[1], steps=4); pg.wait_for_timeout(500)
+    return pt
+
+
+
 def t_traffic_1005(b, base, code):
     """流量觀測 2026-10-05 新規格：上方一排（直條＋登入甜甜圈）、期間（即時／指定日期）、下方 .nbsw 分頁（全部＋11 頁）、堆疊長條＋子扇區甜甜圈、
     點長條／扇區進入分頁、子分頁、個股「K 線指標」。用 /preview/ 路徑走示範資料（正式站不會有）：以 page.route 把 /preview/style-guide/ 改寫回根目錄。"""
@@ -47258,10 +47286,11 @@ def t_traffic_1005(b, base, code):
         pt = pg.evaluate("() => [...document.querySelectorAll('#admBody .secttl small, #admBody .card > .use')].map(e => e.textContent).filter(t => /近 \\d+ 天|\\d{4}-\\d{2}-\\d{2}|台北|即時（|至今|～/.test(t))")
         ok(f"{TT}：卡片標題列／副標沒有資料時段與日期說明（期間由右上選單表示）", not pt, pt)
         ok(f"{TT}：沒有「總覽」「其他」「法律」分頁", pg.evaluate("() => ![...document.querySelectorAll('#trTabs button')].some(b => /^(總覽|其他|法律)/.test(b.textContent.trim()))"))
+        _dnx(pg, "#trAllDonut")
         al = pg.evaluate("""() => { const rows = [...document.querySelectorAll('#trAllB .bl')], vals = [...document.querySelectorAll('#trAllB .bn')].map(e => +e.textContent.replace(/[,%]/g, '').trim().split(/\\s+/)[0] || +e.firstChild.textContent.replace(/,/g, ''));
             const stk = (p) => [...document.querySelectorAll(`#trAllB .bt[data-p="${p}"] i`)].map(i => ({ bg: getComputedStyle(i).backgroundColor, t: i.dataset.tip }));
-            const arcs = [...document.querySelectorAll('#trAllDonut circle.arc')];
-            return { n: rows.length, sorted: vals.every((v, i) => i === 0 || vals[i - 1] >= v), flow: stk('flow'), etf: stk('etf'), arcs: arcs.length, tips: arcs.every(a => /%/.test(a.dataset.tip)), center: document.querySelector('#trAllDonut .dn svg').textContent, lg: document.querySelectorAll('#trAllDonut ul.lg li').length }; }""")
+            const dc = echarts.getInstanceByDom(document.querySelector('#trAllDonut .dnc')), dd = dc.getOption(), arcs = dd.series[0].data;
+            return { n: rows.length, sorted: vals.every((v, i) => i === 0 || vals[i - 1] >= v), flow: stk('flow'), etf: stk('etf'), arcs: arcs.length, tips: arcs.every(a => a.value > 0), center: (dd.title || []).map(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').replace('\\n', ' ')).join(' '), lg: document.querySelectorAll('#trAllDonut ul.lg li').length }; }""")
         ok(f"{TT}：「全部」左＝各頁長條（11 條、由大到小）", al["n"] == 11 and al["sorted"], al)
         ok(f"{TT}：有子頁的頁面（資金流向）長條堆疊 3 色且滑過提示有占比；沒有子頁的（ETF）單色",
            len(al["flow"]) == 3 and len({x["bg"] for x in al["flow"]}) == 3 and all("%" in x["t"] and "資金流向" in x["t"] for x in al["flow"]) and len(al["etf"]) == 1, al)
@@ -47274,21 +47303,19 @@ def t_traffic_1005(b, base, code):
             return { h3: f('#admBody .card > h3'), use: f('#admBody .card > .use'), tab: f('#trTabs > button'), bl: f('#trAllB .bl'), th: f('#admBody table th') }; }""")
         ok(f"{TT}：字級照其他分頁（卡標 16/600、副標 13/400、分頁 13.5、長條名稱 14、表頭 12/600）", fs["h3"] == ["16/600"] and fs["use"] == ["13/400"] and all(x.startswith("13.5/") for x in fs["tab"]) and fs["bl"] == ["14/400"] and fs["th"] in ([], ["12/600"]), fs)
         # ★ 10-05 Andy「圖表資訊需要在右手邊，這樣圓餅圖才不會被壓縮」：甜甜圈在左、圖例一列一項在右（色塊｜名稱｜數量｜占比），占比不截斷
-        lgd = pg.evaluate("""() => ['#trDonut', '#trAllDonut'].map(id => { const d = document.querySelector(id + ' .dn'), sv = d.querySelector('svg').getBoundingClientRect(), ul = d.querySelector('ul.lg').getBoundingClientRect(), lis = [...d.querySelectorAll('ul.lg li')];
+        lgd = pg.evaluate("""() => ['#trDonut', '#trAllDonut'].map(id => { const d = document.querySelector(id + ' .dn'), sv = d.querySelector('.dnc').getBoundingClientRect(), ul = d.querySelector('ul.lg').getBoundingClientRect(), lis = [...d.querySelectorAll('ul.lg li')];
             const rows = new Set(lis.map(l => Math.round(l.getBoundingClientRect().top))).size;
             const cut = lis.filter(l => [...l.querySelectorAll('b, small')].some(e => e.scrollWidth > e.clientWidth + 1) || /…/.test(l.querySelector('small').textContent)).length;
             return { id, right: ul.left >= sv.right - 2, oneCol: rows === lis.length, cut, pct: lis.every(l => /^\d+(\.\d)?%$/.test(l.querySelector('small').textContent.trim())), w: Math.round(sv.width) }; })""")
         ok(f"{TT}：甜甜圈圖例在圓的右側、一列一項、占比（22.2%）與數量完整不被截斷、圓不被壓縮（寬 ≥ 140）", all(x["right"] and x["oneCol"] and x["cut"] == 0 and x["pct"] and x["w"] >= 140 for x in lgd), lgd)
         # ★ 10-05 Andy「圓餅以母族群分界、間隔開、只有子分頁相連；長條太粗、日期每週、淡淡的 Y 軸」
-        dg = pg.evaluate("""() => { const arcs = [...document.querySelectorAll('#trAllDonut circle.arc')].map(a => ({ p: a.dataset.p, a0: +a.dataset.a0, a1: +a.dataset.a1 }));
-            const par = [], sub = []; for (let i = 1; i < arcs.length; i++) { const g = arcs[i].a0 - arcs[i - 1].a1; (arcs[i].p === arcs[i - 1].p ? sub : par).push(+g.toFixed(2)); }
-            return { n: arcs.length, par, sub, mask: document.querySelectorAll('#trAllDonut mask').length, cap: getComputedStyle(document.querySelector('#trAllDonut circle.arc')).strokeLinecap, track: !!document.querySelector('#trAllDonut svg > circle[stroke-opacity]') }; }""")
-        pars = sorted(set(round(x, 1) for x in dg["par"]))
-        ok(f"{TT}：甜甜圈非同組扇區之間間隙一律相同（1.2°，照 App.donut）、同一母頁子分頁相連（≈ 0）、沒有圓頭遮罩（直角）、內側細軌道（照產業地圖）",
-           dg["par"] and pars == [1.2] and dg["sub"] and max(abs(x) for x in dg["sub"]) <= 0.05 and dg["mask"] == 0 and dg["track"] and dg["cap"] == "butt", dg)
+        dg = _dnx(pg, "#trAllDonut")
+        ok(f"{TT}：各頁占比甜甜圈＝App.donut（半徑 68%／92%、間隙 1.2°、圓角 6、內側細軌道、滑過外擴 4＋外框 3）",
+           dg["radius"] == ["68%", "92%"] and dg["pad"] == 1.2 and dg["br"] == 6 and dg["track"] and dg["emp"]["scaleSize"] == 4 and dg["emp"]["itemStyle"]["borderWidth"] == 3, dg)
         pg.click("#trTabs [data-t=etf]")
-        ev = pg.evaluate("""() => { const g = []; document.querySelectorAll('#trPageBody .dn svg').forEach(sv => { const a = [...sv.querySelectorAll('circle.arc')].map(c => ({ a0: +c.dataset.a0, a1: +c.dataset.a1 })); for (let i = 1; i < a.length; i++) g.push(+(a[i].a0 - a[i - 1].a1).toFixed(1)); }); return g; }""")
-        ok(f"{TT}：ETF 分頁各甜甜圈（無子分頁關係）每段之間間隙都一樣（1.2°），小扇區也有縫", ev and set(ev) == {1.2}, ev)
+        pg.wait_for_timeout(1000)
+        ev = pg.evaluate("() => [...document.querySelectorAll('#trPageBody .dn .dnc')].map(e => { const o = echarts.getInstanceByDom(e).getOption().series[0]; return [o.radius.join(), o.padAngle]; })")
+        ok(f"{TT}：ETF 分頁各甜甜圈（無子分頁關係）都是 App.donut 規格（68%／92%、間隙 1.2°）", ev and all(x == ["68%,92%", 1.2] for x in ev), ev)
         pg.click("#trTabs [data-t=all]")
         bw = pg.evaluate("""() => { const d = [...document.querySelectorAll('#admDayBars .dc i')].map(i => i.getBoundingClientRect().width), h = [...document.querySelectorAll('#trAllB .bt, #admBody .bars .bt')].map(e => e.getBoundingClientRect().height);
             return { dmax: Math.max(...d), hmax: Math.max(...h), n: d.length }; }""")
@@ -47300,12 +47327,14 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：淡淡的 Y 軸：刻度 ≥ 4 個、水平格線透明度 ≤ 0.5、沒有週末底色", yy["ticks"] >= 4 and yy["alpha"] <= 0.5 and not yy["weekend"], yy)
         # ★ 10-05 Andy「上方圖表都要有互動效果、幫我檢查其他的是否也有」：每張圖 hover 後要有浮動提示＋高亮狀態（其餘變淡）
         def hv(sel, label):
-            if "circle.arc" in sel and "li" not in sel:   # 甜甜圈的環是 stroke、圓心是空的：滑鼠要移到「環上」才算滑過
+            if "circle.arc" in sel and "li" not in sel:   # 甜甜圈是 ECharts：滑到扇區中線上
                 nth = int(sel.split("nth=")[1]) if "nth=" in sel else 0
-                base_sel = sel.split(" >> ")[0]
-                pt = pg.evaluate("""([sel, n]) => { const a = document.querySelectorAll(sel)[n], sv = a.ownerSVGElement, r = sv.getBoundingClientRect(), k = r.width / 120, m = ((+a.dataset.a0 + +a.dataset.a1) / 2) * Math.PI / 180;
-                    sv.scrollIntoView({ block: 'center', behavior: 'instant' }); const r2 = sv.getBoundingClientRect(); return [r2.left + r2.width / 2 + 45 * k * Math.sin(m), r2.top + r2.height / 2 - 45 * k * Math.cos(m)]; }""", [base_sel, nth])
-                pg.wait_for_timeout(250); pg.mouse.move(pt[0] - 4, pt[1] - 4); pg.mouse.move(*pt, steps=4)
+                host = sel.split(" circle.arc")[0]
+                _dnx_hover(pg, host, nth)
+                st = _dnx(pg, host)
+                ok(f"{TT}：互動｜{label}：滑過有浮動提示、有高亮狀態、中心字換成該扇區", st["tip"] and st["hov"] and st["title"][0] == st["data"][nth]["name"], st)
+                pg.mouse.move(2, 2); pg.wait_for_timeout(150)
+                return st["title"][0]
             else:
                 pg.hover(sel)
             pg.wait_for_timeout(120)
@@ -47323,8 +47352,8 @@ def t_traffic_1005(b, base, code):
         hv("#trAllDonut .dn li >> nth=1", "全部頁甜甜圈圖例")
         cen = hv("#trDonut circle.arc >> nth=1", "登入甜甜圈第二段")
         ok(f"{TT}：互動｜登入甜甜圈滑過扇區 → 中心字換成該段（不再是「登入」）", cen and cen != "登入", cen)
-        tr = pg.evaluate("""() => { const l = [...document.querySelectorAll('#trDonut ul.lg li span')].map(e => e.textContent.trim()), g = [...document.querySelectorAll('#trDonut circle.arc')].map(a => ({ k: a.dataset.k, a0: +a.dataset.a0, a1: +a.dataset.a1 })); const gaps = []; for (let i = 1; i < g.length; i++) gaps.push(+(g[i].a0 - g[i - 1].a1).toFixed(2)); return { l, gaps }; }""")
-        ok(f"{TT}：登入身分甜甜圈：訪客＋註冊會員＋≥ 2 個付費方案；登入的幾段相連（間隙 0）、與訪客之間間隙 1.2°（照 App.donut）", "訪客" in tr["l"] and "註冊會員" in tr["l"] and len(tr["l"]) >= 4 and tr["gaps"][:-1] and all(abs(x) <= 0.05 for x in tr["gaps"][:-1]) and abs(tr["gaps"][-1] - 1.2) <= 0.02, tr)
+        tr = {"l": pg.evaluate("() => [...document.querySelectorAll('#trDonut ul.lg li span')].map(e => e.textContent.trim())")}
+        ok(f"{TT}：登入身分甜甜圈：訪客＋註冊會員＋≥ 2 個付費方案（環規格＝App.donut）", "訪客" in tr["l"] and "註冊會員" in tr["l"] and len(tr["l"]) >= 4 and _dnx(pg, "#trDonut")["pad"] == 1.2, tr)
         pg.click("#trTabs [data-t=flow]")
         hv("#trFBars .bl >> nth=0", "子頁長條")
         hv("#trFD circle.arc >> nth=1", "子頁甜甜圈扇區")
@@ -47337,11 +47366,11 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：點「資金流向」長條 → 進資金流向分頁，上方小分頁＝全部／資金輪動／資金去向／族群×法人",
            pg.evaluate("() => [...document.querySelectorAll('#trSubs button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join()") == "全部,資金輪動,資金去向,族群×法人" and pg.evaluate("() => document.getElementById('trSubs').classList.contains('nbsw')"))
         ok(f"{TT}：資金流向「全部」：左長條＝各功能次數、右甜甜圈；下方「被點最多的族群」第一名被動元件 MLCC",
-           pg.locator("#trFBars .bl").count() >= 5 and pg.locator("#trFD circle.arc").count() >= 3 and pg.evaluate("() => document.querySelector('#trDBars .bl').textContent.trim()") == "被動元件 MLCC")
+           pg.locator("#trFBars .bl").count() >= 5 and (_dnx(pg, "#trFD") or {"n": 0})["n"] >= 3 and pg.evaluate("() => document.querySelector('#trDBars .bl').textContent.trim()") == "被動元件 MLCC")
         pg.click("#trSubs button[data-sub='sankey']")
         ok(f"{TT}：點子分頁「資金去向」→ 長條換成該子頁的功能（點資金去向節點／連線）", "資金去向節點" in pg.inner_text("#trFBars") and "篩選" not in pg.inner_text("#trFBars"), pg.inner_text("#trFBars")[:80])
         pg.click("#trTabs [data-t=all]")
-        pg.evaluate("() => document.querySelector('#trAllDonut circle.arc[data-p=\"flow\"][data-s=\"inst\"]').dispatchEvent(new MouseEvent('click', { bubbles: true }))")
+        _ad = _dnx(pg, "#trAllDonut"); _ix = next(i for i, d in enumerate(_ad["data"]) if d["p"] == "flow" and d["s"] == "inst"); _pt = pg.evaluate(DNX_PT, ["#trAllDonut", _ix]); pg.mouse.move(_pt[0], _pt[1], steps=3); pg.mouse.click(_pt[0], _pt[1])
         wait_until(pg, "() => document.querySelector('#trTabs button.on').dataset.t === 'flow'", 3000)
         ok(f"{TT}：點甜甜圈的子扇區（資金流向・族群×法人）→ 進資金流向分頁並亮該子分頁", pg.evaluate("() => document.querySelector('#trSubs button.on').dataset.sub") == "inst")
         # ---- 個股
@@ -47353,13 +47382,13 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：個股「K 線指標」：MA／MACD／RSI／KD／布林／SMC／本益比河流／斐波那契／趨勢線／AI 面向／四週期同看各自計次、K 線週期另一組", all(x in kt for x in ("MA 均線", "MACD", "RSI", "KD", "布林通道", "SMC", "本益比河流", "畫線：斐波那契", "畫線：趨勢線", "切 AI 面向", "四週期同看", "K 線週期")), kt[:160])
         pg.click("#trSubs button[data-sub='tabs']")
         tt = pg.inner_text("#trPageBody")
-        ok(f"{TT}：個股「分頁點擊」：只有各分頁被點次數（營收、獲利、除權息、法人…）長條＋甜甜圈，沒有「被點最多的個股」", "營收" in tt and "被點最多" not in tt and pg.locator("#trFD circle.arc").count() >= 1, tt[:120])
+        ok(f"{TT}：個股「分頁點擊」：只有各分頁被點次數（營收、獲利、除權息、法人…）長條＋甜甜圈，沒有「被點最多的個股」", "營收" in tt and "被點最多" not in tt and (_dnx(pg, "#trFD") or {"n": 0})["n"] >= 1, tt[:120])
         for t in ("etf", "watch", "support", "explore"):
             pg.click(f"#trTabs [data-t={t}]")
-            ok(f"{TT}：「{t}」分頁有長條＋甜甜圈統計", pg.locator("#trPageBody .bars .bl").count() >= 1 and pg.locator("#trPageBody .dn svg").count() >= 1 or t == "season", t)
+            ok(f"{TT}：「{t}」分頁有長條＋甜甜圈統計", pg.locator("#trPageBody .bars .bl").count() >= 1 and pg.locator("#trPageBody .dn .dnc").count() >= 1 or t == "season", t)
         for t in ("season", "market", "events"):
             pg.click(f"#trTabs [data-t={t}]")
-            sp = pg.evaluate("() => ({ subs: document.querySelectorAll('#trSubs').length, bars: document.querySelectorAll('#trPageBody .bars').length, donut: document.querySelectorAll('#trPageBody .dn svg').length, cards: document.querySelectorAll('#trPageBody .card').length, num: !!document.querySelector('#trS1 .bigno b'), trend: !!document.querySelector('#trPgDays'), tabs: document.querySelectorAll('#trPageBody .nbsw').length })")
+            sp = pg.evaluate("() => ({ subs: document.querySelectorAll('#trSubs').length, bars: document.querySelectorAll('#trPageBody .bars').length, donut: document.querySelectorAll('#trPageBody .dn .dnc').length, cards: document.querySelectorAll('#trPageBody .card').length, num: !!document.querySelector('#trS1 .bigno b'), trend: !!document.querySelector('#trPgDays'), tabs: document.querySelectorAll('#trPageBody .nbsw').length })")
             ok(f"{TT}：「{t}」只統計被看過幾次：一張卡＝大數字＋每日趨勢，沒有子分頁、功能長條、甜甜圈", sp["subs"] == 0 and sp["bars"] == 0 and sp["donut"] == 0 and sp["cards"] == 1 and sp["num"] and sp["trend"] and sp["tabs"] == 0, sp)
         order = pg.evaluate("() => [...document.querySelectorAll('#trTabs button')].map(b => b.dataset.t)")
         ix = [order.index(x) for x in ("events", "market", "season")]
@@ -47471,9 +47500,9 @@ def t_traffic_1005(b, base, code):
     pg.locator("#trAllB .bt.stk >> nth=0").tap()
     ok(f"{T} 390：同一條再點一下 → 進入該頁", pg.evaluate("() => document.querySelector('#trTabs button.on').dataset.t") != "all")
     pg.locator("#trTabs [data-t=all]").tap()
-    pg.locator("#trAllDonut circle.arc >> nth=0").scroll_into_view_if_needed()
+    pg.locator("#trAllDonut .dnc").scroll_into_view_if_needed()
     pg.locator("#trAllDonut .lg li >> nth=0").tap()
-    ok(f"{T} 390：點甜甜圈圖例 → 出提示、對應扇區高亮、中心字換成該項", pg.evaluate(TIP) and pg.evaluate("() => !!document.querySelector('#trAllDonut .arc.hl')"))
+    ok(f"{T} 390：點甜甜圈圖例 → 出提示、對應扇區高亮、中心字換成該項", pg.evaluate(TIP) and pg.evaluate("() => !!document.querySelector('#trAllDonut li.hl')"))
     pg.locator("#trDetailTtl").tap()
     ok(f"{T} 390：點空白處 → 全部收起", not pg.evaluate(TIP) and pg.evaluate("() => !document.querySelector('#trAllDonut .hl')"))
     c.close()
@@ -48076,7 +48105,7 @@ def t_admin_v3(b, base, code):
         const st = {}; rows.forEach(t => { const s = t.querySelector('.c-st .stt').className.split(' ')[1]; st[s] = (st[s] || 0) + 1; });
         const don = (id) => Object.fromEntries([...document.querySelectorAll('#' + id + ' li')].map(l => [l.dataset.k, +l.dataset.n]));
         const paid = rows.filter(t => t.querySelector('.pdbadge:not(.off)')).length;
-        const ch = [...document.querySelectorAll('#msCharts > .mchart')].map(c => [Math.round(c.getBoundingClientRect().height), !!c.querySelector('svg')]);
+        const ch = [...document.querySelectorAll('#msCharts > .mchart')].map(c => [Math.round(c.getBoundingClientRect().height), !!c.querySelector('svg, .dnc')]);
         return { n: rows.length, total: +document.querySelector('#msTotal b').textContent.replace(/,/g, ''), st, sd: don('msStDonut'), pd: don('msPlanDonut'), paid,
                  feat: [...document.querySelectorAll('#msFeat .bn')].map(e => [e.dataset.k, +e.dataset.n]), stk: [...document.querySelectorAll('#msStock .bl')].map(e => e.textContent),
                  days: document.querySelectorAll('#msDays rect').length, act7: document.querySelector('#msAct7 b').textContent, ch,
@@ -48084,20 +48113,21 @@ def t_admin_v3(b, base, code):
     # ★ 10-05 Andy「會員權限內長條圖以及圓餅圖風格可以參考流量觀測」：同一套元件（細條 10px、直角甜甜圈 2° 間隙、淡 Y 軸）＋互動（滑過有提示與高亮）
     def pv_hover(sel, label, ring=False):
         if ring:
-            pt = pg.evaluate("""(sel) => { const a = document.querySelector(sel), sv = a.ownerSVGElement; sv.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = sv.getBoundingClientRect(), k = r.width / 120, m = ((+a.dataset.a0 + +a.dataset.a1) / 2) * Math.PI / 180;
-                return [r.left + r.width / 2 + 45 * k * Math.sin(m), r.top + r.height / 2 - 45 * k * Math.cos(m)]; }""", sel)
-            pg.wait_for_timeout(200); pg.mouse.move(pt[0] - 4, pt[1] - 4); pg.mouse.move(*pt, steps=4)
-        else:
-            pg.locator(sel).first.scroll_into_view_if_needed(); pg.hover(sel)
+            _dnx_hover(pg, sel, 0)
+            st = _dnx(pg, sel)
+            ok(f"{T}・perm-v4：會員統計互動｜{label}：滑過有浮動提示、有高亮狀態", st["tip"] and st["hov"], st)
+            pg.mouse.move(2, 2); pg.wait_for_timeout(100)
+            return
+        pg.locator(sel).first.scroll_into_view_if_needed(); pg.hover(sel)
         pg.wait_for_timeout(120)
         r = pg.locator(sel).first.evaluate("(el) => { const t = document.getElementById('trTip'), ch = el.closest('[data-chart]'); return { tip: !!t && !t.hidden && t.textContent.trim().length > 3, hl: !!ch && ch.classList.contains('hov') && ch.querySelectorAll('.hl').length > 0 }; }")
         ok(f"{T}・perm-v4：會員統計互動｜{label}：滑過有浮動提示、有高亮狀態", r["tip"] and r["hl"], r)
         pg.mouse.move(2, 2); pg.wait_for_timeout(100)
     pv_hover("#msFeat .bl", "功能長條"); pv_hover("#msStock .bn", "股票長條"); pv_hover("#msDays rect >> nth=3", "每日活躍直條")
-    pv_hover("#msStDonut circle.arc", "狀態甜甜圈扇區", ring=True)
-    sty = pg.evaluate("""() => ({ bar: Math.max(...[...document.querySelectorAll('#msFeat svg rect.v')].map(r => r.getBoundingClientRect().height)), cap: getComputedStyle(document.querySelector('#msStDonut circle.arc')).strokeLinecap, ticks: document.querySelectorAll('#msDays').length && document.querySelectorAll('.vby span').length >= 5,
-        gaps: (() => { const a = [...document.querySelectorAll('#msStDonut circle.arc')].map(c => [+c.dataset.a0, +c.dataset.a1]); return a.slice(1).map((x, i) => +(x[0] - a[i][1]).toFixed(1)); })() })""")
-    ok(f"{T}・perm-v4：會員統計圖風格＝流量觀測：長條粗 ≤ 10px、甜甜圈直角（butt）且相鄰扇區間隙一律 1.2°、直條有 Y 軸刻度", sty["bar"] <= 10.5 and sty["cap"] == "butt" and sty["ticks"] and sty["gaps"] and set(sty["gaps"]) == {1.2}, sty)
+    pv_hover("#msStDonut", "狀態甜甜圈扇區", ring=True)
+    sty = pg.evaluate("""() => ({ bar: Math.max(...[...document.querySelectorAll('#msFeat svg rect.v')].map(r => r.getBoundingClientRect().height)), ticks: document.querySelectorAll('#msDays').length && document.querySelectorAll('.vby span').length >= 5 })""")
+    sty.update({k: v for k, v in _dnx(pg, "#msStDonut").items() if k in ("radius", "pad", "br", "track")})
+    ok(f"{T}・perm-v4：會員統計圖風格：長條粗 ≤ 10px、甜甜圈＝App.donut（68%／92%、間隙 1.2°、圓角 6、軌道）、直條有 Y 軸刻度", sty["bar"] <= 10.5 and sty["ticks"] and sty["radius"] == ["68%", "92%"] and sty["pad"] == 1.2 and sty["br"] == 6 and sty["track"], sty)
     sd = ms["sd"]
     ok(f"{T}・perm-v4：會員名單上方：總人數＝名單列數（{ms['n']}）、四個數字同一排", ms["total"] == ms["n"] and len(set(ms["kpiTop"])) == 1 and len(ms["kpiTop"]) == 4, ms)
     ok(f"{T}・perm-v4：狀態甜甜圈（有效／7 天內到期／已過期／未登入過）每一類人數＝名單狀態欄數出來的",
@@ -48122,6 +48152,7 @@ def t_admin_v3(b, base, code):
     # ⑤ 展開明細
     pg.click("#ptTable tr[data-email='a399@example.com'] td.c-who")
     wait_until(pg, "() => document.querySelectorAll(\"#ptTable tr.pmdet[data-for='a399@example.com'] .mchart\").length === 4 && !!document.querySelector('#ptTable tr.pmdet .mdonut')", 4000)
+    pg.wait_for_timeout(900)   # 甜甜圈是 ECharts，進到畫面後才掛上去
     dt = pg.evaluate("""() => { const d = document.querySelector("#ptTable tr.pmdet[data-for='a399@example.com']"), prev = d.previousElementSibling, next = d.nextElementSibling;
         const R = (e) => e.getBoundingClientRect(), hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
         const k = [...d.querySelectorAll('.mkpis .mkpi')], ch = [...d.querySelectorAll('.mcharts > .mchart')];
@@ -48130,7 +48161,7 @@ def t_admin_v3(b, base, code):
         return { span: d.querySelector('td').colSpan, inPrev: hit(R(d), R(prev)), inNext: next ? hit(R(d), R(next)) : false, gap: next ? Math.round(R(next).top - R(d).bottom) : 0,
                  kTop: [...new Set(k.map(e => Math.round(R(e).top)))], kFs: Math.max(...k.map(e => parseFloat(getComputedStyle(e.querySelector('b')).fontSize))),
                  chH: [...new Set(ch.map(e => Math.round(R(e).height)))], chTop: [...new Set(ch.map(e => Math.round(R(e).top)))], chSvg: ch.map(e => !!e.querySelector('svg,canvas')),
-                 kids: ch.map(e => e.dataset.ch), nOver, abs: [...d.querySelectorAll('*')].filter(e => ['absolute', 'fixed'].includes(getComputedStyle(e).position)).length,
+                 kids: ch.map(e => e.dataset.ch), nOver, abs: [...d.querySelectorAll('*')].filter(e => !e.closest('.dnc') && ['absolute', 'fixed'].includes(getComputedStyle(e).position)).length,
                  pages: d.querySelectorAll('[data-ch=pages] .mdonut li').length, bars: d.querySelectorAll('[data-ch=feats] .hbars svg').length, stk: [...d.querySelectorAll('[data-ch=stocks] .bl')].map(e => e.textContent) }; }""")
     ok(f"{T}・perm-v4：展開明細是表格裡獨立一列（colspan 全寬）、跟上一列與下一列 rect 不相交、裡面沒有絕對定位",
        dt["span"] == 11 and not dt["inPrev"] and not dt["inNext"] and dt["gap"] >= 0 and dt["abs"] == 0, dt)
@@ -51963,18 +51994,6 @@ def t_pie_style_1006(pg, base, code):
 
 
 
-PIE1006_ADM_PT = """([sel, n]) => { const a = document.querySelectorAll(sel)[n], sv = a.ownerSVGElement;
-  sv.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = sv.getBoundingClientRect(), k = r.width / 120,
-  m = ((+a.dataset.a0 + +a.dataset.a1) / 2) * Math.PI / 180;
-  return [r.left + r.width / 2 + 48 * k * Math.sin(m), r.top + r.height / 2 - 48 * k * Math.cos(m), a.dataset.lab]; }"""
-PIE1006_ADM_STATE = """([sel, n]) => { const arcs = [...document.querySelectorAll(sel)], a = arcs[n], row = a.dataset.row, sv = a.ownerSVGElement;
-  const t = document.getElementById('trTip'), cs = getComputedStyle(a), b = sv.querySelector('.arcb[data-row="' + row + '"]'), bs = b && getComputedStyle(b);
-  const others = arcs.filter((x, i) => i !== n).map(x => +getComputedStyle(x).opacity);
-  return { tip: !!t && !t.hidden && t.textContent.trim().length > 0, tipTxt: t ? t.textContent.slice(0, 60) : '', c1: sv.querySelector('.c1').textContent,
-    sw: parseFloat(cs.strokeWidth), bOp: bs ? +bs.opacity : -1, bSw: bs ? parseFloat(bs.strokeWidth) : 0, bCol: bs ? bs.stroke : '',
-    minOther: others.length ? Math.min(...others) : 1, cols: arcs.map(x => ({ k: x.dataset.k, c: getComputedStyle(x).stroke })) }; }"""
-
-
 def _rgb_hex_1006(c):
     import re as _re
     m = _re.findall(r"[\d.]+", c or "")
@@ -51983,10 +52002,22 @@ def _rgb_hex_1006(c):
     return "#%02x%02x%02x" % tuple(int(float(x)) for x in m[:3])
 
 
+
 def t_pie_admin_1006(b, base):
-    """管理區（流量觀測）的甜甜圈是手畫 SVG：真的滑過扇區，量外擴、外框、中心字、提示框、其餘不淡化太多、功能占比配色。"""
+    """管理區甜甜圈＝ECharts ＋ App.donut：跟產業地圖「成交值占比」逐項比對（中心數字字級差 ≤ 1px、外框寬相同、非焦點扇區不變暗、提示卡、間隙、圓角），
+    並真的滑過一個扇區；1440 深／淺與 390。"""
     import math
     T0 = "[圓餅風格1006 管理區]"
+    # ① 先量產業地圖那張當標準（深色 1440）
+    pg0 = b.new_context(viewport={"width": 1440, "height": 950}).new_page()
+    pg0.add_init_script("try{localStorage.setItem('tw.theme','dark');}catch(e){}")
+    pg0.goto(base + "#industry", wait_until="networkidle")
+    wait_until(pg0, "() => { const e = document.getElementById('gpPie'); return !!(window.echarts && e && echarts.getInstanceByDom(e) && document.querySelector('#gpLegend .lg')); }", 9000)
+    pg0.wait_for_timeout(600)
+    REF = pg0.evaluate("""() => { const e = document.getElementById('gpPie'), o = echarts.getInstanceByDom(e).getOption(), s = o.series[0], rich = o.title[0].textStyle.rich;
+        return { radius: s.radius, pad: s.padAngle, br: s.itemStyle.borderRadius, empBw: s.emphasis.itemStyle.borderWidth, scale: s.emphasis.scaleSize, numFs: rich.b.fontSize, lblFs: rich.a.fontSize, S: e.clientWidth,
+                 bw: s.data[0].itemStyle.borderWidth, track: o.series.some(x => x.silent) }; }""")
+    pg0.close()
     pbase = base.replace("/index.html", "/preview/style-guide/index.html")
     for theme, w in (("dark", 1440), ("light", 1440), ("dark", 390)):
         c, sent = _adm2_ctx(b, width=w)
@@ -51996,30 +52027,42 @@ def t_pie_admin_1006(b, base):
         T = f"{T0} {theme} {w}px"
         pg.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
         wait_until(pg, "() => !!document.getElementById('trTabs')", 15000)
-        pg.evaluate("() => document.querySelector('#trTabs [data-t=all]').click()"); pg.wait_for_timeout(500)
-        for sel, label in (("#trAllDonut circle.arc", "各頁占比"), ("#trDonut circle.arc", "登入身分")):
-            pt = pg.evaluate(PIE1006_ADM_PT, [sel, 1])
-            pg.mouse.move(pt[0] - 5, pt[1] - 5); pg.mouse.move(pt[0], pt[1], steps=4); pg.wait_for_timeout(450)
-            st = pg.evaluate(PIE1006_ADM_STATE, [sel, 1])
-            ok(f"★ {T} {label}：滑過扇區「{pt[2]}」→ 外擴（描邊寬 {st['sw']:.1f} ≥ 19）＋外框亮（opacity {st['bOp']}、寬 {st['bSw']:.1f}）", st["sw"] >= 19 and st["bOp"] >= 0.99 and st["bSw"] >= 24, st)
-            ok(f"★ {T} {label}：中心字變成該扇區名（{st['c1']}）、提示框出現（{st['tipTxt']}）", st["c1"] == pt[2] and st["tip"], st)
-            ok(f"{T} {label}：其餘扇區不淡化太多（最低 opacity {st['minOther']} ≥ 0.75）", st["minOther"] >= 0.75, st)
-            pg.mouse.move(2, 2); pg.wait_for_timeout(350)
-            st2 = pg.evaluate(PIE1006_ADM_STATE, [sel, 1])
-            ok(f"{T} {label}：滑開 → 外框收起、扇區回原寬", st2["bOp"] <= 0.01 and st2["sw"] <= 15, st2)
+        pg.evaluate("() => document.querySelector('#trTabs [data-t=all]').click()"); pg.wait_for_timeout(700)
+        for host, label in (("#trAllDonut", "各頁占比"), ("#trDonut", "開站身分")):
+            st = _dnx(pg, host)
+            ok(f"★ {T} {label}：環規格同產業地圖（半徑 {st['radius']}、間隙 {st['pad']}°、圓角 {st['br']}、軌道 {st['track']}）",
+               st["radius"] == REF["radius"] and st["pad"] == REF["pad"] and st["br"] == REF["br"] and st["track"] == REF["track"], [st, REF])
+            ok(f"★ {T} {label}：滑過規格同產業地圖（外框 {st['emp']['itemStyle']['borderWidth']}＝{REF['empBw']}、外擴 {st['emp']['scaleSize']}＝{REF['scale']}）",
+               st["emp"]["itemStyle"]["borderWidth"] == REF["empBw"] and st["emp"]["scaleSize"] == REF["scale"], [st["emp"], REF])
+            # 中心字級：公式同一支（邊長×0.115 夾 20～34），比對「同邊長」時產業地圖該有的值
+            exp_num = round(max(20, min(34, st["w"] * 0.115)))
+            ok(f"★ {T} {label}：中心數字 {st['numFs']}px（依邊長 {st['w']} 應為 {exp_num}、差 ≤ 1px；產業地圖 {REF['numFs']}px@{REF['S']}）、小標 {st['lblFs']}px 與產業地圖 {REF['lblFs']}px 差 ≤ 0.5",
+               abs(st["numFs"] - exp_num) <= 1 and abs(st["lblFs"] - REF["lblFs"]) <= 0.5 and st["numFs"] <= 34, [st["numFs"], exp_num, st["lblFs"], REF])
+            ok(f"{T} {label}：扇區邊框 {st['data'][0]['bw']}＝{REF['bw']}、配色是實色（不是 var() 字串）", st["data"][0]["bw"] == REF["bw"] and all(str(d["color"]).startswith(("rgb", "#")) for d in st["data"]), st["data"])
+            idx = 1
+            _dnx_hover(pg, host, idx)
+            h = _dnx(pg, host)
+            ok(f"★ {T} {label}：滑過「{h['data'][idx]['name']}」→ 該扇區外框 {h['data'][idx]['bw']}px ≥ 3、中心字換成該扇區名 {h['title']}、提示框出現",
+               h["data"][idx]["bw"] >= 3 and h["title"][0] == h["data"][idx]["name"] and "%" in h["title"][1] and h["tip"], h)
+            ok(f"★ {T} {label}：非焦點扇區維持原色、不變暗（邊框仍 1px、色與滑過前相同、沒有 opacity 淡化）",
+               all(d["bw"] == 1 and d["color"] == st["data"][i]["color"] for i, d in enumerate(h["data"]) if i != idx), [h["data"], st["data"]])
+            pg.mouse.move(2, 2); pg.wait_for_timeout(500)
+            h2 = _dnx(pg, host)
+            ok(f"{T} {label}：滑開 → 外框還原、中心字還原（{h2['title']}）", h2["data"][idx]["bw"] == 1 and h2["title"][0] != h["data"][idx]["name"], h2)
         # 功能占比（Andy 圈的那張）：配色飽和、相鄰色差夠大
-        pg.evaluate("() => document.querySelector('#trTabs [data-t=flow]').click()"); pg.wait_for_timeout(600)
-        cols = pg.evaluate(PIE1006_ADM_STATE, ["#trFD circle.arc", 0])["cols"]
-        hx = [(x["k"], _rgb_hex_1006(x["c"])) for x in cols]
-        labs = [(k, _lab1006(h)) for k, h in hx if h and k != "其他"]
-        dE = [math.dist(labs[i][1], labs[i + 1][1]) for i in range(len(labs) - 1)]
-        ch = [math.hypot(l[1], l[2]) for k, l in labs]
-        ok(f"★ {T} 功能占比配色：相鄰最小 ΔE {min(dE) if dE else 99:.1f} ≥ 20、最低彩度 {min(ch) if ch else 99:.1f} ≥ 15（不是淡粉色）",
-           bool(labs) and (not dE or min(dE) >= 20) and min(ch) >= 15, hx)
-        pt = pg.evaluate(PIE1006_ADM_PT, ["#trFD circle.arc", 1])
-        pg.mouse.move(pt[0] - 5, pt[1] - 5); pg.mouse.move(pt[0], pt[1], steps=4); pg.wait_for_timeout(450)
-        st = pg.evaluate(PIE1006_ADM_STATE, ["#trFD circle.arc", 1])
-        ok(f"★ {T} 功能占比：滑過「{pt[2]}」→ 外擴＋外框＋中心字＋提示框", st["sw"] >= 19 and st["bOp"] >= 0.99 and st["c1"] == pt[2] and st["tip"], st)
+        pg.evaluate("() => document.querySelector('#trTabs [data-t=flow]').click()"); pg.wait_for_timeout(800)
+        fs = _dnx(pg, "#trFD")
+        labs = []
+        for d in fs["data"]:
+            hx = _rgb_hex_1006(d["color"]) if str(d["color"]).startswith("rgb") else d["color"]
+            if d["name"] != "其他" and hx and hx.startswith("#") and len(hx) == 7:
+                labs.append(_lab1006(hx))
+        dE = [math.dist(labs[i], labs[i + 1]) for i in range(len(labs) - 1)]
+        ch = [math.hypot(l[1], l[2]) for l in labs]
+        ok(f"★ {T} 功能占比配色：相鄰最小 ΔE {min(dE) if dE else 99:.1f} ≥ 20、最低彩度 {min(ch) if ch else 99:.1f} ≥ 15（不是淡粉色）", bool(labs) and (not dE or min(dE) >= 20) and min(ch) >= 15, fs["data"])
+        _dnx_hover(pg, "#trFD", 1)
+        h = _dnx(pg, "#trFD")
+        ok(f"★ {T} 功能占比：滑過 → 外框＋中心字＋提示框、其餘扇區不變暗", h["data"][1]["bw"] >= 3 and h["title"][0] == h["data"][1]["name"] and h["tip"] and all(d["bw"] == 1 for i, d in enumerate(h["data"]) if i != 1), h)
         c.close()
 
 

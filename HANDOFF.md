@@ -43,7 +43,7 @@
 Andy：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」。
 - **共用設定** `App.donut`（`site/app.js`）：環 68／92、間隙 1.2°、圓角 6、邊框 1→3、外擴 4、動畫 200ms、飽和色盤（深淺各 10 色）、「其他」灰、提示框、中心字。規格表在 `docs/style_guide.md` 第六節。
 - **改了哪幾張**：main 上只有一張 ECharts 圓餅 —— 產業地圖「成交值占比」（改吃共用設定、外觀不變；順手修同色相鄰：半導體鏈封測代工與 HBM 同為 #7ee8c7）。ETF 專區、選股、總覽沒有圓餅。管理區（流量觀測、會員權限）的甜甜圈是手畫 SVG，在 `claude/style-guide`，另走 `preview/style-guide`。
-- **第二推（管理區）**：`donutG()` 照共用設定（見 DECISIONS #331 補）。驗了 `圓餅風格1006`（含管理區 1440 深／淺、390）、`管理區v3`、`流量觀測1005`；舊斷言間隙 2°→1.2°。
+- **第二推（管理區，14:45 改版成 ECharts）**：`donutG()` 只產容器，`mountDonuts()` 掛 `App.donut`（見 DECISIONS #331 補）；截圖 `docs/style_guide_shots/donut1006/`。驗了 `圓餅風格1006`（含管理區 1440 深／淺、390）、`管理區v3`、`流量觀測1005`；舊斷言間隙 2°→1.2°。
 - **這批驗了哪幾段**：`圓餅風格1006`（新）、`甜甜圈圖例1006`、`ETF專區1005`、`選股策略1005`、`產業`、`族群頁`、`淺色主題`；`_preview.py`。只動 `site/**` 與 `scripts/_uitest.py`，沒跑 pytest。**沒驗到**：手機觸控滑過、其餘頁面的非圓餅圖。
 ## 2026-10-06 頁首圖示鈕間距與置中（visual-designer，直接上 main）
 - Andy 12:16：「間隔太大，圖示需要置中方框中」。原因：通知鈴（`#ntBell`，notices.js 放在 `#l4Tools` 前面當兄弟）吃頁首 gap 16＋工具列 margin-left 8＝24px（其他鈕之間 6px），且它是 34×32、圓角 9、底色 panel-2，跟 ☀／調色盤（34×34、`--r-sm`）不同。改法：`layout4.css` 鈴鐺同尺寸同樣式、`margin-right:-10px` 收成 6px、`.l4tools` margin-left 歸 0；`notices.js` 鈴鐺 34×34、`--r-sm`、圖示 17px。
