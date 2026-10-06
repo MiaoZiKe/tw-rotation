@@ -153,3 +153,43 @@ account-api 自己驗簽章與 `tv`，data-gw 再用自己的 `GW_SECRET` 簽 5 
 | T4 | 幾次異常自動停權 | **24 小時內 burst 或 multi_ip 累計 3 次**才停；bot_ua 單獨不停（有些瀏覽器外掛會改 UA）。先觀察兩週紀錄再定 |
 | T5 | 哪些功能真的收費 | 在 #admin/perm 關免費範本的開關即可；建議先從 `stock.*` 籌碼與財務分頁、`explore.*`、`mkt.cand` 開始 |
 | T6 | 異常通知寄到哪 | 沿用 security_review D5 |
+
+---
+
+## 7. 第二階段做了什麼（2026-10-06，分支 claude/data-gw）
+
+| 檔案 | 內容 |
+|---|---|
+| `pipeline/datagw_tiers.json` | 分級的**唯一來源**；`workers/data-gw/tiers.js` 必須一致（`gw.test.mjs` 比對） |
+| `pipeline/split_paid.py` | build_payload 之後把付費候選檔**搬出** `site/data` 到 `site_paid/`（公開目錄一份都不留），並寫 `site/data/datagw_index.json`（只有規則） |
+| `.github/workflows/pages.yml` | 新步驟「付費資料分流到 R2」：**只在 repo 變數 `DATAGW_SPLIT=1` 時執行**，缺 Secret 就整個部署失敗（不會發佈一個付費頁全空的網站）；用 `rclone copy` 上傳（不用 sync，快取命中時才不會清光 R2）。會員設定那步：分流有開才把 `gw` 網址寫進部署產物的 `account_config.js` |
+| `site/datagw.js`（新） | 裝置 id、5 分鐘權杖（到期前 30 秒或 401 自動重換一次）、`TwGw.get/json/isPaid`；刪掉 `_wm` 再交給畫面 |
+| `site/app.js` `load()` | 付費檔走 gateway；**Snap 不讀不寫付費檔，之前存過的刪掉** |
+| `site/chart.js`（hist 分頁）、`site/mobile3.js`（自己的 load） | 有 gateway 設定時改用 `TwGw.json` |
+| `site/account.js` | 對外多一個 `tok()`（datagw.js 換權杖用），其他不變 |
+| `site/legal.js` | 隱私權政策第二條表格加「安全紀錄（取用付費資料時）」一列；**只有設了 gateway 才出現**（功能沒開就不寫） |
+| `workers/data-gw` | T1～T3 門檻寫成 `wrangler.toml` 的變數；T4：`AUTO_SUSPEND="0"`（關閉，只記 `would_suspend`）、`SUSPEND_AFTER="3"`、`SUSPEND_WINDOW_H="24"` |
+| `scripts/_uitest.py` | 新段落 **「付費資料閘道」**：起兩支真的 Worker、模擬分流（公開 flow_v3 回 404），驗訪客 401、免費會員 403、付費會員 200 且資金流向頁畫得出來、帶權杖與裝置 id、`_wm` 不進前端、免費檔不經 gateway |
+
+**沒設定時的行為**：`TW_ACCOUNT.gw` 是空的 → `TwGw.on()` 為 false → app.js／chart.js／mobile3.js 全部走原本那一行 fetch，**跟 main 完全一樣**。
+
+## 8. 正式切換步驟（依序；★＝要等 Andy 按）
+
+| # | 步驟 | 誰 | 擋什麼 |
+|---|---|---|---|
+| 1 | ★ Cloudflare 啟用 R2、建 bucket `tw-rotation-paid`（不開公開存取） | Andy | 沒有 bucket，Worker 部署會失敗 |
+| 2 | ★ 既有 `CLOUDFLARE_API_TOKEN` 加權限「Workers R2 Storage: Edit」 | Andy | 部署綁 R2 |
+| 3 | ★ R2 → Manage R2 API Tokens → 建一張「Object Read & Write、只限 tw-rotation-paid」→ 把 Access Key ID／Secret 存成 repo Secret `R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` | Andy | pipeline 上傳 |
+| 4 | ★ repo Secret `DATA_GW_SECRET`（隨機 48 字元以上，自己產生自己貼） | Andy | Worker 簽權杖 |
+| 5 | 分支合併 main（**合併本身不會改變任何行為**：`DATAGW_SPLIT` 沒設 → 分流步驟跳過；`DATA_GW_URL` 沒設 → 前端照舊） | CEO／deployer，Andy 確認預覽後 | — |
+| 6 | ★ Actions →「部署 Worker（付費資料閘道 data-gw）」→ Run workflow（main） | Andy 按，或 CEO 用 API 觸發 | — |
+| 7 | 把部署出來的網址（`https://tw-data-gw.<帳號>.workers.dev`）存成 Secret `DATA_GW_URL` | ★ Andy | 前端知道去哪拿 |
+| 8 | ★ repo **變數**（不是 Secret）`DATAGW_SPLIT` = `1`（Settings → Secrets and variables → Actions → Variables） | Andy | **這一步才是真正切換**：下一次部署起付費檔離開公開網站 |
+| 9 | 跑一次「部署網站」，確認：Actions 分流步驟有上傳 N 支；用無痕視窗打 `…/data/flow_v3.json` 應 404；登入付費帳號資金流向頁正常 | CEO 查 Actions；Andy 開網頁看 | — |
+| 10 | ★ 在 #admin/perm 對「訪客／免費會員」關掉要收費的功能（T5） | Andy | 在這之前所有人照樣拿得到（預設全開） |
+| 11 | ★ 決定 T4 後把 `AUTO_SUSPEND` 改 `"1"`（同時要做完第三階段的停權端點） | Andy 拍板、CEO 改 | — |
+
+**回退**：把變數 `DATAGW_SPLIT` 刪掉再部署一次網站 → 付費檔回到公開目錄、前端不再走 gateway。R2 裡的檔不用刪。
+
+⚠ 前提：會員登入（`ACCOUNT_API_URL`）必須已經開著；沒有會員就沒有人能拿付費檔。
+⚠ 預覽分支（preview/*）讀正式站資料：切換後預覽版也走 gateway（它沿用正式站的 account_config.js）。
