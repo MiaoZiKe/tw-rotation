@@ -40,8 +40,13 @@
 
 /* ---------------------------------------------------------------- 可調參數 */
 const TOKEN_DAYS = 60;                 // 權杖效期；剩不到一半時 /v1/me 會換一張新的
-const ONLINE_WINDOW_MS = 150 * 1000;   // 多久沒心跳就不算在線（前端 60 秒一跳，容許漏一次）
-const PRESENCE_TTL_MS = 180 * 1000;    // 超過這個時間的在線紀錄直接刪（「離線即刪」的上限）
+const ONLINE_WINDOW_MS = 150 * 1000;   // 在線時間（visits.ms）的斷線判斷：兩次心跳相隔超過這個就不補中間那段（線上名單改用 PRESENCE_WINDOW_MS）
+const PRESENCE_TTL_MS = 420 * 1000;    // 超過這個時間的在線紀錄直接刪（「離線即刪」的上限；要大於 PRESENCE_WINDOW_MS）
+/* 線上名單／線上人數的門檻（2026-10-06 流量批次）：前端改成每 5 分鐘才送一批統計，門檻還是 150 秒的話，
+   兩批之間的人會從名單上消失、「目前 N 人在線」算少。改成 6 分鐘＝批次間隔 5 分鐘＋1 分鐘緩衝。
+   關分頁照舊用 beacon 帶 leave 立刻刪，所以門檻變長不會讓「已經走的人」多掛 6 分鐘。
+   ONLINE_WINDOW_MS（150 秒）仍留給「在線時間」的斷線判斷：批次裡每筆相隔 60 秒，結果跟以前一樣。*/
+const PRESENCE_WINDOW_MS = 360 * 1000;
 const LOGIN_TTL_MS = 10 * 60 * 1000;   // 一次登入流程（從按鈕到拿到權杖）最長 10 分鐘
 const USAGE_KEEP_MONTHS = 13;          // 使用統計彙總保留 13 個月
 const USER_IDLE_DAYS = 730;            // 會員連續 24 個月沒用就刪
@@ -410,7 +415,7 @@ export class Hub {
     if (this.publicOnline() || (v && this.isAdmin(v.user))) out.n = this.onlineCount();
     return this.json(req, out);
   }
-  onlineCount() { return this.q('SELECT COUNT(*) AS c FROM presence WHERE seen > ?', this.now() - ONLINE_WINDOW_MS)[0].c; }
+  onlineCount() { return this.q('SELECT COUNT(*) AS c FROM presence WHERE seen > ?', this.now() - PRESENCE_WINDOW_MS)[0].c; }
 
   /* ---------------------------------------------------------------- 會員（R1、R5）*/
   async auth(req, b) { return b.t ? await this.verify(b.t) : null; }
@@ -491,7 +496,7 @@ export class Hub {
   }
   async adminOnline(req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
-    const live = this.q('SELECT p.route, p.seen, u.name, u.email FROM presence p LEFT JOIN users u ON u.uid = p.uid WHERE p.seen > ? ORDER BY p.seen DESC', this.now() - ONLINE_WINDOW_MS);
+    const live = this.q('SELECT p.route, p.seen, u.name, u.email FROM presence p LEFT JOIN users u ON u.uid = p.uid WHERE p.seen > ? ORDER BY p.seen DESC', this.now() - PRESENCE_WINDOW_MS);
     const users = live.filter((r) => r.email).map((r) => ({ name: r.name, email: r.email, route: r.route, seen: r.seen }));
     return this.json(req, { total: live.length, guests: live.length - users.length, users, public_online: this.publicOnline() });
   }

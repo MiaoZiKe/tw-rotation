@@ -105,3 +105,25 @@ test('邊界：最多 100 筆、壞 sid、壞計數只丟那一筆、舊 /v1/bea
   assert.equal((await batch(hub, [], { leave: true })).s, 200);
   assert.equal(db.prepare('SELECT COUNT(*) AS c FROM presence').get().c, 0, 'leave：從在線名單刪掉');
 });
+
+test('線上門檻 6 分鐘：訪客送一批後停 4 分鐘（甚至 5 分 50 秒）都還在線上名單；關分頁（leave）立刻消失；超過 6 分鐘沒訊號才掉', async () => {
+  clock = tpe('2026-10-05 12:00');
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  const guests = async () => (await pj(hub, '/v1/admin/online', { t: andy })).j.guests;
+  assert.equal((await batch(hub, [{ ts: clock - 500, r: 'flow', ev: { 'pv:flow': 1 }, live: 1 }])).s, 200);
+  for (const m of [1, 2, 3, 4, 5.8]) {
+    clock = tpe('2026-10-05 12:00') + m * 60000;
+    assert.equal(await guests(), 1, `第 ${m} 分鐘還在線上名單`);
+    assert.equal(hub.onlineCount(), 1);
+  }
+  clock = tpe('2026-10-05 12:05');
+  assert.equal((await batch(hub, [{ ts: clock - 500, r: 'flow', ev: {}, live: 1 }])).s, 200, '5 分鐘那一批');
+  clock = tpe('2026-10-05 12:09');
+  assert.equal(await guests(), 1, '下一批之後再 4 分鐘仍在');
+  assert.equal((await batch(hub, [], { leave: true })).s, 200);
+  assert.equal(await guests(), 0, '關分頁（beacon leave）立刻消失');
+  assert.equal((await batch(hub, [], { sid: 'sid-other123' })).s, 200);
+  clock += 361 * 1000;
+  assert.equal(await guests(), 0, '超過 6 分鐘沒訊號才算離線');
+});
