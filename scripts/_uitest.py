@@ -48679,15 +48679,37 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：ETF 類別用網站真實分類（配息型、市值型、主題型、主動式、槓桿反向、債券型、其他）", all(x in et for x in ("配息型", "市值型", "主題型", "主動式", "槓桿反向", "債券型", "其他")) and "高股息" not in et and "報酬率" not in et, et[:200])
         ok(f"{TT}：「使用者」不再接在分頁統計下面（頁面沒有獨立的使用者區）", pg.evaluate("() => !document.querySelector('.secttl h2') || ![...document.querySelectorAll('.secttl h2')].some(h => h.textContent.trim() === '使用者')"))
         pg.click("#trTabs [data-t=users]")
-        us = pg.evaluate("() => ({ hrs: document.querySelectorAll('#trHrBars .dc').length, online: !!document.getElementById('admOnline'), members: !!document.getElementById('admUsers'), modes: [...document.querySelectorAll('#trHrModes button')].map(b => b.textContent.trim()).join(), clock: document.querySelectorAll('#trClock .arc').length, h1: Math.round(document.getElementById('trHours').getBoundingClientRect().height), h2: Math.round(document.getElementById('trClock').getBoundingClientRect().height), l1: Math.round(document.getElementById('trHours').getBoundingClientRect().left), l2: Math.round(document.getElementById('trClock').getBoundingClientRect().left), txt: document.getElementById('v-admin').innerText })")
+        wait_until(pg, "() => { const e = document.querySelector('#trClock .dnc'); return !!(e && window.echarts && echarts.getInstanceByDom(e)); }", 6000)
+        us = pg.evaluate("() => ({ hrs: document.querySelectorAll('#trHrBars .dc').length, online: !!document.getElementById('admOnline'), members: !!document.getElementById('admUsers'), modes: [...document.querySelectorAll('#trHrModes button')].map(b => b.textContent.trim()).join(), clock: (() => { const e = document.querySelector('#trClock .dnc'), c = e && echarts.getInstanceByDom(e); return c ? c.getOption().series.filter(s => !s.silent).reduce((a, s) => a + s.data.length, 0) : 0; })(), h1: Math.round(document.getElementById('trHours').getBoundingClientRect().height), h2: Math.round(document.getElementById('trClock').getBoundingClientRect().height), l1: Math.round(document.getElementById('trHours').getBoundingClientRect().left), l2: Math.round(document.getElementById('trClock').getBoundingClientRect().left), txt: document.getElementById('v-admin').innerText })")
         ok(f"{TT}：「使用者」分頁：左＝什麼時段最多人用？（24 根、1H/4H/6H/12H/白天/夜晚）、右＝24 小時時鐘（24 段）、並排同高；「現在誰在線上」「最近有哪些會員來過」已移除", us["hrs"] == 24 and us["modes"] == "1H,4H,6H,12H,白天,夜晚" and us["clock"] == 24 and us["h1"] == us["h2"] and us["l2"] > us["l1"] and not us["online"] and not us["members"] and "現在誰在線上" not in us["txt"] and "最近有哪些會員" not in us["txt"], us)
-        ck = pg.evaluate("""() => { const w = [...document.querySelectorAll('#trClock path.arc')]; const am = w.filter(p => p.dataset.k === 'am'), pm = w.filter(p => p.dataset.k === 'pm');
-            const n = (p) => +((p.dataset.tip.match(/([\\d,]+) 次/) || [0, '0'])[1].replace(/,/g, ''));
-            const svg = document.querySelector('#trClock svg').getBoundingClientRect(), ul = document.querySelector('#trClock ul.lg').getBoundingClientRect();
+        ck = pg.evaluate("""() => { const e = document.querySelector('#trClock .dnc'), c = echarts.getInstanceByDom(e), o = c.getOption(), ss = o.series.filter(s => !s.silent), am = ss[0].data, pm = ss[1].data;
+            const sumN = (a) => a.reduce((t, d) => t + d.n, 0), r = e.getBoundingClientRect(), ul = document.querySelector('#trClock ul.lg').getBoundingClientRect();
             const hrs = [...document.querySelectorAll('#trHrBars .dc')].slice(0, 24).map(d => +((d.dataset.tip.match(/([\\d,]+) 次/) || [0, '0'])[1].replace(/,/g, '')));
-            return { am: am.length, pm: pm.length, amSum: am.reduce((s, p) => s + n(p), 0), pmSum: pm.reduce((s, p) => s + n(p), 0), first: w[0].dataset.lab, tipFmt: /^\\d\\d:00–\\d\\d:59/.test(w[5].dataset.lab), right: ul.left >= svg.right - 2, peak: document.querySelector('#trClock svg .c2').textContent, lg: document.querySelectorAll('#trClock ul.lg li').length, legend: document.querySelector('#trClock ul.lg').textContent, hrsSum: hrs.reduce((a, b) => a + b, 0) }; }""")
+            const title = String(o.title[0].text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n');
+            return { am: am.length, pm: pm.length, amSum: sumN(am), pmSum: sumN(pm), first: am[0].name, tipFmt: /^\\d\\d:00–\\d\\d:59/.test(pm[5].name), right: ul.left >= r.right - 2 || ul.top >= r.bottom - 2, peak: title[1], lg: document.querySelectorAll('#trClock ul.lg li').length, legend: document.querySelector('#trClock ul.lg').textContent, hrsSum: hrs.reduce((a, b) => a + b, 0) }; }""")
         ok(f"{TT}：時鐘：內圈（上午）12 格＋外圈（下午）12 格、第一格 00:00–00:59、提示格式「HH:00–HH:59　N 次」、內外圈總和＝24 小時資料總和、尖峰時段在中心、圖例寫「內圈 上午／外圈 下午」在右側", ck["am"] == 12 and ck["pm"] == 12 and ck["first"] == "00:00–00:59" and ck["tipFmt"] and ck["amSum"] + ck["pmSum"] == ck["hrsSum"] > 0 and "時" in ck["peak"] and ck["right"] and ck["lg"] == 5 and "內圈 上午" in ck["legend"] and "外圈 下午" in ck["legend"], ck)
-        hv("#trClock path.arc >> nth=10", "時鐘扇形")
+        CK_STATE = """() => { const e = document.querySelector('#trClock .dnc'), c = echarts.getInstanceByDom(e), o = c.getOption(), ss = o.series.filter(x => !x.silent), rich = o.title[0].textStyle.rich;
+            const items = ss.flatMap((x, si) => x.data.map(d => ({ si, name: d.name, bw: d.itemStyle.borderWidth, op: d.itemStyle.opacity == null ? 1 : d.itemStyle.opacity })));
+            const tips = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20);
+            return { title: String(o.title[0].text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'), numFs: rich.b.fontSize, lblFs: rich.a.fontSize, items, tip: tips.length > 0, tipTxt: tips.length ? tips[tips.length - 1].textContent : '', emp: ss[1].emphasis, size: e.clientWidth }; }"""
+        for pm, k in ((1, 3), (0, 5)):
+            cc = pg.evaluate("() => { const e = document.querySelector('#trClock .dnc'); e.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) / 2]; }")
+            import math as _m
+            ang = _m.radians(k * 30 + 15); rr = cc[2] * (0.79 if pm else 0.50)
+            px, py = cc[0] + rr * _m.sin(ang), cc[1] - rr * _m.cos(ang)
+            pg.wait_for_timeout(200); pg.mouse.move(px - 6, py - 6); pg.mouse.move(px, py, steps=4); pg.wait_for_timeout(500)
+            ck2 = pg.evaluate(CK_STATE)
+            hot = [it for it in ck2["items"] if it["bw"] >= 3]
+            ok(f"★ {TT}：時鐘滑過強調（{'外' if pm else '內'}圈第 {k} 格）：只有 1 格外框 ≥ 3、其他格維持 1 且不變暗、中心換成「HH:00–HH:59 ／ N 次」、提示卡出現、字級照 App.donut（12.5／28）",
+               len(hot) == 1 and all(it["op"] == 1 for it in ck2["items"]) and re.match(r"^\d\d:00–\d\d:59$", ck2["title"][0]) and ck2["title"][0] == hot[0]["name"] and ck2["title"][1].endswith("次")
+               and ck2["tip"] and ck2["numFs"] == 28 and ck2["lblFs"] == 12.5 and ck2["emp"]["scaleSize"] == 4 and ck2["emp"]["itemStyle"]["borderWidth"] == 3, ck2)
+            pg.mouse.move(2, 2); pg.wait_for_timeout(450)
+            ck3 = pg.evaluate(CK_STATE)
+            ok(f"{TT}：時鐘滑開 → 外框還原、中心換回「尖峰時段」", not [it for it in ck3["items"] if it["bw"] >= 3] and ck3["title"][0] == "尖峰時段", ck3)
+        pg.hover("#trClock ul.lg li[data-row] >> nth=0"); pg.wait_for_timeout(450)
+        ck4 = pg.evaluate(CK_STATE)
+        ok(f"{TT}：時鐘圖例連動：滑過「尖峰」那一列 → 對應那一格外框 ≥ 3、中心換成該小時", len([it for it in ck4["items"] if it["bw"] >= 3]) == 1 and re.match(r"^\d\d:00–\d\d:59$", ck4["title"][0]), ck4)
+        pg.mouse.move(2, 2); pg.wait_for_timeout(300)
         cnts = {}
         for k, n in (("4", 6), ("6", 4), ("12", 2), ("day", 12), ("night", 12), ("1", 24)):
             pg.click(f"#trHrModes [data-hr='{k}']"); cnts[k] = pg.locator("#trHrBars .dc").count()

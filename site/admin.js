@@ -199,6 +199,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .admgrid.trone{margin-top:12px}#v-admin .admgrid.trone>.card{grid-column:1/-1}
 #admBody .sbody{flex:1;display:flex;gap:24px;align-items:stretch;min-height:240px}#admBody .sbody .bigno{flex:0 0 220px;border-right:1px solid var(--line);padding-right:24px}#admBody .sbody .sch{flex:1;min-width:0;display:flex;flex-direction:column}
 #admBody .dn.clock svg{max-height:320px}
+#admBody .dn.clock .dnc{max-width:360px;max-height:360px}
 #v-admin .trusers .tbw{max-height:none}
 #admBody .admgrid>.card>h3,#admBody .admgrid>.card>.use{flex:none}
 #v-admin .trhd{padding-top:12px}
@@ -221,12 +222,13 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #trTip[hidden]{display:none}
 #trTip b{font-weight:700}
 #v-admin [data-chart] [data-row],#v-admin [data-chart] li[data-k]{transition:opacity .12s ease,filter .12s ease}
-#v-admin [data-chart].hov .dc:not(.hl) i{opacity:.3}
-#v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25)}
-#v-admin [data-chart].hov .bars>[data-row]:not(.hl),#v-admin .bars.hov>[data-row]:not(.hl),#v-admin .hbars.hov>[data-row]:not(.hl){opacity:.35}
-#v-admin .bars.hov>.hl,#v-admin .hbars.hov>.hl{opacity:1}
+/* ★ 滑過強調（style_guide「圖表互動用語」）：被滑過的那一條＝加亮＋2px 外框；其他維持原色，不變淡 */
+#v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25);outline:2px solid var(--ink);outline-offset:0}
+#v-admin [data-chart] .bars>.bt.hl,#v-admin .bars.hov>.bt.hl{outline:2px solid var(--ink);outline-offset:0}
+#v-admin [data-chart] .bars>.bl.hl,#v-admin [data-chart] .bars>.bn.hl,#v-admin .bars.hov>.bl.hl,#v-admin .bars.hov>.bn.hl{color:var(--ink);font-weight:700}
+#v-admin .hbars>svg.hl rect.v{stroke:var(--ink);stroke-width:2}
 #v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.7}
-#v-admin [data-chart].hov .sc circle:not(.hl),#v-admin .sc.hov circle:not(.hl),#v-admin [data-chart].hov .vbars rect:not(.hl){opacity:.25}
+#v-admin [data-chart] .sc circle.hl,#v-admin [data-chart] .vbars rect.hl{stroke:var(--ink);stroke-width:2}
 #admBody .sc circle.hl{r:8}
 #v-admin .vbars rect.hl{filter:brightness(1.3)}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
@@ -1085,19 +1087,12 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const BAND = { am: [22, 32], pm: [35, 47] };
     const P = (r, deg) => `${(60 + r * Math.sin(deg * Math.PI / 180)).toFixed(2)} ${(60 - r * Math.cos(deg * Math.PI / 180)).toFixed(2)}`;
     const wedge = (a0, a1, r0, r1) => `M ${P(r0, a0)} L ${P(r1, a0)} A ${r1} ${r1} 0 0 1 ${P(r1, a1)} L ${P(r0, a1)} A ${r0} ${r0} 0 0 0 ${P(r0, a0)} Z`;
-    let tr = '', vl = '';
-    h.forEach((n, x) => {
-      const pm = x >= 12, pos = x % 12, [r0, r1] = BAND[pm ? 'pm' : 'am'], a0 = pos * 30 + 1.2, a1 = pos * 30 + 28.8, col = pm ? PM : AM, pct = (n / tot * 100).toFixed(1) + '%', lab = `${two(x)}:00–${two(x)}:59`;
-      tr += `<path d="${wedge(a0, a1, r0, r1)}" fill="${col}" fill-opacity=".13"/>`;
-      const r = r0 + Math.max(1.6, (r1 - r0) * n / mx), op = (0.4 + 0.6 * n / mx).toFixed(2);
-      vl += `<path class="arc" data-row="${x}" data-k="${pm ? 'pm' : 'am'}" data-lab="${lab}" data-pct="${pct}"${tp(`<b>${lab}</b>　${nf(n)} 次${what}・占 ${pct}`)} d="${wedge(a0, a1, r0, r)}" fill="${col}" fill-opacity="${op}"/>`;
-    });
     const amN = sum(h.slice(0, 12)), pmN = tot - amN, top = h.map((n, x) => [n, x]).sort((a, b) => b[0] - a[0]).slice(0, 3);
     const pk = top[0][1], c2 = `${two(pk)} 時`;
-    const lbl = [[0, '12'], [90, '3'], [180, '6'], [270, '9']].map(([d, t]) => { const q = P(54, d).split(' '); return `<text x="${q[0]}" y="${(+q[1] + 2.5).toFixed(2)}" text-anchor="middle" style="font-size:7px;fill:var(--ink-2);font-family:var(--mono)">${t}</text>`; }).join('');
     const li = (k, col, name, n, rg) => `<li data-k="${k}" data-n="${n}"${tp(`<b>${esc(name)}（${rg}）</b><br>${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${col}"></i><span>${esc(name)}</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`;
-    return `<div class="dn clock" data-chart="donut"><svg viewBox="0 0 120 120" data-d1="尖峰時段" data-d2="${c2}" role="img" aria-label="12 小時錶面、內圈上午外圈下午的使用時鐘">${tr}${vl}${lbl}
-      <text class="c1" x="60" y="56" text-anchor="middle" style="font-size:5.4px;fill:var(--ink-2)">尖峰時段</text><text class="c2" x="60" y="67" text-anchor="middle" style="font-size:9px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${c2}</text></svg>
+    /* ★ 2026-10-06（Andy 16:30：「下方圓餅圖的互動效果要跟上面一樣」）：時鐘也是 ECharts ＋ App.donut 的 emphasis（滑過外擴 4＋外框 3、其他不變暗、中心讀數連動、A.tip 在游標外側）。
+       兩個 pie：內圈上午、外圈下午，各 12 等分；顏色深淺＝該小時用量（長度編碼拿掉：標準 pie 每格同半徑）；外圈格內寫鐘點 12／1／2…／11。 */
+    return `<div class="dn clock" data-chart="donut"><div class="dnc" role="img" aria-label="12 小時錶面、內圈上午外圈下午的使用時鐘" data-clock="${esc(JSON.stringify({ h, what, pk }))}"></div>
       <ul class="lg">${li('am', AM, '內圈 上午', amN, '00:00–11:59')}${li('pm', PM, '外圈 下午', pmN, '12:00–23:59')}${top.map(([n, x], i) => `<li data-row="${x}"${tp(`<b>${two(x)}:00–${two(x)}:59</b>　${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${x >= 12 ? PM : AM};opacity:${(0.4 + 0.6 * n / mx).toFixed(2)}"></i><span>${i === 0 ? '尖峰' : i === 1 ? '次忙' : '再次'} ${two(x)} 時</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
   function wireTop(v, A) {
@@ -1364,8 +1359,51 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const t = document.createElement('i'); t.style.cssText = 'position:absolute;visibility:hidden;color:' + c; host.appendChild(t);
     const r = getComputedStyle(t).color; t.remove(); return r || c;
   }
+  function alphaOf(rgb, a) { const m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(rgb || ''); return m ? `rgba(${m[1]},${m[2]},${m[3]},${a})` : rgb; }
+  function mountClocks(root) {
+    const A = window.App; if (!A || !A.donut || !window.echarts || !root) return;
+    const D = A.donut, two = (n) => String(n).padStart(2, '0');
+    root.querySelectorAll('.dnc[data-clock]:not([data-m])').forEach((el) => {
+      let sp; try { sp = JSON.parse(el.dataset.clock); } catch (e) { return; }
+      el.dataset.m = '1';
+      const h = sp.h, what = sp.what, tot = sum(h) || 1, mx = Math.max(...h, 1), SZ = Math.round(el.clientWidth) || 220;
+      const AM = resolveColor(el, 'var(--cat-3)'), PM = resolveColor(el, 'var(--cat-2)');
+      const hrs = (pm) => h.slice(pm * 12, pm * 12 + 12).map((n, k) => { const x = pm * 12 + k;
+        return { name: `${two(x)}:00–${two(x)}:59`, value: 1, hour: x, n, color: alphaOf(pm ? PM : AM, (0.4 + 0.6 * n / mx).toFixed(2)),
+          label: pm ? { show: true, position: 'inside', formatter: () => String(k === 0 ? 12 : k), color: A.CH.ink, fontSize: 12, fontFamily: A.MONO } : undefined }; });
+      const am = hrs(0), pmH = hrs(1), all = am.concat(pmH);
+      const hiSet = { v: null };
+      const itemsOf = (list, i0) => list.map((d, i) => { const it = D.item(d, i0 + i, hiSet.v != null && hiSet.v.has(d.hour)); if (d.label) it.label = d.label; return it; });
+      const ring = (list, r0, r1, i0, pm) => D.series({ radius: [r0 + '%', r1 + '%'], cursor: 'default', startAngle: 90, padAngle: D.PAD_ANGLE, data: itemsOf(list, i0),
+        emphasis: { scale: true, scaleSize: D.SCALE, label: { show: pm }, itemStyle: { borderColor: A.CH.ink, borderWidth: D.BORDER_HI } } })[0];
+      const mk = () => [ring(am, 52, 68, 0, false), ring(pmH, 72, 92, 12, true), D.series({})[1]];
+      const c1 = '尖峰時段', c2 = `${two(sp.pk)} 時`;
+      A.chart(el, { tooltip: { ...A.tip, position: D.tipPos, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(q.data.n)} 次${what}（占 ${(q.data.n / tot * 100).toFixed(1)}%）` },
+        title: D.center(c1, c2, SZ), animationDurationUpdate: D.MS, series: mk() }, { notMerge: true });
+      const inst = echarts.getInstanceByDom(el); if (!inst) return;
+      const box = el.closest('[data-chart]');
+      const setHi = (set, title) => {
+        if (inst.isDisposed()) return; hiSet.v = set;
+        try { inst.setOption({ title, series: mk() }); } catch (e) { /* tooltip 與 dispose 競態 */ }
+        if (box) box.classList.toggle('hov', !!set);
+      };
+      const hourHi = (x) => { const d = all.find((q) => q.hour === x); setHi(new Set([x]), D.center(d.name, `${nf(d.n)} 次`, SZ)); };
+      const rest = () => setHi(null, D.center(c1, c2, SZ));
+      inst.on('mouseover', (q) => { if (q.seriesIndex <= 1 && q.data && q.data.hour != null) hourHi(q.data.hour); });
+      inst.on('globalout', rest);
+      if (box) box.querySelectorAll('ul.lg li').forEach((li) => {
+        li.addEventListener('mouseenter', () => {
+          if (li.dataset.row != null && li.dataset.row !== '') hourHi(+li.dataset.row);
+          else if (li.dataset.k === 'am' || li.dataset.k === 'pm') { const pm = li.dataset.k === 'pm'; setHi(new Set((pm ? pmH : am).map((d) => d.hour)), D.center(pm ? '外圈 下午' : '內圈 上午', `${nf(sum((pm ? pmH : am).map((d) => d.n)))} 次`, SZ)); }
+        });
+        li.addEventListener('mouseleave', rest);
+      });
+      requestAnimationFrame(() => { if (!inst.isDisposed()) inst.resize(); });
+    });
+  }
   function mountDonuts(root) {
     const A = window.App; if (!A || !A.donut || !window.echarts || !root) return;
+    mountClocks(root);
     const D = A.donut;
     root.querySelectorAll('.dnc[data-spec]:not([data-m])').forEach((el) => {
       let sp; try { sp = JSON.parse(el.dataset.spec); } catch (e) { return; }
