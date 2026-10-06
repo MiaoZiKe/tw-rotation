@@ -24026,6 +24026,7 @@ SECTIONS = {
     "會員名單1006":        lambda pg, b, base, code: t_member_list_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
+    "功能卡統一次數1006":  lambda pg, b, base, code: t_perm_cnt_1006(b, base, code),
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
@@ -49065,8 +49066,11 @@ def t_perm_grid_1006(b, base, code):
           multi: getComputedStyle(document.getElementById('pmCats')).columnCount, swOn: sw.length > 0 && sw.every(blue), swc: sw,
           order: cs.map(c => c.dataset.cat), ft: (window.TwFeatures.cats || []).map(c => c.id).filter(id => id !== 'grp' && cs.some(c => c.dataset.cat === id)) }; }"""
     def check(pg, tag, want_cols):
-        pg.wait_for_timeout(350)    # 開關底色有 .15s 轉場，等它停
+        pg.wait_for_timeout(350)    # 開關底色有 .15s 轉場，等它停（機器忙時轉場會拖長，最多再等 3 秒）
         d = pg.evaluate(JS)
+        for _ in range(12):
+            if not d or d.get('swOn'): break
+            pg.wait_for_timeout(250); d = pg.evaluate(JS)
         ok(f"{T}・{tag}：{want_cols} 欄、同一列卡片 top 相同且高度相同、無 CSS 多欄", bool(d) and d["cols"] == want_cols and d["topSame"] and d["hSame"] and d["multi"] == "auto", d)
         return d
     for theme in ("dark", "light"):
@@ -49102,6 +49106,58 @@ def t_perm_grid_1006(b, base, code):
                 else:
                     ok(f"{T}・{theme}：個別會員有「逐人微調」鈕可進", False, "找不到 button[data-tune]")
         c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+def t_perm_cnt_1006(b, base, code):
+    """★ 2026-10-06 Andy 16:28：「上方這邊的功能開關也要多一個統一設定次數功能」—— 每張功能卡標題列一顆「次數」鈕（照族群觀測那顆），
+    點開輸入 5 → 該卡每列每日次數上限都變 5（標「改了還沒儲存」）、別張卡不動；各列不同時鈕顯示「混合」；頁首「全部次數」一次設全部；儲存後重讀仍是 5。"""
+    T = "功能卡統一次數1006"
+    errs: list[str] = []
+    c, sent, st = _adm3_ctx(b, theme="light")
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#pmCats .pmcat').length > 0 && !document.querySelector('#pmCats .pmcat input[data-f]').disabled", 12000)
+    BTN = "#pmCats .pmcat[data-cat='flow'] button[data-glim='cat:flow']"
+    RW = """(c) => [...document.querySelectorAll(`#pmCats .pmcat[data-cat='${c}'] .pmrow .pmlimb`)].map(b => b.textContent.trim())"""
+    n_cards = pg.locator("#pmCats .pmcat").count()
+    ok(f"{T}：每張功能卡標題列都有「次數」鈕（{n_cards} 張）、頁首有「全部次數」鈕",
+       pg.locator("#pmCats .pmcat > .pmcathd button[data-glim]").count() == n_cards and pg.locator("#pmAllLim button[data-glim='all']").count() == 1)
+    ok(f"{T}：標題列順序＝標題｜次數鈕｜總開關", pg.evaluate("""() => { const h = document.querySelector("#pmCats .pmcat[data-cat='flow'] .pmcathd"); const k = [...h.children].map(e => e.tagName + (e.dataset.glim ? ':g' : '')); return k.join() === 'H3,BUTTON:g,BUTTON'; }"""))
+    before_other = pg.evaluate(RW, "overview")
+    pg.click(BTN)
+    ok(f"{T}：點「次數」鈕 → 彈出輸入框", pg.locator("#pmGPop input").is_visible())
+    shot_dir = os.environ.get("TW_PERMCNT_SHOT")
+    if shot_dir:
+        pg.screenshot(path=os.path.join(shot_dir, "01_open_1440_light.png"), clip=pg.evaluate("() => { const r = document.getElementById('pmTools').getBoundingClientRect(); return { x: 0, y: Math.max(0, r.top - 12), width: innerWidth, height: 520 }; }"))
+    pg.fill("#pmGPop input", "5"); pg.click("#pmGPop button[data-g='ok']"); pg.wait_for_timeout(300)
+    rows = pg.evaluate(RW, "flow")
+    ok(f"{T}：套用 5 → 資金流向每一列右邊都變「5/日」（{len(rows)} 列）", len(rows) >= 3 and all(x == "5/日" for x in rows), rows)
+    ok(f"{T}：卡片那顆鈕顯示「5/日」、標成改了還沒儲存（dirty）", pg.inner_text(BTN).strip() == "5/日" and "dirty" in (pg.get_attribute(BTN, "class") or ""), pg.inner_text(BTN))
+    ok(f"{T}：每列標成「改了還沒儲存」（.dirty 色條）", pg.evaluate("() => [...document.querySelectorAll(\"#pmCats .pmcat[data-cat='flow'] .pmrow\")].every(r => r.classList.contains('dirty'))"))
+    ok(f"{T}：別張卡（總覽）沒被改到", pg.evaluate(RW, "overview") == before_other, pg.evaluate(RW, "overview"))
+    if shot_dir:
+        pg.screenshot(path=os.path.join(shot_dir, "02_applied_1440_light.png"), clip=pg.evaluate("() => { const r = document.getElementById('pmTools').getBoundingClientRect(); return { x: 0, y: Math.max(0, r.top - 12), width: innerWidth, height: 520 }; }"))
+    # 混合：把其中一列改成 7 → 卡片鈕顯示「混合」
+    pg.click("#pmCats .pmcat[data-cat='flow'] .pmrow .pmlimb >> nth=0"); pg.fill("input[data-lim]", "7"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    ok(f"{T}：各列次數不同 → 卡片鈕顯示「混合」", pg.inner_text(BTN).strip() == "混合", pg.inner_text(BTN))
+    # 儲存 → plans/put 帶 5；重讀仍是 5
+    pg.click(BTN); pg.fill("#pmGPop input", "5"); pg.click("#pmGPop button[data-g='ok']"); pg.wait_for_timeout(300)
+    with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
+        pg.click("#pmSaveGo")
+    body = json.loads(ri.value.request.post_data or "{}"); lm = body.get("lims") or {}
+    flow_ids = pg.evaluate("() => window.TwFeatures.inCat('flow').filter(f => f.kind !== 'limit').map(f => f.id)")
+    ok(f"{T}：儲存 → plans/put 的 lims 裡資金流向每列都是 5、總覽沒有", flow_ids and all(lm.get(i) == 5 for i in flow_ids) and not any(k.startswith("ov.") for k in lm), body)
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#pmCats .pmcat').length > 0 && !document.querySelector('#pmCats .pmcat input[data-f]').disabled", 12000)
+    rows2 = pg.evaluate(RW, "flow")
+    ok(f"{T}：重新讀取後資金流向每列仍是 5/日", len(rows2) >= 3 and all(x == "5/日" for x in rows2), rows2)
+    # 全部次數
+    pg.click("#pmAllLim button[data-glim]"); pg.fill("#pmGPop input", "3"); pg.click("#pmGPop button[data-g='ok']"); pg.wait_for_timeout(300)
+    allr = pg.evaluate("() => [...document.querySelectorAll('#pmCats .pmrow .pmlimb')].map(b => b.textContent.trim())")
+    ok(f"{T}：頁首「全部次數」設 3 → 所有卡片所有列都是 3/日", len(allr) > 20 and all(x == "3/日" for x in allr) and "3/日" in pg.inner_text("#pmAllLim"), [len(allr), allr[:3]])
+    pg.click("#pmCancel")
+    c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
 
@@ -49272,7 +49328,7 @@ def t_admin_v3(b, base, code):
        pg.evaluate(GR) == g0 and pg.locator("#pmGrp input[data-lim]").count() == 1 and "次/日" not in pg.inner_text("#pmGrp")
        and pg.evaluate("() => [...document.querySelectorAll('#pmGrp button[data-limb]')].every(b => Math.round(b.getBoundingClientRect().width) === 44)"))
     pg.mouse.click(5, 5)
-    ml = pg.evaluate("""() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small, #ptTier button, .pmcathd h3, .pmlegend span, .ptlede, #pmGrp .pmfoldhd')]
+    ml = pg.evaluate("""() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small, #ptTier button, .pmcathd h3 > b, .pmcathd h3 > small, #pmGrp .pmcathd h3, .pmlegend span, .ptlede, #pmGrp .pmfoldhd')]
       .filter(e => e.getClientRects().length && e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).lineHeight || 0) * 1.6 + 2 && e.getClientRects().length >= 1 && getComputedStyle(e).whiteSpace !== 'nowrap')
       .slice(0, 5).map(e => e.className + ':' + e.textContent.trim().slice(0, 12))""")
     multi = pg.evaluate("() => [...document.querySelectorAll('#v-admin .nm, #v-admin .pmrow small')].filter(e => { const cs = getComputedStyle(e), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5; return cs.whiteSpace !== 'nowrap' || e.getBoundingClientRect().height > lh * 1.5; }).slice(0, 5).map(e => e.textContent)")
