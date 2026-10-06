@@ -4840,3 +4840,10 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ## 2026-10-05 00:16（台北）部署 777dea5：會員權限分頁上線（Andy「上吧」）
 - 入口改成跟「自選」同一層；只有 ADMIN_EMAILS 管理者看得到。預覽分支 preview/perm-nav、preview/fast-ov2 刪除失敗（git proxy 斷線），仍在遠端，可另行收掉。
 - 驗了：會員權限導覽、會員權限開關、會員雲端路徑、會員與自選五分頁、總覽 全 0；_preview 綠。
+
+## 2026-10-06 會員名單：拿掉新增列／方案標題列、統計「載入中…」修好並照流量觀測重做
+- 根因：`site/admin.js` 舊 `refreshList()` 第一行 `PS.mst = {}` 清掉統計快取，但舊 `loadMStats()` 只在「第一次畫殼」呼叫 → 逐人微調回來、存檔、刪範本之後永遠「載入中…」，近 7 日活躍顯示「—」。現在 `paintStats()` 每次畫之前先確認快取、沒有就讀；15 秒逾時、失敗顯示白話原因＋「重新讀取」。
+- 拿掉：名單上方「新增會員＋逐人微調輸入」整列（逐人微調仍從展開的列進）；方案分頁頂端標題列（價格、套用人數併進頁籤滑過提示，⚙ 搬到子分頁列右側）。Worker 的 perm/put 沒動。
+- Worker：`/v1/admin/members/stats` 多收 from／to／bin（檔尾新區塊、prototype 包裝），回 active／visits／ms／pv／joined／featTotal／stockTotal；沒帶起訖＝舊格式。
+- 驗了：`會員名單1006,會員權限開關,管理區v3,管理區1005,流量觀測1005`、`_preview.py`、`node --test`。沒跑 pytest（只動 site 與 workers）。
+- 沒驗到：真 Cloudflare 上的真資料；流量觀測自己的期間列沒改成共用元件（會員名單另寫 periodCtlHtml，同 markup）。

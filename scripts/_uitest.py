@@ -74,13 +74,17 @@ def to_members(pg, email=None):
         pg.fill("#pmEmail", email); pg.click("#pmLoad")       # 已經在逐人微調畫面：直接換人
         wait_until(pg, "() => !!document.getElementById('pmWho') && (document.getElementById('pmWho').textContent || '').includes('@')", 6000)
     elif email:
-        # 2026-10-06：逐人微調的 email 輸入框拿掉 → 清掉搜尋／篩選、找到那一列、展開、按「逐人微調…」
-        pg.fill("#pmSearch", email)
-        if not wait_until(pg, "(e) => !!document.querySelector('#ptTable tr[data-email=\"' + e + '\"]')".replace("(e)", "()").replace("' + e + '", email), 4000):
+        # 2026-10-06：逐人微調的 email 輸入框拿掉 → 在名單裡找到那一列、展開、按「逐人微調…」
+        sel = f"() => !!document.querySelector(\"#ptTable tr[data-email='{email}']\")"
+        if not wait_until(pg, sel, 2500):
+            pg.reload(wait_until="domcontentloaded")      # 名單是進頁時讀的；登入者是之後才出現的 → 重新整理再找
+            wait_until(pg, "() => document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
+            pg.click("#ptTier button[data-tier='free']"); pg.click("#ptSubList")
+        if not wait_until(pg, sel, 4000):
             raise RuntimeError("to_members：名單裡找不到 " + email)
-        pg.click(f"#ptTable tr[data-email='{email}']")
+        if not pg.locator(f"#ptTable tr.pmdet[data-for='{email}']").count():      # 已經展開過就不要再點（再點會收起）
+            pg.click(f"#ptTable tr[data-email='{email}']")
         pg.click(f"#ptTable tr.pmdet[data-for='{email}'] button[data-tune]")
-        pg.fill("#pmSearch", "") if pg.locator("#pmSearch").count() else None
         wait_until(pg, "() => !!document.getElementById('pmEmail') && document.querySelectorAll('#pmCats .pmcat').length > 0", 8000)
 
 
@@ -47306,6 +47310,10 @@ def t_member_perm(b, base, code):
         wait_until(ad, "() => location.hash === '#admin/perm' && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
         # ★ 2026-10-05 改前→改後（驗收過時，admin-v2）：管理區拆成 會員權限／會員管理／流量觀測 三個子分頁，
         #   「逐人設定」搬到 #admin/members（會員管理）；#admin/perm 改成依層級（訪客／註冊會員／付費會員）編範本。斷言本身不變，只換分頁。
+        # 2026-10-06：名單上方「輸入 email → 讀取」拿掉，逐人微調只從名單的列進 → 測試帳號要先登入過一次才會出現在名單
+        ct = new_ctx(); tp = ct.new_page(); tp.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(tp, "() => !!document.getElementById('acctBtn')", 8000)
+        login(tp, "tester"); ct.close()
         to_members(ad)
         ok(f"{T}：還沒進到「逐人微調」之前，頁面沒有個人設定（沒有 #pmEmail）、不會誤存到不知道誰", ad.locator("#pmEmail").count() == 0)
         to_members(ad, PERM_TEST_EMAIL)
@@ -49262,7 +49270,7 @@ def t_admin_v3(b, base, code):
         const paid = rows.filter(t => t.querySelector('.pdbadge:not(.off)')).length;
         const ch = [...document.querySelectorAll('#msCharts > .card')].map(c => [Math.round(c.getBoundingClientRect().height), !!c.querySelector('svg, .dayplot')]);
         return { n: rows.length, total: +document.querySelector('#msTotal b').textContent.replace(/,/g, ''), st, sd: don('msStDonut'), pd: don('msPlanDonut'), paid,
-                 feat: [...document.querySelectorAll('#msFeat .bn')].map(e => [e.dataset.k, +e.dataset.n]), stk: [...document.querySelectorAll('#msStock .bl')].map(e => e.textContent),
+                 feat: [...document.querySelectorAll('#msFeat > .bl')].map((e, i) => [e.textContent.trim(), +document.querySelectorAll('#msFeat > .bn')[i].textContent.trim().split(/\s+/)[0].replace(/,/g, '')]), stk: [...document.querySelectorAll('#msStock .bl')].map(e => e.textContent),
                  days: document.querySelectorAll('#msDays .dc').length, act7: document.querySelector('#msActive b').textContent, ch,
                  kpiTop: [...document.querySelectorAll('#ptStats .mkpis .mkpi')].map(k => Math.round(k.getBoundingClientRect().top)) }; }""")
     # ★ 10-05 Andy「會員權限內長條圖以及圓餅圖風格可以參考流量觀測」：同一套元件（細條 10px、直角甜甜圈 2° 間隙、淡 Y 軸）＋互動（滑過有提示與高亮）
@@ -49290,7 +49298,7 @@ def t_admin_v3(b, base, code):
     ok(f"{T}・perm-v4：註冊會員頁另一張甜甜圈：免費 vs 各付費方案，付費人數＝名單上的金色徽章數、加總＝名單列數",
        sum(ms["pd"].values()) == ms["n"] and sum(v for k, v in ms["pd"].items() if k != "free") == ms["paid"] and ms["pd"].get("p399") == 1 and ms["pd"].get("p799") == 1, (ms["pd"], ms["paid"]))
     ok(f"{T}・perm-v4：功能 Top 8＝伺服器彙總（分頁：營收第一）、股票 Top 8 有代號＋名稱、期間每日直條 ≥ 7 根、活躍人數有數字",
-       ms["feat"][:1] and ms["feat"][0][0] == "tab.revenue" and ms["feat"][0][1] % 14 == 0 and len(ms["feat"]) <= 8 and ms["stk"] and ms["stk"][0].startswith("2330") and ms["days"] >= 7 and ms["act7"].strip() not in ("", "—", "…"), ms)
+       ms["feat"][:1] and "營收" in ms["feat"][0][0] and ms["feat"][0][1] % 14 == 0 and len(ms["feat"]) <= 8 and ms["stk"] and ms["stk"][0].startswith("2330") and ms["days"] >= 7 and ms["act7"].strip() not in ("", "—", "…"), ms)
     ok(f"{T}・perm-v4：統計圖卡（註冊會員頁 5 張：每天人數、狀態、免費vs付費、功能、股票）都有圖", len(ms["ch"]) == 5 and all(s for h, s in ms["ch"]), ms["ch"])
     ok(f"{T}・perm-v4：統計向伺服器要一次（/v1/admin/members/stats scope=all），沒有逐人呼叫 member/detail",
        any(x[0] == "/v1/admin/members/stats" and x[1].get("scope") == "all" for x in sent) and not any(x[0] == "/v1/admin/member/detail" for x in sent))

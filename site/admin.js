@@ -2219,6 +2219,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 /* ===== 會員名單上方的統計（2026-10-06）：版型＝6 欄格線。第一列「每天多少人」4＋「狀態」2；第二列 註冊會員＝三張各 2、付費＝兩張各 3 ===== */
 /* ⚙ 範本設定：2026-10-06 起在子分頁列的最右邊（原本在已拿掉的標題列裡） */
 #v-admin .ptwrap .ptsub .ptgear{margin-left:auto;align-self:center;margin-bottom:4px}
+/* 標題列拿掉後，子分頁列補回原本標題列的上方留白（不然會貼住內容框頂、蓋到選中頁籤的底邊） */
+#pmTarget{padding-top:14px}#pmTarget:empty{padding-top:0}
 #ptStats{margin:0 0 14px}
 #ptStats .secttl{margin:4px 0 0;flex-wrap:wrap;align-items:center;row-gap:8px}
 #ptStats .secttl h2{font-size:var(--fs-h2,20px);font-weight:600}
