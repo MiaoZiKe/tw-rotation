@@ -254,3 +254,10 @@
 | 15 | **拆私人／公開 repo**：等設計完成後照步驟建私人 repo＋PAT | 施工中 | 10-07 |
 
 ## 10-07 Andy：Google／GitHub／Cloudflare 兩步驟驗證全部完成（Cloudflare 先用忘記密碼補設密碼）。
+
+## 10-07 02:20 Andy 交辦：訂閱頁照範本＋會員分級（施工中）
+- 訂閱頁照 stockintelli 範本（月／年切換、Free／Plus 最受歡迎／Pro 功能最齊三卡）＋下方功能比較表 → claude/pricing-v2 → preview/pricing-v2。
+- 競品免費額度調查、新手最有感資料、本站競爭力、四層方案（訪客每日 3 次已定）、吸引功能發想 → claude/plan-tiers（docs/plan_tiers_1007.md、docs/plan_presets_1007.json）。
+- 管理區「套用建議方案」一鍵寫入四個範本；每個功能的每日次數覆蓋稽核（桌機＋手機）→ claude/quota。
+- ⚠ Pro「幫他分析自選清單股票」＝收費＋個股判斷，投顧法高風險；先做合規版（資料彙整、條件提醒），原版標「律師確認後才做」。
+- ⚠ 次數限制要等付費資料閘道上線，才會在伺服器端真的擋住；在那之前只擋畫面。
