@@ -210,10 +210,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
 #admBody .bars .bt.stk{cursor:pointer}
 #admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:0 1 auto;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
-#admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
-#admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
-#admBody .dn ul.lg li b{flex:none;min-width:4.2em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
-#admBody .dn ul.lg li small{flex:none;min-width:3.6em;text-align:right;font:12px var(--mono);color:var(--ink-2)}
+#admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;min-width:0}
+#admBody .dn ul.lg li span{flex:1;min-width:0;line-height:1.3;overflow-wrap:anywhere}   /* 名稱不准出現「…」：放不下就換行 */
+#admBody .dn ul.lg li b{flex:none;min-width:3.4em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
+#admBody .dn ul.lg li small{flex:none;min-width:3.1em;text-align:right;font:12px var(--mono);color:var(--ink-2)}
 @container (max-width:439px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg,#admBody .dn .dnc{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
 #admBody .dn ul.lg li i{width:12px;height:12px;border-radius:3px;flex:none}
 /* 圖表互動：滑過高亮、其餘變淡；浮動提示（#trTip，掛在 body） */
@@ -581,9 +581,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .mdonut{display:flex;align-items:center;gap:12px;min-width:0}
 #v-admin .mdonut svg,#v-admin .mdonut .dnc{flex:none;width:104px;height:104px}#v-admin .mdonut ul{flex:1}
 #v-admin .mdonut ul{list-style:none;margin:0;padding:0;min-width:0;flex:1;font-size:12.5px}
-#v-admin .mdonut li{display:flex;align-items:center;gap:6px;height:21px;white-space:nowrap;min-width:0}
+#v-admin .mdonut li{display:flex;align-items:center;gap:6px;min-height:21px;min-width:0}
 #v-admin .mdonut li i{flex:none;width:10px;height:10px;border-radius:3px}
-#v-admin .mdonut li span{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+#v-admin .mdonut li span{min-width:0;line-height:1.3;overflow-wrap:anywhere;color:var(--ink-2)}
 #v-admin .mdonut li b{margin-left:auto;font-family:var(--mono);font-weight:600;color:var(--ink)}
 #v-admin .mdonut li small{flex:none;width:3.2em;text-align:right;font-family:var(--mono);color:var(--ink-2);font-size:11.5px}
 #v-admin .mdonut+.mdonut{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
