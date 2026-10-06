@@ -40,8 +40,13 @@
 
 /* ---------------------------------------------------------------- 可調參數 */
 const TOKEN_DAYS = 60;                 // 權杖效期；剩不到一半時 /v1/me 會換一張新的
-const ONLINE_WINDOW_MS = 150 * 1000;   // 多久沒心跳就不算在線（前端 60 秒一跳，容許漏一次）
-const PRESENCE_TTL_MS = 180 * 1000;    // 超過這個時間的在線紀錄直接刪（「離線即刪」的上限）
+const ONLINE_WINDOW_MS = 150 * 1000;   // 在線時間（visits.ms）的斷線判斷：兩次心跳相隔超過這個就不補中間那段（線上名單改用 PRESENCE_WINDOW_MS）
+const PRESENCE_TTL_MS = 420 * 1000;    // 超過這個時間的在線紀錄直接刪（「離線即刪」的上限；要大於 PRESENCE_WINDOW_MS）
+/* 線上名單／線上人數的門檻（2026-10-06 流量批次）：前端改成每 5 分鐘才送一批統計，門檻還是 150 秒的話，
+   兩批之間的人會從名單上消失、「目前 N 人在線」算少。改成 6 分鐘＝批次間隔 5 分鐘＋1 分鐘緩衝。
+   關分頁照舊用 beacon 帶 leave 立刻刪，所以門檻變長不會讓「已經走的人」多掛 6 分鐘。
+   ONLINE_WINDOW_MS（150 秒）仍留給「在線時間」的斷線判斷：批次裡每筆相隔 60 秒，結果跟以前一樣。*/
+const PRESENCE_WINDOW_MS = 360 * 1000;
 const LOGIN_TTL_MS = 10 * 60 * 1000;   // 一次登入流程（從按鈕到拿到權杖）最長 10 分鐘
 const USAGE_KEEP_MONTHS = 13;          // 使用統計彙總保留 13 個月
 const USER_IDLE_DAYS = 730;            // 會員連續 24 個月沒用就刪
@@ -157,7 +162,7 @@ export class Hub {
   kv(k) { const r = this.q('SELECT v FROM kv WHERE k = ?', k); return r.length ? r[0].v : null; }
   setKv(k, v) { this.q('INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, String(v)); }
 
-  origins() { return String(this.env.ALLOWED_ORIGINS || 'https://miaozike.github.io').split(/[\s,]+/).filter(Boolean); }
+  origins() { return String(this.env.ALLOWED_ORIGINS || 'https://miaozike.github.io https://tw-rotation.pages.dev').split(/[\s,]+/).filter(Boolean); }
   originOk(o) { return !!o && this.origins().includes(o); }
   admins() { return String(this.env.ADMIN_EMAILS || '').toLowerCase().split(/[\s,;]+/).filter(Boolean); }
   isAdmin(u) { return !!u && !!u.email && this.admins().includes(String(u.email).toLowerCase()); }
@@ -410,7 +415,7 @@ export class Hub {
     if (this.publicOnline() || (v && this.isAdmin(v.user))) out.n = this.onlineCount();
     return this.json(req, out);
   }
-  onlineCount() { return this.q('SELECT COUNT(*) AS c FROM presence WHERE seen > ?', this.now() - ONLINE_WINDOW_MS)[0].c; }
+  onlineCount() { return this.q('SELECT COUNT(*) AS c FROM presence WHERE seen > ?', this.now() - PRESENCE_WINDOW_MS)[0].c; }
 
   /* ---------------------------------------------------------------- 會員（R1、R5）*/
   async auth(req, b) { return b.t ? await this.verify(b.t) : null; }
@@ -491,7 +496,7 @@ export class Hub {
   }
   async adminOnline(req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
-    const live = this.q('SELECT p.route, p.seen, u.name, u.email FROM presence p LEFT JOIN users u ON u.uid = p.uid WHERE p.seen > ? ORDER BY p.seen DESC', this.now() - ONLINE_WINDOW_MS);
+    const live = this.q('SELECT p.route, p.seen, u.name, u.email FROM presence p LEFT JOIN users u ON u.uid = p.uid WHERE p.seen > ? ORDER BY p.seen DESC', this.now() - PRESENCE_WINDOW_MS);
     const users = live.filter((r) => r.email).map((r) => ({ name: r.name, email: r.email, route: r.route, seen: r.seen }));
     return this.json(req, { total: live.length, guests: live.length - users.length, users, public_online: this.publicOnline() });
   }
@@ -1529,3 +1534,144 @@ Hub.prototype.fetch = async function (req) {
   return suspOrigFetch.call(this, req);
 };
 /* ============================================================================ data-gw 停權區塊結束 */
+
+/* ============================================================================ 會員資料匯出／還原區塊（2026-10-06，規格 docs/admin_export_spec.md）
+   為什麼：會員帳號、方案、到期日、統計全在這個 Durable Object 的 SQLite，GitHub 上沒有副本；筆電每日備份補這個缺口。
+     POST /v1/admin/export
+       · 兩種身分可以叫：① 管理者（Origin 白名單＋body.t 是 ADMIN_EMAILS 內的登入權杖）
+                          ② 備份權杖：Authorization: Bearer <BACKUP_TOKEN>（Worker Secret），不檢查 Origin（筆電排程沒有瀏覽器）
+       · 唯讀：只有 SELECT；唯一的寫入是稽核計數 usage(day, 'admin_export')
+       · 不匯出：logins（一次性登入狀態）、presence（線上名單）、kv 裡的 hmac（登入權杖簽章金鑰）與任何金鑰類的鍵
+       · 回應的「位元組」：{"v":1,"at":"…","tables":{表:{cols,rows}},"sha256":"<hex>","sig":"<hex>"}
+         被簽的內容＝原文從開頭到 ,"sha256": 之前、再補一個 }（＝JSON.stringify({v,at,tables}) 的原字串）。
+         這樣筆電端（PowerShell）不必重新序列化 JSON 就能驗簽 —— 重新序列化幾乎一定跟 JS 的輸出差幾個位元組。
+       · sig＝HMAC-SHA256(EXPORT_SIGN_KEY，沒設就用 BACKUP_TOKEN)；兩個都沒設時 sig 為空字串（import 會拒收）
+       · 同一身分每小時最多 6 次（記憶體計數，冷啟動歸零 —— 夠擋誤設的排程狂打）
+     POST /v1/admin/import?confirm=RESTORE-INTO-EMPTY-DB
+       · body＝export 的原文（上限 20MB）；sig 驗不過、confirm 不對、users 不是 0 筆 → 一律拒絕，什麼都不寫
+       · 身分同上（實務上只會用備份權杖：資料庫是空的就沒有管理者帳號能登入）
+       · 寫入：逐表先清空再寫回（kv 保留本機的 hmac 不動），全部包在一個交易裡
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const EXPORT_TABLES = ['users', 'lists', 'perm', 'plans', 'kv', 'sub_requests', 'feedback', 'notices', 'notice_reads', 'usage', 'ev2', 'uev', 'visits', 'hstat', 'quota_hits'];
+export const EXPORT_CONFIRM = 'RESTORE-INTO-EMPTY-DB';
+const EXPORT_MAX_PER_HOUR = 6, IMPORT_MAX_BYTES = 20 * 1024 * 1024;
+const EXP_KV_SECRET = /^hmac$|key|secret|token|pass/i;
+const hexOf = (buf) => Array.from(new Uint8Array(buf), (x) => x.toString(16).padStart(2, '0')).join('');
+Hub.prototype.expKey = function () { return String(this.env.EXPORT_SIGN_KEY || this.env.BACKUP_TOKEN || ''); };
+Hub.prototype.expSign = async function (content) {
+  const sha = hexOf(await crypto.subtle.digest('SHA-256', enc.encode(content)));
+  const k = this.expKey();
+  if (!k) return { sha, sig: '' };
+  const key = await crypto.subtle.importKey('raw', enc.encode(k), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return { sha, sig: hexOf(await crypto.subtle.sign('HMAC', key, enc.encode(content))) };
+};
+/* 回 { who } 或 null。帶了 Authorization 就只認備份權杖；沒帶就照管理者路由的規矩（Origin＋管理者權杖） */
+Hub.prototype.expWho = async function (req, b) {
+  const h = String(req.headers.get('Authorization') || '');
+  const bt = String(this.env.BACKUP_TOKEN || '');
+  if (h.startsWith('Bearer ')) return bt.length >= 16 && safeEq(h.slice(7).trim(), bt) ? { who: 'backup' } : null;
+  if (!this.originOk(req.headers.get('Origin'))) return null;
+  const v = b && b.t ? await this.admin(req, b) : null;
+  return v ? { who: 'admin:' + v.user.uid } : null;
+};
+Hub.prototype.expRateOk = function (who) {
+  if (!this.expHits) this.expHits = new Map();
+  const now = this.now(), arr = (this.expHits.get(who) || []).filter((t) => now - t < 3600 * 1000);
+  if (arr.length >= EXPORT_MAX_PER_HOUR) { this.expHits.set(who, arr); return false; }
+  arr.push(now); this.expHits.set(who, arr); return true;
+};
+Hub.prototype.expHas = function (t) { return this.q("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", t).length > 0; };
+/* 有些表與欄位是「第一次用到才建」（subInit／v3Init／v4Init／hrInit）；匯出與匯入前先全部建好，兩邊欄位才對得上 */
+Hub.prototype.expInit = function () { this.subInit(); this.v3Init(); this.v4Init(); this.hrInit(); };
+Hub.prototype.expDump = function () {
+  this.expInit();
+  const tables = {};
+  for (const t of EXPORT_TABLES) {
+    if (!this.expHas(t)) continue;
+    const cols = this.q(`PRAGMA table_info(${t})`).map((c) => c.name);
+    let rows = this.q(`SELECT * FROM ${t} ORDER BY rowid`).map((r) => cols.map((c) => (r[c] === undefined ? null : r[c])));
+    if (t === 'kv') rows = rows.filter((r) => !EXP_KV_SECRET.test(String(r[0])));
+    tables[t] = { cols, rows };
+  }
+  return tables;
+};
+Hub.prototype.adminExport = async function (req, b) {
+  const w = await this.expWho(req, b);
+  if (!w) return this.json(req, { error: 'forbidden' }, 403);
+  if (!this.expRateOk(w.who)) return this.json(req, { error: 'rate' }, 429);
+  const content = JSON.stringify({ v: 1, at: new Date(this.now()).toISOString(), tables: this.expDump() });
+  const { sha, sig } = await this.expSign(content);
+  this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1', tpeDay(this.now()), 'admin_export');
+  const body = content.slice(0, -1) + `,"sha256":"${sha}","sig":"${sig}"}`;
+  return this.cors(req, new Response(body, { status: 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } }));
+};
+/* 從 export 原文切出被簽的內容；格式不對回 null */
+export function expSplit(raw) {
+  const i = raw.lastIndexOf(',"sha256":"');
+  if (i < 0) return null;
+  const m = /^,"sha256":"([0-9a-f]{64})","sig":"([0-9a-f]*)"\}\s*$/.exec(raw.slice(i));
+  return m ? { content: raw.slice(0, i) + '}', sha: m[1], sig: m[2] } : null;
+}
+Hub.prototype.adminImport = async function (req, raw, url) {
+  const w = await this.expWho(req, null);
+  if (!w) return this.json(req, { error: 'forbidden' }, 403);
+  if (url.searchParams.get('confirm') !== EXPORT_CONFIRM) return this.json(req, { error: 'need_confirm', confirm: EXPORT_CONFIRM }, 400);
+  if ((this.q('SELECT COUNT(*) AS n FROM users')[0] || {}).n > 0) return this.json(req, { error: 'not_empty' }, 409);
+  const s = expSplit(raw);
+  if (!s) return this.json(req, { error: 'bad_format' }, 400);
+  const { sha, sig } = await this.expSign(s.content);
+  if (!sig || !safeEq(sha, s.sha) || !safeEq(sig, s.sig)) return this.json(req, { error: 'bad_sig' }, 400);
+  let d; try { d = JSON.parse(s.content); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+  if (!d || d.v !== 1 || !d.tables || typeof d.tables !== 'object') return this.json(req, { error: 'bad_format' }, 400);
+  this.expInit();
+  const plan = [];
+  for (const [t, x] of Object.entries(d.tables)) {
+    if (!EXPORT_TABLES.includes(t) || !this.expHas(t)) return this.json(req, { error: 'bad_table', table: t }, 400);
+    const have = this.q(`PRAGMA table_info(${t})`).map((c) => c.name);
+    if (!x || !Array.isArray(x.cols) || !Array.isArray(x.rows) || !x.cols.every((c) => have.includes(c))) return this.json(req, { error: 'bad_cols', table: t }, 400);
+    plan.push([t, x]);
+  }
+  let n = 0;
+  /* Cloudflare 的 Durable Object SQLite 不准直接下 BEGIN／COMMIT，要用 storage.transactionSync；
+     Node 的測試替身沒有它，才退回 BEGIN／COMMIT。任一列失敗 → 整批回滾，資料庫維持空的 */
+  const work = () => {
+    for (const [t, x] of plan) {
+      if (t === 'kv') this.q("DELETE FROM kv WHERE k <> 'hmac'"); else this.q(`DELETE FROM ${t}`);
+      const ins = `INSERT INTO ${t} (${x.cols.join(', ')}) VALUES (${x.cols.map(() => '?').join(', ')})`;
+      for (const r of x.rows) {
+        if (!Array.isArray(r) || r.length !== x.cols.length) throw new Error('bad_row:' + t);
+        if (t === 'kv' && EXP_KV_SECRET.test(String(r[0]))) continue;
+        this.q(ins, ...r); n++;
+      }
+    }
+  };
+  const st = this.state.storage;
+  try {
+    if (typeof st.transactionSync === 'function') st.transactionSync(work);
+    else {
+      this.q('BEGIN');
+      try { work(); this.q('COMMIT'); } catch (e) { try { this.q('ROLLBACK'); } catch (_) { /* 已回滾 */ } throw e; }
+    }
+  } catch (e) {
+    return this.json(req, { error: 'import_failed', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+  return this.json(req, { ok: true, tables: plan.length, rows: n, from: d.at });
+};
+/* 接線：只攔這兩條路徑（不走 16KB 上限、備份權杖不需要 Origin），其他照舊交給前面的 fetch */
+const expOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  const url = new URL(req.url);
+  const p = url.pathname;
+  if (req.method !== 'POST' || (p !== '/v1/admin/export' && p !== '/v1/admin/import')) return expOrigFetch.call(this, req);
+  try {
+    const raw = await req.text();
+    if (raw.length > IMPORT_MAX_BYTES) return this.json(req, { error: 'too_large' }, 413);
+    if (p === '/v1/admin/import') return await this.adminImport(req, raw, url);
+    let b = {}; try { b = JSON.parse(raw || '{}'); } catch (e) { b = {}; }
+    return await this.adminExport(req, b && typeof b === 'object' ? b : {});
+  } catch (e) {
+    return this.json(req, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }, 500);
+  }
+};
+/* ============================================================================ 會員資料匯出／還原區塊結束 */

@@ -63,6 +63,9 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, BASE);
   try {
     if (url.pathname.startsWith('/__g/')) return await fakeGoogle(url, req, res, body);
+    /* 驗收用（流量批次1006）：直接讀每日計數表，不必登入管理者就能比對「送了幾筆、Worker 記了幾筆」。只有本機 devserver 有 */
+    if (url.pathname === '/__online') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ n: hub.onlineCount() })); }
+    if (url.pathname === '/__usage') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(hub.q('SELECT k, SUM(n) AS n FROM usage GROUP BY k'))); }
     const r = await hub.fetch(new Request(url.href, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : body }));
     if (process.env.DEV_LOG) console.log(req.method, url.pathname, r.status, 'origin=' + (req.headers.origin || '-'), 'ct=' + (req.headers['content-type'] || '-'), body.slice(0, 120));
     const h = {}; r.headers.forEach((v, k) => { h[k] = v; });

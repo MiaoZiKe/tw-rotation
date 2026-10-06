@@ -87,9 +87,30 @@
 #v-subadm .ntact .msg.bad{color:var(--rise)}#v-subadm .ntact .msg.ok{color:var(--fall)}`);
 
   // ------------------------------------------------------------------ 資料
-  async function fetchList() {
-    const a = A(); if (!a || !a.on()) { S.list = []; S.loaded = false; paintBell(); return; }
-    const j = await call('/v1/notices', {});
+  /* 2026-10-06（流量批次）：開一頁原本會打 2～3 次 /v1/notices（boot、tw:account-config、tw:account 各一次）。
+     改成：同一個人 10 分鐘內只打一次，結果放 sessionStorage（tw.nt.c）；進行中的那一次大家共用。
+     換人（登入／登出）快取鍵不同 → 重抓；TwNotices.refresh() 是明確要最新 → force 不看快取。*/
+  const NT_TTL = 10 * 60 * 1000, NT_KEY = 'tw.nt.c';
+  let ntFly = null;
+  function ntWho() { const a = A(), u = a && a.user ? a.user() : null; return u && u.email ? String(u.email) : '-'; }
+  function fetchList(force) {
+    const a = A(); if (!a || !a.on()) { S.list = []; S.loaded = false; paintBell(); return Promise.resolve(); }
+    if (!force) {
+      if (ntFly) return ntFly;
+      try {
+        const c = JSON.parse(sessionStorage.getItem(NT_KEY) || 'null');
+        if (c && c.who === ntWho() && Date.now() - c.at < NT_TTL && Array.isArray(c.notices)) return Promise.resolve(fetchDone({ _s: 200, notices: c.notices }));
+      } catch (e) { /* 沒快取就照抓 */ }
+    }
+    const who = ntWho();
+    ntFly = call('/v1/notices', {}).then((j) => {
+      ntFly = null;
+      if (j && j._s === 200 && Array.isArray(j.notices)) { try { sessionStorage.setItem(NT_KEY, JSON.stringify({ who, at: Date.now(), notices: j.notices })); } catch (e) { /* 略 */ } }
+      return fetchDone(j);
+    });
+    return ntFly;
+  }
+  function fetchDone(j) {
     if (j && j._s === 200 && Array.isArray(j.notices)) {
       S.list = j.notices; S.loaded = true; S.at = Date.now();
       /* 伺服器說讀過的，本機也記起來（下次離線時紅點不會又冒出來）*/
@@ -247,7 +268,7 @@
       if (!body.title || !body.body) { msg.className = 'msg bad'; msg.textContent = '標題與內容都要填'; return; }
       if (AS.edit) body.id = AS.edit.id;
       const j = await call('/v1/admin/notices/put', body);
-      if (j && j._s === 200) { AS.edit = null; toast(body.id ? '已儲存' : '已發佈'); await renderNoticesAdmin(el); fetchList(); }
+      if (j && j._s === 200) { AS.edit = null; toast(body.id ? '已儲存' : '已發佈'); await renderNoticesAdmin(el); fetchList(true); }
       else { msg.className = 'msg bad'; msg.textContent = j && j.error === 'bad_range' ? '下架時間要晚於上架時間' : '儲存失敗（' + esc(j ? j.error || j._s : '連不到') + '）'; }
     };
     const c = el.querySelector('#ntCancel'); if (c) c.onclick = () => { AS.edit = null; paintAdmin(el, now); };
@@ -258,7 +279,7 @@
         if (b.dataset.a === 'del' && !confirm(`刪除「${n.title}」？已讀紀錄會一起刪除，無法復原。`)) return;
         const j = b.dataset.a === 'del' ? await call('/v1/admin/notices/del', { id: n.id })
           : await call('/v1/admin/notices/put', { id: n.id, title: n.title, body: n.body, kind: n.kind, audience: n.audience, start: Math.min(n.start, Date.now() - 1000), end: Date.now(), pinned: n.pinned });
-        if (j && j._s === 200) { toast(b.dataset.a === 'del' ? '已刪除' : '已下架'); await renderNoticesAdmin(el); fetchList(); } else toast('操作失敗');
+        if (j && j._s === 200) { toast(b.dataset.a === 'del' ? '已刪除' : '已下架'); await renderNoticesAdmin(el); fetchList(true); } else toast('操作失敗');
       };
     });
   }
@@ -274,7 +295,7 @@
   });
   window.addEventListener('tw:account-config', () => { paintBell(); fetchList(); });
   setInterval(() => { if (!document.hidden) fetchList(); }, 10 * 60 * 1000);
-  window.TwNotices = { refresh: fetchList, open: () => toggleDrop(true), unread: () => unread().length, list: () => S.list.slice(), renderNoticesAdmin };
+  window.TwNotices = { refresh: () => fetchList(true), open: () => toggleDrop(true), unread: () => unread().length, list: () => S.list.slice(), renderNoticesAdmin };
   function boot() { const a = A(); if (a && a.on()) { paintBell(); fetchList(); } }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

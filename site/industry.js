@@ -559,7 +559,7 @@
       barData = asc.map(d => ({ name: d.name, value: d.chg == null ? 0 : +(+d.chg).toFixed(2), key: d.key,
         /* ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」＋目標圖）：長條**兩端都做圓角**。
            以前只有末端那一端圓、貼著零軸那一端是直角，目標圖兩端都是圓的。*/
-        itemStyle: { color: A.upDown(d.chg), borderRadius: 5, borderWidth: 0, borderColor: CH.ink },
+        itemStyle: { color: A.upDown(d.chg), borderRadius: A.barStyle.R, borderWidth: 0, borderColor: CH.ink },
         /* 色票（CH.*）在切主題時由 applyTheme 就地換掉，所以這裡不必自己分深／淺兩套 */
         label: { show: true, position: (d.chg || 0) >= 0 ? 'right' : 'left', fontSize: 12, fontFamily: A.MONO,
           color: CH.ink2, formatter: A.fmt.pct(d.chg) } }));

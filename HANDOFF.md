@@ -1,5 +1,31 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-06 流量觀測改成批次送出（UI 專家，分支 `claude/track-batch` → main）
+- Worker（先上，03f6114，deploy-account-worker success）：檔尾新增 `/v1/track/batch`，逐筆交給原本的 beat 跑（時間換成該筆 ts），統計與單送逐列相同；單批 ≤100 筆、body ≤64KB、ts 用前端 now 校正後驗 24 小時內且不晚於現在；舊 `/v1/beat` 保留。測試 `workers/account-api/tests/batch.test.mjs`（10 筆單送 vs 1 批送五張表相同）。
+- 前端 `site/account.js`：每分鐘包一筆進佇列（同步寫 sessionStorage `tw.trk`），每 5 分鐘／30 個事件／隱藏或 pagehide（sendBeacon，失敗留著下次送）才送一批。登入／登出那一下會立刻送一批（線上名單換名字）。
+- 前端 `site/notices.js`：公告同一人 10 分鐘只打 1 次（sessionStorage `tw.nt.c`、進行中共用；`TwNotices.refresh()` 與管理者發佈後強制重抓）。
+- 實測（寫在 docs/hosting_cost_plan.md）：開一頁 4→3 次、開一頁＋停 10 分鐘 14→5 次、切 15 頁再關掉統計請求 6→2 次，頁面瀏覽 15 筆逐頁相同。
+- 載入後第一筆統計馬上送（線上人數開站就要有），之後每 5 分鐘一批。
+- 後續（同日，3674265）：線上名單門檻改成 6 分鐘（Worker `PRESENCE_WINDOW_MS`，紀錄保留 7 分鐘；在線時間的斷線判斷仍 150 秒），頭欄提示與隱私說明的秒數一起改；關分頁仍用 beacon 立刻刪。驗：batch.test.mjs 新增「停 4／5 分 50 秒仍在、leave 立刻消失、超過 6 分鐘才掉」，`流量批次1006` 加瀏覽器側同一條。線上人數數字仍是每 5 分鐘才更新一次。
+- 這批只驗了：`流量批次1006`、`流量觀測1005`、`管理區v3`、`會員與自選五分頁`、`會員雲端路徑`、`管理區1005`、`版面v2結構`、`_preview.py`、node 測試全過。紅字 `管理區1005` 散佈圖、`版面v2結構` 去重兩條換回舊版 account.js 一樣紅＝既有，不是這批造成；`_preview.py` 的總覽 ovTheme 文字溢出與一條 404 也與這批無關（沒動到總覽）。
+
+## 2026-10-06 雙部署到 Cloudflare Pages（deployer，DECISIONS #339）
+- `pages.yml` 多一步部署同一份 site/ 到 `https://tw-rotation.pages.dev/`（失敗不擋 GitHub Pages）；兩支 Worker 的 CORS 白名單加上該網域。
+- **待 Andy 自己按**：① Cloudflare token 要有 Account → Cloudflare Pages → Edit（My Profile → API Tokens → 編輯該 token）② Google Cloud Console → APIs & Services → Credentials → OAuth 用戶端 → 「已授權的 JavaScript 來源」加 `https://tw-rotation.pages.dev`、重新導向 URI 依 `docs/login_setup.md` ③ 正式商用前評估 Cloudflare 付費方案與用量通知（Notifications → 新增 Pages／Workers 用量警示）。
+- 切換條件見 DECISIONS #339。
+## 2026-10-06 會員資料匯出／還原＋筆電每日備份接上（security-privacy，分支 `claude/member-export` → main）
+- **Worker**（`workers/account-api/worker.js` 檔尾新區塊，prototype 包裝，既有函式一行不動）：
+  - `POST /v1/admin/export`：管理者權杖（Origin＋body.t）或 `Authorization: Bearer <BACKUP_TOKEN>`（不檢查 Origin）。唯讀，只多記 `usage(admin_export)` 稽核。
+    匯出 15 張表；**排除** `logins`、`presence`、kv 的 `hmac` 與名稱像金鑰的鍵。回應附 `sha256` 與 `sig`＝HMAC-SHA256(`EXPORT_SIGN_KEY` 或 `BACKUP_TOKEN`)。
+    被簽內容＝原文到 `,"sha256":"` 之前補 `}`（筆電端不重新序列化 JSON 就能驗）。同一身分每小時 6 次。
+  - `POST /v1/admin/import?confirm=RESTORE-INTO-EMPTY-DB`：只收簽章驗得過的原文、`users` 必須 0 筆，整批交易（DO 用 `transactionSync`）。
+  - 與規格差異：規格寫 `EXPORT_TOKEN`／憑證名 `tw-ops-export`，依 CEO 指示改名 `BACKUP_TOKEN`／`tw-ops-backup`；簽章金鑰預設沿用 `BACKUP_TOKEN`（`EXPORT_SIGN_KEY` 可選），少一個 Secret。
+- **測試**：新增 `tests/export.test.mjs`（6 條：非管理者擋、備份權杖可用、簽章、往返逐表相同、非空拒絕＋確認參數、限流）；全部 72 條綠。
+- **筆電**：`tools/laptop/backup.ps1` 備份完 repo 後抓 `members\members-YYYYMMDD.json`、驗簽、留 14 天；失敗只通知不讓 repo 備份變紅。README 第 7 步＋還原步驟＋個資警語。
+- **工作流**：`deploy-account-worker.yml` 有 `BACKUP_TOKEN` 才多一步寫入 Worker Secret；沒設就 `::notice::`＋摘要列待辦，不紅燈。
+- **待 Andy**：產生隨機字串 → GitHub Secret `BACKUP_TOKEN` → 重跑部署 → 筆電 `cmdkey /generic:tw-ops-backup`（README 第 7 步）。
+- 這批只驗了：`node --test workers/account-api/tests/*.mjs`、pytest（改到 `.github`）；PowerShell 腳本**沒有在 Windows 實跑**（容器沒有 PowerShell），驗簽演算法以 Node 測試同口徑驗過。
+
 ## 2026-10-06 文字重疊：大戶散戶卡＋全站普查（UI 專家，分支 `claude/overlap` → main，b195e180）
 Andy 16:25 截圖：個股 → 大戶／散戶 → 4 週，第一點「5.89%」壓在副圖標題上。
 - 修：tabHolders 資料區改從副圖標題下 46px 起（原 26），整張 420→460px。
@@ -8,7 +34,12 @@ Andy 16:25 截圖：個股 → 大戶／散戶 → 4 週，第一點「5.89%」�
 - 普查順手修：資金去向 ECharts 樹（≤820）葉子 16→19px；產業鏈公司卡兩行基線 14／30；手機漲跌分佈區間字直立；漲跌分佈 y 軸不標非整格 max。
 - 量到但判定非壓字：總覽 KPI 列捲動箭頭、站上均線捲動圖例（clipPath）、ETF 報酬比較兩行軸名、新聞收合內文。
 - **這批只驗了**：`_uitest` 文字重疊普查1006、籌碼基本0926、個股分頁0926；`_preview` 全跑（只剩本機缺 `data/earnings.json` 的 404，main 同樣缺，與本批無關）。pytest 跳過（只動 site/ 與 scripts 驗收腳本）。
-- 待辦：`site/dg/foundry.js` 390 寬「閘極只管得到一面」壓錨點 02／05 → 已改 y=172，**未推，等 CEO 看圖**；另發現 390 寬錨點圓整片蓋住三格剖面（FinFET、GAA 的小標也被蓋），待決定。
+- 續（3ef0cbb4 上 main）：手機剖析圖「整張」模式（畫布 < 500px）編號鈕 28→20px（字 12px）、鈕與鈕不疊、躲開圖上的字（最遠 160px 拉引線）、夾回錨點所在的格子；「放大」維持 28px。foundry「閘極只管得到一面」移到 y=172。
+  `scripts/_dg_overlap.py` 修好假綠（停在 #overview 讀不到 DiagramSlots，一直量 0 張），並補量「編號鈕蓋到字／超出畫布／尺寸」。
+  這批驗了：`_uitest` 手機v3、文字重疊普查1006；`_dg_overlap --width 390 --no-3d`；`_preview`（只剩 earnings.json 404）。
+- **待處理**：
+  1. `_uitest` 「手機按鈕普查」兩次卡住（45／25 分鐘無輸出、CPU 幾乎不動），原因未查；這批按鈕尺寸改動沒經過它。
+  2. 390 寬 12 處編號鈕仍壓字（周圍 160px 都是字找不到空位）：bank 6、life_fhc 3、cyber_security 2、securities_fhc 1；另 ai_adv_packaging 2 處圖內字超出畫布（舊問題）。
 
 ## 2026-10-06 時間軸垂直分隔線：所有橫軸是時間的圖背景加極淡年／月線（視覺設計美編，分支 `claude/vgrid`，DECISIONS #337）
 - 改了什麼：新增 `site/timegrid.js`（共用層級／顏色／標記）；`site/app.js` 的 `chart()` 補 custom 系列（ECharts 全站自動套用）；`site/chart.js` 新增 `TimeGridPrimitive`（K 線主圖與副圖）；`site/industry.js` 的 `_dbg()` 多一個 `tgrid`（驗收用）；`site/index.html` 在 chart.js 之前載入 timegrid.js。

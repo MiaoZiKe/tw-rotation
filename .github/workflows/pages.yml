@@ -186,8 +186,62 @@ jobs:
         run: |
           python scripts/preview_inject.py
           echo "部署包大小：$(du -sh site | cut -f1)（其中預覽 $(du -sh site/preview 2>/dev/null | cut -f1 || echo 0)）"
+      # 2026-10-06 資安（Andy：「點選 F12 會有我下過的 Prompt……幫我修正」）：
+      #   · delivery.json 是交付清單頁的資料，內容就是 Andy 的逐字原話 → 不上 public 網站（入口早已收掉，頁面會顯示「尚無資料」）。
+      #   · 發佈出去的自家 JS／CSS／HTML 一律壓縮並拿掉註解；repo 裡的原始碼保留註解。esbuild 鎖定版本。
+      #   · source map 不准發佈（minify_site.py 會刪 *.map，下面再檢查一次）。
+      #   放在預覽注入之後：preview/<名稱>/ 底下的檔案也一起處理。任何一支壓縮失敗 → 整個部署失敗，不發佈半套。
+      - name: 拿掉內部作業資料（交付清單原話）
+        run: rm -f site/data/delivery.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: 壓縮發佈檔並移除註解（esbuild 0.28.2）
+        run: |
+          npm i -g esbuild@0.28.2
+          python scripts/minify_site.py site
+          if find site -name '*.map' | grep -q .; then echo "::error::部署產物裡還有 source map"; exit 1; fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # 2026-10-06 雙部署（DECISIONS #339，說明見 docs/hosting_cost_plan.md）：
+      # 同一份產出（site/）也部署到 Cloudflare Pages（https://tw-rotation.pages.dev/）。
+      # GitHub Pages 條款不允許商業站，Cloudflare 可以；先並行跑，正式切換等 Andy 備好網域與 OAuth。
+      # 這一步失敗或跳過一律不讓整個部署變紅（continue-on-error），原因寫在 log 與 Step Summary。
+      # 只部署 main（preview 分支的預覽機制仍走 GitHub Pages）；
+      # 不用 wrangler-action，直接 npx wrangler，才能分辨「缺金鑰／缺權限／部署失敗」。
+      - name: 雙部署到 Cloudflare Pages（失敗不擋 GitHub Pages）
+        id: cfpages
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          sum() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then echo "非 main，跳過 Cloudflare Pages"; exit 0; fi
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::缺 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID，跳過 Cloudflare Pages"
+            sum "### Cloudflare Pages：已跳過（缺 Secret）"; exit 0
+          fi
+          # 專案不存在就建（已存在會回錯，忽略）；真正的權限問題由下面 deploy 的錯誤訊息判斷
+          npx --yes wrangler@3 pages project create tw-rotation --production-branch main > cf_create.log 2>&1 || true
+          cat cf_create.log
+          if npx --yes wrangler@3 pages deploy site --project-name tw-rotation --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true > cf_deploy.log 2>&1; then
+            cat cf_deploy.log
+            sum "### Cloudflare Pages：部署成功"
+            sum '```'; tail -n 5 cf_deploy.log | sed 's/^/ /' >> "$GITHUB_STEP_SUMMARY"; sum '```'
+          else
+            cat cf_deploy.log
+            if grep -qiE "authentication|permission|10000|unauthorized|forbidden" cf_deploy.log cf_create.log; then
+              sum "### Cloudflare Pages：失敗，疑似缺 Pages 權限"
+              sum "請到 Cloudflare 後台 My Profile → API Tokens，編輯 CLOUDFLARE_API_TOKEN 對應的 token，加上 **Account → Cloudflare Pages → Edit**，存檔後重跑本工作流。"
+            else
+              sum "### Cloudflare Pages：部署失敗"
+            fi
+            sum '```'; tail -n 15 cf_deploy.log >> "$GITHUB_STEP_SUMMARY"; sum '```'
+            echo "::warning::Cloudflare Pages 部署失敗（不影響 GitHub Pages），原因見 Step Summary"
+            exit 1
+          fi

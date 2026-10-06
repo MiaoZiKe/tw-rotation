@@ -2134,11 +2134,52 @@
       const x = r.left + r.width / 2 - base.left + host.scrollLeft, y = r.top + r.height / 2 - base.top + host.scrollTop;
       return { i, x, y, x0: x, y0: y, c: it.color };
     }).filter(Boolean);
+    /* ★ 2026-10-06 文字重疊普查（CEO 核准根治）：「整張」模式的剖析圖在 390 寬只有 ~280px、縮成原寸 0.42 倍，
+       28px 的編號鈕（v3 規格 #163）在畫面上比剖面本身的零件還大 —— 晶圓代工那張 15 顆鈕蓋掉大半張剖面、
+       07 被推到卡片外、「閘極只管得到一面」被 02 壓一半。
+       改成：整張模式（畫布實際寬 < 500px）鈕縮到 20px、字 12px（手機 HTML 字下限）（觸控範圍靠 ::after 外擴 8px 仍有 36px），
+       放大模式（原寸）維持 28px。鈕與鈕最小間距跟著縮；推完之後再躲開圖上的字（下面 avoidText），
+       邊界改成「SVG 畫布」而不是捲動容器，鈕整顆留在畫布裡。*/
+    const svgEl = host.querySelector('.dgcanvas svg') || host.querySelector('svg.dg');
+    const sr = svgEl ? svgEl.getBoundingClientRect() : base;
+    const small = !host.classList.contains('mbig') && sr.width < 500;
+    const RAD = small ? 10 : 14, MINv = small ? 22 : MIN;
+    layer.classList.toggle('msm', small);
     const W = host.scrollWidth, H = host.scrollHeight;
-    window.M3.spread(P, MIN, { x0: 15, y0: 15, x1: W - 15, y1: H - 15 });   // 邊界一起傳進去：推完夾、夾完再推（夾回去不會又疊上）
-    /* 推開之後可能被推出畫面邊緣：夾回容器內（留 15px，編號鈕半徑 14）—— 不夾的話被推出去的鈕會撐出假的捲動寬 */
-    P.forEach(q => { q.x = Math.max(15, Math.min(W - 15, q.x)); q.y = Math.max(15, Math.min(H - 15, q.y)); });
-    const ov = window.M3.overlaps(P, MIN);
+    const bx0 = Math.max(RAD + 1, sr.left - base.left + host.scrollLeft + RAD + 1), by0 = Math.max(RAD + 1, sr.top - base.top + host.scrollTop + RAD + 1);
+    const bx1 = Math.min(W - RAD - 1, sr.right - base.left + host.scrollLeft - RAD - 1), by1 = Math.min(H - RAD - 1, sr.bottom - base.top + host.scrollTop - RAD - 1);
+    const B = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
+    /* 每顆鈕再夾進「錨點所在的那一格」（rect.frame／rect.bg 裡最小、包得住錨點的那一個）：
+       晶圓代工 07 的錨點在平面格左緣，只夾畫布的話鈕會一半跑到格子外面。格子比鈕還窄就退回畫布邊界。*/
+    const frames = svgEl ? [...svgEl.querySelectorAll('rect.frame, rect.bg')].map(e => e.getBoundingClientRect()).filter(r => r.width > 2 * RAD + 4 && r.height > 2 * RAD + 4)
+      .map(r => ({ x0: r.left - base.left + host.scrollLeft + RAD + 1, y0: r.top - base.top + host.scrollTop + RAD + 1, x1: r.right - base.left + host.scrollLeft - RAD - 1, y1: r.bottom - base.top + host.scrollTop - RAD - 1, a: r.width * r.height })) : [];
+    P.forEach(q => { const f = frames.filter(f => q.x0 >= f.x0 - RAD - 1 && q.x0 <= f.x1 + RAD + 1 && q.y0 >= f.y0 - RAD - 1 && q.y0 <= f.y1 + RAD + 1).sort((m, n) => m.a - n.a)[0];
+      q.B = f ? { x0: Math.max(B.x0, f.x0), y0: Math.max(B.y0, f.y0), x1: Math.min(B.x1, f.x1), y1: Math.min(B.y1, f.y1) } : B; });
+    const clampQ = (q) => { q.x = Math.max(q.B.x0, Math.min(q.B.x1, q.x)); q.y = Math.max(q.B.y0, Math.min(q.B.y1, q.y)); };
+    P.forEach(clampQ);
+    /* 推開（全畫布邊界）與夾回各自的格子交替做；夾回去又疊上的那幾顆，放寬成只夾畫布再推一次 */
+    for (let k = 0; k < 6; k++) { window.M3.spread(P, MINv, B); P.forEach(clampQ); if (!window.M3.overlaps(P, MINv)) break; }
+    if (window.M3.overlaps(P, MINv)) { P.forEach(q => { if (P.some(o => o !== q && Math.hypot(o.x - q.x, o.y - q.y) < MINv - 2)) q.B = B; }); window.M3.spread(P, MINv, B); P.forEach(clampQ); }
+    /* 躲字：圖上看得到的字（不含錨點自己的編號）當障礙；壓到字的鈕在附近一圈一圈找空位（不壓字、不碰別顆、在畫布內），
+       最遠 160px（拉引線回錨點）；真的找不到就留在原位，數量寫進 data-texthit 讓驗收看得到。*/
+    const T = svgEl ? [...svgEl.querySelectorAll('text')].filter(t => !t.closest('.anc') && (t.textContent || '').trim() && getComputedStyle(t).visibility !== 'hidden')
+      .map(t => t.getBoundingClientRect()).filter(r => r.width > 1 && r.height > 1)
+      .map(r => ({ l: r.left - base.left + host.scrollLeft, t: r.top - base.top + host.scrollTop, r: r.right - base.left + host.scrollLeft, b: r.bottom - base.top + host.scrollTop })) : [];
+    const PAD = RAD + 2;   // 多留 2px：編號層的原點在 host 的 padding box，跟 getBoundingClientRect 的 border box 差 1px 邊框
+    const hitT = (x, y) => T.some(r => x + PAD > r.l && x - PAD < r.r && y + PAD > r.t && y - PAD < r.b);
+    const hitP = (q, x, y) => P.some(o => o !== q && Math.hypot(o.x - x, o.y - y) < MINv);
+    let textHit = 0;
+    P.forEach(q => {
+      if (!hitT(q.x, q.y)) return;
+      for (let rr = 3; rr <= 160; rr += 3) for (let k = 0; k < 24; k++) {
+        const a2 = k / 24 * Math.PI * 2, x = q.x + rr * Math.cos(a2), y = q.y + rr * Math.sin(a2);
+        if (x < q.B.x0 || x > q.B.x1 || y < q.B.y0 || y > q.B.y1 || hitT(x, y) || hitP(q, x, y)) continue;
+        q.x = x; q.y = y; return;
+      }
+      textHit++;
+    });
+    const ov = window.M3.overlaps(P, MINv);
+    layer.dataset.texthit = textHit; layer.dataset.rad = RAD;
     layer.style.width = W + 'px'; layer.style.height = H + 'px';
     layer.innerHTML = `<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, cur.items, cur.sel);
     layer.dataset.overlap = ov; layer.dataset.n = P.length;
@@ -2184,6 +2225,10 @@
     layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); openNo(+b.dataset.i); } };
     requestAnimationFrame(() => requestAnimationFrame(() => layout2d(host)));
     setTimeout(() => layout2d(host), 400);
+    /* 2026-10-06：躲字要用「字排定之後」的位置 —— 字型晚到、externalize 補排會讓圖上的字在 400ms 之後還移動，
+       用舊位置躲過的鈕會又壓回字上（矽晶圓 03／08 實測）。字型就緒與 1.2 秒各再排一次（排版只動編號層，不動圖）。*/
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout2d(host));
+    setTimeout(() => layout2d(host), 1200);
   }
   let rz = null;
   window.addEventListener('resize', () => {

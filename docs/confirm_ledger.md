@@ -127,6 +127,9 @@
 | 10 | 我們自己判斷、你可否決的三件：① 分頁拖曳**不含**側欄、頂部導覽、自選清單頁籤 ② 日期膠囊保留 11 類（表格日期欄、新聞時間、K 線軸、拉Bar 讀數、K 線下資料來源說明等）③ 即時閘門只藏畫面，報價 Worker 仍公開（要真的擋估 0.5～1 天，而且公司網路擋會員 Worker 時你自己的即時也會一起斷） | 正式站 | 10-06 07:22 |
 | 11 | **刪舊預覽分支**（git 代理擋刪除，要你在 GitHub 網頁按）：已併入 main、可直接刪的 12 支 —— preview/earnings-cal、preview/earnings-v2、admin-v2、admin-v3、etf-v1、etf-v3、explore-v1、explore-v2、fast-ov2、layout-v2、perm-nav、sub-v1 | <https://github.com/MiaoZiKe/tw-rotation/branches> | 10-05 |
 | 12 | 四問步驟中性名稱已做在 preview/four-steps，未上線。待規劃：改成針對特定分頁的導覽（Andy 10-06 18:05） | <https://miaozike.github.io/tw-rotation/preview/four-steps/>（手機寬看總覽頂端四步列） | 10-06 18:05 |
+| 13 | **三個帳號開兩步驟驗證**（Google、GitHub、Cloudflare；步驟在 10-07 回報裡） | 各自帳號安全性頁面 | 10-07 |
+| 14 | **筆電裝監控＋備份**（`tools/laptop/README.md`，約 15 分鐘；第 7 步設 BACKUP_TOKEN） | 筆電 | 10-07 |
+| 15 | **拆私人／公開 repo**：等設計完成後照步驟建私人 repo＋PAT | 施工中 | 10-07 |
 
 ## CEO 待辦（監察委員 07:32 稽核；依重要性）
 
@@ -203,3 +206,45 @@
 - 會員名單：拿掉手動新增會員那列（訂閱制自動連動範本）；方案分頁頂端「訪客・NT$0/月 套用 N 人」標題列拿掉；上方 KPI 與圖照流量觀測重做、「載入中…」卡住要查根因補齊數據 → visual-designer（main）
 - 自選：拿掉「點小走勢圖展開大走勢／K 線」；自選數據至少到前一交易日（截圖停在 10/02）→ frontend-ui（main，查根因）
 - 13:00 容器磁碟滿（剩 276MB）導致派工失敗 → 刪 27 個已推完、無未提交的舊 worktree，釋出到 15GB
+
+## 10-06 19:10 Andy 拍板
+- 付費內容保護（data-gw）：**要排，上架收費前完成**。第一階段（盤點＋data-gw Worker＋測試，分支 claude/data-gw，不上 main）已派 security-privacy；全案 4～6 工作天。
+- 客服信箱：**另開**。等 Andy 開好新信箱告訴 CEO 地址 → 換掉 account.js／legal.js／support.js 與文件裡的 kcq01010909@gmail.com。
+- 資安 D4（Google／GitHub／Cloudflare 開兩步驟驗證）：最急，待 Andy 自己做。
+
+## 10-06 19:20 金流（藍新）規格出爐 `docs/payment_newebpay_plan.md` —— 待 Andy
+1. 先辦藍新**測試商店**（不用統編，約半天）→ 整合測試要等它
+2. 要不要**登記行號**（統編：企業會員、正式商店、電子發票都要）
+3. 收費前先問律師投顧法問題（`compliance_and_tiers.md`）
+4. 升級方案時舊方案剩餘天數：**按日退款** 或 **折抵新方案**
+
+## 10-06 19:40 付費內容保護（data-gw）第一階段完成（分支 claude/data-gw，未上 main）
+待 Andy 按：① R2 建 bucket `tw-rotation-paid`（不公開）② CLOUDFLARE_API_TOKEN 加「Workers R2 Storage: Edit」③ GitHub Secret `DATA_GW_SECRET`（隨機字串）
+待 Andy 決定門檻：T1 每帳號每分鐘上限（建議 60）、T2 60 秒內不同檔數（>30）、T3 同權杖 IP 網段（>2）、T4 異常幾次自動停權（建議先觀察兩週）、T5 哪些功能真的收費、T6 異常通知寄哪
+第二階段（前端改走 gateway）施工中，仍在分支。
+
+## 10-06 20:35 付費內容保護（data-gw）三階段全部完成（分支 claude/data-gw，未上 main）
+切換清單（★＝Andy 按，上架前一次做）：R2 bucket、token 加 R2 權限、R2 權杖兩把、DATA_GW_SECRET、DATAGW_INTERNAL_KEY、（選用）通知 webhook／email → 合併分支 → 部署 data-gw → DATA_GW_URL → DATAGW_SPLIT=1 → #admin/perm 關收費功能 → 觀察兩週後定 T4。詳見 docs/datagw_plan.md（分支）第 10 節。
+待 Andy 決定：T1～T4 門檻、T5 哪些功能收費、T6 通知走 webhook 還是 email。
+
+## 10-06 21:00 Andy 回覆
+- Cloudflare 付費方案＋用量通知：**先不辦，維持免費**，等 Andy 確定要上線再辦。
+- T6 異常通知：寄到 Andy 的 Gmail（kcq01010909）。設定時用 DATAGW_ALERT_EMAIL。
+- 全站備份：備到筆電＋repo 內 docs/BACKUP_RUNBOOK.md 讓 Claude 照做（施工中）。
+- GitHub 改私人＋當備份：**有成本問題待 Andy 選**（私人 repo 的 Actions 免費 2,000 分鐘／月，實測目前用量約 1.2 萬分鐘／月）。
+- 藍新詳細說明＋為什麼要問律師＋別人怎麼快速上架：legal-compliance 查證中 → docs/legal_payment_faq_1006.md
+
+## 10-07 01:05～01:30 Andy 交辦
+- 免責聲明／使用條款／隱私權政策（通用版，參考 stockintelli）→ 施工中，交 preview/legal。
+- 拆 repo 選 A（私人＝備份與編輯、公開＝執行，Cloudflare 同步）→ 施工中（claude/repo-split）。
+- **Andy 說「上架」時 → CEO 要主動給「Google 登入加入新網址」的逐步點擊步驟**（OAuth 用戶端 → 已授權的 JavaScript 來源／重新導向 URI 加上 tw-rotation.pages.dev 與正式網域）。
+- 上架標準 → 已存 `docs/launch_standard.md`，Andy 說「上架標準」就給他看。
+- 今日候選 → 今日關注；四頁頂端統計免責小字 → 施工中。
+- 異常門檻用建議預設值；通知寄到 kcq01010909。
+- 沒開公司能不能註冊金流 → 可以（綠界／藍新個人會員），已更正 `docs/legal_payment_faq_1006.md`。
+
+## 10-07 01:30 Andy 交辦：Plus／Pro 每日額度
+- 額度用完畫面照他給的參考圖（研究額度用完卡片）、置中；「此功能需開通」改同款 → 施工中（claude/quota → preview/quota）。
+- Plus 暫定每日 50 次、Pro 不限。CEO 定義「一次」＝同一天同一單位（一檔個股、一張剖析圖、一個付費分頁）只算一次；個股頁內分頁切換不算。Andy 可否決。
+- 成本估算：Plus 用滿 50 次／天 ≈ 每人每月 4,800 次閘道請求，邊際費用約 0.003 美元（約新台幣 0.1 元）；主要成本是 Workers 付費方案月費 5 美元。
+- 扣次必須在伺服器端（付費資料閘道），所以額度要等閘道上線才真的生效。

@@ -6621,3 +6621,18 @@ CEO 把「負責人回報 ✅ 部署完成」當成「做好了」直接轉給 A
 - **T4.normalize 的「垂直格線關掉」不動**：這次沒有打開 splitLine，是另補獨立系列。
 - 驗收：`_uitest.py` 段落 `時間軸分隔線1006`（深色／淺色各量像素、年線 ≥ 1.4 倍月線、> 5 年月線消失、月資料只畫年線、K 線週／月不畫週／月線、縮放換層、不補的情況）。
 - ⚠ **管理區每日直條不在這支範圍**：它是 HTML／SVG 手畫、不是 ECharts，沿用另一位同事的格間線；要與年月線對齊的話，可直接呼叫 `TimeGrid.levels(spanDays, intraday)` 與 `TimeGrid.color(kind)` 取同一份層級與顏色。
+
+## #338 全站長條改用管理區配色，兩端 A 小圓角 3px、不要膠囊（視覺設計美編，2026-10-06）
+
+Andy 原話：「管理區流量觀測的長條圖配色不錯，幫我修改全部」，18:05 拍板「兩端用 A 小圓角 3px，不要膠囊」。
+1. 規格抽成 `App.barStyle`（site/app.js），`softenOption` 對所有 ECharts 長條自動套：青藍漸層、粗 10／12、3px 圓角、橫條非負補 `--panel-3` 底軌；手刻 div（管理區 `.bars .bt`、`.days i`、`.vb`、首頁 `.magrid .ma .bar`、`.meter`、`.mixbar`）圓角全改 3px。管理區原本的 999px 膠囊一併改掉。
+2. **上一版半成品「全站 0 張生效」的原因**：條件寫成「單一系列且沒有任何自己的色」，而真正的非漲跌長條（營收、成交量）都寫了自己的青色 rgba，被當成「有自己的顏色」跳過；掃到的其他長條不是漲跌色就是雙系列。改成逐色判斷：紅／綠（漲跌語意）與灰（對照）不換，其餘換成漸層；同一張圖只有第一個非漲跌有色系列換，其餘保留自己的色。
+3. 順手把 industry.js 族群漲跌長條的圓角 5 → 3、etfpage.js 的 [0,2,2,0] → [0,3,3,0]。
+4. 驗收：`長條風格1006`。docs/chart_library.md C／D 款與 docs/style_guide.md（十二）同步改成 3px。
+## #339 雙部署：同一份產出同時上 GitHub Pages 與 Cloudflare Pages（deployer，2026-10-06）
+- 原因：GitHub Pages 條款不允許商業／收費網站、月流量軟上限 100GB；Cloudflare Pages 可商用、流量免費（`docs/hosting_cost_plan.md`）。
+- 做法：`pages.yml` 在 `deploy-pages` 之後多一步 `wrangler pages deploy site --project-name tw-rotation --branch main`，網址 `https://tw-rotation.pages.dev/`。
+  沿用 Secret `CLOUDFLARE_API_TOKEN`／`CLOUDFLARE_ACCOUNT_ID`。`continue-on-error`：缺 Secret、缺 Pages 權限、部署失敗一律不讓整輪變紅，原因寫進 log 與 `$GITHUB_STEP_SUMMARY`。只部署 main；`preview/*` 仍走 GitHub Pages。
+- 前端不用改：路徑本來就是相對的，`sw.js` 的 scope 也是從自己位置推出來的；根路徑模擬驗過。
+- CORS：`workers/quote-proxy`（`ALLOW_ORIGINS` 陣列）與 `workers/account-api`（`ALLOWED_ORIGINS` 變數）各 append 一個 `https://tw-rotation.pages.dev`，原有網域不動。
+- **不關 GitHub Pages。** 正式切換（把 Andy 給使用者的網址換掉、停掉 GitHub Pages）的條件：① Cloudflare Pages 連續數輪部署成功 ② Andy 有自己的網域並綁到 Pages ③ Google OAuth 已加入新網域 ④ 會員登入在新網域實測可用。

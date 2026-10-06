@@ -289,6 +289,25 @@ AUDIT2D_JS = r"""(opt) => {
     const ov = (a.width + b.width) / 2 - d;
     if (ov > TOL) issues.push({ kind: '編號鈕互蓋', sec: '編號鈕', a: '編號 ' + nums[i].el.textContent, b: '編號 ' + nums[j].el.textContent, px: +ov.toFixed(1), rect: R(union(a, b)) });
   }
+  /* ★ 2026-10-06 文字重疊普查（CEO：「圓點」也要比、螢幕實際尺寸要量得到）：
+     · 編號鈕蓋到圖上的字（不含錨點自己的編號），交疊 > 2px² 就算；
+     · 編號鈕超出 SVG 畫布（會被卡片切掉，例：晶圓代工 07）；
+     · 整張模式（畫布 < 500px）鈕的螢幕直徑要在 18～22px（28px 在 0.42 倍的剖面上比零件還大）。*/
+  const svgC = host.querySelector('.dgcanvas svg') || host.querySelector('svg.dg');
+  if (nums.length && svgC) {
+    const sr = svgC.getBoundingClientRect();
+    const fit = !host.classList.contains('mbig') && sr.width < 500;
+    const txt = [...svgC.querySelectorAll('text')].filter(t => !t.closest('.anc') && (t.textContent || '').trim() && vis(t))
+      .map(t => ({ t, r: t.getBoundingClientRect() })).filter(o => o.r.width > 1 && o.r.height > 1);
+    out.numSize = nums.map(n => Math.round(n.r.width));
+    nums.forEach((n) => {
+      const r = n.r, no = '編號 ' + n.el.textContent;
+      if (fit && (r.width < 18 || r.width > 22)) issues.push({ kind: '編號鈕尺寸', sec: '編號鈕', a: no, b: `直徑 ${Math.round(r.width)}px（整張模式要 18～22）`, px: Math.round(r.width), rect: R(r) });
+      const over = Math.max(sr.left - r.left, r.right - sr.right, sr.top - r.top, r.bottom - sr.bottom);
+      if (over > TOL) issues.push({ kind: '編號鈕超出畫布', sec: '編號鈕', a: no, b: 'svg', px: +over.toFixed(1), rect: R(r) });
+      txt.forEach((o) => { const I = inter(r, o.r); if (I && I.width * I.height > 2) issues.push({ kind: '編號鈕蓋到字', sec: '編號鈕', a: no, b: clip(o.t.textContent, 16), px: +(I.width * I.height).toFixed(1), rect: R(union(r, o.r)) }); });
+    });
+  }
   out.nums = nums.length;
   return out;
 }"""
@@ -619,8 +638,13 @@ def audit(pg, base: str, targets: list[dict] | None = None, widths=(1440, 1100, 
           pals=("tech",), shots: Path | None = None, only: str = "", log=print) -> list[dict]:
     """量一輪，回傳問題清單（已扣掉白名單）。pg＝已開好的 Playwright 頁面；base＝…/index.html。"""
     if targets is None:
-        pg.goto(base + "#overview", wait_until="networkidle")
+        # ★ 2026-10-06：diagrams.js 改成進產業頁才載入之後，停在 #overview 讀不到 window.DiagramSlots ——
+        #   這支從那時起量到 0 張圖、永遠報「問題 0 處」（假綠）。改成先進產業頁、等它載入。
+        pg.goto(base + "#industry/semiconductor", wait_until="networkidle")
+        pg.wait_for_function("() => !!window.DiagramSlots", timeout=20000)
+        pg.wait_for_timeout(3000)   # 各張圖的 register 是陸續載入的：太早讀只拿到 2 張（實測）
         targets = pg.evaluate(LIST_JS)
+        log(f"剖析圖 {len(targets)} 張")
     if only:
         keys = [k.strip() for k in only.split(",") if k.strip()]
         targets = [t for t in targets if any(k in t["id"] for k in keys)]
