@@ -566,6 +566,17 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin #ptPermBox label.psw input:checked+span,#v-admin #ptPermBox button.psw3[aria-checked="true"]{background:var(--pm-blue);border-color:var(--pm-blue)}
 #v-admin #ptPermBox button.psw3[aria-checked="mixed"]{background:linear-gradient(90deg,var(--pm-blue) 50%,var(--panel-3) 50%);border-color:var(--pm-blue)}
 #v-admin #ptPermBox label.psw input:focus-visible+span,#v-admin #ptPermBox button.psw3:focus-visible{outline-color:var(--pm-blue)}
+/* 標題列塞了次數鈕後橫向不夠：卡標題改兩行（名稱／「N 項・開 N」），圖示佔左邊兩行高 */
+#v-admin .pmcats.pmcards .pmcathd{min-height:44px}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;row-gap:0;align-items:center;white-space:normal}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3>:not(b):not(small){grid-row:1/3;grid-column:1}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3>b{grid-column:2;grid-row:1;white-space:nowrap}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3>small{grid-column:2;grid-row:2;white-space:nowrap}
+#v-admin .pmallim{display:inline-flex;align-items:center;flex:none;margin-right:10px}
+#v-admin .pmcats.pmcards .pmcathd .pmglim{margin-left:auto;font-size:12px;height:24px;padding:0 6px;white-space:nowrap}
+#v-admin .pmcats.pmcards .pmcathd .pmglim+button.psw3{margin-left:0}
+#v-admin .pmcats.pmcards .pmcathd .pmglim.set{color:var(--pm-blue);font-weight:700}
+#v-admin .pmglim.mixed{font-weight:700}
 /* ⑤ 會員名單上方的統計（與展開明細共用）：一排數字＋一排同高圖卡。統計一律「甜甜圈＋長條」；長條用 SVG 畫（每根有 <title>）。 */
 #v-admin .mstats{margin:2px 0 14px}
 #v-admin .mkpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -1474,7 +1485,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
               <div id="ptGuestSum"></div>
               <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表<span class="qtip pmq" tabindex="0" role="note" aria-label="說明" title="${esc(LOCK_NOTE)}">?</span></h3>
                 <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限</span></div>
-                <span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
+                <span id="pmAllLim" class="pmallim"></span><span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
               <div class="pmcats pmcards" id="pmCats"></div>
               ${GRPSEC}</div>
             <div id="ptListBox" hidden></div>
@@ -1943,12 +1954,13 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const triSw = (attr, fs, label) => `<button type="button" class="psw3" role="switch" ${attr} aria-checked="${swSt(fs)}" aria-label="${esc(label)}：整組開／關" title="${esc(label)}：整組開／關" ${ready ? '' : 'disabled'}><span></span></button>`;
     /* 整組「次數」按鈕（Andy 10-05）：族群觀測大標題與每個分組標題列，總開關旁多一顆「∞／N/日／混合」；點開同款小框一次設整組每日上限 */
     const gLims = PS.mode === 'plan' ? curLims() : null, gSaved = PS.mode === 'plan' ? savedLims() : null;
-    const gFs = (key) => FT().inCat('grp').filter((f) => f.kind !== 'limit' && (key === 'cat:grp' || f.chain === key.slice(3)));
-    const gLimBtn = (key, label) => { if (!gLims) return ''; const fs = gFs(key); if (!fs.length) return '';
+    const gFs = (key) => groupFs(key);
+    const gLimBtn = (key, label, pre) => { if (!gLims) return ''; const fs = gFs(key); if (!fs.length) return '';
       const vals = new Set(fs.map((f) => (Object.prototype.hasOwnProperty.call(gLims, f.id) ? gLims[f.id] : null))), mixed = vals.size > 1, v1 = mixed ? null : [...vals][0];
       const dirty = ready && fs.some((f) => gSaved[f.id] !== gLims[f.id]);
-      return `<button type="button" class="pmlimb pmglim${mixed ? ' mixed' : v1 != null ? ' set' : ''}${v1 === 0 ? ' zero' : ''}${dirty ? ' dirty' : ''}" data-glim="${esc(key)}" title="${esc(label)}：整組每日瀏覽次數上限" aria-label="${esc(label)} 整組每日瀏覽次數：${mixed ? '混合' : v1 == null ? '不限' : v1 + ' 次'}" aria-haspopup="dialog" ${ready ? '' : 'disabled'}>${mixed ? '混合' : v1 == null ? '∞' : v1 + '/日'}</button>`; };
-    const allBtns = (id) => (id === 'grp' ? gLimBtn('cat:grp', '族群觀測') : '') + triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
+      return `<button type="button" class="pmlimb pmglim${mixed ? ' mixed' : v1 != null ? ' set' : ''}${v1 === 0 ? ' zero' : ''}${dirty ? ' dirty' : ''}" data-glim="${esc(key)}" title="${esc(label)}：整組每日瀏覽次數上限" aria-label="${esc(label)} 整組每日瀏覽次數：${mixed ? '混合' : v1 == null ? '不限' : v1 + ' 次'}" aria-haspopup="dialog" ${ready ? '' : 'disabled'}>${pre || ''}${mixed ? '混合' : v1 == null ? '∞' : v1 + '/日'}</button>`; };
+    const allBtns = (id) => gLimBtn('cat:' + id, (cats.find((c) => c.id === id) || {}).name || id) + triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
+    const alm = v.querySelector('#pmAllLim'); if (alm) alm.innerHTML = gLimBtn('all', '開放功能表全部', '全部次數 ');
     const tsw = v.querySelector('#pmAllSw');
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
@@ -1974,6 +1986,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (gbox) gbox.oninput = (e) => box.oninput(e);
     if (gbox) gbox.onclick = (e) => box.onclick(e);
     if (gbox) gbox.onkeydown = (e) => box.onkeydown(e);
+    if (alm) alm.onclick = (e) => { const g = e.target.closest('button[data-glim]'); if (g) { e.stopPropagation(); openGLim(g); } };
     const ttl = v.querySelector('#pmGrpTtl'); if (ttl) ttl.onclick = (e) => box.onclick(e);
     /* 單行規則：放不下就省略號，全文放在 title（滑過看得到）*/
     v.querySelectorAll('.ptwrap .use, .ptwrap .pmwho, .pmlegend span, .ptlede, .pmcathd h3, .grpch .pmfoldhd').forEach((el) => { if (!el.title) el.title = el.textContent.trim(); });
@@ -2056,7 +2069,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     }
   }
   /* 整組次數：小框浮在按鈕下方（position:fixed，不被標題列的 overflow 裁掉）；確定 → 組內每個族群一次設成同一值（留空＝不限），整批當一次草稿 */
-  function groupFs(key) { return FT().inCat('grp').filter((f) => f.kind !== 'limit' && (key === 'cat:grp' || f.chain === key.slice(3))); }
+  /* key：'cat:grp'＝族群觀測整塊、'ch:<鏈>'＝族群分組、'cat:<分類>'＝一般功能卡、'all'＝開放功能表全部卡（不含族群觀測）。次數只算開關列（不含「頁數」下拉那種 limit 列） */
+  function groupFs(key) { const nl = (f) => f.kind !== 'limit';
+    if (key === 'all') return FT().cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)).filter(nl);
+    if (key.startsWith('ch:')) return FT().inCat('grp').filter((f) => nl(f) && f.chain === key.slice(3));
+    return FT().inCat(key.slice(4)).filter(nl); }
   function setLimMany(fids, n) {
     const p = planOf(PS.planSel); if (!p || PS.mode !== 'plan') return;
     const lims = Object.assign({}, curLims());
