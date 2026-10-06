@@ -602,6 +602,7 @@
       if (al && typeof al === 'object' && typeof al.fontSize === 'number' && al.fontSize < 12) ax.axisLabel = { ...al, fontSize: 12 };
     };
     let anyBar = false;
+    const barState = { did: false };
     series.forEach((s, i) => {
       if (!s || typeof s !== 'object') return;
       const t = typeOf(s, i);
@@ -611,6 +612,22 @@
         // 厚度 14～18px（參考圖）：非堆疊的一律上限 18（barMaxWidth 的優先權高於 barWidth，寫成百分比的也壓得住）；
         // 堆疊的多半是一整根「組成」長條（漲跌家數），照它自己寫的
         if (s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
+        /* ★ 長條共用風格（BAR，DECISIONS #338）：粗細 ≤ 10／12；非漲跌的色換成管理區青藍漸層（逐色判斷：紅／綠／灰不動）；單一系列、橫條且全為非負值補底軌 */
+        if (s.stack == null) s.barMaxWidth = Math.min(s.barMaxWidth == null ? 99 : s.barMaxWidth, h ? BAR.H : BAR.V_MAX);
+        {
+          const nBar = series.filter((q, qi) => isBar(q, qi)).length;
+          let mine = false;
+          const sc = s.itemStyle && s.itemStyle.color;
+          const hasData = s.data.some(d => d && typeof d === 'object' && !Array.isArray(d) && d.itemStyle && d.itemStyle.color != null);
+          if (sc != null && !barState.did && BAR.swap(sc)) { s.itemStyle = { ...s.itemStyle, color: BAR.fix(sc, h) }; mine = true; }
+          else if (sc == null && !hasData && s.color == null && nBar === 1) { s.itemStyle = { ...(s.itemStyle || {}), color: BAR.grad(h) }; mine = true; }
+          if (hasData && (!barState.did || mine)) {
+            s.data.forEach((d, k) => { if (d && typeof d === 'object' && !Array.isArray(d) && d.itemStyle && BAR.swap(d.itemStyle.color)) { const o = asObj(s, k); o.itemStyle = { ...o.itemStyle, color: BAR.fix(o.itemStyle.color, h) }; mine = true; } });
+          }
+          if (mine) barState.did = true;
+          if (h && s.stack == null && nBar === 1 && s.showBackground == null && s.data.length && s.data.every(d => { const v = val(d); return v == null || v >= 0; }))
+            { s.showBackground = true; s.backgroundStyle = { color: BAR.track(), borderRadius: SOFT_CAP }; }
+        }
         // 數值標籤：有開的補字級與等寬字、沒寫位置的放到長出去那一端的外側
         const lab = s.label;
         const inside = lab && typeof lab.position === 'string' && /inside/.test(lab.position);
@@ -770,6 +787,36 @@
      而且跟其他圖（吃 chart() 預設 textStyle 的 Noto Sans TC）同一個樣子。*/
   const NUM_FONT = 'JetBrains Mono, "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif';
   const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, fontSize: 12 }, splitLine: { lineStyle: { color: CH.grid } } };  // 設計 v4 §4：軸字 12
+  /* ---------------- 長條共用風格（Andy 2026-10-06：「全站長條改用管理區配色」＋18:05 拍板「兩端 A 小圓角 3px，不要膠囊」，DECISIONS #338）----------------
+     範本＝管理區流量觀測（site/admin.js：.bars .bt、.days i）。全站長條（ECharts 與手刻 div）從這一份取：
+       · 色票：--cat-1（青藍）；橫條由左往右漸層（cat-1 55% → 實色）、直條由上往下漸層（實色 → 45%）
+       · 粗細：橫條 10px（--chart-bar-h）、直條寬 ≤ 12px；底軌 var(--panel-3)；圓角 3px（只圓長出去那一端，SOFT_CAP）
+       · 滑過：該條加亮＋2px 外框（ink 色）、其他維持原色，另有提示卡（style_guide 十一）
+       · ⚠ 漲跌語意色（紅漲綠跌）一律不動：紅／綠的長條只套粗細、圓角、底軌；灰色（去年同期之類的對照）也不動
+       · 同一張圖有好幾個「非漲跌的有色系列」（例如現金股利 vs 股票股利）：只有第一個換成青藍漸層，其餘保留自己的色（要分得出類別）
+     ⚠ 2026-10-06 查到上一版「全站 0 張生效」的原因：當時掃到的長條全是漲跌色或雙系列，條件寫成「單一系列且沒有任何自己的色」，
+       真正的非漲跌長條（營收、成交量…）都寫了自己的青色 rgba，被當成「有自己的顏色」跳過。現在改成逐色判斷（紅／綠／灰留、其餘換）。 */
+  const BAR = {
+    H: 10, V_MAX: 12, R: 3,
+    cssVar(n, fb) { try { const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || fb; } catch (e) { return fb; } },
+    cat() { return BAR.cssVar('--cat-1', CH.cyan); },
+    track() { return BAR.cssVar('--panel-3', CH.card); },
+    grad(h, a) { const c = BAR.cat(); a = a == null ? 1 : a;
+      return h ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: hexA(c, .55 * a) }, { offset: 1, color: hexA(c, a) }] }
+        : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: hexA(c, a) }, { offset: 1, color: hexA(c, .45 * a) }] }; },
+    parse(c) { const m = /^#([0-9a-f]{6})$/i.exec(String(c).trim()); if (m) return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4), 16), 1];
+      const q = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?/i.exec(c); return q ? [+q[1], +q[2], +q[3], q[4] == null ? 1 : +q[4]] : null; },
+    /* 這個顏色字串該不該換成青藍漸層：非字串（漸層／函式）、紅／綠（漲跌語意）、灰（對照）一律不換 */
+    swap(c) {
+      if (typeof c !== 'string') return false;
+      const p = BAR.parse(c); if (!p) return false;
+      const mx = Math.max(p[0], p[1], p[2]), mn = Math.min(p[0], p[1], p[2]), sat = mx ? (mx - mn) / mx : 0;
+      if (sat < .25) return false;                                                      // 灰
+      const red = p[0] > p[1] + 50 && p[0] > p[2] + 25, green = p[1] > p[0] + 50 && p[1] > p[2] + 10;
+      return !(red || green);
+    },
+    fix(c, h) { if (!BAR.swap(c)) return c; const p = BAR.parse(c); return BAR.grad(h, p[3]); },
+  };
   const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 13 }, padding: [8, 10], confine: true };  // 設計 v4 §4：提示框 13、內距 8×10
 
   /* ---------------- 甜甜圈共用風格（Andy 2026-10-06：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」，DECISIONS #331）----------------
@@ -13154,6 +13201,7 @@
       logoUpgrade, logoMapLoad, recentGet, sparkLoad, sparkSVG, sparkData,
       trendRange, trendText, pxFmt,   // 迷你走勢的 Y 範圍與提示框文字（DECISIONS #290）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
+      barStyle: BAR,                       // 長條共用風格（DECISIONS #338）：管理區流量觀測的長條配色＋3px 圓角，全站長條都從這裡取
       donut: DONUT,                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置

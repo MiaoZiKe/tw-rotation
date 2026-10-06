@@ -1620,9 +1620,9 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .magrid .ma:hover{border-color:var(--cyan)}
 .magrid .ma .n{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;font-weight:600}
 .magrid .ma .n em{font-style:normal;font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
-.magrid .ma .bar{height:7px;border-radius:4px;background:var(--panel);margin:var(--sp-2) 0 var(--sp-1);overflow:hidden}
+.magrid .ma .bar{height:var(--chart-bar-h,10px);border-radius:3px;background:var(--panel-3);margin:var(--sp-2) 0 var(--sp-1);overflow:hidden}
 @media (max-width:640px){.magrid .ma .bar{margin:8px 0 6px}}
-.magrid .ma .bar i{display:block;height:100%;border-radius:4px}
+.magrid .ma .bar i{display:block;height:100%;border-radius:3px}
 .magrid .ma .v{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between}
 .magrid .ma .v span{color:var(--ink-3)}
 .top5grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
@@ -4263,7 +4263,7 @@ h3 .howbtn.pop{font-family:inherit}
 .mixd{flex:none;font:11.5px/1 var(--mono);color:var(--ink-3);border:1px solid var(--line);border-radius:var(--r-pill,999px);padding:3px 7px;white-space:nowrap}
 .mixs{margin-left:auto;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
 .mixs b{font-family:var(--mono);font-weight:700;color:var(--ink)} .mixs b.up{color:var(--rise)} .mixs b.down{color:var(--fall)}
-.mixbar{display:flex;gap:2px;height:10px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--ink-3) 16%,transparent)}
+.mixbar{display:flex;gap:2px;height:10px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--ink-3) 16%,transparent)}
 .mixbar i{display:block;height:100%;min-width:3px;background:var(--c)}
 /* 賣超：同一個法人顏色的斜紋淡色（顏色＝誰，斜紋＝賣）；分隔線＝買超段與賣超段的界線 */
 .mixbar i.sell{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 75%,transparent) 0 2px,color-mix(in srgb,var(--c) 20%,transparent) 2px 5px)}
@@ -4287,8 +4287,8 @@ h3 .howbtn.pop{font-family:inherit}
 .mixdtv{display:flex;flex-direction:column;align-items:flex-end;gap:0;font-size:11.5px;line-height:1.3;color:var(--ink-3);white-space:nowrap;text-align:right}
 .mixdtv b{font:700 15px/20px var(--mono);color:var(--ink)}
 /* 進度條（毛利率、當沖率、量比、停損距離共用）：--p＝填多少、--c＝顏色、.tick＝門檻刻度 */
-.meter{position:relative;display:block;height:8px;border-radius:99px;background:color-mix(in srgb,var(--ink-3) 18%,transparent);min-width:40px}
-.meter>i{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);border-radius:99px;background:var(--c,var(--cyan))}
+.meter{position:relative;display:block;height:var(--chart-bar-h,10px);border-radius:3px;background:color-mix(in srgb,var(--ink-3) 18%,transparent);min-width:40px}
+.meter>i{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);border-radius:3px;background:var(--c,var(--cyan))}
 .meter>.tick{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink-2);border-radius:1px}
 .kvs .k .meter{margin-top:6px}
 /* 本益比同業位置：一條細線、中線＝中位、點＝本檔分位 */

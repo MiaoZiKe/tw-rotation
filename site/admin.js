@@ -78,8 +78,8 @@
 /* 長條榜：名稱／長條／數字三欄；列高在 30～64 之間隨可用高度長大，多的空間平均分在列間（資料少＝列距變寬，不留底部空白） */
 #admBody .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:var(--chart-row-h,32px);align-content:space-evenly;column-gap:12px;align-items:center;font-size:var(--fs-body,14px)}
 #admBody .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-#admBody .bars .bt{height:var(--chart-bar-h,10px);background:var(--panel-3);border-radius:999px;overflow:hidden}
-#admBody .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
+#admBody .bars .bt{height:var(--chart-bar-h,10px);background:var(--panel-3);border-radius:3px;overflow:hidden}
+#admBody .bars .bt i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
 #admBody .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 #admBody .bars .bn small{display:inline-block;width:3em;color:var(--ink-2);font-size:12px}
 #admBody .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
@@ -94,7 +94,7 @@
 #admBody .days .dc{flex:1;min-width:2px;max-width:var(--day-max,12px);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin:0 auto;position:relative}
 #admBody .days.few{gap:var(--day-gap,24px);padding:0 24px}
 #admBody .days.few .dc{max-width:var(--day-max,24px)}
-#admBody .days i{display:block;width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--cat-1),color-mix(in srgb,var(--cat-1) 45%,transparent))}
+#admBody .days i{display:block;width:100%;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--cat-1),color-mix(in srgb,var(--cat-1) 45%,transparent))}
 #admBody .days .dc.mx i{background:var(--cat-1)}
 #admBody .days .dv{font:600 12px/1 var(--mono);color:var(--ink);margin-bottom:4px;white-space:nowrap}
 #admBody .days .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
@@ -153,8 +153,8 @@
 #admBody .chip:nth-child(3){background:color-mix(in srgb,var(--cat-3) 14%,transparent);border-color:color-mix(in srgb,var(--cat-3) 40%,transparent)}
 #admBody .chip b{font-family:var(--mono);font-weight:700}
 #admBody .vb{display:flex;align-items:center;gap:8px;justify-content:center}
-#admBody .vb i{display:block;height:8px;border-radius:999px;background:var(--cat-1);min-width:4px}
-#admBody .vb span{flex:0 0 110px;height:8px;background:var(--panel-3);border-radius:999px;overflow:hidden}
+#admBody .vb i{display:block;height:8px;border-radius:3px;background:var(--cat-1);min-width:4px}
+#admBody .vb span{flex:0 0 110px;height:8px;background:var(--panel-3);border-radius:3px;overflow:hidden}
 #admBody .vb em{font-style:normal;font-family:var(--mono);min-width:2.5em;text-align:right}
 #admBody .okn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
 #admBody .okn>div{background:var(--panel-3);border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--ink-2)}
@@ -167,8 +167,8 @@
 #trDetail .cdgrid h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent,var(--cyan));flex:none}
 #trDetail .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:32px;align-content:space-evenly;column-gap:12px;align-items:center;font-size:14px}
 #trDetail .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-#trDetail .bars .bt{height:10px;background:var(--panel-3);border-radius:999px;overflow:hidden}
-#trDetail .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
+#trDetail .bars .bt{height:10px;background:var(--panel-3);border-radius:3px;overflow:hidden}
+#trDetail .bars .bt i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
 #trDetail .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap}
 #trDetail .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
 #trDetail .bars button.bl.on{color:var(--accent,var(--cyan));text-decoration:none;font-weight:700}
@@ -206,7 +206,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trhd .nbsw{margin-bottom:0}
 #v-admin .trempty{padding:40px 0;text-align:center}
 #admBody .bars .bt.stk{display:block}
-#admBody .bars .bt.stk>span{display:flex;height:100%;border-radius:999px;overflow:hidden}
+#admBody .bars .bt.stk>span{display:flex;height:100%;border-radius:3px;overflow:hidden}
 #admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0}
 #admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
 #admBody .bars .bt.stk{cursor:pointer}

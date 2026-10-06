@@ -24306,6 +24306,8 @@ SECTIONS = {
     "甜甜圈圖例1006":      lambda pg, b, base, code: t_donut_legend_1006(pg, base, code),
     # ★ 2026-10-06 Andy：「所有的圓餅圖風格都 Follow 產業地圖內的圓餅風格」（DECISIONS #331）——
     #   每張圓餅真的滑過一個扇區：外框、中心字、提示框、配色，1440 與 390 兩種寬度
+    # ★ 2026-10-06 Andy：「全站長條改用管理區配色」＋18:05「兩端 A 小圓角 3px」（DECISIONS #338）——
+    "長條風格1006":        lambda pg, b, base, code: t_bar_style_1006(pg, base, code, b),
     "圓餅風格1006":        lambda pg, b, base, code: (t_pie_style_1006(pg, base, code), t_pie_admin_1006(b, base)),
 }
 SECTION_NAMES = list(SECTIONS)
@@ -53954,6 +53956,72 @@ def t_pie_admin_1006(b, base):
 
 
 
+
+
+# ---------------------------------------------------------------------------
+# 長條風格1006（Andy 2026-10-06：「全站長條改用管理區配色」＋18:05「兩端 A 小圓角 3px」，DECISIONS #338）
+# 量代表頁面上每一張 ECharts 長條：圓角＝3、粗細、非漲跌＝管理區青藍漸層、漲跌仍紅綠；加量管理區手刻長條的圓角。
+# ---------------------------------------------------------------------------
+BAR1006_SCAN = """() => { const out = [], A = window.App, up = A.CH.up.toLowerCase(), dn = A.CH.down.toLowerCase();
+  document.querySelectorAll('[_echarts_instance_]').forEach(el => { const c = echarts.getInstanceByDom(el); if (!c) return;
+    const r = el.getBoundingClientRect(); if (r.width < 40 || r.height < 40) return;
+    const o = c.getOption(), ss = (o.series || []).filter(s => s.type === 'bar'); if (!ss.length) return;
+    const horiz = (o.yAxis || []).some(y => y.type === 'category');
+    ss.forEach(s => { const col = s.itemStyle && s.itemStyle.color, grad = !!(col && typeof col === 'object' && col.colorStops);
+      let maxR = -1; const cols = [];
+      (s.data || []).forEach(d => { if (d && typeof d === 'object' && d.itemStyle) { const br = d.itemStyle.borderRadius; if (br != null) maxR = Math.max(maxR, ...[].concat(br)); const dc = d.itemStyle.color; if (dc != null) cols.push(dc); } });
+      if (s.itemStyle && s.itemStyle.borderRadius != null) maxR = Math.max(maxR, ...[].concat(s.itemStyle.borderRadius));
+      const isG = (x) => !!(x && typeof x === 'object' && x.colorStops);
+      const strs = cols.filter(x => typeof x === 'string').map(x => x.toLowerCase());
+      out.push({ id: el.id || String(el.className).slice(0, 20), name: s.name || '', horiz, stack: s.stack != null, n: ss.length, bmw: s.barMaxWidth, grad,
+        stops: grad ? col.colorStops.map(x => x.color) : null, dataGrad: cols.filter(isG).length, color: typeof col === 'string' ? col.toLowerCase() : null,
+        semantic: strs.filter(x => x === up || x === dn).length, nData: (s.data || []).length, maxR, track: !!s.showBackground, up, dn }); }); });
+  return { out, cat: A.barStyle.cat(), H: A.barStyle.H, V: A.barStyle.V_MAX }; }"""
+
+
+def t_bar_style_1006(pg, base, code, b=None):
+    T0 = "[長條風格1006]"
+    gradN = semN = rN = 0
+    allrows = []
+    routes = ("#overview", "#flow", "#market", "#industry", "#industry/semiconductor/overview", "#etf", "#explore", "#season", "#heatmap", f"#stock/{code}")
+    for w, hgt in ((1440, 950), (390, 844)):
+        pg.set_viewport_size({"width": w, "height": hgt})
+        for r in routes:
+            pg.goto("about:blank"); pg.goto(f"{base}{r}", wait_until="domcontentloaded")
+            pg.wait_for_timeout(3200)
+            d = pg.evaluate(BAR1006_SCAN)
+            T = f"{T0} {r} {w}px"
+            for s in d["out"]:
+                lim = d["H"] if s["horiz"] else d["V"]
+                nm = f"「{s['id']}/{s['name']}」"
+                if not s["stack"]:
+                    ok(f"{T} {nm}{'橫' if s['horiz'] else '直'}條粗 ≤ {lim}px（{s['bmw']}）", s["bmw"] is not None and s["bmw"] <= lim, s)
+                if s["maxR"] >= 0:
+                    rN += 1
+                    ok(f"{T} {nm}圓角＝3px（{s['maxR']}）", s["maxR"] == 3, s)
+                if s["grad"] or s["dataGrad"]:
+                    gradN += 1
+                    ok(f"{T} {nm}非漲跌長條＝管理區青藍漸層、不含紅／綠色", s["semantic"] == 0 and not (s["color"] in (s["up"], s["dn"])), s)
+                if s["semantic"] or s["color"] in (s["up"], s["dn"]):
+                    semN += 1
+                    ok(f"★ {T} {nm}漲跌長條仍是紅／綠（不是漸層）", not s["grad"] and s["dataGrad"] == 0 or s["semantic"] > 0, s)
+            allrows += d["out"]
+    ok(f"★ {T0} 全站量到 {gradN} 張非漲跌長條用管理區漸層、{semN} 張漲跌長條維持紅綠、{rN} 張圓角＝3（三者都 ≥ 1）", gradN >= 1 and semN >= 1 and rN >= 1, [(x["id"], x["name"], x["grad"], x["dataGrad"]) for x in allrows][:30])
+    notes.append(f"長條風格1006：量到 ECharts 長條 {len(allrows)} 條；漸層 {gradN}、漲跌紅綠 {semN}、圓角 {rN}")
+    # 手刻 div 長條的圓角（首頁沒有就略過，管理區在 _adm2_ctx 下量）
+    if b is not None:
+        pbase = base.replace("/index.html", "/preview/style-guide/index.html")
+        c, sent = _adm2_ctx(b, width=1440)
+        c.route(re.compile(r".*/preview/style-guide/.*"), lambda r: r.continue_(url=r.request.url.replace("/preview/style-guide/", "/")))
+        pg2 = c.new_page(); pg2.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
+        wait_until(pg2, "() => !!document.getElementById('trTabs')", 15000); pg2.wait_for_timeout(2000)
+        pg2.evaluate("() => document.querySelector('#trTabs [data-t=all]').click()"); pg2.wait_for_timeout(1000)
+        m = pg2.evaluate("""() => { const q = (s) => { const e = document.querySelector(s); return e ? getComputedStyle(e) : null; };
+            const bt = q('#trAllB .bt'), btI = q('#trAllB .bt i'), day = q('#admDayBars .dc i'), hold = q('#trAllB .bt.stk > span');
+            return { bt: bt && bt.borderTopLeftRadius, btI: btI && btI.borderTopLeftRadius, stk: hold && hold.borderTopLeftRadius, dayTop: day && day.borderTopLeftRadius, h: bt && parseFloat(bt.height), bg: bt && bt.backgroundColor,
+                     fill: btI && btI.backgroundImage.slice(0, 60) }; }""")
+        ok(f"★ {T0} 管理區手刻長條圓角＝3px（底軌 {m['bt']}、填色 {m['btI']}、堆疊 {m['stk']}、直條上緣 {m['dayTop']}）、粗 {m['h']}px＝10", m["bt"] == "3px" and m["stk"] == "3px" and m["dayTop"] == "3px" and m["h"] == 10, m)
+        c.close()
 
 if __name__ == "__main__":
     raise SystemExit(main())
