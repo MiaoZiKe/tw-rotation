@@ -603,10 +603,10 @@
   // ------------------------------------------------------------------ 平台導覽
   /* 對到首頁的四步決策動線；標題與 app.js 的 MIA_STEPS 同一套字。*/
   const STEPS = [
-    { t: '① 錢往哪跑', d: '先看輪動時鐘：哪些族群正從「改善」走進「領先」，再看熱力圖今天的錢集中在哪幾塊。', sel: '#ovRotCard' },
-    { t: '② 貴不貴', d: '看大盤與族群的體質：漲的是不是只有權值股、法人有沒有一起進來。', sel: '#hero' },
-    { t: '③ 何時進場', d: '看大盤三張圖的走勢與 K 線，判斷現在是回檔還是突破。', sel: '#m3' },
-    { t: '④ 別進的理由', d: '最後看新聞、法說與事件面消息。', sel: '#ovEvents' },
+    { t: '① 資金流向', d: '先看輪動時鐘：哪些族群正從「改善」走進「領先」，再看熱力圖今天的錢集中在哪幾塊。', sel: '#ovRotCard' },
+    { t: '② 估值位置', d: '看大盤與族群的體質：漲的是不是只有權值股、法人有沒有一起進來。', sel: '#hero' },
+    { t: '③ 技術面時機', d: '看大盤三張圖的走勢與 K 線，判斷現在是回檔還是突破。', sel: '#m3' },
+    { t: '④ 風險與事件', d: '最後看新聞、法說與事件面消息。', sel: '#ovEvents' },
   ];
   let tourState = null;
   function closeTour(restore) {
@@ -626,7 +626,7 @@
       + '<div class="lgth"><span class="lgic" aria-hidden="true">◎</span><div><h2 id="lgTourH" tabindex="-1">平台導覽</h2>'
       + '<small>四步看懂今天的資金</small></div><button type="button" class="lgx" id="lgTourX" aria-label="關閉導覽">✕</button></div>'
       + '<h3>先看錢，再看價，最後才看時機</h3>'
-      + '<p>這個網站把公開的成交、法人、營收與新聞資料，照「錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由」排成一條路徑。</p>'
+      + '<p>這個網站把公開的成交、法人、營收與新聞資料，照「資金流向 → 估值位置 → 技術面時機 → 風險與事件」排成一條路徑。</p>'
       + '<div class="lgcards">'
       + '<div class="lgcard"><b>⤢ 紅漲綠跌</b>跟台股看盤軟體一樣。</div>'
       + '<div class="lgcard"><b>◷ 每天盤後更新</b>盤中的數字另外標「即時」。</div>'
@@ -685,7 +685,7 @@
       const spine = view.querySelector('.mspine');
       if (spine && spine.offsetParent !== null) {
         /* 2026-10-06 修：手機 v3 把主軸鈕改成 <em>②</em><b>貴不貴</b>，textContent 變「②貴不貴」（中間沒空白），
-           拿「② 貴不貴」去比永遠找不到 → 手機按「到總覽看這一步」不會切到那一步、停在第①步。兩邊都去掉空白再比。*/
+           拿「② 估值位置」去比永遠找不到 → 手機按「到總覽看這一步」不會切到那一步、停在第①步。兩邊都去掉空白再比。*/
         const want = s.t.replace(/\s+/g, '');
         const b = [...spine.children].find((x) => (x.textContent || '').replace(/\s+/g, '').indexOf(want) === 0);
         if (b) b.click();

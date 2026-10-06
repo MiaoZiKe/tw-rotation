@@ -19,7 +19,7 @@
    欄位：
      id        積木 id（跟 docs/feature_modules.md §3 的 27 個一致，驗收會比對）
      name      中文名
-     question  回答四問的哪一問（① 錢往哪跑／② 貴不貴／③ 何時進場／④ 別進的理由／知識）
+     question  回答四問的哪一問（① 資金流向／② 估值位置／③ 技術面時機／④ 風險與事件／知識）
      ask       這塊積木回答的那一句話
      tier      方案層級（docs/compliance_and_tiers.md §2-2；〔推〕＝依同一套原則推的）
      law       法遵顏色（🟢 低／🟡 中低／🟠 中高／🔴 高）

@@ -17270,18 +17270,18 @@ def t_ud_market(pg, base):
     ok("淺色主題：按上市照樣換長條", a5["vals"] == ud["twse"]["counts"], a5["vals"])
     _ud_click_seg(pg, "all")
     dg_set_theme(pg, "dark", 1400)
-    # ---- 手機寬 390：總覽是分段導覽（① ② ④ ＋ 下層晶片），這張卡在「② 貴不貴 → 市場寬度」。
+    # ---- 手機寬 390：總覽是分段導覽（① ② ④ ＋ 下層晶片），這張卡在「② 估值位置 → 市場寬度」。
     #      真的點過去（不這樣做的話卡片是 display:none，量到的全是 0，「在卡片內」會假綠 —— 第一版就是這樣）。
     pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(600)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1600)
-    stepped = pg.evaluate("""() => { const sp = [...document.querySelectorAll('#v-overview .mspine button, .mspine button')].find(b => /貴不貴/.test(b.textContent));
+    stepped = pg.evaluate("""() => { const sp = [...document.querySelectorAll('#v-overview .mspine button, .mspine button')].find(b => /估值位置/.test(b.textContent));
         if (!sp) return 'no-spine'; sp.click(); return 'ok'; }""")
     pg.wait_for_timeout(700)
     seg_hit = pg.evaluate("""() => { const b = [...document.querySelectorAll('.mpager button')].find(x => /市場寬度|漲跌家數/.test(x.textContent) && x.offsetParent);
         if (!b) return [...document.querySelectorAll('.mpager button')].filter(x => x.offsetParent).map(x => x.textContent);
         b.click(); return 'ok'; }""")
     pg.wait_for_timeout(1200)
-    ok("手機 390：點「② 貴不貴」→「市場寬度」到得了這張卡", stepped == "ok" and seg_hit == "ok", (stepped, seg_hit))
+    ok("手機 390：點「② 估值位置」→「市場寬度」到得了這張卡", stepped == "ok" and seg_hit == "ok", (stepped, seg_hit))
     scroll_to(pg, "breadth"); pg.wait_for_timeout(600)
     mb = pg.evaluate("""() => { const s = document.getElementById('udMkt').getBoundingClientRect(), c = document.getElementById('ovBreadthCard').getBoundingClientRect();
         const bs = [...document.querySelectorAll('#udMkt button')].map(b => b.getBoundingClientRect());
@@ -17308,7 +17308,7 @@ def t_ud_market(pg, base):
 #      「平盤」＝平那一級；清單那一段的直條原色、其他淡掉，關掉清單全部恢復；
 #   ③ 摘要卡的數字固定是「全部」市場 → 下方卡停在上市時點數字，要自己切回全部、清單家數＝卡上的數字；
 #   ④ 滑過有提示（整張卡 title「看漲跌分佈」、數字 title「列出…的股票」、名稱底線）；鍵盤停在數字上按 Enter 也一樣；
-#   ⑤ 手機 390：自己切到「② 貴不貴 → 市場寬度」、卡片標題不被頂欄蓋住、整頁沒有橫向捲動。
+#   ⑤ 手機 390：自己切到「② 估值位置 → 市場寬度」、卡片標題不被頂欄蓋住、整頁沒有橫向捲動。
 UDL_PANEL = """() => { const b = document.getElementById('udPanel'), e = document.getElementById('breadth');
     const c = e && echarts.getInstanceByDom(e), o = c ? c.getOption() : null;
     return { open: !b.hidden, bin: b.dataset.bin || '', lv: b.dataset.lv == null ? null : b.dataset.lv, mkt: b.dataset.mkt || '',
@@ -17462,7 +17462,7 @@ def t_updown_link_1006(pg, b, base):
        not lz0 and bool(lzp) and _udl_count(lzp["txt"]) == card["down"], {"點之前已畫": lz0, "清單": lzp and lzp["txt"]})
     cx.close()
 
-    # ---- ⑤ 手機 390：先停在第①步，點「下跌」→ 自己切到 ② 貴不貴 → 市場寬度、捲到卡、清單是下跌
+    # ---- ⑤ 手機 390：先停在第①步，點「下跌」→ 自己切到 ② 估值位置 → 市場寬度、捲到卡、清單是下跌
     mp = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     mp.goto(f"{base}#overview", wait_until="networkidle")
@@ -17483,8 +17483,8 @@ def t_updown_link_1006(pg, b, base):
                  n: _n(b.querySelector('.hh .m')), minFs: Math.min(...fs), sideways: document.documentElement.scrollWidth > innerWidth + 1 };
         function _n(m) { const x = (m && m.textContent || '').match(/(\\d+)\\s*檔/); return x ? +x[1] : null; } }""", 9000)
     mc = mp.evaluate(UDL_CARD)
-    ok("★ [漲跌連結 手機] 點「下跌」→ 自己切到「② 貴不貴 → 市場寬度」、留在總覽、清單是下跌",
-       bool(mm) and "貴不貴" in mm["step"] and mm["seg"] == "市場寬度" and mm["hash"] == "#overview" and mm["n"] == mc["down"], [mm, mc])
+    ok("★ [漲跌連結 手機] 點「下跌」→ 自己切到「② 估值位置 → 市場寬度」、留在總覽、清單是下跌",
+       bool(mm) and "估值位置" in mm["step"] and mm["seg"] == "市場寬度" and mm["hash"] == "#overview" and mm["n"] == mc["down"], [mm, mc])
     ok("★ [漲跌連結 手機] 卡片標題在四步列下面露出來（沒被 sticky 頂欄蓋住）、在視窗內",
        bool(mm) and mm["h3top"] >= mm["spineBottom"] - 1 and mm["h3top"] < mm["vh"] - 100, mm)
     ok("[漲跌連結 手機] 整頁沒有橫向捲動、清單字 ≥ 11px", bool(mm) and not mm["sideways"] and mm["minFs"] >= 11, mm)
@@ -37606,7 +37606,7 @@ def t_mobile_v2(b, base, code):
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
     spine = m.evaluate("() => [...document.querySelectorAll('.mspine>button')].map(b => b.innerText.replace(/\\s+/g, ' ').trim())")
     # ⚠ 第③步（今日候選）在 main 2026-09-24 總覽改版時被拿掉了（#ovCandCard 不在頁面上），所以這裡不寫死 4 步
-    ok("[390px] 首頁是一條決策動線（從 ① 錢往哪跑 開始、④ 別進的理由 結束）",
+    ok("[390px] 首頁是一條決策動線（從 ① 資金流向 開始、④ 風險與事件 結束）",
        len(spine) >= 3 and spine[0].startswith('①') and spine[-1].startswith('④'), spine)
     m.evaluate("() => document.querySelectorAll('.mspine>button')[1].click()"); m.wait_for_timeout(1600)
     g = m.evaluate("""() => { const g = document.querySelector('.m3-grid'); if (!g) return null;
@@ -37890,7 +37890,7 @@ def t_mobile_oneview(b, base, code):
             next: (document.querySelector('.mnext') || {}).textContent || '' })""")
     s0 = _state()
     ok("[390px 動線] 一進首頁停在第①步，主圖是足跡輪盤", s0["on"] == 0 and s0["rot"] and not s0["m3"], s0)
-    ok("[390px 動線] 最下面有「下一步」帶去第②步", "下一步" in s0["next"] and "貴不貴" in s0["next"], s0)
+    ok("[390px 動線] 最下面有「下一步」帶去第②步", "下一步" in s0["next"] and "估值位置" in s0["next"], s0)
     sp = m.evaluate("""() => [...document.querySelectorAll('.mspine>button')].map(b => { const r = b.getBoundingClientRect();
         return { r: Math.round(r.right), t: Math.round(r.top), h: Math.round(r.height) }; })""")
     ok("[390px 動線] 步驟列一列排完、每一步都看得到（改版前一次只露一格半）",
@@ -40576,7 +40576,7 @@ def t_legal(b, base):
     seen = [pg.inner_text("#lgStepT")]
     for _ in range(3):
         pg.click("#lgNext"); pg.wait_for_timeout(250); seen.append(pg.inner_text("#lgStepT"))
-    ok("[關] 導覽：下一步 ×3 → 標題依序是 ①～④", seen == ["① 錢往哪跑", "② 貴不貴", "③ 何時進場", "④ 別進的理由"], seen)
+    ok("[關] 導覽：下一步 ×3 → 標題依序是 ①～④", seen == ["① 資金流向", "② 估值位置", "③ 技術面時機", "④ 風險與事件"], seen)
     ok("[關] 導覽最後一步按鈕變成「開始使用」", pg.inner_text("#lgNext") == "開始使用", pg.inner_text("#lgNext"))
     pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab")
     ok("[關] 導覽開著時 Tab 焦點困在彈窗裡", pg.evaluate(
@@ -40734,9 +40734,9 @@ def t_legal(b, base):
     r = pg.evaluate("""() => { const sp = document.querySelector('#v-overview .mspine .on'); const e = document.getElementById('hero');
         const r = e ? e.getBoundingClientRect() : null;
         return { step: sp ? sp.textContent : '', top: r ? r.top : null, h: r ? r.height : 0, vh: innerHeight }; }""")
-    ok("[開 390] 手機「到總覽看這一步」（第②步）→ 主軸動線真的切到 ② 貴不貴、大盤那張在畫面上",
+    ok("[開 390] 手機「到總覽看這一步」（第②步）→ 主軸動線真的切到 ② 估值位置、大盤那張在畫面上",
        # 2026-10-06：手機 v3 主軸鈕是 <em>②</em><b>貴不貴</b>，textContent 沒有空白 → 去掉空白再比
-       re.sub(r"\s+", "", r["step"]).startswith("②貴不貴") and r["top"] is not None and r["h"] > 0 and 0 <= r["top"] < r["vh"], r)
+       re.sub(r"\s+", "", r["step"]).startswith("②估值位置") and r["top"] is not None and r["h"] > 0 and 0 <= r["top"] < r["vh"], r)
     ctx.close()
 
     # 填好了但 enabled:false → 仍然不啟用；欄位裡還留著【】也不算填好
@@ -44787,7 +44787,7 @@ def t_kpi_footer_0926(pg, b, base):
 # 而且是描述 RRG 座標的句子）、總覽小輪盤的族群點（說明框）、各張「?」說明、市場明細今日候選、
 # 個股 AI 卡四個面向（逐一點）與指標分頁的技術分析卡、選股策略的「本益比在自身歷史低檔」卡，
 # 每一處都掃動作建議與價值判斷用字。tests/test_neutral_copy.py 用同一張清單掃 pipeline 產出的文字。
-# ⚠ 只掃評語所在的容器，不掃整頁：站名層級的「四問」動線（③ 何時進場／④ 別進的理由）、法遵頁的免責句
+# ⚠ 只掃評語所在的容器，不掃整頁：站名層級的「四問」動線（③ 技術面時機／④ 風險與事件）、法遵頁的免責句
 #   （「不是建議的買進價、停損價或賣出價」）、本益比河流圖的歷史分位區名（低估…觀望…警示）是判斷過保留的灰色地帶，
 #   見對照表最後一節。
 NEUTRAL_BANNED = ("買點", "賣點", "進場", "出場", "可追", "該跑", "加碼", "減碼", "布局", "佈局", "抄底",

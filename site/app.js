@@ -2196,7 +2196,7 @@
      （M1 資金面 ＋ M2 基本面決定方向 → M3 技術面決定時機 → M4 事件面否決），
      以前只是沒有在介面上講出來，所有圖表平鋪在同一頁讓人自己猜順序。
      ⚠ 一個功能都不准消失，只是換一個進得去的位置（對照表寫在 `docs/mobile_ia.md`）。*/
-  const MIA_STEPS = ['① 錢往哪跑', '② 貴不貴', '③ 何時進場', '④ 別進的理由'];
+  const MIA_STEPS = ['① 資金流向', '② 估值位置', '③ 技術面時機', '④ 風險與事件'];   // 10-06 Andy：步驟名改中性（不寫進場／別進），preview/four-steps;
   const MIA_STEP_SUB = [
     '錢流進哪個族群、流出哪個族群',
     '大盤與族群的體質：漲的是不是只有權值股，法人在不在裡面',
@@ -2350,7 +2350,7 @@
     };
     if (spine && (spine.dataset.k !== key || spine.children.length !== steps.length)) {
       spine.dataset.k = key; spine.setAttribute('role', 'tablist');
-      spine.setAttribute('aria-label', '決策動線：錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由');
+      spine.setAttribute('aria-label', '決策動線：資金流向 → 估值位置 → 技術面時機 → 風險與事件');
       spine.innerHTML = '';
       steps.forEach(st => {
         const b = document.createElement('button');
@@ -4416,7 +4416,7 @@
      · 摘要卡的數字固定是「全部」市場（見 renderOvSummary ①），下方那張卡如果停在上市或上櫃，先切回全部 ——
        不然點「下跌」打開的是上市那一半，清單家數跟卡上的數字對不起來，比不開還糟。只點卡片（不點數字）就不動它的市場別。
      · 分佈圖是捲近了才畫（whenNear）：先記下要開哪一側（UDJ.want），runNear 叫它現在就畫，畫好 renderUpDown 自己打開。
-     · 手機（≤640）這張卡在「② 貴不貴 → 市場寬度」那一段：ovsJump 先切過去再捲（modules.js market.breadth）。*/
+     · 手機（≤640）這張卡在「② 估值位置 → 市場寬度」那一段：ovsJump 先切過去再捲（modules.js market.breadth）。*/
   function ovsUdGo(side) {
     ovsJump('市場寬度', 'ovBreadthCard', true, 2);
     const sel = side ? udSelOf(side) : null;
