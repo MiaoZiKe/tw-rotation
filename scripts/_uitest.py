@@ -35909,8 +35909,38 @@ def t_b29_tabs(pg, base):
         if ok(f"W3-5 [{w5}px {route5}] 找得到剖析圖", bool(m5), m5):
             ok(f"W3-5 [{w5}px {route5}] `#prodDiagram` 一載入沒有被推走（scrollLeft ＝ 0）",
                m5["host"] == 0, m5)
-            ok(f"W3-5 [{w5}px {route5}] 沒有任何一張說明卡片被切掉左半邊",
-               m5["cutCards"] == 0, m5)
+            if w5 > 640:
+                ok(f"W3-5 [{w5}px {route5}] 沒有任何一張說明卡片被切掉左半邊",
+                   m5["cutCards"] == 0, m5)
+                continue
+            # ★ 2026-10-06（既有紅字清理）改前→改後（390）：「說明卡片沒被切掉左半邊」→「卡片欄依設計收起、
+            #   改成圖上的編號鈕；編號鈕全在圖框內（沒被推出畫面）、點一顆真的跳出那一格的說明」。
+            #   為什麼舊的過時：63c080b0「手機版 v3（D）剖析圖只留編號」起，≤640 的 #prodDiagram 掛 .mnum2d，
+            #   `.dgcards` 是 display:none（index.html「手機 v3 D」那段），說明改成點編號開抽屜（diagrams.js mobileNums／openNo）。
+            #   舊斷言量到的 14／9 張「被切」其實是 0×0 的隱藏卡片（left＝0 < 圖框左緣），不是被推出畫面。
+            #   這條原本要守的「390 一載入說明就被推出畫面看不到」照樣守：改量手機上承擔說明的那一層。
+            wait_until(pg, "() => (document.querySelectorAll('#prodDiagram .mnumlayer .mnum').length > 0) ? 1 : 0", 6000)
+            mn = pg.evaluate("""() => { const h = document.getElementById('prodDiagram'); if (!h) return null;
+                const hr = h.getBoundingClientRect(), bs = [...h.querySelectorAll('.mnumlayer .mnum')];
+                const cards = h.querySelector('.dgcards');
+                return { mode: h.classList.contains('mnum2d'), cardsHidden: !cards || getComputedStyle(cards).display === 'none',
+                         n: bs.length, items: [...h.querySelectorAll('.dgcards .dgc')].filter(c => c.querySelector('.no') && c.dataset.anc).length,
+                         out: bs.filter(b => { const r = b.getBoundingClientRect(); return r.width === 0 || r.left < hr.left - 2 || r.right > hr.right + 2; }).length,
+                         sx: document.documentElement.scrollWidth - innerWidth }; }""")
+            ok(f"W3-5 [{w5}px {route5}] 手機是「只留編號」模式（.mnum2d）、卡片欄依設計收起",
+               bool(mn) and mn["mode"] and mn["cardsHidden"], mn)
+            ok(f"★ W3-5 [{w5}px {route5}] 編號鈕畫出來了（{mn and mn['n']} 顆，對應 {mn and mn['items']} 張說明）而且一顆都沒被推出圖框、整頁沒有橫向捲軸",
+               bool(mn) and mn["n"] > 0 and mn["n"] <= mn["items"] and mn["out"] == 0 and mn["sx"] <= 1, mn)
+            if mn and mn["n"]:
+                pg.eval_on_selector("#prodDiagram .mnumlayer .mnum", "b => b.click()"); pg.wait_for_timeout(500)
+                sh = pg.evaluate("""() => { const s = document.getElementById('mSheet'); if (!s) return null;
+                    const b0 = document.querySelector('#prodDiagram .mnumlayer .mnum');
+                    return { open: !s.hidden, kind: s.dataset.kind || '', no: s.dataset.no || '', want: b0 ? b0.dataset.no : '',
+                             len: (s.innerText || '').replace(/\s+/g, '').length }; }""")
+                ok(f"★ W3-5 [{w5}px {route5}] 點第一顆編號 → 說明抽屜打開、寫的就是那一號（說明看得到，不是被切掉）",
+                   bool(sh) and sh["open"] and sh["kind"] == "dgno" and sh["no"] == sh["want"] and sh["len"] > 4, sh)
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+                pg.evaluate("() => { const s = document.getElementById('mSheet'); if (s && !s.hidden) { const x = document.getElementById('mSheetBack'); if (x) x.click(); } }")
     # 1440：置中**不准被改壞** —— 畫布比欄寬大的時候，裝畫布的那個框仍然要捲到中間
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
@@ -44308,8 +44338,12 @@ def _ov_fix_0926b_body(pg, base, code):
             p = pg.evaluate(PANEL)
             m1 = pg.evaluate(MEAS)
             if ok(f"{tag} 點「{d['name']}」→ 說明框打開", p["open"], p):
+                # ★ 2026-10-06（既有紅字清理）：連結先解碼再比。為什麼舊的過時：app.js 的 #ovRotPop 一律
+                #   `encodeURIComponent(gid)`（法定產業別的族群 id 是中文，例 ind_半導體業；route() 逐段 decodeURIComponent，
+                #   見 app.js 2026-09-19 那段註解），舊斷言拿編碼過的 href 跟原始 gid 比 —— 輪盤最上面那顆剛好是中文 id 的族群時就假紅。
+                from urllib.parse import unquote as _unq
                 ok(f"{tag} 說明框標題是剛點的族群、有「進族群頁 →」與成分股連結",
-                   p["name"] == d["name"] and p["link"] == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
+                   p["name"] == d["name"] and _unq(p["link"]) == f"#industry/group/{d['gid']}" and p["n"] >= 1, (p, d))
                 ok(f"★ {tag} 面板打開後「昨日資金去向」與左欄卡片的 top／高度都沒動（≤ 1px）", not diff(m0, m1), diff(m0, m1))
                 # 改前（09-26 晚）：面板在輪盤圓外，點上半部放下方、點下半部放上方
                 # 改後（2026-09-28 Andy：「popover beside the dot」）：貼在剛點那顆旁邊、不蓋住它（框的矩形不含圓心）
@@ -48966,16 +49000,24 @@ def _sov_one(pg, W, c, j, base, T, want_tabs, want_mtabs):
             ck = ((an.get("facets") or {}).get("tech") or {}).get("checks") or {}
             ai = pg.evaluate("""() => ({ line: ((document.getElementById('ovAiLine') || {}).innerText || '').replace(/\\s+/g, ' '),
                 n: document.querySelectorAll('#ovAiCard').length,
-                tags: [...document.querySelectorAll('#ovAiTags .ovtag')].map(b => [b.dataset.facet, b.querySelector('.nm').textContent, b.querySelector('.aitag').textContent]),
+                tags: [...document.querySelectorAll('#ovAiTags .ovtag')].map(b => [b.dataset.facet, (b.querySelector('.nm .nl') || b.querySelector('.nm')).textContent, b.querySelector('.aitag').textContent]),
                 cards: [...document.querySelectorAll('#ovFacets > .card')].map(c => ({ f: c.dataset.facet, vis: c.getClientRects().length > 0 })),
                 inCard: [...document.querySelectorAll('#ovFacets > .card')].every(c => !!c.closest('#ovAiCard')) })""")
             if an:
                 ok(f"{tag} AI 卡：一行重點寫出回檔／突破成立條數（{ck.get('met_a')}/{ck.get('n_a')}、{ck.get('met_b')}/{ck.get('n_b')}）",
                    not ck or (f"回檔型態 {ck.get('met_a')}/{ck.get('n_a')}" in ai["line"] and f"突破型態 {ck.get('met_b')}/{ck.get('n_b')}" in ai["line"]), ai["line"])
-                ok(f"{tag} AI 卡：四顆分頁籤＝技術面、技術面訊號、基本面、消息面（每顆帶小判讀）",
-                   [t[1] for t in ai["tags"]] == ["技術面", "技術面訊號", "基本面", "消息面"] and all(t[2].strip() for t in ai["tags"]), ai["tags"])
-                ok(f"{tag} AI 卡只有一張、四面（技術面→技術面訊號→基本面→消息面）都在這張卡裡、一次只顯示一面",
-                   ai["n"] == 1 and ai["inCard"] and [x["f"] for x in ai["cards"]] == ["tech", "sig", "fund", "news"] and sum(x["vis"] for x in ai["cards"]) == 1, ai)
+                # ★ 2026-10-06（既有紅字清理）改前→改後：四顆籤「技術面｜技術面訊號｜基本面｜消息面」→「技術面｜籌碼面｜基本面｜消息面」；
+                #   「一次只顯示一面」改成「一次只顯示一個面向（技術面＝技術面卡＋接在下面的訊號燈那張）」。
+                #   為什麼舊的過時：ff621ee0（10-04，Andy：「技術已經有了，為何還多一個技術面訊號」「需要的是 技術面、籌碼面、基本面、消息面」）
+                #   把技術面訊號併進技術面、第二顆改回籌碼面；籤名改成 .nm 裡的全名 .nl＋窄寬用的簡稱 .ns（.ns 平常 display:none），
+                #   讀整個 .nm 的 textContent 會讀成「技術面技術」。那批改了別段（個股 AI 分析）的斷言，漏了這一段。
+                ok(f"{tag} AI 卡：四顆分頁籤＝技術面、籌碼面、基本面、消息面（每顆帶小判讀）",
+                   [t[1] for t in ai["tags"]] == ["技術面", "籌碼面", "基本面", "消息面"] and all(t[2].strip() for t in ai["tags"]), ai["tags"])
+                _faces = [x["f"] for x in ai["cards"] if x["vis"] and x["f"] != "sig"]
+                _sigv = any(x["vis"] for x in ai["cards"] if x["f"] == "sig")
+                ok(f"{tag} AI 卡只有一張、四面（技術面＋訊號燈→籌碼面→基本面→消息面）都在這張卡裡、一次只顯示一個面向",
+                   ai["n"] == 1 and ai["inCard"] and [x["f"] for x in ai["cards"]] == ["tech", "sig", "chip", "fund", "news"]
+                   and len(_faces) == 1 and _sigv == (_faces == ["tech"]), ai)
                 # 點「基本面」分頁籤 → 卡裡換成基本面、籤變選中、寫進 tw.ovAiTab、不捲動不跳頁
                 # 先把分頁籤捲進畫面再記 scrollY（click 自己會捲一次，那一下不是切籤造成的）
                 pg.evaluate("() => document.getElementById('ovAiTags').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(250)
