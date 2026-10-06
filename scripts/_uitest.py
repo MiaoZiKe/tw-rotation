@@ -23911,6 +23911,238 @@ def t_timegrid_1006(pg, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch (e) {} }")
 
 
+# ===================================================================== 平台導覽1007（site/tour.js 逐步導覽，2026-10-07）
+# Andy 10-07：「平台導覽太爛了，需要有真的導覽的感覺一部一部告訴你總覽看什麼 哪些功能在哪裡，分頁是在說明什麼」。
+# 驗的全部是「畫面真的因此改變了」：
+#   · 全站導覽：真的一直按「下一步」走到底；每一步聚光燈框的元素存在、在畫面內、框跟元素對得上，說明卡不出畫面；
+#     頁面真的切換（換頁步驟的 .view 跟著換、hash 跟著換，走完至少經過 8 個不同的頁面）
+#   · 「上一步」真的退回上一步（頁面也退回）；← → 鍵盤換步；點遮罩不會關；Esc 關閉後遮罩消失、焦點回到入口
+#   · 元素被鎖（data-plk）時那一步被跳過、導覽不卡住、照樣走到底
+#   · 頁首「導覽」鈕在總覽開的是總覽導覽；產業地圖導覽真的點出「這個零件是誰做的」小卡；個股導覽真的切換下方分頁
+#   · 390 手機：從右上「⋯」打開全站導覽走一遍，說明卡貼底或貼頂、不出畫面；總覽導覽在手機會自己切分段
+#   · 說明文字不含操作建議字眼（DECISIONS #333）；卡片裡沒有小於 12px 的字
+TOUR_ST = "() => window.TwTour ? TwTour.state() : null"
+TOUR_IDLE = "() => { const s = window.TwTour && TwTour.state(); return !!s && (!s.active || (!s.busy && s.i >= 0)); }"
+TOUR_BAN = ("買點", "賣點", "進場", "出場", "可追", "加碼", "減碼", "布局", "抄底", "逢低", "停利", "觀望", "承接", "可留意",
+            "不要碰", "便宜", "好機會", "划算", "值得", "建議買", "建議賣")
+
+
+def _tour_wait(pg, ms=20000):
+    """等到這一步定下來：不在換步中，而且聚光燈與說明卡的位置連兩次量到一樣（兩者都有 .22 秒的移動動畫，動畫中途量會量到半路）。"""
+    pg.wait_for_function(TOUR_IDLE, timeout=ms)
+    prev = None
+    for _ in range(30):
+        pg.wait_for_timeout(150)
+        st = pg.evaluate(TOUR_ST)
+        if not st or not st.get("active"):
+            return st
+        sig = (st["i"], tuple(round(v) for v in st["hole"].values()), tuple(round(v) for v in st["card"].values()),
+               tuple(round(v) for v in (st["target"] or {}).values()))
+        if sig == prev:
+            return st
+        prev = sig
+    return st
+
+
+def _tour_inview(st, tol=2):
+    vw, vh = st["vw"], st["vh"]
+    c, h = st["card"], st["hole"]
+    card_ok = c["l"] >= -tol and c["t"] >= -tol and c["r"] <= vw + tol and c["b"] <= vh + tol
+    hole_ok = h["w"] > 6 and h["h"] > 6 and h["l"] >= -tol and h["t"] >= -tol and h["r"] <= vw + tol and h["b"] <= vh + tol
+    t = st["target"]
+    # 框要真的框住目標（目標可能比畫面高：只要求畫面內那一段被框住）
+    # 聚光燈貼著畫面邊緣時會內縮 4px（框線要看得到），所以容許 6px
+    covers = bool(t) and h["l"] <= max(t["l"], 0) + 6 and h["r"] >= min(t["r"], vw) - 6 \
+        and h["t"] <= max(t["t"], 0) + 6 and h["b"] >= min(t["b"], vh) - 6
+    vis = bool(t) and t["b"] > 0 and t["t"] < vh and t["r"] > 0 and t["l"] < vw
+    return card_ok, hole_ok and covers and vis
+
+
+def _tour_walk(pg, tag, maxn=24):
+    """一直按「下一步」走到導覽結束；回傳每一步的狀態。"""
+    seen, rows = [], []
+    for _ in range(maxn):
+        st = _tour_wait(pg)
+        if not st["active"]:
+            break
+        if st["i"] in seen:
+            ok(f"[{tag}] 按下一步不會停在原地（第 {st['i'] + 1} 步重複出現）", False, st)
+            break
+        seen.append(st["i"])
+        rows.append(st)
+        pg.click("#twTourNext")
+    return rows
+
+
+def t_tour_1007(pg, b, base):
+    T = "[平台導覽1007]"
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append(f"平台導覽1007 pageerror: {e}"))
+    pg.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.theme')}catch(e){}")
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+
+    ok(f"{T} tour.js 載入、提供 TwTour.start 與五套導覽", pg.evaluate("() => !!(window.TwTour && TwTour.start) && TwTour.ids().join(',')") == "site,overview,flow,industry,stock",
+       pg.evaluate("() => window.TwTour && TwTour.ids()"))
+    ok(f"{T} 第一次來不自動彈出（沒有 #twTour）", pg.locator("#twTour").count() == 0)
+    # ---- 說明文字：中性、2～3 行的量級
+    txt = pg.evaluate("() => TwTour.ids().flatMap(id => TwTour.steps(id).map(s => id + '｜' + s.t + '｜' + s.d + '｜' + s.m))")
+    bad = [x for x in txt if any(w in x for w in TOUR_BAN)]
+    ok(f"{T} 每一步的說明都沒有操作建議字眼（#333）", not bad, bad[:3])
+    longd = [x for x in txt if len(x.split("｜")[2]) > 80]
+    ok(f"{T} 每一步說明 ≤ 80 字（卡片上 2～3 行）", not longd, longd[:3])
+
+    # ---- 頁首「導覽」鈕：總覽 → 總覽導覽
+    btn = pg.evaluate("""() => { const b = document.getElementById('twTourBtn'), h = document.querySelector('#l4Head h1'), t4 = document.getElementById('t4Btn');
+        if (!b) return null; const r = b.getBoundingClientRect(), q = h.getBoundingClientRect(), k = t4.getBoundingClientRect();
+        return { vis: r.width > 0, txt: b.textContent.trim(), inTools: !!b.closest('#l4Head .l4tools'), afterT4: b.previousElementSibling === t4,
+                 row: Math.abs((r.top + r.height / 2) - (q.top + q.height / 2)) < 6, h: Math.round(r.height), t4h: Math.round(k.height), right: r.right <= innerWidth && r.left > innerWidth - 360,
+                 kids: [...document.getElementById('l4Head').children].map(e => e.tagName.toLowerCase()), fs: parseFloat(getComputedStyle(b).fontSize) }; }""")
+    ok(f"{T} 頁首右上角（☀／調色盤右邊、同一列、同高）有「導覽」鈕，字 ≥ 12px",
+       btn and btn["vis"] and btn["txt"] == "導覽" and btn["inTools"] and btn["afterT4"] and btn["row"] and btn["h"] == btn["t4h"] and btn["right"] and btn["fs"] >= 12, btn)
+    ok(f"{T} 頁首仍然只有頁名＋時間＋右上角工具三樣（Andy 10-03：頁名那格只留頁名與時間）", btn and btn["kids"] == ["h1", "time", "div"], btn and btn["kids"])
+    pg.click("#twTourBtn")
+    st = _tour_wait(pg)
+    ok(f"{T} 在總覽按「導覽」→ 開的是總覽導覽、第一步框住摘要卡", st["active"] and st["tour"] == "overview" and "ovSumTrack" in st["sel"], st)
+    ok(f"{T} 遮罩與說明卡出現（聚光燈框、說明卡、上一步／下一步／略過）",
+       pg.evaluate("() => !!document.querySelector('#twTour #twTourHole') && !!document.querySelector('#twTourCard') && ['twTourPrev','twTourNext','twTourSkip'].every(id => document.getElementById(id))"))
+    fs = pg.evaluate("""() => [...document.querySelectorAll('#twTourCard *')].filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
+        .map(e => parseFloat(getComputedStyle(e).fontSize)).filter(x => x < 11.95)""")
+    ok(f"{T} 說明卡沒有小於 12px 的字", not fs, fs)
+    # 點遮罩不關
+    pg.mouse.click(700, 880); pg.wait_for_timeout(300)
+    ok(f"{T} 點遮罩（說明卡外）不會關掉導覽", pg.evaluate(TOUR_ST)["active"])
+    # 鍵盤 → ←
+    i0 = pg.evaluate(TOUR_ST)["i"]
+    pg.keyboard.press("ArrowRight"); st1 = _tour_wait(pg)
+    ok(f"{T} 按 → 前進一步、框換到別的元素", st1["i"] > i0 and st1["sel"] != st["sel"], (i0, st1["i"], st1["sel"]))
+    pg.keyboard.press("ArrowLeft"); st2 = _tour_wait(pg)
+    ok(f"{T} 按 ← 退回原來那一步", st2["i"] == i0, (i0, st2["i"]))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    ok(f"{T} Esc 關閉：遮罩整個消失", pg.locator("#twTour").count() == 0 and not pg.evaluate(TOUR_ST)["active"])
+    ok(f"{T} Esc 關閉後焦點回到「導覽」鈕", pg.evaluate("() => document.activeElement && document.activeElement.id") == "twTourBtn",
+       pg.evaluate("() => document.activeElement && document.activeElement.id"))
+
+    # ---- 全站導覽：真的按到底
+    pg.evaluate("() => TwTour.start('site')")
+    rows = _tour_walk(pg, "全站 1440")
+    ok(f"{T} 全站導覽 1440 走了 13 步以上才結束", len(rows) >= 13, [r["title"] for r in rows])
+    ok(f"{T} 走完最後一步按「完成」→ 導覽關閉、遮罩消失", pg.locator("#twTour").count() == 0)
+    for r in rows:
+        c_ok, h_ok = _tour_inview(r)
+        ok(f"{T} 全站 1440 第 {r['i'] + 1} 步「{r['title']}」：聚光燈框住的元素存在且在畫面內", h_ok, (r["sel"], r["target"], r["hole"]))
+        ok(f"{T} 全站 1440 第 {r['i'] + 1} 步「{r['title']}」：說明卡不出畫面", c_ok, r["card"])
+    steps = pg.evaluate("() => TwTour.steps('site')")
+    page_rows = [r for r in rows if steps[r["i"]]["view"]]
+    wrong = [(r["title"], r["view"], steps[r["i"]]["view"]) for r in page_rows if r["view"] != "v-" + steps[r["i"]]["view"]]
+    ok(f"{T} 全站導覽每一個換頁步驟，背後的頁面真的切到那一頁（.view.on）", not wrong and len(page_rows) >= 9, wrong or len(page_rows))
+    views = {r["view"] for r in rows}
+    ok(f"{T} 全站導覽走完經過至少 8 個不同的頁面", len(views) >= 8, sorted(views))
+    ok(f"{T} 全站導覽框過側欄、右上角工具、客服、導覽鈕",
+       all(any(k in r["sel"] for r in rows) for k in ("#tabsWrap", "#l4Tools", "#supFab", "#twTourBtn")), [r["sel"][:40] for r in rows])
+
+    # ---- 上一步：頁面也退回
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    pg.evaluate("() => TwTour.start('site')"); _tour_wait(pg)
+    pg.click("#twTourNext"); _tour_wait(pg)
+    pg.click("#twTourNext"); s3 = _tour_wait(pg)           # 第 3 步：財經日曆
+    pg.click("#twTourPrev"); s2 = _tour_wait(pg)
+    ok(f"{T} 按「上一步」退回前一步，頁面也退回（{s3['view']} → {s2['view']}）",
+       s2["i"] < s3["i"] and s3["view"] == "v-earnings" and s2["view"] == "v-overview", (s3["i"], s3["view"], s2["i"], s2["view"]))
+    pg.click("#twTourPrev"); s1 = _tour_wait(pg)
+    ok(f"{T} 退回第一步之後「上一步」是灰的（按不下去）", s1["i"] == 0 and pg.evaluate("() => document.getElementById('twTourPrev').disabled"), s1["i"])
+    pg.click("#twTourSkip"); pg.wait_for_timeout(300)
+    ok(f"{T} 「略過」關閉導覽", pg.locator("#twTour").count() == 0)
+
+    # ---- 元素被鎖：跳過那一步、不卡住
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    pg.evaluate("() => { document.getElementById('ovHeatCard').setAttribute('data-plk', 'ov.heat'); document.getElementById('ovFlowCard').style.display = 'none'; }")
+    pg.evaluate("() => TwTour.start('overview')")
+    rows = _tour_walk(pg, "鎖住")
+    titles = [r["title"] for r in rows]
+    ok(f"{T} 被功能開關鎖住的「資金熱力圖」、不見的「昨日資金去向」被跳過，導覽照樣走到底",
+       "資金熱力圖" not in titles and "昨日資金去向" not in titles and "漲跌家數分佈" in titles and pg.locator("#twTour").count() == 0, titles)
+    pg.evaluate("() => { document.getElementById('ovHeatCard').removeAttribute('data-plk'); document.getElementById('ovFlowCard').style.display = ''; }")
+
+    # ---- 產業地圖導覽：真的點出零件小卡
+    pg.goto(base + "#industry", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    pg.click("#twTourBtn")
+    rows = _tour_walk(pg, "產業地圖")
+    titles = [r["title"] for r in rows]
+    ok(f"{T} 產業地圖導覽：鏈分頁 → 族群分頁 → 剖析圖 → 點零件 → 零件小卡 → 關聯圖，6 步以上",
+       len(rows) >= 6 and all(k in titles for k in ("先挑一條產業鏈", "產品剖析圖", "這個零件是誰做的", "供應鏈關聯圖")), titles)
+    pc = [r for r in rows if r["title"] == "這個零件是誰做的"]
+    ok(f"{T} 「這個零件是誰做的」那一步框住的是真的零件小卡（#partCard 打開了）", bool(pc) and pc[0]["sel"] == "#partCard" and pc[0]["target"]["h"] > 40, pc and pc[0]["target"])
+    ok(f"{T} 產業地圖導覽從全市場切到半導體（hash 有換）", any(r["hash"] == "#industry" for r in rows) and any(r["hash"].startswith("#industry/semiconductor") for r in rows),
+       [r["hash"] for r in rows])
+
+    # ---- 個股導覽：下方分頁真的跟著切
+    pg.goto(base + "#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    pg.click("#twTourBtn")
+    on_tabs = []
+    for _ in range(12):
+        st = _tour_wait(pg)
+        if not st["active"]:
+            break
+        on_tabs.append((st["title"], pg.evaluate("() => (document.querySelector('#stockTabs button.on') || {}).dataset?.t || ''")))
+        c_ok, h_ok = _tour_inview(st)
+        ok(f"{T} 個股導覽「{st['title']}」：框在畫面內、說明卡不出畫面", c_ok and h_ok, (st["hole"], st["card"]))
+        pg.click("#twTourNext")
+    d = dict(on_tabs)
+    ok(f"{T} 個股導覽講到「營收…」「法人…」「公告…」時，下方分頁真的切到營收／法人／新聞",
+       d.get("營收、獲利、除權息") == "revenue" and d.get("法人、資券、大戶／散戶") == "inst" and d.get("公告／新聞") == "news", on_tabs)
+    ok(f"{T} 個股導覽結束後分頁回到「總覽」", pg.evaluate("() => (document.querySelector('#stockTabs button.on') || {}).dataset?.t") == "overview")
+    # ---- 網址 ?tour=1 自動開全站導覽（預覽與分享連結用）
+    pg.goto(base + "?tour=1#overview", wait_until="networkidle")
+    st = _tour_wait(pg)
+    ok(f"{T} 網址帶 ?tour=1 → 載入後自動開全站導覽", st and st["active"] and st["tour"] == "site", st and st.get("tour"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    ctx.close()
+
+    # ---- 預覽版（window.TW_PREVIEW）：頁尾「平台導覽」直接開這套逐步導覽
+    pctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pp = pctx.new_page()
+    pp.add_init_script("window.TW_PREVIEW = { name: 'uit' }; try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    pp.goto(base + "#overview", wait_until="networkidle"); pp.wait_for_timeout(2000)
+    pp.evaluate("() => document.getElementById('sfTour').scrollIntoView()")
+    pp.click("#sfTour")
+    st = _tour_wait(pp)
+    ok(f"{T} 預覽版：按頁尾「平台導覽」開的是逐步導覽（不是舊彈窗）",
+       st and st["active"] and st["tour"] == "site" and pp.locator("#lgTour").count() == 0, (st and st.get("tour"), pp.locator("#lgTour").count()))
+    pctx.close()
+
+    # ---- 390 手機
+    mctx = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)
+    m = mctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"平台導覽1007(390) pageerror: {e}"))
+    m.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.theme')}catch(e){}")
+    m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(2500)
+    m.click("#moreBtn"); m.wait_for_timeout(400)
+    ok(f"{T} 390：右上「⋯」清單裡有「本頁導覽」「全站導覽」", m.locator("#mmTourPage").is_visible() and m.locator("#mmTourSite").is_visible())
+    m.click("#mmTourSite")
+    rows = _tour_walk(m, "全站 390")
+    ok(f"{T} 390：全站導覽走了 8 步以上（底部導覽列四格＋更多＋搜尋＋⋯＋客服）", len(rows) >= 8, [r["title"] for r in rows])
+    for r in rows:
+        c_ok, h_ok = _tour_inview(r)
+        ok(f"{T} 390 全站第 {r['i'] + 1} 步「{r['title']}」：框在畫面內、說明卡不出畫面且貼底或貼頂", c_ok and h_ok and r["place"] in ("sheet-bottom", "sheet-top"),
+           (r["sel"], r["hole"], r["card"], r["place"]))
+    nav = [r for r in rows if r["sel"].startswith("#tabs .tab")]
+    ok(f"{T} 390：導覽列那幾步框的是底部導覽列的格子、說明卡改貼頂（不蓋住被框的格子）",
+       len(nav) >= 4 and all(r["place"] == "sheet-top" and r["target"]["t"] > 700 for r in nav), [(r["title"], r["place"]) for r in nav])
+    ok(f"{T} 390：手機才有的「更多」那一步有出現、桌機的財經日曆（手機藏起來）被跳過",
+       any(r["sel"] == "#mTabMore" for r in rows) and not any(r["title"].startswith("財經日曆") for r in rows), [r["title"] for r in rows])
+    # 總覽導覽：手機分段會自己切
+    m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
+    m.click("#moreBtn"); m.wait_for_timeout(300); m.click("#mmTourPage")
+    rows = _tour_walk(m, "總覽 390")
+    titles = [r["title"] for r in rows]
+    ok(f"{T} 390：總覽導覽自己切分段，熱力圖、題材、資金去向、漲跌家數都框得到", all(k in titles for k in ("資金熱力圖", "熱門題材", "昨日資金去向", "漲跌家數分佈")), titles)
+    for r in rows:
+        c_ok, h_ok = _tour_inview(r)
+        ok(f"{T} 390 總覽「{r['title']}」：框在畫面內、說明卡不出畫面", c_ok and h_ok, (r["sel"], r["hole"], r["card"]))
+    mctx.close()
+
+
 SECTIONS = {
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
     "頁首圖示鈕1006":      lambda pg, b, base, code: t_topicons_1006(pg, base),
@@ -24141,6 +24373,8 @@ SECTIONS = {
     #   頁尾免責聲明（預設開）、三個法律頁、同意橫幅與平台導覽（預設關，條款空格填完＋enabled 才開）。
     #   開關打開的那半段用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 模擬「Andy 填好了」。
     "同意條款與法律頁":    lambda pg, b, base, code: t_legal(b, base),
+    # ★ 2026-10-07 Andy：「平台導覽太爛了，需要有真的導覽的感覺」—— 逐步導覽（site/tour.js）：真的按完全站導覽每一步、上一步、Esc、鎖住跳過、390（⚠ 一律 --workers 1）
+    "平台導覽1007":        lambda pg, b, base, code: t_tour_1007(pg, b, base),
 
     # ★ 2026-09-24 設計系統 v2 第 5 批（docs/design_system_v2.md §3.2／§3.3）：
     #   輪動時鐘（三圈底色、焦點族群、漸強軌跡＋箭頭、換段色環、手機編號模式）與兩張資金去向（鏈色線條、直條節點、字的層次、點不壓字）。

@@ -5789,6 +5789,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <!-- ★ 2026-10-02 版面 v2 結構（DECISIONS #291）：頁首、本頁功能跳轉列、導覽收合、手機頂欄頁名。
      只讀畫面、只加導覽節點，不碰路由與資料；放最後：要等 theme4.js 插好「外觀」鈕、account.js 掛好帳號列。 -->
 <script src="layout4.js"></script>
+<!-- ★ 2026-10-07 逐步導覽（spotlight tour，window.TwTour）：要在 layout4.js 之後 —— 「導覽」鈕掛在它畫的頁首頁名旁邊 -->
+<script src="tour.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
   <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>
     <button class="btn small" id="zoomClose">關閉 ✕</button></div>
