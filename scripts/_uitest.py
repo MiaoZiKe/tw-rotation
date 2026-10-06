@@ -43858,6 +43858,9 @@ def t_mobile_tap_audit(b, base, code):
                bool(ev) and ev["open"] and ev["links"] > 0 and ev["sw"] <= ev["cw"] + 2 and ev["outside"] == 0, ev)
             # (3) 普查白名單裡的「重設縮放」：先把 K 線縮到最後 10 根，再用觸控按它 → 可見範圍真的變回來
             m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(2600)
+            # ★ 2026-10-06 改前→改後（驗收過時）：個股頁預設週期是「分時」（09-28 #310），分時沒有 K 棒、也沒有「重設縮放」（window.KChart.last 是空的），
+            #   改前量到 z／fit 都是 None。「重設縮放」屬於日 K，所以先按「日」再縮放。
+            m.evaluate("() => { const b = document.querySelector('#tfSeg button[data-tf=\"1d\"]'); if (b) b.click(); }"); m.wait_for_timeout(1800)
             z = m.evaluate("""() => { const k = window.KChart && window.KChart.last; if (!k || !k.chart) return null;
                 const ts = k.chart.timeScale(), r = ts.getVisibleLogicalRange(); if (!r) return null;
                 ts.setVisibleLogicalRange({ from: r.to - 10, to: r.to });
@@ -45964,9 +45967,16 @@ def t_sub_1005(b, base, code):
     pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
     ok(f"{T}：#admin/feedback 列出反饋與訂閱申請", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1 && document.querySelectorAll('#rqTable tbody tr').length === 1", 8000)))
     pg.click("#fbTable button[data-kind='feedback']")
-    wait_until(pg, "() => true", 300)
+    # ★ 2026-10-06 改前→改後（驗收不穩）：改前固定睡 300＋500ms 就去讀 `sent`；按鈕 onclick 是 async（先 disabled、再 await call），
+    #   容器負載高時請求晚於 800ms 才送出 → 讀到空陣列假紅（網站本身沒壞：support.js 的 handled 呼叫沒變）。
+    #   改成輪詢最多 6 秒等那一筆出現，斷言本身不變。
+    def _handled():
+        return any(x[0] == "/v1/admin/feedback/set" and x[1].get("id") == "f1" and x[1].get("status") == "handled" for x in sent)
+    t_end = time.time() + 6
+    while not _handled() and time.time() < t_end:
+        pg.wait_for_timeout(150)
     sets = [x[1] for x in sent if x[0] == "/v1/admin/feedback/set"]
-    ok(f"{T}：「標為已處理」→ 送 feedback/set（handled）", bool(wait_until(pg, "() => true", 500)) and any(s.get("id") == "f1" and s.get("status") == "handled" for s in [x[1] for x in sent if x[0] == "/v1/admin/feedback/set"]), sets)
+    ok(f"{T}：「標為已處理」→ 送 feedback/set（handled）", _handled(), sets)
     c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
@@ -47818,6 +47828,9 @@ def t_design_v4_2b(b, base, code):
         pg.wait_for_timeout(1300)
 
     # ---- ⑦ K 線副圖標籤
+    # ★ 2026-10-06 改前→改後（驗收過時）：個股頁預設週期是「分時」（09-28 #310）—— 分時是走勢線、沒有指標副圖，量不到副圖；
+    #   副圖標籤屬於日 K 以上，所以先真的按「日」再量（同「收尾0925-還原小標」）。
+    click(pg, '#tfSeg button[data-tf="1d"]', 1500)
     k = pg.evaluate(V4_2B_K)
     if ok("⑦ 讀得到 K 線（有副圖）", bool(k) and len(k["panes"]) >= 1, k):
         bad = [p for p in k["panes"] if p["lblBot"] is None or p["dataTop"] is None or p["lblBot"] > p["dataTop"] + 1]
