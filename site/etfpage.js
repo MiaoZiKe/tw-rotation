@@ -237,6 +237,11 @@
   #v-etf .cust input{width:100%;box-sizing:border-box}
   #v-etf .rettw{max-width:100%;-webkit-overflow-scrolling:touch}   /* 報酬比較表（820px 寬）本來就包在 .rettw（overflow-x:auto）裡，這裡只保證容器不比畫面寬 */
   #v-etf .card,#v-etf .etfbody{min-width:0;max-width:100%}
+  /* 合併 main 後月曆（≤1100 是 1fr，吃內容最小寬）又把頁撐到 507px：改 minmax(0,1fr)，月曆標題列的狀態字可省略 */
+  #v-etf .calwrap{grid-template-columns:minmax(0,1fr)}
+  #v-etf .calwrap>*{min-width:0}
+  #v-etf .calhd{min-width:0}
+  #v-etf .calhd .note1{min-width:0}
 }
 `;
     document.head.appendChild(s);

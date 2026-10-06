@@ -11567,11 +11567,11 @@ def t_freshness(b, base):
         ("上市沒到齊卡在前一天", {**BASE, "data_date": "2026-09-10", "price_latest": "2026-09-11",
                        "price_ahead_of_payload": True, "generated_at": ago(20), "last_run_at": ago(21),
                        "last_run_empty": ["twse.dividend", "macro.fred"]},
-         "warn", ["沒到齊", "部分資料這一輪沒有更新（2 項）"]),
+         "warn", ["未到齊", "部分資料這一輪沒有更新（2 項）"]),
         ("排程掛了", {**BASE, "data_date": "2026-09-01", "price_latest": "2026-09-01",
                   "price_ahead_of_payload": False, "generated_at": ago(24 * 13), "last_run_at": ago(24 * 13),
                   "last_run_errors": ["twse.price_daily: HTTPError 500"]},
-         "bad", ["自動更新可能中斷了", "部分資料更新失敗（1 項）"]),
+         "bad", ["天未更新", "部分資料更新失敗（1 項）"]),
     ]
     # ★ 2026-10-06（既有紅字清理）改前→改後：關鍵字「所有來源正常／沒回資料的來源 macro.fred／排程可能掛了／來源出錯」
     #   →「所有資料都已更新／部分資料這一輪沒有更新（N 項）／自動更新可能中斷了／部分資料更新失敗（N 項）」。
