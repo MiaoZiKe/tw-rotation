@@ -23172,7 +23172,61 @@ def location_ok(pg, h):
     return pg.evaluate("() => location.hash") == h
 
 
+# ===================================================================== 頁首圖示鈕（2026-10-06）
+# Andy：「間隔太大，圖示需要置中方框中」。通知鈴／☀／調色盤：相鄰間距相等（差 ≤ 1px）且 ≤ 8px、方框正方形、圖示中心與方框中心差 ≤ 0.5px。
+# 本機沒開會員時 notices.js 不畫鈴鐺，這裡照 notices.js 的標記補一顆（同 class／id／svg），驗的是排版不是通知功能。
+TI_JS = """() => {
+  const tools = document.getElementById('l4Tools');
+  let bell = document.getElementById('ntBell');
+  if (!bell) {
+    bell = document.createElement('button'); bell.id = 'ntBell'; bell.className = 'ntbell'; bell.type = 'button';
+    bell.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot" hidden></span>';
+    const host = (tools && tools.getClientRects().length) ? tools.parentNode : document.querySelector('.acctbar');
+    if (host) host.insertBefore(bell, (tools && tools.getClientRects().length) ? tools : host.firstChild);
+  }
+  const out = [];
+  for (const id of ['ntBell', 'themeBtn', 't4Btn']) {
+    const el = document.getElementById(id);
+    if (!el || !el.getClientRects().length) continue;
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    let ic = null;
+    const svg = el.querySelector('svg');
+    if (svg) ic = svg.getBoundingClientRect();
+    else if (id === 'themeBtn') { const t = [...el.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if (t) { const g = document.createRange(); g.selectNodeContents(t); ic = g.getBoundingClientRect(); } }
+    else { const b = getComputedStyle(el, '::before'); ic = {left: r.left + (r.width - parseFloat(b.width)) / 2, top: r.top + (r.height - parseFloat(b.height)) / 2, width: parseFloat(b.width), height: parseFloat(b.height), pseudo: true,
+                  grid: cs.display === 'grid' || cs.display === 'inline-grid', pi: cs.placeItems}; }
+    out.push({id, l: r.left, r: r.right, t: r.top, w: r.width, h: r.height,
+      dx: ic ? (ic.left + ic.width / 2) - (r.left + r.width / 2) : null, dy: ic ? (ic.top + ic.height / 2) - (r.top + r.height / 2) : null,
+      iw: ic ? ic.width : null, ih: ic ? ic.height : null, grid: ic && ic.pseudo ? (ic.grid && ic.pi.indexOf('center') >= 0) : true});
+  }
+  out.sort((a, b) => a.l - b.l);
+  return out;
+}"""
+
+
+def t_topicons_1006(pg, base):
+    for theme in ("dark", "light"):
+        for w in (1440, 800):
+            pg.set_viewport_size({"width": w, "height": 900})
+            pg.goto(base + "#overview")
+            pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+            pg.reload(); pg.wait_for_timeout(2500)
+            rows = pg.evaluate(TI_JS)
+            T = f"[頁首圖示鈕] {theme} {w}px"
+            ok(f"{T} 量到鈴／☀／調色盤（≥1000px 至少 2 顆；≤820 只剩鈴）", len(rows) >= (2 if w >= 1000 else 1), [r["id"] for r in rows])
+            gaps = [round(rows[i + 1]["l"] - rows[i]["r"], 2) for i in range(len(rows) - 1)]
+            ok(f"{T} 相鄰間距一致（差 ≤ 1px）且 ≤ 8px", (not gaps or max(gaps) - min(gaps) <= 1 and max(gaps) <= 8), gaps)
+            ok(f"{T} 方框是正方形且尺寸一致", all(abs(r["w"] - r["h"]) < .6 for r in rows) and max(r["w"] for r in rows) - min(r["w"] for r in rows) < .6,
+               [(r["id"], round(r["w"], 1), round(r["h"], 1)) for r in rows])
+            ok(f"{T} 圖示中心與方框中心差 ≤ 0.5px", all(r["grid"] and abs(r["dx"] or 0) <= .5 and abs(r["dy"] or 0) <= .5 for r in rows),
+               [(r["id"], None if r["dx"] is None else round(r["dx"], 2), None if r["dy"] is None else round(r["dy"], 2)) for r in rows])
+            ok(f"{T} 三顆頂端對齊（差 ≤ 0.5px）", max(r["t"] for r in rows) - min(r["t"] for r in rows) <= .5, [round(r["t"], 1) for r in rows])
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 900})   # 還原寬度：後面的段落（明亮主題等）預設在桌機寬度
+
+
 SECTIONS = {
+    "頁首圖示鈕1006":      lambda pg, b, base, code: t_topicons_1006(pg, base),
     # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
     "選股策略1005":        lambda pg, b, base, code: t_explore_1005(pg, base),
     "無獨立提示框":        lambda pg, b, base, code: t_nobox_1006(pg, base),
