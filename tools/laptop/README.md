@@ -87,6 +87,35 @@ powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\tw-ops\test-notify.p
 
 ---
 
+## 第 7 步：設定 BACKUP_TOKEN，讓每日備份把會員資料一起備份（5 分鐘）
+
+會員帳號、方案、到期日、統計存在 Cloudflare，GitHub 上沒有副本。設好這一步，每天 22:00 備份完 repo 之後，
+會再用一組「備份專用權杖」叫會員 Worker 的 `/v1/admin/export`，存成 `<備份根目錄>\members\members-YYYYMMDD.json`，
+驗過簽章才留下，保留 14 天（跟 repo 快照一樣）。簽章驗不過或抓不到會寄通知，repo 備份照樣完成。
+
+1. **產生一個隨機字串**（筆電 PowerShell，貼上執行；會印出 64 個英數字）：
+   ```powershell
+   -join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Minimum 0 -Maximum 256) })
+   ```
+   先複製起來，**不要存成檔案、不要貼到聊天室或任何文件**。
+2. **加到 GitHub Secrets**：repo 的 Settings → Secrets and variables → Actions → New repository secret，
+   名稱 `BACKUP_TOKEN`，值貼上第 1 步的字串。
+3. **讓 Worker 收到它**：Actions → 「部署 Worker（會員登入與使用統計）」→ Run workflow 跑一次
+   （之後每次改到 `workers/account-api/` 也會自動帶上）。跑完的摘要不會再出現「沒設 BACKUP_TOKEN」。
+4. **存進筆電**（同一個字串）：
+   ```powershell
+   cmdkey /generic:tw-ops-backup /user:backup /pass
+   ```
+   它會問密碼，貼上第 1 步的字串，按 Enter。只存在 Windows 憑證管理員（Windows 認證 → `tw-ops-backup`）。
+5. 驗證：PowerShell 跑 `& "$env:LOCALAPPDATA\tw-ops\backup.ps1"`，看 `D:\tw-backup\members\` 有沒有今天的 `members-YYYYMMDD.json`，
+   紀錄檔最後一行寫「簽章驗過」。
+
+> ⚠ **個資**：`members-*.json` 含每位會員的 email、名稱、自選清單、方案與使用紀錄。
+> - 備份資料夾（`D:\tw-backup`）**不要分享給任何人**，不要放進 repo、不要寄出去。
+> - 用 Google Drive 桌面版同步時，雲端上的 `tw-backup` 資料夾要維持**私人**（共用設定裡只有你自己、不要開「知道連結的人」）。
+> - 權杖外洩（例如貼錯地方）：重新產生一個，同時換掉 GitHub Secret 與筆電的 `tw-ops-backup`，再跑一次部署。
+>   舊權杖在部署後立刻失效。注意：換權杖之前的備份檔是用舊權杖簽的，要匯入它就得把 Worker 暫時設回舊權杖，所以換完先手動跑一次備份。
+
 ## 移除
 
 ```powershell
@@ -140,16 +169,24 @@ powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\tw-ops\uninstall.ps1
 5. Actions 跑一次 `pages.yml`，網站就回來了；資料湖（`data/`）在 git 裡，會一起回來。
 
 **情況 2：Cloudflare 的會員資料不見了**
-- 目前**還原不了**：Worker 沒有匯出 API，備份裡沒有會員資料（規格見 `docs/admin_export_spec.md`，等實作）。
-- 實作之後：重新部署 Worker（`workers/README.md`）→ 用 `/v1/admin/import` 匯入最近一份 `members-YYYYMMDD.json`（只准匯入到空的資料庫）。
-- 在那之前：會員重新用 Google 登入會重建帳號，自選清單若瀏覽器裡還有會再同步上去；方案與到期日要人工補。
+- 前提：第 7 步設好了，`D:\tw-backup\members\` 有檔案。
+1. 重新部署 Worker（`workers/README.md`），GitHub Secret 的 `BACKUP_TOKEN` 要跟產生那份備份時**同一個**（簽章才驗得過）。
+2. **在任何人登入之前**匯入（只准匯入「沒有任何會員」的資料庫；有人先登入就會被拒絕，避免蓋掉現有資料）：
+   ```powershell
+   $tok = Read-Host '貼上 BACKUP_TOKEN'
+   Invoke-WebRequest -UseBasicParsing -Method Post -Headers @{ Authorization = "Bearer $tok" } `
+     -Uri 'https://tw-account.kcq01010909.workers.dev/v1/admin/import?confirm=RESTORE-INTO-EMPTY-DB' `
+     -InFile 'D:\tw-backup\members\members-YYYYMMDD.json' -ContentType 'application/json'
+   ```
+   回 `{"ok":true,...}` 就完成。所有人要重新登入一次（登入權杖的簽章金鑰刻意不備份）。
+- 沒有備份檔時：會員重新用 Google 登入會重建帳號，自選清單若瀏覽器裡還有會再同步上去；方案與到期日要人工補。
 
 **演練**：每個月做一次情況 1 的第 1～2 步（clone 到別的資料夾看檔案在不在，不推），確認備份真的能用。
 
 ## 已知限制與缺口
 
-1. **會員資料沒有備份。** 會員帳號、自選清單、權限設定存在 Cloudflare 的 Durable Object 裡，會員 Worker 目前**沒有「管理者匯出」API**。
-   這次刻意不為了備份去改 Worker（改 Worker 是會員系統的高風險改動），規格寫在 `docs/admin_export_spec.md`，等另外派人實作。
+1. **會員資料要設好第 7 步才會備份。** 沒設 `BACKUP_TOKEN` 時，紀錄檔每天寫一行「略過」，不會通知。
+   備份檔裡**沒有**：登入中的狀態、線上名單、登入權杖的簽章金鑰（還原後所有人要重新登入一次）。
 2. **筆電要開著、而且有人登入**，排程才會跑（為了不需要系統管理員權限，用的是「只有使用者登入時才執行」）。闔上螢幕進入睡眠就不會檢查；醒來後會補跑一次。
 3. **國定假日會誤報一次**「每日資料管線」：週末有放寬到 74 小時，但連假（例如春節）沒有交易日資料，會被當成太久沒更新。看到時確認是不是放假即可。
 4. 監控從筆電看出去，**筆電自己的網路斷了也會報「首頁打不開」**。連續好幾項同時失敗時，先看筆電有沒有網路。

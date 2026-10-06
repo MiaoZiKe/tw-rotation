@@ -1,6 +1,7 @@
-# 會員資料匯出 API 規格：`/v1/admin/export`（待實作，2026-10-06）
+# 會員資料匯出 API 規格：`/v1/admin/export`（2026-10-06 已實作）
 
-> 狀態：**只有規格，Worker 還沒改**。筆電備份（`tools/laptop/backup.ps1`）目前備不到會員資料，就卡在這一支。
+> 狀態：**已實作**（worker.js 檔尾「會員資料匯出／還原區塊」、tests/export.test.mjs）。實作與下文差異：權杖名改為 `BACKUP_TOKEN`（筆電憑證 `tw-ops-backup`）；
+> `EXPORT_SIGN_KEY` 沒設時用 `BACKUP_TOKEN` 簽；import 的確認參數是 `?confirm=RESTORE-INTO-EMPTY-DB`；kv 也排除 `hmac`。設定步驟見 `tools/laptop/README.md` 第 7 步。
 
 ## 為什麼要有
 

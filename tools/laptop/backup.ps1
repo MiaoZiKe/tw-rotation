@@ -6,7 +6,10 @@
 #      → 即使 GitHub 上的歷史被覆寫或刪掉，筆電這份 14 天內的任何一天都還原得回來。
 #      快照共用同一份物件，所以 14 份快照不會佔 14 倍空間。
 #   4. 超過 14 天的快照刪掉，再 git gc 回收空間。
-#   5. 會員資料：會員 Worker 目前沒有「管理者匯出」API，這一步只記一行待辦（見 README「缺口」），不去改 Worker。
+#   5. 會員資料：用憑證管理員裡的 tw-ops-backup（＝BACKUP_TOKEN）叫會員 Worker 的 /v1/admin/export，
+#      存成 <備份根目錄>\members\members-YYYYMMDD.json，驗 sha256＋HMAC 簽章，保留 14 天。
+#      這一步失敗（沒設權杖、Worker 連不上、簽章不對）會通知，但不讓 repo 備份算失敗。
+#      ⚠ 這個檔案含會員 email：備份資料夾不要分享；Google Drive 同步的資料夾要維持「私人」。
 . (Join-Path $PSScriptRoot 'common.ps1')
 $cfg = Get-OpsConfig
 $root = $cfg.backup_root
@@ -23,6 +26,37 @@ function Invoke-Git {
     $out = & git @GitArgs 2>&1 | ForEach-Object { [string]$_ }
     if ($LASTEXITCODE -ne 0) { throw ('git ' + ($GitArgs -join ' ') + ' 失敗：' + ($out | Out-String)) }
     return $out
+}
+
+# ---------------------------------------------------------------- 會員資料（/v1/admin/export）
+function Backup-Members($cfg, [string]$root, [int]$keepDays) {
+    $r = [TwCred]::Read('tw-ops-backup')
+    if ($null -eq $r -or -not $r[1]) { Write-OpsLog '備份：憑證管理員裡沒有 tw-ops-backup（BACKUP_TOKEN），會員資料略過 —— 待辦，見 README 第 7 步'; return }
+    $tok = $r[1].Trim()
+    $api = 'https://tw-account.kcq01010909.workers.dev'
+    if ($cfg.account_api) { $api = [string]$cfg.account_api }
+    $dir = Join-Path $root 'members'
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    $name = 'members-' + (Get-Date).ToString('yyyyMMdd') + '.json'
+    $tmp = Join-Path $dir ($name + '.part')
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -UseBasicParsing -Method Post -Uri ($api.TrimEnd('/') + '/v1/admin/export') -Headers @{ Authorization = ('Bearer ' + $tok) } -OutFile $tmp -TimeoutSec 120
+    # 驗簽：被簽的內容＝原文到 ,"sha256":" 之前再補一個 }（不重新序列化 JSON，位元組才對得上）
+    $raw = [IO.File]::ReadAllText($tmp, (New-Object Text.UTF8Encoding($false)))
+    $i = $raw.LastIndexOf(',"sha256":"')
+    if ($i -lt 0) { Remove-Item $tmp -Force; throw '會員匯出檔格式不對（找不到 sha256）' }
+    $m = [regex]::Match($raw.Substring($i), '^,"sha256":"([0-9a-f]{64})","sig":"([0-9a-f]*)"\}\s*$')
+    if (-not $m.Success) { Remove-Item $tmp -Force; throw '會員匯出檔格式不對（sha256／sig 欄位）' }
+    $bytes = [Text.Encoding]::UTF8.GetBytes($raw.Substring(0, $i) + '}')
+    $sha = -join ([Security.Cryptography.SHA256]::Create().ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') })
+    $h = New-Object Security.Cryptography.HMACSHA256 (,[Text.Encoding]::UTF8.GetBytes($tok))
+    $sig = -join ($h.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') })
+    if ($sha -ne $m.Groups[1].Value -or $sig -ne $m.Groups[2].Value) { Remove-Item $tmp -Force; throw '會員匯出檔簽章驗不過（檔案被改過，或 Worker 的 BACKUP_TOKEN 跟筆電存的不一樣）' }
+    Move-Item -Force $tmp (Join-Path $dir $name)
+    $cut = (Get-Date).AddDays(-$keepDays).ToString('yyyyMMdd')
+    Get-ChildItem $dir -Filter 'members-*.json' | Where-Object { $_.BaseName.Substring(8) -lt $cut } | Remove-Item -Force
+    $kb = [math]::Round((Get-Item (Join-Path $dir $name)).Length / 1KB, 0)
+    Write-OpsLog ('備份：會員資料 ' + $name + '（' + $kb + ' KB，簽章驗過）')
 }
 
 $ErrorActionPreference = 'Stop'
@@ -63,7 +97,11 @@ try {
     $min = [math]::Round(((Get-Date) - $started).TotalMinutes, 1)
     $msg = ('備份完成：main=' + $head + '，快照 ' + $days + ' 天，佔 ' + $sizeMB + ' MB，耗時 ' + $min + ' 分鐘')
     Write-OpsLog $msg
-    Write-OpsLog '備份：會員資料（Durable Object）沒有匯出 API，本次未備份 —— 待辦，見 README 缺口'
+    try { Backup-Members $cfg $root $keepDays } catch {
+        $em = $_.Exception.Message
+        Write-OpsLog ('備份：會員資料失敗：' + $em)
+        Send-OpsNotice '會員資料備份失敗' ('會員資料備份失敗（repo 備份照常完成）：' + $em + "`r`n" + '紀錄檔：' + $script:LogPath) | Out-Null
+    }
     $state = Get-OpsState
     $state | Add-Member -NotePropertyName last_backup -NotePropertyValue (@{ at = (Get-Date).ToString('o'); ok = $true; msg = $msg }) -Force
     if ($state.backup_alerted) { Send-OpsNotice '備份已恢復' $msg | Out-Null }

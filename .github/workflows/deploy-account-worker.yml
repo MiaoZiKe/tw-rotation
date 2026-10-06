@@ -10,6 +10,8 @@ name: 部署 Worker（會員登入與使用統計）
 #   CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID  —— 報價代理已經在用，沿用
 #   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET       —— Google Cloud 的 OAuth 用戶端（docs/login_setup.md 第 2 步）
 #   ACCOUNT_ADMIN_EMAILS                          —— 管理者 email（逗號分隔），只有這些人看得到 #admin
+#   BACKUP_TOKEN（選用）                           —— 筆電每日備份叫 /v1/admin/export 用的備份權杖（tools/laptop/README.md 第 7 步）
+#                                                    沒設就跳過、在摘要列成待辦，部署照樣綠燈
 # 這三個會用 `wrangler secret put` 寫進 Worker，**不會**出現在 repo、log 或網站上。
 
 on:
@@ -37,6 +39,8 @@ jobs:
           node-version: '22'
       - name: 存取控制測試（19 條）
         run: node --test workers/account-api/tests/account.test.mjs
+      - name: 會員資料匯出／還原測試
+        run: node --test workers/account-api/tests/export.test.mjs
 
       - id: guard
         name: 檢查金鑰
@@ -46,7 +50,21 @@ jobs:
           G_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           G_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           ADMINS: ${{ secrets.ACCOUNT_ADMIN_EMAILS }}
+          B_TOK: ${{ secrets.BACKUP_TOKEN }}
         run: |
+          # BACKUP_TOKEN 是選用：沒設（或太短）就不寫進 Worker，列成待辦，不擋部署
+          if [ ${#B_TOK} -ge 16 ]; then
+            echo "backup=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backup=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::沒設 BACKUP_TOKEN（或少於 16 字）：跳過，筆電每日備份暫時備不到會員資料"
+            {
+              echo "### 待辦：BACKUP_TOKEN 還沒設"
+              echo ""
+              echo "已跳過（部署照常）。設定步驟見 tools/laptop/README.md 第 7 步：產生隨機字串 → 存成 repo Secret **BACKUP_TOKEN** → 同一個字串存進筆電憑證管理員 tw-ops-backup → 重跑這個工作流。"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
           miss=""
           [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
           [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
@@ -84,6 +102,20 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           # 沒設時給一個不是 email 的值：空字串的 Secret 會讓 wrangler 失敗；'none' 比對不到任何人＝沒有管理者
           ADMIN_EMAILS: ${{ secrets.ACCOUNT_ADMIN_EMAILS || 'none' }}
+
+      # 備份權杖另外一步寫進 Worker：上一步的 secrets 清單是固定的，空值會讓 wrangler 失敗，所以有設才跑這步
+      - name: 寫入 BACKUP_TOKEN（有設才跑）
+        if: steps.guard.outputs.ok == 'true' && steps.guard.outputs.backup == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/account-api
+          command: whoami
+          secrets: |
+            BACKUP_TOKEN
+        env:
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
 
       - name: 驗證真的活著
         if: steps.guard.outputs.ok == 'true'

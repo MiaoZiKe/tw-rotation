@@ -13,6 +13,18 @@
 - `pages.yml` 多一步部署同一份 site/ 到 `https://tw-rotation.pages.dev/`（失敗不擋 GitHub Pages）；兩支 Worker 的 CORS 白名單加上該網域。
 - **待 Andy 自己按**：① Cloudflare token 要有 Account → Cloudflare Pages → Edit（My Profile → API Tokens → 編輯該 token）② Google Cloud Console → APIs & Services → Credentials → OAuth 用戶端 → 「已授權的 JavaScript 來源」加 `https://tw-rotation.pages.dev`、重新導向 URI 依 `docs/login_setup.md` ③ 正式商用前評估 Cloudflare 付費方案與用量通知（Notifications → 新增 Pages／Workers 用量警示）。
 - 切換條件見 DECISIONS #339。
+## 2026-10-06 會員資料匯出／還原＋筆電每日備份接上（security-privacy，分支 `claude/member-export` → main）
+- **Worker**（`workers/account-api/worker.js` 檔尾新區塊，prototype 包裝，既有函式一行不動）：
+  - `POST /v1/admin/export`：管理者權杖（Origin＋body.t）或 `Authorization: Bearer <BACKUP_TOKEN>`（不檢查 Origin）。唯讀，只多記 `usage(admin_export)` 稽核。
+    匯出 15 張表；**排除** `logins`、`presence`、kv 的 `hmac` 與名稱像金鑰的鍵。回應附 `sha256` 與 `sig`＝HMAC-SHA256(`EXPORT_SIGN_KEY` 或 `BACKUP_TOKEN`)。
+    被簽內容＝原文到 `,"sha256":"` 之前補 `}`（筆電端不重新序列化 JSON 就能驗）。同一身分每小時 6 次。
+  - `POST /v1/admin/import?confirm=RESTORE-INTO-EMPTY-DB`：只收簽章驗得過的原文、`users` 必須 0 筆，整批交易（DO 用 `transactionSync`）。
+  - 與規格差異：規格寫 `EXPORT_TOKEN`／憑證名 `tw-ops-export`，依 CEO 指示改名 `BACKUP_TOKEN`／`tw-ops-backup`；簽章金鑰預設沿用 `BACKUP_TOKEN`（`EXPORT_SIGN_KEY` 可選），少一個 Secret。
+- **測試**：新增 `tests/export.test.mjs`（6 條：非管理者擋、備份權杖可用、簽章、往返逐表相同、非空拒絕＋確認參數、限流）；全部 72 條綠。
+- **筆電**：`tools/laptop/backup.ps1` 備份完 repo 後抓 `members\members-YYYYMMDD.json`、驗簽、留 14 天；失敗只通知不讓 repo 備份變紅。README 第 7 步＋還原步驟＋個資警語。
+- **工作流**：`deploy-account-worker.yml` 有 `BACKUP_TOKEN` 才多一步寫入 Worker Secret；沒設就 `::notice::`＋摘要列待辦，不紅燈。
+- **待 Andy**：產生隨機字串 → GitHub Secret `BACKUP_TOKEN` → 重跑部署 → 筆電 `cmdkey /generic:tw-ops-backup`（README 第 7 步）。
+- 這批只驗了：`node --test workers/account-api/tests/*.mjs`、pytest（改到 `.github`）；PowerShell 腳本**沒有在 Windows 實跑**（容器沒有 PowerShell），驗簽演算法以 Node 測試同口徑驗過。
 
 ## 2026-10-06 文字重疊：大戶散戶卡＋全站普查（UI 專家，分支 `claude/overlap` → main，b195e180）
 Andy 16:25 截圖：個股 → 大戶／散戶 → 4 週，第一點「5.89%」壓在副圖標題上。

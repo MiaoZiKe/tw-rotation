@@ -8,6 +8,7 @@ foreach ($t in @('tw-ops 監控', 'tw-ops 每日備份')) {
 }
 if ($Purge) {
     cmdkey /delete:tw-ops-gmail 2>$null | Out-Null
+    cmdkey /delete:tw-ops-backup 2>$null | Out-Null
     $ops = Join-Path $env:LOCALAPPDATA 'tw-ops'
     if (Test-Path $ops) { Remove-Item -Recurse -Force $ops; Write-Host ('已刪除：' + $ops) }
 }
