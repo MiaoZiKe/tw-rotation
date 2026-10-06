@@ -1308,7 +1308,6 @@
       ${card({ seg: 'abf_pcb', no: 11, side: 'r', ax: SX + SW - 6, ay: 248, color: C.gold, title: '主機板 高階 PCB ／ ABF 載板', sub: '高層數主機板、連接器插槽、模組載板' })}
       ${card({ seg: 'ccl', no: 12, side: 'r', ax: SX + SW - 6, ay: 306, color: 'var(--dg-weave)', title: 'CCL 銅箔基板', sub: '低損耗板材，PCB 的原料；織紋那一層就是玻纖布' })}
       ${card({ seg: 'hyperscaler', no: 13, side: 'r', ax: SX + 272, ay: 424, color: C.sig, title: '雲端業者（終端需求）', sub: '超大規模雲端業者、主權 AI、Neocloud —— 整櫃整櫃地買' })}
-      ${card({ seg: 'assembly', warn: true, note: true, order: 99, side: 'l', title: '點零件篩到的是「供應鏈環節」，不是整個族群', sub: '同一個環節可能同時收了好幾個族群的公司；族群與環節的落差在關聯圖上看得比較清楚。' })}
 
       <!-- ===================== ④ 從晶片到交付 ===================== -->
       <text class="hd" x="${RX}" y="512">④ 從晶片到交付</text>
@@ -1769,6 +1768,10 @@
     level(id) { return SLOTS[id] ? SLOTS[id].level : null; },
     // 這張圖回答哪一個問題（圖別選單與標題都讀它）
     q(id) { return SLOTS[id] ? (SLOTS[id].q || '') : ''; },
+    /* ★ 2026-10-06（style_guide 第 10／11 條）：圖裡的「點零件篩到的是環節」警示卡與「這張圖沒有回答的事」框拿掉，
+       那一句誠實標示收進「?」。這裡給的是「這一張圖」特有的那一句（例如某一格只收錄一家），沒有就回空字串；
+       通用那句「環節不等於族群」由 industry.js 的 paintDgTitle 一律補上。*/
+    honest(id) { return SLOTS[id] ? (SLOTS[id].honest || '') : ''; },
     /* 這條鏈拿哪一張圖當「代表圖」（跨鏈面板 E6 的縮圖用）。
        ★ 2026-09-22：以前這裡直接等於「鏈層級的架構圖」。半導體鏈那張退場之後
        （DECISIONS #234），如果還是綁在鏈層級，跨鏈面板就只剩一張縮圖 ——
