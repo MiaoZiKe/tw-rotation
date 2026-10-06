@@ -99,6 +99,15 @@ def test_build_殖利率與行事曆():
                      pd.DataFrame(), "2026-10-02")
     assert out2["items"][0]["yield_ttm"] is None
     assert math.isclose(out2["items"][0]["stats"]["Y2025"]["price_ann"], 0.0, abs_tol=1e-9)
+    # 2026-10-06：「確定不配息」要有證據 —— 沒問過（no_data 鍵不存在）的 div_none 是 False（不知道≠0）
+    assert out2["items"][0]["div_none"] is False
+    out3 = etf.build(price, {"0056": "元大高股息"}, {"0056"}, pd.DataFrame(), pd.DataFrame(),
+                     pd.DataFrame(), "2026-10-02", nodata_keys={"etfdiv@etfx2009:0056"})
+    assert out3["items"][0]["div_none"] is True, "上游明確回空、湖裡 0 列 → 確定不配息"
+    # 湖裡有配息列時，就算進度檔寫 no_data（舊鍵）也不算不配息
+    out4 = etf.build(price, {"0056": "元大高股息"}, {"0056"}, ev, pd.DataFrame(), pd.DataFrame(),
+                     "2026-10-02", nodata_keys={"etfdiv@etfx2009:0056"})
+    assert out4["items"][0]["div_none"] is False
 
 
 def test_填息天數_手算():

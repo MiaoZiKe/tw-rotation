@@ -108,7 +108,7 @@
 .daychip button{width:22px;height:22px;border-radius:50%;border:0;background:transparent;color:var(--ink-2);font-size:16px;line-height:20px;cursor:pointer;flex:none;padding:0}
 .daychip button:hover{background:var(--panel-3);color:var(--ink)}
 #admBody .days .dc.fut{background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--line) 55%,transparent) 4px 5px);opacity:.7}
-#admBody .days.many{gap:1px}#admBody .days.many .dc{min-width:1px}
+#admBody .days.coarse{gap:6px}#admBody .days.coarse .dc{max-width:44px}#admBody .days.many{gap:1px}#admBody .days.many .dc{min-width:1px}
 #admBody .days.hrs:not(.few){margin-bottom:20px}#admBody .days.hrs .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
 #admBody .days.hrs .dc{max-width:20px}#admBody .days.hrs.few .dc{max-width:64px}
 #v-admin .trtabs .nbsw>button.dragging{opacity:.4}#v-admin .trtabs .nbsw>button.dropL{box-shadow:inset 3px 0 0 var(--cyan)}#v-admin .trtabs .nbsw>button.dropR{box-shadow:inset -3px 0 0 var(--cyan)}
@@ -171,11 +171,8 @@
 #trDetail .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap}
 #trDetail .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
 #trDetail .bars button.bl.on{color:var(--accent,var(--cyan));text-decoration:none;font-weight:700}
-/* 管理區 1005：開放功能表的分類卡改成「欄流」排版（CSS columns）—— 每欄由上往下接著排、高度各依內容，不再因為同列拉齊而在短卡下方留一大片空白；字級照其他分頁（卡標 16/600、列名 14） */
-#v-admin .pmcats.pmcards{display:block;column-gap:12px;margin-top:10px}
-#v-admin .pmcats.pmcards>.pmcat.brk{break-before:column}
-#v-admin .pmcats.pmcards>.pmcat{break-inside:avoid;-webkit-column-break-inside:avoid}
-#v-admin .pmcats.pmcards>.pmcat.card{break-inside:avoid;margin:0 0 12px;display:block}
+/* 管理區 1006：功能開關版面照範本 126（四欄一般 grid、同列頂端對齊等高）；瀑布流已拿掉，樣式在檔尾「範本 126」那一段 */
+#v-admin .pmcats.pmcards{margin-top:10px}
 #v-admin .pmcards .pmcat.card .pmcathd h3{font-size:var(--fs-h3,16px);font-weight:600}
 #v-admin .pmcards .pmcat.card .pmcathd h3 small{font-size:12px}
 #v-admin .pmcats .pmrow .pmtx b{font-size:14px;font-weight:500}
@@ -544,6 +541,30 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 @media (max-width:1279px){#v-admin .pmcats.pmcards,#v-admin .pmcat .grpgrid>.grpbody{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:999px){#v-admin .pmcats.pmcards,#v-admin .pmcat .grpgrid>.grpbody{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:600px){#v-admin .pmcats.pmcards,#v-admin .pmcat .grpgrid>.grpbody{grid-template-columns:minmax(0,1fr)}}
+/* ===== 範本 126（1006，Andy 講第二次）：功能開關四欄一般 grid —— 同列卡片頂端對齊、等高（短卡下留白可接受）；
+   卡片＝白底細邊框＋3px 粗藍上框；開關實心深藍；卡標題＝小圖示＋粗體名＋「N 項・開 N」＋右上總開關；
+   每列＝主標粗體、副標灰字、右邊小「∞」；欄數 1440 四／1024 三／800 兩／390 一（上面 550 行起的 media）。
+   藍色用 --pm-blue（深色主題提亮），不動全站 --cyan。 */
+#v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
+:root:not([data-theme="light"]) #v-admin{--pm-blue:#3d7bff;--pm-blue-2:#2f6df0}
+html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
+#v-admin .pmcats.pmcards{display:grid;column-count:auto;align-items:stretch;gap:12px}
+#v-admin .pmcats.pmcards>.pmcat.card{display:flex;flex-direction:column;align-self:stretch;margin:0;padding:10px 12px 6px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--pm-blue);border-radius:6px;break-inside:auto}
+#v-admin .pmcats.pmcards .pmcathd{display:flex;align-items:center;gap:8px;min-height:36px;margin-bottom:6px}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 b{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmcats.pmcards .pmcat.card .pmcathd h3 small{flex:none;font-size:12px;font-weight:400;color:var(--ink-2)}
+#v-admin .pmcats.pmcards .pmcathd button.psw3{margin-left:auto}
+#v-admin .pmcats.pmcards .pmrow{border-top:0;border-bottom:1px solid var(--line);border-radius:0;padding-left:0;padding-right:0;height:52px}
+#v-admin .pmcats.pmcards .pmrow:last-child{border-bottom:0}
+#v-admin .pmcats.pmcards .pmrow .pmtx b{font-size:14px;font-weight:700}
+#v-admin .pmcats.pmcards .pmrow .pmtx small{font-size:12.5px;color:var(--ink-2)}
+#v-admin .pmcats.pmcards .pmlimb{font-size:12px;color:var(--ink-2);background:none;border:0}
+#v-admin .pmcats.pmcards .pmlimb.set{color:var(--pm-blue);font-weight:700}
+/* 開關：開＝實心深藍、圓鈕白；關＝灰底（列開關、總開關、族群觀測都一樣） */
+#v-admin #ptPermBox label.psw input:checked+span,#v-admin #ptPermBox button.psw3[aria-checked="true"]{background:var(--pm-blue);border-color:var(--pm-blue)}
+#v-admin #ptPermBox button.psw3[aria-checked="mixed"]{background:linear-gradient(90deg,var(--pm-blue) 50%,var(--panel-3) 50%);border-color:var(--pm-blue)}
+#v-admin #ptPermBox label.psw input:focus-visible+span,#v-admin #ptPermBox button.psw3:focus-visible{outline-color:var(--pm-blue)}
 /* ⑤ 會員名單上方的統計（與展開明細共用）：一排數字＋一排同高圖卡。統計一律「甜甜圈＋長條」；長條用 SVG 畫（每根有 <title>）。 */
 #v-admin .mstats{margin:2px 0 14px}
 #v-admin .mkpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -643,6 +664,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .ptmenu .pmwho2{list-style:none;margin:0 0 6px;padding:0 8px;font-size:13px}#v-admin .ptmenu .pmwho2 li{height:24px;white-space:nowrap}#v-admin .ptmenu .pmwho2 a,#v-admin .ptmenu .pmgo{color:var(--cyan)}#v-admin .ptmenu .pmgo{align-self:center;font-size:13px;margin-right:auto}#v-admin .ptmenu .more{color:var(--ink-2)}
 #v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
 #v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
+    /* 2026-10-06：會員名單上方的統計（#ptStats）照流量觀測的卡片／直條／橫條／甜甜圈做 → 流量觀測那一整套 #admBody 底下的規則，
+       用 :is(#admBody,#ptStats) 讓 #ptStats 也吃到（特異度不變），不複製、不改上面任何一條規則；#ptStats 專屬的版面規則在 MS_CSS。 */
+    s.textContent = s.textContent.replace(/#admBody(?![\w-])/g, ':is(#admBody,#ptStats)') + MS_CSS;
     document.head.appendChild(s);
   }
   const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? s + ' 秒前' : Math.round(s / 60) + ' 分前'; };
@@ -725,6 +749,23 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     const online = { total: 19, guests: 8, public_online: true, users: routes.concat(['flow', 'stock']).map((r, i) => ({ name: users[i].name, email: users[i].email, route: r, seen: NOW - (6 + i * 13) * 1000 })) };
     const mstats = { days: Array.from({ length: 14 }, (_, i) => ({ day: dayKey(NDAY - 14 + i), n: Math.round(120 + rnd() * 90) })), active7: 297,
       feats: [['tab.revenue', 2412], ['quad', 1698], ['kp.60m', 1251], ['filter_group', 1207], ['tab.inst', 988], ['play', 843], ['search', 721], ['zoom', 596]], stocks: STK.slice(0, 8).map(([c, n]) => [c, Math.round(n * 0.6)]) };
+    /* 會員名單統計（預覽版）：依 from／to／bin 產生，形狀同 Worker 的 /v1/admin/members/stats（週＝週一起算、月＝每月 1 日；活躍人數是「不同人數」，所以週／月不是每天相加） */
+    const mstatsFor = (b) => {
+      const to = b.to || END, from = b.from || new Date(Date.parse(to + 'T00:00:00Z') - 29 * 86400000).toISOString().slice(0, 10), bin = ['day', 'week', 'month'].includes(b.bin) ? b.bin : 'day';
+      const binOf = (d) => { if (bin === 'month') return d.slice(0, 7) + '-01'; if (bin === 'week') { const t = Date.parse(d + 'T00:00:00Z'); return new Date(t - ((new Date(t).getUTCDay() + 6) % 7) * 86400000).toISOString().slice(0, 10); } return d; };
+      const hash = (d) => { let h = 7; for (const c of d) h = (h * 31 + c.charCodeAt(0)) % 997; return h; };
+      const days = []; let nd = 0, visits = 0, pv = 0;
+      for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z'); t += 86400000) {
+        const d = new Date(t).toISOString().slice(0, 10), k = binOf(d), dow = new Date(t).getUTCDay(), dn = Math.round((dow === 0 || dow === 6 ? 0.5 : 1) * (130 + hash(d) % 70));
+        let e = days[days.length - 1]; if (!e || e.day !== k) { e = { day: k, n: 0, visits: 0, pv: 0, _m: 0, _d: 0 }; days.push(e); }
+        e._m = Math.max(e._m, dn); e._d += 1; e.visits += dn * 2; e.pv += dn * 9; nd += 1; visits += dn * 2; pv += dn * 9;
+      }
+      days.forEach((e) => { e.n = Math.min(NU, Math.round(e._m * (1 + 0.45 * Math.log2(e._d)))); delete e._m; delete e._d; });
+      const f = nd / 30;
+      return { n: NU, scope: b.scope || 'all', from, to, bin, keepDays: 90, since: null, active7: 297, active: Math.min(NU, Math.round(Math.max(...days.map((e) => e.n)) * 1.2)), visits, ms: visits * 21 * 60000, pv, joined: Math.round(nd * 0.9),
+        featTotal: Math.round(14000 * f), stockTotal: Math.round(6200 * f), days,
+        feats: mstats.feats.map(([k, n]) => [k, Math.round(n * f)]), stocks: mstats.stocks.map(([k, n]) => [k, Math.round(n * f)]) };
+    };
     const detail = (email) => { const i = Math.max(0, users.findIndex((u) => u.email === email)), m = members[i] || members[0];
       return { known: true, days: Array.from({ length: 14 }, (_, k) => ({ day: dayKey(NDAY - 14 + k), visits: 1 + ((k + i) % 3), views: 8 + ((k * 7 + i * 3) % 23), ms: (6 + ((k * 5 + i) % 28)) * 60000 })),
         pages: PAGES.slice(0, 6).map(([k, s], j) => [k, Math.round(s / 400 / (j + 1) + i % 5)]), feats: [['stock', 'tab.revenue', 14], ['flow', 'quad', 9], ['stock', 'kp.60m', 7], ['flow', 'filter_group', 5], ['overview', 'how', 3]], stocks: m.topStock }; };
@@ -734,7 +775,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const iA = from ? Math.max(0, idx(from)) : null, iB = to ? Math.min(NDAY - 1, idx(to)) : NDAY - 1;       // 起訖日（Worker 同語意：含頭含尾，to 預設今天）
       const n = iA != null ? Math.max(1, iB - iA + 1) : Math.max(1, Math.min(NDAY, days || 30)), i0 = iA != null ? iA : NDAY - n, rows = [];
       const hourNow = Math.min(23, new Date(Date.now() + 8 * 3600000).getUTCHours());
-      for (let i = i0; i <= iB; i++) { const day = dayKey(i), dn = 54000 * W[i] / base30;
+      const recent = window.__demoRecentDays ? iB - window.__demoRecentDays + 1 : -1;      // 測試用：只有最近 N 天有紀錄（正式站 Worker 只回有資料的日子，from 仍是期間起日）
+      for (let i = i0; i <= iB; i++) { if (i < recent) continue; const day = dayKey(i), dn = 54000 * W[i] / base30;
         PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.88 + ((i * 7 + k.length) % 10) / 40))) }));
         const ss = Math.round(dn * 0.145); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + ((i % 7) / 100))) }); }
       const scale = live ? 1.1 / 30 : n / 30, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
@@ -752,7 +794,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 
       return out;
     };
-    return { stats, online, members, mstats, detail, users };
+    return { stats, online, members, mstats, mstatsFor, detail, users };
   })();
   function demoWrap(A) {
     if (!IS_PREVIEW || !A || A.__demo) return A;
@@ -763,7 +805,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       if (path === '/v1/admin/stats') { const nr = !!window.__demoNoRange; return ok(DEMO.stats((body || {}).days, (body || {}).live, nr ? undefined : (body || {}).from, nr ? undefined : (body || {}).to)); }      // __demoNoRange：測試用，模擬還沒更新的 Worker（不認得 from／to）
       if (path === '/v1/admin/online') return ok(DEMO.online);
       if (path === '/v1/admin/members') return ok({ members: DEMO.members });
-      if (path === '/v1/admin/members/stats') return ok(DEMO.mstats);
+      if (path === '/v1/admin/members/stats') return ok(DEMO.mstatsFor(body || {}));
       if (path === '/v1/admin/member/detail') return ok(DEMO.detail(String((body || {}).email || '').toLowerCase()));
       const r = await A.call(path, body);
       if (path === '/v1/admin/perm/list' && r && r._s === 200) {                  // 名單：真資料之外補示範會員（前 12 位掛第一個付費範本，其餘免費）
@@ -856,8 +898,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
        回來的起訖不會是那一天 → 改成提示並維持整段期間的統計，畫面不留空白 */
     let stT = st; S.dayMode = '';
     if (S.day) {
-      const r = await A.call('/v1/admin/stats', { days: Math.min(400, periodDays() + 1), from: S.day, to: S.day });
-      if (r && r._s === 200 && r.from === S.day && r.to === S.day) { stT = r; S.dayMode = 'ok'; } else S.dayMode = 'unsupported';
+      const dTo = S.dayTo || S.day;
+      const r = await A.call('/v1/admin/stats', { days: Math.min(400, periodDays() + 1), from: S.day, to: dTo });
+      if (r && r._s === 200 && r.from === S.day && r.to === dTo) { stT = r; S.dayMode = 'ok'; } else S.dayMode = 'unsupported';
     }
     S.st = stT; S.on = on;
     const pv = {}, ev = {}, perDay = {};
@@ -872,6 +915,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     let days = [], dmap = perDay;
     if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; const nowH = st.hstat && Number.isInteger(st.hstat.hour) ? st.hstat.hour : null; st.hours.forEach((n, h) => { dmap[days[h]] = nowH != null && h > nowH ? null : n; }); }
     else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse((untilDay || st.to) + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
+    /* 橫軸一律涵蓋整個選定期間（沒紀錄的日子是 0）；期間長就合併粒度：≤31 天按日、32～120 天按週（從起日起每 7 天一格）、>120 天按月 */
+    const bk = S.period === 'live' && st.hours ? null : bucketize(days);
+    const pvAgg = (m) => { if (!bk || bk.gran === 'day') return m; const o = {}; bk.keys.forEach((k) => { o[k] = 0; }); Object.keys(m).forEach((d) => { const k = bk.of[d]; if (k !== undefined) o[k] += m[d]; }); return o; };
+    if (bk && bk.gran !== 'day') { dmap = pvAgg(perDay); days = bk.keys.slice(); }
     const dmax = Math.max(1, ...days.map((d) => dmap[d] || 0));
     const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions), pvTotal = untilDay ? sum(Object.values(perDay)) : sum(Object.values(pv));
     // 個股相關（個股頁分頁用）：被觀看 Top 10、各自最常用的功能、散佈圖點
@@ -897,10 +944,16 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       d.total = d.pv || (sum(d.subN.map((x) => x.v)) || use);
       if (p.subs.length && sum(d.subN.map((x) => x.v)) > 0 && d.pv) { /* 有子頁開啟數：總數仍用 pv */ }
     });
-    S.data = data; S.days = periodDays(); S.pvDay = pvDay; S.dayList = st.hours ? [] : (S.dayMode === 'ok' ? [S.day] : days.slice()); S.pvAll = sum(Object.values(pvT));
+    S.data = data; S.days = periodDays(); S.bk = null;
+    if (st.hours) { S.pvDay = pvDay; S.dayList = []; }
+    else if (S.dayMode === 'ok') {                          // 點了某一天／某一週／某一月：下面各分頁的每日趨勢只畫那段（≤ 31 天按日）
+      const dl = []; for (let t = Date.parse(S.day + 'T00:00:00Z'); t <= Date.parse((S.dayTo || S.day) + 'T00:00:00Z'); t += 86400000) dl.push(new Date(t).toISOString().slice(0, 10));
+      S.pvDay = pvDay; S.dayList = dl;
+    } else { S.bk = bk; S.dayList = days.slice(); S.pvDay = {}; Object.keys(pvDay).forEach((k) => { S.pvDay[k] = pvAgg(pvDay[k]); }); }
+    S.firstDay = Object.keys(perDay).filter((d) => perDay[d] > 0).sort()[0] || ''; S.pvAll = sum(Object.values(pvT));
     data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (stT.users && stT.users.total) || 0, use: 0, fb: false };
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
-    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
     paintTrTabs();
     bindHover(v.querySelector('#admBody'));
@@ -910,21 +963,24 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   /* 現在看的是哪一天：分頁統計標題旁一顆小膠囊＋清除鈕；Worker 不支援時直接說白話 */
   function dayChip() {
     if (!S.day) return '';
-    return `<span class="daychip" id="trDayChip"><i class="dot"></i><b>${esc(dayTxt(S.day))}</b>${S.dayMode === 'unsupported' ? '<em>這個功能要等會員系統更新後才有，下方暫時顯示整段期間</em>' : ''}<button type="button" id="trDayClr" aria-label="清除，回到原期間" title="清除，回到原期間">×</button></span>`;
+    return `<span class="daychip" id="trDayChip"><i class="dot"></i><b>${esc(S.dayTo && S.dayTo !== S.day ? S.day.slice(5) + '～' + S.dayTo.slice(5) : dayTxt(S.day))}</b>${S.dayMode === 'unsupported' ? '<em>這個功能要等會員系統更新後才有，下方暫時顯示整段期間</em>' : ''}<button type="button" id="trDayClr" aria-label="清除，回到原期間" title="清除，回到原期間">×</button></span>`;
   }
-  function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) {
+  function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
     /* 起訖日期框永遠顯示：跟著期間選單同步（近 N 天＝那段的實際起訖、即時＝今天），手動改日期 → 下拉跳成「起始日期～至今」 */
     const today = todayTpe(), shiftDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
     const rng = S.period === 'live' ? { from: today, to: today } : S.period === 'since' ? { from: S.since, to: S.until || today } : { from: shiftDay(today, -(+S.period - 1)), to: today };
-    const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : '每天的頁面瀏覽總次數';
+    const gw = bk && bk.gran === 'week' ? '每週' : bk && bk.gran === 'month' ? '每月' : '每天';
+    const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : gw + '的頁面瀏覽總次數';
+    const first = S.period === 'live' ? '' : (S.firstDay && S.firstDay > days0(days, bk) ? `統計自 ${S.firstDay} 開始記錄，之前沒有紀錄（算 0）。` : '這段期間每天都有紀錄。');
+    const dtip = first + (bk && bk.gran !== 'day' ? `期間較長，已合併成${gw.slice(1)}一格；點一格可看那段的統計。` : '點某天的直條可看當天。');
     return `<div class="secttl trhead"><h2>全站總覽</h2><small>共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
-        <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <input type="date" id="admSince" value="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="起始日期"><span class="trto">～</span><input type="date" id="admUntil" value="${esc(rng.to)}" min="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="結束日期">
-          <button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
-          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
+        ${window.RangePick.html({ cls: 'trctl', options: opt, value: S.period, from: rng.from, to: rng.to, max: todayTpe(), custom: 'since',
+          ids: { sel: 'admDaysSel', from: 'admSince', to: 'admUntil' },   // 期間列抽成共用元件 site/rangepick.js（10-06，ETF 報酬比較同一支）；id 沿用，驗收靠它們
+          extra: `<button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
+          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span>` })}</div>
       <div class="admgrid trtop">
-        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live')}</div></div>
+        <div class="card s2" id="admDays"><h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
       </div>`;
   }
@@ -955,7 +1011,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   function simpleHtml(p, d, idx) {
     const pd = (S.pvDay || {})[p.k] || {}, has = Object.keys(pd).length > 0 && S.dayList && S.dayList.length;
     const tot = d.total;
-    const chart = has ? dayChart(S.dayList, pd, Math.max(1, ...Object.values(pd)), 'trPgDays') : '<div class="empty">沒有資料</div>';
+    const chart = has ? dayChart(S.dayList, pd, Math.max(1, ...Object.values(pd)), 'trPgDays', false, S.bk) : '<div class="empty">沒有資料</div>';
     return `<div class="admgrid trone"><div class="card" id="trS1"><h3>${esc(p.n)}被看了幾次？</h3><p class="use" title="${esc(p.n)}">被看過幾次</p>
       <div class="cb"><div class="sbody"><div class="bigno"><b>${nf(tot)}</b><span>被看過</span></div><div class="sch">${chart}</div></div></div></div></div>`;
   }
@@ -1019,16 +1075,17 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   function wireTop(v, A) {
     const apply = () => { S.tab = S.tab || 'all'; paint(); };
-    v.querySelector('#admDaysSel').onchange = (e) => {
-      S.period = e.target.value; S.day = '';
-      if (S.period === 'since') { S.since = S.since || v.querySelector('#admSince').value; }
-      apply();
-    };
-    const di = v.querySelector('#admSince'), du = v.querySelector('#admUntil'), okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
-    const manual = () => { if (!okD(di.value)) return; let to = okD(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; S.period = 'since'; S.since = di.value; S.until = to >= todayTpe() ? '' : to; S.day = ''; apply(); };
-    if (di) di.onchange = manual; if (du) du.onchange = manual;
-    const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; S.day = S.day === dc.dataset.day ? '' : dc.dataset.day; paint(); };
-    const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; paint(); };
+    const okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+    // 下拉／日期框的同步規則在 site/rangepick.js（手改日期 → 下拉跳「起始日期～至今」）；這裡只管期間狀態怎麼存
+    window.RangePick.bind(v.querySelector('#admDaysSel').closest('.rpk'), { onChange: ({ value, from, to, manual }) => {
+      S.day = ''; S.dayTo = '';
+      if (!manual) { S.period = value; if (S.period === 'since') S.since = S.since || from; apply(); return; }
+      if (!okD(from)) return;
+      let t = okD(to) ? to : todayTpe(); if (t < from) t = from;
+      S.period = 'since'; S.since = from; S.until = t >= todayTpe() ? '' : t; apply();
+    } });
+    const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; const tgl = S.day === dc.dataset.day && (S.dayTo || S.day) === (dc.dataset.to || dc.dataset.day); S.day = tgl ? '' : dc.dataset.day; S.dayTo = tgl ? '' : (dc.dataset.to || dc.dataset.day); paint(); };
+    const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; S.dayTo = ''; paint(); };
     v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
     if (S.spin) { S.spin = false; const rb = v.querySelector('#admRefresh'); if (rb) rb.classList.add('spin'); }
   }
@@ -1186,25 +1243,37 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   const stockTable = (rows) => `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td><span class="vb"><span><i style="width:${(r.views / Math.max(1, rows[0].views) * 100).toFixed(1)}%"></i></span><em>${nf(r.views)}</em></span></td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>`;
   /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代）。圖區吃滿卡片高度；y 軸 0／一半／最大值＋淡格線＋平均虛線；
      最高那天標值；天數 ≤ 7 時每根放大（寬到 140）並在柱上標值、柱下標日期，不再是細細兩根留一大片空白 */
-  function dayChart(days, perDay, dmax, idp, full) {
+  const days0 = (days, bk) => (bk && bk.gran !== 'day' ? bk.info[days[0]].from : days[0]);
+  /* 把「整段期間的每一天」分格：≤31 天按日；32～120 天按週（從起日起每 7 天一格，最後一格可能不滿 7 天）；>120 天按日曆月。
+     回傳 keys（每格的 key）、info[key]＝{from,to,n,label}、of[日期]＝那天屬於哪一格 */
+  function bucketize(days) {
+    const n = days.length, gran = n <= 31 ? 'day' : n <= 120 ? 'week' : 'month', keys = [], info = {}, of = {};
+    days.forEach((d, i) => {
+      const k = gran === 'day' ? d : gran === 'week' ? days[i - (i % 7)] : d.slice(0, 7);
+      if (!info[k]) { keys.push(k); info[k] = { from: d, to: d, n: 0 }; }
+      info[k].to = d; info[k].n++; of[d] = k;
+    });
+    return { gran, keys, info, of };
+  }
+  function dayChart(days, perDay, dmax, idp, full, bk) {
     idp = idp || 'admDayBars';
-    const i0 = full ? 0 : days.findIndex((d) => (perDay[d] || 0) > 0);
-    if (i0 < 0) return '<div class="empty">沒有資料</div>';
-    const shown = days.slice(i0), few = shown.length <= 7, dtot = shown.reduce((s, d) => s + (perDay[d] || 0), 0);
+    const co = bk && bk.gran !== 'day' ? bk : null, gl = co ? (co.gran === 'week' ? '週' : '月') : '';
+    if (!full && !days.some((d) => (perDay[d] || 0) > 0)) return '<div class="empty">沒有資料</div>';
+    const shown = days.slice(), few = shown.length <= 7, dtot = shown.reduce((s, d) => s + (perDay[d] || 0), 0);
     const avg = shown.reduce((s, d) => s + (perDay[d] || 0), 0) / shown.length, mxd = shown.reduce((a, d) => ((perDay[d] || 0) > (perDay[a] || 0) ? d : a), shown[0]);
-    const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
     /* X 軸刻度：每 7 天（週一）標一個；期間很長（> 98 天）改成每 4 週，免得擠在一起。時間是每小時（HH:00）就每 4 小時一個 */
     let ticks = [];
     if (!few) {
       if (/^\d\d:00$/.test(shown[0])) ticks = shown.map((d, i) => [d, i]).filter(([d, i]) => i % 4 === 0);
-      else { const step = shown.length > 98 ? 4 : 1; let k = 0; shown.forEach((d, i) => { if (new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay() === 1) { if (k % step === 0) ticks.push([d, i]); k++; } }); }
+      else if (!co) { ticks.push([shown[0], 0]); shown.forEach((d, i) => { if (i >= 3 && new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay() === 1) ticks.push([d, i]); }); }      // 按日：第一個刻度＝期間起日，其後每個週一
+      else { const step = Math.max(1, Math.ceil(shown.length / (co && co.gran === 'month' ? 13 : 8))); shown.forEach((d, i) => { if (i % step === 0) ticks.push([co ? co.info[d].from : d, i]); }); }      // 第一個刻度＝期間起日，其餘等距
     }
     const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(dmax * f))}</span>`).join('');
     return `<div class="dayplot"><div class="dayy">${ys}</div>
-      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && d === S.day ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${d}"` : ''} data-row="${di}"${tp(`<b>${esc(d)}${/^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
-        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
+      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}${co ? ' coarse' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && S.day && (co ? co.info[d].from : d) === S.day && (S.dayTo || S.day) === (co ? co.info[d].to : d) ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${co ? co.info[d].from : d}" data-to="${co ? co.info[d].to : d}"` : ''} data-row="${di}"${tp(`<b>${esc(co ? (co.gran === 'week' ? co.info[d].from.slice(5) + '～' + co.info[d].to.slice(5) : d + '（' + co.info[d].from.slice(5) + '～' + co.info[d].to.slice(5) + '）') + '　共 ' + co.info[d].n + ' 天' : d)}${!co && /^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd || (co && shown.length <= 14 && (perDay[d] || 0) > 0) ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
+        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>${co ? '每' + gl + '平均' : '平均'} ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
       ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${ticks.map(([d, i]) => `<span style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${/^\d\d:00$/.test(d) ? d : d.slice(5)}</span>`).join('')}</div></div>`}
-      ${note ? `<div class="dayx"><span class="dayno" id="${idp}Note">${note}</span></div>` : ''}`;
+`;
   }
   /* 散佈圖：依容器實際大小畫（ResizeObserver 重畫），圖吃滿卡片；格線 3 條、軸刻度＝真值；標籤避開已放的標籤 */
   function drawScatter(box, pts) {
@@ -1456,12 +1525,19 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   const tabLabel = (p) => `${p.name}（${p.period === 'year' ? '年' : p.period === 'once' ? '一次' : '月'}）`;
   /* perm-v4：付費範本頁籤外面包一層 .ptab（可拖曳），裡面是頁籤本身＋滑過才出現的「⋮」（不是頁籤的子元素 —— 按鈕不能包按鈕）。
      訪客、註冊會員、＋ 沒有包裝、不能拖、沒有 ⋮ → 固定在最前／最後。 */
+  /* 頁籤的滑過提示（2026-10-06 起方案頁頂端的標題列拿掉，價格與套用人數改放這裡）：名稱・價格／週期｜套用 N 人（付費頁籤另加「拖曳可調整順序」）*/
+  function tabInfo(tier, plan) {
+    if (tier === 'guest') return '訪客・NT$0／月｜所有沒登入的人都套這一份';
+    if (tier === 'free') return `註冊會員・NT$0／月｜套用 ${members().filter((r) => !r.paid).length} 人（登入後沒被指定付費範本的人、付費到期的人）`;
+    const p = planOf(plan);
+    return p ? `${planLabel(p)}｜套用 ${planMembers(p.id)} 人（拖曳可調整順序）` : '付費範本';
+  }
   function paintTabs() {
     const bar = PS.v && PS.v.querySelector('#ptTier'); if (!bar) return;
     /* 重畫前記住焦點在哪一顆（頁籤或 ⋮），重畫後放回去 —— 鍵盤 Alt＋← 移完、或順序存好回來重畫，焦點不會掉到頁面最上面 */
     const ae = document.activeElement, keep = ae && bar.contains(ae) ? (ae.dataset.more ? `button[data-more="${ae.dataset.more}"]` : ae.dataset.plan ? `button[data-plan="${ae.dataset.plan}"]` : ae.id ? '#' + ae.id : ae.dataset.tier ? `button[data-tier="${ae.dataset.tier}"]` : '') : '';
     const t = (tier, label, plan) => { const on = !PS.adding && PS.tier === tier && (!plan || PS.planSel === plan);
-      return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"${plan ? ` data-plan="${esc(plan)}" title="${esc(planLabel(planOf(plan)))}（拖曳可調整順序）" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"` : ''}><span>${esc(label)}</span></button>`; };
+      return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"${plan ? ` data-plan="${esc(plan)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"` : ''} title="${esc(tabInfo(tier, plan))}"><span>${esc(label)}</span></button>`; };
     bar.innerHTML = t('guest', '訪客') + t('free', '註冊會員')
       + paidPlans().map((p) => `<div class="ptab" draggable="true" data-pid="${esc(p.id)}">${t('paid', tabLabel(p), p.id)}<button type="button" class="ptmore" data-more="${esc(p.id)}" aria-haspopup="dialog" aria-expanded="${PS.menu === p.id}" aria-label="刪除「${esc(p.name)}」範本" title="刪除此範本">×</button></div>`).join('')
       + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費範本" title="新增付費範本（名稱、價格、月／年訂閱）">＋</button>`;
@@ -1663,20 +1739,6 @@ html[data-theme="light"] #v-admin{--pgL:40%}
      篩選（#pmStatF）仍用 r.st（有效／過期／未登入過），即將到期算在有效裡。 */
   const SOON_MS = 7 * 86400 * 1000;
   const stOf = (r) => { const now = (PS.list && PS.list.now) || Date.now(); return r.st === 'ok' && r.expires && r.expires >= now && r.expires - now <= SOON_MS ? 'soon' : r.st; };
-  async function addMember() {
-    const v = PS.v, inp = v.querySelector('#pmAddEmail'), e = (inp.value || '').trim().toLowerCase();
-    if (!EMAIL_OK(e)) { setStat('email 格式不對（例如 member@example.com）', 'bad'); inp.focus(); return; }
-    if (!guard()) return;
-    const plan = v.querySelector('#pmAddPlan').value || 'free';
-    const expRaw = v.querySelector('#pmAddExp').value, expires = expToMs(expRaw);
-    if (expRaw && !expires) { setStat('到期日格式不對', 'bad'); return; }
-    setStat('新增中…');
-    const j = await PS.A.call('/v1/admin/perm/put', Object.assign({ email: e, plan, over: {} }, expires ? { expires } : {}));
-    if (!j || j._s !== 200) { setStat('新增失敗：' + errText(j), 'bad'); return; }
-    inp.value = ''; v.querySelector('#pmAddExp').value = '';
-    PS.email = j.email; PS.rec = j; PS.draft = null;
-    afterSave(j.email, `已新增 ${j.email}（${TIER_NAME[tierOf(plan)]}「${(planOf(plan) || {}).name || plan}」${expires ? '，到期 ' + expRaw : ''}）`);
-  }
   function paintTarget() {
     const v = PS.v, box = v.querySelector('#pmTarget'); if (!box) return;
     if (PS.mode === 'member') {
@@ -1726,13 +1788,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     /* 範本資訊列（perm-v4）：左＝名稱・價格／週期（#ptFor）＋套用人數，右＝⚙（只有付費範本有）；下面一行說明 */
     const p = planOf(PS.planSel);
     if (PS.tier === 'paid' && !p) { box.innerHTML = '<div class="ptinfo"><b class="ptname" id="ptFor">尚無付費範本</b></div>'; paintSave(); return; }
-    const meta = PS.tier === 'guest' ? '所有未登入的人' : PS.tier === 'free' ? `套用 ${members().filter((r) => !r.paid).length} 人` : `套用 ${planMembers(p.id)} 人`;
-    const name = PS.tier === 'paid' ? planLabel(p) : `${TIER_NAME[PS.tier]}・免費`;
-    const note = PS.tier === 'guest' ? '所有沒登入的人都套這一份；下面關掉的功能，就是訪客要先登入／升級才看得到的東西。'
-      : PS.tier === 'free' ? '登入後沒被指定付費範本的人（以及付費到期的人）都套這一份。'
-        : '被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。⚙ 改名稱／價格／月或年、刪除。';
-    box.innerHTML = `<div class="ptinfo"><b class="ptname" id="ptFor" title="${esc(name + '。' + note)}">${esc(name)}</b><span class="ptmeta" id="ptMeta">${esc(meta)}</span><span class="sp"></span>
-        ${PS.tier === 'paid' ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名／價格／月或年／刪除）" aria-label="範本設定">⚙</button>` : ''}</div>
+    /* 2026-10-06（Andy：「方案分頁上方的標題列都拿掉」）：不再有「訪客・NT$0/月　套用 1 人」那一列 —— 它跟頁籤名稱重複。
+       價格與套用人數併進頁籤的滑過提示（tabInfo）；⚙ 範本設定搬到子分頁列的右側（paintSub）；這裡只在 ⚙ 展開時畫設定列。 */
+    box.innerHTML = `
       ${PS.tier === 'paid' && PS.cfg ? `<div class="pmbar pmed" id="ptEdit" style="margin:0 0 8px"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
         <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
         <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
@@ -1740,7 +1798,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
         <button type="button" class="danger" id="pmPlanDel" aria-expanded="${!!PS.delAsk}" title="${esc(delMsg(p.id))}">刪除此範本</button>
         <small>金流以範本代號 <code>${esc(p.id)}</code> 對價；改名、改價不影響已指定的會員。</small></div>
         ${PS.delAsk ? `<div class="ptdelq" id="ptDelBox" role="alertdialog" aria-label="確認刪除範本"><span>刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(p.id))}</b>。</span><button type="button" id="ptDelNo">取消</button><button type="button" class="danger" id="ptDelGo">確定刪除</button></div>` : ''}` : ''}`;
-    const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.delAsk = false; paintTarget(); };
+    const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.setAttribute('aria-expanded', String(!!PS.cfg));
     const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
     /* 刪除要二次確認：第一下只展開確認列（寫明會影響幾個人），按「確定刪除」才送 */
     const del = v.querySelector('#pmPlanDel'); if (del) del.onclick = () => { if (activeMembers(PS.planSel).length) { PS.delAsk = false; openMenu(PS.planSel, 'del'); return; } PS.delAsk = !PS.delAsk; paintTarget(); const g = v.querySelector('#ptDelGo'); if (g) g.focus(); };
@@ -1757,7 +1815,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     bar.hidden = noPlan || memb;
     bar.classList.toggle('one', PS.tier === 'guest');
     bar.innerHTML = `<button type="button" role="tab" data-sub="perm" id="ptSubPerm" class="${PS.sub === 'perm' ? 'on' : ''}" aria-selected="${PS.sub === 'perm'}">觀看權限</button>`
-      + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單</button>`);
+      + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單</button>`)
+      + (PS.tier === 'paid' && !noPlan ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名稱／價格／月或年、刪除）" aria-label="範本設定">⚙</button>` : '');
+    const cf = bar.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.delAsk = false; paintTarget(); };
     const pb = v.querySelector('#ptPermBox'), lb = v.querySelector('#ptListBox');
     if (pb) pb.hidden = memb ? false : (noPlan || PS.sub !== 'perm');
     if (lb) lb.hidden = memb ? true : (noPlan || PS.sub !== 'list');
@@ -1886,15 +1946,10 @@ html[data-theme="light"] #v-admin{--pgL:40%}
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
-    /* 欄流排版的分欄：把分類卡依「項數」做 4 欄貪婪分組（最重的先放進目前最矮的那欄），再依欄順序輸出並在每欄第一張卡強制換欄 —— 各欄底部落差最小，不留大片空白 */
-    /* 欄數照視窗寬：≥1300 四欄、≥900 三欄、≥640 兩欄、其餘一欄（1440／1024／800／390）；欄數變了就重畫（貪婪分欄要重算） */
-    const ncol = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; box.style.columnCount = ncol; PS.ncol = ncol;
-    if (!PS.colDoc) { PS.colDoc = true; window.addEventListener('resize', () => { const n = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; if (PS.ncol && n !== PS.ncol && PS.v && PS.v.querySelector('#pmCats')) paintCats(); }); }
-    const wt = (c) => 1.7 + FT().inCat(c.id).length, colsG = Array.from({ length: ncol }, () => ({ h: 0, cs: [] }));
-    cats.filter((c) => c.id !== 'grp').slice().sort((a, b) => wt(b) - wt(a)).forEach((c) => { const g = colsG.reduce((m, x) => (x.h < m.h ? x : m), colsG[0]); g.cs.push(c); g.h += wt(c); });
-    const ordered = []; colsG.filter((g) => g.cs.length).forEach((g) => g.cs.forEach((c, i) => ordered.push([c, ncol > 1 && i === 0 && ordered.length > 0])));
-    box.innerHTML = ordered.map(([c, brk]) => { const fs = FT().inCat(c.id);
-      return `<div class="pmcat card${brk ? ' brk' : ''}" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
+    /* 範本 126：卡片順序＝左側選單順序（FT().cats 的宣告順序），一般 grid 排列、欄數由 CSS 決定（1440 四、1024 三、800 兩、390 一）；不再重排、不再瀑布流 */
+    /* 小圖示由 icons.js 依卡片標題自動配上（全站統一做法），這裡不另畫，免得出現兩顆 */
+    box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
+      return `<div class="pmcat card" data-cat="${esc(c.id)}"><div class="pmcathd"><h3 title="${esc(c.name)}"><b>${esc(c.name)}</b><small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
         <div class="pmbody">${catRows(fs, cur, base, saved, now, ready, false)}</div></div>`; }).join('');
     const gc = cats.find((c) => c.id === 'grp');
     if (gbox) gbox.innerHTML = gc ? (() => {
@@ -2142,46 +2197,155 @@ html[data-theme="light"] #v-admin{--pgL:40%}
   }
   /* 股票標籤＝代號＋名稱（名稱從站上的全站索引 window.Link.cname 拿；拿不到就只寫代號）*/
   const stockNm = (c) => { const n = window.Link && window.Link.cname && window.Link.cname[c]; return n ? `${c} ${n}` : c; };
-  const kpi = (n, label, id) => `<div class="mkpi"${id ? ` id="${id}"` : ''}><b>${n}</b><span title="${esc(label)}">${esc(label)}</span></div>`;
-  /* 名單上方的統計（會員權限 → 會員名單）：狀態、人數、平均由「同一份名單 rows」算（跟下面的表一定一致）；
-     功能／股票 Top 8、14 天活躍、7 日活躍由伺服器彙總（/v1/admin/members/stats，不逐人呼叫）。 */
+  const kpi = (n, label, id, tip) => `<div class="mkpi"${id ? ` id="${id}"` : ''}${tip ? ` title="${esc(tip)}"` : ''}><b>${n}</b><span title="${esc(tip || label)}">${esc(label)}</span></div>`;
+  /* ---------------------------------------------------------------- 會員名單上方的統計（2026-10-06 重做）
+     Andy：「上方圖表需要優化，Follow 觀測流量 分頁，並且數據請補齊全」。
+     設計語彙＝流量觀測：同樣的 .card（問句式粗體標題＋左側色條小圖示＋灰色副標）、期間列（下拉＋起訖日同步）、每天直條（dayplot）、
+     甜甜圈（donutG，圖例在右）、橫條（bars）。KPI 與三張圖都跟著期間走；「會員現在是什麼狀態」是現況，不隨期間變（副標寫明）。
+     資料：/v1/admin/members/stats { scope, plan, from, to, bin }（伺服器端彙總，不逐人呼叫）。
+
+     ★ 「載入中…」永遠不消失的根因（2026-10-06 查到，admin.js 這一段舊碼）：
+       refreshList()（每次儲存、刪範本、逐人微調回來都會跑）第一行 `PS.mst = {}` 把統計快取清空，
+       但舊的 loadMStats() 只在「第一次畫殼」時呼叫一次；清空之後 statsHtml() 讀不到快取就當成「載入中」，
+       而殼已經畫過了（shellKey 沒變）→ 沒有人再去讀 → 永遠停在「載入中…」，KPI 的「近 7 日活躍」也跟著顯示「—」。
+       現在：paintStats() 每次畫之前都先確認有沒有快取、沒有就去讀；讀取最多等 15 秒，逾時／失敗顯示白話原因＋「重新讀取」鈕。 */
+  const PER_OPT = [['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
+  const dayAdd = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+  const okDay = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x || '');
+  const perOf = () => PS.per || (PS.per = { period: '30', since: '', until: '' });
+  /* 管理區的期間列（下拉＋起訖日同步）：近 N 天＝那段的實際起訖；手動改日期 → 下拉跳成「起始日期～至今」。最長 400 天（Worker 的上限）。 */
+  function perRange(per) {
+    const today = todayTpe(), floor = dayAdd(today, -399);
+    if (per.period === 'since' && okDay(per.since)) { const from = per.since < floor ? floor : per.since; let to = per.until && okDay(per.until) && per.until < today ? per.until : today; if (to < from) to = from; return { from, to }; }
+    const n = Math.min(400, Math.max(1, +per.period || 30));
+    return { from: dayAdd(today, -(n - 1)), to: today };
+  }
+  const perBin = (r) => { const n = (Date.parse(r.to) - Date.parse(r.from)) / 86400000 + 1; return n <= 62 ? 'day' : n <= 210 ? 'week' : 'month'; };
+  const perTxt = (per, r) => (per.period === 'since' ? `${r.from}～${r.to}` : `近 ${per.period} 天`);
+  function periodCtlHtml(per, id) {
+    const r = perRange(per), today = todayTpe();
+    return `<div class="trctl" id="${id}"><label>期間 <select id="${id}Sel" aria-label="統計期間">${PER_OPT.map(([k, n]) => `<option value="${k}"${k === per.period ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+      <input type="date" id="${id}From" value="${esc(r.from)}" max="${today}" aria-label="起始日期"><span class="trto">～</span><input type="date" id="${id}To" value="${esc(r.to)}" min="${esc(r.from)}" max="${today}" aria-label="結束日期"></div>`;
+  }
+  function periodWire(root, per, id, onChange) {
+    const sel = root.querySelector('#' + id + 'Sel'), di = root.querySelector('#' + id + 'From'), du = root.querySelector('#' + id + 'To');
+    if (!sel || !di || !du) return;
+    sel.onchange = () => { per.period = sel.value; if (per.period === 'since') { per.since = di.value; per.until = ''; } onChange(); };
+    const manual = () => { if (!okDay(di.value)) return; let to = okDay(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; per.period = 'since'; per.since = di.value; per.until = to >= todayTpe() ? '' : to; onChange(); };
+    di.onchange = manual; du.onchange = manual;
+  }
+  const MS_CSS = `
+/* ===== 會員名單上方的統計（2026-10-06）：版型＝6 欄格線。第一列「每天多少人」4＋「狀態」2；第二列 註冊會員＝三張各 2、付費＝兩張各 3 ===== */
+/* ⚙ 範本設定：2026-10-06 起在子分頁列的最右邊（原本在已拿掉的標題列裡） */
+#v-admin .ptwrap .ptsub .ptgear{margin-left:auto;align-self:center;margin-bottom:4px}
+/* 標題列拿掉後，子分頁列補回原本標題列的上方留白（不然會貼住內容框頂、蓋到選中頁籤的底邊） */
+#pmTarget{padding-top:14px}#pmTarget:empty{padding-top:0}
+#ptStats{margin:0 0 14px}
+#ptStats .secttl{margin:4px 0 0;flex-wrap:wrap;align-items:center;row-gap:8px}
+#ptStats .secttl h2{font-size:var(--fs-h2,20px);font-weight:600}
+#ptStats .mkpis{grid-template-columns:repeat(6,minmax(0,1fr));margin-top:12px}
+#ptStats .mkpi b{font-size:20px}
+#ptStats .mkpi span{font-size:13px}
+#ptStats .msnote{margin:8px 2px 0;font-size:12px;color:var(--ink-2)}
+#v-admin .admgrid.msgrid{grid-template-columns:repeat(12,minmax(0,1fr));margin-top:12px}
+#v-admin .msgrid>.ma{grid-column:span 7}#v-admin .msgrid>.mb{grid-column:span 5}#v-admin .msgrid>.mc{grid-column:span 4}#v-admin .msgrid>.md{grid-column:span 6}
+#ptStats .msph{padding:10px 0;font-size:13px;color:var(--ink-2)}
+#ptStats .msph.bad{color:var(--st-exp,#e5484d)}
+#ptStats .msph button{height:28px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;margin-left:8px;cursor:pointer}
+#ptStats .card .empty{padding:10px 0}
+@media (max-width:1100px){#v-admin .msgrid>.ma,#v-admin .msgrid>.mb,#v-admin .msgrid>.mc{grid-column:span 12}#ptStats .mkpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){#ptStats .mkpis{grid-template-columns:repeat(2,minmax(0,1fr))}#ptStats .mkpi{padding:8px 10px}#ptStats .mkpi b{font-size:17px}}
+@media (max-width:820px){#v-admin .admgrid.msgrid{grid-template-columns:minmax(0,1fr)}#v-admin .msgrid>.ma,#v-admin .msgrid>.mb,#v-admin .msgrid>.mc,#v-admin .msgrid>.md{grid-column:auto}#ptStats .trhead .trctl{width:100%}}
+`;
   const mKey = () => (PS.tier === 'paid' ? 'plan:' + PS.planSel : 'all');
-  async function loadMStats(key) {
+  const durZ = (ms) => (ms > 0 ? dur(ms) : '0 分');
+  async function loadMStats(k, r, bin) {
     if (!PS.mst) PS.mst = {};
-    if (PS.mst[key]) return;
-    PS.mst[key] = { loading: true };
-    const j = await PS.A.call('/v1/admin/members/stats', key === 'all' ? { scope: 'all' } : { scope: 'plan', plan: key.slice(5) });
-    PS.mst[key] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '讀不到' : j && j._s === 200 ? '回應格式不對' : '讀不到：' + errText(j) };
-    const el = PS.v && PS.v.querySelector('#ptStats');
-    if (el && mKey() === key) el.innerHTML = statsHtml(listRows());
+    if (PS.mst[k]) return;
+    PS.mst[k] = { loading: true };
+    const body = Object.assign(PS.tier === 'paid' ? { scope: 'plan', plan: PS.planSel } : { scope: 'all' }, { from: r.from, to: r.to, bin });
+    let j = null;
+    try { j = await Promise.race([PS.A.call('/v1/admin/members/stats', body), new Promise((res) => setTimeout(() => res({ _timeout: true }), 15000))]); } catch (e) { j = null; }
+    let out;
+    if (j && j._timeout) out = { err: '會員系統 15 秒沒有回應' };
+    else if (j && j._s === 200 && Array.isArray(j.days) && j.active != null) out = j;
+    else if (j && j._s === 200) out = { err: '會員系統版本較舊，還沒有這個期間的統計（Worker 部署完成後重新整理就會有）' };
+    else if (j && j._s === 404) out = { err: '會員系統還沒更新，讀不到這項統計' };
+    else if (j && j._s === 400) out = { err: '期間不正確（最長 400 天、起日不能晚於結束日）' };
+    else out = { err: '讀不到（' + errText(j) + '）' };
+    if (!PS.mst) PS.mst = {};
+    PS.mst[k] = out;
+    paintStats();
   }
   const PLAN_COL = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
-  function statsHtml(rows) {
-    const s = (PS.mst || {})[mKey()] || { loading: true };
-    const wait = s.loading ? '載入中…' : s.err ? `尚無資料（${s.err}）` : '';
-    const cnt = { ok: 0, soon: 0, exp: 0, new: 0 }; rows.forEach((r) => { cnt[stOf(r)] += 1; });
-    const known = rows.filter((r) => r.st !== 'new'), on = known.reduce((a, r) => a + (r.onlineMs || 0), 0);
-    const o30 = rows.reduce((a, r) => a + (r.online30 || 0), 0), v30 = rows.reduce((a, r) => a + (r.visits30 || 0), 0);
-    const kp = kpi(nf(rows.length), '總人數', 'msTotal') + kpi(wait ? '—' : nf(s.active7), '近 7 日活躍人數', 'msAct7')
-      + kpi(known.length ? dur(on / known.length) : '—', `平均累計在線（登入過的 ${known.length} 人）`, 'msAvgOn') + kpi(v30 ? dur(o30 / v30) : '—', '平均每次停留（近 30 天）', 'msAvgStay');
-    let dn = donut2([['有效', cnt.ok, 'var(--st-ok)'], ['7 天內到期', cnt.soon, 'var(--st-soon)'], ['已過期', cnt.exp, 'var(--st-exp)'], ['未登入過', cnt.new, 'var(--st-new)']],
-      { id: 'msStDonut', keys: ['ok', 'soon', 'exp', 'new'], aria: '這一層會員的狀態分布' });
+  /* 每個區間（天／週／月）活躍的不同人數：同流量觀測「每天有多少瀏覽？」的直條（.dayplot／.days），Y 軸刻度一律整數（人數） */
+  function binChart(days, bin, idp) {
+    const mxN = Math.max(0, ...days.map((d) => d.n));
+    if (!days.length || !mxN) return '<div class="empty">這段期間沒有活動</div>';
+    const ymax = mxN <= 4 ? 4 : Math.ceil(mxN / 4) * 4, few = days.length <= 7, avg = sum(days.map((d) => d.n)) / days.length;
+    const mxd = days.reduce((a, d, i) => (d.n > days[a].n ? i : a), 0);
+    const lab = (d) => (bin === 'month' ? d.day.slice(0, 7).replace('-', '/') : d.day.slice(5).replace('-', '/'));
+    const ttl = (d) => (bin === 'month' ? `${d.day.slice(0, 4)} 年 ${+d.day.slice(5, 7)} 月` : bin === 'week' ? `${d.day.slice(5).replace('-', '/')}～${dayAdd(d.day, 6).slice(5).replace('-', '/')} 這一週` : `${d.day}（週${WK[new Date(Date.parse(d.day + 'T00:00:00Z')).getUTCDay()]}）`);
+    const step = Math.max(1, Math.ceil(days.length / 8));
+    const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(ymax * f))}</span>`).join('');
+    return `<div class="dayplot"><div class="dayy">${ys}</div>
+      <div class="days${few ? ' few' : ''}${days.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-bin="${bin}">${days.map((d, i) => `<div class="dc${i === mxd ? ' mx' : ''}" data-row="${i}" data-n="${d.n}"${tp(`<b>${esc(ttl(d))}</b><br>${nf(d.n)} 人活躍<br>造訪 ${nf(d.visits || 0)} 次・瀏覽 ${nf(d.pv || 0)} 頁`)}>${few || i === mxd ? `<span class="dv">${nf(d.n)}</span>` : ''}<i style="height:${(d.n / ymax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${esc(lab(d))}</span>` : ''}</div>`).join('')}
+        ${days.length > 1 ? `<div class="avg" style="bottom:${(avg / ymax * 100).toFixed(1)}%"><b>平均 ${avg >= 10 ? nf(Math.round(avg)) : avg.toFixed(1)}</b></div>` : ''}</div></div>
+      ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${days.map((d, i) => (i % step ? '' : `<span style="left:${((i + 0.5) / days.length * 100).toFixed(2)}%">${esc(lab(d))}</span>`)).join('')}</div></div>`}`;
+  }
+  /* 名單上方的統計：狀態、人數由「同一份名單 rows」算（跟下面的表一定一致）；活躍、造訪、在線、瀏覽、Top 8、每日活躍由伺服器依期間彙總 */
+  function statsHtml(rows, k, r, bin) {
+    const per = perOf(), s = (PS.mst || {})[k] || { loading: true };
+    const wait = s.loading ? '載入中…' : s.err ? s.err : '', pt = perTxt(per, r);
+    const ph = (msg) => `<div class="msph${s.err ? ' bad' : ''}" role="status">${esc(msg)}${s.err ? ' <button type="button" class="msretry">重新讀取</button>' : ''}</div>`;
+    const val = (f) => (wait ? (s.err ? '—' : '…') : f());
+    const kp = kpi(nf(rows.length), '總人數', 'msTotal', `目前全部會員（含還沒登入過的）；不隨期間變動${wait ? '' : `。${pt}內新加入 ${nf(s.joined)} 人`}`)
+      + kpi(val(() => nf(s.active)), `活躍人數`, 'msActive', `${pt}內有開站、在線或使用功能的不同人數`)
+      + kpi(val(() => nf(s.visits)), '造訪次數', 'msVisits', `${pt}內開啟網站的次數（登入狀態）`)
+      + kpi(val(() => nf(s.pv)), '頁面瀏覽', 'msPv', `${pt}內看過的頁面數（登入狀態）`)
+      + kpi(val(() => durZ(s.active ? s.ms / s.active : 0)), '平均每人在線', 'msAvgOn', `${pt}內，每位活躍會員的累計在線時間`)
+      + kpi(val(() => durZ(s.visits ? s.ms / s.visits : 0)), '平均每次停留', 'msAvgStay', `${pt}內，每次造訪平均停留多久`);
+    const cnt = { ok: 0, soon: 0, exp: 0, new: 0 }; rows.forEach((x) => { cnt[stOf(x)] += 1; });
+    /* 甜甜圈：跟流量觀測同一顆（donutG：直角、2° 間隙、細軌道、中心字、圖例在右）；圖例每列帶人數與占比 */
+    const dn = (parts, o) => {
+      const tot = sum(parts.map((x) => x[1])); if (!tot) return '<div class="empty">沒有資料</div>';
+      const segs = parts.map(([nm, n, col], i) => ({ label: nm, n, color: col, k: o.keys[i], ltxt: `${nf(n)} 人・${Math.round(n / tot * 100)}%` }));
+      return donutG(segs.filter((x) => x.n > 0), { id: o.id, center: ['合計', nf(tot)], legend: segs, legendN: 8, totalN: tot, aria: o.aria });
+    };
+    const cards = [card('msDaysC', `${{ day: '每天', week: '每週', month: '每月' }[bin]}有多少人在用？`, `${{ day: '每天', week: '每週（週一起算）', month: '每月' }[bin]}有活動的不同人數`, wait ? ph(wait) : binChart(s.days || [], bin, 'msDays'), 'ma'),
+      card('msStatusC', '會員現在是什麼狀態？', '目前狀態，不隨期間變',
+        dn([['有效', cnt.ok, 'var(--st-ok)'], ['7 天內到期', cnt.soon, 'var(--st-soon)'], ['已過期', cnt.exp, 'var(--st-exp)'], ['未登入過', cnt.new, 'var(--st-new)']], { id: 'msStDonut', keys: ['ok', 'soon', 'exp', 'new'], aria: '這一層會員的狀態分布' }), 'mb')];
     if (PS.tier === 'free') {
       /* 註冊會員頁：免費 vs 各付費方案（只算付費有效的；過期的算免費 —— 他現在套的就是註冊會員）。最多 4 個方案，其餘併「其他付費」→ ≤ 5 類 */
-      const by = new Map(); rows.forEach((r) => { if (r.paid) by.set(r.plan, (by.get(r.plan) || 0) + 1); });
+      const by = new Map(); rows.forEach((x) => { if (x.paid) by.set(x.plan, (by.get(x.plan) || 0) + 1); });
       const ids = [...by.keys()].sort((a, b) => by.get(b) - by.get(a));
       const slot = (id) => PLAN_COL[[...PS.plans.map((p) => p.id)].sort().indexOf(id) % PLAN_COL.length] || 'var(--c5)';
       const head = ids.length > 4 ? ids.slice(0, 3) : ids, rest = ids.length > 4 ? ids.slice(3) : [];
-      const parts = [['免費', rows.filter((r) => !r.paid).length, 'var(--c0)']].concat(head.map((id) => [(planOf(id) || {}).name || id, by.get(id), slot(id)]));
+      const parts = [['免費', rows.filter((x) => !x.paid).length, 'var(--c0)']].concat(head.map((id) => [(planOf(id) || {}).name || id, by.get(id), slot(id)]));
       if (rest.length) parts.push(['其他付費', rest.reduce((a, id) => a + by.get(id), 0), 'var(--c5)']);
-      dn += donut2(parts, { id: 'msPlanDonut', keys: ['free'].concat(head, rest.length ? ['other'] : []), aria: '免費與各付費方案人數' });
+      cards.push(card('msPlanC', '免費和付費各占多少？', '目前狀態：付費＝有效的付費方案', dn(parts, { id: 'msPlanDonut', keys: ['free'].concat(head, rest.length ? ['other'] : []), aria: '免費與各付費方案人數' }), 'mc'));
     }
-    const days = wait ? [] : (s.days || []).map((d) => ({ day: d.day, n: d.n, tip: `${d.day}：${nf(d.n)} 人活躍` }));
-    return `<div class="mkpis">${kp}</div><div class="mcharts" id="msCharts">
-      <div class="mchart" data-ch="status"><h4>${PS.tier === 'free' ? '會員狀態｜免費 vs 付費' : '會員狀態'}<small>人數</small></h4>${dn}</div>
-      <div class="mchart" data-ch="days"><h4>近 14 天每日活躍人數</h4>${wait ? `<div class="empty">${esc(wait)}</div>` : vbars(days, { id: 'msDays', aria: '近 14 天每天有幾個人活躍' })}</div>
-      <div class="mchart" data-ch="feats"><h4>最常用的功能 Top 8<small>近 30 天合計次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.feats || [], compName, { id: 'msFeat', empty: '沒有資料' })}</div>
-      <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8<small>近 30 天觀看次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.stocks || [], stockNm, { id: 'msStock', empty: '沒有資料' })}</div></div>`;
+    const cls = PS.tier === 'free' ? 'mc' : 'md', none = '<div class="empty">這段期間沒有活動</div>';
+    cards.push(card('msFeatC', '最常用哪些功能？', `${pt}・前 8 名`, wait ? ph(wait) : ((s.feats || []).length ? bars(s.feats, compName, s.featTotal || sum(s.feats.map((x) => x[1])), { id: 'msFeat' }) : none), cls),
+      card('msStockC', '最常看哪些股票？', `${pt}・前 8 名`, wait ? ph(wait) : ((s.stocks || []).length ? bars(s.stocks, stockNm, s.stockTotal || sum(s.stocks.map((x) => x[1])), { id: 'msStock' }) : none), cls));
+    const keep = s.keepDays || 90, note = !wait && r.from < dayAdd(todayTpe(), -(keep - 1)) ? `個人使用紀錄只保留近 ${keep} 天：期間內更早的活動不在活躍人數、功能、股票的統計裡。` : (!wait && s.since && s.since > r.from ? `使用紀錄從 ${s.since} 起；更早的日子沒有資料。` : '');
+    return `<div class="secttl trhead"><h2>會員使用概況</h2><small>${esc(PS.tier === 'free' ? '註冊會員（含付費）' : (planOf(PS.planSel) || {}).name || '')}・${esc(pt)}</small><span class="sp"></span>${periodCtlHtml(per, 'msPer')}</div>
+      <div class="mkpis">${kp}</div>${note ? `<p class="msnote" id="msNote">${esc(note)}</p>` : ''}<div class="admgrid msgrid" id="msCharts">${cards.join('')}</div>`;
+  }
+  /* 統計區的唯一畫法：每次都先確認快取在不在（不在＝去讀），再畫；內容沒變（同一期間、同一份名單、同一個讀取狀態）就不重畫，免得搜尋打字時圖一直閃 */
+  function paintStats() {
+    if (!PS.v || PS.mode !== 'plan' || PS.tier === 'guest') return;
+    const el = PS.v.querySelector('#ptStats'); if (!el) return;
+    const per = perOf(), rows = listRows(), r = perRange(per), bin = perBin(r), k = `${mKey()}|${r.from}|${r.to}|${bin}`;
+    loadMStats(k, r, bin);
+    const e = PS.mst[k], sig = [k, e.loading ? 'L' : e.err ? 'E' : 'D', rows.length, rows.map((x) => stOf(x) + (x.paid ? 1 : 0) + x.plan).join(',')].join('|');
+    if (el.dataset.sig === sig) return;
+    el.dataset.sig = sig;
+    const af = document.activeElement && el.contains(document.activeElement) ? document.activeElement.id : '';
+    el.innerHTML = statsHtml(rows, k, r, bin);
+    periodWire(el, per, 'msPer', () => { el.dataset.sig = ''; paintStats(); });
+    const rt = el.querySelector('.msretry'); if (rt) rt.onclick = () => { delete PS.mst[k]; el.dataset.sig = ''; paintStats(); };
+    if (af) { const n = el.querySelector('#' + af); if (n) n.focus(); }
   }
   /* 展開明細（Andy 10-05：數字太大、被上一列擋住、四塊位置亂）：一排四個小數字（≤ 20px）＋一排四張同高圖卡，
      放在表格裡獨立的一列（colspan 全寬、自己的底色與內距），不用任何絕對定位 → 不會蓋到上下列。 */
@@ -2227,27 +2391,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
       const shellKey = PS.tier + '|' + PS.planSel;
       if (!box.querySelector('#ptTableBox') || box.dataset.shell !== shellKey) {
         box.dataset.shell = shellKey;
-        box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats">${statsHtml(rows)}</div>
-          <div class="pmbar ptadd" id="pmAdd"><input type="email" id="pmAddEmail" placeholder="新增會員：member@example.com" autocomplete="off" aria-label="新會員 email">
-            <select id="pmAddPlan" aria-label="新會員的層級與範本">${planOpts(defPlan, false)}</select>
-            <label>到期日 <input type="date" id="pmAddExp" aria-label="到期日（留空＝不會到期）"></label>
-            <button type="button" class="pri" id="pmAddGo">新增</button>
-            <span class="pmsep" aria-hidden="true"></span>
-            <input type="email" id="pmTuneEmail" list="pmTuneEmails" placeholder="逐人微調：輸入 email" autocomplete="off" aria-label="要逐人微調的會員 email"><datalist id="pmTuneEmails">${listRows().map((r) => `<option value="${esc(r.email)}"></option>`).join('')}</datalist>
-            <button type="button" id="pmTuneGo">讀取</button></div>
+        box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats"></div>
           <div class="pmbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
             <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span></div>
           <div id="ptTableBox"></div></div>`;
         const vv = PS.v; vv.querySelector('#pmStatF').value = PS.stf;
         vv.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
         vv.querySelector('#pmStatF').onchange = (e) => { PS.stf = e.target.value; paintList(); };
-        vv.querySelector('#pmAddGo').onclick = addMember;
-        vv.querySelector('#pmAddEmail').onkeydown = (e) => { if (e.key === 'Enter') addMember(); };
-        const tune = () => { const e = (vv.querySelector('#pmTuneEmail').value || '').trim().toLowerCase(); if (!EMAIL_OK(e)) { setStat('email 格式不對（例如 member@example.com）', 'bad'); return; } enterMember(e); };
-        vv.querySelector('#pmTuneGo').onclick = tune;
-        vv.querySelector('#pmTuneEmail').onkeydown = (e) => { if (e.key === 'Enter') tune(); };
-        loadMStats(mKey());
-      } else { const st = box.querySelector('#ptStats'); if (st) st.innerHTML = statsHtml(rows); }
+      }
+      paintStats();       // 統計區：換期間／換範本／名單變了都會走到這裡；沒有快取就去讀（不會卡在「載入中」）
       const q = PS.q.trim().toLowerCase();
       let fr = q ? rows.filter((r) => (r.email + ' ' + r.name + ' ' + r.planName + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : rows.slice();
       if (PS.stf) fr = fr.filter((r) => r.st === PS.stf);

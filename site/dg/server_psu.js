@@ -385,9 +385,6 @@
     title: '主板四級：PFC→LLC→同步整流→輸出', sub: '整流→隔離降壓→同步整流' })}
       ${extRow({ side: 'l', no: 10, part: 'psu_ups', color: COL.off, ax: 56, ay: 323,
     title: '機房 UPS 與設施側：不在這條鏈上', sub: '交流側、機櫃外；不列台股' })}
-      ${note({ side: 'l', warn: true, title: '★ 點零件篩到的是「環節」，不是整個族群',
-    lines: ['BBU 尚未建檔：這條鏈沒有 BBU 環節，點 BBU 篩到的是「電源」那一格（2308 台達電、2301 光寶科），不是做 BBU 的那幾家。',
-      '示意圖，非實物比例；時間軸不標秒數：BBU 撐多久的公開說法不一致。'] })}
       ${extRow({ side: 'r', no: 4, seg: C, part: 'psu_busbar', color: COL.cu, ax: BBX + BBW / 2, ay: 230,
     title: '匯流排 busbar：厚銅排不是電線', sub: '電壓越低電流越大，銅越粗' })}
       ${extRow({ side: 'r', no: 5, seg: C, part: 'psu_whip', color: COL.cu, ax: 367, ay: 128,
@@ -518,10 +515,6 @@
       <text class="sub" x="336" y="2138">不是電源廠做的。機櫃 → 系統組裝。</text>
       <text class="sub" x="336" y="2156">設施側與 UPS 不在這條鏈上。</text>
 
-      <rect class="frame" x="16" y="2188" width="608" height="96" rx="8"/>
-      <text class="hd" x="28" y="2212">這張圖沒有回答的事</text>
-      <text class="sub" x="28" y="2234">① 各家的 PSU 市占率：兩個來源給兩個數字、都沒有可查證出處，所以一個百分比都不寫。</text>
-      <text class="sub" x="28" y="2252">② BBU 到底撐多久：三個來源三個答案、口徑還不一致 → 時間軸不標秒數。</text>
       `)}
     </svg>`;
   }
@@ -531,6 +524,8 @@
     name: '電源：PSU、匯流排、板上降壓與 BBU',
     draw: serverPsu, native: CW, scene: 'server_psu',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
         推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
+    /* ★ 2026-10-06：原本圖裡那張警示卡的「這張圖特有」那一句，搬進「?」（industry.js paintDgTitle 讀 DS.honest）。*/
+    honest: 'BBU 尚未建檔：這條鏈沒有 BBU 環節，點 BBU 篩到的是「電源」那一格（2308 台達電、2301 光寶科），不是做 BBU 的那幾家。',
     q: '牆上的電進來，到 GPU 核心的零點幾伏特，中間降壓幾次、每一級是誰做的？BBU 跟機房 UPS 又差在哪？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        `cos` 只放代號，「這家在這裡負責什麼」一律讀 supply_chain.json 的 companies[].tech（R3）。

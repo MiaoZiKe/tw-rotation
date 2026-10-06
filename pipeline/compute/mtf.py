@@ -329,34 +329,36 @@ def synthesize(per_tf: dict[str, dict], close: float) -> dict:
 
     script = []
     if big_t > 0 and small_t > 0:
-        headline = f"{big_label}{big_word}、{small_label}同步{small_word}：順勢，等小週期回測需求區再承接"
+        # 2026-10-06（DECISIONS #333）：這幾行腳本原本是「進場／目標／減碼／觀望」的操作指示，
+        # 公開網站不能讀起來像買賣建議，改成只描述大小週期結構與「什麼條件會讓結構改變」。價位一個都沒少。
+        headline = f"{big_label}{big_word}、{small_label}同步{small_word}：大小週期方向一致"
         if sup:
-            script.append(f"進場：價格回到 {sup[0]['label']} 需求區 {sup[0]['low']}–{sup[0]['high']}，"
-                          f"且 15 分或 1 小時出現 CHoCH 翻多再進")
+            script.append(f"下方需求區：{sup[0]['label']} {sup[0]['low']}–{sup[0]['high']}；"
+                          f"回檔型態的確認條件是 15 分或 1 小時出現 CHoCH 翻多")
         if res:
-            script.append(f"目標：先看 {res[0]['label']} 供給區 {res[0]['low']}–{res[0]['high']}")
-        script.append("失效：小週期跌破最近需求區下緣且 4 小時結構轉空")
+            script.append(f"上方供給區：{res[0]['label']} {res[0]['low']}–{res[0]['high']}")
+        script.append("結構轉變條件：小週期跌破最近需求區下緣且 4 小時結構轉空")
     elif big_t > 0 and small_t <= 0:
-        headline = f"{big_label}{big_word}、{small_label}{small_word}：大方向沒變，小週期在修正，不追高、等修正結束"
+        headline = f"{big_label}{big_word}、{small_label}{small_word}：大週期方向未變，小週期修正中"
         if sup:
             script.append(f"觀察：{sup[0]['label']} 需求區 {sup[0]['low']}–{sup[0]['high']} 是否守住")
-        script.append("進場條件：小週期先出現 BOS 或 CHoCH 翻多，再回測不破才進")
-        script.append("失效：日線需求區失守，改看空頭腳本")
+        script.append("小週期轉多條件：先出現 BOS 或 CHoCH 翻多，再回測不破")
+        script.append("結構轉變條件：日線需求區失守")
     elif big_t < 0 and small_t > 0:
-        headline = f"{big_label}{big_word}、{small_label}{small_word}：只是反彈，接近大週期供給區要減碼"
+        headline = f"{big_label}{big_word}、{small_label}{small_word}：大週期空頭中的小週期反彈"
         if res:
-            script.append(f"反彈上限：{res[0]['label']} 供給區 {res[0]['low']}–{res[0]['high']}")
-        script.append("除非日線或週線出現 CHoCH 翻多，否則不做趨勢單")
+            script.append(f"上方供給區：{res[0]['label']} {res[0]['low']}–{res[0]['high']}")
+        script.append("大週期轉多條件：日線或週線出現 CHoCH 翻多")
     elif big_t < 0:
-        headline = f"{big_label}{big_word}、{small_label}{small_word}：空頭，觀望"
+        headline = f"{big_label}{big_word}、{small_label}{small_word}：大週期空頭"
         if sup:
-            script.append(f"下方觀察：{sup[0]['label']} 需求區 {sup[0]['low']}–{sup[0]['high']}，跌破後才有掃蕩反轉機會")
+            script.append(f"下方觀察：{sup[0]['label']} 需求區 {sup[0]['low']}–{sup[0]['high']}")
         script.append("轉多條件：週線或日線 CHoCH + 站回 MA20 且量能放大")
     else:
-        headline = f"{big_label}盤整：區間操作，需求區進、供給區出，沒有趨勢單"
+        headline = f"{big_label}盤整：價格在需求區與供給區之間，沒有明確趨勢"
         if sup and res:
             script.append(f"區間：{sup[0]['low']}–{res[0]['high']}（{sup[0]['label']} 需求 / {res[0]['label']} 供給）")
-        script.append("突破區間並在小週期回測確認後，再依突破方向操作")
+        script.append("區間突破條件：收盤突破區間並在小週期回測確認")
 
     if no_intraday:
         script.append("分 K（15 分 / 1 小時 / 4 小時）尚未取得，小週期暫以日線代替；分 K 於每日盤後由 Yahoo 補入")

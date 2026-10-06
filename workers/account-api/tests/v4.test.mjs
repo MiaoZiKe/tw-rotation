@@ -151,3 +151,44 @@ test('範本刪除保護：有「有效會員」→ 409 has_members（回人數�
   assert.equal((await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'pz', del: true })).s, 200, '只剩已到期者 → 可刪');
   assert.equal((await pj(hub, '/v1/admin/perm/get', { t: andy, email: 'c@example.com' })).j.plan, 'free', '到期者退回免費');
 });
+
+test('members/stats 依期間（2026-10-06）：from／to／bin、活躍人數／造訪／在線／瀏覽、週月合併算「不同人數」、壞區間 400、沒帶起訖＝舊格式', async () => {
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  const bob = await login(hub, 'bob@example.com');
+  const cat = await login(hub, 'cat@example.com');
+  const saved = clock;
+  try {
+    clock = saved - 20 * 86400000;                              // 20 天前：bob
+    await beat(hub, bob, { ev: { 'pv:stock': 2 }, e2: [['stock', 'view', '2330', 3]] });
+    clock = saved - 19 * 86400000;                              // 19 天前：bob、cat（同一週內 bob 出現兩天，週合併只算 1 人）
+    await beat(hub, bob, { ev: { 'pv:stock': 1 }, e2: [['stock', 'view', '2330', 1]] });
+    await beat(hub, cat, { ev: { 'pv:flow': 4 }, e2: [['flow', 'quad', '領先', 2]] });
+  } finally { clock = saved; }
+  const rng = (o) => pj(hub, '/v1/admin/members/stats', { t: andy, scope: 'all', ...o });
+  const day = (await rng({ from: '2026-09-15', to: '2026-10-05', bin: 'day' })).j;
+  assert.equal(day.days.length, 21);
+  assert.equal(day.active, 2, '期間內有活動的不同人數');
+  assert.equal(day.pv, 7, 'bob 3＋cat 4（登入者的頁面瀏覽）');
+  assert.deepEqual(day.stocks, [['2330', 4]]);
+  assert.equal(day.stockTotal, 4);
+  assert.equal(day.featTotal, 2);
+  assert.ok(day.keepDays > 0 && day.bin === 'day');
+  assert.equal(day.days.reduce((a, d) => a + d.pv, 0), 7);
+  const wk = (await rng({ from: '2026-09-15', to: '2026-10-05', bin: 'week' })).j;
+  assert.ok(wk.days.every((d) => new Date(d.day + 'T00:00:00Z').getUTCDay() === 1), '週＝週一起算');
+  assert.ok(Math.max(...wk.days.map((d) => d.n)) <= 2, '週合併是「不同人數」，不是每天人數相加');
+  const mo = (await rng({ from: '2026-09-01', to: '2026-10-05', bin: 'month' })).j;
+  assert.deepEqual(mo.days.map((d) => d.day), ['2026-09-01', '2026-10-01']);
+  const empty = (await rng({ from: '2026-01-01', to: '2026-01-31' })).j;
+  assert.deepEqual([empty.active, empty.visits, empty.ms, empty.pv, empty.feats.length, empty.stocks.length], [0, 0, 0, 0, 0, 0], '空期間＝全 0、不是缺欄位');
+  assert.ok(empty.days.length > 0 && empty.days.every((d) => d.n === 0));
+  const long = (await rng({ from: '2025-10-06', to: '2026-10-05', bin: 'day' })).j;
+  assert.equal(long.bin, 'week', '超過 120 天的日直條自動改週');
+  for (const bad of [{ from: '2026-10-05', to: '2026-10-01' }, { from: '2025-01-01', to: '2026-10-05' }, { from: 'x' }, { to: '2026-13-40' }]) {
+    assert.equal((await post(hub, '/v1/admin/members/stats', { t: andy, scope: 'all', ...bad })).status, 400, JSON.stringify(bad));
+  }
+  const old = (await pj(hub, '/v1/admin/members/stats', { t: andy, scope: 'all' })).j;
+  assert.equal(old.days.length, 14, '沒帶起訖＝舊格式（近 14 天）');
+  assert.equal((await post(hub, '/v1/admin/members/stats', { t: bob, scope: 'all', from: '2026-09-15' })).status, 403);
+});

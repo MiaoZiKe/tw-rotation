@@ -272,8 +272,10 @@ def _holders(sh: pd.DataFrame, codes: set[str]) -> dict:
 
 def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.DataFrame,
           div_results: pd.DataFrame, shareholding: pd.DataFrame, latest: str,
-          done_keys: set[str] | None = None, top_n: int = 5) -> dict:
+          done_keys: set[str] | None = None, top_n: int = 5,
+          nodata_keys: set[str] | None = None) -> dict:
     done_keys = done_keys or set()
+    nodata_keys = nodata_keys or set()
     px = price[price["code"].astype(str).isin(etf_codes)].copy()
     px["code"] = px["code"].astype(str)
     px["date"] = px["date"].astype(str)
@@ -288,6 +290,12 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
         #   不代表「問到了」。拿它當「確定不配息」會把 0056 的含息報酬算成跟價格報酬一樣，那是錯的。
         #   代價：真的從不配息的 ETF（槓桿反向、期貨型）也會顯示「配息資料尚未取得」，寧可少講不可講錯。
         return c in div_by
+
+    def div_none(c):
+        # 2026-10-06（Andy：「槓桿沒有配息」「其他為何沒數據」）：「確定不配息」要有證據 ——
+        #   回補進度檔記了 FinMind 配息資料集對這檔明確回空（etfdiv@etfx2009 = no_data，2009 起整段問過），
+        #   且湖裡真的 0 列。只有「沒問過」的不算（那是不知道，不是 0）。前端據此只畫一條「年化報酬率」。
+        return (c not in div_by) and any(k in nodata_keys for k in (f"etfdiv@etfx2009:{c}", f"dividend@etf2009:{c}"))
 
     def px_done(c):
         return any(k in done_keys for k in (f"price:{c}", f"price@2000-01-01:{c}"))
@@ -344,6 +352,7 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             "holders": h.get("holders"), "d_holders": h.get("d_holders"),
             "size": round(h["units"] * close, 0) if h.get("units") else None,
             "first": dates[0], "px_done": px_done(code), "div_done": div_done(code),
+            "div_none": div_none(code),
             "spark": [round(x, 3) for x in adj[-60:]],
             "fill_avg": round(sum(done4) / len(done4), 1) if done4 else None,
             "fill_n": len(last4), "fill_open": sum(1 for f, w in last4 if f is None and w is not None),

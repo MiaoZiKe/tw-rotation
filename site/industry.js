@@ -1400,6 +1400,13 @@
          右欄只回應「真的選了一格」：下拉、點公司卡、點圖上的環節標題。*/
       const listOn = (partHi || partSel) ? (segFilter ? [segFilter] : []) : segsOn;
       $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', listOn.includes(c.dataset.seg)));
+      /* 驗收讀數（畫面不顯示；同 DECISIONS #329 第 5 條的 data-* 做法）：現在「只看這一格」套用的是哪一格。
+         桌機（>820）沒有 #segOnly 那顆「已只看這一格」可以讀，而右欄 .rlseg.on 在剖析圖分頁一進來就會亮著
+         這張圖的族群那幾格（state.group，不是使用者選的）—— 單看畫面分不出「選了一格」與「族群帶出來的」，
+         DECISIONS #73「點零件只亮不篩」要量的正是這個差別。*/
+      /* ⚠ 值沒變就不要寫：同一個值再寫一次也會產生 attributes 的 MutationObserver 紀錄，
+         全站有好幾個觀察器（分頁拖曳、版面 v2 掃描）會因此再排一次版面 → 又叫到這裡，變成停不下來的重排（第一版就踩到：頁面一直不穩定）。*/
+      { const dd = $('#segDD', el), fv = segFilter || ''; if (dd && dd.dataset.filter !== fv) dd.dataset.filter = fv; }
       { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
       /* 說明卡浮在圖上（2026-09-26 晚）：開關狀態定了之後，依被點的那一格決定貼左還是貼右（見 placeRelCol） */
       placeRelCol(el);
@@ -1433,7 +1440,16 @@
       }
       // 「?」彈窗的標題＝這張圖的名字（跟總覽一樣：彈窗標題＝卡片／區塊名稱）
       { const qb = $('.howbtn[data-how="dg"]', el); if (qb) qb.dataset.ttl = dgId ? DS.name(dgId) : '產品剖析圖'; }
-      if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b class="howq">${A.fmt.esc(DS.q(dgId))}</b>` : '';
+      /* ★ 2026-10-06（style_guide 第 10 條「備註不另起框」、第 11 條廢話）：
+         圖裡那張「點零件篩到的是環節」警示卡與「這張圖沒有回答的事」框拿掉；
+         真正有用的只有一句誠實標示 ——「點零件篩出來的是供應鏈環節，不是整個族群」，
+         少了它，使用者會把「這一格只列一家」誤讀成「全台只有這一家做」。所以那一句收進「?」，
+         這張圖特有的補充（某一格收錄幾家、哪個零件還沒建檔）接在後面（DS.honest，各張圖在 register 時給）。*/
+      if (q) {
+        const hon = dgId ? ((DS.honest && DS.honest(dgId)) || '') : '';
+        q.innerHTML = ((dgId && DS.q(dgId)) ? `<b class="howq">${A.fmt.esc(DS.q(dgId))}</b>` : '')
+          + (dgId ? `<p class="howhonest" data-honest>點零件篩到的是供應鏈「環節」，環節不等於族群：同一格可能只收錄其中幾家，也可能混了別的族群的公司。${hon ? A.fmt.esc(hon) : ''}</p>` : '');
+      }
     }
     /* 「族群總覽」與「剖析圖」兩種模式的顯示切換。
        用的是 hidden 屬性，但 .row 這幾個有 display 規則的類別會蓋掉
@@ -1615,7 +1631,9 @@
         });
         const hint = $('#relHint', el) || document.getElementById('relHint');   // 「?」彈窗開著時盒子在 #howPop 裡
         if (hint) hint.innerHTML = HINT.layer(relScope && relScope.size
-          ? `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係；亮框＝上方剖析圖畫到的 ${relScope.size} 格`
+          /* 2026-10-06 說明精簡（每條 ≤30 字）：原句「…；亮框亮底的 N 格＝上方這張剖析圖畫到的環節，其餘淡一點但一樣可以點」52 字，
+             砍成數字＋亮框的意思；「淡的也能點」在圖上點下去就知道，不必寫。*/
+          ? `${stat.nSeg} 格、${stat.nTw} 檔、${stat.nEdge} 條上下游；亮框＝剖析圖畫到的 ${relScope.size} 格`
           : `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
@@ -7445,34 +7463,7 @@
     renderHeat(im);
   }
 
-  /* 2026-10-01 自選頁展開圖（DECISIONS #282）：給 watchpage.js 用的「某一檔、某個週期的 K 棒」。
-     走的是個股頁同一條路（stock/<代號>.json ＋ ensureM60 ＋ groupBars／resampleDaily），不另寫一套載入。
-     刻意不接 withToday：那支接的是 livek.js「現在正在看的那一檔」的今日報價，自選頁一次好幾檔，接上去會張冠李戴；
-     也不接即時週期 —— 不准為了自選頁多打 mis。*/
-  const _wbCache = new Map();
-  async function watchBars(code, tf) {
-    let pg = _wbCache.get(code);
-    if (!pg) {
-      if (!A) A = window.App;               // A 平常在 route() 才指定；從自選頁直接叫時還沒指定
-      pg = await A.load('stock/' + code, { fallback: null });
-      if (!pg) return { bars: [], why: '這檔沒有個股資料' };
-      // 舊版 payload 沒有 meta.m60 欄位時也試一次 m60 檔（新版標 ok 才載，跟個股頁一致）
-      if (pg.meta && pg.meta.m60 === undefined && !((pg.intraday || {})['60m'] || []).length) pg.meta.m60 = 'ok';
-      await ensureM60(pg);
-      _wbCache.set(code, pg);
-    }
-    const daily = pg.daily && pg.daily.length ? pg.daily : (pg.ohlcv || []);
-    const h60 = (pg.intraday && pg.intraday['60m']) || [];
-    let bars;
-    if (tf === '1d') bars = daily;
-    else if (tf === '1w') bars = KUtil.resampleDaily(daily, 'W');
-    else if (tf === '60m') bars = h60;
-    else if (tf === '240m') bars = groupBars(h60, 4);
-    else bars = [];
-    return { bars: bars || [], h60, daily, why: /m$/.test(tf) ? m60Why(pg) : '這個週期尚無資料' };
-  }
   window.Industry = { route, routeHeat,
-    watchBars,
     // 驗收用：族群總覽現在是什麼狀態（族群／個股、幾條、即時開沒開、滑到誰、onLive 被呼叫幾次）
     _gp: () => Object.assign({}, gpDbg, { timer: !!gpTimer }),
     // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」
