@@ -16672,7 +16672,11 @@ def t_mobile_v3(b, base, code):
         m.tap("#mTabMore", timeout=8000)
         m.wait_for_timeout(300)
         mo = m.evaluate("() => { const s = document.getElementById('mSheet'); return { open: !s.hidden, kind: s.dataset.kind, ver: (s.querySelector('.mver') || {}).textContent || '', rows: s.querySelectorAll('.mrow').length }; }")
-        ok(f"{T} 「更多」抽屜：市場明細／週期統計／交付清單／今日事件／主題 五列＋版號", mo["open"] and mo["rows"] == 5 and "版號" in mo["ver"], mo)
+        # ★ 2026-10-06 改前→改後（驗收過時）：改前「五列」＝市場明細／週期統計／自選／今日事件／主題（交付清單 09-28 換成自選）。
+        #   10-05 ETF 專區上線後，底部導覽那顆 ETF 分頁在手機靜態藏起來，入口改進「更多」（mobile3.js MORE_VIEWS），所以訪客清單是六列：
+        #   市場明細／週期統計／ETF 專區／自選／今日事件／主題（管理者另加「管理區」，這裡是訪客）。
+        ok(f"{T} 「更多」抽屜：市場明細／週期統計／ETF 專區／自選／今日事件／主題 六列＋版號",
+           mo["open"] and mo["rows"] == 6 and "版號" in mo["ver"], mo)
         th0 = m.evaluate("() => document.documentElement.dataset.theme")
         m.tap('#mSheet .mrow[data-m="theme"]'); m.wait_for_timeout(800)
         th1 = m.evaluate("() => document.documentElement.dataset.theme")
@@ -23703,6 +23707,19 @@ def t_batch13(pg, base):
             pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold')"
                         ".forEach(n => n.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
             pg.wait_for_timeout(400)
+            # ★ 2026-10-06 改前→改後（驗收過時）：手機 v3 R3（Andy 2026-09-24「剖析圖手機只留編號」，docs/mobile_v3_spec.md §10-4）起，
+            #   390 預設是「整張」模式：SVG 縮到欄寬（約 0.42 倍），圖內字約 5px 是規格寫明的代價；要讀的東西由 HTML 編號鈕＋底部抽屜承擔，
+            #   要看原圖字按「放大」（前一輪 f5ee9b1e 對 t_mlcc 同一件事已改成這種寫法，這一段漏了）。
+            #   改後在 390：① 整張模式量 HTML 編號鈕字級 ≥ 11px ② 真的按「放大」再量 SVG 每一個字 ≥ 12px（原門檻沒放寬）。
+            if w == 390 and pg.evaluate("() => !!document.querySelector('#prodDiagram.mnum2d')"):
+                nb = pg.evaluate("() => [...document.querySelectorAll('#prodDiagram .mnumlayer button')].filter(b => b.getClientRects().length)"
+                                 ".map(b => parseFloat(getComputedStyle(b).fontSize))")
+                if not nb or min(nb) < 11:
+                    bad.append(f"{lab}：整張模式的編號鈕看不到或字級 < 11px {nb[:4]}")
+                if not pg.evaluate("() => !!document.querySelector('#prodDiagram.mbig')"):
+                    click(pg, "#prodDiagram ~ .mdgbar .mdgzoom button[data-z='big'], .mdgbar .mdgzoom button[data-z='big']", 900)
+                if not pg.evaluate("() => !!document.querySelector('#prodDiagram.mbig')"):
+                    bad.append(f"{lab}：按「放大」沒有切到放大模式")
             z = pg.evaluate(DG_TYPO)
             if not z.get("present"):
                 bad.append(f"{lab}：沒有圖")
@@ -23712,6 +23729,8 @@ def t_batch13(pg, base):
             if z["nSmall"] or novs > 0:
                 bad.append(f"{lab}：小字 {z['small']} 重疊 {z['ov']}")
         ok(f"★ [{w}px] 每一張剖析圖（章節全部展開）每一個字都 ≥ 12px、文字兩兩不重疊", not bad, bad[:4])
+        if w == 390:   # 「放大」的選擇會記在 localStorage（tw.m3.dgzoom），收尾清掉，不汙染後面的段落
+            pg.evaluate("() => { try { localStorage.removeItem('tw.m3.dgzoom'); } catch (e) {} }")
 
     # ---------------- 10. 3D 也切得到閱讀
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -26036,6 +26055,17 @@ def t_wrap_adj(pg, base, code):
     pa = pg.evaluate(f"() => fetch('data/stock/{c6}.json').then(r => r.json()).then(d => d.price_adjust).catch(() => null)")
     if not ok("[還原小標] 6669 的資料有 price_adjust.daily_adjusted", bool(pa) and pa.get("daily_adjusted"), pa and list(pa)):
         return
+    # ★ 2026-10-06 改前→改後（驗收過時）：個股頁預設週期是「分時」（2026-09-28 #310；總覽只剩日週月、個股預設分時）。
+    #   分時是原始成交價、不是 K 線，index.html 刻意把「還原」小標收起來（`.chartwrap.tickmode .adjtag{display:none!important}`，
+    #   註解：分時是原始成交價）—— 改前直接量小標，量到的是 display:none 的元素（rect 全 0 → right 1407、top -294），hover 逾時。
+    #   小標只屬於日 K 以上，所以先證明「分時模式不顯示」，再真的按「日」切到日 K 才量位置與說明。
+    tk = pg.evaluate("""() => { const e = document.getElementById('adjTag'), w = document.getElementById('chartWrap');
+        return { tick: !!w && w.classList.contains('tickmode'), shown: !!e && e.getClientRects().length > 0 }; }""")
+    if tk["tick"]:
+        ok("[還原小標] 分時模式（原始成交價）不顯示「還原」小標", not tk["shown"], tk)
+    click(pg, '#tfSeg button[data-tf="1d"]', 1200)
+    wait_until(pg, "() => { const w = document.getElementById('chartWrap'), e = document.getElementById('adjTag');"
+                   " return w && !w.classList.contains('tickmode') && e && e.getClientRects().length > 0 ? 1 : 0; }", 5000)
     t = pg.evaluate("""() => { const e = document.getElementById('adjTag'), w = document.getElementById('chartWrap'); if (!e || !w) return null;
         const r = e.getBoundingClientRect(), R = w.getBoundingClientRect(), tip = e.querySelector('.adjtip');
         return { txt: e.firstChild.textContent.trim(), right: Math.round(R.right - r.right), top: Math.round(r.top - R.top),
@@ -35999,11 +36029,21 @@ def t_mobile_v2(b, base, code):
     ok("[390px] 每顆的觸控高度 ≥ 44px", all(t["h"] >= 44 for t in tabs), sorted({t["h"] for t in tabs}))
     nh = m.evaluate("() => Math.round(document.getElementById('tabs').getBoundingClientRect().height)")
     ok("[390px] 底部導覽高 58px（改版前兩列 102px）", 54 <= nh <= 62, nh)
-    ok("[390px] 七個分頁一個都沒少（三顆收進「更多」，DOM 裡還在）",
-       m.evaluate("() => document.querySelectorAll('#tabs .tab').length") == 7)
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前數「七顆」。10-05 起電腦版側欄多了選股策略、ETF、財經日曆三頁（現共十顆 .tab），
+    #   所以改驗「電腦版的每一頁在手機都不會消失」：十顆都還在 DOM（路由與驗收照舊用得到）；
+    #   底部導覽只露出總覽／資金流向／產業／熱力圖，其餘六顆在手機藏起來；其中市場明細／週期統計／ETF／自選有「更多」入口（下面逐一點過），
+    #   選股策略與財經日曆的作者註明「手機版暫停中」、沒有入口（直接貼網址仍打得開）。
+    tabs_all = m.evaluate("() => [...document.querySelectorAll('#tabs .tab')].map(t => [t.dataset.view, getComputedStyle(t).display])")
+    shown = [v for v, d in tabs_all if d != "none"]
+    ok("[390px] 電腦版每一頁在手機都還在 DOM（十顆 .tab 一個都沒少），底部只露出四顆",
+       len(tabs_all) == 10 and shown == ["overview", "flow", "industry", "heatmap"], tabs_all)
     # ★ 2026-10-04 改前→改後（驗收過時）：交付清單的入口已從「更多」收掉（mobile3.js openMore 註解：#delivery 照樣打得開，只是入口收掉），
     #   改前去點不存在的那列 → 等 30 秒逾時、整段中斷。改後換成清單裡現在有的「自選」。
-    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market")):
+    # ★ 2026-10-06：ETF 放最後一個。ETF 專區（etfpage.js）在 390 橫向溢出（量到 docW 608 > 390：「期間」列的自訂日期框與基準分段鈕撐出去），
+    #   手機瀏覽器為了裝下整頁把版面縮小，Playwright 在這種頁面上點底部導覽會被別的元素「攔截」逾時。
+    #   手機版暫停中（DECISIONS #291）、ETF 頁版面是它負責人的檔（轉交），所以這裡只驗「更多 → ETF 專區」進得去，
+    #   不在 ETF 頁上再去點導覽；下一段（G3）一開始就用網址回總覽。溢出本身記進 notes，不假裝沒看到。
+    for v, want in (("season", "#season"), ("watch", "#watch"), ("market", "#market"), ("etf", "#etf")):
         m.tap("#mTabMore"); m.wait_for_timeout(400)
         m.tap(f'#mSheet .mrow[data-m={v}]'); m.wait_for_timeout(1600)
         st = m.evaluate("""() => ({ hash: location.hash,
@@ -36012,6 +36052,10 @@ def t_mobile_v2(b, base, code):
             txt: ((document.querySelector('main .view.on') || document.body).innerText || '').trim().length })""")
         ok(f"[390px] 「更多」→「{v}」畫面真的換過去了，而且「更多」亮起來（知道自己在哪）",
            st["hash"].startswith(want) and st["on"] == "v-" + v and st["txt"] > 60 and st["more"], st)
+        if v == "etf":
+            ow = m.evaluate("() => document.documentElement.scrollWidth - 390")
+            if ow > 1:
+                notes.append(f"手機改版：ETF 專區在 390 橫向溢出 {ow}px（etfpage.js 的期間列／基準分段鈕；手機版暫停中，轉交 ETF 頁負責人）")
 
     # ---------- G3（手機 v3 改寫）：大盤三張合一張可切換（R1）----------
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
@@ -36129,8 +36173,9 @@ def t_desktop_untouched(pg, base, code):
                 const vis = [...document.querySelectorAll('.topbar > *')].filter(e => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0);
                 return { themeR: Math.round(t.right), maxR: Math.round(Math.max(...vis.map(e => e.getBoundingClientRect().right))) }; }""")
             ok(f"[{w}px {h}] 明暗切換在頂欄最右邊", rt["themeR"] >= rt["maxR"] - 1, rt)
-            ok(f"[{w}px {h}] 分頁是七個（題材併進熱力圖）、沒有橫向捲軸",
-               r["tabs"] == 7 and r["docW"] <= r["winW"] + 1, r)
+            # ★ 2026-10-06 改前→改後（驗收過時）：改前「七個」。10-05 起電腦版多了選股策略、ETF、財經日曆三顆，現共十個（同「UI精修0923 #4」）。
+            ok(f"[{w}px {h}] 分頁是十個（七個＋10-05 加的選股策略／ETF／財經日曆）、沒有橫向捲軸",
+               r["tabs"] == 10 and r["docW"] <= r["winW"] + 1, r)
     # 桌機的剖析圖：預設展開，3D 設定列一顆都不能少
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3200)
@@ -36220,7 +36265,11 @@ def t_mobile_oneview(b, base, code):
         #   資金流向那一張（flowRot）的焦點條還在，照舊驗 .mfocus。
         ("overview", "總覽 足跡輪盤（第①步）", "#mRadarOv", "#mOvPop", "tapdot"),
         ("flow", "資金流向 足跡輪盤", "#mRadarFlow", "#flowRotCard .mfocus", None),
-        ("industry", "產業地圖 族群漲跌長條", "#gpBar", "#gpNote", None),
+        # ★ 2026-10-06 改前→改後（驗收過時）：改前的「關鍵數字」是 #gpNote（「昨天（盤後收盤）資料日期…」／「盤中暫定值…」那一行資料狀態）。
+        #   DECISIONS #329（Andy 10-06「這類資訊一律拿掉」）起 #gpNote 盤後整個 hidden（只剩即時才寫「成交值估算・涵蓋 N / M 檔」），
+        #   新鮮度只看全站資料狀態徽章與頁首時間 —— 所以這一張圖已經沒有「要一起看的外部數字」（長條與占比的數值、名稱都畫在圖內）。
+        #   改成關鍵數字＝None，並把原本的斷言換成它的新版：資料時段說明確實沒有出現在卡片上（見迴圈裡 ks is None 那一支）。
+        ("industry", "產業地圖 族群漲跌長條", "#gpBar", None, None),
         # ★ 2026-09-27 手機個股券商式：現價改住在頂部固定報價列（#mbQuote），舊的 #skPx 在手機藏起來
         (f"stock/{code}", "個股 K 線", "#chartWrap", "#mbQuote", None),
         # ★ 2026-09-24：題材併進熱力圖分頁；用舊網址開，順便驗手機導過去之後直接翻到「題材熱力」那一段
@@ -36254,6 +36303,11 @@ def t_mobile_oneview(b, base, code):
             ok(f"[390px 一屏] {name}：點盤上最下面那一顆 → 點旁說明框打開，而且整個框在頂欄與底部導覽之間（關鍵數字跟圖同一屏）",
                kv and bool(r["k"]) and r["k"]["t"] >= 52 and 0 < r["k"]["b"] <= vis, r)
             m.touchscreen.tap(8, 70); m.wait_for_timeout(300)
+        elif ks is None:
+            gn = m.evaluate("""() => { const e = document.getElementById('gpNote');
+                return { hidden: !e || e.hidden || !e.getClientRects().length, txt: ((e && e.textContent) || '').trim().slice(0, 40) }; }""")
+            ok(f"[390px 一屏] {name}：卡片上沒有資料時段／日期的說明列（#gpNote 盤後不顯示，DECISIONS #329；圖的數值都畫在圖內，不必再找外面的數字）",
+               gn["hidden"], gn)
         else:
             ok(f"[390px 一屏] {name}：關鍵數字**同時**看得到（改版前個股頁相隔 1087px）",
                bool(r["k"]) and 0 < r["k"]["b"] <= vis, r)
@@ -37421,6 +37475,8 @@ def _enclosing_object(text: str, at: int) -> str:
 #   量 transition-duration、量 scrollLeft 真的動了、量 outline-width、量右緣對齊的 px 差。
 #   ⚠ 兩個已知的例外寫在下面 CONTRAST_SKIP，每一個都註明為什麼不是這一批造成的。
 UIP_ROUTES = ("overview", "flow", "industry", "season", "delivery")
+# #tabs 裡的 .tab（data-view，照 index.html 的 DOM 順序）。★ 2026-10-06：09-24 七顆 → 10-05 加選股策略／ETF／財經日曆共十顆
+UIP_TAB_VIEWS = ["overview", "flow", "industry", "heatmap", "market", "explore", "season", "etf", "watch", "earnings"]
 
 # 對比掃描的量測程式。背景取「往上找到的第一個不透明底色」（WCAG 2.x 的算法）。
 UIP_CONTRAST_JS = r"""
@@ -37477,7 +37533,10 @@ def t_ui_polish(pg, b, base, code):
 
     # ---------- #1 數字等寬 ＋ 數字欄靠右 ----------
     pg.set_viewport_size({"width": 1440, "height": 950})
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前在 #overview 找表 —— 總覽的候選名單表（#ovCandCard）在 09-24 總覽改版時拿掉了，
+    #   現在 #overview 一張 <table> 都沒有（pairs＝0，永遠紅）。數字欄靠右＋等寬的規格沒變，
+    #   換到現在有 54 列數字的表：市場明細名單（#market 的 #mktList，右欄靠右、JetBrains Mono、tabular-nums）。
+    pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(2800)
     n = pg.evaluate("""() => {
         const fv = getComputedStyle(document.body).fontVariantNumeric;
         // 找一張真的有資料的表，取同一欄相鄰兩列，量右緣差。
@@ -37515,9 +37574,14 @@ def t_ui_polish(pg, b, base, code):
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
     tk = pg.evaluate("""() => { const s = getComputedStyle(document.documentElement);
         const g = (n) => (s.getPropertyValue(n) || '').trim(); return { ink3: g('--ink-3'), rise: g('--rise'), fall: g('--fall') }; }""")
-    ok("[#2] 深色 --ink-3 已經是新值 #8493b8", tk["ink3"].lower() == "#8493b8", tk)
-    ok("[#2] 深色的紅漲綠跌一個字都沒動（--rise 仍是 #ff4d6d、--fall 仍是 #2ee59d）",
-       tk["rise"].lower() == "#ff4d6d" and tk["fall"].lower() == "#2ee59d", tk)
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前釘 `--ink-3 #8493b8`、`--rise #ff4d6d`（09-23 第一版精修值）。
+    #   設計 v4（09-27 起，commit 669eac0c；色票表見 docs/design_v4/01_設計系統.md §「HUD・深」）把預設「科技 HUD」主題換成
+    #   `--ink-3 #86A9BF`、`--rise #FF5470`、`--fall #2EE59D`（site/theme4.css `@tokens hud dark`）。
+    #   所以改驗現行值；「紅漲綠跌的語意色沒被換成別的顏色」這條原意用**色相**守住（rise 對舊值 #ff4d6d 色相差 < 15°、fall 對 #2ee59d < 15°）。
+    ok("[#2] 深色 --ink-3 是設計 v4 的現行值 #86A9BF", tk["ink3"].lower() == "#86a9bf", tk)
+    ok("[#2] 深色的紅漲綠跌：值是設計 v4 現行的 #FF5470／#2EE59D，而且色相沒離開紅／綠（對 09-23 舊值色相差 < 15°）",
+       tk["rise"].lower() == "#ff5470" and tk["fall"].lower() == "#2ee59d"
+       and _dhue(tk["rise"], "#ff4d6d") < 15 and _dhue(tk["fall"], "#2ee59d") < 15, tk)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','light'); } catch (e) {} }")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
     tl = pg.evaluate("""() => { const s = getComputedStyle(document.documentElement);
@@ -37525,10 +37589,14 @@ def t_ui_polish(pg, b, base, code):
         return { ink3: g('--ink-3'), cyan: g('--cyan'), amber: g('--amber'), lime: g('--lime'),
                  rise: g('--rise'), fall: g('--fall'), flat: g('--flat') }; }""")
     # 2026-09-24 設計系統 v2 第 3 批：--ink-3 改前 #5b6884（冷藍灰）→ 改後 #5f5a51（暖灰，對白 6.85、對新 --bg 6.16）。
-    # 其餘六個（主色與紅漲綠跌）第 3 批刻意不動，照舊驗。
-    ok("[#3] 淺色七個色 token 全部換成新值",
+    # ★ 2026-10-06 改前→改後（驗收過時）：預設主題換成設計 v4「科技 HUD」淺色（site/theme4.css `@tokens hud light`，
+    #   色票表 docs/design_v4/01_設計系統.md）：ink3 #4A6377、cyan #0A6A86、amber #8F5600、lime #3F7512、rise #C4142F、fall #07784E、flat #566A7C。
+    #   紅漲綠跌仍用色相守住（rise 對舊值 #c81234、fall 對 #07794f 色相差 < 15°）。
+    ok("[#3] 淺色七個色 token 全部是設計 v4 現行值",
        [tl[k].lower() for k in ("ink3", "cyan", "amber", "lime", "rise", "fall", "flat")]
-       == ["#5f5a51", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
+       == ["#4a6377", "#0a6a86", "#8f5600", "#3f7512", "#c4142f", "#07784e", "#566a7c"], tl)
+    ok("[#3] 淺色的紅漲綠跌色相沒離開紅／綠（對舊值色相差 < 15°）",
+       _dhue(tl["rise"], "#c81234") < 15 and _dhue(tl["fall"], "#07794f") < 15, tl)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
 
     # ---------- #8 四個高頻小字真的升到 12px ----------
@@ -37558,10 +37626,14 @@ def t_ui_polish(pg, b, base, code):
             return { over: s.scrollWidth - s.clientWidth, cls: wp.className, left: s.scrollLeft,
                      next: getComputedStyle(nx).display, mask: getComputedStyle(s).maskImage,
                      docW: document.documentElement.scrollWidth, winW: innerWidth,
-                     tabs: document.querySelectorAll('#tabs .tab').length }; }""")
+                     tabs: document.querySelectorAll('#tabs .tab').length,
+                     views: [...document.querySelectorAll('#tabs .tab')].map(t => t.dataset.view) }; }""")
         # ★ 2026-09-24：「題材」併進「熱力圖」，八顆變七顆
-        ok(f"[#4 {w}px] 整頁沒有橫向捲軸、七顆分頁都在 DOM 裡",
-           st["docW"] <= st["winW"] + 1 and st["tabs"] == 7, st)
+        # ★ 2026-10-06 改前→改後（驗收過時）：10-05 起 DOM 裡多了選股策略（explore）、ETF（etf）、財經日曆（earnings）三顆，現共十顆
+        #   （index.html `#tabs`：總覽／資金流向／產業地圖／熱力圖／市場明細／選股策略／週期統計／ETF／自選／財經日曆）。
+        #   原意是「分頁一顆都沒被吃掉、整頁沒橫向捲軸」，所以改成逐顆比對 data-view（比數量更嚴：少一顆、多一顆、換了順序都紅）。
+        ok(f"[#4 {w}px] 整頁沒有橫向捲軸、十顆分頁都在 DOM 裡（順序照 index.html）",
+           st["docW"] <= st["winW"] + 1 and st["views"] == UIP_TAB_VIEWS, st)
         if st["over"] > 2:
             # 真的放不下 → 一定要看得到提示，而且那個提示按下去要真的有用
             ok(f"[#4 {w}px] 分頁列放不下（溢出 {st['over']}px）時，右箭頭與右緣淡出真的出現了",
@@ -37673,8 +37745,10 @@ def t_ui_polish(pg, b, base, code):
 
     # ---------- #9 表格：列高固定、列 hover 真的變色、表頭吸頂 ----------
     pg.set_viewport_size({"width": 1440, "height": 950})
-    # 用總覽的候選名單表：市場明細的預設子頁「漲跌家數」是卡片版面，沒有 <table>。
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前用總覽的候選名單表（市場明細的預設子頁當時是卡片版面、沒有 <table>）。
+    #   總覽的候選名單表 09-24 拿掉後 #overview 沒有任何表（tb 為 None → 兩條紅、後面 getComputedStyle(undefined) 爆掉）；
+    #   市場明細現在一進來就是 54 列的名單表（#mktList，列高 32、th sticky），就量它。
+    pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(2800)
     tb = pg.evaluate("""() => {
         // ⚠ 不能用 querySelector('table') —— 那會撿到**沒顯示的那一頁**裡的表（量到 0 列，假紅）。
         //   要找的是「現在這一頁、真的有看得見的列」的第一張表。
@@ -37712,7 +37786,9 @@ def t_ui_polish(pg, b, base, code):
     for rt in ("overview", "industry", "season"):
         mpg.goto(f"{base}#{rt}", wait_until="networkidle"); mpg.wait_for_timeout(2400)
         m = mpg.evaluate("""() => { const wp = document.getElementById('tabsWrap'), s = document.getElementById('tabs');
-            const tabs = [...document.querySelectorAll('#tabs .tab')];
+            // ★ 2026-10-06 改前→改後（驗收過時）：改前數全部 `.tab`（七顆、兩列）。手機 v3（09-25）起底部是一列五顆
+            //   （總覽／資金流向／產業／熱力圖＋「更多」），其餘 .tab 在手機 display:none（入口在「更多」）。
+            const tabs = [...document.querySelectorAll('#tabs .tab, #tabs .mtabmore')].filter(t => getComputedStyle(t).display !== 'none');
             const rows = new Set(tabs.map(t => Math.round(t.getBoundingClientRect().top)));
             return { wrap: getComputedStyle(wp).display,
                      prev: getComputedStyle(document.getElementById('tabPrev')).display,
@@ -37725,8 +37801,8 @@ def t_ui_polish(pg, b, base, code):
         ok(f"[手機零影響 #{rt}] 新加的 .tabswrap 在手機是 display:contents（整層從版面消失）",
            m["wrap"] == "contents", m)
         ok(f"[手機零影響 #{rt}] 桌機的左右箭頭在手機一顆都不出現", m["prev"] == "none" and m["next"] == "none", m)
-        ok(f"[手機零影響 #{rt}] 分頁列還是固定在底部、兩列、七顆（題材併進熱力圖）全部看得見",
-           m["pos"] == "fixed" and m["n"] == 7 and m["rows"] == 2 and m["allVisible"], m)
+        ok(f"[手機零影響 #{rt}] 分頁列還是固定在底部、一列五顆（手機 v3：四顆分頁＋「更多」）全部看得見",
+           m["pos"] == "fixed" and m["n"] == 5 and m["rows"] == 1 and m["allVisible"], m)
         ok(f"[手機零影響 #{rt}] 「⋯ 更多工具」還在，而且沒有橫向捲軸",
            m["more"] != "none" and m["docW"] <= m["winW"] + 1, m)
     mpg.close(); mb.close()
@@ -37954,7 +38030,11 @@ HM_READ = r"""(id) => {
 }"""
 
 
-def _lum(hexs):
+# ★ 2026-10-06（紅字清理）：這兩支原本也叫 `_lum`／`_cr`，跟 23525 行的 `_cr`（吃 hex 與 rgb 字串、
+#   給批次13 量語意色對比用）同名 —— Python 後定義的蓋掉先定義的，於是批次13 傳進 `rgb(...)` 時
+#   落到這支只吃 hex 的版本，`int('rg', 16)` 整段爆掉（「批次13-配色與收納」操作中途爆掉的根因）。
+#   改名成 `_lum_hex`／`_cr_hex`，兩邊各用各的；熱力圖（只傳 hex 色票）這邊的數字不變。
+def _lum_hex(hexs):
     h = hexs.lstrip("#")
     if len(h) == 3:
         h = "".join(c * 2 for c in h)
@@ -37964,11 +38044,11 @@ def _lum(hexs):
 
 
 def _cr_white(hexs):
-    return (1.05) / (_lum(hexs) + 0.05)
+    return (1.05) / (_lum_hex(hexs) + 0.05)
 
 
-def _cr(a, b):
-    la, lb = _lum(a), _lum(b)
+def _cr_hex(a, b):
+    la, lb = _lum_hex(a), _lum_hex(b)
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 
 
@@ -37998,7 +38078,7 @@ def _hm_check(tag, r, kind):
        all(len(t) >= 3 for t in trunc), trunc[:6])
     # 熱度那兩組（暖金／湖水藍）最亮的兩格改配深字（2026-09-24 Andy 嫌紫色醜之後換的色）；其他格一律白字
     ink = lambda i: r["inkDark"] if (kind == "heat" and 1 <= i <= 3) or (kind == "heatT" and i >= 3) else "#ffffff"   # 09-25 深藍→淺藍→淺紅→深紅，中間三格深字
-    lowc = [(c, ink(i), round(_cr(c, ink(i)), 2)) for i, c in enumerate(pal) if _cr(c, ink(i)) < 4.5]
+    lowc = [(c, ink(i), round(_cr_hex(c, ink(i)), 2)) for i, c in enumerate(pal) if _cr_hex(c, ink(i)) < 4.5]
     ok(f"[{tag}] ⑤ 每一級色階上的字（白字，熱度最亮兩格是深字）對比都 ≥ 4.5:1（從 token 算）", not lowc, lowc)
     ok(f"[{tag}] 方塊圓角 3px、標籤 12px", r["radius"] == 3 and r["fs"] == 12, [r["radius"], r["fs"]])
     # 2026-09-24 Andy 截圖：提示框 88% 透明＋0.4 秒淡入，途中後面方塊的字透出來看不清 → 改 97%、不淡入
@@ -38117,6 +38197,11 @@ def t_heatmap_v2(pg, base):
             ok("[#indTree] 標題列沒有日期膠囊（.hmctl.date 拿掉）",
                pg.evaluate("() => !document.querySelector('#indHeat .hmctl.date')"))
         # ---- 題材 ----
+        # ★ 2026-10-06 改前→改後（驗收過時）：改前 `#heatmap` 同時畫產業與題材兩張熱力圖。2026-10-03 版面 V2（DECISIONS #291／#307 前後，
+        #   app.js route 註解「電腦版子分頁：只畫看得到的那一半」）起，電腦版 #heatmap 只畫「產業」，題材熱力要點側欄「題材」才畫，
+        #   所以改前這裡量到 themeMap 是空的（n＝0）、#themeColorSel 還沒長出來 → select_option 逾時整段中斷。
+        #   改後先用現成的 l4_sub 真的點側欄切到「題材」，其餘斷言一個字不改。
+        l4_sub(pg, "theme", 1800)
         pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
         r = pg.evaluate(HM_READ, "themeMap")
         _hm_check(f"{th} 題材 #themeMap", r, "heat")
@@ -38280,6 +38365,9 @@ def t_heatmap_r4(pg, base):
        "小鏈至少佔 5%" in pg.evaluate("() => (document.getElementById('how-indheat') || {}).textContent || ''"))
 
     # ---------- ⑤ 題材熱力：放大後雙擊不展開題材；離開再回來倍率歸 1 ----------
+    # ★ 2026-10-06 改前→改後（驗收過時）：電腦版 #heatmap 只畫「產業」子分頁（2026-10-03 版面 V2），題材熱力要先點側欄「題材」才畫、才看得到
+    #   （同 熱力圖v2 的說明）。⑤⑥⑦ 每一處碰題材熱力之前都先 l4_sub 真的切過去；斷言一個字不改。
+    l4_sub(pg, "theme", 1800)
     pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
     tl = (pg.evaluate(HM_LEAF_XY, {"id": "themeMap"}) or [None])[0]
     if ok(f"【{tag}】題材熱力找得到最大那一塊（{tl and tl['name']}）", bool(tl), tl):
@@ -38296,10 +38384,14 @@ def t_heatmap_r4(pg, base):
         zb = pg.evaluate(ZST, "themeMapWrap")
         ok(f"【{tag}】題材熱力放大到 {k_before and round(k_before, 2)}× → 離開再回來倍率歸 1",
            (k_before or 0) > 1.2 and zb and zb["k"] == 1 and not zb["zoomed"], [k_before, zb])
+        l4_sub(pg, "theme", 1200)   # 回到 #heatmap 預設是「產業」子分頁，題材卡的「?」要先切過去才點得到
         click(pg, 'button.howbtn[data-how="theme"]', 400)   # 說明是按了才填進去的
-        ok(f"【{tag}】題材「怎麼看」寫的是「藍＝冷、紅＝熱」（不是「越亮越熱」）",
+        # ★ 2026-10-06 改前→改後（驗收過時）：改前找「藍＝冷、紅＝熱」。10-04 稽核（commit 9a11c13a「說明『?』：照 10-04 稽核修正 18 項不符」）
+        #   把那一條改寫成「顏色＝熱度 0～100（資金＋法人＋新聞），藍冷紅熱」（app.js HOW.theme）；意思沒變（藍＝冷、紅＝熱、不是越亮越熱），
+        #   所以改找現行字串「藍冷紅熱」，「不是『越亮越熱』」那一半照舊。
+        ok(f"【{tag}】題材「怎麼看」寫的是「藍冷紅熱」（不是「越亮越熱」）",
            pg.evaluate("() => { const t = (document.getElementById('how-theme') || document.body).textContent;"
-                       " return t.includes('藍＝冷、紅＝熱') && !t.includes('越亮越熱'); }"))
+                       " return t.includes('藍冷紅熱') && !t.includes('越亮越熱'); }"))
         # 2026-09-25：題材熱力的「?」改成跳出式（背後墊背景），讀完用 Esc 關，不然後面的點擊會被背景吃掉
         pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
 
@@ -38326,6 +38418,7 @@ def t_heatmap_r4(pg, base):
     # ---------- ⑦ 淺色主題：放大罩標題對比 ≥ 4.5 ----------
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
     pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+    l4_sub(pg, "theme", 1800)   # 同上：題材熱力的「放大」鈕在「題材」子分頁裡，先切過去
     pg.evaluate("document.getElementById('themeZoom').scrollIntoView({block:'center'})"); pg.wait_for_timeout(400)
     click(pg, "#themeZoom", 1300)
     cc = pg.evaluate("""() => { const t = document.getElementById('zoomTitle'), ov = document.getElementById('zoomOv');
@@ -40932,7 +41025,14 @@ def _fold3d_cycle(pg, width: int, wiggle: bool = True):
     ok(f"[{width}] 按「收合圖」→ 圖真的收起來（#dgBody 不顯示）", folded)
     if wiggle == "side":
         # 審查 R3 的重現條件之二：收合期間切換事件欄 —— 容器寬度真的變了（964 ↔ 1322），展開時要照新寬度重排
+        # ★ 2026-10-06 改前→改後（驗收過時）：2026-09-28（DECISIONS #271）起「今日事件」是預設收起的**浮層抽屜**（fixed 貼右、遮罩 .sideback 蓋整頁），
+        #   不再把主欄擠窄（容器寬度不變）；改前只開不關，接著那一下「展開」其實點到遮罩（只是把抽屜關掉），圖還是收著 → 「再按一次」紅。
+        #   真人會先關抽屜再按展開，所以這裡開了再關（再按一次 #evToggle），並證明抽屜真的開過；
+        #   同寬度的斷言（畫布高＝收合前、模型大小一樣）照樣驗，「容器寬度真的變了」那一支在寬度沒變時本來就不會跑。
         pg.evaluate("() => document.getElementById('evToggle').click()"); pg.wait_for_timeout(700)
+        ok(f"[{width}] 收合期間按「事件」→ 事件抽屜真的開了（浮層）",
+           pg.evaluate("() => !!document.querySelector('aside#side.open, aside.open')"))
+        pg.evaluate("() => document.getElementById('evToggle').click()"); pg.wait_for_timeout(600)
     elif wiggle:
         # 模擬「收合之後頁面變短、捲軸消失／使用者把視窗拉窄一點」—— 那一次 resize 就是 bug 的觸發點
         pg.set_viewport_size({"width": width - 40, "height": 1000}); pg.wait_for_timeout(400)
@@ -45131,7 +45231,9 @@ def t_wheel_watch_0928(b, base, code):
     # 更多 → 自選
     m.click("#mTabMore"); m.wait_for_timeout(500)
     rows = m.evaluate("() => [...document.querySelectorAll('.msheet:not([hidden]) .mrow')].map(r => r.dataset.m)")
-    ok(f"★ {tag} ④ 手機「更多」的頁面那組最後一列是「自選」、交付清單已不在導覽", rows[:3] == ["market", "season", "watch"] and "delivery" not in rows, rows)
+    # ★ 2026-10-06 改前→改後（驗收過時）：改前頁面那組是市場明細／週期統計／自選；ETF 專區的入口加進來後是
+    #   市場明細／週期統計／ETF 專區／自選 —— 「自選維持頁面那組最後一列」（Andy 09-28）這件事沒變，所以改驗前四列的順序。
+    ok(f"★ {tag} ④ 手機「更多」的頁面那組最後一列是「自選」、交付清單已不在導覽", rows[:4] == ["market", "season", "etf", "watch"] and "delivery" not in rows, rows)
     m.click(".msheet:not([hidden]) .mrow[data-m=watch]")
     wait_until(m, "() => location.hash === '#watch' && document.querySelectorAll('#wpTabs .wptab').length === 5", 8000)
     ok(f"{tag} ④ 點「自選」→ 到自選分頁、5 個分頁", m.evaluate("() => document.querySelectorAll('#wpTabs .wptab').length") == 5)

@@ -145,7 +145,10 @@
      路由、驗收、桌機全部照舊。「更多」這顆只在手機插，不帶 `.tab`（route() 的 `$$('.tab')` 不會碰到它）。*/
   /* ★ 2026-09-28（Andy：「"自選分頁替代"交付清單」）：「更多」裡的交付清單換成自選（#watch）。
      交付清單的網址 #delivery 照樣打得開，只是入口收掉（桌機導覽列同一件事）。*/
-  const MORE_VIEWS = ['market', 'season', 'watch'];
+  /* ★ 2026-10-06（紅字清理）：ETF 專區（#etf）加進來 —— 底部導覽那顆分頁在手機靜態藏起來（index.html 的 body.m3on 規則，
+     不然五欄格線被撐成兩列、「更多」掉出畫面），入口改放這裡。順序照電腦版側欄的 DOM 順序：市場明細、週期統計、ETF、自選（自選維持最後一頁）。
+     財經日曆（#earnings）與選股策略（#explore）兩頁的作者都註明「手機版暫停中」，這裡不放入口（直接貼網址仍打得開）。 */
+  const MORE_VIEWS = ['market', 'season', 'etf', 'watch'];
   /* ★ 2026-10-04「會員權限」（#admin/perm）：跟電腦版側欄同一條規則 —— 只有登入且 Worker 回報 admin=true 才「畫」這一列，
      訪客與一般會員的清單 HTML 裡根本沒有它。清單每次打開都重畫，所以登入／登出之後下一次打開就對。 */
   const isAdmin = () => { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); };
@@ -178,6 +181,7 @@
       <div class="mgrp">頁面</div>
       ${row('market', '▦', '市場明細', '<small>漲跌家數、站上均線、完整名單</small>', v === 'market')}
       ${row('season', '◷', '週期統計', '<small>族群 × 月份的歷史表現</small>', v === 'season')}
+      ${row('etf', '◈', 'ETF 專區', '<small>配息行事曆、報酬與殖利率排行</small>', v === 'etf')}
       ${row('watch', '★', '自選', '<small>最多五頁的自選清單</small>', v === 'watch')}
       ${isAdmin() ? row('perm', '⛨', '管理區', '<small>會員權限／會員管理／流量觀測</small>', /^#admin\b/.test(location.hash)) : ''}
       <div class="mgrp">工具</div>

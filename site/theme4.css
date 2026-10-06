@@ -316,7 +316,7 @@
   --grid:rgba(55,226,255,.07); --drop:rgba(0,4,10,.6);
   --glow:0 0 0 1px rgba(55,226,255,.35), 0 0 22px -4px rgba(55,226,255,.55);
   --focus:#37E2FF; --row-hover:rgba(55,226,255,.07);
-  --tip-bg:rgba(9,20,34,.92); --tip-line:rgba(55,226,255,.35); --tip-sh:0 0 0 1px rgba(55,226,255,.12), 0 12px 32px -10px rgba(0,0,0,.8);
+  --tip-bg:rgba(9,20,34,.96); --tip-line:rgba(55,226,255,.35);   /* 2026-10-06：.92 → .96。熱力圖提示框底只有 92% 時後面方塊的字會透出來（Andy 09-24 同一件事：「提示框半透明時後面方塊的字透出來看不清」，docs/design_system_v2.md）；其餘兩個深色主題本來就是 .96 */ --tip-sh:0 0 0 1px rgba(55,226,255,.12), 0 12px 32px -10px rgba(0,0,0,.8);
   --body-1:transparent; --body-2:transparent; --card-sh:none;
   --t4-r-card:10px; --t4-r-inner:8px; --t4-r-ctl:6px;
   --t4-page:

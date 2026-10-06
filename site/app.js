@@ -1834,6 +1834,11 @@
   function syncTabOverflow() {
     const strip = document.getElementById('tabs'), wrap = document.getElementById('tabsWrap');
     if (!strip || !wrap) return;
+    /* ★ 2026-10-06（紅字清理）：版面 V2（html.l4，≥821）起 `#tabs` 是左側直排導覽，沒有橫向溢出、箭頭也被 CSS 整顆關掉
+       （layout4.css `.tabswrap .tabnav{display:none!important}`）。但視窗從寬縮到 1024 時，這支在 layout4.js 還沒把版型切完的那一格被 resize 叫到，
+       量到橫向還捲得動，就留下一個沒人會清的 `ovf-r`（實測 1024：class 有 ovf-r、over 0、箭頭 none）。
+       直排導覽下兩個 class 一律拿掉，不再讓它在 DOM 上留著說謊。 */
+    if (document.documentElement.classList.contains('l4')) { wrap.classList.remove('ovf-l', 'ovf-r'); return; }
     const max = strip.scrollWidth - strip.clientWidth;
     wrap.classList.toggle('ovf-l', strip.scrollLeft > 2);
     wrap.classList.toggle('ovf-r', strip.scrollLeft < max - 2);

@@ -4409,7 +4409,10 @@ h3 .howbtn.pop{font-family:inherit}
   border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel-3) 55%,transparent);
   cursor:pointer;transition:border-color .15s,background-color .15s}
 @media (max-width:640px){.osc{gap:7px;padding:10px 12px 9px}}
-.osc:hover{border-color:color-mix(in srgb,var(--cyan) 45%,var(--line));background:color-mix(in srgb,var(--cyan) 6%,var(--panel-3))}
+/* ★ 2026-10-06（紅字清理）：滑過的底色提亮從 6% 降到 3%。6% 時卡裡 18px 粗體的上漲數字（--rise）對底色只有 4.45:1、
+   下跌數字（--fall，淺色主題）4.41:1，低於 4.5 —— 18px 粗體不算「大字」（要 ≥ 18.66px），所以門檻是 4.5。
+   紅漲綠跌的語意色不能動，動的是底色；3% 時深色 4.77／淺色 4.60，滑過的主要提示是外框變主色與右上「›」變主色，底色只是輔助。 */
+.osc:hover{border-color:color-mix(in srgb,var(--cyan) 45%,var(--line));background:color-mix(in srgb,var(--cyan) 3%,var(--panel-3))}
 .osc:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .osc-h{display:flex;align-items:center;gap:var(--sp-2);min-width:0;height:22px}
 @media (max-width:640px){.osc-h{gap:7px}}
@@ -4726,6 +4729,12 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
     padding:0 0 env(safe-area-inset-bottom);height:calc(58px + env(safe-area-inset-bottom))}
   body.m3on .tab[data-view=market],body.m3on .tab[data-view=season],body.m3on .tab[data-view=watch],body.m3on .tab[data-view=delivery]{display:none}
+  /* ★ 2026-10-06（紅字清理）：10-05 新增的 ETF／財經日曆／選股策略三顆分頁沒有跟著藏 ——
+     底部導覽 5 欄的格線被撐成兩列七顆，「更多」掉到第二列、整列落在畫面下緣之外（量到 top 845 > 視窗 844），手機點不到「更多」，
+     連帶市場明細／週期統計／自選／管理區／今日事件／主題全部進不去。
+     選股策略（explore.css）與財經日曆（earnings.js 的 injectCSS）本來就寫了「≤820 先藏」，但財經日曆那條要等使用者開過那一頁才注入，
+     所以這裡把三顆在手機一律靜態藏起來（DOM 照舊在、路由照舊打得開）；入口：ETF 與財經日曆放進「更多」清單（mobile3.js MORE_VIEWS）。 */
+  body.m3on .tab[data-view=explore],body.m3on .tab[data-view=etf],body.m3on .tab[data-view=earnings]{display:none}
   body.m3on .tab,body.m3on .mtabmore{min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;
     background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
     font-size:12px;line-height:1.2;color:var(--ink-3);font-weight:600;flex:none}
