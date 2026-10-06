@@ -15683,8 +15683,14 @@ def t_filter_topleft(pg, b, base):
         for x in f:
             tag = f"④ [{w}] {x['card']}"
             ok(f"{tag}：兩顆下拉是「產業鏈 → 族群」", x["kinds"][:2] == ["chain", "group"], x["kinds"])
-            ok(f"★ {tag}：篩選列左緣對齊卡片內距（差 ≤ 2px）", abs(x["ddL"] - x["padL"]) <= 2, x)
-            ok(f"{tag}：篩選列就在標題列下方（離標題列 ≤ 40px）", -2 <= x["belowTitle"] <= 40, x)
+            if w > 820 and x["card"] == "flowSankeyCard":
+                # ★ 2026-10-06（既有紅字清理）改前→改後（只限電腦版資金去向）：「左緣對齊卡片內距、在標題列下方」→「跟標題排在同一列、在標題右邊」。
+                #   為什麼舊的過時：DECISIONS #313（10-03，Andy「資金去向…需要再縮小點」）把這張卡的標題／下拉／看哪一天壓成**可折行的一排**
+                #   （fit.css，只在 ≥821 掛 l4），1440 時下拉就在標題右邊同一列（實測 ddL 314、離標題列 -29＝同一列）。800 不掛 l4，照舊驗左上角。
+                ok(f"★ {tag}：篩選列跟標題同一列、在標題右邊（#313 可折行一排）", x["ddL"] > x["padL"] + 40 and -40 <= x["belowTitle"] <= 0, x)
+            else:
+                ok(f"★ {tag}：篩選列左緣對齊卡片內距（差 ≤ 2px）", abs(x["ddL"] - x["padL"]) <= 2, x)
+                ok(f"{tag}：篩選列就在標題列下方（離標題列 ≤ 40px）", -2 <= x["belowTitle"] <= 40, x)
             ok(f"{tag}：篩選列在圖的上面（不是漂在圖下方）", x["aboveChart"] is True, x)
     # 真的操作：在資金去向那排挑一個族群，重畫之後那一排仍然在標題下方左上角（不會被插回圖下面）
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -15694,6 +15700,9 @@ def t_filter_topleft(pg, b, base):
         before = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
         sk_dd_pick(pg, g1[0], 1500)
         after = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
+        # ⚠ 2026-10-06（既有紅字清理）：這條**照舊守、目前是紅的（真 bug，未收斂）**—— 1440 選一個族群之後，副標長出「只看「X」・已展開「X」N 格」、
+        #   下拉列多出「清除」與「只看「X」」，#313 那一排放不下而折行：下拉列從標題右邊（x314,y12）掉到第二列（x17,y41），整張圖往下跳 28px。
+        #   違反 docs/style_guide.md 第 4 條「互動不晃動」。修法要動 #313 的版面取捨（固定寬度＋省略，或下拉列固定獨立一列），留給 CEO／Andy 定。
         ok("④ 挑完族群（整排重建）之後還是同一個位置（左緣與離卡片頂的距離不變）",
            abs(after["ddL"] - before["ddL"]) <= 1 and abs(after["top"] - before["top"]) <= 2, [before, after])
         ok("④ 整張卡只有一排資金去向的下拉（重建沒有多長一排）",
