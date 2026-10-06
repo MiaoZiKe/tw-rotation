@@ -24290,6 +24290,9 @@ SECTIONS = {
     # ★ 2026-10-07 額度／開通共用卡片（site/qcard.js）與方案自選上限（Plus／Pro，docs/quota_plan.md）
     "額度卡片1007":        lambda pg, b, base, code: t_qcard_1007(b, base, code),
     "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
+    "次數覆蓋掃描1007":    lambda pg, b, base, code: t_quota_scan_1007(b, base, code),
+    "全站共用額度1007":    lambda pg, b, base, code: t_quota_all_1007(b, base, code),
+    "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -47504,7 +47507,7 @@ def t_account_cloud(b, base):
 SUB_API = "https://sub.example.test"
 
 
-def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None):
+def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
     """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)"""
     sent: list = []
     st = {"notices": notices if notices is not None else [], "read": set(), "fb": [], "req": []}
@@ -47528,7 +47531,7 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None):
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}}
+            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}, "dq": dq}
         elif path == "/v1/plans/public":
             out = {"plans": plans}
         elif path == "/v1/subscribe/request":
@@ -47712,6 +47715,330 @@ def t_watch_limit_1007(b, base, code):
        and pg.evaluate("() => TwWatch.tabs().length === 5"), pg.evaluate("() => (document.getElementById('qcModal') || {}).textContent"))
     pg.click("#qcModal .qc-go")
     ok(f"{T}：（續）按「升級 Pro →」→ 到 #pricing/plan/pro、卡片關掉", bool(wait_until(pg, "() => location.hash === '#pricing/plan/pro' && document.getElementById('qcModal').hidden", 5000)))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
+# ===================================================================== 次數覆蓋掃描1007（docs/quota_coverage.md）
+# Andy（10-07）：「確實落實每個功能都被使用次數有限制到，不可以漏洞情況」。
+# 做法：每個功能各開一個乾淨的瀏覽器環境，範本只設「這個功能每日 1 次」→ 打開第 1 個單位（照常看得到、計數 1）
+#       → 打開第 2 個不同的單位 → **一定要被擋**（區塊蓋上「今日已用完 1/1 次」卡，或工具鈕按了跳卡、工具沒打開）。
+# 單位（site/quota.js 的 unitOf，data-gw 同一套字串）：
+#   stock  ＝一檔個股（A＝code、B＝另一檔）            diagram＝一張剖析圖（同一條鏈換一張）
+#   chain  ＝一條產業鏈（半導體 → AI 伺服器）          theme  ＝一個題材（題材剖析）
+#   group  ＝一個族群頁                                visit  ＝一次造訪（同一個瀏覽器分頁來回切不重算；B＝新開一個分頁）
+# 桌機 1440、手機 390 各掃一次。只有管理者看得到的（盤中即時、1／5／15 分 K）不掃（非管理者根本看不到，次數無從談起）。
+QSCAN_OTHER = "2317"
+
+
+def _qscan_specs(code):
+    other = QSCAN_OTHER if code != QSCAN_OTHER else "2454"
+    S = {}
+    # (單位, A 路由, B 路由或 None（visit＝新分頁）, 桌機前置 JS, 手機前置 JS, 擋法 'veil'|'tool')
+    def visit(route, prep_d=None, prep_m=None):
+        return ("visit", route, None, prep_d, prep_m, "veil")
+    # 手機的總覽／資金流向是分段的（.mspine 步驟＋.mpager 分段，一次一張圖）：先按到那一段才看得到
+    def mseg(spine, pager):
+        return ("async () => { const pick = (box, w) => { if (!box || !w) return false; const b = [...box.querySelectorAll('button')].find(x => (x.textContent || '').replace(/\\s+/g, '').includes(w));"
+                " if (b && !b.classList.contains('on')) { b.click(); return true; } return false; };"
+                " if (pick(document.querySelector('.view.on .mspine'), %s)) await new Promise(r => setTimeout(r, 400));"
+                " pick(document.querySelector('.view.on .mpager'), %s); }") % (json.dumps(spine), json.dumps(pager))
+    OVM = {"ov.summary": None, "ov.index": ("貴不貴", "大盤"), "ov.heat": ("錢往哪跑", "熱力圖"), "ov.theme": ("錢往哪跑", "熱門題材"), "ov.rot": ("錢往哪跑", "資金輪盤"),
+           "ov.flow": ("錢往哪跑", "資金去向"), "ov.breadth": ("貴不貴", "市場寬度"), "events": ("理由", "今日事件")}
+    for f, sg in OVM.items():
+        S[f] = visit("#overview", None, mseg(*sg) if sg else None)
+    S["flow.rot"] = visit("#flow/rotation", None, mseg(None, "輪動"))
+    S["flow.sankey"] = visit("#flow/sankey", None, mseg(None, "資金去向"))
+    S["flow.inst"] = visit("#flow/inst", None, mseg(None, "法人"))
+    S["flow.conc"] = visit("#flow/inst", None, mseg(None, "集中度"))
+    S["ind.map"] = visit("#industry")
+    S["heat.market"] = visit("#heatmap")
+    S["heat.theme"] = visit("#heatmap/theme")
+    for k in ("updown", "streak", "ma", "cand"):
+        S["mkt." + k] = visit("#market/" + k)
+    S["season.month"] = visit("#season")
+    S["explore.page"] = visit("#explore")
+    S["explore.chart"] = visit("#explore")
+    S["explore.combo"] = visit("#explore", "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }",
+                               "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }")
+    S["explore.list"] = visit("#explore", "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }",
+                              "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }")
+    for f in ("etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "etf.calendar", "etf.returns"):
+        S[f] = visit("#etf")
+    S["earn.page"] = visit("#earnings")
+    S["earn.cal"] = visit("#earnings")
+    S["watch.page"] = visit("#watch")
+    # 手機的主題切換在「更多」抽屜裡（.mrow[data-m=theme] → 轉按桌機的 #themeBtn，同一個攔截點）
+    S["theme"] = ("visit", "#overview", None, None, "() => { const b = document.getElementById('mTabMore'); if (b) b.click(); }", "tool")
+    # 個股
+    tab = lambda t, m: ("() => { const b = document.querySelector('#stockTabs button[data-t=\"%s\"]'); if (b && !b.classList.contains('on')) b.click(); }" % t,
+                        ("() => { const b = document.querySelector('#mbTabs button[data-t=\"%s\"]'); if (b && !b.classList.contains('on')) b.click(); }" % m) if m else None)
+    # 手機沒有「總覽」分頁：在「完整版」裡（桌機那一套 #stockTabs）
+    S["stock.overview"] = ("stock", "#stock/" + code, "#stock/" + other, tab("overview", None)[0],
+                           "async () => { const f = document.querySelector('#mbTabs button[data-t=\"full\"]'); if (f && !f.classList.contains('on')) f.click(); await new Promise(r => setTimeout(r, 900));"
+                           " const b = document.querySelector('#stockTabs button[data-t=\"overview\"]'); if (b && !b.classList.contains('on')) b.click(); }", "veil")
+    for f, t, m in (("stock.overview", "overview", "ov"), ("stock.basics", "basics", "basic"), ("stock.tags", "tags", "tag"), ("stock.revenue", "revenue", "rev"),
+                    ("stock.profit", "profit", "profit"), ("stock.dividend", "dividend", "div"), ("stock.inst", "inst", "inst"), ("stock.margin", "margin", "margin"),
+                    ("stock.holders", "holders", "big"), ("stock.news", "news", "news"), ("stock.ai", "overview", "ai")):
+        d, mm = tab(t, m)
+        if f not in S:
+            S[f] = ("stock", "#stock/" + code, "#stock/" + other, d, mm, "veil")
+    tf = lambda t: "() => { const b = document.querySelector('#tfSeg button[data-tf=\"%s\"]'); if (b && !b.classList.contains('on')) b.click(); }" % t
+    S["stock.k_day"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "veil")
+    S["stock.tick"] = ("stock", "#stock/" + code, "#stock/" + other, tf("tick"), tf("tick"), "veil")
+    S["stock.k_hour"] = ("stock", "#stock/" + code, "#stock/" + other, tf("60m"), tf("60m"), "veil")
+    S["stock.mtf"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "tool")
+    S["stock.ind"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "tool")
+    S["stock.draw"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "tool")
+    S["stock.page"] = ("stock", "#stock/" + code, "#stock/" + other, None, None, "veil")
+    # 產業鏈
+    S["ind.diagram"] = ("diagram", "#industry/semiconductor", "dg:1", None, None, "veil")
+    S["ind.3d"] = ("diagram", "#industry/semiconductor", "dg:1", "() => { const b = document.querySelector('button[data-dm=\"3d\"]'); if (b && !b.classList.contains('on')) b.click(); }", None, "veil")
+    S["ind.groups"] = ("chain", "#industry/semiconductor/overview", "#industry/ai_server/overview", None, None, "veil")
+    S["ind.rel"] = ("chain", "#industry/semiconductor", "#industry/ai_server", None, None, "veil")
+    S["heat.detail"] = ("theme", "#heatmap/theme/pcb_ccl", "#heatmap/theme/mlcc_passive", None, None, "veil")
+    # 族群觀測（grp.*，117 個族群同一套規則；抽晶圓代工驗）：每個族群自己一個功能 → 單位＝這個族群頁的一次造訪（新分頁＝下一次）
+    S["grp.foundry"] = ("visit", "#industry/group/foundry", None, None, None, "veil")
+    return S
+
+
+# 工具鈕（block）：按下去要開的東西 → 用「按了之後這個有沒有出現」判斷有沒有被擋
+QSCAN_TOOL = {"theme": ("#themeBtn, #t4Btn, #mmTheme, .mrow[data-m=theme]", "() => (document.documentElement.dataset.theme || '') + '|' + (document.documentElement.dataset.theme4 || '') + '|' + !!(document.getElementById('t4Pop') && document.getElementById('t4Pop').getClientRects().length)"),
+              "stock.ind": ("#indBtn", "() => document.getElementById('indBtn').getAttribute('aria-expanded') === 'true'"),
+              "stock.draw": ("#drawTgl", "() => { const p = document.getElementById('drawBar'); return !!p && p.getClientRects().length > 0; }"),
+              "stock.mtf": ("#mtfBtn", "() => !!document.getElementById('mtfGrid')")}
+QSCAN_SKIP = {"stock.k_min": "只有管理者看得到（DECISIONS #326）", "live.tick": "只有管理者看得到（DECISIONS #326）"}
+
+
+def t_quota_scan_1007(b, base, code):
+    T = "次數覆蓋掃描1007"
+    errs: list[str] = []
+    specs = _qscan_specs(code)
+    only = [x for x in os.environ.get("TW_QSCAN_ONLY", "").split(",") if x]
+    widths = [int(w) for w in os.environ.get("TW_QSCAN_WIDTHS", "1440,390").split(",")]
+    rows = []
+    feats = json.loads(pathlib.Path(os.environ.get("TW_QSCAN_FEATS", "")).read_text()) if os.environ.get("TW_QSCAN_FEATS") else None
+    for fid, spec in specs.items():
+        if only and fid not in only:
+            continue
+        kind, ra, rb, prep_d, prep_m, how = spec
+        for W in widths:
+            mob = W < 641
+            prep = prep_m if mob else prep_d
+            res = _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs)
+            rows.append((fid, W, res))
+            ok(f"{T} {W}：{fid}（單位 {kind}）第 1 個照常、第 2 個被擋" + (f"（不適用：{res['na']}）" if res.get("na") else ""), res.get("ok") is True, res)
+    out = os.environ.get("TW_QSCAN_OUT")
+    if out:
+        pathlib.Path(out).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+def _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs):
+    c, sent, st = _sub_ctx(b, "member", width=W, lims={fid: 1})
+    res = {"kind": kind}
+    try:
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(f"{fid}@{W}: {e}"))
+        pg.goto(base + ra, wait_until="domcontentloaded")
+        wait_until(pg, f"() => window.TwPerm && TwPerm.state().src === 'server' && TwQuota.limit('{fid}') === 1", 12000)
+        pg.wait_for_timeout(1500)
+        if prep:
+            pg.evaluate(prep); pg.wait_for_timeout(1200)
+        VIS = """(fid) => { const f = TwFeatures.byId(fid); const q = (s) => { try { return [...document.querySelectorAll(s)]; } catch (e) { return []; } };
+            if (!f) return false;
+            if (f.cat === 'grp') return q('#gpSec, #dgSec, #relSec').some(e => e.getClientRects().length > 0);
+            return (f.veil || []).some(([s, w]) => (!w || q(w).length) && q(s).some(e => e.getClientRects().length > 0)); }"""
+        CLICK = """(sel) => { const b = sel.split(',').map(s => document.querySelector(s.trim())).find(e => e && e.getClientRects().length && !e.disabled); if (!b) return false; b.click(); return true; }"""
+        if how == "tool":
+            sel, opened = QSCAN_TOOL[fid]
+            before = pg.evaluate(opened)
+            if pg.evaluate(CLICK, sel):
+                pg.wait_for_timeout(700)
+                after = pg.evaluate(opened)
+                res["a_open"] = (after != before) if fid == "theme" else after
+                if fid != "theme":
+                    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+                if fid in ("stock.draw", "stock.mtf", "stock.ind") and pg.evaluate(opened):
+                    pg.evaluate(CLICK, sel); pg.wait_for_timeout(300)
+            elif pg.evaluate(VIS, fid):
+                how = "veil"; res["how"] = "veil"   # 這個寬度工具列本來就開著（例如桌機的畫線列）→ 改驗區塊遮罩
+            else:
+                res["a_open"] = None; res["na"] = "這個寬度沒有這顆工具鈕"
+        else:
+            if not pg.evaluate(VIS, fid):
+                res["na"] = "這個寬度不顯示這個區塊"
+        cnt = lambda p: p.evaluate(f"() => ((TwQuota.state().k || {{}})['{fid}'] || []).length")
+        res["a_cnt"] = cnt(pg)
+        res["a_veil"] = pg.evaluate("() => !!document.querySelector('[data-qlk] > .qlkov')")
+        # 第 2 個單位
+        if kind == "visit":
+            pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(f"{fid}@{W}#2: {e}"))
+            pg2.goto(base + ra, wait_until="domcontentloaded")
+            wait_until(pg2, f"() => window.TwPerm && TwPerm.state().src === 'server' && TwQuota.limit('{fid}') === 1", 12000)
+            pg2.wait_for_timeout(1500)
+            if prep:
+                pg2.evaluate(prep); pg2.wait_for_timeout(1200)
+            p2 = pg2
+        elif kind == "diagram":
+            ids = pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.dataset.dgid)")
+            if len(ids) >= 2:
+                pg.click(f"#dgPick a[data-dgid='{ids[1]}']"); pg.wait_for_timeout(1200)
+                if prep:
+                    pg.evaluate(prep); pg.wait_for_timeout(1000)
+            p2 = pg
+        else:
+            pg.evaluate(f"() => {{ location.hash = '{rb}'; }}"); pg.wait_for_timeout(1800)
+            if prep:
+                pg.evaluate(prep); pg.wait_for_timeout(1200)
+            p2 = pg
+        if res.get("na"):
+            res["ok"] = True
+        elif how == "tool":
+            sel, opened = QSCAN_TOOL[fid]
+            before = p2.evaluate(opened)
+            if p2.evaluate(CLICK, sel):
+                p2.wait_for_timeout(700)
+                after = p2.evaluate(opened)
+                res["b_open"] = (after != before) if fid == "theme" else after
+                res["b_card"] = p2.evaluate("() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && /今天/.test(m.textContent); }")
+            else:
+                res["b_open"] = None; res["b_card"] = None
+            res["a_cnt"] = cnt(pg)
+            res["ok"] = bool(res.get("a_open")) and res["a_cnt"] == 1 and res["b_open"] is False and res["b_card"] is True
+        else:
+            wait_until(p2, "() => { const o = document.querySelector('[data-qlk] > .qlkov'); return !!o && o.getClientRects().length > 0; }", 4000)
+            res["b_veil"] = p2.evaluate("() => { const o = document.querySelector('[data-qlk] > .qlkov'); return o ? o.parentElement.id || o.parentElement.className : null; }")
+            res["ok"] = res["a_cnt"] == 1 and not res["a_veil"] and bool(res["b_veil"])
+    except Exception as e:  # noqa: BLE001
+        res["err"] = str(e)[:200]
+    finally:
+        c.close()
+    return res
+
+
+
+# ===================================================================== 全站共用額度1007（quota.all＝範本 dq）
+# CEO 10-07 02:45（Andy：「訪客只能預覽3次」＝全站共 3 次，不是每個功能各 3 次）：訪客 3、註冊會員 10、Plus 50、Pro 不限。
+# 真的操作：訪客依序打開 4 個不同的研究頁單位（兩檔個股、資金輪動、一張剖析圖）→ 第 4 個被擋（跨功能共用）；回到看過的不擋；
+# 註冊會員第 11 檔被擋；Pro（dq 空白）開 12 檔都不擋。
+def t_quota_all_1007(b, base, code):
+    T = "全站共用額度1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    BLOCKED = "() => { const o = [...document.querySelectorAll('[data-qlk] > .qlkov')].find(x => x.getClientRects().length); return o ? o.textContent : null; }"
+    def go(pg, route, wait=1800):
+        pg.evaluate(f"() => {{ location.hash = '{route}'; }}"); pg.wait_for_timeout(wait)
+    # ① 訪客 3 次
+    c, sent, st = _sub_ctx(b, None, dq=3)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    ok(f"{T}：訪客拿到全站共用額度 3（TwPerm.lim('quota.all')）", bool(wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 3", 12000)))
+    pg.wait_for_timeout(1200)
+    ok(f"{T}：總覽不吃額度（不是研究頁）", pg.evaluate("() => ((TwQuota.state().k || {})['quota.all'] || []).length") == 0 and pg.evaluate(BLOCKED) is None)
+    seq = ["#stock/" + code, "#stock/2317" if code != "2317" else "#stock/2454", "#flow/rotation"]
+    for i, r in enumerate(seq):
+        go(pg, r)
+        ok(f"{T}：訪客第 {i + 1} 個研究頁（{r}）照常", pg.evaluate(BLOCKED) is None and pg.evaluate("() => (TwQuota.state().k['quota.all'] || []).length") == i + 1,
+           [pg.evaluate(BLOCKED), pg.evaluate("() => TwQuota.state().k")])
+    go(pg, "#industry/semiconductor", 3000)
+    txt = wait_until(pg, BLOCKED, 6000)
+    ok(f"{T}：訪客第 4 個（產業鏈剖析圖，跟前三個是不同功能）→ 被擋、卡片寫「今天的研究額度用完了」3 / 3",
+       bool(txt) and "今天的研究額度用完了" in txt and "3 / 3" in txt and "訪客 每日額度" in txt and "免費註冊" in txt, [txt, pg.evaluate("() => TwQuota.state().k")])
+    if sh:
+        pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+        pg.screenshot(path=str(pathlib.Path(sh) / "quota_all_guest_4th.png"))
+    go(pg, "#stock/" + code)
+    ok(f"{T}：回到看過的第 1 檔 → 不擋（同一天同一單位只算一次）", bool(wait_until(pg, "() => ![...document.querySelectorAll('[data-qlk] > .qlkov')].some(x => x.getClientRects().length)", 5000)))
+    go(pg, "#overview")
+    ok(f"{T}：用完之後總覽照常（不是研究頁）", pg.evaluate(BLOCKED) is None)
+    c.close()
+    # ② 註冊會員 10 次
+    codes = ["2330", "2317", "2454", "2303", "2308", "2382", "2412", "2881", "2882", "2886", "2891", "3008"]
+    c, sent, st = _sub_ctx(b, "member", dq=10)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 10", 12000)
+    for cd in codes[:10]:
+        go(pg, "#stock/" + cd, 1300)
+    ok(f"{T}：註冊會員前 10 檔照常、計 10 個單位、登入者每個單位都送 /v1/quota/hit（quota.all）",
+       pg.evaluate(BLOCKED) is None and pg.evaluate("() => TwQuota.state().k['quota.all'].length") == 10
+       and len({x[1].get("key") for x in sent if x[0] == "/v1/quota/hit" and x[1].get("k") == "quota.all" and x[1].get("key")}) == 10,
+       [pg.evaluate("() => TwQuota.state().k['quota.all']"), [x[1] for x in sent if x[0] == "/v1/quota/hit"][:12]])
+    go(pg, "#stock/" + codes[10], 1500)
+    txt = wait_until(pg, BLOCKED, 6000)
+    ok(f"{T}：註冊會員第 11 檔 → 被擋（10 / 10）", bool(txt) and "10 / 10" in txt, txt)
+    c.close()
+    # ③ Pro（dq 空白）不限
+    c, sent, st = _sub_ctx(b, "member", dq=None)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+    for cd in codes:
+        go(pg, "#stock/" + cd, 900)
+    ok(f"{T}：Pro（額度空白）開 12 檔都不擋、也不計", pg.evaluate("() => TwPerm.lim('quota.all') === Infinity") and pg.evaluate(BLOCKED) is None
+       and not (pg.evaluate("() => TwQuota.state().k['quota.all']") or []))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
+# ===================================================================== 套用建議方案1007（site/plan_presets.js → #admin/perm）
+# CEO 10-07 02:45：一顆按鈕把訪客／註冊會員／Plus／Pro 四個範本的開關、每日次數、全站額度、自選、價格、介紹寫進 Worker；
+# 先跳確認框列出會改哪些；範本用 id 對應（Plus＝現在的「299 會費」改名、Pro＝「499會費」改名），不新建重複的。
+def t_plan_preset_1007(b, base, code):
+    T = "套用建議方案1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    plans = [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
+             {"id": "free", "name": "免費會員（預設）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
+             {"id": "pa299", "name": "299 會費", "feats": {}, "lims": {}, "builtin": False, "members": 1, "price": 299, "period": "month"},
+             {"id": "pb499", "name": "499會費", "feats": {}, "lims": {}, "builtin": False, "members": 0, "price": 499, "period": "month"}]
+    c, sent, st = _adm3_ctx(b, plans=plans)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    ok(f"{T}：#admin/perm 有「套用建議方案」鈕", bool(wait_until(pg, "() => { const b = document.getElementById('ptPreset'); return !!b && b.getClientRects().length > 0; }", 12000)))
+    pg.click("#ptPreset")
+    ok(f"{T}：按下去先跳確認框（不送任何 plans/put）", bool(wait_until(pg, "() => { const d = document.getElementById('subDlg'); return !!d && !d.hidden && /套用建議方案/.test(d.textContent); }", 4000))
+       and not any(x[0] == "/v1/admin/plans/put" for x in sent))
+    dl = pg.inner_text("#subDlg")
+    ok(f"{T}：確認框列出四個範本、Plus 對應到「299 會費」改名、Pro 對應到「499會費」改名、月費與額度變更",
+       all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro")) and "目前「299 會費」" in dl and "目前「499會費」" in dl
+       and "名稱：299 會費 → Plus" in dl and "NT$299 → NT$249" in dl and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl, dl[:900])
+    pg.click("#subDlg details >> nth=0")
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "preset_confirm.png"))
+    pg.click("#ppGo")
+    ok(f"{T}：確定套用 → 送 4 次 plans/put（guest、free、pa299、pb499，不新建）", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 8000))
+       and [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"] == ["guest", "free", "pa299", "pb499"],
+       [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
+    bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put"}
+    g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("pa299", {}), bodies.get("pb499", {})
+    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱不改；註冊會員 dq 10、自選 1×10；Plus 改名、249、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
+       g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客（未登入）" and g.get("feats", {}).get("ind.3d") is False
+       and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "免費會員（預設）"
+       and pl.get("name") == "Plus" and pl.get("price") == 249 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
+       and (pl.get("meta") or {}).get("badge") == "最受歡迎" and (pl.get("meta") or {}).get("price_year") == 2490 and len((pl.get("meta") or {}).get("highlights") or []) >= 3
+       and pr.get("name") == "Pro" and pr.get("price") == 499 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
+       {k: {kk: (vv if kk != "feats" else {x: vv[x] for x in ("watch.tabs", "watch.size", "ind.3d") if x in vv}) for kk, vv in v.items() if kk != "t"} for k, v in bodies.items()})
+    ok(f"{T}：套用後頁籤換成 Plus（月）、Pro（月）", bool(wait_until(pg, "() => { const t = [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()); return t.includes('Plus（月）') && t.includes('Pro（月）'); }", 4000)),
+       pg.evaluate("() => [...document.querySelectorAll('#ptTier button')].map(b => b.textContent.trim())"))
+    pg.click("#ptTier button[data-tier='guest']")
+    pg.wait_for_timeout(400)
+    pg.click("#ptPlanCfg")
+    ok(f"{T}：訪客 ⚙ 的「全站每日額度」顯示 3", pg.input_value("#ptEdDq") == "3", pg.input_value("#ptEdDq"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "preset_after.png"))
+    pg.click("#ptPlanCfg")
+    pg.click("#ptTier button[data-plan='pa299']")
+    pg.wait_for_timeout(500)
+    ok(f"{T}：Plus 的「自選分頁數上限」選單顯示 5 頁、「每頁自選檔數上限」50 檔",
+       pg.evaluate("() => { const a = document.querySelector(\"#pmCats select[data-f='watch.tabs']\"), b = document.querySelector(\"#pmCats select[data-f='watch.size']\"); return !!a && !!b && a.value === '5' && b.value === '50'; }"),
+       pg.evaluate("() => [...document.querySelectorAll('#pmCats select')].map(s => s.dataset.f + '=' + s.value)"))
+    pg.click("#ptPreset")
+    wait_until(pg, "() => !document.getElementById('subDlg').hidden", 3000)
+    ok(f"{T}：再按一次 → 確認框寫「沒有變更」（已經是建議方案）", pg.inner_text("#subDlg").count("沒有變更") == 4, [pg.inner_text("#subDlg")[:900], pg.inner_text("#pmStat")])
+    pg.click("#subDlg [data-close]")
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
@@ -49521,7 +49848,7 @@ def t_traffic_1005(b, base, code):
 ADM3_API = "https://acct3.example.test"
 
 
-def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
+def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, plans=None):
     sent: list = []
     now = int(time.time() * 1000)
     st = {"plans": [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
@@ -49531,6 +49858,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
           "perm": {"a399@example.com": {"plan": "p399", "over": {}, "updated": now, "expires": now + 30 * 86400000},
                    "b799@example.com": {"plan": "p799", "over": {}, "updated": now, "expires": 0},
                    "wait@example.com": {"plan": "free", "over": {}, "updated": now, "expires": 0}}}
+    if plans is not None:   # 2026-10-07：套用建議方案的驗收要「299 會費／499會費」這種名稱
+        st["plans"] = plans
     users = [{"name": "甲", "email": "a399@example.com", "seen": now - 3600000, "created": now - 40 * 86400000, "visits": 12},
              {"name": "乙", "email": "b799@example.com", "seen": now - 86400000, "created": now - 10 * 86400000, "visits": 3},
              {"name": "丁", "email": "free1@example.com", "seen": now - 600000, "created": now - 5 * 86400000, "visits": 7}]
@@ -49589,7 +49918,9 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
             prev = next((x for x in st["plans"] if x["id"] == body.get("id")), {})
             nw = {"id": body["id"], "name": body.get("name", prev.get("name", "")), "feats": body.get("feats", prev.get("feats", {})),
                   "lims": body.get("lims", prev.get("lims", {})), "builtin": body.get("id") in ("guest", "free"), "members": prev.get("members", 0),
-                  "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month"))}
+                  "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month")),
+                  # 2026-10-07：每日額度（dq）與介紹欄位（meta 攤平），同 worker.js 的每日額度／plan-meta 區塊
+                  "dq": body["dq"] if "dq" in body else prev.get("dq"), **(body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year") if k in prev})}
             st["plans"] = [nw if x["id"] == body.get("id") else x for x in st["plans"]] if prev else st["plans"] + [nw]
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/plans/sort":

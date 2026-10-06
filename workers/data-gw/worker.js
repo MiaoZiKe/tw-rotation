@@ -21,7 +21,7 @@
  * 個資：IP 只存網段（203.0.113.x），紀錄 30 天自動刪除；帳號以 uid 記，不存 email（浮水印也是雜湊）。
  * Secret（不寫在任何檔案，由 workflow 從 repo Secret 帶進去）：GW_SECRET（資料權杖與浮水印的 HMAC 金鑰）。
  */
-import { tierOf, allowed, unitOf } from './tiers.js';
+import { tierOf, allowed, unitOf, limUnitOf } from './tiers.js';
 
 const SESSION_SEC = 300;
 const LOG_KEEP_MS = 30 * 86400 * 1000;
@@ -72,12 +72,33 @@ export class Gw {
        相容遷移同 account-api 的做法：PRAGMA 看欄位在不在再 ALTER（Durable Object 每次冷啟動都會跑到這裡）。*/
     this.q('CREATE TABLE IF NOT EXISTS units (uid TEXT, day TEXT, unit TEXT, ts INTEGER, PRIMARY KEY (uid, day, unit))');
     if (!this.q('PRAGMA table_info(sessions)').some((c) => c.name === 'dq')) this.q('ALTER TABLE sessions ADD COLUMN dq INTEGER');
+    /* 每個功能各自的每日次數（範本 lims，前端 site/quota.js 同一組單位）：flim＝(uid, 台北日期, 功能鍵, 單位)；sessions.lims＝換權杖當下的 lims */
+    this.q('CREATE TABLE IF NOT EXISTS flim (uid TEXT, day TEXT, feat TEXT, unit TEXT, PRIMARY KEY (uid, day, feat, unit))');
+    if (!this.q('PRAGMA table_info(sessions)').some((c) => c.name === 'lims')) this.q('ALTER TABLE sessions ADD COLUMN lims TEXT');
   }
   /* 今天用了幾個單位（台北日期）。limit＝null 代表不限 */
   quotaOf(uid, dq) {
     const t = this.now();
     const used = this.q('SELECT COUNT(*) AS c FROM units WHERE uid = ? AND day = ?', uid, tpeDay(t))[0].c;
     return { used, limit: Number.isInteger(dq) ? dq : null, reset: tpeReset(t) };
+  }
+  /* 功能各自的每日次數：回 null＝放行；回 {feat, used, limit, reset}＝那個功能今天用完了（limit 0＝不能看）。
+     先全部檢查、都過了才一起記（不會出現「A 功能扣了、B 功能擋了」的半套）*/
+  chargeFeat(uid, lims, name, tier) {
+    const lu = limUnitOf(name, tier);
+    if (!lu || !lims) return null;
+    const t = this.now(), day = tpeDay(t), todo = [];
+    for (const f of lu.feats) {
+      const n = lims[f];
+      if (!Number.isInteger(n) || n < 0) continue;
+      if (n === 0) return { feat: f, used: 0, limit: 0, reset: tpeReset(t) };
+      if (this.q('SELECT 1 FROM flim WHERE uid = ? AND day = ? AND feat = ? AND unit = ?', uid, day, f, lu.unit).length) continue;
+      const used = this.q('SELECT COUNT(*) AS c FROM flim WHERE uid = ? AND day = ? AND feat = ?', uid, day, f)[0].c;
+      if (used >= n) return { feat: f, used, limit: n, reset: tpeReset(t) };
+      todo.push(f);
+    }
+    todo.forEach((f) => this.q('INSERT OR IGNORE INTO flim (uid, day, feat, unit) VALUES (?, ?, ?, ?)', uid, day, f, lu.unit));
+    return null;
   }
   /* 扣額度：回 null＝放行（含「今天看過這個單位」「不限」「免費檔」）；回 {used, limit, reset}＝用完了。
      先查「看過沒有」再數總數：同一單位重看永遠放行，就算今天已經滿了 —— 已經付過的那一次不該再被擋。*/
@@ -190,6 +211,7 @@ export class Gw {
     this.q('DELETE FROM sessions WHERE exp < ?', Math.floor(t / 1000) - 3600);
     this.q('DELETE FROM devices WHERE last < ?', t - this.num('DEVICE_TTL_D', 30) * 86400000);
     this.q('DELETE FROM units WHERE day < ?', tpeDay(t - 3 * DAY_MS));
+    this.q('DELETE FROM flim WHERE day < ?', tpeDay(t - 3 * DAY_MS));
   }
 
   async fetch(req) {
@@ -243,8 +265,9 @@ export class Gw {
     const sid = rand(), exp = Math.floor(now / 1000) + SESSION_SEC;
     /* 每日額度：範本的 dq（account-api quota-v1 區塊）；管理者不限。只收 0～9999 的整數，其他一律當「不限」 */
     const dq = !me.user.admin && Number.isInteger(pm.dq) && pm.dq >= 0 && pm.dq <= 9999 ? pm.dq : null;
-    this.q('INSERT INTO sessions (sid, uid, plan, feats, devh, exp, ips, dq) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      sid, uid, String(pm.plan || 'free'), JSON.stringify(pm.feats || {}), devh, exp, '[]', dq);
+    const lims = !me.user.admin && pm.lims && typeof pm.lims === 'object' && !Array.isArray(pm.lims) ? pm.lims : {};
+    this.q('INSERT INTO sessions (sid, uid, plan, feats, devh, exp, ips, dq, lims) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      sid, uid, String(pm.plan || 'free'), JSON.stringify(pm.feats || {}), devh, exp, '[]', dq, JSON.stringify(lims));
     const body = `g1.${sid}.${exp}`;
     return this.json(req, { tok: body + '.' + (await this.hmac(body)), exp, plan: pm.plan, quota: this.quotaOf(uid, dq) });
   }
@@ -284,6 +307,11 @@ export class Gw {
     }
     /* 每日額度（Plus 50／Pro 不限，docs/quota_plan.md）：只算登入者的付費檔；訪客沒有 uid 可以記，由訪客範本的開關管 */
     let qh = {};
+    /* 功能各自的每日次數（只有個股檔分得出單位；同一檔同一天只扣一次；0＝不能看）*/
+    if (sess) {
+      const over = this.chargeFeat(who, JSON.parse(sess.lims || '{}'), name, tier);
+      if (over) return this.json(req, over.limit === 0 ? { error: 'plan', need: [over.feat] } : { error: 'quota', feat: over.feat, used: over.used, limit: over.limit, reset: over.reset, plan: sess.plan }, over.limit === 0 ? 403 : 429);
+    }
     if (sess && Number.isInteger(sess.dq)) {
       const over = this.charge(who, sess.dq, name, tier);
       if (over) return this.json(req, { error: 'quota', used: over.used, limit: over.limit, reset: over.reset, plan: sess.plan }, 429);

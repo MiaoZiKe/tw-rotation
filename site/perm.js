@@ -50,7 +50,11 @@
   /* ★ admin-v3：瀏覽次數上限 0＝「不能看」，跟關掉開關同一個效果（同一套鎖頭＋升級鈕）；N＞0 的計數在 quota.js */
   function can(id) { if (S.lims[id] === 0) return false; const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }
   /* 每日瀏覽次數上限：Infinity＝不限（沒設）、0＝不能看、N＝每日 N 次 */
-  function lim(id) { const v = S.lims[id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; }
+  function lim(id) {
+    /* ★ 2026-10-07 全站共用每日額度：'quota.all' 讀範本的 dq（/v1/perm/me 的 dq；null＝不限），不是 lims 裡的一項 */
+    if (id === 'quota.all') return Number.isInteger(S.dq) && S.dq >= 0 ? S.dq : Infinity;
+    const v = S.lims[id]; return Number.isInteger(v) && v >= 0 ? v : Infinity;
+  }
   const routeOk = (f) => !f.route || f.route.test(location.hash || '');
   function limit(id, fb) { const f = F.byId(id); return f ? value(id) : fb; }
   const lockedList = () => F.list.filter((f) => f.kind !== 'limit' && !can(f.id));
@@ -123,7 +127,8 @@
       const m = /^#industry\/group\/([^/?]+)/.exec(location.hash || '');
       const cur = m ? decodeURIComponent(m[1]) : null;
       for (const f of lg) {
-        if (cur && f.gid === cur) q('#gpSec').forEach((el) => { want.set(el, msgOf(f)); wantF.set(el, f.id); });
+        /* 2026-10-07 覆蓋稽核：族群頁現在顯示的是該族群的剖析圖＋關聯圖（#dgSec／#relSec），#gpSec 藏著 —— 三塊都蓋，不然鎖了等於沒鎖 */
+        if (cur && f.gid === cur) q('#gpSec, #dgSec, #relSec').forEach((el) => { want.set(el, msgOf(f)); wantF.set(el, f.id); });
         q('.rotdd input[data-g]').forEach((inp) => { if (inp.dataset.g === f.gid) { const row = inp.closest('.ddopt') || inp; wantB.set(row, 'block'); } });
       }
     }
@@ -202,15 +207,16 @@
   const DEMO_LOCK = /[?&]demo=lock(&|$)/.test(location.search);
   function set(d, src) {
     if (DEMO_LOCK) d = Object.assign({}, d, { feats: Object.assign({}, d.feats || {}, { 'ind.diagram': false }) });
-    const before = JSON.stringify([S.who, S.plan, S.feats, S.lims]);
+    const before = JSON.stringify([S.who, S.plan, S.feats, S.lims, S.dq]);
     S.who = d.who || 'guest'; S.plan = d.plan || ''; S.planName = d.planName || '';
     S.feats = d.feats && typeof d.feats === 'object' ? d.feats : {};
     S.lims = d.lims && typeof d.lims === 'object' && !Array.isArray(d.lims) ? d.lims : {};
+    S.dq = Number.isInteger(d.dq) ? d.dq : null;
     S.src = src;
     apply();
-    if (before !== JSON.stringify([S.who, S.plan, S.feats, S.lims])) window.dispatchEvent(new CustomEvent('tw:perm', { detail: state() }));
+    if (before !== JSON.stringify([S.who, S.plan, S.feats, S.lims, S.dq])) window.dispatchEvent(new CustomEvent('tw:perm', { detail: state() }));
   }
-  function state() { return { who: S.who, plan: S.plan, planName: S.planName, feats: Object.assign({}, S.feats), lims: Object.assign({}, S.lims), src: S.src }; }
+  function state() { return { who: S.who, plan: S.plan, planName: S.planName, feats: Object.assign({}, S.feats), lims: Object.assign({}, S.lims), dq: S.dq == null ? null : S.dq, src: S.src }; }
   async function refresh() {
     const A = acct();
     const key = meKey();
@@ -220,7 +226,7 @@
     const j = await A.call('/v1/perm/me', {});
     if (seq !== S.seq) return;                      // 期間又登入／登出過：以最新那次為準
     if (j && j._s === 200 && j.feats) {
-      ls.set(K_CACHE, JSON.stringify({ k: key, who: j.who, plan: j.plan, planName: j.planName, feats: j.feats, lims: j.lims || {} }));
+      ls.set(K_CACHE, JSON.stringify({ k: key, who: j.who, plan: j.plan, planName: j.planName, feats: j.feats, lims: j.lims || {}, dq: Number.isInteger(j.dq) ? j.dq : null }));
       set(j, 'server');
     } else if (j && j._s === 401) {
       /* account.js 已經把權杖清掉、改回訪客；tw:account 事件會再叫一次 refresh */

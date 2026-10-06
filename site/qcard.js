@@ -59,6 +59,9 @@
 .qcov{position:absolute!important;inset:0!important;z-index:40!important;display:flex!important;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;
   background:color-mix(in srgb,var(--panel) 50%,transparent);border-radius:inherit;filter:none!important;opacity:1!important;pointer-events:auto!important}
 .qcov.tall{align-items:flex-start}
+/* 手機版（mobile3.js）把桌機卡片變成 .m3host，會用 !important 藏掉「不是 .m3keep 的子節點」—— 卡片也會被藏，只剩模糊的內容、沒有卡（覆蓋稽核抓到的漏洞）。
+   這條的權重比 index.html 那條高，卡片一律顯示 */
+body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3host.mfull>.qcov:not(.m3keep):not(.m3keep-h){display:flex!important}
 .qcard{--qc-on:var(--bg);width:min(520px,100%);box-sizing:border-box;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:16px;
   padding:24px 28px;box-shadow:0 24px 60px -28px rgba(0,0,0,.55);text-align:left;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
 :root[data-theme="light"] .qcard{--qc-on:var(--panel);box-shadow:0 18px 48px -26px rgba(40,30,10,.35)}
@@ -202,9 +205,24 @@
   /* 額度卡的選項（data-gw 回的 used／limit／reset／plan）*/
   function quotaOpts(q) {
     const plan = q.plan || 'free';
+    /* data-gw 擋的是「某個功能自己的每日次數」（範本 lims）→ 標題寫那個功能，清單寫哪些方案次數更多 */
+    const Ft = window.TwFeatures, ff = q.feat && Ft ? Ft.byId(q.feat) : null;
+    if (ff) {
+      const lk = lockOpts(ff, plan === 'guest' ? 'guest' : 'member');
+      return { kind: 'quota', kick: '每日瀏覽次數', title: `今天的「${ff.name}」次數用完了`, sub: `今日已用完 ${q.used}/${q.limit} 次，升級方案可增加每日次數。`,
+        used: q.used, limit: q.limit, reset: q.reset, lh: lk.items.length ? '這些方案可以看更多次' : '', items: lk.items, btn: lk.btn, href: '#pricing/need/' + encodeURIComponent(ff.id) };
+    }
     const { all } = plans();
     const me = all.find((p) => p.id === plan);
     const planName = plan === 'free' ? '免費' : plan === 'guest' ? '訪客' : (me && me.name) || (plan === 'plus' ? 'Plus' : plan);
+    /* 訪客用完：下一步是「免費註冊」（註冊會員每日 10 次），不是直接叫他付錢 */
+    if (plan === 'guest') {
+      const fr = all.find((p) => p.id === 'free');
+      const n = fr && Number.isInteger(fr.dq) ? fr.dq : 10;
+      return { kind: 'quota', kick: '訪客 每日額度', title: '今天的研究額度用完了', sub: `免費註冊就能每天看 ${n} 次，繼續查看完整研究內容。`,
+        used: q.used, limit: q.limit, reset: q.reset, lh: '免費註冊還能使用', items: [`每日 ${n} 次研究瀏覽`, '自選清單（登入後跨裝置同步）', '同一檔、同一張圖當天重看不另外扣次'],
+        btn: '免費註冊', href: '#pricing/plan/free' };
+    }
     const up = upgradeFor(plan, q.limit);
     const unlimited = up.dq == null;
     const items = unlimited

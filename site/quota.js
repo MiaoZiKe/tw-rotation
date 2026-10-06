@@ -53,6 +53,39 @@
     const head = (h.replace(/^#/, '').split(/[/?]/)[0] || 'overview').replace(/[^0-9A-Za-z_-]/g, '').slice(0, 14) || 'p';
     return head + '.' + TAB;
   }
+  /* ★ 2026-10-07 覆蓋稽核（docs/quota_coverage.md；Andy：「確實落實每個功能都被使用次數有限制到，不可以漏洞情況」）：
+     「單位」改成**依功能決定**，不再整頁共用一個 key —— 例如產業鏈頁上「族群總覽」是一條鏈算一次，「剖析圖」是一張圖算一次；
+     共用 pageKey 時，切剖析圖分頁會讓族群總覽也多扣一次（過度扣），反過來族群頁的 key 也會被別的功能用錯。
+       stock   ＝個股代號（個股頁所有分頁、K 線週期、工具）           diagram＝d.<鏈>.<圖>（剖析圖 2D／3D）
+       chain   ＝c.<鏈>（族群總覽、供應鏈關聯圖）                     theme  ＝t.<題材>（題材剖析）
+       group   ＝g.<族群>（族群觀測）                                 visit  ＝<頁>.<分頁代號>（其他：同一個瀏覽器分頁算一次）
+     伺服器（workers/data-gw 的 limUnitOf）用**同一組字串**：stock/m60/hist 檔 → 代號；所以前端擋、後端也擋，兩邊數到的是同一個東西。*/
+  const UNIT = { 'ind.diagram': 'diagram', 'ind.3d': 'diagram', 'ind.groups': 'chain', 'ind.rel': 'chain', 'heat.detail': 'theme' };
+  function unitKind(f) {
+    if (!f) return 'visit';
+    if (UNIT[f.id]) return UNIT[f.id];
+    if (f.cat === 'grp') return 'group';
+    if (f.id === 'stock.page' || f.cat === 'stockk' || f.cat === 'stocktab') return 'stock';
+    return 'visit';
+  }
+  function unitKey(f, h) {
+    const k = unitKind(f), pk = pageKey(h);
+    if (k === 'stock') { const m = /^#stock\/([0-9A-Za-z]{4,6})/.exec(h); return m ? m[1].toUpperCase() : pk; }
+    if (k === 'diagram') return /^d\./.test(pk) || /^c\./.test(pk) ? pk : pk;
+    if (k === 'chain') {
+      const m = /^#industry\/([^/?]+)/.exec(h);
+      if (m && !/^#industry\/group\//.test(h)) return safeKey('c.' + decodeURIComponent(m[1]));
+      return pk;
+    }
+    if (k === 'theme') return pk;
+    /* 族群觀測每個族群是「自己一個功能」：用族群當單位的話一個功能永遠只有一個單位，設每日 N 次等於沒設（覆蓋稽核 10-07）。
+       改成「這個族群頁的一次造訪」（同一個瀏覽器分頁來回切不重算，新開分頁再看算下一次），跟其他沒有對象的頁同一個口徑。*/
+    if (k === 'group') return pk + '.' + TAB;
+    /* visit：有對象的頁（個股、族群、題材、產業鏈）上，非對象功能也照「這一頁」算 —— 換一檔個股＝新的一次 */
+    if (/^#(stock|industry|heatmap\/theme)\//.test(h)) return pk;
+    const head = (h.replace(/^#/, '').split(/[/?]/)[0] || 'overview').replace(/[^0-9A-Za-z_-]/g, '').slice(0, 14) || 'p';
+    return head + '.' + TAB;
+  }
   function load() {
     let d = null; try { d = JSON.parse((T() && T().ls.get(K)) || 'null'); } catch (e) { d = null; }
     if (!d || d.day !== tpeDay() || typeof d.k !== 'object') d = { day: tpeDay(), k: {} };
@@ -63,9 +96,18 @@
   const F = () => window.TwFeatures || null;
   function limitOf(id) { const p = P(); return p && p.lim ? p.lim(id) : Infinity; }
   /* 有設「每日 N 次（N≥1）」而且開關是開的功能（開關關了／上限 0 由 perm.js 鎖）*/
+  /* ★ 2026-10-07 覆蓋稽核：族群觀測（grp.*）的功能清單要等 groups_today.json（features.addGroups）才有 ——
+     perm.js 只有「真的有族群被關」才去抓，只設了族群「每日次數」的話清單永遠是空的、族群頁永遠不計（漏洞）。這裡自己補抓一次。*/
+  let grpAsked = false;
+  function needGrp(ks, Ft) {
+    if (grpAsked || !ks.some((k) => k.startsWith('grp.')) || Ft.inCat('grp').length) return;
+    grpAsked = true;
+    fetch('data/groups_today.json').then((r) => (r.ok ? r.json() : [])).then((d) => { if (Ft.addGroups(Array.isArray(d) ? d : []) > 0) schedule(); }).catch(() => { grpAsked = false; });
+  }
   function limited() {
     const Ft = F(), p = P(); if (!Ft || !p) return [];
     const st = p.state(); const ks = Object.keys(st.lims || {});
+    needGrp(ks, Ft);
     return ks.map((k) => Ft.byId(k)).filter((f) => f && f.kind !== 'limit' && limitOf(f.id) >= 1 && limitOf(f.id) !== Infinity && p.can(f.id));
   }
   const vis = (el) => el.getClientRects().length > 0;
@@ -75,7 +117,8 @@
     if (f.route && !f.route.test(h)) return [];
     if (f.cat === 'grp') {
       const m = /^#industry\/group\/([^/?]+)/.exec(h);
-      return m && decodeURIComponent(m[1]) === f.gid ? q('#gpSec').filter(vis) : [];
+      /* 族群頁現在顯示的是那個族群的剖析圖＋關聯圖（#dgSec／#relSec），#gpSec 是藏著的 —— 只蓋 #gpSec 等於沒蓋（覆蓋稽核 10-07）*/
+      return m && decodeURIComponent(m[1]) === f.gid ? q('#gpSec, #dgSec, #relSec').filter(vis) : [];
     }
     const out = [];
     for (const [sel, when] of f.veil || []) {
@@ -90,6 +133,10 @@
   async function hit(id, key) {
     if (!loggedIn() || !T()) return;
     const j = await T().call('/v1/quota/hit', key ? { k: id, key } : { k: id });
+    /* 伺服器說「這個單位超過上限、沒記」（account-api quota-v2：quota.all 與逐功能上限同一套規則）→ 本機也拿掉，下一輪就會蓋卡 */
+    if (j && j._s === 200 && j.over && key) {
+      const d = load(); d.k[id] = (d.k[id] || []).filter((x) => x !== key); save(d); schedule();
+    }
     if (j && j._s === 200 && Array.isArray(j.keys)) {
       const d = load(); const set = new Set(d.k[id] || []); let grew = false;
       j.keys.forEach((x) => { if (!set.has(x)) { set.add(x); grew = true; } });
@@ -108,6 +155,7 @@
       const ks = (d.k[f.id] || []).slice(0, 50);
       if (ks.length) ks.forEach((k) => hit(f.id, k)); else hit(f.id, null);
     });
+    if (allLim() !== Infinity) { const ks = (d.k[ALL] || []).slice(0, 50); if (ks.length) ks.forEach((k) => hit(ALL, k)); else hit(ALL, null); }
   }
 
   // ------------------------------------------------------------------ 判定＋遮罩
@@ -119,24 +167,50 @@
     const d = load(); let changed = false;
     const want = new Map();
     if (!h.startsWith('#admin') && !h.startsWith('#pricing')) {
-      const key = pageKey(h);
       for (const f of fs) {
         const els = targets(f, h); if (!els.length) continue;
+        const key = unitKey(f, h);
         const lim = limitOf(f.id);
         const set = new Set(d.k[f.id] || []);
         if (set.has(key)) continue;
         if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; changed = true; hit(f.id, key); continue; }
         els.forEach((el) => { if (!want.has(el)) want.set(el, { msg: `今日已用完 ${set.size}/${lim} 次`, f, lim, used: set.size }); });
       }
+      /* ★ 2026-10-07 全站共用每日額度（quota.all＝範本 dq；Andy：「訪客只能預覽3次」＝全站共 3 次，不是每個功能各 3 次）：
+         這一頁有任何「研究頁」功能（features.js 的 metered）在畫面上 → 這一頁算一個單位（pageKey：個股代號／剖析圖／題材／族群／一次造訪），
+         同一天同一單位只算一次；超過 → 這一頁所有研究區塊蓋「今天的研究額度用完了」卡。逐功能上限照樣算，兩者取較嚴（上面那段先擋）。
+         登入者的計數也送 /v1/quota/hit（鍵 quota.all），跨裝置合併；付費資料閘道 data-gw 用同一份 dq 在伺服器端扣。*/
+      const all = allLim();
+      if (all !== Infinity) {
+        const Ft = F(), p = P();
+        const mf = Ft ? Ft.list.filter((f) => f.metered && p && p.can(f.id)) : [];
+        const els = [];
+        mf.forEach((f) => targets(f, h).forEach((el) => { if (!els.includes(el)) els.push(el); }));
+        if (els.length) {
+          const key = pageKey(h);
+          const set = new Set(d.k[ALL] || []);
+          if (!set.has(key)) {
+            if (set.size < all) { set.add(key); d.k[ALL] = [...set]; changed = true; hit(ALL, key); }
+            else els.forEach((el) => { if (!want.has(el)) want.set(el, { all: true, msg: `今日已用完 ${set.size}/${all} 次`, lim: all, used: set.size }); });
+          }
+        }
+      }
     }
     if (changed) save(d);
     paint(want);
-    watch(fs.length > 0);
+    watch(fs.length > 0 || allLim() !== Infinity);
   }
+  const ALL = 'quota.all';
+  const allLim = () => limitOf(ALL);
   /* ★ 2026-10-07：遮罩改用 site/qcard.js 的共用卡片（跟「此功能需開通」、全站每日額度同一款，置中）。
      外層仍是 .qlkov、按鈕仍是 .qlkgo（連 #pricing/need/<功能鍵>），說明裡保留「今日已用完 N/N 次」「升級方案可增加」。*/
   function opts(w) {
     const QC = window.TwQCard;
+    if (w.all && QC) {
+      const st = P() ? P().state() : {};
+      const plan = st.who === 'guest' ? 'guest' : (st.plan || 'free');
+      return Object.assign(QC.quotaOpts({ used: w.used, limit: w.lim, plan }), { btnCls: 'qlkgo' });
+    }
     const lk = QC ? QC.lockOpts(w.f, 'member') : null;
     const n = w.used == null ? w.lim : w.used;
     return { kind: 'quota', kick: '每日瀏覽次數', title: `今天的「${w.f.name}」次數用完了`,
@@ -161,7 +235,9 @@
   function schedule() { if (!S.raf) S.raf = setTimeout(evaluate, 200); }
   /* 有上限才觀察 DOM：區塊晚一點才畫出來（個股頁、族群頁都是非同步）也要算到；遮罩被重畫沖掉時補回來 */
   function watch(on) {
-    if (on && !S.obs && window.MutationObserver) { S.obs = new MutationObserver(schedule); S.obs.observe(document.body, { subtree: true, childList: true }); }
+    /* ★ 2026-10-07 覆蓋稽核：手機的總覽／資金流向是「分段」切換（只換 class／hidden，不增刪節點）—— 只看 childList 的話，
+       切到下一段那張圖不會被重新判定（看得到、不扣次）。改成連 class／hidden／data-tab 也看（跟 perm.js 一樣）。 */
+    if (on && !S.obs && window.MutationObserver) { S.obs = new MutationObserver(schedule); S.obs.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden', 'data-tab'] }); }
     else if (!on && S.obs) { S.obs.disconnect(); S.obs = null; }
   }
   function css() {
@@ -181,5 +257,28 @@
   window.addEventListener('tw:account', () => { sync(); schedule(); });
   function boot() { schedule(); sync(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  window.TwQuota = { state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey };
+  /* ★ 2026-10-07 覆蓋稽核：只有「工具鈕」沒有畫面區塊的功能（指標設定、畫線、四週期同看、主題外觀）以前完全不計 —— 漏洞。
+     改成：按工具鈕＝用一次（單位同上：個股頁＝那一檔、其他＝這次造訪）；今天的次數用完 → 攔下這一下、跳出同款卡片（TwQCard.modal）。
+     捕獲階段攔（比各工具自己的 onclick 早），不必改 industry.js／theme4.js。*/
+  document.addEventListener('click', (e) => {
+    const fs = limited(); if (!fs.length) return;
+    const h = location.hash || '';
+    if (h.startsWith('#admin') || h.startsWith('#pricing')) return;
+    for (const f of fs) {
+      for (const sel of f.block || []) {
+        let b = null; try { b = e.target && e.target.closest && e.target.closest(sel); } catch (er) { b = null; }
+        if (!b) continue;
+        if (f.route && !f.route.test(h)) continue;
+        const d = load(), lim = limitOf(f.id), key = unitKey(f, h);
+        const set = new Set(d.k[f.id] || []);
+        if (set.has(key)) return;
+        if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; save(d); hit(f.id, key); return; }
+        e.preventDefault(); e.stopImmediatePropagation();
+        const QC = window.TwQCard;
+        if (QC && QC.modal) QC.modal(opts({ f, lim, used: set.size }));
+        return;
+      }
+    }
+  }, true);
+  window.TwQuota = { state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)) };
 })();

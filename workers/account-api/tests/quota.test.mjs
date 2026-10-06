@@ -104,3 +104,34 @@ test('自選上限（watch-v2）：免費 1 頁／10 檔、Plus 5 頁／50 檔�
   const paid = (await pj(hub, '/v1/plans/public', {})).j.plans.find((p) => p.id === 'paid');
   assert.equal(paid.feats['watch.tabs'], 5); assert.equal(paid.feats['watch.size'], 50);
 });
+
+test('quota-v2：/v1/quota/hit 照 quota.all（dq）與逐功能上限擋 —— 同單位重看不算、新單位滿了回 over 不記；管理者不限', async () => {
+  const { hub } = makeHub({ ...env(), SEED_PLANS: 'plus,pro' });
+  const andy = await login(hub, 'andy@example.com');
+  const mem = await login(hub, 'mem@example.com');
+  await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'free', name: '免費會員（預設）', feats: {}, dq: 2, lims: { 'stock.page': 1 } });
+  const hit = (t, k, key) => pj(hub, '/v1/quota/hit', { t, k, key });
+  assert.equal((await hit(mem, 'quota.all', '2330')).j.over, undefined);
+  assert.equal((await hit(mem, 'quota.all', '2317')).j.over, undefined);
+  assert.equal((await hit(mem, 'quota.all', '2330')).j.over, undefined, '同一單位重看不算');
+  const r = await hit(mem, 'quota.all', '2454');
+  assert.equal(r.j.over, true, '第 3 個新單位 over'); assert.deepEqual(r.j.keys.sort(), ['2317', '2330']);
+  assert.equal((await hit(mem, 'stock.page', '2330')).j.over, undefined);
+  assert.equal((await hit(mem, 'stock.page', '2317')).j.over, true, '逐功能上限 1');
+  for (const c of ['1101', '1102', '1103']) assert.equal((await hit(andy, 'quota.all', c)).j.over, undefined, '管理者不限');
+});
+
+test('plan-meta：plans/put 帶 meta（badge、tagline、fit、highlights、年繳價）→ plans/public 攤平；壞的 400；沒帶維持原值', async () => {
+  const { hub } = makeHub({ ...env(), SEED_PLANS: 'plus,pro' });
+  const andy = await login(hub, 'andy@example.com');
+  const meta = { badge: '最受歡迎', tagline: '每天主動研究', fit_title: '適合每天研究', fit_desc: '說明', highlights: ['每日 50 次', '3D 剖析圖'], price_year: 2490 };
+  assert.equal((await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'plus', name: 'Plus', feats: {}, price: 249, meta })).s, 200);
+  let p = (await pj(hub, '/v1/plans/public', {})).j.plans.find((x) => x.id === 'plus');
+  assert.equal(p.badge, '最受歡迎'); assert.deepEqual(p.highlights, ['每日 50 次', '3D 剖析圖']); assert.equal(p.price_year, 2490); assert.equal(p.price, 249);
+  for (const bad of [{ badge: 'x'.repeat(13) }, { highlights: 'a' }, { highlights: ['<b>'] }, { price_year: -1 }, ['x']]) {
+    assert.equal((await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'plus', name: 'Plus', feats: {}, meta: bad })).s, 400, JSON.stringify(bad));
+  }
+  await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'plus', name: 'Plus', feats: { 'ov.heat': false } });
+  p = (await pj(hub, '/v1/plans/public', {})).j.plans.find((x) => x.id === 'plus');
+  assert.equal(p.badge, '最受歡迎', '沒帶 meta＝維持原值');
+});

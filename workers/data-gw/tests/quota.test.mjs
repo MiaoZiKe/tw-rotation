@@ -19,13 +19,14 @@ const PEOPLE = {
   'v1.uPro.9.1.s': { user: { email: 'pro@example.com', admin: false }, plan: 'pro', feats: {} },
   'v1.uAdm.9.1.s': { user: { email: 'andy@example.com', admin: true }, plan: 'plus', feats: {}, dq: 50 },
   'v1.uTiny.9.1.s': { user: { email: 'tiny@example.com', admin: false }, plan: 'plus', feats: {}, dq: 2 },
+  'v1.uLim.9.1.s': { user: { email: 'lim@example.com', admin: false }, plan: 'free', feats: {}, lims: { 'stock.page': 2, 'stock.k_hour': 1, 'stock.k_day': 0 } },
 };
 const ACCOUNT = { async fetch(r) {
   const b = JSON.parse(await r.text()), path = new URL(r.url).pathname, who = PEOPLE[b.t];
   if (path === '/v1/perm/me' && !b.t) return Response.json({ who: 'guest', plan: 'guest', feats: {} });
   if (!who) return Response.json({ error: 'auth' }, { status: 401 });
   if (path === '/v1/me') return Response.json({ user: who.user });
-  const j = { who: 'member', plan: who.plan, feats: who.feats };
+  const j = { who: 'member', plan: who.plan, feats: who.feats, lims: who.lims || {} };
   if (who.dq !== undefined) j.dq = who.dq;
   return Response.json(j);
 } };
@@ -45,11 +46,11 @@ async function sess(gw, t) {
 }
 
 test('單位：個股頁的 stock／m60／hist 同一個單位；同一分頁的多支檔同一個單位；免費檔不算', () => {
-  assert.equal(unitOf('stock/2330'), 's:2330');
-  assert.equal(unitOf('m60/2330'), 's:2330');
-  assert.equal(unitOf('hist/2330/p7'), 's:2330');
-  assert.equal(unitOf('flow_v3'), 'p:flow.rot');
-  assert.equal(unitOf('rrg_members'), 'p:flow.rot');
+  assert.equal(unitOf('stock/2330'), '2330');
+  assert.equal(unitOf('m60/2330'), '2330');
+  assert.equal(unitOf('hist/2330/p7'), '2330');
+  assert.equal(unitOf('flow_v3'), 'p.flow.rot');
+  assert.equal(unitOf('rrg_members'), 'p.flow.rot');
   assert.equal(unitOf('meta'), null);
   assert.equal(unitOf('stocks'), null);
 });
@@ -111,4 +112,21 @@ test('Pro（範本沒有額度）與管理者不限：60 個單位全部放行�
     for (const c of CODES) { last = await get(gw, `stock/${c}`, s.tok); assert.equal(last.status, 200, `${t} ${c}`); }
     assert.equal(last.headers.get('x-quota'), null);
   }
+});
+
+test('功能各自的每日次數（lims）：個股頁 2 檔、1H 1 檔、日 K 0＝不能看；單位＝股票代號（跟前端 quota.js 同一組字串）', async () => {
+  const gw = setup();
+  const s = await sess(gw, 'v1.uLim.9.1.s');
+  assert.equal((await get(gw, 'stock/1101', s.tok)).status, 200);
+  assert.equal((await get(gw, 'stock/1101', s.tok)).status, 200, '同一檔重看');
+  assert.equal((await get(gw, 'stock/1102', s.tok)).status, 200, '第 2 檔');
+  let r = await get(gw, 'stock/1103', s.tok);
+  assert.equal(r.status, 429); let j = await r.json();
+  assert.equal(j.feat, 'stock.page'); assert.equal(j.limit, 2);
+  assert.equal((await get(gw, 'm60/1101', s.tok)).status, 200, '1H 第 1 檔（看過的個股）');
+  r = await get(gw, 'm60/1102', s.tok);
+  assert.equal(r.status, 429); j = await r.json(); assert.equal(j.feat, 'stock.k_hour');
+  r = await get(gw, 'hist/1101/p0', s.tok);
+  assert.equal(r.status, 403, '日 K 上限 0＝不能看'); assert.equal((await r.json()).error, 'plan');
+  assert.equal((await get(gw, 'flow_v3', s.tok)).status, 200, '沒有對象的付費檔不受功能次數影響（伺服器分不出單位，前端計數）');
 });

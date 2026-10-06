@@ -87,8 +87,8 @@
         /* 額度用完：{error:'quota', used, limit, reset, plan} → 發 tw:quota，site/qcard.js 把「今天的研究額度用完了」卡片蓋在那個區塊上 */
         const j = await r.json().catch(() => null);
         if (j && j.error === 'quota') {
-          setQuota(j);
-          window.dispatchEvent(new CustomEvent('tw:quota', { detail: { name, used: j.used, limit: j.limit, reset: j.reset, plan: j.plan || (sess && sess.plan) || '' } }));
+          if (!j.feat) setQuota(j);   // feat＝某個功能自己的每日次數（不是全站額度）
+          window.dispatchEvent(new CustomEvent('tw:quota', { detail: { name, feat: j.feat || '', used: j.used, limit: j.limit, reset: j.reset, plan: j.plan || (sess && sess.plan) || '' } }));
         }
         const e = new Error('429'); e.status = 429; e.quota = !!(j && j.error === 'quota'); throw e;
       }

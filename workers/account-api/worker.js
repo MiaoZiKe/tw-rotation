@@ -1828,3 +1828,94 @@ Hub.prototype.cleanFeats = function (f) {
   return out;
 };
 /* ============================================================================ 自選上限區塊結束 */
+
+/* ============================================================================ 每日次數 quota-v2 區塊（2026-10-07，docs/quota_coverage.md）
+   /v1/quota/hit 原本只記不擋（前端自己數）。改成跟前端 site/quota.js、付費資料閘道 data-gw **同一套規則**：
+     · 鍵 'quota.all'（全站共用每日額度）＝範本的 dq；其他鍵＝範本 lims 裡那個功能的每日次數
+     · 同一天同一個單位只算一次（已經記過的照樣回 200，不算超過）
+     · 新單位而且今天已經用滿 → 不記，回 { over: true }（前端看到 over 就把那個單位拿掉、蓋卡）
+   ★ 只包一層 prototype（subRoutes 換成新函式，舊的那支照樣呼叫），既有函式一行不動。
+   ============================================================================ */
+const qv2OrigHit = Hub.prototype.subRoutes['/v1/quota/hit'];
+Hub.prototype.subRoutes['/v1/quota/hit'] = async function (req, b) {
+  const k = String((b && b.k) || ''), key = String((b && b.key) || '');
+  const v = b && b.t ? await this.verify(b.t) : null;
+  if (v && key && /^[0-9A-Za-z_.-]{1,24}$/.test(key) && /^[a-z][a-z0-9_.]{1,39}$/.test(k) && !this.isAdmin(v.user)) {
+    this.subInit();
+    const e = this.effective(String(v.user.email || '').toLowerCase());
+    const plan = e.expired ? 'free' : e.plan;
+    const lim = k === 'quota.all' ? this.dqOf(plan) : (() => { const n = this.v3Lims(plan)[k]; return Number.isInteger(n) ? n : null; })();
+    if (Number.isInteger(lim)) {
+      const day = tpeDay(this.now());
+      const had = this.q('SELECT 1 FROM quota_hits WHERE uid = ? AND day = ? AND k = ? AND key = ?', v.user.uid, day, k, key).length > 0;
+      const n = this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', v.user.uid, day, k)[0].c;
+      if (!had && n >= lim) {
+        const keys = this.q('SELECT key FROM quota_hits WHERE uid = ? AND day = ? AND k = ? LIMIT 500', v.user.uid, day, k).map((r) => r.key);
+        return this.json(req, { day, k, n: keys.length, keys, over: true, limit: lim });
+      }
+    }
+  }
+  return qv2OrigHit.call(this, req, b);
+};
+/* ============================================================================ 每日次數 quota-v2 區塊結束 */
+
+/* ============================================================================ 方案介紹欄位 plan-meta 區塊（2026-10-07，docs/plan_tiers_1007.md）
+   訂閱頁（另一條分支 claude/pricing-v2 重做中）要讀：badge（「最受歡迎」）、tagline、fit_title、fit_desc、highlights（重點條列）、price_year（年繳價）。
+   存在 plans.meta（JSON）；plans/put 帶 meta 就整份換掉（null＝清空）、沒帶＝維持原值；plan()、plans/public 攤平成同名欄位。
+   #admin/perm 的「套用建議方案」一鍵寫入（site/plan_presets.js）。字數都有上限，壞的整個請求 400（不存半套）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype。
+   ============================================================================ */
+const META_LIM = { badge: 12, tagline: 60, fit_title: 30, fit_desc: 240 };
+export function cleanPlanMeta(m) {
+  if (m == null) return {};
+  if (typeof m !== 'object' || Array.isArray(m)) return null;
+  const out = {};
+  for (const [k, n] of Object.entries(META_LIM)) {
+    const v = m[k];
+    if (v == null || v === '') continue;
+    if (typeof v !== 'string' || v.length > n || /[<>\u0000-\u001f]/.test(v)) return null;
+    out[k] = v;
+  }
+  if (m.highlights != null) {
+    if (!Array.isArray(m.highlights) || m.highlights.length > 8) return null;
+    const hs = [];
+    for (const h of m.highlights) { if (typeof h !== 'string' || !h || h.length > 40 || /[<>\u0000-\u001f]/.test(h)) return null; hs.push(h); }
+    out.highlights = hs;
+  }
+  if (m.price_year != null) {
+    if (!Number.isInteger(m.price_year) || m.price_year < 0 || m.price_year > 9999999) return null;
+    out.price_year = m.price_year;
+  }
+  return out;
+}
+Hub.prototype.metaInit = function () {
+  if (this._metaOk) return;
+  this.dqInit();
+  if (!this.q('PRAGMA table_info(plans)').some((c) => c.name === 'meta')) this.q("ALTER TABLE plans ADD COLUMN meta TEXT DEFAULT '{}'");
+  this._metaOk = true;
+};
+Hub.prototype.metaOf = function (id) {
+  this.metaInit();
+  const r = this.q('SELECT meta FROM plans WHERE id = ?', id)[0];
+  try { return r ? JSON.parse(r.meta || '{}') || {} : {}; } catch (e) { return {}; }
+};
+const metaFlat = (m) => ({ badge: m.badge || null, tagline: m.tagline || null, fit_title: m.fit_title || null, fit_desc: m.fit_desc || null,
+  highlights: Array.isArray(m.highlights) ? m.highlights : [], ...(Number.isInteger(m.price_year) ? { price_year: m.price_year } : {}) });
+const metaOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) { const p = metaOrigPlan.call(this, id); if (p) Object.assign(p, metaFlat(this.metaOf(id))); return p; };
+const metaOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return metaOrigPlanRows.call(this).map((p) => ({ ...p, ...metaFlat(this.metaOf(p.id)) })); };
+const metaOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.metaInit();
+  let meta;
+  if (b && b.meta !== undefined && b.del !== true) { meta = cleanPlanMeta(b.meta); if (!meta) return this.json(req, { error: 'bad_meta' }, 400); }
+  const res = await metaOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || meta === undefined) return res;
+  this.q('UPDATE plans SET meta = ? WHERE id = ?', JSON.stringify(meta), String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 匯出／還原前先把每日額度與介紹欄位補齊（兩邊欄位才對得上，export.test 的「匯出→匯入→再匯出完全一樣」）*/
+const metaOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { metaOrigExpInit.call(this); this.dqInit(); this.metaInit(); };
+/* ============================================================================ plan-meta 區塊結束 */
