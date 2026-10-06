@@ -69,6 +69,16 @@ try {
     if ($state.backup_alerted) { Send-OpsNotice '備份已恢復' $msg | Out-Null }
     $state | Add-Member -NotePropertyName backup_alerted -NotePropertyValue $false -Force
     Save-OpsState $state
+    # 第二份異地備份：有放 rclone.exe 並設好 r2 遠端才跑（README「第二份異地備份」B）
+    $rc = Join-Path $script:OpsDir 'rclone.exe'
+    if (Test-Path $rc) {
+        $ErrorActionPreference = 'Continue'
+        & $rc sync $root 'r2:tw-backup' --fast-list 2>&1 | Out-Null
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
+        if ($code -ne 0) { throw ('rclone 同步到 R2 失敗，結束碼 ' + $code) }
+        Write-OpsLog '備份：已同步到 Cloudflare R2'
+    }
     Write-Host $msg
 } catch {
     $err = $_.Exception.Message

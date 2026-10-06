@@ -105,10 +105,51 @@ powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\tw-ops\uninstall.ps1
 - 每天的快照記的是「那天 22:00 GitHub 上每一條分支指到哪裡」。就算之後 GitHub 上的歷史被覆寫或刪掉，筆電這份 14 天內都還在。
   快照共用同一份檔案，14 份不會佔 14 倍空間（大約就是整個 repo 的大小，加上每天新增的資料）。
 
+## 第二份異地備份（雲端，二選一）
+
+筆電一份不夠：筆電壞掉或被偷就一起沒了。再放一份到雲端，兩種做法：
+
+| | A. Google Drive 桌面版 | B. Cloudflare R2 |
+|---|---|---|
+| 費用 | 免費 15 GB（跟 Gmail 共用） | 免費額度每月 10 GB 儲存、100 萬次寫入、1,000 萬次讀取，**下載不收流量費**；超過每 GB 每月 0.015 美元（[官方價目](https://developers.cloudflare.com/r2/pricing)，2026-10-06 以 WebSearch 摘要查證） |
+| 要裝什麼 | Google Drive 桌面版（官方，點兩下安裝） | rclone（一個 exe，免安裝） |
+| 設定難度 | 最簡單：把資料夾加進同步就好 | 要到 Cloudflare 後台開 bucket、建一組 API 金鑰 |
+| 缺點 | git 內部小檔很多，第一次同步慢 | 多一組金鑰要保管 |
+| 建議 | **先用這個** | 資料超過 15 GB 或想跟 Google 帳號分開時再換 |
+
+**A. Google Drive 桌面版**
+1. 下載安裝 <https://www.google.com/drive/download/>，用你的 Google 帳號登入。
+2. 系統匣的 Drive 圖示 → 齒輪 →「偏好設定」→「我的電腦」→「新增資料夾」→ 選 `D:\tw-backup` →「與 Google 雲端硬碟同步」。
+3. 等第一次同步完。之後每天 22:00 備份完，Drive 會自己把變動的部分傳上去。
+
+**B. Cloudflare R2（用 rclone）**
+1. Cloudflare 後台 → R2 → 建立 bucket，名稱 `tw-backup` →「管理 API 權杖」→ 建立權杖，權限只給這個 bucket 的物件讀寫。記下 Access Key ID、Secret、端點網址。
+2. 下載 rclone：<https://rclone.org/downloads/>，把 `rclone.exe` 放到 `%LOCALAPPDATA%\tw-ops\rclone.exe`。
+3. PowerShell 跑 `& "$env:LOCALAPPDATA\tw-ops\rclone.exe" config`，新增一個叫 `r2` 的遠端，類型選 `s3`、供應商選 `Cloudflare`，貼上第 1 步的三樣東西。
+   金鑰只存在筆電上 rclone 自己的設定檔（`%APPDATA%\rclone\rclone.conf`），**不要放進 repo**；config 時可以設設定檔密碼加密它。
+4. 之後 `backup.ps1` 每天成功後會自動跑 `rclone sync D:\tw-backup r2:tw-backup`（偵測到 `rclone.exe` 才跑，沒有就略過）。
+
+## 萬一資料不見：還原步驟
+
+**情況 1：GitHub 上的 repo 不見了，或歷史被覆寫**
+1. 筆電 PowerShell：`git clone D:\tw-backup\repo.git $env:USERPROFILE\tw-restore`（筆電壞了就先從 Google Drive／R2 把整個 `tw-backup` 資料夾抓回來）。
+2. 要回到某一天：`git -C D:\tw-backup\repo.git for-each-ref refs/snapshots`，找那天 `heads/main` 的 commit 編號，進 `tw-restore` 後 `git checkout -b restore 編號`。
+3. 在 GitHub 建新的空 repo（原 repo 還在就用原 repo），`git push 新網址 restore:main`。
+   ⚠ 原 repo 還在、只是歷史壞了時，**先找 Claude 確認**再推，避免把好的部分也蓋掉。
+4. repo 的 Settings → Secrets 重新設 `FINMIND_TOKEN`、`FRED_API_KEY`、`ACCOUNT_API_URL` 等（Secrets 不在 git 裡，備份沒有），Settings → Pages 重新開啟。
+5. Actions 跑一次 `pages.yml`，網站就回來了；資料湖（`data/`）在 git 裡，會一起回來。
+
+**情況 2：Cloudflare 的會員資料不見了**
+- 目前**還原不了**：Worker 沒有匯出 API，備份裡沒有會員資料（規格見 `docs/admin_export_spec.md`，等實作）。
+- 實作之後：重新部署 Worker（`workers/README.md`）→ 用 `/v1/admin/import` 匯入最近一份 `members-YYYYMMDD.json`（只准匯入到空的資料庫）。
+- 在那之前：會員重新用 Google 登入會重建帳號，自選清單若瀏覽器裡還有會再同步上去；方案與到期日要人工補。
+
+**演練**：每個月做一次情況 1 的第 1～2 步（clone 到別的資料夾看檔案在不在，不推），確認備份真的能用。
+
 ## 已知限制與缺口
 
 1. **會員資料沒有備份。** 會員帳號、自選清單、權限設定存在 Cloudflare 的 Durable Object 裡，會員 Worker 目前**沒有「管理者匯出」API**。
-   這次刻意不為了備份去改 Worker（改 Worker 是會員系統的高風險改動），先列為待辦：要做的話是新增一支 `/v1/admin/export`（管理者權杖才能叫），再讓 `backup.ps1` 每天叫一次存成 JSON。
+   這次刻意不為了備份去改 Worker（改 Worker 是會員系統的高風險改動），規格寫在 `docs/admin_export_spec.md`，等另外派人實作。
 2. **筆電要開著、而且有人登入**，排程才會跑（為了不需要系統管理員權限，用的是「只有使用者登入時才執行」）。闔上螢幕進入睡眠就不會檢查；醒來後會補跑一次。
 3. **國定假日會誤報一次**「每日資料管線」：週末有放寬到 74 小時，但連假（例如春節）沒有交易日資料，會被當成太久沒更新。看到時確認是不是放假即可。
 4. 監控從筆電看出去，**筆電自己的網路斷了也會報「首頁打不開」**。連續好幾項同時失敗時，先看筆電有沒有網路。
