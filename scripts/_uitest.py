@@ -16676,8 +16676,12 @@ def t_mobile_v3(b, base, code):
         m.wait_for_timeout(300)
         m.tap("#mTabMore", timeout=8000)
         m.wait_for_timeout(300)
-        mo = m.evaluate("() => { const s = document.getElementById('mSheet'); return { open: !s.hidden, kind: s.dataset.kind, ver: (s.querySelector('.mver') || {}).textContent || '', rows: s.querySelectorAll('.mrow').length }; }")
-        ok(f"{T} 「更多」抽屜：市場明細／週期統計／交付清單／今日事件／主題 五列＋版號", mo["open"] and mo["rows"] == 5 and "版號" in mo["ver"], mo)
+        mo = m.evaluate("() => { const s = document.getElementById('mSheet'); return { open: !s.hidden, kind: s.dataset.kind, ver: (s.querySelector('.mver') || {}).textContent || '', rows: s.querySelectorAll('.mrow').length, ms: [...s.querySelectorAll('.mrow')].map(r => r.dataset.m) }; }")
+        # ★ 2026-10-06（既有紅字清理）改前→改後：五列 → 七列（市場明細／週期統計／ETF／財經日曆／自選／今日事件／主題）。
+        #   為什麼：ETF、財經日曆兩顆頂層分頁收進「更多」（不收的話底部五欄擠成兩列、「更多」掉到畫面外，見 mobile3.js MORE_VIEWS 同日註解）；
+        #   交付清單 09-28 起換成自選（舊標題沒跟著改）。比對每一列是誰，不只比列數。訪客沒有「管理區」那列。
+        ok(f"{T} 「更多」抽屜：市場明細／週期統計／ETF／財經日曆／自選／今日事件／主題 七列＋版號",
+           mo["open"] and mo["ms"] == ["market", "season", "etf", "earnings", "watch", "events", "theme"] and "版號" in mo["ver"], mo)
         th0 = m.evaluate("() => document.documentElement.dataset.theme")
         m.tap('#mSheet .mrow[data-m="theme"]'); m.wait_for_timeout(800)
         th1 = m.evaluate("() => document.documentElement.dataset.theme")
