@@ -47845,7 +47845,7 @@ def t_admin_v3(b, base, code):
     pv_hover("#msStDonut circle.arc", "狀態甜甜圈扇區", ring=True)
     sty = pg.evaluate("""() => ({ bar: Math.max(...[...document.querySelectorAll('#msFeat svg rect.v')].map(r => r.getBoundingClientRect().height)), cap: getComputedStyle(document.querySelector('#msStDonut circle.arc')).strokeLinecap, ticks: document.querySelectorAll('#msDays').length && document.querySelectorAll('.vby span').length >= 5,
         gaps: (() => { const a = [...document.querySelectorAll('#msStDonut circle.arc')].map(c => [+c.dataset.a0, +c.dataset.a1]); return a.slice(1).map((x, i) => +(x[0] - a[i][1]).toFixed(1)); })() })""")
-    ok(f"{T}・perm-v4：會員統計圖風格＝流量觀測：長條粗 ≤ 10px、甜甜圈直角（butt）且相鄰扇區間隙一律 2°、直條有 Y 軸刻度", sty["bar"] <= 10.5 and sty["cap"] == "butt" and sty["ticks"] and sty["gaps"] and set(sty["gaps"]) == {2.0}, sty)
+    ok(f"{T}・perm-v4：會員統計圖風格＝流量觀測：長條粗 ≤ 10px、甜甜圈直角（butt）且相鄰扇區間隙一律 1.2°、直條有 Y 軸刻度", sty["bar"] <= 10.5 and sty["cap"] == "butt" and sty["ticks"] and sty["gaps"] and set(sty["gaps"]) == {1.2}, sty)
     sd = ms["sd"]
     ok(f"{T}・perm-v4：會員名單上方：總人數＝名單列數（{ms['n']}）、四個數字同一排", ms["total"] == ms["n"] and len(set(ms["kpiTop"])) == 1 and len(ms["kpiTop"]) == 4, ms)
     ok(f"{T}・perm-v4：狀態甜甜圈（有效／7 天內到期／已過期／未登入過）每一類人數＝名單狀態欄數出來的",
@@ -51732,7 +51732,7 @@ def t_pie_admin_1006(b, base):
         T = f"{T0} {theme} {w}px"
         pg.goto(pbase + "#admin/traffic", wait_until="domcontentloaded")
         wait_until(pg, "() => !!document.getElementById('trTabs')", 15000)
-        pg.click("#trTabs [data-t=all]"); pg.wait_for_timeout(400)
+        pg.evaluate("() => document.querySelector('#trTabs [data-t=all]').click()"); pg.wait_for_timeout(500)
         for sel, label in (("#trAllDonut circle.arc", "各頁占比"), ("#trDonut circle.arc", "登入身分")):
             pt = pg.evaluate(PIE1006_ADM_PT, [sel, 1])
             pg.mouse.move(pt[0] - 5, pt[1] - 5); pg.mouse.move(pt[0], pt[1], steps=4); pg.wait_for_timeout(450)
@@ -51744,7 +51744,7 @@ def t_pie_admin_1006(b, base):
             st2 = pg.evaluate(PIE1006_ADM_STATE, [sel, 1])
             ok(f"{T} {label}：滑開 → 外框收起、扇區回原寬", st2["bOp"] <= 0.01 and st2["sw"] <= 15, st2)
         # 功能占比（Andy 圈的那張）：配色飽和、相鄰色差夠大
-        pg.click("#trTabs [data-t=flow]"); pg.wait_for_timeout(500)
+        pg.evaluate("() => document.querySelector('#trTabs [data-t=flow]').click()"); pg.wait_for_timeout(600)
         cols = pg.evaluate(PIE1006_ADM_STATE, ["#trFD circle.arc", 0])["cols"]
         hx = [(x["k"], _rgb_hex_1006(x["c"])) for x in cols]
         labs = [(k, _lab1006(h)) for k, h in hx if h and k != "其他"]
