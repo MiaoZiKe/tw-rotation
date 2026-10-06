@@ -40480,7 +40480,9 @@ def t_legal(b, base):
     ok("[關] 頁尾常駐一行短版免責聲明（預設開啟）",
        ft and "不是證券投資顧問事業" in ft["t"] and "不提供投資建議" in ft["t"] and ft["fs"] >= 12, ft)
     ok("[關] 頁尾是 main 的最後一個元素、不跑出內容欄", ft and ft["last"] and ft["inMain"], ft)
-    ok("[關] 頁尾的服務條款／隱私權政策連結標「草稿」", ft and ft["t"].count("草稿") >= 2, ft and ft["t"])
+    ok("[關] 頁尾連結是「免責聲明｜使用條款｜隱私權政策」、不再標「草稿」、沒有「交付清單」（2026-10-07）",
+       ft and all(x in ft["t"] for x in ("免責聲明", "使用條款", "隱私權政策")) and "草稿" not in ft["t"]
+       and "交付清單" not in ft["t"] and "服務條款" not in ft["t"], ft and ft["t"])
     ok("[關] 頁尾與法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
     # ★ 2026-09-24 Andy：「這完全不能公開」—— 頁尾曾經有一個「原始碼與演算法」連到 GitHub repo。
     #   全站任何地方都不准出現連到 GitHub 的連結、也不准出現 repo 網址文字。
@@ -40506,10 +40508,10 @@ def t_legal(b, base):
           heads: items.map(li => (li.querySelector('b') || {}).textContent || ''),
           ftxt: f ? f.innerText : '', fh: f ? Math.round(f.offsetHeight) : 0 }; }"""
     fd0 = pg.evaluate(FD)
-    ok("[頁尾] 第一行是「© 2026 台股資金輪動儀表板 · 保留所有權利」",
-       fd0["copy"].startswith("© 2026 ") and "台股資金輪動儀表板" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
-    ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明全文／服務條款／隱私權政策／平台導覽）",
-       all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明全文", "服務條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
+    ok("[頁尾] 第一行是「© 2026 本網站 · 保留所有權利」（名稱未定，走 SITE_NAME）",
+       fd0["copy"].startswith("© 2026 ") and "本網站" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
+    ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明／使用條款／隱私權政策／平台導覽）",
+       all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明", "使用條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
     ok("[頁尾] 詳細規範預設收起（畫面上只留必要的）：區塊不佔高度、按鈕寫「顯示詳細規範」、aria-expanded=false",
        not fd0["shown"] and fd0["dh"] == 0 and fd0["label"] == "顯示詳細規範" and fd0["exp"] == "false"
        and _lg_ls(pg, "tw.footDetail") is None, fd0)
@@ -40548,10 +40550,11 @@ def t_legal(b, base):
         ov: document.getElementById('v-overview').classList.contains('on'), tabs: document.querySelectorAll('.tab.on').length,
         h1: (document.querySelector('#lgDoc h1') || {}).textContent || '', draft: !!document.getElementById('lgDraft'),
         blanks: document.querySelectorAll('#lgDoc .lgblank').length, sy: scrollY })""")
-    ok("[關] 點頁尾「服務條款」→ 真的換到服務條款頁、總覽收起來、頂欄分頁沒有一顆亮",
-       r["hash"] == "#terms" and r["legal"] and not r["ov"] and r["tabs"] == 0 and "服務條款" in r["h1"], r)
-    ok("[關] 服務條款頂端掛「草稿，尚未生效」，空格用【】標出來",
-       r["draft"] and r["blanks"] >= 3 and "草稿，尚未生效" in pg.inner_text("#lgDraft"), r)
+    ok("[關] 點頁尾「使用條款」→ 真的換到使用條款頁、總覽收起來、頂欄分頁沒有一顆亮",
+       r["hash"] == "#terms" and r["legal"] and not r["ov"] and r["tabs"] == 0 and "使用條款" in r["h1"], r)
+    ok("[關] 使用條款不掛草稿、沒有【】空格、頂端寫「最後更新日期：2026-10-07」（2026-10-07 正式文字）",
+       not r["draft"] and r["blanks"] == 0 and "最後更新日期：2026-10-07" in pg.inner_text("#lgDoc")
+       and "臺灣臺北地方法院" in pg.inner_text("#lgDoc") and "kcq01010909@gmail.com" in pg.inner_text("#lgDoc"), r)
     ok("[關] 進法律頁捲回頁首", r["sy"] == 0, r)
     ok("[關] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
     # 目錄：點第五條 → 捲下去，但網址不變（目錄不能改 hash，不然會被當成未知路由導回總覽）
@@ -40571,10 +40574,10 @@ def t_legal(b, base):
                  top: Math.round(r.top), rad: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth),
                  fw: +cs.fontWeight }; }); }"""
     tb = pg.evaluate(TABS)
-    ok("[分頁] 三顆膠囊（服務條款｜隱私權政策｜免責聲明）排一列、高 34～42、全圓角",
-       [x["t"] for x in tb] == ["服務條款", "隱私權政策", "免責聲明"] and len({x["top"] for x in tb}) == 1
+    ok("[分頁] 三顆膠囊（使用條款｜隱私權政策｜免責聲明）排一列、高 34～42、全圓角",
+       [x["t"] for x in tb] == ["使用條款", "隱私權政策", "免責聲明"] and len({x["top"] for x in tb}) == 1
        and all(34 <= x["h"] <= 42 and x["rad"] >= x["h"] / 2 - 1 for x in tb), tb)
-    ok("[分頁] 目前頁（服務條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
+    ok("[分頁] 目前頁（使用條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
        tb[0]["solid"] and tb[0]["fw"] >= 700 and not tb[1]["solid"] and not tb[2]["solid"]
        and tb[1]["bw"] >= 1 and tb[2]["bw"] >= 1, tb)
     pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(600)
@@ -40584,15 +40587,15 @@ def t_legal(b, base):
        and not tb2[0]["solid"] and not tb2[2]["solid"], tb2)
     r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
                     " t: document.getElementById('lgDoc').innerText })")
-    ok("[關] 切到隱私權政策：標題換了、一樣是草稿、有補上「是否已同意條款存在 localStorage」那一句",
-       "隱私權政策" in r["h1"] and r["draft"] and "是否已同意條款" in r["t"], r["h1"])
+    ok("[關] 切到隱私權政策：標題換了、不掛草稿、寫到 localStorage、在線 7 分鐘刪除、十五日內處理",
+       "隱私權政策" in r["h1"] and not r["draft"] and "localStorage" in r["t"] and "7 分鐘" in r["t"] and "十五日內" in r["t"], r["h1"])
     ok("[關] 隱私權政策沒有列出本站沒有的服務（電子報／付費／流量統計）",
        "訂閱電子報" not in r["t"] and "註冊付費服務" not in r["t"] and "網站流量統計" not in r["t"], "")
     pg.click(".lgtabs a[href='#disclaimer']"); pg.wait_for_timeout(600)
     r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
                     " t: document.getElementById('lgDoc').innerText, blanks: document.querySelectorAll('#lgDoc .lgblank').length })")
-    ok("[關] 免責聲明：沒有空格、不掛草稿標示（版本 A 可以先上），而且沒有任何 GitHub 網址（原始碼不公開）",
-       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github" not in r["t"].lower(), r["h1"])
+    ok("[關] 免責聲明：沒有空格、不掛草稿標示，而且沒有任何 GitHub 網址（原始碼不公開）",
+       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github.com" not in r["t"].lower(), r["h1"])
     # 從法律頁點頂欄回總覽 → 總覽真的回來
     pg.click(".tab[data-view='overview']"); pg.wait_for_timeout(1500)
     ok("[關] 從法律頁按頂欄「總覽」→ 回到總覽", pg.evaluate(
@@ -40706,9 +40709,9 @@ def t_legal(b, base):
     ok("[開] 不同意之後按頂欄「資金流向」→ 這次瀏覽維持在 #leave", pg.evaluate("() => location.hash") == "#leave"
        and not pg.evaluate("() => document.getElementById('v-flow').classList.contains('on')"), pg.evaluate("() => location.hash"))
     pg.click("#lgRead"); pg.wait_for_timeout(600)
-    ok("[開] 「已離開」畫面上「閱讀條款」照樣打得開服務條款（正式版，沒有草稿標示）",
+    ok("[開] 「已離開」畫面上「閱讀條款」照樣打得開使用條款（正式版，沒有草稿標示）",
        pg.evaluate("() => location.hash") == "#terms" and pg.locator("#lgDraft").count() == 0
-       and "驗收用營業人" in pg.inner_text("#lgDoc"), pg.evaluate("() => location.hash"))
+       and "使用條款" in pg.inner_text("#lgDoc"), pg.evaluate("() => location.hash"))
     ok("[開] 在條款頁上橫幅重新出現，讀完可以直接選", pg.locator("#lgBanner").count() == 1)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
     pg.goto(base + "#overview"); pg.wait_for_timeout(1500)
@@ -40771,8 +40774,8 @@ def t_legal(b, base):
                       ("欄位還留著【】", LEGAL_ON.replace("驗收用營業人", "【營業人名稱】"))):
         ctx, pg = _lg_page(b, init=cfg)
         pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1800)
-        ok(f"[{name}] 不啟用：沒有橫幅、條款頁仍掛草稿標示",
-           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgDraft").count() == 1
+        ok(f"[{name}] 不啟用：沒有橫幅、條款頁不掛草稿（2026-10-07 起文字已定稿，只有橫幅受開關控制）",
+           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgDraft").count() == 0
            and not pg.evaluate("() => window.TwLegal.state().active"), pg.evaluate("() => window.TwLegal.state()"))
         ctx.close()
 
